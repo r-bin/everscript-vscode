@@ -201,3 +201,35 @@ portal_activated();
 
 fake_level(0x0007);
 // <- entity.name.function.call.evs
+
+// ============================================================
+// Memory accessors: object[] arg[] script[] time[]
+// ============================================================
+
+object[0x00] = 0x04;
+// <- variable.other.accessor.evs
+
+arg[0x10] = 0d0;
+// <- variable.other.accessor.evs
+
+script[0x9] = 0x200;
+// <- variable.other.accessor.evs
+
+time[0d0]
+// <- variable.other.accessor.evs
+
+// ============================================================
+// Entity references: <IDENTIFIER>
+// ============================================================
+
+<LAST_ENTITY>[HP]
+// <- punctuation.definition.entity-ref.evs
+// ^^^^^^^^^variable.other.entity-ref.evs
+
+<SCRIPT_OWNER>[GENERAL_PURPOSE]
+// <- punctuation.definition.entity-ref.evs
+// ^^^^^^^^^^variable.other.entity-ref.evs
+
+<ACTIVE>[X]
+// <- punctuation.definition.entity-ref.evs
+// ^^^^variable.other.entity-ref.evs

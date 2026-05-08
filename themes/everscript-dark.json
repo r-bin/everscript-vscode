@@ -4,11 +4,177 @@
   "type": "dark",
   "colors": {},
   "tokenColors": [
+
+    // -- P1  Language keywords + built-in constants --- blue #569CD6 ----------
+    // Same tier: if/else/while, fun/map/enum, True/False, BOY/LAST_ENTITY/NORTH
+    // Rationale: all are part of the language itself, not user-defined, not data
     {
-      "name": "Comment",
+      "name": "Control flow keywords (if else while for)",
+      "scope": "keyword.control.evs",
+      "settings": { "foreground": "#569CD6" }
+    },
+    {
+      "name": "Declaration keywords (fun map area group enum val var)",
+      "scope": "keyword.declaration.evs",
+      "settings": { "foreground": "#569CD6" }
+    },
+    {
+      "name": "Boolean literals (True False)",
+      "scope": "constant.language.boolean.evs",
+      "settings": { "foreground": "#569CD6" }
+    },
+    {
+      "name": "Engine constants (BOY DOG LAST_ENTITY NORTH SCRIPT_OWNER ...)",
+      "scope": "variable.language.evs",
+      "settings": { "foreground": "#569CD6" }
+    },
+
+    // -- P2  Types + enum namespaces ----------------- teal #4EC9B0 -----------
+    // Same tier: Byte/Word, FLAG/MEMORY/ADDRESS/CHARACTER
+    // Rationale: both describe categories/namespaces, not individual values
+    {
+      "name": "Type keywords (Byte Word Memory signed)",
+      "scope": "storage.type.evs",
+      "settings": { "foreground": "#4EC9B0" }
+    },
+    {
+      "name": "Enum namespace (FLAG MEMORY ADDRESS CHARACTER ...)",
+      "scope": "entity.name.enum.evs",
+      "settings": { "foreground": "#4EC9B0" }
+    },
+    {
+      "name": "Entity reference identifier inside <...>",
+      "scope": "variable.other.entity-ref.evs",
+      "settings": { "foreground": "#4EC9B0" }
+    },
+
+    // -- P3  Enum members ---------------------------- light blue #9CDCFE -----
+    // The concrete value after the dot: .DOG_UNAVAILABLE, .BOY_LEVEL
+    {
+      "name": "Enum member (.DOG_UNAVAILABLE .BOY_LEVEL ...)",
+      "scope": "variable.other.enummember.evs",
+      "settings": { "foreground": "#9CDCFE" }
+    },
+
+    // -- P4  All function calls ---------------------- yellow #DCDCAA ---------
+    // Same tier: compiler builtins (set/unset/eval), core lib (sleep/transition),
+    // user-defined calls -- mirrors C# which makes no visual distinction
+    {
+      "name": "Compiler built-in functions (set unset eval reference ...)",
+      "scope": "support.function.builtin.evs",
+      "settings": { "foreground": "#DCDCAA" }
+    },
+    {
+      "name": "Core library functions (transition sleep fade_in ...)",
+      "scope": "support.function.evs",
+      "settings": { "foreground": "#DCDCAA" }
+    },
+    {
+      "name": "User-defined function calls",
+      "scope": "entity.name.function.call.evs",
+      "settings": { "foreground": "#DCDCAA" }
+    },
+
+    // -- P5  Memory access --------------------------- amber #FF9900 ----------
+    // Same tier: addresses <0x1234>, entity refs <BOY>, object[]/arg[] accessors
+    // Rationale: all are direct RAM/entity access -- operationally the same idea
+    {
+      "name": "Memory address hex value",
+      "scope": "variable.other.address.evs",
+      "settings": { "foreground": "#FF9900" }
+    },
+    {
+      "name": "Memory address bitmask",
+      "scope": "variable.other.address.bitmask.evs",
+      "settings": { "foreground": "#CC7A00", "fontStyle": "italic" }
+    },
+    {
+      "name": "Address angle brackets < >",
+      "scope": "punctuation.definition.address.evs",
+      "settings": { "foreground": "#FF9900" }
+    },
+    {
+      "name": "Entity-ref angle brackets < >",
+      "scope": "punctuation.definition.entity-ref.evs",
+      "settings": { "foreground": "#FF9900" }
+    },
+    {
+      "name": "Memory slot accessors (object arg script time)",
+      "scope": "variable.other.accessor.evs",
+      "settings": { "foreground": "#FF9900" }
+    },
+
+    // -- P6  Metadata / annotations ------------------ lilac #C586C0 ----------
+    // @install @inject @async @weak -- decorators, not runtime code
+    // Preprocessor #memory #include #patch -- directives, not statements
+    // Using the same purple keeps both in a "meta" visual bucket
+    {
+      "name": "Annotation @ sigil",
+      "scope": "punctuation.definition.annotation.evs",
+      "settings": { "foreground": "#C586C0" }
+    },
+    {
+      "name": "Annotation name (install inject async weak ...)",
+      "scope": "entity.name.function.decorator.evs",
+      "settings": { "foreground": "#C586C0", "fontStyle": "italic" }
+    },
+    {
+      "name": "Preprocessor directives (#memory #include #patch)",
+      "scope": "keyword.preprocessor.evs",
+      "settings": { "foreground": "#C586C0" }
+    },
+
+    // -- P7  String literals ------------------------- orange-brown #CE9178 ---
+    {
+      "name": "Double-quoted strings",
+      "scope": "string.quoted.double.evs",
+      "settings": { "foreground": "#CE9178" }
+    },
+    {
+      "name": "Single-quoted raw strings",
+      "scope": "string.quoted.single.raw.evs",
+      "settings": { "foreground": "#CE9178", "fontStyle": "italic" }
+    },
+    {
+      "name": "In-string control codes [CHOICE] [MEM1] ...",
+      "scope": "constant.other.placeholder.evs",
+      "settings": { "foreground": "#4EC9B0" }
+    },
+
+    // -- P8  Numeric literals ------------------------ light green #B5CEA8 ----
+    // 0xFF and 0d99 get identical colour -- they are the same concept
+    {
+      "name": "Hex literals (0xFF)",
+      "scope": "constant.numeric.hex.evs",
+      "settings": { "foreground": "#B5CEA8" }
+    },
+    {
+      "name": "Prefixed decimal literals (0d99)",
+      "scope": "constant.numeric.decimal.evs",
+      "settings": { "foreground": "#B5CEA8" }
+    },
+
+    // -- P9  Comments -------------------------------- grey-green #6A9955 -----
+    {
+      "name": "Line comment //",
       "scope": "comment.line.double-slash.evs",
       "settings": { "foreground": "#6A9955", "fontStyle": "italic" }
     },
+
+    // -- Operators & punctuation ----------------------- default grey ---------
+    {
+      "name": "Operators",
+      "scope": "keyword.operator.evs",
+      "settings": { "foreground": "#D4D4D4" }
+    },
+    {
+      "name": "Range operator ..",
+      "scope": "keyword.operator.range.evs",
+      "settings": { "foreground": "#D4D4D4" }
+    }
+  ]
+}
+
     {
       "name": "Preprocessor directives",
       "scope": "keyword.preprocessor.evs",

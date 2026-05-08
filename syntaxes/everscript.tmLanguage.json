@@ -11,11 +11,13 @@
     { "include": "#memory-range" },
     { "include": "#memory-address-with-flag" },
     { "include": "#memory-address" },
+    { "include": "#entity-reference" },
     { "include": "#keyword-control" },
     { "include": "#keyword-declaration" },
     { "include": "#storage-type" },
     { "include": "#boolean" },
     { "include": "#number" },
+    { "include": "#memory-accessor" },
     { "include": "#special-identifier" },
     { "include": "#enum-member" },
     { "include": "#label-destination" },
@@ -113,6 +115,17 @@
       }
     },
 
+    "entity-reference": {
+      "comment": "<IDENTIFIER> entity dereference, e.g. <LAST_ENTITY>, <BOY>, <SCRIPT_OWNER>",
+      "name": "meta.entity-ref.evs",
+      "match": "(<)([A-Z][A-Z0-9_]*)(>)",
+      "captures": {
+        "1": { "name": "punctuation.definition.entity-ref.evs" },
+        "2": { "name": "variable.other.entity-ref.evs" },
+        "3": { "name": "punctuation.definition.entity-ref.evs" }
+      }
+    },
+
     "keyword-control": {
       "name": "keyword.control.evs",
       "match": "\\b(else if!|else if|else|if!|if_currency|if|while!|while|for|in|return)\\b"
@@ -146,6 +159,12 @@
       ]
     },
 
+    "memory-accessor": {
+      "comment": "object[N], arg[N], script[N], time[N] -- named memory slot accessors",
+      "name": "variable.other.accessor.evs",
+      "match": "\\b(object|arg|script|time)(?=\\[)"
+    },
+
     "special-identifier": {
       "comment": "well-known unqualified constants used as arguments",
       "name": "variable.language.evs",
@@ -153,7 +172,7 @@
     },
 
     "enum-member": {
-      "comment": "NAMESPACE.MEMBER — e.g. FLAG.DOG_UNAVAILABLE, MEMORY.BOY_LEVEL",
+      "comment": "NAMESPACE.MEMBER -- e.g. FLAG.DOG_UNAVAILABLE, MEMORY.BOY_LEVEL",
       "name": "meta.enumaccess.evs",
       "match": "\\b([A-Z][A-Z0-9_]+)\\.([A-Za-z][A-Za-z0-9_]*)\\b",
       "captures": {
