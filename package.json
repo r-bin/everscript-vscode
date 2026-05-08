@@ -1,14 +1,19 @@
 {
   "name": "everscript",
   "displayName": "Everscript",
-  "description": "Syntax highlighting for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.1.1",
+  "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
+  "version": "0.1.2",
   "publisher": "rbin",
+  "main": "./extension.js",
   "engines": {
     "vscode": "^1.85.0"
   },
+  "activationEvents": [
+    "onLanguage:everscript"
+  ],
   "categories": [
-    "Programming Languages"
+    "Programming Languages",
+    "Snippets"
   ],
   "scripts": {
     "test": "vscode-tmgrammar-test -g syntaxes/everscript.tmLanguage.json 'test/**/*.test.evs'"
@@ -37,6 +42,38 @@
         "label": "Everscript Dark",
         "uiTheme": "vs-dark",
         "path": "./themes/everscript-dark.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "everscript",
+        "path": "./snippets/everscript.json"
+      }
+    ],
+    "problemMatchers": [
+      {
+        "name": "everscript",
+        "owner": "everscript",
+        "fileLocation": ["relative", "${workspaceFolder}"],
+        "pattern": {
+          "regexp": "^(.+):(\\d+):\\s+(error|warning|note):\\s+(.+)$",
+          "file": 1,
+          "line": 2,
+          "severity": 3,
+          "message": 4
+        }
+      }
+    ],
+    "taskDefinitions": [
+      {
+        "type": "everscript",
+        "required": ["script"],
+        "properties": {
+          "script": {
+            "type": "string",
+            "description": "Path to the root .evs file to compile"
+          }
+        }
       }
     ]
   },

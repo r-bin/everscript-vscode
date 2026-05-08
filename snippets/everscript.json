@@ -1,0 +1,163 @@
+{
+    "Function": {
+        "prefix": "fun",
+        "body": [
+            "fun ${1:name}(${2:params}) {",
+            "\t$0",
+            "};"
+        ],
+        "description": "Declare a function"
+    },
+    "Map": {
+        "prefix": "map",
+        "body": [
+            "map ${1:name}(${2:stepon_triggers}) {",
+            "\t$0",
+            "};"
+        ],
+        "description": "Declare a map block"
+    },
+    "Area": {
+        "prefix": "area",
+        "body": [
+            "area ${1:name}() {",
+            "\t$0",
+            "};"
+        ],
+        "description": "Declare an area block"
+    },
+    "Group": {
+        "prefix": "group",
+        "body": [
+            "group ${1:name}() {",
+            "\t$0",
+            "};"
+        ],
+        "description": "Declare a group block"
+    },
+    "Enum": {
+        "prefix": "enum",
+        "body": [
+            "enum ${1:NAME} {",
+            "\t${2:MEMBER} = ${3:0x00},",
+            "\t$0",
+            "}"
+        ],
+        "description": "Declare an enum"
+    },
+    "If": {
+        "prefix": "if",
+        "body": [
+            "if (${1:condition}) {",
+            "\t$0",
+            "}"
+        ],
+        "description": "If statement"
+    },
+    "If negated": {
+        "prefix": "if!",
+        "body": [
+            "if! (${1:condition}) {",
+            "\t$0",
+            "}"
+        ],
+        "description": "Negated if statement"
+    },
+    "If/else": {
+        "prefix": "ife",
+        "body": [
+            "if (${1:condition}) {",
+            "\t$2",
+            "} else {",
+            "\t$0",
+            "}"
+        ],
+        "description": "If/else statement"
+    },
+    "While": {
+        "prefix": "while",
+        "body": [
+            "while (${1:condition}) {",
+            "\t$0",
+            "}"
+        ],
+        "description": "While loop"
+    },
+    "While negated": {
+        "prefix": "while!",
+        "body": [
+            "while! (${1:condition}) {",
+            "\t$0",
+            "}"
+        ],
+        "description": "While loop with negated condition"
+    },
+    "For in": {
+        "prefix": "for",
+        "body": [
+            "for ${1:i} in (${2:start}, ${3:end}) {",
+            "\t$0",
+            "}"
+        ],
+        "description": "For-in loop"
+    },
+    "Val": {
+        "prefix": "val",
+        "body": "val ${1:NAME} = ${0:value};",
+        "description": "Declare a constant"
+    },
+    "Var": {
+        "prefix": "var",
+        "body": "var ${1:name}: ${2:Word} = ${0:0};",
+        "description": "Declare a variable"
+    },
+    "Memory declaration": {
+        "prefix": "#memory",
+        "body": "#memory(${1:<0x${2:address}>});",
+        "description": "Declare a memory address"
+    },
+    "Include": {
+        "prefix": "#include",
+        "body": "#include(\"${1:path/to/file.evs}\");",
+        "description": "Include another .evs file"
+    },
+    "Install annotation": {
+        "prefix": "@install",
+        "body": "@install(${1:0x${2:address}})",
+        "description": "@install annotation — patch into ROM at address"
+    },
+    "Inject annotation": {
+        "prefix": "@inject",
+        "body": "@inject(${1:ADDRESS.${2:SLOT}})",
+        "description": "@inject annotation — inject into a named address slot"
+    },
+    "Async annotation": {
+        "prefix": "@async",
+        "body": "@async()",
+        "description": "@async annotation — run function asynchronously"
+    },
+    "Transition call": {
+        "prefix": "transition",
+        "body": "transition(MAP.${1:DESTINATION}, ${2:x}, ${3:y}, DIRECTION.${4:NORTH}, DIRECTION.${5:SOUTH}, ${6:0}, MUSIC.${7:NONE});",
+        "description": "Map transition call with all parameters"
+    },
+    "Sleep call": {
+        "prefix": "sleep",
+        "body": "sleep(${1:0d30}, UNIT_TIME.${2:FRAMES});",
+        "description": "Sleep for a number of frames/ticks"
+    },
+    "Conversation block": {
+        "prefix": "conversation",
+        "body": [
+            "conversation_start(${1:BOY});",
+            "conversation_dialog(${2:0}, ${3:1});",
+            "conversation_end(${1:BOY});"
+        ],
+        "description": "Full conversation block"
+    },
+    "Add enemy": {
+        "prefix": "add_enemy",
+        "body": "add_enemy(ENEMY.${1:SLIME}, ${2:x}, ${3:y}, FLAG_ENEMY.${4:NONE});",
+        "description": "Spawn an enemy at coordinates"
+    }
+}
