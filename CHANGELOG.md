@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.1] — 2026-05-08
+
+### Added
+- `.github/copilot-instructions.md` — global agent rules for the plugin repo
+  (version bump ritual, file map, test format reference, colour theme policy)
+- `docs/future-features.md` — full roadmap: hover docs, auto-completion, diagnostics,
+  go-to-definition, signature help, LSP server plan, priority stack
+
+---
+
 ## [0.1.0] — 2026-05-08
 
 ### Added
