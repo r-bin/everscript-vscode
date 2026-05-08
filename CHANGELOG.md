@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.1.4] — 2026-05-08
+
+### Added
+- **Number hover** — hovering `0xFF`, `0d99`, or `0b1010` shows the value in hex,
+  decimal, and binary plus the byte size inferred from the digit count.
+- **Unqualified enum member hover** — hovering a bare `SOUTH`, `ACT4_DOOR_OPENING`,
+  etc. now shows the parent enum name, value, and (when unambiguous) the full
+  enum listing with the matched member highlighted.
+- **Dead branch dimming** — `if(False)`, `if!(True)`, and `if(ENUM.MEMBER)` / 
+  `if!(ENUM.MEMBER)` where the member value is 0 or non-zero respectively are
+  detected at document open/edit and the unreachable block is rendered at 35% opacity.
+
+### Fixed
+- **Declaration name hover conflict** — hovering the name in `enum entrance {` or
+  `fun entrance(...)` no longer shows the `entrance()` function tooltip.
+- **Accessor hover conflict** — hovering `object` in `object[door_id]` no longer
+  shows the `object()` function tooltip; same for `arg`, `script`, and `time`.
+- **Unqualified SOUND members** — enum members used without their prefix (e.g.
+  `ACT4_DOOR_OPENING`) now show a tooltip via the reverse member lookup.
+
 ## [0.1.3] — 2026-05-08
 
 ### Added

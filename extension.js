@@ -130,28 +130,148 @@ function makeHoverForSpecial(word, idx) {
     return new vscode.Hover(new vscode.MarkdownString(desc));
 }
 
+// ── Number literal hover ──────────────────────────────────────────────────────
+
+function numberAt(document, position) {
+    const range = document.getWordRangeAtPosition(
+        position,
+        /0[xX][0-9a-fA-F]+|0[dD]\d+|0[bB][01]+/
+    );
+    if (!range) return null;
+    return { text: document.getText(range), range };
+}
+
+function makeHoverForNumber(text) {
+    let value, base, rawDigits;
+    if (/^0[xX]/.test(text)) {
+        rawDigits = text.slice(2);
+        value = parseInt(rawDigits, 16);
+        base = 16;
+    } else if (/^0[dD]/.test(text)) {
+        rawDigits = text.slice(2);
+        value = parseInt(rawDigits, 10);
+        base = 10;
+    } else if (/^0[bB]/.test(text)) {
+        rawDigits = text.slice(2);
+        value = parseInt(rawDigits, 2);
+        base = 2;
+    } else {
+        return null;
+    }
+    if (isNaN(value)) return null;
+
+    const byteCount = base === 16
+        ? Math.max(1, Math.ceil(rawDigits.length / 2))
+        : value < 0x100 ? 1 : value < 0x10000 ? 2 : value < 0x1000000 ? 3 : 4;
+    const byteLabel = byteCount === 1 ? '1 byte' : `${byteCount} bytes`;
+    const hexStr    = value.toString(16).toUpperCase().padStart(byteCount * 2, '0');
+    const binStr    = value.toString(2).padStart(byteCount * 8, '0');
+
+    const lines = [];
+    if (base !== 16) lines.push(`hex:     0x${hexStr}`);
+    if (base !== 10) lines.push(`decimal: ${value}`);
+    if (base !== 2)  lines.push(`binary:  0b${binStr}`);
+    lines.push(`size:    ${byteLabel}`);
+
+    const md = new vscode.MarkdownString();
+    md.appendCodeblock(lines.join('\n'), 'text');
+    return new vscode.Hover(md);
+}
+
+// ── Reverse enum member lookup ────────────────────────────────────────────────
+
+let _reverseMemberMap = null;
+
+function buildReverseMemberMap(idx) {
+    if (_reverseMemberMap) return _reverseMemberMap;
+    _reverseMemberMap = new Map();
+    for (const [enumName, members] of Object.entries(idx.enums)) {
+        for (const m of members) {
+            if (!_reverseMemberMap.has(m.name)) _reverseMemberMap.set(m.name, []);
+            _reverseMemberMap.get(m.name).push({ enumName, value: m.value, comment: m.comment });
+        }
+    }
+    return _reverseMemberMap;
+}
+
+function makeHoverForUnqualifiedMember(word, idx) {
+    const map     = buildReverseMemberMap(idx);
+    const matches = map.get(word);
+    if (!matches || matches.length === 0) return null;
+
+    const md = new vscode.MarkdownString();
+    for (const { enumName, value, comment } of matches) {
+        md.appendCodeblock(
+            `${enumName}.${word} = ${value}${comment ? '  // ' + comment : ''}`,
+            'everscript'
+        );
+    }
+    // Show full parent enum when unambiguous
+    if (matches.length === 1) {
+        const { enumName } = matches[0];
+        const allMembers   = idx.enums[enumName] || [];
+        const lines = allMembers.slice(0, 24).map(m =>
+            `  ${m.name === word ? '> ' : '  '}${m.name} = ${m.value}${m.comment ? '  // ' + m.comment : ''}`
+        );
+        if (allMembers.length > 24) lines.push('  // ...');
+        md.appendCodeblock(`enum ${enumName} {\n${lines.join('\n')}\n}`, 'everscript');
+    }
+    return new vscode.Hover(md);
+}
+
+// ── Hover provider ────────────────────────────────────────────────────────────
+
 function provideHover(document, position, idx) {
+    // 0. Number literal — check before word-based hover
+    const numHit = numberAt(document, position);
+    if (numHit) return makeHoverForNumber(numHit.text);
+
     const hit = wordAt(document, position);
     if (!hit) return null;
     const { word, range } = hit;
 
-    // 1. Enum member access: ENUM.MEMBER
+    // 1. Suppress hover when cursor is on the declaration name itself
+    //    e.g. "fun entrance(...)" or "enum entrance {" — don't show function tooltip
+    const lineText  = document.lineAt(position.line).text.trimStart();
+    const declMatch = lineText.match(/^(fun|enum|map|area|group|val)\s+(\w+)/);
+    if (declMatch && declMatch[2] === word) return null;
+
+    // 2. Suppress function/enum hover when word is a memory accessor: object[...]
+    const charAfterWord = document.getText(
+        new vscode.Range(range.end, range.end.translate(0, 1))
+    );
+    const isAccessor = charAfterWord === '[';
+
+    // 3. Qualified enum member access: ENUM.MEMBER
     const enumName = enumNameBeforeDot(document, position, range);
     if (enumName) {
         return makeHoverForMember(word, enumName, idx)
+            || makeHoverForUnqualifiedMember(word, idx)
             || makeHoverForSpecial(word, idx);
     }
 
-    // 2. Enum name
-    const enumHover = makeHoverForEnum(word, idx);
-    if (enumHover) return enumHover;
+    // 4. Enum name (not when used as accessor)
+    if (!isAccessor) {
+        const enumHover = makeHoverForEnum(word, idx);
+        if (enumHover) return enumHover;
+    }
 
-    // 3. Function name
-    const fnHover = makeHoverForFunction(word, idx);
-    if (fnHover) return fnHover;
+    // 5. Function name (not when used as accessor)
+    if (!isAccessor) {
+        const fnHover = makeHoverForFunction(word, idx);
+        if (fnHover) return fnHover;
+    }
 
-    // 4. Special identifier (BOY, LAST_ENTITY, True, …)
-    return makeHoverForSpecial(word, idx);
+    // 6. Special identifier (BOY, LAST_ENTITY, True, …)
+    const specialHover = makeHoverForSpecial(word, idx);
+    if (specialHover) return specialHover;
+
+    // 7. Unqualified enum member (SOUTH, ACT4_DOOR_OPENING, etc.)
+    if (/^[A-Z_][A-Z0-9_]*$/.test(word)) {
+        return makeHoverForUnqualifiedMember(word, idx);
+    }
+
+    return null;
 }
 
 // ── Document symbol provider ──────────────────────────────────────────────────
@@ -184,6 +304,83 @@ function provideDocumentSymbols(document) {
     }
 
     return symbols;
+}
+
+// ── Dead branch detection ────────────────────────────────────────────────────
+
+let _deadDecorationType = null;
+
+function getDeadDecorationType() {
+    if (!_deadDecorationType) {
+        _deadDecorationType = vscode.window.createTextEditorDecorationType({
+            opacity: '0.35',
+        });
+    }
+    return _deadDecorationType;
+}
+
+/**
+ * Return true if the if-condition is statically dead (the then-block will
+ * never execute).  Handles: False/True literals, 0/1, and ENUM.MEMBER lookups.
+ */
+function isStaticallyDead(condition, negated, idx) {
+    const cond = condition.trim();
+    if (!negated && (cond === 'False' || cond === '0')) return true;
+    if ( negated && (cond === 'True'  || cond === '1')) return true;
+
+    const m = cond.match(/^([A-Z_][A-Z0-9_]*)\.([A-Z_][A-Z0-9_]*)$/);
+    if (m) {
+        const members = idx.enums[m[1]] || [];
+        const member  = members.find(e => e.name === m[2]);
+        if (member) {
+            const val    = Number(member.value);
+            const isZero = val === 0;
+            return negated ? !isZero : isZero;
+        }
+    }
+    return false;
+}
+
+/**
+ * Find the inner range of a { } block starting at or after `fromLine`.
+ * Simple brace-counting; skips line comments.
+ */
+function findBlockRange(document, fromLine) {
+    let depth      = 0;
+    let blockStart = null;
+    for (let i = fromLine; i < document.lineCount && i < fromLine + 300; i++) {
+        const text       = document.lineAt(i).text;
+        const commentIdx = text.indexOf('//');
+        const safeLen    = commentIdx >= 0 ? commentIdx : text.length;
+        for (let c = 0; c < safeLen; c++) {
+            if (text[c] === '{') {
+                if (depth === 0) blockStart = new vscode.Position(i, c + 1);
+                depth++;
+            } else if (text[c] === '}') {
+                depth--;
+                if (depth === 0 && blockStart) {
+                    return new vscode.Range(blockStart, new vscode.Position(i, c));
+                }
+            }
+        }
+    }
+    return null;
+}
+
+const IF_DEAD_RE = /^\s*if(!?)\s*\(([^)]+)\)/;
+
+function updateDeadBranchDecorations(editor, idx) {
+    if (!editor || editor.document.languageId !== 'everscript') return;
+    const doc    = editor.document;
+    const ranges = [];
+    for (let i = 0; i < doc.lineCount; i++) {
+        const m = IF_DEAD_RE.exec(doc.lineAt(i).text);
+        if (!m) continue;
+        if (!isStaticallyDead(m[2], m[1] === '!', idx)) continue;
+        const block = findBlockRange(doc, i);
+        if (block) ranges.push(block);
+    }
+    editor.setDecorations(getDeadDecorationType(), ranges);
 }
 
 // ── Completion provider ───────────────────────────────────────────────────────
@@ -341,6 +538,17 @@ function activate(context) {
     watcher.onDidCreate(() => buildWorkspaceIndex());
     watcher.onDidDelete(() => buildWorkspaceIndex());
     context.subscriptions.push(watcher);
+
+    // Dead branch decorations
+    const applyDeadBranches = (editor) => updateDeadBranchDecorations(editor, idx);
+    applyDeadBranches(vscode.window.activeTextEditor);
+    context.subscriptions.push(
+        vscode.window.onDidChangeActiveTextEditor(applyDeadBranches),
+        vscode.workspace.onDidChangeTextDocument(e => {
+            const ed = vscode.window.activeTextEditor;
+            if (ed && e.document === ed.document) applyDeadBranches(ed);
+        }),
+    );
 
     context.subscriptions.push(
 
