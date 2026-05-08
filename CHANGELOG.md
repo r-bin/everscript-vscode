@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.1.3] — 2026-05-08
+
+### Added
+- **Go-to definition** (`F12` / cmd+click) — jumps to the `fun`, `map`, `area`,
+  `group`, `enum`, or `val` declaration for any identifier in the workspace.
+  Also resolves `#include("path")` to the included file.
+- **Find all references** (`Shift+F12`) — finds every occurrence of a function
+  or variable name across all `.evs` files in the workspace.
+- **Workspace index** — all `.evs` declarations are indexed on activation and
+  kept live via a file watcher (creates/changes/deletes).
+- **Function name completions** — typing any identifier now offers all 521 core
+  and native functions as completions with full parameter snippets.
+  e.g. `transition` expands to `transition(${1:map}, ${2:x}, ${3:y}, ...)`.
+  User-defined workspace functions are also included.
+- **Enum name completions** — all 111 enum types appear in the completion list.
+
+---
+
 ## [0.1.2] — 2026-05-08
 
 ### Added

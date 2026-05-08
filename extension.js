@@ -15,6 +15,37 @@ function loadIndex(context) {
     return _index;
 }
 
+// ── Workspace index ───────────────────────────────────────────────────────────
+// Maps declaration names to {uri, line, kind} across all .evs files.
+
+/** @type {Map<string, Array<{uri: vscode.Uri, line: number, kind: string}>>} */
+let _workspaceIndex = new Map();
+
+async function indexDocument(uri) {
+    const entries = [];
+    try {
+        const doc = await vscode.workspace.openTextDocument(uri);
+        for (let i = 0; i < doc.lineCount; i++) {
+            const text = doc.lineAt(i).text.trimStart();
+            const m = text.match(/^(fun|map|area|group|enum|val)\s+(\w+)/);
+            if (m) entries.push({ uri, line: i, kind: m[1], name: m[2] });
+        }
+    } catch (_) {}
+    return entries;
+}
+
+async function buildWorkspaceIndex() {
+    const files = await vscode.workspace.findFiles('**/*.evs', '**/node_modules/**');
+    const next  = new Map();
+    for (const uri of files) {
+        for (const entry of await indexDocument(uri)) {
+            if (!next.has(entry.name)) next.set(entry.name, []);
+            next.get(entry.name).push(entry);
+        }
+    }
+    _workspaceIndex = next;
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 /** Return the word (identifier) under the cursor, or null. */
@@ -29,6 +60,29 @@ function enumNameBeforeDot(document, position, wordRange) {
     const before = line.substring(0, wordRange.start.character);
     const m = before.match(/([A-Z_][A-Z0-9_]*)\.$/);
     return m ? m[1] : null;
+}
+
+function escapeRegex(s) {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Convert a core function signature to a VS Code snippet string.
+ * "transition(map:MAP, x, y)" -> "transition(${1:map}, ${2:x}, ${3:y})$0"
+ */
+function sigToSnippet(sig) {
+    const m = sig.match(/^(\w+)\(([^)]*)\)$/);
+    if (!m) return sig + '($0)';
+    const [, name, rawParams] = m;
+    if (!rawParams.trim()) return `${name}($0)`;
+    const params = rawParams.split(',').map(p =>
+        p.trim()
+         .split(':')[0]     // strip :TYPE annotation
+         .replace(/\?$/, '') // strip optional marker
+         .trim()
+    );
+    const snippetParams = params.map((p, i) => `\${${i + 1}:${p}}`).join(', ');
+    return `${name}(${snippetParams})$0`;
 }
 
 // ── Hover provider ────────────────────────────────────────────────────────────
@@ -167,13 +221,126 @@ function provideCompletionItems(document, position, idx) {
         });
     }
 
+    // Bare identifier — offer function + enum name completions
+    if (/[a-zA-Z_]\w*$/.test(prefix)) {
+        return [...getFunctionCompletions(idx), ...getWorkspaceFunctionCompletions(), ...getEnumNameCompletions(idx)];
+    }
+
     return [];
+}
+
+/** Build function completion items from static index (cached). */
+let _fnCompletions = null;
+function getFunctionCompletions(idx) {
+    if (_fnCompletions) return _fnCompletions;
+    _fnCompletions = Object.entries(idx.functions).map(([name, sigs]) => {
+        const sig  = sigs[0] || name;
+        const item = new vscode.CompletionItem(name, vscode.CompletionItemKind.Function);
+        item.insertText    = new vscode.SnippetString(sigToSnippet(sig));
+        item.detail        = sig;
+        item.documentation = new vscode.MarkdownString(
+            idx.native.includes(name) ? '*native (compiler built-in)*' : '*core library*'
+        );
+        item.sortText = '~' + name;
+        return item;
+    });
+    return _fnCompletions;
+}
+
+/** Workspace-defined functions (rebuilt from live index each time). */
+function getWorkspaceFunctionCompletions() {
+    const items = [];
+    for (const [name, entries] of _workspaceIndex.entries()) {
+        const funs = entries.filter(e => e.kind === 'fun');
+        if (funs.length === 0) continue;
+        const item = new vscode.CompletionItem(name, vscode.CompletionItemKind.Function);
+        item.detail   = funs.map(e => vscode.workspace.asRelativePath(e.uri)).join(', ');
+        item.sortText = '~' + name;
+        items.push(item);
+    }
+    return items;
+}
+
+/** Enum name completions (cached). */
+let _enumCompletions = null;
+function getEnumNameCompletions(idx) {
+    if (_enumCompletions) return _enumCompletions;
+    _enumCompletions = Object.keys(idx.enums).map(name => {
+        const item = new vscode.CompletionItem(name, vscode.CompletionItemKind.Enum);
+        item.detail   = `enum ${name}`;
+        item.sortText = '~~' + name;
+        return item;
+    });
+    return _enumCompletions;
+}
+
+// ── Definition provider ───────────────────────────────────────────────────────
+
+async function provideDefinition(document, position) {
+    const lineText = document.lineAt(position.line).text;
+
+    // #include("path") — open the included file
+    const includeMatch = lineText.match(/#include\(\s*["']?([^"')]+)["']?\s*\)/);
+    if (includeMatch) {
+        const resolved = path.resolve(path.dirname(document.uri.fsPath), includeMatch[1]);
+        if (fs.existsSync(resolved)) {
+            return [new vscode.Location(vscode.Uri.file(resolved), new vscode.Position(0, 0))];
+        }
+        return null;
+    }
+
+    const hit = wordAt(document, position);
+    if (!hit) return null;
+
+    const entries = _workspaceIndex.get(hit.word);
+    if (!entries || entries.length === 0) return null;
+
+    return entries.map(e => new vscode.Location(e.uri, new vscode.Position(e.line, 0)));
+}
+
+// ── Reference provider ────────────────────────────────────────────────────────
+
+async function provideReferences(document, position) {
+    const hit = wordAt(document, position);
+    if (!hit) return null;
+    const { word } = hit;
+
+    // Only search lowercase/mixed names (function and variable calls, not enum types)
+    if (!/[a-z]/.test(word)) return null;
+
+    const files    = await vscode.workspace.findFiles('**/*.evs', '**/node_modules/**');
+    const re       = new RegExp(`\\b${escapeRegex(word)}\\b`, 'g');
+    const locations = [];
+
+    for (const fileUri of files) {
+        try {
+            const doc = await vscode.workspace.openTextDocument(fileUri);
+            for (let i = 0; i < doc.lineCount; i++) {
+                const text = doc.lineAt(i).text;
+                let match;
+                re.lastIndex = 0;
+                while ((match = re.exec(text)) !== null) {
+                    locations.push(new vscode.Location(fileUri, new vscode.Position(i, match.index)));
+                }
+            }
+        } catch (_) {}
+    }
+
+    return locations;
 }
 
 // ── Activation ────────────────────────────────────────────────────────────────
 
 function activate(context) {
     const idx = loadIndex(context);
+
+    // Build workspace index on activation; keep it fresh on file changes
+    buildWorkspaceIndex();
+    const watcher = vscode.workspace.createFileSystemWatcher('**/*.evs');
+    watcher.onDidChange(() => buildWorkspaceIndex());
+    watcher.onDidCreate(() => buildWorkspaceIndex());
+    watcher.onDidDelete(() => buildWorkspaceIndex());
+    context.subscriptions.push(watcher);
 
     context.subscriptions.push(
 
@@ -190,6 +357,14 @@ function activate(context) {
             { provideCompletionItems: (doc, pos) => provideCompletionItems(doc, pos, idx) },
             '.', '@',
         ),
+
+        vscode.languages.registerDefinitionProvider('everscript', {
+            provideDefinition: (doc, pos) => provideDefinition(doc, pos),
+        }),
+
+        vscode.languages.registerReferenceProvider('everscript', {
+            provideReferences: (doc, pos) => provideReferences(doc, pos),
+        }),
 
     );
 }
