@@ -10,6 +10,12 @@
   "categories": [
     "Programming Languages"
   ],
+  "scripts": {
+    "test": "vscode-tmgrammar-test -g syntaxes/everscript.tmLanguage.json 'test/**/*.test.evs'"
+  },
+  "devDependencies": {
+    "vscode-tmgrammar-test": "^0.1.3"
+  },
   "contributes": {
     "languages": [
       {

@@ -1,0 +1,203 @@
+// SYNTAX TEST "source.evs" "Everscript grammar tests"
+
+// ============================================================
+// Comments
+// ============================================================
+
+// this is a comment
+// <- comment.line.double-slash.evs
+
+// ============================================================
+// Preprocessor
+// ============================================================
+
+#memory(
+// <- keyword.preprocessor.evs
+#include("in/core")
+// <- keyword.preprocessor.evs
+#patch(
+// <- keyword.preprocessor.evs
+
+// ============================================================
+// Keywords — declarations
+// ============================================================
+
+fun foo_bar() {
+// <- keyword.declaration.evs
+
+enum DIRECTION {
+// <- keyword.declaration.evs
+
+map brians_room(BRIAN) {
+// <- keyword.declaration.evs
+
+val x = 0x01;
+// <- keyword.declaration.evs
+
+var y = 0x02;
+// <- keyword.declaration.evs
+
+// ============================================================
+// Keywords — control flow
+// ============================================================
+
+if(True) {
+// <- keyword.control.evs
+
+} else if(False) {
+//  ^^^^^ keyword.control.evs
+
+} else {
+//^^^^keyword.control.evs
+
+while(True) {
+// <- keyword.control.evs
+
+for(x in list) {
+// <- keyword.control.evs
+
+// ============================================================
+// Booleans
+// ============================================================
+
+attribute(BOY, ROOT, True);
+//                   ^^^^ constant.language.boolean.evs
+
+attribute(BOY, ROOT, False);
+//                   ^^^^^ constant.language.boolean.evs
+
+// ============================================================
+// Numbers — hex and 0d decimal must look the same
+// ============================================================
+
+MEMORY.BOY_LEVEL = 0x000c;
+//                 ^^^^^^ constant.numeric.hex.evs
+
+MEMORY.ITEM_MAX = 0d99;
+//                ^^^^ constant.numeric.decimal.evs
+
+fake_level(0d10);
+//         ^^^^ constant.numeric.decimal.evs
+
+transition(0x25, 0x6f, 0x49, NORTH, SOUTH, True);
+//         ^^^^ constant.numeric.hex.evs
+//               ^^^^ constant.numeric.hex.evs
+
+// ============================================================
+// Memory addresses
+// ============================================================
+
+<0x2834> = 0x0000;
+// <- punctuation.definition.address.evs
+//^^^^^  variable.other.address.evs
+//     ^ punctuation.definition.address.evs
+
+<0x22d8, 0x40>
+// <- punctuation.definition.address.evs
+//^^^^^  variable.other.address.evs
+
+0x350000..0x3fffff
+//      ^^ keyword.operator.evs
+
+// ============================================================
+// Annotations
+// ============================================================
+
+@install()
+// <- punctuation.definition.annotation.evs
+//^^^^^^entity.name.function.decorator.evs
+
+@inject(ADDRESS.DEBUG_MENU_BUTTON_1)
+// <- punctuation.definition.annotation.evs
+//^^^^^entity.name.function.decorator.evs
+
+@count_limit(0x20)
+// <- punctuation.definition.annotation.evs
+//^^^^^^^^^^entity.name.function.decorator.evs
+
+// ============================================================
+// Enum member access
+// ============================================================
+
+FLAG.DOG_UNAVAILABLE
+// <- entity.name.enum.evs
+//    ^^^^^^^^^^^^^^ variable.other.enummember.evs
+
+MEMORY.BOY_LEVEL
+// <- entity.name.enum.evs
+//     ^^^^^^^^^ variable.other.enummember.evs
+
+CHARACTER.BOY
+// <- entity.name.enum.evs
+//        ^^^ variable.other.enummember.evs
+
+// ============================================================
+// Special identifiers
+// ============================================================
+
+animate(BOY, ONCE_FREEZE, ANIMATION_ALL.INVISIBLE);
+//      ^^^ variable.language.evs
+
+available(BOTH);
+//        ^^^^ variable.language.evs
+
+attach_script(LAST_ENTITY, B, reference(portal_act_1));
+//            ^^^^^^^^^^^ variable.language.evs
+
+face(BOY, NORTH);
+//        ^^^^^ variable.language.evs
+
+// ============================================================
+// Strings
+// ============================================================
+
+"Act 1:[CHOICE]Oil[CHOICE]Thraxx"
+// <- string.quoted.double.evs
+//     ^^^^^^^^ constant.other.placeholder.evs
+//             ^^^ string.quoted.double.evs
+//                ^^^^^^^^ constant.other.placeholder.evs
+
+// ============================================================
+// Built-in functions
+// ============================================================
+
+set(FLAG.DEBUG);
+// <- support.function.builtin.evs
+
+unset(FLAG.DEBUG);
+// <- support.function.builtin.evs
+
+reference(portal_act_1)
+// <- support.function.builtin.evs
+
+// ============================================================
+// Core library functions
+// ============================================================
+
+transition(MAP.THRAXX, 0x17, 0x3f, NORTH, NORTH, True);
+// <- support.function.evs
+
+fade_in();
+// <- support.function.evs
+
+sleep(0x10);
+// <- support.function.evs
+
+yield();
+// <- support.function.evs
+
+debug_subtext("nice.");
+// <- support.function.evs
+
+animate(BOY, ONCE_FREEZE, ANIMATION_PLACEHOLDER.TELEPORT_OUT);
+// <- support.function.evs
+
+// ============================================================
+// User-defined function calls
+// ============================================================
+
+portal_activated();
+// <- entity.name.function.call.evs
+
+fake_level(0x0007);
+// <- entity.name.function.call.evs
