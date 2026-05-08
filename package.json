@@ -1,0 +1,42 @@
+{
+  "name": "everscript",
+  "displayName": "Everscript",
+  "description": "Syntax highlighting for Everscript (.evs) — the Secret of Evermore ROM scripting language",
+  "version": "0.1.0",
+  "publisher": "rbin",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "everscript",
+        "aliases": ["Everscript", "evs"],
+        "extensions": [".evs"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "everscript",
+        "scopeName": "source.evs",
+        "path": "./syntaxes/everscript.tmLanguage.json"
+      }
+    ],
+    "themes": [
+      {
+        "label": "Everscript Dark",
+        "uiTheme": "vs-dark",
+        "path": "./themes/everscript-dark.json"
+      }
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rbin/everscript-vscode"
+  },
+  "license": "MIT"
+}

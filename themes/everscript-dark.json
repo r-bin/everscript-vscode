@@ -1,0 +1,133 @@
+{
+  "$schema": "vscode://schemas/color-theme",
+  "name": "Everscript Dark",
+  "type": "dark",
+  "colors": {},
+  "tokenColors": [
+    {
+      "name": "Comment",
+      "scope": "comment.line.double-slash.evs",
+      "settings": { "foreground": "#6A9955", "fontStyle": "italic" }
+    },
+    {
+      "name": "Preprocessor directives",
+      "scope": "keyword.preprocessor.evs",
+      "settings": { "foreground": "#C586C0" }
+    },
+    {
+      "name": "Annotation name",
+      "scope": "entity.name.function.decorator.evs",
+      "settings": { "foreground": "#9A9A9A", "fontStyle": "italic" }
+    },
+    {
+      "name": "Annotation @",
+      "scope": "punctuation.definition.annotation.evs",
+      "settings": { "foreground": "#9A9A9A" }
+    },
+    {
+      "name": "Strings",
+      "scope": "string.quoted.double.evs",
+      "settings": { "foreground": "#CE9178" }
+    },
+    {
+      "name": "Raw strings",
+      "scope": "string.quoted.single.raw.evs",
+      "settings": { "foreground": "#CE9178", "fontStyle": "italic" }
+    },
+    {
+      "name": "In-string placeholders",
+      "scope": "constant.other.placeholder.evs",
+      "settings": { "foreground": "#4EC9B0" }
+    },
+    {
+      "name": "Memory address value",
+      "scope": "variable.other.address.evs",
+      "settings": { "foreground": "#FF9900" }
+    },
+    {
+      "name": "Memory address bitmask",
+      "scope": "variable.other.address.bitmask.evs",
+      "settings": { "foreground": "#FF9900", "fontStyle": "italic" }
+    },
+    {
+      "name": "Address punctuation < >",
+      "scope": "punctuation.definition.address.evs",
+      "settings": { "foreground": "#FF9900" }
+    },
+    {
+      "name": "Control flow keywords",
+      "scope": "keyword.control.evs",
+      "settings": { "foreground": "#569CD6" }
+    },
+    {
+      "name": "Declaration keywords",
+      "scope": "keyword.declaration.evs",
+      "settings": { "foreground": "#C586C0" }
+    },
+    {
+      "name": "Type keywords",
+      "scope": "storage.type.evs",
+      "settings": { "foreground": "#4EC9B0" }
+    },
+    {
+      "name": "Boolean literals",
+      "scope": "constant.language.boolean.evs",
+      "settings": { "foreground": "#569CD6" }
+    },
+    {
+      "name": "Hex numbers",
+      "scope": "constant.numeric.hex.evs",
+      "settings": { "foreground": "#B5CEA8" }
+    },
+    {
+      "name": "Decimal (0d) numbers",
+      "scope": "constant.numeric.decimal.evs",
+      "settings": { "foreground": "#B5CEA8" }
+    },
+    {
+      "name": "Special identifiers (BOY, DOG, NORTH...)",
+      "scope": "variable.language.evs",
+      "settings": { "foreground": "#DCDCAA", "fontStyle": "italic" }
+    },
+    {
+      "name": "Enum namespace",
+      "scope": "entity.name.enum.evs",
+      "settings": { "foreground": "#4EC9B0" }
+    },
+    {
+      "name": "Enum member",
+      "scope": "variable.other.enummember.evs",
+      "settings": { "foreground": "#9CDCFE" }
+    },
+    {
+      "name": "Label destinations",
+      "scope": "entity.name.label.evs",
+      "settings": { "foreground": "#C8C8C8", "fontStyle": "underline" }
+    },
+    {
+      "name": "Compiler built-in functions",
+      "scope": "support.function.builtin.evs",
+      "settings": { "foreground": "#DCDCAA" }
+    },
+    {
+      "name": "Core library functions",
+      "scope": "support.function.evs",
+      "settings": { "foreground": "#DCDCAA" }
+    },
+    {
+      "name": "User function calls",
+      "scope": "entity.name.function.call.evs",
+      "settings": { "foreground": "#C6E0A4" }
+    },
+    {
+      "name": "Operators",
+      "scope": "keyword.operator.evs",
+      "settings": { "foreground": "#D4D4D4" }
+    },
+    {
+      "name": "Range operator ..",
+      "scope": "keyword.operator.range.evs",
+      "settings": { "foreground": "#D4D4D4" }
+    }
+  ]
+}

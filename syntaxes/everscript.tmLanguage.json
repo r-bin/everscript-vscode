@@ -1,0 +1,207 @@
+{
+  "name": "Everscript",
+  "scopeName": "source.evs",
+  "fileTypes": ["evs"],
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#preprocessor" },
+    { "include": "#annotation" },
+    { "include": "#string-double" },
+    { "include": "#string-single" },
+    { "include": "#memory-range" },
+    { "include": "#memory-address-with-flag" },
+    { "include": "#memory-address" },
+    { "include": "#keyword-control" },
+    { "include": "#keyword-declaration" },
+    { "include": "#storage-type" },
+    { "include": "#boolean" },
+    { "include": "#number" },
+    { "include": "#special-identifier" },
+    { "include": "#enum-member" },
+    { "include": "#label-destination" },
+    { "include": "#builtin-function" },
+    { "include": "#core-function" },
+    { "include": "#user-function-call" },
+    { "include": "#operator" },
+    { "include": "#punctuation" }
+  ],
+  "repository": {
+
+    "comment": {
+      "name": "comment.line.double-slash.evs",
+      "match": "//.*$"
+    },
+
+    "preprocessor": {
+      "patterns": [
+        {
+          "name": "meta.preprocessor.evs",
+          "match": "(#memory|#include|#patch)(?=\\()",
+          "captures": {
+            "1": { "name": "keyword.preprocessor.evs" }
+          }
+        },
+        {
+          "name": "keyword.preprocessor.evs",
+          "match": "#if\\b|#endif\\b"
+        }
+      ]
+    },
+
+    "annotation": {
+      "name": "meta.annotation.evs",
+      "match": "(@)([a-z_][a-z0-9_]*)(?=\\(|\\b)",
+      "captures": {
+        "1": { "name": "punctuation.definition.annotation.evs" },
+        "2": { "name": "entity.name.function.decorator.evs" }
+      }
+    },
+
+    "string-double": {
+      "name": "string.quoted.double.evs",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.other.placeholder.evs",
+          "match": "\\[(?:CHOICE_INLINE|CHOICE|MEM[123]|SUBTEXT_END|[A-Z_]+)\\]"
+        }
+      ]
+    },
+
+    "string-single": {
+      "name": "string.quoted.single.raw.evs",
+      "match": "'[^']*'"
+    },
+
+    "memory-range": {
+      "comment": "memory range: <0x1234>..<0x5678>",
+      "name": "meta.address-range.evs",
+      "match": "(<)(0[xX][0-9a-fA-F]+)(>)(\\.\\.)(<)(0[xX][0-9a-fA-F]+)(>)",
+      "captures": {
+        "1": { "name": "punctuation.definition.address.evs" },
+        "2": { "name": "variable.other.address.evs" },
+        "3": { "name": "punctuation.definition.address.evs" },
+        "4": { "name": "keyword.operator.range.evs" },
+        "5": { "name": "punctuation.definition.address.evs" },
+        "6": { "name": "variable.other.address.evs" },
+        "7": { "name": "punctuation.definition.address.evs" }
+      }
+    },
+
+    "memory-address-with-flag": {
+      "comment": "address with bitmask: <0x1234, 0x40>",
+      "name": "meta.address.evs",
+      "match": "(<)(0[xX][0-9a-fA-F]+)(,\\s*)(0[xX][0-9a-fA-F]+)(>)",
+      "captures": {
+        "1": { "name": "punctuation.definition.address.evs" },
+        "2": { "name": "variable.other.address.evs" },
+        "3": { "name": "punctuation.separator.evs" },
+        "4": { "name": "variable.other.address.bitmask.evs" },
+        "5": { "name": "punctuation.definition.address.evs" }
+      }
+    },
+
+    "memory-address": {
+      "comment": "bare address: <0x1234> or <0x1234> used as lvalue/rvalue",
+      "name": "meta.address.evs",
+      "match": "(<)(0[xX][0-9a-fA-F]+)(>)",
+      "captures": {
+        "1": { "name": "punctuation.definition.address.evs" },
+        "2": { "name": "variable.other.address.evs" },
+        "3": { "name": "punctuation.definition.address.evs" }
+      }
+    },
+
+    "keyword-control": {
+      "name": "keyword.control.evs",
+      "match": "\\b(else if!|else if|else|if!|if_currency|if|while!|while|for|in|return)\\b"
+    },
+
+    "keyword-declaration": {
+      "name": "keyword.declaration.evs",
+      "match": "\\b(fun|map|area|group|enum|val|var)\\b"
+    },
+
+    "storage-type": {
+      "name": "storage.type.evs",
+      "match": "\\b(signed|Byte|Word|Memory|Function|Arg|None|T_NONE|T_BYTE|T_WORD|T_MEMORY|T_FUNCTION|T_ARG)\\b"
+    },
+
+    "boolean": {
+      "name": "constant.language.boolean.evs",
+      "match": "\\b(True|False)\\b"
+    },
+
+    "number": {
+      "patterns": [
+        {
+          "name": "constant.numeric.hex.evs",
+          "match": "[+\\-]?0[xX][0-9a-fA-F]+"
+        },
+        {
+          "name": "constant.numeric.decimal.evs",
+          "match": "[+\\-]?0[dD][0-9]+"
+        }
+      ]
+    },
+
+    "special-identifier": {
+      "comment": "well-known unqualified constants used as arguments",
+      "name": "variable.language.evs",
+      "match": "\\b(BOY|DOG|BOTH|NONE|ACTIVE|INACTIVE|LAST_ENTITY|NORTH|SOUTH|EAST|WEST|UNKNOWN|BOY_ENTITY|DOG_ENTITY|SCRIPT_OWNER|SCRIPT_TARGET|SCRIPT_CALLER|B|START|L|R)\\b"
+    },
+
+    "enum-member": {
+      "comment": "NAMESPACE.MEMBER — e.g. FLAG.DOG_UNAVAILABLE, MEMORY.BOY_LEVEL",
+      "name": "meta.enumaccess.evs",
+      "match": "\\b([A-Z][A-Z0-9_]+)\\.([A-Za-z][A-Za-z0-9_]*)\\b",
+      "captures": {
+        "1": { "name": "entity.name.enum.evs" },
+        "2": { "name": "variable.other.enummember.evs" }
+      }
+    },
+
+    "label-destination": {
+      "name": "entity.name.label.evs",
+      "match": "\\b[A-Z][A-Z_]*:"
+    },
+
+    "builtin-function": {
+      "comment": "compiler-native functions from parser.py",
+      "name": "support.function.builtin.evs",
+      "match": "\\b(eval|goto|code|set|unset|call|reference|deref|dead|alive|rand|randrange|len|rnd|string_key|function_key|entrance|soundtrack|map_transition|retained_object|install_string|_address|_loot|_loot_chest|_calculate|calculate)(?=\\s*\\()"
+    },
+
+    "core-function": {
+      "comment": "library functions defined in in/core/",
+      "name": "support.function.evs",
+      "match": "\\b(_add_enemy|_add_placeholder|_animate_hole|_destroy|_dialog|_face|_drop_bomb|_sleep|_unlock|_subtext|_teleport|act2_axe2_wall|act4_evermoremachine_in|act4_evermoremachine_out|add_bombable|add_colored_enemy|add_enemy|add_enemy_spawner|add_hole|add_placeholder|add_shop_item|animate|animate_boy|animate_hole|anti_cheese_magic_spam|anti_cheese_mosquito|arg|arg_signed|attach_script|attach_sterling_script|attach_to_script|attribute|attribute_bit|available|await_answer|await_buy_result|await_sell_result|bark|beam_link_absolute|beam_link_entity|beam_wall|bomb_absolute|bomb_entity|bomb_relative|bombable_object|bombable_trigger|bone_whip|bonfire_activate|bonfire_dialog|brightness|calculate_scaled_vector|call_async|call_id|cannonball|cast|cast_team|change_z|character_selection|check_alchemy_type|check_code_konami|check_code_leftright|check_damage_type|check_dog_stairs|check_fake_wall|check_range|check_switch|clear_music_stack|clear_shop|clear_status_effects|clear_subtext|color_filter|color_filter_fade_from|color_filter_fade_to|conversation|conversation_dialog|conversation_end|conversation_question|conversation_start|crash_both|crash_land|cure|currency_convert|currency_get|currency_take|cycle_weapon|damage|dash_teleport|debug_boy|debug_dog|debug_entity|debug_marker|debug_memory|debug_status_effects_helper|debug_subtext|debug_tile|debug_z_level|decrement_no_running|decrement_pacified|default_conversation_answer|delayed_fall_damage_deadly|desert_damage|desert_screen|destroy|dialog|dodge_roll|dog_fountain|dog_stairs|door_act4_airlock_in|door_act4_airlock_out|door_act4_beam_in|door_act4_beam_out|drag|drop_bomb|empty_check|enable_subtext|end|entity|entity_script_controlled|error_message|error_walk_back|explode_barrier|explode_boss|explode_last_entity|face|face_each|face_target|fade_in|fade_out|fade_out_black|fade_to_music|fake_b|fake_chest|fake_chest_init|fake_compativeness|fake_loot|fake_loot_gourd|fake_pit_scanner|fake_walls|fall_damage|fanfare_boss|fanfare_end|fanfare_item|fanfare_start|find_all|font|free_camera|free_map|full_heal|generic_crash|generic_crash_through|generic_door|generic_fall|generic_fall_gomi|generic_impact|generic_object_door|generic_pit|generic_switch_floor|generic_tunnel|generic_yeet|guard_alchemy_animation_damage|guard_axe_2|guard_b|guard_bone|guard_boy|guard_critter|guard_dead|guard_dog|guard_false|guard_no_hp|guard_not_flag|guard_spear_2|guard_true|guard_weapon|guard_z|handle_cheat_menu|hatch_enemy|heal|heel|hint|homing_cannonball|hookshot|increment_no_running|increment_pacified|init_map|item_pay|item_to_string|level_up|load_map|loot|mario_fireflower|mario_yump|meteor|modulo|morph|morph_hold|morph_toggle|move_towards|music|music_enter|music_fade|music_volume|nop|object|object_animator|open_message_box|outro_end|outro_start|outro_stats|outro_text_box|play_music|player_control|poise_break|poise_break_decay|pop_music|prepare_transition|price|print_time|projectile|projectile_barage_delayed|projectile_beam|projectile_delayed|puke_shoot|push_music|quantum_jump|question|quick_draw_weapon|range_checker|reboot|replace_enemy|replace_enemy_with_type|reset_alchemy_types|reset_timer|reward|rimsala_gate|ring_shoot|rocket_jump|safe_subtract|sand_tunnel|save|save_dialog|select_alchemy|set_args|set_camera|set_camera_entity|sfx_effect|shell_boat_in|shell_boat_move|shell_boat_out|shoot_entity_absolute|shoot_entity_entity|shoot_entity_relative|shop_buy|shop_sell|show_currency|show_hud|show_shop|single_animation|sleep|small_explosion|smart_animate|smart_conversation|smart_sound|smart_text_box|smart_timer|sound|spaceship_rocket|spear_toss|stack_sprite|sterling_grab|sterling_grab_3d|subtext|swap_characters|swap_enemies|teleport|teleport_relative|teleport_screen|teleporter_animation_in|teleporter_animation_out|teleporter_in|teleporter_out|test_palette|text|text_box|text_end|text_start|tile_animate|tile_flashing|toss_shoot|track_speed|trade_items|trading_error|transition|unlock|unlock_alchemy|unlock_armor|unlock_charms|unlock_consumables|unlock_ingredients|unlock_money|unlock_trading_goods|unlock_weapon_level|unlock_weapons|update_no_running|update_pacified|update_ui|volume|wait|walk|windwalker_rocket|wow_archaeology|wow_archaeology_guard|yield|zelda_power_glove|zelda_power_glove_stop)(?=\\s*\\()"
+    },
+
+    "user-function-call": {
+      "comment": "any other lowercase identifier followed by (",
+      "name": "entity.name.function.call.evs",
+      "match": "\\b([a-z_][a-z0-9_]*)(?=\\s*\\()"
+    },
+
+    "operator": {
+      "name": "keyword.operator.evs",
+      "match": "\\.\\.|\\.\\.|\\|=|&=|<<=|>>=|\\*=|\\/=|-=|\\+=|\\+\\+|--|==|!=|<=|>=|&&|\\|\\||<<|>>|[=<>!~+\\-*\\/&|^?]"
+    },
+
+    "punctuation": {
+      "patterns": [
+        { "name": "punctuation.terminator.evs",  "match": ";" },
+        { "name": "punctuation.separator.evs",   "match": "," },
+        { "name": "punctuation.accessor.evs",    "match": "\\." },
+        { "name": "punctuation.definition.block.begin.evs", "match": "\\{" },
+        { "name": "punctuation.definition.block.end.evs",   "match": "\\}" },
+        { "name": "punctuation.section.parens.begin.evs",   "match": "\\(" },
+        { "name": "punctuation.section.parens.end.evs",     "match": "\\)" },
+        { "name": "punctuation.section.bracket.begin.evs",  "match": "\\[" },
+        { "name": "punctuation.section.bracket.end.evs",    "match": "\\]" }
+      ]
+    }
+  }
+}
