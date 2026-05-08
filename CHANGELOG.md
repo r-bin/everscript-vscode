@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.1.5] — 2026-05-08
+
+### Changed
+- **Annotations redesigned to P5 amber bold** — `@install`, `@inject`, `@async` etc.
+  are now rendered in bold amber (`#FF9900`) instead of lilac. Rationale: they are
+  ROM linker directives that specify the exact byte offset where code is placed;
+  semantically equivalent to `<0x1234>` address literals.
+- **`<NAME>` entity refs are now all-amber** — the identifier inside `<BOY>` was
+  previously teal (P2); now amber (P5) so the whole `<BOY>` construct reads as one
+  cohesive hardware-access token.
+- **`object[n]` / `arg[n]` brackets now amber** — `[` and `]` get scope
+  `punctuation.section.accessor.evs` → amber, completing the accessor construct.
+- **P6 is now preprocessor-only** — `#memory`, `#include`, `#patch` remain lilac.
+  Annotations are no longer grouped with preprocessor.
+- **Theme structural corruption fixed** — a duplicate orphaned `tokenColors` section
+  that existed outside the valid JSON root has been removed. Several scopes (labels,
+  `variable.language.evs` italic) were previously dead code in that section.
+
+### Added
+- **Binary number highlighting** — `0b1010` tokens now get scope
+  `constant.numeric.binary.evs` → light green (P8), matching hex and decimal.
+- **Annotation argument coloring** — `@install(0x99aac0)` now colors the `(` and `)`
+  amber too; address/number/enum arguments inside are tokenised correctly.
+
 ## [0.1.4] — 2026-05-08
 
 ### Added

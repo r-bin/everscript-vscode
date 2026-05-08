@@ -42,12 +42,6 @@
       "scope": "entity.name.enum.evs",
       "settings": { "foreground": "#4EC9B0" }
     },
-    {
-      "name": "Entity reference identifier inside <...>",
-      "scope": "variable.other.entity-ref.evs",
-      "settings": { "foreground": "#4EC9B0" }
-    },
-
     // -- P3  Enum members ---------------------------- light blue #9CDCFE -----
     // The concrete value after the dot: .DOG_UNAVAILABLE, .BOY_LEVEL
     {
@@ -75,9 +69,31 @@
       "settings": { "foreground": "#DCDCAA" }
     },
 
-    // -- P5  Memory access --------------------------- amber #FF9900 ----------
-    // Same tier: addresses <0x1234>, entity refs <BOY>, object[]/arg[] accessors
-    // Rationale: all are direct RAM/entity access -- operationally the same idea
+    // -- P5  Hardware / ROM access ------------------- amber #FF9900 ----------
+    // Tier includes: raw memory addresses, entity handles, memory slot accessors,
+    // AND ROM injection directives (@install/@inject).
+    //
+    // Cross-language annotation colour rationale:
+    //   Python @decorator  -> VS Code Dark+ uses function-yellow; decorators are
+    //     optional metadata that call a function — easy to add or remove.
+    //   Java @Annotation   -> IntelliJ Darcula uses muted gold (informational).
+    //   Rust #[proc_macro] -> orange in codegen-aware themes (code transformation).
+    //   C __attribute__((section("..."))) -> places the symbol at a specific ROM
+    //     address; direct analogue of @install.  Assembler IDEs colour section/org
+    //     pseudo-ops the same as address literals for this reason.
+    //   Everscript @install/@inject: LINKER DIRECTIVES that specify WHERE in the
+    //     ROM binary the compiled function is placed.  Not optional metadata — if
+    //     the address is wrong the ROM is corrupted.  They reference the same
+    //     address space as <0x1234>, so they belong in the same visual tier.
+    //   Bold font-style distinguishes the directive keyword from the values inside.
+    {
+      "name": "ROM injection directive sigil + name (@install @inject @async ...)",
+      "scope": [
+        "punctuation.definition.annotation.evs",
+        "entity.name.function.decorator.evs"
+      ],
+      "settings": { "foreground": "#FF9900", "fontStyle": "bold" }
+    },
     {
       "name": "Memory address hex value",
       "scope": "variable.other.address.evs",
@@ -94,30 +110,31 @@
       "settings": { "foreground": "#FF9900" }
     },
     {
-      "name": "Entity-ref angle brackets < >",
-      "scope": "punctuation.definition.entity-ref.evs",
+      "name": "Entity reference <BOY> <LAST_ENTITY> — all parts amber",
+      "scope": [
+        "punctuation.definition.entity-ref.evs",
+        "variable.other.entity-ref.evs"
+      ],
       "settings": { "foreground": "#FF9900" }
     },
     {
-      "name": "Memory slot accessors (object arg script time)",
+      "name": "Memory slot accessor word (object arg script time)",
       "scope": "variable.other.accessor.evs",
       "settings": { "foreground": "#FF9900" }
     },
+    {
+      "name": "Memory slot accessor brackets [ ]",
+      "scope": "punctuation.section.accessor.evs",
+      "settings": { "foreground": "#FF9900" }
+    },
 
-    // -- P6  Metadata / annotations ------------------ lilac #C586C0 ----------
-    // @install @inject @async @weak -- decorators, not runtime code
-    // Preprocessor #memory #include #patch -- directives, not statements
-    // Using the same purple keeps both in a "meta" visual bucket
-    {
-      "name": "Annotation @ sigil",
-      "scope": "punctuation.definition.annotation.evs",
-      "settings": { "foreground": "#C586C0" }
-    },
-    {
-      "name": "Annotation name (install inject async weak ...)",
-      "scope": "entity.name.function.decorator.evs",
-      "settings": { "foreground": "#C586C0", "fontStyle": "italic" }
-    },
+    // -- P6  Build-time directives ------------------- lilac #C586C0 ----------
+    // #memory / #include / #patch / #if / #endif — configure the build/link step.
+    // Annotations moved to P5; P6 is now exclusively file-level build config.
+    //
+    // Cross-language: C/C++/GLSL/HLSL preprocessor (#include/#define) uses
+    //   purple/lilac in VS Code Dark+, One Dark Pro, and Dracula — consistently
+    //   signalling "this line affects the build pipeline, not the runtime".
     {
       "name": "Preprocessor directives (#memory #include #patch)",
       "scope": "keyword.preprocessor.evs",
@@ -142,7 +159,7 @@
     },
 
     // -- P8  Numeric literals ------------------------ light green #B5CEA8 ----
-    // 0xFF and 0d99 get identical colour -- they are the same concept
+    // 0xFF hex, 0d99 prefixed decimal, 0b1010 binary -- all the same visual tier
     {
       "name": "Hex literals (0xFF)",
       "scope": "constant.numeric.hex.evs",
@@ -153,6 +170,11 @@
       "scope": "constant.numeric.decimal.evs",
       "settings": { "foreground": "#B5CEA8" }
     },
+    {
+      "name": "Binary literals (0b1010)",
+      "scope": "constant.numeric.binary.evs",
+      "settings": { "foreground": "#B5CEA8" }
+    },
 
     // -- P9  Comments -------------------------------- grey-green #6A9955 -----
     {
@@ -161,130 +183,14 @@
       "settings": { "foreground": "#6A9955", "fontStyle": "italic" }
     },
 
-    // -- Operators & punctuation ----------------------- default grey ---------
+    // -- Labels ------------------------------------------------ underline ----
     {
-      "name": "Operators",
-      "scope": "keyword.operator.evs",
-      "settings": { "foreground": "#D4D4D4" }
-    },
-    {
-      "name": "Range operator ..",
-      "scope": "keyword.operator.range.evs",
-      "settings": { "foreground": "#D4D4D4" }
-    }
-  ]
-}
-
-    {
-      "name": "Preprocessor directives",
-      "scope": "keyword.preprocessor.evs",
-      "settings": { "foreground": "#C586C0" }
-    },
-    {
-      "name": "Annotation name",
-      "scope": "entity.name.function.decorator.evs",
-      "settings": { "foreground": "#9A9A9A", "fontStyle": "italic" }
-    },
-    {
-      "name": "Annotation @",
-      "scope": "punctuation.definition.annotation.evs",
-      "settings": { "foreground": "#9A9A9A" }
-    },
-    {
-      "name": "Strings",
-      "scope": "string.quoted.double.evs",
-      "settings": { "foreground": "#CE9178" }
-    },
-    {
-      "name": "Raw strings",
-      "scope": "string.quoted.single.raw.evs",
-      "settings": { "foreground": "#CE9178", "fontStyle": "italic" }
-    },
-    {
-      "name": "In-string placeholders",
-      "scope": "constant.other.placeholder.evs",
-      "settings": { "foreground": "#4EC9B0" }
-    },
-    {
-      "name": "Memory address value",
-      "scope": "variable.other.address.evs",
-      "settings": { "foreground": "#FF9900" }
-    },
-    {
-      "name": "Memory address bitmask",
-      "scope": "variable.other.address.bitmask.evs",
-      "settings": { "foreground": "#FF9900", "fontStyle": "italic" }
-    },
-    {
-      "name": "Address punctuation < >",
-      "scope": "punctuation.definition.address.evs",
-      "settings": { "foreground": "#FF9900" }
-    },
-    {
-      "name": "Control flow keywords",
-      "scope": "keyword.control.evs",
-      "settings": { "foreground": "#569CD6" }
-    },
-    {
-      "name": "Declaration keywords",
-      "scope": "keyword.declaration.evs",
-      "settings": { "foreground": "#C586C0" }
-    },
-    {
-      "name": "Type keywords",
-      "scope": "storage.type.evs",
-      "settings": { "foreground": "#4EC9B0" }
-    },
-    {
-      "name": "Boolean literals",
-      "scope": "constant.language.boolean.evs",
-      "settings": { "foreground": "#569CD6" }
-    },
-    {
-      "name": "Hex numbers",
-      "scope": "constant.numeric.hex.evs",
-      "settings": { "foreground": "#B5CEA8" }
-    },
-    {
-      "name": "Decimal (0d) numbers",
-      "scope": "constant.numeric.decimal.evs",
-      "settings": { "foreground": "#B5CEA8" }
-    },
-    {
-      "name": "Special identifiers (BOY, DOG, NORTH...)",
-      "scope": "variable.language.evs",
-      "settings": { "foreground": "#DCDCAA", "fontStyle": "italic" }
-    },
-    {
-      "name": "Enum namespace",
-      "scope": "entity.name.enum.evs",
-      "settings": { "foreground": "#4EC9B0" }
-    },
-    {
-      "name": "Enum member",
-      "scope": "variable.other.enummember.evs",
-      "settings": { "foreground": "#9CDCFE" }
-    },
-    {
-      "name": "Label destinations",
+      "name": "Label destinations (LOOP: START:)",
       "scope": "entity.name.label.evs",
       "settings": { "foreground": "#C8C8C8", "fontStyle": "underline" }
     },
-    {
-      "name": "Compiler built-in functions",
-      "scope": "support.function.builtin.evs",
-      "settings": { "foreground": "#DCDCAA" }
-    },
-    {
-      "name": "Core library functions",
-      "scope": "support.function.evs",
-      "settings": { "foreground": "#DCDCAA" }
-    },
-    {
-      "name": "User function calls",
-      "scope": "entity.name.function.call.evs",
-      "settings": { "foreground": "#C6E0A4" }
-    },
+
+    // -- Operators & punctuation ----------------------- default grey ---------
     {
       "name": "Operators",
       "scope": "keyword.operator.evs",

@@ -51,12 +51,36 @@
     },
 
     "annotation": {
-      "name": "meta.annotation.evs",
-      "match": "(@)([a-z_][a-z0-9_]*)(?=\\(|\\b)",
-      "captures": {
-        "1": { "name": "punctuation.definition.annotation.evs" },
-        "2": { "name": "entity.name.function.decorator.evs" }
-      }
+      "patterns": [
+        {
+          "comment": "annotation with arguments: @install(addr), @inject(...), @count_limit(n)",
+          "name": "meta.annotation.evs",
+          "begin": "(@)([a-z_][a-z0-9_]*)(\\()",
+          "beginCaptures": {
+            "1": { "name": "punctuation.definition.annotation.evs" },
+            "2": { "name": "entity.name.function.decorator.evs" },
+            "3": { "name": "punctuation.definition.annotation.evs" }
+          },
+          "end": "(\\))",
+          "endCaptures": {
+            "1": { "name": "punctuation.definition.annotation.evs" }
+          },
+          "patterns": [
+            { "include": "#memory-address" },
+            { "include": "#enum-member" },
+            { "include": "#number" }
+          ]
+        },
+        {
+          "comment": "annotation without arguments: @async, @weak",
+          "name": "meta.annotation.evs",
+          "match": "(@)([a-z_][a-z0-9_]*)",
+          "captures": {
+            "1": { "name": "punctuation.definition.annotation.evs" },
+            "2": { "name": "entity.name.function.decorator.evs" }
+          }
+        }
+      ]
     },
 
     "string-double": {
@@ -155,14 +179,30 @@
         {
           "name": "constant.numeric.decimal.evs",
           "match": "[+\\-]?0[dD][0-9]+"
+        },
+        {
+          "name": "constant.numeric.binary.evs",
+          "match": "[+\\-]?0[bB][01]+"
         }
       ]
     },
 
     "memory-accessor": {
       "comment": "object[N], arg[N], script[N], time[N] -- named memory slot accessors",
-      "name": "variable.other.accessor.evs",
-      "match": "\\b(object|arg|script|time)(?=\\[)"
+      "name": "meta.accessor.evs",
+      "begin": "\\b(object|arg|script|time)(\\[)",
+      "beginCaptures": {
+        "1": { "name": "variable.other.accessor.evs" },
+        "2": { "name": "punctuation.section.accessor.evs" }
+      },
+      "end": "(\\])",
+      "endCaptures": {
+        "1": { "name": "punctuation.section.accessor.evs" }
+      },
+      "patterns": [
+        { "include": "#number" },
+        { "include": "#special-identifier" }
+      ]
     },
 
     "special-identifier": {

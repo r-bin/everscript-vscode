@@ -76,6 +76,9 @@ MEMORY.BOY_LEVEL = 0x000c;
 MEMORY.ITEM_MAX = 0d99;
 //                ^^^^ constant.numeric.decimal.evs
 
+if(0b00010001) {
+// ^^^^^^^^^^ constant.numeric.binary.evs
+
 fake_level(0d10);
 //         ^^^^ constant.numeric.decimal.evs
 
