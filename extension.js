@@ -574,9 +574,9 @@ function refreshRadar(editor) {
         scope.name === _radarCurrentScope.name && scope.kind === _radarCurrentScope.kind) return;
     _radarCurrentScope = scope;
     _radarDoc = doc;
-    const refs      = radarAnalyzeScope(doc, scope.startLine, scope.endLine);
+    const { refs, pools } = radarAnalyzeScope(doc, scope.startLine, scope.endLine);
     const mapByAddr = getRadarMap();
-    _radarPanel.webview.html = renderRadarHtml(scope, refs, mapByAddr);
+    _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, mapByAddr);
     _radarPanel.title = 'Radar: ' + scope.name;
 }
 
@@ -629,34 +629,47 @@ function radarFindCloseBrace(document, ob) {
 }
 
 function radarAnalyzeScope(document, startLine, endLine) {
-    // Map<addr, { reads: number[], writes: number[], sources: string[] }>
+    // refs: Map<addr, { reads: [{line,text}], writes: [{line,text}], sources: [] }>
+    // pools: [{start, end, line, lc}] — declared <0xS>..<0xE> pool ranges
     const refs = new Map();
-    const add = (addr, line, source, isWrite) => {
+    const pools = [];
+
+    const add = (addr, line, rawText, source, isWrite) => {
         if (!refs.has(addr)) refs.set(addr, { reads: [], writes: [], sources: [] });
         const r = refs.get(addr);
-        if (isWrite) { if (!r.writes.includes(line)) r.writes.push(line); }
-        else         { if (!r.reads.includes(line))  r.reads.push(line); }
+        const entry = { line, text: rawText.trim() };
+        if (isWrite) { if (!r.writes.some(x => x.line === line)) r.writes.push(entry); }
+        else         { if (!r.reads.some(x => x.line === line))  r.reads.push(entry); }
         if (!r.sources.includes(source)) r.sources.push(source);
     };
-    // Detect write: <0xADDR...> = or memory(0xADDR...) =  (not ==, !=, <=, >=)
     const isWrite = (text, hexLit) => {
         const h = hexLit.replace(/^0x/i, '');
         return new RegExp('<\\s*0x' + h + '[^>]*>\\s*(?:[+\\-*\\/&|^]|<<|>>)?=(?!=)', 'i').test(text) ||
                new RegExp('memory\\s*\\(\\s*0x' + h + '[^)]*\\)\\s*(?:[+\\-*\\/&|^]|<<|>>)?=(?!=)', 'i').test(text);
     };
+
     for (let i = startLine; i <= endLine; i++) {
-        const text = document.lineAt(i).text.replace(/\/\/.*$/, '');
+        const rawText = document.lineAt(i).text;
+        const text    = rawText.replace(/\/\/.*$/, '');
+
+        // Pool range declarations: <0xSTART>..<0xEND>
+        const poolM = text.match(/<\s*(0x[0-9a-fA-F]+)\s*>\s*\.\.\s*<\s*(0x[0-9a-fA-F]+)\s*>/);
+        if (poolM) {
+            const ps = parseInt(poolM[1], 16), pe = parseInt(poolM[2], 16);
+            if (!isNaN(ps) && !isNaN(pe)) pools.push({ start: ps, end: pe, line: i, lc: radarLifecycle(ps, '', '') });
+            continue; // don't also extract the boundary addresses as individual refs
+        }
+
         for (const m of text.matchAll(/\bmemory\s*\(\s*(0x[0-9a-fA-F]+)/g)) {
             const a = parseInt(m[1], 16);
-            if (!isNaN(a)) add(a, i, 'memory()', isWrite(text, m[1]));
+            if (!isNaN(a)) add(a, i, rawText, 'memory()', isWrite(text, m[1]));
         }
         for (const m of text.matchAll(/<\s*(0x[0-9a-fA-F]+)/g)) {
             const a = parseInt(m[1], 16);
-            if (!isNaN(a)) add(a, i, '<deref>', isWrite(text, m[1]));
+            if (!isNaN(a)) add(a, i, rawText, '<deref>', isWrite(text, m[1]));
         }
-
     }
-    return refs;
+    return { refs, pools };
 }
 
 function radarReadMemoryMap(filePath) {
@@ -711,7 +724,7 @@ function radarEsc(s) {
 
 function radarH(n) { return '0x' + n.toString(16).toUpperCase().padStart(4, '0'); }
 
-function renderRadarHtml(scope, refs, mapByAddr) {
+function renderRadarHtml(scope, refs, pools, mapByAddr) {
     const COLS = 16;
     const allAddrs = [...mapByAddr.keys(), ...refs.keys()];
     if (!allAddrs.length) { allAddrs.push(0x2200, 0x28FF); }
@@ -755,10 +768,14 @@ function renderRadarHtml(scope, refs, mapByAddr) {
     for (const [addr, usage] of refs) {
         if (!cellData[addr]) {
             const lc = radarLifecycle(addr, '', '');
+            const inPool = pools.some(p => addr >= p.start && addr <= p.end);
             cellData[addr] = {
-                addr: radarH(addr), name: '(unknown)', type: '?',
+                addr: radarH(addr),
+                name: inPool ? '(pool alloc)' : '(untracked)',
+                type: inPool ? 'pool' : '?',
                 lc, notes: '', addrStart: addr, addrEnd: addr, emoji: '',
                 reads: usage.reads, writes: usage.writes,
+                untracked: true, inPool,
             };
         }
     }
@@ -801,17 +818,25 @@ function renderRadarHtml(scope, refs, mapByAddr) {
                     '<span class="rl">' + radarH(base) + '</span>' + cells + '</div>';
     }
 
-    // Detail table — one row per unique entry
+    // Pool declaration rows
+    const poolRows = pools.map(p =>
+        '<tr class="pool-row lc-' + p.lc + '">' +
+        '<td class="mo"><span class="pool-badge">' + p.lc + '</span>' + radarH(p.start) + '\u2013' + radarH(p.end) + '</td>' +
+        '<td colspan="3">declared pool &mdash; ' + (p.end - p.start + 1) + ' bytes at line ' + (p.line + 1) + '</td>' +
+        '<td class="nt">' + p.lc + ' region</td><td>&ndash;</td></tr>'
+    ).join('');
+
+    // Detail table — one row per unique entry (known addresses), plus unknowns
     const seenE = new Set();
-    const detailRows = [...mapByAddr.entries()]
+    const knownRows = [...mapByAddr.entries()]
         .sort((a, b) => a[0] - b[0])
         .filter(([, e]) => { if (seenE.has(e)) return false; seenE.add(e); return true; })
         .map(([addr, e]) => {
             const usage  = refs.get(addr);
-            const rLinks = usage ? usage.reads.map(l =>
-                '<a class="ll" data-line="' + l + '" title="Jump to line ' + (l+1) + '">:' + (l+1) + '</a>').join('') : '';
-            const wLinks = usage ? usage.writes.map(l =>
-                '<a class="ll lw" data-line="' + l + '" title="Jump to line ' + (l+1) + '">:' + (l+1) + '</a>').join('') : '';
+            const rLinks = usage ? usage.reads.map(entry =>
+                '<a class="ll" data-line="' + entry.line + '" title="' + radarEsc(entry.text) + '">:' + (entry.line+1) + '</a>').join('') : '';
+            const wLinks = usage ? usage.writes.map(entry =>
+                '<a class="ll lw" data-line="' + entry.line + '" title="' + radarEsc(entry.text) + '">:' + (entry.line+1) + '</a>').join('') : '';
             const linesCell = (rLinks || wLinks)
                 ? (wLinks ? '<span class="rw-w">' + wLinks + '</span>' : '') +
                   (rLinks ? '<span class="rw-r">' + rLinks + '</span>' : '')
@@ -826,6 +851,33 @@ function renderRadarHtml(scope, refs, mapByAddr) {
                    '<td class="nt">' + radarEsc(e.notes) + '</td>' +
                    '<td class="rwc">' + linesCell + '</td></tr>';
         }).join('');
+
+    // Untracked rows (used in scope but not in memory map)
+    const seenU = new Set();
+    const untrackedRows = [...refs.entries()]
+        .filter(([addr]) => !mapByAddr.has(addr) && !seenU.has(addr) && (seenU.add(addr), true))
+        .sort((a, b) => a[0] - b[0])
+        .map(([addr, usage]) => {
+            const cd = cellData[addr];
+            const rLinks = usage.reads.map(entry =>
+                '<a class="ll" data-line="' + entry.line + '" title="' + radarEsc(entry.text) + '">:' + (entry.line+1) + '</a>').join('');
+            const wLinks = usage.writes.map(entry =>
+                '<a class="ll lw" data-line="' + entry.line + '" title="' + radarEsc(entry.text) + '">:' + (entry.line+1) + '</a>').join('');
+            const linesCell = (wLinks ? '<span class="rw-w">' + wLinks + '</span>' : '') +
+                              (rLinks ? '<span class="rw-r">' + rLinks + '</span>' : '');
+            const badge = cd && cd.inPool ? '<span class="pool-badge">pool</span>' : '<span class="unk-badge">?</span>';
+            const lc = cd ? cd.lc : radarLifecycle(addr, '', '');
+            return '<tr id="dr-' + addr + '" class="dr lc-' + lc + ' du untracked"' +
+                   ' data-addr="' + addr + '">' +
+                   '<td class="mo">' + badge + radarH(addr) + '</td>' +
+                   '<td class="no-vanilla">' + (cd ? radarEsc(cd.name) : '(untracked)') + '</td>' +
+                   '<td class="mt">?</td>' +
+                   '<td><span class="chip ch-' + lc + '">' + lc + '</span></td>' +
+                   '<td class="nt scope-only">scope usage only</td>' +
+                   '<td class="rwc">' + linesCell + '</td></tr>';
+        }).join('');
+
+    const detailRows = knownRows + untrackedRows;
 
     const tempT = lcCount('temp'), sessT = lcCount('session'), sramT = lcCount('sram');
     const tempU = lcUsed('temp'),  sessU = lcUsed('session'),  sramU = lcUsed('sram');
@@ -848,7 +900,7 @@ h2{font-size:9px;text-transform:uppercase;letter-spacing:.08em;opacity:.32;margi
 .fb.ft{border-color:#388bfd;color:#6cb6ff}.fb.fs{border-color:#ffa94d;color:#ffa94d}
 .fb.fr2{border-color:#3fb950;color:#56d364}.fb.fy{border-color:#666;color:#999}
 .fb.frest{border-color:#333;color:#555}.fb.fboring{border-color:#666;color:#888}
-.fb.femoji{border-color:#888;color:#aaa}.fb.ffollow{border-color:#a060ff;color:#c090ff}
+.fb.femoji{border-color:#888;color:#aaa}.fb.fgroup{border-color:#777;color:#aaa}
 .fb.fpin{border-color:#ff9040;color:#ffb060}.fb.fpin.on{border-color:#ff9040}
 .sep{width:1px;height:14px;background:#333;margin:0 2px}
 .sr{display:flex;align-items:center;gap:5px;margin-bottom:2px;font-size:10px}
@@ -858,15 +910,19 @@ h2{font-size:9px;text-transform:uppercase;letter-spacing:.08em;opacity:.32;margi
 .bi-temp{background:#388bfd}.bi-session{background:#ffa94d}.bi-sram{background:#3fb950}
 .bl{font-size:9px;opacity:.38;white-space:nowrap}
 .gw{margin:4px 0}
-.gr{display:flex;align-items:center;gap:1px;margin-bottom:1px;flex-shrink:0}
+.gr{display:flex;align-items:center;margin-bottom:1px;flex-shrink:0}
 .rl{font-size:7px;opacity:.2;width:36px;flex-shrink:0;user-select:none;letter-spacing:-.02em}
-.cell{display:inline-block;width:9px;height:9px;border-radius:1px;background:#0a0a0a;flex-shrink:0;cursor:pointer;position:relative;overflow:hidden;vertical-align:top;font-size:0;line-height:0}
+.cell{display:inline-block;width:9px;height:9px;border-radius:1px;background:#0a0a0a;flex-shrink:0;cursor:pointer;position:relative;overflow:hidden;vertical-align:top;font-size:0;line-height:0;margin-right:1px}
+.cell:last-child{margin-right:0}
+.cell.grj-r{margin-right:0;border-top-right-radius:0;border-bottom-right-radius:0}
+.cell.grj-l{border-top-left-radius:0;border-bottom-left-radius:0}
 .cell:hover{outline:1.5px solid rgba(255,255,255,.65);z-index:2}
 .cell.chi{outline:1.5px solid rgba(255,255,255,.3)!important;filter:brightness(1.4)}
-.cell.cursor{outline:2px solid rgba(255,255,255,.9)!important;z-index:3}
+.cell.cursor{z-index:3}
 .lc-temp{background:#152840}.lc-session{background:#2a1800}.lc-sram{background:#0a2010}.lc-system{background:#1a1a20}
 .cu.lc-temp{background:#388bfd}.cu.lc-session{background:#ffa94d}.cu.lc-sram{background:#3fb950}.cu.lc-system{background:#7777cc}
 .cw.cu{box-shadow:inset 0 0 0 1.5px #ff7b72}.crw.cu{box-shadow:inset 0 0 0 1.5px #f2cc60}
+.cursor.cw.cu,.cursor.crw.cu{box-shadow:none}
 .cr{background:#060606!important;opacity:.1}
 body.ht .cell.lc-temp:not(.cursor){opacity:0;pointer-events:none}
 body.hs .cell.lc-session:not(.cursor){opacity:0;pointer-events:none}
@@ -874,17 +930,12 @@ body.hr2 .cell.lc-sram:not(.cursor){opacity:0;pointer-events:none}
 body.hsy .cell.lc-system:not(.cursor){opacity:0;pointer-events:none}
 .gr.hrow{display:none!important}
 body.emoji .cell[data-emoji]::before{content:attr(data-emoji);font-size:6px;line-height:9px;display:block;text-align:center;pointer-events:none}
-#popup{display:none;position:fixed;top:8px;right:8px;width:220px;max-height:72vh;overflow-y:auto;
-  background:#1c1c1c;border:1px solid #333;border-radius:6px;padding:8px;font-size:10px;z-index:100;box-shadow:0 4px 24px rgba(0,0,0,.7)}
-#popup.vis{display:block}
-.px{float:right;cursor:pointer;opacity:.35;font-size:12px;margin-left:4px}.px:hover{opacity:.9}
-.pa{font-weight:700;font-size:11px;margin-bottom:1px}.pn{opacity:.75;margin-bottom:1px}.pt{opacity:.4;font-size:9px}
-#popup h3{font-size:8px;text-transform:uppercase;letter-spacing:.08em;opacity:.35;margin:7px 0 2px;border-top:1px solid #222;padding-top:5px}
-#popup h3:first-of-type{margin-top:4px}.pw{color:#ff9f9f}.pr{color:#9fcfff}
 table{width:100%;border-collapse:collapse;font-size:10px;margin-top:2px}
 th,td{border:1px solid #1a1a1a;padding:2px 4px;vertical-align:top}
 th{background:#101010;position:sticky;top:0;font-weight:600;text-align:left;font-size:8px}
 tr.dr{cursor:pointer}tr.dr:hover td{background:rgba(255,255,255,.03)}
+tr.pool-row td{background:rgba(56,139,253,.04);opacity:.65;font-style:italic}
+.untracked td{background:rgba(255,100,50,.04)}
 .du td{background:rgba(255,255,255,.01)}
 .lc-temp td:first-child{border-left:2px solid #388bfd}
 .lc-session.du td:first-child{border-left:2px solid #ffa94d}
@@ -892,22 +943,27 @@ tr.dr{cursor:pointer}tr.dr:hover td{background:rgba(255,255,255,.03)}
 tr.sel td{background:rgba(255,200,50,.08)!important;outline:1px solid rgba(255,200,50,.15)}
 .mo{font-size:9px;white-space:nowrap}.mt{opacity:.4;font-size:9px}
 .nt{opacity:.38;font-size:9px;max-width:80px;word-break:break-word}
+.no-vanilla{opacity:.5;font-style:italic}.scope-only{color:#ff9f9f80;font-style:italic}
 .rwc{white-space:nowrap;font-size:9px}.rw-w a{color:#ff9f9f}.rw-r a{color:#9fcfff}
 .chip{border-radius:5px;padding:0 3px;font-size:8px;border:1px solid transparent}
 .ch-temp{border-color:#388bfd;color:#6cb6ff}.ch-session{border-color:#ffa94d;color:#ffa94d}
 .ch-sram{border-color:#3fb950;color:#56d364}.ch-system{border-color:#555;color:#888}
 a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.ll:hover{text-decoration:underline}
-.te{margin-right:2px;font-size:9px}`;
+.te{margin-right:2px;font-size:9px}
+.pool-badge,.unk-badge{font-size:7px;border-radius:3px;padding:0 2px;margin-right:3px;border:1px solid}
+.pool-badge{border-color:#388bfd60;color:#388bfd;background:#152840}
+.unk-badge{border-color:#666;color:#888;background:#1a1a1a}`;
 
     const js = `(function(){
 var vs=typeof acquireVsCodeApi==='function'?acquireVsCodeApi():null;
 ${jsData}
 var hidden=new Set(['rest']);
-var hideBoring=false,followMode=false,emojiMode=false;
+var hideBoring=false,emojiMode=false,groupMode=false;
 var BTN_LC={ft:'temp',fs:'session',fr2:'sram',fy:'system',frest:'rest'};
 var BTN_BODY={ft:'ht',fs:'hs',fr2:'hr2',fy:'hsy'};
-// Initialize: rest hidden by default
 document.body.classList.add('hrest');
+var COLS=16;
+
 function recomputeRows(){
   document.querySelectorAll('.gr').forEach(function(row){
     var isGar=row.classList.contains('gar');
@@ -918,7 +974,7 @@ function recomputeRows(){
     row.classList.toggle('hrow',allHidden||(hideBoring&&!isUsed));
   });
 }
-// Region filter buttons
+
 document.querySelectorAll('.fb[data-cls]').forEach(function(b){
   var k=b.dataset.cls;
   if(!BTN_LC[k])return;
@@ -927,12 +983,11 @@ document.querySelectorAll('.fb[data-cls]').forEach(function(b){
     var on=b.classList.contains('on');
     var lc=BTN_LC[k];
     if(on)hidden.delete(lc);else hidden.add(lc);
-    // Region filters use body class for cell visibility (cells remain in DOM but hidden)
     if(BTN_BODY[k])document.body.classList.toggle(BTN_BODY[k],!on);
     recomputeRows();
   });
 });
-// rest button (gar rows only, no body class needed — hrow handles it)
+
 var restBtn=document.querySelector('.fb.frest');
 if(restBtn)restBtn.addEventListener('click',function(){
   restBtn.classList.toggle('on');
@@ -940,92 +995,117 @@ if(restBtn)restBtn.addEventListener('click',function(){
   if(on)hidden.delete('rest');else hidden.add('rest');
   recomputeRows();
 });
-// Boring filter
+
 var boringBtn=document.getElementById('btn-boring');
 if(boringBtn)boringBtn.addEventListener('click',function(){
   hideBoring=!hideBoring;
   boringBtn.classList.toggle('on',hideBoring);
   recomputeRows();
 });
-// Emoji toggle
+
 var emojiBtn=document.getElementById('btn-emoji');
 if(emojiBtn)emojiBtn.addEventListener('click',function(){
   emojiMode=!emojiMode;
   emojiBtn.classList.toggle('on',emojiMode);
   document.body.classList.toggle('emoji',emojiMode);
 });
-// Follow toggle (auto-scroll detail table on grid cell click)
-var followBtn=document.getElementById('btn-follow');
-if(followBtn)followBtn.addEventListener('click',function(){
-  followMode=!followMode;
-  followBtn.classList.toggle('on',followMode);
-});
-// Pin toggle (stop auto-update from editor)
+
 var pinBtn=document.getElementById('btn-pin');
 if(pinBtn)pinBtn.addEventListener('click',function(){
   var pinned=pinBtn.classList.toggle('on');
   if(vs)vs.postMessage({command:pinned?'pin':'unpin'});
 });
-// Popup
-var popup=document.getElementById('popup');
-function closePopup(){popup.classList.remove('vis');}
-document.getElementById('px').addEventListener('click',closePopup);
+
+// Group coloring toggle (default off)
+var gPal=['#5599ff','#ff8833','#33cc77','#ff44bb','#ccff33','#33bbff','#ff9944','#9933ff','#ff3344','#33ffcc'];
+var gColMap={},gIdx=0;
+document.querySelectorAll('.cell[data-gid]').forEach(function(c){
+  var gid=c.dataset.gid;
+  if(gColMap[gid]===undefined)gColMap[gid]=gPal[gIdx++%gPal.length];
+});
+function applyGroupColors(){
+  document.querySelectorAll('.cell[data-gid]').forEach(function(c){
+    c.style.borderBottom=groupMode?'2px solid '+gColMap[c.dataset.gid]:'';
+  });
+}
+var groupBtn=document.getElementById('btn-group');
+if(groupBtn)groupBtn.addEventListener('click',function(){
+  groupMode=!groupMode;
+  groupBtn.classList.toggle('on',groupMode);
+  applyGroupColors();
+});
+
+// Group join: collapse gap between adjacent cells in the same group
+document.querySelectorAll('.cell[data-gid]').forEach(function(c){
+  var addr=parseInt(c.dataset.addr);
+  var gid=c.dataset.gid;
+  var nextEl=document.querySelector('.cell[data-addr="'+(addr+1)+'"]');
+  var prevEl=document.querySelector('.cell[data-addr="'+(addr-1)+'"]');
+  if(nextEl&&nextEl.dataset.gid===gid)c.classList.add('grj-r');
+  if(prevEl&&prevEl.dataset.gid===gid)c.classList.add('grj-l');
+});
+
 function goToLine(l){if(vs)vs.postMessage({command:'goToLine',line:l});}
 function bindLinks(root){
   root.querySelectorAll('a.ll').forEach(function(a){
     a.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();goToLine(parseInt(a.dataset.line));});
   });
 }
-function showPopup(d){
-  var wLinks=d.writes.map(function(l){return '<a class="ll pw" data-line="'+l+'">line '+(l+1)+'</a>';}).join(' ');
-  var rLinks=d.reads.map(function(l){return '<a class="ll pr" data-line="'+l+'">line '+(l+1)+'</a>';}).join(' ');
-  var html='<span class="px" id="px2">&#x2715;</span>'+
-    '<div class="pa">'+(d.emoji?d.emoji+' ':'')+d.addr+'</div>'+
-    '<div class="pn">'+d.name+'</div>'+
-    '<div class="pt">'+d.type+' &bull; '+d.lc+'</div>';
-  if(d.notes)html+='<h3>Vanilla notes</h3><div class="pt">'+d.notes+'</div>';
-  if(wLinks)html+='<h3>Writes (destructive)</h3><div class="pw">'+wLinks+'</div>';
-  if(rLinks)html+='<h3>Reads (non-destructive)</h3><div class="pr">'+rLinks+'</div>';
-  if(!wLinks&&!rLinks)html+='<h3>Not used in scope</h3>';
-  popup.innerHTML=html;
-  popup.classList.add('vis');
-  bindLinks(popup);
-  popup.querySelector('#px2').addEventListener('click',closePopup);
+
+// Polygon outline: per-cell edge box-shadows so selection looks like one outline
+function applyPolygonOutline(cursored){
+  var cc='rgba(255,255,255,0.88)';
+  cursored.forEach(function(addr){
+    var el=document.querySelector('.cell[data-addr="'+addr+'"]');
+    if(!el)return;
+    var col=addr&(COLS-1);
+    var shadows=[];
+    if(el.classList.contains('crw'))shadows.push('inset 0 0 0 1px rgba(242,204,96,0.35)');
+    else if(el.classList.contains('cw'))shadows.push('inset 0 0 0 1px rgba(255,123,114,0.35)');
+    if(col===0||!cursored.has(addr-1))      shadows.push('inset 2px 0 0 0 '+cc);
+    if(col===COLS-1||!cursored.has(addr+1)) shadows.push('inset -2px 0 0 0 '+cc);
+    if(!cursored.has(addr-COLS))            shadows.push('inset 0 2px 0 0 '+cc);
+    if(!cursored.has(addr+COLS))            shadows.push('inset 0 -2px 0 0 '+cc);
+    el.style.boxShadow=shadows.join(',');
+    el.style.zIndex='3';
+  });
 }
-// Cursor: highlight ALL cells in the entry's address range
+
 function setCursor(addr){
-  document.querySelectorAll('.cursor').forEach(function(x){x.classList.remove('cursor');});
+  document.querySelectorAll('.cursor').forEach(function(x){
+    x.classList.remove('cursor');x.style.boxShadow='';x.style.zIndex='';
+  });
   var d=CELLS[addr];
   var start=d?d.addrStart:addr,end=d?d.addrEnd:addr;
+  var cursored=new Set();
   for(var a=start;a<=end;a++){
     var c=document.querySelector('.cell[data-addr="'+a+'"]');
-    if(c)c.classList.add('cursor');
+    if(c){c.classList.add('cursor');cursored.add(a);}
   }
+  applyPolygonOutline(cursored);
   var first=document.querySelector('.cell[data-addr="'+start+'"]');
   if(first)first.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
-// Detail row selection
+
 function selectDetailRow(addr){
   document.querySelectorAll('tr.sel').forEach(function(r){r.classList.remove('sel');});
   var d=CELLS[addr];
-  var start=d?d.addrStart:addr, end=d?d.addrEnd:addr;
+  var start=d?d.addrStart:addr,end=d?d.addrEnd:addr;
   for(var a=start;a<=end;a++){
     var row=document.getElementById('dr-'+a);
     if(row)row.classList.add('sel');
   }
-  if(followMode){
-    var firstRow=document.getElementById('dr-'+start);
-    if(firstRow)firstRow.scrollIntoView({behavior:'smooth',block:'center'});
-  }
+  // Always scroll right panel to selection
+  var firstRow=document.getElementById('dr-'+start);
+  if(firstRow)firstRow.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
-// Grid cell interactions
+
+// Grid cell: click → cursor + scroll right; hover → highlight group
 document.querySelectorAll('.cell').forEach(function(c){
   var addr=parseInt(c.dataset.addr);
   c.addEventListener('click',function(){
     setCursor(addr);
     selectDetailRow(addr);
-    var d=CELLS[addr];
-    if(d)showPopup(d);
   });
   c.addEventListener('mouseover',function(){
     var d=CELLS[addr];
@@ -1042,46 +1122,35 @@ document.querySelectorAll('.cell').forEach(function(c){
     document.querySelectorAll('.chi').forEach(function(x){x.classList.remove('chi');});
   });
 });
-// Detail row click → highlight grid cell
+
+// Detail row: click → cursor + scroll left
 document.querySelectorAll('tr.dr').forEach(function(row){
   row.addEventListener('click',function(e){
     if(e.target.classList.contains('ll'))return;
     var addr=parseInt(row.dataset.addr);
     setCursor(addr);
     selectDetailRow(addr);
-    var d=CELLS[addr];
-    if(d)showPopup(d);
   });
 });
+
 bindLinks(document.querySelector('.dt-wrap'));
-// Group coloring: assign a colored bottom-border stripe to multi-byte entries
-(function(){
-  var gPal=['#5599ff','#ff8833','#33cc77','#ff44bb','#ccff33','#33bbff','#ff9944','#9933ff','#ff3344','#33ffcc'];
-  var gCol={},gIdx=0;
-  document.querySelectorAll('.cell[data-gid]').forEach(function(c){
-    var gid=c.dataset.gid;
-    if(!gCol[gid])gCol[gid]=gPal[gIdx++%gPal.length];
-    c.style.borderBottom='2px solid '+gCol[gid];
-  });
-})();
 recomputeRows();
 })();`;
 
     const btns =
-        '<button class="fb ft on" data-cls="ft" title="temp 0x2800\u20130x28FF: cleared on room load">temp</button>' +
+        '<button class="fb ft on" data-cls="ft" title="temp 0x2834\u20130x28FF: cleared on room load">temp</button>' +
         '<button class="fb fs on" data-cls="fs" title="session 0x2200\u20130x27FF: persistent across rooms">session</button>' +
         '<button class="fb fr2 on" data-cls="fr2" title="sram: battery-backed, tagged [SRAM]">sram</button>' +
         '<button class="fb fy on" data-cls="fy" title="system: engine/HW registers">system</button>' +
         '<button class="fb frest" data-cls="frest" title="rest: undocumented addresses (hidden by default)">rest</button>' +
         '<span class="sep"></span>' +
-        '<button class="fb fboring" id="btn-boring" title="Hide boring: rows with no cells used in scope">boring</button>' +
+        '<button class="fb fboring" id="btn-boring" title="Hide rows with no cells used in scope">boring</button>' +
         '<button class="fb femoji" id="btn-emoji" title="Show emoji in grid cells">emoji</button>' +
-        '<button class="fb ffollow" id="btn-follow" title="Follow: auto-scroll detail table to selection">follow</button>' +
+        '<button class="fb fgroup" id="btn-group" title="Group coloring: color-stripe cells in same multi-byte entry (off by default)">group</button>' +
         '<button class="fb fpin" id="btn-pin" title="Pin: lock to current scope, stop auto-update">pin</button>';
 
     return '<!doctype html><html><head><meta charset="utf-8"><style>' + css + '</style></head>' +
         '<body class="hrest">' +
-        '<div id="popup"><span class="px" id="px">&#x2715;</span></div>' +
         '<div class="head">' +
         '<div class="sh">&#9679; Memory Radar</div>' +
         '<div class="sm">Scope: <strong>' + radarEsc(scope.kind) + ' ' + radarEsc(scope.name) +
@@ -1099,7 +1168,7 @@ recomputeRows();
         '</div>' +
         '<div class="right-panel"><div class="dt-wrap">' +
         '<table><thead><tr><th>Addr</th><th>Name</th><th>T</th><th>Rgn</th><th>Notes</th><th>Lines</th></tr></thead>' +
-        '<tbody>' + detailRows + '</tbody></table></div></div>' +
+        '<tbody>' + (poolRows || '') + detailRows + '</tbody></table></div></div>' +
         '</div>' +
         '<script>' + js + '<\/script></body></html>';
 }
@@ -1176,7 +1245,7 @@ function activate(context) {
             _radarDoc          = document;
             const scope        = radarDetectScope(document, cursorLine);
             _radarCurrentScope = scope;
-            const refs         = radarAnalyzeScope(document, scope.startLine, scope.endLine);
+            const { refs, pools } = radarAnalyzeScope(document, scope.startLine, scope.endLine);
             const mapByAddr    = getRadarMap();
 
             // Reuse existing panel if open; otherwise create a new one
@@ -1197,7 +1266,7 @@ function activate(context) {
                 _radarPanel.reveal(vscode.ViewColumn.Beside, true);
             }
 
-            _radarPanel.webview.html = renderRadarHtml(scope, refs, mapByAddr);
+            _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, mapByAddr);
 
             // Handle messages from the webview
             _radarPanel.webview.onDidReceiveMessage(msg => {
