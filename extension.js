@@ -923,19 +923,38 @@ function readScriptAllTriggers(wsRoot, vanillaEnumName) {
 
 
 
+/** Read width/height from a PNG file header. Returns {w,h} or null. */
+function readPngDimensions(filePath) {
+    try {
+        const buf = Buffer.alloc(24);
+        const fd = fs.openSync(filePath, 'r');
+        fs.readSync(fd, buf, 0, 24, 0);
+        fs.closeSync(fd);
+        // PNG: 8-byte sig, then IHDR chunk (4 len + 4 "IHDR" + 4 width + 4 height)
+        if (buf.readUInt32BE(0) === 0x89504e47 && buf.readUInt32BE(4) === 0x0d0a1a0a) {
+            return { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20) };
+        }
+    } catch {}
+    return null;
+}
+
 /**
  * Locate a room image in the workspace.
  * Checks docs/rooms/images/{name}.{ext} and docs/rooms/{name}.{ext}.
  * @returns {string|null} Absolute filesystem path or null.
  */
-function findRoomImage(wsRoot, mapName, vanillaId) {
-    if (!wsRoot) return null;
-    const baseDirs = [
-        path.join(wsRoot, 'docs', 'rooms', 'images'),
-        path.join(wsRoot, 'docs', 'rooms'),
-    ];
+function findRoomImage(wsRoot, mapName, vanillaId, filePath) {
     const names = [mapName, vanillaId].filter(Boolean);
     const exts  = ['.png', '.jpg', '.jpeg', '.webp'];
+    const baseDirs = [];
+    // Sibling of the .evs file first
+    if (filePath) baseDirs.push(path.dirname(filePath));
+    if (wsRoot) {
+        baseDirs.push(
+            path.join(wsRoot, 'docs', 'rooms', 'images'),
+            path.join(wsRoot, 'docs', 'rooms'),
+        );
+    }
     for (const dir of baseDirs) {
         for (const name of names) {
             for (const ext of exts) {
@@ -1056,7 +1075,7 @@ function collectRoomsFromDir(dir, wsRoot, depth) {
             }
             const vid     = m[2] ? m[2].trim() : null;
             const content = parseRoomContent(fp, i, endLine);
-            const imgPath = findRoomImage(wsRoot, m[1], vid);
+            const imgPath = findRoomImage(wsRoot, m[1], vid, fp);
             if (wsRoot && vid) content.triggers = readScriptAllTriggers(wsRoot, vid);
             items.push({ name: m[1], vanillaId: vid, kind: 'map', filePath: fp, relPath: wsRoot ? path.relative(wsRoot, fp) : fp, startLine: i, endLine, content, imagePath: imgPath });
         }
@@ -1087,7 +1106,7 @@ function buildRoomTree(document, wsRoot) {
         }
         const vid     = m[2] ? m[2].trim() : null;
         const content = parseRoomContent(docPath, i, endLine);
-        const imgPath = findRoomImage(wsRoot, m[1], vid);
+        const imgPath = findRoomImage(wsRoot, m[1], vid, docPath);
         if (wsRoot && vid) content.triggers = readScriptAllTriggers(wsRoot, vid);
         docMaps.push({ name: m[1], vanillaId: vid, kind: 'map', filePath: docPath, relPath: wsRoot ? path.relative(wsRoot, docPath) : docPath, startLine: i, endLine, content, imagePath: imgPath });
     }
@@ -1143,10 +1162,24 @@ function renderRoomsTree(nodes) {
 /** Build ROOMS JSON data object for embedding in the webview. Expects imagePath already converted to imageUri. */
 function buildRoomsJson(tree, activeTab, selectedMap) {
     const all = {};
+    // Strip scriptLines from triggers — they are huge and not needed in the webview.
+    function sanitizeTriggers(triggers) {
+        if (!triggers) return null;
+        const clean = (arr) => (arr || []).map(({ x1, y1, x2, y2, label }) => ({ x1, y1, x2, y2, label }));
+        return { stepOn: clean(triggers.stepOn), bTrigger: clean(triggers.bTrigger) };
+    }
+    function sanitizeContent(c) {
+        if (!c) return null;
+        return { ...c, triggers: sanitizeTriggers(c.triggers) };
+    }
     function walk(nodes) {
         for (const n of nodes) {
             if (n.kind === 'map') {
-                all[n.name] = { name: n.name, vanillaId: n.vanillaId || null, relPath: n.relPath || '', startLine: n.startLine, endLine: n.endLine, content: n.content, imageUri: n.imageUri || null };
+                all[n.name] = { name: n.name, vanillaId: n.vanillaId || null, relPath: n.relPath || '',
+                    startLine: n.startLine, endLine: n.endLine,
+                    content: sanitizeContent(n.content),
+                    imageUri: n.imageUri || null,
+                    imageDims: n.imageDims || null };
             } else if (n.children) { walk(n.children); }
         }
     }
@@ -1156,12 +1189,14 @@ function buildRoomsJson(tree, activeTab, selectedMap) {
         ';var SELECTED_MAP=' + JSON.stringify(selectedMap || null) + ';';
 }
 
-/** Convert imagePath on every map node to a webview URI in-place. */
+/** Convert imagePath on every map node to a webview URI in-place. Also reads PNG dimensions. */
 function setRoomImageUris(nodes, webview) {
     for (const n of nodes) {
         if (n.kind === 'map' && n.imagePath) {
-            try { n.imageUri = webview.asWebviewUri(vscode.Uri.file(n.imagePath)).toString(); }
-            catch { n.imageUri = null; }
+            try {
+                n.imageUri = webview.asWebviewUri(vscode.Uri.file(n.imagePath)).toString();
+                if (n.imagePath.match(/\.png$/i)) n.imageDims = readPngDimensions(n.imagePath);
+            } catch { n.imageUri = null; }
         }
         if (n.children) setRoomImageUris(n.children, webview);
     }
@@ -1403,26 +1438,27 @@ function renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTree = [], 
     const tempT = lcCount('temp'), sessT = lcCount('session'), sramT = lcCount('sram');
     const tempU = lcUsed('temp'),  sessU = lcUsed('session'),  sramU = lcUsed('sram');
 
-    // Arg grid: build rows of arg slots (0x00..maxIdx) similar to WRAM grid
+    // Arg grid: show as word-sized slots, 8 per row (each slot = 1 arg = default word)
     let argHtml = '';
     if (argRefs.size > 0) {
+        const ARG_COLS = 8;
         const maxArgIdx = Math.max(...argRefs.keys());
-        const argRowEnd = (maxArgIdx | (COLS - 1)) + 1;
-        for (let base = 0; base < argRowEnd; base += COLS) {
+        const argRowEnd = (maxArgIdx | (ARG_COLS - 1)) + 1;
+        for (let base = 0; base < argRowEnd; base += ARG_COLS) {
             let cells = '', rowHasUsed = false;
-            for (let col = 0; col < COLS; col++) {
+            for (let col = 0; col < ARG_COLS; col++) {
                 const idx = base + col;
                 const usage = argRefs.get(idx);
                 const isUsed = !!usage;
                 if (isUsed) rowHasUsed = true;
-                let cls = 'cell lc-temp';
+                let cls = 'cell lc-temp arg-word';
                 if (isUsed) {
                     cls += ' cu';
                     if (usage.writes.length && !usage.reads.length) cls += ' cw';
                     else if (usage.writes.length && usage.reads.length) cls += ' crw';
                 }
                 const rw = isUsed ? (usage.writes.length && usage.reads.length ? ' rw' : usage.writes.length ? ' write' : ' read') : '';
-                cells += '<span class="' + cls + '" data-arg-idx="' + idx + '" title="arg[' + radarH(idx) + ']' + rw + '"></span>';
+                cells += '<span class="' + cls + '" data-arg-idx="' + idx + '" title="arg[' + radarH(idx) + '] Word' + rw + '"></span>';
             }
             argHtml += '<div class="gr arg-row' + (rowHasUsed ? '' : ' arg-row-empty') + '">' +
                 '<span class="rl">' + radarH(base) + '</span>' + cells + '</div>';
@@ -1482,6 +1518,8 @@ body.hsy .cell.lc-system:not(.cursor){opacity:0;pointer-events:none}
 tr.dr.hrow{display:none!important}
 .arg-row-empty{opacity:.25}
 body.hideargs .arg-row-empty{display:none!important}
+.arg-word{width:14px!important}
+.ph-sub{font-weight:400;opacity:.5;text-transform:none;letter-spacing:0;margin-left:3px;font-size:9px}
 body.emoji .cell[data-emoji]::before{content:attr(data-emoji);font-size:6px;line-height:9px;display:block;text-align:center;pointer-events:none}
 table{width:100%;border-collapse:collapse;font-size:10px;margin-top:2px}
 th,td{border:1px solid #1a1a1a;padding:2px 4px;vertical-align:top}
@@ -1647,54 +1685,72 @@ function renderRoomDetail(room){
 
   var hasCoords=(im!=null)||(entrances.length>0)||(enemies.length>0)||(stepOn.length>0)||(bTrigger.length>0);
   if(hasCoords||room.imageUri){
+    // Determine grid bounds in tile units (1 tile = 8 px in the source image)
+    var TILE=8;
     var x1=im?im.x1:0,y1=im?im.y1:0;
     var x2=im?im.x2:0,y2=im?im.y2:0;
-    // Expand bounds to fit all entities and triggers
+
+    // If we have image dimensions, derive exact tile grid from image (pixel-perfect)
+    if(room.imageDims){
+      var imgCols=Math.round(room.imageDims.w/TILE);
+      var imgRows=Math.round(room.imageDims.h/TILE);
+      // image origin aligns with init_map origin
+      var ox=im?im.x1:0,oy=im?im.y1:0;
+      x1=ox; y1=oy; x2=ox+imgCols; y2=oy+imgRows;
+    }
+
+    // Expand bounds to contain all entities (snap to tile boundary)
     entrances.concat(enemies).forEach(function(e){
-      if(!isNaN(e.x)&&e.x+16>x2)x2=e.x+16;
-      if(!isNaN(e.y)&&e.y+16>y2)y2=e.y+16;
+      if(!isNaN(e.x)&&e.x+4>x2)x2=e.x+4;
+      if(!isNaN(e.y)&&e.y+4>y2)y2=e.y+4;
     });
     stepOn.concat(bTrigger).forEach(function(t){
-      if(t.x2+2>x2)x2=t.x2+2; if(t.y2+2>y2)y2=t.y2+2;
+      if(t.x2+1>x2)x2=t.x2+1; if(t.y2+1>y2)y2=t.y2+1;
     });
-    if(x2<=x1)x2=x1+256;
-    if(y2<=y1)y2=y1+256;
-    if(!hasCoords&&room.imageUri){x1=0;y1=0;x2=256;y2=256;}
-    var W=Math.max(x2-x1,16),H=Math.max(y2-y1,16);
-    var scale=Math.min(600/W,360/H,8);
+    if(x2<=x1)x2=x1+32;
+    if(y2<=y1)y2=y1+32;
+    if(!hasCoords&&room.imageUri){x1=0;y1=0;x2=room.imageDims?Math.round(room.imageDims.w/TILE):32;y2=room.imageDims?Math.round(room.imageDims.h/TILE):32;}
+    var W=Math.max(x2-x1,8),H=Math.max(y2-y1,8);
+
+    // Scale: fit to ~600×360 display pixels, max 20px/tile
+    var scale=Math.min(600/W,360/H,20);
     var pxW=Math.round(W*scale),pxH=Math.round(H*scale);
     html+='<div class="rg-wrap" style="width:'+pxW+'px;height:'+pxH+'px">';
     if(room.imageUri) html+='<img class="room-img" src="'+room.imageUri+'" alt="">';
     html+='<svg class="rg-svg" width="'+pxW+'" height="'+pxH+'" viewBox="0 0 '+W+' '+H+'">';
-    var step=Math.max(8,Math.ceil(W/24));
-    for(var gx=0;gx<=W;gx+=step)html+='<line x1="'+gx+'" y1="0" x2="'+gx+'" y2="'+H+'" stroke="rgba(0,0,0,0.1)" stroke-width="0.5"/>';
-    for(var gy=0;gy<=H;gy+=step)html+='<line x1="0" y1="'+gy+'" x2="'+W+'" y2="'+gy+'" stroke="rgba(0,0,0,0.1)" stroke-width="0.5"/>';
-    if(im)html+='<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="none" stroke="#1a6" stroke-width="0.7" stroke-dasharray="3,2"/>';
+
+    // Tile grid lines (every tile = 1 SVG unit; reduce density for large maps)
+    var tileStep=1;
+    if(W>64||H>64)tileStep=2;
+    if(W>128||H>128)tileStep=4;
+    for(var gx=0;gx<=W;gx+=tileStep)html+='<line x1="'+gx+'" y1="0" x2="'+gx+'" y2="'+H+'" stroke="rgba(80,80,80,0.18)" stroke-width="0.12"/>';
+    for(var gy=0;gy<=H;gy+=tileStep)html+='<line x1="0" y1="'+gy+'" x2="'+W+'" y2="'+gy+'" stroke="rgba(80,80,80,0.18)" stroke-width="0.12"/>';
+    // Room border
+    if(im)html+='<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="none" stroke="rgba(50,200,100,0.4)" stroke-width="0.3" stroke-dasharray="2,1"/>';
+
     // Step-on trigger rects (pink)
     stepOn.forEach(function(t){
       var rx=t.x1-x1,ry=t.y1-y1,rw=Math.max(1,t.x2-t.x1),rh=Math.max(1,t.y2-t.y1);
-      var tipLines=(t.label?[t.label]:t.scriptLines||[]).slice(0,6).join('\n');
-      html+='<rect class="svge-step" x="'+rx+'" y="'+ry+'" width="'+rw+'" height="'+rh+'" fill="rgba(255,100,180,0.25)" stroke="#ff69b4" stroke-width="0.5"><title>step-on'+(t.label?': '+escH(t.label):'')+(tipLines?'\n'+escH(tipLines):'')+'</title></rect>';
-      if(t.label)html+='<text x="'+(rx+rw/2)+'" y="'+(ry+rh/2+1.5)+'" text-anchor="middle" fill="#ff69b4" font-size="2.5" font-family="monospace" class="svge-step">'+escH(t.label.slice(0,18))+'</text>';
+      html+='<rect class="svge-step" x="'+rx+'" y="'+ry+'" width="'+rw+'" height="'+rh+'" fill="rgba(255,100,180,0.2)" stroke="#ff69b4" stroke-width="0.25"><title>step-on'+(t.label?': '+escH(t.label):'')+'</title></rect>';
+      if(t.label)html+='<text x="'+(rx+rw/2)+'" y="'+(ry+rh/2+1)+'" text-anchor="middle" fill="#ff69b4" font-size="1.8" font-family="monospace" class="svge-step" pointer-events="none">'+escH(t.label.slice(0,20))+'</text>';
     });
     // B-trigger rects (yellow)
     bTrigger.forEach(function(t){
       var rx=t.x1-x1,ry=t.y1-y1,rw=Math.max(1,t.x2-t.x1),rh=Math.max(1,t.y2-t.y1);
-      var tipLines=(t.label?[t.label]:t.scriptLines||[]).slice(0,6).join('\n');
-      html+='<rect class="svge-btrig" x="'+rx+'" y="'+ry+'" width="'+rw+'" height="'+rh+'" fill="rgba(255,210,0,0.2)" stroke="#ffcc00" stroke-width="0.5"><title>B-trig'+(t.label?': '+escH(t.label):'')+(tipLines?'\n'+escH(tipLines):'')+'</title></rect>';
-      if(t.label)html+='<text x="'+(rx+rw/2)+'" y="'+(ry+rh/2+1.5)+'" text-anchor="middle" fill="#ddaa00" font-size="2.5" font-family="monospace" class="svge-btrig">'+escH(t.label.slice(0,18))+'</text>';
+      html+='<rect class="svge-btrig" x="'+rx+'" y="'+ry+'" width="'+rw+'" height="'+rh+'" fill="rgba(255,210,0,0.15)" stroke="#ffcc00" stroke-width="0.25"><title>B-trig'+(t.label?': '+escH(t.label):'')+'</title></rect>';
+      if(t.label)html+='<text x="'+(rx+rw/2)+'" y="'+(ry+rh/2+1)+'" text-anchor="middle" fill="#ddaa00" font-size="1.8" font-family="monospace" class="svge-btrig" pointer-events="none">'+escH(t.label.slice(0,20))+'</text>';
     });
-    // Enemies
+    // Enemies (red=normal, orange=dynamic) — snap to nearest tile
     enemies.forEach(function(e){
-      var ex=e.x-x1,ey=e.y-y1;
-      var fill=e.dynamic?'#cc7700':'#cc0000';
-      html+='<circle class="svge-enemy sv-ll" data-line="'+e.line+'" cx="'+ex+'" cy="'+ey+'" r="2" fill="'+fill+'" opacity="0.85"><title>'+escH(e.type)+' ('+e.x+','+e.y+')\ncmd+click to jump</title></circle>';
+      var ex=Math.round(e.x)-x1,ey=Math.round(e.y)-y1;
+      var fill=e.dynamic?'#cc7700':'#cc3333';
+      html+='<rect class="svge-enemy sv-ll" data-line="'+e.line+'" x="'+(ex-1)+'" y="'+(ey-1)+'" width="2" height="2" fill="'+fill+'" opacity="0.9" rx="0.3"><title>'+escH(e.type)+' ('+e.x+','+e.y+')\ncmd+click to jump</title></rect>';
     });
-    // Entrances — directional arrows
+    // Entrances — directional arrows (green)
     entrances.forEach(function(en){
-      var ex=en.x-x1,ey=en.y-y1;
+      var ex=Math.round(en.x)-x1,ey=Math.round(en.y)-y1;
       html+=entranceArrow(ex,ey,en.dir).replace('class="svge-entrance"','class="svge-entrance sv-ll" data-line="'+en.line+'"');
-      html+='<text class="svge-entrance" x="'+(ex+3)+'" y="'+(ey-2)+'" fill="#22bb55" font-size="2.5" font-family="monospace">'+escH(en.name)+'</text>';
+      html+='<text class="svge-entrance" x="'+(ex+2.5)+'" y="'+(ey-1)+'" fill="#22dd66" font-size="2" font-family="monospace" pointer-events="none">'+escH(en.name)+'</text>';
     });
     html+='</svg></div>';
   } else {
@@ -2076,9 +2132,9 @@ ${roomsJs}
         '</div>' +
         '<div class="panels">' +
         '<div class="left-panel">' +
+        (argHtml ? '<div class="ph">Args <span class="ph-sub">word</span></div><div class="gw arg-gw">' + argHtml + '</div>' : '') +
         '<div class="ph">WRAM ' + radarH(rowStart) + '\u2013' + radarH(rowEnd - 1) + '</div>' +
         '<div class="gw">' + gridHtml + '</div>' +
-        (argHtml ? '<div class="ph">Args</div><div class="gw arg-gw">' + argHtml + '</div>' : '') +
         '</div>' +
         '<div class="right-panel"><div class="dt-wrap">' +
         '<table><thead><tr><th>Addr</th><th>Name</th><th>T</th><th>Notes</th><th>Lines</th></tr></thead>' +
