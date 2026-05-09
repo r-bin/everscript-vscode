@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.1] — 2025-05-09
+
+### Fixed
+- **Lifecycle regions corrected** — `temp` is now `0x2800–0x28FF`, `session` is `0x2200–0x27FF`, `system` covers everything else (was using wrong threshold `addr < 0x2000`).
+- **Radar HTML tags in tooltips** — memory-map notes that contain `<br>` or other HTML are now stripped before display.
+
+### Added
+- **System filter button** — new fifth filter to hide/show system-region addresses.
+- **Click-to-popup detail panel** — click any lit cell to see structured Vanilla notes, Writes (destructive, red), and Reads (non-destructive, blue). Replaces tooltip-on-hover.
+- **Read / write cell coloring** — cells used only as write targets render with a red inset shadow; cells used for both reads and writes render amber.
+- **Word-byte pair highlighting** — hovering a `word`-type cell highlights the adjacent +1 byte cell.
+- **`tools/snes9x_wram.py`** — macOS Mach VM prototype for reading live Snes9x WRAM. Use `--addr`, `--watch`, `--json` flags. See file header for usage and VS Code integration plan.
+- **Filter hides empty rows** — `recomputeRows()` hides entire grid rows when all their cells are filtered out.
+
 ## [0.2.0] — 2026-05-09
 
 ### Added

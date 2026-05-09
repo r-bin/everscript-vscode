@@ -62,10 +62,28 @@ The `everscript-memory-radar` repo is now dormant — do not modify it.
 - No offset arithmetic. `memory(0x22d8)` = WRAM byte at `$7E22D8`.
 - Do not invent an offset or base; the parser reads hex literals as-is.
 
-**Lifecycle classification (radarLifecycle):**
-- `sram` — entry type/notes contains the word `sram`.
-- `temp` — addr < `0x2000`.
-- `session` — everything else.
+**Lifecycle classification (radarLifecycle) — four regions:**
+- `sram`    — entry notes/type contains `[SRAM]` or the word `sram` (case-insensitive).
+- `temp`    — addr in `0x2800–0x28FF` (compiler scratch, cleared on room load).
+- `session` — addr in `0x2200–0x27FF` (cross-room persistent vars).
+- `system`  — everything else (engine/HW addresses, 0x0000–0x21FF and 0x2900+).
+
+**Read / Write detection (radarAnalyzeScope):**
+- A reference is a **write** if it is immediately followed by `=` (but not `==`, `!=`, `<=`, `>=`).
+  This matches both `<0xADDR> = value` and `memory(0xADDR) = value`.
+- All other references are **reads**.
+- The radar grid cell gets class `.crw` (amber) if both reads and writes are found, `.cw` (red) if write-only.
+
+**UI features (renderRadarHtml):**
+- Filter buttons: `temp / session / sram / system / rest` — hide entire grid rows when all cells in a row are filtered out (`recomputeRows()`).
+- Cell click opens a structured popup with: Vanilla notes, Writes (destructive), Reads (non-destructive).
+- Word-byte highlighting: hovering a cell for a `word` entry highlights the adjacent addr+1 cell with class `.chi`.
+- CELLS data is embedded as a JS object (`var CELLS = {...}`) in the webview, keyed by address.
+
+**Snes9x live memory prototype:**
+- `tools/snes9x_wram.py` — macOS Mach VM reader. Uses `task_for_pid` + `mach_vm_read` to read the 128 KB WRAM buffer from a running Snes9x process.
+- `--addr 0xNNNN` reads a specific address; `--watch` polls every 0.5 s; `--json` emits JSON lines for VS Code integration.
+- Requires `sudo` or `get-task-allow` entitlement on macOS.
 
 **No overlap expected** — the WRAM address space is memory-mapped; two scripts should never legitimately share the same address. Do not add overlap-warning UI.
 
