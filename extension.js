@@ -890,29 +890,49 @@ function renderRadarHtml(scope, refs, pools, mapByAddr) {
             : (e.notes ? radarEsc(e.notes).replace(/\n/g, '<br>') : '&ndash;');
 
         const parts = e.nameParts && e.nameParts.length > 1 ? e.nameParts : null;
+        const numBytes = e.addrEnd - e.addrStart + 1;
+
+        // Bit-field expansion: one row per named part, addr cell rowspans all parts
         if (parts) {
             const rs = parts.length;
             let html = '<tr id="dr-' + e.addrStart + '" class="' + rowCls + '" data-addr="' + e.addrStart + '">';
             html += '<td class="mo" rowspan="' + rs + '">' + badge + emCell + addrLabel + '</td>';
             html += '<td class="bf">' + radarEsc(parts[0]) + '</td>';
             html += '<td class="mt" rowspan="' + rs + '">' + radarEsc(e.type) + '</td>';
-            html += '<td rowspan="' + rs + '"><span class="chip ch-' + lc + '">' + lc + '</span></td>';
             html += '<td class="nt" rowspan="' + rs + '">' + notesHtml + '</td>';
             html += '<td class="rwc" rowspan="' + rs + '">' + linesCell + '</td>';
             html += '</tr>';
             for (let i = 1; i < parts.length; i++) {
-                html += '<tr class="' + rowCls + ' bfc" data-addr="' + e.addrStart + '">';
+                // give each sub-row its own ID so clicking it scrolls to itself
+                html += '<tr id="dr-' + e.addrStart + '-' + i + '" class="' + rowCls + ' bfc" data-addr="' + e.addrStart + '" data-part="' + i + '">';
                 html += '<td class="bf">' + radarEsc(parts[i]) + '</td>';
                 html += '</tr>';
             }
             return html;
         }
+
+        // Multi-byte expansion: one row per byte, name/type/notes/lines rowspan
+        if (!untracked && numBytes > 1) {
+            let html = '<tr id="dr-' + e.addrStart + '" class="' + rowCls + '" data-addr="' + e.addrStart + '">';
+            html += '<td class="mo">' + badge + emCell + radarH(e.addrStart) + '</td>';
+            html += '<td' + (numBytes > 1 ? ' rowspan="' + numBytes + '"' : '') + '>' + radarEsc(e.name) + '</td>';
+            html += '<td class="mt"' + (numBytes > 1 ? ' rowspan="' + numBytes + '"' : '') + '>' + radarEsc(e.type) + '</td>';
+            html += '<td class="nt"' + (numBytes > 1 ? ' rowspan="' + numBytes + '"' : '') + '>' + notesHtml + '</td>';
+            html += '<td class="rwc"' + (numBytes > 1 ? ' rowspan="' + numBytes + '"' : '') + '>' + linesCell + '</td>';
+            html += '</tr>';
+            for (let a = e.addrStart + 1; a <= e.addrEnd; a++) {
+                html += '<tr id="dr-' + a + '" class="' + rowCls + ' bfc" data-addr="' + a + '">';
+                html += '<td class="mo">' + radarH(a) + '</td>';
+                html += '</tr>';
+            }
+            return html;
+        }
+
         const nameCls = untracked ? ' class="no-vanilla"' : '';
         return '<tr id="dr-' + addr + '" class="' + rowCls + '" data-addr="' + addr + '">' +
             '<td class="mo">' + badge + emCell + addrLabel + '</td>' +
             '<td' + nameCls + '>' + radarEsc(e.name) + '</td>' +
             '<td class="mt">' + radarEsc(e.type) + '</td>' +
-            '<td><span class="chip ch-' + lc + '">' + lc + '</span></td>' +
             '<td class="nt">' + notesHtml + '</td>' +
             '<td class="rwc">' + linesCell + '</td></tr>';
     }).join('');
@@ -921,7 +941,7 @@ function renderRadarHtml(scope, refs, pools, mapByAddr) {
     const poolRows = pools.map(p =>
         '<tr class="pool-row lc-' + p.lc + '">' +
         '<td class="mo"><span class="pool-badge">' + p.lc + '</span>' + radarH(p.start) + '\u2013' + radarH(p.end) + '</td>' +
-        '<td colspan="3">declared pool &mdash; ' + (p.end - p.start + 1) + ' bytes at line ' + (p.line + 1) + '</td>' +
+        '<td colspan="2">declared pool &mdash; ' + (p.end - p.start + 1) + ' bytes at line ' + (p.line + 1) + '</td>' +
         '<td class="nt">' + p.lc + ' region</td><td>&ndash;</td></tr>'
     ).join('');
 
@@ -949,6 +969,7 @@ h2{font-size:9px;text-transform:uppercase;letter-spacing:.08em;opacity:.32;margi
 .fb.femoji{border-color:#888;color:#aaa}.fb.fgroup{border-color:#777;color:#aaa}
 .fb.fpin{border-color:#ff9040;color:#ffb060}.fb.fpin.on{border-color:#ff9040}
 .fb.falloc{border-color:#888;color:#aaa}
+.fb.fglobal{border-color:#9977ff;color:#bb99ff}
 .sep{width:1px;height:14px;background:#333;margin:0 2px}
 .sr{display:flex;align-items:center;gap:5px;margin-bottom:2px;font-size:10px}
 .sl{width:44px;opacity:.45;flex-shrink:0}
@@ -1075,6 +1096,12 @@ if(pinBtn)pinBtn.addEventListener('click',function(){
   if(vs)vs.postMessage({command:pinned?'pin':'unpin'});
 });
 
+var globalBtn=document.getElementById('btn-global');
+if(globalBtn)globalBtn.addEventListener('click',function(){
+  var on=globalBtn.classList.toggle('on');
+  if(vs)vs.postMessage({command:on?'globalScope':'autoScope'});
+});
+
 // Group coloring toggle (default off)
 var gPal=['#5599ff','#ff8833','#33cc77','#ff44bb','#ccff33','#33bbff','#ff9944','#9933ff','#ff3344','#33ffcc'];
 var gColMap={},gIdx=0;
@@ -1159,10 +1186,8 @@ function selectDetailRow(addr){
   document.querySelectorAll('tr.sel').forEach(function(r){r.classList.remove('sel');});
   var d=CELLS[addr];
   var start=d?d.addrStart:addr,end=d?d.addrEnd:addr;
-  for(var a=start;a<=end;a++){
-    var row=document.getElementById('dr-'+a);
-    if(row)row.classList.add('sel');
-  }
+  // select all rows belonging to this entry (including bfc continuation rows by data-addr)
+  document.querySelectorAll('tr.dr[data-addr="'+start+'"]').forEach(function(r){r.classList.add('sel');});
   var firstRow=document.getElementById('dr-'+start);
   if(!firstRow)return;
   var panel=document.querySelector('.right-panel');
@@ -1209,8 +1234,29 @@ document.querySelectorAll('tr.dr').forEach(function(row){
   row.addEventListener('click',function(e){
     if(e.target.classList.contains('ll'))return;
     var addr=parseInt(row.dataset.addr);
+    var partIdx=row.dataset.part?parseInt(row.dataset.part):-1;
     setCursor(addr);
-    selectDetailRow(addr);
+    // For bit-field sub-rows, scroll to THIS row (not the first row of the group)
+    if(partIdx>=0){
+      document.querySelectorAll('tr.sel').forEach(function(r){r.classList.remove('sel');});
+      row.classList.add('sel');
+      var panel=document.querySelector('.right-panel');
+      if(panel){
+        var thead=panel.querySelector('thead');
+        var headerH=thead?thead.getBoundingClientRect().height:0;
+        var panelRect=panel.getBoundingClientRect();
+        var rowRect=row.getBoundingClientRect();
+        var availH=panelRect.height-headerH;
+        var targetTop=rowRect.top-panelRect.top-headerH;
+        if(targetTop<0){panel.scrollTop+=targetTop-4;}
+        else if(rowRect.bottom>panelRect.bottom){
+          if(rowRect.height<=availH){panel.scrollTop+=rowRect.bottom-panelRect.bottom+4;}
+          else{panel.scrollTop+=targetTop-4;}
+        }
+      }
+    }else{
+      selectDetailRow(addr);
+    }
   });
 });
 
@@ -1229,7 +1275,8 @@ recomputeRows();
         '<button class="fb falloc" id="btn-alloc" title="Show only documented (non-gap) rows">alloc</button>' +
         '<button class="fb femoji" id="btn-emoji" title="Show emoji in grid cells">emoji</button>' +
         '<button class="fb fgroup" id="btn-group" title="Group coloring: color-stripe cells in same multi-byte entry (off by default)">group</button>' +
-        '<button class="fb fpin" id="btn-pin" title="Pin: lock to current scope, stop auto-update">pin</button>';
+        '<button class="fb fpin" id="btn-pin" title="Pin: lock to current scope, stop auto-update">pin</button>' +
+        '<button class="fb fglobal" id="btn-global" title="Global scope: show whole file instead of current function">global</button>';
 
     return '<!doctype html><html><head><meta charset="utf-8"><style>' + css + '</style></head>' +
         '<body class="hrest">' +
@@ -1249,7 +1296,7 @@ recomputeRows();
         '<div class="gw">' + gridHtml + '</div>' +
         '</div>' +
         '<div class="right-panel"><div class="dt-wrap">' +
-        '<table><thead><tr><th>Addr</th><th>Name</th><th>T</th><th>Rgn</th><th>Notes</th><th>Lines</th></tr></thead>' +
+        '<table><thead><tr><th>Addr</th><th>Name</th><th>T</th><th>Notes</th><th>Lines</th></tr></thead>' +
         '<tbody>' + (poolRows || '') + detailRows + '</tbody></table></div></div>' +
         '</div>' +
         '<script>' + js + '<\/script></body></html>';
@@ -1367,6 +1414,17 @@ function activate(context) {
                     _radarPinned = true;
                 } else if (msg.command === 'unpin') {
                     _radarPinned = false;
+                } else if (msg.command === 'globalScope') {
+                    _radarPinned = true; // freeze auto-updates while in global view
+                    if (_radarDoc) {
+                        const gscope = { kind: 'global', name: _radarDoc.fileName.split(/[\/\\]/).pop(), startLine: 0, endLine: _radarDoc.lineCount - 1 };
+                        const { refs, pools } = radarAnalyzeScope(_radarDoc, 0, _radarDoc.lineCount - 1);
+                        _radarPanel.webview.html = renderRadarHtml(gscope, refs, pools, getRadarMap());
+                        _radarPanel.title = 'Radar: (global)';
+                    }
+                } else if (msg.command === 'autoScope') {
+                    _radarPinned = false;
+                    refreshRadar(vscode.window.activeTextEditor);
                 }
             }, undefined, context.subscriptions);
         }),
