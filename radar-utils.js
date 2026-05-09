@@ -57,6 +57,20 @@ function radarParseNotes(rawNotes) {
         .trim();
 }
 
+/**
+ * Parse an Everscript numeric literal to a JS number.
+ * Supports hex (0xNN / 0XNN), decimal-explicit (0dNN / 0DNN), and plain ints.
+ * Returns NaN for null/undefined/empty/unparseable input.
+ */
+function parseEvsNum(s) {
+    if (s == null) return NaN;
+    const str = String(s).trim();
+    if (!str) return NaN;
+    if (/^0[xX]/.test(str)) return parseInt(str, 16);
+    if (/^0[dD]/.test(str)) return parseInt(str.slice(2), 10);
+    return parseInt(str, 10);
+}
+
 module.exports = {
     radarLifecycle,
     radarH,
@@ -64,4 +78,5 @@ module.exports = {
     radarExtractEmoji,
     radarParseName,
     radarParseNotes,
+    parseEvsNum,
 };

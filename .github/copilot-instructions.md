@@ -192,3 +192,76 @@ After rsync, tell the user to reload VS Code (`Developer: Reload Window`) for ch
 
 npm is at `/opt/homebrew/bin/npm` — not in the default PATH.
 Always use the full path: `/opt/homebrew/bin/npm test`, `/opt/homebrew/bin/npm install`.
+
+---
+
+## 10. Rooms Tab
+
+The Memory Radar panel has two tabs: **Memory** (existing) and **Rooms** (map browser).
+Both live in the same `renderRadarHtml` webview; tab switching is client-side only.
+
+### Data flow
+
+1. `buildRoomTree(document, wsRoot)` — builds the tree from the active document + any `#import`-ed `[area]` directories.
+2. `collectRoomsFromDir(dir, wsRoot, depth)` — recursive; maps `[area]` subdirs → area nodes, `.evs` files → map nodes.
+3. `parseRoomContent(filePath, startLine, endLine)` — extracts `initMap`, `entrances`, `enemies`, `objects`, `transitions` from a map block.
+4. `findRoomImage(wsRoot, mapName, vanillaId)` — looks for `docs/rooms/images/{name}.{ext}` (then `docs/rooms/{name}.{ext}`).
+5. `setRoomImageUris(nodes, webview)` — converts `imagePath` (filesystem path) → `imageUri` (webview-safe URI) in-place after the panel is created.
+6. `renderRoomsTree(nodes)` — server-side renders the collapsible tree as HTML using `radarEsc`.
+7. `buildRoomsJson(tree)` — flattens all map nodes into `ROOMS` JSON object for client-side use.
+
+### Tree structure
+
+```
+[{name, kind:'area', children:[...]},
+ {name, vanillaId, kind:'map', filePath, relPath, startLine, endLine, content, imagePath, imageUri?}]
+```
+
+Folders named `[area] 13_town/` → area node with name `13_town` (strips `[area]` prefix and leading `NN_` number).
+
+### Coordinate system
+
+All entity coordinates in `.evs` files are **tile-based** (absolute, not relative to camera bounds):
+- `init_map(x1, y1, x2, y2)` — camera scroll bounds in tiles (sets SVG viewBox).
+- `entrance(x, y, DIR)` — entrance spawn tile.
+- `add_enemy(TYPE, x, y, ...)` / `add_basic_souls_enemy(TYPE, x, y)` — enemy tile position.
+
+`parseEvsNum(s)` handles `0xNN` (hex), `0dNN` (decimal-explicit), and plain integers.
+
+### Webview layout (rooms tab)
+
+```
+<div class="tab-pane" data-tab="rooms">
+  <div class="rm-panels">
+    <div class="rm-left">         <!-- collapsible tree -->
+    <div class="rm-right">        <!-- room detail: header + SVG grid + sections -->
+      <div id="room-detail">
+```
+
+Room detail sections: **Entrances**, **Enemies**, **Objects**, **Transitions**.
+Each entity row is a `<a class="ll" data-line="N">` link that posts `{command:'goToLine', line:N}` to the host.
+
+### SVG grid
+
+Rendered client-side in `renderRoomDetail()`:
+- ViewBox = `0 0 (x2−x1) (y2−y1)` from `init_map`, defaulting to `0 0 128 128`.
+- Grid lines every `max(8, ceil(W/20))` tiles, `#ffffff12` stroke.
+- Camera-bounds rect: `#388bfd` dashed stroke.
+- Enemies: filled circles — `#ff7b72` (static) or `#ffa94d` (dynamic).
+- Entrances: hollow green circles `#56d364` + name label.
+- Room image (if `imageUri` set): rendered behind SVG at `opacity:0.45`.
+
+### `localResourceRoots`
+
+The webview is created with `localResourceRoots: [wsRootUri]` to allow loading workspace images.
+Image paths are converted via `webview.asWebviewUri(vscode.Uri.file(imgPath))`.
+
+### Cache
+
+`_radarRoomTree` and `_radarRoomDocPath` cache the tree; rebuilt only when the active document changes.
+The cache is cleared in `_radarPanel.onDidDispose`.
+
+### `parseEvsNum` (radar-utils.js)
+
+Pure function, testable. Handles `0xNN`, `0dNN`, plain integers; returns `NaN` for null/empty/unparseable.
+Exported from `radar-utils.js`; imported in `extension.js`; tested in `test/radar.test.js`.

@@ -3,7 +3,7 @@
 const vscode = require('vscode');
 const path   = require('path');
 const fs     = require('fs');
-const { radarLifecycle, radarH, radarEsc, radarExtractEmoji, radarParseName, radarParseNotes } = require('./radar-utils');
+const { radarLifecycle, radarH, radarEsc, radarExtractEmoji, radarParseName, radarParseNotes, parseEvsNum } = require('./radar-utils');
 
 // ── Data loading ──────────────────────────────────────────────────────────────
 
@@ -554,6 +554,8 @@ let _radarDoc          = null;   // document the radar was last rendered for
 let _radarCurrentScope = null;   // scope the radar was last rendered for
 let _radarMapCache     = null;   // cached parsed memory-map.md
 let _radarUpdateTimer  = null;   // debounce timer for auto-update
+let _radarRoomTree     = null;   // cached room tree (rebuilt when doc changes)
+let _radarRoomDocPath  = null;   // fsPath the room tree was built for
 
 function getRadarMap() {
     if (_radarMapCache) return _radarMapCache;
@@ -577,7 +579,9 @@ function refreshRadar(editor) {
     _radarDoc = doc;
     const { refs, pools } = radarAnalyzeScope(doc, scope.startLine, scope.endLine);
     const mapByAddr = getRadarMap();
-    _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, mapByAddr);
+    // Reuse cached room tree (same doc); it was built with webview URIs on panel open
+    const roomTree = (_radarRoomDocPath === doc.uri.fsPath) ? (_radarRoomTree || []) : [];
+    _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, mapByAddr, roomTree);
     _radarPanel.title = 'Radar: ' + scope.name;
 }
 
@@ -727,7 +731,226 @@ function radarReadMemoryMap(filePath) {
 // radarLifecycle, radarH, radarEsc, radarExtractEmoji, radarParseName, radarParseNotes
 // are pure helpers — see radar-utils.js (required at top of file).
 
-function renderRadarHtml(scope, refs, pools, mapByAddr) {
+// ── Room Browser ─────────────────────────────────────────────────────────────
+
+/**
+ * Locate a room image in the workspace.
+ * Checks docs/rooms/images/{name}.{ext} and docs/rooms/{name}.{ext}.
+ * @returns {string|null} Absolute filesystem path or null.
+ */
+function findRoomImage(wsRoot, mapName, vanillaId) {
+    if (!wsRoot) return null;
+    const baseDirs = [
+        path.join(wsRoot, 'docs', 'rooms', 'images'),
+        path.join(wsRoot, 'docs', 'rooms'),
+    ];
+    const names = [mapName, vanillaId].filter(Boolean);
+    const exts  = ['.png', '.jpg', '.jpeg', '.webp'];
+    for (const dir of baseDirs) {
+        for (const name of names) {
+            for (const ext of exts) {
+                const p = path.join(dir, name + ext);
+                if (fs.existsSync(p)) return p;
+            }
+        }
+    }
+    return null;
+}
+
+/**
+ * Parse the content of a single map block from a file.
+ * @param {string}  filePath  Absolute path to the .evs file.
+ * @param {number}  startLine 0-based line of the opening `map NAME(...) {`.
+ * @param {number}  endLine   0-based line of the closing `}`.
+ * @returns {{initMap, entrances, enemies, objects, transitions}}
+ */
+function parseRoomContent(filePath, startLine, endLine) {
+    let lines;
+    try { lines = fs.readFileSync(filePath, 'utf8').split(/\r?\n/); }
+    catch { return { initMap: null, entrances: [], enemies: [], objects: [], transitions: [] }; }
+
+    const out = { initMap: null, entrances: [], enemies: [], objects: [], transitions: [] };
+    const objSeen = new Set();
+    const end = Math.min(endLine, lines.length - 1);
+
+    for (let i = startLine; i <= end; i++) {
+        const t = lines[i].replace(/\/\/.*$/, '').trim();
+
+        // init_map(x1, y1, x2, y2)
+        if (!out.initMap) {
+            const m = t.match(/\binit_map\s*\(\s*([^,)]+),\s*([^,)]+),\s*([^,)]+),\s*([^,)]+)\)/);
+            if (m) out.initMap = { x1: parseEvsNum(m[1]), y1: parseEvsNum(m[2]), x2: parseEvsNum(m[3]), y2: parseEvsNum(m[4]), line: i };
+        }
+
+        // NAME = entrance(x, y, DIR)
+        const ent = t.match(/([A-Za-z_]\w*)\s*=\s*entrance\s*\(\s*([^,)]+),\s*([^,)]+),\s*([^,)]+)\)/);
+        if (ent) out.entrances.push({ name: ent[1], x: parseEvsNum(ent[2]), y: parseEvsNum(ent[3]), dir: ent[4].trim(), line: i });
+
+        // add_enemy(TYPE, x, y, ...)
+        const ae = t.match(/\badd_enemy\s*\(\s*([^,)]+),\s*([^,)]+),\s*([^,)]+)/);
+        if (ae && !isNaN(parseEvsNum(ae[2]))) out.enemies.push({ type: ae[1].trim(), x: parseEvsNum(ae[2]), y: parseEvsNum(ae[3]), dynamic: false, line: i });
+
+        // add_basic_souls_enemy(TYPE, x, y) and similar add_*_enemy variants
+        const abe = t.match(/\badd_\w*souls\w*_enemy\s*\(\s*([^,)]+),\s*([^,)]+),\s*([^,)]+)\)/);
+        if (abe && !isNaN(parseEvsNum(abe[2]))) out.enemies.push({ type: abe[1].trim(), x: parseEvsNum(abe[2]), y: parseEvsNum(abe[3]), dynamic: true, line: i });
+
+        // object[N]
+        const obj = t.match(/\bobject\[(\w+)\]/);
+        if (obj && !objSeen.has(obj[1])) { objSeen.add(obj[1]); out.objects.push({ index: obj[1], line: i }); }
+
+        // map_transition(target, via, dir)
+        const mt = t.match(/\bmap_transition\s*\(\s*([^,)]+),\s*([^,)]+),\s*([^,)]+)\)/);
+        if (mt) out.transitions.push({ target: mt[1].trim(), via: mt[2].trim(), dir: mt[3].trim(), line: i });
+    }
+    return out;
+}
+
+/**
+ * Walk a directory tree collecting map nodes.
+ * [area] subdirs become area nodes; .evs files are scanned for `map` declarations.
+ */
+function collectRoomsFromDir(dir, wsRoot, depth) {
+    if (depth > 8) return [];
+    let entries;
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); }
+    catch { return []; }
+
+    const items = [];
+    const subAreas = entries.filter(e => e.isDirectory() && e.name.startsWith('[area]')).sort((a, b) => a.name.localeCompare(b.name));
+    const files    = entries.filter(e => !e.isDirectory() && e.name.endsWith('.evs') && !e.name.startsWith('_')).sort((a, b) => a.name.localeCompare(b.name));
+
+    for (const sd of subAreas) {
+        const areaName = sd.name.replace(/^\[area\]\s*/, '').replace(/^\d+_/, '');
+        const children = collectRoomsFromDir(path.join(dir, sd.name), wsRoot, depth + 1);
+        if (children.length) items.push({ name: areaName, kind: 'area', children });
+    }
+
+    for (const f of files) {
+        const fp = path.join(dir, f.name);
+        let text;
+        try { text = fs.readFileSync(fp, 'utf8'); } catch { continue; }
+        const lines  = text.split(/\r?\n/);
+        const mapRe  = /^\s*map\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:\(\s*([^)]*?)\s*\))?\s*\{/;
+        for (let i = 0; i < lines.length; i++) {
+            const m = mapRe.exec(lines[i]);
+            if (!m) continue;
+            let d = 0, endLine = i;
+            for (let j = i; j < lines.length; j++) {
+                for (const c of lines[j]) {
+                    if (c === '{') d++;
+                    else if (c === '}') { d--; if (d === 0) { endLine = j; j = lines.length; break; } }
+                }
+            }
+            const vid     = m[2] ? m[2].trim() : null;
+            const content = parseRoomContent(fp, i, endLine);
+            const imgPath = findRoomImage(wsRoot, m[1], vid);
+            items.push({ name: m[1], vanillaId: vid, kind: 'map', filePath: fp, relPath: wsRoot ? path.relative(wsRoot, fp) : fp, startLine: i, endLine, content, imagePath: imgPath });
+        }
+    }
+    return items;
+}
+
+/**
+ * Build the room tree from the active document, scanning #import directories.
+ * Maps from the active document appear first (grouped if imports also exist).
+ */
+function buildRoomTree(document, wsRoot) {
+    const docPath = document.uri.fsPath;
+    const docDir  = path.dirname(docPath);
+    const mapRe   = /^\s*map\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:\(\s*([^)]*?)\s*\))?\s*\{/;
+
+    // Parse maps declared directly in the active document
+    const docMaps = [];
+    for (let i = 0; i < document.lineCount; i++) {
+        const m = mapRe.exec(document.lineAt(i).text);
+        if (!m) continue;
+        let d = 0, endLine = i;
+        for (let j = i; j < document.lineCount; j++) {
+            for (const c of document.lineAt(j).text) {
+                if (c === '{') d++;
+                else if (c === '}') { d--; if (d === 0) { endLine = j; j = document.lineCount; break; } }
+            }
+        }
+        const vid     = m[2] ? m[2].trim() : null;
+        const content = parseRoomContent(docPath, i, endLine);
+        const imgPath = findRoomImage(wsRoot, m[1], vid);
+        docMaps.push({ name: m[1], vanillaId: vid, kind: 'map', filePath: docPath, relPath: wsRoot ? path.relative(wsRoot, docPath) : docPath, startLine: i, endLine, content, imagePath: imgPath });
+    }
+
+    // Scan #import directories
+    const importedAreas = [];
+    for (let i = 0; i < document.lineCount; i++) {
+        const imp = document.lineAt(i).text.match(/#import\s*\(\s*["']([^"']+)["']\s*\)/);
+        if (!imp) continue;
+        const impRel = imp[1].replace(/^\.\//, '');
+        const candidates = [wsRoot ? path.join(wsRoot, impRel) : null, path.join(docDir, impRel)].filter(Boolean);
+        for (const p of candidates) {
+            if (!fs.existsSync(p)) continue;
+            let stat;
+            try { stat = fs.statSync(p); } catch { continue; }
+            if (stat.isDirectory()) {
+                const areaName = path.basename(p).replace(/^\[area\]\s*/, '').replace(/^\d+_/, '');
+                const children = collectRoomsFromDir(p, wsRoot || docDir, 0);
+                if (children.length) importedAreas.push({ name: areaName, kind: 'area', children });
+            }
+            break;
+        }
+    }
+
+    const tree = [];
+    if (docMaps.length) {
+        if (importedAreas.length) {
+            // Group the active-file maps under a named area node
+            tree.push({ name: path.basename(docPath, '.evs'), kind: 'area', children: docMaps });
+        } else {
+            tree.push(...docMaps);
+        }
+    }
+    tree.push(...importedAreas);
+    return tree;
+}
+
+/** Server-side render of the collapsible room tree as HTML. */
+function renderRoomsTree(nodes) {
+    if (!nodes || !nodes.length) return '<div class="rm-empty">No rooms found in this file.</div>';
+    let html = '<ul class="rt">';
+    for (const n of nodes) {
+        if (n.kind === 'area') {
+            html += '<li class="rn-area"><span class="rn-area-label">' + radarEsc(n.name) + '</span>' + renderRoomsTree(n.children) + '</li>';
+        } else {
+            const vid = n.vanillaId ? '<span class="rv-id">' + radarEsc(n.vanillaId) + '</span>' : '';
+            html += '<li class="rn-map" data-map="' + radarEsc(n.name) + '" data-line="' + n.startLine + '"><span class="rn-map-label">' + radarEsc(n.name) + vid + '</span></li>';
+        }
+    }
+    return html + '</ul>';
+}
+
+/** Build ROOMS JSON data object for embedding in the webview. Expects imagePath already converted to imageUri. */
+function buildRoomsJson(tree) {
+    const all = {};
+    function walk(nodes) {
+        for (const n of nodes) {
+            if (n.kind === 'map') {
+                all[n.name] = { name: n.name, vanillaId: n.vanillaId || null, relPath: n.relPath || '', startLine: n.startLine, endLine: n.endLine, content: n.content, imageUri: n.imageUri || null };
+            } else if (n.children) { walk(n.children); }
+        }
+    }
+    walk(tree);
+    return 'var ROOMS=' + JSON.stringify(all).replace(/<\/script>/gi, '<\\/script>') + ';';
+}
+
+/** Convert imagePath on every map node to a webview URI in-place. */
+function setRoomImageUris(nodes, webview) {
+    for (const n of nodes) {
+        if (n.kind === 'map' && n.imagePath) {
+            try { n.imageUri = webview.asWebviewUri(vscode.Uri.file(n.imagePath)).toString(); }
+            catch { n.imageUri = null; }
+        }
+        if (n.children) setRoomImageUris(n.children, webview);
+    }
+}
+
+function renderRadarHtml(scope, refs, pools, mapByAddr, roomTree = []) {
     const COLS = 16;
     const allAddrs = [...mapByAddr.keys(), ...refs.keys()];
     if (!allAddrs.length) { allAddrs.push(0x2200, 0x28FF); }
@@ -1024,7 +1247,179 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .unk-badge{border-color:#666;color:#888;background:#1a1a1a}
 .bf{font-size:9px}
 .bfc td{border-top:none!important;padding-top:0}
-.cell.cp{background:#0d1a0d;opacity:.55}`;
+.cell.cp{background:#0d1a0d;opacity:.55}
+/* ── Tabs ── */
+.tabs{display:flex;gap:0;flex-shrink:0;border-bottom:1px solid #1c1c1c;margin-bottom:4px}
+.tab{background:none;border:none;border-bottom:2px solid transparent;color:inherit;cursor:pointer;font:inherit;font-size:10px;opacity:.4;padding:3px 12px;margin-bottom:-1px;transition:opacity .1s}
+.tab:hover{opacity:.7}
+.tab.tab-active{opacity:1;border-bottom-color:var(--vscode-focusBorder,#388bfd)}
+.tab-pane{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
+/* ── Rooms panel ── */
+.rm-panels{display:flex;flex:1;gap:8px;min-height:0;overflow:hidden}
+.rm-left{width:200px;flex-shrink:0;overflow-y:auto;border-right:1px solid #1c1c1c;padding-right:6px}
+.rm-right{flex:1;overflow-y:auto;overflow-x:hidden;min-width:0;padding-left:4px}
+.rm-ph{font-size:9px;text-transform:uppercase;letter-spacing:.08em;opacity:.32;padding:3px 0 5px;font-weight:700}
+.rm-empty{opacity:.25;font-size:10px;padding:6px 0}
+/* ── Room tree ── */
+.rt{list-style:none;padding:0;margin:0}.rt .rt{padding-left:12px}
+.rn-area-label{cursor:pointer;display:block;padding:2px 2px;opacity:.42;font-size:9px;text-transform:uppercase;letter-spacing:.05em;user-select:none}
+.rn-area-label:hover{opacity:.72}
+.rn-area.collapsed>.rt{display:none}
+.rn-map{cursor:pointer;padding:1px 4px;border-radius:3px;margin:1px 0;display:flex;align-items:baseline;gap:4px}
+.rn-map:hover{background:rgba(255,255,255,.05)}
+.rn-map.rsel{background:rgba(56,139,253,.18)}
+.rn-map-label{font-size:10px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rv-id{font-size:8px;opacity:.28;flex-shrink:0}
+/* ── Room detail ── */
+.rm-detail-placeholder{display:flex;align-items:center;justify-content:center;height:80px;opacity:.2;font-size:11px}
+.rd-head{padding:6px 0 5px;border-bottom:1px solid #1c1c1c;margin-bottom:7px}
+.rd-name{font-size:12px;font-weight:700;margin-right:8px}
+.rd-vid{font-size:9px;opacity:.35;margin-right:8px}
+.rd-file{font-size:8px;opacity:.22;display:block;margin-top:2px}
+.rd-goto{font-size:9px;color:var(--vscode-textLink-foreground,#4daafc);cursor:pointer;text-decoration:none;display:inline-block;margin-top:3px}
+.rd-goto:hover{text-decoration:underline}
+/* ── Room grid ── */
+.rg-wrap{position:relative;margin:6px 0;overflow:hidden;background:#030d03;border:1px solid #162616;display:inline-block;max-width:100%}
+.rg-svg{position:absolute;inset:0;display:block}
+.room-img{display:block;width:100%;height:100%;object-fit:cover;opacity:.45}
+.room-img-solo{display:block;max-width:100%;max-height:340px;object-fit:contain}
+.rg-placeholder{display:flex;align-items:center;justify-content:center;width:160px;height:80px;opacity:.15;border:1px solid #222;margin:6px 0}
+/* ── Room sections ── */
+.rs{margin-top:7px}
+.rs-h{font-size:9px;text-transform:uppercase;letter-spacing:.05em;opacity:.38;margin-bottom:3px;font-weight:700}
+.rs-list{list-style:none;padding:0;font-size:10px}
+.rs-list li{padding:1px 0;opacity:.7}
+.rs-list li:hover{opacity:1}
+.badge-d{font-size:7px;opacity:.55;border:1px solid #ffa94d;border-radius:3px;padding:0 2px;color:#ffa94d}`;
+
+    // ── Rooms tab data ──────────────────────────────────────────────────────
+    const treeHtml  = renderRoomsTree(roomTree);
+    const roomsJson = buildRoomsJson(roomTree);
+    const roomsJs   = `
+${roomsJson}
+function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// Tab switching
+document.querySelectorAll('.tab').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('tab-active');});
+    btn.classList.add('tab-active');
+    var tab=btn.dataset.tab;
+    document.querySelectorAll('.tab-pane').forEach(function(p){
+      p.style.display=p.dataset.tab===tab?'flex':'none';
+    });
+  });
+});
+
+// Area collapse / expand
+document.querySelectorAll('.rn-area-label').forEach(function(lbl){
+  lbl.addEventListener('click',function(){
+    var li=lbl.closest('li.rn-area');
+    if(li)li.classList.toggle('collapsed');
+  });
+});
+
+// Map click → show detail
+document.querySelectorAll('.rn-map').forEach(function(li){
+  li.addEventListener('click',function(){
+    document.querySelectorAll('.rn-map.rsel').forEach(function(x){x.classList.remove('rsel');});
+    li.classList.add('rsel');
+    var mapName=li.dataset.map;
+    var room=ROOMS[mapName];
+    if(!room)return;
+    renderRoomDetail(room);
+  });
+});
+
+function renderRoomDetail(room){
+  var panel=document.getElementById('room-detail');
+  if(!panel)return;
+  var c=room.content||{};
+  var im=c.initMap;
+  var entrances=c.entrances||[];
+  var enemies=c.enemies||[];
+  var objs=c.objects||[];
+  var trans=c.transitions||[];
+
+  var html='<div class="rd-head">';
+  html+='<span class="rd-name">'+escH(room.name)+'</span>';
+  if(room.vanillaId)html+='<span class="rd-vid">'+escH(room.vanillaId)+'</span>';
+  html+='<span class="rd-file">'+escH(room.relPath||'')+'</span>';
+  html+='<a class="rd-goto ll" data-line="'+room.startLine+'" href="#">\u2192 go to code</a>';
+  html+='</div>';
+
+  var hasCoords=(im!=null)||(entrances.length>0)||(enemies.length>0);
+  if(hasCoords){
+    var x1=im?im.x1:0,y1=im?im.y1:0;
+    var x2=im?im.x2:128,y2=im?im.y2:128;
+    var W=Math.max(x2-x1,16),H=Math.max(y2-y1,16);
+    var maxPx=480;
+    var scale=Math.min(maxPx/W,maxPx/H,6);
+    var pxW=Math.round(W*scale),pxH=Math.round(H*scale);
+    html+='<div class="rg-wrap" style="width:'+pxW+'px;height:'+pxH+'px">';
+    if(room.imageUri){
+      html+='<img class="room-img" src="'+room.imageUri+'" alt="">';
+    }
+    html+='<svg class="rg-svg" width="'+pxW+'" height="'+pxH+'" viewBox="0 0 '+W+' '+H+'">';
+    var step=Math.max(8,Math.ceil(W/20));
+    for(var gx=0;gx<=W;gx+=step)html+='<line x1="'+gx+'" y1="0" x2="'+gx+'" y2="'+H+'" stroke="#ffffff12" stroke-width="0.3"/>';
+    for(var gy=0;gy<=H;gy+=step)html+='<line x1="0" y1="'+gy+'" x2="'+W+'" y2="'+gy+'" stroke="#ffffff12" stroke-width="0.3"/>';
+    html+='<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="none" stroke="#388bfd" stroke-width="0.5" stroke-dasharray="3,2" opacity="0.3"/>';
+    enemies.forEach(function(e){
+      var ex=e.x-x1,ey=e.y-y1;
+      var fill=e.dynamic?'#ffa94d':'#ff7b72';
+      html+='<circle cx="'+ex+'" cy="'+ey+'" r="1.5" fill="'+fill+'" opacity="0.85"><title>'+escH(e.type)+' ('+e.x+','+e.y+')</title></circle>';
+    });
+    entrances.forEach(function(en){
+      var ex=en.x-x1,ey=en.y-y1;
+      html+='<circle cx="'+ex+'" cy="'+ey+'" r="2.5" fill="none" stroke="#56d364" stroke-width="0.8"><title>'+escH(en.name)+' ('+en.dir+')</title></circle>';
+      html+='<text x="'+(ex+3)+'" y="'+(ey-1)+'" fill="#56d364" font-size="2.5">'+escH(en.name)+'</text>';
+    });
+    html+='</svg></div>';
+  } else if(room.imageUri){
+    html+='<div class="rg-wrap"><img class="room-img-solo" src="'+room.imageUri+'" alt=""></div>';
+  } else {
+    html+='<div class="rg-placeholder"><span>No map data</span></div>';
+  }
+
+  if(entrances.length){
+    html+='<div class="rs"><div class="rs-h">Entrances</div><ul class="rs-list">';
+    entrances.forEach(function(e){
+      html+='<li><a class="ll" data-line="'+e.line+'" href="#">'+escH(e.name)+'</a> ('+e.x+','+e.y+') '+escH(e.dir)+'</li>';
+    });
+    html+='</ul></div>';
+  }
+  if(enemies.length){
+    html+='<div class="rs"><div class="rs-h">Enemies</div><ul class="rs-list">';
+    enemies.forEach(function(e){
+      html+='<li class="'+(e.dynamic?'ei':'')+'"><a class="ll" data-line="'+e.line+'" href="#">'+escH(e.type)+'</a> ('+e.x+','+e.y+')'+(e.dynamic?' <span class="badge-d">dynamic</span>':'')+'</li>';
+    });
+    html+='</ul></div>';
+  }
+  if(objs.length){
+    html+='<div class="rs"><div class="rs-h">Objects</div><ul class="rs-list">';
+    objs.forEach(function(o){
+      html+='<li><a class="ll" data-line="'+o.line+'" href="#">object['+escH(o.index)+']</a></li>';
+    });
+    html+='</ul></div>';
+  }
+  if(trans.length){
+    html+='<div class="rs"><div class="rs-h">Transitions</div><ul class="rs-list">';
+    trans.forEach(function(t){
+      html+='<li><a class="ll" data-line="'+t.line+'" href="#">'+escH(t.target)+'</a> via '+escH(t.via)+' '+escH(t.dir)+'</li>';
+    });
+    html+='</ul></div>';
+  }
+
+  panel.innerHTML=html;
+  panel.querySelectorAll('a.ll[data-line]').forEach(function(a){
+    a.addEventListener('click',function(e){
+      e.preventDefault();
+      if(vs)vs.postMessage({command:'goToLine',line:parseInt(a.dataset.line)});
+    });
+  });
+}
+`;
 
     const js = `(function(){
 var vs=typeof acquireVsCodeApi==='function'?acquireVsCodeApi():null;
@@ -1280,6 +1675,11 @@ recomputeRows();
 
     return '<!doctype html><html><head><meta charset="utf-8"><style>' + css + '</style></head>' +
         '<body class="hrest">' +
+        '<div class="tabs">' +
+        '<button class="tab tab-active" data-tab="radar">\u26a1 Memory</button>' +
+        '<button class="tab" data-tab="rooms">\ud83d\uddfa Rooms</button>' +
+        '</div>' +
+        '<div class="tab-pane" data-tab="radar">' +
         '<div class="head">' +
         '<div class="sh">&#9679; Memory Radar</div>' +
         '<div class="sm">Scope: <strong>' + radarEsc(scope.kind) + ' ' + radarEsc(scope.name) +
@@ -1299,7 +1699,14 @@ recomputeRows();
         '<table><thead><tr><th>Addr</th><th>Name</th><th>T</th><th>Notes</th><th>Lines</th></tr></thead>' +
         '<tbody>' + (poolRows || '') + detailRows + '</tbody></table></div></div>' +
         '</div>' +
-        '<script>' + js + '<\/script></body></html>';
+        '</div>' +
+        '<div class="tab-pane" data-tab="rooms" style="display:none">' +
+        '<div class="rm-panels">' +
+        '<div class="rm-left"><div class="rm-ph">Rooms</div>' + treeHtml + '</div>' +
+        '<div class="rm-right"><div id="room-detail" class="rm-detail-placeholder"><span>Select a room</span></div></div>' +
+        '</div>' +
+        '</div>' +
+        '<script>' + js + roomsJs + '<\/script></body></html>';
 }
 
 // ── Activation ────────────────────────────────────────────────────────────────
@@ -1376,6 +1783,8 @@ function activate(context) {
             _radarCurrentScope = scope;
             const { refs, pools } = radarAnalyzeScope(document, scope.startLine, scope.endLine);
             const mapByAddr    = getRadarMap();
+            const wsRoot       = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+            const wsRootUri    = wsRoot ? vscode.Uri.file(wsRoot) : null;
 
             // Reuse existing panel if open; otherwise create a new one
             if (!_radarPanel) {
@@ -1383,19 +1792,32 @@ function activate(context) {
                     'everscriptRadar',
                     'Radar: ' + scope.name,
                     vscode.ViewColumn.Beside,
-                    { enableScripts: true, retainContextWhenHidden: true },
+                    {
+                        enableScripts: true,
+                        retainContextWhenHidden: true,
+                        localResourceRoots: wsRootUri ? [wsRootUri] : [],
+                    },
                 );
                 _radarPanel.onDidDispose(() => {
                     _radarPanel = null;
                     _radarPinned = false;
                     _radarCurrentScope = null;
+                    _radarRoomTree = null;
+                    _radarRoomDocPath = null;
                 }, null, context.subscriptions);
             } else {
                 _radarPanel.title = 'Radar: ' + scope.name;
                 _radarPanel.reveal(vscode.ViewColumn.Beside, true);
             }
 
-            _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, mapByAddr);
+            // Build or reuse room tree (rebuild when document changes)
+            if (_radarRoomDocPath !== document.uri.fsPath) {
+                _radarRoomTree    = buildRoomTree(document, wsRoot);
+                _radarRoomDocPath = document.uri.fsPath;
+                setRoomImageUris(_radarRoomTree, _radarPanel.webview);
+            }
+
+            _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, mapByAddr, _radarRoomTree);
 
             // Handle messages from the webview
             _radarPanel.webview.onDidReceiveMessage(msg => {
@@ -1419,7 +1841,7 @@ function activate(context) {
                     if (_radarDoc) {
                         const gscope = { kind: 'global', name: _radarDoc.fileName.split(/[\/\\]/).pop(), startLine: 0, endLine: _radarDoc.lineCount - 1 };
                         const { refs, pools } = radarAnalyzeScope(_radarDoc, 0, _radarDoc.lineCount - 1);
-                        _radarPanel.webview.html = renderRadarHtml(gscope, refs, pools, getRadarMap());
+                        _radarPanel.webview.html = renderRadarHtml(gscope, refs, pools, getRadarMap(), _radarRoomTree || []);
                         _radarPanel.title = 'Radar: (global)';
                     }
                 } else if (msg.command === 'autoScope') {

@@ -7,7 +7,7 @@
 const assert = require('assert');
 const {
     radarLifecycle, radarH, radarEsc,
-    radarExtractEmoji, radarParseName, radarParseNotes,
+    radarExtractEmoji, radarParseName, radarParseNotes, parseEvsNum,
 } = require('../radar-utils');
 
 let passed = 0, failed = 0;
@@ -100,6 +100,20 @@ test('trims result',
     () => assert.strictEqual(radarParseNotes('  hello  '), 'hello'));
 test('empty string',
     () => assert.strictEqual(radarParseNotes(''), ''));
+
+// ── parseEvsNum ────────────────────────────────────────────────────────────
+console.log('\nparseEvsNum:');
+test('0x2A → 42',        () => assert.strictEqual(parseEvsNum('0x2A'), 42));
+test('0xFF → 255',       () => assert.strictEqual(parseEvsNum('0xFF'), 255));
+test('0X1F → 31',        () => assert.strictEqual(parseEvsNum('0X1f'), 31));
+test('0d42 → 42',        () => assert.strictEqual(parseEvsNum('0d42'), 42));
+test('0D100 → 100',      () => assert.strictEqual(parseEvsNum('0D100'), 100));
+test('plain 99 → 99',    () => assert.strictEqual(parseEvsNum('99'), 99));
+test('plain 0 → 0',      () => assert.strictEqual(parseEvsNum('0'), 0));
+test('trims whitespace', () => assert.strictEqual(parseEvsNum('  0x10  '), 16));
+test('empty → NaN',      () => assert.ok(isNaN(parseEvsNum(''))));
+test('null → NaN',       () => assert.ok(isNaN(parseEvsNum(null))));
+test('undefined → NaN',  () => assert.ok(isNaN(parseEvsNum(undefined))));
 
 // ── Summary ──────────────────────────────────────────────────────────────────
 console.log('\n' + passed + ' passed, ' + failed + ' failed\n');
