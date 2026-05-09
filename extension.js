@@ -556,6 +556,7 @@ let _radarMapCache     = null;   // cached parsed memory-map.md
 let _radarUpdateTimer  = null;   // debounce timer for auto-update
 let _radarRoomTree     = null;   // cached room tree (rebuilt when doc changes)
 let _radarRoomDocPath  = null;   // fsPath the room tree was built for
+let _radarActiveTab    = 'radar'; // preserved tab across re-renders
 
 function getRadarMap() {
     if (_radarMapCache) return _radarMapCache;
@@ -581,7 +582,8 @@ function refreshRadar(editor) {
     const mapByAddr = getRadarMap();
     // Reuse cached room tree (same doc); it was built with webview URIs on panel open
     const roomTree = (_radarRoomDocPath === doc.uri.fsPath) ? (_radarRoomTree || []) : [];
-    _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, mapByAddr, roomTree);
+    const selectedMap = scope.kind === 'map' ? scope.name : null;
+    _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, mapByAddr, roomTree, _radarActiveTab, selectedMap);
     _radarPanel.title = 'Radar: ' + scope.name;
 }
 
@@ -723,7 +725,11 @@ function radarReadMemoryMap(filePath) {
             lifecycle: radarLifecycle(start, typeStr, notes),
             isWord, addrStart: start, addrEnd: effectiveEnd,
         };
-        for (let a = start; a <= effectiveEnd; a++) if (!map.has(a)) map.set(a, entry);
+        // Later-starting entries take priority at shared addresses (e.g. overlapping Word entries)
+        for (let a = start; a <= effectiveEnd; a++) {
+            const ex = map.get(a);
+            if (!ex || ex.addrStart < start) map.set(a, entry);
+        }
     }
     return map;
 }
@@ -926,7 +932,7 @@ function renderRoomsTree(nodes) {
 }
 
 /** Build ROOMS JSON data object for embedding in the webview. Expects imagePath already converted to imageUri. */
-function buildRoomsJson(tree) {
+function buildRoomsJson(tree, activeTab, selectedMap) {
     const all = {};
     function walk(nodes) {
         for (const n of nodes) {
@@ -936,7 +942,9 @@ function buildRoomsJson(tree) {
         }
     }
     walk(tree);
-    return 'var ROOMS=' + JSON.stringify(all).replace(/<\/script>/gi, '<\\/script>') + ';';
+    return 'var ROOMS=' + JSON.stringify(all).replace(/<\/script>/gi, '<\\/script>') +
+        ';var ACTIVE_TAB=' + JSON.stringify(activeTab || 'radar') +
+        ';var SELECTED_MAP=' + JSON.stringify(selectedMap || null) + ';';
 }
 
 /** Convert imagePath on every map node to a webview URI in-place. */
@@ -950,7 +958,7 @@ function setRoomImageUris(nodes, webview) {
     }
 }
 
-function renderRadarHtml(scope, refs, pools, mapByAddr, roomTree = []) {
+function renderRadarHtml(scope, refs, pools, mapByAddr, roomTree = [], activeTab = 'radar', selectedMap = null) {
     const COLS = 16;
     const allAddrs = [...mapByAddr.keys(), ...refs.keys()];
     if (!allAddrs.length) { allAddrs.push(0x2200, 0x28FF); }
@@ -1114,48 +1122,54 @@ function renderRadarHtml(scope, refs, pools, mapByAddr, roomTree = []) {
 
         const parts = e.nameParts && e.nameParts.length > 1 ? e.nameParts : null;
         const numBytes = e.addrEnd - e.addrStart + 1;
+        const typeStr = radarEsc(e.type.replace(/\s*\[SRAM\]/gi, '').trim());
+        const es = e.addrStart, ee = e.addrEnd;
 
-        // Bit-field expansion: one row per named part, addr cell rowspans all parts
+        // Bit-field expansion: one row per named part; each sub-row gets own T, Notes, Lines
         if (parts) {
-            const rs = parts.length;
-            let html = '<tr id="dr-' + e.addrStart + '" class="' + rowCls + '" data-addr="' + e.addrStart + '">';
-            html += '<td class="mo" rowspan="' + rs + '">' + badge + emCell + addrLabel + '</td>';
+            // Distribute notes by <br> if count matches; else first row gets full notes, rest get —
+            const notesBrParts = notesHtml !== '&ndash;' ? notesHtml.split(/<br\s*\/?>/gi) : null;
+            const notesDistrib = (notesBrParts && notesBrParts.length === parts.length) ? notesBrParts : null;
+            let html = '<tr id="dr-' + es + '" class="' + rowCls + '" data-addr="' + es + '" data-es="' + es + '" data-ee="' + ee + '">';
+            html += '<td class="mo" rowspan="' + parts.length + '">' + badge + emCell + addrLabel + '</td>';
             html += '<td class="bf">' + radarEsc(parts[0]) + '</td>';
-            html += '<td class="mt" rowspan="' + rs + '">' + radarEsc(e.type) + '</td>';
-            html += '<td class="nt" rowspan="' + rs + '">' + notesHtml + '</td>';
-            html += '<td class="rwc" rowspan="' + rs + '">' + linesCell + '</td>';
-            html += '</tr>';
+            html += '<td class="mt">' + typeStr + '</td>';
+            html += '<td class="nt">' + (notesDistrib ? notesDistrib[0] : notesHtml) + '</td>';
+            html += '<td class="rwc">' + linesCell + '</td></tr>';
             for (let i = 1; i < parts.length; i++) {
-                // give each sub-row its own ID so clicking it scrolls to itself
-                html += '<tr id="dr-' + e.addrStart + '-' + i + '" class="' + rowCls + ' bfc" data-addr="' + e.addrStart + '" data-part="' + i + '">';
+                html += '<tr id="dr-' + es + '-' + i + '" class="' + rowCls + ' bfc" data-addr="' + es + '" data-part="' + i + '" data-es="' + es + '" data-ee="' + ee + '">';
                 html += '<td class="bf">' + radarEsc(parts[i]) + '</td>';
-                html += '</tr>';
+                html += '<td class="mt">' + typeStr + '</td>';
+                html += '<td class="nt">' + (notesDistrib ? notesDistrib[i] : '&ndash;') + '</td>';
+                html += '<td class="rwc">' + linesCell + '</td></tr>';
             }
             return html;
         }
 
-        // Multi-byte expansion: one row per byte, name/type/notes/lines rowspan
+        // Multi-byte expansion: each byte row stands alone (no rowspan); all show same name/T/notes/lines
         if (!untracked && numBytes > 1) {
-            let html = '<tr id="dr-' + e.addrStart + '" class="' + rowCls + '" data-addr="' + e.addrStart + '">';
-            html += '<td class="mo">' + badge + emCell + radarH(e.addrStart) + '</td>';
-            html += '<td' + (numBytes > 1 ? ' rowspan="' + numBytes + '"' : '') + '>' + radarEsc(e.name) + '</td>';
-            html += '<td class="mt"' + (numBytes > 1 ? ' rowspan="' + numBytes + '"' : '') + '>' + radarEsc(e.type) + '</td>';
-            html += '<td class="nt"' + (numBytes > 1 ? ' rowspan="' + numBytes + '"' : '') + '>' + notesHtml + '</td>';
-            html += '<td class="rwc"' + (numBytes > 1 ? ' rowspan="' + numBytes + '"' : '') + '>' + linesCell + '</td>';
-            html += '</tr>';
-            for (let a = e.addrStart + 1; a <= e.addrEnd; a++) {
-                html += '<tr id="dr-' + a + '" class="' + rowCls + ' bfc" data-addr="' + a + '">';
+            let html = '<tr id="dr-' + es + '" class="' + rowCls + '" data-addr="' + es + '" data-es="' + es + '" data-ee="' + ee + '">';
+            html += '<td class="mo">' + badge + emCell + radarH(es) + '</td>';
+            html += '<td>' + radarEsc(e.name) + '</td>';
+            html += '<td class="mt">' + typeStr + '</td>';
+            html += '<td class="nt">' + notesHtml + '</td>';
+            html += '<td class="rwc">' + linesCell + '</td></tr>';
+            for (let a = es + 1; a <= ee; a++) {
+                html += '<tr id="dr-' + a + '" class="' + rowCls + ' bfc" data-addr="' + a + '" data-es="' + es + '" data-ee="' + ee + '">';
                 html += '<td class="mo">' + radarH(a) + '</td>';
-                html += '</tr>';
+                html += '<td>' + radarEsc(e.name) + '</td>';
+                html += '<td class="mt">' + typeStr + '</td>';
+                html += '<td class="nt">' + notesHtml + '</td>';
+                html += '<td class="rwc">' + linesCell + '</td></tr>';
             }
             return html;
         }
 
         const nameCls = untracked ? ' class="no-vanilla"' : '';
-        return '<tr id="dr-' + addr + '" class="' + rowCls + '" data-addr="' + addr + '">' +
+        return '<tr id="dr-' + addr + '" class="' + rowCls + '" data-addr="' + addr + '" data-es="' + es + '" data-ee="' + ee + '">' +
             '<td class="mo">' + badge + emCell + addrLabel + '</td>' +
             '<td' + nameCls + '>' + radarEsc(e.name) + '</td>' +
-            '<td class="mt">' + radarEsc(e.type) + '</td>' +
+            '<td class="mt">' + typeStr + '</td>' +
             '<td class="nt">' + notesHtml + '</td>' +
             '<td class="rwc">' + linesCell + '</td></tr>';
     }).join('');
@@ -1255,9 +1269,9 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .tab.tab-active{opacity:1;border-bottom-color:var(--vscode-focusBorder,#388bfd)}
 .tab-pane{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
 /* ── Rooms panel ── */
-.rm-panels{display:flex;flex:1;gap:8px;min-height:0;overflow:hidden}
-.rm-left{width:200px;flex-shrink:0;overflow-y:auto;border-right:1px solid #1c1c1c;padding-right:6px}
-.rm-right{flex:1;overflow-y:auto;overflow-x:hidden;min-width:0;padding-left:4px}
+.rm-panels{display:flex;flex:1;gap:0;min-height:0;overflow:hidden}
+.rm-left{width:200px;flex-shrink:0;overflow-y:auto;border-right:1px solid #1c1c1c;padding:4px 6px 8px 0}
+.rm-right{flex:1;overflow-y:auto;overflow-x:hidden;min-width:0;padding:8px 10px}
 .rm-ph{font-size:9px;text-transform:uppercase;letter-spacing:.08em;opacity:.32;padding:3px 0 5px;font-weight:700}
 .rm-empty{opacity:.25;font-size:10px;padding:6px 0}
 /* ── Room tree ── */
@@ -1272,18 +1286,17 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .rv-id{font-size:8px;opacity:.28;flex-shrink:0}
 /* ── Room detail ── */
 .rm-detail-placeholder{display:flex;align-items:center;justify-content:center;height:80px;opacity:.2;font-size:11px}
-.rd-head{padding:6px 0 5px;border-bottom:1px solid #1c1c1c;margin-bottom:7px}
+.rd-head{padding:0 0 7px;border-bottom:1px solid #1c1c1c;margin-bottom:8px}
 .rd-name{font-size:12px;font-weight:700;margin-right:8px}
 .rd-vid{font-size:9px;opacity:.35;margin-right:8px}
 .rd-file{font-size:8px;opacity:.22;display:block;margin-top:2px}
-.rd-goto{font-size:9px;color:var(--vscode-textLink-foreground,#4daafc);cursor:pointer;text-decoration:none;display:inline-block;margin-top:3px}
-.rd-goto:hover{text-decoration:underline}
+.rd-head a{font-size:9px;color:var(--vscode-textLink-foreground,#4daafc);cursor:pointer;text-decoration:none;display:inline-block;margin-top:3px}
+.rd-head a:hover{text-decoration:underline}
 /* ── Room grid ── */
-.rg-wrap{position:relative;margin:6px 0;overflow:hidden;background:#030d03;border:1px solid #162616;display:inline-block;max-width:100%}
+.rg-wrap{position:relative;overflow:hidden;background:white;border:1px solid #bbb;display:block;margin-bottom:8px}
 .rg-svg{position:absolute;inset:0;display:block}
-.room-img{display:block;width:100%;height:100%;object-fit:cover;opacity:.45}
-.room-img-solo{display:block;max-width:100%;max-height:340px;object-fit:contain}
-.rg-placeholder{display:flex;align-items:center;justify-content:center;width:160px;height:80px;opacity:.15;border:1px solid #222;margin:6px 0}
+.room-img{display:block;width:100%;height:100%;object-fit:cover;opacity:.6}
+.rg-placeholder{display:flex;align-items:center;justify-content:center;width:160px;height:80px;opacity:.15;border:1px solid #444;margin-bottom:8px;color:#888;font-size:10px}
 /* ── Room sections ── */
 .rs{margin-top:7px}
 .rs-h{font-size:9px;text-transform:uppercase;letter-spacing:.05em;opacity:.38;margin-bottom:3px;font-weight:700}
@@ -1294,12 +1307,11 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 
     // ── Rooms tab data ──────────────────────────────────────────────────────
     const treeHtml  = renderRoomsTree(roomTree);
-    const roomsJson = buildRoomsJson(roomTree);
+    const roomsData = buildRoomsJson(roomTree, activeTab, selectedMap);
     const roomsJs   = `
-${roomsJson}
 function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
-// Tab switching
+// Tab switching (posts tabChange so host preserves active tab across re-renders)
 document.querySelectorAll('.tab').forEach(function(btn){
   btn.addEventListener('click',function(){
     document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('tab-active');});
@@ -1308,6 +1320,7 @@ document.querySelectorAll('.tab').forEach(function(btn){
     document.querySelectorAll('.tab-pane').forEach(function(p){
       p.style.display=p.dataset.tab===tab?'flex':'none';
     });
+    if(vs)vs.postMessage({command:'tabChange',tab:tab});
   });
 });
 
@@ -1334,6 +1347,7 @@ document.querySelectorAll('.rn-map').forEach(function(li){
 function renderRoomDetail(room){
   var panel=document.getElementById('room-detail');
   if(!panel)return;
+  panel.className='';
   var c=room.content||{};
   var im=c.initMap;
   var entrances=c.entrances||[];
@@ -1345,41 +1359,40 @@ function renderRoomDetail(room){
   html+='<span class="rd-name">'+escH(room.name)+'</span>';
   if(room.vanillaId)html+='<span class="rd-vid">'+escH(room.vanillaId)+'</span>';
   html+='<span class="rd-file">'+escH(room.relPath||'')+'</span>';
-  html+='<a class="rd-goto ll" data-line="'+room.startLine+'" href="#">\u2192 go to code</a>';
+  html+='<a class="ll" data-line="'+room.startLine+'" href="#">go to code</a>';
   html+='</div>';
 
+  // Map grid: image + SVG overlay
   var hasCoords=(im!=null)||(entrances.length>0)||(enemies.length>0);
-  if(hasCoords){
+  if(hasCoords||room.imageUri){
     var x1=im?im.x1:0,y1=im?im.y1:0;
-    var x2=im?im.x2:128,y2=im?im.y2:128;
+    var x2=im?im.x2:256,y2=im?im.y2:256;
+    if(!hasCoords&&room.imageUri){x1=0;y1=0;x2=256;y2=256;}
     var W=Math.max(x2-x1,16),H=Math.max(y2-y1,16);
-    var maxPx=480;
-    var scale=Math.min(maxPx/W,maxPx/H,6);
+    var scale=Math.min(600/W,360/H,8);
     var pxW=Math.round(W*scale),pxH=Math.round(H*scale);
     html+='<div class="rg-wrap" style="width:'+pxW+'px;height:'+pxH+'px">';
     if(room.imageUri){
       html+='<img class="room-img" src="'+room.imageUri+'" alt="">';
     }
     html+='<svg class="rg-svg" width="'+pxW+'" height="'+pxH+'" viewBox="0 0 '+W+' '+H+'">';
-    var step=Math.max(8,Math.ceil(W/20));
-    for(var gx=0;gx<=W;gx+=step)html+='<line x1="'+gx+'" y1="0" x2="'+gx+'" y2="'+H+'" stroke="#ffffff12" stroke-width="0.3"/>';
-    for(var gy=0;gy<=H;gy+=step)html+='<line x1="0" y1="'+gy+'" x2="'+W+'" y2="'+gy+'" stroke="#ffffff12" stroke-width="0.3"/>';
-    html+='<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="none" stroke="#388bfd" stroke-width="0.5" stroke-dasharray="3,2" opacity="0.3"/>';
+    var step=Math.max(8,Math.ceil(W/24));
+    for(var gx=0;gx<=W;gx+=step)html+='<line x1="'+gx+'" y1="0" x2="'+gx+'" y2="'+H+'" stroke="rgba(0,0,0,0.1)" stroke-width="0.5"/>';
+    for(var gy=0;gy<=H;gy+=step)html+='<line x1="0" y1="'+gy+'" x2="'+W+'" y2="'+gy+'" stroke="rgba(0,0,0,0.1)" stroke-width="0.5"/>';
+    if(im)html+='<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="none" stroke="#1a6" stroke-width="0.7" stroke-dasharray="3,2"/>';
     enemies.forEach(function(e){
       var ex=e.x-x1,ey=e.y-y1;
-      var fill=e.dynamic?'#ffa94d':'#ff7b72';
-      html+='<circle cx="'+ex+'" cy="'+ey+'" r="1.5" fill="'+fill+'" opacity="0.85"><title>'+escH(e.type)+' ('+e.x+','+e.y+')</title></circle>';
+      var fill=e.dynamic?'#cc7700':'#cc0000';
+      html+='<circle cx="'+ex+'" cy="'+ey+'" r="2" fill="'+fill+'" opacity="0.85"><title>'+escH(e.type)+' ('+e.x+','+e.y+')</title></circle>';
     });
     entrances.forEach(function(en){
       var ex=en.x-x1,ey=en.y-y1;
-      html+='<circle cx="'+ex+'" cy="'+ey+'" r="2.5" fill="none" stroke="#56d364" stroke-width="0.8"><title>'+escH(en.name)+' ('+en.dir+')</title></circle>';
-      html+='<text x="'+(ex+3)+'" y="'+(ey-1)+'" fill="#56d364" font-size="2.5">'+escH(en.name)+'</text>';
+      html+='<circle cx="'+ex+'" cy="'+ey+'" r="3" fill="none" stroke="#005500" stroke-width="1"><title>'+escH(en.name)+' ('+en.dir+')</title></circle>';
+      html+='<text x="'+(ex+4)+'" y="'+(ey+2)+'" fill="#005500" font-size="3" font-family="monospace">'+escH(en.name)+'</text>';
     });
     html+='</svg></div>';
-  } else if(room.imageUri){
-    html+='<div class="rg-wrap"><img class="room-img-solo" src="'+room.imageUri+'" alt=""></div>';
   } else {
-    html+='<div class="rg-placeholder"><span>No map data</span></div>';
+    html+='<div class="rg-placeholder"><span>No coordinate data</span></div>';
   }
 
   if(entrances.length){
@@ -1392,7 +1405,7 @@ function renderRoomDetail(room){
   if(enemies.length){
     html+='<div class="rs"><div class="rs-h">Enemies</div><ul class="rs-list">';
     enemies.forEach(function(e){
-      html+='<li class="'+(e.dynamic?'ei':'')+'"><a class="ll" data-line="'+e.line+'" href="#">'+escH(e.type)+'</a> ('+e.x+','+e.y+')'+(e.dynamic?' <span class="badge-d">dynamic</span>':'')+'</li>';
+      html+='<li><a class="ll" data-line="'+e.line+'" href="#">'+escH(e.type)+'</a> ('+e.x+','+e.y+')'+(e.dynamic?' <span class="badge-d">dynamic</span>':'')+'</li>';
     });
     html+='</ul></div>';
   }
@@ -1412,12 +1425,7 @@ function renderRoomDetail(room){
   }
 
   panel.innerHTML=html;
-  panel.querySelectorAll('a.ll[data-line]').forEach(function(a){
-    a.addEventListener('click',function(e){
-      e.preventDefault();
-      if(vs)vs.postMessage({command:'goToLine',line:parseInt(a.dataset.line)});
-    });
-  });
+  bindLinks(panel);
 }
 `;
 
@@ -1552,12 +1560,10 @@ function applyPolygonOutline(cursored){
   });
 }
 
-function setCursor(addr){
+function setCursorRange(start,end){
   document.querySelectorAll('.cursor').forEach(function(x){
     x.classList.remove('cursor');x.style.boxShadow='';x.style.zIndex='';
   });
-  var d=CELLS[addr];
-  var start=d?d.addrStart:addr,end=d?d.addrEnd:addr;
   var cursored=new Set();
   for(var a=start;a<=end;a++){
     var c=document.querySelector('.cell[data-addr="'+a+'"]');
@@ -1577,14 +1583,24 @@ function setCursor(addr){
   }
 }
 
+function setCursor(addr){
+  var d=CELLS[addr];
+  setCursorRange(d?d.addrStart:addr,d?d.addrEnd:addr);
+}
+
 function selectDetailRow(addr){
   document.querySelectorAll('tr.sel').forEach(function(r){r.classList.remove('sel');});
-  var d=CELLS[addr];
-  var start=d?d.addrStart:addr,end=d?d.addrEnd:addr;
-  // select all rows belonging to this entry (including bfc continuation rows by data-addr)
-  document.querySelectorAll('tr.dr[data-addr="'+start+'"]').forEach(function(r){r.classList.add('sel');});
-  var firstRow=document.getElementById('dr-'+start);
-  if(!firstRow)return;
+  // Find the row whose entry range covers addr with the highest entry-start (most specific)
+  var best=null,bestEs=-1;
+  document.querySelectorAll('tr.dr').forEach(function(row){
+    var es=parseInt(row.dataset.es),ee=parseInt(row.dataset.ee);
+    if(!isNaN(es)&&!isNaN(ee)&&es<=addr&&addr<=ee&&es>bestEs){bestEs=es;best=row;}
+  });
+  if(!best)best=document.getElementById('dr-'+addr);
+  if(!best)return;
+  var entryStart=parseInt(best.dataset.es||best.dataset.addr);
+  document.querySelectorAll('tr.dr[data-es="'+entryStart+'"]').forEach(function(r){r.classList.add('sel');});
+  var firstRow=document.getElementById('dr-'+entryStart)||best;
   var panel=document.querySelector('.right-panel');
   if(!panel)return;
   var thead=panel.querySelector('thead');
@@ -1628,10 +1644,11 @@ document.querySelectorAll('.cell').forEach(function(c){
 document.querySelectorAll('tr.dr').forEach(function(row){
   row.addEventListener('click',function(e){
     if(e.target.classList.contains('ll'))return;
-    var addr=parseInt(row.dataset.addr);
+    var es=parseInt(row.dataset.es||row.dataset.addr);
+    var ee=parseInt(row.dataset.ee||row.dataset.addr);
+    setCursorRange(es,ee);
+    // Scroll the detail panel to THIS row (for bit-field sub-rows)
     var partIdx=row.dataset.part?parseInt(row.dataset.part):-1;
-    setCursor(addr);
-    // For bit-field sub-rows, scroll to THIS row (not the first row of the group)
     if(partIdx>=0){
       document.querySelectorAll('tr.sel').forEach(function(r){r.classList.remove('sel');});
       row.classList.add('sel');
@@ -1650,13 +1667,33 @@ document.querySelectorAll('tr.dr').forEach(function(row){
         }
       }
     }else{
-      selectDetailRow(addr);
+      selectDetailRow(es);
     }
   });
 });
 
 bindLinks(document.querySelector('.dt-wrap'));
 recomputeRows();
+${roomsData}
+${roomsJs}
+// Init active tab and selected map highlight
+(function(){
+  var t=ACTIVE_TAB||'radar';
+  document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('tab-active');});
+  var at=document.querySelector('.tab[data-tab="'+t+'"]');
+  if(at)at.classList.add('tab-active');
+  document.querySelectorAll('.tab-pane').forEach(function(p){
+    p.style.display=p.dataset.tab===t?'flex':'none';
+  });
+  if(SELECTED_MAP){
+    var li=document.querySelector('.rn-map[data-map="'+SELECTED_MAP+'"]');
+    if(li){
+      li.classList.add('rsel');
+      var room=ROOMS[SELECTED_MAP];
+      if(room)renderRoomDetail(room);
+    }
+  }
+})();
 })();`;
 
     const btns =
@@ -1706,7 +1743,7 @@ recomputeRows();
         '<div class="rm-right"><div id="room-detail" class="rm-detail-placeholder"><span>Select a room</span></div></div>' +
         '</div>' +
         '</div>' +
-        '<script>' + js + roomsJs + '<\/script></body></html>';
+        '<script>' + js + '<\/script></body></html>';
 }
 
 // ── Activation ────────────────────────────────────────────────────────────────
@@ -1804,6 +1841,7 @@ function activate(context) {
                     _radarCurrentScope = null;
                     _radarRoomTree = null;
                     _radarRoomDocPath = null;
+                    _radarActiveTab = 'radar';
                 }, null, context.subscriptions);
             } else {
                 _radarPanel.title = 'Radar: ' + scope.name;
@@ -1817,7 +1855,8 @@ function activate(context) {
                 setRoomImageUris(_radarRoomTree, _radarPanel.webview);
             }
 
-            _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, mapByAddr, _radarRoomTree);
+            const selectedMap = scope.kind === 'map' ? scope.name : null;
+            _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, mapByAddr, _radarRoomTree, _radarActiveTab, selectedMap);
 
             // Handle messages from the webview
             _radarPanel.webview.onDidReceiveMessage(msg => {
@@ -1836,12 +1875,14 @@ function activate(context) {
                     _radarPinned = true;
                 } else if (msg.command === 'unpin') {
                     _radarPinned = false;
+                } else if (msg.command === 'tabChange') {
+                    _radarActiveTab = msg.tab || 'radar';
                 } else if (msg.command === 'globalScope') {
                     _radarPinned = true; // freeze auto-updates while in global view
                     if (_radarDoc) {
                         const gscope = { kind: 'global', name: _radarDoc.fileName.split(/[\/\\]/).pop(), startLine: 0, endLine: _radarDoc.lineCount - 1 };
                         const { refs, pools } = radarAnalyzeScope(_radarDoc, 0, _radarDoc.lineCount - 1);
-                        _radarPanel.webview.html = renderRadarHtml(gscope, refs, pools, getRadarMap(), _radarRoomTree || []);
+                        _radarPanel.webview.html = renderRadarHtml(gscope, refs, pools, getRadarMap(), _radarRoomTree || [], _radarActiveTab, null);
                         _radarPanel.title = 'Radar: (global)';
                     }
                 } else if (msg.command === 'autoScope') {
