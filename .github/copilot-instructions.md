@@ -48,6 +48,29 @@ One prompt = one commit. Do not batch unrelated changes.
 
 ---
 
+## 9. Memory Radar (merged from everscript-memory-radar)
+
+The `everscript.openMemoryRadar` command and all radar logic live in `extension.js`.
+The `everscript-memory-radar` repo is now dormant — do not modify it.
+
+**Radar data sources:**
+- `.github/memory-map.md` in the **open workspace folder** — ground-truth WRAM address names and lifecycle.
+- Active `.evs` document — scope-parsed for `memory(0xADDR)`, `<0xADDR>`, and bit-allocator helpers.
+
+**Address convention:**
+- All addresses in `memory()` and `<>` are treated as **absolute 16-bit WRAM** addresses (bank `$7E` implied).
+- No offset arithmetic. `memory(0x22d8)` = WRAM byte at `$7E22D8`.
+- Do not invent an offset or base; the parser reads hex literals as-is.
+
+**Lifecycle classification (radarLifecycle):**
+- `sram` — entry type/notes contains the word `sram`.
+- `temp` — addr < `0x2000`.
+- `session` — everything else.
+
+**No overlap expected** — the WRAM address space is memory-mapped; two scripts should never legitimately share the same address. Do not add overlap-warning UI.
+
+---
+
 ## 4. Grammar Rules
 
 - Pattern order matters: first match wins. See `syntaxes/everscript.tmLanguage.json` §patterns array.

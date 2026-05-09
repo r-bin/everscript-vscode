@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.2.0] — 2026-05-09
+
+### Added
+- **Memory Radar merged in** — the standalone `everscript-memory-radar` extension is
+  discontinued; its visualizer now lives in this extension.
+- **`Everscript: Open Memory Radar` command** — opens a compact, sidebar-friendly WRAM
+  visualizer beside the active `.evs` file. Accessible via right-click context menu or
+  the `◉ Memory Radar` CodeLens shown above every `fun`/`map`/`area`/`group` declaration.
+- **CodeLens** — `◉ Memory Radar` appears above each scope declaration for one-click access.
+- **WRAM heatmap grid** — 9×9 px cells, 16 per row, covering the full documented address
+  range. Color indicates lifecycle: blue = temp (`<0x2000`), amber = session, green = sram.
+  Bright = used in current scope, dim = documented but unused, near-invisible = rest
+  (undocumented). Hover tooltip shows address, name, type, and usage lines.
+- **Region usage bars** — temp/session/sram each show `used/total (%)`.
+- **Filter buttons** — toggle temp/session/sram/rest visibility independently. Rest is
+  off by default (collapses entirely-undocumented rows).
+- **Detail table** — lists every known address with addr, name, type, lifecycle chip, and
+  clickable line numbers that navigate back to the usage site in the editor.
+- **Bidirectional navigation** — click a grid cell to jump to its detail table row; click
+  a line number in the table to reveal that line in the source editor.
+- Reads `.github/memory-map.md` from the workspace root for ground-truth address data.
+
+### Notes on WRAM addresses
+Addresses in `memory(0xADDR)` and `<0xADDR>` are treated as absolute 16-bit WRAM
+addresses (bank `$7E` implied). No offset arithmetic is applied by the parser.
+
+### Snes9x live-memory feasibility
+Theoretically possible on macOS via `task_for_pid()` + `mach_vm_read()` (Mach kernel
+API), the same mechanism Cheat Engine uses. Requires a native Node.js C++ addon and
+appropriate process entitlements — not implementable in pure JS from a VS Code extension.
+A future milestone could ship a small helper binary for this.
+
 ## [0.1.5] — 2026-05-08
 
 ### Changed

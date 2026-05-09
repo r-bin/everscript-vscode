@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "publisher": "rbin",
   "main": "./extension.js",
   "engines": {
@@ -75,7 +75,22 @@
           }
         }
       }
-    ]
+    ],
+    "commands": [
+      {
+        "command": "everscript.openMemoryRadar",
+        "title": "Everscript: Open Memory Radar"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "when": "editorLangId == everscript",
+          "command": "everscript.openMemoryRadar",
+          "group": "navigation@30"
+        }
+      ]
+    }
   },
   "repository": {
     "type": "git",

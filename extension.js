@@ -526,6 +526,291 @@ async function provideReferences(document, position) {
     return locations;
 }
 
+// ── Memory Radar ─────────────────────────────────────────────────────────────
+
+const RADAR_BIT_ALLOC_FUNCS = new Set(['_loot_chest', '_loot', 'loot', 'retained_object']);
+
+class RadarCodeLensProvider {
+    provideCodeLenses(document) {
+        if (document.languageId !== 'everscript') return [];
+        const declRe = /^\s*(fun|map|area|group)\s+([A-Za-z_][A-Za-z0-9_]*)\b/;
+        const lenses = [];
+        for (let i = 0; i < document.lineCount; i++) {
+            if (!declRe.test(document.lineAt(i).text)) continue;
+            lenses.push(new vscode.CodeLens(document.lineAt(i).range, {
+                title: '◉ Memory Radar',
+                command: 'everscript.openMemoryRadar',
+                arguments: [document, i],
+            }));
+        }
+        return lenses;
+    }
+}
+
+function radarDetectScope(document, cursorLine) {
+    const declRe = /^\s*(fun|map|area|group)\s+([A-Za-z_][A-Za-z0-9_]*)\b/;
+    for (let line = cursorLine; line >= 0; line--) {
+        const m = declRe.exec(document.lineAt(line).text);
+        if (!m) continue;
+        const ob = radarFindOpenBrace(document, line);
+        if (ob === -1) return { kind: m[1], name: m[2], startLine: line, endLine: line };
+        const cb = radarFindCloseBrace(document, ob);
+        return { kind: m[1], name: m[2], startLine: line, endLine: cb === -1 ? document.lineCount - 1 : cb };
+    }
+    return { kind: 'global', name: 'global', startLine: 0, endLine: document.lineCount - 1 };
+}
+
+function radarFindOpenBrace(document, fromLine) {
+    for (let l = fromLine; l < Math.min(fromLine + 10, document.lineCount); l++) {
+        if (document.lineAt(l).text.includes('{')) return l;
+    }
+    return -1;
+}
+
+function radarFindCloseBrace(document, ob) {
+    let depth = 0;
+    for (let l = ob; l < document.lineCount; l++) {
+        for (const ch of document.lineAt(l).text.replace(/\/\/.*$/, '')) {
+            if (ch === '{') depth++;
+            else if (ch === '}') { depth--; if (depth === 0) return l; }
+        }
+    }
+    return -1;
+}
+
+function radarAnalyzeScope(document, startLine, endLine) {
+    // Map<addr, { lines: number[], sources: string[] }>
+    const refs = new Map();
+    const add = (addr, line, source) => {
+        if (!refs.has(addr)) refs.set(addr, { lines: [], sources: [] });
+        const r = refs.get(addr);
+        if (!r.lines.includes(line)) r.lines.push(line);
+        if (!r.sources.includes(source)) r.sources.push(source);
+    };
+    for (let i = startLine; i <= endLine; i++) {
+        const text = document.lineAt(i).text;
+        // memory(0xADDR, ...) — absolute WRAM address
+        for (const m of text.matchAll(/\bmemory\s*\(\s*(0x[0-9a-fA-F]+)/g)) {
+            const a = parseInt(m[1], 16);
+            if (!isNaN(a)) add(a, i, 'memory()');
+        }
+        // <0xADDR> or <0xADDR, 0xMASK> raw dereference
+        for (const m of text.matchAll(/<\s*(0x[0-9a-fA-F]+)/g)) {
+            const a = parseInt(m[1], 16);
+            if (!isNaN(a)) add(a, i, '<deref>');
+        }
+        // Known bit-allocator helpers: _loot_chest(0xADDR, 0xBIT)
+        for (const m of text.matchAll(/\b([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)/g)) {
+            if (!RADAR_BIT_ALLOC_FUNCS.has(m[1])) continue;
+            const xs = [...m[2].matchAll(/0x[0-9a-fA-F]+/g)];
+            if (xs.length) { const a = parseInt(xs[0][0], 16); if (!isNaN(a)) add(a, i, m[1]); }
+        }
+    }
+    return refs;
+}
+
+function radarReadMemoryMap(filePath) {
+    const map = new Map();
+    if (!fs.existsSync(filePath)) return map;
+    for (const line of fs.readFileSync(filePath, 'utf8').split(/\r?\n/)) {
+        if (!line.startsWith('|')) continue;
+        const cells = line.split('|').map(c => c.trim()).filter(Boolean);
+        if (cells.length < 3) continue;
+        // Match: 0xADDR or 0xSTART…0xEND
+        const m = cells[0].match(/0x([0-9a-fA-F]{4})(?:[^0-9a-fA-F]*0x([0-9a-fA-F]{4}))?/);
+        if (!m) continue;
+        const start = parseInt(m[1], 16), end = m[2] ? parseInt(m[2], 16) : start;
+        const entry = { name: cells[1], type: cells[2] || '', notes: cells[3] || '', lifecycle: '' };
+        entry.lifecycle = radarLifecycle(start, entry.type, entry.notes);
+        for (let a = start; a <= end; a++) if (!map.has(a)) map.set(a, entry);
+    }
+    return map;
+}
+
+function radarLifecycle(addr, type, notes) {
+    if ((type + ' ' + notes).toLowerCase().includes('sram')) return 'sram';
+    return addr < 0x2000 ? 'temp' : 'session';
+}
+
+function radarEsc(s) {
+    return String(s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function radarH(n) { return '0x' + n.toString(16).toUpperCase().padStart(4, '0'); }
+
+function renderRadarHtml(scope, refs, mapByAddr) {
+    const COLS = 16;
+    const allAddrs = [...mapByAddr.keys(), ...refs.keys()];
+    const rowStart = allAddrs.length ? (Math.min(...allAddrs) & ~(COLS - 1)) : 0;
+    const rowEnd   = allAddrs.length ? ((Math.max(...allAddrs) | (COLS - 1)) + 1) : COLS;
+
+    const count = (lc) => [...mapByAddr.values()].filter(e => e.lifecycle === lc).length;
+    const used  = (lc) => [...refs.keys()].filter(a => mapByAddr.get(a)?.lifecycle === lc).length;
+    const tempT = count('temp'), sessT = count('session'), sramT = count('sram');
+    const tempU = used('temp'),  sessU = used('session'),  sramU = used('sram');
+
+    const bar = (u, t, lc) => {
+        const p = t ? Math.round(u / t * 100) : 0;
+        const w = Math.max(p, u > 0 ? 1 : 0);
+        return '<div class="bo"><div class="bi bi-' + lc + '" style="width:' + w + '%"></div></div>' +
+               '<span class="bl">' + u + '/' + t + ' (' + p + '%)</span>';
+    };
+
+    // Build grid
+    let gridHtml = '';
+    for (let base = rowStart; base < rowEnd; base += COLS) {
+        let cells = '', allRest = true;
+        for (let col = 0; col < COLS; col++) {
+            const addr = base + col;
+            const me = mapByAddr.get(addr);
+            const usage = refs.get(addr);
+            const lc = me ? me.lifecycle : radarLifecycle(addr, '', '');
+            const isUsed = !!usage;
+            const isRest = !me && !isUsed;
+            if (!isRest) allRest = false;
+            let tt = radarH(addr);
+            if (me) {
+                tt += ': ' + me.name + ' [' + me.type + ']';
+                if (me.notes) tt += '&#10;' + radarEsc(me.notes);
+            }
+            if (usage) tt += '&#10;Lines: ' + usage.lines.map(l => l + 1).join(', ');
+            cells += '<span class="cell lc-' + lc + (isUsed ? ' cu' : '') + (isRest ? ' cr' : '') +
+                     '" data-addr="' + addr + '" title="' + tt + '"></span>';
+        }
+        gridHtml += '<div class="gr' + (allRest ? ' gar' : '') + '">' +
+                    '<span class="rl">' + radarH(base) + '</span>' + cells + '</div>';
+    }
+
+    // Build detail table (one row per unique memory-map entry)
+    const seen = new Set();
+    const detailRows = [...mapByAddr.entries()]
+        .sort((a, b) => a[0] - b[0])
+        .filter(([, e]) => { if (seen.has(e)) return false; seen.add(e); return true; })
+        .map(([addr, e]) => {
+            const usage = refs.get(addr);
+            const links = usage
+                ? usage.lines.map(l => '<a class="ll" data-line="' + l + '">' + (l + 1) + '</a>').join(' ')
+                : '&ndash;';
+            return '<tr id="dr-' + addr + '" class="lc-' + e.lifecycle + (usage ? ' du' : '') + '">' +
+                   '<td class="mo">' + radarH(addr) + '</td>' +
+                   '<td>' + radarEsc(e.name) + '</td>' +
+                   '<td>' + radarEsc(e.type) + '</td>' +
+                   '<td><span class="chip ch-' + e.lifecycle + '">' + e.lifecycle + '</span></td>' +
+                   '<td>' + links + '</td>' +
+                   '<td class="nt">' + radarEsc(e.notes) + '</td></tr>';
+        }).join('');
+
+    const css = [
+        '*{box-sizing:border-box;margin:0;padding:0}',
+        'body{font:11px/1.4 "SF Mono","Cascadia Code",monospace;',
+        'background:var(--vscode-editor-background);color:var(--vscode-editor-foreground);',
+        'padding:8px 10px;min-width:200px}',
+        'h2{font-size:10px;text-transform:uppercase;letter-spacing:.08em;opacity:.4;margin:10px 0 3px;font-weight:600}',
+        '.sh{font-size:13px;font-weight:600;margin-bottom:3px}',
+        '.sm{opacity:.5;font-size:10px;margin-bottom:8px}',
+        /* filters */
+        '.filters{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}',
+        '.fb{border:1px solid #444;border-radius:10px;padding:1px 8px;cursor:pointer;',
+        'font-size:10px;background:transparent;color:inherit;opacity:.45}',
+        '.fb.on{opacity:1}',
+        '.fb.ft{color:#6cb6ff}.fb.fs{color:#ffa94d}.fb.fr2{color:#56d364}.fb.fr{color:#666}',
+        /* usage bars */
+        '.sr{display:flex;align-items:center;gap:6px;margin-bottom:3px;font-size:10px}',
+        '.sl{width:46px;opacity:.55;flex-shrink:0}',
+        '.bo{flex:1;height:5px;background:#222;border-radius:3px;max-width:90px;overflow:hidden}',
+        '.bi{height:100%;border-radius:3px;min-width:1px}',
+        '.bi-temp{background:#388bfd}.bi-session{background:#ffa94d}.bi-sram{background:#3fb950}',
+        '.bl{font-size:10px;opacity:.5;white-space:nowrap}',
+        /* grid */
+        '.gw{margin:4px 0;overflow-x:auto}',
+        '.gr{display:flex;align-items:center;gap:1px;margin-bottom:1px}',
+        '.rl{font-size:8px;opacity:.28;width:36px;flex-shrink:0;user-select:none;letter-spacing:-.02em}',
+        '.cell{display:inline-block;width:9px;height:9px;border-radius:1px;background:#111;flex-shrink:0;cursor:pointer}',
+        '.cell:hover{outline:1px solid rgba(255,255,255,.55);position:relative;z-index:1}',
+        '.lc-temp{background:#1a3a5c}.lc-session{background:#3a2500}.lc-sram{background:#0d2d0d}',
+        '.cu.lc-temp{background:#388bfd}.cu.lc-session{background:#ffa94d}.cu.lc-sram{background:#3fb950}',
+        '.cr{background:#111!important;opacity:.15}',
+        /* lifecycle filter states */
+        'body.ht .cell.lc-temp{background:#0d0d0d;opacity:.08}',
+        'body.hs .cell.lc-session{background:#0d0d0d;opacity:.08}',
+        'body.hr2 .cell.lc-sram{background:#0d0d0d;opacity:.08}',
+        'body.hr .gar{display:none}',
+        /* detail table */
+        'table{width:100%;border-collapse:collapse;font-size:10px;margin-top:3px}',
+        'th,td{border:1px solid #222;padding:2px 5px;vertical-align:top}',
+        'th{background:#161616;position:sticky;top:0;font-weight:600;text-align:left}',
+        'tr:hover td{background:rgba(255,255,255,.03)}',
+        '.lc-temp td:first-child{border-left:2px solid #388bfd}',
+        '.lc-session.du td:first-child{border-left:2px solid #ffa94d}',
+        '.lc-sram.du td:first-child{border-left:2px solid #3fb950}',
+        '.mo{font-family:inherit}.nt{max-width:150px;word-break:break-word;opacity:.45;font-size:9px}',
+        '.chip{border-radius:7px;padding:0 4px;font-size:9px;border:1px solid transparent}',
+        '.ch-temp{border-color:#388bfd;color:#6cb6ff}',
+        '.ch-session{border-color:#ffa94d;color:#ffa94d}',
+        '.ch-sram{border-color:#3fb950;color:#56d364}',
+        'a.ll{color:#6cb6ff;cursor:pointer;text-decoration:none;margin:0 1px}',
+        'a.ll:hover{text-decoration:underline}',
+        '.hl td{background:rgba(255,200,50,.09)!important}',
+    ].join('');
+
+    const js = [
+        '(function(){',
+        'var vscode=typeof acquireVsCodeApi==="function"?acquireVsCodeApi():null;',
+        // filter buttons
+        'document.querySelectorAll(".fb").forEach(function(b){',
+        '  b.addEventListener("click",function(){',
+        '    b.classList.toggle("on");',
+        '    var on=b.classList.contains("on");',
+        '    document.body.classList.toggle(b.dataset.cls,!on);',
+        '  });',
+        '});',
+        // cell click → scroll to detail row
+        'document.querySelectorAll(".cell").forEach(function(c){',
+        '  c.addEventListener("click",function(){',
+        '    var row=document.getElementById("dr-"+c.dataset.addr);',
+        '    if(!row)return;',
+        '    document.querySelectorAll(".hl").forEach(function(r){r.classList.remove("hl")});',
+        '    row.classList.add("hl");',
+        '    row.scrollIntoView({behavior:"smooth",block:"center"});',
+        '    setTimeout(function(){row.classList.remove("hl")},2500);',
+        '  });',
+        '});',
+        // line links → navigate in editor
+        'document.querySelectorAll(".ll").forEach(function(a){',
+        '  a.addEventListener("click",function(e){',
+        '    e.preventDefault();',
+        '    if(vscode)vscode.postMessage({command:"goToLine",line:parseInt(a.dataset.line)});',
+        '  });',
+        '});',
+        '})();',
+    ].join('');
+
+    return '<!doctype html><html><head><meta charset="utf-8"><style>' + css + '</style></head>' +
+        '<body class="hr">' +
+        '<div class="sh">&#9679; Memory Radar</div>' +
+        '<div class="sm">Scope: <strong>' + radarEsc(scope.kind) + ' ' + radarEsc(scope.name) +
+        '</strong> | Lines: ' + (scope.startLine + 1) + '&ndash;' + (scope.endLine + 1) + '</div>' +
+        '<div class="filters">' +
+        '<button class="fb ft on" data-cls="ht">temp</button>' +
+        '<button class="fb fs on" data-cls="hs">session</button>' +
+        '<button class="fb fr2 on" data-cls="hr2">sram</button>' +
+        '<button class="fb fr" data-cls="hr">rest</button>' +
+        '</div>' +
+        '<h2>Region Usage</h2>' +
+        '<div class="sr"><span class="sl">temp</span>' + bar(tempU, tempT, 'temp') + '</div>' +
+        '<div class="sr"><span class="sl">session</span>' + bar(sessU, sessT, 'session') + '</div>' +
+        '<div class="sr"><span class="sl">sram</span>' + bar(sramU, sramT, 'sram') + '</div>' +
+        '<h2>WRAM ' + radarH(rowStart) + '&ndash;' + radarH(rowEnd - 1) + '</h2>' +
+        '<div class="gw">' + gridHtml + '</div>' +
+        '<h2>Known Addresses</h2>' +
+        '<table><thead><tr><th>Addr</th><th>Name</th><th>Type</th><th>Region</th><th>Lines</th><th>Notes</th></tr></thead>' +
+        '<tbody>' + detailRows + '</tbody></table>' +
+        '<script>' + js + '<\/script>' +
+        '</body></html>';
+}
+
 // ── Activation ────────────────────────────────────────────────────────────────
 
 function activate(context) {
@@ -572,6 +857,53 @@ function activate(context) {
 
         vscode.languages.registerReferenceProvider('everscript', {
             provideReferences: (doc, pos) => provideReferences(doc, pos),
+        }),
+
+        vscode.languages.registerCodeLensProvider(
+            { language: 'everscript' },
+            new RadarCodeLensProvider(),
+        ),
+
+        // Memory Radar command — opens a scope-aware WRAM visualizer beside the editor.
+        // Triggered via: right-click → "Open Memory Radar", or the ◉ CodeLens above fun/map/area/group.
+        vscode.commands.registerCommand('everscript.openMemoryRadar', async (doc, startLine) => {
+            const editor  = vscode.window.activeTextEditor;
+            const document = (doc && typeof doc.lineCount === 'number') ? doc : editor?.document;
+            if (!document) {
+                vscode.window.showWarningMessage('No active Everscript file.');
+                return;
+            }
+            const cursorLine = typeof startLine === 'number' ? startLine : (editor?.selection.active.line ?? 0);
+            const wf = vscode.workspace.getWorkspaceFolder(document.uri);
+
+            const scope      = radarDetectScope(document, cursorLine);
+            const refs       = radarAnalyzeScope(document, scope.startLine, scope.endLine);
+            const mapPath    = wf ? path.join(wf.uri.fsPath, '.github', 'memory-map.md') : '';
+            const mapByAddr  = radarReadMemoryMap(mapPath);
+
+            const panel = vscode.window.createWebviewPanel(
+                'everscriptRadar',
+                'Radar: ' + scope.name,
+                vscode.ViewColumn.Beside,
+                { enableScripts: true, retainContextWhenHidden: true },
+            );
+
+            panel.webview.html = renderRadarHtml(scope, refs, mapByAddr);
+
+            // Handle "go to line" messages from the webview
+            panel.webview.onDidReceiveMessage(msg => {
+                if (msg.command !== 'goToLine') return;
+                const line = Math.max(0, Math.min(Number(msg.line), document.lineCount - 1));
+                const pos  = new vscode.Position(line, 0);
+                const range = new vscode.Range(pos, pos);
+                const ed = vscode.window.visibleTextEditors.find(e => e.document === document)
+                        || vscode.window.activeTextEditor;
+                if (ed) {
+                    ed.selection = new vscode.Selection(pos, pos);
+                    ed.revealRange(range, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
+                    vscode.window.showTextDocument(ed.document, ed.viewColumn);
+                }
+            }, undefined, context.subscriptions);
         }),
 
     );
