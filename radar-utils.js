@@ -71,6 +71,30 @@ function parseEvsNum(s) {
     return parseInt(str, 10);
 }
 
+/**
+ * Parse enum declarations from an evs source string.
+ * Looks for:  enum CLASSNAME { NAME = ... <0xNNNN> ..., ... }
+ * Returns Map<addr (number), [{cls, name}]>
+ */
+function parseEnumsFromContent(content) {
+    const out = new Map();
+    const enumRe = /enum\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{([^}]+)\}/g;
+    let em;
+    while ((em = enumRe.exec(content)) !== null) {
+        const cls = em[1];
+        const body = em[2];
+        const entryRe = /([A-Za-z_][A-Za-z0-9_]*)\s*=\s*[^,\n]*<\s*(0x[0-9a-fA-F]+)\s*>/g;
+        let ee;
+        while ((ee = entryRe.exec(body)) !== null) {
+            const addr = parseInt(ee[2], 16);
+            if (isNaN(addr)) continue;
+            if (!out.has(addr)) out.set(addr, []);
+            out.get(addr).push({ cls, name: ee[1] });
+        }
+    }
+    return out;
+}
+
 module.exports = {
     radarLifecycle,
     radarH,
@@ -79,4 +103,5 @@ module.exports = {
     radarParseName,
     radarParseNotes,
     parseEvsNum,
+    parseEnumsFromContent,
 };

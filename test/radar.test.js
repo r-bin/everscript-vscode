@@ -8,6 +8,7 @@ const assert = require('assert');
 const {
     radarLifecycle, radarH, radarEsc,
     radarExtractEmoji, radarParseName, radarParseNotes, parseEvsNum,
+    parseEnumsFromContent,
 } = require('../radar-utils');
 
 let passed = 0, failed = 0;
@@ -114,6 +115,87 @@ test('trims whitespace', () => assert.strictEqual(parseEvsNum('  0x10  '), 16));
 test('empty → NaN',      () => assert.ok(isNaN(parseEvsNum(''))));
 test('null → NaN',       () => assert.ok(isNaN(parseEvsNum(null))));
 test('undefined → NaN',  () => assert.ok(isNaN(parseEvsNum(undefined))));
+
+// ── parseEnumsFromContent ───────────────────────────────────────────────────
+console.log('\nparseEnumsFromContent:');
+test('single enum, single entry',
+    () => {
+        const m = parseEnumsFromContent('enum FOO { BAR = something <0x2200>, }');
+        assert.ok(m.has(0x2200));
+        assert.strictEqual(m.get(0x2200)[0].cls, 'FOO');
+        assert.strictEqual(m.get(0x2200)[0].name, 'BAR');
+    });
+test('multiple entries in one enum',
+    () => {
+        const m = parseEnumsFromContent('enum MEM { A = x <0x2200>, B = y <0x2201>, }');
+        assert.ok(m.has(0x2200));
+        assert.ok(m.has(0x2201));
+        assert.strictEqual(m.get(0x2201)[0].name, 'B');
+    });
+test('multiple enums',
+    () => {
+        const src = 'enum X { P = a <0x0100>, }\nenum Y { Q = b <0x0200>, }';
+        const m = parseEnumsFromContent(src);
+        assert.ok(m.has(0x0100));
+        assert.strictEqual(m.get(0x0100)[0].cls, 'X');
+        assert.ok(m.has(0x0200));
+        assert.strictEqual(m.get(0x0200)[0].cls, 'Y');
+    });
+test('same address in two enums accumulates both',
+    () => {
+        const src = 'enum A { K = x <0x22D8>, }\nenum B { L = y <0x22D8>, }';
+        const m = parseEnumsFromContent(src);
+        assert.ok(m.has(0x22D8));
+        assert.strictEqual(m.get(0x22D8).length, 2);
+    });
+test('no enums → empty map',
+    () => {
+        const m = parseEnumsFromContent('// no enums here\nconst X = 5;');
+        assert.strictEqual(m.size, 0);
+    });
+test('entry without <0xNNNN> address is ignored',
+    () => {
+        const m = parseEnumsFromContent('enum X { A = 0x2200, }');
+        assert.strictEqual(m.size, 0, 'plain = without <> should not match');
+    });
+test('hex digits are case-insensitive',
+    () => {
+        const m = parseEnumsFromContent('enum X { Y = z <0xaBcD>, }');
+        assert.ok(m.has(0xabcd));
+    });
+
+// ── arg index regex (matches the pattern used in radarAnalyzeScope) ─────────
+console.log('\narg[] index regex:');
+const ARG_RE = () => /\barg\s*\[\s*(0x[0-9a-fA-F]+|\d+)\s*\]/g;
+function extractArgIndices(line) {
+    const idxs = new Set();
+    for (const m of line.matchAll(ARG_RE())) {
+        const raw = m[1];
+        idxs.add(raw.startsWith('0x') || raw.startsWith('0X') ? parseInt(raw, 16) : parseInt(raw, 10));
+    }
+    return idxs;
+}
+test('arg[0x00] extracts index 0',
+    () => { const s = extractArgIndices('arg[0x00] = 5;'); assert.ok(s.has(0)); });
+test('arg[0x10] extracts index 16',
+    () => { const s = extractArgIndices('x = arg[0x10];'); assert.ok(s.has(0x10)); });
+test('arg[5] (decimal) extracts index 5',
+    () => { const s = extractArgIndices('arg[5] = 1;'); assert.ok(s.has(5)); });
+test('multiple args on one line',
+    () => {
+        const s = extractArgIndices('arg[0x01] = arg[0x02];');
+        assert.ok(s.has(1)); assert.ok(s.has(2));
+    });
+test('no arg on line returns empty set',
+    () => { assert.strictEqual(extractArgIndices('x = 1;').size, 0); });
+test('arg write detection regex',
+    () => {
+        const writeRe = /\barg\s*\[\s*[^\]]+\]\s*(?:[+\-*\/&|^]|<<|>>)?=(?!=)/;
+        assert.ok(writeRe.test('arg[0x00] = 5;'));
+        assert.ok(writeRe.test('arg[0x00] += 1;'));
+        assert.ok(!writeRe.test('x = arg[0x00];'), 'read should not match write pattern');
+        assert.ok(!writeRe.test('arg[0x00] == 5'), 'equality comparison should not match');
+    });
 
 // ── Summary ──────────────────────────────────────────────────────────────────
 console.log('\n' + passed + ' passed, ' + failed + ' failed\n');

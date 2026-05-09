@@ -3,7 +3,7 @@
 const vscode = require('vscode');
 const path   = require('path');
 const fs     = require('fs');
-const { radarLifecycle, radarH, radarEsc, radarExtractEmoji, radarParseName, radarParseNotes, parseEvsNum } = require('./radar-utils');
+const { radarLifecycle, radarH, radarEsc, radarExtractEmoji, radarParseName, radarParseNotes, parseEvsNum, parseEnumsFromContent } = require('./radar-utils');
 
 // ── Data loading ──────────────────────────────────────────────────────────────
 
@@ -553,6 +553,7 @@ let _radarPinned       = false;  // when true, radar ignores editor/scope change
 let _radarDoc          = null;   // document the radar was last rendered for
 let _radarCurrentScope = null;   // scope the radar was last rendered for
 let _radarMapCache     = null;   // cached parsed memory-map.md
+let _radarEnumCache    = null;   // cached enum cross-reference (addr→[{cls,name}])
 let _radarUpdateTimer  = null;   // debounce timer for auto-update
 let _radarRoomTree     = null;   // cached room tree (rebuilt when doc changes)
 let _radarRoomDocPath  = null;   // fsPath the room tree was built for
@@ -578,12 +579,17 @@ function refreshRadar(editor) {
         scope.name === _radarCurrentScope.name && scope.kind === _radarCurrentScope.kind) return;
     _radarCurrentScope = scope;
     _radarDoc = doc;
-    const { refs, pools } = radarAnalyzeScope(doc, scope.startLine, scope.endLine);
+    const { refs, pools, argRefs } = radarAnalyzeScope(doc, scope.startLine, scope.endLine);
     const mapByAddr = getRadarMap();
-    // Reuse cached room tree (same doc); it was built with webview URIs on panel open
-    const roomTree = (_radarRoomDocPath === doc.uri.fsPath) ? (_radarRoomTree || []) : [];
+    // Rebuild room tree if doc changed (refreshRadar may fire before openMemoryRadar)
+    if (_radarRoomDocPath !== doc.uri.fsPath) {
+        const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+        _radarRoomTree    = buildRoomTree(doc, wsRoot);
+        _radarRoomDocPath = doc.uri.fsPath;
+        if (_radarPanel) setRoomImageUris(_radarRoomTree, _radarPanel.webview);
+    }
     const selectedMap = scope.kind === 'map' ? scope.name : null;
-    _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, mapByAddr, roomTree, _radarActiveTab, selectedMap);
+    _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree || [], _radarActiveTab, selectedMap);
     _radarPanel.title = 'Radar: ' + scope.name;
 }
 
@@ -640,6 +646,7 @@ function radarAnalyzeScope(document, startLine, endLine) {
     // pools: [{start, end, line, lc}] — declared <0xS>..<0xE> pool ranges
     const refs = new Map();
     const pools = [];
+    const argRefs = new Map(); // arg slot index → {reads, writes}
 
     const add = (addr, line, rawText, source, isWrite) => {
         if (!refs.has(addr)) refs.set(addr, { reads: [], writes: [], sources: [] });
@@ -648,6 +655,13 @@ function radarAnalyzeScope(document, startLine, endLine) {
         if (isWrite) { if (!r.writes.some(x => x.line === line)) r.writes.push(entry); }
         else         { if (!r.reads.some(x => x.line === line))  r.reads.push(entry); }
         if (!r.sources.includes(source)) r.sources.push(source);
+    };
+    const addArg = (idx, line, rawText, isWrite) => {
+        if (!argRefs.has(idx)) argRefs.set(idx, { reads: [], writes: [] });
+        const r = argRefs.get(idx);
+        const entry = { line, text: rawText.trim() };
+        if (isWrite) { if (!r.writes.some(x => x.line === line)) r.writes.push(entry); }
+        else         { if (!r.reads.some(x => x.line === line))  r.reads.push(entry); }
     };
     const isWrite = (text, hexLit) => {
         const h = hexLit.replace(/^0x/i, '');
@@ -697,8 +711,17 @@ function radarAnalyzeScope(document, startLine, endLine) {
             const a = parseInt(m[1], 16);
             if (!isNaN(a)) add(a, i, rawText, '<deref>', isWrite(text, m[1]));
         }
+        // arg[N] references (VM-local; not a fixed WRAM address)
+        for (const m of text.matchAll(/\barg\s*\[\s*(0x[0-9a-fA-F]+|\d+)\s*\]/g)) {
+            const raw = m[1];
+            const idx = raw.startsWith('0x') || raw.startsWith('0X') ? parseInt(raw, 16) : parseInt(raw, 10);
+            if (!isNaN(idx)) {
+                const argIsWrite = /\barg\s*\[\s*[^\]]+\]\s*(?:[+\-*\/&|^]|<<|>>)?=(?!=)/.test(text);
+                addArg(idx, i, rawText, argIsWrite);
+            }
+        }
     }
-    return { refs, pools };
+    return { refs, pools, argRefs };
 }
 
 function radarReadMemoryMap(filePath) {
@@ -733,6 +756,44 @@ function radarReadMemoryMap(filePath) {
     }
     return map;
 }
+
+/** Parse core evs files for enum entries mapping <0xNNNN> addresses to enum names.
+ *  Returns Map<addr, [{cls, name}]> — cls is the enum class name, name is the member. */
+function radarReadEnums(wsFolder) {
+    const cache = new Map();
+    const coreDir = path.join(wsFolder, 'in', 'core');
+    if (!fs.existsSync(coreDir)) return cache;
+    const scanContent = (content) => {
+        for (const [addr, entries] of parseEnumsFromContent(content)) {
+            if (!cache.has(addr)) cache.set(addr, []);
+            for (const e of entries) cache.get(addr).push(e);
+        }
+    };
+    const scanDir = (dir) => {
+        let entries;
+        try { entries = fs.readdirSync(dir); } catch { return; }
+        for (const f of entries) {
+            const fp = path.join(dir, f);
+            try {
+                const st = fs.statSync(fp);
+                if (st.isDirectory()) scanDir(fp);
+                else if (f.endsWith('.evs')) scanContent(fs.readFileSync(fp, 'utf8'));
+            } catch { /* skip unreadable files */ }
+        }
+    };
+    scanDir(coreDir);
+    return cache;
+}
+
+function getRadarEnums() {
+    if (_radarEnumCache) return _radarEnumCache;
+    const wf = vscode.workspace.workspaceFolders?.[0];
+    if (!wf) return new Map();
+    _radarEnumCache = radarReadEnums(wf.uri.fsPath);
+    return _radarEnumCache;
+}
+
+function invalidateRadarEnums() { _radarEnumCache = null; }
 
 // radarLifecycle, radarH, radarEsc, radarExtractEmoji, radarParseName, radarParseNotes
 // are pure helpers — see radar-utils.js (required at top of file).
@@ -958,12 +1019,13 @@ function setRoomImageUris(nodes, webview) {
     }
 }
 
-function renderRadarHtml(scope, refs, pools, mapByAddr, roomTree = [], activeTab = 'radar', selectedMap = null) {
+function renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTree = [], activeTab = 'radar', selectedMap = null) {
     const COLS = 16;
     const allAddrs = [...mapByAddr.keys(), ...refs.keys()];
     if (!allAddrs.length) { allAddrs.push(0x2200, 0x28FF); }
     const rowStart = Math.min(...allAddrs) & ~(COLS - 1);
     const rowEnd   = (Math.max(...allAddrs) | (COLS - 1)) + 1;
+    const enumByAddr = getRadarEnums();
 
     const lcCount = (lc) => {
         const seen = new Set();
@@ -1120,6 +1182,12 @@ function renderRadarHtml(scope, refs, pools, mapByAddr, roomTree = [], activeTab
             ? '<span class="scope-only">scope usage only</span>'
             : (e.notes ? radarEsc(e.notes).replace(/\n/g, '<br>') : '&ndash;');
 
+        // Enum cross-reference: show ENUM.NAME tags for the entry's start address
+        const enumEntries = !untracked ? (enumByAddr.get(e.addrStart) || []) : [];
+        const enumHtml = enumEntries.length
+            ? '<br>' + enumEntries.map(ev => '<span class="enum-tag">' + radarEsc(ev.cls + '.' + ev.name) + '</span>').join(' ')
+            : '';
+
         const parts = e.nameParts && e.nameParts.length > 1 ? e.nameParts : null;
         const numBytes = e.addrEnd - e.addrStart + 1;
         const typeStr = radarEsc(e.type.replace(/\s*\[SRAM\]/gi, '').trim());
@@ -1130,14 +1198,14 @@ function renderRadarHtml(scope, refs, pools, mapByAddr, roomTree = [], activeTab
             // Distribute notes by <br> if count matches; else first row gets full notes, rest get —
             const notesBrParts = notesHtml !== '&ndash;' ? notesHtml.split(/<br\s*\/?>/gi) : null;
             const notesDistrib = (notesBrParts && notesBrParts.length === parts.length) ? notesBrParts : null;
-            let html = '<tr id="dr-' + es + '" class="' + rowCls + '" data-addr="' + es + '" data-es="' + es + '" data-ee="' + ee + '">';
+            let html = '<tr id="dr-' + es + '" class="' + rowCls + '" data-addr="' + es + '" data-es="' + es + '" data-ee="' + ee + '" data-hasdoc="' + hdoc + '">';
             html += '<td class="mo" rowspan="' + parts.length + '">' + badge + emCell + addrLabel + '</td>';
             html += '<td class="bf">' + radarEsc(parts[0]) + '</td>';
             html += '<td class="mt">' + typeStr + '</td>';
-            html += '<td class="nt">' + (notesDistrib ? notesDistrib[0] : notesHtml) + '</td>';
+            html += '<td class="nt">' + (notesDistrib ? notesDistrib[0] : notesHtml) + enumHtml + '</td>';
             html += '<td class="rwc">' + linesCell + '</td></tr>';
             for (let i = 1; i < parts.length; i++) {
-                html += '<tr id="dr-' + es + '-' + i + '" class="' + rowCls + ' bfc" data-addr="' + es + '" data-part="' + i + '" data-es="' + es + '" data-ee="' + ee + '">';
+                html += '<tr id="dr-' + es + '-' + i + '" class="' + rowCls + ' bfc" data-addr="' + es + '" data-part="' + i + '" data-es="' + es + '" data-ee="' + ee + '" data-hasdoc="' + hdoc + '">';
                 html += '<td class="bf">' + radarEsc(parts[i]) + '</td>';
                 html += '<td class="mt">' + typeStr + '</td>';
                 html += '<td class="nt">' + (notesDistrib ? notesDistrib[i] : '&ndash;') + '</td>';
@@ -1148,14 +1216,14 @@ function renderRadarHtml(scope, refs, pools, mapByAddr, roomTree = [], activeTab
 
         // Multi-byte expansion: each byte row stands alone (no rowspan); all show same name/T/notes/lines
         if (!untracked && numBytes > 1) {
-            let html = '<tr id="dr-' + es + '" class="' + rowCls + '" data-addr="' + es + '" data-es="' + es + '" data-ee="' + ee + '">';
+            let html = '<tr id="dr-' + es + '" class="' + rowCls + '" data-addr="' + es + '" data-es="' + es + '" data-ee="' + ee + '" data-hasdoc="' + hdoc + '">';
             html += '<td class="mo">' + badge + emCell + radarH(es) + '</td>';
             html += '<td>' + radarEsc(e.name) + '</td>';
             html += '<td class="mt">' + typeStr + '</td>';
-            html += '<td class="nt">' + notesHtml + '</td>';
+            html += '<td class="nt">' + notesHtml + enumHtml + '</td>';
             html += '<td class="rwc">' + linesCell + '</td></tr>';
             for (let a = es + 1; a <= ee; a++) {
-                html += '<tr id="dr-' + a + '" class="' + rowCls + ' bfc" data-addr="' + a + '" data-es="' + es + '" data-ee="' + ee + '">';
+                html += '<tr id="dr-' + a + '" class="' + rowCls + ' bfc" data-addr="' + a + '" data-es="' + es + '" data-ee="' + ee + '" data-hasdoc="' + hdoc + '">';
                 html += '<td class="mo">' + radarH(a) + '</td>';
                 html += '<td>' + radarEsc(e.name) + '</td>';
                 html += '<td class="mt">' + typeStr + '</td>';
@@ -1166,11 +1234,11 @@ function renderRadarHtml(scope, refs, pools, mapByAddr, roomTree = [], activeTab
         }
 
         const nameCls = untracked ? ' class="no-vanilla"' : '';
-        return '<tr id="dr-' + addr + '" class="' + rowCls + '" data-addr="' + addr + '" data-es="' + es + '" data-ee="' + ee + '">' +
+        return '<tr id="dr-' + addr + '" class="' + rowCls + '" data-addr="' + addr + '" data-es="' + es + '" data-ee="' + ee + '" data-hasdoc="' + hdoc + '">' +
             '<td class="mo">' + badge + emCell + addrLabel + '</td>' +
             '<td' + nameCls + '>' + radarEsc(e.name) + '</td>' +
             '<td class="mt">' + typeStr + '</td>' +
-            '<td class="nt">' + notesHtml + '</td>' +
+            '<td class="nt">' + notesHtml + enumHtml + '</td>' +
             '<td class="rwc">' + linesCell + '</td></tr>';
     }).join('');
 
@@ -1185,13 +1253,39 @@ function renderRadarHtml(scope, refs, pools, mapByAddr, roomTree = [], activeTab
     const tempT = lcCount('temp'), sessT = lcCount('session'), sramT = lcCount('sram');
     const tempU = lcUsed('temp'),  sessU = lcUsed('session'),  sramU = lcUsed('sram');
 
+    // Arg grid: build rows of arg slots (0x00..maxIdx) similar to WRAM grid
+    let argHtml = '';
+    if (argRefs.size > 0) {
+        const maxArgIdx = Math.max(...argRefs.keys());
+        const argRowEnd = (maxArgIdx | (COLS - 1)) + 1;
+        for (let base = 0; base < argRowEnd; base += COLS) {
+            let cells = '', rowHasUsed = false;
+            for (let col = 0; col < COLS; col++) {
+                const idx = base + col;
+                const usage = argRefs.get(idx);
+                const isUsed = !!usage;
+                if (isUsed) rowHasUsed = true;
+                let cls = 'cell lc-temp';
+                if (isUsed) {
+                    cls += ' cu';
+                    if (usage.writes.length && !usage.reads.length) cls += ' cw';
+                    else if (usage.writes.length && usage.reads.length) cls += ' crw';
+                }
+                const rw = isUsed ? (usage.writes.length && usage.reads.length ? ' rw' : usage.writes.length ? ' write' : ' read') : '';
+                cells += '<span class="' + cls + '" data-arg-idx="' + idx + '" title="arg[' + radarH(idx) + ']' + rw + '"></span>';
+            }
+            argHtml += '<div class="gr arg-row' + (rowHasUsed ? '' : ' arg-row-empty') + '">' +
+                '<span class="rl">' + radarH(base) + '</span>' + cells + '</div>';
+        }
+    }
+
     const jsData = 'var CELLS=' + JSON.stringify(cellData).replace(/<\/script>/gi, '<\\/script>') + ';';
 
     const css = `*{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;overflow:hidden}
 body{font:11px/1.4 "SF Mono","Cascadia Code",monospace;background:var(--vscode-editor-background);color:var(--vscode-editor-foreground);padding:8px 10px 0;display:flex;flex-direction:column}
 h2{font-size:9px;text-transform:uppercase;letter-spacing:.08em;opacity:.32;margin:8px 0 2px;font-weight:700}
-.sh{font-size:13px;font-weight:700;margin-bottom:2px}.sm{opacity:.4;font-size:10px;margin-bottom:6px}
+.sm{opacity:.4;font-size:10px;margin-bottom:6px}
 .head{flex-shrink:0;border-bottom:1px solid #1c1c1c;padding-bottom:6px;margin-bottom:6px}
 .panels{display:flex;flex:1;overflow:hidden;gap:8px;min-height:0}
 .left-panel{overflow-y:auto;flex-shrink:0;padding-right:4px;padding-bottom:8px}
@@ -1207,6 +1301,7 @@ h2{font-size:9px;text-transform:uppercase;letter-spacing:.08em;opacity:.32;margi
 .fb.fpin{border-color:#ff9040;color:#ffb060}.fb.fpin.on{border-color:#ff9040}
 .fb.falloc{border-color:#888;color:#aaa}
 .fb.fglobal{border-color:#9977ff;color:#bb99ff}
+.fb.fhideargs{border-color:#559988;color:#77bbaa}
 .sep{width:1px;height:14px;background:#333;margin:0 2px}
 .sr{display:flex;align-items:center;gap:5px;margin-bottom:2px;font-size:10px}
 .sl{width:44px;opacity:.45;flex-shrink:0}
@@ -1234,6 +1329,9 @@ body.hs .cell.lc-session:not(.cursor){opacity:0;pointer-events:none}
 body.hr2 .cell.lc-sram:not(.cursor){opacity:0;pointer-events:none}
 body.hsy .cell.lc-system:not(.cursor){opacity:0;pointer-events:none}
 .gr.hrow{display:none!important}
+tr.dr.hrow{display:none!important}
+.arg-row-empty{opacity:.25}
+body.hideargs .arg-row-empty{display:none!important}
 body.emoji .cell[data-emoji]::before{content:attr(data-emoji);font-size:6px;line-height:9px;display:block;text-align:center;pointer-events:none}
 table{width:100%;border-collapse:collapse;font-size:10px;margin-top:2px}
 th,td{border:1px solid #1a1a1a;padding:2px 4px;vertical-align:top}
@@ -1259,6 +1357,7 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .pool-badge,.unk-badge{font-size:7px;border-radius:3px;padding:0 2px;margin-right:3px;border:1px solid}
 .pool-badge{border-color:#388bfd60;color:#388bfd;background:#152840}
 .unk-badge{border-color:#666;color:#888;background:#1a1a1a}
+.enum-tag{font-size:8px;border-radius:3px;padding:0 3px;background:#1a1a2a;border:1px solid #444;color:#aaaacc;font-family:inherit}
 .bf{font-size:9px}
 .bfc td{border-top:none!important;padding-top:0}
 .cell.cp{background:#0d1a0d;opacity:.55}
@@ -1292,6 +1391,13 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .rd-file{font-size:8px;opacity:.22;display:block;margin-top:2px}
 .rd-head a{font-size:9px;color:var(--vscode-textLink-foreground,#4daafc);cursor:pointer;text-decoration:none;display:inline-block;margin-top:3px}
 .rd-head a:hover{text-decoration:underline}
+.rd-filters{display:flex;gap:3px;flex-wrap:wrap;margin-top:4px}
+.rdf{border:1px solid #444;border-radius:8px;padding:1px 6px;cursor:pointer;font-size:9px;background:transparent;color:#aaa;opacity:.35}
+.rdf.on{opacity:1}
+.hide-ent .svge-entrance,.hide-ent .rs-entrance{display:none!important}
+.hide-enem .svge-enemy,.hide-enem .rs-enemies{display:none!important}
+.hide-obj .rs-objects{display:none!important}
+.hide-trans .rs-transitions{display:none!important}
 /* ── Room grid ── */
 .rg-wrap{position:relative;overflow:hidden;background:white;border:1px solid #bbb;display:block;margin-bottom:8px}
 .rg-svg{position:absolute;inset:0;display:block}
@@ -1360,13 +1466,27 @@ function renderRoomDetail(room){
   if(room.vanillaId)html+='<span class="rd-vid">'+escH(room.vanillaId)+'</span>';
   html+='<span class="rd-file">'+escH(room.relPath||'')+'</span>';
   html+='<a class="ll" data-line="'+room.startLine+'" href="#">go to code</a>';
+  // Entity filter buttons
+  html+='<div class="rd-filters">';
+  if(entrances.length)html+='<button class="rdf on" data-hide="hide-ent" title="Toggle entrances">ent</button>';
+  if(enemies.length)html+='<button class="rdf on" data-hide="hide-enem" title="Toggle enemies">enemies</button>';
+  if(objs.length)html+='<button class="rdf on" data-hide="hide-obj" title="Toggle objects">obj</button>';
+  if(trans.length)html+='<button class="rdf on" data-hide="hide-trans" title="Toggle transitions">trans</button>';
+  html+='</div>';
   html+='</div>';
 
   // Map grid: image + SVG overlay
   var hasCoords=(im!=null)||(entrances.length>0)||(enemies.length>0);
   if(hasCoords||room.imageUri){
     var x1=im?im.x1:0,y1=im?im.y1:0;
-    var x2=im?im.x2:256,y2=im?im.y2:256;
+    var x2=im?im.x2:0,y2=im?im.y2:0;
+    // Expand bounds from entity coordinates
+    entrances.concat(enemies).forEach(function(e){
+      if(!isNaN(e.x)&&e.x+16>x2)x2=e.x+16;
+      if(!isNaN(e.y)&&e.y+16>y2)y2=e.y+16;
+    });
+    if(x2<=x1)x2=x1+256;
+    if(y2<=y1)y2=y1+256;
     if(!hasCoords&&room.imageUri){x1=0;y1=0;x2=256;y2=256;}
     var W=Math.max(x2-x1,16),H=Math.max(y2-y1,16);
     var scale=Math.min(600/W,360/H,8);
@@ -1383,12 +1503,12 @@ function renderRoomDetail(room){
     enemies.forEach(function(e){
       var ex=e.x-x1,ey=e.y-y1;
       var fill=e.dynamic?'#cc7700':'#cc0000';
-      html+='<circle cx="'+ex+'" cy="'+ey+'" r="2" fill="'+fill+'" opacity="0.85"><title>'+escH(e.type)+' ('+e.x+','+e.y+')</title></circle>';
+      html+='<circle class="svge-enemy" cx="'+ex+'" cy="'+ey+'" r="2" fill="'+fill+'" opacity="0.85"><title>'+escH(e.type)+' ('+e.x+','+e.y+')</title></circle>';
     });
     entrances.forEach(function(en){
       var ex=en.x-x1,ey=en.y-y1;
-      html+='<circle cx="'+ex+'" cy="'+ey+'" r="3" fill="none" stroke="#005500" stroke-width="1"><title>'+escH(en.name)+' ('+en.dir+')</title></circle>';
-      html+='<text x="'+(ex+4)+'" y="'+(ey+2)+'" fill="#005500" font-size="3" font-family="monospace">'+escH(en.name)+'</text>';
+      html+='<circle class="svge-entrance" cx="'+ex+'" cy="'+ey+'" r="3" fill="none" stroke="#005500" stroke-width="1"><title>'+escH(en.name)+' ('+en.dir+')</title></circle>';
+      html+='<text class="svge-entrance" x="'+(ex+4)+'" y="'+(ey+2)+'" fill="#005500" font-size="3" font-family="monospace">'+escH(en.name)+'</text>';
     });
     html+='</svg></div>';
   } else {
@@ -1396,28 +1516,28 @@ function renderRoomDetail(room){
   }
 
   if(entrances.length){
-    html+='<div class="rs"><div class="rs-h">Entrances</div><ul class="rs-list">';
+    html+='<div class="rs rs-entrance"><div class="rs-h">Entrances</div><ul class="rs-list">';
     entrances.forEach(function(e){
       html+='<li><a class="ll" data-line="'+e.line+'" href="#">'+escH(e.name)+'</a> ('+e.x+','+e.y+') '+escH(e.dir)+'</li>';
     });
     html+='</ul></div>';
   }
   if(enemies.length){
-    html+='<div class="rs"><div class="rs-h">Enemies</div><ul class="rs-list">';
+    html+='<div class="rs rs-enemies"><div class="rs-h">Enemies</div><ul class="rs-list">';
     enemies.forEach(function(e){
       html+='<li><a class="ll" data-line="'+e.line+'" href="#">'+escH(e.type)+'</a> ('+e.x+','+e.y+')'+(e.dynamic?' <span class="badge-d">dynamic</span>':'')+'</li>';
     });
     html+='</ul></div>';
   }
   if(objs.length){
-    html+='<div class="rs"><div class="rs-h">Objects</div><ul class="rs-list">';
+    html+='<div class="rs rs-objects"><div class="rs-h">Objects</div><ul class="rs-list">';
     objs.forEach(function(o){
       html+='<li><a class="ll" data-line="'+o.line+'" href="#">object['+escH(o.index)+']</a></li>';
     });
     html+='</ul></div>';
   }
   if(trans.length){
-    html+='<div class="rs"><div class="rs-h">Transitions</div><ul class="rs-list">';
+    html+='<div class="rs rs-transitions"><div class="rs-h">Transitions</div><ul class="rs-list">';
     trans.forEach(function(t){
       html+='<li><a class="ll" data-line="'+t.line+'" href="#">'+escH(t.target)+'</a> via '+escH(t.via)+' '+escH(t.dir)+'</li>';
     });
@@ -1426,6 +1546,13 @@ function renderRoomDetail(room){
 
   panel.innerHTML=html;
   bindLinks(panel);
+  // Wire entity filter buttons
+  panel.querySelectorAll('.rdf').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      btn.classList.toggle('on');
+      panel.classList.toggle(btn.dataset.hide,!btn.classList.contains('on'));
+    });
+  });
 }
 `;
 
@@ -1448,6 +1575,10 @@ function recomputeRows(){
     var isUsed=row.dataset.used==='1';
     var hasDoc=row.dataset.hasdoc==='1';
     row.classList.toggle('hrow',allHidden||(hideBoring&&!isUsed)||(hideAlloc&&!hasDoc));
+  });
+  document.querySelectorAll('tr.dr').forEach(function(row){
+    var hasDoc=row.dataset.hasdoc==='1';
+    row.classList.toggle('hrow',hideAlloc&&!hasDoc);
   });
 }
 
@@ -1503,6 +1634,15 @@ var globalBtn=document.getElementById('btn-global');
 if(globalBtn)globalBtn.addEventListener('click',function(){
   var on=globalBtn.classList.toggle('on');
   if(vs)vs.postMessage({command:on?'globalScope':'autoScope'});
+});
+
+var hideUnusedArgs=true;
+document.body.classList.add('hideargs');
+var hideArgsBtn=document.getElementById('btn-hideargs');
+if(hideArgsBtn)hideArgsBtn.addEventListener('click',function(){
+  hideUnusedArgs=!hideUnusedArgs;
+  hideArgsBtn.classList.toggle('on',hideUnusedArgs);
+  document.body.classList.toggle('hideargs',hideUnusedArgs);
 });
 
 // Group coloring toggle (default off)
@@ -1707,6 +1847,7 @@ ${roomsJs}
         '<button class="fb falloc" id="btn-alloc" title="Show only documented (non-gap) rows">alloc</button>' +
         '<button class="fb femoji" id="btn-emoji" title="Show emoji in grid cells">emoji</button>' +
         '<button class="fb fgroup" id="btn-group" title="Group coloring: color-stripe cells in same multi-byte entry (off by default)">group</button>' +
+        '<button class="fb fhideargs on" id="btn-hideargs" title="Hide arg slots with no usage in scope">hide unused args</button>' +
         '<button class="fb fpin" id="btn-pin" title="Pin: lock to current scope, stop auto-update">pin</button>' +
         '<button class="fb fglobal" id="btn-global" title="Global scope: show whole file instead of current function">global</button>';
 
@@ -1718,7 +1859,6 @@ ${roomsJs}
         '</div>' +
         '<div class="tab-pane" data-tab="radar">' +
         '<div class="head">' +
-        '<div class="sh">&#9679; Memory Radar</div>' +
         '<div class="sm">Scope: <strong>' + radarEsc(scope.kind) + ' ' + radarEsc(scope.name) +
         '</strong> | Lines: ' + (scope.startLine + 1) + '\u2013' + (scope.endLine + 1) + '</div>' +
         '<div class="filters">' + btns + '</div>' +
@@ -1731,6 +1871,7 @@ ${roomsJs}
         '<div class="left-panel">' +
         '<div class="ph">WRAM ' + radarH(rowStart) + '\u2013' + radarH(rowEnd - 1) + '</div>' +
         '<div class="gw">' + gridHtml + '</div>' +
+        (argHtml ? '<div class="ph">Args</div><div class="gw arg-gw">' + argHtml + '</div>' : '') +
         '</div>' +
         '<div class="right-panel"><div class="dt-wrap">' +
         '<table><thead><tr><th>Addr</th><th>Name</th><th>T</th><th>Notes</th><th>Lines</th></tr></thead>' +
@@ -1764,6 +1905,13 @@ function activate(context) {
     mapWatcher.onDidChange(() => invalidateRadarMap());
     mapWatcher.onDidCreate(() => invalidateRadarMap());
     context.subscriptions.push(mapWatcher);
+
+    // Invalidate enum cache when core evs files change
+    const enumWatcher = vscode.workspace.createFileSystemWatcher('**/in/core/**/*.evs');
+    enumWatcher.onDidChange(() => invalidateRadarEnums());
+    enumWatcher.onDidCreate(() => invalidateRadarEnums());
+    enumWatcher.onDidDelete(() => invalidateRadarEnums());
+    context.subscriptions.push(enumWatcher);
 
     // Dead branch decorations
     const applyDeadBranches = (editor) => updateDeadBranchDecorations(editor, idx);
@@ -1818,7 +1966,7 @@ function activate(context) {
             _radarDoc          = document;
             const scope        = radarDetectScope(document, cursorLine);
             _radarCurrentScope = scope;
-            const { refs, pools } = radarAnalyzeScope(document, scope.startLine, scope.endLine);
+            const { refs, pools, argRefs } = radarAnalyzeScope(document, scope.startLine, scope.endLine);
             const mapByAddr    = getRadarMap();
             const wsRoot       = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
             const wsRootUri    = wsRoot ? vscode.Uri.file(wsRoot) : null;
@@ -1856,7 +2004,7 @@ function activate(context) {
             }
 
             const selectedMap = scope.kind === 'map' ? scope.name : null;
-            _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, mapByAddr, _radarRoomTree, _radarActiveTab, selectedMap);
+            _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree, _radarActiveTab, selectedMap);
 
             // Handle messages from the webview
             _radarPanel.webview.onDidReceiveMessage(msg => {
@@ -1881,8 +2029,8 @@ function activate(context) {
                     _radarPinned = true; // freeze auto-updates while in global view
                     if (_radarDoc) {
                         const gscope = { kind: 'global', name: _radarDoc.fileName.split(/[\/\\]/).pop(), startLine: 0, endLine: _radarDoc.lineCount - 1 };
-                        const { refs, pools } = radarAnalyzeScope(_radarDoc, 0, _radarDoc.lineCount - 1);
-                        _radarPanel.webview.html = renderRadarHtml(gscope, refs, pools, getRadarMap(), _radarRoomTree || [], _radarActiveTab, null);
+                        const { refs, pools, argRefs } = radarAnalyzeScope(_radarDoc, 0, _radarDoc.lineCount - 1);
+                        _radarPanel.webview.html = renderRadarHtml(gscope, refs, pools, argRefs, getRadarMap(), _radarRoomTree || [], _radarActiveTab, null);
                         _radarPanel.title = 'Radar: (global)';
                     }
                 } else if (msg.command === 'autoScope') {
