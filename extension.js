@@ -1182,6 +1182,8 @@ function renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTree = [], 
             ? '<span class="scope-only">scope usage only</span>'
             : (e.notes ? radarEsc(e.notes).replace(/\n/g, '<br>') : '&ndash;');
 
+        const hdoc = untracked ? 0 : 1;
+
         // Enum cross-reference: show ENUM.NAME tags for the entry's start address
         const enumEntries = !untracked ? (enumByAddr.get(e.addrStart) || []) : [];
         const enumHtml = enumEntries.length
