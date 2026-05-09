@@ -682,6 +682,8 @@ function radarAnalyzeScope(document, startLine, endLine) {
 
         // Skip pool declarations (already handled in pass 1)
         if (/<\s*0x[0-9a-fA-F]+\s*>\s*\.\.\s*</.test(text)) continue;
+
+        for (const m of text.matchAll(/\bmemory\s*\(\s*(0x[0-9a-fA-F]+)/g)) {
             const a = parseInt(m[1], 16);
             if (!isNaN(a)) add(a, i, rawText, 'memory()', isWrite(text, m[1]));
         }
@@ -707,6 +709,7 @@ function radarReadMemoryMap(filePath) {
         const rawName = cells[1] || '';
         const nameParts = radarParseName(rawName);
         const name = nameParts[0] || rawName.replace(/<[^>]+>/g, '').trim();
+        if (/^\s*\(gap/i.test(name)) continue; // treat gap entries as undocumented addresses
         const notes = radarParseNotes(cells[3] || '');
         const typeStr = cells[2] || '';
         const isWord = /\bWord\b/i.test(typeStr);
@@ -797,7 +800,7 @@ function renderRadarHtml(scope, refs, pools, mapByAddr) {
     // Grid HTML
     let gridHtml = '';
     for (let base = rowStart; base < rowEnd; base += COLS) {
-        let cells = '', rowLcs = new Set(), allRest = true, rowHasUsed = false;
+        let cells = '', rowLcs = new Set(), allRest = true, rowHasUsed = false, rowHasDoc = false;
         for (let col = 0; col < COLS; col++) {
             const addr  = base + col;
             const me    = mapByAddr.get(addr);
@@ -808,6 +811,7 @@ function renderRadarHtml(scope, refs, pools, mapByAddr) {
             const isRest = !me && !isUsed && !isPool;
             if (!isRest) { allRest = false; rowLcs.add(lc); }
             if (isUsed) rowHasUsed = true;
+            if (me) rowHasDoc = true;
             let cls = 'cell lc-' + lc;
             if (isPool) cls += ' cp';
             if (isUsed) {
@@ -830,7 +834,8 @@ function renderRadarHtml(scope, refs, pools, mapByAddr) {
         }
         gridHtml += '<div class="gr' + (allRest ? ' gar' : '') +
                     '" data-lcs="' + [...rowLcs].join(' ') + '"' +
-                    ' data-used="' + (rowHasUsed ? '1' : '0') + '">' +
+                    ' data-used="' + (rowHasUsed ? '1' : '0') + '"' +
+                    ' data-hasdoc="' + (rowHasDoc ? '1' : '0') + '">' +
                     '<span class="rl">' + radarH(base) + '</span>' + cells + '</div>';
     }
 
@@ -933,7 +938,7 @@ h2{font-size:9px;text-transform:uppercase;letter-spacing:.08em;opacity:.32;margi
 .head{flex-shrink:0;border-bottom:1px solid #1c1c1c;padding-bottom:6px;margin-bottom:6px}
 .panels{display:flex;flex:1;overflow:hidden;gap:8px;min-height:0}
 .left-panel{overflow-y:auto;flex-shrink:0;padding-right:4px;padding-bottom:8px}
-.right-panel{overflow-y:auto;flex:1;min-width:0;padding-bottom:8px}
+.right-panel{overflow-y:auto;overflow-x:auto;flex:1;min-width:0;padding-bottom:8px}
 .ph{font-size:9px;text-transform:uppercase;letter-spacing:.08em;opacity:.32;padding:3px 0 2px;font-weight:700;position:sticky;top:0;background:var(--vscode-editor-background);z-index:2;margin-bottom:2px}
 .filters{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px;align-items:center}
 .fb{border:1px solid #333;border-radius:10px;padding:1px 7px;cursor:pointer;font-size:10px;background:transparent;color:inherit;opacity:.3}
@@ -943,6 +948,7 @@ h2{font-size:9px;text-transform:uppercase;letter-spacing:.08em;opacity:.32;margi
 .fb.frest{border-color:#333;color:#555}.fb.fboring{border-color:#666;color:#888}
 .fb.femoji{border-color:#888;color:#aaa}.fb.fgroup{border-color:#777;color:#aaa}
 .fb.fpin{border-color:#ff9040;color:#ffb060}.fb.fpin.on{border-color:#ff9040}
+.fb.falloc{border-color:#888;color:#aaa}
 .sep{width:1px;height:14px;background:#333;margin:0 2px}
 .sr{display:flex;align-items:center;gap:5px;margin-bottom:2px;font-size:10px}
 .sl{width:44px;opacity:.45;flex-shrink:0}
@@ -983,8 +989,8 @@ tr.pool-row td{background:rgba(56,139,253,.04);opacity:.65;font-style:italic}
 .lc-sram.du td:first-child{border-left:2px solid #3fb950}
 tr.sel td{background:rgba(255,200,50,.08)!important;outline:1px solid rgba(255,200,50,.15)}
 .mo{font-size:9px;white-space:nowrap}.mt{opacity:.4;font-size:9px}
-.nt{opacity:.38;font-size:9px;min-width:100px;white-space:pre-wrap;word-break:break-word}
-.dt-wrap{overflow-x:auto}
+.nt{opacity:.38;font-size:9px;min-width:120px;white-space:pre-wrap;word-break:break-word}
+.dt-wrap{}
 .no-vanilla{opacity:.5;font-style:italic}.scope-only{color:#ff9f9f80;font-style:italic}
 .rwc{white-space:nowrap;font-size:9px}.rw-w a{color:#ff9f9f}.rw-r a{color:#9fcfff}
 .chip{border-radius:5px;padding:0 3px;font-size:8px;border:1px solid transparent}
@@ -1003,7 +1009,7 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 var vs=typeof acquireVsCodeApi==='function'?acquireVsCodeApi():null;
 ${jsData}
 var hidden=new Set(['rest']);
-var hideBoring=false,emojiMode=false,groupMode=false;
+var hideBoring=false,hideAlloc=false,emojiMode=false,groupMode=false;
 var BTN_LC={ft:'temp',fs:'session',fr2:'sram',fy:'system',frest:'rest'};
 var BTN_BODY={ft:'ht',fs:'hs',fr2:'hr2',fy:'hsy'};
 document.body.classList.add('hrest');
@@ -1016,7 +1022,8 @@ function recomputeRows(){
     var lcs=(row.dataset.lcs||'').split(' ').filter(Boolean);
     var allHidden=lcs.length>0&&lcs.every(function(lc){return hidden.has(lc);});
     var isUsed=row.dataset.used==='1';
-    row.classList.toggle('hrow',allHidden||(hideBoring&&!isUsed));
+    var hasDoc=row.dataset.hasdoc==='1';
+    row.classList.toggle('hrow',allHidden||(hideBoring&&!isUsed)||(hideAlloc&&!hasDoc));
   });
 }
 
@@ -1045,6 +1052,13 @@ var boringBtn=document.getElementById('btn-boring');
 if(boringBtn)boringBtn.addEventListener('click',function(){
   hideBoring=!hideBoring;
   boringBtn.classList.toggle('on',hideBoring);
+  recomputeRows();
+});
+
+var allocBtn=document.getElementById('btn-alloc');
+if(allocBtn)allocBtn.addEventListener('click',function(){
+  hideAlloc=!hideAlloc;
+  allocBtn.classList.toggle('on',hideAlloc);
   recomputeRows();
 });
 
@@ -1129,7 +1143,16 @@ function setCursor(addr){
   }
   applyPolygonOutline(cursored);
   var first=document.querySelector('.cell[data-addr="'+start+'"]');
-  if(first)first.scrollIntoView({behavior:'smooth',block:'nearest'});
+  if(first){
+    var lp=document.querySelector('.left-panel');
+    var ph=lp?lp.querySelector('.ph'):null;
+    var phH=ph?ph.getBoundingClientRect().height:0;
+    var lpRect=lp?lp.getBoundingClientRect():{top:0,bottom:9999,height:9999};
+    var elRect=first.getBoundingClientRect();
+    var t=elRect.top-lpRect.top-phH;
+    if(t<0){lp.scrollTop+=t-4;}
+    else if(elRect.bottom>lpRect.bottom){lp.scrollTop+=elRect.bottom-lpRect.bottom+4;}
+  }
 }
 
 function selectDetailRow(addr){
@@ -1148,9 +1171,13 @@ function selectDetailRow(addr){
   var headerH=thead?thead.getBoundingClientRect().height:0;
   var panelRect=panel.getBoundingClientRect();
   var rowRect=firstRow.getBoundingClientRect();
+  var availH=panelRect.height-headerH;
   var targetTop=rowRect.top-panelRect.top-headerH;
-  if(targetTop<0||rowRect.bottom>panelRect.bottom){
-    panel.scrollTop=panel.scrollTop+targetTop-4;
+  if(targetTop<0){
+    panel.scrollTop+=targetTop-4;
+  }else if(rowRect.bottom>panelRect.bottom){
+    if(rowRect.height<=availH){panel.scrollTop+=rowRect.bottom-panelRect.bottom+4;}
+    else{panel.scrollTop+=targetTop-4;}
   }
 }
 
@@ -1199,6 +1226,7 @@ recomputeRows();
         '<button class="fb frest" data-cls="frest" title="rest: undocumented addresses (hidden by default)">rest</button>' +
         '<span class="sep"></span>' +
         '<button class="fb fboring" id="btn-boring" title="Hide rows with no cells used in scope">boring</button>' +
+        '<button class="fb falloc" id="btn-alloc" title="Show only documented (non-gap) rows">alloc</button>' +
         '<button class="fb femoji" id="btn-emoji" title="Show emoji in grid cells">emoji</button>' +
         '<button class="fb fgroup" id="btn-group" title="Group coloring: color-stripe cells in same multi-byte entry (off by default)">group</button>' +
         '<button class="fb fpin" id="btn-pin" title="Pin: lock to current scope, stop auto-update">pin</button>';
