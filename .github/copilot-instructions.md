@@ -73,10 +73,18 @@ These are dynamically allocated from the compiler memory pool. The address is NO
 it is computed at link time based on how much pool has been consumed. Do NOT attempt to infer addresses from call sites.
 
 **Read / Write detection (radarAnalyzeScope):**
+- Returns `{ refs, pools, argRefs }` (was `{ refs, pools }` in ≤v0.2.7).
 - A reference is a **write** if it is immediately followed by `=` (but not `==`, `!=`, `<=`, `>=`).
   This matches both `<0xADDR> = value` and `memory(0xADDR) = value`.
 - All other references are **reads**.
 - The radar grid cell gets class `.crw` (amber) if both reads and writes are found, `.cw` (red) if write-only.
+
+**arg[N] tracking:**
+- `arg[0xNN]` (and `arg[NN]` decimal) references are tracked separately in `argRefs: Map<idx, {reads, writes}>`.
+- `arg[N]` is VM-local (opcode 0x13); it does NOT map to a fixed WRAM address.
+- The arg section is rendered **below** the WRAM grid in a separate grid labeled `arg[]`.
+- Filter button `btn-hideargs` (label `hide unused args`, default ON): hides `arg-row-empty` rows via `body.hideargs` class.
+- Arg grid rows have class `gr arg-row` (and `arg-row-empty` if index is unused in scope).
 
 **Multi-byte entry support:**
 - `radarReadMemoryMap` stores `addrStart` and `addrEnd` on every entry.
@@ -122,11 +130,25 @@ it is computed at link time based on how much pool has been consumed. Do NOT att
 - **Hover tooltip**: every cell has a `title` attribute showing `0xADDR Name`.
 - **Memory-map hover in editor**: hex literals (e.g. `0x22d8`) in `.evs` files show name + lifecycle + "Open Memory Radar" link in the hover.
 
+**Enum cross-reference:**
+- `radarReadEnums(wsFolder)` scans all `.evs` files under `in/core/` (recursively) for `enum CLASSNAME { NAME = ... <0xNNNN> }` entries.
+- Returns `Map<addr, [{cls, name}]>` — maps each address to zero or more enum members.
+- `parseEnumsFromContent(content)` is the pure parsing core — lives in `radar-utils.js`, exported, and tested in `test/radar.test.js`.
+- `getRadarEnums()` returns a cached result; `invalidateRadarEnums()` clears it.
+- The enum cache is invalidated by a `FileSystemWatcher` on `**/in/core/**/*.evs`.
+- In the detail table Notes column, matching addresses get a `<span class="enum-tag">CLASSNAME.NAME</span>` badge.
+
+**alloc filter (fixed in v0.2.8):**
+- All detail `<tr class="dr">` rows now carry `data-hasdoc="1"` (has memory-map entry) or `data-hasdoc="0"` (untracked/pool).
+- `recomputeRows()` also filters `tr.dr` rows when `hideAlloc` is on — not just grid cells.
+- CSS: `tr.dr.hrow{display:none!important}` hides the filtered detail rows.
+
 **Auto-update:**
 - Radar re-renders when the active editor changes or cursor moves to a different scope (debounced 400ms/600ms).
-- `refreshRadar(editor)` skips re-render if scope/doc unchanged.
+- `refreshRadar(editor)` now rebuilds the room tree when the document changes (was returning `[]` in ≤v0.2.7).
 - `_radarPanel` is a module-level singleton; `openMemoryRadar` reuses the panel if already open.
 - Memory-map cache (`_radarMapCache`) is invalidated by a `FileSystemWatcher` on `**/.github/memory-map.md`.
+- Enum cache (`_radarEnumCache`) is invalidated by a `FileSystemWatcher` on `**/in/core/**/*.evs`.
 
 **Snes9x live memory prototype:**
 - `tools/snes9x_wram.py` — macOS Mach VM reader. Uses `task_for_pid` + `mach_vm_read` to read the 128 KB WRAM buffer from a running Snes9x process.
@@ -241,15 +263,31 @@ All entity coordinates in `.evs` files are **tile-based** (absolute, not relativ
 Room detail sections: **Entrances**, **Enemies**, **Objects**, **Transitions**.
 Each entity row is a `<a class="ll" data-line="N">` link that posts `{command:'goToLine', line:N}` to the host.
 
-### SVG grid
+### SVG grid (v0.2.8)
 
 Rendered client-side in `renderRoomDetail()`:
-- ViewBox = `0 0 (x2−x1) (y2−y1)` from `init_map`, defaulting to `0 0 128 128`.
-- Grid lines every `max(8, ceil(W/20))` tiles, `#ffffff12` stroke.
-- Camera-bounds rect: `#388bfd` dashed stroke.
-- Enemies: filled circles — `#ff7b72` (static) or `#ffa94d` (dynamic).
-- Entrances: hollow green circles `#56d364` + name label.
-- Room image (if `imageUri` set): rendered behind SVG at `opacity:0.45`.
+- **Room sizing**: ViewBox = `0 0 W H` where W/H come from `initMap` bounds, expanded to fit any entity coordinate that falls outside. Fallback is `256×256` if no data at all.
+  - Specifically: `x2 = max(im.x2, max(entity.x+16))`, same for y. `initMap` may be null — in that case bounds start from 0 and are grown from entity coords only.
+- Grid lines every `max(8, ceil(W/24))` tiles, `rgba(0,0,0,0.1)` stroke.
+- Camera-bounds rect: `#1a6` dashed stroke (only if `initMap` is present).
+- Enemies: filled circles with class `svge-enemy` — `#cc0000` (static) or `#cc7700` (dynamic).
+- Entrances: hollow circles and text label, both with class `svge-entrance`.
+- Room image (if `imageUri` set): rendered behind SVG using `<img class="room-img">`.
+
+### Entity filter buttons (v0.2.8)
+
+In the room detail header (`rd-head`):
+- `<div class="rd-filters">` contains `<button class="rdf on" data-hide="hide-XXX">` buttons.
+- Buttons are only rendered if that entity type is present in the room.
+- Clicking toggles `.on` class on the button and toggles `hide-XXX` class on `#room-detail`.
+- CSS hide rules:
+  ```
+  .hide-ent  .svge-entrance, .hide-ent  .rs-entrance  { display:none }
+  .hide-enem .svge-enemy,   .hide-enem .rs-enemies    { display:none }
+  .hide-obj  .rs-objects                              { display:none }
+  .hide-trans .rs-transitions                         { display:none }
+  ```
+- Room detail section divs use classes `rs rs-entrance`, `rs rs-enemies`, `rs rs-objects`, `rs rs-transitions`.
 
 ### `localResourceRoots`
 
@@ -265,3 +303,9 @@ The cache is cleared in `_radarPanel.onDidDispose`.
 
 Pure function, testable. Handles `0xNN`, `0dNN`, plain integers; returns `NaN` for null/empty/unparseable.
 Exported from `radar-utils.js`; imported in `extension.js`; tested in `test/radar.test.js`.
+
+### `parseEnumsFromContent(content)` (radar-utils.js, v0.2.8)
+
+Pure function. Parses `enum CLASSNAME { NAME = ... <0xNNNN> }` entries from evs source text.
+Returns `Map<addr (number), [{cls, name}]>`.
+Tested in `test/radar.test.js` under `parseEnumsFromContent` section.
