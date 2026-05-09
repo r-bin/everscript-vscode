@@ -79,19 +79,33 @@ it is computed at link time based on how much pool has been consumed. Do NOT att
 - The radar grid cell gets class `.crw` (amber) if both reads and writes are found, `.cw` (red) if write-only.
 
 **Multi-byte entry support:**
-- `radarReadMemoryMap` stores `addrStart` and `addrEnd` on every entry (from the memory-map.md range).
-- `Word` type entries with a single address in the map are automatically extended to cover `addr` and `addr+1`.
+- `radarReadMemoryMap` stores `addrStart` and `addrEnd` on every entry.
+- `Word`-typed entries with a single address auto-extend to cover both bytes.
 - All addresses in a multi-byte range share the same entry object.
-- Hovering any cell highlights all bytes from `addrStart` to `addrEnd`.
-- Clicking any cell in a multi-byte entry selects ALL cells in the range (`.cursor` class on each).
-- Multi-byte cells with `data-gid`/`data-gend` attributes get a colored bottom-border stripe (via JS group coloring on init), visually connecting all bytes in the same entry.
-- Emoji extraction: `radarExtractEmoji(str)` finds the first `Extended_Pictographic` in the entry name/notes.
+- Hovering any cell highlights all bytes from `addrStart` to `addrEnd` (`chi` class).
+- Clicking any cell in a multi-byte entry selects ALL cells in the range (polygon outline via per-cell JS box-shadow).
+- Adjacent same-group cells are joined visually: `grj-r`/`grj-l` CSS classes collapse the 1px gap and flatten inner border-radius.
+- `group` button (default OFF): toggles colored bottom-border stripes per group (10-color rotating palette).
+
+**Pool declarations:**
+- `radarAnalyzeScope` now returns `{ refs, pools }`.
+- `pools` is an array of `{ start, end, line, lc }` for each `<0xS>..<0xE>` range declaration in the scope.
+- Pool declaration lines are skipped from individual ref tracking (no double-counting of boundary addresses).
+- Pool rows appear at the top of the detail table (italic, faint blue tint).
+- Addresses referenced in scope but not in the memory map appear as `(untracked)` / `(pool alloc)` rows in the detail table, marked with a badge.
+
+**Interaction model:**
+- Popup removed. Click grid cell → polygon cursor on all bytes in group + scroll right panel to detail row (always).
+- Click detail row → polygon cursor + scroll left panel to grid cell (always bidirectional, no toggle needed).
+- `follow` button removed; bidirectionality is always on.
+- Line links in the Lines column have a tooltip showing the source line text.
+- `reads` and `writes` in refs are `[{line, text}]` objects (not plain line numbers).
 
 **UI layout (T-shape):**
-- **Sticky header**: title, scope, filters, and region usage bars — does not scroll.
+- **Sticky header**: title, scope, filters, region usage bars — does not scroll.
 - **Left panel** (`.left-panel`): WRAM grid — scrolls independently.
 - **Right panel** (`.right-panel`): detail table — scrolls independently.
-- Clicking a grid cell updates the right panel (scroll + selection). `follow` mode is required for right-panel auto-scroll.
+- Clicking either panel scrolls the other to the matching item.
 
 **UI features (renderRadarHtml):**
 - **Filter buttons**: `temp / session / sram / system / rest` — hide entire grid rows when all cells in a row are filtered out.

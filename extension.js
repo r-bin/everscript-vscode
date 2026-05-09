@@ -3,6 +3,7 @@
 const vscode = require('vscode');
 const path   = require('path');
 const fs     = require('fs');
+const { radarLifecycle, radarH, radarEsc, radarExtractEmoji, radarParseName, radarParseNotes } = require('./radar-utils');
 
 // ── Data loading ──────────────────────────────────────────────────────────────
 
@@ -648,19 +649,39 @@ function radarAnalyzeScope(document, startLine, endLine) {
                new RegExp('memory\\s*\\(\\s*0x' + h + '[^)]*\\)\\s*(?:[+\\-*\\/&|^]|<<|>>)?=(?!=)', 'i').test(text);
     };
 
+    // Pass 1: scan full document for pool declarations (not just the scope range)
+    const seenPools = new Set();
+    const addPool = (ps, pe, lineIdx) => {
+        if (isNaN(ps) || isNaN(pe) || ps > pe) return;
+        const key = ps + '-' + pe;
+        if (seenPools.has(key)) return;
+        seenPools.add(key);
+        pools.push({ start: ps, end: pe, line: lineIdx, lc: radarLifecycle(ps, '', '') });
+    };
+    for (let i = 0; i < document.lineCount; i++) {
+        const text = document.lineAt(i).text.replace(/\/\/.*$/, '');
+        const poolM = text.match(/<\s*(0x[0-9a-fA-F]+)\s*>\s*\.\.\s*<\s*(0x[0-9a-fA-F]+)\s*>/);
+        if (poolM) addPool(parseInt(poolM[1], 16), parseInt(poolM[2], 16), i);
+    }
+    // Also check main.evs in same folder (imports pool declarations from linker)
+    const docDir = path.dirname(document.uri.fsPath);
+    const mainEvsPath = path.join(docDir, 'main.evs');
+    if (mainEvsPath !== document.uri.fsPath && fs.existsSync(mainEvsPath)) {
+        const mainLines = fs.readFileSync(mainEvsPath, 'utf8').split(/\r?\n/);
+        for (let i = 0; i < mainLines.length; i++) {
+            const text = mainLines[i].replace(/\/\/.*$/, '');
+            const poolM = text.match(/<\s*(0x[0-9a-fA-F]+)\s*>\s*\.\.\s*<\s*(0x[0-9a-fA-F]+)\s*>/);
+            if (poolM) addPool(parseInt(poolM[1], 16), parseInt(poolM[2], 16), i);
+        }
+    }
+
+    // Pass 2: scan scope for address references
     for (let i = startLine; i <= endLine; i++) {
         const rawText = document.lineAt(i).text;
         const text    = rawText.replace(/\/\/.*$/, '');
 
-        // Pool range declarations: <0xSTART>..<0xEND>
-        const poolM = text.match(/<\s*(0x[0-9a-fA-F]+)\s*>\s*\.\.\s*<\s*(0x[0-9a-fA-F]+)\s*>/);
-        if (poolM) {
-            const ps = parseInt(poolM[1], 16), pe = parseInt(poolM[2], 16);
-            if (!isNaN(ps) && !isNaN(pe)) pools.push({ start: ps, end: pe, line: i, lc: radarLifecycle(ps, '', '') });
-            continue; // don't also extract the boundary addresses as individual refs
-        }
-
-        for (const m of text.matchAll(/\bmemory\s*\(\s*(0x[0-9a-fA-F]+)/g)) {
+        // Skip pool declarations (already handled in pass 1)
+        if (/<\s*0x[0-9a-fA-F]+\s*>\s*\.\.\s*</.test(text)) continue;
             const a = parseInt(m[1], 16);
             if (!isNaN(a)) add(a, i, rawText, 'memory()', isWrite(text, m[1]));
         }
@@ -682,14 +703,16 @@ function radarReadMemoryMap(filePath) {
         const m = cells[0].match(/0x([0-9a-fA-F]{4})(?:[^0-9a-fA-F]*0x([0-9a-fA-F]{4}))?/);
         if (!m) continue;
         const start = parseInt(m[1], 16), end = m[2] ? parseInt(m[2], 16) : start;
-        // Strip HTML tags from notes (memory-map.md uses <br>, etc.)
-        const notes = (cells[3] || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+        if (start > end) continue; // skip backwards ranges (typos in memory-map.md)
+        const rawName = cells[1] || '';
+        const nameParts = radarParseName(rawName);
+        const name = nameParts[0] || rawName.replace(/<[^>]+>/g, '').trim();
+        const notes = radarParseNotes(cells[3] || '');
         const typeStr = cells[2] || '';
         const isWord = /\bWord\b/i.test(typeStr);
-        // Extend Word entries to cover both bytes when only a single address is given
         const effectiveEnd = (isWord && end === start) ? start + 1 : end;
         const entry = {
-            name: cells[1], type: typeStr, notes,
+            name, nameParts, type: typeStr, notes,
             lifecycle: radarLifecycle(start, typeStr, notes),
             isWord, addrStart: start, addrEnd: effectiveEnd,
         };
@@ -698,31 +721,8 @@ function radarReadMemoryMap(filePath) {
     return map;
 }
 
-function radarLifecycle(addr, type, notes) {
-    // Regions as defined in the linker (main.evs):
-    //   temp    0x2834–0x28FF  compiler TEMP RAM — cleared on room load
-    //   session 0x2200–0x27FF  SRAM/session range — persistent across rooms
-    //   sram    [SRAM]-tagged  battery-backed saves (checked by tag)
-    //   system  everything else
-    if (addr >= 0x2834 && addr <= 0x28FF) return 'temp';
-    if (addr >= 0x2200 && addr <= 0x27FF) return 'session';
-    const hay = (type + ' ' + notes).toLowerCase();
-    if (hay.includes('sram')) return 'sram';
-    return 'system';
-}
-
-function radarExtractEmoji(str) {
-    const m = str.match(/\p{Extended_Pictographic}/u);
-    return m ? m[0] : '';
-}
-
-function radarEsc(s) {
-    return String(s)
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
-function radarH(n) { return '0x' + n.toString(16).toUpperCase().padStart(4, '0'); }
+// radarLifecycle, radarH, radarEsc, radarExtractEmoji, radarParseName, radarParseNotes
+// are pure helpers — see radar-utils.js (required at top of file).
 
 function renderRadarHtml(scope, refs, pools, mapByAddr) {
     const COLS = 16;
@@ -758,7 +758,7 @@ function renderRadarHtml(scope, refs, pools, mapByAddr) {
         const usage = refs.get(addr);
         cellData[addr] = {
             addr: radarH(addr), name: me.name, type: me.type,
-            lc: me.lifecycle, notes: me.notes,
+            lc: radarLifecycle(addr, me.type, me.notes), notes: me.notes,
             addrStart: me.addrStart, addrEnd: me.addrEnd,
             emoji: radarExtractEmoji(me.name + ' ' + me.notes),
             reads: usage ? usage.reads : [],
@@ -780,6 +780,20 @@ function renderRadarHtml(scope, refs, pools, mapByAddr) {
         }
     }
 
+    // Mark pool addresses in cellData (addresses declared in pool ranges but not individually referenced)
+    for (const pool of pools) {
+        for (let a = pool.start; a <= pool.end; a++) {
+            if (!cellData[a]) {
+                cellData[a] = {
+                    addr: radarH(a), name: '(pool)', type: 'pool',
+                    lc: radarLifecycle(a, '', ''), notes: 'pool: ' + radarH(pool.start) + '\u2013' + radarH(pool.end),
+                    addrStart: pool.start, addrEnd: pool.end, emoji: '',
+                    reads: [], writes: [], isPool: true,
+                };
+            }
+        }
+    }
+
     // Grid HTML
     let gridHtml = '';
     for (let base = rowStart; base < rowEnd; base += COLS) {
@@ -788,12 +802,14 @@ function renderRadarHtml(scope, refs, pools, mapByAddr) {
             const addr  = base + col;
             const me    = mapByAddr.get(addr);
             const usage = refs.get(addr);
-            const lc    = me ? me.lifecycle : radarLifecycle(addr, '', '');
+            const lc    = radarLifecycle(addr, me ? me.type : '', me ? me.notes : '');
             const isUsed = !!usage;
-            const isRest = !me && !isUsed;
+            const isPool = !me && !usage && cellData[addr] && cellData[addr].isPool;
+            const isRest = !me && !isUsed && !isPool;
             if (!isRest) { allRest = false; rowLcs.add(lc); }
             if (isUsed) rowHasUsed = true;
             let cls = 'cell lc-' + lc;
+            if (isPool) cls += ' cp';
             if (isUsed) {
                 cls += ' cu';
                 if (usage.writes.length && !usage.reads.length) cls += ' cw';
@@ -818,66 +834,91 @@ function renderRadarHtml(scope, refs, pools, mapByAddr) {
                     '<span class="rl">' + radarH(base) + '</span>' + cells + '</div>';
     }
 
-    // Pool declaration rows
+    // Detail table: unified list — all entries (known + untracked) sorted by address.
+    // For bit-fielded entries (nameParts.length > 1) expand into sub-rows with rowspan.
+    const mkLinks = (items, cls) => items.map(r =>
+        '<a class="ll' + (cls ? ' ' + cls : '') + '" data-line="' + r.line + '" title="' + radarEsc(r.text) + '">:' + (r.line + 1) + '</a>'
+    ).join('');
+
+    const allEntries = [];
+    const seenE = new Set();
+    for (const [, e] of [...mapByAddr.entries()].sort((a, b) => a[0] - b[0])) {
+        if (seenE.has(e)) continue;
+        seenE.add(e);
+        allEntries.push({ addr: e.addrStart, e, usage: refs.get(e.addrStart) || null });
+    }
+    const seenU = new Set();
+    for (const [addr, usage] of refs) {
+        if (mapByAddr.has(addr) || seenU.has(addr)) continue;
+        seenU.add(addr);
+        const cd = cellData[addr];
+        const lc = radarLifecycle(addr, '', '');
+        const label = cd && cd.inPool ? '(pool alloc)' : '(untracked)';
+        allEntries.push({
+            addr, usage,
+            e: { name: label, nameParts: [label], type: cd && cd.inPool ? 'pool' : '?', notes: '',
+                 lifecycle: lc, addrStart: addr, addrEnd: addr },
+            untracked: true, inPool: cd && cd.inPool,
+        });
+    }
+    allEntries.sort((a, b) => a.addr - b.addr);
+
+    const detailRows = allEntries.map(({ addr, e, usage, untracked, inPool }) => {
+        const lc = e.lifecycle;
+        const em = radarExtractEmoji(e.name + ' ' + e.notes);
+        const addrLabel = e.addrStart === e.addrEnd
+            ? radarH(e.addrStart)
+            : radarH(e.addrStart) + '\u2013' + radarH(e.addrEnd);
+        const wLinks = usage ? mkLinks(usage.writes, 'lw') : '';
+        const rLinks = usage ? mkLinks(usage.reads, '') : '';
+        const linesCell = (rLinks || wLinks)
+            ? (wLinks ? '<span class="rw-w">' + wLinks + '</span>' : '') +
+              (rLinks ? '<span class="rw-r">' + rLinks + '</span>' : '')
+            : '&ndash;';
+        const badge = untracked
+            ? (inPool ? '<span class="pool-badge">pool</span>' : '<span class="unk-badge">?</span>')
+            : '';
+        const emCell = em ? '<span class="te">' + em + '</span>' : '';
+        const rowCls = 'dr lc-' + lc + (usage ? ' du' : '') + (untracked ? ' untracked' : '');
+        const notesHtml = untracked
+            ? '<span class="scope-only">scope usage only</span>'
+            : (e.notes ? radarEsc(e.notes).replace(/\n/g, '<br>') : '&ndash;');
+
+        const parts = e.nameParts && e.nameParts.length > 1 ? e.nameParts : null;
+        if (parts) {
+            const rs = parts.length;
+            let html = '<tr id="dr-' + e.addrStart + '" class="' + rowCls + '" data-addr="' + e.addrStart + '">';
+            html += '<td class="mo" rowspan="' + rs + '">' + badge + emCell + addrLabel + '</td>';
+            html += '<td class="bf">' + radarEsc(parts[0]) + '</td>';
+            html += '<td class="mt" rowspan="' + rs + '">' + radarEsc(e.type) + '</td>';
+            html += '<td rowspan="' + rs + '"><span class="chip ch-' + lc + '">' + lc + '</span></td>';
+            html += '<td class="nt" rowspan="' + rs + '">' + notesHtml + '</td>';
+            html += '<td class="rwc" rowspan="' + rs + '">' + linesCell + '</td>';
+            html += '</tr>';
+            for (let i = 1; i < parts.length; i++) {
+                html += '<tr class="' + rowCls + ' bfc" data-addr="' + e.addrStart + '">';
+                html += '<td class="bf">' + radarEsc(parts[i]) + '</td>';
+                html += '</tr>';
+            }
+            return html;
+        }
+        const nameCls = untracked ? ' class="no-vanilla"' : '';
+        return '<tr id="dr-' + addr + '" class="' + rowCls + '" data-addr="' + addr + '">' +
+            '<td class="mo">' + badge + emCell + addrLabel + '</td>' +
+            '<td' + nameCls + '>' + radarEsc(e.name) + '</td>' +
+            '<td class="mt">' + radarEsc(e.type) + '</td>' +
+            '<td><span class="chip ch-' + lc + '">' + lc + '</span></td>' +
+            '<td class="nt">' + notesHtml + '</td>' +
+            '<td class="rwc">' + linesCell + '</td></tr>';
+    }).join('');
+
+    // Pool declaration header rows (shown above the data rows)
     const poolRows = pools.map(p =>
         '<tr class="pool-row lc-' + p.lc + '">' +
         '<td class="mo"><span class="pool-badge">' + p.lc + '</span>' + radarH(p.start) + '\u2013' + radarH(p.end) + '</td>' +
         '<td colspan="3">declared pool &mdash; ' + (p.end - p.start + 1) + ' bytes at line ' + (p.line + 1) + '</td>' +
         '<td class="nt">' + p.lc + ' region</td><td>&ndash;</td></tr>'
     ).join('');
-
-    // Detail table — one row per unique entry (known addresses), plus unknowns
-    const seenE = new Set();
-    const knownRows = [...mapByAddr.entries()]
-        .sort((a, b) => a[0] - b[0])
-        .filter(([, e]) => { if (seenE.has(e)) return false; seenE.add(e); return true; })
-        .map(([addr, e]) => {
-            const usage  = refs.get(addr);
-            const rLinks = usage ? usage.reads.map(entry =>
-                '<a class="ll" data-line="' + entry.line + '" title="' + radarEsc(entry.text) + '">:' + (entry.line+1) + '</a>').join('') : '';
-            const wLinks = usage ? usage.writes.map(entry =>
-                '<a class="ll lw" data-line="' + entry.line + '" title="' + radarEsc(entry.text) + '">:' + (entry.line+1) + '</a>').join('') : '';
-            const linesCell = (rLinks || wLinks)
-                ? (wLinks ? '<span class="rw-w">' + wLinks + '</span>' : '') +
-                  (rLinks ? '<span class="rw-r">' + rLinks + '</span>' : '')
-                : '&ndash;';
-            const em = radarExtractEmoji(e.name + ' ' + e.notes);
-            return '<tr id="dr-' + addr + '" class="dr lc-' + e.lifecycle + (usage ? ' du' : '') + '"' +
-                   ' data-addr="' + addr + '">' +
-                   '<td class="mo">' + (em ? '<span class="te">' + em + '</span>' : '') + radarH(addr) + '</td>' +
-                   '<td>' + radarEsc(e.name) + '</td>' +
-                   '<td class="mt">' + radarEsc(e.type) + '</td>' +
-                   '<td><span class="chip ch-' + e.lifecycle + '">' + e.lifecycle + '</span></td>' +
-                   '<td class="nt">' + radarEsc(e.notes) + '</td>' +
-                   '<td class="rwc">' + linesCell + '</td></tr>';
-        }).join('');
-
-    // Untracked rows (used in scope but not in memory map)
-    const seenU = new Set();
-    const untrackedRows = [...refs.entries()]
-        .filter(([addr]) => !mapByAddr.has(addr) && !seenU.has(addr) && (seenU.add(addr), true))
-        .sort((a, b) => a[0] - b[0])
-        .map(([addr, usage]) => {
-            const cd = cellData[addr];
-            const rLinks = usage.reads.map(entry =>
-                '<a class="ll" data-line="' + entry.line + '" title="' + radarEsc(entry.text) + '">:' + (entry.line+1) + '</a>').join('');
-            const wLinks = usage.writes.map(entry =>
-                '<a class="ll lw" data-line="' + entry.line + '" title="' + radarEsc(entry.text) + '">:' + (entry.line+1) + '</a>').join('');
-            const linesCell = (wLinks ? '<span class="rw-w">' + wLinks + '</span>' : '') +
-                              (rLinks ? '<span class="rw-r">' + rLinks + '</span>' : '');
-            const badge = cd && cd.inPool ? '<span class="pool-badge">pool</span>' : '<span class="unk-badge">?</span>';
-            const lc = cd ? cd.lc : radarLifecycle(addr, '', '');
-            return '<tr id="dr-' + addr + '" class="dr lc-' + lc + ' du untracked"' +
-                   ' data-addr="' + addr + '">' +
-                   '<td class="mo">' + badge + radarH(addr) + '</td>' +
-                   '<td class="no-vanilla">' + (cd ? radarEsc(cd.name) : '(untracked)') + '</td>' +
-                   '<td class="mt">?</td>' +
-                   '<td><span class="chip ch-' + lc + '">' + lc + '</span></td>' +
-                   '<td class="nt scope-only">scope usage only</td>' +
-                   '<td class="rwc">' + linesCell + '</td></tr>';
-        }).join('');
-
-    const detailRows = knownRows + untrackedRows;
 
     const tempT = lcCount('temp'), sessT = lcCount('session'), sramT = lcCount('sram');
     const tempU = lcUsed('temp'),  sessU = lcUsed('session'),  sramU = lcUsed('sram');
@@ -942,7 +983,8 @@ tr.pool-row td{background:rgba(56,139,253,.04);opacity:.65;font-style:italic}
 .lc-sram.du td:first-child{border-left:2px solid #3fb950}
 tr.sel td{background:rgba(255,200,50,.08)!important;outline:1px solid rgba(255,200,50,.15)}
 .mo{font-size:9px;white-space:nowrap}.mt{opacity:.4;font-size:9px}
-.nt{opacity:.38;font-size:9px;max-width:80px;word-break:break-word}
+.nt{opacity:.38;font-size:9px;min-width:100px;white-space:pre-wrap;word-break:break-word}
+.dt-wrap{overflow-x:auto}
 .no-vanilla{opacity:.5;font-style:italic}.scope-only{color:#ff9f9f80;font-style:italic}
 .rwc{white-space:nowrap;font-size:9px}.rw-w a{color:#ff9f9f}.rw-r a{color:#9fcfff}
 .chip{border-radius:5px;padding:0 3px;font-size:8px;border:1px solid transparent}
@@ -952,7 +994,10 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .te{margin-right:2px;font-size:9px}
 .pool-badge,.unk-badge{font-size:7px;border-radius:3px;padding:0 2px;margin-right:3px;border:1px solid}
 .pool-badge{border-color:#388bfd60;color:#388bfd;background:#152840}
-.unk-badge{border-color:#666;color:#888;background:#1a1a1a}`;
+.unk-badge{border-color:#666;color:#888;background:#1a1a1a}
+.bf{font-size:9px}
+.bfc td{border-top:none!important;padding-top:0}
+.cell.cp{background:#0d1a0d;opacity:.55}`;
 
     const js = `(function(){
 var vs=typeof acquireVsCodeApi==='function'?acquireVsCodeApi():null;
@@ -1095,9 +1140,18 @@ function selectDetailRow(addr){
     var row=document.getElementById('dr-'+a);
     if(row)row.classList.add('sel');
   }
-  // Always scroll right panel to selection
   var firstRow=document.getElementById('dr-'+start);
-  if(firstRow)firstRow.scrollIntoView({behavior:'smooth',block:'nearest'});
+  if(!firstRow)return;
+  var panel=document.querySelector('.right-panel');
+  if(!panel)return;
+  var thead=panel.querySelector('thead');
+  var headerH=thead?thead.getBoundingClientRect().height:0;
+  var panelRect=panel.getBoundingClientRect();
+  var rowRect=firstRow.getBoundingClientRect();
+  var targetTop=rowRect.top-panelRect.top-headerH;
+  if(targetTop<0||rowRect.bottom>panelRect.bottom){
+    panel.scrollTop=panel.scrollTop+targetTop-4;
+  }
 }
 
 // Grid cell: click → cursor + scroll right; hover → highlight group
