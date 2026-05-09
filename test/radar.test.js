@@ -8,7 +8,7 @@ const assert = require('assert');
 const {
     radarLifecycle, radarH, radarEsc,
     radarExtractEmoji, radarParseName, radarParseNotes, parseEvsNum,
-    parseEnumsFromContent,
+    parseEnumsFromContent, parseEvsEnumValues,
 } = require('../radar-utils');
 
 let passed = 0, failed = 0;
@@ -195,6 +195,34 @@ test('arg write detection regex',
         assert.ok(writeRe.test('arg[0x00] += 1;'));
         assert.ok(!writeRe.test('x = arg[0x00];'), 'read should not match write pattern');
         assert.ok(!writeRe.test('arg[0x00] == 5'), 'equality comparison should not match');
+    });
+
+// ── parseEvsEnumValues ──────────────────────────────────────────────────────
+console.log('\nparseEvsEnumValues:');
+test('MAP enum plain hex value',
+    () => {
+        const m = parseEvsEnumValues('enum MAP { BRIAN = 0x15, RAPTORS = 0x38, }', 'MAP');
+        assert.strictEqual(m.get('BRIAN'), 0x15);
+        assert.strictEqual(m.get('RAPTORS'), 0x38);
+    });
+test('enum with angle-bracket address',
+    () => {
+        const m = parseEvsEnumValues('enum MEM { FOO = bar <0x2200>, }', 'MEM');
+        assert.strictEqual(m.get('FOO'), 0x2200);
+    });
+test('unknown enum name returns empty map',
+    () => {
+        const m = parseEvsEnumValues('enum MAP { BRIAN = 0x15, }', 'NOTFOUND');
+        assert.strictEqual(m.size, 0);
+    });
+test('empty source returns empty map',
+    () => assert.strictEqual(parseEvsEnumValues('', 'MAP').size, 0));
+test('multiple entries all parsed',
+    () => {
+        const src = 'enum MAP { A = 0x01, B = 0x02, C = 0x03, }';
+        const m = parseEvsEnumValues(src, 'MAP');
+        assert.strictEqual(m.size, 3);
+        assert.strictEqual(m.get('C'), 3);
     });
 
 // ── Summary ──────────────────────────────────────────────────────────────────

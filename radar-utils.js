@@ -58,6 +58,25 @@ function radarParseNotes(rawNotes) {
 }
 
 /**
+ * Parse all entries from a named enum in evs source text.
+ * Returns Map<name, value (number)> for entries of the form:
+ *   enum CLASSNAME { NAME = 0xNN, ... }  or  NAME = <0xNN>,
+ */
+function parseEvsEnumValues(content, enumName) {
+    const out = new Map();
+    const re = new RegExp('enum\\s+' + enumName + '\\s*\\{([^}]+)\\}');
+    const m = re.exec(content);
+    if (!m) return out;
+    const body = m[1];
+    // Match both `NAME = 0xNN` and `NAME = ... <0xNN>`
+    for (const ee of body.matchAll(/([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(?:[^,\n<]*<\s*)?(0x[0-9a-fA-F]+)\s*>?,/g)) {
+        const val = parseInt(ee[2], 16);
+        if (!isNaN(val)) out.set(ee[1], val);
+    }
+    return out;
+}
+
+/**
  * Parse an Everscript numeric literal to a JS number.
  * Supports hex (0xNN / 0XNN), decimal-explicit (0dNN / 0DNN), and plain ints.
  * Returns NaN for null/undefined/empty/unparseable input.
@@ -104,4 +123,5 @@ module.exports = {
     radarParseNotes,
     parseEvsNum,
     parseEnumsFromContent,
+    parseEvsEnumValues,
 };

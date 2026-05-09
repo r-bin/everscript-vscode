@@ -3,7 +3,7 @@
 const vscode = require('vscode');
 const path   = require('path');
 const fs     = require('fs');
-const { radarLifecycle, radarH, radarEsc, radarExtractEmoji, radarParseName, radarParseNotes, parseEvsNum, parseEnumsFromContent } = require('./radar-utils');
+const { radarLifecycle, radarH, radarEsc, radarExtractEmoji, radarParseName, radarParseNotes, parseEvsNum, parseEnumsFromContent, parseEvsEnumValues } = require('./radar-utils');
 
 // ── Data loading ──────────────────────────────────────────────────────────────
 
@@ -554,6 +554,8 @@ let _radarDoc          = null;   // document the radar was last rendered for
 let _radarCurrentScope = null;   // scope the radar was last rendered for
 let _radarMapCache     = null;   // cached parsed memory-map.md
 let _radarEnumCache    = null;   // cached enum cross-reference (addr→[{cls,name}])
+let _radarMapEnumCache = null;   // cached MAP enum (enumName→numericId)
+let _radarScriptAllCache = null; // cached stripped script_all text
 let _radarUpdateTimer  = null;   // debounce timer for auto-update
 let _radarRoomTree     = null;   // cached room tree (rebuilt when doc changes)
 let _radarRoomDocPath  = null;   // fsPath the room tree was built for
@@ -795,10 +797,131 @@ function getRadarEnums() {
 
 function invalidateRadarEnums() { _radarEnumCache = null; }
 
-// radarLifecycle, radarH, radarEsc, radarExtractEmoji, radarParseName, radarParseNotes
-// are pure helpers — see radar-utils.js (required at top of file).
+/** Return cached MAP enum: Map<enumName, numericId>. Reads core.evs MAP enum. */
+function getMapEnum(wsRoot) {
+    if (_radarMapEnumCache) return _radarMapEnumCache;
+    _radarMapEnumCache = new Map();
+    if (!wsRoot) return _radarMapEnumCache;
+    const coreDir = path.join(wsRoot, 'in', 'core');
+    const scan = (dir) => {
+        let entries; try { entries = fs.readdirSync(dir); } catch { return; }
+        for (const f of entries) {
+            const fp = path.join(dir, f);
+            try {
+                const st = fs.statSync(fp);
+                if (st.isDirectory()) scan(fp);
+                else if (f.endsWith('.evs')) {
+                    const txt = fs.readFileSync(fp, 'utf8');
+                    if (!/\benum\s+MAP\b/.test(txt)) continue;
+                    for (const [k, v] of parseEvsEnumValues(txt, 'MAP')) _radarMapEnumCache.set(k, v);
+                }
+            } catch { /* skip */ }
+        }
+    };
+    scan(coreDir);
+    return _radarMapEnumCache;
+}
 
-// ── Room Browser ─────────────────────────────────────────────────────────────
+/** Strip ANSI escape codes from a string. */
+function stripAnsi(s) { return s.replace(/\x1b\[[0-9;]*m/g, ''); }
+
+/** Return the first descriptive label from a trigger's script lines.
+ *  Looks for: CALL "...", CHANGE MAP = ... "...", etc. */
+function triggerLabel(scriptLines) {
+    for (const l of scriptLines) {
+        let m = l.match(/CALL\s+"([^"]+)"/);
+        if (m) return m[1];
+        m = l.match(/CHANGE MAP.*"([^"]+)"/);
+        if (m) return m[1];
+    }
+    return '';
+}
+
+/** Read and cache the stripped script_all text. Returns '' if not found. */
+function getScriptAllText(wsRoot) {
+    if (_radarScriptAllCache !== null) return _radarScriptAllCache;
+    const p = path.join(wsRoot, 'script_all');
+    try { _radarScriptAllCache = stripAnsi(fs.readFileSync(p, 'utf8')); }
+    catch { _radarScriptAllCache = ''; }
+    return _radarScriptAllCache;
+}
+
+/**
+ * Parse step-on and b-trigger entries for a room from script_all.
+ * vanillaEnumName: the enum member name like "BRIAN", or a numeric string "0x15".
+ * Returns { stepOn: [{x1,y1,x2,y2,label,scriptLines}], bTrigger: [...] }
+ */
+function readScriptAllTriggers(wsRoot, vanillaEnumName) {
+    const out = { stepOn: [], bTrigger: [] };
+    if (!wsRoot || !vanillaEnumName) return out;
+
+    // Resolve enum name to numeric room ID
+    let roomId = NaN;
+    if (/^0x/i.test(vanillaEnumName)) {
+        roomId = parseInt(vanillaEnumName, 16);
+    } else {
+        const mapEnum = getMapEnum(wsRoot);
+        roomId = mapEnum.get(vanillaEnumName) ?? NaN;
+        // Try numeric fallback
+        if (isNaN(roomId)) roomId = parseInt(vanillaEnumName, 10);
+    }
+    if (isNaN(roomId)) return out;
+
+    const text = getScriptAllText(wsRoot);
+    if (!text) return out;
+
+    // Find room header: `[0xNN] ...` at start of line
+    const hexId = '0x' + roomId.toString(16).padStart(2, '0').toLowerCase();
+    const headerPrefix = '[' + hexId + ']';
+    const headerIdx = text.indexOf('\n' + headerPrefix);
+    if (headerIdx === -1) return out;
+
+    // Find start of next room section (to bound our search)
+    const afterHeader = text.indexOf('\n', headerIdx + 1);
+    const nextRoomIdx = text.search(new RegExp('\n\\[0x[0-9a-f]+\\]', ''));
+    // Find the *next* room header after our own
+    let sectionEnd = text.length;
+    const nextAfter = text.indexOf('\n[0x', afterHeader + 1);
+    if (nextAfter !== -1) sectionEnd = nextAfter;
+    const section = text.slice(headerIdx + 1, sectionEnd);
+
+    // Parse a trigger section ("step-on scripts" or "B trigger scripts")
+    const parseTriggerSection = (sectionText, type, result) => {
+        // Match the section header
+        const headerRe = type === 'stepOn'
+            ? /step-on scripts at [^\n]+\n/
+            : /B trigger scripts at [^\n]+\n/;
+        const hm = headerRe.exec(sectionText);
+        if (!hm) return;
+        const body = sectionText.slice(hm.index + hm[0].length);
+
+        // Each entry starts with `    [x1,y1:x2,y2] = ...`
+        const entryRe = /\[([0-9a-f]+),([0-9a-f]+):([0-9a-f]+),([0-9a-f]+)\]\s*=/g;
+        let em;
+        const entryPositions = [];
+        while ((em = entryRe.exec(body)) !== null) entryPositions.push(em.index);
+
+        for (let i = 0; i < entryPositions.length; i++) {
+            const chunk = body.slice(entryPositions[i], i + 1 < entryPositions.length ? entryPositions[i + 1] : undefined);
+            const coordM = chunk.match(/\[([0-9a-f]+),([0-9a-f]+):([0-9a-f]+),([0-9a-f]+)\]/);
+            if (!coordM) continue;
+            const x1 = parseInt(coordM[1], 16), y1 = parseInt(coordM[2], 16);
+            const x2 = parseInt(coordM[3], 16), y2 = parseInt(coordM[4], 16);
+            // Script lines: lines starting with whitespace+[0x...] 
+            const scriptLines = chunk.split('\n')
+                .filter(l => /\s+\[0x[0-9a-f]+\]/.test(l))
+                .map(l => l.trim());
+            const label = triggerLabel(scriptLines);
+            result.push({ x1, y1, x2, y2, label, scriptLines });
+        }
+    };
+
+    parseTriggerSection(section, 'stepOn', out.stepOn);
+    parseTriggerSection(section, 'bTrigger', out.bTrigger);
+    return out;
+}
+
+
 
 /**
  * Locate a room image in the workspace.
@@ -838,10 +961,24 @@ function parseRoomContent(filePath, startLine, endLine) {
 
     const out = { initMap: null, entrances: [], enemies: [], objects: [], transitions: [] };
     const objSeen = new Set();
+    // objDesc: Map<index-string, description> from commented object lines
+    const objDesc = new Map();
     const end = Math.min(endLine, lines.length - 1);
 
     for (let i = startLine; i <= end; i++) {
-        const t = lines[i].replace(/\/\/.*$/, '').trim();
+        const raw = lines[i];
+        // Extract inline comment before stripping
+        const inlineCommentM = raw.match(/\/\/(.*)$/);
+        const comment = inlineCommentM ? inlineCommentM[1].trim() : '';
+        const t = raw.replace(/\/\/.*$/, '').trim();
+
+        // Commented object lines: // object[N] = val; // description
+        const commentedObjM = comment.match(/\bobject\[(\w+)\]\s*=\s*[^;]+;?\s*(?:\/\/\s*(.+))?/);
+        if (commentedObjM) {
+            const idx = commentedObjM[1];
+            const desc = commentedObjM[2] ? commentedObjM[2].trim() : '';
+            if (!objDesc.has(idx) && desc) objDesc.set(idx, desc);
+        }
 
         // init_map(x1, y1, x2, y2)
         if (!out.initMap) {
@@ -861,13 +998,22 @@ function parseRoomContent(filePath, startLine, endLine) {
         const abe = t.match(/\badd_\w*souls\w*_enemy\s*\(\s*([^,)]+),\s*([^,)]+),\s*([^,)]+)\)/);
         if (abe && !isNaN(parseEvsNum(abe[2]))) out.enemies.push({ type: abe[1].trim(), x: parseEvsNum(abe[2]), y: parseEvsNum(abe[3]), dynamic: true, line: i });
 
-        // object[N]
+        // object[N] = val; (live code) — description from inline comment
         const obj = t.match(/\bobject\[(\w+)\]/);
-        if (obj && !objSeen.has(obj[1])) { objSeen.add(obj[1]); out.objects.push({ index: obj[1], line: i }); }
+        if (obj && !objSeen.has(obj[1])) {
+            objSeen.add(obj[1]);
+            const desc = comment.replace(/^\/\/\s*/, '').replace(/object\[.*?\]\s*=\s*[^;]+;?\s*/, '').trim()
+                        || objDesc.get(obj[1]) || '';
+            out.objects.push({ index: obj[1], line: i, desc });
+        }
 
         // map_transition(target, via, dir)
         const mt = t.match(/\bmap_transition\s*\(\s*([^,)]+),\s*([^,)]+),\s*([^,)]+)\)/);
         if (mt) out.transitions.push({ target: mt[1].trim(), via: mt[2].trim(), dir: mt[3].trim(), line: i });
+    }
+    // Fill in descriptions from commented lines for objects found in live code
+    for (const o of out.objects) {
+        if (!o.desc && objDesc.has(o.index)) o.desc = objDesc.get(o.index);
     }
     return out;
 }
@@ -911,6 +1057,7 @@ function collectRoomsFromDir(dir, wsRoot, depth) {
             const vid     = m[2] ? m[2].trim() : null;
             const content = parseRoomContent(fp, i, endLine);
             const imgPath = findRoomImage(wsRoot, m[1], vid);
+            if (wsRoot && vid) content.triggers = readScriptAllTriggers(wsRoot, vid);
             items.push({ name: m[1], vanillaId: vid, kind: 'map', filePath: fp, relPath: wsRoot ? path.relative(wsRoot, fp) : fp, startLine: i, endLine, content, imagePath: imgPath });
         }
     }
@@ -941,6 +1088,7 @@ function buildRoomTree(document, wsRoot) {
         const vid     = m[2] ? m[2].trim() : null;
         const content = parseRoomContent(docPath, i, endLine);
         const imgPath = findRoomImage(wsRoot, m[1], vid);
+        if (wsRoot && vid) content.triggers = readScriptAllTriggers(wsRoot, vid);
         docMaps.push({ name: m[1], vanillaId: vid, kind: 'map', filePath: docPath, relPath: wsRoot ? path.relative(wsRoot, docPath) : docPath, startLine: i, endLine, content, imagePath: imgPath });
     }
 
@@ -1400,6 +1548,11 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .hide-enem .svge-enemy,.hide-enem .rs-enemies{display:none!important}
 .hide-obj .rs-objects{display:none!important}
 .hide-trans .rs-transitions{display:none!important}
+.hide-step .svge-step,.hide-step .rs-step{display:none!important}
+.hide-btrig .svge-btrig,.hide-btrig .rs-btrig{display:none!important}
+.trig-coord{font-size:9px;font-family:monospace;color:#888;margin-right:4px}
+.obj-desc{font-size:9px;color:#aaa;font-style:italic}
+.trig-step em{color:#ff69b4;font-style:normal}.trig-b em{color:#ddaa00;font-style:normal}
 /* ── Room grid ── */
 .rg-wrap{position:relative;overflow:hidden;background:white;border:1px solid #bbb;display:block;margin-bottom:8px}
 .rg-svg{position:absolute;inset:0;display:block}
@@ -1462,30 +1615,47 @@ function renderRoomDetail(room){
   var enemies=c.enemies||[];
   var objs=c.objects||[];
   var trans=c.transitions||[];
+  var trig=c.triggers||{stepOn:[],bTrigger:[]};
+  var stepOn=trig.stepOn||[];
+  var bTrigger=trig.bTrigger||[];
 
   var html='<div class="rd-head">';
   html+='<span class="rd-name">'+escH(room.name)+'</span>';
   if(room.vanillaId)html+='<span class="rd-vid">'+escH(room.vanillaId)+'</span>';
   html+='<span class="rd-file">'+escH(room.relPath||'')+'</span>';
   html+='<a class="ll" data-line="'+room.startLine+'" href="#">go to code</a>';
-  // Entity filter buttons
   html+='<div class="rd-filters">';
   if(entrances.length)html+='<button class="rdf on" data-hide="hide-ent" title="Toggle entrances">ent</button>';
   if(enemies.length)html+='<button class="rdf on" data-hide="hide-enem" title="Toggle enemies">enemies</button>';
   if(objs.length)html+='<button class="rdf on" data-hide="hide-obj" title="Toggle objects">obj</button>';
   if(trans.length)html+='<button class="rdf on" data-hide="hide-trans" title="Toggle transitions">trans</button>';
-  html+='</div>';
-  html+='</div>';
+  if(stepOn.length)html+='<button class="rdf on" data-hide="hide-step" title="Toggle step-on triggers">step-on</button>';
+  if(bTrigger.length)html+='<button class="rdf on" data-hide="hide-btrig" title="Toggle B-triggers">B-trig</button>';
+  html+='</div></div>';
 
-  // Map grid: image + SVG overlay
-  var hasCoords=(im!=null)||(entrances.length>0)||(enemies.length>0);
+  // Arrow polygon for entrance direction
+  function entranceArrow(ex,ey,dir){
+    var d=dir?dir.toUpperCase():'';
+    var pts,fill='#22bb55',stroke='#22bb55';
+    if(d==='NORTH'||d==='N')      pts=[[ex-2,ey+3],[ex+2,ey+3],[ex,ey-1]];
+    else if(d==='SOUTH'||d==='S') pts=[[ex-2,ey-3],[ex+2,ey-3],[ex,ey+1]];
+    else if(d==='EAST'||d==='E')  pts=[[ex-3,ey-2],[ex-3,ey+2],[ex+1,ey]];
+    else if(d==='WEST'||d==='W')  pts=[[ex+3,ey-2],[ex+3,ey+2],[ex-1,ey]];
+    else return '<circle class="svge-entrance" cx="'+ex+'" cy="'+ey+'" r="2.5" fill="'+fill+'" fill-opacity="0.7" stroke="'+stroke+'" stroke-width="0.6"/>';
+    return '<polygon class="svge-entrance" points="'+pts.map(function(p){return p[0]+','+p[1];}).join(' ')+'" fill="'+fill+'" fill-opacity="0.7" stroke="'+stroke+'" stroke-width="0.6"/>';
+  }
+
+  var hasCoords=(im!=null)||(entrances.length>0)||(enemies.length>0)||(stepOn.length>0)||(bTrigger.length>0);
   if(hasCoords||room.imageUri){
     var x1=im?im.x1:0,y1=im?im.y1:0;
     var x2=im?im.x2:0,y2=im?im.y2:0;
-    // Expand bounds from entity coordinates
+    // Expand bounds to fit all entities and triggers
     entrances.concat(enemies).forEach(function(e){
       if(!isNaN(e.x)&&e.x+16>x2)x2=e.x+16;
       if(!isNaN(e.y)&&e.y+16>y2)y2=e.y+16;
+    });
+    stepOn.concat(bTrigger).forEach(function(t){
+      if(t.x2+2>x2)x2=t.x2+2; if(t.y2+2>y2)y2=t.y2+2;
     });
     if(x2<=x1)x2=x1+256;
     if(y2<=y1)y2=y1+256;
@@ -1494,23 +1664,37 @@ function renderRoomDetail(room){
     var scale=Math.min(600/W,360/H,8);
     var pxW=Math.round(W*scale),pxH=Math.round(H*scale);
     html+='<div class="rg-wrap" style="width:'+pxW+'px;height:'+pxH+'px">';
-    if(room.imageUri){
-      html+='<img class="room-img" src="'+room.imageUri+'" alt="">';
-    }
+    if(room.imageUri) html+='<img class="room-img" src="'+room.imageUri+'" alt="">';
     html+='<svg class="rg-svg" width="'+pxW+'" height="'+pxH+'" viewBox="0 0 '+W+' '+H+'">';
     var step=Math.max(8,Math.ceil(W/24));
     for(var gx=0;gx<=W;gx+=step)html+='<line x1="'+gx+'" y1="0" x2="'+gx+'" y2="'+H+'" stroke="rgba(0,0,0,0.1)" stroke-width="0.5"/>';
     for(var gy=0;gy<=H;gy+=step)html+='<line x1="0" y1="'+gy+'" x2="'+W+'" y2="'+gy+'" stroke="rgba(0,0,0,0.1)" stroke-width="0.5"/>';
     if(im)html+='<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="none" stroke="#1a6" stroke-width="0.7" stroke-dasharray="3,2"/>';
+    // Step-on trigger rects (pink)
+    stepOn.forEach(function(t){
+      var rx=t.x1-x1,ry=t.y1-y1,rw=Math.max(1,t.x2-t.x1),rh=Math.max(1,t.y2-t.y1);
+      var tipLines=(t.label?[t.label]:t.scriptLines||[]).slice(0,6).join('\n');
+      html+='<rect class="svge-step" x="'+rx+'" y="'+ry+'" width="'+rw+'" height="'+rh+'" fill="rgba(255,100,180,0.25)" stroke="#ff69b4" stroke-width="0.5"><title>step-on'+(t.label?': '+escH(t.label):'')+(tipLines?'\n'+escH(tipLines):'')+'</title></rect>';
+      if(t.label)html+='<text x="'+(rx+rw/2)+'" y="'+(ry+rh/2+1.5)+'" text-anchor="middle" fill="#ff69b4" font-size="2.5" font-family="monospace" class="svge-step">'+escH(t.label.slice(0,18))+'</text>';
+    });
+    // B-trigger rects (yellow)
+    bTrigger.forEach(function(t){
+      var rx=t.x1-x1,ry=t.y1-y1,rw=Math.max(1,t.x2-t.x1),rh=Math.max(1,t.y2-t.y1);
+      var tipLines=(t.label?[t.label]:t.scriptLines||[]).slice(0,6).join('\n');
+      html+='<rect class="svge-btrig" x="'+rx+'" y="'+ry+'" width="'+rw+'" height="'+rh+'" fill="rgba(255,210,0,0.2)" stroke="#ffcc00" stroke-width="0.5"><title>B-trig'+(t.label?': '+escH(t.label):'')+(tipLines?'\n'+escH(tipLines):'')+'</title></rect>';
+      if(t.label)html+='<text x="'+(rx+rw/2)+'" y="'+(ry+rh/2+1.5)+'" text-anchor="middle" fill="#ddaa00" font-size="2.5" font-family="monospace" class="svge-btrig">'+escH(t.label.slice(0,18))+'</text>';
+    });
+    // Enemies
     enemies.forEach(function(e){
       var ex=e.x-x1,ey=e.y-y1;
       var fill=e.dynamic?'#cc7700':'#cc0000';
-      html+='<circle class="svge-enemy" cx="'+ex+'" cy="'+ey+'" r="2" fill="'+fill+'" opacity="0.85"><title>'+escH(e.type)+' ('+e.x+','+e.y+')</title></circle>';
+      html+='<circle class="svge-enemy sv-ll" data-line="'+e.line+'" cx="'+ex+'" cy="'+ey+'" r="2" fill="'+fill+'" opacity="0.85"><title>'+escH(e.type)+' ('+e.x+','+e.y+')\ncmd+click to jump</title></circle>';
     });
+    // Entrances — directional arrows
     entrances.forEach(function(en){
       var ex=en.x-x1,ey=en.y-y1;
-      html+='<circle class="svge-entrance" cx="'+ex+'" cy="'+ey+'" r="3" fill="none" stroke="#005500" stroke-width="1"><title>'+escH(en.name)+' ('+en.dir+')</title></circle>';
-      html+='<text class="svge-entrance" x="'+(ex+4)+'" y="'+(ey+2)+'" fill="#005500" font-size="3" font-family="monospace">'+escH(en.name)+'</text>';
+      html+=entranceArrow(ex,ey,en.dir).replace('class="svge-entrance"','class="svge-entrance sv-ll" data-line="'+en.line+'"');
+      html+='<text class="svge-entrance" x="'+(ex+3)+'" y="'+(ey-2)+'" fill="#22bb55" font-size="2.5" font-family="monospace">'+escH(en.name)+'</text>';
     });
     html+='</svg></div>';
   } else {
@@ -1534,7 +1718,7 @@ function renderRoomDetail(room){
   if(objs.length){
     html+='<div class="rs rs-objects"><div class="rs-h">Objects</div><ul class="rs-list">';
     objs.forEach(function(o){
-      html+='<li><a class="ll" data-line="'+o.line+'" href="#">object['+escH(o.index)+']</a></li>';
+      html+='<li><a class="ll" data-line="'+o.line+'" href="#">object['+escH(o.index)+']</a>'+(o.desc?' <span class="obj-desc">'+escH(o.desc)+'</span>':'')+'</li>';
     });
     html+='</ul></div>';
   }
@@ -1545,10 +1729,31 @@ function renderRoomDetail(room){
     });
     html+='</ul></div>';
   }
+  if(stepOn.length){
+    html+='<div class="rs rs-step"><div class="rs-h">Step-on triggers</div><ul class="rs-list">';
+    stepOn.forEach(function(t){
+      html+='<li class="trig-step"><span class="trig-coord">['+t.x1+','+t.y1+':'+t.x2+','+t.y2+']</span>'+(t.label?' <em>'+escH(t.label)+'</em>':'')+'</li>';
+    });
+    html+='</ul></div>';
+  }
+  if(bTrigger.length){
+    html+='<div class="rs rs-btrig"><div class="rs-h">B-triggers</div><ul class="rs-list">';
+    bTrigger.forEach(function(t){
+      html+='<li class="trig-b"><span class="trig-coord">['+t.x1+','+t.y1+':'+t.x2+','+t.y2+']</span>'+(t.label?' <em>'+escH(t.label)+'</em>':'')+'</li>';
+    });
+    html+='</ul></div>';
+  }
 
   panel.innerHTML=html;
   bindLinks(panel);
-  // Wire entity filter buttons
+  // Cmd/Ctrl+click on SVG code-linked elements
+  panel.querySelectorAll('.sv-ll').forEach(function(el){
+    el.style.cursor='pointer';
+    el.addEventListener('click',function(e){
+      if(e.metaKey||e.ctrlKey){e.stopPropagation();goToLine(parseInt(el.dataset.line));}
+    });
+  });
+  // Entity filter buttons
   panel.querySelectorAll('.rdf').forEach(function(btn){
     btn.addEventListener('click',function(){
       btn.classList.toggle('on');
