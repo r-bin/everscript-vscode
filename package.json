@@ -1,8 +1,8 @@
 {
   "name": "everscript",
   "displayName": "Everscript",
-  "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.2.1",
+  "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) \u2014 the Secret of Evermore ROM scripting language",
+  "version": "0.2.3",
   "publisher": "rbin",
   "main": "./extension.js",
   "engines": {
@@ -25,8 +25,13 @@
     "languages": [
       {
         "id": "everscript",
-        "aliases": ["Everscript", "evs"],
-        "extensions": [".evs"],
+        "aliases": [
+          "Everscript",
+          "evs"
+        ],
+        "extensions": [
+          ".evs"
+        ],
         "configuration": "./language-configuration.json"
       }
     ],
@@ -54,7 +59,10 @@
       {
         "name": "everscript",
         "owner": "everscript",
-        "fileLocation": ["relative", "${workspaceFolder}"],
+        "fileLocation": [
+          "relative",
+          "${workspaceFolder}"
+        ],
         "pattern": {
           "regexp": "^(.+):(\\d+):\\s+(error|warning|note):\\s+(.+)$",
           "file": 1,
@@ -67,7 +75,9 @@
     "taskDefinitions": [
       {
         "type": "everscript",
-        "required": ["script"],
+        "required": [
+          "script"
+        ],
         "properties": {
           "script": {
             "type": "string",

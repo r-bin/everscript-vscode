@@ -62,11 +62,15 @@ The `everscript-memory-radar` repo is now dormant — do not modify it.
 - No offset arithmetic. `memory(0x22d8)` = WRAM byte at `$7E22D8`.
 - Do not invent an offset or base; the parser reads hex literals as-is.
 
-**Lifecycle classification (radarLifecycle) — four regions:**
-- `sram`    — entry notes/type contains `[SRAM]` or the word `sram` (case-insensitive).
-- `temp`    — addr in `0x2800–0x28FF` (compiler scratch, cleared on room load).
-- `session` — addr in `0x2200–0x27FF` (cross-room persistent vars).
+**Lifecycle classification (radarLifecycle) — four regions, address check takes priority:**
+- `temp`    — addr in `0x2834–0x28FF` (compiler TEMP RAM as defined in main.evs, cleared on room load). **Overrides `[SRAM]` tag.**
+- `session` — addr in `0x2200–0x27FF` (cross-room persistent vars, SRAM range). **Overrides `[SRAM]` tag.**
+- `sram`    — entry notes/type contains `[SRAM]` or the word `sram` (case-insensitive). Only when not in temp/session range.
 - `system`  — everything else (engine/HW addresses, 0x0000–0x21FF and 0x2900+).
+
+**Note on `_loot_chest`, `_loot`, `loot`, `retained_object`:**
+These are dynamically allocated from the compiler memory pool. The address is NOT the first call argument —
+it is computed at link time based on how much pool has been consumed. Do NOT attempt to infer addresses from call sites.
 
 **Read / Write detection (radarAnalyzeScope):**
 - A reference is a **write** if it is immediately followed by `=` (but not `==`, `!=`, `<=`, `>=`).
@@ -74,16 +78,46 @@ The `everscript-memory-radar` repo is now dormant — do not modify it.
 - All other references are **reads**.
 - The radar grid cell gets class `.crw` (amber) if both reads and writes are found, `.cw` (red) if write-only.
 
+**Multi-byte entry support:**
+- `radarReadMemoryMap` stores `addrStart` and `addrEnd` on every entry (from the memory-map.md range).
+- `Word` type entries with a single address in the map are automatically extended to cover `addr` and `addr+1`.
+- All addresses in a multi-byte range share the same entry object.
+- Hovering any cell highlights all bytes from `addrStart` to `addrEnd`.
+- Clicking any cell in a multi-byte entry selects ALL cells in the range (`.cursor` class on each).
+- Multi-byte cells with `data-gid`/`data-gend` attributes get a colored bottom-border stripe (via JS group coloring on init), visually connecting all bytes in the same entry.
+- Emoji extraction: `radarExtractEmoji(str)` finds the first `Extended_Pictographic` in the entry name/notes.
+
+**UI layout (T-shape):**
+- **Sticky header**: title, scope, filters, and region usage bars — does not scroll.
+- **Left panel** (`.left-panel`): WRAM grid — scrolls independently.
+- **Right panel** (`.right-panel`): detail table — scrolls independently.
+- Clicking a grid cell updates the right panel (scroll + selection). `follow` mode is required for right-panel auto-scroll.
+
 **UI features (renderRadarHtml):**
-- Filter buttons: `temp / session / sram / system / rest` — hide entire grid rows when all cells in a row are filtered out (`recomputeRows()`).
-- Cell click opens a structured popup with: Vanilla notes, Writes (destructive), Reads (non-destructive).
-- Word-byte highlighting: hovering a cell for a `word` entry highlights the adjacent addr+1 cell with class `.chi`.
-- CELLS data is embedded as a JS object (`var CELLS = {...}`) in the webview, keyed by address.
+- **Filter buttons**: `temp / session / sram / system / rest` — hide entire grid rows when all cells in a row are filtered out.
+  - Region filters hide cells via `body.hXX` class (cells remain in DOM) and rows via `recomputeRows()`.
+  - `rest` (undocumented rows) is hidden by default on load.
+- **`boring` button**: hides rows where no cells are used in the current scope.
+- **`emoji` button**: overlays first emoji from entry name/notes onto each 9×9 grid cell.
+- **`follow` button**: when on, clicking a grid cell auto-scrolls the detail table to the entry.
+- **`pin` button**: sends `pin`/`unpin` messages to the extension. While pinned, radar ignores editor/scope changes.
+- **Popup on cell click**: shows structured detail (Vanilla notes, Writes, Reads). Does NOT auto-scroll table by default (use `follow` mode).
+- **Cursor**: last-clicked cell gets `.cursor` class (bright white border, persistent).
+- **Detail table columns**: Addr | Name | T | Rgn | Notes | Lines. Line links in the **Lines** column jump to editor.
+- **Detail row click**: selects the corresponding grid cell and shows popup. Line links jump to editor (stopPropagation).
+- **Hover tooltip**: every cell has a `title` attribute showing `0xADDR Name`.
+- **Memory-map hover in editor**: hex literals (e.g. `0x22d8`) in `.evs` files show name + lifecycle + "Open Memory Radar" link in the hover.
+
+**Auto-update:**
+- Radar re-renders when the active editor changes or cursor moves to a different scope (debounced 400ms/600ms).
+- `refreshRadar(editor)` skips re-render if scope/doc unchanged.
+- `_radarPanel` is a module-level singleton; `openMemoryRadar` reuses the panel if already open.
+- Memory-map cache (`_radarMapCache`) is invalidated by a `FileSystemWatcher` on `**/.github/memory-map.md`.
 
 **Snes9x live memory prototype:**
 - `tools/snes9x_wram.py` — macOS Mach VM reader. Uses `task_for_pid` + `mach_vm_read` to read the 128 KB WRAM buffer from a running Snes9x process.
 - `--addr 0xNNNN` reads a specific address; `--watch` polls every 0.5 s; `--json` emits JSON lines for VS Code integration.
-- Requires `sudo` or `get-task-allow` entitlement on macOS.
+- Requires `sudo` or `get-task-allow` entitlement on macOS. Bus error on first run indicates the WRAM region scan found an unmappable address.
 
 **No overlap expected** — the WRAM address space is memory-mapped; two scripts should never legitimately share the same address. Do not add overlap-warning UI.
 

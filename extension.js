@@ -173,8 +173,19 @@ function makeHoverForNumber(text) {
     if (base !== 2)  lines.push(`binary:  0b${binStr}`);
     lines.push(`size:    ${byteLabel}`);
 
-    const md = new vscode.MarkdownString();
+    const md = new vscode.MarkdownString(undefined, true);
+    md.isTrusted = true;
     md.appendCodeblock(lines.join('\n'), 'text');
+    // Memory map lookup for WRAM addresses
+    if (value >= 0 && value <= 0xFFFF) {
+        const me = getRadarMap().get(value);
+        if (me) {
+            md.appendMarkdown('\n\n**' + me.name + '** `' + me.lifecycle + '`');
+            if (me.type) md.appendMarkdown(' — ' + me.type.replace(/</g, '&lt;'));
+            if (me.notes) md.appendMarkdown('\n\n' + me.notes.replace(/</g, '&lt;').replace(/>/g, '&gt;'));
+            md.appendMarkdown('\n\n[$(list-selection) Open Memory Radar](command:everscript.openMemoryRadar)');
+        }
+    }
     return new vscode.Hover(md);
 }
 
@@ -533,7 +544,41 @@ async function provideReferences(document, position) {
 //   sram    varies         explicitly tagged [SRAM] in memory map
 //   system  everything else (0x0000–0x21FF engine/HW, 0x2900+)
 
-const RADAR_BIT_ALLOC_FUNCS = new Set(['_loot_chest', '_loot', 'loot', 'retained_object']);
+// Note: _loot_chest/_loot/loot/retained_object are dynamically allocated from the
+// compiler memory pool — addresses cannot be statically inferred from call sites.
+
+let _radarPanel        = null;   // active radar webview panel
+let _radarPinned       = false;  // when true, radar ignores editor/scope changes
+let _radarDoc          = null;   // document the radar was last rendered for
+let _radarCurrentScope = null;   // scope the radar was last rendered for
+let _radarMapCache     = null;   // cached parsed memory-map.md
+let _radarUpdateTimer  = null;   // debounce timer for auto-update
+
+function getRadarMap() {
+    if (_radarMapCache) return _radarMapCache;
+    const wf = vscode.workspace.workspaceFolders?.[0];
+    if (!wf) return new Map();
+    _radarMapCache = radarReadMemoryMap(path.join(wf.uri.fsPath, '.github', 'memory-map.md'));
+    return _radarMapCache;
+}
+
+function invalidateRadarMap() { _radarMapCache = null; }
+
+function refreshRadar(editor) {
+    if (!_radarPanel || _radarPinned) return;
+    if (!editor || editor.document.languageId !== 'everscript') return;
+    const doc   = editor.document;
+    const line  = editor.selection?.active?.line ?? 0;
+    const scope = radarDetectScope(doc, line);
+    if (_radarCurrentScope && _radarDoc === doc &&
+        scope.name === _radarCurrentScope.name && scope.kind === _radarCurrentScope.kind) return;
+    _radarCurrentScope = scope;
+    _radarDoc = doc;
+    const refs      = radarAnalyzeScope(doc, scope.startLine, scope.endLine);
+    const mapByAddr = getRadarMap();
+    _radarPanel.webview.html = renderRadarHtml(scope, refs, mapByAddr);
+    _radarPanel.title = 'Radar: ' + scope.name;
+}
 
 class RadarCodeLensProvider {
     provideCodeLenses(document) {
@@ -609,11 +654,7 @@ function radarAnalyzeScope(document, startLine, endLine) {
             const a = parseInt(m[1], 16);
             if (!isNaN(a)) add(a, i, '<deref>', isWrite(text, m[1]));
         }
-        for (const m of text.matchAll(/\b([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)/g)) {
-            if (!RADAR_BIT_ALLOC_FUNCS.has(m[1])) continue;
-            const xs = [...m[2].matchAll(/0x[0-9a-fA-F]+/g)];
-            if (xs.length) { const a = parseInt(xs[0][0], 16); if (!isNaN(a)) add(a, i, m[1], true); }
-        }
+
     }
     return refs;
 }
@@ -632,22 +673,34 @@ function radarReadMemoryMap(filePath) {
         const notes = (cells[3] || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
         const typeStr = cells[2] || '';
         const isWord = /\bWord\b/i.test(typeStr);
+        // Extend Word entries to cover both bytes when only a single address is given
+        const effectiveEnd = (isWord && end === start) ? start + 1 : end;
         const entry = {
             name: cells[1], type: typeStr, notes,
             lifecycle: radarLifecycle(start, typeStr, notes),
-            isWord, addrStart: start, addrEnd: end,
+            isWord, addrStart: start, addrEnd: effectiveEnd,
         };
-        for (let a = start; a <= end; a++) if (!map.has(a)) map.set(a, entry);
+        for (let a = start; a <= effectiveEnd; a++) if (!map.has(a)) map.set(a, entry);
     }
     return map;
 }
 
 function radarLifecycle(addr, type, notes) {
+    // Regions as defined in the linker (main.evs):
+    //   temp    0x2834–0x28FF  compiler TEMP RAM — cleared on room load
+    //   session 0x2200–0x27FF  SRAM/session range — persistent across rooms
+    //   sram    [SRAM]-tagged  battery-backed saves (checked by tag)
+    //   system  everything else
+    if (addr >= 0x2834 && addr <= 0x28FF) return 'temp';
+    if (addr >= 0x2200 && addr <= 0x27FF) return 'session';
     const hay = (type + ' ' + notes).toLowerCase();
     if (hay.includes('sram')) return 'sram';
-    if (addr >= 0x2800 && addr <= 0x28FF) return 'temp';
-    if (addr >= 0x2200 && addr <= 0x27FF) return 'session';
     return 'system';
+}
+
+function radarExtractEmoji(str) {
+    const m = str.match(/\p{Extended_Pictographic}/u);
+    return m ? m[0] : '';
 }
 
 function radarEsc(s) {
@@ -665,7 +718,6 @@ function renderRadarHtml(scope, refs, mapByAddr) {
     const rowStart = Math.min(...allAddrs) & ~(COLS - 1);
     const rowEnd   = (Math.max(...allAddrs) | (COLS - 1)) + 1;
 
-    // Unique entry count / used count per lifecycle
     const lcCount = (lc) => {
         const seen = new Set();
         for (const e of mapByAddr.values()) { if (e.lifecycle === lc && !seen.has(e)) seen.add(e); }
@@ -687,37 +739,43 @@ function renderRadarHtml(scope, refs, mapByAddr) {
                '<span class="bl">' + u + '/' + t + ' (' + p + '%)</span>';
     };
 
-    // Build cell data lookup (keyed by address as number for JSON)
+    // Build cell data (keyed by address number for JSON)
     const cellData = {};
     for (const [addr, me] of mapByAddr) {
         const usage = refs.get(addr);
         cellData[addr] = {
             addr: radarH(addr), name: me.name, type: me.type,
-            lc: me.lifecycle, notes: me.notes, isWord: me.isWord,
+            lc: me.lifecycle, notes: me.notes,
+            addrStart: me.addrStart, addrEnd: me.addrEnd,
+            emoji: radarExtractEmoji(me.name + ' ' + me.notes),
             reads: usage ? usage.reads : [],
             writes: usage ? usage.writes : [],
         };
     }
     for (const [addr, usage] of refs) {
-        if (!cellData[addr]) cellData[addr] = {
-            addr: radarH(addr), name: '(unknown)', type: '?',
-            lc: radarLifecycle(addr, '', ''), notes: '', isWord: false,
-            reads: usage.reads, writes: usage.writes,
-        };
+        if (!cellData[addr]) {
+            const lc = radarLifecycle(addr, '', '');
+            cellData[addr] = {
+                addr: radarH(addr), name: '(unknown)', type: '?',
+                lc, notes: '', addrStart: addr, addrEnd: addr, emoji: '',
+                reads: usage.reads, writes: usage.writes,
+            };
+        }
     }
 
-    // Build grid HTML
+    // Grid HTML
     let gridHtml = '';
     for (let base = rowStart; base < rowEnd; base += COLS) {
-        let cells = '', rowLcs = new Set(), allRest = true;
+        let cells = '', rowLcs = new Set(), allRest = true, rowHasUsed = false;
         for (let col = 0; col < COLS; col++) {
-            const addr = base + col;
-            const me = mapByAddr.get(addr);
+            const addr  = base + col;
+            const me    = mapByAddr.get(addr);
             const usage = refs.get(addr);
-            const lc = me ? me.lifecycle : radarLifecycle(addr, '', '');
+            const lc    = me ? me.lifecycle : radarLifecycle(addr, '', '');
             const isUsed = !!usage;
             const isRest = !me && !isUsed;
             if (!isRest) { allRest = false; rowLcs.add(lc); }
+            if (isUsed) rowHasUsed = true;
             let cls = 'cell lc-' + lc;
             if (isUsed) {
                 cls += ' cu';
@@ -725,53 +783,74 @@ function renderRadarHtml(scope, refs, mapByAddr) {
                 else if (usage.writes.length && usage.reads.length) cls += ' crw';
             }
             if (isRest) cls += ' cr';
-            if (me && me.isWord) cls += ' cword';
-            cells += '<span class="' + cls + '" data-addr="' + addr + '"></span>';
+            const cd = cellData[addr];
+            const tip = radarEsc(radarH(addr) + (me ? ' ' + me.name : ''));
+            const emoji = cd ? cd.emoji : '';
+            const gsize = me ? (me.addrEnd - me.addrStart + 1) : 1;
+            const grpAttrs = (gsize > 1)
+                ? ' data-gid="' + me.addrStart + '" data-gend="' + me.addrEnd + '"'
+                : '';
+            cells += '<span class="' + cls + '" data-addr="' + addr + '"' +
+                     ' title="' + tip + '"' + grpAttrs +
+                     (emoji ? ' data-emoji="' + radarEsc(emoji) + '"' : '') +
+                     '></span>';
         }
         gridHtml += '<div class="gr' + (allRest ? ' gar' : '') +
-                    '" data-lcs="' + [...rowLcs].join(' ') + '">' +
+                    '" data-lcs="' + [...rowLcs].join(' ') + '"' +
+                    ' data-used="' + (rowHasUsed ? '1' : '0') + '">' +
                     '<span class="rl">' + radarH(base) + '</span>' + cells + '</div>';
     }
 
-    // Build detail table
+    // Detail table — one row per unique entry
     const seenE = new Set();
     const detailRows = [...mapByAddr.entries()]
         .sort((a, b) => a[0] - b[0])
         .filter(([, e]) => { if (seenE.has(e)) return false; seenE.add(e); return true; })
         .map(([addr, e]) => {
-            const usage = refs.get(addr);
+            const usage  = refs.get(addr);
             const rLinks = usage ? usage.reads.map(l =>
-                '<a class="ll" data-line="' + l + '">:' + (l+1) + '</a>').join('') : '';
+                '<a class="ll" data-line="' + l + '" title="Jump to line ' + (l+1) + '">:' + (l+1) + '</a>').join('') : '';
             const wLinks = usage ? usage.writes.map(l =>
-                '<a class="ll lw" data-line="' + l + '">:' + (l+1) + '</a>').join('') : '';
-            const rwCell = (rLinks || wLinks)
+                '<a class="ll lw" data-line="' + l + '" title="Jump to line ' + (l+1) + '">:' + (l+1) + '</a>').join('') : '';
+            const linesCell = (rLinks || wLinks)
                 ? (wLinks ? '<span class="rw-w">' + wLinks + '</span>' : '') +
                   (rLinks ? '<span class="rw-r">' + rLinks + '</span>' : '')
                 : '&ndash;';
-            return '<tr id="dr-' + addr + '" class="lc-' + e.lifecycle + (usage ? ' du' : '') + '">' +
-                   '<td class="mo">' + radarH(addr) + '</td>' +
+            const em = radarExtractEmoji(e.name + ' ' + e.notes);
+            return '<tr id="dr-' + addr + '" class="dr lc-' + e.lifecycle + (usage ? ' du' : '') + '"' +
+                   ' data-addr="' + addr + '">' +
+                   '<td class="mo">' + (em ? '<span class="te">' + em + '</span>' : '') + radarH(addr) + '</td>' +
                    '<td>' + radarEsc(e.name) + '</td>' +
                    '<td class="mt">' + radarEsc(e.type) + '</td>' +
                    '<td><span class="chip ch-' + e.lifecycle + '">' + e.lifecycle + '</span></td>' +
-                   '<td class="rwc">' + rwCell + '</td>' +
-                   '<td class="nt">' + radarEsc(e.notes) + '</td></tr>';
+                   '<td class="nt">' + radarEsc(e.notes) + '</td>' +
+                   '<td class="rwc">' + linesCell + '</td></tr>';
         }).join('');
 
     const tempT = lcCount('temp'), sessT = lcCount('session'), sramT = lcCount('sram');
     const tempU = lcUsed('temp'),  sessU = lcUsed('session'),  sramU = lcUsed('sram');
 
-    // Embed cell data as JS var (avoids HTML attribute encoding issues)
     const jsData = 'var CELLS=' + JSON.stringify(cellData).replace(/<\/script>/gi, '<\\/script>') + ';';
 
     const css = `*{box-sizing:border-box;margin:0;padding:0}
-body{font:11px/1.4 "SF Mono","Cascadia Code",monospace;background:var(--vscode-editor-background);color:var(--vscode-editor-foreground);padding:8px 10px}
+html,body{height:100%;overflow:hidden}
+body{font:11px/1.4 "SF Mono","Cascadia Code",monospace;background:var(--vscode-editor-background);color:var(--vscode-editor-foreground);padding:8px 10px 0;display:flex;flex-direction:column}
 h2{font-size:9px;text-transform:uppercase;letter-spacing:.08em;opacity:.32;margin:8px 0 2px;font-weight:700}
 .sh{font-size:13px;font-weight:700;margin-bottom:2px}.sm{opacity:.4;font-size:10px;margin-bottom:6px}
-.filters{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px}
+.head{flex-shrink:0;border-bottom:1px solid #1c1c1c;padding-bottom:6px;margin-bottom:6px}
+.panels{display:flex;flex:1;overflow:hidden;gap:8px;min-height:0}
+.left-panel{overflow-y:auto;flex-shrink:0;padding-right:4px;padding-bottom:8px}
+.right-panel{overflow-y:auto;flex:1;min-width:0;padding-bottom:8px}
+.ph{font-size:9px;text-transform:uppercase;letter-spacing:.08em;opacity:.32;padding:3px 0 2px;font-weight:700;position:sticky;top:0;background:var(--vscode-editor-background);z-index:2;margin-bottom:2px}
+.filters{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px;align-items:center}
 .fb{border:1px solid #333;border-radius:10px;padding:1px 7px;cursor:pointer;font-size:10px;background:transparent;color:inherit;opacity:.3}
 .fb.on{opacity:1}
 .fb.ft{border-color:#388bfd;color:#6cb6ff}.fb.fs{border-color:#ffa94d;color:#ffa94d}
-.fb.fr2{border-color:#3fb950;color:#56d364}.fb.fy{border-color:#666;color:#999}.fb.frest{border-color:#333;color:#555}
+.fb.fr2{border-color:#3fb950;color:#56d364}.fb.fy{border-color:#666;color:#999}
+.fb.frest{border-color:#333;color:#555}.fb.fboring{border-color:#666;color:#888}
+.fb.femoji{border-color:#888;color:#aaa}.fb.ffollow{border-color:#a060ff;color:#c090ff}
+.fb.fpin{border-color:#ff9040;color:#ffb060}.fb.fpin.on{border-color:#ff9040}
+.sep{width:1px;height:14px;background:#333;margin:0 2px}
 .sr{display:flex;align-items:center;gap:5px;margin-bottom:2px;font-size:10px}
 .sl{width:44px;opacity:.45;flex-shrink:0}
 .bo{flex:1;height:4px;background:#181818;border-radius:2px;max-width:80px;overflow:hidden}
@@ -779,22 +858,23 @@ h2{font-size:9px;text-transform:uppercase;letter-spacing:.08em;opacity:.32;margi
 .bi-temp{background:#388bfd}.bi-session{background:#ffa94d}.bi-sram{background:#3fb950}
 .bl{font-size:9px;opacity:.38;white-space:nowrap}
 .gw{margin:4px 0}
-.gr{display:flex;align-items:center;gap:1px;margin-bottom:1px}
+.gr{display:flex;align-items:center;gap:1px;margin-bottom:1px;flex-shrink:0}
 .rl{font-size:7px;opacity:.2;width:36px;flex-shrink:0;user-select:none;letter-spacing:-.02em}
-.cell{display:inline-block;width:9px;height:9px;border-radius:1px;background:#0a0a0a;flex-shrink:0;cursor:pointer}
-.cell:hover{outline:1.5px solid rgba(255,255,255,.65);position:relative;z-index:2}
+.cell{display:inline-block;width:9px;height:9px;border-radius:1px;background:#0a0a0a;flex-shrink:0;cursor:pointer;position:relative;overflow:hidden;vertical-align:top;font-size:0;line-height:0}
+.cell:hover{outline:1.5px solid rgba(255,255,255,.65);z-index:2}
 .cell.chi{outline:1.5px solid rgba(255,255,255,.3)!important;filter:brightness(1.4)}
+.cell.cursor{outline:2px solid rgba(255,255,255,.9)!important;z-index:3}
 .lc-temp{background:#152840}.lc-session{background:#2a1800}.lc-sram{background:#0a2010}.lc-system{background:#1a1a20}
 .cu.lc-temp{background:#388bfd}.cu.lc-session{background:#ffa94d}.cu.lc-sram{background:#3fb950}.cu.lc-system{background:#7777cc}
 .cw.cu{box-shadow:inset 0 0 0 1.5px #ff7b72}.crw.cu{box-shadow:inset 0 0 0 1.5px #f2cc60}
 .cr{background:#060606!important;opacity:.1}
-body.ht .lc-temp,.gr.ht{display:none!important}
-body.hs .lc-session,.gr.hs{display:none!important}
-body.hr2 .lc-sram,.gr.hr2{display:none!important}
-body.hsy .lc-system,.gr.hsy{display:none!important}
-body.hrest .gar{display:none!important}
+body.ht .cell.lc-temp:not(.cursor){opacity:0;pointer-events:none}
+body.hs .cell.lc-session:not(.cursor){opacity:0;pointer-events:none}
+body.hr2 .cell.lc-sram:not(.cursor){opacity:0;pointer-events:none}
+body.hsy .cell.lc-system:not(.cursor){opacity:0;pointer-events:none}
 .gr.hrow{display:none!important}
-#popup{display:none;position:fixed;top:8px;right:8px;width:210px;max-height:72vh;overflow-y:auto;
+body.emoji .cell[data-emoji]::before{content:attr(data-emoji);font-size:6px;line-height:9px;display:block;text-align:center;pointer-events:none}
+#popup{display:none;position:fixed;top:8px;right:8px;width:220px;max-height:72vh;overflow-y:auto;
   background:#1c1c1c;border:1px solid #333;border-radius:6px;padding:8px;font-size:10px;z-index:100;box-shadow:0 4px 24px rgba(0,0,0,.7)}
 #popup.vis{display:block}
 .px{float:right;cursor:pointer;opacity:.35;font-size:12px;margin-left:4px}.px:hover{opacity:.9}
@@ -804,103 +884,205 @@ body.hrest .gar{display:none!important}
 table{width:100%;border-collapse:collapse;font-size:10px;margin-top:2px}
 th,td{border:1px solid #1a1a1a;padding:2px 4px;vertical-align:top}
 th{background:#101010;position:sticky;top:0;font-weight:600;text-align:left;font-size:8px}
-tr:hover td{background:rgba(255,255,255,.02)}.du td{background:rgba(255,255,255,.01)}
+tr.dr{cursor:pointer}tr.dr:hover td{background:rgba(255,255,255,.03)}
+.du td{background:rgba(255,255,255,.01)}
 .lc-temp td:first-child{border-left:2px solid #388bfd}
 .lc-session.du td:first-child{border-left:2px solid #ffa94d}
 .lc-sram.du td:first-child{border-left:2px solid #3fb950}
-.mo{font-size:9px}.mt{opacity:.4;font-size:9px}.nt{opacity:.38;font-size:9px;max-width:100px;word-break:break-word}
+tr.sel td{background:rgba(255,200,50,.08)!important;outline:1px solid rgba(255,200,50,.15)}
+.mo{font-size:9px;white-space:nowrap}.mt{opacity:.4;font-size:9px}
+.nt{opacity:.38;font-size:9px;max-width:80px;word-break:break-word}
 .rwc{white-space:nowrap;font-size:9px}.rw-w a{color:#ff9f9f}.rw-r a{color:#9fcfff}
 .chip{border-radius:5px;padding:0 3px;font-size:8px;border:1px solid transparent}
 .ch-temp{border-color:#388bfd;color:#6cb6ff}.ch-session{border-color:#ffa94d;color:#ffa94d}
 .ch-sram{border-color:#3fb950;color:#56d364}.ch-system{border-color:#555;color:#888}
 a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.ll:hover{text-decoration:underline}
-.hl td{background:rgba(255,200,50,.06)!important}`;
+.te{margin-right:2px;font-size:9px}`;
 
     const js = `(function(){
 var vs=typeof acquireVsCodeApi==='function'?acquireVsCodeApi():null;
 ${jsData}
-var hidden=new Set();
+var hidden=new Set(['rest']);
+var hideBoring=false,followMode=false,emojiMode=false;
 var BTN_LC={ft:'temp',fs:'session',fr2:'sram',fy:'system',frest:'rest'};
-var BTN_BODY={ft:'ht',fs:'hs',fr2:'hr2',fy:'hsy',frest:'hrest'};
+var BTN_BODY={ft:'ht',fs:'hs',fr2:'hr2',fy:'hsy'};
+// Initialize: rest hidden by default
+document.body.classList.add('hrest');
 function recomputeRows(){
   document.querySelectorAll('.gr').forEach(function(row){
-    if(row.classList.contains('gar')){row.classList.toggle('hrow',hidden.has('rest'));return;}
+    var isGar=row.classList.contains('gar');
+    if(isGar){row.classList.toggle('hrow',hidden.has('rest'));return;}
     var lcs=(row.dataset.lcs||'').split(' ').filter(Boolean);
-    row.classList.toggle('hrow',lcs.length>0&&lcs.every(function(lc){return hidden.has(lc);}));
+    var allHidden=lcs.length>0&&lcs.every(function(lc){return hidden.has(lc);});
+    var isUsed=row.dataset.used==='1';
+    row.classList.toggle('hrow',allHidden||(hideBoring&&!isUsed));
   });
 }
-document.querySelectorAll('.fb').forEach(function(b){
+// Region filter buttons
+document.querySelectorAll('.fb[data-cls]').forEach(function(b){
   var k=b.dataset.cls;
+  if(!BTN_LC[k])return;
   b.addEventListener('click',function(){
     b.classList.toggle('on');
     var on=b.classList.contains('on');
     var lc=BTN_LC[k];
     if(on)hidden.delete(lc);else hidden.add(lc);
-    document.body.classList.toggle(BTN_BODY[k],!on);
+    // Region filters use body class for cell visibility (cells remain in DOM but hidden)
+    if(BTN_BODY[k])document.body.classList.toggle(BTN_BODY[k],!on);
     recomputeRows();
   });
 });
+// rest button (gar rows only, no body class needed — hrow handles it)
+var restBtn=document.querySelector('.fb.frest');
+if(restBtn)restBtn.addEventListener('click',function(){
+  restBtn.classList.toggle('on');
+  var on=restBtn.classList.contains('on');
+  if(on)hidden.delete('rest');else hidden.add('rest');
+  recomputeRows();
+});
+// Boring filter
+var boringBtn=document.getElementById('btn-boring');
+if(boringBtn)boringBtn.addEventListener('click',function(){
+  hideBoring=!hideBoring;
+  boringBtn.classList.toggle('on',hideBoring);
+  recomputeRows();
+});
+// Emoji toggle
+var emojiBtn=document.getElementById('btn-emoji');
+if(emojiBtn)emojiBtn.addEventListener('click',function(){
+  emojiMode=!emojiMode;
+  emojiBtn.classList.toggle('on',emojiMode);
+  document.body.classList.toggle('emoji',emojiMode);
+});
+// Follow toggle (auto-scroll detail table on grid cell click)
+var followBtn=document.getElementById('btn-follow');
+if(followBtn)followBtn.addEventListener('click',function(){
+  followMode=!followMode;
+  followBtn.classList.toggle('on',followMode);
+});
+// Pin toggle (stop auto-update from editor)
+var pinBtn=document.getElementById('btn-pin');
+if(pinBtn)pinBtn.addEventListener('click',function(){
+  var pinned=pinBtn.classList.toggle('on');
+  if(vs)vs.postMessage({command:pinned?'pin':'unpin'});
+});
+// Popup
 var popup=document.getElementById('popup');
 function closePopup(){popup.classList.remove('vis');}
 document.getElementById('px').addEventListener('click',closePopup);
 function goToLine(l){if(vs)vs.postMessage({command:'goToLine',line:l});}
 function bindLinks(root){
   root.querySelectorAll('a.ll').forEach(function(a){
-    a.addEventListener('click',function(e){e.preventDefault();goToLine(parseInt(a.dataset.line));});
+    a.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();goToLine(parseInt(a.dataset.line));});
   });
 }
 function showPopup(d){
   var wLinks=d.writes.map(function(l){return '<a class="ll pw" data-line="'+l+'">line '+(l+1)+'</a>';}).join(' ');
   var rLinks=d.reads.map(function(l){return '<a class="ll pr" data-line="'+l+'">line '+(l+1)+'</a>';}).join(' ');
   var html='<span class="px" id="px2">&#x2715;</span>'+
-    '<div class="pa">'+d.addr+'</div>'+
+    '<div class="pa">'+(d.emoji?d.emoji+' ':'')+d.addr+'</div>'+
     '<div class="pn">'+d.name+'</div>'+
     '<div class="pt">'+d.type+' &bull; '+d.lc+'</div>';
-  if(d.notes) html+='<h3>Vanilla notes</h3><div class="pt">'+d.notes+'</div>';
-  if(wLinks) html+='<h3>Writes (destructive)</h3><div class="pw">'+wLinks+'</div>';
-  if(rLinks) html+='<h3>Reads (non-destructive)</h3><div class="pr">'+rLinks+'</div>';
-  if(!wLinks&&!rLinks) html+='<h3>Not used in scope</h3>';
+  if(d.notes)html+='<h3>Vanilla notes</h3><div class="pt">'+d.notes+'</div>';
+  if(wLinks)html+='<h3>Writes (destructive)</h3><div class="pw">'+wLinks+'</div>';
+  if(rLinks)html+='<h3>Reads (non-destructive)</h3><div class="pr">'+rLinks+'</div>';
+  if(!wLinks&&!rLinks)html+='<h3>Not used in scope</h3>';
   popup.innerHTML=html;
   popup.classList.add('vis');
   bindLinks(popup);
   popup.querySelector('#px2').addEventListener('click',closePopup);
 }
+// Cursor: highlight ALL cells in the entry's address range
+function setCursor(addr){
+  document.querySelectorAll('.cursor').forEach(function(x){x.classList.remove('cursor');});
+  var d=CELLS[addr];
+  var start=d?d.addrStart:addr,end=d?d.addrEnd:addr;
+  for(var a=start;a<=end;a++){
+    var c=document.querySelector('.cell[data-addr="'+a+'"]');
+    if(c)c.classList.add('cursor');
+  }
+  var first=document.querySelector('.cell[data-addr="'+start+'"]');
+  if(first)first.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+// Detail row selection
+function selectDetailRow(addr){
+  document.querySelectorAll('tr.sel').forEach(function(r){r.classList.remove('sel');});
+  var d=CELLS[addr];
+  var start=d?d.addrStart:addr, end=d?d.addrEnd:addr;
+  for(var a=start;a<=end;a++){
+    var row=document.getElementById('dr-'+a);
+    if(row)row.classList.add('sel');
+  }
+  if(followMode){
+    var firstRow=document.getElementById('dr-'+start);
+    if(firstRow)firstRow.scrollIntoView({behavior:'smooth',block:'center'});
+  }
+}
+// Grid cell interactions
 document.querySelectorAll('.cell').forEach(function(c){
   var addr=parseInt(c.dataset.addr);
   c.addEventListener('click',function(){
+    setCursor(addr);
+    selectDetailRow(addr);
     var d=CELLS[addr];
     if(d)showPopup(d);
-    var row=document.getElementById('dr-'+addr);
-    if(row){
-      document.querySelectorAll('.hl').forEach(function(r){r.classList.remove('hl');});
-      row.classList.add('hl');
-      row.scrollIntoView({behavior:'smooth',block:'center'});
-      setTimeout(function(){row.classList.remove('hl');},2000);
-    }
   });
   c.addEventListener('mouseover',function(){
-    if(!c.classList.contains('cword'))return;
-    var nb=document.querySelector('.cell[data-addr="'+(addr+1)+'"]');
-    if(nb)nb.classList.add('chi');
+    var d=CELLS[addr];
+    if(!d||d.addrStart===undefined)return;
+    var start=d.addrStart,end=d.addrEnd;
+    if(start===end)return;
+    for(var a=start;a<=end;a++){
+      if(a===addr)continue;
+      var nb=document.querySelector('.cell[data-addr="'+a+'"]');
+      if(nb)nb.classList.add('chi');
+    }
   });
   c.addEventListener('mouseout',function(){
     document.querySelectorAll('.chi').forEach(function(x){x.classList.remove('chi');});
   });
 });
+// Detail row click → highlight grid cell
+document.querySelectorAll('tr.dr').forEach(function(row){
+  row.addEventListener('click',function(e){
+    if(e.target.classList.contains('ll'))return;
+    var addr=parseInt(row.dataset.addr);
+    setCursor(addr);
+    selectDetailRow(addr);
+    var d=CELLS[addr];
+    if(d)showPopup(d);
+  });
+});
 bindLinks(document.querySelector('.dt-wrap'));
+// Group coloring: assign a colored bottom-border stripe to multi-byte entries
+(function(){
+  var gPal=['#5599ff','#ff8833','#33cc77','#ff44bb','#ccff33','#33bbff','#ff9944','#9933ff','#ff3344','#33ffcc'];
+  var gCol={},gIdx=0;
+  document.querySelectorAll('.cell[data-gid]').forEach(function(c){
+    var gid=c.dataset.gid;
+    if(!gCol[gid])gCol[gid]=gPal[gIdx++%gPal.length];
+    c.style.borderBottom='2px solid '+gCol[gid];
+  });
+})();
 recomputeRows();
 })();`;
 
     const btns =
-        '<button class="fb ft on" data-cls="ft" title="temp 0x2800\u20130x28FF: cleared on room load. Compiler type 28.">temp</button>' +
-        '<button class="fb fs on" data-cls="fs" title="session 0x2200\u20130x27FF: persistent across rooms. Compiler type 22.">session</button>' +
-        '<button class="fb fr2 on" data-cls="fr2" title="sram: battery-backed. Tagged [SRAM] in memory map.">sram</button>' +
-        '<button class="fb fy on" data-cls="fy" title="system 0x0000\u20130x21FF+: engine/HW registers, not script RAM.">system</button>' +
-        '<button class="fb frest" data-cls="frest" title="rest: undocumented or unclassified (hidden by default).">rest</button>';
+        '<button class="fb ft on" data-cls="ft" title="temp 0x2800\u20130x28FF: cleared on room load">temp</button>' +
+        '<button class="fb fs on" data-cls="fs" title="session 0x2200\u20130x27FF: persistent across rooms">session</button>' +
+        '<button class="fb fr2 on" data-cls="fr2" title="sram: battery-backed, tagged [SRAM]">sram</button>' +
+        '<button class="fb fy on" data-cls="fy" title="system: engine/HW registers">system</button>' +
+        '<button class="fb frest" data-cls="frest" title="rest: undocumented addresses (hidden by default)">rest</button>' +
+        '<span class="sep"></span>' +
+        '<button class="fb fboring" id="btn-boring" title="Hide boring: rows with no cells used in scope">boring</button>' +
+        '<button class="fb femoji" id="btn-emoji" title="Show emoji in grid cells">emoji</button>' +
+        '<button class="fb ffollow" id="btn-follow" title="Follow: auto-scroll detail table to selection">follow</button>' +
+        '<button class="fb fpin" id="btn-pin" title="Pin: lock to current scope, stop auto-update">pin</button>';
 
     return '<!doctype html><html><head><meta charset="utf-8"><style>' + css + '</style></head>' +
-        '<body>' +
+        '<body class="hrest">' +
         '<div id="popup"><span class="px" id="px">&#x2715;</span></div>' +
+        '<div class="head">' +
         '<div class="sh">&#9679; Memory Radar</div>' +
         '<div class="sm">Scope: <strong>' + radarEsc(scope.kind) + ' ' + radarEsc(scope.name) +
         '</strong> | Lines: ' + (scope.startLine + 1) + '\u2013' + (scope.endLine + 1) + '</div>' +
@@ -909,11 +1091,16 @@ recomputeRows();
         '<div class="sr"><span class="sl">temp</span>' + bar(tempU, tempT, 'temp') + '</div>' +
         '<div class="sr"><span class="sl">session</span>' + bar(sessU, sessT, 'session') + '</div>' +
         '<div class="sr"><span class="sl">sram</span>' + bar(sramU, sramT, 'sram') + '</div>' +
-        '<h2>WRAM ' + radarH(rowStart) + '\u2013' + radarH(rowEnd - 1) + '</h2>' +
+        '</div>' +
+        '<div class="panels">' +
+        '<div class="left-panel">' +
+        '<div class="ph">WRAM ' + radarH(rowStart) + '\u2013' + radarH(rowEnd - 1) + '</div>' +
         '<div class="gw">' + gridHtml + '</div>' +
-        '<div class="dt-wrap"><h2>Known Addresses</h2>' +
-        '<table><thead><tr><th>Addr</th><th>Name</th><th>T</th><th>Rgn</th><th>R/W</th><th>Notes</th></tr></thead>' +
-        '<tbody>' + detailRows + '</tbody></table></div>' +
+        '</div>' +
+        '<div class="right-panel"><div class="dt-wrap">' +
+        '<table><thead><tr><th>Addr</th><th>Name</th><th>T</th><th>Rgn</th><th>Notes</th><th>Lines</th></tr></thead>' +
+        '<tbody>' + detailRows + '</tbody></table></div></div>' +
+        '</div>' +
         '<script>' + js + '<\/script></body></html>';
 }
 
@@ -929,6 +1116,12 @@ function activate(context) {
     watcher.onDidCreate(() => buildWorkspaceIndex());
     watcher.onDidDelete(() => buildWorkspaceIndex());
     context.subscriptions.push(watcher);
+
+    // Invalidate memory map cache when memory-map.md changes
+    const mapWatcher = vscode.workspace.createFileSystemWatcher('**/.github/memory-map.md');
+    mapWatcher.onDidChange(() => invalidateRadarMap());
+    mapWatcher.onDidCreate(() => invalidateRadarMap());
+    context.subscriptions.push(mapWatcher);
 
     // Dead branch decorations
     const applyDeadBranches = (editor) => updateDeadBranchDecorations(editor, idx);
@@ -973,43 +1166,71 @@ function activate(context) {
         // Memory Radar command — opens a scope-aware WRAM visualizer beside the editor.
         // Triggered via: right-click → "Open Memory Radar", or the ◉ CodeLens above fun/map/area/group.
         vscode.commands.registerCommand('everscript.openMemoryRadar', async (doc, startLine) => {
-            const editor  = vscode.window.activeTextEditor;
+            const editor   = vscode.window.activeTextEditor;
             const document = (doc && typeof doc.lineCount === 'number') ? doc : editor?.document;
             if (!document) {
                 vscode.window.showWarningMessage('No active Everscript file.');
                 return;
             }
-            const cursorLine = typeof startLine === 'number' ? startLine : (editor?.selection.active.line ?? 0);
-            const wf = vscode.workspace.getWorkspaceFolder(document.uri);
+            const cursorLine   = typeof startLine === 'number' ? startLine : (editor?.selection.active.line ?? 0);
+            _radarDoc          = document;
+            const scope        = radarDetectScope(document, cursorLine);
+            _radarCurrentScope = scope;
+            const refs         = radarAnalyzeScope(document, scope.startLine, scope.endLine);
+            const mapByAddr    = getRadarMap();
 
-            const scope      = radarDetectScope(document, cursorLine);
-            const refs       = radarAnalyzeScope(document, scope.startLine, scope.endLine);
-            const mapPath    = wf ? path.join(wf.uri.fsPath, '.github', 'memory-map.md') : '';
-            const mapByAddr  = radarReadMemoryMap(mapPath);
+            // Reuse existing panel if open; otherwise create a new one
+            if (!_radarPanel) {
+                _radarPanel = vscode.window.createWebviewPanel(
+                    'everscriptRadar',
+                    'Radar: ' + scope.name,
+                    vscode.ViewColumn.Beside,
+                    { enableScripts: true, retainContextWhenHidden: true },
+                );
+                _radarPanel.onDidDispose(() => {
+                    _radarPanel = null;
+                    _radarPinned = false;
+                    _radarCurrentScope = null;
+                }, null, context.subscriptions);
+            } else {
+                _radarPanel.title = 'Radar: ' + scope.name;
+                _radarPanel.reveal(vscode.ViewColumn.Beside, true);
+            }
 
-            const panel = vscode.window.createWebviewPanel(
-                'everscriptRadar',
-                'Radar: ' + scope.name,
-                vscode.ViewColumn.Beside,
-                { enableScripts: true, retainContextWhenHidden: true },
-            );
+            _radarPanel.webview.html = renderRadarHtml(scope, refs, mapByAddr);
 
-            panel.webview.html = renderRadarHtml(scope, refs, mapByAddr);
-
-            // Handle "go to line" messages from the webview
-            panel.webview.onDidReceiveMessage(msg => {
-                if (msg.command !== 'goToLine') return;
-                const line = Math.max(0, Math.min(Number(msg.line), document.lineCount - 1));
-                const pos  = new vscode.Position(line, 0);
-                const range = new vscode.Range(pos, pos);
-                const ed = vscode.window.visibleTextEditors.find(e => e.document === document)
-                        || vscode.window.activeTextEditor;
-                if (ed) {
-                    ed.selection = new vscode.Selection(pos, pos);
-                    ed.revealRange(range, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
-                    vscode.window.showTextDocument(ed.document, ed.viewColumn);
+            // Handle messages from the webview
+            _radarPanel.webview.onDidReceiveMessage(msg => {
+                if (msg.command === 'goToLine') {
+                    const line = Math.max(0, Math.min(Number(msg.line), document.lineCount - 1));
+                    const pos  = new vscode.Position(line, 0);
+                    const range = new vscode.Range(pos, pos);
+                    const ed = vscode.window.visibleTextEditors.find(e => e.document === _radarDoc)
+                            || vscode.window.activeTextEditor;
+                    if (ed) {
+                        ed.selection = new vscode.Selection(pos, pos);
+                        ed.revealRange(range, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
+                        vscode.window.showTextDocument(ed.document, ed.viewColumn);
+                    }
+                } else if (msg.command === 'pin') {
+                    _radarPinned = true;
+                } else if (msg.command === 'unpin') {
+                    _radarPinned = false;
                 }
             }, undefined, context.subscriptions);
+        }),
+
+        // Auto-update radar when active editor changes
+        vscode.window.onDidChangeActiveTextEditor(ed => {
+            clearTimeout(_radarUpdateTimer);
+            _radarUpdateTimer = setTimeout(() => refreshRadar(ed), 400);
+        }),
+
+        // Auto-update radar when cursor moves to a different scope
+        vscode.window.onDidChangeTextEditorSelection(e => {
+            if (_radarPinned) return;
+            clearTimeout(_radarUpdateTimer);
+            _radarUpdateTimer = setTimeout(() => refreshRadar(e.textEditor), 600);
         }),
 
     );
