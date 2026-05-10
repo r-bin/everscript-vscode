@@ -846,6 +846,52 @@ function getScriptAllText(wsRoot) {
     return _radarScriptAllCache;
 }
 
+let _luaWatcherCache = null;
+/**
+ * Parse gameDrawPoint/gameDrawBox calls from soestuff.lua per-room watcher blocks.
+ * Returns Map<roomId_hex_string, [{x, y, label}]> where x/y are in 8-px tile units.
+ * Searches sibling directories of wsRoot for the Lua file.
+ */
+function readLuaWatchers(wsRoot) {
+    if (_luaWatcherCache !== null) return _luaWatcherCache;
+    _luaWatcherCache = new Map();
+
+    // Try common paths for soestuff.lua
+    const candidates = [
+        path.join(wsRoot, '..', 'snes-scripts', 'Secret of Evermore', 'soestuff.lua'),
+        path.join(wsRoot, '..', '..', 'snes-scripts', 'Secret of Evermore', 'soestuff.lua'),
+        path.join(path.dirname(wsRoot), 'snes-scripts', 'Secret of Evermore', 'soestuff.lua'),
+    ];
+    let luaText = '';
+    for (const c of candidates) {
+        try { luaText = fs.readFileSync(c, 'utf8'); break; } catch { /* try next */ }
+    }
+    if (!luaText) return _luaWatcherCache;
+
+    // Split on watcher map entry headers like `[0x5c] = {`
+    const blockRe = /\[0x([0-9a-f]+)\]\s*=\s*\{/gi;
+    let m, blocks = [];
+    while ((m = blockRe.exec(luaText)) !== null) blocks.push({ id: m[1], start: m.index });
+
+    for (let bi = 0; bi < blocks.length; bi++) {
+        const { id, start } = blocks[bi];
+        const end = bi + 1 < blocks.length ? blocks[bi + 1].start : luaText.length;
+        const body = luaText.slice(start, end);
+
+        // Extract gameDrawPoint(x_lit, y_lit, ...) calls — literal hex/decimal only
+        const ptRe = /gameDrawPoint\s*\(\s*(0x[0-9a-fA-F]+|\d+)\s*,\s*(0x[0-9a-fA-F]+|\d+)/g;
+        let pm, pts = [];
+        while ((pm = ptRe.exec(body)) !== null) {
+            const px = parseInt(pm[1], pm[1].startsWith('0x') ? 16 : 10);
+            const py = parseInt(pm[2], pm[2].startsWith('0x') ? 16 : 10);
+            // Coordinates are in SNES game pixels; divide by 8 for 8-px tile units
+            pts.push({ x: px / 8, y: py / 8 });
+        }
+        if (pts.length) _luaWatcherCache.set(id.toLowerCase().replace(/^0+/, '') || '0', pts);
+    }
+    return _luaWatcherCache;
+}
+
 /**
  * Parse step-on and b-trigger entries for a room from script_all.
  * vanillaEnumName: the enum member name like "BRIAN", or a numeric string "0x15".
@@ -983,10 +1029,12 @@ function parseRoomContent(filePath, startLine, endLine) {
     try { lines = fs.readFileSync(filePath, 'utf8').split(/\r?\n/); }
     catch { return { initMap: null, entrances: [], enemies: [], objects: [], transitions: [] }; }
 
-    const out = { initMap: null, entrances: [], enemies: [], objects: [], transitions: [] };
+    const out = { initMap: null, entrances: [], enemies: [], objects: [], transitions: [], triggerNames: { stepOn: [], bTrigger: [] } };
     const objSeen = new Set();
     // objDesc: Map<index-string, description> from commented object lines
     const objDesc = new Map();
+    // enum stepon_trigger / b_trigger member name tracking
+    let inStepOnEnum = false, inBTrigEnum = false, enumDepth = 0;
     const end = Math.min(endLine, lines.length - 1);
 
     for (let i = startLine; i <= end; i++) {
@@ -995,6 +1043,24 @@ function parseRoomContent(filePath, startLine, endLine) {
         const inlineCommentM = raw.match(/\/\/(.*)$/);
         const comment = inlineCommentM ? inlineCommentM[1].trim() : '';
         const t = raw.replace(/\/\/.*$/, '').trim();
+
+        // Enum member name tracking for stepon_trigger / b_trigger
+        if (!inStepOnEnum && !inBTrigEnum) {
+            const em = t.match(/\benum\s+(stepon_trigger|b_trigger)\b/);
+            if (em) { inStepOnEnum = em[1] === 'stepon_trigger'; inBTrigEnum = !inStepOnEnum; enumDepth = 0; }
+        }
+        if (inStepOnEnum || inBTrigEnum) {
+            const prevD = enumDepth;
+            for (const c of t) { if (c === '{') enumDepth++; else if (c === '}') enumDepth--; }
+            if (prevD === 1) { // at member level before entering @install block
+                const mm = t.match(/^\s*([A-Za-z_]\w*)\s*=/);
+                if (mm) {
+                    if (inStepOnEnum) out.triggerNames.stepOn.push(mm[1]);
+                    else              out.triggerNames.bTrigger.push(mm[1]);
+                }
+            }
+            if (enumDepth <= 0) { inStepOnEnum = inBTrigEnum = false; enumDepth = 0; }
+        }
 
         // Commented object lines: // object[N] = val; // description
         const commentedObjM = comment.match(/\bobject\[(\w+)\]\s*=\s*[^;]+;?\s*(?:\/\/\s*(.+))?/);
@@ -1039,6 +1105,17 @@ function parseRoomContent(filePath, startLine, endLine) {
     for (const o of out.objects) {
         if (!o.desc && objDesc.has(o.index)) o.desc = objDesc.get(o.index);
     }
+    // Fill object index gaps: object[0x05] implies 0x00..0x04 exist too
+    if (out.objects.length > 0) {
+        const parseIdx = s => parseInt(s, (s.startsWith('0x') || s.startsWith('0X')) ? 16 : 10);
+        const maxIdx = Math.max(...out.objects.map(o => parseIdx(o.index)));
+        const seenIdxs = new Set(out.objects.map(o => parseIdx(o.index)));
+        for (let i = 0; i <= maxIdx; i++) {
+            if (!seenIdxs.has(i))
+                out.objects.push({ index: '0x' + i.toString(16).padStart(2, '0'), line: -1, desc: '' });
+        }
+        out.objects.sort((a, b) => parseIdx(a.index) - parseIdx(b.index));
+    }
     return out;
 }
 
@@ -1081,7 +1158,16 @@ function collectRoomsFromDir(dir, wsRoot, depth) {
             const vid     = m[2] ? m[2].trim() : null;
             const content = parseRoomContent(fp, i, endLine);
             const imgPath = findRoomImage(wsRoot, m[1], vid, fp);
-            if (wsRoot && vid) content.triggers = readScriptAllTriggers(wsRoot, vid);
+            if (wsRoot && vid) {
+                content.triggers = readScriptAllTriggers(wsRoot, vid);
+                // Attach Lua POI if available
+                const luaPoi = readLuaWatchers(wsRoot);
+                const roomNumStr = getMapEnum(wsRoot).get(vid);
+                if (roomNumStr !== undefined) {
+                    const hexKey = roomNumStr.toString(16).replace(/^0+/, '') || '0';
+                    content.poi = luaPoi.get(hexKey) || null;
+                }
+            }
             items.push({ name: m[1], vanillaId: vid, kind: 'map', filePath: fp, relPath: wsRoot ? path.relative(wsRoot, fp) : fp, startLine: i, endLine, content, imagePath: imgPath });
         }
     }
@@ -1669,6 +1755,10 @@ function renderRoomDetail(room){
   var trig=c.triggers||{stepOn:[],bTrigger:[]};
   var stepOn=trig.stepOn||[];
   var bTrigger=trig.bTrigger||[];
+  var trigNames=c.triggerNames||{stepOn:[],bTrigger:[]};
+  var stepOnNames=trigNames.stepOn||[];
+  var bTrigNames=trigNames.bTrigger||[];
+  var poi=c.poi||[];
 
   var html='<div class="rd-head">';
   html+='<span class="rd-name">'+escH(room.name)+'</span>';
@@ -1680,9 +1770,10 @@ function renderRoomDetail(room){
   if(objs.length)html+='<button class="rdf on" data-hide="hide-obj" title="Toggle objects">obj</button>';
   if(stepOn.length)html+='<button class="rdf on" data-hide="hide-step" title="Toggle step-on triggers">step-on</button>';
   if(bTrigger.length)html+='<button class="rdf on" data-hide="hide-btrig" title="Toggle B-triggers">B-trig</button>';
+  if(poi.length)html+='<button class="rdf on" data-hide="hide-poi" title="Toggle points of interest">POI</button>';
   html+='</div></div>';
 
-  var hasCoords=(im!=null)||(entrances.length>0)||(enemies.length>0)||(stepOn.length>0)||(bTrigger.length>0);
+  var hasCoords=(im!=null)||(entrances.length>0)||(enemies.length>0)||(stepOn.length>0)||(bTrigger.length>0)||(poi.length>0);
 
   // Determine grid bounds in tile units (1 tile = 8 px in source image)
   var TILE=8;
@@ -1706,19 +1797,22 @@ function renderRoomDetail(room){
   });
   var W=Math.max(x2-x1,8),H=Math.max(y2-y1,8);
 
+  // Display size: keep width fixed, compute height to preserve aspect ratio
+  var dispW=520;
+  var dispH=room.imageDims ? Math.min(600,Math.round(dispW*room.imageDims.h/room.imageDims.w)) : Math.round(dispW*H/W);
   // Current zoom (tiles per display pixel), starts at auto-fit
   var zoomState={scale:0}; // 0 = auto
   function getScale(s){
-    if(s===0)return Math.min(520/W,360/H,20);
+    if(s===0)return Math.min(dispW/W,dispH/H,20);
     return s;
   }
 
   if(hasCoords||room.imageUri||room.name){
     html+='<div class="rg-outer" id="rg-outer">';
     html+='<div class="rg-zoom"><button id="rg-zin">+</button><button id="rg-zout">-</button><button id="rg-zfit">fit</button></div>';
-    html+='<div class="rg-wrap" id="rg-wrap" style="width:520px;height:360px">';
+    html+='<div class="rg-wrap" id="rg-wrap" style="width:'+dispW+'px;height:'+dispH+'px">';
     if(room.imageUri) html+='<img class="room-img" id="rg-img" src="'+room.imageUri+'" alt="">';
-    html+='<svg class="rg-svg" id="rg-svg" width="520" height="360" viewBox="'+x1+' '+y1+' '+W+' '+H+'">';
+    html+='<svg class="rg-svg" id="rg-svg" width="'+dispW+'" height="'+dispH+'" viewBox="'+x1+' '+y1+' '+W+' '+H+'">';
 
     // Tile grid lines
     var tileStep=1;
@@ -1731,16 +1825,28 @@ function renderRoomDetail(room){
 
     // Step-on rects (pink)
     stepOn.forEach(function(t,i){
+      var nm=stepOnNames[i]||'';
       var rw=Math.max(0.5,t.x2-t.x1),rh=Math.max(0.5,t.y2-t.y1);
-      html+='<rect class="svge-step" data-idx="'+i+'" data-kind="step" x="'+t.x1+'" y="'+t.y1+'" width="'+rw+'" height="'+rh+'" fill="rgba(255,100,180,0.18)" stroke="#ff69b4" stroke-width="0.25"><title>step-on'+(t.label?': '+escH(t.label):'')+'</title></rect>';
-      html+='<text class="svge-step ent-label" x="'+(t.x1+rw/2)+'" y="'+(t.y1+rh/2+0.6)+'" text-anchor="middle" fill="#ff69b4" font-size="1.5" font-family="monospace" pointer-events="none">'+(t.label?escH(t.label.slice(0,20)):'')+'</text>';
+      var tip='step-on'+(nm?' '+escH(nm):'')+(t.label?' — '+escH(t.label):'');
+      html+='<rect class="svge-step" data-idx="'+i+'" data-kind="step" x="'+t.x1+'" y="'+t.y1+'" width="'+rw+'" height="'+rh+'" fill="rgba(255,100,180,0.18)" stroke="#ff69b4" stroke-width="0.25"><title>'+tip+'</title></rect>';
+      html+='<text class="svge-step ent-label" x="'+(t.x1+rw/2)+'" y="'+(t.y1+rh/2+0.6)+'" text-anchor="middle" fill="#ff69b4" font-size="1.5" font-family="monospace" pointer-events="none">'+escH((nm||t.label||'').slice(0,20))+'</text>';
     });
     // B-trigger rects (yellow)
     bTrigger.forEach(function(t,i){
+      var nm=bTrigNames[i]||'';
       var rw=Math.max(0.5,t.x2-t.x1),rh=Math.max(0.5,t.y2-t.y1);
-      html+='<rect class="svge-btrig" data-idx="'+i+'" data-kind="btrig" x="'+t.x1+'" y="'+t.y1+'" width="'+rw+'" height="'+rh+'" fill="rgba(255,210,0,0.13)" stroke="#ffcc00" stroke-width="0.25"><title>B-trig'+(t.label?': '+escH(t.label):'')+'</title></rect>';
-      html+='<text class="svge-btrig ent-label" x="'+(t.x1+rw/2)+'" y="'+(t.y1+rh/2+0.6)+'" text-anchor="middle" fill="#ddaa00" font-size="1.5" font-family="monospace" pointer-events="none">'+(t.label?escH(t.label.slice(0,20)):'')+'</text>';
+      var tip='B-trig'+(nm?' '+escH(nm):'')+(t.label?' — '+escH(t.label):'');
+      html+='<rect class="svge-btrig" data-idx="'+i+'" data-kind="btrig" x="'+t.x1+'" y="'+t.y1+'" width="'+rw+'" height="'+rh+'" fill="rgba(255,210,0,0.13)" stroke="#ffcc00" stroke-width="0.25"><title>'+tip+'</title></rect>';
+      html+='<text class="svge-btrig ent-label" x="'+(t.x1+rw/2)+'" y="'+(t.y1+rh/2+0.6)+'" text-anchor="middle" fill="#ddaa00" font-size="1.5" font-family="monospace" pointer-events="none">'+escH((nm||t.label||'').slice(0,20))+'</text>';
     });
+    // Lua POI markers (cyan cross)
+    poi.forEach(function(p,i){
+      var pr=0.6;
+      html+='<line class="svge-poi hide-poi" x1="'+(p.x-pr)+'" y1="'+p.y+'" x2="'+(p.x+pr)+'" y2="'+p.y+'" stroke="#00e5ff" stroke-width="0.25"/>';
+      html+='<line class="svge-poi hide-poi" x1="'+p.x+'" y1="'+(p.y-pr)+'" x2="'+p.x+'" y2="'+(p.y+pr)+'" stroke="#00e5ff" stroke-width="0.25"/>';
+    });
+    // Box-select overlay rect (hidden by default)
+    html+='<rect id="rg-sel" x="0" y="0" width="0" height="0" fill="rgba(100,200,255,0.10)" stroke="#64c8ff" stroke-width="0.3" stroke-dasharray="1,0.5" display="none"/>';
     // Enemies (red=normal, orange=dynamic) — 1×1 tile square
     enemies.forEach(function(e,i){
       var ex=Math.round(e.x),ey=Math.round(e.y);
@@ -1790,7 +1896,8 @@ function renderRoomDetail(room){
     html+='<div class="rs rs-objects"><div class="rs-h">Objects</div>';
     html+='<table class="rs-tbl"><thead><tr><th>Index</th><th>Description</th><th>Line</th></tr></thead><tbody>';
     objs.forEach(function(o,i){
-      html+='<tr data-kind="obj" data-idx="'+i+'"><td><a class="ll" data-line="'+o.line+'" href="#">object['+escH(o.index)+']</a></td><td>'+(o.desc?escH(o.desc):'&ndash;')+'</td><td>'+o.line+'</td></tr>';
+      var lineStr=o.line>=0?('<a class="ll" data-line="'+o.line+'" href="#">'+o.line+'</a>'):'&ndash;';
+      html+='<tr data-kind="obj" data-idx="'+i+'"><td>object['+escH(o.index)+']</td><td>'+(o.desc?escH(o.desc):'&ndash;')+'</td><td>'+lineStr+'</td></tr>';
     });
     html+='</tbody></table></div>';
   }
@@ -1804,17 +1911,19 @@ function renderRoomDetail(room){
   }
   if(stepOn.length){
     html+='<div class="rs rs-step"><div class="rs-h">Step-on triggers</div>';
-    html+='<table class="rs-tbl"><thead><tr><th>#</th><th>Coords</th><th>Label</th></tr></thead><tbody>';
+    html+='<table class="rs-tbl"><thead><tr><th>Name</th><th>Coords</th><th>Script label</th></tr></thead><tbody>';
     stepOn.forEach(function(t,i){
-      html+='<tr class="trig-step" data-kind="step" data-idx="'+i+'"><td>'+i+'</td><td class="trig-coord">['+t.x1+','+t.y1+':'+t.x2+','+t.y2+']</td><td>'+(t.label?'<em>'+escH(t.label)+'</em>':'&ndash;')+'</td></tr>';
+      var nm=stepOnNames[i]||('#'+i);
+      html+='<tr class="trig-step" data-kind="step" data-idx="'+i+'"><td><code>'+escH(nm)+'</code></td><td class="trig-coord">['+t.x1+','+t.y1+':'+t.x2+','+t.y2+']</td><td>'+(t.label?'<em>'+escH(t.label)+'</em>':'&ndash;')+'</td></tr>';
     });
     html+='</tbody></table></div>';
   }
   if(bTrigger.length){
     html+='<div class="rs rs-btrig"><div class="rs-h">B-triggers</div>';
-    html+='<table class="rs-tbl"><thead><tr><th>#</th><th>Coords</th><th>Label</th></tr></thead><tbody>';
+    html+='<table class="rs-tbl"><thead><tr><th>Name</th><th>Coords</th><th>Script label</th></tr></thead><tbody>';
     bTrigger.forEach(function(t,i){
-      html+='<tr class="trig-b" data-kind="btrig" data-idx="'+i+'"><td>'+i+'</td><td class="trig-coord">['+t.x1+','+t.y1+':'+t.x2+','+t.y2+']</td><td>'+(t.label?'<em>'+escH(t.label)+'</em>':'&ndash;')+'</td></tr>';
+      var nm=bTrigNames[i]||('#'+i);
+      html+='<tr class="trig-b" data-kind="btrig" data-idx="'+i+'"><td><code>'+escH(nm)+'</code></td><td class="trig-coord">['+t.x1+','+t.y1+':'+t.x2+','+t.y2+']</td><td>'+(t.label?'<em>'+escH(t.label)+'</em>':'&ndash;')+'</td></tr>';
     });
     html+='</tbody></table></div>';
   }
@@ -1854,6 +1963,54 @@ function renderRoomDetail(room){
   });
   // Apply initial auto-fit
   if(svg&&wrap) applyZoom(getScale(0));
+
+  // Box-select: drag to filter tables by bounding box
+  var selRect=svg?svg.querySelector('#rg-sel'):null;
+  var selActive=false,selSx=0,selSy=0;
+  function svgPt(e){
+    if(!svg)return{x:0,y:0};
+    var pt=svg.createSVGPoint();
+    pt.x=e.clientX; pt.y=e.clientY;
+    return pt.matrixTransform(svg.getScreenCTM().inverse());
+  }
+  function applyBoxFilter(sx,sy,ex,ey){
+    var rx1=Math.min(sx,ex),rx2=Math.max(sx,ex),ry1=Math.min(sy,ey),ry2=Math.max(sy,ey);
+    if(rx2-rx1<1&&ry2-ry1<1){clearBoxFilter();return;}
+    panel.querySelectorAll('tr[data-kind][data-idx]').forEach(function(row){
+      var kind=row.dataset.kind,idx=parseInt(row.dataset.idx);
+      var ok=false;
+      if(kind==='entrance'){var e=entrances[idx];if(e)ok=(e.x>=rx1&&e.x<=rx2&&e.y>=ry1&&e.y<=ry2);}
+      else if(kind==='step'){var t=stepOn[idx];if(t)ok=(t.x2>=rx1&&t.x1<=rx2&&t.y2>=ry1&&t.y1<=ry2);}
+      else if(kind==='btrig'){var t=bTrigger[idx];if(t)ok=(t.x2>=rx1&&t.x1<=rx2&&t.y2>=ry1&&t.y1<=ry2);}
+      else if(kind==='enemy'){var e=enemies[idx];if(e)ok=(e.x>=rx1&&e.x<=rx2&&e.y>=ry1&&e.y<=ry2);}
+      else ok=true;
+      row.classList.toggle('hrow',!ok);
+    });
+  }
+  function clearBoxFilter(){
+    panel.querySelectorAll('tr.hrow').forEach(function(r){r.classList.remove('hrow');});
+    if(selRect){selRect.setAttribute('display','none');selRect.setAttribute('width','0');selRect.setAttribute('height','0');}
+  }
+  if(svg){
+    svg.addEventListener('mousedown',function(e){
+      if(e.button!==0||e.metaKey||e.ctrlKey)return;
+      var p=svgPt(e);selSx=p.x;selSy=p.y;selActive=true;
+      if(selRect)selRect.setAttribute('display','');
+      e.preventDefault();
+    });
+    svg.addEventListener('mousemove',function(e){
+      if(!selActive)return;
+      var p=svgPt(e);
+      var rx=Math.min(selSx,p.x),ry=Math.min(selSy,p.y),rw=Math.abs(p.x-selSx),rh=Math.abs(p.y-selSy);
+      if(selRect){selRect.setAttribute('x',rx);selRect.setAttribute('y',ry);selRect.setAttribute('width',rw);selRect.setAttribute('height',rh);}
+    });
+    svg.addEventListener('mouseup',function(e){
+      if(!selActive)return;selActive=false;
+      var p=svgPt(e);
+      applyBoxFilter(selSx,selSy,p.x,p.y);
+    });
+    svg.addEventListener('dblclick',function(){clearBoxFilter();});
+  }
 
   // Show labels on hover
   if(svg){
