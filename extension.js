@@ -1744,7 +1744,7 @@ function renderRoomDetail(room){
     enemies.forEach(function(e){
       var ex=Math.round(e.x)-x1,ey=Math.round(e.y)-y1;
       var fill=e.dynamic?'#cc7700':'#cc3333';
-      html+='<rect class="svge-enemy sv-ll" data-line="'+e.line+'" x="'+(ex-1)+'" y="'+(ey-1)+'" width="2" height="2" fill="'+fill+'" opacity="0.9" rx="0.3"><title>'+escH(e.type)+' ('+e.x+','+e.y+')\ncmd+click to jump</title></rect>';
+      html+='<rect class="svge-enemy sv-ll" data-line="'+e.line+'" x="'+(ex-1)+'" y="'+(ey-1)+'" width="2" height="2" fill="'+fill+'" opacity="0.9" rx="0.3"><title>'+escH(e.type)+' ('+e.x+','+e.y+')\\ncmd+click to jump</title></rect>';
     });
     // Entrances — directional arrows (green)
     entrances.forEach(function(en){
