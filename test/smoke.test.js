@@ -98,10 +98,13 @@ function makeFakeDocument() {
             querySelector: (sel) => null,
             closest: (sel) => null,
             addEventListener: () => {},
+            removeEventListener: () => {},
             scrollTop: 0,
             scrollHeight: 0,
             clientHeight: 0,
             getBoundingClientRect: () => ({ top:0, bottom:0, height:0 }),
+            setAttribute: () => {},
+            getAttribute: () => null,
         };
         return el;
     }

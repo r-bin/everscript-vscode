@@ -1384,7 +1384,7 @@ function renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTree = [], 
             const notesBrParts = notesHtml !== '&ndash;' ? notesHtml.split(/<br\s*\/?>/gi) : null;
             const notesDistrib = (notesBrParts && notesBrParts.length === parts.length) ? notesBrParts : null;
             let html = '<tr id="dr-' + es + '" class="' + rowCls + '" data-addr="' + es + '" data-es="' + es + '" data-ee="' + ee + '" data-hasdoc="' + hdoc + '">';
-            html += '<td class="mo" rowspan="' + parts.length + '">' + badge + emCell + addrLabel + '</td>';
+            html += '<td class="mo" rowspan="' + parts.length + '">' + badge + addrLabel + '</td>';
             html += '<td class="bf">' + radarEsc(parts[0]) + '</td>';
             html += '<td class="mt">' + typeStr + '</td>';
             html += '<td class="nt">' + (notesDistrib ? notesDistrib[0] : notesHtml) + enumHtml + '</td>';
@@ -1399,28 +1399,19 @@ function renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTree = [], 
             return html;
         }
 
-        // Multi-byte expansion: each byte row stands alone (no rowspan); all show same name/T/notes/lines
+        // Multi-byte (Word etc.): single row, address range in addr cell
         if (!untracked && numBytes > 1) {
-            let html = '<tr id="dr-' + es + '" class="' + rowCls + '" data-addr="' + es + '" data-es="' + es + '" data-ee="' + ee + '" data-hasdoc="' + hdoc + '">';
-            html += '<td class="mo">' + badge + emCell + radarH(es) + '</td>';
-            html += '<td>' + radarEsc(e.name) + '</td>';
-            html += '<td class="mt">' + typeStr + '</td>';
-            html += '<td class="nt">' + notesHtml + enumHtml + '</td>';
-            html += '<td class="rwc">' + linesCell + '</td></tr>';
-            for (let a = es + 1; a <= ee; a++) {
-                html += '<tr id="dr-' + a + '" class="' + rowCls + ' bfc" data-addr="' + a + '" data-es="' + es + '" data-ee="' + ee + '" data-hasdoc="' + hdoc + '">';
-                html += '<td class="mo">' + radarH(a) + '</td>';
-                html += '<td>' + radarEsc(e.name) + '</td>';
-                html += '<td class="mt">' + typeStr + '</td>';
-                html += '<td class="nt">' + notesHtml + '</td>';
-                html += '<td class="rwc">' + linesCell + '</td></tr>';
-            }
-            return html;
+            return '<tr id="dr-' + es + '" class="' + rowCls + '" data-addr="' + es + '" data-es="' + es + '" data-ee="' + ee + '" data-hasdoc="' + hdoc + '">' +
+                '<td class="mo">' + badge + addrLabel + '</td>' +
+                '<td>' + radarEsc(e.name) + '</td>' +
+                '<td class="mt">' + typeStr + '</td>' +
+                '<td class="nt">' + notesHtml + enumHtml + '</td>' +
+                '<td class="rwc">' + linesCell + '</td></tr>';
         }
 
         const nameCls = untracked ? ' class="no-vanilla"' : '';
         return '<tr id="dr-' + addr + '" class="' + rowCls + '" data-addr="' + addr + '" data-es="' + es + '" data-ee="' + ee + '" data-hasdoc="' + hdoc + '">' +
-            '<td class="mo">' + badge + emCell + addrLabel + '</td>' +
+            '<td class="mo">' + badge + addrLabel + '</td>' +
             '<td' + nameCls + '>' + radarEsc(e.name) + '</td>' +
             '<td class="mt">' + typeStr + '</td>' +
             '<td class="nt">' + notesHtml + enumHtml + '</td>' +
@@ -1440,10 +1431,12 @@ function renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTree = [], 
 
     // Arg grid: show as word-sized slots, 8 per row (each slot = 1 arg = default word)
     let argHtml = '';
-    if (argRefs.size > 0) {
+    const showArgGrid = argRefs.size > 0 || scope.kind === 'fun';
+    if (showArgGrid) {
         const ARG_COLS = 8;
-        const maxArgIdx = Math.max(...argRefs.keys());
-        const argRowEnd = (maxArgIdx | (ARG_COLS - 1)) + 1;
+        const MIN_ARG_ROWS = scope.kind === 'fun' ? 2 : 1;
+        const maxArgIdx = argRefs.size > 0 ? Math.max(...argRefs.keys()) : -1;
+        const argRowEnd = Math.max((maxArgIdx | (ARG_COLS - 1)) + 1, ARG_COLS * MIN_ARG_ROWS);
         for (let base = 0; base < argRowEnd; base += ARG_COLS) {
             let cells = '', rowHasUsed = false;
             for (let col = 0; col < ARG_COLS; col++) {
@@ -1592,16 +1585,31 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .obj-desc{font-size:9px;color:#aaa;font-style:italic}
 .trig-step em{color:#ff69b4;font-style:normal}.trig-b em{color:#ddaa00;font-style:normal}
 /* ── Room grid ── */
-.rg-wrap{position:relative;overflow:hidden;background:white;border:1px solid #bbb;display:block;margin-bottom:8px}
+.rg-outer{position:relative;margin-bottom:8px}
+.rg-zoom{display:flex;gap:3px;align-items:center;margin-bottom:4px}
+.rg-zoom button{border:1px solid #444;background:transparent;color:#aaa;cursor:pointer;font-size:12px;line-height:1;padding:1px 6px;border-radius:4px}
+.rg-zoom button:hover{color:#ddd;border-color:#888}
+.rg-wrap{position:relative;overflow:hidden;background:#1a1a1a;border:1px solid #333;display:block;margin-bottom:0;cursor:default}
 .rg-svg{position:absolute;inset:0;display:block}
-.room-img{display:block;width:100%;height:100%;object-fit:cover;opacity:.6}
-.rg-placeholder{display:flex;align-items:center;justify-content:center;width:160px;height:80px;opacity:.15;border:1px solid #444;margin-bottom:8px;color:#888;font-size:10px}
-/* ── Room sections ── */
-.rs{margin-top:7px}
+.room-img{display:block;width:100%;height:100%;object-fit:fill;opacity:.55;image-rendering:pixelated}
+.rg-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:80px;opacity:.25;border:1px solid #444;margin-bottom:8px;color:#888;font-size:10px;gap:6px}
+.rg-pick-btn{font-size:9px;border:1px solid #555;background:transparent;color:#aaa;cursor:pointer;border-radius:4px;padding:2px 8px}
+.rg-pick-btn:hover{border-color:#888;color:#ddd}
+/* entity labels: only visible on hover via .rg-svg.hov class */
+.rg-svg .ent-label{opacity:0;pointer-events:none;transition:opacity .1s}
+.rg-svg.show-labels .ent-label{opacity:1}
+/* hover highlight in SVG */
+.svge-step,.svge-btrig,.svge-enemy,.svge-entrance{cursor:pointer}
+.svge-step.hi,.svge-btrig.hi,.svge-enemy.hi,.svge-entrance.hi{filter:brightness(1.8)}
+/* ── Room sections / tables ── */
+.rs{margin-top:8px}
 .rs-h{font-size:9px;text-transform:uppercase;letter-spacing:.05em;opacity:.38;margin-bottom:3px;font-weight:700}
-.rs-list{list-style:none;padding:0;font-size:10px}
-.rs-list li{padding:1px 0;opacity:.7}
-.rs-list li:hover{opacity:1}
+.rs-tbl{width:100%;border-collapse:collapse;font-size:10px}
+.rs-tbl td,.rs-tbl th{padding:1px 4px;text-align:left;vertical-align:top}
+.rs-tbl th{font-size:8px;text-transform:uppercase;opacity:.35;font-weight:700;padding-bottom:3px}
+.rs-tbl tr{opacity:.7}
+.rs-tbl tr:hover{opacity:1;background:rgba(255,255,255,.04)}
+.rs-tbl tr.hi-row{opacity:1;background:rgba(255,255,255,.1)!important}
 .badge-d{font-size:7px;opacity:.55;border:1px solid #ffa94d;border-radius:3px;padding:0 2px;color:#ffa94d}`;
 
     // ── Rooms tab data ──────────────────────────────────────────────────────
@@ -1664,151 +1672,225 @@ function renderRoomDetail(room){
   html+='<a class="ll" data-line="'+room.startLine+'" href="#">go to code</a>';
   html+='<div class="rd-filters">';
   if(entrances.length)html+='<button class="rdf on" data-hide="hide-ent" title="Toggle entrances">ent</button>';
-  if(enemies.length)html+='<button class="rdf on" data-hide="hide-enem" title="Toggle enemies">enemies</button>';
   if(objs.length)html+='<button class="rdf on" data-hide="hide-obj" title="Toggle objects">obj</button>';
-  if(trans.length)html+='<button class="rdf on" data-hide="hide-trans" title="Toggle transitions">trans</button>';
   if(stepOn.length)html+='<button class="rdf on" data-hide="hide-step" title="Toggle step-on triggers">step-on</button>';
   if(bTrigger.length)html+='<button class="rdf on" data-hide="hide-btrig" title="Toggle B-triggers">B-trig</button>';
   html+='</div></div>';
 
-  // Arrow polygon for entrance direction
-  function entranceArrow(ex,ey,dir){
-    var d=dir?dir.toUpperCase():'';
-    var pts,fill='#22bb55',stroke='#22bb55';
-    if(d==='NORTH'||d==='N')      pts=[[ex-2,ey+3],[ex+2,ey+3],[ex,ey-1]];
-    else if(d==='SOUTH'||d==='S') pts=[[ex-2,ey-3],[ex+2,ey-3],[ex,ey+1]];
-    else if(d==='EAST'||d==='E')  pts=[[ex-3,ey-2],[ex-3,ey+2],[ex+1,ey]];
-    else if(d==='WEST'||d==='W')  pts=[[ex+3,ey-2],[ex+3,ey+2],[ex-1,ey]];
-    else return '<circle class="svge-entrance" cx="'+ex+'" cy="'+ey+'" r="2.5" fill="'+fill+'" fill-opacity="0.7" stroke="'+stroke+'" stroke-width="0.6"/>';
-    return '<polygon class="svge-entrance" points="'+pts.map(function(p){return p[0]+','+p[1];}).join(' ')+'" fill="'+fill+'" fill-opacity="0.7" stroke="'+stroke+'" stroke-width="0.6"/>';
+  var hasCoords=(im!=null)||(entrances.length>0)||(enemies.length>0)||(stepOn.length>0)||(bTrigger.length>0);
+
+  // Determine grid bounds in tile units (1 tile = 8 px in source image)
+  var TILE=8;
+  var x1=0,y1=0,x2=32,y2=32;
+  if(im){x1=im.x1;y1=im.y1;x2=im.x2;y2=im.y2;}
+  if(room.imageDims){
+    var imgCols=Math.round(room.imageDims.w/TILE);
+    var imgRows=Math.round(room.imageDims.h/TILE);
+    x2=x1+imgCols; y2=y1+imgRows;
+  }
+  // Clamp out-of-bounds entities by expanding bounds
+  entrances.concat(enemies).forEach(function(e){
+    if(e.x<x1)x1=Math.floor(e.x)-1;
+    if(e.y<y1)y1=Math.floor(e.y)-1;
+    if(e.x+2>x2)x2=Math.ceil(e.x)+2;
+    if(e.y+2>y2)y2=Math.ceil(e.y)+2;
+  });
+  stepOn.concat(bTrigger).forEach(function(t){
+    if(t.x1<x1)x1=t.x1-1; if(t.y1<y1)y1=t.y1-1;
+    if(t.x2+1>x2)x2=t.x2+1; if(t.y2+1>y2)y2=t.y2+1;
+  });
+  var W=Math.max(x2-x1,8),H=Math.max(y2-y1,8);
+
+  // Current zoom (tiles per display pixel), starts at auto-fit
+  var zoomState={scale:0}; // 0 = auto
+  function getScale(s){
+    if(s===0)return Math.min(520/W,360/H,20);
+    return s;
   }
 
-  var hasCoords=(im!=null)||(entrances.length>0)||(enemies.length>0)||(stepOn.length>0)||(bTrigger.length>0);
-  if(hasCoords||room.imageUri){
-    // Determine grid bounds in tile units (1 tile = 8 px in the source image)
-    var TILE=8;
-    var x1=im?im.x1:0,y1=im?im.y1:0;
-    var x2=im?im.x2:0,y2=im?im.y2:0;
+  if(hasCoords||room.imageUri||room.name){
+    html+='<div class="rg-outer" id="rg-outer">';
+    html+='<div class="rg-zoom"><button id="rg-zin">+</button><button id="rg-zout">-</button><button id="rg-zfit">fit</button></div>';
+    html+='<div class="rg-wrap" id="rg-wrap" style="width:520px;height:360px">';
+    if(room.imageUri) html+='<img class="room-img" id="rg-img" src="'+room.imageUri+'" alt="">';
+    html+='<svg class="rg-svg" id="rg-svg" width="520" height="360" viewBox="'+x1+' '+y1+' '+W+' '+H+'">';
 
-    // If we have image dimensions, derive exact tile grid from image (pixel-perfect)
-    if(room.imageDims){
-      var imgCols=Math.round(room.imageDims.w/TILE);
-      var imgRows=Math.round(room.imageDims.h/TILE);
-      // image origin aligns with init_map origin
-      var ox=im?im.x1:0,oy=im?im.y1:0;
-      x1=ox; y1=oy; x2=ox+imgCols; y2=oy+imgRows;
-    }
-
-    // Expand bounds to contain all entities (snap to tile boundary)
-    entrances.concat(enemies).forEach(function(e){
-      if(!isNaN(e.x)&&e.x+4>x2)x2=e.x+4;
-      if(!isNaN(e.y)&&e.y+4>y2)y2=e.y+4;
-    });
-    stepOn.concat(bTrigger).forEach(function(t){
-      if(t.x2+1>x2)x2=t.x2+1; if(t.y2+1>y2)y2=t.y2+1;
-    });
-    if(x2<=x1)x2=x1+32;
-    if(y2<=y1)y2=y1+32;
-    if(!hasCoords&&room.imageUri){x1=0;y1=0;x2=room.imageDims?Math.round(room.imageDims.w/TILE):32;y2=room.imageDims?Math.round(room.imageDims.h/TILE):32;}
-    var W=Math.max(x2-x1,8),H=Math.max(y2-y1,8);
-
-    // Scale: fit to ~600×360 display pixels, max 20px/tile
-    var scale=Math.min(600/W,360/H,20);
-    var pxW=Math.round(W*scale),pxH=Math.round(H*scale);
-    html+='<div class="rg-wrap" style="width:'+pxW+'px;height:'+pxH+'px">';
-    if(room.imageUri) html+='<img class="room-img" src="'+room.imageUri+'" alt="">';
-    html+='<svg class="rg-svg" width="'+pxW+'" height="'+pxH+'" viewBox="0 0 '+W+' '+H+'">';
-
-    // Tile grid lines (every tile = 1 SVG unit; reduce density for large maps)
+    // Tile grid lines
     var tileStep=1;
     if(W>64||H>64)tileStep=2;
     if(W>128||H>128)tileStep=4;
-    for(var gx=0;gx<=W;gx+=tileStep)html+='<line x1="'+gx+'" y1="0" x2="'+gx+'" y2="'+H+'" stroke="rgba(80,80,80,0.18)" stroke-width="0.12"/>';
-    for(var gy=0;gy<=H;gy+=tileStep)html+='<line x1="0" y1="'+gy+'" x2="'+W+'" y2="'+gy+'" stroke="rgba(80,80,80,0.18)" stroke-width="0.12"/>';
+    for(var gx=x1;gx<=x2;gx+=tileStep)html+='<line x1="'+gx+'" y1="'+y1+'" x2="'+gx+'" y2="'+y2+'" stroke="rgba(80,80,80,0.2)" stroke-width="0.12"/>';
+    for(var gy=y1;gy<=y2;gy+=tileStep)html+='<line x1="'+x1+'" y1="'+gy+'" x2="'+x2+'" y2="'+gy+'" stroke="rgba(80,80,80,0.2)" stroke-width="0.12"/>';
     // Room border
-    if(im)html+='<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="none" stroke="rgba(50,200,100,0.4)" stroke-width="0.3" stroke-dasharray="2,1"/>';
+    if(im)html+='<rect x="'+x1+'" y="'+y1+'" width="'+W+'" height="'+H+'" fill="none" stroke="rgba(50,200,100,0.3)" stroke-width="0.25" stroke-dasharray="2,1"/>';
 
-    // Step-on trigger rects (pink)
-    stepOn.forEach(function(t){
-      var rx=t.x1-x1,ry=t.y1-y1,rw=Math.max(1,t.x2-t.x1),rh=Math.max(1,t.y2-t.y1);
-      html+='<rect class="svge-step" x="'+rx+'" y="'+ry+'" width="'+rw+'" height="'+rh+'" fill="rgba(255,100,180,0.2)" stroke="#ff69b4" stroke-width="0.25"><title>step-on'+(t.label?': '+escH(t.label):'')+'</title></rect>';
-      if(t.label)html+='<text x="'+(rx+rw/2)+'" y="'+(ry+rh/2+1)+'" text-anchor="middle" fill="#ff69b4" font-size="1.8" font-family="monospace" class="svge-step" pointer-events="none">'+escH(t.label.slice(0,20))+'</text>';
+    // Step-on rects (pink)
+    stepOn.forEach(function(t,i){
+      var rw=Math.max(0.5,t.x2-t.x1),rh=Math.max(0.5,t.y2-t.y1);
+      html+='<rect class="svge-step" data-idx="'+i+'" data-kind="step" x="'+t.x1+'" y="'+t.y1+'" width="'+rw+'" height="'+rh+'" fill="rgba(255,100,180,0.18)" stroke="#ff69b4" stroke-width="0.25"><title>step-on'+(t.label?': '+escH(t.label):'')+'</title></rect>';
+      html+='<text class="svge-step ent-label" x="'+(t.x1+rw/2)+'" y="'+(t.y1+rh/2+0.6)+'" text-anchor="middle" fill="#ff69b4" font-size="1.5" font-family="monospace" pointer-events="none">'+(t.label?escH(t.label.slice(0,20)):'')+'</text>';
     });
     // B-trigger rects (yellow)
-    bTrigger.forEach(function(t){
-      var rx=t.x1-x1,ry=t.y1-y1,rw=Math.max(1,t.x2-t.x1),rh=Math.max(1,t.y2-t.y1);
-      html+='<rect class="svge-btrig" x="'+rx+'" y="'+ry+'" width="'+rw+'" height="'+rh+'" fill="rgba(255,210,0,0.15)" stroke="#ffcc00" stroke-width="0.25"><title>B-trig'+(t.label?': '+escH(t.label):'')+'</title></rect>';
-      if(t.label)html+='<text x="'+(rx+rw/2)+'" y="'+(ry+rh/2+1)+'" text-anchor="middle" fill="#ddaa00" font-size="1.8" font-family="monospace" class="svge-btrig" pointer-events="none">'+escH(t.label.slice(0,20))+'</text>';
+    bTrigger.forEach(function(t,i){
+      var rw=Math.max(0.5,t.x2-t.x1),rh=Math.max(0.5,t.y2-t.y1);
+      html+='<rect class="svge-btrig" data-idx="'+i+'" data-kind="btrig" x="'+t.x1+'" y="'+t.y1+'" width="'+rw+'" height="'+rh+'" fill="rgba(255,210,0,0.13)" stroke="#ffcc00" stroke-width="0.25"><title>B-trig'+(t.label?': '+escH(t.label):'')+'</title></rect>';
+      html+='<text class="svge-btrig ent-label" x="'+(t.x1+rw/2)+'" y="'+(t.y1+rh/2+0.6)+'" text-anchor="middle" fill="#ddaa00" font-size="1.5" font-family="monospace" pointer-events="none">'+(t.label?escH(t.label.slice(0,20)):'')+'</text>';
     });
-    // Enemies (red=normal, orange=dynamic) — snap to nearest tile
-    enemies.forEach(function(e){
-      var ex=Math.round(e.x)-x1,ey=Math.round(e.y)-y1;
+    // Enemies (red=normal, orange=dynamic) — 1×1 tile square
+    enemies.forEach(function(e,i){
+      var ex=Math.round(e.x),ey=Math.round(e.y);
       var fill=e.dynamic?'#cc7700':'#cc3333';
-      html+='<rect class="svge-enemy sv-ll" data-line="'+e.line+'" x="'+(ex-1)+'" y="'+(ey-1)+'" width="2" height="2" fill="'+fill+'" opacity="0.9" rx="0.3"><title>'+escH(e.type)+' ('+e.x+','+e.y+')\\ncmd+click to jump</title></rect>';
+      html+='<rect class="svge-enemy sv-ll" data-line="'+e.line+'" data-idx="'+i+'" data-kind="enemy" x="'+(ex-0.5)+'" y="'+(ey-0.5)+'" width="1" height="1" fill="'+fill+'" opacity="0.85" rx="0.2"><title>'+escH(e.type)+' ('+e.x+','+e.y+')\\ncmd+click to jump</title></rect>';
+      html+='<text class="svge-enemy ent-label" x="'+ex+'" y="'+(ey+1.5)+'" text-anchor="middle" fill="#ff6666" font-size="1.2" font-family="monospace" pointer-events="none">'+escH(e.type.slice(0,12))+'</text>';
     });
-    // Entrances — directional arrows (green)
-    entrances.forEach(function(en){
-      var ex=Math.round(en.x)-x1,ey=Math.round(en.y)-y1;
-      html+=entranceArrow(ex,ey,en.dir).replace('class="svge-entrance"','class="svge-entrance sv-ll" data-line="'+en.line+'"');
-      html+='<text class="svge-entrance" x="'+(ex+2.5)+'" y="'+(ey-1)+'" fill="#22dd66" font-size="2" font-family="monospace" pointer-events="none">'+escH(en.name)+'</text>';
+    // Entrances — 1-tile square with inset directional arrow
+    entrances.forEach(function(en,i){
+      var ex=Math.round(en.x),ey=Math.round(en.y);
+      var d=en.dir?en.dir.toUpperCase():'';
+      // Square background
+      html+='<rect class="svge-entrance sv-ll" data-line="'+en.line+'" data-idx="'+i+'" data-kind="entrance" x="'+(ex-0.5)+'" y="'+(ey-0.5)+'" width="1" height="1" fill="rgba(34,187,85,0.2)" stroke="#22bb55" stroke-width="0.2"/>';
+      // Arrow inside the square pointing in entrance direction
+      var ap='';
+      if(d==='NORTH'||d==='N') ap=(ex)+','+(ey-0.45)+' '+(ex-0.35)+','+(ey+0.3)+' '+(ex+0.35)+','+(ey+0.3);
+      else if(d==='SOUTH'||d==='S') ap=(ex)+','+(ey+0.45)+' '+(ex-0.35)+','+(ey-0.3)+' '+(ex+0.35)+','+(ey-0.3);
+      else if(d==='EAST'||d==='E') ap=(ex+0.45)+','+(ey)+' '+(ex-0.3)+','+(ey-0.35)+' '+(ex-0.3)+','+(ey+0.35);
+      else if(d==='WEST'||d==='W') ap=(ex-0.45)+','+(ey)+' '+(ex+0.3)+','+(ey-0.35)+' '+(ex+0.3)+','+(ey+0.35);
+      if(ap)html+='<polygon class="svge-entrance" data-idx="'+i+'" data-kind="entrance" points="'+ap+'" fill="#22bb55" fill-opacity="0.85" pointer-events="none"/>';
+      html+='<text class="svge-entrance ent-label" x="'+(ex+0.6)+'" y="'+(ey-0.6)+'" fill="#22dd66" font-size="1.2" font-family="monospace" pointer-events="none">'+escH(en.name)+'</text>';
     });
-    html+='</svg></div>';
+    html+='</svg></div></div>';
   } else {
-    html+='<div class="rg-placeholder"><span>No coordinate data</span></div>';
+    html+='<div class="rg-outer"><div class="rg-placeholder"><span>No coordinate data</span>';
+    html+='<button class="rg-pick-btn" id="rg-pick-btn" data-map="'+escH(room.name)+'">assign image…</button></div></div>';
   }
 
+  // ── Tables ──
   if(entrances.length){
-    html+='<div class="rs rs-entrance"><div class="rs-h">Entrances</div><ul class="rs-list">';
-    entrances.forEach(function(e){
-      html+='<li><a class="ll" data-line="'+e.line+'" href="#">'+escH(e.name)+'</a> ('+e.x+','+e.y+') '+escH(e.dir)+'</li>';
+    html+='<div class="rs rs-entrance"><div class="rs-h">Entrances</div>';
+    html+='<table class="rs-tbl"><thead><tr><th>#</th><th>Name</th><th>Coord</th><th>Dir</th><th>Line</th></tr></thead><tbody>';
+    entrances.forEach(function(e,i){
+      html+='<tr data-kind="entrance" data-idx="'+i+'"><td>'+i+'</td><td><a class="ll" data-line="'+e.line+'" href="#">'+escH(e.name)+'</a></td><td>('+e.x+','+e.y+')</td><td>'+escH(e.dir)+'</td><td>'+e.line+'</td></tr>';
     });
-    html+='</ul></div>';
+    html+='</tbody></table></div>';
   }
   if(enemies.length){
-    html+='<div class="rs rs-enemies"><div class="rs-h">Enemies</div><ul class="rs-list">';
-    enemies.forEach(function(e){
-      html+='<li><a class="ll" data-line="'+e.line+'" href="#">'+escH(e.type)+'</a> ('+e.x+','+e.y+')'+(e.dynamic?' <span class="badge-d">dynamic</span>':'')+'</li>';
+    html+='<div class="rs rs-enemies"><div class="rs-h">Enemies</div>';
+    html+='<table class="rs-tbl"><thead><tr><th>#</th><th>Type</th><th>Coord</th><th>Line</th></tr></thead><tbody>';
+    enemies.forEach(function(e,i){
+      html+='<tr data-kind="enemy" data-idx="'+i+'"><td>'+i+'</td><td><a class="ll" data-line="'+e.line+'" href="#">'+escH(e.type)+'</a></td><td>('+e.x+','+e.y+')</td><td>'+e.line+(e.dynamic?' <span class="badge-d">dyn</span>':'')+'</td></tr>';
     });
-    html+='</ul></div>';
+    html+='</tbody></table></div>';
   }
   if(objs.length){
-    html+='<div class="rs rs-objects"><div class="rs-h">Objects</div><ul class="rs-list">';
-    objs.forEach(function(o){
-      html+='<li><a class="ll" data-line="'+o.line+'" href="#">object['+escH(o.index)+']</a>'+(o.desc?' <span class="obj-desc">'+escH(o.desc)+'</span>':'')+'</li>';
+    html+='<div class="rs rs-objects"><div class="rs-h">Objects</div>';
+    html+='<table class="rs-tbl"><thead><tr><th>Index</th><th>Description</th><th>Line</th></tr></thead><tbody>';
+    objs.forEach(function(o,i){
+      html+='<tr data-kind="obj" data-idx="'+i+'"><td><a class="ll" data-line="'+o.line+'" href="#">object['+escH(o.index)+']</a></td><td>'+(o.desc?escH(o.desc):'&ndash;')+'</td><td>'+o.line+'</td></tr>';
     });
-    html+='</ul></div>';
+    html+='</tbody></table></div>';
   }
   if(trans.length){
-    html+='<div class="rs rs-transitions"><div class="rs-h">Transitions</div><ul class="rs-list">';
+    html+='<div class="rs rs-transitions"><div class="rs-h">Transitions</div>';
+    html+='<table class="rs-tbl"><thead><tr><th>Target</th><th>Via</th><th>Dir</th><th>Line</th></tr></thead><tbody>';
     trans.forEach(function(t){
-      html+='<li><a class="ll" data-line="'+t.line+'" href="#">'+escH(t.target)+'</a> via '+escH(t.via)+' '+escH(t.dir)+'</li>';
+      html+='<tr><td><a class="ll" data-line="'+t.line+'" href="#">'+escH(t.target)+'</a></td><td>'+escH(t.via)+'</td><td>'+escH(t.dir)+'</td><td>'+t.line+'</td></tr>';
     });
-    html+='</ul></div>';
+    html+='</tbody></table></div>';
   }
   if(stepOn.length){
-    html+='<div class="rs rs-step"><div class="rs-h">Step-on triggers</div><ul class="rs-list">';
-    stepOn.forEach(function(t){
-      html+='<li class="trig-step"><span class="trig-coord">['+t.x1+','+t.y1+':'+t.x2+','+t.y2+']</span>'+(t.label?' <em>'+escH(t.label)+'</em>':'')+'</li>';
+    html+='<div class="rs rs-step"><div class="rs-h">Step-on triggers</div>';
+    html+='<table class="rs-tbl"><thead><tr><th>#</th><th>Coords</th><th>Label</th></tr></thead><tbody>';
+    stepOn.forEach(function(t,i){
+      html+='<tr class="trig-step" data-kind="step" data-idx="'+i+'"><td>'+i+'</td><td class="trig-coord">['+t.x1+','+t.y1+':'+t.x2+','+t.y2+']</td><td>'+(t.label?'<em>'+escH(t.label)+'</em>':'&ndash;')+'</td></tr>';
     });
-    html+='</ul></div>';
+    html+='</tbody></table></div>';
   }
   if(bTrigger.length){
-    html+='<div class="rs rs-btrig"><div class="rs-h">B-triggers</div><ul class="rs-list">';
-    bTrigger.forEach(function(t){
-      html+='<li class="trig-b"><span class="trig-coord">['+t.x1+','+t.y1+':'+t.x2+','+t.y2+']</span>'+(t.label?' <em>'+escH(t.label)+'</em>':'')+'</li>';
+    html+='<div class="rs rs-btrig"><div class="rs-h">B-triggers</div>';
+    html+='<table class="rs-tbl"><thead><tr><th>#</th><th>Coords</th><th>Label</th></tr></thead><tbody>';
+    bTrigger.forEach(function(t,i){
+      html+='<tr class="trig-b" data-kind="btrig" data-idx="'+i+'"><td>'+i+'</td><td class="trig-coord">['+t.x1+','+t.y1+':'+t.x2+','+t.y2+']</td><td>'+(t.label?'<em>'+escH(t.label)+'</em>':'&ndash;')+'</td></tr>';
     });
-    html+='</ul></div>';
+    html+='</tbody></table></div>';
   }
 
   panel.innerHTML=html;
   bindLinks(panel);
-  // Cmd/Ctrl+click on SVG code-linked elements
-  panel.querySelectorAll('.sv-ll').forEach(function(el){
-    el.style.cursor='pointer';
-    el.addEventListener('click',function(e){
-      if(e.metaKey||e.ctrlKey){e.stopPropagation();goToLine(parseInt(el.dataset.line));}
-    });
+
+  var svg=document.getElementById('rg-svg');
+  var wrap=document.getElementById('rg-wrap');
+  var img=document.getElementById('rg-img');
+
+  // Zoom controls
+  var zinBtn=document.getElementById('rg-zin');
+  var zoutBtn=document.getElementById('rg-zout');
+  var zfitBtn=document.getElementById('rg-zfit');
+  function applyZoom(s){
+    if(!svg||!wrap)return;
+    var pxW=Math.round(W*s),pxH=Math.round(H*s);
+    wrap.style.width=pxW+'px';
+    wrap.style.height=pxH+'px';
+    svg.setAttribute('width',pxW);
+    svg.setAttribute('height',pxH);
+  }
+  if(zinBtn)zinBtn.addEventListener('click',function(){
+    var cur=zoomState.scale||getScale(0);
+    zoomState.scale=Math.min(cur*1.4,60);
+    applyZoom(zoomState.scale);
   });
+  if(zoutBtn)zoutBtn.addEventListener('click',function(){
+    var cur=zoomState.scale||getScale(0);
+    zoomState.scale=Math.max(cur/1.4,1);
+    applyZoom(zoomState.scale);
+  });
+  if(zfitBtn)zfitBtn.addEventListener('click',function(){
+    zoomState.scale=0;
+    applyZoom(getScale(0));
+  });
+  // Apply initial auto-fit
+  if(svg&&wrap) applyZoom(getScale(0));
+
+  // Show labels on hover
+  if(svg){
+    svg.addEventListener('mouseenter',function(){svg.classList.add('show-labels');});
+    svg.addEventListener('mouseleave',function(){svg.classList.remove('show-labels');});
+  }
+
+  // Bidirectional hover highlight: SVG ↔ table rows
+  function setHi(kind,idx,on){
+    // SVG elements
+    if(svg){
+      svg.querySelectorAll('[data-kind="'+kind+'"][data-idx="'+idx+'"]').forEach(function(el){
+        el.classList.toggle('hi',on);
+      });
+    }
+    // Table rows
+    panel.querySelectorAll('tr[data-kind="'+kind+'"][data-idx="'+idx+'"]').forEach(function(row){
+      row.classList.toggle('hi-row',on);
+    });
+  }
+  // SVG elements → highlight table
+  if(svg){
+    svg.querySelectorAll('[data-kind][data-idx]').forEach(function(el){
+      el.addEventListener('mouseenter',function(){setHi(el.dataset.kind,el.dataset.idx,true);});
+      el.addEventListener('mouseleave',function(){setHi(el.dataset.kind,el.dataset.idx,false);});
+    });
+  }
+  // Table rows → highlight SVG
+  panel.querySelectorAll('tr[data-kind][data-idx]').forEach(function(row){
+    row.addEventListener('mouseenter',function(){setHi(row.dataset.kind,row.dataset.idx,true);});
+    row.addEventListener('mouseleave',function(){setHi(row.dataset.kind,row.dataset.idx,false);});
+  });
+
+  // Cmd/Ctrl+click on SVG code-linked elements
+  if(svg){
+    svg.querySelectorAll('.sv-ll').forEach(function(el){
+      el.style.cursor='pointer';
+      el.addEventListener('click',function(e){
+        if(e.metaKey||e.ctrlKey){e.stopPropagation();goToLine(parseInt(el.dataset.line));}
+      });
+    });
+  }
   // Entity filter buttons
   panel.querySelectorAll('.rdf').forEach(function(btn){
     btn.addEventListener('click',function(){
@@ -1816,6 +1898,13 @@ function renderRoomDetail(room){
       panel.classList.toggle(btn.dataset.hide,!btn.classList.contains('on'));
     });
   });
+  // Assign image button (rooms without images)
+  var pickBtn=document.getElementById('rg-pick-btn');
+  if(pickBtn){
+    pickBtn.addEventListener('click',function(){
+      if(vs)vs.postMessage({command:'pickRoomImage',mapName:pickBtn.dataset.map});
+    });
+  }
 }
 `;
 
@@ -2299,6 +2388,23 @@ function activate(context) {
                 } else if (msg.command === 'autoScope') {
                     _radarPinned = false;
                     refreshRadar(vscode.window.activeTextEditor);
+                } else if (msg.command === 'pickRoomImage') {
+                    // Let user pick an image file and assign it to this room
+                    vscode.window.showOpenDialog({ filters: { Images: ['png', 'jpg', 'jpeg', 'webp'] }, canSelectMany: false }).then(uris => {
+                        if (!uris || !uris.length) return;
+                        const chosen = uris[0].fsPath;
+                        // Find the node in the room tree and update imagePath
+                        function patchNode(nodes) {
+                            for (const n of nodes || []) {
+                                if (n.kind === 'map' && n.name === msg.mapName) { n.imagePath = chosen; return true; }
+                                if (n.children && patchNode(n.children)) return true;
+                            }
+                            return false;
+                        }
+                        patchNode(_radarRoomTree);
+                        if (_radarPanel) setRoomImageUris(_radarRoomTree, _radarPanel.webview);
+                        refreshRadar(vscode.window.activeTextEditor);
+                    });
                 }
             }, undefined, context.subscriptions);
         }),
