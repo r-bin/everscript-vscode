@@ -893,7 +893,12 @@ function readScriptAllTriggers(wsRoot, vanillaEnumName) {
             : /B trigger scripts at [^\n]+\n/;
         const hm = headerRe.exec(sectionText);
         if (!hm) return;
-        const body = sectionText.slice(hm.index + hm[0].length);
+        let body = sectionText.slice(hm.index + hm[0].length);
+        // Bound step-on body: stop before the B trigger section (same [x,y:x,y]= format leaks through)
+        if (type === 'stepOn') {
+            const bIdx = body.search(/\n  B trigger scripts at /);
+            if (bIdx !== -1) body = body.slice(0, bIdx);
+        }
 
         // Each entry starts with `    [x1,y1:x2,y2] = ...`
         const entryRe = /\[([0-9a-f]+),([0-9a-f]+):([0-9a-f]+),([0-9a-f]+)\]\s*=/g;
