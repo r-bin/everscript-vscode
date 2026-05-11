@@ -2270,7 +2270,7 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     if(pct999>0){
       var pctText='['+pct999+'%]';
       if(htmlPct)pctText='<span style="color:#ff9966">'+pctText+'</span>';
-      return '999 '+pctText;
+      return (pct999>=100?'999':(min+'\u2013999'))+' '+pctText;
     }
     return min+'\u2013'+max;
   }
