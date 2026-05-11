@@ -2266,6 +2266,14 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     if(atlasMode)return dmgRangeFull(w);
     return{min:Math.min(999,(3*w)>>2),max:Math.min(999,(5*w)>>2),pct999:0};
   }
+  function fmtDmgRange(min,max,pct999,htmlPct){
+    if(pct999>0){
+      var pctText='['+pct999+'%]';
+      if(htmlPct)pctText='<span style="color:#ff9966">'+pctText+'</span>';
+      return '999 '+pctText;
+    }
+    return min+'\u2013'+max;
+  }
 
   function applyCharge(atk){if(charge<=25)return atk>>2;if(charge<=50)return atk>>1;return atk;}
   function srcAtkAtLv(id,lv,bonus){
@@ -2396,7 +2404,7 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
         var mn=wd.mins[crosshairLv-1],mx=wd.maxs[crosshairLv-1];
         var p999=wd.p999s&&wd.p999s[crosshairLv-1]||0;
         var htkHi=mx>0?Math.ceil((tgt.hp||1)/mx):'?',htkLo=mn>0?Math.ceil((tgt.hp||1)/mn):'?';
-        var dmgStr=p999>=100?'999★':(p999>0?mn+'–999 <span style="color:#ff9966">('+p999+'%)</span>':mn+'–'+mx);
+        var dmgStr=fmtDmgRange(mn,mx,p999,true);
         xinfo+=' \u00a0 <span style="color:'+col+'">'+wd.label+':</span> '+dmgStr
           +' <span style="opacity:.55">(htk '+htkHi+'\u2013'+htkLo+')</span>';
       });
@@ -2411,8 +2419,8 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
       var isAct=selWid===wd.id,isOther=!!(selWid&&!isAct);
       var d1=dmgRange(srcAtkAtLv(srcId,hlv,wd.bonus),def);
       var d37=dmgRange(srcAtkAtLv(srcId,SC_MAX_LEVEL,wd.bonus),def);
-      var r1=d1.pct999>=100?'999\u2605':(d1.pct999>0?d1.min+'\u2013999 ('+d1.pct999+'%)':d1.min+'\u2013'+d1.max);
-      var r37=d37.pct999>=100?'999\u2605':(d37.pct999>0?d37.min+'\u2013999 ('+d37.pct999+'%)':d37.min+'\u2013'+d37.max);
+      var r1=fmtDmgRange(d1.min,d1.max,d1.pct999,false);
+      var r37=fmtDmgRange(d37.min,d37.max,d37.pct999,false);
       leg+='<div class="sc-leg-row'+(isAct?' sc-leg-sel':'')+(isOther?' sc-leg-dim':'')+'" data-wid="'+wd.id+'">'
         +'<span class="sc-leg-dot" style="background:'+col+'"></span>'
         +'<span class="sc-leg-name">'+wd.label+'</span>'
@@ -2447,9 +2455,9 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
         var ap=awd.p999s&&awd.p999s[lvidx]||0;
         var amn37=awd.mins[36],amx37=awd.maxs[36],ap37=awd.p999s&&awd.p999s[36]||0;
         stats+='<div class="sc-stat-box"><div class="sc-stat-name">'+aw.label+' vs '+tgt.name+'</div>'
-          +'<div class="sc-stat-row"><span>dmg@L'+hlv2+'</span><span class="sc-stat-val">'+(ap>=100?'999\u2605':(ap>0?amn+'\u2013999 ('+ap+'%)':amn+'\u2013'+amx))+'</span></div>'
+          +'<div class="sc-stat-row"><span>dmg@L'+hlv2+'</span><span class="sc-stat-val">'+fmtDmgRange(amn,amx,ap,false)+'</span></div>'
           +'<div class="sc-stat-row"><span>htk@L'+hlv2+'</span><span class="sc-stat-val">'+(amx>0?Math.ceil(tgt.hp/amx):'?')+'\u2013'+(amn>0?Math.ceil(tgt.hp/amn):'?')+'</span></div>'
-          +'<div class="sc-stat-row"><span>dmg@L37</span><span class="sc-stat-val">'+(ap37>=100?'999\u2605':(ap37>0?amn37+'\u2013999 ('+ap37+'%)':amn37+'\u2013'+amx37))+'</span></div>'
+          +'<div class="sc-stat-row"><span>dmg@L37</span><span class="sc-stat-val">'+fmtDmgRange(amn37,amx37,ap37,false)+'</span></div>'
           +'</div>';
       }
     }
