@@ -2257,7 +2257,7 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     return(_dmgCache[w]={min:Math.min(999,mn),max:Math.min(999,mx),pct999:Math.round(cnt999/65536*100)});
   }
   function dmgRange(atk,def){
-    var atkEff=atlasMode?atk+480:atk;
+     var atkEff=atlasMode?((atk-480)&0xffff):atk;
     var inner=(((def>>2)-atkEff)&0xffff);
     var w=(~((inner-1)&0xffff))&0xffff;
     if(w>=0x8000)w=1;
