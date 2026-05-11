@@ -27,22 +27,41 @@ header), `0x4a` bytes each:
 Indices 0 and 1 are the **boy** and the **dog** (their names are pointers to WRAM;
 all other entries point to ROM strings).
 
-### Physical damage formula (approximate)
+### Physical damage formula (verified via soestuff.lua)
 
-The exact formula has not been fully RE'd from ASM.  The best approximation
-consistent with observed data:
+Formula ported from `soestuff.lua` (lsnes script, brute-forces all 65536 RNG
+seeds and confirmed against observed in-game values):
 
 ```
 attack_total = attacker.attack + weapon_bonus   // weapon_bonus = 0 for raw stat
-base          = max(0, attack_total − target.defense)
-rand_bonus    = floor(attack_total / 4)
-damage_min    = max(1, base)
-damage_max    = max(1, base + rand_bonus)
+
+// Apply charge level (weapon charge on attack):
+attack_modified = attack_total >> 2   // charge < 25% (energy < 0x200)
+attack_modified = attack_total >> 1   // charge < 50% (energy < 0x400)
+attack_modified = attack_total        // charge = 100% (full charge)
+
+// Core formula (all arithmetic mod 0x10000):
+w = ~((floor(target.defense / 4) − attack_modified) − 1) & 0xffff
+if w >= 0x8000: w = 1   // clamped: attacker far exceeds defense
+wram0002 = w + 1
+
+// RNG seed: wram000c ∈ [0, w]  (derived from 16-bit RNG state via wram0002)
+damage_min = (3 × w) >> 2      // seed = 0
+damage_max = (5 × w) >> 2      // seed = w
+damage = min(999, damage)
 ```
 
-> **TODO:** Verify against `$8fc041` (attack hook) and the post-defense subtract
-> routine.  The random term may be `RNG × attack_total / 8` (uniform) rather than
-> a flat additive cap.
+**Why seed ∈ [0, w]:** The RNG seed `wram000c` is computed as
+`floor(wram0002 × i / 65536)` for `i` ∈ [0, 65535].  Its maximum is
+`floor(wram0002 × 65535 / 65536) = w`.  Therefore the damage expression
+`(2·seed + 3·w) >> 2` ranges from `(3w)>>2` to `(2w + 3w)>>2 = (5w)>>2`.
+
+**Verification:** Boy L1 + Bone Crusher (+10 weapon bonus) = atk 17 vs Wimpy
+Flower (def 28): `w = ~((7−17)−1) & 0xffff = ~(−11) & 0xffff = 10`.
+`min = 7`, `max = 12` — matches observed in-game damage.
+
+> **Previous (wrong) approximation** used `damage_max ≈ base + floor(atk/4)`.
+> That formula inflated max damage by ~10× for typical stats and has been removed.
 
 ### Hit chance (approximate)
 
