@@ -432,7 +432,7 @@ function provideCompletionItems(document, position, idx) {
 
     // Bare identifier — offer function + enum name completions
     if (/[a-zA-Z_]\w*$/.test(prefix)) {
-        return [...getFunctionCompletions(idx), ...getWorkspaceFunctionCompletions(), ...getEnumNameCompletions(idx)];
+        return [...getFunctionCompletions(idx), ...getWorkspaceFunctionCompletions(), ...getEnumNameCompletions(idx), '<pre class="doc-code">atk_underflow = (boy_atk - subtract) mod 65536\nw = ~((def\u00f74 - atk_underflow) - 1) &amp; 0xFFFF\nseed = hi16((w+1)\u00d7rng16)\na = (seed + w) mod 65536\ndmg = ((((a \u226a 1) mod 65536) + w + carry(a \u226a 1)) mod 65536) \u00bb 2\nshown = min(999, dmg)</pre>'];
     }
 
     return [];
@@ -3140,25 +3140,58 @@ function renderRoomDetail(room){
       hitTbl.innerHTML=html+'</tbody></table>';
     }
   }
-  // ── Atlas section ────────────────────────────────────────────────────────
-  var atAtk=document.getElementById('doc-at-atk'),atDef=document.getElementById('doc-at-def');
-  if(atAtk&&atDef){
+  // ── Atlas glitch section ────────────────────────────────────────────────
+  var _docAtlasCache={};
+  function docAtlasAttack(atk,sub){return(atk-sub)&0xffff;}
+  function docAtlasW(atk,sub,def){
+    var atkEff=docAtlasAttack(atk,sub);
+    var inner=(((def>>2)-atkEff)&0xffff);
+    return(~((inner-1)&0xffff))&0xffff;
+  }
+  function docAtlasStats(w){
+    if(_docAtlasCache[w])return _docAtlasCache[w];
+    var mn=Infinity,mx=0,cnt999=0;
+    for(var s=0;s<=0xffff;s++){
+      var d=docDamageRaw(w,s);
+      if(d<mn)mn=d;
+      if(d>mx)mx=d;
+      if(d>=999)cnt999++;
+    }
+    return(_docAtlasCache[w]={min:Math.min(999,mn),max:Math.min(999,mx),count999:cnt999,pct999:cnt999/65536*100});
+  }
+  var atAtk=document.getElementById('doc-at-atk'),atSub=document.getElementById('doc-at-sub'),atDef=document.getElementById('doc-at-def'),atRng=document.getElementById('doc-at-rng');
+  if(atAtk&&atSub&&atDef&&atRng){
     function udAt(){
-      document.getElementById('doc-at-atk-num').textContent=atAtk.value;
-      document.getElementById('doc-at-def-num').textContent=atDef.value;
-      var w=docW(+atAtk.value,+atDef.value);
-      var raw=docSeeds(w);
-      var cnt999=raw.filter(function(d){return d>=999;}).length;
-      var pct=cnt999/65536*100;
-      var W=280,H=36;
+      var atk=+atAtk.value,sub=+atSub.value,def=+atDef.value,rng=+atRng.value;
+      document.getElementById('doc-at-atk-num').textContent=atk;
+      document.getElementById('doc-at-sub-num').textContent=sub;
+      document.getElementById('doc-at-def-num').textContent=def;
+      document.getElementById('doc-at-rng-num').textContent=rng;
+      var atkEff=docAtlasAttack(atk,sub);
+      var w=docAtlasW(atk,sub,def);
+      var seed=docSeedRaw(w,rng);
+      var uncapped=docDamageRaw(w,rng);
+      var capped=Math.min(999,uncapped);
+      var stats=docAtlasStats(w);
+      var pct=stats.pct999;
+      var below=100-pct;
+      var W=300,H=36;
       var bar='<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="#111" rx="3"/>';
       bar+='<rect x="0" y="0" width="'+(pct/100*W).toFixed(1)+'" height="'+H+'" fill="'+(pct>0?'#cc4422':'#1a1a1a')+'" rx="3"/>';
-      bar+='<text x="'+(Math.min(pct/100*W+4,W-120)).toFixed(1)+'" y="'+(H/2+4)+'" fill="#fff" font-size="11">'+docFmtPct(pct)+'% ('+cnt999+'/65536 seeds)</text>';
-      var info='<div class="doc-val">w=<b>'+w+'</b></div>';
-      info+='<svg width="'+W+'" height="'+H+'" style="display:block;margin:4px 0">'+bar+'</svg>';
+      bar+='<text x="'+(Math.min(pct/100*W+4,W-130)).toFixed(1)+'" y="'+(H/2+4)+'" fill="#fff" font-size="11">999: '+docFmtPct(pct)+'% ('+stats.count999+'/65536)</text>';
+      var info='';
+      info+='<div class="doc-val">base atk=<b>'+atk+'</b>  subtract=<b>'+sub+'</b>  underflowed atk=<b>'+atkEff+'</b></div>';
+      info+='<div class="doc-val">def=<b>'+def+'</b>  def\u00f74=<b>'+(def>>2)+'</b>  w=<b>'+w+'</b></div>';
+      info+='<div class="doc-val">all RNG states: <b>'+stats.min+'\u2013'+stats.max+'</b>  999-cap=<b>'+docFmtPct(pct)+'%</b>  &lt;999=<b>'+docFmtPct(below)+'%</b></div>';
+      info+='<svg width="'+W+'" height="'+H+'" style="display:block;margin:6px 0">'+bar+'</svg>';
+      info+='<div class="doc-val">selected rng16=<b>'+rng+'</b>  seed=<b>'+seed+'</b>  uncapped dmg=<b>'+uncapped+'</b>  shown dmg=<b>'+capped+'</b>'+(uncapped>=999?' <span class="doc-cap">caps to 999</span>':'')+'</div>';
       document.getElementById('doc-at-chart').innerHTML=info;
     }
-    atAtk.addEventListener('input',udAt);atDef.addEventListener('input',udAt);udAt();
+    atAtk.addEventListener('input',udAt);
+    atSub.addEventListener('input',udAt);
+    atDef.addEventListener('input',udAt);
+    atRng.addEventListener('input',udAt);
+    udAt();
   }
 })();
 `;
@@ -3523,7 +3556,7 @@ ${docsJs}
         '<div class="doc-subnav">' +
         '<button class="doc-btn doc-btn-active" data-doc="damage">Damage</button>' +
         '<button class="doc-btn" data-doc="hit">Hit%</button>' +
-        '<button class="doc-btn" data-doc="atlas">Atlas</button>' +
+        '<button class="doc-btn" data-doc="atlas">Atlas Glitch</button>' +
         '<button class="doc-btn" data-doc="script">Script</button>' +
         '<button class="doc-btn" data-doc="evs">Everscript</button>' +
         '<button class="doc-btn" data-doc="plugin">Plugin</button>' +
@@ -3544,11 +3577,15 @@ ${docsJs}
         '<div id="doc-hit-table"></div>' +
         '</div>' +
         '<div class="doc-sec" data-doc="atlas" style="display:none">' +
-        '<h3 class="doc-h">Atlas Amulet \u2014 999-cap probability</h3>' +
-        '<div class="doc-fact">Uses the full 16-bit damage RNG. Atlas-underflow cases route through the high-word multiply path, so the bar shows what fraction of 65536 RNG states cap at 999.</div>' +
-        '<pre class="doc-code">seed = hi16((w+1)\u00d7rng16); dmg = ((((seed+w)\u226a1) + w + carry) mod 65536) \u00bb 2; pct999 = count(rng16 \u2208 0..65535 | dmg \u2265 999) / 65536 \u00d7 100</pre>' +
-        '<div class="doc-sliders"><label>atk <input id="doc-at-atk" type="range" min="0" max="255" value="79"><span id="doc-at-atk-num">79</span></label>' +
-        '<label>def <input id="doc-at-def" type="range" min="0" max="255" value="28"><span id="doc-at-def-num">28</span></label></div>' +
+        '<h3 class="doc-h">Atlas Glitch \u2014 Boy Attack Underflow</h3>' +
+        '<div class="doc-fact">This is not the Atlas Amulet item. The glitch subtracts a value from the boy\'s attack; when the subtraction exceeds the current attack, the 16-bit stat underflows into the range 65056\u201365535.</div>' +
+        '<div class="doc-fact">That wrapped attack feeds the normal physical-damage routine, but atlas-underflow cases take the high-word multiply path in the RNG helper. That is why the result is usually 999, but not always 999.</div>' +
+        '<div class="doc-fact">The RNG slider below picks one concrete 16-bit RNG state. The bar summarizes all 65536 states for the same boy-atk / subtract / def inputs.</div>' +
+        '<pre class="doc-code">atk_underflow = (boy_atk - subtract) mod 65536\nw = ~((def\u00f74 - atk_underflow) - 1) &amp; 0xFFFF\nseed = hi16((w+1)\u00d7rng16)\na = (seed + w) mod 65536\ndmg = ((((a \u226a 1) mod 65536) + w + carry(a \u226a 1)) mod 65536) \u00bb 2\nshown = min(999, dmg)</pre>' +
+        '<div class="doc-sliders"><label>boy atk <input id="doc-at-atk" type="range" min="0" max="255" value="81"><span id="doc-at-atk-num">81</span></label>' +
+        '<label>subtract <input id="doc-at-sub" type="range" min="0" max="480" value="480"><span id="doc-at-sub-num">480</span></label>' +
+        '<label>def <input id="doc-at-def" type="range" min="0" max="255" value="160"><span id="doc-at-def-num">160</span></label>' +
+        '<label>rng16 <input id="doc-at-rng" type="range" min="0" max="65535" value="0"><span id="doc-at-rng-num">0</span></label></div>' +
         '<div id="doc-at-chart"></div>' +
         '</div>' +
         '<div class="doc-sec" data-doc="script" style="display:none">' +
@@ -3567,7 +3604,7 @@ ${docsJs}
         '<h3 class="doc-h">Radar Plugin</h3>' +
         '<div class="doc-fact"><b>Memory:</b> WRAM usage map for the current function scope. Cells show lifecycle (temp / session / sram / system). Click a cell for details and source lines.</div>' +
         '<div class="doc-fact"><b>Rooms:</b> per-room trigger breakdown \u2014 entrances, step-on, B-triggers, sniff spots. Live mode shows rooms from .evs; Vanilla mode lists all 120 vanilla rooms.</div>' +
-        '<div class="doc-fact"><b>Scaling:</b> physical damage calculator with level scaling, all weapon tiers, charge multiplier, enemy scale, and Atlas mode (cap probability).</div>' +
+        '<div class="doc-fact"><b>Scaling:</b> physical damage calculator with level scaling, all weapon tiers, charge multiplier, enemy scale, and atlas-glitch underflow odds.</div>' +
         '<div class="doc-fact"><b>Docs:</b> this page \u2014 hard facts about game mechanics and tools.</div>' +
         '</div>' +
         '</div></div>' +
