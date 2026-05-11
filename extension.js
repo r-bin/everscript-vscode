@@ -586,12 +586,13 @@ function refreshRadar(editor) {
     const { refs, pools, argRefs } = radarAnalyzeScope(doc, scope.startLine, scope.endLine);
     const mapByAddr = getRadarMap();
     // Rebuild room tree if doc changed (refreshRadar may fire before openMemoryRadar)
+    const wsRoot2 = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
     if (_radarRoomDocPath !== doc.uri.fsPath) {
-        const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-        _radarRoomTree    = buildRoomTree(doc, wsRoot);
+        _radarRoomTree    = buildRoomTree(doc, wsRoot2);
         _radarRoomDocPath = doc.uri.fsPath;
         if (_radarPanel) setRoomImageUris(_radarRoomTree, _radarPanel.webview);
     }
+    _scaleActive = detectScaleEnemies(wsRoot2, doc.uri.fsPath);
     const selectedMap = scope.kind === 'map' ? scope.name : null;
     _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree || [], _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive);
     _radarPanel.title = 'Radar: ' + scope.name;
@@ -1081,21 +1082,27 @@ function readRomCharacters(wsRoot) {
  * @param {string} wsRoot
  * @returns {boolean}
  */
-function detectScaleEnemies(wsRoot) {
+function detectScaleEnemies(wsRoot, docPath) {
     if (!wsRoot) return false;
     try {
-        const candidates = [
-            path.join(wsRoot, 'in', 'kaizo', 'main.evs'),
-            path.join(wsRoot, 'in', 'practice', 'main.evs'),
-            path.join(wsRoot, 'in', 'practice_experimental.evs'),
-        ];
-        for (const f of candidates) {
-            if (!fs.existsSync(f)) continue;
-            const lines = fs.readFileSync(f, 'utf8').split('\n');
-            for (const line of lines) {
-                const trimmed = line.replace(/^\s+/, '');
-                if (trimmed.startsWith('//')) continue;
-                if (/scale_enemies\s*\(/.test(trimmed)) return true;
+        // Walk up from docPath to find the nearest main.evs in its directory tree.
+        // This scopes the warning to the build context of the current document.
+        if (docPath) {
+            let dir = path.dirname(docPath);
+            while (dir.length >= wsRoot.length && dir.startsWith(wsRoot)) {
+                const candidate = path.join(dir, 'main.evs');
+                if (fs.existsSync(candidate)) {
+                    const lines = fs.readFileSync(candidate, 'utf8').split('\n');
+                    for (const line of lines) {
+                        const trimmed = line.replace(/^\s+/, '');
+                        if (trimmed.startsWith('//')) continue;
+                        if (/scale_enemies\s*\(/.test(trimmed)) return true;
+                    }
+                    return false; // found main.evs but scale_enemies not active
+                }
+                const parent = path.dirname(dir);
+                if (parent === dir) break;
+                dir = parent;
             }
         }
         return false;
@@ -1845,6 +1852,7 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .sc-line-max-b{fill:none;stroke:#ff6644;stroke-width:1.5}
 .sc-marker{stroke:#ffd700;stroke-width:1;stroke-dasharray:3,2}
 .sc-note{font-size:9px;opacity:.4;font-style:italic}
+.sc-xinfo{font-size:9px;padding:2px 0;min-height:16px;color:#aaa}
 .sc-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:4px}
 .sc-stat-box{border:1px solid #2a2a2a;border-radius:4px;padding:4px 6px;font-size:10px}
 .sc-stat-box .sc-stat-name{font-size:9px;opacity:.5;margin-bottom:2px}
@@ -1870,8 +1878,8 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     // ── Scaling tab data ────────────────────────────────────────────────────
     const scalingData = 'var SC_CHARS=' + JSON.stringify(chars) + ';'
         + 'var SC_SCALE_ACTIVE=' + (scaleActive ? 'true' : 'false') + ';'
-        + 'var SC_BOY={atk1:7,def1:5,hp1:30,atkG:2,defG:1,hpG:9};'
-        + 'var SC_DOG={atk1:17,def1:10,hp1:36,atkG:4,defG:6,hpG:9};'
+        + 'var SC_BOY={atk1:7,def1:5,hp1:30,atkG:2,defG:1,hpG:9,hitRate:38};'
+        + 'var SC_DOG={atk1:17,def1:10,hp1:36,atkG:4,defG:6,hpG:9,hitRate:50};'
         + 'var SC_SCALABLE={0:SC_BOY,1:SC_DOG};'
         + 'var SC_WEAPONS=['
         + '{id:"sw1",label:"Sword I",type:"sword",bonus:10},'
@@ -1897,7 +1905,11 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     if(ce)ce.innerHTML='<div style="padding:16px;opacity:.4;font-size:11px">ROM not found \u2014 place the .smc in workspace root.</div>';
     return;
   }
-  var srcId=0,srcLv=0,charge=100,selWid=null,hovWid=null,scaleEnemies=false;
+  var srcId=0,srcLv=0,charge=100;
+  var selWid=null;      // weapon selected by click (null = all equal weight)
+  var crosshairLv=null; // level pinned by vertical crosshair (null = none)
+  var scaleEnemies=false,atlasMode=false;
+
   // Populate source + target dropdowns
   var srcSel=document.getElementById('sc-src-sel');
   var tgtSel=document.getElementById('sc-tgt-sel');
@@ -1909,59 +1921,118 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     });
   });
   srcSel.value=0;
-  tgtSel.value=Math.min(109,SC_CHARS.length-1);
+  tgtSel.value=SC_CHARS.some(function(c){return c.id===109;})?109:0;
+
   // Populate level dropdowns
   ['sc-src-lv','sc-tgt-lv'].forEach(function(id){
     var sel=document.getElementById(id);
     for(var lv=1;lv<=SC_MAX_LEVEL;lv++){var o=document.createElement('option');o.value=lv;o.textContent='L'+lv;sel.appendChild(o);}
   });
-  function isScalable(id){return SC_SCALABLE.hasOwnProperty(id)||(scaleEnemies&&id>=2);}
+
+  function isScalable(id){return SC_SCALABLE.hasOwnProperty(+id);}
   function updateLevelFields(){
     document.getElementById('sc-src-lv-field').style.display=isScalable(srcId)?'flex':'none';
-    document.getElementById('sc-tgt-lv-field').style.display=(scaleEnemies&&isScalable(parseInt(tgtSel.value)))?'flex':'none';
+    document.getElementById('sc-tgt-lv-field').style.display=(scaleEnemies&&isScalable(+tgtSel.value))?'flex':'none';
   }
-  srcSel.addEventListener('change',function(){srcId=parseInt(srcSel.value);selWid=null;hovWid=null;updateLevelFields();redraw();});
+
+  srcSel.addEventListener('change',function(){
+    srcId=+srcSel.value;
+    var w=getWeapons();selWid=w.length?w[0].id:null;
+    updateLevelFields();redraw();
+  });
   tgtSel.addEventListener('change',function(){updateLevelFields();redraw();});
-  document.getElementById('sc-src-lv').addEventListener('change',function(){srcLv=parseInt(this.value)||0;redraw();});
+  document.getElementById('sc-src-lv').addEventListener('change',function(){srcLv=+this.value||0;redraw();});
   document.getElementById('sc-tgt-lv').addEventListener('change',function(){redraw();});
   document.querySelectorAll('[data-chg]').forEach(function(btn){
     btn.addEventListener('click',function(){
-      charge=parseInt(btn.dataset.chg);
+      charge=+btn.dataset.chg;
       document.querySelectorAll('[data-chg]').forEach(function(b){b.classList.remove('sc-active');});
       btn.classList.add('sc-active');redraw();
     });
   });
+
   var scBtn=document.getElementById('sc-scale-toggle');
   scBtn.addEventListener('click',function(){
     scaleEnemies=!scaleEnemies;
     scBtn.textContent=scaleEnemies?'ON':'OFF';
     scBtn.classList.toggle('sc-active',scaleEnemies);
+    if(!selWid){var w=getWeapons();if(w.length)selWid=w[0].id;}
     updateLevelFields();redraw();
   });
-  function applyCharge(atk){if(charge<=25)return atk>>2;if(charge<=50)return atk>>1;return atk;}
-  function srcAtkAtLv(id,lv,bonus){
-    var s=SC_SCALABLE[id];
-    var base=s?(s.atk1+(lv-1)*s.atkG):((SC_CHARS[id]||{attack:0}).attack);
-    return applyCharge(base+bonus);
+
+  var atBtn=document.getElementById('sc-atlas-toggle');
+  atBtn.addEventListener('click',function(){
+    atlasMode=!atlasMode;
+    atBtn.textContent=atlasMode?'ON':'OFF';
+    atBtn.classList.toggle('sc-active',atlasMode);
+    _dmgCache={};redraw();
+  });
+
+  // Damage formula (exact from soestuff.lua):
+  // w = ~((def>>2 - atk) - 1) & 0xffff; if >= 0x8000 then w=1
+  // seed in [0..255] (8-bit); dmg = ((2*(seed+w) & 0xffff) + w) >> 2, capped 999
+  // Simple closed form (no overflow): min=(3w)>>2, max=(5w)>>2
+  // Atlas mode: brute-forces all 256 seeds to detect mid-range overflow pockets
+  var _dmgCache={};
+  function dmgRangeFull(w){
+    if(_dmgCache[w]!==undefined)return _dmgCache[w];
+    var mn=999,mx=0;
+    for(var s=0;s<=255;s++){
+      var a=(s+w)&0xffff,b=(a<<1)&0xffff,c=(b+w)&0xffff,d=c>>2;
+      if(d<mn)mn=d; if(d>mx)mx=d;
+    }
+    return(_dmgCache[w]={min:Math.min(999,mn),max:Math.min(999,mx)});
   }
-  // Exact formula ported from soestuff.lua:
-  // wram0012 = ~((def>>2 - atk) - 1) & 0xffff; if >= 0x8000 then 1
-  // seed in [0, wram0012]; dmg = ((seed + wram0012)<<1 + wram0012) >> 2 = (2*seed+3*w)>>2
-  // min = (3*w)>>2 (seed=0), max = (5*w)>>2 (seed=w)
   function dmgRange(atk,def){
     var inner=(((def>>2)-atk)&0xffff);
     var w=(~((inner-1)&0xffff))&0xffff;
     if(w>=0x8000)w=1;
+    if(atlasMode)return dmgRangeFull(w);
     return{min:Math.min(999,(3*w)>>2),max:Math.min(999,(5*w)>>2)};
   }
+
+  function applyCharge(atk){if(charge<=25)return atk>>2;if(charge<=50)return atk>>1;return atk;}
+  function srcAtkAtLv(id,lv,bonus){
+    var s=SC_SCALABLE[id];
+    var base=s?(s.atk1+(lv-1)*s.atkG):((SC_CHARS.find(function(c){return c.id===+id;})||{attack:0}).attack);
+    return applyCharge(base+bonus);
+  }
+  function srcHitRate(id){
+    var s=SC_SCALABLE[id];
+    return s?s.hitRate:((SC_CHARS.find(function(c){return c.id===+id;})||{hit_rate:0}).hit_rate);
+  }
   function getWeapons(){
-    if(srcId===1)return[{id:'paws',label:'Dog Claws',type:'dog',bonus:0}];
+    if(+srcId===1)return[{id:'paws',label:'Dog Claws',type:'dog',bonus:0}];
+    if(!isScalable(srcId))return[{id:'raw',label:'Raw atk',type:'dog',bonus:0}];
     return SC_WEAPONS;
   }
+
+  // Chart layout constants (shared with event handlers)
+  var _CW=400,_CH=200,_ml=40,_mt=12,_mr=8,_mb=28;
+
+  function attachSvgEvents(svgEl){
+    var pw=_CW-_ml-_mr;
+    function lvFromX(clientX){
+      var r=svgEl.getBoundingClientRect();
+      var t=(clientX-r.left-_ml)/pw*(SC_MAX_LEVEL-1)+1;
+      return Math.max(1,Math.min(SC_MAX_LEVEL,Math.round(t)));
+    }
+    function onMove(e){crosshairLv=lvFromX(e.clientX);redraw();}
+    function onUp(){document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);}
+    svgEl.addEventListener('mousedown',function(e){
+      if(e.target.closest&&e.target.closest('[data-wid]'))return;
+      e.preventDefault();
+      crosshairLv=lvFromX(e.clientX);
+      redraw();
+      document.addEventListener('mousemove',onMove);
+      document.addEventListener('mouseup',onUp);
+    });
+  }
+
   function redraw(){
-    var tgtId=parseInt(tgtSel.value);
-    var tgt=SC_CHARS[tgtId];if(!tgt)return;
-    var def=tgt.defense;
+    var tgtId=+tgtSel.value;
+    var tgt=SC_CHARS.find(function(c){return c.id===tgtId;})||SC_CHARS[0];if(!tgt)return;
+    var def=scaleEnemies?Math.max(1,tgt.defense*2):tgt.defense;
     var weapons=getWeapons();
     var wdata=weapons.map(function(w){
       var mins=[],maxs=[];
@@ -1974,17 +2045,15 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     var yMax=0;
     wdata.forEach(function(wd){wd.maxs.forEach(function(v){if(v>yMax)yMax=v;});});
     yMax=Math.max(10,Math.ceil(yMax*1.1/10)*10);
-    var W=400,H=200,ml=40,mt=12,mr=8,mb=28;
-    var pw=W-ml-mr,ph=H-mt-mb;
+    var W=_CW,H=_CH,ml=_ml,mt=_mt,mr=_mr,mb=_mb,pw=W-ml-mr,ph=H-mt-mb;
     function xp(lv){return ml+(lv-1)/(SC_MAX_LEVEL-1)*pw;}
     function yp(v){return mt+ph-Math.min(v,yMax)/yMax*ph;}
     function linePts(arr){return arr.map(function(v,i){return xp(i+1).toFixed(1)+' '+yp(v).toFixed(1);}).join(' L ');}
     function bandPath(mins,maxs){
       var fwd=maxs.map(function(v,i){return xp(i+1).toFixed(1)+' '+yp(v).toFixed(1);}).join(' L ');
-      var rev=mins.slice().reverse().map(function(v,i,a){var idx=a.length-1-i;return xp(idx+1).toFixed(1)+' '+yp(v).toFixed(1);}).join(' L ');
+      var rev=mins.slice().reverse().map(function(v,i,a){var idx=a.length-1-i;return xp(idx+1).toFixed(1)+' '+yp(a[i]).toFixed(1);}).join(' L ');
       return 'M '+fwd+' L '+rev+' Z';
     }
-    var activeWid=selWid||hovWid;
     var g='';
     var xstep=Math.max(1,Math.round(SC_MAX_LEVEL/9));
     for(var lv=1;lv<=SC_MAX_LEVEL;lv+=xstep){g+='<line x1="'+xp(lv).toFixed(1)+'" y1="'+mt+'" x2="'+xp(lv).toFixed(1)+'" y2="'+(mt+ph)+'" stroke="#1c1c1c"/>';}
@@ -2003,74 +2072,98 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     wdata.forEach(function(wd,wi){
       var col=SC_COLORS[wd.type]||'#888';
       var opac=SC_TIER_OPAC[wi%4];
-      var isAct=activeWid===wd.id;
-      var isOther=!!(activeWid&&!isAct);
-      bands+='<g class="sc-band" data-wid="'+wd.id+'">'
-        +'<path d="'+bandPath(wd.mins,wd.maxs)+'" fill="'+col+'" fill-opacity="'+(isOther?opac*0.12:opac).toFixed(2)+'" stroke="none"/>'
-        +'<path d="M '+linePts(wd.maxs)+'" fill="none" stroke="'+col+'" stroke-opacity="'+(isOther?0.2:(isAct?1.0:0.6)).toFixed(1)+'" stroke-width="'+(isAct?2:1)+'"/>'
+      var isAct=selWid===wd.id,isOther=!!(selWid&&!isAct);
+      bands+='<g class="sc-band" data-wid="'+wd.id+'" style="cursor:pointer">'
+        +'<path d="'+bandPath(wd.mins,wd.maxs)+'" fill="'+col+'" fill-opacity="'+(isOther?(opac*0.1).toFixed(2):opac.toFixed(2))+'" stroke="none"/>'
+        +'<path d="M '+linePts(wd.maxs)+'" fill="none" stroke="'+col+'" stroke-opacity="'+(isOther?'0.12':(isAct?'1.0':'0.55'))+'" stroke-width="'+(isAct?2:1)+'"/>'
         +'</g>';
     });
-    // Level highlight marker
-    var lvMark='';
+    var xhair='';
+    if(crosshairLv!==null){
+      var cx=xp(crosshairLv).toFixed(1);
+      xhair='<line x1="'+cx+'" y1="'+mt+'" x2="'+cx+'" y2="'+(mt+ph)+'" stroke="#ffd700" stroke-width="1.5" stroke-dasharray="4,3" pointer-events="none"/>'
+        +'<circle cx="'+cx+'" cy="'+(mt+ph/2).toFixed(1)+'" r="2.5" fill="#ffd700" pointer-events="none"/>';
+    }
     var hl=srcLv>0?srcLv:0;
-    if(hl>0){var mx=xp(hl);lvMark='<line x1="'+mx.toFixed(1)+'" y1="'+mt+'" x2="'+mx.toFixed(1)+'" y2="'+(mt+ph)+'" stroke="#ffd700" stroke-width="1.5" stroke-dasharray="3,2" opacity="0.7"/>';}
-    var svg='<svg id="sc-svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" style="display:block">'
+    var lvMark='';
+    if(hl>0&&crosshairLv===null){
+      var lmx=xp(hl);
+      lvMark='<line x1="'+lmx.toFixed(1)+'" y1="'+mt+'" x2="'+lmx.toFixed(1)+'" y2="'+(mt+ph)+'" stroke="#ffd700" stroke-width="1.5" stroke-dasharray="3,2" opacity="0.5" pointer-events="none"/>';
+    }
+    var svg='<svg id="sc-svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" style="display:block;cursor:crosshair">'
       +'<rect x="'+ml+'" y="'+mt+'" width="'+pw+'" height="'+ph+'" fill="#111"/>'
-      +g+bands+lvMark+ax
+      +g+bands+xhair+lvMark+ax
       +'<text x="'+(ml+pw/2)+'" y="'+(H-2)+'" text-anchor="middle" font-size="9" fill="#555">level</text>'
       +'<text x="10" y="'+(mt+ph/2)+'" text-anchor="middle" font-size="9" fill="#555" transform="rotate(-90,10,'+(mt+ph/2)+')">dmg</text>'
       +'</svg>';
     document.getElementById('sc-chart').innerHTML=svg;
+    // Bind weapon band clicks (SVG replaced each render — rebind every time)
     document.querySelectorAll('#sc-chart .sc-band').forEach(function(el){
       var wid=el.dataset.wid;
-      el.style.cursor='pointer';
-      el.addEventListener('mouseenter',function(){if(!selWid){hovWid=wid;redraw();}});
-      el.addEventListener('mouseleave',function(){if(!selWid){hovWid=null;redraw();}});
-      el.addEventListener('click',function(){selWid=(selWid===wid)?null:wid;hovWid=null;redraw();});
+      el.addEventListener('click',function(e){selWid=(selWid===wid)?null:wid;e.stopPropagation();redraw();});
     });
+    // Bind SVG crosshair events (SVG is replaced each render — rebind every time)
+    var svgEl=document.getElementById('sc-svg');
+    if(svgEl)attachSvgEvents(svgEl);
+    // Crosshair info bar
+    var xinfo='';
+    if(crosshairLv!==null){
+      var hitRate=srcHitRate(srcId);
+      var hitPct=Math.max(0,hitRate-(tgt.evade||0));
+      var showW=selWid?wdata.filter(function(wd){return wd.id===selWid;}):wdata;
+      xinfo='<span style="color:#ffd700">L'+crosshairLv+'</span>';
+      showW.forEach(function(wd){
+        var col=SC_COLORS[wd.type]||'#888';
+        var mn=wd.mins[crosshairLv-1],mx=wd.maxs[crosshairLv-1];
+        var htkHi=mx>0?Math.ceil((tgt.hp||1)/mx):'?',htkLo=mn>0?Math.ceil((tgt.hp||1)/mn):'?';
+        xinfo+=' \u00a0 <span style="color:'+col+'">'+wd.label+':</span> '+mn+'\u2013'+mx
+          +' <span style="opacity:.55">(htk '+htkHi+'\u2013'+htkLo+')</span>';
+      });
+      xinfo+=' \u00a0 <span style="opacity:.4">hit\u2248'+hitPct+'%</span>';
+    }
+    document.getElementById('sc-xinfo').innerHTML=xinfo;
+    // Legend
     var leg='';
+    var hlv=crosshairLv||(hl>0?hl:1);
     wdata.forEach(function(wd){
       var col=SC_COLORS[wd.type]||'#888';
-      var isAct=activeWid===wd.id;
-      var isOther=!!(activeWid&&!isAct);
-      var hlv=hl>0?hl:1;
+      var isAct=selWid===wd.id,isOther=!!(selWid&&!isAct);
       var d1=dmgRange(srcAtkAtLv(srcId,hlv,wd.bonus),def);
       var d37=dmgRange(srcAtkAtLv(srcId,SC_MAX_LEVEL,wd.bonus),def);
-      var d1s=(hl>0)?('L'+hlv+':'+d1.min+'-'+d1.max+' \u2192 '):('L1:'+d1.min+'-'+d1.max+' \u2192 ');
       leg+='<div class="sc-leg-row'+(isAct?' sc-leg-sel':'')+(isOther?' sc-leg-dim':'')+'" data-wid="'+wd.id+'">'
         +'<span class="sc-leg-dot" style="background:'+col+'"></span>'
         +'<span class="sc-leg-name">'+wd.label+'</span>'
-        +'<span class="sc-leg-range">'+d1s+'L37:'+d37.min+'-'+d37.max+'</span>'
+        +'<span class="sc-leg-range">L'+hlv+':'+d1.min+'\u2013'+d1.max+' \u2192 L37:'+d37.min+'\u2013'+d37.max+'</span>'
         +'</div>';
     });
     document.getElementById('sc-legend').innerHTML=leg;
     document.querySelectorAll('#sc-legend .sc-leg-row').forEach(function(el){
       var wid=el.dataset.wid;
-      el.addEventListener('mouseenter',function(){if(!selWid){hovWid=wid;redraw();}});
-      el.addEventListener('mouseleave',function(){if(!selWid){hovWid=null;redraw();}});
-      el.addEventListener('click',function(){selWid=(selWid===wid)?null:wid;hovWid=null;redraw();});
+      el.addEventListener('click',function(){selWid=(selWid===wid)?null:wid;redraw();});
     });
-    var srcDisp=SC_CHARS[srcId];
+    // Stats boxes
+    var srcChar=SC_CHARS.find(function(c){return c.id===+srcId;})||{name:'?'};
     var sc=SC_SCALABLE[srcId];
-    var hlv2=hl>0?hl:1;
-    var stats='<div class="sc-stat-box"><div class="sc-stat-name">'+(srcDisp?srcDisp.name:'?')+(sc?' \u2605':'')+'</div>'
-      +(sc?('<div class="sc-stat-row"><span>atk L'+(hl||1)+'</span><span class="sc-stat-val">'+srcAtkAtLv(srcId,hlv2,0)+'</span></div>'
-        +'<div class="sc-stat-row"><span>atk L37</span><span class="sc-stat-val">'+srcAtkAtLv(srcId,SC_MAX_LEVEL,0)+'</span></div>')
-        :('<div class="sc-stat-row"><span>atk</span><span class="sc-stat-val">'+((SC_CHARS[srcId]||{attack:0}).attack)+'</span></div>'))
+    var hlv2=crosshairLv||(hl>0?hl:1);
+    var stats='<div class="sc-stat-box"><div class="sc-stat-name">'+srcChar.name+(sc?' \u2605':'')+'</div>'
+      +(sc?('<div class="sc-stat-row"><span>atk L'+hlv2+'</span><span class="sc-stat-val">'+srcAtkAtLv(srcId,hlv2,0)+'</span></div>'
+          +'<div class="sc-stat-row"><span>atk L37</span><span class="sc-stat-val">'+srcAtkAtLv(srcId,SC_MAX_LEVEL,0)+'</span></div>')
+        :('<div class="sc-stat-row"><span>atk</span><span class="sc-stat-val">'+(srcChar.attack||0)+'</span></div>'))
       +'</div>'
-      +'<div class="sc-stat-box"><div class="sc-stat-name">'+tgt.name+'</div>'
+      +'<div class="sc-stat-box"><div class="sc-stat-name">'+tgt.name+(scaleEnemies?' (scaled)':'')+'</div>'
       +'<div class="sc-stat-row"><span>hp</span><span class="sc-stat-val">'+tgt.hp+'</span></div>'
       +'<div class="sc-stat-row"><span>def</span><span class="sc-stat-val">'+def+'</span></div>'
       +'<div class="sc-stat-row"><span>def\u00f74</span><span class="sc-stat-val">'+(def>>2)+'</span></div>'
       +'</div>';
-    if(activeWid){
-      var aw=weapons.find(function(w){return w.id===activeWid;});
-      var awd=wdata.find(function(wd){return wd.id===activeWid;});
+    if(selWid){
+      var aw=weapons.find(function(w){return w.id===selWid;});
+      var awd=wdata.find(function(wd){return wd.id===selWid;});
       if(aw&&awd){
         var lvidx=Math.max(0,hlv2-1);
+        var amn=awd.mins[lvidx],amx=awd.maxs[lvidx];
         stats+='<div class="sc-stat-box"><div class="sc-stat-name">'+aw.label+' vs '+tgt.name+'</div>'
-          +'<div class="sc-stat-row"><span>dmg@L'+(hl||1)+'</span><span class="sc-stat-val">'+awd.mins[lvidx]+'\u2013'+awd.maxs[lvidx]+'</span></div>'
-          +'<div class="sc-stat-row"><span>htk@L'+(hl||1)+'</span><span class="sc-stat-val">'+(awd.maxs[lvidx]>0?Math.ceil(tgt.hp/awd.maxs[lvidx]):'?')+'\u2013'+(awd.mins[lvidx]>0?Math.ceil(tgt.hp/awd.mins[lvidx]):'?')+'</span></div>'
+          +'<div class="sc-stat-row"><span>dmg@L'+hlv2+'</span><span class="sc-stat-val">'+amn+'\u2013'+amx+'</span></div>'
+          +'<div class="sc-stat-row"><span>htk@L'+hlv2+'</span><span class="sc-stat-val">'+(amx>0?Math.ceil(tgt.hp/amx):'?')+'\u2013'+(amn>0?Math.ceil(tgt.hp/amn):'?')+'</span></div>'
           +'<div class="sc-stat-row"><span>dmg@L37</span><span class="sc-stat-val">'+awd.mins[36]+'\u2013'+awd.maxs[36]+'</span></div>'
           +'</div>';
       }
@@ -2078,6 +2171,7 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     document.getElementById('sc-stats').innerHTML=stats;
   }
   updateLevelFields();
+  var initW=getWeapons();if(initW.length)selWid=initW[0].id;
   redraw();
 })();
 `;
@@ -2912,8 +3006,10 @@ ${scalingJs}
         '<div class="sc-field" id="sc-tgt-lv-field" style="display:none"><span class="sc-label">Target level</span><select class="sc-sel" style="min-width:80px" id="sc-tgt-lv"><option value="0">auto</option></select></div>' +
         '<div class="sc-field"><span class="sc-label">Charge</span><div class="sc-toggle-group"><button class="sc-toggle-btn" data-chg="25">25%</button><button class="sc-toggle-btn" data-chg="50">50%</button><button class="sc-toggle-btn sc-active" data-chg="100">100%</button></div></div>' +
         '<div class="sc-field"><span class="sc-label">Enemy scale</span><button class="sc-toggle-btn" id="sc-scale-toggle">OFF</button></div>' +
+        '<div class="sc-field"><span class="sc-label">Atlas</span><button class="sc-toggle-btn" id="sc-atlas-toggle">OFF</button></div>' +
         '</div>' +
         '<div class="sc-chart-layout"><div class="sc-chart-wrap"><div id="sc-chart"></div></div><div class="sc-legend" id="sc-legend"></div></div>' +
+        '<div id="sc-xinfo" class="sc-xinfo"></div>' +
         '<div class="sc-stats" id="sc-stats"></div>' +
         '<div class="sc-note">\u2605 = scalable (level grows). Formula from soestuff.lua: w = ~((def\u00f74 \u2212 atk) \u2212 1) \u0026 0xffff; dmg \u2208 [(3w)\u00bb2, (5w)\u00bb2].</div>' +
         '</div>' +
@@ -3005,11 +3101,11 @@ function activate(context) {
             const wsRoot       = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
             const wsRootUri    = wsRoot ? vscode.Uri.file(wsRoot) : null;
 
-            // Load character data for Scaling tab (once per session)
+            // Load character data for Scaling tab (ROM read is cached; scale detection is per-document)
             if (!_scalingChars) {
                 _scalingChars = readRomCharacters(wsRoot);
-                _scaleActive  = detectScaleEnemies(wsRoot);
             }
+            _scaleActive = detectScaleEnemies(wsRoot, document.uri.fsPath);
 
             // Reuse existing panel if open; otherwise create a new one
             if (!_radarPanel) {
@@ -3070,6 +3166,7 @@ function activate(context) {
                     if (_radarDoc) {
                         const gscope = { kind: 'global', name: _radarDoc.fileName.split(/[\/\\]/).pop(), startLine: 0, endLine: _radarDoc.lineCount - 1 };
                         const { refs, pools, argRefs } = radarAnalyzeScope(_radarDoc, 0, _radarDoc.lineCount - 1);
+                        _scaleActive = detectScaleEnemies(wsRoot, _radarDoc.uri?.fsPath ?? null);
                         _radarPanel.webview.html = renderRadarHtml(gscope, refs, pools, argRefs, getRadarMap(), _radarRoomTree || [], _radarActiveTab, null, _scalingChars || [], _scaleActive);
                         _radarPanel.title = 'Radar: (global)';
                     }
