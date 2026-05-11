@@ -561,6 +561,7 @@ let _radarRoomTree     = null;   // cached room tree (rebuilt when doc changes)
 let _radarRoomDocPath  = null;   // fsPath the room tree was built for
 let _radarActiveTab    = 'radar'; // preserved tab across re-renders
 let _scalingChars      = null;   // cached character stat array (142 entries from ROM)
+let _hitLookup         = null;   // precomputed hit% table {hit_rate:{evade:pct}} from ROM
 let _scaleActive       = false;  // whether scale_enemies is active in workspace
 let _ingrBaseUri       = '';     // webview URI base for ingredient images (set on panel creation)
 
@@ -760,7 +761,7 @@ function refreshRadar(editor) {
     }
     _scaleActive = detectScaleEnemies(wsRoot2, doc.uri.fsPath);
     const selectedMap = scope.kind === 'map' ? scope.name : null;
-    _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree || [], _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, _ingrBaseUri);
+    _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree || [], _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, _ingrBaseUri, _hitLookup);
     _radarPanel.title = 'Radar: ' + scope.name;
 }
 
@@ -1244,6 +1245,56 @@ function readRomCharacters(wsRoot) {
 }
 
 /**
+ * Compute hit% lookup table from the two-level ROM table described in soestuff.lua.
+ * Returns { hit_rate: { evade: pct } } for all unique (hit_rate, evade) pairs in chars.
+ * Addresses: $8FBAAF (evasion pointer table), $8F0000 (hit value table) — HiROM, no header.
+ */
+function readRomHitLookup(wsRoot, chars) {
+    if (!wsRoot || !chars || !chars.length) return {};
+    try {
+        const romNames = ['Secret of Evermore (U) [!].smc', 'Secret of Evermore.smc'];
+        let romBuf = null;
+        for (const name of romNames) {
+            const p = path.join(wsRoot, name);
+            if (fs.existsSync(p)) { romBuf = fs.readFileSync(p); break; }
+        }
+        if (!romBuf) return {};
+        // HiROM: ROM offset = (bank & 0x3F) * 0x10000 + addr16
+        // 0x8FBAAF → 0x0F0000 + 0xBAAF = 0x0FBAAF
+        // 0x8F0000 → 0x0F0000 + 0x0000 = 0x0F0000
+        const PTR_BASE  = 0x0FBAAF;
+        const HIT_BASE  = 0x0F0000;
+        const calcHit = (hit_rate, evade) => {
+            const sprite_off = Math.floor((evade + 1) / 2) & 0xFFFE;
+            const ptr_addr   = PTR_BASE + sprite_off;
+            if (ptr_addr + 2 > romBuf.length) return null;
+            const evasion_ptr = romBuf.readUInt16LE(ptr_addr);
+            const hit_off    = ((hit_rate + 1) & 0xFFFC) >> 1;
+            const final_addr = HIT_BASE + hit_off + evasion_ptr;
+            if (final_addr + 2 > romBuf.length) return null;
+            const raw = romBuf.readUInt16LE(final_addr);
+            return Math.min(100, raw / 0x7FFF * 100);
+        };
+        const hitRates = new Set([38, 50]);
+        const evades   = new Set([0]);
+        for (const c of chars) {
+            if (c.hit_rate !== undefined) hitRates.add(c.hit_rate);
+            if (c.evade    !== undefined) evades.add(c.evade);
+        }
+        const lookup = {};
+        for (const hr of hitRates) {
+            const row = {};
+            for (const ev of evades) {
+                const pct = calcHit(hr, ev);
+                if (pct !== null) row[ev] = Math.round(pct * 10) / 10;
+            }
+            if (Object.keys(row).length) lookup[hr] = row;
+        }
+        return lookup;
+    } catch { return {}; }
+}
+
+/**
  * Check if scale_enemies is active (non-commented) in any main.evs in the workspace.
  * @param {string} wsRoot
  * @returns {boolean}
@@ -1599,7 +1650,7 @@ function setRoomImageUris(nodes, webview) {
     }
 }
 
-function renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTree = [], activeTab = 'radar', selectedMap = null, chars = [], scaleActive = false, ingrBaseUri = '') {
+function renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTree = [], activeTab = 'radar', selectedMap = null, chars = [], scaleActive = false, ingrBaseUri = '', hitLookup = null) {
     const COLS = 16;
     const allAddrs = [...mapByAddr.keys(), ...refs.keys()];
     if (!allAddrs.length) { allAddrs.push(0x2200, 0x28FF); }
@@ -2056,7 +2107,28 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .sc-leg-dim{opacity:.28}
 .sc-leg-dot{display:inline-block;width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .sc-leg-name{min-width:58px;font-weight:600}
-.sc-leg-range{opacity:.5;font-size:8px}`;
+.sc-leg-range{opacity:.5;font-size:8px}
+/* ── Docs tab ── */
+.doc-wrap{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
+.doc-subnav{display:flex;gap:2px;padding:4px 8px;border-bottom:1px solid #222;flex-shrink:0;flex-wrap:wrap}
+.doc-btn{font-size:9px;padding:2px 8px;border-radius:3px;border:1px solid #333;background:#1a1a1a;color:#888;cursor:pointer;line-height:14px}
+.doc-btn.doc-btn-active{background:#1e3a1e;color:#88cc88;border-color:#336633}
+.doc-content{flex:1;overflow-y:auto;padding:10px 12px}
+.doc-sec{}
+.doc-h{font-size:13px;font-weight:600;margin:0 0 6px;color:#ccc}
+.doc-fact{font-size:10px;color:#aaa;margin:4px 0;line-height:1.5}
+.doc-code{font-size:10px;background:#0f0f0f;border:1px solid #222;padding:6px 8px;border-radius:3px;margin:4px 0 8px;color:#88cc88;overflow-x:auto;white-space:pre;display:block}
+.doc-sliders{display:flex;flex-direction:column;gap:4px;margin:6px 0;font-size:10px;color:#aaa}
+.doc-sliders label{display:flex;align-items:center;gap:6px}
+.doc-sliders input[type=range]{width:160px}
+.doc-sliders span{min-width:24px;font-family:monospace}
+.doc-val{font-size:11px;color:#ccc;margin:2px 0}
+.doc-cap{color:#ff9966;font-size:10px;margin-left:8px}
+.doc-hr-name{opacity:.55;font-size:9px;margin-right:2px}
+.doc-htable{border-collapse:collapse;font-size:9px;margin-top:6px;max-width:100%}
+.doc-htable th,.doc-htable td{padding:2px 6px;border:1px solid #1e1e1e;text-align:right;white-space:nowrap}
+.doc-htable th{background:#111;color:#666;font-weight:normal}
+.doc-htable td:first-child{text-align:left;color:#666}`;
 
     // ── Rooms tab data ──────────────────────────────────────────────────────
     const treeHtml       = renderRoomsTree(roomTree);
@@ -2067,6 +2139,7 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 
     // ── Scaling tab data ────────────────────────────────────────────────────
     const scalingData = 'var SC_CHARS=' + JSON.stringify(chars) + ';'
+        + 'var SC_HIT_LOOKUP=' + JSON.stringify(hitLookup || {}) + ';'
         + 'var SC_SCALE_ACTIVE=' + (scaleActive ? 'true' : 'false') + ';'
         + 'var SC_BOY={atk1:7,def1:5,hp1:30,atkG:2,defG:1,hpG:9,hitRate:38};'
         + 'var SC_DOG={atk1:17,def1:10,hp1:36,atkG:4,defG:6,hpG:9,hitRate:50};'
@@ -2166,19 +2239,20 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
   var _dmgCache={};
   function dmgRangeFull(w){
     if(_dmgCache[w]!==undefined)return _dmgCache[w];
-    var mn=999,mx=0;
+    var mn=Infinity,mx=0,cnt999=0;
     for(var s=0;s<=255;s++){
       var a=(s+w)&0xffff,b=(a<<1)&0xffff,c=(b+w)&0xffff,d=c>>2;
       if(d<mn)mn=d; if(d>mx)mx=d;
+      if(d>=999)cnt999++;
     }
-    return(_dmgCache[w]={min:Math.min(999,mn),max:Math.min(999,mx)});
+    return(_dmgCache[w]={min:Math.min(999,mn),max:Math.min(999,mx),pct999:Math.round(cnt999/256*100)});
   }
   function dmgRange(atk,def){
     var inner=(((def>>2)-atk)&0xffff);
     var w=(~((inner-1)&0xffff))&0xffff;
     if(w>=0x8000)w=1;
     if(atlasMode)return dmgRangeFull(w);
-    return{min:Math.min(999,(3*w)>>2),max:Math.min(999,(5*w)>>2)};
+    return{min:Math.min(999,(3*w)>>2),max:Math.min(999,(5*w)>>2),pct999:0};
   }
 
   function applyCharge(atk){if(charge<=25)return atk>>2;if(charge<=50)return atk>>1;return atk;}
@@ -2225,12 +2299,12 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     var def=scaleEnemies?Math.max(1,tgt.defense*2):tgt.defense;
     var weapons=getWeapons();
     var wdata=weapons.map(function(w){
-      var mins=[],maxs=[];
+      var mins=[],maxs=[],p999s=[];
       for(var lv=1;lv<=SC_MAX_LEVEL;lv++){
         var d=dmgRange(srcAtkAtLv(srcId,lv,w.bonus),def);
-        mins.push(d.min);maxs.push(d.max);
+        mins.push(d.min);maxs.push(d.max);p999s.push(d.pct999||0);
       }
-      return{id:w.id,label:w.label,type:w.type,bonus:w.bonus,mins:mins,maxs:maxs};
+      return{id:w.id,label:w.label,type:w.type,bonus:w.bonus,mins:mins,maxs:maxs,p999s:p999s};
     });
     var yMax=0;
     wdata.forEach(function(wd){wd.maxs.forEach(function(v){if(v>yMax)yMax=v;});});
@@ -2299,17 +2373,21 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     var xinfo='';
     if(crosshairLv!==null){
       var hitRate=srcHitRate(srcId);
-      var hitPct=Math.max(0,hitRate-(tgt.evade||0));
+      var evadeVal=tgt.evade||0;
+      var hitRow=SC_HIT_LOOKUP&&SC_HIT_LOOKUP[hitRate];
+      var hitPct=hitRow&&hitRow[evadeVal]!==undefined?hitRow[evadeVal].toFixed(1):Math.max(0,hitRate-evadeVal);
       var showW=selWid?wdata.filter(function(wd){return wd.id===selWid;}):wdata;
       xinfo='<span style="color:#ffd700">L'+crosshairLv+'</span>';
       showW.forEach(function(wd){
         var col=SC_COLORS[wd.type]||'#888';
         var mn=wd.mins[crosshairLv-1],mx=wd.maxs[crosshairLv-1];
+        var p999=wd.p999s&&wd.p999s[crosshairLv-1]||0;
         var htkHi=mx>0?Math.ceil((tgt.hp||1)/mx):'?',htkLo=mn>0?Math.ceil((tgt.hp||1)/mn):'?';
         xinfo+=' \u00a0 <span style="color:'+col+'">'+wd.label+':</span> '+mn+'\u2013'+mx
+          +(p999>0?' <span style="color:#ff9966">(cap '+p999+'%)</span>':'')
           +' <span style="opacity:.55">(htk '+htkHi+'\u2013'+htkLo+')</span>';
       });
-      xinfo+=' \u00a0 <span style="opacity:.4">hit\u2248'+hitPct+'%</span>';
+      xinfo+=' \u00a0 <span style="opacity:.4">hit='+hitPct+'%</span>';
     }
     document.getElementById('sc-xinfo').innerHTML=xinfo;
     // Legend
@@ -2320,10 +2398,12 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
       var isAct=selWid===wd.id,isOther=!!(selWid&&!isAct);
       var d1=dmgRange(srcAtkAtLv(srcId,hlv,wd.bonus),def);
       var d37=dmgRange(srcAtkAtLv(srcId,SC_MAX_LEVEL,wd.bonus),def);
+      var r1=d1.min+'\u2013'+d1.max+(d1.pct999>0?' (cap '+d1.pct999+'%)':'');
+      var r37=d37.min+'\u2013'+d37.max+(d37.pct999>0?' (cap '+d37.pct999+'%)':'');
       leg+='<div class="sc-leg-row'+(isAct?' sc-leg-sel':'')+(isOther?' sc-leg-dim':'')+'" data-wid="'+wd.id+'">'
         +'<span class="sc-leg-dot" style="background:'+col+'"></span>'
         +'<span class="sc-leg-name">'+wd.label+'</span>'
-        +'<span class="sc-leg-range">L'+hlv+':'+d1.min+'\u2013'+d1.max+' \u2192 L37:'+d37.min+'\u2013'+d37.max+'</span>'
+        +'<span class="sc-leg-range">L'+hlv+':'+r1+' \u2192 L37:'+r37+'</span>'
         +'</div>';
     });
     document.getElementById('sc-legend').innerHTML=leg;
@@ -2351,10 +2431,12 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
       if(aw&&awd){
         var lvidx=Math.max(0,hlv2-1);
         var amn=awd.mins[lvidx],amx=awd.maxs[lvidx];
+        var ap=awd.p999s&&awd.p999s[lvidx]||0;
+        var amn37=awd.mins[36],amx37=awd.maxs[36],ap37=awd.p999s&&awd.p999s[36]||0;
         stats+='<div class="sc-stat-box"><div class="sc-stat-name">'+aw.label+' vs '+tgt.name+'</div>'
-          +'<div class="sc-stat-row"><span>dmg@L'+hlv2+'</span><span class="sc-stat-val">'+amn+'\u2013'+amx+'</span></div>'
+          +'<div class="sc-stat-row"><span>dmg@L'+hlv2+'</span><span class="sc-stat-val">'+amn+'\u2013'+amx+(ap>0?' (cap '+ap+'%)':'')+'</span></div>'
           +'<div class="sc-stat-row"><span>htk@L'+hlv2+'</span><span class="sc-stat-val">'+(amx>0?Math.ceil(tgt.hp/amx):'?')+'\u2013'+(amn>0?Math.ceil(tgt.hp/amn):'?')+'</span></div>'
-          +'<div class="sc-stat-row"><span>dmg@L37</span><span class="sc-stat-val">'+awd.mins[36]+'\u2013'+awd.maxs[36]+'</span></div>'
+          +'<div class="sc-stat-row"><span>dmg@L37</span><span class="sc-stat-val">'+amn37+'\u2013'+amx37+(ap37>0?' (cap '+ap37+'%)':'')+'</span></div>'
           +'</div>';
       }
     }
@@ -2919,6 +3001,100 @@ function renderRoomDetail(room){
 }
 `;
 
+    const docsJs = `(function(){
+  // Sub-tab navigation
+  document.querySelectorAll('.doc-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var sec=btn.dataset.doc;
+      document.querySelectorAll('.doc-btn').forEach(function(b){b.classList.remove('doc-btn-active');});
+      btn.classList.add('doc-btn-active');
+      document.querySelectorAll('.doc-sec').forEach(function(s){s.style.display=s.dataset.doc===sec?'':'none';});
+    });
+  });
+  // Shared formula helpers
+  function docW(atk,def){var inner=(((def>>2)-atk)&0xffff);var w=(~((inner-1)&0xffff))&0xffff;if(w>=0x8000)w=1;return w;}
+  function docSeedRaw(w,s){var a=(s+w)&0xffff,b=(a<<1)&0xffff,c=(b+w)&0xffff;return c>>2;}
+  function docSeeds(w){var r=[];for(var s=0;s<=255;s++)r.push(docSeedRaw(w,s));return r;}
+  // ── Damage section ──────────────────────────────────────────────────────
+  function renderDmgChart(atk,def){
+    var w=docW(atk,def);
+    var raw=docSeeds(w);
+    var capped=raw.map(function(d){return Math.min(999,d);});
+    var mn=capped.reduce(function(a,b){return Math.min(a,b);},999);
+    var mx=capped.reduce(function(a,b){return Math.max(a,b);},0);
+    var cnt999=raw.filter(function(d){return d>=999;}).length;
+    var N=32,buckets=new Array(N).fill(0),range=mx-mn||1;
+    capped.forEach(function(d){var bi=Math.min(N-1,Math.floor((d-mn)/range*N));buckets[bi]++;});
+    var bMax=buckets.reduce(function(a,b){return Math.max(a,b);},1);
+    var W=320,H=56,bw=W/N,bars='';
+    for(var i=0;i<N;i++){
+      var bh=buckets[i]/bMax*H;
+      var bv=mn+i/N*range;
+      bars+='<rect x="'+(i*bw).toFixed(1)+'" y="'+(H-bh).toFixed(1)+'" width="'+(bw-0.5).toFixed(1)+'" height="'+bh.toFixed(1)+'" fill="'+(bv>=999?'#ff7755':'#4488ff')+'"/>';
+    }
+    var html='<div class="doc-val">w=<b>'+w+'</b>  def\u00f74=<b>'+(def>>2)+'</b></div>';
+    html+='<div class="doc-val">range: <b>'+mn+'\u2013'+mx+'</b>';
+    if(cnt999>0)html+='<span class="doc-cap">999-cap: '+cnt999+'/256 ('+Math.round(cnt999/256*100)+'%)</span>';
+    html+='</div>';
+    html+='<svg width="'+W+'" height="'+H+'" style="display:block;margin:4px 0">'+bars+'</svg>';
+    html+='<div style="width:'+W+'px;display:flex;justify-content:space-between;font-size:9px;opacity:.4"><span>'+mn+'</span><span>'+mx+'</span></div>';
+    document.getElementById('doc-dmg-chart').innerHTML=html;
+  }
+  var dmgAtk=document.getElementById('doc-atk'),dmgDef=document.getElementById('doc-def');
+  if(dmgAtk&&dmgDef){
+    function udDmg(){document.getElementById('doc-atk-num').textContent=dmgAtk.value;document.getElementById('doc-def-num').textContent=dmgDef.value;renderDmgChart(+dmgAtk.value,+dmgDef.value);}
+    dmgAtk.addEventListener('input',udDmg);dmgDef.addEventListener('input',udDmg);udDmg();
+  }
+  // ── Hit% section ────────────────────────────────────────────────────────
+  var hitTbl=document.getElementById('doc-hit-table');
+  if(hitTbl){
+    if(!SC_HIT_LOOKUP||!Object.keys(SC_HIT_LOOKUP).length){
+      hitTbl.innerHTML='<div style="opacity:.35;padding:8px;font-size:10px">ROM not found \u2014 place the .smc in workspace root.</div>';
+    }else{
+      var hrs=Object.keys(SC_HIT_LOOKUP).map(Number).sort(function(a,b){return a-b;});
+      var evSet={};hrs.forEach(function(hr){Object.keys(SC_HIT_LOOKUP[hr]).forEach(function(ev){evSet[ev]=1;});});
+      var evs=Object.keys(evSet).map(Number).sort(function(a,b){return a-b;});
+      var html='<table class="doc-htable"><thead><tr><th>hit_rate</th>';
+      evs.forEach(function(ev){html+='<th>ev='+ev+'</th>';});
+      html+='</tr></thead><tbody>';
+      hrs.forEach(function(hr){
+        var nm='';
+        if(hr===38)nm='Boy';else if(hr===50)nm='Dog';
+        else{var ch=SC_CHARS.find(function(c){return c.hit_rate===hr;});if(ch)nm=ch.name.replace(/[<>]/g,'');}
+        html+='<tr><td>'+(nm?'<span class="doc-hr-name">'+escH(nm)+'</span>':'')+hr+'</td>';
+        evs.forEach(function(ev){
+          var row=SC_HIT_LOOKUP[hr],pct=row&&row[ev]!==undefined?row[ev]:null;
+          var bg=pct===null?'':pct>=95?'#226622':pct>=75?'#554422':'#552222';
+          html+='<td'+(bg?' style="background:'+bg+'"':'')+'>'+(pct!==null?pct.toFixed(1)+'%':'—')+'</td>';
+        });
+        html+='</tr>';
+      });
+      hitTbl.innerHTML=html+'</tbody></table>';
+    }
+  }
+  // ── Atlas section ────────────────────────────────────────────────────────
+  var atAtk=document.getElementById('doc-at-atk'),atDef=document.getElementById('doc-at-def');
+  if(atAtk&&atDef){
+    function udAt(){
+      document.getElementById('doc-at-atk-num').textContent=atAtk.value;
+      document.getElementById('doc-at-def-num').textContent=atDef.value;
+      var w=docW(+atAtk.value,+atDef.value);
+      var raw=docSeeds(w);
+      var cnt999=raw.filter(function(d){return d>=999;}).length;
+      var pct=Math.round(cnt999/256*100);
+      var W=280,H=36;
+      var bar='<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="#111" rx="3"/>';
+      bar+='<rect x="0" y="0" width="'+(pct/100*W).toFixed(1)+'" height="'+H+'" fill="'+(pct>0?'#cc4422':'#1a1a1a')+'" rx="3"/>';
+      bar+='<text x="'+(Math.min(pct/100*W+4,W-80)).toFixed(1)+'" y="'+(H/2+4)+'" fill="#fff" font-size="11">'+pct+'% ('+cnt999+'/256 seeds)</text>';
+      var info='<div class="doc-val">w=<b>'+w+'</b></div>';
+      info+='<svg width="'+W+'" height="'+H+'" style="display:block;margin:4px 0">'+bar+'</svg>';
+      document.getElementById('doc-at-chart').innerHTML=info;
+    }
+    atAtk.addEventListener('input',udAt);atDef.addEventListener('input',udAt);udAt();
+  }
+})();
+`;
+
     const js = `(function(){
 var vs=typeof acquireVsCodeApi==='function'?acquireVsCodeApi():null;
 ${jsData}
@@ -3181,6 +3357,7 @@ ${roomsData}
 ${scalingData}
 ${roomsJs}
 ${scalingJs}
+${docsJs}
 // Init active tab and selected map highlight
 (function(){
   var t=ACTIVE_TAB||'radar';
@@ -3222,6 +3399,7 @@ ${scalingJs}
         '<button class="tab tab-active" data-tab="radar">\u26a1 Memory</button>' +
         '<button class="tab" data-tab="rooms">\ud83d\uddfa Rooms</button>' +
         '<button class="tab" data-tab="scaling">\u2694\ufe0f Scaling</button>' +
+        '<button class="tab" data-tab="docs">\ud83d\udcda Docs</button>' +
         '</div>' +
         '<div class="tab-pane" data-tab="radar">' +
         '<div class="head">' +
@@ -3271,6 +3449,60 @@ ${scalingJs}
         '<div class="sc-stats" id="sc-stats"></div>' +
         '<div class="sc-note">\u2605 = scalable (level grows). Formula from soestuff.lua: w = ~((def\u00f74 \u2212 atk) \u2212 1) \u0026 0xffff; dmg \u2208 [(3w)\u00bb2, (5w)\u00bb2].</div>' +
         '</div>' +
+        '</div>' +
+        '<div class="tab-pane" data-tab="docs" style="display:none">' +
+        '<div class="doc-wrap">' +
+        '<div class="doc-subnav">' +
+        '<button class="doc-btn doc-btn-active" data-doc="damage">Damage</button>' +
+        '<button class="doc-btn" data-doc="hit">Hit%</button>' +
+        '<button class="doc-btn" data-doc="atlas">Atlas</button>' +
+        '<button class="doc-btn" data-doc="script">Script</button>' +
+        '<button class="doc-btn" data-doc="evs">Everscript</button>' +
+        '<button class="doc-btn" data-doc="plugin">Plugin</button>' +
+        '</div>' +
+        '<div class="doc-content">' +
+        '<div class="doc-sec" data-doc="damage">' +
+        '<h3 class="doc-h">Physical Damage</h3>' +
+        '<div class="doc-fact">Formula from soestuff.lua. The 8-bit RNG seed varies each attack, producing a range of outcomes.</div>' +
+        '<pre class="doc-code">w = ~((def\u00f74 \u2212 atk) \u2212 1) &amp; 0xFFFF\nif w \u2265 0x8000: w = 1\ndmg \u2208 [\u230a3w\u00f74\u230b, \u230a5w\u00f74\u230b]  (seed \u2208 0..255)</pre>' +
+        '<div class="doc-sliders"><label>atk <input id="doc-atk" type="range" min="0" max="255" value="45"><span id="doc-atk-num">45</span></label>' +
+        '<label>def <input id="doc-def" type="range" min="0" max="255" value="28"><span id="doc-def-num">28</span></label></div>' +
+        '<div id="doc-dmg-chart"></div>' +
+        '</div>' +
+        '<div class="doc-sec" data-doc="hit" style="display:none">' +
+        '<h3 class="doc-h">Hit Chance</h3>' +
+        '<div class="doc-fact">Two-level ROM table lookup. The in-game <em>hit_rate</em> display value is NOT the actual chance to hit.</div>' +
+        '<pre class="doc-code">off_a   = \u230a(evade + 1) / 2\u230b &amp; ~1\nev_ptr  = ROM16[$8FBAAF + off_a]\noff_b   = ((hit_rate + 1) &amp; ~3) / 2\nhit%    = ROM16[$8F0000 + off_b + ev_ptr] / 0x7FFF \u00d7 100</pre>' +
+        '<div id="doc-hit-table"></div>' +
+        '</div>' +
+        '<div class="doc-sec" data-doc="atlas" style="display:none">' +
+        '<h3 class="doc-h">Atlas Amulet \u2014 999-cap probability</h3>' +
+        '<div class="doc-fact">Uses the same formula. When w is large enough some seeds produce uncapped dmg \u2265 999. The bar shows what fraction of 256 seeds cap at 999.</div>' +
+        '<pre class="doc-code">pct999 = count(s \u2208 0..255 | \u230a(2(s+w)+w)/4\u230b \u2265 999) / 256 \u00d7 100</pre>' +
+        '<div class="doc-sliders"><label>atk <input id="doc-at-atk" type="range" min="0" max="255" value="79"><span id="doc-at-atk-num">79</span></label>' +
+        '<label>def <input id="doc-at-def" type="range" min="0" max="255" value="28"><span id="doc-at-def-num">28</span></label></div>' +
+        '<div id="doc-at-chart"></div>' +
+        '</div>' +
+        '<div class="doc-sec" data-doc="script" style="display:none">' +
+        '<h3 class="doc-h">Script Opcodes</h3>' +
+        '<div class="doc-fact">SoE scripts are event-driven. Each room has up to 4 trigger types: <b>enter</b> (room load), <b>step-on</b> (tile), <b>B-button</b> (interact), <b>global</b>.</div>' +
+        '<div class="doc-fact">Opcodes are 1-byte commands followed by 0\u2013N 16-bit word arguments. The Rooms tab shows decoded triggers per room.</div>' +
+        '<div style="opacity:.3;margin-top:12px;font-size:10px">Full opcode reference \u2014 coming soon.</div>' +
+        '</div>' +
+        '<div class="doc-sec" data-doc="evs" style="display:none">' +
+        '<h3 class="doc-h">Everscript</h3>' +
+        '<div class="doc-fact">High-level scripting language that compiles to SoE opcodes. Supports maps, triggers, if/else, function calls, persistence flags, and inline memory references.</div>' +
+        '<div class="doc-fact">Source lives in <code>in/</code>. Entry point is typically <code>in/kaizo/main.evs</code>. Compile: <code>python everscript.py &lt;input&gt;</code>.</div>' +
+        '<div style="opacity:.3;margin-top:12px;font-size:10px">Language reference \u2014 coming soon.</div>' +
+        '</div>' +
+        '<div class="doc-sec" data-doc="plugin" style="display:none">' +
+        '<h3 class="doc-h">Radar Plugin</h3>' +
+        '<div class="doc-fact"><b>Memory:</b> WRAM usage map for the current function scope. Cells show lifecycle (temp / session / sram / system). Click a cell for details and source lines.</div>' +
+        '<div class="doc-fact"><b>Rooms:</b> per-room trigger breakdown \u2014 entrances, step-on, B-triggers, sniff spots. Live mode shows rooms from .evs; Vanilla mode lists all 120 vanilla rooms.</div>' +
+        '<div class="doc-fact"><b>Scaling:</b> physical damage calculator with level scaling, all weapon tiers, charge multiplier, enemy scale, and Atlas mode (cap probability).</div>' +
+        '<div class="doc-fact"><b>Docs:</b> this page \u2014 hard facts about game mechanics and tools.</div>' +
+        '</div>' +
+        '</div></div>' +
         '</div>' +
         '<script>' + js + '<\/script></body></html>';
 }
@@ -3362,6 +3594,7 @@ function activate(context) {
             // Load character data for Scaling tab (ROM read is cached; scale detection is per-document)
             if (!_scalingChars) {
                 _scalingChars = readRomCharacters(wsRoot);
+                _hitLookup    = readRomHitLookup(wsRoot, _scalingChars);
             }
             _scaleActive = detectScaleEnemies(wsRoot, document.uri.fsPath);
 
@@ -3407,7 +3640,7 @@ function activate(context) {
             }
 
             const selectedMap = scope.kind === 'map' ? scope.name : null;
-            _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree, _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, _ingrBaseUri);
+            _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree, _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, _ingrBaseUri, _hitLookup);
 
             // Handle messages from the webview
             _radarPanel.webview.onDidReceiveMessage(msg => {
@@ -3434,7 +3667,7 @@ function activate(context) {
                         const gscope = { kind: 'global', name: _radarDoc.fileName.split(/[\/\\]/).pop(), startLine: 0, endLine: _radarDoc.lineCount - 1 };
                         const { refs, pools, argRefs } = radarAnalyzeScope(_radarDoc, 0, _radarDoc.lineCount - 1);
                         _scaleActive = detectScaleEnemies(wsRoot, _radarDoc.uri?.fsPath ?? null);
-                        _radarPanel.webview.html = renderRadarHtml(gscope, refs, pools, argRefs, getRadarMap(), _radarRoomTree || [], _radarActiveTab, null, _scalingChars || [], _scaleActive, _ingrBaseUri);
+                        _radarPanel.webview.html = renderRadarHtml(gscope, refs, pools, argRefs, getRadarMap(), _radarRoomTree || [], _radarActiveTab, null, _scalingChars || [], _scaleActive, _ingrBaseUri, _hitLookup);
                         _radarPanel.title = 'Radar: (global)';
                     }
                 } else if (msg.command === 'autoScope') {
