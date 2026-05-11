@@ -560,6 +560,8 @@ let _radarUpdateTimer  = null;   // debounce timer for auto-update
 let _radarRoomTree     = null;   // cached room tree (rebuilt when doc changes)
 let _radarRoomDocPath  = null;   // fsPath the room tree was built for
 let _radarActiveTab    = 'radar'; // preserved tab across re-renders
+let _scalingChars      = null;   // cached character stat array (142 entries from ROM)
+let _scaleActive       = false;  // whether scale_enemies is active in workspace
 
 function getRadarMap() {
     if (_radarMapCache) return _radarMapCache;
@@ -591,7 +593,7 @@ function refreshRadar(editor) {
         if (_radarPanel) setRoomImageUris(_radarRoomTree, _radarPanel.webview);
     }
     const selectedMap = scope.kind === 'map' ? scope.name : null;
-    _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree || [], _radarActiveTab, selectedMap);
+    _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree || [], _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive);
     _radarPanel.title = 'Radar: ' + scope.name;
 }
 
@@ -1020,6 +1022,87 @@ function readRomTriggerOffsets(wsRoot, mapId) {
 }
 
 /**
+ * Read all 142 character records from the ROM (HiROM, no header).
+ * Base address: SNES 0x8eB678 → ROM 0x0EB678. Size: 0x4a bytes each.
+ * @param {string} wsRoot
+ * @returns {Array<{id,name,hp,attack,defense,magic_defense,evade,hit_rate}>}
+ */
+function readRomCharacters(wsRoot) {
+    if (!wsRoot) return [];
+    const CHAR_BASE = 0x0EB678;
+    const CHAR_SIZE = 0x4a;
+    const CHAR_COUNT = 142;
+    const BOY_NAME_PTR = 0x7e2210;
+    const DOG_NAME_PTR = 0x7e2234;
+    try {
+        const romNames = ['Secret of Evermore (U) [!].smc', 'Secret of Evermore.smc'];
+        let romBuf = null;
+        for (const name of romNames) {
+            const p = path.join(wsRoot, name);
+            if (fs.existsSync(p)) { romBuf = fs.readFileSync(p); break; }
+        }
+        if (!romBuf) return [];
+        const chars = [];
+        for (let i = 0; i < CHAR_COUNT; i++) {
+            const base = CHAR_BASE + i * CHAR_SIZE;
+            if (base + CHAR_SIZE > romBuf.length) break;
+            // 3-byte name pointer (LE)
+            const namePtr = romBuf[base] | (romBuf[base + 1] << 8) | (romBuf[base + 2] << 16);
+            let name = '';
+            if (namePtr === BOY_NAME_PTR) {
+                name = '<Boy>';
+            } else if (namePtr === DOG_NAME_PTR) {
+                name = '<Dog>';
+            } else if (namePtr >= 0x800000 && namePtr < 0xd00000) {
+                const nameRom = ((namePtr >> 16) & 0x3f) * 0x10000 + (namePtr & 0xffff);
+                if (nameRom < romBuf.length) {
+                    for (let j = nameRom; j < romBuf.length && j < nameRom + 32 && romBuf[j] !== 0; j++) {
+                        name += String.fromCharCode(romBuf[j]);
+                    }
+                }
+            }
+            chars.push({
+                id: i,
+                name: name || ('#' + i),
+                hp:            romBuf.readUInt16LE(base + 0x0f),
+                attack:        romBuf.readUInt16LE(base + 0x19),
+                defense:       romBuf.readUInt16LE(base + 0x1b),
+                magic_defense: romBuf.readUInt16LE(base + 0x1d),
+                evade:         romBuf.readUInt16LE(base + 0x1f),
+                hit_rate:      romBuf.readUInt16LE(base + 0x21),
+            });
+        }
+        return chars;
+    } catch { return []; }
+}
+
+/**
+ * Check if scale_enemies is active (non-commented) in any main.evs in the workspace.
+ * @param {string} wsRoot
+ * @returns {boolean}
+ */
+function detectScaleEnemies(wsRoot) {
+    if (!wsRoot) return false;
+    try {
+        const candidates = [
+            path.join(wsRoot, 'in', 'kaizo', 'main.evs'),
+            path.join(wsRoot, 'in', 'practice', 'main.evs'),
+            path.join(wsRoot, 'in', 'practice_experimental.evs'),
+        ];
+        for (const f of candidates) {
+            if (!fs.existsSync(f)) continue;
+            const lines = fs.readFileSync(f, 'utf8').split('\n');
+            for (const line of lines) {
+                const trimmed = line.replace(/^\s+/, '');
+                if (trimmed.startsWith('//')) continue;
+                if (/scale_enemies\s*\(/.test(trimmed)) return true;
+            }
+        }
+        return false;
+    } catch { return false; }
+}
+
+/**
  * Locate a room image in the workspace.
  * Checks docs/rooms/images/{name}.{ext} and docs/rooms/{name}.{ext}.
  * @returns {string|null} Absolute filesystem path or null.
@@ -1328,7 +1411,7 @@ function setRoomImageUris(nodes, webview) {
     }
 }
 
-function renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTree = [], activeTab = 'radar', selectedMap = null) {
+function renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTree = [], activeTab = 'radar', selectedMap = null, chars = [], scaleActive = false) {
     const COLS = 16;
     const allAddrs = [...mapByAddr.keys(), ...refs.keys()];
     if (!allAddrs.length) { allAddrs.push(0x2200, 0x28FF); }
@@ -1742,11 +1825,157 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .rs-tbl tr{opacity:.7}
 .rs-tbl tr:hover{opacity:1;background:rgba(255,255,255,.04)}
 .rs-tbl tr.hi-row{opacity:1;background:rgba(255,255,255,.1)!important}
-.badge-d{font-size:7px;opacity:.55;border:1px solid #ffa94d;border-radius:3px;padding:0 2px;color:#ffa94d}`;
+.badge-d{font-size:7px;opacity:.55;border:1px solid #ffa94d;border-radius:3px;padding:0 2px;color:#ffa94d}
+/* ── Scaling tab ── */
+.sc-wrap{display:flex;flex-direction:column;flex:1;min-height:0;padding:8px;gap:8px;overflow:auto}
+.sc-banner{font-size:10px;padding:3px 8px;background:rgba(255,200,0,0.12);border:1px solid rgba(255,200,0,0.3);border-radius:4px;color:#ffd700}
+.sc-controls{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-end}
+.sc-field{display:flex;flex-direction:column;gap:2px}
+.sc-label{font-size:9px;text-transform:uppercase;letter-spacing:.05em;opacity:.45;font-weight:700}
+.sc-sel,.sc-num{background:#1e1e1e;border:1px solid #444;color:#ddd;font-size:10px;padding:2px 4px;border-radius:3px}
+.sc-sel{min-width:160px;max-width:220px}
+.sc-num{width:62px}
+.sc-chart-wrap{border:1px solid #2a2a2a;border-radius:4px;background:#161616;padding:4px}
+.sc-chart-wrap svg text{font-family:monospace;fill:#888}
+.sc-fill{fill:rgba(100,160,255,0.15)}
+.sc-line-min{fill:none;stroke:#4488ff;stroke-width:1}
+.sc-line-max{fill:none;stroke:#4488ff;stroke-width:1.5}
+.sc-fill-b{fill:rgba(255,100,100,0.12)}
+.sc-line-min-b{fill:none;stroke:#ff6644;stroke-width:1}
+.sc-line-max-b{fill:none;stroke:#ff6644;stroke-width:1.5}
+.sc-marker{stroke:#ffd700;stroke-width:1;stroke-dasharray:3,2}
+.sc-note{font-size:9px;opacity:.4;font-style:italic}
+.sc-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:4px}
+.sc-stat-box{border:1px solid #2a2a2a;border-radius:4px;padding:4px 6px;font-size:10px}
+.sc-stat-box .sc-stat-name{font-size:9px;opacity:.5;margin-bottom:2px}
+.sc-stat-row{display:flex;justify-content:space-between;font-size:10px;line-height:1.5}
+.sc-stat-val{font-family:monospace;color:#ddd}`;
 
     // ── Rooms tab data ──────────────────────────────────────────────────────
     const treeHtml  = renderRoomsTree(roomTree);
     const roomsData = buildRoomsJson(roomTree, activeTab, selectedMap);
+
+    // ── Scaling tab data ────────────────────────────────────────────────────
+    const scalingData = 'var SC_CHARS=' + JSON.stringify(chars) + ';var SC_SCALE_ACTIVE=' + (scaleActive ? 'true' : 'false') + ';';
+    const scalingJs = `
+(function(){
+  var sc=SC_CHARS;
+  function buildOpts(selId,defaultId){
+    var sel=document.getElementById(selId);
+    if(!sel||!sc.length)return;
+    sc.forEach(function(c){var o=document.createElement('option');o.value=c.id;o.textContent='#'+c.id+' '+c.name;sel.appendChild(o);});
+    sel.value=defaultId||0;
+  }
+  buildOpts('sc-atk-sel',0);   // boy as default attacker
+  buildOpts('sc-def-sel',109); // Wimpy Flower as default defender
+  function syncInputs(){
+    var ai=parseInt(document.getElementById('sc-atk-sel').value);
+    var di=parseInt(document.getElementById('sc-def-sel').value);
+    var ac=sc[ai];var dc=sc[di];
+    if(ac)document.getElementById('sc-atk-val').value=ac.attack;
+    if(dc)document.getElementById('sc-def-val').value=dc.defense;
+    redraw();
+  }
+  document.getElementById('sc-atk-sel').addEventListener('change',syncInputs);
+  document.getElementById('sc-def-sel').addEventListener('change',syncInputs);
+  document.getElementById('sc-atk-val').addEventListener('input',redraw);
+  document.getElementById('sc-def-val').addEventListener('input',redraw);
+  function physDmg(atk,def){
+    var base=Math.max(0,atk-def);
+    return{min:Math.max(1,base),max:Math.max(1,base+Math.floor(atk/4))};
+  }
+  function buildPath(pts){
+    return pts.map(function(p,i){return(i===0?'M ':'L ')+p[0].toFixed(1)+' '+p[1].toFixed(1);}).join(' ');
+  }
+  function redraw(){
+    var atk=Math.max(0,parseInt(document.getElementById('sc-atk-val').value)||0);
+    var targetDef=Math.max(0,parseInt(document.getElementById('sc-def-val').value)||0);
+    var xMax=Math.max(200,Math.ceil((atk+targetDef)*1.1/50)*50);
+    var W=460,H=200,ml=44,mt=16,mr=16,mb=28;
+    var pw=W-ml-mr,ph=H-mt-mb;
+    var yMax=Math.max(1,Math.max(1,atk+Math.floor(atk/4)));
+    yMax=Math.ceil(yMax*1.15/5)*5;
+    function xp(d){return ml+d/xMax*pw;}
+    function yp(v){return mt+ph-Math.min(v,yMax)/yMax*ph;}
+    var step=Math.max(1,Math.floor(xMax/pw));
+    var minPts=[],maxPts=[];
+    for(var x=0;x<=xMax;x+=step){
+      var d=physDmg(atk,x);
+      minPts.push([xp(x),yp(d.min)]);
+      maxPts.push([xp(x),yp(d.max)]);
+    }
+    var fillPath=buildPath(maxPts)+' '+[].concat(minPts).reverse().map(function(p,i){return 'L '+p[0].toFixed(1)+' '+p[1].toFixed(1);}).join(' ')+' Z';
+    // axis ticks
+    var xTicks='',yTicks='',xLabels='',yLabels='',grid='';
+    var xStep=Math.ceil(xMax/8/25)*25;
+    for(var xi=0;xi<=xMax;xi+=xStep){
+      var px=xp(xi);
+      xTicks+='<line x1="'+px.toFixed(1)+'" y1="'+(mt+ph)+'" x2="'+px.toFixed(1)+'" y2="'+(mt+ph+4)+'" stroke="#555"/>';
+      xLabels+='<text x="'+px.toFixed(1)+'" y="'+(mt+ph+14)+'" text-anchor="middle" font-size="9">'+xi+'</text>';
+      grid+='<line x1="'+px.toFixed(1)+'" y1="'+mt+'" x2="'+px.toFixed(1)+'" y2="'+(mt+ph)+'" stroke="#222"/>';
+    }
+    var yStep=Math.ceil(yMax/6/5)*5;
+    for(var yi=0;yi<=yMax;yi+=yStep){
+      var py=yp(yi);
+      yTicks+='<line x1="'+(ml-4)+'" y1="'+py.toFixed(1)+'" x2="'+ml+'" y2="'+py.toFixed(1)+'" stroke="#555"/>';
+      yLabels+='<text x="'+(ml-6)+'" y="'+(py+3).toFixed(1)+'" text-anchor="end" font-size="9">'+yi+'</text>';
+      grid+='<line x1="'+ml+'" y1="'+py.toFixed(1)+'" x2="'+(ml+pw)+'" y2="'+py.toFixed(1)+'" stroke="#222"/>';
+    }
+    // target defense marker
+    var mx=xp(targetDef);
+    var marker=(targetDef<=xMax)?'<line class="sc-marker" x1="'+mx.toFixed(1)+'" y1="'+mt+'" x2="'+mx.toFixed(1)+'" y2="'+(mt+ph)+'"/>':'';
+    // build SVG
+    var di2=parseInt(document.getElementById('sc-def-sel').value);
+    var dc=sc[di2];
+    var legendDef=dc?dc.name+' def='+dc.defense:'';
+    var svg='<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'">'
+      +'<rect x="'+ml+'" y="'+mt+'" width="'+pw+'" height="'+ph+'" fill="#0e0e0e"/>'
+      +grid
+      +'<path class="sc-fill" d="'+fillPath+'"/>'
+      +'<path class="sc-line-min" d="'+buildPath(minPts)+'"/>'
+      +'<path class="sc-line-max" d="'+buildPath(maxPts)+'"/>'
+      +marker
+      +xTicks+yTicks+xLabels+yLabels
+      +'<text x="'+(ml+pw/2)+'" y="'+(H-2)+'" text-anchor="middle" font-size="9" fill="#555">defense</text>'
+      +'<text x="10" y="'+(mt+ph/2)+'" text-anchor="middle" font-size="9" fill="#555" transform="rotate(-90,10,'+(mt+ph/2)+')">damage</text>'
+      +(marker&&legendDef?'<text x="'+(mx+3).toFixed(1)+'" y="'+(mt+10)+'" font-size="8" fill="#ffd700">'+legendDef+'</text>':'')
+      +'</svg>';
+    document.getElementById('sc-chart').innerHTML=svg;
+    // stats table
+    var ai2=parseInt(document.getElementById('sc-atk-sel').value);
+    var ac=sc[ai2];
+    var statHtml='';
+    if(ac){statHtml+='<div class="sc-stat-box"><div class="sc-stat-name">Attacker: '+ac.name+'</div>'
+      +'<div class="sc-stat-row"><span>attack</span><span class="sc-stat-val">'+ac.attack+'</span></div>'
+      +'<div class="sc-stat-row"><span>hp</span><span class="sc-stat-val">'+ac.hp+'</span></div>'
+      +'<div class="sc-stat-row"><span>hit_rate</span><span class="sc-stat-val">'+ac.hit_rate+'</span></div>'
+      +'</div>';}
+    if(dc){statHtml+='<div class="sc-stat-box"><div class="sc-stat-name">Defender: '+dc.name+'</div>'
+      +'<div class="sc-stat-row"><span>defense</span><span class="sc-stat-val">'+dc.defense+'</span></div>'
+      +'<div class="sc-stat-row"><span>hp</span><span class="sc-stat-val">'+dc.hp+'</span></div>'
+      +'<div class="sc-stat-row"><span>m.def (ROM)</span><span class="sc-stat-val">'+dc.magic_defense+'</span></div>'
+      +'<div class="sc-stat-row"><span>evade</span><span class="sc-stat-val">'+dc.evade+'</span></div>'
+      +'</div>';}
+    if(ac&&dc){var fixedAtk=atk;var d2=physDmg(fixedAtk,dc.defense);
+      var hitsMin=d2.max>0?Math.ceil(dc.hp/d2.max):'\u221e';
+      var hitsMax=d2.min>0?Math.ceil(dc.hp/d2.min):'\u221e';
+      statHtml+='<div class="sc-stat-box"><div class="sc-stat-name">vs. '+dc.name+'</div>'
+        +'<div class="sc-stat-row"><span>dmg range</span><span class="sc-stat-val">'+d2.min+'\u2013'+d2.max+'</span></div>'
+        +'<div class="sc-stat-row"><span>hits to kill</span><span class="sc-stat-val">'+hitsMin+'\u2013'+hitsMax+'</span></div>'
+        +'</div>';}
+    document.getElementById('sc-stats').innerHTML=statHtml;
+  }
+  // init
+  if(sc.length){
+    document.getElementById('sc-atk-sel').value=0;
+    document.getElementById('sc-def-sel').value=Math.min(109,sc.length-1);
+    syncInputs();
+  } else {
+    document.getElementById('sc-chart').innerHTML='<div style="padding:16px;opacity:.4;font-size:11px">ROM not found — place the .smc in the workspace root.</div>';
+  }
+})();
+`;
+
     const roomsJs   = `
 function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
@@ -2496,7 +2725,9 @@ document.querySelectorAll('tr.dr').forEach(function(row){
 bindLinks(document.querySelector('.dt-wrap'));
 recomputeRows();
 ${roomsData}
+${scalingData}
 ${roomsJs}
+${scalingJs}
 // Init active tab and selected map highlight
 (function(){
   var t=ACTIVE_TAB||'radar';
@@ -2537,6 +2768,7 @@ ${roomsJs}
         '<div class="tabs">' +
         '<button class="tab tab-active" data-tab="radar">\u26a1 Memory</button>' +
         '<button class="tab" data-tab="rooms">\ud83d\uddfa Rooms</button>' +
+        '<button class="tab" data-tab="scaling">\u2694\ufe0f Scaling</button>' +
         '</div>' +
         '<div class="tab-pane" data-tab="radar">' +
         '<div class="head">' +
@@ -2563,6 +2795,20 @@ ${roomsJs}
         '<div class="rm-panels">' +
         '<div class="rm-left"><div class="rm-ph">Rooms</div>' + treeHtml + '</div>' +
         '<div class="rm-right"><div id="room-detail" class="rm-detail-placeholder"><span>Select a room</span></div></div>' +
+        '</div>' +
+        '</div>' +
+        '<div class="tab-pane" data-tab="scaling" style="display:none">' +
+        '<div class="sc-wrap">' +
+        (scaleActive ? '<div class="sc-banner">⚠ scale_enemies is active in this workspace — vanilla stats shown; scaled stats depend on level.</div>' : '') +
+        '<div class="sc-controls">' +
+        '<div class="sc-field"><span class="sc-label">Attacker</span><select class="sc-sel" id="sc-atk-sel"></select></div>' +
+        '<div class="sc-field"><span class="sc-label">Attack override</span><input class="sc-num" id="sc-atk-val" type="number" min="0" max="9999"/></div>' +
+        '<div class="sc-field"><span class="sc-label">Defender</span><select class="sc-sel" id="sc-def-sel"></select></div>' +
+        '<div class="sc-field"><span class="sc-label">Defense override</span><input class="sc-num" id="sc-def-val" type="number" min="0" max="9999"/></div>' +
+        '</div>' +
+        '<div class="sc-chart-wrap"><div id="sc-chart"></div></div>' +
+        '<div class="sc-stats" id="sc-stats"></div>' +
+        '<div class="sc-note">Damage formula is approximate. See docs/scaling-scenarios.md for details.</div>' +
         '</div>' +
         '</div>' +
         '<script>' + js + '<\/script></body></html>';
@@ -2652,6 +2898,12 @@ function activate(context) {
             const wsRoot       = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
             const wsRootUri    = wsRoot ? vscode.Uri.file(wsRoot) : null;
 
+            // Load character data for Scaling tab (once per session)
+            if (!_scalingChars) {
+                _scalingChars = readRomCharacters(wsRoot);
+                _scaleActive  = detectScaleEnemies(wsRoot);
+            }
+
             // Reuse existing panel if open; otherwise create a new one
             if (!_radarPanel) {
                 _radarPanel = vscode.window.createWebviewPanel(
@@ -2685,7 +2937,7 @@ function activate(context) {
             }
 
             const selectedMap = scope.kind === 'map' ? scope.name : null;
-            _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree, _radarActiveTab, selectedMap);
+            _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree, _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive);
 
             // Handle messages from the webview
             _radarPanel.webview.onDidReceiveMessage(msg => {
@@ -2711,7 +2963,7 @@ function activate(context) {
                     if (_radarDoc) {
                         const gscope = { kind: 'global', name: _radarDoc.fileName.split(/[\/\\]/).pop(), startLine: 0, endLine: _radarDoc.lineCount - 1 };
                         const { refs, pools, argRefs } = radarAnalyzeScope(_radarDoc, 0, _radarDoc.lineCount - 1);
-                        _radarPanel.webview.html = renderRadarHtml(gscope, refs, pools, argRefs, getRadarMap(), _radarRoomTree || [], _radarActiveTab, null);
+                        _radarPanel.webview.html = renderRadarHtml(gscope, refs, pools, argRefs, getRadarMap(), _radarRoomTree || [], _radarActiveTab, null, _scalingChars || [], _scaleActive);
                         _radarPanel.title = 'Radar: (global)';
                     }
                 } else if (msg.command === 'autoScope') {
