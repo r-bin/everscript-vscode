@@ -1276,6 +1276,8 @@ function readRomHitLookup(wsRoot, chars) {
             return Math.min(100, raw / 0x7FFF * 100);
         };
         const hitRates = new Set([38, 50]);
+        // Pre-compute all hit_rates Boy and Dog could have across L1–L37 (hitRateG=1)
+        for (let hr = 1; hr <= 127; hr++) hitRates.add(hr);
         const evades   = new Set([0]);
         for (const c of chars) {
             if (c.hit_rate !== undefined) hitRates.add(c.hit_rate);
@@ -2100,6 +2102,8 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .sc-toggle-btn{background:#2a2a2a;border:1px solid #444;color:#888;font-size:9px;padding:2px 7px;border-radius:3px;cursor:pointer;font-family:inherit;transition:none}
 .sc-toggle-btn.sc-active{background:#2e3248;border-color:#556acc;color:#88aaff}
 .sc-chart-layout{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap}
+.sc-hit-chart{margin-top:2px}
+.sc-hit-lbl{font-size:8px;opacity:.38;margin-top:1px;text-align:right;font-family:monospace}
 .sc-legend{display:flex;flex-direction:column;gap:1px;overflow-y:auto;max-height:204px;min-width:140px}
 .sc-leg-row{display:flex;align-items:center;gap:4px;padding:2px 5px;border-radius:3px;cursor:pointer;font-size:9px;white-space:nowrap}
 .sc-leg-row:hover{background:rgba(255,255,255,.06)}
@@ -2141,8 +2145,8 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     const scalingData = 'var SC_CHARS=' + JSON.stringify(chars) + ';'
         + 'var SC_HIT_LOOKUP=' + JSON.stringify(hitLookup || {}) + ';'
         + 'var SC_SCALE_ACTIVE=' + (scaleActive ? 'true' : 'false') + ';'
-        + 'var SC_BOY={atk1:7,def1:5,hp1:30,atkG:2,defG:1,hpG:9,hitRate:38};'
-        + 'var SC_DOG={atk1:17,def1:10,hp1:36,atkG:4,defG:6,hpG:9,hitRate:50};'
+        + 'var SC_BOY={atk1:7,def1:5,hp1:30,atkG:2,defG:1,hpG:9,hitRate1:38,hitRateG:1};'
+        + 'var SC_DOG={atk1:17,def1:10,hp1:36,atkG:4,defG:6,hpG:9,hitRate1:50,hitRateG:1};'
         + 'var SC_SCALABLE={0:SC_BOY,1:SC_DOG};'
         + 'var SC_WEAPONS=['
         + '{id:"sw1",label:"Sword I",type:"sword",bonus:10},'
@@ -2233,19 +2237,24 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 
   // Damage formula (exact from soestuff.lua):
   // w = ~((def>>2 - atk) - 1) & 0xffff; if >= 0x8000 then w=1
-  // seed in [0..255] (8-bit); dmg = ((2*(seed+w) & 0xffff) + w) >> 2, capped 999
-  // Simple closed form (no overflow): min=(3w)>>2, max=(5w)>>2
-  // Atlas mode: brute-forces all 256 seeds to detect mid-range overflow pockets
+  // RNG: 16-bit seed i in [0..65535]; derived_seed = ((w+1)*i >> 16) & 0xff
+  // dmg = ((2*(derived_seed+w) & 0xffff) + w) >> 2, capped 999
+  // Atlas mode: brute-forces all 65536 RNG seeds via proper 16-bit derivation
   var _dmgCache={};
   function dmgRangeFull(w){
     if(_dmgCache[w]!==undefined)return _dmgCache[w];
     var mn=Infinity,mx=0,cnt999=0;
-    for(var s=0;s<=255;s++){
-      var a=(s+w)&0xffff,b=(a<<1)&0xffff,c=(b+w)&0xffff,d=c>>2;
+    var w2=w+1;
+    for(var i=0;i<=0xffff;i++){
+      var lo=i&0xff,hi=(i>>8)&0xff;
+      var a=(w2*lo)&0xffff,b=(w2*hi)&0xffff;
+      var c=(b+((a>>8)&0xff))&0xffff;
+      var s=(c>>8)&0xff;
+      var da=(s+w)&0xffff,db=(da<<1)&0xffff,dc=(db+w)&0xffff,d=dc>>2;
       if(d<mn)mn=d; if(d>mx)mx=d;
       if(d>=999)cnt999++;
     }
-    return(_dmgCache[w]={min:Math.min(999,mn),max:Math.min(999,mx),pct999:Math.round(cnt999/256*100)});
+    return(_dmgCache[w]={min:Math.min(999,mn),max:Math.min(999,mx),pct999:Math.round(cnt999/65536*100)});
   }
   function dmgRange(atk,def){
     var inner=(((def>>2)-atk)&0xffff);
@@ -2261,9 +2270,10 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     var base=s?(s.atk1+(lv-1)*s.atkG):((SC_CHARS.find(function(c){return c.id===+id;})||{attack:0}).attack);
     return applyCharge(base+bonus);
   }
-  function srcHitRate(id){
+  function srcHitRateAtLv(id,lv){
     var s=SC_SCALABLE[id];
-    return s?s.hitRate:((SC_CHARS.find(function(c){return c.id===+id;})||{hit_rate:0}).hit_rate);
+    if(s)return s.hitRate1+(lv-1)*s.hitRateG;
+    return(SC_CHARS.find(function(c){return c.id===+id;})||{hit_rate:0}).hit_rate;
   }
   function getWeapons(){
     if(+srcId===1)return[{id:'paws',label:'Dog Claws',type:'dog',bonus:0}];
@@ -2372,7 +2382,7 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     // Crosshair info bar
     var xinfo='';
     if(crosshairLv!==null){
-      var hitRate=srcHitRate(srcId);
+      var hitRate=srcHitRateAtLv(srcId,crosshairLv);
       var evadeVal=tgt.evade||0;
       var hitRow=SC_HIT_LOOKUP&&SC_HIT_LOOKUP[hitRate];
       var hitPct=hitRow&&hitRow[evadeVal]!==undefined?hitRow[evadeVal].toFixed(1):Math.max(0,hitRate-evadeVal);
@@ -2383,8 +2393,8 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
         var mn=wd.mins[crosshairLv-1],mx=wd.maxs[crosshairLv-1];
         var p999=wd.p999s&&wd.p999s[crosshairLv-1]||0;
         var htkHi=mx>0?Math.ceil((tgt.hp||1)/mx):'?',htkLo=mn>0?Math.ceil((tgt.hp||1)/mn):'?';
-        xinfo+=' \u00a0 <span style="color:'+col+'">'+wd.label+':</span> '+mn+'\u2013'+mx
-          +(p999>0?' <span style="color:#ff9966">(cap '+p999+'%)</span>':'')
+        var dmgStr=p999>=100?'999★':(p999>0?mn+'–999 <span style="color:#ff9966">('+p999+'%)</span>':mn+'–'+mx);
+        xinfo+=' \u00a0 <span style="color:'+col+'">'+wd.label+':</span> '+dmgStr
           +' <span style="opacity:.55">(htk '+htkHi+'\u2013'+htkLo+')</span>';
       });
       xinfo+=' \u00a0 <span style="opacity:.4">hit='+hitPct+'%</span>';
@@ -2398,8 +2408,8 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
       var isAct=selWid===wd.id,isOther=!!(selWid&&!isAct);
       var d1=dmgRange(srcAtkAtLv(srcId,hlv,wd.bonus),def);
       var d37=dmgRange(srcAtkAtLv(srcId,SC_MAX_LEVEL,wd.bonus),def);
-      var r1=d1.min+'\u2013'+d1.max+(d1.pct999>0?' (cap '+d1.pct999+'%)':'');
-      var r37=d37.min+'\u2013'+d37.max+(d37.pct999>0?' (cap '+d37.pct999+'%)':'');
+      var r1=d1.pct999>=100?'999\u2605':(d1.pct999>0?d1.min+'\u2013999 ('+d1.pct999+'%)':d1.min+'\u2013'+d1.max);
+      var r37=d37.pct999>=100?'999\u2605':(d37.pct999>0?d37.min+'\u2013999 ('+d37.pct999+'%)':d37.min+'\u2013'+d37.max);
       leg+='<div class="sc-leg-row'+(isAct?' sc-leg-sel':'')+(isOther?' sc-leg-dim':'')+'" data-wid="'+wd.id+'">'
         +'<span class="sc-leg-dot" style="background:'+col+'"></span>'
         +'<span class="sc-leg-name">'+wd.label+'</span>'
@@ -2434,13 +2444,43 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
         var ap=awd.p999s&&awd.p999s[lvidx]||0;
         var amn37=awd.mins[36],amx37=awd.maxs[36],ap37=awd.p999s&&awd.p999s[36]||0;
         stats+='<div class="sc-stat-box"><div class="sc-stat-name">'+aw.label+' vs '+tgt.name+'</div>'
-          +'<div class="sc-stat-row"><span>dmg@L'+hlv2+'</span><span class="sc-stat-val">'+amn+'\u2013'+amx+(ap>0?' (cap '+ap+'%)':'')+'</span></div>'
+          +'<div class="sc-stat-row"><span>dmg@L'+hlv2+'</span><span class="sc-stat-val">'+(ap>=100?'999\u2605':(ap>0?amn+'\u2013999 ('+ap+'%)':amn+'\u2013'+amx))+'</span></div>'
           +'<div class="sc-stat-row"><span>htk@L'+hlv2+'</span><span class="sc-stat-val">'+(amx>0?Math.ceil(tgt.hp/amx):'?')+'\u2013'+(amn>0?Math.ceil(tgt.hp/amn):'?')+'</span></div>'
-          +'<div class="sc-stat-row"><span>dmg@L37</span><span class="sc-stat-val">'+amn37+'\u2013'+amx37+(ap37>0?' (cap '+ap37+'%)':'')+'</span></div>'
+          +'<div class="sc-stat-row"><span>dmg@L37</span><span class="sc-stat-val">'+(ap37>=100?'999\u2605':(ap37>0?amn37+'\u2013999 ('+ap37+'%)':amn37+'\u2013'+amx37))+'</span></div>'
           +'</div>';
       }
     }
     document.getElementById('sc-stats').innerHTML=stats;
+    // ── Hit% per-level chart ────────────────────────────────────────────────
+    (function(){
+      var hc=document.getElementById('sc-hit-chart');if(!hc)return;
+      if(!SC_HIT_LOOKUP||!Object.keys(SC_HIT_LOOKUP).length){hc.innerHTML='';return;}
+      var evadeVal=tgt.evade||0;
+      var W=_CW,H=36,ml=_ml,mr=_mr,mt=2,mb=10,pw=W-ml-mr,ph=H-mt-mb;
+      function xp2(lv){return ml+(lv-1)/(SC_MAX_LEVEL-1)*pw;}
+      var pts='',prevOk=false,prevX=0,prevY=0;
+      for(var lv=1;lv<=SC_MAX_LEVEL;lv++){
+        var hr=srcHitRateAtLv(srcId,lv);
+        var row=SC_HIT_LOOKUP[hr];
+        var pct=row&&row[evadeVal]!==undefined?row[evadeVal]:null;
+        if(pct===null){prevOk=false;continue;}
+        var x=xp2(lv).toFixed(1),y=(mt+ph-pct/100*ph).toFixed(1);
+        pts+=prevOk?'L'+x+' '+y:'M'+x+' '+y;
+        prevOk=true;prevX=+x;prevY=+y;
+      }
+      var xhairLine='';
+      if(crosshairLv!==null){var cx2=xp2(crosshairLv).toFixed(1);xhairLine='<line x1="'+cx2+'" y1="'+mt+'" x2="'+cx2+'" y2="'+(mt+ph)+'" stroke="#ffd700" stroke-width="1" stroke-dasharray="3,2" opacity="0.7"/>';}
+      var axLabels='';
+      for(var yi=0;yi<=100;yi+=25){axLabels+='<text x="'+(ml-4)+'" y="'+(mt+ph-yi/100*ph+3).toFixed(1)+'" text-anchor="end" font-size="8" fill="#444">'+yi+'</text>';}
+      var svg='<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" style="display:block">'
+        +'<rect x="'+ml+'" y="'+mt+'" width="'+pw+'" height="'+ph+'" fill="#0d1a0d"/>'
+        +'<line x1="'+ml+'" y1="'+mt+'" x2="'+ml+'" y2="'+(mt+ph)+'" stroke="#222"/>'
+        +(pts?'<path d="'+pts+'" fill="none" stroke="#44cc44" stroke-width="1.5"/>':'')
+        +xhairLine+axLabels
+        +'<text x="'+(ml+pw/2)+'" y="'+(H-1)+'" text-anchor="middle" font-size="8" fill="#444">hit% vs level</text>'
+        +'</svg>';
+      hc.innerHTML=svg;
+    })();
   }
   updateLevelFields();
   var initW=getWeapons();if(initW.length)selWid=initW[0].id;
@@ -3444,7 +3484,7 @@ ${docsJs}
         '<div class="sc-field"><span class="sc-label">Enemy scale</span><button class="sc-toggle-btn" id="sc-scale-toggle">OFF</button></div>' +
         '<div class="sc-field"><span class="sc-label">Atlas</span><button class="sc-toggle-btn" id="sc-atlas-toggle">OFF</button></div>' +
         '</div>' +
-        '<div class="sc-chart-layout"><div class="sc-chart-wrap"><div id="sc-chart"></div></div><div class="sc-legend" id="sc-legend"></div></div>' +
+        '<div class="sc-chart-layout"><div class="sc-chart-wrap"><div id="sc-chart"></div><div class="sc-hit-chart" id="sc-hit-chart"></div></div><div class="sc-legend" id="sc-legend"></div></div>' +
         '<div id="sc-xinfo" class="sc-xinfo"></div>' +
         '<div class="sc-stats" id="sc-stats"></div>' +
         '<div class="sc-note">\u2605 = scalable (level grows). Formula from soestuff.lua: w = ~((def\u00f74 \u2212 atk) \u2212 1) \u0026 0xffff; dmg \u2208 [(3w)\u00bb2, (5w)\u00bb2].</div>' +
