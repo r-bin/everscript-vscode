@@ -2260,7 +2260,9 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
      var atkEff=atlasMode?((atk-480)&0xffff):atk;
     var inner=(((def>>2)-atkEff)&0xffff);
     var w=(~((inner-1)&0xffff))&0xffff;
-    if(w>=0x8000)w=1;
+    // Atlas glitch relies on the wrapped unsigned underflow value; the normal
+    // signed clamp would collapse it back to 1 and erase the glitch entirely.
+    if(!atlasMode&&w>=0x8000)w=1;
     if(atlasMode)return dmgRangeFull(w);
     return{min:Math.min(999,(3*w)>>2),max:Math.min(999,(5*w)>>2),pct999:0};
   }
