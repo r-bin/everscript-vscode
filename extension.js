@@ -1849,133 +1849,210 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .sc-stat-box{border:1px solid #2a2a2a;border-radius:4px;padding:4px 6px;font-size:10px}
 .sc-stat-box .sc-stat-name{font-size:9px;opacity:.5;margin-bottom:2px}
 .sc-stat-row{display:flex;justify-content:space-between;font-size:10px;line-height:1.5}
-.sc-stat-val{font-family:monospace;color:#ddd}`;
+.sc-stat-val{font-family:monospace;color:#ddd}
+.sc-toggle-group{display:flex;gap:2px}
+.sc-toggle-btn{background:#2a2a2a;border:1px solid #444;color:#888;font-size:9px;padding:2px 7px;border-radius:3px;cursor:pointer;font-family:inherit;transition:none}
+.sc-toggle-btn.sc-active{background:#2e3248;border-color:#556acc;color:#88aaff}
+.sc-chart-layout{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap}
+.sc-legend{display:flex;flex-direction:column;gap:1px;overflow-y:auto;max-height:204px;min-width:140px}
+.sc-leg-row{display:flex;align-items:center;gap:4px;padding:2px 5px;border-radius:3px;cursor:pointer;font-size:9px;white-space:nowrap}
+.sc-leg-row:hover{background:rgba(255,255,255,.06)}
+.sc-leg-sel{background:rgba(255,255,255,.1)!important}
+.sc-leg-dim{opacity:.28}
+.sc-leg-dot{display:inline-block;width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sc-leg-name{min-width:58px;font-weight:600}
+.sc-leg-range{opacity:.5;font-size:8px}`;
 
     // ── Rooms tab data ──────────────────────────────────────────────────────
     const treeHtml  = renderRoomsTree(roomTree);
     const roomsData = buildRoomsJson(roomTree, activeTab, selectedMap);
 
     // ── Scaling tab data ────────────────────────────────────────────────────
-    const scalingData = 'var SC_CHARS=' + JSON.stringify(chars) + ';var SC_SCALE_ACTIVE=' + (scaleActive ? 'true' : 'false') + ';';
+    const scalingData = 'var SC_CHARS=' + JSON.stringify(chars) + ';'
+        + 'var SC_SCALE_ACTIVE=' + (scaleActive ? 'true' : 'false') + ';'
+        + 'var SC_BOY={atk1:7,def1:5,hp1:30,atkG:2,defG:1,hpG:9};'
+        + 'var SC_DOG={atk1:17,def1:10,hp1:36,atkG:4,defG:6,hpG:9};'
+        + 'var SC_WEAPONS=['
+        + '{id:"sw1",label:"Sword I",type:"sword",bonus:10},'
+        + '{id:"sw2",label:"Sword II",type:"sword",bonus:20},'
+        + '{id:"sw3",label:"Sword III",type:"sword",bonus:30},'
+        + '{id:"sw4",label:"Sword IV",type:"sword",bonus:50},'
+        + '{id:"ax1",label:"Axe I",type:"axe",bonus:15},'
+        + '{id:"ax2",label:"Axe II",type:"axe",bonus:25},'
+        + '{id:"ax3",label:"Axe III",type:"axe",bonus:35},'
+        + '{id:"ax4",label:"Axe IV",type:"axe",bonus:50},'
+        + '{id:"sp1",label:"Spear I",type:"spear",bonus:20},'
+        + '{id:"sp2",label:"Spear II",type:"spear",bonus:30},'
+        + '{id:"sp3",label:"Spear III",type:"spear",bonus:40},'
+        + '{id:"sp4",label:"Spear IV",type:"spear",bonus:50}'
+        + '];'
+        + 'var SC_COLORS={sword:"#4488ff",axe:"#ff8844",spear:"#44bb66",dog:"#cc88ff"};'
+        + 'var SC_TIER_OPAC=[0.18,0.32,0.50,0.75];'
+        + 'var SC_MAX_LEVEL=37;';
     const scalingJs = `
 (function(){
-  var sc=SC_CHARS;
-  function buildOpts(selId,defaultId){
-    var sel=document.getElementById(selId);
-    if(!sel||!sc.length)return;
-    sc.forEach(function(c){var o=document.createElement('option');o.value=c.id;o.textContent='#'+c.id+' '+c.name;sel.appendChild(o);});
-    sel.value=defaultId||0;
+  if(!SC_CHARS.length){
+    var ce=document.getElementById('sc-chart');
+    if(ce)ce.innerHTML='<div style="padding:16px;opacity:.4;font-size:11px">ROM not found \u2014 place the .smc in workspace root.</div>';
+    return;
   }
-  buildOpts('sc-atk-sel',0);   // boy as default attacker
-  buildOpts('sc-def-sel',109); // Wimpy Flower as default defender
-  function syncInputs(){
-    var ai=parseInt(document.getElementById('sc-atk-sel').value);
-    var di=parseInt(document.getElementById('sc-def-sel').value);
-    var ac=sc[ai];var dc=sc[di];
-    if(ac)document.getElementById('sc-atk-val').value=ac.attack;
-    if(dc)document.getElementById('sc-def-val').value=dc.defense;
-    redraw();
+  var src='boy',charge=100,selWid=null,hovWid=null;
+  // Populate target dropdown
+  var tgtSel=document.getElementById('sc-tgt-sel');
+  SC_CHARS.forEach(function(c){
+    var o=document.createElement('option');
+    o.value=c.id;
+    o.textContent='#'+String(c.id).padStart(3,'0')+' '+c.name;
+    tgtSel.appendChild(o);
+  });
+  tgtSel.value=Math.min(109,SC_CHARS.length-1);
+  tgtSel.addEventListener('change',redraw);
+  // Source toggle
+  document.querySelectorAll('[data-src]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      src=btn.dataset.src;
+      document.querySelectorAll('[data-src]').forEach(function(b){b.classList.remove('sc-active');});
+      btn.classList.add('sc-active');
+      selWid=null;hovWid=null;redraw();
+    });
+  });
+  // Charge toggle
+  document.querySelectorAll('[data-chg]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      charge=parseInt(btn.dataset.chg);
+      document.querySelectorAll('[data-chg]').forEach(function(b){b.classList.remove('sc-active');});
+      btn.classList.add('sc-active');redraw();
+    });
+  });
+  function srcBase(){return src==='dog'?SC_DOG:SC_BOY;}
+  function srcAtk(lv){var b=srcBase();return b.atk1+(lv-1)*b.atkG;}
+  function applyCharge(atk){if(charge<=25)return atk>>2;if(charge<=50)return atk>>1;return atk;}
+  function dmgRange(atk,def){
+    var dq=def>>2;
+    var inner=(dq-atk)&0xffff;
+    var im1=(inner-1)&0xffff;
+    var w=(~im1)&0xffff;
+    if(w>=0x8000)w=1;
+    return{min:Math.min(999,(3*w)>>2),max:Math.min(999,(510+3*w)>>2)};
   }
-  document.getElementById('sc-atk-sel').addEventListener('change',syncInputs);
-  document.getElementById('sc-def-sel').addEventListener('change',syncInputs);
-  document.getElementById('sc-atk-val').addEventListener('input',redraw);
-  document.getElementById('sc-def-val').addEventListener('input',redraw);
-  function physDmg(atk,def){
-    var base=Math.max(0,atk-def);
-    return{min:Math.max(1,base),max:Math.max(1,base+Math.floor(atk/4))};
-  }
-  function buildPath(pts){
-    return pts.map(function(p,i){return(i===0?'M ':'L ')+p[0].toFixed(1)+' '+p[1].toFixed(1);}).join(' ');
+  function activeWeapons(){
+    if(src==='dog')return[{id:'paws',label:'Claws',type:'dog',bonus:0}];
+    return SC_WEAPONS;
   }
   function redraw(){
-    var atk=Math.max(0,parseInt(document.getElementById('sc-atk-val').value)||0);
-    var targetDef=Math.max(0,parseInt(document.getElementById('sc-def-val').value)||0);
-    var xMax=Math.max(200,Math.ceil((atk+targetDef)*1.1/50)*50);
-    var W=460,H=200,ml=44,mt=16,mr=16,mb=28;
+    var tgtId=parseInt(tgtSel.value);
+    var tgt=SC_CHARS[tgtId];if(!tgt)return;
+    var def=tgt.defense;
+    var weapons=activeWeapons();
+    var wdata=weapons.map(function(w){
+      var mins=[],maxs=[];
+      for(var lv=1;lv<=SC_MAX_LEVEL;lv++){
+        var atk=applyCharge(srcAtk(lv)+w.bonus);
+        var d=dmgRange(atk,def);
+        mins.push(d.min);maxs.push(d.max);
+      }
+      return{id:w.id,label:w.label,type:w.type,bonus:w.bonus,mins:mins,maxs:maxs};
+    });
+    var yMax=0;
+    wdata.forEach(function(wd){wd.maxs.forEach(function(v){if(v>yMax)yMax=v;});});
+    yMax=Math.max(10,Math.ceil(yMax*1.1/10)*10);
+    var W=400,H=200,ml=40,mt=12,mr=8,mb=28;
     var pw=W-ml-mr,ph=H-mt-mb;
-    var yMax=Math.max(1,Math.max(1,atk+Math.floor(atk/4)));
-    yMax=Math.ceil(yMax*1.15/5)*5;
-    function xp(d){return ml+d/xMax*pw;}
+    function xp(lv){return ml+(lv-1)/(SC_MAX_LEVEL-1)*pw;}
     function yp(v){return mt+ph-Math.min(v,yMax)/yMax*ph;}
-    var step=Math.max(1,Math.floor(xMax/pw));
-    var minPts=[],maxPts=[];
-    for(var x=0;x<=xMax;x+=step){
-      var d=physDmg(atk,x);
-      minPts.push([xp(x),yp(d.min)]);
-      maxPts.push([xp(x),yp(d.max)]);
+    function linePts(arr){return arr.map(function(v,i){return xp(i+1).toFixed(1)+' '+yp(v).toFixed(1);}).join(' L ');}
+    function bandPath(mins,maxs){
+      var fwd=maxs.map(function(v,i){return xp(i+1).toFixed(1)+' '+yp(v).toFixed(1);}).join(' L ');
+      var rev=mins.slice().reverse().map(function(v,i,a){var idx=a.length-1-i;return xp(idx+1).toFixed(1)+' '+yp(v).toFixed(1);}).join(' L ');
+      return 'M '+fwd+' L '+rev+' Z';
     }
-    var fillPath=buildPath(maxPts)+' '+[].concat(minPts).reverse().map(function(p,i){return 'L '+p[0].toFixed(1)+' '+p[1].toFixed(1);}).join(' ')+' Z';
-    // axis ticks
-    var xTicks='',yTicks='',xLabels='',yLabels='',grid='';
-    var xStep=Math.ceil(xMax/8/25)*25;
-    for(var xi=0;xi<=xMax;xi+=xStep){
-      var px=xp(xi);
-      xTicks+='<line x1="'+px.toFixed(1)+'" y1="'+(mt+ph)+'" x2="'+px.toFixed(1)+'" y2="'+(mt+ph+4)+'" stroke="#555"/>';
-      xLabels+='<text x="'+px.toFixed(1)+'" y="'+(mt+ph+14)+'" text-anchor="middle" font-size="9">'+xi+'</text>';
-      grid+='<line x1="'+px.toFixed(1)+'" y1="'+mt+'" x2="'+px.toFixed(1)+'" y2="'+(mt+ph)+'" stroke="#222"/>';
+    var activeWid=selWid||hovWid;
+    var g='';
+    var xstep=Math.max(1,Math.round(SC_MAX_LEVEL/9));
+    for(var lv=1;lv<=SC_MAX_LEVEL;lv+=xstep){g+='<line x1="'+xp(lv).toFixed(1)+'" y1="'+mt+'" x2="'+xp(lv).toFixed(1)+'" y2="'+(mt+ph)+'" stroke="#1c1c1c"/>';}
+    var ystep=Math.max(5,Math.ceil(yMax/6/5)*5);
+    for(var yi=0;yi<=yMax;yi+=ystep){g+='<line x1="'+ml+'" y1="'+yp(yi).toFixed(1)+'" x2="'+(ml+pw)+'" y2="'+yp(yi).toFixed(1)+'" stroke="#1c1c1c"/>';}
+    var ax='';
+    for(var lv2=1;lv2<=SC_MAX_LEVEL;lv2+=xstep){
+      ax+='<line x1="'+xp(lv2).toFixed(1)+'" y1="'+(mt+ph)+'" x2="'+xp(lv2).toFixed(1)+'" y2="'+(mt+ph+4)+'" stroke="#444"/>';
+      ax+='<text x="'+xp(lv2).toFixed(1)+'" y="'+(mt+ph+14)+'" text-anchor="middle" font-size="9">'+lv2+'</text>';
     }
-    var yStep=Math.ceil(yMax/6/5)*5;
-    for(var yi=0;yi<=yMax;yi+=yStep){
-      var py=yp(yi);
-      yTicks+='<line x1="'+(ml-4)+'" y1="'+py.toFixed(1)+'" x2="'+ml+'" y2="'+py.toFixed(1)+'" stroke="#555"/>';
-      yLabels+='<text x="'+(ml-6)+'" y="'+(py+3).toFixed(1)+'" text-anchor="end" font-size="9">'+yi+'</text>';
-      grid+='<line x1="'+ml+'" y1="'+py.toFixed(1)+'" x2="'+(ml+pw)+'" y2="'+py.toFixed(1)+'" stroke="#222"/>';
+    for(var yi2=0;yi2<=yMax;yi2+=ystep){
+      ax+='<line x1="'+(ml-4)+'" y1="'+yp(yi2).toFixed(1)+'" x2="'+ml+'" y2="'+yp(yi2).toFixed(1)+'" stroke="#444"/>';
+      ax+='<text x="'+(ml-6)+'" y="'+(yp(yi2)+3).toFixed(1)+'" text-anchor="end" font-size="9">'+yi2+'</text>';
     }
-    // target defense marker
-    var mx=xp(targetDef);
-    var marker=(targetDef<=xMax)?'<line class="sc-marker" x1="'+mx.toFixed(1)+'" y1="'+mt+'" x2="'+mx.toFixed(1)+'" y2="'+(mt+ph)+'"/>':'';
-    // build SVG
-    var di2=parseInt(document.getElementById('sc-def-sel').value);
-    var dc=sc[di2];
-    var legendDef=dc?dc.name+' def='+dc.defense:'';
-    var svg='<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'">'
-      +'<rect x="'+ml+'" y="'+mt+'" width="'+pw+'" height="'+ph+'" fill="#0e0e0e"/>'
-      +grid
-      +'<path class="sc-fill" d="'+fillPath+'"/>'
-      +'<path class="sc-line-min" d="'+buildPath(minPts)+'"/>'
-      +'<path class="sc-line-max" d="'+buildPath(maxPts)+'"/>'
-      +marker
-      +xTicks+yTicks+xLabels+yLabels
-      +'<text x="'+(ml+pw/2)+'" y="'+(H-2)+'" text-anchor="middle" font-size="9" fill="#555">defense</text>'
-      +'<text x="10" y="'+(mt+ph/2)+'" text-anchor="middle" font-size="9" fill="#555" transform="rotate(-90,10,'+(mt+ph/2)+')">damage</text>'
-      +(marker&&legendDef?'<text x="'+(mx+3).toFixed(1)+'" y="'+(mt+10)+'" font-size="8" fill="#ffd700">'+legendDef+'</text>':'')
+    var bands='';
+    wdata.forEach(function(wd,wi){
+      var col=SC_COLORS[wd.type]||'#888';
+      var opac=SC_TIER_OPAC[wi%4];
+      var isAct=activeWid===wd.id;
+      var isOther=!!(activeWid&&!isAct);
+      bands+='<g class="sc-band" data-wid="'+wd.id+'">'
+        +'<path d="'+bandPath(wd.mins,wd.maxs)+'" fill="'+col+'" fill-opacity="'+(isOther?opac*0.12:opac).toFixed(2)+'" stroke="none"/>'
+        +'<path d="M '+linePts(wd.maxs)+'" fill="none" stroke="'+col+'" stroke-opacity="'+(isOther?0.2:(isAct?1.0:0.6)).toFixed(1)+'" stroke-width="'+(isAct?2:1)+'"/>'
+        +'</g>';
+    });
+    var svg='<svg id="sc-svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" style="display:block">'
+      +'<rect x="'+ml+'" y="'+mt+'" width="'+pw+'" height="'+ph+'" fill="#111"/>'
+      +g+bands+ax
+      +'<text x="'+(ml+pw/2)+'" y="'+(H-2)+'" text-anchor="middle" font-size="9" fill="#555">level</text>'
+      +'<text x="10" y="'+(mt+ph/2)+'" text-anchor="middle" font-size="9" fill="#555" transform="rotate(-90,10,'+(mt+ph/2)+')">dmg</text>'
       +'</svg>';
     document.getElementById('sc-chart').innerHTML=svg;
-    // stats table
-    var ai2=parseInt(document.getElementById('sc-atk-sel').value);
-    var ac=sc[ai2];
-    var statHtml='';
-    if(ac){statHtml+='<div class="sc-stat-box"><div class="sc-stat-name">Attacker: '+ac.name+'</div>'
-      +'<div class="sc-stat-row"><span>attack</span><span class="sc-stat-val">'+ac.attack+'</span></div>'
-      +'<div class="sc-stat-row"><span>hp</span><span class="sc-stat-val">'+ac.hp+'</span></div>'
-      +'<div class="sc-stat-row"><span>hit_rate</span><span class="sc-stat-val">'+ac.hit_rate+'</span></div>'
-      +'</div>';}
-    if(dc){statHtml+='<div class="sc-stat-box"><div class="sc-stat-name">Defender: '+dc.name+'</div>'
-      +'<div class="sc-stat-row"><span>defense</span><span class="sc-stat-val">'+dc.defense+'</span></div>'
-      +'<div class="sc-stat-row"><span>hp</span><span class="sc-stat-val">'+dc.hp+'</span></div>'
-      +'<div class="sc-stat-row"><span>m.def (ROM)</span><span class="sc-stat-val">'+dc.magic_defense+'</span></div>'
-      +'<div class="sc-stat-row"><span>evade</span><span class="sc-stat-val">'+dc.evade+'</span></div>'
-      +'</div>';}
-    if(ac&&dc){var fixedAtk=atk;var d2=physDmg(fixedAtk,dc.defense);
-      var hitsMin=d2.max>0?Math.ceil(dc.hp/d2.max):'\u221e';
-      var hitsMax=d2.min>0?Math.ceil(dc.hp/d2.min):'\u221e';
-      statHtml+='<div class="sc-stat-box"><div class="sc-stat-name">vs. '+dc.name+'</div>'
-        +'<div class="sc-stat-row"><span>dmg range</span><span class="sc-stat-val">'+d2.min+'\u2013'+d2.max+'</span></div>'
-        +'<div class="sc-stat-row"><span>hits to kill</span><span class="sc-stat-val">'+hitsMin+'\u2013'+hitsMax+'</span></div>'
-        +'</div>';}
-    document.getElementById('sc-stats').innerHTML=statHtml;
+    document.querySelectorAll('#sc-chart .sc-band').forEach(function(el){
+      var wid=el.dataset.wid;
+      el.style.cursor='pointer';
+      el.addEventListener('mouseenter',function(){if(!selWid){hovWid=wid;redraw();}});
+      el.addEventListener('mouseleave',function(){if(!selWid){hovWid=null;redraw();}});
+      el.addEventListener('click',function(){selWid=(selWid===wid)?null:wid;hovWid=null;redraw();});
+    });
+    var leg='';
+    wdata.forEach(function(wd){
+      var col=SC_COLORS[wd.type]||'#888';
+      var isAct=activeWid===wd.id;
+      var isOther=!!(activeWid&&!isAct);
+      var d1=dmgRange(applyCharge(srcAtk(1)+wd.bonus),def);
+      var d37=dmgRange(applyCharge(srcAtk(37)+wd.bonus),def);
+      leg+='<div class="sc-leg-row'+(isAct?' sc-leg-sel':'')+(isOther?' sc-leg-dim':'')+'" data-wid="'+wd.id+'">'
+        +'<span class="sc-leg-dot" style="background:'+col+'"></span>'
+        +'<span class="sc-leg-name">'+wd.label+'</span>'
+        +'<span class="sc-leg-range">L1:'+d1.min+'-'+d1.max+' \u2192 L37:'+d37.min+'-'+d37.max+'</span>'
+        +'</div>';
+    });
+    document.getElementById('sc-legend').innerHTML=leg;
+    document.querySelectorAll('#sc-legend .sc-leg-row').forEach(function(el){
+      var wid=el.dataset.wid;
+      el.addEventListener('mouseenter',function(){if(!selWid){hovWid=wid;redraw();}});
+      el.addEventListener('mouseleave',function(){if(!selWid){hovWid=null;redraw();}});
+      el.addEventListener('click',function(){selWid=(selWid===wid)?null:wid;hovWid=null;redraw();});
+    });
+    var sb=srcBase();
+    var stats='<div class="sc-stat-box"><div class="sc-stat-name">'+(src==='boy'?'Boy':'Dog')+'</div>'
+      +'<div class="sc-stat-row"><span>atk L1</span><span class="sc-stat-val">'+sb.atk1+'</span></div>'
+      +'<div class="sc-stat-row"><span>atk L37</span><span class="sc-stat-val">'+srcAtk(37)+'</span></div>'
+      +'<div class="sc-stat-row"><span>def L1</span><span class="sc-stat-val">'+sb.def1+'</span></div>'
+      +'</div>'
+      +'<div class="sc-stat-box"><div class="sc-stat-name">'+tgt.name+'</div>'
+      +'<div class="sc-stat-row"><span>hp</span><span class="sc-stat-val">'+tgt.hp+'</span></div>'
+      +'<div class="sc-stat-row"><span>def</span><span class="sc-stat-val">'+def+'</span></div>'
+      +'<div class="sc-stat-row"><span>def\u00f74</span><span class="sc-stat-val">'+(def>>2)+'</span></div>'
+      +'</div>';
+    if(activeWid){
+      var aw=weapons.find(function(w){return w.id===activeWid;});
+      var awd=wdata.find(function(wd){return wd.id===activeWid;});
+      if(aw&&awd){
+        stats+='<div class="sc-stat-box"><div class="sc-stat-name">'+aw.label+' vs '+tgt.name+'</div>'
+          +'<div class="sc-stat-row"><span>dmg@L1</span><span class="sc-stat-val">'+awd.mins[0]+'\u2013'+awd.maxs[0]+'</span></div>'
+          +'<div class="sc-stat-row"><span>htk@L1</span><span class="sc-stat-val">'+(awd.maxs[0]>0?Math.ceil(tgt.hp/awd.maxs[0]):'?')+'\u2013'+(awd.mins[0]>0?Math.ceil(tgt.hp/awd.mins[0]):'?')+'</span></div>'
+          +'<div class="sc-stat-row"><span>dmg@L37</span><span class="sc-stat-val">'+awd.mins[36]+'\u2013'+awd.maxs[36]+'</span></div>'
+          +'</div>';
+      }
+    }
+    document.getElementById('sc-stats').innerHTML=stats;
   }
-  // init
-  if(sc.length){
-    document.getElementById('sc-atk-sel').value=0;
-    document.getElementById('sc-def-sel').value=Math.min(109,sc.length-1);
-    syncInputs();
-  } else {
-    document.getElementById('sc-chart').innerHTML='<div style="padding:16px;opacity:.4;font-size:11px">ROM not found — place the .smc in the workspace root.</div>';
-  }
+  redraw();
 })();
 `;
-
     const roomsJs   = `
 function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
@@ -2799,16 +2876,15 @@ ${scalingJs}
         '</div>' +
         '<div class="tab-pane" data-tab="scaling" style="display:none">' +
         '<div class="sc-wrap">' +
-        (scaleActive ? '<div class="sc-banner">⚠ scale_enemies is active in this workspace — vanilla stats shown; scaled stats depend on level.</div>' : '') +
+        (scaleActive ? '<div class="sc-banner">\u26a0 scale_enemies active \u2014 enemy stats may differ at runtime.</div>' : '') +
         '<div class="sc-controls">' +
-        '<div class="sc-field"><span class="sc-label">Attacker</span><select class="sc-sel" id="sc-atk-sel"></select></div>' +
-        '<div class="sc-field"><span class="sc-label">Attack override</span><input class="sc-num" id="sc-atk-val" type="number" min="0" max="9999"/></div>' +
-        '<div class="sc-field"><span class="sc-label">Defender</span><select class="sc-sel" id="sc-def-sel"></select></div>' +
-        '<div class="sc-field"><span class="sc-label">Defense override</span><input class="sc-num" id="sc-def-val" type="number" min="0" max="9999"/></div>' +
+        '<div class="sc-field"><span class="sc-label">Source</span><div class="sc-toggle-group"><button class="sc-toggle-btn sc-active" data-src="boy">Boy</button><button class="sc-toggle-btn" data-src="dog">Dog</button></div></div>' +
+        '<div class="sc-field"><span class="sc-label">Target</span><select class="sc-sel" id="sc-tgt-sel"></select></div>' +
+        '<div class="sc-field"><span class="sc-label">Charge</span><div class="sc-toggle-group"><button class="sc-toggle-btn" data-chg="25">25%</button><button class="sc-toggle-btn" data-chg="50">50%</button><button class="sc-toggle-btn sc-active" data-chg="100">100%</button></div></div>' +
         '</div>' +
-        '<div class="sc-chart-wrap"><div id="sc-chart"></div></div>' +
+        '<div class="sc-chart-layout"><div class="sc-chart-wrap"><div id="sc-chart"></div></div><div class="sc-legend" id="sc-legend"></div></div>' +
         '<div class="sc-stats" id="sc-stats"></div>' +
-        '<div class="sc-note">Damage formula is approximate. See docs/scaling-scenarios.md for details.</div>' +
+        '<div class="sc-note">Formula: soestuff.lua \u2014 Boy L1: base atk=7 def=5, +2/+1 per level; Dog L1: base atk=17 def=10, +4/+6 per level.</div>' +
         '</div>' +
         '</div>' +
         '<script>' + js + '<\/script></body></html>';
