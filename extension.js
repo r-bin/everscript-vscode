@@ -990,6 +990,36 @@ function readPngDimensions(filePath) {
 }
 
 /**
+ * Read trig_off_x / trig_off_y from the ROM data block for a map.
+ * Bytes 0 and 1 of the data block are the trigger coordinate origin.
+ * SVG formula: svg_x = (x1 - offX) * 2,  svg_y = (y1 - offY) * 2
+ * (1 trigger-tile = 16px = 2 × 8px SVG tiles)
+ * @param {string} wsRoot  Workspace root
+ * @param {number} mapId   Numeric map ID (e.g. 0x5c)
+ * @returns {{offX:number, offY:number}|null}
+ */
+function readRomTriggerOffsets(wsRoot, mapId) {
+    if (!wsRoot || mapId == null) return null;
+    try {
+        const romNames = ['Secret of Evermore (U) [!].smc', 'Secret of Evermore.smc'];
+        let romBuf = null;
+        for (const name of romNames) {
+            const p = path.join(wsRoot, name);
+            if (fs.existsSync(p)) { romBuf = fs.readFileSync(p); break; }
+        }
+        if (!romBuf) return null;
+        // Map pointer table at SNES 0x9ffde7 = ROM 0x1ffde7 (HiROM no header)
+        const mapTableRom = 0x1ffde7;
+        const ptrAddr = mapTableRom + mapId * 4;
+        if (ptrAddr + 3 >= romBuf.length) return null;
+        const dataSnes = romBuf[ptrAddr] | (romBuf[ptrAddr + 1] << 8) | (romBuf[ptrAddr + 2] << 16);
+        const dataRom  = ((dataSnes >> 16) & 0x3f) * 0x10000 + (dataSnes & 0xffff);
+        if (dataRom + 2 >= romBuf.length) return null;
+        return { offX: romBuf[dataRom], offY: romBuf[dataRom + 1] };
+    } catch { return null; }
+}
+
+/**
  * Locate a room image in the workspace.
  * Checks docs/rooms/images/{name}.{ext} and docs/rooms/{name}.{ext}.
  * @returns {string|null} Absolute filesystem path or null.
@@ -1160,12 +1190,13 @@ function collectRoomsFromDir(dir, wsRoot, depth) {
             const imgPath = findRoomImage(wsRoot, m[1], vid, fp);
             if (wsRoot && vid) {
                 content.triggers = readScriptAllTriggers(wsRoot, vid);
-                // Attach Lua POI if available
+                // Attach Lua POI and trigger origin offset if available
                 const luaPoi = readLuaWatchers(wsRoot);
                 const roomNumStr = getMapEnum(wsRoot).get(vid);
                 if (roomNumStr !== undefined) {
                     const hexKey = roomNumStr.toString(16).replace(/^0+/, '') || '0';
                     content.poi = luaPoi.get(hexKey) || null;
+                    content.trigOffset = readRomTriggerOffsets(wsRoot, roomNumStr);
                 }
             }
             items.push({ name: m[1], vanillaId: vid, kind: 'map', filePath: fp, relPath: wsRoot ? path.relative(wsRoot, fp) : fp, startLine: i, endLine, content, imagePath: imgPath });
@@ -1198,7 +1229,11 @@ function buildRoomTree(document, wsRoot) {
         const vid     = m[2] ? m[2].trim() : null;
         const content = parseRoomContent(docPath, i, endLine);
         const imgPath = findRoomImage(wsRoot, m[1], vid, docPath);
-        if (wsRoot && vid) content.triggers = readScriptAllTriggers(wsRoot, vid);
+        if (wsRoot && vid) {
+            content.triggers = readScriptAllTriggers(wsRoot, vid);
+            const mapNum = getMapEnum(wsRoot).get(vid);
+            if (mapNum !== undefined) content.trigOffset = readRomTriggerOffsets(wsRoot, mapNum);
+        }
         docMaps.push({ name: m[1], vanillaId: vid, kind: 'map', filePath: docPath, relPath: wsRoot ? path.relative(wsRoot, docPath) : docPath, startLine: i, endLine, content, imagePath: imgPath });
     }
 
@@ -1759,6 +1794,13 @@ function renderRoomDetail(room){
   var stepOnNames=trigNames.stepOn||[];
   var bTrigNames=trigNames.bTrigger||[];
   var poi=c.poi||[];
+  // Trigger coordinate origin (from ROM meta bytes). Converts 16px-tile coords to 8px-tile SVG space.
+  var trigOff=c.trigOffset||null;
+  function tsvg(t){
+    if(!trigOff)return{sx:t.x1,sy:t.y1,sw:Math.max(0.5,t.x2-t.x1),sh:Math.max(0.5,t.y2-t.y1)};
+    return{sx:(t.x1-trigOff.offX)*2,sy:(t.y1-trigOff.offY)*2,
+           sw:Math.max(1,(t.x2-t.x1)*2),sh:Math.max(1,(t.y2-t.y1)*2)};
+  }
 
   var html='<div class="rd-head">';
   html+='<span class="rd-name">'+escH(room.name)+'</span>';
@@ -1792,8 +1834,9 @@ function renderRoomDetail(room){
     if(e.y+2>y2)y2=Math.ceil(e.y)+2;
   });
   stepOn.concat(bTrigger).forEach(function(t){
-    if(t.x1<x1)x1=t.x1-1; if(t.y1<y1)y1=t.y1-1;
-    if(t.x2+1>x2)x2=t.x2+1; if(t.y2+1>y2)y2=t.y2+1;
+    var sv=tsvg(t);
+    if(sv.sx<x1)x1=sv.sx-1; if(sv.sy<y1)y1=sv.sy-1;
+    if(sv.sx+sv.sw+1>x2)x2=sv.sx+sv.sw+1; if(sv.sy+sv.sh+1>y2)y2=sv.sy+sv.sh+1;
   });
   var W=Math.max(x2-x1,8),H=Math.max(y2-y1,8);
 
@@ -1814,30 +1857,34 @@ function renderRoomDetail(room){
     if(room.imageUri) html+='<img class="room-img" id="rg-img" src="'+room.imageUri+'" alt="">';
     html+='<svg class="rg-svg" id="rg-svg" width="'+dispW+'" height="'+dispH+'" viewBox="'+x1+' '+y1+' '+W+' '+H+'">';
 
-    // Tile grid lines
+    // 8×8-tile grid (fine grid for entrances/enemies)
     var tileStep=1;
     if(W>64||H>64)tileStep=2;
     if(W>128||H>128)tileStep=4;
-    for(var gx=x1;gx<=x2;gx+=tileStep)html+='<line x1="'+gx+'" y1="'+y1+'" x2="'+gx+'" y2="'+y2+'" stroke="rgba(80,80,80,0.2)" stroke-width="0.12"/>';
-    for(var gy=y1;gy<=y2;gy+=tileStep)html+='<line x1="'+x1+'" y1="'+gy+'" x2="'+x2+'" y2="'+gy+'" stroke="rgba(80,80,80,0.2)" stroke-width="0.12"/>';
+    for(var gx=x1;gx<=x2;gx+=tileStep)html+='<line x1="'+gx+'" y1="'+y1+'" x2="'+gx+'" y2="'+y2+'" stroke="rgba(80,80,80,0.18)" stroke-width="0.1"/>';
+    for(var gy=y1;gy<=y2;gy+=tileStep)html+='<line x1="'+x1+'" y1="'+gy+'" x2="'+x2+'" y2="'+gy+'" stroke="rgba(80,80,80,0.18)" stroke-width="0.1"/>';
+    // 16×16-tile grid (coarse grid for step-on / B-trigger coordinates)
+    var trigStep=tileStep*2;
+    var tgx0=x1-((x1%trigStep+trigStep)%trigStep);
+    var tgy0=y1-((y1%trigStep+trigStep)%trigStep);
+    for(var gx=tgx0;gx<=x2;gx+=trigStep)html+='<line x1="'+gx+'" y1="'+y1+'" x2="'+gx+'" y2="'+y2+'" stroke="rgba(160,120,60,0.35)" stroke-width="0.2"/>';
+    for(var gy=tgy0;gy<=y2;gy+=trigStep)html+='<line x1="'+x1+'" y1="'+gy+'" x2="'+x2+'" y2="'+gy+'" stroke="rgba(160,120,60,0.35)" stroke-width="0.2"/>';
     // Room border
     if(im)html+='<rect x="'+x1+'" y="'+y1+'" width="'+W+'" height="'+H+'" fill="none" stroke="rgba(50,200,100,0.3)" stroke-width="0.25" stroke-dasharray="2,1"/>';
 
-    // Step-on rects (pink)
+    // Step-on rects (pink) — coords in 16px-tile space, converted via tsvg()
     stepOn.forEach(function(t,i){
       var nm=stepOnNames[i]||'';
-      var rw=Math.max(0.5,t.x2-t.x1),rh=Math.max(0.5,t.y2-t.y1);
+      var sv=tsvg(t);
       var tip='step-on'+(nm?' '+escH(nm):'')+(t.label?' — '+escH(t.label):'');
-      html+='<rect class="svge-step" data-idx="'+i+'" data-kind="step" x="'+t.x1+'" y="'+t.y1+'" width="'+rw+'" height="'+rh+'" fill="rgba(255,100,180,0.18)" stroke="#ff69b4" stroke-width="0.25"><title>'+tip+'</title></rect>';
-      html+='<text class="svge-step ent-label" x="'+(t.x1+rw/2)+'" y="'+(t.y1+rh/2+0.6)+'" text-anchor="middle" fill="#ff69b4" font-size="1.5" font-family="monospace" pointer-events="none">'+escH((nm||t.label||'').slice(0,20))+'</text>';
+      html+='<rect class="svge-step" data-idx="'+i+'" data-kind="step" data-label="'+escH(nm||t.label||'')+' ['+t.x1+','+t.y1+':'+t.x2+','+t.y2+']" x="'+sv.sx+'" y="'+sv.sy+'" width="'+sv.sw+'" height="'+sv.sh+'" fill="rgba(255,100,180,0.18)" stroke="#ff69b4" stroke-width="0.3"><title>'+tip+'</title></rect>';
     });
-    // B-trigger rects (yellow)
+    // B-trigger rects (yellow) — coords in 16px-tile space, converted via tsvg()
     bTrigger.forEach(function(t,i){
       var nm=bTrigNames[i]||'';
-      var rw=Math.max(0.5,t.x2-t.x1),rh=Math.max(0.5,t.y2-t.y1);
+      var sv=tsvg(t);
       var tip='B-trig'+(nm?' '+escH(nm):'')+(t.label?' — '+escH(t.label):'');
-      html+='<rect class="svge-btrig" data-idx="'+i+'" data-kind="btrig" x="'+t.x1+'" y="'+t.y1+'" width="'+rw+'" height="'+rh+'" fill="rgba(255,210,0,0.13)" stroke="#ffcc00" stroke-width="0.25"><title>'+tip+'</title></rect>';
-      html+='<text class="svge-btrig ent-label" x="'+(t.x1+rw/2)+'" y="'+(t.y1+rh/2+0.6)+'" text-anchor="middle" fill="#ddaa00" font-size="1.5" font-family="monospace" pointer-events="none">'+escH((nm||t.label||'').slice(0,20))+'</text>';
+      html+='<rect class="svge-btrig" data-idx="'+i+'" data-kind="btrig" data-label="'+escH(nm||t.label||'')+' ['+t.x1+','+t.y1+':'+t.x2+','+t.y2+']" x="'+sv.sx+'" y="'+sv.sy+'" width="'+sv.sw+'" height="'+sv.sh+'" fill="rgba(255,210,0,0.13)" stroke="#ffcc00" stroke-width="0.3"><title>'+tip+'</title></rect>';
     });
     // Lua POI markers (cyan cross)
     poi.forEach(function(p,i){
@@ -1851,15 +1898,14 @@ function renderRoomDetail(room){
     enemies.forEach(function(e,i){
       var ex=Math.round(e.x),ey=Math.round(e.y);
       var fill=e.dynamic?'#cc7700':'#cc3333';
-      html+='<rect class="svge-enemy sv-ll" data-line="'+e.line+'" data-idx="'+i+'" data-kind="enemy" x="'+(ex-0.5)+'" y="'+(ey-0.5)+'" width="1" height="1" fill="'+fill+'" opacity="0.85" rx="0.2"><title>'+escH(e.type)+' ('+e.x+','+e.y+')\\ncmd+click to jump</title></rect>';
-      html+='<text class="svge-enemy ent-label" x="'+ex+'" y="'+(ey+1.5)+'" text-anchor="middle" fill="#ff6666" font-size="1.2" font-family="monospace" pointer-events="none">'+escH(e.type.slice(0,12))+'</text>';
+      html+='<rect class="svge-enemy sv-ll" data-line="'+e.line+'" data-idx="'+i+'" data-kind="enemy" data-label="'+escH(e.type)+' ('+e.x+','+e.y+')" x="'+(ex-0.5)+'" y="'+(ey-0.5)+'" width="1" height="1" fill="'+fill+'" opacity="0.85" rx="0.2"><title>'+escH(e.type)+' ('+e.x+','+e.y+')\\ncmd+click</title></rect>';
     });
     // Entrances — 1-tile square with inset directional arrow
     entrances.forEach(function(en,i){
       var ex=Math.round(en.x),ey=Math.round(en.y);
       var d=en.dir?en.dir.toUpperCase():'';
       // Square background
-      html+='<rect class="svge-entrance sv-ll" data-line="'+en.line+'" data-idx="'+i+'" data-kind="entrance" x="'+(ex-0.5)+'" y="'+(ey-0.5)+'" width="1" height="1" fill="rgba(34,187,85,0.2)" stroke="#22bb55" stroke-width="0.2"/>';
+      html+='<rect class="svge-entrance sv-ll" data-line="'+en.line+'" data-idx="'+i+'" data-kind="entrance" data-label="'+escH(en.name)+' ('+en.x+','+en.y+') '+escH(en.dir)+'" x="'+(ex-0.5)+'" y="'+(ey-0.5)+'" width="1" height="1" fill="rgba(34,187,85,0.2)" stroke="#22bb55" stroke-width="0.2"><title>'+escH(en.name)+'\\ncmd+click</title></rect>';
       // Arrow inside the square pointing in entrance direction
       var ap='';
       if(d==='NORTH'||d==='N') ap=(ex)+','+(ey-0.45)+' '+(ex-0.35)+','+(ey+0.3)+' '+(ex+0.35)+','+(ey+0.3);
@@ -1867,9 +1913,11 @@ function renderRoomDetail(room){
       else if(d==='EAST'||d==='E') ap=(ex+0.45)+','+(ey)+' '+(ex-0.3)+','+(ey-0.35)+' '+(ex-0.3)+','+(ey+0.35);
       else if(d==='WEST'||d==='W') ap=(ex-0.45)+','+(ey)+' '+(ex+0.3)+','+(ey-0.35)+' '+(ex+0.3)+','+(ey+0.35);
       if(ap)html+='<polygon class="svge-entrance" data-idx="'+i+'" data-kind="entrance" points="'+ap+'" fill="#22bb55" fill-opacity="0.85" pointer-events="none"/>';
-      html+='<text class="svge-entrance ent-label" x="'+(ex+0.6)+'" y="'+(ey-0.6)+'" fill="#22dd66" font-size="1.2" font-family="monospace" pointer-events="none">'+escH(en.name)+'</text>';
     });
-    html+='</svg></div></div>';
+    html+='</svg>';
+    // Hover status bar — shows name of hovered element
+    html+='<div id="rg-tip" style="font-size:11px;color:#aaa;min-height:16px;padding:2px 4px;font-family:monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>';
+    html+='</div></div>';
   } else {
     html+='<div class="rg-outer"><div class="rg-placeholder"><span>No coordinate data</span>';
     html+='<button class="rg-pick-btn" id="rg-pick-btn" data-map="'+escH(room.name)+'">assign image…</button></div></div>';
@@ -1980,8 +2028,8 @@ function renderRoomDetail(room){
       var kind=row.dataset.kind,idx=parseInt(row.dataset.idx);
       var ok=false;
       if(kind==='entrance'){var e=entrances[idx];if(e)ok=(e.x>=rx1&&e.x<=rx2&&e.y>=ry1&&e.y<=ry2);}
-      else if(kind==='step'){var t=stepOn[idx];if(t)ok=(t.x2>=rx1&&t.x1<=rx2&&t.y2>=ry1&&t.y1<=ry2);}
-      else if(kind==='btrig'){var t=bTrigger[idx];if(t)ok=(t.x2>=rx1&&t.x1<=rx2&&t.y2>=ry1&&t.y1<=ry2);}
+      else if(kind==='step'){var t=stepOn[idx];if(t){var sv=tsvg(t);ok=(sv.sx+sv.sw>=rx1&&sv.sx<=rx2&&sv.sy+sv.sh>=ry1&&sv.sy<=ry2);}}
+      else if(kind==='btrig'){var t=bTrigger[idx];if(t){var sv=tsvg(t);ok=(sv.sx+sv.sw>=rx1&&sv.sx<=rx2&&sv.sy+sv.sh>=ry1&&sv.sy<=ry2);}}
       else if(kind==='enemy'){var e=enemies[idx];if(e)ok=(e.x>=rx1&&e.x<=rx2&&e.y>=ry1&&e.y<=ry2);}
       else ok=true;
       row.classList.toggle('hrow',!ok);
@@ -2012,10 +2060,13 @@ function renderRoomDetail(room){
     svg.addEventListener('dblclick',function(){clearBoxFilter();});
   }
 
-  // Show labels on hover
-  if(svg){
-    svg.addEventListener('mouseenter',function(){svg.classList.add('show-labels');});
-    svg.addEventListener('mouseleave',function(){svg.classList.remove('show-labels');});
+  // Hover status bar: show name of hovered SVG element
+  var tipDiv=document.getElementById('rg-tip');
+  if(svg&&tipDiv){
+    svg.querySelectorAll('[data-kind][data-idx]').forEach(function(el){
+      el.addEventListener('mouseenter',function(){tipDiv.textContent=el.dataset.label||el.querySelector('title')&&el.querySelector('title').textContent||'';});
+      el.addEventListener('mouseleave',function(){tipDiv.textContent='';});
+    });
   }
 
   // Bidirectional hover highlight: SVG ↔ table rows
@@ -2188,10 +2239,10 @@ document.querySelectorAll('.cell[data-gid]').forEach(function(c){
   if(prevEl&&prevEl.dataset.gid===gid)c.classList.add('grj-l');
 });
 
-function goToLine(l){if(vs)vs.postMessage({command:'goToLine',line:l});}
+function goToLine(l){if(l<0||isNaN(l))return;if(vs)vs.postMessage({command:'goToLine',line:l});}
 function bindLinks(root){
   root.querySelectorAll('a.ll').forEach(function(a){
-    a.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();goToLine(parseInt(a.dataset.line));});
+    a.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();var l=parseInt(a.dataset.line);if(l>=0&&!isNaN(l))goToLine(l);});
   });
 }
 

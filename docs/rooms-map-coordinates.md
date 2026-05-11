@@ -2,7 +2,90 @@
 
 ## Coordinate Units
 
-All coordinates in the Rooms tab use **8-px tile units**: 1 tile unit = 8 SNES pixels = one 8×8 sprite tile.
+The Rooms tab uses **two coordinate spaces**:
+
+| Entity | Grid | 1 unit = |
+|--------|------|---------|
+| Entrances, enemies, `init_map` bounds | **8×8-tile grid** | 8 SNES pixels |
+| Step-on / B-trigger coords | **16×16-tile grid** | 16 SNES pixels = 2 × 8px tiles |
+
+Trigger coords are converted to 8px-tile SVG space using the formula:
+
+```
+svg_x = (raw_x - offX) * 2
+svg_y = (raw_y - offY) * 2
+svg_w = (raw_x2 - raw_x1) * 2
+svg_h = (raw_y2 - raw_y1) * 2
+```
+
+Where `offX` and `offY` come from **bytes 0 and 1 of the room data block** (see §Data Block below).
+
+## Trigger Origin — `trig_off_x / trig_off_y`
+
+### What it is
+
+The game writes the room's **world tile origin** (in 16px-tile units) to RAM `0x7E0F86` (`trig_off_x`) and `0x7E0F88` (`trig_off_y`) when loading a room. These are bytes 0 and 1 of the ROM data block at `dataptr`.
+
+### Why the Lua uses `× 16`
+
+The Lua overlay computes screen positions in SNES sub-pixel space (camera and sprite coords use 16 sub-pixels per 8px tile):
+
+```lua
+pos_x = (memory.read_u8(ptr+1) - trig_off_x) * 16   -- sub-pixels from room origin
+pos_y = (memory.read_u8(ptr+0) - trig_off_y) * 16
+```
+
+The Lua works because it subtracts the room origin, producing room-relative sub-pixel coords, then subtracts camera to get screen position. Our panel maps these to 8px-tile SVG space by applying `(raw - off) * 2`.
+
+### Verified example — Room 0x5c (Raptors)
+
+ROM data block at `0x28f590`:
+- `offX = meta[0] = 0x09 = 9`
+- `offY = meta[1] = 0x15 = 21`
+
+| Trigger | Raw `(x1,y1)→(x2,y2)` | SVG tile `(x,y)→(x+w,y+h)` | Expected (near entrance) |
+|---------|----------------------|---------------------------|--------------------------|
+| step-on 0 (exit north) | `(21,21)→(24,23)` | `(24,0)→(30,4)` | North entrance at `(27,3)` ✓ |
+| step-on 1 (exit south) | `(22,45)→(25,47)` | `(26,48)→(32,52)` | South entrance at `(29,51)` ✓ |
+| step-on 2 (raptor battle) | `(20,36)→(28,37)` | `(22,30)→(38,32)` | Center of map ✓ |
+
+## Room Image Alignment
+
+Grizzly map images are at **1 image pixel = 1 SNES pixel**, so:
+
+```
+width_in_tiles  = image_width_px  / 8
+height_in_tiles = image_height_px / 8
+```
+
+The SVG `viewBox` is set to the tile range. Both the `<img>` and SVG overlay fill the same container so image pixels and SVG tile units align exactly.
+
+The container height is `520 × (H_tiles / W_tiles)` to preserve aspect ratio.
+
+## Trigger Coordinate Sourcing
+
+Trigger coordinates come from the **script dump** (`script_all`), not from `.evs`. The `.evs` enums supply names only. Names are correlated by index order:
+
+```
+script_all step-on [N]  ↔  enum stepon_trigger { member[N] }
+```
+
+## Data Block Layout
+
+From `list-rooms.cpp` and Lua analysis (`soestuff.lua`):
+
+```
+dataptr → [  0] offX      (u8)  — trig_off_x = room x-origin in 16px-tile units
+           [  1] offY      (u8)  — trig_off_y = room y-origin in 16px-tile units
+           [2..12] ...     (u8×11) — other room metadata (partially unknown)
+           [ 0x0d] step_len (u16) — step-on list byte length
+           [ 0x0f] step[0..N] (6 bytes each: y1,x1,y2,x2,script_id16)
+           [ 0x0f+N] b_len  (u16)
+           [ 0x0f+N+2] b[0..M] (same 6-byte format)
+```
+
+The map pointer table is at SNES `0x9ffde7` = ROM `0x1ffde7`. Each entry is 4 bytes; entry for map `id` is at `0x1ffde7 + id * 4` and contains a 24-bit SNES address to the data block.
+
 
 | Source | Unit | How read |
 |--------|------|----------|
