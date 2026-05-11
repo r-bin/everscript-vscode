@@ -2241,20 +2241,31 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
   // dmg = ((2*(derived_seed+w) & 0xffff) + w) >> 2, capped 999
   // Atlas mode: brute-forces all 65536 RNG seeds via proper 16-bit derivation
   var _dmgCache={};
+  function fmtPct(pct){
+    if(pct===0||pct===100)return String(pct.toFixed(0));
+    var digits=pct<0.1?3:2;
+    return pct.toFixed(digits).replace(/0+$/,'').replace(/\.$/,'');
+  }
+  function atlasSeed(w2,rng16){
+    return Math.floor(w2*rng16/0x10000)&0xffff;
+  }
+  function atlasRawDamage(w,rng16){
+    var seed=atlasSeed((w+1)&0xffff,rng16);
+    var sum1=(seed+w)&0xffff;
+    var carry=(sum1&0x8000)?1:0;
+    var sum2=(sum1<<1)&0xffff;
+    var sum3=(sum2+w+carry)&0xffff;
+    return sum3>>>2;
+  }
   function dmgRangeFull(w){
     if(_dmgCache[w]!==undefined)return _dmgCache[w];
     var mn=Infinity,mx=0,cnt999=0;
-    var w2=w+1;
     for(var i=0;i<=0xffff;i++){
-      var lo=i&0xff,hi=(i>>8)&0xff;
-      var a=(w2*lo)&0xffff,b=(w2*hi)&0xffff;
-      var c=(b+((a>>8)&0xff))&0xffff;
-      var s=(c>>8)&0xff;
-      var da=(s+w)&0xffff,db=(da<<1)&0xffff,dc=(db+w)&0xffff,d=dc>>2;
+      var d=atlasRawDamage(w,i);
       if(d<mn)mn=d; if(d>mx)mx=d;
       if(d>=999)cnt999++;
     }
-    return(_dmgCache[w]={min:Math.min(999,mn),max:Math.min(999,mx),pct999:Math.round(cnt999/65536*100)});
+    return(_dmgCache[w]={min:Math.min(999,mn),max:Math.min(999,mx),pct999:cnt999/65536*100,count999:cnt999});
   }
   function dmgRange(atk,def){
      var atkEff=atlasMode?((atk-480)&0xffff):atk;
@@ -2268,7 +2279,7 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
   }
   function fmtDmgRange(min,max,pct999,htmlPct){
     if(pct999>0){
-      var pctText='['+pct999+'%]';
+      var pctText='['+fmtPct(pct999)+'%]';
       if(htmlPct)pctText='<span style="color:#ff9966">'+pctText+'</span>';
       return (pct999>=100?'999':(min+'\u2013999'))+' '+pctText;
     }
@@ -3063,9 +3074,15 @@ function renderRoomDetail(room){
     });
   });
   // Shared formula helpers
+  function docFmtPct(pct){
+    if(pct===0||pct===100)return String(pct.toFixed(0));
+    var digits=pct<0.1?3:2;
+    return pct.toFixed(digits).replace(/0+$/,'').replace(/\.$/,'');
+  }
   function docW(atk,def){var inner=(((def>>2)-atk)&0xffff);var w=(~((inner-1)&0xffff))&0xffff;if(w>=0x8000)w=1;return w;}
-  function docSeedRaw(w,s){var a=(s+w)&0xffff,b=(a<<1)&0xffff,c=(b+w)&0xffff;return c>>2;}
-  function docSeeds(w){var r=[];for(var s=0;s<=255;s++)r.push(docSeedRaw(w,s));return r;}
+  function docSeedRaw(w,s){return Math.floor((((w+1)&0xffff)*s)/0x10000)&0xffff;}
+  function docDamageRaw(w,s){var a=(docSeedRaw(w,s)+w)&0xffff,b=(a<<1)&0xffff,c=(b+w+((a&0x8000)?1:0))&0xffff;return c>>2;}
+  function docSeeds(w){var r=[];for(var s=0;s<=0xffff;s++)r.push(docDamageRaw(w,s));return r;}
   // ── Damage section ──────────────────────────────────────────────────────
   function renderDmgChart(atk,def){
     var w=docW(atk,def);
@@ -3085,7 +3102,7 @@ function renderRoomDetail(room){
     }
     var html='<div class="doc-val">w=<b>'+w+'</b>  def\u00f74=<b>'+(def>>2)+'</b></div>';
     html+='<div class="doc-val">range: <b>'+mn+'\u2013'+mx+'</b>';
-    if(cnt999>0)html+='<span class="doc-cap">999-cap: '+cnt999+'/256 ('+Math.round(cnt999/256*100)+'%)</span>';
+    if(cnt999>0)html+='<span class="doc-cap">999-cap: '+cnt999+'/65536 ('+docFmtPct(cnt999/65536*100)+'%)</span>';
     html+='</div>';
     html+='<svg width="'+W+'" height="'+H+'" style="display:block;margin:4px 0">'+bars+'</svg>';
     html+='<div style="width:'+W+'px;display:flex;justify-content:space-between;font-size:9px;opacity:.4"><span>'+mn+'</span><span>'+mx+'</span></div>';
@@ -3132,11 +3149,11 @@ function renderRoomDetail(room){
       var w=docW(+atAtk.value,+atDef.value);
       var raw=docSeeds(w);
       var cnt999=raw.filter(function(d){return d>=999;}).length;
-      var pct=Math.round(cnt999/256*100);
+      var pct=cnt999/65536*100;
       var W=280,H=36;
       var bar='<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="#111" rx="3"/>';
       bar+='<rect x="0" y="0" width="'+(pct/100*W).toFixed(1)+'" height="'+H+'" fill="'+(pct>0?'#cc4422':'#1a1a1a')+'" rx="3"/>';
-      bar+='<text x="'+(Math.min(pct/100*W+4,W-80)).toFixed(1)+'" y="'+(H/2+4)+'" fill="#fff" font-size="11">'+pct+'% ('+cnt999+'/256 seeds)</text>';
+      bar+='<text x="'+(Math.min(pct/100*W+4,W-120)).toFixed(1)+'" y="'+(H/2+4)+'" fill="#fff" font-size="11">'+docFmtPct(pct)+'% ('+cnt999+'/65536 seeds)</text>';
       var info='<div class="doc-val">w=<b>'+w+'</b></div>';
       info+='<svg width="'+W+'" height="'+H+'" style="display:block;margin:4px 0">'+bar+'</svg>';
       document.getElementById('doc-at-chart').innerHTML=info;
@@ -3528,8 +3545,8 @@ ${docsJs}
         '</div>' +
         '<div class="doc-sec" data-doc="atlas" style="display:none">' +
         '<h3 class="doc-h">Atlas Amulet \u2014 999-cap probability</h3>' +
-        '<div class="doc-fact">Uses the same formula. When w is large enough some seeds produce uncapped dmg \u2265 999. The bar shows what fraction of 256 seeds cap at 999.</div>' +
-        '<pre class="doc-code">pct999 = count(s \u2208 0..255 | \u230a(2(s+w)+w)/4\u230b \u2265 999) / 256 \u00d7 100</pre>' +
+        '<div class="doc-fact">Uses the full 16-bit damage RNG. Atlas-underflow cases route through the high-word multiply path, so the bar shows what fraction of 65536 RNG states cap at 999.</div>' +
+        '<pre class="doc-code">seed = hi16((w+1)\u00d7rng16); dmg = ((((seed+w)\u226a1) + w + carry) mod 65536) \u00bb 2; pct999 = count(rng16 \u2208 0..65535 | dmg \u2265 999) / 65536 \u00d7 100</pre>' +
         '<div class="doc-sliders"><label>atk <input id="doc-at-atk" type="range" min="0" max="255" value="79"><span id="doc-at-atk-num">79</span></label>' +
         '<label>def <input id="doc-at-def" type="range" min="0" max="255" value="28"><span id="doc-at-def-num">28</span></label></div>' +
         '<div id="doc-at-chart"></div>' +

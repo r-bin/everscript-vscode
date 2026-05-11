@@ -10,18 +10,14 @@ function test(name, fn) {
 
 function dmgRangeFull(w) {
     let mn = Infinity, mx = 0, cnt999 = 0;
-    const w2 = w + 1;
+    const w2 = (w + 1) & 0xffff;
     for (let i = 0; i <= 0xffff; i++) {
-        const lo = i & 0xff;
-        const hi = (i >> 8) & 0xff;
-        const a = (w2 * lo) & 0xffff;
-        const b = (w2 * hi) & 0xffff;
-        const c = (b + ((a >> 8) & 0xff)) & 0xffff;
-        const seed = (c >> 8) & 0xff;
-        const da = (seed + w) & 0xffff;
-        const db = (da << 1) & 0xffff;
-        const dc = (db + w) & 0xffff;
-        const dmg = dc >> 2;
+        const seed = Math.floor((w2 * i) / 0x10000) & 0xffff;
+        const sum1 = (seed + w) & 0xffff;
+        const carry = (sum1 & 0x8000) ? 1 : 0;
+        const sum2 = (sum1 << 1) & 0xffff;
+        const sum3 = (sum2 + w + carry) & 0xffff;
+        const dmg = sum3 >>> 2;
         if (dmg < mn) mn = dmg;
         if (dmg > mx) mx = dmg;
         if (dmg >= 999) cnt999++;
@@ -29,7 +25,8 @@ function dmgRangeFull(w) {
     return {
         min: Math.min(999, mn),
         max: Math.min(999, mx),
-        pct999: Math.round(cnt999 / 65536 * 100),
+        count999: cnt999,
+        pct999: cnt999 / 65536 * 100,
     };
 }
 
@@ -48,7 +45,12 @@ function dmgRange(atk, def, atlasMode) {
 }
 
 function fmtDmgRange(min, max, pct999) {
-    if (pct999 > 0) return (pct999 >= 100 ? '999' : (min + '–999')) + ' [' + pct999 + '%]';
+    const fmtPct = (pct) => {
+        if (pct === 0 || pct === 100) return String(pct.toFixed(0));
+        const digits = pct < 0.1 ? 3 : 2;
+        return pct.toFixed(digits).replace(/0+$/, '').replace(/\.$/, '');
+    };
+    if (pct999 > 0) return (pct999 >= 100 ? '999' : (min + '–999')) + ' [' + fmtPct(pct999) + '%]';
     return min + '–' + max;
 }
 
@@ -62,19 +64,30 @@ test('normal damage uses unclitched signed clamp path', () => {
 test('atlas underflow keeps large wrapped unsigned w', () => {
     const r = dmgRange(10, 32, true);
     assert.strictEqual(r.w, 65058);
-    assert.strictEqual(r.min > 999, false);
+    assert.strictEqual(r.min, 0);
     assert.strictEqual(r.max, 999);
-    assert.strictEqual(r.pct999, 100);
-    assert.strictEqual(fmtDmgRange(r.min, r.max, r.pct999), '999 [100%]');
+    assert.strictEqual(r.count999, 61511);
+    assert.strictEqual(r.pct999.toFixed(6), '93.858337');
+    assert.strictEqual(fmtDmgRange(r.min, r.max, r.pct999), '0–999 [93.86%]');
 });
 
 test('there are partial-cap cases with some seeds below 999', () => {
     const r = dmgRangeFull(1163);
     assert.strictEqual(r.min, 872);
     assert.strictEqual(r.max, 999);
-    assert.strictEqual(r.pct999, 1);
+    assert.strictEqual(r.count999, 51235);
+    assert.strictEqual(r.pct999.toFixed(6), '78.178406');
     assert.ok(r.min < 999, 'expected at least one seed below 999');
-    assert.strictEqual(fmtDmgRange(r.min, r.max, r.pct999), '872–999 [1%]');
+    assert.strictEqual(fmtDmgRange(r.min, r.max, r.pct999), '872–999 [78.18%]');
+});
+
+test('Sterling atlas is not a true 100 percent cap', () => {
+    const r = dmgRange(81, 160, true);
+    assert.strictEqual(r.w, 65097);
+    assert.strictEqual(r.count999, 61513);
+    assert.strictEqual(r.pct999.toFixed(6), '93.861389');
+    assert.ok(r.count999 < 65536, 'expected some Sterling hits below 999');
+    assert.strictEqual(fmtDmgRange(r.min, r.max, r.pct999), '0–999 [93.86%]');
 });
 
 console.log('\n' + passed + ' passed, ' + failed + ' failed\n');
