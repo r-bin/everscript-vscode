@@ -562,6 +562,15 @@ let _radarRoomDocPath  = null;   // fsPath the room tree was built for
 let _radarActiveTab    = 'radar'; // preserved tab across re-renders
 let _scalingChars      = null;   // cached character stat array (142 entries from ROM)
 let _scaleActive       = false;  // whether scale_enemies is active in workspace
+let _ingrBaseUri       = '';     // webview URI base for ingredient images (set on panel creation)
+
+function getRadarMap() {
+    if (_radarMapCache) return _radarMapCache;
+    const wf = vscode.workspace.workspaceFolders?.[0];
+    if (!wf) return new Map();
+    _radarMapCache = radarReadMemoryMap(path.join(wf.uri.fsPath, '.github', 'memory-map.md'));
+    return _radarMapCache;
+}
 
 function getRadarMap() {
     if (_radarMapCache) return _radarMapCache;
@@ -572,6 +581,163 @@ function getRadarMap() {
 }
 
 function invalidateRadarMap() { _radarMapCache = null; }
+
+/**
+ * Read extension settings with workspace-based defaults.
+ * All values are mocked / defaulted for now; will be user-configurable at release.
+ */
+function getExtConfig() {
+    const cfg    = vscode.workspace.getConfiguration('everscript');
+    const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+    return {
+        inDir:       cfg.get('inDirectory')      || (wsRoot ? path.join(wsRoot, 'in')       : null),
+        patchesDir:  cfg.get('patchesDirectory') || (wsRoot ? path.join(wsRoot, 'patches')  : null),
+        romPath:     cfg.get('romPath')          || (wsRoot ? path.join(wsRoot, 'Secret of Evermore (U) [!].smc') : null),
+        // NOTE: assetsPath will move to extension-bundled assets before release (see docs/release-checklist.md)
+        assetsPath:  cfg.get('assetsPath')       || '/Users/v/Documents/assets',
+    };
+}
+
+/** Static vanilla room list extracted from SoETilesViewer/SoEScriptDumper/data.h */
+const VANILLA_ROOMS = [
+    { area: 'Prehistoria', rooms: [
+        { id: '0x38', name: 'South jungle / Start' },
+        { id: '0x33', name: "Strong Heart's Exterior" },
+        { id: '0x34', name: "Strong Heart's Hut" },
+        { id: '0x5c', name: 'Raptors' },
+        { id: '0x25', name: "Fire Eyes' Village" },
+        { id: '0x51', name: "Village Huts and Blimp's Hut" },
+        { id: '0x26', name: 'West area with Defend' },
+        { id: '0x5b', name: 'East jungle' },
+        { id: '0x59', name: 'Quick sand desert' },
+        { id: '0x67', name: 'Bugmuck exterior' },
+        { id: '0x16', name: 'BBM' },
+        { id: '0x17', name: 'Bug room 2' },
+        { id: '0x18', name: "Thraxx' room" },
+        { id: '0x5a', name: 'Acid rain guy' },
+        { id: '0x41', name: 'North jungle' },
+        { id: '0x27', name: 'Mammoth Graveyard' },
+        { id: '0x69', name: 'Volcano path' },
+        { id: '0x52', name: 'Top of Volcano' },
+        { id: '0x50', name: 'Sky above Volcano' },
+        { id: '0x66', name: 'West of swamp' },
+        { id: '0x65', name: 'Swamp (main area)' },
+        { id: '0x01', name: "Exterior of Blimp's Hut" },
+        { id: '0x3c', name: 'Volcano Room 1' },
+        { id: '0x3b', name: 'Volcano Room 2' },
+        { id: '0x3d', name: 'Pipe maze' },
+        { id: '0x3e', name: 'Side rooms of pipe maze' },
+        { id: '0x3f', name: 'Volcano Boss Room' },
+        { id: '0x36', name: 'Both fire pits (one room)' },
+    ]},
+    { area: 'Antiqua', rooms: [
+        { id: '0x53', name: 'Act 2 Start Cutscene' },
+        { id: '0x6a', name: 'Act 2 Start Cutscene - waterfall' },
+        { id: '0x0a', name: 'Nobilia, Market' },
+        { id: '0x08', name: 'Nobilia, Square' },
+        { id: '0x09', name: 'Nobilia, Square during Aegis fight' },
+        { id: '0x1e', name: 'Nobilia, Arena Holding Room' },
+        { id: '0x1d', name: 'Nobilia, Arena (Vigor Fight)' },
+        { id: '0x4c', name: 'Nobilia, Fountain and snake statues' },
+        { id: '0x0b', name: 'Nobilia, Palace grounds' },
+        { id: '0x4d', name: 'Nobilia, Inside palace (Horace cutscene)' },
+        { id: '0x3a', name: 'Nobilia, Fire pit' },
+        { id: '0x0c', name: 'Nobilia, Inn' },
+        { id: '0x1c', name: 'Nobilia, North of Market' },
+        { id: '0x1b', name: 'Desert of Doom' },
+        { id: '0x6b', name: 'Waterfall' },
+        { id: '0x05', name: "Between 'mids and halls" },
+        { id: '0x07', name: 'West of Crustacia' },
+        { id: '0x4f', name: 'East of Crustacia' },
+        { id: '0x2e', name: "Blimp's Cave" },
+        { id: '0x68', name: 'Crustacia exterior' },
+        { id: '0x30', name: 'Crustacia inside pirate ship' },
+        { id: '0x04', name: 'Crustacia fire pit' },
+        { id: '0x2f', name: "Horace's camp" },
+        { id: '0x06', name: "Outside of 'mids" },
+        { id: '0x64', name: "Cave entrance under 'mids" },
+        { id: '0x55', name: "'mids bottom level (Dog start)" },
+        { id: '0x56', name: "'mids top level (Boy start)" },
+        { id: '0x57', name: "'mids basement level (Tiny)" },
+        { id: '0x58', name: "'mids boss room (Rimsala)" },
+        { id: '0x2b', name: 'Outside of halls' },
+        { id: '0x29', name: 'Halls main room' },
+        { id: '0x23', name: 'Halls SW' },
+        { id: '0x24', name: 'Halls NW' },
+        { id: '0x2c', name: 'Halls SE' },
+        { id: '0x2d', name: 'Halls NE' },
+        { id: '0x28', name: 'Halls Collapsing Bridge' },
+        { id: '0x2a', name: 'Halls Boss Room' },
+        { id: '0x4b', name: 'Oglin cave' },
+        { id: '0x6d', name: 'Aquagoth Room' },
+        { id: '0x35', name: 'Quicksand/Bugmuck/Volcano caves + West Alchemy Cave' },
+    ]},
+    { area: 'Gothica', rooms: [
+        { id: '0x12', name: 'Ebon Keep sewers' },
+        { id: '0x13', name: 'Between Ebon Keep sewers, Dark Forest and Swamp' },
+        { id: '0x40', name: "Swamp south of Gomi's Tower" },
+        { id: '0x37', name: "Gomi's Tower" },
+        { id: '0x20', name: 'Timberdrake room in forest' },
+        { id: '0x1f', name: 'Doubles room in forest' },
+        { id: '0x22', name: 'Dark Forest' },
+        { id: '0x21', name: 'Dark Forest entrance (save point)' },
+        { id: '0x6c', name: 'SE of Ivor Tower (Well)' },
+        { id: '0x76', name: 'South of Ivor Tower (Gate)' },
+        { id: '0x7b', name: 'Ebon Keep and Ivor Tower Exterior Bottom Half' },
+        { id: '0x7c', name: 'Ebon Keep and Ivor Tower Exterior Top Half' },
+        { id: '0x7d', name: 'Ebon Keep and Ivor Tower Interior' },
+        { id: '0x4e', name: 'Ivor Tower, west alley (market)' },
+        { id: '0x62', name: 'Ivor Tower, west square (trailers)' },
+        { id: '0x63', name: 'Ivor Tower, inside trailers' },
+        { id: '0x19', name: 'Chessboard' },
+        { id: '0x1a', name: 'Below chessboard' },
+        { id: '0x74', name: 'Ebon Keep and Ivor Tower dungeon + pipe room' },
+        { id: '0x0d', name: 'Ebon Keep Hall (Stairs, behind Verm)' },
+        { id: '0x0f', name: 'Ebon Keep West Room (Naris)' },
+        { id: '0x11', name: "Ebon Keep Queen's Room" },
+        { id: '0x10', name: 'Ebon Keep Stained Glass Hallway' },
+        { id: '0x14', name: "Ebon Keep Tinker's Room" },
+        { id: '0x39', name: 'Ebon Keep Fire pit' },
+        { id: '0x0e', name: 'Ebon Keep Dining Room' },
+        { id: '0x5d', name: 'Ebon Keep Courtyard (South of Verm)' },
+        { id: '0x5e', name: 'Ebon Keep Front Room (Verm)' },
+        { id: '0x5f', name: 'Ebon Keep Verm side rooms' },
+        { id: '0x60', name: 'Ebon Keep Storage Room' },
+        { id: '0x6e', name: 'Ivor Tower Hall' },
+        { id: '0x6f', name: 'Ivor Tower Dining Room' },
+        { id: '0x70', name: 'Ivor Tower Exterior Bridges and Balconies' },
+        { id: '0x71', name: 'Ivor Tower East Room + Kitchen' },
+        { id: '0x72', name: 'Ivor Tower East Upper Floor' },
+        { id: '0x73', name: 'Ivor Tower Dog Maze Underground' },
+        { id: '0x75', name: 'Ivor Tower Stairwell to dungeon' },
+        { id: '0x79', name: 'Ivor Tower Sewers' },
+        { id: '0x7a', name: 'Ivor Tower Sewers Exterior (landing spot)' },
+        { id: '0x78', name: "Ivor Tower Queen's Room" },
+        { id: '0x77', name: 'Ivor Tower Puppet Show / Mungola' },
+    ]},
+    { area: 'Omnitopia', rooms: [
+        { id: '0x46', name: "Professor's lab and ship area" },
+        { id: '0x48', name: 'Metroplex tunnels (rimsalas, spheres)' },
+        { id: '0x44', name: 'Greenhouse' },
+        { id: '0x00', name: 'Alarm room' },
+        { id: '0x43', name: 'Control room' },
+        { id: '0x45', name: 'Secret boss room' },
+        { id: '0x47', name: 'Storage room' },
+        { id: '0x42', name: 'Reactor room and Reactor control' },
+        { id: '0x54', name: 'Shops' },
+        { id: '0x7e', name: 'Jail' },
+        { id: '0x49', name: 'Junkyard (Landing spot)' },
+        { id: '0x4a', name: 'Final Boss Room' },
+    ]},
+    { area: 'Intro / Misc', rooms: [
+        { id: '0x61', name: 'Opening - Scrolling over Machine' },
+        { id: '0x31', name: 'Intro - Podunk 1965' },
+        { id: '0x02', name: 'Intro - Mansion Exterior 1965' },
+        { id: '0x32', name: 'Intro - Podunk 1995' },
+        { id: '0x03', name: 'Intro - Mansion Exterior 1995' },
+    ]},
+];
+
 
 function refreshRadar(editor) {
     if (!_radarPanel || _radarPinned) return;
@@ -594,7 +760,7 @@ function refreshRadar(editor) {
     }
     _scaleActive = detectScaleEnemies(wsRoot2, doc.uri.fsPath);
     const selectedMap = scope.kind === 'map' ? scope.name : null;
-    _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree || [], _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive);
+    _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree || [], _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, _ingrBaseUri);
     _radarPanel.title = 'Radar: ' + scope.name;
 }
 
@@ -1360,6 +1526,21 @@ function buildRoomTree(document, wsRoot) {
     return tree;
 }
 
+/** Server-side render of the static vanilla room list grouped by act. */
+function renderVanillaTree() {
+    let html = '<ul class="rt">';
+    for (const grp of VANILLA_ROOMS) {
+        html += '<li class="rn-area"><span class="rn-area-label">' + radarEsc(grp.area) + '</span><ul class="rt">';
+        for (const r of grp.rooms) {
+            html += '<li class="rn-map vn-map" data-vid="' + radarEsc(r.id)
+                  + '"><span class="rn-label">' + radarEsc(r.name)
+                  + '</span><span class="rn-vid-tag">' + radarEsc(r.id) + '</span></li>';
+        }
+        html += '</ul></li>';
+    }
+    return html + '</ul>';
+}
+
 /** Server-side render of the collapsible room tree as HTML. */
 function renderRoomsTree(nodes) {
     if (!nodes || !nodes.length) return '<div class="rm-empty">No rooms found in this file.</div>';
@@ -1418,7 +1599,7 @@ function setRoomImageUris(nodes, webview) {
     }
 }
 
-function renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTree = [], activeTab = 'radar', selectedMap = null, chars = [], scaleActive = false) {
+function renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTree = [], activeTab = 'radar', selectedMap = null, chars = [], scaleActive = false, ingrBaseUri = '') {
     const COLS = 16;
     const allAddrs = [...mapByAddr.keys(), ...refs.keys()];
     if (!allAddrs.length) { allAddrs.push(0x2200, 0x28FF); }
@@ -1768,10 +1949,16 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .rm-panels{display:flex;flex:1;gap:0;min-height:0;overflow:hidden}
 .rm-left{width:200px;flex-shrink:0;overflow-y:auto;border-right:1px solid #1c1c1c;padding:4px 6px 8px 0}
 .rm-right{flex:1;overflow-y:auto;overflow-x:hidden;min-width:0;padding:8px 10px}
-.rm-ph{font-size:9px;text-transform:uppercase;letter-spacing:.08em;opacity:.32;padding:3px 0 5px;font-weight:700}
+.rm-ph{font-size:9px;text-transform:uppercase;letter-spacing:.08em;opacity:.32;padding:3px 0 5px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.rm-mode{display:flex;gap:2px;opacity:1}
+.rmm{font-size:8px;padding:1px 5px;border-radius:3px;border:1px solid #333;background:#1a1a1a;color:#888;cursor:pointer;line-height:14px}
+.rmm.active{background:#2a4a6a;color:#7ab8ff;border-color:#3a6a9a}
 .rm-empty{opacity:.25;font-size:10px;padding:6px 0}
 /* ── Room tree ── */
 .rt{list-style:none;padding:0;margin:0}.rt .rt{padding-left:12px}
+.vn-map{cursor:pointer;padding:1px 0 1px 4px;display:flex;align-items:center;gap:4px;border-radius:2px}
+.vn-map:hover{background:#1e2a1e}.vn-map.rsel{background:#1a2a3a}
+.rn-vid-tag{font-size:8px;opacity:.35;font-family:monospace;flex-shrink:0}
 .rn-area-label{cursor:pointer;display:block;padding:2px 2px;opacity:.42;font-size:9px;text-transform:uppercase;letter-spacing:.05em;user-select:none}
 .rn-area-label:hover{opacity:.72}
 .rn-area.collapsed>.rt{display:none}
@@ -1872,8 +2059,11 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .sc-leg-range{opacity:.5;font-size:8px}`;
 
     // ── Rooms tab data ──────────────────────────────────────────────────────
-    const treeHtml  = renderRoomsTree(roomTree);
-    const roomsData = buildRoomsJson(roomTree, activeTab, selectedMap);
+    const treeHtml       = renderRoomsTree(roomTree);
+    const vanillaTreeHtml = renderVanillaTree();
+    const roomsData      = buildRoomsJson(roomTree, activeTab, selectedMap)
+        + '\nvar INGR_BASE=' + JSON.stringify(ingrBaseUri) + ';'
+        + '\nvar VANILLA_ROOMS_DATA=' + JSON.stringify(VANILLA_ROOMS) + ';';
 
     // ── Scaling tab data ────────────────────────────────────────────────────
     const scalingData = 'var SC_CHARS=' + JSON.stringify(chars) + ';'
@@ -2199,6 +2389,43 @@ document.querySelectorAll('.rn-area-label').forEach(function(lbl){
   });
 });
 
+// Live/Vanilla mode toggle
+var _vanillaMode = false;
+(function(){
+  var btnLive    = document.getElementById('rmm-live');
+  var btnVanilla = document.getElementById('rmm-vanilla');
+  var liveTree   = document.getElementById('rm-live-tree');
+  var vanTree    = document.getElementById('rm-vanilla-tree');
+  function setMode(vanilla){
+    _vanillaMode = vanilla;
+    btnLive.classList.toggle('active', !vanilla);
+    btnVanilla.classList.toggle('active', vanilla);
+    liveTree.style.display  = vanilla ? 'none' : '';
+    vanTree.style.display   = vanilla ? ''     : 'none';
+    document.getElementById('room-detail').className='rm-detail-placeholder';
+    document.getElementById('room-detail').innerHTML='<span>Select a room</span>';
+  }
+  if(btnLive)   btnLive.addEventListener('click',   function(){ setMode(false); });
+  if(btnVanilla)btnVanilla.addEventListener('click', function(){ setMode(true);  });
+  // Vanilla room click → show stub detail
+  document.querySelectorAll('.vn-map').forEach(function(li){
+    li.addEventListener('click',function(){
+      document.querySelectorAll('.rn-map.rsel,.vn-map.rsel').forEach(function(x){x.classList.remove('rsel');});
+      li.classList.add('rsel');
+      var vid = li.dataset.vid;
+      var area='', name=li.querySelector('.rn-label')?.textContent||'';
+      for(var a of VANILLA_ROOMS_DATA){for(var r of a.rooms){if(r.id===vid){area=a.area;name=r.name;}}}
+      var detail = document.getElementById('room-detail');
+      detail.className='';
+      detail.innerHTML='<div class="rd-head"><span class="rd-name">'+name+'</span>'
+        +'<span class="rd-vid">'+vid+'</span>'
+        +'<span class="rd-file">vanilla</span>'
+        +'</div>'
+        +'<div style="padding:8px 4px;opacity:.4;font-size:10px">No live data in Vanilla mode. Static ROM data only.</div>';
+    });
+  });
+})();
+
 // Map click → show detail
 document.querySelectorAll('.rn-map').forEach(function(li){
   li.addEventListener('click',function(){
@@ -2235,9 +2462,27 @@ function renderRoomDetail(room){
     return{sx:(t.x1-trigOff.offX)*2,sy:(t.y1-trigOff.offY)*2,
            sw:Math.max(1,(t.x2-t.x1)*2),sh:Math.max(1,(t.y2-t.y1)*2)};
   }
-  // Ingredient icon mapping: keyword in trigger name → emoji
-  var INGR_ICONS={wax:'\uD83D\uDD6F',vinegar:'\uD83E\uDDEA',oil:'\uD83E\uDEBB',mud:'\uD83C\uDF36',pepper:'\uD83C\uDF36',limestone:'\uD83E\uDEA8',dry_ice:'\uD83E\uDDCA',crystal:'\uD83D\uDC8E',clay:'\uD83C\uDFBA',brimstone:'\uD83D\uDD25',ash:'\u26AB',water:'\uD83D\uDCA7',roots:'\uD83C\uDF3F',nectar:'\uD83C\uDF3A',petal:'\uD83C\uDF38',honey:'\uD83C\uDF6F',vine:'\uD83C\uDF31',bone:'\uD83E\uDDB4',feather:'\uD83E\uDEB6',mercury:'\u2697'};
-  function getIngrIcon(nm){if(!nm)return null;var low=nm.toLowerCase();for(var k in INGR_ICONS){if(low.indexOf(k)!==-1)return INGR_ICONS[k];}return null;}
+  // Ingredient icon mapping: keyword in trigger name → filename (webp in INGR_BASE)
+  // Falls back to emoji when INGR_BASE is not configured.
+  var INGR_MAP={wax:'Wax',vinegar:'Vinegar',oil:'Oil',mud:'Mud_Pepper',pepper:'Mud_Pepper',
+    limestone:'Limestone',dry_ice:'Dry_Ice',crystal:'Crystal',clay:'Clay',brimstone:'Brimstone',
+    ash:'Ash',water:'Water',root:'Root',nectar:'Nectar',petal:'Petal',honey:'Honey',
+    vine:'Root',bone:'Bone',feather:'Feather',mercury:'Mercury',
+    acorn:'Acorn',ethanol:'Ethanol',grease:'Grease',gunpowder:'Gunpowder',iron:'Iron',
+    meteorite:'Meteorite',mushroom:'Mushroom',wax_residue:'Wax',atlas:'Atlas_Amulet'};
+  var INGR_EMOJI={wax:'\uD83D\uDD6F',vinegar:'\uD83E\uDDEA',oil:'\uD83E\uDEBB',mud:'\uD83C\uDF36',
+    pepper:'\uD83C\uDF36',limestone:'\uD83E\uDEA8',dry_ice:'\uD83E\uDDCA',crystal:'\uD83D\uDC8E',
+    clay:'\uD83C\uDFBA',brimstone:'\uD83D\uDD25',ash:'\u26AB',water:'\uD83D\uDCA7',
+    root:'\uD83C\uDF3F',nectar:'\uD83C\uDF3A',petal:'\uD83C\uDF38',bone:'\uD83E\uDDB4',feather:'\uD83E\uDEB6'};
+  function getIngrKey(nm){if(!nm)return null;var low=nm.toLowerCase();for(var k in INGR_MAP){if(low.indexOf(k)!==-1)return k;}return null;}
+  function getIngrIcon(nm){var k=getIngrKey(nm);return k?INGR_EMOJI[k]||'\uD83C\uDF3F':null;}
+  // Returns an <image> SVG element or null for use inside SVG
+  function ingrSvgImg(nm,x,y,sz){
+    var k=getIngrKey(nm); if(!k)return null;
+    if(!INGR_BASE)return null;
+    var fn=INGR_MAP[k]+'.webp';
+    return '<image href="'+INGR_BASE+fn+'" x="'+(x-sz/2).toFixed(2)+'" y="'+(y-sz/2).toFixed(2)+'" width="'+sz+'" height="'+sz+'" style="image-rendering:pixelated" pointer-events="none"/>';
+  }
 
   var html='<div class="rd-head">';
   html+='<span class="rd-name">'+escH(room.name)+'</span>';
@@ -2327,10 +2572,19 @@ function renderRoomDetail(room){
       var nm=bTrigNames[i]||'';
       var sv=tsvg(t);
       var tip='B-trig'+(nm?' '+escH(nm):'')+(t.label?' — '+escH(t.label):'');
-      var ingr=getIngrIcon(nm||t.label||'');
-      var blabel=escH(nm||t.label||'')+(ingr?' '+ingr:'')+' ['+t.x1+','+t.y1+':'+t.x2+','+t.y2+']';
-      html+='<rect class="svge-btrig" data-idx="'+i+'" data-kind="btrig" data-label="'+blabel+'" x="'+sv.sx+'" y="'+sv.sy+'" width="'+sv.sw+'" height="'+sv.sh+'" fill="rgba(255,210,0,0.13)" stroke="#ffcc00" stroke-width="0.3"><title>'+(ingr?ingr+' ':'')+tip+'</title></rect>';
-      if(ingr){var ifs=Math.max(1.5,Math.min(sv.sw,sv.sh,2.8));html+='<text class="svge-btrig svge-ingr" x="'+(sv.sx+sv.sw/2)+'" y="'+(sv.sy+sv.sh/2+ifs*0.4)+'" text-anchor="middle" font-size="'+ifs+'" pointer-events="none" style="user-select:none">'+ingr+'</text>';}    });
+      var ingrEmoji=getIngrIcon(nm||t.label||'');
+      var blabel=escH(nm||t.label||'')+(ingrEmoji?' '+ingrEmoji:'')+' ['+t.x1+','+t.y1+':'+t.x2+','+t.y2+']';
+      html+='<rect class="svge-btrig" data-idx="'+i+'" data-kind="btrig" data-label="'+blabel+'" x="'+sv.sx+'" y="'+sv.sy+'" width="'+sv.sw+'" height="'+sv.sh+'" fill="rgba(255,210,0,0.13)" stroke="#ffcc00" stroke-width="0.3"><title>'+(ingrEmoji?ingrEmoji+' ':'')+tip+'</title></rect>';
+      if(ingrEmoji){
+        var ifs=Math.max(1.5,Math.min(sv.sw,sv.sh,2.8));
+        var imgHtml=ingrSvgImg(nm||t.label||'',sv.sx+sv.sw/2,sv.sy+sv.sh/2,ifs*1.2);
+        if(imgHtml){
+          html+='<g class="svge-btrig svge-ingr">'+imgHtml+'</g>';
+        } else {
+          html+='<text class="svge-btrig svge-ingr" x="'+(sv.sx+sv.sw/2)+'" y="'+(sv.sy+sv.sh/2+ifs*0.4)+'" text-anchor="middle" font-size="'+ifs+'" pointer-events="none" style="user-select:none">'+ingrEmoji+'</text>';
+        }
+      }
+    });
     // Lua POI markers (cyan cross)
     poi.forEach(function(p,i){
       var pr=0.6;
@@ -2992,7 +3246,11 @@ ${scalingJs}
         '</div>' +
         '<div class="tab-pane" data-tab="rooms" style="display:none">' +
         '<div class="rm-panels">' +
-        '<div class="rm-left"><div class="rm-ph">Rooms</div>' + treeHtml + '</div>' +
+        '<div class="rm-left">' +
+          '<div class="rm-ph"><span>Rooms</span><div class="rm-mode"><button class="rmm active" id="rmm-live" title="Show rooms from the active .evs file">Live</button><button class="rmm" id="rmm-vanilla" title="Show all vanilla rooms">Vanilla</button></div></div>' +
+          '<div id="rm-live-tree">' + treeHtml + '</div>' +
+          '<div id="rm-vanilla-tree" style="display:none">' + vanillaTreeHtml + '</div>' +
+        '</div>' +
         '<div class="rm-right"><div id="room-detail" class="rm-detail-placeholder"><span>Select a room</span></div></div>' +
         '</div>' +
         '</div>' +
@@ -3116,7 +3374,7 @@ function activate(context) {
                     {
                         enableScripts: true,
                         retainContextWhenHidden: true,
-                        localResourceRoots: wsRootUri ? [wsRootUri] : [],
+                        localResourceRoots: [wsRootUri, vscode.Uri.file(getExtConfig().assetsPath)].filter(Boolean),
                     },
                 );
                 _radarPanel.onDidDispose(() => {
@@ -3126,10 +3384,19 @@ function activate(context) {
                     _radarRoomTree = null;
                     _radarRoomDocPath = null;
                     _radarActiveTab = 'radar';
+                    _ingrBaseUri = '';
                 }, null, context.subscriptions);
             } else {
                 _radarPanel.title = 'Radar: ' + scope.name;
                 _radarPanel.reveal(vscode.ViewColumn.Beside, true);
+            }
+
+            // Compute ingredient image base URI (once per panel lifetime)
+            if (!_ingrBaseUri) {
+                try {
+                    const ingrDir = path.join(getExtConfig().assetsPath, 'ingredients');
+                    _ingrBaseUri = _radarPanel.webview.asWebviewUri(vscode.Uri.file(ingrDir)).toString() + '/';
+                } catch { _ingrBaseUri = ''; }
             }
 
             // Build or reuse room tree (rebuild when document changes)
@@ -3140,7 +3407,7 @@ function activate(context) {
             }
 
             const selectedMap = scope.kind === 'map' ? scope.name : null;
-            _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree, _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive);
+            _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree, _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, _ingrBaseUri);
 
             // Handle messages from the webview
             _radarPanel.webview.onDidReceiveMessage(msg => {
@@ -3167,7 +3434,7 @@ function activate(context) {
                         const gscope = { kind: 'global', name: _radarDoc.fileName.split(/[\/\\]/).pop(), startLine: 0, endLine: _radarDoc.lineCount - 1 };
                         const { refs, pools, argRefs } = radarAnalyzeScope(_radarDoc, 0, _radarDoc.lineCount - 1);
                         _scaleActive = detectScaleEnemies(wsRoot, _radarDoc.uri?.fsPath ?? null);
-                        _radarPanel.webview.html = renderRadarHtml(gscope, refs, pools, argRefs, getRadarMap(), _radarRoomTree || [], _radarActiveTab, null, _scalingChars || [], _scaleActive);
+                        _radarPanel.webview.html = renderRadarHtml(gscope, refs, pools, argRefs, getRadarMap(), _radarRoomTree || [], _radarActiveTab, null, _scalingChars || [], _scaleActive, _ingrBaseUri);
                         _radarPanel.title = 'Radar: (global)';
                     }
                 } else if (msg.command === 'autoScope') {

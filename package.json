@@ -100,6 +100,31 @@
           "group": "navigation@30"
         }
       ]
+    },
+    "configuration": {
+      "title": "Everscript",
+      "properties": {
+        "everscript.inDirectory": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Path to the `in/` directory containing `.evs` source files. Used for static analysis (scope detection, room tree, `#include` resolution). Defaults to `<workspace>/in`."
+        },
+        "everscript.patchesDirectory": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Path to the `patches/` directory. Used to detect active patches (e.g. `scale_enemies`). Defaults to `<workspace>/patches`."
+        },
+        "everscript.romPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Path to the Secret of Evermore ROM (`.smc`, no header). Required for the Scaling tab (character stats) and ROM trigger offsets. Defaults to `<workspace>/Secret of Evermore (U) [!].smc`."
+        },
+        "everscript.assetsPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Path to the assets directory. Should contain an `ingredients/` subfolder with `.webp` ingredient icons. Defaults to the bundled extension assets."
+        }
+      }
     }
   },
   "repository": {
