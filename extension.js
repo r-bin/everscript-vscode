@@ -2257,7 +2257,8 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     return(_dmgCache[w]={min:Math.min(999,mn),max:Math.min(999,mx),pct999:Math.round(cnt999/65536*100)});
   }
   function dmgRange(atk,def){
-    var inner=(((def>>2)-atk)&0xffff);
+    var atkEff=atlasMode?atk+480:atk;
+    var inner=(((def>>2)-atkEff)&0xffff);
     var w=(~((inner-1)&0xffff))&0xffff;
     if(w>=0x8000)w=1;
     if(atlasMode)return dmgRangeFull(w);
@@ -2456,7 +2457,7 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
       var hc=document.getElementById('sc-hit-chart');if(!hc)return;
       if(!SC_HIT_LOOKUP||!Object.keys(SC_HIT_LOOKUP).length){hc.innerHTML='';return;}
       var evadeVal=tgt.evade||0;
-      var W=_CW,H=36,ml=_ml,mr=_mr,mt=2,mb=10,pw=W-ml-mr,ph=H-mt-mb;
+      var W=_CW,H=_CH,ml=_ml,mr=_mr,mt=_mt,mb=_mb,pw=W-ml-mr,ph=H-mt-mb;
       function xp2(lv){return ml+(lv-1)/(SC_MAX_LEVEL-1)*pw;}
       var pts='',prevOk=false,prevX=0,prevY=0;
       for(var lv=1;lv<=SC_MAX_LEVEL;lv++){
