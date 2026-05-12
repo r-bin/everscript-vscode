@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.24] — 2026-05-12
+
+### Added
+- **Docs alchemy spell-level slider** — the Docs tab offensive-alchemy calculator now exposes spell level directly so manual range checks can be explored without leaving the docs surface.
+
+### Changed
+- **Docs alchemy copy now labels spell level as projected** — the calculator and docs note now spell out that spell level currently uses the shared `+10% base might per level` preview helper rather than a grounded ROM-traced growth formula.
+
 ## [0.2.23] — 2026-05-12
 
 ### Added

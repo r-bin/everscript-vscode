@@ -238,10 +238,21 @@ test('Docs still contains both physical and alchemy calculators', () => {
     assert.ok(html.includes('id="doc-al-chart"'), 'Missing alchemy docs chart');
 });
 
+test('Docs alchemy contains the spell-level slider', () => {
+    ['id="doc-al-spell-lv"', 'id="doc-al-spell-lv-num"'].forEach((needle) => {
+        assert.ok(html.includes(needle), `Missing ${needle}`);
+    });
+});
+
 test('Docs alchemy uses the expected spell might table entries', () => {
     assert.ok(jsCode.includes('{id:"hardball",label:"Hard Ball",type:"alchemy",might:21'), 'Missing Hard Ball might 21 entry');
     assert.ok(jsCode.includes('{id:"fireball",label:"Fireball",type:"alchemy",might:62'), 'Missing Fireball might 62 entry');
     assert.ok(jsCode.includes('{id:"nitro",label:"Nitro",type:"alchemy",might:112'), 'Missing Nitro might 112 entry');
+});
+
+test('Docs alchemy advertises the projected spell-level preview helper', () => {
+    assert.ok(jsCode.includes('projected_spell_power'), 'Docs alchemy formula text should mention projected spell power');
+    assert.ok(jsCode.includes('doc-al-spell-lv'), 'Docs alchemy JS should wire the spell-level slider');
 });
 
 console.log('\nScaling tab: JS behaviour');
@@ -250,6 +261,16 @@ let elements;
 
 test('webview JS executes without throwing with scaling fixture data', () => {
     elements = runWithTrackingDoc(jsCode);
+});
+
+test('Docs alchemy spell-level slider updates the preview output', () => {
+    assert.ok(elements, 'JS failed to run — skipping');
+    elements['doc-al-spell'].value = 'hardball';
+    elements['doc-al-spell-lv'].value = '1';
+    elements['doc-al-spell-lv']._trigger('input', {});
+    const chartHtml = elements['doc-al-chart'].innerHTML;
+    assert.ok(chartHtml.includes('spell level: <b>1</b>'), 'Docs alchemy preview did not reflect spell level 1');
+    assert.ok(chartHtml.includes('projected spell_power'), 'Docs alchemy preview should expose projected spell power');
 });
 
 test('Scaling starts in physical mode', () => {
@@ -355,6 +376,7 @@ test('Docs calculators both initialize without throwing', () => {
 test('Docs alchemy graph shows Hard Ball L0 vs m.def 32 as 6–10', () => {
     assert.ok(elements, 'JS failed to run — skipping');
     elements['doc-al-spell'].value = 'hardball';
+    elements['doc-al-spell-lv'].value = 0;
     elements['doc-al-mdef'].value = 32;
     elements['doc-al-mdef']._trigger('input', {});
     const htmlOut = elements['doc-al-chart'].innerHTML;
@@ -368,6 +390,7 @@ test('Docs alchemy graph shows Hard Ball L0 vs m.def 32 as 6–10', () => {
 test('Docs alchemy graph shows Hard Ball L0 vs m.def 0 as 12–20', () => {
     assert.ok(elements, 'JS failed to run — skipping');
     elements['doc-al-spell'].value = 'hardball';
+    elements['doc-al-spell-lv'].value = 0;
     elements['doc-al-mdef'].value = 0;
     elements['doc-al-mdef']._trigger('input', {});
     const htmlOut = elements['doc-al-chart'].innerHTML;

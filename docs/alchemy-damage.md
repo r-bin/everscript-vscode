@@ -50,6 +50,17 @@ The Scaling tab now shows two extra offensive-alchemy preview graphs:
 
 These two graphs are UI previews, not newly grounded ROM math. The grounded part remains the level-0 `effective_mdef` subtraction and the final RNG spread helper.
 
+## Docs tab manual preview
+
+The Docs tab offensive-alchemy calculator now also exposes a `spell level` slider.
+It uses the same projected preview helper as Scaling:
+
+```text
+projected_spell_power = round(base_might * (1 + 0.10 * spell_level))
+```
+
+That makes it useful for manual spot checks, but it does not make spell-level growth grounded. Right now it is still a convenience preview layered on top of the verified level-0 `effective_mdef` and RNG path.
+
 ## Vanilla spell might table
 
 | Spell | Base might |
