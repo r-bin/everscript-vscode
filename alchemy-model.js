@@ -35,8 +35,42 @@ function alchemyRangeLevel0(baseMight, magicDefense) {
     return { w, resist, spellPower, ...damageRangeFull(w) };
 }
 
+function alchemySpellPowerAtLevel(baseMight, spellLevel) {
+    const base = Math.max(0, Number(baseMight) || 0);
+    const level = Math.max(0, Math.min(9, Number(spellLevel) || 0));
+    return Math.max(1, Math.round(base * (1 + level * 0.10)));
+}
+
+function alchemyMagicDefenseAtLevel(baseMagicDefense, defenseGrowth, targetLevel) {
+    const raw = Math.max(0, Number(baseMagicDefense) || 0);
+    const growth = Math.max(0, Number(defenseGrowth) || 0);
+    const level = Math.max(1, Math.min(37, Number(targetLevel) || 1));
+    return raw + (level - 1) * growth;
+}
+
+function alchemyTargetHpAtLevel(baseHp, hpGrowth, targetLevel) {
+    const raw = Math.max(1, Number(baseHp) || 1);
+    const growth = Math.max(0, Number(hpGrowth) || 0);
+    const level = Math.max(1, Math.min(37, Number(targetLevel) || 1));
+    return raw + (level - 1) * growth;
+}
+
+function alchemyProjectedRange(baseMight, spellLevel, magicDefense, defenseGrowth, targetLevel) {
+    const spellPower = alchemySpellPowerAtLevel(baseMight, spellLevel);
+    const scaledMagicDefense = alchemyMagicDefenseAtLevel(magicDefense, defenseGrowth, targetLevel);
+    const out = alchemyRangeLevel0(spellPower, scaledMagicDefense);
+    out.scaledMagicDefense = scaledMagicDefense;
+    out.spellLevel = Math.max(0, Math.min(9, Number(spellLevel) || 0));
+    out.targetLevel = Math.max(1, Math.min(37, Number(targetLevel) || 1));
+    return out;
+}
+
 module.exports = {
     alchemyEffectiveMdef,
     damageRangeFull,
     alchemyRangeLevel0,
+    alchemySpellPowerAtLevel,
+    alchemyMagicDefenseAtLevel,
+    alchemyTargetHpAtLevel,
+    alchemyProjectedRange,
 };

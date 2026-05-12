@@ -4,7 +4,7 @@ const vscode = require('vscode');
 const path   = require('path');
 const fs     = require('fs');
 const { radarLifecycle, radarH, radarEsc, radarExtractEmoji, radarParseName, radarParseNotes, parseEvsNum, parseEnumsFromContent, parseEvsEnumValues } = require('./radar-utils');
-const { alchemyEffectiveMdef, alchemyRangeLevel0 } = require('./alchemy-model');
+const { alchemyEffectiveMdef, alchemyRangeLevel0, alchemySpellPowerAtLevel, alchemyMagicDefenseAtLevel, alchemyTargetHpAtLevel, alchemyProjectedRange } = require('./alchemy-model');
 
 const alchemyWebviewEffectiveMdef = alchemyEffectiveMdef.toString().replace(/function alchemyEffectiveMdef/, 'function effectiveMdef');
 const alchemyWebviewRange = alchemyRangeLevel0
@@ -12,6 +12,14 @@ const alchemyWebviewRange = alchemyRangeLevel0
     .replace(/function alchemyRangeLevel0/, 'function alchemyRange')
     .replace(/alchemyEffectiveMdef/g, 'effectiveMdef')
     .replace(/damageRangeFull/g, 'dmgRangeFull');
+const alchemyWebviewSpellPower = alchemySpellPowerAtLevel.toString();
+const alchemyWebviewMagicDefenseAtLevel = alchemyMagicDefenseAtLevel.toString();
+const alchemyWebviewTargetHpAtLevel = alchemyTargetHpAtLevel.toString();
+const alchemyWebviewProjectedRange = alchemyProjectedRange
+  .toString()
+  .replace(/alchemySpellPowerAtLevel/g, 'alchemySpellPowerAtLevel')
+  .replace(/alchemyMagicDefenseAtLevel/g, 'alchemyMagicDefenseAtLevel')
+  .replace(/alchemyRangeLevel0/g, 'alchemyRange');
 
 // ── Data loading ──────────────────────────────────────────────────────────────
 
@@ -2109,6 +2117,9 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .sc-toggle-group{display:flex;gap:2px}
 .sc-toggle-btn{background:#2a2a2a;border:1px solid #444;color:#888;font-size:9px;padding:2px 7px;border-radius:3px;cursor:pointer;font-family:inherit;transition:none}
 .sc-toggle-btn.sc-active{background:#2e3248;border-color:#556acc;color:#88aaff}
+.sc-slider-wrap{display:flex;align-items:center;gap:8px;min-width:180px}
+.sc-slider{width:140px}
+.sc-slider-num{font-size:10px;color:#bfbfbf;min-width:16px;text-align:right}
 .sc-chart-layout{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap}
 .sc-hit-chart{margin-top:2px}
 .sc-hit-lbl{font-size:8px;opacity:.38;margin-top:1px;text-align:right;font-family:monospace}
@@ -2222,6 +2233,10 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 (function(){
   ${alchemyWebviewEffectiveMdef}
   ${alchemyWebviewRange}
+  ${alchemyWebviewSpellPower}
+  ${alchemyWebviewMagicDefenseAtLevel}
+  ${alchemyWebviewTargetHpAtLevel}
+  ${alchemyWebviewProjectedRange}
   if(!SC_CHARS.length){
     var ce=document.getElementById('sc-chart');
     if(ce)ce.innerHTML='<div style="padding:16px;opacity:.4;font-size:11px">ROM not found \u2014 place the .smc in workspace root.</div>';
@@ -2232,6 +2247,7 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
   var selWid=null;
   var crosshairLv=null;
   var scaleEnemies=false,atlasMode=false;
+  var alSpellLevel=0,alTargetLevel=1;
 
   var srcSel=document.getElementById('sc-src-sel');
   var tgtSel=document.getElementById('sc-tgt-sel');
@@ -2267,6 +2283,35 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     if(typeof target.magicDefense==='number')return target.magicDefense;
     return 0;
   }
+  function targetGrowth(target){return target&&SC_SCALABLE[+target.id]?SC_SCALABLE[+target.id]:null;}
+  function targetHpAtLevel(target,level){
+    var growth=targetGrowth(target);
+    return growth?alchemyTargetHpAtLevel(target.hp,growth.hpG,level):((target&&target.hp)||1);
+  }
+  function targetMagicDefenseAtLevel(target,level){
+    var growth=targetGrowth(target);
+    return growth?alchemyMagicDefenseAtLevel(targetMagicDefense(target),growth.defG,level):targetMagicDefense(target);
+  }
+  function updateAlchemySliderLabels(){
+    var spellNum=document.getElementById('sc-al-spell-lv-num');
+    if(spellNum)spellNum.textContent=String(alSpellLevel);
+    var targetNum=document.getElementById('sc-al-tgt-lv-num');
+    if(targetNum)targetNum.textContent=String(alTargetLevel);
+  }
+  function syncAlchemyTargetSlider(){
+    var tgt=SC_CHARS.find(function(c){return c.id===+tgtSel.value;})||SC_CHARS[0];
+    var slider=document.getElementById('sc-al-tgt-lv');
+    if(!slider)return;
+    if(!isScalable(tgt&&tgt.id)){
+      alTargetLevel=1;
+      slider.value='1';
+      slider.disabled=true;
+    }else{
+      slider.disabled=false;
+      slider.value=String(alTargetLevel);
+    }
+    updateAlchemySliderLabels();
+  }
   function updateLevelFields(){
     var isAlchemy=attackMode==='alchemy';
     document.getElementById('sc-src-field').style.display=isAlchemy?'none':'flex';
@@ -2275,11 +2320,14 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     document.getElementById('sc-scale-field').style.display=isAlchemy?'none':'flex';
     document.getElementById('sc-src-lv-field').style.display=(!isAlchemy&&isScalable(srcId))?'flex':'none';
     document.getElementById('sc-tgt-lv-field').style.display=(!isAlchemy&&scaleEnemies&&isScalable(+tgtSel.value))?'flex':'none';
-    document.getElementById('sc-hit-chart').style.display=isAlchemy?'none':'block';
+    document.getElementById('sc-al-spell-lv-field').style.display=isAlchemy?'flex':'none';
+    document.getElementById('sc-al-tgt-lv-field').style.display=isAlchemy?'flex':'none';
+    document.getElementById('sc-hit-chart').style.display='block';
+    if(isAlchemy)syncAlchemyTargetSlider();
     var noteEl=document.getElementById('sc-note');
     if(noteEl){
       noteEl.textContent=isAlchemy
-        ? 'Offensive alchemy currently uses the grounded level-0 model: base spell might minus effective_mdef, then the same RNG spread helper as physical damage. Spell-level, cast-charge, and route-grade 8-cast modeling are still unresolved, so these bands stay flat until target magic-defense scaling is traced.'
+        ? 'Offensive alchemy now shows two projected preview graphs. The grounded part is still base spell might minus effective_mdef; spell-level growth uses a labeled +10% per level preview, and scalable target-level preview reuses defense growth for target magic_defense because no separate m.def growth table is wired yet.'
         : '★ = scalable (level grows). Scaling uses one physical damage helper for all cases: stamina first adjusts attack, Atlas optionally subtracts 480 before damage, then the same RNG-based physical formula computes min/max/999-cap odds.';
     }
   }
@@ -2289,7 +2337,7 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     var items=getAttackItems();selWid=items.length?items[0].id:null;
     updateLevelFields();redraw();
   });
-  tgtSel.addEventListener('change',function(){updateLevelFields();redraw();});
+  tgtSel.addEventListener('change',function(){syncAlchemyTargetSlider();updateLevelFields();redraw();});
   if(modeSel)modeSel.addEventListener('change',function(){
     attackMode=modeSel.value||'physical';
     atlasMode=false;
@@ -2301,6 +2349,8 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
   });
   document.getElementById('sc-src-lv').addEventListener('change',function(){srcLv=+this.value||0;redraw();});
   document.getElementById('sc-tgt-lv').addEventListener('change',function(){redraw();});
+  document.getElementById('sc-al-spell-lv').addEventListener('input',function(){alSpellLevel=+this.value||0;updateAlchemySliderLabels();redraw();});
+  document.getElementById('sc-al-tgt-lv').addEventListener('input',function(){alTargetLevel=Math.max(1,+this.value||1);updateAlchemySliderLabels();redraw();});
   document.querySelectorAll('[data-chg]').forEach(function(btn){
     btn.addEventListener('click',function(){
       charge=+btn.dataset.chg;
@@ -2383,6 +2433,58 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
   }
 
   var _CW=400,_CH=200,_ml=40,_mt=12,_mr=8,_mb=28;
+  function renderTrendChart(containerId, series, xValues, xLabel){
+    var W=_CW,H=_CH,ml=_ml,mt=_mt,mr=_mr,mb=_mb,pw=W-ml-mr,ph=H-mt-mb;
+    function xp(index){return xValues.length<=1?ml+pw/2:ml+(index/(xValues.length-1))*pw;}
+    var yMax=0;
+    series.forEach(function(s){s.maxs.forEach(function(v){if(v>yMax)yMax=v;});});
+    yMax=Math.max(10,Math.ceil(yMax*1.1/10)*10);
+    function yp(v){return mt+ph-Math.min(v,yMax)/yMax*ph;}
+    function linePts(arr){return arr.map(function(v,i){return xp(i).toFixed(1)+' '+yp(v).toFixed(1);}).join(' L ');}
+    function bandPath(mins,maxs){
+      var fwd=maxs.map(function(v,i){return xp(i).toFixed(1)+' '+yp(v).toFixed(1);}).join(' L ');
+      var rev=mins.slice().reverse().map(function(v,i,a){var idx=a.length-1-i;return xp(idx).toFixed(1)+' '+yp(a[i]).toFixed(1);}).join(' L ');
+      return 'M '+fwd+' L '+rev+' Z';
+    }
+    var grid='';
+    var xstep=Math.max(1,Math.round(xValues.length/9));
+    for(var xi=0;xi<xValues.length;xi+=xstep){grid+='<line x1="'+xp(xi).toFixed(1)+'" y1="'+mt+'" x2="'+xp(xi).toFixed(1)+'" y2="'+(mt+ph)+'" stroke="#1c1c1c"/>';}
+    if((xValues.length-1)%xstep!==0)grid+='<line x1="'+xp(xValues.length-1).toFixed(1)+'" y1="'+mt+'" x2="'+xp(xValues.length-1).toFixed(1)+'" y2="'+(mt+ph)+'" stroke="#1c1c1c"/>';
+    var ystep=Math.max(5,Math.ceil(yMax/6/5)*5);
+    for(var yi=0;yi<=yMax;yi+=ystep){grid+='<line x1="'+ml+'" y1="'+yp(yi).toFixed(1)+'" x2="'+(ml+pw)+'" y2="'+yp(yi).toFixed(1)+'" stroke="#1c1c1c"/>';}
+    var axes='';
+    for(var xi2=0;xi2<xValues.length;xi2+=xstep){
+      axes+='<line x1="'+xp(xi2).toFixed(1)+'" y1="'+(mt+ph)+'" x2="'+xp(xi2).toFixed(1)+'" y2="'+(mt+ph+4)+'" stroke="#444"/>';
+      axes+='<text x="'+xp(xi2).toFixed(1)+'" y="'+(mt+ph+14)+'" text-anchor="middle" font-size="9">'+xValues[xi2]+'</text>';
+    }
+    if((xValues.length-1)%xstep!==0){axes+='<line x1="'+xp(xValues.length-1).toFixed(1)+'" y1="'+(mt+ph)+'" x2="'+xp(xValues.length-1).toFixed(1)+'" y2="'+(mt+ph+4)+'" stroke="#444"/><text x="'+xp(xValues.length-1).toFixed(1)+'" y="'+(mt+ph+14)+'" text-anchor="middle" font-size="9">'+xValues[xValues.length-1]+'</text>';}
+    for(var yi2=0;yi2<=yMax;yi2+=ystep){
+      axes+='<line x1="'+(ml-4)+'" y1="'+yp(yi2).toFixed(1)+'" x2="'+ml+'" y2="'+yp(yi2).toFixed(1)+'" stroke="#444"/>';
+      axes+='<text x="'+(ml-6)+'" y="'+(yp(yi2)+3).toFixed(1)+'" text-anchor="end" font-size="9">'+yi2+'</text>';
+    }
+    var bands='';
+    series.forEach(function(wd,wi){
+      var col=wd.color||SC_COLORS[wd.type]||'#888';
+      var opac=SC_TIER_OPAC[wi%4];
+      var isAct=selWid===wd.id,isOther=!!(selWid&&!isAct);
+      bands+='<g class="sc-band" data-wid="'+wd.id+'" style="cursor:pointer">'
+        +'<path d="'+bandPath(wd.mins,wd.maxs)+'" fill="'+col+'" fill-opacity="'+(isOther?(opac*0.1).toFixed(2):opac.toFixed(2))+'" stroke="none"/>'
+        +'<path d="M '+linePts(wd.maxs)+'" fill="none" stroke="'+col+'" stroke-opacity="'+(isOther?'0.12':(isAct?'1.0':'0.55'))+'" stroke-width="'+(isAct?2:1)+'"/>'
+        +'</g>';
+    });
+    var svg='<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" style="display:block">'
+      +'<rect x="'+ml+'" y="'+mt+'" width="'+pw+'" height="'+ph+'" fill="#111"/>'
+      +grid+bands+axes
+      +'<text x="'+(ml+pw/2)+'" y="'+(H-2)+'" text-anchor="middle" font-size="9" fill="#555">'+xLabel+'</text>'
+      +'<text x="10" y="'+(mt+ph/2)+'" text-anchor="middle" font-size="9" fill="#555" transform="rotate(-90,10,'+(mt+ph/2)+')">dmg</text>'
+      +'</svg>';
+    var root=document.getElementById(containerId);
+    if(root)root.innerHTML=svg;
+    document.querySelectorAll('#'+containerId+' .sc-band').forEach(function(el){
+      var wid=el.dataset.wid;
+      el.addEventListener('click',function(e){selWid=(selWid===wid)?null:wid;e.stopPropagation();redraw();});
+    });
+  }
   function attachSvgEvents(svgEl){
     var pw=_CW-_ml-_mr;
     function lvFromX(clientX){
@@ -2407,15 +2509,83 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     var tgt=SC_CHARS.find(function(c){return c.id===tgtId;})||SC_CHARS[0];if(!tgt)return;
     var def=scaleEnemies?Math.max(1,tgt.defense*2):tgt.defense;
     var attacks=getAttackItems();
+    if(attackMode==='alchemy'){
+      crosshairLv=null;
+      var growth=targetGrowth(tgt);
+      var spellLevels=[];
+      for(var sl=0;sl<=9;sl++)spellLevels.push(sl);
+      var spellSeries=attacks.map(function(w){
+        var mins=[],maxs=[],p999s=[];
+        spellLevels.forEach(function(level){
+          var ad=alchemyProjectedRange(w.might,level,targetMagicDefense(tgt),growth?growth.defG:0,alTargetLevel);
+          mins.push(ad.min);maxs.push(ad.max);p999s.push(ad.pct999||0);
+        });
+        return{id:w.id,label:w.label,type:w.type,color:w.color,might:w.might,mins:mins,maxs:maxs,p999s:p999s};
+      });
+      renderTrendChart('sc-chart',spellSeries,spellLevels,'spell level');
+
+      var targetLevels=[];
+      for(var tl=1;tl<=SC_MAX_LEVEL;tl++)targetLevels.push(tl);
+      var targetSeries=attacks.map(function(w){
+        var mins=[],maxs=[],p999s=[];
+        targetLevels.forEach(function(level){
+          var usedLevel=growth?level:1;
+          var ad=alchemyProjectedRange(w.might,alSpellLevel,targetMagicDefense(tgt),growth?growth.defG:0,usedLevel);
+          mins.push(ad.min);maxs.push(ad.max);p999s.push(ad.pct999||0);
+        });
+        return{id:w.id,label:w.label,type:w.type,color:w.color,might:w.might,mins:mins,maxs:maxs,p999s:p999s};
+      });
+      renderTrendChart('sc-hit-chart',targetSeries,targetLevels,'target level');
+
+      document.getElementById('sc-xinfo').innerHTML='';
+      var leg='';
+      attacks.forEach(function(wd){
+        var col=wd.color||SC_COLORS[wd.type]||'#888';
+        var isAct=selWid===wd.id,isOther=!!(selWid&&!isAct);
+        var d1=alchemyProjectedRange(wd.might,alSpellLevel,targetMagicDefense(tgt),growth?growth.defG:0,alTargetLevel);
+        var d9=alchemyProjectedRange(wd.might,9,targetMagicDefense(tgt),growth?growth.defG:0,growth?SC_MAX_LEVEL:1);
+        var r1=fmtDmgRange(d1.min,d1.max,d1.pct999,false);
+        var r9=fmtDmgRange(d9.min,d9.max,d9.pct999,false);
+        leg+='<div class="sc-leg-row'+(isAct?' sc-leg-sel':'')+(isOther?' sc-leg-dim':'')+'" data-wid="'+wd.id+'">'
+          +'<span class="sc-leg-dot" style="background:'+col+'"></span>'
+          +'<span class="sc-leg-name">'+wd.label+'</span>'
+          +'<span class="sc-leg-range">S'+alSpellLevel+':'+r1+' \u2192 S9/T'+(growth?SC_MAX_LEVEL:1)+':'+r9+'</span>'
+          +'</div>';
+      });
+      document.getElementById('sc-legend').innerHTML=leg;
+      document.querySelectorAll('#sc-legend .sc-leg-row').forEach(function(el){
+        var wid=el.dataset.wid;
+        el.addEventListener('click',function(){selWid=(selWid===wid)?null:wid;redraw();});
+      });
+
+      var rawMdef=targetMagicDefenseAtLevel(tgt,alTargetLevel);
+      var stats='<div class="sc-stat-box"><div class="sc-stat-name">Offensive Alchemy</div>'
+        +'<div class="sc-stat-row"><span>spell level</span><span class="sc-stat-val">'+alSpellLevel+'</span></div>'
+        +'<div class="sc-stat-row"><span>target level</span><span class="sc-stat-val">'+alTargetLevel+(growth?'':' (locked)')+'</span></div>'
+        +'</div>'
+        +'<div class="sc-stat-box"><div class="sc-stat-name">'+tgt.name+'</div>'
+        +'<div class="sc-stat-row"><span>hp</span><span class="sc-stat-val">'+targetHpAtLevel(tgt,alTargetLevel)+'</span></div>'
+        +'<div class="sc-stat-row"><span>mdef raw</span><span class="sc-stat-val">'+rawMdef+'</span></div>'
+        +'<div class="sc-stat-row"><span>effective</span><span class="sc-stat-val">'+effectiveMdef(rawMdef)+'</span></div>'
+        +'</div>';
+      if(selWid){
+        var aw=attacks.find(function(w){return w.id===selWid;});
+        if(aw){
+          var current=alchemyProjectedRange(aw.might,alSpellLevel,targetMagicDefense(tgt),growth?growth.defG:0,alTargetLevel);
+          var targetHp=targetHpAtLevel(tgt,alTargetLevel);
+          stats+='<div class="sc-stat-box"><div class="sc-stat-name">'+aw.label+' vs '+tgt.name+'</div>'
+            +'<div class="sc-stat-row"><span>might</span><span class="sc-stat-val">'+aw.might+'</span></div>'
+            +'<div class="sc-stat-row"><span>spell power</span><span class="sc-stat-val">'+current.spellPower+'</span></div>'
+            +'<div class="sc-stat-row"><span>dmg@S'+alSpellLevel+'</span><span class="sc-stat-val">'+fmtDmgRange(current.min,current.max,current.pct999,false)+'</span></div>'
+            +'<div class="sc-stat-row"><span>htk</span><span class="sc-stat-val">'+(current.max>0?Math.ceil(targetHp/current.max):'?')+'\u2013'+(current.min>0?Math.ceil(targetHp/current.min):'?')+'</span></div>'
+            +'</div>';
+        }
+      }
+      document.getElementById('sc-stats').innerHTML=stats;
+      return;
+    }
     var wdata=attacks.map(function(w){
       var mins=[],maxs=[],p999s=[];
-      if(attackMode==='alchemy'){
-        var ad=alchemyRange(w.might,targetMagicDefense(tgt));
-        for(var lv=1;lv<=SC_MAX_LEVEL;lv++){
-          mins.push(ad.min);maxs.push(ad.max);p999s.push(ad.pct999||0);
-        }
-        return{id:w.id,label:w.label,type:w.type,color:w.color,might:w.might,mins:mins,maxs:maxs,p999s:p999s,resist:ad.resist};
-      }
       for(var lv=1;lv<=SC_MAX_LEVEL;lv++){
         var d=dmgRange(srcAtkAtLv(srcId,lv,w.bonus),def);
         mins.push(d.min);maxs.push(d.max);p999s.push(d.pct999||0);
@@ -2613,6 +2783,8 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     })();
   }
   updateLevelFields();
+  updateAlchemySliderLabels();
+  syncAlchemyTargetSlider();
   var initW=getAttackItems();if(initW.length)selWid=initW[0].id;
   redraw();
 })();
@@ -3813,6 +3985,8 @@ ${routeJs}
         '<div class="sc-field" id="sc-src-lv-field" style="display:none"><span class="sc-label">Source level</span><select class="sc-sel" style="min-width:80px" id="sc-src-lv"><option value="0">auto</option></select></div>' +
         '<div class="sc-field"><span class="sc-label">Target</span><select class="sc-sel" id="sc-tgt-sel"></select></div>' +
         '<div class="sc-field" id="sc-tgt-lv-field" style="display:none"><span class="sc-label">Target level</span><select class="sc-sel" style="min-width:80px" id="sc-tgt-lv"><option value="0">auto</option></select></div>' +
+        '<div class="sc-field" id="sc-al-spell-lv-field" style="display:none"><span class="sc-label">Spell level</span><label class="sc-slider-wrap"><input class="sc-slider" id="sc-al-spell-lv" type="range" min="0" max="9" value="0"><span class="sc-slider-num" id="sc-al-spell-lv-num">0</span></label></div>' +
+        '<div class="sc-field" id="sc-al-tgt-lv-field" style="display:none"><span class="sc-label">Target level</span><label class="sc-slider-wrap"><input class="sc-slider" id="sc-al-tgt-lv" type="range" min="1" max="37" value="1"><span class="sc-slider-num" id="sc-al-tgt-lv-num">1</span></label></div>' +
         '<div class="sc-field" id="sc-charge-field"><span class="sc-label">Charge</span><div class="sc-toggle-group"><button class="sc-toggle-btn" data-chg="25">25%</button><button class="sc-toggle-btn" data-chg="50">50%</button><button class="sc-toggle-btn sc-active" data-chg="100">100%</button></div></div>' +
         '<div class="sc-field" id="sc-scale-field"><span class="sc-label">Enemy scale</span><button class="sc-toggle-btn" id="sc-scale-toggle">OFF</button></div>' +
         '<div class="sc-field" id="sc-atlas-field"><span class="sc-label">Atlas</span><button class="sc-toggle-btn" id="sc-atlas-toggle">OFF</button></div>' +

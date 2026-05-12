@@ -254,6 +254,11 @@ This scenario requires:
 **Status: blocked on alchemy spell power data.**  Placeholder chart can show
 "damage vs charge level at time of impact" as a stand-in.
 
+Current extension UI note: the Scaling tab now uses a projected placeholder for
+two extra offensive-alchemy graphs. Spell level uses `+10% base might per
+level`, and scalable target level reuses defense growth as a stand-in for
+missing magic-defense growth.
+
 ---
 
 ## Implementation notes

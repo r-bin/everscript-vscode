@@ -217,6 +217,12 @@ test('Scaling HTML still contains the physical control set', () => {
     });
 });
 
+test('Scaling HTML contains alchemy slider fields', () => {
+    ['id="sc-al-spell-lv"', 'id="sc-al-tgt-lv"', 'id="sc-al-spell-lv-num"', 'id="sc-al-tgt-lv-num"'].forEach((needle) => {
+        assert.ok(html.includes(needle), `Missing ${needle}`);
+    });
+});
+
 console.log('\nDocs tab: HTML structure');
 
 test('Docs subnav contains standalone alchemy button again', () => {
@@ -264,7 +270,10 @@ test('Switching Scaling to alchemy hides physical-only controls', () => {
     ['sc-src-field', 'sc-charge-field', 'sc-scale-field', 'sc-atlas-field'].forEach((id) => {
         assert.strictEqual(elements[id].style.display, 'none', `${id} should be hidden in alchemy mode`);
     });
-    assert.strictEqual(elements['sc-hit-chart'].style.display, 'none', 'Hit chart should hide in alchemy mode');
+    ['sc-al-spell-lv-field', 'sc-al-tgt-lv-field'].forEach((id) => {
+        assert.strictEqual(elements[id].style.display, 'flex', `${id} should be shown in alchemy mode`);
+    });
+    assert.strictEqual(elements['sc-hit-chart'].style.display, 'block', 'Target-level chart should stay visible in alchemy mode');
 });
 
 test('Switching Scaling back to physical restores physical-only controls', () => {
@@ -275,6 +284,9 @@ test('Switching Scaling back to physical restores physical-only controls', () =>
     ['sc-src-field', 'sc-charge-field', 'sc-scale-field', 'sc-atlas-field'].forEach((id) => {
         assert.strictEqual(elements[id].style.display, 'flex', `${id} should be restored in physical mode`);
     });
+    ['sc-al-spell-lv-field', 'sc-al-tgt-lv-field'].forEach((id) => {
+        assert.strictEqual(elements[id].style.display, 'none', `${id} should hide in physical mode`);
+    });
     assert.strictEqual(elements['sc-hit-chart'].style.display, 'block', 'Hit chart should show in physical mode');
 });
 
@@ -284,12 +296,12 @@ test('Alchemy mode updates the Scaling note text', () => {
     modeSel.value = 'alchemy';
     modeSel._trigger('change', {});
     assert.ok(
-        elements['sc-note'].textContent.includes('Offensive alchemy currently uses the grounded level-0 model'),
+        elements['sc-note'].textContent.includes('Offensive alchemy now shows two projected preview graphs'),
         'Scaling note did not switch to the alchemy copy'
     );
 });
 
-test('Hard Ball L0 vs Wimpy Flower shows a 6–10 legend range in alchemy mode', () => {
+test('Hard Ball S0 vs Wimpy Flower shows a 6–10 legend range in alchemy mode', () => {
     assert.ok(elements, 'JS failed to run — skipping');
     const modeSel = elements['sc-mode-sel'];
     modeSel.value = 'alchemy';
@@ -297,9 +309,39 @@ test('Hard Ball L0 vs Wimpy Flower shows a 6–10 legend range in alchemy mode',
     const legendHtml = elements['sc-legend'].innerHTML;
     assert.ok(legendHtml.includes('Hard Ball'), 'Hard Ball row missing from Scaling legend');
     assert.ok(
-        legendHtml.includes('L0:6–10') || legendHtml.includes('L0:6-10'),
+        legendHtml.includes('S0:6–10') || legendHtml.includes('S0:6-10'),
         `Expected Hard Ball legend range 6–10, got: ${legendHtml.match(/Hard Ball[\s\S]{0,120}/)?.[0] || legendHtml}`
     );
+});
+
+test('Alchemy mode initializes both spell-level and target-level charts', () => {
+    assert.ok(elements, 'JS failed to run — skipping');
+    const modeSel = elements['sc-mode-sel'];
+    modeSel.value = 'alchemy';
+    modeSel._trigger('change', {});
+    assert.ok(elements['sc-chart'].innerHTML.includes('spell level'), 'Missing spell-level chart axis label');
+    assert.ok(elements['sc-hit-chart'].innerHTML.includes('target level'), 'Missing target-level chart axis label');
+});
+
+test('Non-scalable alchemy targets lock the target-level slider to 1', () => {
+    assert.ok(elements, 'JS failed to run — skipping');
+    elements['sc-tgt-sel'].value = 109;
+    elements['sc-tgt-sel']._trigger('change', {});
+    const modeSel = elements['sc-mode-sel'];
+    modeSel.value = 'alchemy';
+    modeSel._trigger('change', {});
+    assert.strictEqual(elements['sc-al-tgt-lv'].disabled, true, 'Expected non-scalable target level slider to be disabled');
+    assert.strictEqual(elements['sc-al-tgt-lv'].value, '1', 'Expected non-scalable target level slider to stay at 1');
+});
+
+test('Scalable alchemy targets unlock the target-level slider', () => {
+    assert.ok(elements, 'JS failed to run — skipping');
+    elements['sc-tgt-sel'].value = 0;
+    elements['sc-tgt-sel']._trigger('change', {});
+    const modeSel = elements['sc-mode-sel'];
+    modeSel.value = 'alchemy';
+    modeSel._trigger('change', {});
+    assert.strictEqual(elements['sc-al-tgt-lv'].disabled, false, 'Expected scalable target level slider to be enabled');
 });
 
 console.log('\nDocs tab: JS behaviour');
@@ -344,12 +386,12 @@ test('Scaling legend shows Hard Ball L0 vs Carltron\'s Robot as 0–1', () => {
     modeSel._trigger('change', {});
     const legendHtml = elements['sc-legend'].innerHTML;
     assert.ok(
-        legendHtml.includes('L0:0–1') || legendHtml.includes('L0:0-1'),
+        legendHtml.includes('S0:0–1') || legendHtml.includes('S0:0-1'),
         `Expected Hard Ball legend range 0–1 for Carltron, got: ${legendHtml.match(/Hard Ball[\s\S]{0,120}/)?.[0] || legendHtml}`
     );
 });
 
-test('Scaling legend shows Hard Ball L0 vs Mosquito as 12–20', () => {
+test('Scaling legend shows Hard Ball S0 vs Mosquito as 12–20', () => {
     assert.ok(elements, 'JS failed to run — skipping');
     elements['sc-tgt-sel'].value = 110;
     elements['sc-tgt-sel']._trigger('change', {});
@@ -358,8 +400,24 @@ test('Scaling legend shows Hard Ball L0 vs Mosquito as 12–20', () => {
     modeSel._trigger('change', {});
     const legendHtml = elements['sc-legend'].innerHTML;
     assert.ok(
-        legendHtml.includes('L0:12–20') || legendHtml.includes('L0:12-20'),
+        legendHtml.includes('S0:12–20') || legendHtml.includes('S0:12-20'),
         `Expected Hard Ball legend range 12–20 for Mosquito, got: ${legendHtml.match(/Hard Ball[\s\S]{0,120}/)?.[0] || legendHtml}`
+    );
+});
+
+test('Alchemy spell-level slider raises Hard Ball damage against Wimpy Flower', () => {
+    assert.ok(elements, 'JS failed to run — skipping');
+    elements['sc-tgt-sel'].value = 109;
+    elements['sc-tgt-sel']._trigger('change', {});
+    const modeSel = elements['sc-mode-sel'];
+    modeSel.value = 'alchemy';
+    modeSel._trigger('change', {});
+    elements['sc-al-spell-lv'].value = '9';
+    elements['sc-al-spell-lv']._trigger('input', {});
+    const legendHtml = elements['sc-legend'].innerHTML;
+    assert.ok(
+        legendHtml.includes('S9:'),
+        `Expected alchemy legend to update to spell level 9, got: ${legendHtml.match(/Hard Ball[\s\S]{0,120}/)?.[0] || legendHtml}`
     );
 });
 

@@ -41,6 +41,15 @@ Still open:
 - Whether every offensive spell uses the same final `w -> shown damage` path.
 - Route-grade modeling for 8-casts and spell XP.
 
+## Scaling tab preview graphs
+
+The Scaling tab now shows two extra offensive-alchemy preview graphs:
+
+- `damage vs spell level` keeps the target fixed and applies a clearly labeled projected spell-power preview of `+10% base might per spell level` from level `0` to `9`.
+- `damage vs target level` keeps the spell level fixed and, only for scalable targets, reuses the existing defense growth slope as a temporary stand-in for `magic_defense` growth.
+
+These two graphs are UI previews, not newly grounded ROM math. The grounded part remains the level-0 `effective_mdef` subtraction and the final RNG spread helper.
+
 ## Vanilla spell might table
 
 | Spell | Base might |

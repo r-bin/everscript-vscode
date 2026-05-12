@@ -1,7 +1,7 @@
 'use strict';
 
 const assert = require('assert');
-const { alchemyEffectiveMdef, alchemyRangeLevel0, damageRangeFull } = require('../alchemy-model');
+const { alchemyEffectiveMdef, alchemyRangeLevel0, alchemySpellPowerAtLevel, alchemyMagicDefenseAtLevel, alchemyTargetHpAtLevel, alchemyProjectedRange, damageRangeFull } = require('../alchemy-model');
 
 const dmgRangeFull = damageRangeFull;
 
@@ -181,6 +181,19 @@ test('offensive alchemy floors negative inputs before applying the shared m.def 
     assert.strictEqual(r.resist, 22);
     assert.strictEqual(r.w, 1);
     assert.deepStrictEqual({ min: r.min, max: r.max, pct999: r.pct999 }, { min: 0, max: 1, pct999: 0 });
+});
+
+test('projected alchemy spell level preview scales spell power upward', () => {
+    assert.strictEqual(alchemySpellPowerAtLevel(21, 0), 21);
+    assert.strictEqual(alchemySpellPowerAtLevel(21, 9), 40);
+});
+
+test('projected scalable target preview reuses growth tables for hp and m.def', () => {
+    assert.strictEqual(alchemyMagicDefenseAtLevel(10, 1, 37), 46);
+    assert.strictEqual(alchemyTargetHpAtLevel(30, 9, 37), 354);
+    const r = alchemyProjectedRange(21, 9, 10, 1, 37);
+    assert.ok(r.spellPower > 21, 'expected projected spell power to rise with spell level');
+    assert.strictEqual(r.scaledMagicDefense, 46);
 });
 
 console.log('\n' + passed + ' passed, ' + failed + ' failed\n');

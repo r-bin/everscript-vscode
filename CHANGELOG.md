@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.23] — 2026-05-12
+
+### Added
+- **Dual offensive alchemy Scaling graphs** — alchemy mode now shows a top graph for damage vs spell level and a second graph beneath it for damage vs target level, with dedicated sliders for spell level and target level.
+
+### Changed
+- **Projected alchemy preview model** — the new graphs use one shared preview path across Scaling and tests: spell level applies a labeled `+10% base might per level` projection, and scalable target level temporarily reuses the target defense-growth slope for `magic_defense` growth until grounded data is traced.
+
 ## [0.2.22] — 2026-05-12
 
 ### Fixed
