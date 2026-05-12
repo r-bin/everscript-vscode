@@ -38,7 +38,9 @@ function alchemyRangeLevel0(baseMight, magicDefense) {
 function alchemySpellPowerAtLevel(baseMight, spellLevel) {
     const base = Math.max(0, Number(baseMight) || 0);
     const level = Math.max(0, Math.min(9, Number(spellLevel) || 0));
-    return Math.max(1, Math.round(base * (1 + level * 0.10)));
+    if (level === 0) return Math.max(1, base);
+    const scale = [2, 4, 7, 11, 15, 20, 26, 32, 39, 46][level];
+    return Math.max(1, Math.ceil((base * scale) / 4));
 }
 
 function alchemyMagicDefenseAtLevel(baseMagicDefense, defenseGrowth, targetLevel) {

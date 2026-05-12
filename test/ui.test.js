@@ -250,8 +250,8 @@ test('Docs alchemy uses the expected spell might table entries', () => {
     assert.ok(jsCode.includes('{id:"nitro",label:"Nitro",type:"alchemy",might:112'), 'Missing Nitro might 112 entry');
 });
 
-test('Docs alchemy advertises the projected spell-level preview helper', () => {
-    assert.ok(jsCode.includes('projected_spell_power'), 'Docs alchemy formula text should mention projected spell power');
+test('Docs alchemy advertises the traced spell-level power helper', () => {
+    assert.ok(jsCode.includes('spell_power_at_level'), 'Docs alchemy formula text should mention the traced spell power helper');
     assert.ok(jsCode.includes('doc-al-spell-lv'), 'Docs alchemy JS should wire the spell-level slider');
 });
 
@@ -276,7 +276,7 @@ test('Docs alchemy spell-level slider updates the preview output', () => {
     elements['doc-al-spell-lv']._trigger('input', {});
     const chartHtml = elements['doc-al-chart'].innerHTML;
     assert.ok(chartHtml.includes('spell level: <b>1</b>'), 'Docs alchemy preview did not reflect spell level 1');
-    assert.ok(chartHtml.includes('projected spell_power'), 'Docs alchemy preview should expose projected spell power');
+    assert.ok(chartHtml.includes('spell_power_at_level'), 'Docs alchemy preview should expose the traced spell power');
 });
 
 test('Scaling starts in physical mode', () => {

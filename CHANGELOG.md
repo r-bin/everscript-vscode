@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.26] — 2026-05-13
+
+### Changed
+- **Traced alchemy spell-level scaling** — the shared offensive-alchemy spell-level helper no longer uses the old `+10%` placeholder. Level `0` keeps the existing grounded base-might path, while levels `1..9` now use the ROM-traced high-level scale table `2, 4, 7, 11, 15, 20, 26, 32, 39, 46`, which yields Hard Ball cast-side power `21` at level 1 before the cast RNG bonus.
+- **Docs copy now distinguishes traced spell power from open target-side math** — the spell-level slider text in Docs now describes the traced cast-side power step for leveled casts and keeps the remaining target-side resistance/popup conversion explicitly open.
+
 ## [0.2.25] — 2026-05-12
 
 ### Added

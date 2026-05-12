@@ -3432,13 +3432,13 @@ function renderRoomDetail(room){
       document.getElementById('doc-al-spell-lv-num').textContent=spellLevel;
       document.getElementById('doc-al-mdef-num').textContent=rawMdef;
       var html='<div class="doc-val">spell: <b>'+spell.label+'</b>  base might: <b>'+spell.might+'</b>  spell level: <b>'+spellLevel+'</b></div>';
-      html+='<div class="doc-val">projected spell_power: <b>'+spellPower+'</b>  raw magic_defense: <b>'+rawMdef+'</b>  effective_mdef: <b>'+eff+'</b>  w: <b>'+w+'</b></div>';
+      html+='<div class="doc-val">spell_power_at_level: <b>'+spellPower+'</b>  raw magic_defense: <b>'+rawMdef+'</b>  effective_mdef: <b>'+eff+'</b>  w: <b>'+w+'</b></div>';
       html+='<div class="doc-val">shown range: <b>'+stats.min+'\u2013'+stats.max+'</b>'+(stats.count999?'<span class="doc-cap">999-cap: '+stats.count999+'/65536 ('+docFmtPct(stats.pct999)+'%)</span>':'')+'</div>';
       html+='<svg width="'+W+'" height="'+H+'" style="display:block;margin:4px 0">'+bars+'</svg>';
       html+='<div style="width:'+W+'px;display:flex;justify-content:space-between;font-size:9px;opacity:.4"><span>'+stats.min+'</span><span>'+stats.max+'</span></div>';
       html+='<ul class="doc-bullets">'
         +'<li>Grounded inputs only: <b>base might</b> from ROM offset <b>0x45E6B</b> and enemy <b>magic_defense</b>.</li>'
-        +'<li>The <b>spell level</b> slider is a preview helper: it currently uses <code>projected_spell_power = round(base_might * (1 + 0.10 * level))</code>.</li>'
+        +'<li>The <b>spell level</b> slider keeps level <b>0</b> on the checked base-might path and uses the traced cast-side helper for levels <b>1..9</b>: <code>spell_power_at_level = ceil(base_might * [2,4,7,11,15,20,26,32,39,46][level] / 4)</code>.</li>'
         +'<li>The RNG spread after that uses the same verified helper as physical damage.</li>'
         +'<li>Spell-level growth, charge state, and 8-cast route modeling are still open.</li>'
         +'</ul>';
@@ -4025,8 +4025,8 @@ ${routeJs}
         '</div>' +
         '<div class="doc-sec" data-doc="alchemy" style="display:none">' +
         '<h3 class="doc-h">Offensive Alchemy</h3>' +
-        '<div class="doc-fact">Grounded today: level-0 base might and <code>effective_mdef = max(0, floor((magic_defense + 20) / 4))</code>. Research notes also point at a projectile-slot <code>POWER</code> field for projectile alchemy; the spell-level slider below is still only a projected preview helper for manual checks.</div>' +
-        '<pre class="doc-code">base_might = ROM16[0x45E6B + spell_id*2]\nprojectile_power = [7E3564 + slot*0x76 + 0x2A]\nprojected_spell_power = round(base_might \u00d7 (1 + 0.10 \u00d7 spell_level))\neffective_mdef = max(0, floor((target.magic_defense + 20) / 4))\nw = max(1, projected_spell_power - effective_mdef)\nseed = hi16((w+1)\u00d7rng16)\nshown = min(999, damage_rng_spread(w, seed))</pre>' +
+        '<div class="doc-fact">Grounded today: level-0 resistance uses <code>effective_mdef = max(0, floor((magic_defense + 20) / 4))</code>. Leveled cast power now uses the traced high-level scale table from the ROM, while level <code>0</code> keeps the already-checked base-might path. Research notes also point at a projectile-slot <code>POWER</code> field for projectile alchemy.</div>' +
+        '<pre class="doc-code">base_might = ROM16[0x45E6B + spell_id*2]\nif spell_level == 0: spell_power_at_level = base_might\nelse:\n  level_scale = [2,4,7,11,15,20,26,32,39,46][spell_level]\n  spell_power_at_level = ceil(base_might * level_scale / 4)\nprojectile_power = [7E3564 + slot*0x76 + 0x2A]\neffective_mdef = max(0, floor((target.magic_defense + 20) / 4))\nw = max(1, spell_power_at_level - effective_mdef)\nseed = hi16((w+1)\u00d7rng16)\nshown = min(999, damage_rng_spread(w, seed))</pre>' +
         '<div class="doc-sliders"><label>spell <select id="doc-al-spell" class="sc-sel"></select></label>' +
         '<label>spell level <input id="doc-al-spell-lv" type="range" min="0" max="9" value="0"><span id="doc-al-spell-lv-num">0</span></label>' +
         '<label>magic_defense <input id="doc-al-mdef" type="range" min="0" max="64" value="51"><span id="doc-al-mdef-num">51</span></label></div>' +

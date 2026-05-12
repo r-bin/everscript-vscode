@@ -61,23 +61,26 @@ Still open:
 
 ## Scaling tab preview graphs
 
-The Scaling tab now shows two extra offensive-alchemy preview graphs:
+The Scaling tab now shows two extra offensive-alchemy graphs:
 
-- `damage vs spell level` keeps the target fixed and applies a clearly labeled projected spell-power preview of `+10% base might per spell level` from level `0` to `9`.
+- `damage vs spell level` keeps the target fixed and now uses the traced projectile cast-side level table from the ROM for spell levels `1..9`: `scale = [2, 4, 7, 11, 15, 20, 26, 32, 39, 46][spell_level]`, then `spell_power_at_level = ceil(base_might * scale / 4)`. Level `0` keeps the already-grounded base-might path so the checked level-0 ranges stay stable.
 - `damage vs target level` keeps the spell level fixed and, only for scalable targets, reuses the existing defense growth slope as a temporary stand-in for `magic_defense` growth.
 
-These two graphs are UI previews, not newly grounded ROM math. The grounded part remains the level-0 `effective_mdef` subtraction and the final RNG spread helper.
+The target-level graph is still a UI preview because target `magic_defense` growth is not grounded yet. The spell-level graph now uses traced cast-side spell power instead of the older `+10%` placeholder.
 
 ## Docs tab manual preview
 
 The Docs tab offensive-alchemy calculator now also exposes a `spell level` slider.
-It uses the same projected preview helper as Scaling:
+It uses the same traced cast-side helper as Scaling:
 
 ```text
-projected_spell_power = round(base_might * (1 + 0.10 * spell_level))
+if spell_level == 0: spell_power_at_level = base_might
+else:
+	level_scale = [2, 4, 7, 11, 15, 20, 26, 32, 39, 46][spell_level]
+	spell_power_at_level = ceil(base_might * level_scale / 4)
 ```
 
-That makes it useful for manual spot checks, but it does not make spell-level growth grounded. Right now it is still a convenience preview layered on top of the verified level-0 `effective_mdef` and RNG path.
+That grounds the spell-level power step for projectile alchemy casts above level `0` without discarding the already-checked level-0 range model. The remaining open part is how target-side resistance and popup damage interact across all enemies and spells.
 
 The Docs tab now also calls out the projectile-slot `POWER` field so this research
 context is visible in the extension, not only in external notes.

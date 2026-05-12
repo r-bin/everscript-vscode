@@ -185,7 +185,8 @@ test('offensive alchemy floors negative inputs before applying the shared m.def 
 
 test('projected alchemy spell level preview scales spell power upward', () => {
     assert.strictEqual(alchemySpellPowerAtLevel(21, 0), 21);
-    assert.strictEqual(alchemySpellPowerAtLevel(21, 9), 40);
+    assert.strictEqual(alchemySpellPowerAtLevel(21, 1), 21);
+    assert.strictEqual(alchemySpellPowerAtLevel(21, 9), 242);
 });
 
 test('projected scalable target preview reuses growth tables for hp and m.def', () => {
