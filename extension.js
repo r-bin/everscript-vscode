@@ -2252,7 +2252,7 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     return attackMode==='alchemy'?SC_SPELLS:getWeapons();
   }
   function effectiveMdef(magicDefense){
-    return Math.max(0,Math.floor((0x40-(magicDefense||0))/2)-3);
+    return Math.max(0,Math.floor((magicDefense||0)/2)-3);
   }
   function targetMagicDefense(target){
     if(!target)return 0;
@@ -3191,7 +3191,7 @@ function renderRoomDetail(room){
   function docSeedRaw(w,s){return Math.floor((((w+1)&0xffff)*s)/0x10000)&0xffff;}
   function docDamageRaw(w,s){var a=(docSeedRaw(w,s)+w)&0xffff,b=(a<<1)&0xffff,c=(b+w+((a&0x8000)?1:0))&0xffff;return c>>2;}
   function docSeeds(w){var r=[];for(var s=0;s<=0xffff;s++)r.push(docDamageRaw(w,s));return r;}
-  function docEffMdef(mdef){return Math.max(0,Math.floor((0x40-mdef)/2)-3);}
+  function docEffMdef(mdef){return Math.max(0,Math.floor((mdef||0)/2)-3);}
   function docRangeStats(w){
     var raw=docSeeds(w);
     var capped=raw.map(function(d){return Math.min(999,d);});
@@ -3833,8 +3833,8 @@ ${routeJs}
         '</div>' +
         '<div class="doc-sec" data-doc="alchemy" style="display:none">' +
         '<h3 class="doc-h">Offensive Alchemy</h3>' +
-        '<div class="doc-fact">Current extension model: ROM spell might minus <code>effective_mdef = max(0, 0x40 - magic_defense)</code>, then the same verified RNG spread helper as physical damage.</div>' +
-        '<pre class="doc-code">base_might = ROM16[0x45E6B + spell_id*2]\neffective_mdef = max(0, 0x40 - target.magic_defense)\nw = max(1, base_might - effective_mdef)\nseed = hi16((w+1)\u00d7rng16)\nshown = min(999, damage_rng_spread(w, seed))</pre>' +
+        '<div class="doc-fact">Current extension model: ROM spell might minus <code>effective_mdef = max(0, floor(magic_defense / 2) - 3)</code>, then the same verified RNG spread helper as physical damage.</div>' +
+        '<pre class="doc-code">base_might = ROM16[0x45E6B + spell_id*2]\neffective_mdef = max(0, floor(target.magic_defense / 2) - 3)\nw = max(1, base_might - effective_mdef)\nseed = hi16((w+1)\u00d7rng16)\nshown = min(999, damage_rng_spread(w, seed))</pre>' +
         '<div class="doc-sliders"><label>spell <select id="doc-al-spell" class="sc-sel"></select></label>' +
         '<label>magic_defense <input id="doc-al-mdef" type="range" min="0" max="64" value="51"><span id="doc-al-mdef-num">51</span></label></div>' +
         '<div id="doc-al-chart"></div>' +

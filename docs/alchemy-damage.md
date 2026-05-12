@@ -6,10 +6,10 @@ This note records the part of offensive alchemy that is grounded enough to ship 
 
 - Offensive alchemy uses enemy `magic_defense`, not physical `defense`.
 - Enemy `magic_defense` is the byte at offset `0x1d` in the vanilla entity record table.
-- The current level-0 preview uses a reduced resistance term derived from the stored stat:
+- The current level-0 preview uses a reduced resistance term derived directly from the stored stat:
 
 ```text
-effective_mdef = max(0, floor((0x40 - target.magic_defense) / 2) - 3)
+effective_mdef = max(0, floor(target.magic_defense / 2) - 3)
 ```
 
 - ROM offset `0x45E6B` contains the base might table used by alchemy spells.
@@ -86,7 +86,7 @@ Still open:
 Hard Ball level 0 against raw `magic_defense = 32`:
 
 ```text
-effective_mdef = floor((0x40 - 32) / 2) - 3 = 13
+effective_mdef = floor(32 / 2) - 3 = 13
 w = 21 - 13 = 8
 shown range = 6-10
 ```

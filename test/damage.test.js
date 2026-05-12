@@ -71,7 +71,7 @@ function fmtDmgRange(min, max, pct999) {
 }
 
 function effectiveMdef(magicDefense) {
-    return Math.max(0, Math.floor((0x40 - magicDefense) / 2) - 3);
+    return Math.max(0, Math.floor(magicDefense / 2) - 3);
 }
 
 function alchemyRangeLevel0(baseMight, magicDefense) {
@@ -190,11 +190,23 @@ test('offensive alchemy gives Hard Ball L0 vs Purple/Wimpy Flower as 6–10', ()
     assert.deepStrictEqual({ min: r.min, max: r.max, pct999: r.pct999 }, { min: 6, max: 10, pct999: 0 });
 });
 
-test('offensive alchemy clamps effective magic defense at zero', () => {
-    const r = alchemyRangeLevel0(21, 70);
-    assert.strictEqual(r.resist, 0);
+test('offensive alchemy gives Hard Ball L0 vs Carltron-like m.def 60 as 0–1', () => {
+    const r = alchemyRangeLevel0(21, 60);
+    assert.strictEqual(r.w, 1);
+    assert.deepStrictEqual({ min: r.min, max: r.max, pct999: r.pct999 }, { min: 0, max: 1, pct999: 0 });
+});
+
+test('offensive alchemy gives Hard Ball L0 vs Mosquito-like m.def 0 about twice Wimpy Flower damage', () => {
+    const r = alchemyRangeLevel0(21, 0);
     assert.strictEqual(r.w, 21);
     assert.deepStrictEqual({ min: r.min, max: r.max, pct999: r.pct999 }, { min: 15, max: 26, pct999: 0 });
+});
+
+test('offensive alchemy clamps effective magic defense at zero', () => {
+    const r = alchemyRangeLevel0(21, 70);
+    assert.strictEqual(r.resist, 32);
+    assert.strictEqual(r.w, 1);
+    assert.deepStrictEqual({ min: r.min, max: r.max, pct999: r.pct999 }, { min: 0, max: 1, pct999: 0 });
 });
 
 console.log('\n' + passed + ' passed, ' + failed + ' failed\n');

@@ -232,8 +232,10 @@ test('Docs still contains both physical and alchemy calculators', () => {
     assert.ok(html.includes('id="doc-al-chart"'), 'Missing alchemy docs chart');
 });
 
-test('Docs alchemy selector still exposes Hard Ball with table value 21', () => {
-    assert.ok(html.includes('Hard Ball'), 'Missing Hard Ball entry in docs alchemy UI');
+test('Docs alchemy uses the expected spell might table entries', () => {
+    assert.ok(jsCode.includes('{id:"hardball",label:"Hard Ball",type:"alchemy",might:21'), 'Missing Hard Ball might 21 entry');
+    assert.ok(jsCode.includes('{id:"fireball",label:"Fireball",type:"alchemy",might:62'), 'Missing Fireball might 62 entry');
+    assert.ok(jsCode.includes('{id:"nitro",label:"Nitro",type:"alchemy",might:112'), 'Missing Nitro might 112 entry');
 });
 
 console.log('\nScaling tab: JS behaviour');

@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.21] — 2026-05-12
+
+### Fixed
+- **Offensive alchemy resistance model** — replaced the overfit inverted `magic_defense` helper with a direct raw-stat reduction model, so high-`m.def` enemies now take less damage and low-`m.def` enemies no longer collapse to `0–1`.
+- **Scaling and Docs consistency** — both surfaces now use the same corrected level-0 alchemy math and no longer drift in formula text or rendered examples.
+
+### Added
+- **Broader alchemy regressions** — unit coverage now includes Wimpy Flower (`m.def 32` => `6–10`), Carltron-like high resistance (`m.def 60` => `0–1`), and Mosquito-like low resistance (`m.def 0` => `15–26`), alongside the existing Docs and parser checks.
+
 ## [0.2.20] — 2026-05-12
 
 ### Fixed

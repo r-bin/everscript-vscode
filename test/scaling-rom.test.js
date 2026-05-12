@@ -19,7 +19,7 @@ function test(name, fn) {
 }
 
 function effectiveMdef(magicDefense) {
-    return Math.max(0, Math.floor((0x40 - magicDefense) / 2) - 3);
+    return Math.max(0, Math.floor(magicDefense / 2) - 3);
 }
 
 function dmgRangeFull(w) {
