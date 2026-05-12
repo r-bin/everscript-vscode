@@ -3809,6 +3809,7 @@ ${routeJs}
         '<button class="doc-btn" data-doc="alchemy">Offensive Alchemy</button>' +
         '<button class="doc-btn" data-doc="hit">Hit%</button>' +
         '<button class="doc-btn" data-doc="atlas">Atlas Glitch</button>' +
+        '<button class="doc-btn" data-doc="mapload">Map Loading</button>' +
         '<button class="doc-btn" data-doc="script">Script</button>' +
         '<button class="doc-btn" data-doc="evs">Everscript</button>' +
         '<button class="doc-btn" data-doc="plugin">Plugin</button>' +
@@ -3851,6 +3852,35 @@ ${routeJs}
         '<label>def <input id="doc-at-def" type="range" min="0" max="255" value="160"><span id="doc-at-def-num">160</span></label>' +
         '<label>rng16 <input id="doc-at-rng" type="range" min="0" max="65535" value="0"><span id="doc-at-rng-num">0</span></label></div>' +
         '<div id="doc-at-chart"></div>' +
+        '</div>' +
+        '<div class="doc-sec" data-doc="mapload" style="display:none">' +
+        '<h3 class="doc-h">Map Loading</h3>' +
+        '<div class="doc-fact">Current status: the exact room-payload codec is still not fully decoded. This section records the grounded loader model from room metadata, trigger-table parsing, breakpoint tracing, and truncation tests.</div>' +
+        '<pre class="doc-code">map[33 / "Prehistoria - Strong Heart\'s Exterior"]\ndata     = 0xADB50C\nsize     = 0x0455 (confirmed)\nstep_len = ROM16[0xADB519] = 0x000C = 2 entries\nb_len    = ROM16[0xADB527] = 0x0000\npayload  = 0xADB529 .. 0xADB960</pre>' +
+        '<ul class="doc-bullets">' +
+        '<li>Each room points at one variable-size blob. For room <b>0x33</b>, the blob begins at <b>0xADB50C</b> and ends at <b>0xADB960</b> because the next room starts immediately after it.</li>' +
+        '<li>The first <b>13 bytes</b> are room metadata. In traced rooms, bytes <b>0</b> and <b>1</b> become <code>trig_off_x</code> and <code>trig_off_y</code>.</li>' +
+        '<li>At offset <b>0x0D</b> the blob switches to trigger tables: <code>step_len</code>, then 6-byte step-on entries; after that comes <code>b_len</code> and the B-trigger entries.</li>' +
+        '<li>For room <b>0x33</b> that means: metadata at <b>0xADB50C..0xADB518</b>, step-on table at <b>0xADB519..0xADB526</b>, B-table length at <b>0xADB527..0xADB528</b>, then the room payload from <b>0xADB529</b> onward.</li>' +
+        '</ul>' +
+        '<div class="doc-val"><b>Working loader model</b></div>' +
+        '<ul class="doc-bullets">' +
+        '<li>1. Resolve the room\'s <code>data</code> pointer from the map table and hand it to the loader.</li>' +
+        '<li>2. The breakpoint at <b>0x908F80</b> (<code>LDA [$8B],Y</code>) shows the routine streaming bytes from the current room blob through the indirect pointer in <code>$8B</code>.</li>' +
+        '<li>3. The loader consumes metadata and trigger-table lengths first, then continues into the remaining room payload.</li>' +
+        '<li>4. Truncation tests show the payload tail controls collision and hitbox first: deleting bytes from the end removes collision before visible tiles.</li>' +
+        '<li>5. Deleting more bytes erases the room from the bottom-right upward, which strongly suggests the decoded output fills later map addresses last.</li>' +
+        '<li>6. When the visual payload is mostly gone, the room can still load as a walkable black square: room state and bounds remain valid even though tile and collision data are missing.</li>' +
+        '</ul>' +
+        '<pre class="doc-code">908F80  B7 8B          LDA [$8B],Y\n$8B = current room blob pointer\nY   = current byte offset inside that blob</pre>' +
+        '<div class="doc-val"><b>How that becomes the hut picture</b></div>' +
+        '<ul class="doc-bullets">' +
+        '<li>The Strong Heart exterior picture is not stored as one flat bitmap. The room payload after the trigger tables is decoded into the room\'s visual and collision buffers.</li>' +
+        '<li>The two step-on records only describe the doorway transitions. They do not describe the hut image itself.</li>' +
+        '<li>Because the image disappears from bottom-right first when the payload tail is cut, later payload bytes correspond to later-placed tiles in the final room image.</li>' +
+        '<li>The black walkable square is the same room after payload loss: enter logic and room origin still exist, but the art and collision payload are no longer complete.</li>' +
+        '<li>Still open: the exact codec commands, whether graphics and collision are interleaved or split, and the precise buffer layout used before the picture is shown.</li>' +
+        '</ul>' +
         '</div>' +
         '<div class="doc-sec" data-doc="script" style="display:none">' +
         '<h3 class="doc-h">Script Opcodes</h3>' +

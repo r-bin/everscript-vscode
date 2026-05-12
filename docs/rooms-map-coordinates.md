@@ -1,5 +1,7 @@
 # Rooms Tab — Map Coordinate System
 
+For the higher-level room-loader notes that back the Docs tab, see `docs/map-loading.md`.
+
 ## Coordinate Units
 
 The Rooms tab uses **two coordinate spaces**:
@@ -82,6 +84,7 @@ dataptr → [  0] offX      (u8)  — trig_off_x = room x-origin in 16px-tile un
            [ 0x0f] step[0..N] (6 bytes each: y1,x1,y2,x2,script_id16)
            [ 0x0f+N] b_len  (u16)
            [ 0x0f+N+2] b[0..M] (same 6-byte format)
+           [ ... ] payload  — remaining room payload (visual / collision data), codec still unresolved
 ```
 
 The map pointer table is at SNES `0x9ffde7` = ROM `0x1ffde7`. Each entry is 4 bytes; entry for map `id` is at `0x1ffde7 + id * 4` and contains a 24-bit SNES address to the data block.

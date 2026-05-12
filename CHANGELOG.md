@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.13] — 2026-05-12
+
+### Added
+- **Docs tab map-loading section** — added a grounded map-loading explainer covering the room-blob layout, the `LDA [$8B],Y` stream-read breakpoint, and the truncation evidence for how the payload turns into the final room picture.
+- **Map-loading markdown doc** — added a dedicated docs file that records the current room-loader model and the confirmed Strong Heart exterior example.
+
+### Changed
+- **Room-data docs clarified** — the room data-block note now explicitly says that the bytes after the trigger tables are still-observed room payload, even though the exact codec is not fully decoded yet.
+
 ## [0.2.12] — 2026-05-12
 
 ### Added
