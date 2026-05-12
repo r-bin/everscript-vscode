@@ -1235,8 +1235,8 @@ function readRomCharacters(wsRoot) {
                 hp:            romBuf.readUInt16LE(base + 0x0f),
                 attack:        romBuf.readUInt16LE(base + 0x19),
                 defense:       romBuf.readUInt16LE(base + 0x1b),
-                magic_defense: romBuf.readUInt16LE(base + 0x1d),
-                evade:         romBuf.readUInt16LE(base + 0x1f),
+              evade:         romBuf.readUInt16LE(base + 0x1d),
+              magic_defense: romBuf.readUInt16LE(base + 0x1f),
                 hit_rate:      romBuf.readUInt16LE(base + 0x21),
             });
         }

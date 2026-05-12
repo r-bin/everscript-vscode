@@ -86,7 +86,7 @@ function extractScript(renderedHtml) {
 
 function injectScalingFixture(code) {
     return code
-    .replace(/var SC_CHARS=\[[\s\S]*?\];/, 'var SC_CHARS=[{"id":0,"name":"<Boy>","attack":7,"defense":5,"evade":0,"hit_rate":38,"hp":30,"magicDefense":10},{"id":109,"name":"Wimpy Flower","attack":1,"defense":28,"evade":0,"hit_rate":0,"hp":18,"magicDefense":51}];')
+    .replace(/var SC_CHARS=\[[\s\S]*?\];/, 'var SC_CHARS=[{"id":0,"name":"<Boy>","attack":7,"defense":5,"evade":0,"hit_rate":38,"hp":30,"magic_defense":10},{"id":109,"name":"Wimpy Flower","attack":1,"defense":28,"evade":32,"hit_rate":0,"hp":18,"magic_defense":51}];')
         .replace(/var SC_HIT_LOOKUP=\{[\s\S]*?\};/, 'var SC_HIT_LOOKUP={38:{0:95}};');
 }
 

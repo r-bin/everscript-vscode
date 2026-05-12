@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.19] — 2026-05-12
+
+### Fixed
+- **ROM stat reader used the evade slot as magic defense** — `readRomCharacters()` now parses `evade` from `+0x1d` and `magic_defense` from `+0x1f`, which fixes live Scaling alchemy targets such as Hard Ball L0 vs Purple Flower/Wimpy Flower.
+
+### Added
+- **Parser regression coverage** — `test/scaling-rom.test.js` now feeds a synthetic ROM record through the real `readRomCharacters()` path and asserts that the parsed target produces the grounded Hard Ball L0 `6–10` range.
+
 ## [0.2.18] — 2026-05-12
 
 ### Fixed

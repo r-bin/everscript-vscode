@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) \u2014 the Secret of Evermore ROM scripting language",
-  "version": "0.2.18",
+  "version": "0.2.19",
   "publisher": "rbin",
   "main": "./extension.js",
   "engines": {
@@ -16,7 +16,7 @@
     "Snippets"
   ],
   "scripts": {
-    "test": "vscode-tmgrammar-test -g syntaxes/everscript.tmLanguage.json 'test/**/*.test.evs' && node test/radar.test.js && node test/smoke.test.js && node test/ui.test.js"
+    "test": "vscode-tmgrammar-test -g syntaxes/everscript.tmLanguage.json 'test/**/*.test.evs' && node test/radar.test.js && node test/smoke.test.js && node test/ui.test.js && node test/scaling-rom.test.js"
   },
   "devDependencies": {
     "vscode-tmgrammar-test": "^0.1.3"
