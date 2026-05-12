@@ -30,18 +30,34 @@ function dmgRangeFull(w) {
     };
 }
 
-function dmgRange(atk, def, atlasMode) {
-    const atkEff = atlasMode ? ((atk - 480) & 0xffff) : atk;
+function chargedPhysicalAttack(atk, charge) {
+    if (charge <= 25) return atk >> 2;
+    if (charge <= 50) return atk >> 1;
+    return atk;
+}
+
+function dmgRange(atk, def, atlasMode, charge = 100) {
+    const atlasSubtractApplies = atlasMode;
+    const atlasOverflowBypassesClamp = atlasMode && charge < 100;
+    const chargedAtk = chargedPhysicalAttack(atk, charge);
+    const atkEff = atlasSubtractApplies ? ((chargedAtk - 480) & 0xffff) : chargedAtk;
     const inner = (((def >> 2) - atkEff) & 0xffff);
     let w = (~((inner - 1) & 0xffff)) & 0xffff;
-    if (!atlasMode && w >= 0x8000) w = 1;
-    if (atlasMode) return { w, ...dmgRangeFull(w) };
-    return {
-        w,
-        min: Math.min(999, (3 * w) >> 2),
-        max: Math.min(999, (5 * w) >> 2),
-        pct999: 0,
-    };
+    if (w < 1 || (!atlasOverflowBypassesClamp && w >= 0x8000)) w = 1;
+    return { w, chargedAtk, atkEff, atlasSubtractApplies, atlasOverflowBypassesClamp, ...dmgRangeFull(w) };
+}
+
+function atlasDocPreview(atk, sub, def) {
+    const atkEff = (atk - sub) & 0xffff;
+    if (sub <= atk) {
+        const inner = (((def >> 2) - atkEff) & 0xffff);
+        let w = (~((inner - 1) & 0xffff)) & 0xffff;
+        if (w < 1 || w >= 0x8000) w = 1;
+        return { underflow: false, w, ...dmgRangeFull(w) };
+    }
+    const inner = (((def >> 2) - atkEff) & 0xffff);
+    const w = (~((inner - 1) & 0xffff)) & 0xffff;
+    return { underflow: true, w, ...dmgRangeFull(w) };
 }
 
 function fmtDmgRange(min, max, pct999) {
@@ -54,6 +70,16 @@ function fmtDmgRange(min, max, pct999) {
     return min + '–' + max;
 }
 
+function effectiveMdef(magicDefense) {
+    return Math.max(0, 0x40 - magicDefense);
+}
+
+function alchemyRangeLevel0(baseMight, magicDefense) {
+    const resist = effectiveMdef(magicDefense);
+    const w = Math.max(1, baseMight - resist);
+    return { w, resist, spellPower: baseMight, ...dmgRangeFull(w) };
+}
+
 console.log('\ndamage calculations:');
 test('normal damage uses unclitched signed clamp path', () => {
     const r = dmgRange(10, 32, false);
@@ -61,14 +87,27 @@ test('normal damage uses unclitched signed clamp path', () => {
     assert.deepStrictEqual({ min: r.min, max: r.max, pct999: r.pct999 }, { min: 1, max: 2, pct999: 0 });
 });
 
-test('atlas underflow keeps large wrapped unsigned w', () => {
-    const r = dmgRange(10, 32, true);
-    assert.strictEqual(r.w, 65058);
+test('atlas underflow keeps large wrapped unsigned w below 100 percent charge', () => {
+    const r = dmgRange(10, 32, true, 50);
+    assert.strictEqual(r.atlasSubtractApplies, true);
+    assert.strictEqual(r.atlasOverflowBypassesClamp, true);
+    assert.strictEqual(r.chargedAtk, 5);
+    assert.strictEqual(r.w, 65053);
     assert.strictEqual(r.min, 0);
     assert.strictEqual(r.max, 999);
     assert.strictEqual(r.count999, 61511);
     assert.strictEqual(r.pct999.toFixed(6), '93.858337');
     assert.strictEqual(fmtDmgRange(r.min, r.max, r.pct999), '0–999 [93.86%]');
+});
+
+test('atlas at 100 percent charge stays on the weak clamped path', () => {
+    const r = dmgRange(17, 230, true, 100);
+    assert.strictEqual(r.atlasSubtractApplies, true);
+    assert.strictEqual(r.atlasOverflowBypassesClamp, false);
+    assert.strictEqual(r.atkEff, (17 - 480) & 0xffff);
+    assert.strictEqual(r.w, 1);
+    assert.deepStrictEqual({ min: r.min, max: r.max }, { min: 0, max: 1 });
+    assert.strictEqual(r.count999, 0);
 });
 
 test('there are partial-cap cases with some seeds below 999', () => {
@@ -82,12 +121,80 @@ test('there are partial-cap cases with some seeds below 999', () => {
 });
 
 test('Sterling atlas is not a true 100 percent cap', () => {
-    const r = dmgRange(81, 160, true);
-    assert.strictEqual(r.w, 65097);
-    assert.strictEqual(r.count999, 61513);
-    assert.strictEqual(r.pct999.toFixed(6), '93.861389');
+    const r = dmgRange(81, 160, true, 50);
+    assert.strictEqual(r.atlasSubtractApplies, true);
+    assert.strictEqual(r.atlasOverflowBypassesClamp, true);
+    assert.strictEqual(r.chargedAtk, 40);
+    assert.strictEqual(r.w, 65056);
+    assert.strictEqual(r.count999, 61510);
+    assert.strictEqual(r.pct999.toFixed(6), '93.856812');
     assert.ok(r.count999 < 65536, 'expected some Sterling hits below 999');
     assert.strictEqual(fmtDmgRange(r.min, r.max, r.pct999), '0–999 [93.86%]');
+});
+
+test('no atlas: higher stamina thresholds increase Boy Sword I damage vs Wimpy Flower', () => {
+    const low = dmgRange(17, 28, false, 25);
+    const mid = dmgRange(17, 28, false, 50);
+    const high = dmgRange(17, 28, false, 100);
+    assert.deepStrictEqual({ min: low.min, max: low.max }, { min: 0, max: 1 });
+    assert.deepStrictEqual({ min: mid.min, max: mid.max }, { min: 0, max: 1 });
+    assert.deepStrictEqual({ min: high.min, max: high.max }, { min: 7, max: 12 });
+    assert.ok(high.max > mid.max && mid.max >= low.max);
+});
+
+test('minimum pre-rng value is clamped to 1 instead of allowing a 0–0 range', () => {
+    const r = dmgRange(29, 28, false, 25);
+    assert.strictEqual(r.chargedAtk, 7);
+    assert.strictEqual(r.w, 1);
+    assert.deepStrictEqual({ min: r.min, max: r.max }, { min: 0, max: 1 });
+});
+
+test('no atlas: better weapons usually deal more damage at the same stamina', () => {
+    const sword1 = dmgRange(17, 28, false, 100);
+    const sword4 = dmgRange(57, 28, false, 100);
+    assert.ok(sword4.min > sword1.min, 'expected higher-tier weapon to raise minimum damage');
+    assert.ok(sword4.max > sword1.max, 'expected higher-tier weapon to raise maximum damage');
+});
+
+test('atlas: 100 percent stamina stays weak but sub-100 stamina mostly caps', () => {
+    const full = dmgRange(17, 28, true, 100);
+    const half = dmgRange(17, 28, true, 50);
+    const quarter = dmgRange(17, 28, true, 25);
+    assert.deepStrictEqual({ min: full.min, max: full.max, pct999: full.pct999 }, { min: 0, max: 1, pct999: 0 });
+    assert.strictEqual(half.count999, 61512);
+    assert.strictEqual(half.pct999.toFixed(6), '93.859863');
+    assert.strictEqual(quarter.count999, 61511);
+    assert.strictEqual(quarter.pct999.toFixed(6), '93.858337');
+    assert.ok(half.pct999 > quarter.pct999, 'expected stronger sub-100 charge to retain slightly better 999 odds');
+});
+
+test('atlas at 100 percent stays weak even as level attack rises', () => {
+    const low = dmgRange(17, 28, true, 100);
+    const high = dmgRange(79, 28, true, 100);
+    assert.deepStrictEqual({ min: low.min, max: low.max }, { min: 0, max: 1 });
+    assert.deepStrictEqual({ min: high.min, max: high.max }, { min: 0, max: 1 });
+});
+
+test('atlas docs preview falls back to normal damage when subtraction does not underflow', () => {
+    const r = atlasDocPreview(56, 0, 230);
+    assert.strictEqual(r.underflow, false);
+    assert.strictEqual(r.w, 1);
+    assert.deepStrictEqual({ min: r.min, max: r.max }, { min: 0, max: 1 });
+});
+
+test('offensive alchemy uses spell might minus effective magic defense before RNG spread', () => {
+    const r = alchemyRangeLevel0(21, 51);
+    assert.strictEqual(r.spellPower, 21);
+    assert.strictEqual(r.resist, 13);
+    assert.strictEqual(r.w, 8);
+    assert.deepStrictEqual({ min: r.min, max: r.max, pct999: r.pct999 }, { min: 6, max: 10, pct999: 0 });
+});
+
+test('offensive alchemy clamps effective magic defense at zero', () => {
+    const r = alchemyRangeLevel0(21, 70);
+    assert.strictEqual(r.resist, 0);
+    assert.strictEqual(r.w, 21);
+    assert.deepStrictEqual({ min: r.min, max: r.max, pct999: r.pct999 }, { min: 15, max: 26, pct999: 0 });
 });
 
 console.log('\n' + passed + ' passed, ' + failed + ' failed\n');

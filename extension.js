@@ -2121,6 +2121,8 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .doc-sec{}
 .doc-h{font-size:13px;font-weight:600;margin:0 0 6px;color:#ccc}
 .doc-fact{font-size:10px;color:#aaa;margin:4px 0;line-height:1.5}
+.doc-bullets{margin:6px 0 8px 16px;padding:0;color:#aaa;font-size:10px;line-height:1.55}
+.doc-bullets li{margin:3px 0}
 .doc-code{font-size:10px;background:#0f0f0f;border:1px solid #222;padding:6px 8px;border-radius:3px;margin:4px 0 8px;color:#88cc88;overflow-x:auto;white-space:pre;display:block}
 .doc-sliders{display:flex;flex-direction:column;gap:4px;margin:6px 0;font-size:10px;color:#aaa}
 .doc-sliders label{display:flex;align-items:center;gap:6px}
@@ -2132,7 +2134,34 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .doc-htable{border-collapse:collapse;font-size:9px;margin-top:6px;max-width:100%}
 .doc-htable th,.doc-htable td{padding:2px 6px;border:1px solid #1e1e1e;text-align:right;white-space:nowrap}
 .doc-htable th{background:#111;color:#666;font-weight:normal}
-.doc-htable td:first-child{text-align:left;color:#666}`;
+.doc-htable td:first-child{text-align:left;color:#666}
+.doc-dist{margin-top:8px}
+.doc-dist-cap{font-size:9px;opacity:.52;margin-top:2px}
+/* ── Route planner mock ── */
+.rp-wrap{display:flex;flex-direction:column;flex:1;min-height:0;padding:8px;gap:8px;overflow:auto}
+.rp-banner{font-size:10px;padding:6px 8px;border:1px solid #34524a;background:rgba(52,82,74,.18);border-radius:4px;color:#9ed0bf}
+.rp-grid{display:grid;grid-template-columns:minmax(220px,280px) minmax(0,1fr);gap:8px;min-height:0}
+.rp-side,.rp-main{border:1px solid #2a2a2a;border-radius:4px;background:#161616;padding:8px;min-width:0}
+.rp-h{font-size:10px;text-transform:uppercase;letter-spacing:.06em;opacity:.46;margin:0 0 6px;font-weight:700}
+.rp-templates{display:flex;flex-direction:column;gap:6px}
+.rp-tpl{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 8px;border:1px solid #2b2b2b;border-radius:4px;background:#121212}
+.rp-tpl-name{font-size:10px;color:#ddd;font-weight:600}
+.rp-tpl-sub{font-size:9px;color:#888}
+.rp-btn,.rp-btn-ghost{border:1px solid #444;border-radius:4px;background:#232323;color:#ccc;padding:4px 8px;font-size:9px;cursor:pointer}
+.rp-btn:hover,.rp-btn-ghost:hover{border-color:#777;color:#eee}
+.rp-btn:disabled,.rp-btn-ghost:disabled{opacity:.45;cursor:default}
+.rp-toolbar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.rp-toolbar-note{font-size:9px;color:#888}
+.rp-table{width:100%;border-collapse:collapse;font-size:10px}
+.rp-table th,.rp-table td{padding:4px 6px;border-bottom:1px solid #222;text-align:left;vertical-align:top}
+.rp-table th{font-size:8px;text-transform:uppercase;letter-spacing:.05em;opacity:.4}
+.rp-empty{padding:10px 8px;border:1px dashed #333;border-radius:4px;color:#777;font-size:10px}
+.rp-tag{display:inline-block;font-size:8px;padding:1px 5px;border-radius:999px;border:1px solid #444;color:#aaa;background:#1d1d1d}
+.rp-sim{margin-top:8px;border-top:1px solid #222;padding-top:8px}
+.rp-sim ul{margin:6px 0 0 16px;padding:0;font-size:10px;color:#aaa;line-height:1.5}
+.rp-link-note{font-size:9px;color:#777;margin-top:6px}
+@media (max-width: 900px){.rp-grid{grid-template-columns:1fr}}
+`;
 
     // ── Rooms tab data ──────────────────────────────────────────────────────
     const treeHtml       = renderRoomsTree(roomTree);
@@ -2162,6 +2191,22 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
         + '{id:"sp3",label:"Spear III",type:"spear",bonus:40},'
         + '{id:"sp4",label:"Spear IV",type:"spear",bonus:50}'
         + '];'
+        + 'var SC_SPELLS=['
+        + '{id:"acid",label:"Acid Rain",type:"alchemy",might:17,color:"#4b9f67"},'
+        + '{id:"corrosion",label:"Corrosion",type:"alchemy",might:25,color:"#5ab08c"},'
+        + '{id:"drain",label:"Drain",type:"alchemy",might:25,color:"#8e8bc7"},'
+        + '{id:"flash",label:"Flash",type:"alchemy",might:27,color:"#d6a34a"},'
+        + '{id:"hardball",label:"Hard Ball",type:"alchemy",might:21,color:"#4c86d9"},'
+        + '{id:"doubledrain",label:"Double Drain",type:"alchemy",might:50,color:"#8f6bd1"},'
+        + '{id:"lance",label:"Lance",type:"alchemy",might:50,color:"#46a9a1"},'
+        + '{id:"crush",label:"Crush",type:"alchemy",might:62,color:"#c07845"},'
+        + '{id:"fireball",label:"Fireball",type:"alchemy",might:62,color:"#db7049"},'
+        + '{id:"sting",label:"Sting",type:"alchemy",might:75,color:"#d2b247"},'
+        + '{id:"explosion",label:"Explosion",type:"alchemy",might:87,color:"#df5d3c"},'
+        + '{id:"storm",label:"Lightning Storm",type:"alchemy",might:87,color:"#6797df"},'
+        + '{id:"firepower",label:"Fire Power",type:"alchemy",might:112,color:"#e0582e"},'
+        + '{id:"nitro",label:"Nitro",type:"alchemy",might:112,color:"#ef4343"}'
+        + '];'
         + 'var SC_COLORS={sword:"#4488ff",axe:"#ff8844",spear:"#44bb66",dog:"#cc88ff"};'
         + 'var SC_TIER_OPAC=[0.18,0.32,0.50,0.75];'
         + 'var SC_MAX_LEVEL=37;';
@@ -2173,13 +2218,14 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     return;
   }
   var srcId=0,srcLv=0,charge=100;
-  var selWid=null;      // weapon selected by click (null = all equal weight)
-  var crosshairLv=null; // level pinned by vertical crosshair (null = none)
+  var attackMode='physical';
+  var selWid=null;
+  var crosshairLv=null;
   var scaleEnemies=false,atlasMode=false;
 
-  // Populate source + target dropdowns
   var srcSel=document.getElementById('sc-src-sel');
   var tgtSel=document.getElementById('sc-tgt-sel');
+  var modeSel=document.getElementById('sc-mode-sel');
   SC_CHARS.forEach(function(c){
     var scalable=SC_SCALABLE.hasOwnProperty(c.id);
     var label='#'+String(c.id).padStart(3,'0')+' '+c.name+(scalable?' \u2605':'');
@@ -2189,25 +2235,57 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
   });
   srcSel.value=0;
   tgtSel.value=SC_CHARS.some(function(c){return c.id===109;})?109:0;
+  if(modeSel)modeSel.value=attackMode;
 
-  // Populate level dropdowns
   ['sc-src-lv','sc-tgt-lv'].forEach(function(id){
     var sel=document.getElementById(id);
     for(var lv=1;lv<=SC_MAX_LEVEL;lv++){var o=document.createElement('option');o.value=lv;o.textContent='L'+lv;sel.appendChild(o);}
   });
 
   function isScalable(id){return SC_SCALABLE.hasOwnProperty(+id);}
+  function getWeapons(){
+    if(+srcId===1)return[{id:'paws',label:'Dog Claws',type:'dog',bonus:0}];
+    if(!isScalable(srcId))return[{id:'raw',label:'Raw atk',type:'dog',bonus:0}];
+    return SC_WEAPONS;
+  }
+  function getAttackItems(){
+    return attackMode==='alchemy'?SC_SPELLS:getWeapons();
+  }
+  function effectiveMdef(magicDefense){
+    return Math.max(0,0x40-(magicDefense||0));
+  }
   function updateLevelFields(){
-    document.getElementById('sc-src-lv-field').style.display=isScalable(srcId)?'flex':'none';
-    document.getElementById('sc-tgt-lv-field').style.display=(scaleEnemies&&isScalable(+tgtSel.value))?'flex':'none';
+    var isAlchemy=attackMode==='alchemy';
+    document.getElementById('sc-src-field').style.display=isAlchemy?'none':'flex';
+    document.getElementById('sc-charge-field').style.display=isAlchemy?'none':'flex';
+    document.getElementById('sc-atlas-field').style.display=isAlchemy?'none':'flex';
+    document.getElementById('sc-scale-field').style.display=isAlchemy?'none':'flex';
+    document.getElementById('sc-src-lv-field').style.display=(!isAlchemy&&isScalable(srcId))?'flex':'none';
+    document.getElementById('sc-tgt-lv-field').style.display=(!isAlchemy&&scaleEnemies&&isScalable(+tgtSel.value))?'flex':'none';
+    document.getElementById('sc-hit-chart').style.display=isAlchemy?'none':'block';
+    var noteEl=document.getElementById('sc-note');
+    if(noteEl){
+      noteEl.textContent=isAlchemy
+        ? 'Offensive alchemy currently uses the grounded level-0 model: base spell might minus effective_mdef, then the same RNG spread helper as physical damage. Spell-level, cast-charge, and route-grade 8-cast modeling are still unresolved, so these bands stay flat until target magic-defense scaling is traced.'
+        : '★ = scalable (level grows). Scaling uses one physical damage helper for all cases: stamina first adjusts attack, Atlas optionally subtracts 480 before damage, then the same RNG-based physical formula computes min/max/999-cap odds.';
+    }
   }
 
   srcSel.addEventListener('change',function(){
     srcId=+srcSel.value;
-    var w=getWeapons();selWid=w.length?w[0].id:null;
+    var items=getAttackItems();selWid=items.length?items[0].id:null;
     updateLevelFields();redraw();
   });
   tgtSel.addEventListener('change',function(){updateLevelFields();redraw();});
+  if(modeSel)modeSel.addEventListener('change',function(){
+    attackMode=modeSel.value||'physical';
+    atlasMode=false;
+    var atBtnReset=document.getElementById('sc-atlas-toggle');
+    atBtnReset.textContent='OFF';
+    atBtnReset.classList.remove('sc-active');
+    var items=getAttackItems();selWid=items.length?items[0].id:null;
+    updateLevelFields();redraw();
+  });
   document.getElementById('sc-src-lv').addEventListener('change',function(){srcLv=+this.value||0;redraw();});
   document.getElementById('sc-tgt-lv').addEventListener('change',function(){redraw();});
   document.querySelectorAll('[data-chg]').forEach(function(btn){
@@ -2223,7 +2301,6 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     scaleEnemies=!scaleEnemies;
     scBtn.textContent=scaleEnemies?'ON':'OFF';
     scBtn.classList.toggle('sc-active',scaleEnemies);
-    if(!selWid){var w=getWeapons();if(w.length)selWid=w[0].id;}
     updateLevelFields();redraw();
   });
 
@@ -2235,15 +2312,10 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     _dmgCache={};redraw();
   });
 
-  // Damage formula (exact from soestuff.lua):
-  // w = ~((def>>2 - atk) - 1) & 0xffff; if >= 0x8000 then w=1
-  // RNG: 16-bit seed i in [0..65535]; derived_seed = ((w+1)*i >> 16) & 0xff
-  // dmg = ((2*(derived_seed+w) & 0xffff) + w) >> 2, capped 999
-  // Atlas mode: brute-forces all 65536 RNG seeds via proper 16-bit derivation
   var _dmgCache={};
   function fmtPct(pct){
     if(pct===0||pct===100)return String(pct.toFixed(0));
-    var digits=pct<0.1?3:2;
+    var digits=pct<0.01?6:3;
     return pct.toFixed(digits).replace(/0+$/,'').replace(/\.$/,'');
   }
   function atlasSeed(w2,rng16){
@@ -2267,15 +2339,23 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     }
     return(_dmgCache[w]={min:Math.min(999,mn),max:Math.min(999,mx),pct999:cnt999/65536*100,count999:cnt999});
   }
+  function atlasSubtractApplies(){return atlasMode;}
+  function atlasOverflowBypassesClamp(){return atlasMode&&charge<100;}
+  function chargedPhysicalAttack(atk){if(charge<=25)return atk>>2;if(charge<=50)return atk>>1;return atk;}
   function dmgRange(atk,def){
-     var atkEff=atlasMode?((atk-480)&0xffff):atk;
+    var chargedAtk=chargedPhysicalAttack(atk);
+    var atkEff=atlasSubtractApplies()?((chargedAtk-480)&0xffff):chargedAtk;
     var inner=(((def>>2)-atkEff)&0xffff);
     var w=(~((inner-1)&0xffff))&0xffff;
-    // Atlas glitch relies on the wrapped unsigned underflow value; the normal
-    // signed clamp would collapse it back to 1 and erase the glitch entirely.
-    if(!atlasMode&&w>=0x8000)w=1;
-    if(atlasMode)return dmgRangeFull(w);
-    return{min:Math.min(999,(3*w)>>2),max:Math.min(999,(5*w)>>2),pct999:0};
+    if(w<1||(!atlasOverflowBypassesClamp()&&w>=0x8000))w=1;
+    return dmgRangeFull(w);
+  }
+  function alchemyRange(baseMight,magicDefense){
+    var resist=effectiveMdef(magicDefense);
+    var w=Math.max(1,baseMight-resist);
+    var out=dmgRangeFull(w);
+    out.w=w;out.resist=resist;out.spellPower=baseMight;
+    return out;
   }
   function fmtDmgRange(min,max,pct999,htmlPct){
     if(pct999>0){
@@ -2285,27 +2365,18 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     }
     return min+'\u2013'+max;
   }
-
-  function applyCharge(atk){if(charge<=25)return atk>>2;if(charge<=50)return atk>>1;return atk;}
   function srcAtkAtLv(id,lv,bonus){
     var s=SC_SCALABLE[id];
     var base=s?(s.atk1+(lv-1)*s.atkG):((SC_CHARS.find(function(c){return c.id===+id;})||{attack:0}).attack);
-    return applyCharge(base+bonus);
+    return base+bonus;
   }
   function srcHitRateAtLv(id,lv){
     var s=SC_SCALABLE[id];
     if(s)return s.hitRate1+(lv-1)*s.hitRateG;
     return(SC_CHARS.find(function(c){return c.id===+id;})||{hit_rate:0}).hit_rate;
   }
-  function getWeapons(){
-    if(+srcId===1)return[{id:'paws',label:'Dog Claws',type:'dog',bonus:0}];
-    if(!isScalable(srcId))return[{id:'raw',label:'Raw atk',type:'dog',bonus:0}];
-    return SC_WEAPONS;
-  }
 
-  // Chart layout constants (shared with event handlers)
   var _CW=400,_CH=200,_ml=40,_mt=12,_mr=8,_mb=28;
-
   function attachSvgEvents(svgEl){
     var pw=_CW-_ml-_mr;
     function lvFromX(clientX){
@@ -2329,15 +2400,23 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     var tgtId=+tgtSel.value;
     var tgt=SC_CHARS.find(function(c){return c.id===tgtId;})||SC_CHARS[0];if(!tgt)return;
     var def=scaleEnemies?Math.max(1,tgt.defense*2):tgt.defense;
-    var weapons=getWeapons();
-    var wdata=weapons.map(function(w){
+    var attacks=getAttackItems();
+    var wdata=attacks.map(function(w){
       var mins=[],maxs=[],p999s=[];
+      if(attackMode==='alchemy'){
+        var ad=alchemyRange(w.might,tgt.magic_defense||0);
+        for(var lv=1;lv<=SC_MAX_LEVEL;lv++){
+          mins.push(ad.min);maxs.push(ad.max);p999s.push(ad.pct999||0);
+        }
+        return{id:w.id,label:w.label,type:w.type,color:w.color,might:w.might,mins:mins,maxs:maxs,p999s:p999s,resist:ad.resist};
+      }
       for(var lv=1;lv<=SC_MAX_LEVEL;lv++){
         var d=dmgRange(srcAtkAtLv(srcId,lv,w.bonus),def);
         mins.push(d.min);maxs.push(d.max);p999s.push(d.pct999||0);
       }
       return{id:w.id,label:w.label,type:w.type,bonus:w.bonus,mins:mins,maxs:maxs,p999s:p999s};
     });
+
     var yMax=0;
     wdata.forEach(function(wd){wd.maxs.forEach(function(v){if(v>yMax)yMax=v;});});
     yMax=Math.max(10,Math.ceil(yMax*1.1/10)*10);
@@ -2366,7 +2445,7 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     }
     var bands='';
     wdata.forEach(function(wd,wi){
-      var col=SC_COLORS[wd.type]||'#888';
+      var col=wd.color||SC_COLORS[wd.type]||'#888';
       var opac=SC_TIER_OPAC[wi%4];
       var isAct=selWid===wd.id,isOther=!!(selWid&&!isAct);
       bands+='<g class="sc-band" data-wid="'+wd.id+'" style="cursor:pointer">'
@@ -2382,36 +2461,30 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     }
     var hl=srcLv>0?srcLv:0;
     var lvMark='';
-    if(hl>0&&crosshairLv===null){
+    if(attackMode!=='alchemy'&&hl>0&&crosshairLv===null){
       var lmx=xp(hl);
       lvMark='<line x1="'+lmx.toFixed(1)+'" y1="'+mt+'" x2="'+lmx.toFixed(1)+'" y2="'+(mt+ph)+'" stroke="#ffd700" stroke-width="1.5" stroke-dasharray="3,2" opacity="0.5" pointer-events="none"/>';
     }
     var svg='<svg id="sc-svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" style="display:block;cursor:crosshair">'
       +'<rect x="'+ml+'" y="'+mt+'" width="'+pw+'" height="'+ph+'" fill="#111"/>'
       +g+bands+xhair+lvMark+ax
-      +'<text x="'+(ml+pw/2)+'" y="'+(H-2)+'" text-anchor="middle" font-size="9" fill="#555">level</text>'
+      +'<text x="'+(ml+pw/2)+'" y="'+(H-2)+'" text-anchor="middle" font-size="9" fill="#555">'+(attackMode==='alchemy'?'flat preview':'level')+'</text>'
       +'<text x="10" y="'+(mt+ph/2)+'" text-anchor="middle" font-size="9" fill="#555" transform="rotate(-90,10,'+(mt+ph/2)+')">dmg</text>'
       +'</svg>';
     document.getElementById('sc-chart').innerHTML=svg;
-    // Bind weapon band clicks (SVG replaced each render — rebind every time)
     document.querySelectorAll('#sc-chart .sc-band').forEach(function(el){
       var wid=el.dataset.wid;
       el.addEventListener('click',function(e){selWid=(selWid===wid)?null:wid;e.stopPropagation();redraw();});
     });
-    // Bind SVG crosshair events (SVG is replaced each render — rebind every time)
     var svgEl=document.getElementById('sc-svg');
     if(svgEl)attachSvgEvents(svgEl);
-    // Crosshair info bar
+
     var xinfo='';
     if(crosshairLv!==null){
-      var hitRate=srcHitRateAtLv(srcId,crosshairLv);
-      var evadeVal=tgt.evade||0;
-      var hitRow=SC_HIT_LOOKUP&&SC_HIT_LOOKUP[hitRate];
-      var hitPct=hitRow&&hitRow[evadeVal]!==undefined?hitRow[evadeVal].toFixed(1):Math.max(0,hitRate-evadeVal);
       var showW=selWid?wdata.filter(function(wd){return wd.id===selWid;}):wdata;
-      xinfo='<span style="color:#ffd700">L'+crosshairLv+'</span>';
+      xinfo='<span style="color:#ffd700">'+(attackMode==='alchemy'?'L0':'L'+crosshairLv)+'</span>';
       showW.forEach(function(wd){
-        var col=SC_COLORS[wd.type]||'#888';
+        var col=wd.color||SC_COLORS[wd.type]||'#888';
         var mn=wd.mins[crosshairLv-1],mx=wd.maxs[crosshairLv-1];
         var p999=wd.p999s&&wd.p999s[crosshairLv-1]||0;
         var htkHi=mx>0?Math.ceil((tgt.hp||1)/mx):'?',htkLo=mn>0?Math.ceil((tgt.hp||1)/mn):'?';
@@ -2419,23 +2492,29 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
         xinfo+=' \u00a0 <span style="color:'+col+'">'+wd.label+':</span> '+dmgStr
           +' <span style="opacity:.55">(htk '+htkHi+'\u2013'+htkLo+')</span>';
       });
-      xinfo+=' \u00a0 <span style="opacity:.4">hit='+hitPct+'%</span>';
+      if(attackMode!=='alchemy'){
+        var hitRate=srcHitRateAtLv(srcId,crosshairLv);
+        var evadeVal=tgt.evade||0;
+        var hitRow=SC_HIT_LOOKUP&&SC_HIT_LOOKUP[hitRate];
+        var hitPct=hitRow&&hitRow[evadeVal]!==undefined?hitRow[evadeVal].toFixed(1):Math.max(0,hitRate-evadeVal);
+        xinfo+=' \u00a0 <span style="opacity:.4">hit='+hitPct+'%</span>';
+      }
     }
     document.getElementById('sc-xinfo').innerHTML=xinfo;
-    // Legend
+
     var leg='';
     var hlv=crosshairLv||(hl>0?hl:1);
     wdata.forEach(function(wd){
-      var col=SC_COLORS[wd.type]||'#888';
+      var col=wd.color||SC_COLORS[wd.type]||'#888';
       var isAct=selWid===wd.id,isOther=!!(selWid&&!isAct);
-      var d1=dmgRange(srcAtkAtLv(srcId,hlv,wd.bonus),def);
-      var d37=dmgRange(srcAtkAtLv(srcId,SC_MAX_LEVEL,wd.bonus),def);
+      var d1=attackMode==='alchemy'?alchemyRange(wd.might,tgt.magic_defense||0):dmgRange(srcAtkAtLv(srcId,hlv,wd.bonus),def);
+      var d37=attackMode==='alchemy'?d1:dmgRange(srcAtkAtLv(srcId,SC_MAX_LEVEL,wd.bonus),def);
       var r1=fmtDmgRange(d1.min,d1.max,d1.pct999,false);
       var r37=fmtDmgRange(d37.min,d37.max,d37.pct999,false);
       leg+='<div class="sc-leg-row'+(isAct?' sc-leg-sel':'')+(isOther?' sc-leg-dim':'')+'" data-wid="'+wd.id+'">'
         +'<span class="sc-leg-dot" style="background:'+col+'"></span>'
         +'<span class="sc-leg-name">'+wd.label+'</span>'
-        +'<span class="sc-leg-range">L'+hlv+':'+r1+' \u2192 L37:'+r37+'</span>'
+        +'<span class="sc-leg-range">'+(attackMode==='alchemy'?('L0:'+r1+' \u2192 fixed:'+r37):('L'+hlv+':'+r1+' \u2192 L37:'+r37))+'</span>'
         +'</div>';
     });
     document.getElementById('sc-legend').innerHTML=leg;
@@ -2443,44 +2522,67 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
       var wid=el.dataset.wid;
       el.addEventListener('click',function(){selWid=(selWid===wid)?null:wid;redraw();});
     });
-    // Stats boxes
+
     var srcChar=SC_CHARS.find(function(c){return c.id===+srcId;})||{name:'?'};
     var sc=SC_SCALABLE[srcId];
     var hlv2=crosshairLv||(hl>0?hl:1);
-    var stats='<div class="sc-stat-box"><div class="sc-stat-name">'+srcChar.name+(sc?' \u2605':'')+'</div>'
-      +(sc?('<div class="sc-stat-row"><span>atk L'+hlv2+'</span><span class="sc-stat-val">'+srcAtkAtLv(srcId,hlv2,0)+'</span></div>'
-          +'<div class="sc-stat-row"><span>atk L37</span><span class="sc-stat-val">'+srcAtkAtLv(srcId,SC_MAX_LEVEL,0)+'</span></div>')
-        :('<div class="sc-stat-row"><span>atk</span><span class="sc-stat-val">'+(srcChar.attack||0)+'</span></div>'))
-      +'</div>'
-      +'<div class="sc-stat-box"><div class="sc-stat-name">'+tgt.name+(scaleEnemies?' (scaled)':'')+'</div>'
-      +'<div class="sc-stat-row"><span>hp</span><span class="sc-stat-val">'+tgt.hp+'</span></div>'
-      +'<div class="sc-stat-row"><span>def</span><span class="sc-stat-val">'+def+'</span></div>'
-      +'<div class="sc-stat-row"><span>def\u00f74</span><span class="sc-stat-val">'+(def>>2)+'</span></div>'
-      +'</div>';
+    var stats='';
+    if(attackMode==='alchemy'){
+      var rawMdef=tgt.magic_defense||0;
+      stats='<div class="sc-stat-box"><div class="sc-stat-name">Offensive Alchemy</div>'
+        +'<div class="sc-stat-row"><span>model</span><span class="sc-stat-val">level 0</span></div>'
+        +'<div class="sc-stat-row"><span>spell scale</span><span class="sc-stat-val">TODO</span></div>'
+        +'</div>'
+        +'<div class="sc-stat-box"><div class="sc-stat-name">'+tgt.name+'</div>'
+        +'<div class="sc-stat-row"><span>hp</span><span class="sc-stat-val">'+tgt.hp+'</span></div>'
+        +'<div class="sc-stat-row"><span>mdef raw</span><span class="sc-stat-val">'+rawMdef+'</span></div>'
+        +'<div class="sc-stat-row"><span>effective</span><span class="sc-stat-val">'+effectiveMdef(rawMdef)+'</span></div>'
+        +'</div>';
+    }else{
+      stats='<div class="sc-stat-box"><div class="sc-stat-name">'+srcChar.name+(sc?' \u2605':'')+'</div>'
+        +(sc?('<div class="sc-stat-row"><span>atk L'+hlv2+'</span><span class="sc-stat-val">'+srcAtkAtLv(srcId,hlv2,0)+'</span></div>'
+            +'<div class="sc-stat-row"><span>atk L37</span><span class="sc-stat-val">'+srcAtkAtLv(srcId,SC_MAX_LEVEL,0)+'</span></div>')
+          :('<div class="sc-stat-row"><span>atk</span><span class="sc-stat-val">'+(srcChar.attack||0)+'</span></div>'))
+        +'</div>'
+        +'<div class="sc-stat-box"><div class="sc-stat-name">'+tgt.name+(scaleEnemies?' (scaled)':'')+'</div>'
+        +'<div class="sc-stat-row"><span>hp</span><span class="sc-stat-val">'+tgt.hp+'</span></div>'
+        +'<div class="sc-stat-row"><span>def</span><span class="sc-stat-val">'+def+'</span></div>'
+        +'<div class="sc-stat-row"><span>def\u00f74</span><span class="sc-stat-val">'+(def>>2)+'</span></div>'
+        +'</div>';
+    }
     if(selWid){
-      var aw=weapons.find(function(w){return w.id===selWid;});
+      var aw=attacks.find(function(w){return w.id===selWid;});
       var awd=wdata.find(function(wd){return wd.id===selWid;});
       if(aw&&awd){
         var lvidx=Math.max(0,hlv2-1);
         var amn=awd.mins[lvidx],amx=awd.maxs[lvidx];
         var ap=awd.p999s&&awd.p999s[lvidx]||0;
         var amn37=awd.mins[36],amx37=awd.maxs[36],ap37=awd.p999s&&awd.p999s[36]||0;
-        stats+='<div class="sc-stat-box"><div class="sc-stat-name">'+aw.label+' vs '+tgt.name+'</div>'
-          +'<div class="sc-stat-row"><span>dmg@L'+hlv2+'</span><span class="sc-stat-val">'+fmtDmgRange(amn,amx,ap,false)+'</span></div>'
-          +'<div class="sc-stat-row"><span>htk@L'+hlv2+'</span><span class="sc-stat-val">'+(amx>0?Math.ceil(tgt.hp/amx):'?')+'\u2013'+(amn>0?Math.ceil(tgt.hp/amn):'?')+'</span></div>'
-          +'<div class="sc-stat-row"><span>dmg@L37</span><span class="sc-stat-val">'+fmtDmgRange(amn37,amx37,ap37,false)+'</span></div>'
-          +'</div>';
+        if(attackMode==='alchemy'){
+          stats+='<div class="sc-stat-box"><div class="sc-stat-name">'+aw.label+' vs '+tgt.name+'</div>'
+            +'<div class="sc-stat-row"><span>might</span><span class="sc-stat-val">'+aw.might+'</span></div>'
+            +'<div class="sc-stat-row"><span>dmg@L0</span><span class="sc-stat-val">'+fmtDmgRange(amn,amx,ap,false)+'</span></div>'
+            +'<div class="sc-stat-row"><span>htk</span><span class="sc-stat-val">'+(amx>0?Math.ceil(tgt.hp/amx):'?')+'\u2013'+(amn>0?Math.ceil(tgt.hp/amn):'?')+'</span></div>'
+            +'</div>';
+        }else{
+          stats+='<div class="sc-stat-box"><div class="sc-stat-name">'+aw.label+' vs '+tgt.name+'</div>'
+            +'<div class="sc-stat-row"><span>dmg@L'+hlv2+'</span><span class="sc-stat-val">'+fmtDmgRange(amn,amx,ap,false)+'</span></div>'
+            +'<div class="sc-stat-row"><span>htk@L'+hlv2+'</span><span class="sc-stat-val">'+(amx>0?Math.ceil(tgt.hp/amx):'?')+'\u2013'+(amn>0?Math.ceil(tgt.hp/amn):'?')+'</span></div>'
+            +'<div class="sc-stat-row"><span>dmg@L37</span><span class="sc-stat-val">'+fmtDmgRange(amn37,amx37,ap37,false)+'</span></div>'
+            +'</div>';
+        }
       }
     }
     document.getElementById('sc-stats').innerHTML=stats;
-    // ── Hit% per-level chart ────────────────────────────────────────────────
+
     (function(){
       var hc=document.getElementById('sc-hit-chart');if(!hc)return;
+      if(attackMode==='alchemy'){hc.innerHTML='';return;}
       if(!SC_HIT_LOOKUP||!Object.keys(SC_HIT_LOOKUP).length){hc.innerHTML='';return;}
       var evadeVal=tgt.evade||0;
       var W=_CW,H=_CH,ml=_ml,mr=_mr,mt=_mt,mb=_mb,pw=W-ml-mr,ph=H-mt-mb;
       function xp2(lv){return ml+(lv-1)/(SC_MAX_LEVEL-1)*pw;}
-      var pts='',prevOk=false,prevX=0,prevY=0;
+      var pts='',prevOk=false;
       for(var lv=1;lv<=SC_MAX_LEVEL;lv++){
         var hr=srcHitRateAtLv(srcId,lv);
         var row=SC_HIT_LOOKUP[hr];
@@ -2488,7 +2590,7 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
         if(pct===null){prevOk=false;continue;}
         var x=xp2(lv).toFixed(1),y=(mt+ph-pct/100*ph).toFixed(1);
         pts+=prevOk?'L'+x+' '+y:'M'+x+' '+y;
-        prevOk=true;prevX=+x;prevY=+y;
+        prevOk=true;
       }
       var xhairLine='';
       if(crosshairLv!==null){var cx2=xp2(crosshairLv).toFixed(1);xhairLine='<line x1="'+cx2+'" y1="'+mt+'" x2="'+cx2+'" y2="'+(mt+ph)+'" stroke="#ffd700" stroke-width="1" stroke-dasharray="3,2" opacity="0.7"/>';}
@@ -2505,7 +2607,7 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     })();
   }
   updateLevelFields();
-  var initW=getWeapons();if(initW.length)selWid=initW[0].id;
+  var initW=getAttackItems();if(initW.length)selWid=initW[0].id;
   redraw();
 })();
 `;
@@ -3076,13 +3178,22 @@ function renderRoomDetail(room){
   // Shared formula helpers
   function docFmtPct(pct){
     if(pct===0||pct===100)return String(pct.toFixed(0));
-    var digits=pct<0.1?3:2;
+    var digits=pct<0.01?6:4;
     return pct.toFixed(digits).replace(/0+$/,'').replace(/\.$/,'');
   }
-  function docW(atk,def){var inner=(((def>>2)-atk)&0xffff);var w=(~((inner-1)&0xffff))&0xffff;if(w>=0x8000)w=1;return w;}
+  function docW(atk,def){var inner=(((def>>2)-atk)&0xffff);var w=(~((inner-1)&0xffff))&0xffff;if(w<1||w>=0x8000)w=1;return w;}
   function docSeedRaw(w,s){return Math.floor((((w+1)&0xffff)*s)/0x10000)&0xffff;}
   function docDamageRaw(w,s){var a=(docSeedRaw(w,s)+w)&0xffff,b=(a<<1)&0xffff,c=(b+w+((a&0x8000)?1:0))&0xffff;return c>>2;}
   function docSeeds(w){var r=[];for(var s=0;s<=0xffff;s++)r.push(docDamageRaw(w,s));return r;}
+  function docEffMdef(mdef){return Math.max(0,0x40-mdef);}
+  function docRangeStats(w){
+    var raw=docSeeds(w);
+    var capped=raw.map(function(d){return Math.min(999,d);});
+    var mn=capped.reduce(function(a,b){return Math.min(a,b);},999);
+    var mx=capped.reduce(function(a,b){return Math.max(a,b);},0);
+    var cnt999=raw.filter(function(d){return d>=999;}).length;
+    return {min:mn,max:mx,count999:cnt999,pct999:cnt999/65536*100};
+  }
   // ── Damage section ──────────────────────────────────────────────────────
   function renderDmgChart(atk,def){
     var w=docW(atk,def);
@@ -3112,6 +3223,38 @@ function renderRoomDetail(room){
   if(dmgAtk&&dmgDef){
     function udDmg(){document.getElementById('doc-atk-num').textContent=dmgAtk.value;document.getElementById('doc-def-num').textContent=dmgDef.value;renderDmgChart(+dmgAtk.value,+dmgDef.value);}
     dmgAtk.addEventListener('input',udDmg);dmgDef.addEventListener('input',udDmg);udDmg();
+  }
+  // ── Offensive alchemy section ───────────────────────────────────────────
+  var alSpell=document.getElementById('doc-al-spell'),alMdef=document.getElementById('doc-al-mdef');
+  if(alSpell&&alMdef){
+    SC_SPELLS.forEach(function(sp){
+      var o=document.createElement('option');o.value=sp.id;o.textContent=sp.label+' ('+sp.might+')';alSpell.appendChild(o);
+    });
+    alSpell.value='hardball';
+    function renderAlchemy(){
+      var spell=SC_SPELLS.find(function(sp){return sp.id===alSpell.value;})||SC_SPELLS[0];
+      var rawMdef=+alMdef.value;
+      var eff=docEffMdef(rawMdef);
+      var w=Math.max(1,spell.might-eff);
+      var stats=docRangeStats(w);
+      document.getElementById('doc-al-mdef-num').textContent=rawMdef;
+      var html='<div class="doc-val">spell: <b>'+spell.label+'</b>  might: <b>'+spell.might+'</b></div>';
+      html+='<div class="doc-val">raw magic_defense: <b>'+rawMdef+'</b>  effective_mdef: <b>'+eff+'</b>  w: <b>'+w+'</b></div>';
+      html+='<div class="doc-val">shown range: <b>'+stats.min+'\u2013'+stats.max+'</b>'+(stats.count999?'<span class="doc-cap">999-cap: '+stats.count999+'/65536 ('+docFmtPct(stats.pct999)+'%)</span>':'')+'</div>';
+      html+='<ul class="doc-bullets">'
+        +'<li>Grounded inputs only: <b>base might</b> from ROM offset <b>0x45E6B</b> and enemy <b>magic_defense</b>.</li>'
+        +'<li>Current preview assumes <b>level 0 spell power</b>: <code>w = max(1, might - effective_mdef)</code>.</li>'
+        +'<li>The RNG spread after that uses the same verified helper as physical damage.</li>'
+        +'<li>Spell-level growth, charge state, and 8-cast route modeling are still open.</li>'
+        +'</ul>';
+      if(spell.id==='hardball'&&rawMdef===51){
+        html+='<div class="doc-fact">Example check: Hard Ball L0 with raw magic_defense 51 produces <b>6\u201310</b>.</div>';
+      }
+      document.getElementById('doc-al-chart').innerHTML=html;
+    }
+    alSpell.addEventListener('change',renderAlchemy);
+    alMdef.addEventListener('input',renderAlchemy);
+    renderAlchemy();
   }
   // ── Hit% section ────────────────────────────────────────────────────────
   var hitTbl=document.getElementById('doc-hit-table');
@@ -3143,21 +3286,37 @@ function renderRoomDetail(room){
   // ── Atlas glitch section ────────────────────────────────────────────────
   var _docAtlasCache={};
   function docAtlasAttack(atk,sub){return(atk-sub)&0xffff;}
+  function docAtlasUnderflows(atk,sub){return sub>atk;}
   function docAtlasW(atk,sub,def){
     var atkEff=docAtlasAttack(atk,sub);
+    if(!docAtlasUnderflows(atk,sub))return docW(atkEff,def);
     var inner=(((def>>2)-atkEff)&0xffff);
     return(~((inner-1)&0xffff))&0xffff;
   }
   function docAtlasStats(w){
     if(_docAtlasCache[w])return _docAtlasCache[w];
-    var mn=Infinity,mx=0,cnt999=0;
+    var mn=Infinity,mx=0,cnt999=0,counts=new Array(1000).fill(0);
     for(var s=0;s<=0xffff;s++){
       var d=docDamageRaw(w,s);
+      var shown=Math.min(999,d);
       if(d<mn)mn=d;
       if(d>mx)mx=d;
       if(d>=999)cnt999++;
+      counts[shown]++;
     }
-    return(_docAtlasCache[w]={min:Math.min(999,mn),max:Math.min(999,mx),count999:cnt999,pct999:cnt999/65536*100});
+    var minShown=Math.min(999,mn),maxShown=Math.min(999,mx),span=Math.max(1,maxShown-minShown+1);
+    var bandSize=Math.max(1,Math.ceil(span/32)),bands=[],maxBand=0;
+    for(var from=minShown;from<=maxShown;from+=bandSize){
+      var to=Math.min(maxShown,from+bandSize-1),count=0;
+      for(var v=from;v<=to;v++)count+=counts[v]||0;
+      maxBand=Math.max(maxBand,count);
+      bands.push({from:from,to:to,count:count,pct:count/65536*100});
+    }
+    var top=[];
+    counts.forEach(function(count,dmg){if(count>0)top.push({dmg:dmg,count:count,pct:count/65536*100});});
+    top.sort(function(a,b){return b.count-a.count||b.dmg-a.dmg;});
+    top=top.slice(0,8);
+    return(_docAtlasCache[w]={min:minShown,max:maxShown,count999:cnt999,pct999:cnt999/65536*100,counts:counts,bands:bands,maxBand:maxBand,top:top});
   }
   var atAtk=document.getElementById('doc-at-atk'),atSub=document.getElementById('doc-at-sub'),atDef=document.getElementById('doc-at-def'),atRng=document.getElementById('doc-at-rng');
   if(atAtk&&atSub&&atDef&&atRng){
@@ -3168,23 +3327,57 @@ function renderRoomDetail(room){
       document.getElementById('doc-at-def-num').textContent=def;
       document.getElementById('doc-at-rng-num').textContent=rng;
       var atkEff=docAtlasAttack(atk,sub);
+      var underflow=docAtlasUnderflows(atk,sub);
       var w=docAtlasW(atk,sub,def);
+      var stats=docAtlasStats(w);
       var seed=docSeedRaw(w,rng);
       var uncapped=docDamageRaw(w,rng);
       var capped=Math.min(999,uncapped);
-      var stats=docAtlasStats(w);
+      if(!underflow){
+        var info='';
+        info+='<ul class="doc-bullets">';
+        info+='<li>Base atk: <b>'+atk+'</b>; manual subtract: <b>'+sub+'</b>; effective atk: <b>'+atkEff+'</b>.</li>';
+        info+='<li>No underflow occurred, so the atlas glitch is <b>inactive</b>.</li>';
+        info+='<li>Target def: <b>'+def+'</b>; def\u00f74: <b>'+(def>>2)+'</b>; regular signed-clamp w: <b>'+w+'</b>.</li>';
+        info+='<li>Expected regular shown damage: <b>'+stats.min+'\u2013'+stats.max+'</b>.</li>';
+        info+='<li>This preview does <b>not</b> derive subtract from stamina or setup state yet. It only answers: "if this subtraction has already happened, what damage follows?"</li>';
+        info+='<li>Selected rng16: <b>'+rng+'</b>; seed: <b>'+seed+'</b>; uncapped dmg: <b>'+uncapped+'</b>; shown dmg: <b>'+capped+'</b>.</li>';
+        info+='</ul>';
+        document.getElementById('doc-at-chart').innerHTML=info;
+        return;
+      }
       var pct=stats.pct999;
       var below=100-pct;
-      var W=300,H=36;
+      var W=300,H=18,distW=300,distH=92;
       var bar='<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="#111" rx="3"/>';
       bar+='<rect x="0" y="0" width="'+(pct/100*W).toFixed(1)+'" height="'+H+'" fill="'+(pct>0?'#cc4422':'#1a1a1a')+'" rx="3"/>';
-      bar+='<text x="'+(Math.min(pct/100*W+4,W-130)).toFixed(1)+'" y="'+(H/2+4)+'" fill="#fff" font-size="11">999: '+docFmtPct(pct)+'% ('+stats.count999+'/65536)</text>';
+      var dist='';
+      stats.bands.forEach(function(band,idx){
+        var bw=distW/stats.bands.length;
+        var bh=stats.maxBand?band.count/stats.maxBand*(distH-12):0;
+        var x=(idx*bw).toFixed(1),y=(distH-bh-10).toFixed(1);
+        var fill=band.to>=999?'#ff7755':(band.pct<0.05?'#3d4e6a':'#4f8ee8');
+        dist+='<rect x="'+x+'" y="'+y+'" width="'+Math.max(1,bw-1).toFixed(1)+'" height="'+bh.toFixed(1)+'" fill="'+fill+'" rx="1"/>';
+      });
+      dist+='<line x1="0" y1="'+(distH-10)+'" x2="'+distW+'" y2="'+(distH-10)+'" stroke="#444"/>';
+      dist+='<text x="0" y="'+(distH-1)+'" font-size="8" fill="#666">'+stats.min+'</text>';
+      dist+='<text x="'+(distW-22)+'" y="'+(distH-1)+'" font-size="8" fill="#666">'+stats.max+'</text>';
+      var topList=stats.top.map(function(row){return '<li>shown dmg <b>'+row.dmg+'</b>: <b>'+row.count+'/65536</b> = <b>'+docFmtPct(row.pct)+'%</b></li>';}).join('');
       var info='';
-      info+='<div class="doc-val">base atk=<b>'+atk+'</b>  subtract=<b>'+sub+'</b>  underflowed atk=<b>'+atkEff+'</b></div>';
-      info+='<div class="doc-val">def=<b>'+def+'</b>  def\u00f74=<b>'+(def>>2)+'</b>  w=<b>'+w+'</b></div>';
-      info+='<div class="doc-val">all RNG states: <b>'+stats.min+'\u2013'+stats.max+'</b>  999-cap=<b>'+docFmtPct(pct)+'%</b>  &lt;999=<b>'+docFmtPct(below)+'%</b></div>';
-      info+='<svg width="'+W+'" height="'+H+'" style="display:block;margin:6px 0">'+bar+'</svg>';
-      info+='<div class="doc-val">selected rng16=<b>'+rng+'</b>  seed=<b>'+seed+'</b>  uncapped dmg=<b>'+uncapped+'</b>  shown dmg=<b>'+capped+'</b>'+(uncapped>=999?' <span class="doc-cap">caps to 999</span>':'')+'</div>';
+      info+='<ul class="doc-bullets">';
+      info+='<li>Base atk: <b>'+atk+'</b>; manual subtract: <b>'+sub+'</b>; underflowed atk: <b>'+atkEff+'</b>.</li>';
+      info+='<li>Underflow occurred, so the wrapped atlas-glitch damage helper is active.</li>';
+      info+='<li>This preview does <b>not</b> derive subtract from stamina or setup state yet. It only answers: "if this subtraction has already happened, what damage follows?"</li>';
+      info+='<li>Target def: <b>'+def+'</b>; def\u00f74: <b>'+(def>>2)+'</b>; computed w: <b>'+w+'</b>.</li>';
+      info+='<li>All shown damage rolls: <b>'+stats.min+'\u2013'+stats.max+'</b>.</li>';
+      info+='<li>999-cap: <b>'+stats.count999+'/65536</b> = <b>'+docFmtPct(pct)+'%</b>.</li>';
+      info+='<li>&lt;999 damage: <b>'+(65536-stats.count999)+'/65536</b> = <b>'+docFmtPct(below)+'%</b>.</li>';
+      info+='<li>Selected rng16: <b>'+rng+'</b>; seed: <b>'+seed+'</b>; uncapped dmg: <b>'+uncapped+'</b>; shown dmg: <b>'+capped+'</b>'+(uncapped>=999?' <span class="doc-cap">caps to 999</span>':'')+'.</li>';
+      info+='</ul>';
+      info+='<svg width="'+W+'" height="'+H+'" style="display:block;margin:4px 0 2px">'+bar+'</svg>';
+      info+='<div class="doc-dist-cap">999 band: '+docFmtPct(pct)+'%  |  below 999: '+docFmtPct(below)+'%</div>';
+      info+='<div class="doc-dist"><div class="doc-val">Expected shown-damage distribution (binned when many infrequent rolls exist)</div><svg width="'+distW+'" height="'+distH+'" style="display:block">'+dist+'</svg></div>';
+      info+='<div class="doc-val">Most frequent shown values</div><ul class="doc-bullets">'+topList+'</ul>';
       document.getElementById('doc-at-chart').innerHTML=info;
     }
     atAtk.addEventListener('input',udAt);
@@ -3193,6 +3386,62 @@ function renderRoomDetail(room){
     atRng.addEventListener('input',udAt);
     udAt();
   }
+  // ── Route planner mock ─────────────────────────────────────────────────
+  (function(){
+    var listEl=document.getElementById('rp-list');
+    if(!listEl)return;
+    var outEl=document.getElementById('rp-sim-out');
+    var rows=[];
+    var seq=1;
+    var templates={
+      heart8:{enemy:"Thraxx's Heart",method:'Alchemy 8-cast',qty:1,expected:'TODO',xp:'boss xp',alchemy:'spell xp',notes:'Act 1 heart burst'},
+      skelesnail8:{enemy:'Skelesnail',method:'Alchemy 8-cast',qty:1,expected:'TODO',xp:'enemy xp',alchemy:'spell xp',notes:'Alchemy leveling route step'},
+      magmar8:{enemy:'Magmar',method:'Alchemy 8-cast',qty:1,expected:'TODO',xp:'enemy xp',alchemy:'spell xp',notes:'Common any% Act 1 route'},
+      sterlingPhys:{enemy:'Sterling',method:'Physical / atlas check',qty:1,expected:'atlas-driven',xp:'boss xp',alchemy:'0',notes:'Depends on miss rate and overflow odds'}
+    };
+    function renderRoute(){
+      if(!rows.length){
+        listEl.innerHTML='<div class="rp-empty">No route steps yet. Add a sample kill from the left. This is a mock UI only.</div>';
+        outEl.innerHTML='<ul><li>Simulation engine is not implemented yet.</li><li>Physical expected hits need live damage bands and hit% integration.</li><li>Alchemy expected hits still need spell-level scaling, 8-cast modeling, and route-grade batch logic.</li></ul>';
+        return;
+      }
+      var html='<table class="rp-table"><thead><tr><th>#</th><th>Enemy</th><th>Method</th><th>Qty</th><th>Expected hits</th><th>XP</th><th>Alchemy XP</th><th>Notes</th><th></th></tr></thead><tbody>';
+      rows.forEach(function(row,idx){
+        html+='<tr><td>'+(idx+1)+'</td><td>'+escH(row.enemy)+'</td><td><span class="rp-tag">'+escH(row.method)+'</span></td><td>'+row.qty+'</td><td>'+escH(row.expected)+'</td><td>'+escH(row.xp)+'</td><td>'+escH(row.alchemy)+'</td><td>'+escH(row.notes)+'</td><td><button class="rp-btn-ghost" data-rp-del="'+row.id+'">remove</button></td></tr>';
+      });
+      html+='</tbody></table>';
+      listEl.innerHTML=html;
+      listEl.querySelectorAll('[data-rp-del]').forEach(function(btn){
+        btn.addEventListener('click',function(){
+          rows=rows.filter(function(r){return String(r.id)!==btn.dataset.rpDel;});
+          renderRoute();
+        });
+      });
+      outEl.innerHTML='<ul>'
+        +'<li>Mock only: simulation is not wired yet, but the future output should report hits, misses, atlas overflow outcomes, and the kill order.</li>'
+        +'<li>Level routing assumption: you level immediately after each XP gain, then continue with post-level stats. Max 1 level per XP event.</li>'
+        +'<li>Alchemy routing assumption: level-0 per-cast previews exist in Scaling, but 8-casts and spell-XP growth are still placeholders.</li>'
+        +'<li>Current route length: <b>'+rows.length+'</b> steps.</li>'
+        +'</ul>';
+    }
+    document.querySelectorAll('[data-rp-add]').forEach(function(btn){
+      btn.addEventListener('click',function(){
+        var tpl=templates[btn.dataset.rpAdd];
+        if(!tpl)return;
+        rows.push({id:seq++,enemy:tpl.enemy,method:tpl.method,qty:tpl.qty,expected:tpl.expected,xp:tpl.xp,alchemy:tpl.alchemy,notes:tpl.notes});
+        renderRoute();
+      });
+    });
+    var simBtn=document.getElementById('rp-sim-btn');
+    if(simBtn)simBtn.addEventListener('click',function(){renderRoute();});
+    renderRoute();
+  })();
+})();
+`;
+
+    const routeJs = `
+(function(){
+  // Route mock uses the shared tab script bundle; logic lives in docsJs for now.
 })();
 `;
 
@@ -3459,6 +3708,7 @@ ${scalingData}
 ${roomsJs}
 ${scalingJs}
 ${docsJs}
+${routeJs}
 // Init active tab and selected map highlight
 (function(){
   var t=ACTIVE_TAB||'radar';
@@ -3500,6 +3750,7 @@ ${docsJs}
         '<button class="tab tab-active" data-tab="radar">\u26a1 Memory</button>' +
         '<button class="tab" data-tab="rooms">\ud83d\uddfa Rooms</button>' +
         '<button class="tab" data-tab="scaling">\u2694\ufe0f Scaling</button>' +
+        '<button class="tab" data-tab="route">\ud83e\udded Route</button>' +
         '<button class="tab" data-tab="docs">\ud83d\udcda Docs</button>' +
         '</div>' +
         '<div class="tab-pane" data-tab="radar">' +
@@ -3526,9 +3777,9 @@ ${docsJs}
         '<div class="tab-pane" data-tab="rooms" style="display:none">' +
         '<div class="rm-panels">' +
         '<div class="rm-left">' +
-          '<div class="rm-ph"><span>Rooms</span><div class="rm-mode"><button class="rmm active" id="rmm-live" title="Show rooms from the active .evs file">Live</button><button class="rmm" id="rmm-vanilla" title="Show all vanilla rooms">Vanilla</button></div></div>' +
-          '<div id="rm-live-tree">' + treeHtml + '</div>' +
-          '<div id="rm-vanilla-tree" style="display:none">' + vanillaTreeHtml + '</div>' +
+        '<div class="rm-ph"><span>Rooms</span><div class="rm-mode"><button class="rmm active" id="rmm-live" title="Show rooms from the active .evs file">Live</button><button class="rmm" id="rmm-vanilla" title="Show all vanilla rooms">Vanilla</button></div></div>' +
+        '<div id="rm-live-tree">' + treeHtml + '</div>' +
+        '<div id="rm-vanilla-tree" style="display:none">' + vanillaTreeHtml + '</div>' +
         '</div>' +
         '<div class="rm-right"><div id="room-detail" class="rm-detail-placeholder"><span>Select a room</span></div></div>' +
         '</div>' +
@@ -3536,7 +3787,7 @@ ${docsJs}
         '<div class="tab-pane" data-tab="scaling" style="display:none">' +
         '<div class="sc-wrap">' +
         (scaleActive ? '<div class="sc-banner">\u26a0 scale_enemies active \u2014 enemy stats may differ at runtime.</div>' : '') +
-        '<div class="sc-controls">' +
+        '<div class="sc-note" id="sc-note">★ = scalable (level grows). Scaling uses one physical damage helper for all cases: stamina first adjusts attack, Atlas optionally subtracts 480 before damage, then the same RNG-based physical formula computes min/max/999-cap odds.</div>' +
         '<div class="sc-field"><span class="sc-label">Source</span><select class="sc-sel" id="sc-src-sel"></select></div>' +
         '<div class="sc-field" id="sc-src-lv-field" style="display:none"><span class="sc-label">Source level</span><select class="sc-sel" style="min-width:80px" id="sc-src-lv"><option value="0">auto</option></select></div>' +
         '<div class="sc-field"><span class="sc-label">Target</span><select class="sc-sel" id="sc-tgt-sel"></select></div>' +
@@ -3548,13 +3799,14 @@ ${docsJs}
         '<div class="sc-chart-layout"><div class="sc-chart-wrap"><div id="sc-chart"></div><div class="sc-hit-chart" id="sc-hit-chart"></div></div><div class="sc-legend" id="sc-legend"></div></div>' +
         '<div id="sc-xinfo" class="sc-xinfo"></div>' +
         '<div class="sc-stats" id="sc-stats"></div>' +
-        '<div class="sc-note">\u2605 = scalable (level grows). Formula from soestuff.lua: w = ~((def\u00f74 \u2212 atk) \u2212 1) \u0026 0xffff; dmg \u2208 [(3w)\u00bb2, (5w)\u00bb2].</div>' +
+        '<div class="sc-note">\u2605 = scalable (level grows). Scaling uses one physical damage helper for all cases: stamina first adjusts attack, Atlas optionally subtracts 480 before damage, then the same RNG-based physical formula computes min/max/999-cap odds.</div>' +
         '</div>' +
         '</div>' +
         '<div class="tab-pane" data-tab="docs" style="display:none">' +
         '<div class="doc-wrap">' +
         '<div class="doc-subnav">' +
         '<button class="doc-btn doc-btn-active" data-doc="damage">Damage</button>' +
+        '<button class="doc-btn" data-doc="alchemy">Offensive Alchemy</button>' +
         '<button class="doc-btn" data-doc="hit">Hit%</button>' +
         '<button class="doc-btn" data-doc="atlas">Atlas Glitch</button>' +
         '<button class="doc-btn" data-doc="script">Script</button>' +
@@ -3565,10 +3817,18 @@ ${docsJs}
         '<div class="doc-sec" data-doc="damage">' +
         '<h3 class="doc-h">Physical Damage</h3>' +
         '<div class="doc-fact">Formula from soestuff.lua. The 8-bit RNG seed varies each attack, producing a range of outcomes.</div>' +
-        '<pre class="doc-code">w = ~((def\u00f74 \u2212 atk) \u2212 1) &amp; 0xFFFF\nif w \u2265 0x8000: w = 1\ndmg \u2208 [\u230a3w\u00f74\u230b, \u230a5w\u00f74\u230b]  (seed \u2208 0..255)</pre>' +
+        '<pre class="doc-code">w = ~((def\u00f74 - atk) - 1) &amp; 0xFFFF\nif w &lt; 1 or w \u2265 0x8000: w = 1\nseed = hi16((w+1)\u00d7rng16)\na = (seed + w) mod 65536\ndmg = ((((a \u226a 1) mod 65536) + w + carry(a)) mod 65536) \u00bb 2\nshown = min(999, dmg)</pre>' +
         '<div class="doc-sliders"><label>atk <input id="doc-atk" type="range" min="0" max="255" value="45"><span id="doc-atk-num">45</span></label>' +
         '<label>def <input id="doc-def" type="range" min="0" max="255" value="28"><span id="doc-def-num">28</span></label></div>' +
         '<div id="doc-dmg-chart"></div>' +
+        '</div>' +
+        '<div class="doc-sec" data-doc="alchemy" style="display:none">' +
+        '<h3 class="doc-h">Offensive Alchemy</h3>' +
+        '<div class="doc-fact">Current extension model: ROM spell might minus <code>effective_mdef = max(0, 0x40 - magic_defense)</code>, then the same verified RNG spread helper as physical damage.</div>' +
+        '<pre class="doc-code">base_might = ROM16[0x45E6B + spell_id*2]\neffective_mdef = max(0, 0x40 - target.magic_defense)\nw = max(1, base_might - effective_mdef)\nseed = hi16((w+1)\u00d7rng16)\nshown = min(999, damage_rng_spread(w, seed))</pre>' +
+        '<div class="doc-sliders"><label>spell <select id="doc-al-spell" class="sc-sel"></select></label>' +
+        '<label>magic_defense <input id="doc-al-mdef" type="range" min="0" max="64" value="51"><span id="doc-al-mdef-num">51</span></label></div>' +
+        '<div id="doc-al-chart"></div>' +
         '</div>' +
         '<div class="doc-sec" data-doc="hit" style="display:none">' +
         '<h3 class="doc-h">Hit Chance</h3>' +
@@ -3578,12 +3838,16 @@ ${docsJs}
         '</div>' +
         '<div class="doc-sec" data-doc="atlas" style="display:none">' +
         '<h3 class="doc-h">Atlas Glitch \u2014 Boy Attack Underflow</h3>' +
-        '<div class="doc-fact">This is not the Atlas Amulet item. The glitch subtracts a value from the boy\'s attack; when the subtraction exceeds the current attack, the 16-bit stat underflows into the range 65056\u201365535.</div>' +
-        '<div class="doc-fact">That wrapped attack feeds the normal physical-damage routine, but atlas-underflow cases take the high-word multiply path in the RNG helper. That is why the result is usually 999, but not always 999.</div>' +
-        '<div class="doc-fact">The RNG slider below picks one concrete 16-bit RNG state. The bar summarizes all 65536 states for the same boy-atk / subtract / def inputs.</div>' +
+        '<ul class="doc-bullets">' +
+        '<li>This is not the Atlas Amulet item.</li>' +
+        '<li>The glitch subtracts a value from the boy\'s attack; when the subtraction exceeds the current attack, the 16-bit stat underflows into the range 65056\u201365535.</li>' +
+        '<li>That wrapped attack feeds the normal physical-damage routine, but atlas-underflow cases take the high-word multiply path in the RNG helper. That is why the result is usually 999, but not always 999.</li>' +
+        '<li>This panel is a <b>manual post-subtraction preview</b>. It does not yet compute the subtraction from stamina or from the exact setup used in real runs.</li>' +
+        '<li>The RNG slider below picks one concrete 16-bit RNG state. The bar summarizes all 65536 states for the same boy-atk / manual subtract / def inputs.</li>' +
+        '</ul>' +
         '<pre class="doc-code">atk_underflow = (boy_atk - subtract) mod 65536\nw = ~((def\u00f74 - atk_underflow) - 1) &amp; 0xFFFF\nseed = hi16((w+1)\u00d7rng16)\na = (seed + w) mod 65536\ndmg = ((((a \u226a 1) mod 65536) + w + carry(a \u226a 1)) mod 65536) \u00bb 2\nshown = min(999, dmg)</pre>' +
         '<div class="doc-sliders"><label>boy atk <input id="doc-at-atk" type="range" min="0" max="255" value="81"><span id="doc-at-atk-num">81</span></label>' +
-        '<label>subtract <input id="doc-at-sub" type="range" min="0" max="480" value="480"><span id="doc-at-sub-num">480</span></label>' +
+        '<label>manual subtract <input id="doc-at-sub" type="range" min="0" max="480" value="480"><span id="doc-at-sub-num">480</span></label>' +
         '<label>def <input id="doc-at-def" type="range" min="0" max="255" value="160"><span id="doc-at-def-num">160</span></label>' +
         '<label>rng16 <input id="doc-at-rng" type="range" min="0" max="65535" value="0"><span id="doc-at-rng-num">0</span></label></div>' +
         '<div id="doc-at-chart"></div>' +
@@ -3604,10 +3868,33 @@ ${docsJs}
         '<h3 class="doc-h">Radar Plugin</h3>' +
         '<div class="doc-fact"><b>Memory:</b> WRAM usage map for the current function scope. Cells show lifecycle (temp / session / sram / system). Click a cell for details and source lines.</div>' +
         '<div class="doc-fact"><b>Rooms:</b> per-room trigger breakdown \u2014 entrances, step-on, B-triggers, sniff spots. Live mode shows rooms from .evs; Vanilla mode lists all 120 vanilla rooms.</div>' +
-        '<div class="doc-fact"><b>Scaling:</b> physical damage calculator with level scaling, all weapon tiers, charge multiplier, enemy scale, and atlas-glitch underflow odds.</div>' +
+        '<div class="doc-fact"><b>Scaling:</b> physical damage calculator plus a level-0 offensive alchemy preview using spell might and enemy magic defense.</div>' +
         '<div class="doc-fact"><b>Docs:</b> this page \u2014 hard facts about game mechanics and tools.</div>' +
         '</div>' +
         '</div></div>' +
+        '</div>' +
+        '<div class="tab-pane" data-tab="route" style="display:none">' +
+        '<div class="rp-wrap">' +
+        '<div class="rp-banner">Mock UI only. Physical hit expectations, route-grade spell scaling / 8-cast modeling, XP tables, and route simulation are still missing. This tab is a scaffold for the route-planner workflow.</div>' +
+        '<div class="rp-grid">' +
+        '<div class="rp-side">' +
+        '<div class="rp-h">Add Step</div>' +
+        '<div class="rp-templates">' +
+        '<div class="rp-tpl"><div><div class="rp-tpl-name">Thraxx\'s Heart</div><div class="rp-tpl-sub">Alchemy 8-cast boss kill</div></div><button class="rp-btn" data-rp-add="heart8">add</button></div>' +
+        '<div class="rp-tpl"><div><div class="rp-tpl-name">Skelesnail</div><div class="rp-tpl-sub">Alchemy 8-cast spell leveling</div></div><button class="rp-btn" data-rp-add="skelesnail8">add</button></div>' +
+        '<div class="rp-tpl"><div><div class="rp-tpl-name">Magmar</div><div class="rp-tpl-sub">Alchemy any% Act 1 route step</div></div><button class="rp-btn" data-rp-add="magmar8">add</button></div>' +
+        '<div class="rp-tpl"><div><div class="rp-tpl-name">Sterling</div><div class="rp-tpl-sub">Physical / atlas overflow example</div></div><button class="rp-btn" data-rp-add="sterlingPhys">add</button></div>' +
+        '</div>' +
+        '<div class="rp-link-note">Draft spec: docs/route-planner.md</div>' +
+        '</div>' +
+        '<div class="rp-main">' +
+        '<div class="rp-toolbar"><div class="rp-h" style="margin:0">Route</div><div><button class="rp-btn" id="rp-sim-btn">simulate route</button></div></div>' +
+        '<div class="rp-toolbar-note">A route is a list of enemies killed by physical or alchemy methods. Dog participation is intentionally ignored in this mock.</div>' +
+        '<div id="rp-list"></div>' +
+        '<div class="rp-sim"><div class="rp-h">Simulation Output</div><div id="rp-sim-out"></div></div>' +
+        '</div>' +
+        '</div>' +
+        '</div>' +
         '</div>' +
         '<script>' + js + '<\/script></body></html>';
 }

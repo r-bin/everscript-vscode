@@ -3,6 +3,13 @@
 These rules apply to **every agent** working in this repository.
 They cannot be overridden by individual agent spec files.
 
+
+---
+
+This is a vibe-coding project.
+- Every prompt should end in a commit that follows the Change Ritual in §2.
+- If the worktree is still dirty afterward, or the version was not bumped, or nothing was installed, return to §2 and finish the ritual.
+
 ---
 
 ## 1. Goal
@@ -19,14 +26,14 @@ Every change must serve one or more of:
 
 Every session that modifies any project file must complete all four steps before ending:
 
-1. **Bump the version** in `package.json` — patch for fixes/docs, minor for new features, major for breaking changes.
+1. **Bump the version** in `package.json` — patch for fixes, docs, and correction requests; minor for new features; major for breaking changes.
 2. **Run tests** — `npm test`. All tests must pass. Fix failures before proceeding.
 3. **Commit** to `develop` branch with a descriptive message following the format in §5.
-4. **Install** the extension by syncing to `~/.vscode/extensions/everscript-0.1.0/`:
+4. **Install** the extension by syncing to the matching version folder in `~/.vscode/extensions/`:
    ```
    rsync -a --delete --exclude='.git' /Users/v/Documents/GitHub/everscript-vscode/ ~/.vscode/extensions/everscript-$(version)/
    ```
-   Update the target path if the version folder name changes.
+  The target folder name must match the version in `package.json`.
 
 One prompt = one commit. Do not batch unrelated changes.
 
@@ -183,7 +190,7 @@ Do **not** let carets extend past the last character of the target token.
 ## 5. Commit Message Format
 
 ```
-<type>: <short description>
+v<version>: [<affected screen or tab>] <short description>
 
 - <bullet: what changed and why>
 - <bullet: what changed and why>

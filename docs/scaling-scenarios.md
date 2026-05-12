@@ -72,17 +72,98 @@ hit% ≈ clamp(attacker.hit_rate − target.evade, 0, 100) / 100
 Vanilla boy `hit_rate` and enemy `evade` are both in the 0–255 range.  The exact
 scaling factor is unverified.
 
-### Alchemy damage (not yet implemented)
+### Alchemy damage (partially verified)
 
-Alchemy bypasses physical defense and uses `magic_defense` instead:
+The current reverse-engineering state is strong enough to document the main
+inputs to offensive alchemy, but not strong enough to claim the entire cast
+formula is fully solved.
+
+**Confirmed inputs:**
+
+- Offensive alchemy uses enemy `magic_defense`, not physical `defense`.
+- Enemy `magic_defense` lives in the same vanilla stat table as the other enemy
+  stats (`0x1d` within each record).
+- The effective resistance term is inverted from the raw stored stat:
 
 ```
-effective_mdef = max(0, 0x40 − target.magic_defense)   // 0x40 = 64 = max resist
+effective_mdef = max(0, 0x40 - target.magic_defense)   // 0x40 = 64 = max resist
 ```
 
-Alchemy damage = spell_power − effective_mdef (clamped to ≥1).  Spell power is
-determined by the alchemy slot (charge level × base power), which is not yet in
-the character data table.
+- Vanilla ROM offset `0x45E6B` contains a per-spell **alchemy might** table.
+  Entries are 2 bytes each (little-endian); in vanilla the high byte is
+  effectively always zero.
+
+**Working model for offensive spells:**
+
+```
+base_might = ALCH_MIGHT_TABLE[spell_id]
+scaled_spell_power = f(base_might, spell_level, cast_charge, other spell-specific state)
+damage ~= max(1, scaled_spell_power - effective_mdef)
+```
+
+The subtraction against `effective_mdef` is the grounded part.  The unresolved
+piece is the exact `f(...)` term: how spell level, charge level, and any
+spell-specific logic transform the base might value before the final hit value
+is produced.
+
+For the tighter offensive-alchemy write-up used by the extension, see
+`docs/alchemy-damage.md`.
+
+**What the ROM table gives us today:**
+
+| Spell | Base might |
+|---|---:|
+| Acid Rain | 17 |
+| Atlas | 25 |
+| Barrier | 25 |
+| Call Up | 0 |
+| Corrosion | 25 |
+| Crush | 62 |
+| Cure | 0 |
+| Defend | 15 |
+| Double Drain | 50 |
+| Drain | 25 |
+| Energize | 0 |
+| Escape | 0 |
+| Explosion | 87 |
+| Fireball | 62 |
+| Fire Power | 112 |
+| Flash | 27 |
+| Force Field | 0 |
+| Hard Ball | 21 |
+| Heal | 32 |
+| Lance | 50 |
+| Laser | 0 |
+| Levitate | 0 |
+| Lightning Storm | 87 |
+| Miracle Cure | 37 |
+| Nitro | 112 |
+| One Up | 0 |
+| Reflect | 0 |
+| Regrowth | 2 |
+| Revealer | 0 |
+| Revive | 12 |
+| Slow Burn | 1 |
+| Speed | 25 |
+| Sting | 75 |
+| Stop | 0 |
+| Super Heal | 62 |
+
+This table explains the broad ordering that players observe in practice:
+`Nitro` and `Fire Power` sit at the top, `Sting` is stronger than `Crush`, and
+`Hard Ball` is materially weaker than the heavy hitters before level / charge
+scaling is even applied.
+
+**Important caveats:**
+
+- The values above are **base might**, not guaranteed final shown damage.
+- Non-damaging and support spells still have table entries; several are zero,
+  but some buffs / healing spells use non-zero values.  Their exact downstream
+  use is still not fully mapped.
+- The supplied Atlas / Hard Ball traces are enough to justify documenting the
+  might table and the magic-defense subtraction, but they do **not** yet fully
+  trace the last step from `scaled_spell_power` to final shown damage for every
+  offensive spell.
 
 ### Script / projectile damage (not documented)
 
@@ -132,7 +213,7 @@ ROM stats when plotting per-level curves.
 
 | # | Scenario | X-axis | Y-axis | Notes |
 |---|----------|--------|--------|-------|
-| 6 | **Alchemy damage vs enemy** | Magic defense | Damage per cast | Requires spell power data (TBD) |
+| 6 | **Alchemy damage vs enemy** | Magic defense | Damage per cast | Base might table is known; exact level / charge scaling is still TBD |
 | 7 | **Alchemy burst: N casts × M charges** | Pre-cast count (0–20) | Total damage range | e.g. 32 Hard Balls + 8 Storms with 20 precasts |
 | 8 | **Alchemy damage band by charge level** | Charge level | Damage range | Shows how much pre-charging matters |
 | 9 | **All enemies at one level** | Entity index | Damage from boy | Identify outliers; quick balance scan |
