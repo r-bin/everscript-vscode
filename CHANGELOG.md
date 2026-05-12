@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.18] — 2026-05-12
+
+### Fixed
+- **Scaling alchemy target mdef lookup** — the Scaling tab now accepts both `magic_defense` and `magicDefense` on target records instead of silently falling back to `0`, which was producing bogus alchemy ranges like Hard Ball L0 `0–1` vs Wimpy Flower.
+
+### Added
+- **Hard Ball purple-flower regression test** — `test/ui.test.js` now asserts that Scaling alchemy mode shows Hard Ball L0 vs Wimpy Flower as `6–10`, matching the grounded level-0 model.
+
 ## [0.2.17] — 2026-05-12
 
 ### Fixed

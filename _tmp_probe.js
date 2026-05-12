@@ -2254,12 +2254,6 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
   function effectiveMdef(magicDefense){
     return Math.max(0,0x40-(magicDefense||0));
   }
-  function targetMagicDefense(target){
-    if(!target)return 0;
-    if(typeof target.magic_defense==='number')return target.magic_defense;
-    if(typeof target.magicDefense==='number')return target.magicDefense;
-    return 0;
-  }
   function updateLevelFields(){
     var isAlchemy=attackMode==='alchemy';
     document.getElementById('sc-src-field').style.display=isAlchemy?'none':'flex';
@@ -2410,7 +2404,7 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     var wdata=attacks.map(function(w){
       var mins=[],maxs=[],p999s=[];
       if(attackMode==='alchemy'){
-        var ad=alchemyRange(w.might,targetMagicDefense(tgt));
+        var ad=alchemyRange(w.might,tgt.magic_defense||0);
         for(var lv=1;lv<=SC_MAX_LEVEL;lv++){
           mins.push(ad.min);maxs.push(ad.max);p999s.push(ad.pct999||0);
         }
@@ -2513,7 +2507,7 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     wdata.forEach(function(wd){
       var col=wd.color||SC_COLORS[wd.type]||'#888';
       var isAct=selWid===wd.id,isOther=!!(selWid&&!isAct);
-      var d1=attackMode==='alchemy'?alchemyRange(wd.might,targetMagicDefense(tgt)):dmgRange(srcAtkAtLv(srcId,hlv,wd.bonus),def);
+      var d1=attackMode==='alchemy'?alchemyRange(wd.might,tgt.magic_defense||0):dmgRange(srcAtkAtLv(srcId,hlv,wd.bonus),def);
       var d37=attackMode==='alchemy'?d1:dmgRange(srcAtkAtLv(srcId,SC_MAX_LEVEL,wd.bonus),def);
       var r1=fmtDmgRange(d1.min,d1.max,d1.pct999,false);
       var r37=fmtDmgRange(d37.min,d37.max,d37.pct999,false);
@@ -2534,7 +2528,7 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     var hlv2=crosshairLv||(hl>0?hl:1);
     var stats='';
     if(attackMode==='alchemy'){
-      var rawMdef=targetMagicDefense(tgt);
+      var rawMdef=tgt.magic_defense||0;
       stats='<div class="sc-stat-box"><div class="sc-stat-name">Offensive Alchemy</div>'
         +'<div class="sc-stat-row"><span>model</span><span class="sc-stat-val">level 0</span></div>'
         +'<div class="sc-stat-row"><span>spell scale</span><span class="sc-stat-val">TODO</span></div>'
@@ -4165,4 +4159,4 @@ function activate(context) {
 
 function deactivate() {}
 
-module.exports = { activate, deactivate };
+module.exports={activate,deactivate,_renderRadarHtml:renderRadarHtml};

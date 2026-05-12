@@ -86,7 +86,7 @@ function extractScript(renderedHtml) {
 
 function injectScalingFixture(code) {
     return code
-        .replace(/var SC_CHARS=\[[\s\S]*?\];/, 'var SC_CHARS=[{"id":0,"name":"<Boy>","attack":7,"defense":5,"evade":0,"hit_rate":38,"hp":30,"magic_defense":10},{"id":109,"name":"Wimpy Flower","attack":1,"defense":28,"evade":0,"hit_rate":0,"hp":18,"magic_defense":51}];')
+    .replace(/var SC_CHARS=\[[\s\S]*?\];/, 'var SC_CHARS=[{"id":0,"name":"<Boy>","attack":7,"defense":5,"evade":0,"hit_rate":38,"hp":30,"magicDefense":10},{"id":109,"name":"Wimpy Flower","attack":1,"defense":28,"evade":0,"hit_rate":0,"hp":18,"magicDefense":51}];')
         .replace(/var SC_HIT_LOOKUP=\{[\s\S]*?\};/, 'var SC_HIT_LOOKUP={38:{0:95}};');
 }
 
@@ -280,6 +280,19 @@ test('Alchemy mode updates the Scaling note text', () => {
     assert.ok(
         elements['sc-note'].textContent.includes('Offensive alchemy currently uses the grounded level-0 model'),
         'Scaling note did not switch to the alchemy copy'
+    );
+});
+
+test('Hard Ball L0 vs Wimpy Flower shows a 6–10 legend range in alchemy mode', () => {
+    assert.ok(elements, 'JS failed to run — skipping');
+    const modeSel = elements['sc-mode-sel'];
+    modeSel.value = 'alchemy';
+    modeSel._trigger('change', {});
+    const legendHtml = elements['sc-legend'].innerHTML;
+    assert.ok(legendHtml.includes('Hard Ball'), 'Hard Ball row missing from Scaling legend');
+    assert.ok(
+        legendHtml.includes('L0:6–10') || legendHtml.includes('L0:6-10'),
+        `Expected Hard Ball legend range 6–10, got: ${legendHtml.match(/Hard Ball[\s\S]{0,120}/)?.[0] || legendHtml}`
     );
 });
 
