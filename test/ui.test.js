@@ -1,27 +1,24 @@
 'use strict';
 /**
- * test/ui.test.js — UI tests for the Docs tab (damage-type dropdown, element visibility).
- *
- * Tests are intentionally structured so that they run RED on a broken fake DOM
- * and GREEN once the fake DOM supports document.createElement correctly.
+ * test/ui.test.js — UI tests for the Scaling and Docs tabs.
  *
  * Run with: node test/ui.test.js
  */
 
 const assert = require('assert');
-const vm     = require('vm');
-const fs     = require('fs');
-const path   = require('path');
+const vm = require('vm');
+const fs = require('fs');
+const path = require('path');
 
-// ── Mock vscode ───────────────────────────────────────────────────────────────
+// ── Mock vscode ─────────────────────────────────────────────────────────────
 const Module = require('module');
 const _origResolve = Module._resolveFilename;
 Module._resolveFilename = function(req, ...rest) {
     if (req === 'vscode') return req;
     return _origResolve.call(this, req, ...rest);
 };
-if (!require.cache['vscode']) {
-    require.cache['vscode'] = {
+if (!require.cache.vscode) {
+    require.cache.vscode = {
         id: 'vscode', filename: 'vscode', loaded: true,
         exports: {
             workspace: { workspaceFolders: null,
@@ -40,23 +37,23 @@ if (!require.cache['vscode']) {
             ExtensionContext: class {},
             HoverProvider: class {},
             CompletionItemProvider: class {},
-            CompletionItem: class { constructor(l,k){ this.label=l; this.kind=k; } },
-            Hover: class { constructor(c){ this.contents=c; } },
-            MarkdownString: class { constructor(v){ this.value=v; } },
-            CodeLens: class { constructor(r,c){ this.range=r; this.command=c; } },
-            Range: class { constructor(s,e){ this.start=s; this.end=e; } },
-            Position: class { constructor(l,c){ this.line=l; this.character=c; } },
-            Selection: class { constructor(a,b){ this.anchor=a; this.active=b; } },
-            DocumentSymbol: class { constructor(n,d,k,r,sr){ this.name=n; this.detail=d; this.kind=k; this.range=r; this.selectionRange=sr; this.children=[]; } },
-            SnippetString: class { constructor(v){ this.value=v; } },
-            EventEmitter: class { constructor(){ this.event=()=>{}; } fire(){} },
+            CompletionItem: class { constructor(label, kind){ this.label = label; this.kind = kind; } },
+            Hover: class { constructor(contents){ this.contents = contents; } },
+            MarkdownString: class { constructor(value){ this.value = value; } },
+            CodeLens: class { constructor(range, command){ this.range = range; this.command = command; } },
+            Range: class { constructor(start, end){ this.start = start; this.end = end; } },
+            Position: class { constructor(line, character){ this.line = line; this.character = character; } },
+            Selection: class { constructor(anchor, active){ this.anchor = anchor; this.active = active; } },
+            DocumentSymbol: class { constructor(name, detail, kind, range, selectionRange){ this.name = name; this.detail = detail; this.kind = kind; this.range = range; this.selectionRange = selectionRange; this.children = []; } },
+            SnippetString: class { constructor(value){ this.value = value; } },
+            EventEmitter: class { constructor(){ this.event = ()=>{}; } fire(){} },
             WebviewPanel: class {},
         },
     };
 }
 
-// ── Extract renderRadarHtml from patched source ───────────────────────────────
-const src        = fs.readFileSync(path.join(__dirname, '..', 'extension.js'), 'utf8');
+// ── Extract renderRadarHtml from patched source ─────────────────────────────
+const src = fs.readFileSync(path.join(__dirname, '..', 'extension.js'), 'utf8');
 const patchedSrc = src.replace(
     /module\.exports\s*=\s*\{[^}]+\};?\s*$/,
     'module.exports = { activate, deactivate, _renderRadarHtml: renderRadarHtml };'
@@ -71,29 +68,31 @@ try {
     fs.unlinkSync(tmpPath);
 }
 
-// ── Minimal inputs for renderRadarHtml ───────────────────────────────────────
-const scope    = { kind:'function', name:'test_fn', startLine:0, endLine:100 };
-const refs     = new Map();
-const pools    = [];
-const argRefs  = new Map();
-const mapByAddr= new Map();
+// ── Minimal inputs for renderRadarHtml ─────────────────────────────────────
+const scope = { kind:'function', name:'test_fn', startLine:0, endLine:100 };
+const refs = new Map();
+const pools = [];
+const argRefs = new Map();
+const mapByAddr = new Map();
 const roomTree = [];
-const html     = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTree, 'docs', null);
+const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTree, 'scaling', null);
 
-function extractScript(h) {
-    const start = h.lastIndexOf('<script>');
-    const end   = h.lastIndexOf('<\/script>');
+function extractScript(renderedHtml) {
+    const start = renderedHtml.lastIndexOf('<script>');
+    const end = renderedHtml.lastIndexOf('<\/script>');
     if (start === -1 || end === -1) throw new Error('No <script> block found in HTML');
-    return h.slice(start + 8, end);
+    return renderedHtml.slice(start + 8, end);
 }
-const jsCode = extractScript(html);
 
-// ── Fake DOM that supports document.createElement and tracks element state ────
-//
-// IMPORTANT: this fake DOM must support createElement because the alchemy init
-// code calls document.createElement('option') for each spell in SC_SPELLS.
-// Without it the whole docsJs IIFE throws before registering the dropdown handler.
-//
+function injectScalingFixture(code) {
+    return code
+        .replace(/var SC_CHARS=\[[\s\S]*?\];/, 'var SC_CHARS=[{"id":0,"name":"<Boy>","attack":7,"defense":5,"evade":0,"hit_rate":38,"hp":30,"magic_defense":10},{"id":109,"name":"Wimpy Flower","attack":1,"defense":28,"evade":0,"hit_rate":0,"hp":18,"magic_defense":51}];')
+        .replace(/var SC_HIT_LOOKUP=\{[\s\S]*?\};/, 'var SC_HIT_LOOKUP={38:{0:95}};');
+}
+
+const jsCode = injectScalingFixture(extractScript(html));
+
+// ── Fake DOM that supports UI initialization and event handlers ─────────────
 function makeTrackingDocument() {
     const elements = {};
     let createSeq = 0;
@@ -110,13 +109,18 @@ function makeTrackingDocument() {
             dataset: {},
             classList: {
                 _set: new Set(),
-                add(...c)    { c.forEach(x => this._set.add(x)); },
-                remove(...c) { c.forEach(x => this._set.delete(x)); },
-                toggle(c, force) {
-                    if (force === undefined) { this._set.has(c) ? this._set.delete(c) : this._set.add(c); }
-                    else { force ? this._set.add(c) : this._set.delete(c); }
+                add(...classes) { classes.forEach((value) => this._set.add(value)); },
+                remove(...classes) { classes.forEach((value) => this._set.delete(value)); },
+                toggle(name, force) {
+                    if (force === undefined) {
+                        this._set.has(name) ? this._set.delete(name) : this._set.add(name);
+                    } else if (force) {
+                        this._set.add(name);
+                    } else {
+                        this._set.delete(name);
+                    }
                 },
-                contains(c) { return this._set.has(c); },
+                contains(name) { return this._set.has(name); },
             },
             getAttribute: ()=>null,
             setAttribute: ()=>{},
@@ -124,41 +128,39 @@ function makeTrackingDocument() {
             querySelector: ()=>null,
             closest: ()=>null,
             scrollIntoView: ()=>{},
-            scrollTop: 0, scrollHeight: 0, clientHeight: 0,
+            scrollTop: 0,
+            scrollHeight: 0,
+            clientHeight: 0,
             getBoundingClientRect: ()=>({ top:0, bottom:0, height:0, left:0, right:0, width:0 }),
             appendChild: ()=>{},
             removeEventListener: ()=>{},
-            addEventListener(evt, fn) {
-                if (!handlers[evt]) handlers[evt] = [];
-                handlers[evt].push(fn);
+            addEventListener(eventName, handler) {
+                if (!handlers[eventName]) handlers[eventName] = [];
+                handlers[eventName].push(handler);
             },
-            _trigger(evt, data) {
-                (handlers[evt] || []).forEach(fn => fn.call(el, data || {}));
+            _trigger(eventName, data) {
+                (handlers[eventName] || []).forEach((handler) => handler.call(el, data || {}));
             },
-            createSVGPoint: ()=>({ x:0, y:0, matrixTransform: ()=>({x:0,y:0}) }),
+            createSVGPoint: ()=>({ x:0, y:0, matrixTransform: ()=>({x:0, y:0}) }),
             getScreenCTM: ()=>({ inverse: ()=>({}) }),
         };
         elements[id] = el;
         return el;
     }
 
-    const doc = {
+    return {
         body: makeEl('body'),
         getElementById: (id) => makeEl(id),
-        querySelector: (sel) => {
-            // Never return null — avoids bindLinks(null).querySelectorAll crash
-            return makeEl('__qs_' + sel.replace(/[^\w]/g, '_'));
-        },
+        querySelector: (sel) => makeEl('__qs_' + sel.replace(/[^\w]/g, '_')),
         querySelectorAll: ()=>[],
         addEventListener: ()=>{},
         createElement: (tag) => makeEl('__el_' + (createSeq++) + '_' + tag),
         createElementNS: (ns, tag) => makeEl('__ns_' + (createSeq++) + '_' + tag),
         _elements: elements,
     };
-    return doc;
 }
 
-function runWithTrackingDoc(jsCode) {
+function runWithTrackingDoc(code) {
     const doc = makeTrackingDocument();
     const sandbox = {
         acquireVsCodeApi: ()=>({ postMessage: ()=>{} }),
@@ -169,171 +171,125 @@ function runWithTrackingDoc(jsCode) {
         parseInt, isNaN, Math, JSON, String, Array, Set, Map, Error, Infinity,
     };
     vm.createContext(sandbox);
-    vm.runInContext(jsCode, sandbox, { timeout: 30000 });
+    vm.runInContext(code, sandbox, { timeout: 30000 });
     return doc._elements;
 }
 
-// ── Test runner ───────────────────────────────────────────────────────────────
-let passed = 0, failed = 0;
+// ── Test runner ─────────────────────────────────────────────────────────────
+let passed = 0;
+let failed = 0;
 function test(name, fn) {
-    try   { fn(); console.log('  \u2713', name); passed++; }
-    catch (e) { console.error('  \u2717', name, '\n   ', e.message); failed++; }
+    try {
+        fn();
+        console.log('  \u2713', name);
+        passed++;
+    } catch (error) {
+        console.error('  \u2717', name, '\n   ', error.message);
+        failed++;
+    }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+console.log('\nScaling tab: HTML structure');
+
+test('Scaling section contains #sc-mode-sel dropdown', () => {
+    assert.ok(html.includes('id="sc-mode-sel"'), 'Missing <select id="sc-mode-sel"> in rendered HTML');
+});
+
+test('Scaling dropdown has Physical option', () => {
+    assert.ok(html.includes('value="physical"'), 'Missing <option value="physical">');
+    assert.ok(html.includes('>Physical<'), 'Missing "Physical" label text');
+});
+
+test('Scaling dropdown has Offensive Alchemy option', () => {
+    assert.ok(html.includes('value="alchemy"'), 'Missing <option value="alchemy">');
+    assert.ok(html.includes('>Offensive Alchemy<'), 'Missing "Offensive Alchemy" label text');
+});
+
+test('Scaling HTML contains the field ids required by updateLevelFields()', () => {
+    ['sc-src-field', 'sc-charge-field', 'sc-scale-field', 'sc-atlas-field'].forEach((id) => {
+        assert.ok(html.includes(`id="${id}"`), `Missing field id ${id}`);
+    });
+});
+
+test('Scaling HTML still contains the physical control set', () => {
+    ['id="sc-src-sel"', 'id="sc-tgt-sel"', 'id="sc-scale-toggle"', 'id="sc-atlas-toggle"', 'data-chg="100"'].forEach((needle) => {
+        assert.ok(html.includes(needle), `Missing ${needle}`);
+    });
+});
+
 console.log('\nDocs tab: HTML structure');
 
-test('Damage section contains #doc-dmg-type dropdown', () => {
-    assert.ok(html.includes('id="doc-dmg-type"'),
-        'Missing <select id="doc-dmg-type"> in rendered HTML');
+test('Docs subnav contains standalone alchemy button again', () => {
+    assert.ok(html.includes('data-doc="alchemy"'), 'Missing standalone Docs alchemy subnav entry');
 });
 
-test('Dropdown has Physical option (value="physical", default)', () => {
-    assert.ok(html.includes('value="physical"'), 'Missing <option value="physical">');
-    assert.ok(html.includes('>Physical<'),        'Missing "Physical" label text');
+test('Docs no longer contains the mistaken damage-type dropdown', () => {
+    assert.ok(!html.includes('id="doc-dmg-type"'), 'Found Docs damage-type dropdown; it belongs in Scaling');
 });
 
-test('Dropdown has Offensive Alchemy option (value="alchemy")', () => {
-    assert.ok(html.includes('value="alchemy"'),       'Missing <option value="alchemy">');
-    assert.ok(html.includes('>Offensive Alchemy<'),   'Missing "Offensive Alchemy" label text');
+test('Docs still contains both physical and alchemy calculators', () => {
+    assert.ok(html.includes('id="doc-dmg-chart"'), 'Missing physical docs chart');
+    assert.ok(html.includes('id="doc-al-chart"'), 'Missing alchemy docs chart');
 });
 
-test('#doc-phys-content div exists in HTML', () => {
-    assert.ok(html.includes('id="doc-phys-content"'),
-        'Missing <div id="doc-phys-content">');
-});
+console.log('\nScaling tab: JS behaviour');
 
-test('#doc-al-content div exists in HTML', () => {
-    assert.ok(html.includes('id="doc-al-content"'),
-        'Missing <div id="doc-al-content">');
-});
-
-test('#doc-al-content starts hidden (display:none in HTML)', () => {
-    const idx      = html.indexOf('id="doc-al-content"');
-    assert.ok(idx !== -1, 'id="doc-al-content" not found');
-    const tagStart = html.lastIndexOf('<', idx);
-    const tagEnd   = html.indexOf('>',  idx);
-    const openTag  = html.slice(tagStart, tagEnd + 1);
-    assert.ok(
-        openTag.includes('display:none') || openTag.includes('display: none'),
-        `#doc-al-content opening tag should contain display:none.\n  Got: ${openTag}`
-    );
-});
-
-test('#doc-phys-content is visible by default (no display:none in opening tag)', () => {
-    const idx      = html.indexOf('id="doc-phys-content"');
-    assert.ok(idx !== -1, 'id="doc-phys-content" not found');
-    const tagStart = html.lastIndexOf('<', idx);
-    const tagEnd   = html.indexOf('>',  idx);
-    const openTag  = html.slice(tagStart, tagEnd + 1);
-    assert.ok(
-        !openTag.includes('display:none') && !openTag.includes('display: none'),
-        `#doc-phys-content should NOT have display:none.\n  Got: ${openTag}`
-    );
-});
-
-test('No standalone data-doc="alchemy" button in subnav', () => {
-    assert.ok(
-        !html.includes('data-doc="alchemy"'),
-        'Found data-doc="alchemy" button — it should be removed in favour of the dropdown'
-    );
-});
-
-test('#doc-atk slider appears inside #doc-phys-content section', () => {
-    const physIdx = html.indexOf('id="doc-phys-content"');
-    const alIdx   = html.indexOf('id="doc-al-content"');
-    const atkIdx  = html.indexOf('id="doc-atk"');
-    assert.ok(atkIdx > physIdx && atkIdx < alIdx,
-        '#doc-atk should appear between doc-phys-content and doc-al-content in the HTML');
-});
-
-test('#doc-al-spell select appears inside #doc-al-content section', () => {
-    const alStart = html.indexOf('id="doc-al-content"');
-    const spellIdx = html.indexOf('id="doc-al-spell"');
-    assert.ok(spellIdx > alStart,
-        '#doc-al-spell should appear after doc-al-content starts');
-});
-
-test('#doc-al-mdef slider appears inside #doc-al-content section', () => {
-    const alStart  = html.indexOf('id="doc-al-content"');
-    const mdefIdx  = html.indexOf('id="doc-al-mdef"');
-    assert.ok(mdefIdx > alStart,
-        '#doc-al-mdef should appear after doc-al-content starts');
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-console.log('\nDocs tab: JS behaviour (document.createElement required)');
-
-// Run all JS behaviour tests sharing a single execution so state persists
-// across dropdown-change assertions.
 let elements;
 
-test('webview JS executes without throwing (needs document.createElement)', () => {
-    // This fails on a fake DOM that lacks document.createElement because the
-    // alchemy init calls it for each of the 14 SC_SPELLS entries.
+test('webview JS executes without throwing with scaling fixture data', () => {
     elements = runWithTrackingDoc(jsCode);
 });
 
-test('after init: #doc-phys-content not hidden by JS (display !== "none")', () => {
+test('Scaling starts in physical mode', () => {
     assert.ok(elements, 'JS failed to run — skipping');
-    const el = elements['doc-phys-content'];
-    assert.notStrictEqual(el && el.style.display, 'none',
-        '#doc-phys-content.style.display should not be "none" after init');
+    assert.strictEqual(elements['sc-mode-sel'].value, 'physical', 'Expected physical mode by default');
 });
 
-test('after init: #doc-al-content not forced visible by JS', () => {
-    // HTML hides it; JS must not override that to visible during init.
-    // (The change handler must be the only thing that shows it.)
+test('Scaling renders chart content at init', () => {
     assert.ok(elements, 'JS failed to run — skipping');
-    const el = elements['doc-al-content'];
-    // The element starts hidden via HTML; the JS init must not set display to ''
-    // We can only check it's not been explicitly set to 'block' or 'flex'
-    const d = el && el.style.display;
-    assert.ok(d !== 'block' && d !== 'flex' && d !== 'inline',
-        `#doc-al-content.style.display should not be made visible during init, got: "${d}"`);
+    assert.ok(elements['sc-chart'] && elements['sc-chart'].innerHTML.length > 10, 'Scaling chart did not initialize');
 });
 
-test('dropdown change to "alchemy": alchemy section shown, physical hidden', () => {
+test('Switching Scaling to alchemy hides physical-only controls', () => {
     assert.ok(elements, 'JS failed to run — skipping');
-    const sel  = elements['doc-dmg-type'];
-    assert.ok(sel, '#doc-dmg-type was not accessed during JS execution');
-    sel.value = 'alchemy';
-    sel._trigger('change', {});
-    const alEl   = elements['doc-al-content'];
-    const physEl = elements['doc-phys-content'];
-    assert.strictEqual(alEl && alEl.style.display, '',
-        `#doc-al-content.style.display should be "" (visible) after selecting alchemy, got: "${alEl && alEl.style.display}"`);
-    assert.strictEqual(physEl && physEl.style.display, 'none',
-        `#doc-phys-content.style.display should be "none" after selecting alchemy, got: "${physEl && physEl.style.display}"`);
+    const modeSel = elements['sc-mode-sel'];
+    modeSel.value = 'alchemy';
+    modeSel._trigger('change', {});
+    ['sc-src-field', 'sc-charge-field', 'sc-scale-field', 'sc-atlas-field'].forEach((id) => {
+        assert.strictEqual(elements[id].style.display, 'none', `${id} should be hidden in alchemy mode`);
+    });
+    assert.strictEqual(elements['sc-hit-chart'].style.display, 'none', 'Hit chart should hide in alchemy mode');
 });
 
-test('dropdown change back to "physical": physical shown, alchemy hidden', () => {
+test('Switching Scaling back to physical restores physical-only controls', () => {
     assert.ok(elements, 'JS failed to run — skipping');
-    const sel = elements['doc-dmg-type'];
-    sel.value = 'physical';
-    sel._trigger('change', {});
-    const alEl   = elements['doc-al-content'];
-    const physEl = elements['doc-phys-content'];
-    assert.strictEqual(physEl && physEl.style.display, '',
-        `#doc-phys-content.style.display should be "" (visible) after reverting to physical, got: "${physEl && physEl.style.display}"`);
-    assert.strictEqual(alEl && alEl.style.display, 'none',
-        `#doc-al-content.style.display should be "none" after reverting to physical, got: "${alEl && alEl.style.display}"`);
+    const modeSel = elements['sc-mode-sel'];
+    modeSel.value = 'physical';
+    modeSel._trigger('change', {});
+    ['sc-src-field', 'sc-charge-field', 'sc-scale-field', 'sc-atlas-field'].forEach((id) => {
+        assert.strictEqual(elements[id].style.display, 'flex', `${id} should be restored in physical mode`);
+    });
+    assert.strictEqual(elements['sc-hit-chart'].style.display, 'block', 'Hit chart should show in physical mode');
 });
 
-test('#doc-dmg-chart populated at init (physical chart renders on page load)', () => {
+test('Alchemy mode updates the Scaling note text', () => {
     assert.ok(elements, 'JS failed to run — skipping');
-    const el = elements['doc-dmg-chart'];
-    assert.ok(el && el.innerHTML.length > 10,
-        `#doc-dmg-chart.innerHTML should be populated at init, got: "${el && el.innerHTML.slice(0,40)}"`);
+    const modeSel = elements['sc-mode-sel'];
+    modeSel.value = 'alchemy';
+    modeSel._trigger('change', {});
+    assert.ok(
+        elements['sc-note'].textContent.includes('Offensive alchemy currently uses the grounded level-0 model'),
+        'Scaling note did not switch to the alchemy copy'
+    );
 });
 
-test('#doc-al-chart populated at init (alchemy chart renders even while hidden)', () => {
+console.log('\nDocs tab: JS behaviour');
+
+test('Docs calculators both initialize without throwing', () => {
     assert.ok(elements, 'JS failed to run — skipping');
-    const el = elements['doc-al-chart'];
-    assert.ok(el && el.innerHTML.length > 10,
-        `#doc-al-chart.innerHTML should be populated at init (hidden parent is fine), got: "${el && el.innerHTML.slice(0,40)}"`);
+    assert.ok(elements['doc-dmg-chart'] && elements['doc-dmg-chart'].innerHTML.length > 10, 'Physical docs chart did not initialize');
+    assert.ok(elements['doc-al-chart'] && elements['doc-al-chart'].innerHTML.length > 10, 'Alchemy docs chart did not initialize');
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 console.log(`\n${passed + failed} run: ${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);
