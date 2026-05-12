@@ -3574,6 +3574,7 @@ document.querySelectorAll('.cell[data-gid]').forEach(function(c){
 
 function goToLine(l){if(l<0||isNaN(l))return;if(vs)vs.postMessage({command:'goToLine',line:l});}
 function bindLinks(root){
+  if(!root)return;
   root.querySelectorAll('a.ll').forEach(function(a){
     a.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();var l=parseInt(a.dataset.line);if(l>=0&&!isNaN(l))goToLine(l);});
   });

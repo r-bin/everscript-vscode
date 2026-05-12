@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.16] — 2026-05-12
+
+### Added
+- **`test/ui.test.js`** — 18 new UI tests covering Docs tab structure and JS behaviour: dropdown element exists, physical/alchemy content visibility in HTML, no stray subnav button, dropdown change toggles both sections, both charts populate at init.
+- **`test/smoke.test.js`** now included in `npm test`; fake DOM fixed to support `document.createElement` and persistent element identity so webview JS execution tests pass.
+
+### Fixed
+- **`bindLinks(null)` crash** — `bindLinks` in the webview JS now guards against a null root argument; this prevented webview JS from executing cleanly in test sandboxes.
+
 ## [0.2.15] — 2026-05-12
 
 ### Changed

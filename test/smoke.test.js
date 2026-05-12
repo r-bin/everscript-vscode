@@ -84,7 +84,9 @@ function runWebviewJs(jsCode) {
 // Minimal fake DOM — enough for the webview JS to not crash.
 function makeFakeDocument() {
     const elements = {};
+    let seq = 0;
     function makeEl(id) {
+        if (elements[id]) return elements[id];
         const classList = new FakeClassList();
         const children = [];
         const el = {
@@ -94,18 +96,24 @@ function makeFakeDocument() {
             style: {},
             children,
             innerHTML: '',
+            textContent: '',
+            value: '',
             querySelectorAll: (sel) => [],
-            querySelector: (sel) => null,
+            querySelector: (sel) => makeEl('__qs_' + sel.replace(/[^\w]/g,'_')),
             closest: (sel) => null,
             addEventListener: () => {},
             removeEventListener: () => {},
+            appendChild: () => {},
             scrollTop: 0,
             scrollHeight: 0,
             clientHeight: 0,
-            getBoundingClientRect: () => ({ top:0, bottom:0, height:0 }),
+            getBoundingClientRect: () => ({ top:0, bottom:0, height:0, left:0, right:0, width:0 }),
             setAttribute: () => {},
             getAttribute: () => null,
+            createSVGPoint: () => ({ x:0, y:0, matrixTransform: ()=>({x:0,y:0}) }),
+            getScreenCTM: () => ({ inverse: ()=>({}) }),
         };
+        elements[id] = el;
         return el;
     }
     class FakeClassList {
@@ -121,14 +129,12 @@ function makeFakeDocument() {
     const body = makeEl('body');
     return {
         body,
-        querySelector: (sel) => {
-            if (sel === 'body') return body;
-            // Return a dummy element for everything else
-            return makeEl(sel);
-        },
+        querySelector: (sel) => makeEl('__qs_' + sel.replace(/[^\w]/g,'_')),
         querySelectorAll: (sel) => [],
         getElementById: (id) => makeEl(id),
         addEventListener: () => {},
+        createElement: (tag) => makeEl('__el_' + (seq++) + '_' + tag),
+        createElementNS: (ns, tag) => makeEl('__ns_' + (seq++) + '_' + tag),
     };
 }
 
