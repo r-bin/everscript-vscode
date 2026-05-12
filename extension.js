@@ -1235,8 +1235,8 @@ function readRomCharacters(wsRoot) {
                 hp:            romBuf.readUInt16LE(base + 0x0f),
                 attack:        romBuf.readUInt16LE(base + 0x19),
                 defense:       romBuf.readUInt16LE(base + 0x1b),
-              evade:         romBuf.readUInt16LE(base + 0x1d),
-              magic_defense: romBuf.readUInt16LE(base + 0x1f),
+              magic_defense: romBuf.readUInt16LE(base + 0x1d),
+              evade:         romBuf.readUInt16LE(base + 0x1f),
                 hit_rate:      romBuf.readUInt16LE(base + 0x21),
             });
         }
@@ -2252,7 +2252,7 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     return attackMode==='alchemy'?SC_SPELLS:getWeapons();
   }
   function effectiveMdef(magicDefense){
-    return Math.max(0,0x40-(magicDefense||0));
+    return Math.max(0,Math.floor((0x40-(magicDefense||0))/2)-3);
   }
   function targetMagicDefense(target){
     if(!target)return 0;
@@ -3191,7 +3191,7 @@ function renderRoomDetail(room){
   function docSeedRaw(w,s){return Math.floor((((w+1)&0xffff)*s)/0x10000)&0xffff;}
   function docDamageRaw(w,s){var a=(docSeedRaw(w,s)+w)&0xffff,b=(a<<1)&0xffff,c=(b+w+((a&0x8000)?1:0))&0xffff;return c>>2;}
   function docSeeds(w){var r=[];for(var s=0;s<=0xffff;s++)r.push(docDamageRaw(w,s));return r;}
-  function docEffMdef(mdef){return Math.max(0,0x40-mdef);}
+  function docEffMdef(mdef){return Math.max(0,Math.floor((0x40-mdef)/2)-3);}
   function docRangeStats(w){
     var raw=docSeeds(w);
     var capped=raw.map(function(d){return Math.min(999,d);});
@@ -3253,8 +3253,8 @@ function renderRoomDetail(room){
         +'<li>The RNG spread after that uses the same verified helper as physical damage.</li>'
         +'<li>Spell-level growth, charge state, and 8-cast route modeling are still open.</li>'
         +'</ul>';
-      if(spell.id==='hardball'&&rawMdef===51){
-        html+='<div class="doc-fact">Example check: Hard Ball L0 with raw magic_defense 51 produces <b>6\u201310</b>.</div>';
+      if(spell.id==='hardball'&&rawMdef===32){
+        html+='<div class="doc-fact">Example check: Hard Ball L0 with raw magic_defense 32 produces <b>6\u201310</b>.</div>';
       }
       document.getElementById('doc-al-chart').innerHTML=html;
     }

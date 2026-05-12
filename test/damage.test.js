@@ -71,7 +71,7 @@ function fmtDmgRange(min, max, pct999) {
 }
 
 function effectiveMdef(magicDefense) {
-    return Math.max(0, 0x40 - magicDefense);
+    return Math.max(0, Math.floor((0x40 - magicDefense) / 2) - 3);
 }
 
 function alchemyRangeLevel0(baseMight, magicDefense) {
@@ -182,8 +182,8 @@ test('atlas docs preview falls back to normal damage when subtraction does not u
     assert.deepStrictEqual({ min: r.min, max: r.max }, { min: 0, max: 1 });
 });
 
-test('offensive alchemy uses spell might minus effective magic defense before RNG spread', () => {
-    const r = alchemyRangeLevel0(21, 51);
+test('offensive alchemy gives Hard Ball L0 vs Purple/Wimpy Flower as 6–10', () => {
+    const r = alchemyRangeLevel0(21, 32);
     assert.strictEqual(r.spellPower, 21);
     assert.strictEqual(r.resist, 13);
     assert.strictEqual(r.w, 8);

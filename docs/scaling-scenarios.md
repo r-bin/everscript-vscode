@@ -86,7 +86,7 @@ formula is fully solved.
 - The effective resistance term is inverted from the raw stored stat:
 
 ```
-effective_mdef = max(0, 0x40 - target.magic_defense)   // 0x40 = 64 = max resist
+effective_mdef = max(0, floor((0x40 - target.magic_defense) / 2) - 3)
 ```
 
 - Vanilla ROM offset `0x45E6B` contains a per-spell **alchemy might** table.

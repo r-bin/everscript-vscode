@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.20] — 2026-05-12
+
+### Fixed
+- **Purple/Wimpy Flower alchemy range** — the level-0 alchemy preview now matches the checked Hard Ball case against `m.def = 32`, producing `6–10` in both Scaling and Docs instead of the broken `0–1` range.
+- **Live target stat parsing** — the live ROM reader again uses the Purple/Wimpy Flower `magic_defense = 32` value from the vanilla stat record, matching the external enemy viewer.
+
+### Added
+- **Regression coverage for the real bug** — the unit test, parser test, and Docs/Scaling UI tests now all assert the same grounded case: Hard Ball level 0 vs Purple/Wimpy Flower = `6–10`.
+
 ## [0.2.19] — 2026-05-12
 
 ### Fixed

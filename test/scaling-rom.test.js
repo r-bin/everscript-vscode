@@ -19,7 +19,7 @@ function test(name, fn) {
 }
 
 function effectiveMdef(magicDefense) {
-    return Math.max(0, 0x40 - magicDefense);
+    return Math.max(0, Math.floor((0x40 - magicDefense) / 2) - 3);
 }
 
 function dmgRangeFull(w) {
@@ -95,7 +95,7 @@ try {
 
 console.log('\nscaling rom parsing:');
 
-test('Hard Ball L0 vs Purple Flower uses parsed magic_defense and yields 6–10', () => {
+test('Hard Ball L0 vs Purple Flower uses parsed magic_defense=32 and yields 6–10', () => {
     const CHAR_BASE = 0x0EB678;
     const CHAR_SIZE = 0x4a;
     const targetId = 109;
@@ -107,8 +107,8 @@ test('Hard Ball L0 vs Purple Flower uses parsed magic_defense and yields 6–10'
     romBuf.writeUInt16LE(18, base + 0x0f); // hp
     romBuf.writeUInt16LE(1,  base + 0x19); // attack
     romBuf.writeUInt16LE(28, base + 0x1b); // defense
-    romBuf.writeUInt16LE(32, base + 0x1d); // evade (current broken reader mistakes this for magic_defense)
-    romBuf.writeUInt16LE(51, base + 0x1f); // magic_defense
+    romBuf.writeUInt16LE(32, base + 0x1d); // magic_defense
+    romBuf.writeUInt16LE(0,  base + 0x1f); // evade
     romBuf.writeUInt16LE(0,  base + 0x21); // hit_rate
 
     const fakeRoot = '/fake/workspace';
@@ -127,8 +127,8 @@ test('Hard Ball L0 vs Purple Flower uses parsed magic_defense and yields 6–10'
         assert.ok(flower, 'failed to parse target character record');
         assert.strictEqual(flower.hp, 18);
         assert.strictEqual(flower.defense, 28);
-        assert.strictEqual(flower.magic_defense, 51);
-        assert.strictEqual(flower.evade, 32);
+        assert.strictEqual(flower.magic_defense, 32);
+        assert.strictEqual(flower.evade, 0);
 
         const r = alchemyRangeLevel0(21, flower.magic_defense);
         assert.deepStrictEqual({ w: r.w, resist: r.resist, min: r.min, max: r.max }, { w: 8, resist: 13, min: 6, max: 10 });

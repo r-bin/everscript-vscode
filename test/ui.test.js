@@ -86,7 +86,7 @@ function extractScript(renderedHtml) {
 
 function injectScalingFixture(code) {
     return code
-    .replace(/var SC_CHARS=\[[\s\S]*?\];/, 'var SC_CHARS=[{"id":0,"name":"<Boy>","attack":7,"defense":5,"evade":0,"hit_rate":38,"hp":30,"magic_defense":10},{"id":109,"name":"Wimpy Flower","attack":1,"defense":28,"evade":32,"hit_rate":0,"hp":18,"magic_defense":51}];')
+    .replace(/var SC_CHARS=\[[\s\S]*?\];/, 'var SC_CHARS=[{"id":0,"name":"<Boy>","attack":7,"defense":5,"evade":0,"hit_rate":38,"hp":30,"magic_defense":10},{"id":109,"name":"Wimpy Flower","attack":1,"defense":28,"evade":0,"hit_rate":0,"hp":18,"magic_defense":32}];')
         .replace(/var SC_HIT_LOOKUP=\{[\s\S]*?\};/, 'var SC_HIT_LOOKUP={38:{0:95}};');
 }
 
@@ -232,6 +232,10 @@ test('Docs still contains both physical and alchemy calculators', () => {
     assert.ok(html.includes('id="doc-al-chart"'), 'Missing alchemy docs chart');
 });
 
+test('Docs alchemy selector still exposes Hard Ball with table value 21', () => {
+    assert.ok(html.includes('Hard Ball'), 'Missing Hard Ball entry in docs alchemy UI');
+});
+
 console.log('\nScaling tab: JS behaviour');
 
 let elements;
@@ -302,6 +306,18 @@ test('Docs calculators both initialize without throwing', () => {
     assert.ok(elements, 'JS failed to run — skipping');
     assert.ok(elements['doc-dmg-chart'] && elements['doc-dmg-chart'].innerHTML.length > 10, 'Physical docs chart did not initialize');
     assert.ok(elements['doc-al-chart'] && elements['doc-al-chart'].innerHTML.length > 10, 'Alchemy docs chart did not initialize');
+});
+
+test('Docs alchemy graph shows Hard Ball L0 vs m.def 32 as 6–10', () => {
+    assert.ok(elements, 'JS failed to run — skipping');
+    elements['doc-al-spell'].value = 'hardball';
+    elements['doc-al-mdef'].value = 32;
+    elements['doc-al-mdef']._trigger('input', {});
+    const htmlOut = elements['doc-al-chart'].innerHTML;
+    assert.ok(
+        htmlOut.includes('shown range: <b>6–10</b>') || htmlOut.includes('shown range: <b>6-10</b>'),
+        `Expected docs alchemy chart range 6–10, got: ${htmlOut}`
+    );
 });
 
 console.log(`\n${passed + failed} run: ${passed} passed, ${failed} failed`);
