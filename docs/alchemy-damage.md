@@ -9,7 +9,7 @@ This note records the part of offensive alchemy that is grounded enough to ship 
 - The current level-0 preview uses a reduced resistance term derived directly from the stored stat:
 
 ```text
-effective_mdef = max(0, floor(target.magic_defense / 2) - 3)
+effective_mdef = max(0, floor((target.magic_defense + 20) / 4))
 ```
 
 - ROM offset `0x45E6B` contains the base might table used by alchemy spells.
@@ -31,7 +31,7 @@ The last line means the same verified RNG helper used by the physical-damage doc
 Verified:
 
 - Spell base might comes from the ROM table.
-- `effective_mdef` is the grounded resistance term.
+- `effective_mdef` matches the raw `magic_defense` values shown by SoETilesViewer for Wimpy Flower, Mosquito, and Carltron's Robot.
 - A level-0 Hard Ball check against raw `magic_defense = 32` gives `w = 8`, which yields a shown range of `6-10`.
 
 Still open:
@@ -86,7 +86,7 @@ Still open:
 Hard Ball level 0 against raw `magic_defense = 32`:
 
 ```text
-effective_mdef = floor(32 / 2) - 3 = 13
+effective_mdef = floor((32 + 20) / 4) = 13
 w = 21 - 13 = 8
 shown range = 6-10
 ```

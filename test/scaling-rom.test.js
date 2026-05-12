@@ -4,6 +4,7 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const Module = require('module');
+const { alchemyEffectiveMdef, alchemyRangeLevel0 } = require('../alchemy-model');
 
 let passed = 0;
 let failed = 0;
@@ -16,31 +17,6 @@ function test(name, fn) {
         console.error('  ✗ ' + name + '\n    ' + e.message);
         failed++;
     }
-}
-
-function effectiveMdef(magicDefense) {
-    return Math.max(0, Math.floor(magicDefense / 2) - 3);
-}
-
-function dmgRangeFull(w) {
-    let mn = Infinity;
-    let mx = 0;
-    for (let rng16 = 0; rng16 <= 0xffff; rng16++) {
-        const seed = Math.floor((((w + 1) & 0xffff) * rng16) / 0x10000) & 0xffff;
-        const a = (seed + w) & 0xffff;
-        const b = (a << 1) & 0xffff;
-        const c = (b + w + ((a & 0x8000) ? 1 : 0)) & 0xffff;
-        const dmg = c >>> 2;
-        if (dmg < mn) mn = dmg;
-        if (dmg > mx) mx = dmg;
-    }
-    return { min: Math.min(999, mn), max: Math.min(999, mx) };
-}
-
-function alchemyRangeLevel0(baseMight, magicDefense) {
-    const resist = effectiveMdef(magicDefense);
-    const w = Math.max(1, baseMight - resist);
-    return { w, resist, ...dmgRangeFull(w) };
 }
 
 // Mock vscode before requiring extension.js
@@ -132,6 +108,7 @@ test('Hard Ball L0 vs Purple Flower uses parsed magic_defense=32 and yields 6–
 
         const r = alchemyRangeLevel0(21, flower.magic_defense);
         assert.deepStrictEqual({ w: r.w, resist: r.resist, min: r.min, max: r.max }, { w: 8, resist: 13, min: 6, max: 10 });
+        assert.strictEqual(alchemyEffectiveMdef(60), 20);
     } finally {
         fs.existsSync = origExistsSync;
         fs.readFileSync = origReadFileSync;

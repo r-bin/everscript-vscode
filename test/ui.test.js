@@ -86,7 +86,7 @@ function extractScript(renderedHtml) {
 
 function injectScalingFixture(code) {
     return code
-    .replace(/var SC_CHARS=\[[\s\S]*?\];/, 'var SC_CHARS=[{"id":0,"name":"<Boy>","attack":7,"defense":5,"evade":0,"hit_rate":38,"hp":30,"magic_defense":10},{"id":109,"name":"Wimpy Flower","attack":1,"defense":28,"evade":0,"hit_rate":0,"hp":18,"magic_defense":32}];')
+    .replace(/var SC_CHARS=\[[\s\S]*?\];/, 'var SC_CHARS=[{"id":0,"name":"<Boy>","attack":7,"defense":5,"evade":0,"hit_rate":38,"hp":30,"magic_defense":10},{"id":109,"name":"Wimpy Flower","attack":1,"defense":28,"evade":0,"hit_rate":0,"hp":18,"magic_defense":32},{"id":110,"name":"Mosquito","attack":2,"defense":0,"evade":0,"hit_rate":0,"hp":10,"magic_defense":0},{"id":141,"name":"Carltron\'s Robot","attack":55,"defense":0,"evade":9,"hit_rate":110,"hp":250,"magic_defense":60}];')
         .replace(/var SC_HIT_LOOKUP=\{[\s\S]*?\};/, 'var SC_HIT_LOOKUP={38:{0:95}};');
 }
 
@@ -319,6 +319,47 @@ test('Docs alchemy graph shows Hard Ball L0 vs m.def 32 as 6–10', () => {
     assert.ok(
         htmlOut.includes('shown range: <b>6–10</b>') || htmlOut.includes('shown range: <b>6-10</b>'),
         `Expected docs alchemy chart range 6–10, got: ${htmlOut}`
+    );
+    assert.ok(htmlOut.includes('<svg'), 'Expected docs alchemy chart to include the RNG histogram');
+});
+
+test('Docs alchemy graph shows Hard Ball L0 vs m.def 0 as 12–20', () => {
+    assert.ok(elements, 'JS failed to run — skipping');
+    elements['doc-al-spell'].value = 'hardball';
+    elements['doc-al-mdef'].value = 0;
+    elements['doc-al-mdef']._trigger('input', {});
+    const htmlOut = elements['doc-al-chart'].innerHTML;
+    assert.ok(
+        htmlOut.includes('shown range: <b>12–20</b>') || htmlOut.includes('shown range: <b>12-20</b>'),
+        `Expected docs alchemy chart range 12–20, got: ${htmlOut}`
+    );
+});
+
+test('Scaling legend shows Hard Ball L0 vs Carltron\'s Robot as 0–1', () => {
+    assert.ok(elements, 'JS failed to run — skipping');
+    elements['sc-tgt-sel'].value = 141;
+    elements['sc-tgt-sel']._trigger('change', {});
+    const modeSel = elements['sc-mode-sel'];
+    modeSel.value = 'alchemy';
+    modeSel._trigger('change', {});
+    const legendHtml = elements['sc-legend'].innerHTML;
+    assert.ok(
+        legendHtml.includes('L0:0–1') || legendHtml.includes('L0:0-1'),
+        `Expected Hard Ball legend range 0–1 for Carltron, got: ${legendHtml.match(/Hard Ball[\s\S]{0,120}/)?.[0] || legendHtml}`
+    );
+});
+
+test('Scaling legend shows Hard Ball L0 vs Mosquito as 12–20', () => {
+    assert.ok(elements, 'JS failed to run — skipping');
+    elements['sc-tgt-sel'].value = 110;
+    elements['sc-tgt-sel']._trigger('change', {});
+    const modeSel = elements['sc-mode-sel'];
+    modeSel.value = 'alchemy';
+    modeSel._trigger('change', {});
+    const legendHtml = elements['sc-legend'].innerHTML;
+    assert.ok(
+        legendHtml.includes('L0:12–20') || legendHtml.includes('L0:12-20'),
+        `Expected Hard Ball legend range 12–20 for Mosquito, got: ${legendHtml.match(/Hard Ball[\s\S]{0,120}/)?.[0] || legendHtml}`
     );
 });
 

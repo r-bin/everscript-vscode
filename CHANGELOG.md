@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.22] — 2026-05-12
+
+### Fixed
+- **SoETilesViewer `m.def` check** — verified against the local C++ source that SoETilesViewer reads `magic_defense` directly from `+0x1d` and displays that raw value, so the extension no longer assumes any hidden `0x40 - m.def` conversion in the viewer.
+- **Shared offensive alchemy formula** — Scaling, Docs, and automated tests now all use the same `effective_mdef = floor((magic_defense + 20) / 4)` level-0 helper, which keeps Wimpy Flower at `6–10`, Carltron's Robot at `0–1`, and Mosquito in the `12–20` band instead of the old inflated `15–26` output.
+
+### Added
+- **Offensive alchemy RNG histogram** — the Docs alchemy calculator now renders the same damage-vs-RNG histogram style used by the physical damage calculator.
+- **Broader alchemy coverage in `npm test`** — `test/damage.test.js` is now part of the main test script, and the UI regression fixture now covers Wimpy Flower, Mosquito, and Carltron's Robot.
+
 ## [0.2.21] — 2026-05-12
 
 ### Fixed

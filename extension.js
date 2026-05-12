@@ -4,6 +4,14 @@ const vscode = require('vscode');
 const path   = require('path');
 const fs     = require('fs');
 const { radarLifecycle, radarH, radarEsc, radarExtractEmoji, radarParseName, radarParseNotes, parseEvsNum, parseEnumsFromContent, parseEvsEnumValues } = require('./radar-utils');
+const { alchemyEffectiveMdef, alchemyRangeLevel0 } = require('./alchemy-model');
+
+const alchemyWebviewEffectiveMdef = alchemyEffectiveMdef.toString().replace(/function alchemyEffectiveMdef/, 'function effectiveMdef');
+const alchemyWebviewRange = alchemyRangeLevel0
+    .toString()
+    .replace(/function alchemyRangeLevel0/, 'function alchemyRange')
+    .replace(/alchemyEffectiveMdef/g, 'effectiveMdef')
+    .replace(/damageRangeFull/g, 'dmgRangeFull');
 
 // ── Data loading ──────────────────────────────────────────────────────────────
 
@@ -2212,6 +2220,8 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
         + 'var SC_MAX_LEVEL=37;';
     const scalingJs = `
 (function(){
+  ${alchemyWebviewEffectiveMdef}
+  ${alchemyWebviewRange}
   if(!SC_CHARS.length){
     var ce=document.getElementById('sc-chart');
     if(ce)ce.innerHTML='<div style="padding:16px;opacity:.4;font-size:11px">ROM not found \u2014 place the .smc in workspace root.</div>';
@@ -2250,9 +2260,6 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
   }
   function getAttackItems(){
     return attackMode==='alchemy'?SC_SPELLS:getWeapons();
-  }
-  function effectiveMdef(magicDefense){
-    return Math.max(0,Math.floor((magicDefense||0)/2)-3);
   }
   function targetMagicDefense(target){
     if(!target)return 0;
@@ -2355,13 +2362,6 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     var w=(~((inner-1)&0xffff))&0xffff;
     if(w<1||(!atlasOverflowBypassesClamp()&&w>=0x8000))w=1;
     return dmgRangeFull(w);
-  }
-  function alchemyRange(baseMight,magicDefense){
-    var resist=effectiveMdef(magicDefense);
-    var w=Math.max(1,baseMight-resist);
-    var out=dmgRangeFull(w);
-    out.w=w;out.resist=resist;out.spellPower=baseMight;
-    return out;
   }
   function fmtDmgRange(min,max,pct999,htmlPct){
     if(pct999>0){
@@ -3172,6 +3172,7 @@ function renderRoomDetail(room){
 `;
 
     const docsJs = `(function(){
+  ${alchemyWebviewEffectiveMdef}
   // Sub-tab navigation
   document.querySelectorAll('.doc-btn').forEach(function(btn){
     btn.addEventListener('click',function(){
@@ -3191,7 +3192,6 @@ function renderRoomDetail(room){
   function docSeedRaw(w,s){return Math.floor((((w+1)&0xffff)*s)/0x10000)&0xffff;}
   function docDamageRaw(w,s){var a=(docSeedRaw(w,s)+w)&0xffff,b=(a<<1)&0xffff,c=(b+w+((a&0x8000)?1:0))&0xffff;return c>>2;}
   function docSeeds(w){var r=[];for(var s=0;s<=0xffff;s++)r.push(docDamageRaw(w,s));return r;}
-  function docEffMdef(mdef){return Math.max(0,Math.floor((mdef||0)/2)-3);}
   function docRangeStats(w){
     var raw=docSeeds(w);
     var capped=raw.map(function(d){return Math.min(999,d);});
@@ -3240,13 +3240,26 @@ function renderRoomDetail(room){
     function renderAlchemy(){
       var spell=SC_SPELLS.find(function(sp){return sp.id===alSpell.value;})||SC_SPELLS[0];
       var rawMdef=+alMdef.value;
-      var eff=docEffMdef(rawMdef);
+      var eff=effectiveMdef(rawMdef);
       var w=Math.max(1,spell.might-eff);
+      var raw=docSeeds(w);
+      var capped=raw.map(function(d){return Math.min(999,d);});
       var stats=docRangeStats(w);
+      var N=32,buckets=new Array(N).fill(0),range=stats.max-stats.min||1;
+      capped.forEach(function(d){var bi=Math.min(N-1,Math.floor((d-stats.min)/range*N));buckets[bi]++;});
+      var bMax=buckets.reduce(function(a,b){return Math.max(a,b);},1);
+      var W=320,H=56,bw=W/N,bars='';
+      for(var i=0;i<N;i++){
+        var bh=buckets[i]/bMax*H;
+        var bv=stats.min+i/N*range;
+        bars+='<rect x="'+(i*bw).toFixed(1)+'" y="'+(H-bh).toFixed(1)+'" width="'+(bw-0.5).toFixed(1)+'" height="'+bh.toFixed(1)+'" fill="'+(bv>=999?'#ff7755':'#4c86d9')+'"/>';
+      }
       document.getElementById('doc-al-mdef-num').textContent=rawMdef;
       var html='<div class="doc-val">spell: <b>'+spell.label+'</b>  might: <b>'+spell.might+'</b></div>';
       html+='<div class="doc-val">raw magic_defense: <b>'+rawMdef+'</b>  effective_mdef: <b>'+eff+'</b>  w: <b>'+w+'</b></div>';
       html+='<div class="doc-val">shown range: <b>'+stats.min+'\u2013'+stats.max+'</b>'+(stats.count999?'<span class="doc-cap">999-cap: '+stats.count999+'/65536 ('+docFmtPct(stats.pct999)+'%)</span>':'')+'</div>';
+      html+='<svg width="'+W+'" height="'+H+'" style="display:block;margin:4px 0">'+bars+'</svg>';
+      html+='<div style="width:'+W+'px;display:flex;justify-content:space-between;font-size:9px;opacity:.4"><span>'+stats.min+'</span><span>'+stats.max+'</span></div>';
       html+='<ul class="doc-bullets">'
         +'<li>Grounded inputs only: <b>base might</b> from ROM offset <b>0x45E6B</b> and enemy <b>magic_defense</b>.</li>'
         +'<li>Current preview assumes <b>level 0 spell power</b>: <code>w = max(1, might - effective_mdef)</code>.</li>'
@@ -3833,8 +3846,8 @@ ${routeJs}
         '</div>' +
         '<div class="doc-sec" data-doc="alchemy" style="display:none">' +
         '<h3 class="doc-h">Offensive Alchemy</h3>' +
-        '<div class="doc-fact">Current extension model: ROM spell might minus <code>effective_mdef = max(0, floor(magic_defense / 2) - 3)</code>, then the same verified RNG spread helper as physical damage.</div>' +
-        '<pre class="doc-code">base_might = ROM16[0x45E6B + spell_id*2]\neffective_mdef = max(0, floor(target.magic_defense / 2) - 3)\nw = max(1, base_might - effective_mdef)\nseed = hi16((w+1)\u00d7rng16)\nshown = min(999, damage_rng_spread(w, seed))</pre>' +
+        '<div class="doc-fact">Current extension model: ROM spell might minus <code>effective_mdef = max(0, floor((magic_defense + 20) / 4))</code>, then the same verified RNG spread helper as physical damage.</div>' +
+        '<pre class="doc-code">base_might = ROM16[0x45E6B + spell_id*2]\neffective_mdef = max(0, floor((target.magic_defense + 20) / 4))\nw = max(1, base_might - effective_mdef)\nseed = hi16((w+1)\u00d7rng16)\nshown = min(999, damage_rng_spread(w, seed))</pre>' +
         '<div class="doc-sliders"><label>spell <select id="doc-al-spell" class="sc-sel"></select></label>' +
         '<label>magic_defense <input id="doc-al-mdef" type="range" min="0" max="64" value="51"><span id="doc-al-mdef-num">51</span></label></div>' +
         '<div id="doc-al-chart"></div>' +
