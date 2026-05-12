@@ -4025,11 +4025,12 @@ ${routeJs}
         '</div>' +
         '<div class="doc-sec" data-doc="alchemy" style="display:none">' +
         '<h3 class="doc-h">Offensive Alchemy</h3>' +
-        '<div class="doc-fact">Grounded today: level-0 base might and <code>effective_mdef = max(0, floor((magic_defense + 20) / 4))</code>. The spell-level slider below is a projected preview helper for manual checks.</div>' +
-        '<pre class="doc-code">base_might = ROM16[0x45E6B + spell_id*2]\nprojected_spell_power = round(base_might \u00d7 (1 + 0.10 \u00d7 spell_level))\neffective_mdef = max(0, floor((target.magic_defense + 20) / 4))\nw = max(1, projected_spell_power - effective_mdef)\nseed = hi16((w+1)\u00d7rng16)\nshown = min(999, damage_rng_spread(w, seed))</pre>' +
+        '<div class="doc-fact">Grounded today: level-0 base might and <code>effective_mdef = max(0, floor((magic_defense + 20) / 4))</code>. Research notes also point at a projectile-slot <code>POWER</code> field for projectile alchemy; the spell-level slider below is still only a projected preview helper for manual checks.</div>' +
+        '<pre class="doc-code">base_might = ROM16[0x45E6B + spell_id*2]\nprojectile_power = [7E3564 + slot*0x76 + 0x2A]\nprojected_spell_power = round(base_might \u00d7 (1 + 0.10 \u00d7 spell_level))\neffective_mdef = max(0, floor((target.magic_defense + 20) / 4))\nw = max(1, projected_spell_power - effective_mdef)\nseed = hi16((w+1)\u00d7rng16)\nshown = min(999, damage_rng_spread(w, seed))</pre>' +
         '<div class="doc-sliders"><label>spell <select id="doc-al-spell" class="sc-sel"></select></label>' +
         '<label>spell level <input id="doc-al-spell-lv" type="range" min="0" max="9" value="0"><span id="doc-al-spell-lv-num">0</span></label>' +
         '<label>magic_defense <input id="doc-al-mdef" type="range" min="0" max="64" value="51"><span id="doc-al-mdef-num">51</span></label></div>' +
+        '<div class="doc-fact">Projectile alchemy research note: active alchemy attack slots start at <code>7E3564</code>, each slot is <code>0x76</code> bytes, and the projectile struct field at <code>+0x2A/+0x2B</code> is labeled <code>POWER</code> or damage in outside notes. Full throw+hit traces are the right place to trace how spell, level, and source stats feed that field.</div>' +
         '<div id="doc-al-chart"></div>' +
         '</div>' +
         '<div class="doc-sec" data-doc="hit" style="display:none">' +

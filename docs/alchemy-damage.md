@@ -14,6 +14,24 @@ effective_mdef = max(0, floor((target.magic_defense + 20) / 4))
 
 - ROM offset `0x45E6B` contains the base might table used by alchemy spells.
 
+## Projectile research notes
+
+Recent throw-and-hit traces plus outside struct notes add one more useful anchor for
+projectile-style offensive alchemy:
+
+- Active alchemy attack slots start at `7E3564`.
+- Each active slot is `0x76` bytes.
+- The projectile struct field at `+0x2A/+0x2B` is labeled `POWER` or damage.
+
+That does **not** finish the leveled formula yet, but it sharpens the control path:
+for projectile alchemy, the important open question is now how the game computes and
+writes projectile `POWER`, not whether the hit routine invents damage from scratch.
+
+This also explains why hit-only traces are incomplete for spell-level work. Once the
+trace starts inside the hit routine, the relevant projectile power has already been
+prepared. Full throw+hit traces are more useful because they can expose the earlier
+producer path that fills the projectile slot.
+
 ## Current extension model
 
 The extension currently exposes a conservative level-0 preview:
@@ -60,6 +78,9 @@ projected_spell_power = round(base_might * (1 + 0.10 * spell_level))
 ```
 
 That makes it useful for manual spot checks, but it does not make spell-level growth grounded. Right now it is still a convenience preview layered on top of the verified level-0 `effective_mdef` and RNG path.
+
+The Docs tab now also calls out the projectile-slot `POWER` field so this research
+context is visible in the extension, not only in external notes.
 
 ## Vanilla spell might table
 

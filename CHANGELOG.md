@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.25] — 2026-05-12
+
+### Added
+- **Projectile alchemy research note in Docs** — the Docs tab and markdown alchemy note now record the active projectile-slot layout anchor at `7E3564`, including the `POWER` field at `+0x2A/+0x2B`, so spell-damage tracing context is visible in the extension.
+
+### Changed
+- **Alchemy docs now distinguish producer vs hit path** — the docs explicitly note that hit-only traces start after projectile power is already prepared, and that full throw+hit traces are the right source for deriving leveled projectile spell power.
+
 ## [0.2.24] — 2026-05-12
 
 ### Added

@@ -255,6 +255,12 @@ test('Docs alchemy advertises the projected spell-level preview helper', () => {
     assert.ok(jsCode.includes('doc-al-spell-lv'), 'Docs alchemy JS should wire the spell-level slider');
 });
 
+test('Docs alchemy now mentions the projectile POWER research note', () => {
+    assert.ok(html.includes('7E3564'), 'Docs alchemy should mention the projectile slot base');
+    assert.ok(html.includes('+0x2A/+0x2B'), 'Docs alchemy should mention the projectile POWER field offset');
+    assert.ok(html.includes('POWER'), 'Docs alchemy should mention projectile POWER');
+});
+
 console.log('\nScaling tab: JS behaviour');
 
 let elements;
