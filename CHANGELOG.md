@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.15] — 2026-05-12
+
+### Changed
+- **Docs > Damage section** — replaced the separate "Offensive Alchemy" subnav button with a **Damage type** dropdown inside the Damage section (Physical / Offensive Alchemy). Physical is the default; selecting Offensive Alchemy switches to the spell-might + magic-defense interactive graph.
+
 ## [0.2.14] — 2026-05-12
 
 ### Added

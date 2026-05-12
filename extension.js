@@ -3256,6 +3256,15 @@ function renderRoomDetail(room){
     alMdef.addEventListener('input',renderAlchemy);
     renderAlchemy();
   }
+  // ── Damage type dropdown ─────────────────────────────────────────────────
+  var dmgTypeSel=document.getElementById('doc-dmg-type');
+  if(dmgTypeSel){
+    dmgTypeSel.addEventListener('change',function(){
+      var al=dmgTypeSel.value==='alchemy';
+      document.getElementById('doc-phys-content').style.display=al?'none':'';
+      document.getElementById('doc-al-content').style.display=al?'':'none';
+    });
+  }
   // ── Hit% section ────────────────────────────────────────────────────────
   var hitTbl=document.getElementById('doc-hit-table');
   if(hitTbl){
@@ -3806,7 +3815,6 @@ ${routeJs}
         '<div class="doc-wrap">' +
         '<div class="doc-subnav">' +
         '<button class="doc-btn doc-btn-active" data-doc="damage">Damage</button>' +
-        '<button class="doc-btn" data-doc="alchemy">Offensive Alchemy</button>' +
         '<button class="doc-btn" data-doc="hit">Hit%</button>' +
         '<button class="doc-btn" data-doc="atlas">Atlas Glitch</button>' +
         '<button class="doc-btn" data-doc="mapload">Map Loading</button>' +
@@ -3816,6 +3824,8 @@ ${routeJs}
         '</div>' +
         '<div class="doc-content">' +
         '<div class="doc-sec" data-doc="damage">' +
+        '<div style="margin-bottom:10px"><label style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;opacity:.55">Damage type\u00a0<select id="doc-dmg-type" class="sc-sel"><option value="physical">Physical</option><option value="alchemy">Offensive Alchemy</option></select></label></div>' +
+        '<div id="doc-phys-content">' +
         '<h3 class="doc-h">Physical Damage</h3>' +
         '<div class="doc-fact">Formula from soestuff.lua. The 8-bit RNG seed varies each attack, producing a range of outcomes.</div>' +
         '<pre class="doc-code">w = ~((def\u00f74 - atk) - 1) &amp; 0xFFFF\nif w &lt; 1 or w \u2265 0x8000: w = 1\nseed = hi16((w+1)\u00d7rng16)\na = (seed + w) mod 65536\ndmg = ((((a \u226a 1) mod 65536) + w + carry(a)) mod 65536) \u00bb 2\nshown = min(999, dmg)</pre>' +
@@ -3823,13 +3833,14 @@ ${routeJs}
         '<label>def <input id="doc-def" type="range" min="0" max="255" value="28"><span id="doc-def-num">28</span></label></div>' +
         '<div id="doc-dmg-chart"></div>' +
         '</div>' +
-        '<div class="doc-sec" data-doc="alchemy" style="display:none">' +
+        '<div id="doc-al-content" style="display:none">' +
         '<h3 class="doc-h">Offensive Alchemy</h3>' +
         '<div class="doc-fact">Current extension model: ROM spell might minus <code>effective_mdef = max(0, 0x40 - magic_defense)</code>, then the same verified RNG spread helper as physical damage.</div>' +
         '<pre class="doc-code">base_might = ROM16[0x45E6B + spell_id*2]\neffective_mdef = max(0, 0x40 - target.magic_defense)\nw = max(1, base_might - effective_mdef)\nseed = hi16((w+1)\u00d7rng16)\nshown = min(999, damage_rng_spread(w, seed))</pre>' +
         '<div class="doc-sliders"><label>spell <select id="doc-al-spell" class="sc-sel"></select></label>' +
         '<label>magic_defense <input id="doc-al-mdef" type="range" min="0" max="64" value="51"><span id="doc-al-mdef-num">51</span></label></div>' +
         '<div id="doc-al-chart"></div>' +
+        '</div>' +
         '</div>' +
         '<div class="doc-sec" data-doc="hit" style="display:none">' +
         '<h3 class="doc-h">Hit Chance</h3>' +
