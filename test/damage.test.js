@@ -155,36 +155,50 @@ test('atlas docs preview falls back to normal damage when subtraction does not u
 
 test('offensive alchemy gives Hard Ball L0 vs Purple/Wimpy Flower as 6–10', () => {
     const r = alchemyRangeLevel0(21, 32);
-    assert.strictEqual(r.spellPower, 21);
-    assert.strictEqual(r.resist, 13);
-    assert.strictEqual(r.w, 8);
-    assert.deepStrictEqual({ min: r.min, max: r.max, pct999: r.pct999 }, { min: 6, max: 10, pct999: 0 });
+    assert.strictEqual(r.spellPower, 11);
+    assert.strictEqual(r.bonusBase, 10);
+    assert.strictEqual(r.defenseFactor, 32);
+    assert.deepStrictEqual({ min: r.min, max: r.max, pct999: r.pct999 }, { min: 5, max: 10, pct999: 0 });
 });
 
 test('offensive alchemy gives Hard Ball L0 vs Carltron-like m.def 60 as 0–1', () => {
     const r = alchemyRangeLevel0(21, 60);
-    assert.strictEqual(r.resist, 20);
-    assert.strictEqual(r.w, 1);
+    assert.strictEqual(r.defenseFactor, 4);
     assert.deepStrictEqual({ min: r.min, max: r.max, pct999: r.pct999 }, { min: 0, max: 1, pct999: 0 });
 });
 
 test('offensive alchemy gives Hard Ball L0 vs Mosquito-like m.def 0 as 12–20', () => {
     const r = alchemyRangeLevel0(21, 0);
-    assert.strictEqual(r.resist, 5);
-    assert.strictEqual(r.w, 16);
-    assert.deepStrictEqual({ min: r.min, max: r.max, pct999: r.pct999 }, { min: 12, max: 20, pct999: 0 });
+    assert.strictEqual(r.defenseFactor, 64);
+    assert.deepStrictEqual({ min: r.min, max: r.max, pct999: r.pct999 }, { min: 11, max: 20, pct999: 0 });
 });
 
-test('offensive alchemy floors negative inputs before applying the shared m.def model', () => {
+test('offensive alchemy clamps out-of-range magic defense before applying the traced hit multiplier', () => {
     const r = alchemyRangeLevel0(21, 70);
     assert.strictEqual(alchemyEffectiveMdef(-1), 5);
-    assert.strictEqual(r.resist, 22);
-    assert.strictEqual(r.w, 1);
-    assert.deepStrictEqual({ min: r.min, max: r.max, pct999: r.pct999 }, { min: 0, max: 1, pct999: 0 });
+    assert.strictEqual(r.rawMagicDefense, 64);
+    assert.strictEqual(r.defenseFactor, 0);
+    assert.deepStrictEqual({ min: r.min, max: r.max, pct999: r.pct999 }, { min: 0, max: 0, pct999: 0 });
+});
+
+test('offensive alchemy gives Hard Ball L1 vs Purple/Wimpy Flower as 10–20', () => {
+    const r = alchemyProjectedRange(21, 1, 32, 0, 1);
+    assert.strictEqual(r.spellPower, 21);
+    assert.strictEqual(r.bonusBase, 21);
+    assert.strictEqual(r.defenseFactor, 32);
+    assert.deepStrictEqual({ min: r.min, max: r.max, pct999: r.pct999 }, { min: 10, max: 20, pct999: 0 });
+});
+
+test('offensive alchemy gives Hard Ball L1 vs Mosquito-like m.def 0 as 21–41', () => {
+    const r = alchemyProjectedRange(21, 1, 0, 0, 1);
+    assert.strictEqual(r.spellPower, 21);
+    assert.strictEqual(r.bonusBase, 21);
+    assert.strictEqual(r.defenseFactor, 64);
+    assert.deepStrictEqual({ min: r.min, max: r.max, pct999: r.pct999 }, { min: 21, max: 41, pct999: 0 });
 });
 
 test('projected alchemy spell level preview scales spell power upward', () => {
-    assert.strictEqual(alchemySpellPowerAtLevel(21, 0), 21);
+    assert.strictEqual(alchemySpellPowerAtLevel(21, 0), 11);
     assert.strictEqual(alchemySpellPowerAtLevel(21, 1), 21);
     assert.strictEqual(alchemySpellPowerAtLevel(21, 9), 242);
 });

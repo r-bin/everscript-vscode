@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.27] — 2026-05-13
+
+### Fixed
+- **Projectile alchemy damage model** — replaced the old `effective_mdef`/shared-RNG approximation with the traced projectile formula: cast-side power now uses the ROM spell-level scale table plus its own RNG bonus, and hit damage applies the traced `(0x40 - magic_defense) / 0x40` multiplier.
+
+### Added
+- **`hb1` offensive alchemy regressions** — damage coverage now includes Hard Ball level 1 against Purple/Wimpy Flower (`10–20`) and Mosquito-like `m.def 0` (`21–41`), alongside the traced level-0 regressions.
+
 ## [0.2.26] — 2026-05-13
 
 ### Changed

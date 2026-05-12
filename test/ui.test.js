@@ -323,12 +323,12 @@ test('Alchemy mode updates the Scaling note text', () => {
     modeSel.value = 'alchemy';
     modeSel._trigger('change', {});
     assert.ok(
-        elements['sc-note'].textContent.includes('Offensive alchemy now shows two projected preview graphs'),
+        elements['sc-note'].textContent.includes('Offensive alchemy now uses the traced projectile path'),
         'Scaling note did not switch to the alchemy copy'
     );
 });
 
-test('Hard Ball S0 vs Wimpy Flower shows a 6–10 legend range in alchemy mode', () => {
+test('Hard Ball S0 vs Wimpy Flower shows a 5–10 legend range in alchemy mode', () => {
     assert.ok(elements, 'JS failed to run — skipping');
     const modeSel = elements['sc-mode-sel'];
     modeSel.value = 'alchemy';
@@ -336,8 +336,8 @@ test('Hard Ball S0 vs Wimpy Flower shows a 6–10 legend range in alchemy mode',
     const legendHtml = elements['sc-legend'].innerHTML;
     assert.ok(legendHtml.includes('Hard Ball'), 'Hard Ball row missing from Scaling legend');
     assert.ok(
-        legendHtml.includes('S0:6–10') || legendHtml.includes('S0:6-10'),
-        `Expected Hard Ball legend range 6–10, got: ${legendHtml.match(/Hard Ball[\s\S]{0,120}/)?.[0] || legendHtml}`
+        legendHtml.includes('S0:5–10') || legendHtml.includes('S0:5-10'),
+        `Expected Hard Ball legend range 5–10, got: ${legendHtml.match(/Hard Ball[\s\S]{0,120}/)?.[0] || legendHtml}`
     );
 });
 
@@ -379,7 +379,7 @@ test('Docs calculators both initialize without throwing', () => {
     assert.ok(elements['doc-al-chart'] && elements['doc-al-chart'].innerHTML.length > 10, 'Alchemy docs chart did not initialize');
 });
 
-test('Docs alchemy graph shows Hard Ball L0 vs m.def 32 as 6–10', () => {
+test('Docs alchemy graph shows Hard Ball L0 vs m.def 32 as 5–10', () => {
     assert.ok(elements, 'JS failed to run — skipping');
     elements['doc-al-spell'].value = 'hardball';
     elements['doc-al-spell-lv'].value = 0;
@@ -387,13 +387,13 @@ test('Docs alchemy graph shows Hard Ball L0 vs m.def 32 as 6–10', () => {
     elements['doc-al-mdef']._trigger('input', {});
     const htmlOut = elements['doc-al-chart'].innerHTML;
     assert.ok(
-        htmlOut.includes('shown range: <b>6–10</b>') || htmlOut.includes('shown range: <b>6-10</b>'),
-        `Expected docs alchemy chart range 6–10, got: ${htmlOut}`
+        htmlOut.includes('shown range: <b>5–10</b>') || htmlOut.includes('shown range: <b>5-10</b>'),
+        `Expected docs alchemy chart range 5–10, got: ${htmlOut}`
     );
     assert.ok(htmlOut.includes('<svg'), 'Expected docs alchemy chart to include the RNG histogram');
 });
 
-test('Docs alchemy graph shows Hard Ball L0 vs m.def 0 as 12–20', () => {
+test('Docs alchemy graph shows Hard Ball L0 vs m.def 0 as 11–20', () => {
     assert.ok(elements, 'JS failed to run — skipping');
     elements['doc-al-spell'].value = 'hardball';
     elements['doc-al-spell-lv'].value = 0;
@@ -401,8 +401,8 @@ test('Docs alchemy graph shows Hard Ball L0 vs m.def 0 as 12–20', () => {
     elements['doc-al-mdef']._trigger('input', {});
     const htmlOut = elements['doc-al-chart'].innerHTML;
     assert.ok(
-        htmlOut.includes('shown range: <b>12–20</b>') || htmlOut.includes('shown range: <b>12-20</b>'),
-        `Expected docs alchemy chart range 12–20, got: ${htmlOut}`
+        htmlOut.includes('shown range: <b>11–20</b>') || htmlOut.includes('shown range: <b>11-20</b>'),
+        `Expected docs alchemy chart range 11–20, got: ${htmlOut}`
     );
 });
 
@@ -420,7 +420,7 @@ test('Scaling legend shows Hard Ball L0 vs Carltron\'s Robot as 0–1', () => {
     );
 });
 
-test('Scaling legend shows Hard Ball S0 vs Mosquito as 12–20', () => {
+test('Scaling legend shows Hard Ball S0 vs Mosquito as 11–20', () => {
     assert.ok(elements, 'JS failed to run — skipping');
     elements['sc-tgt-sel'].value = 110;
     elements['sc-tgt-sel']._trigger('change', {});
@@ -429,8 +429,34 @@ test('Scaling legend shows Hard Ball S0 vs Mosquito as 12–20', () => {
     modeSel._trigger('change', {});
     const legendHtml = elements['sc-legend'].innerHTML;
     assert.ok(
-        legendHtml.includes('S0:12–20') || legendHtml.includes('S0:12-20'),
-        `Expected Hard Ball legend range 12–20 for Mosquito, got: ${legendHtml.match(/Hard Ball[\s\S]{0,120}/)?.[0] || legendHtml}`
+        legendHtml.includes('S0:11–20') || legendHtml.includes('S0:11-20'),
+        `Expected Hard Ball legend range 11–20 for Mosquito, got: ${legendHtml.match(/Hard Ball[\s\S]{0,120}/)?.[0] || legendHtml}`
+    );
+});
+
+test('Docs alchemy graph shows Hard Ball L1 vs m.def 32 as 10–20', () => {
+    assert.ok(elements, 'JS failed to run — skipping');
+    elements['doc-al-spell'].value = 'hardball';
+    elements['doc-al-spell-lv'].value = 1;
+    elements['doc-al-mdef'].value = 32;
+    elements['doc-al-mdef']._trigger('input', {});
+    const htmlOut = elements['doc-al-chart'].innerHTML;
+    assert.ok(
+        htmlOut.includes('shown range: <b>10–20</b>') || htmlOut.includes('shown range: <b>10-20</b>'),
+        `Expected docs alchemy chart range 10–20, got: ${htmlOut}`
+    );
+});
+
+test('Docs alchemy graph shows Hard Ball L1 vs m.def 0 as 21–41', () => {
+    assert.ok(elements, 'JS failed to run — skipping');
+    elements['doc-al-spell'].value = 'hardball';
+    elements['doc-al-spell-lv'].value = 1;
+    elements['doc-al-mdef'].value = 0;
+    elements['doc-al-mdef']._trigger('input', {});
+    const htmlOut = elements['doc-al-chart'].innerHTML;
+    assert.ok(
+        htmlOut.includes('shown range: <b>21–41</b>') || htmlOut.includes('shown range: <b>21-41</b>'),
+        `Expected docs alchemy chart range 21–41, got: ${htmlOut}`
     );
 });
 

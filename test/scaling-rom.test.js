@@ -4,7 +4,7 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const Module = require('module');
-const { alchemyEffectiveMdef, alchemyRangeLevel0 } = require('../alchemy-model');
+const { alchemyRangeLevel0 } = require('../alchemy-model');
 
 let passed = 0;
 let failed = 0;
@@ -71,7 +71,7 @@ try {
 
 console.log('\nscaling rom parsing:');
 
-test('Hard Ball L0 vs Purple Flower uses parsed magic_defense=32 and yields 6–10', () => {
+test('Hard Ball L0 vs Purple Flower uses parsed magic_defense=32 and yields 5–10', () => {
     const CHAR_BASE = 0x0EB678;
     const CHAR_SIZE = 0x4a;
     const targetId = 109;
@@ -107,8 +107,24 @@ test('Hard Ball L0 vs Purple Flower uses parsed magic_defense=32 and yields 6–
         assert.strictEqual(flower.evade, 0);
 
         const r = alchemyRangeLevel0(21, flower.magic_defense);
-        assert.deepStrictEqual({ w: r.w, resist: r.resist, min: r.min, max: r.max }, { w: 8, resist: 13, min: 6, max: 10 });
-        assert.strictEqual(alchemyEffectiveMdef(60), 20);
+        assert.deepStrictEqual(
+            {
+                spellPower: r.spellPower,
+                bonusBase: r.bonusBase,
+                rawMagicDefense: r.rawMagicDefense,
+                defenseFactor: r.defenseFactor,
+                min: r.min,
+                max: r.max,
+            },
+            {
+                spellPower: 11,
+                bonusBase: 10,
+                rawMagicDefense: 32,
+                defenseFactor: 32,
+                min: 5,
+                max: 10,
+            }
+        );
     } finally {
         fs.existsSync = origExistsSync;
         fs.readFileSync = origReadFileSync;

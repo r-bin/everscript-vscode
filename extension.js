@@ -4,22 +4,30 @@ const vscode = require('vscode');
 const path   = require('path');
 const fs     = require('fs');
 const { radarLifecycle, radarH, radarEsc, radarExtractEmoji, radarParseName, radarParseNotes, parseEvsNum, parseEnumsFromContent, parseEvsEnumValues } = require('./radar-utils');
-const { alchemyEffectiveMdef, alchemyRangeLevel0, alchemySpellPowerAtLevel, alchemyMagicDefenseAtLevel, alchemyTargetHpAtLevel, alchemyProjectedRange } = require('./alchemy-model');
+const { alchemyEffectiveMdef, alchemyRangeAtLevel, alchemySpellPowerAtLevel, alchemySpellBonusBaseAtLevel, alchemyDamageFromPower, alchemyDamageSamples, alchemyMagicDefenseAtLevel, alchemyTargetHpAtLevel, alchemyProjectedRange } = require('./alchemy-model');
 
 const alchemyWebviewEffectiveMdef = alchemyEffectiveMdef.toString().replace(/function alchemyEffectiveMdef/, 'function effectiveMdef');
-const alchemyWebviewRange = alchemyRangeLevel0
+const alchemyWebviewBonusBase = alchemySpellBonusBaseAtLevel.toString();
+const alchemyWebviewDamageFromPower = alchemyDamageFromPower.toString();
+const alchemyWebviewDamageSamples = alchemyDamageSamples
     .toString()
-    .replace(/function alchemyRangeLevel0/, 'function alchemyRange')
-    .replace(/alchemyEffectiveMdef/g, 'effectiveMdef')
-    .replace(/damageRangeFull/g, 'dmgRangeFull');
+  .replace(/alchemySpellPowerAtLevel/g, 'alchemySpellPowerAtLevel')
+  .replace(/alchemySpellBonusBaseAtLevel/g, 'alchemySpellBonusBaseAtLevel')
+  .replace(/alchemyDamageFromPower/g, 'alchemyDamageFromPower');
+const alchemyWebviewRange = alchemyRangeAtLevel
+  .toString()
+  .replace(/alchemySpellPowerAtLevel/g, 'alchemySpellPowerAtLevel')
+  .replace(/alchemySpellBonusBaseAtLevel/g, 'alchemySpellBonusBaseAtLevel')
+  .replace(/alchemyDamageFromPower/g, 'alchemyDamageFromPower');
 const alchemyWebviewSpellPower = alchemySpellPowerAtLevel.toString();
 const alchemyWebviewMagicDefenseAtLevel = alchemyMagicDefenseAtLevel.toString();
 const alchemyWebviewTargetHpAtLevel = alchemyTargetHpAtLevel.toString();
 const alchemyWebviewProjectedRange = alchemyProjectedRange
   .toString()
   .replace(/alchemySpellPowerAtLevel/g, 'alchemySpellPowerAtLevel')
+  .replace(/alchemyRangeAtLevel/g, 'alchemyRangeAtLevel')
   .replace(/alchemyMagicDefenseAtLevel/g, 'alchemyMagicDefenseAtLevel')
-  .replace(/alchemyRangeLevel0/g, 'alchemyRange');
+  .replace(/alchemyRangeLevel0/g, 'alchemyRangeAtLevel');
 
 // ── Data loading ──────────────────────────────────────────────────────────────
 
@@ -2232,6 +2240,9 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     const scalingJs = `
 (function(){
   ${alchemyWebviewEffectiveMdef}
+  ${alchemyWebviewBonusBase}
+  ${alchemyWebviewDamageFromPower}
+  ${alchemyWebviewDamageSamples}
   ${alchemyWebviewRange}
   ${alchemyWebviewSpellPower}
   ${alchemyWebviewMagicDefenseAtLevel}
@@ -2327,7 +2338,7 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
     var noteEl=document.getElementById('sc-note');
     if(noteEl){
       noteEl.textContent=isAlchemy
-        ? 'Offensive alchemy now shows two projected preview graphs. The grounded part is still base spell might minus effective_mdef; spell-level growth uses a labeled +10% per level preview, and scalable target-level preview reuses defense growth for target magic_defense because no separate m.def growth table is wired yet.'
+        ? 'Offensive alchemy now uses the traced projectile path: cast-side spell power scales by the ROM level table, then hit damage is multiplied by (0x40 - magic_defense) / 0x40. Target-level preview still reuses defense growth because no separate magic-defense growth table is wired yet.'
         : '★ = scalable (level grows). Scaling uses one physical damage helper for all cases: stamina first adjusts attack, Atlas optionally subtracts 480 before damage, then the same RNG-based physical formula computes min/max/999-cap odds.';
     }
   }
@@ -3345,6 +3356,10 @@ function renderRoomDetail(room){
 
     const docsJs = `(function(){
   ${alchemyWebviewEffectiveMdef}
+  ${alchemyWebviewBonusBase}
+  ${alchemyWebviewDamageFromPower}
+  ${alchemyWebviewDamageSamples}
+  ${alchemyWebviewRange}
   ${alchemyWebviewSpellPower}
   // Sub-tab navigation
   document.querySelectorAll('.doc-btn').forEach(function(btn){
@@ -3414,12 +3429,10 @@ function renderRoomDetail(room){
       var spell=SC_SPELLS.find(function(sp){return sp.id===alSpell.value;})||SC_SPELLS[0];
       var spellLevel=+alSpellLevel.value;
       var rawMdef=+alMdef.value;
-      var eff=effectiveMdef(rawMdef);
-      var spellPower=alchemySpellPowerAtLevel(spell.might,spellLevel);
-      var w=Math.max(1,spellPower-eff);
-      var raw=docSeeds(w);
+      var stats=alchemyRangeAtLevel(spell.might,spellLevel,rawMdef);
+      var spellPower=stats.spellPower;
+      var raw=alchemyDamageSamples(spell.might,spellLevel,rawMdef);
       var capped=raw.map(function(d){return Math.min(999,d);});
-      var stats=docRangeStats(w);
       var N=32,buckets=new Array(N).fill(0),range=stats.max-stats.min||1;
       capped.forEach(function(d){var bi=Math.min(N-1,Math.floor((d-stats.min)/range*N));buckets[bi]++;});
       var bMax=buckets.reduce(function(a,b){return Math.max(a,b);},1);
@@ -3432,18 +3445,18 @@ function renderRoomDetail(room){
       document.getElementById('doc-al-spell-lv-num').textContent=spellLevel;
       document.getElementById('doc-al-mdef-num').textContent=rawMdef;
       var html='<div class="doc-val">spell: <b>'+spell.label+'</b>  base might: <b>'+spell.might+'</b>  spell level: <b>'+spellLevel+'</b></div>';
-      html+='<div class="doc-val">spell_power_at_level: <b>'+spellPower+'</b>  raw magic_defense: <b>'+rawMdef+'</b>  effective_mdef: <b>'+eff+'</b>  w: <b>'+w+'</b></div>';
+      html+='<div class="doc-val">spell_power_at_level: <b>'+spellPower+'</b>  bonus_base: <b>'+stats.bonusBase+'</b>  raw magic_defense: <b>'+rawMdef+'</b>  defense_factor: <b>'+stats.defenseFactor+'/64</b></div>';
       html+='<div class="doc-val">shown range: <b>'+stats.min+'\u2013'+stats.max+'</b>'+(stats.count999?'<span class="doc-cap">999-cap: '+stats.count999+'/65536 ('+docFmtPct(stats.pct999)+'%)</span>':'')+'</div>';
       html+='<svg width="'+W+'" height="'+H+'" style="display:block;margin:4px 0">'+bars+'</svg>';
       html+='<div style="width:'+W+'px;display:flex;justify-content:space-between;font-size:9px;opacity:.4"><span>'+stats.min+'</span><span>'+stats.max+'</span></div>';
       html+='<ul class="doc-bullets">'
         +'<li>Grounded inputs only: <b>base might</b> from ROM offset <b>0x45E6B</b> and enemy <b>magic_defense</b>.</li>'
-        +'<li>The <b>spell level</b> slider keeps level <b>0</b> on the checked base-might path and uses the traced cast-side helper for levels <b>1..9</b>: <code>spell_power_at_level = ceil(base_might * [2,4,7,11,15,20,26,32,39,46][level] / 4)</code>.</li>'
-        +'<li>The RNG spread after that uses the same verified helper as physical damage.</li>'
-        +'<li>Spell-level growth, charge state, and 8-cast route modeling are still open.</li>'
+        +'<li>The <b>spell level</b> slider uses the traced cast-side helper <code>spell_power_at_level = ceil(base_might * [2,4,7,11,15,20,26,32,39,46][level] / 4)</code> with a RNG bonus based on <code>floor(base_might * scale / 4)</code>.</li>'
+        +'<li>Hit damage then applies the traced target-side multiplier <code>floor(projectile_power * (0x40 - magic_defense) / 0x40)</code>.</li>'
+        +'<li>Target-level growth and 8-cast route modeling are still open.</li>'
         +'</ul>';
       if(spell.id==='hardball'&&spellLevel===0&&rawMdef===32){
-        html+='<div class="doc-fact">Example check: Hard Ball L0 with raw magic_defense 32 produces <b>6\u201310</b>.</div>';
+        html+='<div class="doc-fact">Example check: Hard Ball L0 with raw magic_defense 32 produces <b>5\u201310</b>.</div>';
       }
       document.getElementById('doc-al-chart').innerHTML=html;
     }
@@ -4025,8 +4038,8 @@ ${routeJs}
         '</div>' +
         '<div class="doc-sec" data-doc="alchemy" style="display:none">' +
         '<h3 class="doc-h">Offensive Alchemy</h3>' +
-        '<div class="doc-fact">Grounded today: level-0 resistance uses <code>effective_mdef = max(0, floor((magic_defense + 20) / 4))</code>. Leveled cast power now uses the traced high-level scale table from the ROM, while level <code>0</code> keeps the already-checked base-might path. Research notes also point at a projectile-slot <code>POWER</code> field for projectile alchemy.</div>' +
-        '<pre class="doc-code">base_might = ROM16[0x45E6B + spell_id*2]\nif spell_level == 0: spell_power_at_level = base_might\nelse:\n  level_scale = [2,4,7,11,15,20,26,32,39,46][spell_level]\n  spell_power_at_level = ceil(base_might * level_scale / 4)\nprojectile_power = [7E3564 + slot*0x76 + 0x2A]\neffective_mdef = max(0, floor((target.magic_defense + 20) / 4))\nw = max(1, spell_power_at_level - effective_mdef)\nseed = hi16((w+1)\u00d7rng16)\nshown = min(999, damage_rng_spread(w, seed))</pre>' +
+        '<div class="doc-fact">Grounded today: offensive alchemy uses the traced projectile path. Cast-side spell power comes from the ROM level table and hit damage multiplies that projectile power by <code>(0x40 - magic_defense) / 0x40</code>. Research notes also point at a projectile-slot <code>POWER</code> field for projectile alchemy.</div>' +
+        '<pre class="doc-code">base_might = ROM16[0x45E6B + spell_id*2]\nlevel_scale = [2,4,7,11,15,20,26,32,39,46][spell_level]\nspell_power_at_level = ceil(base_might * level_scale / 4)\nspell_bonus_base = floor(base_might * level_scale / 4)\nprojectile_power = spell_power_at_level + floor(spell_bonus_base * rng16 / 65536)\nshown = floor(projectile_power * (0x40 - magic_defense) / 0x40)</pre>' +
         '<div class="doc-sliders"><label>spell <select id="doc-al-spell" class="sc-sel"></select></label>' +
         '<label>spell level <input id="doc-al-spell-lv" type="range" min="0" max="9" value="0"><span id="doc-al-spell-lv-num">0</span></label>' +
         '<label>magic_defense <input id="doc-al-mdef" type="range" min="0" max="64" value="51"><span id="doc-al-mdef-num">51</span></label></div>' +
