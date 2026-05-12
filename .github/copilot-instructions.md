@@ -6,6 +6,12 @@ They cannot be overridden by individual agent spec files.
 
 ---
 
+externl resources:
+- everscript repo
+- SoETilesViewer repo (for reference only; do not modify or depend on it)
+
+---
+
 This is a vibe-coding project.
 - Every prompt should end in a commit that follows the Change Ritual in §2.
 - If the worktree is still dirty afterward, or the version was not bumped, or nothing was installed, return to §2 and finish the ritual.

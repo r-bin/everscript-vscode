@@ -87,6 +87,8 @@ dataptr → [  0] offX      (u8)  — trig_off_x = room x-origin in 16px-tile un
            [ ... ] payload  — remaining room payload (visual / collision data), codec still unresolved
 ```
 
+Important: the 6-byte record width is the current working model and matches the in-repo parser assumptions, but the external SoE tiles viewer C++ source is not present in this workspace, so that external comparison was not freshly re-verified here.
+
 The map pointer table is at SNES `0x9ffde7` = ROM `0x1ffde7`. Each entry is 4 bytes; entry for map `id` is at `0x1ffde7 + id * 4` and contains a 24-bit SNES address to the data block.
 
 
@@ -166,6 +168,8 @@ From `list-rooms.cpp`, the room data block at `dataptr`:
 
 Each trigger entry byte layout in ROM: `[y1][x1][y2][x2][scriptId16]`  
 `script_all` prints them as `[x1,y1:x2,y2]` (x first).
+
+That print order is the likely reason the format can look inconsistent across tools: the record is still 6 bytes, but many dumps display `x` first for readability.
 
 ## Known Rooms Without `init_map`
 

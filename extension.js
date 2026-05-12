@@ -3859,7 +3859,7 @@ ${routeJs}
         '<pre class="doc-code">map[33 / "Prehistoria - Strong Heart\'s Exterior"]\ndata     = 0xADB50C\nsize     = 0x0455 (confirmed)\nstep_len = ROM16[0xADB519] = 0x000C = 2 entries\nb_len    = ROM16[0xADB527] = 0x0000\npayload  = 0xADB529 .. 0xADB960</pre>' +
         '<ul class="doc-bullets">' +
         '<li>Each room points at one variable-size blob. For room <b>0x33</b>, the blob begins at <b>0xADB50C</b> and ends at <b>0xADB960</b> because the next room starts immediately after it.</li>' +
-        '<li>The first <b>13 bytes</b> are room metadata. In traced rooms, bytes <b>0</b> and <b>1</b> become <code>trig_off_x</code> and <code>trig_off_y</code>.</li>' +
+        '<li>The first <b>13 bytes</b> are room metadata. Only bytes <b>0</b> and <b>1</b> are currently named with confidence: they behave like <code>trig_off_x</code> and <code>trig_off_y</code>. Bytes <b>2..12</b> are still unknown header fields.</li>' +
         '<li>At offset <b>0x0D</b> the blob switches to trigger tables: <code>step_len</code>, then 6-byte step-on entries; after that comes <code>b_len</code> and the B-trigger entries.</li>' +
         '<li>For room <b>0x33</b> that means: metadata at <b>0xADB50C..0xADB518</b>, step-on table at <b>0xADB519..0xADB526</b>, B-table length at <b>0xADB527..0xADB528</b>, then the room payload from <b>0xADB529</b> onward.</li>' +
         '</ul>' +
@@ -3879,7 +3879,8 @@ ${routeJs}
         '<li>The two step-on records only describe the doorway transitions. They do not describe the hut image itself.</li>' +
         '<li>Because the image disappears from bottom-right first when the payload tail is cut, later payload bytes correspond to later-placed tiles in the final room image.</li>' +
         '<li>The black walkable square is the same room after payload loss: enter logic and room origin still exist, but the art and collision payload are no longer complete.</li>' +
-        '<li>Still open: the exact codec commands, whether graphics and collision are interleaved or split, and the precise buffer layout used before the picture is shown.</li>' +
+        '<li>The current 6-byte trigger-record model matches the in-repo parser notes, but the external SoE tiles viewer C++ source was not re-verified inside this workspace.</li>' +
+        '<li>Still open: header bytes 2..12, the exact codec commands, whether graphics and collision are interleaved or split, and the precise buffer layout used before the picture is shown.</li>' +
         '</ul>' +
         '</div>' +
         '<div class="doc-sec" data-doc="script" style="display:none">' +
