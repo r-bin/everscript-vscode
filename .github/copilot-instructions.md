@@ -30,7 +30,7 @@ Every change must serve one or more of:
 
 ## 2. Change Ritual (mandatory for every commit)
 
-Every session that modifies any project file must complete all four steps before ending:
+Every session that modifies any project (if only documentation and no code was changed we can skip and commit) file must complete all four steps before ending:
 
 1. **Bump the version** in `package.json` — patch for fixes, docs, and correction requests; minor for new features; major for breaking changes.
 2. **Run tests** — `npm test`. All tests must pass. Fix failures before proceeding.

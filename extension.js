@@ -1193,6 +1193,32 @@ function readPngDimensions(filePath) {
  * @returns {{offX:number, offY:number}|null}
  */
 function readRomTriggerOffsets(wsRoot, mapId) {
+    const h = readRomMapHeader(wsRoot, mapId);
+    return h ? { offX: h.offX, offY: h.offY } : null;
+}
+
+/**
+ * Read the full 13-byte ROM map header plus trigger table lengths and payload tile-set list.
+ * Header layout (from traced data):
+ *   [0]  trig_off_x        → 7E0F86  trigger rect origin X in 16px-tile units
+ *   [1]  trig_off_y        → 7E0F88  trigger rect origin Y in 16px-tile units
+ *   [2]  map_w_tiles       → 7E08EE  map width  in 16px tiles (× 16 = pixels)
+ *   [3]  map_h_tiles       → 7E08F0  map height in 16px tiles (× 16 = pixels)
+ *   [4]  room_render_preset→ 7E0F80 → TM $212C   display layer enables
+ *   [5]  room_subscreen    → 7E0F81 → TS $212D   subscreen layer enables
+ *   [6]  room_effect_family→ 7E0F82 → CGADSUB $2131  color math add/sub
+ *   [7]  room_effect_enable→ 7E0F83 → CGWSEL $2130   color window/math master
+ *   [8]  room_effect_variant→7E241F  per-room modifier within effect family
+ *   [9-10] unknown_word    → 7E0F84  16-bit field; purpose not decoded
+ *   [11] unknown_b11       (skipped by loader)
+ *   [12] unknown_b12       (skipped by loader)
+ * After header: step_len uint16, step-on table (6 bytes/entry), b_len uint16, B-trigger table.
+ * Payload starts after trigger tables; first byte = tile-family count, then count×uint16 IDs.
+ * @param {string} wsRoot
+ * @param {number} mapId
+ * @returns {object|null}
+ */
+function readRomMapHeader(wsRoot, mapId) {
     if (!wsRoot || mapId == null) return null;
     try {
         const romNames = ['Secret of Evermore (U) [!].smc', 'Secret of Evermore.smc'];
@@ -1208,8 +1234,55 @@ function readRomTriggerOffsets(wsRoot, mapId) {
         if (ptrAddr + 3 >= romBuf.length) return null;
         const dataSnes = romBuf[ptrAddr] | (romBuf[ptrAddr + 1] << 8) | (romBuf[ptrAddr + 2] << 16);
         const dataRom  = ((dataSnes >> 16) & 0x3f) * 0x10000 + (dataSnes & 0xffff);
-        if (dataRom + 2 >= romBuf.length) return null;
-        return { offX: romBuf[dataRom], offY: romBuf[dataRom + 1] };
+        if (dataRom + 20 >= romBuf.length) return null;
+        const h   = (off) => romBuf[dataRom + off];
+        const h16 = (off) => romBuf[dataRom + off] | (romBuf[dataRom + off + 1] << 8);
+        const offX = h(0), offY = h(1);
+        const mapW = h(2), mapH = h(3);
+        const b4 = h(4), b5 = h(5), b6 = h(6), b7 = h(7), b8 = h(8);
+        const unknownWord = h16(9);
+        const b11 = h(11), b12 = h(12);
+        // Derived geometry (1 tile = 16px; screen = 256×224)
+        const mapWpx = mapW * 16, mapHpx = mapH * 16;
+        const scrollW = Math.max(0, mapWpx - 256);
+        const scrollH = Math.max(0, mapHpx - 224);
+        // Render preset lookup (5-byte signature of bytes 4..8)
+        const sig = [b4, b5, b6, b7, b8].map(v => v.toString(16).padStart(2, '0')).join(' ');
+        const PRESETS = {
+            '17 00 00 02 00': 'default outdoor / neutral',
+            '17 11 02 02 00': 'indoor / interior',
+            '17 01 42 02 00': 'cave / transition-heavy',
+            '17 01 02 02 00': 'alternate special-area',
+            '17 11 42 02 00': 'interior + cave/sewer hybrid',
+            '17 00 00 02 02': 'parallax / layered-background',
+            '16 01 92 02 01': 'darkness-style (Oglin cave)',
+            '17 01 92 02 04': 'effect-heavy arena',
+            '17 01 02 02 05': 'volcano variant',
+            '17 05 42 02 00': 'boss / special-room',
+            '17 12 41 02 00': 'cutscene / palace',
+        };
+        const renderPreset = PRESETS[sig] || null;
+        // Trigger table lengths
+        if (dataRom + 15 >= romBuf.length) return { offX, offY, mapW, mapH, mapWpx, mapHpx, scrollW, scrollH, b4, b5, b6, b7, b8, sig, renderPreset, unknownWord, b11, b12, stepLen: null, stepCount: null, bLen: null, bCount: null, payloadOffset: null, payloadTileCount: null, payloadTileIds: null };
+        const stepLen   = h16(13);
+        const stepCount = Math.floor(stepLen / 6);
+        const bLenOff   = 15 + stepLen;
+        if (dataRom + bLenOff + 2 >= romBuf.length) return { offX, offY, mapW, mapH, mapWpx, mapHpx, scrollW, scrollH, b4, b5, b6, b7, b8, sig, renderPreset, unknownWord, b11, b12, stepLen, stepCount, bLen: null, bCount: null, payloadOffset: null, payloadTileCount: null, payloadTileIds: null };
+        const bLen       = h16(bLenOff);
+        const bCount     = Math.floor(bLen / 6);
+        const payloadOff = bLenOff + 2 + bLen;
+        // Payload tile-set list: 1-byte count + count × uint16 tile-family IDs
+        let payloadTileCount = null, payloadTileIds = null;
+        if (dataRom + payloadOff < romBuf.length) {
+            const tileCount = romBuf[dataRom + payloadOff];
+            const tileEnd   = dataRom + payloadOff + 1 + tileCount * 2;
+            if (tileCount <= 32 && tileEnd <= romBuf.length) {
+                payloadTileCount = tileCount;
+                payloadTileIds   = [];
+                for (let i = 0; i < tileCount; i++) payloadTileIds.push(h16(payloadOff + 1 + i * 2));
+            }
+        }
+        return { offX, offY, mapW, mapH, mapWpx, mapHpx, scrollW, scrollH, b4, b5, b6, b7, b8, sig, renderPreset, unknownWord, b11, b12, stepLen, stepCount, bLen, bCount, payloadOffset: payloadOff, payloadTileCount, payloadTileIds };
     } catch { return null; }
 }
 
@@ -1529,7 +1602,8 @@ function collectRoomsFromDir(dir, wsRoot, depth) {
                 if (roomNumStr !== undefined) {
                     const hexKey = roomNumStr.toString(16).replace(/^0+/, '') || '0';
                     content.poi = luaPoi.get(hexKey) || null;
-                    content.trigOffset = readRomTriggerOffsets(wsRoot, roomNumStr);
+                    const _rh = readRomMapHeader(wsRoot, roomNumStr);
+                    if (_rh) { content.trigOffset = { offX: _rh.offX, offY: _rh.offY }; content.romHeader = _rh; }
                 }
             }
             items.push({ name: m[1], vanillaId: vid, kind: 'map', filePath: fp, relPath: wsRoot ? path.relative(wsRoot, fp) : fp, startLine: i, endLine, content, imagePath: imgPath });
@@ -1565,7 +1639,7 @@ function buildRoomTree(document, wsRoot) {
         if (wsRoot && vid) {
             content.triggers = readScriptAllTriggers(wsRoot, vid);
             const mapNum = getMapEnum(wsRoot).get(vid);
-            if (mapNum !== undefined) content.trigOffset = readRomTriggerOffsets(wsRoot, mapNum);
+            if (mapNum !== undefined) { const _rh = readRomMapHeader(wsRoot, mapNum); if (_rh) { content.trigOffset = { offX: _rh.offX, offY: _rh.offY }; content.romHeader = _rh; } }
         }
         docMaps.push({ name: m[1], vanillaId: vid, kind: 'map', filePath: docPath, relPath: wsRoot ? path.relative(wsRoot, docPath) : docPath, startLine: i, endLine, content, imagePath: imgPath });
     }
@@ -2097,6 +2171,25 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .rs-tbl tr:hover{opacity:1;background:rgba(255,255,255,.04)}
 .rs-tbl tr.hi-row{opacity:1;background:rgba(255,255,255,.1)!important}
 .badge-d{font-size:7px;opacity:.55;border:1px solid #ffa94d;border-radius:3px;padding:0 2px;color:#ffa94d}
+/* ── ROM header section ── */
+.rs-romhdr .rsh-toggle{cursor:pointer;user-select:none}.rs-romhdr .rsh-toggle:hover{opacity:.7}
+.rsh-body.rsh-collapsed{display:none}
+.rsh-tbl td:first-child{font-family:monospace;font-size:9px;opacity:.55;width:54px;white-space:nowrap}
+.rsh-tbl td:nth-child(2){font-family:monospace;font-size:10px;font-weight:700;width:42px;color:#c5e3ff}
+.rsh-tbl td:nth-child(3){font-size:9px;width:160px}
+.rsh-tbl td:nth-child(3) code{font-size:8.5px;color:#b5d3ff;background:#0d1a28;padding:0 3px;border-radius:2px}
+.rsh-tbl td:nth-child(4){font-family:monospace;font-size:8px;opacity:.55;width:110px}
+.rsh-tbl td:nth-child(5){font-size:9px;opacity:.65;max-width:220px}
+.rsh-conf-h{opacity:1}.rsh-conf-m{opacity:.8;color:#ffd580}.rsh-conf-l{opacity:.45;font-style:italic}
+.rsh-derived{font-size:10px;margin:4px 0;opacity:.8;line-height:1.8;font-family:monospace}
+.rsh-preset{display:inline-block;font-size:9px;border:1px solid #3a6a9a;border-radius:10px;padding:1px 8px;background:#0e1e2e;color:#7ab8ff}
+.rsh-preset.rsh-unknown{color:#666;border-color:#333;background:#1a1a1a}
+.rsh-sig{font-family:monospace;font-size:8px;opacity:.35;margin-left:8px}
+.rsh-tiles{display:flex;flex-wrap:wrap;gap:3px;margin:4px 0}
+.rsh-tile{font-family:monospace;font-size:9px;padding:1px 5px;background:#0d1a28;border:1px solid #2a3a4a;border-radius:3px;color:#99bbdd}
+.rsh-section-lbl{font-size:8px;text-transform:uppercase;letter-spacing:.06em;opacity:.3;margin:7px 0 2px;font-weight:700}
+.rsh-trig-info{font-size:10px;opacity:.7;line-height:1.8;font-family:monospace}
+.rsh-payload-note{font-size:8px;opacity:.3;margin-top:3px}
 /* ── Scaling tab ── */
 .sc-wrap{display:flex;flex-direction:column;flex:1;min-height:0;padding:8px;gap:8px;overflow:auto}
 .sc-banner{font-size:10px;padding:3px 8px;background:rgba(255,200,0,0.12);border:1px solid rgba(255,200,0,0.3);border-radius:4px;color:#ffd700}
@@ -3113,8 +3206,83 @@ function renderRoomDetail(room){
     html+='</tbody></table></div>';
   }
 
+  // ── ROM Map Data section ──────────────────────────────────────────────────
+  var rh=c.romHeader||null;
+  if(rh){
+    html+='<div class="rs rs-romhdr">';
+    html+='<div class="rs-h rsh-toggle" id="rsh-toggle">ROM Map Data &#9660;</div>';
+    html+='<div class="rsh-body" id="rsh-body">';
+    // 13-byte header table
+    html+='<div class="rsh-section-lbl">13-byte ROM header</div>';
+    html+='<table class="rs-tbl rsh-tbl"><thead><tr><th>Offset</th><th>Value</th><th>Field name</th><th>WRAM / IO register</th><th>Description</th></tr></thead><tbody>';
+    var HMETA=[
+      {off:'0x00',val:rh.offX,       name:'trig_off_x',            wram:'7E0F86',              desc:'Trigger rect origin X (16px-tile units)',conf:'h'},
+      {off:'0x01',val:rh.offY,       name:'trig_off_y',            wram:'7E0F88',              desc:'Trigger rect origin Y (16px-tile units)',conf:'h'},
+      {off:'0x02',val:rh.mapW,       name:'map_w_tiles',           wram:'7E08EE → 7E08F2, 7E08F6', desc:'Map width in 16px tiles; loader derives pixel size and horizontal scroll capacity',conf:'h'},
+      {off:'0x03',val:rh.mapH,       name:'map_h_tiles',           wram:'7E08F0 → 7E08F4, 7E08F8', desc:'Map height in 16px tiles; loader derives pixel size and vertical scroll capacity',conf:'h'},
+      {off:'0x04',val:rh.b4,         name:'room_render_preset',    wram:'7E0F80 → TM $212C',      desc:'Main-screen layer enables; 0x17 = default (all layers), 0x16 = Oglin cave variant',conf:'m'},
+      {off:'0x05',val:rh.b5,         name:'room_subscreen_preset', wram:'7E0F81 → TS $212D',      desc:'Subscreen / color-math target layers; 0x00=outdoor, 0x11=interior, 0x01=cave/special',conf:'m'},
+      {off:'0x06',val:rh.b6,         name:'room_effect_family',    wram:'7E0F82 → CGADSUB $2131', desc:'Color math add/sub select; high nibble 0x9_ selects rare effect family (darkness, arena)',conf:'m'},
+      {off:'0x07',val:rh.b7,         name:'room_effect_enable',    wram:'7E0F83 → CGWSEL $2130',  desc:'Color window / math master enable; always 0x02 in all known maps',conf:'m'},
+      {off:'0x08',val:rh.b8,         name:'room_effect_variant',   wram:'7E241F',              desc:'Per-room modifier within effect family: 0x00=default, 0x02=parallax/jungle, 0x01=Oglin, 0x04=arena, 0x05=volcano',conf:'l'},
+      {off:'0x09–0x0A',val:rh.unknownWord,name:'unknown_word',wram:'7E0F84',              desc:'16-bit field; copied verbatim; purpose not yet decoded from traces',conf:'l'},
+      {off:'0x0B',val:rh.b11,        name:'unknown_b11',           wram:'—',                  desc:'Skipped by loader (INY at 90904D); no observed destination write',conf:'l'},
+      {off:'0x0C',val:rh.b12,        name:'unknown_b12',           wram:'—',                  desc:'Skipped by loader (INY at 90904E); step_len follows immediately after',conf:'l'},
+    ];
+    HMETA.forEach(function(row){
+      var cc=row.conf==='h'?'rsh-conf-h':row.conf==='m'?'rsh-conf-m':'rsh-conf-l';
+      var hexVal;
+      if(row.off==='0x09–0x0A') hexVal='0x'+(row.val!=null?row.val.toString(16).toUpperCase().padStart(4,'0'):'????');
+      else hexVal='0x'+(row.val!=null?row.val.toString(16).toUpperCase().padStart(2,'0'):'??');
+      html+='<tr class="'+cc+'"><td>'+escH(row.off)+'</td><td>'+hexVal+'</td><td><code>'+escH(row.name)+'</code></td><td>'+escH(row.wram)+'</td><td>'+escH(row.desc)+'</td></tr>';
+    });
+    html+='</tbody></table>';
+    // Derived geometry
+    html+='<div class="rsh-section-lbl">Derived geometry</div>';
+    html+='<div class="rsh-derived">';
+    html+='Width:&nbsp;&nbsp;<b>'+rh.mapW+'</b> tiles = <b>'+rh.mapWpx+'</b>&thinsp;px &nbsp; horizontal scroll capacity: <b>'+rh.scrollW+'</b>&thinsp;px<br>';
+    html+='Height: <b>'+rh.mapH+'</b> tiles = <b>'+rh.mapHpx+'</b>&thinsp;px &nbsp; vertical scroll capacity: <b>'+rh.scrollH+'</b>&thinsp;px';
+    html+='</div>';
+    // Render preset
+    html+='<div class="rsh-section-lbl">Render preset (bytes 4–8 signature)</div>';
+    var preClass=rh.renderPreset?'rsh-preset':'rsh-preset rsh-unknown';
+    html+='<span class="'+preClass+'">'+(rh.renderPreset?escH(rh.renderPreset):'unknown')+'</span>';
+    html+='<span class="rsh-sig">'+escH(rh.sig)+'</span>';
+    // Trigger table layout
+    if(rh.stepLen!=null){
+      html+='<div class="rsh-section-lbl">Trigger table layout</div>';
+      html+='<div class="rsh-trig-info">';
+      html+='step_len = 0x'+rh.stepLen.toString(16).padStart(4,'0').toUpperCase()+' &#8594; '+rh.stepCount+' step-on entr'+(rh.stepCount===1?'y':'ies')+' (6 bytes each)<br>';
+      if(rh.bLen!=null) html+='b_len&nbsp;&nbsp;&nbsp;&nbsp;= 0x'+rh.bLen.toString(16).padStart(4,'0').toUpperCase()+' &#8594; '+rh.bCount+' B-trigger entr'+(rh.bCount===1?'y':'ies')+' (6 bytes each)<br>';
+      if(rh.payloadOffset!=null) html+='payload starts at blob offset 0x'+rh.payloadOffset.toString(16).padStart(4,'0').toUpperCase();
+      html+='</div>';
+    }
+    // Payload tile-set list
+    if(rh.payloadTileCount!=null){
+      html+='<div class="rsh-section-lbl">Payload opcode 0: tile families ('+rh.payloadTileCount+')</div>';
+      html+='<div class="rsh-tiles">';
+      (rh.payloadTileIds||[]).forEach(function(id,i){
+        html+='<span class="rsh-tile" title="family #'+i+'">0x'+id.toString(16).toUpperCase().padStart(2,'0')+'</span>';
+      });
+      html+='</div>';
+      html+='<div class="rsh-payload-note">Count byte + each family as a 16-bit word. Shared art lives in the tile family (CHR/VRAM), not in the room blob. The compressed opcode stream that follows encodes tile placement by family reference, not raw bitmaps.</div>';
+    }
+    html+='</div>'; // close rsh-body
+    html+='</div>'; // close rs-romhdr
+  }
+
   panel.innerHTML=html;
   bindLinks(panel);
+
+  // ROM header toggle
+  var rshToggle=panel.querySelector('#rsh-toggle');
+  var rshBody=panel.querySelector('#rsh-body');
+  if(rshToggle&&rshBody){
+    rshToggle.addEventListener('click',function(){
+      var col=rshBody.classList.toggle('rsh-collapsed');
+      rshToggle.textContent='ROM Map Data '+(col?'\u25B4':'\u25BE');
+    });
+  }
 
   var svg=document.getElementById('rg-svg');
   var wrap=document.getElementById('rg-wrap');

@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.29] — 2026-05-13
+
+### Added
+- **Rooms tab — ROM Map Data panel** — every map room in the Rooms tab now shows a collapsible "ROM Map Data" section populated directly from the ROM binary:
+  - **13-byte header table**: offset, hex value, field name, WRAM/IO destination, and description with confidence level for every header byte — including the provisional `room_effect_family` / `room_effect_variant` fields.
+  - **Derived geometry**: map size in tiles and pixels, horizontal/vertical scroll capacity.
+  - **Render preset badge**: classifies the room by its 5-byte signature (`bytes 4–8`) into the 11 known groups (default outdoor, indoor, cave, parallax, darkness-style, etc.).
+  - **Trigger table layout**: decoded `step_len` / `b_len` with entry counts, payload offset in the blob.
+  - **Payload tile families**: count + hex IDs from payload opcode 0 (the tile-set load list).
+  - Designed as a foundation for a future map editor; toggle collapses/expands the section.
+
 ## [0.2.28] — 2026-05-13
 
 ### Docs
