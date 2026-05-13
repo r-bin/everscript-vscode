@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.2.35] — 2026-05-13
+
+### Added
+- **Single-tile decoder parity test suite** (`test/map-tile.test.js`) with multiple 16x16 map-tile scenarios compared against an independent reference decoder ported from SoETilesViewer `tile.h` logic:
+  - uncompressed random fixtures,
+  - uncompressed overflow/clamp behavior,
+  - compressed copy-only streams,
+  - compressed command-mode fixtures (`0..8,13,14,15`),
+  - strict 16x16 output/range assertions.
+- **Rooms render diagnostics** now report unresolved ratio in UI metadata and include explicit draw diagnostics (`invalidRefs`, `tileRefs`) for trace comparison.
+
+### Fixed
+- **Broken garbage decoded-map display** — Rooms tab now rejects low-quality decoded payload renders (high unresolved tile-reference ratio) and falls back to header canvas with an explicit reason, instead of showing misleading sparse/black tile mosaics as successful decode output.
+- **Decode quality telemetry** — backend logs now flag suspicious payload decode quality (`unresolvedRatio`) so trace review can focus on map-level opcode decode gaps rather than per-tile decode.
+
+### Validation
+- Full `npm test` passes with the new map-tile parity suite and updated smoke assertions.
+- Result confirms single-tile 16x16 decode path matches SoETilesViewer behavior; remaining map-level mismatch is in payload/tile placement interpretation, not in tile decompression or pixel unpack.
+
 ## [0.2.34] — 2026-05-13
 
 ### Fixed

@@ -441,6 +441,40 @@ test('decoded render canvas receives non-empty pixel data', () => {
     assert.ok(anyNonZero, 'Expected non-empty pixel data in rendered map canvas');
 });
 
+test('rooms decoded render logs invalidRefs diagnostics for trace comparison', () => {
+    const tile = new Array(16 * 16).fill(1);
+    const roomTreeDecoded = [{
+        kind:'map', name:'diag_room', vanillaId:'R_DIAG', relPath:'', startLine:0, endLine:2,
+        imageUri:null, imageDims:null,
+        content:{
+            initMap:{x1:0,y1:0,x2:1,y2:0}, entrances:[], enemies:[], objects:[], transitions:[],
+            romHeader:{ mapW:2, mapH:1, offX:0, offY:0, mapWpx:32, mapHpx:16, scrollW:0, scrollH:0, b4:0x17, b5:0x00, b6:0x00, b7:0x02, b8:0x00, sig:'17 00 00 02 00' },
+            payloadData:{
+                tileFamilies:[0x00],
+                tilemap:[[0, 9]], // one valid ref and one invalid ref
+                compressedSize:0,
+                render:{
+                    defaultPaletteIndex:0,
+                    unresolvedTiles:1,
+                    totalRefs:2,
+                    unresolvedRatio:0.5,
+                    familyTiles:[tile],
+                    palettes:[{ name:'test', rgba:[[0,0,0,255],[255,255,255,255]] }],
+                },
+            },
+            triggers:{ stepOn:[], bTrigger:[] },
+        }
+    }];
+    const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTreeDecoded, 'rooms', 'diag_room');
+    const js = extractScript(html);
+    const { logs } = runWebviewJs(js);
+    const done = logs.find((entry) => String(entry[1] || '').includes('[RoomsRender] drawRomRoomCanvas: done'));
+    assert.ok(done, 'Expected drawRomRoomCanvas completion log');
+    const meta = done[2] || {};
+    assert.strictEqual(meta.invalidRefs, 1, 'Expected invalidRefs in draw diagnostics');
+    assert.strictEqual(meta.tileRefs, 2, 'Expected tileRefs in draw diagnostics');
+});
+
 test('decodeMapPayload prefers low-invalid sentinel candidate on synthetic ROM', () => {
     const mapW = 20;
     const mapH = 16;
@@ -541,6 +575,39 @@ test('multiple decoded maps render non-white canvas output and avoid fallback ca
         }
         assert.ok(hasNonWhite, 'Expected non-white pixels for ' + fx.name);
     });
+});
+
+test('low-quality decoded render is rejected and falls back to header canvas', () => {
+    const tile = new Array(16 * 16).fill(1);
+    const roomTreeDecoded = [{
+        kind:'map', name:'reject_room', vanillaId:'R_REJECT', relPath:'', startLine:0, endLine:2,
+        imageUri:null, imageDims:null,
+        content:{
+            initMap:{x1:0,y1:0,x2:19,y2:15}, entrances:[], enemies:[], objects:[], transitions:[],
+            romHeader:{ mapW:20, mapH:16, offX:0, offY:0, mapWpx:320, mapHpx:256, scrollW:0, scrollH:0, b4:0x17, b5:0x00, b6:0x00, b7:0x02, b8:0x00, sig:'17 00 00 02 00' },
+            payloadData:{
+                tileFamilies:[0x00],
+                tilemap:[new Array(20).fill(0)],
+                compressedSize:0,
+                render:{
+                    defaultPaletteIndex:0,
+                    unresolvedTiles:200,
+                    totalRefs:320,
+                    unresolvedRatio:0.625,
+                    familyTiles:[tile],
+                    palettes:[{ name:'test', rgba:[[0,0,0,255],[255,255,255,255]] }],
+                },
+            },
+            triggers:{ stepOn:[], bTrigger:[] },
+        }
+    }];
+    const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTreeDecoded, 'rooms', 'reject_room');
+    const js = extractScript(html);
+    const { sandbox } = runWebviewJs(js);
+    const detail = sandbox.document.getElementById('room-detail').innerHTML || '';
+    assert.ok(detail.includes('rr-canvas-fallback'), 'Expected fallback canvas for low-quality decode');
+    assert.ok(!detail.includes('id="rr-canvas"'), 'Did not expect decoded render canvas for low-quality decode');
+    assert.ok(detail.includes('decoded tilemap quality is too low for display'), 'Expected fallback reason for rejected decode');
 });
 
 // ── Summary ───────────────────────────────────────────────────────────────────

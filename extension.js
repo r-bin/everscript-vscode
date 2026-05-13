@@ -1649,9 +1649,11 @@ function buildRoomRenderData(romBuf, mapId, payload, mapW, mapH) {
   }
 
   let unresolvedTiles = 0;
+  let totalRefs = 0;
   for (let y = 0; y < payload.tilemap.length; y++) {
     const row = payload.tilemap[y] || [];
     for (let x = 0; x < row.length; x++) {
+      totalRefs++;
       const idx = row[x] | 0;
       if (idx < 0 || idx >= familyTiles.length || !familyTiles[idx]) unresolvedTiles++;
     }
@@ -1670,6 +1672,8 @@ function buildRoomRenderData(romBuf, mapId, payload, mapW, mapH) {
     palettes,
     familyTiles,
     unresolvedTiles,
+    totalRefs,
+    unresolvedRatio: totalRefs ? (unresolvedTiles / totalRefs) : 0,
   };
 }
 
@@ -1713,7 +1717,16 @@ function decodeAndSetPayload(wsRoot, mapId, content, header) {
             mapH: header.mapH,
             families: payload.tileFamilies ? payload.tileFamilies.length : 0,
             unresolvedTiles: payload.render ? payload.render.unresolvedTiles : null,
+            unresolvedRatio: payload.render ? payload.render.unresolvedRatio : null,
           });
+          if (payload.render && payload.render.unresolvedRatio > 0.25) {
+            roomsRenderLog('decodeAndSetPayload: suspicious decode quality', {
+              mapId,
+              unresolvedTiles: payload.render.unresolvedTiles,
+              totalRefs: payload.render.totalRefs,
+              unresolvedRatio: payload.render.unresolvedRatio,
+            });
+          }
         } else {
           roomsRenderLog('decodeAndSetPayload: payload decode unavailable', { mapId, mapW: header.mapW, mapH: header.mapH });
         }
@@ -3714,6 +3727,16 @@ function renderRoomDetail(room){
     
     // Decoded payload section
     var payload = c.payloadData || null;
+    var rr = (payload && payload.render) ? payload.render : null;
+    var rrQualityRejected = !!(rr && rr.totalRefs && rr.unresolvedRatio > 0.25);
+    if (rrQualityRejected) {
+      console.log('[RoomsRender] renderRoomDetail: rejecting decoded render due to high unresolved ratio', {
+        room: room && room.name,
+        unresolvedTiles: rr.unresolvedTiles,
+        totalRefs: rr.totalRefs,
+        unresolvedRatio: rr.unresolvedRatio,
+      });
+    }
     if (payload) {
       html += '<div class="rsh-section-lbl">Decoded payload data</div>';
       
@@ -3738,15 +3761,15 @@ function renderRoomDetail(room){
       html += '<div style="font-size:0.85em;color:#999">Compressed section: ' + payload.compressedSize + ' bytes (opaque bitstream, purpose unknown)</div>';
 
       // ROM-rendered room pass (current known decode path: family-index tilemap pass)
-      var rr = payload.render || null;
-      if (rr && payload.tilemap && payload.tilemap.length) {
+      if (rr && payload.tilemap && payload.tilemap.length && !rrQualityRejected) {
         var rrH = payload.tilemap.length;
         var rrW = (payload.tilemap[0] || []).length;
         var rrPxW = rrW * 16;
         var rrPxH = rrH * 16;
+        var unresolvedPct = (rr.totalRefs || 0) ? Math.round((rr.unresolvedTiles || 0) * 1000 / (rr.totalRefs || 1)) / 10 : 0;
         html += '<div class="rsh-section-lbl">Rendered room graphic (ROM decode pass)</div>';
         html += '<div class="rr-wrap">';
-        html += '<div class="rr-meta">canvas: <code>' + rrPxW + 'x' + rrPxH + '</code> px, families: <code>' + (payload.tileFamilies ? payload.tileFamilies.length : 0) + '</code>, unresolved tile refs: <code>' + (rr.unresolvedTiles || 0) + '</code></div>';
+        html += '<div class="rr-meta">canvas: <code>' + rrPxW + 'x' + rrPxH + '</code> px, families: <code>' + (payload.tileFamilies ? payload.tileFamilies.length : 0) + '</code>, unresolved tile refs: <code>' + (rr.unresolvedTiles || 0) + '</code> / <code>' + (rr.totalRefs || 0) + '</code> (' + unresolvedPct + '%)</div>';
         html += '<div class="rr-palette"><span>palette:</span><select id="rr-palette-sel">';
         (rr.palettes || []).forEach(function(p, i) {
           html += '<option value="' + i + '"' + (i === (rr.defaultPaletteIndex || 0) ? ' selected' : '') + '>' + escH(p.name) + '</option>';
@@ -3760,7 +3783,7 @@ function renderRoomDetail(room){
 
     // Guaranteed visible fallback: if no decoded render data exists, still paint a white area
     // with ROM header width/height so users can verify sizing and panel visibility.
-    if (!(payload && payload.render && payload.tilemap && payload.tilemap.length)) {
+    if (!(payload && payload.render && payload.tilemap && payload.tilemap.length && !rrQualityRejected)) {
       var fbW = (rh.mapW || 0) * 16;
       var fbH = (rh.mapH || 0) * 16;
       if (fbW > 0 && fbH > 0) {
@@ -3768,7 +3791,11 @@ function renderRoomDetail(room){
         html += '<div class="rr-wrap">';
         html += '<div class="rr-meta">canvas: <code>' + fbW + 'x' + fbH + '</code> px (header-derived, fallback)</div>';
         html += '<div class="rr-canvas-wrap"><canvas id="rr-canvas-fallback" class="rr-canvas" width="' + fbW + '" height="' + fbH + '"></canvas></div>';
-        html += '<div class="rsh-payload-note">Fallback trace: no decoded payload render available for this map in current pass; canvas dimensions are still taken from ROM header bytes 0x02/0x03.</div>';
+        if (rrQualityRejected) {
+          html += '<div class="rsh-payload-note">Fallback trace: decoded tilemap quality is too low for display (unresolved refs ' + (rr.unresolvedTiles || 0) + '/' + (rr.totalRefs || 0) + ', ratio ' + Math.round((rr.unresolvedRatio || 0) * 1000) / 10 + '%). This usually means payload tile placement opcodes are not fully decoded yet for this map.</div>';
+        } else {
+          html += '<div class="rsh-payload-note">Fallback trace: no decoded payload render available for this map in current pass; canvas dimensions are still taken from ROM header bytes 0x02/0x03.</div>';
+        }
         html += '</div>';
       }
     }
