@@ -2,6 +2,44 @@
 
 const assert = require('assert');
 const fs = require('fs');
+const path = require('path');
+
+// Mock vscode before requiring patched extension.
+const Module = require('module');
+const _origResolve = Module._resolveFilename;
+Module._resolveFilename = function(req, ...rest) {
+    if (req === 'vscode') return req;
+    return _origResolve.call(this, req, ...rest);
+};
+require.cache.vscode = require.cache.vscode || {
+    id: 'vscode', filename: 'vscode', loaded: true,
+    exports: {
+        workspace: { workspaceFolders: null },
+        window: {},
+        commands: {},
+        languages: {},
+        Uri: { file: (p) => ({ fsPath: p, toString: () => `file://${p}` }) },
+        ViewColumn: {},
+        SymbolKind: {},
+        CompletionItemKind: {},
+        TextEditorRevealType: {},
+    },
+};
+
+const extSrc = fs.readFileSync(path.join(__dirname, '..', 'extension.js'), 'utf8');
+const patchedExtSrc = extSrc.replace(
+    /module\.exports\s*=\s*\{[^}]+\};?\s*$/,
+    'module.exports = { activate, deactivate, _decodeMapPayload: decodeMapPayload };'
+);
+const tmpPath = path.join(__dirname, '..', '_map_payload_tmp.js');
+fs.writeFileSync(tmpPath, patchedExtSrc);
+let _decodeMapPayload;
+try {
+    delete require.cache[require.resolve(tmpPath)];
+    _decodeMapPayload = require(tmpPath)._decodeMapPayload;
+} finally {
+    fs.unlinkSync(tmpPath);
+}
 
 let passed = 0;
 let failed = 0;
@@ -52,6 +90,22 @@ function readMapBasics(romBuf, mapId) {
     const tileCount = h8(payloadOff);
     const compressStartAbs = dataRom + payloadOff + 1 + tileCount * 2;
     return { mapW, mapH, tileCount, compressStartAbs };
+}
+
+function mapPointerToRom(romBuf, mapId) {
+    const mapTableRom = 0x1ffde7;
+    const ptrAddr = mapTableRom + mapId * 4;
+    const dataSnes = romBuf[ptrAddr] | (romBuf[ptrAddr + 1] << 8) | (romBuf[ptrAddr + 2] << 16);
+    return ((dataSnes >> 16) & 0x3f) * 0x10000 + (dataSnes & 0xffff);
+}
+
+function readMapHeader(romBuf, mapId) {
+    const dataRom = mapPointerToRom(romBuf, mapId);
+    return {
+        dataRom,
+        mapW: romBuf[dataRom + 2],
+        mapH: romBuf[dataRom + 3],
+    };
 }
 
 function findStrict7Sentinel(romBuf, startAbs, maxScanBytes) {
@@ -236,6 +290,22 @@ test('trace-style room boundary markers are not part of tile codec framing', () 
     })();
 
     assert.strictEqual(hasStrict7CoreInsideCompressed, false, 'Compressed section should end before sentinel core by room trace model');
+});
+
+test('bounded blob scan decodes known maps and rejects 0x38', () => {
+    const shouldDecode = [0x33, 0x34, 0x51, 0x5c];
+    for (const mapId of shouldDecode) {
+        const header = readMapHeader(romBuf, mapId);
+        const out = _decodeMapPayload(romBuf, header.dataRom, header.mapW, header.mapH);
+        assert.ok(out, `Expected map 0x${mapId.toString(16)} to decode`);
+        assert.strictEqual(out.tilemap.length, header.mapH, `map 0x${mapId.toString(16)} height mismatch`);
+        assert.strictEqual((out.tilemap[0] || []).length, header.mapW, `map 0x${mapId.toString(16)} width mismatch`);
+    }
+
+    const badMap = 0x38;
+    const badHeader = readMapHeader(romBuf, badMap);
+    const badOut = _decodeMapPayload(romBuf, badHeader.dataRom, badHeader.mapW, badHeader.mapH);
+    assert.strictEqual(badOut, null, 'Expected map 0x38 to fail decode under current known sentinel model');
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);

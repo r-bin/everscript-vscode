@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.42] — 2026-05-14
+
+### Fixed
+- **Map payload boundary false positives** — `decodeMapPayload` now constrains sentinel candidate scanning to the current map blob (nearest higher map pointer end) instead of scanning far into later ROM data.
+- **Blob-bounded payload parsing** — position-table and tilemap reads now also enforce map-blob bounds, preventing cross-blob overreads and accidental decode acceptance.
+
+### Added
+- **ROM-backed payload regression** in `test/map-payload-compression.test.js`:
+  - verifies decode succeeds for maps `0x33`, `0x34`, `0x51`, `0x5c` under bounded scan rules,
+  - verifies map `0x38` correctly fails under the current known sentinel model.
+- **Feature dossier update** in `docs/map-renderer-status.md` documenting the new bounded-scan evidence and revised parse snapshot.
+
 ## [0.2.41] — 2026-05-14
 
 ### Added

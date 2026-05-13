@@ -1296,6 +1296,20 @@ function readRomMapHeader(wsRoot, mapId) {
  */
 function decodeMapPayload(romBuf, dataRom, mapW, mapH) {
     try {
+        const inferMapBlobEnd = () => {
+          const mapTableRom = 0x1ffde7;
+          let end = romBuf.length;
+          // Room table is sparse but bounded; scanning 256 entries is cheap and avoids hardcoding room count.
+          for (let i = 0; i < 256; i++) {
+            const ptrAddr = mapTableRom + i * 4;
+            if (ptrAddr + 2 >= romBuf.length) break;
+            const dataSnes = romBuf[ptrAddr] | (romBuf[ptrAddr + 1] << 8) | (romBuf[ptrAddr + 2] << 16);
+            const ptr = ((dataSnes >> 16) & 0x3f) * 0x10000 + (dataSnes & 0xffff);
+            if (ptr > dataRom && ptr < end) end = ptr;
+          }
+          return end;
+        };
+
         // Get trigger table lengths
         const h16 = (off) => romBuf[dataRom + off] | (romBuf[dataRom + off + 1] << 8);
         const h8  = (off) => romBuf[dataRom + off];
@@ -1323,6 +1337,8 @@ function decodeMapPayload(romBuf, dataRom, mapW, mapH) {
         //  - short6: [x, 00, 00, 01, 00, FF] observed on maps not covered by strict7.
         const compressStart = payloadOff + 1 + tileCount * 2;
         const compressStartAbs = dataRom + compressStart;
+        const blobEndAbs = inferMapBlobEnd();
+        if (compressStartAbs >= blobEndAbs) return null;
         const hasStrict7Core = (baseAbs) => (
           romBuf[baseAbs + 1] === 0x00 &&
           romBuf[baseAbs + 2] === 0x00 &&
@@ -1343,7 +1359,7 @@ function decodeMapPayload(romBuf, dataRom, mapW, mapH) {
         let sentinelLen = 7;
         const totalTiles = mapW * mapH;
         const tilemapBytes = (totalTiles + 1) >>> 1;
-        const scanLimit = Math.min(0x80000, Math.max(0, romBuf.length - compressStartAbs - 7));
+        const scanLimit = Math.max(0, blobEndAbs - compressStartAbs - 5);
         const candidates = [];
         const nibblesMaxValue = (tilemapStartAbs) => {
             let maxNib = 0;
@@ -1360,12 +1376,12 @@ function decodeMapPayload(romBuf, dataRom, mapW, mapH) {
             const candidateAbs = compressStartAbs + offset;
             const pushCandidate = (sentinelType, sentinelLen) => {
               const furtherStartAbs = candidateAbs + sentinelLen;
-              if (furtherStartAbs >= romBuf.length) return;
+              if (furtherStartAbs >= blobEndAbs) return;
               const posCountCandidate = romBuf[furtherStartAbs];
               // Observed/expected range for these maps; avoids many false positives.
               if (posCountCandidate > 64) return;
               const tilemapStartCandidateAbs = furtherStartAbs + 1 + posCountCandidate * 2;
-              if (tilemapStartCandidateAbs + tilemapBytes > romBuf.length) return;
+              if (tilemapStartCandidateAbs + tilemapBytes > blobEndAbs) return;
               const nib = nibblesMaxValue(tilemapStartCandidateAbs);
               candidates.push({
                 candidateAbs,
@@ -1378,12 +1394,12 @@ function decodeMapPayload(romBuf, dataRom, mapW, mapH) {
               });
             };
 
-            if (candidateAbs + 7 <= romBuf.length && hasStrict7Core(candidateAbs)) {
+            if (candidateAbs + 7 <= blobEndAbs && hasStrict7Core(candidateAbs)) {
               const lead = romBuf[candidateAbs];
               const sentinelType = (lead === 0x30) ? '0x30' : ((lead === 0xc8) ? '0xC8' : 'x0000000100ff');
               pushCandidate(sentinelType, 7);
             }
-            if (candidateAbs + 6 <= romBuf.length && hasShort6Core(candidateAbs)) {
+            if (candidateAbs + 6 <= blobEndAbs && hasShort6Core(candidateAbs)) {
               pushCandidate('x00000100ff', 6);
             }
         }
@@ -1422,19 +1438,19 @@ function decodeMapPayload(romBuf, dataRom, mapW, mapH) {
         const furtherStartAbs = sentinelPosAbs + sentinelLen;
         
         // Position table: count + entries
-        if (furtherStartAbs >= romBuf.length) return null;
+        if (furtherStartAbs >= blobEndAbs) return null;
         
         const posCount = romBuf[furtherStartAbs];
         const positionTable = [];
         for (let i = 0; i < posCount; i++) {
             const posAbs = furtherStartAbs + 1 + i * 2;
-            if (posAbs + 1 >= romBuf.length) return null;
+            if (posAbs + 1 >= blobEndAbs) return null;
             positionTable.push(romBuf[posAbs] | (romBuf[posAbs + 1] << 8));
         }
         
         // Tilemap: nibble-packed (2 tiles per byte)
         const tilemapStartAbs = furtherStartAbs + 1 + posCount * 2;
-        if (tilemapStartAbs + tilemapBytes > romBuf.length) return null;
+        if (tilemapStartAbs + tilemapBytes > blobEndAbs) return null;
         
         const tilemap1D = [];
         for (let i = 0; i < tilemapBytes; i++) {

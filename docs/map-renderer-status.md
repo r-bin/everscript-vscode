@@ -14,26 +14,29 @@ This file is the single source of truth for the Rooms map renderer research and 
 - Trigger table parsing (step-on and B-trigger, 6-byte records).
 - Map tile decode for declared tile families (SoETilesViewer-compatible tile decode path).
 - Sentinel + tilemap decode path for maps confirmed under current signatures:
-  - 0x33 Strong Heart Exterior (0x30 sentinel).
-  - 0x51 Village Huts (0xC8 sentinel).
-  - 0x5c Raptors parse path now also matches strict7 sentinel core with non-0x30/0xC8 lead byte (`x 00 00 00 01 00 ff`).
+  - 0x33 Strong Heart Exterior (strict7, lead `0x30`).
+  - 0x34 Strong Heart Hut Interior (short6 variant, lead `0x80`).
+  - 0x51 Village Huts (strict7, lead `0xC8`).
+  - 0x5c Raptors (strict7 core with non-`0x30`/`0xC8` lead, observed `0xE1`).
+- Map-blob-bounded boundary scan: sentinel candidates are now limited to the current map blob end (nearest higher map pointer), preventing false matches from later blobs.
 - Nibble decode invariant: decoded tile references are always 0..15.
 - invalidRefs policy fixed: values >= tileCount are unresolved (not invalid).
 
 ### In Progress
 - Identifying source of tile slots >= tileCount used by in-game rendering.
-- Variant payload parsing for maps where current sentinel signatures are not found.
 - Mapping opaque/compressed middle section semantics.
 
 ### Not Working
 - Universal payload parse for all maps.
 - Full-fidelity renderer parity for maps requiring unresolved slot sources or unknown payload variants.
+- Map 0x38 under current boundary+sentinel model (no valid strict7/short6 candidate inside its map blob).
 
 ## Evidence-Backed Facts
 - Payload starts after header + step table + b-trigger table.
 - Payload begins with tileCount and tile family list.
 - For 0x33 and 0x51, known sentinels mark boundary to position-table/tilemap region.
 - Additional sentinel evidence: some maps use strict7 core with a different lead byte, and some may use a short6 core (`x 00 00 01 00 ff`).
+- Boundary evidence update: scanning beyond the map's own pointer-bounded blob introduces false-positive sentinel hits; bounded scanning resolves this for known-good maps.
 - Tilemap nibble packing is confirmed for successful parses.
 - Direct tile-codec equivalence is not yet proven for map payload middle section; current evidence supports boundary/variant parsing first.
 
@@ -48,8 +51,8 @@ Evidence references:
 - SPECULATIVE: complete variant rules for maps like 0x34, 0x5c, 0x38.
 
 ## Current Cross-Map Parse Snapshot
-- Parse OK (current known structure): 0x33, 0x51.
-- Parse not yet explained by current sentinel model: 0x34, 0x5c, 0x38.
+- Parse OK (current known structure): 0x33, 0x34, 0x51, 0x5c.
+- Parse not yet explained by current sentinel model: 0x38.
 
 ## Data Organization
 - Heavy sample data moved to tmp/:
@@ -60,6 +63,7 @@ Evidence references:
 1. Loader trace for one failing map (0x34, 0x5c, or 0x38): payload reads and destination writes through the room-load path.
 2. VRAM snapshots before/after loading the same failing map.
 3. Optional screenshot alignment (same map, known coordinates) to compare visible tile classes.
+4. Trace-level decompressor evidence for map 0x38 middle section (opcode/control stream reads and write destinations).
 
 ## Feature Completion Criteria
 The map renderer feature is complete when:
