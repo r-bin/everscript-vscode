@@ -718,6 +718,18 @@ For maps `0x38`, `0x33`, `0x34`, and `0x5c`, family IDs in payloads resolve thro
 - Not yet confirmed: full room layer composition and semantics of compressed/tail payload sections.
 - Therefore, a phase-1 map editor is feasible now (base tilemap + triggers + lossless unknown-section preservation), while full layer/collision/object editing still requires additional reverse-engineering.
 
+### Implemented render pass in Rooms tab (v0.2.31)
+
+The Rooms tab now renders a full-size ROM room canvas at the bottom of ROM Map Data using the currently proven pipeline:
+
+1. Read map payload opcode 0 family IDs.
+2. Resolve family tile pointers through `0xEE0000 + family * 3`.
+3. Decode each 16x16 tile with the SoETilesViewer-compatible `tileInfo` codec.
+4. Decode room tilemap nibbles (row-major).
+5. Blit tile pixels into a canvas sized `map_w_tiles * 16` by `map_h_tiles * 16`.
+
+This is intentionally strict to known data: tilemap values that do not resolve to known family entries are counted as unresolved and left unblitted. A palette selector (SoETilesViewer map palettes) is included for visual verification.
+
 ---
 
 ## Deep Payload Analysis: Discovering Multi-Layer Encoding (v0.2.30+)

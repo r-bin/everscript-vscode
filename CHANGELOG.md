@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.31] — 2026-05-13
+
+### Added
+- **Rooms tab — ROM-decoded room canvas render**: the ROM Map Data section now includes a full-size room canvas (`map_w_tiles * 16` by `map_h_tiles * 16`) rendered from decoded payload tilemap data and map-tile graphics.
+- **SoETilesViewer-compatible tile decode path**: map family tiles are decoded using the same tile-table/data model as SoETilesViewer (`0xEE0000` map-tile pointer table, `tileInfo` compressed/uncompressed decode rules, SNES 4bpp planar unpack to 16x16 indices).
+- **Palette selector in render panel**: map render supports the SoETilesViewer 16-color map palettes (including `Jungle 1`, `Hut Int. 1`, `Hut Ext. 1`) and allows switching in-place for visual verification.
+
+### Changed
+- **Payload display now includes render trace order**: the room panel documents the exact draw order currently implemented (family list -> tile decode -> row-major tilemap blit) and reports unresolved tile references when payload indices exceed known family entries.
+
 ## [0.2.30] — 2026-05-13
 
 ### Added

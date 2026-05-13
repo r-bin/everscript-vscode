@@ -1374,6 +1374,225 @@ function decodeMapPayload(romBuf, dataRom, mapW, mapH) {
     }
 }
 
+// SoETilesViewer map palettes (16 SNES colors each).
+const MAP_TILE_PALETTES = [
+  { name: 'Podunk 1', snes: [0x0000, 0x1464, 0x1485, 0x18a7, 0x24e8, 0x312a, 0x3d6c, 0x2d6d, 0x31af, 0x3a12, 0x3e55, 0x4297, 0x4b3b, 0x57ff, 0x000a, 0x0005] },
+  { name: '1965 Tiles 1', snes: [0x0000, 0x0c82, 0x10a3, 0x14e5, 0x1907, 0x1d48, 0x258a, 0x29ac, 0x2ded, 0x320f, 0x3a51, 0x3e92, 0x42b4, 0x5bdd, 0x0000, 0x0000] },
+  { name: 'Omnitopia 1', snes: [0x0000, 0x6358, 0x5ef5, 0x4ed4, 0x4251, 0x39ed, 0x31ab, 0x298b, 0x2949, 0x2108, 0x2106, 0x18e6, 0x14a5, 0x0c83, 0x0442, 0x0000] },
+  { name: 'Omnit. Tree', snes: [0x0000, 0x0843, 0x0c65, 0x1087, 0x14a9, 0x01ed, 0x0967, 0x04c3, 0x0040, 0x14a5, 0x18c7, 0x1ce8, 0x1d09, 0x254a, 0x2d8c, 0x31ce] },
+  { name: 'Jungle 1', snes: [0x0000, 0x19ef, 0x15ac, 0x116a, 0x1127, 0x0ce5, 0x08a3, 0x0481, 0x0040, 0x08a8, 0x0485, 0x0064, 0x0022, 0x10a6, 0x0864, 0x0443] },
+  { name: 'Hut Int. 1', snes: [0x0000, 0x0c43, 0x10a5, 0x1507, 0x1d6a, 0x0020, 0x0c61, 0x18c4, 0x3168, 0x1024, 0x1066, 0x14c8, 0x190a, 0x214c, 0x25ae, 0x0461] },
+  { name: 'Hut Ext. 1', snes: [0x0000, 0x0843, 0x0c66, 0x14c6, 0x1908, 0x0c63, 0x14e8, 0x1d8a, 0x262d, 0x0866, 0x112b, 0x1a11, 0x22d6, 0x4926, 0x3189, 0x0423] },
+  { name: 'Thraxx Body', snes: [0x0000, 0x0090, 0x006e, 0x044b, 0x0829, 0x0c27, 0x0405, 0x0803, 0x0801, 0x0d5c, 0x04f6, 0x639d, 0x367d, 0x03e0, 0x03e0, 0x0000] },
+  { name: 'Thraxx Eyes', snes: [0x0000, 0x7bff, 0x73bd, 0x677b, 0x5b19, 0x4ed7, 0x4295, 0x3a33, 0x2df1, 0x35ae, 0x2d6c, 0x252a, 0x20c8, 0x1886, 0x1044, 0x0402] },
+  { name: 'Title Text', snes: [0x0000, 0x0400, 0x0442, 0x0464, 0x04a7, 0x04c9, 0x050b, 0x052d, 0x056f, 0x0591, 0x05d4, 0x05f6, 0x0638, 0x065a, 0x0a9c, 0x0abe] },
+  { name: 'Title Sky', snes: [0x0000, 0x4587, 0x4166, 0x3d46, 0x3925, 0x3125, 0x2d04, 0x28e4, 0x24c3, 0x20a3, 0x1c82, 0x1482, 0x1061, 0x0c41, 0x0820, 0x0400] },
+  { name: 'Title Machine', snes: [0x0000, 0x0885, 0x0463, 0x0442, 0x0021, 0x0000, 0x0000, 0x0443, 0x0022, 0x0001, 0x0000, 0x18ee, 0x10aa, 0x0c67, 0x0423, 0x0000] },
+  { name: 'Title Pipes', snes: [0x0000, 0x0863, 0x0442, 0x0442, 0x0421, 0x0421, 0x0021, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000] },
+  { name: 'Title Grill', snes: [0x0000, 0x0044, 0x0023, 0x0023, 0x0022, 0x0022, 0x0001, 0x0001, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0067] },
+];
+
+const _mapTileDecodeCache = new Map();
+
+function snesMapToRom(addr) {
+  return addr & ~(0xc00000);
+}
+
+function snes5To8(v) {
+  return Math.round((v & 0x1f) * 255 / 31);
+}
+
+function snesColorToRgba(snes) {
+  return [
+    snes5To8(snes),
+    snes5To8(snes >>> 5),
+    snes5To8(snes >>> 10),
+    255,
+  ];
+}
+
+function romRead8BySnes(romBuf, snesAddr) {
+  const off = snesMapToRom(snesAddr);
+  if (off < 0 || off >= romBuf.length) return 0;
+  return romBuf[off];
+}
+
+function romRead24BySnes(romBuf, snesAddr) {
+  const off = snesMapToRom(snesAddr);
+  if (off < 0 || off + 2 >= romBuf.length) return 0;
+  return romBuf[off] | (romBuf[off + 1] << 8) | (romBuf[off + 2] << 16);
+}
+
+function decodeMapTile16(romBuf, tileId) {
+  if (_mapTileDecodeCache.has(tileId)) return _mapTileDecodeCache.get(tileId);
+
+  const ptrAddr = 0xee0000 + tileId * 3;
+  const dataAddr = romRead24BySnes(romBuf, ptrAddr);
+  if (!dataAddr) return null;
+
+  const tileInfo = romRead8BySnes(romBuf, dataAddr);
+  const compressed = !!(tileInfo & 0x80);
+  const uncompressedSize = 128; // 16x16 at SNES 4bpp planar format
+  const dec = new Uint8Array(uncompressedSize);
+
+  if (!compressed) {
+    let wordCount = (tileInfo & 0x7f) + 1;
+    if (wordCount > 64) wordCount = 64;
+    const byteCount = wordCount * 2;
+    let dataPtr = dataAddr + 1;
+    for (let i = 0; i < byteCount; i++) dec[i] = romRead8BySnes(romBuf, dataPtr + i);
+    for (let i = byteCount; i < uncompressedSize; i += 2) {
+      dec[i] = dec[Math.max(0, i - 2)];
+      dec[i + 1] = dec[Math.max(1, i - 1)];
+    }
+  } else {
+    let dataPtr = dataAddr + (tileInfo & 0x7f);
+    let cmdPtr = dataAddr + 1;
+    let cmdSecondHalf = false;
+    let outPos = 0;
+
+    const read4cmdBits = () => {
+      const v = romRead8BySnes(romBuf, cmdPtr);
+      let res;
+      if (cmdSecondHalf) {
+        res = v & 0x0f;
+        cmdPtr++;
+      } else {
+        res = v >>> 4;
+      }
+      cmdSecondHalf = !cmdSecondHalf;
+      return res;
+    };
+
+    while (outPos < uncompressedSize) {
+      let indicators = romRead8BySnes(romBuf, dataPtr++);
+      for (let bit = 0; bit < 8 && outPos < uncompressedSize; bit++) {
+        if ((indicators & 0x80) === 0) {
+          dec[outPos++] = romRead8BySnes(romBuf, dataPtr++);
+          dec[outPos++] = romRead8BySnes(romBuf, dataPtr++);
+        } else {
+          const mode = read4cmdBits();
+          switch (mode) {
+            case 0: dec[outPos++] = 0x00; dec[outPos++] = 0x00; break;
+            case 1: dec[outPos++] = 0xff; dec[outPos++] = 0x00; break;
+            case 2: dec[outPos++] = 0x00; dec[outPos++] = 0xff; break;
+            case 3: dec[outPos++] = 0xff; dec[outPos++] = 0xff; break;
+            case 4: dec[outPos++] = romRead8BySnes(romBuf, dataPtr++); dec[outPos++] = 0x00; break;
+            case 5: dec[outPos++] = romRead8BySnes(romBuf, dataPtr++); dec[outPos++] = 0xff; break;
+            case 6: dec[outPos++] = 0x00; dec[outPos++] = romRead8BySnes(romBuf, dataPtr++); break;
+            case 7: dec[outPos++] = 0xff; dec[outPos++] = romRead8BySnes(romBuf, dataPtr++); break;
+            case 8: {
+              const v = romRead8BySnes(romBuf, dataPtr++);
+              dec[outPos++] = v;
+              dec[outPos++] = v;
+              break;
+            }
+            case 9:
+            case 10:
+            case 11:
+            case 12: {
+              const n = (mode - 9 + 1) + (mode === 12 ? read4cmdBits() : 0);
+              for (let j = 0; j < n && outPos < uncompressedSize; j++) {
+                if (outPos < 2) {
+                  dec[outPos++] = 0;
+                  dec[outPos++] = 0;
+                } else {
+                  dec[outPos] = dec[outPos - 2]; outPos++;
+                  dec[outPos] = dec[outPos - 2]; outPos++;
+                }
+              }
+              break;
+            }
+            case 13: {
+              if (outPos < 2) dec[outPos++] = 0;
+              else { dec[outPos] = dec[outPos - 2]; outPos++; }
+              dec[outPos++] = romRead8BySnes(romBuf, dataPtr++);
+              break;
+            }
+            case 14: {
+              dec[outPos++] = romRead8BySnes(romBuf, dataPtr++);
+              if (outPos < 2) dec[outPos++] = 0;
+              else { dec[outPos] = dec[outPos - 2]; outPos++; }
+              break;
+            }
+            case 15: {
+              const v = romRead8BySnes(romBuf, dataPtr++);
+              dec[outPos++] = v;
+              dec[outPos++] = v ^ 0xff;
+              break;
+            }
+          }
+        }
+        indicators <<= 1;
+      }
+    }
+  }
+
+  // Convert SNES 4bpp planar bytes into 16x16 palette indices (0..15).
+  const pix = new Uint8Array(16 * 16);
+  let n = 0;
+  for (let l = 0; l < 2; l++) {
+    for (let k = 0; k < 8; k++) {
+      for (let j = 0; j < 2; j++) {
+        for (let i = 7; i >= 0; i--) {
+          let p = 0;
+          const base = (j + 2 * l) * 32 + k * 2;
+          if (dec[base + 0] & (1 << i)) p |= 1;
+          if (dec[base + 1] & (1 << i)) p |= 2;
+          if (dec[base + 16] & (1 << i)) p |= 4;
+          if (dec[base + 17] & (1 << i)) p |= 8;
+          pix[n++] = p;
+        }
+      }
+    }
+  }
+
+  const out = Array.from(pix);
+  _mapTileDecodeCache.set(tileId, out);
+  return out;
+}
+
+function chooseDefaultMapPaletteIndex(mapId) {
+  // Known mappings verified from current map investigations.
+  if (mapId === 0x34) return 5; // Hut Int. 1
+  if (mapId === 0x51) return 6; // Hut Ext. 1
+  if (mapId === 0x33 || mapId === 0x38 || mapId === 0x5c) return 4; // Jungle 1
+  return 4; // Jungle 1 as conservative default for outdoor previews.
+}
+
+function buildRoomRenderData(romBuf, mapId, payload, mapW, mapH) {
+  if (!payload || !payload.tileFamilies || !payload.tilemap) return null;
+  const familyTiles = [];
+  for (const fam of payload.tileFamilies) {
+    const pix = decodeMapTile16(romBuf, fam);
+    familyTiles.push(pix || null);
+  }
+
+  let unresolvedTiles = 0;
+  for (let y = 0; y < payload.tilemap.length; y++) {
+    const row = payload.tilemap[y] || [];
+    for (let x = 0; x < row.length; x++) {
+      const idx = row[x] | 0;
+      if (idx < 0 || idx >= familyTiles.length || !familyTiles[idx]) unresolvedTiles++;
+    }
+  }
+
+  const defaultPaletteIndex = chooseDefaultMapPaletteIndex(mapId);
+  const palettes = MAP_TILE_PALETTES.map((p) => ({
+    name: p.name,
+    rgba: p.snes.map(snesColorToRgba),
+  }));
+
+  return {
+    widthPx: mapW * 16,
+    heightPx: mapH * 16,
+    defaultPaletteIndex,
+    palettes,
+    familyTiles,
+    unresolvedTiles,
+  };
+}
+
 /**
  * Decode map payload and attach to content object.
  * @param {string} wsRoot - Workspace root
@@ -1402,7 +1621,9 @@ function decodeAndSetPayload(wsRoot, mapId, content, header) {
         
         const payload = decodeMapPayload(romBuf, dataRom, header.mapW, header.mapH);
         if (payload) {
+          payload.render = buildRoomRenderData(romBuf, mapId, payload, header.mapW, header.mapH);
             content.payloadData = payload;
+          content.mapId = mapId;
         }
     } catch (_) {
         // Silently fail; payload is optional
@@ -2313,6 +2534,13 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .rsh-section-lbl{font-size:8px;text-transform:uppercase;letter-spacing:.06em;opacity:.3;margin:7px 0 2px;font-weight:700}
 .rsh-trig-info{font-size:10px;opacity:.7;line-height:1.8;font-family:monospace}
 .rsh-payload-note{font-size:8px;opacity:.3;margin-top:3px}
+.rr-wrap{margin-top:6px;padding:6px;border:1px solid #2a2a2a;border-radius:4px;background:#121212}
+.rr-meta{font-size:9px;opacity:.75;margin-bottom:5px}
+.rr-meta code{font-size:8px;background:#0d1a28;padding:1px 3px;border-radius:3px;color:#99bbdd}
+.rr-palette{display:flex;gap:6px;align-items:center;margin-bottom:6px;font-size:9px}
+.rr-palette select{background:#1e1e1e;border:1px solid #444;color:#ddd;font-size:9px;padding:1px 4px;border-radius:3px}
+.rr-canvas-wrap{max-width:100%;overflow:auto;border:1px solid #333;background:#0e0e0e}
+.rr-canvas{display:block;image-rendering:pixelated}
 /* ── Scaling tab ── */
 .sc-wrap{display:flex;flex-direction:column;flex:1;min-height:0;padding:8px;gap:8px;overflow:auto}
 .sc-banner{font-size:10px;padding:3px 8px;background:rgba(255,200,0,0.12);border:1px solid rgba(255,200,0,0.3);border-radius:4px;color:#ffd700}
@@ -3415,6 +3643,26 @@ function renderRoomDetail(room){
       
       // Compressed section size
       html += '<div style="font-size:0.85em;color:#999">Compressed section: ' + payload.compressedSize + ' bytes (opaque bitstream, purpose unknown)</div>';
+
+      // ROM-rendered room pass (current known decode path: family-index tilemap pass)
+      var rr = payload.render || null;
+      if (rr && payload.tilemap && payload.tilemap.length) {
+        var rrH = payload.tilemap.length;
+        var rrW = (payload.tilemap[0] || []).length;
+        var rrPxW = rrW * 16;
+        var rrPxH = rrH * 16;
+        html += '<div class="rsh-section-lbl">Rendered room graphic (ROM decode pass)</div>';
+        html += '<div class="rr-wrap">';
+        html += '<div class="rr-meta">canvas: <code>' + rrPxW + 'x' + rrPxH + '</code> px, families: <code>' + (payload.tileFamilies ? payload.tileFamilies.length : 0) + '</code>, unresolved tile refs: <code>' + (rr.unresolvedTiles || 0) + '</code></div>';
+        html += '<div class="rr-palette"><span>palette:</span><select id="rr-palette-sel">';
+        (rr.palettes || []).forEach(function(p, i) {
+          html += '<option value="' + i + '"' + (i === (rr.defaultPaletteIndex || 0) ? ' selected' : '') + '>' + escH(p.name) + '</option>';
+        });
+        html += '</select></div>';
+        html += '<div class="rr-canvas-wrap"><canvas id="rr-canvas" class="rr-canvas" width="' + rrPxW + '" height="' + rrPxH + '"></canvas></div>';
+        html += '<div class="rsh-payload-note">Render trace: read tile-family IDs from payload opcode 0 → decode each family tile using the SoETilesViewer map-tile codec (tile table 0xEE0000, tileInfo-driven compressed/uncompressed decode) → walk payload tilemap row-major and blit 16x16 tile pixels to canvas.</div>';
+        html += '</div>';
+      }
     }
     html+='</div>'; // close rsh-body
     html+='</div>'; // close rs-romhdr
@@ -3432,6 +3680,54 @@ function renderRoomDetail(room){
       rshToggle.textContent='ROM Map Data '+(col?'\u25B4':'\u25BE');
     });
   }
+
+  // Render full room graphic from decoded ROM payload data.
+  function drawRomRoomCanvas(){
+    var rr=(c.payloadData&&c.payloadData.render)||null;
+    var tm=(c.payloadData&&c.payloadData.tilemap)||null;
+    var cv=panel.querySelector('#rr-canvas');
+    if(!rr||!tm||!cv||!tm.length||!rr.familyTiles||!rr.palettes)return;
+    var mapH=tm.length;
+    var mapW=(tm[0]||[]).length;
+    if(!mapW)return;
+    var w=mapW*16,h=mapH*16;
+    if(cv.width!==w)cv.width=w;
+    if(cv.height!==h)cv.height=h;
+    var sel=panel.querySelector('#rr-palette-sel');
+    var pidx=sel?parseInt(sel.value||String(rr.defaultPaletteIndex||0),10):(rr.defaultPaletteIndex||0);
+    if(isNaN(pidx)||pidx<0||pidx>=rr.palettes.length)pidx=0;
+    var pal=(rr.palettes[pidx]&&rr.palettes[pidx].rgba)||[];
+    var ctx=cv.getContext('2d');
+    if(!ctx)return;
+    var img=ctx.createImageData(w,h);
+    var out=img.data;
+    for(var ty=0;ty<mapH;ty++){
+      var row=tm[ty]||[];
+      for(var tx=0;tx<mapW;tx++){
+        var famIdx=row[tx]|0;
+        if(famIdx<0||famIdx>=rr.familyTiles.length)continue;
+        var tile=rr.familyTiles[famIdx];
+        if(!tile)continue;
+        for(var py=0;py<16;py++){
+          var srcBase=py*16;
+          var dstBase=((ty*16+py)*w + tx*16)*4;
+          for(var px=0;px<16;px++){
+            var ci=tile[srcBase+px]|0;
+            var col=pal[ci]||pal[0]||[0,0,0,255];
+            var di=dstBase+px*4;
+            out[di]=col[0]|0;
+            out[di+1]=col[1]|0;
+            out[di+2]=col[2]|0;
+            out[di+3]=col[3]==null?255:(col[3]|0);
+          }
+        }
+      }
+    }
+    ctx.putImageData(img,0,0);
+  }
+  var rrSel=panel.querySelector('#rr-palette-sel');
+  if(rrSel)rrSel.addEventListener('change',drawRomRoomCanvas);
+  drawRomRoomCanvas();
 
   var svg=document.getElementById('rg-svg');
   var wrap=document.getElementById('rg-wrap');

@@ -243,6 +243,8 @@ All four maps should follow the same structure:
 - Extract position table
 - Decode nibble-packed tilemap
 - Display preview in VS Code (Rooms tab)
+- Decode family tiles with SoETilesViewer-compatible map-tile codec and render full room canvas at `map_w_tiles*16` x `map_h_tiles*16`
+- Apply SoETilesViewer map palettes (`Jungle 1`, `Hut Int. 1`, `Hut Ext. 1`, etc.) in render pass
 
 ### ⏳ Pending
 - Decompress bitstream section
@@ -254,7 +256,6 @@ All four maps should follow the same structure:
 - Round-trip encoding (modify → repack → ROM)
 
 ### 🔍 Research Needed
-- SoETilesViewer source code analysis (rendering pipeline)
 - Direct emulator comparison (Snes9x live memory)
 - Reverse-engineering of compression algorithm
 - Cross-reference with in-game behavior
