@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.43] — 2026-05-14
+
+### Added
+- **Mechanics model artifact** — added `docs/rooms-payload-boundary.model` as the single evidence-backed boundary model for room payload parsing, with validated map outcomes and explicit `TODO_EVIDENCE_NEEDED` items for unresolved decompressor semantics.
+
 ## [0.2.42] — 2026-05-14
 
 ### Fixed
