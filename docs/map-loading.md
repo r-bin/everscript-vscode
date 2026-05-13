@@ -670,8 +670,53 @@ Open questions for full editor support:
 These can be answered by:
 
 1. Rendering the decoded nibble-packed tilemap and comparing to in-game visuals.
-2. Studying the SoETilesViewer source code (which already renders maps correctly).
+2. Studying the SoETilesViewer source code (especially tile decode and map-dumper paths) together with emulator traces.
 3. Tracing the ROM loader code to see what it does with the position table and compressed section after reading the tilemap.
+
+## SoETilesViewer Source Cross-Check (May 2026)
+
+Direct source inspection in `/Users/v/Documents/GitHub/SoETilesViewer` confirms and clarifies several points used by this document.
+
+### Map tab and tile inventory
+
+- In this source snapshot the tab is named `Map Tiles` (not `Map Files`).
+- The map-tile list is populated by a fixed loop of **6687** entries in `mainwindow.cpp`:
+   - `for (int i=0; i<6687; i++) { Tile tile(i, _rom); ... }`
+
+### Map palettes (16-color)
+
+- Map palettes are defined as 16 SNES colors each (`uint16_t snescolors[16]`) in `mainwindow.cpp`.
+- Relevant presets include `Jungle 1`, `Hut Int. 1`, `Hut Ext. 1`.
+- In this UI path they are hardcoded preview palettes, not dynamically loaded from map payload bytes.
+
+### Map tile graphics decompression
+
+- Implemented in `tile.h` (`Tile::loadPixels`).
+- Tile pointer table base is `0xEE0000` with 3-byte pointers (`ptraddr = 0xee0000 + i*3`).
+- `tileInfo` byte at tile data address drives decode:
+   - bit 7 = compressed flag
+   - bits 0..6 = parameter (word count or compressed data offset)
+- Compressed mode uses indicator bytes plus 4-bit command nibbles with 16 modes (`0..15`), including constants, repeat-last-word, and mixed previous/data constructs.
+
+### Address constants used by SoEScriptDumper
+
+- `MAP_LIST_ADDR_US = 0x9FFDE7`
+- `MAP_LIST_ADDR_DE = 0xA0FDE5`
+- Parser confirms map blob layout:
+   - 13-byte header
+   - `step_len` at `+0x0D` (byte length)
+   - `b_len` after step table (byte length)
+   - 6-byte trigger records
+
+### Verification against four traced maps
+
+For maps `0x38`, `0x33`, `0x34`, and `0x5c`, family IDs in payloads resolve through `0xEE0000 + family*3` to valid tile data pointers and valid `tileInfo` bytes. This confirms the family list in room payload points into the same map-tile graphics system used by SoETilesViewer.
+
+### Practical implication for editor scope
+
+- Confirmed: family->tile graphics decode path is well grounded.
+- Not yet confirmed: full room layer composition and semantics of compressed/tail payload sections.
+- Therefore, a phase-1 map editor is feasible now (base tilemap + triggers + lossless unknown-section preservation), while full layer/collision/object editing still requires additional reverse-engineering.
 
 ---
 

@@ -258,3 +258,88 @@ All four maps should follow the same structure:
 - Direct emulator comparison (Snes9x live memory)
 - Reverse-engineering of compression algorithm
 - Cross-reference with in-game behavior
+
+---
+
+## SoETilesViewer Source-Verified Findings
+
+This section is based on direct code inspection in `/Users/v/Documents/GitHub/SoETilesViewer`.
+
+### 1) "Map Files" tab vs actual tab in source
+
+- In this repository snapshot, the tab is implemented as **Map Tiles**, not "Map Files".
+- UI wiring is in `ui_mainwindow.h` (`tabMapTiles`, `tilesMapTiles`, `lstMapTiles`).
+- The visible tab title is set to `Map Tiles`.
+
+### 2) 16-color palettes and relevant sets
+
+- Each map palette is a 16-color SNES palette (`uint16_t snescolors[16]`).
+- Relevant predefined map palettes are hardcoded in `mainwindow.cpp` and include:
+   - `Jungle 1`
+   - `Hut Int. 1`
+   - `Hut Ext. 1`
+- These are not read from ROM at runtime in this UI path; they are static presets used for preview.
+
+### 3) 6687 map tiles
+
+- `mainwindow.cpp` loads map tiles with:
+   - `for (int i=0; i<6687; i++) { Tile tile(i, _rom); ... }`
+- So `6687` is currently a fixed application bound, not discovered dynamically.
+
+### 4) Graphics decompression algorithm (map tile graphics)
+
+- Implemented in `tile.h` (`Tile::loadPixels`).
+- Tile pointer table base: `0xEE0000`, one 24-bit pointer per tile (`ptraddr = 0xee0000 + i*3`).
+- Tile data begins with `tileInfo` byte at `dataaddr`:
+   - bit 7: compressed flag
+   - bits 0-6: mode-dependent parameter
+- Uncompressed path:
+   - `wordCount = (tileInfo & 0x7f) + 1`
+   - Reads that many 16-bit words and repeats the last word until tile buffer is full.
+- Compressed path:
+   - Uses a control stream of compression-indicator bytes and 4-bit command nibbles.
+   - Supports 16 command modes (`0..15`), including constants (`0x0000`, `0x00ff`, `0xff00`, `0xffff`), byte-injection patterns, RLE-like repeat-last-word commands, and mixed previous/data forms.
+
+### 5) Address flow verified in source
+
+- ROM address mapping in viewer uses `addr & ~(0xC00000)` (`rom.h::mapaddr`), matching HiROM-style bank masking used by this codebase.
+- Map script dumper constants (`SoEScriptDumper/data.h`):
+   - US map list pointer table: `0x9FFDE7`
+   - DE map list pointer table: `0xA0FDE5`
+- Map data parser in `SoEScriptDumper/list-rooms.cpp` confirms:
+   - 13-byte header
+   - `step_len` at `dataptr+0x0d` (byte length)
+   - `b_len` after step table (byte length)
+   - 6-byte trigger records
+
+### 6) Cross-check against raw ROM for the four trace maps
+
+Using the US ROM and your four target maps (`0x38`, `0x33`, `0x34`, `0x5c`):
+
+- Family IDs from each map payload correctly resolve through the map-tile pointer table at `0xEE0000 + family*3`.
+- Example (map `0x33`): families `0x00b9, 0x00ba, 0x0020, 0x0091, 0x0090, 0x0092` all resolve to valid tile data pointers (`0x8bxxxx`) with valid `tileInfo` headers for the `tile.h` decompressor.
+- Both compressed (`tileInfo` high bit set) and uncompressed family tiles are present across these maps.
+
+### 7) Important clarification
+
+- This SoETilesViewer snapshot provides **map tile graphics browsing** and tile decoding, but does not itself provide the full room layer compositor for "Layer 1..4 room view" in this code path.
+- So it is excellent for verifying tile-family -> graphic decode, but not sufficient alone to explain room-layer composition from map payload tails.
+
+## Is this enough for a map editor?
+
+Short answer: **enough for a solid phase-1 editor, not enough for a full-featured room editor yet**.
+
+### Enough now
+
+- Read/write room blob header and trigger tables.
+- Decode/encode tile-family list.
+- Decode/encode nibble-packed base tilemap section.
+- Preview/edit using known map palettes and tile graphics.
+- Preserve unknown sections losslessly when saving.
+
+### Still required for full editor
+
+- Definitive decode of compressed room payload section.
+- Definitive decode of post-tilemap tail sections (likely layer/collision/object metadata).
+- Layer compositor rules matching in-game Layer 1..4 output.
+- Collision/object semantics for gameplay-safe edits.
