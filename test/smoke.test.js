@@ -226,7 +226,7 @@ const src  = fs.readFileSync(path.join(__dirname, '..', 'extension.js'), 'utf8')
 // Patch: replace `module.exports = { activate, deactivate };` with extended export
 const patchedSrc = src.replace(
     /module\.exports\s*=\s*\{[^}]+\};?\s*$/,
-    'module.exports = { activate, deactivate, _renderRadarHtml: renderRadarHtml, _buildRoomsJson: buildRoomsJson, _renderRoomsTree: renderRoomsTree };'
+    'module.exports = { activate, deactivate, _renderRadarHtml: renderRadarHtml, _buildRoomsJson: buildRoomsJson, _renderRoomsTree: renderRoomsTree, _decodeMapPayload: decodeMapPayload };'
 );
 
 // Write to tmp in the same dir as extension.js so relative requires resolve
@@ -241,7 +241,7 @@ try {
     fs.unlinkSync(tmpPath);
 }
 
-const { _renderRadarHtml, _buildRoomsJson, _renderRoomsTree } = extFull;
+const { _renderRadarHtml, _buildRoomsJson, _renderRoomsTree, _decodeMapPayload } = extFull;
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
@@ -439,6 +439,108 @@ test('decoded render canvas receives non-empty pixel data', () => {
         if (data[i] !== 0) { anyNonZero = true; break; }
     }
     assert.ok(anyNonZero, 'Expected non-empty pixel data in rendered map canvas');
+});
+
+test('decodeMapPayload prefers low-invalid sentinel candidate on synthetic ROM', () => {
+    const mapW = 20;
+    const mapH = 16;
+    const tileCount = 6;
+    const totalTiles = mapW * mapH;
+    const tilemapBytes = (totalTiles + 1) >>> 1;
+    const dataRom = 0x100;
+    const rom = Buffer.alloc(0x4000, 0x00);
+
+    // Minimal header/table layout used by decodeMapPayload.
+    rom[dataRom + 13] = 0x00; // stepLen lo
+    rom[dataRom + 14] = 0x00; // stepLen hi
+    rom[dataRom + 15] = 0x00; // bLen lo
+    rom[dataRom + 16] = 0x00; // bLen hi
+    const payloadOff = 17;
+    rom[dataRom + payloadOff] = tileCount;
+    for (let i = 0; i < tileCount; i++) {
+        const off = dataRom + payloadOff + 1 + i * 2;
+        rom[off] = i;
+        rom[off + 1] = 0;
+    }
+
+    const compressStartAbs = dataRom + payloadOff + 1 + tileCount * 2;
+    const sentinel30 = [0x30, 0x00, 0x00, 0x00, 0x01, 0x00, 0xff];
+    const sentinelC8 = [0xc8, 0x00, 0x00, 0x00, 0x01, 0x00, 0xff];
+
+    // Candidate A (earlier): valid shape but invalid tile refs (nibble 0xF with tileCount=6).
+    const candA = compressStartAbs + 10;
+    sentinel30.forEach((b, i) => { rom[candA + i] = b; });
+    rom[candA + 7] = 0; // posCount
+    const tmA = candA + 8;
+    for (let i = 0; i < tilemapBytes; i++) rom[tmA + i] = 0xff;
+
+    // Candidate B (later): valid tile refs (all nibbles=1).
+    const candB = compressStartAbs + 50;
+    sentinelC8.forEach((b, i) => { rom[candB + i] = b; });
+    rom[candB + 7] = 0; // posCount
+    const tmB = candB + 8;
+    for (let i = 0; i < tilemapBytes; i++) rom[tmB + i] = 0x11;
+
+    const decoded = _decodeMapPayload(rom, dataRom, mapW, mapH);
+    assert.ok(decoded, 'Expected payload decode result');
+    assert.strictEqual(decoded.tileFamilies.length, tileCount, 'Expected tile-family count');
+    assert.ok(decoded.tilemap.length === mapH && decoded.tilemap[0].length === mapW, 'Expected full tilemap shape');
+    assert.strictEqual(decoded.tilemap[0][0], 1, 'Expected decoder to choose the low-invalid sentinel candidate');
+});
+
+test('multiple decoded maps render non-white canvas output and avoid fallback canvas', () => {
+    const makeTile = (ci) => new Array(16 * 16).fill(ci);
+    const fixtures = [
+        { name: 'm1', w: 20, h: 16, fill: 1 },
+        { name: 'm2', w: 32, h: 32, fill: 2 },
+        { name: 'm3', w: 83, h: 91, fill: 3 },
+    ];
+    const palette = [[255,255,255,255],[20,90,20,255],[140,80,20,255],[40,60,120,255]];
+
+    fixtures.forEach((fx) => {
+        const tile = makeTile(fx.fill);
+        const row = new Array(fx.w).fill(0);
+        const tilemap = new Array(fx.h).fill(null).map(() => row.slice());
+        const roomTreeDecoded = [{
+            kind:'map', name:fx.name, vanillaId:'R_' + fx.name.toUpperCase(), relPath:'', startLine:0, endLine:2,
+            imageUri:null, imageDims:null,
+            content:{
+                initMap:{x1:0,y1:0,x2:fx.w - 1,y2:fx.h - 1}, entrances:[], enemies:[], objects:[], transitions:[],
+                romHeader:{ mapW:fx.w, mapH:fx.h, offX:0, offY:0, mapWpx:fx.w * 16, mapHpx:fx.h * 16, scrollW:0, scrollH:0, b4:0x17, b5:0x00, b6:0x00, b7:0x02, b8:0x00, sig:'17 00 00 02 00' },
+                payloadData:{
+                    tileFamilies:[0x00],
+                    tilemap,
+                    compressedSize:0,
+                    render:{
+                        defaultPaletteIndex:0,
+                        unresolvedTiles:0,
+                        familyTiles:[tile],
+                        palettes:[{ name:'fixture', rgba:palette }],
+                    },
+                },
+                triggers:{ stepOn:[], bTrigger:[] },
+            }
+        }];
+        const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTreeDecoded, 'rooms', fx.name);
+        const js = extractScript(html);
+        const { sandbox } = runWebviewJs(js);
+        const detail = sandbox.document.getElementById('room-detail').innerHTML || '';
+        assert.ok(!detail.includes('rr-canvas-fallback'), 'Did not expect fallback canvas for decoded map ' + fx.name);
+        const cv = sandbox.document.getElementById('rr-canvas');
+        assert.ok(cv, 'Expected decoded render canvas for ' + fx.name);
+        const ctx = cv.getContext('2d');
+        assert.ok(ctx && ctx._putCount > 0, 'Expected draw call for ' + fx.name);
+        const data = ctx._lastImageData && ctx._lastImageData.data;
+        assert.ok(data && data.length > 0, 'Expected image data for ' + fx.name);
+        let hasNonWhite = false;
+        for (let i = 0; i < data.length; i += 4) {
+            if (!(data[i] === 255 && data[i + 1] === 255 && data[i + 2] === 255)) {
+                hasNonWhite = true;
+                break;
+            }
+        }
+        assert.ok(hasNonWhite, 'Expected non-white pixels for ' + fx.name);
+    });
 });
 
 // ── Summary ───────────────────────────────────────────────────────────────────

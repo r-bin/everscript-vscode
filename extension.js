@@ -1326,7 +1326,22 @@ function decodeMapPayload(romBuf, dataRom, mapW, mapH) {
         let sentinelPosAbs = null;
         const totalTiles = mapW * mapH;
         const tilemapBytes = (totalTiles + 1) >>> 1;
-        const scanLimit = Math.min(0x20000, Math.max(0, romBuf.length - compressStartAbs - 7));
+        const scanLimit = Math.min(0x80000, Math.max(0, romBuf.length - compressStartAbs - 7));
+        const candidates = [];
+        const nibblesInvalidCount = (tilemapStartAbs) => {
+            let bad = 0;
+            let maxNib = 0;
+            for (let i = 0; i < tilemapBytes; i++) {
+                const byte = romBuf[tilemapStartAbs + i];
+                const lo = byte & 0x0f;
+                const hi = (byte >>> 4) & 0x0f;
+                if (lo > maxNib) maxNib = lo;
+                if (hi > maxNib) maxNib = hi;
+                if (lo >= tileCount) bad++;
+                if (hi >= tileCount) bad++;
+            }
+            return { bad, maxNib };
+        };
         for (let offset = 0; offset < scanLimit; offset++) {
             const candidateAbs = compressStartAbs + offset;
             const match30 = sentinel30.every((b, i) => romBuf[candidateAbs + i] === b);
@@ -1337,10 +1352,40 @@ function decodeMapPayload(romBuf, dataRom, mapW, mapH) {
             const posCountCandidate = romBuf[furtherStartAbs];
             const tilemapStartCandidateAbs = furtherStartAbs + 1 + posCountCandidate * 2;
             if (tilemapStartCandidateAbs + tilemapBytes <= romBuf.length) {
-              sentinelPosAbs = candidateAbs;
-              break;
+              const nib = nibblesInvalidCount(tilemapStartCandidateAbs);
+              candidates.push({
+                candidateAbs,
+                sentinelType: match30 ? '0x30' : '0xC8',
+                posCount: posCountCandidate,
+                tilemapStartCandidateAbs,
+                invalidRefs: nib.bad,
+                maxNibble: nib.maxNib,
+              });
             }
             }
+        }
+
+        if (candidates.length) {
+          candidates.sort((a, b) => {
+            if (a.invalidRefs !== b.invalidRefs) return a.invalidRefs - b.invalidRefs;
+            if (a.maxNibble !== b.maxNibble) return a.maxNibble - b.maxNibble;
+            return a.candidateAbs - b.candidateAbs;
+          });
+          sentinelPosAbs = candidates[0].candidateAbs;
+          roomsRenderLog('decodeMapPayload: sentinel candidates', {
+            dataRom: '0x' + dataRom.toString(16),
+            mapW,
+            mapH,
+            tileCount,
+            candidates: candidates.length,
+            picked: {
+              sentinel: candidates[0].sentinelType,
+              abs: '0x' + candidates[0].candidateAbs.toString(16),
+              posCount: candidates[0].posCount,
+              invalidRefs: candidates[0].invalidRefs,
+              maxNibble: candidates[0].maxNibble,
+            },
+          });
         }
         
         if (sentinelPosAbs == null) {
@@ -1381,6 +1426,20 @@ function decodeMapPayload(romBuf, dataRom, mapW, mapH) {
         for (let row = 0; row < mapH; row++) {
             tilemapGrid.push(tilemap1D.slice(row * mapW, (row + 1) * mapW));
         }
+
+        let invalidRefs = 0;
+        for (let i = 0; i < tilemap1D.length; i++) {
+          if (tilemap1D[i] >= tileCount) invalidRefs++;
+        }
+        roomsRenderLog('decodeMapPayload: decoded', {
+          dataRom: '0x' + dataRom.toString(16),
+          mapW,
+          mapH,
+          tileCount,
+          compressedSize,
+          posCount,
+          invalidRefs,
+        });
         
         return { tileFamilies, positionTable, tilemap: tilemapGrid, compressedSize };
     } catch {
@@ -3756,13 +3815,16 @@ function renderRoomDetail(room){
     }
     var img=ctx.createImageData(w,h);
     var out=img.data;
+    var invalidRefs=0;
+    var drawnTiles=0;
     for(var ty=0;ty<mapH;ty++){
       var row=tm[ty]||[];
       for(var tx=0;tx<mapW;tx++){
         var famIdx=row[tx]|0;
-        if(famIdx<0||famIdx>=rr.familyTiles.length)continue;
+        if(famIdx<0||famIdx>=rr.familyTiles.length){invalidRefs++;continue;}
         var tile=rr.familyTiles[famIdx];
-        if(!tile)continue;
+        if(!tile){invalidRefs++;continue;}
+        drawnTiles++;
         for(var py=0;py<16;py++){
           var srcBase=py*16;
           var dstBase=((ty*16+py)*w + tx*16)*4;
@@ -3779,7 +3841,16 @@ function renderRoomDetail(room){
       }
     }
     ctx.putImageData(img,0,0);
-    console.log('[RoomsRender] drawRomRoomCanvas: done', {room: room && room.name, width: w, height: h, palette: pidx});
+    console.log('[RoomsRender] drawRomRoomCanvas: done', {
+      room: room && room.name,
+      width: w,
+      height: h,
+      palette: pidx,
+      drawnTiles: drawnTiles,
+      invalidRefs: invalidRefs,
+      tileRefs: mapW*mapH,
+      families: rr.familyTiles.length,
+    });
   }
 
   function drawHeaderFallbackCanvas(){

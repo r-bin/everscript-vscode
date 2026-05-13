@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.2.34] — 2026-05-13
+
+### Fixed
+- **Rooms payload sentinel mis-pick** — payload decode no longer accepts the first structurally-valid sentinel match. It now scores all candidates in scan range by tile-reference validity (invalid nibble refs, max nibble) and picks the best fit, which prevents false positives that produced sparse/black broken renders.
+- **Large-map decode scan window** — increased sentinel search window for long payloads so more maps resolve to decoded render instead of fallback white canvas.
+
+### Added
+- **Trace-grade decode logging** (`[RoomsRender]`) now reports:
+  - number of sentinel candidates found,
+  - selected sentinel type/address,
+  - `posCount`, invalid ref count, max nibble,
+  - final decoded stats (`compressedSize`, `invalidRefs`).
+- **Render draw stats logging** in Rooms tab now reports per-draw counts (`drawnTiles`, `invalidRefs`, `tileRefs`, `families`) for direct comparison with emulator/tilemap traces.
+- **Stronger smoke tests for map render quality**:
+  - synthetic ROM test validates sentinel candidate selection prefers low-invalid decode path,
+  - multi-map decoded fixtures assert render canvas is created and output is not all-white,
+  - decoded-render path test still enforces non-empty pixel writes.
+
 ## [0.2.33] — 2026-05-13
 
 ### Fixed
