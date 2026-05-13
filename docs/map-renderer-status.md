@@ -16,6 +16,7 @@ This file is the single source of truth for the Rooms map renderer research and 
 - Sentinel + tilemap decode path for maps confirmed under current signatures:
   - 0x33 Strong Heart Exterior (0x30 sentinel).
   - 0x51 Village Huts (0xC8 sentinel).
+  - 0x5c Raptors parse path now also matches strict7 sentinel core with non-0x30/0xC8 lead byte (`x 00 00 00 01 00 ff`).
 - Nibble decode invariant: decoded tile references are always 0..15.
 - invalidRefs policy fixed: values >= tileCount are unresolved (not invalid).
 
@@ -32,7 +33,9 @@ This file is the single source of truth for the Rooms map renderer research and 
 - Payload starts after header + step table + b-trigger table.
 - Payload begins with tileCount and tile family list.
 - For 0x33 and 0x51, known sentinels mark boundary to position-table/tilemap region.
+- Additional sentinel evidence: some maps use strict7 core with a different lead byte, and some may use a short6 core (`x 00 00 01 00 ff`).
 - Tilemap nibble packing is confirmed for successful parses.
+- Direct tile-codec equivalence is not yet proven for map payload middle section; current evidence supports boundary/variant parsing first.
 
 Evidence references:
 - docs/map-loading.md

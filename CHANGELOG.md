@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.2.40] — 2026-05-14
+
+### Fixed
+- **Map payload sentinel detection** — `decodeMapPayload` now accepts additional observed boundary variants:
+  - strict7 core: `x 00 00 00 01 00 FF` where lead byte `x` is not restricted to `0x30`/`0xC8`.
+  - short6 core: `x 00 00 01 00 FF` for variant payloads not matching strict7.
+- **Candidate guardrail** — sentinel candidates now reject implausible position-table counts (`posCount > 64`) to reduce false-positive boundary picks.
+- **Offset correctness** — decode now uses matched sentinel length (6 or 7) when computing position-table and tilemap starts.
+
+### Added
+- **Smoke tests** covering both new sentinel variants:
+  - strict7 wildcard-lead sentinel acceptance.
+  - short6 sentinel variant acceptance.
+- **Map renderer status update** documenting current variant findings and tile-compression comparison status.
+
 ## [0.2.39] — 2026-05-14
 
 ### Added

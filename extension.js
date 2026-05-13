@@ -1317,13 +1317,30 @@ function decodeMapPayload(romBuf, dataRom, mapW, mapH) {
             tileFamilies.push(h16(payloadOff + 1 + i * 2));
         }
         
-        // Find sentinel: either 0x30 or 0xC8 followed by 0x00 0x00 0x00 0x01 0x00 0xFF
+        // Find sentinel boundaries after compressed middle section.
+        // Confirmed cores:
+        //  - strict7: [x, 00, 00, 00, 01, 00, FF] where x is often 0x30 or 0xC8.
+        //  - short6: [x, 00, 00, 01, 00, FF] observed on maps not covered by strict7.
         const compressStart = payloadOff + 1 + tileCount * 2;
         const compressStartAbs = dataRom + compressStart;
-        const sentinel30 = [0x30, 0x00, 0x00, 0x00, 0x01, 0x00, 0xff];
-        const sentinelC8 = [0xc8, 0x00, 0x00, 0x00, 0x01, 0x00, 0xff];
+        const hasStrict7Core = (baseAbs) => (
+          romBuf[baseAbs + 1] === 0x00 &&
+          romBuf[baseAbs + 2] === 0x00 &&
+          romBuf[baseAbs + 3] === 0x00 &&
+          romBuf[baseAbs + 4] === 0x01 &&
+          romBuf[baseAbs + 5] === 0x00 &&
+          romBuf[baseAbs + 6] === 0xff
+        );
+        const hasShort6Core = (baseAbs) => (
+          romBuf[baseAbs + 1] === 0x00 &&
+          romBuf[baseAbs + 2] === 0x00 &&
+          romBuf[baseAbs + 3] === 0x01 &&
+          romBuf[baseAbs + 4] === 0x00 &&
+          romBuf[baseAbs + 5] === 0xff
+        );
         
         let sentinelPosAbs = null;
+        let sentinelLen = 7;
         const totalTiles = mapW * mapH;
         const tilemapBytes = (totalTiles + 1) >>> 1;
         const scanLimit = Math.min(0x80000, Math.max(0, romBuf.length - compressStartAbs - 7));
@@ -1341,24 +1358,33 @@ function decodeMapPayload(romBuf, dataRom, mapW, mapH) {
         };
         for (let offset = 0; offset < scanLimit; offset++) {
             const candidateAbs = compressStartAbs + offset;
-            const match30 = sentinel30.every((b, i) => romBuf[candidateAbs + i] === b);
-            const matchC8 = sentinelC8.every((b, i) => romBuf[candidateAbs + i] === b);
-            if (match30 || matchC8) {
-            const furtherStartAbs = candidateAbs + 7;
-            if (furtherStartAbs >= romBuf.length) continue;
-            const posCountCandidate = romBuf[furtherStartAbs];
-            const tilemapStartCandidateAbs = furtherStartAbs + 1 + posCountCandidate * 2;
-            if (tilemapStartCandidateAbs + tilemapBytes <= romBuf.length) {
+            const pushCandidate = (sentinelType, sentinelLen) => {
+              const furtherStartAbs = candidateAbs + sentinelLen;
+              if (furtherStartAbs >= romBuf.length) return;
+              const posCountCandidate = romBuf[furtherStartAbs];
+              // Observed/expected range for these maps; avoids many false positives.
+              if (posCountCandidate > 64) return;
+              const tilemapStartCandidateAbs = furtherStartAbs + 1 + posCountCandidate * 2;
+              if (tilemapStartCandidateAbs + tilemapBytes > romBuf.length) return;
               const nib = nibblesMaxValue(tilemapStartCandidateAbs);
               candidates.push({
                 candidateAbs,
-                sentinelType: match30 ? '0x30' : '0xC8',
+                sentinelType,
+                sentinelLen,
                 posCount: posCountCandidate,
                 tilemapStartCandidateAbs,
                 invalidRefs: nib.bad,
                 maxNibble: nib.maxNib,
               });
+            };
+
+            if (candidateAbs + 7 <= romBuf.length && hasStrict7Core(candidateAbs)) {
+              const lead = romBuf[candidateAbs];
+              const sentinelType = (lead === 0x30) ? '0x30' : ((lead === 0xc8) ? '0xC8' : 'x0000000100ff');
+              pushCandidate(sentinelType, 7);
             }
+            if (candidateAbs + 6 <= romBuf.length && hasShort6Core(candidateAbs)) {
+              pushCandidate('x00000100ff', 6);
             }
         }
 
@@ -1367,6 +1393,7 @@ function decodeMapPayload(romBuf, dataRom, mapW, mapH) {
             return a.candidateAbs - b.candidateAbs;
           });
           sentinelPosAbs = candidates[0].candidateAbs;
+          sentinelLen = candidates[0].sentinelLen || 7;
           roomsRenderLog('decodeMapPayload: sentinel candidates', {
             dataRom: '0x' + dataRom.toString(16),
             mapW,
@@ -1375,6 +1402,7 @@ function decodeMapPayload(romBuf, dataRom, mapW, mapH) {
             candidates: candidates.length,
             picked: {
               sentinel: candidates[0].sentinelType,
+              sentinelLen: candidates[0].sentinelLen,
               abs: '0x' + candidates[0].candidateAbs.toString(16),
               posCount: candidates[0].posCount,
               invalidRefs: candidates[0].invalidRefs,
@@ -1391,7 +1419,7 @@ function decodeMapPayload(romBuf, dataRom, mapW, mapH) {
         }
         
         const compressedSize = sentinelPosAbs - compressStartAbs;
-        const furtherStartAbs = sentinelPosAbs + 7;
+        const furtherStartAbs = sentinelPosAbs + sentinelLen;
         
         // Position table: count + entries
         if (furtherStartAbs >= romBuf.length) return null;
