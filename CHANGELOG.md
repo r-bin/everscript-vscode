@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.38] — 2026-05-14
+
+### Added
+- **Custom agent: Mechanics Modeler** in `.github/agents/mechanics-modeler.agent.md` for evidence-first reverse engineering into a single `.model` artifact with explicit missing-evidence requests, progress tracking, assumption labeling, and test/log validation against real examples.
+- **Custom agent: Everscript Plugin Builder** in `.github/agents/everscript-plugin-builder.agent.md` for useful-first extension feature delivery with strict model-backed mechanics policy, vertical-layout UI guidance, cross-feature linking, robust runtime error handling, and visibility-focused test requirements.
+
 ## [0.2.37] — 2026-05-14
 
 ### Fixed
