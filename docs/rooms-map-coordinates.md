@@ -51,6 +51,27 @@ ROM data block at `0x28f590`:
 | step-on 1 (exit south) | `(22,45)→(25,47)` | `(26,48)→(32,52)` | South entrance at `(29,51)` ✓ |
 | step-on 2 (raptor battle) | `(20,36)→(28,37)` | `(22,30)→(38,32)` | Center of map ✓ |
 
+## Map Dimensions — header bytes `0x02 / 0x03`
+
+The room header also carries the room size in the same 16px-tile coordinate system used by trigger origins.
+
+- byte `0x02` -> `7E08EE..7E08EF` = map width in tiles
+- byte `0x03` -> `7E08F0..7E08F1` = map height in tiles
+
+The loader immediately derives pixel-space and scroll-capacity forms:
+
+```text
+7E08F2..7E08F3 = width_tiles * 16
+7E08F4..7E08F5 = height_tiles * 16
+7E08F6..7E08F7 = width_tiles * 16 - 256
+7E08F8..7E08F9 = height_tiles * 16 - 224
+```
+
+For Strong Heart exterior (`room 0x33`), the traced values are:
+
+- `header[2] = 0x14` -> width = `20` tiles = `320` px, horizontal scroll range = `64` px
+- `header[3] = 0x10` -> height = `16` tiles = `256` px, vertical scroll range = `32` px
+
 ## Room Image Alignment
 
 Grizzly map images are at **1 image pixel = 1 SNES pixel**, so:
@@ -79,13 +100,47 @@ From `list-rooms.cpp` and Lua analysis (`soestuff.lua`):
 ```
 dataptr → [  0] offX      (u8)  — trig_off_x = room x-origin in 16px-tile units
            [  1] offY      (u8)  — trig_off_y = room y-origin in 16px-tile units
-           [2..12] ...     (u8×11) — other room metadata (partially unknown)
+           [  2] width     (u8)  — map width in 16px-tile units
+           [  3] height    (u8)  — map height in 16px-tile units
+           [  4] disp0     (u8)  — room display/layer config
+           [  5] disp1     (u8)  — room subscreen/display config
+           [  6] cgram0    (u8)  — room color math config
+           [  7] cgram1    (u8)  — room color window/math select config
+           [8..12] ...     (u8×5) — other room metadata (still only partially known)
            [ 0x0d] step_len (u16) — step-on list byte length
            [ 0x0f] step[0..N] (6 bytes each: y1,x1,y2,x2,script_id16)
            [ 0x0f+N] b_len  (u16)
            [ 0x0f+N+2] b[0..M] (same 6-byte format)
            [ ... ] payload  — remaining room payload (visual / collision data), codec still unresolved
 ```
+
+In the Strong Heart trace, those early bytes are:
+
+```text
+00: 1E  -> trig_off_x
+01: 04  -> trig_off_y
+02: 14  -> width  = 20 tiles
+03: 10  -> height = 16 tiles
+04: 17  -> display/layer config
+05: 00  -> subscreen/display config
+06: 00  -> color math config
+07: 02  -> color window/math select config
+08: 00  -> unknown setup byte
+09: 00
+0A: 00  -> unknown 16-bit field at 0x09..0x0A
+```
+
+Cross-map comparison makes the later header bytes more meaningful than this single trace does by itself:
+
+- `byte 4` is `0x17` in 126 of 127 known maps, and `0x16` only in `Antiqua - Oglin cave`.
+- `byte 6` falls into a few strong families: `0x00`, `0x02`, `0x42`, and the rare `0x92` used only by `Antiqua - Oglin cave` and `Antiqua - Nobilia, Arena (Vigor Fight)`.
+- `byte 8 = 0x02` is shared by `Prehistoria - South jungle / Start`, `Prehistoria - East jungle`, `Prehistoria - North jungle`, `Antiqua - Act2 Start Cutscene - waterfall`, `Gothica - Dark Forest`, and `Intro - Podunk 1965`.
+
+That comparison strongly suggests:
+
+- bytes `4..7` are room presentation / color-math selectors rather than arbitrary leftover metadata,
+- byte `8` is a smaller per-room presentation modifier,
+- and Oglin cave's always-on darkness is very likely encoded in this `4..8` block.
 
 Important: the 6-byte record width is the current working model and matches the in-repo parser assumptions, but the external SoE tiles viewer C++ source is not present in this workspace, so that external comparison was not freshly re-verified here.
 

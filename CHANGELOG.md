@@ -1,6 +1,15 @@
 # Changelog
 
-## [0.2.27] — 2026-05-13
+## [0.2.28] — 2026-05-13
+
+### Docs
+- **Map payload opcode stream** — documented that the room payload after trigger tables is a command/script stream, not a flat bitmap. Evidence from cross-map comparison of three Prehistoria hut maps (`0x33`, `0x51`, `0x01`):
+  - Command 0: count byte + `N × 2-byte` tile family IDs (map `0x01` shows a perfect sequential run `7..13`).
+  - High-entropy compressed middle section (likely LZ/RLE tile placement commands), length proportional to map complexity.
+  - Shared 6-byte sentinel `00 00 00 01 00 ff` in all three maps, separating the compressed section from a structured position table.
+  - Position table: count byte + `N × 2-byte` row offsets with step of 6 tiles (96 px); gaps in map `0x01` match the empty vertical stretches visible in-game.
+  - Added provisional opcode model to `docs/map-loading.md`.
+
 
 ### Fixed
 - **Projectile alchemy damage model** — replaced the old `effective_mdef`/shared-RNG approximation with the traced projectile formula: cast-side power now uses the ROM spell-level scale table plus its own RNG bonus, and hit damage applies the traced `(0x40 - magic_defense) / 0x40` multiplier.
