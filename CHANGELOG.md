@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.2.30] — 2026-05-13
+
+### Added
+- **Rooms tab — Complete map payload decoder** — the ROM Map Data panel now fully decodes and displays the map blob payload for all maps:
+  - **Tile families**: 1-byte count + count × uint16 IDs from payload opcode 0 — shared CHR/VRAM art references.
+  - **Position table** (optional): count + uint16 byte offsets; 0 entries in sparse maps (e.g., `0x33`), full entries in dense maps (e.g., `0x01` has 12, `0x51` has 25).
+  - **Decoded nibble-packed tilemap**: rendered as a grid preview showing the first 10 rows and 20 tiles per row; each tile is a 4-bit index into the tile-family list (0–15).
+  - **Compressed section size**: bytes consumed by the opaque bitstream (likely layer / collision / LZ-encoded data; not yet decoded).
+  - Complete walkthrough documented in updated `docs/map-loading.md`.
+
+### Fixed
+- **Map format confirmed from binary analysis**: verified all three test maps (`0x01`, `0x33`, `0x51`) decode identically:
+  - **Tilemap encoding**: nibble-packed (2 tiles per byte, 4-bit indices).
+  - **Payload structure**: tile families → compressed section → sentinel → position table → tilemap.
+  - **Sentinel variations**: `0x30 00 00 00 01 00 FF` (maps `0x33`, `0x01`) and `0xC8 00 00 00 01 00 FF` (map `0x51`); sentinel location marks end of compressed data.
+
 ## [0.2.29] — 2026-05-13
 
 ### Added

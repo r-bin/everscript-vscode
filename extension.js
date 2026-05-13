@@ -1287,6 +1287,129 @@ function readRomMapHeader(wsRoot, mapId) {
 }
 
 /**
+ * Decode a map blob's payload: tile families, position table, and tilemap.
+ * @param {Buffer} romBuf - ROM data
+ * @param {number} dataRom - ROM offset of map blob base
+ * @param {number} mapW - Map width in tiles
+ * @param {number} mapH - Map height in tiles
+ * @returns {{tileFamilies: number[], positionTable: number[], tilemap: number[][], compressedSize: number} | null}
+ */
+function decodeMapPayload(romBuf, dataRom, mapW, mapH) {
+    try {
+        // Get trigger table lengths
+        const h16 = (off) => romBuf[dataRom + off] | (romBuf[dataRom + off + 1] << 8);
+        const h8  = (off) => romBuf[dataRom + off];
+        
+        const stepLen = h16(13);
+        const bLenOff = 15 + stepLen;
+        const bLen    = h16(bLenOff);
+        const payloadOff = bLenOff + 2 + bLen;
+        
+        // Payload: tile-family count + IDs
+        if (dataRom + payloadOff >= romBuf.length) return null;
+        
+        const tileCount = h8(payloadOff);
+        const tileEnd   = dataRom + payloadOff + 1 + tileCount * 2;
+        if (tileCount > 32 || tileEnd > romBuf.length) return null;
+        
+        const tileFamilies = [];
+        for (let i = 0; i < tileCount; i++) {
+            tileFamilies.push(h16(payloadOff + 1 + i * 2));
+        }
+        
+        // Find sentinel: either 0x30 or 0xC8 followed by 0x00 0x00 0x00 0x01 0x00 0xFF
+        const compressStart = payloadOff + 1 + tileCount * 2;
+        const sentinel30 = [0x30, 0x00, 0x00, 0x00, 0x01, 0x00, 0xff];
+        const sentinelC8 = [0xc8, 0x00, 0x00, 0x00, 0x01, 0x00, 0xff];
+        
+        let sentinelPos = null;
+        for (let offset = 0; offset < Math.min(500, romBuf.length - compressStart - 7); offset++) {
+            const match30 = sentinel30.every((b, i) => romBuf[compressStart + offset + i] === b);
+            const matchC8 = sentinelC8.every((b, i) => romBuf[compressStart + offset + i] === b);
+            if (match30 || matchC8) {
+                sentinelPos = compressStart + offset;
+                break;
+            }
+        }
+        
+        if (!sentinelPos) return null;
+        
+        const compressedSize = sentinelPos - compressStart;
+        const furtherStart = sentinelPos + 7;
+        
+        // Position table: count + entries
+        if (furtherStart >= romBuf.length) return null;
+        
+        const posCount = h8(furtherStart);
+        const positionTable = [];
+        for (let i = 0; i < posCount; i++) {
+            if (furtherStart + 1 + i * 2 + 2 > romBuf.length) return null;
+            positionTable.push(h16(furtherStart + 1 + i * 2));
+        }
+        
+        // Tilemap: nibble-packed (2 tiles per byte)
+        const tilemapStart = furtherStart + 1 + posCount * 2;
+        const totalTiles = mapW * mapH;
+        const tilemapBytes = (totalTiles + 1) >>> 1;
+        
+        if (tilemapStart + tilemapBytes > romBuf.length) return null;
+        
+        const tilemap1D = [];
+        for (let i = 0; i < tilemapBytes; i++) {
+            const byte = romBuf[tilemapStart + i];
+            tilemap1D.push(byte & 0x0f);
+            tilemap1D.push((byte >>> 4) & 0x0f);
+        }
+        
+        // Trim to exact size and reshape to 2D
+        tilemap1D.splice(totalTiles);
+        const tilemapGrid = [];
+        for (let row = 0; row < mapH; row++) {
+            tilemapGrid.push(tilemap1D.slice(row * mapW, (row + 1) * mapW));
+        }
+        
+        return { tileFamilies, positionTable, tilemap: tilemapGrid, compressedSize };
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Decode map payload and attach to content object.
+ * @param {string} wsRoot - Workspace root
+ * @param {number} mapId - Map ID
+ * @param {object} content - Room content object to attach payloadData to
+ * @param {object} header - Result from readRomMapHeader
+ */
+function decodeAndSetPayload(wsRoot, mapId, content, header) {
+    if (!wsRoot || !header || !content) return;
+    try {
+        const romNames = ['Secret of Evermore (U) [!].smc', 'Secret of Evermore.smc'];
+        let romBuf = null;
+        for (const name of romNames) {
+            const p = path.join(wsRoot, name);
+            if (fs.existsSync(p)) { romBuf = fs.readFileSync(p); break; }
+        }
+        if (!romBuf) return;
+        
+        const mapTableRom = 0x1ffde7;
+        const ptrAddr = mapTableRom + mapId * 4;
+        if (ptrAddr + 3 >= romBuf.length) return;
+        
+        const dataSnes = romBuf[ptrAddr] | (romBuf[ptrAddr + 1] << 8) | (romBuf[ptrAddr + 2] << 16);
+        const dataRom  = ((dataSnes >> 16) & 0x3f) * 0x10000 + (dataSnes & 0xffff);
+        if (dataRom + 20 >= romBuf.length) return;
+        
+        const payload = decodeMapPayload(romBuf, dataRom, header.mapW, header.mapH);
+        if (payload) {
+            content.payloadData = payload;
+        }
+    } catch (_) {
+        // Silently fail; payload is optional
+    }
+}
+
+/**
  * Read all 142 character records from the ROM (HiROM, no header).
  * Base address: SNES 0x8eB678 → ROM 0x0EB678. Size: 0x4a bytes each.
  * @param {string} wsRoot
@@ -1603,7 +1726,7 @@ function collectRoomsFromDir(dir, wsRoot, depth) {
                     const hexKey = roomNumStr.toString(16).replace(/^0+/, '') || '0';
                     content.poi = luaPoi.get(hexKey) || null;
                     const _rh = readRomMapHeader(wsRoot, roomNumStr);
-                    if (_rh) { content.trigOffset = { offX: _rh.offX, offY: _rh.offY }; content.romHeader = _rh; }
+                    if (_rh) { content.trigOffset = { offX: _rh.offX, offY: _rh.offY }; content.romHeader = _rh; decodeAndSetPayload(wsRoot, roomNumStr, content, _rh); }
                 }
             }
             items.push({ name: m[1], vanillaId: vid, kind: 'map', filePath: fp, relPath: wsRoot ? path.relative(wsRoot, fp) : fp, startLine: i, endLine, content, imagePath: imgPath });
@@ -1639,7 +1762,7 @@ function buildRoomTree(document, wsRoot) {
         if (wsRoot && vid) {
             content.triggers = readScriptAllTriggers(wsRoot, vid);
             const mapNum = getMapEnum(wsRoot).get(vid);
-            if (mapNum !== undefined) { const _rh = readRomMapHeader(wsRoot, mapNum); if (_rh) { content.trigOffset = { offX: _rh.offX, offY: _rh.offY }; content.romHeader = _rh; } }
+            if (mapNum !== undefined) { const _rh = readRomMapHeader(wsRoot, mapNum); if (_rh) { content.trigOffset = { offX: _rh.offX, offY: _rh.offY }; content.romHeader = _rh; decodeAndSetPayload(wsRoot, mapNum, content, _rh); } }
         }
         docMaps.push({ name: m[1], vanillaId: vid, kind: 'map', filePath: docPath, relPath: wsRoot ? path.relative(wsRoot, docPath) : docPath, startLine: i, endLine, content, imagePath: imgPath });
     }
@@ -3266,6 +3389,32 @@ function renderRoomDetail(room){
       });
       html+='</div>';
       html+='<div class="rsh-payload-note">Count byte + each family as a 16-bit word. Shared art lives in the tile family (CHR/VRAM), not in the room blob. The compressed opcode stream that follows encodes tile placement by family reference, not raw bitmaps.</div>';
+    }
+    
+    // Decoded payload section
+    var payload = c.payloadData || null;
+    if (payload) {
+      html += '<div class="rsh-section-lbl">Decoded payload data</div>';
+      
+      // Position table info
+      if (payload.positionTable && payload.positionTable.length > 0) {
+        html += '<div style="font-size:0.85em;margin:0.5em 0;color:#999">Position table: ' + payload.positionTable.length + ' entries → ' + payload.positionTable.map(p => '0x' + p.toString(16)).join(', ') + '</div>';
+      } else {
+        html += '<div style="font-size:0.85em;margin:0.5em 0;color:#999">Position table: none (direct tilemap)</div>';
+      }
+      
+      // Tilemap grid preview (first 10 rows, first 20 tiles per row)
+      html += '<div style="font-family:monospace;font-size:0.75em;background:#111;padding:0.5em;border-radius:3px;overflow-x:auto;margin:0.5em 0">';
+      html += '<div style="color:#999">Tilemap preview (first 10 rows, first 20 tiles per row):</div>';
+      for (let row = 0; row < Math.min(10, payload.tilemap.length); row++) {
+        const rowTiles = payload.tilemap[row].slice(0, 20);
+        html += rowTiles.map(t => '<span style="color:' + (t === 0 ? '#333' : '#6f6') + '">' + t.toString(16) + '</span>').join('');
+        html += '<br>';
+      }
+      html += '</div>';
+      
+      // Compressed section size
+      html += '<div style="font-size:0.85em;color:#999">Compressed section: ' + payload.compressedSize + ' bytes (opaque bitstream, purpose unknown)</div>';
     }
     html+='</div>'; // close rsh-body
     html+='</div>'; // close rs-romhdr
