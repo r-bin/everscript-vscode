@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.39] — 2026-05-14
+
+### Added
+- **Agent workflow requirement** — both custom agents now require a comprehensive feature dossier markdown file that tracks progress, user evidence requests, handled scope, research findings, blockers, and model dependencies.
+- **tmp sampledata policy in agents** — both agents now require sampledata-heavy artifacts (raw bytes, dumps, traces) to be stored under `tmp/` and referenced from dossier docs.
+- **Map renderer consolidated status** — added `docs/map-renderer-status.md` as the authoritative evidence-first status page for Rooms map rendering.
+
+### Changed
+- **Map docs cleanup** — reduced `docs/payload-byte-plots.md` to an archive pointer and moved heavy raw data to `tmp/map-renderer-payload-bytes.md`.
+- **Legacy/speculation cleanup** — converted `docs/payload-deep-analysis.md` to a legacy pointer with explicit speculation policy.
+- **Navigation update** — `docs/map-loading.md` now points to `docs/map-renderer-status.md` for consolidated current state.
+
 ## [0.2.38] — 2026-05-14
 
 ### Added

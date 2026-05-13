@@ -1,5 +1,7 @@
 # Map Loading
 
+For the current consolidated Rooms map-renderer status, see `docs/map-renderer-status.md`.
+
 This note records the room-loading behavior that is grounded enough to ship today, and separates that from what is still unknown.
 
 ## Evidence level

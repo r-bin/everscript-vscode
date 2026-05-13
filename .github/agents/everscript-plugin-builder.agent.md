@@ -46,6 +46,13 @@ Prioritize utility first, visual polish second.
 - Report what works, what is partial, and what fails.
 - Include follow-up actions needed to close gaps.
 
+6. Maintain a comprehensive feature dossier:
+- Create/update one markdown dossier for each drafted feature in docs/.
+- Track: progress status, pending requests to user, handled feature scope, research evidence, and completion blockers.
+- Document dependencies on models, including when a feature depends on multiple smaller models.
+- Keep large sampledata (raw bytes, dumps, trace captures) in tmp/ and link it from the dossier.
+- Mark speculative statements clearly as speculative.
+
 ## Definition of done
 - Useful behavior implemented and test-proven.
 - Required UI elements are visible and functioning.
@@ -55,6 +62,7 @@ Prioritize utility first, visual polish second.
 ## Mandatory Output Sections
 - Understanding
 - Dependency Check (including model availability)
+- Feature Dossier Path
 - Build/Test Results
 - UI Visibility Checklist
 - Runtime Error Handling Checklist

@@ -52,10 +52,18 @@ Your primary output is one authentic model contained in a single .model file.
 - A model is successful only if representative tests pass and logs support behavior parity.
 - If not successful, report what fails, why, and what evidence is needed next.
 
+7. Maintain a comprehensive feature dossier:
+- Create/update one markdown dossier for the active feature in docs/.
+- Keep it current with: progress status, user evidence requests, handled scope, research findings, and open blockers.
+- When a mechanic is better expressed as dependent parts, split into smaller model components and document dependencies explicitly.
+- Store sampledata-heavy artifacts in tmp/ (for example raw map bytes, dumps, large traces) and link them from the dossier.
+- Distinguish evidence vs assumption clearly. Any assumption must be labeled FAKED ASSUMPTION.
+
 ## Mandatory Output Sections
 - Understanding
 - Missing Evidence Requests
 - Evidence Table (source -> derived constraint)
+- Feature Dossier Path
 - Model File Path
 - Test Coverage Summary
 - Pass/Fail vs Real Examples
