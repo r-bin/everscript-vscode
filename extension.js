@@ -1328,8 +1328,7 @@ function decodeMapPayload(romBuf, dataRom, mapW, mapH) {
         const tilemapBytes = (totalTiles + 1) >>> 1;
         const scanLimit = Math.min(0x80000, Math.max(0, romBuf.length - compressStartAbs - 7));
         const candidates = [];
-        const nibblesInvalidCount = (tilemapStartAbs) => {
-            let bad = 0;
+        const nibblesMaxValue = (tilemapStartAbs) => {
             let maxNib = 0;
             for (let i = 0; i < tilemapBytes; i++) {
                 const byte = romBuf[tilemapStartAbs + i];
@@ -1337,10 +1336,8 @@ function decodeMapPayload(romBuf, dataRom, mapW, mapH) {
                 const hi = (byte >>> 4) & 0x0f;
                 if (lo > maxNib) maxNib = lo;
                 if (hi > maxNib) maxNib = hi;
-                if (lo >= tileCount) bad++;
-                if (hi >= tileCount) bad++;
             }
-            return { bad, maxNib };
+            return { bad: 0, maxNib };
         };
         for (let offset = 0; offset < scanLimit; offset++) {
             const candidateAbs = compressStartAbs + offset;
@@ -1352,7 +1349,7 @@ function decodeMapPayload(romBuf, dataRom, mapW, mapH) {
             const posCountCandidate = romBuf[furtherStartAbs];
             const tilemapStartCandidateAbs = furtherStartAbs + 1 + posCountCandidate * 2;
             if (tilemapStartCandidateAbs + tilemapBytes <= romBuf.length) {
-              const nib = nibblesInvalidCount(tilemapStartCandidateAbs);
+              const nib = nibblesMaxValue(tilemapStartCandidateAbs);
               candidates.push({
                 candidateAbs,
                 sentinelType: match30 ? '0x30' : '0xC8',
@@ -1367,8 +1364,6 @@ function decodeMapPayload(romBuf, dataRom, mapW, mapH) {
 
         if (candidates.length) {
           candidates.sort((a, b) => {
-            if (a.invalidRefs !== b.invalidRefs) return a.invalidRefs - b.invalidRefs;
-            if (a.maxNibble !== b.maxNibble) return a.maxNibble - b.maxNibble;
             return a.candidateAbs - b.candidateAbs;
           });
           sentinelPosAbs = candidates[0].candidateAbs;
@@ -1427,10 +1422,8 @@ function decodeMapPayload(romBuf, dataRom, mapW, mapH) {
             tilemapGrid.push(tilemap1D.slice(row * mapW, (row + 1) * mapW));
         }
 
-        let invalidRefs = 0;
-        for (let i = 0; i < tilemap1D.length; i++) {
-          if (tilemap1D[i] >= tileCount) invalidRefs++;
-        }
+        // All nibble values 0–15 are valid 4-bit indices; none are invalid by definition.
+        // Values >= tileCount are "unresolved" (no declared family) but not format errors.
         roomsRenderLog('decodeMapPayload: decoded', {
           dataRom: '0x' + dataRom.toString(16),
           mapW,
@@ -1438,7 +1431,6 @@ function decodeMapPayload(romBuf, dataRom, mapW, mapH) {
           tileCount,
           compressedSize,
           posCount,
-          invalidRefs,
         });
         
         return { tileFamilies, positionTable, tilemap: tilemapGrid, compressedSize };

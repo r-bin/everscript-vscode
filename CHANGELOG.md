@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.37] — 2026-05-14
+
+### Fixed
+- **Sentinel scoring** — `decodeMapPayload` now picks the earliest sentinel candidate (smallest compressed-section offset) instead of sorting by `invalidRefs`. Real tilemaps always contain nibble values 0–15 across all 16 VRAM slots; counting nibbles >= tileCount as "bad" produced meaningless scores that could cause wrong-candidate selection.
+- **Removed false `invalidRefs` counter** — the per-map `invalidRefs` field is gone. All nibble values 0–15 are syntactically valid 4-bit indices by definition; "unresolved" (no declared family for a slot) is the correct term for nibbles >= tileCount.
+
+### Added
+- **docs/map-0x33-analysis.md** — complete byte-level and tilemap analysis of map 0x33 (Strong Heart Exterior): full 20×16 nibble grid, nibble distribution table, sentinel and position-table layout, and comparison of raw payload / trace / decoder output.
+- **Test** — `'decodeMapPayload produces zero out-of-range nibble values on synthetic ROM'` — enforces the invariant that all decoded nibble values are in [0, 15].
+- **Test** — updated `'decodeMapPayload picks earliest sentinel candidate on synthetic ROM'` — verifies that the earliest sentinel wins regardless of nibble content.
+
 ## [0.2.36] — 2026-05-13
 
 ### Added

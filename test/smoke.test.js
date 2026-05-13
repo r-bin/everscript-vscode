@@ -675,7 +675,7 @@ test('rooms decoded render logs invalidRefs diagnostics for trace comparison', (
     assert.strictEqual(meta.tileRefs, 2, 'Expected tileRefs in draw diagnostics');
 });
 
-test('decodeMapPayload prefers low-invalid sentinel candidate on synthetic ROM', () => {
+test('decodeMapPayload picks earliest sentinel candidate on synthetic ROM', () => {
     const mapW = 20;
     const mapH = 16;
     const tileCount = 6;
@@ -719,7 +719,49 @@ test('decodeMapPayload prefers low-invalid sentinel candidate on synthetic ROM',
     assert.ok(decoded, 'Expected payload decode result');
     assert.strictEqual(decoded.tileFamilies.length, tileCount, 'Expected tile-family count');
     assert.ok(decoded.tilemap.length === mapH && decoded.tilemap[0].length === mapW, 'Expected full tilemap shape');
-    assert.strictEqual(decoded.tilemap[0][0], 1, 'Expected decoder to choose the low-invalid sentinel candidate');
+    // The decoder picks the earliest sentinel (smallest compressed-section size).
+    // Candidate A is earlier (offset 10 vs 50), so tile[0][0] comes from tmA which has 0xFF bytes -> nibble = 0xF = 15.
+    assert.strictEqual(decoded.tilemap[0][0], 15, 'Expected decoder to choose the earliest sentinel candidate');
+});
+
+test('decodeMapPayload produces zero out-of-range nibble values on synthetic ROM', () => {
+    // All nibble values 0-15 are valid 4-bit indices. The decoder must never
+    // produce a value outside [0, 15]. This test checks the invariant using
+    // synthetic ROM data with all possible byte values in the tilemap section.
+    const mapW = 4;
+    const mapH = 2;
+    const tileCount = 3;
+    const totalTiles = mapW * mapH; // 8
+    const tilemapBytes = (totalTiles + 1) >>> 1; // 4
+    const dataRom = 0x100;
+    const rom = Buffer.alloc(0x400, 0x00);
+
+    rom[dataRom + 13] = 0x00; // stepLen lo
+    rom[dataRom + 14] = 0x00; // stepLen hi
+    rom[dataRom + 15] = 0x00; // bLen lo
+    rom[dataRom + 16] = 0x00; // bLen hi
+    const payloadOff = 17;
+    rom[dataRom + payloadOff] = tileCount;
+    for (let i = 0; i < tileCount; i++) {
+        rom[dataRom + payloadOff + 1 + i * 2] = i;
+        rom[dataRom + payloadOff + 2 + i * 2] = 0;
+    }
+
+    const compressStartAbs = dataRom + payloadOff + 1 + tileCount * 2;
+    const sentinelAbs = compressStartAbs + 5;
+    const sentinel = [0x30, 0x00, 0x00, 0x00, 0x01, 0x00, 0xff];
+    sentinel.forEach((b, i) => { rom[sentinelAbs + i] = b; });
+    rom[sentinelAbs + 7] = 0; // posCount
+    // Fill tilemap with alternating bytes covering all nibble combinations
+    const tmStart = sentinelAbs + 8;
+    for (let i = 0; i < tilemapBytes; i++) rom[tmStart + i] = (i * 0x37) & 0xff;
+
+    const decoded = _decodeMapPayload(rom, dataRom, mapW, mapH);
+    assert.ok(decoded, 'Expected successful decode');
+    const allNibbles = decoded.tilemap.flat();
+    assert.strictEqual(allNibbles.length, totalTiles, 'Expected tilemap size to match dimensions');
+    const outOfRange = allNibbles.filter(v => v < 0 || v > 15);
+    assert.strictEqual(outOfRange.length, 0, 'Expected zero out-of-range nibble values (nibbles are always 0-15)');
 });
 
 test('multiple decoded maps render non-white canvas output and avoid fallback canvas', () => {
