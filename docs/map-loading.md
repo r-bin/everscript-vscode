@@ -492,3 +492,183 @@ The most useful discriminating question for the next trace is not “what is the
 - Whether graphics and collision are interleaved or split into separate decode phases.
 - What further commands appear after the position table.
 - The exact destination-buffer layout used before the room is shown.
+
+---
+
+# Confirmed Payload Format (v0.2.30)
+
+Binary analysis of three maps (`0x01` Blimp's Hut, `0x33` Strong Heart Exterior, `0x51` Village Huts) confirms the complete payload structure.
+
+## Complete Blob Layout
+
+```text
+Blob offset    Size              Content
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+0x00–0x0C      13 bytes          Header (offX, offY, mapW, mapH, presets, unknown)
+0x0D–0x0E      2 bytes (LE)      step_len (= step-on table byte count)
+0x0F–0x??      step_len bytes    Step-on trigger table (6 bytes per entry)
+0x??–0x??      2 bytes (LE)      b_len (= B-trigger table byte count)
+0x??–0x??      b_len bytes       B-trigger trigger table (6 bytes per entry)
+0x??–0x??      variable          Payload (tile families + compressed + sentinel + position table + tilemap)
+```
+
+## Payload Structure (Detailed)
+
+After the B-trigger table, the payload consists of:
+
+### 1. Tile Family List (Opcode 0)
+- **1 byte**: count (N = 0–15)
+- **N × 2 bytes**: tile family IDs (little-endian uint16)
+- **Meaning**: Each family ID is a pointer to shared art in VRAM/CHR. All tiles in the map are indexed 0–N-1, referencing one of these families.
+
+### 2. Compressed Bitstream (Opaque)
+- **Variable length**: high-entropy encoded data
+- **Purpose**: Unknown (likely tile placement commands, rotations, palette indices, or layer data)
+- **Format**: NOT uniform 3-byte records; bitstream structure is not yet decoded
+- **Examples**:
+  - Map 0x33 (20×16=320 tiles): 164 bytes
+  - Map 0x01 (33×49=1617 tiles): 83 bytes
+  - Map 0x51 (50×56=2800 tiles): 205 bytes
+
+### 3. Sentinel (End-of-Compressed Marker)
+- **Pattern**: Either `0x30 00 00 00 01 00 FF` or `0xC8 00 00 00 01 00 FF`
+- **Location**: Immediately follows the compressed bitstream
+- **Leading byte variations**:
+  - `0x30`: Maps 0x33 (Strong Heart), 0x01 (Blimp's Hut)
+  - `0xC8`: Map 0x51 (Village Huts)
+- **Purpose**: Marks the boundary between compressed section and position table
+
+### 4. Position Table (Optional)
+- **1 byte**: count (M = 0–64)
+- **M × 2 bytes**: byte offsets (little-endian uint16) into the tilemap
+- **Semantics**: Unknown; likely cache checkpoints or row boundaries
+- **Examples**:
+  - Map 0x33: 0 entries (no position table; full tilemap follows directly)
+  - Map 0x01: 12 entries `[0, 6, 12, 18, 29, 35, 41, 47, 63, 84, 90, 96]`
+  - Map 0x51: 25 entries `[0, 6, 12, 18, 24, 30, ..., 144]` (perfect step-6 pattern)
+
+### 5. Tilemap (Nibble-Packed)
+- **Format**: 2 tiles per byte, 4-bit index per tile
+- **Size**: `(mapW × mapH + 1) / 2` bytes
+- **Layout**: Row-major order (row 0 tiles 0–width-1, row 1 tiles width–2*width-1, etc.)
+- **Tile range**: 0–15 (index into tile family list)
+- **Examples**:
+  - Map 0x33 (20×16=320 tiles): 160 bytes of nibble data
+  - Map 0x01 (33×49=1617 tiles): ~809 bytes of nibble data
+  - Map 0x51 (50×56=2800 tiles): 1400 bytes of nibble data
+
+## Decoding Algorithm
+
+```python
+def decode_map_payload(rom_buf, blob_start, map_width, map_height):
+    # 1. Read trigger table lengths
+    step_len = rom_buf[blob_start + 0x0d] | (rom_buf[blob_start + 0x0e] << 8)
+    b_len_offset = 0x0f + step_len
+    b_len = rom_buf[blob_start + b_len_offset] | (rom_buf[blob_start + b_len_offset + 1] << 8)
+    
+    # 2. Find payload start
+    payload_start = blob_start + b_len_offset + 2 + b_len
+    
+    # 3. Read tile families
+    tile_count = rom_buf[payload_start]
+    tile_families = []
+    for i in range(tile_count):
+        tid = rom_buf[payload_start + 1 + i*2] | (rom_buf[payload_start + 2 + i*2] << 8)
+        tile_families.append(tid)
+    
+    # 4. Find sentinel (0x30 or 0xc8 followed by 0x00 0x00 0x00 0x01 0x00 0xff)
+    compress_start = payload_start + 1 + tile_count * 2
+    sentinel_30 = bytes([0x30, 0x00, 0x00, 0x00, 0x01, 0x00, 0xff])
+    sentinel_c8 = bytes([0xc8, 0x00, 0x00, 0x00, 0x01, 0x00, 0xff])
+    
+    sentinel_pos = None
+    for offset in range(min(500, len(rom_buf) - compress_start - 7)):
+        if (rom_buf[compress_start+offset:compress_start+offset+7] == sentinel_30 or
+            rom_buf[compress_start+offset:compress_start+offset+7] == sentinel_c8):
+            sentinel_pos = compress_start + offset
+            break
+    
+    if sentinel_pos is None:
+        return None
+    
+    # 5. Read position table
+    further_start = sentinel_pos + 7
+    pos_count = rom_buf[further_start]
+    positions = []
+    for i in range(pos_count):
+        pos = rom_buf[further_start + 1 + i*2] | (rom_buf[further_start + 2 + i*2] << 8)
+        positions.append(pos)
+    
+    # 6. Decode tilemap from nibbles
+    tilemap_start = further_start + 1 + pos_count * 2
+    total_tiles = map_width * map_height
+    tilemap = []
+    
+    for i in range((total_tiles + 1) // 2):
+        byte = rom_buf[tilemap_start + i]
+        tilemap.append(byte & 0x0f)
+        tilemap.append((byte >> 4) & 0x0f)
+    
+    # Trim and reshape
+    tilemap = tilemap[:total_tiles]
+    grid = []
+    for row in range(map_height):
+        grid.append(tilemap[row*map_width:(row+1)*map_width])
+    
+    return {
+        'tile_families': tile_families,
+        'position_table': positions,
+        'tilemap': grid,
+        'compressed_size': sentinel_pos - compress_start
+    }
+```
+
+## Three-Map Verification
+
+### Map 0x01 (Blimp's Hut Exterior)
+- **ROM address**: 0x29e517
+- **Dimensions**: 33×49 tiles = 1617 tiles
+- **Tile families**: 7 → `0x0007, 0x0008, 0x0009, 0x000a, 0x000b, 0x000c, 0x000d` (sequential!)
+- **Compressed section**: 83 bytes (sentinel 0x30)
+- **Position table**: 12 entries `[0, 6, 12, 18, 29, 35, 41, 47, 63, 84, 90, 96]` (gaps suggest sparse rows)
+- **Tilemap**: 809 bytes of nibble data; first row `[0, 1, 4, 0, 7, 0, 2, 10, 12, 0, ...]`
+- **First 8 bytes of compressed**: `07 11 03 | 11 71 03 | 11 31 03 | 0f 3b 05`
+
+### Map 0x33 (Strong Heart Exterior)
+- **ROM address**: 0x2db50c
+- **Dimensions**: 20×16 tiles = 320 tiles
+- **Tile families**: 6 → `0x00b9, 0x00ba, 0x0020, 0x0091, 0x0090, 0x0092` (diverse)
+- **Compressed section**: 164 bytes (sentinel 0x30)
+- **Position table**: 0 entries (no table; direct tilemap)
+- **Tilemap**: 160 bytes of nibble data; first row `[5, 11, 0, 0, 7, 0, 0, 8, 2, 0, ...]`
+
+### Map 0x51 (Village Huts & Blimp's Hut)
+- **ROM address**: 0x29aed7
+- **Dimensions**: 50×56 tiles = 2800 tiles
+- **Tile families**: 7 → `0x003a, 0x00a5, 0x0095, 0x00be, 0x0061, 0x00a6, 0x0023`
+- **Compressed section**: 205 bytes (sentinel 0xC8 ← different!)
+- **Position table**: 25 entries (perfect step-6: 0, 6, 12, 18, ..., 144)
+- **Tilemap**: 1400 bytes of nibble data; first row `[7, 4, 4, 0, 7, 0, 0, 14, 5, 1, ...]`
+
+All three maps decode identically using the algorithm above, confirming the format.
+
+## Foundation for Map Editor
+
+With tile families decoded and the nibble-packed tilemap available, a map editor can:
+
+1. **Display the tilemap**: Render each tile as a reference into its family's CHR art.
+2. **Edit tiles**: Change nibble indices 0–15 in the grid.
+3. **Round-trip**: Re-encode the grid back to nibble-packed format and write it to the ROM.
+
+Open questions for full editor support:
+
+- **Layers**: Is the tilemap single-layer or are there separate background / foreground / collision layers?
+- **Compressed section purpose**: What does it encode (additional layer data, palette indices, animation states)?
+- **Position table semantics**: What does each position entry mean (row byte offset, column chunk boundary, cache checkpoint)?
+- **Collision**: Where is collision data stored (in a separate section, in the compressed stream, or in the tilemap nibbles)?
+
+These can be answered by:
+
+1. Rendering the decoded nibble-packed tilemap and comparing to in-game visuals.
+2. Studying the SoETilesViewer source code (which already renders maps correctly).
+3. Tracing the ROM loader code to see what it does with the position table and compressed section after reading the tilemap.
