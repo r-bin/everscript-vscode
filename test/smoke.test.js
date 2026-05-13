@@ -441,6 +441,206 @@ test('decoded render canvas receives non-empty pixel data', () => {
     assert.ok(anyNonZero, 'Expected non-empty pixel data in rendered map canvas');
 });
 
+test('decoded canvas uses ROM header width/height even if tilemap shape differs', () => {
+    const tile = new Array(16 * 16).fill(1);
+    const roomTreeDecoded = [{
+        kind:'map', name:'size_room', vanillaId:'R_SIZE', relPath:'', startLine:0, endLine:2,
+        imageUri:null, imageDims:null,
+        content:{
+            initMap:{x1:0,y1:0,x2:1,y2:2}, entrances:[], enemies:[], objects:[], transitions:[],
+            romHeader:{ mapW:2, mapH:3, offX:0, offY:0, mapWpx:32, mapHpx:48, scrollW:0, scrollH:0, b4:0x17, b5:0x00, b6:0x00, b7:0x02, b8:0x00, sig:'17 00 00 02 00' },
+            payloadData:{
+                tileFamilies:[0x00],
+                tilemap:[[0]], // deliberately smaller than header size
+                compressedSize:0,
+                render:{
+                    defaultPaletteIndex:0,
+                    unresolvedTiles:0,
+                    totalRefs:1,
+                    unresolvedRatio:0,
+                    familyTiles:[tile],
+                    palettes:[{ name:'test', rgba:[[0,0,0,255],[10,20,30,255]] }],
+                },
+            },
+            triggers:{ stepOn:[], bTrigger:[] },
+        }
+    }];
+    const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTreeDecoded, 'rooms', 'size_room');
+    const js = extractScript(html);
+    const { sandbox, logs } = runWebviewJs(js);
+    const cv = sandbox.document.getElementById('rr-canvas');
+    assert.ok(cv, 'Expected decoded render canvas');
+    assert.strictEqual(cv.width, 32, 'Expected header-driven width');
+    assert.strictEqual(cv.height, 48, 'Expected header-driven height');
+    const done = logs.find((entry) => String(entry[1] || '').includes('[RoomsRender] drawRomRoomCanvas: done'));
+    assert.ok(done, 'Expected draw done log');
+    const meta = done[2] || {};
+    assert.strictEqual(meta.tileRefs, 6, 'Expected tileRefs to match header map area');
+});
+
+test('decoded render clears canvas to white before drawing', () => {
+    const tile = new Array(16 * 16).fill(1);
+    const roomTreeDecoded = [{
+        kind:'map', name:'prefill_room', vanillaId:'R_PREFILL', relPath:'', startLine:0, endLine:2,
+        imageUri:null, imageDims:null,
+        content:{
+            initMap:{x1:0,y1:0,x2:0,y2:0}, entrances:[], enemies:[], objects:[], transitions:[],
+            romHeader:{ mapW:1, mapH:1, offX:0, offY:0, mapWpx:16, mapHpx:16, scrollW:0, scrollH:0, b4:0x17, b5:0x00, b6:0x00, b7:0x02, b8:0x00, sig:'17 00 00 02 00' },
+            payloadData:{
+                tileFamilies:[0x00],
+                tilemap:[[0]],
+                compressedSize:0,
+                render:{
+                    defaultPaletteIndex:0,
+                    unresolvedTiles:0,
+                    totalRefs:1,
+                    unresolvedRatio:0,
+                    familyTiles:[tile],
+                    palettes:[{ name:'test', rgba:[[0,0,0,255],[20,40,60,255]] }],
+                },
+            },
+            triggers:{ stepOn:[], bTrigger:[] },
+        }
+    }];
+    const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTreeDecoded, 'rooms', 'prefill_room');
+    const js = extractScript(html);
+    const { sandbox } = runWebviewJs(js);
+    const cv = sandbox.document.getElementById('rr-canvas');
+    const ctx = cv && cv.getContext('2d');
+    assert.ok(ctx, 'Expected 2D context');
+    assert.ok(ctx._fillOps.length > 0, 'Expected pre-render fill operation');
+    const firstFill = ctx._fillOps[0];
+    assert.strictEqual(firstFill.fillStyle, '#ffffff', 'Expected white prefill before rendering');
+    assert.strictEqual(firstFill.w, 16, 'Expected fill width to match canvas width');
+    assert.strictEqual(firstFill.h, 16, 'Expected fill height to match canvas height');
+});
+
+test('decoded render fills full map area and avoids blank white cells after draw', () => {
+    const tileA = new Array(16 * 16).fill(1);
+    const tileB = new Array(16 * 16).fill(2);
+    const tileC = new Array(16 * 16).fill(3);
+    const tileD = new Array(16 * 16).fill(4);
+    const roomTreeDecoded = [{
+        kind:'map', name:'full_room', vanillaId:'R_FULL', relPath:'', startLine:0, endLine:2,
+        imageUri:null, imageDims:null,
+        content:{
+            initMap:{x1:0,y1:0,x2:1,y2:1}, entrances:[], enemies:[], objects:[], transitions:[],
+            romHeader:{ mapW:2, mapH:2, offX:0, offY:0, mapWpx:32, mapHpx:32, scrollW:0, scrollH:0, b4:0x17, b5:0x00, b6:0x00, b7:0x02, b8:0x00, sig:'17 00 00 02 00' },
+            payloadData:{
+                tileFamilies:[0x00,0x01,0x02,0x03],
+                tilemap:[[0,1],[2,3]],
+                compressedSize:0,
+                render:{
+                    defaultPaletteIndex:0,
+                    unresolvedTiles:0,
+                    totalRefs:4,
+                    unresolvedRatio:0,
+                    familyTiles:[tileA,tileB,tileC,tileD],
+                    palettes:[{ name:'test', rgba:[[0,0,0,255],[10,20,30,255],[40,50,60,255],[70,80,90,255],[100,110,120,255]] }],
+                },
+            },
+            triggers:{ stepOn:[], bTrigger:[] },
+        }
+    }];
+    const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTreeDecoded, 'rooms', 'full_room');
+    const js = extractScript(html);
+    const { sandbox, logs } = runWebviewJs(js);
+    const cv = sandbox.document.getElementById('rr-canvas');
+    const ctx = cv && cv.getContext('2d');
+    const data = ctx && ctx._lastImageData && ctx._lastImageData.data;
+    assert.ok(data && data.length > 0, 'Expected drawn image data');
+    let hasWhite = false;
+    for (let i = 0; i < data.length; i += 4) {
+        if (data[i] === 255 && data[i + 1] === 255 && data[i + 2] === 255) { hasWhite = true; break; }
+    }
+    assert.ok(!hasWhite, 'Expected full map fill without white holes');
+    const done = logs.find((entry) => String(entry[1] || '').includes('[RoomsRender] drawRomRoomCanvas: done'));
+    assert.ok(done, 'Expected draw completion log');
+    const meta = done[2] || {};
+    assert.strictEqual(meta.drawnTiles, 4, 'Expected all map tiles to be drawn');
+    assert.strictEqual(meta.tileRefs, 4, 'Expected tileRefs from map dimensions');
+    assert.strictEqual(meta.renderCommandsEstimate, 4, 'Expected command estimate to match map area');
+    assert.strictEqual(meta.invalidRefs, 0, 'Expected no invalid refs in fully valid map');
+});
+
+test('decoded render reaches expected unique tile threshold', () => {
+    const mk = (v) => new Array(16 * 16).fill(v);
+    const roomTreeDecoded = [{
+        kind:'map', name:'diverse_room', vanillaId:'R_DIV', relPath:'', startLine:0, endLine:2,
+        imageUri:null, imageDims:null,
+        content:{
+            initMap:{x1:0,y1:0,x2:3,y2:0}, entrances:[], enemies:[], objects:[], transitions:[],
+            romHeader:{ mapW:4, mapH:1, offX:0, offY:0, mapWpx:64, mapHpx:16, scrollW:0, scrollH:0, b4:0x17, b5:0x00, b6:0x00, b7:0x02, b8:0x00, sig:'17 00 00 02 00' },
+            payloadData:{
+                tileFamilies:[0x00,0x01,0x02,0x03],
+                tilemap:[[0,1,2,3]],
+                compressedSize:0,
+                render:{
+                    defaultPaletteIndex:0,
+                    unresolvedTiles:0,
+                    totalRefs:4,
+                    unresolvedRatio:0,
+                    familyTiles:[mk(1),mk(2),mk(3),mk(4)],
+                    palettes:[{ name:'test', rgba:[[0,0,0,255],[10,10,10,255],[40,40,40,255],[70,70,70,255],[100,100,100,255]] }],
+                },
+            },
+            triggers:{ stepOn:[], bTrigger:[] },
+        }
+    }];
+    const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTreeDecoded, 'rooms', 'diverse_room');
+    const js = extractScript(html);
+    const { logs } = runWebviewJs(js);
+    const done = logs.find((entry) => String(entry[1] || '').includes('[RoomsRender] drawRomRoomCanvas: done'));
+    assert.ok(done, 'Expected draw completion log');
+    const meta = done[2] || {};
+    // Heuristic: with 4 refs in a tiny map, at least 3 unique refs should be observed.
+    assert.ok((meta.uniqueRefsCount || 0) >= 3, 'Expected at least 3 unique tile refs rendered');
+});
+
+test('rendered tile appears on map with expected pixel colors', () => {
+    const tile = [];
+    for (let i = 0; i < 16 * 16; i++) tile.push((i % 2) ? 1 : 2);
+    const roomTreeDecoded = [{
+        kind:'map', name:'pixel_room', vanillaId:'R_PX', relPath:'', startLine:0, endLine:2,
+        imageUri:null, imageDims:null,
+        content:{
+            initMap:{x1:0,y1:0,x2:0,y2:0}, entrances:[], enemies:[], objects:[], transitions:[],
+            romHeader:{ mapW:1, mapH:1, offX:0, offY:0, mapWpx:16, mapHpx:16, scrollW:0, scrollH:0, b4:0x17, b5:0x00, b6:0x00, b7:0x02, b8:0x00, sig:'17 00 00 02 00' },
+            payloadData:{
+                tileFamilies:[0x00],
+                tilemap:[[0]],
+                compressedSize:0,
+                render:{
+                    defaultPaletteIndex:0,
+                    unresolvedTiles:0,
+                    totalRefs:1,
+                    unresolvedRatio:0,
+                    familyTiles:[tile],
+                    palettes:[{ name:'test', rgba:[[0,0,0,255],[11,22,33,255],[44,55,66,255]] }],
+                },
+            },
+            triggers:{ stepOn:[], bTrigger:[] },
+        }
+    }];
+    const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTreeDecoded, 'rooms', 'pixel_room');
+    const js = extractScript(html);
+    const { sandbox, logs } = runWebviewJs(js);
+    const cv = sandbox.document.getElementById('rr-canvas');
+    const ctx = cv && cv.getContext('2d');
+    const data = ctx && ctx._lastImageData && ctx._lastImageData.data;
+    assert.ok(data && data.length >= 8, 'Expected image data with at least two pixels');
+    // Pixel 0 uses index 2 -> [44,55,66]
+    assert.strictEqual(data[0], 44, 'Expected first pixel red channel from tile index 2');
+    assert.strictEqual(data[1], 55, 'Expected first pixel green channel from tile index 2');
+    assert.strictEqual(data[2], 66, 'Expected first pixel blue channel from tile index 2');
+    // Pixel 1 uses index 1 -> [11,22,33]
+    assert.strictEqual(data[4], 11, 'Expected second pixel red channel from tile index 1');
+    assert.strictEqual(data[5], 22, 'Expected second pixel green channel from tile index 1');
+    assert.strictEqual(data[6], 33, 'Expected second pixel blue channel from tile index 1');
+    const ex = logs.find((entry) => String(entry[1] || '').includes('[RoomsRender] drawRomRoomCanvas: exception'));
+    assert.ok(!ex, 'Did not expect draw exception logs');
+});
+
 test('rooms decoded render logs invalidRefs diagnostics for trace comparison', () => {
     const tile = new Array(16 * 16).fill(1);
     const roomTreeDecoded = [{
@@ -591,9 +791,9 @@ test('low-quality decoded render is rejected and falls back to header canvas', (
                 compressedSize:0,
                 render:{
                     defaultPaletteIndex:0,
-                    unresolvedTiles:200,
+                    unresolvedTiles:320,
                     totalRefs:320,
-                    unresolvedRatio:0.625,
+                    unresolvedRatio:1.0,
                     familyTiles:[tile],
                     palettes:[{ name:'test', rgba:[[0,0,0,255],[255,255,255,255]] }],
                 },

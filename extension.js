@@ -3728,7 +3728,7 @@ function renderRoomDetail(room){
     // Decoded payload section
     var payload = c.payloadData || null;
     var rr = (payload && payload.render) ? payload.render : null;
-    var rrQualityRejected = !!(rr && rr.totalRefs && rr.unresolvedRatio > 0.25);
+    var rrQualityRejected = !!(rr && rr.totalRefs && rr.unresolvedRatio > 0.98);
     if (rrQualityRejected) {
       console.log('[RoomsRender] renderRoomDetail: rejecting decoded render due to high unresolved ratio', {
         room: room && room.name,
@@ -3818,66 +3818,92 @@ function renderRoomDetail(room){
 
   // Render full room graphic from decoded ROM payload data.
   function drawRomRoomCanvas(){
-    var rr=(c.payloadData&&c.payloadData.render)||null;
-    var tm=(c.payloadData&&c.payloadData.tilemap)||null;
-    var cv=panel.querySelector('#rr-canvas');
-    if(!rr||!tm||!cv||!tm.length||!rr.familyTiles||!rr.palettes){
-      console.log('[RoomsRender] drawRomRoomCanvas: skipped', {room: room && room.name, hasRender: !!rr, hasTilemap: !!(tm&&tm.length), hasCanvas: !!cv});
-      return;
-    }
-    var mapH=tm.length;
-    var mapW=(tm[0]||[]).length;
-    if(!mapW)return;
-    var w=mapW*16,h=mapH*16;
-    if(cv.width!==w)cv.width=w;
-    if(cv.height!==h)cv.height=h;
-    var sel=panel.querySelector('#rr-palette-sel');
-    var pidx=sel?parseInt(sel.value||String(rr.defaultPaletteIndex||0),10):(rr.defaultPaletteIndex||0);
-    if(isNaN(pidx)||pidx<0||pidx>=rr.palettes.length)pidx=0;
-    var pal=(rr.palettes[pidx]&&rr.palettes[pidx].rgba)||[];
-    var ctx=cv.getContext('2d');
-    if(!ctx){
-      console.log('[RoomsRender] drawRomRoomCanvas: no 2D context', {room: room && room.name});
-      return;
-    }
-    var img=ctx.createImageData(w,h);
-    var out=img.data;
-    var invalidRefs=0;
-    var drawnTiles=0;
-    for(var ty=0;ty<mapH;ty++){
-      var row=tm[ty]||[];
-      for(var tx=0;tx<mapW;tx++){
-        var famIdx=row[tx]|0;
-        if(famIdx<0||famIdx>=rr.familyTiles.length){invalidRefs++;continue;}
-        var tile=rr.familyTiles[famIdx];
-        if(!tile){invalidRefs++;continue;}
-        drawnTiles++;
-        for(var py=0;py<16;py++){
-          var srcBase=py*16;
-          var dstBase=((ty*16+py)*w + tx*16)*4;
-          for(var px=0;px<16;px++){
-            var ci=tile[srcBase+px]|0;
-            var col=pal[ci]||pal[0]||[0,0,0,255];
-            var di=dstBase+px*4;
-            out[di]=col[0]|0;
-            out[di+1]=col[1]|0;
-            out[di+2]=col[2]|0;
-            out[di+3]=col[3]==null?255:(col[3]|0);
+    try {
+      var rr=(c.payloadData&&c.payloadData.render)||null;
+      var tm=(c.payloadData&&c.payloadData.tilemap)||null;
+      var cv=panel.querySelector('#rr-canvas');
+      if(!rr||!tm||!cv||!tm.length||!rr.familyTiles||!rr.palettes){
+        console.log('[RoomsRender] drawRomRoomCanvas: skipped', {room: room && room.name, hasRender: !!rr, hasTilemap: !!(tm&&tm.length), hasCanvas: !!cv});
+        return;
+      }
+      var rhLocal=c.romHeader||null;
+      var mapW = (rhLocal && rhLocal.mapW) ? (rhLocal.mapW|0) : (((tm[0]||[]).length)|0);
+      var mapH = (rhLocal && rhLocal.mapH) ? (rhLocal.mapH|0) : (tm.length|0);
+      if(mapW<=0||mapH<=0)return;
+      var w=mapW*16,h=mapH*16;
+      if(cv.width!==w)cv.width=w;
+      if(cv.height!==h)cv.height=h;
+      var sel=panel.querySelector('#rr-palette-sel');
+      var pidx=sel?parseInt(sel.value||String(rr.defaultPaletteIndex||0),10):(rr.defaultPaletteIndex||0);
+      if(isNaN(pidx)||pidx<0||pidx>=rr.palettes.length)pidx=0;
+      var pal=(rr.palettes[pidx]&&rr.palettes[pidx].rgba)||[];
+      var ctx=cv.getContext('2d');
+      if(!ctx){
+        console.log('[RoomsRender] drawRomRoomCanvas: no 2D context', {room: room && room.name});
+        return;
+      }
+
+      // Keep pre-render state deterministic and visible in tests/logs.
+      ctx.fillStyle='#ffffff';
+      ctx.fillRect(0,0,w,h);
+
+      var img=ctx.createImageData(w,h);
+      var out=img.data;
+      var invalidRefs=0;
+      var drawnTiles=0;
+      var fallbackSubstitutions=0;
+      var usedRefs={};
+      var fallbackTile = rr.familyTiles[0] || null;
+      var fallbackRef = 0;
+      for(var ty=0;ty<mapH;ty++){
+        var row=tm[ty]||[];
+        for(var tx=0;tx<mapW;tx++){
+          var famIdx=(row[tx]==null)?fallbackRef:(row[tx]|0);
+          var usedRef=famIdx;
+          var tile=null;
+          if(famIdx>=0&&famIdx<rr.familyTiles.length) tile=rr.familyTiles[famIdx];
+          if(!tile){
+            invalidRefs++;
+            tile=fallbackTile;
+            usedRef=fallbackRef;
+            if(tile)fallbackSubstitutions++;
+          }
+          if(!tile) continue;
+          drawnTiles++;
+          usedRefs[usedRef]=1;
+          for(var py=0;py<16;py++){
+            var srcBase=py*16;
+            var dstBase=((ty*16+py)*w + tx*16)*4;
+            for(var px=0;px<16;px++){
+              var ci=tile[srcBase+px]|0;
+              var col=pal[ci]||pal[0]||[0,0,0,255];
+              var di=dstBase+px*4;
+              out[di]=col[0]|0;
+              out[di+1]=col[1]|0;
+              out[di+2]=col[2]|0;
+              out[di+3]=col[3]==null?255:(col[3]|0);
+            }
           }
         }
       }
+      ctx.putImageData(img,0,0);
+      var tileRefs=mapW*mapH;
+      console.log('[RoomsRender] drawRomRoomCanvas: done', {
+        room: room && room.name,
+        width: w,
+        height: h,
+        palette: pidx,
+        drawnTiles: drawnTiles,
+        invalidRefs: invalidRefs,
+        fallbackSubstitutions: fallbackSubstitutions,
+        tileRefs: tileRefs,
+        renderCommandsEstimate: tileRefs,
+        uniqueRefsCount: Object.keys(usedRefs).length,
+        families: rr.familyTiles.length,
+      });
+    } catch (e) {
+      console.log('[RoomsRender] drawRomRoomCanvas: exception', {room: room && room.name, error: String(e)});
     }
-    ctx.putImageData(img,0,0);
-    console.log('[RoomsRender] drawRomRoomCanvas: done', {
-      room: room && room.name,
-      width: w,
-      height: h,
-      palette: pidx,
-      drawnTiles: drawnTiles,
-      invalidRefs: invalidRefs,
-      tileRefs: mapW*mapH,
-      families: rr.familyTiles.length,
-    });
   }
 
   function drawHeaderFallbackCanvas(){

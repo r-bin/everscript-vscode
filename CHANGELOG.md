@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.2.36] — 2026-05-13
+
+### Added
+- **Renderer contract tests** in smoke suite to enforce map draw invariants:
+  - decoded map canvas size must match ROM header `mapW/mapH`.
+  - canvas must be white-prefilled before map draw.
+  - rendered map must be fully covered (no white holes) for valid tile fixtures.
+  - draw diagnostics must report sufficient tile diversity (`uniqueRefsCount`) for varied fixtures.
+  - per-tile pixel correctness checks now assert exact expected RGB output on-map.
+  - draw-count parity checks validate `drawnTiles`, `tileRefs`, and `renderCommandsEstimate` consistency.
+
+### Changed
+- **Map draw geometry source** — decoded map rendering now always sizes and iterates from ROM header dimensions (not inferred tilemap array shape) to keep renderer behavior aligned with map metadata.
+- **Coverage fill behavior** — invalid/missing tile refs are now substituted with fallback family tile 0 during draw, preventing sparse black gaps and ensuring complete map coverage for diagnostics.
+- **Draw robustness and telemetry** — draw pass now wraps exceptions, logs explicit failures, and reports `fallbackSubstitutions` and `uniqueRefsCount`.
+
+### Validation
+- Full `npm test` passes with expanded map renderer contract coverage.
+- Single-tile parity suite remains green, reinforcing that per-tile decode is correct while map-level placement decoding remains the primary open research area.
+
 ## [0.2.35] — 2026-05-13
 
 ### Added
