@@ -1319,56 +1319,58 @@ function decodeMapPayload(romBuf, dataRom, mapW, mapH) {
         
         // Find sentinel: either 0x30 or 0xC8 followed by 0x00 0x00 0x00 0x01 0x00 0xFF
         const compressStart = payloadOff + 1 + tileCount * 2;
+        const compressStartAbs = dataRom + compressStart;
         const sentinel30 = [0x30, 0x00, 0x00, 0x00, 0x01, 0x00, 0xff];
         const sentinelC8 = [0xc8, 0x00, 0x00, 0x00, 0x01, 0x00, 0xff];
         
-        let sentinelPos = null;
+        let sentinelPosAbs = null;
         const totalTiles = mapW * mapH;
         const tilemapBytes = (totalTiles + 1) >>> 1;
-        const scanLimit = Math.min(0x20000, Math.max(0, romBuf.length - compressStart - 7));
+        const scanLimit = Math.min(0x20000, Math.max(0, romBuf.length - compressStartAbs - 7));
         for (let offset = 0; offset < scanLimit; offset++) {
-            const match30 = sentinel30.every((b, i) => romBuf[compressStart + offset + i] === b);
-            const matchC8 = sentinelC8.every((b, i) => romBuf[compressStart + offset + i] === b);
+            const candidateAbs = compressStartAbs + offset;
+            const match30 = sentinel30.every((b, i) => romBuf[candidateAbs + i] === b);
+            const matchC8 = sentinelC8.every((b, i) => romBuf[candidateAbs + i] === b);
             if (match30 || matchC8) {
-            const candidate = compressStart + offset;
-            const furtherStart = candidate + 7;
-            if (furtherStart >= romBuf.length) continue;
-            const posCountCandidate = h8(furtherStart);
-            const tilemapStartCandidate = furtherStart + 1 + posCountCandidate * 2;
-            if (tilemapStartCandidate + tilemapBytes <= romBuf.length) {
-              sentinelPos = candidate;
+            const furtherStartAbs = candidateAbs + 7;
+            if (furtherStartAbs >= romBuf.length) continue;
+            const posCountCandidate = romBuf[furtherStartAbs];
+            const tilemapStartCandidateAbs = furtherStartAbs + 1 + posCountCandidate * 2;
+            if (tilemapStartCandidateAbs + tilemapBytes <= romBuf.length) {
+              sentinelPosAbs = candidateAbs;
               break;
             }
             }
         }
         
-        if (!sentinelPos) {
+        if (sentinelPosAbs == null) {
           roomsRenderLog('decodeMapPayload: sentinel not found', {
             dataRom: '0x' + dataRom.toString(16), mapW, mapH, tileCount, scanLimit,
           });
           return null;
         }
         
-        const compressedSize = sentinelPos - compressStart;
-        const furtherStart = sentinelPos + 7;
+        const compressedSize = sentinelPosAbs - compressStartAbs;
+        const furtherStartAbs = sentinelPosAbs + 7;
         
         // Position table: count + entries
-        if (furtherStart >= romBuf.length) return null;
+        if (furtherStartAbs >= romBuf.length) return null;
         
-        const posCount = h8(furtherStart);
+        const posCount = romBuf[furtherStartAbs];
         const positionTable = [];
         for (let i = 0; i < posCount; i++) {
-            if (furtherStart + 1 + i * 2 + 2 > romBuf.length) return null;
-            positionTable.push(h16(furtherStart + 1 + i * 2));
+            const posAbs = furtherStartAbs + 1 + i * 2;
+            if (posAbs + 1 >= romBuf.length) return null;
+            positionTable.push(romBuf[posAbs] | (romBuf[posAbs + 1] << 8));
         }
         
         // Tilemap: nibble-packed (2 tiles per byte)
-        const tilemapStart = furtherStart + 1 + posCount * 2;
-        if (tilemapStart + tilemapBytes > romBuf.length) return null;
+        const tilemapStartAbs = furtherStartAbs + 1 + posCount * 2;
+        if (tilemapStartAbs + tilemapBytes > romBuf.length) return null;
         
         const tilemap1D = [];
         for (let i = 0; i < tilemapBytes; i++) {
-            const byte = romBuf[tilemapStart + i];
+            const byte = romBuf[tilemapStartAbs + i];
             tilemap1D.push(byte & 0x0f);
             tilemap1D.push((byte >>> 4) & 0x0f);
         }

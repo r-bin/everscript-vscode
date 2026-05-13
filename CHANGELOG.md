@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.33] — 2026-05-13
+
+### Fixed
+- **Rooms payload decode address bug** — sentinel scanning in `decodeMapPayload` now uses absolute ROM offsets (`dataRom + payload offset`) instead of scanning from the ROM root, so maps with valid payloads decode correctly and render the decoded room canvas instead of incorrectly dropping to fallback.
+- **Post-sentinel parsing alignment** — position-table and tilemap parsing now read from absolute addresses consistently, preventing false decode-null outcomes caused by mixed relative/absolute indexing.
+
+### Added
+- **Canvas render assertions in smoke tests**:
+  - verify decoded map rooms create a render canvas (`#rr-canvas`) with expected dimensions.
+  - verify decoded render path writes non-empty pixel data to the canvas (not an empty image buffer).
+
 ## [0.2.32] — 2026-05-13
 
 ### Fixed

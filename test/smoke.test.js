@@ -86,25 +86,62 @@ function runWebviewJs(jsCode) {
     return { sandbox, logs };
 }
 
+function makeFakeCanvasContext() {
+    const ctx = {
+        fillStyle: '#000000',
+        strokeStyle: '#000000',
+        _lastImageData: null,
+        _putCount: 0,
+        _fillOps: [],
+        _strokeOps: [],
+        createImageData: (w, h) => ({ width: w, height: h, data: new Uint8ClampedArray(w * h * 4) }),
+        putImageData: (img) => {
+            ctx._lastImageData = img;
+            ctx._putCount++;
+        },
+        fillRect: (x, y, w, h) => { ctx._fillOps.push({ x, y, w, h, fillStyle: ctx.fillStyle }); },
+        strokeRect: (x, y, w, h) => { ctx._strokeOps.push({ x, y, w, h, strokeStyle: ctx.strokeStyle }); },
+    };
+    return ctx;
+}
+
 // Minimal fake DOM — enough for the webview JS to not crash.
 function makeFakeDocument() {
     const elements = {};
     let seq = 0;
+    function registerCanvasesFromHtml(html) {
+        let m;
+        const re = /<canvas[^>]*id="([^"]+)"[^>]*>/g;
+        while ((m = re.exec(html)) !== null) {
+            const tag = m[0];
+            const id = m[1];
+            const widthM = tag.match(/\bwidth="(\d+)"/);
+            const heightM = tag.match(/\bheight="(\d+)"/);
+            const el = makeEl(id);
+            if (widthM) el.width = parseInt(widthM[1], 10);
+            if (heightM) el.height = parseInt(heightM[1], 10);
+        }
+    }
     function makeEl(id) {
         if (elements[id]) return elements[id];
         const classList = new FakeClassList();
         const children = [];
+        let _innerHTML = '';
+        let _ctx2d = null;
         const el = {
             _id: id,
             classList,
             dataset: {},
             style: {},
             children,
-            innerHTML: '',
             textContent: '',
             value: '',
             querySelectorAll: (sel) => [],
-            querySelector: (sel) => makeEl('__qs_' + sel.replace(/[^\w]/g,'_')),
+            querySelector: (sel) => {
+                const idMatch = /^#([A-Za-z0-9_-]+)$/.exec(sel);
+                if (idMatch) return makeEl(idMatch[1]);
+                return makeEl('__qs_' + sel.replace(/[^\w]/g,'_'));
+            },
             closest: (sel) => null,
             addEventListener: () => {},
             removeEventListener: () => {},
@@ -112,12 +149,26 @@ function makeFakeDocument() {
             scrollTop: 0,
             scrollHeight: 0,
             clientHeight: 0,
+            width: 0,
+            height: 0,
+            getContext: (kind) => {
+                if (kind !== '2d') return null;
+                if (!_ctx2d) _ctx2d = makeFakeCanvasContext();
+                return _ctx2d;
+            },
             getBoundingClientRect: () => ({ top:0, bottom:0, height:0, left:0, right:0, width:0 }),
             setAttribute: () => {},
             getAttribute: () => null,
             createSVGPoint: () => ({ x:0, y:0, matrixTransform: ()=>({x:0,y:0}) }),
             getScreenCTM: () => ({ inverse: ()=>({}) }),
         };
+        Object.defineProperty(el, 'innerHTML', {
+            get: () => _innerHTML,
+            set: (v) => {
+                _innerHTML = String(v || '');
+                registerCanvasesFromHtml(_innerHTML);
+            },
+        });
         elements[id] = el;
         return el;
     }
@@ -134,7 +185,11 @@ function makeFakeDocument() {
     const body = makeEl('body');
     return {
         body,
-        querySelector: (sel) => makeEl('__qs_' + sel.replace(/[^\w]/g,'_')),
+        querySelector: (sel) => {
+            const idMatch = /^#([A-Za-z0-9_-]+)$/.exec(sel);
+            if (idMatch) return makeEl(idMatch[1]);
+            return makeEl('__qs_' + sel.replace(/[^\w]/g,'_'));
+        },
         querySelectorAll: (sel) => [],
         getElementById: (id) => makeEl(id),
         addEventListener: () => {},
@@ -314,6 +369,76 @@ test('rooms detail emits render log messages in rooms tab path', () => {
     const { logs } = runWebviewJs(js);
     const joined = logs.map((entry) => entry.slice(1).map(String).join(' ')).join('\n');
     assert.ok(joined.includes('[RoomsRender] renderRoomDetail:start'), 'Expected room render start log');
+});
+
+test('rooms detail creates decoded render canvas when payload render exists', () => {
+    const tile = new Array(16 * 16).fill(0);
+    tile[0] = 1;
+    const roomTreeDecoded = [{
+        kind:'map', name:'decoded_room', vanillaId:'R_DEC', relPath:'', startLine:0, endLine:2,
+        imageUri:null, imageDims:null,
+        content:{
+            initMap:{x1:0,y1:0,x2:0,y2:0}, entrances:[], enemies:[], objects:[], transitions:[],
+            romHeader:{ mapW:1, mapH:1, offX:0, offY:0, mapWpx:16, mapHpx:16, scrollW:0, scrollH:0, b4:0x17, b5:0x00, b6:0x00, b7:0x02, b8:0x00, sig:'17 00 00 02 00' },
+            payloadData:{
+                tileFamilies:[0x00],
+                tilemap:[[0]],
+                compressedSize:0,
+                render:{
+                    defaultPaletteIndex:0,
+                    unresolvedTiles:0,
+                    familyTiles:[tile],
+                    palettes:[{ name:'test', rgba:[[0,0,0,255],[255,255,255,255]] }],
+                },
+            },
+            triggers:{ stepOn:[], bTrigger:[] },
+        }
+    }];
+    const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTreeDecoded, 'rooms', 'decoded_room');
+    const js = extractScript(html);
+    const { sandbox } = runWebviewJs(js);
+    const cv = sandbox.document.getElementById('rr-canvas');
+    assert.ok(cv, 'Expected decoded render canvas to exist');
+    assert.strictEqual(cv.width, 16, 'Expected decoded canvas width to match 1 tile map');
+    assert.strictEqual(cv.height, 16, 'Expected decoded canvas height to match 1 tile map');
+});
+
+test('decoded render canvas receives non-empty pixel data', () => {
+    const tile = new Array(16 * 16).fill(0);
+    tile[0] = 1;
+    const roomTreeDecoded = [{
+        kind:'map', name:'decoded_room', vanillaId:'R_DEC', relPath:'', startLine:0, endLine:2,
+        imageUri:null, imageDims:null,
+        content:{
+            initMap:{x1:0,y1:0,x2:0,y2:0}, entrances:[], enemies:[], objects:[], transitions:[],
+            romHeader:{ mapW:1, mapH:1, offX:0, offY:0, mapWpx:16, mapHpx:16, scrollW:0, scrollH:0, b4:0x17, b5:0x00, b6:0x00, b7:0x02, b8:0x00, sig:'17 00 00 02 00' },
+            payloadData:{
+                tileFamilies:[0x00],
+                tilemap:[[0]],
+                compressedSize:0,
+                render:{
+                    defaultPaletteIndex:0,
+                    unresolvedTiles:0,
+                    familyTiles:[tile],
+                    palettes:[{ name:'test', rgba:[[0,0,0,255],[255,255,255,255]] }],
+                },
+            },
+            triggers:{ stepOn:[], bTrigger:[] },
+        }
+    }];
+    const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTreeDecoded, 'rooms', 'decoded_room');
+    const js = extractScript(html);
+    const { sandbox } = runWebviewJs(js);
+    const cv = sandbox.document.getElementById('rr-canvas');
+    const ctx = cv && cv.getContext('2d');
+    assert.ok(ctx && ctx._putCount > 0, 'Expected decoded render path to draw image data to canvas');
+    const data = ctx._lastImageData && ctx._lastImageData.data;
+    assert.ok(data && data.length > 0, 'Expected image data buffer');
+    let anyNonZero = false;
+    for (let i = 0; i < data.length; i++) {
+        if (data[i] !== 0) { anyNonZero = true; break; }
+    }
+    assert.ok(anyNonZero, 'Expected non-empty pixel data in rendered map canvas');
 });
 
 // ── Summary ───────────────────────────────────────────────────────────────────
