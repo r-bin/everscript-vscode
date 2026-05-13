@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.32] — 2026-05-13
+
+### Fixed
+- **Rooms tab visibility hardening** — room render section now always shows a canvas block in ROM Map Data:
+  - If payload render data is available, draw the decoded room canvas as before.
+  - If payload render data is unavailable, draw a **header fallback canvas** (white area) sized from ROM header `map_w_tiles` / `map_h_tiles` so the render area is always visibly present.
+- **Payload sentinel scan robustness** — payload decode no longer stops at a short sentinel window; scan range was expanded and candidate validation now checks that the resulting position-table + tilemap region fits map geometry.
+
+### Added
+- **Render-path logging** — added `[RoomsRender]` logs for room-detail entry, decoded-room draw pass, fallback draw pass, and payload decode success/failure reasons.
+- **Tests for render visibility and logs**:
+  - smoke tests now assert rooms-tab fallback canvas markup is injected and render logs are emitted.
+  - UI tests now assert rooms-tab render block styles exist and fallback render block appears when payload render data is missing.
+
 ## [0.2.31] — 2026-05-13
 
 ### Added

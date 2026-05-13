@@ -60,10 +60,15 @@ function test(name, fn) {
 // Execute JS string in a vm sandbox and return the sandbox.
 // acquireVsCodeApi is mocked to a no-op.
 function runWebviewJs(jsCode) {
+    const logs = [];
     const sandbox = {
         acquireVsCodeApi: () => ({ postMessage: () => {} }),
         document: makeFakeDocument(),
-        console: { log: ()=>{}, warn: ()=>{}, error: ()=>{} },
+        console: {
+            log: (...args) => logs.push(['log'].concat(args)),
+            warn: (...args) => logs.push(['warn'].concat(args)),
+            error: (...args) => logs.push(['error'].concat(args)),
+        },
         setTimeout: ()=>{},
         clearTimeout: ()=>{},
         parseInt,
@@ -78,7 +83,7 @@ function runWebviewJs(jsCode) {
     };
     vm.createContext(sandbox);
     vm.runInContext(jsCode, sandbox, { timeout: 5000 });
-    return sandbox;
+    return { sandbox, logs };
 }
 
 // Minimal fake DOM — enough for the webview JS to not crash.
@@ -135,6 +140,7 @@ function makeFakeDocument() {
         addEventListener: () => {},
         createElement: (tag) => makeEl('__el_' + (seq++) + '_' + tag),
         createElementNS: (ns, tag) => makeEl('__ns_' + (seq++) + '_' + tag),
+        _elements: elements,
     };
 }
 
@@ -273,6 +279,41 @@ test('args section appears above WRAM in HTML', () => {
 test('scriptLines absent even with triggers present', () => {
     const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTree, 'rooms', null);
     assert.ok(!html.includes('"scriptLines"'), 'scriptLines key must not appear in ROOMS JSON');
+});
+
+test('rooms detail renders header fallback canvas when payload render is missing', () => {
+    const roomTreeFallback = [{
+        kind:'map', name:'fallback_room', vanillaId:'R_TEST', relPath:'', startLine:0, endLine:2,
+        imageUri:null, imageDims:null,
+        content:{
+            initMap:{x1:0,y1:0,x2:31,y2:25}, entrances:[], enemies:[], objects:[], transitions:[],
+            romHeader:{ mapW:31, mapH:26, offX:0, offY:0, mapWpx:496, mapHpx:416, scrollW:240, scrollH:192, b4:0x17, b5:0x00, b6:0x00, b7:0x02, b8:0x00, sig:'17 00 00 02 00' },
+            triggers:{ stepOn:[], bTrigger:[] }
+        }
+    }];
+    const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTreeFallback, 'rooms', 'fallback_room');
+    const js = extractScript(html);
+    const { sandbox } = runWebviewJs(js);
+    const detail = sandbox.document.getElementById('room-detail').innerHTML || '';
+    assert.ok(detail.includes('Rendered room graphic (header fallback)'), 'Expected header fallback section in room detail');
+    assert.ok(detail.includes('rr-canvas-fallback'), 'Expected fallback canvas element in room detail');
+});
+
+test('rooms detail emits render log messages in rooms tab path', () => {
+    const roomTreeFallback = [{
+        kind:'map', name:'fallback_room', vanillaId:'R_TEST', relPath:'', startLine:0, endLine:2,
+        imageUri:null, imageDims:null,
+        content:{
+            initMap:{x1:0,y1:0,x2:31,y2:25}, entrances:[], enemies:[], objects:[], transitions:[],
+            romHeader:{ mapW:31, mapH:26, offX:0, offY:0, mapWpx:496, mapHpx:416, scrollW:240, scrollH:192, b4:0x17, b5:0x00, b6:0x00, b7:0x02, b8:0x00, sig:'17 00 00 02 00' },
+            triggers:{ stepOn:[], bTrigger:[] }
+        }
+    }];
+    const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTreeFallback, 'rooms', 'fallback_room');
+    const js = extractScript(html);
+    const { logs } = runWebviewJs(js);
+    const joined = logs.map((entry) => entry.slice(1).map(String).join(' ')).join('\n');
+    assert.ok(joined.includes('[RoomsRender] renderRoomDetail:start'), 'Expected room render start log');
 });
 
 // ── Summary ───────────────────────────────────────────────────────────────────

@@ -1323,16 +1323,31 @@ function decodeMapPayload(romBuf, dataRom, mapW, mapH) {
         const sentinelC8 = [0xc8, 0x00, 0x00, 0x00, 0x01, 0x00, 0xff];
         
         let sentinelPos = null;
-        for (let offset = 0; offset < Math.min(500, romBuf.length - compressStart - 7); offset++) {
+        const totalTiles = mapW * mapH;
+        const tilemapBytes = (totalTiles + 1) >>> 1;
+        const scanLimit = Math.min(0x20000, Math.max(0, romBuf.length - compressStart - 7));
+        for (let offset = 0; offset < scanLimit; offset++) {
             const match30 = sentinel30.every((b, i) => romBuf[compressStart + offset + i] === b);
             const matchC8 = sentinelC8.every((b, i) => romBuf[compressStart + offset + i] === b);
             if (match30 || matchC8) {
-                sentinelPos = compressStart + offset;
-                break;
+            const candidate = compressStart + offset;
+            const furtherStart = candidate + 7;
+            if (furtherStart >= romBuf.length) continue;
+            const posCountCandidate = h8(furtherStart);
+            const tilemapStartCandidate = furtherStart + 1 + posCountCandidate * 2;
+            if (tilemapStartCandidate + tilemapBytes <= romBuf.length) {
+              sentinelPos = candidate;
+              break;
+            }
             }
         }
         
-        if (!sentinelPos) return null;
+        if (!sentinelPos) {
+          roomsRenderLog('decodeMapPayload: sentinel not found', {
+            dataRom: '0x' + dataRom.toString(16), mapW, mapH, tileCount, scanLimit,
+          });
+          return null;
+        }
         
         const compressedSize = sentinelPos - compressStart;
         const furtherStart = sentinelPos + 7;
@@ -1349,9 +1364,6 @@ function decodeMapPayload(romBuf, dataRom, mapW, mapH) {
         
         // Tilemap: nibble-packed (2 tiles per byte)
         const tilemapStart = furtherStart + 1 + posCount * 2;
-        const totalTiles = mapW * mapH;
-        const tilemapBytes = (totalTiles + 1) >>> 1;
-        
         if (tilemapStart + tilemapBytes > romBuf.length) return null;
         
         const tilemap1D = [];
@@ -1393,6 +1405,13 @@ const MAP_TILE_PALETTES = [
 ];
 
 const _mapTileDecodeCache = new Map();
+
+function roomsRenderLog() {
+  try {
+    const args = Array.prototype.slice.call(arguments);
+    console.log.apply(console, ['[RoomsRender]'].concat(args));
+  } catch {}
+}
 
 function snesMapToRom(addr) {
   return addr & ~(0xc00000);
@@ -1609,7 +1628,10 @@ function decodeAndSetPayload(wsRoot, mapId, content, header) {
             const p = path.join(wsRoot, name);
             if (fs.existsSync(p)) { romBuf = fs.readFileSync(p); break; }
         }
-        if (!romBuf) return;
+        if (!romBuf) {
+          roomsRenderLog('decodeAndSetPayload: ROM not found in workspace root', { wsRoot, mapId });
+          return;
+        }
         
         const mapTableRom = 0x1ffde7;
         const ptrAddr = mapTableRom + mapId * 4;
@@ -1624,9 +1646,18 @@ function decodeAndSetPayload(wsRoot, mapId, content, header) {
           payload.render = buildRoomRenderData(romBuf, mapId, payload, header.mapW, header.mapH);
             content.payloadData = payload;
           content.mapId = mapId;
+          roomsRenderLog('decodeAndSetPayload: payload decoded', {
+            mapId,
+            mapW: header.mapW,
+            mapH: header.mapH,
+            families: payload.tileFamilies ? payload.tileFamilies.length : 0,
+            unresolvedTiles: payload.render ? payload.render.unresolvedTiles : null,
+          });
+        } else {
+          roomsRenderLog('decodeAndSetPayload: payload decode unavailable', { mapId, mapW: header.mapW, mapH: header.mapH });
         }
     } catch (_) {
-        // Silently fail; payload is optional
+        roomsRenderLog('decodeAndSetPayload: exception', { mapId, error: String(_) });
     }
 }
 
@@ -3320,6 +3351,7 @@ document.querySelectorAll('.rn-map').forEach(function(li){
 function renderRoomDetail(room){
   var panel=document.getElementById('room-detail');
   if(!panel)return;
+  console.log('[RoomsRender] renderRoomDetail:start', {room: room && room.name});
   panel.className='';
   var c=room.content||{};
   var im=c.initMap;
@@ -3664,6 +3696,21 @@ function renderRoomDetail(room){
         html += '</div>';
       }
     }
+
+    // Guaranteed visible fallback: if no decoded render data exists, still paint a white area
+    // with ROM header width/height so users can verify sizing and panel visibility.
+    if (!(payload && payload.render && payload.tilemap && payload.tilemap.length)) {
+      var fbW = (rh.mapW || 0) * 16;
+      var fbH = (rh.mapH || 0) * 16;
+      if (fbW > 0 && fbH > 0) {
+        html += '<div class="rsh-section-lbl">Rendered room graphic (header fallback)</div>';
+        html += '<div class="rr-wrap">';
+        html += '<div class="rr-meta">canvas: <code>' + fbW + 'x' + fbH + '</code> px (header-derived, fallback)</div>';
+        html += '<div class="rr-canvas-wrap"><canvas id="rr-canvas-fallback" class="rr-canvas" width="' + fbW + '" height="' + fbH + '"></canvas></div>';
+        html += '<div class="rsh-payload-note">Fallback trace: no decoded payload render available for this map in current pass; canvas dimensions are still taken from ROM header bytes 0x02/0x03.</div>';
+        html += '</div>';
+      }
+    }
     html+='</div>'; // close rsh-body
     html+='</div>'; // close rs-romhdr
   }
@@ -3686,7 +3733,10 @@ function renderRoomDetail(room){
     var rr=(c.payloadData&&c.payloadData.render)||null;
     var tm=(c.payloadData&&c.payloadData.tilemap)||null;
     var cv=panel.querySelector('#rr-canvas');
-    if(!rr||!tm||!cv||!tm.length||!rr.familyTiles||!rr.palettes)return;
+    if(!rr||!tm||!cv||!tm.length||!rr.familyTiles||!rr.palettes){
+      console.log('[RoomsRender] drawRomRoomCanvas: skipped', {room: room && room.name, hasRender: !!rr, hasTilemap: !!(tm&&tm.length), hasCanvas: !!cv});
+      return;
+    }
     var mapH=tm.length;
     var mapW=(tm[0]||[]).length;
     if(!mapW)return;
@@ -3698,7 +3748,10 @@ function renderRoomDetail(room){
     if(isNaN(pidx)||pidx<0||pidx>=rr.palettes.length)pidx=0;
     var pal=(rr.palettes[pidx]&&rr.palettes[pidx].rgba)||[];
     var ctx=cv.getContext('2d');
-    if(!ctx)return;
+    if(!ctx){
+      console.log('[RoomsRender] drawRomRoomCanvas: no 2D context', {room: room && room.name});
+      return;
+    }
     var img=ctx.createImageData(w,h);
     var out=img.data;
     for(var ty=0;ty<mapH;ty++){
@@ -3724,10 +3777,27 @@ function renderRoomDetail(room){
       }
     }
     ctx.putImageData(img,0,0);
+    console.log('[RoomsRender] drawRomRoomCanvas: done', {room: room && room.name, width: w, height: h, palette: pidx});
+  }
+
+  function drawHeaderFallbackCanvas(){
+    var cv=panel.querySelector('#rr-canvas-fallback');
+    if(!cv)return;
+    var ctx=cv.getContext&&cv.getContext('2d');
+    if(!ctx){
+      console.log('[RoomsRender] drawHeaderFallbackCanvas: no 2D context', {room: room && room.name});
+      return;
+    }
+    ctx.fillStyle='#ffffff';
+    ctx.fillRect(0,0,cv.width,cv.height);
+    ctx.strokeStyle='rgba(0,0,0,0.2)';
+    ctx.strokeRect(0.5,0.5,Math.max(0,cv.width-1),Math.max(0,cv.height-1));
+    console.log('[RoomsRender] drawHeaderFallbackCanvas: done', {room: room && room.name, width: cv.width, height: cv.height});
   }
   var rrSel=panel.querySelector('#rr-palette-sel');
   if(rrSel)rrSel.addEventListener('change',drawRomRoomCanvas);
   drawRomRoomCanvas();
+  drawHeaderFallbackCanvas();
 
   var svg=document.getElementById('rg-svg');
   var wrap=document.getElementById('rg-wrap');

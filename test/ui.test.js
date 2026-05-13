@@ -77,6 +77,18 @@ const mapByAddr = new Map();
 const roomTree = [];
 const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTree, 'scaling', null);
 
+const roomsTree = [{
+    kind:'map', name:'rooms_render_test', vanillaId:'R_TEST', relPath:'', startLine:0, endLine:10,
+    imageUri:null, imageDims:null,
+    content:{
+        initMap:{x1:0,y1:0,x2:31,y2:25}, entrances:[], enemies:[], objects:[], transitions:[],
+        romHeader:{ mapW:31, mapH:26, offX:0, offY:0, mapWpx:496, mapHpx:416, scrollW:240, scrollH:192, b4:0x17, b5:0x00, b6:0x00, b7:0x02, b8:0x00, sig:'17 00 00 02 00' },
+        triggers:{ stepOn:[], bTrigger:[] }
+    }
+}];
+const htmlRooms = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomsTree, 'rooms', 'rooms_render_test');
+const jsRoomsCode = injectScalingFixture(extractScript(htmlRooms));
+
 function extractScript(renderedHtml) {
     const start = renderedHtml.lastIndexOf('<script>');
     const end = renderedHtml.lastIndexOf('<\/script>');
@@ -259,6 +271,20 @@ test('Docs alchemy now mentions the projectile POWER research note', () => {
     assert.ok(html.includes('7E3564'), 'Docs alchemy should mention the projectile slot base');
     assert.ok(html.includes('+0x2A/+0x2B'), 'Docs alchemy should mention the projectile POWER field offset');
     assert.ok(html.includes('POWER'), 'Docs alchemy should mention projectile POWER');
+});
+
+console.log('\nRooms tab: HTML/JS behaviour');
+
+test('Rooms HTML includes room render canvas styles', () => {
+    assert.ok(htmlRooms.includes('rr-canvas-wrap'), 'Missing rr-canvas-wrap style or markup in Rooms HTML');
+    assert.ok(htmlRooms.includes('rr-canvas'), 'Missing rr-canvas class in Rooms HTML');
+});
+
+test('Rooms JS renders header fallback canvas block when payload render is absent', () => {
+    const roomsElements = runWithTrackingDoc(jsRoomsCode);
+    const detail = (roomsElements['room-detail'] && roomsElements['room-detail'].innerHTML) || '';
+    assert.ok(detail.includes('Rendered room graphic (header fallback)'), 'Expected header fallback section in room detail');
+    assert.ok(detail.includes('rr-canvas-fallback'), 'Expected fallback canvas element in room detail');
 });
 
 console.log('\nScaling tab: JS behaviour');
