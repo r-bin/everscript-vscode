@@ -672,3 +672,183 @@ These can be answered by:
 1. Rendering the decoded nibble-packed tilemap and comparing to in-game visuals.
 2. Studying the SoETilesViewer source code (which already renders maps correctly).
 3. Tracing the ROM loader code to see what it does with the position table and compressed section after reading the tilemap.
+
+---
+
+## Deep Payload Analysis: Discovering Multi-Layer Encoding (v0.2.30+)
+
+Detailed byte-by-byte analysis of Strong Heart's Exterior (map 0x33) and Strong Heart's Hut (map 0x34) reveals the true payload structure and raises critical questions about layer encoding.
+
+### Map 0x33 Complete Breakdown
+
+**Outer structure:**
+- Header: 13 bytes (origin, dimensions, display config)
+- Step-on table: 2 entries × 6 bytes
+- B-trigger table: 0 entries (2-byte count only)
+- **Payload: 1080 bytes**
+
+**Payload sections (in order):**
+
+1. **Tile Families** (13 bytes)
+   - Count: 6
+   - Families: `0x00B9, 0x00BA, 0x0020, 0x0091, 0x0090, 0x0092`
+   - These are SNES memory addresses pointing to CHR (graphics) data loaded elsewhere
+
+2. **Compressed Bitstream Section** (164 bytes)
+   - Data: `00 A4 00 03 C2 00 80 40 30 50 2A 2C 06 03 00 00 ...`
+   - High entropy, no discernible structure
+   - **Purpose UNKNOWN**: Could encode layer flags, tile placement deltas, collision properties, or animation data
+   - **Status**: NOT YET DECODED
+
+3. **Sentinel Marker** (7 bytes)
+   - Bytes: `30 00 00 00 01 00 FF`
+   - Leading byte `0x30` (variant: `0xC8` in map 0x51)
+   - Acts as hard boundary between variable-length and fixed-structure sections
+   - Meaning of leading byte: UNKNOWN (compression type? feature flag? layer count?)
+
+4. **Position Table** (1 + 0×2 bytes)
+   - Count: 0 entries
+   - **Purpose UNKNOWN**: 
+     - Hypothesis 1: Byte offsets for row-based seeking
+     - Hypothesis 2: Region/layer boundaries
+     - Hypothesis 3: Cache checkpoint markers
+   - Note: Map 0x01 has 12 entries; map 0x51 has 25 entries in perfect step-6 pattern (0, 6, 12, 18, ...)
+
+5. **Tilemap Data** (160 bytes, nibble-packed)
+   - Format: 20 columns × 16 rows = 320 tiles
+   - 2 tiles per byte (4 bits each)
+   - **Values: 0–F (not 0–5!)**
+   
+   Decoded sample:
+   ```
+   Row  0: 5 B 0 0 7 0 0 8 2 0 3 3 8 8 8 8 8 8 8 8
+   Row  1: 9 9 D 9 5 0 0 2 F F 6 A 3 4 0 4 6 E 6 6
+   ```
+
+6. **Unidentified Section** (516 bytes remaining)
+   - High entropy, pattern-like data
+   - **Candidates**: Layer 2 (with own families/compressed/tilemap), collision grid, object placement, animation frames
+   - **Status**: PURPOSE UNKNOWN
+
+### The Multi-Nibble Mystery
+
+**Critical observation**: Nibbles in the tilemap range from 0–F (0–15), but there are only 6 tile families (0–5).
+
+**Possible explanations:**
+
+1. **Multi-bit encoding within nibble**
+   - Low 3 bits: family index (0–7)
+   - High 1 bit: layer flag or property
+   - Example: `0x5` = Layer 0, Family 5; `0xA` = Layer 2, Family 2
+
+2. **Composite palette**
+   - 16 entries, not just 6 families
+   - Entries 0–5 are direct family references
+   - Entries 6–F are composite/blended tiles or alternate arrangements
+
+3. **Layer references via high bits**
+   - Mesen screenshot shows Layers 1–4
+   - Nibble high bits indicate which layer (0–4)
+   - Low bits index within that layer
+
+### Map 0x34 (Strong Heart's Hut): Simplified Structure
+
+**Key differences:**
+- **NO compressed bitstream section** — jumps directly to position table
+- **NO sentinel marker** — suggests compression is optional
+- **7 tile families** — matches visible wall/floor types
+- **18×18 tilemap** (324 tiles = 162 bytes)
+- **809 bytes of extra data** after tilemap
+
+**Step-on & B-trigger tables:**
+- Raw file counts: 6 step-on, 18 B-trigger entries
+- Suggests maps2.txt shows *filtered* views, not raw counts
+
+**Extra 809 bytes hypothesis:**
+- Map 0x34 has 18 visible interactive objects
+- These 809 bytes likely encode:
+  - Object instance positions and types
+  - NPC spawn data
+  - Interaction script links
+  - Collision boundaries for interior
+
+### Comparison to Visual Layers
+
+Mesen tilemap viewer screenshots show distinct Layers 1–4 with different visual elements on each layer. The question is: **where is this layer membership encoded?**
+
+**If nibbles contain layer data:**
+```
+Each nibble = [LAYER (2 bits)] [FAMILY (3 bits)]
+Example:
+  0x5 = binary 0101 = Layer 1, Family 1
+  0xA = binary 1010 = Layer 2, Family 2
+  0xF = binary 1111 = Layer 3, Family 7 (if extended palette)
+```
+
+This would explain:
+- Why nibbles range 0–F despite 6 families
+- Why the tilemap alone produces the complete rendered map
+- How multiple layers coexist in a single nibble-packed grid
+
+**If layers are separate:**
+- Layer 2 might be encoded in the 516/809 extra bytes
+- Compressed section might decompress to layer 2 tilemap
+- Position table might mark layer boundaries
+
+### Decoding Status and Research Path
+
+**Confirmed (v0.2.30):**
+- ✅ Header structure (13 bytes)
+- ✅ Trigger table format (6-byte records)
+- ✅ Tile family extraction (count + uint16 IDs)
+- ✅ Sentinel location (7-byte marker)
+- ✅ Position table format (count + uint16 offsets)
+- ✅ Tilemap encoding (nibble-packed, 2 tiles/byte)
+- ✅ Round-trip decoding (algorithm tested on 3 maps)
+
+**Unknown (requires further research):**
+- ❓ Compressed section format and purpose
+- ❓ Nibble high-bit encoding (layer flags? properties?)
+- ❓ Position table offset semantics
+- ❓ Extra 516/809 bytes (layer 2? collision? objects?)
+- ❓ Sentinel prefix meaning (0x30 vs 0xC8)
+
+**To complete understanding:**
+
+1. **Study SoETilesViewer source** (`list-rooms.cpp`, rendering pipeline)
+   - How does it decode the compressed section?
+   - How does it assign nibbles to layers?
+   - How does it render to VRAM/BG output?
+
+2. **Emulator tracing** (Snes9x live memory)
+   - Monitor VRAM writes during room load
+   - Trace tilemap unpacking to BG1/BG2/BG3/BG4
+   - Identify where collision is stored/unpacked
+
+3. **Comparative analysis**
+   - Decode nibble-packed tilemap
+   - Render as single flat layer
+   - Compare to Mesen Layer 1
+   - Identify differences in layer 2–4
+
+4. **Brute-force decoding**
+   - Try different bit-field decompositions of nibbles
+   - Compare rendered output to in-game
+   - Reverse-engineer the correct encoding
+
+### Map Editor Foundation Status
+
+**Ready for implementation:**
+- Tilemap display (render nibbles as family indices)
+- Tilemap editing (modify nibbles, save to ROM)
+- Tile family visualization (load CHR graphics)
+- Position table preservation (don't corrupt when editing)
+- Compressed section passthrough (copy as binary blob)
+
+**Blocked pending research:**
+- Layer support (need to know layer encoding)
+- Collision editing (need to find collision data)
+- Object placement (need to decode object table)
+- Compressed section analysis (bitstream decompression)
+
+The foundation in v0.2.30 provides enough to build a basic 2D tilemap editor. Full layer/collision/object support will follow once the encoding mysteries are resolved.
