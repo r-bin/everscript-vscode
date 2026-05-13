@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.41] — 2026-05-14
+
+### Added
+- **Model test: room compressed-section vs tile codec** — added `test/map-payload-compression.test.js` to run a direct experiment applying tile-compression framing to real room compressed data (map `0x33`) and compare against trace-backed map expectations.
+- **Trace comparison assertions** — added explicit checks showing tile codec framing does not reproduce the observed room tilemap structure/diversity, and that room sentinel boundary semantics are distinct from tile framing.
+
+### Changed
+- **Test pipeline** — `npm test` now includes `node test/map-payload-compression.test.js` in the default sequence.
+
 ## [0.2.40] — 2026-05-14
 
 ### Fixed
