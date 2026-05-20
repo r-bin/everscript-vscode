@@ -1,3 +1,12 @@
+# [0.2.45] — 2026-05-20
+
+### Added
+- **RNG tab** — new tab in the Memory Radar panel with three simulation sections:
+  - **Naris / Super Heal**: 50/50 coin-flip, average ~2 attempts.
+  - **Prophet / Bronze Armor**: State-machine simulation over 20 codename states (DOOM→FUSELAGE); includes full codenames reference table; average ~24 area resets.
+  - **Egg / Chocobo Egg**: Pot-purchase simulation (5 or 10 pot run); average ~43 purchases.
+- Each section has a "Simulate 10,000×" button, avg/p50/p90/p99 output, and a bar histogram.
+
 # [0.2.44] — 2026-05-20
 
 ### Changed

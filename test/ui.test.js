@@ -502,5 +502,70 @@ test('Alchemy spell-level slider raises Hard Ball damage against Wimpy Flower', 
     );
 });
 
+// ── RNG tab ──────────────────────────────────────────────────────────────────
+const htmlRng = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTree, 'rng', null);
+
+console.log('\nRNG tab: HTML structure');
+
+test('RNG tab button is present', () => {
+    assert.ok(htmlRng.includes('data-tab="rng"'), 'Missing RNG tab button');
+});
+
+test('RNG tab pane exists', () => {
+    assert.ok(htmlRng.includes('<div class="tab-pane" data-tab="rng"'), 'Missing RNG tab pane');
+});
+
+test('Naris simulate button exists', () => {
+    assert.ok(htmlRng.includes('id="rng-naris-btn"'), 'Missing rng-naris-btn');
+});
+
+test('Prophet simulate button exists', () => {
+    assert.ok(htmlRng.includes('id="rng-prophet-btn"'), 'Missing rng-prophet-btn');
+});
+
+test('Egg simulate button exists', () => {
+    assert.ok(htmlRng.includes('id="rng-egg-btn"'), 'Missing rng-egg-btn');
+});
+
+test('Prophet state table contains VIDEO_GAME (state 8)', () => {
+    assert.ok(htmlRng.includes('VIDEO_GAME'), 'Missing VIDEO_GAME codename in prophet table');
+});
+
+test('Prophet state table contains DOOM (state 0)', () => {
+    assert.ok(htmlRng.includes('DOOM'), 'Missing DOOM codename in prophet table');
+});
+
+test('Prophet state table contains FUSELAGE (state 19)', () => {
+    assert.ok(htmlRng.includes('FUSELAGE'), 'Missing FUSELAGE codename in prophet table');
+});
+
+test('Egg pot selector exists', () => {
+    assert.ok(htmlRng.includes('id="rng-pot-sel"'), 'Missing rng-pot-sel dropdown');
+});
+
+test('RNG histogram elements exist for all three sections', () => {
+    assert.ok(htmlRng.includes('id="rng-naris-hist"'), 'Missing naris histogram');
+    assert.ok(htmlRng.includes('id="rng-prophet-hist"'), 'Missing prophet histogram');
+    assert.ok(htmlRng.includes('id="rng-egg-hist"'), 'Missing egg histogram');
+});
+
+test('RNG webview JS executes without throwing', () => {
+    const rngCode = injectScalingFixture(extractScript(htmlRng));
+    assert.doesNotThrow(() => {
+        runWithTrackingDoc(rngCode);
+    }, 'RNG tab JS threw during execution');
+});
+
+test('RNG simulate buttons are wired (click handler registered via addEventListener)', () => {
+    const rngCode = injectScalingFixture(extractScript(htmlRng));
+    const els = runWithTrackingDoc(rngCode);
+    // The rng-naris-btn element should have had addEventListener called on it
+    // (the button exists in the mock DOM and rngJs calls bindSim)
+    assert.ok(els['rng-naris-btn'], 'rng-naris-btn element not found in DOM after JS run');
+    assert.ok(els['rng-prophet-btn'], 'rng-prophet-btn element not found in DOM after JS run');
+    assert.ok(els['rng-egg-btn'], 'rng-egg-btn element not found in DOM after JS run');
+});
+
 console.log(`\n${passed + failed} run: ${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);
+

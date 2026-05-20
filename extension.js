@@ -2588,6 +2588,31 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .rp-sim ul{margin:6px 0 0 16px;padding:0;font-size:10px;color:#aaa;line-height:1.5}
 .rp-link-note{font-size:9px;color:#777;margin-top:6px}
 @media (max-width: 900px){.rp-grid{grid-template-columns:1fr}}
+/* -- RNG tab -- */
+.rng-wrap{display:flex;flex-direction:column;flex:1;min-height:0;overflow-y:auto;padding:10px;gap:12px}
+.rng-section{border:1px solid #2a2a2a;border-radius:6px;padding:10px 12px;background:#141414}
+.rng-h{font-size:12px;font-weight:700;margin-bottom:4px}
+.rng-desc{font-size:9px;opacity:.55;margin-bottom:8px;line-height:1.5}
+.rng-stats{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.rng-stat{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:4px;padding:5px 10px;min-width:80px}
+.rng-stat-label{font-size:8px;text-transform:uppercase;letter-spacing:.05em;opacity:.35;font-weight:700}
+.rng-stat-val{font-size:15px;font-weight:700;color:#7ab8ff;margin-top:1px}
+.rng-sim-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.rng-sim-btn{border:1px solid #3a6a9a;background:#0e1e2e;color:#7ab8ff;cursor:pointer;font-size:10px;border-radius:4px;padding:3px 12px}
+.rng-sim-btn:hover{background:#1a2e4e}.rng-sim-btn:disabled{opacity:.4;cursor:default}
+.rng-sim-out{font-size:10px;padding:3px 8px;border:1px solid #2a2a2a;border-radius:4px;background:#0e0e0e;font-family:monospace;flex:1;min-width:120px}
+.rng-hist{display:flex;align-items:flex-end;gap:1px;height:40px;margin-top:4px}
+.rng-hist-bar{background:#3a6a9a;flex-shrink:0;border-radius:1px 1px 0 0}
+.rng-tbl{width:100%;border-collapse:collapse;font-size:9px;margin-bottom:8px}
+.rng-tbl td,.rng-tbl th{padding:2px 6px;text-align:left;border-bottom:1px solid #1a1a1a}
+.rng-tbl th{font-size:8px;text-transform:uppercase;letter-spacing:.04em;opacity:.35;font-weight:700}
+.rng-tbl tr:hover{background:rgba(255,255,255,.03)}
+.rng-tbl .codename{font-family:monospace;font-size:8px;opacity:.75}
+.rng-st-target td{color:#90ee90}
+.rng-st-dead td{opacity:.35}
+.rng-st-divert td{color:#ffd580;opacity:.85}
+.rng-sel{background:#1e1e1e;border:1px solid #444;color:#ddd;font-size:10px;padding:2px 6px;border-radius:3px}
+.rng-pot-lbl{font-size:9px;opacity:.6;display:flex;align-items:center;gap:4px}
 `;
 
     // ── Rooms tab data ──────────────────────────────────────────────────────
@@ -4314,6 +4339,94 @@ function renderRoomDetail(room){
 })();
 `;
 
+    const rngJs = `
+(function(){
+  function simStats(arr){
+    var n=arr.length,sum=0;
+    for(var i=0;i<n;i++)sum+=arr[i];
+    arr.sort(function(a,b){return a-b;});
+    return{avg:(sum/n).toFixed(1),p50:arr[Math.floor(n*.5)],p90:arr[Math.floor(n*.9)],p99:arr[Math.floor(n*.99)]};
+  }
+  function simNaris(){
+    var r=[];
+    for(var i=0;i<10000;i++){var a=0;while(true){a++;if(Math.random()<.5)break;}r.push(a);}
+    return r;
+  }
+  function simProphet(){
+    var r=[];
+    for(var i=0;i<10000;i++){
+      var resets=0,done=false;
+      while(!done){
+        resets++;
+        var s=0,t=0;
+        while(true){
+          t++;
+          var x=Math.random()*32|0,rl=false;
+          if(s>=0&&s<3&&!rl){if(x<2){s=6;rl=true;}else if(x>29){s=9;rl=true;}}
+          if(s>=3&&s<6&&!rl){
+            if(t<=30){if(x<9){s=6;rl=true;}else if(x>24){s=9;rl=true;}}
+            else{if(x<20){s=6;rl=true;}else if(x>20){s=9;rl=true;}}
+          }
+          if(s>=6&&s<9&&!rl){if(x<3){s=Math.random()*4|0;rl=true;}else if(x>28){s=9;rl=true;}}
+          if(s>9){s=(Math.random()*8|0)+9;if(s===16||x>29){s=6;rl=true;}else if(x<10&&!rl){s=Math.random()*4|0;}}
+          if(s===8){done=true;break;}
+          s++;
+          if(s>=10)break;
+        }
+      }
+      r.push(resets);
+    }
+    return r;
+  }
+  function simEgg(pots){
+    var r=[];
+    for(var i=0;i<10000;i++){
+      var p=0;
+      while(true){
+        p++;
+        var hit=pots===5?(Math.random()*8|0)<3:(Math.random()*16|0)<3;
+        if(hit&&(Math.random()*16|0)===7)break;
+      }
+      r.push(p);
+    }
+    return r;
+  }
+  function renderHist(data,id){
+    var b={},mx=0;
+    for(var i=0;i<data.length;i++){b[data[i]]=(b[data[i]]||0)+1;if(b[data[i]]>mx)mx=b[data[i]];}
+    var ks=Object.keys(b).map(Number).sort(function(a,b){return a-b;});
+    var bw=Math.max(2,Math.min(14,Math.floor(300/ks.length)));
+    var h='';
+    for(var j=0;j<ks.length;j++){
+      var bh=Math.max(1,Math.round(b[ks[j]]/mx*36));
+      h+='<div class="rng-hist-bar" title="'+ks[j]+': '+b[ks[j]]+'" style="height:'+bh+'px;width:'+bw+'px"></div>';
+    }
+    var el=document.getElementById(id);if(el)el.innerHTML=h;
+  }
+  function showOut(id,s){
+    var el=document.getElementById(id);
+    if(el)el.innerHTML='avg: <b>'+s.avg+'</b>&nbsp; p50: '+s.p50+'&nbsp; p90: '+s.p90+'&nbsp; p99: '+s.p99;
+  }
+  function bindSim(btnId,outId,histId,simFn){
+    var btn=document.getElementById(btnId);
+    if(!btn)return;
+    btn.addEventListener('click',function(){
+      btn.disabled=true;
+      setTimeout(function(){var d=simFn();var s=simStats(d);showOut(outId,s);renderHist(d,histId);btn.disabled=false;},0);
+    });
+  }
+  bindSim('rng-naris-btn','rng-naris-out','rng-naris-hist',simNaris);
+  bindSim('rng-prophet-btn','rng-prophet-out','rng-prophet-hist',simProphet);
+  var eggBtn=document.getElementById('rng-egg-btn');
+  if(eggBtn)eggBtn.addEventListener('click',function(){
+    var sel=document.getElementById('rng-pot-sel');
+    var pots=sel?parseInt(sel.value,10):5;
+    eggBtn.disabled=true;
+    setTimeout(function(){var d=simEgg(pots);var s=simStats(d);showOut('rng-egg-out',s);renderHist(d,'rng-egg-hist');eggBtn.disabled=false;},0);
+  });
+})();
+`;
+
     const js = `(function(){
 var vs=typeof acquireVsCodeApi==='function'?acquireVsCodeApi():null;
 ${jsData}
@@ -4579,6 +4692,7 @@ ${roomsJs}
 ${scalingJs}
 ${docsJs}
 ${routeJs}
+${rngJs}
 // Init active tab and selected map highlight
 (function(){
   var t=ACTIVE_TAB||'radar';
@@ -4622,6 +4736,7 @@ ${routeJs}
         '<button class="tab" data-tab="scaling">\u2694\ufe0f Scaling</button>' +
         '<button class="tab" data-tab="route">\ud83e\udded Route</button>' +
         '<button class="tab" data-tab="docs">\ud83d\udcda Docs</button>' +
+        '<button class="tab" data-tab="rng">\ud83c\udfb2 RNG</button>' +
         '</div>' +
         '<div class="tab-pane" data-tab="radar">' +
         '<div class="head">' +
@@ -4799,6 +4914,70 @@ ${routeJs}
         '<div id="rp-list"></div>' +
         '<div class="rp-sim"><div class="rp-h">Simulation Output</div><div id="rp-sim-out"></div></div>' +
         '</div>' +
+        '</div>' +
+        '</div>' +
+        '</div>' +
+        '<div class="tab-pane" data-tab="rng" style="display:none">' +
+        '<div class="rng-wrap">' +
+        '<div class="rng-section">' +
+        '<div class="rng-h">Naris \u2014 Super Heal</div>' +
+        '<div class="rng-desc">Coin flip: the winning value is bit 0 of the game timer when the dialogue opens. 10,000-unit cooldown between attempts. Already owning Super Heal skips to the equip menu.</div>' +
+        '<div class="rng-stats">' +
+        '<div class="rng-stat"><div class="rng-stat-label">Chance / try</div><div class="rng-stat-val">50%</div></div>' +
+        '<div class="rng-stat"><div class="rng-stat-label">Avg attempts</div><div class="rng-stat-val">2</div></div>' +
+        '</div>' +
+        '<div class="rng-sim-row"><button class="rng-sim-btn" id="rng-naris-btn">Simulate 10,000\xd7</button><div class="rng-sim-out" id="rng-naris-out"></div></div>' +
+        '<div class="rng-hist" id="rng-naris-hist"></div>' +
+        '</div>' +
+        '<div class="rng-section">' +
+        '<div class="rng-h">Prophet \u2014 Bronze Armor</div>' +
+        '<div class="rng-desc">State machine with 20 dialog states. Must reach state\xa08 (VIDEO_GAME) without a bad reroute. States\xa00\u20132: 2/32 jump to\xa06, 2/32 to\xa09. States\xa03\u20135: 9/32 or 20/32 to\xa06, 7/32 or 11/32 to\xa09. States\xa06\u20137: 3/32 reset to\xa00\u20133, 3/32 to\xa09. Reset when state reaches\xa010+.</div>' +
+        '<div class="rng-stats">' +
+        '<div class="rng-stat"><div class="rng-stat-label">Chance / reset</div><div class="rng-stat-val">~4.2%</div></div>' +
+        '<div class="rng-stat"><div class="rng-stat-label">Avg resets</div><div class="rng-stat-val">~24</div></div>' +
+        '</div>' +
+        '<table class="rng-tbl">' +
+        '<thead><tr><th>State</th><th>Codename</th><th>Dialog</th></tr></thead>' +
+        '<tbody>' +
+        '<tr><td>0</td><td class="codename">DOOM</td><td>The end is near\u2026</td></tr>' +
+        '<tr><td>1</td><td class="codename">CATACLYSM</td><td>Cataclysmic event\u2026</td></tr>' +
+        '<tr><td>2</td><td class="codename">EVIL_LEADER</td><td>New world leader\u2026</td></tr>' +
+        '<tr><td>3</td><td class="codename">DIAMOND_EYES</td><td>Diamond Eyes are key\u2026</td></tr>' +
+        '<tr><td>4</td><td class="codename">STATUE_CORE</td><td>Statue in the square\u2026</td></tr>' +
+        '<tr><td>5</td><td class="codename">I_HAVE_SPOKEN</td><td>I have spoken\u2026</td></tr>' +
+        '<tr class="rng-st-divert"><td>6</td><td class="codename">CONTROLLED_BY_OVERLORD</td><td>Someone watching over us\u2026 (jump target)</td></tr>' +
+        '<tr><td>7</td><td class="codename">SPRITES</td><td>We are merely sprites\u2026</td></tr>' +
+        '<tr class="rng-st-target"><td>8</td><td class="codename">VIDEO_GAME</td><td>This is a video game\u2026 \u2605 REWARD</td></tr>' +
+        '<tr class="rng-st-dead"><td>9</td><td class="codename">GOAT_WARNING</td><td>Heed the warning of the goats\u2026</td></tr>' +
+        '<tr class="rng-st-dead"><td>10</td><td class="codename">CHICKEN_RAISE</td><td>Asking chickens for a raise\u2026</td></tr>' +
+        '<tr class="rng-st-dead"><td>11</td><td class="codename">WHITE_ZONE</td><td>White zone loading/unloading\u2026</td></tr>' +
+        '<tr class="rng-st-dead"><td>12</td><td class="codename">NOODLES</td><td>Cooking instructions\u2026</td></tr>' +
+        '<tr class="rng-st-dead"><td>13</td><td class="codename">GOAT_SNEEZE</td><td>The goat will sneeze\u2026</td></tr>' +
+        '<tr class="rng-st-dead"><td>14</td><td class="codename">HOKEY_POKEY</td><td>Put your left foot in\u2026</td></tr>' +
+        '<tr class="rng-st-dead"><td>15</td><td class="codename">FORTUNE_COOKIES</td><td>Here come the fortune cookies\u2026</td></tr>' +
+        '<tr class="rng-st-dead"><td>16</td><td class="codename">SECOND_GOAT_SECRET</td><td>Speak to the second goat first\u2026</td></tr>' +
+        '<tr class="rng-st-dead"><td>17</td><td class="codename">PENGUINS</td><td>Many penguins wear short pants\u2026</td></tr>' +
+        '<tr class="rng-st-dead"><td>18</td><td class="codename">I_AM_A_FISH</td><td>I am a fish.</td></tr>' +
+        '<tr class="rng-st-dead"><td>19</td><td class="codename">FUSELAGE</td><td>Much fear trouble in the fuselage\u2026</td></tr>' +
+        '</tbody></table>' +
+        '<div class="rng-sim-row"><button class="rng-sim-btn" id="rng-prophet-btn">Simulate 10,000\xd7</button><div class="rng-sim-out" id="rng-prophet-out"></div></div>' +
+        '<div class="rng-hist" id="rng-prophet-hist"></div>' +
+        '</div>' +
+        '<div class="rng-section">' +
+        '<div class="rng-h">Egg \u2014 Chocobo Egg</div>' +
+        '<div class="rng-desc">Hidden reward inside ceramic pots at the Nobilia market. Buying 5 pots triggers reward check at 3/8; buying 10 pots is worse at 3/16. After a triggered reward, 1/16 chance for the Chocobo Egg (otherwise jewels). Buying 1 pot never triggers a reward.</div>' +
+        '<div class="rng-stats">' +
+        '<div class="rng-stat"><div class="rng-stat-label">5-pot chance</div><div class="rng-stat-val">2.34%</div></div>' +
+        '<div class="rng-stat"><div class="rng-stat-label">Avg (5 pots)</div><div class="rng-stat-val">~43</div></div>' +
+        '<div class="rng-stat"><div class="rng-stat-label">10-pot chance</div><div class="rng-stat-val">1.17%</div></div>' +
+        '<div class="rng-stat"><div class="rng-stat-label">Avg (10 pots)</div><div class="rng-stat-val">~85</div></div>' +
+        '</div>' +
+        '<div class="rng-sim-row">' +
+        '<label class="rng-pot-lbl">Buy: <select id="rng-pot-sel" class="rng-sel"><option value="5" selected>5 pots (optimal)</option><option value="10">10 pots</option></select></label>' +
+        '<button class="rng-sim-btn" id="rng-egg-btn">Simulate 10,000\xd7</button>' +
+        '<div class="rng-sim-out" id="rng-egg-out"></div>' +
+        '</div>' +
+        '<div class="rng-hist" id="rng-egg-hist"></div>' +
         '</div>' +
         '</div>' +
         '</div>' +
