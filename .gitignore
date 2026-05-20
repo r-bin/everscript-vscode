@@ -1,6 +1,10 @@
 node_modules/
+dependencies/
 *.vsix
 .DS_Store
 tmp/
 tools/__pycache__/
 *.pyc
+# Added external data handling
+traces/
+*.trace

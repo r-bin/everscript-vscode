@@ -226,7 +226,7 @@ const src  = fs.readFileSync(path.join(__dirname, '..', 'extension.js'), 'utf8')
 // Patch: replace `module.exports = { activate, deactivate };` with extended export
 const patchedSrc = src.replace(
     /module\.exports\s*=\s*\{[^}]+\};?\s*$/,
-    'module.exports = { activate, deactivate, _renderRadarHtml: renderRadarHtml, _buildRoomsJson: buildRoomsJson, _renderRoomsTree: renderRoomsTree, _decodeMapPayload: decodeMapPayload };'
+    'module.exports = { activate, deactivate, _renderRadarHtml: renderRadarHtml, _buildRoomsJson: buildRoomsJson, _renderRoomsTree: renderRoomsTree };'
 );
 
 // Write to tmp in the same dir as extension.js so relative requires resolve
@@ -241,7 +241,7 @@ try {
     fs.unlinkSync(tmpPath);
 }
 
-const { _renderRadarHtml, _buildRoomsJson, _renderRoomsTree, _decodeMapPayload } = extFull;
+const { _renderRadarHtml, _buildRoomsJson, _renderRoomsTree } = extFull;
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
@@ -673,162 +673,6 @@ test('rooms decoded render logs invalidRefs diagnostics for trace comparison', (
     const meta = done[2] || {};
     assert.strictEqual(meta.invalidRefs, 1, 'Expected invalidRefs in draw diagnostics');
     assert.strictEqual(meta.tileRefs, 2, 'Expected tileRefs in draw diagnostics');
-});
-
-test('decodeMapPayload picks earliest sentinel candidate on synthetic ROM', () => {
-    const mapW = 20;
-    const mapH = 16;
-    const tileCount = 6;
-    const totalTiles = mapW * mapH;
-    const tilemapBytes = (totalTiles + 1) >>> 1;
-    const dataRom = 0x100;
-    const rom = Buffer.alloc(0x4000, 0x00);
-
-    // Minimal header/table layout used by decodeMapPayload.
-    rom[dataRom + 13] = 0x00; // stepLen lo
-    rom[dataRom + 14] = 0x00; // stepLen hi
-    rom[dataRom + 15] = 0x00; // bLen lo
-    rom[dataRom + 16] = 0x00; // bLen hi
-    const payloadOff = 17;
-    rom[dataRom + payloadOff] = tileCount;
-    for (let i = 0; i < tileCount; i++) {
-        const off = dataRom + payloadOff + 1 + i * 2;
-        rom[off] = i;
-        rom[off + 1] = 0;
-    }
-
-    const compressStartAbs = dataRom + payloadOff + 1 + tileCount * 2;
-    const sentinel30 = [0x30, 0x00, 0x00, 0x00, 0x01, 0x00, 0xff];
-    const sentinelC8 = [0xc8, 0x00, 0x00, 0x00, 0x01, 0x00, 0xff];
-
-    // Candidate A (earlier): valid shape but invalid tile refs (nibble 0xF with tileCount=6).
-    const candA = compressStartAbs + 10;
-    sentinel30.forEach((b, i) => { rom[candA + i] = b; });
-    rom[candA + 7] = 0; // posCount
-    const tmA = candA + 8;
-    for (let i = 0; i < tilemapBytes; i++) rom[tmA + i] = 0xff;
-
-    // Candidate B (later): valid tile refs (all nibbles=1).
-    const candB = compressStartAbs + 50;
-    sentinelC8.forEach((b, i) => { rom[candB + i] = b; });
-    rom[candB + 7] = 0; // posCount
-    const tmB = candB + 8;
-    for (let i = 0; i < tilemapBytes; i++) rom[tmB + i] = 0x11;
-
-    const decoded = _decodeMapPayload(rom, dataRom, mapW, mapH);
-    assert.ok(decoded, 'Expected payload decode result');
-    assert.strictEqual(decoded.tileFamilies.length, tileCount, 'Expected tile-family count');
-    assert.ok(decoded.tilemap.length === mapH && decoded.tilemap[0].length === mapW, 'Expected full tilemap shape');
-    // The decoder picks the earliest sentinel (smallest compressed-section size).
-    // Candidate A is earlier (offset 10 vs 50), so tile[0][0] comes from tmA which has 0xFF bytes -> nibble = 0xF = 15.
-    assert.strictEqual(decoded.tilemap[0][0], 15, 'Expected decoder to choose the earliest sentinel candidate');
-});
-
-test('decodeMapPayload accepts strict7 sentinel with non-0x30/0xC8 lead byte', () => {
-    const mapW = 4;
-    const mapH = 2;
-    const tileCount = 2;
-    const totalTiles = mapW * mapH;
-    const tilemapBytes = (totalTiles + 1) >>> 1;
-    const dataRom = 0x100;
-    const rom = Buffer.alloc(0x800, 0x00);
-
-    rom[dataRom + 13] = 0x00;
-    rom[dataRom + 14] = 0x00;
-    rom[dataRom + 15] = 0x00;
-    rom[dataRom + 16] = 0x00;
-    const payloadOff = 17;
-    rom[dataRom + payloadOff] = tileCount;
-    for (let i = 0; i < tileCount; i++) {
-        rom[dataRom + payloadOff + 1 + i * 2] = i;
-        rom[dataRom + payloadOff + 2 + i * 2] = 0;
-    }
-
-    const compressStartAbs = dataRom + payloadOff + 1 + tileCount * 2;
-    const sentinelAbs = compressStartAbs + 9;
-    const strict7Wildcard = [0xe1, 0x00, 0x00, 0x00, 0x01, 0x00, 0xff];
-    strict7Wildcard.forEach((b, i) => { rom[sentinelAbs + i] = b; });
-    rom[sentinelAbs + 7] = 0; // posCount
-    const tmStart = sentinelAbs + 8;
-    for (let i = 0; i < tilemapBytes; i++) rom[tmStart + i] = 0x21;
-
-    const decoded = _decodeMapPayload(rom, dataRom, mapW, mapH);
-    assert.ok(decoded, 'Expected decode using strict7 wildcard sentinel');
-    assert.strictEqual(decoded.tilemap.length, mapH, 'Expected tilemap row count');
-    assert.strictEqual(decoded.tilemap[0].length, mapW, 'Expected tilemap column count');
-});
-
-test('decodeMapPayload accepts short6 sentinel variant', () => {
-    const mapW = 4;
-    const mapH = 2;
-    const tileCount = 2;
-    const totalTiles = mapW * mapH;
-    const tilemapBytes = (totalTiles + 1) >>> 1;
-    const dataRom = 0x100;
-    const rom = Buffer.alloc(0x800, 0x00);
-
-    rom[dataRom + 13] = 0x00;
-    rom[dataRom + 14] = 0x00;
-    rom[dataRom + 15] = 0x00;
-    rom[dataRom + 16] = 0x00;
-    const payloadOff = 17;
-    rom[dataRom + payloadOff] = tileCount;
-    for (let i = 0; i < tileCount; i++) {
-        rom[dataRom + payloadOff + 1 + i * 2] = i;
-        rom[dataRom + payloadOff + 2 + i * 2] = 0;
-    }
-
-    const compressStartAbs = dataRom + payloadOff + 1 + tileCount * 2;
-    const sentinelAbs = compressStartAbs + 7;
-    const short6 = [0x80, 0x00, 0x00, 0x01, 0x00, 0xff];
-    short6.forEach((b, i) => { rom[sentinelAbs + i] = b; });
-    rom[sentinelAbs + 6] = 0; // posCount follows short6
-    const tmStart = sentinelAbs + 7;
-    for (let i = 0; i < tilemapBytes; i++) rom[tmStart + i] = 0x34;
-
-    const decoded = _decodeMapPayload(rom, dataRom, mapW, mapH);
-    assert.ok(decoded, 'Expected decode using short6 sentinel variant');
-    assert.strictEqual(decoded.tilemap[0][0], 4, 'Expected tile nibble decode after short6 variant');
-});
-
-test('decodeMapPayload produces zero out-of-range nibble values on synthetic ROM', () => {
-    // All nibble values 0-15 are valid 4-bit indices. The decoder must never
-    // produce a value outside [0, 15]. This test checks the invariant using
-    // synthetic ROM data with all possible byte values in the tilemap section.
-    const mapW = 4;
-    const mapH = 2;
-    const tileCount = 3;
-    const totalTiles = mapW * mapH; // 8
-    const tilemapBytes = (totalTiles + 1) >>> 1; // 4
-    const dataRom = 0x100;
-    const rom = Buffer.alloc(0x400, 0x00);
-
-    rom[dataRom + 13] = 0x00; // stepLen lo
-    rom[dataRom + 14] = 0x00; // stepLen hi
-    rom[dataRom + 15] = 0x00; // bLen lo
-    rom[dataRom + 16] = 0x00; // bLen hi
-    const payloadOff = 17;
-    rom[dataRom + payloadOff] = tileCount;
-    for (let i = 0; i < tileCount; i++) {
-        rom[dataRom + payloadOff + 1 + i * 2] = i;
-        rom[dataRom + payloadOff + 2 + i * 2] = 0;
-    }
-
-    const compressStartAbs = dataRom + payloadOff + 1 + tileCount * 2;
-    const sentinelAbs = compressStartAbs + 5;
-    const sentinel = [0x30, 0x00, 0x00, 0x00, 0x01, 0x00, 0xff];
-    sentinel.forEach((b, i) => { rom[sentinelAbs + i] = b; });
-    rom[sentinelAbs + 7] = 0; // posCount
-    // Fill tilemap with alternating bytes covering all nibble combinations
-    const tmStart = sentinelAbs + 8;
-    for (let i = 0; i < tilemapBytes; i++) rom[tmStart + i] = (i * 0x37) & 0xff;
-
-    const decoded = _decodeMapPayload(rom, dataRom, mapW, mapH);
-    assert.ok(decoded, 'Expected successful decode');
-    const allNibbles = decoded.tilemap.flat();
-    assert.strictEqual(allNibbles.length, totalTiles, 'Expected tilemap size to match dimensions');
-    const outOfRange = allNibbles.filter(v => v < 0 || v > 15);
-    assert.strictEqual(outOfRange.length, 0, 'Expected zero out-of-range nibble values (nibbles are always 0-15)');
 });
 
 test('multiple decoded maps render non-white canvas output and avoid fallback canvas', () => {

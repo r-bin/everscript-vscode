@@ -53,6 +53,14 @@ Prioritize utility first, visual polish second.
 - Keep large sampledata (raw bytes, dumps, trace captures) in tmp/ and link it from the dossier.
 - Mark speculative statements clearly as speculative.
 
+7. Release ritual ownership:
+- This agent owns release ritual execution after feature/model work is approved:
+	- version bump,
+	- full tests,
+	- commit,
+	- extension install sync.
+- Modeler agent should not perform release ritual by default.
+
 ## Definition of done
 - Useful behavior implemented and test-proven.
 - Required UI elements are visible and functioning.

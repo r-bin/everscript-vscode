@@ -1,6 +1,7 @@
 # Rooms Tab — Map Coordinate System
 
-For the higher-level room-loader notes that back the Docs tab, see `docs/map-loading.md`.
+For the unified room map model, see `docs/map-data-model.md`.
+For detailed loader notes, see `docs/map-loading.md`.
 
 ## Coordinate Units
 

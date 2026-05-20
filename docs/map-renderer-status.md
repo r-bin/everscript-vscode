@@ -1,6 +1,13 @@
 # Map Renderer Status (Authoritative)
 
-This file is the single source of truth for the Rooms map renderer research and implementation state.
+Canonical model doc: `docs/map-data-model.md`
+
+Simple status:
+- 🟢 header
+- 🟡 decompressor boundary model
+- 🔴 understanding where shared tiles are sourced in payload/VRAM
+
+This file remains a short status pointer for the Rooms map renderer research and implementation state.
 
 ## Scope
 - Feature: ROM-backed map rendering in the Rooms tab.

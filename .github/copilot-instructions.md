@@ -16,6 +16,11 @@ This is a vibe-coding project.
 - Every prompt should end in a commit that follows the Change Ritual in §2.
 - If the worktree is still dirty afterward, or the version was not bumped, or nothing was installed, return to §2 and finish the ritual.
 
+Exception for model iteration:
+- When operating in Mechanics Modeler workflow, do not perform release ritual by default.
+- In that workflow, focus on evidence, model code, failing/passing model tests, and dossier updates.
+- Perform release ritual only when the user explicitly asks for release/commit/install, or when handing off to Plugin Builder workflow.
+
 ---
 
 ## 1. Goal
@@ -322,3 +327,9 @@ Exported from `radar-utils.js`; imported in `extension.js`; tested in `test/rada
 Pure function. Parses `enum CLASSNAME { NAME = ... <0xNNNN> }` entries from evs source text.
 Returns `Map<addr (number), [{cls, name}]>`.
 Tested in `test/radar.test.js` under `parseEnumsFromContent` section.
+
+---
+
+## External Data Handling
+
+All relevant external data, such as traces or ROM dumps, should be searched in the `traces/` directory or other designated external data folders. These files are excluded from version control to avoid bloating the repository. Ensure that any required external data is documented in the appropriate feature dossier or README.

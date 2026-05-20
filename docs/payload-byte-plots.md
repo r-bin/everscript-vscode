@@ -6,6 +6,7 @@ Large sampledata and byte-dump content now lives in:
 - tmp/map-renderer-payload-bytes.md
 
 Authoritative status and interpretation now live in:
+- docs/map-data-model.md
 - docs/map-renderer-status.md
 
 Reason for change:

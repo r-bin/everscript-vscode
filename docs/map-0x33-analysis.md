@@ -3,6 +3,40 @@
 Complete byte-level and tilemap analysis of map `0x33` (`Prehistoria - Strong Heart's Exterior`).
 This document is ground truth for verifying the ROM decoder implementation.
 
+## Evidence-First Dossier
+
+Status:
+- Working: fixed blob header parsing, fixed step-on table parsing, fixed B-trigger length parsing, trusted payload start at `0xADB529`, trusted blob size `0x455`, trusted enter script metadata `0x92811A -> 0x94E5FB`, byte-note ingestion from MCP sub-traces.
+- In progress: evidence-only dump of the opaque payload and the trace-backed `0x7FC300 -> EE:xxxx` render path.
+- Not working: full decompression algorithm, delta pass algorithm, full script/render opcode semantics.
+- Confidence: 88%
+
+Trusted scope used by `map-blob-evidence-model.js`:
+- The fixed 13-byte header is trusted.
+- `step_len` and `b_len` are trusted 16-bit byte counts.
+- Step-on and B-trigger entries are trusted 6-byte records.
+- For map `0x33`, bytes after those tables are treated as opaque payload bytes until stronger evidence exists.
+- The working render pipeline checkpoints are trusted: blob payload -> WRAM `0x7FC300` -> second pass over `0x7FC300` -> `EE:xxxx` resolution -> render/tile upload.
+
+Evidence table:
+
+| Source | Derived constraint |
+|---|---|
+| User-confirmed map facts | `map[0x33] data=0xADB50C`, `size=0x455`, `step-on count=2`, `b count=0`, `enter=0x94E5FB` from `0x92811A` |
+| `node tools/dump-map-blob.js 0x33` | Header layout is credible through the step-on/B-trigger boundary |
+| MCP byte notes `byte_000..byte_050` | Early bytes are consumed exactly as header/config/length fields; no trigger-table compression speculation needed |
+| Mesen trace summary for `7FC300` | Payload expansion targets WRAM `0x7FC300` |
+| User-confirmed trace interpretation | `0x7FC300` is written twice: decompression, then delta math |
+| Mesen `EE0000` decode trace summary | The post-`7FC300` path resolves into EE-space pointers used by render/tile upload code |
+
+Current model artifacts:
+- Model: `map-blob-evidence-model.js`
+- Dump script: `tools/map-blob-evidence/dump.js`
+- Focused tests: `test/map-blob-evidence-model.test.js`
+
+Note:
+- Legacy sections below include older exploratory tilemap interpretations. They are not the basis of the new evidence-first dump script.
+
 ---
 
 ## ROM Pointer

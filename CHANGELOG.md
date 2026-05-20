@@ -1,3 +1,9 @@
+# [0.2.44] — 2026-05-20
+
+### Changed
+- Project cleanup: moved all map-analysis and R&D files to tmp/, removed dead test/model scripts, updated .gitignore to exclude dependencies/.
+- No change to extension output or user-facing features.
+
 # Changelog
 
 ## [0.2.43] — 2026-05-14

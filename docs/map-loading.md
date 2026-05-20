@@ -1,6 +1,7 @@
 # Map Loading
 
-For the current consolidated Rooms map-renderer status, see `docs/map-renderer-status.md`.
+For the consolidated Rooms map model, see `docs/map-data-model.md`.
+For simple current-state status, see `docs/map-renderer-status.md`.
 
 This note records the room-loading behavior that is grounded enough to ship today, and separates that from what is still unknown.
 
