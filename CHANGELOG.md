@@ -1,3 +1,11 @@
+# [0.2.46] — 2026-05-20
+
+### Changed
+- **Prophet RNG tab**: replaced basic 3-column codename table with full 5-column state analysis (State, Codename, Reach 8%, Reach 5%, Next states with odds).
+- **Prophet simulation**: replaced simple reset counter with strategy-aware `simProphetStrategy(strategy)` implementing correct arc transitions (prophecy/meta/chaos).
+- **Reset strategy dropdown**: Aggressive (reset on any chaos or tilt), Moderate (allow 2 chaos rounds), Full EV (reset only on permanent tilt lock). Description updates on change.
+- Arc color-coded table rows (blue=prophecy, green=meta, red=tilt, muted=chaos).
+
 # [0.2.45] — 2026-05-20
 
 ### Added

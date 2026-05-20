@@ -2611,6 +2611,12 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .rng-st-target td{color:#90ee90}
 .rng-st-dead td{opacity:.35}
 .rng-st-divert td{color:#ffd580;opacity:.85}
+.rng-arc-proph td:first-child{border-left:2px solid #3a6a9a}
+.rng-arc-meta td:first-child{border-left:2px solid #90ee90}
+.rng-arc-tilt td{color:#ff6666!important;opacity:1}
+.rng-arc-chaos td:first-child{border-left:2px solid #554}
+.rng-strat-row{display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:8px;margin-top:4px}
+.rng-strat-desc{font-size:9px;opacity:.55;line-height:1.5;flex:1;min-width:160px;padding-top:3px}
 .rng-sel{background:#1e1e1e;border:1px solid #444;color:#ddd;font-size:10px;padding:2px 6px;border-radius:3px}
 .rng-pot-lbl{font-size:9px;opacity:.6;display:flex;align-items:center;gap:4px}
 `;
@@ -4352,26 +4358,42 @@ function renderRoomDetail(room){
     for(var i=0;i<10000;i++){var a=0;while(true){a++;if(Math.random()<.5)break;}r.push(a);}
     return r;
   }
-  function simProphet(){
+  function simProphetStrategy(strategy){
     var r=[];
     for(var i=0;i<10000;i++){
       var resets=0,done=false;
       while(!done){
         resets++;
-        var s=0,t=0;
-        while(true){
-          t++;
-          var x=Math.random()*32|0,rl=false;
-          if(s>=0&&s<3&&!rl){if(x<2){s=6;rl=true;}else if(x>29){s=9;rl=true;}}
-          if(s>=3&&s<6&&!rl){
-            if(t<=30){if(x<9){s=6;rl=true;}else if(x>24){s=9;rl=true;}}
-            else{if(x<20){s=6;rl=true;}else if(x>20){s=9;rl=true;}}
+        var s=0,t=0,chaosRounds=0,running=true;
+        while(running){
+          var x=Math.random()*32|0,cn=0;
+          if(s<=2){
+            if(x<2){s=6;}
+            else if(x<4){cn=(Math.random()*8|0)+9;s=(cn===16)?6:cn;}
+            else{s++;t++;}
+          } else if(s>=3&&s<=5){
+            if(t<=30){
+              if(x<9){s=6;}
+              else if(x<16){cn=(Math.random()*8|0)+9;s=(cn===16)?6:cn;}
+              else{s++;t++;}
+            } else {
+              if(x<20){s=6;}
+              else if(x<31){cn=(Math.random()*8|0)+9;s=(cn===16)?6:cn;}
+            }
+          } else if(s>=6&&s<=8){
+            if(x<3){s=Math.random()*4|0;t=0;chaosRounds=0;}
+            else if(x<6){cn=(Math.random()*8|0)+9;s=(cn===16)?6:cn;}
+            else{s++;}
+          } else {
+            chaosRounds++;
+            cn=(Math.random()*8|0)+9;
+            s=(cn===16||t>29)?6:cn;
           }
-          if(s>=6&&s<9&&!rl){if(x<3){s=Math.random()*4|0;rl=true;}else if(x>28){s=9;rl=true;}}
-          if(s>9){s=(Math.random()*8|0)+9;if(s===16||x>29){s=6;rl=true;}else if(x<10&&!rl){s=Math.random()*4|0;}}
-          if(s===8){done=true;break;}
-          s++;
-          if(s>=10)break;
+          if(s===8){done=true;running=false;}
+          else if(s===5){running=false;}
+          else if(strategy==='aggressive'&&s>=9){running=false;}
+          else if(strategy==='moderate'&&s>=9&&chaosRounds>2){running=false;}
+          if(t>2000){running=false;}
         }
       }
       r.push(resets);
@@ -4416,7 +4438,25 @@ function renderRoomDetail(room){
     });
   }
   bindSim('rng-naris-btn','rng-naris-out','rng-naris-hist',simNaris);
-  bindSim('rng-prophet-btn','rng-prophet-out','rng-prophet-hist',simProphet);
+  var prophetStrat=document.getElementById('rng-prophet-strat');
+  var prophetDesc=document.getElementById('rng-prophet-strat-desc');
+  var STRAT_DESC={
+    'aggressive':'Reset on tilt (state\u00a05) or any chaos entry. Fishes only for clean prophecy\u2192meta arc. Most resets, most predictable run lengths.',
+    'moderate':'Reset on tilt (5) or after 3+ chaos rounds without recovering to state\u00a06. Balanced approach.',
+    'full':'Reset only on permanent tilt lock (state\u00a05). Always wait for chaos\u2192state\u00a06 recovery. Fewest resets on average; individual runs may be long.'
+  };
+  function updateProphetDesc(){
+    var v=prophetStrat?prophetStrat.value:'moderate';
+    if(prophetDesc)prophetDesc.textContent=STRAT_DESC[v]||'';
+  }
+  if(prophetStrat)prophetStrat.addEventListener('change',updateProphetDesc);
+  updateProphetDesc();
+  var prophetBtn=document.getElementById('rng-prophet-btn');
+  if(prophetBtn)prophetBtn.addEventListener('click',function(){
+    var v=prophetStrat?prophetStrat.value:'moderate';
+    prophetBtn.disabled=true;
+    setTimeout(function(){var d=simProphetStrategy(v);var s=simStats(d);showOut('rng-prophet-out',s);renderHist(d,'rng-prophet-hist');prophetBtn.disabled=false;},0);
+  });
   var eggBtn=document.getElementById('rng-egg-btn');
   if(eggBtn)eggBtn.addEventListener('click',function(){
     var sel=document.getElementById('rng-pot-sel');
@@ -4931,35 +4971,39 @@ ${rngJs}
         '</div>' +
         '<div class="rng-section">' +
         '<div class="rng-h">Prophet \u2014 Bronze Armor</div>' +
-        '<div class="rng-desc">State machine with 20 dialog states. Must reach state\xa08 (VIDEO_GAME) without a bad reroute. States\xa00\u20132: 2/32 jump to\xa06, 2/32 to\xa09. States\xa03\u20135: 9/32 or 20/32 to\xa06, 7/32 or 11/32 to\xa09. States\xa06\u20137: 3/32 reset to\xa00\u20133, 3/32 to\xa09. Reset when state reaches\xa010+.</div>' +
-        '<div class="rng-stats">' +
-        '<div class="rng-stat"><div class="rng-stat-label">Chance / reset</div><div class="rng-stat-val">~4.2%</div></div>' +
-        '<div class="rng-stat"><div class="rng-stat-label">Avg resets</div><div class="rng-stat-val">~24</div></div>' +
-        '</div>' +
+        '<div class="rng-desc">3-arc state machine (prophecy 0\u20135, meta 6\u20138, chaos 9+). Reach state\u00a08 (VIDEO_GAME) for Bronze Armor. State\u00a05 is a permanent tilt lock. Chaos recovers to state\u00a06 with 1/8 probability per round (or always when interaction count\u00a0>\u00a029).</div>' +
         '<table class="rng-tbl">' +
-        '<thead><tr><th>State</th><th>Codename</th><th>Dialog</th></tr></thead>' +
+        '<thead><tr><th>#</th><th>Codename</th><th>Reach 8</th><th>Reach 5</th><th>Next states (odds)</th></tr></thead>' +
         '<tbody>' +
-        '<tr><td>0</td><td class="codename">DOOM</td><td>The end is near\u2026</td></tr>' +
-        '<tr><td>1</td><td class="codename">CATACLYSM</td><td>Cataclysmic event\u2026</td></tr>' +
-        '<tr><td>2</td><td class="codename">EVIL_LEADER</td><td>New world leader\u2026</td></tr>' +
-        '<tr><td>3</td><td class="codename">DIAMOND_EYES</td><td>Diamond Eyes are key\u2026</td></tr>' +
-        '<tr><td>4</td><td class="codename">STATUE_CORE</td><td>Statue in the square\u2026</td></tr>' +
-        '<tr><td>5</td><td class="codename">I_HAVE_SPOKEN</td><td>I have spoken\u2026</td></tr>' +
-        '<tr class="rng-st-divert"><td>6</td><td class="codename">CONTROLLED_BY_OVERLORD</td><td>Someone watching over us\u2026 (jump target)</td></tr>' +
-        '<tr><td>7</td><td class="codename">SPRITES</td><td>We are merely sprites\u2026</td></tr>' +
-        '<tr class="rng-st-target"><td>8</td><td class="codename">VIDEO_GAME</td><td>This is a video game\u2026 \u2605 REWARD</td></tr>' +
-        '<tr class="rng-st-dead"><td>9</td><td class="codename">GOAT_WARNING</td><td>Heed the warning of the goats\u2026</td></tr>' +
-        '<tr class="rng-st-dead"><td>10</td><td class="codename">CHICKEN_RAISE</td><td>Asking chickens for a raise\u2026</td></tr>' +
-        '<tr class="rng-st-dead"><td>11</td><td class="codename">WHITE_ZONE</td><td>White zone loading/unloading\u2026</td></tr>' +
-        '<tr class="rng-st-dead"><td>12</td><td class="codename">NOODLES</td><td>Cooking instructions\u2026</td></tr>' +
-        '<tr class="rng-st-dead"><td>13</td><td class="codename">GOAT_SNEEZE</td><td>The goat will sneeze\u2026</td></tr>' +
-        '<tr class="rng-st-dead"><td>14</td><td class="codename">HOKEY_POKEY</td><td>Put your left foot in\u2026</td></tr>' +
-        '<tr class="rng-st-dead"><td>15</td><td class="codename">FORTUNE_COOKIES</td><td>Here come the fortune cookies\u2026</td></tr>' +
-        '<tr class="rng-st-dead"><td>16</td><td class="codename">SECOND_GOAT_SECRET</td><td>Speak to the second goat first\u2026</td></tr>' +
-        '<tr class="rng-st-dead"><td>17</td><td class="codename">PENGUINS</td><td>Many penguins wear short pants\u2026</td></tr>' +
-        '<tr class="rng-st-dead"><td>18</td><td class="codename">I_AM_A_FISH</td><td>I am a fish.</td></tr>' +
-        '<tr class="rng-st-dead"><td>19</td><td class="codename">FUSELAGE</td><td>Much fear trouble in the fuselage\u2026</td></tr>' +
+        '<tr class="rng-arc-proph"><td>0</td><td class="codename">DOOM</td><td>~22%</td><td>~17%</td><td>1=28/32, 6=2/32, 9+=2/32</td></tr>' +
+        '<tr class="rng-arc-proph"><td>1</td><td class="codename">CATACLYSM</td><td>~24%</td><td>~19%</td><td>2=28/32, 6=2/32, 9+=2/32</td></tr>' +
+        '<tr class="rng-arc-proph"><td>2</td><td class="codename">EVIL_LEADER</td><td>~27%</td><td>~22%</td><td>3=28/32, 6=2/32, 9+=2/32</td></tr>' +
+        '<tr class="rng-arc-proph"><td>3</td><td class="codename">DIAMOND_EYES</td><td>~34%</td><td>25%</td><td>4=16/32, 6=9/32, 9+=7/32</td></tr>' +
+        '<tr class="rng-arc-proph"><td>4</td><td class="codename">STATUE_CORE</td><td>~46%</td><td>50%</td><td>5=16/32, 6=9/32, 9+=7/32</td></tr>' +
+        '<tr class="rng-arc-tilt"><td>5</td><td class="codename">I_HAVE_SPOKEN</td><td>0%</td><td>100%</td><td>locked until reset</td></tr>' +
+        '<tr class="rng-st-divert rng-arc-meta"><td>6</td><td class="codename">CONTROLLED_BY_OVERLORD</td><td>~66%</td><td>~0.5%</td><td>7=26/32, 0\u20133=3/32, 9+=3/32</td></tr>' +
+        '<tr class="rng-arc-meta"><td>7</td><td class="codename">SPRITES</td><td>~81%</td><td>~0.2%</td><td>8=26/32, 0\u20133=3/32, 9+=3/32</td></tr>' +
+        '<tr class="rng-st-target rng-arc-meta"><td>8</td><td class="codename">VIDEO_GAME</td><td>100%</td><td>0%</td><td>\u2605 reward</td></tr>' +
+        '<tr class="rng-arc-chaos"><td>9</td><td class="codename">GOAT_WARNING</td><td rowspan="11">~18%</td><td rowspan="11">~3%</td><td rowspan="11">chaos=7/8, 6=1/8</td></tr>' +
+        '<tr class="rng-arc-chaos"><td>10</td><td class="codename">CHICKEN_RAISE</td></tr>' +
+        '<tr class="rng-arc-chaos"><td>11</td><td class="codename">WHITE_ZONE</td></tr>' +
+        '<tr class="rng-arc-chaos"><td>12</td><td class="codename">NOODLES</td></tr>' +
+        '<tr class="rng-arc-chaos"><td>13</td><td class="codename">GOAT_SNEEZE</td></tr>' +
+        '<tr class="rng-arc-chaos"><td>14</td><td class="codename">HOKEY_POKEY</td></tr>' +
+        '<tr class="rng-arc-chaos"><td>15</td><td class="codename">FORTUNE_COOKIES</td></tr>' +
+        '<tr class="rng-arc-chaos"><td>16</td><td class="codename">SECOND_GOAT_SECRET</td></tr>' +
+        '<tr class="rng-arc-chaos"><td>17</td><td class="codename">PENGUINS</td></tr>' +
+        '<tr class="rng-arc-chaos"><td>18</td><td class="codename">I_AM_A_FISH</td></tr>' +
+        '<tr class="rng-arc-chaos"><td>19</td><td class="codename">FUSELAGE</td></tr>' +
         '</tbody></table>' +
+        '<div class="rng-strat-row">' +
+        '<label class="rng-pot-lbl">Reset strategy: <select id="rng-prophet-strat" class="rng-sel">' +
+        '<option value="aggressive">Aggressive \u2014 reset on chaos or tilt</option>' +
+        '<option value="moderate" selected>Moderate \u2014 allow 2 chaos rounds</option>' +
+        '<option value="full">Full EV \u2014 reset only on tilt lock</option>' +
+        '</select></label>' +
+        '<div class="rng-strat-desc" id="rng-prophet-strat-desc"></div>' +
+        '</div>' +
         '<div class="rng-sim-row"><button class="rng-sim-btn" id="rng-prophet-btn">Simulate 10,000\xd7</button><div class="rng-sim-out" id="rng-prophet-out"></div></div>' +
         '<div class="rng-hist" id="rng-prophet-hist"></div>' +
         '</div>' +

@@ -543,6 +543,25 @@ test('Egg pot selector exists', () => {
     assert.ok(htmlRng.includes('id="rng-pot-sel"'), 'Missing rng-pot-sel dropdown');
 });
 
+test('Prophet reset strategy dropdown exists', () => {
+    assert.ok(htmlRng.includes('id="rng-prophet-strat"'), 'Missing rng-prophet-strat dropdown');
+});
+
+test('Prophet strategy description element exists', () => {
+    assert.ok(htmlRng.includes('id="rng-prophet-strat-desc"'), 'Missing rng-prophet-strat-desc div');
+});
+
+test('Prophet table has Reach 8 and Reach 5 columns', () => {
+    assert.ok(htmlRng.includes('Reach 8'), 'Missing Reach 8 column header');
+    assert.ok(htmlRng.includes('Reach 5'), 'Missing Reach 5 column header');
+});
+
+test('Prophet table next-states column contains arc transitions', () => {
+    assert.ok(htmlRng.includes('28/32'), 'Missing 28/32 prophecy arc transition');
+    assert.ok(htmlRng.includes('26/32'), 'Missing 26/32 meta arc transition');
+    assert.ok(htmlRng.includes('chaos=7/8'), 'Missing chaos arc next-states');
+});
+
 test('RNG histogram elements exist for all three sections', () => {
     assert.ok(htmlRng.includes('id="rng-naris-hist"'), 'Missing naris histogram');
     assert.ok(htmlRng.includes('id="rng-prophet-hist"'), 'Missing prophet histogram');
