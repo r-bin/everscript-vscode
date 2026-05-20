@@ -4358,47 +4358,58 @@ function renderRoomDetail(room){
     for(var i=0;i<10000;i++){var a=0;while(true){a++;if(Math.random()<.5)break;}r.push(a);}
     return r;
   }
-  function simProphetStrategy(strategy){
-    var r=[];
+  // Simulate one prophet run per trial.
+  // Returns {prompts[], resets[], successRate} where:
+  //   prompts = total prophet interactions until state 8 (win) or state 5 (tilt, mash only)
+  //   resets  = player-initiated resets of story to state 0
+  //   successRate = % of 10,000 runs ending at state 8
+  // Profiles:
+  //   mash      - never reset; run ends at 8 (win) or 5 (tilt)
+  //   reset4chaos - reset when s=4 (50% tilt risk) or any chaos (9+)
+  //   reset4    - reset only at s=4; allows chaos recovery via state 6
+  //   metaonly  - reset whenever outside meta arc (6-8), except from state 0
+  function simProphetProfile(profile){
+    var promptsArr=[],resetsArr=[],successes=0;
     for(var i=0;i<10000;i++){
-      var resets=0,done=false;
-      while(!done){
-        resets++;
-        var s=0,t=0,chaosRounds=0,running=true;
-        while(running){
-          var x=Math.random()*32|0,cn=0;
-          if(s<=2){
-            if(x<2){s=6;}
-            else if(x<4){cn=(Math.random()*8|0)+9;s=(cn===16)?6:cn;}
+      var prompts=0,stResets=0,s=0,t=0,cr=0,cn=0;
+      while(prompts<50000){
+        var x=Math.random()*32|0;
+        cn=0;
+        if(s<=2){
+          if(x<2){s=6;}
+          else if(x<4){cn=(Math.random()*8|0)+9;s=(cn===16)?6:cn;}
+          else{s++;t++;}
+        } else if(s>=3&&s<=5){
+          if(t<=30){
+            if(x<9){s=6;}
+            else if(x<16){cn=(Math.random()*8|0)+9;s=(cn===16)?6:cn;}
             else{s++;t++;}
-          } else if(s>=3&&s<=5){
-            if(t<=30){
-              if(x<9){s=6;}
-              else if(x<16){cn=(Math.random()*8|0)+9;s=(cn===16)?6:cn;}
-              else{s++;t++;}
-            } else {
-              if(x<20){s=6;}
-              else if(x<31){cn=(Math.random()*8|0)+9;s=(cn===16)?6:cn;}
-            }
-          } else if(s>=6&&s<=8){
-            if(x<3){s=Math.random()*4|0;t=0;chaosRounds=0;}
-            else if(x<6){cn=(Math.random()*8|0)+9;s=(cn===16)?6:cn;}
-            else{s++;}
           } else {
-            chaosRounds++;
-            cn=(Math.random()*8|0)+9;
-            s=(cn===16||t>29)?6:cn;
+            if(x<20){s=6;}
+            else if(x<31){cn=(Math.random()*8|0)+9;s=(cn===16)?6:cn;}
           }
-          if(s===8){done=true;running=false;}
-          else if(s===5){running=false;}
-          else if(strategy==='aggressive'&&s>=9){running=false;}
-          else if(strategy==='moderate'&&s>=9&&chaosRounds>2){running=false;}
-          if(t>2000){running=false;}
+        } else if(s>=6&&s<=8){
+          if(x<3){s=Math.random()*4|0;t=0;cr=0;}
+          else if(x<6){cn=(Math.random()*8|0)+9;s=(cn===16)?6:cn;}
+          else{s++;}
+        } else {
+          cr++;
+          cn=(Math.random()*8|0)+9;
+          s=(cn===16||t>29)?6:cn;
         }
+        prompts++;
+        if(s===8){successes++;break;}
+        if(s===5&&profile==='mash'){break;} // tilt — ends run as failure
+        var doReset=false;
+        if(profile==='reset4chaos'){doReset=(s===4||s>=9);}
+        else if(profile==='reset4'){doReset=(s===4);}
+        else if(profile==='metaonly'){doReset=((s>=1&&s<=5)||s>=9);}
+        if(doReset){stResets++;s=0;t=0;cr=0;}
       }
-      r.push(resets);
+      promptsArr.push(prompts);
+      resetsArr.push(stResets);
     }
-    return r;
+    return{prompts:promptsArr,resets:resetsArr,successRate:(successes/100).toFixed(1)};
   }
   function simEgg(pots){
     var r=[];
@@ -4441,21 +4452,31 @@ function renderRoomDetail(room){
   var prophetStrat=document.getElementById('rng-prophet-strat');
   var prophetDesc=document.getElementById('rng-prophet-strat-desc');
   var STRAT_DESC={
-    'aggressive':'Reset on tilt (state\u00a05) or any chaos entry. Fishes only for clean prophecy\u2192meta arc. Most resets, most predictable run lengths.',
-    'moderate':'Reset on tilt (5) or after 3+ chaos rounds without recovering to state\u00a06. Balanced approach.',
-    'full':'Reset only on permanent tilt lock (state\u00a05). Always wait for chaos\u2192state\u00a06 recovery. Fewest resets on average; individual runs may be long.'
+    'mash':'Never reset. Talk to prophet until state\u00a08 (win) or state\u00a05 (tilt). Only profile that can fail. Shows success rate.',
+    'reset4chaos':'Reset when landing on state\u00a04 (avoids the 50% tilt advance) or any chaos (9+). Prevents both tilt and chaos drift.',
+    'reset4':'Reset only at state\u00a04. Allows chaos states to recover organically to state\u00a06. Fewer resets than 4+chaos.',
+    'metaonly':'Reset whenever outside the meta arc (6\u20138), except from state\u00a00. Fishes only for the direct 0\u21926 shortcut (2/32). Most resets per run.'
   };
   function updateProphetDesc(){
-    var v=prophetStrat?prophetStrat.value:'moderate';
+    var v=prophetStrat?prophetStrat.value:'reset4';
     if(prophetDesc)prophetDesc.textContent=STRAT_DESC[v]||'';
   }
   if(prophetStrat)prophetStrat.addEventListener('change',updateProphetDesc);
   updateProphetDesc();
+  function showProphetOut(res){
+    var ps=simStats(res.prompts),rs=simStats(res.resets);
+    var el=document.getElementById('rng-prophet-out');
+    if(!el)return;
+    var txt='prompts: avg\u00a0<b>'+ps.avg+'</b>\u00a0 p50\u00a0'+ps.p50+'\u00a0 p90\u00a0'+ps.p90;
+    txt+='\u00a0\u2502\u00a0 resets: avg\u00a0<b>'+rs.avg+'</b>\u00a0 p50\u00a0'+rs.p50;
+    if(parseFloat(res.successRate)<100)txt+='\u00a0\u2502\u00a0 success:\u00a0<b>'+res.successRate+'%</b>';
+    el.innerHTML=txt;
+  }
   var prophetBtn=document.getElementById('rng-prophet-btn');
   if(prophetBtn)prophetBtn.addEventListener('click',function(){
-    var v=prophetStrat?prophetStrat.value:'moderate';
+    var v=prophetStrat?prophetStrat.value:'reset4';
     prophetBtn.disabled=true;
-    setTimeout(function(){var d=simProphetStrategy(v);var s=simStats(d);showOut('rng-prophet-out',s);renderHist(d,'rng-prophet-hist');prophetBtn.disabled=false;},0);
+    setTimeout(function(){var res=simProphetProfile(v);showProphetOut(res);renderHist(res.prompts,'rng-prophet-hist');prophetBtn.disabled=false;},0);
   });
   var eggBtn=document.getElementById('rng-egg-btn');
   if(eggBtn)eggBtn.addEventListener('click',function(){
@@ -4997,10 +5018,11 @@ ${rngJs}
         '<tr class="rng-arc-chaos"><td>19</td><td class="codename">FUSELAGE</td></tr>' +
         '</tbody></table>' +
         '<div class="rng-strat-row">' +
-        '<label class="rng-pot-lbl">Reset strategy: <select id="rng-prophet-strat" class="rng-sel">' +
-        '<option value="aggressive">Aggressive \u2014 reset on chaos or tilt</option>' +
-        '<option value="moderate" selected>Moderate \u2014 allow 2 chaos rounds</option>' +
-        '<option value="full">Full EV \u2014 reset only on tilt lock</option>' +
+        '<label class="rng-pot-lbl">Profile: <select id="rng-prophet-strat" class="rng-sel">' +
+        '<option value="mash">Just mash (might tilt)</option>' +
+        '<option value="reset4chaos">Reset at 4 + chaos</option>' +
+        '<option value="reset4" selected>Reset at 4 only</option>' +
+        '<option value="metaonly">Meta arc only (6\u20138)</option>' +
         '</select></label>' +
         '<div class="rng-strat-desc" id="rng-prophet-strat-desc"></div>' +
         '</div>' +

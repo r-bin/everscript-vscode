@@ -547,6 +547,13 @@ test('Prophet reset strategy dropdown exists', () => {
     assert.ok(htmlRng.includes('id="rng-prophet-strat"'), 'Missing rng-prophet-strat dropdown');
 });
 
+test('Prophet strategy dropdown has all 4 profiles', () => {
+    assert.ok(htmlRng.includes('value="mash"'), 'Missing mash profile');
+    assert.ok(htmlRng.includes('value="reset4chaos"'), 'Missing reset4chaos profile');
+    assert.ok(htmlRng.includes('value="reset4"'), 'Missing reset4 profile');
+    assert.ok(htmlRng.includes('value="metaonly"'), 'Missing metaonly profile');
+});
+
 test('Prophet strategy description element exists', () => {
     assert.ok(htmlRng.includes('id="rng-prophet-strat-desc"'), 'Missing rng-prophet-strat-desc div');
 });

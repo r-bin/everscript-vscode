@@ -1,3 +1,11 @@
+# [0.2.47] — 2026-05-20
+
+### Changed
+- **Prophet simulation redesign**: replaced outer-reset-counting model with a single-run model that tracks *prompts* (total prophet interactions) and *resets* (player-initiated story resets) per run.
+- **Output format**: now shows `prompts: avg X p50 Y p90 Z | resets: avg A p50 B` (success rate shown only when < 100%).
+- **Four profiles replacing three strategies**: `mash` (never reset, can tilt), `reset4chaos` (reset at state 4 or any chaos), `reset4` (reset only at state 4, allows chaos recovery), `metaonly` (reset unless in meta arc 6–8, except state 0).
+- Histogram now plots prompts distribution (was reset count).
+
 # [0.2.46] — 2026-05-20
 
 ### Changed
