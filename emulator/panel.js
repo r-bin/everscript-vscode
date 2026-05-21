@@ -15,11 +15,25 @@ const vscode = require('vscode');
 const path   = require('path');
 const fs     = require('fs');
 
-let _panel = null;
+let _panel   = null;
+let _pending = null; // { dataUrl, name } to send once the webview signals ready
 
-function openEmulatorPanel(context) {
+/**
+ * Open (or reveal) the emulator panel.
+ *
+ * @param {object} context   VS Code extension context.
+ * @param {object} [rom]     Optional { dataUrl, name } to auto-load on open.
+ */
+function openEmulatorPanel(context, rom) {
+    if (rom) _pending = rom;
+
     if (_panel) {
-        _panel.reveal(vscode.ViewColumn.One);
+        _panel.reveal(vscode.ViewColumn.Beside, true);
+        // If the panel is already open and we have a ROM, send it immediately.
+        if (_pending) {
+            _panel.webview.postMessage({ command: 'loadRom', dataUrl: _pending.dataUrl, name: _pending.name });
+            _pending = null;
+        }
         return;
     }
 
@@ -28,7 +42,7 @@ function openEmulatorPanel(context) {
     _panel = vscode.window.createWebviewPanel(
         'everscriptEmulator',
         'Everscript Emulator',
-        vscode.ViewColumn.One,
+        vscode.ViewColumn.Beside,
         {
             enableScripts: true,
             retainContextWhenHidden: true,
@@ -40,6 +54,14 @@ function openEmulatorPanel(context) {
 
     _panel.webview.onDidReceiveMessage(msg => {
         switch (msg.command) {
+            case 'ready':
+                // Webview is initialised — send any pending auto-load ROM.
+                if (_pending) {
+                    _panel.webview.postMessage({ command: 'loadRom', dataUrl: _pending.dataUrl, name: _pending.name });
+                    _pending = null;
+                }
+                break;
+
             case 'pickRom': {
                 vscode.window.showOpenDialog({
                     canSelectMany: false,
@@ -47,15 +69,7 @@ function openEmulatorPanel(context) {
                     filters:       { 'SNES ROM': ['smc', 'sfc', 'fig', 'bin'] },
                 }).then(uris => {
                     if (!uris || !uris.length) return;
-                    const romPath = uris[0].fsPath;
-                    const romName = path.basename(romPath);
-                    try {
-                        const romData = fs.readFileSync(romPath);
-                        const romDataUrl = 'data:application/octet-stream;base64,' + romData.toString('base64');
-                        _panel.webview.postMessage({ command: 'loadRom', dataUrl: romDataUrl, name: romName });
-                    } catch (e) {
-                        vscode.window.showErrorMessage('Failed to read ROM: ' + e.message);
-                    }
+                    _sendRomFile(uris[0].fsPath);
                 });
                 break;
             }
@@ -66,7 +80,19 @@ function openEmulatorPanel(context) {
         }
     }, undefined, context.subscriptions);
 
-    _panel.onDidDispose(() => { _panel = null; }, null, context.subscriptions);
+    _panel.onDidDispose(() => { _panel = null; _pending = null; }, null, context.subscriptions);
+}
+
+/** Read a ROM file from disk and send it to the webview. */
+function _sendRomFile(romPath) {
+    const romName = path.basename(romPath);
+    try {
+        const romData = fs.readFileSync(romPath);
+        const dataUrl = 'data:application/octet-stream;base64,' + romData.toString('base64');
+        _panel.webview.postMessage({ command: 'loadRom', dataUrl, name: romName });
+    } catch (e) {
+        vscode.window.showErrorMessage('Failed to read ROM: ' + e.message);
+    }
 }
 
 function _buildHtml(webview, vendorBase) {
@@ -125,6 +151,11 @@ function _buildHtml(webview, vendorBase) {
   <script nonce="${nonce}">
     const vscodeApi = acquireVsCodeApi();
 
+    // Signal to the host that the webview is ready (for auto-load ROM).
+    window.addEventListener('DOMContentLoaded', () => {
+      vscodeApi.postMessage({ command: 'ready' });
+    });
+
     document.getElementById('pickBtn').addEventListener('click', () => {
       vscodeApi.postMessage({ command: 'pickRom' });
       document.getElementById('status').textContent = 'Waiting for file picker…';
@@ -167,4 +198,4 @@ function _nonce() {
     return n;
 }
 
-module.exports = { openEmulatorPanel };
+module.exports = { openEmulatorPanel, sendRomFile: _sendRomFile };

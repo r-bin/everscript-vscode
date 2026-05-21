@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) \u2014 the Secret of Evermore ROM scripting language",
-  "version": "0.2.52",
+  "version": "0.2.53",
   "publisher": "rbin",
   "main": "./extension.js",
   "engines": {
@@ -117,8 +117,20 @@
         "category": "Everscript"
       },
       {
+        "command": "everscript.buildAndRun",
+        "title": "Build and Run in Emulator",
+        "category": "Everscript"
+      },
+      {
         "command": "everscript.openMemoryRadar",
         "title": "Everscript: Open Memory Radar"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "everscript.buildAndRun",
+        "key": "f5",
+        "when": "editorLangId == everscript"
       }
     ],
     "problemMatchers": [
@@ -184,6 +196,16 @@
           "type": "string",
           "default": "",
           "markdownDescription": "Path to the assets directory. Should contain an `ingredients/` subfolder with `.webp` ingredient icons. Defaults to the bundled extension assets."
+        },
+        "everscript.buildCommand": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Shell command to compile the project (e.g. `make` or `./build.sh`). Run from the workspace root when F5 is pressed in an `.evs` file. Leave empty to skip compilation and just open the emulator."
+        },
+        "everscript.buildOutput": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Path to the compiled ROM file produced by `everscript.buildCommand` (relative to workspace root, e.g. `out/game.smc`). Loaded automatically in the emulator after a successful build."
         }
       }
     }

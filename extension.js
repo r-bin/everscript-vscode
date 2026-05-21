@@ -2890,6 +2890,67 @@ function activate(context) {
             openEmulatorPanel(context);
         }),
     );
+
+    // ── Build-and-Run (F5 in .evs files) ─────────────────────────────────────
+    context.subscriptions.push(
+        vscode.commands.registerCommand('everscript.buildAndRun', async () => {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor || editor.document.languageId !== 'everscript') {
+                vscode.window.showWarningMessage('Everscript: no .evs file is active.');
+                return;
+            }
+
+            const cfg       = vscode.workspace.getConfiguration('everscript');
+            const buildCmd  = cfg.get('buildCommand', '').trim();
+            const buildOut  = cfg.get('buildOutput', '').trim();
+            const wsRoot    = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
+
+            // --- compile step (optional) ---
+            if (buildCmd) {
+                const statusItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+                statusItem.text  = '$(sync~spin) Everscript: building…';
+                statusItem.show();
+
+                const exitCode = await new Promise(resolve => {
+                    const cp = require('child_process');
+                    const proc = cp.spawn(buildCmd, { shell: true, cwd: wsRoot });
+                    const channel = vscode.window.createOutputChannel('Everscript Build');
+                    channel.clear();
+                    channel.show(true);
+                    proc.stdout.on('data', d => channel.append(d.toString()));
+                    proc.stderr.on('data', d => channel.append(d.toString()));
+                    proc.on('close', code => resolve(code));
+                });
+
+                statusItem.dispose();
+                if (exitCode !== 0) {
+                    vscode.window.showErrorMessage('Everscript build failed (exit ' + exitCode + '). See Output → Everscript Build.');
+                    return;
+                }
+            }
+
+            // --- open emulator ---
+            const nodePath = require('path');
+            const nodeFs   = require('fs');
+
+            if (buildOut) {
+                const romPath = nodePath.isAbsolute(buildOut) ? buildOut : nodePath.join(wsRoot, buildOut);
+                let romData;
+                try {
+                    romData = nodeFs.readFileSync(romPath);
+                } catch (e) {
+                    vscode.window.showErrorMessage('Could not read build output ROM: ' + e.message);
+                    openEmulatorPanel(context);
+                    return;
+                }
+                const dataUrl = 'data:application/octet-stream;base64,' + romData.toString('base64');
+                openEmulatorPanel(context, { dataUrl, name: nodePath.basename(romPath) });
+            } else {
+                // No build output configured — just open the emulator.
+                openEmulatorPanel(context);
+            }
+        }),
+    );
 }
 
 function deactivate() {}
