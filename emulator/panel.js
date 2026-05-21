@@ -178,6 +178,8 @@ function _buildHtml(webview, vendorBase, customCorePath) {
     const loaderUri = webview.asWebviewUri(vscode.Uri.file(path.join(vendorBase, 'loader.js')));
     const vendorUri = webview.asWebviewUri(vscode.Uri.file(vendorBase));
   const customCoreUri = customCorePath ? webview.asWebviewUri(vscode.Uri.file(customCorePath)).toString() : '';
+  const coreLabel = customCorePath ? path.basename(customCorePath) : 'snes9x (bundled)';
+  const corePathDisplay = customCorePath ? customCorePath : path.join(vendorBase, 'cores', 'snes9x-wasm.data');
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -234,8 +236,17 @@ function _buildHtml(webview, vendorBase, customCorePath) {
     }
     .ss-btn:hover { background: #222; }
     .ss-btn:disabled { opacity: 0.45; cursor: default; }
-    #ss-meta {
+    #ss-core-row {
       position: sticky; top: 24px;
+      background: #0e0e0e; border-bottom: 1px solid #1e1e1e;
+      padding: 2px 8px; display: flex; gap: 8px; align-items: center;
+      color: #555; font-size: 10px; overflow: hidden;
+    }
+    #ss-core-label { color: #444; flex-shrink: 0; }
+    #ss-core-name  { color: #7a9a7a; flex-shrink: 0; }
+    #ss-core-path  { color: #4a4a4a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+    #ss-meta {
+      position: sticky; top: 44px;
       background: #141414; border-bottom: 1px solid #222;
       padding: 4px 8px; display: flex; gap: 12px; flex-wrap: wrap;
       color: #777; font-size: 10px;
@@ -247,7 +258,7 @@ function _buildHtml(webview, vendorBase, customCorePath) {
     #ss-table th {
       text-align: left; padding: 2px 6px;
       color: #666; font-weight: normal; font-size: 10px;
-      position: sticky; top: 52px; background: #111; border-bottom: 1px solid #222;
+      position: sticky; top: 72px; background: #111; border-bottom: 1px solid #222;
     }
     #ss-table td { padding: 1px 6px; color: #ccc; }
     #ss-table tr.exec td { color: #6f6; }
@@ -273,6 +284,11 @@ function _buildHtml(webview, vendorBase, customCorePath) {
         <button id="ss-resume-btn" class="ss-btn" disabled>resume</button>
         <button id="ss-hook-btn" class="ss-btn" disabled>arm stack hook</button>
       </div>
+    </div>
+    <div id="ss-core-row" title="${corePathDisplay}">
+      <span id="ss-core-label">core:</span>
+      <span id="ss-core-name">${coreLabel}</span>
+      <span id="ss-core-path">${corePathDisplay}</span>
     </div>
     <div id="ss-meta">
       <span id="ss-api-status">api: checking...</span>
