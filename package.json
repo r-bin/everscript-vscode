@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.2.66",
+  "version": "0.2.67",
   "publisher": "rbin",
   "main": "./extension.js",
   "engines": {
@@ -231,7 +231,7 @@
         "everscript.snesCorePath": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Path to a custom EmulatorJS SNES core bundle (`*.data`, for example `snes9x-wasm.data`). Leave empty to use the bundled EmulatorJS snes9x core. Raw `snes9x_2005.js` / `.wasm` builds are not loaded directly here.",
+          "markdownDescription": "Path to a custom `snes9x2005-wasm` Emscripten `.js` build (e.g. `/path/to/snes9x_2005.js`). The matching `.wasm` file must be in the same directory. Leave empty to use the bundled `emulator/core/snes9x_2005.js`.",
           "scope": "machine"
         }
       }

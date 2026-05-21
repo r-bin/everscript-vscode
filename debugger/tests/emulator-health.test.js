@@ -2,205 +2,147 @@
 /**
  * debugger/tests/emulator-health.test.js
  *
- * Validates the emulator vendor assets and core bundles before a browser
- * launch.  Two scenarios:
+ * Validates the snes9x2005-wasm core assets bundled with the extension.
+ * The EmulatorJS wrapper has been removed (v0.2.67+); we now load the
+ * Emscripten-compiled core directly inside the VS Code webview.
  *
- *   A) Pre-delivered core  — emulator/vendor/emulatorjs/cores/snes9x-wasm.data
- *   B) Custom core bundle  — tmp/custom-snes9x.data  (built by tools/pack_snes_core.py)
- *
- * xtest() marks checks that are EXPECTED to fail given the current state of the
- * project.  They display as "~ xfail" and are listed at the end.  They do NOT
- * count as test failures — the suite exits 0 even when they trigger.
- *
- * Expected xfails right now:
- *   - Custom core does not define EJS_Runtime: snes9x_2005.js is a standalone
- *     Emscripten build, not a libretro wrapper.  EmulatorJS will always refuse
- *     it until the core is rebuilt as a libretro core.
+ * Checks:
+ *   A) Core files exist at emulator/core/
+ *   B) WASM binary has correct magic bytes
+ *   C) Core JS contains all required Emscripten exports
+ *   D) Core JS does NOT define EJS_Runtime (it is NOT a libretro wrapper)
+ *   E) panel.js does not reference the old EmulatorJS vendor paths
  */
 
-const assert        = require('assert');
-const fs            = require('fs');
-const path          = require('path');
-const { execSync }  = require('child_process');
+const assert = require('assert');
+const fs     = require('fs');
+const path   = require('path');
 
-const ROOT         = path.resolve(__dirname, '../..');
-const VENDOR       = path.join(ROOT, 'emulator', 'vendor', 'emulatorjs');
-const CORES        = path.join(VENDOR, 'cores');
-const BUNDLED_CORE = path.join(CORES, 'snes9x-wasm.data');
-const CUSTOM_CORE  = path.join(ROOT, 'tmp', 'custom-snes9x.data');
+const ROOT      = path.resolve(__dirname, '../..');
+const CORE_DIR  = path.join(ROOT, 'emulator', 'core');
+const CORE_JS   = path.join(CORE_DIR, 'snes9x_2005.js');
+const CORE_WASM = path.join(CORE_DIR, 'snes9x_2005.wasm');
+const PANEL_JS  = path.join(ROOT, 'emulator', 'panel.js');
 
-// 7-zip file signature: 37 7A BC AF 27 1C
-const SEVENZIP_MAGIC = Buffer.from([0x37, 0x7a, 0xbc, 0xaf, 0x27, 0x1c]);
+// WebAssembly binary magic: \0asm  (00 61 73 6D)
+const WASM_MAGIC = Buffer.from([0x00, 0x61, 0x73, 0x6d]);
 
 let passed = 0;
 let failed = 0;
-const xfails = [];   // { name, reason }
+const xfails = [];
 
 function test(name, fn) {
     try {
         fn();
-        console.log(`  ✓ ${name}`);
+        console.log(`  \u2713 ${name}`);
         passed++;
     } catch (e) {
-        console.error(`  ✗ ${name}`);
+        console.error(`  \u2717 ${name}`);
         console.error(`    ${e.message}`);
         failed++;
     }
 }
 
-/** Mark a check as an expected failure.  Counts as pass; listed in summary. */
 function xtest(name, reason, fn) {
     try {
         fn();
-        // If the check unexpectedly passes, warn — it may mean the issue was fixed.
-        console.log(`  ~ xfail [passed — may be fixed] ${name}`);
-        xfails.push({ name, reason: 'UNEXPECTEDLY PASSED — verify fix: ' + reason });
+        console.log(`  ~ xfail [passed \u2014 may be fixed] ${name}`);
+        xfails.push({ name, reason: 'UNEXPECTEDLY PASSED \u2014 verify fix: ' + reason });
     } catch (e) {
         console.log(`  ~ xfail [expected]  ${name}`);
         xfails.push({ name, reason: e.message });
     }
 }
 
-// ── helpers ──────────────────────────────────────────────────────────────────
+// ── A. Core files ─────────────────────────────────────────────────────────────
+console.log('\nA. Core files (emulator/core/):');
 
-function isSevenZip(filePath) {
-    const fd  = fs.openSync(filePath, 'r');
-    const buf = Buffer.alloc(6);
-    fs.readSync(fd, buf, 0, 6, 0);
+test('snes9x_2005.js exists', () => {
+    assert.ok(fs.existsSync(CORE_JS), `snes9x_2005.js not found at ${CORE_JS}`);
+});
+
+test('snes9x_2005.wasm exists', () => {
+    assert.ok(fs.existsSync(CORE_WASM), `snes9x_2005.wasm not found at ${CORE_WASM}`);
+});
+
+// ── B. WASM binary validation ─────────────────────────────────────────────────
+console.log('\nB. WASM binary:');
+
+test('snes9x_2005.wasm has correct magic bytes (\\0asm)', () => {
+    const fd  = fs.openSync(CORE_WASM, 'r');
+    const buf = Buffer.alloc(4);
+    fs.readSync(fd, buf, 0, 4, 0);
     fs.closeSync(fd);
-    return SEVENZIP_MAGIC.equals(buf);
+    assert.ok(WASM_MAGIC.equals(buf),
+        `wrong magic bytes: ${buf.toString('hex')} (expected 0061736d)`);
+});
+
+// ── C. Required Emscripten exports ────────────────────────────────────────────
+console.log('\nC. Required exports in snes9x_2005.js:');
+
+let coreJsContent = null;
+try { coreJsContent = fs.readFileSync(CORE_JS, 'utf8'); } catch (_) {}
+
+const REQUIRED_EXPORTS = [
+    '_mainLoop',
+    '_startWithRom',
+    '_getScreenBuffer',
+    '_getSoundBuffer',
+    '_setJoypadInput',
+    '_my_malloc',
+    '_my_free',
+    '_saveState',
+    '_getStateSaveSize',
+];
+
+for (const exp of REQUIRED_EXPORTS) {
+    test(`core JS exports ${exp}`, () => {
+        if (!coreJsContent) { assert.fail('snes9x_2005.js could not be read'); return; }
+        assert.ok(coreJsContent.includes(exp),
+            `"${exp}" not found in snes9x_2005.js`);
+    });
 }
 
-/** Returns the list of filenames inside a .data bundle (requires 7z on PATH). */
-function listBundle(bundlePath) {
-    try {
-        const out = execSync(`7z l -ba "${bundlePath}" 2>/dev/null`, {
-            encoding: 'utf8',
-            timeout: 10000,
-        });
-        return out.split('\n')
-            .filter(l => l.trim())
-            .map(l => l.trim().split(/\s+/).pop())
-            .filter(f => f && !f.startsWith('-'));
-    } catch (_) {
-        return null;   // 7z not available — skip check
-    }
-}
+// ── D. EJS_Runtime check ──────────────────────────────────────────────────────
+// snes9x_2005.js is a standalone Emscripten build, NOT a libretro wrapper.
+// It must NOT define EJS_Runtime. If it does, we accidentally bundled the wrong core.
+console.log('\nD. EJS_Runtime (must be absent \u2014 we run the core directly, not via EmulatorJS):');
 
-/**
- * Extract a named file from the bundle and return true if its text contains
- * the string `EJS_Runtime`.  Returns null if 7z is not available.
- */
-function bundleJsDefinesEjsRuntime(bundlePath) {
-    try {
-        const out = execSync(
-            `7z e -so "${bundlePath}" snes9x_libretro.js 2>/dev/null`,
-            { encoding: 'utf8', maxBuffer: 20 * 1024 * 1024, timeout: 15000 }
-        );
-        return out.includes('EJS_Runtime');
-    } catch (_) {
-        return null;   // 7z not available — skip check
-    }
-}
-
-// ── A. Vendor assets ─────────────────────────────────────────────────────────
-console.log('\nA. Vendor assets:');
-
-test('emulator.min.js exists', () => {
-    assert.ok(
-        fs.existsSync(path.join(VENDOR, 'emulator.min.js')),
-        'emulator.min.js missing'
-    );
+test('core JS does NOT define EJS_Runtime', () => {
+    if (!coreJsContent) { assert.fail('snes9x_2005.js could not be read'); return; }
+    assert.ok(!coreJsContent.includes('EJS_Runtime'),
+        'snes9x_2005.js unexpectedly defines EJS_Runtime \u2014 wrong core bundled (should be lrusso standalone build)');
 });
 
-test('emulator.min.css exists', () => {
-    // EmulatorJS shows a console.warn and falls back gracefully, but the
-    // missing file causes noise and may mask real errors.
-    // Fix: copy emulator.css → emulator.min.css  (already done in v0.2.66+)
-    assert.ok(
-        fs.existsSync(path.join(VENDOR, 'emulator.min.css')),
-        'emulator.min.css missing — run: cp emulator.css emulator.min.css in the vendor dir'
-    );
+// ── E. panel.js sanity ────────────────────────────────────────────────────────
+console.log('\nE. panel.js:');
+
+let panelContent = null;
+try { panelContent = fs.readFileSync(PANEL_JS, 'utf8'); } catch (_) {}
+
+test('panel.js exists', () => {
+    assert.ok(fs.existsSync(PANEL_JS), 'emulator/panel.js not found');
 });
 
-test('loader.js exists', () => {
-    assert.ok(
-        fs.existsSync(path.join(VENDOR, 'loader.js')),
-        'loader.js missing'
-    );
+test('panel.js references emulator/core not emulator/vendor', () => {
+    if (!panelContent) { assert.fail('panel.js could not be read'); return; }
+    assert.ok(!panelContent.includes('emulator/vendor'),
+        'panel.js still references emulator/vendor — remove EmulatorJS dependency');
 });
 
-test('extract7z.js decompressor exists', () => {
-    assert.ok(
-        fs.existsSync(path.join(VENDOR, 'compression', 'extract7z.js')),
-        'compression/extract7z.js missing — bundle decompression will fail at runtime'
-    );
+test('panel.js references CORE_JS constant', () => {
+    if (!panelContent) { assert.fail('panel.js could not be read'); return; }
+    assert.ok(panelContent.includes('snes9x_2005.js'),
+        'panel.js does not reference snes9x_2005.js');
 });
 
-// ── B. Pre-delivered (bundled) core ──────────────────────────────────────────
-console.log('\nB. Pre-delivered core  (snes9x-wasm.data):');
-
-test('bundled core file exists', () => {
-    assert.ok(fs.existsSync(BUNDLED_CORE), `snes9x-wasm.data not found at ${BUNDLED_CORE}`);
+test('panel.js exports openEmulatorPanel', () => {
+    if (!panelContent) { assert.fail('panel.js could not be read'); return; }
+    assert.ok(panelContent.includes('module.exports') && panelContent.includes('openEmulatorPanel'),
+        'panel.js does not export openEmulatorPanel');
 });
 
-test('bundled core is a valid 7-zip archive', () => {
-    assert.ok(isSevenZip(BUNDLED_CORE), 'not a 7-zip archive (wrong magic bytes)');
-});
-
-test('bundled core contains required files', () => {
-    const files = listBundle(BUNDLED_CORE);
-    if (files === null) { console.log('    (skipped — 7z not on PATH)'); return; }
-    const required = ['snes9x_libretro.js', 'snes9x_libretro.wasm', 'build.json', 'core.json'];
-    for (const f of required) {
-        assert.ok(files.includes(f), `missing "${f}" in bundle (found: ${files.join(', ')})`);
-    }
-});
-
-test('bundled core JS defines EJS_Runtime', () => {
-    // If this fails, EmulatorJS will always show "Error loading EmulatorJS runtime"
-    // even with the bundled default core.
-    const result = bundleJsDefinesEjsRuntime(BUNDLED_CORE);
-    if (result === null) { console.log('    (skipped — 7z not on PATH)'); return; }
-    assert.ok(result, 'snes9x_libretro.js does not define EJS_Runtime');
-});
-
-// ── C. Custom core bundle ─────────────────────────────────────────────────────
-console.log('\nC. Custom core bundle  (tmp/custom-snes9x.data):');
-
-test('custom core file exists', () => {
-    assert.ok(
-        fs.existsSync(CUSTOM_CORE),
-        `custom-snes9x.data not found — run: python3 tools/pack_snes_core.py`
-    );
-});
-
-test('custom core is a valid 7-zip archive', () => {
-    assert.ok(isSevenZip(CUSTOM_CORE), 'not a 7-zip archive (wrong magic bytes)');
-});
-
-test('custom core contains required files', () => {
-    const files = listBundle(CUSTOM_CORE);
-    if (files === null) { console.log('    (skipped — 7z not on PATH)'); return; }
-    const required = ['snes9x_libretro.js', 'snes9x_libretro.wasm', 'build.json', 'core.json'];
-    for (const f of required) {
-        assert.ok(files.includes(f), `missing "${f}" in bundle (found: ${files.join(', ')})`);
-    }
-});
-
-xtest(
-    'custom core JS defines EJS_Runtime',
-    'snes9x_2005.js is a standalone Emscripten build, not a libretro wrapper. ' +
-    'EmulatorJS expects the JS file to assign window.EJS_Runtime. ' +
-    'The core must be rebuilt as a RetroArch/libretro core for EmulatorJS compatibility.',
-    () => {
-        const result = bundleJsDefinesEjsRuntime(CUSTOM_CORE);
-        if (result === null) return;   // 7z unavailable — treat as pass for xtest
-        assert.ok(result, 'snes9x_libretro.js (custom) does not define EJS_Runtime');
-    }
-);
-
-// ── summary ──────────────────────────────────────────────────────────────────
+// ── Summary ───────────────────────────────────────────────────────────────────
 console.log('');
 if (xfails.length) {
     console.log('  Known issues (xfail):');

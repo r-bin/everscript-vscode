@@ -1,3 +1,18 @@
+## [0.2.67] — 2026-05-22
+
+### Changed
+- **Removed EmulatorJS entirely.** The emulator panel now loads `snes9x2005-wasm` (lrusso Emscripten build) directly in the VS Code webview — no libretro wrapper, no `.data` bundles.
+- Core files moved to `emulator/core/snes9x_2005.{js,wasm}` (bundled with extension). Old `emulator/vendor/emulatorjs/` archived to `tmp/emulatorjs-vendor/`.
+- `everscript.snesCorePath` setting now accepts a path to a custom `snes9x2005-wasm` `.js` file (matching `.wasm` must be in the same directory). Previously it accepted a `.data` EmulatorJS bundle.
+
+### Added
+- **Audio**: Web Audio via `ScriptProcessorNode` + ring buffer. `_getSoundBuffer()` is fed into a 16-bit stereo → float32 pipeline at 44100 Hz after each frame.
+- **Proper screen scaling**: canvas CSS scales to fill the panel while preserving the 512:448 aspect ratio via `ResizeObserver` and aspect-ratio math.
+- **Script stack WRAM fallback** updated: reads from `Module._saveState()` + `Module._getStateSaveSize()` instead of EmulatorJS game manager.
+
+### Updated
+- `debugger/tests/emulator-health.test.js` rewritten for the new architecture: checks `emulator/core/` files, WASM magic bytes, required Emscripten exports, no EJS_Runtime, and panel.js sanity (17 tests, 0 xfail).
+
 ## [0.2.64] — 2026-05-21
 
 ## [0.2.66] — 2026-05-21
