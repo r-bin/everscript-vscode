@@ -2901,54 +2901,117 @@ function activate(context) {
             }
 
             const cfg       = vscode.workspace.getConfiguration('everscript');
-            const buildCmd  = cfg.get('buildCommand', '').trim();
-            const buildOut  = cfg.get('buildOutput', '').trim();
             const wsRoot    = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
+            const nodePath  = require('path');
+            const nodeFs    = require('fs');
+            const cp        = require('child_process');
 
-            // --- compile step (optional) ---
-            if (buildCmd) {
-                const statusItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-                statusItem.text  = '$(sync~spin) Everscript: building…';
-                statusItem.show();
+            // ── 1. Resolve compiler binary ─────────────────────────────────
+            let compilerBin  = cfg.get('compilerPath', '').trim();
+            let projectRoot  = cfg.get('projectRoot', '').trim();
 
-                const exitCode = await new Promise(resolve => {
-                    const cp = require('child_process');
-                    const proc = cp.spawn(buildCmd, { shell: true, cwd: wsRoot });
-                    const channel = vscode.window.createOutputChannel('Everscript Build');
-                    channel.clear();
-                    channel.show(true);
-                    proc.stdout.on('data', d => channel.append(d.toString()));
-                    proc.stderr.on('data', d => channel.append(d.toString()));
-                    proc.on('close', code => resolve(code));
+            if (!compilerBin) {
+                // Walk up from the active .evs file looking for dist/everscript_mac
+                const binaryNames = ['everscript_mac', 'everscript', 'everscript.exe'];
+                let dir = nodePath.dirname(editor.document.uri.fsPath);
+                for (let depth = 0; depth < 8 && !compilerBin; depth++) {
+                    for (const bin of binaryNames) {
+                        const candidate = nodePath.join(dir, 'dist', bin);
+                        if (nodeFs.existsSync(candidate)) {
+                            compilerBin = candidate;
+                            if (!projectRoot) projectRoot = dir;
+                            break;
+                        }
+                    }
+                    const parent = nodePath.dirname(dir);
+                    if (parent === dir) break;
+                    dir = parent;
+                }
+            }
+
+            if (!compilerBin) {
+                vscode.window.showErrorMessage(
+                    'Everscript: compiler not found. Set "everscript.compilerPath" in settings ' +
+                    'or place the compiled binary at dist/everscript_mac in your project root.'
+                );
+                return;
+            }
+
+            if (!projectRoot) {
+                projectRoot = nodePath.dirname(nodePath.dirname(compilerBin)); // parent of dist/
+            }
+
+            // ── 2. Resolve ROM name ────────────────────────────────────────
+            // Look for the base ROM in the project root (the one the compiler patches).
+            let romName = '';
+            try {
+                const files = nodeFs.readdirSync(projectRoot);
+                const smc = files.find(f => /\.smc$/i.test(f) && !/[/\\]out[/\\]/.test(f));
+                if (smc) romName = smc;
+            } catch (_) {}
+
+            if (!romName) {
+                vscode.window.showErrorMessage(
+                    'Everscript: no .smc ROM found in project root "' + projectRoot + '". ' +
+                    'Ensure the base ROM is present alongside the compiler.'
+                );
+                return;
+            }
+
+            // ── 3. Run the compiler ────────────────────────────────────────
+            const inputEvs  = editor.document.uri.fsPath;
+            const outputRom = nodePath.join(projectRoot, 'out', romName);
+
+            const channel = vscode.window.createOutputChannel('Everscript Build');
+            channel.clear();
+            channel.show(true);
+            channel.appendLine(`[Everscript] Compiling: ${nodePath.basename(inputEvs)}`);
+            channel.appendLine(`[Everscript] Compiler:  ${compilerBin}`);
+            channel.appendLine(`[Everscript] CWD:       ${projectRoot}`);
+            channel.appendLine(`[Everscript] ROM:       ${romName}`);
+            channel.appendLine('');
+
+            const statusItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+            statusItem.text = '$(sync~spin) Everscript: building…';
+            statusItem.show();
+
+            const exitCode = await new Promise(resolve => {
+                const proc = cp.spawn(
+                    compilerBin,
+                    ['--rom', romName, inputEvs],
+                    { cwd: projectRoot, shell: false }
+                );
+                proc.stdout.on('data', d => channel.append(d.toString()));
+                proc.stderr.on('data', d => channel.append(d.toString()));
+                proc.on('close', code => resolve(code));
+                proc.on('error', err => {
+                    channel.appendLine('[Everscript] Error: ' + err.message);
+                    resolve(1);
                 });
+            });
 
-                statusItem.dispose();
-                if (exitCode !== 0) {
-                    vscode.window.showErrorMessage('Everscript build failed (exit ' + exitCode + '). See Output → Everscript Build.');
-                    return;
-                }
+            statusItem.dispose();
+
+            if (exitCode !== 0) {
+                vscode.window.showErrorMessage(
+                    'Everscript build failed (exit ' + exitCode + '). See Output → Everscript Build.'
+                );
+                return;
             }
 
-            // --- open emulator ---
-            const nodePath = require('path');
-            const nodeFs   = require('fs');
+            channel.appendLine('[Everscript] Build succeeded.');
 
-            if (buildOut) {
-                const romPath = nodePath.isAbsolute(buildOut) ? buildOut : nodePath.join(wsRoot, buildOut);
-                let romData;
-                try {
-                    romData = nodeFs.readFileSync(romPath);
-                } catch (e) {
-                    vscode.window.showErrorMessage('Could not read build output ROM: ' + e.message);
-                    openEmulatorPanel(context);
-                    return;
-                }
-                const dataUrl = 'data:application/octet-stream;base64,' + romData.toString('base64');
-                openEmulatorPanel(context, { dataUrl, name: nodePath.basename(romPath) });
-            } else {
-                // No build output configured — just open the emulator.
+            // ── 4. Load the output ROM in the emulator ─────────────────────
+            let romData;
+            try {
+                romData = nodeFs.readFileSync(outputRom);
+            } catch (e) {
+                vscode.window.showErrorMessage('Everscript: build succeeded but output ROM not found: ' + e.message);
                 openEmulatorPanel(context);
+                return;
             }
+            const dataUrl = 'data:application/octet-stream;base64,' + romData.toString('base64');
+            openEmulatorPanel(context, { dataUrl, name: nodePath.basename(outputRom) });
         }),
     );
 }

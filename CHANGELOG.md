@@ -1,3 +1,15 @@
+# [0.2.54] — 2026-05-28
+
+### Added
+- **Real compiler wiring (F5)**: `everscript.buildAndRun` now auto-detects the Everscript compiler binary by walking up from the active `.evs` file looking for `dist/everscript_mac` / `dist/everscript`. Runs `everscript_mac --rom <ROM> <input.evs>` with the project root as `cwd`, reads `out/<ROM>`, and loads it into the emulator automatically. No configuration required for the standard project layout.
+- **Script Stack panel**: A compact live panel appears below the emulator once the game starts. Polls the WRAM via EmulatorJS save-state API every 500 ms; parses the 20 script slots at `0x28FC` (each `0x4F` bytes); shows slot#, PC, state (exec/wait/dead), entity, and timer1. Color-coded rows: green = executing, yellow = standby, red = dead.
+- **WRAM delta messages**: The webview posts `{ command: 'wramDelta', offset, data }` to the host after each poll for future Memory Radar live-mode integration.
+- **New settings**: `everscript.compilerPath` (override compiler binary path) and `everscript.projectRoot` (override project root). Replaces `everscript.buildCommand` / `everscript.buildOutput`.
+
+### Changed
+- `everscript.buildCommand` and `everscript.buildOutput` removed; replaced by `everscript.compilerPath` and `everscript.projectRoot`.
+- Emulator webview layout changed to flex-column so the script-stack panel sits below the emulator canvas without overlapping it.
+
 # [0.2.51] — 2026-05-21
 
 ### Fixed

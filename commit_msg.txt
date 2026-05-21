@@ -1,0 +1,10 @@
+v0.2.54: [emulator] real compiler wiring, script stack, WRAM polling
+
+- buildAndRun auto-detects dist/everscript_mac by walking up from active .evs file
+- runs compiler with --rom <name> <input.evs>, cwd=project root
+- reads out/<ROM> and loads into emulator after successful build
+- script stack panel below emulator: 20 slots at WRAM 0x28FC, 500ms poll
+- parses snes9x save-state RAM block to extract WRAM without direct WASM export
+- posts wramDelta messages to host for future Memory Radar live mode
+- new settings: everscript.compilerPath, everscript.projectRoot
+- removes everscript.buildCommand, everscript.buildOutput

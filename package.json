@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) \u2014 the Secret of Evermore ROM scripting language",
-  "version": "0.2.53",
+  "version": "0.2.54",
   "publisher": "rbin",
   "main": "./extension.js",
   "engines": {
@@ -197,15 +197,15 @@
           "default": "",
           "markdownDescription": "Path to the assets directory. Should contain an `ingredients/` subfolder with `.webp` ingredient icons. Defaults to the bundled extension assets."
         },
-        "everscript.buildCommand": {
+        "everscript.compilerPath": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Shell command to compile the project (e.g. `make` or `./build.sh`). Run from the workspace root when F5 is pressed in an `.evs` file. Leave empty to skip compilation and just open the emulator."
+          "markdownDescription": "Absolute path to the Everscript compiler binary (e.g. `/path/to/everscript/dist/everscript_mac`). If left empty the extension searches upward from the active `.evs` file for `dist/everscript_mac` / `dist/everscript`."
         },
-        "everscript.buildOutput": {
+        "everscript.projectRoot": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Path to the compiled ROM file produced by `everscript.buildCommand` (relative to workspace root, e.g. `out/game.smc`). Loaded automatically in the emulator after a successful build."
+          "markdownDescription": "Absolute path to the Everscript project root (the directory that contains the base ROM `.smc` and the `out/` folder). Detected automatically when empty."
         }
       }
     }
