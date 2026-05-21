@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; script-src 'nonce-${nonce}'; style-src 'unsafe-inline';">
+  <title>Everscript Emulator POC</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #1e1e1e;
+      color: #ccc;
+      font-family: 'Consolas', 'Courier New', monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #toolbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 16px;
+      background: #252526;
+      border-bottom: 1px solid #3c3c3c;
+      width: 100%;
+    }
+    #toolbar h2 { font-size: 13px; color: #ccc; flex: 1; }
+    button {
+      background: #3a3d41;
+      color: #ccc;
+      border: 1px solid #555;
+      border-radius: 3px;
+      padding: 4px 10px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    button:hover { background: #505357; }
+    #rom-label { font-size: 11px; color: #888; }
+
+    #screen-wrap {
+      position: relative;
+      margin-top: 12px;
+      border: 2px solid #3c3c3c;
+    }
+    #screen {
+      display: block;
+      width: 512px;
+      height: 448px;
+      cursor: crosshair;
+      outline: none;
+      image-rendering: pixelated;
+    }
+    #screen.focused { border: 2px solid #569cd6; margin: -2px; }
+    #focus-hint {
+      position: absolute;
+      bottom: 8px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      color: #666;
+      font-size: 11px;
+      pointer-events: none;
+    }
+
+    #bottom {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+      max-width: 800px;
+      flex: 1;
+      min-height: 0;
+      padding: 8px;
+    }
+
+    #key-held-wrap, #key-log-wrap {
+      flex: 1;
+      background: #252526;
+      border: 1px solid #3c3c3c;
+      border-radius: 3px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .panel-title {
+      padding: 4px 8px;
+      font-size: 11px;
+      color: #888;
+      border-bottom: 1px solid #3c3c3c;
+      background: #2d2d2d;
+    }
+
+    #key-held {
+      padding: 6px 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      align-content: flex-start;
+    }
+    .key-chip {
+      background: #0e639c;
+      color: #fff;
+      border-radius: 3px;
+      padding: 2px 6px;
+      font-size: 11px;
+    }
+
+    #key-log {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 8px;
+      font-size: 11px;
+      line-height: 1.6;
+    }
+    .kl-down { color: #4fc1ff; }
+    .kl-up   { color: #666; }
+    .kl-warn { color: #f44747; font-style: italic; }
+  </style>
+</head>
+<body>
+
+<div id="toolbar">
+  <h2>Everscript Emulator (Phase 1 — keyboard test)</h2>
+  <span id="rom-label">No ROM loaded</span>
+  <button id="btn-rom">Load ROM…</button>
+  <button id="btn-focus">Focus canvas</button>
+  <button id="btn-clear">Clear log</button>
+</div>
+
+<div id="screen-wrap">
+  <canvas id="screen" width="512" height="448" tabindex="0"></canvas>
+  <div id="focus-hint">Click canvas to capture keyboard input</div>
+</div>
+
+<div id="bottom">
+  <div id="key-held-wrap">
+    <div class="panel-title">Keys held</div>
+    <div id="key-held"></div>
+  </div>
+  <div id="key-log-wrap">
+    <div class="panel-title">Key log</div>
+    <div id="key-log"></div>
+  </div>
+</div>
+
+<script nonce="${nonce}">
+'use strict';
+
+const vscode   = acquireVsCodeApi();
+const canvas   = document.getElementById('screen');
+const ctx      = canvas.getContext('2d');
+const keyHeld  = document.getElementById('key-held');
+const keyLog   = document.getElementById('key-log');
+const focusHint = document.getElementById('focus-hint');
+
+// ── Controller mapping (SNES buttons → keyboard) ─────────────────────────────
+const SNES_MAP = {
+  'ArrowUp':    'Up',    'ArrowDown':  'Down',
+  'ArrowLeft':  'Left',  'ArrowRight': 'Right',
+  'KeyZ':       'B',     'KeyX':       'A',
+  'KeyA':       'Y',     'KeyS':       'X',
+  'KeyQ':       'L',     'KeyW':       'R',
+  'Enter':      'Start', 'ShiftLeft':  'Select',
+};
+
+// ── Held-key tracking ─────────────────────────────────────────────────────────
+const held = {};
+
+function renderHeld() {
+  keyHeld.innerHTML = '';
+  for (const code of Object.keys(held)) {
+    const chip = document.createElement('span');
+    chip.className = 'key-chip';
+    chip.textContent = SNES_MAP[code] ? `${SNES_MAP[code]} (${code})` : code;
+    keyHeld.appendChild(chip);
+  }
+}
+
+// ── Key log ───────────────────────────────────────────────────────────────────
+let logCount = 0;
+const MAX_LOG = 200;
+
+function addLog(text, cls) {
+  if (logCount > MAX_LOG) {
+    const rows = keyLog.querySelectorAll('div');
+    for (let i = 0; i < 50 && rows[i]; i++) rows[i].remove();
+    logCount -= 50;
+  }
+  const div = document.createElement('div');
+  div.className = cls;
+  div.textContent = text;
+  keyLog.appendChild(div);
+  keyLog.scrollTop = keyLog.scrollHeight;
+  logCount++;
+}
+
+// ── Canvas drawing ────────────────────────────────────────────────────────────
+function drawPlaceholder(romName) {
+  ctx.fillStyle = '#111';
+  ctx.fillRect(0, 0, 512, 448);
+
+  ctx.fillStyle = '#333';
+  // Scanlines
+  for (let y = 0; y < 448; y += 2) {
+    ctx.fillRect(0, y, 512, 1);
+  }
+
+  ctx.fillStyle = '#555';
+  ctx.font = 'bold 20px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('SNES Emulator', 256, 196);
+
+  ctx.font = '13px monospace';
+  ctx.fillStyle = '#888';
+  if (romName) {
+    ctx.fillText(romName, 256, 226);
+    ctx.fillStyle = '#4fc1ff';
+    ctx.fillText('Click canvas + press keys to test input', 256, 254);
+  } else {
+    ctx.fillText('Load a ROM to get started', 256, 226);
+    ctx.fillStyle = '#444';
+    ctx.font = '11px monospace';
+    ctx.fillText('(emulator WASM will be loaded here in Phase 2)', 256, 254);
+  }
+
+  // SNES button legend
+  ctx.fillStyle = '#3a3a3a';
+  ctx.font = '10px monospace';
+  ctx.textAlign = 'left';
+  const legend = [
+    'Z=B  X=A  A=Y  S=X',
+    'Q=L  W=R',
+    'Arrows=D-Pad',
+    'Enter=Start  LShift=Select',
+  ];
+  legend.forEach((line, i) => ctx.fillText(line, 16, 390 + i * 14));
+}
+drawPlaceholder(null);
+
+// ── Focus handling ────────────────────────────────────────────────────────────
+canvas.addEventListener('focus', () => {
+  canvas.classList.add('focused');
+  focusHint.style.display = 'none';
+});
+canvas.addEventListener('blur', () => {
+  canvas.classList.remove('focused');
+  focusHint.style.display = '';
+  // clear held keys on blur so no phantom keys remain
+  Object.keys(held).forEach(k => delete held[k]);
+  renderHeld();
+});
+canvas.addEventListener('click', () => canvas.focus());
+document.getElementById('btn-focus').addEventListener('click', () => canvas.focus());
+
+// ── Keyboard events ───────────────────────────────────────────────────────────
+canvas.addEventListener('keydown', e => {
+  e.preventDefault();
+  if (held[e.code]) return; // already held — no repeat log spam
+  held[e.code] = true;
+  renderHeld();
+
+  const snes = SNES_MAP[e.code];
+  const label = snes ? `${snes}  (${e.code})` : e.code;
+  addLog('\u25BC ' + label, 'kl-down');
+
+  vscode.postMessage({ command: 'keyEvent', type: 'down', code: e.code, snes: snes || null });
+});
+
+canvas.addEventListener('keyup', e => {
+  e.preventDefault();
+  delete held[e.code];
+  renderHeld();
+
+  const snes = SNES_MAP[e.code];
+  addLog('\u25B2 ' + (snes || e.code), 'kl-up');
+
+  vscode.postMessage({ command: 'keyEvent', type: 'up', code: e.code, snes: snes || null });
+});
+
+// ── Toolbar buttons ───────────────────────────────────────────────────────────
+document.getElementById('btn-rom').addEventListener('click', () => {
+  vscode.postMessage({ command: 'pickRom' });
+});
+document.getElementById('btn-clear').addEventListener('click', () => {
+  keyLog.innerHTML = '';
+  logCount = 0;
+  addLog('Log cleared.', 'kl-warn');
+});
+
+// ── Messages from extension host ──────────────────────────────────────────────
+window.addEventListener('message', e => {
+  const msg = e.data;
+  if (msg.command === 'loadRom') {
+    document.getElementById('rom-label').textContent = msg.name;
+    drawPlaceholder(msg.name);
+    addLog('ROM: ' + msg.name, 'kl-down');
+    // Phase 2: pass msg.path to the WASM emulator
+  }
+});
+
+// ── Tell host we are ready ────────────────────────────────────────────────────
+vscode.postMessage({ command: 'ready' });
+</script>
+</body>
+</html>

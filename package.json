@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) \u2014 the Secret of Evermore ROM scripting language",
-  "version": "0.2.49",
+  "version": "0.2.50",
   "publisher": "rbin",
   "main": "./extension.js",
   "engines": {
@@ -10,7 +10,10 @@
   },
   "activationEvents": [
     "onLanguage:everscript",
-    "onCommand:everscript.openMemoryRadar"
+    "onCommand:everscript.openMemoryRadar",
+    "onCommand:everscript.openEmulator",
+    "onDebugResolve:everscript",
+    "onDebugAdapterProtocol:everscript"
   ],
   "categories": [
     "Programming Languages",
@@ -105,6 +108,13 @@
             }
           }
         ]
+      }
+    ],
+    "commands": [
+      {
+        "command": "everscript.openEmulator",
+        "title": "Open Emulator Panel",
+        "category": "Everscript"
       }
     ],
     "problemMatchers": [

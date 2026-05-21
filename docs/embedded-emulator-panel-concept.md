@@ -699,3 +699,61 @@ CPU-Level Debugging
 ```
 
 The VM architecture is the key reason this project is realistically achievable.
+
+---
+
+# Emulator Selection — Ranked Candidates
+
+See `docs/web-emulator-plan.md` for the full ranking and legal analysis.
+Summary:
+
+| Emulator | License | WASM build | Accuracy | Recommendation |
+|----------|---------|-----------|----------|----------------|
+| ares (bsnes) | **MIT** | Community build | Cycle-accurate | Best long-term choice |
+| Snes9x | Non-commercial OSS | Community build | Very high | Best for immediate use |
+| Mesen2 | GPL-3 | None | Highest | Best debugger API; blocked by copyleft |
+| RetroArch | GPL-3 | Yes (web.libretro.com) | Core-dependent | Good for iframe POC |
+
+**Chosen path**:
+- **Phase 1 (now)**: Keyboard-capture webview POC proving VS Code webview + keyboard work.
+- **Phase 2**: Snes9x WASM bundled in extension, ROM loaded from workspace.
+- **Phase 3**: Switch to ares (MIT) once an official WASM distributable exists.
+
+---
+
+# VS Code Keyboard Input — Findings
+
+VS Code webviews can receive full keyboard input when:
+
+1. The webview element has `tabindex="0"` and `canvas.focus()` is called.
+2. `e.preventDefault()` is called on all `keydown` events inside the webview.
+
+Known intercepted keys (VS Code acts before the webview):
+
+| Key | VS Code default | Workaround |
+|-----|-----------------|------------|
+| F5  | Start debug session | Remap SNES Reset to Shift+F5 in the panel toolbar |
+| Escape | Close panel / cancel | Prevent in webview; VS Code still wins sometimes |
+| Ctrl+C/V | Clipboard | Safe when canvas is focused |
+| Arrow keys | Editor cursor | Safe when canvas is focused |
+
+The `emulator/panel.js` + `emulator/webview/index.html` POC (v0.2.50) confirms
+that keyboard events are captured and reported to the extension host with no
+observable lag.
+
+---
+
+# Current Implementation Status (v0.2.50)
+
+| Component | Status |
+|-----------|--------|
+| `debugger/adapter.js` | Done — full DAP server, mock runtime |
+| `debugger/mock-runtime.js` | Done — EVS source parser + stepper |
+| `debugger/poc-design.md` | Done — compiler changes documented |
+| `emulator/panel.js` | Done (Phase 1 POC) |
+| `emulator/webview/index.html` | Done (Phase 1 keyboard test) |
+| `call-log/design.md` | Done — architecture designed |
+| Snes9x WASM build | Pending |
+| WRAM streaming to Memory Radar | Pending |
+| Full DAP + live emulator | Pending |
+

@@ -2841,6 +2841,55 @@ function activate(context) {
         }),
 
     );
+
+    // ── Debugger: DebugConfigurationProvider ────────────────────────────────
+    // Handles two cases:
+    //   1. F5 with no launch.json → fills in defaults using the active .evs file
+    //   2. A launch.json entry with program:"${file}" that VS Code did not expand
+    context.subscriptions.push(
+        vscode.debug.registerDebugConfigurationProvider('everscript', {
+            provideDebugConfigurations(folder) {
+                const editor  = vscode.window.activeTextEditor;
+                const program = (editor && editor.document.languageId === 'everscript')
+                    ? editor.document.uri.fsPath
+                    : '${file}';
+                return [{
+                    type:          'everscript',
+                    request:       'launch',
+                    name:          'Debug current .evs file',
+                    program,
+                    entryFunction: 'trigger_enter',
+                }];
+            },
+            resolveDebugConfiguration(folder, config) {
+                // F5 with no launch.json → empty config, fill it in
+                if (!config.type && !config.request && !config.name) {
+                    const editor = vscode.window.activeTextEditor;
+                    if (editor && editor.document.languageId === 'everscript') {
+                        config.type          = 'everscript';
+                        config.request       = 'launch';
+                        config.name          = 'Debug .evs file';
+                        config.program       = editor.document.uri.fsPath;
+                        config.entryFunction = 'trigger_enter';
+                    }
+                }
+                // Resolve unexpanded ${file} (shouldn't happen, safety net)
+                if (config.program === '${file}') {
+                    const editor = vscode.window.activeTextEditor;
+                    if (editor) config.program = editor.document.uri.fsPath;
+                }
+                return config;
+            },
+        }),
+    );
+
+    // ── Emulator Panel ───────────────────────────────────────────────────────
+    const { openEmulatorPanel } = require('./emulator/panel');
+    context.subscriptions.push(
+        vscode.commands.registerCommand('everscript.openEmulator', () => {
+            openEmulatorPanel(context);
+        }),
+    );
 }
 
 function deactivate() {}

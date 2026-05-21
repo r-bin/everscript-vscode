@@ -1,3 +1,17 @@
+# [0.2.50] — 2026-05-21
+
+### Added
+- **Emulator Panel (Phase 1 — keyboard POC)**: `Everscript: Open Emulator Panel` command opens a webview with a SNES-style canvas + live key log. Proves VS Code webview keyboard capture works end-to-end. ROM picker sends the path to the panel; WASM emulator slot documented for Phase 2.
+  - `emulator/panel.js` — panel registration, ROM picker, extension↔webview message bridge.
+  - `emulator/webview/index.html` — canvas, SNES button map, held-key chips, key event log.
+- **Call Log module design**: `call-log/design.md` — full architecture for a live function-call logger: detection strategy, WRAM data sources, `call-decoder.js` / `log-channel.js` / `log-webview.js` module split, VS Code settings, Phase 1 (mock) + Phase 2 (live WRAM) plan.
+- **Emulator rankings doc**: `docs/web-emulator-plan.md` — ranked analysis of ares, Snes9x, Mesen2, RetroArch by license, WASM availability, accuracy, and debug API. Legal summary table. Phase plan through v1.0.
+- **`DebugConfigurationProvider`**: F5 on a `.evs` file with no `launch.json` now auto-fills the debugger config from the active editor, fixing the "wrong file" (kaizo.evs) problem.
+- **Debug activation events** (`onDebugResolve:everscript`, `onDebugAdapterProtocol:everscript`): extension activates before a debug session starts so gutter breakpoints are always clickable.
+
+### Updated
+- `docs/embedded-emulator-panel-concept.md` — added emulator-selection table, keyboard findings, and current implementation status table.
+
 # [0.2.49] — 2026-05-21
 
 ### Added
