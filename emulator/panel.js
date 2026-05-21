@@ -15,9 +15,10 @@ const vscode = require('vscode');
 const path   = require('path');
 const fs     = require('fs');
 
-let _panel   = null;
-let _pending = null; // { dataUrl, name } to send once the webview signals ready
+let _panel         = null;
+let _pending       = null; // { dataUrl, name } to send once the webview signals ready
 let _extensionPath = '';
+let _buildChannel  = null; // output channel from the last buildAndRun call
 
 function _resetPanelHtml() {
     if (!_panel || !_extensionPath) return;
@@ -31,8 +32,9 @@ function _resetPanelHtml() {
  * @param {object} context   VS Code extension context.
  * @param {object} [rom]     Optional { dataUrl, name } to auto-load on open.
  */
-function openEmulatorPanel(context, rom) {
+function openEmulatorPanel(context, rom, channel) {
     if (rom) _pending = rom;
+    if (channel) _buildChannel = channel;
     _extensionPath = context.extensionPath;
 
     const vendorBase = path.join(context.extensionPath, 'emulator', 'vendor', 'emulatorjs');
@@ -83,6 +85,24 @@ function openEmulatorPanel(context, rom) {
 
             case 'wramDelta':
                 // Forward WRAM deltas to the Memory Radar live mode (future).
+                break;
+
+            case 'ejsLaunching':
+                if (_buildChannel) _buildChannel.appendLine(`[Everscript] Launching emulator: ${msg.name}`);
+                break;
+
+            case 'ejsBlobReady':
+                if (_buildChannel) _buildChannel.appendLine(`[Everscript] ROM blob created: ${(msg.size / 1024 / 1024).toFixed(2)} MB — handing off to EmulatorJS`);
+                break;
+
+            case 'ejsError':
+                if (_buildChannel) _buildChannel.appendLine(`[Everscript] Emulator error: ${msg.error}`);
+                vscode.window.showErrorMessage('Everscript Emulator: ' + msg.error);
+                break;
+
+            case 'gameStarted':
+                if (_buildChannel) _buildChannel.appendLine(`[Everscript] Emulator started: ${msg.name}`);
+                vscode.window.setStatusBarMessage(`$(check) Emulator: ${msg.name} running`, 5000);
                 break;
         }
     }, undefined, context.subscriptions);
@@ -312,10 +332,29 @@ function _buildHtml(webview, vendorBase) {
 
     function startEjs(dataUrl, name) {
       document.getElementById('overlay').style.display = 'none';
+      vscodeApi.postMessage({ command: 'ejsLaunching', name });
+
+      // EmulatorJS uses fetch() internally. VS Code webview sandboxes silently block
+      // fetch() on data: URLs, causing EJS to fall back to its file browser.
+      // Convert the base64 data URL to a Blob URL before handing it to EmulatorJS.
+      let gameUrl = dataUrl;
+      if (dataUrl && dataUrl.startsWith('data:')) {
+        try {
+          const comma  = dataUrl.indexOf(',');
+          const mime   = (dataUrl.slice(0, comma).match(/:(.*?);/) || [,'application/octet-stream'])[1];
+          const binStr = atob(dataUrl.slice(comma + 1));
+          const buf    = new Uint8Array(binStr.length);
+          for (let i = 0; i < binStr.length; i++) buf[i] = binStr.charCodeAt(i);
+          gameUrl = URL.createObjectURL(new Blob([buf], { type: mime }));
+          vscodeApi.postMessage({ command: 'ejsBlobReady', name, size: buf.length });
+        } catch (e) {
+          vscodeApi.postMessage({ command: 'ejsError', error: 'Blob URL conversion failed: ' + e.message });
+        }
+      }
 
       window.EJS_player        = '#ejs-container';
       window.EJS_core          = 'snes9x';
-      window.EJS_gameUrl       = dataUrl;
+      window.EJS_gameUrl       = gameUrl;
       window.EJS_gameName      = name || 'game';
       window.EJS_pathtodata    = '${vendorUri}/';
       window.EJS_startOnLoaded = true;

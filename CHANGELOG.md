@@ -1,3 +1,11 @@
+# [0.2.58] — 2026-05-21
+
+### Fixed
+- **Compiled ROM now actually boots in the emulator**: EmulatorJS uses `fetch()` internally to load the game. VS Code webviews silently block `fetch()` on `data:` URLs, causing EJS to open its file browser instead of booting the ROM. The base64 payload is now converted to a `Blob` URL in the webview before being passed to EmulatorJS.
+
+### Added
+- **Emulator launch logging**: Build output channel now shows ROM path, size, blob creation confirmation, and game-started event. Errors from the emulator side (blob conversion failure, etc.) surface as an error notification.
+
 # [0.2.57] — 2026-05-21
 
 ### Fixed

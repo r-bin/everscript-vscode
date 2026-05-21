@@ -3060,12 +3060,16 @@ function activate(context) {
             try {
                 romData = nodeFs.readFileSync(outputRom);
             } catch (e) {
+                channel.appendLine(`[Everscript] Output ROM not found: ${outputRom}`);
+                channel.appendLine(`[Everscript] Error: ${e.message}`);
                 vscode.window.showErrorMessage('Everscript: build succeeded but output ROM not found: ' + e.message);
-                openEmulatorPanel(context);
+                openEmulatorPanel(context, undefined, channel);
                 return;
             }
+            channel.appendLine(`[Everscript] Output ROM:  ${outputRom}`);
+            channel.appendLine(`[Everscript] ROM size:    ${(romData.length / 1024 / 1024).toFixed(2)} MB`);
             const dataUrl = 'data:application/octet-stream;base64,' + romData.toString('base64');
-            openEmulatorPanel(context, { dataUrl, name: nodePath.basename(outputRom) });
+            openEmulatorPanel(context, { dataUrl, name: nodePath.basename(outputRom) }, channel);
         }),
     );
 }
