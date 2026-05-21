@@ -1,3 +1,12 @@
+# [0.2.63] — 2026-05-21
+
+### Added
+- **EmulatorJS script-stack debugger panel**: the script stack table now reads directly from the running module when a custom debugger-enabled SNES core is loaded, and falls back to save-state parsing otherwise.
+  - Visible **custom API proof** in the panel (`api: custom debugger active`) using `getCPUState()` / `readMemoryRange()` when available.
+  - **Pause / resume controls** wired to the custom debugger API.
+  - **Script stack hook toggle** arms write breakpoints on key script-slot fields so stack writes can pause the emulator and be resumed from the panel.
+  - Fixed the previous stack reader bug where the panel injected `Module.EmulatorJSGetState()` but still called a missing `gm.getState()`, leaving the table stuck on `connecting...`.
+
 # [0.2.62] — 2026-05-21
 
 ### Changed

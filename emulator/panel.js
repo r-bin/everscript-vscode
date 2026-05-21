@@ -134,6 +134,16 @@ function openEmulatorPanel(context, rom, channel) {
                 if (_buildChannel) _buildChannel.appendLine(`[Everscript] ROM blob created: ${(msg.size / 1024 / 1024).toFixed(2)} MB — handing off to EmulatorJS`);
                 break;
 
+            case 'debugApiStatus':
+              if (_buildChannel) _buildChannel.appendLine(`[Everscript] ${msg.text}`);
+              break;
+
+            case 'debugBreakpointHit':
+              if (_buildChannel) {
+                _buildChannel.appendLine(`[Everscript] Breakpoint hit: ${msg.type} @ ${msg.address} pc=${msg.pc}`);
+              }
+              break;
+
             case 'ejsError':
                 if (_buildChannel) _buildChannel.appendLine(`[Everscript] Emulator error: ${msg.error}`);
                 vscode.window.showErrorMessage('Everscript Emulator: ' + msg.error);
@@ -202,7 +212,7 @@ function _buildHtml(webview, vendorBase, customCorePath) {
     #status { font-size: 12px; color: #888; max-width: 400px; text-align: center; }
     /* Script stack */
     #script-stack {
-      height: 180px; min-height: 140px; max-height: 220px;
+      height: 220px; min-height: 180px; max-height: 320px;
       background: #0d0d0d; border-top: 1px solid #333;
       overflow-y: auto; font-family: monospace; font-size: 11px;
       display: none;
@@ -215,12 +225,29 @@ function _buildHtml(webview, vendorBase, customCorePath) {
       display: flex; justify-content: space-between; align-items: center;
       border-bottom: 1px solid #333;
     }
-    #ss-header span { color: #555; }
+    #ss-title { display: flex; gap: 10px; align-items: center; }
+    #ss-header span { color: #777; }
+    #ss-controls { display: flex; gap: 6px; align-items: center; }
+    .ss-btn {
+      border: 1px solid #444; background: #181818; color: #ccc;
+      padding: 2px 6px; border-radius: 3px; font-size: 10px; cursor: pointer;
+    }
+    .ss-btn:hover { background: #222; }
+    .ss-btn:disabled { opacity: 0.45; cursor: default; }
+    #ss-meta {
+      position: sticky; top: 24px;
+      background: #141414; border-bottom: 1px solid #222;
+      padding: 4px 8px; display: flex; gap: 12px; flex-wrap: wrap;
+      color: #777; font-size: 10px;
+    }
+    .ss-ok { color: #7ad67a; }
+    .ss-warn { color: #d9c36a; }
+    .ss-bad { color: #d98383; }
     #ss-table { width: 100%; border-collapse: collapse; }
     #ss-table th {
       text-align: left; padding: 2px 6px;
       color: #666; font-weight: normal; font-size: 10px;
-      position: sticky; top: 24px; background: #111; border-bottom: 1px solid #222;
+      position: sticky; top: 52px; background: #111; border-bottom: 1px solid #222;
     }
     #ss-table td { padding: 1px 6px; color: #ccc; }
     #ss-table tr.exec td { color: #6f6; }
@@ -237,8 +264,22 @@ function _buildHtml(webview, vendorBase, customCorePath) {
   <div id="ejs-container"></div>
   <div id="script-stack">
     <div id="ss-header">
-      <b>SCRIPT STACK</b>
-      <span id="ss-count">waiting...</span>
+      <div id="ss-title">
+        <b>SCRIPT STACK</b>
+        <span id="ss-count">waiting...</span>
+      </div>
+      <div id="ss-controls">
+        <button id="ss-pause-btn" class="ss-btn" disabled>pause</button>
+        <button id="ss-resume-btn" class="ss-btn" disabled>resume</button>
+        <button id="ss-hook-btn" class="ss-btn" disabled>arm stack hook</button>
+      </div>
+    </div>
+    <div id="ss-meta">
+      <span id="ss-api-status">api: checking...</span>
+      <span id="ss-cpu-status">pc: ------</span>
+      <span id="ss-pause-state">running</span>
+      <span id="ss-break-status">hook: unavailable</span>
+      <span id="ss-last-hit">last: -</span>
     </div>
     <table id="ss-table">
       <thead><tr><th>#</th><th>PC</th><th>state</th><th>entity</th><th>timer</th></tr></thead>
@@ -267,11 +308,62 @@ function _buildHtml(webview, vendorBase, customCorePath) {
     const SCRIPT_BASE  = 0x28FC;
     const SLOT_SIZE    = 0x4F;
     const SLOT_COUNT   = 20;
+    const SCRIPT_REGION_SIZE = SLOT_SIZE * SLOT_COUNT;
+    const SCRIPT_STACK_BUS_ADDR = 0x7E0000 + SCRIPT_BASE;
+    const SCRIPT_BREAK_WATCH_OFFSETS = [0x00, 0x03, 0x0D];
     const RAM_TAG      = [82, 65, 77, 32]; // "RAM "
     const WRAM_SIZE    = 0x20000;
 
+    let scriptHookArmed = false;
+    let activeScriptWatchpoints = [];
+    let lastDebugStatus = '';
+
     function readU16(w, off) { return (w[off] | (w[off + 1] << 8)) >>> 0; }
     function readU24(w, off) { return (w[off] | (w[off + 1] << 8) | (w[off + 2] << 16)) >>> 0; }
+    function formatHex(value, width) {
+      return (value >>> 0).toString(16).toUpperCase().padStart(width, '0');
+    }
+
+    function setText(id, text, className) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = text;
+      el.className = className || '';
+    }
+
+    function getGameManager() {
+      return window.EJS_emulator && window.EJS_emulator.gameManager;
+    }
+
+    function getModule() {
+      const gm = getGameManager();
+      return gm && gm.Module ? gm.Module : null;
+    }
+
+    function hasDebuggerApi(module) {
+      return !!module &&
+        typeof module.getCPUState === 'function' &&
+        typeof module.readMemoryRange === 'function' &&
+        typeof module.pauseEmulation === 'function' &&
+        typeof module.resumeEmulation === 'function';
+    }
+
+    function hasWriteBreakpointApi(module) {
+      return hasDebuggerApi(module) &&
+        typeof module.addWriteBreakpoint === 'function' &&
+        typeof module.removeWriteBreakpoint === 'function';
+    }
+
+    function reportDebugStatus(text) {
+      if (text === lastDebugStatus) return;
+      lastDebugStatus = text;
+      vscodeApi.postMessage({ command: 'debugApiStatus', text });
+    }
+
+    function setControlEnabled(id, enabled) {
+      const el = document.getElementById(id);
+      if (el) el.disabled = !enabled;
+    }
 
     /** Scan a snes9x save-state blob for the 128 KB RAM block. */
     function parseWramFromState(raw) {
@@ -290,28 +382,36 @@ function _buildHtml(webview, vendorBase, customCorePath) {
       return null;
     }
 
-    /** Render 20-slot script stack from raw WRAM bytes. */
-    function updateScriptStack(wram) {
+    function buildScriptRows(region) {
+      const rows = [];
+      for (let i = 0; i < SLOT_COUNT; i++) {
+        const base = i * SLOT_SIZE;
+        if (base + SLOT_SIZE > region.length) break;
+        const loc = readU24(region, base + 0x00);
+        if (loc === 0) continue;
+        const state  = readU16(region, base + 0x03);
+        const timer1 = readU16(region, base + 0x05);
+        const entity = readU16(region, base + 0x0D);
+        rows.push({ slot: i, loc, state, timer1, entity });
+      }
+      return rows;
+    }
+
+    /** Render 20-slot script stack from raw script-region bytes. */
+    function updateScriptStack(region) {
       const tbody = document.getElementById('ss-tbody');
       if (!tbody) return;
       let rows = '';
-      let active = 0;
-      for (let i = 0; i < SLOT_COUNT; i++) {
-        const base = SCRIPT_BASE + i * SLOT_SIZE;
-        if (base + SLOT_SIZE > wram.length) break;
-        const loc = readU24(wram, base + 0x00);
-        if (loc === 0) continue; // inactive slot
-        active++;
-        const state  = readU16(wram, base + 0x03);
-        const timer1 = readU16(wram, base + 0x05);
-        const entity = readU16(wram, base + 0x0D);
+      const parsedRows = buildScriptRows(region);
+      for (const row of parsedRows) {
+        const { slot, loc, state, timer1, entity } = row;
         const cls    = state === 2 ? 'exec' : state === 4 ? 'wait' : 'dead';
         const sname  = state === 2 ? 'exec' : state === 4 ? 'wait' : state === 0 ? 'dead' : '0x' + state.toString(16);
         rows += '<tr class="' + cls + '">' +
-          '<td>' + i + '</td>' +
-          '<td>' + loc.toString(16).toUpperCase().padStart(6, '0') + '</td>' +
+          '<td>' + slot + '</td>' +
+          '<td>' + formatHex(loc, 6) + '</td>' +
           '<td>' + sname + '</td>' +
-          '<td>' + entity.toString(16).toUpperCase().padStart(4, '0') + '</td>' +
+          '<td>' + formatHex(entity, 4) + '</td>' +
           '<td>' + timer1 + '</td>' +
           '</tr>';
       }
@@ -319,7 +419,121 @@ function _buildHtml(webview, vendorBase, customCorePath) {
         rows = '<tr><td colspan="5" style="color:#555;text-align:center;padding:6px">no active scripts</td></tr>';
       }
       tbody.innerHTML = rows;
-      document.getElementById('ss-count').textContent = active + ' active';
+      document.getElementById('ss-count').textContent = parsedRows.length + ' active';
+    }
+
+    function injectStateReader(module) {
+      if (typeof module.EmulatorJSGetState === 'function') return;
+      module.EmulatorJSGetState = function() {
+        try {
+          module._cmd_save_state();
+          return module.FS.readFile('/game.state');
+        } catch (_) {
+          return null;
+        }
+      };
+    }
+
+    function readScriptStackRegion(gm) {
+      const module = gm && gm.Module;
+      if (!module) return { mode: 'connecting', bytes: null };
+
+      if (hasDebuggerApi(module)) {
+        return {
+          mode: 'custom-debugger',
+          bytes: module.readMemoryRange(SCRIPT_STACK_BUS_ADDR, SCRIPT_REGION_SIZE),
+        };
+      }
+
+      injectStateReader(module);
+      const raw = (typeof gm.getState === 'function') ? gm.getState() : module.EmulatorJSGetState();
+      if (!raw) return { mode: 'save-state-unavailable', bytes: null };
+      const wram = parseWramFromState(raw);
+      if (!wram) return { mode: 'save-state-unavailable', bytes: null };
+      return {
+        mode: 'save-state',
+        bytes: wram.subarray(SCRIPT_BASE, SCRIPT_BASE + SCRIPT_REGION_SIZE),
+      };
+    }
+
+    function buildScriptStackWatchpoints() {
+      const watches = [];
+      for (let slot = 0; slot < SLOT_COUNT; slot++) {
+        const base = SCRIPT_BASE + slot * SLOT_SIZE;
+        for (const offset of SCRIPT_BREAK_WATCH_OFFSETS) {
+          watches.push(base + offset);
+        }
+      }
+      return watches;
+    }
+
+    function disarmScriptStackHook(module) {
+      if (module && typeof module.removeWriteBreakpoint === 'function') {
+        for (const addr of activeScriptWatchpoints) module.removeWriteBreakpoint(addr);
+      }
+      activeScriptWatchpoints = [];
+      scriptHookArmed = false;
+      setText('ss-break-status', 'hook: off', 'ss-warn');
+      const btn = document.getElementById('ss-hook-btn');
+      if (btn) btn.textContent = 'arm stack hook';
+    }
+
+    function armScriptStackHook(module) {
+      if (!hasWriteBreakpointApi(module)) return false;
+      disarmScriptStackHook(module);
+      activeScriptWatchpoints = buildScriptStackWatchpoints();
+      for (const addr of activeScriptWatchpoints) module.addWriteBreakpoint(addr);
+      scriptHookArmed = true;
+      setText('ss-break-status', 'hook: armed (' + activeScriptWatchpoints.length + ')', 'ss-ok');
+      const btn = document.getElementById('ss-hook-btn');
+      if (btn) btn.textContent = 'disarm stack hook';
+      return true;
+    }
+
+    function installDebuggerBridge(module) {
+      if (!hasDebuggerApi(module)) return;
+      if (module.__everscriptDebuggerBridgeInstalled) return;
+      module.__everscriptDebuggerBridgeInstalled = true;
+      module.onBreakpointHit = function(event) {
+        const addrText = event.type === 'write'
+          ? '7E' + formatHex(event.address, 4)
+          : formatHex(event.address, 6);
+        setText('ss-last-hit', 'last: ' + event.type + ' @ ' + addrText + ' pc ' + formatHex(event.pc, 6), 'ss-bad');
+        setText('ss-pause-state', 'paused', 'ss-bad');
+        vscodeApi.postMessage({
+          command: 'debugBreakpointHit',
+          type: event.type,
+          address: addrText,
+          pc: formatHex(event.pc, 6),
+        });
+      };
+    }
+
+    function refreshDebuggerUi(module, sourceMode) {
+      const customApi = hasDebuggerApi(module);
+      const writeApi  = hasWriteBreakpointApi(module);
+
+      if (customApi) {
+        const cpu = module.getCPUState();
+        setText('ss-api-status', 'api: custom debugger active', 'ss-ok');
+        setText('ss-cpu-status', 'pc: ' + formatHex(cpu.pc, 6) + ' pb:' + formatHex(cpu.pb, 2) + ' a:' + formatHex(cpu.a, 4), 'ss-ok');
+        reportDebugStatus('Custom debugger API active (' + sourceMode + ') pc=' + formatHex(cpu.pc, 6));
+      } else {
+        setText('ss-api-status', 'api: ' + (sourceMode === 'save-state' ? 'save-state fallback' : 'not available'), 'ss-warn');
+        setText('ss-cpu-status', 'pc: ------', 'ss-warn');
+        reportDebugStatus(sourceMode === 'save-state'
+          ? 'Using save-state fallback for script stack (custom debugger API unavailable)'
+          : 'Custom debugger API unavailable');
+      }
+
+      setControlEnabled('ss-pause-btn', customApi);
+      setControlEnabled('ss-resume-btn', customApi);
+      setControlEnabled('ss-hook-btn', writeApi);
+
+      if (!writeApi) {
+        disarmScriptStackHook(module);
+        setText('ss-break-status', 'hook: unavailable', 'ss-warn');
+      }
     }
 
     /** Start the WRAM polling loop after game loads. */
@@ -334,31 +548,21 @@ function _buildHtml(webview, vendorBase, customCorePath) {
           const gm = window.EJS_emulator && window.EJS_emulator.gameManager;
           if (!gm || !gm.Module) { setTimeout(attempt, 1000); return; }
 
-          // Inject EmulatorJSGetState if the build doesn't provide it.
-          if (typeof gm.Module.EmulatorJSGetState !== 'function') {
-            gm.Module.EmulatorJSGetState = function() {
-              try {
-                gm.Module._cmd_save_state();
-                return gm.Module.FS.readFile('/game.state');
-              } catch (e) { return null; }
-            };
-          }
+          installDebuggerBridge(gm.Module);
+          refreshDebuggerUi(gm.Module, 'connecting');
 
           function poll() {
             try {
-              const raw = gm.getState();
-              if (raw) {
-                const wram = parseWramFromState(raw);
-                if (wram) {
-                  updateScriptStack(wram);
-                  // Post a small WRAM window to the host for Memory Radar live mode.
-                  const start = SCRIPT_BASE;
-                  const end   = Math.min(wram.length, SCRIPT_BASE + SLOT_COUNT * SLOT_SIZE + 1);
-                  vscodeApi.postMessage({ command: 'wramDelta', offset: start, data: Array.from(wram.subarray(start, end)) });
-                }
+              const source = readScriptStackRegion(gm);
+              refreshDebuggerUi(gm.Module, source.mode);
+              if (source.bytes) {
+                updateScriptStack(source.bytes);
+                vscodeApi.postMessage({ command: 'wramDelta', offset: SCRIPT_BASE, data: Array.from(source.bytes) });
+              } else {
+                document.getElementById('ss-count').textContent = source.mode === 'connecting' ? 'connecting...' : 'unavailable';
               }
             } catch (_) { /* silently skip on error */ }
-            setTimeout(poll, 500);
+            setTimeout(poll, 250);
           }
           poll();
         } catch (_) {
@@ -367,6 +571,28 @@ function _buildHtml(webview, vendorBase, customCorePath) {
       }
       attempt();
     }
+
+    document.getElementById('ss-pause-btn').addEventListener('click', () => {
+      const module = getModule();
+      if (!hasDebuggerApi(module)) return;
+      module.pauseEmulation();
+      setText('ss-pause-state', 'paused', 'ss-bad');
+      setText('ss-last-hit', 'last: manual pause', 'ss-warn');
+    });
+
+    document.getElementById('ss-resume-btn').addEventListener('click', () => {
+      const module = getModule();
+      if (!hasDebuggerApi(module)) return;
+      module.resumeEmulation();
+      setText('ss-pause-state', 'running', 'ss-ok');
+    });
+
+    document.getElementById('ss-hook-btn').addEventListener('click', () => {
+      const module = getModule();
+      if (!hasWriteBreakpointApi(module)) return;
+      if (scriptHookArmed) disarmScriptStackHook(module);
+      else armScriptStackHook(module);
+    });
 
     // ── EmulatorJS bootstrap ───────────────────────────────────────────────
 
