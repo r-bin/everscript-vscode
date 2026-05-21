@@ -1,3 +1,15 @@
+# [0.2.55] — 2026-05-21
+
+### Added
+- **Settings tab in Emulator panel**: New "Settings" tab alongside "Emulator". Fields: Everscript repo path, patches/ folder, compiler binary or script, vanilla ROM, SNES core (snes9x). Auto-fill button (and Enter key on the repo field) probes the repo and pre-populates all other fields. Save persists to VS Code global settings.
+- **Python compiler support**: `buildAndRun` (F5) now detects `everscript.py` in the repo root and runs `python3 everscript.py --rom <ROM> --patches <patchesDir> <input.evs>` instead of the binary. Falls back to `dist/everscript_mac` / `dist/everscript.exe` if no Python script found.
+- **New settings**: `everscript.repoPath`, `everscript.patchesPath`, `everscript.romPath`. Together with the existing `everscript.compilerPath` override, these replace `everscript.projectRoot`.
+
+### Changed
+- `everscript.projectRoot` removed; replaced by `everscript.repoPath`.
+- Error messages now point to "Emulator panel → Settings tab" instead of raw setting names.
+- Emulator overlay changed from `position:fixed` to `position:absolute` inside its tab pane, so it no longer covers the Settings tab.
+
 # [0.2.54] — 2026-05-28
 
 ### Added

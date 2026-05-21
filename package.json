@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) \u2014 the Secret of Evermore ROM scripting language",
-  "version": "0.2.54",
+  "version": "0.2.55",
   "publisher": "rbin",
   "main": "./extension.js",
   "engines": {
@@ -197,15 +197,25 @@
           "default": "",
           "markdownDescription": "Path to the assets directory. Should contain an `ingredients/` subfolder with `.webp` ingredient icons. Defaults to the bundled extension assets."
         },
+        "everscript.repoPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Absolute path to the Everscript repository root. Sets the build working directory and auto-fills the other build settings. Example: `/path/to/everscript`."
+        },
+        "everscript.patchesPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Absolute path to the patches folder passed as `--patches` to the compiler. Defaults to `<repoPath>/patches` when empty."
+        },
         "everscript.compilerPath": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Absolute path to the Everscript compiler binary (e.g. `/path/to/everscript/dist/everscript_mac`). If left empty the extension searches upward from the active `.evs` file for `dist/everscript_mac` / `dist/everscript`."
+          "markdownDescription": "Override: absolute path to `everscript.py` or a compiled binary. Auto-detected from `repoPath` when empty."
         },
-        "everscript.projectRoot": {
+        "everscript.romPath": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Absolute path to the Everscript project root (the directory that contains the base ROM `.smc` and the `out/` folder). Detected automatically when empty."
+          "markdownDescription": "Absolute path to the vanilla ROM file (`.smc` or `.sfc`). Auto-detected from the repository root when empty."
         }
       }
     }

@@ -2901,21 +2901,36 @@ function activate(context) {
             }
 
             const cfg       = vscode.workspace.getConfiguration('everscript');
-            const wsRoot    = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
             const nodePath  = require('path');
             const nodeFs    = require('fs');
             const cp        = require('child_process');
 
-            // ── 1. Resolve compiler binary ─────────────────────────────────
-            let compilerBin  = cfg.get('compilerPath', '').trim();
-            let projectRoot  = cfg.get('projectRoot', '').trim();
+            // ── 1. Resolve compiler and project root ───────────────────────
+            let repoPath    = cfg.get('repoPath',     '').trim();
+            let patchesPath = cfg.get('patchesPath',  '').trim();
+            let romPath     = cfg.get('romPath',      '').trim(); // full path to vanilla ROM
+            let compilerBin = cfg.get('compilerPath', '').trim(); // manual override
+            let projectRoot = repoPath;
+            let useScript   = false;
+
+            // Prefer everscript.py in the repo root (Python-based compiler).
+            if (repoPath && nodeFs.existsSync(nodePath.join(repoPath, 'everscript.py'))) {
+                useScript = true;
+                if (!compilerBin) compilerBin = nodePath.join(repoPath, 'everscript.py');
+            }
 
             if (!compilerBin) {
-                // Walk up from the active .evs file looking for dist/everscript_mac
-                const binaryNames = ['everscript_mac', 'everscript', 'everscript.exe'];
+                // Auto-detect by walking up from the active .evs file.
                 let dir = nodePath.dirname(editor.document.uri.fsPath);
                 for (let depth = 0; depth < 8 && !compilerBin; depth++) {
-                    for (const bin of binaryNames) {
+                    const pyCandidate = nodePath.join(dir, 'everscript.py');
+                    if (nodeFs.existsSync(pyCandidate)) {
+                        useScript   = true;
+                        compilerBin = pyCandidate;
+                        if (!projectRoot) projectRoot = dir;
+                        break;
+                    }
+                    for (const bin of ['everscript_mac', 'everscript', 'everscript.exe']) {
                         const candidate = nodePath.join(dir, 'dist', bin);
                         if (nodeFs.existsSync(candidate)) {
                             compilerBin = candidate;
@@ -2931,56 +2946,74 @@ function activate(context) {
 
             if (!compilerBin) {
                 vscode.window.showErrorMessage(
-                    'Everscript: compiler not found. Set "everscript.compilerPath" in settings ' +
-                    'or place the compiled binary at dist/everscript_mac in your project root.'
+                    'Everscript: compiler not found. Open the Emulator panel \u2192 Settings tab and set the repo path.'
                 );
                 return;
             }
 
             if (!projectRoot) {
-                projectRoot = nodePath.dirname(nodePath.dirname(compilerBin)); // parent of dist/
+                projectRoot = useScript
+                    ? nodePath.dirname(compilerBin)
+                    : nodePath.dirname(nodePath.dirname(compilerBin)); // parent of dist/
             }
 
-            // ── 2. Resolve ROM name ────────────────────────────────────────
-            // Look for the base ROM in the project root (the one the compiler patches).
+            // ── 2. Resolve ROM ─────────────────────────────────────────────
             let romName = '';
-            try {
-                const files = nodeFs.readdirSync(projectRoot);
-                const smc = files.find(f => /\.smc$/i.test(f) && !/[/\\]out[/\\]/.test(f));
-                if (smc) romName = smc;
-            } catch (_) {}
+            if (romPath) {
+                romName = nodePath.basename(romPath);
+            } else {
+                try {
+                    const files = nodeFs.readdirSync(projectRoot);
+                    const found = files.find(f => /\.(smc|sfc)$/i.test(f));
+                    if (found) romName = found;
+                } catch (_) {}
+            }
 
             if (!romName) {
                 vscode.window.showErrorMessage(
-                    'Everscript: no .smc ROM found in project root "' + projectRoot + '". ' +
-                    'Ensure the base ROM is present alongside the compiler.'
+                    'Everscript: no ROM found. Set the Vanilla ROM in the Emulator panel \u2192 Settings tab.'
                 );
                 return;
             }
 
-            // ── 3. Run the compiler ────────────────────────────────────────
+            // ── 3. Resolve patches folder ──────────────────────────────────
+            let patchesArg = patchesPath;
+            if (!patchesArg && projectRoot) {
+                const defaultPatches = nodePath.join(projectRoot, 'patches');
+                if (nodeFs.existsSync(defaultPatches)) patchesArg = defaultPatches;
+            }
+
+            // ── 4. Build spawn args ────────────────────────────────────────
             const inputEvs  = editor.document.uri.fsPath;
             const outputRom = nodePath.join(projectRoot, 'out', romName);
+
+            let spawnBin, spawnArgs;
+            if (useScript) {
+                spawnBin  = 'python3';
+                spawnArgs = [compilerBin, '--rom', romName];
+                if (patchesArg) spawnArgs.push('--patches', patchesArg);
+                spawnArgs.push(inputEvs);
+            } else {
+                spawnBin  = compilerBin;
+                spawnArgs = ['--rom', romName, inputEvs];
+            }
 
             const channel = vscode.window.createOutputChannel('Everscript Build');
             channel.clear();
             channel.show(true);
             channel.appendLine(`[Everscript] Compiling: ${nodePath.basename(inputEvs)}`);
-            channel.appendLine(`[Everscript] Compiler:  ${compilerBin}`);
+            channel.appendLine(`[Everscript] Compiler:  ${useScript ? 'python3 ' + nodePath.basename(compilerBin) : compilerBin}`);
             channel.appendLine(`[Everscript] CWD:       ${projectRoot}`);
             channel.appendLine(`[Everscript] ROM:       ${romName}`);
+            if (patchesArg) channel.appendLine(`[Everscript] Patches:   ${patchesArg}`);
             channel.appendLine('');
 
             const statusItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-            statusItem.text = '$(sync~spin) Everscript: building…';
+            statusItem.text = '$(sync~spin) Everscript: building...';
             statusItem.show();
 
             const exitCode = await new Promise(resolve => {
-                const proc = cp.spawn(
-                    compilerBin,
-                    ['--rom', romName, inputEvs],
-                    { cwd: projectRoot, shell: false }
-                );
+                const proc = cp.spawn(spawnBin, spawnArgs, { cwd: projectRoot, shell: false });
                 proc.stdout.on('data', d => channel.append(d.toString()));
                 proc.stderr.on('data', d => channel.append(d.toString()));
                 proc.on('close', code => resolve(code));
@@ -2994,14 +3027,14 @@ function activate(context) {
 
             if (exitCode !== 0) {
                 vscode.window.showErrorMessage(
-                    'Everscript build failed (exit ' + exitCode + '). See Output → Everscript Build.'
+                    'Everscript build failed (exit ' + exitCode + '). See Output > Everscript Build.'
                 );
                 return;
             }
 
             channel.appendLine('[Everscript] Build succeeded.');
 
-            // ── 4. Load the output ROM in the emulator ─────────────────────
+            // ── 5. Load output ROM into the emulator ───────────────────────
             let romData;
             try {
                 romData = nodeFs.readFileSync(outputRom);
