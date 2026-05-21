@@ -2889,6 +2889,9 @@ function activate(context) {
         vscode.commands.registerCommand('everscript.openEmulator', () => {
             openEmulatorPanel(context);
         }),
+        vscode.commands.registerCommand('everscript.openSettings', () => {
+            vscode.commands.executeCommand('workbench.action.openSettings', 'everscript');
+        }),
     );
 
     // ── Build-and-Run (F5 in .evs files) ─────────────────────────────────────
@@ -2987,25 +2990,43 @@ function activate(context) {
             const inputEvs  = editor.document.uri.fsPath;
             const outputRom = nodePath.join(projectRoot, 'out', romName);
 
+            // Detect Python: prefer project venv so packages like 'injector' are available
+            let pythonBin = cfg.get('pythonPath', '').trim();
+            if (!pythonBin && projectRoot) {
+                for (const rel of ['.venv/bin/python3', '.venv/bin/python', 'venv/bin/python3', 'venv/bin/python']) {
+                    const c = nodePath.join(projectRoot, rel);
+                    if (nodeFs.existsSync(c)) { pythonBin = c; break; }
+                }
+            }
+            if (!pythonBin) pythonBin = 'python3';
+
+            // Use relative paths (matches: python everscript.py --rom ... --patches ./patches in/...)
+            const _sep = nodePath.sep;
+            const inputArg = inputEvs.startsWith(projectRoot + _sep)
+                ? nodePath.relative(projectRoot, inputEvs)
+                : inputEvs;
+            const patchesArgRel = patchesArg && patchesArg.startsWith(projectRoot)
+                ? nodePath.relative(projectRoot, patchesArg)
+                : patchesArg;
+
             let spawnBin, spawnArgs;
             if (useScript) {
-                spawnBin  = 'python3';
+                spawnBin  = pythonBin;
                 spawnArgs = [compilerBin, '--rom', romName];
-                if (patchesArg) spawnArgs.push('--patches', patchesArg);
-                spawnArgs.push(inputEvs);
+                if (patchesArgRel) spawnArgs.push('--patches', patchesArgRel);
+                spawnArgs.push(inputArg);
             } else {
                 spawnBin  = compilerBin;
-                spawnArgs = ['--rom', romName, inputEvs];
+                spawnArgs = ['--rom', romName, inputArg];
             }
 
             const channel = vscode.window.createOutputChannel('Everscript Build');
             channel.clear();
             channel.show(true);
             channel.appendLine(`[Everscript] Compiling: ${nodePath.basename(inputEvs)}`);
-            channel.appendLine(`[Everscript] Compiler:  ${useScript ? 'python3 ' + nodePath.basename(compilerBin) : compilerBin}`);
             channel.appendLine(`[Everscript] CWD:       ${projectRoot}`);
-            channel.appendLine(`[Everscript] ROM:       ${romName}`);
-            if (patchesArg) channel.appendLine(`[Everscript] Patches:   ${patchesArg}`);
+            function _qArg(a) { return /[ ()\[\]\\!'"<>]/.test(a) ? '"' + a.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"' : a; }
+            channel.appendLine(`[Everscript] Command:   ${[spawnBin, ...spawnArgs.map(_qArg)].join(' ')}`);
             channel.appendLine('');
 
             const statusItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);

@@ -1,3 +1,17 @@
+# [0.2.56] — 2026-05-28
+
+### Fixed
+- **F5 Python interpreter**: `buildAndRun` now detects the project's `.venv/bin/python3` and uses it instead of the system `python3`. System Python lacks the `injector` package, causing `ModuleNotFoundError`. Fallback chain: `.venv/bin/python3` → `.venv/bin/python` → `venv/bin/python3` → `venv/bin/python` → `python3`.
+- **Relative paths in compiler invocation**: `--patches` and input file arguments are now passed as relative paths from the project root (e.g. `./patches`, `in/practice`), matching the working manual command.
+- **Exact command logged**: Output channel now shows the full command as it would be typed in a terminal.
+
+### Added
+- **`everscript.pythonPath` setting**: Optional override for the Python interpreter path. When empty, auto-detected from the project `.venv`.
+- **`Everscript: Open Everscript Settings` command**: Opens VS Code Settings UI pre-filtered to all `everscript.*` settings (Cmd+, equivalent).
+
+### Removed
+- **Settings tab from Emulator panel**: Settings belong in VS Code's built-in settings UI (Cmd+, → search "everscript"). The emulator panel is now a pure emulator again.
+
 # [0.2.55] — 2026-05-21
 
 ### Added

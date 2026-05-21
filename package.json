@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) \u2014 the Secret of Evermore ROM scripting language",
-  "version": "0.2.55",
+  "version": "0.2.56",
   "publisher": "rbin",
   "main": "./extension.js",
   "engines": {
@@ -12,6 +12,7 @@
     "onLanguage:everscript",
     "onCommand:everscript.openMemoryRadar",
     "onCommand:everscript.openEmulator",
+    "onCommand:everscript.openSettings",
     "onDebugResolve:everscript",
     "onDebugAdapterProtocol:everscript"
   ],
@@ -117,6 +118,11 @@
         "category": "Everscript"
       },
       {
+        "command": "everscript.openSettings",
+        "title": "Open Everscript Settings",
+        "category": "Everscript"
+      },
+      {
         "command": "everscript.buildAndRun",
         "title": "Build and Run in Emulator",
         "category": "Everscript"
@@ -211,6 +217,11 @@
           "type": "string",
           "default": "",
           "markdownDescription": "Override: absolute path to `everscript.py` or a compiled binary. Auto-detected from `repoPath` when empty."
+        },
+        "everscript.pythonPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Override: absolute path to the Python interpreter. Auto-detected from `<repoPath>/.venv/bin/python3` when empty."
         },
         "everscript.romPath": {
           "type": "string",
