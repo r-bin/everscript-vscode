@@ -427,8 +427,8 @@ function _buildCustomCoreHtml(webview, corePath) {
   <style nonce="${nonce}">
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { width: 100%; height: 100%; background: #000; overflow: hidden; display: flex; flex-direction: column; }
-    #screen-wrap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; background: #000; }
-    #screen { display: block; image-rendering: pixelated; max-width: 100%; max-height: 100%; }
+    #screen-wrap { flex: 1; min-height: 0; background: #000; position: relative; overflow: hidden; }
+    #screen { display: block; image-rendering: pixelated; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
     #overlay {
       position: fixed; inset: 0;
       display: flex; flex-direction: column;
@@ -514,6 +514,7 @@ function _buildCustomCoreHtml(webview, corePath) {
     };
     let keyInput = 0;
     document.addEventListener('keydown', e => {
+      if (e.repeat) return;
       const bit = KEY_MAP[e.key];
       if (bit) { keyInput |= bit; e.preventDefault(); }
     });
@@ -524,8 +525,21 @@ function _buildCustomCoreHtml(webview, corePath) {
 
     function startRenderLoop() {
       const canvas = document.getElementById('screen');
+      const wrap   = document.getElementById('screen-wrap');
       const ctx    = canvas.getContext('2d');
       let imageData = ctx.createImageData(512, 448);
+
+      // Scale canvas CSS size to fill the panel while keeping 512:448 aspect ratio.
+      function resizeCanvas() {
+        const W = wrap.clientWidth, H = wrap.clientHeight;
+        const ratio = 512 / 448;
+        let w = W, h = W / ratio;
+        if (h > H) { h = H; w = H * ratio; }
+        canvas.style.width  = Math.round(w) + 'px';
+        canvas.style.height = Math.round(h) + 'px';
+      }
+      new ResizeObserver(resizeCanvas).observe(wrap);
+      resizeCanvas();
 
       function frame() {
         if (romLoaded) {
