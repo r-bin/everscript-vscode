@@ -21,12 +21,21 @@ let _extensionPath = '';
 let _buildChannel  = null; // output channel from the last buildAndRun call
 let _panelCorePath = null; // resolved corePath the current panel was created with
 
-/** Resolve the snesCorePath setting to an absolute, existing file path or ''. */
+/** Resolve the snesCorePath setting to an EmulatorJS-compatible .data bundle. */
 function _resolveCorePath() {
     const raw = vscode.workspace.getConfiguration('everscript').get('snesCorePath', '').trim();
-    if (!raw) return '';
+  if (!raw) return { path: '', warning: '' };
     const resolved = path.isAbsolute(raw) ? raw : path.resolve(raw);
-    return fs.existsSync(resolved) ? resolved : '';
+  if (!fs.existsSync(resolved)) {
+    return { path: '', warning: `Configured everscript.snesCorePath does not exist: ${resolved}` };
+  }
+  if (resolved.toLowerCase().endsWith('.data')) {
+    return { path: resolved, warning: '' };
+  }
+  return {
+    path: '',
+    warning: 'everscript.snesCorePath must point to an EmulatorJS SNES core bundle (*.data). Raw snes9x2005-wasm .js/.wasm builds are not loaded directly by EmulatorJS.',
+  };
 }
 
 function _resetPanelHtml() {
@@ -46,8 +55,14 @@ function openEmulatorPanel(context, rom, channel) {
     if (channel) _buildChannel = channel;
     _extensionPath = context.extensionPath;
 
-    const customCorePath = _resolveCorePath();
+  const coreConfig = _resolveCorePath();
+  const customCorePath = coreConfig.path;
     const vendorBase = path.join(context.extensionPath, 'emulator', 'vendor', 'emulatorjs');
+
+  if (coreConfig.warning) {
+    if (_buildChannel) _buildChannel.appendLine(`[Everscript] ${coreConfig.warning}`);
+    vscode.window.showWarningMessage(`Everscript Emulator: ${coreConfig.warning}`);
+  }
 
     // If the core changed since the panel was created, dispose so we can recreate
     // with the correct localResourceRoots (those are fixed at panel creation time).
@@ -148,12 +163,11 @@ function _sendRomFile(romPath) {
 }
 
 function _buildHtml(webview, vendorBase, customCorePath) {
-    if (customCorePath) return _buildCustomCoreHtml(webview, customCorePath);
-
     const nonce = _nonce();
 
     const loaderUri = webview.asWebviewUri(vscode.Uri.file(path.join(vendorBase, 'loader.js')));
     const vendorUri = webview.asWebviewUri(vscode.Uri.file(vendorBase));
+  const customCoreUri = customCorePath ? webview.asWebviewUri(vscode.Uri.file(customCorePath)).toString() : '';
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -383,6 +397,7 @@ function _buildHtml(webview, vendorBase, customCorePath) {
       window.EJS_gameUrl       = gameUrl;
       window.EJS_gameName      = name || 'game';
       window.EJS_pathtodata    = '${vendorUri}/';
+      window.EJS_paths         = ${customCoreUri ? `{ 'snes9x-wasm.data': '${customCoreUri}', 'snes9x-legacy-wasm.data': '${customCoreUri}' }` : 'undefined'};
       window.EJS_startOnLoaded = true;
       window.EJS_threads       = false;
       window.EJS_onGameStart   = function() {

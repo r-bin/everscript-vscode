@@ -1,3 +1,11 @@
+# [0.2.62] — 2026-05-21
+
+### Changed
+- **SNES custom core path now stays inside EmulatorJS**: `everscript.snesCorePath` now overrides EmulatorJS's SNES core bundle path instead of switching to a separate custom canvas runtime.
+  - **Empty setting**: uses the bundled EmulatorJS `snes9x` core exactly as before.
+  - **Custom setting**: must point to an EmulatorJS-compatible SNES core bundle (`*.data`). The panel overrides both `snes9x-wasm.data` and `snes9x-legacy-wasm.data` through EmulatorJS `filePaths`, so the normal EmulatorJS UI, settings overlay, input handling, audio path, and lifecycle remain intact.
+  - **Incompatible raw `.js` / `.wasm` paths** are now rejected with a warning instead of silently switching to a separate runtime.
+
 # [0.2.59] — 2026-05-21
 
 ### Added
