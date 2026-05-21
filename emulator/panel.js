@@ -485,7 +485,7 @@ function _buildCustomCoreHtml(webview, corePath) {
         for (let i = 0; i < binStr.length; i++) romData[i] = binStr.charCodeAt(i);
 
         const ptr = Module._my_malloc(romData.length);
-        Module.HEAPU8.set(romData, ptr);
+        HEAPU8.set(romData, ptr);
         Module._startWithRom(ptr, romData.length, 44100);
         Module._my_free(ptr);
 
@@ -532,7 +532,7 @@ function _buildCustomCoreHtml(webview, corePath) {
           Module._setJoypadInput(keyInput);
           Module._mainLoop();
           const ptr = Module._getScreenBuffer();
-          const raw = new Uint8ClampedArray(Module.HEAPU8.buffer, ptr, 512 * 448 * 4);
+          const raw = new Uint8ClampedArray(HEAPU8.buffer, ptr, 512 * 448 * 4);
           imageData.data.set(raw);
           ctx.putImageData(imageData, 0, 0);
         }
