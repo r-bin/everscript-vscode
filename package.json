@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) \u2014 the Secret of Evermore ROM scripting language",
-  "version": "0.2.58",
+  "version": "0.2.59",
   "publisher": "rbin",
   "main": "./extension.js",
   "engines": {
@@ -222,6 +222,12 @@
           "type": "string",
           "default": "",
           "markdownDescription": "Override: absolute path to the Python interpreter. Auto-detected from `<repoPath>/.venv/bin/python3` when empty."
+        },
+        "everscript.snesCorePath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Path to `snes9x_2005.js` from a custom snes9x2005-wasm build (e.g. `tmp/snes9x2005-wasm/snes9x_2005.js`). The matching `.wasm` file must be in the same directory. Leave empty to use the bundled EmulatorJS snes9x core.",
+          "scope": "machine"
         }
       }
     }

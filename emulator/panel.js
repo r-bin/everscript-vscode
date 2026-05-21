@@ -19,11 +19,20 @@ let _panel         = null;
 let _pending       = null; // { dataUrl, name } to send once the webview signals ready
 let _extensionPath = '';
 let _buildChannel  = null; // output channel from the last buildAndRun call
+let _panelCorePath = null; // resolved corePath the current panel was created with
+
+/** Resolve the snesCorePath setting to an absolute, existing file path or ''. */
+function _resolveCorePath() {
+    const raw = vscode.workspace.getConfiguration('everscript').get('snesCorePath', '').trim();
+    if (!raw) return '';
+    const resolved = path.isAbsolute(raw) ? raw : path.resolve(raw);
+    return fs.existsSync(resolved) ? resolved : '';
+}
 
 function _resetPanelHtml() {
     if (!_panel || !_extensionPath) return;
     const vendorBase = path.join(_extensionPath, 'emulator', 'vendor', 'emulatorjs');
-    _panel.webview.html = _buildHtml(_panel.webview, vendorBase);
+    _panel.webview.html = _buildHtml(_panel.webview, vendorBase, _panelCorePath);
 }
 
 /**
@@ -37,7 +46,15 @@ function openEmulatorPanel(context, rom, channel) {
     if (channel) _buildChannel = channel;
     _extensionPath = context.extensionPath;
 
+    const customCorePath = _resolveCorePath();
     const vendorBase = path.join(context.extensionPath, 'emulator', 'vendor', 'emulatorjs');
+
+    // If the core changed since the panel was created, dispose so we can recreate
+    // with the correct localResourceRoots (those are fixed at panel creation time).
+    if (_panel && _panelCorePath !== customCorePath) {
+        _panel.dispose();
+        _panel = null;
+    }
 
     if (_panel) {
         _panel.reveal(vscode.ViewColumn.Beside, true);
@@ -49,6 +66,13 @@ function openEmulatorPanel(context, rom, channel) {
         return;
     }
 
+    const resourceRoots = [vscode.Uri.file(context.extensionPath)];
+    if (customCorePath) {
+        resourceRoots.push(vscode.Uri.file(path.dirname(customCorePath)));
+    }
+
+    _panelCorePath = customCorePath;
+
     _panel = vscode.window.createWebviewPanel(
         'everscriptEmulator',
         'Everscript Emulator',
@@ -56,11 +80,11 @@ function openEmulatorPanel(context, rom, channel) {
         {
             enableScripts: true,
             retainContextWhenHidden: true,
-            localResourceRoots: [vscode.Uri.file(context.extensionPath)],
+            localResourceRoots: resourceRoots,
         },
     );
 
-    _panel.webview.html = _buildHtml(_panel.webview, vendorBase);
+    _panel.webview.html = _buildHtml(_panel.webview, vendorBase, customCorePath);
 
     _panel.webview.onDidReceiveMessage(msg => {
         switch (msg.command) {
@@ -107,7 +131,7 @@ function openEmulatorPanel(context, rom, channel) {
         }
     }, undefined, context.subscriptions);
 
-    _panel.onDidDispose(() => { _panel = null; _pending = null; }, null, context.subscriptions);
+    _panel.onDidDispose(() => { _panel = null; _pending = null; _panelCorePath = null; }, null, context.subscriptions);
 }
 
 /** Read a ROM file from disk and send it to the webview. */
@@ -123,7 +147,9 @@ function _sendRomFile(romPath) {
     }
 }
 
-function _buildHtml(webview, vendorBase) {
+function _buildHtml(webview, vendorBase, customCorePath) {
+    if (customCorePath) return _buildCustomCoreHtml(webview, customCorePath);
+
     const nonce = _nonce();
 
     const loaderUri = webview.asWebviewUri(vscode.Uri.file(path.join(vendorBase, 'loader.js')));
@@ -369,6 +395,153 @@ function _buildHtml(webview, vendorBase) {
       document.head.appendChild(s);
     }
   </script>
+</body>
+</html>`;
+}
+
+/**
+ * Build the webview HTML for the custom snes9x2005-wasm core.
+ * The core exposes: _setJoypadInput, _my_malloc, _my_free, _startWithRom,
+ *                   _mainLoop, _getScreenBuffer  (512×448 RGBA8).
+ */
+function _buildCustomCoreHtml(webview, corePath) {
+    const nonce   = _nonce();
+    const coreUri = webview.asWebviewUri(vscode.Uri.file(corePath));
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'none';
+    script-src * blob: data: 'unsafe-eval' 'unsafe-inline' 'wasm-unsafe-eval';
+    style-src * 'unsafe-inline' blob: data:;
+    img-src * blob: data:;
+    media-src * blob: data:;
+    connect-src * blob: data:;
+    worker-src blob: data:;
+    font-src * blob: data:;
+  ">
+  <title>Everscript Emulator (custom core)</title>
+  <style nonce="${nonce}">
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; background: #000; overflow: hidden; display: flex; flex-direction: column; }
+    #screen-wrap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; background: #000; }
+    #screen { display: block; image-rendering: pixelated; max-width: 100%; max-height: 100%; }
+    #overlay {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: #111; color: #ccc;
+      font-family: monospace; gap: 16px; z-index: 100;
+    }
+    #overlay h2 { color: #eee; font-size: 18px; }
+    #pickBtn { padding: 10px 24px; background: #1a6; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
+    #pickBtn:hover { background: #0c5; }
+    #status { font-size: 12px; color: #888; max-width: 400px; text-align: center; }
+    #core-badge { font-size: 10px; color: #555; margin-top: -8px; }
+  </style>
+</head>
+<body>
+  <div id="overlay">
+    <h2>Everscript Emulator</h2>
+    <div id="core-badge">core: snes9x2005-wasm (custom)</div>
+    <button id="pickBtn">Load ROM...</button>
+    <div id="status">Select a SNES ROM (.smc / .sfc) to begin.</div>
+  </div>
+  <div id="screen-wrap">
+    <canvas id="screen" width="512" height="448"></canvas>
+  </div>
+
+  <script nonce="${nonce}">
+    const vscodeApi = acquireVsCodeApi();
+    let romLoaded = false;
+
+    // snes9x2005-wasm sets Module on the global scope.
+    // Hook onRuntimeInitialized BEFORE loading the script.
+    var Module = {
+      onRuntimeInitialized: function () {
+        // Signal the host that we are ready to receive a ROM.
+        vscodeApi.postMessage({ command: 'ready' });
+        startRenderLoop();
+      }
+    };
+
+    document.getElementById('pickBtn').addEventListener('click', () => {
+      vscodeApi.postMessage({ command: 'pickRom' });
+      document.getElementById('status').textContent = 'Waiting for file picker...';
+    });
+
+    window.addEventListener('message', evt => {
+      if (evt.data.command === 'loadRom') loadRom(evt.data.dataUrl, evt.data.name);
+    });
+
+    function loadRom(dataUrl, name) {
+      try {
+        const comma  = dataUrl.indexOf(',');
+        const binStr = atob(dataUrl.slice(comma + 1));
+        const romData = new Uint8Array(binStr.length);
+        for (let i = 0; i < binStr.length; i++) romData[i] = binStr.charCodeAt(i);
+
+        const ptr = Module._my_malloc(romData.length);
+        Module.HEAPU8.set(romData, ptr);
+        Module._startWithRom(ptr, romData.length, 44100);
+        Module._my_free(ptr);
+
+        romLoaded = true;
+        document.getElementById('overlay').style.display = 'none';
+        vscodeApi.postMessage({ command: 'gameStarted', name: name || 'game' });
+      } catch (e) {
+        vscodeApi.postMessage({ command: 'ejsError', error: 'ROM load failed: ' + e.message });
+        document.getElementById('status').textContent = 'Error: ' + e.message;
+      }
+    }
+
+    // Button mapping (same layout as doc/script.js in snes9x2005-wasm).
+    // Bits: R=4, L=5, X=6, A=7, RIGHT=8, LEFT=9, DOWN=10, UP=11,
+    //       START=12, SELECT=13, Y=14, B=15
+    const KEY_MAP = {
+      'ArrowRight': 1 << 8,  'ArrowLeft': 1 << 9,
+      'ArrowDown':  1 << 10, 'ArrowUp':   1 << 11,
+      'Enter':      1 << 12, 'Shift':     1 << 13,
+      'z':  1 << 15, 'Z':  1 << 15,   // B
+      'a':  1 << 7,  'A':  1 << 7,    // A
+      'x':  1 << 6,  'X':  1 << 6,    // X
+      's':  1 << 14, 'S':  1 << 14,   // Y
+      'd':  1 << 5,  'D':  1 << 5,    // L
+      'c':  1 << 4,  'C':  1 << 4,    // R
+    };
+    let keyInput = 0;
+    document.addEventListener('keydown', e => {
+      const bit = KEY_MAP[e.key];
+      if (bit) { keyInput |= bit; e.preventDefault(); }
+    });
+    document.addEventListener('keyup', e => {
+      const bit = KEY_MAP[e.key];
+      if (bit) keyInput &= ~bit;
+    });
+
+    function startRenderLoop() {
+      const canvas = document.getElementById('screen');
+      const ctx    = canvas.getContext('2d');
+      let imageData = ctx.createImageData(512, 448);
+
+      function frame() {
+        if (romLoaded) {
+          Module._setJoypadInput(keyInput);
+          Module._mainLoop();
+          const ptr = Module._getScreenBuffer();
+          const raw = new Uint8ClampedArray(Module.HEAPU8.buffer, ptr, 512 * 448 * 4);
+          imageData.data.set(raw);
+          ctx.putImageData(imageData, 0, 0);
+        }
+        requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    }
+  </script>
+  <script src="${coreUri}"></script>
 </body>
 </html>`;
 }

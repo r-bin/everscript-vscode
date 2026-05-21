@@ -1,3 +1,11 @@
+# [0.2.59] — 2026-05-21
+
+### Added
+- **`everscript.snesCore` setting**: Choose the SNES emulator core used in the embedded emulator panel.
+  - **Default (empty)**: uses the bundled EmulatorJS snes9x libretro core — same as before.
+  - **Custom path**: point to `snes9x_2005.js` from a custom `snes9x2005-wasm` build (the matching `.wasm` must be in the same directory). The panel then uses a canvas renderer that calls directly into the WASM module, bypassing EmulatorJS entirely. Enables debugger breakpoint APIs (`Module._addExecBreakpoint`, etc.) added in the snes9x2005-wasm build.
+  - Changing the setting and re-opening the panel (F5 or `Open Emulator`) auto-detects the new core. If the panel is already open and the core changes, it is automatically recreated with the correct `localResourceRoots`.
+
 # [0.2.58] — 2026-05-21
 
 ### Fixed
