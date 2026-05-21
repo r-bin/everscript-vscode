@@ -1,4 +1,15 @@
-# [0.2.50] — 2026-05-20
+# [0.2.49] — 2026-05-21
+
+### Added
+- **Debugger (Phase 1 — mock)**: source-level step debugger for `.evs` files using the Debug Adapter Protocol.
+  - `debugger/adapter.js` — DAP server (stdin/stdout, no npm dependencies).
+  - `debugger/mock-runtime.js` — parses `.evs` function blocks, simulates stepping line-by-line, fires `stopOnEntry`/`stopOnStep`/`stopOnBreakpoint` events.
+  - Supports: Launch, Breakpoints, Continue, Step Over, Step Into, Step Out, Call Stack panel, Locals variables (mock WRAM refs), `arg[]` scope.
+  - `package.json` gains `"breakpoints"` + `"debuggers"` contributions; F5 on any `.evs` file launches the mock session.
+  - `debugger/poc-design.md` — architecture doc, compiler changes needed for Phase 2 (live WRAM), and Phase 3 (full DAP).
+  - 10 new tests in `debugger/tests/debugger.test.js`.
+
+# [0.2.48] — 2026-05-21
 
 ### Fixed
 - **Memory Radar activation**: added explicit command activation for `everscript.openMemoryRadar` so the command is registered even before an `.evs` editor activates the extension.

@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) \u2014 the Secret of Evermore ROM scripting language",
-  "version": "0.2.48",
+  "version": "0.2.49",
   "publisher": "rbin",
   "main": "./extension.js",
   "engines": {
@@ -17,7 +17,7 @@
     "Snippets"
   ],
   "scripts": {
-    "test": "vscode-tmgrammar-test -g code_highlighter/syntaxes/everscript.tmLanguage.json 'code_highlighter/tests/**/*.test.evs' && node memory_radar/tests/radar.test.js && node memory_radar/tests/damage.test.js && node memory_radar/tests/map-blob-evidence-model.test.js && node memory_radar/tests/render-script-model.test.js && node memory_radar/tests/smoke.test.js && node memory_radar/tests/ui.test.js && node memory_radar/tests/scaling-rom.test.js"
+    "test": "vscode-tmgrammar-test -g code_highlighter/syntaxes/everscript.tmLanguage.json 'code_highlighter/tests/**/*.test.evs' && node memory_radar/tests/radar.test.js && node memory_radar/tests/damage.test.js && node memory_radar/tests/map-blob-evidence-model.test.js && node memory_radar/tests/render-script-model.test.js && node memory_radar/tests/smoke.test.js && node memory_radar/tests/ui.test.js && node memory_radar/tests/scaling-rom.test.js && node debugger/tests/debugger.test.js"
   },
   "devDependencies": {
     "vscode-tmgrammar-test": "^0.1.3"
@@ -54,6 +54,57 @@
       {
         "language": "everscript",
         "path": "./code_highlighter/snippets/everscript.json"
+      }
+    ],
+    "breakpoints": [
+      { "language": "everscript" }
+    ],
+    "debuggers": [
+      {
+        "type": "everscript",
+        "label": "Everscript Debug (Mock)",
+        "program": "./debugger/adapter.js",
+        "runtime": "node",
+        "languages": ["everscript"],
+        "configurationAttributes": {
+          "launch": {
+            "required": ["program"],
+            "properties": {
+              "program": {
+                "type": "string",
+                "description": "Path to the root .evs file to debug.",
+                "default": "${file}"
+              },
+              "entryFunction": {
+                "type": "string",
+                "description": "Name of the function to start execution at.",
+                "default": "trigger_enter"
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "type": "everscript",
+            "request": "launch",
+            "name": "Debug .evs script",
+            "program": "${file}",
+            "entryFunction": "trigger_enter"
+          }
+        ],
+        "configurationSnippets": [
+          {
+            "label": "Everscript: Debug script",
+            "description": "Step through an .evs script in the mock runtime.",
+            "body": {
+              "type": "everscript",
+              "request": "launch",
+              "name": "Debug .evs script",
+              "program": "^\"${file}\"",
+              "entryFunction": "trigger_enter"
+            }
+          }
+        ]
       }
     ],
     "problemMatchers": [
