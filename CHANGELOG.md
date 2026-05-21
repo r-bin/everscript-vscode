@@ -1,5 +1,11 @@
 ## [0.2.64] — 2026-05-21
 
+## [0.2.66] — 2026-05-21
+
+### Added
+- `debugger/tests/emulator-health.test.js` — validates vendor assets and both core bundles (pre-delivered + custom) before launch. Checks: file existence, 7-zip magic bytes, required bundle contents, `EJS_Runtime` definition. Custom core `EJS_Runtime` check is marked `xfail` (known: snes9x2005-wasm is a standalone Emscripten build, not a libretro wrapper).
+- `emulator.min.css` added to vendor dir (copy of `emulator.css`) — stops EmulatorJS console warning about missing minified CSS.
+
 ## [0.2.65] — 2026-05-21
 
 ### Added
