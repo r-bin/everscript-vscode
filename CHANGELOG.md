@@ -1,4 +1,7 @@
-# [0.2.50] — 2026-05-21
+# [0.2.51] — 2026-05-21
+
+### Fixed
+- **Command registration bug**: Fixed duplicate `commands` block in `package.json` that prevented "Everscript: Open Emulator Panel" from appearing in the Command Palette. Both commands now show up after reload.
 
 ### Added
 - **Emulator Panel (Phase 1 — keyboard POC)**: `Everscript: Open Emulator Panel` command opens a webview with a SNES-style canvas + live key log. Proves VS Code webview keyboard capture works end-to-end. ROM picker sends the path to the panel; WASM emulator slot documented for Phase 2.
