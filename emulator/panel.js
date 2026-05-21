@@ -17,6 +17,13 @@ const fs     = require('fs');
 
 let _panel   = null;
 let _pending = null; // { dataUrl, name } to send once the webview signals ready
+let _extensionPath = '';
+
+function _resetPanelHtml() {
+    if (!_panel || !_extensionPath) return;
+    const vendorBase = path.join(_extensionPath, 'emulator', 'vendor', 'emulatorjs');
+    _panel.webview.html = _buildHtml(_panel.webview, vendorBase);
+}
 
 /**
  * Open (or reveal) the emulator panel.
@@ -26,18 +33,19 @@ let _pending = null; // { dataUrl, name } to send once the webview signals ready
  */
 function openEmulatorPanel(context, rom) {
     if (rom) _pending = rom;
+    _extensionPath = context.extensionPath;
+
+    const vendorBase = path.join(context.extensionPath, 'emulator', 'vendor', 'emulatorjs');
 
     if (_panel) {
         _panel.reveal(vscode.ViewColumn.Beside, true);
-        // If the panel is already open and we have a ROM, send it immediately.
         if (_pending) {
-            _panel.webview.postMessage({ command: 'loadRom', dataUrl: _pending.dataUrl, name: _pending.name });
-            _pending = null;
+            // EmulatorJS only consumes the ROM URL during bootstrap.
+            // Rebuild the webview so a new ROM always starts from a clean runtime.
+            _resetPanelHtml();
         }
         return;
     }
-
-    const vendorBase = path.join(context.extensionPath, 'emulator', 'vendor', 'emulatorjs');
 
     _panel = vscode.window.createWebviewPanel(
         'everscriptEmulator',
@@ -88,7 +96,8 @@ function _sendRomFile(romPath) {
     try {
         const romData = fs.readFileSync(romPath);
         const dataUrl = 'data:application/octet-stream;base64,' + romData.toString('base64');
-        _panel.webview.postMessage({ command: 'loadRom', dataUrl, name: romName });
+    _pending = { dataUrl, name: romName };
+    _resetPanelHtml();
     } catch (e) {
         vscode.window.showErrorMessage('Failed to read ROM: ' + e.message);
     }

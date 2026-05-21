@@ -1,3 +1,9 @@
+# [0.2.57] — 2026-05-21
+
+### Fixed
+- **Compiled ROM now boots in the embedded emulator**: Loading a ROM into an already-open emulator panel now rebuilds the webview first, so EmulatorJS starts from a clean bootstrap and consumes the new ROM instead of dropping into its file browser.
+- **Settings command contribution now loads cleanly**: Removed a duplicate `everscript.romPath` manifest key that could interfere with VS Code contribution parsing.
+
 # [0.2.56] — 2026-05-28
 
 ### Fixed

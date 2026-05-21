@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) \u2014 the Secret of Evermore ROM scripting language",
-  "version": "0.2.56",
+  "version": "0.2.57",
   "publisher": "rbin",
   "main": "./extension.js",
   "engines": {
@@ -222,11 +222,6 @@
           "type": "string",
           "default": "",
           "markdownDescription": "Override: absolute path to the Python interpreter. Auto-detected from `<repoPath>/.venv/bin/python3` when empty."
-        },
-        "everscript.romPath": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "Absolute path to the vanilla ROM file (`.smc` or `.sfc`). Auto-detected from the repository root when empty."
         }
       }
     }
