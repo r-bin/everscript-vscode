@@ -1,3 +1,15 @@
+# [0.2.50] — 2026-05-20
+
+### Fixed
+- **Memory Radar activation**: added explicit command activation for `everscript.openMemoryRadar` so the command is registered even before an `.evs` editor activates the extension.
+
+# [0.2.48] — 2026-05-20
+
+### Changed
+- **Modular webview**: extracted all 7 inline webview template literals (CSS, scaling, rooms, docs, route, rng, shared JS) from `extension.js` into `src/webview/*.js` modules. `extension.js` reduced from 5280 to 2852 lines.
+- **Dead code removed**: `alchemyWebview*` variable definitions and the `alchemy-model` destructure require removed from `extension.js` top level (now live in each webview module).
+- **Models directory**: `models/alchemy-model.js`, `models/radar-utils.js`, `models/map-blob-evidence-model.js`, `models/render-script-model.js` are the authoritative copies; root files are thin shims.
+
 # [0.2.47] — 2026-05-20
 
 ### Changed
@@ -527,7 +539,7 @@ A future milestone could ship a small helper binary for this.
 - **Problem matcher** (`everscript`) — register in a `.vscode/tasks.json` task to
   get compiler errors in the Problems panel with clickable file/line links.
 - **Task definition** (`everscript`) — task type for future build task support.
-- `data/index.json` — 521 function signatures and 111 enum definitions extracted
+- `code_highlighter/data/index.json` — 521 function signatures and 111 enum definitions extracted
   from the core library (regenerate with `python3 tools/generate_data.py`).
 - `tools/generate_data.py` — data extraction script for dev use.
 

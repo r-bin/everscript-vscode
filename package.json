@@ -2,21 +2,22 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) \u2014 the Secret of Evermore ROM scripting language",
-  "version": "0.2.47",
+  "version": "0.2.48",
   "publisher": "rbin",
   "main": "./extension.js",
   "engines": {
     "vscode": "^1.85.0"
   },
   "activationEvents": [
-    "onLanguage:everscript"
+    "onLanguage:everscript",
+    "onCommand:everscript.openMemoryRadar"
   ],
   "categories": [
     "Programming Languages",
     "Snippets"
   ],
   "scripts": {
-    "test": "vscode-tmgrammar-test -g syntaxes/everscript.tmLanguage.json 'test/**/*.test.evs' && node test/radar.test.js && node test/damage.test.js && node test/map-blob-evidence-model.test.js && node test/render-script-model.test.js && node test/smoke.test.js && node test/ui.test.js && node test/scaling-rom.test.js"
+    "test": "vscode-tmgrammar-test -g code_highlighter/syntaxes/everscript.tmLanguage.json 'code_highlighter/tests/**/*.test.evs' && node memory_radar/tests/radar.test.js && node memory_radar/tests/damage.test.js && node memory_radar/tests/map-blob-evidence-model.test.js && node memory_radar/tests/render-script-model.test.js && node memory_radar/tests/smoke.test.js && node memory_radar/tests/ui.test.js && node memory_radar/tests/scaling-rom.test.js"
   },
   "devDependencies": {
     "vscode-tmgrammar-test": "^0.1.3"
@@ -32,27 +33,27 @@
         "extensions": [
           ".evs"
         ],
-        "configuration": "./language-configuration.json"
+        "configuration": "./code_highlighter/language-configuration.json"
       }
     ],
     "grammars": [
       {
         "language": "everscript",
         "scopeName": "source.evs",
-        "path": "./syntaxes/everscript.tmLanguage.json"
+        "path": "./code_highlighter/syntaxes/everscript.tmLanguage.json"
       }
     ],
     "themes": [
       {
         "label": "Everscript Dark",
         "uiTheme": "vs-dark",
-        "path": "./themes/everscript-dark.json"
+        "path": "./code_highlighter/themes/everscript-dark.json"
       }
     ],
     "snippets": [
       {
         "language": "everscript",
-        "path": "./snippets/everscript.json"
+        "path": "./code_highlighter/snippets/everscript.json"
       }
     ],
     "problemMatchers": [

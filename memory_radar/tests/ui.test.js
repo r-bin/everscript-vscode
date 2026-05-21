@@ -1,8 +1,8 @@
 'use strict';
 /**
- * test/ui.test.js — UI tests for the Scaling and Docs tabs.
+ * memory_radar/tests/ui.test.js — UI tests for the Scaling and Docs tabs.
  *
- * Run with: node test/ui.test.js
+ * Run with: node memory_radar/tests/ui.test.js
  */
 
 const assert = require('assert');
@@ -53,12 +53,12 @@ if (!require.cache.vscode) {
 }
 
 // ── Extract renderRadarHtml from patched source ─────────────────────────────
-const src = fs.readFileSync(path.join(__dirname, '..', 'extension.js'), 'utf8');
+const src = fs.readFileSync(path.join(__dirname, '..', '..', 'extension.js'), 'utf8');
 const patchedSrc = src.replace(
     /module\.exports\s*=\s*\{[^}]+\};?\s*$/,
     'module.exports = { activate, deactivate, _renderRadarHtml: renderRadarHtml };'
 );
-const tmpPath = path.join(__dirname, '..', '_ui_tmp.js');
+const tmpPath = path.join(__dirname, '..', '..', '_ui_tmp.js');
 fs.writeFileSync(tmpPath, patchedSrc);
 let _renderRadarHtml;
 try {

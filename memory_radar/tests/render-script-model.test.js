@@ -10,7 +10,7 @@ const {
     loadRom,
     parseCommandFetches,
     dumpOpcode93Commands,
-} = require('../render-script-model');
+} = require('../models/render-script-model');
 
 let passed = 0;
 let failed = 0;

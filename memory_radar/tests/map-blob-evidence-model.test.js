@@ -10,7 +10,7 @@ const {
     resolveRenderMacro,
     inferRenderCommandFromTraceFile,
     TRUSTED_MAPS,
-} = require('../map-blob-evidence-model');
+} = require('../models/map-blob-evidence-model');
 
 let passed = 0;
 let failed = 0;

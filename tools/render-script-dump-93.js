@@ -8,7 +8,7 @@ const {
     loadRom,
     dumpOpcode93Commands,
     formatOpcode93Dump,
-} = require('../render-script-model');
+} = require('../memory_radar/models/render-script-model');
 
 function usage() {
     console.log('Usage:');

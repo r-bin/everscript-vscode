@@ -4,7 +4,7 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const Module = require('module');
-const { alchemyRangeLevel0 } = require('../alchemy-model');
+const { alchemyRangeLevel0 } = require('../models/alchemy-model');
 
 let passed = 0;
 let failed = 0;
@@ -54,12 +54,12 @@ require.cache.vscode = {
     },
 };
 
-const extensionSrc = fs.readFileSync(path.join(__dirname, '..', 'extension.js'), 'utf8');
+const extensionSrc = fs.readFileSync(path.join(__dirname, '..', '..', 'extension.js'), 'utf8');
 const patchedSrc = extensionSrc.replace(
     /module\.exports\s*=\s*\{[^}]+\};?\s*$/,
     'module.exports = { activate, deactivate, _readRomCharacters: readRomCharacters };'
 );
-const tmpPath = path.join(__dirname, '..', '_scaling_rom_tmp.js');
+const tmpPath = path.join(__dirname, '..', '..', '_scaling_rom_tmp.js');
 fs.writeFileSync(tmpPath, patchedSrc);
 let readRomCharacters;
 try {

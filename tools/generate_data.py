@@ -13,7 +13,7 @@ import re
 import json
 
 CORE_ROOT = os.path.join(os.path.dirname(__file__), '../../everscript/in/core')
-OUTPUT    = os.path.join(os.path.dirname(__file__), '../data/index.json')
+OUTPUT    = os.path.join(os.path.dirname(__file__), '../code_highlighter/data/index.json')
 
 
 def parse_core(root):

@@ -1,7 +1,7 @@
 'use strict';
 /**
- * test/radar.test.js — unit tests for radar-utils.js pure functions.
- * Run with: node test/radar.test.js
+ * memory_radar/tests/radar.test.js — unit tests for radar-utils.js pure functions.
+ * Run with: node memory_radar/tests/radar.test.js
  */
 
 const assert = require('assert');

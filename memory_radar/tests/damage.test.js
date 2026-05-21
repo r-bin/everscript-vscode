@@ -1,7 +1,7 @@
 'use strict';
 
 const assert = require('assert');
-const { alchemyEffectiveMdef, alchemyRangeLevel0, alchemySpellPowerAtLevel, alchemyMagicDefenseAtLevel, alchemyTargetHpAtLevel, alchemyProjectedRange, damageRangeFull } = require('../alchemy-model');
+const { alchemyEffectiveMdef, alchemyRangeLevel0, alchemySpellPowerAtLevel, alchemyMagicDefenseAtLevel, alchemyTargetHpAtLevel, alchemyProjectedRange, damageRangeFull } = require('../models/alchemy-model');
 
 const dmgRangeFull = damageRangeFull;
 

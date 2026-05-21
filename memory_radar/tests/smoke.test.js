@@ -42,7 +42,7 @@ require.cache['vscode'] = {
     }
 };
 
-const ext = require('../extension.js');
+const ext = require('../../extension.js');
 
 // Pull out renderRadarHtml for testing (it's not exported, so we extract from module source)
 // Instead, test via a helper that reconstructs minimal inputs.
@@ -221,7 +221,7 @@ function extractScript(html) {
 
 const fs   = require('fs');
 const path = require('path');
-const src  = fs.readFileSync(path.join(__dirname, '..', 'extension.js'), 'utf8');
+const src  = fs.readFileSync(path.join(__dirname, '..', '..', 'extension.js'), 'utf8');
 
 // Patch: replace `module.exports = { activate, deactivate };` with extended export
 const patchedSrc = src.replace(
@@ -230,7 +230,7 @@ const patchedSrc = src.replace(
 );
 
 // Write to tmp in the same dir as extension.js so relative requires resolve
-const tmpPath = path.join(__dirname, '..', '_smoke_tmp.js');
+const tmpPath = path.join(__dirname, '..', '..', '_smoke_tmp.js');
 fs.writeFileSync(tmpPath, patchedSrc);
 let extFull;
 try {
