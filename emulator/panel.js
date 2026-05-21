@@ -145,8 +145,10 @@ function openEmulatorPanel(context, rom, channel) {
               break;
 
             case 'ejsError':
-                if (_buildChannel) _buildChannel.appendLine(`[Everscript] Emulator error: ${msg.error}`);
-                vscode.window.showErrorMessage('Everscript Emulator: ' + msg.error);
+                if (_buildChannel) {
+                    _buildChannel.appendLine(`[Everscript] Emulator error: ${msg.error}`);
+                    _buildChannel.show(true);
+                }
                 break;
 
             case 'gameStarted':
@@ -305,6 +307,24 @@ function _buildHtml(webview, vendorBase, customCorePath) {
 
   <script nonce="${nonce}">
     const vscodeApi = acquireVsCodeApi();
+
+    // ── Forward JS errors and unhandled rejections to the build output channel
+    window.onerror = function(msg, src, line, col, err) {
+      vscodeApi.postMessage({ command: 'ejsError', error: msg + (src ? ' [' + src.split('/').pop() + ':' + line + ']' : '') });
+    };
+    window.addEventListener('unhandledrejection', function(evt) {
+      const reason = evt.reason instanceof Error ? evt.reason.message : String(evt.reason || 'unhandled rejection');
+      vscodeApi.postMessage({ command: 'ejsError', error: reason });
+    });
+    // Intercept console.warn so EmulatorJS's "EJS_Runtime is not defined!" surfaces in the build log
+    const _origWarn = console.warn.bind(console);
+    console.warn = function() {
+      const msg = Array.prototype.join.call(arguments, ' ');
+      if (msg.includes('EJS_Runtime') || msg.includes('EmulatorJS')) {
+        vscodeApi.postMessage({ command: 'ejsError', error: 'EJS warn: ' + msg });
+      }
+      _origWarn.apply(console, arguments);
+    };
 
     window.addEventListener('DOMContentLoaded', () => {
       vscodeApi.postMessage({ command: 'ready' });

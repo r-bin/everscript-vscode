@@ -1,8 +1,8 @@
 {
   "name": "everscript",
   "displayName": "Everscript",
-  "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) \u2014 the Secret of Evermore ROM scripting language",
-  "version": "0.2.64",
+  "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
+  "version": "0.2.65",
   "publisher": "rbin",
   "main": "./extension.js",
   "engines": {
@@ -61,7 +61,9 @@
       }
     ],
     "breakpoints": [
-      { "language": "everscript" }
+      {
+        "language": "everscript"
+      }
     ],
     "debuggers": [
       {
@@ -69,10 +71,14 @@
         "label": "Everscript Debug (Mock)",
         "program": "./debugger/adapter.js",
         "runtime": "node",
-        "languages": ["everscript"],
+        "languages": [
+          "everscript"
+        ],
         "configurationAttributes": {
           "launch": {
-            "required": ["program"],
+            "required": [
+              "program"
+            ],
             "properties": {
               "program": {
                 "type": "string",
@@ -170,7 +176,6 @@
         }
       }
     ],
-    
     "menus": {
       "editor/context": [
         {

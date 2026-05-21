@@ -1,5 +1,11 @@
 ## [0.2.64] — 2026-05-21
 
+## [0.2.65] — 2026-05-21
+
+### Added
+- Webview error forwarding: `window.onerror`, `unhandledrejection`, and a `console.warn` intercept now pipe EmulatorJS errors into the Everscript Build output channel (auto-reveals on error). Removes the VS Code modal popup for emulator errors.
+
+
 ### Added
 - `tools/pack_snes_core.py` — script to package a custom snes9x2005-wasm build into an EmulatorJS-compatible `.data` bundle (7-zip). Running it against `tmp/docker/snes9x_2005.js` + `.wasm` produces `tmp/custom-snes9x.data`.
 - Script stack header now shows a **core info row** below the button bar displaying the active core filename and full bundle path, or "snes9x (bundled)" with the vendored `.data` path when no custom core is configured.
