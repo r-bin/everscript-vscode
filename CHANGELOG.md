@@ -1,3 +1,10 @@
+## [0.2.71] — 2026-05-22
+
+### Updated
+- Script-stack breaking now happens on semantic slot lifecycle snapshots instead of the first raw `0x28FC`-region byte write. This gives the panel a complete slot image after creation/activation, including the populated `0x0F..0x2E` argument block.
+- Script-stack panel now shows a richer debugger summary: executing slots, current active-slot interpretation, scheduler chain via `next_script`, and a focused 0x20-byte arg dump for the latest lifecycle event.
+- Emulator debugger sync can now anchor from a visible `.evs` editor even when the emulator webview has focus, fixing the earlier `open an .evs editor first` failure mode.
+
 ## [0.2.70] — 2026-05-22
 
 ### Added

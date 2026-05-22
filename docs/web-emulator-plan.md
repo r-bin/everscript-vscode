@@ -29,6 +29,12 @@ Latest bridge work:
 - Added a panel button to connect the VS Code `everscript` debugger and sync emulator hook breaks into the existing mock adapter as `stopped` events.
 - Current limitation: the synced debugger location is anchored to the active `.evs` editor selection/function, not a ROM-PC-to-source map. This is intentional until a validated source map exists.
 
+Semantic stack follow-up after validating the Mesen slot-creation trace:
+
+- The useful stop point is not the first `0x28FC` write. Slot creation fills location/state first, then populates the `0x0F..0x2E` argument area. The panel now breaks on the completed lifecycle snapshot so the user sees the populated parameter block.
+- The panel now distinguishes scheduler state from source call-stack certainty: `state==2` slots are the currently executing candidates, `next_script` shows the scheduler chain, and a spawn/activate event shows likely caller slots when they can be inferred from the previous executing set.
+- Current limitation remains: this is a scheduler-level view, not yet a validated source call-stack. Exact source stepping still depends on a future ROM-PC-to-source map.
+
 ---
 
 ## Candidate Emulators — Ranked

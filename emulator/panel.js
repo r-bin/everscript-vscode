@@ -39,6 +39,19 @@ let _pending       = null;   // { dataUrl, name } waiting to load
 let _extensionPath = '';
 let _buildChannel  = null;   // output channel for build log
 
+function _findDebuggableEditor() {
+  const seen = new Set();
+  const editors = [vscode.window.activeTextEditor].concat(vscode.window.visibleTextEditors || []);
+  for (const editor of editors) {
+    if (!editor || !editor.document || editor.document.languageId !== 'everscript') continue;
+    const key = editor.document.uri.toString();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    return editor;
+  }
+  return null;
+}
+
 function _findEnclosingFunction(document, lineIndex) {
   for (let line = Math.min(lineIndex, document.lineCount - 1); line >= 0; line--) {
     const text = document.lineAt(line).text.trimStart();
@@ -49,8 +62,8 @@ function _findEnclosingFunction(document, lineIndex) {
 }
 
 function _captureDebuggerLocation() {
-  const editor = vscode.window.activeTextEditor;
-  if (!editor || editor.document.languageId !== 'everscript') return null;
+  const editor = _findDebuggableEditor();
+  if (!editor) return null;
   const line = editor.selection.active.line + 1;
   return {
     file: editor.document.uri.fsPath,
@@ -360,12 +373,14 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     .ss-ok   { color: #7ad67a; }
     .ss-warn { color: #d9c36a; }
     .ss-bad  { color: #d98383; }
+    #ss-detail             { background: #101010; border-bottom: 1px solid #1d1d1d; padding: 6px 8px; color: #8b8b8b; font-size: 10px; white-space: pre-wrap; font-family: monospace; line-height: 1.35; flex-shrink: 0; }
     #ss-table              { width: 100%; border-collapse: collapse; }
     #ss-table th           { text-align: left; padding: 2px 6px; color: #666; font-weight: normal; font-size: 10px; position: sticky; top: 0; background: #111; border-bottom: 1px solid #222; }
     #ss-table td           { padding: 1px 6px; color: #ccc; }
     #ss-table tr.exec td   { color: #6f6; }
     #ss-table tr.wait td   { color: #ff6; }
     #ss-table tr.dead td   { color: #633; }
+    #ss-table tr.focus td  { background: rgba(90, 120, 90, 0.18); }
   </style>
 </head>
 <body>
@@ -407,8 +422,9 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       <span id="ss-debug-link-status">dbg: disconnected</span>
       <span id="ss-last-hit">last: -</span>
     </div>
+    <div id="ss-detail">waiting for script lifecycle data...</div>
     <table id="ss-table">
-      <thead><tr><th>#</th><th>PC</th><th>state</th><th>entity</th><th>timer</th></tr></thead>
+      <thead><tr><th>#</th><th>PC</th><th>state</th><th>next</th><th>entity</th><th>timer</th></tr></thead>
       <tbody id="ss-tbody"></tbody>
     </table>
   </div>
@@ -628,6 +644,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     const SLOT_COUNT               = 20;
     const SCRIPT_REGION_SIZE       = SLOT_SIZE * SLOT_COUNT;
     const SCRIPT_STACK_BUS_ADDR    = 0x7E0000 + SCRIPT_BASE;
+    const SCRIPT_ARG_OFFSET        = 0x0F;
+    const SCRIPT_ARG_BYTES         = 0x20;
     const SCRIPT_BREAK_WATCH_OFFSETS = [0x00, 0x03, 0x0D];
     const RAM_TAG                  = [82, 65, 77, 32]; // "RAM "
     const WRAM_SIZE                = 0x20000;
@@ -636,6 +654,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     let breakOnObservedHookWrites = false;
     let activeScriptWatchpoints = [];
     let previousScriptRegion    = null;
+    let previousScriptSnapshot  = null;
+    let lastLifecycleEvent      = null;
     let lastDebugStatus         = '';
 
     function readU16(w, off) { return (w[off] | (w[off + 1] << 8)) >>> 0; }
@@ -656,6 +676,161 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     function setControlEnabled(id, enabled) {
       const el = document.getElementById(id);
       if (el) el.disabled = !enabled;
+    }
+
+    function slotPtrToIndex(ptr) {
+      const raw = ptr >>> 0;
+      const delta = raw - SCRIPT_BASE;
+      if (!raw || delta < 0 || delta >= SCRIPT_REGION_SIZE || (delta % SLOT_SIZE) !== 0) return -1;
+      return delta / SLOT_SIZE;
+    }
+
+    function stateName(state) {
+      return state === 2 ? 'exec' : state === 4 ? 'wait' : state === 0 ? 'dead' : '0x' + state.toString(16);
+    }
+
+    function slotShort(slot) {
+      return 's' + slot.slot + '@' + fmtHex(slot.loc, 6) + '(' + stateName(slot.state) + ')';
+    }
+
+    function formatArgWords(words) {
+      return words.map((value, index) => 'w' + index.toString(16).toUpperCase() + '=' + fmtHex(value, 4)).join(' ');
+    }
+
+    function formatArgBytes(bytes) {
+      return bytes.map(value => fmtHex(value, 2)).join(' ');
+    }
+
+    function buildScriptChains(slots) {
+      const liveSlots = slots.filter(slot => slot.live);
+      const targeted = new Set();
+      for (const slot of liveSlots) if (slot.nextSlot >= 0) targeted.add(slot.nextSlot);
+      const heads = liveSlots.filter(slot => !targeted.has(slot.slot));
+      const visited = new Set();
+      const chains = [];
+      const sources = heads.length ? heads : liveSlots;
+      for (const head of sources) {
+        if (visited.has(head.slot)) continue;
+        const chain = [];
+        let current = head;
+        while (current && !visited.has(current.slot)) {
+          visited.add(current.slot);
+          chain.push(current.slot);
+          current = current.nextSlot >= 0
+            ? liveSlots.find(slot => slot.slot === current.nextSlot) || null
+            : null;
+        }
+        if (chain.length) chains.push(chain);
+      }
+      return chains;
+    }
+
+    function buildScriptSnapshot(region) {
+      const slots = [];
+      for (let i = 0; i < SLOT_COUNT; i++) {
+        const base = i * SLOT_SIZE;
+        if (base + SLOT_SIZE > region.length) break;
+        const loc    = readU24(region, base + 0x00);
+        const state  = readU16(region, base + 0x03);
+        const timer1 = readU16(region, base + 0x05);
+        const timer2 = readU16(region, base + 0x07);
+        const timer3 = readU16(region, base + 0x09);
+        const nextPtr = readU16(region, base + 0x0B);
+        const entity = readU16(region, base + 0x0D);
+        const argsBytes = Array.from(region.subarray(base + SCRIPT_ARG_OFFSET, base + SCRIPT_ARG_OFFSET + SCRIPT_ARG_BYTES));
+        const argWords = [];
+        for (let offset = 0; offset < argsBytes.length; offset += 2) {
+          argWords.push(((argsBytes[offset] || 0) | ((argsBytes[offset + 1] || 0) << 8)) >>> 0);
+        }
+        const live = loc !== 0 || state !== 0 || entity !== 0 || nextPtr !== 0;
+        slots.push({
+          slot: i,
+          loc,
+          state,
+          timer1,
+          timer2,
+          timer3,
+          nextPtr,
+          nextSlot: slotPtrToIndex(nextPtr),
+          entity,
+          argsBytes,
+          argWords,
+          live,
+        });
+      }
+      const liveSlots = slots.filter(slot => slot.live);
+      const activeSlots = liveSlots.filter(slot => slot.state === 2);
+      return { slots, liveSlots, activeSlots, chains: buildScriptChains(slots) };
+    }
+
+    function findLifecycleEvent(previous, current) {
+      if (!previous) return null;
+      const previousActive = previous.activeSlots.filter(slot => slot.loc !== 0);
+      for (const slot of current.liveSlots) {
+        const before = previous.slots[slot.slot];
+        if (!before) continue;
+        if (!before.live && slot.live) {
+          return {
+            kind: 'spawn',
+            slot,
+            callers: previousActive.filter(active => active.slot !== slot.slot),
+            text: 'spawned ' + slotShort(slot),
+          };
+        }
+        if (before.state !== slot.state && slot.state === 2) {
+          return {
+            kind: 'activate',
+            slot,
+            callers: previousActive.filter(active => active.slot !== slot.slot),
+            text: 'activated ' + slotShort(slot) + ' from ' + stateName(before.state),
+          };
+        }
+        if (before.state === 2 && slot.state === 0) {
+          return {
+            kind: 'return',
+            slot,
+            callers: previousActive,
+            text: 'returned ' + slotShort(before),
+          };
+        }
+      }
+      return null;
+    }
+
+    function renderScriptDetail(snapshot, lifecycle) {
+      const detail = document.getElementById('ss-detail');
+      if (!detail) return;
+      const focus = lifecycle && lifecycle.slot
+        ? lifecycle.slot
+        : snapshot.activeSlots[0] || snapshot.liveSlots[0] || null;
+      const execText = snapshot.activeSlots.length
+        ? snapshot.activeSlots.map(slotShort).join(' -> ')
+        : 'none';
+      const currentText = snapshot.activeSlots.length === 1
+        ? slotShort(snapshot.activeSlots[0])
+        : snapshot.activeSlots.length > 1
+          ? 'ambiguous (' + snapshot.activeSlots.map(slot => 's' + slot.slot).join(', ') + ')'
+          : 'none';
+      const chainText = snapshot.chains.length
+        ? snapshot.chains.map(chain => chain.map(slotId => 's' + slotId).join(' -> ')).join(' | ')
+        : 'none';
+      const lines = [];
+      lines.push('exec slots: ' + execText);
+      lines.push('current active: ' + currentText + ' (state==2; not always the bottom slot)');
+      lines.push('scheduler chain: ' + chainText);
+      if (lifecycle && lifecycle.slot) {
+        const callers = lifecycle.callers && lifecycle.callers.length
+          ? lifecycle.callers.map(slotShort).join(' | ')
+          : 'none';
+        lines.push('last lifecycle: ' + lifecycle.text);
+        lines.push('callers: ' + callers);
+      }
+      if (focus) {
+        lines.push('focus slot: ' + slotShort(focus) + ' next=' + (focus.nextSlot >= 0 ? ('s' + focus.nextSlot) : '--') + ' entity=' + fmtHex(focus.entity, 4));
+        lines.push('args[0x0F..0x2E] words: ' + formatArgWords(focus.argWords));
+        lines.push('args[0x0F..0x2E] bytes: ' + formatArgBytes(focus.argsBytes));
+      }
+      detail.textContent = lines.join('\n');
     }
 
     // Module is always window.Module (set by the Emscripten core script).
@@ -745,36 +920,23 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       }
     }
 
-    function buildScriptRows(region) {
-      const rows = [];
-      for (let i = 0; i < SLOT_COUNT; i++) {
-        const base = i * SLOT_SIZE;
-        if (base + SLOT_SIZE > region.length) break;
-        const loc = readU24(region, base + 0x00);
-        if (loc === 0) continue;
-        const state  = readU16(region, base + 0x03);
-        const timer1 = readU16(region, base + 0x05);
-        const entity = readU16(region, base + 0x0D);
-        rows.push({ slot: i, loc, state, timer1, entity });
-      }
-      return rows;
-    }
-
-    function updateScriptStack(region) {
+    function updateScriptStack(snapshot, lifecycle) {
       const tbody = document.getElementById('ss-tbody');
       if (!tbody) return;
-      const parsedRows = buildScriptRows(region);
+      const focusSlot = lifecycle && lifecycle.slot ? lifecycle.slot.slot : -1;
       let html = '';
-      for (const { slot, loc, state, timer1, entity } of parsedRows) {
-        const cls   = state === 2 ? 'exec' : state === 4 ? 'wait' : 'dead';
-        const sname = state === 2 ? 'exec' : state === 4 ? 'wait' : state === 0 ? 'dead' : '0x' + state.toString(16);
+      for (const { slot, loc, state, nextSlot, timer1, entity } of snapshot.liveSlots) {
+        const cls = (state === 2 ? 'exec' : state === 4 ? 'wait' : 'dead') + (slot === focusSlot ? ' focus' : '');
+        const sname = stateName(state);
         html += '<tr class="' + cls + '"><td>' + slot + '</td><td>' +
           fmtHex(loc, 6) + '</td><td>' + sname + '</td><td>' +
+          (nextSlot >= 0 ? nextSlot : '--') + '</td><td>' +
           fmtHex(entity, 4) + '</td><td>' + timer1 + '</td></tr>';
       }
-      if (!html) html = '<tr><td colspan="5" style="color:#555;text-align:center;padding:6px">no active scripts</td></tr>';
+      if (!html) html = '<tr><td colspan="6" style="color:#555;text-align:center;padding:6px">no active scripts</td></tr>';
       tbody.innerHTML = html;
-      document.getElementById('ss-count').textContent = parsedRows.length + ' active';
+      document.getElementById('ss-count').textContent = snapshot.liveSlots.length + ' active';
+      renderScriptDetail(snapshot, lifecycle);
     }
 
     function disarmScriptStackHook(m) {
@@ -782,6 +944,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         for (const addr of activeScriptWatchpoints) m.removeWriteBreakpoint(addr);
       activeScriptWatchpoints = [];
       previousScriptRegion = null;
+      previousScriptSnapshot = null;
+      lastLifecycleEvent = null;
       scriptHookArmed = false;
       breakOnObservedHookWrites = false;
       setText('ss-break-status', 'hook: off', 'ss-warn');
@@ -838,14 +1002,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           const msg = 'Hook trace observed write @ 7E' + fmtHex(addr, 4) +
             ' slot=' + slot + ' off=0x' + fmtHex(offset, 2) +
             ' ' + fmtHex(before, 2) + '->' + fmtHex(after, 2);
-          setText('ss-last-hit', 'last: ' + msg, breakOnObservedHookWrites ? 'ss-bad' : 'ss-warn');
+          setText('ss-last-hit', 'last: ' + msg, 'ss-warn');
           reportHookObserved(msg);
-          if (breakOnObservedHookWrites) {
-            const m = getModule();
-            if (hasDebuggerApi(m)) m.pauseEmulation();
-            setText('ss-pause-state', 'paused', 'ss-bad');
-            reportHookBreak(msg + ' [paused by break-all-hooks]');
-          }
           previousScriptRegion = region.slice();
           return;
         }
@@ -911,7 +1069,22 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           refreshDebuggerUi(m, src.mode);
           if (src.bytes) {
             traceHookActivity(src.bytes);
-            updateScriptStack(src.bytes);
+            const snapshot = buildScriptSnapshot(src.bytes);
+            const lifecycle = findLifecycleEvent(previousScriptSnapshot, snapshot);
+            if (lifecycle) {
+              lastLifecycleEvent = lifecycle;
+              const lifecycleText = lifecycle.callers && lifecycle.callers.length === 1
+                ? slotShort(lifecycle.callers[0]) + ' -> ' + slotShort(lifecycle.slot)
+                : lifecycle.text;
+              setText('ss-last-hit', 'last: ' + lifecycleText, breakOnObservedHookWrites ? 'ss-bad' : 'ss-warn');
+              if (breakOnObservedHookWrites && hasDebuggerApi(m)) {
+                m.pauseEmulation();
+                setText('ss-pause-state', 'paused', 'ss-bad');
+                reportHookBreak('Script lifecycle break: ' + lifecycleText);
+              }
+            }
+            updateScriptStack(snapshot, lifecycle || lastLifecycleEvent);
+            previousScriptSnapshot = snapshot;
             vscodeApi.postMessage({ command: 'wramDelta', offset: SCRIPT_BASE, data: Array.from(src.bytes) });
           } else {
             document.getElementById('ss-count').textContent =
