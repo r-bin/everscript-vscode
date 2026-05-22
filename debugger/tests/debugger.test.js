@@ -88,6 +88,7 @@ console.log('\nMockRuntime — stepping:');
 function makeRuntime(source) {
     const rt = new MockRuntime();
     rt._funcs = parseFunctions(source, '/fake/test.evs');
+    rt._sourceFile = '/fake/test.evs';
     // override file path on all functions
     for (const fn of rt._funcs.values()) fn.file = '/fake/test.evs';
     return rt;
@@ -174,6 +175,24 @@ test('setBreakpoints / continue stops at breakpoint', () => {
     rt.start('trigger_enter');
     rt.continue();
     assert.ok(stopped, 'continue did not stop at breakpoint');
+});
+
+test('syncFromEmulator anchors stack to requested function and line', () => {
+    const rt = makeRuntime(SAMPLE);
+    rt.syncFromEmulator('/fake/test.evs', 14, 'portal_act_1', 'hook break');
+    const frames = rt.stackFrames();
+    assert.ok(frames.length > 0, 'no frames after syncFromEmulator');
+    assert.strictEqual(frames[0].name, 'portal_act_1');
+    assert.strictEqual(frames[0].line, 14);
+});
+
+test('syncFromEmulator creates synthetic frame when function is unknown', () => {
+    const rt = makeRuntime(SAMPLE);
+    rt.syncFromEmulator('/fake/test.evs', 99, 'unknown_fn', 'hook break');
+    const frames = rt.stackFrames();
+    assert.ok(frames.length > 0, 'no frames after synthetic syncFromEmulator');
+    assert.strictEqual(frames[0].name, 'unknown_fn');
+    assert.strictEqual(frames[0].line, 99);
 });
 
 // ---------------------------------------------------------------------------

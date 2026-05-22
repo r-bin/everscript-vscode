@@ -23,6 +23,12 @@ Correction after validating the custom debugger source:
 - Added hook logs for arm/disarm, bridge install, and polled script-slot byte changes so the output channel shows hook activity while testing.
 - Audio integration now matches the core's actual buffer contract: `Float32` planar audio with 2048 samples per channel.
 
+Latest bridge work:
+
+- Added a panel mode to break on all observed hook writes, using the polled script-slot diff path as a pause trigger.
+- Added a panel button to connect the VS Code `everscript` debugger and sync emulator hook breaks into the existing mock adapter as `stopped` events.
+- Current limitation: the synced debugger location is anchored to the active `.evs` editor selection/function, not a ROM-PC-to-source map. This is intentional until a validated source map exists.
+
 ---
 
 ## Candidate Emulators — Ranked

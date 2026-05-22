@@ -118,15 +118,69 @@ class MockRuntime extends EventEmitter {
         this._sourceFile = null;
     }
 
+    _loadFileFunctions(sourceFile) {
+        const abs = path.resolve(sourceFile);
+        const text = fs.readFileSync(abs, 'utf-8');
+        this._funcs = parseFunctions(text, abs);
+        this._sourceFile = abs;
+        return this._funcs;
+    }
+
     // -----------------------------------------------------------------------
     // Setup
     // -----------------------------------------------------------------------
 
     load(sourceFile) {
-        this._sourceFile = path.resolve(sourceFile);
-        const text = fs.readFileSync(this._sourceFile, 'utf-8');
-        this._funcs = parseFunctions(text, this._sourceFile);
+        this._loadFileFunctions(sourceFile);
         return this._funcs;
+    }
+
+    syncFromEmulator(file, line1, name, details) {
+        const absFile = path.resolve(file);
+        if (!this._sourceFile || this._sourceFile !== absFile || !this._funcs.size) {
+            this._loadFileFunctions(absFile);
+        }
+
+        const line0 = Math.max(0, (line1 | 0) - 1);
+        let fn = null;
+        let stmtIndex = 0;
+
+        if (name && this._funcs.has(name)) {
+            fn = this._funcs.get(name);
+        } else {
+            for (const candidate of this._funcs.values()) {
+                if (candidate.file === absFile && candidate.startLine <= line0 && candidate.endLine >= line0) {
+                    fn = candidate;
+                    break;
+                }
+            }
+        }
+
+        if (fn && fn.stmts.length) {
+            let bestIndex = 0;
+            let bestDistance = Infinity;
+            for (let i = 0; i < fn.stmts.length; i++) {
+                const distance = Math.abs(fn.stmts[i].line - line0);
+                if (distance < bestDistance) {
+                    bestDistance = distance;
+                    bestIndex = i;
+                }
+            }
+            stmtIndex = bestIndex;
+        } else {
+            fn = {
+                name: name || 'emulator_break',
+                file: absFile,
+                startLine: line0,
+                endLine: line0,
+                stmts: [{ line: line0, text: details || '(emulator break)' }],
+            };
+            stmtIndex = 0;
+        }
+
+        this._stack = [{ fn, stmtIndex }];
+        this._running = false;
+        this.emit('output', `[evs-dbg] Emulator sync -> ${path.basename(absFile)}:${line0 + 1}${details ? ' ' + details : ''}\n`, 'console');
     }
 
     /**

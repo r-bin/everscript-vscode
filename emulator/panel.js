@@ -39,6 +39,64 @@ let _pending       = null;   // { dataUrl, name } waiting to load
 let _extensionPath = '';
 let _buildChannel  = null;   // output channel for build log
 
+function _findEnclosingFunction(document, lineIndex) {
+  for (let line = Math.min(lineIndex, document.lineCount - 1); line >= 0; line--) {
+    const text = document.lineAt(line).text.trimStart();
+    const match = text.match(/^(?:@\w+\([^)]*\)\s*)*(?:fun|map)\s+(\w+)\s*\(/);
+    if (match) return match[1];
+  }
+  return 'trigger_enter';
+}
+
+function _captureDebuggerLocation() {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor || editor.document.languageId !== 'everscript') return null;
+  const line = editor.selection.active.line + 1;
+  return {
+    file: editor.document.uri.fsPath,
+    line,
+    name: _findEnclosingFunction(editor.document, line - 1),
+  };
+}
+
+async function _ensureDebuggerSession() {
+  if (vscode.debug.activeDebugSession && vscode.debug.activeDebugSession.type === 'everscript') {
+    return vscode.debug.activeDebugSession;
+  }
+  const location = _captureDebuggerLocation();
+  if (!location) return null;
+  const started = await vscode.debug.startDebugging(undefined, {
+    type: 'everscript',
+    request: 'launch',
+    name: 'Everscript Emulator Bridge',
+    program: location.file,
+    entryFunction: location.name || 'trigger_enter',
+  });
+  if (!started) return null;
+  return vscode.debug.activeDebugSession && vscode.debug.activeDebugSession.type === 'everscript'
+    ? vscode.debug.activeDebugSession
+    : null;
+}
+
+async function _syncDebuggerFromEmulator(payload) {
+  const session = await _ensureDebuggerSession();
+  if (!session) return { ok: false, text: 'VS Code debugger not connected (open an .evs editor first)' };
+  const location = _captureDebuggerLocation();
+  if (!location) return { ok: false, text: 'No active .evs editor to anchor debugger location' };
+  try {
+    await session.customRequest('syncFromEmulator', {
+      file: location.file,
+      line: location.line,
+      name: location.name,
+      reason: payload.reason || 'breakpoint',
+      details: payload.details || '',
+    });
+    return { ok: true, text: 'VS Code debugger synced to ' + path.basename(location.file) + ':' + location.line };
+  } catch (err) {
+    return { ok: false, text: 'Debugger sync failed: ' + err.message };
+  }
+}
+
 function _nonce() {
     let n = '';
     const ch = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -165,6 +223,13 @@ function openEmulatorPanel(context, rom, channel) {
             case 'debugBreakpointHit':
                 if (_buildChannel) _buildChannel.appendLine(
                     `[Everscript] Breakpoint hit: ${msg.type} @ ${msg.address} pc=${msg.pc}`);
+              _syncDebuggerFromEmulator({
+                reason: 'breakpoint',
+                details: `${msg.type} @ ${msg.address} pc=${msg.pc}`,
+              }).then(result => {
+                if (_buildChannel) _buildChannel.appendLine(`[Everscript] ${result.text}`);
+                if (_panel) _panel.webview.postMessage({ command: 'debuggerConnectionStatus', ok: result.ok, text: result.text });
+              });
                 break;
 
             case 'debugHookStatus':
@@ -173,6 +238,26 @@ function openEmulatorPanel(context, rom, channel) {
 
             case 'debugHookObserved':
               if (_buildChannel) _buildChannel.appendLine(`[Everscript] ${msg.text}`);
+              break;
+
+            case 'debugHookBreak':
+              if (_buildChannel) _buildChannel.appendLine(`[Everscript] ${msg.text}`);
+              _syncDebuggerFromEmulator({
+                reason: 'breakpoint',
+                details: msg.text,
+              }).then(result => {
+                if (_buildChannel) _buildChannel.appendLine(`[Everscript] ${result.text}`);
+                if (_panel) _panel.webview.postMessage({ command: 'debuggerConnectionStatus', ok: result.ok, text: result.text });
+              });
+              break;
+
+            case 'connectDebugger':
+              _ensureDebuggerSession().then(session => {
+                const ok = !!session;
+                const text = ok ? 'VS Code debugger connected' : 'Failed to connect VS Code debugger';
+                if (_buildChannel) _buildChannel.appendLine(`[Everscript] ${text}`);
+                if (_panel) _panel.webview.postMessage({ command: 'debuggerConnectionStatus', ok, text });
+              });
               break;
         }
     }, undefined, context.subscriptions);
@@ -305,6 +390,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         <button id="ss-pause-btn"  class="ss-btn" disabled>pause</button>
         <button id="ss-resume-btn" class="ss-btn" disabled>resume</button>
         <button id="ss-hook-btn"   class="ss-btn" disabled>arm stack hook</button>
+        <button id="ss-hook-all-btn" class="ss-btn" disabled>break all hooks</button>
+        <button id="ss-debug-link-btn" class="ss-btn">connect dbg</button>
       </div>
     </div>
     <div id="ss-core-row" title="${corePathDisplay}">
@@ -317,6 +404,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       <span id="ss-cpu-status">pc: ------</span>
       <span id="ss-pause-state">running</span>
       <span id="ss-break-status">hook: unavailable</span>
+      <span id="ss-debug-link-status">dbg: disconnected</span>
       <span id="ss-last-hit">last: -</span>
     </div>
     <table id="ss-table">
@@ -545,6 +633,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     const WRAM_SIZE                = 0x20000;
 
     let scriptHookArmed         = false;
+    let breakOnObservedHookWrites = false;
     let activeScriptWatchpoints = [];
     let previousScriptRegion    = null;
     let lastDebugStatus         = '';
@@ -600,6 +689,10 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
 
     function reportHookObserved(text) {
       vscodeApi.postMessage({ command: 'debugHookObserved', text });
+    }
+
+    function reportHookBreak(text) {
+      vscodeApi.postMessage({ command: 'debugHookBreak', text });
     }
 
     /** Scan a snes9x save-state blob for the 128 KB WRAM block ("RAM " tag). */
@@ -690,9 +783,12 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       activeScriptWatchpoints = [];
       previousScriptRegion = null;
       scriptHookArmed = false;
+      breakOnObservedHookWrites = false;
       setText('ss-break-status', 'hook: off', 'ss-warn');
       const btn = document.getElementById('ss-hook-btn');
       if (btn) btn.textContent = 'arm stack hook';
+      const allBtn = document.getElementById('ss-hook-all-btn');
+      if (allBtn) allBtn.textContent = 'break all hooks';
       reportHookStatus('Script hook disarmed');
     }
 
@@ -710,6 +806,16 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       if (btn) btn.textContent = 'disarm stack hook';
       reportHookStatus('Script hook armed with ' + activeScriptWatchpoints.length + ' WRAM offset watchpoints');
       return true;
+    }
+
+    function toggleBreakAllHooks() {
+      breakOnObservedHookWrites = !breakOnObservedHookWrites;
+      const btn = document.getElementById('ss-hook-all-btn');
+      if (btn) btn.textContent = breakOnObservedHookWrites ? 'ignore hook writes' : 'break all hooks';
+      setText('ss-break-status',
+        breakOnObservedHookWrites ? 'hook: break on all observed writes' : (scriptHookArmed ? 'hook: armed (' + activeScriptWatchpoints.length + ')' : 'hook: off'),
+        breakOnObservedHookWrites ? 'ss-bad' : (scriptHookArmed ? 'ss-ok' : 'ss-warn'));
+      reportHookStatus(breakOnObservedHookWrites ? 'Break-all-hooks enabled' : 'Break-all-hooks disabled');
     }
 
     function traceHookActivity(region) {
@@ -732,8 +838,14 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           const msg = 'Hook trace observed write @ 7E' + fmtHex(addr, 4) +
             ' slot=' + slot + ' off=0x' + fmtHex(offset, 2) +
             ' ' + fmtHex(before, 2) + '->' + fmtHex(after, 2);
-          setText('ss-last-hit', 'last: ' + msg, 'ss-warn');
+          setText('ss-last-hit', 'last: ' + msg, breakOnObservedHookWrites ? 'ss-bad' : 'ss-warn');
           reportHookObserved(msg);
+          if (breakOnObservedHookWrites) {
+            const m = getModule();
+            if (hasDebuggerApi(m)) m.pauseEmulation();
+            setText('ss-pause-state', 'paused', 'ss-bad');
+            reportHookBreak(msg + ' [paused by break-all-hooks]');
+          }
           previousScriptRegion = region.slice();
           return;
         }
@@ -779,6 +891,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       setControlEnabled('ss-pause-btn',  customApi);
       setControlEnabled('ss-resume-btn', customApi);
       setControlEnabled('ss-hook-btn',   writeApi);
+      setControlEnabled('ss-hook-all-btn', customApi);
       if (!writeApi) {
         disarmScriptStackHook(m);
         setText('ss-break-status', 'hook: unavailable', 'ss-warn');
@@ -831,6 +944,22 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       if (!hasWriteBreakpointApi(m)) return;
       if (scriptHookArmed) disarmScriptStackHook(m);
       else armScriptStackHook(m);
+    });
+
+    document.getElementById('ss-hook-all-btn').addEventListener('click', () => {
+      const m = getModule();
+      if (!hasDebuggerApi(m)) return;
+      if (!scriptHookArmed && hasWriteBreakpointApi(m)) armScriptStackHook(m);
+      toggleBreakAllHooks();
+    });
+
+    document.getElementById('ss-debug-link-btn').addEventListener('click', () => {
+      vscodeApi.postMessage({ command: 'connectDebugger' });
+    });
+
+    window.addEventListener('message', evt => {
+      if (!evt.data || evt.data.command !== 'debuggerConnectionStatus') return;
+      setText('ss-debug-link-status', 'dbg: ' + evt.data.text, evt.data.ok ? 'ss-ok' : 'ss-warn');
     });
   </script>
 

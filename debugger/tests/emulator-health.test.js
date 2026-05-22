@@ -172,6 +172,19 @@ test('panel.js logs script hook arm and observed-write status', () => {
         'panel.js does not emit explicit hook lifecycle or observed-write log messages');
 });
 
+test('panel.js exposes break-all-hooks and debugger-connect controls', () => {
+    if (!panelContent) { assert.fail('panel.js could not be read'); return; }
+    assert.ok(panelContent.includes('ss-hook-all-btn') && panelContent.includes('connectDebugger'),
+        'panel.js does not expose the break-all-hooks or debugger connect controls');
+});
+
+test('debug adapter supports emulator sync request', () => {
+    const adapterPath = path.join(ROOT, 'debugger', 'adapter.js');
+    const adapterContent = fs.readFileSync(adapterPath, 'utf8');
+    assert.ok(adapterContent.includes('handlers.syncFromEmulator'),
+        'debugger/adapter.js does not handle syncFromEmulator requests');
+});
+
 // ── Summary ───────────────────────────────────────────────────────────────────
 console.log('');
 if (xfails.length) {

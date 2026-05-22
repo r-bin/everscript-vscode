@@ -1,3 +1,12 @@
+## [0.2.70] — 2026-05-22
+
+### Added
+- Emulator panel button to break on all observed hook writes, not just debugger callback hits. This pauses the core when any watched script-slot byte changes.
+- Emulator panel button to connect the existing VS Code `everscript` debugger. Emulator hook breaks now sync into the mock debug adapter through a new `syncFromEmulator` request so VS Code shows a real `stopped` event.
+
+### Updated
+- Added regression coverage for the emulator-to-debugger sync path and the new panel controls.
+
 ## [0.2.69] — 2026-05-22
 
 ### Fixed

@@ -201,6 +201,26 @@ handlers.evaluate = (req) => {
     response(req, { result: '(mock)', variablesReference: 0 });
 };
 
+handlers.syncFromEmulator = (req) => {
+    const args = req.arguments || {};
+    if (!args.file || !args.line) {
+        response(req, { error: { id: 3, format: 'syncFromEmulator requires file and line' } }, false);
+        return;
+    }
+    try {
+        rt.syncFromEmulator(args.file, args.line, args.name, args.details);
+        response(req, {});
+        event('stopped', {
+            reason: args.reason || 'breakpoint',
+            description: 'emulator',
+            threadId: 1,
+            allThreadsStopped: true,
+        });
+    } catch (e) {
+        response(req, { error: { id: 4, format: String(e) } }, false);
+    }
+};
+
 // ---------------------------------------------------------------------------
 // Message dispatcher
 // ---------------------------------------------------------------------------
