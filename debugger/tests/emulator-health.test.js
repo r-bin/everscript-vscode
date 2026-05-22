@@ -142,6 +142,24 @@ test('panel.js exports openEmulatorPanel', () => {
         'panel.js does not export openEmulatorPanel');
 });
 
+test('panel.js arms write breakpoints with full 7E bus addresses', () => {
+    if (!panelContent) { assert.fail('panel.js could not be read'); return; }
+    assert.ok(panelContent.includes('SCRIPT_STACK_BUS_ADDR + slot * SLOT_SIZE'),
+        'script stack hook still appears to use WRAM offsets instead of bus addresses');
+});
+
+test('panel.js resumes AudioContext after user interaction', () => {
+    if (!panelContent) { assert.fail('panel.js could not be read'); return; }
+    assert.ok(panelContent.includes('audioCtx.resume()'),
+        'panel.js does not resume AudioContext; webview audio may stay suspended');
+});
+
+test('panel.js applies transform-based canvas scaling', () => {
+    if (!panelContent) { assert.fail('panel.js could not be read'); return; }
+    assert.ok(panelContent.includes("canvas.style.transform = 'scale('"),
+        'panel.js does not apply deterministic transform-based scaling to the screen canvas');
+});
+
 // ── Summary ───────────────────────────────────────────────────────────────────
 console.log('');
 if (xfails.length) {

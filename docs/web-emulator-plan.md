@@ -9,6 +9,14 @@ Embed a SNES emulator directly inside VS Code as a webview panel so that:
 3. Keyboard input works reliably inside the webview.
 4. The emulator can stream WRAM state back to the extension host.
 
+## 2026-05-22 Direct-Core Follow-up
+
+Status on the direct `snes9x2005-wasm` webview runtime:
+
+- Fixed: script-stack write hook now uses full `$7Exxxx` bus addresses when arming debugger breakpoints.
+- Fixed: audio resume path now runs from user interaction and after ROM load so VS Code webview autoplay suspension does not keep the core muted.
+- Fixed: screen canvas scaling now uses explicit transform-based fit-to-panel logic instead of relying on a single CSS size calculation.
+
 ---
 
 ## Candidate Emulators — Ranked

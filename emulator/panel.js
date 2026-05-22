@@ -222,7 +222,12 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       display: flex; align-items: center; justify-content: center;
       overflow: hidden;
     }
-    #screen { display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
+    #screen {
+      display: block;
+      width: 512px; height: 448px;
+      transform-origin: center center;
+      image-rendering: pixelated; image-rendering: crisp-edges;
+    }
     /* ── ROM picker overlay ───────────────────────────────────────────── */
     #overlay {
       position: fixed; inset: 0; z-index: 100;
@@ -342,6 +347,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
 
     // ── ROM picker ────────────────────────────────────────────────────────────
     document.getElementById('pickBtn').addEventListener('click', () => {
+      initAudio();
+      ensureAudioRunning();
       vscodeApi.postMessage({ command: 'pickRom' });
       document.getElementById('load-status').textContent = 'Waiting for file picker...';
     });
@@ -359,15 +366,38 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
 
     let audioCtx  = null;
     let audioNode = null;
+    let audioResumeHandlersInstalled = false;
     const leftRing  = new Float32Array(RING_SIZE);
     const rightRing = new Float32Array(RING_SIZE);
     let ringWrite = 0;
     let ringRead  = 0;
 
+    function ensureAudioRunning() {
+      if (!audioCtx || audioCtx.state === 'running') return;
+      audioCtx.resume().catch(err => {
+        vscodeApi.postMessage({ command: 'ejsError', error: 'Audio resume failed: ' + err.message });
+      });
+    }
+
+    function installAudioResumeHandlers() {
+      if (audioResumeHandlersInstalled) return;
+      audioResumeHandlersInstalled = true;
+      const wakeAudio = () => ensureAudioRunning();
+      window.addEventListener('pointerdown', wakeAudio, { passive: true });
+      window.addEventListener('keydown', wakeAudio, true);
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') wakeAudio();
+      });
+    }
+
     function initAudio() {
-      if (audioCtx) return;
+      if (audioCtx) {
+        ensureAudioRunning();
+        return;
+      }
       try {
         audioCtx  = new AudioContext({ sampleRate: AUDIO_FREQ });
+        installAudioResumeHandlers();
         // ScriptProcessorNode is deprecated but reliable in VS Code WebViews
         // (AudioWorklet requires a Worker context that can be blocked by CSP).
         audioNode = audioCtx.createScriptProcessor(2048, 0, 2);
@@ -385,6 +415,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           }
         };
         audioNode.connect(audioCtx.destination);
+        ensureAudioRunning();
       } catch (err) {
         vscodeApi.postMessage({ command: 'ejsError', error: 'Audio init failed: ' + err.message });
       }
@@ -447,8 +478,10 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
 
         romLoaded = true;
         initAudio();
+        ensureAudioRunning();
         document.getElementById('overlay').style.display = 'none';
         document.getElementById('script-stack').classList.add('visible');
+        window.dispatchEvent(new Event('resize'));
         startWramPolling();
         vscodeApi.postMessage({ command: 'gameStarted', name: name || 'game' });
       } catch (e) {
@@ -463,20 +496,28 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       const wrap      = document.getElementById('screen-wrap');
       const ctx       = canvas.getContext('2d');
       const imageData = ctx.createImageData(512, 448);
+      let lastWrapWidth = -1;
+      let lastWrapHeight = -1;
 
-      // Scale canvas CSS size to fill the panel while maintaining 512:448 aspect ratio.
-      function resizeCanvas() {
+      // Scale the fixed-size 512x448 canvas to the largest size that fits the panel.
+      function resizeCanvas(force) {
         const W = wrap.clientWidth, H = wrap.clientHeight;
-        const ratio = 512 / 448;
-        let w = W, h = W / ratio;
-        if (h > H) { h = H; w = H * ratio; }
-        canvas.style.width  = Math.round(w) + 'px';
-        canvas.style.height = Math.round(h) + 'px';
+        if (!force && W === lastWrapWidth && H === lastWrapHeight) return;
+        lastWrapWidth = W;
+        lastWrapHeight = H;
+        if (!W || !H) return;
+        const scale = Math.min(W / 512, H / 448);
+        canvas.style.transform = 'scale(' + Math.max(scale, 0.01) + ')';
       }
-      if (window.ResizeObserver) new ResizeObserver(resizeCanvas).observe(wrap);
-      resizeCanvas();
+      if (window.ResizeObserver) new ResizeObserver(() => resizeCanvas(true)).observe(wrap);
+      window.addEventListener('resize', () => resizeCanvas(true));
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') resizeCanvas(true);
+      });
+      resizeCanvas(true);
 
       function frame() {
+        resizeCanvas(false);
         if (romLoaded) {
           Module._setJoypadInput(keyInput);
           Module._mainLoop();
@@ -509,6 +550,10 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     function readU16(w, off) { return (w[off] | (w[off + 1] << 8)) >>> 0; }
     function readU24(w, off) { return (w[off] | (w[off + 1] << 8) | (w[off + 2] << 16)) >>> 0; }
     function fmtHex(v, w)    { return (v >>> 0).toString(16).toUpperCase().padStart(w, '0'); }
+    function fmtBreakpointAddr(v) {
+      const raw = (v >>> 0);
+      return raw > 0xFFFF ? fmtHex(raw, 6) : '7E' + fmtHex(raw, 4);
+    }
 
     function setText(id, text, cls) {
       const el = document.getElementById(id);
@@ -643,7 +688,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       if (!hasWriteBreakpointApi(m)) return false;
       disarmScriptStackHook(m);
       for (let slot = 0; slot < SLOT_COUNT; slot++) {
-        const base = SCRIPT_BASE + slot * SLOT_SIZE;
+        const base = SCRIPT_STACK_BUS_ADDR + slot * SLOT_SIZE;
         for (const offset of SCRIPT_BREAK_WATCH_OFFSETS) activeScriptWatchpoints.push(base + offset);
       }
       for (const addr of activeScriptWatchpoints) m.addWriteBreakpoint(addr);
@@ -658,9 +703,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       if (!hasDebuggerApi(m) || m.__everscriptBridgeInstalled) return;
       m.__everscriptBridgeInstalled = true;
       m.onBreakpointHit = function(event) {
-        const addrText = event.type === 'write'
-          ? '7E' + fmtHex(event.address, 4)
-          : fmtHex(event.address, 6);
+        const addrText = fmtBreakpointAddr(event.address);
         setText('ss-last-hit', 'last: ' + event.type + ' @ ' + addrText + ' pc ' + fmtHex(event.pc, 6), 'ss-bad');
         setText('ss-pause-state', 'paused', 'ss-bad');
         vscodeApi.postMessage({ command: 'debugBreakpointHit',

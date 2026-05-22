@@ -1,3 +1,10 @@
+## [0.2.68] — 2026-05-22
+
+### Fixed
+- Emulator script-stack hook now arms write breakpoints with full `$7E` bus addresses instead of raw WRAM offsets. This fixes the non-firing hook in custom debugger builds.
+- Audio startup is now tied to a real webview user gesture and explicitly resumes the `AudioContext` after ROM load, fixing muted playback caused by autoplay suspension.
+- Screen scaling now uses deterministic transform-based resizing and refreshes on visibility, resize, and frame updates so the game canvas fills the available panel area instead of staying near native size.
+
 ## [0.2.67] — 2026-05-22
 
 ### Changed
