@@ -166,6 +166,14 @@ function openEmulatorPanel(context, rom, channel) {
                 if (_buildChannel) _buildChannel.appendLine(
                     `[Everscript] Breakpoint hit: ${msg.type} @ ${msg.address} pc=${msg.pc}`);
                 break;
+
+            case 'debugHookStatus':
+              if (_buildChannel) _buildChannel.appendLine(`[Everscript] ${msg.text}`);
+              break;
+
+            case 'debugHookObserved':
+              if (_buildChannel) _buildChannel.appendLine(`[Everscript] ${msg.text}`);
+              break;
         }
     }, undefined, context.subscriptions);
 
@@ -358,19 +366,14 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     });
 
     // ── Audio ─────────────────────────────────────────────────────────────────
-    // ScriptProcessorNode + ring buffer. Initialized on first ROM load to satisfy
-    // the browser autoplay policy. SAMPLES_PER_FRAME = floor(44100/60) stereo pairs.
+    // ScriptProcessorNode reading directly from the core's exported Float32 planar
+    // buffer. snes9x2005-wasm exposes 2048 samples for left followed by 2048 for right.
     const AUDIO_FREQ      = 44100;
-    const SAMPLES_PER_FRAME = 735;   // stereo pairs per 60 fps frame at 44100 Hz
-    const RING_SIZE       = 8192;    // power of 2
+    const AUDIO_BLOCK_SIZE = 2048;
 
     let audioCtx  = null;
     let audioNode = null;
     let audioResumeHandlersInstalled = false;
-    const leftRing  = new Float32Array(RING_SIZE);
-    const rightRing = new Float32Array(RING_SIZE);
-    let ringWrite = 0;
-    let ringRead  = 0;
 
     function ensureAudioRunning() {
       if (!audioCtx || audioCtx.state === 'running') return;
@@ -400,18 +403,31 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         installAudioResumeHandlers();
         // ScriptProcessorNode is deprecated but reliable in VS Code WebViews
         // (AudioWorklet requires a Worker context that can be blocked by CSP).
-        audioNode = audioCtx.createScriptProcessor(2048, 0, 2);
+        audioNode = audioCtx.createScriptProcessor(AUDIO_BLOCK_SIZE, 0, 2);
         audioNode.onaudioprocess = function(e) {
           const L = e.outputBuffer.getChannelData(0);
           const R = e.outputBuffer.getChannelData(1);
-          for (let i = 0; i < L.length; i++) {
-            if (ringRead < ringWrite) {
-              L[i] = leftRing[ringRead  & (RING_SIZE - 1)];
-              R[i] = rightRing[ringRead & (RING_SIZE - 1)];
-              ringRead++;
-            } else {
-              L[i] = R[i] = 0;
+          const m = getModule();
+          if (!romLoaded || !m || typeof m._getSoundBuffer !== 'function') {
+            L.fill(0);
+            R.fill(0);
+            return;
+          }
+          try {
+            const ptr = m._getSoundBuffer();
+            if (!ptr) {
+              L.fill(0);
+              R.fill(0);
+              return;
             }
+            const samples = new Float32Array(HEAPF32.buffer, ptr, AUDIO_BLOCK_SIZE * 2);
+            for (let i = 0; i < AUDIO_BLOCK_SIZE; i++) {
+              L[i] = samples[i];
+              R[i] = samples[i + AUDIO_BLOCK_SIZE];
+            }
+          } catch (_) {
+            L.fill(0);
+            R.fill(0);
           }
         };
         audioNode.connect(audioCtx.destination);
@@ -419,20 +435,6 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       } catch (err) {
         vscodeApi.postMessage({ command: 'ejsError', error: 'Audio init failed: ' + err.message });
       }
-    }
-
-    function pushAudioFrame() {
-      if (!audioCtx) return;
-      try {
-        const ptr   = Module._getSoundBuffer();
-        if (!ptr) return;
-        const int16 = new Int16Array(HEAPU8.buffer, ptr, SAMPLES_PER_FRAME * 2);
-        for (let i = 0; i < SAMPLES_PER_FRAME; i++) {
-          leftRing[ringWrite  & (RING_SIZE - 1)] = int16[i * 2]     / 32768.0;
-          rightRing[ringWrite & (RING_SIZE - 1)] = int16[i * 2 + 1] / 32768.0;
-          ringWrite++;
-        }
-      } catch (_) { /* ignore audio errors to not disrupt frame loop */ }
     }
 
     // ── Input ─────────────────────────────────────────────────────────────────
@@ -526,7 +528,6 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
             imageData.data.set(new Uint8ClampedArray(HEAPU8.buffer, fbPtr, 512 * 448 * 4));
             ctx.putImageData(imageData, 0, 0);
           }
-          pushAudioFrame();
         }
         requestAnimationFrame(frame);
       }
@@ -545,6 +546,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
 
     let scriptHookArmed         = false;
     let activeScriptWatchpoints = [];
+    let previousScriptRegion    = null;
     let lastDebugStatus         = '';
 
     function readU16(w, off) { return (w[off] | (w[off + 1] << 8)) >>> 0; }
@@ -590,6 +592,14 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       if (text === lastDebugStatus) return;
       lastDebugStatus = text;
       vscodeApi.postMessage({ command: 'debugApiStatus', text });
+    }
+
+    function reportHookStatus(text) {
+      vscodeApi.postMessage({ command: 'debugHookStatus', text });
+    }
+
+    function reportHookObserved(text) {
+      vscodeApi.postMessage({ command: 'debugHookObserved', text });
     }
 
     /** Scan a snes9x save-state blob for the 128 KB WRAM block ("RAM " tag). */
@@ -678,17 +688,19 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       if (m && typeof m.removeWriteBreakpoint === 'function')
         for (const addr of activeScriptWatchpoints) m.removeWriteBreakpoint(addr);
       activeScriptWatchpoints = [];
+      previousScriptRegion = null;
       scriptHookArmed = false;
       setText('ss-break-status', 'hook: off', 'ss-warn');
       const btn = document.getElementById('ss-hook-btn');
       if (btn) btn.textContent = 'arm stack hook';
+      reportHookStatus('Script hook disarmed');
     }
 
     function armScriptStackHook(m) {
       if (!hasWriteBreakpointApi(m)) return false;
       disarmScriptStackHook(m);
       for (let slot = 0; slot < SLOT_COUNT; slot++) {
-        const base = SCRIPT_STACK_BUS_ADDR + slot * SLOT_SIZE;
+        const base = SCRIPT_BASE + slot * SLOT_SIZE;
         for (const offset of SCRIPT_BREAK_WATCH_OFFSETS) activeScriptWatchpoints.push(base + offset);
       }
       for (const addr of activeScriptWatchpoints) m.addWriteBreakpoint(addr);
@@ -696,15 +708,49 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       setText('ss-break-status', 'hook: armed (' + activeScriptWatchpoints.length + ')', 'ss-ok');
       const btn = document.getElementById('ss-hook-btn');
       if (btn) btn.textContent = 'disarm stack hook';
+      reportHookStatus('Script hook armed with ' + activeScriptWatchpoints.length + ' WRAM offset watchpoints');
       return true;
+    }
+
+    function traceHookActivity(region) {
+      if (!scriptHookArmed || !region || region.length < SCRIPT_REGION_SIZE) {
+        previousScriptRegion = region ? region.slice() : null;
+        return;
+      }
+      if (!previousScriptRegion || previousScriptRegion.length !== region.length) {
+        previousScriptRegion = region.slice();
+        return;
+      }
+      for (let slot = 0; slot < SLOT_COUNT; slot++) {
+        const slotBase = slot * SLOT_SIZE;
+        for (const offset of SCRIPT_BREAK_WATCH_OFFSETS) {
+          const index = slotBase + offset;
+          const before = previousScriptRegion[index];
+          const after = region[index];
+          if (before === after) continue;
+          const addr = SCRIPT_BASE + slot * SLOT_SIZE + offset;
+          const msg = 'Hook trace observed write @ 7E' + fmtHex(addr, 4) +
+            ' slot=' + slot + ' off=0x' + fmtHex(offset, 2) +
+            ' ' + fmtHex(before, 2) + '->' + fmtHex(after, 2);
+          setText('ss-last-hit', 'last: ' + msg, 'ss-warn');
+          reportHookObserved(msg);
+          previousScriptRegion = region.slice();
+          return;
+        }
+      }
+      previousScriptRegion = region.slice();
     }
 
     function installDebuggerBridge(m) {
       if (!hasDebuggerApi(m) || m.__everscriptBridgeInstalled) return;
       m.__everscriptBridgeInstalled = true;
+      reportHookStatus('Debugger bridge installed; waiting for breakpoint events');
       m.onBreakpointHit = function(event) {
-        const addrText = fmtBreakpointAddr(event.address);
-        setText('ss-last-hit', 'last: ' + event.type + ' @ ' + addrText + ' pc ' + fmtHex(event.pc, 6), 'ss-bad');
+        const addrText = event.type === 'write'
+          ? '7E' + fmtHex(event.address, 4)
+          : fmtBreakpointAddr(event.address);
+        const details = event.type === 'write' ? ' value ' + fmtHex(event.value || 0, 2) : '';
+        setText('ss-last-hit', 'last: ' + event.type + ' @ ' + addrText + details + ' pc ' + fmtHex(event.pc, 6), 'ss-bad');
         setText('ss-pause-state', 'paused', 'ss-bad');
         vscodeApi.postMessage({ command: 'debugBreakpointHit',
           type: event.type, address: addrText, pc: fmtHex(event.pc, 6) });
@@ -719,7 +765,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         setText('ss-api-status', 'api: custom debugger', 'ss-ok');
         setText('ss-cpu-status',
           'pc: ' + fmtHex(cpu.pc, 6) + ' pb:' + fmtHex(cpu.pb, 2) + ' a:' + fmtHex(cpu.a, 4), 'ss-ok');
-        reportDebugStatus('Custom debugger API active (' + sourceMode + ') pc=' + fmtHex(cpu.pc, 6));
+        reportDebugStatus('Custom debugger API active (' + sourceMode + ')');
       } else {
         const label = sourceMode === 'save-state'      ? 'save-state fallback'
                     : sourceMode === 'connecting'       ? 'connecting...'
@@ -751,6 +797,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           const src = readScriptStackRegion();
           refreshDebuggerUi(m, src.mode);
           if (src.bytes) {
+            traceHookActivity(src.bytes);
             updateScriptStack(src.bytes);
             vscodeApi.postMessage({ command: 'wramDelta', offset: SCRIPT_BASE, data: Array.from(src.bytes) });
           } else {

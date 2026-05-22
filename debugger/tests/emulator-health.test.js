@@ -142,10 +142,10 @@ test('panel.js exports openEmulatorPanel', () => {
         'panel.js does not export openEmulatorPanel');
 });
 
-test('panel.js arms write breakpoints with full 7E bus addresses', () => {
+test('panel.js arms write breakpoints with WRAM offsets', () => {
     if (!panelContent) { assert.fail('panel.js could not be read'); return; }
-    assert.ok(panelContent.includes('SCRIPT_STACK_BUS_ADDR + slot * SLOT_SIZE'),
-        'script stack hook still appears to use WRAM offsets instead of bus addresses');
+    assert.ok(panelContent.includes('SCRIPT_BASE + slot * SLOT_SIZE'),
+        'script stack hook does not appear to use WRAM offsets required by addWriteBreakpoint()');
 });
 
 test('panel.js resumes AudioContext after user interaction', () => {
@@ -154,10 +154,22 @@ test('panel.js resumes AudioContext after user interaction', () => {
         'panel.js does not resume AudioContext; webview audio may stay suspended');
 });
 
+test('panel.js reads Float32 planar audio blocks from the core', () => {
+    if (!panelContent) { assert.fail('panel.js could not be read'); return; }
+    assert.ok(panelContent.includes('new Float32Array(HEAPF32.buffer, ptr, AUDIO_BLOCK_SIZE * 2)'),
+        'panel.js does not appear to read the core audio buffer as Float32 planar samples');
+});
+
 test('panel.js applies transform-based canvas scaling', () => {
     if (!panelContent) { assert.fail('panel.js could not be read'); return; }
     assert.ok(panelContent.includes("canvas.style.transform = 'scale('"),
         'panel.js does not apply deterministic transform-based scaling to the screen canvas');
+});
+
+test('panel.js logs script hook arm and observed-write status', () => {
+    if (!panelContent) { assert.fail('panel.js could not be read'); return; }
+    assert.ok(panelContent.includes('debugHookStatus') && panelContent.includes('debugHookObserved'),
+        'panel.js does not emit explicit hook lifecycle or observed-write log messages');
 });
 
 // ── Summary ───────────────────────────────────────────────────────────────────

@@ -17,6 +17,12 @@ Status on the direct `snes9x2005-wasm` webview runtime:
 - Fixed: audio resume path now runs from user interaction and after ROM load so VS Code webview autoplay suspension does not keep the core muted.
 - Fixed: screen canvas scaling now uses explicit transform-based fit-to-panel logic instead of relying on a single CSS size calculation.
 
+Correction after validating the custom debugger source:
+
+- `addWriteBreakpoint()` expects a WRAM offset, not a `$7E` bus address. The emulator panel was updated accordingly.
+- Added hook logs for arm/disarm, bridge install, and polled script-slot byte changes so the output channel shows hook activity while testing.
+- Audio integration now matches the core's actual buffer contract: `Float32` planar audio with 2048 samples per channel.
+
 ---
 
 ## Candidate Emulators — Ranked

@@ -1,3 +1,10 @@
+## [0.2.69] — 2026-05-22
+
+### Fixed
+- Script-hook watchpoints now follow the custom debugger contract again: `addWriteBreakpoint()` receives WRAM offsets, not `$7E` bus addresses.
+- Added explicit hook lifecycle and observed-write logs in the Everscript Build output so hook activity is visible even before a breakpoint pause is confirmed.
+- Audio now reads the core's exported `Float32` planar `2048 + 2048` sample buffer directly instead of treating it as interleaved `Int16`, fixing the loud robotic output.
+
 ## [0.2.68] — 2026-05-22
 
 ### Fixed
