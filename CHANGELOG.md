@@ -1,3 +1,10 @@
+## [0.2.72] — 2026-05-22
+
+### Added
+- Added `debugger/core/snes9x` as a tracked git submodule pointing to `https://github.com/r-bin/snes9x2005-wasm.git`.
+- Added `docs/snes9x_integration.md` with the full integration playbook (subtree/submodule options, tmp migration strategy, hook patterns, and architecture layout).
+- Documented debugger core submodule setup/update workflow and branch handoff steps in `debugger/README.md`.
+
 ## [0.2.71] — 2026-05-22
 
 ### Updated
