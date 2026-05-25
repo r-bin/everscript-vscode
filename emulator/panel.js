@@ -421,7 +421,6 @@ function _sendRomFile(romPath) {
 
 function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay) {
     const nonce = _nonce();
-  const cspSource = webview.cspSource;
 
     // NOTE: Module.locateFile uses the literal CORE_WASM filename constant
     // so the string in the template must match the actual WASM filename.
@@ -432,13 +431,13 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'none';
-    script-src ${cspSource} 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval';
-    style-src ${cspSource} 'unsafe-inline';
-    img-src ${cspSource} blob: data:;
-    media-src ${cspSource} blob: data:;
-    connect-src ${cspSource} blob: data:;
+    script-src * blob: data: 'unsafe-eval' 'unsafe-inline' 'wasm-unsafe-eval';
+    style-src * 'unsafe-inline' blob: data:;
+    img-src * blob: data:;
+    media-src * blob: data:;
+    connect-src * blob: data:;
     worker-src blob: data:;
-    font-src ${cspSource} blob: data:;
+    font-src * blob: data:;
   ">
   <title>Everscript Emulator</title>
   <style>

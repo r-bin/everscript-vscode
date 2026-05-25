@@ -295,12 +295,17 @@ test('debug adapter supports emulator sync request', () => {
 console.log('\nG. ROM load simulation:');
 
 // Static structure: verify unsafe-inline CSP replaces nonce
-test('panel.js uses unsafe-inline CSP (no nonce on script tag)', () => {
+test('panel.js uses wildcard script-src with unsafe-inline (no nonce on script tag)', () => {
     if (!panelContent) { assert.fail('panel.js could not be read'); return; }
+    // Must have 'unsafe-inline' for inline script execution
     assert.ok(panelContent.includes("'unsafe-inline'"),
         "panel.js webview CSP does not include 'unsafe-inline'");
+    // Must use wildcard source so the core JS loads regardless of vscode-cdn subdomain depth
+    assert.ok(panelContent.includes("script-src * blob: data:"),
+        "panel.js CSP script-src must use wildcard (*) to allow coreJs URI and inline scripts");
+    // No nonce-based restriction (nonce in CSP suppresses 'unsafe-inline' per CSP spec)
     assert.ok(!panelContent.includes("nonce-${nonce}"),
-        "panel.js CSP still uses 'nonce-\${nonce}' — should use 'unsafe-inline' instead");
+        "panel.js CSP still uses 'nonce-\${nonce}' — this suppresses 'unsafe-inline' and blocks the boot script");
     assert.ok(!panelContent.includes('<script nonce='),
         'panel.js <script> tag still carries a nonce attribute');
 });

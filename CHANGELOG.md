@@ -1,3 +1,14 @@
+## [0.2.75] — 2026-05-26
+
+### Fixed
+- Emulator panel timeout: restored `script-src * blob: data:` wildcard CSP (identical to the working v0.2.70/v0.2.71 configuration). The v0.2.73 change to `script-src 'nonce-${nonce}' ${cspSource}` and the v0.2.74 change to `script-src ${cspSource} 'unsafe-inline'` both broke the inline boot script — `cspSource` evaluates to `https://*.vscode-cdn.net` which uses a single-label wildcard that does not match the multi-level `file+.vscode-resource.vscode-cdn.net` subdomain used by VS Code's resource server, and can interact with VS Code's own CSP enforcement to suppress `'unsafe-inline'` for inline scripts.
+- Removing unused `cspSource = webview.cspSource` from `_buildHtml` since the wildcard CSP no longer needs it.
+
+### Tests
+- Renamed test `panel.js uses unsafe-inline CSP (no nonce on script tag)` to `panel.js uses wildcard script-src with unsafe-inline (no nonce on script tag)`.
+- Added assertion that `script-src * blob: data:` wildcard is present (prevents regression to restrictive `${cspSource}` form).
+- Added comment explaining that nonce in `script-src` suppresses `'unsafe-inline'` per CSP spec.
+
 ## [0.2.74] — 2026-05-25
 
 ### Fixed
