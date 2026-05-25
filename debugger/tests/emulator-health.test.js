@@ -291,7 +291,138 @@ test('debug adapter supports emulator sync request', () => {
         'debugger/adapter.js does not handle syncFromEmulator requests');
 });
 
-// ── Summary ───────────────────────────────────────────────────────────────────
+// ── G. ROM load simulation ────────────────────────────────────────────────────
+console.log('\nG. ROM load simulation:');
+
+// Static structure: verify unsafe-inline CSP replaces nonce
+test('panel.js uses unsafe-inline CSP (no nonce on script tag)', () => {
+    if (!panelContent) { assert.fail('panel.js could not be read'); return; }
+    assert.ok(panelContent.includes("'unsafe-inline'"),
+        "panel.js webview CSP does not include 'unsafe-inline'");
+    assert.ok(!panelContent.includes("nonce-${nonce}"),
+        "panel.js CSP still uses 'nonce-\${nonce}' — should use 'unsafe-inline' instead");
+    assert.ok(!panelContent.includes('<script nonce='),
+        'panel.js <script> tag still carries a nonce attribute');
+});
+
+// Static structure: error handlers must precede acquireVsCodeApi
+test('panel.js registers onerror before calling acquireVsCodeApi', () => {
+    if (!panelContent) { assert.fail('panel.js could not be read'); return; }
+    const scriptStart = panelContent.indexOf('<script>');
+    assert.ok(scriptStart > 0, 'no bare <script> tag found in webview HTML');
+    const oerrIdx = panelContent.indexOf('window.onerror', scriptStart);
+    const acqIdx  = panelContent.indexOf('acquireVsCodeApi()', scriptStart);
+    assert.ok(oerrIdx > 0, 'window.onerror not found inside webview script');
+    assert.ok(acqIdx  > 0, 'acquireVsCodeApi() not found inside webview script');
+    assert.ok(oerrIdx < acqIdx,
+        'window.onerror must be registered BEFORE acquireVsCodeApi() to catch init errors');
+});
+
+// Static structure: webviewBoot follows acquireVsCodeApi
+test('webview sends webviewBoot after acquiring vscodeApi', () => {
+    if (!panelContent) { assert.fail('panel.js could not be read'); return; }
+    const acqIdx  = panelContent.indexOf('acquireVsCodeApi()');
+    const bootIdx = panelContent.indexOf("{ command: 'webviewBoot' }", acqIdx);
+    assert.ok(bootIdx > acqIdx, 'webviewBoot not sent after acquireVsCodeApi()');
+});
+
+// Static structure: gameStarted is sent from startWithRom success path
+test('webview sends gameStarted after startWithRom success', () => {
+    if (!panelContent) { assert.fail('panel.js could not be read'); return; }
+    const startIdx = panelContent.indexOf('function startWithRom');
+    const endIdx   = panelContent.indexOf('\n    // -- Render loop', startIdx);
+    const body     = panelContent.slice(startIdx, endIdx > startIdx ? endIdx : startIdx + 2000);
+    assert.ok(body.includes("command: 'gameStarted'"),
+        'startWithRom does not send gameStarted on success');
+});
+
+// Mock-based protocol flow: open panel → ready → loadRom → gameStarted
+(function() {
+    var OrigMod  = require('module');
+    var origLoad = OrigMod._load.bind(OrigMod);
+    var _html = '', _sent = [], _recv = null;
+
+    var mockWebview = {
+        get html()  { return _html; },
+        set html(v) { _html = v; },
+        postMessage: function(m) { _sent.push(m); },
+        onDidReceiveMessage: function(h) { _recv = h; return { dispose: function() {} }; },
+        asWebviewUri: function(u) {
+            return { toString: function() { return 'https://x/' + (u.fsPath || ''); } };
+        },
+        cspSource: 'https://x'
+    };
+    var mockPane = {
+        webview: mockWebview,
+        reveal: function() {},
+        onDidDispose: function() { return { dispose: function() {} }; }
+    };
+    var mockVscode = {
+        window: {
+            createWebviewPanel: function() { return mockPane; },
+            visibleTextEditors:  [],
+            createOutputChannel: function() { return { appendLine: function() {}, show: function() {} }; },
+            setStatusBarMessage: function() { return { dispose: function() {} }; },
+            showErrorMessage: function() {}
+        },
+        ViewColumn: { Beside: 2, Active: 1 },
+        Uri: { file: function(p) { return { fsPath: p, toString: function() { return 'file://' + p; } }; } },
+        workspace: {
+            getConfiguration: function() { return { get: function(_k, d) { return d !== undefined ? d : ''; } }; },
+            workspaceFolders: []
+        },
+        debug: { activeDebugSession: null }
+    };
+
+    OrigMod._load = function(req, parent, isMain) {
+        if (req === 'vscode') return mockVscode;
+        return origLoad(req, parent, isMain);
+    };
+    delete require.cache[require.resolve(PANEL_JS)];
+    var pmod = null;
+    try { pmod = require(PANEL_JS); } catch(e) { /* load error handled in test */ }
+    OrigMod._load = origLoad;
+
+    test('mock: panel module loads and exports openEmulatorPanel', function() {
+        assert.ok(pmod, 'panel.js failed to load with mocked vscode');
+        assert.ok(typeof pmod.openEmulatorPanel === 'function',
+            'openEmulatorPanel not exported');
+    });
+
+    if (!pmod) return;
+
+    var mockCtx = { extensionPath: ROOT, subscriptions: [] };
+    var mockRom = { dataUrl: 'data:application/octet-stream;base64,AAAA', name: 'test.smc' };
+
+    test('mock: openEmulatorPanel sets webview HTML with expected content', function() {
+        pmod.openEmulatorPanel(mockCtx, mockRom, null);
+        assert.ok(_html.length > 200, 'webview HTML was not set (got ' + _html.length + ' chars)');
+        assert.ok(_html.includes('Everscript Emulator'), 'HTML missing title');
+        assert.ok(_html.includes('<script'), 'HTML has no script tag');
+    });
+
+    test('mock: ready message triggers loadRom dispatch to webview', function() {
+        assert.ok(typeof _recv === 'function', 'panel did not register onDidReceiveMessage');
+        _sent = [];
+        _recv({ command: 'ready' });
+        var lr = _sent.find(function(m) { return m.command === 'loadRom'; });
+        assert.ok(lr,
+            'host did not send loadRom after ready; messages: ' + _sent.map(function(m) { return m.command; }).join(', '));
+        assert.strictEqual(lr.name, 'test.smc', 'loadRom has wrong name');
+        assert.ok(typeof lr.dataUrl === 'string' && lr.dataUrl.startsWith('data:'),
+            'loadRom missing dataUrl');
+    });
+
+    test('mock: gameStarted message confirms core is playing ROM', function() {
+        _sent = [];
+        _recv({ command: 'gameStarted', name: 'test.smc' });
+        var errs = _sent.filter(function(m) { return m.command === 'ejsError'; });
+        assert.strictEqual(errs.length, 0,
+            'gameStarted handler caused ejsError: ' + JSON.stringify(errs));
+    });
+})();
+
+
 console.log('');
 if (xfails.length) {
     console.log('  Known issues (xfail):');

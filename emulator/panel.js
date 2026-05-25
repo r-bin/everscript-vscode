@@ -231,7 +231,10 @@ function _resetPanelHtml() {
     const coreJsUri   = _panel.webview.asWebviewUri(vscode.Uri.file(core.path)).toString();
     const coreWasmUri = _panel.webview.asWebviewUri(vscode.Uri.file(core.wasmPath)).toString();
     _log(`Core webview URIs: js=${coreJsUri} wasm=${coreWasmUri}`);
-    _panel.webview.html = _buildHtml(_panel.webview, coreJsUri, coreWasmUri, core.label, core.path);
+    const html = _buildHtml(_panel.webview, coreJsUri, coreWasmUri, core.label, core.path);
+    // Log a snippet to help diagnose CSP / script-load issues.
+    _log('HTML head snippet: ' + html.substring(0, 220).replace(/\s+/g, ' '));
+    _panel.webview.html = html;
   _armReadyTimeout();
 }
 
@@ -429,7 +432,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'none';
-    script-src 'nonce-${nonce}' ${cspSource} 'unsafe-eval' 'wasm-unsafe-eval';
+    script-src ${cspSource} 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval';
     style-src ${cspSource} 'unsafe-inline';
     img-src ${cspSource} blob: data:;
     media-src ${cspSource} blob: data:;
@@ -438,7 +441,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     font-src ${cspSource} blob: data:;
   ">
   <title>Everscript Emulator</title>
-  <style nonce="${nonce}">
+  <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
       width: 100%; height: 100%; background: #000; overflow: hidden;
@@ -552,23 +555,46 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
   </div>
 
   <!-- Module object must be declared before the core script loads. -->
-  <script nonce="${nonce}">
-    const vscodeApi = acquireVsCodeApi();
-    vscodeApi.postMessage({ command: 'webviewBoot' });
+  <script>
+    // -- Boot: register error handlers BEFORE acquiring vscode API so any
+    //    init failure is captured.  'var' lets onerror reference the variable
+    //    before the assignment below runs.
+    var vscodeApi; // eslint-disable-line no-var
 
-    function romStage(text) {
-      vscodeApi.postMessage({ command: 'romLoadLog', text });
-    }
-
-    // -- Error forwarding ------------------------------------------------------
     window.onerror = function(msg, src, line) {
-      vscodeApi.postMessage({ command: 'ejsError',
+      console.error('[EVS webview]', msg, src || '', line || '');
+      if (vscodeApi) vscodeApi.postMessage({ command: 'ejsError',
         error: msg + (src ? ' [' + src.split('/').pop() + ':' + line + ']' : '') });
     };
     window.addEventListener('unhandledrejection', function(evt) {
-      const r = evt.reason instanceof Error ? evt.reason.message : String(evt.reason || 'unhandledrejection');
-      vscodeApi.postMessage({ command: 'ejsError', error: r });
+      var r = evt.reason instanceof Error ? evt.reason.message : String(evt.reason || 'unhandledrejection');
+      console.error('[EVS webview rejection]', r);
+      if (vscodeApi) vscodeApi.postMessage({ command: 'ejsError', error: r });
     });
+    document.addEventListener('securitypolicyviolation', function(evt) {
+      console.error('[EVS CSP violation]', evt.blockedURI, evt.violatedDirective);
+      if (vscodeApi) vscodeApi.postMessage({ command: 'ejsError',
+        error: 'CSP: ' + evt.blockedURI + ' blocked by ' + evt.violatedDirective });
+    });
+
+    console.log('[EVS webview] boot start');
+    try {
+      vscodeApi = acquireVsCodeApi();
+    } catch(e) {
+      console.error('[EVS webview] acquireVsCodeApi failed:', String(e));
+    }
+
+    if (vscodeApi) {
+      vscodeApi.postMessage({ command: 'webviewBoot' });
+    } else {
+      console.error('[EVS webview] vscodeApi unavailable - host unreachable');
+    }
+    console.log('[EVS webview] boot done, api:', vscodeApi ? 'ok' : 'MISSING');
+
+    function romStage(text) {
+      console.log('[EVS romStage]', text);
+      if (vscodeApi) vscodeApi.postMessage({ command: 'romLoadLog', text });
+    }
 
     // -- Module stub (set before core script tag, so onRuntimeInitialized fires) -
     var Module = {
@@ -580,12 +606,12 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       onRuntimeInitialized: function() {
         // Core is ready. Signal host so any pending ROM can be delivered.
         romStage('core runtime initialized');
-        vscodeApi.postMessage({ command: 'ready' });
+        if (vscodeApi) vscodeApi.postMessage({ command: 'ready' });
         startRenderLoop();
       },
       onAbort: function(reason) {
         const msg = reason ? String(reason) : 'unknown abort';
-        vscodeApi.postMessage({ command: 'ejsError', error: 'Core aborted: ' + msg });
+        if (vscodeApi) vscodeApi.postMessage({ command: 'ejsError', error: 'Core aborted: ' + msg });
       }
     };
 
@@ -596,7 +622,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         romStage('core script loaded');
       };
       script.onerror = function() {
-        vscodeApi.postMessage({ command: 'ejsError', error: 'Failed to load core script: ${coreJsUri}' });
+        if (vscodeApi) vscodeApi.postMessage({ command: 'ejsError', error: 'Failed to load core script: ${coreJsUri}' });
       };
       document.body.appendChild(script);
     }

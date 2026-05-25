@@ -1,3 +1,18 @@
+## [0.2.74] — 2026-05-25
+
+### Fixed
+- Emulator panel timeout: switched webview `script-src` CSP from nonce-based (`'nonce-${nonce}'`) to `'unsafe-inline'`. The nonce-based policy was silently blocking the inline `<script>` tag in VS Code's webview Chromium context, preventing `acquireVsCodeApi()` from ever running and causing the 30-second "Timeout waiting for webview ready message" on every build.
+- Removed unused `nonce` attribute from the `<style>` tag (style-src had no matching nonce directive).
+
+### Changed
+- Webview boot sequence restructured: `window.onerror`, `unhandledrejection`, and `securitypolicyviolation` handlers are now registered **before** `acquireVsCodeApi()` so any init-time error is captured. Uses `var vscodeApi` (hoisted) so the handlers can safely reference it before assignment.
+- `vscodeApi.postMessage` calls in Module callbacks and `loadCoreScript.onerror` are now null-safe (`if (vscodeApi)`) in case API acquisition fails.
+- `_resetPanelHtml` logs a 220-char HTML head snippet to the output channel for future CSP/script-load diagnostics.
+- Added `console.log('[EVS webview] boot...')` and `console.error` calls visible in the webview developer tools.
+
+### Tests
+- `debugger/tests/emulator-health.test.js` section G: ROM load simulation. Adds static checks for unsafe-inline CSP, onerror-before-acquireVsCodeApi ordering, webviewBoot placement, and gameStarted flow. Also adds a mock-based runtime test: `openEmulatorPanel` → `ready` → `loadRom` dispatched → `gameStarted` processed without errors.
+
 ## [0.2.73] — 2026-05-25
 
 ### Added
