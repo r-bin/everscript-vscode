@@ -3,7 +3,7 @@
 /**
  * emulator/panel.js
  *
- * Minimal snes9x2005-wasm runner — no EmulatorJS wrapper.
+ * Minimal snes9x2005-wasm runner - no EmulatorJS wrapper.
  * The Emscripten-compiled core is loaded directly inside the VS Code webview.
  *
  * Core API (lrusso/snes9x2005-wasm):
@@ -19,7 +19,7 @@
  *   Module._loadState(ptr, size)
  *   HEAPU8                                        global Uint8Array (WASM memory)
  *
- * Custom debugger API (requires custom build — not in plain lrusso build):
+ * Custom debugger API (requires custom build - not in plain lrusso build):
  *   Module.getCPUState()  Module.readMemoryRange()  Module.pauseEmulation()
  *   Module.resumeEmulation()  Module.addExecBreakpoint()  Module.addWriteBreakpoint()
  *   Module.removeExecBreakpoint()  Module.removeWriteBreakpoint()
@@ -38,6 +38,77 @@ let _panel         = null;   // active WebviewPanel
 let _pending       = null;   // { dataUrl, name } waiting to load
 let _extensionPath = '';
 let _buildChannel  = null;   // output channel for build log
+let _readyTimeout  = null;
+let _romTimeout    = null;
+
+function _describeFile(filePath) {
+  try {
+    const st = fs.statSync(filePath);
+    return `${filePath} (${st.size} bytes)`;
+  } catch (_) {
+    return `${filePath} (missing)`;
+  }
+}
+
+function _notifyWebviewStatus(level, text) {
+  if (!_panel) return;
+  try {
+    _panel.webview.postMessage({ command: 'hostStatus', level, text });
+  } catch (_) {
+    // Best-effort status propagation only.
+  }
+}
+
+function _ensureBuildChannel() {
+  if (!_buildChannel) _buildChannel = vscode.window.createOutputChannel('Everscript Build');
+  return _buildChannel;
+}
+
+function _log(line, show) {
+  const ch = _ensureBuildChannel();
+  ch.appendLine('[Everscript] ' + line);
+  if (show) ch.show(true);
+}
+
+function _estimateDataUrlBytes(dataUrl) {
+  if (typeof dataUrl !== 'string') return 0;
+  const comma = dataUrl.indexOf(',');
+  const b64 = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
+  return Math.floor((b64.length * 3) / 4);
+}
+
+function _clearReadyTimeout() {
+  if (_readyTimeout) {
+    clearTimeout(_readyTimeout);
+    _readyTimeout = null;
+  }
+}
+
+function _clearRomTimeout() {
+  if (_romTimeout) {
+    clearTimeout(_romTimeout);
+    _romTimeout = null;
+  }
+}
+
+function _armReadyTimeout() {
+  _clearReadyTimeout();
+  _readyTimeout = setTimeout(() => {
+    const pending = _pending ? ` (pending ROM: ${_pending.name || 'game'})` : '';
+    const msg = 'Timeout waiting for webview ready message' + pending;
+    _log(msg, true);
+    _notifyWebviewStatus('error', msg + '. Open Webview Developer Tools to inspect script/wasm load errors.');
+  }, 30000);
+}
+
+function _armRomTimeout(romName) {
+  _clearRomTimeout();
+  _romTimeout = setTimeout(() => {
+    const msg = `Timeout waiting for ROM launch result: ${romName}`;
+    _log(msg, true);
+    _notifyWebviewStatus('error', msg);
+  }, 15000);
+}
 
 function _findDebuggableEditor() {
   const seen = new Set();
@@ -132,23 +203,36 @@ function _resolveCore() {
         if (!resolved.toLowerCase().endsWith('.js'))
             return { path: '', wasmPath: '', label: '', warning: `snesCorePath must point to a snes9x2005-wasm .js build, got "${path.extname(resolved)}"` };
         const wasmPath = path.join(path.dirname(resolved), CORE_WASM);
-        return { path: resolved, wasmPath, label: path.basename(resolved) };
+        if (!fs.existsSync(wasmPath)) {
+          return { path: '', wasmPath: '', label: '', warning: `Custom core JS found but WASM missing: ${wasmPath}` };
+        }
+        return { path: resolved, wasmPath, label: path.basename(resolved), source: 'custom' };
     }
     const jsPath   = path.join(_extensionPath, CORE_SUBDIR, CORE_JS);
     const wasmPath = path.join(_extensionPath, CORE_SUBDIR, CORE_WASM);
-    return { path: jsPath, wasmPath, label: CORE_JS + ' (bundled)' };
+    if (!fs.existsSync(jsPath)) {
+      return { path: '', wasmPath: '', label: '', warning: `Bundled core JS missing: ${jsPath}` };
+    }
+    if (!fs.existsSync(wasmPath)) {
+      return { path: '', wasmPath: '', label: '', warning: `Bundled core WASM missing: ${wasmPath}` };
+    }
+    return { path: jsPath, wasmPath, label: CORE_JS + ' (bundled)', source: 'bundled' };
 }
 
 function _resetPanelHtml() {
     if (!_panel || !_extensionPath) return;
     const core = _resolveCore();
     if (!core.path) {
-        if (core.warning && _buildChannel) _buildChannel.appendLine(`[Everscript] ${core.warning}`);
+    if (core.warning) _log(core.warning, true);
+    if (core.warning) _notifyWebviewStatus('error', core.warning);
         return;
     }
+    _log(`Core selected (${core.source || 'unknown'}): JS ${_describeFile(core.path)}; WASM ${_describeFile(core.wasmPath)}`);
     const coreJsUri   = _panel.webview.asWebviewUri(vscode.Uri.file(core.path)).toString();
     const coreWasmUri = _panel.webview.asWebviewUri(vscode.Uri.file(core.wasmPath)).toString();
+    _log(`Core webview URIs: js=${coreJsUri} wasm=${coreWasmUri}`);
     _panel.webview.html = _buildHtml(_panel.webview, coreJsUri, coreWasmUri, core.label, core.path);
+  _armReadyTimeout();
 }
 
 /**
@@ -160,17 +244,24 @@ function _resetPanelHtml() {
 function openEmulatorPanel(context, rom, channel) {
     if (rom)     _pending      = rom;
     if (channel) _buildChannel = channel;
+  _ensureBuildChannel();
     _extensionPath = context.extensionPath;
+
+  if (_pending) {
+    const size = _estimateDataUrlBytes(_pending.dataUrl);
+    _log(`ROM staged: ${_pending.name || 'game'} (${size} bytes)`);
+  }
 
     if (_panel) {
         _panel.reveal(vscode.ViewColumn.Beside, true);
+    _log('Emulator panel reused');
         if (_pending) _resetPanelHtml();
         return;
     }
 
     const core    = _resolveCore();
     if (core.warning) {
-        if (_buildChannel) _buildChannel.appendLine(`[Everscript] ${core.warning}`);
+      _log(core.warning, true);
         vscode.window.showWarningMessage(`Everscript Emulator: ${core.warning}`);
     }
     const coreDir = core.path
@@ -191,16 +282,28 @@ function openEmulatorPanel(context, rom, channel) {
         },
     );
 
-    _resetPanelHtml();
-
     _panel.webview.onDidReceiveMessage(msg => {
         switch (msg.command) {
             case 'ready':
-                if (_pending) {
-                    _panel.webview.postMessage({ command: 'loadRom', dataUrl: _pending.dataUrl, name: _pending.name });
-                    _pending = null;
-                }
+            _clearReadyTimeout();
+            _log('Webview runtime ready');
+            _notifyWebviewStatus('ok', 'Core runtime ready');
+            // Send ROM exactly once.
+            if (_pending && _panel) {
+              const romName = _pending.name || 'game';
+              _log(`Sending ROM to webview once: ${romName}`);
+              _armRomTimeout(romName);
+              _panel.webview.postMessage({
+                command: 'loadRom',
+                dataUrl: _pending.dataUrl,
+                name: _pending.name,
+              });
+            }
                 break;
+
+            case 'webviewBoot':
+              _log('Webview bootstrap running');
+              break;
 
             case 'pickRom':
                 vscode.window.showOpenDialog({
@@ -214,52 +317,60 @@ function openEmulatorPanel(context, rom, channel) {
                 break;
 
             case 'wramDelta':
-                // Reserved — forward to Memory Radar live mode.
+                // Reserved - forward to Memory Radar live mode.
                 break;
 
             case 'gameStarted':
-                if (_buildChannel) _buildChannel.appendLine(`[Everscript] Emulator started: ${msg.name}`);
+                _clearReadyTimeout();
+                _clearRomTimeout();
+              _log(`Emulator started: ${msg.name}`);
+              _notifyWebviewStatus('ok', `ROM started: ${msg.name}`);
+                if (_pending) _pending = null;
                 vscode.window.setStatusBarMessage(`$(check) Emulator: ${msg.name} running`, 5000);
                 break;
 
             case 'ejsError':
-                if (_buildChannel) {
-                    _buildChannel.appendLine(`[Everscript] Emulator error: ${msg.error}`);
-                    _buildChannel.show(true);
-                }
+              _clearReadyTimeout();
+              _clearRomTimeout();
+              _log(`Emulator error: ${msg.error}`, true);
+              _notifyWebviewStatus('error', `Emulator error: ${msg.error}`);
+              vscode.window.showErrorMessage(`Everscript Emulator: ${msg.error}`);
                 break;
 
+            case 'romLoadLog':
+              _log(`ROM load stage: ${msg.text}`);
+              break;
+
             case 'debugApiStatus':
-                if (_buildChannel) _buildChannel.appendLine(`[Everscript] ${msg.text}`);
+              _log(msg.text);
                 break;
 
             case 'debugBreakpointHit':
-                if (_buildChannel) _buildChannel.appendLine(
-                    `[Everscript] Breakpoint hit: ${msg.type} @ ${msg.address} pc=${msg.pc}`);
+                _log(`Breakpoint hit: ${msg.type} @ ${msg.address} pc=${msg.pc}`);
               _syncDebuggerFromEmulator({
                 reason: 'breakpoint',
                 details: `${msg.type} @ ${msg.address} pc=${msg.pc}`,
               }).then(result => {
-                if (_buildChannel) _buildChannel.appendLine(`[Everscript] ${result.text}`);
+                _log(result.text);
                 if (_panel) _panel.webview.postMessage({ command: 'debuggerConnectionStatus', ok: result.ok, text: result.text });
               });
                 break;
 
             case 'debugHookStatus':
-              if (_buildChannel) _buildChannel.appendLine(`[Everscript] ${msg.text}`);
+              _log(msg.text);
               break;
 
             case 'debugHookObserved':
-              if (_buildChannel) _buildChannel.appendLine(`[Everscript] ${msg.text}`);
+              _log(msg.text);
               break;
 
             case 'debugHookBreak':
-              if (_buildChannel) _buildChannel.appendLine(`[Everscript] ${msg.text}`);
+              _log(msg.text);
               _syncDebuggerFromEmulator({
                 reason: 'breakpoint',
                 details: msg.text,
               }).then(result => {
-                if (_buildChannel) _buildChannel.appendLine(`[Everscript] ${result.text}`);
+                _log(result.text);
                 if (_panel) _panel.webview.postMessage({ command: 'debuggerConnectionStatus', ok: result.ok, text: result.text });
               });
               break;
@@ -268,14 +379,22 @@ function openEmulatorPanel(context, rom, channel) {
               _ensureDebuggerSession().then(session => {
                 const ok = !!session;
                 const text = ok ? 'VS Code debugger connected' : 'Failed to connect VS Code debugger';
-                if (_buildChannel) _buildChannel.appendLine(`[Everscript] ${text}`);
+                _log(text);
                 if (_panel) _panel.webview.postMessage({ command: 'debuggerConnectionStatus', ok, text });
               });
               break;
         }
     }, undefined, context.subscriptions);
 
-    _panel.onDidDispose(() => { _panel = null; _pending = null; }, null, context.subscriptions);
+    _resetPanelHtml();
+    _log('Emulator panel opened');
+
+    _panel.onDidDispose(() => {
+      _clearReadyTimeout();
+      _clearRomTimeout();
+      _panel = null;
+      _pending = null;
+    }, null, context.subscriptions);
 }
 
 /** Read a ROM file from disk and send it to the open webview. */
@@ -285,18 +404,21 @@ function _sendRomFile(romPath) {
         const romData = fs.readFileSync(romPath);
         const dataUrl = 'data:application/octet-stream;base64,' + romData.toString('base64');
         _pending = { dataUrl, name: romName };
+    _log(`Manual ROM selected: ${romName} (${romData.length} bytes)`);
         _resetPanelHtml();
     } catch (e) {
+    _log('Failed to read ROM: ' + e.message, true);
         vscode.window.showErrorMessage('Failed to read ROM: ' + e.message);
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 //  HTML template
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay) {
     const nonce = _nonce();
+  const cspSource = webview.cspSource;
 
     // NOTE: Module.locateFile uses the literal CORE_WASM filename constant
     // so the string in the template must match the actual WASM filename.
@@ -307,13 +429,13 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'none';
-    script-src * blob: data: 'unsafe-eval' 'unsafe-inline' 'wasm-unsafe-eval';
-    style-src * 'unsafe-inline' blob: data:;
-    img-src * blob: data:;
-    media-src * blob: data:;
-    connect-src * blob: data:;
+    script-src 'nonce-${nonce}' ${cspSource} 'unsafe-eval' 'wasm-unsafe-eval';
+    style-src ${cspSource} 'unsafe-inline';
+    img-src ${cspSource} blob: data:;
+    media-src ${cspSource} blob: data:;
+    connect-src ${cspSource} blob: data:;
     worker-src blob: data:;
-    font-src * blob: data:;
+    font-src ${cspSource} blob: data:;
   ">
   <title>Everscript Emulator</title>
   <style nonce="${nonce}">
@@ -322,7 +444,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       width: 100%; height: 100%; background: #000; overflow: hidden;
       display: flex; flex-direction: column; font-family: monospace;
     }
-    /* ── Screen ──────────────────────────────────────────────────────── */
+    /* -- Screen -------------------------------------------------------- */
     #screen-wrap {
       flex: 1; min-height: 0; background: #000;
       display: flex; align-items: center; justify-content: center;
@@ -334,7 +456,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       transform-origin: center center;
       image-rendering: pixelated; image-rendering: crisp-edges;
     }
-    /* ── ROM picker overlay ───────────────────────────────────────────── */
+    /* -- ROM picker overlay --------------------------------------------- */
     #overlay {
       position: fixed; inset: 0; z-index: 100;
       display: flex; flex-direction: column;
@@ -345,7 +467,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     #pickBtn       { padding: 10px 24px; background: #1a6; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
     #pickBtn:hover { background: #0c5; }
     #load-status   { font-size: 12px; color: #888; max-width: 400px; text-align: center; }
-    /* ── Script stack panel ───────────────────────────────────────────── */
+    /* -- Script stack panel --------------------------------------------- */
     #script-stack {
       height: 220px; min-height: 180px; max-height: 320px;
       background: #0d0d0d; border-top: 1px solid #333;
@@ -432,8 +554,13 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
   <!-- Module object must be declared before the core script loads. -->
   <script nonce="${nonce}">
     const vscodeApi = acquireVsCodeApi();
+    vscodeApi.postMessage({ command: 'webviewBoot' });
 
-    // ── Error forwarding ──────────────────────────────────────────────────────
+    function romStage(text) {
+      vscodeApi.postMessage({ command: 'romLoadLog', text });
+    }
+
+    // -- Error forwarding ------------------------------------------------------
     window.onerror = function(msg, src, line) {
       vscodeApi.postMessage({ command: 'ejsError',
         error: msg + (src ? ' [' + src.split('/').pop() + ':' + line + ']' : '') });
@@ -443,21 +570,38 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       vscodeApi.postMessage({ command: 'ejsError', error: r });
     });
 
-    // ── Module stub (set before core script tag, so onRuntimeInitialized fires) ─
+    // -- Module stub (set before core script tag, so onRuntimeInitialized fires) -
     var Module = {
       locateFile: function(filename) {
         // Route the WASM request to the webview-accessible URI.
-        if (filename === 'snes9x_2005.wasm') return '${coreWasmUri}';
+        if (typeof filename === 'string' && filename.endsWith('.wasm')) return '${coreWasmUri}';
         return filename;
       },
       onRuntimeInitialized: function() {
         // Core is ready. Signal host so any pending ROM can be delivered.
+        romStage('core runtime initialized');
         vscodeApi.postMessage({ command: 'ready' });
         startRenderLoop();
+      },
+      onAbort: function(reason) {
+        const msg = reason ? String(reason) : 'unknown abort';
+        vscodeApi.postMessage({ command: 'ejsError', error: 'Core aborted: ' + msg });
       }
     };
 
-    // ── ROM picker ────────────────────────────────────────────────────────────
+    function loadCoreScript() {
+      const script = document.createElement('script');
+      script.src = '${coreJsUri}';
+      script.onload = function() {
+        romStage('core script loaded');
+      };
+      script.onerror = function() {
+        vscodeApi.postMessage({ command: 'ejsError', error: 'Failed to load core script: ${coreJsUri}' });
+      };
+      document.body.appendChild(script);
+    }
+
+    // -- ROM picker ------------------------------------------------------------
     document.getElementById('pickBtn').addEventListener('click', () => {
       initAudio();
       ensureAudioRunning();
@@ -466,10 +610,24 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     });
 
     window.addEventListener('message', evt => {
-      if (evt.data.command === 'loadRom') startWithRom(evt.data.dataUrl, evt.data.name);
+      if (evt.data.command === 'hostStatus') {
+        const el = document.getElementById('load-status');
+        if (!el) return;
+        const level = evt.data.level || 'info';
+        el.textContent = evt.data.text || '';
+        el.style.color =
+          level === 'error'
+            ? '#ff8c8c'
+            : (level === 'ok' ? '#7ad67a' : '#c8c8c8');
+        return;
+      }
+      if (evt.data.command === 'loadRom') {
+        romStage('loadRom received: ' + (evt.data.name || 'game'));
+        startWithRom(evt.data.dataUrl, evt.data.name);
+      }
     });
 
-    // ── Audio ─────────────────────────────────────────────────────────────────
+    // -- Audio -----------------------------------------------------------------
     // ScriptProcessorNode reading directly from the core's exported Float32 planar
     // buffer. snes9x2005-wasm exposes 2048 samples for left followed by 2048 for right.
     const AUDIO_FREQ      = 44100;
@@ -541,7 +699,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       }
     }
 
-    // ── Input ─────────────────────────────────────────────────────────────────
+    // -- Input -----------------------------------------------------------------
     // Button bitmask positions:
     //   R=4, L=5, X=6, A=7, RIGHT=8, LEFT=9, DOWN=10, UP=11,
     //   START=12, SELECT=13, Y=14, B=15
@@ -567,20 +725,24 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       if (bit) keyInput &= ~bit;
     });
 
-    // ── ROM loading ───────────────────────────────────────────────────────────
+    // -- ROM loading -----------------------------------------------------------
     let romLoaded = false;
 
     function startWithRom(dataUrl, name) {
       try {
+        romStage('decode begin: ' + (name || 'game'));
         const comma   = dataUrl.indexOf(',');
         const binStr  = atob(dataUrl.slice(comma + 1));
         const romData = new Uint8Array(binStr.length);
         for (let i = 0; i < binStr.length; i++) romData[i] = binStr.charCodeAt(i);
+        romStage('decode complete: ' + romData.length + ' bytes');
 
+        romStage('core start begin');
         const ptr = Module._my_malloc(romData.length);
         HEAPU8.set(romData, ptr);
         Module._startWithRom(ptr, romData.length, AUDIO_FREQ);
         Module._my_free(ptr);
+        romStage('core start complete');
 
         romLoaded = true;
         initAudio();
@@ -590,13 +752,15 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         window.dispatchEvent(new Event('resize'));
         startWramPolling();
         vscodeApi.postMessage({ command: 'gameStarted', name: name || 'game' });
+        romStage('launch success: ' + (name || 'game'));
       } catch (e) {
+        romStage('launch failed: ' + e.message);
         vscodeApi.postMessage({ command: 'ejsError', error: 'ROM load failed: ' + e.message });
         document.getElementById('load-status').textContent = 'Error: ' + e.message;
       }
     }
 
-    // ── Render loop ───────────────────────────────────────────────────────────
+    // -- Render loop -----------------------------------------------------------
     function startRenderLoop() {
       const canvas    = document.getElementById('screen');
       const wrap      = document.getElementById('screen-wrap');
@@ -638,7 +802,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       requestAnimationFrame(frame);
     }
 
-    // ── WRAM / Script stack ───────────────────────────────────────────────────
+    // -- WRAM / Script stack ---------------------------------------------------
     const SCRIPT_BASE              = 0x28FC;
     const SLOT_SIZE                = 0x4F;
     const SLOT_COUNT               = 20;
@@ -1096,7 +1260,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       setInterval(pollOnce, 250);
     }
 
-    // ── Script stack controls ─────────────────────────────────────────────────
+    // -- Script stack controls -------------------------------------------------
     document.getElementById('ss-pause-btn').addEventListener('click', () => {
       const m = getModule();
       if (!hasDebuggerApi(m)) return;
@@ -1134,11 +1298,9 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       if (!evt.data || evt.data.command !== 'debuggerConnectionStatus') return;
       setText('ss-debug-link-status', 'dbg: ' + evt.data.text, evt.data.ok ? 'ss-ok' : 'ss-warn');
     });
-  </script>
 
-  <!-- snes9x2005-wasm Emscripten output.
-       Sets global Module (merging with the stub above), HEAPU8, and all _exports. -->
-  <script src="${coreJsUri}"></script>
+    loadCoreScript();
+  </script>
 </body>
 </html>`;
 }

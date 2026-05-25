@@ -88,13 +88,43 @@ dataRom:           0x2DB50C  (bank 0x2D → offset 0x3B50C; HiROM: (0x2D & 0x3F)
 
 Tile family IDs reference the global tile catalog (indexed by `EE0000` pointer table, 6687 entries).
 
-### 2. Compressed Bitstream
+### 2. Compressed Section (6-byte sub-header + 158-byte bitstream)
 
 | Range                    | Meaning                               |
 |-------------------------|---------------------------------------|
-| 0x2DB536 – 0x2DB5D9     | 164 bytes of compressed/opaque data   |
-| Format                  | Unknown (not uniform 3-byte records)  |
-| Purpose                 | Likely tile placement commands/layers |
+| 0x2DB536 – 0x2DB5D9     | 164 bytes total (sub-header + bitstream) |
+| Sub-header byte [+0x00] = 0x00  | Unused / padding                  |
+| Sub-header byte [+0x01] = 0xA4  | Section size = 164 bytes          |
+| Sub-header byte [+0x02] = 0x00  | Unused                            |
+| Sub-header byte [+0x03] = 0x03  | Decompression mode/setup (PC 8C9890) |
+| Sub-header byte [+0x04] = 0xC2  | Initial decoder state (read ~49x by PC 8C9898) |
+| Sub-header byte [+0x05] = 0x00  | Unused                            |
+| Bitstream                       | 158 bytes at 0x2DB53C–0x2DB5D9    |
+
+**What the trace tells us about the decompressor (PC 8C9909):**
+- Main read loop at PC **8C9909** reads each bitstream byte.
+- Each byte is read **twice**: first at 8C9909, then at a secondary dispatch PC in range `8C9B22..8C9B5F`.  
+  The secondary PC varies per byte, indicating a dispatch table keyed on the byte value.
+- Decode loop (PCs 8C9978–8C99DC):
+  - `XBA + AND #$00FF` — isolate one byte half from a 16-bit register
+  - `LSR × 4` (PCs 8C99D0–D3) — extract high nibble (`byte >> 4`)
+  - `AND #$000F` (PC 8C99DC) — extract low nibble (`byte & 0x0F`)
+- Output writes at PC **8C9928** / **8C99E8** → WRAM `0x7FC300` (main output)  
+  Parallel writes at **8C992A** / **8C99EA** → WRAM `0x7FA000` (mirror)
+- Result: **97 LE 16-bit words** at `0x7FC300` (pass 1, delta-encoded).
+
+**Decompressor is called TWICE per map load:**  
+The second invocation writes the measured pass1 data (see TRUSTED_MAPS in `map-pipeline-model.js`).  
+The first invocation writes different data (observed in `map_strongheart_exterior.txt` trace, trigger 1 vs 2).
+
+**Delta pass (pass 1 → pass 2 = final macro IDs):**  
+Documented and confirmed: `pass2[i] = (pass2[i-1] + pass1[i]) & 0xFFFF` (see `applyDeltaDecode`).
+
+**What is NOT yet known (to reconstruct the algorithm):**
+- Disassembly of ROM bank 8C at PCs **8C9909 through 8C9B60** (the dispatch table + handlers).  
+  _This is the only missing piece. Providing a Mesen2 disassembly export or step-trace of that ROM region would unlock the full algorithm._
+- What the `0x03` mode byte and `0xC2` initial-state byte configure in the decompressor.
+- Whether the dispatch is indexed on the high nibble, low nibble, or some bit mask of the bitstream byte.
 
 ### 3. Sentinel
 

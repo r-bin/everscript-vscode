@@ -1,0 +1,20 @@
+tmp/
+
+**/.git/**
+**/.vscode/**
+**/node_modules/**
+
+# source maps (optional)
+**/*.map
+
+# test files
+**/test/**
+**/__tests__/**
+
+# raw sources (ONLY if you build to /out or /dist)
+src/**
+
+# build artifacts you do NOT want included accidentally
+scripts/**
+build-cache/**
+*.log

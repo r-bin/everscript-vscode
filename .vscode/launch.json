@@ -1,0 +1,40 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "extensionHost",
+            "request": "launch",
+            "name": "Launch Extension (F5)",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}"
+            ],
+            "outFiles": [
+                "${workspaceFolder}/**/*.js"
+            ]
+        },
+        {
+            "type": "node-terminal",
+            "request": "launch",
+            "name": "Build Plugin (tests)",
+            "command": "cd \"${workspaceFolder}\" && /opt/homebrew/bin/npm test"
+        },
+        {
+            "type": "node-terminal",
+            "request": "launch",
+            "name": "Deploy Plugin (VSIX)",
+            "command": "cd \"${workspaceFolder}\" && /opt/homebrew/bin/npm run deploy"
+        },
+        {
+            "type": "node-terminal",
+            "request": "launch",
+            "name": "Build Core (snes9x2005-wasm)",
+            "command": "cd \"${workspaceFolder}/debugger/core/snes9x\" && ./build.sh"
+        },
+        {
+            "type": "node-terminal",
+            "request": "launch",
+            "name": "Dump Map 0x33",
+            "command": "cd \"${workspaceFolder}\" && node tools/map-dump.js 0x33"
+        }
+    ]
+}

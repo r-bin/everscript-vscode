@@ -190,6 +190,100 @@ test('panel.js can anchor debugger sync from a visible everscript editor', () =>
         'panel.js still relies only on activeTextEditor for debugger sync anchoring');
 });
 
+// ── F. ROM dispatch correctness ───────────────────────────────────────────────
+console.log('\nF. ROM dispatch correctness:');
+
+test('panel.js sends ROM once from ready handler', () => {
+    if (!panelContent) { assert.fail('panel.js could not be read'); return; }
+    const readyIdx = panelContent.indexOf("case 'ready'");
+    const nextCase = panelContent.indexOf("case '", readyIdx + 1);
+    const block = panelContent.slice(readyIdx, nextCase);
+    assert.ok(block.includes('Sending ROM to webview once'),
+        'ready handler does not log single-shot ROM send');
+    assert.ok(block.includes('_armRomTimeout('),
+        'ready handler does not arm ROM timeout before sending');
+    assert.ok(block.includes("command: 'loadRom'"),
+        'ready handler does not send loadRom');
+});
+
+test('panel.js does not use dispatch retry protocol', () => {
+    if (!panelContent) { assert.fail('panel.js could not be read'); return; }
+    assert.ok(!panelContent.includes('_beginPendingDispatchLoop'),
+        'panel.js still contains _beginPendingDispatchLoop');
+    assert.ok(!panelContent.includes('_clearDispatchTimer'),
+        'panel.js still contains _clearDispatchTimer');
+    assert.ok(!panelContent.includes('_dispatchTimer'),
+        'panel.js still contains _dispatchTimer state');
+    assert.ok(!panelContent.includes('_dispatchStopAt'),
+        'panel.js still contains _dispatchStopAt state');
+    assert.ok(!panelContent.includes('_dispatchLogged'),
+        'panel.js still contains _dispatchLogged state');
+});
+
+test('panel.js does not use romLoadAccepted/romLoadFailed handlers', () => {
+    if (!panelContent) { assert.fail('panel.js could not be read'); return; }
+    assert.ok(!panelContent.includes("case 'romLoadAccepted'"),
+        'panel.js still contains romLoadAccepted handler');
+    assert.ok(!panelContent.includes("case 'romLoadFailed'"),
+        'panel.js still contains romLoadFailed handler');
+});
+
+test('webview loadRom handler has no romLaunchRequested guard', () => {
+    if (!panelContent) { assert.fail('panel.js could not be read'); return; }
+    assert.ok(!panelContent.includes('let romLaunchRequested'),
+        'webview still defines romLaunchRequested');
+    assert.ok(!panelContent.includes('loadRom ignored: launch already in progress'),
+        'webview still ignores loadRom while startup is in progress');
+});
+
+test('startWithRom does not emit ack protocol messages', () => {
+    if (!panelContent) { assert.fail('panel.js could not be read'); return; }
+    const startWithRomIdx = panelContent.indexOf('function startWithRom');
+    const nextFnIdx = panelContent.indexOf('\n    function ', startWithRomIdx + 1);
+    const startWithRomBody = panelContent.slice(startWithRomIdx, nextFnIdx);
+    assert.ok(!startWithRomBody.includes("command: 'romLoadAccepted'"),
+        'startWithRom still sends romLoadAccepted');
+    assert.ok(!startWithRomBody.includes("command: 'romLoadFailed'"),
+        'startWithRom still sends romLoadFailed');
+});
+
+test('startWithRom failure path does not reset retry guard state', () => {
+    if (!panelContent) { assert.fail('panel.js could not be read'); return; }
+    const startWithRomIdx = panelContent.indexOf('function startWithRom');
+    const nextFnIdx = panelContent.indexOf('\n    function ', startWithRomIdx + 1);
+    const catchBody = panelContent.slice(panelContent.indexOf('} catch (', startWithRomIdx), nextFnIdx);
+    assert.ok(!catchBody.includes('romLaunchRequested = false'),
+        'startWithRom catch block still resets removed retry state');
+});
+
+test('panel.js logs selected core file paths and webview URIs', () => {
+    if (!panelContent) { assert.fail('panel.js could not be read'); return; }
+    assert.ok(panelContent.includes('Core selected ('),
+        'panel.js does not log which core files were selected');
+    assert.ok(panelContent.includes('Core webview URIs:'),
+        'panel.js does not log webview core JS/WASM URIs');
+});
+
+test('webview locateFile maps any .wasm filename to coreWasmUri', () => {
+    if (!panelContent) { assert.fail('panel.js could not be read'); return; }
+    assert.ok(panelContent.includes("filename.endsWith('.wasm')"),
+        'Module.locateFile is not robust against alternate wasm filenames');
+});
+
+test('panel.js forwards host status messages to webview load-status', () => {
+    if (!panelContent) { assert.fail('panel.js could not be read'); return; }
+    assert.ok(panelContent.includes("command: 'hostStatus'"),
+        'panel.js does not post hostStatus updates to the webview');
+    assert.ok(panelContent.includes("evt.data.command === 'hostStatus'"),
+        'webview does not handle hostStatus updates for visible error reporting');
+});
+
+test('panel.js is ASCII-only to avoid webview parser/encoding issues', () => {
+    if (!panelContent) { assert.fail('panel.js could not be read'); return; }
+    assert.ok(!/[^\x09\x0A\x0D\x20-\x7E]/.test(panelContent),
+        'panel.js contains non-ASCII characters that may break webview document parsing');
+});
+
 test('debug adapter supports emulator sync request', () => {
     const adapterPath = path.join(ROOT, 'debugger', 'adapter.js');
     const adapterContent = fs.readFileSync(adapterPath, 'utf8');

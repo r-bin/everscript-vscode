@@ -1,3 +1,26 @@
+## [0.2.73] — 2026-05-25
+
+### Added
+- `memory_radar/models/map-pipeline-model.js`: comprehensive evidence-backed map pipeline model covering all confirmed stages: blob header, trigger tables, tile families, sentinel scan, position table, nibble-packed tilemap, delta decode, EE descriptor lookup, and render script 0x93 structure. Includes trusted pass1/pass2 word constants for map 0x33 from Mesen2 memory snapshots (2nd decompressor invocation, source: `tmp/map_research.md`).
+- `tools/map-dump.js`: unified map dump script (replaces scattered root-level dump scripts). Prints a structured 13-section dump of any map blob including 6-byte sub-header layout, decompressor trace evidence summary, and provisional tilemap formula caveat.
+- `memory_radar/tests/map-pipeline-model.test.js`: 44 tests covering address conversion, delta decode, nibble tilemap parse, sentinel scan, render script 0x93 structure, and ROM-dependent blob parse (map 0x33 all stages).
+- `.vscode/launch.json`: F5 launches Extension Host. Added `Build Core (snes9x2005-wasm)` and `Dump Map 0x33` configs.
+- `npm run package`: packages VSIX to `out/` via `vsce --out out/` with clear error message on failure.
+- `npm run deploy`: packages VSIX and installs with `code --install-extension --force`, then verifies `rbin.everscript` is present in the extension list. Clear error messages when `code` CLI is not in PATH or install fails.
+- `docs/map-0x33-analysis.md`: decompressor section expanded with sub-header byte layout, trace PC signatures, two-invocation structure, and exact list of what disassembly is still needed.
+
+### Changed
+- `.gitignore`: now ignores `out/` (entire build output folder) instead of `*.vsix`. VSIX files are always built to `out/` and never committed.
+- `.vscode/launch.json`: `Deploy Plugin` renamed to `Deploy Plugin (VSIX)` and now uses `npm run deploy` instead of rsync.
+- `memory_radar/models/map-pipeline-model.js` header: `compressedSectionSize` comment corrected (was "4-byte sub-header", now "6-byte sub-header + 158-byte bitstream"). `parseTilemap` comment updated: `family = nibble >> 2` is marked as provisional with caveat about the 62.8% out-of-range tile ratio. TRUSTED_MAPS block comment now cites `tmp/map_research.md` and the Mesen2 trigger number.
+
+### Fixed
+- Emulator panel webview no longer fails to parse on startup. Root cause: v0.2.71 introduced box-drawing characters (`\u2500`) inside the HTML template literal as JS/CSS comment dividers; these non-ASCII bytes caused the webview browser to throw `Invalid or unexpected token` before `onRuntimeInitialized` ever fired, so the `ready` message was never sent, and ROM loading appeared silently broken.
+- All non-ASCII characters removed from `emulator/panel.js` (ASCII-only enforcement).
+
+### Removed
+- Root-level `build`, `deploy`, `dump-map-blob.js`, `decode-rom-tilemap.js`, `dump-map-trace-flow.js`, `dump-map-evidence.js` removed from repo. Functionality is now in `tools/map-dump.js` and `.vscode/launch.json`.
+
 ## [0.2.72] — 2026-05-22
 
 ### Added
