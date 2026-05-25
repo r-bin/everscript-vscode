@@ -1,3 +1,15 @@
+## [0.2.76] — 2026-05-26
+
+### Fixed
+- Reverted the v0.2.71 emulator panel lifecycle-analysis changes from [emulator/panel.js](/Users/v/Documents/GitHub/everscript-vscode/emulator/panel.js) to reduce the boot script back to the pre-0.2.71 shape while diagnosing ROM startup failures. The panel now returns to raw script-slot rendering and raw write-triggered break handling.
+
+### Removed
+- Removed the semantic script lifecycle summary panel, 0x20-byte argument dump, scheduler-chain view, and focus-row highlighting that were added in v0.2.71.
+- Removed the visible-editor fallback for emulator debugger sync anchoring; sync now again requires the active editor to be an `.evs` file.
+
+### Tests
+- Dropped the health-test assertions that required the removed v0.2.71 lifecycle-detail UI and visible-editor debugger anchoring.
+
 ## [0.2.75] — 2026-05-26
 
 ### Fixed

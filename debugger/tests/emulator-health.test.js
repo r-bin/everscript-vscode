@@ -178,18 +178,6 @@ test('panel.js exposes break-all-hooks and debugger-connect controls', () => {
         'panel.js does not expose the break-all-hooks or debugger connect controls');
 });
 
-test('panel.js renders semantic script detail and 0x20-byte arg block', () => {
-    if (!panelContent) { assert.fail('panel.js could not be read'); return; }
-    assert.ok(panelContent.includes('ss-detail') && panelContent.includes('SCRIPT_ARG_BYTES         = 0x20'),
-        'panel.js does not render script lifecycle detail or capture the 0x20-byte arg block');
-});
-
-test('panel.js can anchor debugger sync from a visible everscript editor', () => {
-    if (!panelContent) { assert.fail('panel.js could not be read'); return; }
-    assert.ok(panelContent.includes('_findDebuggableEditor') && panelContent.includes('visibleTextEditors'),
-        'panel.js still relies only on activeTextEditor for debugger sync anchoring');
-});
-
 // ── F. ROM dispatch correctness ───────────────────────────────────────────────
 console.log('\nF. ROM dispatch correctness:');
 
