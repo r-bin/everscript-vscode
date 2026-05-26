@@ -30,9 +30,9 @@
             "problemMatcher": []
         },
         {
-            "label": "Build Core (snes9x2005-wasm)",
+            "label": "Build Emulator Cores",
             "type": "shell",
-            "command": "if [ -d \"${workspaceFolder}/debugger/core/snes9x2005-wasm\" ]; then cd \"${workspaceFolder}/debugger/core/snes9x2005-wasm\"; else cd \"${workspaceFolder}/debugger/core/snes9x\"; fi && ./build.sh",
+            "command": "sh \"${workspaceFolder}/tools/build_snes_core.sh\" vanilla && sh \"${workspaceFolder}/tools/build_snes_core.sh\" custom",
             "problemMatcher": []
         },
         {

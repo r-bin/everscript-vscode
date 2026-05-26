@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * emulator/panel.js
+ * debugger/emulator/panel.js
  *
  * Minimal snes9x2005-wasm runner - no EmulatorJS wrapper.
  * The Emscripten-compiled core is loaded directly inside the VS Code webview.
@@ -30,9 +30,13 @@ const vscode = require('vscode');
 const path   = require('path');
 const fs     = require('fs');
 
-const CORE_SUBDIR = path.join('emulator', 'core');
+const CORE_SUBDIR = path.join('debugger', 'core', 'snes9x2005-wasm-vanilla');
 const CORE_JS     = 'snes9x_2005.js';
 const CORE_WASM   = 'snes9x_2005.wasm';
+const LEGACY_CUSTOM_CORE_DIRS = [
+  path.join('debugger', 'core', 'snes9x2005-wasm'),
+  path.join('debugger', 'core', 'snes9x'),
+];
 
 let _panel         = null;   // active WebviewPanel
 let _pending       = null;   // { dataUrl, name } waiting to load
@@ -40,6 +44,7 @@ let _extensionPath = '';
 let _buildChannel  = null;   // output channel for build log
 let _readyTimeout  = null;
 let _romTimeout    = null;
+let _webviewReady  = false;
 
 function _describeFile(filePath) {
   try {
@@ -108,6 +113,19 @@ function _armRomTimeout(romName) {
     _log(msg, true);
     _notifyWebviewStatus('error', msg);
   }, 15000);
+}
+
+function _dispatchPendingRom() {
+  if (!_pending || !_panel || !_webviewReady) return false;
+  const romName = _pending.name || 'game';
+  _log(`Sending ROM to webview: ${romName}`);
+  _armRomTimeout(romName);
+  _panel.webview.postMessage({
+    command: 'loadRom',
+    dataUrl: _pending.dataUrl,
+    name: _pending.name,
+  });
+  return true;
 }
 
 function _findDebuggableEditor() {
@@ -188,16 +206,28 @@ function _nonce() {
     return n;
 }
 
+function _remapLegacyCorePath(rawPath) {
+  const normalized = path.normalize(rawPath);
+  for (const legacyDir of LEGACY_CUSTOM_CORE_DIRS) {
+    const legacyJs = path.normalize(path.join(_extensionPath, legacyDir, CORE_JS));
+    if (normalized !== legacyJs) continue;
+    const migrated = path.join(_extensionPath, 'debugger', 'core', 'snes9x2005-wasm', CORE_JS);
+    if (fs.existsSync(migrated)) return migrated;
+  }
+  return rawPath;
+}
+
 /**
  * Resolve the snes9x core to use.
  * everscript.snesCorePath (if set) must point to a snes9x2005-wasm .js file.
- * Falls back to the bundled emulator/core/snes9x_2005.js.
+ * Falls back to the bundled debugger/core/snes9x2005-wasm-vanilla/snes9x_2005.js.
  * Returns { path, wasmPath, label, warning? }.
  */
 function _resolveCore() {
     const raw = vscode.workspace.getConfiguration('everscript').get('snesCorePath', '').trim();
     if (raw) {
-        const resolved = path.isAbsolute(raw) ? raw : path.resolve(raw);
+    const configured = path.isAbsolute(raw) ? raw : path.resolve(raw);
+    const resolved = _remapLegacyCorePath(configured);
         if (!fs.existsSync(resolved))
             return { path: '', wasmPath: '', label: '', warning: `snesCorePath "${raw}" does not exist` };
         if (!resolved.toLowerCase().endsWith('.js'))
@@ -221,6 +251,7 @@ function _resolveCore() {
 
 function _resetPanelHtml() {
     if (!_panel || !_extensionPath) return;
+  _webviewReady = false;
     const core = _resolveCore();
     if (!core.path) {
     if (core.warning) _log(core.warning, true);
@@ -258,7 +289,7 @@ function openEmulatorPanel(context, rom, channel) {
     if (_panel) {
         _panel.reveal(vscode.ViewColumn.Beside, true);
     _log('Emulator panel reused');
-        if (_pending) _resetPanelHtml();
+      if (_pending && !_dispatchPendingRom()) _resetPanelHtml();
         return;
     }
 
@@ -288,20 +319,11 @@ function openEmulatorPanel(context, rom, channel) {
     _panel.webview.onDidReceiveMessage(msg => {
         switch (msg.command) {
             case 'ready':
+            _webviewReady = true;
             _clearReadyTimeout();
             _log('Webview runtime ready');
             _notifyWebviewStatus('ok', 'Core runtime ready');
-            // Send ROM exactly once.
-            if (_pending && _panel) {
-              const romName = _pending.name || 'game';
-              _log(`Sending ROM to webview once: ${romName}`);
-              _armRomTimeout(romName);
-              _panel.webview.postMessage({
-                command: 'loadRom',
-                dataUrl: _pending.dataUrl,
-                name: _pending.name,
-              });
-            }
+            _dispatchPendingRom();
                 break;
 
             case 'webviewBoot':
@@ -333,6 +355,7 @@ function openEmulatorPanel(context, rom, channel) {
                 break;
 
             case 'ejsError':
+              _webviewReady = false;
               _clearReadyTimeout();
               _clearRomTimeout();
               _log(`Emulator error: ${msg.error}`, true);
@@ -395,6 +418,7 @@ function openEmulatorPanel(context, rom, channel) {
     _panel.onDidDispose(() => {
       _clearReadyTimeout();
       _clearRomTimeout();
+      _webviewReady = false;
       _panel = null;
       _pending = null;
     }, null, context.subscriptions);
@@ -408,7 +432,7 @@ function _sendRomFile(romPath) {
         const dataUrl = 'data:application/octet-stream;base64,' + romData.toString('base64');
         _pending = { dataUrl, name: romName };
     _log(`Manual ROM selected: ${romName} (${romData.length} bytes)`);
-        _resetPanelHtml();
+    if (!_dispatchPendingRom()) _resetPanelHtml();
     } catch (e) {
     _log('Failed to read ROM: ' + e.message, true);
         vscode.window.showErrorMessage('Failed to read ROM: ' + e.message);
@@ -455,7 +479,6 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     #screen {
       display: block;
       width: 512px; height: 448px;
-      transform-origin: center center;
       image-rendering: pixelated; image-rendering: crisp-edges;
     }
     /* -- ROM picker overlay --------------------------------------------- */
@@ -497,12 +520,14 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     .ss-ok   { color: #7ad67a; }
     .ss-warn { color: #d9c36a; }
     .ss-bad  { color: #d98383; }
+    #ss-detail             { background: #101010; border-bottom: 1px solid #1d1d1d; padding: 6px 8px; color: #8b8b8b; font-size: 10px; white-space: pre-wrap; font-family: monospace; line-height: 1.35; flex-shrink: 0; }
     #ss-table              { width: 100%; border-collapse: collapse; }
     #ss-table th           { text-align: left; padding: 2px 6px; color: #666; font-weight: normal; font-size: 10px; position: sticky; top: 0; background: #111; border-bottom: 1px solid #222; }
     #ss-table td           { padding: 1px 6px; color: #ccc; }
     #ss-table tr.exec td   { color: #6f6; }
     #ss-table tr.wait td   { color: #ff6; }
     #ss-table tr.dead td   { color: #633; }
+    #ss-table tr.focus td  { background: rgba(122, 214, 122, 0.08); }
   </style>
 </head>
 <body>
@@ -544,8 +569,9 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       <span id="ss-debug-link-status">dbg: disconnected</span>
       <span id="ss-last-hit">last: -</span>
     </div>
+    <div id="ss-detail">waiting for script stack detail...</div>
     <table id="ss-table">
-      <thead><tr><th>#</th><th>PC</th><th>state</th><th>entity</th><th>timer</th></tr></thead>
+      <thead><tr><th>#</th><th>PC</th><th>state</th><th>next</th><th>entity</th><th>timer</th></tr></thead>
       <tbody id="ss-tbody"></tbody>
     </table>
   </div>
@@ -798,8 +824,9 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         lastWrapWidth = W;
         lastWrapHeight = H;
         if (!W || !H) return;
-        const scale = Math.min(W / 512, H / 448);
-        canvas.style.transform = 'scale(' + Math.max(scale, 0.01) + ')';
+        const scale = Math.max(Math.min(W / 512, H / 448), 0.01);
+        canvas.style.width = (512 * scale) + 'px';
+        canvas.style.height = (448 * scale) + 'px';
       }
       if (window.ResizeObserver) new ResizeObserver(() => resizeCanvas(true)).observe(wrap);
       window.addEventListener('resize', () => resizeCanvas(true));
@@ -830,6 +857,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     const SLOT_COUNT               = 20;
     const SCRIPT_REGION_SIZE       = SLOT_SIZE * SLOT_COUNT;
     const SCRIPT_STACK_BUS_ADDR    = 0x7E0000 + SCRIPT_BASE;
+    const SCRIPT_ARG_OFFSET        = 0x0F;
+    const SCRIPT_ARG_BYTES         = 0x20;
     const SCRIPT_BREAK_WATCH_OFFSETS = [0x00, 0x03, 0x0D];
     const RAM_TAG                  = [82, 65, 77, 32]; // "RAM "
     const WRAM_SIZE                = 0x20000;
@@ -858,6 +887,117 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     function setControlEnabled(id, enabled) {
       const el = document.getElementById(id);
       if (el) el.disabled = !enabled;
+    }
+
+    function slotPtrToIndex(ptr) {
+      const raw = ptr >>> 0;
+      const delta = raw - SCRIPT_BASE;
+      if (!raw || delta < 0 || delta >= SCRIPT_REGION_SIZE || (delta % SLOT_SIZE) !== 0) return -1;
+      return delta / SLOT_SIZE;
+    }
+
+    function stateName(state) {
+      return state === 2 ? 'exec' : state === 4 ? 'wait' : state === 0 ? 'dead' : '0x' + state.toString(16);
+    }
+
+    function slotShort(slot) {
+      return 's' + slot.slot + '@' + fmtHex(slot.loc, 6) + '(' + stateName(slot.state) + ')';
+    }
+
+    function formatArgWords(words) {
+      return words.map((value, index) => 'w' + index.toString(16).toUpperCase() + '=' + fmtHex(value, 4)).join(' ');
+    }
+
+    function formatArgBytes(bytes) {
+      return bytes.map(value => fmtHex(value, 2)).join(' ');
+    }
+
+    function buildScriptChains(slots) {
+      const liveSlots = slots.filter(slot => slot.live);
+      const bySlot = new Map(liveSlots.map(slot => [slot.slot, slot]));
+      const targeted = new Set();
+      for (const slot of liveSlots) if (slot.nextSlot >= 0) targeted.add(slot.nextSlot);
+      const heads = liveSlots.filter(slot => !targeted.has(slot.slot));
+      const visited = new Set();
+      const chains = [];
+      const sources = heads.length ? heads : liveSlots;
+      for (const head of sources) {
+        if (visited.has(head.slot)) continue;
+        const chain = [];
+        let current = head;
+        while (current && !visited.has(current.slot)) {
+          visited.add(current.slot);
+          chain.push(current.slot);
+          current = current.nextSlot >= 0 ? bySlot.get(current.nextSlot) || null : null;
+        }
+        if (chain.length) chains.push(chain);
+      }
+      return chains;
+    }
+
+    function buildScriptSnapshot(region) {
+      const slots = [];
+      for (let i = 0; i < SLOT_COUNT; i++) {
+        const base = i * SLOT_SIZE;
+        if (base + SLOT_SIZE > region.length) break;
+        const loc = readU24(region, base + 0x00);
+        const state = readU16(region, base + 0x03);
+        const timer1 = readU16(region, base + 0x05);
+        const nextPtr = readU16(region, base + 0x0B);
+        const entity = readU16(region, base + 0x0D);
+        const argsBytes = Array.from(region.subarray(base + SCRIPT_ARG_OFFSET, base + SCRIPT_ARG_OFFSET + SCRIPT_ARG_BYTES));
+        const argWords = [];
+        for (let offset = 0; offset < argsBytes.length; offset += 2) {
+          argWords.push(((argsBytes[offset] || 0) | ((argsBytes[offset + 1] || 0) << 8)) >>> 0);
+        }
+        const live = loc !== 0 || state !== 0 || entity !== 0 || nextPtr !== 0;
+        slots.push({
+          slot: i,
+          loc,
+          state,
+          timer1,
+          nextPtr,
+          nextSlot: slotPtrToIndex(nextPtr),
+          entity,
+          argsBytes,
+          argWords,
+          live,
+        });
+      }
+      const liveSlots = slots.filter(slot => slot.live);
+      const activeSlots = liveSlots.filter(slot => slot.state === 2);
+      return { slots, liveSlots, activeSlots, chains: buildScriptChains(slots) };
+    }
+
+    function renderScriptDetail(snapshot) {
+      const detail = document.getElementById('ss-detail');
+      if (!detail) return;
+      const focus = snapshot.activeSlots[0] || snapshot.liveSlots[0] || null;
+      const execText = snapshot.activeSlots.length
+        ? snapshot.activeSlots.map(slotShort).join(' -> ')
+        : 'none';
+      const currentText = snapshot.activeSlots.length === 1
+        ? slotShort(snapshot.activeSlots[0])
+        : snapshot.activeSlots.length > 1
+          ? 'ambiguous (' + snapshot.activeSlots.map(slot => 's' + slot.slot).join(', ') + ')'
+          : 'none';
+      const chainText = snapshot.chains.length
+        ? snapshot.chains.map(chain => chain.map(slotId => 's' + slotId).join(' -> ')).join(' | ')
+        : 'none';
+      const lines = [];
+      lines.push('exec slots: ' + execText);
+      lines.push('current active: ' + currentText + ' (state==2; not always the bottom slot)');
+      lines.push('scheduler chain: ' + chainText);
+      if (focus) {
+        lines.push('focus slot: ' + slotShort(focus) + ' next=' + (focus.nextSlot >= 0 ? ('s' + focus.nextSlot) : '--') + ' entity=' + fmtHex(focus.entity, 4));
+        lines.push('args[0x0F..0x2E] words: ' + formatArgWords(focus.argWords));
+        lines.push('args[0x0F..0x2E] bytes: ' + formatArgBytes(focus.argsBytes));
+      } else {
+        lines.push('focus slot: none');
+        lines.push('args[0x0F..0x2E] words: none');
+        lines.push('args[0x0F..0x2E] bytes: none');
+      }
+      detail.textContent = lines.join('\\n');
     }
 
     // Module is always window.Module (set by the Emscripten core script).
@@ -947,36 +1087,23 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       }
     }
 
-    function buildScriptRows(region) {
-      const rows = [];
-      for (let i = 0; i < SLOT_COUNT; i++) {
-        const base = i * SLOT_SIZE;
-        if (base + SLOT_SIZE > region.length) break;
-        const loc = readU24(region, base + 0x00);
-        if (loc === 0) continue;
-        const state  = readU16(region, base + 0x03);
-        const timer1 = readU16(region, base + 0x05);
-        const entity = readU16(region, base + 0x0D);
-        rows.push({ slot: i, loc, state, timer1, entity });
-      }
-      return rows;
-    }
-
-    function updateScriptStack(region) {
+    function updateScriptStack(snapshot) {
       const tbody = document.getElementById('ss-tbody');
       if (!tbody) return;
-      const parsedRows = buildScriptRows(region);
+      const focusSlot = snapshot.activeSlots.length ? snapshot.activeSlots[0].slot : -1;
       let html = '';
-      for (const { slot, loc, state, timer1, entity } of parsedRows) {
-        const cls   = state === 2 ? 'exec' : state === 4 ? 'wait' : 'dead';
-        const sname = state === 2 ? 'exec' : state === 4 ? 'wait' : state === 0 ? 'dead' : '0x' + state.toString(16);
+      for (const { slot, loc, state, nextSlot, timer1, entity } of snapshot.liveSlots) {
+        const cls   = (state === 2 ? 'exec' : state === 4 ? 'wait' : 'dead') + (slot === focusSlot ? ' focus' : '');
+        const sname = stateName(state);
         html += '<tr class="' + cls + '"><td>' + slot + '</td><td>' +
           fmtHex(loc, 6) + '</td><td>' + sname + '</td><td>' +
+          (nextSlot >= 0 ? nextSlot : '--') + '</td><td>' +
           fmtHex(entity, 4) + '</td><td>' + timer1 + '</td></tr>';
       }
-      if (!html) html = '<tr><td colspan="5" style="color:#555;text-align:center;padding:6px">no active scripts</td></tr>';
+      if (!html) html = '<tr><td colspan="6" style="color:#555;text-align:center;padding:6px">no active scripts</td></tr>';
       tbody.innerHTML = html;
-      document.getElementById('ss-count').textContent = parsedRows.length + ' active';
+      document.getElementById('ss-count').textContent = snapshot.liveSlots.length + ' active';
+      renderScriptDetail(snapshot);
     }
 
     function disarmScriptStackHook(m) {
@@ -1113,7 +1240,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           refreshDebuggerUi(m, src.mode);
           if (src.bytes) {
             traceHookActivity(src.bytes);
-            updateScriptStack(src.bytes);
+            updateScriptStack(buildScriptSnapshot(src.bytes));
             vscodeApi.postMessage({ command: 'wramDelta', offset: SCRIPT_BASE, data: Array.from(src.bytes) });
           } else {
             document.getElementById('ss-count').textContent =

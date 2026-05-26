@@ -1,5 +1,12 @@
 # Integrating Snes9x2005-WASM Fork into Debugger Core
 
+Note:
+The live repository layout now tracks both core repos under `core/`:
+- `core/snes9x2005-wasm`
+- `core/snes9x2005-wasm-vanilla`
+
+The `debugger/core/...` paths below are historical notes from the earlier integration attempt.
+
 This document describes how to integrate the fork  
 https://github.com/r-bin/snes9x2005-wasm  
 into the ROM hacking debugger project, migrate temporary modifications, and prepare a VSCode debugger integration layer.

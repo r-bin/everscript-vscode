@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.2.78",
+  "version": "0.3.0",
   "publisher": "rbin",
   "main": "./extension.js",
   "engines": {
@@ -21,8 +21,11 @@
     "Snippets"
   ],
   "scripts": {
-    "test": "vscode-tmgrammar-test -g code_highlighter/syntaxes/everscript.tmLanguage.json 'code_highlighter/tests/**/*.test.evs' && node memory_radar/tests/radar.test.js && node memory_radar/tests/damage.test.js && node memory_radar/tests/map-blob-evidence-model.test.js && node memory_radar/tests/render-script-model.test.js && node memory_radar/tests/smoke.test.js && node memory_radar/tests/ui.test.js && node memory_radar/tests/scaling-rom.test.js && node memory_radar/tests/map-pipeline-model.test.js && node debugger/tests/debugger.test.js && node debugger/tests/emulator-health.test.js && node debugger/tests/emulator-runtime.test.js",
-    "test:emulator-runtime": "if [ -d debugger/core/snes9x2005-wasm ]; then sh debugger/core/snes9x2005-wasm/build.sh; else sh debugger/core/snes9x/build.sh; fi && node debugger/tests/emulator-runtime.test.js",
+    "build:core:custom": "sh tools/build_snes_core.sh custom",
+    "build:core:vanilla": "sh tools/build_snes_core.sh vanilla",
+    "build:cores": "npm run build:core:vanilla && npm run build:core:custom",
+    "test": "npm run build:cores && vscode-tmgrammar-test -g code_highlighter/syntaxes/everscript.tmLanguage.json 'code_highlighter/tests/**/*.test.evs' && node memory_radar/tests/radar.test.js && node memory_radar/tests/damage.test.js && node memory_radar/tests/map-blob-evidence-model.test.js && node memory_radar/tests/render-script-model.test.js && node memory_radar/tests/smoke.test.js && node memory_radar/tests/ui.test.js && node memory_radar/tests/scaling-rom.test.js && node memory_radar/tests/map-pipeline-model.test.js && node debugger/tests/debugger.test.js && node debugger/tests/room-script-model.test.js && node debugger/tests/emulator-health.test.js && node debugger/tests/emulator-runtime.test.js",
+    "test:emulator-runtime": "npm run build:cores && node debugger/tests/emulator-runtime.test.js",
     "package": "mkdir -p out && /opt/homebrew/bin/vsce package --out out/ 2>&1 || (echo '' && echo 'ERROR: vsce package failed. Check publisher/engine fields in package.json.' >&2 && exit 1)",
     "deploy": "npm run package && node -e \"const v=require('./package.json').version; const {execSync}=require('child_process'); const vsix='out/everscript-'+v+'.vsix'; console.log('Installing '+vsix+'...'); try { execSync('code --install-extension '+vsix+' --force', {stdio:'inherit'}); } catch(e) { console.error('\\nERROR: code CLI not found or install failed.'); console.error('Fix: add VS Code to PATH via Command Palette: Shell Command: Install code in PATH'); process.exit(1); } const out=execSync('code --list-extensions 2>&1').toString(); if(!out.includes('rbin.everscript')) { console.error('\\nERROR: extension installed but rbin.everscript not found in extension list.'); console.error('Installed output was: '+out); process.exit(1); } console.log('\\nOK: rbin.everscript@'+v+' is installed. Reload VS Code (Developer: Reload Window).')\""
   },
@@ -235,7 +238,7 @@
         "everscript.snesCorePath": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Path to a custom `snes9x2005-wasm` Emscripten `.js` build (e.g. `/path/to/snes9x_2005.js`). The matching `.wasm` file must be in the same directory. Leave empty to use the bundled `emulator/core/snes9x_2005.js`.",
+          "markdownDescription": "Path to a custom `snes9x2005-wasm` Emscripten `.js` build (for example `debugger/core/snes9x2005-wasm/snes9x_2005.js`). The matching `.wasm` file must be in the same directory. Leave empty to use the bundled vanilla core at `debugger/core/snes9x2005-wasm-vanilla/snes9x_2005.js`.",
           "scope": "machine"
         }
       }

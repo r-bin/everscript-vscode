@@ -82,13 +82,36 @@ function renderRoomDetail(room){
   var enemies=c.enemies||[];
   var objs=c.objects||[];
   var trans=c.transitions||[];
-  var trig=c.triggers||{stepOn:[],bTrigger:[]};
+  var trig=c.triggers||{enter:null,stepOn:[],bTrigger:[],meta:null};
+  var enterTrig=trig.enter||null;
   var stepOn=trig.stepOn||[];
   var bTrigger=trig.bTrigger||[];
+  var trigMeta=trig.meta||null;
   var trigNames=c.triggerNames||{stepOn:[],bTrigger:[]};
   var stepOnNames=trigNames.stepOn||[];
   var bTrigNames=trigNames.bTrigger||[];
   var poi=c.poi||[];
+  function hexNum(v,w){
+    if(typeof v!=='number'||!isFinite(v))return '&ndash;';
+    return '0x'+(v>>>0).toString(16).toUpperCase().padStart(w,'0');
+  }
+  function renderScriptTable(script){
+    if(!script||!script.instructions||!script.instructions.length)return '<div class="rs-note">No decoded script data.</div>';
+    var out='<table class="rs-tbl"><thead><tr><th>Addr</th><th>Op</th><th>Size</th><th>Bytes</th><th>Summary</th></tr></thead><tbody>';
+    script.instructions.forEach(function(row){
+      out+='<tr'+(row.terminal?' class="rs-term"':'')+'><td>'+hexNum(row.addressSnes,6)+'</td><td>'+escH(row.opcodeHex||'')+'</td><td>'+escH(String(row.size||0))+'</td><td>'+escH(row.bytesHex||'')+'</td><td>'+(row.summary?escH(row.summary):'&ndash;')+'</td></tr>';
+    });
+    out+='</tbody></table>';
+    if(!script.terminated)out+='<div class="rs-note">Stopped: '+escH(script.stopReason||'unknown')+'</div>';
+    return out;
+  }
+  function renderScriptCard(title, meta, script){
+    var out='<div class="rs-script"><div class="rs-h">'+escH(title)+'</div>';
+    if(meta)out+='<div class="rs-note">'+meta+'</div>';
+    out+=renderScriptTable(script);
+    out+='</div>';
+    return out;
+  }
   // Trigger coordinate origin (from ROM meta bytes). Converts 16px-tile coords to 8px-tile SVG space.
   var trigOff=c.trigOffset||null;
   function tsvg(t){
@@ -310,6 +333,34 @@ function renderRoomDetail(room){
       html+='<tr class="trig-b" data-kind="btrig" data-idx="'+i+'"><td><code>'+escH(nm)+'</code></td><td class="trig-coord">['+t.x1+','+t.y1+':'+t.x2+','+t.y2+']</td><td>'+(t.label?'<em>'+escH(t.label)+'</em>':'&ndash;')+'</td></tr>';
     });
     html+='</tbody></table></div>';
+  }
+  if(enterTrig||stepOn.length||bTrigger.length){
+    html+='<div class="rs rs-scripts"><div class="rs-h">ROM scripts</div>';
+    if(trigMeta){
+      html+='<table class="rs-tbl"><thead><tr><th>Enter ptr</th><th>Step len</th><th>Step count</th><th>B len</th><th>B count</th></tr></thead><tbody>';
+      html+='<tr><td>'+hexNum(trigMeta.enterPointerSnes,6)+'</td><td>'+hexNum(trigMeta.stepLength,4)+'</td><td>'+escH(String(trigMeta.stepCount||0))+'</td><td>'+hexNum(trigMeta.bLength,4)+'</td><td>'+escH(String(trigMeta.bCount||0))+'</td></tr>';
+      html+='</tbody></table>';
+    }
+    if(enterTrig){
+      html+=renderScriptCard('Enter script',
+        'ptr '+hexNum(enterTrig.scriptPointerSnes,6)+'  addr '+hexNum(enterTrig.scriptAddressSnes,6),
+        enterTrig);
+    }
+    stepOn.forEach(function(t,i){
+      var nm=stepOnNames[i]||('#'+i);
+      var meta='coords ['+t.x1+','+t.y1+':'+t.x2+','+t.y2+']';
+      if(typeof t.scriptId==='number')meta+='  scriptId '+hexNum(t.scriptId,4);
+      meta+='  addr '+hexNum(t.scriptAddressSnes,6);
+      html+=renderScriptCard('Step-on '+nm,meta,t);
+    });
+    bTrigger.forEach(function(t,i){
+      var nm=bTrigNames[i]||('#'+i);
+      var meta='coords ['+t.x1+','+t.y1+':'+t.x2+','+t.y2+']';
+      if(typeof t.scriptId==='number')meta+='  scriptId '+hexNum(t.scriptId,4);
+      meta+='  addr '+hexNum(t.scriptAddressSnes,6);
+      html+=renderScriptCard('B-trigger '+nm,meta,t);
+    });
+    html+='</div>';
   }
 
   // ── ROM Map Data section ──────────────────────────────────────────────────

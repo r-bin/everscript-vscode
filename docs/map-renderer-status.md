@@ -2,6 +2,8 @@
 
 Canonical model doc: `docs/map-data-model.md`
 
+Related feature dossier: `docs/room-script-parser.md`
+
 Simple status:
 - 🟢 header
 - 🟡 decompressor boundary model
@@ -19,6 +21,7 @@ This file remains a short status pointer for the Rooms map renderer research and
 ### Working
 - Header parsing and room dimensions from bytes 0..3.
 - Trigger table parsing (step-on and B-trigger, 6-byte records).
+- Room script parsing for enter, step-on, and B-trigger scripts via ROM pointer tables, surfaced in the Rooms tab.
 - Map tile decode for declared tile families (SoETilesViewer-compatible tile decode path).
 - Sentinel + tilemap decode path for maps confirmed under current signatures:
   - 0x33 Strong Heart Exterior (strict7, lead `0x30`).

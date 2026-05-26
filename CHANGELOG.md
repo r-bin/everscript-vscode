@@ -1,3 +1,35 @@
+## [0.3.0] — 2026-05-27
+
+### Added
+- Added a ROM-backed room-script parser in [debugger/emulator/room-script-model.js](/Users/v/Documents/GitHub/everscript-vscode/debugger/emulator/room-script-model.js) that resolves the enter script, step-on trigger scripts, and B-trigger scripts directly from the map data pointer, trigger tables, and script pointer tables.
+- Added decoded script tables to the Rooms tab in [memory_radar/webview/assets/rooms-tab.js](/Users/v/Documents/GitHub/everscript-vscode/memory_radar/webview/assets/rooms-tab.js), including opcode, size, raw bytes, script addresses, and termination state in a TilesViewer-style view.
+
+### Fixed
+- Moved the debugger feature fully under `debugger/`: the emulator panel now lives in [debugger/emulator/panel.js](/Users/v/Documents/GitHub/everscript-vscode/debugger/emulator/panel.js) and both bundled/custom SNES core paths resolve from `debugger/core/...`.
+- Replaced the old `script_all` text scrape in [extension.js](/Users/v/Documents/GitHub/everscript-vscode/extension.js) with the ROM-backed parser so Rooms-tab trigger data comes from the same authoritative source as the map header and payload readers.
+- Updated emulator health coverage for the debugger-rooted layout and warning-path mocking in [debugger/tests/emulator-health.test.js](/Users/v/Documents/GitHub/everscript-vscode/debugger/tests/emulator-health.test.js).
+
+### Tests
+- Added [debugger/tests/room-script-model.test.js](/Users/v/Documents/GitHub/everscript-vscode/debugger/tests/room-script-model.test.js) with synthetic ROM fixtures that validate trigger-table lengths, script-id lookup, opcode sizing, coordinate ordering, and trailing `0x00` termination.
+
+## [0.2.79] — 2026-05-26
+
+### Fixed
+- Merged emulator/debugger core handling into the top-level `core/` folder: the debugger-enabled fork now lives in `core/snes9x2005-wasm` and the vanilla base in `core/snes9x2005-wasm-vanilla`.
+- Removed the obsolete `debugger/core/snes9x` submodule and stopped using `emulator/core/` as a special bundled-core path.
+- Added legacy-path remapping in [emulator/panel.js](/Users/v/Documents/GitHub/everscript-vscode/emulator/panel.js) so existing `everscript.snesCorePath` values that still point at `debugger/core/...` continue to resolve to the debugger core.
+- Reworked screen fitting in [emulator/panel.js](/Users/v/Documents/GitHub/everscript-vscode/emulator/panel.js) to size the canvas with actual fitted width/height values instead of relying on CSS transform scaling.
+- Fixed manual ROM reloads to redispatch directly to a ready webview instead of rebuilding the whole panel HTML.
+
+### Restored
+- Restored working pause/resume and hook controls with the debugger-enabled core, backed by runtime coverage.
+- Restored the script detail panel (`ss-detail`) with current active-slot summary, scheduler-chain view, next-slot column, and `0x0F..0x2E` argument dumps as the next safe v0.2.71 feature slice.
+
+### Tests
+- Added top-level core build wrappers via `tools/build_snes_core.sh` and updated `npm test`, `npm run test:emulator-runtime`, and VS Code tasks to build both core variants from the merged layout.
+- Extended [debugger/tests/emulator-runtime.test.js](/Users/v/Documents/GitHub/everscript-vscode/debugger/tests/emulator-runtime.test.js) to verify fitted canvas sizing, repeat ROM loads, custom-core debugger controls, and the restored script detail panel.
+- Extended [debugger/tests/emulator-health.test.js](/Users/v/Documents/GitHub/everscript-vscode/debugger/tests/emulator-health.test.js) for merged-core paths, legacy-path remapping, and restored detail-panel coverage.
+
 ## [0.2.78] — 2026-05-26
 
 ### Fixed

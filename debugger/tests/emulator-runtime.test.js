@@ -8,11 +8,9 @@ const http = require('http');
 const { execSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '../..');
-const PANEL_JS = path.join(ROOT, 'emulator', 'panel.js');
-const BUNDLED_CORE_JS = path.join(ROOT, 'emulator', 'core', 'snes9x_2005.js');
-const DEBUGGER_CORE_DIR = fs.existsSync(path.join(ROOT, 'debugger', 'core', 'snes9x2005-wasm'))
-  ? path.join(ROOT, 'debugger', 'core', 'snes9x2005-wasm')
-  : path.join(ROOT, 'debugger', 'core', 'snes9x');
+const PANEL_JS = path.join(ROOT, 'debugger', 'emulator', 'panel.js');
+const BUNDLED_CORE_JS = path.join(ROOT, 'debugger', 'core', 'snes9x2005-wasm-vanilla', 'snes9x_2005.js');
+const DEBUGGER_CORE_DIR = path.join(ROOT, 'debugger', 'core', 'snes9x2005-wasm');
 const DEBUGGER_CORE_JS = path.join(DEBUGGER_CORE_DIR, 'snes9x_2005.js');
 
 const BASE_API = [
@@ -260,6 +258,84 @@ async function inspectApi(page) {
   }, { baseApi: BASE_API, debugApi: DEBUG_API });
 }
 
+async function measureScreenLayout(page) {
+  return page.evaluate(() => {
+    const canvas = document.getElementById('screen');
+    const wrap = document.getElementById('screen-wrap');
+    const overlay = document.getElementById('overlay');
+    const canvasBox = canvas.getBoundingClientRect();
+    const wrapBox = wrap.getBoundingClientRect();
+    return {
+      canvasWidth: canvasBox.width,
+      canvasHeight: canvasBox.height,
+      wrapWidth: wrapBox.width,
+      wrapHeight: wrapBox.height,
+      overlayHidden: window.getComputedStyle(overlay).display === 'none',
+    };
+  });
+}
+
+function assertScaledLayout(label, layout) {
+  assert.ok(layout.overlayHidden, `${label}: overlay should be hidden after ROM start`);
+  assert.ok(layout.canvasWidth > 900, `${label}: canvas width should scale beyond native size, got ${layout.canvasWidth}`);
+  assert.ok(layout.canvasHeight > 780, `${label}: canvas height should scale beyond native size, got ${layout.canvasHeight}`);
+  assert.ok(layout.canvasWidth <= layout.wrapWidth + 1, `${label}: canvas width should fit inside wrapper`);
+  assert.ok(layout.canvasHeight <= layout.wrapHeight + 1, `${label}: canvas height should fit inside wrapper`);
+}
+
+async function waitForDebuggerControls(page, label) {
+  await page.waitForFunction(() => {
+    const pauseBtn = document.getElementById('ss-pause-btn');
+    const resumeBtn = document.getElementById('ss-resume-btn');
+    const hookBtn = document.getElementById('ss-hook-btn');
+    const hookAllBtn = document.getElementById('ss-hook-all-btn');
+    return pauseBtn && resumeBtn && hookBtn && hookAllBtn &&
+      !pauseBtn.disabled && !resumeBtn.disabled && !hookBtn.disabled && !hookAllBtn.disabled;
+  }, null, { timeout: 10000 });
+
+  const state = await page.evaluate(() => ({
+    pauseText: document.getElementById('ss-pause-state').textContent,
+    breakText: document.getElementById('ss-break-status').textContent,
+  }));
+  assert.ok(/running/i.test(state.pauseText), `${label}: pause state should report running after startup`);
+  assert.ok(/hook:/i.test(state.breakText), `${label}: break status should be visible after startup`);
+}
+
+async function exerciseDebuggerControls(page, label) {
+  await waitForDebuggerControls(page, label);
+
+  await page.click('#ss-pause-btn');
+  await page.waitForFunction(() => /paused/i.test(document.getElementById('ss-pause-state').textContent));
+
+  await page.click('#ss-resume-btn');
+  await page.waitForFunction(() => /running/i.test(document.getElementById('ss-pause-state').textContent));
+
+  await page.click('#ss-hook-btn');
+  await page.waitForFunction(() => /disarm stack hook/i.test(document.getElementById('ss-hook-btn').textContent));
+  await page.waitForFunction(() => /armed/i.test(document.getElementById('ss-break-status').textContent));
+
+  await page.click('#ss-hook-all-btn');
+  await page.waitForFunction(() => /ignore hook writes/i.test(document.getElementById('ss-hook-all-btn').textContent));
+  await page.waitForFunction(() => /break on all observed writes/i.test(document.getElementById('ss-break-status').textContent));
+
+  await page.click('#ss-hook-all-btn');
+  await page.waitForFunction(() => /break all hooks/i.test(document.getElementById('ss-hook-all-btn').textContent));
+
+  await page.click('#ss-hook-btn');
+  await page.waitForFunction(() => /arm stack hook/i.test(document.getElementById('ss-hook-btn').textContent));
+}
+
+async function assertScriptDetailPanel(page, label) {
+  await page.waitForFunction(() => {
+    const detail = document.getElementById('ss-detail');
+    return detail && /exec slots:|current active:|args\[0x0F\.\.0x2E\] words:/i.test(detail.textContent);
+  }, null, { timeout: 10000 });
+
+  const detailText = await page.evaluate(() => document.getElementById('ss-detail').textContent);
+  assert.ok(/scheduler chain:/i.test(detailText), `${label}: script detail panel should show scheduler chain`);
+  assert.ok(/args\[0x0F\.\.0x2E\] bytes:/i.test(detailText), `${label}: script detail panel should show argument bytes`);
+}
+
 async function exerciseCore(page) {
   return page.evaluate(() => {
     const moduleRef = window.Module;
@@ -293,6 +369,7 @@ async function runRuntimeCase(browser, options) {
       setPanelHtml(requirePanelModule(panelPath, origin, options.coreJsPath));
       const page = await browser.newPage();
       page.setDefaultTimeout(60000);
+      await page.setViewportSize({ width: 1400, height: 1100 });
       await installHostStub(page);
       page.on('console', (msg) => consoleLines.push(`${msg.type()}: ${msg.text()}`));
       page.on('pageerror', (err) => pageErrors.push(String(err && err.stack || err)));
@@ -309,6 +386,18 @@ async function runRuntimeCase(browser, options) {
       }
       await postHostMessage(page, { command: 'loadRom', dataUrl: romDataUrl, name: romName });
       await waitForMessage(page, 'gameStarted', 60000);
+      const layout = await measureScreenLayout(page);
+      assertScaledLayout(options.label, layout);
+      if (options.reloadAfterStart) {
+        await postHostMessage(page, { command: 'loadRom', dataUrl: romDataUrl, name: romName + ' reload' });
+        await waitForMessage(page, 'gameStarted', 60000);
+      }
+      if (options.exerciseDebuggerControls) {
+        await exerciseDebuggerControls(page, options.label);
+      }
+      if (options.expectScriptDetail) {
+        await assertScriptDetailPanel(page, options.label);
+      }
       const result = await exerciseCore(page);
       assert.ok(result.screenPtr > 0, `${options.label}: invalid screen pointer`);
       assert.ok(result.soundPtr > 0, `${options.label}: invalid sound pointer`);
@@ -355,6 +444,7 @@ async function main() {
       coreJsPath: BUNDLED_CORE_JS,
       romPath,
       manualLoad: false,
+      reloadAfterStart: true,
     });
 
     console.log('\nStandalone emulator runtime: bundled core manual-load');
@@ -373,6 +463,8 @@ async function main() {
       coreJsPath: DEBUGGER_CORE_JS,
       romPath,
       manualLoad: false,
+      exerciseDebuggerControls: true,
+      expectScriptDetail: true,
     });
   } catch (err) {
     console.error(err.message);

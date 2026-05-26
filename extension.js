@@ -5,6 +5,7 @@ const path   = require('path');
 const fs     = require('fs');
 const { radarLifecycle, radarH, radarEsc, radarExtractEmoji, radarParseName, radarParseNotes, parseEvsNum, parseEnumsFromContent, parseEvsEnumValues } = require('./memory_radar/radar-utils');
 const radarWebview = require('./memory_radar/webview');
+const { readRoomScriptModel } = require('./debugger/emulator/room-script-model');
 
 
 // ── Data loading ──────────────────────────────────────────────────────────────
@@ -994,30 +995,6 @@ function getMapEnum(wsRoot) {
     return _radarMapEnumCache;
 }
 
-/** Strip ANSI escape codes from a string. */
-function stripAnsi(s) { return s.replace(/\x1b\[[0-9;]*m/g, ''); }
-
-/** Return the first descriptive label from a trigger's script lines.
- *  Looks for: CALL "...", CHANGE MAP = ... "...", etc. */
-function triggerLabel(scriptLines) {
-    for (const l of scriptLines) {
-        let m = l.match(/CALL\s+"([^"]+)"/);
-        if (m) return m[1];
-        m = l.match(/CHANGE MAP.*"([^"]+)"/);
-        if (m) return m[1];
-    }
-    return '';
-}
-
-/** Read and cache the stripped script_all text. Returns '' if not found. */
-function getScriptAllText(wsRoot) {
-    if (_radarScriptAllCache !== null) return _radarScriptAllCache;
-    const p = path.join(wsRoot, 'script_all');
-    try { _radarScriptAllCache = stripAnsi(fs.readFileSync(p, 'utf8')); }
-    catch { _radarScriptAllCache = ''; }
-    return _radarScriptAllCache;
-}
-
 let _luaWatcherCache = null;
 /**
  * Parse gameDrawPoint/gameDrawBox calls from soestuff.lua per-room watcher blocks.
@@ -1064,84 +1041,23 @@ function readLuaWatchers(wsRoot) {
     return _luaWatcherCache;
 }
 
-/**
- * Parse step-on and b-trigger entries for a room from script_all.
- * vanillaEnumName: the enum member name like "BRIAN", or a numeric string "0x15".
- * Returns { stepOn: [{x1,y1,x2,y2,label,scriptLines}], bTrigger: [...] }
- */
 function readScriptAllTriggers(wsRoot, vanillaEnumName) {
-    const out = { stepOn: [], bTrigger: [] };
+    const out = { enter: null, stepOn: [], bTrigger: [], meta: null };
     if (!wsRoot || !vanillaEnumName) return out;
 
-    // Resolve enum name to numeric room ID
     let roomId = NaN;
     if (/^0x/i.test(vanillaEnumName)) {
         roomId = parseInt(vanillaEnumName, 16);
     } else {
         const mapEnum = getMapEnum(wsRoot);
         roomId = mapEnum.get(vanillaEnumName) ?? NaN;
-        // Try numeric fallback
         if (isNaN(roomId)) roomId = parseInt(vanillaEnumName, 10);
     }
     if (isNaN(roomId)) return out;
 
-    const text = getScriptAllText(wsRoot);
-    if (!text) return out;
-
-    // Find room header: `[0xNN] ...` at start of line
-    const hexId = '0x' + roomId.toString(16).padStart(2, '0').toLowerCase();
-    const headerPrefix = '[' + hexId + ']';
-    const headerIdx = text.indexOf('\n' + headerPrefix);
-    if (headerIdx === -1) return out;
-
-    // Find start of next room section (to bound our search)
-    const afterHeader = text.indexOf('\n', headerIdx + 1);
-    const nextRoomIdx = text.search(new RegExp('\n\\[0x[0-9a-f]+\\]', ''));
-    // Find the *next* room header after our own
-    let sectionEnd = text.length;
-    const nextAfter = text.indexOf('\n[0x', afterHeader + 1);
-    if (nextAfter !== -1) sectionEnd = nextAfter;
-    const section = text.slice(headerIdx + 1, sectionEnd);
-
-    // Parse a trigger section ("step-on scripts" or "B trigger scripts")
-    const parseTriggerSection = (sectionText, type, result) => {
-        // Match the section header
-        const headerRe = type === 'stepOn'
-            ? /step-on scripts at [^\n]+\n/
-            : /B trigger scripts at [^\n]+\n/;
-        const hm = headerRe.exec(sectionText);
-        if (!hm) return;
-        let body = sectionText.slice(hm.index + hm[0].length);
-        // Bound step-on body: stop before the B trigger section (same [x,y:x,y]= format leaks through)
-        if (type === 'stepOn') {
-            const bIdx = body.search(/\n  B trigger scripts at /);
-            if (bIdx !== -1) body = body.slice(0, bIdx);
-        }
-
-        // Each entry starts with `    [x1,y1:x2,y2] = ...`
-        const entryRe = /\[([0-9a-f]+),([0-9a-f]+):([0-9a-f]+),([0-9a-f]+)\]\s*=/g;
-        let em;
-        const entryPositions = [];
-        while ((em = entryRe.exec(body)) !== null) entryPositions.push(em.index);
-
-        for (let i = 0; i < entryPositions.length; i++) {
-            const chunk = body.slice(entryPositions[i], i + 1 < entryPositions.length ? entryPositions[i + 1] : undefined);
-            const coordM = chunk.match(/\[([0-9a-f]+),([0-9a-f]+):([0-9a-f]+),([0-9a-f]+)\]/);
-            if (!coordM) continue;
-            const x1 = parseInt(coordM[1], 16), y1 = parseInt(coordM[2], 16);
-            const x2 = parseInt(coordM[3], 16), y2 = parseInt(coordM[4], 16);
-            // Script lines: lines starting with whitespace+[0x...] 
-            const scriptLines = chunk.split('\n')
-                .filter(l => /\s+\[0x[0-9a-f]+\]/.test(l))
-                .map(l => l.trim());
-            const label = triggerLabel(scriptLines);
-            result.push({ x1, y1, x2, y2, label, scriptLines });
-        }
-    };
-
-    parseTriggerSection(section, 'stepOn', out.stepOn);
-    parseTriggerSection(section, 'bTrigger', out.bTrigger);
-    return out;
+    const model = readRoomScriptModel(wsRoot, roomId);
+    if (!model) return out;
+    return model;
 }
 
 
@@ -1988,11 +1904,40 @@ function renderRoomsTree(nodes) {
 /** Build ROOMS JSON data object for embedding in the webview. Expects imagePath already converted to imageUri. */
 function buildRoomsJson(tree, activeTab, selectedMap) {
     const all = {};
-    // Strip scriptLines from triggers — they are huge and not needed in the webview.
     function sanitizeTriggers(triggers) {
         if (!triggers) return null;
-        const clean = (arr) => (arr || []).map(({ x1, y1, x2, y2, label }) => ({ x1, y1, x2, y2, label }));
-        return { stepOn: clean(triggers.stepOn), bTrigger: clean(triggers.bTrigger) };
+        const sanitizeInstructions = (instructions) => (instructions || []).map(({ addressSnes, opcodeHex, size, bytesHex, summary, terminal }) => ({
+            addressSnes,
+            opcodeHex,
+            size,
+            bytesHex,
+            summary,
+            terminal,
+        }));
+        const cleanEntry = (entry) => {
+            if (!entry) return null;
+            const out = {
+                label: entry.label || '',
+                scriptId: entry.scriptId,
+                scriptPointerSnes: entry.scriptPointerSnes,
+                scriptAddressSnes: entry.scriptAddressSnes,
+                terminated: !!entry.terminated,
+                stopReason: entry.stopReason || '',
+                bytesConsumed: entry.bytesConsumed || 0,
+                instructions: sanitizeInstructions(entry.instructions),
+            };
+            if (typeof entry.x1 === 'number') out.x1 = entry.x1;
+            if (typeof entry.y1 === 'number') out.y1 = entry.y1;
+            if (typeof entry.x2 === 'number') out.x2 = entry.x2;
+            if (typeof entry.y2 === 'number') out.y2 = entry.y2;
+            return out;
+        };
+        return {
+            meta: triggers.meta || null,
+            enter: cleanEntry(triggers.enter),
+            stepOn: (triggers.stepOn || []).map(cleanEntry),
+            bTrigger: (triggers.bTrigger || []).map(cleanEntry),
+        };
     }
     function sanitizeContent(c) {
         if (!c) return null;
@@ -2884,7 +2829,7 @@ function activate(context) {
     );
 
     // ── Emulator Panel ───────────────────────────────────────────────────────
-    const { openEmulatorPanel } = require('./emulator/panel');
+    const { openEmulatorPanel } = require('./debugger/emulator/panel');
     context.subscriptions.push(
         vscode.commands.registerCommand('everscript.openEmulator', () => {
             openEmulatorPanel(context);

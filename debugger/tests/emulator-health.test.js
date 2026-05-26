@@ -7,7 +7,7 @@
  * Emscripten-compiled core directly inside the VS Code webview.
  *
  * Checks:
- *   A) Core files exist at emulator/core/
+ *   A) Core files exist at debugger/core/snes9x2005-wasm-vanilla/
  *   B) WASM binary has correct magic bytes
  *   C) Core JS contains all required Emscripten exports
  *   D) Core JS does NOT define EJS_Runtime (it is NOT a libretro wrapper)
@@ -19,10 +19,10 @@ const fs     = require('fs');
 const path   = require('path');
 
 const ROOT      = path.resolve(__dirname, '../..');
-const CORE_DIR  = path.join(ROOT, 'emulator', 'core');
+const CORE_DIR  = path.join(ROOT, 'debugger', 'core', 'snes9x2005-wasm-vanilla');
 const CORE_JS   = path.join(CORE_DIR, 'snes9x_2005.js');
 const CORE_WASM = path.join(CORE_DIR, 'snes9x_2005.wasm');
-const PANEL_JS  = path.join(ROOT, 'emulator', 'panel.js');
+const PANEL_JS  = path.join(ROOT, 'debugger', 'emulator', 'panel.js');
 
 // WebAssembly binary magic: \0asm  (00 61 73 6D)
 const WASM_MAGIC = Buffer.from([0x00, 0x61, 0x73, 0x6d]);
@@ -55,7 +55,7 @@ function xtest(name, reason, fn) {
 }
 
 // ── A. Core files ─────────────────────────────────────────────────────────────
-console.log('\nA. Core files (emulator/core/):');
+console.log('\nA. Core files (debugger/core/snes9x2005-wasm-vanilla/):');
 
 test('snes9x_2005.js exists', () => {
     assert.ok(fs.existsSync(CORE_JS), `snes9x_2005.js not found at ${CORE_JS}`);
@@ -124,10 +124,12 @@ test('panel.js exists', () => {
     assert.ok(fs.existsSync(PANEL_JS), 'emulator/panel.js not found');
 });
 
-test('panel.js references emulator/core not emulator/vendor', () => {
+test('panel.js references the merged core folder, not emulator/vendor', () => {
     if (!panelContent) { assert.fail('panel.js could not be read'); return; }
     assert.ok(!panelContent.includes('emulator/vendor'),
         'panel.js still references emulator/vendor — remove EmulatorJS dependency');
+    assert.ok(panelContent.includes("path.join('debugger', 'core', 'snes9x2005-wasm-vanilla')"),
+        'panel.js does not point bundled core resolution at debugger/core/snes9x2005-wasm-vanilla');
 });
 
 test('panel.js references CORE_JS constant', () => {
@@ -160,10 +162,40 @@ test('panel.js reads Float32 planar audio blocks from the core', () => {
         'panel.js does not appear to read the core audio buffer as Float32 planar samples');
 });
 
-test('panel.js applies transform-based canvas scaling', () => {
+test('panel.js applies fitted canvas width and height scaling', () => {
     if (!panelContent) { assert.fail('panel.js could not be read'); return; }
-    assert.ok(panelContent.includes("canvas.style.transform = 'scale('"),
-        'panel.js does not apply deterministic transform-based scaling to the screen canvas');
+    assert.ok(panelContent.includes("canvas.style.width = (512 * scale) + 'px'"),
+        'panel.js does not update the fitted screen canvas width');
+    assert.ok(panelContent.includes("canvas.style.height = (448 * scale) + 'px'"),
+        'panel.js does not update the fitted screen canvas height');
+});
+
+test('panel.js redispatches pending ROMs without forcing panel reset when ready', () => {
+    if (!panelContent) { assert.fail('panel.js could not be read'); return; }
+    assert.ok(panelContent.includes('function _dispatchPendingRom()'),
+        'panel.js does not centralize ROM redispatch logic');
+    assert.ok(panelContent.includes("if (!_dispatchPendingRom()) _resetPanelHtml();"),
+        'panel.js does not fall back to HTML reset only when direct ROM dispatch is unavailable');
+});
+
+test('panel.js remaps legacy debugger/core custom core paths', () => {
+    if (!panelContent) { assert.fail('panel.js could not be read'); return; }
+    assert.ok(panelContent.includes('const LEGACY_CUSTOM_CORE_DIRS = ['),
+        'panel.js does not define legacy custom core path aliases');
+    assert.ok(panelContent.includes("path.join('debugger', 'core', 'snes9x2005-wasm')"),
+        'panel.js does not recognize the old debugger/core/snes9x2005-wasm path');
+    assert.ok(panelContent.includes('function _remapLegacyCorePath(rawPath)'),
+        'panel.js does not remap legacy custom core paths to the merged core layout');
+});
+
+test('panel.js restores the script detail panel and argument dump', () => {
+    if (!panelContent) { assert.fail('panel.js could not be read'); return; }
+    assert.ok(panelContent.includes('id="ss-detail"'),
+        'panel.js does not render the script detail panel');
+    assert.ok(panelContent.includes('args[0x0F..0x2E] words:'),
+        'panel.js does not render the argument word summary');
+    assert.ok(panelContent.includes('scheduler chain:'),
+        'panel.js does not render the scheduler chain summary');
 });
 
 test('panel.js logs script hook arm and observed-write status', () => {
@@ -192,12 +224,8 @@ test('panel.js sends ROM once from ready handler', () => {
     const readyIdx = panelContent.indexOf("case 'ready'");
     const nextCase = panelContent.indexOf("case '", readyIdx + 1);
     const block = panelContent.slice(readyIdx, nextCase);
-    assert.ok(block.includes('Sending ROM to webview once'),
-        'ready handler does not log single-shot ROM send');
-    assert.ok(block.includes('_armRomTimeout('),
-        'ready handler does not arm ROM timeout before sending');
-    assert.ok(block.includes("command: 'loadRom'"),
-        'ready handler does not send loadRom');
+    assert.ok(block.includes('_dispatchPendingRom();'),
+        'ready handler does not delegate pending ROM dispatch');
 });
 
 test('panel.js does not use dispatch retry protocol', () => {
@@ -362,7 +390,8 @@ test('webview sends gameStarted after startWithRom success', () => {
             visibleTextEditors:  [],
             createOutputChannel: function() { return { appendLine: function() {}, show: function() {} }; },
             setStatusBarMessage: function() { return { dispose: function() {} }; },
-            showErrorMessage: function() {}
+            showErrorMessage: function() {},
+            showWarningMessage: function() {}
         },
         ViewColumn: { Beside: 2, Active: 1 },
         Uri: { file: function(p) { return { fsPath: p, toString: function() { return 'file://' + p; } }; } },

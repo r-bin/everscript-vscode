@@ -27,3 +27,5 @@ Progress:
 - Added a browser-backed runtime harness in [debugger/tests/emulator-runtime.test.js](/Users/v/Documents/GitHub/everscript-vscode/debugger/tests/emulator-runtime.test.js) that opens the real panel HTML, waits for `webviewBoot`/`ready`, loads the Evermore ROM, and exercises both bundled and custom core paths.
 - The harness was validated against historical commit `654df3e`: current `v0.2.76` passes, while `654df3e` fails with `timed out waiting for webviewBoot`.
 - Reintroduced visible-editor debugger sync anchoring in [emulator/panel.js](/Users/v/Documents/GitHub/everscript-vscode/emulator/panel.js) as the first low-risk v0.2.71 feature slice.
+- Restored the pause/resume and hook-control path by merging the custom and vanilla core sources into the new `core/` layout and remapping legacy `debugger/core/...` settings to `core/snes9x2005-wasm/snes9x_2005.js`.
+- Restored the read-only script detail panel (`ss-detail`) with active-slot summary, scheduler-chain view, next-slot column, and argument dump, while keeping the riskier lifecycle-derived break behavior out of this slice.

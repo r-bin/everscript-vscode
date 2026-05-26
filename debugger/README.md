@@ -1,13 +1,13 @@
 # Debugger (Experimental)
 
-This folder contains the extension-side debugger adapter/runtime and the tracked emulator-core fork used for debugger-facing integration work.
+This folder contains the debugger feature: adapter/runtime plus its emulator and core subfolders.
 
-## Core Submodule
+## Core Submodules
 
-The SNES core fork is tracked as a git submodule:
+The SNES cores are tracked as git submodules under `debugger/core/`:
 
-- Path: `debugger/core/snes9x`
-- Remote: `https://github.com/r-bin/snes9x2005-wasm.git`
+- Debugger fork: `debugger/core/snes9x2005-wasm`
+- Vanilla base: `debugger/core/snes9x2005-wasm-vanilla`
 
 Clone/update commands:
 
@@ -19,8 +19,8 @@ git submodule update --remote --recursive
 Submodule branch workflow for VS Code debugger work:
 
 ```bash
-cd debugger/core/snes9x
-git checkout -b vscode-debugger-integration
+cd debugger/core/snes9x2005-wasm
+git checkout feature/vscode-debugger-integration
 ```
 
 Full integration notes (including tmp migration and architecture layout):
