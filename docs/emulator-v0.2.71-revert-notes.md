@@ -1,6 +1,6 @@
 # Emulator v0.2.71 Revert Notes
 
-Status: active rollback
+Status: rollback stabilized; reintroduction in progress
 
 Reason:
 - ROM startup is still failing in the live VS Code webview with `Timeout waiting for webview ready message`.
@@ -22,3 +22,8 @@ Re-add checklist:
 - Re-introduce lifecycle analysis only after there is a reproducible boot-path test that exercises the full webview startup script.
 - Add one executable regression test that proves `webviewBoot` is posted in the same HTML shape shipped to VS Code.
 - Re-introduce visible-editor sync anchoring separately from lifecycle rendering so those concerns can be validated independently.
+
+Progress:
+- Added a browser-backed runtime harness in [debugger/tests/emulator-runtime.test.js](/Users/v/Documents/GitHub/everscript-vscode/debugger/tests/emulator-runtime.test.js) that opens the real panel HTML, waits for `webviewBoot`/`ready`, loads the Evermore ROM, and exercises both bundled and custom core paths.
+- The harness was validated against historical commit `654df3e`: current `v0.2.76` passes, while `654df3e` fails with `timed out waiting for webviewBoot`.
+- Reintroduced visible-editor debugger sync anchoring in [emulator/panel.js](/Users/v/Documents/GitHub/everscript-vscode/emulator/panel.js) as the first low-risk v0.2.71 feature slice.

@@ -178,6 +178,12 @@ test('panel.js exposes break-all-hooks and debugger-connect controls', () => {
         'panel.js does not expose the break-all-hooks or debugger connect controls');
 });
 
+test('panel.js can anchor debugger sync from a visible everscript editor', () => {
+    if (!panelContent) { assert.fail('panel.js could not be read'); return; }
+    assert.ok(panelContent.includes('_findDebuggableEditor') && panelContent.includes('visibleTextEditors'),
+        'panel.js still relies only on activeTextEditor for debugger sync anchoring');
+});
+
 // ── F. ROM dispatch correctness ───────────────────────────────────────────────
 console.log('\nF. ROM dispatch correctness:');
 

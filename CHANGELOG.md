@@ -1,3 +1,15 @@
+## [0.2.78] — 2026-05-26
+
+### Fixed
+- Moved the shell-style build/deploy helpers out of [/.vscode/launch.json](/Users/v/Documents/GitHub/everscript-vscode/.vscode/launch.json) into [/.vscode/tasks.json](/Users/v/Documents/GitHub/everscript-vscode/.vscode/tasks.json), including a dedicated `Test Emulator Runtime` task.
+- Restored visible-editor debugger anchoring in [emulator/panel.js](/Users/v/Documents/GitHub/everscript-vscode/emulator/panel.js) as the first safe v0.2.71 feature reintroduction.
+
+### Tests
+- Added [debugger/tests/emulator-runtime.test.js](/Users/v/Documents/GitHub/everscript-vscode/debugger/tests/emulator-runtime.test.js): a browser-backed runtime harness that loads the real panel HTML, boots the core, loads the Evermore ROM, exercises core commands, and records the actually exported API surface.
+- The runtime harness now covers bundled-core auto-load, bundled-core manual-load, and custom-core auto-load.
+- The runtime harness supports both debugger-core directory layouts: `debugger/core/snes9x2005-wasm` and `debugger/core/snes9x`.
+- Verified manually with the harness that current `v0.2.76` passes while historical commit `654df3e` fails with `timed out waiting for webviewBoot`.
+
 ## [0.2.76] — 2026-05-26
 
 ### Fixed

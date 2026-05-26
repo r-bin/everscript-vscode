@@ -110,6 +110,19 @@ function _armRomTimeout(romName) {
   }, 15000);
 }
 
+function _findDebuggableEditor() {
+  const seen = new Set();
+  const editors = [vscode.window.activeTextEditor].concat(vscode.window.visibleTextEditors || []);
+  for (const editor of editors) {
+    if (!editor || !editor.document || editor.document.languageId !== 'everscript') continue;
+    const key = editor.document.uri.toString();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    return editor;
+  }
+  return null;
+}
+
 function _findEnclosingFunction(document, lineIndex) {
   for (let line = Math.min(lineIndex, document.lineCount - 1); line >= 0; line--) {
     const text = document.lineAt(line).text.trimStart();
@@ -120,8 +133,8 @@ function _findEnclosingFunction(document, lineIndex) {
 }
 
 function _captureDebuggerLocation() {
-  const editor = vscode.window.activeTextEditor;
-  if (!editor || editor.document.languageId !== 'everscript') return null;
+  const editor = _findDebuggableEditor();
+  if (!editor) return null;
   const line = editor.selection.active.line + 1;
   return {
     file: editor.document.uri.fsPath,

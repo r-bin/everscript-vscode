@@ -1,0 +1,48 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build Plugin (tests)",
+            "type": "shell",
+            "command": "/opt/homebrew/bin/npm test",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "Test Emulator Runtime",
+            "type": "shell",
+            "command": "/opt/homebrew/bin/npm run test:emulator-runtime",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Deploy Plugin (VSIX)",
+            "type": "shell",
+            "command": "/opt/homebrew/bin/npm run deploy",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Build Core (snes9x2005-wasm)",
+            "type": "shell",
+            "command": "if [ -d \"${workspaceFolder}/debugger/core/snes9x2005-wasm\" ]; then cd \"${workspaceFolder}/debugger/core/snes9x2005-wasm\"; else cd \"${workspaceFolder}/debugger/core/snes9x\"; fi && ./build.sh",
+            "problemMatcher": []
+        },
+        {
+            "label": "Dump Map 0x33",
+            "type": "shell",
+            "command": "node tools/map-dump.js 0x33",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        }
+    ]
+}
