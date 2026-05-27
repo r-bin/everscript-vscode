@@ -570,6 +570,7 @@ let _scalingChars      = null;   // cached character stat array (142 entries fro
 let _hitLookup         = null;   // precomputed hit% table {hit_rate:{evade:pct}} from ROM
 let _scaleActive       = false;  // whether scale_enemies is active in workspace
 let _ingrBaseUri       = '';     // webview URI base for ingredient images (set on panel creation)
+let _radarByteScriptFocus = '';  // currently focused byte-script address from emulator panel
 
 function getRadarMap() {
     if (_radarMapCache) return _radarMapCache;
@@ -2305,6 +2306,7 @@ function renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTree = [], 
     const vanillaRoomDetails = buildVanillaRoomDetails();
     const roomsData      = buildRoomsJson(roomTree, activeTab, selectedMap)
         + '\nvar INGR_BASE=' + JSON.stringify(ingrBaseUri) + ';'
+        + '\nvar ACTIVE_BYTE_SCRIPT_FOCUS=' + JSON.stringify(_radarByteScriptFocus || '') + ';'
         + '\nvar VANILLA_ROOMS_DATA=' + JSON.stringify(VANILLA_ROOMS) + ';'
         + '\nvar VANILLA_ROOM_DETAILS=' + JSON.stringify(vanillaRoomDetails).replace(/<\/script>/gi, '<\\/script>') + ';';
 
@@ -2766,6 +2768,7 @@ function activate(context) {
                     _radarRoomDocPath = null;
                     _radarActiveTab = 'radar';
                     _ingrBaseUri = '';
+                    _radarByteScriptFocus = '';
                 }, null, context.subscriptions);
             } else {
                 _radarPanel.title = 'Radar: ' + scope.name;
@@ -2925,6 +2928,17 @@ function activate(context) {
     context.subscriptions.push(
         vscode.commands.registerCommand('everscript.openEmulator', () => {
             openEmulatorPanel(context);
+        }),
+        vscode.commands.registerCommand('everscript._scriptFocus', (payload) => {
+            _radarByteScriptFocus = String(payload?.address || '').toUpperCase();
+            if (_radarPanel) {
+                _radarPanel.webview.postMessage({
+                    command: 'byteScriptFocus',
+                    address: _radarByteScriptFocus,
+                    slot: typeof payload?.slot === 'number' ? payload.slot : null,
+                    state: payload?.state || '',
+                });
+            }
         }),
         vscode.commands.registerCommand('everscript.openSettings', () => {
             syncDerivedSettingsFromRepoPath().catch(() => {});

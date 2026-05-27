@@ -210,6 +210,20 @@ test('panel.js exposes break-all-hooks and debugger-connect controls', () => {
         'panel.js does not expose the break-all-hooks or debugger connect controls');
 });
 
+test('panel.js checks manual script breakpoints against active script locations', () => {
+    if (!panelContent) { assert.fail('panel.js could not be read'); return; }
+    assert.ok(panelContent.includes('manualScriptBreakpoints.includes(slot.loc >>> 0)'),
+        'panel.js does not compare manual breakpoints against active byte-script locations');
+    assert.ok(panelContent.includes("command: 'byteScriptBreakpointHit'"),
+        'panel.js does not report byte-script breakpoint hits back to the host');
+});
+
+test('panel.js reports current script focus to the host', () => {
+    if (!panelContent) { assert.fail('panel.js could not be read'); return; }
+    assert.ok(panelContent.includes("command: 'scriptFocus'"),
+        'panel.js does not emit current byte-script focus updates');
+});
+
 test('panel.js can anchor debugger sync from a visible everscript editor', () => {
     if (!panelContent) { assert.fail('panel.js could not be read'); return; }
     assert.ok(panelContent.includes('_findDebuggableEditor') && panelContent.includes('visibleTextEditors'),
@@ -311,6 +325,15 @@ test('debug adapter supports emulator sync request', () => {
     const adapterContent = fs.readFileSync(adapterPath, 'utf8');
     assert.ok(adapterContent.includes('handlers.syncFromEmulator'),
         'debugger/adapter.js does not handle syncFromEmulator requests');
+});
+
+test('extension.js forwards byte-script focus updates to the radar webview', () => {
+    const extPath = path.join(ROOT, 'extension.js');
+    const extContent = fs.readFileSync(extPath, 'utf8');
+    assert.ok(extContent.includes("registerCommand('everscript._scriptFocus'"),
+        'extension.js does not register the internal byte-script focus bridge');
+    assert.ok(extContent.includes("command: 'byteScriptFocus'"),
+        'extension.js does not forward byte-script focus messages to the radar webview');
 });
 
 // ── G. ROM load simulation ────────────────────────────────────────────────────

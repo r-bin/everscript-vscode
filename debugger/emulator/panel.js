@@ -401,6 +401,23 @@ function openEmulatorPanel(context, rom, channel) {
               });
               break;
 
+            case 'scriptFocus':
+              vscode.commands.executeCommand('everscript._scriptFocus', {
+                address: msg.address || '',
+                slot: typeof msg.slot === 'number' ? msg.slot : null,
+                state: msg.state || '',
+              });
+              break;
+
+            case 'byteScriptBreakpointHit':
+              _log(`Byte-script breakpoint hit @ ${msg.address} slot=${msg.slot}`);
+              vscode.commands.executeCommand('everscript._scriptFocus', {
+                address: msg.address || '',
+                slot: typeof msg.slot === 'number' ? msg.slot : null,
+                state: 'breakpoint',
+              });
+              break;
+
             case 'connectDebugger':
               _ensureDebuggerSession().then(session => {
                 const ok = !!session;
@@ -575,17 +592,17 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       <span id="ss-cpu-status">pc: ------</span>
       <span id="ss-pause-state">running</span>
       <span id="ss-break-status">hook: unavailable</span>
-      <span id="ss-exec-break-status">exec bp: unavailable</span>
+      <span id="ss-exec-break-status">script bp: unavailable</span>
       <span id="ss-debug-link-status">dbg: disconnected</span>
       <span id="ss-last-hit">last: -</span>
     </div>
     <div id="ss-breakpoints">
       <div id="ss-bp-controls">
-        <span>manual exec breakpoints</span>
+        <span>manual script breakpoints</span>
         <input id="ss-bp-input" type="text" placeholder="94E5FB / 0x94E5FB" spellcheck="false" />
         <button id="ss-bp-add-btn" class="ss-btn" disabled>add</button>
       </div>
-      <div id="ss-bp-list"><span class="ss-bp-empty">no manual exec breakpoints</span></div>
+      <div id="ss-bp-list"><span class="ss-bp-empty">no manual script breakpoints</span></div>
     </div>
     <div id="ss-detail">waiting for script stack detail...</div>
     <table id="ss-table">
@@ -886,8 +903,9 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     let activeScriptWatchpoints = [];
     let previousScriptRegion    = null;
     let lastDebugStatus         = '';
-    let manualExecBreakpoints   = [];
-    let manualExecBreakpointOwner = null;
+    let manualScriptBreakpoints = [];
+    let lastFocusedScriptLoc    = '';
+    let lastTriggeredScriptLoc  = 0;
 
     function readU16(w, off) { return (w[off] | (w[off + 1] << 8)) >>> 0; }
     function readU24(w, off) { return (w[off] | (w[off + 1] << 8) | (w[off + 2] << 16)) >>> 0; }
@@ -1039,20 +1057,14 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         typeof m.removeWriteBreakpoint === 'function';
     }
 
-    function hasExecBreakpointApi(m) {
-      return hasDebuggerApi(m) &&
-        typeof m.addExecBreakpoint    === 'function' &&
-        typeof m.removeExecBreakpoint === 'function';
-    }
-
     function renderManualExecBreakpoints() {
       const list = document.getElementById('ss-bp-list');
       if (!list) return;
-      if (!manualExecBreakpoints.length) {
-        list.innerHTML = '<span class="ss-bp-empty">no manual exec breakpoints</span>';
+      if (!manualScriptBreakpoints.length) {
+        list.innerHTML = '<span class="ss-bp-empty">no manual script breakpoints</span>';
         return;
       }
-      list.innerHTML = manualExecBreakpoints.map(addr =>
+      list.innerHTML = manualScriptBreakpoints.map(addr =>
         '<span class="ss-bp-chip">' + fmtBreakpointAddr(addr) +
         ' <button type="button" data-remove-exec-bp="' + addr + '">x</button></span>'
       ).join('');
@@ -1060,24 +1072,9 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
 
     function updateExecBreakpointStatus(enabled) {
       const status = enabled
-        ? (manualExecBreakpoints.length ? 'exec bp: ' + manualExecBreakpoints.length + ' manual' : 'exec bp: ready')
-        : 'exec bp: unavailable';
-      setText('ss-exec-break-status', status, enabled ? (manualExecBreakpoints.length ? 'ss-ok' : 'ss-warn') : 'ss-warn');
-    }
-
-    function syncManualExecBreakpoints(m) {
-      if (!hasExecBreakpointApi(m)) {
-        manualExecBreakpointOwner = null;
-        updateExecBreakpointStatus(false);
-        return;
-      }
-      if (manualExecBreakpointOwner === m) {
-        updateExecBreakpointStatus(true);
-        return;
-      }
-      manualExecBreakpointOwner = m;
-      for (const addr of manualExecBreakpoints) m.addExecBreakpoint(addr);
-      updateExecBreakpointStatus(true);
+        ? (manualScriptBreakpoints.length ? 'script bp: ' + manualScriptBreakpoints.length + ' manual' : 'script bp: ready')
+        : 'script bp: unavailable';
+      setText('ss-exec-break-status', status, enabled ? (manualScriptBreakpoints.length ? 'ss-ok' : 'ss-warn') : 'ss-warn');
     }
 
     function parseExecBreakpointInput(raw) {
@@ -1090,28 +1087,54 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     function addManualExecBreakpoint(raw) {
       const addr = parseExecBreakpointInput(raw);
       if (addr == null) return false;
-      if (manualExecBreakpoints.includes(addr)) return true;
-      manualExecBreakpoints = manualExecBreakpoints.concat([addr]).sort((a, b) => a - b);
+      if (manualScriptBreakpoints.includes(addr)) return true;
+      manualScriptBreakpoints = manualScriptBreakpoints.concat([addr]).sort((a, b) => a - b);
       const m = getModule();
-      if (hasExecBreakpointApi(m)) {
-        syncManualExecBreakpoints(m);
-        if (manualExecBreakpointOwner === m) m.addExecBreakpoint(addr);
-      }
       renderManualExecBreakpoints();
-      updateExecBreakpointStatus(hasExecBreakpointApi(m));
-      setText('ss-last-hit', 'last: added exec breakpoint @ ' + fmtBreakpointAddr(addr), 'ss-ok');
+      updateExecBreakpointStatus(hasDebuggerApi(m));
+      setText('ss-last-hit', 'last: added script breakpoint @ ' + fmtBreakpointAddr(addr), 'ss-ok');
       return true;
     }
 
     function removeManualExecBreakpoint(addr) {
-      const next = manualExecBreakpoints.filter(value => value !== addr);
-      if (next.length === manualExecBreakpoints.length) return;
-      manualExecBreakpoints = next;
-      const m = getModule();
-      if (hasExecBreakpointApi(m) && manualExecBreakpointOwner === m) m.removeExecBreakpoint(addr);
+      const next = manualScriptBreakpoints.filter(value => value !== addr);
+      if (next.length === manualScriptBreakpoints.length) return;
+      manualScriptBreakpoints = next;
       renderManualExecBreakpoints();
-      updateExecBreakpointStatus(hasExecBreakpointApi(m));
-      setText('ss-last-hit', 'last: removed exec breakpoint @ ' + fmtBreakpointAddr(addr), 'ss-warn');
+      updateExecBreakpointStatus(hasDebuggerApi(getModule()));
+      setText('ss-last-hit', 'last: removed script breakpoint @ ' + fmtBreakpointAddr(addr), 'ss-warn');
+      if (lastTriggeredScriptLoc === (addr >>> 0)) lastTriggeredScriptLoc = 0;
+    }
+
+    function reportScriptFocus(snapshot) {
+      const focus = snapshot.activeSlots[0] || snapshot.liveSlots[0] || null;
+      const addr = focus && focus.loc ? fmtHex(focus.loc, 6) : '';
+      if (addr === lastFocusedScriptLoc) return;
+      lastFocusedScriptLoc = addr;
+      vscodeApi.postMessage({
+        command: 'scriptFocus',
+        address: addr,
+        slot: focus ? focus.slot : null,
+        state: focus ? stateName(focus.state) : 'none',
+      });
+    }
+
+    function checkManualScriptBreakpoints(snapshot, m) {
+      if (!hasDebuggerApi(m) || !manualScriptBreakpoints.length || !snapshot.activeSlots.length) {
+        if (!snapshot.liveSlots.some(slot => slot.loc === lastTriggeredScriptLoc)) lastTriggeredScriptLoc = 0;
+        return;
+      }
+      const hit = snapshot.activeSlots.find(slot => manualScriptBreakpoints.includes(slot.loc >>> 0));
+      if (!hit) {
+        if (!snapshot.liveSlots.some(slot => slot.loc === lastTriggeredScriptLoc)) lastTriggeredScriptLoc = 0;
+        return;
+      }
+      if (lastTriggeredScriptLoc === (hit.loc >>> 0)) return;
+      lastTriggeredScriptLoc = hit.loc >>> 0;
+      m.pauseEmulation();
+      setText('ss-pause-state', 'paused', 'ss-bad');
+      setText('ss-last-hit', 'last: byte script @ ' + fmtHex(hit.loc, 6) + ' slot s' + hit.slot, 'ss-bad');
+      vscodeApi.postMessage({ command: 'byteScriptBreakpointHit', address: fmtHex(hit.loc, 6), slot: hit.slot });
     }
 
     function reportDebugStatus(text) {
@@ -1296,7 +1319,6 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     function refreshDebuggerUi(m, sourceMode) {
       const customApi = hasDebuggerApi(m);
       const writeApi  = hasWriteBreakpointApi(m);
-      const execApi   = hasExecBreakpointApi(m);
       if (customApi) {
         const cpu = m.getCPUState();
         setText('ss-api-status', 'api: custom debugger', 'ss-ok');
@@ -1317,11 +1339,10 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       setControlEnabled('ss-resume-btn', customApi);
       setControlEnabled('ss-hook-btn',   writeApi);
       setControlEnabled('ss-hook-all-btn', customApi);
-      setControlEnabled('ss-bp-add-btn', execApi);
+      setControlEnabled('ss-bp-add-btn', customApi);
       const bpInput = document.getElementById('ss-bp-input');
-      if (bpInput) bpInput.disabled = !execApi;
-      if (execApi) syncManualExecBreakpoints(m);
-      else updateExecBreakpointStatus(false);
+      if (bpInput) bpInput.disabled = !customApi;
+      updateExecBreakpointStatus(customApi);
       if (!writeApi) {
         disarmScriptStackHook(m);
         setText('ss-break-status', 'hook: unavailable', 'ss-warn');
@@ -1341,7 +1362,10 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           refreshDebuggerUi(m, src.mode);
           if (src.bytes) {
             traceHookActivity(src.bytes);
-            updateScriptStack(buildScriptSnapshot(src.bytes));
+            const snapshot = buildScriptSnapshot(src.bytes);
+            updateScriptStack(snapshot);
+            reportScriptFocus(snapshot);
+            checkManualScriptBreakpoints(snapshot, m);
             vscodeApi.postMessage({ command: 'wramDelta', offset: SCRIPT_BASE, data: Array.from(src.bytes) });
           } else {
             document.getElementById('ss-count').textContent =
@@ -1391,7 +1415,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       const input = document.getElementById('ss-bp-input');
       if (!input) return;
       if (addManualExecBreakpoint(input.value)) input.value = '';
-      else setText('ss-last-hit', 'last: invalid exec breakpoint address', 'ss-bad');
+      else setText('ss-last-hit', 'last: invalid script breakpoint address', 'ss-bad');
     });
 
     document.getElementById('ss-bp-input').addEventListener('keydown', (evt) => {

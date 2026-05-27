@@ -380,6 +380,43 @@ test('rooms detail renders ROM header and decoded script tables without bottom r
     assert.ok(!detail.includes('rr-canvas'), 'Did not expect bottom ROM render canvas');
 });
 
+test('rooms detail uses ROM header dimensions for the map viewBox extent', () => {
+    const roomTreeData = [{
+        kind:'map', name:'header_extent_room', vanillaId:'0x33', relPath:'vanilla (rom)', startLine:0, endLine:2,
+        imageUri:null, imageDims:null,
+        content:{
+            initMap:{x1:0,y1:0,x2:31,y2:25}, entrances:[], enemies:[], objects:[], transitions:[],
+            romHeader:{ mapW:31, mapH:26, offX:0, offY:0, mapWpx:496, mapHpx:416, scrollW:240, scrollH:192, b4:0x17, b5:0x00, b6:0x00, b7:0x02, b8:0x00, sig:'17 00 00 02 00' },
+            triggers:{ stepOn:[], bTrigger:[] }
+        }
+    }];
+    const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTreeData, 'rooms', 'header_extent_room');
+    const js = extractScript(html);
+    const { sandbox } = runWebviewJs(js);
+    const detail = sandbox.document.getElementById('room-detail').innerHTML || '';
+    assert.ok(detail.includes('viewBox="0 0 62 52"'), 'Expected map viewBox extent to match ROM header width/height in 8px overlay units');
+});
+
+test('rooms detail script rows support live byte-script focus highlighting', () => {
+    const roomTreeData = [{
+        kind:'map', name:'focus_room', vanillaId:'0x33', relPath:'vanilla (rom)', startLine:0, endLine:2,
+        imageUri:null, imageDims:null,
+        content:{
+            initMap:{x1:0,y1:0,x2:40,y2:32}, entrances:[], enemies:[], objects:[], transitions:[],
+            romHeader:{ mapW:20, mapH:16, offX:0, offY:0, mapWpx:320, mapHpx:256, scrollW:64, scrollH:32, b4:0x17, b5:0x00, b6:0x00, b7:0x02, b8:0x00, sig:'17 00 00 02 00' },
+            triggers:{
+                meta:{enterPointerSnes:0x92811A,stepLength:0,stepCount:0,bLength:0,bCount:0},
+                enter:{scriptPointerSnes:0x92811A,scriptAddressSnes:0x94E5FB,terminated:true,stopReason:'terminated',instructions:[{addressSnes:0x94E5FB,opcodeHex:'0x18',size:4,bytesHex:'18 43 24 02',summary:'WRITE CHANGE DOGGO ($2443) = 0x02',terminal:false},{addressSnes:0x94E5FF,opcodeHex:'0x00',size:1,bytesHex:'00',summary:'END',terminal:true}]},
+                stepOn:[], bTrigger:[]
+            }
+        }
+    }];
+    const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTreeData, 'rooms', 'focus_room');
+    const js = extractScript(html);
+    assert.ok(js.includes('data-script-addr='), 'Expected script rows to carry data-script-addr for focus highlighting');
+    assert.ok(js.includes("command!=='byteScriptFocus'"), 'Expected Rooms webview to listen for byteScriptFocus messages');
+});
+
 test('rooms detail surfaces explicit room errors and avoids the stale vanilla placeholder text', () => {
     const roomTreeError = [{
         kind:'map', name:'missing_rom_room', vanillaId:'0x33', relPath:'vanilla (rom)', startLine:-1, endLine:-1,

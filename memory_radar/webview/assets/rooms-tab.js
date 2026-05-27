@@ -1,5 +1,11 @@
 
 function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+var _currentByteScriptFocus=(typeof ACTIVE_BYTE_SCRIPT_FOCUS==='string'?ACTIVE_BYTE_SCRIPT_FOCUS:'').replace(/^0x/i,'').toUpperCase();
+var _applyByteScriptFocus=function(){};
+
+function normScriptAddr(v){
+  return String(v==null?'':v).replace(/^0x/i,'').toUpperCase();
+}
 
 // Tab switching (posts tabChange so host preserves active tab across re-renders)
 document.querySelectorAll('.tab').forEach(function(btn){
@@ -85,6 +91,7 @@ function renderRoomDetail(room){
   var bTrigNames=trigNames.bTrigger||[];
   var poi=c.poi||[];
   var roomError=c.roomError||null;
+  var rh=c.romHeader||null;
   function hexNum(v,w){
     if(typeof v!=='number'||!isFinite(v))return '&ndash;';
     return '0x'+(v>>>0).toString(16).toUpperCase().padStart(w,'0');
@@ -96,7 +103,7 @@ function renderRoomDetail(room){
       var rowClasses=[];
       if(row.terminal)rowClasses.push('rs-term');
       if(row.summary&&row.summary.indexOf('UNKNOWN')===0)rowClasses.push('rs-err');
-      out+='<tr'+(rowClasses.length?' class="'+rowClasses.join(' ')+'"':'')+'><td>'+hexNum(row.addressSnes,6)+'</td><td>'+escH(row.opcodeHex||'')+'</td><td>'+escH(String(row.size||0))+'</td><td>'+escH(row.bytesHex||'')+'</td><td>'+(row.summary?escH(row.summary):'&ndash;')+'</td></tr>';
+      out+='<tr'+(rowClasses.length?' class="'+rowClasses.join(' ')+'"':'')+' data-script-addr="'+normScriptAddr(hexNum(row.addressSnes,6))+'"><td>'+hexNum(row.addressSnes,6)+'</td><td>'+escH(row.opcodeHex||'')+'</td><td>'+escH(String(row.size||0))+'</td><td>'+escH(row.bytesHex||'')+'</td><td>'+(row.summary?escH(row.summary):'&ndash;')+'</td></tr>';
     });
     out+='</tbody></table>';
     if(!script.terminated)out+='<div class="rs-note rs-err">Stopped: '+escH(script.stopReason||'unknown')+'</div>';
@@ -167,11 +174,14 @@ function renderRoomDetail(room){
   html+='<button class="rdf on" id="rg-lock-btn" title="Unlock map">locked</button>';
   html+='</div></div>';
 
-  // Determine grid bounds in tile units (1 tile = 8 px in source image)
+  // Determine overlay bounds in 8 px units. ROM header dimensions are authoritative when available.
   var TILE=8;
   var x1=0,y1=0,x2=32,y2=32;
   if(im){x1=im.x1;y1=im.y1;x2=im.x2;y2=im.y2;}
-  if(room.imageDims){
+  if(rh&&rh.mapWpx&&rh.mapHpx){
+    x2=x1+Math.max(1,Math.round(rh.mapWpx/TILE));
+    y2=y1+Math.max(1,Math.round(rh.mapHpx/TILE));
+  }else if(room.imageDims){
     var imgCols=Math.round(room.imageDims.w/TILE);
     var imgRows=Math.round(room.imageDims.h/TILE);
     x2=x1+imgCols; y2=y1+imgRows;
@@ -192,7 +202,9 @@ function renderRoomDetail(room){
 
   // Display size: keep width fixed, compute height to preserve aspect ratio
   var dispW=520;
-  var dispH=room.imageDims ? Math.min(600,Math.round(dispW*room.imageDims.h/room.imageDims.w)) : Math.round(dispW*H/W);
+  var aspectW=(rh&&rh.mapWpx)||((room.imageDims&&room.imageDims.w)||W);
+  var aspectH=(rh&&rh.mapHpx)||((room.imageDims&&room.imageDims.h)||H);
+  var dispH=Math.min(600,Math.round(dispW*aspectH/aspectW));
   // Current zoom (tiles per display pixel), starts at auto-fit
   var zoomState={scale:0}; // 0 = auto
   function getScale(s){
@@ -441,6 +453,20 @@ function renderRoomDetail(room){
 
   panel.innerHTML=html;
   bindLinks(panel);
+
+  function applyByteScriptFocus(){
+    panel.querySelectorAll('tr.rs-current').forEach(function(row){row.classList.remove('rs-current');});
+    panel.querySelectorAll('.rs-script.rs-current').forEach(function(card){card.classList.remove('rs-current');});
+    if(!_currentByteScriptFocus)return;
+    panel.querySelectorAll('tr[data-script-addr="'+_currentByteScriptFocus+'"]').forEach(function(row){
+      row.classList.add('rs-current');
+      var card=row.closest?row.closest('.rs-script'):null;
+      if(card)card.classList.add('rs-current');
+      if(row.scrollIntoView)row.scrollIntoView({block:'nearest'});
+    });
+  }
+  _applyByteScriptFocus=applyByteScriptFocus;
+  applyByteScriptFocus();
 
   // ROM header toggle
   var rshToggle=panel.querySelector('#rsh-toggle');
@@ -709,4 +735,12 @@ function renderRoomDetail(room){
       if(vs)vs.postMessage({command:'pickRoomImage',mapName:pickBtn.dataset.map});
     });
   }
+}
+
+if(typeof window!=='undefined'&&window.addEventListener){
+  window.addEventListener('message',function(evt){
+    if(!evt.data||evt.data.command!=='byteScriptFocus')return;
+    _currentByteScriptFocus=normScriptAddr(evt.data.address);
+    _applyByteScriptFocus();
+  });
 }

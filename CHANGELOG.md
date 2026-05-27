@@ -1,3 +1,16 @@
+## [0.3.3] — 2026-05-27
+
+### Added
+- Added a byte-script debugger workflow note in [docs/byte-script-debugging.md](/Users/v/Documents/GitHub/everscript-vscode/docs/byte-script-debugging.md), covering how the emulator, mock `.evs` debugger, and Rooms tab currently attach to one another for both source-level and ROM-byte-script inspection.
+
+### Fixed
+- Switched manual emulator-panel breakpoints in [debugger/emulator/panel.js](/Users/v/Documents/GitHub/everscript-vscode/debugger/emulator/panel.js) from CPU exec breakpoints to live byte-script `loc` matching, so the addresses shown in the script stack now pause on the intended VM instruction instead of the SNES CPU PC.
+- Forwarded active byte-script addresses through [extension.js](/Users/v/Documents/GitHub/everscript-vscode/extension.js) into [memory_radar/webview/assets/rooms-tab.js](/Users/v/Documents/GitHub/everscript-vscode/memory_radar/webview/assets/rooms-tab.js) and [memory_radar/webview/assets/shared.css](/Users/v/Documents/GitHub/everscript-vscode/memory_radar/webview/assets/shared.css), so the current decoded ROM-script row/card can highlight live in the Rooms tab.
+- Corrected Rooms map extent sizing in [memory_radar/webview/assets/rooms-tab.js](/Users/v/Documents/GitHub/everscript-vscode/memory_radar/webview/assets/rooms-tab.js) so the rendered view uses the ROM header's `width * 16` and `height * 16` geometry as the authoritative room size.
+
+### Tests
+- Extended [debugger/tests/emulator-health.test.js](/Users/v/Documents/GitHub/everscript-vscode/debugger/tests/emulator-health.test.js) for byte-script breakpoint/focus bridging and [memory_radar/tests/smoke.test.js](/Users/v/Documents/GitHub/everscript-vscode/memory_radar/tests/smoke.test.js) for live script-focus highlighting plus ROM-header-driven map extents.
+
 ## [0.3.2] — 2026-05-27
 
 ### Added
