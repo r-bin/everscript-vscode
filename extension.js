@@ -2951,6 +2951,7 @@ function activate(context) {
             const cfg       = vscode.workspace.getConfiguration('everscript');
             const nodePath  = require('path');
             const nodeFs    = require('fs');
+            const nodeOs    = require('os');
             const cp        = require('child_process');
             const extCfg    = getExtConfig();
 
@@ -3066,6 +3067,54 @@ function activate(context) {
                 spawnArgs = ['--rom', romName, inputArg];
             }
 
+            function buildSpawnEnv() {
+                const env = { ...process.env };
+                const pathKey = Object.keys(env).find((key) => key.toUpperCase() === 'PATH') || 'PATH';
+                const pathEntries = [];
+                const seen = new Set();
+                function addPathEntry(entry) {
+                    if (!entry || seen.has(entry)) return;
+                    seen.add(entry);
+                    pathEntries.push(entry);
+                }
+
+                if (projectRoot) {
+                    for (const rel of ['.venv/bin', 'venv/bin']) {
+                        const candidate = nodePath.join(projectRoot, rel);
+                        if (nodeFs.existsSync(candidate)) addPathEntry(candidate);
+                    }
+                }
+                if (pythonBin) addPathEntry(nodePath.dirname(pythonBin));
+
+                const shellBin = env.SHELL || '/bin/zsh';
+                try {
+                    const shellResult = cp.spawnSync(shellBin, ['-lic', 'printf %s "$PATH"'], {
+                        cwd: projectRoot,
+                        encoding: 'utf8',
+                        env,
+                        timeout: 5000,
+                    });
+                    if (shellResult.status === 0 && shellResult.stdout) {
+                        for (const entry of shellResult.stdout.split(nodePath.delimiter)) addPathEntry(entry);
+                    }
+                } catch (_) {}
+
+                for (const entry of String(env[pathKey] || '').split(nodePath.delimiter)) addPathEntry(entry);
+                for (const entry of [
+                    '/opt/homebrew/bin',
+                    '/usr/local/bin',
+                    '/usr/bin',
+                    '/bin',
+                    nodePath.join(nodeOs.homedir(), 'Documents', 'GitHub', 'asar', 'asar', 'bin'),
+                    nodePath.join(nodeOs.homedir(), 'GitHub', 'asar', 'asar', 'bin'),
+                ]) {
+                    if (nodeFs.existsSync(entry)) addPathEntry(entry);
+                }
+
+                env[pathKey] = pathEntries.join(nodePath.delimiter);
+                return env;
+            }
+
             const channel = vscode.window.createOutputChannel('Everscript Build');
             channel.clear();
             channel.show(true);
@@ -3080,7 +3129,7 @@ function activate(context) {
             statusItem.show();
 
             const exitCode = await new Promise(resolve => {
-                const proc = cp.spawn(spawnBin, spawnArgs, { cwd: projectRoot, shell: false });
+                const proc = cp.spawn(spawnBin, spawnArgs, { cwd: projectRoot, shell: false, env: buildSpawnEnv() });
                 proc.stdout.on('data', d => channel.append(d.toString()));
                 proc.stderr.on('data', d => channel.append(d.toString()));
                 proc.on('close', code => resolve(code));

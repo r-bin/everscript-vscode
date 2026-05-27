@@ -1,3 +1,14 @@
+## [0.3.2] — 2026-05-27
+
+### Added
+- Added manual exec-breakpoint controls to [debugger/emulator/panel.js](/Users/v/Documents/GitHub/everscript-vscode/debugger/emulator/panel.js) so the emulator panel can add and remove address breakpoints directly through the custom core bridge.
+- Added ROM-backed practical coverage to [debugger/tests/room-script-model.test.js](/Users/v/Documents/GitHub/everscript-vscode/debugger/tests/room-script-model.test.js) using the local Evermore ROM when available, anchored on room `0x33` / Strong Heart's Exterior.
+
+### Fixed
+- Restored shell-derived PATH handling in [extension.js](/Users/v/Documents/GitHub/everscript-vscode/extension.js) for `everscript.buildAndRun`, so compiler subprocesses can find external tools like `asar` again while still preferring the project venv.
+- Corrected room-script decoding in [debugger/emulator/room-script-model.js](/Users/v/Documents/GitHub/everscript-vscode/debugger/emulator/room-script-model.js) for branch sizing and the offset-based `0x08`, `0x09`, `0x0c`, `0x18`, and `0x1b` opcode forms used by real vanilla room scripts.
+- Updated the Rooms tab presentation in [memory_radar/webview/assets/rooms-tab.js](/Users/v/Documents/GitHub/everscript-vscode/memory_radar/webview/assets/rooms-tab.js) and [memory_radar/webview/assets/shared.css](/Users/v/Documents/GitHub/everscript-vscode/memory_radar/webview/assets/shared.css) so decoded script errors are clearer, grid layers are toggleable, map fit/pan is more stable, and selected triggers also highlight their script cards.
+
 ## [0.3.1] — 2026-05-27
 
 ### Added

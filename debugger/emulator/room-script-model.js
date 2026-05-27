@@ -30,6 +30,23 @@ const ADDRESS_NAMES = {
     0x2443: 'CHANGE DOGGO',
 };
 
+const BIT_NAMES = {
+    '22EB:02': 'start pressed in intro',
+    '22EB:04': 'running showcase',
+    '22EB:08': 'debug',
+    '22EB:20': 'in animation',
+};
+
+const DOGGO_NAMES = {
+    0x02: 'Wolf (0x02)',
+    0x04: 'Also Wolf (0x04)',
+    0x06: 'Greyhound (0x06)',
+    0x08: 'Poodle (0x08)',
+    0x0a: 'Regular (0x0A)',
+    0x0c: 'Toaster (0x0C)',
+    0x0e: 'Softlock (0x0E)',
+};
+
 function hex(value, width) {
     return (value >>> 0).toString(16).toUpperCase().padStart(width, '0');
 }
@@ -83,6 +100,29 @@ function roomLabelForAddress(addr) {
     return name ? `${name} ($${hex(addr, 4)})` : `$${hex(addr, 4)}`;
 }
 
+function roomLabelForBit(addr, mask) {
+    const name = BIT_NAMES[`${hex(addr, 4)}:${hex(mask, 2)}`];
+    return name ? `${name} ($${hex(addr, 4)})` : `${roomLabelForAddress(addr)} & 0x${hex(mask, 2)}`;
+}
+
+function isTypedFinalValue(type) {
+    const cmd = type & 0x70;
+    return Boolean(type & 0x80) && (cmd === 0x30 || cmd === 0x40 || cmd === 0x60);
+}
+
+function typedFinalValue(type) {
+    const cmd = type & 0x70;
+    if (cmd === 0x30) return type & 0x0f;
+    if (cmd === 0x40) return 0xfff0 | (type & 0x0f);
+    if (cmd === 0x60) return 0x10 + (type & 0x0f);
+    return null;
+}
+
+function formatWriteValue(addr, value, width) {
+    if ((addr >>> 0) === 0x2443 && DOGGO_NAMES[value >>> 0]) return DOGGO_NAMES[value >>> 0];
+    return `0x${hex(value, width)}`;
+}
+
 function bytesHex(bytes) {
     return bytes.map((byte) => hex(byte, 2)).join(' ');
 }
@@ -102,50 +142,119 @@ function decodeInstructionAt(romBuf, scriptSnes, offset) {
             stop = true;
             break;
         case 0x04: {
-            size = 2;
-            const delta = readU8(romBuf, addressRom + 1);
+            size = 3;
+            const delta = readS16(romBuf, addressRom + 1);
             const target = addressSnes + size + delta;
             summary = `SKIP ${delta} (to 0x${hex(target, 6)})`;
             break;
         }
         case 0x08: {
-            size = 6;
-            const addr = readU16(romBuf, addressRom + 1);
-            const mask = readU8(romBuf, addressRom + 3);
-            const delta = readU16(romBuf, addressRom + 4);
-            const target = addressSnes + size + delta;
-            summary = `IF ${roomLabelForAddress(addr)} & 0x${hex(mask, 2)} SKIP ${delta} (to 0x${hex(target, 6)})`;
+            const type = readU8(romBuf, addressRom + 1);
+            if (type === 0x85) {
+                size = 6;
+                const bitRef = readU16(romBuf, addressRom + 2);
+                const addr = 0x2258 + (bitRef >> 3);
+                const mask = 1 << (bitRef & 0x07);
+                const delta = readS16(romBuf, addressRom + 4);
+                const target = addressSnes + size + delta;
+                summary = `IF ${roomLabelForBit(addr, mask)} SKIP ${delta} (to 0x${hex(target, 6)})`;
+            } else if (type === 0x88) {
+                size = 6;
+                const addr = 0x2258 + readU16(romBuf, addressRom + 2);
+                const delta = readS16(romBuf, addressRom + 4);
+                const target = addressSnes + size + delta;
+                summary = `IF ${roomLabelForAddress(addr)} != 0x00 SKIP ${delta} (to 0x${hex(target, 6)})`;
+            } else {
+                size = 6;
+                const addr = readU16(romBuf, addressRom + 1);
+                const mask = readU8(romBuf, addressRom + 3);
+                const delta = readU16(romBuf, addressRom + 4);
+                const target = addressSnes + size + delta;
+                summary = `IF ${roomLabelForAddress(addr)} & 0x${hex(mask, 2)} SKIP ${delta} (to 0x${hex(target, 6)})`;
+            }
             break;
         }
         case 0x09: {
-            size = 6;
-            const addr = readU16(romBuf, addressRom + 1);
-            const value = readU8(romBuf, addressRom + 3);
-            const delta = readU16(romBuf, addressRom + 4);
-            const target = addressSnes + size + delta;
-            summary = `IF ${roomLabelForAddress(addr)} == 0x${hex(value, 2)} SKIP ${delta} (to 0x${hex(target, 6)})`;
+            const type = readU8(romBuf, addressRom + 1);
+            if (type === 0x85) {
+                size = 6;
+                const bitRef = readU16(romBuf, addressRom + 2);
+                const addr = 0x2258 + (bitRef >> 3);
+                const mask = 1 << (bitRef & 0x07);
+                const delta = readS16(romBuf, addressRom + 4);
+                const target = addressSnes + size + delta;
+                summary = `IF !(${roomLabelForBit(addr, mask)}) SKIP ${delta} (to 0x${hex(target, 6)})`;
+            } else if (type === 0x88) {
+                size = 6;
+                const addr = 0x2258 + readU16(romBuf, addressRom + 2);
+                const delta = readS16(romBuf, addressRom + 4);
+                const target = addressSnes + size + delta;
+                summary = `IF ${roomLabelForAddress(addr)} == 0x00 SKIP ${delta} (to 0x${hex(target, 6)})`;
+            } else {
+                size = 6;
+                const addr = readU16(romBuf, addressRom + 1);
+                const value = readU8(romBuf, addressRom + 3);
+                const delta = readU16(romBuf, addressRom + 4);
+                const target = addressSnes + size + delta;
+                summary = `IF ${roomLabelForAddress(addr)} == 0x${hex(value, 2)} SKIP ${delta} (to 0x${hex(target, 6)})`;
+            }
             break;
         }
         case 0x0c: {
             size = 4;
-            const addr = readU16(romBuf, addressRom + 1);
-            const value = readU8(romBuf, addressRom + 3);
-            summary = `${roomLabelForAddress(addr)} &= 0x${hex(value, 2)}`;
+            const bitRef = readU16(romBuf, addressRom + 1);
+            const addr = 0x2258 + (bitRef >> 3);
+            const type = readU8(romBuf, addressRom + 3);
+            if (type === 0xb0) {
+                const mask = 0xff & ~(1 << (bitRef & 0x07));
+                summary = `${roomLabelForAddress(addr)} &= 0x${hex(mask, 2)}`;
+            } else if (isTypedFinalValue(type)) {
+                const mask = 1 << (bitRef & 0x07);
+                summary = `${roomLabelForAddress(addr)} |= 0x${hex(mask, 2)}`;
+            } else {
+                summary = `${roomLabelForAddress(addr)} bit 0x${hex(1 << (bitRef & 0x07), 2)} = 0x${hex(type, 2)}`;
+            }
+            break;
+        }
+        case 0x0f: {
+            size = 2;
+            const packed = readU8(romBuf, addressRom + 1);
+            const argIndex = packed >> 3;
+            const bitMask = 1 << (packed & 0x07);
+            summary = `ARG ${argIndex} & 0x${hex(bitMask, 2)}`;
             break;
         }
         case 0x18: {
-            size = 4;
-            const addr = readU16(romBuf, addressRom + 1);
-            const value = readU8(romBuf, addressRom + 3);
-            summary = `WRITE ${roomLabelForAddress(addr)} = 0x${hex(value, 2)}`;
+            const addr = 0x2258 + readU16(romBuf, addressRom + 1);
+            const type = readU8(romBuf, addressRom + 3);
+            let value = null;
+            let width = 2;
+            if (isTypedFinalValue(type)) {
+                size = 4;
+                value = typedFinalValue(type);
+                width = value > 0xff ? 4 : 2;
+            } else if (type === 0x82) {
+                size = 5;
+                value = readU8(romBuf, addressRom + 4);
+                width = 2;
+            } else if (type === 0x84) {
+                size = 6;
+                value = readU16(romBuf, addressRom + 4);
+                width = 4;
+            } else {
+                size = 4;
+                value = type;
+            }
+            summary = `WRITE ${roomLabelForAddress(addr)} = ${formatWriteValue(addr, value, width)}`;
             break;
         }
         case 0x1b: {
             size = 7;
-            const addr = readU16(romBuf, addressRom + 1);
-            const value1 = readU16(romBuf, addressRom + 3);
-            const value2 = readU16(romBuf, addressRom + 5);
-            summary = `WRITE ${roomLabelForAddress(addr)} / $${hex((addr + 2) & 0xffff, 4)} = 0x${hex(value1, 4)} / 0x${hex(value2, 4)}`;
+            const addr1 = 0x2258 + readU16(romBuf, addressRom + 1);
+            const addr2 = 0x2258 + readU16(romBuf, addressRom + 3);
+            const value1 = readU8(romBuf, addressRom + 5) << 3;
+            const value2 = readU8(romBuf, addressRom + 6) << 3;
+            summary = `WRITE ${roomLabelForAddress(addr1)} / ${roomLabelForAddress(addr2)} = 0x${hex(value1, 4)} / 0x${hex(value2, 4)}`;
             break;
         }
         case 0x20: {

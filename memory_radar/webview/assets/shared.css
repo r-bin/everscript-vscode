@@ -123,6 +123,8 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .hide-header .rs-romhdr{display:none!important}
 .hide-scripts .rs-scripts{display:none!important}
 .hide-trigger .svge-step,.hide-trigger .svge-btrig,.hide-trigger .rs-step,.hide-trigger .rs-btrig{display:none!important}
+.hide-grid8 .rg-grid-fine{display:none!important}
+.hide-grid16 .rg-grid-coarse{display:none!important}
 .hide-ent .svge-entrance,.hide-ent .rs-entrance{display:none!important}
 .hide-enem .svge-enemy,.hide-enem .rs-enemies{display:none!important}
 .hide-obj .rs-objects{display:none!important}
@@ -137,7 +139,7 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .rg-zoom{display:flex;gap:3px;align-items:center;margin-bottom:4px}
 .rg-zoom button{border:1px solid #444;background:transparent;color:#aaa;cursor:pointer;font-size:12px;line-height:1;padding:1px 6px;border-radius:4px}
 .rg-zoom button:hover{color:#ddd;border-color:#888}
-.rg-wrap{position:relative;overflow:hidden;background:#1a1a1a;border:1px solid #333;display:block;margin-bottom:0;cursor:default}
+.rg-wrap{position:relative;overflow:hidden;background:#1a1a1a;display:block;margin-bottom:0;cursor:default}
 .rg-svg{position:absolute;inset:0;display:block}
 .room-img{display:block;width:100%;height:100%;object-fit:fill;opacity:.55;image-rendering:pixelated}
 .rg-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:80px;opacity:.25;border:1px solid #444;margin-bottom:8px;color:#888;font-size:10px;gap:6px}
@@ -164,6 +166,14 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .rs-tbl tr{opacity:.7}
 .rs-tbl tr:hover{opacity:1;background:rgba(255,255,255,.04)}
 .rs-tbl tr.hi-row{opacity:1;background:rgba(255,255,255,.1)!important}
+.rs-tbl tr.rs-err td{color:#ff8d8d}
+.rs-note.rs-err{color:#ff8d8d}
+.rs-script{margin-top:6px;padding:6px 8px;border-left:3px solid #3a3a3a;background:rgba(255,255,255,.02)}
+.rs-script-enter{border-left-color:#72b7ff}
+.rs-script-step{border-left-color:#ff69b4}
+.rs-script-btrig{border-left-color:#ffcc00}
+.rs-script.hi-card{background:rgba(255,255,255,.06)}
+.rs-script.sel-script{background:rgba(255,165,0,.10);outline:1px solid rgba(255,165,0,.35)}
 .badge-d{font-size:7px;opacity:.55;border:1px solid #ffa94d;border-radius:3px;padding:0 2px;color:#ffa94d}
 /* ── ROM header section ── */
 .rs-romhdr .rsh-toggle{cursor:pointer;user-select:none}.rs-romhdr .rsh-toggle:hover{opacity:.7}

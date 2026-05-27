@@ -1,6 +1,8 @@
 'use strict';
 
 const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
 const {
     MAP_LIST_ADDR_US,
     SCRIPTS_START_ADDR_US,
@@ -10,6 +12,7 @@ const {
     snesToScriptValue,
     decodeRoomScript,
     buildRoomScriptModelFromRom,
+    readRoomScriptModel,
 } = require('../emulator/room-script-model');
 
 let passed = 0;
@@ -25,6 +28,15 @@ function test(name, fn) {
         console.error(`    ${err.message}`);
         failed++;
     }
+}
+
+function findPracticalRomPath() {
+    const candidates = [
+        process.env.EVERSCRIPT_ROM_PATH,
+        path.resolve(__dirname, '../../../everscript/Secret of Evermore (U) [!].smc'),
+        path.resolve(__dirname, '../../../everscript/out/Secret of Evermore (U) [!].smc'),
+    ].filter(Boolean);
+    return candidates.find((filePath) => fs.existsSync(filePath)) || '';
 }
 
 function writeU16(buf, romOffset, value) {
@@ -84,18 +96,18 @@ function buildFixtureRom() {
     writeScriptBytes(rom, step1ScriptSnes, [0xA3, 0x00, 0xA3, 0x27, 0x22, 0x12, 0x23, 0x34, 0x00, 0x00]);
     writeScriptBytes(rom, step2ScriptSnes, [0xA3, 0x00, 0xA3, 0x1D, 0x22, 0x04, 0x1F, 0x38, 0x00, 0x00]);
     writeScriptBytes(rom, enterScriptSnes, [
-        0x18, 0x43, 0x24, 0x02,
-        0x08, 0xEB, 0x22, 0x20, 0x08, 0x00,
+        0x18, 0xEB, 0x01, 0xB2,
+        0x08, 0x85, 0x9D, 0x04, 0x08, 0x00,
         0x20, 0x1D, 0x15,
         0xA3, 0x00,
-        0x04, 0x05,
-        0x0C, 0xEB, 0x22, 0xDF,
-        0x1B, 0xE9, 0x23, 0x00, 0x00, 0x00, 0x00,
-        0x1B, 0xED, 0x23, 0x40, 0x01, 0x00, 0x01,
-        0x09, 0x8D, 0x23, 0x00, 0x04, 0x00,
+        0x04, 0x04, 0x00,
+        0x0C, 0x9D, 0x04, 0xB0,
+        0x1B, 0x91, 0x01, 0x93, 0x01, 0x00, 0x00,
+        0x1B, 0x95, 0x01, 0x97, 0x01, 0x28, 0x20,
+        0x09, 0x88, 0x35, 0x01, 0x04, 0x00,
         0x33, 0x12,
         0xA3, 0x01,
-        0x18, 0xBF, 0x23, 0x01,
+        0x18, 0x67, 0x01, 0xB1,
         0x29, 0x75, 0xDE, 0x92,
         0xA7, 0x0E,
         0x86, 0x64,
@@ -136,11 +148,14 @@ test('keeps coordinate ordering as x1,y1:x2,y2 like the tiles viewer', () => {
     );
 });
 
-test('decodes enter script opcodes including 0x1b room-bound writes and trailing end', () => {
+test('decodes enter script opcodes including offset-based writes and trailing end', () => {
     const { rom, mapId, enterScriptSnes } = buildFixtureRom();
     const room = buildRoomScriptModelFromRom(rom, mapId);
     assert.strictEqual(room.enter.scriptAddressSnes, enterScriptSnes, 'wrong enter script address');
     assert.ok(room.enter.instructions.some((row) => row.opcode === 0x1b && row.size === 7), 'expected opcode 0x1b size 7 in enter script');
+    assert.ok(room.enter.instructions[0].summary.includes('CHANGE DOGGO'), 'expected opcode 0x18 to resolve the doggo write');
+    assert.ok(room.enter.instructions.some((row) => row.summary.includes('in animation')), 'expected opcode 0x08/0x0c to resolve the animation flag');
+    assert.ok(room.enter.instructions.some((row) => row.summary.includes('MAP X/Y start')), 'expected opcode 0x1b to resolve map bounds writes');
     assert.strictEqual(room.enter.instructions[room.enter.instructions.length - 1].opcode, 0x00, 'enter script must end with opcode 0x00');
     assert.strictEqual(room.enter.terminated, true, 'enter script should terminate on 0x00');
 });
@@ -165,6 +180,39 @@ test('decodes additional fixed-width opcodes without treating them as unknown', 
     assert.ok(script.instructions[4].summary.includes('RCALL 4'), 'expected relative-call summary');
     assert.ok(script.instructions[5].summary.includes('SLEEP 15 TICKS'), 'expected 16-bit sleep summary');
     assert.strictEqual(script.stopReason, 'unsupported-opcode', 'reset-game opcode should still stop further decode');
+});
+
+test('decodes opcode 0x0f as a script-arg bit test', () => {
+    const rom = Buffer.alloc(0x300000, 0x00);
+    const scriptSnes = 0x928680;
+    writeScriptBytes(rom, scriptSnes, [0x0F, 0x1D, 0x00]);
+    const script = decodeRoomScript(rom, scriptSnes);
+    assert.deepStrictEqual(script.instructions.map((row) => row.opcode), [0x0F, 0x00]);
+    assert.strictEqual(script.instructions[0].size, 2, 'expected opcode 0x0f to consume 2 bytes');
+    assert.ok(script.instructions[0].summary.includes('ARG 3 & 0x20'), 'expected arg-bit summary for opcode 0x0f');
+    assert.strictEqual(script.terminated, true, 'expected trailing 0x00 terminator');
+});
+
+test('matches practical room 0x33 summaries from the local ROM-backed dump when available', () => {
+    const romPath = findPracticalRomPath();
+    if (!romPath) {
+        console.log('  - skipped practical room 0x33 test (no local ROM found)');
+        return;
+    }
+    const room = readRoomScriptModel(process.cwd(), 0x33, romPath);
+    assert.ok(room, 'expected room 0x33 to decode from the local ROM');
+    const enterSummaries = room.enter.instructions.map((row) => row.summary);
+    assert.ok(enterSummaries.includes('WRITE CHANGE DOGGO ($2443) = Wolf (0x02)'), 'expected room 0x33 enter script to decode the doggo write');
+    assert.ok(enterSummaries.includes('IF in animation ($22EB) SKIP 8 (to 0x94E60D)'), 'expected room 0x33 enter script to decode the animation flag branch');
+    assert.ok(enterSummaries.includes('WRITE MAP X/Y start ($23E9) / $23EB = 0x0000 / 0x0000'), 'expected room 0x33 enter script to decode the starting map bounds');
+    assert.ok(enterSummaries.includes('IF CHANGE MUSIC ($238D) == 0x00 SKIP 4 (to 0x94E629)'), 'expected room 0x33 enter script to decode the music branch');
+    assert.deepStrictEqual(
+        room.stepOn.map((trigger) => ({ x1: trigger.x1, y1: trigger.y1, x2: trigger.x2, y2: trigger.y2, label: trigger.label })),
+        [
+            { x1: 0x27, y1: 0x0f, x2: 0x28, y2: 0x10, label: 'CALL "Fade-out / stop music" (0x00)' },
+            { x1: 0x2f, y1: 0x0c, x2: 0x32, y2: 0x0e, label: 'CALL "Fade-out / stop music" (0x00)' },
+        ],
+    );
 });
 
 console.log(`\n  ${passed} passed, ${failed} failed\n`);
