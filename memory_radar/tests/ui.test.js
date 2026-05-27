@@ -22,6 +22,7 @@ if (!require.cache.vscode) {
         id: 'vscode', filename: 'vscode', loaded: true,
         exports: {
             workspace: { workspaceFolders: null,
+                getConfiguration: ()=>({ get: ()=>'' }),
                 onDidOpenTextDocument: ()=>({dispose:()=>{}}),
                 onDidCloseTextDocument: ()=>({dispose:()=>{}}),
                 onDidChangeTextDocument: ()=>({dispose:()=>{}}),
@@ -78,12 +79,17 @@ const roomTree = [];
 const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTree, 'scaling', null);
 
 const roomsTree = [{
-    kind:'map', name:'rooms_render_test', vanillaId:'R_TEST', relPath:'', startLine:0, endLine:10,
+    kind:'map', name:'rooms_render_test', vanillaId:'0x33', relPath:'vanilla (rom)', startLine:0, endLine:10,
     imageUri:null, imageDims:null,
     content:{
         initMap:{x1:0,y1:0,x2:31,y2:25}, entrances:[], enemies:[], objects:[], transitions:[],
-        romHeader:{ mapW:31, mapH:26, offX:0, offY:0, mapWpx:496, mapHpx:416, scrollW:240, scrollH:192, b4:0x17, b5:0x00, b6:0x00, b7:0x02, b8:0x00, sig:'17 00 00 02 00' },
-        triggers:{ stepOn:[], bTrigger:[] }
+        romHeader:{ mapW:31, mapH:26, offX:0, offY:0, mapWpx:496, mapHpx:416, scrollW:240, scrollH:192, b4:0x17, b5:0x00, b6:0x00, b7:0x02, b8:0x00, sig:'17 00 00 02 00', stepLen:12, stepCount:1, bLen:0, bCount:0 },
+        triggers:{
+            meta:{enterPointerSnes:0x92811A,stepLength:12,stepCount:1,bLength:0,bCount:0},
+            enter:{scriptPointerSnes:0x92811A,scriptAddressSnes:0x94E5FB,terminated:true,stopReason:'terminated',instructions:[{addressSnes:0x94E5FB,opcodeHex:'0x18',size:4,bytesHex:'18 43 24 02',summary:'WRITE CHANGE DOGGO ($2443) = 0x02',terminal:false},{addressSnes:0x94E5FF,opcodeHex:'0x00',size:1,bytesHex:'00',summary:'END',terminal:true}]},
+            stepOn:[{x1:0x27,y1:0x0f,x2:0x28,y2:0x10,scriptId:0x0735,scriptAddressSnes:0x94E5E7,terminated:true,stopReason:'terminated',instructions:[{addressSnes:0x94E5E7,opcodeHex:'0xA3',size:2,bytesHex:'A3 00',summary:'CALL "Fade-out / stop music" (0x00)',terminal:false},{addressSnes:0x94E5E9,opcodeHex:'0x22',size:5,bytesHex:'22 12 23 34 00',summary:'CHANGE MAP = 0x34 @ [ 0x0090 | 0x0118 ]',terminal:false},{addressSnes:0x94E5EE,opcodeHex:'0x00',size:1,bytesHex:'00',summary:'END',terminal:true}]}],
+            bTrigger:[]
+        }
     }
 }];
 const htmlRooms = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomsTree, 'rooms', 'rooms_render_test');
@@ -276,15 +282,17 @@ test('Docs alchemy now mentions the projectile POWER research note', () => {
 console.log('\nRooms tab: HTML/JS behaviour');
 
 test('Rooms HTML includes room render canvas styles', () => {
-    assert.ok(htmlRooms.includes('rr-canvas-wrap'), 'Missing rr-canvas-wrap style or markup in Rooms HTML');
-    assert.ok(htmlRooms.includes('rr-canvas'), 'Missing rr-canvas class in Rooms HTML');
+    assert.ok(htmlRooms.includes('hide-map'), 'Missing new map filter rule in Rooms HTML');
+    assert.ok(htmlRooms.includes('hide-scripts'), 'Missing new scripts filter rule in Rooms HTML');
 });
 
-test('Rooms JS renders header fallback canvas block when payload render is absent', () => {
+test('Rooms JS renders ROM header and script sections without the removed render canvas block', () => {
     const roomsElements = runWithTrackingDoc(jsRoomsCode);
     const detail = (roomsElements['room-detail'] && roomsElements['room-detail'].innerHTML) || '';
-    assert.ok(detail.includes('Rendered room graphic (header fallback)'), 'Expected header fallback section in room detail');
-    assert.ok(detail.includes('rr-canvas-fallback'), 'Expected fallback canvas element in room detail');
+    assert.ok(detail.includes('ROM Map Data'), 'Expected ROM header section in room detail');
+    assert.ok(detail.includes('ROM scripts'), 'Expected ROM scripts section in room detail');
+    assert.ok(detail.includes('CHANGE MAP = 0x34'), 'Expected decoded script summary in room detail');
+    assert.ok(!detail.includes('rr-canvas'), 'Did not expect removed render canvas block');
 });
 
 console.log('\nScaling tab: JS behaviour');

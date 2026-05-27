@@ -145,5 +145,27 @@ test('decodes enter script opcodes including 0x1b room-bound writes and trailing
     assert.strictEqual(room.enter.terminated, true, 'enter script should terminate on 0x00');
 });
 
+test('decodes additional fixed-width opcodes without treating them as unknown', () => {
+    const rom = Buffer.alloc(0x300000, 0x00);
+    const scriptSnes = 0x928600;
+    writeScriptBytes(rom, scriptSnes, [
+        0x51, 0x34, 0x12,
+        0x54, 0x02,
+        0x58,
+        0xA4, 0x78, 0x56,
+        0xA6, 0x04, 0x00,
+        0xA8, 0x10, 0x00,
+        0xAB,
+    ]);
+    const script = decodeRoomScript(rom, scriptSnes);
+    assert.deepStrictEqual(script.instructions.map((row) => row.opcode), [0x51, 0x54, 0x58, 0xA4, 0xA6, 0xA8, 0xAB]);
+    assert.ok(script.instructions.every((row) => !row.summary.startsWith('UNKNOWN OPCODE')), 'expected supported summaries for the new fixed-width opcodes');
+    assert.ok(script.instructions[0].summary.includes('SHOW TEXT 0x1234 WINDOWED'), 'expected SHOW TEXT summary');
+    assert.ok(script.instructions[3].summary.includes('CALL SHORT SCRIPT 0x5678'), 'expected short-call summary');
+    assert.ok(script.instructions[4].summary.includes('RCALL 4'), 'expected relative-call summary');
+    assert.ok(script.instructions[5].summary.includes('SLEEP 15 TICKS'), 'expected 16-bit sleep summary');
+    assert.strictEqual(script.stopReason, 'unsupported-opcode', 'reset-game opcode should still stop further decode');
+});
+
 console.log(`\n  ${passed} passed, ${failed} failed\n`);
 if (failed > 0) process.exit(1);

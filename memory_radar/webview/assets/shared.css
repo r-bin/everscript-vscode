@@ -119,6 +119,10 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .rd-filters{display:flex;gap:3px;flex-wrap:wrap;margin-top:4px}
 .rdf{border:1px solid #444;border-radius:8px;padding:1px 6px;cursor:pointer;font-size:9px;background:transparent;color:#aaa;opacity:.35}
 .rdf.on{opacity:1}
+.hide-map .rs-map{display:none!important}
+.hide-header .rs-romhdr{display:none!important}
+.hide-scripts .rs-scripts{display:none!important}
+.hide-trigger .svge-step,.hide-trigger .svge-btrig,.hide-trigger .rs-step,.hide-trigger .rs-btrig{display:none!important}
 .hide-ent .svge-entrance,.hide-ent .rs-entrance{display:none!important}
 .hide-enem .svge-enemy,.hide-enem .rs-enemies{display:none!important}
 .hide-obj .rs-objects{display:none!important}

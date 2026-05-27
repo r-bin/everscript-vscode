@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "publisher": "rbin",
   "main": "./extension.js",
   "engines": {
@@ -24,8 +24,8 @@
     "build:core:custom": "sh tools/build_snes_core.sh custom",
     "build:core:vanilla": "sh tools/build_snes_core.sh vanilla",
     "build:cores": "npm run build:core:vanilla && npm run build:core:custom",
-    "test": "npm run build:cores && vscode-tmgrammar-test -g code_highlighter/syntaxes/everscript.tmLanguage.json 'code_highlighter/tests/**/*.test.evs' && node memory_radar/tests/radar.test.js && node memory_radar/tests/damage.test.js && node memory_radar/tests/map-blob-evidence-model.test.js && node memory_radar/tests/render-script-model.test.js && node memory_radar/tests/smoke.test.js && node memory_radar/tests/ui.test.js && node memory_radar/tests/scaling-rom.test.js && node memory_radar/tests/map-pipeline-model.test.js && node debugger/tests/debugger.test.js && node debugger/tests/room-script-model.test.js && node debugger/tests/emulator-health.test.js && node debugger/tests/emulator-runtime.test.js",
-    "test:emulator-runtime": "npm run build:cores && node debugger/tests/emulator-runtime.test.js",
+  "test": "npm run build:cores && vscode-tmgrammar-test -g code_highlighter/syntaxes/everscript.tmLanguage.json 'code_highlighter/tests/**/*.test.evs' && node memory_radar/tests/radar.test.js && node memory_radar/tests/damage.test.js && node memory_radar/tests/map-blob-evidence-model.test.js && node memory_radar/tests/render-script-model.test.js && node memory_radar/tests/smoke.test.js && node memory_radar/tests/ui.test.js && node memory_radar/tests/scaling-rom.test.js && node memory_radar/tests/map-pipeline-model.test.js && node debugger/tests/debugger.test.js && node debugger/tests/settings-model.test.js && node debugger/tests/snes-rom-header-model.test.js && node debugger/tests/room-script-model.test.js && node debugger/tests/emulator-health.test.js",
+  "test:emulator-runtime": "npm run build:cores && node debugger/tests/emulator-health.test.js",
     "package": "mkdir -p out && /opt/homebrew/bin/vsce package --out out/ 2>&1 || (echo '' && echo 'ERROR: vsce package failed. Check publisher/engine fields in package.json.' >&2 && exit 1)",
     "deploy": "npm run package && node -e \"const v=require('./package.json').version; const {execSync}=require('child_process'); const vsix='out/everscript-'+v+'.vsix'; console.log('Installing '+vsix+'...'); try { execSync('code --install-extension '+vsix+' --force', {stdio:'inherit'}); } catch(e) { console.error('\\nERROR: code CLI not found or install failed.'); console.error('Fix: add VS Code to PATH via Command Palette: Shell Command: Install code in PATH'); process.exit(1); } const out=execSync('code --list-extensions 2>&1').toString(); if(!out.includes('rbin.everscript')) { console.error('\\nERROR: extension installed but rbin.everscript not found in extension list.'); console.error('Installed output was: '+out); process.exit(1); } console.log('\\nOK: rbin.everscript@'+v+' is installed. Reload VS Code (Developer: Reload Window).')\""
   },
@@ -195,51 +195,52 @@
     "configuration": {
       "title": "Everscript",
       "properties": {
+        "everscript.repoPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Absolute path to the Everscript repository root. When set, the extension auto-fills `compilerPath`, `pythonPath`, `inDirectory`, `patchesDirectory`, and `romPath` if those values are still empty."
+        },
+        "everscript.compilerPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Override: absolute path to `everscript.py` or a compiled binary. Auto-filled from `repoPath` when empty."
+        },
+        "everscript.pythonPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Override: absolute path to the Python interpreter. Auto-filled from `<repoPath>/.venv/bin/python3` when empty."
+        },
         "everscript.inDirectory": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Path to the `in/` directory containing `.evs` source files. Used for static analysis (scope detection, room tree, `#include` resolution). Defaults to `<workspace>/in`."
+          "markdownDescription": "Path to the `in/` directory containing `.evs` source files. Used for static analysis (scope detection, room tree, `#include` resolution). Auto-filled from `repoPath` when empty, otherwise defaults to `<workspace>/in`."
         },
         "everscript.patchesDirectory": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Path to the `patches/` directory. Used to detect active patches (e.g. `scale_enemies`). Defaults to `<workspace>/patches`."
+          "markdownDescription": "Path to the `patches/` directory. Used both for active-patch detection and as the default compiler `--patches` directory. Auto-filled from `repoPath` when empty, otherwise defaults to `<workspace>/patches`."
         },
         "everscript.romPath": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Path to the Secret of Evermore ROM (`.smc`, no header). Required for the Scaling tab (character stats) and ROM trigger offsets. Defaults to `<workspace>/Secret of Evermore (U) [!].smc`."
+          "markdownDescription": "Path to the Secret of Evermore ROM (`.smc`, no header). Used by the Scaling tab and the Rooms tab ROM-backed vanilla/script readers. Auto-filled from `repoPath` when empty, otherwise defaults to `<workspace>/Secret of Evermore (U) [!].smc`."
         },
         "everscript.assetsPath": {
           "type": "string",
           "default": "",
           "markdownDescription": "Path to the assets directory. Should contain an `ingredients/` subfolder with `.webp` ingredient icons. Defaults to the bundled extension assets."
         },
-        "everscript.repoPath": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "Absolute path to the Everscript repository root. Sets the build working directory and auto-fills the other build settings. Example: `/path/to/everscript`."
-        },
-        "everscript.patchesPath": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "Absolute path to the patches folder passed as `--patches` to the compiler. Defaults to `<repoPath>/patches` when empty."
-        },
-        "everscript.compilerPath": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "Override: absolute path to `everscript.py` or a compiled binary. Auto-detected from `repoPath` when empty."
-        },
-        "everscript.pythonPath": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "Override: absolute path to the Python interpreter. Auto-detected from `<repoPath>/.venv/bin/python3` when empty."
-        },
         "everscript.snesCorePath": {
           "type": "string",
           "default": "",
           "markdownDescription": "Path to a custom `snes9x2005-wasm` Emscripten `.js` build (for example `debugger/core/snes9x2005-wasm/snes9x_2005.js`). The matching `.wasm` file must be in the same directory. Leave empty to use the bundled vanilla core at `debugger/core/snes9x2005-wasm-vanilla/snes9x_2005.js`.",
           "scope": "machine"
+        },
+        "everscript.patchesPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Legacy alias for the compiler `--patches` directory.",
+          "deprecationMessage": "Use Everscript: Patches Directory instead. This setting is kept only for backward compatibility."
         }
       }
     }

@@ -65,6 +65,11 @@ function readU24(romBuf, romOffset) {
     return readU8(romBuf, romOffset) | (readU8(romBuf, romOffset + 1) << 8) | (readU8(romBuf, romOffset + 2) << 16);
 }
 
+function readS16(romBuf, romOffset) {
+    const value = readU16(romBuf, romOffset);
+    return value & 0x8000 ? value - 0x10000 : value;
+}
+
 function readU16Snes(romBuf, snesAddr) {
     return readU16(romBuf, snesToRomOffset(snesAddr));
 }
@@ -154,16 +159,37 @@ function decodeInstructionAt(romBuf, scriptSnes, offset) {
             size = 5;
             const x = readU8(romBuf, addressRom + 1);
             const y = readU8(romBuf, addressRom + 2);
-            const mapId = readU8(romBuf, addressRom + 3);
-            const mode = readU8(romBuf, addressRom + 4);
-            const suffix = mode ? ` mode=0x${hex(mode, 2)}` : '';
-            summary = `CHANGE MAP = 0x${hex(mapId, 2)} @ [ 0x${hex(x * 8, 4)} | 0x${hex(y * 8, 4)} ]${suffix}`;
+            const mapId = readU16(romBuf, addressRom + 3);
+            summary = `CHANGE MAP = 0x${hex(mapId, mapId > 0xff ? 4 : 2)} @ [ 0x${hex(x * 8, 4)} | 0x${hex(y * 8, 4)} ]`;
             break;
         }
+        case 0x26:
+            size = 1;
+            summary = 'WRITE TO VRAM';
+            break;
+        case 0x27:
+            size = 1;
+            summary = 'FADE OUT SCREEN';
+            break;
         case 0x29: {
             size = 4;
             const target = readU24(romBuf, addressRom + 1);
             summary = `CALL 0x${hex(target, 6)}`;
+            break;
+        }
+        case 0x2c:
+        case 0x2d: {
+            size = 2;
+            const type = readU8(romBuf, addressRom + 1);
+            summary = opcode === 0x2c ? `SCRIPT CALLER CHECK 0x${hex(type, 2)}` : `SCRIPT CALLER CHECK (inverse) 0x${hex(type, 2)}`;
+            break;
+        }
+        case 0x30:
+        case 0x31:
+        case 0x32: {
+            size = 2;
+            const effect = readU8(romBuf, addressRom + 1);
+            summary = `PLAY SOUND EFFECT 0x${hex(effect, 2)}`;
             break;
         }
         case 0x33: {
@@ -172,12 +198,140 @@ function decodeInstructionAt(romBuf, scriptSnes, offset) {
             summary = `PLAY MUSIC 0x${hex(music, 2)}`;
             break;
         }
+        case 0x38:
+        case 0x3a:
+            size = 1;
+            summary = 'YIELD';
+            break;
+        case 0x44:
+        case 0x45:
+        case 0x46:
+        case 0x47: {
+            size = 6;
+            const slot = readU8(romBuf, addressRom + 1);
+            const x = readU8(romBuf, addressRom + 2);
+            const y = readU8(romBuf, addressRom + 3);
+            const w = readU8(romBuf, addressRom + 4);
+            const h = readU8(romBuf, addressRom + 5);
+            summary = `OPEN MESSAGEBOX slot=0x${hex(slot, 2)} x=0x${hex(x, 2)} y=0x${hex(y, 2)} w=0x${hex(w, 2)} h=0x${hex(h, 2)}`;
+            break;
+        }
+        case 0x48:
+        case 0x49:
+        case 0x4a:
+        case 0x4b:
+            size = 1;
+            summary = 'OPEN DEFAULT MESSAGEBOX';
+            break;
+        case 0x4d:
+            size = 1;
+            summary = 'NOP';
+            break;
+        case 0x50: {
+            size = 4;
+            const slot = readU8(romBuf, addressRom + 1);
+            const textId = readU16(romBuf, addressRom + 2);
+            summary = `SHOW TEXT 0x${hex(textId, 4)} UNWINDOWED IN #${slot}`;
+            break;
+        }
+        case 0x51:
+        case 0x52: {
+            size = 3;
+            const textId = readU16(romBuf, addressRom + 1);
+            summary = `SHOW TEXT 0x${hex(textId, 4)} ${opcode === 0x51 ? 'WINDOWED' : 'UNWINDOWED'}`;
+            break;
+        }
+        case 0x54: {
+            size = 2;
+            const slot = readU8(romBuf, addressRom + 1);
+            summary = `CLEAR TEXT IN #${slot}`;
+            break;
+        }
+        case 0x55:
+            size = 1;
+            summary = 'CLEAR TEXT';
+            break;
+        case 0x58:
+            size = 1;
+            summary = 'FADE IN VOLUME';
+            break;
+        case 0x59:
+            size = 1;
+            summary = 'FADE OUT VOLUME';
+            break;
+        case 0x5a:
+        case 0x5b:
+            size = 1;
+            summary = 'CHECK MESSAGE TIMER';
+            break;
+        case 0x62: {
+            size = 6;
+            const value = readU8(romBuf, addressRom + 1);
+            const word1 = readU16(romBuf, addressRom + 2);
+            const word2 = readU16(romBuf, addressRom + 4);
+            summary = `COPY UNKNOWN DATA 0x${hex(value, 2)} 0x${hex(word1, 4)} 0x${hex(word2, 4)}`;
+            break;
+        }
+        case 0x63:
+            size = 1;
+            summary = 'SHOW ALCHEMY SELECTION SCREEN';
+            break;
+        case 0x7f: {
+            size = 3;
+            const textId = readU16(romBuf, addressRom + 1);
+            summary = `SHOW TEXT/NAME INPUT 0x${hex(textId, 4)}`;
+            break;
+        }
+        case 0x80:
+            size = 1;
+            summary = 'UNHIDE UNWINDOWED TEXT';
+            break;
+        case 0x81:
+            size = 1;
+            summary = 'HIDE UNWINDOWED TEXT';
+            break;
+        case 0x82:
+            size = 1;
+            summary = 'CHANGE VISIBLE LAYERS?';
+            break;
+        case 0x83:
+            size = 1;
+            summary = 'APPLY VISIBLE LAYER STATE';
+            break;
         case 0x86: {
             size = 2;
             const volume = readU8(romBuf, addressRom + 1);
             summary = `SET AUDIO volume to 0x${hex(volume, 2)}`;
             break;
         }
+        case 0x88:
+            size = 1;
+            summary = 'CLEAR SHOPPING RING';
+            break;
+        case 0x8c: {
+            size = 3;
+            const roomNameId = readU16(romBuf, addressRom + 1);
+            summary = `SHOW SAVE MENU 0x${hex(roomNameId, 4)}`;
+            break;
+        }
+        case 0x8d: {
+            size = 2;
+            const mode = readU8(romBuf, addressRom + 1);
+            summary = `${mode === 0 ? 'STOP' : 'START'} SCREEN SHAKING (0x${hex(mode, 2)})`;
+            break;
+        }
+        case 0x9f:
+            size = 1;
+            summary = 'PREPARE CURRENCY DISPLAY';
+            break;
+        case 0xa0:
+            size = 1;
+            summary = 'SHOW CURRENCY AMOUNT';
+            break;
+        case 0xa1:
+            size = 1;
+            summary = 'HIDE CURRENCY DISPLAY';
+            break;
         case 0xa3: {
             size = 2;
             const callId = readU8(romBuf, addressRom + 1);
@@ -185,10 +339,54 @@ function decodeInstructionAt(romBuf, scriptSnes, offset) {
             summary = known ? `CALL "${known}" (0x${hex(callId, 2)})` : `CALL 0x${hex(callId, 2)}`;
             break;
         }
+        case 0xa4: {
+            size = 3;
+            const scriptId = readU16(romBuf, addressRom + 1);
+            summary = `CALL SHORT SCRIPT 0x${hex(scriptId, 4)}`;
+            break;
+        }
+        case 0xa5: {
+            size = 2;
+            const delta = readU8(romBuf, addressRom + 1) - 0x100;
+            const target = addressSnes + size + delta;
+            summary = `RCALL ${delta} (to 0x${hex(target, 6)})`;
+            break;
+        }
+        case 0xa6: {
+            size = 3;
+            const delta = readS16(romBuf, addressRom + 1);
+            const target = addressSnes + size + delta;
+            summary = `RCALL ${delta} (to 0x${hex(target, 6)})`;
+            break;
+        }
         case 0xa7: {
             size = 2;
             const ticks = readU8(romBuf, addressRom + 1);
             summary = `SLEEP ${ticks} TICKS`;
+            break;
+        }
+        case 0xa8: {
+            size = 3;
+            const ticks = readU16(romBuf, addressRom + 1);
+            summary = `SLEEP ${ticks - 1} TICKS`;
+            break;
+        }
+        case 0xaa:
+            size = 1;
+            summary = 'CLEAR BOY AND DOG STATUSES';
+            break;
+        case 0xab:
+            size = 1;
+            summary = 'RESET GAME';
+            stop = true;
+            break;
+        case 0xae: {
+            size = 5;
+            const value1 = readU8(romBuf, addressRom + 1);
+            const value2 = readU8(romBuf, addressRom + 2);
+            const value3 = readU8(romBuf, addressRom + 3);
+            const value4 = readU8(romBuf, addressRom + 4);
+            summary = `MODIFY CURRENT SCRIPT 0x${hex(value1, 2)} 0x${hex(value2, 2)} 0x${hex(value3, 2)} 0x${hex(value4, 2)}`;
             break;
         }
         default:
@@ -325,16 +523,20 @@ function buildRoomScriptModelFromRom(romBuf, mapId) {
     };
 }
 
-function loadRomFromWorkspace(wsRoot) {
-    for (const name of ROM_NAMES) {
-        const filePath = path.join(wsRoot, name);
-        if (fs.existsSync(filePath)) return fs.readFileSync(filePath);
+function loadRomFromWorkspace(wsRoot, romPathOverride) {
+    const candidates = [];
+    if (romPathOverride) candidates.push(romPathOverride);
+    if (wsRoot) {
+        for (const name of ROM_NAMES) candidates.push(path.join(wsRoot, name));
+    }
+    for (const filePath of candidates) {
+        if (filePath && fs.existsSync(filePath)) return fs.readFileSync(filePath);
     }
     return null;
 }
 
-function readRoomScriptModel(wsRoot, mapId) {
-    const romBuf = loadRomFromWorkspace(wsRoot);
+function readRoomScriptModel(wsRoot, mapId, romPathOverride) {
+    const romBuf = loadRomFromWorkspace(wsRoot, romPathOverride);
     if (!romBuf) return null;
     try { return buildRoomScriptModelFromRom(romBuf, mapId); }
     catch { return null; }

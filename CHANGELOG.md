@@ -1,3 +1,18 @@
+## [0.3.1] — 2026-05-27
+
+### Added
+- Added [debugger/emulator/snes-rom-header-model.js](/Users/v/Documents/GitHub/everscript-vscode/debugger/emulator/snes-rom-header-model.js) with tested HiROM/LoROM cartridge-header parsing based on the SNES internal ROM header.
+- Added [debugger/tests/settings-model.test.js](/Users/v/Documents/GitHub/everscript-vscode/debugger/tests/settings-model.test.js) and [debugger/tests/snes-rom-header-model.test.js](/Users/v/Documents/GitHub/everscript-vscode/debugger/tests/snes-rom-header-model.test.js) to lock down repo-path autofill behavior and cartridge-header parsing.
+
+### Fixed
+- Centralized repo-derived settings resolution in [settings-model.js](/Users/v/Documents/GitHub/everscript-vscode/settings-model.js) and updated [package.json](/Users/v/Documents/GitHub/everscript-vscode/package.json) so `repoPath` now clearly auto-fills compiler, Python, source, patches, and ROM defaults while keeping legacy `patchesPath` compatibility.
+- Reworked the Rooms tab in [extension.js](/Users/v/Documents/GitHub/everscript-vscode/extension.js), [memory_radar/webview/assets/rooms-tab.js](/Users/v/Documents/GitHub/everscript-vscode/memory_radar/webview/assets/rooms-tab.js), and [memory_radar/webview/assets/shared.css](/Users/v/Documents/GitHub/everscript-vscode/memory_radar/webview/assets/shared.css) so vanilla rooms use configured-ROM data, missing-ROM states show explicit errors, the stale placeholder path is gone, and the misleading bottom render block is removed.
+- Expanded [debugger/emulator/room-script-model.js](/Users/v/Documents/GitHub/everscript-vscode/debugger/emulator/room-script-model.js) to decode a broader set of fixed-width room-script opcodes including text, audio, call, yield, and UI-related instructions.
+
+### Tests
+- Updated [memory_radar/tests/smoke.test.js](/Users/v/Documents/GitHub/everscript-vscode/memory_radar/tests/smoke.test.js) and [memory_radar/tests/ui.test.js](/Users/v/Documents/GitHub/everscript-vscode/memory_radar/tests/ui.test.js) to assert ROM-backed room details, explicit room errors, and the absence of the removed bottom render block.
+- Extended [debugger/tests/room-script-model.test.js](/Users/v/Documents/GitHub/everscript-vscode/debugger/tests/room-script-model.test.js) with additional fixed-width opcode coverage.
+
 ## [0.3.0] — 2026-05-27
 
 ### Added

@@ -16,7 +16,7 @@ Module._resolveFilename = function(req, ...rest) {
 require.cache['vscode'] = {
     id: 'vscode', filename: 'vscode', loaded: true,
     exports: {
-        workspace: { workspaceFolders: null, onDidOpenTextDocument: ()=>({dispose:()=>{}}), onDidCloseTextDocument: ()=>({dispose:()=>{}}), onDidChangeTextDocument: ()=>({dispose:()=>{}}), createFileSystemWatcher: ()=>({onDidChange:()=>({dispose:()=>{}}),dispose:()=>{}}) },
+        workspace: { workspaceFolders: null, getConfiguration: ()=>({ get: ()=>'' }), onDidOpenTextDocument: ()=>({dispose:()=>{}}), onDidCloseTextDocument: ()=>({dispose:()=>{}}), onDidChangeTextDocument: ()=>({dispose:()=>{}}), createFileSystemWatcher: ()=>({onDidChange:()=>({dispose:()=>{}}),dispose:()=>{}}) },
         window: { createWebviewPanel: ()=>{}, onDidChangeActiveTextEditor: ()=>({dispose:()=>{}}), activeTextEditor: null, showInformationMessage: ()=>{} },
         commands: { registerCommand: ()=>({dispose:()=>{}}) },
         languages: { registerHoverProvider: ()=>({dispose:()=>{}}), registerCompletionItemProvider: ()=>({dispose:()=>{}}), registerDefinitionProvider: ()=>({dispose:()=>{}}), registerCodeLensProvider: ()=>({dispose:()=>{}}) },
@@ -336,24 +336,6 @@ test('scriptLines absent even with triggers present', () => {
     assert.ok(!html.includes('"scriptLines"'), 'scriptLines key must not appear in ROOMS JSON');
 });
 
-test('rooms detail renders header fallback canvas when payload render is missing', () => {
-    const roomTreeFallback = [{
-        kind:'map', name:'fallback_room', vanillaId:'R_TEST', relPath:'', startLine:0, endLine:2,
-        imageUri:null, imageDims:null,
-        content:{
-            initMap:{x1:0,y1:0,x2:31,y2:25}, entrances:[], enemies:[], objects:[], transitions:[],
-            romHeader:{ mapW:31, mapH:26, offX:0, offY:0, mapWpx:496, mapHpx:416, scrollW:240, scrollH:192, b4:0x17, b5:0x00, b6:0x00, b7:0x02, b8:0x00, sig:'17 00 00 02 00' },
-            triggers:{ stepOn:[], bTrigger:[] }
-        }
-    }];
-    const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTreeFallback, 'rooms', 'fallback_room');
-    const js = extractScript(html);
-    const { sandbox } = runWebviewJs(js);
-    const detail = sandbox.document.getElementById('room-detail').innerHTML || '';
-    assert.ok(detail.includes('Rendered room graphic (header fallback)'), 'Expected header fallback section in room detail');
-    assert.ok(detail.includes('rr-canvas-fallback'), 'Expected fallback canvas element in room detail');
-});
-
 test('rooms detail emits render log messages in rooms tab path', () => {
     const roomTreeFallback = [{
         kind:'map', name:'fallback_room', vanillaId:'R_TEST', relPath:'', startLine:0, endLine:2,
@@ -371,396 +353,51 @@ test('rooms detail emits render log messages in rooms tab path', () => {
     assert.ok(joined.includes('[RoomsRender] renderRoomDetail:start'), 'Expected room render start log');
 });
 
-test('rooms detail creates decoded render canvas when payload render exists', () => {
-    const tile = new Array(16 * 16).fill(0);
-    tile[0] = 1;
-    const roomTreeDecoded = [{
-        kind:'map', name:'decoded_room', vanillaId:'R_DEC', relPath:'', startLine:0, endLine:2,
+test('rooms detail renders ROM header and decoded script tables without bottom render canvas', () => {
+    const roomTreeData = [{
+        kind:'map', name:'script_room', vanillaId:'0x33', relPath:'vanilla (rom)', startLine:0, endLine:2,
         imageUri:null, imageDims:null,
         content:{
-            initMap:{x1:0,y1:0,x2:0,y2:0}, entrances:[], enemies:[], objects:[], transitions:[],
-            romHeader:{ mapW:1, mapH:1, offX:0, offY:0, mapWpx:16, mapHpx:16, scrollW:0, scrollH:0, b4:0x17, b5:0x00, b6:0x00, b7:0x02, b8:0x00, sig:'17 00 00 02 00' },
-            payloadData:{
-                tileFamilies:[0x00],
-                tilemap:[[0]],
-                compressedSize:0,
-                render:{
-                    defaultPaletteIndex:0,
-                    unresolvedTiles:0,
-                    familyTiles:[tile],
-                    palettes:[{ name:'test', rgba:[[0,0,0,255],[255,255,255,255]] }],
-                },
-            },
-            triggers:{ stepOn:[], bTrigger:[] },
-        }
-    }];
-    const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTreeDecoded, 'rooms', 'decoded_room');
-    const js = extractScript(html);
-    const { sandbox } = runWebviewJs(js);
-    const cv = sandbox.document.getElementById('rr-canvas');
-    assert.ok(cv, 'Expected decoded render canvas to exist');
-    assert.strictEqual(cv.width, 16, 'Expected decoded canvas width to match 1 tile map');
-    assert.strictEqual(cv.height, 16, 'Expected decoded canvas height to match 1 tile map');
-});
-
-test('decoded render canvas receives non-empty pixel data', () => {
-    const tile = new Array(16 * 16).fill(0);
-    tile[0] = 1;
-    const roomTreeDecoded = [{
-        kind:'map', name:'decoded_room', vanillaId:'R_DEC', relPath:'', startLine:0, endLine:2,
-        imageUri:null, imageDims:null,
-        content:{
-            initMap:{x1:0,y1:0,x2:0,y2:0}, entrances:[], enemies:[], objects:[], transitions:[],
-            romHeader:{ mapW:1, mapH:1, offX:0, offY:0, mapWpx:16, mapHpx:16, scrollW:0, scrollH:0, b4:0x17, b5:0x00, b6:0x00, b7:0x02, b8:0x00, sig:'17 00 00 02 00' },
-            payloadData:{
-                tileFamilies:[0x00],
-                tilemap:[[0]],
-                compressedSize:0,
-                render:{
-                    defaultPaletteIndex:0,
-                    unresolvedTiles:0,
-                    familyTiles:[tile],
-                    palettes:[{ name:'test', rgba:[[0,0,0,255],[255,255,255,255]] }],
-                },
-            },
-            triggers:{ stepOn:[], bTrigger:[] },
-        }
-    }];
-    const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTreeDecoded, 'rooms', 'decoded_room');
-    const js = extractScript(html);
-    const { sandbox } = runWebviewJs(js);
-    const cv = sandbox.document.getElementById('rr-canvas');
-    const ctx = cv && cv.getContext('2d');
-    assert.ok(ctx && ctx._putCount > 0, 'Expected decoded render path to draw image data to canvas');
-    const data = ctx._lastImageData && ctx._lastImageData.data;
-    assert.ok(data && data.length > 0, 'Expected image data buffer');
-    let anyNonZero = false;
-    for (let i = 0; i < data.length; i++) {
-        if (data[i] !== 0) { anyNonZero = true; break; }
-    }
-    assert.ok(anyNonZero, 'Expected non-empty pixel data in rendered map canvas');
-});
-
-test('decoded canvas uses ROM header width/height even if tilemap shape differs', () => {
-    const tile = new Array(16 * 16).fill(1);
-    const roomTreeDecoded = [{
-        kind:'map', name:'size_room', vanillaId:'R_SIZE', relPath:'', startLine:0, endLine:2,
-        imageUri:null, imageDims:null,
-        content:{
-            initMap:{x1:0,y1:0,x2:1,y2:2}, entrances:[], enemies:[], objects:[], transitions:[],
-            romHeader:{ mapW:2, mapH:3, offX:0, offY:0, mapWpx:32, mapHpx:48, scrollW:0, scrollH:0, b4:0x17, b5:0x00, b6:0x00, b7:0x02, b8:0x00, sig:'17 00 00 02 00' },
-            payloadData:{
-                tileFamilies:[0x00],
-                tilemap:[[0]], // deliberately smaller than header size
-                compressedSize:0,
-                render:{
-                    defaultPaletteIndex:0,
-                    unresolvedTiles:0,
-                    totalRefs:1,
-                    unresolvedRatio:0,
-                    familyTiles:[tile],
-                    palettes:[{ name:'test', rgba:[[0,0,0,255],[10,20,30,255]] }],
-                },
-            },
-            triggers:{ stepOn:[], bTrigger:[] },
-        }
-    }];
-    const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTreeDecoded, 'rooms', 'size_room');
-    const js = extractScript(html);
-    const { sandbox, logs } = runWebviewJs(js);
-    const cv = sandbox.document.getElementById('rr-canvas');
-    assert.ok(cv, 'Expected decoded render canvas');
-    assert.strictEqual(cv.width, 32, 'Expected header-driven width');
-    assert.strictEqual(cv.height, 48, 'Expected header-driven height');
-    const done = logs.find((entry) => String(entry[1] || '').includes('[RoomsRender] drawRomRoomCanvas: done'));
-    assert.ok(done, 'Expected draw done log');
-    const meta = done[2] || {};
-    assert.strictEqual(meta.tileRefs, 6, 'Expected tileRefs to match header map area');
-});
-
-test('decoded render clears canvas to white before drawing', () => {
-    const tile = new Array(16 * 16).fill(1);
-    const roomTreeDecoded = [{
-        kind:'map', name:'prefill_room', vanillaId:'R_PREFILL', relPath:'', startLine:0, endLine:2,
-        imageUri:null, imageDims:null,
-        content:{
-            initMap:{x1:0,y1:0,x2:0,y2:0}, entrances:[], enemies:[], objects:[], transitions:[],
-            romHeader:{ mapW:1, mapH:1, offX:0, offY:0, mapWpx:16, mapHpx:16, scrollW:0, scrollH:0, b4:0x17, b5:0x00, b6:0x00, b7:0x02, b8:0x00, sig:'17 00 00 02 00' },
-            payloadData:{
-                tileFamilies:[0x00],
-                tilemap:[[0]],
-                compressedSize:0,
-                render:{
-                    defaultPaletteIndex:0,
-                    unresolvedTiles:0,
-                    totalRefs:1,
-                    unresolvedRatio:0,
-                    familyTiles:[tile],
-                    palettes:[{ name:'test', rgba:[[0,0,0,255],[20,40,60,255]] }],
-                },
-            },
-            triggers:{ stepOn:[], bTrigger:[] },
-        }
-    }];
-    const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTreeDecoded, 'rooms', 'prefill_room');
-    const js = extractScript(html);
-    const { sandbox } = runWebviewJs(js);
-    const cv = sandbox.document.getElementById('rr-canvas');
-    const ctx = cv && cv.getContext('2d');
-    assert.ok(ctx, 'Expected 2D context');
-    assert.ok(ctx._fillOps.length > 0, 'Expected pre-render fill operation');
-    const firstFill = ctx._fillOps[0];
-    assert.strictEqual(firstFill.fillStyle, '#ffffff', 'Expected white prefill before rendering');
-    assert.strictEqual(firstFill.w, 16, 'Expected fill width to match canvas width');
-    assert.strictEqual(firstFill.h, 16, 'Expected fill height to match canvas height');
-});
-
-test('decoded render fills full map area and avoids blank white cells after draw', () => {
-    const tileA = new Array(16 * 16).fill(1);
-    const tileB = new Array(16 * 16).fill(2);
-    const tileC = new Array(16 * 16).fill(3);
-    const tileD = new Array(16 * 16).fill(4);
-    const roomTreeDecoded = [{
-        kind:'map', name:'full_room', vanillaId:'R_FULL', relPath:'', startLine:0, endLine:2,
-        imageUri:null, imageDims:null,
-        content:{
-            initMap:{x1:0,y1:0,x2:1,y2:1}, entrances:[], enemies:[], objects:[], transitions:[],
-            romHeader:{ mapW:2, mapH:2, offX:0, offY:0, mapWpx:32, mapHpx:32, scrollW:0, scrollH:0, b4:0x17, b5:0x00, b6:0x00, b7:0x02, b8:0x00, sig:'17 00 00 02 00' },
-            payloadData:{
-                tileFamilies:[0x00,0x01,0x02,0x03],
-                tilemap:[[0,1],[2,3]],
-                compressedSize:0,
-                render:{
-                    defaultPaletteIndex:0,
-                    unresolvedTiles:0,
-                    totalRefs:4,
-                    unresolvedRatio:0,
-                    familyTiles:[tileA,tileB,tileC,tileD],
-                    palettes:[{ name:'test', rgba:[[0,0,0,255],[10,20,30,255],[40,50,60,255],[70,80,90,255],[100,110,120,255]] }],
-                },
-            },
-            triggers:{ stepOn:[], bTrigger:[] },
-        }
-    }];
-    const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTreeDecoded, 'rooms', 'full_room');
-    const js = extractScript(html);
-    const { sandbox, logs } = runWebviewJs(js);
-    const cv = sandbox.document.getElementById('rr-canvas');
-    const ctx = cv && cv.getContext('2d');
-    const data = ctx && ctx._lastImageData && ctx._lastImageData.data;
-    assert.ok(data && data.length > 0, 'Expected drawn image data');
-    let hasWhite = false;
-    for (let i = 0; i < data.length; i += 4) {
-        if (data[i] === 255 && data[i + 1] === 255 && data[i + 2] === 255) { hasWhite = true; break; }
-    }
-    assert.ok(!hasWhite, 'Expected full map fill without white holes');
-    const done = logs.find((entry) => String(entry[1] || '').includes('[RoomsRender] drawRomRoomCanvas: done'));
-    assert.ok(done, 'Expected draw completion log');
-    const meta = done[2] || {};
-    assert.strictEqual(meta.drawnTiles, 4, 'Expected all map tiles to be drawn');
-    assert.strictEqual(meta.tileRefs, 4, 'Expected tileRefs from map dimensions');
-    assert.strictEqual(meta.renderCommandsEstimate, 4, 'Expected command estimate to match map area');
-    assert.strictEqual(meta.invalidRefs, 0, 'Expected no invalid refs in fully valid map');
-});
-
-test('decoded render reaches expected unique tile threshold', () => {
-    const mk = (v) => new Array(16 * 16).fill(v);
-    const roomTreeDecoded = [{
-        kind:'map', name:'diverse_room', vanillaId:'R_DIV', relPath:'', startLine:0, endLine:2,
-        imageUri:null, imageDims:null,
-        content:{
-            initMap:{x1:0,y1:0,x2:3,y2:0}, entrances:[], enemies:[], objects:[], transitions:[],
-            romHeader:{ mapW:4, mapH:1, offX:0, offY:0, mapWpx:64, mapHpx:16, scrollW:0, scrollH:0, b4:0x17, b5:0x00, b6:0x00, b7:0x02, b8:0x00, sig:'17 00 00 02 00' },
-            payloadData:{
-                tileFamilies:[0x00,0x01,0x02,0x03],
-                tilemap:[[0,1,2,3]],
-                compressedSize:0,
-                render:{
-                    defaultPaletteIndex:0,
-                    unresolvedTiles:0,
-                    totalRefs:4,
-                    unresolvedRatio:0,
-                    familyTiles:[mk(1),mk(2),mk(3),mk(4)],
-                    palettes:[{ name:'test', rgba:[[0,0,0,255],[10,10,10,255],[40,40,40,255],[70,70,70,255],[100,100,100,255]] }],
-                },
-            },
-            triggers:{ stepOn:[], bTrigger:[] },
-        }
-    }];
-    const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTreeDecoded, 'rooms', 'diverse_room');
-    const js = extractScript(html);
-    const { logs } = runWebviewJs(js);
-    const done = logs.find((entry) => String(entry[1] || '').includes('[RoomsRender] drawRomRoomCanvas: done'));
-    assert.ok(done, 'Expected draw completion log');
-    const meta = done[2] || {};
-    // Heuristic: with 4 refs in a tiny map, at least 3 unique refs should be observed.
-    assert.ok((meta.uniqueRefsCount || 0) >= 3, 'Expected at least 3 unique tile refs rendered');
-});
-
-test('rendered tile appears on map with expected pixel colors', () => {
-    const tile = [];
-    for (let i = 0; i < 16 * 16; i++) tile.push((i % 2) ? 1 : 2);
-    const roomTreeDecoded = [{
-        kind:'map', name:'pixel_room', vanillaId:'R_PX', relPath:'', startLine:0, endLine:2,
-        imageUri:null, imageDims:null,
-        content:{
-            initMap:{x1:0,y1:0,x2:0,y2:0}, entrances:[], enemies:[], objects:[], transitions:[],
-            romHeader:{ mapW:1, mapH:1, offX:0, offY:0, mapWpx:16, mapHpx:16, scrollW:0, scrollH:0, b4:0x17, b5:0x00, b6:0x00, b7:0x02, b8:0x00, sig:'17 00 00 02 00' },
-            payloadData:{
-                tileFamilies:[0x00],
-                tilemap:[[0]],
-                compressedSize:0,
-                render:{
-                    defaultPaletteIndex:0,
-                    unresolvedTiles:0,
-                    totalRefs:1,
-                    unresolvedRatio:0,
-                    familyTiles:[tile],
-                    palettes:[{ name:'test', rgba:[[0,0,0,255],[11,22,33,255],[44,55,66,255]] }],
-                },
-            },
-            triggers:{ stepOn:[], bTrigger:[] },
-        }
-    }];
-    const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTreeDecoded, 'rooms', 'pixel_room');
-    const js = extractScript(html);
-    const { sandbox, logs } = runWebviewJs(js);
-    const cv = sandbox.document.getElementById('rr-canvas');
-    const ctx = cv && cv.getContext('2d');
-    const data = ctx && ctx._lastImageData && ctx._lastImageData.data;
-    assert.ok(data && data.length >= 8, 'Expected image data with at least two pixels');
-    // Pixel 0 uses index 2 -> [44,55,66]
-    assert.strictEqual(data[0], 44, 'Expected first pixel red channel from tile index 2');
-    assert.strictEqual(data[1], 55, 'Expected first pixel green channel from tile index 2');
-    assert.strictEqual(data[2], 66, 'Expected first pixel blue channel from tile index 2');
-    // Pixel 1 uses index 1 -> [11,22,33]
-    assert.strictEqual(data[4], 11, 'Expected second pixel red channel from tile index 1');
-    assert.strictEqual(data[5], 22, 'Expected second pixel green channel from tile index 1');
-    assert.strictEqual(data[6], 33, 'Expected second pixel blue channel from tile index 1');
-    const ex = logs.find((entry) => String(entry[1] || '').includes('[RoomsRender] drawRomRoomCanvas: exception'));
-    assert.ok(!ex, 'Did not expect draw exception logs');
-});
-
-test('rooms decoded render logs invalidRefs diagnostics for trace comparison', () => {
-    const tile = new Array(16 * 16).fill(1);
-    const roomTreeDecoded = [{
-        kind:'map', name:'diag_room', vanillaId:'R_DIAG', relPath:'', startLine:0, endLine:2,
-        imageUri:null, imageDims:null,
-        content:{
-            initMap:{x1:0,y1:0,x2:1,y2:0}, entrances:[], enemies:[], objects:[], transitions:[],
-            romHeader:{ mapW:2, mapH:1, offX:0, offY:0, mapWpx:32, mapHpx:16, scrollW:0, scrollH:0, b4:0x17, b5:0x00, b6:0x00, b7:0x02, b8:0x00, sig:'17 00 00 02 00' },
-            payloadData:{
-                tileFamilies:[0x00],
-                tilemap:[[0, 9]], // one valid ref and one invalid ref
-                compressedSize:0,
-                render:{
-                    defaultPaletteIndex:0,
-                    unresolvedTiles:1,
-                    totalRefs:2,
-                    unresolvedRatio:0.5,
-                    familyTiles:[tile],
-                    palettes:[{ name:'test', rgba:[[0,0,0,255],[255,255,255,255]] }],
-                },
-            },
-            triggers:{ stepOn:[], bTrigger:[] },
-        }
-    }];
-    const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTreeDecoded, 'rooms', 'diag_room');
-    const js = extractScript(html);
-    const { logs } = runWebviewJs(js);
-    const done = logs.find((entry) => String(entry[1] || '').includes('[RoomsRender] drawRomRoomCanvas: done'));
-    assert.ok(done, 'Expected drawRomRoomCanvas completion log');
-    const meta = done[2] || {};
-    assert.strictEqual(meta.invalidRefs, 1, 'Expected invalidRefs in draw diagnostics');
-    assert.strictEqual(meta.tileRefs, 2, 'Expected tileRefs in draw diagnostics');
-});
-
-test('multiple decoded maps render non-white canvas output and avoid fallback canvas', () => {
-    const makeTile = (ci) => new Array(16 * 16).fill(ci);
-    const fixtures = [
-        { name: 'm1', w: 20, h: 16, fill: 1 },
-        { name: 'm2', w: 32, h: 32, fill: 2 },
-        { name: 'm3', w: 83, h: 91, fill: 3 },
-    ];
-    const palette = [[255,255,255,255],[20,90,20,255],[140,80,20,255],[40,60,120,255]];
-
-    fixtures.forEach((fx) => {
-        const tile = makeTile(fx.fill);
-        const row = new Array(fx.w).fill(0);
-        const tilemap = new Array(fx.h).fill(null).map(() => row.slice());
-        const roomTreeDecoded = [{
-            kind:'map', name:fx.name, vanillaId:'R_' + fx.name.toUpperCase(), relPath:'', startLine:0, endLine:2,
-            imageUri:null, imageDims:null,
-            content:{
-                initMap:{x1:0,y1:0,x2:fx.w - 1,y2:fx.h - 1}, entrances:[], enemies:[], objects:[], transitions:[],
-                romHeader:{ mapW:fx.w, mapH:fx.h, offX:0, offY:0, mapWpx:fx.w * 16, mapHpx:fx.h * 16, scrollW:0, scrollH:0, b4:0x17, b5:0x00, b6:0x00, b7:0x02, b8:0x00, sig:'17 00 00 02 00' },
-                payloadData:{
-                    tileFamilies:[0x00],
-                    tilemap,
-                    compressedSize:0,
-                    render:{
-                        defaultPaletteIndex:0,
-                        unresolvedTiles:0,
-                        familyTiles:[tile],
-                        palettes:[{ name:'fixture', rgba:palette }],
-                    },
-                },
-                triggers:{ stepOn:[], bTrigger:[] },
-            }
-        }];
-        const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTreeDecoded, 'rooms', fx.name);
-        const js = extractScript(html);
-        const { sandbox } = runWebviewJs(js);
-        const detail = sandbox.document.getElementById('room-detail').innerHTML || '';
-        assert.ok(!detail.includes('rr-canvas-fallback'), 'Did not expect fallback canvas for decoded map ' + fx.name);
-        const cv = sandbox.document.getElementById('rr-canvas');
-        assert.ok(cv, 'Expected decoded render canvas for ' + fx.name);
-        const ctx = cv.getContext('2d');
-        assert.ok(ctx && ctx._putCount > 0, 'Expected draw call for ' + fx.name);
-        const data = ctx._lastImageData && ctx._lastImageData.data;
-        assert.ok(data && data.length > 0, 'Expected image data for ' + fx.name);
-        let hasNonWhite = false;
-        for (let i = 0; i < data.length; i += 4) {
-            if (!(data[i] === 255 && data[i + 1] === 255 && data[i + 2] === 255)) {
-                hasNonWhite = true;
-                break;
+            initMap:{x1:0,y1:0,x2:40,y2:32}, entrances:[], enemies:[], objects:[], transitions:[],
+            romHeader:{ mapW:20, mapH:16, offX:0, offY:0, mapWpx:320, mapHpx:256, scrollW:64, scrollH:32, b4:0x17, b5:0x00, b6:0x00, b7:0x02, b8:0x00, sig:'17 00 00 02 00', stepLen:12, stepCount:2, bLen:0, bCount:0, payloadTileCount:3, payloadTileIds:[0x12,0x34,0x56] },
+            trigOffset:{offX:0,offY:0},
+            triggers:{
+                meta:{enterPointerSnes:0x92811A,stepLength:12,stepCount:2,bLength:0,bCount:0},
+                enter:{scriptPointerSnes:0x92811A,scriptAddressSnes:0x94E5FB,terminated:true,stopReason:'terminated',instructions:[{addressSnes:0x94E5FB,opcodeHex:'0x18',size:4,bytesHex:'18 43 24 02',summary:'WRITE CHANGE DOGGO ($2443) = 0x02',terminal:false},{addressSnes:0x94E5FF,opcodeHex:'0x00',size:1,bytesHex:'00',summary:'END',terminal:true}]},
+                stepOn:[{x1:0x27,y1:0x0f,x2:0x28,y2:0x10,scriptId:0x0735,scriptAddressSnes:0x94E5E7,terminated:true,stopReason:'terminated',instructions:[{addressSnes:0x94E5E7,opcodeHex:'0xA3',size:2,bytesHex:'A3 00',summary:'CALL "Fade-out / stop music" (0x00)',terminal:false},{addressSnes:0x94E5E9,opcodeHex:'0x22',size:5,bytesHex:'22 12 23 34 00',summary:'CHANGE MAP = 0x34 @ [ 0x0090 | 0x0118 ]',terminal:false},{addressSnes:0x94E5EE,opcodeHex:'0x00',size:1,bytesHex:'00',summary:'END',terminal:true}]}],
+                bTrigger:[]
             }
         }
-        assert.ok(hasNonWhite, 'Expected non-white pixels for ' + fx.name);
-    });
-});
-
-test('low-quality decoded render is rejected and falls back to header canvas', () => {
-    const tile = new Array(16 * 16).fill(1);
-    const roomTreeDecoded = [{
-        kind:'map', name:'reject_room', vanillaId:'R_REJECT', relPath:'', startLine:0, endLine:2,
-        imageUri:null, imageDims:null,
-        content:{
-            initMap:{x1:0,y1:0,x2:19,y2:15}, entrances:[], enemies:[], objects:[], transitions:[],
-            romHeader:{ mapW:20, mapH:16, offX:0, offY:0, mapWpx:320, mapHpx:256, scrollW:0, scrollH:0, b4:0x17, b5:0x00, b6:0x00, b7:0x02, b8:0x00, sig:'17 00 00 02 00' },
-            payloadData:{
-                tileFamilies:[0x00],
-                tilemap:[new Array(20).fill(0)],
-                compressedSize:0,
-                render:{
-                    defaultPaletteIndex:0,
-                    unresolvedTiles:320,
-                    totalRefs:320,
-                    unresolvedRatio:1.0,
-                    familyTiles:[tile],
-                    palettes:[{ name:'test', rgba:[[0,0,0,255],[255,255,255,255]] }],
-                },
-            },
-            triggers:{ stepOn:[], bTrigger:[] },
-        }
     }];
-    const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTreeDecoded, 'rooms', 'reject_room');
+    const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTreeData, 'rooms', 'script_room');
     const js = extractScript(html);
     const { sandbox } = runWebviewJs(js);
     const detail = sandbox.document.getElementById('room-detail').innerHTML || '';
-    assert.ok(detail.includes('rr-canvas-fallback'), 'Expected fallback canvas for low-quality decode');
-    assert.ok(!detail.includes('id="rr-canvas"'), 'Did not expect decoded render canvas for low-quality decode');
-    assert.ok(detail.includes('decoded tilemap quality is too low for display'), 'Expected fallback reason for rejected decode');
+    assert.ok(detail.includes('ROM Map Data'), 'Expected ROM header section');
+    assert.ok(detail.includes('ROM scripts'), 'Expected ROM scripts section');
+    assert.ok(detail.includes('Step-on #0'), 'Expected step-on script card');
+    assert.ok(detail.includes('CHANGE MAP = 0x34'), 'Expected decoded CHANGE MAP summary');
+    assert.ok(!detail.includes('rr-canvas'), 'Did not expect bottom ROM render canvas');
+});
+
+test('rooms detail surfaces explicit room errors and avoids the stale vanilla placeholder text', () => {
+    const roomTreeError = [{
+        kind:'map', name:'missing_rom_room', vanillaId:'0x33', relPath:'vanilla (rom)', startLine:-1, endLine:-1,
+        imageUri:null, imageDims:null,
+        content:{
+            initMap:null,
+            entrances:[], enemies:[], objects:[], transitions:[],
+            triggerNames:{stepOn:[],bTrigger:[]},
+            triggers:{enter:null,stepOn:[],bTrigger:[],meta:null},
+            roomError:{message:'No ROM configured. Set Everscript: Vanilla ROM or choose a repo path.'}
+        }
+    }];
+    const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTreeError, 'rooms', 'missing_rom_room');
+    const js = extractScript(html);
+    const { sandbox } = runWebviewJs(js);
+    const detail = sandbox.document.getElementById('room-detail').innerHTML || '';
+    assert.ok(detail.includes('No ROM configured'), 'Expected explicit missing-ROM message');
+    assert.ok(!detail.includes('No live data in Vanilla mode. Static ROM data only.'), 'Did not expect the stale vanilla placeholder text');
 });
 
 // ── Summary ───────────────────────────────────────────────────────────────────

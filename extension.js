@@ -6,6 +6,7 @@ const fs     = require('fs');
 const { radarLifecycle, radarH, radarEsc, radarExtractEmoji, radarParseName, radarParseNotes, parseEvsNum, parseEnumsFromContent, parseEvsEnumValues } = require('./memory_radar/radar-utils');
 const radarWebview = require('./memory_radar/webview');
 const { readRoomScriptModel } = require('./debugger/emulator/room-script-model');
+const { resolveExtConfig, getRepoAutofillUpdates } = require('./settings-model');
 
 
 // ── Data loading ──────────────────────────────────────────────────────────────
@@ -562,6 +563,8 @@ let _radarScriptAllCache = null; // cached stripped script_all text
 let _radarUpdateTimer  = null;   // debounce timer for auto-update
 let _radarRoomTree     = null;   // cached room tree (rebuilt when doc changes)
 let _radarRoomDocPath  = null;   // fsPath the room tree was built for
+let _radarVanillaRoomsCache = null; // cached ROM-backed vanilla room detail map
+let _radarVanillaRoomsCacheKey = ''; // cache key for current ROM/workspace selection
 let _radarActiveTab    = 'radar'; // preserved tab across re-renders
 let _scalingChars      = null;   // cached character stat array (142 entries from ROM)
 let _hitLookup         = null;   // precomputed hit% table {hit_rate:{evade:pct}} from ROM
@@ -586,6 +589,13 @@ function getRadarMap() {
 
 function invalidateRadarMap() { _radarMapCache = null; }
 
+function invalidateRoomCaches() {
+    _radarRoomTree = null;
+    _radarRoomDocPath = null;
+    _radarVanillaRoomsCache = null;
+    _radarVanillaRoomsCacheKey = '';
+}
+
 /**
  * Read extension settings with workspace-based defaults.
  * All values are mocked / defaulted for now; will be user-configurable at release.
@@ -593,12 +603,26 @@ function invalidateRadarMap() { _radarMapCache = null; }
 function getExtConfig() {
     const cfg    = vscode.workspace.getConfiguration('everscript');
     const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+    const resolved = resolveExtConfig({
+        repoPath: cfg.get('repoPath'),
+        inDirectory: cfg.get('inDirectory'),
+        patchesDirectory: cfg.get('patchesDirectory'),
+        patchesPath: cfg.get('patchesPath'),
+        romPath: cfg.get('romPath'),
+        assetsPath: cfg.get('assetsPath'),
+        compilerPath: cfg.get('compilerPath'),
+        pythonPath: cfg.get('pythonPath'),
+        snesCorePath: cfg.get('snesCorePath'),
+    }, wsRoot);
     return {
-        inDir:       cfg.get('inDirectory')      || (wsRoot ? path.join(wsRoot, 'in')       : null),
-        patchesDir:  cfg.get('patchesDirectory') || (wsRoot ? path.join(wsRoot, 'patches')  : null),
-        romPath:     cfg.get('romPath')          || (wsRoot ? path.join(wsRoot, 'Secret of Evermore (U) [!].smc') : null),
-        // NOTE: assetsPath will move to extension-bundled assets before release (see docs/release-checklist.md)
-        assetsPath:  cfg.get('assetsPath')       || '/Users/v/Documents/assets',
+        inDir: resolved.inDirectory || null,
+        patchesDir: resolved.patchesDirectory || null,
+        romPath: resolved.romPath || null,
+        assetsPath: resolved.assetsPath,
+        repoPath: resolved.repoPath || null,
+        compilerPath: resolved.compilerPath || null,
+        pythonPath: resolved.pythonPath || null,
+        snesCorePath: resolved.snesCorePath || null,
     };
 }
 
@@ -1041,7 +1065,7 @@ function readLuaWatchers(wsRoot) {
     return _luaWatcherCache;
 }
 
-function readScriptAllTriggers(wsRoot, vanillaEnumName) {
+function readScriptAllTriggers(wsRoot, vanillaEnumName, romPathOverride = '') {
     const out = { enter: null, stepOn: [], bTrigger: [], meta: null };
     if (!wsRoot || !vanillaEnumName) return out;
 
@@ -1055,9 +1079,65 @@ function readScriptAllTriggers(wsRoot, vanillaEnumName) {
     }
     if (isNaN(roomId)) return out;
 
-    const model = readRoomScriptModel(wsRoot, roomId);
+    const model = readRoomScriptModel(wsRoot, roomId, romPathOverride);
     if (!model) return out;
     return model;
+}
+
+function buildVanillaRoomContent(wsRoot, roomId, romPathOverride = '') {
+    const mapId = parseInt(roomId, 16);
+    const content = {
+        initMap: null,
+        entrances: [],
+        enemies: [],
+        objects: [],
+        transitions: [],
+        triggerNames: { stepOn: [], bTrigger: [] },
+        triggers: { enter: null, stepOn: [], bTrigger: [], meta: null },
+        roomError: null,
+        mapId: Number.isNaN(mapId) ? null : mapId,
+    };
+    if (!wsRoot || Number.isNaN(mapId)) {
+        content.roomError = { message: 'No workspace root available for ROM-backed vanilla room data.' };
+        return content;
+    }
+    const header = readRomMapHeader(wsRoot, mapId, romPathOverride);
+    if (!header) {
+        content.roomError = { message: romPathOverride
+            ? 'Configured ROM could not be read for this vanilla room.'
+            : 'No ROM configured. Set Everscript: Vanilla ROM or choose a repo path.' };
+        return content;
+    }
+    content.initMap = { x1: 0, y1: 0, x2: header.mapW * 2, y2: header.mapH * 2 };
+    content.romHeader = header;
+    content.trigOffset = { offX: header.offX, offY: header.offY };
+    content.triggers = readScriptAllTriggers(wsRoot, roomId, romPathOverride);
+    return content;
+}
+
+function buildVanillaRoomDetails() {
+    const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+    const extCfg = getExtConfig();
+    const cacheKey = JSON.stringify([wsRoot || '', extCfg.romPath || '']);
+    if (_radarVanillaRoomsCache && _radarVanillaRoomsCacheKey === cacheKey) return _radarVanillaRoomsCache;
+    const all = {};
+    for (const group of VANILLA_ROOMS) {
+        for (const room of group.rooms) {
+            all[room.id] = {
+                name: room.name,
+                vanillaId: room.id,
+                relPath: 'vanilla (rom)',
+                startLine: -1,
+                endLine: -1,
+                content: buildVanillaRoomContent(wsRoot, room.id, extCfg.romPath || ''),
+                imageUri: null,
+                imageDims: null,
+            };
+        }
+    }
+    _radarVanillaRoomsCache = all;
+    _radarVanillaRoomsCacheKey = cacheKey;
+    return all;
 }
 
 
@@ -1112,14 +1192,16 @@ function readRomTriggerOffsets(wsRoot, mapId) {
  * @param {number} mapId
  * @returns {object|null}
  */
-function readRomMapHeader(wsRoot, mapId) {
+function readRomMapHeader(wsRoot, mapId, romPathOverride = '') {
     if (!wsRoot || mapId == null) return null;
     try {
-        const romNames = ['Secret of Evermore (U) [!].smc', 'Secret of Evermore.smc'];
+        const romCandidates = [];
+        if (romPathOverride) romCandidates.push(romPathOverride);
+        romCandidates.push(path.join(wsRoot, 'Secret of Evermore (U) [!].smc'));
+        romCandidates.push(path.join(wsRoot, 'Secret of Evermore.smc'));
         let romBuf = null;
-        for (const name of romNames) {
-            const p = path.join(wsRoot, name);
-            if (fs.existsSync(p)) { romBuf = fs.readFileSync(p); break; }
+        for (const p of romCandidates) {
+            if (p && fs.existsSync(p)) { romBuf = fs.readFileSync(p); break; }
         }
         if (!romBuf) return null;
         // Map pointer table at SNES 0x9ffde7 = ROM 0x1ffde7 (HiROM no header)
@@ -1429,14 +1511,16 @@ function buildRoomRenderData(romBuf, mapId, payload, mapW, mapH) {
  * @param {object} content - Room content object to attach payloadData to
  * @param {object} header - Result from readRomMapHeader
  */
-function decodeAndSetPayload(wsRoot, mapId, content, header) {
+function decodeAndSetPayload(wsRoot, mapId, content, header, romPathOverride = '') {
     if (!wsRoot || !header || !content) return;
     try {
-        const romNames = ['Secret of Evermore (U) [!].smc', 'Secret of Evermore.smc'];
+        const romCandidates = [];
+        if (romPathOverride) romCandidates.push(romPathOverride);
+        romCandidates.push(path.join(wsRoot, 'Secret of Evermore (U) [!].smc'));
+        romCandidates.push(path.join(wsRoot, 'Secret of Evermore.smc'));
         let romBuf = null;
-        for (const name of romNames) {
-            const p = path.join(wsRoot, name);
-            if (fs.existsSync(p)) { romBuf = fs.readFileSync(p); break; }
+        for (const p of romCandidates) {
+            if (p && fs.existsSync(p)) { romBuf = fs.readFileSync(p); break; }
         }
         if (!romBuf) {
           roomsRenderLog('decodeAndSetPayload: ROM not found in workspace root', { wsRoot, mapId });
@@ -1789,15 +1873,16 @@ function collectRoomsFromDir(dir, wsRoot, depth) {
             const content = parseRoomContent(fp, i, endLine);
             const imgPath = findRoomImage(wsRoot, m[1], vid, fp);
             if (wsRoot && vid) {
-                content.triggers = readScriptAllTriggers(wsRoot, vid);
+                const extCfg = getExtConfig();
+                content.triggers = readScriptAllTriggers(wsRoot, vid, extCfg.romPath || '');
                 // Attach Lua POI and trigger origin offset if available
                 const luaPoi = readLuaWatchers(wsRoot);
                 const roomNumStr = getMapEnum(wsRoot).get(vid);
                 if (roomNumStr !== undefined) {
                     const hexKey = roomNumStr.toString(16).replace(/^0+/, '') || '0';
                     content.poi = luaPoi.get(hexKey) || null;
-                    const _rh = readRomMapHeader(wsRoot, roomNumStr);
-                    if (_rh) { content.trigOffset = { offX: _rh.offX, offY: _rh.offY }; content.romHeader = _rh; decodeAndSetPayload(wsRoot, roomNumStr, content, _rh); }
+                    const _rh = readRomMapHeader(wsRoot, roomNumStr, extCfg.romPath || '');
+                    if (_rh) { content.trigOffset = { offX: _rh.offX, offY: _rh.offY }; content.romHeader = _rh; decodeAndSetPayload(wsRoot, roomNumStr, content, _rh, extCfg.romPath || ''); }
                 }
             }
             items.push({ name: m[1], vanillaId: vid, kind: 'map', filePath: fp, relPath: wsRoot ? path.relative(wsRoot, fp) : fp, startLine: i, endLine, content, imagePath: imgPath });
@@ -1831,9 +1916,10 @@ function buildRoomTree(document, wsRoot) {
         const content = parseRoomContent(docPath, i, endLine);
         const imgPath = findRoomImage(wsRoot, m[1], vid, docPath);
         if (wsRoot && vid) {
-            content.triggers = readScriptAllTriggers(wsRoot, vid);
+            const extCfg = getExtConfig();
+            content.triggers = readScriptAllTriggers(wsRoot, vid, extCfg.romPath || '');
             const mapNum = getMapEnum(wsRoot).get(vid);
-            if (mapNum !== undefined) { const _rh = readRomMapHeader(wsRoot, mapNum); if (_rh) { content.trigOffset = { offX: _rh.offX, offY: _rh.offY }; content.romHeader = _rh; decodeAndSetPayload(wsRoot, mapNum, content, _rh); } }
+            if (mapNum !== undefined) { const _rh = readRomMapHeader(wsRoot, mapNum, extCfg.romPath || ''); if (_rh) { content.trigOffset = { offX: _rh.offX, offY: _rh.offY }; content.romHeader = _rh; decodeAndSetPayload(wsRoot, mapNum, content, _rh, extCfg.romPath || ''); } }
         }
         docMaps.push({ name: m[1], vanillaId: vid, kind: 'map', filePath: docPath, relPath: wsRoot ? path.relative(wsRoot, docPath) : docPath, startLine: i, endLine, content, imagePath: imgPath });
     }
@@ -1906,37 +1992,17 @@ function buildRoomsJson(tree, activeTab, selectedMap) {
     const all = {};
     function sanitizeTriggers(triggers) {
         if (!triggers) return null;
-        const sanitizeInstructions = (instructions) => (instructions || []).map(({ addressSnes, opcodeHex, size, bytesHex, summary, terminal }) => ({
-            addressSnes,
-            opcodeHex,
-            size,
-            bytesHex,
-            summary,
-            terminal,
-        }));
-        const cleanEntry = (entry) => {
-            if (!entry) return null;
-            const out = {
-                label: entry.label || '',
-                scriptId: entry.scriptId,
-                scriptPointerSnes: entry.scriptPointerSnes,
-                scriptAddressSnes: entry.scriptAddressSnes,
-                terminated: !!entry.terminated,
-                stopReason: entry.stopReason || '',
-                bytesConsumed: entry.bytesConsumed || 0,
-                instructions: sanitizeInstructions(entry.instructions),
-            };
-            if (typeof entry.x1 === 'number') out.x1 = entry.x1;
-            if (typeof entry.y1 === 'number') out.y1 = entry.y1;
-            if (typeof entry.x2 === 'number') out.x2 = entry.x2;
-            if (typeof entry.y2 === 'number') out.y2 = entry.y2;
-            return out;
+        const cleanScript = (script) => {
+            if (!script) return null;
+            const { scriptLines, ...rest } = script;
+            return rest;
         };
+        const clean = (arr) => (arr || []).map(cleanScript);
         return {
             meta: triggers.meta || null,
-            enter: cleanEntry(triggers.enter),
-            stepOn: (triggers.stepOn || []).map(cleanEntry),
-            bTrigger: (triggers.bTrigger || []).map(cleanEntry),
+            enter: cleanScript(triggers.enter),
+            stepOn: clean(triggers.stepOn),
+            bTrigger: clean(triggers.bTrigger),
         };
     }
     function sanitizeContent(c) {
@@ -2236,9 +2302,11 @@ function renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTree = [], 
     // ── Rooms tab data ──────────────────────────────────────────────────────
     const treeHtml       = renderRoomsTree(roomTree);
     const vanillaTreeHtml = renderVanillaTree();
+    const vanillaRoomDetails = buildVanillaRoomDetails();
     const roomsData      = buildRoomsJson(roomTree, activeTab, selectedMap)
         + '\nvar INGR_BASE=' + JSON.stringify(ingrBaseUri) + ';'
-        + '\nvar VANILLA_ROOMS_DATA=' + JSON.stringify(VANILLA_ROOMS) + ';';
+        + '\nvar VANILLA_ROOMS_DATA=' + JSON.stringify(VANILLA_ROOMS) + ';'
+        + '\nvar VANILLA_ROOM_DETAILS=' + JSON.stringify(vanillaRoomDetails).replace(/<\/script>/gi, '<\\/script>') + ';';
 
     // ── Scaling tab data ────────────────────────────────────────────────────
     const scalingData = 'var SC_CHARS=' + JSON.stringify(chars) + ';'
@@ -2565,6 +2633,30 @@ function renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTree = [], 
 
 // ── Activation ────────────────────────────────────────────────────────────────
 
+async function syncDerivedSettingsFromRepoPath() {
+    const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+    const cfg = vscode.workspace.getConfiguration('everscript');
+    if (!cfg || typeof cfg.update !== 'function') return;
+    const updates = getRepoAutofillUpdates({
+        repoPath: cfg.get('repoPath'),
+        inDirectory: cfg.get('inDirectory'),
+        patchesDirectory: cfg.get('patchesDirectory'),
+        patchesPath: cfg.get('patchesPath'),
+        romPath: cfg.get('romPath'),
+        compilerPath: cfg.get('compilerPath'),
+        pythonPath: cfg.get('pythonPath'),
+    }, wsRoot);
+    const hasWorkspace = !!(vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length);
+    const target = hasWorkspace && vscode.ConfigurationTarget
+        ? vscode.ConfigurationTarget.Workspace
+        : (vscode.ConfigurationTarget ? vscode.ConfigurationTarget.Global : undefined);
+    for (const [key, value] of Object.entries(updates)) {
+        if (!value) continue;
+        if ((cfg.get(key, '') || '').trim() === value) continue;
+        await cfg.update(key, value, target);
+    }
+}
+
 function activate(context) {
     const idx = loadIndex(context);
 
@@ -2835,9 +2927,17 @@ function activate(context) {
             openEmulatorPanel(context);
         }),
         vscode.commands.registerCommand('everscript.openSettings', () => {
+            syncDerivedSettingsFromRepoPath().catch(() => {});
             vscode.commands.executeCommand('workbench.action.openSettings', 'everscript');
         }),
     );
+
+    context.subscriptions.push(vscode.workspace.onDidChangeConfiguration((event) => {
+        if (!event.affectsConfiguration('everscript')) return;
+        invalidateRoomCaches();
+        invalidateRadarMap();
+        if (event.affectsConfiguration('everscript.repoPath')) syncDerivedSettingsFromRepoPath().catch(() => {});
+    }));
 
     // ── Build-and-Run (F5 in .evs files) ─────────────────────────────────────
     context.subscriptions.push(
@@ -2852,12 +2952,13 @@ function activate(context) {
             const nodePath  = require('path');
             const nodeFs    = require('fs');
             const cp        = require('child_process');
+            const extCfg    = getExtConfig();
 
             // ── 1. Resolve compiler and project root ───────────────────────
-            let repoPath    = cfg.get('repoPath',     '').trim();
-            let patchesPath = cfg.get('patchesPath',  '').trim();
-            let romPath     = cfg.get('romPath',      '').trim(); // full path to vanilla ROM
-            let compilerBin = cfg.get('compilerPath', '').trim(); // manual override
+            let repoPath    = extCfg.repoPath || '';
+            let patchesPath = extCfg.patchesDir || '';
+            let romPath     = extCfg.romPath || ''; // full path to vanilla ROM
+            let compilerBin = extCfg.compilerPath || ''; // manual override
             let projectRoot = repoPath;
             let useScript   = false;
 
@@ -2936,7 +3037,7 @@ function activate(context) {
             const outputRom = nodePath.join(projectRoot, 'out', romName);
 
             // Detect Python: prefer project venv so packages like 'injector' are available
-            let pythonBin = cfg.get('pythonPath', '').trim();
+            let pythonBin = extCfg.pythonPath || '';
             if (!pythonBin && projectRoot) {
                 for (const rel of ['.venv/bin/python3', '.venv/bin/python', 'venv/bin/python3', 'venv/bin/python']) {
                     const c = nodePath.join(projectRoot, rel);
