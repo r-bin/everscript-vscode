@@ -208,6 +208,58 @@ for (const [modPath, names] of Object.entries(EXPECTED_EXPORTS)) {
     }
 }
 
+// ── package.json manifest validation ─────────────────────────────────────────
+console.log('\nActivation: package.json manifest');
+
+const pkg = JSON.parse(require('fs').readFileSync(path.join(__dirname, '..', '..', 'package.json'), 'utf-8'));
+
+test('package.json has "main" field pointing to a real file', () => {
+    assert.ok(pkg.main, '"main" field is missing');
+    const mainPath = path.join(__dirname, '..', '..', pkg.main.replace(/^\.\//, ''));
+    assert.ok(require('fs').existsSync(mainPath), `"main" file not found: ${pkg.main}`);
+});
+
+test('package.json has "engines.vscode" field', () => {
+    assert.ok(pkg.engines && pkg.engines.vscode, '"engines.vscode" is missing');
+});
+
+test('package.json has "activationEvents" array', () => {
+    assert.ok(Array.isArray(pkg.activationEvents) && pkg.activationEvents.length > 0, '"activationEvents" is empty or missing');
+});
+
+// Every user-visible command in contributes.commands must:
+// 1. have a command ID that appears in activationEvents
+// 2. be registered by activate()
+const contributedCommands = (pkg.contributes && pkg.contributes.commands) ? pkg.contributes.commands : [];
+
+test('contributes.commands is a non-empty array', () => {
+    assert.ok(contributedCommands.length > 0, 'No commands declared in package.json contributes.commands');
+});
+
+for (const entry of contributedCommands) {
+    test(`contributes.commands[${entry.command}] has title`, () => {
+        assert.ok(entry.title && entry.title.trim(), `Command "${entry.command}" has no title`);
+    });
+
+    test(`contributes.commands[${entry.command}] is in activationEvents`, () => {
+        const event = `onCommand:${entry.command}`;
+        assert.ok(
+            pkg.activationEvents.includes(event),
+            `activationEvents is missing "${event}" for contributed command "${entry.command}"`,
+        );
+    });
+
+    test(`contributes.commands[${entry.command}] is registered by activate()`, () => {
+        assert.ok(
+            registeredCommands.includes(entry.command),
+            `Command "${entry.command}" is declared in package.json but was NOT registered in activate()`,
+        );
+    });
+}
+
+// Note: Memory Radar panel HTML structure (tabs, grid, etc.) is covered
+// by memory_radar/tests/smoke.test.js which uses the temp-file extraction approach.
+
 // ── Summary ───────────────────────────────────────────────────────────────────
 console.log(`\n${passed + failed} run: ${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);

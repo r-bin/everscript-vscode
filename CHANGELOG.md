@@ -1,3 +1,12 @@
+## [0.3.6] — 2026-06-02
+
+### Fixed
+- Restored 6 functions deleted from [extension.js](/Users/v/Documents/GitHub/everscript-vscode/extension.js) during Phase 5 extraction: `radarReadMemoryMap`, `radarFindOpenBrace`, `radarFindCloseBrace`, `radarDetectScope`, `radarAnalyzeScope`, `refreshRadar`. Their absence caused "radarDetectScope is not defined" when opening the Memory Radar panel.
+- Added `onCommand:everscript.buildAndRun` to `activationEvents` in `package.json` (was missing; the command was declared but not listed).
+
+### Added
+- [memory_radar/tests/activation.test.js](/Users/v/Documents/GitHub/everscript-vscode/memory_radar/tests/activation.test.js) now validates the `package.json` manifest: verifies `"main"` points to a real file, `engines.vscode` is present, `activationEvents` is non-empty, and every command in `contributes.commands` has a title, is covered by an activation event, and is actually registered by `activate()`. Any future mismatch between package.json and extension.js is caught before release.
+
 ## [0.3.5] — 2026-05-28
 
 ### Fixed
