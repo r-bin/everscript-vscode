@@ -1,3 +1,19 @@
+## [0.4.0] — 2026-06-05
+
+### Changed
+- **Rooms tab decomposed into ownership-local subsystem** (`memory_radar/rooms/`). Every file answers one question only.
+  - `rooms/parsing/content-parser.js` — pure .evs map block parser
+  - `rooms/parsing/file-scanner.js` — filesystem tree builder with explicit deps injection
+  - `rooms/rendering/tree-renderer.js` — server-side tree HTML + JSON
+  - `rooms/data/lua-watchers.js` — Lua POI data + script trigger loading
+  - `rooms/data/vanilla-data.js` — vanilla room catalogue + ROM-backed content builders
+  - `rooms/index.js` — re-export facade + `invalidateRoomDataCaches()`
+  - `room-tree.js`, `room-data.js` → thin shims; backward-compatible, no extension.js changes
+- **Webview rooms-tab.js split into 8 focused modules** (`memory_radar/webview/assets/rooms/`):
+  - `bootstrap.js`, `utils.js`, `svg-builder.js`, `tables-builder.js`, `rom-header.js`, `interactions.js`, `detail-renderer.js`, `tab-init.js`
+  - Concatenated in dependency order by `webview/index.js`
+- All tests pass (55/55 activation, 16/16 smoke, and all other suites).
+
 ## [0.3.6] — 2026-06-02
 
 ### Fixed

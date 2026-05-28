@@ -25,10 +25,28 @@ function buildMainJs({ jsData, roomsData, scalingData, roomsJs, scalingJs, docsJ
     .replace('__RNG_JS__', rngJs);
 }
 
+// Load rooms tab JS from split modules in assets/rooms/ (concatenated in dependency order).
+const ROOMS_JS_FILES = [
+  'bootstrap.js',        // globals: _currentByteScriptFocus, _applyByteScriptFocus, message listener
+  'utils.js',            // escH, hexNum, normScriptAddr, tsvg, INGR_MAP/EMOJI helpers
+  'svg-builder.js',      // buildRoomSvgSection
+  'tables-builder.js',   // renderScriptTable/Card, buildEntityTablesHtml, buildRomScriptsHtml
+  'rom-header.js',       // buildRomHeaderHtml
+  'interactions.js',     // setupByteScriptFocusBinding, setupZoomPan, setupMouseEvents, setupHoverHighlights, setupClickHandlers
+  'detail-renderer.js',  // renderRoomDetail (orchestrator)
+  'tab-init.js',         // tab switching, area collapse, mode toggle, room click handlers
+];
+
+function loadRoomsJs() {
+  return ROOMS_JS_FILES
+    .map(function(f) { return fs.readFileSync(path.join(assetDir, 'rooms', f), 'utf8'); })
+    .join('\n');
+}
+
 module.exports = {
   css: loadAsset('shared.css'),
   scalingJs: loadAsset('scaling-tab.js'),
-  roomsJs: loadAsset('rooms-tab.js'),
+  get roomsJs() { return loadRoomsJs(); },
   docsJs: loadAsset('docs-tab.js'),
   routeJs: loadAsset('route-tab.js'),
   rngJs: loadAsset('rng-tab.js'),
