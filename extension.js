@@ -751,6 +751,24 @@ async function syncDerivedSettingsFromRepoPath() {
     }
 }
 
+// ── Radar CodeLens provider ───────────────────────────────────────────────────
+class RadarCodeLensProvider {
+    provideCodeLenses(document) {
+        if (document.languageId !== 'everscript') return [];
+        const declRe = /^\s*(fun|map|area|group)\s+([A-Za-z_][A-Za-z0-9_]*)\b/;
+        const lenses = [];
+        for (let i = 0; i < document.lineCount; i++) {
+            if (!declRe.test(document.lineAt(i).text)) continue;
+            lenses.push(new vscode.CodeLens(document.lineAt(i).range, {
+                title: '◉ Memory Radar',
+                command: 'everscript.openMemoryRadar',
+                arguments: [document, i],
+            }));
+        }
+        return lenses;
+    }
+}
+
 function activate(context) {
     const idx = lp.loadIndex(context.extensionPath);
 

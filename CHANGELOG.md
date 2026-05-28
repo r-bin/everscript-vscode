@@ -1,3 +1,11 @@
+## [0.3.5] — 2026-05-28
+
+### Fixed
+- Restored `RadarCodeLensProvider` class that was accidentally deleted from [extension.js](/Users/v/Documents/GitHub/everscript-vscode/extension.js) during the Phase 5 language-providers extraction (v0.3.0). Its absence caused a `ReferenceError` in `activate()`, preventing ALL commands from being registered and producing "command not found" errors at runtime.
+
+### Added
+- Added [memory_radar/tests/activation.test.js](/Users/v/Documents/GitHub/everscript-vscode/memory_radar/tests/activation.test.js): activation smoke test that mocks vscode, calls `activate()`, and asserts every expected command is registered. Also verifies all public exports of `room-data.js`, `room-tree.js`, `rom-readers.js`, and `language-providers.js`. This class of silent activation failure cannot recur without the test catching it.
+
 ## [0.3.4] — 2026-05-27
 
 ### Changed
