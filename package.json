@@ -1,8 +1,8 @@
 {
   "name": "everscript",
   "displayName": "Everscript",
-  "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.3.3",
+  "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) \u2014 the Secret of Evermore ROM scripting language",
+  "version": "0.3.4",
   "publisher": "rbin",
   "main": "./extension.js",
   "engines": {
@@ -24,13 +24,16 @@
     "build:core:custom": "sh tools/build_snes_core.sh custom",
     "build:core:vanilla": "sh tools/build_snes_core.sh vanilla",
     "build:cores": "npm run build:core:vanilla && npm run build:core:custom",
-  "test": "npm run build:cores && vscode-tmgrammar-test -g code_highlighter/syntaxes/everscript.tmLanguage.json 'code_highlighter/tests/**/*.test.evs' && node memory_radar/tests/radar.test.js && node memory_radar/tests/damage.test.js && node memory_radar/tests/map-blob-evidence-model.test.js && node memory_radar/tests/render-script-model.test.js && node memory_radar/tests/smoke.test.js && node memory_radar/tests/ui.test.js && node memory_radar/tests/scaling-rom.test.js && node memory_radar/tests/map-pipeline-model.test.js && node debugger/tests/debugger.test.js && node debugger/tests/settings-model.test.js && node debugger/tests/snes-rom-header-model.test.js && node debugger/tests/room-script-model.test.js && node debugger/tests/emulator-health.test.js",
-  "test:emulator-runtime": "npm run build:cores && node debugger/tests/emulator-health.test.js",
+    "test": "npm run build:cores && vscode-tmgrammar-test -g code_highlighter/syntaxes/everscript.tmLanguage.json 'code_highlighter/tests/**/*.test.evs' && node memory_radar/tests/radar.test.js && node memory_radar/tests/damage.test.js && node memory_radar/tests/map-blob-evidence-model.test.js && node memory_radar/tests/render-script-model.test.js && node memory_radar/tests/smoke.test.js && node memory_radar/tests/ui.test.js && node memory_radar/tests/scaling-rom.test.js && node memory_radar/tests/map-pipeline-model.test.js && node debugger/tests/debugger.test.js && node debugger/tests/settings-model.test.js && node debugger/tests/snes-rom-header-model.test.js && node debugger/tests/room-script-model.test.js && node debugger/tests/emulator-health.test.js",
+    "test:emulator-runtime": "npm run build:cores && node debugger/tests/emulator-health.test.js",
     "package": "mkdir -p out && /opt/homebrew/bin/vsce package --out out/ 2>&1 || (echo '' && echo 'ERROR: vsce package failed. Check publisher/engine fields in package.json.' >&2 && exit 1)",
-    "deploy": "npm run package && node -e \"const v=require('./package.json').version; const {execSync}=require('child_process'); const vsix='out/everscript-'+v+'.vsix'; console.log('Installing '+vsix+'...'); try { execSync('code --install-extension '+vsix+' --force', {stdio:'inherit'}); } catch(e) { console.error('\\nERROR: code CLI not found or install failed.'); console.error('Fix: add VS Code to PATH via Command Palette: Shell Command: Install code in PATH'); process.exit(1); } const out=execSync('code --list-extensions 2>&1').toString(); if(!out.includes('rbin.everscript')) { console.error('\\nERROR: extension installed but rbin.everscript not found in extension list.'); console.error('Installed output was: '+out); process.exit(1); } console.log('\\nOK: rbin.everscript@'+v+' is installed. Reload VS Code (Developer: Reload Window).')\""
+    "deploy": "npm run package && node -e \"const v=require('./package.json').version; const {execSync}=require('child_process'); const vsix='out/everscript-'+v+'.vsix'; console.log('Installing '+vsix+'...'); try { execSync('code --install-extension '+vsix+' --force', {stdio:'inherit'}); } catch(e) { console.error('\\nERROR: code CLI not found or install failed.'); console.error('Fix: add VS Code to PATH via Command Palette: Shell Command: Install code in PATH'); process.exit(1); } const out=execSync('code --list-extensions 2>&1').toString(); if(!out.includes('rbin.everscript')) { console.error('\\nERROR: extension installed but rbin.everscript not found in extension list.'); console.error('Installed output was: '+out); process.exit(1); } console.log('\\nOK: rbin.everscript@'+v+' is installed. Reload VS Code (Developer: Reload Window).')\"",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@types/node": "^25.9.1",
     "playwright": "^1.60.0",
+    "typescript": "^6.0.3",
     "vscode-tmgrammar-test": "^0.1.3"
   },
   "contributes": {

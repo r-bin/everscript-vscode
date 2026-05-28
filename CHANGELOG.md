@@ -1,3 +1,13 @@
+## [0.3.4] — 2026-05-27
+
+### Changed
+- Extracted ROM reader functions into [memory_radar/rom-readers.js](/Users/v/Documents/GitHub/everscript-vscode/memory_radar/rom-readers.js) (`readRomMapHeader`, `readRomTriggerOffsets`, `readRomCharacters`, `readRomHitLookup`, `detectScaleEnemies`, `readPngDimensions`).
+- Extracted room data layer into [memory_radar/room-data.js](/Users/v/Documents/GitHub/everscript-vscode/memory_radar/room-data.js) (`VANILLA_ROOMS`, `getMapEnum`, `readLuaWatchers`, `readScriptAllTriggers`, `buildVanillaRoomContent`, `buildVanillaRoomDetails`).
+- Extracted room tree building and rendering into [memory_radar/room-tree.js](/Users/v/Documents/GitHub/everscript-vscode/memory_radar/room-tree.js) (`findRoomImage`, `parseRoomContent`, `collectRoomsFromDir`, `buildRoomTree`, `renderVanillaTree`, `renderRoomsTree`, `buildRoomsJson`, `setRoomImageUris`).
+- Reduced [extension.js](/Users/v/Documents/GitHub/everscript-vscode/extension.js) from 3188 lines (pre-cleanup) to 1280 lines (60% reduction) across this and previous cleanup passes.
+- Added `tsconfig.json` with `allowJs: true` scaffold for incremental TypeScript adoption.
+- Added `typecheck` script to `package.json`.
+
 ## [0.3.3] — 2026-05-27
 
 ### Added
