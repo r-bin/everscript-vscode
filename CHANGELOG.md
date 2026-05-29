@@ -1,3 +1,16 @@
+## [0.5.3] — 2026-05-29
+
+### Changed
+- **Parser correctness validation harness added** (SoEScriptDumper parity focused).
+  - Add `debugger/tests/parser-parity.test.js` as CI-ready parity runner integrated into `npm test`
+  - Add `debugger/tests/parity/ground-truth-parser.js` to parse SoEScriptDumper `script_all` into script IR blocks
+  - Add `debugger/tests/parity/ir-diff.js` and `failure-classifier.js` for structured mismatch reporting:
+    - `OPCODE_MISSING`, `OPERAND_MISMATCH`, `PC_DESYNC`, `BRANCH_TARGET_ERROR`, `STATE_DRIFT`, `UNKNOWN_OPCODE`
+  - Add `debugger/tests/parity/opcode-interactions.js` for targeted opcode interaction regressions
+  - Add `debugger/tests/parity/fuzz-generator.js` for deterministic property/fuzz checks (PC alignment, determinism, unknown-opcode guard)
+  - Add golden snapshot baseline at `debugger/tests/parity/snapshots/golden-parity.snapshot.json`
+  - Emit structured parity reports to `tmp/parser-parity-report.json` for incremental debugging loops
+
 ## [0.5.2] — 2026-05-29
 
 ### Changed
