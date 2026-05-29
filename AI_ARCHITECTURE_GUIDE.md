@@ -143,40 +143,59 @@ Counter-measures:
 - [ ] No new state variable added to `extension.js` (use subsystem modules)
 - [ ] No new cross-subsystem require() added (check direction)
 - [ ] Every new directory has a `README.md` or is trivially named
+- [ ] `npm run typecheck` passes
+- [ ] `npm run check:circular` passes (no circular deps)
+- [ ] `npm run check:dead` passes (no unused files)
 - [ ] Tests pass: `npm test`
 - [ ] Version bumped in `package.json`
 
 ---
 
-## 7. Current Entropy Hotspots (as of v0.5.0)
+## 7. Current Entropy Hotspots (as of v0.5.1)
 
 | File | LOC | Status |
 |---|---|---|
-| `extension.js` | 878 | Reduced from 1461; renderRadarHtml extracted |
-| `debugger/emulator/panel.js` | 1448 | Mixed UI + emulator lifecycle + IPC — deferred (complex test deps) |
+| `debugger/emulator/panel-webview.js` | 1007 | HTML template — single indivisible function, justified |
+| `extension.js` | 454 | Continue reducing; extract command handlers |
+| `debugger/emulator/panel.js` | 454 | Reduced from 1448; lifecycle + IPC only |
 | `memory_radar/models/map-blob-evidence-model.js` | 701 | Large but single-purpose |
 | `debugger/emulator/room-script-model.js` | 666 | ROM decoding — split candidate |
 | `memory_radar/render-memory-tab.js` | 300 | Single-purpose tab renderer — acceptable |
 
-### Completed decompositions (v0.5.0):
-- ✅ `renderRadarHtml` (593 LOC) extracted from `extension.js` → `memory_radar/render-radar.js` + `render-memory-tab.js` + `render-docs-tab.js`
+### Completed decompositions (v0.5.0–v0.5.1):
+- ✅ `renderRadarHtml` (593 LOC) → `memory_radar/render-radar.js` + `render-memory-tab.js` + `render-docs-tab.js`
 - ✅ `code_highlighter/language-providers.js` (559 LOC) → 39-line facade + 6 focused modules
-- ✅ `memory_radar/webview/assets/scaling-tab.js` (638 LOC) → `assets/scaling/` (8 files, largest 280 LOC)
-- ✅ `memory_radar/webview/assets/rooms-tab.js` (746 LOC) → deleted (superseded by `assets/rooms/`)
+- ✅ `memory_radar/webview/assets/scaling-tab.js` (638 LOC) → `assets/scaling/` (8 files)
+- ✅ `debugger/emulator/panel.js` (1448 LOC) → `panel.js` (454) + `panel-webview.js` (1007 HTML template)
+- ✅ Deleted dead: `assets/scaling-tab.js`, `memory_radar/room-tree-new.js`
 
 ### Priority migration order:
-1. Split `debugger/emulator/panel.js` → `panel-lifecycle.js` + `panel-ipc.js` + `panel-webview.js`
-2. Continue reducing `extension.js` below 300 LOC (extract command handlers)
-3. Split `debugger/emulator/room-script-model.js` → ROM decode + model
+1. Continue reducing `extension.js` below 300 LOC (extract radar command handler)
+2. Split `debugger/emulator/room-script-model.js` → ROM decode + model
+3. Migrate `radar-utils.js` → TypeScript (good TS candidate: pure functions)
 
 ---
 
 ## 8. The Change Ritual (mandatory)
 
 1. Bump version in `package.json` (patch/minor/major)
-2. Run tests: `/opt/homebrew/bin/npm test`
-3. Commit to `develop` with `v<ver>: [<subsystem>] <description>`
-4. Install: `rsync -a --delete --exclude='.git' /Users/v/Documents/GitHub/everscript-vscode/ ~/.vscode/extensions/everscript-$(ver)/`
-5. Tell user to reload VS Code
+2. Run validation: `npm run typecheck && npm run check:circular && npm run check:dead`
+3. Run tests: `/opt/homebrew/bin/npm test`
+4. Commit to `develop` with `v<ver>: [<subsystem>] <description>`
+5. Install: `rsync -a --delete --exclude='.git' /Users/v/Documents/GitHub/everscript-vscode/ ~/.vscode/extensions/everscript-$(ver)/`
+6. Tell user to reload VS Code
 
 **One prompt = one commit.**
+
+---
+
+## 9. Validation Tooling
+
+| Script | Tool | Purpose | Blocks release? |
+|---|---|---|---|
+| `npm run typecheck` | tsc | Type checking (noEmit) | Yes |
+| `npm run check:circular` | madge | Circular dependency scan | Yes |
+| `npm run check:dead` | knip | Unused files/exports | Yes (files only) |
+| `npm test` | custom | Full test suite | Yes |
+
+Config: `tsconfig.json` (excludes webview assets), `knip.json` (ignores runtime-loaded assets).

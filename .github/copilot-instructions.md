@@ -376,3 +376,67 @@ Reusable architectural operation prompts in `.global/skills/`:
 - `isolate-subsystem.md` — fix forbidden dependency directions
 - `stabilize-state-flow.md` — consolidate state to single owner
 - `split-orchestration.md` — decompose god files (extension.js, panel.js)
+
+---
+
+## 12. Tab Ownership Islands
+
+Radar tabs are **first-class ownership domains**. Each tab must increasingly own its rendering, state, IPC, parsing, interactions, and tests.
+
+**Tab directories:**
+- `memory_radar/webview/assets/scaling/` — scaling tab
+- `memory_radar/webview/assets/rooms/` — rooms tab
+- `memory_radar/rooms/` — rooms parsing + data
+- `memory_radar/render-memory-tab.js` — memory tab rendering
+- `memory_radar/render-docs-tab.js` — docs/rng tab rendering
+
+**Rules:**
+- Future prompts targeting a tab should reason only inside that tab's directory.
+- Cross-tab shared code must be: minimal, generic, ownership-neutral.
+- Prefer slight duplication over giant shared abstractions.
+- New tab logic goes in the tab's own directory, not in extension.js or render-radar.js.
+
+---
+
+## 13. Validation Tooling
+
+Run before every commit (after `npm test`):
+
+```
+npm run typecheck          # TypeScript type checking (tsc --noEmit)
+npm run check:circular     # madge circular dependency scan
+npm run check:dead         # knip unused files/exports scan
+```
+
+Failures block the release ritual. Advisory warnings (knip exports) do not.
+
+Config files:
+- `tsconfig.json` — excludes `memory_radar/webview/assets/**` (browser-concatenated)
+- `knip.json` — configures entry points and ignore patterns
+
+---
+
+## 14. TypeScript Migration Policy
+
+TypeScript is preferred for new code in: parsers, state containers, IPC definitions, ROM models, pure transforms.
+
+JavaScript remains acceptable for: unstable orchestration, rendering, experimental code.
+
+**Migration rules:**
+- Migrate incrementally — one file at a time, by subsystem.
+- DO NOT mass-convert JS files.
+- Good TS candidates: `radar-utils.js`, `settings-model.js`, parser output types.
+- Use `allowJs: true` + `checkJs: false` (current) to avoid disruption.
+- When migrating a file: rename `.js` → `.ts`, add local interfaces only, avoid generics.
+- Never create a giant shared types file.
+
+---
+
+## 15. Dead Code Policy
+
+Dead code is entropy. Remove it aggressively.
+
+- Run `npm run check:dead` before commits.
+- Webview asset files are excluded from knip (they're loaded via `fs.readFileSync`).
+- When splitting a file, delete the original — do not keep dead shims.
+- If a file has no `require()` references and no manifest entry, delete it.

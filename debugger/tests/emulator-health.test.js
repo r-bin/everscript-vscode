@@ -22,7 +22,8 @@ const ROOT      = path.resolve(__dirname, '../..');
 const CORE_DIR  = path.join(ROOT, 'debugger', 'core', 'snes9x2005-wasm-vanilla');
 const CORE_JS   = path.join(CORE_DIR, 'snes9x_2005.js');
 const CORE_WASM = path.join(CORE_DIR, 'snes9x_2005.wasm');
-const PANEL_JS  = path.join(ROOT, 'debugger', 'emulator', 'panel.js');
+const PANEL_JS         = path.join(ROOT, 'debugger', 'emulator', 'panel.js');
+const PANEL_WEBVIEW_JS = path.join(ROOT, 'debugger', 'emulator', 'panel-webview.js');
 
 // WebAssembly binary magic: \0asm  (00 61 73 6D)
 const WASM_MAGIC = Buffer.from([0x00, 0x61, 0x73, 0x6d]);
@@ -118,7 +119,12 @@ test('core JS does NOT define EJS_Runtime', () => {
 console.log('\nE. panel.js:');
 
 let panelContent = null;
-try { panelContent = fs.readFileSync(PANEL_JS, 'utf8'); } catch (_) {}
+try {
+    panelContent = fs.readFileSync(PANEL_JS, 'utf8');
+    // Append panel-webview.js so tests that scan the HTML template still pass.
+    const webviewContent = fs.readFileSync(PANEL_WEBVIEW_JS, 'utf8');
+    panelContent += '\n' + webviewContent;
+} catch (_) {}
 
 test('panel.js exists', () => {
     assert.ok(fs.existsSync(PANEL_JS), 'emulator/panel.js not found');

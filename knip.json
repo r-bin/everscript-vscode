@@ -1,0 +1,26 @@
+{
+  "entry": [
+    "extension.js",
+    "settings-model.js",
+    "debugger/adapter.js",
+    "debugger/mock-runtime.js"
+  ],
+  "project": [
+    "code_highlighter/**/*.js",
+    "memory_radar/**/*.js",
+    "debugger/**/*.js"
+  ],
+  "ignore": [
+    "memory_radar/webview/assets/**",
+    "debugger/core/**",
+    "debugger/tests/**",
+    "memory_radar/tests/**"
+  ],
+  "ignoreDependencies": [
+    "playwright"
+  ],
+  "ignoreExportsUsedInFile": true,
+  "rules": {
+    "exports": "warn"
+  }
+}

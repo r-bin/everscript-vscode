@@ -1,8 +1,8 @@
 {
   "name": "everscript",
   "displayName": "Everscript",
-  "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) \u2014 the Secret of Evermore ROM scripting language",
-  "version": "0.5.0",
+  "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
+  "version": "0.5.1",
   "publisher": "rbin",
   "main": "./extension.js",
   "engines": {
@@ -29,10 +29,14 @@
     "test:emulator-runtime": "npm run build:cores && node debugger/tests/emulator-health.test.js",
     "package": "mkdir -p out && /opt/homebrew/bin/vsce package --out out/ 2>&1 || (echo '' && echo 'ERROR: vsce package failed. Check publisher/engine fields in package.json.' >&2 && exit 1)",
     "deploy": "npm run package && node -e \"const v=require('./package.json').version; const {execSync}=require('child_process'); const vsix='out/everscript-'+v+'.vsix'; console.log('Installing '+vsix+'...'); try { execSync('code --install-extension '+vsix+' --force', {stdio:'inherit'}); } catch(e) { console.error('\\nERROR: code CLI not found or install failed.'); console.error('Fix: add VS Code to PATH via Command Palette: Shell Command: Install code in PATH'); process.exit(1); } const out=execSync('code --list-extensions 2>&1').toString(); if(!out.includes('rbin.everscript')) { console.error('\\nERROR: extension installed but rbin.everscript not found in extension list.'); console.error('Installed output was: '+out); process.exit(1); } console.log('\\nOK: rbin.everscript@'+v+' is installed. Reload VS Code (Developer: Reload Window).')\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:circular": "madge --circular --extensions js extension.js code_highlighter/ memory_radar/ debugger/",
+    "check:dead": "knip"
   },
   "devDependencies": {
     "@types/node": "^25.9.1",
+    "knip": "^6.14.2",
+    "madge": "^8.0.0",
     "playwright": "^1.60.0",
     "typescript": "^6.0.3",
     "vscode-tmgrammar-test": "^0.1.3"

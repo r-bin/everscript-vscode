@@ -23,6 +23,7 @@
         "tmp",
         "dependencies",
         "tools",
-        "emulator"
+        "emulator",
+        "memory_radar/webview/assets"
     ]
 }

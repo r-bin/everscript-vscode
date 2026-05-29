@@ -1,3 +1,16 @@
+## [0.5.1] — 2026-05-29
+
+### Changed
+- **Architecture stabilization pass** — no user-visible behavior changes.
+  - Split `debugger/emulator/panel.js` (1448 LOC) into lifecycle (`panel.js`, 454 LOC) + webview HTML template (`panel-webview.js`, 1007 LOC)
+  - Fix `tsconfig.json` to exclude `memory_radar/webview/assets/**` (browser-concatenated files) — `npm run typecheck` now passes cleanly
+  - Delete dead files: `memory_radar/webview/assets/scaling-tab.js` (638 LOC superseded), `memory_radar/room-tree-new.js` (unreferenced shim)
+  - Install `madge` + `knip` as dev tools; add `npm run check:circular` and `npm run check:dead` scripts
+  - Add `knip.json` with entry points and ignore patterns for webview assets
+  - Integrate validation into change ritual: typecheck + circular + dead before every commit
+  - Add §§ 12–15 to `copilot-instructions.md`: tab ownership islands, validation tooling, TypeScript migration policy, dead code policy
+  - Update `AI_ARCHITECTURE_GUIDE.md`: revised hotspot table, updated ritual with validation gate, new validation tooling section
+
 ## [0.5.0] — 2026-06-07
 
 ### Changed
