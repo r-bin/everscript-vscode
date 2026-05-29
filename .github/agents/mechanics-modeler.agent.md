@@ -243,4 +243,19 @@ MANDATORY OUTPUT SECTIONS
 - Pass/Fail vs Real Examples
 - TS Migration Notes
 - Remaining Gaps / Risks
+
+==================================================
+COGNITIVE STABILIZATION REFERENCES
+==================================================
+
+Before starting work, consult:
+- `AI_ARCHITECTURE_GUIDE.md` — architectural laws, ownership rules, file size limits
+- `STATE_FLOW.md` — authoritative state ownership, subsystem data flows
+- Per-subsystem `README.md` — local invariants, allowed dependencies
+
+New model files must:
+- Live in `memory_radar/models/` (ROM game models) or `debugger/emulator/` (script/ROM models)
+- Be pure: no VS Code dependency, no extension state access
+- Have a corresponding test file in the subsystem `tests/` directory
+- Document evidence source and confidence level at the top of the file
 - Next Evidence Needed

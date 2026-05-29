@@ -1,3 +1,21 @@
+## [0.4.1] — 2026-06-06
+
+### Changed
+- **Architectural cognitive stabilization docs added** — no code changes.
+  - `AI_ARCHITECTURE_GUIDE.md` — global architectural laws, file size limits, anti-abstraction rules, entropy hotspot table
+  - `STATE_FLOW.md` — authoritative state ownership table and full data-flow diagrams for all subsystems
+  - `debugger/README.md` — rewritten as ownership contract with dependency rules and invariants
+  - `memory_radar/README.md` — rewritten with ownership map, tab ownership table, entropy hotspots
+  - `memory_radar/rooms/README.md` — new ownership contract, public API reference, client-side counterpart map
+  - `code_highlighter/README.md` — rewritten with allowed deps, state owned, split targets
+  - `.global/skills/compress-architecture.md` — reusable ownership decomposition prompt
+  - `.global/skills/isolate-subsystem.md` — reusable dependency-direction fix prompt
+  - `.global/skills/stabilize-state-flow.md` — reusable one-owner-per-state prompt
+  - `.global/skills/split-orchestration.md` — reusable god-file decomposition prompt
+  - `.github/agents/everscript-plugin-builder.agent.md` — added cognitive stabilization references
+  - `.github/agents/mechanics-modeler.agent.md` — added cognitive stabilization references
+  - `.github/copilot-instructions.md` — added §11 Architectural Cognitive Stabilization
+
 ## [0.4.0] — 2026-06-05
 
 ### Changed

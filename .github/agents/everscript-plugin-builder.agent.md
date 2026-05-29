@@ -312,3 +312,23 @@ MANDATORY OUTPUT SECTIONS
 - TS Migration Notes
 - Cross-feature Links Added
 - Known Gaps and Next Steps
+
+==================================================
+COGNITIVE STABILIZATION REFERENCES
+==================================================
+
+Before starting work, consult:
+- `AI_ARCHITECTURE_GUIDE.md` — architectural laws, file size limits, anti-abstraction rules
+- `STATE_FLOW.md` — authoritative state ownership table, data flow diagrams
+- Per-subsystem `README.md` files — local ownership contracts, allowed deps, invariants
+
+When adding a new module:
+- Confirm target subsystem from `AI_ARCHITECTURE_GUIDE.md §3`
+- Confirm dependency direction is allowed (see `STATE_FLOW.md §9`)
+- Add to subsystem README if it introduces new state ownership
+
+When working in `.global/skills/`:
+- Use `compress-architecture.md` for file extraction work
+- Use `isolate-subsystem.md` for dependency direction fixes
+- Use `stabilize-state-flow.md` for state ownership consolidation
+- Use `split-orchestration.md` for god-file decomposition

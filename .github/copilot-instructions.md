@@ -333,3 +333,46 @@ Tested in `test/radar.test.js` under `parseEnumsFromContent` section.
 ## External Data Handling
 
 All relevant external data, such as traces or ROM dumps, should be searched in the `traces/` directory or other designated external data folders. These files are excluded from version control to avoid bloating the repository. Ensure that any required external data is documented in the appropriate feature dossier or README.
+
+---
+
+## 11. Architectural Cognitive Stabilization
+
+Before working in any subsystem, read:
+- `AI_ARCHITECTURE_GUIDE.md` — global architectural laws, file size limits, anti-abstraction rules, entropy hotspots
+- `STATE_FLOW.md` — authoritative state ownership table and data flow maps
+- The subsystem's own `README.md` — local ownership contract, allowed deps, key invariants
+
+### Subsystem README locations
+
+| Subsystem | README |
+|---|---|
+| Debugger | `debugger/README.md` |
+| Memory Radar | `memory_radar/README.md` |
+| Rooms tab | `memory_radar/rooms/README.md` |
+| Language features | `code_highlighter/README.md` |
+
+### File size law
+
+- 50–150 LOC: ideal
+- 150–250 LOC: acceptable
+- 250–400 LOC: needs justification
+- > 400 LOC: MUST split before adding more code
+
+### Anti-abstraction law
+
+Do NOT create shared helpers for functions used by only one module.
+Do NOT create base classes for fewer than 3 concrete uses.
+Duplication is better than coupling at this scale.
+
+### Ownership law
+
+Every state has ONE owner. New state goes in the owning module — NEVER in `extension.js` (it is already an orchestration hotspot with 14 module-level vars).
+
+### Skills available
+
+Reusable architectural operation prompts in `.global/skills/`:
+- `compress-architecture.md` — split oversized files by ownership
+- `isolate-subsystem.md` — fix forbidden dependency directions
+- `stabilize-state-flow.md` — consolidate state to single owner
+- `split-orchestration.md` — decompose god files (extension.js, panel.js)

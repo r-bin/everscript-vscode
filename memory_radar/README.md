@@ -1,18 +1,84 @@
-# Memory Radar
+# memory_radar/ — Subsystem README
 
-Companion window for exploring WRAM memory layout, room maps, scaling mechanics, and game algorithms. All ROM-backed models (damage, alchemy, map decoding, RNG) live here.
+## Ownership
 
-## Structure
+Owns: Memory Radar VS Code webview panel, all tab rendering (Memory, Rooms, Scaling, Docs/RNG/Route), memory-map parsing, enum cross-reference, rooms tree.
 
-- `radar-utils.js` — Pure helper functions for memory-region classification, HTML escaping, enum parsing
-- `webview/` — VS Code webview panel implementation with tabs:
-  - `index.js` — Main entry point that loads and assembles webview HTML/JS/CSS
-  - `assets/` — Precompiled webview code (shared.js, shared.css, tab scripts)
-- `models/` — ROM/game algorithm models (strictly ROM-anchored, trace-validated):
-  - `alchemy-model.js` — Alchemy damage range and power calculations
-  - `map-blob-evidence-model.js` — Map data decoding and trigger analysis
-  - `render-script-model.js` — Render opcode tracing and command analysis
-- `tests/` — Unit and integration tests for all models and webview behavior
+Does NOT own: extension activation, emulator state, language grammar, general ROM byte I/O.
+
+---
+
+## Directory Map
+
+```
+memory_radar/
+  radar-utils.js       — Pure functions: scope parsing, memory analysis, enum parsing
+  rom-readers.js       — Pure ROM I/O: map headers, character stats, hit lookup, PNG dims
+  room-data.js         — Thin shim → rooms/index.js (backward compat only)
+  room-tree.js         — Thin shim → rooms/index.js (backward compat only)
+  rooms/               — Rooms tab subsystem (see rooms/README.md)
+  models/              — Map pipeline and blob-evidence models
+  tests/               — Unit tests
+  webview/
+    index.js           — Webview HTML assembly entry point
+    assets/
+      rooms/           — 8-file decomposed Rooms tab JS
+      scaling-tab.js   — Scaling tab (638 LOC — split candidate)
+      routing-tab.js   — Route planner tab
+      rooms-tab.js     — DEAD CODE (superseded by rooms/ decomp — delete this)
+```
+
+---
+
+## State Owned
+
+State lives in `extension.js` (module-level lets). This subsystem provides pure functions and rendering output only.
+
+| Function | Output consumed by |
+|---|---|
+| `radarReadMemoryMap(wsRoot)` | `extension.js._radarMapCache` |
+| `radarReadEnums(wsRoot)` | `extension.js._radarEnumCache` |
+| `buildRoomTree(doc, wsRoot, extCfg)` | `extension.js._radarRoomTree` |
+| `radarAnalyzeScope(doc, scope)` | `extension.js` (inline, not cached) |
+
+---
+
+## Allowed Dependencies
+
+```
+radar-utils.js   → (pure — zero deps)
+rom-readers.js   → fs, path (pure I/O)
+rooms/           → radar-utils.js, rom-readers.js, fs, path
+webview/         → (concatenated globals — no require() at runtime)
+models/          → fs, path (pure I/O)
+```
+
+**Forbidden:**
+- `radar-utils.js` → vscode
+- `rom-readers.js` → vscode
+- webview assets → `require()`
+- `memory_radar/` → `code_highlighter/`
+- `memory_radar/` → `debugger/`
+
+---
+
+## Key Invariants
+
+1. `radar-utils.js` has ZERO imports — safest shared utility layer.
+2. `rom-readers.js` has ZERO VS Code dependencies.
+3. Rooms tab data flows through `rooms/index.js` only.
+4. Webview JS files concatenated in order from `webview/index.js::ROOMS_JS_FILES`.
+5. `room-data.js` and `room-tree.js` are thin shims — do not add logic to them.
+
+---
+
+## Entropy Hotspots
+
+- `webview/assets/scaling-tab.js` (638 LOC) — split candidate → `scaling/` subdir
+- `webview/assets/rooms-tab.js` (746 LOC) — **DEAD CODE, delete**
+- `models/map-blob-evidence-model.js` (701 LOC) — acceptable (single-purpose)
+
+---
 
 ## Testing
 
