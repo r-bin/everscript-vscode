@@ -1,3 +1,15 @@
+## [0.5.2] — 2026-05-29
+
+### Changed
+- **Room script parser coverage completed against SoEScriptDumper ground truth** — no user-visible UI changes.
+  - Add `debugger/emulator/opcode-registry.js` with a unified opcode registry (151 opcodes from SoEScriptDumper `printscript` switch)
+  - Add ground-truth fallback decoder for previously unsupported opcodes, including variable-width formats driven by sub-expression parsing
+  - Integrate fallback decode path into `debugger/emulator/room-script-model.js` so non-covered opcodes no longer terminate decode as unknown
+  - Export `OPCODE_REGISTRY` from `room-script-model.js` for debugger/parser tooling use
+  - Extend `debugger/tests/room-script-model.test.js` with:
+    - exact registry parity check vs SoEScriptDumper opcode set
+    - mixed-script decode test covering previously unsupported instruction classes
+
 ## [0.5.1] — 2026-05-29
 
 ### Changed

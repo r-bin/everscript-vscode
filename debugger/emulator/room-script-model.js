@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { OPCODE_REGISTRY, decodeFallbackOpcode } = require('./opcode-registry');
 
 const MAP_LIST_ADDR_US = 0x9ffde7;
 const SCRIPTS_START_ADDR_US = 0x928000;
@@ -498,10 +499,28 @@ function decodeInstructionAt(romBuf, scriptSnes, offset) {
             summary = `MODIFY CURRENT SCRIPT 0x${hex(value1, 2)} 0x${hex(value2, 2)} 0x${hex(value3, 2)} 0x${hex(value4, 2)}`;
             break;
         }
-        default:
+        default: {
+            const fallback = decodeFallbackOpcode(
+                romBuf,
+                addressSnes,
+                addressRom,
+                opcode,
+                readU8,
+                readU16,
+                readU24,
+                readS16,
+                hex,
+            );
+            if (fallback) {
+                size = fallback.size;
+                summary = fallback.summary;
+                stop = false;
+                break;
+            }
             stop = true;
             summary = `UNKNOWN OPCODE 0x${hex(opcode, 2)}`;
             break;
+        }
     }
 
     const bytes = [];
@@ -661,6 +680,7 @@ module.exports = {
     snesToRomOffset,
     scriptValueToSnes,
     snesToScriptValue,
+    OPCODE_REGISTRY,
     decodeRoomScript,
     buildRoomScriptModelFromRom,
     readRoomScriptModel,
