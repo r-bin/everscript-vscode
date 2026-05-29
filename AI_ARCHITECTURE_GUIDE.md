@@ -87,7 +87,7 @@ Allowed shared code: `radar-utils.js` (pure functions, no state), `settings-mode
 ### `extension.js`
 - Activation only: command registration, watcher setup, panel lifecycle
 - Must NOT contain rendering logic, parsing logic, or model logic
-- Target: < 300 LOC (currently 1461 — major reduction target)
+- Target: < 300 LOC (currently 878 after v0.5.0 extraction — continue reducing)
 
 ### `debugger/`
 - Owns: emulator lifecycle, DAP adapter, mock runtime, room-script model
@@ -148,24 +148,26 @@ Counter-measures:
 
 ---
 
-## 7. Current Entropy Hotspots (as of v0.4.0)
+## 7. Current Entropy Hotspots (as of v0.5.0)
 
-| File | LOC | Problem |
+| File | LOC | Status |
 |---|---|---|
-| `extension.js` | 1461 | God file — owns radar state, rendering, all command dispatch |
-| `debugger/emulator/panel.js` | 1448 | Mixed UI + emulator lifecycle + IPC |
-| `memory_radar/webview/assets/rooms-tab.js` | 746 | Pre-decomp remnant (superseded by rooms/) |
+| `extension.js` | 878 | Reduced from 1461; renderRadarHtml extracted |
+| `debugger/emulator/panel.js` | 1448 | Mixed UI + emulator lifecycle + IPC — deferred (complex test deps) |
 | `memory_radar/models/map-blob-evidence-model.js` | 701 | Large but single-purpose |
 | `debugger/emulator/room-script-model.js` | 666 | ROM decoding — split candidate |
-| `memory_radar/webview/assets/scaling-tab.js` | 638 | Scaling tab needs split |
-| `code_highlighter/language-providers.js` | 559 | Mixed hover/completion/diagnostics |
+| `memory_radar/render-memory-tab.js` | 300 | Single-purpose tab renderer — acceptable |
+
+### Completed decompositions (v0.5.0):
+- ✅ `renderRadarHtml` (593 LOC) extracted from `extension.js` → `memory_radar/render-radar.js` + `render-memory-tab.js` + `render-docs-tab.js`
+- ✅ `code_highlighter/language-providers.js` (559 LOC) → 39-line facade + 6 focused modules
+- ✅ `memory_radar/webview/assets/scaling-tab.js` (638 LOC) → `assets/scaling/` (8 files, largest 280 LOC)
+- ✅ `memory_radar/webview/assets/rooms-tab.js` (746 LOC) → deleted (superseded by `assets/rooms/`)
 
 ### Priority migration order:
-1. Extract `renderRadarHtml` from `extension.js` → `radar/rendering/`
-2. Split `debugger/emulator/panel.js` → `panel-lifecycle.js` + `panel-ipc.js` + `panel-webview.js`
-3. Split `code_highlighter/language-providers.js` → per-feature files
-4. Split `memory_radar/webview/assets/scaling-tab.js` → scaling/
-5. Delete `memory_radar/webview/assets/rooms-tab.js` (superseded)
+1. Split `debugger/emulator/panel.js` → `panel-lifecycle.js` + `panel-ipc.js` + `panel-webview.js`
+2. Continue reducing `extension.js` below 300 LOC (extract command handlers)
+3. Split `debugger/emulator/room-script-model.js` → ROM decode + model
 
 ---
 

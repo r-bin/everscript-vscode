@@ -1,3 +1,21 @@
+## [0.5.0] — 2026-06-07
+
+### Changed
+- **Major architectural decomposition** — no user-visible behavior changes.
+  - Extract `renderRadarHtml` (593 LOC) from `extension.js` into three focused modules:
+    - `memory_radar/render-radar.js` — orchestrator (179 LOC)
+    - `memory_radar/render-memory-tab.js` — WRAM grid + detail table (300 LOC)
+    - `memory_radar/render-docs-tab.js` — docs + RNG tabs (191 LOC)
+  - `extension.js` reduced from 1461 → 878 lines
+  - Split `code_highlighter/language-providers.js` (559 LOC) into 6 focused modules + 39-line facade:
+    - `workspace-index.js`, `hover-provider.js`, `completion-provider.js`, `symbol-provider.js`, `dead-branch.js`, `definition-provider.js`
+  - Fix pre-existing `getRadarMap()` ReferenceError in hex literal hover path
+  - Fix pre-existing stray HTML string in completion provider
+  - Split `memory_radar/webview/assets/scaling-tab.js` (638 LOC) into `assets/scaling/` (8 files):
+    - `alchemy-math.js` (88 LOC), `state.js` (37 LOC), `helpers.js` (67 LOC), `events.js` (47 LOC), `damage-math.js` (57 LOC), `chart.js` (73 LOC), `redraw.js` (282 LOC), `tab-init.js` (7 LOC)
+  - Alchemy math functions promoted to shared outer scope — accessible from docs tab
+  - Updated `AI_ARCHITECTURE_GUIDE.md` and `STATE_FLOW.md` to reflect decompositions
+
 ## [0.4.1] — 2026-06-06
 
 ### Changed

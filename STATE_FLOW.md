@@ -45,7 +45,11 @@ radarReadMemoryMap(wsRoot) → mapByAddr [cached _radarMapCache]
 radarReadEnums(wsRoot) → enumMap [cached _radarEnumCache]
 buildRoomTree(doc, wsRoot, extCfg) → roomTree [cached _radarRoomTree]
   ↓
-renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTree, activeTab, selectedMap)
+renderRadarHtml(...)               [memory_radar/render-radar.js]
+  ↓
+buildMemoryTabHtml(...)            [memory_radar/render-memory-tab.js]
+buildDocsTabHtml()                 [memory_radar/render-docs-tab.js]
+buildRngTabHtml()                  [memory_radar/render-docs-tab.js]
   → large HTML string
   ↓
 _radarPanel.webview.html = html
@@ -101,15 +105,16 @@ injected into webview as ROOMS, VANILLA_ROOM_DETAILS JS globals
 ## 4. Memory (Radar Grid) Tab — State Flow
 
 ```
-extension.js::renderRadarHtml
+extension.js::refreshRadar
   ↓
 radarReadMemoryMap(wsRoot)        → Map<addr, entry>
 radarAnalyzeScope(doc, scope)     → { refs, pools, argRefs }
 radarReadEnums(wsRoot)            → Map<addr, [{cls,name}]>
   ↓
-renderRadarHtml assembles HTML grid inline (currently in extension.js)
+buildMemoryTabHtml(...)           [render-memory-tab.js]
+  → { html, cellData }
   ↓
-webview receives HTML
+injected into webview via render-radar.js orchestrator
   ↓
 Client JS: cell clicks, filter buttons (body class toggles), tooltip hover
   → all client-side only, no IPC for grid interactions
@@ -166,9 +171,11 @@ _applyByteScriptFocus() → highlights matching instruction rows
 ```
 VS Code hover event
   ↓
-code_highlighter/language-providers.js::provideHover(doc, pos)
+code_highlighter/language-providers.js::provideHover(doc, pos)  [facade]
   ↓
-buildWorkspaceIndex / loadIndex (cached)
+hover-provider.js::provideHover(doc, pos, idx, radarMap)
+  ↓
+workspace-index.js::getIndex() / getWorkspaceIndex()  [cached]
   → scans *.evs for function defs, memory() calls, enum defs
   ↓
 provideHover returns MarkdownString
@@ -177,9 +184,18 @@ radarReadMemoryMap(wsRoot)    [calls into memory_radar/radar-utils.js]
   → returns entry with name + lifecycle
 ```
 
-**State owned by language-providers.js:**
-- Workspace index (function defs, memory addresses)
-- Index validity (dirty flag)
+**State owned by code_highlighter/workspace-index.js:**
+- `_index` (static JSON from `data/index.json`)
+- `_workspaceIndex` (Map of workspace declarations)
+
+**Decomposed modules (v0.5.0):**
+- `workspace-index.js` — index state + load/build
+- `hover-provider.js` — all hover tooltip logic
+- `completion-provider.js` — completion items
+- `symbol-provider.js` — document symbols
+- `dead-branch.js` — dead code decorations
+- `definition-provider.js` — go-to-definition + find-references
+- `language-providers.js` — 39-line facade (backward compat)
 
 ---
 

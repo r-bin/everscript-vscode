@@ -25,6 +25,25 @@ function buildMainJs({ jsData, roomsData, scalingData, roomsJs, scalingJs, docsJ
     .replace('__RNG_JS__', rngJs);
 }
 
+// Load scaling tab JS from split modules in assets/scaling/ (concatenated in dependency order).
+// alchemy-math.js runs in outer IIFE scope; state.js opens the inner IIFE; tab-init.js closes it.
+const SCALING_JS_FILES = [
+  'alchemy-math.js',  // pure alchemy math — outer scope, accessible to docs-tab too
+  'state.js',         // inner IIFE opener + state vars + DOM refs + char select init
+  'helpers.js',       // isScalable, getWeapons, target helpers, slider helpers
+  'events.js',        // srcSel/tgtSel/modeSel/button event listeners
+  'damage-math.js',   // dmgCache + fmtPct + atlasSeed + dmgRange + srcAtkAtLv etc.
+  'chart.js',         // _CW constants + renderTrendChart + attachSvgEvents
+  'redraw.js',        // redraw function
+  'tab-init.js',      // init calls + inner IIFE close
+];
+
+function loadScalingJs() {
+  return SCALING_JS_FILES
+    .map(function(f) { return fs.readFileSync(path.join(assetDir, 'scaling', f), 'utf8'); })
+    .join('\n');
+}
+
 // Load rooms tab JS from split modules in assets/rooms/ (concatenated in dependency order).
 const ROOMS_JS_FILES = [
   'bootstrap.js',        // globals: _currentByteScriptFocus, _applyByteScriptFocus, message listener
@@ -45,7 +64,7 @@ function loadRoomsJs() {
 
 module.exports = {
   css: loadAsset('shared.css'),
-  scalingJs: loadAsset('scaling-tab.js'),
+  get scalingJs() { return loadScalingJs(); },
   get roomsJs() { return loadRoomsJs(); },
   docsJs: loadAsset('docs-tab.js'),
   routeJs: loadAsset('route-tab.js'),
