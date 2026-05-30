@@ -1,3 +1,17 @@
+## [0.5.4] — 2026-05-30
+
+### Changed
+- **Corpus-driven parser parity harness expanded** without adding parser logic.
+  - Add top-level generated parity modules under `tests/`:
+    - `tests/corpus/script-all-corpus.js` for `script_all` ingestion, opcode enumeration, grouped instruction normalization, and ROM byte extraction
+    - `tests/opcodes/opcode-report.js` for per-opcode occurrence stats, real decode samples, and variable-length opcode detection
+    - `tests/boundaries/boundary-report.js` for instruction boundary validation and script-level parity accounting
+    - `tests/parity/report-builder.js` and `tests/parity/failure-types.js` for report orchestration, golden summary snapshots, and expanded failure classes
+  - Replace the old single aggregate parity assertion in `debugger/tests/parser-parity.test.js` with generated per-opcode and per-script coverage
+  - Add explicit `SIZE_MISMATCH` and `SUBEXPR_DESYNC` defect classes to the parity harness output
+  - Emit dedicated reports for aggregate parity, opcode coverage, and unknown-opcode desync investigations to `tmp/`
+  - Add `npm run test:parity` and `npm run test:parity:strict` so the suite can run in diagnostic mode by default and red-bar in strict defect mode
+
 ## [0.5.3] — 2026-05-29
 
 ### Changed

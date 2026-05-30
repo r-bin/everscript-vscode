@@ -1,0 +1,1714 @@
+{
+  "scriptsTotal": 127,
+  "occurrencesTotal": 236595,
+  "observedOpcodes": 125,
+  "variableLengthOpcodes": [
+    {
+      "opcodeHex": "0x00",
+      "observedSizes": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31
+      ],
+      "occurrences": 18544
+    },
+    {
+      "opcodeHex": "0x04",
+      "observedSizes": [
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        20,
+        25
+      ],
+      "occurrences": 13416
+    },
+    {
+      "opcodeHex": "0x05",
+      "observedSizes": [
+        2,
+        5,
+        6,
+        7,
+        8,
+        9,
+        12,
+        13,
+        14,
+        16,
+        17,
+        30
+      ],
+      "occurrences": 2338
+    },
+    {
+      "opcodeHex": "0x07",
+      "observedSizes": [
+        3,
+        4,
+        5,
+        6,
+        8,
+        9,
+        10,
+        11,
+        12,
+        19
+      ],
+      "occurrences": 891
+    },
+    {
+      "opcodeHex": "0x08",
+      "observedSizes": [
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        19,
+        20,
+        22,
+        32
+      ],
+      "occurrences": 3850
+    },
+    {
+      "opcodeHex": "0x09",
+      "observedSizes": [
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32
+      ],
+      "occurrences": 19961
+    },
+    {
+      "opcodeHex": "0x0A",
+      "observedSizes": [
+        7,
+        8,
+        9,
+        10,
+        16,
+        19,
+        24
+      ],
+      "occurrences": 96
+    },
+    {
+      "opcodeHex": "0x0B",
+      "observedSizes": [
+        7,
+        8,
+        9,
+        10,
+        15,
+        16,
+        21
+      ],
+      "occurrences": 99
+    },
+    {
+      "opcodeHex": "0x0C",
+      "observedSizes": [
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        12,
+        13,
+        14,
+        15,
+        20,
+        28
+      ],
+      "occurrences": 6035
+    },
+    {
+      "opcodeHex": "0x0D",
+      "observedSizes": [
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        14,
+        15,
+        17,
+        18,
+        25
+      ],
+      "occurrences": 3376
+    },
+    {
+      "opcodeHex": "0x0E",
+      "observedSizes": [
+        3,
+        4,
+        5,
+        6,
+        7,
+        10,
+        12,
+        14
+      ],
+      "occurrences": 161
+    },
+    {
+      "opcodeHex": "0x10",
+      "observedSizes": [
+        4,
+        5,
+        6,
+        7,
+        9,
+        10,
+        11,
+        13,
+        14,
+        19
+      ],
+      "occurrences": 80
+    },
+    {
+      "opcodeHex": "0x11",
+      "observedSizes": [
+        4,
+        6,
+        7,
+        8,
+        9,
+        14,
+        16
+      ],
+      "occurrences": 114
+    },
+    {
+      "opcodeHex": "0x14",
+      "observedSizes": [
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        14,
+        28
+      ],
+      "occurrences": 1544
+    },
+    {
+      "opcodeHex": "0x15",
+      "observedSizes": [
+        4,
+        5,
+        7,
+        12,
+        16
+      ],
+      "occurrences": 30
+    },
+    {
+      "opcodeHex": "0x17",
+      "observedSizes": [
+        5,
+        8,
+        15
+      ],
+      "occurrences": 2363
+    },
+    {
+      "opcodeHex": "0x18",
+      "observedSizes": [
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        23,
+        26,
+        29
+      ],
+      "occurrences": 15352
+    },
+    {
+      "opcodeHex": "0x19",
+      "observedSizes": [
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        21,
+        23,
+        26
+      ],
+      "occurrences": 6518
+    },
+    {
+      "opcodeHex": "0x1B",
+      "observedSizes": [
+        7,
+        8,
+        10,
+        11,
+        12,
+        14,
+        15,
+        17,
+        20,
+        21,
+        23,
+        25,
+        30
+      ],
+      "occurrences": 3586
+    },
+    {
+      "opcodeHex": "0x1C",
+      "observedSizes": [
+        4,
+        5,
+        6,
+        9,
+        10,
+        11,
+        13,
+        14
+      ],
+      "occurrences": 895
+    },
+    {
+      "opcodeHex": "0x1D",
+      "observedSizes": [
+        4,
+        5,
+        6,
+        7,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        18
+      ],
+      "occurrences": 670
+    },
+    {
+      "opcodeHex": "0x20",
+      "observedSizes": [
+        3,
+        4,
+        5,
+        6,
+        9
+      ],
+      "occurrences": 898
+    },
+    {
+      "opcodeHex": "0x27",
+      "observedSizes": [
+        1,
+        8,
+        11
+      ],
+      "occurrences": 651
+    },
+    {
+      "opcodeHex": "0x29",
+      "observedSizes": [
+        4,
+        5,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        15,
+        16,
+        19,
+        24,
+        25,
+        31
+      ],
+      "occurrences": 3698
+    },
+    {
+      "opcodeHex": "0x2A",
+      "observedSizes": [
+        2,
+        3,
+        4,
+        5,
+        9,
+        10,
+        11,
+        14,
+        18,
+        19
+      ],
+      "occurrences": 755
+    },
+    {
+      "opcodeHex": "0x2B",
+      "observedSizes": [
+        2,
+        3,
+        4,
+        5,
+        7,
+        9,
+        10,
+        12
+      ],
+      "occurrences": 901
+    },
+    {
+      "opcodeHex": "0x2E",
+      "observedSizes": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        24,
+        28
+      ],
+      "occurrences": 7131
+    },
+    {
+      "opcodeHex": "0x30",
+      "observedSizes": [
+        2,
+        3,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        12,
+        14,
+        16,
+        17,
+        18,
+        23
+      ],
+      "occurrences": 4212
+    },
+    {
+      "opcodeHex": "0x32",
+      "observedSizes": [
+        2,
+        12,
+        32
+      ],
+      "occurrences": 55
+    },
+    {
+      "opcodeHex": "0x33",
+      "observedSizes": [
+        2,
+        7,
+        16
+      ],
+      "occurrences": 1633
+    },
+    {
+      "opcodeHex": "0x38",
+      "observedSizes": [
+        1,
+        2,
+        5,
+        6
+      ],
+      "occurrences": 66
+    },
+    {
+      "opcodeHex": "0x39",
+      "observedSizes": [
+        2,
+        3,
+        7,
+        10,
+        11
+      ],
+      "occurrences": 38
+    },
+    {
+      "opcodeHex": "0x3A",
+      "observedSizes": [
+        1,
+        2,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        13,
+        17,
+        18,
+        21,
+        22,
+        24,
+        25,
+        29
+      ],
+      "occurrences": 4517
+    },
+    {
+      "opcodeHex": "0x3B",
+      "observedSizes": [
+        2,
+        3,
+        4,
+        5,
+        8,
+        9,
+        10,
+        12,
+        14,
+        15
+      ],
+      "occurrences": 105
+    },
+    {
+      "opcodeHex": "0x3C",
+      "observedSizes": [
+        7,
+        10,
+        12,
+        16,
+        18
+      ],
+      "occurrences": 967
+    },
+    {
+      "opcodeHex": "0x3D",
+      "observedSizes": [
+        4,
+        5,
+        6,
+        7,
+        9,
+        18,
+        19,
+        22
+      ],
+      "occurrences": 518
+    },
+    {
+      "opcodeHex": "0x3F",
+      "observedSizes": [
+        6,
+        7,
+        8,
+        10,
+        11,
+        13,
+        14,
+        18,
+        20
+      ],
+      "occurrences": 662
+    },
+    {
+      "opcodeHex": "0x42",
+      "observedSizes": [
+        4,
+        5,
+        6,
+        8,
+        9,
+        10,
+        11,
+        13,
+        14,
+        21
+      ],
+      "occurrences": 856
+    },
+    {
+      "opcodeHex": "0x43",
+      "observedSizes": [
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        28,
+        29,
+        30,
+        31
+      ],
+      "occurrences": 3447
+    },
+    {
+      "opcodeHex": "0x4D",
+      "observedSizes": [
+        1,
+        2,
+        6,
+        7,
+        8
+      ],
+      "occurrences": 179
+    },
+    {
+      "opcodeHex": "0x4E",
+      "observedSizes": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        11
+      ],
+      "occurrences": 71
+    },
+    {
+      "opcodeHex": "0x50",
+      "observedSizes": [
+        4,
+        5,
+        9
+      ],
+      "occurrences": 281
+    },
+    {
+      "opcodeHex": "0x51",
+      "observedSizes": [
+        3,
+        4,
+        5,
+        7,
+        8,
+        9,
+        10,
+        14,
+        16,
+        17,
+        18
+      ],
+      "occurrences": 12578
+    },
+    {
+      "opcodeHex": "0x52",
+      "observedSizes": [
+        3,
+        8,
+        30
+      ],
+      "occurrences": 1775
+    },
+    {
+      "opcodeHex": "0x54",
+      "observedSizes": [
+        2,
+        3,
+        9
+      ],
+      "occurrences": 149
+    },
+    {
+      "opcodeHex": "0x55",
+      "observedSizes": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        11,
+        12,
+        13,
+        15
+      ],
+      "occurrences": 6067
+    },
+    {
+      "opcodeHex": "0x58",
+      "observedSizes": [
+        1,
+        6
+      ],
+      "occurrences": 57
+    },
+    {
+      "opcodeHex": "0x5C",
+      "observedSizes": [
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        13,
+        21,
+        25,
+        28
+      ],
+      "occurrences": 8010
+    },
+    {
+      "opcodeHex": "0x5D",
+      "observedSizes": [
+        4,
+        5,
+        7,
+        19
+      ],
+      "occurrences": 2296
+    },
+    {
+      "opcodeHex": "0x63",
+      "observedSizes": [
+        1,
+        2,
+        7
+      ],
+      "occurrences": 262
+    },
+    {
+      "opcodeHex": "0x6D",
+      "observedSizes": [
+        4,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "occurrences": 470
+    },
+    {
+      "opcodeHex": "0x6E",
+      "observedSizes": [
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        13
+      ],
+      "occurrences": 1813
+    },
+    {
+      "opcodeHex": "0x6F",
+      "observedSizes": [
+        4,
+        5,
+        6,
+        8,
+        9,
+        11,
+        22,
+        23,
+        25
+      ],
+      "occurrences": 3376
+    },
+    {
+      "opcodeHex": "0x70",
+      "observedSizes": [
+        3,
+        5,
+        7,
+        15,
+        21
+      ],
+      "occurrences": 109
+    },
+    {
+      "opcodeHex": "0x71",
+      "observedSizes": [
+        3,
+        4,
+        5
+      ],
+      "occurrences": 21
+    },
+    {
+      "opcodeHex": "0x73",
+      "observedSizes": [
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        18
+      ],
+      "occurrences": 555
+    },
+    {
+      "opcodeHex": "0x74",
+      "observedSizes": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        9,
+        10,
+        11,
+        14,
+        19
+      ],
+      "occurrences": 1424
+    },
+    {
+      "opcodeHex": "0x75",
+      "observedSizes": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        15,
+        18,
+        19,
+        21,
+        23
+      ],
+      "occurrences": 3348
+    },
+    {
+      "opcodeHex": "0x76",
+      "observedSizes": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        9,
+        10,
+        12,
+        14,
+        15
+      ],
+      "occurrences": 1928
+    },
+    {
+      "opcodeHex": "0x77",
+      "observedSizes": [
+        2,
+        3,
+        4,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        17,
+        19,
+        24
+      ],
+      "occurrences": 2448
+    },
+    {
+      "opcodeHex": "0x7A",
+      "observedSizes": [
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        17,
+        19,
+        20,
+        22,
+        27,
+        29
+      ],
+      "occurrences": 539
+    },
+    {
+      "opcodeHex": "0x7C",
+      "observedSizes": [
+        5,
+        7,
+        9
+      ],
+      "occurrences": 136
+    },
+    {
+      "opcodeHex": "0x7D",
+      "observedSizes": [
+        5,
+        6,
+        7
+      ],
+      "occurrences": 85
+    },
+    {
+      "opcodeHex": "0x7E",
+      "observedSizes": [
+        5,
+        9,
+        10,
+        11,
+        21,
+        23,
+        28
+      ],
+      "occurrences": 93
+    },
+    {
+      "opcodeHex": "0x80",
+      "observedSizes": [
+        1,
+        2,
+        3,
+        4,
+        6,
+        7,
+        9
+      ],
+      "occurrences": 550
+    },
+    {
+      "opcodeHex": "0x81",
+      "observedSizes": [
+        1,
+        2,
+        6,
+        9
+      ],
+      "occurrences": 345
+    },
+    {
+      "opcodeHex": "0x84",
+      "observedSizes": [
+        5,
+        7,
+        8
+      ],
+      "occurrences": 32
+    },
+    {
+      "opcodeHex": "0x85",
+      "observedSizes": [
+        5,
+        6,
+        7,
+        8,
+        10,
+        17
+      ],
+      "occurrences": 85
+    },
+    {
+      "opcodeHex": "0x86",
+      "observedSizes": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        10,
+        11,
+        14
+      ],
+      "occurrences": 246
+    },
+    {
+      "opcodeHex": "0x87",
+      "observedSizes": [
+        3,
+        6
+      ],
+      "occurrences": 19
+    },
+    {
+      "opcodeHex": "0x88",
+      "observedSizes": [
+        1,
+        7,
+        13
+      ],
+      "occurrences": 224
+    },
+    {
+      "opcodeHex": "0x89",
+      "observedSizes": [
+        3,
+        4,
+        5,
+        6,
+        9
+      ],
+      "occurrences": 497
+    },
+    {
+      "opcodeHex": "0x8A",
+      "observedSizes": [
+        2,
+        4,
+        6,
+        9,
+        10,
+        12,
+        15
+      ],
+      "occurrences": 50
+    },
+    {
+      "opcodeHex": "0x8D",
+      "observedSizes": [
+        2,
+        3,
+        5,
+        7,
+        9,
+        10,
+        23
+      ],
+      "occurrences": 895
+    },
+    {
+      "opcodeHex": "0x8E",
+      "observedSizes": [
+        7,
+        9,
+        10,
+        12,
+        15,
+        17
+      ],
+      "occurrences": 83
+    },
+    {
+      "opcodeHex": "0x8F",
+      "observedSizes": [
+        5,
+        7
+      ],
+      "occurrences": 6
+    },
+    {
+      "opcodeHex": "0x91",
+      "observedSizes": [
+        2,
+        3,
+        4,
+        5,
+        9,
+        13,
+        15,
+        23
+      ],
+      "occurrences": 431
+    },
+    {
+      "opcodeHex": "0x92",
+      "observedSizes": [
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        16,
+        17,
+        19,
+        21
+      ],
+      "occurrences": 156
+    },
+    {
+      "opcodeHex": "0x93",
+      "observedSizes": [
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "occurrences": 36
+    },
+    {
+      "opcodeHex": "0x94",
+      "observedSizes": [
+        3,
+        4,
+        7,
+        8,
+        9,
+        10,
+        22
+      ],
+      "occurrences": 126
+    },
+    {
+      "opcodeHex": "0x95",
+      "observedSizes": [
+        3,
+        5,
+        7,
+        8,
+        11,
+        13,
+        23
+      ],
+      "occurrences": 384
+    },
+    {
+      "opcodeHex": "0x96",
+      "observedSizes": [
+        3,
+        4,
+        6,
+        12
+      ],
+      "occurrences": 22
+    },
+    {
+      "opcodeHex": "0x98",
+      "observedSizes": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        12
+      ],
+      "occurrences": 220
+    },
+    {
+      "opcodeHex": "0x9B",
+      "observedSizes": [
+        2,
+        3,
+        4,
+        5,
+        7,
+        8,
+        9,
+        13,
+        19
+      ],
+      "occurrences": 2071
+    },
+    {
+      "opcodeHex": "0x9C",
+      "observedSizes": [
+        2,
+        3,
+        4,
+        7
+      ],
+      "occurrences": 161
+    },
+    {
+      "opcodeHex": "0x9D",
+      "observedSizes": [
+        6,
+        8,
+        11,
+        13,
+        14,
+        15
+      ],
+      "occurrences": 91
+    },
+    {
+      "opcodeHex": "0x9F",
+      "observedSizes": [
+        1,
+        14
+      ],
+      "occurrences": 188
+    },
+    {
+      "opcodeHex": "0xA0",
+      "observedSizes": [
+        1,
+        2,
+        3,
+        7
+      ],
+      "occurrences": 381
+    },
+    {
+      "opcodeHex": "0xA1",
+      "observedSizes": [
+        1,
+        2,
+        3,
+        11
+      ],
+      "occurrences": 668
+    },
+    {
+      "opcodeHex": "0xA2",
+      "observedSizes": [
+        7,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        23,
+        24,
+        26
+      ],
+      "occurrences": 208
+    },
+    {
+      "opcodeHex": "0xA3",
+      "observedSizes": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        11,
+        12,
+        14,
+        15
+      ],
+      "occurrences": 13093
+    },
+    {
+      "opcodeHex": "0xA5",
+      "observedSizes": [
+        2,
+        7,
+        9,
+        14
+      ],
+      "occurrences": 1009
+    },
+    {
+      "opcodeHex": "0xA6",
+      "observedSizes": [
+        3,
+        4,
+        6,
+        8,
+        9,
+        11,
+        15,
+        27,
+        32
+      ],
+      "occurrences": 2260
+    },
+    {
+      "opcodeHex": "0xA7",
+      "observedSizes": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        19,
+        29,
+        30,
+        31
+      ],
+      "occurrences": 20493
+    },
+    {
+      "opcodeHex": "0xA8",
+      "observedSizes": [
+        3,
+        4,
+        7,
+        10
+      ],
+      "occurrences": 166
+    },
+    {
+      "opcodeHex": "0xAA",
+      "observedSizes": [
+        1,
+        2,
+        7
+      ],
+      "occurrences": 159
+    },
+    {
+      "opcodeHex": "0xAC",
+      "observedSizes": [
+        8,
+        9,
+        10,
+        11,
+        13,
+        18,
+        22,
+        23
+      ],
+      "occurrences": 181
+    },
+    {
+      "opcodeHex": "0xAD",
+      "observedSizes": [
+        7,
+        12,
+        14,
+        24,
+        30
+      ],
+      "occurrences": 336
+    },
+    {
+      "opcodeHex": "0xAF",
+      "observedSizes": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        20,
+        21,
+        22,
+        23,
+        32
+      ],
+      "occurrences": 422
+    },
+    {
+      "opcodeHex": "0xB0",
+      "observedSizes": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "occurrences": 53
+    },
+    {
+      "opcodeHex": "0xB2",
+      "observedSizes": [
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        11,
+        13,
+        18
+      ],
+      "occurrences": 170
+    },
+    {
+      "opcodeHex": "0xB3",
+      "observedSizes": [
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19
+      ],
+      "occurrences": 362
+    },
+    {
+      "opcodeHex": "0xB4",
+      "observedSizes": [
+        5,
+        6,
+        8,
+        9,
+        11,
+        12,
+        13,
+        16,
+        18,
+        24
+      ],
+      "occurrences": 377
+    },
+    {
+      "opcodeHex": "0xB6",
+      "observedSizes": [
+        5,
+        7,
+        9
+      ],
+      "occurrences": 11
+    },
+    {
+      "opcodeHex": "0xB7",
+      "observedSizes": [
+        3,
+        8
+      ],
+      "occurrences": 33
+    },
+    {
+      "opcodeHex": "0xB9",
+      "observedSizes": [
+        4,
+        6,
+        11,
+        12
+      ],
+      "occurrences": 87
+    },
+    {
+      "opcodeHex": "0xBA",
+      "observedSizes": [
+        4,
+        7,
+        9,
+        10,
+        13,
+        30
+      ],
+      "occurrences": 1570
+    },
+    {
+      "opcodeHex": "0xBB",
+      "observedSizes": [
+        2,
+        4
+      ],
+      "occurrences": 18
+    },
+    {
+      "opcodeHex": "0xBC",
+      "observedSizes": [
+        1,
+        2,
+        5,
+        6,
+        9
+      ],
+      "occurrences": 175
+    },
+    {
+      "opcodeHex": "0xBD",
+      "observedSizes": [
+        1,
+        2,
+        7
+      ],
+      "occurrences": 255
+    },
+    {
+      "opcodeHex": "0xBE",
+      "observedSizes": [
+        1,
+        2,
+        5,
+        6
+      ],
+      "occurrences": 201
+    },
+    {
+      "opcodeHex": "0xBF",
+      "observedSizes": [
+        1,
+        2,
+        6,
+        7
+      ],
+      "occurrences": 264
+    },
+    {
+      "opcodeHex": "0xC0",
+      "observedSizes": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        9,
+        11,
+        15,
+        22,
+        26,
+        29,
+        30
+      ],
+      "occurrences": 1127
+    },
+    {
+      "opcodeHex": "0xC1",
+      "observedSizes": [
+        1,
+        2,
+        6,
+        7,
+        8,
+        13
+      ],
+      "occurrences": 958
+    }
+  ],
+  "boundaryChecks": 136893,
+  "failureClasses": {
+    "OPCODE_MISSING": 0,
+    "OPERAND_MISMATCH": 1208,
+    "SIZE_MISMATCH": 4113,
+    "PC_DESYNC": 170,
+    "BRANCH_TARGET_ERROR": 0,
+    "SUBEXPR_DESYNC": 72,
+    "STATE_DRIFT": 7326,
+    "UNKNOWN_OPCODE": 21
+  },
+  "unknownOpcodeInvestigations": [
+    {
+      "script": "0x94E5FB",
+      "unknownOpcode": "0x64",
+      "expectedAddress": "0x94E636",
+      "actualAddress": "0x94E635",
+      "previousExpectedAddress": "0x94E633",
+      "previousActualAddress": "0x94E633",
+      "previousInstructionLength": 2,
+      "previousFailureClass": "SIZE_MISMATCH",
+      "expectedSummary": "END (return)",
+      "actualSummary": "UNKNOWN OPCODE 0x64"
+    },
+    {
+      "script": "0x94E795",
+      "unknownOpcode": "0x64",
+      "expectedAddress": "0x94E7E0",
+      "actualAddress": "0x94E7DF",
+      "previousExpectedAddress": "0x94E7DD",
+      "previousActualAddress": "0x94E7DD",
+      "previousInstructionLength": 2,
+      "previousFailureClass": "SIZE_MISMATCH",
+      "expectedSummary": "END (return)",
+      "actualSummary": "UNKNOWN OPCODE 0x64"
+    },
+    {
+      "script": "0x92E0CA",
+      "unknownOpcode": "0xFF",
+      "expectedAddress": "0x92E0ED",
+      "actualAddress": "0x92E0EC",
+      "previousExpectedAddress": "0x92E0EA",
+      "previousActualAddress": "0x92E0EA",
+      "previousInstructionLength": 2,
+      "previousFailureClass": "SIZE_MISMATCH",
+      "expectedSummary": "Teleport boy to x:$242b - 0x32, y:$242d",
+      "actualSummary": "UNKNOWN OPCODE 0xFF"
+    }
+  ]
+}

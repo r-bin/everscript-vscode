@@ -681,6 +681,7 @@ module.exports = {
     scriptValueToSnes,
     snesToScriptValue,
     OPCODE_REGISTRY,
+    decodeInstructionAt,
     decodeRoomScript,
     buildRoomScriptModelFromRom,
     readRoomScriptModel,

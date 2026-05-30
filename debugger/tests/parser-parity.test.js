@@ -3,24 +3,23 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
-const {
-    decodeRoomScript,
-} = require('../emulator/room-script-model');
-const { loadGroundTruthDump } = require('./parity/ground-truth-parser');
-const { diffInstructionStreams } = require('./parity/ir-diff');
-const { FailureClass } = require('./parity/failure-classifier');
 const { runOpcodeInteractionTests } = require('./parity/opcode-interactions');
 const { runParserFuzzTests } = require('./parity/fuzz-generator');
+const {
+    FailureType,
+    GOLDEN_SNAPSHOT_PATH,
+    OPCODE_REPORT_PATH,
+    REPORT_PATH,
+    UNKNOWN_REPORT_PATH,
+    buildParityReport,
+} = require('../../tests/parity/report-builder');
 
-const GROUND_TRUTH_PATH = process.env.EVERSCRIPT_SCRIPTS_ALL
-    || '/Users/v/Documents/GitHub/SoETilesViewer/SoEScriptDumper/script_all';
-const ROM_PATH = process.env.EVERSCRIPT_ROM_PATH
-    || '/Users/v/Documents/GitHub/SoETilesViewer/SoEScriptDumper/Secret of Evermore (U) [!].smc';
-const SNAPSHOT_PATH = path.resolve(__dirname, 'parity/snapshots/golden-parity.snapshot.json');
-const REPORT_PATH = path.resolve(__dirname, '../../tmp/parser-parity-report.json');
+const STRICT = process.env.PARITY_STRICT === '1';
 
 let passed = 0;
 let failed = 0;
+let reportCache = null;
+let reportError = null;
 
 function test(name, fn) {
     try {
@@ -34,126 +33,76 @@ function test(name, fn) {
     }
 }
 
-function aggregateFailureClasses(scriptMismatches) {
-    const counts = {
-        [FailureClass.OPCODE_MISSING]: 0,
-        [FailureClass.OPERAND_MISMATCH]: 0,
-        [FailureClass.PC_DESYNC]: 0,
-        [FailureClass.BRANCH_TARGET_ERROR]: 0,
-        [FailureClass.STATE_DRIFT]: 0,
-        [FailureClass.UNKNOWN_OPCODE]: 0,
-    };
-
-    for (const m of scriptMismatches) {
-        for (const item of m.mismatches) {
-            counts[item.failureClass] = (counts[item.failureClass] || 0) + 1;
-        }
+function getReport() {
+    if (reportCache) return reportCache;
+    if (reportError) throw reportError;
+    try {
+        reportCache = buildParityReport({
+            dumpPath: process.env.EVERSCRIPT_SCRIPTS_ALL,
+            romPath: process.env.EVERSCRIPT_ROM_PATH,
+        });
+        return reportCache;
+    } catch (error) {
+        reportError = error;
+        throw error;
     }
-
-    return counts;
 }
 
-function summarizeParityResult(result) {
-    return {
-        scriptsTotal: result.scriptsTotal,
-        scriptsCompared: result.scriptsCompared,
-        scriptsWithMismatches: result.scriptsWithMismatches,
-        totalMismatches: result.totalMismatches,
-        failureClasses: result.failureClasses,
-        firstMismatches: result.scriptMismatches.slice(0, 100).map((entry) => ({
-            startAddressHex: entry.startAddressHex,
-            mismatchCount: entry.mismatchCount,
-            mismatches: entry.mismatches.slice(0, 5),
-        })),
-    };
+function strictAssert(condition, message) {
+    if (STRICT) assert.ok(condition, message);
 }
 
-function runGoldenParity() {
-    if (!fs.existsSync(GROUND_TRUTH_PATH)) {
-        return {
-            skipped: true,
-            reason: `ground truth dump not found at ${GROUND_TRUTH_PATH}`,
-        };
-    }
-    if (!fs.existsSync(ROM_PATH)) {
-        return {
-            skipped: true,
-            reason: `ROM not found at ${ROM_PATH}`,
-        };
-    }
-
-    const scripts = loadGroundTruthDump(GROUND_TRUTH_PATH);
-    const rom = fs.readFileSync(ROM_PATH);
-    const scriptMismatches = [];
-
-    for (const script of scripts) {
-        const parsed = decodeRoomScript(rom, script.startAddress);
-        const diff = diffInstructionStreams(script.instructions, parsed.instructions);
-        if (diff.mismatchCount > 0) {
-            scriptMismatches.push({
-                startAddress: script.startAddress,
-                startAddressHex: script.startAddressHex,
-                mismatchCount: diff.mismatchCount,
-                mismatches: diff.mismatches,
-                expectedCount: script.instructions.length,
-                actualCount: parsed.instructions.length,
-                stopReason: parsed.stopReason,
-            });
-        }
-    }
-
-    const failureClasses = aggregateFailureClasses(scriptMismatches);
-    const totalMismatches = scriptMismatches.reduce((sum, item) => sum + item.mismatchCount, 0);
-
-    const result = {
-        skipped: false,
-        scriptsTotal: scripts.length,
-        scriptsCompared: scripts.length,
-        scriptsWithMismatches: scriptMismatches.length,
-        totalMismatches,
-        failureClasses,
-        scriptMismatches,
-    };
-
-    const report = summarizeParityResult(result);
-    fs.mkdirSync(path.dirname(REPORT_PATH), { recursive: true });
-    fs.writeFileSync(REPORT_PATH, JSON.stringify(report, null, 2));
-
-    const update = process.env.UPDATE_GOLDEN === '1' || !fs.existsSync(SNAPSHOT_PATH);
-    if (update) {
-        fs.mkdirSync(path.dirname(SNAPSHOT_PATH), { recursive: true });
-        fs.writeFileSync(SNAPSHOT_PATH, JSON.stringify(report, null, 2));
-        result.snapshotUpdated = true;
-        result.snapshot = report;
-        return result;
-    }
-
-    const snapshot = JSON.parse(fs.readFileSync(SNAPSHOT_PATH, 'utf8'));
-    result.snapshot = snapshot;
-    result.snapshotMatches = JSON.stringify(snapshot) === JSON.stringify(report);
-    result.current = report;
-
-    return result;
+function ensureReportArtifacts(report) {
+    assert.ok(report, 'expected generated parity report');
+    assert.ok(fs.existsSync(REPORT_PATH), 'expected aggregate parity report output');
+    assert.ok(fs.existsSync(OPCODE_REPORT_PATH), 'expected opcode report output');
+    assert.ok(fs.existsSync(UNKNOWN_REPORT_PATH), 'expected unknown opcode report output');
+    assert.ok(fs.existsSync(GOLDEN_SNAPSHOT_PATH), 'expected parity golden snapshot');
 }
 
 console.log('parser-parity:');
 
-test('golden parity: script_all comparison produces structured classification report', () => {
-    const result = runGoldenParity();
-    if (result.skipped) {
-        console.log(`  - skipped golden parity (${result.reason})`);
-        return;
+test('corpus parity harness emits structured reports and golden summary', () => {
+    const report = getReport();
+    ensureReportArtifacts(report);
+    assert.ok(report.scriptsTotal > 0, 'expected scripts from script_all');
+    assert.ok(report.occurrencesTotal > 0, 'expected instruction occurrences from script_all');
+    assert.ok(report.observedOpcodes > 0, 'expected observed opcodes from corpus');
+    if (!report.goldenComparison.created) {
+        assert.strictEqual(report.goldenComparison.matched, true, 'golden summary differs from snapshot (run with UPDATE_GOLDEN_PARITY=1 after corpus or parser changes)');
     }
+});
 
-    assert.ok(result.scriptsCompared > 0, 'expected scripts to compare from script_all');
-    assert.ok(fs.existsSync(REPORT_PATH), 'expected parity report output');
+test('failure classifier exposes size and subexpression desync categories', () => {
+    const report = getReport();
+    const failureClasses = report.boundaryReport.failureClasses;
+    assert.ok(Object.prototype.hasOwnProperty.call(failureClasses, FailureType.SIZE_MISMATCH), 'expected SIZE_MISMATCH classification');
+    assert.ok(Object.prototype.hasOwnProperty.call(failureClasses, FailureType.SUBEXPR_DESYNC), 'expected SUBEXPR_DESYNC classification');
+});
 
-    if (result.snapshotUpdated) {
-        console.log('  - golden snapshot created/updated');
-        return;
-    }
+for (const opcodeEntry of getReport().opcodeReport.opcodeEntries) {
+    test(`opcode coverage ${opcodeEntry.opcodeHex}: observed in corpus and wired to sample bytes`, () => {
+        assert.ok(opcodeEntry.occurrences > 0, `expected occurrences for ${opcodeEntry.opcodeHex}`);
+        assert.ok(opcodeEntry.samples.length > 0 || opcodeEntry.eligibleSamples === 0, `expected at least one real sample for ${opcodeEntry.opcodeHex}`);
+        assert.strictEqual(opcodeEntry.registryPresent, true, `missing registry entry for ${opcodeEntry.opcodeHex}`);
+        strictAssert(opcodeEntry.failingSamples === 0, `strict parity failed for ${opcodeEntry.opcodeHex} with ${opcodeEntry.failingSamples} failing samples`);
+    });
+}
 
-    assert.strictEqual(result.snapshotMatches, true, 'parity report differs from snapshot (run with UPDATE_GOLDEN=1 after parser changes)');
+for (const scriptReport of getReport().boundaryReport.scriptReports) {
+    test(`script parity ${scriptReport.startAddressHex}: full script coverage and boundary accounting`, () => {
+        assert.ok(scriptReport.expectedInstructionCount > 0, `expected instructions for ${scriptReport.startAddressHex}`);
+        assert.ok(scriptReport.boundaryChecks > 0, `expected boundary checks for ${scriptReport.startAddressHex}`);
+        strictAssert(scriptReport.mismatchCount === 0, `strict parity mismatches in ${scriptReport.startAddressHex}: ${scriptReport.mismatchCount}`);
+        strictAssert(scriptReport.boundaryFailureCount === 0, `strict boundary failures in ${scriptReport.startAddressHex}: ${scriptReport.boundaryFailureCount}`);
+    });
+}
+
+test('unknown-opcode desync report captures current 0x64/0x90/0xFF investigations', () => {
+    const report = getReport();
+    const interesting = report.unknownOpcodeInvestigations.filter((item) => item.unknownOpcode === '0x64' || item.unknownOpcode === '0x90' || item.unknownOpcode === '0xFF');
+    assert.ok(Array.isArray(report.unknownOpcodeInvestigations), 'expected unknown-opcode investigations array');
+    strictAssert(interesting.length === 0, `strict mode found ${interesting.length} unknown-opcode desync investigations`);
 });
 
 runOpcodeInteractionTests(test);
