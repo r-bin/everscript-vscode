@@ -1,3 +1,11 @@
+## [0.5.5] — 2026-05-30
+
+### Changed
+- **Evidence-driven parser iteration (test-first parity loop)**.
+  - Adjust opcode `0xA7` sleep summary in `debugger/emulator/room-script-model.js` from raw ticks to dump-aligned tick count (`ticks - 1`)
+  - Regenerate parity golden snapshot in `tests/parity/snapshots/parser-parity-golden.snapshot.json` after validated parser behavior change
+  - Re-ran mandatory loop commands (`npm test`, `npm run test:parity`, `npm run test:parity:strict`) and recorded deltas from the generated parity report
+
 ## [0.5.4] — 2026-05-30
 
 ### Changed

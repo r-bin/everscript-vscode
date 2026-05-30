@@ -1665,12 +1665,12 @@
   "boundaryChecks": 136893,
   "failureClasses": {
     "OPCODE_MISSING": 0,
-    "OPERAND_MISMATCH": 1208,
+    "OPERAND_MISMATCH": 1203,
     "SIZE_MISMATCH": 4113,
     "PC_DESYNC": 170,
     "BRANCH_TARGET_ERROR": 0,
     "SUBEXPR_DESYNC": 72,
-    "STATE_DRIFT": 7326,
+    "STATE_DRIFT": 7327,
     "UNKNOWN_OPCODE": 21
   },
   "unknownOpcodeInvestigations": [

@@ -472,7 +472,7 @@ function decodeInstructionAt(romBuf, scriptSnes, offset) {
         case 0xa7: {
             size = 2;
             const ticks = readU8(romBuf, addressRom + 1);
-            summary = `SLEEP ${ticks} TICKS`;
+            summary = `SLEEP ${ticks - 1} TICKS`;
             break;
         }
         case 0xa8: {
