@@ -1,0 +1,10 @@
+{
+  "name": "script_parser",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test --experimental-strip-types tests/reach-end.test.ts",
+    "dump": "node --experimental-strip-types dump-scripts.ts",
+    "generate:truth": "node --experimental-strip-types src/generate-truth-tests.ts"
+  }
+}

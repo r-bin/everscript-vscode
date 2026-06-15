@@ -332,6 +332,17 @@ function decodeFallbackOpcode(romBuf, addressSnes, addressRom, opcode, readU8, r
             summary = `SKIP ${jmp} (to 0x${hex(target, 6)})`;
             break;
         }
+        case 0x08:
+        case 0x09: {
+            let next = addressRom + 1;
+            const cond = consumeSub(next); next = cond.nextRom;
+            const jump = readS16(romBuf, next); next += 2;
+            size = next - addressRom;
+            const target = addressSnes + size + jump;
+            const condText = cond.text ? cond.text : 'cond';
+            summary = `IF ${opcode === 0x09 ? 'NOT ' : ''}(${condText}) SKIP ${jump} (to 0x${hex(target, 6)})`;
+            break;
+        }
         case 0x07:
             size = 4;
             summary = `CALL 0x${hex(readU24(romBuf, addressRom + 1), 6)}`;
@@ -407,6 +418,7 @@ function decodeFallbackOpcode(romBuf, addressSnes, addressRom, opcode, readU8, r
         case 0xac:
         case 0xa2:
         case 0xa9:
+        case 0x43:
         case 0xaf:
         case 0xb0:
         case 0xb1:
@@ -423,6 +435,7 @@ function decodeFallbackOpcode(romBuf, addressSnes, addressRom, opcode, readU8, r
                 0x5c: 2, 0x5d: 1,
                 0x6c: 1, 0x6e: 1,
                 0x6d: 3, 0x6f: 3, 0x70: 2, 0x71: 2, 0x73: 3, 0x9d: 3,
+                0x43: 3,
                 0x74: 1, 0x75: 1, 0x76: 1, 0x77: 1,
                 0x78: 2, 0x79: 2, 0x7a: 2,
                 0x7c: 1, 0x7d: 1, 0x7e: 4,

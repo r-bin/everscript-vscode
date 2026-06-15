@@ -1,3 +1,11 @@
+## [0.5.6] — 2026-06-15
+
+### Changed
+- **Standalone script parser experiment and parity baseline refresh**.
+  - Add a dedicated `script_parser/` workspace with a minimal ROM script model, script-all truth extraction, generated opcode corpus artifacts, and focused reach-end tests for phase-1 traversal validation
+  - Add `.github/agents/script-parser-generator.agent.md` for isolated parser iteration workflow
+  - Extend fallback opcode handling in `debugger/emulator/opcode-registry.js` and refresh `tests/parity/snapshots/parser-parity-golden.snapshot.json` after parser behavior updates
+
 ## [0.5.5] — 2026-05-30
 
 ### Changed
