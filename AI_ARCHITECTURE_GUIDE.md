@@ -146,6 +146,7 @@ Counter-measures:
 - [ ] `npm run typecheck` passes
 - [ ] `npm run check:circular` passes (no circular deps)
 - [ ] `npm run check:dead` passes (no unused files)
+- [ ] `npm run check:deps` passes (no domain boundary violations — warn level)
 - [ ] Tests pass: `npm test`
 - [ ] Version bumped in `package.json`
 
@@ -189,7 +190,20 @@ Counter-measures:
 
 ---
 
-## 9. Validation Tooling
+## 10. Architecture Specification Documents
+
+The following documents define the long-term target architecture:
+
+| Document | Purpose |
+|---|---|
+| `docs/architecture/target-architecture.md` | Authoritative architecture spec: goals, domains, ownership, dependencies |
+| `docs/architecture/domain-overview.md` | Navigation guide — which domains to load for each task |
+| `docs/architecture/migration-plan.md` | Phased migration roadmap (current state → target) |
+| `docs/architecture/dependency-rules.md` | Dependency-cruiser rule motivations and graduation schedule |
+| `.depcruise.js` | Machine-readable dependency rules (run via `npm run check:deps`) |
+
+**Read `docs/architecture/domain-overview.md` first** when starting any session.
+It tells you which files to load and which to ignore.
 
 | Script | Tool | Purpose | Blocks release? |
 |---|---|---|---|

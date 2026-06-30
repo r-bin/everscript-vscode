@@ -1,3 +1,15 @@
+## [0.6.0] — 2025-06-30
+
+### Changed
+- **Refactored entire codebase into `src/` domain structure**.
+  - All production code moved from root-level directories (`code_highlighter/`, `memory_radar/`, `debugger/`) into domain-owned subdirectories under `src/`
+  - Domain map: `src/language/` (grammar, theme, hover, completion), `src/memory/` (radar tab), `src/rooms/` (map browser), `src/scaling/` (alchemy/scaling tab), `src/docs/` (docs/RNG tab), `src/routes/` (route planner), `src/maps/` (ROM models), `src/emulator/` (SNES core + panel), `src/debugger/` (DAP adapter), `src/shared/` (cross-domain utils)
+  - Emulator git submodules moved from `debugger/core/` to `src/emulator/core/`; legacy path remapping added to `panel.js`
+  - Test directories reorganized: `tests/memory/` and `tests/debugger/` replace old `memory_radar/tests/` and `debugger/tests/`; exploration scripts moved to `sandbox/`
+  - Added `dependency-cruiser` (`npm run check:deps`) and full validation suite (`npm run typecheck`, `npm run check:circular`, `npm run check:dead`)
+  - Zero architecture violations confirmed: dep-cruiser, madge, knip, tsc all clean
+  - Added domain `README.md` files for all `src/` subdirectories and `sandbox/`
+
 ## [0.5.6] — 2026-06-15
 
 ### Changed

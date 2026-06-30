@@ -1,7 +1,7 @@
 [submodule "core/snes9x2005-wasm"]
-	path = debugger/core/snes9x2005-wasm
+	path = src/emulator/core/snes9x2005-wasm
 	url = https://github.com/r-bin/snes9x2005-wasm.git
 	branch = feature/vscode-debugger-integration
 [submodule "core/snes9x2005-wasm-vanilla"]
-	path = debugger/core/snes9x2005-wasm-vanilla
+	path = src/emulator/core/snes9x2005-wasm-vanilla
 	url = https://github.com/lrusso/snes9x2005-wasm.git

@@ -1,20 +1,24 @@
 {
   "entry": [
-    "extension.js",
-    "settings-model.js",
-    "debugger/adapter.js",
-    "debugger/mock-runtime.js"
+    "src/extension.js",
+    "src/shared/config.js",
+    "src/debugger/adapter.js",
+    "src/debugger/mock-runtime.js"
   ],
   "project": [
-    "code_highlighter/**/*.js",
-    "memory_radar/**/*.js",
-    "debugger/**/*.js"
+    "src/**/*.js"
   ],
   "ignore": [
-    "memory_radar/webview/assets/**",
-    "debugger/core/**",
-    "debugger/tests/**",
-    "memory_radar/tests/**"
+    "src/memory/webview/**",
+    "src/scaling/webview/**",
+    "src/rooms/webview/**",
+    "src/docs/**",
+    "src/routes/**",
+    "src/shared/shared.js",
+    "src/emulator/core/**",
+    "src/emulator/webview/**",
+    "tests/**",
+    "sandbox/**"
   ],
   "ignoreDependencies": [
     "playwright"

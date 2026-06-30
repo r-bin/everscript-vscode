@@ -12,7 +12,7 @@ fi
 
 case "$VARIANT" in
   vanilla)
-    CORE_DIR="$ROOT_DIR/debugger/core/snes9x2005-wasm-vanilla"
+    CORE_DIR="$ROOT_DIR/src/emulator/core/snes9x2005-wasm-vanilla"
     cd "$CORE_DIR"
     exec emcc -O3 \
       -s WASM=1 \
@@ -22,7 +22,7 @@ case "$VARIANT" in
       -o snes9x_2005.js
     ;;
   custom)
-    CORE_DIR="$ROOT_DIR/debugger/core/snes9x2005-wasm"
+    CORE_DIR="$ROOT_DIR/src/emulator/core/snes9x2005-wasm"
     cd "$CORE_DIR"
     exec sh build.sh
     ;;
@@ -34,7 +34,7 @@ esac
       -o snes9x_2005.js
     ;;
   custom)
-    CORE_DIR="$ROOT_DIR/debugger/core/snes9x2005-wasm"
+    CORE_DIR="$ROOT_DIR/src/emulator/core/snes9x2005-wasm"
     cd "$CORE_DIR"
     sh ./build.sh
     ;;

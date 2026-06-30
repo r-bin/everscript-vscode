@@ -12,18 +12,22 @@
         "resolveJsonModule": true
     },
     "include": [
-        "extension.js",
-        "settings-model.js",
-        "code_highlighter/**/*.js",
-        "memory_radar/**/*.js",
-        "debugger/**/*.js"
+        "src/**/*.js",
+        "src/**/*.ts"
     ],
     "exclude": [
         "node_modules",
         "tmp",
         "dependencies",
         "tools",
-        "emulator",
-        "memory_radar/webview/assets"
+        "src/emulator/core",
+        "src/memory/webview",
+        "src/scaling/webview",
+        "src/rooms/webview",
+        "src/docs",
+        "src/routes",
+        "src/emulator/webview",
+        "sandbox",
+        "tests"
     ]
 }
