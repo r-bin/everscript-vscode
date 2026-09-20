@@ -35,6 +35,7 @@ function renderRoomDetail(room){
   if(typeof room.startLine==='number'&&room.startLine>=0)html+='<a class="ll" data-line="'+room.startLine+'" href="#">go to code</a>';
   html+='<div class="rd-filters">';
   if(hasCoordData||room.imageUri)html+='<button class="rdf on" data-hide="hide-map" title="Toggle map area">map</button>';
+  if(roomVanillaIdNum(room)!=null)html+='<button class="rdf on" data-hide="hide-tiles" title="Toggle decoded ROM collision overlay">tiles</button>';
   if(rh)html+='<button class="rdf on" data-hide="hide-header" title="Toggle ROM header section">header</button>';
   if(enterTrig||stepOn.length||bTrigger.length)html+='<button class="rdf on" data-hide="hide-scripts" title="Toggle decoded script tables">scripts</button>';
   if(stepOn.length||bTrigger.length)html+='<button class="rdf on" data-hide="hide-trigger" title="Toggle trigger overlays and tables">trigger</button>';
@@ -101,4 +102,59 @@ function renderRoomDetail(room){
     setupHoverHighlights(svg,panel);
     setupClickHandlers(svg,panel,state);
   }
+
+  // ── ROM tile overlay ───────────────────────────────────────────────────────
+  // Ask the host to decode this room's collision grid. Async and on demand:
+  // the tree JSON carries no tile data, so nothing renders until this returns.
+  requestRoomTileOverlay(room,svgResult);
+}
+
+// Name of the room whose tile overlay was last requested. Responses for any
+// other room are stale (the user moved on) and get dropped.
+var _pendingTileRoom=null;
+
+/** Vanilla room id as a number, or null when the room is not ROM-backed. */
+function roomVanillaIdNum(room){
+  var raw=room&&room.vanillaId;
+  if(raw==null)return null;
+  var n=(typeof raw==='number')?raw:parseInt(String(raw).replace(/^0x/i,''),16);
+  return (isFinite(n)&&n>=0&&n<=0x7e)?n:null;
+}
+
+/** Post a tile-overlay request to the extension host for the rendered room. */
+function requestRoomTileOverlay(room,svgResult){
+  var id=roomVanillaIdNum(room);
+  if(id==null||typeof vs==='undefined'||!vs||!svgResult)return;
+  _pendingTileRoom=room.name;
+  vs.postMessage({command:'requestRoomTiles',roomId:id,mapName:room.name,
+                  originX:svgResult.x1||0,originY:svgResult.y1||0});
+}
+
+/**
+ * Inject decoded collision paths beneath the entity overlays.
+ * One <path> per visual class — a big room is thousands of tiles, so per-tile
+ * elements would make pan/zoom crawl.
+ */
+function applyRoomTileOverlay(msg){
+  if(!msg||msg.mapName!==_pendingTileRoom)return;
+  var svg=document.getElementById('rg-svg');
+  if(!svg)return;
+
+  var old=document.getElementById('rg-tiles');
+  if(old&&old.parentNode)old.parentNode.removeChild(old);
+  if(msg.error||!msg.overlay||!msg.overlay.layers)return;
+
+  var NS='http://www.w3.org/2000/svg';
+  var g=document.createElementNS(NS,'g');
+  g.setAttribute('id','rg-tiles');
+  g.setAttribute('class','rg-tiles');
+  msg.overlay.layers.forEach(function(layer){
+    var p=document.createElementNS(NS,'path');
+    p.setAttribute('d',layer.d);
+    p.setAttribute('fill',layer.fill);
+    p.setAttribute('class','rg-tile-'+layer.key);
+    g.appendChild(p);
+  });
+  // First child = painted underneath the grid lines and entity boxes.
+  svg.insertBefore(g,svg.firstChild);
 }

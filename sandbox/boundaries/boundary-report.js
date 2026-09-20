@@ -1,6 +1,6 @@
 'use strict';
 
-const { FailureType, classifySummaryMismatch } = require('../parity/failure-types');
+const { FailureType, classifySummaryMismatch } = require('../../tests/parity/failure-types');
 const { normalizeSummary } = require('../corpus/script-all-corpus');
 
 function toHex(address) {

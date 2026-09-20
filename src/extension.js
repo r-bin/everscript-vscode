@@ -126,7 +126,7 @@ function getExtConfig() {
 const roomData = require('./rooms');
 const { VANILLA_ROOMS, getMapEnum, readLuaWatchers, readScriptAllTriggers, buildVanillaRoomContent, buildVanillaRoomDetails, invalidateRoomDataCaches } = roomData;
 const roomTree = require('./rooms');
-const { findRoomImage, parseRoomContent, collectRoomsFromDir, buildRoomTree, renderVanillaTree, renderRoomsTree, buildRoomsJson, setRoomImageUris } = roomTree;
+const { findRoomImage, parseRoomContent, collectRoomsFromDir, buildRoomTree, renderVanillaTree, renderRoomsTree, buildRoomsJson, setRoomImageUris, buildRoomTileOverlay } = roomTree;
 
 const romReaders = require('./shared/rom-readers');
 const { readPngDimensions, readRomTriggerOffsets, readRomMapHeader, readRomCharacters, readRomHitLookup, detectScaleEnemies } = romReaders;
@@ -499,6 +499,29 @@ function activate(context) {
                     _radarPinned = false;
                 } else if (msg.command === 'tabChange') {
                     _radarActiveTab = msg.tab || 'radar';
+                } else if (msg.command === 'requestRoomTiles') {
+                    // Decode a vanilla room's collision grid on demand and send back
+                    // SVG path data for the Rooms tab map view. On demand rather than
+                    // in the tree JSON: 127 rooms of tile data would bloat every render.
+                    const roomId = Number(msg.roomId);
+                    const reply = { command: 'roomTiles', mapName: msg.mapName, roomId };
+                    if (!Number.isInteger(roomId) || roomId < 0 || roomId > 0x7e) {
+                        _radarPanel.webview.postMessage({ ...reply, error: 'invalid room id' });
+                        return;
+                    }
+                    try {
+                        const _cfg = getExtConfig();
+                        const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
+                        if (!romBuf) {
+                            _radarPanel.webview.postMessage({ ...reply, error: 'ROM not found — set everscript.romPath' });
+                            return;
+                        }
+                        const overlay = buildRoomTileOverlay(romBuf, roomId, Number(msg.originX) || 0, Number(msg.originY) || 0);
+                        _radarPanel.webview.postMessage({ ...reply, overlay });
+                    } catch (err) {
+                        _radarPanel.webview.postMessage({ ...reply, error: String(err && err.message || err) });
+                    }
                 } else if (msg.command === 'globalScope') {
                     _radarPinned = true; // freeze auto-updates while in global view
                     if (_radarDoc) {

@@ -18,7 +18,8 @@
     "src/emulator/core/**",
     "src/emulator/webview/**",
     "tests/**",
-    "sandbox/**"
+    "sandbox/**",
+    "src/maps/dist/**"
   ],
   "ignoreDependencies": [
     "playwright"

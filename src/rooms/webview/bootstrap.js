@@ -12,8 +12,15 @@ var _applyByteScriptFocus=function(){};
 
 if(typeof window!=='undefined'&&window.addEventListener){
   window.addEventListener('message',function(evt){
-    if(!evt.data||evt.data.command!=='byteScriptFocus')return;
-    _currentByteScriptFocus=normScriptAddr(evt.data.address);
-    _applyByteScriptFocus();
+    var data=evt.data;
+    if(!data)return;
+    if(data.command==='byteScriptFocus'){
+      _currentByteScriptFocus=normScriptAddr(data.address);
+      _applyByteScriptFocus();
+    }else if(data.command==='roomTiles'){
+      // Decoded collision grid for the room currently shown in the Rooms tab.
+      if(typeof applyRoomTileOverlay==='function')applyRoomTileOverlay(data);
+      if(data.error)console.warn('[RoomsRender] roomTiles:',data.error);
+    }
   });
 }

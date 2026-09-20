@@ -414,7 +414,13 @@ test('rooms detail script rows support live byte-script focus highlighting', () 
     const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTreeData, 'rooms', 'focus_room');
     const js = extractScript(html);
     assert.ok(js.includes('data-script-addr='), 'Expected script rows to carry data-script-addr for focus highlighting');
-    assert.ok(js.includes("command!=='byteScriptFocus'"), 'Expected Rooms webview to listen for byteScriptFocus messages');
+    // Assert the behaviour (a message listener that handles byteScriptFocus)
+    // rather than one exact source spelling, so the handler can grow more
+    // message types without this test going red.
+    assert.ok(js.includes("addEventListener('message'"), 'Expected Rooms webview to register a message listener');
+    assert.ok(js.includes("'byteScriptFocus'"), 'Expected Rooms webview to handle byteScriptFocus messages');
+    assert.ok(js.includes("'roomTiles'"), 'Expected Rooms webview to handle roomTiles overlay responses');
+    assert.ok(js.includes("command:'requestRoomTiles'"), 'Expected Rooms webview to request ROM tile overlays');
 });
 
 test('rooms detail surfaces explicit room errors and avoids the stale vanilla placeholder text', () => {

@@ -1,20 +1,32 @@
 tmp/
+sandbox/**
+call-log/**
+script_parser/**
+experimental/**
 
 **/.git/**
 **/.vscode/**
 **/node_modules/**
 
-# source maps (optional)
+# source maps
 **/*.map
 
 # test files
+tests/**
 **/test/**
 **/__tests__/**
+**/tests/**/*.test.evs
 
-# raw sources (ONLY if you build to /out or /dist)
-src/**
+# NOTE: src/** must NOT be ignored — `main` is ./src/extension.js and the
+# extension is loaded from source (there is no whole-repo build step).
+# Only the TypeScript *sources* under src/maps are excluded; their compiled
+# output in src/maps/dist/ is what ships and is required at runtime.
+src/maps/*.ts
+src/emulator/core/**/.git/**
 
-# build artifacts you do NOT want included accidentally
+# build artifacts that should not be included
+out/**
 scripts/**
 build-cache/**
 *.log
+*.vsix

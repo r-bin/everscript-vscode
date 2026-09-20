@@ -5,6 +5,39 @@
 const path = require('path');
 const fs   = require('fs');
 
+/** Candidate ROM paths, in resolution order. */
+function romCandidates(wsRoot, romPathOverride = '') {
+    const out = [];
+    if (romPathOverride) out.push(romPathOverride);
+    if (wsRoot) {
+        out.push(path.join(wsRoot, 'Secret of Evermore (U) [!].smc'));
+        out.push(path.join(wsRoot, 'Secret of Evermore.smc'));
+    }
+    return out;
+}
+
+// The ROM is ~3MB and the individual readers each re-read it. Cache the buffer
+// keyed by path + mtime so repeated decodes (e.g. room tile overlays) are cheap.
+let _romCache = null;
+
+/** Load the workspace ROM as a Buffer, cached by path and mtime. Null if absent. */
+function loadRomBuffer(wsRoot, romPathOverride = '') {
+    try {
+        for (const p of romCandidates(wsRoot, romPathOverride)) {
+            if (!p || !fs.existsSync(p)) continue;
+            const mtime = fs.statSync(p).mtimeMs;
+            if (_romCache && _romCache.path === p && _romCache.mtime === mtime) return _romCache.buf;
+            const buf = fs.readFileSync(p);
+            _romCache = { path: p, mtime, buf };
+            return buf;
+        }
+    } catch (_e) { /* fall through to null */ }
+    return null;
+}
+
+/** Drop the cached ROM buffer (call when the ROM path setting changes). */
+function invalidateRomBuffer() { _romCache = null; }
+
 /** Read width/height from a PNG file header. Returns {w,h} or null. */
 function readPngDimensions(filePath) {
     try {
@@ -271,4 +304,6 @@ module.exports = {
     readRomCharacters,
     readRomHitLookup,
     detectScaleEnemies,
+    loadRomBuffer,
+    invalidateRomBuffer,
 };

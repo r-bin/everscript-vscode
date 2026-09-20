@@ -1,3 +1,25 @@
+## [0.7.0] — 2026-09-20
+
+### Added
+- **Rooms tab renders real ROM map data**. Selecting a vanilla room now paints its decoded collision grid behind the trigger/entity overlays, so the map area shows the actual room shape instead of an empty grid.
+  - `src/rooms/rendering/tile-overlay.js` turns a decoded collision grid into SVG path data, one `<path>` per visual class (solid / partial / drift) with horizontal run-merging — a 128×70 room is 8960 tiles, so per-tile DOM nodes are not viable. Worst-case payload 24KB, average 3.9KB.
+  - Decoding is on demand per selected room over a new `requestRoomTiles` / `roomTiles` webview message pair; the rooms tree JSON carries no tile data.
+  - New `tiles` filter button toggles the overlay.
+- **`src/maps/` is now a TypeScript port of the verified `everscript` room decoder** (`tools/dump_room.py`, `collision.py`, `cuttable_grass.py`): LZSS and 2D Markov decompressors, deterministic blob-layout walking, collision bitfield accessors, cuttable-grass swap table.
+  - `npm run check:maps` diffs the port against the Python implementation; it matches on **all 127 rooms**, including `0x38` (which the old decoder failed on) and `0x15` (uncompressed Block 3). `MAP_PARITY_ALL=1` runs the full sweep, and it is wired into `npm test`.
+  - `npm run build:maps` compiles via a dedicated `tsconfig.maps.json` (the root config is typecheck-only), emitting to the gitignored `src/maps/dist/`; `src/maps/index.js` is a stable CommonJS facade.
+  - Grids are numbers throughout, dropping upstream's parallel hex-string form and the mixing footgun it warns about.
+- **Map format documentation imported** from `everscript` into `docs/map-format/`, plus the upstream `rom-map-data` skill.
+- `loadRomBuffer()` / `invalidateRomBuffer()` in `src/shared/rom-readers.js` — caches the ~3MB ROM by path+mtime instead of re-reading it per call.
+
+### Fixed
+- **`npm test` was red on `develop` since v0.6.0.** That refactor moved `tests/corpus/` and `tests/opcodes/` into `sandbox/` without updating the requires, breaking `parser-parity.test.js` (260 assertions) through a four-deep require chain. All stale paths repointed, including one still aimed at the pre-v0.6.0 `debugger/emulator/` location.
+- **`.vscodeignore` excluded `src/**` while `main` is `./src/extension.js`**, so `npm run package` produced a `.vsix` that could not load. Only the TypeScript sources under `src/maps` are excluded now; the compiled output ships.
+
+### Changed
+- Shelved the superseded sentinel-scan map decoders (`map-pipeline-model.js`, `map-blob-evidence-model.js`) and their tests into `sandbox/maps/`, out of the extension's runtime path.
+- `map-format` skill rewritten around the port: porting with validation is fine, independent re-derivation is what failed twice. `render_map.py` (tile graphics) and `encode_room.py` (write path) remain unported.
+
 ## [0.6.0] — 2025-06-30
 
 ### Changed

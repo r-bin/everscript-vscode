@@ -7,6 +7,7 @@ const { parseRoomContent }                                          = require('.
 const { findRoomImage, collectRoomsFromDir, buildRoomTree,
         setRoomImageUris }                                          = require('./parsing/file-scanner');
 const { renderVanillaTree, renderRoomsTree, buildRoomsJson }        = require('./rendering/tree-renderer');
+const { buildRoomTileOverlay }                                      = require('./rendering/tile-overlay');
 const { VANILLA_ROOMS, buildVanillaRoomContent,
         buildVanillaRoomDetails, invalidateVanillaDataCaches }      = require('./data/vanilla-data');
 const { getMapEnum, readLuaWatchers, readScriptAllTriggers,
@@ -46,6 +47,7 @@ module.exports = {
     renderVanillaTree: renderVanillaTreeCompat,
     renderRoomsTree,
     buildRoomsJson,
+    buildRoomTileOverlay,
 
     // Data
     VANILLA_ROOMS,

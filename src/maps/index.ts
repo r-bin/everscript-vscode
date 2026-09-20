@@ -1,0 +1,40 @@
+// Ownership: public API for the ROM map/room decoder.
+//
+// A TypeScript port of the verified decoder in the sibling `everscript` repo
+// (tools/dump_room.py, collision.py, cuttable_grass.py). Pure: it takes a ROM
+// buffer and returns data — no filesystem, no VS Code API, no rendering.
+//
+// Validate changes with `npm run check:maps`, which diffs this decoder's output
+// against the Python implementation across every room.
+
+export { decodeRoom } from './room';
+export type {
+    RoomData,
+    RoomHeader,
+    RoomObject,
+    ObjectState,
+    TriggerRecord,
+} from './room';
+
+export { MAX_ROOMS, MAP_LIST_ADDR, snesToRom, read16, read24, roomBlobOffset, hex } from './rom';
+export { parseBlobLayout } from './blob-layout';
+export type { BlobLayout, PayloadBlock } from './blob-layout';
+
+export {
+    tilePlane,
+    passability,
+    driftVector,
+    entityGate,
+    isPlaneTransparent,
+    isAlwaysWalkable,
+    holdsPlane,
+    planesUsed,
+    planeTransitionTiles,
+    geometryMask,
+    SOLID,
+    OPEN,
+} from './collision';
+export type { Entity, DriftVector } from './collision';
+
+export { parseGrassSwapSection, findCuttableGrassTiles, checkTableInvariants } from './cuttable-grass';
+export type { GrassSwapTable, GrassRecord } from './cuttable-grass';

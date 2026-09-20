@@ -1,6 +1,8 @@
 'use strict';
 
-const { FailureType, classifySummaryMismatch } = require('../parity/failure-types');
+// failure-types stayed in tests/ when this script moved to sandbox/ in the
+// v0.6.0 refactor, so the require reaches back across that split.
+const { FailureType, classifySummaryMismatch } = require('../../tests/parity/failure-types');
 const { normalizeSummary } = require('../corpus/script-all-corpus');
 
 function toHex(address, width = 6) {

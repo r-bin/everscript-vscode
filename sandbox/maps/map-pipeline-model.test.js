@@ -38,7 +38,7 @@ const {
     readU8,
     readU16LE,
     readU24LE,
-} = require('../../src/maps/map-pipeline-model');
+} = require('./map-pipeline-model');
 
 let passed = 0, failed = 0;
 
@@ -283,7 +283,7 @@ console.log(`\n-- ROM-dependent tests (ROM ${ROM_AVAILABLE ? 'found' : 'NOT foun
 
 if (ROM_AVAILABLE) {
     test('map 0x33 blob ROM address = 0x2DB50C', () => {
-        const { getMapBlobRom } = require('../../src/maps/map-pipeline-model');
+        const { getMapBlobRom } = require('./map-pipeline-model');
         assert.strictEqual(getMapBlobRom(rom, 0x33), 0x2DB50C);
     });
     test('map 0x33 header: mapW=20 mapH=16', () => {

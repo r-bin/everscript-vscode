@@ -8,3 +8,6 @@ tools/__pycache__/
 # Added external data handling
 traces/
 *.trace
+
+# TypeScript build output (src/maps/*.ts -> dist); rebuilt by `npm run build:maps`
+src/maps/dist/

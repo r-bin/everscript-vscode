@@ -1,0 +1,17 @@
+{
+    "//": "Emit config for the src/maps/ TypeScript port. The root tsconfig.json is typecheck-only (noEmit); this one actually builds src/maps/*.ts to CommonJS so src/maps/index.js can require it at runtime. Run via `npm run build:maps`.",
+    "compilerOptions": {
+        "target": "ES2020",
+        "module": "commonjs",
+        "lib": ["ES2020"],
+        "strict": true,
+        "declaration": true,
+        "sourceMap": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "outDir": "src/maps/dist",
+        "rootDir": "src/maps"
+    },
+    "include": ["src/maps/**/*.ts"],
+    "exclude": ["src/maps/dist"]
+}

@@ -3,11 +3,13 @@
 const fs = require('fs');
 const path = require('path');
 
-const { loadCorpus } = require('../corpus/script-all-corpus');
-const { buildOpcodeReport } = require('../opcodes/opcode-report');
-const { buildBoundaryReport } = require('../boundaries/boundary-report');
+// The corpus loader moved to sandbox/ in the v0.6.0 src/ refactor; this require
+// was not updated with it, which left `npm test` red.
+const { loadCorpus } = require('../../sandbox/corpus/script-all-corpus');
+const { buildOpcodeReport } = require('../../sandbox/opcodes/opcode-report');
+const { buildBoundaryReport } = require('../../sandbox/boundaries/boundary-report');
 const { FailureType } = require('./failure-types');
-const { decodeInstructionAt, decodeRoomScript, OPCODE_REGISTRY } = require('../../debugger/emulator/room-script-model');
+const { decodeInstructionAt, decodeRoomScript, OPCODE_REGISTRY } = require('../../src/emulator/room-script-model');
 
 const TMP_DIR = path.resolve(__dirname, '../../tmp');
 const SNAPSHOT_DIR = path.resolve(__dirname, './snapshots');
