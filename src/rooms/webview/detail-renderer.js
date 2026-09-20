@@ -129,6 +129,9 @@ function renderRoomDetail(room){
   // Ask the host to decode and render this room. Async and on demand: the tree
   // JSON carries no tile data, so nothing appears until this returns.
   // Object state picks are per room — index 4 is a different object elsewhere.
+  // The old room's overlay is about to be thrown away with the panel HTML;
+  // stop its timer first so it is not left ticking against detached nodes.
+  stopRoomAnimation();
   resetObjectStatesFor(room.name);
   setupLayerButtons(panel,room);
   requestRoomTileOverlay(room,svgResult);
@@ -172,7 +175,9 @@ function roomVanillaIdNum(room){
 var _overlayCache={};
 var _OVERLAY_CACHE_MAX=16;
 
-function overlayCacheKey(id,layer,ov,states){return id+':'+layer+':'+(ov||'')+':'+(states||'');}
+function overlayCacheKey(id,layer,ov,states){
+  return id+':'+layer+':'+(ov||'')+':'+(states||'')+':'+(_animateOn?'a':'');
+}
 
 function cacheOverlay(id,layer,ov,states,overlay){
   var keys=Object.keys(_overlayCache);
@@ -206,7 +211,7 @@ function requestRoomTileOverlay(room,svgResult,layer){
 
   setTileBusy(true);
   vs.postMessage({command:'requestRoomTiles',roomId:id,mapName:room.name,
-                  layer:which,overlay:_currentOverlay,objectStates:states,
+                  layer:which,overlay:_currentOverlay,objectStates:states,animate:_animateOn,
                   originX:_pendingTileOrigin.x,originY:_pendingTileOrigin.y});
 }
 
@@ -247,6 +252,10 @@ function applyRoomTileOverlay(msg){
       img.classList.add('rg-rom-render');
     }
   }
+
+  // Section 2 tile animation, if the host sent frames for it.
+  if(_animateOn)applyRoomAnimation(ov.animation);
+  else stopRoomAnimation();
 
   // The collision / drift / gate / grass / object visualization is baked into
   // the rendered image by the host (a port of render_map.py, verified

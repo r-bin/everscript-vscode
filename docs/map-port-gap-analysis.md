@@ -1,6 +1,6 @@
 # Map Data Port & Rooms Tab UX — Gap Analysis
 
-> Status: living document, last updated 2026-09-20 (post v0.14.0).
+> Status: living document, last updated 2026-09-20 (post v0.15.0).
 > See the `map-format` skill before acting on anything here — it has the
 > "port, don't re-derive" ground rules this document assumes.
 
@@ -12,6 +12,24 @@
 | No export of the current view | `export png` in the top bar saves exactly what is on screen — same layer, same overlay flags — via a save dialog. Distinct from `everscript.exportRoomMaps`, which asks for scope and layer up front. |
 | No pinch zoom | Trackpad pinch (a `ctrlKey` wheel event in Chromium) zooms anchored on the cursor, so the map does not walk away from what you were looking at. The zoom buttons now anchor on the viewport centre for the same reason. |
 | Objects listed as a flat table | Replaced by a collapsible browser. Superseded in v0.13.0 by a linked list — see below. |
+
+## Closed in v0.15.0
+
+| Gap | Outcome |
+|---|---|
+| 1.4 / 2.6 animated tiles static | **Closed.** Section 2's channel table was documented all along in `map_tile_graphics_decompression.md` §7 — this document's claim that it was undocumented was simply wrong. The doc had two errors (see below); with those fixed the Rooms tab plays the animation. |
+| Animation "blocked on upstream research" | Retracted. Only 1.5 (CGRAM palette cycling) is still unresearched, and no evidence has turned up that the map renderer uses it at all. |
+
+**Two corrections to §7 of the format doc**, both verified ROM-wide: the second
+descriptor byte is the channel's **frame count**, not a timer (1020/1020
+channels), and the `0xFF` terminates the **descriptor table**, not the frame
+stream (95/95 rooms; the first channel offset lands just past it). A frame
+stream has no terminator — channel `i` runs to channel `i+1`'s offset, and a
+tile id with low byte `0xFF` would otherwise truncate it.
+
+Channels have no useful common period, so there is no global frame counter.
+The Rooms tab renders one small transparent overlay per block of animated
+cells per frame and gives each block its own clock.
 
 ## Closed in v0.14.0
 
@@ -115,9 +133,10 @@ Still open, and why:
   of encoder plus its own byte-exact parity harness) and delivers nothing
   user-visible without an editing UI on top, so it wants to be its own piece of
   work rather than a tail end of this one.
-- **1.4 / 1.5 / 2.6 (animation)** — still blocked on upstream research. No
-  `docs/map-format/*.md` documents the animation frame table or whether CGRAM
-  cycling is used at all. Porting cannot start before that exists.
+- **1.4 / 2.6 (animation)** — closed in v0.15.0. The claim that no doc covered
+  the frame table was wrong: `map_tile_graphics_decompression.md` §7 did, with
+  two errors that the ROM settles. **1.5 (CGRAM colour cycling)** is still
+  unresearched, and nothing so far suggests the map renderer uses it.
 - **1.2** — closed in v0.11.0, the opposite way round from what this section
   originally argued. See the v0.11.0 table above.
 - **1.6 verification**, **2.9 (world overview)**, **2.10 (diff view)** — not

@@ -663,7 +663,7 @@ function activate(context) {
                             romBuf, roomId,
                             Number(msg.originX) || 0, Number(msg.originY) || 0,
                             msg.layer, typeof msg.overlay === 'string' ? msg.overlay : undefined,
-                            msg.objectStates);
+                            msg.objectStates, msg.animate === true);
                         _radarPanel.webview.postMessage({ ...reply, overlay });
                     } catch (err) {
                         _radarPanel.webview.postMessage({ ...reply, error: String(err && err.message || err) });

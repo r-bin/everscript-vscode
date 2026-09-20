@@ -225,8 +225,53 @@ function cachedObjectPreviews(rom, roomId, room, selected) {
     return objects.map((o) => ({ ...o, current: Math.min(selected[o.index] || 0, o.states.length - 1) }));
 }
 
+// Animation overlays are expensive to encode and unaffected by the feature
+// flags or object states, so they are cached on the ROM and room alone.
+const ANIM_CACHE = new Map();
+const ANIM_CACHE_MAX = 6;
+
+/** Refuse to ship an animation bigger than this; a patched ROM could be wild. */
+const ANIM_MAX_BYTES = 1.5 * 1024 * 1024;
+const ANIM_MAX_GROUPS = 800;
+
+/**
+ * Per-channel animation overlays for the Rooms tab, or null when the room has
+ * none. Each group is a small transparent PNG covering a block of animated
+ * cells, plus how long to hold each frame.
+ */
+function cachedAnimation(rom, roomId, room) {
+    if (!room.animation.length) return null;
+    const key = romFingerprint(rom) + ':' + roomId;
+    const hit = ANIM_CACHE.get(key);
+    if (hit !== undefined) return hit;
+
+    let out = null;
+    try {
+        const groups = maps.buildAnimationGroups(rom, room);
+        let bytes = 0;
+        const wire = groups.map((g) => ({
+            x: g.x, y: g.y, w: g.w, h: g.h,
+            delays: g.delaysMs,
+            frames: g.frames.map((f) => {
+                const uri = maps.encodePngDataUri(f);
+                bytes += uri.length;
+                return uri;
+            }),
+        }));
+        out = (bytes > ANIM_MAX_BYTES || wire.length > ANIM_MAX_GROUPS)
+            ? { groups: [], channels: room.animation.length, skipped: 'too large to stream' }
+            : { groups: wire, channels: room.animation.length, bytes };
+    } catch (err) {
+        out = { groups: [], channels: room.animation.length, skipped: String(err && err.message || err) };
+    }
+
+    ANIM_CACHE.set(key, out);
+    if (ANIM_CACHE.size > ANIM_CACHE_MAX) ANIM_CACHE.delete(ANIM_CACHE.keys().next().value);
+    return out;
+}
+
 /** Drop cached renders (call when the ROM changes). */
-function invalidateRoomRenders() { RENDER_CACHE.clear(); PREVIEW_CACHE.clear(); }
+function invalidateRoomRenders() { RENDER_CACHE.clear(); PREVIEW_CACHE.clear(); ANIM_CACHE.clear(); }
 
 /**
  * Decode and render a room for the Rooms tab.
@@ -240,8 +285,9 @@ function invalidateRoomRenders() { RENDER_CACHE.clear(); PREVIEW_CACHE.clear(); 
  *                                 the full view, '' for a bare map.
  * @param {string} [objectStates]  `index:state` pairs joined by commas, e.g.
  *                                 '20:1'. Objects not listed show state 0.
+ * @param {boolean} [animate]      Include the Section 2 animation overlays.
  */
-function buildRoomTileOverlay(rom, roomId, originX, originY, layer, overlay, objectStates) {
+function buildRoomTileOverlay(rom, roomId, originX, originY, layer, overlay, objectStates, animate) {
     const buf = rom instanceof Uint8Array ? rom : new Uint8Array(rom);
     const which = LAYERS.indexOf(layer) >= 0 ? layer : 'composite';
     const ov = overlayOptions(overlay);
@@ -280,6 +326,8 @@ function buildRoomTileOverlay(rom, roomId, originX, originY, layer, overlay, obj
         // exactly the size of the map so it keeps lining up with the SVG layer.
         summary: maps.buildSummary(room, features),
         legend: maps.buildLegend(features),
+        animationChannels: room.animation.length,
+        animation: animate ? cachedAnimation(buf, roomId, room) : null,
     };
 }
 

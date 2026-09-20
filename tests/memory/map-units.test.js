@@ -586,5 +586,63 @@ test('applyObjectStates clamps past the last state and ignores state 0', () => {
     assert.strictEqual(clamped.layer1MetatileIds[0][0], 0x140, 'clamped to the one delta available');
 });
 
+// ── animation.ts ───────────────────────────────────────────────────────────
+
+/**
+ * Build a Section 2 blob: the descriptor table, its 0xFF terminator, then the
+ * shared frame data. Channel i owns the frames from its offset to the next
+ * channel's — the doc's "0xFF-terminated frame stream" is really this one
+ * 0xFF ending the table.
+ */
+function section2(channels) {
+    const table = [];
+    const frames = [];
+    const first = channels.length * 4 + 1;
+    for (const ch of channels) {
+        table.push(ch.delay, ch.frames.length, (first + frames.length) & 0xff, (first + frames.length) >> 8);
+        for (const f of ch.frames) frames.push(f.delay, f.tileId & 0xff, f.tileId >> 8);
+    }
+    const body = table.concat([0xff], frames);
+    const rom = new Uint8Array(512);
+    rom.set(body, 16);
+    return { rom, ref: { table: 16, count: channels.length, len: body.length } };
+}
+
+test('parseAnimationChannels splits the shared frame data per channel', () => {
+    // Room 0x71's real shape: a 4-frame torch and a 2-frame companion.
+    const { rom, ref } = section2([
+        { delay: 0, frames: [{ delay: 10, tileId: 0x740 }, { delay: 10, tileId: 0x741 },
+                             { delay: 10, tileId: 0x742 }, { delay: 10, tileId: 0x743 }] },
+        { delay: 0, frames: [{ delay: 8, tileId: 0x76b }, { delay: 8, tileId: 0x76c }] },
+    ]);
+    const ch = maps.parseAnimationChannels(rom, ref);
+    assert.strictEqual(ch.length, 2);
+    assert.deepStrictEqual(ch[0].frames.map((f) => f.tileId), [0x740, 0x741, 0x742, 0x743]);
+    assert.deepStrictEqual(ch[1].frames.map((f) => f.tileId), [0x76b, 0x76c]);
+    assert.strictEqual(ch[0].frames[0].delay, 10);
+    assert.strictEqual(ch[1].frames[0].delay, 8);
+});
+
+test('parseAnimationChannels stops at the section length, not at a 0xFF byte', () => {
+    // A tile id whose low byte is 0xFF must not be mistaken for a terminator.
+    const { rom, ref } = section2([
+        { delay: 0, frames: [{ delay: 5, tileId: 0x01ff }, { delay: 5, tileId: 0x0200 }] },
+    ]);
+    const ch = maps.parseAnimationChannels(rom, ref);
+    assert.deepStrictEqual(ch[0].frames.map((f) => f.tileId), [0x01ff, 0x0200]);
+});
+
+test('parseAnimationChannels tolerates a frame list running past the section', () => {
+    const { rom, ref } = section2([{ delay: 0, frames: [{ delay: 5, tileId: 0x10 }] }]);
+    ref.len = 6; // truncate: the declared length no longer covers the frame
+    const ch = maps.parseAnimationChannels(rom, ref);
+    assert.strictEqual(ch.length, 1);
+    assert.strictEqual(ch[0].frames.length, 0, 'frames outside the section are dropped');
+});
+
+test('parseAnimationChannels returns nothing for a room without Section 2', () => {
+    assert.deepStrictEqual(maps.parseAnimationChannels(new Uint8Array(64), { table: 0, count: 0, len: 0 }), []);
+});
+
 console.log('\n' + (passed + failed) + ' run: ' + passed + ' passed, ' + failed + ' failed');
 if (failed) process.exit(1);

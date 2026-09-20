@@ -8,6 +8,9 @@
 
 // Which render the map image is showing: composite | layer1 | layer2.
 var _currentLayer='composite';
+// Play the Section 2 tile animation. On by default — a room with running
+// water or a lit torch reads wrong frozen, and the frames are cheap.
+var _animateOn=true;
 
 /**
  * Feature toggles, in top-bar order. The flag characters are the contract with
@@ -55,6 +58,7 @@ function buildRomViewButtonsHtml(){
        '" title="'+escH(b.title)+'">'+escH(b.label)+'</button>';
   });
   h+='<span class="rdf-sep"></span>';
+  h+='<button class="rdf'+(_animateOn?' on':'')+'" id="rg-animate" title="Play the room\u2019s Section 2 tile animation \u2014 water, lava, torches, fans. The frames sit on top of the rendered map, so a collision marking on an animated tile is hidden while this is on.">animate</button>';
   h+='<button class="rdf on" id="rg-export" title="Save exactly what is on screen \u2014 this layer, these overlays, these object states \u2014 as a PNG">export png</button>';
   return h+'<span class="rdf-sep"></span>';
 }
@@ -120,6 +124,14 @@ function setupLayerButtons(panel,room){
       syncOverlayButtons();
       rerender();
     });
+  });
+
+  var animBtn=panel.querySelector('#rg-animate');
+  if(animBtn)animBtn.addEventListener('click',function(){
+    _animateOn=!_animateOn;
+    animBtn.classList.toggle('on',_animateOn);
+    if(!_animateOn)stopRoomAnimation();
+    rerender();
   });
 
   var allBtn=panel.querySelector('.rdf-ov-all');

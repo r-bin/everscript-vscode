@@ -352,12 +352,37 @@ $$\text{Section 2 ROM Offset} = \text{Block 1 Offset} + \text{Block 1 Payload Le
    - `sec2_count` (1 byte): Number of active animation channels.
    - `sec2_len` (2 bytes, little-endian): Total byte length of Section 2.
 2. **Channel Descriptor Table (`sec2_count * 4` bytes)**:
-   - Each entry is 4 bytes: `[delay: 1B] [timer: 1B] [offset: 2B (little-endian)]`.
-   - `offset` is relative to the start of Section 2 and points to the channel's animation frame sequence.
+   - Each entry is 4 bytes: `[delay: 1B] [frame_count: 1B] [offset: 2B (little-endian)]`.
+   - `offset` is relative to the **start of the descriptor table** (Section 2 + 3).
+   - The table is followed by a single `0xFF` byte; the first channel's offset
+     points just past it.
 3. **Animation Frame Sequences**:
    - Sequence of `[delay: 1B] [tile_id: 2B (little-endian)]`.
-   - Terminated by byte `0xFF`.
-   - **Frame 0**: The first `tile_id` in the stream provides the default visual state decompressed from `$EE0000`.
+   - Channel `i` owns the frames from its own offset up to the **next channel's
+     offset**; the last channel runs to `sec2_len`. Each channel loops its own
+     span independently — there is no shared cycle and no `0xFF` terminator
+     inside the frame data.
+   - **Frame 0**: The first `tile_id` in the channel's span provides the default
+     visual state decompressed from `$EE0000`.
+
+> **Corrections (verified against all 127 vanilla rooms).** Earlier revisions of
+> this section called the second descriptor byte a `timer` and described the
+> frame stream as `0xFF`-terminated. Neither holds:
+>
+> | Invariant | Result |
+> |---|---|
+> | First channel offset lands just past the table's `0xFF` | 95 / 95 rooms |
+> | Offsets strictly ascending, spans divisible by 3 | 1020 / 1020 channels |
+> | Byte span equals `frame_count * 3` | 1020 / 1020 channels |
+> | Last channel ends exactly at `sec2_len` | 95 / 95 rooms |
+>
+> The second byte is the channel's **frame count**, and the lone `0xFF`
+> terminates the *descriptor table*, not the frame data. A tile id whose low
+> byte is `0xFF` would otherwise cut a stream short.
+>
+> Channel periods have no useful common multiple, so the channels cannot be
+> driven off one global frame counter — each keeps its own clock.
+> Implemented in `everscript-vscode/src/maps/animation.ts`.
 
 ### 7.2 Palette Extension & VRAM Indexing
 

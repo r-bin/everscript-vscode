@@ -1,3 +1,27 @@
+## [0.15.0] — 2026-09-20
+
+### Added
+- **Animated tiles now animate.** Water, lava, torches, fans and light beams play in the Rooms tab, on the `animate` toggle (on by default). 95 of the 127 vanilla rooms have animation, 1020 channels between them.
+
+### The format
+Section 2's channel table *was* documented — `map_tile_graphics_decompression.md` §7 — so the earlier note in the gap analysis that animation was "blocked on upstream research" was wrong. The doc had two errors, both settled by the ROM:
+
+| Claim | Reality | Evidence |
+|---|---|---|
+| Second descriptor byte is a `timer` | It is the channel's **frame count** | byte span equals `frame_count * 3` in 1020/1020 channels |
+| Frame streams are `0xFF`-terminated | The `0xFF` ends the **descriptor table** | first channel's offset lands just past it in 95/95 rooms; last channel ends exactly at `sec2_len` |
+
+A frame stream has no terminator: channel `i` runs to channel `i+1`'s offset. That matters, because a tile id whose low byte is `0xFF` would otherwise cut a stream short — which is what made 686 of 1020 channels look malformed on the first read.
+
+Channel periods have no useful common multiple, so there is no global frame counter and the room cannot be rendered as a handful of whole-room frames. Instead each block of animated cells gets its own small transparent overlay and its own clock, so a torch can flicker at 6Hz while water rolls at 3Hz. Frame 0 of every overlay is pixel-identical to the base render, so the overlay lands seamlessly. Playback is one `requestAnimationFrame` loop for the whole room rather than a timer per block, and it stops when you switch rooms.
+
+Typical cost is 43KB and 28 overlay blocks per room (median); the four heaviest rooms reach ~600KB, and anything beyond 1.5MB is skipped rather than streamed.
+
+### Notes
+- **Export is unchanged**: it writes the static base render, which is frame 0 of every channel — the default appearance, as asked.
+- The overlays sit on top of the rendered map, so a baked collision marking on an animated tile is hidden while animation is on. Toggle `animate` off to see it.
+- Only **1.5 (CGRAM colour cycling)** remains unresearched of the animation items, and nothing so far suggests the map renderer uses it.
+
 ## [0.14.0] — 2026-09-20
 
 **The object stamp format is solved**, from the Mesen trace of looting the chest on map 0x71. State previews and room customisation both work as a result.

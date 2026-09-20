@@ -13,6 +13,7 @@ import { decompressLzss, copyRaw } from './lzss';
 import { decompressMarkovGrid } from './markov';
 import { parseBlobLayout, BlobLayout, PayloadBlock } from './blob-layout';
 import { planesUsed } from './collision';
+import { parseAnimationChannels, AnimationChannel } from './animation';
 import {
     parseGrassSwapSection,
     findCuttableGrassTiles,
@@ -75,7 +76,10 @@ export interface RoomData {
     objects: RoomObject[];
     tileFamilies: number[];
     tilePalette: number[];
+    /** Frame 0 of each Section 2 channel, appended to the tile palette. */
     animatedTiles: number[];
+    /** Section 2 animation channels, in descriptor order. */
+    animation: AnimationChannel[];
     payloadBlocks: { block1: PayloadBlock; block2: PayloadBlock; block3: PayloadBlock };
     metatileCount: number;
     baseMetatile: number;
@@ -331,6 +335,11 @@ export function decodeRoom(rom: Uint8Array, roomId: number): RoomData {
         ),
         tilePalette,
         animatedTiles: readAnimatedTiles(rom, layout),
+        animation: parseAnimationChannels(rom, {
+            table: layout.section2 + 3,
+            count: layout.section2Count,
+            len: layout.section2Len,
+        }),
         payloadBlocks: { block1: layout.block1, block2: b2, block3: b3 },
         metatileCount,
         baseMetatile,
