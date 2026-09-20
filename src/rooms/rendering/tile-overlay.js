@@ -197,6 +197,10 @@ function cachedRender(rom, roomId, layer, ov, stateSpec) {
     if (ov.any) maps.drawCollisionOverlay(image, room, ov.opts);
     const entry = {
         room,
+        // Kept so the animation can re-apply the same overlay to its frames.
+        // Measured lazily: it costs two more overlay passes and only matters
+        // when animation is on.
+        overlayOpts: ov.any ? ov.opts : null,
         features: maps.classifyRoom(room),
         imageUri: maps.encodePngDataUri(image),
         width: image.width,
@@ -225,8 +229,12 @@ function cachedObjectPreviews(rom, roomId, room, selected) {
     return objects.map((o) => ({ ...o, current: Math.min(selected[o.index] || 0, o.states.length - 1) }));
 }
 
-// Animation overlays are expensive to encode and unaffected by the feature
-// flags or object states, so they are cached on the ROM and room alone.
+// Animation overlays depend on everything the render does: the layer picks
+// which words are on screen, the feature flags decide which pixels are
+// overlay art to leave alone, and an object state rewrites the tilemap words
+// that say which channel drives a cell. Keying this on the room alone meant
+// switching the firepit in 0x25 to burning replayed its unlit channels (6-9)
+// over the lit tiles (0-3) — so it shares the render's key.
 const ANIM_CACHE = new Map();
 const ANIM_CACHE_MAX = 6;
 
@@ -239,15 +247,25 @@ const ANIM_MAX_GROUPS = 800;
  * none. Each group is a small transparent PNG covering a block of animated
  * cells, plus how long to hold each frame.
  */
-function cachedAnimation(rom, roomId, room) {
+function cachedAnimation(rom, key, layer, entry) {
+    const room = entry.room;
     if (!room.animation.length) return null;
-    const key = romFingerprint(rom) + ':' + roomId;
     const hit = ANIM_CACHE.get(key);
     if (hit !== undefined) return hit;
 
     let out = null;
     try {
-        const groups = maps.buildAnimationGroups(rom, room);
+        // An animated tile can also carry a contour, an object box or a
+        // label. Measuring what the overlay does to each pixel lets those
+        // marks be re-applied to every frame, so the tile animates *and*
+        // stays annotated — freezing the marked pixels instead would have
+        // stopped most of a room dead, since the wall tint alone covers 72%
+        // of the pixels in 0x25.
+        const overlay = entry.overlayOpts
+            ? maps.buildOverlayTransfer(entry.width, entry.height,
+                (img) => maps.drawCollisionOverlay(img, room, entry.overlayOpts))
+            : null;
+        const groups = maps.buildAnimationGroups(rom, room, { layer, overlay });
         let bytes = 0;
         const wire = groups.map((g) => ({
             x: g.x, y: g.y, w: g.w, h: g.h,
@@ -292,7 +310,9 @@ function buildRoomTileOverlay(rom, roomId, originX, originY, layer, overlay, obj
     const which = LAYERS.indexOf(layer) >= 0 ? layer : 'composite';
     const ov = overlayOptions(overlay);
     const spec = typeof objectStates === 'string' ? objectStates : '';
-    const { room, features, imageUri, width, height } = cachedRender(buf, roomId, which, ov, spec);
+    const renderKey = romFingerprint(buf) + ':' + roomId + ':' + which + ':' + ov.flags + ':' + spec;
+    const entry = cachedRender(buf, roomId, which, ov, spec);
+    const { room, features, imageUri, width, height } = entry;
     const collision = countCollision(room.collisionWords);
 
     return {
@@ -327,7 +347,7 @@ function buildRoomTileOverlay(rom, roomId, originX, originY, layer, overlay, obj
         summary: maps.buildSummary(room, features),
         legend: maps.buildLegend(features),
         animationChannels: room.animation.length,
-        animation: animate ? cachedAnimation(buf, roomId, room) : null,
+        animation: animate ? cachedAnimation(buf, renderKey, which, entry) : null,
     };
 }
 

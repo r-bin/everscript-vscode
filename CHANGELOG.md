@@ -1,3 +1,17 @@
+## [0.15.1] — 2026-09-20
+
+### Fixed
+- **Animation erased the overlay markings it ran over.** Animation frames were bare composites, so an animated tile that also carried a contour, an object box, a trigger box or a label had that art wiped the moment a frame landed on it — visible on room 0x25's firepit, where the object box came apart. Frames now re-apply the overlay.
+
+  Freezing the marked pixels would have been the obvious fix and the wrong one: the 20% wall tint alone covers **72%** of the pixels in 0x25, so most of the room would have stopped moving. Instead the overlay is *measured*. Every pass is an alpha blend or an opaque write, so per channel the result is affine in the base colour; probing the pass with a flat black and a flat white image pins both unknowns exactly, and the same mark can then be re-applied to a pixel the pass never saw. Opaque writes fall out as frozen and untouched pixels as passthrough, with no threshold to guess at. Animated pixels now match a real annotated render to within 1 LSB of rounding.
+
+- **Switching an object state left the old animation playing over it.** Which channel drives a cell comes from the tilemap word in it, and an object state rewrites that word: room 0x25's firepit runs on channels **6–9** unlit and **0–3** burning. The animation cache was keyed on the ROM and room alone, so after toggling object 17 to burning the unlit frames kept painting back over the lit tiles — the state change looked like it did nothing. Animation now shares the render's cache key, so it rebuilds whenever the layer, the feature flags or an object state change.
+
+- **Animation ignored the layer selection.** Frames were always full composites, so on an L1-only or L2-only view they blended the other layer back in, and cells animated by the hidden layer animated anyway. Both now follow the selected view.
+
+### Added
+- `docs/map-format/map_animated_tiles.md` — the Section 2 format in full: layout, the two corrections to the earlier write-up, a worked example from room 0x71, the ROM-wide validation table, the palette-extension rule that links a tilemap word to a channel, and the three things that bite when playing the animation outside the game (no common period, object states moving a cell between channels, and overlay collision).
+
 ## [0.15.0] — 2026-09-20
 
 ### Added

@@ -644,5 +644,39 @@ test('parseAnimationChannels returns nothing for a room without Section 2', () =
     assert.deepStrictEqual(maps.parseAnimationChannels(new Uint8Array(64), { table: 0, count: 0, len: 0 }), []);
 });
 
+test('buildOverlayTransfer measures an opaque mark as frozen', () => {
+    // An opaque write ignores what was underneath, so probing over black and
+    // over white gives the same answer — and re-applying it to any animation
+    // frame reproduces the mark exactly.
+    const t = maps.buildOverlayTransfer(2, 1, (img) => {
+        img.data[0] = 10; img.data[1] = 20; img.data[2] = 30; img.data[3] = 255;
+    });
+    assert.deepStrictEqual(Array.from(t.atZero.slice(0, 3)), [10, 20, 30]);
+    assert.deepStrictEqual(Array.from(t.atFull.slice(0, 3)), [10, 20, 30]);
+    // The untouched second pixel is a pure passthrough: black stays black,
+    // white stays white, so any frame colour survives unchanged.
+    assert.deepStrictEqual(Array.from(t.atZero.slice(3, 6)), [0, 0, 0]);
+    assert.deepStrictEqual(Array.from(t.atFull.slice(3, 6)), [255, 255, 255]);
+});
+
+test('buildOverlayTransfer pins a blend so it can be re-applied to any base', () => {
+    // A 25% red wash, the shape every collision tint takes.
+    const t = maps.buildOverlayTransfer(1, 1, (img) => {
+        for (let ch = 0; ch < 3; ch++) {
+            const c = ch === 0 ? 200 : 0;
+            img.data[ch] = Math.trunc(c * 0.25 + img.data[ch] * 0.75);
+        }
+    });
+    // out = base*(atFull-atZero)/255 + atZero must reproduce the wash for a
+    // base the probe never saw.
+    const apply = (base, ch) =>
+        Math.round(base * (t.atFull[ch] - t.atZero[ch]) / 255 + t.atZero[ch]);
+    for (const base of [0, 64, 128, 200, 255]) {
+        assert.ok(Math.abs(apply(base, 0) - (200 * 0.25 + base * 0.75)) <= 1,
+            'red channel at base ' + base);
+        assert.ok(Math.abs(apply(base, 1) - base * 0.75) <= 1, 'green channel at base ' + base);
+    }
+});
+
 console.log('\n' + (passed + failed) + ' run: ' + passed + ' passed, ' + failed + ' failed');
 if (failed) process.exit(1);

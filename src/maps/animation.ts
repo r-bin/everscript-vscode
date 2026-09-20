@@ -1,8 +1,8 @@
 // Ownership: Section 2 animated tiles — the channel/frame table, and the
 // per-cell overlays the Rooms tab cycles to make a room move. Pure.
 //
-// Format (docs/map-format/map_tile_graphics_decompression.md §7, corrected
-// here against the ROM):
+// Format: docs/map-format/map_animated_tiles.md (which supersedes §7 of
+// map_tile_graphics_decompression.md, corrected against the ROM):
 //
 //   [count: 1][len: 2]                       len excludes this 3-byte header
 //   count x [delay: 1][frameCount: 1][offset: 2]
@@ -21,6 +21,20 @@
 // Channels run independently — their periods have no common multiple worth
 // speaking of — so there is no global frame counter, and the overlay is built
 // per channel rather than as whole-room frames.
+//
+// Two things the overlay must not do, both learned the hard way on room 0x25:
+//
+//  - It must carry the feature overlay. Animation frames are bare
+//    composites, so an animated cell that also carries a contour, an object
+//    box or a label would have that art wiped the moment a frame landed on
+//    it. `overlayTransfer` re-applies exactly what the overlay pass did to
+//    each pixel, so a torch on a tinted wall both flickers and keeps its
+//    markings.
+//  - It must be rebuilt when the grid changes. Which channel drives a cell
+//    depends on the tilemap word in it, and an object state rewrites that:
+//    the firepit in 0x25 runs on channels 6-9 unlit and 0-3 burning. Groups
+//    cached across a state change replay the old channels over the new
+//    tiles. The caller keys this the same way it keys the render.
 
 import { RoomData } from './room';
 import { read16 } from './rom';
@@ -83,6 +97,71 @@ function paletteSlot(word: number): number {
     return Math.floor(charIdx / 0x20) * 8 + Math.floor((charIdx % 0x20) / 2);
 }
 
+/** Which render the animation has to match; mirrors the Rooms tab's layer pick. */
+export type AnimationLayer = 'composite' | 'layer1' | 'layer2';
+
+export interface AnimationOptions {
+    /** Which layer the map image is showing. Default 'composite'. */
+    layer?: AnimationLayer;
+    /**
+     * What the feature overlay did to each pixel of the full room image.
+     * Re-applied to every animated pixel so the markings survive.
+     */
+    overlay?: OverlayTransfer | null;
+}
+
+/**
+ * What the feature overlay does to each pixel, as a function of what was
+ * underneath it.
+ *
+ * Every overlay pass is either an alpha blend or an opaque write, so per
+ * channel the result is affine in the base colour: `out = base*(1-a) + C*a`.
+ * Probing the pass with an all-black and an all-white base pins both unknowns
+ * exactly — `atZero = C*a` and `atFull = 255*(1-a) + C*a` — so the same mark
+ * can be re-applied to an animated pixel the pass never saw.
+ *
+ * This falls out correctly at both extremes without a special case: an opaque
+ * write gives `atZero == atFull` (frozen, as it should be), and an untouched
+ * pixel gives `atZero = 0, atFull = 255` (a pure passthrough). A threshold on
+ * "how much did this change" would have had to guess where a 20% wall tint
+ * ends and a contour line begins, and would have frozen most of a room.
+ */
+export interface OverlayTransfer {
+    /** RGB the overlay produces over black, 3 bytes per pixel. */
+    atZero: Uint8Array;
+    /** RGB the overlay produces over white, 3 bytes per pixel. */
+    atFull: Uint8Array;
+}
+
+/**
+ * Probe `paint` with a flat black and a flat white image of the given size.
+ *
+ * `paint` must apply the overlay in place, the same way and with the same
+ * options as the visible render, or the animation will carry different
+ * markings from the map under it.
+ */
+export function buildOverlayTransfer(
+    width: number,
+    height: number,
+    paint: (image: PixelBuffer) => void,
+): OverlayTransfer {
+    const n = width * height;
+    const probe = (fill: number): Uint8Array => {
+        const data = new Uint8Array(n * 4);
+        data.fill(fill);
+        for (let i = 3; i < data.length; i += 4) data[i] = 255;
+        paint({ width, height, data });
+        const rgb = new Uint8Array(n * 3);
+        for (let i = 0; i < n; i++) {
+            rgb[i * 3] = data[i * 4];
+            rgb[i * 3 + 1] = data[i * 4 + 1];
+            rgb[i * 3 + 2] = data[i * 4 + 2];
+        }
+        return rgb;
+    };
+    return { atZero: probe(0), atFull: probe(255) };
+}
+
 /** One animated region: the cells it covers, and the frames they cycle through. */
 export interface AnimationGroup {
     /** Bounding box in metatile units. */
@@ -117,21 +196,31 @@ const MAX_STEPS = 24;
  * and left transparent everywhere else, so it drops straight on top of the
  * base render.
  */
-export function buildAnimationGroups(rom: Uint8Array, room: RoomData): AnimationGroup[] {
+export function buildAnimationGroups(
+    rom: Uint8Array,
+    room: RoomData,
+    opts: AnimationOptions = {},
+): AnimationGroup[] {
     const channels = room.animation;
     if (!channels.length) return [];
+    const layer: AnimationLayer = opts.layer || 'composite';
+    const overlay = opts.overlay || null;
     const nPal = room.tilePalette.length;
     const wTiles = room.header.widthTiles;
     const hTiles = room.header.heightTiles;
+    const stride = wTiles * 16;
 
-    // 1. Find animated cells and which channels drive each.
+    // 1. Find animated cells and which channels drive each. Only the words the
+    //    chosen layer actually draws count: on an L1-only view, an animated
+    //    terrain tile is not on screen and must not be animated over.
     const byKey = new Map<string, { chans: number[]; cells: CellRef[] }>();
     for (let y = 0; y < hTiles; y++) {
         for (let x = 0; x < wTiles; x++) {
             const w1 = room.layer1VramWords[y][x];
             const w2 = room.layer2VramWords[y][x];
+            const words = layer === 'layer1' ? [w1] : layer === 'layer2' ? [w2] : [w1, w2];
             const chans: number[] = [];
-            for (const w of [w1, w2]) {
+            for (const w of words) {
                 const c = paletteSlot(w) - nPal;
                 if (c >= 0 && c < channels.length && channels[c].frames.length > 1 && chans.indexOf(c) < 0) {
                     chans.push(c);
@@ -187,11 +276,35 @@ export function buildAnimationGroups(rom: Uint8Array, room: RoomData): Animation
                 for (const cell of block) {
                     const ck = s + ':' + cell.w1 + ':' + cell.w2;
                     let px = cellCache.get(ck);
-                    if (!px) { px = renderCell(rom, staged, cell.w1, cell.w2); cellCache.set(ck, px); }
+                    if (!px) { px = renderCell(rom, staged, cell.w1, cell.w2, layer); cellCache.set(ck, px); }
                     const ox = (cell.x - x1) * 16;
                     const oy = (cell.y - y1) * 16;
                     for (let py = 0; py < 16; py++) {
-                        buf.set(px.data.subarray(py * 64, py * 64 + 64), ((oy + py) * bw * 16 + ox) * 4);
+                        const dst = ((oy + py) * bw * 16 + ox) * 4;
+                        if (!overlay) {
+                            buf.set(px.data.subarray(py * 64, py * 64 + 64), dst);
+                            continue;
+                        }
+                        // Put the overlay's own marks back on top of this
+                        // frame, so the tile animates and stays annotated.
+                        const row = (cell.y * 16 + py) * stride + cell.x * 16;
+                        for (let sx = 0; sx < 16; sx++) {
+                            const from = py * 64 + sx * 4;
+                            const to = dst + sx * 4;
+                            const t = (row + sx) * 3;
+                            for (let ch = 0; ch < 3; ch++) {
+                                const lo = overlay.atZero[t + ch];
+                                const hi = overlay.atFull[t + ch];
+                                buf[to + ch] = Math.min(255, Math.max(0,
+                                    Math.round(px.data[from + ch] * (hi - lo) / 255 + lo)));
+                            }
+                            // An overlay mark is opaque; elsewhere the frame's
+                            // own alpha decides, so empty tiles stay clear.
+                            const marked = overlay.atZero[t] !== 0 || overlay.atZero[t + 1] !== 0 ||
+                                overlay.atZero[t + 2] !== 0 || overlay.atFull[t] !== 255 ||
+                                overlay.atFull[t + 1] !== 255 || overlay.atFull[t + 2] !== 255;
+                            buf[to + 3] = marked ? 255 : px.data[from + 3];
+                        }
                     }
                 }
                 frames.push({ width: bw * 16, height: bh * 16, data: buf });
@@ -226,19 +339,25 @@ function blockCells(cells: CellRef[]): CellRef[][] {
 }
 
 /**
- * Composite one 16x16 metatile.
+ * Render one 16x16 metatile the same way the chosen layer view renders it.
  *
  * Built as a 1x1 room so the shared renderer handles it — compositing is
  * per-cell (priority bits and colour math never read a neighbour), so a cell
- * rendered alone is identical to the same cell in the full room.
+ * rendered alone is identical to the same cell in the full room. The layer
+ * branch mirrors the Rooms tab's own, or an L1-only view would get frames
+ * with the terrain composited back in.
  */
-function renderCell(rom: Uint8Array, room: RoomData, w1: number, w2: number): PixelBuffer {
+function renderCell(
+    rom: Uint8Array, room: RoomData, w1: number, w2: number, layer: AnimationLayer,
+): PixelBuffer {
     const mini: RoomData = {
         ...room,
         header: { ...room.header, widthTiles: 1, heightTiles: 1, widthPixels: 16, heightPixels: 16 },
         layer1VramWords: [[w1]],
         layer2VramWords: [[w2]],
     };
+    if (layer === 'layer1') return renderVramLayer(rom, mini, mini.layer1VramWords);
+    if (layer === 'layer2') return renderVramLayer(rom, mini, mini.layer2VramWords);
     return compositeLayers(mini, renderVramLayer(rom, mini, mini.layer1VramWords),
         renderVramLayer(rom, mini, mini.layer2VramWords), { backdrop: [0, 0, 0, 0] });
 }

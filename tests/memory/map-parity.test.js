@@ -15,6 +15,7 @@ const cp = require('child_process');
 const {
     decodeRoom, MAX_ROOMS, renderRoomComposite, encodePng, drawCollisionOverlay,
     parseObjectStamp, applyObjectStates, objectStateCount,
+    drawCollisionOverlay: paintOverlay, buildAnimationGroups, buildOverlayTransfer,
 } = require('../../src/maps');
 
 const EVERSCRIPT_REPO = process.env.EVERSCRIPT_REPO ||
@@ -106,6 +107,7 @@ function main() {
     checkRenderParity(rom, rooms);
     checkOverlayParity(rom, rooms);
     checkObjectStamps(rom);
+    checkAnimation(rom);
 
     if (failures) {
         console.error(`\nmap-parity: ${failures} mismatch(es)`);
@@ -164,6 +166,67 @@ function checkRenderParity(rom, rooms) {
             console.log(`  ${id} render ${ts.width}x${ts.height} pixel-identical`);
         }
     }
+}
+
+/**
+ * The animation overlay has to agree with the map underneath it.
+ *
+ * Two regressions this pins, both found on room 0x25's firepit:
+ *
+ *  - Which channel drives a cell comes from the tilemap word in it, and an
+ *    object state rewrites that word. The firepit runs on channels 6-9 unlit
+ *    and 0-3 burning, so animation cached across a state change replayed the
+ *    unlit frames over the lit tiles.
+ *  - An animated cell can also carry a contour, an object box or a label.
+ *    Frames are bare composites, so without re-applying the overlay they
+ *    wipe that art; with it, every animated pixel has to match what a full
+ *    annotated render would have put there.
+ */
+function checkAnimation(rom) {
+    const room = decodeRoom(rom, 0x25);
+    const nPal = room.tilePalette.length;
+    const slot = (w) => Math.floor((w & 0x3ff) / 0x20) * 8 + Math.floor(((w & 0x3ff) % 0x20) / 2);
+    const chansAt = (r, x, y) => [r.layer1VramWords[y][x], r.layer2VramWords[y][x]]
+        .map((w) => slot(w) - nPal).filter((c) => c >= 0);
+
+    // The state change really does move the cell onto different channels.
+    check('0x25 firepit channels unlit', chansAt(room, 31, 46).concat(chansAt(room, 32, 46)), [6, 7]);
+    const lit = applyObjectStates(rom, room, { 17: 1 });
+    check('0x25 firepit channels burning', chansAt(lit, 31, 46).concat(chansAt(lit, 32, 46)), [0, 1]);
+
+    // Every animated pixel must match a real annotated render of that frame.
+    const w = room.header.widthTiles * 16;
+    const transfer = buildOverlayTransfer(w, room.header.heightTiles * 16,
+        (img) => paintOverlay(img, room, {}));
+    const groups = buildAnimationGroups(rom, room, { layer: 'composite', overlay: transfer });
+    let compared = 0; let worst = 0;
+    for (const g of groups.slice(0, 8)) {
+        for (let s = 0; s < g.frames.length; s++) {
+            const tiles = room.animatedTiles.slice();
+            for (const c of g.channels) {
+                const f = room.animation[c].frames;
+                tiles[c] = f[s % f.length].tileId;
+            }
+            const staged = { ...room, animatedTiles: tiles };
+            const truth = renderRoomComposite(rom, staged);
+            paintOverlay(truth, staged, {});
+            const fr = g.frames[s];
+            for (let py = 0; py < fr.height; py++) {
+                for (let px = 0; px < fr.width; px++) {
+                    const o = (py * fr.width + px) * 4;
+                    if (fr.data[o + 3] === 0) continue;
+                    const t = ((g.y * 16 + py) * w + (g.x * 16 + px)) * 4;
+                    compared += 1;
+                    for (let ch = 0; ch < 3; ch++) {
+                        worst = Math.max(worst, Math.abs(fr.data[o + ch] - truth.data[t + ch]));
+                    }
+                }
+            }
+        }
+    }
+    // 1 is the rounding of re-applying a blend through the measured transfer.
+    check('0x25 animation frames match an annotated render', worst <= 1, true);
+    console.log(`map-parity: animation — ${compared} animated pixels, worst channel delta ${worst}`);
 }
 
 /**

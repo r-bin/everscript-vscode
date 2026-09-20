@@ -18,6 +18,7 @@ copy first, since that's the upstream.
 | `map_objects.md` | Section 3 object structure and states |
 | `map_rendering_pipeline.md` | Turning a decoded room into pixels; Mode 1 compositing |
 | `map_tile_graphics_decompression.md` | CHR tile graphics decompression |
+| `map_animated_tiles.md` | Section 2 animation channels — frame table, palette extension, and what it takes to play them outside the game |
 | `map_palette_extraction.md` | How palettes are built |
 | `map_editor_design.md` | Design decisions for a map editor (repo placement, extend vs. fork) |
 | `map_editor_architecture_and_limitations.md` | Architecture and known limitations |

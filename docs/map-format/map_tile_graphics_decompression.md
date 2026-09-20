@@ -336,6 +336,11 @@ def decode_tile_pixels(tile_bytes: bytes, hflip: bool = False, vflip: bool = Fal
 
 ## 7. Dynamic Animated Tiles (Section 2 Streaming)
 
+> **See [map_animated_tiles.md](map_animated_tiles.md)** for the full treatment:
+> a worked example, the ROM-wide validation, and the parts that only matter
+> when you try to play the animation outside the game. The corrections noted
+> below are repeated there.
+
 In addition to the static tile palette defined in **Block 1**, 95 rooms in Secret of Evermore feature animated background elements (such as water waves, lava bubbles, rotating fans, guard faces, torch flames, light rays, and stone wall mechanisms).
 
 ### 7.1 ROM Payload Structure

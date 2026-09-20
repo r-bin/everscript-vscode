@@ -53,7 +53,10 @@ export { parseObjectStamp, objectStampSignature } from './object-stamps';
 export { applyObjectStates, renderObjectState, objectStateCount, objectBounds, DEFAULT_OBJECT_STATE } from './objects';
 export type { ObjectStateMap } from './objects';
 export type { ObjectStamp } from './object-stamps';
-export { parseAnimationChannels, buildAnimationGroups } from './animation';
-export type { AnimationChannel, AnimationFrame, AnimationGroup, Section2Ref } from './animation';
+export { parseAnimationChannels, buildAnimationGroups, buildOverlayTransfer } from './animation';
+export type {
+    AnimationChannel, AnimationFrame, AnimationGroup, AnimationLayer, AnimationOptions,
+    OverlayTransfer, Section2Ref,
+} from './animation';
 export { drawString3x5, drawLabelInRect, textWidth3x5 } from './font';
 export type { Rgba8, LabelAnchor } from './font';
