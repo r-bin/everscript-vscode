@@ -107,14 +107,19 @@ No two files that both read-and-write the same variable.
 ├── emulator/                 — SNES emulator panel
 │   ├── panel.js
 │   ├── panel-webview.js
-│   ├── room-script-model.js
 │   ├── snes-rom-header-model.js
-│   ├── opcode-registry.js
 │   ├── core/                 — WASM builds (submodules)
 │   ├── webview/              — client-side emulator JS
 │   └── tests/
 │
-├── script_parser/            — Isolated parser domain (own package.json)
+├── script/                   — Everscript bytecode decoder (TypeScript, pure)
+│   ├── expression.ts         — the operand grammar
+│   ├── ops-*.ts              — ported opcode cases
+│   ├── decoder.ts
+│   ├── room-scripts.ts
+│   └── names.json            — generated from upstream data.h
+│
+├── script_parser/            — Isolated parser sandbox (own package.json)
 │
 └── shared/                   — Cross-domain pure infrastructure
     ├── config.js             — (= settings-model.js)

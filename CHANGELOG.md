@@ -1,3 +1,39 @@
+## [0.17.0] — 2026-09-20
+
+Finishes the script decoder rewrite. The Rooms tab now reads the ported decoder, and the old one is gone.
+
+### Why
+0.16.0 got instruction boundaries right but produced no summaries, so the Rooms tab still ran the old decoder — which is what the screenshots showed: a `SET AUDIO volume to 0x82` that was really `0x64` in a 3-byte instruction, then `UNKNOWN OPCODE 0x64` on the next byte, which was not an opcode at all but the tail of the one before. Half the tables ended in a desync dressed up as an unknown instruction.
+
+### Added
+- **Instruction summaries**, ported case-for-case from `list-rooms.cpp`'s 207-case switch into `src/script/ops-flow.ts`, `ops-memory.ts`, `ops-entity.ts` and `ops-system.ts`, plus `cursor.ts` for the read head they share.
+- **`src/script/names.json`** and `tools/generate-script-names.js`, which imports the name tables out of upstream `data.h` + `sniffflags.inc`: 842 flag names, 235 absolute scripts, 128 NPC scripts, 126 rooms, 33 RAM addresses. Committed, so this repo still does not depend on the SoETilesViewer checkout.
+- **`src/script/room-scripts.ts`** — trigger-table discovery (enter / step-on / B-trigger) on top of the new decoder, and `src/rooms/data/room-scripts.js`, the thin shim that finds a ROM on disk.
+- **Summary scoring** in `npm run check:script`: the rendered text is compared string for string against the dump, not just the boundaries. A case that reads the right bytes and describes them wrongly is otherwise invisible.
+- A final `UNKNOWN INSTR` row when a walk stops, so the table says where knowledge ends instead of just stopping.
+- `untraced` on every instruction, and a dimmed row style for it: the reference marks instructions whose length is known but whose meaning is a guess, and that distinction is now carried into the UI instead of being flattened.
+
+### Changed
+- The Rooms tab's enter / step-on / B-trigger tables come from `src/script/` (via `src/rooms/data/room-scripts.js`).
+- Floors in `script-parity.test.js` raised: boundaries ≥ 99.95%, summaries ≥ 99.5%, clean walks ≥ 63%.
+
+### Removed
+- `src/emulator/room-script-model.js` and `opcode-registry.js` (1261 LOC) — replaced.
+- Their harness, which only ever compared the old decoder against a snapshot of itself: `tests/debugger/room-script-model.test.js`, `tests/debugger/parser-parity.test.js`, `tests/parity/`, `tests/debugger/parity/` (963 LOC), plus the `test:parity` and `test:parity:strict` scripts. `npm run check:script` measures the same property against real ground truth.
+- `src/script/opcodes.ts` — the empirical layout table. The ported cases are the single source of truth for sizes now.
+
+### Measured
+| | 0.15.1 | 0.16.0 | 0.17.0 |
+|---|---|---|---|
+| Instructions on a real boundary | 88.5% | 99.986% | **99.994%** |
+| Summary text matching the reference | — | — | **99.766%** (233,943 / 234,492) |
+| Entry points walked to a clean END | — | 53.1% | **63.8%** |
+
+### Known limits
+- Every case in `list-rooms.cpp` is ported, so an opcode that still stops a walk is one **SoEScriptDumper cannot decode either** — it has no known length. Some scripts will never render in full, whatever we do.
+- `SHOW TEXT` reports its pointer but not the string; that needs the text decompressor, so those three opcodes are scored on boundaries only.
+- The ~0.23% of summaries that differ are almost all placeholder names for unnamed scripts. Upstream caches the first placeholder it invents for an id across the whole dump, so its wording depends on decode order; these lookups are stateless.
+
 ## [0.16.0] — 2026-09-20
 
 Starts the script decoder rewrite. Groundwork only: nothing in the UI changes yet, and the old decoder is still the one the Rooms tab uses.

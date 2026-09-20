@@ -8,8 +8,6 @@ Embedded snes9x2005 WASM emulator panel integrated into VS Code.
 |---|---|
 | `panel.js` | WebviewPanel host: loads core WASM, dispatches ROMs, forwards messages |
 | `panel-webview.js` | Webview HTML generator for the emulator panel |
-| `room-script-model.js` | Everscript room script opcode parser and interpreter |
-| `opcode-registry.js` | Opcode table and metadata |
 | `snes-rom-header-model.js` | SNES ROM header parser |
 | `webview/index.html` | Emulator webview entry HTML |
 | `core/snes9x2005-wasm/` | Custom emulator core (git submodule) |

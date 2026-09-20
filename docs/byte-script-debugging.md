@@ -16,7 +16,7 @@
 ## Dependency Check
 
 - Validated model availability: byte-script execution state comes from the custom SNES core bridge in [debugger/emulator/panel.js](/Users/v/Documents/GitHub/everscript-vscode/debugger/emulator/panel.js).
-- Data sources: active emulator session, configured vanilla ROM, decoded room-script model from [debugger/emulator/room-script-model.js](/Users/v/Documents/GitHub/everscript-vscode/debugger/emulator/room-script-model.js), current open `.evs` file for mock-source debugging.
+- Data sources: active emulator session, configured vanilla ROM, decoded room-script model from [src/script/](/Users/v/Documents/GitHub/everscript-vscode/src/script/README.md), current open `.evs` file for mock-source debugging.
 - Missing dependency for true source stepping: a validated mapping from live byte-script `loc` addresses back to `.evs` source lines. That mapping does not exist yet.
 
 ## How To Attach

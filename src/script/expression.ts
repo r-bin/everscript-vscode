@@ -79,6 +79,20 @@ function isInlineValue(b: number): boolean {
     return cmd === 0x30 || cmd === 0x40 || cmd === 0x60;
 }
 
+/**
+ * A one-byte operand that is also the last one: bit 7 ends the expression, so
+ * these encode a whole operand in a single byte. Several instructions branch
+ * on this to skip the expression parser entirely.
+ */
+export function isFinalInlineValue(b: number): boolean {
+    return (b & 0x80) !== 0 && isInlineValue(b);
+}
+
+/** The value an inline-constant byte carries. */
+export function inlineValueOf(b: number): number {
+    return inlineValue(b);
+}
+
 function inlineValue(b: number): number {
     const cmd = b & 0x70;
     if (cmd === 0x30) return b & 0x0f;

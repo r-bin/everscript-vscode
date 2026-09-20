@@ -227,11 +227,11 @@ extension.js
   ├── reads: language-providers.js (registers providers)
   ├── reads: settings-model.js
   └── creates: debugger/emulator/panel.js (on demand)
-           └── reads: debugger/emulator/room-script-model.js
+           └── reads: rooms/data/room-scripts.js → script/ (ported decoder)
 
 debugger/
   ├── adapter.js → mock-runtime.js
-  └── emulator/panel.js → room-script-model.js, snes-rom-header-model.js
+  └── emulator/panel.js → snes-rom-header-model.js
 
 memory_radar/
   ├── radar-utils.js (pure — no upward deps)

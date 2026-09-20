@@ -3,16 +3,25 @@
     "compilerOptions": {
         "target": "ES2020",
         "module": "commonjs",
-        "lib": ["ES2020"],
-        "types": ["node"],
+        "lib": [
+            "ES2020"
+        ],
+        "types": [
+            "node"
+        ],
         "strict": true,
         "declaration": true,
         "sourceMap": true,
         "esModuleInterop": true,
         "skipLibCheck": true,
         "outDir": "src/script/dist",
-        "rootDir": "src/script"
+        "rootDir": "src/script",
+        "resolveJsonModule": true
     },
-    "include": ["src/script/**/*.ts"],
-    "exclude": ["src/script/dist"]
+    "include": [
+        "src/script/**/*.ts"
+    ],
+    "exclude": [
+        "src/script/dist"
+    ]
 }

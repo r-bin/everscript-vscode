@@ -12,7 +12,8 @@ All production code lives here. Each subdirectory is an ownership domain.
 | `maps/` | ROM map models: pipeline, blob evidence, render-script, alchemy |
 | `rooms/` | Rooms map browser: tree building, content parsing, rendering, data watchers |
 | `routes/` | Route planner tab webview assets |
-| `emulator/` | Embedded SNES emulator: panel, webview, room-script-model, opcode-registry |
+| `emulator/` | Embedded SNES emulator: panel, webview, SNES ROM header model |
+| `script/` | Everscript bytecode decoder, ported from SoEScriptDumper (TypeScript, pure) |
 | `debugger/` | VS Code debug adapter (DAP): adapter.js + mock-runtime.js |
 
 Entry point: `extension.js` (orchestration root, registered as `main` in package.json).

@@ -200,7 +200,6 @@ Counter-measures:
 | `extension.js` | 454 | Continue reducing; extract command handlers |
 | `debugger/emulator/panel.js` | 454 | Reduced from 1448; lifecycle + IPC only |
 | `memory_radar/models/map-blob-evidence-model.js` | 701 | Large but single-purpose |
-| `debugger/emulator/room-script-model.js` | 666 | ROM decoding — split candidate |
 | `memory_radar/render-memory-tab.js` | 300 | Single-purpose tab renderer — acceptable |
 
 ### Completed decompositions (v0.5.0–v0.5.1):
@@ -209,11 +208,11 @@ Counter-measures:
 - ✅ `memory_radar/webview/assets/scaling-tab.js` (638 LOC) → `assets/scaling/` (8 files)
 - ✅ `debugger/emulator/panel.js` (1448 LOC) → `panel.js` (454) + `panel-webview.js` (1007 HTML template)
 - ✅ Deleted dead: `assets/scaling-tab.js`, `memory_radar/room-tree-new.js`
+- ✅ v0.17.0: `emulator/room-script-model.js` + `opcode-registry.js` (1261 LOC) replaced by the ported `src/script/` domain
 
 ### Priority migration order:
 1. Continue reducing `extension.js` below 300 LOC (extract radar command handler)
-2. Split `debugger/emulator/room-script-model.js` → ROM decode + model
-3. Migrate `radar-utils.js` → TypeScript (good TS candidate: pure functions)
+2. Migrate `radar-utils.js` → TypeScript (good TS candidate: pure functions)
 
 ---
 

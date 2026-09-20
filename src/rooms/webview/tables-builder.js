@@ -7,11 +7,18 @@ function renderScriptTable(script){
   script.instructions.forEach(function(row){
     var rowClasses=[];
     if(row.terminal)rowClasses.push('rs-term');
-    if(row.summary&&row.summary.indexOf('UNKNOWN')===0)rowClasses.push('rs-err');
+    // unsupported: nothing knows this opcode's length, so the walk ends here.
+    // untraced: the length is known but the description is the reference's
+    // working guess, not something anyone traced. Worth distinguishing — a
+    // reader should not trust the two equally.
+    if(row.unsupported)rowClasses.push('rs-err');
+    else if(row.untraced)rowClasses.push('rs-guess');
     out+='<tr'+(rowClasses.length?' class="'+rowClasses.join(' ')+'"':'')+' data-script-addr="'+normScriptAddr(hexNum(row.addressSnes,6))+'"><td>'+hexNum(row.addressSnes,6)+'</td><td>'+escH(row.opcodeHex||'')+'</td><td>'+escH(String(row.size||0))+'</td><td>'+escH(row.bytesHex||'')+'</td><td>'+(row.summary?escH(row.summary):'&ndash;')+'</td></tr>';
   });
   out+='</tbody></table>';
   if(!script.terminated)out+='<div class="rs-note rs-err">Stopped: '+escH(script.stopReason||'unknown')+'</div>';
+  if(script.instructions.some(function(r){return r.untraced;}))
+    out+='<div class="rs-note rs-note-dim">Dimmed rows are untraced: the length is known, the description is a guess.</div>';
   return out;
 }
 

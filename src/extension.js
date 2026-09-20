@@ -5,7 +5,7 @@ const path   = require('path');
 const fs     = require('fs');
 const { radarLifecycle, radarH, radarEsc, radarExtractEmoji, radarParseName, radarParseNotes, parseEvsNum, parseEnumsFromContent, parseEvsEnumValues } = require('./shared/radar-utils');
 const radarWebview = require('./memory/webview');
-const { readRoomScriptModel } = require('./emulator/room-script-model');
+const { readRoomScriptModel } = require('./rooms/data/room-scripts');
 const { resolveExtConfig, getRepoAutofillUpdates } = require('./shared/config');
 
 

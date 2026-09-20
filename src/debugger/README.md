@@ -16,7 +16,6 @@ debugger/
   mock-runtime.js         — Script execution orchestrator
   emulator/
     panel.js              — Webview panel lifecycle + emulator IPC bridge  ← LARGE (1448 LOC)
-    room-script-model.js  — ROM script decoder (ROM bytes → instruction model)
     snes-rom-header-model.js — SNES ROM header parser
   core/
     snes9x2005-wasm/           — Vanilla SNES core (WASM build, git submodule)
@@ -25,7 +24,6 @@ debugger/
     debugger.test.js
     emulator-health.test.js
     emulator-runtime.test.js
-    room-script-model.test.js
     snes-rom-header-model.test.js
     settings-model.test.js
 ```
@@ -48,8 +46,7 @@ debugger/
 ```
 adapter.js            → mock-runtime.js, vscode
 mock-runtime.js       → (pure logic)
-panel.js              → room-script-model.js, snes-rom-header-model.js, vscode
-room-script-model.js  → fs, path (pure I/O)
+panel.js              → snes-rom-header-model.js, vscode
 snes-rom-header-model.js → fs (pure I/O)
 ```
 
@@ -63,7 +60,7 @@ snes-rom-header-model.js → fs (pure I/O)
 ## Key Invariants
 
 1. `panel.js` sends ROM once from the `ready` handler — no retry protocol.
-2. `room-script-model.js` is pure: ROM path + trigger offsets → decoded instruction arrays.
+2. Script decoding lives in `src/script/` (see its README); nothing here decodes bytecode.
 3. WASM cores live in `debugger/core/` — do not copy them elsewhere.
 4. `adapter.js` speaks raw DAP — no VS Code UI calls directly.
 
@@ -72,7 +69,6 @@ snes-rom-header-model.js → fs (pure I/O)
 ## Entropy Hotspots
 
 - `panel.js` (1448 LOC) — mixes lifecycle, IPC, webview HTML. Split target: `panel-lifecycle.js` + `panel-ipc.js` + `panel-html.js`.
-- `room-script-model.js` (666 LOC) — large but single-purpose. Split only if second responsibility appears.
 
 Clone/update commands:
 

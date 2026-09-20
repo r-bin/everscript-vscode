@@ -5,32 +5,27 @@ A **TypeScript port** of [SoEScriptDumper](https://github.com/black-sliver/SoESc
 `SoETilesViewer` checkout. Pure: takes a ROM buffer, returns data. No VS Code
 API, no filesystem, no rendering.
 
+This is the only script decoder in the repo. It replaced
+`src/emulator/room-script-model.js` + `opcode-registry.js`, which were an
+independent re-derivation.
+
 ## Why a port, and why this one
 
-The repo already had a script decoder (`src/emulator/room-script-model.js`).
-It was an independent re-derivation, and measuring it against the dumper's own
-output showed what that costs:
+Measuring the old decoder against the dumper's own output showed what
+re-deriving costs:
 
-| | |
-|---|---|
-| Instructions landing on a real instruction boundary | 88.5% |
-| Scripts that lost alignment partway through | **2119 of 4000 (53%)** |
+| | old | now |
+|---|---|---|
+| Instructions landing on a real instruction boundary | 88.5% | **99.994%** |
+| Summary text matching the reference, word for word | — | **99.77%** |
+| Entry points walked to a clean END | — | 63.8% |
 
-The failure was concentrated in one missing concept. Operands are not
+The old failure was concentrated in one missing concept. Operands are not
 fixed-width fields — they are little postfix expressions whose length depends
 on their own contents. Treating `IF`'s operand as a fixed size works until a
 script does arithmetic, and then every byte after it decodes as noise, quietly.
 `0x09`, `0x17`, `0x18`, `0x08` and `0x86` alone accounted for 2111 of the 2119
-derailments.
-
-Current state of the port:
-
-| | |
-|---|---|
-| Instructions landing on a real boundary | **99.986%** (192,020 / 192,047) |
-| Entry points walked to a clean END | 53.1% |
-
-The remaining 47% stop early *on purpose* — see "Stopping is a feature".
+scripts that desynced.
 
 ## Files
 
@@ -38,8 +33,14 @@ The remaining 47% stop early *on purpose* — see "Stopping is a feature".
 |---|---|
 | `addressing.ts` | SNES↔ROM mapping, script pointer packing, value formatting |
 | `expression.ts` | The operand grammar — the stack machine described below |
-| `opcodes.ts` | Per-opcode operand layout, and what is known about the rest |
-| `decoder.ts` | `decodeScript()` — walks a script into instructions |
+| `cursor.ts` | The read head one instruction's operands are consumed through |
+| `ops-flow.ts` | END, branches, conditionals, calls, sleep |
+| `ops-memory.ts` | Variable writes, flag bits, script arguments |
+| `ops-entity.ts` | Movement, facing, spawning, damage, teleports |
+| `ops-system.ts` | Text, audio, screen, money, shops, state pokes |
+| `decoder.ts` | `decodeScript()` — walks a script into summarised instructions |
+| `names.ts` / `names.json` | The name tables, generated from `data.h` |
+| `room-scripts.ts` | A room's enter / step-on / B-trigger scripts |
 | `index.ts` / `index.js` | Public API and the CommonJS facade |
 
 ## The operand grammar
@@ -55,27 +56,52 @@ Operators pop from a stack that `0x29` pushes to. The stack is deliberately
 *not* reset between operands: the game's own scripts push a value in one
 operand and pop it in a later one, so it belongs to the decode run.
 
+## Summaries, and why the wording is copied exactly
+
+`npm run check:script` scores the rendered text against the dumper's, string
+for string. That is what keeps the port honest — a case that reads the right
+number of bytes but describes them wrongly is otherwise invisible. So the
+phrasing is upstream's, quirks included, and a few upstream bugs are
+reproduced deliberately with a comment saying so (`0xad` shifts one value
+twice and the other not at all; one sniff-spot case tests the wrong variable).
+Improving the wording means losing the measurement, so don't.
+
+The names come from `data.h` and `sniffflags.inc`, imported by
+`tools/generate-script-names.js` into the committed `names.json` — 842 flag
+names, 235 absolute scripts, 128 NPC scripts, 126 rooms. Re-run it only when
+upstream's tables change:
+
+```
+node tools/generate-script-names.js [path/to/data.h]
+```
+
+The ~0.23% of summaries that differ are almost all placeholder names for
+scripts nobody has named. Upstream *caches* the first placeholder it invents
+for an id across the whole dump, so which wording it settles on depends on
+decode order; these lookups are stateless and describe the call site in hand.
+
 ## Stopping is a feature
 
-`decodeScript` never guesses a length. When it meets an opcode whose layout is
-not verified it stops and says so in `stopReason` / `stoppedAt`, because the
-alternative — inventing a size — produces a confident, wrong, unfalsifiable
-listing. That is exactly how the previous decoder failed.
+`decodeScript` never guesses a length. When it meets an opcode with no case it
+stops and says so in `stopReason` / `stoppedAt`, because the alternative —
+inventing a size — produces a confident, wrong, unfalsifiable listing. That is
+exactly how the previous decoder failed.
 
-Two reasons a walk stops early:
+Every case in `list-rooms.cpp` is ported, so an opcode that stops the walk is
+one **SoEScriptDumper cannot decode either**. It prints those in red as
+`UNKNOWN INSTR`, its own marker for "length unknown, parsing stops here".
+Nobody knows how long they are, so some scripts will never render in full,
+whatever we do. `src/rooms` shows a final row saying where knowledge ends
+rather than a table that silently stops.
 
-- **105 opcodes SoEScriptDumper cannot decode either**, most of `0xC0`..`0xFF`.
-  It prints them in red as `UNKNOWN INSTR`, its own marker for "length unknown,
-  parsing stops here". Nobody knows how long they are.
-- **~20 opcodes whose layout is not pinned down yet** — listed in
-  `opcodes.ts` `UNRESOLVED` with how close the best simple layout got, so the
-  next pass knows exactly which cases to read out of `list-rooms.cpp`.
+Walks also stop on `bad-operand` — a well-known opcode whose operand bytes do
+not parse, which usually means the entry point was not really a script.
 
 ## Build and validation
 
 ```
 npm run build:script    # tsc -p tsconfig.script.json -> src/script/dist/
-npm run check:script    # diff instruction boundaries against script_all
+npm run check:script    # diff boundaries AND summaries against script_all
 ```
 
 `dist/` is gitignored and rebuilt by `npm test`, `npm run package` and
@@ -85,24 +111,10 @@ The parity harness needs the `SoETilesViewer` checkout and a ROM; it *skips*
 rather than fails when either is missing, since neither is committed here.
 Override with `SOE_TILES_VIEWER`, `SOE_SCRIPT_DUMP`, `EVERSCRIPT_ROM`.
 
-## How the opcode table was built
-
-`script_all` prints every instruction with its address, so consecutive
-addresses give each instruction's true length. Every candidate layout was
-tested against every real instance of its opcode — thousands each for the
-common ones — and only layouts reproducing *every* observed length were kept.
-Opcodes that end a run or print extra lines have no measurable successor;
-those few were read out of `list-rooms.cpp` and are marked in the table.
-
-A few opcodes need a shape a flat layout cannot express and are hand-ported in
-`OPCODE_STEPS`: the WRITE family (`0x10/11/14/15/18/19/1c/1d`) whose value byte
-may be the value, a literal announcement, or the first byte of an expression;
-and `0x78/0x79`, `0x6f/0x73/0x9d`, which interleave fields and expressions.
-
 ## Not ported yet
 
-- **Instruction summaries.** The decoder produces structure (address, opcode,
-  operands, size) but not yet the English rendering (`CHANGE MAP = 0x34 …`).
-  That is `list-rooms.cpp`'s 207-case switch plus `data.h`'s name tables.
-- **The old decoder is still the one wired into the Rooms tab.** It stays until
-  this one produces summaries, so the UI does not regress.
+- **Decoded game text.** `SHOW TEXT` reports the pointer and whether the blob
+  is compressed, but not the string; that needs the text decompressor. These
+  three opcodes are scored on boundaries only.
+- **Inlined RCALL bodies.** The dumper can recurse into a called script and
+  print it inline. Here a call is one row; following it is the caller's job.

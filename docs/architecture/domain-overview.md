@@ -30,7 +30,7 @@
 | Route planner | `route`, `maps`, `shared` | debugger, emulator, scaling |
 | Emulator panel / SNES core | `emulator`, `debugger`, `shared` | maps, rooms, scaling |
 | DAP / breakpoints / mock runtime | `debugger`, `shared` | emulator internals |
-| Parser / compiler / opcodes | `script` | Everything — script is isolated |
+| Script decoding (ROM bytes → instructions) | `script` | Everything — script is isolated |
 | Config / settings | `shared` | All others |
 | Panel assembly (render-radar.js) | `memory_radar`, `shared` | domain internals |
 
@@ -272,8 +272,6 @@
 - Webview panel lifecycle and IPC bridge
 - WASM core loading (vanilla + custom snes9x2005)
 - ROM header parsing (SNES header model)
-- Room script decoding (ROM bytes → instruction model)
-- Opcode registry
 - Cross-panel byteScriptFocus message relay
 
 **Current folder:** `debugger/emulator/`
@@ -282,7 +280,6 @@
 **Key files:**
 - `debugger/emulator/panel.js` — panel lifecycle + IPC
 - `debugger/emulator/panel-webview.js` — HTML template (1007 LOC, indivisible)
-- `debugger/emulator/room-script-model.js` — ROM decoder
 - `debugger/emulator/snes-rom-header-model.js` — header parser
 - `debugger/core/` — WASM submodules
 
@@ -299,29 +296,38 @@
 
 ## Domain: `script`
 
-**Purpose:** Standalone Everscript parser and compiler tools. **Fully isolated.**
+**Purpose:** Decode Everscript bytecode out of the ROM. A TypeScript port of
+SoEScriptDumper (`list-rooms.cpp`) in the sibling `SoETilesViewer` checkout.
+**Pure** — takes a ROM buffer, returns data.
 
 **Responsibilities:**
-- Script AST model (TypeScript)
-- ROM script decoding to structured model
-- Truth test generation
-- Opcode generation
+- The operand grammar (postfix expressions, the stack machine)
+- Per-opcode operand layout and summary rendering
+- The name tables, generated from upstream `data.h` into `names.json`
+- A room's enter / step-on / B-trigger scripts
 
-**Current folder:** `script_parser/`
-**Target folder:** `script_parser/` (no move — already isolated with own package.json)
+**Folder:** `src/script/`
 
 **Key files:**
-- `script_parser/model/rom-script-model.ts` — AST model
-- `script_parser/src/scripts-all-model.ts` — bulk script model
-- `script_parser/src/generate-truth-tests.ts` — test generator
+- `src/script/expression.ts` — the operand grammar
+- `src/script/ops-*.ts` — the ported opcode cases, split by theme
+- `src/script/decoder.ts` — `decodeScript()`
+- `src/script/room-scripts.ts` — trigger tables → decoded scripts
+- `src/script/index.js` — CommonJS facade over `dist/`
 
-**Public API:** None — this is a standalone tool, not required by the extension.
+**Public API:** `require('./script')` → `{decodeScript, buildRoomScriptModel, …}`
 
-**Allowed deps:** Node.js stdlib, own `dependencies/`
-**Forbidden deps:** `extension.js`, `vscode`, any other domain in this repository
+**Allowed deps:** none — no VS Code API, no filesystem, no other domain
+**Forbidden deps:** everything, including `shared`
 
-**Documentation:** `script_parser/docs/`
-**Future Skill:** `.global/skills/script-parser.md` (not yet created)
+**Validation:** `npm run check:script` scores instruction boundaries *and*
+summary text against SoEScriptDumper's own dump of the ROM. Both floors only
+move up. Never relax a floor to make a change pass.
+
+**Documentation:** `src/script/README.md`
+**Related:** `src/rooms/data/room-scripts.js` is the thin filesystem shim that
+loads a ROM for this decoder. `script_parser/` is a separate standalone
+sandbox with its own `package.json` and is not part of the extension.
 
 ---
 

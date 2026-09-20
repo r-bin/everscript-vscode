@@ -6,7 +6,7 @@
 const path = require('path');
 const fs   = require('fs');
 const { parseEvsEnumValues } = require('../../shared/radar-utils');
-const { readRoomScriptModel } = require('../../emulator/room-script-model');
+const { readRoomScriptModel } = require('./room-scripts');
 
 let _radarMapEnumCache = null;
 let _luaWatcherCache   = null;

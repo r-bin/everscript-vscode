@@ -137,6 +137,98 @@ test('a WRITE sizes itself from its value byte', () => {
     assert.strictEqual(size([0x89, 0x10, 0x00]), 6, 'or an expression');
 });
 
+// ── summaries ───────────────────────────────────────────────────────────────
+
+function summary(bytes) {
+    const ins = script.decodeInstruction(romWith(bytes), AT, new script.OperandStack());
+    assert.ok(ins, 'opcode 0x' + bytes[0].toString(16) + ' has no case');
+    return ins.summary;
+}
+
+test('a write names both the address and the value', () => {
+    // 0x2443 is CHANGE DOGGO and 0x02 is the Wolf, both from data.h.
+    assert.strictEqual(summary([0x18, 0xeb, 0x01, 0xb2]), 'WRITE CHANGE DOGGO ($2443) = Wolf (0x02)');
+    // An address with no curated name still reads as an address.
+    assert.strictEqual(summary([0x18, 0x67, 0x01, 0xb1]), 'WRITE $23bf = 0x0001');
+});
+
+test('a flag test names the flag', () => {
+    assert.strictEqual(summary([0x08, 0x85, 0x00, 0x00, 0x00, 0x00]),
+        'IF $2258&0x01 (Acid Rain) SKIP 0 (to 0x928006)');
+});
+
+test('CHANGE MAP names the destination room', () => {
+    assert.strictEqual(summary([0x22, 0x12, 0x23, 0x34, 0x00]),
+        'CHANGE MAP = 0x34 @ [ 0x0090 | 0x0118 ]: "Prehistoria - Strong Heart\'s Hut"');
+});
+
+test('CALL names the global script it invokes', () => {
+    assert.strictEqual(summary([0xa3, 0x00]), 'CALL "Fade-out / stop music" (0x00)');
+    // An id with no curated name still says which id it is.
+    assert.ok(/Unnamed Global script 0xfe/.test(summary([0xa3, 0xfe])));
+});
+
+test('SLEEP counts one tick less than the operand', () => {
+    assert.strictEqual(summary([0xa7, 0x0f]), 'SLEEP 14 TICKS');
+});
+
+test('CALL-with-args takes its length from the argument count', () => {
+    // [count][count x expression][16-bit script id]. Reading the count as a
+    // fixed-width field is what produced 571-byte instructions before.
+    const ins = script.decodeInstruction(
+        romWith([0xb1, 0x02, 0xb5, 0xb6, 0x34, 0x12]), AT, new script.OperandStack());
+    assert.strictEqual(ins.size, 6);
+    assert.ok(/WITH 2 ARGS 5, 6$/.test(ins.summary), ins.summary);
+});
+
+test('untraced instructions are marked as such', () => {
+    const traced = script.decodeInstruction(romWith([0xa7, 0x0f]), AT, new script.OperandStack());
+    const guessed = script.decodeInstruction(romWith([0x26]), AT, new script.OperandStack());
+    assert.strictEqual(traced.untraced, false);
+    assert.strictEqual(guessed.untraced, true, '0x26 has a known length but an unverified meaning');
+});
+
+// ── room script discovery ───────────────────────────────────────────────────
+
+test('a room model finds its trigger tables and decodes what they point at', () => {
+    const rom = new Uint8Array(0x400000);
+    const put = (snes, bytes) => rom.set(bytes, script.snesToRom(snes));
+    // Room 0's data blob, and the step-on table inside it.
+    put(0x9ffde7, [0x00, 0x01, 0x00]);           // blob at 0x000100
+    rom.set([0x06, 0x00], 0x100 + 0x0d);         // step table: one 6-byte entry
+    rom.set([0x0f, 0x27, 0x10, 0x28, 0x00, 0x00], 0x10f);  // y1,x1,y2,x2,id
+    rom.set([0x00, 0x00], 0x115);                // no B-triggers
+    // Script pointer table, and the script both pointers resolve to.
+    put(0x928000, [0x10, 0x00]);
+    put(0x928010, [0x00, 0x02, 0x00]);
+    put(0x92801b, [0x00, 0x02, 0x00]);
+    put(0x928200, [0xa7, 0x0f, 0x00]);
+
+    const m = script.buildRoomScriptModel(rom, 0);
+    assert.strictEqual(m.stepOn.length, 1);
+    assert.strictEqual(m.bTrigger.length, 0);
+    const t = m.stepOn[0];
+    assert.deepStrictEqual([t.x1, t.y1, t.x2, t.y2], [0x27, 0x0f, 0x28, 0x10]);
+    assert.strictEqual(t.scriptAddressSnes, 0x928200);
+    assert.strictEqual(t.terminated, true);
+    assert.deepStrictEqual(t.instructions.map((r) => r.summary), ['SLEEP 14 TICKS', 'END (return)']);
+    assert.strictEqual(m.enter.label, 'SLEEP 14 TICKS');
+});
+
+test('a script that runs into an undecodable opcode says so in a final row', () => {
+    const rom = new Uint8Array(0x400000);
+    rom.set([0xa7, 0x0f, 0x01], script.snesToRom(0x928200));
+    rom.set([0x10, 0x00], script.snesToRom(0x928000));
+    rom.set([0x00, 0x02, 0x00], script.snesToRom(0x92801b));
+    rom.set([0x00, 0x01, 0x00], script.snesToRom(0x9ffde7));
+    const m = script.buildRoomScriptModel(rom, 0);
+    const rows = m.enter.instructions;
+    assert.strictEqual(m.enter.terminated, false);
+    assert.strictEqual(m.enter.stopReason, 'unknown-opcode');
+    assert.strictEqual(rows[rows.length - 1].unsupported, true);
+    assert.ok(/UNKNOWN INSTR/.test(rows[rows.length - 1].summary));
+});
+
 test('decoding stops rather than guessing an unknown opcode', () => {
     // 0x01 is UNKNOWN INSTR to SoEScriptDumper too, so no length is known.
     const res = script.decodeScript(romWith([0x01, 0x00]), AT);
