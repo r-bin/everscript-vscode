@@ -56,16 +56,18 @@ Forbidden directions:
 
 ### 2.4 Subsystem Isolation
 
-Each subsystem (`debugger/`, `radar/`, `language/`, `rom/`) must be:
+Each domain under `src/` (`debugger/`, `emulator/`, `memory/`, `rooms/`, `language/`,
+`shared/`, ...) must be:
 - independently understandable from its own files
 - independently testable without full extension startup
-- minimally coupled to other subsystems
+- minimally coupled to other domains
 
-Cross-subsystem coupling rules:
-- `debugger` may NOT directly call `radar` rendering
-- `radar` may read ROM via `rom-readers` but not call debugger
-- `language` may NOT call radar or debugger
-- `rom` has no VS Code dependency
+Cross-domain coupling rules (enforced by `.depcruise.js` / `npm run check:deps` — see
+`docs/architecture/domain-overview.md` for the full table):
+- `debugger` may NOT directly call `memory`/`rooms` rendering
+- `memory`/`rooms` may read ROM via `shared/rom-readers` but not call `debugger`
+- `language` may NOT call `memory`, `rooms`, `debugger`, or `emulator`
+- `shared` has no VS Code dependency and no dependency on any other domain
 
 ### 2.5 Anti-Abstraction
 
@@ -78,33 +80,62 @@ Forbidden patterns:
 - dependency injection systems
 - registries
 
-Allowed shared code: `radar-utils.js` (pure functions, no state), `settings-model.js` (config).
+Allowed shared code: `src/shared/radar-utils.js` (pure functions, no state),
+`src/shared/config.js` (config resolution).
 
 ---
 
 ## 3. Ownership Domains
 
-### `extension.js`
+Since v0.6.0, all production code lives under `src/`, one directory per domain. See
+`docs/architecture/domain-overview.md` for the full per-domain "Allowed deps" /
+"Forbidden deps" table (that doc's "Current folder" / "Target folder" language predates
+the actual move — trust the directory names below and on disk, not its phase numbers).
+
+### `src/extension.js`
 - Activation only: command registration, watcher setup, panel lifecycle
 - Must NOT contain rendering logic, parsing logic, or model logic
-- Target: < 300 LOC (currently 878 after v0.5.0 extraction — continue reducing)
+- Target: < 300 LOC — continue reducing
 
-### `debugger/`
-- Owns: emulator lifecycle, DAP adapter, mock runtime, room-script model
-- Does NOT own: radar rendering, language features, ROM graphics
+### `src/debugger/`
+- Owns: DAP adapter, mock runtime
+- Does NOT own: radar rendering, language features, ROM graphics, the emulator panel
 
-### `memory_radar/`  (→ future `radar/`)
-- Owns: radar panel, all tab rendering, rooms tab, memory map parsing
-- Sub-owns by tab: memory/, rooms/, scaling/, docs/route/rng/
+### `src/emulator/`
+- Owns: SNES emulator panel lifecycle, WASM core loading, ROM header model,
+  room-script decoding, opcode registry
+- Does NOT own: radar rendering, language features
 
-### `code_highlighter/`  (→ future `language/`)
+### `src/memory/` + `src/rooms/`  (formerly `memory_radar/`)
+- `src/memory/` owns: radar panel assembly, WRAM grid tab rendering
+- `src/rooms/` owns: rooms/map-browser tab (tree building, parsing, rendering, data)
+- `src/docs/`, `src/scaling/`, `src/routes/` own the docs/RNG, scaling, and route tabs
+  respectively
+
+### `src/language/`  (formerly `code_highlighter/`)
 - Owns: grammar, hover, completions, diagnostics, symbols
 - Does NOT own: ROM parsing, radar state
 
-### `rom/` (currently split across `memory_radar/rom-readers.js` + `debugger/emulator/`)
-- Owns: all ROM byte reading, map headers, character stats, decompression
-- Has ZERO VS Code dependencies
-- Has ZERO rendering dependencies
+### `src/maps/` + `src/shared/`  (formerly parts of `memory_radar/`)
+- `src/maps/` owns: ROM map/blob evidence models, map pipeline, script rendering model.
+  **Being retired**, not extended: its sentinel-based tilemap decoder is an
+  independent, weaker re-derivation of ROM map decoding that the sibling `everscript`
+  repo already solves byte-exactly for all 127 rooms. See the `map-format` skill
+  before adding new heuristics here.
+- `src/shared/` owns: all ROM byte reading (`rom-readers.js`), config resolution
+  (`config.js` — including `everscript.repoPath`/`romPath`/`pythonPath`, reused by any
+  future map-server bridge), `radar-utils.js` — has ZERO VS Code dependencies, ZERO
+  rendering dependencies
+
+### `src/map-editor/`  (PLANNED — does not exist yet)
+- Will own: a bridge (spawned process, transport TBD) into the sibling `everscript`
+  repo's verified Python map/room decoder (`tools/dump_room.py`, `encode_room.py`,
+  `collision.py`, `cuttable_grass.py`, `render_map.py`), plus whatever map-editor UI is
+  built on top of it.
+- Dependency direction is fixed even though transport/packaging isn't decided yet: this
+  extension depends on the compiler/map-server, **never the reverse**.
+- Do not create this domain, or write code assuming it exists, without first reading
+  the `map-format` skill and the planning docs it points to in the `everscript` repo.
 
 ---
 
@@ -113,9 +144,10 @@ Allowed shared code: `radar-utils.js` (pure functions, no state), `settings-mode
 Each directory must be understandable from its own files without reading parent directories.
 
 This means:
-- Every subsystem directory gets a `README.md`
+- Every domain directory under `src/` gets a `README.md`
 - `README.md` defines: ownership, allowed dependencies, state owned, key invariants
-- No "see extension.js for details" — if extension.js owns it, move it or document the invariant locally
+- No "see extension.js for details" — if `src/extension.js` owns it, move it or
+  document the invariant locally
 
 ---
 
@@ -131,8 +163,10 @@ AI sessions degrade when:
 Counter-measures:
 - `AI_ARCHITECTURE_GUIDE.md` — laws (this file)
 - `STATE_FLOW.md` — authoritative state flow map
-- Per-subsystem `README.md` — local ownership contracts
-- `.global/skills/` — reusable architectural operation prompts
+- Per-domain `src/<domain>/README.md` — local ownership contracts
+- `.github/instructions/`, `.claude/skills/`, and `GEMINI.md` imports — reusable
+  architectural operation skills (`compress-architecture`, `isolate-subsystem`,
+  `stabilize-state-flow`, `split-orchestration`)
 - File size limits — enforced by commit review
 
 ---
@@ -140,8 +174,8 @@ Counter-measures:
 ## 6. Anti-Entropy Checklist (run before every commit)
 
 - [ ] No file exceeds 400 LOC without documented justification
-- [ ] No new state variable added to `extension.js` (use subsystem modules)
-- [ ] No new cross-subsystem require() added (check direction)
+- [ ] No new state variable added to `src/extension.js` (use domain modules under `src/`)
+- [ ] No new cross-domain require() added (check direction against `docs/architecture/domain-overview.md`)
 - [ ] Every new directory has a `README.md` or is trivially named
 - [ ] `npm run typecheck` passes
 - [ ] `npm run check:circular` passes (no circular deps)
@@ -153,6 +187,12 @@ Counter-measures:
 ---
 
 ## 7. Current Entropy Hotspots (as of v0.5.1)
+
+> Historical snapshot — paths below predate the v0.6.0 `src/` refactor (see
+> `CHANGELOG.md` for the rename map, e.g. `memory_radar/` → `src/memory/` +
+> `src/rooms/` + `src/maps/`, `code_highlighter/` → `src/language/`,
+> `debugger/emulator/` → `src/emulator/`). Kept as-is for historical LOC records; do
+> not use these paths for navigation.
 
 | File | LOC | Status |
 |---|---|---|
@@ -182,8 +222,10 @@ Counter-measures:
 1. Bump version in `package.json` (patch/minor/major)
 2. Run validation: `npm run typecheck && npm run check:circular && npm run check:dead`
 3. Run tests: `/opt/homebrew/bin/npm test`
-4. Commit to `develop` with `v<ver>: [<subsystem>] <description>`
-5. Install: `rsync -a --delete --exclude='.git' /Users/v/Documents/GitHub/everscript-vscode/ ~/.vscode/extensions/everscript-$(ver)/`
+4. Commit to `develop` with `v<ver>: [<domain>] <description>`
+5. Install: `npm run deploy` (packages a `.vsix` via `vsce` and installs it with
+   `code --install-extension --force`) — do not use the old `rsync`-to-
+   `~/.vscode/extensions/` method
 6. Tell user to reload VS Code
 
 **One prompt = one commit.**

@@ -1,9 +1,7 @@
 ---
-name: "Mechanics Modeler"
-description: "Use when reverse engineering authentic game mechanics from traces/screenshots/ROM evidence into validated repository models with tests, dossiers, and explicit evidence tracking."
-tools: [read, search, edit, execute, todo, web]
-user-invocable: true
-argument-hint: "Describe the mechanic and provide traces, screenshots, measured outcomes, or ROM evidence if available."
+name: mechanics-modeler
+description: Use when reverse engineering authentic game mechanics from traces/screenshots/ROM evidence into validated repository models with tests, dossiers, and explicit evidence tracking. Give it the mechanic and any traces, screenshots, measured outcomes, or ROM evidence available.
+tools: Read, Grep, Glob, Edit, Write, Bash, TodoWrite, WebSearch, WebFetch
 ---
 
 You are a reverse-engineering specialist for game mechanics.
