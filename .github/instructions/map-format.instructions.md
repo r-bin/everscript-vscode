@@ -122,6 +122,15 @@ uses for "Build and Run" — don't invent a second of either.
   treat that as separate, larger, unstarted work, not a dependency assumed to already
   exist.
 
+## What's still missing
+
+`docs/map-port-gap-analysis.md` tracks this in detail: format-fidelity gaps
+(the unported write path, unported annotation rendering, untested patched-ROM
+behavior) separately from Rooms tab UX gaps (a render-cache invalidation bug,
+whether the overlay activates for Live/author rooms at all, missing
+loading/error states). Read it before assuming a gap doesn't exist, and update
+it when you close one.
+
 ## Where the full plan lives
 
 This skill is the pointer, not the plan. The actual reasoning, alternatives considered,
