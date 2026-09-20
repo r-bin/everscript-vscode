@@ -1,3 +1,22 @@
+## [0.19.0] — 2026-09-20
+
+Vanilla rooms now show what a pickup gives, the same way live rooms do.
+
+### Why
+The Rooms tab already drew an ingredient icon on a B-trigger — but only for live rooms, where the trigger carries a name from the source (`sniff_wax_2`). Vanilla rooms have no names, so the box stayed empty. Since 0.18.0 the decoder reads the reward straight out of the ROM script, so both paths now know the item and can draw the same icon.
+
+### Added
+- **Loot icons on vanilla B-triggers.** `trigIngrName()` resolves a trigger's icon from the source name first, then from the decoded reward, so live and vanilla share one renderer. Strong Heart's Hut now draws Oil, Wax, Wax — matching the live view exactly.
+- Trigger labels and tooltips carry the reward: `WAX ×2`, plus the object id, the flag that remembers it was taken, and the bonus to the next pickup.
+- The 🌿 toggle appears for vanilla rooms, not just live ones.
+
+### Fixed
+- **A string pasted into the webview bundle was treated as a replacement pattern.** `buildMainJs` used `.replace(placeholder, content)`, and `$'` inside `content` expands to "everything after the match" — so one dollar-quote in the webview source silently swallowed the rest of the bundle and left an unterminated string literal. Replacements now go through a function. This had been latent; the first `'flag $'` in the source triggered it.
+- **A named ingredient with no asset file rendered as an empty box.** The icon map names 28 ingredients and the assets folder ships 22, so Nectar, Petal, Honey and Mercury drew nothing. The webview now knows which files exist and falls back to the emoji. This affected live rooms too.
+
+### Known limits
+- Seven reward kinds are not ingredients (money, charms, equipment) and have no icon; they show as text.
+
 ## [0.18.0] — 2026-09-20
 
 Reads what every pickup in the game gives, and writes it back out as Everscript.

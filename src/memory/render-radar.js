@@ -19,7 +19,8 @@ function renderRadarHtml(
     scope, refs, pools, argRefs, mapByAddr,
     roomTree = [], activeTab = 'radar', selectedMap = null,
     chars = [], scaleActive = false, ingrBaseUri = '', hitLookup = null,
-    enumByAddr = new Map(), vanillaRoomDetails = {}, byteScriptFocus = ''
+    enumByAddr = new Map(), vanillaRoomDetails = {}, byteScriptFocus = '',
+    ingrFiles = []
 ) {
     // ── Memory tab (grid + detail table) ───────────────────────────────────
     const { html: memoryTabHtml, cellData } = buildMemoryTabHtml(
@@ -36,6 +37,7 @@ function renderRadarHtml(
     const roomsData =
         buildRoomsJson(roomTree, activeTab, selectedMap) +
         '\nvar INGR_BASE=' + JSON.stringify(ingrBaseUri) + ';' +
+        '\nvar INGR_FILES=' + JSON.stringify(ingrFiles) + ';' +
         '\nvar ACTIVE_BYTE_SCRIPT_FOCUS=' + JSON.stringify(byteScriptFocus || '') + ';' +
         '\nvar VANILLA_ROOMS_DATA=' + JSON.stringify(VANILLA_ROOMS) + ';' +
         '\nvar VANILLA_ROOM_DETAILS=' + JSON.stringify(vanillaRoomDetails).replace(/<\/script>/gi, '<\\/script>') + ';';

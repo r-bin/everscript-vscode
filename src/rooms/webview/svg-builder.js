@@ -105,13 +105,16 @@ function buildRoomSvgSection(opts){
     bTrigger.forEach(function(t,i){
       var nm=bTrigNames[i]||'';
       var sv=tsvg(t,trigOff);
-      var tip='B-trig'+(nm?' '+escH(nm):'')+(t.label?' — '+escH(t.label):'');
-      var ingrEmoji=getIngrIcon(nm||t.label||'');
-      var blabel=escH(nm||t.label||'')+(ingrEmoji?' '+ingrEmoji:'')+' ['+t.x1+','+t.y1+':'+t.x2+','+t.y2+']';
+      // Vanilla rooms have no trigger names, so the reward the ROM decoder
+      // read out of the script is what names the icon and fills the tooltip.
+      var iconName=trigIngrName(t,nm||t.label||'');
+      var tip='B-trig'+(nm?' '+escH(nm):'')+lootTip(t)+(t.label?' — '+escH(t.label):'');
+      var ingrEmoji=getIngrIcon(iconName);
+      var blabel=escH(nm||lootLabel(t)||t.label||'')+(ingrEmoji?' '+ingrEmoji:'')+' ['+t.x1+','+t.y1+':'+t.x2+','+t.y2+']';
       html+='<rect class="svge-btrig" data-idx="'+i+'" data-kind="btrig" data-label="'+blabel+'" x="'+sv.sx+'" y="'+sv.sy+'" width="'+sv.sw+'" height="'+sv.sh+'" fill="rgba(255,210,0,0.13)" stroke="#ffcc00" stroke-width="0.3"><title>'+(ingrEmoji?ingrEmoji+' ':'')+tip+'</title></rect>';
       if(ingrEmoji){
         var ifs=Math.max(1.5,Math.min(sv.sw,sv.sh,2.8));
-        var imgHtml=ingrSvgImg(nm||t.label||'',sv.sx+sv.sw/2,sv.sy+sv.sh/2,ifs*1.2);
+        var imgHtml=ingrSvgImg(iconName,sv.sx+sv.sw/2,sv.sy+sv.sh/2,ifs*1.2);
         if(imgHtml){
           html+='<g class="svge-btrig svge-ingr">'+imgHtml+'</g>';
         }else{

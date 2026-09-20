@@ -19,16 +19,34 @@ function loadFile(filePath) {
   return fileCache.get(filePath);
 }
 
+/**
+ * Substitute a placeholder with literal text.
+ *
+ * The replacement goes through a function, not a string. A plain
+ * `.replace(a, b)` re-reads `b` for `$&`, `$'` and friends, so a single
+ * `'flag $'` inside the webview source silently swallowed the rest of the
+ * bundle and left an unterminated string literal. Every file pasted in here
+ * is code, not a pattern.
+ */
+function inject(text, placeholder, content) {
+  return text.replace(placeholder, () => content);
+}
+
 function buildMainJs({ jsData, roomsData, scalingData, roomsJs, scalingJs, docsJs, routeJs, rngJs }) {
-  return loadFile(path.join(sharedDir, 'shared.js'))
-    .replace('__JS_DATA__', jsData)
-    .replace('__ROOMS_DATA__', roomsData)
-    .replace('__SCALING_DATA__', scalingData)
-    .replace('__ROOMS_JS__', roomsJs)
-    .replace('__SCALING_JS__', scalingJs)
-    .replace('__DOCS_JS__', docsJs)
-    .replace('__ROUTE_JS__', routeJs)
-    .replace('__RNG_JS__', rngJs);
+  let out = loadFile(path.join(sharedDir, 'shared.js'));
+  for (const [placeholder, content] of [
+    ['__JS_DATA__', jsData],
+    ['__ROOMS_DATA__', roomsData],
+    ['__SCALING_DATA__', scalingData],
+    ['__ROOMS_JS__', roomsJs],
+    ['__SCALING_JS__', scalingJs],
+    ['__DOCS_JS__', docsJs],
+    ['__ROUTE_JS__', routeJs],
+    ['__RNG_JS__', rngJs],
+  ]) {
+    out = inject(out, placeholder, content);
+  }
+  return out;
 }
 
 // Load scaling tab JS from split modules in src/scaling/webview/ (concatenated in dependency order).

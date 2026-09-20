@@ -30,7 +30,7 @@ function renderRoomDetail(room){
   var roomError=c.roomError||null;
 
   // ── Detail header ──────────────────────────────────────────────────────────
-  var hasIngr=bTrigger.some(function(t,i){return !!getIngrIcon(bTrigNames[i]||t.label||'');});
+  var hasIngr=bTrigger.some(function(t,i){return !!getIngrIcon(trigIngrName(t,bTrigNames[i]||t.label||''));});
   var enterTrig=trig.enter||null;
   var hasCoordData=(im!=null)||(entrances.length>0)||(enemies.length>0)||(stepOn.length>0)||(bTrigger.length>0)||(poi.length>0);
   var html='<div class="rd-head">';

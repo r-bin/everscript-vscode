@@ -37,6 +37,7 @@ let _scalingChars      = null;   // cached character stat array (142 entries fro
 let _hitLookup         = null;   // precomputed hit% table {hit_rate:{evade:pct}} from ROM
 let _scaleActive       = false;  // whether scale_enemies is active in workspace
 let _ingrBaseUri       = '';     // webview URI base for ingredient images (set on panel creation)
+let _ingrFiles         = [];     // filenames actually present there, so a missing icon falls back to its emoji
 let _radarByteScriptFocus = '';  // currently focused byte-script address from emulator panel
 
 function getRadarMap() {
@@ -460,7 +461,7 @@ function refreshRadar(editor) {
     const _extCfg1 = getExtConfig();
     const _wsRoot1 = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
     const _vrd1 = buildVanillaRoomDetails(_wsRoot1, _extCfg1.romPath || '');
-    _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree || [], _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, _ingrBaseUri, _hitLookup, getRadarEnums(), _vrd1, _radarByteScriptFocus);
+    _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree || [], _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, _ingrBaseUri, _hitLookup, getRadarEnums(), _vrd1, _radarByteScriptFocus, _ingrFiles);
     _radarPanel.title = 'Radar: ' + scope.name;
 }
 
@@ -591,6 +592,7 @@ function activate(context) {
                     _radarRoomDocPath = null;
                     _radarActiveTab = 'radar';
                     _ingrBaseUri = '';
+                    _ingrFiles = [];
                     _radarByteScriptFocus = '';
                 }, null, context.subscriptions);
             } else {
@@ -598,12 +600,16 @@ function activate(context) {
                 _radarPanel.reveal(vscode.ViewColumn.Beside, true);
             }
 
-            // Compute ingredient image base URI (once per panel lifetime)
+            // Compute ingredient image base URI (once per panel lifetime).
+            // The directory listing goes with it: the icon map names more
+            // ingredients than the assets folder ships, and a missing file
+            // renders as an empty box rather than falling back to its emoji.
             if (!_ingrBaseUri) {
                 try {
                     const ingrDir = path.join(getExtConfig().assetsPath, 'ingredients');
                     _ingrBaseUri = _radarPanel.webview.asWebviewUri(vscode.Uri.file(ingrDir)).toString() + '/';
-                } catch { _ingrBaseUri = ''; }
+                    _ingrFiles = fs.existsSync(ingrDir) ? fs.readdirSync(ingrDir) : [];
+                } catch { _ingrBaseUri = ''; _ingrFiles = []; }
             }
 
             // Build or reuse room tree (rebuild when document changes)
@@ -617,7 +623,7 @@ function activate(context) {
             const _extCfg2 = getExtConfig();
             const _wsRoot2b = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
             const _vrd2 = buildVanillaRoomDetails(_wsRoot2b, _extCfg2.romPath || '');
-            _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree, _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, _ingrBaseUri, _hitLookup, getRadarEnums(), _vrd2, _radarByteScriptFocus);
+            _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree, _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, _ingrBaseUri, _hitLookup, getRadarEnums(), _vrd2, _radarByteScriptFocus, _ingrFiles);
 
             // Handle messages from the webview
             _radarPanel.webview.onDidReceiveMessage(msg => {
@@ -687,7 +693,7 @@ function activate(context) {
                         const _extCfg3 = getExtConfig();
                         const _wsRoot3 = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
                         const _vrd3 = buildVanillaRoomDetails(_wsRoot3, _extCfg3.romPath || '');
-                        _radarPanel.webview.html = renderRadarHtml(gscope, refs, pools, argRefs, getRadarMap(), _radarRoomTree || [], _radarActiveTab, null, _scalingChars || [], _scaleActive, _ingrBaseUri, _hitLookup, getRadarEnums(), _vrd3, _radarByteScriptFocus);
+                        _radarPanel.webview.html = renderRadarHtml(gscope, refs, pools, argRefs, getRadarMap(), _radarRoomTree || [], _radarActiveTab, null, _scalingChars || [], _scaleActive, _ingrBaseUri, _hitLookup, getRadarEnums(), _vrd3, _radarByteScriptFocus, _ingrFiles);
                         _radarPanel.title = 'Radar: (global)';
                     }
                 } else if (msg.command === 'autoScope') {

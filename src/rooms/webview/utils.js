@@ -48,10 +48,66 @@ function getIngrKey(nm){
 }
 function getIngrIcon(nm){var k=getIngrKey(nm);return k?INGR_EMOJI[k]||'🌿':null;}
 
+/**
+ * The name to look an ingredient icon up by for a trigger.
+ *
+ * Live rooms name their triggers in the source, so the name carries the item
+ * ("sniff_wax_2"). Vanilla rooms have no names — but the ROM decoder reads
+ * the reward straight out of the script, so the item is known either way and
+ * both paths can draw the same icon. The source name wins when it resolves,
+ * since an author's own naming beats a derived one.
+ *
+ * A script can offer several rewards (a few rooms share one script and pick
+ * at runtime); the first that maps to an icon stands for it.
+ */
+function trigIngrName(t,nm){
+  if(nm&&getIngrKey(nm))return nm;
+  var loot=(t&&t.loot)||[];
+  for(var i=0;i<loot.length;i++){
+    if(loot[i].itemName&&getIngrKey(loot[i].itemName))return loot[i].itemName;
+  }
+  return nm||'';
+}
+
+/** `WAX x1` — the short form that stands in for a nameless vanilla trigger. */
+function lootLabel(t){
+  var loot=(t&&t.loot)||[];
+  if(!loot.length)return '';
+  var f=loot[0];
+  var nm=f.itemName||'';
+  if(!nm)return '';
+  var more=loot.length>1?' +'+(loot.length-1)+' more':'';
+  return nm+(f.amount>1?' \u00d7'+f.amount:'')+more;
+}
+
+/**
+ * The loot detail for a trigger's tooltip: what it gives, which object it is,
+ * and which flag remembers that it was taken.
+ */
+function lootTip(t){
+  var loot=(t&&t.loot)||[];
+  if(!loot.length)return '';
+  var out='';
+  for(var i=0;i<loot.length;i++){
+    var f=loot[i];
+    var bits=[(f.itemName||'?')+(f.amount>1?' \u00d7'+f.amount:'')];
+    if(f.objectId!=null)bits.push('object 0x'+f.objectId.toString(16));
+    if(f.checkFlag)bits.push('flag $'+f.checkFlag.addr.toString(16)+' bit 0x'+(1<<f.checkFlag.bit).toString(16));
+    if(f.next)bits.push('next pickup +'+f.next);
+    out+='\n'+bits.join('  \u00b7  ');
+  }
+  if(loot.length>1)out+='\n('+loot.length+' possible \u2014 picked at runtime)';
+  return out;
+}
+
 // Returns an SVG <image> element string, or null if no image base is configured.
 function ingrSvgImg(nm,x,y,sz){
   var k=getIngrKey(nm);if(!k)return null;
   if(!INGR_BASE)return null;
   var fn=INGR_MAP[k]+'.webp';
+  // The icon map names more ingredients than the assets folder ships. Without
+  // this check a missing file draws an empty box; returning null lets the
+  // caller fall back to the emoji.
+  if(typeof INGR_FILES!=='undefined'&&INGR_FILES.length&&INGR_FILES.indexOf(fn)===-1)return null;
   return '<image href="'+INGR_BASE+fn+'" x="'+(x-sz/2).toFixed(2)+'" y="'+(y-sz/2).toFixed(2)+'" width="'+sz+'" height="'+sz+'" style="image-rendering:pixelated" pointer-events="none"/>';
 }

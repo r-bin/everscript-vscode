@@ -512,6 +512,72 @@ test('rooms detail surfaces explicit room errors and avoids the stale vanilla pl
     assert.ok(!detail.includes('No live data in Vanilla mode. Static ROM data only.'), 'Did not expect the stale vanilla placeholder text');
 });
 
+// ── Vanilla loot icons ────────────────────────────────────────────────────────
+// A vanilla room has no trigger names, so before the ROM decoder could read
+// the reward there was nothing to draw an icon from. These pin the bridge
+// between the decoded loot and the icon renderer the live path already used.
+
+function loadRoomsUtils(extraGlobals) {
+    const roomsDir = path.join(__dirname, '..', '..', 'src', 'rooms', 'webview');
+    const code = fs.readFileSync(path.join(roomsDir, 'utils.js'), 'utf8');
+    const sandbox = Object.assign({ INGR_BASE: '', INGR_FILES: [], Math, JSON, String, Array }, extraGlobals || {});
+    vm.createContext(sandbox);
+    vm.runInContext(code, sandbox, { timeout: 5000 });
+    return sandbox;
+}
+
+test('a vanilla trigger takes its icon name from the decoded loot', () => {
+    const s = loadRoomsUtils();
+    const trigger = { loot: [{ itemName: 'WAX', amount: 1 }] };
+    // No source name at all — the live path's only input — so this used to
+    // resolve to nothing and the box stayed empty.
+    assert.strictEqual(s.trigIngrName(trigger, ''), 'WAX');
+    assert.ok(s.getIngrIcon(s.trigIngrName(trigger, '')), 'expected an icon for WAX');
+    // A name the author wrote still wins over the derived one.
+    assert.strictEqual(s.trigIngrName(trigger, 'sniff_oil_3'), 'sniff_oil_3');
+});
+
+test('plural and compound reward names still resolve to an icon', () => {
+    const s = loadRoomsUtils();
+    for (const name of ['ROOTS', 'ACORNS', 'MUD_PEPPER', 'DRY_ICE', 'ATLAS_MEDALLION']) {
+        assert.ok(s.getIngrIcon(s.trigIngrName({ loot: [{ itemName: name }] }, '')), 'no icon for ' + name);
+    }
+    // Rewards that are not ingredients have no icon, and must not borrow one.
+    assert.strictEqual(s.trigIngrName({ loot: [{ itemName: 'CALL_BEADS' }] }, ''), '');
+});
+
+test('an icon with no asset file falls back to its emoji instead of an empty box', () => {
+    // INGR_MAP names more ingredients than the assets folder ships.
+    const s = loadRoomsUtils({ INGR_BASE: 'https://example/', INGR_FILES: ['Wax.webp'] });
+    assert.ok(s.ingrSvgImg('WAX', 0, 0, 2), 'Wax.webp is present, so an <image> is right');
+    assert.strictEqual(s.ingrSvgImg('NECTAR', 0, 0, 2), null, 'Nectar.webp is absent');
+    assert.ok(s.getIngrIcon('NECTAR'), 'but it still has an emoji to fall back to');
+});
+
+test('the trigger tooltip names the reward, the object and the flag', () => {
+    const s = loadRoomsUtils();
+    const tip = s.lootTip({ loot: [
+        { itemName: 'WAX', amount: 2, objectId: 0x02, checkFlag: { addr: 0x22c8, bit: 1 }, next: 4 },
+    ] });
+    for (const part of ['WAX', '\u00d72', 'object 0x2', '$22c8', 'bit 0x2', 'next pickup +4']) {
+        assert.ok(tip.includes(part), 'tooltip missing ' + part + ': ' + tip);
+    }
+    assert.strictEqual(s.lootLabel({ loot: [{ itemName: 'WAX', amount: 1 }] }), 'WAX');
+});
+
+test('webview source is pasted into the bundle literally, not as a replacement pattern', () => {
+    // `$'` in a String.replace replacement means "everything after the
+    // match", so one dollar-quote in the webview source used to swallow the
+    // rest of the bundle and leave an unterminated string.
+    const rw = require('../../src/memory/webview');
+    const bundle = rw.buildMainJs({
+        jsData: '', roomsData: '', scalingData: '',
+        roomsJs: "var probe='flag $'+1;", scalingJs: '', docsJs: '', routeJs: '', rngJs: '',
+    });
+    assert.ok(bundle.includes("var probe='flag $'+1;"), 'injected source was rewritten');
+    assert.doesNotThrow(() => new vm.Script(bundle), 'bundle no longer parses');
+});
+
 // ── Summary ───────────────────────────────────────────────────────────────────
 console.log(`\n${passed + failed} run: ${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);

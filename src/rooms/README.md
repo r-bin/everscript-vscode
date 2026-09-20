@@ -126,3 +126,15 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
 Because the files share one scope, a global belongs to exactly one of them.
 `rom-overlay.js` owns the view state; `detail-renderer.js` owns the request
 state. Do not mirror either into the other.
+
+## Loot icons
+
+A B-trigger's ingredient icon is looked up by name. Live rooms name their
+triggers in the source; vanilla rooms have no names, so the name comes from
+the reward `src/script/` read out of the ROM script. `trigIngrName()` in
+`webview/utils.js` owns that choice — source name first, decoded reward
+second — so both paths go through one renderer.
+
+The icon map names more ingredients than the assets folder ships, so the host
+passes the directory listing as `INGR_FILES` and a missing file falls back to
+its emoji rather than drawing an empty box.
