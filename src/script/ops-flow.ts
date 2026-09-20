@@ -6,12 +6,24 @@
 // own output; a "nicer" phrasing here is indistinguishable from a wrong one.
 
 import { read16, read24, ramAddr, scriptValueToSnes, u8, u16, SCRIPTS_START_ADDR_US } from './addressing';
-import { Cursor, OpResult, done, target } from './cursor';
+import { Cursor, OpResult, ScriptEffect, done, target } from './cursor';
 import { absScriptName, globalScriptName, npcScriptName, ramAddrToStr, ramBitToStr, currencyName } from './names';
 
 /** `SKIP 8 (to 0x94e60d)` — the tail every branch shares. */
 function skip(jmp: number, dst: number): string {
     return `SKIP ${jmp} (to ${target(dst)})`;
+}
+
+/**
+ * Record where a branch can land.
+ *
+ * The walker resumes at these once it hits an END, which is the only way to
+ * see code on the far side of a conditional — a room's B-trigger is often
+ * `IF variant THEN <do a thing> END` repeated, and a linear read sees only
+ * the first one.
+ */
+function to(dst: number): ScriptEffect[] {
+    return [{ kind: 'branch', target: dst }];
 }
 
 /**
@@ -28,7 +40,7 @@ function branchIf(c: Cursor, condition: boolean): OpResult {
 
     if (type === 0xd7) {
         const b = c.branch16();
-        return done(c, `IF controlled char ${condition ? '==' : '!='} dog ${skip(b.jmp, b.target)}`);
+        return done(c, `IF controlled char ${condition ? '==' : '!='} dog ${skip(b.jmp, b.target)}`, { effects: to(b.target) });
     }
 
     // Two shapes the randomizer emits to hard-wire a branch on or off.
@@ -36,13 +48,13 @@ function branchIf(c: Cursor, condition: boolean): OpResult {
         c.addr += 3;
         const b = c.branch16();
         const sense = (!condition) !== (type !== 0x30) ? 'FALSE (never)' : 'TRUE (always)';
-        return done(c, `IF !!!FALSE == ${sense} ${skip(b.jmp, b.target)}`);
+        return done(c, `IF !!!FALSE == ${sense} ${skip(b.jmp, b.target)}`, { effects: to(b.target) });
     }
     if ((type & 0xf0) === 0x30 && c.peek(0) === 0x14 && c.peek(1) === 0x94) {
         c.addr += 2;
         const b = c.branch16();
         const sense = (!condition) !== (type !== 0x30) ? 'FALSE (always)' : 'TRUE (never)';
-        return done(c, `IF !!FALSE == ${sense} ${skip(b.jmp, b.target)}`);
+        return done(c, `IF !!FALSE == ${sense} ${skip(b.jmp, b.target)}`, { effects: to(b.target) });
     }
 
     // `IF (a OR b)` written as the De Morgan equivalent, in one Traxx script.
@@ -55,7 +67,7 @@ function branchIf(c: Cursor, condition: boolean): OpResult {
         const jmp = (read16(c.rom, c.addr + 9) << 16) >> 16;
         c.addr += 11;
         const dst = (c.addr + jmp) >>> 0;
-        return done(c, `IF ((${ramAddr(a1)}&${u8(1 << (w1 & 7))}) OR (${ramAddr(a2)}&${u8(1 << (w2 & 7))})) ${skip(jmp, dst)}`);
+        return done(c, `IF ((${ramAddr(a1)}&${u8(1 << (w1 & 7))}) OR (${ramAddr(a2)}&${u8(1 << (w2 & 7))})) ${skip(jmp, dst)}`, { effects: to(dst) });
     }
 
     // The common case by far: test one flag bit and branch.
@@ -67,7 +79,8 @@ function branchIf(c: Cursor, condition: boolean): OpResult {
         const addr = 0x2258 + (word >> 3);
         const readable = ramBitToStr(addr, word & 7);
         const not = invert && readable ? 'NOT' : '';
-        return done(c, `IF ${invert ? '!(' : ''}${ramAddr(addr)}&${u8(1 << (word & 7))}${invert ? ')' : ''} ${not}${readable}${skip(b.jmp, b.target)}`);
+        const effects: ScriptEffect[] = [{ kind: 'checkFlag', addr, bit: word & 7 }, ...to(b.target)];
+        return done(c, `IF ${invert ? '!(' : ''}${ramAddr(addr)}&${u8(1 << (word & 7))}${invert ? ')' : ''} ${not}${readable}${skip(b.jmp, b.target)}`, { effects });
     }
 
     // One sniff spot combines a flag test with a byte compare.
@@ -84,14 +97,15 @@ function branchIf(c: Cursor, condition: boolean): OpResult {
         const readable = ramBitToStr(addr, word & 7);
         // Upstream tests its sub-instruction byte rather than the opcode here,
         // so these negations never print. Kept, so the text matches.
-        return done(c, `IF ${ramAddr(addr)} & ${u8(1 << (word & 7))} ${readable}&& ${ramAddr(addr2)}==${u8(val2)} ${skip(b.jmp, b.target)}`);
+        const effects: ScriptEffect[] = [{ kind: 'checkFlag', addr, bit: word & 7 }, ...to(b.target)];
+        return done(c, `IF ${ramAddr(addr)} & ${u8(1 << (word & 7))} ${readable}&& ${ramAddr(addr2)}==${u8(val2)} ${skip(b.jmp, b.target)}`, { effects });
     }
 
     // Test a whole word against zero.
     if (type === 0x88) {
         const addr = 0x2258 + c.u16();
         const b = c.branch16();
-        return done(c, `IF ${ramAddrToStr(addr)} ${condition ? '!=' : '=='} 0x00 ${skip(b.jmp, b.target)}`);
+        return done(c, `IF ${ramAddrToStr(addr)} ${condition ? '!=' : '=='} 0x00 ${skip(b.jmp, b.target)}`, { effects: to(b.target) });
     }
 
     c.back();
@@ -101,7 +115,7 @@ function branchIf(c: Cursor, condition: boolean): OpResult {
     const sense = condition ? '' : ' == FALSE';
     if (!c.ok) return done(c, `IF ${open}${e.text}${close}${sense} THEN SKIP ...?`);
     const b = c.branch16();
-    return done(c, `IF ${open}${e.text}${close}${sense} THEN ${skip(b.jmp, b.target)}`);
+    return done(c, `IF ${open}${e.text}${close}${sense} THEN ${skip(b.jmp, b.target)}`, { effects: to(b.target) });
 }
 
 /**
@@ -159,18 +173,20 @@ export function flowOp(c: Cursor, instr: number): OpResult | null {
 
         case 0x04: {
             const b = c.branch16();
-            return done(c, skip(b.jmp, b.target));
+            return done(c, skip(b.jmp, b.target), { effects: to(b.target) });
         }
         case 0x05: {
             // An 8-bit displacement that is always negative.
             const jmp = c.u8() - 0x100;
-            return done(c, skip(jmp, (c.start + jmp) >>> 0));
+            const dst = (c.start + jmp) >>> 0;
+            return done(c, skip(jmp, dst), { effects: to(dst) });
         }
 
         case 0x07:
         case 0x29: {
             const addr = scriptValueToSnes(c.u24());
-            return done(c, `CALL ${target(addr)} ${absScriptName(addr)}`);
+            return done(c, `CALL ${target(addr)} ${absScriptName(addr)}`,
+                { effects: [{ kind: 'call', target: addr, inline: false }] });
         }
 
         case 0x08: return branchIf(c, true);
@@ -183,7 +199,7 @@ export function flowOp(c: Cursor, instr: number): OpResult | null {
             const v = c.u24();
             const b = c.branch16();
             if (!c.ok) return done(c, `IF ${currency} (moniez) ${op} ...? THEN SKIP ...?`);
-            return done(c, `IF ${currency} (moniez) ${op} ${v} THEN ${skip(b.jmp, b.target)}`);
+            return done(c, `IF ${currency} (moniez) ${op} ${v} THEN ${skip(b.jmp, b.target)}`, { effects: to(b.target) });
         }
         case 0x8e:
         case 0x8f: {
@@ -192,7 +208,7 @@ export function flowOp(c: Cursor, instr: number): OpResult | null {
             const v = c.expr();
             const b = c.branch16();
             if (!c.ok) return done(c, `IF ${currency} (moniez) ${op} ...? THEN SKIP ...?`);
-            return done(c, `IF ${currency} (moniez) ${op} ${v} THEN ${skip(b.jmp, b.target)}`);
+            return done(c, `IF ${currency} (moniez) ${op} ${v} THEN ${skip(b.jmp, b.target)}`, { effects: to(b.target) });
         }
 
         case 0x38:
@@ -205,7 +221,8 @@ export function flowOp(c: Cursor, instr: number): OpResult | null {
 
         case 0xa3: {
             const id = c.u8();
-            return done(c, `CALL "${globalScriptName(id)}" (${u8(id)})`);
+            return done(c, `CALL "${globalScriptName(id)}" (${u8(id)})`,
+                { effects: [{ kind: 'callGlobal', id }] });
         }
         case 0xa4: {
             const id = c.u16();
@@ -217,13 +234,15 @@ export function flowOp(c: Cursor, instr: number): OpResult | null {
             const off = c.u8() - 0x100;
             let dst = (c.start + off) >>> 0;
             if (!(dst & 0x8000)) dst = (dst - 0x8000) >>> 0;
-            return done(c, `RCALL ${off} (to ${target(dst)}): ${absScriptName(dst, 'Unknown')}`);
+            return done(c, `RCALL ${off} (to ${target(dst)}): ${absScriptName(dst, 'Unknown')}`,
+                { effects: [{ kind: 'call', target: dst, inline: true }] });
         }
         case 0xa6: {
             const off = c.s16();
             let dst = (c.start + off) >>> 0;
             if (!(dst & 0x8000)) dst = (dst + (off < 0 ? -0x8000 : 0x8000)) >>> 0;
-            return done(c, `RCALL ${String(off).padStart(4, ' ')} (to ${target(dst)}): ${absScriptName(dst, 'Unknown')}`);
+            return done(c, `RCALL ${String(off).padStart(4, ' ')} (to ${target(dst)}): ${absScriptName(dst, 'Unknown')}`,
+                { effects: [{ kind: 'call', target: dst, inline: true }] });
         }
 
         case 0xa7:

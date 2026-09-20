@@ -81,6 +81,43 @@ export class Cursor {
     get size(): number { return this.addr - this.start; }
 }
 
+/**
+ * A side effect worth recording, beyond the rendered text.
+ *
+ * Only the handful the loot extractor needs. Scripts announce loot by writing
+ * literal values to well-known addresses, so the effects are enough to say
+ * what a chest or sniff spot gives without running anything.
+ */
+export type ScriptEffect =
+    | {
+        kind: 'write';
+        addr: number;
+        /** Null when the value is an expression rather than a literal. */
+        value: number | null;
+        valueType: 'word' | 'byte' | 'inline' | 'expression';
+        /** SNES address of the value bytes — where a patch would write. */
+        valuePos: number;
+    }
+    | { kind: 'checkFlag'; addr: number; bit: number }
+    | { kind: 'setFlag'; addr: number; bit: number }
+    | { kind: 'callGlobal'; id: number }
+    | {
+        kind: 'branch';
+        /** SNES address the branch can land on. */
+        target: number;
+    }
+    | {
+        kind: 'call';
+        /** SNES address of the called script. */
+        target: number;
+        /**
+         * True for the relative calls the reference *inlines* into its
+         * listing. Several pickups live in an RCALL target, so a reader that
+         * does not follow these simply does not see them.
+         */
+        inline: boolean;
+    };
+
 /** What one ported opcode case produces. */
 export interface OpResult {
     /** The rendered summary, matching the dumper's wording. */
@@ -97,13 +134,15 @@ export interface OpResult {
      * known and decoding continues, but what it does is a guess.
      */
     untraced: boolean;
+    /** Structured side effects, for callers that read scripts rather than print them. */
+    effects: ScriptEffect[];
 }
 
 /** Finish a case: everything the cursor read, plus the text it produced. */
 export function done(
     c: Cursor,
     text: string,
-    opts: { terminal?: boolean; untraced?: boolean } = {},
+    opts: { terminal?: boolean; untraced?: boolean; effects?: ScriptEffect[] } = {},
 ): OpResult {
     return {
         text,
@@ -112,6 +151,7 @@ export function done(
         terminal: opts.terminal === true,
         operands: c.operands,
         untraced: opts.untraced === true,
+        effects: opts.effects ?? [],
     };
 }
 

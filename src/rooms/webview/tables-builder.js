@@ -22,6 +22,43 @@ function renderScriptTable(script){
   return out;
 }
 
+/**
+ * What a script hands over, when it is a pickup.
+ *
+ * Shown above the instruction table because it is the answer most readers
+ * want — `MUSHROOM x1` beats twelve rows of WRITE. The Everscript form next
+ * to it is the same pickup written in the language that compiles back to
+ * these bytes, so it can be copied straight into a patch.
+ *
+ * A script can list several: a few rooms share one script between rectangles
+ * and pick the reward at runtime from a room variable. Those are candidates,
+ * not a sequence, and the note says so rather than implying you get all of
+ * them.
+ */
+function renderLoot(script){
+  var loot=(script&&script.loot)||[];
+  if(!loot.length)return '';
+  var code=script.everscript||[];
+  var out='<div class="rs-loot">';
+  loot.forEach(function(f,i){
+    var bits=[];
+    if(f.objectId!=null)bits.push('object '+hexNum(f.objectId,2));
+    if(f.checkFlag)bits.push('flag '+hexNum(f.checkFlag.addr,4)+' bit '+hexNum(1<<f.checkFlag.bit,2));
+    if(f.next)bits.push('next pickup +'+f.next);
+    bits.push(f.kind==='sniff'?'sniff spot':'gourd/chest');
+    var name=f.itemName||(f.item?hexNum(f.item.value,4):'?');
+    out+='<div class="rs-loot-row" title="'+escH(bits.join('  \u00b7  '))+'">'
+       + '<span class="rs-loot-item">'+escH(name)+'</span>'
+       + '<span class="rs-loot-qty">\u00d7'+escH(String(f.amount))+'</span>'
+       + (code[i]?'<code class="rs-loot-code">'+escH(code[i])+'</code>':'')
+       + '</div>';
+  });
+  if(loot.length>1)
+    out+='<div class="rs-note rs-note-dim">'+loot.length+' possible rewards \u2014 this script is shared and picks one at runtime.</div>';
+  out+='</div>';
+  return out;
+}
+
 function renderScriptCard(title,meta,script,kind,idx){
   var cls=['rs-script'];
   if(kind)cls.push('rs-script-'+kind);
@@ -31,6 +68,7 @@ function renderScriptCard(title,meta,script,kind,idx){
   if(idx!=null)attrs+=' data-idx="'+escH(String(idx))+'"';
   var out='<div class="'+cls.join(' ')+'"'+attrs+'><div class="rs-h">'+escH(title)+'</div>';
   if(meta)out+='<div class="rs-note">'+meta+'</div>';
+  out+=renderLoot(script);
   out+=renderScriptTable(script);
   out+='</div>';
   return out;

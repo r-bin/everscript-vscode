@@ -19,6 +19,8 @@
 
 import { read16, read24, scriptValueToSnes, snesToRom, u8, SCRIPTS_START_ADDR_US } from './addressing';
 import { decodeScript, unresolvedNote, DecodedInstruction, StopReason } from './decoder';
+import { extractLoot, isLoot, LootFacts } from './loot';
+import { lootToEverscript } from './everscript';
 
 const MAP_LIST_ADDR_US = 0x9ffde7;
 const ENTER_SCRIPT_TABLE_OFFSET = 0x1b;
@@ -39,6 +41,8 @@ export interface ScriptRow {
     untraced: boolean;
     /** No case exists for this opcode: the walk ends here. */
     unsupported: boolean;
+    /** 0 for the script itself, 1+ for rows spliced in from an inlined call. */
+    depth: number;
 }
 
 export interface RoomScript {
@@ -50,6 +54,21 @@ export interface RoomScript {
     stopReason: StopReason;
     /** What the script does first, for a one-line preview. */
     label: string;
+    /**
+     * What this script gives, when it is a pickup. Read from the literal
+     * writes the script makes, not simulated — see loot.ts.
+     *
+     * A list, because one trigger can gate several pickups behind different
+     * calls: Dark Forest's B-trigger RCALLs a different sniff spot per room
+     * variant. Each inlined call gets its own record, as upstream does.
+     */
+    loot: LootFacts[];
+    /**
+     * The pickups above written back as Everscript, where they can be
+     * written exactly. Empty for anything that would not recompile to the
+     * same bytes.
+     */
+    everscript: string[];
 }
 
 export interface RoomTrigger extends RoomScript {
@@ -91,75 +110,95 @@ function bytesHex(rom: Uint8Array, addr: number, size: number): string {
     return out.join(' ');
 }
 
-function row(rom: Uint8Array, ins: DecodedInstruction): ScriptRow {
+function row(rom: Uint8Array, ins: DecodedInstruction, depth: number): ScriptRow {
     return {
+        depth,
         addressSnes: ins.address,
         opcode: ins.opcode,
         opcodeHex: u8(ins.opcode),
         size: ins.size,
         bytesHex: bytesHex(rom, ins.address, ins.size),
-        summary: ins.summary,
+        // The reference prints a bare "UNKNOWN INSTR"; a reader deserves to
+        // know it is a dead end rather than a mystery, so say why here.
+        summary: ins.undecodable ? `UNKNOWN INSTR — ${unresolvedNote(ins.opcode)}` : ins.summary,
         terminal: ins.terminal,
         untraced: ins.untraced,
-        unsupported: false,
+        unsupported: ins.undecodable,
     };
 }
 
+/** Upstream's recursion limit for inlined calls, and a total row budget. */
+const MAX_INLINE_DEPTH = 3;
+const MAX_ROWS = 2048;
+
+interface Walk {
+    rows: ScriptRow[];
+    /** One entry per decode scope: the script itself, then each inlined call. */
+    scopes: DecodedInstruction[][];
+}
+
 /**
- * Decode from `addr` into rows.
+ * Decode from `addr` into rows, splicing in the scripts it RCALLs.
  *
- * When the walk stops on an opcode nothing can decode, a final row is added
- * for that byte. Showing where knowledge ends is more useful than a table
- * that simply stops, and it is the same thing the reference dumper prints in
- * red before giving up.
+ * Inlining is not cosmetic. A relative call is how several rooms factor out a
+ * pickup — Dark Forest's B-trigger is nine `IF room-variant THEN RCALL sniff`
+ * pairs — so a reader that stops at the call sees a branch and no reward.
+ * Absolute calls are *not* inlined: those are shared subroutines (fades, room
+ * changes) and inlining them would bury the script in boilerplate. That split
+ * is upstream's, and it is the one that makes the listing readable.
+ *
+ * When a walk stops on an opcode nothing can decode, a row is added for that
+ * byte. Showing where knowledge ends is more useful than a table that simply
+ * stops, and it is what the reference prints in red before giving up.
  */
-function decodeRows(rom: Uint8Array, addr: number): { rows: ScriptRow[]; res: ReturnType<typeof decodeScript> } {
+function walk(rom: Uint8Array, addr: number, depth: number, out: Walk): ReturnType<typeof decodeScript> {
     const res = decodeScript(rom, addr);
-    const rows = res.instructions.map((ins) => row(rom, ins));
-    if (res.stopReason === 'unknown-opcode' && res.stoppedAt !== null) {
-        const opcode = rom[snesToRom(res.stoppedAt)] ?? 0;
-        rows.push({
-            addressSnes: res.stoppedAt,
-            opcode,
-            opcodeHex: u8(opcode),
-            size: 1,
-            bytesHex: bytesHex(rom, res.stoppedAt, 1),
-            summary: `UNKNOWN INSTR ${unresolvedNote(opcode)}`,
-            terminal: false,
-            untraced: false,
-            unsupported: true,
-        });
+    out.scopes.push(res.instructions);
+    for (const ins of res.instructions) {
+        if (out.rows.length >= MAX_ROWS) break;
+        out.rows.push(row(rom, ins, depth));
+        if (depth >= MAX_INLINE_DEPTH) continue;
+        for (const e of ins.effects) {
+            if (e.kind === 'call' && e.inline) walk(rom, e.target, depth + 1, out);
+        }
     }
-    return { rows, res };
+    return res;
 }
 
 function script(rom: Uint8Array, pointerSnes: number): RoomScript {
     const rawScriptValue = read24(rom, pointerSnes);
     const scriptAddressSnes = scriptValueToSnes(rawScriptValue);
-    const { rows, res } = decodeRows(rom, scriptAddressSnes);
-    const first = rows.find((r) => r.opcode !== 0x00);
+    const out: Walk = { rows: [], scopes: [] };
+    const res = walk(rom, scriptAddressSnes, 0, out);
+    const first = out.rows.find((r) => r.opcode !== 0x00);
+    // Loot is read per scope, not per script: each inlined call is its own
+    // pickup, and merging them would make nine sniff spots look like one.
+    const loot = out.scopes.map(extractLoot).filter(isLoot);
     return {
         scriptPointerSnes: pointerSnes,
         rawScriptValue,
         scriptAddressSnes,
-        instructions: rows,
+        instructions: out.rows,
         terminated: res.stopReason === 'terminated',
         stopReason: res.stopReason,
         label: first ? first.summary : '',
+        loot,
+        everscript: loot.map(lootToEverscript).filter((l): l is string => l !== null),
     };
 }
 
-function triggers(rom: Uint8Array, tableRom: number, length: number, tableSnes: number): RoomTrigger[] {
-    const out: RoomTrigger[] = [];
+type TriggerRow = { x1: number; y1: number; x2: number; y2: number; scriptId: number };
+
+/** The rectangle and script id of every entry in one trigger table. */
+function triggerRows(rom: Uint8Array, tableRom: number, length: number): TriggerRow[] {
+    const out: TriggerRow[] = [];
     if (!length || length < TRIGGER_ENTRY_SIZE) return out;
     if (length % TRIGGER_ENTRY_SIZE !== 0 || length > MAX_TRIGGER_ENTRIES * TRIGGER_ENTRY_SIZE) return out;
     for (let pos = 0; pos < length; pos += TRIGGER_ENTRY_SIZE) {
         const at = tableRom + pos;
-        const scriptId = rom[at + 4] | (rom[at + 5] << 8);
         out.push({
             y1: rom[at + 0], x1: rom[at + 1], y2: rom[at + 2], x2: rom[at + 3],
-            scriptId,
-            ...script(rom, tableSnes + scriptId),
+            scriptId: rom[at + 4] | (rom[at + 5] << 8),
         });
     }
     return out;
@@ -175,6 +214,8 @@ export function buildRoomScriptModel(rom: Uint8Array, mapId: number): RoomScript
     const bLength = rom[bLengthRom] | (rom[bLengthRom + 1] << 8);
     const mapscriptTableSnes = SCRIPTS_START_ADDR_US + read16(rom, SCRIPTS_START_ADDR_US);
     const enterPointerSnes = SCRIPTS_START_ADDR_US + ENTER_SCRIPT_TABLE_OFFSET + 5 * mapId;
+    const decode = (t: TriggerRow): RoomTrigger =>
+        ({ ...t, ...script(rom, mapscriptTableSnes + t.scriptId) });
 
     return {
         mapId,
@@ -191,7 +232,7 @@ export function buildRoomScriptModel(rom: Uint8Array, mapId: number): RoomScript
             enterRawValue: read24(rom, enterPointerSnes),
         },
         enter: script(rom, enterPointerSnes),
-        stepOn: triggers(rom, stepTableRom, stepLength, mapscriptTableSnes),
-        bTrigger: triggers(rom, bLengthRom + 2, bLength, mapscriptTableSnes),
+        stepOn: triggerRows(rom, stepTableRom, stepLength).map(decode),
+        bTrigger: triggerRows(rom, bLengthRom + 2, bLength).map(decode),
     };
 }

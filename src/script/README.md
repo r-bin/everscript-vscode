@@ -41,6 +41,8 @@ scripts that desynced.
 | `decoder.ts` | `decodeScript()` — walks a script into summarised instructions |
 | `names.ts` / `names.json` | The name tables, generated from `data.h` |
 | `room-scripts.ts` | A room's enter / step-on / B-trigger scripts |
+| `loot.ts` | What a pickup gives, read from the values it writes down |
+| `everscript.ts` | Writing a decoded pickup back out as `_loot(...)` |
 | `index.ts` / `index.js` | Public API and the CommonJS facade |
 
 ## The operand grammar
@@ -66,13 +68,14 @@ reproduced deliberately with a comment saying so (`0xad` shifts one value
 twice and the other not at all; one sniff-spot case tests the wrong variable).
 Improving the wording means losing the measurement, so don't.
 
-The names come from `data.h` and `sniffflags.inc`, imported by
+The names come from `data.h` and `sniffflags.inc`, plus the `LOOT_REWARD`
+enum from the sibling `everscript` compiler repo, imported by
 `tools/generate-script-names.js` into the committed `names.json` — 842 flag
-names, 235 absolute scripts, 128 NPC scripts, 126 rooms. Re-run it only when
-upstream's tables change:
+names, 235 absolute scripts, 128 NPC scripts, 126 rooms, 87 loot rewards.
+Re-run it only when those change:
 
 ```
-node tools/generate-script-names.js [path/to/data.h]
+node tools/generate-script-names.js [path/to/data.h] [path/to/everscript]
 ```
 
 The ~0.23% of summaries that differ are almost all placeholder names for
@@ -80,12 +83,53 @@ scripts nobody has named. Upstream *caches* the first placeholder it invents
 for an id across the whole dump, so which wording it settles on depends on
 decode order; these lookups are stateless and describe the call site in hand.
 
+## Loot, and why there is no simulator
+
+Pickups do not compute their reward, they *write it down*. A sniff spot or a
+chest is a B-trigger that tests an "already taken" flag, writes four literal
+values, and calls one of two global scripts to hand the item over:
+
+| address | everscript | meaning |
+|---|---|---|
+| `$2391` | `LOOT_ITEM` | what you get |
+| `$2395` | `LOOT_OBJECT` | which object in the room |
+| `$2393` | `LOOT_AMOUNT_CURRENCY` | how much money |
+| `$2461` | `LOOT_AMOUNT` | **amount − 1** before the call, **bonus for the next pickup** after it |
+
+That last row is the subtle one: the same address means two different things
+depending on when it is written, so the extractor tracks where the loot call
+happened. Reading it position-blind, as upstream's `LootData` does, loses the
+amount.
+
+**All 922 pickups in the ROM write a literal item.** Not one computes it. So
+running the game would tell us nothing reading the bytes does not, and
+`script-loot.test.js` fails if that ever stops being true.
+
+The check is unusually strong: upstream's `sniffflags.inc` was itself
+*generated* by this extraction, so it is a complete independent record of
+every sniff spot. `npm test` regenerates all **593 lines of it exactly**, in
+both directions — no missing entries and no invented ones.
+
+921 of the 922 render back as `_loot(0x16, MUSHROOM, 0d01, 0d04)`, using the
+`LOOT_REWARD` names from the sibling `everscript` compiler repo, so a vanilla
+pickup can be edited and recompiled rather than patched by hand. One does not,
+and emits nothing rather than a near-miss that would compile to a different
+item.
+
 ## Stopping is a feature
 
 `decodeScript` never guesses a length. When it meets an opcode with no case it
 stops and says so in `stopReason` / `stoppedAt`, because the alternative —
 inventing a size — produces a confident, wrong, unfalsifiable listing. That is
 exactly how the previous decoder failed.
+
+The walk is not linear, because scripts are not: an `END` ends one *path*, so
+every branch destination is recorded and the walk resumes at the next one it
+has not reached. Without that, Dark Forest's B-trigger reads as one sniff spot
+instead of fifteen. Relative calls (`RCALL`) are inlined for the same reason —
+several rooms factor a pickup out into one. Absolute calls are not: those are
+shared subroutines, and inlining them would bury the script in boilerplate.
+Both choices are upstream's.
 
 Every case in `list-rooms.cpp` is ported, so an opcode that stops the walk is
 one **SoEScriptDumper cannot decode either**. It prints those in red as
@@ -116,5 +160,6 @@ Override with `SOE_TILES_VIEWER`, `SOE_SCRIPT_DUMP`, `EVERSCRIPT_ROM`.
 - **Decoded game text.** `SHOW TEXT` reports the pointer and whether the blob
   is compressed, but not the string; that needs the text decompressor. These
   three opcodes are scored on boundaries only.
-- **Inlined RCALL bodies.** The dumper can recurse into a called script and
-  print it inline. Here a call is one row; following it is the caller's job.
+- **Item icons.** Nothing in either reference knows where the ingredient
+  sprites live, so a pickup shows its name, not its picture. Finding them is
+  new reverse-engineering, not a port.

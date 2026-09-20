@@ -305,6 +305,7 @@ SoEScriptDumper (`list-rooms.cpp`) in the sibling `SoETilesViewer` checkout.
 - Per-opcode operand layout and summary rendering
 - The name tables, generated from upstream `data.h` into `names.json`
 - A room's enter / step-on / B-trigger scripts
+- Loot extraction, and writing a pickup back out as Everscript
 
 **Folder:** `src/script/`
 
@@ -313,6 +314,7 @@ SoEScriptDumper (`list-rooms.cpp`) in the sibling `SoETilesViewer` checkout.
 - `src/script/ops-*.ts` — the ported opcode cases, split by theme
 - `src/script/decoder.ts` — `decodeScript()`
 - `src/script/room-scripts.ts` — trigger tables → decoded scripts
+- `src/script/loot.ts` — what a pickup gives, from its literal writes
 - `src/script/index.js` — CommonJS facade over `dist/`
 
 **Public API:** `require('./script')` → `{decodeScript, buildRoomScriptModel, …}`
@@ -321,8 +323,10 @@ SoEScriptDumper (`list-rooms.cpp`) in the sibling `SoETilesViewer` checkout.
 **Forbidden deps:** everything, including `shared`
 
 **Validation:** `npm run check:script` scores instruction boundaries *and*
-summary text against SoEScriptDumper's own dump of the ROM. Both floors only
-move up. Never relax a floor to make a change pass.
+summary text against SoEScriptDumper's own dump of the ROM, and
+`tests/memory/script-loot.test.js` regenerates all 593 lines of upstream's
+`sniffflags.inc` from our own loot extraction. Floors only move up. Never
+relax one to make a change pass.
 
 **Documentation:** `src/script/README.md`
 **Related:** `src/rooms/data/room-scripts.js` is the thin filesystem shim that

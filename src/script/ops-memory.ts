@@ -7,7 +7,7 @@
 // otherwise identical pairs.
 
 import { ramAddr, u8, u16 } from './addressing';
-import { Cursor, OpResult, done } from './cursor';
+import { Cursor, OpResult, ScriptEffect, done } from './cursor';
 import { isFinalInlineValue, inlineValueOf } from './expression';
 import { ramAddrToStr, ramBitToStr, ramValueToStr } from './names';
 
@@ -43,7 +43,13 @@ function setBit(c: Cursor, instr: number): OpResult {
         const bm2 = 1 << (word2 & 7);
         const invert = (type & 0x80) === 0;
         if (invert) c.addr += 1; // the 0x94 that inverts it
-        return done(c, `${ramAddr(addr)} |= ${u8(setbm)} if (${invert ? '!' : ''}${ramAddr(addr2)} & ${u8(bm2)}) else ${ramAddr(addr)} &= ~${u8(setbm)} ${readable}`.trimEnd());
+        // $22ea is the "just picked something up" latch, so a non-inverted
+        // copy from it is how a pickup records that it has been taken. That
+        // is the only shape upstream treats as a loot flag, and the only one
+        // that survived checking against the ROM.
+        const effects: ScriptEffect[] = (!invert && addr2 === 0x22ea)
+            ? [{ kind: 'setFlag', addr, bit: word & 7 }] : [];
+        return done(c, `${ramAddr(addr)} |= ${u8(setbm)} if (${invert ? '!' : ''}${ramAddr(addr2)} & ${u8(bm2)}) else ${ramAddr(addr)} &= ~${u8(setbm)} ${readable}`.trimEnd(), { effects });
     }
     if (type === 0xb0) {
         return done(c, `${ramAddr(addr)} &= ${u8(0xff & ~setbm)} (8bit mode) ${readable}`.trimEnd());
@@ -68,14 +74,36 @@ function writeVar(c: Cursor, instr: number): OpResult {
     const addr = (temp ? BASE_TEMP : BASE_MAIN) + c.u16();
     const type = c.u8();
 
-    if (isFinalInlineValue(type)) return done(c, write(addr, inlineValueOf(type)));
-    if (type === 0x82) return done(c, write(addr, c.u8()));
-    if (type === 0x84) return done(c, write(addr, c.u16()));
+    // `valuePos` is where the value's bytes start, which is what a randomizer
+    // patch would rewrite — so it is recorded even though nothing here uses
+    // it to render.
+    if (isFinalInlineValue(type)) {
+        const value = inlineValueOf(type);
+        return done(c, write(addr, value), { effects: [wrote(addr, value, 'inline', c.start + 3)] });
+    }
+    if (type === 0x82) {
+        const value = c.u8();
+        return done(c, write(addr, value), { effects: [wrote(addr, value, 'byte', c.start + 4)] });
+    }
+    if (type === 0x84) {
+        const value = c.u16();
+        return done(c, write(addr, value), { effects: [wrote(addr, value, 'word', c.start + 4)] });
+    }
 
     c.back();
     const v = c.expr();
     if (!c.ok) return done(c, `WRITE ${ramAddr(addr)} = ${v}`);
-    return done(c, write(addr, v));
+    return done(c, write(addr, v), { effects: [wrote(addr, null, 'expression', c.start)] });
+}
+
+/** A recorded write, for the loot extractor. */
+function wrote(
+    addr: number,
+    value: number | null,
+    valueType: 'word' | 'byte' | 'inline' | 'expression',
+    valuePos: number,
+): ScriptEffect {
+    return { kind: 'write', addr, value, valueType, valuePos };
 }
 
 /** Decode one memory-write opcode, or null if this module does not own it. */
@@ -93,7 +121,8 @@ export function memoryOp(c: Cursor, instr: number): OpResult | null {
 
         case 0x17: {
             const addr = BASE_MAIN + c.u16();
-            return done(c, write(addr, c.u16()));
+            const value = c.u16();
+            return done(c, write(addr, value), { effects: [wrote(addr, value, 'word', c.start + 3)] });
         }
 
         case 0x1a:

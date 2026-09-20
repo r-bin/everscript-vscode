@@ -188,6 +188,87 @@ test('untraced instructions are marked as such', () => {
     assert.strictEqual(guessed.untraced, true, '0x26 has a known length but an unverified meaning');
 });
 
+// ── loot ────────────────────────────────────────────────────────────────────
+
+// $2391 LOOT_ITEM, $2395 LOOT_OBJECT, $2461 LOOT_AMOUNT. Offsets are from
+// the $2258 base the write opcodes index against.
+const WRITE_ITEM = (v) => [0x18, 0x39, 0x01, 0x84, v & 0xff, v >> 8];
+const WRITE_OBJECT = (v) => [0x17, 0x3d, 0x01, v & 0xff, v >> 8];
+const WRITE_AMOUNT = (v) => [0x18, 0x09, 0x02, 0x84, v & 0xff, v >> 8];
+const CALL_SNIFF = [0xa3, 0x39];
+const CALL_GOURD = [0xa3, 0x3a];
+const END = [0x00];
+
+function loot(bytes) {
+    const res = script.decodeScript(romWith(bytes), AT);
+    return script.extractLoot(res.instructions);
+}
+
+test('a pickup is read from the values it writes down', () => {
+    // The shape every sniff spot in the ROM has, and nothing is executed to
+    // find it: the item, the object and the bonus are literals in the script.
+    const f = loot([].concat(WRITE_ITEM(0x0206), WRITE_OBJECT(0x16), CALL_SNIFF, WRITE_AMOUNT(4), END));
+    assert.strictEqual(f.kind, 'sniff');
+    assert.strictEqual(f.item.value, 0x0206);
+    assert.strictEqual(f.itemName, 'MUSHROOM');
+    assert.strictEqual(f.objectId, 0x16);
+    assert.strictEqual(f.amount, 1, 'no amount write means one of them');
+    assert.strictEqual(f.next, 4);
+});
+
+test('$2461 means amount before the loot call and bonus after it', () => {
+    // Same address, two meanings, told apart only by position — which is why
+    // the extractor tracks where the call happened.
+    const f = loot([].concat(
+        WRITE_ITEM(0x0206), WRITE_OBJECT(0x16), WRITE_AMOUNT(2), CALL_SNIFF, WRITE_AMOUNT(4), END));
+    assert.strictEqual(f.amount, 3, 'the pre-call write holds amount - 1');
+    assert.strictEqual(f.next, 4);
+});
+
+test('the loot call says whether it is a sniff spot or a chest', () => {
+    const base = [].concat(WRITE_ITEM(0x0200), WRITE_OBJECT(0x02));
+    assert.strictEqual(loot(base.concat(CALL_SNIFF, END)).kind, 'sniff');
+    assert.strictEqual(loot(base.concat(CALL_GOURD, END)).kind, 'gourd');
+    assert.strictEqual(loot(base.concat(END)).kind, null, 'no call, no pickup');
+});
+
+test('a pickup round-trips into Everscript the compiler accepts', () => {
+    const sniff = loot([].concat(WRITE_ITEM(0x0206), WRITE_OBJECT(0x16), CALL_SNIFF, WRITE_AMOUNT(4), END));
+    assert.strictEqual(script.lootToEverscript(sniff), '_loot(0x16, MUSHROOM, 0d01, 0d04);');
+    // _loot_chest defaults its tail arguments, so zeroes are dropped.
+    const chest = loot([].concat(WRITE_ITEM(0x0200), WRITE_OBJECT(0x02), CALL_GOURD, END));
+    assert.strictEqual(script.lootToEverscript(chest), '_loot_chest(0x02, WAX, 0d01);');
+});
+
+test('a pickup with no exact Everscript form produces none', () => {
+    // An item id outside LOOT_REWARD cannot be written back by name, and a
+    // guess would compile into a different item.
+    const f = loot([].concat(WRITE_ITEM(0x0fff), WRITE_OBJECT(0x01), CALL_SNIFF, END));
+    assert.strictEqual(f.itemName, null);
+    assert.strictEqual(script.lootToEverscript(f), null);
+});
+
+// ── branch following ────────────────────────────────────────────────────────
+
+test('the walk resumes at a branch target instead of ending at the first END', () => {
+    // SKIP 3 over an END, to code only the branch can reach. A linear reader
+    // stops at byte 3 and reports a three-byte script.
+    const res = script.decodeScript(romWith([0x04, 0x03, 0x00, 0x00, 0x00, 0x00, 0xa7, 0x0f, 0x00]), AT);
+    assert.strictEqual(res.stopReason, 'terminated');
+    assert.deepStrictEqual(res.instructions.map((i) => i.summary), [
+        'SKIP 3 (to 0x928006)', 'END (return)', 'SLEEP 14 TICKS', 'END (return)',
+    ]);
+});
+
+test('an undecodable byte is recorded and the walk carries on', () => {
+    // 0x01 has no decoding, but the branch target is still reachable.
+    const res = script.decodeScript(romWith([0x04, 0x03, 0x00, 0x01, 0x00, 0x00, 0xa7, 0x0f, 0x00]), AT);
+    assert.deepStrictEqual(res.gaps, [AT + 3]);
+    assert.strictEqual(res.stopReason, 'terminated');
+    assert.ok(res.instructions.some((i) => i.undecodable));
+    assert.ok(res.instructions.some((i) => i.summary === 'SLEEP 14 TICKS'), 'kept going past the gap');
+});
+
 // ── room script discovery ───────────────────────────────────────────────────
 
 test('a room model finds its trigger tables and decodes what they point at', () => {

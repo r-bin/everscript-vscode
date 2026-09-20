@@ -18,11 +18,15 @@ export type { Expression } from './expression';
 
 export {
     ramAddrToStr, ramBitToStr, ramValueToStr,
-    absScriptName, npcScriptName, globalScriptName, mapName, currencyName,
+    absScriptName, npcScriptName, globalScriptName, mapName, currencyName, lootRewardName,
 } from './names';
 
 export { decodeInstruction, decodeScript, unresolvedNote, opcodeHex } from './decoder';
 export type { DecodedInstruction, DecodedScript, StopReason } from './decoder';
+
+export { extractLoot, emptyLoot, isLoot } from './loot';
+export { lootToEverscript } from './everscript';
+export type { LootFacts, LootValue, ValueEncoding } from './loot';
 
 export { buildRoomScriptModel } from './room-scripts';
 export type { RoomScriptModel, RoomScriptMeta, RoomScript, RoomTrigger, ScriptRow } from './room-scripts';

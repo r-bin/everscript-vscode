@@ -21,6 +21,7 @@ const ABS_SCRIPTS = names.absScripts as Table;
 const NPC_SCRIPTS = names.npcScripts as Table;
 const GLOBAL_SCRIPTS = names.globalScripts as Table;
 const MAPS = names.maps as Table;
+const LOOT_REWARDS = names.lootRewards as Table;
 
 /** `PRIZE    ($2391)` if the address is known, else `$2391`. */
 export function ramAddrToStr(addr: number): string {
@@ -68,6 +69,17 @@ export function npcScriptName(id: number, kind = 'Short'): string {
 
 export function globalScriptName(id: number): string {
     return GLOBAL_SCRIPTS[String(id)] ?? `Unnamed Global script ${u8(id)}`;
+}
+
+/**
+ * The Everscript `LOOT_REWARD` name for an item id, or null.
+ *
+ * This is the encoder's vocabulary, not the dumper's: `WAX`, not
+ * `Wax (0x0200)`. Only a name from here round-trips back through the
+ * compiler, so a miss must stay a miss rather than fall back to a number.
+ */
+export function lootRewardName(item: number): string | null {
+    return LOOT_REWARDS[String(item)] ?? null;
 }
 
 /** Room name for a CHANGE MAP target, or empty. */

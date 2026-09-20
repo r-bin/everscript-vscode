@@ -11,7 +11,7 @@
 
 import { read8, snesToRom, u8 } from './addressing';
 import { Expression, OperandStack } from './expression';
-import { Cursor } from './cursor';
+import { Cursor, ScriptEffect } from './cursor';
 import { flowOp } from './ops-flow';
 import { memoryOp } from './ops-memory';
 import { entityOp } from './ops-entity';
@@ -34,6 +34,14 @@ export interface DecodedInstruction {
      * what it does — the summary is a working guess, not a traced fact.
      */
     untraced: boolean;
+    /** Structured side effects — what the instruction writes, tests or calls. */
+    effects: ScriptEffect[];
+    /**
+     * A placeholder for a byte nothing can decode. The walk records it and
+     * carries on at the next branch target instead of pretending the script
+     * ended there.
+     */
+    undecodable: boolean;
 }
 
 /** Why the walk stopped. */
@@ -51,6 +59,8 @@ export interface DecodedScript {
     stopReason: StopReason;
     /** Set when the walk stopped on something the decoder cannot get past. */
     stoppedAt: number | null;
+    /** Addresses where decoding could not continue and the walk jumped on. */
+    gaps: number[];
 }
 
 const MAX_BYTES = 0x2000;
@@ -75,37 +85,86 @@ export function decodeInstruction(
         operands: res.operands,
         terminal: res.terminal,
         untraced: res.untraced,
+        effects: res.effects,
+        undecodable: false,
+    };
+}
+
+/** A row standing in for a byte that has no decoding. */
+function undecodableAt(address: number, opcode: number): DecodedInstruction {
+    return {
+        address, opcode, size: 1,
+        // Worded exactly as the reference's default case, so summary parity
+        // stays a pure measurement. The explanation belongs in the UI, which
+        // has `undecodable` and `unresolvedNote()` to build it from.
+        summary: 'UNKNOWN INSTR',
+        operands: [], terminal: false, untraced: false, effects: [], undecodable: true,
     };
 }
 
 /**
- * Walk a script from `address` until it ends or the decoder runs out of
- * certainty.
+ * Walk a script from `address` into instructions.
  *
- * Stopping is a result, not a failure: `stopReason` and `stoppedAt` say
- * exactly where knowledge ran out, so a caller can show the instructions it
- * does have and be honest about the rest.
+ * The walk is not linear, because scripts are not. A script ends at an END,
+ * but an END is only the end of *one path* — code after a conditional lives
+ * past it, reachable only via the branch. So every branch destination is
+ * recorded, and on an END the walk resumes at the next one it has not
+ * reached. Without this, a Dark Forest B-trigger reads as one sniff spot
+ * instead of nine. That is the reference's behaviour, guards included.
+ *
+ * The same resumption applies to a byte nothing can decode: the walk notes it
+ * in `gaps`, emits a placeholder row, and carries on at the next branch
+ * target rather than pretending the script stopped. `stopReason` describes
+ * only how the walk finally ran out.
  */
 export function decodeScript(rom: Uint8Array, address: number): DecodedScript {
     const instructions: DecodedInstruction[] = [];
     const stack = new OperandStack();
+    const pending = new Set<number>();
+    const reached = new Set<number>();
+    const gaps: number[] = [];
     let addr = address;
+    let furthest = address;
     let stopReason: StopReason = 'max-instructions';
     let stoppedAt: number | null = null;
 
-    while (instructions.length < MAX_INSTRUCTIONS && addr - address < MAX_BYTES) {
-        if (snesToRom(addr) >= rom.length) { stopReason = 'out-of-rom'; stoppedAt = addr; break; }
-        const ins = decodeInstruction(rom, addr, stack);
-        if (!ins) { stopReason = 'unknown-opcode'; stoppedAt = addr; break; }
-        instructions.push(ins);
-        if (ins.terminal) { stopReason = 'terminated'; break; }
-        if (ins.operands.some((o) => !o.ok)) { stopReason = 'bad-operand'; stoppedAt = addr; break; }
-        if (ins.size <= 0) { stopReason = 'unknown-opcode'; stoppedAt = addr; break; }
-        addr += ins.size;
-    }
-    if (stopReason === 'max-instructions' && addr - address >= MAX_BYTES) stopReason = 'max-bytes';
+    /** The lowest recorded branch target still ahead of us, if any. */
+    const resume = (from: number): number | null => {
+        let best: number | null = null;
+        for (const t of pending) {
+            if (t <= from || reached.has(t)) continue;
+            if (best === null || t < best) best = t;
+        }
+        return best;
+    };
 
-    return { address, instructions, stopReason, stoppedAt };
+    while (instructions.length < MAX_INSTRUCTIONS && furthest - address < MAX_BYTES) {
+        if (snesToRom(addr) >= rom.length) { stopReason = 'out-of-rom'; stoppedAt = addr; break; }
+        reached.add(addr);
+        if (addr > furthest) furthest = addr;
+
+        const ins = decodeInstruction(rom, addr, stack);
+        const bad = !ins || ins.size <= 0 || ins.operands.some((o) => !o.ok);
+
+        if (ins) instructions.push(ins);
+        if (ins) for (const e of ins.effects) if (e.kind === 'branch') pending.add(e.target);
+
+        if (!bad && !ins!.terminal) { addr += ins!.size; continue; }
+
+        // End of this path, one way or another: take the next branch target.
+        if (bad) {
+            gaps.push(addr);
+            if (!ins) instructions.push(undecodableAt(addr, read8(rom, addr)));
+        }
+        const next = resume(addr);
+        if (next !== null) { addr = next; continue; }
+        if (!bad) stopReason = 'terminated';
+        else { stopReason = ins ? 'bad-operand' : 'unknown-opcode'; stoppedAt = addr; }
+        break;
+    }
+    if (stopReason === 'max-instructions' && furthest - address >= MAX_BYTES) stopReason = 'max-bytes';
+
+    return { address, instructions, stopReason, stoppedAt, gaps };
 }
 
 /**
