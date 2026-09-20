@@ -54,6 +54,8 @@ function renderRoomDetail(room){
   if(hasCoordData||room.imageUri)html+='<button class="rdf on" data-hide="hide-grid8" title="Toggle 8 px grid">8px</button>';
   if(stepOn.length||bTrigger.length)html+='<button class="rdf on" data-hide="hide-grid16" title="Toggle 16 px trigger grid">16px</button>';
   if(hasIngr)html+='<button class="rdf on" data-hide="hide-ingr" title="Toggle ingredient icons">🌿</button>';
+  if(trig.enter&&trig.enter.spawns&&trig.enter.spawns.length)
+    html+='<button class="rdf on" data-hide="hide-spawn" title="Toggle NPCs the enter script can place">npc</button>';
   html+='<button class="rdf on" id="rg-lock-btn" title="Unlock map">locked</button>';
   html+='</div></div>';
 
@@ -68,7 +70,8 @@ function renderRoomDetail(room){
     stepOn:stepOn, bTrigger:bTrigger, poi:poi,
     trigOff:trigOff, stepOnNames:stepOnNames, bTrigNames:bTrigNames,
     imageUri:room.imageUri||null, imageDims:room.imageDims||null,
-    rh:rh, mapName:room.name
+    rh:rh, mapName:room.name,
+    romSpawns:(trig.enter&&trig.enter.spawns)||[]
   });
   html+=svgResult.html;
 

@@ -100,8 +100,8 @@ function renderTransitions(script){
  * on, and the decoder walks every branch. Saying "this room contains these"
  * would be a claim nothing here supports.
  *
- * Positions are shown raw. They do not fit the trigger grid's mapping and
- * the real one is not established, so they are not drawn on the map.
+ * Positions are in the same space as a live room's `add_enemy(x, y)`, so
+ * they plot on the map alongside source-defined enemies.
  */
 function renderSpawns(script){
   var sp=(script&&script.spawns)||[];
@@ -109,10 +109,11 @@ function renderSpawns(script){
   var out='<div class="rs-spawn"><div class="rs-note rs-note-dim">'
         + sp.length+' NPC placement'+(sp.length===1?'':'s')
         + ' reachable from this script \u2014 candidates, not contents: the branch taken depends on save state.</div>';
-  out+='<table class="rs-tbl"><thead><tr><th>NPC</th><th>State</th><th>Pos (raw)</th><th>Op</th></tr></thead><tbody>';
-  sp.forEach(function(v){
-    out+='<tr><td>'+escH(String(v.npc))+'</td>'
-       + '<td>'+(v.state==null?'&ndash;':hexNum(v.state,4))+'</td>'
+  out+='<table class="rs-tbl"><thead><tr><th>Enemy</th><th>Name</th><th>#</th><th>Pos</th><th>Op</th></tr></thead><tbody>';
+  sp.forEach(function(v,i){
+    out+='<tr data-kind="spawn" data-idx="'+i+'"><td>'+escH(v.name||('index '+v.npc))+'</td>'
+       + '<td>'+escH(v.romName||'')+(v.spawner?' <span class="rs-loot-qty">spawner'+(v.quantity!=null?' \u00d7'+v.quantity:'')+'</span>':'')+'</td>'
+       + '<td>'+(v.character==null?'&ndash;':escH(String(v.character)))+'</td>'
        + '<td>'+(v.x==null?'computed':escH(v.x+', '+v.y))+'</td>'
        + '<td>'+hexNum(v.opcode,2)+'</td></tr>';
   });

@@ -9,32 +9,53 @@
 // The first two carry literal positions; the third computes them, so it
 // reports that something spawns without claiming where.
 //
-// **These are candidates, not a room's contents.** A room's enter script
-// branches on save state — the same room is reused with different enemies
-// depending on story progress — and this walks every branch. Deciding which
-// branch actually runs needs a simulated WRAM, which does not exist yet; see
+// A fourth places a spawner:
+//
+//   0xc2  Add NPC <id> spawner at <x>,<y>, count from $2433
+//
+// **The index is an `ENEMY` enum value**, which the encoder's `add_enemy`
+// settles: it emits `enemy * 2` for the opcodes that store an address
+// (0x3c, 0xa2) and the bare value for the others (0xba, 0xc2). Unshifting
+// therefore lands back on the enum, whose own comments give the character
+// record and the game's name — index 0x0b is `FLOWER_PURPLE`, character 109,
+// "Wimpy Flower".
+//
+// **Coordinates are in the same space as a live room's `add_enemy(x, y)`**,
+// because the encoder passes those arguments straight through for 0x3c and
+// 0xba. That is 8-pixel units, which is also one SVG unit in the Rooms tab,
+// so a ROM spawn and a source-defined enemy plot identically. (0xa2 instead
+// multiplies by 8 and takes expressions, so it carries no literal position.)
+//
+// **These are still candidates, not a room's contents.** A room's enter
+// script branches on save state — the same room is reused with different
+// enemies as the story moves on — and this walks every branch. Deciding
+// which branch actually runs needs a simulated WRAM; see
 // docs/room-simulation.md.
-//
-// Two things are deliberately *not* claimed here, because neither has been
-// established and a wrong answer is worse than an absent one:
-//
-//   - **What the NPC index means.** It is not a character-table index: the
-//     jungle spawns index 15, and the Wimpy Flower that appears there is
-//     character 109. The indirection has not been found.
-//   - **What the coordinates mean.** They do not fit the trigger grid's
-//     `(x - offX) * 2` mapping, and at least two other readings fit the
-//     observed range equally well. So they are reported raw.
 
 import { DecodedInstruction } from './decoder';
+import { enemyName } from './names';
+
+/** Where the spawner count is staged before a spawner is placed. */
+const ENEMY_SPAWNER_QUANTITY = 0x2433;
 
 export interface SpawnFacts {
-    /** NPC index as the opcode gives it — see the caveat above. */
+    /** `ENEMY` enum value. */
     npc: number;
+    /** The Everscript constant, e.g. `FLOWER_PURPLE`. */
+    name: string | null;
+    /** The game's own name, e.g. `Wimpy Flower`. */
+    romName: string | null;
+    /** Its record in the character table at $8EB678. */
+    character: number | null;
     /** Flags/state word, when the opcode carries one. */
     state: number | null;
-    /** Raw position bytes, or null when the script computes them. */
+    /** Position in SVG units, or null when the script computes it. */
     x: number | null;
     y: number | null;
+    /** True for 0xc2, which places a spawner rather than one enemy. */
+    spawner: boolean;
+    /** How many the spawner makes, from the last $2433 write before it. */
+    quantity: number | null;
     /** Which opcode placed it. */
     opcode: number;
 }
@@ -42,10 +63,27 @@ export interface SpawnFacts {
 /** Every NPC placement a script can reach, in walk order. */
 export function extractSpawns(instructions: readonly DecodedInstruction[]): SpawnFacts[] {
     const out: SpawnFacts[] = [];
+    let quantity: number | null = null;
     for (const ins of instructions) {
         for (const e of ins.effects) {
+            if (e.kind === 'write' && e.addr === ENEMY_SPAWNER_QUANTITY) {
+                quantity = e.value;
+                continue;
+            }
             if (e.kind !== 'spawn') continue;
-            out.push({ npc: e.npc, state: e.state, x: e.x, y: e.y, opcode: e.opcode });
+            const named = enemyName(e.npc);
+            out.push({
+                npc: e.npc,
+                name: named ? named.name : null,
+                romName: named ? named.romName : null,
+                character: named ? named.character : null,
+                state: e.state,
+                x: e.x,
+                y: e.y,
+                spawner: e.opcode === 0xc2,
+                quantity: e.opcode === 0xc2 ? quantity : null,
+                opcode: e.opcode,
+            });
         }
     }
     return out;

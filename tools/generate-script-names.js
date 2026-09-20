@@ -25,6 +25,7 @@ const HOME = process.env.HOME || '';
 const DEFAULT_DATA_H = path.join(HOME, 'Documents', 'GitHub', 'SoETilesViewer', 'SoEScriptDumper', 'data.h');
 const DEFAULT_EVERSCRIPT = path.join(HOME, 'Documents', 'GitHub', 'everscript');
 const ITEMS_EVS = path.join('in', 'core', '[group] 00_general_enums', '[group] 05_everscript', '04_items.evs');
+const SPRITES_EVS = path.join('in', 'core', '[group] 00_general_enums', '[group] 05_everscript', '03_sprites.evs');
 const OUT = path.join(__dirname, '..', 'src', 'script', 'names.json');
 
 /**
@@ -159,6 +160,40 @@ function evsEnum(text, name) {
     return out;
 }
 
+/**
+ * The ENEMY enum, which is what a spawn opcode's index actually means.
+ *
+ * Each entry carries more than a name: the comment gives the character
+ * record it maps to and that record's in-ROM name, e.g.
+ *
+ *   FLOWER_PURPLE = 0x0b, // #109, "Wimpy Flower", palette(...)
+ *
+ * so one parse yields the enum name, the character id and the game's own
+ * name for it.
+ */
+function enemyEnum(text) {
+    const body = /enum ENEMY\s*\{([\s\S]*?)\n\s*\}/.exec(text);
+    if (!body) throw new Error('enum ENEMY not found');
+    const out = {};
+    // The comment is parsed off the raw line, so stripComments must not have
+    // run on this text.
+    const re = /^\s*([A-Z][A-Z0-9_]*)\s*=\s*0x([0-9a-fA-F]+)\s*,?\s*(?:\/\/\s*(.*))?$/gm;
+    let m;
+    while ((m = re.exec(body[1])) !== null) {
+        const key = Number('0x' + m[2]);
+        if (key in out) continue;                       // first name wins
+        const note = m[3] || '';
+        const charId = /#(\d+)/.exec(note);
+        const romName = /"([^"]*)"/.exec(note);
+        out[key] = {
+            name: m[1],
+            character: charId ? Number(charId[1]) : null,
+            romName: romName ? romName[1] : null,
+        };
+    }
+    return out;
+}
+
 function main() {
     const src = process.argv[2] || DEFAULT_DATA_H;
     if (!fs.existsSync(src)) {
@@ -172,6 +207,14 @@ function main() {
     if (!sniff) console.warn('WARN: sniffflags.inc not found next to data.h; flag names will be sparse');
 
     const evsRoot = process.argv[3] || DEFAULT_EVERSCRIPT;
+    const spritesPath = path.join(evsRoot, SPRITES_EVS);
+    let enemies = {};
+    if (fs.existsSync(spritesPath)) {
+        enemies = enemyEnum(fs.readFileSync(spritesPath, 'utf8'));
+    } else {
+        console.warn(`WARN: ${spritesPath} not found; keeping the committed ENEMY names`);
+        try { enemies = require(OUT).enemies || {}; } catch { /* first run */ }
+    }
     const itemsPath = path.join(evsRoot, ITEMS_EVS);
     let lootRewards = {};
     if (fs.existsSync(itemsPath)) {
@@ -191,6 +234,7 @@ function main() {
         globalScripts: numberKeyed(text, 'globalscripts'),
         maps: numberKeyed(text, 'maps'),
         lootRewards,
+        enemies,
     };
 
     fs.writeFileSync(OUT, JSON.stringify(names, null, 1) + '\n');
@@ -204,6 +248,7 @@ function main() {
     console.log(`  globalScripts  ${count(names.globalScripts)}`);
     console.log(`  maps           ${count(names.maps)}`);
     console.log(`  lootRewards    ${count(names.lootRewards)}`);
+    console.log(`  enemies        ${count(names.enemies)}`);
 }
 
 main();

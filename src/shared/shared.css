@@ -249,6 +249,7 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .rs-exit-to{color:#d2a8ff;text-decoration:none;border-bottom:1px dotted #d2a8ff55;cursor:pointer}
 .rs-exit-to:hover{border-bottom-color:#d2a8ff}
 .rs-exit-id{color:#7d8590;font-size:10px}
+.hide-spawn .svge-spawn,.hide-spawn .rs-spawn{display:none!important}
 .rs-note.rs-err{color:#ff8d8d}
 .rs-script{margin-top:6px;padding:6px 8px;border-left:3px solid #3a3a3a;background:rgba(255,255,255,.02)}
 .rs-script-enter{border-left-color:#72b7ff}

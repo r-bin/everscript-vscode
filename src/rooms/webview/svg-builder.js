@@ -25,6 +25,7 @@ function buildRoomSvgSection(opts){
   var stepOn=opts.stepOn, bTrigger=opts.bTrigger, poi=opts.poi||[];
   var trigOff=opts.trigOff, stepOnNames=opts.stepOnNames, bTrigNames=opts.bTrigNames;
   var imageUri=opts.imageUri, imageDims=opts.imageDims, rh=opts.rh;
+  var romSpawns=opts.romSpawns||[];
 
   // Compute SVG viewport bounds. ROM header dimensions are authoritative.
   var TILE=8;
@@ -121,6 +122,25 @@ function buildRoomSvgSection(opts){
           html+='<text class="svge-btrig svge-ingr" x="'+(sv.sx+sv.sw/2)+'" y="'+(sv.sy+sv.sh/2+ifs*0.4)+'" text-anchor="middle" font-size="'+ifs+'" pointer-events="none" style="user-select:none">'+ingrEmoji+'</text>';
         }
       }
+    });
+
+    // NPCs the ROM's enter script can place.
+    //
+    // Same coordinate space as a live room's add_enemy(x, y): the encoder
+    // passes those arguments straight into these opcodes, so a ROM spawn and
+    // a source-defined enemy plot identically.
+    //
+    // Drawn hollow, because these are candidates rather than contents — the
+    // enter script branches on save state and every branch is walked. A
+    // solid marker would claim more than is known.
+    romSpawns.forEach(function(v,i){
+      if(v.x==null||v.y==null)return;
+      var nm=v.romName||v.name||('NPC '+v.npc);
+      var tip=nm+(v.name&&v.romName?' ('+v.name+')':'')
+            +(v.character!=null?'\ncharacter #'+v.character:'')
+            +(v.spawner?'\nspawner'+(v.quantity!=null?' x'+v.quantity:''):'')
+            +'\nat '+v.x+','+v.y+' \u2014 candidate, depends on save state';
+      html+='<rect class="svge-spawn" data-idx="'+i+'" data-kind="spawn" data-label="'+escH(nm)+' ('+v.x+','+v.y+')" x="'+v.x+'" y="'+v.y+'" width="1" height="1" fill="none" stroke="#e3b341" stroke-width="0.25" rx="0.3"><title>'+escH(tip)+'</title></rect>';
     });
 
     // Lua POI markers (cyan cross)

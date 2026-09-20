@@ -1655,5 +1655,727 @@
   "4108": "TICKET_FOR_EXHIBITION",
   "4112": "BAZOOKA",
   "4128": "CHOCOBO_EGG"
+ },
+ "enemies": {
+  "0": {
+   "name": "BOY",
+   "character": 0,
+   "romName": "<Boy Name>"
+  },
+  "1": {
+   "name": "DOG",
+   "character": 1,
+   "romName": "<Dog Name>"
+  },
+  "2": {
+   "name": "BEE",
+   "character": 8,
+   "romName": "Child's Pet"
+  },
+  "3": {
+   "name": "CHAMELEON",
+   "character": 9,
+   "romName": "Child's Pet"
+  },
+  "4": {
+   "name": "VILLAGER_1_1",
+   "character": 3,
+   "romName": "Girl"
+  },
+  "5": {
+   "name": "VILLAGER_1_2",
+   "character": 2,
+   "romName": "Boy"
+  },
+  "6": {
+   "name": "VILLAGER_1_3",
+   "character": 5,
+   "romName": "Worman"
+  },
+  "7": {
+   "name": "VILLAGER_1_4",
+   "character": 4,
+   "romName": "Man"
+  },
+  "8": {
+   "name": "VILLAGER_1_5",
+   "character": 7,
+   "romName": "Old woman"
+  },
+  "9": {
+   "name": "VILLAGER_1_6",
+   "character": 6,
+   "romName": "Old man"
+  },
+  "10": {
+   "name": "BONE_SNAKE",
+   "character": 105,
+   "romName": "Tar Skull"
+  },
+  "11": {
+   "name": "FLOWER_PURPLE",
+   "character": 109,
+   "romName": "Wimpy Flower"
+  },
+  "12": {
+   "name": "FLOWER_ORANGE",
+   "character": 108,
+   "romName": "Carniflower"
+  },
+  "13": {
+   "name": "RAPTOR_PURPLE",
+   "character": 110,
+   "romName": "Raptor"
+  },
+  "14": {
+   "name": "MAGGOT",
+   "character": 112,
+   "romName": "Maggot"
+  },
+  "15": {
+   "name": "MOSQUITO",
+   "character": 113,
+   "romName": "Mosquito"
+  },
+  "16": {
+   "name": "THRAXX_LEFT_ARM",
+   "character": 123,
+   "romName": "Left Claw"
+  },
+  "17": {
+   "name": "THRAXX_RIGHT_ARM",
+   "character": 122,
+   "romName": "Right Claw"
+  },
+  "18": {
+   "name": "VILLAGER_1_7",
+   "character": 10,
+   "romName": "Alchemy"
+  },
+  "19": {
+   "name": "UNKNOWN_1",
+   "character": null,
+   "romName": null
+  },
+  "20": {
+   "name": "THRAXX_HEART",
+   "character": 118,
+   "romName": "Thraxx's heart"
+  },
+  "21": {
+   "name": "FIRE_EYES",
+   "character": 12,
+   "romName": "Fire Eyes"
+  },
+  "22": {
+   "name": "EVIL_FIRE_EYES",
+   "character": 13,
+   "romName": "Evil Fire Eyes"
+  },
+  "23": {
+   "name": "BLIMP",
+   "character": 11,
+   "romName": "Harry"
+  },
+  "24": {
+   "name": "VILLAGER_2_1",
+   "character": 14,
+   "romName": "Boy"
+  },
+  "25": {
+   "name": "VILLAGER_2_2",
+   "character": 15,
+   "romName": "Girl"
+  },
+  "26": {
+   "name": "VILLAGER_2_3",
+   "character": 16,
+   "romName": "Man"
+  },
+  "27": {
+   "name": "VILLAGER_2_4",
+   "character": 17,
+   "romName": "Woman"
+  },
+  "28": {
+   "name": "VILLAGER_2_5",
+   "character": 18,
+   "romName": "Old man"
+  },
+  "29": {
+   "name": "VILLAGER_2_6",
+   "character": 19,
+   "romName": "Old woman"
+  },
+  "30": {
+   "name": "STONE",
+   "character": 23,
+   "romName": "Rock"
+  },
+  "31": {
+   "name": "STONE_ROUND",
+   "character": 24,
+   "romName": "Rock"
+  },
+  "32": {
+   "name": "PLACEHOLDER",
+   "character": 25,
+   "romName": null
+  },
+  "33": {
+   "name": "FRIPPO",
+   "character": 99,
+   "romName": "Frippo"
+  },
+  "34": {
+   "name": "SPIDER",
+   "character": 100,
+   "romName": "Widowmaker"
+  },
+  "35": {
+   "name": "SPIDER_YELLOW",
+   "character": 101,
+   "romName": "Sand Spider"
+  },
+  "36": {
+   "name": "SPIDER_GREEN",
+   "character": 102,
+   "romName": "Wood Mite"
+  },
+  "37": {
+   "name": "SPIDER_BLACK",
+   "character": 137,
+   "romName": "Death Spider"
+  },
+  "38": {
+   "name": "SKELESNAIL",
+   "character": 98,
+   "romName": "Skelesnail"
+  },
+  "39": {
+   "name": "PIRATE_ANCHOR",
+   "character": 93,
+   "romName": "Rogue"
+  },
+  "40": {
+   "name": "MONK",
+   "character": 94,
+   "romName": "Mad Monk"
+  },
+  "41": {
+   "name": "LIZARD",
+   "character": 92,
+   "romName": "Viper"
+  },
+  "42": {
+   "name": "LIZARD_BLACK",
+   "character": 91,
+   "romName": "Viper Commander"
+  },
+  "43": {
+   "name": "RAPTOR_GREEN",
+   "character": 89,
+   "romName": "Raptor"
+  },
+  "44": {
+   "name": "SALABOG",
+   "character": 106,
+   "romName": "Salabog"
+  },
+  "45": {
+   "name": "BOXER_1",
+   "character": 50,
+   "romName": "Mad Monk"
+  },
+  "46": {
+   "name": "BOXER_2",
+   "character": 49,
+   "romName": "Mad Monk"
+  },
+  "47": {
+   "name": "DRUNK_1",
+   "character": 48,
+   "romName": "Mad Monk"
+  },
+  "48": {
+   "name": "DRUNK_2",
+   "character": 47,
+   "romName": "Mad Monk"
+  },
+  "49": {
+   "name": "VILLAGER_2_7",
+   "character": 20,
+   "romName": "Advisor"
+  },
+  "50": {
+   "name": "VILLAGER_2_8",
+   "character": 21,
+   "romName": "Alchemy"
+  },
+  "51": {
+   "name": "VILLAGER_2_9",
+   "character": 36,
+   "romName": "Madronius"
+  },
+  "52": {
+   "name": "HARRY",
+   "character": 46,
+   "romName": "Harry"
+  },
+  "53": {
+   "name": "MAGMAR",
+   "character": 87,
+   "romName": "Magmar"
+  },
+  "54": {
+   "name": "MEGATAUR",
+   "character": 88,
+   "romName": "Megataur"
+  },
+  "55": {
+   "name": "LANTERN_LIGHT",
+   "character": 86,
+   "romName": "Will o' the Wisp"
+  },
+  "56": {
+   "name": "MINITAUR",
+   "character": 97,
+   "romName": "Mini-Taur"
+  },
+  "57": {
+   "name": "PYRAMID_GUARDIAN_1",
+   "character": 96,
+   "romName": "Son of Anhur"
+  },
+  "58": {
+   "name": "PYRAMID_GUARDIAN_2",
+   "character": 95,
+   "romName": "Son of Set"
+  },
+  "59": {
+   "name": "RIMSALA_GOLD",
+   "character": 83,
+   "romName": "Rimsla"
+  },
+  "60": {
+   "name": "RIMSALA_HOLDER",
+   "character": 85,
+   "romName": "Rimsla"
+  },
+  "61": {
+   "name": "VIGOR",
+   "character": 82,
+   "romName": "Vigor"
+  },
+  "62": {
+   "name": "AQUAGOTH_ENTITY",
+   "character": 74,
+   "romName": "Aquagoth"
+  },
+  "63": {
+   "name": "TENTACLE_WHIP",
+   "character": 72,
+   "romName": "Tentacle"
+  },
+  "64": {
+   "name": "SPARK",
+   "character": 75,
+   "romName": ""
+  },
+  "65": {
+   "name": "VERMINATOR",
+   "character": 79,
+   "romName": "Verminator"
+  },
+  "66": {
+   "name": "RAT",
+   "character": 80,
+   "romName": "Rat"
+  },
+  "67": {
+   "name": "FORESTDRAKE",
+   "character": 76,
+   "romName": "Timberdrake"
+  },
+  "68": {
+   "name": "STERLING",
+   "character": 77,
+   "romName": "Sterling"
+  },
+  "69": {
+   "name": "HORACE",
+   "character": 22,
+   "romName": "Horace"
+  },
+  "70": {
+   "name": "TINY",
+   "character": 45,
+   "romName": "Tiny"
+  },
+  "71": {
+   "name": "AEGIS_ENTITY",
+   "character": 71,
+   "romName": "Aegis"
+  },
+  "72": {
+   "name": "VILLAGER_3_1",
+   "character": 44,
+   "romName": "Barker"
+  },
+  "73": {
+   "name": "FOOTKNIGHT",
+   "character": 78,
+   "romName": "FootKnight"
+  },
+  "74": {
+   "name": "TENTACLE_SPIKE",
+   "character": 73,
+   "romName": "Tiny Tentacle"
+  },
+  "75": {
+   "name": "QUEEN_EVIL",
+   "character": 43,
+   "romName": "White Queen"
+  },
+  "76": {
+   "name": "QUEEN",
+   "character": 42,
+   "romName": "Camellia Bluegarden"
+  },
+  "77": {
+   "name": "DUSTER_BOT",
+   "character": 70,
+   "romName": "Mechaduster"
+  },
+  "78": {
+   "name": "GUARD_BOT",
+   "character": 69,
+   "romName": "Guardbot"
+  },
+  "79": {
+   "name": "OWL_BLACK",
+   "character": 67,
+   "romName": "Greeble"
+  },
+  "80": {
+   "name": "HEDGEHOG",
+   "character": 57,
+   "romName": "Hedgadillo"
+  },
+  "81": {
+   "name": "VILLAGER_3_2",
+   "character": 29,
+   "romName": "Legendary boy"
+  },
+  "82": {
+   "name": "VILLAGER_3_3",
+   "character": 30,
+   "romName": "Legendary girl"
+  },
+  "83": {
+   "name": "VILLAGER_3_4",
+   "character": 31,
+   "romName": "Legendary Grandma"
+  },
+  "84": {
+   "name": "KING",
+   "character": 32,
+   "romName": "Legendary King"
+  },
+  "85": {
+   "name": "VILLAGER_3_5",
+   "character": 33,
+   "romName": "Legendary Man"
+  },
+  "86": {
+   "name": "VILLAGER_3_6",
+   "character": 34,
+   "romName": "Legendary Viking"
+  },
+  "87": {
+   "name": "PROFESSOR",
+   "character": 41,
+   "romName": "Professor Ruffleberg"
+  },
+  "88": {
+   "name": "TINKER",
+   "character": 40,
+   "romName": "Tinker Tinderbox"
+  },
+  "89": {
+   "name": "SNAKE_STATUE_LEFT",
+   "character": 55,
+   "romName": "Stone Cobra"
+  },
+  "90": {
+   "name": "SNAKE_STATUE_RIGHT",
+   "character": 54,
+   "romName": "Stone Cobra"
+  },
+  "91": {
+   "name": "RIMSALA_STATUTE_ENTITY",
+   "character": 27,
+   "romName": "Statue"
+  },
+  "92": {
+   "name": "FAN_ENTITY",
+   "character": 129,
+   "romName": "Fan"
+  },
+  "93": {
+   "name": "SPEAKER_ENTITY",
+   "character": 130,
+   "romName": "Speaker"
+  },
+  "94": {
+   "name": "REVEALER_TARGET_ENTITY",
+   "character": 28,
+   "romName": "Bridge"
+  },
+  "95": {
+   "name": "CARLTRON",
+   "character": 38,
+   "romName": "Carltron"
+  },
+  "96": {
+   "name": "BOY_BLACK",
+   "character": 58,
+   "romName": "Bad Boy"
+  },
+  "97": {
+   "name": "DOG_1_BLACK",
+   "character": 51,
+   "romName": "Bad Dawg"
+  },
+  "98": {
+   "name": "HORACE_EVIL",
+   "character": 37,
+   "romName": "Horace's Twin"
+  },
+  "99": {
+   "name": "BUZZARD_BLACK",
+   "character": 52,
+   "romName": "Skullclaw"
+  },
+  "100": {
+   "name": "LANTERN_LIGHT_RED",
+   "character": 53,
+   "romName": "Will o' the Wisp"
+  },
+  "101": {
+   "name": "BOMB",
+   "character": 135,
+   "romName": "Bomb"
+  },
+  "102": {
+   "name": "GATE_BOT",
+   "character": 128,
+   "romName": "Sphere Bot"
+  },
+  "103": {
+   "name": "PUPPET_1",
+   "character": 116,
+   "romName": "Old Nick"
+  },
+  "104": {
+   "name": "PUPPET_2",
+   "character": 117,
+   "romName": "Mephista"
+  },
+  "105": {
+   "name": "FAN_BOT",
+   "character": 127,
+   "romName": "Floating Fan"
+  },
+  "106": {
+   "name": "FLOWER_BLACK",
+   "character": 107,
+   "romName": "Flowering Death"
+  },
+  "107": {
+   "name": "RAPTOR_BLACK",
+   "character": 90,
+   "romName": "Raptor"
+  },
+  "108": {
+   "name": "MUNGOLA_ENTITY",
+   "character": 115,
+   "romName": "Mungola"
+  },
+  "109": {
+   "name": "DRAKE",
+   "character": 125,
+   "romName": "Gargon"
+  },
+  "110": {
+   "name": "OGLIN",
+   "character": 56,
+   "romName": "Oglin"
+  },
+  "111": {
+   "name": "SLIME_PINK",
+   "character": 61,
+   "romName": "Red Jelly Ball"
+  },
+  "112": {
+   "name": "SLIME_GREEN",
+   "character": 62,
+   "romName": "Lime Slime"
+  },
+  "113": {
+   "name": "SLIME",
+   "character": 63,
+   "romName": "Blue Goo"
+  },
+  "114": {
+   "name": "MUMMY",
+   "character": 60,
+   "romName": "Mummy Cat"
+  },
+  "115": {
+   "name": "TUMBLING_WEED",
+   "character": 59,
+   "romName": "Tumble Weed"
+  },
+  "116": {
+   "name": "BUZZARD_1",
+   "character": 103,
+   "romName": "Bone Buzzard"
+  },
+  "117": {
+   "name": "DANCING_DEVIL_2",
+   "character": 64,
+   "romName": "Dancin' Fool"
+  },
+  "118": {
+   "name": "DANCING_DEVIL_1",
+   "character": 65,
+   "romName": "Dancin' Fool"
+  },
+  "119": {
+   "name": "MAGGOT_RED",
+   "character": 111,
+   "romName": "Gore Grub"
+  },
+  "120": {
+   "name": "OWL_GREEN",
+   "character": 66,
+   "romName": "Neo Greeble"
+  },
+  "121": {
+   "name": "RAPTOR_TEAL",
+   "character": 136,
+   "romName": "Raptor"
+  },
+  "122": {
+   "name": "MOSQUITO_BLACK",
+   "character": 114,
+   "romName": "Mosquito"
+  },
+  "123": {
+   "name": "RIMSALA",
+   "character": 84,
+   "romName": "Rimsala"
+  },
+  "124": {
+   "name": "RAT_RED",
+   "character": 81,
+   "romName": "Rat"
+  },
+  "125": {
+   "name": "FACE_ENTITY",
+   "character": 124,
+   "romName": "Face"
+  },
+  "126": {
+   "name": "VILLAGER_1_8",
+   "character": 35,
+   "romName": "Strongheart"
+  },
+  "127": {
+   "name": "MAGMAR_METAL",
+   "character": 140,
+   "romName": "Magmar"
+  },
+  "128": {
+   "name": "GUARD_BOT_INTRO",
+   "character": 68,
+   "romName": "Guardbot"
+  },
+  "129": {
+   "name": "TINKER_TWIN",
+   "character": 39,
+   "romName": "Gomi"
+  },
+  "130": {
+   "name": "BUZZARD_2",
+   "character": 104,
+   "romName": "Skullclaw"
+  },
+  "131": {
+   "name": "RIMSALA_2",
+   "character": 138,
+   "romName": "Eye of Rimsala"
+  },
+  "132": {
+   "name": "THRAXX2_HEART",
+   "character": 119,
+   "romName": "Coleoptera's heart"
+  },
+  "133": {
+   "name": "THRAXX2_LEFT_ARM",
+   "character": 121,
+   "romName": "Left Claw"
+  },
+  "134": {
+   "name": "THRAXX2_RIGHT_ARM",
+   "character": 120,
+   "romName": "Right Claw"
+  },
+  "135": {
+   "name": "CARLTRON_ROBOT",
+   "character": 141,
+   "romName": "Carltron's Robot"
+  },
+  "136": {
+   "name": "UNKNOWN_2",
+   "character": null,
+   "romName": null
+  },
+  "137": {
+   "name": "DRAKE_GREEN",
+   "character": 126,
+   "romName": "Dragoil"
+  },
+  "138": {
+   "name": "RAT_RED_HARMLESS",
+   "character": 131,
+   "romName": "Rat"
+  },
+  "139": {
+   "name": "DUSTER_BOT_2",
+   "character": 132,
+   "romName": "Mechaduster"
+  },
+  "140": {
+   "name": "TENTACLE_WHIP_2",
+   "character": 133,
+   "romName": "Tentacle"
+  },
+  "141": {
+   "name": "TENTACLE_SPIKE_2",
+   "character": 134,
+   "romName": "Tiny Tentacle"
+  },
+  "142": {
+   "name": "DOG_4_BLACK",
+   "character": 139,
+   "romName": "Dark Toaster"
+  },
+  "143": {
+   "name": "UNKNOWN_3",
+   "character": null,
+   "romName": null
+  }
  }
 }

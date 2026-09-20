@@ -307,10 +307,26 @@ test('the three NPC-placing opcodes are all reported', () => {
         0x00,
     ]), AT);
     const spawns = script.extractSpawns(res.instructions);
-    assert.deepStrictEqual(spawns, [
-        { npc: 15, state: 0x0400, x: 0x11, y: 0x1f, opcode: 0x3c },
-        { npc: 11, state: null, x: 0x49, y: 0x79, opcode: 0xba },
+    assert.deepStrictEqual(spawns.map((v) => [v.npc, v.name, v.x, v.y, v.opcode]), [
+        [15, 'MOSQUITO', 0x11, 0x1f, 0x3c],
+        [11, 'FLOWER_PURPLE', 0x49, 0x79, 0xba],
     ]);
+    // The enum's comments carry the character record and the game's name.
+    assert.strictEqual(spawns[1].romName, 'Wimpy Flower');
+    assert.strictEqual(spawns[1].character, 109);
+});
+
+test('a spawner carries the quantity staged before it', () => {
+    // add_enemy_spawner writes MEMORY.ENEMY_SPAWNER_QUANTITY ($2433) first.
+    const res = script.decodeScript(romWith([].concat(
+        [0x18, 0xdb, 0x01, 0xb7],           // WRITE $2433 = 7
+        [0xc2, 0x0b, 0x13, 0x09],           // Add NPC 0b spawner at 13,09
+        [0x00],
+    )), AT);
+    const [s0] = script.extractSpawns(res.instructions);
+    assert.strictEqual(s0.spawner, true);
+    assert.strictEqual(s0.quantity, 7);
+    assert.strictEqual(s0.name, 'FLOWER_PURPLE');
 });
 
 test('a computed spawn position is reported as absent, not guessed', () => {

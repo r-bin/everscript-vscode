@@ -274,7 +274,8 @@ export function entityOp(c: Cursor, instr: number): OpResult | null {
             const a = c.u8();
             const b = c.u8();
             const d = c.u8();
-            return done(c, `Add NPC ${u8(a)} spawner at ${u8(b)},${u8(d)}`);
+            return done(c, `Add NPC ${u8(a)} spawner at ${u8(b)},${u8(d)}`,
+                { effects: [{ kind: 'spawn', npc: a, state: null, x: b, y: d, opcode: instr }] });
         }
 
         default:

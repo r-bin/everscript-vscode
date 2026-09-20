@@ -22,6 +22,17 @@ const NPC_SCRIPTS = names.npcScripts as Table;
 const GLOBAL_SCRIPTS = names.globalScripts as Table;
 const MAPS = names.maps as Table;
 const LOOT_REWARDS = names.lootRewards as Table;
+const ENEMIES = names.enemies as Record<string, EnemyName>;
+
+/** What an ENEMY enum value names, from the encoder's own enum. */
+export interface EnemyName {
+    /** The Everscript constant, e.g. `FLOWER_PURPLE`. */
+    name: string;
+    /** Its record in the character table at $8EB678, or null. */
+    character: number | null;
+    /** The game's own name for it, e.g. `Wimpy Flower`. */
+    romName: string | null;
+}
 
 /** `PRIZE    ($2391)` if the address is known, else `$2391`. */
 export function ramAddrToStr(addr: number): string {
@@ -80,6 +91,18 @@ export function globalScriptName(id: number): string {
  */
 export function lootRewardName(item: number): string | null {
     return LOOT_REWARDS[String(item)] ?? null;
+}
+
+/**
+ * The enemy an NPC-placing opcode refers to.
+ *
+ * The index is an `ENEMY` enum value, not a character-table index: the
+ * encoder emits `enemy * 2` for the opcodes that store an address and the
+ * bare value for the others, so unshifting gets back to the enum. The enum's
+ * own comments carry the character record and the in-ROM name.
+ */
+export function enemyName(index: number): EnemyName | null {
+    return ENEMIES[String(index)] ?? null;
 }
 
 /** Room name for a CHANGE MAP target, or empty. */

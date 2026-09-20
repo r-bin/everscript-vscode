@@ -1,3 +1,29 @@
+## [0.22.0] — 2026-09-21
+
+Every NPC a script places is now named and plotted on the map.
+
+### Why this went from "unknown" to "settled" in one step
+0.21.0 reported spawns as bare indices and refused to place them, because two things were unestablished. Both were answered by reading the sibling `everscript` compiler instead of tracing the game: `add_enemy` is the function that *emits* these opcodes, so it defines them.
+
+- **The index is an `ENEMY` enum value.** The encoder emits `enemy * 2` for the opcodes that store an address (`0x3c`, `0xa2`) and the bare value for the rest (`0xba`, `0xc2`), so unshifting lands back on the enum. Its comments carry the character record and the in-ROM name: `FLOWER_PURPLE = 0x0b, // #109, "Wimpy Flower"`.
+- **Coordinates are the same space as `add_enemy(x, y)`**, which the encoder passes straight through — the same values the Rooms tab already plots live enemies at.
+- **`$2433` is `ENEMY_SPAWNER_QUANTITY`**, not a character id. That is why it is written just before each spawn.
+
+The earlier guess that the jungle's index 15 was the purple flower was wrong — 15 is the Mosquito; the Wimpy Flower is index 11.
+
+### Added
+- **1606 spawns across the ROM, 100% named**, 1603 with a character record. South jungle resolves to 7 Mosquitoes and 14 Wimpy Flowers.
+- Spawns plotted on the map, drawn **hollow** because they remain candidates, with a `npc` toggle and a tooltip giving the enum name, the game's name, the character number and the caveat.
+- The table under the enter script shows enum name, in-ROM name, character record and position.
+- `0xc2` (`add_enemy_spawner`) is now reported too, with the quantity staged in `$2433`.
+- `enemies` in `names.json` (144 entries), generated from the `ENEMY` enum.
+
+### Still not built
+The simulation itself. Which branch actually runs still needs an expression evaluator and a defensible starting WRAM, so the Rooms tab shows the reachable superset and says so. Drawing an idle animation is now **unblocked** — SoETilesViewer already decodes sprites, and the character record is known for every spawn.
+
+### Notes
+- Decoder parity unchanged: 99.992% boundaries, 99.776% summaries, 593/593 sniff flags.
+
 ## [0.21.0] — 2026-09-21
 
 Reports which NPCs a room's enter script can place. The simulation that would narrow "can" to "does" is specified but **not built** — see `docs/room-simulation.md`.

@@ -2,8 +2,8 @@
 
 > Status: **not built.** The decoder now reports which NPCs an enter script
 > *can* place; deciding which it *does* place needs the simulation described
-> here. This note says what that requires and what is still unknown, so the
-> work starts from evidence rather than from a guess.
+> here. The two things that *were* unknown — what the NPC index means and
+> what its coordinates mean — are now settled; see below.
 
 ## Why a simulation is the right tool here
 
@@ -15,8 +15,13 @@ between them with `IF` on saved flags. There is no literal answer in the
 bytes; the answer is *which branch runs*.
 
 So the decoder currently reports the **superset**: every NPC placement
-reachable by any branch. 734 of them across 103 rooms, 707 with a literal
-position. That is honest and useful, but it is not the room.
+reachable by any branch — 1606 across the ROM, all of them named. That is
+honest and useful, but it is not the room.
+
+A lesson worth keeping: two of the three unknowns here were answered by
+reading the *encoder*, not by tracing the game. This repo sits between an
+encoder and a decoder, and when the question is "what does this field mean",
+the side that writes the bytes usually says so outright.
 
 ## What a simulation needs
 
@@ -42,59 +47,60 @@ avoiding. Whatever it uses has to be visible in the UI and switchable.
 state the model does not carry. The result should count them and say so,
 rather than picking a path.
 
-## What is still unknown
+## Settled — the encoder answered both
 
-### The NPC index does not name a character
+Both unknowns in the first version of this note were answered by reading the
+sibling `everscript` compiler rather than by tracing. `add_enemy` is the
+function that *emits* these opcodes, so it defines them:
 
-The jungle (map `0x38`) spawns `npc 15` seven times, and the enemy that
-appears there is the **Wimpy Flower**, which is character **109**. So the
-index in the script is not a character-table index, and the indirection has
-not been found.
+```
+fun add_enemy(enemy:ENEMY, x, y, flags:FLAG_ENEMY) {
+    code(0x3c, enemy * 0x02, flags, x, y)      // literal x,y, with flags
+    code(0xba, enemy,        x, y)             // literal x,y, no flags
+    code(0xa2, enemy * 0x02, flags, calculate(x * 8), calculate(y * 8))
+}
+fun add_enemy_spawner(enemy:ENEMY, x, y, quantity) {
+    MEMORY.ENEMY_SPAWNER_QUANTITY = quantity
+    code(0xc2, enemy, x, y)
+}
+```
 
-Ruled out so far:
+**The index is an `ENEMY` enum value.** `enemy * 2` for the opcodes that
+store an address, the bare value for the rest — so unshifting lands back on
+the enum. Its entries carry the character record and the in-ROM name in their
+comments:
 
-| Candidate | Result |
-|---|---|
-| Character table index | No — 15 ≠ 109 |
-| The map blob's "extras" table | No — those are CHR descriptors ([map_encoding.md](map-format/map_encoding.md)) |
-| SoETilesViewer's model | It reads characters and sprites but has no map→NPC relationship |
+```
+FLOWER_PURPLE = 0x0b, // #109, "Wimpy Flower", palette(...)
+MOSQUITO      = 0x0f, // #113, "Mosquito", slash(1-3=fly right?)
+```
 
-`$2433` is written immediately before each `0x3c`, with a different small
-value per spawn (5, 6, 7, 9, 10 in the jungle). That is the strongest lead:
-it is set per spawn, so it carries something the spawn needs.
+All **1606 spawns in the ROM resolve to a name**, 1603 of them to a character
+record. The earlier guess that the jungle's index 15 was the flower was
+wrong: 15 is the Mosquito, and the Wimpy Flower is the `0xba` spawn at index
+11.
 
-**The character table itself is confirmed**: base `$8EB678`, stride 74 bytes,
-and record 109 matches the editor exactly on palette (`0xb1ab`), HP (18),
-aggro range (70) and `anim_stand` (`0x495e`). Porting it from
-`SoETilesViewer/characterdata.h` is straightforward once the index is known.
+**Coordinates are the same space as `add_enemy(x, y)`** — the encoder passes
+those arguments straight into `0x3c` and `0xba`. The Rooms tab already plots
+source-defined enemies at those values, one SVG unit each, so ROM spawns plot
+identically. `0xa2` multiplies by 8 and takes expressions, so it still
+carries no literal position.
 
-### The coordinate space is not established
+**`$2433` is `ENEMY_SPAWNER_QUANTITY`**, which is why it is written just
+before a spawn. It is the spawner's count, not a character id.
 
-Spawn positions do not fit the trigger grid. Map `0x38` is 83×91 metatiles
-with `offX 17, offY 11`, so triggers map as `(x - offX) * 2` into a 166×182
-SVG. Spawn coordinates reach x 117, y 125, which overflows that mapping but
-fits at least two others equally well (`svg = x`, or an unoffset half-scale).
-Nothing distinguishes them yet, so positions are reported raw and **not drawn
-on the map** — a marker in the wrong place is worse than no marker.
+## What is still missing
 
-## What would settle both
-
-The same approach that solved the object stamps and narrowed the icons: a
-Mesen trace. Break on the routine `0x3c` calls and watch
-
-1. what it reads to turn index 15 into a character — that gives the
-   indirection and probably the meaning of `$2433`;
-2. what it writes as the entity's position — comparing that against the
-   screen position gives the coordinate space.
-
-One trace of entering the South jungle should answer both, since the flowers
-spawn on entry.
+Only the simulation itself: the expression evaluator and the starting WRAM
+described above. Until then the Rooms tab shows the superset of reachable
+spawns and labels it as such.
 
 ## Then: drawing them
 
 `SoETilesViewer` already decodes sprites — `spriteinfo.h` (`SpriteChunk`:
 flags, x, y, block), `spriteblock.h`, and `characterdata.h`'s animation
 pointers (`anim_stand` and friends). So rendering an idle animation is a
-**port**, not new reverse engineering, once the character is identified. That
-is a separate piece of work from the simulation and should not be mixed into
-it.
+**port**, not new reverse engineering. The character is now identified for
+every spawn, so this is unblocked: `enemyName(index).character` gives the
+record, and record 109's `anim_stand` is `0x495e`. It is a separate piece of
+work from the simulation and should not be mixed into it.
