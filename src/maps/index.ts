@@ -49,5 +49,7 @@ export { drawCollisionOverlay, PLANE_COLORS } from './collision-overlay';
 export type { CollisionOverlayOptions } from './collision-overlay';
 export { classifyRoom, buildLegend, buildSummary, GATE_BLOCKS } from './overlay-features';
 export type { RoomFeatures, LegendItem, ObjectRect, TileXY } from './overlay-features';
+export { parseObjectStamp, objectStampSignature } from './object-stamps';
+export type { ObjectStamp } from './object-stamps';
 export { drawString3x5, drawLabelInRect, textWidth3x5 } from './font';
 export type { Rgba8, LabelAnchor } from './font';

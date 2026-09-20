@@ -79,6 +79,8 @@ export interface RoomData {
     payloadBlocks: { block1: PayloadBlock; block2: PayloadBlock; block3: PayloadBlock };
     metatileCount: number;
     baseMetatile: number;
+    /** File offset of the Section 3 object area; object stamp pointers are relative to it. */
+    objectArea: number;
     /** `[y][x]` metatile IDs (WRAM offsets, 8-byte aligned from baseMetatile). */
     layer1MetatileIds: number[][];
     /** `[y][x]` Layer 1 (canopy / BG2) VRAM tilemap words. */
@@ -326,6 +328,7 @@ export function decodeRoom(rom: Uint8Array, roomId: number): RoomData {
         payloadBlocks: { block1: layout.block1, block2: b2, block3: b3 },
         metatileCount,
         baseMetatile,
+        objectArea: layout.objectArea,
         layer1MetatileIds,
         layer1VramWords,
         layer2VramWords,

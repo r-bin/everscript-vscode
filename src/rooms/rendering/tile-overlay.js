@@ -89,35 +89,34 @@ function buildDrift(collisionWords) {
 /**
  * Section 3 map objects and their states.
  *
- * Only the fields that decode reliably are surfaced. The object record itself
- * — count, `maxState`, and per state `width`, `tileX`, `tileY` and the
- * `metatileId` pointer — matches the ROM bytes exactly. What that pointer
- * *points at* does not: see `stampDecoded` below.
+ * The extent comes from `parseObjectStamp`, which reads the tile mask upstream
+ * skips — see src/maps/object-stamps.ts for why, and for what is still not
+ * decoded (the metatile words, hence no previews).
  */
-function buildObjects(room) {
+function buildObjects(rom, room) {
     return room.objects.map((obj) => ({
         index: obj.objectIndex,
         maxState: obj.maxState,
-        states: obj.states.map((s) => ({
-            state: s.state,
-            x: s.tileX,
-            y: s.tileY,
-            width: s.width,
-            w: s.targetWidth,
-            h: s.targetHeight,
-            metatileId: s.metatileId,
-            tiles: s.metatiles.length,
-            // Whether the dereferenced stamp table produced metatile IDs that
-            // exist in this room's Block 3 table. Across all 127 vanilla
-            // rooms this is false for every one of 2836 states, which is why
-            // the Rooms tab shows no state previews and cannot apply a state:
-            // the stamp payload format is not decoded yet, upstream included.
-            // See docs/map-port-gap-analysis.md gap 1.9.
-            stampDecoded: s.metatiles.length > 0 && s.metatiles.every((m) => {
-                const i = (m - room.baseMetatile) / 8;
-                return Number.isInteger(i) && i >= 0 && i < room.metatileCount;
-            }),
-        })),
+        states: obj.states.map((st) => {
+            const stamp = maps.parseObjectStamp(rom, room.objectArea, st.metatileId);
+            return {
+                state: st.state,
+                x: st.tileX,
+                y: st.tileY,
+                w: stamp.valid ? stamp.tw : 1,
+                h: stamp.valid ? stamp.th : 1,
+                tiles: stamp.tileCount,
+                metatileId: st.metatileId,
+                /** False when the stamp record does not parse — extent unknown. */
+                stampValid: stamp.valid,
+                /**
+                 * Identical signatures mean identical stamps. Lets the UI hide
+                 * objects whose states differ only in where they sit, which
+                 * with the 81% that have a single state is most of them.
+                 */
+                stampSig: maps.objectStampSignature(stamp),
+            };
+        }),
     }));
 }
 
@@ -213,7 +212,7 @@ function buildRoomTileOverlay(rom, roomId, originX, originY, layer, overlay) {
         imageHeight: height,
         collisionTiles: collision.painted,
         drift: buildDrift(room.collisionWords),
-        objects: buildObjects(room),
+        objects: buildObjects(buf, room),
         grass: room.cuttableGrass.tiles.map((t) => ({ x: t[0], y: t[1] })),
         grassWarnings: room.cuttableGrass.warnings,
         elevationPlanes: room.elevationPlanes,

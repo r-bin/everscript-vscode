@@ -1,6 +1,6 @@
 # Map Data Port & Rooms Tab UX — Gap Analysis
 
-> Status: living document, last updated 2026-09-20 (post v0.12.0).
+> Status: living document, last updated 2026-09-20 (post v0.13.0).
 > See the `map-format` skill before acting on anything here — it has the
 > "port, don't re-derive" ground rules this document assumes.
 
@@ -11,49 +11,87 @@
 | Grid misaligned with the map | **Confirmed real, 54 of 127 rooms.** A trigger at the map edge widens the SVG viewBox past the map (`x2 = sx+sw+1`), and the map image was a CSS-stretched `<img>` filling the canvas — so it was scaled to the widened box and the grid drifted 1–3% across the map (up to 3.3% on 0x10). The image is now an SVG `<image>` placed at the map's own extent in viewBox units, sharing one coordinate system with the grid, so it cannot drift. Regression-tested. |
 | No export of the current view | `export png` in the top bar saves exactly what is on screen — same layer, same overlay flags — via a save dialog. Distinct from `everscript.exportRoomMaps`, which asks for scope and layer up front. |
 | No pinch zoom | Trackpad pinch (a `ctrlKey` wheel event in Chromium) zooms anchored on the cursor, so the map does not walk away from what you were looking at. The zoom buttons now anchor on the viewport centre for the same reason. |
-| Objects listed as a flat table | Replaced by a collapsible browser: one row per object, its states inside, load state marked, clicking a state highlights its anchor on the map. Previews and state switching are **not** delivered — see 1.9. |
+| Objects listed as a flat table | Replaced by a collapsible browser. Superseded in v0.13.0 by a linked list — see below. |
 
-## New: 1.9 The object stamp payload is not decoded
+## Closed in v0.13.0
 
-**This blocks state previews and "show the map with this object state applied",
-both of which were asked for.** Recording it because the failure is specific and
-the evidence is cheap to re-derive.
+| Gap | Outcome |
+|---|---|
+| Object stamp header undecoded | Solved — `[tw][th][mask][words]`, see 1.9. Upstream misses the mask byte. |
+| Objects not linked to the map | The object rectangles are now SVG hit targets over the baked raster: hover to highlight, click to select the list row (and scroll it into view), click a row or state chip to highlight the rectangle. |
+| Object list unreadable at 13+ objects | Flat table with a state chip row per object, styled like the trigger tables with a blue section rule. A "hide boring" filter drops objects with nothing to pick between — single-state, or several states with byte-identical stamps. That is 81.7% of them. |
+| v0.12.0 said box extents were guessed | **Wrong, corrected.** `tw`/`th` are read correctly; the boxes were always right. See 1.9. |
 
-A Section 3 object record parses cleanly and matches the ROM bytes exactly:
-`max_state`, then per state `width`, `tile_x`, `tile_y`, `metatile_id`. Verified
-by hand against room 0x34's object area (`01 01 05 05 12 00` → object 0,
-one state, anchor (5,5), stamp pointer 0x0012).
+## 1.9 Object stamp records: header solved, payload not (updated v0.13.0)
 
-What `metatile_id` *points at* is the problem. `dump_room.py` — and therefore
-this port — reads `[target_width][target_height]` then `tw*th` 16-bit words at
-`+2`. Those words are not metatile IDs: **0 of 2836 object states across all
-127 vanilla rooms** yield a full set of IDs that exist in their own room's
-Block 3 table (`(id - baseMetatile) / 8` within `[0, metatileCount)`). Not "some
-rooms" — none.
+**Correction to what v0.12.0 said here.** That entry claimed the blue object
+stamp boxes have "a guessed extent". That was wrong: `target_width` and
+`target_height` are read at `+0`/`+1` of the stamp record and are correct, in
+upstream and in the port. The boxes have always been the right size in the
+right place. Only the *contents* of the record were undecoded, and half of
+that is now solved.
 
-Hypotheses tested and rejected:
+### Solved: the record header
+
+The record a state's `metatile_id` points at is:
+
+```
+[tw: 1][th: 1][mask: ceil(tw*th/8) bytes][word: 2] * popcount(mask)
+```
+
+`dump_room.py` reads `tw*th` words starting at `+2`, missing the mask
+entirely — so it over-reads and every word lands one or more bytes early.
+`src/maps/object-stamps.ts` reads it correctly. Evidence:
+
+- Room 0x2c has a single object with 11 states whose records are contiguous,
+  so each record's exact length is pinned by the next pointer. Lengths run
+  7, 5, 5, 5, 7, 11, 11, 9, 7, 11 — and `2 + ceil(tw*th/8) + popcount*2`
+  predicts **all ten gaps exactly**, including the 9 (a 2×2 footprint with a
+  3-bit mask, `0x07`).
+- Across all 127 rooms, the formula explains **78.6%** of the 2713 records
+  whose length is pinned that way. The remainder are cases where an
+  unreferenced record sits in the gap, so the "length" is not actually known.
+  Solving for the mask length per record yields `ceil(tw*th/8)` in 2048 of
+  2132 cases.
+
+### Not solved: what the 16-bit words mean
+
+Rejected, with numbers:
 
 | Hypothesis | Result |
 |---|---|
-| Words start at `+3` (one flag byte after the dimensions) | Exact for room 0x34 — all 4 words resolve, and the 11-byte record stride matches `2+1+4*2`. But only 3.1% overall. |
-| Words start at `+4` | 0.0%. |
-| `[tw][th][bitmask…][words for set bits]` — the `+2` byte is dominated by 0x1/0x3/0xf/0x3f/0xff, which are `2^n-1` | Record size predicts the next record's offset **77.5%** of the time, so the structure is close — but still only 3.5% of word sets resolve, and **4.1% even where the stride check passes**, so the stride agreement is mostly small-record coincidence. |
-| `metatile_id` is itself the metatile to stamp, not a pointer | 8-aligned in 12.3% of states, in range in 0.6%. |
+| Absolute metatile IDs, `(w - baseMetatile) / 8` | 0 of 2836 states fully resolve |
+| Already relative, index = `w / 8` | 43.4% resolve with the mask model — better, but far from all |
+| Words start at `+3` (a single flag byte) | Exact for room 0x34, 3.1% overall |
+| Words start at `+4` | 0% |
+| `metatile_id` is itself the metatile, not a pointer | 8-aligned in 12.3%, in range in 0.6% |
 
-**Consequences beyond the missing feature:** `target_width` / `target_height`
-come from the same undecoded table, and they are what sizes the blue object
-stamp boxes in the overlay — so those boxes are the right *anchor* and a
-guessed *extent*. The Rooms tab says so in the object section rather than
-presenting them as exact. Upstream's `render_map.py` has the same issue; our
-overlay is pixel-identical to it, so this is inherited, not introduced.
+The obvious oracle does not work either: an object's state 0 is its load
+state, so stamping it *should* reproduce the decoded grid — it does not, for
+any mapping (best 6 of 8522 tiles). The likely reason is that the Markov grid
+is base terrain and the engine stamps every object's initial state over it at
+load, so the grid never contained the pre-stamp tiles to compare against.
 
-This is upstream reverse-engineering, not a porting task: it wants a trace of
-`$90A5D0` (the metatile stamp routine) against a known object, which is the
-sibling repo's tooling, not this one's. `docs/map-format/map_objects.md` §4
-documents the *record*, not the target table — and its own "Total states =
-max_state + 1" line is wrong too (0 of 1748 records have a plausible extra
-descriptor; the record-size formula `1 + max_state*5` in the same section is
-the correct one).
+Without an oracle, any mapping that "looks plausible" is unfalsifiable, so the
+Rooms tab renders no state previews and does not paint a state onto the map.
+It shows the extent and mask, which are solid, and says which part is not.
+
+Cracking this wants a trace of `$90A5D0` (the metatile stamp routine) against
+a known object — sibling-repo tooling, upstream research rather than porting.
+
+### Also wrong upstream: `max_state + 1`
+
+`docs/map-format/map_objects.md` §4 says "Total states = max_state + 1". It is
+not: 0 of 1748 records have a plausible extra descriptor (an extra state would
+sit at the same anchor as state 0 essentially always; it never does). The
+record-size formula in the same section, `1 + max_state*5`, is the correct one,
+and both upstream and the port follow that.
+
+### Distribution, for anyone building UI on this
+
+81.1% of the 1748 objects have a single state. 0.6% have several states that
+stamp byte-identical records. Only 18.3% have states that actually differ —
+which is why the Rooms tab has a "hide boring" filter.
 
 ## Closed in v0.11.0
 

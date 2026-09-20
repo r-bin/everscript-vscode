@@ -1,3 +1,19 @@
+## [0.13.0] — 2026-09-20
+
+### Correction to 0.12.0
+That release said the blue object stamp boxes have "a correct anchor and a guessed extent". **That was wrong.** `target_width`/`target_height` are read at `+0`/`+1` of the stamp record and are correct, upstream and here — the boxes have always been the right size in the right place. Only the record's *contents* were undecoded, and half of that is now solved.
+
+### Added
+- **Object stamp header decoded.** The record a state points at is `[tw][th][mask: ceil(tw*th/8) bytes][one 16-bit word per set mask bit]`. Upstream's `dump_room.py` misses the mask and reads `tw*th` words from `+2`, so every word lands early — which is why none of them ever resolved. Verified on room 0x2c, whose 11 contiguous stamp records pin their own lengths: the formula predicts all ten pointer gaps exactly, including a 2×2 footprint with a 3-bit mask. Across all 127 rooms it explains 78.6% of records whose length is pinned. (`src/maps/object-stamps.ts`, with unit tests.)
+- **Objects linked to the map, both ways.** The object rectangles are now SVG hit targets sitting exactly over the ones baked into the raster: hover highlights, clicking one selects its row and scrolls it into view, and clicking a row or a state chip highlights the rectangle.
+- **Object list rebuilt** as a flat table styled like the trigger tables above it, with a blue section rule: one row per object, anchor, extent, then a chip per state. Chips select; the load state is state 0.
+- **`hide boring` filter.** 81.1% of the 1748 objects in the ROM have a single state, and another 0.6% have several states that stamp byte-identical records — so only 18.3% have anything to choose between. The filter hides the rest. (You were right about the sniff spots.)
+
+### Still not delivered: state previews, and painting a state onto the map
+The 16-bit words inside the stamp record remain undecoded. They are not absolute metatile IDs, not `baseMetatile`-relative, and index = `word/8` only resolves 43.4% of the time. The obvious oracle fails too: an object's state 0 is its load state and *should* reproduce the decoded grid, but matches 6 of 8522 tiles under the best mapping — almost certainly because the Markov grid is base terrain and the engine stamps initial states over it at load, so the pre-stamp tiles were never in the grid to compare against.
+
+With no oracle, a mapping that merely "looks plausible" cannot be falsified, so there is nothing honest to draw in a thumbnail. Full numbers in `docs/map-port-gap-analysis.md` §1.9. Solving it wants a trace of `$90A5D0` against a known object — sibling-repo tooling.
+
 ## [0.12.0] — 2026-09-20
 
 ### Fixed

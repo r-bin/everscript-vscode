@@ -460,5 +460,59 @@ test('switching one pass off changes only that pass', () => {
     assert.deepStrictEqual(Array.from(noGrass), Array.from(full), 'no grass here, so no change');
 });
 
+// ── object-stamps.ts ────────────────────────────────────────────────────────
+
+/**
+ * Build a stamp record: [tw][th][mask bytes][words]. The mask is what upstream
+ * skips, which is why its word reads land one byte early and never resolve.
+ */
+function stampRom(tw, th, maskBytes, words) {
+    const bytes = [tw, th].concat(maskBytes);
+    for (const w of words) bytes.push(w & 0xff, (w >> 8) & 0xff);
+    const rom = new Uint8Array(64);
+    rom.set(bytes, 8);
+    return rom;
+}
+
+test('parseObjectStamp reads the tile mask and only the words it selects', () => {
+    // 2x2 footprint, mask 0b0111 -> three tiles stamped, three words.
+    const rom = stampRom(2, 2, [0x07], [0x0020, 0x0030, 0x0060]);
+    const st = maps.parseObjectStamp(rom, 8, 0);
+    assert.ok(st.valid);
+    assert.strictEqual(st.tw, 2);
+    assert.strictEqual(st.th, 2);
+    assert.strictEqual(st.tileCount, 3);
+    assert.deepStrictEqual(st.words, [0x0020, 0x0030, 0x0060]);
+    // 2 header + 1 mask + 3*2 words. This is the number that has to match the
+    // next record's offset, and does for room 0x2c's eleven states.
+    assert.strictEqual(st.byteLength, 9);
+});
+
+test('parseObjectStamp uses ceil(tiles/8) mask bytes', () => {
+    const rom = stampRom(3, 4, [0xff, 0x0f], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    const st = maps.parseObjectStamp(rom, 8, 0);
+    assert.strictEqual(st.mask.length, 2, '12 tiles need two mask bytes');
+    assert.strictEqual(st.tileCount, 12);
+    assert.strictEqual(st.byteLength, 2 + 2 + 24);
+});
+
+test('parseObjectStamp rejects records that cannot be stamps', () => {
+    // A mask selecting more tiles than the footprint holds is not a stamp.
+    assert.strictEqual(maps.parseObjectStamp(stampRom(1, 1, [0xff], [1]), 8, 0).valid, false);
+    assert.strictEqual(maps.parseObjectStamp(stampRom(0, 4, [0x01], [1]), 8, 0).valid, false);
+    // Out of bounds rather than throwing.
+    assert.strictEqual(maps.parseObjectStamp(new Uint8Array(4), 0, 100).valid, false);
+});
+
+test('objectStampSignature distinguishes stamps but ignores where they sit', () => {
+    const a = maps.parseObjectStamp(stampRom(2, 1, [0x03], [0x10, 0x20]), 8, 0);
+    const b = maps.parseObjectStamp(stampRom(2, 1, [0x03], [0x10, 0x20]), 8, 0);
+    const c = maps.parseObjectStamp(stampRom(2, 1, [0x03], [0x10, 0x28]), 8, 0);
+    assert.strictEqual(maps.objectStampSignature(a), maps.objectStampSignature(b));
+    assert.notStrictEqual(maps.objectStampSignature(a), maps.objectStampSignature(c));
+    // An unparseable record has no signature, so it never counts as identical.
+    assert.strictEqual(maps.objectStampSignature(maps.parseObjectStamp(new Uint8Array(4), 0, 0)), '');
+});
+
 console.log('\n' + (passed + failed) + ' run: ' + passed + ' passed, ' + failed + ' failed');
 if (failed) process.exit(1);

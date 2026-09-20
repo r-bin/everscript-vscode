@@ -133,8 +133,14 @@ function setupLayerButtons(panel,room){
 /** `rgb()` string for a legend swatch. */
 function rgbCss(c){return 'rgb('+c[0]+','+c[1]+','+c[2]+')';}
 
+// Last payload from the host. Object focus and the "hide boring" toggle only
+// change how this is presented, so they redraw from here instead of asking the
+// host to render the room again.
+var _lastRomData=null;
+
 /** Render the ROM-derived summary, legend and tables below the map. */
 function renderRomDataSections(ov){
+  _lastRomData=ov;
   var panel=document.getElementById('room-detail');
   if(!panel)return;
   var old=panel.querySelector('.rs-romdata');
@@ -195,7 +201,9 @@ function renderRomDataSections(ov){
 
   h+='</div>';
   panel.insertAdjacentHTML('beforeend',h);
-  setupObjectStateButtons(panel,ov.objects);
+  setupObjectStateButtons(panel,ov.objects,function(){
+    if(_lastRomData)renderRomDataSections(_lastRomData);
+  });
 }
 
 function romRow(name,count,detail){
