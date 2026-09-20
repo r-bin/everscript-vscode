@@ -1,3 +1,16 @@
+## [0.8.0] — 2026-09-20
+
+### Added
+- **The Rooms tab now shows the actual rendered map**, not a collision approximation. `render_map.py`'s graphics pipeline is ported to TypeScript: SNES palette extraction (`$9CC322`), CHR tile graphics decompression (`$8CC88C`/`$8CC9C0`, both the uncompressed-word and dual-stream nibble-command encodings), 4bpp planar pixel decoding with hardware flips, VRAM tilemap layer rendering, and SNES Mode 1 compositing (main/subscreen selection, per-tile priority, CGADSUB add/half-add/subtract colour math).
+  - **Output is pixel-identical to `render_map.py`** — verified across 9 rooms spanning 320×256 to 2048×1120, all 1.9M+ pixels matching on room 0x38. The render comparison is part of `npm run check:maps`, dumping raw RGBA from both sides so neither PNG encoder is in the way.
+  - `src/maps/png.ts` encodes PNGs with Node's `zlib`, so the host hands the webview a `data:` URI that slots into the existing room-image layer. A ROM render displays at full brightness, unlike the dimmed static screenshots it replaces.
+  - Renders are cached per room (12 most recent): ~146ms cold for the largest room, ~2ms warm.
+- **Collision overlay now shows real sub-tile geometry** instead of uniform squares — slopes render as the triangles they actually block, half-blocks as halves — coloured per elevation plane (blue/red/green/purple for planes 0–3, matching `render_map.py`). Drift tiles are detected and marked. Multi-plane rooms like 0x06 now render all four plane colours. Toggled by a `collision` button, off by default so the map is visible.
+
+### Fixed
+- Filter buttons never synced their initial state: a button rendered without `.on` would read as off while its content was still shown, because the click handler only toggled. Initial state is now applied on render.
+- `tsconfig.json` was missing `types: ["node"]`, so any use of `Buffer`/`zlib` failed `npm run typecheck` despite being valid in a Node extension host.
+
 ## [0.7.0] — 2026-09-20
 
 ### Added

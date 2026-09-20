@@ -28,9 +28,10 @@ The root `tsconfig.json` is typecheck-only, so this domain has its own emit conf
 (`tsconfig.maps.json` → `src/maps/dist/`, via `npm run build:maps`). Consumers
 `require('../maps')`, which is a thin JS facade over the compiled output.
 
-Not yet ported: `render_map.py` (CHR graphics, palettes, PNG compositing) and
-`encode_room.py` (the write path). Those remain Python-only upstream. The Rooms tab
-paints a collision overlay rather than real tile graphics for exactly this reason.
+`render_map.py`'s graphics pipeline is ported too (`palette.ts`, `chr.ts`, `render.ts`):
+palettes, CHR decompression, 4bpp planar decoding, and Mode 1 compositing. Its output is
+**pixel-identical** to the Python renderer, and `npm run check:maps` verifies that by
+dumping raw RGBA from both sides — so neither PNG encoder can hide a difference.
 
 ## The two original instances (do not repeat this pattern a third time)
 
@@ -71,9 +72,10 @@ parser was explicitly evaluated and rejected for that specific case (see
 
 ## Where the extension consumes it
 
-- `src/rooms/rendering/tile-overlay.js` turns a decoded collision grid into SVG path
-  data (one path per visual class — a 128x70 room is 8960 tiles, so per-tile DOM nodes
-  are not an option).
+- `src/rooms/rendering/tile-overlay.js` renders the room to a PNG data URI and builds
+  the collision overlay as SVG paths grouped by fill colour (a 128x70 room is 8960
+  tiles, so per-tile DOM nodes are not an option). It caches the 12 most recent renders:
+  ~146ms cold for the largest room, ~2ms warm.
 - `src/extension.js` handles a `requestRoomTiles` message from the Rooms tab webview and
   replies with `roomTiles`. Decoding is **on demand per selected room**: the rooms tree
   JSON carries no tile data, because 127 rooms of it would bloat every render.
@@ -81,15 +83,20 @@ parser was explicitly evaluated and rejected for that specific case (see
 
 ## Still Python-only upstream
 
-`render_map.py` (CHR graphics decompression, palettes, Mode 1 compositing, PNG output)
-and `encode_room.py` (the write path, with the never-grows guarantee) are **not ported**.
-If a feature needs real tile graphics or ROM writing, that is a new, substantial piece of
-work — and the repo-placement/IPC/packaging options in `everscript`'s
-`docs/map_editor_vscode_plan.md` §3 become live questions again rather than settled ones.
-That document's §3.2 recommends keeping ROM logic in Python behind IPC; this repo went
-the other way for the *decode* path specifically, because a validated port removes the
-Python runtime dependency for extension users. Don't read the port as a decision that
-the render/write paths must also be ported.
+**`encode_room.py` — the write path**, with its LZSS/Markov encoders and the
+never-grows guarantee. Nothing in this repo can write a room back to ROM. Anything
+map-*editing* needs that ported (and validated the same way: `--verify` round-trips all
+127 rooms upstream, so parity is checkable) or reached over IPC.
+
+Also unported from `render_map.py`: the annotation layers (per-plane contour outlines,
+drift arrows, object stamps, trigger boxes, labels, legend banner) — roughly two thirds
+of that file. The extension draws its own overlays in SVG instead, because they need to
+stay interactive and zoomable rather than being baked into a bitmap.
+
+`everscript`'s `docs/map_editor_vscode_plan.md` §3.2 recommends keeping ROM logic in
+Python behind IPC. This repo went the other way for the read path, because a validated
+port removes the Python runtime dependency for extension users. That reasoning applies
+to the write path too, but the decision is not made — don't assume it.
 
 ## If a map-editor domain is added later
 

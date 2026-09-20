@@ -35,7 +35,7 @@ function renderRoomDetail(room){
   if(typeof room.startLine==='number'&&room.startLine>=0)html+='<a class="ll" data-line="'+room.startLine+'" href="#">go to code</a>';
   html+='<div class="rd-filters">';
   if(hasCoordData||room.imageUri)html+='<button class="rdf on" data-hide="hide-map" title="Toggle map area">map</button>';
-  if(roomVanillaIdNum(room)!=null)html+='<button class="rdf on" data-hide="hide-tiles" title="Toggle decoded ROM collision overlay">tiles</button>';
+  if(roomVanillaIdNum(room)!=null)html+='<button class="rdf" data-hide="hide-tiles" title="Toggle the decoded collision overlay (sub-tile geometry, coloured per elevation plane)">collision</button>';
   if(rh)html+='<button class="rdf on" data-hide="hide-header" title="Toggle ROM header section">header</button>';
   if(enterTrig||stepOn.length||bTrigger.length)html+='<button class="rdf on" data-hide="hide-scripts" title="Toggle decoded script tables">scripts</button>';
   if(stepOn.length||bTrigger.length)html+='<button class="rdf on" data-hide="hide-trigger" title="Toggle trigger overlays and tables">trigger</button>';
@@ -75,6 +75,13 @@ function renderRoomDetail(room){
 
   panel.innerHTML=html;
   bindLinks(panel);
+
+  // Sync hide-classes to the filter buttons' initial state. Without this a
+  // button rendered without .on would read as "off" while its content is still
+  // visible (the click handler only toggles, it never initialises).
+  panel.querySelectorAll('.rdf[data-hide]').forEach(function(btn){
+    panel.classList.toggle(btn.dataset.hide,!btn.classList.contains('on'));
+  });
 
   // ── Post-render interaction setup ──────────────────────────────────────────
   setupByteScriptFocusBinding(panel);
@@ -131,9 +138,12 @@ function requestRoomTileOverlay(room,svgResult){
 }
 
 /**
- * Inject decoded collision paths beneath the entity overlays.
- * One <path> per visual class — a big room is thousands of tiles, so per-tile
- * elements would make pan/zoom crawl.
+ * Apply the host's decoded room render: the ROM map image, plus a collision
+ * overlay drawn as real sub-tile geometry (slopes are triangles, not squares)
+ * coloured per elevation plane.
+ *
+ * Paths are grouped by fill colour — a big room is thousands of tiles, so one
+ * SVG node per tile would make pan/zoom crawl.
  */
 function applyRoomTileOverlay(msg){
   if(!msg||msg.mapName!==_pendingTileRoom)return;
@@ -142,19 +152,36 @@ function applyRoomTileOverlay(msg){
 
   var old=document.getElementById('rg-tiles');
   if(old&&old.parentNode)old.parentNode.removeChild(old);
-  if(msg.error||!msg.overlay||!msg.overlay.layers)return;
+  if(msg.error||!msg.overlay)return;
+  var ov=msg.overlay;
 
+  // Rendered map image goes into the existing room-image layer.
+  if(ov.imageUri){
+    var img=document.getElementById('rg-img');
+    if(!img){
+      var canvas=document.getElementById('rg-canvas');
+      if(canvas){
+        img=document.createElement('img');
+        img.className='room-img';
+        img.id='rg-img';
+        img.alt='';
+        canvas.insertBefore(img,canvas.firstChild);
+      }
+    }
+    if(img){img.src=ov.imageUri;img.classList.add('rg-rom-render');}
+  }
+
+  if(!ov.layers||!ov.layers.length)return;
   var NS='http://www.w3.org/2000/svg';
   var g=document.createElementNS(NS,'g');
   g.setAttribute('id','rg-tiles');
   g.setAttribute('class','rg-tiles');
-  msg.overlay.layers.forEach(function(layer){
+  ov.layers.forEach(function(layer){
     var p=document.createElementNS(NS,'path');
     p.setAttribute('d',layer.d);
     p.setAttribute('fill',layer.fill);
-    p.setAttribute('class','rg-tile-'+layer.key);
     g.appendChild(p);
   });
-  // First child = painted underneath the grid lines and entity boxes.
+  // Painted under the grid lines and entity boxes, over the map image.
   svg.insertBefore(g,svg.firstChild);
 }

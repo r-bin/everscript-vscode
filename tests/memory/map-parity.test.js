@@ -12,7 +12,7 @@ const fs = require('fs');
 const path = require('path');
 const cp = require('child_process');
 
-const { decodeRoom, MAX_ROOMS } = require('../../src/maps');
+const { decodeRoom, MAX_ROOMS, renderRoomComposite, encodePng } = require('../../src/maps');
 
 const EVERSCRIPT_REPO = process.env.EVERSCRIPT_REPO ||
     path.join(path.dirname(path.dirname(path.dirname(path.resolve(__dirname)))), 'everscript');
@@ -100,11 +100,81 @@ function main() {
         console.log(`  ${id} ${py.header.width_tiles}x${py.header.height_tiles} checked`);
     }
 
+    checkRenderParity(rom, rooms);
+
     if (failures) {
         console.error(`\nmap-parity: ${failures} mismatch(es)`);
         process.exit(1);
     }
     console.log('map-parity: all checked fields match the Python implementation');
 }
+
+/**
+ * Compare the TypeScript renderer against render_map.py pixel for pixel.
+ *
+ * Both sides encode PNG themselves, so rather than decoding two PNGs this
+ * compares the raw RGBA the Python renderer produces (dumped via a tiny inline
+ * script) against ours.
+ */
+function checkRenderParity(rom, rooms) {
+    const sample = rooms.length > 12 ? rooms.filter((_, i) => i % 12 === 0) : rooms;
+    console.log(`map-parity: comparing rendered pixels for ${sample.length} rooms`);
+
+    for (const roomId of sample) {
+        const id = `0x${roomId.toString(16).padStart(2, '0')}`;
+        let ts;
+        try {
+            ts = renderRoomComposite(rom, decodeRoom(rom, roomId));
+        } catch (err) {
+            failures += 1;
+            console.error(`  FAIL ${id} render: ${err.message}`);
+            continue;
+        }
+
+        const py = cp.spawnSync(PYTHON, ['-c', PY_DUMP_RGBA, String(roomId), ROM_PATH], {
+            cwd: EVERSCRIPT_REPO,
+            encoding: 'buffer',
+            maxBuffer: 512 * 1024 * 1024,
+        });
+        if (py.status !== 0) {
+            failures += 1;
+            console.error(`  FAIL ${id} render: python side errored — ${String(py.stderr)}`);
+            continue;
+        }
+
+        const expected = py.stdout;
+        if (expected.length !== ts.data.length) {
+            failures += 1;
+            console.error(`  FAIL ${id} render: size ${ts.data.length} vs ${expected.length}`);
+            continue;
+        }
+        let diff = 0;
+        for (let i = 0; i < expected.length; i += 4) {
+            if (ts.data[i] !== expected[i] || ts.data[i + 1] !== expected[i + 1] || ts.data[i + 2] !== expected[i + 2]) diff += 1;
+        }
+        if (diff) {
+            failures += 1;
+            console.error(`  FAIL ${id} render: ${diff} differing pixels`);
+        } else {
+            console.log(`  ${id} render ${ts.width}x${ts.height} pixel-identical`);
+        }
+    }
+}
+
+// Dumps the composited RGBA buffer to stdout so the two renderers can be
+// compared without either side's PNG encoder in the way.
+const PY_DUMP_RGBA = `
+import sys
+sys.path.insert(0, '.')
+from tools.dump_room import dump_room
+from tools.render_map import RoomRenderer
+room_id = int(sys.argv[1]); rom_path = sys.argv[2]
+data = dump_room(room_id, rom_path)
+rom = open(rom_path, 'rb').read()
+r = RoomRenderer(data, rom)
+l1 = r.render_vram_layer(data['layer1_vram_int_words'])
+l2 = r.render_vram_layer(data['layer2_vram_int_words'])
+sys.stdout.buffer.write(bytes(r.composite_layers(l2, l1)))
+`;
 
 main();
