@@ -1,3 +1,11 @@
+## [0.19.2] — 2026-09-20
+
+### Added
+- `docs/ingredient-icons.md` extended with a second trace, one that captures the ring menu *opening*. Settles the menu's setup: background tileset at ROM `$C4:1F74` (`$1000` bytes → VRAM `$2000`), frame tiles at `$C4:2FF4`, palettes at `$C4:1EA4`/`$C4:1EEC`, and the **font at `$C4:0000`, stored 2bpp**, read by the text blitter at `$8CA5AC`. Also records that the sprite tile base is VRAM `$6000` (`OBSEL = $03`) and that nothing uploads there in either trace, so the icon graphics are resident before the menu opens — which is why searching for a ROM→VRAM copy kept coming up empty.
+- The note now includes the trace-reading gotcha that cost the most time: Mesen prints `[REG] = $x` as the address's **prior contents**, not the value being written, so DMA parameters have to be reconstructed from the CPU registers and the M/X flag widths.
+
+Still not implemented, and the icon pixel source is still unknown; the note says which breakpoint would settle it.
+
 ## [0.19.1] — 2026-09-20
 
 ### Added

@@ -1,65 +1,81 @@
 # Ingredient Icons — where they come from
 
-> Status: **not solved.** This is a research note, not a format description.
-> It records what one trace established so the next attempt starts further
-> along. Nothing here is implemented.
+> Status: **not solved.** A research note, not a format description. Two
+> traces have narrowed it a long way; none of it is implemented.
 
 The Rooms tab draws an ingredient icon on a loot trigger
-([src/script/README.md](../src/script/README.md) says how the reward itself is
-read). Those icons currently come from a local assets folder, not the ROM,
+([src/script/README.md](../src/script/README.md) explains how the reward
+itself is read). Those icons come from a local assets folder, not the ROM,
 which is why four ingredients have no picture and seven reward kinds — money,
 charms, equipment — have none at all.
 
-Neither reference implementation knows where the icon graphics live:
-SoEScriptDumper is a script disassembler and SoETilesViewer has no item or
-menu tile handling. So unlike the rest of `src/script/`, this is original
-reverse engineering rather than a port.
+Neither reference implementation helps: SoEScriptDumper is a script
+disassembler and SoETilesViewer has no item or menu tile handling. So unlike
+the rest of `src/script/`, this is original reverse engineering.
 
-## What the trace showed
+## Traces used
 
-Source: a Mesen2 trace of opening the Alchemy Formulas / Ingredients menu
-(1.26M instructions, ~70 frames). The screen lists formulas with their two
-ingredient icons, so the icons are definitely on screen and being drawn.
-
-| Question | Answer from the trace |
+| File | Covers |
 |---|---|
-| Are icons sprites or background tiles? | **Background tiles.** No OAM path is involved. |
-| How is the screen built? | A tilemap assembled in WRAM at `$7F:C800`, one 16-bit entry at a time |
-| Which routine writes it? | `$8CAD56` — `STA $7FC800,X`, 446 times in the captured window |
-| What does it write? | Tilemap words such as `$23B1`: a tile index plus palette/priority bits, **not** pixel data |
-| How does it reach the PPU? | One DMA, `$7F:C800 → VRAM $0800`, length `$700` |
-| Where does the palette come from? | ROM `$C4:1EA4`, 8 bytes, DMA'd to CGRAM via `$2121`/`$4310 = $2200` |
-| Where do the tile graphics come from? | **Not in this window** — already resident in VRAM when the trace starts |
+| `ingredient_icons.txt` (152 MB, 1.26M instructions) | Alchemy Formulas screen, already open |
+| `icons_2.txt` (300 MB, 2.49M instructions) | Opening the ring menu, so the screen's setup is captured |
 
-So an ingredient icon is a **tile index**, and two things are still missing:
+Both were reconstructed with a streaming pass that rebuilds every DMA from the
+CPU register state. **Mesen prints `[REG] = $x` as the address's prior
+contents, not the value being written** — reading that as the write gives
+nonsense source addresses. The value has to come from the register the store
+names, at the width the M/X flags imply (`P:nvmxdizc`, lowercase = 16-bit).
 
-1. the ROM address of the menu tileset, and
-2. the table mapping an item id to its tile index.
+## Settled
 
-Bank `$C4` is the strongest lead: it supplies this screen's palette, and menu
-graphics usually sit beside their palette.
+The menu's setup happens in one burst (icons_2.txt around line 1,549,900):
+
+| Transfer | Meaning |
+|---|---|
+| `$C4:1F74` → VRAM `$2000`, `$1000` bytes | Background tileset — the mottled stone texture. Renders as dense noise in greyscale, which is correct, not a decode failure. |
+| `$C4:2FF4` → VRAM `$0000`, `$700` bytes | Window frame / border tiles |
+| `$C4:1EA4` and `$C4:1EEC` → CGRAM, 8 bytes each | This screen's palettes |
+| `$C4:0000`, read as `LDA $C40000,X` | **The font**, stored 2bpp. Read 1802 times from `$8CA5AC` and `$8CA60C`, over `$00F2`..`$0C5B`. |
+
+Other facts worth keeping:
+
+- `OBSEL` is set to `$03` at `$8CB769`, so the sprite tile base is VRAM
+  `$6000`. **Nothing uploads to `$6000` in either trace**, so the sprite
+  graphics are already resident — loaded before the menu opens.
+- Text and icons are **composited** into WRAM staging buffers by a bitplane
+  blitter at `$8CA6AB`–`$8CA6C6` (read-mask-write on `$0000,Y`..`$0003,Y`),
+  then DMA'd to VRAM. There is no direct ROM→VRAM copy for them, which is why
+  searching for one found nothing.
+- All ROMs on this machine are byte-identical at `$C4:1F74`, so none of this
+  is an artefact of a patched ROM.
+
+## Still open
+
+The icon pixel source. It is **not** the font table at `$C4:0000`, and not
+either of the two ROM→VRAM blocks. Since the sprite tile base is loaded before
+the menu opens, the icons are most likely part of a resident sprite set.
 
 ## What would settle it
 
-A trace that spans the **menu opening**, not one taken with the menu already
-up — the tileset upload happens before the captured window. Either:
+The remaining question is narrow enough to answer with a breakpoint rather
+than another big trace:
 
-- start the trace on the field and press the menu button while recording, or
-- set a Mesen write breakpoint on VRAM in the tile range the tilemap points
-  at (`$23B1 & 0x03FF` → tile `$1B1`, so VRAM word `$1B1 * 16`), and trace
-  backwards from the DMA that fills it, or
-- set a read breakpoint on ROM bank `$C4` and note which ranges are read as
-  the menu opens.
+1. Break on OAM writes while the Formulas screen is up and read the tile
+   numbers the icon sprites use. With `OBSEL = $03` the tile base is VRAM
+   `$6000`, so tile *n* lives at VRAM word `$6000 + n * 16`.
+2. Break on VRAM writes to that address and trace back to the DMA, then to
+   whatever filled its WRAM staging buffer.
+3. The item→tile mapping should then fall out of the routine that builds the
+   sprite list, the same way the text blitter indexes the font.
 
-With the tileset located, the item→tile table should fall out of the same
-routine that builds the tilemap (`$8CAD3D`..`$8CAD5C` computes the index from
-a value held in direct-page `$10`).
+A trace from a save-load through opening the menu would also catch step 2,
+since the resident sprite set has to be uploaded somewhere.
 
-## Why this is worth doing
+## Why it is worth doing
 
 It removes the assets-folder dependency, covers every reward rather than the
-22 with a bundled image, and gives the map view the game's own artwork. It is
-the same shape of problem as the object stamp format in
-[map_objects.md](map-format/map_objects.md) §4b, which a single trace turned
-from guesswork into a solved format — see that file's note on why a trace beat
-more statistics.
+22 with a bundled image, and uses the game's own artwork. Same shape of
+problem as the object stamp format in
+[map_objects.md](map-format/map_objects.md) §4b, which one trace turned from
+guesswork into a solved format — see that file's note on why a trace beat more
+statistics.
