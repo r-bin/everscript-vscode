@@ -4,7 +4,7 @@
 
 Owns: all rooms tab server-side logic — room tree building, room content parsing, vanilla data, lua-watcher POIs, server-side HTML/JSON rendering.
 
-Does NOT own: client-side room interactions, SVG rendering (those live in `../webview/assets/rooms/`), emulator state, memory-map state.
+Does NOT own: client-side room interactions, SVG rendering (those live in `webview/`), ROM map decoding (that is `../maps/`, a pure model), emulator state, memory-map state.
 
 ---
 
@@ -109,12 +109,20 @@ buildRoomTree(doc, wsRoot, extCfg, deps)
 
 ## Client-Side Counterpart
 
-The client-side room interactions live in `../webview/assets/rooms/`:
+The client-side room interactions live in `webview/`, concatenated into one
+script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
 - `bootstrap.js` — message listener, byte-script focus
 - `utils.js` — escH, hexNum, tsvg, helpers
 - `svg-builder.js` — `buildRoomSvgSection()` → `{html, zoomState, ...}`
 - `tables-builder.js` — entity tables, ROM script cards
 - `rom-header.js` — ROM header display
 - `interactions.js` — zoom/pan, mouse events, click handlers
-- `detail-renderer.js` — `renderRoomDetail(room)` orchestrator
+- `rom-overlay.js` — ROM view top bar; owns `_currentLayer` / `_currentOverlay`
+  and renders the summary, legend and ROM data tables
+- `detail-renderer.js` — `renderRoomDetail(room)` orchestrator; owns
+  `_pendingTileRoom` / `_pendingTileOrigin` and the roomTiles request cycle
 - `tab-init.js` — tab switching, area collapse, mode toggle
+
+Because the files share one scope, a global belongs to exactly one of them.
+`rom-overlay.js` owns the view state; `detail-renderer.js` owns the request
+state. Do not mirror either into the other.

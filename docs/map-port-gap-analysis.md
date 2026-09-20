@@ -1,8 +1,24 @@
 # Map Data Port & Rooms Tab UX — Gap Analysis
 
-> Status: living document, last updated 2026-09-20 (post v0.9.0).
+> Status: living document, last updated 2026-09-20 (post v0.11.0).
 > See the `map-format` skill before acting on anything here — it has the
 > "port, don't re-derive" ground rules this document assumes.
+
+## Closed in v0.11.0
+
+| Gap | Outcome |
+|---|---|
+| 1.2 annotation system | **Reversed, not deferred.** The whole of `render_full_composition` is ported (`overlay-features.ts` / `overlay-shapes.ts` / `collision-overlay.ts` / `font.ts`), including the 3x5 index labels. `checkOverlayParity` compares it to upstream at a **zero** pixel budget across 6 rooms. The earlier "by design" reasoning is recorded below for the record and is no longer the position. |
+| 2.5 legend (again) | The legend is now upstream's, generated from the room's own features by `buildLegend()`, with entries greying out as their toggle goes off. `buildSummary()` supplies upstream's header banner. Both render as HTML rather than baked pixels. |
+| Toggles never applied | `requestRoomTiles` dropped `msg.overlay` on the host side, so every render came back bare no matter what the top bar said — "collision is always off". Forwarded, and covered by a smoke test asserting one button per host flag, all on. |
+| Only 3 of 9 features toggleable | Each pass now has its own flag (`c d p e n g o t l`) and its own button, plus an `all` button. Defaults to everything on. |
+
+## Closed in v0.10.0
+
+| Gap | Outcome |
+|---|---|
+| 1.3 fills vs contours | Superseded: the overlay is no longer hand-drawn SVG at all, but the ported raster, so contour style is upstream's by construction. |
+| Panning snapped to 0,0 | `setupMouseEvents` receives a hand-built object literal; `_getPan` was never forwarded into it, so the accessor was `undefined` and every drag based at the origin. |
 
 ## Closed in v0.9.0
 
@@ -29,9 +45,8 @@ Still open, and why:
 - **1.4 / 1.5 / 2.6 (animation)** — still blocked on upstream research. No
   `docs/map-format/*.md` documents the animation frame table or whether CGRAM
   cycling is used at all. Porting cannot start before that exists.
-- **1.2** — unchanged by design: the extension keeps its own interactive SVG
-  overlays rather than porting the bitmap annotation system. 1.3 narrows the
-  visual gap; the rest stays deliberate.
+- **1.2** — closed in v0.11.0, the opposite way round from what this section
+  originally argued. See the v0.11.0 table above.
 - **1.6 verification**, **2.9 (world overview)**, **2.10 (diff view)** — not
   started.
 
@@ -66,25 +81,33 @@ id)) === originalBlobBytes` for byte-for-byte, not just "renders the same,"
 because a rebuilt blob that's even one byte too long overflows into the next
 room's data.
 
-### 1.2 `render_map.py`'s annotation system is not ported — by design, not oversight
+### 1.2 ~~`render_map.py`'s annotation system is not ported~~ — CLOSED v0.11.0
 
-Roughly two-thirds of `render_map.py` is `render_collision_overlay`: per-plane
-contour outlines (not fills — see 1.3), drift/gate/transition tile
-classification baked into a bitmap, object and trigger box labels, a header
-banner, and a bottom legend. `src/maps/` intentionally does not port this —
-see `render.ts`'s scope and the `map-format` skill. The Rooms tab draws its
-own SVG overlays instead (`tile-overlay.js`), because they need to stay
-interactive and zoomable, not be baked into a raster image.
+**This section was wrong, and it is left here because the reasoning is worth
+not repeating.** It argued that the annotation system should stay unported
+because the Rooms tab's overlays "need to stay interactive and zoomable."
+What actually happened: the hand-drawn SVG substitute was missing features
+outright (entity gates were simply absent), and its own paragraph below
+conceded the real cost — *"there is no parity test for them, because there is
+nothing upstream to compare against."* An unverifiable approximation of a
+verified implementation is the exact failure mode the `map-format` skill
+exists to prevent, and "it stays interactive" did not survive contact with
+what the interactivity was worth: a worse-looking map.
 
-**What this means concretely:** the extension's collision/drift/object
-overlays are *not* validated against upstream the way the decoder and
-compositor are — there is no parity test for them, because there is nothing
-upstream to compare against pixel-for-pixel. If they diverge from what
-`render_map.py --composition` shows (contour style, colors, what counts as
-"drift"), that's a design choice to confirm with the user, not a bug to fix
-by matching bytes.
+The port covers every pass: per-plane contours, drift arrows, plane-transparent
+and elevation-change washes, entity gates, cuttable grass, object stamps,
+trigger boxes and the 3x5 index labels. `checkOverlayParity` holds it to a zero
+pixel budget. Interactivity did not have to be traded away — the SVG layer
+still carries hover, tooltips and jump-to-source on top of the raster, and
+drops its own trigger paint when the baked boxes are showing.
 
-### 1.3 Collision overlay draws fills, upstream draws contour outlines
+Two pieces are deliberately still not baked: the header banner and the bottom
+legend. Upstream grows the PNG to fit them, which would break the raster's
+registration with the SVG overlay and make the text unreadable at fit zoom.
+`buildSummary()` and `buildLegend()` return that content as data and the
+webview renders it as HTML — same information, legible at any zoom.
+
+### 1.3 ~~Collision overlay draws fills, upstream draws contour outlines~~ — CLOSED v0.10.0
 
 `render_map.py`'s default collision mode is **contour lines** — a 1-2px edge
 where solid meets open, per plane, so overlapping elevation levels read as

@@ -334,5 +334,131 @@ test('encodePngDataUri is a base64 png data URI', () => {
     assert.ok(uri.length > 'data:image/png;base64,'.length);
 });
 
+// ── font.ts ─────────────────────────────────────────────────────────────────
+
+/** A blank RGBA buffer plus a helper to ask whether a pixel got inked. */
+function inkCanvas(w, h) {
+    const buf = new Uint8Array(w * h * 4);
+    return { buf, lit: (x, y) => buf[(y * w + x) * 4 + 3] !== 0 };
+}
+
+test('drawString3x5 inks the glyph bitmap and its 1px shadow', () => {
+    const { buf, lit } = inkCanvas(16, 16);
+    maps.drawString3x5(buf, 16, 2, 2, '1');
+    // '1' is "010/110/010/010/111": (1,0) set, (0,0) clear.
+    assert.ok(lit(3, 2), 'glyph pixel');
+    assert.ok(!lit(2, 2), 'glyph gap stays clear');
+    assert.ok(lit(4, 3), 'shadow is offset by one pixel');
+    // Ink is white, shadow black — the shadow is what keeps it readable.
+    assert.strictEqual(buf[(2 * 16 + 3) * 4], 255);
+    assert.strictEqual(buf[(3 * 16 + 4) * 4], 0);
+});
+
+test('drawString3x5 clips rather than wrapping at the right edge', () => {
+    const { buf, lit } = inkCanvas(8, 8);
+    maps.drawString3x5(buf, 8, 7, 0, '8', [255, 255, 255, 255], null);
+    assert.ok(lit(7, 0), 'the column that fits is drawn');
+    for (let y = 0; y < 8; y++) assert.ok(!lit(0, y), 'nothing wraps to column 0');
+});
+
+test('textWidth3x5 counts 4px per glyph minus the trailing gap', () => {
+    assert.strictEqual(maps.textWidth3x5('1EF'), 11);
+    assert.strictEqual(maps.textWidth3x5(''), -1);
+});
+
+test('drawLabelInRect skips boxes too small to hold a label', () => {
+    const { buf, lit } = inkCanvas(32, 32);
+    maps.drawLabelInRect(buf, 32, 32, 0, 0, 5, 5, '7');
+    for (let i = 0; i < buf.length; i++) assert.strictEqual(buf[i], 0, 'nothing drawn');
+    maps.drawLabelInRect(buf, 32, 32, 0, 0, 16, 16, '7');
+    assert.ok(lit(3, 3), 'a 16px box does get one');
+});
+
+test('drawLabelInRect anchors bottom labels near the lower edge', () => {
+    const top = inkCanvas(64, 64);
+    const bottom = inkCanvas(64, 64);
+    maps.drawLabelInRect(top.buf, 64, 64, 8, 8, 40, 40, '3', [255, 255, 255, 255], 'top');
+    maps.drawLabelInRect(bottom.buf, 64, 64, 8, 8, 40, 40, '3', [255, 255, 255, 255], 'bottom');
+    assert.ok(top.lit(11, 11) && !top.lit(11, 32), 'top anchor sits at y1+3');
+    assert.ok(bottom.lit(11, 31) && !bottom.lit(11, 11), 'bottom anchor sits at y2-9');
+});
+
+// ── overlay-features.ts ─────────────────────────────────────────────────────
+
+/**
+ * A 2x2 room whose collision words are supplied directly. Plane bits are
+ * 5..4, geometry 3..0, so 0x000f is a plain wall and 0x0000 open floor.
+ */
+function featureRoom(words, extra) {
+    return Object.assign({
+        roomId: 0x2a,
+        header: { widthTiles: words[0].length, heightTiles: words.length, originX: 0, originY: 0 },
+        collisionWords: words,
+        objects: [],
+        triggers: { stepOn: [], bTrigger: [] },
+        cuttableGrass: { tiles: [], warnings: [] },
+    }, extra || {});
+}
+
+test('classifyRoom picks the plane with the most walkable tiles', () => {
+    // Plane 0 is open in three tiles; plane 1 is solid everywhere it appears.
+    const f = maps.classifyRoom(featureRoom([[0x0000, 0x0000], [0x0000, 0x001f]]));
+    assert.deepStrictEqual(f.planes, [0, 1]);
+    assert.strictEqual(f.mainPlane, 0);
+});
+
+test('classifyRoom groups entity gates by which entities they block', () => {
+    // Bit 8 set plus nibble 11..8: gate 5 blocks the dog.
+    const f = maps.classifyRoom(featureRoom([[0x0500, 0x0000], [0x0000, 0x0500]]));
+    assert.strictEqual(f.gated.length, 2);
+    assert.deepStrictEqual(f.gated[0], [0, 0, 5]);
+});
+
+test('buildSummary reads like render_map.py header banner', () => {
+    const room = featureRoom([[0x0000, 0x0000]]);
+    const pairs = maps.buildSummary(room, maps.classifyRoom(room));
+    const asText = pairs.map((p) => p[0] + ' ' + p[1]).join(' - ');
+    assert.ok(asText.startsWith('ROOM 0x2A - TILES 2x1 - PLANES 1 (0)'), asText);
+    // Absent features are omitted rather than reported as zero.
+    assert.ok(!/ENTITY GATES/.test(asText));
+});
+
+test('buildLegend omits absent features and marks non-dominant planes dotted', () => {
+    const room = featureRoom([[0x0000, 0x0000], [0x0000, 0x001f]]);
+    const labels = maps.buildLegend(maps.classifyRoom(room)).map((l) => l.label);
+    assert.ok(labels.indexOf('PLANE 0 BOUNDARY') >= 0);
+    assert.ok(labels.indexOf('PLANE 1 BOUNDARY (DOTTED)') >= 0);
+    assert.ok(!labels.some((l) => /CUTTABLE GRASS/.test(l)), 'no grass in this room');
+    // Objects and triggers are always keyed, since their boxes are always drawn.
+    assert.ok(labels.some((l) => /OBJECT STAMP/.test(l)));
+});
+
+// ── collision-overlay.ts ────────────────────────────────────────────────────
+
+function overlayOf(opts) {
+    const room = featureRoom([[0x000f, 0x0000], [0x2000, 0x0000]]);
+    const img = { width: 32, height: 32, data: new Uint8Array(32 * 32 * 4) };
+    maps.drawCollisionOverlay(img, room, opts);
+    return img.data;
+}
+
+test('every overlay pass defaults to on', () => {
+    const full = overlayOf({});
+    const none = overlayOf({
+        contours: false, drift: false, transparent: false, elevation: false,
+        gates: false, grass: false, objects: false, triggers: false, labels: false,
+    });
+    assert.ok(full.some((v, i) => v !== none[i]), 'the default view draws something');
+    assert.ok(none.every((v) => v === 0), 'all-off leaves the image untouched');
+});
+
+test('switching one pass off changes only that pass', () => {
+    const full = overlayOf({});
+    const noDrift = overlayOf({ drift: false });
+    assert.ok(full.some((v, i) => v !== noDrift[i]), 'drift tile 0x2000 was being drawn');
+    const noGrass = overlayOf({ grass: false });
+    assert.deepStrictEqual(Array.from(noGrass), Array.from(full), 'no grass here, so no change');
+});
+
 console.log('\n' + (passed + failed) + ' run: ' + passed + ' passed, ' + failed + ' failed');
 if (failed) process.exit(1);

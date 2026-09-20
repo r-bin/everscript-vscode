@@ -327,14 +327,17 @@ test('panel.js is ASCII-only to avoid webview parser/encoding issues', () => {
 });
 
 test('debug adapter supports emulator sync request', () => {
-    const adapterPath = path.join(ROOT, 'debugger', 'adapter.js');
+    // Both files moved under src/ in the v0.6.0 refactor; these paths were
+    // missed and the assertions had been failing on ENOENT ever since, which
+    // reads as "the feature is gone" rather than "the test is stale".
+    const adapterPath = path.join(ROOT, 'src', 'debugger', 'adapter.js');
     const adapterContent = fs.readFileSync(adapterPath, 'utf8');
     assert.ok(adapterContent.includes('handlers.syncFromEmulator'),
         'debugger/adapter.js does not handle syncFromEmulator requests');
 });
 
 test('extension.js forwards byte-script focus updates to the radar webview', () => {
-    const extPath = path.join(ROOT, 'extension.js');
+    const extPath = path.join(ROOT, 'src', 'extension.js');
     const extContent = fs.readFileSync(extPath, 'utf8');
     assert.ok(extContent.includes("registerCommand('everscript._scriptFocus'"),
         'extension.js does not register the internal byte-script focus bridge');

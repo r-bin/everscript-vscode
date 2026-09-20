@@ -88,10 +88,23 @@ never-grows guarantee. Nothing in this repo can write a room back to ROM. Anythi
 map-*editing* needs that ported (and validated the same way: `--verify` round-trips all
 127 rooms upstream, so parity is checkable) or reached over IPC.
 
-Also unported from `render_map.py`: the annotation layers (per-plane contour outlines,
-drift arrows, object stamps, trigger boxes, labels, legend banner) — roughly two thirds
-of that file. The extension draws its own overlays in SVG instead, because they need to
-stay interactive and zoomable rather than being baked into a bitmap.
+`render_map.py`'s annotation system **is** ported as of v0.11.0, and held to a zero
+pixel budget by `checkOverlayParity`. The earlier position — draw approximate SVG
+overlays instead, because they stay interactive — produced a view that was missing
+entity gates entirely and could not be checked against anything. If you are tempted to
+hand-draw a visualization that upstream already implements, read gap 1.2 in
+`docs/map-port-gap-analysis.md` first; that section is kept specifically as a record of
+this mistake.
+
+Only two pieces of `render_full_composition` are deliberately not baked: the header and
+legend banners, which grow the PNG and would break the raster's registration with the
+Rooms tab's SVG overlay. `buildSummary()` / `buildLegend()` return that content as data
+and the webview renders it as HTML.
+
+Still unported from `render_map.py`: the alternative collision modes (`ascii`/
+`passability` and `verbose`/`raw`, with their 7x7 glyph font and per-word colouring) and
+`render_grid_overlay` — the Rooms tab draws its grid as SVG, at true 8px/16px spacing,
+which is better than a baked one.
 
 `everscript`'s `docs/map_editor_vscode_plan.md` §3.2 recommends keeping ROM logic in
 Python behind IPC. This repo went the other way for the read path, because a validated

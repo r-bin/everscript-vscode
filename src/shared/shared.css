@@ -125,10 +125,16 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .hide-trigger .svge-step,.hide-trigger .svge-btrig,.hide-trigger .rs-step,.hide-trigger .rs-btrig{display:none!important}
 .hide-grid8 .rg-grid-fine{display:none!important}
 .hide-grid16 .rg-grid-coarse{display:none!important}
-/* The ROM collision/object/grass visualization is baked into the rendered
-   image host-side (a port of render_map.py), so its toggles re-request the
-   image rather than hiding an SVG layer. */
+/* The ROM feature visualization is baked into the rendered image host-side (a
+   port of render_map.py), so its toggles re-request the image rather than
+   hiding an SVG layer. */
 .rdf-sep{display:inline-block;width:1px;height:11px;margin:0 3px;background:#444;vertical-align:middle}
+.rdf-ov-all{border-style:dashed}
+/* When the ROM trigger boxes are baked in they cover the same tiles as the
+   SVG trigger rects. Drop the SVG paint so triggers are not drawn twice in two
+   colour schemes, but keep the rects as hover/click targets. */
+.rom-triggers .svge-step,.rom-triggers .svge-btrig{fill:transparent!important;stroke:transparent!important}
+.rom-triggers .svge-step.hi,.rom-triggers .svge-btrig.hi{fill:rgba(255,255,255,0.18)!important}
 .rs-romdata .rs-h{margin-top:8px}
 .rs-romdata .rs-sub{color:#777;font-weight:normal;font-size:9px;margin-left:6px}
 
@@ -140,9 +146,17 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
   background:rgba(20,20,20,0.82);color:#ccc;font-size:10px;pointer-events:none}
 .rg-outer.rg-busy .rg-wrap{opacity:.55;transition:opacity .12s}
 
-/* Overlay legend: what the collision/drift/grass colours mean. */
+/* Summary strip + legend. render_map.py bakes these into the PNG as banners;
+   here they are HTML so they stay legible at any zoom and the raster keeps
+   lining up with the SVG overlay. */
+.rg-summary{display:flex;flex-wrap:wrap;gap:4px 10px;margin:6px 0 2px;font-size:9px;
+  font-family:monospace;color:#bbb;background:#14181e;border:1px solid #262b33;
+  border-radius:4px;padding:4px 8px}
+.rg-summary .sm{white-space:nowrap}
+.rg-summary .sm b{color:#7d8590;font-weight:normal;margin-right:4px}
 .rg-legend{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 2px;font-size:9px;color:#999}
 .rg-legend .lg{display:inline-flex;align-items:center;gap:3px}
+.rg-legend .lg-off{opacity:.34;text-decoration:line-through}
 .rg-legend .sw{width:9px;height:9px;border-radius:2px;display:inline-block;border:1px solid rgba(255,255,255,0.18)}
 .hide-ent .svge-entrance,.hide-ent .rs-entrance{display:none!important}
 .hide-enem .svge-enemy,.hide-enem .rs-enemies{display:none!important}

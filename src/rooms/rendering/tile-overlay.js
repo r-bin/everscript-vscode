@@ -1,15 +1,15 @@
 'use strict';
 // Ownership: produce everything the Rooms tab needs to draw a ROM room — the
-// rendered map image for a chosen layer (optionally with the collision
-// visualization baked in), plus the tabular data behind the summary panel.
+// rendered map image for a chosen layer with the requested features baked in,
+// plus the tabular data, legend and summary behind the panel.
 //
 // Pure apart from the module-level render cache. Consumes the maps domain
 // (src/maps). Lives in rooms/ because the Rooms tab owns its rendering;
 // src/maps stays a pure model.
 //
-// The collision visualization is NOT drawn here as SVG any more: it is a
-// faithful port of render_map.py baked into the raster by
-// maps/collision-overlay.ts, which is verified pixel-identical to upstream.
+// The feature visualization is NOT drawn here as SVG: it is a faithful port of
+// render_map.py baked into the raster by maps/collision-overlay.ts, verified
+// pixel-identical to upstream by tests/memory/map-parity.test.js.
 
 const maps = require('../../maps');
 
@@ -17,10 +17,49 @@ const maps = require('../../maps');
 const LAYERS = ['composite', 'layer1', 'layer2'];
 
 /**
+ * Overlay flag characters, in the order the top bar shows them.
+ *
+ * One character per feature so the whole set fits in a cache key and a
+ * postMessage field. The host is the only place that maps them to the maps
+ * domain's option names — the webview just passes the string around.
+ */
+const OVERLAY_FLAGS = {
+    c: 'contours',
+    d: 'drift',
+    p: 'transparent',
+    e: 'elevation',
+    n: 'gates',
+    g: 'grass',
+    o: 'objects',
+    t: 'triggers',
+    l: 'labels',
+};
+
+/** Every feature on — what a room shows before the user opts anything out. */
+const ALL_OVERLAY_FLAGS = Object.keys(OVERLAY_FLAGS).join('');
+
+/**
+ * Turn a flag string into the maps domain's per-feature options.
+ *
+ * `null`/`undefined` means "no preference" and yields the full view; an empty
+ * string means the user switched everything off and yields a bare map. That
+ * distinction matters because the host used to drop the flags entirely, which
+ * looked exactly like "everything off" and made the toggles appear dead.
+ */
+function overlayOptions(flags) {
+    const s = typeof flags === 'string' ? flags : ALL_OVERLAY_FLAGS;
+    const opts = {};
+    Object.keys(OVERLAY_FLAGS).forEach(function (ch) {
+        opts[OVERLAY_FLAGS[ch]] = s.indexOf(ch) >= 0;
+    });
+    return { opts: opts, flags: s, any: s.length > 0 };
+}
+
+/**
  * How many tiles block movement, for the summary table.
  *
- * The collision *visualization* is drawn by maps/collision-overlay.ts (a port
- * of render_map.py), baked into the rendered raster — this only counts.
+ * The visualization itself is drawn by maps/collision-overlay.ts — this only
+ * counts.
  */
 function countCollision(collisionWords) {
     let painted = 0;
@@ -67,8 +106,18 @@ function buildObjects(room) {
     }));
 }
 
+/** Entity-gate tiles grouped by which entities the gate blocks. */
+function buildGates(features) {
+    const WHO = { 3: 'all but boy and dog', 5: 'dog', 7: 'boy and dog' };
+    const counts = {};
+    features.gated.forEach(function (g) { counts[g[2]] = (counts[g[2]] || 0) + 1; });
+    return Object.keys(counts).map(function (k) {
+        return { gate: Number(k), blocks: WHO[k] || 'unknown', count: counts[k] };
+    });
+}
+
 // Rendering a large room costs ~150ms (mostly PNG deflate) per layer, so keep
-// recent results around — switching layers or rooms should feel instant.
+// recent results around — switching layers or features should feel instant.
 //
 // The key includes a ROM fingerprint: keying on roomId+layer alone meant a
 // rebuilt ROM (everscript.buildAndRun) kept serving the pre-rebuild render
@@ -88,33 +137,27 @@ function romFingerprint(rom) {
     return h;
 }
 
-function cacheKey(fingerprint, roomId, layer) { return fingerprint + ':' + roomId + ':' + layer; }
-
 function renderLayer(rom, room, layer) {
     if (layer === 'layer1') return maps.renderVramLayer(rom, room, room.layer1VramWords);
     if (layer === 'layer2') return maps.renderVramLayer(rom, room, room.layer2VramWords);
     return maps.renderRoomComposite(rom, room);
 }
 
-function cachedRender(rom, roomId, layer, overlay) {
-    const key = cacheKey(romFingerprint(rom), roomId, layer + (overlay ? ':' + overlay : ''));
+function cachedRender(rom, roomId, layer, ov) {
+    const key = romFingerprint(rom) + ':' + roomId + ':' + layer + ':' + ov.flags;
     const hit = RENDER_CACHE.get(key);
     if (hit) return hit;
 
     const room = maps.decodeRoom(rom, roomId);
     const image = renderLayer(rom, room, layer);
-    // The collision visualization is a faithful port of render_map.py's
-    // composition pass, so it is baked into the raster exactly as upstream
-    // draws it rather than approximated with SVG shapes. Trigger boxes stay
-    // off: the Rooms tab draws those itself, interactively.
-    if (overlay) {
-        maps.drawCollisionOverlay(image, room, {
-            objects: overlay.indexOf('o') >= 0,
-            grass: overlay.indexOf('g') >= 0,
-            triggers: false,
-        });
-    }
-    const entry = { room, imageUri: maps.encodePngDataUri(image), width: image.width, height: image.height };
+    if (ov.any) maps.drawCollisionOverlay(image, room, ov.opts);
+    const entry = {
+        room,
+        features: maps.classifyRoom(room),
+        imageUri: maps.encodePngDataUri(image),
+        width: image.width,
+        height: image.height,
+    };
 
     RENDER_CACHE.set(key, entry);
     if (RENDER_CACHE.size > RENDER_CACHE_MAX) RENDER_CACHE.delete(RENDER_CACHE.keys().next().value);
@@ -132,27 +175,24 @@ function invalidateRoomRenders() { RENDER_CACHE.clear(); }
  * @param {number} originX         SVG viewBox left edge, 8px-tile units.
  * @param {number} originY         SVG viewBox top edge, 8px-tile units.
  * @param {string} [layer]         'composite' (default), 'layer1' or 'layer2'.
- * @param {string} [overlay]       Collision overlay flags: '' / undefined for
- *                                 none, otherwise any of 'c' (collision),
- *                                 'o' (objects), 'g' (grass).
+ * @param {string} [overlay]       Feature flags from OVERLAY_FLAGS; omit for
+ *                                 the full view, '' for a bare map.
  */
 function buildRoomTileOverlay(rom, roomId, originX, originY, layer, overlay) {
     const buf = rom instanceof Uint8Array ? rom : new Uint8Array(rom);
     const which = LAYERS.indexOf(layer) >= 0 ? layer : 'composite';
-    const flags = typeof overlay === 'string' && overlay.indexOf('c') >= 0 ? overlay : '';
-    const { room, imageUri, width, height } = cachedRender(buf, roomId, which, flags);
-    const ox = originX || 0;
-    const oy = originY || 0;
+    const ov = overlayOptions(overlay);
+    const { room, features, imageUri, width, height } = cachedRender(buf, roomId, which, ov);
     const collision = countCollision(room.collisionWords);
 
     return {
         roomId,
         layer: which,
-        overlay: flags,
+        overlay: ov.flags,
         widthTiles: room.header.widthTiles,
         heightTiles: room.header.heightTiles,
-        originX: ox,
-        originY: oy,
+        originX: originX || 0,
+        originY: originY || 0,
         imageUri,
         imageWidth: width,
         imageHeight: height,
@@ -162,18 +202,30 @@ function buildRoomTileOverlay(rom, roomId, originX, originY, layer, overlay) {
         grass: room.cuttableGrass.tiles.map((t) => ({ x: t[0], y: t[1] })),
         grassWarnings: room.cuttableGrass.warnings,
         elevationPlanes: room.elevationPlanes,
+        mainPlane: features.mainPlane,
+        gates: buildGates(features),
+        transparentTiles: features.transparent.length,
+        elevationChangeTiles: features.transitions.length,
         tileFamilies: room.tileFamilies,
         metatileCount: room.metatileCount,
         stepOnCount: room.triggers.stepOn.length,
         bTriggerCount: room.triggers.bTrigger.length,
+        // The banners render_map.py bakes into the PNG. Passed as data so the
+        // webview can draw them as HTML: always legible, and the raster stays
+        // exactly the size of the map so it keeps lining up with the SVG layer.
+        summary: maps.buildSummary(room, features),
+        legend: maps.buildLegend(features),
     };
 }
 
 module.exports = {
     buildRoomTileOverlay,
+    overlayOptions,
     countCollision,
     buildDrift,
     buildObjects,
     invalidateRoomRenders,
     LAYERS,
+    OVERLAY_FLAGS,
+    ALL_OVERLAY_FLAGS,
 };

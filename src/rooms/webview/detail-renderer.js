@@ -1,7 +1,12 @@
-// Ownership: renderRoomDetail coordinator.
+// Ownership: renderRoomDetail coordinator, and the request/response cycle for
+// the host-rendered ROM map image.
 // Orchestrates: header HTML, SVG section, entity tables, ROM scripts, ROM header.
 // Then wires all interactions.
-// Depends on: utils.js, svg-builder.js, tables-builder.js, rom-header.js, interactions.js (all globals).
+// Depends on: utils.js, svg-builder.js, tables-builder.js, rom-header.js,
+// interactions.js, rom-overlay.js (all globals — the webview JS is concatenated
+// into one script). rom-overlay.js owns the top bar and the ROM data section;
+// this file owns _pendingTileRoom / _pendingTileOrigin and reads that bar's
+// _currentLayer / _currentOverlay when building a request.
 
 function renderRoomDetail(room){
   var panel=document.getElementById('room-detail');
@@ -35,22 +40,10 @@ function renderRoomDetail(room){
   if(typeof room.startLine==='number'&&room.startLine>=0)html+='<a class="ll" data-line="'+room.startLine+'" href="#">go to code</a>';
   html+='<div class="rd-filters">';
   if(hasCoordData||room.imageUri)html+='<button class="rdf on" data-hide="hide-map" title="Toggle map area">map</button>';
-  // ROM-decoded views. The three layer buttons pick which render the map image
-  // shows (mutually exclusive); the rest toggle overlays drawn on top of it.
-  if(roomVanillaIdNum(room)!=null){
-    html+='<span class="rdf-sep"></span>';
-    html+='<button class="rdf rdf-layer on" data-layer="composite" title="Composited map as the SNES displays it (Mode 1)">composite</button>';
-    html+='<button class="rdf rdf-layer" data-layer="layer2" title="Layer 2 only — terrain (BG1)">L2 terrain</button>';
-    html+='<button class="rdf rdf-layer" data-layer="layer1" title="Layer 1 only — canopy (BG2)">L1 canopy</button>';
-    html+='<span class="rdf-sep"></span>';
-    // These re-render the map image host-side rather than toggling CSS: the
-    // visualization is a pixel-exact port of render_map.py baked into the
-    // raster, not SVG shapes layered on top.
-    html+='<button class="rdf rdf-ov" data-ov="c" title="Collision: per-plane contours, drift arrows, elevation changes and entity gates (the dashed white tiles), exactly as render_map.py draws them">collision</button>';
-    html+='<button class="rdf rdf-ov" data-ov="o" title="ROM map object stamps (Section 3) — needs collision">rom objects</button>';
-    html+='<button class="rdf rdf-ov" data-ov="g" title="Cuttable grass tiles — needs collision">grass</button>';
-    html+='<span class="rdf-sep"></span>';
-  }
+  // ROM-decoded views: layer choice plus one toggle per baked feature. Built
+  // from the live state in rom-overlay.js, not from fixed defaults, so the bar
+  // always agrees with what is on screen. See buildRomViewButtonsHtml.
+  if(roomVanillaIdNum(room)!=null)html+=buildRomViewButtonsHtml();
   if(rh)html+='<button class="rdf on" data-hide="hide-header" title="Toggle ROM header section">header</button>';
   if(enterTrig||stepOn.length||bTrigger.length)html+='<button class="rdf on" data-hide="hide-scripts" title="Toggle decoded script tables">scripts</button>';
   if(stepOn.length||bTrigger.length)html+='<button class="rdf on" data-hide="hide-trigger" title="Toggle trigger overlays and tables">trigger</button>';
@@ -145,10 +138,8 @@ var _pendingTileRoom=null;
 // SVG viewBox origin the host rendered against, reused when re-requesting a
 // different layer for the same room.
 var _pendingTileOrigin={x:0,y:0};
-// Which render the map image is showing: composite | layer1 | layer2.
-var _currentLayer='composite';
-// Baked overlay flags: 'c' collision, 'o' objects, 'g' grass.
-var _currentOverlay='';
+// _currentLayer and _currentOverlay live in rom-overlay.js, which owns the
+// top bar that changes them.
 
 /**
  * Numeric ROM room id, or null when the room is not ROM-backed.
@@ -211,50 +202,12 @@ function requestRoomTileOverlay(room,svgResult,layer){
                   originX:_pendingTileOrigin.x,originY:_pendingTileOrigin.y});
 }
 
-/** Wire the layer and overlay buttons to re-request the rendered map image. */
-function setupLayerButtons(panel,room){
-  function rerender(){
-    requestRoomTileOverlay(room,{x1:_pendingTileOrigin.x,y1:_pendingTileOrigin.y},_currentLayer);
-  }
-
-  panel.querySelectorAll('.rdf-layer').forEach(function(btn){
-    btn.addEventListener('click',function(){
-      var layer=btn.dataset.layer;
-      if(layer===_currentLayer)return;
-      _currentLayer=layer;
-      panel.querySelectorAll('.rdf-layer').forEach(function(b){
-        b.classList.toggle('on',b.dataset.layer===layer);
-      });
-      rerender();
-    });
-  });
-
-  panel.querySelectorAll('.rdf-ov').forEach(function(btn){
-    btn.addEventListener('click',function(){
-      var flag=btn.dataset.ov;
-      var on=!btn.classList.contains('on');
-      btn.classList.toggle('on',on);
-      if(on&&_currentOverlay.indexOf(flag)<0)_currentOverlay+=flag;
-      else if(!on)_currentOverlay=_currentOverlay.split(flag).join('');
-      // Objects and grass only appear as part of the collision pass, so
-      // enabling either implies collision rather than silently doing nothing.
-      if(on&&flag!=='c'&&_currentOverlay.indexOf('c')<0){
-        _currentOverlay+='c';
-        var cbtn=panel.querySelector('.rdf-ov[data-ov="c"]');
-        if(cbtn)cbtn.classList.add('on');
-      }
-      rerender();
-    });
-  });
-}
-
 /**
- * Apply the host's decoded room render: the ROM map image, plus a collision
- * overlay drawn as real sub-tile geometry (slopes are triangles, not squares)
- * coloured per elevation plane.
+ * Apply the host's decoded room render: swap in the map image and rebuild the
+ * ROM data section beneath it.
  *
- * Paths are grouped by fill colour — a big room is thousands of tiles, so one
- * SVG node per tile would make pan/zoom crawl.
+ * The features are already baked into the image, so there is no per-tile SVG
+ * to build here — which is also why this stays fast on a 86x42 room.
  */
 function applyRoomTileOverlay(msg){
   if(!msg||msg.mapName!==_pendingTileRoom)return;
@@ -317,71 +270,4 @@ function clearTileError(){
   if(!panel)return;
   var old=panel.querySelector('.rs-tile-error');
   if(old&&old.parentNode)old.parentNode.removeChild(old);
-}
-
-/** Render the ROM-derived detail tables at the bottom of the room panel. */
-function renderRomDataSections(ov){
-  var panel=document.getElementById('room-detail');
-  if(!panel)return;
-  var old=panel.querySelector('.rs-romdata');
-  if(old&&old.parentNode)old.parentNode.removeChild(old);
-
-  var planeNames={0:'0 (blue)',1:'1 (red)',2:'2 (green)',3:'3 (purple)'};
-  var planeSwatch={0:'rgba(0,170,255,0.6)',1:'rgba(235,25,25,0.6)',2:'rgba(0,255,170,0.6)',3:'rgba(190,90,255,0.6)'};
-  var h='<div class="rs rs-romdata">';
-
-  // Note the lack of source links explicitly. Trigger tables elsewhere in this
-  // panel jump to .evs lines; these rows are decoded ROM bytes with no source
-  // line to jump to, and silent inconsistency reads as a missing feature.
-  h+='<div class="rs-h">ROM MAP DATA <span class="rs-sub">'+ov.widthTiles+'x'+ov.heightTiles+
-     ' metatiles · '+ov.metatileCount+' unique · layer: '+escH(ov.layer)+
-     ' · decoded from ROM, no source lines</span></div>';
-
-  // Legend: the overlay colours are meaningless without a key.
-  h+='<div class="rg-legend">';
-  (ov.elevationPlanes||[]).forEach(function(p){
-    h+='<span class="lg"><i class="sw" style="background:'+(planeSwatch[p]||planeSwatch[1])+'"></i>collision plane '+p+'</span>';
-  });
-  if(ov.drift&&ov.drift.length)h+='<span class="lg"><i class="sw" style="background:rgba(72,126,196,0.7)"></i>drift (floor pushes you)</span>';
-  if(ov.objects&&ov.objects.length)h+='<span class="lg"><i class="sw" style="background:rgba(120,200,255,0.5);border-color:#78c8ff"></i>rom object</span>';
-  if(ov.grass&&ov.grass.length)h+='<span class="lg"><i class="sw" style="background:rgba(120,220,120,0.6)"></i>cuttable grass</span>';
-  h+='</div>';
-  h+='<table class="rt"><tr><th>Feature</th><th>Count</th><th>Detail</th></tr>';
-
-  h+='<tr class="rd-romdata-row"><td>collision tiles</td><td>'+ov.collisionTiles+'</td><td>'+
-     'planes '+(ov.elevationPlanes||[]).map(function(p){return planeNames[p]||p;}).join(', ')+'</td></tr>';
-  h+='<tr class="rd-romdata-row"><td>rom objects</td><td>'+ov.objects.length+'</td><td>'+
-     ov.objects.reduce(function(a,o){return a+o.states.length;},0)+' states total</td></tr>';
-  h+='<tr class="rd-romdata-row"><td>drift tiles</td><td>'+ov.drift.length+'</td><td>'+
-     escH(driftSummary(ov.drift))+'</td></tr>';
-  h+='<tr class="rd-romdata-row"><td>cuttable grass</td><td>'+ov.grass.length+'</td><td>'+
-     (ov.grassWarnings&&ov.grassWarnings.length?escH(ov.grassWarnings.join('; ')):'table well-formed')+'</td></tr>';
-  h+='<tr class="rd-romdata-row"><td>tile families</td><td>'+(ov.tileFamilies||[]).length+'</td><td>'+
-     (ov.tileFamilies||[]).map(function(f){return hexNum(f,4);}).join(' ')+'</td></tr>';
-  h+='<tr class="rd-romdata-row"><td>triggers</td><td>'+(ov.stepOnCount+ov.bTriggerCount)+'</td><td>'+
-     ov.stepOnCount+' step-on, '+ov.bTriggerCount+' b-trigger</td></tr>';
-  h+='</table>';
-
-  if(ov.objects.length){
-    h+='<div class="rs-h">ROM OBJECTS</div>';
-    h+='<table class="rt"><tr><th>#</th><th>State</th><th>Pos</th><th>Size</th><th>Metatile</th></tr>';
-    ov.objects.forEach(function(o){
-      o.states.forEach(function(s){
-        h+='<tr class="rd-romobj-row"><td>'+o.index+'</td><td>'+s.state+'/'+o.maxState+'</td><td>'+
-           s.x+','+s.y+'</td><td>'+s.w+'x'+s.h+'</td><td>'+hexNum(s.metatileId,4)+'</td></tr>';
-      });
-    });
-    h+='</table>';
-  }
-
-  h+='</div>';
-  panel.insertAdjacentHTML('beforeend',h);
-}
-
-/** "12 N, 4 SE" — how many drift tiles push each way. */
-function driftSummary(drift){
-  if(!drift||!drift.length)return 'none';
-  var counts={};
-  drift.forEach(function(d){counts[d.name]=(counts[d.name]||0)+1;});
-  return Object.keys(counts).sort().map(function(k){return counts[k]+' '+k;}).join(', ');
 }

@@ -1,3 +1,30 @@
+## [0.11.0] — 2026-09-20
+
+The ROM map view now shows everything `render_map.py --composition` shows, and the top bar actually controls it.
+
+### Fixed
+- **The feature toggles never did anything — "collision is always off".** The webview sent its flags as `msg.overlay`, and the `requestRoomTiles` handler in `src/extension.js` simply did not read the field when calling `buildRoomTileOverlay`. Every render came back bare no matter what the bar said. Forwarded, and the smoke suite now asserts the bar renders one button per flag the host understands.
+- **Toggles desynced when you changed rooms.** The buttons were emitted with hardcoded defaults while the flag state lived in module globals that survived the re-render, so after switching rooms the bar disagreed with the image. The bar is built from the live state instead.
+
+### Added
+- **The remaining `render_full_composition` passes are ported**, closing gap 1.2:
+  - **Index labels** — the 3×5 bitmap font (`src/maps/font.ts`), drawing the object index and the hex script id inside each box, matching what SoEScriptDumper's `script_all` lists. Objects anchor bottom-left and triggers top-left, because the font draws `O` and `0` identically.
+  - **Trigger boxes** — yellow B-trigger and magenta step-on, now on by default. The SVG trigger rects drop their paint while these are showing, so triggers are not drawn twice in two colour schemes, but stay live as hover and jump-to-source targets.
+  - **The header banner and legend**, as HTML rather than baked pixels — `buildSummary()` and `buildLegend()` return upstream's content as data. Baking them would grow the raster and break its registration with the SVG overlay, and the text would be illegible at fit zoom. Legend entries grey out as their toggle goes off rather than disappearing.
+- **One toggle per feature**, all on by default: collision, drift, elevation, pass-thru, gates, grass, rom objects, rom triggers, labels — plus an `all` button. Previously only three of the nine passes were reachable, and two of those forced collision on as a side effect.
+- The ROM data table now reports entity gates (grouped by which entities each gate blocks), plane-transparent tiles and elevation changes, and marks which plane is dominant.
+
+### Changed
+- **Overlay parity is now exact.** `checkOverlayParity`'s diff budget went from 0.5% to **zero** — the labels were the entire residual. Verified pixel-identical on 0x06 (four planes), 0x1b (shear drift), 0x0b (label-dense: 13 objects, 22 triggers, 15 gates), 0x33, 0x36 and 0x38.
+- `src/maps/collision-overlay.ts` split three ways under the 400-line law: `overlay-features.ts` classifies a room (and owns the legend/summary text), `overlay-shapes.ts` holds the raster primitives, and `collision-overlay.ts` keeps only the draw-order orchestration.
+- Rooms-tab webview split: `rom-overlay.js` owns the ROM view's top bar and data section; `detail-renderer.js` keeps the request cycle. One owner per global, since the files share a scope.
+
+### Removed
+- `src/memory/webview/assets/` — 21 files, a complete stale mirror of the webview tree left behind by the v0.6.0 refactor. Nothing has referenced it since; every file has a live counterpart under `src/docs/`, `src/routes/`, `src/shared/`, `src/rooms/webview/` and `src/scaling/webview/`.
+
+### Unrelated fix
+- Two assertions in `tests/debugger/emulator-health.test.js` had been failing on `ENOENT` since v0.6.0, pointing at the pre-refactor `debugger/adapter.js` and root `extension.js`. Both features are present and correct under `src/`; only the test paths were stale.
+
 ## [0.10.0] — 2026-09-20
 
 ### Fixed

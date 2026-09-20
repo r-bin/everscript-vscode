@@ -380,6 +380,35 @@ test('rooms detail renders ROM header and decoded script tables without bottom r
     assert.ok(!detail.includes('rr-canvas'), 'Did not expect bottom ROM render canvas');
 });
 
+test('rooms detail shows every ROM feature toggle, all on by default', () => {
+    const roomTreeData = [{
+        kind:'map', name:'toggle_room', vanillaId:'0x33', romRoomId:0x33, relPath:'vanilla (rom)', startLine:0, endLine:2,
+        imageUri:null, imageDims:null,
+        content:{
+            initMap:{x1:0,y1:0,x2:20,y2:16}, entrances:[], enemies:[], objects:[], transitions:[],
+            triggers:{ stepOn:[], bTrigger:[] }
+        }
+    }];
+    const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTreeData, 'rooms', 'toggle_room');
+    const { sandbox } = runWebviewJs(extractScript(html));
+    const detail = sandbox.document.getElementById('room-detail').innerHTML || '';
+
+    // The flag set is the contract with rooms/rendering/tile-overlay.js. A
+    // feature added there without a button here would be unreachable.
+    const { ALL_OVERLAY_FLAGS } = require('../../src/rooms/rendering/tile-overlay');
+    const rendered = (detail.match(/data-ov="(.)"/g) || []).map((m) => m.charAt(m.length - 2));
+    assert.deepStrictEqual(rendered.slice().sort().join(''), ALL_OVERLAY_FLAGS.split('').sort().join(''),
+        'Expected one toggle per overlay flag the host understands');
+
+    // Default is the full view: the point of the tab is to show what is in the
+    // room, and the bar is how you narrow it down. Collision shipping off by
+    // default is the bug this guards.
+    ALL_OVERLAY_FLAGS.split('').forEach((flag) => {
+        assert.ok(new RegExp('class="rdf rdf-ov on" data-ov="' + flag + '"').test(detail),
+            'Expected overlay flag ' + flag + ' to default on');
+    });
+});
+
 test('rooms detail uses ROM header dimensions for the map viewBox extent', () => {
     const roomTreeData = [{
         kind:'map', name:'header_extent_room', vanillaId:'0x33', relPath:'vanilla (rom)', startLine:0, endLine:2,

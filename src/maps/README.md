@@ -24,6 +24,14 @@ it. See the `map-format` and `rom-map-data` skills.
 | `collision.ts` | Collision word bitfield: geometry, planes, drift, entity gates |
 | `cuttable-grass.ts` | Section 4 metatile swap table |
 | `room.ts` | `decodeRoom()` — assembles the full room model |
+| `palette.ts` | Tile-family palettes, BGR555→RGB888, room CGRAM |
+| `chr.ts` | 16x16 CHR decompression and 4bpp planar tile decoding |
+| `render.ts` | Layer rasterization and SNES Mode 1 compositing (TM/TS, priority, CGADSUB) |
+| `overlay-features.ts` | Classifies a room into feature sets; builds the legend and summary |
+| `overlay-shapes.ts` | The raster primitives the overlay paints with (contours, grass, arrows) |
+| `collision-overlay.ts` | Draw-order orchestration for the feature overlay — a port of `render_full_composition` |
+| `font.ts` | The 3x5 bitmap font the overlay labels boxes with |
+| `png.ts` | PNG encoding (zlib deflate + CRC-32) |
 | `index.ts` | Public API |
 | `index.js` | CommonJS facade; requires the compiled output in `dist/` |
 | `alchemy-model.js` | Alchemy damage tables (unrelated to map decoding; predates the port) |
@@ -66,4 +74,8 @@ was wrong for years upstream.
 - No VS Code API
 - No imports from other `src/` domains
 - No webview rendering (the Rooms tab owns its own — see `src/rooms/rendering/tile-overlay.js`)
+- No banners: `render_full_composition` grows the PNG to fit a header and legend;
+  the port emits neither, because the Rooms tab needs the raster to stay exactly
+  the size of the map so it keeps registering with the interactive SVG layer.
+  `buildSummary()` and `buildLegend()` hand that text to the webview as data.
 - Testable in plain Node.js (`tests/memory/map-parity.test.js`)

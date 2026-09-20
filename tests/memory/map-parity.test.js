@@ -163,18 +163,18 @@ function checkRenderParity(rom, rooms) {
 }
 
 /**
- * Compare the collision/feature visualization against render_full_composition.
+ * Compare the feature visualization against render_full_composition.
  *
- * The residual is the text labels (script-id digits and their black outlines),
- * which are deliberately not ported — the Rooms tab draws labels as
- * interactive SVG instead of baking a 3x5 bitmap font into the raster. Every
- * graphical element is expected to match exactly, so the budget is small.
+ * Exact: every pass including the 3x5 index labels is now ported, so a single
+ * differing pixel is a real regression. The budget stayed non-zero only while
+ * the labels were missing; there is nothing left for it to forgive.
  */
-const OVERLAY_DIFF_BUDGET = 0.005; // 0.5% of pixels
+const OVERLAY_DIFF_BUDGET = 0; // exact — the port draws every pass upstream does
 
 function checkOverlayParity(rom, rooms) {
     // Rooms chosen to exercise the passes: 0x06 has all four elevation planes,
-    // 0x1b is drift-heavy and multi-plane, 0x36 has cuttable grass.
+    // 0x1b is drift-heavy and multi-plane (SHEAR arrows), 0x36 has cuttable
+    // grass, 0x0b is label-dense (13 objects, 22 triggers, 15 entity gates).
     const sample = [0x33, 0x38, 0x1b, 0x06, 0x0b, 0x36].filter((id) => rooms.indexOf(id) >= 0 || rooms.length > 12);
     if (!sample.length) return;
     console.log(`map-parity: comparing collision overlay for ${sample.length} rooms`);
@@ -214,9 +214,9 @@ function checkOverlayParity(rom, rooms) {
         const ratio = diff / (expected.length / 4);
         if (ratio > OVERLAY_DIFF_BUDGET) {
             failures += 1;
-            console.error(`  FAIL ${id} overlay: ${(ratio * 100).toFixed(3)}% differ (budget ${(OVERLAY_DIFF_BUDGET * 100).toFixed(1)}%)`);
+            console.error(`  FAIL ${id} overlay: ${diff} pixels differ (${(ratio * 100).toFixed(4)}%)`);
         } else {
-            console.log(`  ${id} overlay ${ts.width}x${ts.height} within budget (${(ratio * 100).toFixed(3)}% = label text)`);
+            console.log(`  ${id} overlay ${ts.width}x${ts.height} pixel-identical`);
         }
     }
 }
