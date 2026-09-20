@@ -52,8 +52,12 @@ function setupZoomPan(p){
   p._getScale=getScale;
   p._getViewportMetrics=getViewportMetrics;
 
+  // Single owner for the pan offset. Callers must read it back through
+  // _getPan() rather than keeping their own copy — a second copy is what made
+  // every drag after the first start from a stale base and jump.
   function applyPan(px,py){p.panX=px;p.panY=py;if(canvas)canvas.style.transform='translate('+px+'px,'+py+'px)';}
   p._applyPan=applyPan;
+  p._getPan=function(){return{x:p.panX||0,y:p.panY||0};};
 
   function applyZoom(s){
     if(!svg||!canvas)return;
@@ -165,7 +169,9 @@ function setupMouseEvents(p){
       var s=p._getScale?p._getScale(zoomState.scale):zoomState.scale||1;
       var pxW=Math.round(W2*s),pxH=Math.round(H2*s);
       if(pxW<=dispW2&&pxH<=dispH2)return;
-      state.panActive=true;state.panCX=e.clientX;state.panCY=e.clientY;state.panBX=state.panX||0;state.panBY=state.panY||0;
+      // Base the drag on the live pan offset, not a stale local copy.
+      var cur=p._getPan?p._getPan():{x:state.panX||0,y:state.panY||0};
+      state.panActive=true;state.panCX=e.clientX;state.panCY=e.clientY;state.panBX=cur.x;state.panBY=cur.y;
       if(wrap)wrap.classList.add('rg-panning');
     }
     e.preventDefault();
@@ -204,9 +210,25 @@ function setupMouseEvents(p){
   });
 
   svg.addEventListener('mouseleave',function(){
-    if(state.panActive){state.panActive=false;if(wrap)wrap.classList.remove('rg-panning');}
+    // Panning deliberately survives leaving the SVG — window handlers below
+    // carry it on, so a fast drag past the edge doesn't cancel mid-gesture.
     if(state.dragEnt){if(state.dragEnt.ghostEl&&state.dragEnt.ghostEl.parentNode)state.dragEnt.ghostEl.parentNode.removeChild(state.dragEnt.ghostEl);state.dragEnt=null;}
   });
+
+  // Continue and finish a pan even when the pointer leaves the SVG.
+  if(typeof window!=='undefined'&&window.addEventListener){
+    window.addEventListener('mousemove',function(e){
+      if(!state.panActive||!p._applyPan||!p._getViewportMetrics)return;
+      var metrics=p._getViewportMetrics();
+      p._applyPan(
+        Math.min(metrics.maxX,Math.max(metrics.minX,state.panBX+(e.clientX-state.panCX))),
+        Math.min(metrics.maxY,Math.max(metrics.minY,state.panBY+(e.clientY-state.panCY)))
+      );
+    });
+    window.addEventListener('mouseup',function(){
+      if(state.panActive){state.panActive=false;if(wrap)wrap.classList.remove('rg-panning');}
+    });
+  }
 
   svg.addEventListener('click',function(e){if(e.shiftKey||state.dragEnt)return;var pt=svgPt(e);selectAt(Math.floor(pt.x),Math.floor(pt.y));});
   svg.addEventListener('dblclick',function(){clearBoxFilter();clearSelection();});

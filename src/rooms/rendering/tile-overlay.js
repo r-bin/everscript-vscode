@@ -1,6 +1,7 @@
 'use strict';
-// Ownership: produce everything the Rooms tab needs to draw a ROM room —
-// the rendered map image plus a collision overlay.
+// Ownership: produce everything the Rooms tab needs to draw a ROM room — the
+// rendered map image for a chosen layer, plus overlay geometry for collision,
+// objects, drift and cuttable grass.
 //
 // Pure apart from the module-level render cache. Consumes the maps domain
 // (src/maps); emits a PNG data URI and SVG geometry. Lives in rooms/ because
@@ -11,18 +12,19 @@ const maps = require('../../maps');
 // SVG coords are 8px-tile units; a map metatile is 16px, so it spans 2 units.
 const U = 2;
 
-// One colour per elevation plane (collision word bits 5..4). Plane 1 keeps the
-// familiar red because 104 of the 127 vanilla rooms are plane-1 only, so
-// single-level rooms look the way they always have.
+/** Which render the map image shows. */
+const LAYERS = ['composite', 'layer1', 'layer2'];
+
+// One colour per elevation plane (collision word bits 5..4), matching
+// render_map.py. Plane 1 keeps the familiar red because 104 of the 127 vanilla
+// rooms are plane-1 only, so single-level rooms look the way they always have.
 const PLANE_COLORS = {
     0: 'rgba(0,170,255,',
     1: 'rgba(235,25,25,',
     2: 'rgba(0,255,170,',
     3: 'rgba(190,90,255,',
 };
-
 const FILL_ALPHA = '0.34)';
-const DRIFT_FILL = 'rgba(72,126,196,0.40)';
 
 /**
  * Sub-tile geometry as polygon corners in metatile-local units (0..2).
@@ -56,65 +58,93 @@ function polygonPath(shape, ox, oy) {
 }
 
 /**
- * Build collision overlay geometry, grouped into one path per fill colour.
+ * Collision geometry grouped into one path per fill colour.
  *
  * Grouping matters: a 128x70 room is 8960 tiles, and one SVG node per tile
  * makes pan/zoom crawl.
  */
 function buildCollisionPaths(collisionWords, originX, originY) {
     const buckets = new Map();
-    const drift = [];
     let painted = 0;
-
-    const push = (fill, d) => {
-        const cur = buckets.get(fill);
-        if (cur) cur.push(d);
-        else buckets.set(fill, [d]);
-    };
 
     for (let y = 0; y < collisionWords.length; y++) {
         const row = collisionWords[y];
         const oy = originY + y * U;
         for (let x = 0; x < row.length; x++) {
             const cw = row[x];
-            const ox = originX + x * U;
             const plane = maps.tilePlane(cw);
-            const geometry = maps.passability(cw, plane);
-            const shape = GEOMETRY_SHAPES[geometry];
-
-            if (shape) {
-                push((PLANE_COLORS[plane] || PLANE_COLORS[1]) + FILL_ALPHA, polygonPath(shape, ox, oy));
-                painted += 1;
-            }
-
-            // Drift tiles carry a direction in the low nibble instead of geometry.
-            const d = maps.driftVector(cw);
-            if (d.name) {
-                push(DRIFT_FILL, polygonPath(GEOMETRY_SHAPES[0x0f], ox, oy));
-                drift.push({ x, y, dx: d.dx, dy: d.dy, name: d.name });
-            }
+            const shape = GEOMETRY_SHAPES[maps.passability(cw, plane)];
+            if (!shape) continue;
+            const fill = (PLANE_COLORS[plane] || PLANE_COLORS[1]) + FILL_ALPHA;
+            const d = polygonPath(shape, originX + x * U, oy);
+            const cur = buckets.get(fill);
+            if (cur) cur.push(d);
+            else buckets.set(fill, [d]);
+            painted += 1;
         }
     }
 
     const layers = [];
     buckets.forEach((paths, fill) => layers.push({ fill, d: paths.join('') }));
-    return { layers, painted, drift };
+    return { layers, painted };
 }
 
-// Rendering a large room costs ~100-400ms (mostly PNG deflate), so keep the
-// last few around — switching between rooms should feel instant.
-const RENDER_CACHE = new Map();
-const RENDER_CACHE_MAX = 12;
+/** Drift tiles: where the floor pushes an entity, and which way. */
+function buildDrift(collisionWords) {
+    const out = [];
+    for (let y = 0; y < collisionWords.length; y++) {
+        const row = collisionWords[y];
+        for (let x = 0; x < row.length; x++) {
+            const d = maps.driftVector(row[x]);
+            if (d.name) out.push({ x, y, dx: d.dx, dy: d.dy, name: d.name });
+        }
+    }
+    return out;
+}
 
-function cachedRender(rom, roomId) {
-    const hit = RENDER_CACHE.get(roomId);
+/**
+ * Section 3 map objects, flattened to their drawable states.
+ * Coordinates are metatile units; the webview scales them by U.
+ */
+function buildObjects(room) {
+    return room.objects.map((obj) => ({
+        index: obj.objectIndex,
+        maxState: obj.maxState,
+        states: obj.states.map((s) => ({
+            state: s.state,
+            x: s.tileX,
+            y: s.tileY,
+            w: s.targetWidth,
+            h: s.targetHeight,
+            metatileId: s.metatileId,
+            tiles: s.metatiles.length,
+        })),
+    }));
+}
+
+// Rendering a large room costs ~150ms (mostly PNG deflate) per layer, so keep
+// recent results around — switching layers or rooms should feel instant.
+const RENDER_CACHE = new Map();
+const RENDER_CACHE_MAX = 24;
+
+function cacheKey(roomId, layer) { return roomId + ':' + layer; }
+
+function renderLayer(rom, room, layer) {
+    if (layer === 'layer1') return maps.renderVramLayer(rom, room, room.layer1VramWords);
+    if (layer === 'layer2') return maps.renderVramLayer(rom, room, room.layer2VramWords);
+    return maps.renderRoomComposite(rom, room);
+}
+
+function cachedRender(rom, roomId, layer) {
+    const key = cacheKey(roomId, layer);
+    const hit = RENDER_CACHE.get(key);
     if (hit) return hit;
 
     const room = maps.decodeRoom(rom, roomId);
-    const image = maps.renderRoomComposite(rom, room);
+    const image = renderLayer(rom, room, layer);
     const entry = { room, imageUri: maps.encodePngDataUri(image), width: image.width, height: image.height };
 
-    RENDER_CACHE.set(roomId, entry);
+    RENDER_CACHE.set(key, entry);
     if (RENDER_CACHE.size > RENDER_CACHE_MAX) RENDER_CACHE.delete(RENDER_CACHE.keys().next().value);
     return entry;
 }
@@ -129,25 +159,35 @@ function invalidateRoomRenders() { RENDER_CACHE.clear(); }
  * @param {number} roomId          Vanilla room id (0x00..0x7E).
  * @param {number} originX         SVG viewBox left edge, 8px-tile units.
  * @param {number} originY         SVG viewBox top edge, 8px-tile units.
+ * @param {string} [layer]         'composite' (default), 'layer1' or 'layer2'.
  */
-function buildRoomTileOverlay(rom, roomId, originX, originY) {
+function buildRoomTileOverlay(rom, roomId, originX, originY, layer) {
     const buf = rom instanceof Uint8Array ? rom : new Uint8Array(rom);
-    const { room, imageUri, width, height } = cachedRender(buf, roomId);
-    const { layers, painted, drift } = buildCollisionPaths(room.collisionWords, originX || 0, originY || 0);
+    const which = LAYERS.indexOf(layer) >= 0 ? layer : 'composite';
+    const { room, imageUri, width, height } = cachedRender(buf, roomId, which);
+    const ox = originX || 0;
+    const oy = originY || 0;
+    const collision = buildCollisionPaths(room.collisionWords, ox, oy);
 
     return {
         roomId,
+        layer: which,
         widthTiles: room.header.widthTiles,
         heightTiles: room.header.heightTiles,
+        originX: ox,
+        originY: oy,
         imageUri,
         imageWidth: width,
         imageHeight: height,
-        layers,
-        paintedTiles: painted,
-        drift,
+        collision: collision.layers,
+        collisionTiles: collision.painted,
+        drift: buildDrift(room.collisionWords),
+        objects: buildObjects(room),
+        grass: room.cuttableGrass.tiles.map((t) => ({ x: t[0], y: t[1] })),
+        grassWarnings: room.cuttableGrass.warnings,
         elevationPlanes: room.elevationPlanes,
-        cuttableGrassTiles: room.cuttableGrass.tiles,
-        objectCount: room.objects.length,
+        tileFamilies: room.tileFamilies,
+        metatileCount: room.metatileCount,
         stepOnCount: room.triggers.stepOn.length,
         bTriggerCount: room.triggers.bTrigger.length,
     };
@@ -156,7 +196,10 @@ function buildRoomTileOverlay(rom, roomId, originX, originY) {
 module.exports = {
     buildRoomTileOverlay,
     buildCollisionPaths,
+    buildDrift,
+    buildObjects,
     invalidateRoomRenders,
+    LAYERS,
     GEOMETRY_SHAPES,
     PLANE_COLORS,
 };

@@ -1,3 +1,14 @@
+## [0.8.1] — 2026-09-20
+
+### Fixed
+- **Grid no longer misaligns on large maps.** The 8px/16px grids coarsened their spacing to 2 or 4 viewBox units once a room exceeded 64 or 128 units, so on a room like 0x38 the "8px" grid actually drew every 32px and stopped lining up with the rendered map. Both grids now draw at true spacing at any room size, emitted as one `<path>` each instead of several hundred `<line>` elements (3.2KB of path data for the largest room).
+- **Panning works.** The pan offset lived in two places — `applyPan` wrote to the zoom module's copy while mousedown read a `state` copy that was only synced once at setup — so every drag after the first started from a stale base and jumped. There is now a single owner with a `_getPan()` accessor. Panning also continues when the pointer leaves the SVG instead of cancelling mid-drag.
+
+### Added
+- **Layer selection**: `composite` (SNES Mode 1, default), `L2 terrain` (BG1) and `L1 canopy` (BG2) render the map image from the chosen layer. Each layer is cached per room.
+- **New overlay toggles**, all drawn from decoded ROM data: `collision` (real sub-tile geometry, coloured per elevation plane), `rom objects` (Section 3 object stamps with per-state footprints), `drift` (tiles that push an entity, with direction ticks) and `grass` (cuttable-grass metatiles).
+- **ROM MAP DATA section** at the bottom of the room panel listing every decoded feature — collision tile count and elevation planes, object and state counts, drift tiles broken down by direction, cuttable grass with table-invariant warnings, tile families, and trigger counts — plus a **ROM OBJECTS** table of each object's states, positions, sizes and metatile IDs.
+
 ## [0.8.0] — 2026-09-20
 
 ### Added

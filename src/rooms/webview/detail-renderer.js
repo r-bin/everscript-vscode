@@ -35,7 +35,20 @@ function renderRoomDetail(room){
   if(typeof room.startLine==='number'&&room.startLine>=0)html+='<a class="ll" data-line="'+room.startLine+'" href="#">go to code</a>';
   html+='<div class="rd-filters">';
   if(hasCoordData||room.imageUri)html+='<button class="rdf on" data-hide="hide-map" title="Toggle map area">map</button>';
-  if(roomVanillaIdNum(room)!=null)html+='<button class="rdf" data-hide="hide-tiles" title="Toggle the decoded collision overlay (sub-tile geometry, coloured per elevation plane)">collision</button>';
+  // ROM-decoded views. The three layer buttons pick which render the map image
+  // shows (mutually exclusive); the rest toggle overlays drawn on top of it.
+  if(roomVanillaIdNum(room)!=null){
+    html+='<span class="rdf-sep"></span>';
+    html+='<button class="rdf rdf-layer on" data-layer="composite" title="Composited map as the SNES displays it (Mode 1)">composite</button>';
+    html+='<button class="rdf rdf-layer" data-layer="layer2" title="Layer 2 only — terrain (BG1)">L2 terrain</button>';
+    html+='<button class="rdf rdf-layer" data-layer="layer1" title="Layer 1 only — canopy (BG2)">L1 canopy</button>';
+    html+='<span class="rdf-sep"></span>';
+    html+='<button class="rdf" data-hide="hide-tiles" title="Collision: real sub-tile geometry, coloured per elevation plane">collision</button>';
+    html+='<button class="rdf" data-hide="hide-romobj" title="ROM map objects (Section 3) and their state stamps">rom objects</button>';
+    html+='<button class="rdf" data-hide="hide-drift" title="Drift tiles — floor that pushes an entity, with direction">drift</button>';
+    html+='<button class="rdf" data-hide="hide-grass" title="Cuttable grass tiles (metatile swap table)">grass</button>';
+    html+='<span class="rdf-sep"></span>';
+  }
   if(rh)html+='<button class="rdf on" data-hide="hide-header" title="Toggle ROM header section">header</button>';
   if(enterTrig||stepOn.length||bTrigger.length)html+='<button class="rdf on" data-hide="hide-scripts" title="Toggle decoded script tables">scripts</button>';
   if(stepOn.length||bTrigger.length)html+='<button class="rdf on" data-hide="hide-trigger" title="Toggle trigger overlays and tables">trigger</button>';
@@ -99,8 +112,8 @@ function renderRoomDetail(room){
              dispW:svgResult.dispW,dispH:svgResult.dispH,
              zoomState:zoomState,panX:state.panX,panY:state.panY};
     setupZoomPan(zp);
-    // Sync panX/panY back into state after setup
-    state.panX=zp.panX||0;state.panY=zp.panY||0;
+    // zp owns the pan offset; mouse handlers read it via zp._getPan(). Do not
+    // mirror it into `state` — that duplicate is what used to go stale.
     setupMouseEvents({svg:svg,panel:panel,canvas:canvas,wrap:wrap,
                       entrances:entrances,enemies:enemies,stepOn:stepOn,bTrigger:bTrigger,
                       trigOff:trigOff,zoomState:zoomState,state:state,
@@ -111,14 +124,20 @@ function renderRoomDetail(room){
   }
 
   // ── ROM tile overlay ───────────────────────────────────────────────────────
-  // Ask the host to decode this room's collision grid. Async and on demand:
-  // the tree JSON carries no tile data, so nothing renders until this returns.
+  // Ask the host to decode and render this room. Async and on demand: the tree
+  // JSON carries no tile data, so nothing appears until this returns.
+  setupLayerButtons(panel,room);
   requestRoomTileOverlay(room,svgResult);
 }
 
 // Name of the room whose tile overlay was last requested. Responses for any
 // other room are stale (the user moved on) and get dropped.
 var _pendingTileRoom=null;
+// SVG viewBox origin the host rendered against, reused when re-requesting a
+// different layer for the same room.
+var _pendingTileOrigin={x:0,y:0};
+// Which render the map image is showing: composite | layer1 | layer2.
+var _currentLayer='composite';
 
 /** Vanilla room id as a number, or null when the room is not ROM-backed. */
 function roomVanillaIdNum(room){
@@ -129,12 +148,29 @@ function roomVanillaIdNum(room){
 }
 
 /** Post a tile-overlay request to the extension host for the rendered room. */
-function requestRoomTileOverlay(room,svgResult){
+function requestRoomTileOverlay(room,svgResult,layer){
   var id=roomVanillaIdNum(room);
   if(id==null||typeof vs==='undefined'||!vs||!svgResult)return;
   _pendingTileRoom=room.name;
+  _pendingTileOrigin={x:svgResult.x1||0,y:svgResult.y1||0};
   vs.postMessage({command:'requestRoomTiles',roomId:id,mapName:room.name,
-                  originX:svgResult.x1||0,originY:svgResult.y1||0});
+                  layer:layer||_currentLayer,
+                  originX:_pendingTileOrigin.x,originY:_pendingTileOrigin.y});
+}
+
+/** Wire the layer buttons to re-request the map image in that layer. */
+function setupLayerButtons(panel,room){
+  panel.querySelectorAll('.rdf-layer').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var layer=btn.dataset.layer;
+      if(layer===_currentLayer)return;
+      _currentLayer=layer;
+      panel.querySelectorAll('.rdf-layer').forEach(function(b){
+        b.classList.toggle('on',b.dataset.layer===layer);
+      });
+      requestRoomTileOverlay(room,{x1:_pendingTileOrigin.x,y1:_pendingTileOrigin.y},layer);
+    });
+  });
 }
 
 /**
@@ -171,17 +207,118 @@ function applyRoomTileOverlay(msg){
     if(img){img.src=ov.imageUri;img.classList.add('rg-rom-render');}
   }
 
-  if(!ov.layers||!ov.layers.length)return;
   var NS='http://www.w3.org/2000/svg';
+  var U=2;                       // SVG units per 16px metatile
+  var ox=ov.originX||0, oy=ov.originY||0;
   var g=document.createElementNS(NS,'g');
   g.setAttribute('id','rg-tiles');
-  g.setAttribute('class','rg-tiles');
-  ov.layers.forEach(function(layer){
-    var p=document.createElementNS(NS,'path');
-    p.setAttribute('d',layer.d);
-    p.setAttribute('fill',layer.fill);
-    g.appendChild(p);
-  });
+
+  function mk(tag,attrs,cls){
+    var el=document.createElementNS(NS,tag);
+    for(var k in attrs)el.setAttribute(k,attrs[k]);
+    if(cls)el.setAttribute('class',cls);
+    return el;
+  }
+  function group(cls){var s=document.createElementNS(NS,'g');s.setAttribute('class',cls);g.appendChild(s);return s;}
+
+  // Collision: one path per fill colour (plane), real sub-tile geometry.
+  if(ov.collision&&ov.collision.length){
+    var gc=group('rg-collision');
+    ov.collision.forEach(function(layer){
+      gc.appendChild(mk('path',{d:layer.d,fill:layer.fill}));
+    });
+  }
+
+  // ROM map objects: outline each state's stamp footprint.
+  if(ov.objects&&ov.objects.length){
+    var go=group('rg-romobj');
+    ov.objects.forEach(function(obj){
+      obj.states.forEach(function(st){
+        var r=mk('rect',{x:ox+st.x*U,y:oy+st.y*U,width:Math.max(st.w*U,U),height:Math.max(st.h*U,U),
+                         fill:'rgba(120,200,255,0.16)',stroke:'#78c8ff','stroke-width':0.18});
+        r.appendChild(mk('title',{})).textContent='object #'+obj.index+' state '+st.state+
+          ' ('+st.w+'x'+st.h+' metatiles) @ '+st.x+','+st.y;
+        go.appendChild(r);
+      });
+    });
+  }
+
+  // Drift tiles: a marker plus a direction tick for the eight compass handlers.
+  if(ov.drift&&ov.drift.length){
+    var gd=group('rg-drift');
+    ov.drift.forEach(function(d){
+      var cx=ox+d.x*U+U/2, cy=oy+d.y*U+U/2;
+      gd.appendChild(mk('rect',{x:ox+d.x*U,y:oy+d.y*U,width:U,height:U,fill:'rgba(72,126,196,0.38)'}));
+      if(d.dx||d.dy){
+        var n=Math.max(Math.abs(d.dx),Math.abs(d.dy));
+        gd.appendChild(mk('line',{x1:cx,y1:cy,x2:cx+(d.dx/n)*(U/2),y2:cy+(d.dy/n)*(U/2),
+                                  stroke:'#bfe0ff','stroke-width':0.22,'stroke-linecap':'round'}));
+      }
+    });
+  }
+
+  // Cuttable grass.
+  if(ov.grass&&ov.grass.length){
+    var gg=group('rg-grass');
+    var d='';
+    ov.grass.forEach(function(t){d+='M'+(ox+t.x*U)+' '+(oy+t.y*U)+'h'+U+'v'+U+'h-'+U+'z';});
+    gg.appendChild(mk('path',{d:d,fill:'rgba(120,220,120,0.30)'}));
+  }
+
   // Painted under the grid lines and entity boxes, over the map image.
   svg.insertBefore(g,svg.firstChild);
+
+  renderRomDataSections(ov);
+}
+
+/** Render the ROM-derived detail tables at the bottom of the room panel. */
+function renderRomDataSections(ov){
+  var panel=document.getElementById('room-detail');
+  if(!panel)return;
+  var old=panel.querySelector('.rs-romdata');
+  if(old&&old.parentNode)old.parentNode.removeChild(old);
+
+  var planeNames={0:'0 (blue)',1:'1 (red)',2:'2 (green)',3:'3 (purple)'};
+  var h='<div class="rs rs-romdata">';
+
+  h+='<div class="rs-h">ROM MAP DATA <span class="rs-sub">'+ov.widthTiles+'x'+ov.heightTiles+
+     ' metatiles · '+ov.metatileCount+' unique · layer: '+escH(ov.layer)+'</span></div>';
+  h+='<table class="rt"><tr><th>Feature</th><th>Count</th><th>Detail</th></tr>';
+
+  h+='<tr class="rd-romdata-row"><td>collision tiles</td><td>'+ov.collisionTiles+'</td><td>'+
+     'planes '+(ov.elevationPlanes||[]).map(function(p){return planeNames[p]||p;}).join(', ')+'</td></tr>';
+  h+='<tr class="rd-romdata-row"><td>rom objects</td><td>'+ov.objects.length+'</td><td>'+
+     ov.objects.reduce(function(a,o){return a+o.states.length;},0)+' states total</td></tr>';
+  h+='<tr class="rd-romdata-row"><td>drift tiles</td><td>'+ov.drift.length+'</td><td>'+
+     escH(driftSummary(ov.drift))+'</td></tr>';
+  h+='<tr class="rd-romdata-row"><td>cuttable grass</td><td>'+ov.grass.length+'</td><td>'+
+     (ov.grassWarnings&&ov.grassWarnings.length?escH(ov.grassWarnings.join('; ')):'table well-formed')+'</td></tr>';
+  h+='<tr class="rd-romdata-row"><td>tile families</td><td>'+(ov.tileFamilies||[]).length+'</td><td>'+
+     (ov.tileFamilies||[]).map(function(f){return hexNum(f,4);}).join(' ')+'</td></tr>';
+  h+='<tr class="rd-romdata-row"><td>triggers</td><td>'+(ov.stepOnCount+ov.bTriggerCount)+'</td><td>'+
+     ov.stepOnCount+' step-on, '+ov.bTriggerCount+' b-trigger</td></tr>';
+  h+='</table>';
+
+  if(ov.objects.length){
+    h+='<div class="rs-h">ROM OBJECTS</div>';
+    h+='<table class="rt"><tr><th>#</th><th>State</th><th>Pos</th><th>Size</th><th>Metatile</th></tr>';
+    ov.objects.forEach(function(o){
+      o.states.forEach(function(s){
+        h+='<tr class="rd-romobj-row"><td>'+o.index+'</td><td>'+s.state+'/'+o.maxState+'</td><td>'+
+           s.x+','+s.y+'</td><td>'+s.w+'x'+s.h+'</td><td>'+hexNum(s.metatileId,4)+'</td></tr>';
+      });
+    });
+    h+='</table>';
+  }
+
+  h+='</div>';
+  panel.insertAdjacentHTML('beforeend',h);
+}
+
+/** "12 N, 4 SE" — how many drift tiles push each way. */
+function driftSummary(drift){
+  if(!drift||!drift.length)return 'none';
+  var counts={};
+  drift.forEach(function(d){counts[d.name]=(counts[d.name]||0)+1;});
+  return Object.keys(counts).sort().map(function(k){return counts[k]+' '+k;}).join(', ');
 }

@@ -125,7 +125,14 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .hide-trigger .svge-step,.hide-trigger .svge-btrig,.hide-trigger .rs-step,.hide-trigger .rs-btrig{display:none!important}
 .hide-grid8 .rg-grid-fine{display:none!important}
 .hide-grid16 .rg-grid-coarse{display:none!important}
-.hide-tiles .rg-tiles{display:none!important}
+/* ROM-decoded overlay layers, each on its own filter button. */
+.hide-tiles .rg-collision{display:none!important}
+.hide-romobj .rg-romobj{display:none!important}
+.hide-drift .rg-drift{display:none!important}
+.hide-grass .rg-grass{display:none!important}
+.rdf-sep{display:inline-block;width:1px;height:11px;margin:0 3px;background:#444;vertical-align:middle}
+.rs-romdata .rs-h{margin-top:8px}
+.rs-romdata .rs-sub{color:#777;font-weight:normal;font-size:9px;margin-left:6px}
 .hide-ent .svge-entrance,.hide-ent .rs-entrance{display:none!important}
 .hide-enem .svge-enemy,.hide-enem .rs-enemies{display:none!important}
 .hide-obj .rs-objects{display:none!important}

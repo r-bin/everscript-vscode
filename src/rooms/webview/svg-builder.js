@@ -64,21 +64,20 @@ function buildRoomSvgSection(opts){
     if(imageUri)html+='<img class="room-img" id="rg-img" src="'+imageUri+'" alt="">';
     html+='<svg class="rg-svg" id="rg-svg" width="'+dispW+'" height="'+dispH+'" viewBox="'+x1+' '+y1+' '+W+' '+H+'">';
 
-    // Fine grid (8px-tile)
-    var tileStep=1;
-    if(W>64||H>64)tileStep=2;
-    if(W>128||H>128)tileStep=4;
-    for(var gx=x1;gx<=x2;gx+=tileStep)html+='<line class="rg-grid-fine" x1="'+gx+'" y1="'+y1+'" x2="'+gx+'" y2="'+y2+'" stroke="rgba(255,255,255,0.11)" stroke-width="0.07"/>';
-    for(var gy=y1;gy<=y2;gy+=tileStep)html+='<line class="rg-grid-fine" x1="'+x1+'" y1="'+gy+'" x2="'+x2+'" y2="'+gy+'" stroke="rgba(255,255,255,0.11)" stroke-width="0.07"/>';
-
-    // Coarse grid (16px-tile trigger space)
-    var trigStep=tileStep*2;
-    var tgx0=x1-((x1%trigStep+trigStep)%trigStep);
-    var tgy0=y1-((y1%trigStep+trigStep)%trigStep);
-    for(var gx=tgx0;gx<=x2;gx+=trigStep)html+='<line class="rg-grid-coarse" x1="'+gx+'" y1="'+y1+'" x2="'+gx+'" y2="'+y2+'" stroke="rgba(160,140,80,0.42)" stroke-width="0.18"/>';
-    for(var gy=tgy0;gy<=y2;gy+=trigStep)html+='<line class="rg-grid-coarse" x1="'+x1+'" y1="'+gy+'" x2="'+x2+'" y2="'+gy+'" stroke="rgba(160,140,80,0.42)" stroke-width="0.18"/>';
-    if((x2-tgx0)%trigStep!==0)html+='<line class="rg-grid-coarse" x1="'+x2+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="rgba(160,140,80,0.42)" stroke-width="0.18"/>';
-    if((y2-tgy0)%trigStep!==0)html+='<line class="rg-grid-coarse" x1="'+x1+'" y1="'+y2+'" x2="'+x2+'" y2="'+y2+'" stroke="rgba(160,140,80,0.42)" stroke-width="0.18"/>';
+    // Grid lines at their true spacing: 1 viewBox unit = one 8px tile, 2 units
+    // = one 16px metatile. These used to coarsen to 2 or 4 units on large maps,
+    // which made the "8px" grid draw every 32px and stopped it lining up with
+    // the rendered map. One <path> per grid keeps the DOM small at any size.
+    function gridPath(step,ox,oy){
+      var d='';
+      var gx0=x1-((x1%step+step)%step);
+      var gy0=y1-((y1%step+step)%step);
+      for(var gx=gx0;gx<=x2;gx+=step)if(gx>=x1)d+='M'+gx+' '+y1+'V'+y2;
+      for(var gy=gy0;gy<=y2;gy+=step)if(gy>=y1)d+='M'+x1+' '+gy+'H'+x2;
+      return d;
+    }
+    html+='<path class="rg-grid-fine" d="'+gridPath(1)+'" fill="none" stroke="rgba(255,255,255,0.11)" stroke-width="0.07"/>';
+    html+='<path class="rg-grid-coarse" d="'+gridPath(2)+'" fill="none" stroke="rgba(160,140,80,0.42)" stroke-width="0.18"/>';
 
     // Step-on rects (pink)
     stepOn.forEach(function(t,i){

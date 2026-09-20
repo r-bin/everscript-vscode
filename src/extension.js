@@ -517,7 +517,7 @@ function activate(context) {
                             _radarPanel.webview.postMessage({ ...reply, error: 'ROM not found — set everscript.romPath' });
                             return;
                         }
-                        const overlay = buildRoomTileOverlay(romBuf, roomId, Number(msg.originX) || 0, Number(msg.originY) || 0);
+                        const overlay = buildRoomTileOverlay(romBuf, roomId, Number(msg.originX) || 0, Number(msg.originY) || 0, msg.layer);
                         _radarPanel.webview.postMessage({ ...reply, overlay });
                     } catch (err) {
                         _radarPanel.webview.postMessage({ ...reply, error: String(err && err.message || err) });
