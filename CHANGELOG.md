@@ -14,7 +14,8 @@
 
 ### Fixed
 - **`npm test` was red on `develop` since v0.6.0.** That refactor moved `tests/corpus/` and `tests/opcodes/` into `sandbox/` without updating the requires, breaking `parser-parity.test.js` (260 assertions) through a four-deep require chain. All stale paths repointed, including one still aimed at the pre-v0.6.0 `debugger/emulator/` location.
-- **`.vscodeignore` excluded `src/**` while `main` is `./src/extension.js`**, so `npm run package` produced a `.vsix` that could not load. Only the TypeScript sources under `src/maps` are excluded now; the compiled output ships.
+- **`.vscodeignore` excluded `src/**` while `main` is `./src/extension.js`**, so `npm run package` produced a `.vsix` that could not load. Only the TypeScript sources under `src/maps` are excluded now; the compiled output ships. This went unnoticed because the extension was actually being installed by the old `rsync` ritual, not by `npm run deploy`.
+- **Deployment cleaned up.** `npm run deploy` is now the verified install path (`rbin.everscript-0.7.0`, 934KB, 240 files). The 19 unregistered full-repo `rsync` copies left in `~/.vscode/extensions/everscript-*` by the old ritual were removed, reclaiming ~9GB. The `.vsix` no longer ships emulator-core C sources, build scripts or submodule git pointers — only the built `snes9x_2005.js`/`.wasm` artifacts.
 
 ### Changed
 - Shelved the superseded sentinel-scan map decoders (`map-pipeline-model.js`, `map-blob-evidence-model.js`) and their tests into `sandbox/maps/`, out of the extension's runtime path.
