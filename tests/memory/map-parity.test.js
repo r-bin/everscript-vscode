@@ -12,7 +12,10 @@ const fs = require('fs');
 const path = require('path');
 const cp = require('child_process');
 
-const { decodeRoom, MAX_ROOMS, renderRoomComposite, encodePng, drawCollisionOverlay } = require('../../src/maps');
+const {
+    decodeRoom, MAX_ROOMS, renderRoomComposite, encodePng, drawCollisionOverlay,
+    parseObjectStamp, applyObjectStates, objectStateCount,
+} = require('../../src/maps');
 
 const EVERSCRIPT_REPO = process.env.EVERSCRIPT_REPO ||
     path.join(path.dirname(path.dirname(path.dirname(path.resolve(__dirname)))), 'everscript');
@@ -102,6 +105,7 @@ function main() {
 
     checkRenderParity(rom, rooms);
     checkOverlayParity(rom, rooms);
+    checkObjectStamps(rom);
 
     if (failures) {
         console.error(`\nmap-parity: ${failures} mismatch(es)`);
@@ -160,6 +164,75 @@ function checkRenderParity(rom, rooms) {
             console.log(`  ${id} render ${ts.width}x${ts.height} pixel-identical`);
         }
     }
+}
+
+/**
+ * Hold the object stamp format to the hardware.
+ *
+ * The record layout and the XOR semantics were read off a Mesen CPU trace of
+ * looting the chest on map 0x71 ($90A4E8: `TXA / EOR [$B0] / STA [$AD]`).
+ * These are the exact values that trace wrote, so a regression in the parser
+ * or in applyObjectStates fails here rather than silently drawing the wrong
+ * furniture. Unlike the rest of this file it needs no Python, only the ROM.
+ */
+function checkObjectStamps(rom) {
+    const room = decodeRoom(rom, 0x71);
+
+    // Straight from the trace: object 0x14, anchor (0x14, 0x39), stamp
+    // pointer 0x324, footprint 2x2, and the grid words before and after.
+    const obj = room.objects[0x14];
+    check('0x71 obj 0x14 state count', objectStateCount(obj), 2);
+    check('0x71 obj 0x14 anchor', [obj.states[0].tileX, obj.states[0].tileY], [0x14, 0x39]);
+    check('0x71 obj 0x14 stamp pointer', obj.states[0].metatileId, 0x324);
+
+    const stamp = parseObjectStamp(rom, room.objectArea, obj.states[0].metatileId);
+    check('0x71 obj 0x14 footprint', [stamp.tw, stamp.th], [2, 2]);
+    check('0x71 obj 0x14 first two deltas', stamp.deltas.slice(0, 2), [0x2470, 0x2410]);
+
+    // $7F34B4 and $7F34B6, i.e. (20,57) and (21,57) at map width 118.
+    check('0x71 grid before (trace $7F34B4/6)',
+        [room.layer1MetatileIds[0x39][0x14], room.layer1MetatileIds[0x39][0x15]], [0x5CC8, 0x5CD0]);
+    const opened = applyObjectStates(rom, room, { 0x14: 1 });
+    check('0x71 grid after the trace wrote it',
+        [opened.layer1MetatileIds[0x39][0x14], opened.layer1MetatileIds[0x39][0x15]], [0x78B8, 0x78C0]);
+
+    // The whole-ROM invariants the format was validated against.
+    let records = 0; let sized = 0; let writes = 0; let resolved = 0;
+    for (let id = 0; id < MAX_ROOMS; id++) {
+        let r;
+        try { r = decodeRoom(rom, id); } catch { continue; }
+        const seen = new Map();
+        for (const o of r.objects) {
+            const grid = new Map();
+            for (const st of o.states) {
+                const sp = parseObjectStamp(rom, r.objectArea, st.metatileId);
+                if (!sp.valid) continue;
+                seen.set(st.metatileId, sp.byteLength);
+                for (let k = 0; k < sp.deltas.length; k++) {
+                    if (sp.deltas[k] === null) continue;
+                    const tx = st.tileX + (k % sp.tw);
+                    const ty = st.tileY + Math.floor(k / sp.tw);
+                    if (ty >= r.header.heightTiles || tx >= r.header.widthTiles) continue;
+                    const key = ty * 4096 + tx;
+                    const cur = grid.has(key) ? grid.get(key) : r.layer1MetatileIds[ty][tx];
+                    const next = cur ^ sp.deltas[k];
+                    grid.set(key, next);
+                    writes += 1;
+                    const idx = (next - r.baseMetatile) / 8;
+                    if (Number.isInteger(idx) && idx >= 0 && idx < r.metatileCount) resolved += 1;
+                }
+            }
+        }
+        // A record's computed length must land exactly on the next record.
+        const ptrs = Array.from(seen.keys()).sort((a, b) => a - b);
+        for (let i = 0; i + 1 < ptrs.length; i++) {
+            records += 1;
+            if (seen.get(ptrs[i]) === ptrs[i + 1] - ptrs[i]) sized += 1;
+        }
+    }
+    check('object stamp record lengths tile exactly', `${sized}/${records}`, `${records}/${records}`);
+    check('cumulative XOR always lands on a real metatile', `${resolved}/${writes}`, `${writes}/${writes}`);
+    console.log(`map-parity: object stamps — ${records} record lengths, ${writes} tile writes, all exact`);
 }
 
 /**

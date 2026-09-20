@@ -1,3 +1,38 @@
+## [0.14.0] — 2026-09-20
+
+**The object stamp format is solved**, from the Mesen trace of looting the chest on map 0x71. State previews and room customisation both work as a result.
+
+### The format
+`dump_room.py` reads the stamp record as `[tw][th]` plus `tw*th` 16-bit words at `+2`, treating those as metatile IDs. Both halves are wrong. From `$90A4C2..$90A4F2`:
+
+```
+[tw][th] then, per tile in row-major order, an inline bit stream:
+  a mask byte supplies 8 bits, LSB first
+    bit set   -> a 16-bit value follows inline
+    bit clear -> this tile is untouched
+  a fresh mask byte every 8 tiles
+```
+
+And `$90A4E8`, which is the part that mattered:
+
+```
+TXA ; EOR [$B0] ; STA [$AD]     new = current XOR value
+```
+
+They are **XOR deltas against whatever is already in the grid**, not metatile IDs — `0x5CC8 ^ 0x2470 = 0x78B8` and `0x5CD0 ^ 0x2410 = 0x78C0`, matching the trace's writes exactly. XOR being an involution is how the engine walks a state back down as well as up, and it means a descriptor is the delta *between* two appearances: descriptor `s` turns appearance `s` into `s+1`, so `max_state` descriptors give `max_state + 1` appearances with state 0 needing none.
+
+Validated across all 127 vanilla rooms and pinned by `checkObjectStamps` in the parity suite: record lengths land exactly on the next record's offset **2726/2726**, and cumulative XOR yields a metatile ID that exists in the room's Block 3 table **19797/19797**.
+
+### Added
+- **State previews.** Every chip in the object list is a real render of the room with that state applied, cropped to the union of everything that object touches so the states line up for comparison.
+- **Room customisation.** Picking a chip re-renders the map with those states stamped in. Collision follows automatically, because it is looked up from the same metatile ID the delta rewrites — an opened chest or an extended bridge changes what you can walk on.
+- `reset` puts every object back to its load state; changed objects are marked in the list and outlined on the map.
+- PNG export carries the chosen states, and names the file after them.
+
+### Retracted
+- v0.13.0 said `docs/map-format/map_objects.md` was wrong about "Total states = max_state + 1". **It was right.** That and its `1 + max_state*5` record size are not in conflict — state 0 needs no descriptor. The test that appeared to disprove it looked for an extra descriptor at state 0's anchor, which presumed descriptors were states; they are transitions, and carry their own anchors.
+- Earlier attempts all treated the values as identifiers, so the best fit was `word/8` at 43.4% — close enough to look promising and entirely wrong. The state-0 oracle failed (6 of 8522) for the same reason: descriptor 0 was being compared against the grid it transitions away from. One trace beat all of it.
+
 ## [0.13.0] — 2026-09-20
 
 ### Correction to 0.12.0

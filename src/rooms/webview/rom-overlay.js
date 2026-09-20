@@ -77,6 +77,7 @@ function setupLayerButtons(panel,room){
     syncRomTriggerClass(panel);
     requestRoomTileOverlay(room,{x1:_pendingTileOrigin.x,y1:_pendingTileOrigin.y},_currentLayer);
   }
+  _romRerender=rerender;
   var exportBtn=panel.querySelector('#rg-export');
   if(exportBtn)exportBtn.addEventListener('click',function(){
     var id=roomVanillaIdNum(room);
@@ -85,7 +86,8 @@ function setupLayerButtons(panel,room){
     // URI already on screen: a data URI large enough for a 2048x1120 room is
     // not something to round-trip through postMessage a second time.
     vs.postMessage({command:'exportRoomPng',roomId:id,mapName:room.name,
-                    layer:_currentLayer,overlay:_currentOverlay});
+                    layer:_currentLayer,overlay:_currentOverlay,
+                    objectStates:objectStateSpec()});
   });
   function syncOverlayButtons(){
     panel.querySelectorAll('.rdf-ov').forEach(function(b){
@@ -201,10 +203,17 @@ function renderRomDataSections(ov){
 
   h+='</div>';
   panel.insertAdjacentHTML('beforeend',h);
-  setupObjectStateButtons(panel,ov.objects,function(){
-    if(_lastRomData)renderRomDataSections(_lastRomData);
-  });
+  // A state change alters the rendered map, so it goes back to the host;
+  // focus and filters only change this section, so they redraw locally.
+  setupObjectStateButtons(panel,ov.objects,
+    function(){if(_romRerender)_romRerender();},
+    function(){if(_lastRomData)renderRomDataSections(_lastRomData);});
 }
+
+// Set by setupLayerButtons: the object chips are rebuilt with the data
+// section on every response, so they ask for a re-render through here rather
+// than each capturing the room.
+var _romRerender=null;
 
 function romRow(name,count,detail){
   return '<tr class="rd-romdata-row"><td>'+escH(name)+'</td><td>'+count+'</td><td>'+escH(String(detail))+'</td></tr>';

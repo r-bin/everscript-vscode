@@ -1,6 +1,6 @@
 # Map Data Port & Rooms Tab UX — Gap Analysis
 
-> Status: living document, last updated 2026-09-20 (post v0.13.0).
+> Status: living document, last updated 2026-09-20 (post v0.14.0).
 > See the `map-format` skill before acting on anything here — it has the
 > "port, don't re-derive" ground rules this document assumes.
 
@@ -13,6 +13,14 @@
 | No pinch zoom | Trackpad pinch (a `ctrlKey` wheel event in Chromium) zooms anchored on the cursor, so the map does not walk away from what you were looking at. The zoom buttons now anchor on the viewport centre for the same reason. |
 | Objects listed as a flat table | Replaced by a collapsible browser. Superseded in v0.13.0 by a linked list — see below. |
 
+## Closed in v0.14.0
+
+| Gap | Outcome |
+|---|---|
+| 1.9 object stamp payload | **Solved** from a hardware trace — XOR deltas with an interleaved tile mask. See below. |
+| No state previews | Every state now renders exactly: its chip in the object list is the room with that state applied, cropped to what the object touches. |
+| Cannot customise the room | Picking a chip re-renders the map with those states stamped in, collision included — it resolves from the same metatile ID. |
+
 ## Closed in v0.13.0
 
 | Gap | Outcome |
@@ -22,76 +30,52 @@
 | Object list unreadable at 13+ objects | Flat table with a state chip row per object, styled like the trigger tables with a blue section rule. A "hide boring" filter drops objects with nothing to pick between — single-state, or several states with byte-identical stamps. That is 81.7% of them. |
 | v0.12.0 said box extents were guessed | **Wrong, corrected.** `tw`/`th` are read correctly; the boxes were always right. See 1.9. |
 
-## 1.9 Object stamp records: header solved, payload not (updated v0.13.0)
+## 1.9 ~~Object stamp payload~~ — SOLVED in v0.14.0
 
-**Correction to what v0.12.0 said here.** That entry claimed the blue object
-stamp boxes have "a guessed extent". That was wrong: `target_width` and
-`target_height` are read at `+0`/`+1` of the stamp record and are correct, in
-upstream and in the port. The boxes have always been the right size in the
-right place. Only the *contents* of the record were undecoded, and half of
-that is now solved.
-
-### Solved: the record header
-
-The record a state's `metatile_id` points at is:
+Closed by a Mesen CPU trace of looting the chest on map 0x71 (object 0x14),
+which the user captured. The format, the semantics and the state model all
+came straight off `$90A4C2..$90A4F2`; full write-up in
+`docs/map-format/map_objects.md` §4b.
 
 ```
-[tw: 1][th: 1][mask: ceil(tw*th/8) bytes][word: 2] * popcount(mask)
+[tw][th] then, per tile row-major: a mask byte supplies 8 bits (LSB first);
+         set -> a 16-bit value follows inline; clear -> tile untouched.
 ```
 
-`dump_room.py` reads `tw*th` words starting at `+2`, missing the mask
-entirely — so it over-reads and every word lands one or more bytes early.
-`src/maps/object-stamps.ts` reads it correctly. Evidence:
+And the part no amount of statistics was going to guess, `$90A4E8`:
 
-- Room 0x2c has a single object with 11 states whose records are contiguous,
-  so each record's exact length is pinned by the next pointer. Lengths run
-  7, 5, 5, 5, 7, 11, 11, 9, 7, 11 — and `2 + ceil(tw*th/8) + popcount*2`
-  predicts **all ten gaps exactly**, including the 9 (a 2×2 footprint with a
-  3-bit mask, `0x07`).
-- Across all 127 rooms, the formula explains **78.6%** of the 2713 records
-  whose length is pinned that way. The remainder are cases where an
-  unreferenced record sits in the gap, so the "length" is not actually known.
-  Solving for the mask length per record yields `ceil(tw*th/8)` in 2048 of
-  2132 cases.
+```
+TXA ; EOR [$B0] ; STA [$AD]      new = current XOR value
+```
 
-### Not solved: what the 16-bit words mean
+The values are **XOR deltas against whatever is in the grid**, not metatile
+IDs. `0x5CC8 ^ 0x2470 = 0x78B8` and `0x5CD0 ^ 0x2410 = 0x78C0` in the trace,
+matching its writes exactly. Because XOR is an involution, one record both
+applies and undoes a transition, so a descriptor is the delta *between* two
+appearances: descriptor `s` turns appearance `s` into `s+1`, and an object
+with `max_state` descriptors has `max_state + 1` appearances.
 
-Rejected, with numbers:
+**This also retracts two claims made here earlier.** The doc's
+"Total states = max_state + 1" was right, and so was its `1 + max_state*5`
+record size — they are not in conflict, because state 0 needs no descriptor.
+The test that "disproved" it looked for an extra descriptor at the same anchor
+as state 0, which assumed descriptors were states. They are transitions, and
+they legitimately carry different anchors.
 
-| Hypothesis | Result |
+Whole-ROM validation, now enforced by `checkObjectStamps` in the parity suite:
+
+| Invariant | Result |
 |---|---|
-| Absolute metatile IDs, `(w - baseMetatile) / 8` | 0 of 2836 states fully resolve |
-| Already relative, index = `w / 8` | 43.4% resolve with the mask model — better, but far from all |
-| Words start at `+3` (a single flag byte) | Exact for room 0x34, 3.1% overall |
-| Words start at `+4` | 0% |
-| `metatile_id` is itself the metatile, not a pointer | 8-aligned in 12.3%, in range in 0.6% |
+| Computed record length lands exactly on the next record's offset | 2726 / 2726 |
+| Cumulative XOR yields a metatile ID in the room's Block 3 table | 19797 / 19797 |
 
-The obvious oracle does not work either: an object's state 0 is its load
-state, so stamping it *should* reproduce the decoded grid — it does not, for
-any mapping (best 6 of 8522 tiles). The likely reason is that the Markov grid
-is base terrain and the engine stamps every object's initial state over it at
-load, so the grid never contained the pre-stamp tiles to compare against.
-
-Without an oracle, any mapping that "looks plausible" is unfalsifiable, so the
-Rooms tab renders no state previews and does not paint a state onto the map.
-It shows the extent and mask, which are solid, and says which part is not.
-
-Cracking this wants a trace of `$90A5D0` (the metatile stamp routine) against
-a known object — sibling-repo tooling, upstream research rather than porting.
-
-### Also wrong upstream: `max_state + 1`
-
-`docs/map-format/map_objects.md` §4 says "Total states = max_state + 1". It is
-not: 0 of 1748 records have a plausible extra descriptor (an extra state would
-sit at the same anchor as state 0 essentially always; it never does). The
-record-size formula in the same section, `1 + max_state*5`, is the correct one,
-and both upstream and the port follow that.
-
-### Distribution, for anyone building UI on this
-
-81.1% of the 1748 objects have a single state. 0.6% have several states that
-stamp byte-identical records. Only 18.3% have states that actually differ —
-which is why the Rooms tab has a "hide boring" filter.
+Why the earlier attempts failed, for the record: every hypothesis treated the
+values as identifiers, so the best fit was `word/8` at 43.4% — high enough to
+look promising and completely wrong. The state-0 oracle failed for the same
+reason (6 of 8522): state 0 has no descriptor, so descriptor 0 was being
+compared against the grid it transitions *away* from. Both dead ends were
+artefacts of the same wrong premise, which is exactly why the trace was worth
+more than more statistics.
 
 ## Closed in v0.11.0
 

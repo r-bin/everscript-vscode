@@ -81,6 +81,12 @@ export interface RoomData {
     baseMetatile: number;
     /** File offset of the Section 3 object area; object stamp pointers are relative to it. */
     objectArea: number;
+    /**
+     * Block 3's three parallel lookup slices, indexed by
+     * `(metatileId - baseMetatile) / 8`. Kept so a metatile ID can be resolved
+     * after decode, which is what stamping an object state needs (`./objects`).
+     */
+    metatileSlices: { layer1: number[]; layer2: number[]; collision: number[] };
     /** `[y][x]` metatile IDs (WRAM offsets, 8-byte aligned from baseMetatile). */
     layer1MetatileIds: number[][];
     /** `[y][x]` Layer 1 (canopy / BG2) VRAM tilemap words. */
@@ -329,6 +335,7 @@ export function decodeRoom(rom: Uint8Array, roomId: number): RoomData {
         metatileCount,
         baseMetatile,
         objectArea: layout.objectArea,
+        metatileSlices: { layer1: slice0, layer2: slice1, collision: slice2 },
         layer1MetatileIds,
         layer1VramWords,
         layer2VramWords,

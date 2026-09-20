@@ -152,6 +152,73 @@ Each object record starts at `$AA + table[object_index]`:
 
 ---
 
+## 4b. The stamp record (`metatile_id` target) — SOLVED
+
+> Added after tracing `$90A4C2..$90A4F2` in Mesen while looting the chest on
+> map `0x71` (object `0x14`). Everything below is read off that trace and then
+> checked against all 127 vanilla rooms.
+
+A state descriptor's `metatile_id` is an **offset into the object area**, not a
+metatile. The record it points at is:
+
+```
+[tw: 1]            footprint width in metatiles
+[th: 1]            footprint height in metatiles
+then, for tiles 0 .. tw*th-1 in row-major order, an inline bit stream:
+  a mask byte supplies 8 bits, LSB first
+    bit set   -> a 16-bit value follows inline
+    bit clear -> this tile is untouched
+  a fresh mask byte is fetched every 8 tiles
+```
+
+`$90A4C9` loads the mask byte, ORs in a `$0100` sentinel and shifts it into
+`$0FC2`; `$90A4C2` consumes one bit per tile with `LSR` and reloads when the
+register empties. `$90A4F0/$90A4F1` advance the source pointer by two bytes
+only when a bit was set.
+
+### The values are XOR deltas, not metatile IDs
+
+```
+90A4E8  TXA                 ; X = the metatile id currently in the grid
+90A4E9  EOR [$B0]           ; ^ the 16-bit value from the record
+90A4EB  STA [$AD]           ; -> $7F0000 + (y * map_width + x) * 2
+```
+
+From the trace: `0x5CC8 ^ 0x2470 = 0x78B8` and `0x5CD0 ^ 0x2410 = 0x78C0`,
+matching the writes exactly.
+
+Because XOR is an involution, one record both applies and undoes a transition.
+That is how `$90A44B..$90A45E` walks the displayed state (`$10CE,X`) toward the
+target (`$107E,X`) one step per frame in either direction.
+
+### So a descriptor is a transition, not a state
+
+Descriptor `s` turns appearance `s` into appearance `s+1`. An object with
+`max_state` descriptors therefore has **`max_state + 1` appearances**, state 0
+being the grid as decompressed. §1's "Total states = max_state + 1" and §4's
+"Total Record Size: 1 + max_state * 5" are both correct and not in conflict —
+state 0 needs no record.
+
+To show appearance `s`: XOR descriptors `0 .. s-1` into the grid in order.
+Collision follows for free, because it is looked up from the same metatile ID.
+
+### Validation across all 127 vanilla rooms
+
+| Invariant | Result |
+|---|---|
+| Computed record length lands exactly on the next record's offset | 2726 / 2726 |
+| Cumulative XOR yields a metatile ID present in the room's Block 3 table | 19797 / 19797 |
+
+Implemented in `everscript-vscode/src/maps/object-stamps.ts` and `objects.ts`,
+and pinned by `checkObjectStamps` in `tests/memory/map-parity.test.js`, which
+asserts the literal values the trace wrote.
+
+**`dump_room.py` is wrong here**: it reads `tw*th` 16-bit words starting at
+`+2`, missing the mask entirely, and treats them as metatile IDs. Neither
+holds, which is why none of its `metatiles` values ever resolve.
+
+---
+
 ## 5. Runtime State Management & WRAM Model
 
 ### WRAM Object Buffers

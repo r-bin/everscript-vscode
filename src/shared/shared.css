@@ -155,25 +155,31 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .rg-summary .sm{white-space:nowrap}
 .rg-summary .sm b{color:#7d8590;font-weight:normal;margin-right:4px}
 /* Section 3 object list. Styled like the trigger tables above it, with a blue
-   rule marking the section, and one state chip per state. */
+   rule marking the section. Each state chip is a render of the room with that
+   state applied, which is the only thing that makes a state index meaningful. */
 .rs-romobjects{border-left:2px solid #388bfd;padding-left:8px}
 .rs-romobjects .rs-h{display:flex;align-items:center;gap:6px}
-.ro-hide{margin-left:auto}
+.rs-romobjects .rs-sub{flex:1}
 .ro-tbl td{vertical-align:middle}
 .ro-tbl tr.ro-row{cursor:pointer}
 .ro-tbl tr.ro-row.sel-row td{background:rgba(56,139,253,.16)!important;color:#d8ecff}
-.ro-chips{display:flex;flex-wrap:wrap;gap:3px}
-.ro-chip{min-width:17px;padding:0 4px;font:inherit;font-size:9px;line-height:15px;cursor:pointer;
-  border:1px solid #2f3944;border-radius:3px;background:#12161c;color:#8b949e}
+.ro-tbl tr.ro-changed td:first-child{border-left:2px solid #ffb454}
+.ro-dim{opacity:.45}
+.ro-chips{display:flex;flex-wrap:wrap;gap:4px;padding:2px 0}
+.ro-chip{display:flex;flex-direction:column;align-items:center;gap:1px;padding:2px 3px;cursor:pointer;
+  background:#0d1014;border:1px solid #2a2f37;border-radius:3px;color:#8b949e;
+  font:inherit;font-size:8px;line-height:1.1;min-width:22px}
 .ro-chip:hover{border-color:#6e7681;color:#ddd}
 .ro-chip.sel{border-color:#58a6ff;background:#152232;color:#cfe4ff}
-.ro-note{font-size:9px;color:#8a7a52;margin:4px 0 2px;line-height:1.45}
+.ro-img{display:block;image-rendering:pixelated}
+.ro-noimg{display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;color:#b5783a}
 .rs-note-dim{font-size:9px;opacity:.4;margin:3px 0}
-/* Object rectangles on the map: invisible until hovered or selected, so they
-   do not double the blue boxes already baked into the raster. */
+/* Object boxes on the map: invisible until hovered, selected or changed, so
+   they do not double the blue boxes already baked into the raster. */
 .svge-romobj{fill:transparent;stroke:transparent;stroke-width:0.3;cursor:pointer}
 .svge-romobj:hover{fill:rgba(56,139,253,.18);stroke:#58a6ff}
 .svge-romobj.sel{fill:rgba(56,139,253,.24);stroke:#8ac0ff;stroke-width:0.45}
+.svge-romobj.changed{stroke:#ffb454;stroke-dasharray:0.6 0.4}
 .hide-obj .svge-romobj{display:none!important}
 .rg-legend{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 2px;font-size:9px;color:#999}
 .rg-legend .lg{display:inline-flex;align-items:center;gap:3px}

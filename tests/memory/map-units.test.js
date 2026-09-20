@@ -463,55 +463,127 @@ test('switching one pass off changes only that pass', () => {
 // ── object-stamps.ts ────────────────────────────────────────────────────────
 
 /**
- * Build a stamp record: [tw][th][mask bytes][words]. The mask is what upstream
- * skips, which is why its word reads land one byte early and never resolve.
+ * Build a stamp record: [tw][th] then an inline stream of one mask byte per 8
+ * tiles, each set bit followed by its 16-bit XOR delta. The mask is what
+ * upstream misses, and the values are deltas, not metatile ids.
  */
-function stampRom(tw, th, maskBytes, words) {
-    const bytes = [tw, th].concat(maskBytes);
-    for (const w of words) bytes.push(w & 0xff, (w >> 8) & 0xff);
-    const rom = new Uint8Array(64);
+function stampRom(tw, th, groups) {
+    const bytes = [tw, th];
+    for (const [mask, words] of groups) {
+        bytes.push(mask);
+        for (const w of words) bytes.push(w & 0xff, (w >> 8) & 0xff);
+    }
+    const rom = new Uint8Array(256);
     rom.set(bytes, 8);
     return rom;
 }
 
-test('parseObjectStamp reads the tile mask and only the words it selects', () => {
-    // 2x2 footprint, mask 0b0111 -> three tiles stamped, three words.
-    const rom = stampRom(2, 2, [0x07], [0x0020, 0x0030, 0x0060]);
-    const st = maps.parseObjectStamp(rom, 8, 0);
+test('parseObjectStamp reads the tile mask and only the deltas it selects', () => {
+    // 2x2, mask 0b0111: three tiles written, the fourth left alone.
+    const st = maps.parseObjectStamp(stampRom(2, 2, [[0x07, [0x2470, 0x2410, 0x26d0]]]), 8, 0);
     assert.ok(st.valid);
     assert.strictEqual(st.tw, 2);
     assert.strictEqual(st.th, 2);
     assert.strictEqual(st.tileCount, 3);
-    assert.deepStrictEqual(st.words, [0x0020, 0x0030, 0x0060]);
-    // 2 header + 1 mask + 3*2 words. This is the number that has to match the
-    // next record's offset, and does for room 0x2c's eleven states.
+    assert.deepStrictEqual(st.deltas, [0x2470, 0x2410, 0x26d0, null]);
+    // 2 header + 1 mask + 3*2. This is the length that has to line up with the
+    // next record's offset, and does for all 2726 records in the vanilla ROM.
     assert.strictEqual(st.byteLength, 9);
 });
 
-test('parseObjectStamp uses ceil(tiles/8) mask bytes', () => {
-    const rom = stampRom(3, 4, [0xff, 0x0f], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
-    const st = maps.parseObjectStamp(rom, 8, 0);
-    assert.strictEqual(st.mask.length, 2, '12 tiles need two mask bytes');
-    assert.strictEqual(st.tileCount, 12);
-    assert.strictEqual(st.byteLength, 2 + 2 + 24);
+test('parseObjectStamp fetches a fresh mask byte every 8 tiles', () => {
+    // 3x4 = 12 tiles: 8 from the first mask byte, 4 from the second. The mask
+    // bytes are interleaved with their deltas, not gathered up front.
+    const st = maps.parseObjectStamp(
+        stampRom(3, 4, [[0x03, [0x10, 0x20]], [0x01, [0x30]]]), 8, 0);
+    assert.ok(st.valid);
+    assert.strictEqual(st.tileCount, 3);
+    assert.strictEqual(st.deltas[0], 0x10);
+    assert.strictEqual(st.deltas[1], 0x20);
+    assert.strictEqual(st.deltas[2], null);
+    assert.strictEqual(st.deltas[8], 0x30, 'second mask byte starts at tile 8');
+    assert.strictEqual(st.byteLength, 2 + 1 + 4 + 1 + 2);
 });
 
-test('parseObjectStamp rejects records that cannot be stamps', () => {
-    // A mask selecting more tiles than the footprint holds is not a stamp.
-    assert.strictEqual(maps.parseObjectStamp(stampRom(1, 1, [0xff], [1]), 8, 0).valid, false);
-    assert.strictEqual(maps.parseObjectStamp(stampRom(0, 4, [0x01], [1]), 8, 0).valid, false);
-    // Out of bounds rather than throwing.
+test('parseObjectStamp rejects bytes that cannot be a stamp', () => {
+    assert.strictEqual(maps.parseObjectStamp(stampRom(0, 4, [[1, [1]]]), 8, 0).valid, false);
     assert.strictEqual(maps.parseObjectStamp(new Uint8Array(4), 0, 100).valid, false);
+    // Runs off the end of the ROM rather than reading past it.
+    assert.strictEqual(maps.parseObjectStamp(Uint8Array.from([4, 4, 0xff]), 0, 0).valid, false);
 });
 
-test('objectStampSignature distinguishes stamps but ignores where they sit', () => {
-    const a = maps.parseObjectStamp(stampRom(2, 1, [0x03], [0x10, 0x20]), 8, 0);
-    const b = maps.parseObjectStamp(stampRom(2, 1, [0x03], [0x10, 0x20]), 8, 0);
-    const c = maps.parseObjectStamp(stampRom(2, 1, [0x03], [0x10, 0x28]), 8, 0);
-    assert.strictEqual(maps.objectStampSignature(a), maps.objectStampSignature(b));
-    assert.notStrictEqual(maps.objectStampSignature(a), maps.objectStampSignature(c));
-    // An unparseable record has no signature, so it never counts as identical.
+test('objectStampSignature ignores where a stamp sits, not what it writes', () => {
+    const sig = (g) => maps.objectStampSignature(maps.parseObjectStamp(stampRom(2, 1, g), 8, 0));
+    assert.strictEqual(sig([[0x03, [0x10, 0x20]]]), sig([[0x03, [0x10, 0x20]]]));
+    assert.notStrictEqual(sig([[0x03, [0x10, 0x20]]]), sig([[0x03, [0x10, 0x28]]]));
+    assert.notStrictEqual(sig([[0x03, [0x10, 0x20]]]), sig([[0x01, [0x10]]]), 'mask is part of it');
     assert.strictEqual(maps.objectStampSignature(maps.parseObjectStamp(new Uint8Array(4), 0, 0)), '');
+});
+
+// ── objects.ts ──────────────────────────────────────────────────────────────
+
+/** A 2x2 room whose object 0 has one delta record, so two appearances. */
+function stampedRoom() {
+    // Record layout inside the fake object area at 0: the object record, then
+    // the stamp it points at.
+    const rom = new Uint8Array(256);
+    rom.set([1, 1, 0, 0, 0x06, 0x00], 0);   // max_state 1; state 0: w,x=0,y=0,ptr=6
+    rom.set([1, 1, 0x01, 0x40, 0x00], 6);   // stamp: 1x1, mask 0b1, delta 0x0040
+    const room = {
+        roomId: 1,
+        objectArea: 0,
+        baseMetatile: 0x100,
+        metatileCount: 32,
+        metatileSlices: { layer1: [], layer2: [], collision: [] },
+        header: { widthTiles: 2, heightTiles: 1, originX: 0, originY: 0, displayTm: 0x17, subscreenTs: 0, colorMath: 0 },
+        objects: [{ objectIndex: 0, maxState: 1, relativeOffset: 0,
+                    states: [{ state: 0, width: 1, tileX: 0, tileY: 0, targetWidth: 1, targetHeight: 1, metatiles: [], metatileId: 6 }] }],
+        layer1MetatileIds: [[0x100, 0x108]],
+        layer1VramWords: [[1, 2]],
+        layer2VramWords: [[3, 4]],
+        collisionWords: [[0, 0]],
+    };
+    // slice index = (id - base) / 8, so 0x100 -> 0, 0x140 -> 8.
+    for (let i = 0; i < 32; i++) {
+        room.metatileSlices.layer1.push(0x1000 + i);
+        room.metatileSlices.layer2.push(0x2000 + i);
+        room.metatileSlices.collision.push(i);
+    }
+    return { rom, room };
+}
+
+test('objectStateCount is one more than the delta count', () => {
+    const { room } = stampedRoom();
+    // One delta record connects two appearances; state 0 needs no record.
+    assert.strictEqual(maps.objectStateCount(room.objects[0]), 2);
+});
+
+test('applyObjectStates XORs the delta into the grid and re-resolves the tile', () => {
+    const { rom, room } = stampedRoom();
+    const out = maps.applyObjectStates(rom, room, { 0: 1 });
+    // 0x100 ^ 0x40 = 0x140, which is slice index 8.
+    assert.strictEqual(out.layer1MetatileIds[0][0], 0x140);
+    assert.strictEqual(out.layer1VramWords[0][0], 0x1008);
+    assert.strictEqual(out.layer2VramWords[0][0], 0x2008);
+    assert.strictEqual(out.collisionWords[0][0], 8, 'collision follows the metatile');
+    // Untouched tiles keep their decoded words, and the input is not mutated.
+    assert.strictEqual(out.layer1VramWords[0][1], 2);
+    assert.strictEqual(room.layer1MetatileIds[0][0], 0x100);
+});
+
+test('applyObjectStates is an involution over a full round trip', () => {
+    const { rom, room } = stampedRoom();
+    // XOR undoes itself, which is how the engine walks a state back down.
+    const there = maps.applyObjectStates(rom, room, { 0: 1 });
+    const back = maps.applyObjectStates(rom, there, { 0: 1 });
+    assert.strictEqual(back.layer1MetatileIds[0][0], room.layer1MetatileIds[0][0]);
+});
+
+test('applyObjectStates clamps past the last state and ignores state 0', () => {
+    const { rom, room } = stampedRoom();
+    assert.strictEqual(maps.applyObjectStates(rom, room, { 0: 0 }), room, 'state 0 is a no-op');
+    const clamped = maps.applyObjectStates(rom, room, { 0: 99 });
+    assert.strictEqual(clamped.layer1MetatileIds[0][0], 0x140, 'clamped to the one delta available');
 });
 
 console.log('\n' + (passed + failed) + ' run: ' + passed + ' passed, ' + failed + ' failed');

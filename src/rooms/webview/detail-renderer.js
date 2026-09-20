@@ -172,12 +172,12 @@ function roomVanillaIdNum(room){
 var _overlayCache={};
 var _OVERLAY_CACHE_MAX=16;
 
-function overlayCacheKey(id,layer,ov){return id+':'+layer+':'+(ov||'');}
+function overlayCacheKey(id,layer,ov,states){return id+':'+layer+':'+(ov||'')+':'+(states||'');}
 
-function cacheOverlay(id,layer,ov,overlay){
+function cacheOverlay(id,layer,ov,states,overlay){
   var keys=Object.keys(_overlayCache);
   if(keys.length>=_OVERLAY_CACHE_MAX)delete _overlayCache[keys[0]];
-  _overlayCache[overlayCacheKey(id,layer,ov)]=overlay;
+  _overlayCache[overlayCacheKey(id,layer,ov,states)]=overlay;
 }
 
 /** Show or clear the map-area busy state. */
@@ -197,7 +197,8 @@ function requestRoomTileOverlay(room,svgResult,layer){
 
   // Serve a previously received overlay immediately; the origin is part of the
   // geometry, so only reuse it when the viewBox origin still matches.
-  var hit=_overlayCache[overlayCacheKey(id,which,_currentOverlay)];
+  var states=objectStateSpec();
+  var hit=_overlayCache[overlayCacheKey(id,which,_currentOverlay,states)];
   if(hit&&hit.originX===_pendingTileOrigin.x&&hit.originY===_pendingTileOrigin.y){
     applyRoomTileOverlay({command:'roomTiles',mapName:room.name,roomId:id,overlay:hit});
     return;
@@ -205,7 +206,7 @@ function requestRoomTileOverlay(room,svgResult,layer){
 
   setTileBusy(true);
   vs.postMessage({command:'requestRoomTiles',roomId:id,mapName:room.name,
-                  layer:which,overlay:_currentOverlay,
+                  layer:which,overlay:_currentOverlay,objectStates:states,
                   originX:_pendingTileOrigin.x,originY:_pendingTileOrigin.y});
 }
 
@@ -229,7 +230,7 @@ function applyRoomTileOverlay(msg){
   if(!msg.overlay)return;
   clearTileError();
   var ov=msg.overlay;
-  if(typeof msg.roomId==='number')cacheOverlay(msg.roomId,ov.layer,ov.overlay||'',ov);
+  if(typeof msg.roomId==='number')cacheOverlay(msg.roomId,ov.layer,ov.overlay||'',ov.objectStates||'',ov);
 
   // Swap the render into the SVG's <image>, and resize it to the raster's real
   // extent in viewBox units (1 unit = one 8px tile). Sizing it here rather

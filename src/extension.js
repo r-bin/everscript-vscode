@@ -326,16 +326,17 @@ async function exportRenderedRoomPng(msg) {
 
     const layer = typeof msg.layer === 'string' ? msg.layer : 'composite';
     const hex = roomId.toString(16).padStart(2, '0');
+    const suffix = msg.objectStates ? '_obj-' + String(msg.objectStates).replace(/[:,]/g, '-') : '';
     const target = await vscode.window.showSaveDialog({
         saveLabel: 'Export PNG',
         filters: { 'PNG image': ['png'] },
-        defaultUri: vscode.Uri.file(path.join(ws || require('os').homedir(), `room_0x${hex}_${layer}.png`)),
+        defaultUri: vscode.Uri.file(path.join(ws || require('os').homedir(), `room_0x${hex}_${layer}${suffix}.png`)),
     });
     if (!target) return;
 
     try {
         const overlay = buildRoomTileOverlay(rom, roomId, 0, 0, layer,
-            typeof msg.overlay === 'string' ? msg.overlay : undefined);
+            typeof msg.overlay === 'string' ? msg.overlay : undefined, msg.objectStates);
         // buildRoomTileOverlay hands back a data URI because that is what the
         // webview needs; strip the prefix rather than render the room twice.
         const b64 = String(overlay.imageUri).slice(overlay.imageUri.indexOf(',') + 1);
@@ -661,7 +662,8 @@ function activate(context) {
                         const overlay = buildRoomTileOverlay(
                             romBuf, roomId,
                             Number(msg.originX) || 0, Number(msg.originY) || 0,
-                            msg.layer, typeof msg.overlay === 'string' ? msg.overlay : undefined);
+                            msg.layer, typeof msg.overlay === 'string' ? msg.overlay : undefined,
+                            msg.objectStates);
                         _radarPanel.webview.postMessage({ ...reply, overlay });
                     } catch (err) {
                         _radarPanel.webview.postMessage({ ...reply, error: String(err && err.message || err) });

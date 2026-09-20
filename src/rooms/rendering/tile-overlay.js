@@ -87,37 +87,63 @@ function buildDrift(collisionWords) {
 }
 
 /**
- * Section 3 map objects and their states.
+ * Section 3 map objects, their states, and a thumbnail of each state.
  *
- * The extent comes from `parseObjectStamp`, which reads the tile mask upstream
- * skips — see src/maps/object-stamps.ts for why, and for what is still not
- * decoded (the metatile words, hence no previews).
+ * A state is reached by XOR-ing the deltas up to it into the grid, so every
+ * state can be rendered exactly — see src/maps/object-stamps.ts. An object
+ * with N delta records has N+1 appearances, state 0 being the loaded room.
  */
-function buildObjects(rom, room) {
-    return room.objects.map((obj) => ({
-        index: obj.objectIndex,
-        maxState: obj.maxState,
-        states: obj.states.map((st) => {
-            const stamp = maps.parseObjectStamp(rom, room.objectArea, st.metatileId);
-            return {
-                state: st.state,
-                x: st.tileX,
-                y: st.tileY,
-                w: stamp.valid ? stamp.tw : 1,
-                h: stamp.valid ? stamp.th : 1,
-                tiles: stamp.tileCount,
-                metatileId: st.metatileId,
-                /** False when the stamp record does not parse — extent unknown. */
-                stampValid: stamp.valid,
-                /**
-                 * Identical signatures mean identical stamps. Lets the UI hide
-                 * objects whose states differ only in where they sit, which
-                 * with the 81% that have a single state is most of them.
-                 */
-                stampSig: maps.objectStampSignature(stamp),
-            };
-        }),
-    }));
+function buildObjects(rom, room, selected) {
+    return room.objects.map((obj, index) => {
+        const count = maps.objectStateCount(obj);
+        const current = Math.min(selected[index] || maps.DEFAULT_OBJECT_STATE, count - 1);
+        const box = maps.objectBounds(rom, room, obj);
+        const states = [];
+        for (let s = 0; s < count; s++) {
+            // Descriptor s-1 is what produces appearance s; state 0 has none.
+            const src = s > 0 ? obj.states[s - 1] : obj.states[0];
+            let preview = null;
+            try {
+                const img = maps.renderObjectState(rom, room, index, s);
+                if (img) preview = maps.encodePngDataUri(img);
+            } catch {
+                // A record that will not parse still lists, just without art.
+            }
+            states.push({
+                state: s,
+                x: src ? src.tileX : (box ? box.x : 0),
+                y: src ? src.tileY : (box ? box.y : 0),
+                metatileId: src ? src.metatileId : 0,
+                preview,
+            });
+        }
+        return {
+            index,
+            current,
+            x: box ? box.x : 0,
+            y: box ? box.y : 0,
+            w: box ? box.w : 1,
+            h: box ? box.h : 1,
+            states,
+            /** Identical signatures across every delta means nothing to choose. */
+            stampSigs: obj.states.map((st) =>
+                maps.objectStampSignature(maps.parseObjectStamp(rom, room.objectArea, st.metatileId))),
+        };
+    });
+}
+
+/**
+ * Parse the wire form of the object-state selection: `index:state` pairs
+ * joined by commas, e.g. `20:1`. A string because it also keys the cache.
+ */
+function parseObjectStates(spec) {
+    const out = {};
+    if (typeof spec !== 'string' || !spec) return out;
+    for (const part of spec.split(',')) {
+        const [i, st] = part.split(':').map(Number);
+        if (Number.isInteger(i) && Number.isInteger(st) && i >= 0 && st > 0) out[i] = st;
+    }
+    return out;
 }
 
 /** Entity-gate tiles grouped by which entities the gate blocks. */
@@ -157,12 +183,16 @@ function renderLayer(rom, room, layer) {
     return maps.renderRoomComposite(rom, room);
 }
 
-function cachedRender(rom, roomId, layer, ov) {
-    const key = romFingerprint(rom) + ':' + roomId + ':' + layer + ':' + ov.flags;
+function cachedRender(rom, roomId, layer, ov, stateSpec) {
+    const key = romFingerprint(rom) + ':' + roomId + ':' + layer + ':' + ov.flags + ':' + stateSpec;
     const hit = RENDER_CACHE.get(key);
     if (hit) return hit;
 
-    const room = maps.decodeRoom(rom, roomId);
+    // Stamp the chosen states in before rendering, so the map shows the chest
+    // open or the bridge extended. Collision follows automatically: it is
+    // looked up from the same metatile ID the stamp rewrites.
+    const base = maps.decodeRoom(rom, roomId);
+    const room = maps.applyObjectStates(rom, base, parseObjectStates(stateSpec));
     const image = renderLayer(rom, room, layer);
     if (ov.any) maps.drawCollisionOverlay(image, room, ov.opts);
     const entry = {
@@ -178,8 +208,25 @@ function cachedRender(rom, roomId, layer, ov) {
     return entry;
 }
 
+// Thumbnails depend only on the ROM and the room, never on which state is
+// selected, so they are cached apart from the map render — otherwise every
+// chip click would re-render every thumbnail in the room.
+const PREVIEW_CACHE = new Map();
+const PREVIEW_CACHE_MAX = 8;
+
+function cachedObjectPreviews(rom, roomId, room, selected) {
+    const key = romFingerprint(rom) + ':' + roomId;
+    let objects = PREVIEW_CACHE.get(key);
+    if (!objects) {
+        objects = buildObjects(rom, room, {});
+        PREVIEW_CACHE.set(key, objects);
+        if (PREVIEW_CACHE.size > PREVIEW_CACHE_MAX) PREVIEW_CACHE.delete(PREVIEW_CACHE.keys().next().value);
+    }
+    return objects.map((o) => ({ ...o, current: Math.min(selected[o.index] || 0, o.states.length - 1) }));
+}
+
 /** Drop cached renders (call when the ROM changes). */
-function invalidateRoomRenders() { RENDER_CACHE.clear(); }
+function invalidateRoomRenders() { RENDER_CACHE.clear(); PREVIEW_CACHE.clear(); }
 
 /**
  * Decode and render a room for the Rooms tab.
@@ -191,12 +238,15 @@ function invalidateRoomRenders() { RENDER_CACHE.clear(); }
  * @param {string} [layer]         'composite' (default), 'layer1' or 'layer2'.
  * @param {string} [overlay]       Feature flags from OVERLAY_FLAGS; omit for
  *                                 the full view, '' for a bare map.
+ * @param {string} [objectStates]  `index:state` pairs joined by commas, e.g.
+ *                                 '20:1'. Objects not listed show state 0.
  */
-function buildRoomTileOverlay(rom, roomId, originX, originY, layer, overlay) {
+function buildRoomTileOverlay(rom, roomId, originX, originY, layer, overlay, objectStates) {
     const buf = rom instanceof Uint8Array ? rom : new Uint8Array(rom);
     const which = LAYERS.indexOf(layer) >= 0 ? layer : 'composite';
     const ov = overlayOptions(overlay);
-    const { room, features, imageUri, width, height } = cachedRender(buf, roomId, which, ov);
+    const spec = typeof objectStates === 'string' ? objectStates : '';
+    const { room, features, imageUri, width, height } = cachedRender(buf, roomId, which, ov, spec);
     const collision = countCollision(room.collisionWords);
 
     return {
@@ -212,7 +262,8 @@ function buildRoomTileOverlay(rom, roomId, originX, originY, layer, overlay) {
         imageHeight: height,
         collisionTiles: collision.painted,
         drift: buildDrift(room.collisionWords),
-        objects: buildObjects(buf, room),
+        objects: cachedObjectPreviews(buf, roomId, room, parseObjectStates(spec)),
+        objectStates: spec,
         grass: room.cuttableGrass.tiles.map((t) => ({ x: t[0], y: t[1] })),
         grassWarnings: room.cuttableGrass.warnings,
         elevationPlanes: room.elevationPlanes,
@@ -235,6 +286,7 @@ function buildRoomTileOverlay(rom, roomId, originX, originY, layer, overlay) {
 module.exports = {
     buildRoomTileOverlay,
     overlayOptions,
+    parseObjectStates,
     countCollision,
     buildDrift,
     buildObjects,
