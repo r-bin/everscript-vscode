@@ -1,3 +1,21 @@
+## [0.20.0] — 2026-09-20
+
+Doors are now readable and clickable, and the map no longer yanks the panel around when you click it.
+
+### Added
+- **Exit extraction.** `src/script/transition.ts` folds a script's effects into where it sends the player: destination room, landing position, the global scripts it calls on the way out (fades, which edge you leave by), the music it starts and the room state it writes. **605 transitions across the ROM, every destination named.**
+- **Destinations are links.** A door trigger's card shows `→ Gothica - Dark Forest`; clicking it opens that room. All 605 land on a room the vanilla catalogue lists, so no link is dead. Navigation goes through the tree's own entry rather than duplicating selection, mode switching and rendering.
+- Exits appear on the map too: the trigger's label reads `→ Dark Forest` and its tooltip lists each destination with the preparation that precedes it.
+- `changeMap` and `playMusic` effects on decoded instructions.
+
+### Changed
+- **Clicking the map no longer jumps to the list entry.** A plain left click selects — highlights the shape and its row. Cmd/ctrl-click selects *and* scrolls the row or script card into view, browser style. Pointing at things on the map used to move the panel under you on every click.
+
+### Notes
+- Two exits in one script keep their own preparation; a `CHANGE MAP` closes a transition and the context resets, so a branching trigger does not report one door's fade as the other's.
+- Writes to the four pickup bookkeeping addresses are excluded from a transition's "room state", since those belong to the loot system.
+- Decoder parity unchanged: 99.992% boundaries, 99.776% summaries, 593/593 sniff flags.
+
 ## [0.19.2] — 2026-09-20
 
 ### Added

@@ -26,6 +26,8 @@ export type { DecodedInstruction, DecodedScript, StopReason } from './decoder';
 
 export { extractLoot, emptyLoot, isLoot } from './loot';
 export { lootToEverscript } from './everscript';
+export { extractTransitions } from './transition';
+export type { TransitionFacts } from './transition';
 export type { LootFacts, LootValue, ValueEncoding } from './loot';
 
 export { buildRoomScriptModel } from './room-scripts';

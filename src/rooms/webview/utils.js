@@ -100,6 +100,27 @@ function lootTip(t){
   return out;
 }
 
+/** `\u2192 Gothica - Dark Forest` \u2014 where a trigger leads, for its label. */
+function exitLabel(t){
+  var tr=(t&&t.transitions)||[];
+  if(!tr.length)return '';
+  var first=tr[0];
+  var name=first.mapName||('map '+first.mapId.toString(16));
+  return '\u2192 '+name+(tr.length>1?' +'+(tr.length-1):'');
+}
+
+/** The destinations a trigger can lead to, and how it prepares for them. */
+function exitTip(t){
+  var tr=(t&&t.transitions)||[];
+  var out='';
+  for(var i=0;i<tr.length;i++){
+    var x=tr[i];
+    out+='\n\u2192 '+(x.mapName||('map 0x'+x.mapId.toString(16)))+' (0x'+x.mapId.toString(16)+')';
+    if(x.prepares&&x.prepares.length)out+='\n   via '+x.prepares.map(function(p){return p.name;}).join(' \u2192 ');
+  }
+  return out;
+}
+
 // Returns an SVG <image> element string, or null if no image base is configured.
 function ingrSvgImg(nm,x,y,sz){
   var k=getIngrKey(nm);if(!k)return null;

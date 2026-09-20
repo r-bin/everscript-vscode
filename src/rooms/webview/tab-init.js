@@ -68,3 +68,37 @@ document.querySelectorAll('.rn-map').forEach(function(li){
     renderRoomDetail(room);
   });
 });
+
+// ── Following an exit ─────────────────────────────────────────────────────────
+// A script's CHANGE MAP destination is rendered as a link. Clicking it opens
+// that room, which turns the trigger tables into something you can walk
+// through the game with.
+//
+// The navigation reuses the tree's own handlers rather than duplicating them:
+// press the Vanilla mode button, then click the room's entry. That way the
+// selection highlight, the detail render and the mode switch all stay owned
+// by one place.
+
+/** Open the vanilla room with this id. Returns false if it is not listed. */
+function gotoVanillaRoom(mapId){
+  var found=null;
+  document.querySelectorAll('.vn-map').forEach(function(li){
+    if(!found&&parseInt(li.dataset.vid,16)===mapId)found=li;
+  });
+  if(!found)return false;
+  var vanillaBtn=document.getElementById('rmm-vanilla');
+  if(vanillaBtn)vanillaBtn.click();
+  found.click();
+  if(found.scrollIntoView)found.scrollIntoView({block:'nearest'});
+  return true;
+}
+
+// Delegated, because the detail panel is re-rendered on every room change and
+// per-link handlers would have to be rewired each time.
+document.addEventListener('click',function(e){
+  var el=e.target&&e.target.closest?e.target.closest('[data-goto-map]'):null;
+  if(!el)return;
+  if(e.preventDefault)e.preventDefault();
+  e.stopPropagation();
+  gotoVanillaRoom(parseInt(el.dataset.gotoMap,16));
+});

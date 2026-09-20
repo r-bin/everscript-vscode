@@ -58,8 +58,10 @@ export function systemOp(c: Cursor, instr: number): OpResult | null {
         case 0x31:
         case 0x32:
             return done(c, `PLAY SOUND EFFECT ${u8(c.u8())} ??`);
-        case 0x33:
-            return done(c, `PLAY MUSIC ${u8(c.u8())}`);
+        case 0x33: {
+            const track = c.u8();
+            return done(c, `PLAY MUSIC ${u8(track)}`, { effects: [{ kind: 'playMusic', track }] });
+        }
 
         case 0x44: case 0x45: case 0x46: case 0x47: {
             const slot = c.u8();

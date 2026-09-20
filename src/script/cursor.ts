@@ -102,6 +102,15 @@ export type ScriptEffect =
     | { kind: 'setFlag'; addr: number; bit: number }
     | { kind: 'callGlobal'; id: number }
     | {
+        kind: 'changeMap';
+        /** Destination room id. */
+        mapId: number;
+        /** Where the player lands, in pixels. */
+        x: number;
+        y: number;
+    }
+    | { kind: 'playMusic'; track: number }
+    | {
         kind: 'branch';
         /** SNES address the branch can land on. */
         target: number;

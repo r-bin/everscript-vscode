@@ -97,8 +97,8 @@ function buildRoomSvgSection(opts){
     stepOn.forEach(function(t,i){
       var nm=stepOnNames[i]||'';
       var sv=tsvg(t,trigOff);
-      var tip='step-on'+(nm?' '+escH(nm):'')+(t.label?' — '+escH(t.label):'');
-      html+='<rect class="svge-step" data-idx="'+i+'" data-kind="step" data-label="'+escH(nm||t.label||'')+' ['+t.x1+','+t.y1+':'+t.x2+','+t.y2+']" x="'+sv.sx+'" y="'+sv.sy+'" width="'+sv.sw+'" height="'+sv.sh+'" fill="rgba(255,100,180,0.18)" stroke="#ff69b4" stroke-width="0.3"><title>'+tip+'</title></rect>';
+      var tip='step-on'+(nm?' '+escH(nm):'')+exitTip(t)+(t.label?' — '+escH(t.label):'');
+      html+='<rect class="svge-step" data-idx="'+i+'" data-kind="step" data-label="'+escH(nm||exitLabel(t)||t.label||'')+' ['+t.x1+','+t.y1+':'+t.x2+','+t.y2+']" x="'+sv.sx+'" y="'+sv.sy+'" width="'+sv.sw+'" height="'+sv.sh+'" fill="rgba(255,100,180,0.18)" stroke="#ff69b4" stroke-width="0.3"><title>'+tip+'</title></rect>';
     });
 
     // B-trigger rects (yellow) + ingredient icons
@@ -108,9 +108,9 @@ function buildRoomSvgSection(opts){
       // Vanilla rooms have no trigger names, so the reward the ROM decoder
       // read out of the script is what names the icon and fills the tooltip.
       var iconName=trigIngrName(t,nm||t.label||'');
-      var tip='B-trig'+(nm?' '+escH(nm):'')+lootTip(t)+(t.label?' — '+escH(t.label):'');
+      var tip='B-trig'+(nm?' '+escH(nm):'')+lootTip(t)+exitTip(t)+(t.label?' — '+escH(t.label):'');
       var ingrEmoji=getIngrIcon(iconName);
-      var blabel=escH(nm||lootLabel(t)||t.label||'')+(ingrEmoji?' '+ingrEmoji:'')+' ['+t.x1+','+t.y1+':'+t.x2+','+t.y2+']';
+      var blabel=escH(nm||lootLabel(t)||exitLabel(t)||t.label||'')+(ingrEmoji?' '+ingrEmoji:'')+' ['+t.x1+','+t.y1+':'+t.x2+','+t.y2+']';
       html+='<rect class="svge-btrig" data-idx="'+i+'" data-kind="btrig" data-label="'+blabel+'" x="'+sv.sx+'" y="'+sv.sy+'" width="'+sv.sw+'" height="'+sv.sh+'" fill="rgba(255,210,0,0.13)" stroke="#ffcc00" stroke-width="0.3"><title>'+(ingrEmoji?ingrEmoji+' ':'')+tip+'</title></rect>';
       if(ingrEmoji){
         var ifs=Math.max(1.5,Math.min(sv.sw,sv.sh,2.8));

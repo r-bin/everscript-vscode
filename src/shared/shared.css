@@ -243,6 +243,12 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .rs-loot-item{color:#7ee787;font-weight:600;letter-spacing:.3px}
 .rs-loot-qty{color:#7d8590}
 .rs-loot-code{color:#79c0ff;font-size:10px;opacity:.85}
+.rs-exit{margin:4px 0 6px}
+.rs-exit-row{display:flex;align-items:center;gap:6px;padding:2px 0;font-size:11px}
+.rs-exit-arrow{color:#7d8590}
+.rs-exit-to{color:#d2a8ff;text-decoration:none;border-bottom:1px dotted #d2a8ff55;cursor:pointer}
+.rs-exit-to:hover{border-bottom-color:#d2a8ff}
+.rs-exit-id{color:#7d8590;font-size:10px}
 .rs-note.rs-err{color:#ff8d8d}
 .rs-script{margin-top:6px;padding:6px 8px;border-left:3px solid #3a3a3a;background:rgba(255,255,255,.02)}
 .rs-script-enter{border-left-color:#72b7ff}

@@ -248,6 +248,55 @@ test('a pickup with no exact Everscript form produces none', () => {
     assert.strictEqual(script.lootToEverscript(f), null);
 });
 
+// ── transitions ─────────────────────────────────────────────────────────────
+
+// 0x22 CHANGE MAP: [x>>3][y>>3][mapId:2]. 0xa3 calls a global script.
+const CHANGE_MAP = (id, x, y) => [0x22, x >> 3, y >> 3, id, 0x00];
+const CALL_GLOBAL = (id) => [0xa3, id];
+const PLAY_MUSIC = (t) => [0x33, t];
+
+function exits(bytes) {
+    const res = script.decodeScript(romWith(bytes), AT);
+    return script.extractTransitions(res.instructions);
+}
+
+test('a door reports where it goes', () => {
+    const t = exits([].concat(CHANGE_MAP(0x34, 0x90, 0x118), END));
+    assert.strictEqual(t.length, 1);
+    assert.strictEqual(t[0].mapId, 0x34);
+    assert.strictEqual(t[0].mapName, "Prehistoria - Strong Heart's Hut");
+    assert.deepStrictEqual([t[0].x, t[0].y], [0x90, 0x118]);
+});
+
+test('the preparation before a change is kept as context', () => {
+    // The usual shape: set some room state, fade out, name the edge, go.
+    const t = exits([].concat(
+        WRITE_ITEM(0x0206),                 // a loot write — not room setup
+        [0x18, 0x67, 0x01, 0xb1],           // WRITE $23bf = 1  — room state
+        CALL_GLOBAL(0x00), CALL_GLOBAL(0x27), PLAY_MUSIC(0x12),
+        CHANGE_MAP(0x34, 0x90, 0x118), END));
+    assert.strictEqual(t.length, 1);
+    assert.deepStrictEqual(t[0].prepares.map((p) => p.name),
+        ['Fade-out / stop music', 'Prepare room change? North exit/south entrance indoor-outdoor?']);
+    assert.strictEqual(t[0].music, 0x12);
+    assert.deepStrictEqual(t[0].writes.map((w) => w.addr), [0x23bf],
+        'the pickup bookkeeping addresses are not room setup');
+});
+
+test('two exits in one script do not inherit each other\'s preparation', () => {
+    // Reached by a branch, so the decoder sees both.
+    const t = exits([].concat(
+        CALL_GLOBAL(0x00), CHANGE_MAP(0x34, 0x08, 0x08),
+        CALL_GLOBAL(0x21), CHANGE_MAP(0x40, 0x10, 0x10), END));
+    assert.strictEqual(t.length, 2);
+    assert.deepStrictEqual(t[0].prepares.map((p) => p.id), [0x00]);
+    assert.deepStrictEqual(t[1].prepares.map((p) => p.id), [0x21]);
+});
+
+test('a script with no map change reports no exits', () => {
+    assert.deepStrictEqual(exits([0xa7, 0x0f, 0x00]), []);
+});
+
 // ── branch following ────────────────────────────────────────────────────────
 
 test('the walk resumes at a branch target instead of ending at the first END', () => {

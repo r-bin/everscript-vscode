@@ -59,6 +59,39 @@ function renderLoot(script){
   return out;
 }
 
+/**
+ * Where a script sends the player.
+ *
+ * Most triggers in the game are doors, so this is usually the whole point of
+ * the script and belongs above the instruction table rather than buried in
+ * it. The destination is a link: clicking it opens that room.
+ *
+ * The preparation before the change — fades, which edge you leave by, the
+ * room state it sets — goes in the tooltip. It is context, not the answer.
+ */
+function renderTransitions(script){
+  var tr=(script&&script.transitions)||[];
+  if(!tr.length)return '';
+  var out='<div class="rs-exit">';
+  tr.forEach(function(t){
+    var bits=[];
+    if(t.writes&&t.writes.length)
+      bits.push(t.writes.map(function(w){return w.name+' = '+hexNum(w.value,4);}).join(', '));
+    if(t.prepares&&t.prepares.length)
+      bits.push(t.prepares.map(function(p){return p.name;}).join(' \u2192 '));
+    if(t.music!=null)bits.push('music '+hexNum(t.music,2));
+    bits.push('lands at '+hexNum(t.x,4)+', '+hexNum(t.y,4));
+    var label=t.mapName||('map '+hexNum(t.mapId,2));
+    out+='<div class="rs-exit-row" title="'+escH(bits.join('\n'))+'">'
+       + '<span class="rs-exit-arrow">\u2192</span>'
+       + '<a href="#" class="rs-exit-to" data-goto-map="'+hexNum(t.mapId,2)+'">'+escH(label)+'</a>'
+       + '<span class="rs-exit-id">'+hexNum(t.mapId,2)+'</span>'
+       + '</div>';
+  });
+  out+='</div>';
+  return out;
+}
+
 function renderScriptCard(title,meta,script,kind,idx){
   var cls=['rs-script'];
   if(kind)cls.push('rs-script-'+kind);
@@ -69,6 +102,7 @@ function renderScriptCard(title,meta,script,kind,idx){
   var out='<div class="'+cls.join(' ')+'"'+attrs+'><div class="rs-h">'+escH(title)+'</div>';
   if(meta)out+='<div class="rs-note">'+meta+'</div>';
   out+=renderLoot(script);
+  out+=renderTransitions(script);
   out+=renderScriptTable(script);
   out+='</div>';
   return out;

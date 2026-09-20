@@ -138,3 +138,19 @@ second — so both paths go through one renderer.
 The icon map names more ingredients than the assets folder ships, so the host
 passes the directory listing as `INGR_FILES` and a missing file falls back to
 its emoji rather than drawing an empty box.
+
+## Exits
+
+`src/script/` reads a script's `CHANGE MAP` destinations, so a door trigger
+shows where it leads. The link navigates by pressing the Vanilla mode button
+and clicking that room's tree entry, rather than duplicating the selection
+logic — one place owns highlight, mode and render. All 605 exits in the ROM
+land on a room the catalogue lists, so no link is dead.
+
+## Clicking the map
+
+A plain left click selects: it highlights the shape and the matching row.
+**Cmd/ctrl-click also jumps** — scrolls that row or script card into view.
+Browser rules, and it keeps the panel from lurching every time you point at
+something. Cmd-click on a live entity with a source line still goes to the
+code; that handler stops propagation, so the two never both fire.

@@ -21,6 +21,7 @@ import { read16, read24, scriptValueToSnes, snesToRom, u8, SCRIPTS_START_ADDR_US
 import { decodeScript, unresolvedNote, DecodedInstruction, StopReason } from './decoder';
 import { extractLoot, isLoot, LootFacts } from './loot';
 import { lootToEverscript } from './everscript';
+import { extractTransitions, TransitionFacts } from './transition';
 
 const MAP_LIST_ADDR_US = 0x9ffde7;
 const ENTER_SCRIPT_TABLE_OFFSET = 0x1b;
@@ -69,6 +70,11 @@ export interface RoomScript {
      * same bytes.
      */
     everscript: string[];
+    /**
+     * Where this script sends the player. Most triggers in the game are
+     * doors, and this is the one fact a reader wants from them.
+     */
+    transitions: TransitionFacts[];
 }
 
 export interface RoomTrigger extends RoomScript {
@@ -184,6 +190,7 @@ function script(rom: Uint8Array, pointerSnes: number): RoomScript {
         label: first ? first.summary : '',
         loot,
         everscript: loot.map(lootToEverscript).filter((l): l is string => l !== null),
+        transitions: out.scopes.flatMap(extractTransitions),
     };
 }
 

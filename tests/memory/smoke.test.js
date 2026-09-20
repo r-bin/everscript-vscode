@@ -578,6 +578,52 @@ test('webview source is pasted into the bundle literally, not as a replacement p
     assert.doesNotThrow(() => new vm.Script(bundle), 'bundle no longer parses');
 });
 
+// ── Exits ─────────────────────────────────────────────────────────────────────
+
+test('a door trigger renders its destination as a link to that room', () => {
+    const roomsDir = path.join(__dirname, '..', '..', 'src', 'rooms', 'webview');
+    const code = ['utils.js', 'tables-builder.js']
+        .map((f) => fs.readFileSync(path.join(roomsDir, f), 'utf8')).join('\n');
+    const sandbox = { INGR_BASE: '', INGR_FILES: [], Math, JSON, String, Array };
+    vm.createContext(sandbox);
+    vm.runInContext(code, sandbox, { timeout: 5000 });
+
+    const trigger = { instructions: [], transitions: [{
+        mapId: 0x48, mapName: 'Omnitopia - Metroplex tunnels', x: 0x78, y: 0x88,
+        prepares: [{ id: 0, name: 'Fade-out / stop music' }], music: null,
+        writes: [{ addr: 0x24fd, name: '$24fd', value: 5 }],
+    }] };
+    const html = sandbox.renderScriptCard('Step-on #0', '', trigger, 'step', 0);
+    assert.ok(html.includes('data-goto-map="0x48"'), 'destination is not a link: ' + html);
+    assert.ok(html.includes('Omnitopia - Metroplex tunnels'), 'destination is not named');
+    assert.ok(/title="[^"]*Fade-out/.test(html), 'preparation should be in the tooltip');
+
+    assert.ok(sandbox.exitLabel(trigger).includes('Omnitopia'), 'map label should name the destination');
+    assert.ok(sandbox.exitTip(trigger).includes('0x48'), 'map tooltip should carry the id');
+    assert.strictEqual(sandbox.exitLabel({ transitions: [] }), '', 'a non-door trigger gets no exit label');
+});
+
+test('following an exit reuses the tree\'s own room selection', () => {
+    const src = fs.readFileSync(
+        path.join(__dirname, '..', '..', 'src', 'rooms', 'webview', 'tab-init.js'), 'utf8');
+    assert.ok(/function gotoVanillaRoom/.test(src), 'expected a gotoVanillaRoom helper');
+    assert.ok(/data-goto-map/.test(src), 'expected a delegated handler for exit links');
+    // Navigating by clicking the tree entry keeps selection, mode switching
+    // and rendering owned by one place instead of duplicating them here.
+    assert.ok(/found\.click\(\)/.test(src), 'expected navigation to go through the tree entry');
+});
+
+test('clicking the map selects without jumping; cmd-click jumps', () => {
+    const src = fs.readFileSync(
+        path.join(__dirname, '..', '..', 'src', 'rooms', 'webview', 'interactions.js'), 'utf8');
+    assert.ok(/selectAt\(Math\.floor\(pt\.x\),Math\.floor\(pt\.y\),e\.metaKey\|\|e\.ctrlKey\)/.test(src),
+        'map clicks should pass the modifier through as the jump flag');
+    assert.ok(/if\(jump&&r\.scrollIntoView\)/.test(src),
+        'row scrolling should be behind the jump flag');
+    assert.ok(/if\(jump&&card\.scrollIntoView\)/.test(src),
+        'card scrolling should be behind the jump flag');
+});
+
 // ── Summary ───────────────────────────────────────────────────────────────────
 console.log(`\n${passed + failed} run: ${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);

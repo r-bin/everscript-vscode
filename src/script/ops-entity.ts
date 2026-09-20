@@ -108,7 +108,8 @@ export function entityOp(c: Cursor, instr: number): OpResult | null {
             // Upstream reads a word and keeps the low byte.
             const id = c.u16() & 0xff;
             const name = mapName(id);
-            return done(c, `CHANGE MAP = 0x${hx(id, 2)} @ [ 0x${hx(x, 4)} | 0x${hx(y, 4)} ]${name ? `: "${name}"` : ''}`);
+            return done(c, `CHANGE MAP = 0x${hx(id, 2)} @ [ 0x${hx(x, 4)} | 0x${hx(y, 4)} ]${name ? `: "${name}"` : ''}`,
+                { effects: [{ kind: 'changeMap', mapId: id, x, y }] });
         }
 
         case 0x2a:

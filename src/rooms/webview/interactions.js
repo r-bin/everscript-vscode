@@ -183,12 +183,26 @@ function setupMouseEvents(p){
     panel.querySelectorAll('tr.sel-row').forEach(function(r){r.classList.remove('sel-row');});
     panel.querySelectorAll('.rs-script.sel-script').forEach(function(card){card.classList.remove('sel-script');});
   }
-  function selectAt(tx,ty){
+  /**
+   * Select whatever is under the map at (tx,ty).
+   *
+   * `jump` scrolls the matching table row or script card into view. That is
+   * held behind cmd/ctrl-click, browser style: a plain click should let you
+   * point at things on the map without the panel below lurching to a
+   * different scroll position each time.
+   */
+  function selectAt(tx,ty,jump){
     clearSelection();
     function hi(kind,i){
       if(svg)svg.querySelectorAll('[data-kind="'+kind+'"][data-idx="'+i+'"]').forEach(function(el){el.classList.add('svge-sel');});
-      panel.querySelectorAll('tr[data-kind="'+kind+'"][data-idx="'+i+'"]').forEach(function(r){r.classList.add('sel-row');r.scrollIntoView({block:'nearest'});});
-      panel.querySelectorAll('.rs-script[data-kind="'+kind+'"][data-idx="'+i+'"]').forEach(function(card){card.classList.add('sel-script');card.scrollIntoView({block:'nearest'});});
+      panel.querySelectorAll('tr[data-kind="'+kind+'"][data-idx="'+i+'"]').forEach(function(r){
+        r.classList.add('sel-row');
+        if(jump&&r.scrollIntoView)r.scrollIntoView({block:'nearest'});
+      });
+      panel.querySelectorAll('.rs-script[data-kind="'+kind+'"][data-idx="'+i+'"]').forEach(function(card){
+        card.classList.add('sel-script');
+        if(jump&&card.scrollIntoView)card.scrollIntoView({block:'nearest'});
+      });
     }
     stepOn.forEach(function(t,i){var sv=tsvg(t,p.trigOff);if(tx>=sv.sx&&tx<sv.sx+sv.sw&&ty>=sv.sy&&ty<sv.sy+sv.sh)hi('step',i);});
     bTrigger.forEach(function(t,i){var sv=tsvg(t,p.trigOff);if(tx>=sv.sx&&tx<sv.sx+sv.sw&&ty>=sv.sy&&ty<sv.sy+sv.sh)hi('btrig',i);});
@@ -282,12 +296,12 @@ function setupMouseEvents(p){
 
   svg.addEventListener('click',function(e){
     if(e.shiftKey||state.dragEnt)return;
-    // A pan drag ends with a click. Running selectAt here would scroll the
-    // right panel (hi() calls scrollIntoView on the matched table row), which
-    // yanks the map out of view the moment you release a drag.
+    // A pan drag ends with a click. Selecting here would scroll the right
+    // panel under a cmd-click, which yanks the map out of view the moment
+    // you release a drag.
     if(state.panMoved){state.panMoved=false;return;}
     var pt=svgPt(e);
-    selectAt(Math.floor(pt.x),Math.floor(pt.y));
+    selectAt(Math.floor(pt.x),Math.floor(pt.y),e.metaKey||e.ctrlKey);
   });
   svg.addEventListener('dblclick',function(){clearBoxFilter();clearSelection();});
 }
