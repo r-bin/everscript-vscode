@@ -134,7 +134,8 @@ export function entityOp(c: Cursor, instr: number): OpResult | null {
             const state = c.u16();
             const x = c.u8();
             const y = c.u8();
-            return done(c, `Load NPC ${hx(npc, 4)}>>1 flags/state ${hx(state, 4)} at pos ${hx(x, 2)} ${hx(y, 2)}`);
+            return done(c, `Load NPC ${hx(npc, 4)}>>1 flags/state ${hx(state, 4)} at pos ${hx(x, 2)} ${hx(y, 2)}`,
+                { effects: [{ kind: 'spawn', npc: npc >> 1, state, x, y, opcode: instr }] });
         }
         case 0x3d: {
             const entity = c.expr();
@@ -251,7 +252,10 @@ export function entityOp(c: Cursor, instr: number): OpResult | null {
             const flags = c.u16();
             const x = c.expr();
             const y = c.expr();
-            return done(c, `SPAWN NPC 0x${hx(npc, 4)}>>1, flags 0x${hx(flags, 2)}, x:${x}, y:${y}`);
+            // x and y are expressions here, so there is no literal position
+            // to report — only that something spawns.
+            return done(c, `SPAWN NPC 0x${hx(npc, 4)}>>1, flags 0x${hx(flags, 2)}, x:${x}, y:${y}`,
+                { effects: [{ kind: 'spawn', npc: npc >> 1, state: flags, x: null, y: null, opcode: instr }] });
         }
         case 0xa9: {
             const entity = c.expr();
@@ -263,7 +267,8 @@ export function entityOp(c: Cursor, instr: number): OpResult | null {
             const npc = c.u8();
             const x = c.u8();
             const y = c.u8();
-            return done(c, `LOAD NPC ${hx(npc, 2)} at ${hx(x, 2)} ${hx(y, 2)}`);
+            return done(c, `LOAD NPC ${hx(npc, 2)} at ${hx(x, 2)} ${hx(y, 2)}`,
+                { effects: [{ kind: 'spawn', npc, state: null, x, y, opcode: instr }] });
         }
         case 0xc2: {
             const a = c.u8();

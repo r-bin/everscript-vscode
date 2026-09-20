@@ -22,6 +22,7 @@ import { decodeScript, unresolvedNote, DecodedInstruction, StopReason } from './
 import { extractLoot, isLoot, LootFacts } from './loot';
 import { lootToEverscript } from './everscript';
 import { extractTransitions, TransitionFacts } from './transition';
+import { extractSpawns, SpawnFacts } from './entities';
 
 const MAP_LIST_ADDR_US = 0x9ffde7;
 const ENTER_SCRIPT_TABLE_OFFSET = 0x1b;
@@ -75,6 +76,11 @@ export interface RoomScript {
      * doors, and this is the one fact a reader wants from them.
      */
     transitions: TransitionFacts[];
+    /**
+     * NPCs this script can place. Candidates, not contents — the walk
+     * follows every branch, and which one runs depends on save state.
+     */
+    spawns: SpawnFacts[];
 }
 
 export interface RoomTrigger extends RoomScript {
@@ -191,6 +197,7 @@ function script(rom: Uint8Array, pointerSnes: number): RoomScript {
         loot,
         everscript: loot.map(lootToEverscript).filter((l): l is string => l !== null),
         transitions: out.scopes.flatMap(extractTransitions),
+        spawns: out.scopes.flatMap(extractSpawns),
     };
 }
 

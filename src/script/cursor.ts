@@ -111,6 +111,18 @@ export type ScriptEffect =
     }
     | { kind: 'playMusic'; track: number }
     | {
+        kind: 'spawn';
+        /** NPC index, already shifted where the opcode stores an address. */
+        npc: number;
+        /** Flags/state word, where the opcode carries one. */
+        state: number | null;
+        /** Raw position bytes. The coordinate space is not established yet. */
+        x: number | null;
+        y: number | null;
+        /** The opcode it came from, since the three forms differ. */
+        opcode: number;
+    }
+    | {
         kind: 'branch';
         /** SNES address the branch can land on. */
         target: number;

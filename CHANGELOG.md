@@ -1,3 +1,28 @@
+## [0.21.0] — 2026-09-21
+
+Reports which NPCs a room's enter script can place. The simulation that would narrow "can" to "does" is specified but **not built** — see `docs/room-simulation.md`.
+
+### Added
+- **`src/script/entities.ts`** — the three NPC-placing opcodes (`0x3c`, `0xba`, `0xa2`) now report what they place: index, state word and raw position. **734 placements across 103 rooms, 707 with a literal position.** `0xa2` computes its position, so it reports that something spawns without claiming where.
+- A table under the enter script listing them, labelled **candidates, not contents**.
+- `docs/room-simulation.md` — what a real simulation needs and what is still unknown.
+
+### Why this is not the simulation that was asked for
+Loot needed no simulation because a pickup writes its reward down as a literal. Room population is genuinely different: rooms are reused across the story and the enter script branches on saved flags, so the answer is *which branch runs*, not what the bytes say. Building that needs two things that do not exist yet — an evaluator for the operand grammar (the current one renders text, it does not compute), and a defensible starting WRAM. "Base boy" is not one state; the same room differs by act. A simulation that silently picks one would be exactly the confident-and-wrong output this decoder is built to avoid.
+
+So the decoder reports the superset and says so.
+
+### Two things deliberately not claimed
+- **The NPC index is not a character id.** The jungle spawns index 15 and the enemy there is the Wimpy Flower, character 109. Ruled out: the character table (15 ≠ 109), the map blob's "extras" (those are CHR descriptors), and SoETilesViewer's model (it has no map→NPC relationship). `$2433`, written immediately before each `0x3c` with a different small value per spawn, is the open lead.
+- **The coordinate space is not established.** Spawn positions overflow the trigger grid's `(x - offX) * 2` mapping and fit at least two other readings equally well, so they are shown raw and **not drawn on the map**.
+
+### Confirmed along the way
+- The character table is at `$8EB678`, stride 74. Record 109 matches the editor exactly: palette `0xb1ab`, HP 18, aggro range 70, `anim_stand` `0x495e`. Porting it is straightforward once the index is understood.
+- SoETilesViewer already decodes sprites (`spriteinfo.h`, `spriteblock.h`) and the animation pointers, so drawing an idle flower is a **port**, not new reverse engineering — once the character is identified.
+
+### Notes
+- Decoder parity unchanged: 99.992% boundaries, 99.776% summaries, 593/593 sniff flags.
+
 ## [0.20.0] — 2026-09-20
 
 Doors are now readable and clickable, and the map no longer yanks the panel around when you click it.

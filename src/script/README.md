@@ -42,6 +42,8 @@ scripts that desynced.
 | `names.ts` / `names.json` | The name tables, generated from `data.h` |
 | `room-scripts.ts` | A room's enter / step-on / B-trigger scripts |
 | `loot.ts` | What a pickup gives, read from the values it writes down |
+| `transition.ts` | Where a door leads |
+| `entities.ts` | Which NPCs a script can place (candidates, not contents) |
 | `everscript.ts` | Writing a decoded pickup back out as `_loot(...)` |
 | `index.ts` / `index.js` | Public API and the CommonJS facade |
 

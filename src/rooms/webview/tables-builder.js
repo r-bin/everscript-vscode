@@ -92,6 +92,34 @@ function renderTransitions(script){
   return out;
 }
 
+/**
+ * NPCs a script can place.
+ *
+ * Labelled candidates on purpose: a room's enter script branches on save
+ * state, the same room is reused with different enemies as the story moves
+ * on, and the decoder walks every branch. Saying "this room contains these"
+ * would be a claim nothing here supports.
+ *
+ * Positions are shown raw. They do not fit the trigger grid's mapping and
+ * the real one is not established, so they are not drawn on the map.
+ */
+function renderSpawns(script){
+  var sp=(script&&script.spawns)||[];
+  if(!sp.length)return '';
+  var out='<div class="rs-spawn"><div class="rs-note rs-note-dim">'
+        + sp.length+' NPC placement'+(sp.length===1?'':'s')
+        + ' reachable from this script \u2014 candidates, not contents: the branch taken depends on save state.</div>';
+  out+='<table class="rs-tbl"><thead><tr><th>NPC</th><th>State</th><th>Pos (raw)</th><th>Op</th></tr></thead><tbody>';
+  sp.forEach(function(v){
+    out+='<tr><td>'+escH(String(v.npc))+'</td>'
+       + '<td>'+(v.state==null?'&ndash;':hexNum(v.state,4))+'</td>'
+       + '<td>'+(v.x==null?'computed':escH(v.x+', '+v.y))+'</td>'
+       + '<td>'+hexNum(v.opcode,2)+'</td></tr>';
+  });
+  out+='</tbody></table></div>';
+  return out;
+}
+
 function renderScriptCard(title,meta,script,kind,idx){
   var cls=['rs-script'];
   if(kind)cls.push('rs-script-'+kind);
@@ -103,6 +131,7 @@ function renderScriptCard(title,meta,script,kind,idx){
   if(meta)out+='<div class="rs-note">'+meta+'</div>';
   out+=renderLoot(script);
   out+=renderTransitions(script);
+  out+=renderSpawns(script);
   out+=renderScriptTable(script);
   out+='</div>';
   return out;

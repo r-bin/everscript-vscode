@@ -297,6 +297,33 @@ test('a script with no map change reports no exits', () => {
     assert.deepStrictEqual(exits([0xa7, 0x0f, 0x00]), []);
 });
 
+// ── NPC placement ───────────────────────────────────────────────────────────
+
+test('the three NPC-placing opcodes are all reported', () => {
+    // 0x3c stores an address, so its index is halved; 0xba stores the index.
+    const res = script.decodeScript(romWith([
+        0x3c, 0x1e, 0x00, 0x00, 0x04, 0x11, 0x1f,   // Load NPC 0x1e>>1 at 11,1f
+        0xba, 0x0b, 0x49, 0x79,                     // LOAD NPC 0b at 49,79
+        0x00,
+    ]), AT);
+    const spawns = script.extractSpawns(res.instructions);
+    assert.deepStrictEqual(spawns, [
+        { npc: 15, state: 0x0400, x: 0x11, y: 0x1f, opcode: 0x3c },
+        { npc: 11, state: null, x: 0x49, y: 0x79, opcode: 0xba },
+    ]);
+});
+
+test('a computed spawn position is reported as absent, not guessed', () => {
+    // 0xa2 takes x and y as expressions; there is no literal to report.
+    const res = script.decodeScript(romWith([
+        0xa2, 0x1e, 0x00, 0x00, 0x04, 0xb5, 0xb6, 0x00,
+    ]), AT);
+    const spawns = script.extractSpawns(res.instructions);
+    assert.strictEqual(spawns.length, 1);
+    assert.strictEqual(spawns[0].x, null);
+    assert.strictEqual(spawns[0].y, null);
+});
+
 // ── branch following ────────────────────────────────────────────────────────
 
 test('the walk resumes at a branch target instead of ending at the first END', () => {
