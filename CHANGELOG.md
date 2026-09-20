@@ -1,3 +1,8 @@
+## [0.19.1] — 2026-09-20
+
+### Added
+- `docs/ingredient-icons.md` — research notes from a trace of the Alchemy Formulas screen. Establishes that ingredient icons are **background tiles**, that the menu builds its tilemap in WRAM `$7F:C800` via `$8CAD56` and DMAs it to VRAM `$0800`, and that this screen's palette comes from ROM `$C4:1EA4`. The tileset itself loads before the captured window, so the ROM address is still unknown; the note says exactly what trace would settle it. Not implemented — a research record, not a format.
+
 ## [0.19.0] — 2026-09-20
 
 Vanilla rooms now show what a pickup gives, the same way live rooms do.

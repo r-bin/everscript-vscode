@@ -160,6 +160,8 @@ Override with `SOE_TILES_VIEWER`, `SOE_SCRIPT_DUMP`, `EVERSCRIPT_ROM`.
 - **Decoded game text.** `SHOW TEXT` reports the pointer and whether the blob
   is compressed, but not the string; that needs the text decompressor. These
   three opcodes are scored on boundaries only.
-- **Item icons.** Nothing in either reference knows where the ingredient
-  sprites live, so a pickup shows its name, not its picture. Finding them is
-  new reverse-engineering, not a port.
+- **Item icons from the ROM.** A pickup's icon comes from a local assets
+  folder, so four ingredients have no picture and non-ingredient rewards have
+  none at all. Neither reference knows where the game's own icons live; see
+  [docs/ingredient-icons.md](../../docs/ingredient-icons.md) for what one
+  trace established and what would settle it.
