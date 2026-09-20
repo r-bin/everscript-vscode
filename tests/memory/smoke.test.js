@@ -409,6 +409,39 @@ test('rooms detail shows every ROM feature toggle, all on by default', () => {
     });
 });
 
+test('map image is sized in viewBox units, not stretched to the viewBox', () => {
+    // A trigger past the map edge widens the viewBox beyond the map. The image
+    // used to be a CSS-stretched <img> filling the canvas, so it was scaled to
+    // the widened box and the grid drifted off the tile boundaries — 1-3% on
+    // 54 of the 127 vanilla rooms. It is now an SVG <image> placed in the same
+    // coordinate system as the grid, at the map's own extent.
+    const roomTreeData = [{
+        kind:'map', name:'overhang_room', vanillaId:'0x33', romRoomId:0x33, relPath:'vanilla (rom)', startLine:0, endLine:2,
+        imageUri:null, imageDims:null,
+        content:{
+            initMap:{x1:0,y1:0,x2:40,y2:32},
+            entrances:[], enemies:[], objects:[], transitions:[],
+            romHeader:{ mapW:20, mapH:16, offX:0, offY:0, mapWpx:320, mapHpx:256, scrollW:64, scrollH:32, b4:0x17, b5:0x00, b6:0x00, b7:0x02, b8:0x00, sig:'17 00 00 02 00' },
+            trigOffset:{offX:0,offY:0},
+            // Sits at the right edge, so x2 grows past the map's 40 units.
+            triggers:{ stepOn:[{x1:19,y1:2,x2:20,y2:3,scriptId:0x100}], bTrigger:[] }
+        }
+    }];
+    const html = _renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, roomTreeData, 'rooms', 'overhang_room');
+    const { sandbox } = runWebviewJs(extractScript(html));
+    const detail = sandbox.document.getElementById('room-detail').innerHTML || '';
+
+    const vb = /viewBox="(-?[\d.]+) (-?[\d.]+) ([\d.]+) ([\d.]+)"/.exec(detail);
+    assert.ok(vb, 'Expected a viewBox on the map SVG');
+    assert.ok(Number(vb[3]) > 40, 'Expected the edge trigger to widen the viewBox past the map');
+
+    const img = /<image[^>]*id="rg-img"[^>]*>/.exec(detail);
+    assert.ok(img, 'Expected the map image to be an SVG <image>, not a CSS-stretched <img>');
+    assert.ok(/width="40"/.test(img[0]) && /height="32"/.test(img[0]),
+        'Expected the image sized to the map (320x256px = 40x32 units), not to the widened viewBox: ' + img[0]);
+    assert.ok(/x="0"/.test(img[0]) && /y="0"/.test(img[0]), 'Expected the image at the map origin');
+});
+
 test('rooms detail uses ROM header dimensions for the map viewBox extent', () => {
     const roomTreeData = [{
         kind:'map', name:'header_extent_room', vanillaId:'0x33', relPath:'vanilla (rom)', startLine:0, endLine:2,

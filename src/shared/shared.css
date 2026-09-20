@@ -154,6 +154,30 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
   border-radius:4px;padding:4px 8px}
 .rg-summary .sm{white-space:nowrap}
 .rg-summary .sm b{color:#7d8590;font-weight:normal;margin-right:4px}
+/* Section 3 object browser: a disclosure per object, its states in a table.
+   No thumbnails — the stamp payload those would need is not decoded. */
+.ro-note{font-size:9px;color:#b5893a;background:#1d1a12;border:1px solid #3a2f16;
+  border-radius:4px;padding:4px 7px;margin:4px 0 3px;line-height:1.45}
+.ro-list{display:flex;flex-direction:column;gap:2px;margin:4px 0 2px}
+.ro-obj{border:1px solid #262b33;border-radius:4px;background:#14181e}
+.ro-obj.ro-focus{border-color:#8a6a2f}
+.ro-obj>summary{display:flex;align-items:center;gap:8px;padding:3px 6px;cursor:pointer;
+  font-size:10px;color:#bbb;list-style:none}
+.ro-obj>summary::-webkit-details-marker{display:none}
+.ro-obj>summary::before{content:'\25b8';color:#666;font-size:9px;width:8px;flex:none}
+.ro-obj[open]>summary::before{content:'\25be'}
+.ro-obj>summary:hover{background:#1b212a}
+.ro-meta{display:flex;flex-direction:column;min-width:0}
+.ro-meta b{color:#d8d8d8;font-weight:600}
+.ro-sub{color:#7d8590;font-size:9px}
+.ro-cur{margin-left:auto;color:#7d8590;font-size:9px;font-family:monospace;white-space:nowrap}
+.ro-tbl{margin:0 0 4px}
+.ro-tbl tr.ro-state{cursor:pointer}
+.ro-tbl tr.ro-state:hover td{background:rgba(255,180,84,.07)}
+.ro-tbl tr.ro-state.sel td{background:rgba(255,180,84,.14);outline:1px solid rgba(255,180,84,.3)}
+.ro-def{font-size:8px;color:#79a6e8;border:1px solid #2f4a70;
+  border-radius:3px;padding:0 3px;margin-left:3px}
+.ro-guess{color:#8a6a2f}
 .rg-legend{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 2px;font-size:9px;color:#999}
 .rg-legend .lg{display:inline-flex;align-items:center;gap:3px}
 .rg-legend .lg-off{opacity:.34;text-decoration:line-through}
@@ -174,7 +198,11 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .rg-zoom button:hover{color:#ddd;border-color:#888}
 .rg-wrap{position:relative;overflow:hidden;background:#1a1a1a;display:block;margin-bottom:0;cursor:default}
 .rg-svg{position:absolute;inset:0;display:block}
-.room-img{display:block;width:100%;height:100%;object-fit:fill;opacity:.55;image-rendering:pixelated}
+/* The map image is an SVG <image> sized in viewBox units by its x/y/width/
+   height attributes — deliberately NO width/height here. CSS geometry
+   properties override those attributes on SVG2 elements, and a `width:100%`
+   would resolve against the viewport and put the grid back out of register. */
+.room-img{opacity:.55;image-rendering:pixelated}
 /* A ROM-decoded render is the authoritative map, not a rough underlay, so it
    is shown at full brightness unlike a static docs/rooms/images/ screenshot. */
 .room-img.rg-rom-render{opacity:1}

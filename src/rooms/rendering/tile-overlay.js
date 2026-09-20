@@ -87,8 +87,12 @@ function buildDrift(collisionWords) {
 }
 
 /**
- * Section 3 map objects, flattened to their drawable states.
- * Coordinates are metatile units; the webview scales them by U.
+ * Section 3 map objects and their states.
+ *
+ * Only the fields that decode reliably are surfaced. The object record itself
+ * — count, `maxState`, and per state `width`, `tileX`, `tileY` and the
+ * `metatileId` pointer — matches the ROM bytes exactly. What that pointer
+ * *points at* does not: see `stampDecoded` below.
  */
 function buildObjects(room) {
     return room.objects.map((obj) => ({
@@ -98,10 +102,21 @@ function buildObjects(room) {
             state: s.state,
             x: s.tileX,
             y: s.tileY,
+            width: s.width,
             w: s.targetWidth,
             h: s.targetHeight,
             metatileId: s.metatileId,
             tiles: s.metatiles.length,
+            // Whether the dereferenced stamp table produced metatile IDs that
+            // exist in this room's Block 3 table. Across all 127 vanilla
+            // rooms this is false for every one of 2836 states, which is why
+            // the Rooms tab shows no state previews and cannot apply a state:
+            // the stamp payload format is not decoded yet, upstream included.
+            // See docs/map-port-gap-analysis.md gap 1.9.
+            stampDecoded: s.metatiles.length > 0 && s.metatiles.every((m) => {
+                const i = (m - room.baseMetatile) / 8;
+                return Number.isInteger(i) && i >= 0 && i < room.metatileCount;
+            }),
         })),
     }));
 }

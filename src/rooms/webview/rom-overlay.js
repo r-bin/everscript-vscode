@@ -54,6 +54,8 @@ function buildRomViewButtonsHtml(){
     h+='<button class="rdf rdf-ov'+(_currentOverlay.indexOf(b.f)>=0?' on':'')+'" data-ov="'+b.f+
        '" title="'+escH(b.title)+'">'+escH(b.label)+'</button>';
   });
+  h+='<span class="rdf-sep"></span>';
+  h+='<button class="rdf on" id="rg-export" title="Save exactly what is on screen \u2014 this layer, these overlays, these object states \u2014 as a PNG">export png</button>';
   return h+'<span class="rdf-sep"></span>';
 }
 
@@ -69,12 +71,22 @@ function syncRomTriggerClass(panel){
   if(panel)panel.classList.toggle('rom-triggers',_currentOverlay.indexOf('t')>=0);
 }
 
-/** Wire the layer and feature buttons to re-request the rendered map image. */
+/** Wire the layer, feature and export buttons for the ROM map view. */
 function setupLayerButtons(panel,room){
   function rerender(){
     syncRomTriggerClass(panel);
     requestRoomTileOverlay(room,{x1:_pendingTileOrigin.x,y1:_pendingTileOrigin.y},_currentLayer);
   }
+  var exportBtn=panel.querySelector('#rg-export');
+  if(exportBtn)exportBtn.addEventListener('click',function(){
+    var id=roomVanillaIdNum(room);
+    if(id==null||typeof vs==='undefined'||!vs)return;
+    // The host re-renders from the same inputs rather than decoding the data
+    // URI already on screen: a data URI large enough for a 2048x1120 room is
+    // not something to round-trip through postMessage a second time.
+    vs.postMessage({command:'exportRoomPng',roomId:id,mapName:room.name,
+                    layer:_currentLayer,overlay:_currentOverlay});
+  });
   function syncOverlayButtons(){
     panel.querySelectorAll('.rdf-ov').forEach(function(b){
       b.classList.toggle('on',_currentOverlay.indexOf(b.dataset.ov)>=0);
@@ -179,20 +191,11 @@ function renderRomDataSections(ov){
             ov.stepOnCount+' step-on, '+ov.bTriggerCount+' b-trigger');
   h+='</table>';
 
-  if(ov.objects.length){
-    h+='<div class="rs-h">ROM OBJECTS</div>';
-    h+='<table class="rt"><tr><th>#</th><th>State</th><th>Pos</th><th>Size</th><th>Metatile</th></tr>';
-    ov.objects.forEach(function(o){
-      o.states.forEach(function(s){
-        h+='<tr class="rd-romobj-row"><td>'+o.index+'</td><td>'+s.state+'/'+o.maxState+'</td><td>'+
-           s.x+','+s.y+'</td><td>'+s.w+'x'+s.h+'</td><td>'+hexNum(s.metatileId,4)+'</td></tr>';
-      });
-    });
-    h+='</table>';
-  }
+  h+=buildObjectStatesHtml(ov.objects);
 
   h+='</div>';
   panel.insertAdjacentHTML('beforeend',h);
+  setupObjectStateButtons(panel,ov.objects);
 }
 
 function romRow(name,count,detail){

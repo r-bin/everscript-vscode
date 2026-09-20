@@ -58,6 +58,7 @@ const ROOMS_JS_FILES = [
   'tables-builder.js',   // renderScriptTable/Card, buildEntityTablesHtml, buildRomScriptsHtml
   'rom-header.js',       // buildRomHeaderHtml
   'interactions.js',     // setupByteScriptFocusBinding, setupZoomPan, setupMouseEvents, setupHoverHighlights, setupClickHandlers
+  'object-states.js',    // Section 3 object browser (_objectStates) + state pickers
   'rom-overlay.js',      // ROM view top bar (_currentLayer/_currentOverlay) + renderRomDataSections
   'detail-renderer.js',  // renderRoomDetail (orchestrator)
   'tab-init.js',         // tab switching, area collapse, mode toggle, room click handlers

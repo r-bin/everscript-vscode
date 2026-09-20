@@ -38,6 +38,15 @@ function buildRoomSvgSection(opts){
     if(x2<imgCols)x2=imgCols;
     if(y2<imgRows)y2=imgRows;
   }
+  // The map image's own extent, captured BEFORE entities widen the viewBox.
+  // A trigger at the map edge pushes x2/y2 past the map, and the image used to
+  // be stretched across the whole widened box by CSS — which drifted the grid
+  // off the tile boundaries by 1-3% on 54 of the 127 rooms. The image is now
+  // placed at these coordinates inside the SVG instead, so it cannot drift.
+  var mapX0=x1, mapY0=y1;
+  var mapW=(rh&&rh.mapWpx)?rh.mapWpx/TILE:(imageDims?imageDims.w/TILE:(x2-x1));
+  var mapH=(rh&&rh.mapHpx)?rh.mapHpx/TILE:(imageDims?imageDims.h/TILE:(y2-y1));
+
   entrances.forEach(function(en){if(en.x<x1)x1=en.x-1;if(en.y<y1)y1=en.y-1;if(en.x+2>x2)x2=en.x+2;if(en.y+2>y2)y2=en.y+2;});
   enemies.forEach(function(e){if(e.x<x1)x1=e.x-1;if(e.y<y1)y1=e.y-1;if(e.x+2>x2)x2=e.x+2;if(e.y+2>y2)y2=e.y+2;});
   stepOn.concat(bTrigger).forEach(function(t){
@@ -61,8 +70,13 @@ function buildRoomSvgSection(opts){
     html+='<div class="rg-zoom"><button id="rg-zin">+</button><button id="rg-zout">-</button><button id="rg-zfit">fit</button></div>';
     html+='<div class="rg-wrap" id="rg-wrap" style="width:'+dispW+'px;height:'+dispH+'px">';
     html+='<div id="rg-canvas" style="position:absolute;width:'+dispW+'px;height:'+dispH+'px;transform-origin:0 0;will-change:transform">';
-    if(imageUri)html+='<img class="room-img" id="rg-img" src="'+imageUri+'" alt="">';
     html+='<svg class="rg-svg" id="rg-svg" width="'+dispW+'" height="'+dispH+'" viewBox="'+x1+' '+y1+' '+W+' '+H+'">';
+
+    // The map image lives inside the SVG, in viewBox units, so it shares one
+    // coordinate system with the grid and the entity overlays. Sized from the
+    // map's own extent rather than the (possibly wider) viewBox.
+    html+='<image class="room-img" id="rg-img" x="'+mapX0+'" y="'+mapY0+'" width="'+mapW+'" height="'+mapH+
+          '" preserveAspectRatio="none"'+(imageUri?' href="'+imageUri+'"':'')+'/>';
 
     // Grid lines at their true spacing: 1 viewBox unit = one 8px tile, 2 units
     // = one 16px metatile. These used to coarsen to 2 or 4 units on large maps,
@@ -145,5 +159,6 @@ function buildRoomSvgSection(opts){
     html+='<button class="rg-pick-btn" id="rg-pick-btn" data-map="'+escH(opts.mapName||'')+'">assign image…</button></div></div>';
   }
 
-  return{html:html,x1:x1,y1:y1,x2:x2,y2:y2,W:W,H:H,dispW:dispW,dispH:dispH,hasCoords:hasCoords,zoomState:zoomState};
+  return{html:html,x1:x1,y1:y1,x2:x2,y2:y2,W:W,H:H,dispW:dispW,dispH:dispH,
+         mapX0:mapX0,mapY0:mapY0,hasCoords:hasCoords,zoomState:zoomState};
 }

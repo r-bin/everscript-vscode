@@ -103,12 +103,43 @@ function setupZoomPan(p){
     applyPan(cx,cy);
   }
 
+  /**
+   * Zoom to `next`, keeping the map point under (cx, cy) in the wrap under the
+   * cursor. Without the anchor, pinching walks the map away from whatever you
+   * were looking at, which is worse than not having the gesture.
+   */
+  function zoomAt(next,cx,cy){
+    var prev=getScale(zoomState.scale);
+    next=Math.max(1,Math.min(next,60));
+    if(next===prev)return;
+    var pan=p._getPan();
+    // Map coordinate under the cursor stays put: (c - pan) / prev === (c - pan') / next
+    applyPan(cx-(cx-pan.x)*(next/prev), cy-(cy-pan.y)*(next/prev));
+    zoomState.scale=next;
+    applyZoom(next);
+  }
+
   var zinBtn=document.getElementById('rg-zin');
   var zoutBtn=document.getElementById('rg-zout');
   var zfitBtn=document.getElementById('rg-zfit');
-  if(zinBtn)zinBtn.addEventListener('click',function(){zoomState.scale=Math.min((zoomState.scale||getScale(0))*1.4,60);applyZoom(zoomState.scale);});
-  if(zoutBtn)zoutBtn.addEventListener('click',function(){zoomState.scale=Math.max((zoomState.scale||getScale(0))/1.4,1);applyZoom(zoomState.scale);});
+  function centre(){var m=getViewportMetrics();return{x:m.wW/2,y:m.wH/2};}
+  if(zinBtn)zinBtn.addEventListener('click',function(){var c=centre();zoomAt(getScale(zoomState.scale)*1.4,c.x,c.y);});
+  if(zoutBtn)zoutBtn.addEventListener('click',function(){var c=centre();zoomAt(getScale(zoomState.scale)/1.4,c.x,c.y);});
   if(zfitBtn)zfitBtn.addEventListener('click',function(){zoomState.scale=0;applyPan(0,0);applyZoom(getScale(0));});
+
+  // Trackpad pinch. Chromium (and therefore the webview) reports a pinch as a
+  // wheel event with ctrlKey set and no discrete deltaMode — there is no
+  // separate gesture event to listen for. A plain two-finger scroll arrives as
+  // the same event without ctrlKey, and is left alone so the panel still
+  // scrolls normally over the map.
+  if(wrap)wrap.addEventListener('wheel',function(e){
+    if(!e.ctrlKey&&!e.metaKey)return;
+    e.preventDefault();
+    var r=wrap.getBoundingClientRect();
+    // exp() keeps the gesture proportional, so a fast pinch is not 40 steps.
+    zoomAt(getScale(zoomState.scale)*Math.exp(-e.deltaY*0.01),e.clientX-r.left,e.clientY-r.top);
+  },{passive:false});
+
   applyZoom(getScale(0));
 }
 

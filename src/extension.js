@@ -304,6 +304,51 @@ function radarAnalyzeScope(document, startLine, endLine) {
  * The in-repo equivalent of `tools/render_map.py --all-rooms -o out/maps`,
  * so the PNGs are reachable without leaving VS Code or setting up Python.
  */
+/**
+ * Save the room currently on screen in the Rooms tab as a PNG.
+ *
+ * Distinct from `exportRoomMaps`, which asks for scope and layer up front:
+ * this one takes its settings from the view, so the file matches the picture.
+ */
+async function exportRenderedRoomPng(msg) {
+    const cfg = getExtConfig();
+    const ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+    const rom = romReaders.loadRomBuffer(ws, cfg.romPath || '');
+    if (!rom) {
+        vscode.window.showErrorMessage('Everscript: ROM not found \u2014 set everscript.romPath.');
+        return;
+    }
+    const roomId = Number(msg.roomId);
+    if (!Number.isInteger(roomId) || roomId < 0 || roomId > 0x7e) {
+        vscode.window.showErrorMessage(`Everscript: invalid room id ${msg.roomId}.`);
+        return;
+    }
+
+    const layer = typeof msg.layer === 'string' ? msg.layer : 'composite';
+    const hex = roomId.toString(16).padStart(2, '0');
+    const target = await vscode.window.showSaveDialog({
+        saveLabel: 'Export PNG',
+        filters: { 'PNG image': ['png'] },
+        defaultUri: vscode.Uri.file(path.join(ws || require('os').homedir(), `room_0x${hex}_${layer}.png`)),
+    });
+    if (!target) return;
+
+    try {
+        const overlay = buildRoomTileOverlay(rom, roomId, 0, 0, layer,
+            typeof msg.overlay === 'string' ? msg.overlay : undefined);
+        // buildRoomTileOverlay hands back a data URI because that is what the
+        // webview needs; strip the prefix rather than render the room twice.
+        const b64 = String(overlay.imageUri).slice(overlay.imageUri.indexOf(',') + 1);
+        await vscode.workspace.fs.writeFile(target, Buffer.from(b64, 'base64'));
+        const open = await vscode.window.showInformationMessage(
+            `Everscript: exported room 0x${hex.toUpperCase()} (${overlay.imageWidth}\u00d7${overlay.imageHeight}).`,
+            'Reveal');
+        if (open) vscode.commands.executeCommand('revealFileInOS', target);
+    } catch (err) {
+        vscode.window.showErrorMessage(`Everscript: export failed \u2014 ${err && err.message || err}`);
+    }
+}
+
 async function exportRoomMaps() {
     const maps = require('./maps');
     const cfg  = getExtConfig();
@@ -621,6 +666,16 @@ function activate(context) {
                     } catch (err) {
                         _radarPanel.webview.postMessage({ ...reply, error: String(err && err.message || err) });
                     }
+                } else if (msg.command === 'exportRoomPng') {
+                    // Export exactly what the Rooms tab is showing — same
+                    // layer, overlay flags and object states — rather than a
+                    // separately-configured render, so what you save is what
+                    // you were looking at.
+                    // Not awaited: the message handler is synchronous, and the
+                    // export reports its own success and failure to the user.
+                    exportRenderedRoomPng(msg).catch((err) => {
+                        vscode.window.showErrorMessage(`Everscript: export failed — ${err && err.message || err}`);
+                    });
                 } else if (msg.command === 'globalScope') {
                     _radarPinned = true; // freeze auto-updates while in global view
                     if (_radarDoc) {

@@ -1,3 +1,22 @@
+## [0.12.0] — 2026-09-20
+
+### Fixed
+- **The grid was misaligned with the map on 54 of the 127 rooms.** A trigger sitting at the map edge widens the SVG viewBox past the map, and the map image was a CSS-stretched `<img>` filling the canvas — so it was scaled to the widened box while the grid was drawn in true viewBox units. The two drifted apart by 1–3% across the map (3.3% on room 0x10, about 8px). The image is now an SVG `<image>` placed at the map's own extent, in the same coordinate system as the grid, so it cannot drift. Regression-tested against a room with an overhanging trigger.
+
+### Added
+- **`export png`** in the ROM view's top bar: saves exactly what is on screen — same layer, same overlay flags — through a save dialog. Distinct from `Everscript: Export Room Maps as PNG`, which asks for scope and layer up front; this one takes its settings from the view so the file matches the picture.
+- **Pinch to zoom** on a trackpad, anchored on the cursor so the map does not walk away from whatever you were looking at. Chromium reports a pinch as a `wheel` event with `ctrlKey`; a plain two-finger scroll is left alone so the panel still scrolls over the map. The `+`/`-` buttons now anchor on the viewport centre for the same reason.
+- **Object browser** replacing the flat ROM OBJECTS table: one collapsible row per object, its states listed inside with anchor position and stamp pointer, the load state marked `default`, and clicking a state highlights that object's anchor on the map.
+
+### Known limitation: no object state previews, no state switching
+Both were asked for and neither is delivered, because the data they need does not decode. A state's `metatile_id` points at a stamp table whose format is unknown: **0 of 2836 object states across all 127 vanilla rooms** yield metatile IDs that exist in their own room's Block 3 table. Four candidate layouts were tested and rejected (see `docs/map-port-gap-analysis.md` §1.9 for the numbers). Upstream's `dump_room.py` reads it the same way, so this is inherited rather than introduced.
+
+Two consequences worth knowing:
+- The blue object stamp boxes on the map have a correct **anchor** and a guessed **extent**, since `target_width`/`target_height` come from that same table. The object section says so rather than presenting them as exact.
+- `docs/map-format/map_objects.md`'s claim that "Total states = max_state + 1" is also wrong — 0 of 1748 records have a plausible extra descriptor. The record-size formula in the same section (`1 + max_state*5`) is the correct one, and that is what the decoder follows.
+
+Solving this wants a trace of `$90A5D0` against a known object, which is the sibling repo's tooling — upstream research, not a porting task.
+
 ## [0.11.0] — 2026-09-20
 
 The ROM map view now shows everything `render_map.py --composition` shows, and the top bar actually controls it.

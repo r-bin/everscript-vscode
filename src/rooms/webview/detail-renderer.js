@@ -128,6 +128,8 @@ function renderRoomDetail(room){
   // ── ROM tile overlay ───────────────────────────────────────────────────────
   // Ask the host to decode and render this room. Async and on demand: the tree
   // JSON carries no tile data, so nothing appears until this returns.
+  // Object state picks are per room — index 4 is a different object elsewhere.
+  resetObjectStatesFor(room.name);
   setupLayerButtons(panel,room);
   requestRoomTileOverlay(room,svgResult);
 }
@@ -138,6 +140,10 @@ var _pendingTileRoom=null;
 // SVG viewBox origin the host rendered against, reused when re-requesting a
 // different layer for the same room.
 var _pendingTileOrigin={x:0,y:0};
+// Where the map image's top-left sits in viewBox units. Distinct from
+// _pendingTileOrigin: the viewBox can start left of / above the map when a
+// trigger overhangs the edge, and the image must stay on the map.
+var _pendingTileMapOrigin={x:0,y:0};
 // _currentLayer and _currentOverlay live in rom-overlay.js, which owns the
 // top bar that changes them.
 
@@ -187,6 +193,7 @@ function requestRoomTileOverlay(room,svgResult,layer){
   var which=layer||_currentLayer;
   _pendingTileRoom=room.name;
   _pendingTileOrigin={x:svgResult.x1||0,y:svgResult.y1||0};
+  if(typeof svgResult.mapX0==='number')_pendingTileMapOrigin={x:svgResult.mapX0,y:svgResult.mapY0};
 
   // Serve a previously received overlay immediately; the origin is part of the
   // geometry, so only reuse it when the viewBox origin still matches.
@@ -224,20 +231,20 @@ function applyRoomTileOverlay(msg){
   var ov=msg.overlay;
   if(typeof msg.roomId==='number')cacheOverlay(msg.roomId,ov.layer,ov.overlay||'',ov);
 
-  // Rendered map image goes into the existing room-image layer.
+  // Swap the render into the SVG's <image>, and resize it to the raster's real
+  // extent in viewBox units (1 unit = one 8px tile). Sizing it here rather
+  // than letting CSS stretch it to the canvas is what keeps the grid aligned:
+  // the viewBox is wider than the map whenever a trigger sits at the edge.
   if(ov.imageUri){
     var img=document.getElementById('rg-img');
-    if(!img){
-      var canvas=document.getElementById('rg-canvas');
-      if(canvas){
-        img=document.createElement('img');
-        img.className='room-img';
-        img.id='rg-img';
-        img.alt='';
-        canvas.insertBefore(img,canvas.firstChild);
-      }
+    if(img){
+      img.setAttribute('href',ov.imageUri);
+      img.setAttribute('width',ov.imageWidth/8);
+      img.setAttribute('height',ov.imageHeight/8);
+      img.setAttribute('x',_pendingTileMapOrigin.x);
+      img.setAttribute('y',_pendingTileMapOrigin.y);
+      img.classList.add('rg-rom-render');
     }
-    if(img){img.src=ov.imageUri;img.classList.add('rg-rom-render');}
   }
 
   // The collision / drift / gate / grass / object visualization is baked into
