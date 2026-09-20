@@ -1,0 +1,18 @@
+{
+    "//": "Emit config for the src/script/ TypeScript decoder. The root tsconfig.json is typecheck-only (noEmit); this one builds src/script/*.ts to CommonJS so src/script/index.js can require it. Run via `npm run build:script`.",
+    "compilerOptions": {
+        "target": "ES2020",
+        "module": "commonjs",
+        "lib": ["ES2020"],
+        "types": ["node"],
+        "strict": true,
+        "declaration": true,
+        "sourceMap": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "outDir": "src/script/dist",
+        "rootDir": "src/script"
+    },
+    "include": ["src/script/**/*.ts"],
+    "exclude": ["src/script/dist"]
+}

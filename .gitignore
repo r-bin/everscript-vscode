@@ -9,5 +9,6 @@ tools/__pycache__/
 traces/
 *.trace
 
-# TypeScript build output (src/maps/*.ts -> dist); rebuilt by `npm run build:maps`
+# TypeScript build output (src/*/**.ts -> dist); rebuilt by `npm run build:maps` / `build:script`
 src/maps/dist/
+src/script/dist/

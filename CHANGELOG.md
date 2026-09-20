@@ -1,3 +1,32 @@
+## [0.16.0] — 2026-09-20
+
+Starts the script decoder rewrite. Groundwork only: nothing in the UI changes yet, and the old decoder is still the one the Rooms tab uses.
+
+### Why
+The existing decoder (`src/emulator/room-script-model.js`) was an independent re-derivation. Measured against SoEScriptDumper's own dump of the ROM, it put 88.5% of instructions on a real boundary but **lost alignment partway through 2119 of 4000 scripts** — and a decoder that loses alignment does not fail, it keeps emitting plausible nonsense.
+
+The cause was one missing concept, not many small bugs. Script operands are not fixed-width fields; they are little postfix expressions whose length depends on their own contents. Five opcodes (`0x09`, `0x17`, `0x18`, `0x08`, `0x86`) accounted for 2111 of the 2119 derailments, all of them for that reason.
+
+### Added
+- **`src/script/`** — a new pure TypeScript domain ported from `list-rooms.cpp`:
+  - `expression.ts`, the operand grammar: a stack machine where bit 7 ends an expression, `b & 0x70` in {0x30,0x40,0x60} is an inline constant, and operators pop from a stack that persists across operands (the game's own scripts rely on that).
+  - `opcodes.ts`, per-opcode operand layouts. 124 were **measured**: `script_all` prints every instruction's address, so consecutive addresses give true lengths, and only layouts reproducing *every* observed length for an opcode were kept — thousands of instances each for the common ones. A few that end a run or print extra lines were read out of the C++ instead, and the WRITE family plus `0x78/0x79`, `0x6f/0x73/0x9d` are hand-ported because their shape is conditional or interleaved.
+  - `decoder.ts`, which **never guesses a length**: an opcode whose layout is not verified stops the walk with a reason and an address, rather than inventing a size.
+- **`npm run check:script`** — diffs instruction boundaries against `script_all` across the whole ROM. Skips when the SoETilesViewer checkout or ROM is missing.
+- `tests/memory/script-units.test.js` — 16 ROM-free assertions pinning the grammar rules individually.
+
+### Measured
+| | before | after |
+|---|---|---|
+| Instructions on a real boundary | 88.5% | **99.986%** (192,020 / 192,047) |
+| Entry points walked to a clean END | — | 53.1% |
+
+The other 47% stop early on purpose. **105 opcodes SoEScriptDumper cannot decode either** — most of `0xC0..0xFF`, which it prints in red as `UNKNOWN INSTR`, its own marker for "length unknown, parsing stops here". Roughly 20 more have layouts not yet pinned down; each is listed in `opcodes.ts` `UNRESOLVED` with how close the best simple layout got, so the next pass knows which C++ cases to read.
+
+### Not done yet
+- **Instruction summaries.** The decoder returns structure, not the English rendering. That is the 207-case switch plus `data.h`'s name tables.
+- **The old decoder is untouched and still wired in.** Shelving it before the new one can produce summaries would regress the Rooms tab, so that swap and the enter/step-on/B-trigger script view come after.
+
 ## [0.15.1] — 2026-09-20
 
 ### Fixed
