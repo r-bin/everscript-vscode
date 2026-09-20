@@ -127,12 +127,30 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .hide-grid16 .rg-grid-coarse{display:none!important}
 /* ROM-decoded overlay layers, each on its own filter button. */
 .hide-tiles .rg-collision{display:none!important}
+/* Two collision styles ship together; show contour (render_map.py's style)
+   unless the user asks for solid fills. */
+.rg-collision-fill{display:none}
+.solid-collision .rg-collision-fill{display:inline}
+.solid-collision .rg-collision-contour{display:none}
 .hide-romobj .rg-romobj{display:none!important}
 .hide-drift .rg-drift{display:none!important}
 .hide-grass .rg-grass{display:none!important}
 .rdf-sep{display:inline-block;width:1px;height:11px;margin:0 3px;background:#444;vertical-align:middle}
 .rs-romdata .rs-h{margin-top:8px}
 .rs-romdata .rs-sub{color:#777;font-weight:normal;font-size:9px;margin-left:6px}
+
+/* Busy state while the host decodes and renders a room. The map area can take
+   a few hundred ms for the largest rooms, so say so rather than showing an
+   empty box that looks broken. */
+.rg-outer.rg-busy::after{content:'decoding ROM map…';position:absolute;top:8px;left:50%;
+  transform:translateX(-50%);z-index:5;padding:2px 8px;border-radius:9px;
+  background:rgba(20,20,20,0.82);color:#ccc;font-size:10px;pointer-events:none}
+.rg-outer.rg-busy .rg-wrap{opacity:.55;transition:opacity .12s}
+
+/* Overlay legend: what the collision/drift/grass colours mean. */
+.rg-legend{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 2px;font-size:9px;color:#999}
+.rg-legend .lg{display:inline-flex;align-items:center;gap:3px}
+.rg-legend .sw{width:9px;height:9px;border-radius:2px;display:inline-block;border:1px solid rgba(255,255,255,0.18)}
 .hide-ent .svge-entrance,.hide-ent .rs-entrance{display:none!important}
 .hide-enem .svge-enemy,.hide-enem .rs-enemies{display:none!important}
 .hide-obj .rs-objects{display:none!important}

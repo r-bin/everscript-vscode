@@ -25,6 +25,7 @@ const PLANE_COLORS = {
     3: 'rgba(190,90,255,',
 };
 const FILL_ALPHA = '0.34)';
+const CONTOUR_ALPHA = '0.95)';
 
 /**
  * Sub-tile geometry as polygon corners in metatile-local units (0..2).
@@ -58,35 +59,73 @@ function polygonPath(shape, ox, oy) {
 }
 
 /**
- * Collision geometry grouped into one path per fill colour.
+ * Collision geometry in two styles, each grouped into one path per plane
+ * colour. Grouping matters: a 128x70 room is 8960 tiles, and one SVG node per
+ * tile makes pan/zoom crawl.
  *
- * Grouping matters: a 128x70 room is 8960 tiles, and one SVG node per tile
- * makes pan/zoom crawl.
+ * - `fill`: every blocked tile shaded. Reads clearly on a single-plane room.
+ * - `contour`: only the edges where a plane's solid region meets open space,
+ *   which is what `render_map.py` draws. On a multi-plane room overlapping
+ *   levels read as crossing outlines instead of stacked translucent blobs.
+ *
+ * Upstream does its edge detection per pixel using the geometry masks; this
+ * works per metatile, so a slope's diagonal contributes its own polygon edge
+ * rather than a pixel-accurate staircase.
  */
 function buildCollisionPaths(collisionWords, originX, originY) {
-    const buckets = new Map();
+    const fillBuckets = new Map();
+    const edgeBuckets = new Map();
     let painted = 0;
 
-    for (let y = 0; y < collisionWords.length; y++) {
+    const height = collisionWords.length;
+    const width = height ? collisionWords[0].length : 0;
+
+    // Solid-ness per plane, so a contour can be traced per elevation level.
+    const solidAt = (x, y, plane) => {
+        if (x < 0 || y < 0 || x >= width || y >= height) return false;
+        return maps.passability(collisionWords[y][x], plane) === maps.SOLID;
+    };
+
+    const push = (map, key, d) => {
+        const cur = map.get(key);
+        if (cur) cur.push(d);
+        else map.set(key, [d]);
+    };
+
+    for (let y = 0; y < height; y++) {
         const row = collisionWords[y];
         const oy = originY + y * U;
         for (let x = 0; x < row.length; x++) {
             const cw = row[x];
             const plane = maps.tilePlane(cw);
-            const shape = GEOMETRY_SHAPES[maps.passability(cw, plane)];
+            const geometry = maps.passability(cw, plane);
+            const shape = GEOMETRY_SHAPES[geometry];
             if (!shape) continue;
-            const fill = (PLANE_COLORS[plane] || PLANE_COLORS[1]) + FILL_ALPHA;
-            const d = polygonPath(shape, originX + x * U, oy);
-            const cur = buckets.get(fill);
-            if (cur) cur.push(d);
-            else buckets.set(fill, [d]);
+
+            const color = PLANE_COLORS[plane] || PLANE_COLORS[1];
+            const ox = originX + x * U;
+            push(fillBuckets, color + FILL_ALPHA, polygonPath(shape, ox, oy));
             painted += 1;
+
+            // Contour: emit only the sides facing open space. A partially
+            // solid tile (slope, half block) always gets its own outline,
+            // since its boundary is interior to the tile.
+            if (geometry !== maps.SOLID) {
+                push(edgeBuckets, color + CONTOUR_ALPHA, polygonPath(shape, ox, oy));
+                continue;
+            }
+            if (!solidAt(x, y - 1, plane)) push(edgeBuckets, color + CONTOUR_ALPHA, 'M' + ox + ' ' + oy + 'h' + U);
+            if (!solidAt(x, y + 1, plane)) push(edgeBuckets, color + CONTOUR_ALPHA, 'M' + ox + ' ' + (oy + U) + 'h' + U);
+            if (!solidAt(x - 1, y, plane)) push(edgeBuckets, color + CONTOUR_ALPHA, 'M' + ox + ' ' + oy + 'v' + U);
+            if (!solidAt(x + 1, y, plane)) push(edgeBuckets, color + CONTOUR_ALPHA, 'M' + (ox + U) + ' ' + oy + 'v' + U);
         }
     }
 
     const layers = [];
-    buckets.forEach((paths, fill) => layers.push({ fill, d: paths.join('') }));
-    return { layers, painted };
+    fillBuckets.forEach((paths, fill) => layers.push({ fill, d: paths.join('') }));
+    const contour = [];
+    edgeBuckets.forEach((paths, stroke) => contour.push({ stroke, d: paths.join('') }));
+    return { layers, contour, painted };
 }
 
 /** Drift tiles: where the floor pushes an entity, and which way. */
@@ -124,10 +163,26 @@ function buildObjects(room) {
 
 // Rendering a large room costs ~150ms (mostly PNG deflate) per layer, so keep
 // recent results around — switching layers or rooms should feel instant.
+//
+// The key includes a ROM fingerprint: keying on roomId+layer alone meant a
+// rebuilt ROM (everscript.buildAndRun) kept serving the pre-rebuild render
+// forever, which is worse than slow — it silently shows the wrong map.
 const RENDER_CACHE = new Map();
 const RENDER_CACHE_MAX = 24;
 
-function cacheKey(roomId, layer) { return roomId + ':' + layer; }
+/**
+ * Cheap ROM identity: length plus a few interior bytes. A recompile changes
+ * map data, so sampling across the file catches it without hashing 3MB on
+ * every room selection.
+ */
+function romFingerprint(rom) {
+    let h = rom.length;
+    const step = Math.max(1, Math.floor(rom.length / 64));
+    for (let i = 0; i < rom.length; i += step) h = ((h * 31) + rom[i]) | 0;
+    return h;
+}
+
+function cacheKey(fingerprint, roomId, layer) { return fingerprint + ':' + roomId + ':' + layer; }
 
 function renderLayer(rom, room, layer) {
     if (layer === 'layer1') return maps.renderVramLayer(rom, room, room.layer1VramWords);
@@ -136,7 +191,7 @@ function renderLayer(rom, room, layer) {
 }
 
 function cachedRender(rom, roomId, layer) {
-    const key = cacheKey(roomId, layer);
+    const key = cacheKey(romFingerprint(rom), roomId, layer);
     const hit = RENDER_CACHE.get(key);
     if (hit) return hit;
 
@@ -180,6 +235,7 @@ function buildRoomTileOverlay(rom, roomId, originX, originY, layer) {
         imageWidth: width,
         imageHeight: height,
         collision: collision.layers,
+        collisionContour: collision.contour,
         collisionTiles: collision.painted,
         drift: buildDrift(room.collisionWords),
         objects: buildObjects(room),

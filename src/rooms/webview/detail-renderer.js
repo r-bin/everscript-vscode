@@ -44,6 +44,7 @@ function renderRoomDetail(room){
     html+='<button class="rdf rdf-layer" data-layer="layer1" title="Layer 1 only — canopy (BG2)">L1 canopy</button>';
     html+='<span class="rdf-sep"></span>';
     html+='<button class="rdf" data-hide="hide-tiles" title="Collision: real sub-tile geometry, coloured per elevation plane">collision</button>';
+    html+='<button class="rdf" data-show="solid-collision" title="Draw collision as solid fills instead of contour outlines (contour is what render_map.py draws, and keeps overlapping planes readable)">solid</button>';
     html+='<button class="rdf" data-hide="hide-romobj" title="ROM map objects (Section 3) and their state stamps">rom objects</button>';
     html+='<button class="rdf" data-hide="hide-drift" title="Drift tiles — floor that pushes an entity, with direction">drift</button>';
     html+='<button class="rdf" data-hide="hide-grass" title="Cuttable grass tiles (metatile swap table)">grass</button>';
@@ -95,6 +96,9 @@ function renderRoomDetail(room){
   panel.querySelectorAll('.rdf[data-hide]').forEach(function(btn){
     panel.classList.toggle(btn.dataset.hide,!btn.classList.contains('on'));
   });
+  panel.querySelectorAll('.rdf[data-show]').forEach(function(btn){
+    panel.classList.toggle(btn.dataset.show,btn.classList.contains('on'));
+  });
 
   // ── Post-render interaction setup ──────────────────────────────────────────
   setupByteScriptFocusBinding(panel);
@@ -139,22 +143,64 @@ var _pendingTileOrigin={x:0,y:0};
 // Which render the map image is showing: composite | layer1 | layer2.
 var _currentLayer='composite';
 
-/** Vanilla room id as a number, or null when the room is not ROM-backed. */
+/**
+ * Numeric ROM room id, or null when the room is not ROM-backed.
+ *
+ * Prefers `romRoomId`, which the host resolves through the MAP enum. Live
+ * rooms carry a symbolic enum name in `vanillaId` (e.g. SOUTH_JUNGLE), so
+ * parsing that as hex yields NaN and the ROM overlay would never activate —
+ * which is exactly what happened before `romRoomId` was threaded through.
+ */
 function roomVanillaIdNum(room){
-  var raw=room&&room.vanillaId;
-  if(raw==null)return null;
-  var n=(typeof raw==='number')?raw:parseInt(String(raw).replace(/^0x/i,''),16);
+  if(!room)return null;
+  var n=room.romRoomId;
+  if(typeof n!=='number'||!isFinite(n)){
+    var raw=room.vanillaId;
+    if(raw==null)return null;
+    n=(typeof raw==='number')?raw:parseInt(String(raw).replace(/^0x/i,''),16);
+  }
   return (isFinite(n)&&n>=0&&n<=0x7e)?n:null;
+}
+
+// Overlay responses already received, keyed roomId:layer. Flipping between
+// layers is a common interaction and each response carries a base64 PNG of up
+// to several hundred KB, so a hit here skips the whole IPC round trip.
+var _overlayCache={};
+var _OVERLAY_CACHE_MAX=16;
+
+function overlayCacheKey(id,layer){return id+':'+layer;}
+
+function cacheOverlay(id,layer,overlay){
+  var keys=Object.keys(_overlayCache);
+  if(keys.length>=_OVERLAY_CACHE_MAX)delete _overlayCache[keys[0]];
+  _overlayCache[overlayCacheKey(id,layer)]=overlay;
+}
+
+/** Show or clear the map-area busy state. */
+function setTileBusy(busy){
+  var outer=document.getElementById('rg-outer');
+  if(outer)outer.classList.toggle('rg-busy',!!busy);
 }
 
 /** Post a tile-overlay request to the extension host for the rendered room. */
 function requestRoomTileOverlay(room,svgResult,layer){
   var id=roomVanillaIdNum(room);
   if(id==null||typeof vs==='undefined'||!vs||!svgResult)return;
+  var which=layer||_currentLayer;
   _pendingTileRoom=room.name;
   _pendingTileOrigin={x:svgResult.x1||0,y:svgResult.y1||0};
+
+  // Serve a previously received overlay immediately; the origin is part of the
+  // geometry, so only reuse it when the viewBox origin still matches.
+  var hit=_overlayCache[overlayCacheKey(id,which)];
+  if(hit&&hit.originX===_pendingTileOrigin.x&&hit.originY===_pendingTileOrigin.y){
+    applyRoomTileOverlay({command:'roomTiles',mapName:room.name,roomId:id,overlay:hit});
+    return;
+  }
+
+  setTileBusy(true);
   vs.postMessage({command:'requestRoomTiles',roomId:id,mapName:room.name,
-                  layer:layer||_currentLayer,
+                  layer:which,
                   originX:_pendingTileOrigin.x,originY:_pendingTileOrigin.y});
 }
 
@@ -183,13 +229,18 @@ function setupLayerButtons(panel,room){
  */
 function applyRoomTileOverlay(msg){
   if(!msg||msg.mapName!==_pendingTileRoom)return;
+  setTileBusy(false);
   var svg=document.getElementById('rg-svg');
   if(!svg)return;
 
   var old=document.getElementById('rg-tiles');
   if(old&&old.parentNode)old.parentNode.removeChild(old);
-  if(msg.error||!msg.overlay)return;
+
+  if(msg.error){showTileError(msg.error);return;}
+  if(!msg.overlay)return;
+  clearTileError();
   var ov=msg.overlay;
+  if(typeof msg.roomId==='number')cacheOverlay(msg.roomId,ov.layer,ov);
 
   // Rendered map image goes into the existing room-image layer.
   if(ov.imageUri){
@@ -221,11 +272,20 @@ function applyRoomTileOverlay(msg){
   }
   function group(cls){var s=document.createElementNS(NS,'g');s.setAttribute('class',cls);g.appendChild(s);return s;}
 
-  // Collision: one path per fill colour (plane), real sub-tile geometry.
+  // Collision, in both styles — CSS shows one. Contour matches render_map.py
+  // and keeps overlapping elevation planes readable; fill reads better on a
+  // single-plane room.
   if(ov.collision&&ov.collision.length){
-    var gc=group('rg-collision');
+    var gc=group('rg-collision rg-collision-fill');
     ov.collision.forEach(function(layer){
       gc.appendChild(mk('path',{d:layer.d,fill:layer.fill}));
+    });
+  }
+  if(ov.collisionContour&&ov.collisionContour.length){
+    var gk=group('rg-collision rg-collision-contour');
+    ov.collisionContour.forEach(function(layer){
+      gk.appendChild(mk('path',{d:layer.d,fill:'none',stroke:layer.stroke,
+                                'stroke-width':0.22,'stroke-linecap':'square'}));
     });
   }
 
@@ -271,6 +331,31 @@ function applyRoomTileOverlay(msg){
   renderRomDataSections(ov);
 }
 
+/**
+ * Surface a render/decode failure in the panel itself.
+ *
+ * Previously these only reached the devtools console, so a user whose ROM was
+ * missing or unreadable just saw no map and no reason why.
+ */
+function showTileError(message){
+  var panel=document.getElementById('room-detail');
+  if(!panel)return;
+  clearTileError();
+  var head=panel.querySelector('.rd-head');
+  var el=document.createElement('div');
+  el.className='rs rs-error rs-tile-error';
+  el.innerHTML='<div class="rs-h">Map render unavailable</div><div class="rs-note">'+escH(message)+'</div>';
+  if(head&&head.nextSibling)panel.insertBefore(el,head.nextSibling);
+  else panel.appendChild(el);
+}
+
+function clearTileError(){
+  var panel=document.getElementById('room-detail');
+  if(!panel)return;
+  var old=panel.querySelector('.rs-tile-error');
+  if(old&&old.parentNode)old.parentNode.removeChild(old);
+}
+
 /** Render the ROM-derived detail tables at the bottom of the room panel. */
 function renderRomDataSections(ov){
   var panel=document.getElementById('room-detail');
@@ -279,10 +364,25 @@ function renderRomDataSections(ov){
   if(old&&old.parentNode)old.parentNode.removeChild(old);
 
   var planeNames={0:'0 (blue)',1:'1 (red)',2:'2 (green)',3:'3 (purple)'};
+  var planeSwatch={0:'rgba(0,170,255,0.6)',1:'rgba(235,25,25,0.6)',2:'rgba(0,255,170,0.6)',3:'rgba(190,90,255,0.6)'};
   var h='<div class="rs rs-romdata">';
 
+  // Note the lack of source links explicitly. Trigger tables elsewhere in this
+  // panel jump to .evs lines; these rows are decoded ROM bytes with no source
+  // line to jump to, and silent inconsistency reads as a missing feature.
   h+='<div class="rs-h">ROM MAP DATA <span class="rs-sub">'+ov.widthTiles+'x'+ov.heightTiles+
-     ' metatiles · '+ov.metatileCount+' unique · layer: '+escH(ov.layer)+'</span></div>';
+     ' metatiles · '+ov.metatileCount+' unique · layer: '+escH(ov.layer)+
+     ' · decoded from ROM, no source lines</span></div>';
+
+  // Legend: the overlay colours are meaningless without a key.
+  h+='<div class="rg-legend">';
+  (ov.elevationPlanes||[]).forEach(function(p){
+    h+='<span class="lg"><i class="sw" style="background:'+(planeSwatch[p]||planeSwatch[1])+'"></i>collision plane '+p+'</span>';
+  });
+  if(ov.drift&&ov.drift.length)h+='<span class="lg"><i class="sw" style="background:rgba(72,126,196,0.7)"></i>drift (floor pushes you)</span>';
+  if(ov.objects&&ov.objects.length)h+='<span class="lg"><i class="sw" style="background:rgba(120,200,255,0.5);border-color:#78c8ff"></i>rom object</span>';
+  if(ov.grass&&ov.grass.length)h+='<span class="lg"><i class="sw" style="background:rgba(120,220,120,0.6)"></i>cuttable grass</span>';
+  h+='</div>';
   h+='<table class="rt"><tr><th>Feature</th><th>Count</th><th>Detail</th></tr>';
 
   h+='<tr class="rd-romdata-row"><td>collision tiles</td><td>'+ov.collisionTiles+'</td><td>'+

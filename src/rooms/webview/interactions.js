@@ -276,6 +276,15 @@ function setupClickHandlers(svg,panel,state){
       });
     });
   }
+  // Inverted filters: button ON applies the class (vs data-hide, where OFF
+  // applies it). Used where the default is the absence of the class.
+  panel.querySelectorAll('.rdf[data-show]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      btn.classList.toggle('on');
+      panel.classList.toggle(btn.dataset.show,btn.classList.contains('on'));
+    });
+  });
+
   // Entity filter buttons
   panel.querySelectorAll('.rdf[data-hide]').forEach(function(btn){
     btn.addEventListener('click',function(){

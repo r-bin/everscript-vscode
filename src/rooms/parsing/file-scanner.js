@@ -84,11 +84,13 @@ function collectRoomsFromDir(dir, wsRoot, depth, extCfg, deps) {
             const vid     = m[2] ? m[2].trim() : null;
             const content = parseRoomContent(fp, i, endLine);
             const imgPath = findRoomImage(wsRoot, m[1], vid, fp);
+            let romRoomId = null;
             if (wsRoot && vid && deps) {
                 content.triggers = deps.readScriptAllTriggers(wsRoot, vid, extCfg.romPath || '');
                 const luaPoi     = deps.readLuaWatchers(wsRoot);
                 const roomNum    = deps.getMapEnum(wsRoot).get(vid);
                 if (roomNum !== undefined) {
+                    romRoomId = roomNum;
                     const hexKey = roomNum.toString(16).replace(/^0+/, '') || '0';
                     content.poi = luaPoi.get(hexKey) || null;
                     const _rh = deps.readRomMapHeader(wsRoot, roomNum, extCfg.romPath || '');
@@ -96,7 +98,7 @@ function collectRoomsFromDir(dir, wsRoot, depth, extCfg, deps) {
                 }
             }
             items.push({
-                name: m[1], vanillaId: vid, kind: 'map',
+                name: m[1], vanillaId: vid, romRoomId, kind: 'map',
                 filePath: fp, relPath: wsRoot ? path.relative(wsRoot, fp) : fp,
                 startLine: i, endLine, content, imagePath: imgPath,
             });
@@ -133,16 +135,18 @@ function buildRoomTree(document, wsRoot, extCfg, deps) {
         const vid     = m[2] ? m[2].trim() : null;
         const content = parseRoomContent(docPath, i, endLine);
         const imgPath = findRoomImage(wsRoot, m[1], vid, docPath);
+        let romRoomId = null;
         if (wsRoot && vid && deps) {
             content.triggers = deps.readScriptAllTriggers(wsRoot, vid, extCfg.romPath || '');
             const mapNum = deps.getMapEnum(wsRoot).get(vid);
             if (mapNum !== undefined) {
+                romRoomId = mapNum;
                 const _rh = deps.readRomMapHeader(wsRoot, mapNum, extCfg.romPath || '');
                 if (_rh) { content.trigOffset = { offX: _rh.offX, offY: _rh.offY }; content.romHeader = _rh; }
             }
         }
         docMaps.push({
-            name: m[1], vanillaId: vid, kind: 'map',
+            name: m[1], vanillaId: vid, romRoomId, kind: 'map',
             filePath: docPath, relPath: wsRoot ? path.relative(wsRoot, docPath) : docPath,
             startLine: i, endLine, content, imagePath: imgPath,
         });

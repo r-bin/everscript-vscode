@@ -88,6 +88,11 @@ function buildRoomsJson(tree, activeTab, selectedMap) {
                 all[n.name] = {
                     name:       n.name,
                     vanillaId:  n.vanillaId || null,
+                    // Numeric ROM room id, already resolved through the MAP enum
+                    // by file-scanner. `vanillaId` is a symbolic enum name for
+                    // live rooms, so it cannot be parsed as an id — the ROM
+                    // render/overlay path keys off this instead.
+                    romRoomId:  (typeof n.romRoomId === 'number') ? n.romRoomId : null,
                     relPath:    n.relPath || '',
                     startLine:  n.startLine,
                     endLine:    n.endLine,

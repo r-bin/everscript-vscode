@@ -8,7 +8,7 @@
 // Upstream carries both forms and warns that mixing them silently produces
 // wrong results; the port drops the string forms and formats at render time.
 
-import { read16, readByte, roomBlobOffset, snesToRom, read24, MAP_LIST_ADDR, MAP_TABLE_STRIDE } from './rom';
+import { read16, readByte, roomBlobOffset, snesToRom, read24, MAP_LIST_ADDR, MAP_TABLE_STRIDE, MAX_ROOMS } from './rom';
 import { decompressLzss, copyRaw } from './lzss';
 import { decompressMarkovGrid } from './markov';
 import { parseBlobLayout, BlobLayout, PayloadBlock } from './blob-layout';
@@ -179,10 +179,36 @@ function readObjects(rom: Uint8Array, layout: BlobLayout): RoomObject[] {
     return objects;
 }
 
-/** Decode one room from a ROM buffer. Throws if the blob is malformed. */
+/**
+ * Decode one room from a ROM buffer. Throws if the blob is malformed.
+ *
+ * Validation here is deliberately explicit: every offset is derived by walking
+ * length fields, so a ROM whose layout differs from stock (a patch that
+ * relocates the pointer table, resizes a room, or adds rooms) would otherwise
+ * read arbitrary bytes and produce plausible-looking nonsense rather than
+ * failing. Everything upstream verified is vanilla-only — see
+ * docs/map-port-gap-analysis.md §1.6.
+ */
 export function decodeRoom(rom: Uint8Array, roomId: number): RoomData {
+    if (!Number.isInteger(roomId) || roomId < 0 || roomId >= MAX_ROOMS) {
+        throw new Error(`Room id ${roomId} out of range (expected 0..${MAX_ROOMS - 1})`);
+    }
+    const tableEntry = MAP_LIST_ADDR + roomId * MAP_TABLE_STRIDE;
+    if (tableEntry + 3 > rom.length) {
+        throw new Error(
+            `ROM too small for the map pointer table (need 0x${(tableEntry + 3).toString(16)}, ` +
+                `have 0x${rom.length.toString(16)}) — is this a Secret of Evermore ROM?`,
+        );
+    }
+
     const snesPtr = read24(rom, MAP_LIST_ADDR + roomId * MAP_TABLE_STRIDE);
     const blob = roomBlobOffset(rom, roomId);
+    if (blob + 0x0f > rom.length) {
+        throw new Error(
+            `Room 0x${roomId.toString(16).toUpperCase()}: blob pointer 0x${blob.toString(16)} ` +
+                `is past the end of the ROM — pointer table may be patched or this is not a stock ROM`,
+        );
+    }
 
     const header: RoomHeader = {
         originX: rom[blob],
@@ -202,6 +228,21 @@ export function decodeRoom(rom: Uint8Array, roomId: number): RoomData {
     const { widthTiles, heightTiles } = header;
     const totalTiles = widthTiles * heightTiles;
     const targetGridBytes = totalTiles * 2;
+
+    if (widthTiles === 0 || heightTiles === 0) {
+        throw new Error(
+            `Room 0x${roomId.toString(16).toUpperCase()}: header reports ${widthTiles}x${heightTiles} metatiles`,
+        );
+    }
+    // Every section offset comes from walking length fields, so one bad length
+    // sends the whole chain off the end rather than failing at the bad field.
+    if (layout.objectArea > rom.length) {
+        throw new Error(
+            `Room 0x${roomId.toString(16).toUpperCase()}: section chain runs past the end of the ROM ` +
+                `(object area at 0x${layout.objectArea.toString(16)}, ROM is 0x${rom.length.toString(16)}) — ` +
+                `the blob layout does not match the stock format`,
+        );
+    }
 
     // --- Block 2: Markov -> 2D metatile grid (WRAM $7F0000) ---
     const b2 = layout.block2;

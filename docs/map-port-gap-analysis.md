@@ -1,8 +1,39 @@
 # Map Data Port & Rooms Tab UX — Gap Analysis
 
-> Status: living document, last updated 2026-09-20 (post v0.8.1).
+> Status: living document, last updated 2026-09-20 (post v0.9.0).
 > See the `map-format` skill before acting on anything here — it has the
 > "port, don't re-derive" ground rules this document assumes.
+
+## Closed in v0.9.0
+
+| Gap | Outcome |
+|---|---|
+| 2.1 stale render cache | Cache key now includes a ROM fingerprint, and `buildAndRun` drops both the ROM buffer and render caches explicitly. |
+| 2.2 Live rooms never rendered | **Confirmed real.** `vanillaId` is a symbolic MAP enum name for live rooms, so `parseInt(…,16)` was `NaN`. The host-resolved numeric id is now threaded through as `romRoomId` for both trees. |
+| 2.3 no loading state | Map area shows a "decoding ROM map…" badge and dims while the host renders. |
+| 2.4 invisible failures | Render/decode errors now surface as an in-panel banner reusing the existing `rs-error` pattern, not just `console.warn`. |
+| 2.5 no legend | The ROM MAP DATA section lists a swatch per elevation plane present, plus drift / object / grass keys. |
+| 2.7 link asymmetry | Section header states the rows are decoded ROM bytes with no source lines. |
+| 2.8 re-transfer on every switch | Webview caches overlays by `roomId:layer` (16 entries) and skips the round trip on a hit. |
+| 1.3 fills vs contours | Both styles ship; contour (upstream's style) is the default, `solid` toggles fills. Contour is also ~7x smaller in path data. |
+| 1.6 patched-ROM behaviour | `decodeRoom` validates room id, ROM size, pointer target and the section chain, failing with a specific message instead of decoding garbage. Still not *tested* against a real patched ROM — see below. |
+| 1.7 no unit tests | `tests/memory/map-units.test.js` — 33 assertions covering palette expansion, bitplane weighting, flips, CHR mode 1, collision bitfield semantics, grass parsing, compositing priority and PNG structure. Runs without a ROM. |
+| 1.8 no export | `Everscript: Export Room Maps as PNG` — single room or all 127, any layer, with progress and cancellation. |
+
+Still open, and why:
+
+- **1.1 (write path)** — untouched. It is the largest single item here (922 lines
+  of encoder plus its own byte-exact parity harness) and delivers nothing
+  user-visible without an editing UI on top, so it wants to be its own piece of
+  work rather than a tail end of this one.
+- **1.4 / 1.5 / 2.6 (animation)** — still blocked on upstream research. No
+  `docs/map-format/*.md` documents the animation frame table or whether CGRAM
+  cycling is used at all. Porting cannot start before that exists.
+- **1.2** — unchanged by design: the extension keeps its own interactive SVG
+  overlays rather than porting the bitmap annotation system. 1.3 narrows the
+  visual gap; the rest stays deliberate.
+- **1.6 verification**, **2.9 (world overview)**, **2.10 (diff view)** — not
+  started.
 
 What's already true, verified: `src/maps/` decodes all 127 vanilla rooms
 identically to `everscript`'s `tools/dump_room.py` (`npm run check:maps`,

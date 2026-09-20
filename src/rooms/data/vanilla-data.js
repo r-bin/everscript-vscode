@@ -207,6 +207,10 @@ function buildVanillaRoomDetails(wsRoot, romPath) {
             all[room.id] = {
                 name:       room.name,
                 vanillaId:  room.id,
+                // Numeric ROM room id. The vanilla catalog stores hex strings,
+                // but live rooms carry a symbolic enum name in `vanillaId`, so
+                // the ROM render path keys off this normalized field instead.
+                romRoomId:  parseInt(room.id, 16),
                 relPath:    'vanilla (rom)',
                 startLine:  -1,
                 endLine:    -1,

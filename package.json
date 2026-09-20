@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.8.1",
+  "version": "0.9.0",
   "publisher": "rbin",
   "main": "./src/extension.js",
   "engines": {
@@ -15,7 +15,8 @@
     "onCommand:everscript.openSettings",
     "onDebugResolve:everscript",
     "onDebugAdapterProtocol:everscript",
-    "onCommand:everscript.buildAndRun"
+    "onCommand:everscript.buildAndRun",
+    "onCommand:everscript.exportRoomMaps"
   ],
   "categories": [
     "Programming Languages",
@@ -25,7 +26,7 @@
     "build:core:custom": "sh tools/build_snes_core.sh custom",
     "build:core:vanilla": "sh tools/build_snes_core.sh vanilla",
     "build:cores": "npm run build:core:vanilla && npm run build:core:custom",
-    "test": "npm run build:maps && npm run build:cores && vscode-tmgrammar-test -g src/language/syntaxes/everscript.tmLanguage.json 'src/language/tests/**/*.test.evs' && node tests/memory/activation.test.js && node tests/memory/radar.test.js && node tests/memory/map-parity.test.js && node tests/memory/damage.test.js && node tests/memory/render-script-model.test.js && node tests/memory/smoke.test.js && node tests/memory/ui.test.js && node tests/memory/scaling-rom.test.js &&  node tests/debugger/debugger.test.js && node tests/debugger/settings-model.test.js && node tests/debugger/snes-rom-header-model.test.js && node tests/debugger/room-script-model.test.js && node tests/debugger/parser-parity.test.js && node tests/debugger/emulator-health.test.js",
+    "test": "npm run build:maps && npm run build:cores && vscode-tmgrammar-test -g src/language/syntaxes/everscript.tmLanguage.json 'src/language/tests/**/*.test.evs' && node tests/memory/activation.test.js && node tests/memory/radar.test.js && node tests/memory/map-units.test.js && node tests/memory/map-parity.test.js && node tests/memory/damage.test.js && node tests/memory/render-script-model.test.js && node tests/memory/smoke.test.js && node tests/memory/ui.test.js && node tests/memory/scaling-rom.test.js &&  node tests/debugger/debugger.test.js && node tests/debugger/settings-model.test.js && node tests/debugger/snes-rom-header-model.test.js && node tests/debugger/room-script-model.test.js && node tests/debugger/parser-parity.test.js && node tests/debugger/emulator-health.test.js",
     "test:parity": "node tests/debugger/parser-parity.test.js",
     "test:parity:strict": "PARITY_STRICT=1 node tests/debugger/parser-parity.test.js",
     "test:emulator-runtime": "npm run build:cores && node tests/debugger/emulator-health.test.js",
@@ -157,6 +158,11 @@
       {
         "command": "everscript.openMemoryRadar",
         "title": "Everscript: Open Memory Radar"
+      },
+      {
+        "command": "everscript.exportRoomMaps",
+        "title": "Export Room Maps as PNG",
+        "category": "Everscript"
       }
     ],
     "keybindings": [

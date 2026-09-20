@@ -1,3 +1,24 @@
+## [0.9.0] — 2026-09-20
+
+Works through `docs/map-port-gap-analysis.md`. Eleven of the eighteen gaps closed; the write path and the animation items remain open for the reasons recorded there.
+
+### Fixed
+- **Live (author-written) rooms never rendered the ROM map at all.** The overlay resolved its room id by hex-parsing `vanillaId`, which for live rooms is a symbolic MAP enum name (`SOUTH_JUNGLE`), not a hex string — so `parseInt` returned `NaN` and the whole feature silently skipped the workflow it matters most for. The numeric id the host already resolves via `getMapEnum` is now carried through as `romRoomId` for both the Vanilla and Live trees. (gap 2.2, confirmed)
+- **Stale map after a rebuild.** The render cache keyed on `roomId:layer` only, so recompiling a ROM left the Rooms tab showing the old map indefinitely. The key now includes a ROM fingerprint, and `everscript.buildAndRun` drops the ROM buffer and render caches explicitly on success. (gap 2.1)
+- **Render failures were invisible** outside the devtools console. They now show an in-panel banner reusing the existing error pattern. (gap 2.4)
+
+### Added
+- **Loading state** — the map area shows a "decoding ROM map…" badge and dims while the host decodes and renders. (gap 2.3)
+- **Contour collision rendering**, matching `render_map.py`'s style: only the edges where a plane's solid region meets open space, so overlapping elevation planes read as crossing outlines instead of stacked translucent blobs. Default; a `solid` button switches back to fills. Also ~7x cheaper in path data (23KB vs 167KB on room 0x38). (gap 1.3)
+- **Overlay legend** in the ROM MAP DATA section: a swatch per elevation plane actually present in the room, plus drift, object and grass keys. (gap 2.5)
+- **`Everscript: Export Room Maps as PNG`** — one room or all 127, any layer, with progress reporting and cancellation. The in-editor equivalent of `tools/render_map.py --all-rooms`. (gap 1.8)
+- **Webview-side overlay cache** keyed by `roomId:layer`, so flipping between layers or returning to a room skips the IPC round trip and its several-hundred-KB payload. (gap 2.8)
+- **`tests/memory/map-units.test.js`** — 33 unit assertions covering the modules in isolation: BGR555 expansion, transparent index 0, bitplane weighting, hflip/vflip across the whole grid, CHR mode-1 decompression, collision bitfield semantics (planes, gates, drift, always-walkable, plane-transparent), grass table parsing, Mode 1 compositing priority, and PNG chunk structure. Needs neither a ROM nor the everscript checkout, so it runs anywhere. (gap 1.7)
+- **Defensive validation in `decodeRoom`** for room id range, ROM size, pointer targets and the section chain, so a patched or non-Evermore ROM fails with a specific message instead of silently decoding garbage. (gap 1.6, partial — still untested against a real patched ROM)
+
+### Changed
+- The ROM MAP DATA header now states its rows are decoded ROM bytes with no source lines, rather than leaving the contrast with the clickable trigger tables unexplained. (gap 2.7)
+
 ## [0.8.1] — 2026-09-20
 
 ### Fixed
