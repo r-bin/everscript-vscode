@@ -36,6 +36,40 @@ function setupByteScriptFocusBinding(panel){
  * Set up zoom controls for the SVG canvas.
  * @param {object} p - { svg, canvas, wrap, W, H, dispW, dispH, zoomState }
  */
+// The pan gesture is tracked globally so it survives the pointer leaving the
+// SVG. setupMouseEvents runs on every room render, so the window listeners are
+// registered once and read whichever session mousedown last opened — binding
+// per render leaked a listener per selected room.
+var _activePan=null,_activePanState=null,_activePanWrap=null,_globalPanBound=false;
+// How far the pointer may travel before a drag stops counting as a click.
+var PAN_CLICK_SLOP=3;
+
+function ensureGlobalPanHandlers(){
+  if(_globalPanBound)return;
+  if(typeof window==='undefined'||!window.addEventListener)return;
+  _globalPanBound=true;
+
+  window.addEventListener('mousemove',function(e){
+    var st=_activePanState,p=_activePan;
+    if(!st||!st.panActive||!p||!p._applyPan||!p._getViewportMetrics)return;
+    var dx=e.clientX-st.panCX,dy=e.clientY-st.panCY;
+    if(Math.abs(dx)>PAN_CLICK_SLOP||Math.abs(dy)>PAN_CLICK_SLOP)st.panMoved=true;
+    var m=p._getViewportMetrics();
+    p._applyPan(
+      Math.min(m.maxX,Math.max(m.minX,st.panBX+dx)),
+      Math.min(m.maxY,Math.max(m.minY,st.panBY+dy))
+    );
+  });
+
+  window.addEventListener('mouseup',function(){
+    var st=_activePanState;
+    if(st&&st.panActive){
+      st.panActive=false;
+      if(_activePanWrap)_activePanWrap.classList.remove('rg-panning');
+    }
+  });
+}
+
 function setupZoomPan(p){
   var svg=p.svg,canvas=p.canvas,wrap=p.wrap,W=p.W,H=p.H,dispW=p.dispW,dispH=p.dispH,zoomState=p.zoomState;
   function getScale(s){return(s===0)?Math.min(dispW/W,dispH/H,20):s;}
@@ -172,6 +206,8 @@ function setupMouseEvents(p){
       // Base the drag on the live pan offset, not a stale local copy.
       var cur=p._getPan?p._getPan():{x:state.panX||0,y:state.panY||0};
       state.panActive=true;state.panCX=e.clientX;state.panCY=e.clientY;state.panBX=cur.x;state.panBY=cur.y;
+      state.panMoved=false;
+      _activePan=p;_activePanState=state;_activePanWrap=wrap;
       if(wrap)wrap.classList.add('rg-panning');
     }
     e.preventDefault();
@@ -190,12 +226,8 @@ function setupMouseEvents(p){
       if(selRect){selRect.setAttribute('x',rx);selRect.setAttribute('y',ry);selRect.setAttribute('width',rw);selRect.setAttribute('height',rh2);}
       return;
     }
-    if(state.panActive&&p._applyPan&&p._getViewportMetrics){
-      var metrics=p._getViewportMetrics();
-      var nx=Math.min(metrics.maxX,Math.max(metrics.minX,state.panBX+(e.clientX-state.panCX)));
-      var ny=Math.min(metrics.maxY,Math.max(metrics.minY,state.panBY+(e.clientY-state.panCY)));
-      p._applyPan(nx,ny);
-    }
+    // Panning itself is handled by the window-level handler, so a drag keeps
+    // working past the edge of the SVG. Nothing to do here.
   });
 
   svg.addEventListener('mouseup',function(e){
@@ -215,22 +247,17 @@ function setupMouseEvents(p){
     if(state.dragEnt){if(state.dragEnt.ghostEl&&state.dragEnt.ghostEl.parentNode)state.dragEnt.ghostEl.parentNode.removeChild(state.dragEnt.ghostEl);state.dragEnt=null;}
   });
 
-  // Continue and finish a pan even when the pointer leaves the SVG.
-  if(typeof window!=='undefined'&&window.addEventListener){
-    window.addEventListener('mousemove',function(e){
-      if(!state.panActive||!p._applyPan||!p._getViewportMetrics)return;
-      var metrics=p._getViewportMetrics();
-      p._applyPan(
-        Math.min(metrics.maxX,Math.max(metrics.minX,state.panBX+(e.clientX-state.panCX))),
-        Math.min(metrics.maxY,Math.max(metrics.minY,state.panBY+(e.clientY-state.panCY)))
-      );
-    });
-    window.addEventListener('mouseup',function(){
-      if(state.panActive){state.panActive=false;if(wrap)wrap.classList.remove('rg-panning');}
-    });
-  }
+  ensureGlobalPanHandlers();
 
-  svg.addEventListener('click',function(e){if(e.shiftKey||state.dragEnt)return;var pt=svgPt(e);selectAt(Math.floor(pt.x),Math.floor(pt.y));});
+  svg.addEventListener('click',function(e){
+    if(e.shiftKey||state.dragEnt)return;
+    // A pan drag ends with a click. Running selectAt here would scroll the
+    // right panel (hi() calls scrollIntoView on the matched table row), which
+    // yanks the map out of view the moment you release a drag.
+    if(state.panMoved){state.panMoved=false;return;}
+    var pt=svgPt(e);
+    selectAt(Math.floor(pt.x),Math.floor(pt.y));
+  });
   svg.addEventListener('dblclick',function(){clearBoxFilter();clearSelection();});
 }
 

@@ -45,3 +45,5 @@ export { decompressTile16x16, decodeTilePixels } from './chr';
 export { renderVramLayer, compositeLayers, renderRoomComposite } from './render';
 export type { PixelBuffer, RenderOptions } from './render';
 export { encodePng, encodePngDataUri } from './png';
+export { drawCollisionOverlay, PLANE_COLORS } from './collision-overlay';
+export type { CollisionOverlayOptions } from './collision-overlay';

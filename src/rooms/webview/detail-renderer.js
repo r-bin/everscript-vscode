@@ -43,11 +43,12 @@ function renderRoomDetail(room){
     html+='<button class="rdf rdf-layer" data-layer="layer2" title="Layer 2 only — terrain (BG1)">L2 terrain</button>';
     html+='<button class="rdf rdf-layer" data-layer="layer1" title="Layer 1 only — canopy (BG2)">L1 canopy</button>';
     html+='<span class="rdf-sep"></span>';
-    html+='<button class="rdf" data-hide="hide-tiles" title="Collision: real sub-tile geometry, coloured per elevation plane">collision</button>';
-    html+='<button class="rdf" data-show="solid-collision" title="Draw collision as solid fills instead of contour outlines (contour is what render_map.py draws, and keeps overlapping planes readable)">solid</button>';
-    html+='<button class="rdf" data-hide="hide-romobj" title="ROM map objects (Section 3) and their state stamps">rom objects</button>';
-    html+='<button class="rdf" data-hide="hide-drift" title="Drift tiles — floor that pushes an entity, with direction">drift</button>';
-    html+='<button class="rdf" data-hide="hide-grass" title="Cuttable grass tiles (metatile swap table)">grass</button>';
+    // These re-render the map image host-side rather than toggling CSS: the
+    // visualization is a pixel-exact port of render_map.py baked into the
+    // raster, not SVG shapes layered on top.
+    html+='<button class="rdf rdf-ov" data-ov="c" title="Collision: per-plane contours, drift arrows, elevation changes and entity gates (the dashed white tiles), exactly as render_map.py draws them">collision</button>';
+    html+='<button class="rdf rdf-ov" data-ov="o" title="ROM map object stamps (Section 3) — needs collision">rom objects</button>';
+    html+='<button class="rdf rdf-ov" data-ov="g" title="Cuttable grass tiles — needs collision">grass</button>';
     html+='<span class="rdf-sep"></span>';
   }
   if(rh)html+='<button class="rdf on" data-hide="hide-header" title="Toggle ROM header section">header</button>';
@@ -122,7 +123,11 @@ function renderRoomDetail(room){
                       entrances:entrances,enemies:enemies,stepOn:stepOn,bTrigger:bTrigger,
                       trigOff:trigOff,zoomState:zoomState,state:state,
                       W:svgResult.W,H:svgResult.H,dispW:svgResult.dispW,dispH:svgResult.dispH,
-                      _getScale:zp._getScale,_getViewportMetrics:zp._getViewportMetrics,_applyPan:zp._applyPan});
+                      // _getPan must come along: without it the drag base
+                      // falls back to a always-zero local copy, so every pan
+                      // snapped back to the top-left corner.
+                      _getScale:zp._getScale,_getViewportMetrics:zp._getViewportMetrics,
+                      _applyPan:zp._applyPan,_getPan:zp._getPan});
     setupHoverHighlights(svg,panel);
     setupClickHandlers(svg,panel,state);
   }
@@ -142,6 +147,8 @@ var _pendingTileRoom=null;
 var _pendingTileOrigin={x:0,y:0};
 // Which render the map image is showing: composite | layer1 | layer2.
 var _currentLayer='composite';
+// Baked overlay flags: 'c' collision, 'o' objects, 'g' grass.
+var _currentOverlay='';
 
 /**
  * Numeric ROM room id, or null when the room is not ROM-backed.
@@ -168,12 +175,12 @@ function roomVanillaIdNum(room){
 var _overlayCache={};
 var _OVERLAY_CACHE_MAX=16;
 
-function overlayCacheKey(id,layer){return id+':'+layer;}
+function overlayCacheKey(id,layer,ov){return id+':'+layer+':'+(ov||'');}
 
-function cacheOverlay(id,layer,overlay){
+function cacheOverlay(id,layer,ov,overlay){
   var keys=Object.keys(_overlayCache);
   if(keys.length>=_OVERLAY_CACHE_MAX)delete _overlayCache[keys[0]];
-  _overlayCache[overlayCacheKey(id,layer)]=overlay;
+  _overlayCache[overlayCacheKey(id,layer,ov)]=overlay;
 }
 
 /** Show or clear the map-area busy state. */
@@ -192,7 +199,7 @@ function requestRoomTileOverlay(room,svgResult,layer){
 
   // Serve a previously received overlay immediately; the origin is part of the
   // geometry, so only reuse it when the viewBox origin still matches.
-  var hit=_overlayCache[overlayCacheKey(id,which)];
+  var hit=_overlayCache[overlayCacheKey(id,which,_currentOverlay)];
   if(hit&&hit.originX===_pendingTileOrigin.x&&hit.originY===_pendingTileOrigin.y){
     applyRoomTileOverlay({command:'roomTiles',mapName:room.name,roomId:id,overlay:hit});
     return;
@@ -200,12 +207,16 @@ function requestRoomTileOverlay(room,svgResult,layer){
 
   setTileBusy(true);
   vs.postMessage({command:'requestRoomTiles',roomId:id,mapName:room.name,
-                  layer:which,
+                  layer:which,overlay:_currentOverlay,
                   originX:_pendingTileOrigin.x,originY:_pendingTileOrigin.y});
 }
 
-/** Wire the layer buttons to re-request the map image in that layer. */
+/** Wire the layer and overlay buttons to re-request the rendered map image. */
 function setupLayerButtons(panel,room){
+  function rerender(){
+    requestRoomTileOverlay(room,{x1:_pendingTileOrigin.x,y1:_pendingTileOrigin.y},_currentLayer);
+  }
+
   panel.querySelectorAll('.rdf-layer').forEach(function(btn){
     btn.addEventListener('click',function(){
       var layer=btn.dataset.layer;
@@ -214,7 +225,25 @@ function setupLayerButtons(panel,room){
       panel.querySelectorAll('.rdf-layer').forEach(function(b){
         b.classList.toggle('on',b.dataset.layer===layer);
       });
-      requestRoomTileOverlay(room,{x1:_pendingTileOrigin.x,y1:_pendingTileOrigin.y},layer);
+      rerender();
+    });
+  });
+
+  panel.querySelectorAll('.rdf-ov').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var flag=btn.dataset.ov;
+      var on=!btn.classList.contains('on');
+      btn.classList.toggle('on',on);
+      if(on&&_currentOverlay.indexOf(flag)<0)_currentOverlay+=flag;
+      else if(!on)_currentOverlay=_currentOverlay.split(flag).join('');
+      // Objects and grass only appear as part of the collision pass, so
+      // enabling either implies collision rather than silently doing nothing.
+      if(on&&flag!=='c'&&_currentOverlay.indexOf('c')<0){
+        _currentOverlay+='c';
+        var cbtn=panel.querySelector('.rdf-ov[data-ov="c"]');
+        if(cbtn)cbtn.classList.add('on');
+      }
+      rerender();
     });
   });
 }
@@ -240,7 +269,7 @@ function applyRoomTileOverlay(msg){
   if(!msg.overlay)return;
   clearTileError();
   var ov=msg.overlay;
-  if(typeof msg.roomId==='number')cacheOverlay(msg.roomId,ov.layer,ov);
+  if(typeof msg.roomId==='number')cacheOverlay(msg.roomId,ov.layer,ov.overlay||'',ov);
 
   // Rendered map image goes into the existing room-image layer.
   if(ov.imageUri){
@@ -258,76 +287,10 @@ function applyRoomTileOverlay(msg){
     if(img){img.src=ov.imageUri;img.classList.add('rg-rom-render');}
   }
 
-  var NS='http://www.w3.org/2000/svg';
-  var U=2;                       // SVG units per 16px metatile
-  var ox=ov.originX||0, oy=ov.originY||0;
-  var g=document.createElementNS(NS,'g');
-  g.setAttribute('id','rg-tiles');
-
-  function mk(tag,attrs,cls){
-    var el=document.createElementNS(NS,tag);
-    for(var k in attrs)el.setAttribute(k,attrs[k]);
-    if(cls)el.setAttribute('class',cls);
-    return el;
-  }
-  function group(cls){var s=document.createElementNS(NS,'g');s.setAttribute('class',cls);g.appendChild(s);return s;}
-
-  // Collision, in both styles — CSS shows one. Contour matches render_map.py
-  // and keeps overlapping elevation planes readable; fill reads better on a
-  // single-plane room.
-  if(ov.collision&&ov.collision.length){
-    var gc=group('rg-collision rg-collision-fill');
-    ov.collision.forEach(function(layer){
-      gc.appendChild(mk('path',{d:layer.d,fill:layer.fill}));
-    });
-  }
-  if(ov.collisionContour&&ov.collisionContour.length){
-    var gk=group('rg-collision rg-collision-contour');
-    ov.collisionContour.forEach(function(layer){
-      gk.appendChild(mk('path',{d:layer.d,fill:'none',stroke:layer.stroke,
-                                'stroke-width':0.22,'stroke-linecap':'square'}));
-    });
-  }
-
-  // ROM map objects: outline each state's stamp footprint.
-  if(ov.objects&&ov.objects.length){
-    var go=group('rg-romobj');
-    ov.objects.forEach(function(obj){
-      obj.states.forEach(function(st){
-        var r=mk('rect',{x:ox+st.x*U,y:oy+st.y*U,width:Math.max(st.w*U,U),height:Math.max(st.h*U,U),
-                         fill:'rgba(120,200,255,0.16)',stroke:'#78c8ff','stroke-width':0.18});
-        r.appendChild(mk('title',{})).textContent='object #'+obj.index+' state '+st.state+
-          ' ('+st.w+'x'+st.h+' metatiles) @ '+st.x+','+st.y;
-        go.appendChild(r);
-      });
-    });
-  }
-
-  // Drift tiles: a marker plus a direction tick for the eight compass handlers.
-  if(ov.drift&&ov.drift.length){
-    var gd=group('rg-drift');
-    ov.drift.forEach(function(d){
-      var cx=ox+d.x*U+U/2, cy=oy+d.y*U+U/2;
-      gd.appendChild(mk('rect',{x:ox+d.x*U,y:oy+d.y*U,width:U,height:U,fill:'rgba(72,126,196,0.38)'}));
-      if(d.dx||d.dy){
-        var n=Math.max(Math.abs(d.dx),Math.abs(d.dy));
-        gd.appendChild(mk('line',{x1:cx,y1:cy,x2:cx+(d.dx/n)*(U/2),y2:cy+(d.dy/n)*(U/2),
-                                  stroke:'#bfe0ff','stroke-width':0.22,'stroke-linecap':'round'}));
-      }
-    });
-  }
-
-  // Cuttable grass.
-  if(ov.grass&&ov.grass.length){
-    var gg=group('rg-grass');
-    var d='';
-    ov.grass.forEach(function(t){d+='M'+(ox+t.x*U)+' '+(oy+t.y*U)+'h'+U+'v'+U+'h-'+U+'z';});
-    gg.appendChild(mk('path',{d:d,fill:'rgba(120,220,120,0.30)'}));
-  }
-
-  // Painted under the grid lines and entity boxes, over the map image.
-  svg.insertBefore(g,svg.firstChild);
-
+  // The collision / drift / gate / grass / object visualization is baked into
+  // the rendered image by the host (a port of render_map.py, verified
+  // pixel-identical), so there is nothing to draw here — the SVG layer is left
+  // for the interactive entity and trigger overlays that were always there.
   renderRomDataSections(ov);
 }
 

@@ -1,3 +1,24 @@
+## [0.10.0] — 2026-09-20
+
+### Fixed
+- **Panning snapped the map to the top-left corner.** `setupMouseEvents` receives a hand-built object literal rather than the zoom module itself, and `_getPan` was never forwarded into it — so the accessor added in 0.8.1 was `undefined` there and every drag fell back to an always-zero local copy for its base. Forwarded, with a smoke-test assertion so an un-forwarded helper fails the suite instead of silently breaking the gesture.
+- **A pan drag ended by scrolling the panel.** `click` fires after every drag, and `selectAt` calls `scrollIntoView` on the matched row, which yanked the map out of view on release. Drags past a 3px threshold no longer count as clicks.
+- Window-level pan handlers were being registered once per room render and never removed. They are now bound once and read whichever gesture is active.
+
+### Changed
+- **The collision visualization is now a faithful port of `render_map.py`'s composition pass**, baked into the rendered raster instead of approximated with SVG shapes — verified against upstream with a diff budget of 0.5%, actual residual 0.13–0.25% and entirely the text labels (see below). This replaces the hand-rolled SVG contour/fill overlays, which looked crude next to the Python output because they worked at 16px metatile granularity with uniform strokes.
+
+  What this brings in that was missing entirely:
+  - **Entity-gated tiles (collision bit 8) — the dashed white borders.** Gate 3 is solid for everything except the boy and dog, 5 for the dog, 7 for both.
+  - **Pixel-accurate per-plane contours** via edge detection on the geometry masks plus 3×3 dilation, so slopes contour along their actual diagonal. Secondary planes are dashed, so a tunnel under a bridge reads as two crossing outlines.
+  - **Drift arrows** with real arrowheads and direction, double-headed for the two motion-dependent shear handlers.
+  - **Plane-transparent tiles** (bit 6, purple wash), **elevation-change tiles** (amber with step rungs), and **forced-walkable tiles** (bit 13, cyan wash).
+  - Cuttable grass as a merged green region with an opaque 2px contour rather than per-tile squares.
+- Collision / rom objects / grass toggles now re-render the image host-side (cached per room, layer and flag combination) rather than toggling CSS on an SVG layer.
+
+### Not ported, deliberately
+The text labels (script-id digits on triggers and objects) and the legend banner, which need upstream's 3×5 bitmap font. These account for the entire remaining pixel difference. The Rooms tab shows the same information as interactive SVG and table rows instead, which stays readable at any zoom.
+
 ## [0.9.0] — 2026-09-20
 
 Works through `docs/map-port-gap-analysis.md`. Eleven of the eighteen gaps closed; the write path and the animation items remain open for the reasons recorded there.

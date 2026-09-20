@@ -125,16 +125,9 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .hide-trigger .svge-step,.hide-trigger .svge-btrig,.hide-trigger .rs-step,.hide-trigger .rs-btrig{display:none!important}
 .hide-grid8 .rg-grid-fine{display:none!important}
 .hide-grid16 .rg-grid-coarse{display:none!important}
-/* ROM-decoded overlay layers, each on its own filter button. */
-.hide-tiles .rg-collision{display:none!important}
-/* Two collision styles ship together; show contour (render_map.py's style)
-   unless the user asks for solid fills. */
-.rg-collision-fill{display:none}
-.solid-collision .rg-collision-fill{display:inline}
-.solid-collision .rg-collision-contour{display:none}
-.hide-romobj .rg-romobj{display:none!important}
-.hide-drift .rg-drift{display:none!important}
-.hide-grass .rg-grass{display:none!important}
+/* The ROM collision/object/grass visualization is baked into the rendered
+   image host-side (a port of render_map.py), so its toggles re-request the
+   image rather than hiding an SVG layer. */
 .rdf-sep{display:inline-block;width:1px;height:11px;margin:0 3px;background:#444;vertical-align:middle}
 .rs-romdata .rs-h{margin-top:8px}
 .rs-romdata .rs-sub{color:#777;font-weight:normal;font-size:9px;margin-left:6px}

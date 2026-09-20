@@ -421,6 +421,13 @@ test('rooms detail script rows support live byte-script focus highlighting', () 
     assert.ok(js.includes("'byteScriptFocus'"), 'Expected Rooms webview to handle byteScriptFocus messages');
     assert.ok(js.includes("'roomTiles'"), 'Expected Rooms webview to handle roomTiles overlay responses');
     assert.ok(js.includes("command:'requestRoomTiles'"), 'Expected Rooms webview to request ROM tile overlays');
+
+    // Pan regression: setupMouseEvents gets a hand-built object, so a helper
+    // added to the zoom/pan module is silently undefined there unless it is
+    // explicitly forwarded. Omitting _getPan made every drag base itself at
+    // 0,0 and snap the map to the top-left corner.
+    assert.ok(js.includes('_getPan:zp._getPan'), 'Expected _getPan to be forwarded into setupMouseEvents');
+    assert.ok(js.includes('_applyPan:zp._applyPan'), 'Expected _applyPan to be forwarded into setupMouseEvents');
 });
 
 test('rooms detail surfaces explicit room errors and avoids the stale vanilla placeholder text', () => {
