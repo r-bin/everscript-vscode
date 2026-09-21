@@ -537,13 +537,14 @@ test('stamping a construct reuses stamps and clips at the edge', () => {
     d.on = true;
     const c = ui.editSaveConstruct(p, { x1: 0, y1: 0, x2: 1, y2: 0 }, 'pair');
 
-    const writes = ui.editConstructWrites(p, c, 0, 1);
-    assert.deepStrictEqual(writes, [{ x: 0, y: 1, index: 0 }, { x: 1, y: 1, index: 1 }],
+    const got = ui.editConstructWrites(p, c, 0, 1);
+    assert.deepStrictEqual(got.writes, [{ x: 0, y: 1, index: 0 }, { x: 1, y: 1, index: 1 }],
         'both cells resolve to stamps the room already has');
+    assert.deepStrictEqual(got.problems, [], 'and nothing had to be adopted');
     assert.strictEqual(d.added.length, 0, 'so the construct costs no dictionary space');
 
     // Placed so half of it hangs off the right edge, only the half that fits lands.
-    assert.strictEqual(ui.editConstructWrites(p, c, 2, 0).length, 1);
+    assert.strictEqual(ui.editConstructWrites(p, c, 2, 0).writes.length, 1);
 });
 
 test('the checks catch what the format will not forgive', () => {

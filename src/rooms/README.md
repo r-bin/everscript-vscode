@@ -22,6 +22,10 @@ rooms/
     object-previews.js        — Section 3 objects: states, thumbnails, the selection wire form
     rom-fingerprint.js        — romFingerprint(rom): the cache key every render cache shares
     metatile-palette.js       — buildRoomMetatilePalette: the dictionary atlas + one packed row per stamp
+    vanilla-index.js          — the vanilla index + room budget, cached per ROM, packaged for the tab
+    room-draft.js             — blank rooms, family sheets, the family catalogue and its preview strips
+    deco-catalogue.js         — the deco library: vanilla's Section 3 objects as portable, floor-free entries
+    deco-preview.js           — one entry rendered on nothing, so the thumbnail is the thing not the place
   data/
     vanilla-data.js           — VANILLA_ROOMS catalogue + buildVanillaRoomContent/Details + ROM backing
     lua-watchers.js           — getMapEnum, readLuaWatchers, readScriptAllTriggers + caches
@@ -126,6 +130,15 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
 - `map-editor.js` — the edit draft, undo stack and export shape; owns `_edit`.
   Deliberately DOM-free, which is what makes `tests/memory/map-editor.test.js`
   possible
+- `map-editor-phases.js` — what a room stroke, a deco stroke and the eraser each
+  write; no state of its own
+- `map-editor-constructs.js` — saving and stamping a rectangle, in the portable
+  `{graphic, family, flags}` form a word cannot travel in; no state of its own
+- `map-editor-families.js` — the seven palette slots and the family catalogue;
+  owns `_famCatalogue` / `_famFilter` / `_famSheets` / `_famPicking` / `_brushTile`
+- `map-editor-deco.js` — the deco picker; owns `_deco` / `_decoFilter` /
+  `_decoPage` / `_decoPreviews` / `_decoPick`
+- `map-editor-actions.js` — the toolbar's verbs, split out of the input handler
 - `map-editor-paint.js` — drawing the draft on the map from the palette atlas,
   and the region maths; owns `_editSel` / `_editClip`
 - `map-editor-ui.js` — tool bar (phases, tools), the docked sidebar, the metatile

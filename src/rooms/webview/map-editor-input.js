@@ -45,8 +45,11 @@ function editStroke(cell, phase) {
 
   if (d.tool === 'stamp') {
     if (phase !== 'down' || _editConstruct < 0) return;
-    var writes = editConstructWrites(_mtPalette, d.constructs[_editConstruct], cell.x, cell.y);
-    if (writes.length) { editApply(writes); requestComposedPreview(); }
+    var got = editConstructWrites(_mtPalette, d.constructs[_editConstruct], cell.x, cell.y);
+    if (got.writes.length) { editApply(got.writes); requestComposedPreview(); }
+    if (got.problems.length) editNote(got.problems.join(' · '));
+    else if (!got.writes.length) editNote('nothing to place there');
+    else editStampedConstruct(d.constructs[_editConstruct], cell.x, cell.y);
     renderEditChrome();
     return;
   }

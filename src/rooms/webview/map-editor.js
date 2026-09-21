@@ -44,6 +44,14 @@ function editReset(roomId) {
      * graphics slot, which is what the budget meter is counting.
      */
     addedGraphics: [],
+    /**
+     * What placed constructs owe the room beyond their metatiles.
+     *
+     * A gourd is art **plus** an object record plus a B-trigger pointing at
+     * a script. Stamping only the art gives a picture of a gourd; these are
+     * the other two, kept so the export can write them.
+     */
+    placed: [],
     /** A blank room being drafted instead of a ROM room, or null. */
     blank: null,
   };
@@ -79,7 +87,9 @@ function editApply(writes) {
     changed += 1;
   }
   if (!changed) return 0;
-  _edit.undo.push(before);
+  // The mark is how many attachments existed before this step, so undoing
+  // a stamped gourd takes its object and its B-trigger with it.
+  _edit.undo.push({ cells: before, placed: _edit.placed.length, dropped: [] });
   _edit.redo.length = 0;
   return changed;
 }
@@ -100,14 +110,20 @@ function editRestore(batch) {
 
 function editUndo(palette) {
   if (!_edit || !_edit.undo.length) return false;
-  _edit.redo.push(editRestore(_edit.undo.pop()));
+  var step = _edit.undo.pop();
+  var inverse = editRestore(step.cells);
+  // Everything the step attached, set aside so redo can put it back.
+  _edit.redo.push({ cells: inverse, placed: step.placed, dropped: _edit.placed.splice(step.placed) });
   editPruneAdded(palette);
   return true;
 }
 
 function editRedo(palette) {
   if (!_edit || !_edit.redo.length) return false;
-  _edit.undo.push(editRestore(_edit.redo.pop()));
+  var step = _edit.redo.pop();
+  var inverse = editRestore(step.cells);
+  for (var i = 0; i < step.dropped.length; i++) _edit.placed.push(step.dropped[i]);
+  _edit.undo.push({ cells: inverse, placed: step.placed, dropped: [] });
   editPruneAdded(palette);
   return true;
 }
@@ -312,5 +328,12 @@ function editExport(palette) {
     appendMetatiles: _edit.added.map(function (a) {
       return { layer1: a.layer1, layer2: a.layer2, collision: a.collision };
     }),
+    // Graphics Block 1 has to gain for the words above to resolve, and the
+    // objects and triggers the stamped constructs need to actually work.
+    appendGraphics: _edit.addedGraphics.slice(),
+    // The draft's own copy, not `editFamilies()`: this file owns `_edit` and
+    // reaching into the families panel from here would invert that.
+    families: (_edit.families || []).slice(),
+    attachments: _edit.placed.slice(),
   };
 }

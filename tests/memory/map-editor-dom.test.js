@@ -377,9 +377,12 @@ async function main() {
     // Section 3 objects are vanilla's own deco widgets — gourds, pots, fire
     // pits — so the library is read out of the ROM rather than invented.
     const DECO = [
-        { id: 0, area: 'Prehistoria', roomName: "Strong Heart's Hut", room: 0x34, w: 2, h: 2, states: 1, count: 3 },
-        { id: 1, area: 'Prehistoria', roomName: "Fire Eyes' Village", room: 0x25, w: 4, h: 3, states: 2, count: 4 },
-        { id: 2, area: 'Gothica', roomName: 'Ebon Keep', room: 0x60, w: 6, h: 6, states: 1, count: 1 },
+        { id: 0, area: 'Prehistoria', roomName: "Strong Heart's Hut", room: 0x34, w: 2, h: 2,
+          states: 1, count: 3, families: 1, graphics: 3, cells: 4, scriptId: null },
+        { id: 1, area: 'Prehistoria', roomName: "Fire Eyes' Village", room: 0x25, w: 4, h: 3,
+          states: 2, count: 4, families: 1, graphics: 2, cells: 2, scriptId: 0xd74 },
+        { id: 2, area: 'Gothica', roomName: 'Ebon Keep', room: 0x60, w: 6, h: 6,
+          states: 1, count: 1, families: 2, graphics: 9, cells: 30, scriptId: null },
     ];
     await page.evaluate((deco) => {
         editReset(0x34);
@@ -399,10 +402,20 @@ async function main() {
     check('clicking one asks the host for its cells', askedFor && askedFor.cells === 1,
         JSON.stringify(askedFor));
 
-    await page.evaluate(() => applyDecoCells({ entry: { id: 1, w: 2, h: 1, states: 2, cells: [
-        { dx: 0, dy: 0, layer1: 0x1d22, layer2: 0x4c62, collision: 0x001f },
-        { dx: 1, dy: 0, layer1: 0x1d24, layer2: 0x4c62, collision: 0x001f },
-    ] } }));
+    // Cells are `{graphic, family, flags}` per layer, not raw words: a word
+    // is room-relative and replaying one elsewhere names a different
+    // picture in different colours. A `null` layer keeps what is there,
+    // which is how an entry stays agnostic of the floor it was cut from.
+    const ENTRY = {
+        id: 1, w: 2, h: 1, states: 2, room: 0x25, roomName: "Fire Eyes' Village",
+        families: [58], graphics: [0x0422, 9999],
+        trigger: { dx: 0, dy: 0, w: 3, h: 2, scriptId: 0xd74 },
+        cells: [
+            { dx: 0, dy: 0, canopy: { graphic: 0x0422, family: 58, flags: 0 }, terrain: null, collision: 0x001f },
+            { dx: 1, dy: 0, canopy: { graphic: 9999, family: 58, flags: 0 }, terrain: null, collision: 0x001f },
+        ],
+    };
+    await page.evaluate((entry) => applyDecoCells({ entry: entry }), ENTRY);
     const armedDeco = await page.evaluate(() => {
         const d = editDraft();
         return { tool: d.tool, constructs: d.constructs.length, pick: _editConstruct,
@@ -413,26 +426,56 @@ async function main() {
         JSON.stringify(armedDeco));
     check('named for where it came from, since the ROM has no names',
         /Fire Eyes/.test(armedDeco.name), armedDeco.name);
-    // Copying the art is not copying the object record, and saying otherwise
-    // in the construct list would be a lie.
-    check('a multi-state object says only its tiles were copied',
-        /only its tiles/.test(armedDeco.note), armedDeco.note);
+    // A gourd is art plus an object record plus a B-trigger on a script;
+    // the arming note has to say which script, because two copies of the
+    // same entry share its flag.
+    check('an entry that comes with a script says so before it is placed',
+        /0xd74/.test(armedDeco.note), armedDeco.note);
 
     const stamped = await page.evaluate(() => {
         editStroke({ x: 0, y: 0 }, 'down');
-        return { cells: Object.keys(editDraft().cells).length, added: editDraft().added.length };
+        const d = editDraft();
+        return { cells: Object.keys(d.cells).length, added: d.added.length,
+                 graphics: d.addedGraphics.slice(), placed: d.placed.slice(),
+                 words: d.added.map((a) => [a.layer1, a.layer2]) };
     });
     check('stamping it writes its cells', stamped.cells === 2 && stamped.added === 2,
         JSON.stringify(stamped));
+    // Family 58 already sits in palette slot 3, so the word is rebuilt as
+    // pal 3 pointing at whichever Block 1 slot the graphic landed in.
+    check('each word is rebuilt for this room, not copied',
+        stamped.words[0][0] === 0x0c00 && stamped.words[1][0] === 0x0c02,
+        JSON.stringify(stamped.words));
+    check('a graphic the room never loaded is adopted, and costs a slot',
+        stamped.graphics.length === 1 && stamped.graphics[0] === 9999,
+        JSON.stringify(stamped.graphics));
+    // `terrain: null` means "keep the floor that is already here" — the
+    // whole of being agnostic of the background.
+    check('a null layer keeps the floor already in the cell',
+        stamped.words.every((w) => w[1] === 0x4c62), JSON.stringify(stamped.words));
+    check('and the object record and its B-trigger come along',
+        stamped.placed.length === 2
+        && stamped.placed.some((p) => p.kind === 'object')
+        && stamped.placed.some((p) => p.kind === 'bTrigger' && p.scriptId === 0xd74),
+        JSON.stringify(stamped.placed));
 
     // ── undo takes the metatiles with it ───────────────────────────────────
     const undone = await page.evaluate(() => {
         editUndo(_mtPalette);
-        return { cells: Object.keys(editDraft().cells).length, added: editDraft().added.length };
+        const d = editDraft();
+        return { cells: Object.keys(d.cells).length, added: d.added.length,
+                 graphics: d.addedGraphics.length, placed: d.placed.length };
     });
     check('undo reverts the cells and the metatiles they needed',
-        undone.cells === 0 && undone.added === 0,
+        undone.cells === 0 && undone.added === 0 && undone.graphics === 0,
         'a dictionary that only grows makes the budget a lie: ' + JSON.stringify(undone));
+    check('and the object and trigger it attached', undone.placed === 0, JSON.stringify(undone));
+    const redone = await page.evaluate(() => {
+        editRedo(_mtPalette);
+        return editDraft().placed.length;
+    });
+    check('redo puts them back', redone === 2, String(redone));
+    await page.evaluate(() => editUndo(_mtPalette));
 
     // Only the tail is pruned — an index is a position, so removing from the
     // middle would silently repoint every cell above it.
@@ -460,6 +503,9 @@ async function main() {
     await page.fill('#rg-deco-filter', 'open');
     check('and "open" keeps only what has more than one state',
         await page.evaluate(() => filterDeco(_deco, 'open').every((d) => d.states > 1)));
+    await page.fill('#rg-deco-filter', 'works');
+    check('and "works" keeps the ones that come with a script',
+        (await page.$$eval('.rg-deco', (n) => n.map((e) => e.dataset.deco))).join() === '1');
     await page.fill('#rg-deco-filter', '');
 
     check('no uncaught errors in any of it', pageErrors.length === 0, pageErrors.join('; '));

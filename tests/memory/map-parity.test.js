@@ -115,6 +115,7 @@ function main() {
     checkMetatilePalette(rom);
     checkVanillaIndex(rom);
     checkBudget(rom);
+    checkDecoLibrary(rom);
 
     if (failures) {
         console.error(`\nmap-parity: ${failures} mismatch(es)`);
@@ -885,6 +886,78 @@ function checkBudget(rom) {
 
     console.log(`  budgets: worst room ${worstGraphics}/${maps.MAX_GRAPHICS} graphics, `
         + `${worstWram}/${maps.MAX_WRAM} B WRAM, ${worstStamps} stamps`);
+}
+
+/**
+ * The deco library: vanilla's own objects, cut out of the rooms they sit in.
+ *
+ * Two properties are the whole point, and both were broken in the first
+ * version. An entry has to be **portable** — words are room-relative, so a
+ * cell stores `{graphic, family, flags}` and the destination rebuilds the
+ * word — and it has to be **agnostic of the background**, because 83.4% of
+ * the terrain inside vanilla's object rectangles is the room's own floor.
+ *
+ * See docs/map-format/building-a-room-from-a-picture.md §9.
+ */
+function checkDecoLibrary(rom) {
+    const { buildDecoCatalogue, decoIndex } = require('../../src/rooms/rendering/deco-catalogue');
+    const { entryRoom } = require('../../src/rooms/rendering/deco-preview');
+    const cat = buildDecoCatalogue(rom);
+
+    check('the library has 532 distinct objects', cat.length, 532);
+    check('68 of them come with a B-trigger script', cat.filter((e) => e.trigger).length, 68);
+    check('every entry fits the seven-family ceiling',
+        cat.every((e) => e.families.length <= 7), true);
+    check('no entry is empty', cat.every((e) => e.cells.length > 0), true);
+
+    // Portability: a cell never stores a word, only parts that mean the
+    // same thing in any room.
+    let cells = 0;
+    let openTerrain = 0;
+    for (const e of cat) {
+        for (const c of e.cells) {
+            cells += 1;
+            if (!c.terrain) openTerrain += 1;
+            for (const part of [c.canopy, c.terrain]) {
+                if (!part) continue;
+                check('a part names a graphic and a family', typeof part.graphic === 'number'
+                    && typeof part.family === 'number' && part.word === undefined, true);
+                check('and the family is one the entry declares',
+                    e.families.indexOf(part.family) >= 0, true);
+            }
+        }
+    }
+    const openPct = (openTerrain / cells) * 100;
+    check('most cells leave the ground to the destination room', openPct > 75, true);
+
+    // Room 0x51 is the gourd room: 25 objects, all 2x2, all with a script.
+    const gourds = cat.filter((e) => e.room === 0x51);
+    check('room 0x51 yields 22 distinct gourds and pots', gourds.length, 22);
+    check('all of them 2x2', gourds.every((e) => e.w === 2 && e.h === 2), true);
+    check('and all of them wired to a script', gourds.every((e) => e.trigger), true);
+
+    // Background-agnostic in the picture too: the entry renders on nothing,
+    // so a cell it does not draw stays fully transparent.
+    const hollow = cat.find((e) => e.cells.length < e.w * e.h);
+    const drawn = new Set(hollow.cells.map((c) => `${c.dx},${c.dy}`));
+    const image = maps.renderRoomComposite(rom, entryRoom(rom, hollow, decodeRoom(rom, hollow.room)),
+        { backdrop: [0, 0, 0, 0] });
+    let empty = null;
+    for (let y = 0; y < hollow.h && empty === null; y += 1) {
+        for (let x = 0; x < hollow.w; x += 1) {
+            if (!drawn.has(`${x},${y}`)) { empty = { x, y }; break; }
+        }
+    }
+    const at = ((empty.y * 16 + 8) * image.width + empty.x * 16 + 8) * 4;
+    check('a preview is transparent where the entry draws nothing', image.data[at + 3], 0);
+
+    // The index is what the picker gets; it must not carry the cell data.
+    const index = decoIndex(rom);
+    check('the index is one row per entry', index.length, cat.length);
+    check('with counts, not cells', typeof index[0].cells === 'number', true);
+
+    console.log(`  deco library: ${cat.length} objects, ${cells} drawn cells, `
+        + `${openPct.toFixed(1)}% leave the floor alone, ${cat.filter((e) => e.trigger).length} with a script`);
 }
 
 function checkOverlayParity(rom, rooms) {

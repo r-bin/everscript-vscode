@@ -1,3 +1,29 @@
+## [0.47.0] — 2026-09-21
+
+### The deco library now stamps the thing, not the place
+
+Stamped deco came out as rubble, and it brought a patch of someone else's floor with it. Two separate bugs, both now measured and fixed.
+
+**A tilemap word is room-relative.** Its low ten bits index *that room's* Block 1 and its palette bits index *that room's* seven families. The library stored words, so replaying one in another room named a different picture in different colours. An entry now stores `{graphic, family, flags}` per layer and the destination rebuilds the word, adopting the graphic and the family it needs — or refusing by name when all seven palette slots are spoken for, which is better than half a gourd in the wrong colours. The same pot now renders identically stamped into room `0x51` (its home) and room `0x34` (different Block 1, different family order).
+
+**An object's rectangle contains the floor it stands on.** Across the 863 candidate objects in all 127 rooms, **83.4%** of the terrain words inside an object rectangle are also used outside every object rectangle: they are the room's ground, not the object. Those are dropped. A layer stored as `null` means *keep whatever is already there*, and **82.2%** of the library's 4081 cells now leave the ground to the destination room. Cells that are pure bounding box — nothing drawn, and the floor's own collision — are left out, so a 2×3 entry whose art is two cells stamps two cells.
+
+Blankness is tested on the pixels, not on the word: 122 of the 127 rooms use an all-transparent graphic as their most-placed canopy word, but `0x0e`, `0x1e`, `0x4d`, `0x72` and `0x73` have real ceiling art there, and treating that as blank would have cut the ceiling out of every object in those rooms.
+
+Stripping the floor is also what makes deduplication work — the library went from 655 entries to **532**.
+
+### A thumbnail of the object, on nothing
+
+Previews were cropped out of a render of the room the object lives in, so every gourd came with a patch of that room's floor. Each entry is now packed into a synthetic room exactly its own size and composited over a **transparent** backdrop, then centred in its cell and halved if it is bigger than one. The picker draws a checkerboard behind it, so what you see is the object and what it will not cover.
+
+### A stamped gourd works
+
+**99 of the 863 objects** sit under a B-trigger, 50 of them with the same shape: the object's rectangle grown one tile right and down. After deduplication **68 of the 532 entries** carry one. An entry now brings its object record and its B-trigger along, stamping records them in the draft, and the export carries them next to the metatiles.
+
+The script id is vanilla's, copied with the art — that is what makes the gourd work the moment it lands, and it is also why the editor says so out loud: two copies of one entry run one script and share its "already opened" flag until one is pointed at a new one. `ctrl+z` takes the object and the trigger back with the tiles; redo puts them back.
+
+The picker's new **`works`** filter keeps only the entries that come with a script, and each one's tooltip says how many of its cells it draws, what it costs in families and tiles, and which script it runs.
+
 ## [0.46.0] — 2026-09-21
 
 ### A deco library, read out of the ROM

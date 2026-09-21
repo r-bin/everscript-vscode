@@ -368,11 +368,70 @@ derived from the room, not assumed:
 
 ## 9. Constructs: the thing, not the tiles
 
-A construct is a saved rectangle of map: its stamps **as words**, so it
-survives being placed in a room with a different dictionary, plus every
-trigger and object whose rectangle overlaps the selection.
+A construct is a saved rectangle of map plus every trigger and object whose
+rectangle overlaps it. The deco library is the same structure read out of
+vanilla: **532 distinct Section 3 objects**, which is where gourds, pots,
+chests, market stalls and fire pits already live.
 
-That last part is the whole reason constructs are not just a clipboard.
+Three things have to be true for a stamp to survive the move, and the first
+version of this got two of them wrong.
+
+### 9.1 A word is room-relative
+
+A tilemap word's low ten bits index **that room's** Block 1 and its palette
+bits index **that room's** seven families. Copied verbatim into another room
+the same word names a different picture in different colours — which is
+exactly what a stamped gourd looked like. So a cell stores
+
+```
+{ graphic, family, flags }   per layer, plus the collision word
+```
+
+and the destination rebuilds the word: `editSlotChr(adoptGraphic(graphic))
+| (familySlot + 1) << 10 | flags`. Both halves are budgeted — a family takes
+one of seven palette slots, a graphic one of ~264 Block 1 slots — and a cell
+that cannot get a family slot is refused by name rather than drawn wrong.
+Priority and the two flips are geometry, not identity, so they ride along
+untouched.
+
+### 9.2 An object's rectangle contains the floor it stands on
+
+Measured over the 863 candidate objects (2×2 to 6×6) in all 127 rooms:
+
+| Property | Share |
+|---|---|
+| terrain words inside an object rect also used **outside** every object rect | **83.4%** |
+| objects whose art is in the canopy layer | 693 / 863 |
+| objects with a fully blank canopy — art in the terrain layer | 170 / 863 |
+| object cells whose canopy graphic draws nothing | 36.9% |
+
+So the terrain under an object is usually the room's own ground, and
+carrying it along is carrying the place rather than the thing. A layer is
+therefore stored as `null` when it is background, meaning **keep whatever is
+already there**; 82.2% of the library's 4081 cells leave the ground alone. A
+cell that ends up all-null *and* repeats the floor's own collision is pure
+bounding box and is dropped, so a 2×3 entry whose art is two cells stamps
+two cells. 22 of the 863 objects reduce to nothing this way: they are
+invisible collision markers, not deco.
+
+"Blank" is tested on the pixels, not on the word. 122 of the 127 rooms use
+an all-transparent graphic as their most-placed canopy word, but `0x0e`,
+`0x1e`, `0x4d`, `0x72` and `0x73` have real ceiling art there — treating
+that as blank would have cut the ceiling out of every object in those rooms.
+
+Stripping the background is also what makes deduplication work: 25 gourds in
+room `0x51` standing on 25 slightly different floor patches were 25 distinct
+entries before and are 22 now, and the library as a whole went from 655 to
+532.
+
+The preview follows the same rule. An entry is packed into a synthetic room
+exactly `w × h` metatiles in size and composited over a **transparent**
+backdrop, so the thumbnail is the object with a hole where the floor was —
+the picker draws a checkerboard behind it, and what you see is what the
+stamp will cover.
+
+### 9.3 A gourd is art *plus* an object *plus* a trigger
+
 Room `0x34`'s attachments, read straight out of the blob:
 
 ```
@@ -381,10 +440,22 @@ bTrigger  (8,11)-(10,13) script 1854 · (14,11)-(16,13) 1857 · (15,13)-(17,15) 
 stepOn    (11,23)-(13,24) script 1851
 ```
 
-A gourd selection carries an object and a B-trigger; a selection over the
-hide on the floor carries neither. Stamping one therefore has to move more
-than stamping the other, and the library shows which is which before you
-place it.
+**99 of the 863 objects** sit under a B-trigger, 50 of them with the same
+shape: the object's rectangle grown one tile right and down. After
+deduplication **68 of the 532 library entries** carry one. Room `0x51`'s 25
+gourds each have their own script — `0xd74`, `0xd71`, `0xd6e`, … descending
+by three — which is what makes them give different things.
+
+An entry therefore carries its object record and its B-trigger as
+attachments, and stamping records them in the draft so the export can write
+them. The script id is vanilla's, copied with the art: that is what makes a
+stamped gourd work the moment it lands, and it is also why the editor says
+so out loud, because two copies of one entry run one script and share its
+"already opened" flag until one is pointed at a new one.
+
+A selection over the hide on the floor carries neither an object nor a
+trigger — hides are pure metatiles — so the library shows which is which
+before you place it.
 
 ---
 
@@ -396,10 +467,13 @@ place it.
 - **The 14-family rooms.** 18 rooms list two complete sets of 7, swapped at
   runtime. The index records both; the editor's seven-slot picker currently
   models only one set.
-- **Object semantics.** Saving a gourd as an object saves its stamps and its
-  art. It does not save that it is a gourd, that it can be opened, or any
-  script attached to it — those live in the object area and Section 3, and
-  are a separate problem.
+- **A script of its own.** A stamped gourd carries vanilla's object record
+  and vanilla's B-trigger, so it works — but it runs the *same* script as
+  the gourd it was copied from, and therefore shares its "already opened"
+  flag. Giving a copy its own script is script-domain work, not map work.
+- **Names.** The ROM stores none. An object is a rectangle of metatiles and
+  an id; nothing in it says "gourd", so the picker is visual and this
+  document does not invent labels either.
 - **Growth.** A room whose blob gets bigger still needs somewhere to go; see
   [map_editor_ui.md](map_editor_ui.md) §6.
 
@@ -421,3 +495,8 @@ statistics.
 | graphics 255 max, WRAM 32680 max | `tilePalette.length + animatedTiles.length`, and `w*h*2 + stamps*8` |
 | 365 families, 157 for room `0x34`'s set | union of the index's family → graphics sets |
 | master table ordered by art group | render ids 3728–3775 as a synthetic Block 1 list in family 166 |
+| 83.4% of object terrain is the room's floor | mark every cell covered by a 2×2..6×6 object; collect the terrain words used **outside** that mask; test each object cell against it |
+| 693/863 canopy art, 170 terrain-only | per object, does any cell have a canopy graphic with a non-zero pixel |
+| 122/127 rooms have an all-transparent blank | decompress the most-placed canopy word's graphic; count non-zero palette indices |
+| 99/863 objects under a B-trigger, 50 grown by one | rectangle overlap between `objects[].states[0]` and `triggers.bTrigger` |
+| 532 entries, 68 with a script, 82.2% open ground | `buildDecoCatalogue`, pinned in `map-parity.test.js` |
