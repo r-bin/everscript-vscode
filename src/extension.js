@@ -127,7 +127,7 @@ function getExtConfig() {
 const roomData = require('./rooms');
 const { VANILLA_ROOMS, getMapEnum, readLuaWatchers, readScriptAllTriggers, buildVanillaRoomContent, buildVanillaRoomDetails, invalidateRoomDataCaches } = roomData;
 const roomTree = require('./rooms');
-const { findRoomImage, parseRoomContent, collectRoomsFromDir, buildRoomTree, renderVanillaTree, renderRoomsTree, buildRoomsJson, setRoomImageUris, buildRoomTileOverlay, buildRoomMetatilePalette } = roomTree;
+const { findRoomImage, parseRoomContent, collectRoomsFromDir, buildRoomTree, renderVanillaTree, renderRoomsTree, buildRoomsJson, setRoomImageUris, buildRoomTileOverlay, buildRoomMetatilePalette, buildComposedPreview } = roomTree;
 
 const romReaders = require('./shared/rom-readers');
 const { readPngDimensions, readRomTriggerOffsets, readRomMapHeader, readRomCharacters, readRomHitLookup, detectScaleEnemies } = romReaders;
@@ -695,6 +695,47 @@ function activate(context) {
                         }
                         const palette = buildRoomMetatilePalette(romBuf, roomId, msg.layer);
                         _radarPanel.webview.postMessage({ ...reply, palette });
+                    } catch (err) {
+                        _radarPanel.webview.postMessage({ ...reply, error: String(err && err.message || err) });
+                    }
+                } else if (msg.command === 'mapEditDraft') {
+                    // The editor hands its draft over as JSON. Opened as an
+                    // untitled document rather than written anywhere: nothing
+                    // in this extension writes a ROM yet, and the draft is the
+                    // handover format for the verified Python encoder. See
+                    // docs/map-format/map_editor_ui.md.
+                    (async () => {
+                        try {
+                            const doc = await vscode.workspace.openTextDocument({
+                                language: 'json',
+                                content: JSON.stringify(msg.draft, null, 2),
+                            });
+                            await vscode.window.showTextDocument(doc, { preview: false });
+                        } catch (err) {
+                            vscode.window.showErrorMessage('Could not open the map draft: ' + String(err && err.message || err));
+                        }
+                    })();
+                } else if (msg.command === 'requestComposedPreview') {
+                    // Swatches for metatiles the editor has composed but not
+                    // written. Rendered against the room they are for, so the
+                    // preview uses its families and palette.
+                    const roomId = Number(msg.roomId);
+                    const reply = { command: 'composedPreview', mapName: msg.mapName, roomId };
+                    if (!Number.isInteger(roomId) || roomId < 0 || roomId > 0x7e) {
+                        _radarPanel.webview.postMessage({ ...reply, error: 'invalid room id' });
+                        return;
+                    }
+                    try {
+                        const _cfg = getExtConfig();
+                        const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
+                        if (!romBuf) {
+                            _radarPanel.webview.postMessage({ ...reply, error: 'ROM not found — set everscript.romPath' });
+                            return;
+                        }
+                        const preview = buildComposedPreview(romBuf, roomId,
+                            Array.isArray(msg.drafts) ? msg.drafts : [], msg.layer);
+                        _radarPanel.webview.postMessage({ ...reply, preview });
                     } catch (err) {
                         _radarPanel.webview.postMessage({ ...reply, error: String(err && err.message || err) });
                     }

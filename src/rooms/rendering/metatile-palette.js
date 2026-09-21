@@ -62,6 +62,15 @@ function buildRoomMetatilePalette(rom, roomId, layer) {
         imageWidth: atlas.image.width,
         imageHeight: atlas.image.height,
         entries: packEntries(table),
+        // The room's own grid, as dictionary indices rather than WRAM ids.
+        // The editor needs it to pick a stamp off the map, to fill, and to
+        // copy a region — 42 KB on the largest room (0x4b, 106x125), which
+        // is cheap next to the atlas it travels with.
+        grid: room.layer1MetatileIds.map(function (row) {
+            return row.map(function (id) { return maps.metatileIndex(room, id); });
+        }),
+        widthTiles: room.header.widthTiles,
+        heightTiles: room.header.heightTiles,
         // What the dictionary is made of, which is what limits it: the CHR
         // banks in VRAM and the tile ids Block 1 selected out of them.
         tileFamilies: room.tileFamilies,
@@ -76,7 +85,52 @@ function buildRoomMetatilePalette(rom, roomId, layer) {
     return out;
 }
 
+/**
+ * Swatches for metatiles an editor has composed but not written.
+ *
+ * Rendered against the room they are meant for, so the preview uses that
+ * room's tile families, palette and display registers — a stamp previewed
+ * any other way is a different picture from the one it would become.
+ *
+ * Not cached: a draft changes every time the user touches the composer,
+ * and the atlas is a handful of cells.
+ *
+ * @param {Array<{layer1:number,layer2:number,collision:number}>} drafts
+ */
+function buildComposedPreview(rom, roomId, drafts, layer) {
+    const buf = rom instanceof Uint8Array ? rom : new Uint8Array(rom);
+    const which = LAYERS.indexOf(layer) >= 0 ? layer : 'composite';
+    const entries = (drafts || []).slice(0, MAX_DRAFTS).map((d) => ({
+        layer1: Number(d.layer1) & 0xffff,
+        layer2: Number(d.layer2) & 0xffff,
+        collision: Number(d.collision) & 0xffff,
+    }));
+    if (!entries.length) return { roomId, layer: which, count: 0, imageUri: null };
+
+    const room = maps.decodeRoom(buf, roomId);
+    const atlas = maps.renderMetatileAtlas(buf, maps.withMetatiles(room, entries), {
+        columns: COLUMNS, layer: which,
+    });
+    return {
+        roomId,
+        layer: which,
+        columns: atlas.columns,
+        rows: atlas.rows,
+        cell: atlas.cell,
+        count: atlas.count,
+        imageUri: maps.encodePngDataUri(atlas.image),
+        imageWidth: atlas.image.width,
+        imageHeight: atlas.image.height,
+        entries: entries.map((e, i) => [i, e.layer1, e.layer2, e.collision, 0]),
+    };
+}
+
+/** A draft list longer than this is a bug, not an edit. */
+const MAX_DRAFTS = 4096;
+
 /** Drop cached palettes (call when the ROM changes). */
 function invalidateMetatilePalettes() { CACHE.clear(); }
 
-module.exports = { buildRoomMetatilePalette, invalidateMetatilePalettes, COLUMNS, LAYERS };
+module.exports = {
+    buildRoomMetatilePalette, buildComposedPreview, invalidateMetatilePalettes, COLUMNS, LAYERS,
+};

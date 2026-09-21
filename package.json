@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.36.0",
+  "version": "0.37.0",
   "publisher": "rbin",
   "main": "./src/extension.js",
   "engines": {
@@ -26,7 +26,7 @@
     "build:core:custom": "sh tools/build_snes_core.sh custom",
     "build:core:vanilla": "sh tools/build_snes_core.sh vanilla",
     "build:cores": "npm run build:core:vanilla && npm run build:core:custom",
-    "test": "npm run build:maps && npm run build:script && npm run build:cores && vscode-tmgrammar-test -g src/language/syntaxes/everscript.tmLanguage.json 'src/language/tests/**/*.test.evs' && node tests/memory/activation.test.js && node tests/memory/radar.test.js && node tests/memory/map-units.test.js && node tests/memory/script-units.test.js && node tests/memory/script-parity.test.js && node tests/memory/script-loot.test.js && node tests/memory/map-parity.test.js && node tests/memory/damage.test.js && node tests/memory/render-script-model.test.js && node tests/memory/smoke.test.js && node tests/memory/ui.test.js && node tests/memory/scaling-rom.test.js &&  node tests/debugger/debugger.test.js && node tests/debugger/settings-model.test.js && node tests/debugger/snes-rom-header-model.test.js && node tests/debugger/emulator-health.test.js",
+    "test": "npm run build:maps && npm run build:script && npm run build:cores && vscode-tmgrammar-test -g src/language/syntaxes/everscript.tmLanguage.json 'src/language/tests/**/*.test.evs' && node tests/memory/activation.test.js && node tests/memory/radar.test.js && node tests/memory/map-units.test.js && node tests/memory/script-units.test.js && node tests/memory/script-parity.test.js && node tests/memory/script-loot.test.js && node tests/memory/map-parity.test.js && node tests/memory/damage.test.js && node tests/memory/map-editor.test.js && node tests/memory/render-script-model.test.js && node tests/memory/smoke.test.js && node tests/memory/ui.test.js && node tests/memory/scaling-rom.test.js &&  node tests/debugger/debugger.test.js && node tests/debugger/settings-model.test.js && node tests/debugger/snes-rom-header-model.test.js && node tests/debugger/emulator-health.test.js",
     "test:emulator-runtime": "npm run build:cores && node tests/debugger/emulator-health.test.js",
     "package": "npm run build:maps && mkdir -p out && /opt/homebrew/bin/vsce package --out out/ 2>&1 || (echo '' && echo 'ERROR: vsce package failed. Check publisher/engine fields in package.json.' >&2 && exit 1)",
     "deploy": "npm run package && node -e \"const v=require('./package.json').version; const {execSync}=require('child_process'); const vsix='out/everscript-'+v+'.vsix'; console.log('Installing '+vsix+'...'); try { execSync('code --install-extension '+vsix+' --force', {stdio:'inherit'}); } catch(e) { console.error('\\nERROR: code CLI not found or install failed.'); console.error('Fix: add VS Code to PATH via Command Palette: Shell Command: Install code in PATH'); process.exit(1); } const out=execSync('code --list-extensions 2>&1').toString(); if(!out.includes('rbin.everscript')) { console.error('\\nERROR: extension installed but rbin.everscript not found in extension list.'); console.error('Installed output was: '+out); process.exit(1); } console.log('\\nOK: rbin.everscript@'+v+' is installed. Reload VS Code (Developer: Reload Window).')\"",

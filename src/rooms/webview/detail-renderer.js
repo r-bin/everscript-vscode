@@ -66,6 +66,7 @@ function renderRoomDetail(room){
     html+='<button class="rdf on" data-hide="hide-fg" title="Draw the foreground over the characters it covers in game, and dash the collision it hides">canopy</button>';
   if(trig.arrivals&&trig.arrivals.length)
     html+='<button class="rdf on" data-hide="hide-arrival" title="Toggle the doors that lead into this room">arrivals</button>';
+  if(roomVanillaIdNum(room)!=null)html+=buildEditButtonHtml();
   html+='<button class="rdf on" id="rg-lock-btn" title="Unlock map">locked</button>';
   html+='</div></div>';
 
@@ -106,6 +107,13 @@ function renderRoomDetail(room){
   panel.innerHTML=html;
   bindLinks(panel);
   bindMetatilePalette(panel,room);
+  // The editor: its own draft per room, and gesture handlers that stay out
+  // of the way until edit mode is on.
+  _editOrigin={x:svgResult.mapX0||0,y:svgResult.mapY0||0};
+  if(!editDraft()||editDraft().roomId!==roomVanillaIdNum(room))editReset(roomVanillaIdNum(room));
+  bindEditControls(panel,room);
+  setupEditGestures();
+  setupEditKeys();
 
   // Sync hide-classes to the filter buttons' initial state. Without this a
   // button rendered without .on would read as "off" while its content is still

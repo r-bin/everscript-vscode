@@ -80,6 +80,10 @@ const ROOMS_JS_FILES = [
   'animation.js',        // Section 2 tile animation overlay + rAF playback
   'object-states.js',    // Section 3 object browser (_objectStates) + state pickers
   'metatile-palette.js', // the room's placement palette (_mtPalette/_mtLayer/_mtFilter)
+  'map-editor.js',       // the edit draft and undo stack (_edit)
+  'map-editor-paint.js', // drawing the draft on the map (_editSel/_editClip)
+  'map-editor-ui.js',    // tool bar, docked sidebar, metatile composer
+  'map-editor-input.js', // pointer/key gestures -> edits
   'rom-overlay.js',      // ROM view top bar (_currentLayer/_currentOverlay) + renderRomDataSections
   'detail-renderer.js',  // renderRoomDetail (orchestrator)
   'tab-init.js',         // tab switching, area collapse, mode toggle, room click handlers

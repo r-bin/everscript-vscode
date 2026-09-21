@@ -8,7 +8,8 @@ const { findRoomImage, collectRoomsFromDir, buildRoomTree,
         setRoomImageUris }                                          = require('./parsing/file-scanner');
 const { renderVanillaTree, renderRoomsTree, buildRoomsJson }        = require('./rendering/tree-renderer');
 const { buildRoomTileOverlay, invalidateRoomRenders }               = require('./rendering/tile-overlay');
-const { buildRoomMetatilePalette, invalidateMetatilePalettes }      = require('./rendering/metatile-palette');
+const { buildRoomMetatilePalette, buildComposedPreview,
+        invalidateMetatilePalettes }                               = require('./rendering/metatile-palette');
 const { VANILLA_ROOMS, buildVanillaRoomContent,
         buildVanillaRoomDetails, invalidateVanillaDataCaches }      = require('./data/vanilla-data');
 const { getMapEnum, readLuaWatchers, readScriptAllTriggers,
@@ -51,6 +52,7 @@ module.exports = {
     buildRoomTileOverlay,
     invalidateRoomRenders,
     buildRoomMetatilePalette,
+    buildComposedPreview,
     invalidateMetatilePalettes,
 
     // Data

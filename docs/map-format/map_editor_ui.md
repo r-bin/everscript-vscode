@@ -1,7 +1,10 @@
 # Map editor: the UI, and what the ROM lets it offer
 
-> Status: **started.** The tile palette is built and shipped (`src/maps/metatiles.ts`,
-> the Rooms tab's *Tile palette* section). Everything else here is design.
+> Status: **drawing works.** The tile palette, a docked sidebar, five tools
+> (paint / rect / pick / copy / move), undo, a metatile composer and a JSON
+> draft export are shipped. The ROM write itself is not — the draft is the
+> handover format, and §6 says where it plugs in. Everything else here is
+> design.
 >
 > Companion pages: [map_editor_design.md](map_editor_design.md) decided it is
 > a VS Code extension; [map_editor_architecture_and_limitations.md](map_editor_architecture_and_limitations.md)
@@ -147,19 +150,66 @@ The tab's existing feature toggles are this list in embryo; they need the
 lock column and a notion of the *active* layer, which is what a brush
 writes into.
 
-### 4.2 Tile palette (built)
+### 4.2 Tile palette — built, and docked
 
-The dictionary as a sheet, with: the three layer views, a used/spare filter,
+The dictionary as a sheet, with the three layer views, a used/spare filter,
 and a detail line decoding the selected stamp's words. A brush is a
-selected stamp. Later: multi-cell selection to stamp a 2×2 or 3×3 block,
-which is how most of the vanilla scenery is actually laid out.
+selected stamp.
 
-### 4.3 Tools
+In edit mode the section is **moved** next to the map rather than rendered
+twice, so there is one node, one set of handlers, and one selection
+wherever it is sitting.
 
-Standard set, and nothing exotic: **pick**, **paint**, **rectangle**,
-**flood fill**, **select/move**. Flood fill is the one that needs a rule —
-fill by *matching metatile id*, not by matching appearance, since two ids
-can look identical and behave differently.
+### 4.3 Tools — built
+
+| Tool | Does |
+|---|---|
+| **paint** | click or drag to stamp the brush |
+| **rect** | drag a rectangle and fill it |
+| **pick** | take the stamp under the cursor as the brush |
+| **copy** | drag a region, then click to stamp it elsewhere |
+| **move** | the same, but the source is backfilled with the brush |
+
+`move` has to backfill, because the format has no empty cell: every cell
+holds some metatile, so "move this window" must say what is left behind.
+Using the brush for it is the one answer that is the user's choice rather
+than the editor's guess.
+
+Undo is per **gesture**, not per cell — a rectangle fill or a paste undoes
+in one step, which is what makes "put the window back" one keystroke.
+`⌘Z` / `⌘⇧Z`, and `Esc` drops a selection.
+
+Still missing: flood fill, which needs a rule — fill by *matching metatile
+id*, not by appearance, since two ids can look identical and behave
+differently.
+
+### 4.3.1 How a stroke is drawn
+
+A painted cell is drawn **client-side, out of the palette atlas the tab has
+already loaded**: a nested `<svg>` whose `viewBox` crops one 16×16 stamp
+out of the sheet, placed two map units wide. So a stroke is instant and
+costs no round trip to the host. The host is only involved when a stamp
+does not exist yet — the composer's new combinations — and then it renders
+a handful of cells, not the room.
+
+The layer sits directly above the map image and below everything else,
+because an edit replaces map pixels: it is scenery, and the canopy and the
+feature overlay still belong on top of it.
+
+### 4.3.2 The composer — built
+
+Pick a **canopy** source, a **terrain** source and a **collision** word by
+clicking stamps in the palette, and add the combination. Two rules keep the
+dictionary from exploding:
+
+- an identical combination already in the room returns that stamp and adds
+  nothing;
+- an identical combination already in the draft returns the one it made.
+
+`collision = terrain` fills the third field with whatever collision word the
+room already pairs with that terrain, which is the right default nine times
+out of ten. New stamps continue past the room's own dictionary — index
+`count + n` — which is exactly how they would be appended to Block 3.
 
 ### 4.4 Properties inspector
 
@@ -246,6 +296,27 @@ fits and otherwise relocates it and rewrites the pointer, refusing to cross
 a HiROM bank boundary. `rebuild_model` also keeps whichever encoding of each
 block is smallest, including the original payload when its content did not
 change, so an unchanged block never costs anything.
+
+### The draft
+
+The editor's output is a JSON draft, copied to the clipboard and opened as
+an untitled document:
+
+```json
+{
+  "roomId": 118,
+  "baseMetatile": 7280,
+  "originalMetatileCount": 702,
+  "cells": [ { "x": 12, "y": 30, "metatileId": 7392 } ],
+  "appendMetatiles": [ { "layer1": 13706, "layer2": 6604, "collision": 4127 } ]
+}
+```
+
+`cells` carries **WRAM ids**, not dictionary indices, because that is what
+`layer1_metatile_ids` holds — a draft that handed back indices would be
+silently wrong, so `map-editor.test.js` pins it. Applying it is: write each
+cell into the grid, append each new stamp to the three Block 3 slices, and
+call `rebuild_model`.
 
 ### What is still to decide
 

@@ -1,3 +1,52 @@
+## [0.37.0] — 2026-09-21
+
+The map is editable: a docked tile sidebar, five drawing tools, undo, and a metatile composer.
+
+### The palette docks beside the map
+
+Turning on **edit** moves the Tile palette section next to the map instead of below it — moved, not rendered twice, so there is one node, one set of handlers and one selection wherever it sits. It loads itself on entry rather than making you find the button.
+
+### Drawing
+
+| Tool | Does |
+|---|---|
+| **paint** | click or drag to stamp the selected tile |
+| **rect** | drag a rectangle and fill it |
+| **pick** | take the stamp under the cursor as the brush |
+| **copy** | drag a region, then click to stamp it elsewhere |
+| **move** | the same, but the source is backfilled with the brush |
+
+`move` has to backfill because the format has no empty cell — every cell holds *some* metatile, so "move this window to the side" must say what is left behind, and the brush is the one answer that is the user's choice rather than the editor's guess.
+
+Undo is per **gesture**, not per cell: a rectangle fill or a paste undoes in one step. `⌘Z` / `⌘⇧Z`, `Esc` drops a selection.
+
+A painted cell is drawn **client-side out of the palette atlas the tab already has** — a nested `<svg>` whose `viewBox` crops one 16×16 stamp out of the sheet — so a stroke is instant and costs no round trip. The layer sits directly above the map image and below everything else, because an edit replaces map pixels: it is scenery, and the canopy and the feature overlay still belong on top.
+
+### Composing new metatiles
+
+Pick a **canopy** source, a **terrain** source and a **collision** word by clicking stamps in the palette, and add the combination. The host renders the new stamps against the room they are for, so the swatch uses that room's families, palette and display registers.
+
+Two rules keep the dictionary from exploding: a combination the room already has returns that stamp and adds nothing, and one the draft already made returns the one it made. `collision = terrain` fills the third field with whatever collision word the room already pairs with that terrain. New stamps continue past the room's own dictionary — index `count + n` — which is how they would be appended to Block 3.
+
+### The draft
+
+**Nothing is written to the ROM.** `copy draft` puts the edit on the clipboard and opens it as an untitled JSON document:
+
+```json
+{ "roomId": 118, "baseMetatile": 7280, "originalMetatileCount": 702,
+  "cells": [ { "x": 12, "y": 30, "metatileId": 7392 } ],
+  "appendMetatiles": [ { "layer1": 13706, "layer2": 6604, "collision": 4127 } ] }
+```
+
+`cells` carries **WRAM ids**, not dictionary indices, because that is what `layer1_metatile_ids` holds — a draft handing back indices would be silently wrong, so the test pins it.
+
+### Internals
+
+- `src/rooms/webview/map-editor.js` is deliberately DOM-free (draft, undo stack, dedup, export), which is what makes `tests/memory/map-editor.test.js` possible: **17 tests**, including the move-a-region gesture and the atlas crop.
+- Gestures attach to `#rg-wrap` in the **capture** phase, so a stroke is decided before the pan/select handlers ever see it and nothing is intercepted while edit mode is off.
+- The palette payload now carries the room's grid as dictionary indices (42 KB on the largest room), which is what makes pick, copy and move possible at all.
+- `buildComposedPreview` on the host; `withMetatiles(room, entries)` in `src/maps/metatiles.ts`.
+
 ## [0.36.0] — 2026-09-21
 
 First map-editor work: the placement palette, and the write path proven before anything is built on it.

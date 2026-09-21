@@ -123,6 +123,15 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   map → spawns behind → canopy → spawns in front → canopy overlay → annotation
 - `metatile-palette.js` — the Tile palette section; owns `_mtPalette` / `_mtLayer` /
   `_mtFilter` / `_mtSelected` and the `requestRoomMetatiles` cycle
+- `map-editor.js` — the edit draft, undo stack and export shape; owns `_edit`.
+  Deliberately DOM-free, which is what makes `tests/memory/map-editor.test.js`
+  possible
+- `map-editor-paint.js` — drawing the draft on the map from the palette atlas,
+  and the region maths; owns `_editSel` / `_editClip`
+- `map-editor-ui.js` — tool bar, the docked sidebar, the metatile composer;
+  owns `_editOrigin` / `_editComposed` / `_editCompose`
+- `map-editor-input.js` — capture-phase pointer and key gestures, so nothing is
+  intercepted while edit mode is off
 - `tables-builder.js` — entity tables, ROM script cards
 - `rom-header.js` — ROM header display
 - `interactions.js` — zoom/pan, mouse events, click handlers

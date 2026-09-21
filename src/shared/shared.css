@@ -289,6 +289,24 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .rs-mt-cell.spare:hover{opacity:1}
 .rs-mt-detail{margin-top:6px;font-size:11px;color:#bbb;display:flex;flex-wrap:wrap;gap:12px}
 .rs-mt-f b{color:#888;font-weight:400;margin-right:3px}
+
+/* ── Map editor ── */
+/* Edit mode docks the tile palette beside the map instead of below it. */
+.rg-edit-row{display:flex;gap:8px;align-items:flex-start}
+.rg-dock{flex:1;min-width:230px;max-width:420px}
+.rs-mt-docked{margin:0}
+.rs-mt-docked .rs-mt-sheet{max-height:420px}
+.rg-edit-bar{margin:0 0 4px}
+.rg-edit-count{font-size:10px;color:#888;margin-left:8px;align-self:center}
+/* The draft, drawn over the map image from the palette sheet. */
+.rg-edit-cell{overflow:visible}
+.rg-edit-sel{fill:rgba(120,200,255,.12);stroke:#63c5ff;stroke-width:.18;
+  stroke-dasharray:.6,.4;pointer-events:none}
+/* While editing, the map takes a crosshair and the overlays stay clickable-through. */
+.rg-editing .rg-svg{cursor:crosshair}
+.rs-mt-compose{margin-top:8px;border-top:1px solid #2a2a2a;padding-top:6px}
+.rs-mt-preview{margin-top:4px;min-height:20px}
+.rs-mt-preview .rs-mt-cell{background-repeat:no-repeat}
 .rs-note.rs-err{color:#ff8d8d}
 .rs-script{margin-top:6px;padding:6px 8px;border-left:3px solid #3a3a3a;background:rgba(255,255,255,.02)}
 .rs-script-enter{border-left-color:#72b7ff}

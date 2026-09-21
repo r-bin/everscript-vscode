@@ -144,10 +144,13 @@ function renderMetatilePalette() {
   var p = _mtPalette;
   if (!body || !p) return;
   if (note) { note.textContent = metatilePaletteSummary(p); note.classList.remove('rs-err'); }
+  var composer = document.getElementById('rg-compose');
   body.innerHTML = metatilePaletteControls(p)
     + '<div class="rs-mt-sheet" style="--mt-sheet:url(' + p.imageUri + ');--mt-cell:' + p.cell + 'px">'
     + metatileCells(p) + '</div>'
     + metatileDetail(p);
+  // The composer lives inside this section, so it has to survive a redraw.
+  if (composer) { body.appendChild(composer); if (typeof renderComposer === 'function') renderComposer(); }
 }
 
 /** One delegated listener for the whole section. */
@@ -161,7 +164,11 @@ function bindMetatilePalette(panel, room) {
     if (t.dataset.mtLayer) { _mtLayer = t.dataset.mtLayer; requestMetatilePalette(room, _mtLayer); return; }
     if (t.dataset.mtFilter) { _mtFilter = t.dataset.mtFilter; renderMetatilePalette(); return; }
     if (t.dataset.mtIndex) {
-      _mtSelected = Number(t.dataset.mtIndex);
+      var index = Number(t.dataset.mtIndex);
+      _mtSelected = index;
+      // In edit mode a stamp click is a brush change, or a composer source
+      // when one is armed. editOnStampPicked owns that choice.
+      if (typeof editOnStampPicked === 'function') editOnStampPicked(index);
       renderMetatilePalette();
     }
   });

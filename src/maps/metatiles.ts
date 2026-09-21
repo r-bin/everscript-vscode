@@ -158,6 +158,36 @@ function atlasRoom(room: RoomData, columns: number, rows: number, count: number)
     };
 }
 
+/** A metatile an editor has composed but not yet written to the ROM. */
+export interface MetatileDraft {
+    layer1: number;
+    layer2: number;
+    collision: number;
+}
+
+/**
+ * The same room with a different dictionary.
+ *
+ * An editor composing new stamps needs to see them before they exist, and
+ * they have to be drawn with this room's families, palette and display
+ * registers or the preview is a different picture from the map. Everything
+ * else is shared, so `renderMetatileAtlas` on the result gives swatches
+ * that drop straight into the palette.
+ */
+export function withMetatiles(room: RoomData, entries: MetatileDraft[]): RoomData {
+    return {
+        ...room,
+        metatileCount: entries.length,
+        metatileSlices: {
+            layer1: entries.map((e) => e.layer1),
+            layer2: entries.map((e) => e.layer2),
+            collision: entries.map((e) => e.collision),
+        },
+        layer1MetatileIds: [],
+        collisionWords: [],
+    };
+}
+
 /** Where one metatile sits inside an atlas, in pixels. */
 export function metatileCellRect(atlas: MetatileAtlas, index: number): { x: number; y: number; size: number } {
     return {
