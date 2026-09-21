@@ -1,3 +1,11 @@
+## [0.37.1] — 2026-09-21
+
+### Painting smeared the whole tile sheet over the map
+
+A painted cell is a nested `<svg>` whose `viewBox` crops one 16×16 stamp out of the palette atlas — and **the crop is the nested viewport clipping**, nothing else. 0.37.0 shipped `.rg-edit-cell{overflow:visible}`, which switched that clipping off, so every painted cell drew the entire 256px-wide sheet scaled across the room. One stroke and the map was gone.
+
+One character of CSS; `overflow:hidden` now, explicitly, with the reason written next to it. `map-editor.test.js` asserts the rule, because no runtime test would catch a stylesheet turning off the mechanism the geometry depends on.
+
 ## [0.37.0] — 2026-09-21
 
 The map is editable: a docked tile sidebar, five drawing tools, undo, and a metatile composer.

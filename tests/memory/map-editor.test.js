@@ -240,6 +240,24 @@ test('a painted cell crops the right stamp out of the right sheet', () => {
     assert.strictEqual(api.editStampSvg(p, composed, 99, 0, 0, 'c'), '', 'an index with no sheet draws nothing');
 });
 
+/**
+ * The crop is the nested viewport clipping, and nothing else.
+ *
+ * A nested <svg> clips to its own width/height by default, which is what
+ * turns a 256px-wide sheet into one 16x16 stamp. Overriding that in CSS
+ * draws the entire atlas at every painted cell, smeared across the map —
+ * which is not a subtle wrong colour, it is the map gone. Cheap to assert,
+ * and no runtime test would have caught it.
+ */
+test('the stylesheet does not switch off the crop', () => {
+    const css = fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'shared', 'shared.css'), 'utf8');
+    const rule = css.match(/\.rg-edit-cell\s*\{([^}]*)\}/);
+    assert.ok(rule, '.rg-edit-cell must have a rule; the crop depends on it');
+    assert.ok(/overflow\s*:\s*hidden/.test(rule[1]),
+        '.rg-edit-cell must clip: ' + rule[1].trim());
+    assert.ok(!/overflow\s*:\s*visible/.test(rule[1]));
+});
+
 test('cell positions are two map units apart, from the map origin', () => {
     assert.deepStrictEqual(api.editCellPos({ x: 0, y: 9 }, 3, 4), { x: 6, y: 17 });
 });
