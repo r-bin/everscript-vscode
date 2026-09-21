@@ -1,3 +1,31 @@
+## [0.43.0] — 2026-09-21
+
+### The family picker shows the art, and says what the family is for
+
+A family id is a terrible name. "220" tells you nothing; **"220 · Omnitopia · Reactor room"** with eight of its tiles next to it is a choice you can actually make.
+
+Each row in the picker now carries:
+
+- **its art**, eight tiles rendered in that family, *before* you pick it
+- **the acts** it appears in — Prehistoria, Antiqua, Gothica, Omnitopia
+- **the rooms**, by name: "Fire Eyes' Village", "Ebon Keep sewers", "Pipe maze"
+
+Twelve families a page with back/more, because twelve rows of art is what fits. The strips come as **one image per page**, not one request per family.
+
+**The filter takes what you actually know**: an act (`omni`), a room name (`strong`), an id (`58`), or `>100` for the big ones.
+
+### The 2×2 room bug
+
+A small new room came out as a giant blurry grid. Everything inside `#rg-svg` is in **viewBox units of 8px**, not pixels, and I had set the image's width to its pixel width — so a 32px-wide room was drawn 8× oversize, and what you saw was a magnified corner of the floor with the 1-unit grid lines stretched across it.
+
+The image is now sized in viewBox units, the viewBox keeps `svg-builder`'s 8-unit minimum so a tiny room is not blown up past the panel, and the SVG and its wrappers are resized to match. The stale canopy and collision overlays from the previous room are cleared too, instead of being stretched over the new one.
+
+### Also
+
+- Fixed: a blank room's budget meter read **"attested undefined"** — it was built with `roomBudget` instead of `budgetSummary`, which is the one that carries the attested-vocabulary count.
+- The tiles panel's header said "tiles families"; it now says how many of what.
+- `tests/memory/map-editor-dom.test.js` grows to 22 browser-driven checks, including the viewBox-units regression and the 2×2 minimum.
+
 ## [0.42.0] — 2026-09-21
 
 ### Two bugs a logic test could never have caught

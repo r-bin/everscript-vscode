@@ -52,6 +52,58 @@ function editNewRoomGo() {
   });
 }
 
+/** The SVG's coordinate system: one unit is one 8px tile, so a metatile is 2. */
+var MAP_UNIT_PX = 8;
+/** svg-builder clamps the viewBox to this, so a tiny room is not blown up. */
+var MIN_VIEW_UNITS = 8;
+/** The display width svg-builder uses; matching it keeps the zoom honest. */
+var MAP_DISP_W = 520;
+var MAP_DISP_H_MAX = 600;
+
+/**
+ * Point the map at a different room, at the right size.
+ *
+ * Everything inside `#rg-svg` is in **viewBox units of 8px**, not pixels —
+ * the image included. Setting the image's width to its pixel width made a
+ * 2x2 room eight times too big, which is what the "very weird grid" was:
+ * a magnified corner of the floor with the 1-unit grid lines drawn across
+ * it. The viewBox also has svg-builder's 8-unit floor, or a small room
+ * would fill the panel at absurd magnification.
+ */
+function resizeMapTo(room) {
+  var unitsW = room.widthTiles * 2;
+  var unitsH = room.heightTiles * 2;
+  var viewW = Math.max(unitsW, MIN_VIEW_UNITS);
+  var viewH = Math.max(unitsH, MIN_VIEW_UNITS);
+
+  var img = document.getElementById('rg-img');
+  if (img) {
+    img.setAttribute('href', room.imageUri);
+    img.setAttribute('x', 0);
+    img.setAttribute('y', 0);
+    img.setAttribute('width', unitsW);
+    img.setAttribute('height', unitsH);
+  }
+  // A blank room has no canopy or collision overlay yet; leaving the old
+  // room's stretched across it would be scenery from somewhere else.
+  ['rg-fg', 'rg-canopy-ov'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.setAttribute('href', '');
+  });
+
+  var svg = document.getElementById('rg-svg');
+  var dispH = Math.min(MAP_DISP_H_MAX, Math.round(MAP_DISP_W * viewH / viewW));
+  if (svg) {
+    svg.setAttribute('viewBox', '0 0 ' + viewW + ' ' + viewH);
+    svg.setAttribute('width', MAP_DISP_W);
+    svg.setAttribute('height', dispH);
+  }
+  ['rg-wrap', 'rg-canvas'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) { el.style.width = MAP_DISP_W + 'px'; el.style.height = dispH + 'px'; }
+  });
+}
+
 /**
  * The host drew a blank room. Show it in place of the map.
  *
@@ -86,15 +138,7 @@ function applyBlankRoom(msg) {
     });
   }
 
-  var img = document.getElementById('rg-img');
-  var svg = document.getElementById('rg-svg');
-  if (img) {
-    img.setAttribute('href', room.imageUri);
-    img.setAttribute('width', room.imageWidth);
-    img.setAttribute('height', room.imageHeight);
-  }
-  // The map's SVG is in 8px units, so a metatile is two of them.
-  if (svg) svg.setAttribute('viewBox', '0 0 ' + (room.widthTiles * 2) + ' ' + (room.heightTiles * 2));
+  resizeMapTo(room);
   _editOrigin = { x: 0, y: 0 };
 
   editNote('blank ' + room.widthTiles + '×' + room.heightTiles

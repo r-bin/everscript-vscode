@@ -33,6 +33,10 @@ if(typeof window!=='undefined'&&window.addEventListener){
       // Every tile family the ROM attests, for the family picker.
       if(typeof applyFamilyCatalogue==='function')applyFamilyCatalogue(data);
       if(data.error)console.warn('[RoomsRender] familyCatalogue:',data.error);
+    }else if(data.command==='familyPreviews'){
+      // One strip of art per family, so the picker shows before it asks.
+      if(typeof applyFamilyPreviews==='function')applyFamilyPreviews(data);
+      if(data.error)console.warn('[RoomsRender] familyPreviews:',data.error);
     }else if(data.command==='familySheet'){
       // Every graphic vanilla draws in one tile family, for the picker.
       if(typeof applyFamilySheet==='function')applyFamilySheet(data);

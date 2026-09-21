@@ -10,7 +10,7 @@ const { renderVanillaTree, renderRoomsTree, buildRoomsJson }        = require('.
 const { buildRoomTileOverlay, invalidateRoomRenders }               = require('./rendering/tile-overlay');
 const { buildRoomMetatilePalette, buildComposedPreview,
         invalidateMetatilePalettes }                               = require('./rendering/metatile-palette');
-const { buildBlankRoom, buildFamilySheet, buildFamilyCatalogue,
+const { buildBlankRoom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews,
         invalidateRoomDrafts }                                     = require('./rendering/room-draft');
 const { VANILLA_ROOMS, buildVanillaRoomContent,
         buildVanillaRoomDetails, invalidateVanillaDataCaches }      = require('./data/vanilla-data');
@@ -60,6 +60,7 @@ module.exports = {
     buildBlankRoom,
     buildFamilySheet,
     buildFamilyCatalogue,
+    buildFamilyPreviews,
 
     // Data
     VANILLA_ROOMS,

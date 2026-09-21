@@ -11,7 +11,8 @@
 
 const maps = require('../../maps');
 const { romFingerprint } = require('./rom-fingerprint');
-const { vanillaIndex } = require('./vanilla-index');
+const { vanillaIndex, budgetSummary } = require('./vanilla-index');
+const { VANILLA_ROOMS } = require('../data/vanilla-data');
 
 /** Tiles per sheet row, matching the metatile atlas. */
 const COLUMNS = 16;
@@ -51,7 +52,9 @@ function buildBlankRoom(rom, opts) {
             layer2: room.metatileSlices.layer2[0],
             collision: room.metatileSlices.collision[0],
         },
-        budget: maps.roomBudget(room),
+        // budgetSummary, not roomBudget: the meter shows `attested` too, and
+        // a budget without it renders "attested undefined".
+        budget: budgetSummary(buf, room),
         problems: maps.roomProblems(room),
     };
 }
@@ -128,27 +131,111 @@ function groupRoomGraphics(rom, room) {
     })).filter((g) => g.slots.length);
 }
 
+/** Room id -> `{ area, name }`, from the tab's own vanilla room list. */
+let ROOM_NAMES = null;
+function roomNames() {
+    if (ROOM_NAMES) return ROOM_NAMES;
+    ROOM_NAMES = new Map();
+    for (const { area, rooms } of VANILLA_ROOMS) {
+        for (const r of rooms) ROOM_NAMES.set(parseInt(r.id, 16), { area, name: r.name });
+    }
+    return ROOM_NAMES;
+}
+
 /**
- * Every tile family the ROM attests, with how much art is in it.
+ * Every tile family the ROM attests, with what it is *for*.
  *
- * `[familyId, graphics, rooms]` per entry, biggest first. 329 families have
- * at least one graphic drawn in them (365 are listed by some room), so the
- * whole catalogue is about a kilobyte of numbers — small enough to send
- * once and filter in the webview.
+ * A family id is a terrible name — "220" says nothing about whether it is
+ * jungle, stone or ice. What makes it choosable is where the game uses it,
+ * so each entry carries the acts and the room names too.
+ *
+ * `{ id, tiles, rooms, areas, names }`, biggest first. 329 families have at
+ * least one graphic drawn in them (365 are listed by some room).
  */
 function buildFamilyCatalogue(rom) {
     const buf = rom instanceof Uint8Array ? rom : new Uint8Array(rom);
     const index = vanillaIndex(buf);
+    const names = roomNames();
     const out = [];
     for (const [family, list] of index.graphics) {
-        out.push([family, list.length, (index.rooms.get(family) || []).length]);
+        const ids = index.rooms.get(family) || [];
+        const areas = [];
+        const roomLabels = [];
+        for (const id of ids) {
+            const info = names.get(id);
+            if (!info) continue;
+            if (areas.indexOf(info.area) < 0) areas.push(info.area);
+            roomLabels.push(info.name);
+        }
+        out.push({
+            id: family,
+            tiles: list.length,
+            rooms: ids.length,
+            areas,
+            // Enough to recognise the place; the full list is in the tooltip.
+            names: roomLabels.slice(0, 6),
+        });
     }
-    out.sort((a, b) => b[1] - a[1] || a[0] - b[0]);
+    out.sort((a, b) => b.tiles - a.tiles || a.id - b.id);
     return out;
+}
+
+/** Tiles shown per family in the picker's preview strip. */
+const PREVIEW_TILES = 8;
+
+/**
+ * A strip of each family's art, several families to one image.
+ *
+ * The picker has to show what a family *looks like* before it is chosen,
+ * and one request per family would be dozens of round trips. Each family is
+ * rendered on its own — seven CGRAM slots cannot hold twelve families at
+ * once — and the single-row results are blitted into one sheet, one row per
+ * family, in the order asked for.
+ */
+function buildFamilyPreviews(rom, familyIds) {
+    const buf = rom instanceof Uint8Array ? rom : new Uint8Array(rom);
+    const index = vanillaIndex(buf);
+    const ids = (familyIds || []).map(Number).filter((n) => !isNaN(n)).slice(0, 40);
+    const width = PREVIEW_TILES * 16;
+    const height = Math.max(1, ids.length) * 16;
+    const sheet = { width, height, data: new Uint8Array(width * height * 4) };
+    const base = maps.decodeRoom(buf, 0x76);
+
+    ids.forEach((family, row) => {
+        const tiles = (index.graphics.get(family) || []).slice(0, PREVIEW_TILES).map((a) => a.value);
+        if (!tiles.length) return;
+        const strip = maps.renderTileListAtlas(
+            buf,
+            { ...base, tileFamilies: [family], tilePalette: tiles, animatedTiles: [] },
+            { columns: PREVIEW_TILES, palette: 1 },
+        );
+        blit(sheet, strip.image, 0, row * 16);
+    });
+
+    return {
+        families: ids,
+        columns: PREVIEW_TILES,
+        cell: 16,
+        imageUri: maps.encodePngDataUri(sheet),
+        imageWidth: width,
+        imageHeight: height,
+    };
+}
+
+/** Copy `src` into `dst` at (x, y). Both are RGBA PixelBuffers. */
+function blit(dst, src, x, y) {
+    const rows = Math.min(src.height, dst.height - y);
+    const cols = Math.min(src.width, dst.width - x);
+    for (let r = 0; r < rows; r++) {
+        const from = r * src.width * 4;
+        const to = ((y + r) * dst.width + x) * 4;
+        dst.data.set(src.data.subarray(from, from + cols * 4), to);
+    }
 }
 
 function invalidateRoomDrafts() { SHEETS.clear(); }
 
 module.exports = {
-    buildBlankRoom, buildFamilySheet, buildFamilyCatalogue, groupRoomGraphics, invalidateRoomDrafts,
+    buildBlankRoom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews,
+    groupRoomGraphics, invalidateRoomDrafts,
 };

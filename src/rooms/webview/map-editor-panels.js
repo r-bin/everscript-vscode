@@ -202,8 +202,10 @@ function renderEditPanels() {
   host.innerHTML = budgetBar(p)
     + panel('errors', 'checks', errorsPanel(p), errs.length ? errs.length + ' to look at' : 'clear')
     + panel('families', 'tile families', familySlotsPanel(), chosen.length + ' of 7')
-    + panel('tiles', 'tiles', tilesPanel(p),
-      _tileSource === 'groups' ? (p.graphicGroups || []).length + ' groups' : _tileSource)
+    + panel('tiles', 'tiles', tilesPanel(p), _tileSource === 'groups'
+      ? (p.graphicGroups || []).length + ' groups'
+      : _tileSource === 'room' ? (p.tiles ? p.tiles.count : 0) + ' loaded'
+        : chosen.length + ' families')
     + panel('needed', 'new metatiles', neededPanel(p),
       need.added.length ? need.added.length + ' needed' : 'none');
   // The filter keeps focus across the redraw it causes, or typing a second

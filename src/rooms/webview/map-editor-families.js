@@ -17,6 +17,10 @@ var _famFilter = '';
 var _famSheets = {};
 /** Which slot the browser is filling, or -1 when it is closed. */
 var _famPicking = -1;
+/** The picker's page, and the strip sheet for the families on it. */
+var _famPage = 0;
+var _famPreviews = null;
+var _famPreviewKey = '';
 
 /** The families the draft is working with — the room's own until changed. */
 function editFamilies() {
@@ -120,45 +124,125 @@ function familySlotsPanel() {
   return html;
 }
 
-/** The whole catalogue, filtered, so a slot can take any family in the ROM. */
+/** How many families the picker shows at once, with previews. */
+var FAM_PAGE = 12;
+
+/**
+ * The catalogue, filtered, with every family's art shown before it is picked.
+ *
+ * A family id is a terrible name. What makes one choosable is the art and
+ * the places it is used, so each row is a strip of its tiles plus the acts
+ * and rooms it appears in — "220, Omnitopia, Reactor room" is a choice,
+ * "220" is a lottery ticket.
+ */
 function familyBrowserHtml() {
-  if (!_famCatalogue) { requestFamilyCatalogue(); return '<div class="rs-note">loading the catalogue…</div>'; }
-  var q = _famFilter.trim();
-  var list = _famCatalogue;
-  if (q) {
-    // Two filters, kept apart on purpose. Matching an id *or* a tile count
-    // in one expression means typing "58" also keeps every family with at
-    // least 58 graphics — which is most of the big ones, so the id filter
-    // never narrowed anything.
-    if (q.charAt(0) === '>') {
-      var min = Number(q.slice(1)) || 0;
-      list = list.filter(function (f) { return f[1] >= min; });
-    } else {
-      list = list.filter(function (f) { return String(f[0]).indexOf(q) === 0; });
-    }
-  }
-  var shown = list.slice(0, 60);
-  var html = '<div class="rg-fam-browse"><div class="rs-note">'
-    + 'Filling slot ' + (_famPicking + 1) + ' — ' + _famCatalogue.length + ' families, '
-    + 'biggest first. Type an id to jump to it, or &gt;100 for the big ones.'
-    + '</div>'
+  if (!_famCatalogue) { requestFamilyCatalogue(); return '<div class="rs-note">loading the catalogue\u2026</div>'; }
+  var list = filterFamilies(_famCatalogue, _famFilter);
+  var shown = list.slice(_famPage * FAM_PAGE, _famPage * FAM_PAGE + FAM_PAGE);
+  ensureFamilyPreviews(shown.map(function (f) { return f.id; }));
+
+  var html = '<div class="rg-fam-browse">'
+    + '<div class="rs-note">Filling slot ' + (_famPicking + 1) + ' \u2014 ' + list.length
+    + ' famil' + (list.length === 1 ? 'y' : 'ies')
+    + (list.length > FAM_PAGE ? ', showing ' + (_famPage * FAM_PAGE + 1) + '\u2013'
+      + (_famPage * FAM_PAGE + shown.length) : '') + ', most art first.</div>'
     + '<input class="rg-fam-filter" id="rg-fam-filter" value="' + escH(_famFilter)
-    + '" placeholder="family id, or &gt;100 for at least 100 tiles" />'
-    + '<div class="rd-filters rg-fam-list">';
-  for (var i = 0; i < shown.length; i++) {
-    var f = shown[i];
-    html += '<button class="rdf" data-fam-pick="' + f[0] + '"'
-      + ' title="' + escH('Family ' + f[0] + ' — ' + f[1] + ' graphics across '
-        + f[2] + ' room' + (f[2] === 1 ? '' : 's')) + '">'
-      + f[0] + ' <span class="rs-note">' + f[1] + '</span></button>';
-  }
-  html += '</div>';
-  if (list.length > shown.length) {
-    html += '<div class="rs-note">' + (list.length - shown.length) + ' more — narrow the filter</div>';
+    + '" placeholder="an act, a room name, an id, or &gt;100 tiles" />';
+
+  for (var i = 0; i < shown.length; i++) html += familyRow(shown[i], i);
+
+  if (list.length > FAM_PAGE) {
+    var last = Math.ceil(list.length / FAM_PAGE) - 1;
+    html += '<div class="rd-filters">'
+      + '<button class="rdf" data-fam-page="' + Math.max(0, _famPage - 1) + '">\u2039 back</button>'
+      + '<span class="rs-note">page ' + (_famPage + 1) + ' of ' + (last + 1) + '</span>'
+      + '<button class="rdf" data-fam-page="' + Math.min(last, _famPage + 1) + '">more \u203a</button>'
+      + '</div>';
   }
   html += '<div class="rd-filters"><button class="rdf" data-fam-pick="none">cancel</button>'
     + '<button class="rdf" data-fam-pick="clear">leave the slot empty</button></div></div>';
   return html;
+}
+
+/**
+ * One family: its art, its id, and where the game uses it.
+ *
+ * The strip comes out of the shared preview sheet, so twelve families cost
+ * one image rather than twelve.
+ */
+function familyRow(f, rowInSheet) {
+  var pv = _famPreviews;
+  var have = pv && pv.families.indexOf(f.id) >= 0;
+  var row = have ? pv.families.indexOf(f.id) : -1;
+
+  var strip = '';
+  if (have) {
+    strip = '<div class="rs-mt-grid">';
+    for (var c = 0; c < pv.columns && c < f.tiles; c++) {
+      strip += '<i class="rs-mt-cell" style="background-position:-' + (c * pv.cell)
+        + 'px -' + (row * pv.cell) + 'px"></i>';
+    }
+    strip += '</div>';
+  } else {
+    strip = '<span class="rs-note">\u2026</span>';
+  }
+
+  var where = f.areas.length ? f.areas.join(', ') : 'unused';
+  var rooms = f.names.length
+    ? f.names.slice(0, 2).join(', ') + (f.rooms > 2 ? ' +' + (f.rooms - 2) : '')
+    : '';
+  return '<div class="rg-fam-row" data-fam-pick="' + f.id + '"'
+    + ' title="' + escH('Family ' + f.id + ' \u2014 ' + f.tiles + ' graphics in '
+      + f.rooms + ' room' + (f.rooms === 1 ? '' : 's')
+      + (f.names.length ? '\n' + f.names.join('\n') : '')) + '">'
+    + '<div class="rg-fam-art"' + (have ? ' style="--mt-sheet:url(' + pv.imageUri
+      + ');--mt-cell:' + pv.cell + 'px"' : '') + '>' + strip + '</div>'
+    + '<div class="rg-fam-meta"><b>' + f.id + '</b> <span class="rs-note">' + f.tiles + ' tiles</span>'
+    + '<div class="rg-fam-where">' + escH(where) + '</div>'
+    + (rooms ? '<div class="rs-note">' + escH(rooms) + '</div>' : '')
+    + '</div></div>';
+}
+
+/**
+ * Filter by whatever the user typed.
+ *
+ * Four things people actually know about a family, in the order they are
+ * likely to type them: an act, a room, an id, a size. Matching an id *or* a
+ * tile count in one expression was the earlier bug — typing "58" kept every
+ * family with at least 58 graphics — so the size filter has its own `>`.
+ */
+function filterFamilies(all, query) {
+  var q = String(query || '').trim().toLowerCase();
+  if (!q) return all;
+  if (q.charAt(0) === '>') {
+    var min = Number(q.slice(1)) || 0;
+    return all.filter(function (f) { return f.tiles >= min; });
+  }
+  return all.filter(function (f) {
+    if (String(f.id).indexOf(q) === 0) return true;
+    for (var i = 0; i < f.areas.length; i++) {
+      if (f.areas[i].toLowerCase().indexOf(q) >= 0) return true;
+    }
+    for (var j = 0; j < f.names.length; j++) {
+      if (f.names[j].toLowerCase().indexOf(q) >= 0) return true;
+    }
+    return false;
+  });
+}
+
+/** Fetch the strip sheet for the families now on screen, if it changed. */
+function ensureFamilyPreviews(ids) {
+  if (typeof vs === 'undefined' || !vs || !ids.length) return;
+  var key = ids.join(',');
+  if (_famPreviewKey === key) return;
+  _famPreviewKey = key;
+  vs.postMessage({ command: 'requestFamilyPreviews', families: ids });
+}
+
+function applyFamilyPreviews(msg) {
+  if (!msg || msg.error || !msg.previews) return;
+  _famPreviews = msg.previews;
+  renderEditPanels();
 }
 
 /**

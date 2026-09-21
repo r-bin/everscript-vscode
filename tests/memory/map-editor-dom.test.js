@@ -114,23 +114,54 @@ async function main() {
         'asked for: ' + JSON.stringify(eager));
 
     await page.click('[data-fam-add="0"]');
-    await page.evaluate(() => applyFamilyCatalogue({
-        families: [[32, 210, 13], [220, 201, 13], [58, 74, 3], [5, 9, 1]],
-    }));
-    await page.fill('#rg-fam-filter', '58');
+    await page.evaluate(() => applyFamilyCatalogue({ families: [
+        { id: 32, tiles: 210, rooms: 13, areas: ['Antiqua', 'Prehistoria'], names: ["Fire Eyes' Village"] },
+        { id: 220, tiles: 201, rooms: 13, areas: ['Omnitopia'], names: ['Reactor room'] },
+        { id: 58, tiles: 74, rooms: 3, areas: ['Prehistoria'], names: ["Strong Heart's Hut"] },
+        { id: 5, tiles: 9, rooms: 1, areas: ['Gothica'], names: ['Ebon Keep'] },
+    ] }));
+
+    // What makes a family choosable: its art and where the game uses it.
+    const firstRow = await page.$eval('.rg-fam-row', (n) => n.textContent);
+    check('a family row names its act, not just its id',
+        /Antiqua|Prehistoria/.test(firstRow) && /32/.test(firstRow), firstRow);
+    check('and the room it comes from', /Fire Eyes/.test(firstRow), firstRow);
+
+    const asked = await page.evaluate(
+        () => (window.__sent.find((m) => m.command === 'requestFamilyPreviews') || {}).families);
+    check('art is requested for the whole visible page before anything is picked',
+        Array.isArray(asked) && asked.length === 4 && asked[0] === 32, JSON.stringify(asked));
+
+    await page.evaluate(() => applyFamilyPreviews({ previews: {
+        families: [32, 220, 58, 5], columns: 8, cell: 16,
+        imageUri: 'data:image/png;base64,cHJldg==', imageWidth: 128, imageHeight: 64 } }));
+    const art = await page.$eval('.rg-fam-row .rg-fam-art', (n) => n.getAttribute('style') || '');
+    check('each row shows that family\u2019s own strip', art.includes('base64,cHJldg=='), art);
+
     let shown = await page.$$eval('[data-fam-pick]', (n) => n.map((e) => e.dataset.famPick));
-    check('an id filter narrows to that id',
-        shown.includes('58') && !shown.includes('220') && !shown.includes('32'),
+    await page.fill('#rg-fam-filter', 'omni');
+    shown = await page.$$eval('.rg-fam-row', (n) => n.map((e) => e.dataset.famPick));
+    check('filtering by act finds the family', shown.length === 1 && shown[0] === '220',
+        'showed ' + JSON.stringify(shown));
+
+    await page.fill('#rg-fam-filter', 'strong');
+    shown = await page.$$eval('.rg-fam-row', (n) => n.map((e) => e.dataset.famPick));
+    check('filtering by room name works too', shown.length === 1 && shown[0] === '58',
         'showed ' + JSON.stringify(shown));
 
     await page.fill('#rg-fam-filter', '>200');
-    shown = await page.$$eval('[data-fam-pick]', (n) => n.map((e) => e.dataset.famPick));
+    shown = await page.$$eval('.rg-fam-row', (n) => n.map((e) => e.dataset.famPick));
     check('">200" keeps only the big families',
         shown.includes('32') && shown.includes('220') && !shown.includes('58'),
         'showed ' + JSON.stringify(shown));
 
+    await page.fill('#rg-fam-filter', '58');
+    shown = await page.$$eval('.rg-fam-row', (n) => n.map((e) => e.dataset.famPick));
+    check('an id filter still narrows to that id',
+        shown.length === 1 && shown[0] === '58', 'showed ' + JSON.stringify(shown));
+
     await page.fill('#rg-fam-filter', '');
-    await page.click('[data-fam-pick="58"]');
+    await page.click('.rg-fam-row[data-fam-pick="58"]');
     check('picking a family fills the slot', await page.evaluate(() => editFamilies()[0] === 58));
 
     await page.evaluate(() => { editFamilies()[3] = undefined; renderEditPanels(); });
@@ -169,6 +200,7 @@ async function main() {
     }));
     const applied = await page.evaluate(() => ({
         viewBox: document.getElementById('rg-svg').getAttribute('viewBox'),
+        imgW: document.getElementById('rg-img').getAttribute('width'),
         w: _mtPalette.grid[0].length,
         h: _mtPalette.grid.length,
         formClosed: !document.getElementById('rg-newroom'),
@@ -180,6 +212,23 @@ async function main() {
         applied.viewBox === '0 0 40 18' && applied.w === 20 && applied.h === 9
         && applied.formClosed && applied.inBounds && applied.outOfBounds,
         JSON.stringify(applied));
+    // The image lives in viewBox units of 8px, not pixels. Giving it 320
+    // made a room eight times too big — the "very weird grid".
+    check('the map image is sized in viewBox units, not pixels', applied.imgW === '40',
+        'width=' + applied.imgW + ', expected 40 units (320px / 8)');
+
+    // A 2x2 room is 4 units, under svg-builder's 8-unit floor.
+    await page.evaluate(() => applyBlankRoom({ room: {
+        widthTiles: 2, heightTiles: 2, borrowedFrom: 0x34, baseMetatile: 8,
+        imageUri: 'data:image/png;base64,iVBORw0KGgo=', imageWidth: 32, imageHeight: 32,
+        tileFamilies: [35], problems: [], budget: _mtPalette.budget,
+        floor: { layer1: 0xa800, layer2: 0x4c62, collision: 0x0010 } } }));
+    const tiny = await page.evaluate(() => ({
+        viewBox: document.getElementById('rg-svg').getAttribute('viewBox'),
+        imgW: document.getElementById('rg-img').getAttribute('width'),
+    }));
+    check('a 2x2 room keeps the 8-unit minimum viewBox and a 4-unit image',
+        tiny.viewBox === '0 0 8 8' && tiny.imgW === '4', JSON.stringify(tiny));
 
     // ── tiles in their own family ──────────────────────────────────────────
     await page.evaluate(() => applyFamilySheet({

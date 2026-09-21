@@ -195,7 +195,7 @@ function renderComposer() {
  * browser before this walk-up existed.
  */
 var EDIT_CLICK_KEYS = ['editTool', 'editPhase', 'editAct', 'editPick', 'panel',
-  'famSlot', 'famAdd', 'famPick', 'construct', 'tileSource', 'mtIndex'];
+  'famSlot', 'famAdd', 'famPick', 'famPage', 'construct', 'tileSource', 'mtIndex'];
 
 /** The nearest ancestor (including `el`) that carries one of those keys. */
 function editClickTarget(el, root) {
@@ -216,6 +216,7 @@ function bindEditControls(panel, room) {
   panel.addEventListener('input', function (e) {
     if (!e.target || e.target.id !== 'rg-fam-filter') return;
     _famFilter = e.target.value;
+    _famPage = 0;   // a new filter starts at the top of its own list
     renderEditPanels();
   });
 
@@ -258,7 +259,13 @@ function bindEditControls(panel, room) {
       // are "decide what goes here".
       _famPicking = _famPicking === Number(t.dataset.famAdd) ? -1 : Number(t.dataset.famAdd);
       _famOpen = -1;
+      _famPage = 0;
       if (_famPicking >= 0) requestFamilyCatalogue();
+      renderEditPanels();
+      return;
+    }
+    if (t.dataset.famPage !== undefined && t.dataset.famPage !== '') {
+      _famPage = Number(t.dataset.famPage);
       renderEditPanels();
       return;
     }
