@@ -1,0 +1,1 @@
+../../../.github/instructions/webview-dom-safety.instructions.md

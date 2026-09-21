@@ -64,6 +64,7 @@ to what you're touching.
 | `isolate-subsystem` | fixing forbidden cross-domain dependencies |
 | `stabilize-state-flow` | consolidating state to a single owner |
 | `split-orchestration` | decomposing god files (`src/extension.js`, panel files) |
+| `webview-dom-safety` | idempotent event binding, `e.target` walk-up, VS Code webview API gaps, SVG coordinate systems |
 
 ### Release ritual
 
@@ -104,6 +105,10 @@ to what you're touching.
 ### Split orchestration
 
 @.github/instructions/split-orchestration.instructions.md
+
+### Webview DOM safety
+
+@.github/instructions/webview-dom-safety.instructions.md
 
 ---
 

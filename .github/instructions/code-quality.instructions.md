@@ -36,6 +36,29 @@ rendering, experimental code.
 - `tsconfig.json` excludes browser-concatenated webview assets
   (`src/**/webview/**`, check the current exclude list before assuming a path).
 
+## Scripted (non-interactive) edits must assert they changed something
+
+A `str.replace(...)` or `sed` substitution run from a script or one-off Python snippet
+fails **silently** when the pattern doesn't match — it returns the string unchanged, no
+error, no exit code difference. This has actually happened in this repo: a substitution
+meant to fix a dead click handler used an escaped `—` where the file had a literal
+`—` character, the replace no-op'd, and the "fix" shipped as a no-op that looked like a
+successful edit because the script exited 0.
+
+Any scripted substitution must assert the content actually changed before treating the
+edit as done:
+
+```python
+new = old.replace(pattern, replacement)
+if new == old:
+    sys.exit('MISS: pattern not found — ' + repr(pattern))
+```
+
+For anything you can express as a single, unambiguous change, prefer the `Edit` tool
+(which already refuses when `old_string` doesn't match) over a hand-rolled script —
+this guard is only necessary when a script is genuinely the right tool (bulk renames
+across many files, generated boilerplate).
+
 ## Dead code policy
 
 Dead code is entropy. Remove it aggressively.

@@ -61,13 +61,15 @@ automatically — never edit the same content in three places.
 | `release-ritual` | every commit | version bump, validation, commit format, `npm run deploy` |
 | `memory-radar` | `src/memory/**`, `src/rooms/**` | WRAM grid, rooms/map-browser tab, tab ownership |
 | `map-format` | `src/maps/**`, `tools/generate_data.py` | ROM map decoding is being migrated to the sibling `everscript` repo's verified implementation — read before extending either |
+| `rom-map-data` | `src/maps/**`, `docs/map-format/**`, `sandbox/maps/**` | room blob layout, the three compressed payload blocks, the collision bitfield |
 | `grammar-rules` | `src/language/syntaxes/**`, `src/language/tests/**` | TextMate pattern rules, test assertion format |
 | `colour-theme` | `src/language/themes/**` | P1–P9 priority palette |
-| `code-quality` | `src/**/*.js`, `src/**/*.ts` | TS migration policy, dead code policy |
+| `code-quality` | `src/**/*.js`, `src/**/*.ts` | TS migration policy, dead code policy, guarding scripted edits |
 | `compress-architecture` | `src/**` | splitting oversized files by ownership |
 | `isolate-subsystem` | `src/**` | fixing forbidden cross-domain dependencies |
 | `stabilize-state-flow` | `src/**` | consolidating state to a single owner |
 | `split-orchestration` | `src/extension.js` and panel files | decomposing god files |
+| `webview-dom-safety` | `src/**/webview/**` | idempotent event binding, `e.target` walk-up, VS Code webview API gaps, SVG coordinate systems |
 
 Read the matching skill file before working in its area. When in doubt, open
 `.github/instructions/` and skim the `applyTo` lines.

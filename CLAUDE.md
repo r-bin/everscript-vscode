@@ -56,13 +56,15 @@ imports — Gemini). Edit the target in `.github/instructions/`, not the symlink
 | `release-ritual` | version bump, validation, commit format, `npm run deploy` |
 | `memory-radar` | WRAM grid tab, rooms/map-browser tab, tab ownership |
 | `map-format` | ROM map decoding is migrating to the sibling `everscript` repo's verified implementation — read before touching `src/maps/` |
+| `rom-map-data` | room blob layout, the three compressed payload blocks, the collision bitfield |
 | `grammar-rules` | TextMate pattern rules, test assertion format |
 | `colour-theme` | P1–P9 priority palette |
-| `code-quality` | TS migration policy, dead code policy |
+| `code-quality` | TS migration policy, dead code policy, guarding scripted edits |
 | `compress-architecture` | splitting oversized files by ownership |
 | `isolate-subsystem` | fixing forbidden cross-domain dependencies |
 | `stabilize-state-flow` | consolidating state to a single owner |
 | `split-orchestration` | decomposing god files (`src/extension.js`, panel files) |
+| `webview-dom-safety` | idempotent event binding, `e.target` walk-up, VS Code webview API gaps, SVG coordinate systems — read before writing click/pointer handling in any `webview/` file |
 
 The same content is also available to Copilot as path-scoped instructions
 (`.github/instructions/*.instructions.md`) and to Gemini via `GEMINI.md` imports —
