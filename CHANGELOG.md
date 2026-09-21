@@ -1,3 +1,51 @@
+## [0.30.0] — 2026-09-21
+
+Hitboxes, from the trace of the Boy walking into a Wimpy Flower. There was no research on this before; there is now [docs/script-format/hitboxes.md](docs/script-format/hitboxes.md).
+
+### Where the size lives
+
+**Character record `+0x0D`** — `characterdata.h`'s `unknown0d`, a radius in pixels. One grep found it: of the nine character-record fields read anywhere in the trace, it is read 1819 times, more than `anim_stand`, `aggro range` and everything else.
+
+### The rule
+
+`$8FB46D` is asked "can this entity stand at `$46`/`$48`?" and checks each entity in the list:
+
+```
+8FB4AE  LDA $8E000D,X    ; the candidate's radius
+8FB4B2  BEQ $8FB4FC      ; zero: no body at all, walk through it
+8FB4B5  ADC $16          ; + the mover's radius
+8FB4C5  ASL              ; |dy| doubled...
+8FB4C6  CMP $18          ; ...must be under the sum
+8FB4D6  CMP $18          ; and |dx|, undoubled, under it too
+```
+
+So `|dx| < r1 + r2` and `2·|dy| < r1 + r2`: an axis-aligned box **twice as wide as it is tall**, the same 2:1 squash the game's perspective uses. A character's own body is `2r` wide and `r` tall, centred where its sprite is anchored.
+
+Two more conditions have to hold: the entities must share an elevation plane (`$0018`, from the tile's collision word — already decoded in `src/maps/collision.ts`) unless the plane-transparent bit is set, and `+0x1E` must be within `$230`. And if the mover is *already* inside the box it is let through, so nothing that spawns on top of you can trap you.
+
+### Checked against the game's own verdict
+
+The trace walks into the same flower from the west, the north and the east, and the game decides on every frame. Parsing it gives **925 collision tests with the game's answer on each; this rule agrees with all 925.** The boundaries land exactly where it says:
+
+| Approach | Blocked up to | Free from |
+|---|---|---|
+| west, east | \|dx\| = 21 | \|dx\| = 22 |
+| north | \|dy\| = 10 | \|dy\| = 11 |
+
+22 is the flower's 14 plus the Boy's 8; 11 is half of it.
+
+### On the map
+
+Every ROM spawn now draws its collision box — a dashed rectangle `2r × r` centred on the spawn point — with a `hitbox` toggle beside `npc`, and the tooltip says how far it stops the Boy. Radius 0 means no body at all: the statue, the bridge and the stone cobras are walked straight through, and they draw no box.
+
+### Spawns were 4 px out
+
+Every entity in the trace sits at pixel `8 × x` for the script's `x` — the two Mosquitoes placed at x=17 are at `$0088` = 136, and so on for all of room 0x38. So a spawn stands on the map unit, not in the middle of its cell. The Rooms tab was adding half a unit, putting every enemy 4 px down and to the right. Removed.
+
+### Split
+
+`characters.ts` had grown to 471 lines, over the 400 limit. It is now three files along the chain it already followed: `character-record.ts` (the table — palette, disposition, hitbox, which animation a facing selects), `character-animation.ts` (walking that script into frames) and `characters.ts` (blitting them).
+
 ## [0.29.0] — 2026-09-21
 
 Answers the four things in the screenshots, three of them from the same place: the ROM says so, and nobody had read that part yet.

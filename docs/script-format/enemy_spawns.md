@@ -32,6 +32,11 @@ units — one SVG unit in the Rooms tab — so a ROM spawn and a source-defined
 enemy plot identically. `0xa2` multiplies by 8 and takes expressions, so it
 carries no literal position.
 
+The conversion is exact, with nothing to round: every entity in a trace of
+room `0x38` sits at pixel `8 * x` for the script's `x`, so a spawn stands on
+the unit itself rather than in the middle of its cell. See
+[hitboxes.md](hitboxes.md#where-a-spawn-actually-stands).
+
 **`$2433` is `ENEMY_SPAWNER_QUANTITY`**, which is why it is written just
 before a spawner. It is a count, not a character id.
 

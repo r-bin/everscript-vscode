@@ -54,8 +54,12 @@ function renderRoomDetail(room){
   if(hasCoordData||room.imageUri)html+='<button class="rdf on" data-hide="hide-grid8" title="Toggle 8 px grid">8px</button>';
   if(stepOn.length||bTrigger.length)html+='<button class="rdf on" data-hide="hide-grid16" title="Toggle 16 px trigger grid">16px</button>';
   if(hasIngr)html+='<button class="rdf on" data-hide="hide-ingr" title="Toggle ingredient icons">🌿</button>';
-  if(trig.enter&&trig.enter.spawns&&trig.enter.spawns.length)
+  if(trig.enter&&trig.enter.spawns&&trig.enter.spawns.length){
     html+='<button class="rdf on" data-hide="hide-spawn" title="Toggle NPCs the enter script can place">npc</button>';
+    // The collision box each of them carries — character record +0x0D.
+    if(trig.enter.spawns.some(function(s){return s.hitW;}))
+      html+='<button class="rdf on" data-hide="hide-hitbox" title="Toggle collision boxes (2r wide, r tall)">hitbox</button>';
+  }
   html+='<button class="rdf on" id="rg-lock-btn" title="Unlock map">locked</button>';
   html+='</div></div>';
 

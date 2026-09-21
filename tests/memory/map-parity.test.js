@@ -107,6 +107,7 @@ function main() {
         console.log(`  ${id} ${py.header.width_tiles}x${py.header.height_tiles} checked`);
     }
 
+    checkHitboxes(rom);
     checkRenderParity(rom, rooms);
     checkOverlayParity(rom, rooms);
     checkObjectStamps(rom);
@@ -415,6 +416,53 @@ function checkSprites(rom) {
         }
     }
     check('sprites reuse a cell, so order matters', ordered > 0, true);
+}
+
+/**
+ * Collision boxes, against the trace of the Boy walking into a Wimpy Flower.
+ *
+ * The trace is the ground truth here: it walks into the same flower from the
+ * west, the north and the east, and the game's own decision is recorded on
+ * every frame. 925 of those tests were replayed against this rule and it
+ * agreed with all of them, so the boundaries below are the game's, not this
+ * code's idea of them.
+ */
+function checkHitboxes(rom) {
+    const flower = maps.characterHitbox(rom, 109);
+    const boy = maps.characterHitbox(rom, 0);
+    check('wimpy flower radius', flower.radius, 14);
+    check('wimpy flower box', `${flower.width}x${flower.height}`, '28x14');
+    check('boy radius', boy.radius, 8);
+
+    // The traced flower: room 0x38's spawn at (73,121), which is pixel
+    // (584,968) — 8 pixels to the map's unit.
+    const traced = { x: 584, y: 968, radius: flower.radius };
+    const from = (dx, dy) => maps.entitiesCollide(
+        { x: 584 - dx, y: 968 - dy, radius: boy.radius }, traced);
+    // Walking in from the west and the east: blocked up to 21 px away, free
+    // at 22 — exactly the sum of the two radii.
+    check('blocked 21px to the west', from(21, 0), true);
+    check('free 22px to the west', from(22, 0), false);
+    check('blocked 21px to the east', from(-21, 0), true);
+    check('free 22px to the east', from(-22, 0), false);
+    // From the north the box is half as tall, so it gives way at 11.
+    check('blocked 10px to the north', from(0, 10), true);
+    check('free 11px to the north', from(0, 11), false);
+
+    // Radius 0 means no body at all ($8FB4B2 BEQ): the statue, the bridge and
+    // the stone cobras are walked straight through.
+    check('statue has no body', maps.characterHitbox(rom, 27).solid, false);
+    check('bridge has no body', maps.characterHitbox(rom, 28).solid, false);
+    const names = require('../../src/script/names.json');
+    let solid = 0;
+    let insubstantial = 0;
+    for (const enemy of Object.values(names.enemies)) {
+        if (enemy.character === null) continue;
+        if (maps.characterHitbox(rom, enemy.character).solid) solid += 1;
+        else insubstantial += 1;
+    }
+    check('most characters have a body', solid >= 130, true);
+    console.log(`  hitboxes: ${solid} solid, ${insubstantial} walk-through`);
 }
 
 function checkOverlayParity(rom, rooms) {

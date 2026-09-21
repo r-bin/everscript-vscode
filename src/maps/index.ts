@@ -64,10 +64,11 @@ export type { Rgba8, LabelAnchor } from './font';
 export {
     walkSprites, readSpriteInfo, composeSprite, decodeSpriteBlock, SPRITE_LIST_START,
 } from './sprites';
+export { renderCharacterSprite, renderSpriteAt, renderCharacterFrames } from './characters';
+export { resolveCharacterSprite, characterAnimation } from './character-animation';
 export {
-    resolveCharacterSprite, characterPalette, renderCharacterSprite,
-    characterAnimation, renderSpriteAt, renderCharacterFrames, FACING_SOUTH,
-    characterDisposition,
-} from './characters';
+    characterPalette, characterDisposition, characterHitbox, entitiesCollide, FACING_SOUTH,
+} from './character-record';
 export type { SpriteInfo, SpriteChunk, SpritePixels, SpriteBlockPixels } from './sprites';
-export type { AnimationFrame as SpriteAnimationFrame, CharacterDisposition } from './characters';
+export type { AnimationFrame as SpriteAnimationFrame } from './character-animation';
+export type { CharacterDisposition, CharacterHitbox } from './character-record';

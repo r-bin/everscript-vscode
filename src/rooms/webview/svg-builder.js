@@ -145,29 +145,45 @@ function buildRoomSvgSection(opts){
       var tip=nm+(v.name&&v.romName?' ('+v.name+')':'')
             +(v.character!=null?'\ncharacter #'+v.character:'')
             +(disp?'\n'+disp:'')
+            // The Boy's own radius is 8, so he stops r+8 px away horizontally
+            // and (r+8)/2 vertically.
+            +(v.hitW!=null?'\nhitbox '+(v.hitW?v.hitW+'\u00d7'+v.hitH+' px \u2014 stops the Boy '+(v.hitW/2+8)+' px away':'none \u2014 walk through it'):'')
             +(v.spawner?'\nspawner'+(v.quantity!=null?' x'+v.quantity:''):'')
             +'\nat '+v.x+','+v.y+' \u2014 candidate, depends on save state';
+      // The body other entities bump into: character record +0x0D as a
+      // radius, giving a box 2r wide and r tall centred on the spawn point.
+      // The vertical axis counts double in the game's own test ($8FB4C5 ASL),
+      // which is why it is half as tall as it is wide.
+      if(v.hitW){
+        var PXU=8, hw=v.hitW/PXU/2, hh=v.hitH/PXU/2, cxh=v.x, cyh=v.y;
+        html+='<rect class="svge-spawn svge-hitbox" data-idx="'+i+'" data-kind="spawn" data-label="'+escH(nm)+' hitbox '+v.hitW+'\u00d7'+v.hitH+'px" x="'+(cxh-hw)+'" y="'+(cyh-hh)+'" width="'+(hw*2)+'" height="'+(hh*2)+'" fill="none" stroke="#ffffff" stroke-opacity="0.5" stroke-width="0.12" stroke-dasharray="0.35,0.3"><title>'+escH(tip)+'</title></rect>';
+      }
       // The tile it stands on, tinted by that flag, so a room reads at a
       // glance. Drawn first so the sprite keeps the foreground.
       if(v.hostile!=null){
         var hc=v.hostile?'#ff5555':'#4fc3f7';
-        html+='<rect class="svge-spawn svge-spawn-tile" data-idx="'+i+'" data-kind="spawn" data-label="'+escH(nm)+' ('+v.x+','+v.y+')" x="'+v.x+'" y="'+v.y+'" width="1" height="1" fill="'+hc+'" fill-opacity="'+(v.inactive?0.10:0.20)+'" stroke="'+hc+'" stroke-opacity="0.75" stroke-width="0.15" stroke-dasharray="'+(v.inactive?'0.4,0.3':'none')+'" rx="0.2"><title>'+escH(tip)+'</title></rect>';
+        html+='<rect class="svge-spawn svge-spawn-tile" data-idx="'+i+'" data-kind="spawn" data-label="'+escH(nm)+' ('+v.x+','+v.y+')" x="'+(v.x-0.5)+'" y="'+(v.y-0.5)+'" width="1" height="1" fill="'+hc+'" fill-opacity="'+(v.inactive?0.10:0.20)+'" stroke="'+hc+'" stroke-opacity="0.75" stroke-width="0.15" stroke-dasharray="'+(v.inactive?'0.4,0.3':'none')+'" rx="0.2"><title>'+escH(tip)+'</title></rect>';
       }
       if(v.sprite){
-        // The game's own artwork, centred on the spawn point. Sprite pixels
-        // are 1:1 with SVG units here, the same scale the map image uses.
-        // Place by the sprite's own origin, which sits at its feet.
-        // Centring it instead drops an enemy about a tile low.
+        // The game's own artwork, placed by the sprite's own origin, which
+        // sits at its feet. Centring it instead drops an enemy about a tile
+        // low.
+        //
+        // The origin lands on the spawn coordinate exactly: a trace of room
+        // 0x38 has its entities at pixel 8*x for every one of them — the two
+        // Mosquitoes the script places at x=17 are at $0088 = 136. So there
+        // is no half-tile to add; doing that put every sprite 4 px down and
+        // to the right.
         var PX=8;
         var sw=(v.spriteW||16)/PX, sh=(v.spriteH||16)/PX;
         var ox=(v.spriteOX!=null?v.spriteOX:(v.spriteW||16)/2)/PX;
         var oy=(v.spriteOY!=null?v.spriteOY:(v.spriteH||16)/2)/PX;
         var fr=(v.spriteFrames&&v.spriteFrames.length>1)
           ?' data-frames="'+escH(JSON.stringify(v.spriteFrames))+'"':'';
-        html+='<image class="svge-spawn" data-idx="'+i+'" data-kind="spawn"'+fr+' data-label="'+escH(nm)+' ('+v.x+','+v.y+')" href="'+v.sprite+'" x="'+(v.x-ox+0.5)+'" y="'+(v.y-oy+0.5)+'" width="'+sw+'" height="'+sh+'" style="image-rendering:pixelated" preserveAspectRatio="none"><title>'+escH(tip)+'</title></image>';
+        html+='<image class="svge-spawn" data-idx="'+i+'" data-kind="spawn"'+fr+' data-label="'+escH(nm)+' ('+v.x+','+v.y+')" href="'+v.sprite+'" x="'+(v.x-ox)+'" y="'+(v.y-oy)+'" width="'+sw+'" height="'+sh+'" style="image-rendering:pixelated" preserveAspectRatio="none"><title>'+escH(tip)+'</title></image>';
       } else if(v.hostile==null){
         // No character record either — nothing but a position to show.
-        html+='<rect class="svge-spawn" data-idx="'+i+'" data-kind="spawn" data-label="'+escH(nm)+' ('+v.x+','+v.y+')" x="'+v.x+'" y="'+v.y+'" width="1" height="1" fill="none" stroke="#e3b341" stroke-width="0.25" rx="0.3"><title>'+escH(tip)+'</title></rect>';
+        html+='<rect class="svge-spawn" data-idx="'+i+'" data-kind="spawn" data-label="'+escH(nm)+' ('+v.x+','+v.y+')" x="'+(v.x-0.5)+'" y="'+(v.y-0.5)+'" width="1" height="1" fill="none" stroke="#e3b341" stroke-width="0.25" rx="0.3"><title>'+escH(tip)+'</title></rect>';
       }
     });
 

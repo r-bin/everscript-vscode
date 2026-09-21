@@ -87,8 +87,16 @@ bit-per-word compression, and chunk composition — ported from
 SoETilesViewer. Pinned by `checkSprites` against the reference's own walk
 count of 5128.
 
-`characters.ts` goes from a character to its idle sprite, animation frames
-and palette. See
+Going from a character to a picture is three layers, each its own file:
+
+| File | Owns |
+|---|---|
+| `character-record.ts` | the table at `$8EB678` — palette, disposition, hitbox, and which animation record a facing selects |
+| `character-animation.ts` | walking that animation script into frames |
+| `characters.ts` | blitting those frames, origin-aligned, in the character's palette |
+
+See
 [docs/script-format/sprite_format.md](../../docs/script-format/sprite_format.md),
-[animation_format.md](../../docs/script-format/animation_format.md) and
-[character_table.md](../../docs/script-format/character_table.md).
+[animation_format.md](../../docs/script-format/animation_format.md),
+[character_table.md](../../docs/script-format/character_table.md) and
+[hitboxes.md](../../docs/script-format/hitboxes.md).

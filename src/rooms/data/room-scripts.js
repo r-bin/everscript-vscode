@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 
 const { buildRoomScriptModel } = require('../../script');
-const { renderCharacterFrames, encodePng, characterDisposition } = require('../../maps');
+const { renderCharacterFrames, encodePng, characterDisposition, characterHitbox } = require('../../maps');
 
 const ROM_NAMES = ['Secret of Evermore (U) [!].smc', 'Secret of Evermore.smc'];
 
@@ -78,13 +78,21 @@ function attachSprites(rom, spawns) {
         if (!cache.has(spawn.character)) {
             let built = null;
             let disposition = null;
+            let hitbox = null;
             try {
                 built = buildSprite(rom, spawn.character);
                 disposition = characterDisposition(rom, spawn.character);
+                hitbox = characterHitbox(rom, spawn.character);
             } catch { built = null; }
-            cache.set(spawn.character, { sprite: built, disposition });
+            cache.set(spawn.character, { sprite: built, disposition, hitbox });
         }
-        const { sprite, disposition } = cache.get(spawn.character);
+        const { sprite, disposition, hitbox } = cache.get(spawn.character);
+        if (hitbox) {
+            // In pixels, the unit the collision test uses. One SVG unit on the
+            // Rooms map is 8 of them.
+            spawn.hitW = hitbox.width;
+            spawn.hitH = hitbox.height;
+        }
         if (disposition) {
             const flags = spawn.state === null || spawn.state === undefined
                 ? disposition.flags
