@@ -133,6 +133,7 @@ function editUseFamilyTile(graphicId, family) {
   // line of text \u2014 clicking with no confirmation reads as a dead control.
   _brushTile = { graphic: graphicId, family: family };
   _mtSlot = -1;
+  editArmBrush();
 
   editNote('brush: graphic ' + graphicId + ' in family ' + family
     + (got.added ? ' (family added to slot ' + (got.slot + 1) + ')' : '')
@@ -171,7 +172,7 @@ function familySlotsPanel() {
   html += '</div>';
 
   if (_famPicking >= 0) html += familyBrowserHtml();
-  else if (_famOpen >= 0 && fams[_famOpen] !== undefined) html += familyStrip(fams[_famOpen], true);
+  else if (_famOpen >= 0 && fams[_famOpen] !== undefined) html += familyStrip(fams[_famOpen]);
   return html;
 }
 
@@ -303,16 +304,19 @@ function applyFamilyPreviews(msg) {
  * a graphic carries no colours, so "what will this look like" is only
  * answerable once a family is chosen, and this is the answer.
  */
-function familyStrip(family, expanded) {
+function familyStrip(family) {
   var s = _famSheets[family];
   if (!s) { ensureFamilySheet(family); return '<div class="rs-note">loading family ' + family + '…</div>'; }
   if (s === 'pending') return '<div class="rs-note">loading family ' + family + '…</div>';
   if (!s.count) return '<div class="rs-note">family ' + family + ' — no room draws anything in it</div>';
 
-  var limit = expanded ? s.count : Math.min(s.count, 16);
+  // Everything the host sent. It caps at 128 graphics, and *that* is worth
+  // saying because it means there is more art in the family; hiding 2 of
+  // 18 behind a "showing 16" was just a shorter list for no reason.
+  var limit = s.count;
   var html = '<div class="rs-note">family ' + family + ' — ' + s.total + ' graphic'
     + (s.total === 1 ? '' : 's') + ' across ' + s.roomCount + ' room' + (s.roomCount === 1 ? '' : 's')
-    + (limit < s.count ? ', showing ' + limit : '') + '</div>'
+    + (s.count < s.total ? ', the ' + s.count + ' most-used shown' : '') + '</div>'
     + '<div class="rs-mt-sheet rg-group-sheet" style="--mt-sheet:url(' + s.imageUri
     + ');--mt-cell:' + s.cell + 'px"><div class="rs-mt-grid">';
   for (var i = 0; i < limit; i++) {

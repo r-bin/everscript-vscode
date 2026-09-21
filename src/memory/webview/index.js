@@ -88,7 +88,8 @@ const ROOMS_JS_FILES = [
   'map-editor-families.js',// choosing the seven families and browsing their art
   'map-editor-deco.js',  // the deco library: vanilla's own objects, to stamp
   'map-editor-panels.js',// tile list, needed metatiles, checks
-  'map-editor-input.js', // pointer/key gestures -> edits
+  'map-editor-gestures.js',// pointer/key gestures on the map -> edits
+  'map-editor-input.js', // clicks on the chrome -> actions
   'map-editor-actions.js',// toolbar actions (undo, compose, constructs, export)
   'map-editor-newroom.js',// drafting a room that is not in the ROM
   'rom-overlay.js',      // ROM view top bar (_currentLayer/_currentOverlay) + renderRomDataSections

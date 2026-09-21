@@ -1,3 +1,38 @@
+## [0.48.0] — 2026-09-22
+
+### The edit and "new room" buttons work every time now
+
+They worked after an odd number of room renders and were dead after an even one. `#room-detail` survives a re-render — only its `innerHTML` is replaced — but `bindEditControls` attached a fresh click handler on every render, stacking them on the same node. Two handlers meant every toggle fired twice and cancelled itself out: `edit` turned edit mode on and straight back off, `new room` opened the form and closed it.
+
+The panel is now bound once, the way the gesture and key handlers already were. Proven in a browser: bind twice, click once, and edit mode has to end up in the other state.
+
+### Picking a tile hands the clicks back to the brush
+
+The stamp tool places the armed *construct* and ignores the brush entirely, so arming a widget and then clicking a grass tile sent the next map click to the widget. That was "I'm not allowed to stamp a gourd tile, even though it is part of my family". Choosing a tile is choosing to paint, so it now says so: the tool goes back to paint and the armed construct is released.
+
+### Finding the gourd you can actually use
+
+532 nameless objects is a haystack, so the picker gained the four questions the ROM can answer, as buttons:
+
+| | keeps | how many |
+|---|---|---|
+| **fits** | entries every one of whose families you already have | 93 of 532, for room `0x34`'s seven |
+| **works** | entries that came with a B-trigger script | 68 |
+| **front** | entries that draw on the canopy alone, over any floor | 352 |
+| **open** | entries with more than one state | 134 |
+
+All four at once is "a fully working, foreground-only gourd out of my own families" — **27 entries** in room `0x34`, including the family-35 gourds. An entry is dimmed and badged `+N` when it would cost palette slots you have not got, rather than hidden: it is a decision, not an error. Typed words now AND together too, so `ebon keep` and `ivor 3x4` both narrow the way you would expect.
+
+This needed the index to change shape: an entry carries its **family ids**, not a count, because whether it is usable depends on the seven the draft holds and only the editor knows those.
+
+### No more "showing 16"
+
+A family strip cut itself off at sixteen swatches and said so, which hid two of family 35's eighteen for no reason. Everything the host sends is shown. The host still caps at 128 graphics per family, and *that* is worth saying, so a big family reads "the 128 most-used shown".
+
+### Internal
+
+`map-editor-input.js` passed 400 lines, so the map's own pointer and key gestures moved to `map-editor-gestures.js`. The split follows a line that was already there: one file is the map, the other is the chrome.
+
 ## [0.47.0] — 2026-09-21
 
 ### The deco library now stamps the thing, not the place

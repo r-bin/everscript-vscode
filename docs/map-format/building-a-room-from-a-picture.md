@@ -457,6 +457,27 @@ A selection over the hide on the floor carries neither an object nor a
 trigger — hides are pure metatiles — so the library shows which is which
 before you place it.
 
+### 9.4 Four questions that make 532 findable
+
+A nameless library is only usable if you can narrow it, and the useful
+narrowings are properties the ROM already answers:
+
+| Filter | What it keeps | Count |
+|---|---|---|
+| **fits** | entries every one of whose families you already have | 93 for room `0x34`'s seven |
+| **works** | entries that came with a B-trigger script | 68 |
+| **front** | entries that draw on the canopy alone, over any floor | 352 |
+| **open** | entries with more than one state | 134 |
+
+`fits` is the one that needed the index to change shape: an entry now
+carries its **family ids**, not a count, because whether it is usable
+depends on the seven the draft holds and only the editor knows those. An
+entry that does not fit is dimmed and badged with how many slots it would
+cost, rather than hidden — it is a decision, not an error.
+
+All four together are "a working, foreground gourd out of my own
+families": **27 entries** in room `0x34`, against 532 unfiltered.
+
 ---
 
 ## 10. What this does not solve
@@ -500,3 +521,4 @@ statistics.
 | 122/127 rooms have an all-transparent blank | decompress the most-placed canopy word's graphic; count non-zero palette indices |
 | 99/863 objects under a B-trigger, 50 grown by one | rectangle overlap between `objects[].states[0]` and `triggers.bTrigger` |
 | 532 entries, 68 with a script, 82.2% open ground | `buildDecoCatalogue`, pinned in `map-parity.test.js` |
+| 352 canopy-only, 93 that fit room 0x34, 27 that are all three | filter the catalogue by `cells.every(!terrain)`, by `families` ⊆ the room's, and by `trigger` |

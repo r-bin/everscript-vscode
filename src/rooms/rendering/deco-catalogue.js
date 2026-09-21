@@ -282,12 +282,25 @@ function decoIndex(rom) {
     return buildDecoCatalogue(rom).map((d) => ({
         id: d.id, area: d.area, roomName: d.roomName, room: d.room,
         w: d.w, h: d.h, states: d.states, count: d.count,
-        /** How many of the stamper's seven palette slots this entry wants. */
-        families: d.families.length,
+        /**
+         * The families themselves, not a count.
+         *
+         * Whether an entry is usable depends on the families the room
+         * already has — 93 of the 532 cost room 0x34 nothing at all — and
+         * only the editor knows those, so it needs the ids to compare.
+         */
+        families: d.families,
         /** How many Block 1 slots it wants. */
         graphics: d.graphics.length,
         /** Only the drawn cells, so "2x3, 2 cells" reads as the L it is. */
         cells: d.cells.length,
+        /**
+         * True when every cell draws on the canopy only.
+         *
+         * 352 of the 532 are like this: pure foreground over whatever floor
+         * they land on, which is what a gourd should be.
+         */
+        front: d.cells.every((c) => !c.terrain),
         scriptId: d.trigger ? d.trigger.scriptId : null,
     }));
 }

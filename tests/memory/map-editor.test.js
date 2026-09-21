@@ -284,6 +284,7 @@ const ui = new Function(`
   ${read('map-editor-constructs.js')}
   ${read('map-editor-families.js')}
   ${read('map-editor-panels.js')}
+  ${read('map-editor-gestures.js')}
   ${read('map-editor-input.js')}
   ${read('map-editor-actions.js')}
   ${read('map-editor-newroom.js')}

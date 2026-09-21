@@ -1,145 +1,9 @@
-// Ownership: turning pointer and key events into edits. The last piece of
-// the editor — state is map-editor.js, the map layer is
-// map-editor-paint.js, the chrome is map-editor-ui.js.
+// Ownership: clicks on the editor's *chrome* — the tool bar, the panels,
+// the composer — routed to whatever they mean, plus the status line and
+// the edit-mode toggle. The map's own pointer gestures are
+// map-editor-gestures.js.
 //
-// Listeners are attached to #rg-wrap in the **capture** phase so a stroke
-// is decided before the pan/select handlers on the SVG ever see it; while
-// edit mode is off nothing is intercepted and the map behaves exactly as
-// before.
-
-var _editDrag = null;
-
-/** Map coordinates for a pointer event, in metatile cells. */
-function editEventCell(e) {
-  var svg = document.getElementById('rg-svg');
-  if (!svg || !svg.getScreenCTM) return null;
-  var pt = svg.createSVGPoint();
-  pt.x = e.clientX; pt.y = e.clientY;
-  var p = pt.matrixTransform(svg.getScreenCTM().inverse());
-  return {
-    x: Math.floor((p.x - _editOrigin.x) / EDIT_UNITS),
-    y: Math.floor((p.y - _editOrigin.y) / EDIT_UNITS),
-  };
-}
-
-/** A click or drag step with the current tool. */
-function editStroke(cell, phase) {
-  var d = editDraft();
-  if (!d || !editInBounds(_mtPalette, cell.x, cell.y)) return;
-
-  if (d.tool === 'pick') {
-    if (phase !== 'down') return;
-    var at = editCellAt(_mtPalette, cell.x, cell.y);
-    if (at >= 0) { d.brush = at; _mtSelected = at; renderMetatilePalette(); }
-    renderEditChrome();
-    return;
-  }
-
-  if (d.tool === 'erase') {
-    // The phase decides what "erase" means, and editResolve owns that.
-    var bare = editResolve(_mtPalette, cell.x, cell.y, -1, d.phase, true);
-    if (bare >= 0) editApply([{ x: cell.x, y: cell.y, index: bare }]);
-    renderEditChrome();
-    return;
-  }
-
-  if (d.tool === 'stamp') {
-    if (phase !== 'down' || _editConstruct < 0) return;
-    var got = editConstructWrites(_mtPalette, d.constructs[_editConstruct], cell.x, cell.y);
-    if (got.writes.length) { editApply(got.writes); requestComposedPreview(); }
-    if (got.problems.length) editNote(got.problems.join(' · '));
-    else if (!got.writes.length) editNote('nothing to place there');
-    else editStampedConstruct(d.constructs[_editConstruct], cell.x, cell.y);
-    renderEditChrome();
-    return;
-  }
-
-  if (d.tool === 'paint') {
-    if (d.brush < 0) return;
-    var idx = editResolve(_mtPalette, cell.x, cell.y, d.brush, d.phase, false);
-    if (idx < 0) return;
-    editApply([{ x: cell.x, y: cell.y, index: idx }]);
-    // A deco stroke can invent a stamp, which the preview sheet must catch
-    // up with or the painted cell has no picture to crop from.
-    if (idx >= _mtPalette.count) requestComposedPreview();
-    renderEditChrome();
-    return;
-  }
-
-  // rect / copy / move all drag out a rectangle first.
-  if (phase === 'down') { _editDrag = { x1: cell.x, y1: cell.y }; _editSel = null; }
-  if (!_editDrag) return;
-  _editSel = {
-    x1: Math.min(_editDrag.x1, cell.x), y1: Math.min(_editDrag.y1, cell.y),
-    x2: Math.max(_editDrag.x1, cell.x), y2: Math.max(_editDrag.y1, cell.y),
-  };
-  if (phase !== 'up') { renderEditLayer(_mtPalette, _editComposed, _editOrigin); return; }
-
-  if (d.tool === 'rect') {
-    if (d.brush >= 0) editApply(editRectWrites(_editSel.x1, _editSel.y1, _editSel.x2, _editSel.y2, d.brush, _mtPalette));
-    _editSel = null;
-  } else if (_editSel.x1 === _editSel.x2 && _editSel.y1 === _editSel.y2 && _editClip) {
-    // A single click with something on the clipboard is a paste.
-    editApply(editPasteWrites(_editSel.x1, _editSel.y1, _mtPalette));
-    _editSel = null;
-  } else {
-    // A real drag takes the region; `move` also backfills it.
-    var backfill = editTakeSelection(_mtPalette, d.tool === 'move');
-    if (backfill.length) editApply(backfill);
-  }
-  _editDrag = null;
-  renderEditChrome();
-}
-
-/** Attach the capture-phase gesture handlers once per rendered room. */
-function setupEditGestures() {
-  var wrap = document.getElementById('rg-wrap');
-  if (!wrap || wrap.dataset.editBound) return;
-  wrap.dataset.editBound = '1';
-
-  var painting = false;
-  wrap.addEventListener('mousedown', function (e) {
-    if (!editActive() || e.button !== 0 || e.shiftKey || e.metaKey || e.ctrlKey) return;
-    var cell = editEventCell(e);
-    if (!cell) return;
-    painting = true;
-    editStroke(cell, 'down');
-    e.preventDefault();
-    e.stopPropagation();
-  }, true);
-
-  wrap.addEventListener('mousemove', function (e) {
-    if (!painting || !editActive()) return;
-    var cell = editEventCell(e);
-    if (cell) editStroke(cell, 'move');
-    e.stopPropagation();
-  }, true);
-
-  wrap.addEventListener('mouseup', function (e) {
-    if (!painting || !editActive()) return;
-    painting = false;
-    var cell = editEventCell(e);
-    if (cell) editStroke(cell, 'up');
-    e.stopPropagation();
-  }, true);
-}
-
-/** Undo/redo, and escape to drop a selection. */
-function setupEditKeys() {
-  if (typeof window === 'undefined' || window._editKeysBound) return;
-  window._editKeysBound = true;
-  window.addEventListener('keydown', function (e) {
-    if (!editActive()) return;
-    if (e.key === 'Escape') { _editSel = null; _editClip = null; renderEditChrome(); return; }
-    var mod = e.metaKey || e.ctrlKey;
-    if (!mod || (e.key !== 'z' && e.key !== 'Z')) return;
-    if (e.shiftKey ? editRedo(_mtPalette) : editUndo(_mtPalette)) {
-      requestComposedPreview();
-      renderEditChrome();
-      e.preventDefault();
-    }
-  });
-}
+// Owns: _editPendingNote, _editPanelRoom.
 
 /** A stamp was clicked in the palette or the composer preview. */
 function editOnStampPicked(index) {
@@ -188,6 +52,7 @@ function editOnTilePicked(word) {
   var index = editBrushFromTile(_mtPalette, word, d.phase);
   if (index < 0) return false;
   _brushTile = null;   // the room's own sheet marks its selection with _mtSlot
+  editArmBrush();
   editNote('brush: stamp #' + index + ' — '
     + (d.phase === 'deco' ? 'drawn over whatever it is painted on' : 'ground, nothing over it')
     + ', no collision yet. Paint on the map.');
@@ -230,7 +95,7 @@ function renderComposer() {
  */
 var EDIT_CLICK_KEYS = ['editTool', 'editPhase', 'editAct', 'editPick', 'panel',
   'famSlot', 'famAdd', 'famPick', 'famPage', 'famTile', 'construct', 'tileSource',
-  'deco', 'decoPage', 'mtIndex', 'mtSlot'];
+  'deco', 'decoPage', 'decoFlag', 'mtIndex', 'mtSlot'];
 
 /** The nearest ancestor (including `el`) that carries one of those keys. */
 function editClickTarget(el, root) {
@@ -244,8 +109,29 @@ function editClickTarget(el, root) {
   return el;
 }
 
-/** The editor's own delegated click handler, for the bar and the composer. */
+/** The room the delegated handler acts on; re-pointed on every render. */
+var _editPanelRoom = null;
+
+/**
+ * The editor's own delegated click handler, for the bar and the composer.
+ *
+ * **Bound once per panel node.** `#room-detail` survives a room re-render —
+ * only its `innerHTML` is replaced — so binding again stacks a second
+ * handler on the same element and every click fires the handler twice. For
+ * a toggle that is a no-op: `edit` turned edit mode on and straight back
+ * off, `new room` opened and closed the form. That is exactly what "the
+ * edit and new map button work every now and then" was — they worked after
+ * an odd number of renders and were dead after an even one, proven in a
+ * browser with two binds and four clicks.
+ *
+ * The room is held in a variable rather than the closure, because the
+ * closure is created once and the room changes.
+ */
 function bindEditControls(panel, room) {
+  _editPanelRoom = room;
+  if (!panel || panel.dataset.editBound) return;
+  panel.dataset.editBound = '1';
+
   // The family filter is the one text input in the editor. Delegated on
   // `input` so it survives the redraws it causes.
   panel.addEventListener('input', function (e) {
@@ -267,7 +153,7 @@ function bindEditControls(panel, room) {
     var t = editClickTarget(e.target, panel);
     if (!t || !t.dataset) return;
 
-    if (t.id === 'rg-edit-btn') { editToggle(room, t); return; }
+    if (t.id === 'rg-edit-btn') { editToggle(_editPanelRoom, t); return; }
     if (t.dataset.editTool) {
       var d = editDraft();
       if (d) { d.tool = t.dataset.editTool; _editSel = null; renderEditChrome(); }
@@ -321,6 +207,12 @@ function bindEditControls(panel, room) {
       return;
     }
     if (t.dataset.tileSource) { _tileSource = t.dataset.tileSource; renderEditPanels(); return; }
+    if (t.dataset.decoFlag) {
+      _decoFlags[t.dataset.decoFlag] = !_decoFlags[t.dataset.decoFlag];
+      _decoPage = 0;   // a narrower list starts at the top of its own pages
+      renderEditPanels();
+      return;
+    }
     if (t.dataset.deco) { decoUse(Number(t.dataset.deco)); return; }
     if (t.dataset.decoPage !== undefined && t.dataset.decoPage !== '') {
       _decoPage = Number(t.dataset.decoPage);
@@ -380,3 +272,4 @@ function editToggle(room, btn) {
   }
   renderEditChrome();
 }
+

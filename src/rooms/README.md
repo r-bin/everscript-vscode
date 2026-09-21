@@ -146,8 +146,12 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   `_editCompose` / `_editConstruct`
 - `map-editor-panels.js` — the metrics, checks, family slots, grouped tile list
   and needed-metatile read-outs; owns `_famOpen` / `_famSheet` / `_panelOpen`
-- `map-editor-input.js` — capture-phase pointer and key gestures, so nothing is
-  intercepted while edit mode is off
+- `map-editor-gestures.js` — capture-phase pointer and key gestures on the map,
+  so nothing is intercepted while edit mode is off; owns `_editDrag`
+- `map-editor-input.js` — clicks on the *chrome*, routed to what they mean, plus
+  the status line and the edit toggle; owns `_editPendingNote` / `_editPanelRoom`.
+  Bound **once per panel node**: `#room-detail` outlives a re-render, and a second
+  handler made every toggle fire twice and cancel itself out
 - `map-editor-newroom.js` — the blank-room round trip, split out to keep
   `map-editor-input.js` under the size limit
 - `tables-builder.js` — entity tables, ROM script cards

@@ -121,6 +121,22 @@ function editAttachmentsIn(palette, sel) {
 }
 
 /**
+ * Picking a tile means painting with it.
+ *
+ * The stamp tool places the armed *construct* and ignores the brush
+ * entirely, so arming a widget and then clicking a tile left the click
+ * going to the widget — "I'm not allowed to stamp a gourd tile" was the
+ * editor still holding the last construct. Choosing a tile is choosing to
+ * paint, so it says so.
+ */
+function editArmBrush() {
+  var d = editDraft();
+  if (!d) return;
+  if (d.tool === 'stamp') d.tool = 'paint';
+  _editConstruct = -1;
+}
+
+/**
  * Record what a placement owes the room beyond its metatiles.
  *
  * A gourd is art **plus** an object record **plus** a B-trigger pointing at

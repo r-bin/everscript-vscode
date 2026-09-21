@@ -56,7 +56,7 @@ function tilesPanel(p) {
   var fams = editFamilies().filter(function (f) { return f !== undefined; });
   if (!fams.length) return html + '<div class="rs-note">No families chosen yet — add one above.</div>';
   html += '<div class="rs-note">Clicking a tile here adopts its family if you do not have it.</div>';
-  for (var i = 0; i < fams.length; i++) html += familyStrip(fams[i], false);
+  for (var i = 0; i < fams.length; i++) html += familyStrip(fams[i]);
   return html;
 }
 

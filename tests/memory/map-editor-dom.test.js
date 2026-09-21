@@ -26,7 +26,7 @@ const read = (f) => fs.readFileSync(path.join(WEBVIEW, f), 'utf8');
 /** The editor's files, in the order the bundle concatenates them. */
 const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-paint.js', 'map-editor-ui.js',
     'map-editor-phases.js', 'map-editor-constructs.js', 'map-editor-families.js', 'map-editor-deco.js',
-    'map-editor-panels.js', 'map-editor-input.js', 'map-editor-actions.js', 'map-editor-newroom.js'];
+    'map-editor-panels.js', 'map-editor-gestures.js', 'map-editor-input.js', 'map-editor-actions.js', 'map-editor-newroom.js'];
 
 /** A palette shaped like the host's reply, small enough to read. */
 const PALETTE = {
@@ -372,17 +372,30 @@ async function main() {
     const strip = await page.evaluate(() => document.getElementById('rg-panels').innerHTML);
     check('a family’s tiles are drawn in that family, not the room’s palette',
         strip.includes('base64,ZmFt') && strip.includes('data-fam-of="58"'));
+    // "showing 16" hid two of eighteen for no reason. Everything the host
+    // sent is shown; the only thing worth saying is that it capped at 128.
+    const notes58 = await page.$$eval('#rg-panels .rs-note',
+        (n) => n.map((e) => e.textContent).filter((t) => /^family 58/.test(t)));
+    const stripNote = notes58[0] || '';
+    const swatches58 = await page.$$eval('[data-fam-of="58"]', (n) => n.length);
+    check('every tile the host sent is shown, with no arbitrary cut',
+        notes58.length > 0 && swatches58 === 2 * notes58.length && !/showing/.test(stripNote),
+        `${notes58.length} strip(s), ${swatches58} swatches — ${stripNote}`);
+    check('and the cap the host did apply is named', /the 2 most-used shown/.test(stripNote), stripNote);
 
     // ── the deco library ───────────────────────────────────────────────────
     // Section 3 objects are vanilla's own deco widgets — gourds, pots, fire
     // pits — so the library is read out of the ROM rather than invented.
     const DECO = [
+        // `families` is the ids, not a count: whether an entry is usable
+        // depends on the seven the draft already holds, which only the
+        // editor knows. PALETTE has 35, 187, 58, 165, 149, 59, 166.
         { id: 0, area: 'Prehistoria', roomName: "Strong Heart's Hut", room: 0x34, w: 2, h: 2,
-          states: 1, count: 3, families: 1, graphics: 3, cells: 4, scriptId: null },
+          states: 1, count: 3, families: [58], graphics: 3, cells: 4, front: false, scriptId: null },
         { id: 1, area: 'Prehistoria', roomName: "Fire Eyes' Village", room: 0x25, w: 4, h: 3,
-          states: 2, count: 4, families: 1, graphics: 2, cells: 2, scriptId: 0xd74 },
+          states: 2, count: 4, families: [35], graphics: 2, cells: 2, front: true, scriptId: 0xd74 },
         { id: 2, area: 'Gothica', roomName: 'Ebon Keep', room: 0x60, w: 6, h: 6,
-          states: 1, count: 1, families: 2, graphics: 9, cells: 30, scriptId: null },
+          states: 1, count: 1, families: [220, 5], graphics: 9, cells: 30, front: true, scriptId: null },
     ];
     await page.evaluate((deco) => {
         editReset(0x34);
@@ -500,13 +513,71 @@ async function main() {
         (await page.$$eval('.rg-deco', (n) => n.map((e) => e.dataset.deco))).join() === '2');
     await page.fill('#rg-deco-filter', 'gothica');
     check('so does an act', (await page.$$eval('.rg-deco', (n) => n.length)) === 1);
-    await page.fill('#rg-deco-filter', 'open');
-    check('and "open" keeps only what has more than one state',
-        await page.evaluate(() => filterDeco(_deco, 'open').every((d) => d.states > 1)));
-    await page.fill('#rg-deco-filter', 'works');
-    check('and "works" keeps the ones that come with a script',
-        (await page.$$eval('.rg-deco', (n) => n.map((e) => e.dataset.deco))).join() === '1');
+    await page.fill('#rg-deco-filter', 'ebon keep');
+    check('and every word has to match, so two narrow further',
+        (await page.$$eval('.rg-deco', (n) => n.map((e) => e.dataset.deco))).join() === '2');
     await page.fill('#rg-deco-filter', '');
+
+    // ── the four questions, as buttons ─────────────────────────────────────
+    // "A working, foreground gourd out of my own families" is the ask; it
+    // is 27 of the 532 in room 0x34, and unfindable without these.
+    const onScreen = () => page.$$eval('.rg-deco', (n) => n.map((e) => e.dataset.deco).join());
+    check('an entry that needs families you lack is marked with its cost',
+        await page.$eval('[data-deco="2"]', (n) => n.classList.contains('rg-deco-costly')
+            && n.querySelector('.rg-deco-cost').textContent === '+2'));
+    check('and one your families already draw is not',
+        await page.$eval('[data-deco="1"]', (n) => !n.classList.contains('rg-deco-costly')));
+
+    await page.click('[data-deco-flag="fits"]');
+    check('"fits" keeps only what your seven families already draw', await onScreen() === '0,1');
+    await page.click('[data-deco-flag="works"]');
+    check('and "works" narrows that to the ones with a script', await onScreen() === '1');
+    await page.click('[data-deco-flag="front"]');
+    check('and "front" to foreground-only — the gourd you asked for',
+        await onScreen() === '1');
+    const panelText = await page.$eval('#rg-panels', (n) => n.textContent);
+    check('the count says how much of the library survived',
+        /1 of 3\s+objects/.test(panelText), panelText.slice(0, 300));
+    await page.click('[data-deco-flag="fits"]');
+    await page.click('[data-deco-flag="works"]');
+    await page.click('[data-deco-flag="front"]');
+    check('and turning them off brings the library back', await onScreen() === '0,1,2');
+
+    // ── picking a tile is choosing to paint ────────────────────────────────
+    // The stamp tool places the armed construct and ignores the brush, so
+    // arming a widget and then clicking a tile sent the click to the
+    // widget: "I'm not allowed to stamp a gourd tile".
+    await page.click('[data-deco="1"]');
+    await page.evaluate((entry) => applyDecoCells({ entry: entry }), ENTRY);
+    check('arming a widget selects the stamp tool',
+        await page.evaluate(() => editDraft().tool) === 'stamp');
+    await page.evaluate(() => { _panelOpen.tiles = true; renderEditPanels(); });
+    await page.click('[data-fam-tile="4191"]');
+    const armedTile = await page.evaluate(
+        () => ({ tool: editDraft().tool, construct: _editConstruct, brush: editDraft().brush }));
+    check('and then picking a tile hands the clicks back to the brush',
+        armedTile.tool === 'paint' && armedTile.construct === -1 && armedTile.brush >= 0,
+        JSON.stringify(armedTile));
+
+    // ── binding the panel twice must not double every click ────────────────
+    // #room-detail survives a room re-render — only its innerHTML is
+    // replaced — so a second bind stacked a second handler and every
+    // toggle cancelled itself out. That was "the edit and new map button
+    // work every now and then": alive after an odd number of renders.
+    await page.evaluate(() => {
+        document.getElementById('room-detail').insertAdjacentHTML('afterbegin', buildEditButtonHtml());
+        // One more bind, for the second render of the same panel. Without
+        // the guard that makes two handlers, and two is the dead case.
+        bindEditControls(document.getElementById('room-detail'), {});
+    });
+    const wasOn = await page.evaluate(() => !!editDraft().on);
+    await page.click('#rg-edit-btn');
+    const nowOn = await page.evaluate(() => !!editDraft().on);
+    check('binding the panel again does not double every click', nowOn === !wasOn,
+        `edit mode went ${wasOn} -> ${nowOn} after one click, with the panel bound twice`);
+    await page.click('#rg-edit-btn');
+    check('and the next click toggles it straight back',
+        await page.evaluate(() => !!editDraft().on) === wasOn);
 
     check('no uncaught errors in any of it', pageErrors.length === 0, pageErrors.join('; '));
 
