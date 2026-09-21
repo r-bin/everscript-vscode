@@ -112,6 +112,7 @@ function main() {
     checkOverlayParity(rom, rooms);
     checkObjectStamps(rom);
     checkAnimation(rom);
+    checkMetatilePalette(rom);
 
     if (failures) {
         console.error(`\nmap-parity: ${failures} mismatch(es)`);
@@ -730,6 +731,58 @@ function checkDashBreaks(rom, roomId) {
         check(`0x${roomId.toString(16)} covered contour breaks going ${name} (${longest}px)`,
             longest > 0 && longest <= LONGEST_DASH, true);
     }
+}
+
+/**
+ * The tile palette: the metatile dictionary, drawn as an atlas.
+ *
+ * The atlas is built as a synthetic room whose tilemaps are the dictionary,
+ * so it goes through the same renderer the map does. That claim is the whole
+ * test — every sampled cell has to be pixel-identical to the same metatile
+ * where it appears in the room, or the palette is showing the user something
+ * they cannot actually place.
+ */
+function checkMetatilePalette(rom) {
+    let sampled = 0;
+    let mismatched = 0;
+    let stamps = 0;
+    let spare = 0;
+    for (const roomId of [0x76, 0x38, 0x25, 0x06]) {
+        const room = decodeRoom(rom, roomId);
+        const full = renderRoomComposite(rom, room);
+        const atlas = maps.renderMetatileAtlas(rom, room, { columns: 16 });
+        const table = maps.metatileTable(room);
+        stamps += table.length;
+        spare += table.filter((m) => !m.uses).length;
+
+        check(`0x${roomId.toString(16)} atlas covers the dictionary`, atlas.count, room.metatileCount);
+        check(`0x${roomId.toString(16)} table covers the dictionary`, table.length, room.metatileCount);
+
+        for (let r = 0; r < room.header.heightTiles; r += 7) {
+            for (let c = 0; c < room.header.widthTiles; c += 5) {
+                const index = maps.metatileIndex(room, room.layer1MetatileIds[r][c]);
+                if (index < 0 || index >= atlas.count) continue;
+                const cell = maps.metatileCellRect(atlas, index);
+                sampled += 1;
+                let differs = false;
+                for (let y = 0; y < 16 && !differs; y++) {
+                    for (let x = 0; x < 16; x++) {
+                        const a = ((r * 16 + y) * full.width + (c * 16 + x)) * 4;
+                        const b = ((cell.y + y) * atlas.image.width + (cell.x + x)) * 4;
+                        if (full.data[a] !== atlas.image.data[b] || full.data[a + 1] !== atlas.image.data[b + 1]
+                            || full.data[a + 2] !== atlas.image.data[b + 2]) { differs = true; break; }
+                    }
+                }
+                if (differs) mismatched += 1;
+            }
+        }
+    }
+    check('atlas cells match the room they came from', mismatched, 0);
+    check('enough cells sampled to mean something', sampled > 400, true);
+    // The usage count is what tells an editor which slots are free.
+    check('some slots are defined but never placed', spare > 0, true);
+    console.log(`  tile palette: ${sampled} cells sampled across 4 rooms, `
+        + `${stamps} stamps, ${spare} never placed`);
 }
 
 function checkOverlayParity(rom, rooms) {

@@ -89,6 +89,11 @@ function renderRoomDetail(room){
   // ── Sprite palettes ────────────────────────────────────────────────────────
   html+=buildPaletteHtml(trig.palettes);
 
+  // ── Tile palette ───────────────────────────────────────────────────────────
+  // The stamps this room can place. Empty until asked for: see
+  // src/rooms/webview/metatile-palette.js.
+  html+=buildMetatilePaletteHtml(room);
+
   // ── Entity tables ──────────────────────────────────────────────────────────
   html+=buildEntityTablesHtml(c,trigOff);
 
@@ -100,6 +105,7 @@ function renderRoomDetail(room){
 
   panel.innerHTML=html;
   bindLinks(panel);
+  bindMetatilePalette(panel,room);
 
   // Sync hide-classes to the filter buttons' initial state. Without this a
   // button rendered without .on would read as "off" while its content is still

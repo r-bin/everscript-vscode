@@ -23,6 +23,7 @@ copy first, since that's the upstream.
 | `map_editor_design.md` | Design decisions for a map editor (repo placement, extend vs. fork) |
 | `map_editor_architecture_and_limitations.md` | Architecture and known limitations |
 | `map_editor_vscode_plan.md` | Repo placement, lexer/parser reuse, IPC/packaging options |
+| `map_editor_ui.md` | **The editor's UI**: which tiles can be placed, editing layers independently, resize, and the write-back plan |
 
 ## Upstream
 

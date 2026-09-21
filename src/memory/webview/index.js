@@ -79,6 +79,7 @@ const ROOMS_JS_FILES = [
   'interactions.js',     // setupByteScriptFocusBinding, setupZoomPan, setupMouseEvents, setupHoverHighlights, setupClickHandlers
   'animation.js',        // Section 2 tile animation overlay + rAF playback
   'object-states.js',    // Section 3 object browser (_objectStates) + state pickers
+  'metatile-palette.js', // the room's placement palette (_mtPalette/_mtLayer/_mtFilter)
   'rom-overlay.js',      // ROM view top bar (_currentLayer/_currentOverlay) + renderRomDataSections
   'detail-renderer.js',  // renderRoomDetail (orchestrator)
   'tab-init.js',         // tab switching, area collapse, mode toggle, room click handlers

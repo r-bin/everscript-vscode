@@ -21,6 +21,10 @@ if(typeof window!=='undefined'&&window.addEventListener){
       // Decoded collision grid for the room currently shown in the Rooms tab.
       if(typeof applyRoomTileOverlay==='function')applyRoomTileOverlay(data);
       if(data.error)console.warn('[RoomsRender] roomTiles:',data.error);
+    }else if(data.command==='roomMetatiles'){
+      // The room's placement palette, fetched only when the section is opened.
+      if(typeof applyMetatilePalette==='function')applyMetatilePalette(data);
+      if(data.error)console.warn('[RoomsRender] roomMetatiles:',data.error);
     }
   });
 }

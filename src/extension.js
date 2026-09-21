@@ -127,7 +127,7 @@ function getExtConfig() {
 const roomData = require('./rooms');
 const { VANILLA_ROOMS, getMapEnum, readLuaWatchers, readScriptAllTriggers, buildVanillaRoomContent, buildVanillaRoomDetails, invalidateRoomDataCaches } = roomData;
 const roomTree = require('./rooms');
-const { findRoomImage, parseRoomContent, collectRoomsFromDir, buildRoomTree, renderVanillaTree, renderRoomsTree, buildRoomsJson, setRoomImageUris, buildRoomTileOverlay } = roomTree;
+const { findRoomImage, parseRoomContent, collectRoomsFromDir, buildRoomTree, renderVanillaTree, renderRoomsTree, buildRoomsJson, setRoomImageUris, buildRoomTileOverlay, buildRoomMetatilePalette } = roomTree;
 
 const romReaders = require('./shared/rom-readers');
 const { readPngDimensions, readRomTriggerOffsets, readRomMapHeader, readRomCharacters, readRomHitLookup, detectScaleEnemies } = romReaders;
@@ -674,6 +674,30 @@ function activate(context) {
                     } catch (err) {
                         _radarPanel.webview.postMessage({ ...reply, error: String(err && err.message || err) });
                     }
+                } else if (msg.command === 'requestRoomMetatiles') {
+                    // The room's metatile dictionary — the stamps a map editor
+                    // can place. Its own request because the biggest room is a
+                    // 325 KB atlas, which nobody should pay for unless they
+                    // open the palette. See docs/map-format/map_editor_ui.md.
+                    const roomId = Number(msg.roomId);
+                    const reply = { command: 'roomMetatiles', mapName: msg.mapName, roomId };
+                    if (!Number.isInteger(roomId) || roomId < 0 || roomId > 0x7e) {
+                        _radarPanel.webview.postMessage({ ...reply, error: 'invalid room id' });
+                        return;
+                    }
+                    try {
+                        const _cfg = getExtConfig();
+                        const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
+                        if (!romBuf) {
+                            _radarPanel.webview.postMessage({ ...reply, error: 'ROM not found — set everscript.romPath' });
+                            return;
+                        }
+                        const palette = buildRoomMetatilePalette(romBuf, roomId, msg.layer);
+                        _radarPanel.webview.postMessage({ ...reply, palette });
+                    } catch (err) {
+                        _radarPanel.webview.postMessage({ ...reply, error: String(err && err.message || err) });
+                    }
                 } else if (msg.command === 'exportRoomPng') {
                     // Export exactly what the Rooms tab is showing — same
                     // layer, overlay flags and object states — rather than a
@@ -1043,6 +1067,7 @@ function activate(context) {
             // a stale map render is worse than a slow one.
             romReaders.invalidateRomBuffer();
             roomTree.invalidateRoomRenders();
+            roomTree.invalidateMetatilePalettes();
 
             channel.appendLine('[Everscript] Build succeeded.');
 

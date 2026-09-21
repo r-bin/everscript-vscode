@@ -1,3 +1,39 @@
+## [0.36.0] — 2026-09-21
+
+First map-editor work: the placement palette, and the write path proven before anything is built on it.
+
+### Which tiles can be placed — the dictionary, not the tile families
+
+A grid cell stores a **metatile id**, and Block 3 turns it into three parallel words: the Layer 1 (canopy) tilemap word, the Layer 2 (terrain) one, and the collision word. So a metatile is a whole vertical stack — art *and* behaviour, bound together — and **nothing outside the room's dictionary can be placed without extending it**.
+
+Measured across all 127 rooms: 2 to 2131 metatiles per room (median 503), 1–14 tile families, 2–246 Block 1 tile ids. **7591 of the 75203 defined metatiles are never placed** — each one a free slot for a new combination.
+
+New `src/maps/metatiles.ts`:
+
+- `metatileTable(room)` — every entry with its two words, its collision word, and how many cells use it.
+- `renderMetatileAtlas(rom, room, {columns, layer})` — the whole dictionary as one image, in composite / terrain / canopy. It is built as a **synthetic room whose tilemaps are the dictionary** and handed to `renderRoomComposite`, so it goes through the same Mode 1 path the map does instead of a second copy of it.
+
+Pinned by `checkMetatilePalette`: 640 sampled cells across four rooms must each be pixel-identical to the same metatile where it appears in the room.
+
+### Tile palette in the Rooms tab
+
+A new section showing the dictionary as a sheet of stamps, with the three layer views, a used/spare filter, and a detail line decoding the selected stamp's words (`chr`, palette, priority, flips). Fetched **on demand** — room `0x37`'s atlas is a 325 KB data URI, and entries are packed as arrays rather than objects (50 KB instead of 166 KB on that room).
+
+### The write path is verified, not assumed
+
+`npm run check:encode` runs the sibling repo's `tools/encode_room.py --verify --verify-rebuild`:
+
+```
+byte-exact round-trip: 127/127 rooms
+re-encoded round-trip:  127/127 rooms
+```
+
+Both pass today. The extension does not write anything yet; this makes the encoder a checked dependency rather than a claim, and it skips gracefully when the checkout, ROM or venv is missing.
+
+### Design: [docs/map-format/map_editor_ui.md](docs/map-format/map_editor_ui.md)
+
+The UI answer to the whole request, including the awkward part: **a per-layer edit is a find-or-create on the dictionary**, because a metatile carries both layers and the collision word. Painting canopy onto a cell means finding (or adding) a metatile with the new canopy word and the old terrain and collision. That also makes "solid but looks the same" fall out for free. Also covers resize (`baseMetatile = width * height * 2`, so a resize renumbers every metatile in the room), the WRAM ceiling (largest vanilla room: 32680 bytes of grid + dictionary), trigger/object counts, and what to borrow from Lunar Magic, Tiled, ZScream, Temporal Flux and LazyShell.
+
 ## [0.35.1] — 2026-09-21
 
 ### The dash was cut across the screen, not along the wall

@@ -21,6 +21,7 @@ rooms/
     tile-overlay.js           — buildRoomTileOverlay: the map raster, the canopy, and the canopy overlay
     object-previews.js        — Section 3 objects: states, thumbnails, the selection wire form
     rom-fingerprint.js        — romFingerprint(rom): the cache key every render cache shares
+    metatile-palette.js       — buildRoomMetatilePalette: the dictionary atlas + one packed row per stamp
   data/
     vanilla-data.js           — VANILLA_ROOMS catalogue + buildVanillaRoomContent/Details + ROM backing
     lua-watchers.js           — getMapEnum, readLuaWatchers, readScriptAllTriggers + caches
@@ -120,6 +121,8 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   a room can place, split by whether the game draws them over the foreground
 - `svg-builder.js` — `buildRoomSvgSection()` → `{html, zoomState, ...}`; stacks
   map → spawns behind → canopy → spawns in front → canopy overlay → annotation
+- `metatile-palette.js` — the Tile palette section; owns `_mtPalette` / `_mtLayer` /
+  `_mtFilter` / `_mtSelected` and the `requestRoomMetatiles` cycle
 - `tables-builder.js` — entity tables, ROM script cards
 - `rom-header.js` — ROM header display
 - `interactions.js` — zoom/pan, mouse events, click handlers

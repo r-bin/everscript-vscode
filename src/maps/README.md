@@ -27,6 +27,7 @@ it. See the `map-format` and `rom-map-data` skills.
 | `palette.ts` | Tile-family palettes, BGR555→RGB888, room CGRAM |
 | `chr.ts` | 16x16 CHR decompression and 4bpp planar tile decoding |
 | `render.ts` | Layer rasterization and SNES Mode 1 compositing (TM/TS, priority, CGADSUB) |
+| `metatiles.ts` | The metatile dictionary as a placement palette — entries, usage counts, and an atlas |
 | `overlay-features.ts` | Classifies a room into feature sets; builds the legend and summary |
 | `overlay-shapes.ts` | The raster primitives the overlay paints with (contours, grass, arrows) |
 | `collision-overlay.ts` | Draw-order orchestration for the feature overlay — a port of `render_full_composition` |
@@ -123,3 +124,19 @@ alone calls a third of room `0x06` hidden. Passed to `drawCollisionOverlay`
 as `hidden` it makes every plane solid in its own colour and dots only the
 boundaries the foreground hides. Omit it and the drawing is upstream's, byte
 for byte.
+
+## The tile palette
+
+`metatiles.ts` exposes the room's **metatile dictionary**: the 16x16 stamps
+that can actually be placed. A grid cell stores a metatile id, and Block 3
+turns it into a Layer 1 word, a Layer 2 word and a collision word — so a
+metatile is a whole stack, and nothing outside the dictionary can be placed
+without extending it.
+
+`renderMetatileAtlas` draws the whole dictionary by building a *synthetic
+room* whose tilemaps are the dictionary and handing it to
+`renderRoomComposite`, rather than reimplementing Mode 1 compositing for one
+tile. `checkMetatilePalette` requires every sampled atlas cell to be
+pixel-identical to the same metatile in the room it came from.
+
+See [docs/map-format/map_editor_ui.md](../../docs/map-format/map_editor_ui.md).
