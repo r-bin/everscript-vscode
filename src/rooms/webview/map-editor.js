@@ -27,9 +27,17 @@ function editReset(roomId) {
     added: [],        // {layer1, layer2, collision}
     undo: [],
     redo: [],
-    tool: 'paint',    // paint | pick | rect | copy
+    tool: 'paint',    // paint | pick | rect | copy | move | erase
     brush: -1,        // selected metatile index, -1 = none
     on: false,        // edit mode
+    // Which question a stroke is answering. 'room' lays out the place
+    // itself and writes all three words; 'deco' puts things *on* it and
+    // keeps the floor that is already there. See editResolve.
+    phase: 'room',
+    /** Saved multi-cell constructs — see editSaveConstruct. */
+    constructs: [],
+    /** A blank room being drafted instead of a ROM room, or null. */
+    blank: null,
   };
   return _edit;
 }
@@ -131,6 +139,189 @@ function editStampWords(palette, index) {
   }
   var e = palette && palette.entries[index];
   return e ? { layer1: e[1], layer2: e[2], collision: e[3], added: false } : null;
+}
+
+// ---------------------------------------------------------------------------
+// Layer phases: what a stroke actually writes.
+// ---------------------------------------------------------------------------
+
+/**
+ * The room's blank canopy word — what "no decoration here" looks like.
+ *
+ * Derived rather than hardcoded, but it is `$A800` in every room measured:
+ * 140 placements in room 0x34, 2034 in 0x76, 3800 in 0x38. Room 0x34's
+ * graphic at that word has **zero** non-transparent pixels, so erasing to it
+ * really does erase.
+ */
+function editBlankCanopy(palette) {
+  if (!palette || !palette.count) return 0xa800;
+  var counts = {};
+  var best = 0xa800;
+  var bestN = -1;
+  for (var i = 0; i < palette.count; i++) {
+    var e = palette.entries[i];
+    if (!e[4]) continue;
+    var w = e[1];
+    counts[w] = (counts[w] || 0) + e[4];
+    if (counts[w] > bestN) { bestN = counts[w]; best = w; }
+  }
+  return best;
+}
+
+/**
+ * How the room normally behaves on this terrain.
+ *
+ * Used when erasing: taking the decoration's picture away should take its
+ * collision with it, or removing a gourd would leave a hole you still
+ * cannot walk through. The room's own most-placed stamp on that terrain is
+ * the evidence for what the bare floor does.
+ */
+function editFloorCollisionFor(palette, layer2Word) {
+  if (!palette) return null;
+  var best = null;
+  var bestN = -1;
+  for (var i = 0; i < palette.count; i++) {
+    var e = palette.entries[i];
+    if (e[2] !== layer2Word || !e[4]) continue;
+    if (e[4] > bestN) { bestN = e[4]; best = e[3]; }
+  }
+  return best;
+}
+
+/**
+ * The stamp a stroke should write at this cell.
+ *
+ * This is where the phase split lives, and it is the whole of the "first
+ * draw the room, then fill it with deco" model:
+ *
+ * - **room**: the brush wins outright. All three words are replaced, which
+ *   is what laying out a floor or a wall means.
+ * - **deco**: the brush supplies the canopy and the collision, the cell
+ *   keeps its terrain. Putting a gourd on a floor must not replace the
+ *   floor — in room 0x34 the decorations are canopy words over an unchanged
+ *   terrain word, which is exactly this operation.
+ * - **erase** (deco): the canopy goes back to blank and the collision goes
+ *   back to whatever the room does on bare ground of that terrain.
+ *
+ * Returns a metatile index, creating one through the usual find-or-create
+ * rule if the combination does not exist yet.
+ */
+function editResolve(palette, x, y, brushIndex, phase, erasing) {
+  var here = editCellAt(palette, x, y);
+  var under = here >= 0 ? editStampWords(palette, here) : null;
+  if (phase !== 'deco' || !under) {
+    if (erasing) return -1;
+    return brushIndex;
+  }
+
+  if (erasing) {
+    var blank = editBlankCanopy(palette);
+    if (under.layer1 === blank) return here; // already bare: nothing to erase
+    var restored = editFloorCollisionFor(palette, under.layer2);
+    return editAddStamp(palette, {
+      layer1: blank,
+      layer2: under.layer2,
+      collision: restored === null ? under.collision : restored,
+    });
+  }
+
+  var brush = editStampWords(palette, brushIndex);
+  if (!brush) return -1;
+  return editAddStamp(palette, {
+    layer1: brush.layer1,
+    layer2: under.layer2,
+    collision: brush.collision,
+  });
+}
+
+/**
+ * Save a rectangle of the map as a reusable construct.
+ *
+ * The stamps are stored as *words*, not indices, so the construct survives
+ * being stamped into a room with a different dictionary. Triggers and
+ * objects whose rectangle overlaps the selection come with it — that is the
+ * difference between a gourd, which is metatiles plus a B-trigger plus an
+ * object, and a hide, which is only metatiles.
+ */
+function editSaveConstruct(palette, sel, name) {
+  if (!_edit || !sel || !palette) return null;
+  var cells = [];
+  for (var y = sel.y1; y <= sel.y2; y++) {
+    for (var x = sel.x1; x <= sel.x2; x++) {
+      var idx = editCellAt(palette, x, y);
+      var w = idx >= 0 ? editStampWords(palette, idx) : null;
+      if (!w) continue;
+      cells.push({ dx: x - sel.x1, dy: y - sel.y1, layer1: w.layer1, layer2: w.layer2, collision: w.collision });
+    }
+  }
+  if (!cells.length) return null;
+  var construct = {
+    name: name || ('construct ' + (_edit.constructs.length + 1)),
+    w: sel.x2 - sel.x1 + 1,
+    h: sel.y2 - sel.y1 + 1,
+    cells: cells,
+    attachments: editAttachmentsIn(palette, sel),
+  };
+  _edit.constructs.push(construct);
+  return construct;
+}
+
+/** Triggers and objects whose rectangle overlaps this selection. */
+function editAttachmentsIn(palette, sel) {
+  var a = palette && palette.attachments;
+  var out = { bTrigger: [], stepOn: [], objects: [] };
+  if (!a) return out;
+  var overlaps = function (x1, y1, x2, y2) {
+    return x1 <= sel.x2 && x2 >= sel.x1 && y1 <= sel.y2 && y2 >= sel.y1;
+  };
+  ['bTrigger', 'stepOn'].forEach(function (kind) {
+    (a[kind] || []).forEach(function (t) {
+      if (overlaps(t[0], t[1], t[2], t[3])) {
+        out[kind].push({ dx: t[0] - sel.x1, dy: t[1] - sel.y1, w: t[2] - t[0], h: t[3] - t[1], scriptId: t[4] });
+      }
+    });
+  });
+  (a.objects || []).forEach(function (o) {
+    if (overlaps(o[0], o[1], o[0] + o[2] - 1, o[1] + o[3] - 1)) {
+      out.objects.push({ dx: o[0] - sel.x1, dy: o[1] - sel.y1, w: o[2], h: o[3], objectIndex: o[4] });
+    }
+  });
+  return out;
+}
+
+/** The writes that stamp a construct with its top-left at (x, y). */
+function editConstructWrites(palette, construct, x, y) {
+  var writes = [];
+  if (!construct) return writes;
+  for (var i = 0; i < construct.cells.length; i++) {
+    var c = construct.cells[i];
+    var cx = x + c.dx;
+    var cy = y + c.dy;
+    if (!editInBounds(palette, cx, cy)) continue;
+    writes.push({
+      x: cx, y: cy,
+      index: editAddStamp(palette, { layer1: c.layer1, layer2: c.layer2, collision: c.collision }),
+    });
+  }
+  return writes;
+}
+
+/**
+ * The stamps this draft needs that the room does not already define.
+ *
+ * The "metatiles calculated to be needed by the creation" — every composed
+ * stamp, plus what it costs. Placing the same construct twice adds nothing,
+ * because `editAddStamp` deduplicates first.
+ */
+function editNeededStamps(palette) {
+  if (!_edit) return { added: [], bytes: 0 };
+  var base = palette ? palette.count : 0;
+  return {
+    added: _edit.added.map(function (a, i) {
+      return { index: base + i, layer1: a.layer1, layer2: a.layer2, collision: a.collision };
+    }),
+    bytes: _edit.added.length * 8,
+  };
 }
 
 /**

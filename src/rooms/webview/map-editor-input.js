@@ -35,9 +35,30 @@ function editStroke(cell, phase) {
     return;
   }
 
+  if (d.tool === 'erase') {
+    // The phase decides what "erase" means, and editResolve owns that.
+    var bare = editResolve(_mtPalette, cell.x, cell.y, -1, d.phase, true);
+    if (bare >= 0) editApply([{ x: cell.x, y: cell.y, index: bare }]);
+    renderEditChrome();
+    return;
+  }
+
+  if (d.tool === 'stamp') {
+    if (phase !== 'down' || _editConstruct < 0) return;
+    var writes = editConstructWrites(_mtPalette, d.constructs[_editConstruct], cell.x, cell.y);
+    if (writes.length) { editApply(writes); requestComposedPreview(); }
+    renderEditChrome();
+    return;
+  }
+
   if (d.tool === 'paint') {
     if (d.brush < 0) return;
-    editApply([{ x: cell.x, y: cell.y, index: d.brush }]);
+    var idx = editResolve(_mtPalette, cell.x, cell.y, d.brush, d.phase, false);
+    if (idx < 0) return;
+    editApply([{ x: cell.x, y: cell.y, index: idx }]);
+    // A deco stroke can invent a stamp, which the preview sheet must catch
+    // up with or the painted cell has no picture to crop from.
+    if (idx >= _mtPalette.count) requestComposedPreview();
     renderEditChrome();
     return;
   }
@@ -160,7 +181,7 @@ function editNote(text) {
 function renderComposer() {
   var host = document.getElementById('rg-compose');
   if (!host) return;
-  host.innerHTML = buildComposerHtml();
+  host.innerHTML = buildComposerHtml() + buildConstructsHtml();
   renderComposerPreview();
 }
 
@@ -174,6 +195,39 @@ function bindEditControls(panel, room) {
     if (t.dataset.editTool) {
       var d = editDraft();
       if (d) { d.tool = t.dataset.editTool; _editSel = null; renderEditChrome(); }
+      return;
+    }
+    if (t.dataset.editPhase) {
+      var dp = editDraft();
+      if (dp) {
+        dp.phase = t.dataset.editPhase;
+        // Erase has no meaning while laying the room out, so leaving deco
+        // with it selected would arm a tool that does nothing.
+        if (dp.phase !== 'deco' && dp.tool === 'erase') dp.tool = 'paint';
+        renderEditChrome();
+      }
+      return;
+    }
+    if (t.dataset.panel) {
+      _panelOpen[t.dataset.panel] = _panelOpen[t.dataset.panel] === false;
+      renderEditPanels();
+      return;
+    }
+    if (t.dataset.famSlot !== undefined && t.dataset.famSlot !== '') {
+      var slot = Number(t.dataset.famSlot);
+      _famOpen = _famOpen === slot ? -1 : slot;
+      _famSheet = null;
+      var fam = _mtPalette && (_mtPalette.tileFamilies || [])[slot];
+      if (_famOpen >= 0 && fam !== undefined) requestFamilySheet(fam, _mtRoomId);
+      renderEditPanels();
+      return;
+    }
+    if (t.dataset.construct) {
+      _editConstruct = Number(t.dataset.construct);
+      var dc = editDraft();
+      if (dc) dc.tool = 'stamp';
+      renderEditChrome();
+      renderComposer();
       return;
     }
     if (t.dataset.editPick) {
@@ -237,6 +291,21 @@ function editAction(act) {
     renderEditChrome(); renderComposer();
     return;
   }
+  if (act === 'save-construct') {
+    if (!_editSel) { editNote('drag a region with copy or move first'); return; }
+    var made = editSaveConstruct(_mtPalette, _editSel, null);
+    if (!made) { editNote('nothing in that selection to save'); return; }
+    _editConstruct = d.constructs.length - 1;
+    d.tool = 'stamp';
+    var a = made.attachments;
+    var extra = a.objects.length + a.bTrigger.length + a.stepOn.length;
+    editNote('saved ' + made.name + ' — ' + made.cells.length + ' cells'
+      + (extra ? ' and ' + extra + ' attachment' + (extra === 1 ? '' : 's') : ', metatiles only'));
+    renderComposer();
+    renderEditPanels();
+    return;
+  }
+  if (act === 'new-room') { editNewRoom(); return; }
   if (act === 'export') editCopyDraft();
 }
 

@@ -10,13 +10,26 @@
 var _editOrigin = { x: 0, y: 0 };
 var _editComposed = null;
 var _editCompose = { layer1: null, layer2: null, collision: null, pick: 'layer1' };
+var _editConstruct = -1;   // which saved construct the stamp tool places
 
 var EDIT_TOOLS = [
   ['paint', 'paint', 'Click or drag to stamp the selected tile'],
+  ['erase', 'erase', 'Rub decoration off: the canopy goes blank and the floor’s own collision comes back'],
   ['rect', 'rect', 'Drag a rectangle and fill it with the selected tile'],
   ['pick', 'pick', 'Click the map to select the tile under the cursor'],
   ['copy', 'copy', 'Drag to take a region, then click to stamp it elsewhere'],
   ['move', 'move', 'Drag to take a region, then click to move it; the source is backfilled with the selected tile'],
+  ['stamp', 'stamp', 'Click to place the selected construct, with its triggers and objects'],
+];
+
+/**
+ * The two questions a stroke can answer.
+ *
+ * Not a cosmetic filter — they write different things. See `editResolve`.
+ */
+var EDIT_PHASES = [
+  ['room', 'room', 'Lay out the place itself: a stroke replaces the floor, the canopy and the collision'],
+  ['deco', 'deco', 'Put things on it: a stroke keeps the floor that is already there and only adds what sits over it'],
 ];
 
 /** The tool bar, shown in the map's own filter row. */
@@ -27,15 +40,23 @@ function buildEditButtonHtml() {
 function buildEditToolbarHtml() {
   var d = editDraft();
   var html = '<div class="rd-filters rg-edit-bar" id="rg-edit-bar">';
+  EDIT_PHASES.forEach(function (ph) {
+    html += '<button class="rdf rg-phase' + (d && d.phase === ph[0] ? ' on' : '') + '" data-edit-phase="'
+      + ph[0] + '" title="' + escH(ph[2]) + '">' + ph[1] + '</button>';
+  });
+  html += '<span class="rs-mt-gap"></span>';
   EDIT_TOOLS.forEach(function (t) {
+    // Erase only means something once there is a floor to erase back to.
+    var off = t[0] === 'erase' && d && d.phase !== 'deco';
     html += '<button class="rdf' + (d && d.tool === t[0] ? ' on' : '') + '" data-edit-tool="' + t[0]
-      + '" title="' + escH(t[2]) + '">' + t[1] + '</button>';
+      + '" title="' + escH(off ? t[2] + ' — switch to deco first' : t[2]) + '">' + t[1] + '</button>';
   });
   html += '<span class="rs-mt-gap"></span>'
     + '<button class="rdf" data-edit-act="undo" title="Undo the last change">undo</button>'
     + '<button class="rdf" data-edit-act="redo" title="Redo">redo</button>'
     + '<button class="rdf" data-edit-act="clear" title="Discard every change in this draft">discard</button>'
     + '<span class="rs-mt-gap"></span>'
+    + '<button class="rdf" data-edit-act="new-room" title="Start a blank room to try things in, borrowing this room’s graphics">new room</button>'
     + '<button class="rdf" data-edit-act="export" title="Copy the draft as JSON for the encoder">copy draft</button>'
     + '<span class="rg-edit-count" id="rg-edit-count"></span>';
   return html + '</div>';
@@ -59,21 +80,68 @@ function editDock(on, room) {
       dock = document.createElement('div');
       dock.className = 'rg-dock';
       dock.id = 'rg-dock';
+      // The panel column carries the metrics, the family slots, the tile
+      // groups, the needed metatiles and the checks — everything that
+      // answers "what will this cost" while the palette answers "what can
+      // I place".
+      var panels = document.createElement('div');
+      panels.id = 'rg-panels';
+      panels.className = 'rg-panels';
       outer.parentNode.insertBefore(row, outer);
       row.appendChild(outer);
       row.appendChild(dock);
+      dock.appendChild(panels);
     }
     dock.appendChild(sec);
     sec.classList.add('rs-mt-docked');
     // Nothing can be painted without the dictionary, so fetch it now
     // rather than making the user find the load button.
     if (!_mtPalette && room) requestMetatilePalette(room, _mtLayer);
+    renderEditPanels();
   } else if (dock) {
     var row2 = dock.parentNode;
     sec.classList.remove('rs-mt-docked');
     row2.parentNode.insertBefore(sec, row2.nextSibling);
     dock.parentNode.removeChild(dock);
   }
+}
+
+/**
+ * The construct library: whole things, not tiles.
+ *
+ * A construct is a saved rectangle of the map with its stamps *and*
+ * whatever triggers and objects sat inside it. That difference is the
+ * point — in room 0x34 a gourd is an object at (5,5) 2x2 plus a B-trigger,
+ * while the hide on the floor is metatiles and nothing else, so stamping
+ * one has to carry more than stamping the other.
+ */
+function buildConstructsHtml() {
+  var d = editDraft();
+  if (!d) return '';
+  var html = '<div class="rs-mt-compose"><div class="rs-note">'
+    + 'Select a region with <b>copy</b> or <b>move</b>, then save it as a construct.'
+    + '</div><div class="rd-filters">'
+    + '<button class="rdf" data-edit-act="save-construct"'
+    + ' title="Save the current selection, with any triggers and objects inside it">'
+    + 'save selection</button></div>';
+  if (!d.constructs.length) {
+    return html + '<div class="rs-note">no constructs yet</div></div>';
+  }
+  html += '<div class="rg-constructs">';
+  for (var i = 0; i < d.constructs.length; i++) {
+    var c = d.constructs[i];
+    var a = c.attachments || { bTrigger: [], stepOn: [], objects: [] };
+    var extras = [];
+    if (a.objects.length) extras.push(a.objects.length + ' object' + (a.objects.length === 1 ? '' : 's'));
+    if (a.bTrigger.length) extras.push(a.bTrigger.length + ' B-trigger' + (a.bTrigger.length === 1 ? '' : 's'));
+    if (a.stepOn.length) extras.push(a.stepOn.length + ' step-on');
+    html += '<button class="rdf' + (_editConstruct === i ? ' on' : '') + '" data-construct="' + i + '"'
+      + ' title="' + escH(c.w + 'x' + c.h + ', ' + c.cells.length + ' cells'
+        + (extras.length ? '\n' + extras.join(', ') : '\nmetatiles only')) + '">'
+      + escH(c.name) + ' <span class="rs-note">' + c.w + '×' + c.h
+      + (extras.length ? ' +' + extras.length : '') + '</span></button>';
+  }
+  return html + '</div></div>';
 }
 
 /** What each composer source is, in words the sheet above uses. */
@@ -192,8 +260,12 @@ function renderEditChrome() {
       var n = Object.keys(d.cells).length;
       count.textContent = n + ' cell' + (n === 1 ? '' : 's') + ', ' + d.added.length + ' new stamp'
         + (d.added.length === 1 ? '' : 's')
-        + (d.brush >= 0 ? ' · brush #' + d.brush : ' · pick a tile to draw with');
+        + (d.tool === 'erase' ? ' · rubbing out'
+          : d.tool === 'stamp' ? (_editConstruct >= 0 ? ' · placing ' + d.constructs[_editConstruct].name
+            : ' · save a construct first')
+            : d.brush >= 0 ? ' · brush #' + d.brush : ' · pick a tile to draw with');
     }
   }
   renderEditLayer(_mtPalette, _editComposed, _editOrigin);
+  renderEditPanels();
 }

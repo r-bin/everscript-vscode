@@ -280,12 +280,19 @@ const ui = new Function(`
   ${read('map-editor.js')}
   ${read('map-editor-paint.js')}
   ${read('map-editor-ui.js')}
+  ${read('map-editor-panels.js')}
   ${read('map-editor-input.js')}
+  ${read('map-editor-newroom.js')}
   return {
     tileSlotWord: tileSlotWord, editOnTilePicked: editOnTilePicked,
     editAction: editAction, editReset: editReset, editDraft: editDraft,
     controls: metatilePaletteControls,
     budgetBar: budgetBar, vanillaEvidence: vanillaEvidence,
+    editResolve: editResolve, editBlankCanopy: editBlankCanopy,
+    editSaveConstruct: editSaveConstruct, editConstructWrites: editConstructWrites,
+    editNeededStamps: editNeededStamps, editErrors: editErrors,
+    toolbar: buildEditToolbarHtml, tileGroups: tileGroupsPanel,
+    setSel2: function (s) { _editSel = s; },
     compose: function () { return _editCompose; },
     setPalette: function (p) { _mtPalette = p; },
     setSelected: function (i) { _mtSelected = i; },
@@ -417,6 +424,183 @@ test('vanilla evidence always carries its confidence', () => {
     assert.ok(!two.includes('collision'), 'a canopy-only graphic claims no collision');
 
     assert.ok(ui.vanillaEvidence(p, 2).includes('never drawn'), 'and silence is stated, not blank');
+});
+
+// ---------------------------------------------------------------------------
+// Layer phases, the eraser and constructs.
+//
+// The phase split is the load-bearing part: "first draw the room, then fill
+// it with deco" is only real if a deco stroke writes different words from a
+// room stroke. Room 0x34's decorations are canopy words over an unchanged
+// terrain word, which is exactly what these assert.
+// ---------------------------------------------------------------------------
+
+console.log('\nlayer phases and constructs:');
+
+/** A palette shaped like room 0x34: a bare floor plus a decorated cell. */
+function decoPalette() {
+    return {
+        count: 3,
+        baseMetatile: 8,
+        // [index, canopy, terrain, collision, uses]
+        entries: [
+            [0, 0xa800, 0x4c62, 0x0010, 40],   // bare floor, blank canopy, walkable
+            [1, 0x2c66, 0x4c62, 0x001f, 3],    // the hide: a canopy over that same floor
+            [2, 0xa800, 0x0c2c, 0x101f, 9],    // a different floor
+        ],
+        grid: [[0, 1, 2], [0, 0, 0]],
+        widthTiles: 3,
+        heightTiles: 2,
+        attachments: {
+            bTrigger: [[1, 0, 1, 0, 1854]],
+            stepOn: [],
+            objects: [[1, 0, 1, 1, 7]],
+        },
+    };
+}
+
+test('the blank canopy is derived from the room, not assumed', () => {
+    // $A800 carries 40 + 9 placements here against the hide's 3, and in the
+    // ROM it is the most-placed canopy word in every room measured.
+    assert.strictEqual(ui.editBlankCanopy(decoPalette()), 0xa800);
+    assert.strictEqual(ui.editBlankCanopy(null), 0xa800, 'with no palette, fall back to it');
+});
+
+test('a room stroke replaces everything; a deco stroke keeps the floor', () => {
+    const p = decoPalette();
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    d.on = true;
+
+    // Room phase: the brush wins outright, so the answer is just the brush.
+    assert.strictEqual(ui.editResolve(p, 0, 1, 2, 'room', false), 2);
+    assert.strictEqual(d.added.length, 0, 'and it invents nothing');
+
+    // Deco phase at (0,1), which is floor 0 ($4C62). Painting stamp 2 there
+    // must take stamp 2's canopy and collision but keep $4C62 underneath.
+    const made = ui.editResolve(p, 0, 1, 2, 'deco', false);
+    assert.strictEqual(made, p.count, 'a new stamp is needed');
+    assert.deepStrictEqual(d.added[0], { layer1: 0xa800, layer2: 0x4c62, collision: 0x101f });
+});
+
+test('erasing takes the picture and the collision back off the floor', () => {
+    const p = decoPalette();
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    d.on = true;
+
+    // Cell (1,0) is the hide: canopy $2C66, solid. Erasing restores the
+    // blank canopy and the collision the room uses on bare $4C62 — which is
+    // stamp 0's $0010, not the hide's $001F. Otherwise removing a gourd
+    // would leave a hole you still cannot walk through.
+    const bare = ui.editResolve(p, 1, 0, -1, 'deco', true);
+    assert.strictEqual(bare, 0, 'it resolves to the floor stamp the room already has');
+    assert.strictEqual(d.added.length, 0, 'so nothing new is needed');
+
+    // Erasing bare floor is a no-op rather than a pointless new stamp.
+    assert.strictEqual(ui.editResolve(p, 0, 1, -1, 'deco', true), 0);
+    assert.strictEqual(d.added.length, 0);
+
+    // In room phase the eraser has no floor to fall back to and says so.
+    assert.strictEqual(ui.editResolve(p, 1, 0, -1, 'room', true), -1);
+});
+
+test('a construct carries the triggers and objects inside its selection', () => {
+    const p = decoPalette();
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    d.on = true;
+
+    // (1,0) holds the hide, and the fixture puts both a B-trigger and an
+    // object on that same cell — the gourd case.
+    const gourd = ui.editSaveConstruct(p, { x1: 1, y1: 0, x2: 1, y2: 0 }, 'gourd');
+    assert.strictEqual(gourd.cells.length, 1);
+    assert.strictEqual(gourd.attachments.objects.length, 1, 'the object comes with it');
+    assert.strictEqual(gourd.attachments.bTrigger.length, 1, 'and so does the B-trigger');
+    assert.strictEqual(gourd.attachments.bTrigger[0].scriptId, 1854);
+
+    // (0,1) is plain floor with nothing on it — the hide case.
+    const hide = ui.editSaveConstruct(p, { x1: 0, y1: 1, x2: 0, y2: 1 }, 'hide');
+    assert.strictEqual(hide.attachments.objects.length, 0, 'metatiles only');
+    assert.strictEqual(hide.attachments.bTrigger.length, 0);
+});
+
+test('stamping a construct reuses stamps and clips at the edge', () => {
+    const p = decoPalette();
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    d.on = true;
+    const c = ui.editSaveConstruct(p, { x1: 0, y1: 0, x2: 1, y2: 0 }, 'pair');
+
+    const writes = ui.editConstructWrites(p, c, 0, 1);
+    assert.deepStrictEqual(writes, [{ x: 0, y: 1, index: 0 }, { x: 1, y: 1, index: 1 }],
+        'both cells resolve to stamps the room already has');
+    assert.strictEqual(d.added.length, 0, 'so the construct costs no dictionary space');
+
+    // Placed so half of it hangs off the right edge, only the half that fits lands.
+    assert.strictEqual(ui.editConstructWrites(p, c, 2, 0).length, 1);
+});
+
+test('the checks catch what the format will not forgive', () => {
+    const p = decoPalette();
+    p.budget = {
+        graphics: { used: 92, max: 264, vanilla: 255 },
+        families: { used: 9, max: 7, vanilla: 7 },
+        stamps: { used: 3, max: null, vanilla: 2131 },
+        wram: { used: 40, max: 32768, vanilla: 32680 },
+        attested: 20,
+    };
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    d.on = true;
+    d.brush = 0;
+    const errs = ui.editErrors(p);
+    assert.ok(errs.some((e) => e[0] === 'hard' && /families 9\/7/.test(e[1])), JSON.stringify(errs));
+
+    // Past vanilla but inside the window is a warning, not a blocker.
+    p.budget.families.used = 7;
+    p.budget.wram.used = 32700;
+    const warn = ui.editErrors(p);
+    assert.ok(warn.some((e) => e[0] === 'warn' && /more than any vanilla room/.test(e[1])));
+    assert.ok(!warn.some((e) => e[0] === 'hard'), 'nothing hard: ' + JSON.stringify(warn));
+});
+
+/**
+ * The grouped view shows one image many times, not many images.
+ *
+ * Every group is a window onto the same tile sheet, so the data URI belongs
+ * on one wrapper. Putting it in each group's `style` cost 150 KB of markup
+ * for eleven groups of one 13 KB image — invisible on screen, and exactly
+ * the kind of thing that creeps back.
+ */
+test('the grouped tile view embeds its sheet once', () => {
+    const p = tilePalette();
+    p.tiles.imageUri = 'data:image/png;base64,' + 'A'.repeat(2048);
+    p.graphicGroups = [
+        { rooms: [0x34, 0x33], slots: [0, 1] },
+        { rooms: [0x34], slots: [1] },
+        { rooms: [], slots: [0] },
+    ];
+    const html = ui.tileGroups(p);
+    const uses = html.split('data:image/png').length - 1;
+    assert.strictEqual(uses, 1, `the sheet URL appears ${uses} times, not once`);
+    assert.ok(html.includes('shared by 2 rooms'));
+    assert.ok(html.includes('only room 0x34'));
+    assert.ok(html.includes('not attested anywhere'), 'an unknown tile is labelled, not hidden');
+});
+
+test('the toolbar offers both phases and marks erase as deco-only', () => {
+    const d = ui.editReset(0x34);
+    d.on = true;
+    d.phase = 'room';
+    const roomBar = ui.toolbar();
+    assert.ok(/data-edit-phase="room"[^>]*class|class="[^"]*on[^"]*" data-edit-phase="room"/.test(roomBar)
+        || roomBar.includes('rg-phase on" data-edit-phase="room"'), roomBar.slice(0, 300));
+    assert.ok(roomBar.includes('switch to deco first'), 'erase explains itself in room phase');
+    assert.ok(roomBar.includes('data-edit-act="new-room"'), 'and a new room can be drafted');
+
+    d.phase = 'deco';
+    assert.ok(!ui.toolbar().includes('switch to deco first'));
 });
 
 test('“from brush” starts the composer off a stamp that already works', () => {

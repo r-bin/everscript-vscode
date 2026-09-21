@@ -1,3 +1,65 @@
+## [0.41.0] — 2026-09-21
+
+### The editor, rebuilt around the inverted flow
+
+Edit mode now opens a panel column beside the map. Everything below is in it.
+
+**Metrics.** The budget meter from 0.40.0 moves to the top of the editor, where it belongs.
+
+**Tile family slots.** Seven slots, one per background palette, each showing which family it holds. Click one and you get *every graphic vanilla has ever drawn in that family* — family 58 is 74 graphics across 3 rooms, family 32 is 210 across 13 — so choosing a slot is a reviewable decision instead of a guess at a palette id.
+
+**Tiles grouped by which rooms use them together.** The room's 92 graphics become 11 groups. Graphics that appear in exactly the same rooms were put there for the same scene, so the grouping separates walls from floor from one-offs without anyone having labelled anything.
+
+**New metatiles.** A live list of the stamps the draft needs that the room does not already define, with their three words and what they cost in bytes. Placing the same thing twice adds nothing to it.
+
+**Checks.** Hard errors (past the seven-family clamp, past what a tilemap word can name, past the memory window) and warnings (past what any vanilla room does) are separated, because only the first kind is impossible.
+
+### Layer phases — draw the room, then fill it with deco
+
+Two phases that write genuinely different things:
+
+| Phase | Canopy | Terrain | Collision |
+|---|---|---|---|
+| **room** | brush | brush | brush |
+| **deco** | brush | **kept** | brush |
+| **erase** (deco) | blank | **kept** | the room's own, for that terrain |
+
+The deco row is what room `0x34` actually does — a plain floor cell is canopy `$A800` over terrain `$4C62`, and the hide on the floor is canopy `$2C66` over the *same* `$4C62`. So painting a gourd onto a floor cannot replace the floor.
+
+### The eraser
+
+**erase** rubs decoration off. Both halves are derived from the room rather than assumed:
+
+- the blank canopy is the room's most-placed canopy word — `$A800` in every room measured (140 placements in `0x34`, 2034 in `0x76`, 3800 in `0x38`), and room `0x34`'s graphic at that word has **zero** non-transparent pixels, so erasing to it really does erase.
+- the restored collision is the one the room uses most on bare ground of that terrain — otherwise removing a gourd would leave a hole you still cannot walk through.
+
+Erasing already-bare floor is a no-op rather than a pointless new stamp.
+
+### Constructs — stamp the whole thing
+
+Select a region, save it, stamp it. A construct stores its stamps **as words**, so it survives being placed in a room with a different dictionary, and it carries every trigger and object whose rectangle overlaps the selection. Read straight out of room `0x34`:
+
+```
+objects   (5,5) 2x2 · (12,7) 2x2 · (11,5) 2x2      <- the three gourds
+bTrigger  (8,11)-(10,13) script 1854 · (14,11)-(16,13) 1857 · (15,13)-(17,15) 1860
+stepOn    (11,23)-(13,24) script 1851
+```
+
+So a gourd comes with an object and a B-trigger; the hide on the floor comes with metatiles and nothing else. The library says which before you place it.
+
+### A blank room to test in
+
+**new room** drafts a room that is not in the ROM, at any size from 2×2 to 128×128. It borrows the current room's graphics list and families, because a synthetic room with its own one-entry Block 1 renders black — rule 7.1.
+
+Its floor is the borrowed room's most-placed **walkable** stamp, not entry 0 and not simply the most placed: entry 0 is wherever the encoder happened to start, and the most-placed stamp is usually the black surround outside the playable area. Both make a new room look broken.
+
+`roomProblems` checks what an encoder would: the minimum size, that `baseMetatile` matches `width * height * 2`, and that cell (0,0) uses metatile 0.
+
+### Also
+
+- `src/maps/blank-room.ts` and `groupByRooms` are pure and tested; the index now also tracks which rooms draw each graphic.
+- Fixed: the grouped tile view embedded the sheet's 13 KB data URI once per group — 150 KB of markup for one image. Now hoisted to a single wrapper (25 KB), with a test that pins it.
+
 ## [0.40.0] — 2026-09-21
 
 ### Inverting the editor: the vanilla ROM as a lookup table

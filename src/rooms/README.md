@@ -128,10 +128,15 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   possible
 - `map-editor-paint.js` — drawing the draft on the map from the palette atlas,
   and the region maths; owns `_editSel` / `_editClip`
-- `map-editor-ui.js` — tool bar, the docked sidebar, the metatile composer;
-  owns `_editOrigin` / `_editComposed` / `_editCompose`
+- `map-editor-ui.js` — tool bar (phases, tools), the docked sidebar, the metatile
+  composer and the construct library; owns `_editOrigin` / `_editComposed` /
+  `_editCompose` / `_editConstruct`
+- `map-editor-panels.js` — the metrics, checks, family slots, grouped tile list
+  and needed-metatile read-outs; owns `_famOpen` / `_famSheet` / `_panelOpen`
 - `map-editor-input.js` — capture-phase pointer and key gestures, so nothing is
   intercepted while edit mode is off
+- `map-editor-newroom.js` — the blank-room round trip, split out to keep
+  `map-editor-input.js` under the size limit
 - `tables-builder.js` — entity tables, ROM script cards
 - `rom-header.js` — ROM header display
 - `interactions.js` — zoom/pan, mouse events, click handlers

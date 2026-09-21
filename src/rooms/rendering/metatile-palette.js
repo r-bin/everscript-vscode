@@ -11,6 +11,7 @@
 const maps = require('../../maps');
 const { romFingerprint } = require('./rom-fingerprint');
 const { annotateGraphics, budgetSummary, invalidateVanillaIndex } = require('./vanilla-index');
+const { groupRoomGraphics } = require('./room-draft');
 
 /** Metatiles per atlas row. 16 keeps the sheet narrow enough to scroll. */
 const COLUMNS = 16;
@@ -99,6 +100,20 @@ function buildRoomMetatilePalette(rom, roomId, layer, bgPalette) {
         budget: budgetSummary(buf, room),
         /** What vanilla says about each loaded graphic — see annotateGraphics. */
         vanilla: annotateGraphics(buf, room),
+        /** The graphics grouped by which rooms draw them together. */
+        graphicGroups: groupRoomGraphics(buf, room),
+        // Where the room's triggers and objects sit, in metatile cells. A
+        // construct saved out of a selection has to know that a gourd comes
+        // with a B-trigger and an object while a hide comes with neither —
+        // the difference is only visible here.
+        attachments: {
+            bTrigger: room.triggers.bTrigger.map((t) => [t.x1, t.y1, t.x2, t.y2, t.scriptId]),
+            stepOn: room.triggers.stepOn.map((t) => [t.x1, t.y1, t.x2, t.y2, t.scriptId]),
+            objects: room.objects.map((o) => {
+                const s0 = o.states[0];
+                return s0 ? [s0.tileX, s0.tileY, s0.targetWidth, s0.targetHeight, o.objectIndex] : null;
+            }).filter(Boolean),
+        },
         /** The raw graphics Block 1 put in reach — see buildTileSheet. */
         tiles: null,
     };

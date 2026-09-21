@@ -25,6 +25,8 @@ export interface VanillaIndex {
     graphics: Map<number, Attestation<number>[]>;
     /** Family id -> the rooms that list it. */
     rooms: Map<number, number[]>;
+    /** Graphic id -> the rooms that draw it, ascending. */
+    graphicRooms: Map<number, number[]>;
     /** Terrain graphic id -> the collision words used with it. */
     collisions: Map<number, Attestation<number>[]>;
     /** How many rooms went into the index. */
@@ -78,6 +80,7 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
     const gfxCounts = new Map<number, Map<number, number>>();   // family  -> graphic
     const collCounts = new Map<number, Map<number, number>>();  // graphic -> collision
     const rooms = new Map<number, number[]>();
+    const graphicRooms = new Map<number, Set<number>>();
     let roomCount = 0;
     let placements = 0;
 
@@ -109,6 +112,9 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
                 if (fam === undefined) continue;
                 tally(famCounts, graphic, fam, m.uses);
                 tally(gfxCounts, fam, graphic, m.uses);
+                const seenIn = graphicRooms.get(graphic);
+                if (seenIn) seenIn.add(id);
+                else graphicRooms.set(graphic, new Set([id]));
                 placements += m.uses;
             }
             // Collision belongs to the stamp, but it is the *terrain* the
@@ -118,14 +124,51 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
         }
     }
 
+    const perGraphic = new Map<number, number[]>();
+    for (const [graphic, set] of graphicRooms) perGraphic.set(graphic, [...set].sort((a, b) => a - b));
+
     return {
         families: rank(famCounts),
         graphics: rank(gfxCounts),
         rooms,
+        graphicRooms: perGraphic,
         collisions: rank(collCounts),
         roomCount,
         placements,
     };
+}
+
+/** Graphics that appear in exactly the same set of rooms. */
+export interface GraphicGroup {
+    /** The rooms every graphic in this group appears in. */
+    rooms: number[];
+    graphics: number[];
+}
+
+/**
+ * Group graphics by the rooms that draw them.
+ *
+ * "Which tiles are used together" is not a property the ROM stores, but it
+ * falls straight out of the index: graphics that appear in exactly the same
+ * rooms were put there by the same artist for the same scene. Grouping by
+ * that signature turns a flat list of 157 tiles into a handful of coherent
+ * sets — the wall tiles, the floor tiles, the one-off decorations.
+ *
+ * Groups are returned largest first, and graphics the index has never seen
+ * are collected into a final group with an empty room list.
+ */
+export function groupByRooms(index: VanillaIndex, graphics: number[]): GraphicGroup[] {
+    const bySignature = new Map<string, GraphicGroup>();
+    for (const graphic of graphics) {
+        const rooms = index.graphicRooms.get(graphic) || [];
+        const signature = rooms.join(',');
+        const group = bySignature.get(signature);
+        if (group) group.graphics.push(graphic);
+        else bySignature.set(signature, { rooms, graphics: [graphic] });
+    }
+    return [...bySignature.values()].sort(
+        (a, b) => b.graphics.length - a.graphics.length || (a.rooms[0] ?? 1e9) - (b.rooms[0] ?? 1e9),
+    );
 }
 
 /** A suggestion, with the evidence that produced it. */

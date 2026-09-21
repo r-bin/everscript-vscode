@@ -82,8 +82,10 @@ const ROOMS_JS_FILES = [
   'metatile-palette.js', // the room's placement palette (_mtPalette/_mtLayer/_mtFilter)
   'map-editor.js',       // the edit draft and undo stack (_edit)
   'map-editor-paint.js', // drawing the draft on the map (_editSel/_editClip)
-  'map-editor-ui.js',    // tool bar, docked sidebar, metatile composer
+  'map-editor-ui.js',    // tool bar, docked sidebar, composer, constructs
+  'map-editor-panels.js',// family slots, tile groups, needed metatiles, checks
   'map-editor-input.js', // pointer/key gestures -> edits
+  'map-editor-newroom.js',// drafting a room that is not in the ROM
   'rom-overlay.js',      // ROM view top bar (_currentLayer/_currentOverlay) + renderRomDataSections
   'detail-renderer.js',  // renderRoomDetail (orchestrator)
   'tab-init.js',         // tab switching, area collapse, mode toggle, room click handlers

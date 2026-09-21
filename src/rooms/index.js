@@ -10,6 +10,8 @@ const { renderVanillaTree, renderRoomsTree, buildRoomsJson }        = require('.
 const { buildRoomTileOverlay, invalidateRoomRenders }               = require('./rendering/tile-overlay');
 const { buildRoomMetatilePalette, buildComposedPreview,
         invalidateMetatilePalettes }                               = require('./rendering/metatile-palette');
+const { buildBlankRoom, buildFamilySheet,
+        invalidateRoomDrafts }                                     = require('./rendering/room-draft');
 const { VANILLA_ROOMS, buildVanillaRoomContent,
         buildVanillaRoomDetails, invalidateVanillaDataCaches }      = require('./data/vanilla-data');
 const { getMapEnum, readLuaWatchers, readScriptAllTriggers,
@@ -18,6 +20,7 @@ const { getMapEnum, readLuaWatchers, readScriptAllTriggers,
 function invalidateRoomDataCaches() {
     invalidateVanillaDataCaches();
     invalidateLuaWatcherCaches();
+    invalidateRoomDrafts();
 }
 
 // Adapter: old room-tree.js buildRoomTree took (document, wsRoot, extCfg).
@@ -54,6 +57,8 @@ module.exports = {
     buildRoomMetatilePalette,
     buildComposedPreview,
     invalidateMetatilePalettes,
+    buildBlankRoom,
+    buildFamilySheet,
 
     // Data
     VANILLA_ROOMS,

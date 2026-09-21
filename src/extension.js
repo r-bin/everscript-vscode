@@ -127,7 +127,7 @@ function getExtConfig() {
 const roomData = require('./rooms');
 const { VANILLA_ROOMS, getMapEnum, readLuaWatchers, readScriptAllTriggers, buildVanillaRoomContent, buildVanillaRoomDetails, invalidateRoomDataCaches } = roomData;
 const roomTree = require('./rooms');
-const { findRoomImage, parseRoomContent, collectRoomsFromDir, buildRoomTree, renderVanillaTree, renderRoomsTree, buildRoomsJson, setRoomImageUris, buildRoomTileOverlay, buildRoomMetatilePalette, buildComposedPreview } = roomTree;
+const { findRoomImage, parseRoomContent, collectRoomsFromDir, buildRoomTree, renderVanillaTree, renderRoomsTree, buildRoomsJson, setRoomImageUris, buildRoomTileOverlay, buildRoomMetatilePalette, buildComposedPreview, buildBlankRoom, buildFamilySheet } = roomTree;
 
 const romReaders = require('./shared/rom-readers');
 const { readPngDimensions, readRomTriggerOffsets, readRomMapHeader, readRomCharacters, readRomHitLookup, detectScaleEnemies } = romReaders;
@@ -736,6 +736,43 @@ function activate(context) {
                         const preview = buildComposedPreview(romBuf, roomId,
                             Array.isArray(msg.drafts) ? msg.drafts : [], msg.layer);
                         _radarPanel.webview.postMessage({ ...reply, preview });
+                    } catch (err) {
+                        _radarPanel.webview.postMessage({ ...reply, error: String(err && err.message || err) });
+                    }
+                } else if (msg.command === 'requestBlankRoom') {
+                    // A room that is not in the ROM. It borrows a real room's
+                    // graphics list and families, because a synthetic room
+                    // with its own one-entry Block 1 renders black — rule 7.1
+                    // of docs/map-format/building-a-room-from-scratch.md.
+                    const reply = { command: 'blankRoom', mapName: msg.mapName };
+                    try {
+                        const _cfg = getExtConfig();
+                        const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
+                        if (!romBuf) {
+                            _radarPanel.webview.postMessage({ ...reply, error: 'ROM not found — set everscript.romPath' });
+                            return;
+                        }
+                        _radarPanel.webview.postMessage({ ...reply, room: buildBlankRoom(romBuf, {
+                            widthTiles: msg.widthTiles, heightTiles: msg.heightTiles, borrowFrom: msg.borrowFrom,
+                        }) });
+                    } catch (err) {
+                        _radarPanel.webview.postMessage({ ...reply, error: String(err && err.message || err) });
+                    }
+                } else if (msg.command === 'requestFamilySheet') {
+                    // Every graphic vanilla has drawn in one tile family, so
+                    // the family picker can show what a slot would buy.
+                    const reply = { command: 'familySheet', family: Number(msg.family) };
+                    try {
+                        const _cfg = getExtConfig();
+                        const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
+                        if (!romBuf) {
+                            _radarPanel.webview.postMessage({ ...reply, error: 'ROM not found — set everscript.romPath' });
+                            return;
+                        }
+                        _radarPanel.webview.postMessage({ ...reply,
+                            sheet: buildFamilySheet(romBuf, msg.family, msg.borrowFrom) });
                     } catch (err) {
                         _radarPanel.webview.postMessage({ ...reply, error: String(err && err.message || err) });
                     }

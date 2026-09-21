@@ -8,7 +8,7 @@
 > each decision costs against the hardware budgets.
 >
 > Status: **design + a measured index.** Every number below was measured
-> against the ROM by the probes described in §9, not estimated. Where the
+> against the ROM by the probes described in §11, not estimated. Where the
 > data says a suggestion will be weak, this page says so rather than
 > promising a guess.
 
@@ -327,19 +327,68 @@ it possible, and is useful on its own.
 
 | Phase | What | State |
 |---|---|---|
-| **1** | The vanilla index (§2) + budget maths (§4), pure, tested | **this commit** |
-| **2** | Surfaced in the Rooms tab: budget meter, per-graphic family and collision suggestion with evidence | **this commit** |
-| 3 | Family picker with vanilla example strips (§5.1) and the filtered list (§5.2) | next |
-| 4 | Object library: select a region → save → marginal cost on hover (§3.2) | next |
-| 5 | Collision override with fork accounting (§5.3) | next |
-| 6 | Image → metatiles (§6) | after 3–5 |
+| **1** | The vanilla index (§2) + budget maths (§4), pure, tested | **done** (0.40.0) |
+| **2** | Budget meter and per-graphic family/collision evidence in the tab | **done** (0.40.0) |
+| **3** | Family slot picker, one slot per palette, showing every graphic vanilla draws in it (§5.1) | **done** (0.41.0) |
+| **4** | Tiles grouped by the rooms that use them together (§5.2) | **done** (0.41.0) |
+| **5** | Construct library: select → save with its triggers and objects → stamp (§9) | **done** (0.41.0) |
+| **6** | Layer phases and the eraser (§8) | **done** (0.41.0) |
+| **7** | A blank room to draft in | **done** (0.41.0) |
+| 8 | Collision override with fork accounting (§5.3) | next |
+| 9 | Image → metatiles (§6) | next |
 
-Phases 3–5 are all cheap once the index exists, which is why the index is
-first.
+## 8. Layer phases: what a stroke writes
+
+"First draw the room, then fill it with deco" is only real if the two
+write different things, so they do.
+
+| Phase | Canopy | Terrain | Collision |
+|---|---|---|---|
+| **room** | from the brush | from the brush | from the brush |
+| **deco** | from the brush | **kept** | from the brush |
+| **erase** (deco) | blank | **kept** | the room's own, for that terrain |
+
+The deco row is what room `0x34` actually does: its decorations are canopy
+words over an unchanged terrain word (a plain floor cell is canopy `$A800`
+over terrain `$4C62`; the hide on the floor is canopy `$2C66` over the same
+`$4C62`). Painting a gourd onto a floor must not replace the floor, and in
+this model it cannot.
+
+**Erase** is the inverse and needs one extra decision. Taking the picture
+away must take its collision with it, or removing a gourd leaves a hole you
+still cannot walk through — so the restored collision is the one the room
+itself uses most often on bare ground of that terrain word. Both halves are
+derived from the room, not assumed:
+
+- the blank canopy is the room's most-placed canopy word. That is `$A800`
+  in every room measured (140 placements in `0x34`, 2034 in `0x76`, 3800 in
+  `0x38`), and room `0x34`'s graphic at that word has **zero**
+  non-transparent pixels, so erasing to it really does erase.
+- the restored collision is the most-placed stamp sharing that terrain.
+
+## 9. Constructs: the thing, not the tiles
+
+A construct is a saved rectangle of map: its stamps **as words**, so it
+survives being placed in a room with a different dictionary, plus every
+trigger and object whose rectangle overlaps the selection.
+
+That last part is the whole reason constructs are not just a clipboard.
+Room `0x34`'s attachments, read straight out of the blob:
+
+```
+objects   (5,5) 2x2 #0   (12,7) 2x2 #1   (11,5) 2x2 #2     <- the three gourds
+bTrigger  (8,11)-(10,13) script 1854 · (14,11)-(16,13) 1857 · (15,13)-(17,15) 1860
+stepOn    (11,23)-(13,24) script 1851
+```
+
+A gourd selection carries an object and a B-trigger; a selection over the
+hide on the floor carries neither. Stamping one therefore has to move more
+than stamping the other, and the library shows which is which before you
+place it.
 
 ---
 
-## 8. What this does not solve
+## 10. What this does not solve
 
 - **Unattested colour combinations.** The index says what vanilla drew, not
   what looks good. A graphic in a family nobody paired it with may be
@@ -356,7 +405,7 @@ first.
 
 ---
 
-## 9. How the numbers here were measured
+## 11. How the numbers here were measured
 
 All probes decode the 126 rooms in `VANILLA_ROOMS` with `maps.decodeRoom`
 and walk `maps.metatileTable`, counting only metatiles with `uses > 0` so
