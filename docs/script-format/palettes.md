@@ -61,10 +61,13 @@ Count **distinct palettes**, not enemies:
 | Characters sharing a palette | free — they cost one slot together |
 | Palette `0` | no palette at all; costs nothing |
 
-The Rooms tab shows this per room: the palettes its enter script can place,
-a swatch each, and how many slots are left. It counts **every branch** the
-enter script can take, so a room that branches shows more than will ever be
-on screen at once.
+The Rooms tab shows this per room as a row of slots: one chip per palette
+the enter script can place, with a swatch and the characters wearing it,
+then a dashed empty chip for each slot still free. Four pips beside the
+heading say the same thing at a glance, and a palette past the fourth is
+drawn red — that is the one sharing the stolen slot. It counts **every
+branch** the enter script can take, so a room that branches shows more than
+will ever be on screen at once.
 
 In the vanilla ROM, 7 of the 128 rooms already list more than four, up to six
 (room `0x09`) — which is consistent with the effect being a real, occasional

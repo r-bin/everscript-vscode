@@ -12,6 +12,8 @@
 // pixel-identical to upstream by tests/memory/map-parity.test.js.
 
 const maps = require('../../maps');
+const { romFingerprint } = require('./rom-fingerprint');
+const { buildObjects, parseObjectStates, cachedObjectPreviews } = require('./object-previews');
 
 /** Which render the map image shows. */
 const LAYERS = ['composite', 'layer1', 'layer2'];
@@ -86,65 +88,6 @@ function buildDrift(collisionWords) {
     return out;
 }
 
-/**
- * Section 3 map objects, their states, and a thumbnail of each state.
- *
- * A state is reached by XOR-ing the deltas up to it into the grid, so every
- * state can be rendered exactly — see src/maps/object-stamps.ts. An object
- * with N delta records has N+1 appearances, state 0 being the loaded room.
- */
-function buildObjects(rom, room, selected) {
-    return room.objects.map((obj, index) => {
-        const count = maps.objectStateCount(obj);
-        const current = Math.min(selected[index] || maps.DEFAULT_OBJECT_STATE, count - 1);
-        const box = maps.objectBounds(rom, room, obj);
-        const states = [];
-        for (let s = 0; s < count; s++) {
-            // Descriptor s-1 is what produces appearance s; state 0 has none.
-            const src = s > 0 ? obj.states[s - 1] : obj.states[0];
-            let preview = null;
-            try {
-                const img = maps.renderObjectState(rom, room, index, s);
-                if (img) preview = maps.encodePngDataUri(img);
-            } catch {
-                // A record that will not parse still lists, just without art.
-            }
-            states.push({
-                state: s,
-                x: src ? src.tileX : (box ? box.x : 0),
-                y: src ? src.tileY : (box ? box.y : 0),
-                metatileId: src ? src.metatileId : 0,
-                preview,
-            });
-        }
-        return {
-            index,
-            current,
-            x: box ? box.x : 0,
-            y: box ? box.y : 0,
-            w: box ? box.w : 1,
-            h: box ? box.h : 1,
-            states,
-            /** Identical signatures across every delta means nothing to choose. */
-            stampSigs: obj.states.map((st) =>
-                maps.objectStampSignature(maps.parseObjectStamp(rom, room.objectArea, st.metatileId))),
-        };
-    });
-}
-
-/**
- * Parse the wire form of the object-state selection: `index:state` pairs
- * joined by commas, e.g. `20:1`. A string because it also keys the cache.
- */
-function parseObjectStates(spec) {
-    const out = {};
-    if (typeof spec !== 'string' || !spec) return out;
-    for (const part of spec.split(',')) {
-        const [i, st] = part.split(':').map(Number);
-        if (Number.isInteger(i) && Number.isInteger(st) && i >= 0 && st > 0) out[i] = st;
-    }
-    return out;
-}
 
 /** Entity-gate tiles grouped by which entities the gate blocks. */
 function buildGates(features) {
@@ -165,22 +108,43 @@ function buildGates(features) {
 const RENDER_CACHE = new Map();
 const RENDER_CACHE_MAX = 24;
 
-/**
- * Cheap ROM identity: length plus a few interior bytes. A recompile changes
- * map data, so sampling across the file catches it without hashing 3MB on
- * every room selection.
- */
-function romFingerprint(rom) {
-    let h = rom.length;
-    const step = Math.max(1, Math.floor(rom.length / 64));
-    for (let i = 0; i < rom.length; i += step) h = ((h * 31) + rom[i]) | 0;
-    return h;
-}
-
 function renderLayer(rom, room, layer) {
     if (layer === 'layer1') return maps.renderVramLayer(rom, room, room.layer1VramWords);
     if (layer === 'layer2') return maps.renderVramLayer(rom, room, room.layer2VramWords);
     return maps.renderRoomComposite(rom, room);
+}
+
+/**
+ * The feature overlay, redrawn on top of the canopy.
+ *
+ * The overlay is baked into the map raster, so the canopy — which is laid
+ * over that raster to cover the characters under it — would hide the very
+ * marks that say where the walls are. This is the same overlay painted a
+ * second time onto the canopy's own pixels and cut back to them, so it can
+ * sit above everything: the map shows its solid contours where the player
+ * can see the ground, and these dashed ones where the foreground covers it.
+ *
+ * Only the pixels the second pass actually changed survive, so the layer is
+ * marks on transparency rather than a second copy of the canopy.
+ */
+function overlayOverCanopy(foreground, room, opts) {
+    const covered = maps.opaqueMask(foreground);
+    const before = foreground.data;
+    const marks = {
+        width: foreground.width,
+        height: foreground.height,
+        data: Uint8Array.from(before),
+    };
+    maps.drawCollisionOverlay(marks, room, Object.assign({}, opts, { hidden: covered }));
+    const out = marks.data;
+    let painted = 0;
+    for (let i = 0; i < covered.length; i++) {
+        const o = i * 4;
+        const same = out[o] === before[o] && out[o + 1] === before[o + 1] && out[o + 2] === before[o + 2];
+        if (!covered[i] || same) out[o + 3] = 0;
+        else painted += 1;
+    }
+    return painted ? marks : null;
 }
 
 function cachedRender(rom, roomId, layer, ov, stateSpec) {
@@ -199,6 +163,7 @@ function cachedRender(rom, roomId, layer, ov, stateSpec) {
     // so the Rooms tab can put enemies under the canopy the way the game does.
     // Composite only: a single-layer view has no foreground to speak of.
     const foreground = layer === 'composite' ? maps.renderRoomForeground(rom, room) : null;
+    const canopyOverlay = foreground && ov.any ? overlayOverCanopy(foreground, room, ov.opts) : null;
     const entry = {
         room,
         // Kept so the animation can re-apply the same overlay to its frames.
@@ -208,6 +173,7 @@ function cachedRender(rom, roomId, layer, ov, stateSpec) {
         features: maps.classifyRoom(room),
         imageUri: maps.encodePngDataUri(image),
         foregroundUri: foreground ? maps.encodePngDataUri(foreground) : null,
+        canopyOverlayUri: canopyOverlay ? maps.encodePngDataUri(canopyOverlay) : null,
         width: image.width,
         height: image.height,
     };
@@ -217,22 +183,6 @@ function cachedRender(rom, roomId, layer, ov, stateSpec) {
     return entry;
 }
 
-// Thumbnails depend only on the ROM and the room, never on which state is
-// selected, so they are cached apart from the map render — otherwise every
-// chip click would re-render every thumbnail in the room.
-const PREVIEW_CACHE = new Map();
-const PREVIEW_CACHE_MAX = 8;
-
-function cachedObjectPreviews(rom, roomId, room, selected) {
-    const key = romFingerprint(rom) + ':' + roomId;
-    let objects = PREVIEW_CACHE.get(key);
-    if (!objects) {
-        objects = buildObjects(rom, room, {});
-        PREVIEW_CACHE.set(key, objects);
-        if (PREVIEW_CACHE.size > PREVIEW_CACHE_MAX) PREVIEW_CACHE.delete(PREVIEW_CACHE.keys().next().value);
-    }
-    return objects.map((o) => ({ ...o, current: Math.min(selected[o.index] || 0, o.states.length - 1) }));
-}
 
 // Animation overlays depend on everything the render does: the layer picks
 // which words are on screen, the feature flags decide which pixels are
@@ -317,7 +267,7 @@ function buildRoomTileOverlay(rom, roomId, originX, originY, layer, overlay, obj
     const spec = typeof objectStates === 'string' ? objectStates : '';
     const renderKey = romFingerprint(buf) + ':' + roomId + ':' + which + ':' + ov.flags + ':' + spec;
     const entry = cachedRender(buf, roomId, which, ov, spec);
-    const { room, features, imageUri, foregroundUri, width, height } = entry;
+    const { room, features, imageUri, foregroundUri, canopyOverlayUri, width, height } = entry;
     const collision = countCollision(room.collisionWords);
 
     return {
@@ -330,6 +280,7 @@ function buildRoomTileOverlay(rom, roomId, originX, originY, layer, overlay, obj
         originY: originY || 0,
         imageUri,
         foregroundUri,
+        canopyOverlayUri,
         imageWidth: width,
         imageHeight: height,
         collisionTiles: collision.painted,

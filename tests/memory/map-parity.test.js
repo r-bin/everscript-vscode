@@ -557,6 +557,73 @@ function checkForeground(rom) {
     check('foreground pixels match the composite', mismatched, 0);
     check('foreground is a part of the room, not all of it', share > 0.05 && share < 0.95, true);
     console.log(`  foreground: ${(share * 100).toFixed(1)}% of room 0x76 draws over a character`);
+    checkSpriteDepth(rom);
+    checkHiddenContour(rom);
+}
+
+/**
+ * Which side of the foreground a character is drawn on.
+ *
+ * `$8FC773` reads entity `+0x3C` — the collision word of the metatile it
+ * stands on, written there by `$8FAFE5` — and gives OAM priority 3 when bit
+ * 12 is set. `walking_against_flower.txt` loads four such words in room
+ * 0x38; they are the pin, because they prove `+0x3C` is the word this
+ * decoder already produces. See docs/script-format/sprite_priority.md.
+ */
+function checkSpriteDepth(rom) {
+    const room = decodeRoom(rom, 0x38);
+    // Absolute pixel position, word: the entity's $001A/$001C and $003C as
+    // the trace printed them. A metatile is 16 px.
+    const traced = [[0x248, 0x3c8, 0x0010], [0x358, 0x408, 0x0010],
+        [0x314, 0x304, 0x0013], [0x229, 0x3e6, 0x0010]];
+    let agree = 0;
+    for (const [px, py, word] of traced) {
+        if (room.collisionWords[py >> 4][px >> 4] === word) agree += 1;
+    }
+    check('traced tile words match the decoded collision map', agree, traced.length);
+    check('a flower in 0x38 is behind the foreground',
+        maps.spriteDrawsInFront(room.collisionWords[0x3c8 >> 4][0x248 >> 4]), false);
+
+    // The distribution is the finding that matters to the Rooms tab: drawing
+    // the canopy over every character was wrong for most of them.
+    let inFront = 0;
+    let total = 0;
+    for (let id = 0; id < 0x7f; id++) {
+        let m;
+        try { m = decodeRoom(rom, id); } catch { continue; }
+        for (const row of m.collisionWords) {
+            for (const cw of row) { total += 1; if (maps.spriteDrawsInFront(cw)) inFront += 1; }
+        }
+    }
+    const share = inFront / total;
+    check('most tiles draw a character in front', share > 0.8 && share < 0.9, true);
+    console.log(`  sprite depth: ${(share * 100).toFixed(1)}% of tiles put a character in front`);
+}
+
+/**
+ * The dashed contour: where the foreground hides the map, the main plane's
+ * boundary is drawn in the same 3-on/3-off pattern a tunnel under a bridge
+ * already uses, so a covered wall never reads as a visible one.
+ */
+function checkHiddenContour(rom) {
+    const room = decodeRoom(rom, 0x76);
+    const hidden = maps.opaqueMask(maps.renderRoomForeground(rom, room));
+    const solid = renderRoomComposite(rom, room);
+    const dashed = renderRoomComposite(rom, room);
+    drawCollisionOverlay(solid, room, { contours: true });
+    drawCollisionOverlay(dashed, room, { contours: true, hidden });
+
+    let differ = 0;
+    let differUncovered = 0;
+    for (let i = 0; i < hidden.length; i++) {
+        const o = i * 4;
+        if (solid.data[o] === dashed.data[o] && solid.data[o + 1] === dashed.data[o + 1]
+            && solid.data[o + 2] === dashed.data[o + 2]) continue;
+        differ += 1;
+        if (!hidden[i]) differUncovered += 1;
+    }
+    check('the dash only touches covered pixels', differUncovered, 0);
+    check('the dash removes some contour', differ > 0, true);
 }
 
 function checkOverlayParity(rom, rooms) {

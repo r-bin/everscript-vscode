@@ -72,6 +72,7 @@ function loadScalingJs() {
 const ROOMS_JS_FILES = [
   'bootstrap.js',        // globals: _currentByteScriptFocus, _applyByteScriptFocus, message listener
   'utils.js',            // escH, hexNum, normScriptAddr, tsvg, INGR_MAP/EMOJI helpers
+  'svg-spawns.js',       // buildSpawnLayers (the NPC layers svg-builder places)
   'svg-builder.js',      // buildRoomSvgSection
   'tables-builder.js',   // renderScriptTable/Card, buildEntityTablesHtml, buildRomScriptsHtml
   'rom-header.js',       // buildRomHeaderHtml

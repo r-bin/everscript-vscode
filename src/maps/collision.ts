@@ -15,6 +15,8 @@ export const ENTITY_GATE_MASK = 0x0f00;
 export const ALWAYS_WALKABLE = 0x2000;
 /** Bit 12: a character standing here is drawn in front of the foreground. */
 export const SPRITE_IN_FRONT = 0x1000;
+/** Gate nibble 8: a character standing here is not drawn at all. */
+export const SPRITE_HIDDEN = 0x0800;
 
 /** Fully solid geometry code. */
 export const SOLID = 0x0f;
@@ -43,19 +45,51 @@ export function isAlwaysWalkable(cw: number): boolean {
  * Whether a character on this tile is drawn over the foreground.
  *
  * `$8FC773` builds an entity's OAM attribute from the collision word of the
- * tile it stands on. Bit 12 set, or a plane below the tile's own, gives
- * priority **3** — in front of every background pixel. Otherwise it is
- * priority **2**, which in Mode 1 sits behind `BG1.1` and `BG2.1`:
+ * tile it stands on. Bit 12 set gives priority **3** — in front of every
+ * background pixel. Otherwise it is priority **2**, which in Mode 1 sits
+ * behind `BG1.1` and `BG2.1`:
  *
  *     8FC7AA  BIT #$1000
  *     8FC7AD  BNE $8FC7C1      ; -> LDA #$CC30, priority 3
  *     8FC7B7  LDA #$CC20       ; otherwise priority 2
  *
- * A spawn's own plane comes from the tile it is placed on, so for a resting
- * enemy this bit is the whole answer.
+ * The word it tests is entity `+0x3C`, and `$8FAFE5` fills that from the
+ * metatile the entity stands on — the very table this module decodes:
+ *
+ *     8FAFE5  LDX $003A,Y          ; the tile under the entity
+ *     8FAFE8  LDA $7F0000,X        ; -> its metatile record
+ *     8FAFED  LDA $7F0004,X        ; -> that record's collision word
+ *     8FAFF1  STA $003C,Y
+ *
+ * Four entities in `walking_against_flower.txt` confirm it: the words the
+ * trace loads ($0010, $0010, $0013, $0010) are exactly `collisionWords` at
+ * their tiles in room `0x38`.
+ *
+ * **In front is the common case** — 84% of vanilla tiles set bit 12 — so a
+ * viewer that draws the foreground over every character is wrong for most of
+ * them. A spawn's own plane comes from the tile it is placed on, so the
+ * plane comparison at `$8FC7A0` always falls through and this bit is the
+ * whole answer for a resting enemy.
  */
 export function spriteDrawsInFront(cw: number): boolean {
     return (cw & SPRITE_IN_FRONT) !== 0;
+}
+
+/**
+ * Whether a character on this tile is suppressed entirely.
+ *
+ * Before choosing a priority, `$8FC773` tests the gate nibble and bails out
+ * on 8, zeroing the entity's sprite slot instead of queueing OAM:
+ *
+ *     8FC784  EOR #$0800
+ *     8FC787  BIT #$0F00
+ *     8FC78A  BNE $8FC793      ; any other nibble -> carry on
+ *     8FC78C  TDC / STA $08 / STA $0084,Y / RTL
+ *
+ * Nine vanilla spawns stand on such a tile.
+ */
+export function spriteHiddenOn(cw: number): boolean {
+    return (cw & ENTITY_GATE_MASK) === SPRITE_HIDDEN;
 }
 
 /** True if standing here leaves the entity's plane unchanged ($8FA914). */

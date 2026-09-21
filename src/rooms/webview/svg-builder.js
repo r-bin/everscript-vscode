@@ -81,6 +81,11 @@ function buildRoomSvgSection(opts){
     html+='<image class="room-img" id="rg-img" x="'+mapX0+'" y="'+mapY0+'" width="'+mapW+'" height="'+mapH+
           '" preserveAspectRatio="none"'+(imageUri?' href="'+imageUri+'"':'')+'/>';
 
+    // Everything from here on is annotation rather than scenery, so it is
+    // collected and appended after the map layers — see the canopy comment
+    // below. The map itself is the only thing allowed to cover a sprite.
+    var over='';
+
     // Grid lines at their true spacing: 1 viewBox unit = one 8px tile, 2 units
     // = one 16px metatile. These used to coarsen to 2 or 4 units on large maps,
     // which made the "8px" grid draw every 32px and stopped it lining up with
@@ -93,15 +98,15 @@ function buildRoomSvgSection(opts){
       for(var gy=gy0;gy<=y2;gy+=step)if(gy>=y1)d+='M'+x1+' '+gy+'H'+x2;
       return d;
     }
-    html+='<path class="rg-grid-fine" d="'+gridPath(1)+'" fill="none" stroke="rgba(255,255,255,0.11)" stroke-width="0.07"/>';
-    html+='<path class="rg-grid-coarse" d="'+gridPath(2)+'" fill="none" stroke="rgba(160,140,80,0.42)" stroke-width="0.18"/>';
+    over+='<path class="rg-grid-fine" d="'+gridPath(1)+'" fill="none" stroke="rgba(255,255,255,0.11)" stroke-width="0.07"/>';
+    over+='<path class="rg-grid-coarse" d="'+gridPath(2)+'" fill="none" stroke="rgba(160,140,80,0.42)" stroke-width="0.18"/>';
 
     // Step-on rects (pink)
     stepOn.forEach(function(t,i){
       var nm=stepOnNames[i]||'';
       var sv=tsvg(t,trigOff);
       var tip='step-on'+(nm?' '+escH(nm):'')+exitTip(t)+(t.label?' — '+escH(t.label):'');
-      html+='<rect class="svge-step" data-idx="'+i+'" data-kind="step" data-label="'+escH(nm||exitLabel(t)||t.label||'')+' ['+t.x1+','+t.y1+':'+t.x2+','+t.y2+']" x="'+sv.sx+'" y="'+sv.sy+'" width="'+sv.sw+'" height="'+sv.sh+'" fill="rgba(255,100,180,0.18)" stroke="#ff69b4" stroke-width="0.3"><title>'+tip+'</title></rect>';
+      over+='<rect class="svge-step" data-idx="'+i+'" data-kind="step" data-label="'+escH(nm||exitLabel(t)||t.label||'')+' ['+t.x1+','+t.y1+':'+t.x2+','+t.y2+']" x="'+sv.sx+'" y="'+sv.sy+'" width="'+sv.sw+'" height="'+sv.sh+'" fill="rgba(255,100,180,0.18)" stroke="#ff69b4" stroke-width="0.3"><title>'+tip+'</title></rect>';
     });
 
     // B-trigger rects (yellow) + ingredient icons
@@ -114,90 +119,55 @@ function buildRoomSvgSection(opts){
       var tip='B-trig'+(nm?' '+escH(nm):'')+lootTip(t)+exitTip(t)+(t.label?' — '+escH(t.label):'');
       var ingrEmoji=getIngrIcon(iconName);
       var blabel=escH(nm||lootLabel(t)||exitLabel(t)||t.label||'')+(ingrEmoji?' '+ingrEmoji:'')+' ['+t.x1+','+t.y1+':'+t.x2+','+t.y2+']';
-      html+='<rect class="svge-btrig" data-idx="'+i+'" data-kind="btrig" data-label="'+blabel+'" x="'+sv.sx+'" y="'+sv.sy+'" width="'+sv.sw+'" height="'+sv.sh+'" fill="rgba(255,210,0,0.13)" stroke="#ffcc00" stroke-width="0.3"><title>'+(ingrEmoji?ingrEmoji+' ':'')+tip+'</title></rect>';
+      over+='<rect class="svge-btrig" data-idx="'+i+'" data-kind="btrig" data-label="'+blabel+'" x="'+sv.sx+'" y="'+sv.sy+'" width="'+sv.sw+'" height="'+sv.sh+'" fill="rgba(255,210,0,0.13)" stroke="#ffcc00" stroke-width="0.3"><title>'+(ingrEmoji?ingrEmoji+' ':'')+tip+'</title></rect>';
       if(ingrEmoji){
         var ifs=Math.max(1.5,Math.min(sv.sw,sv.sh,2.8));
         var imgHtml=ingrSvgImg(iconName,sv.sx+sv.sw/2,sv.sy+sv.sh/2,ifs*1.2);
         if(imgHtml){
-          html+='<g class="svge-btrig svge-ingr">'+imgHtml+'</g>';
+          over+='<g class="svge-btrig svge-ingr">'+imgHtml+'</g>';
         }else{
-          html+='<text class="svge-btrig svge-ingr" x="'+(sv.sx+sv.sw/2)+'" y="'+(sv.sy+sv.sh/2+ifs*0.4)+'" text-anchor="middle" font-size="'+ifs+'" pointer-events="none" style="user-select:none">'+ingrEmoji+'</text>';
+          over+='<text class="svge-btrig svge-ingr" x="'+(sv.sx+sv.sw/2)+'" y="'+(sv.sy+sv.sh/2+ifs*0.4)+'" text-anchor="middle" font-size="'+ifs+'" pointer-events="none" style="user-select:none">'+ingrEmoji+'</text>';
         }
       }
     });
 
-    // NPCs the ROM's enter script can place.
+    // NPCs the ROM's enter script can place, in the three layers
+    // svg-spawns.js sorts them into.
     //
     // Same coordinate space as a live room's add_enemy(x, y): the encoder
     // passes those arguments straight into these opcodes, so a ROM spawn and
     // a source-defined enemy plot identically.
-    //
-    // Drawn hollow, because these are candidates rather than contents — the
-    // enter script branches on save state and every branch is walked. A
-    // solid marker would claim more than is known.
-    romSpawns.forEach(function(v,i){
-      if(v.x==null||v.y==null)return;
-      var nm=v.romName||v.name||('NPC '+v.npc);
-      // Hostility is a flag, so it can be shown rather than guessed from the
-      // name: bit 1 (INVINCIBLE) is set on every townsperson and on no
-      // monster. A spawn that carries its own flags overrides the character's.
-      var disp=v.hostile==null?'':(v.hostile?'hostile':'friendly')
-            +(v.inactive?', inactive':'')
-            +' \u2014 flags 0x'+(v.flags||0).toString(16)+' from the '+v.flagsFrom;
-      var tip=nm+(v.name&&v.romName?' ('+v.name+')':'')
-            +(v.character!=null?'\ncharacter #'+v.character:'')
-            +(disp?'\n'+disp:'')
-            // The Boy's own radius is 8, so he stops r+8 px away horizontally
-            // and (r+8)/2 vertically.
-            +(v.hitW!=null?'\nhitbox '+(v.hitW?v.hitW+'\u00d7'+v.hitH+' px \u2014 stops the Boy '+(v.hitW/2+8)+' px away':'none \u2014 walk through it'):'')
-            +(v.spawner?'\nspawner'+(v.quantity!=null?' x'+v.quantity:''):'')
-            +'\nat '+v.x+','+v.y+' \u2014 candidate, depends on save state';
-      // The body other entities bump into: character record +0x0D as a
-      // radius, giving a box 2r wide and r tall centred on the spawn point.
-      // The vertical axis counts double in the game's own test ($8FB4C5 ASL),
-      // which is why it is half as tall as it is wide.
-      if(v.hitW){
-        var PXU=8, hw=v.hitW/PXU/2, hh=v.hitH/PXU/2, cxh=v.x, cyh=v.y;
-        html+='<rect class="svge-spawn svge-hitbox" data-idx="'+i+'" data-kind="spawn" data-label="'+escH(nm)+' hitbox '+v.hitW+'\u00d7'+v.hitH+'px" x="'+(cxh-hw)+'" y="'+(cyh-hh)+'" width="'+(hw*2)+'" height="'+(hh*2)+'" fill="none" stroke="#ffffff" stroke-opacity="0.5" stroke-width="0.12" stroke-dasharray="0.35,0.3"><title>'+escH(tip)+'</title></rect>';
-      }
-      // The tile it stands on, tinted by that flag, so a room reads at a
-      // glance. Drawn first so the sprite keeps the foreground.
-      if(v.hostile!=null){
-        var hc=v.hostile?'#ff5555':'#4fc3f7';
-        html+='<rect class="svge-spawn svge-spawn-tile" data-idx="'+i+'" data-kind="spawn" data-label="'+escH(nm)+' ('+v.x+','+v.y+')" x="'+(v.x-0.5)+'" y="'+(v.y-0.5)+'" width="1" height="1" fill="'+hc+'" fill-opacity="'+(v.inactive?0.10:0.20)+'" stroke="'+hc+'" stroke-opacity="0.75" stroke-width="0.15" stroke-dasharray="'+(v.inactive?'0.4,0.3':'none')+'" rx="0.2"><title>'+escH(tip)+'</title></rect>';
-      }
-      if(v.sprite){
-        // The game's own artwork, placed by the sprite's own origin, which
-        // sits at its feet. Centring it instead drops an enemy about a tile
-        // low.
-        //
-        // The origin lands on the spawn coordinate exactly: a trace of room
-        // 0x38 has its entities at pixel 8*x for every one of them — the two
-        // Mosquitoes the script places at x=17 are at $0088 = 136. So there
-        // is no half-tile to add; doing that put every sprite 4 px down and
-        // to the right.
-        var PX=8;
-        var sw=(v.spriteW||16)/PX, sh=(v.spriteH||16)/PX;
-        var ox=(v.spriteOX!=null?v.spriteOX:(v.spriteW||16)/2)/PX;
-        var oy=(v.spriteOY!=null?v.spriteOY:(v.spriteH||16)/2)/PX;
-        var fr=(v.spriteFrames&&v.spriteFrames.length>1)
-          ?' data-frames="'+escH(JSON.stringify(v.spriteFrames))+'"':'';
-        html+='<image class="svge-spawn" data-idx="'+i+'" data-kind="spawn"'+fr+' data-label="'+escH(nm)+' ('+v.x+','+v.y+')" href="'+v.sprite+'" x="'+(v.x-ox)+'" y="'+(v.y-oy)+'" width="'+sw+'" height="'+sh+'" style="image-rendering:pixelated" preserveAspectRatio="none"><title>'+escH(tip)+'</title></image>';
-      } else if(v.hostile==null){
-        // No character record either — nothing but a position to show.
-        html+='<rect class="svge-spawn" data-idx="'+i+'" data-kind="spawn" data-label="'+escH(nm)+' ('+v.x+','+v.y+')" x="'+(v.x-0.5)+'" y="'+(v.y-0.5)+'" width="1" height="1" fill="none" stroke="#e3b341" stroke-width="0.25" rx="0.3"><title>'+escH(tip)+'</title></rect>';
-      }
-    });
+    var spawnLayers=buildSpawnLayers(romSpawns);
+    html+=spawnLayers.behind;
 
-    // The canopy, drawn back over the enemies standing under it.
+    // The canopy, drawn back over the characters the game draws under it —
+    // and only those.
     //
     // In Mode 1 the layer order is OBJ.3 > BG1.1 > BG2.1 > OBJ.2 > BG1.0 >
-    // BG2.0, and $8FC773 gives a character priority 2 unless the tile it
-    // stands on says otherwise — so the priority half of the map covers it.
-    // The host renders exactly those pixels; everything else is transparent,
-    // so this sits harmlessly on top of the identical pixels of the base map.
+    // BG2.0, and $8FC773 reads the collision word of the tile a character
+    // stands on: bit 12 set gives OAM priority 3, in front of every
+    // background pixel, and only without it does the priority half of the
+    // map cover the character. 84% of vanilla tiles set that bit, so drawing
+    // this over every sprite was wrong for most of them.
+    //
+    // The host renders exactly the priority-half pixels; everything else is
+    // transparent, so this sits harmlessly on top of the identical pixels of
+    // the base map.
     html+='<image class="svge-fg" id="rg-fg" x="'+mapX0+'" y="'+mapY0+'" width="'+mapW+'" height="'+mapH+
           '" preserveAspectRatio="none" style="display:none" pointer-events="none"/>';
+    html+=spawnLayers.front;
+
+    // The feature overlay again, cut back to the pixels the canopy covers and
+    // dashed there. The map raster under the canopy already carries the solid
+    // version, so together they read as "solid where the player can see the
+    // wall, dashed where the foreground hides it" — the convention a tunnel
+    // under a bridge already uses.
+    html+='<image class="svge-canopy-ov" id="rg-canopy-ov" x="'+mapX0+'" y="'+mapY0+'" width="'+mapW+'" height="'+mapH+
+          '" preserveAspectRatio="none" style="display:none" pointer-events="none"/>';
+
+    // Annotation from here on, over every map layer.
+    html+=over;
+    html+=spawnLayers.marks;
 
     // Doors that lead into this room, gathered from every script in the ROM.
     // Drawn over the canopy: they are annotation, not scenery.

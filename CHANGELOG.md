@@ -1,3 +1,42 @@
+## [0.33.0] — 2026-09-21
+
+The canopy from 0.32.0 was drawn over *every* character. It should only cover the ones the game draws under it, and it should never cover the collision overlay.
+
+### Which characters the scenery covers is a per-tile question
+
+The trace answers what 0.32.0 left open. Entity `+0x3C` — the word `$8FC773` tests — is filled from the tile the character stands on:
+
+```
+8FAFE5  LDX $003A,Y          ; the tile under the entity
+8FAFE8  LDA $7F0000,X        ; -> its metatile record
+8FAFED  LDA $7F0004,X        ; -> that record's collision word
+8FAFF1  STA $003C,Y
+```
+
+`$7F0004 + record` is the metatile collision table this repo already decodes, and four entities in `walking_against_flower.txt` pin it: the words the trace loads ($0010, $0010, $0013, $0010) are exactly `collisionWords` at their tiles in room `0x38`.
+
+So bit 12 of an ordinary collision word is the whole answer for a resting spawn — and **84.4% of vanilla tiles set it**, along with 1077 of the 1402 vanilla spawns. Laying the foreground over everybody was wrong about three quarters of them.
+
+The Rooms tab now sorts its spawns into two groups and puts the canopy between them. `spriteDrawsInFront()` is verified rather than documented-but-unused, and the artwork agrees: in room `0x76` every spawn marked *in front* has no priority pixels near it, and the ones marked *behind* are standing in foliage. Nine vanilla spawns stand on a gate-nibble-8 tile, which `$8FC773` refuses to draw at all; those are dimmed.
+
+New doc: [docs/script-format/sprite_priority.md](docs/script-format/sprite_priority.md). `sprite_format.md` is corrected too — a chunk's bits 4–5 are masked out of the OAM attribute by `$809433`, so they order chunks within a sprite and are not the hardware priority.
+
+### Collision the foreground hides is dashed, and always on top
+
+The overlay is baked into the map raster, so the canopy hid it. It is now painted a second time onto the canopy's own pixels, cut back to them, and drawn above everything — with the main plane's contour in the same 3-on/3-off dash a tunnel under a bridge already uses. Solid line means the player can see that wall; dashed means the scenery covers it.
+
+Everything else that is annotation rather than scenery moved above the map layers with it: the 8 px and 16 px grids, the trigger boxes, and the spawn hitboxes (which used to be painted *under* the sprites).
+
+### The palette budget as slots
+
+The room's palettes are drawn as a row of chips with a dashed empty chip for each slot still free, plus four pips beside the heading — so "one more and it glitches" reads without counting. A palette past the fourth is red: that is the one sharing the slot `$90CE92` steals.
+
+### Internals
+
+- `src/rooms/webview/svg-spawns.js` — `buildSpawnLayers()` returns the three layers (`behind`, `front`, `marks`) svg-builder stacks around the canopy.
+- `src/rooms/rendering/object-previews.js` and `rom-fingerprint.js` — split out of `tile-overlay.js`, which the second render pass pushed past 400 lines.
+- `opaqueMask()`, `spriteHiddenOn()`, `SPRITE_HIDDEN`, and `CollisionOverlayOptions.hidden`.
+
 ## [0.32.0] — 2026-09-21
 
 Three asks from map `0x76`: draw enemies the way the game layers them, track palettes, and show where a room is entered from.

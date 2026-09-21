@@ -42,6 +42,13 @@ export interface CollisionOverlayOptions {
     triggers?: boolean;
     /** The 3x5 index labels on object and trigger boxes. */
     labels?: boolean;
+    /**
+     * One byte per pixel, 1 where the player cannot see the map — the
+     * foreground covers it. The main plane's contour dashes there, in the
+     * same pattern a tunnel under a bridge already uses. Omit for the
+     * upstream-identical rendering.
+     */
+    hidden?: Uint8Array | null;
 }
 
 /** A label queued during a draw pass and flushed after every other pass. */
@@ -102,7 +109,7 @@ export function drawCollisionOverlay(
     // 2. Per-plane solid masks, evaluated as $909DE8 would for an entity
     //    standing on that plane, then contoured.
     if (on(opts.contours) && f.planes.length) {
-        drawContours(buf, blend, wPx, hPx, wTiles, hTiles, cw, grassPx, f);
+        drawContours(buf, blend, wPx, hPx, wTiles, hTiles, cw, grassPx, f, opts.hidden || null);
     }
 
     // 3. Forced-walkable tiles (bit 13): cyan wash plus a drift arrow. Under

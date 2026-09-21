@@ -249,3 +249,16 @@ export function renderRoomComposite(rom: Uint8Array, room: RoomData, opts: Rende
 export function renderRoomForeground(rom: Uint8Array, room: RoomData): PixelBuffer {
     return renderRoomComposite(rom, room, { foregroundOnly: true });
 }
+
+/**
+ * One byte per pixel, 1 where the buffer is not fully transparent.
+ *
+ * Over a `renderRoomForeground` result this is "the player cannot see what is
+ * under here", which is what turns a collision contour from a solid line into
+ * a dashed one.
+ */
+export function opaqueMask(img: PixelBuffer): Uint8Array {
+    const out = new Uint8Array(img.width * img.height);
+    for (let i = 0; i < out.length; i++) out[i] = img.data[i * 4 + 3] > 0 ? 1 : 0;
+    return out;
+}

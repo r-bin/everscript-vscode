@@ -100,10 +100,16 @@ See
 [animation_format.md](../../docs/script-format/animation_format.md),
 [character_table.md](../../docs/script-format/character_table.md),
 [hitboxes.md](../../docs/script-format/hitboxes.md),
-[attack_boxes.md](../../docs/script-format/attack_boxes.md) and
-[palettes.md](../../docs/script-format/palettes.md).
+[attack_boxes.md](../../docs/script-format/attack_boxes.md),
+[palettes.md](../../docs/script-format/palettes.md) and
+[sprite_priority.md](../../docs/script-format/sprite_priority.md).
 
 `render.ts` also renders the **canopy** — `renderRoomForeground`, the pixels
-a character standing in the room is drawn behind. In Mode 1 that is the
-priority half of whichever layer won, because `$8FC773` gives an entity OAM
-priority 2 unless the tile it stands on says otherwise.
+a character standing in the room *can* be drawn behind. In Mode 1 that is
+the priority half of whichever layer won.
+
+Whether a given character is actually behind it is a per-tile question:
+`$8FC773` reads the collision word of the tile it stands on and gives it OAM
+priority 3 when bit 12 is set, which is 84% of vanilla tiles. Use
+`spriteDrawsInFront()` — see
+[docs/script-format/sprite_priority.md](../../docs/script-format/sprite_priority.md).

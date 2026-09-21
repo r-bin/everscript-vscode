@@ -19,6 +19,7 @@ ruled out, so the next attempt starts further along.
 | [character_table.md](character_table.md) | Stats, palette and animation pointers per character | Solved |
 | [animation_format.md](animation_format.md) | Character → idle sprite and its frames | Solved |
 | [sprite_format.md](sprite_format.md) | Sprite blocks, chunks and their compression | Solved |
+| [sprite_priority.md](sprite_priority.md) | Which characters the scenery is drawn over | Solved |
 | [hitboxes.md](hitboxes.md) | How big a character's body is, and what blocks a move | Solved |
 | [attack_boxes.md](attack_boxes.md) | What a swing sweeps, and what it can land on | Solved |
 | [palettes.md](palettes.md) | How many enemies fit in a room before their colours glitch | Solved |

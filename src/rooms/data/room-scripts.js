@@ -12,6 +12,7 @@ const { buildRoomScriptModel, buildArrivalIndex, mergeArrivals } = require('../.
 const {
     renderCharacterFrames, encodePng, characterDisposition, characterHitbox,
     characterPalette, characterPaletteAddress,
+    decodeRoom, spriteDrawsInFront, spriteHiddenOn,
 } = require('../../maps');
 
 const ROM_NAMES = ['Secret of Evermore (U) [!].smc', 'Secret of Evermore.smc'];
@@ -116,6 +117,32 @@ function attachSprites(rom, spawns) {
 }
 
 /**
+ * Where the game draws each spawn relative to the scenery.
+ *
+ * `$8FC773` reads the collision word of the tile the character stands on —
+ * entity `+0x3C`, filled from that metatile by `$8FAFE5` — and gives it OAM
+ * priority 3 when bit 12 is set, so it passes in front of the foreground,
+ * and priority 2 when not, so the foreground covers it. A spawn is placed in
+ * 8-pixel units and a metatile is 16 px, hence `>> 1`.
+ *
+ * See docs/script-format/sprite_priority.md.
+ */
+function attachTileDepth(rom, mapId, spawns) {
+    let room;
+    try { room = decodeRoom(rom, mapId); } catch { return; }
+    for (const spawn of spawns) {
+        if (spawn.x === null || spawn.x === undefined) continue;
+        const row = room.collisionWords[spawn.y >> 1];
+        if (!row) continue;
+        const word = row[spawn.x >> 1];
+        if (word === undefined) continue;
+        spawn.tileWord = word;
+        spawn.inFront = spriteDrawsInFront(word);
+        spawn.hiddenHere = spriteHiddenOn(word);
+    }
+}
+
+/**
  * What the room costs in sprite palettes.
  *
  * `$90CD80` keeps five slots for characters and reuses one whenever the
@@ -179,6 +206,7 @@ function readRoomScriptModel(wsRoot, mapId, romPathOverride) {
     try {
         const model = buildRoomScriptModel(rom, mapId);
         attachSprites(rom, model.enter.spawns);
+        attachTileDepth(rom, mapId, model.enter.spawns);
         model.palettes = paletteSummary(rom, model.enter.spawns);
         try { model.arrivals = arrivalsFor(rom, mapId); } catch { model.arrivals = []; }
         return model;

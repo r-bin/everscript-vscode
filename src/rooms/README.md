@@ -18,6 +18,9 @@ rooms/
     file-scanner.js           — buildRoomTree, collectRoomsFromDir, findRoomImage, setRoomImageUris
   rendering/
     tree-renderer.js          — renderVanillaTree(rooms), renderRoomsTree(nodes), buildRoomsJson(tree)
+    tile-overlay.js           — buildRoomTileOverlay: the map raster, the canopy, and the canopy overlay
+    object-previews.js        — Section 3 objects: states, thumbnails, the selection wire form
+    rom-fingerprint.js        — romFingerprint(rom): the cache key every render cache shares
   data/
     vanilla-data.js           — VANILLA_ROOMS catalogue + buildVanillaRoomContent/Details + ROM backing
     lua-watchers.js           — getMapEnum, readLuaWatchers, readScriptAllTriggers + caches
@@ -113,7 +116,10 @@ The client-side room interactions live in `webview/`, concatenated into one
 script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
 - `bootstrap.js` — message listener, byte-script focus
 - `utils.js` — escH, hexNum, tsvg, helpers
-- `svg-builder.js` — `buildRoomSvgSection()` → `{html, zoomState, ...}`
+- `svg-spawns.js` — `buildSpawnLayers()` → `{behind, front, marks}`: the NPCs
+  a room can place, split by whether the game draws them over the foreground
+- `svg-builder.js` — `buildRoomSvgSection()` → `{html, zoomState, ...}`; stacks
+  map → spawns behind → canopy → spawns in front → canopy overlay → annotation
 - `tables-builder.js` — entity tables, ROM script cards
 - `rom-header.js` — ROM header display
 - `interactions.js` — zoom/pan, mouse events, click handlers

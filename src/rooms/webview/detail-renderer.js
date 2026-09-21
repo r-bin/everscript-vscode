@@ -59,9 +59,11 @@ function renderRoomDetail(room){
     // The collision box each of them carries — character record +0x0D.
     if(trig.enter.spawns.some(function(s){return s.hitW;}))
       html+='<button class="rdf on" data-hide="hide-hitbox" title="Toggle collision boxes (2r wide, r tall)">hitbox</button>';
-    // The priority half of the map, drawn back over them.
-    html+='<button class="rdf on" data-hide="hide-fg" title="Draw the canopy over the enemies, as the game does">canopy</button>';
   }
+  // The priority half of the map, drawn back over the characters the game
+  // draws under it — and, with it, the dashed collision it hides.
+  if(roomVanillaIdNum(room)!=null)
+    html+='<button class="rdf on" data-hide="hide-fg" title="Draw the foreground over the characters it covers in game, and dash the collision it hides">canopy</button>';
   if(trig.arrivals&&trig.arrivals.length)
     html+='<button class="rdf on" data-hide="hide-arrival" title="Toggle the doors that lead into this room">arrivals</button>';
   html+='<button class="rdf on" id="rg-lock-btn" title="Unlock map">locked</button>';
@@ -239,6 +241,24 @@ function requestRoomTileOverlay(room,svgResult,layer){
  * The features are already baked into the image, so there is no per-tile SVG
  * to build here — which is also why this stays fast on a 86x42 room.
  */
+/**
+ * Point one of the map's extra <image> layers at a render, or hide it.
+ *
+ * Every layer the host renders covers the same pixels as the map, so they
+ * all take the map's position and size — only the href differs.
+ */
+function placeMapLayer(id,uri,ov){
+  var el=document.getElementById(id);
+  if(!el)return;
+  if(!uri){el.style.display='none';return;}
+  el.setAttribute('href',uri);
+  el.setAttribute('width',ov.imageWidth/8);
+  el.setAttribute('height',ov.imageHeight/8);
+  el.setAttribute('x',_pendingTileMapOrigin.x);
+  el.setAttribute('y',_pendingTileMapOrigin.y);
+  el.style.display='';
+}
+
 function applyRoomTileOverlay(msg){
   if(!msg||msg.mapName!==_pendingTileRoom)return;
   setTileBusy(false);
@@ -268,22 +288,12 @@ function applyRoomTileOverlay(msg){
       img.setAttribute('y',_pendingTileMapOrigin.y);
       img.classList.add('rg-rom-render');
     }
-    // The same render, reduced to the pixels that go over a character. It sits
-    // above the spawns in the SVG, so switching it on is what puts an enemy
-    // under the canopy instead of on top of it.
-    var fg=document.getElementById('rg-fg');
-    if(fg){
-      if(ov.foregroundUri){
-        fg.setAttribute('href',ov.foregroundUri);
-        fg.setAttribute('width',ov.imageWidth/8);
-        fg.setAttribute('height',ov.imageHeight/8);
-        fg.setAttribute('x',_pendingTileMapOrigin.x);
-        fg.setAttribute('y',_pendingTileMapOrigin.y);
-        fg.style.display='';
-      }else{
-        fg.style.display='none';
-      }
-    }
+    // Two more layers of the same render, each already sized and positioned
+    // like the map: the canopy (the pixels that go over a character, which
+    // sits between the two spawn groups) and the feature overlay redrawn on
+    // the canopy (which sits above everything).
+    placeMapLayer('rg-fg',ov.foregroundUri,ov);
+    placeMapLayer('rg-canopy-ov',ov.canopyOverlayUri,ov);
   }
 
   // Section 2 tile animation, if the host sent frames for it.

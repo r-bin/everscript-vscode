@@ -28,12 +28,18 @@ export function clamp(v: number, hi: number): number { return Math.max(0, Math.m
  * so a room with bridges or tunnels has a different walkable map per plane.
  * The dominant plane draws as a solid 2px line and the others as dashes, so
  * overlapping levels read as crossing outlines rather than one blob.
+ *
+ * `hidden` extends that convention: where it is set the main plane dashes
+ * too, using the same pattern. The Rooms tab passes the foreground mask, so a
+ * wall the player can see keeps its solid line and one behind the canopy
+ * reads like a tunnel — which is what it is from the player's side.
  */
 export function drawContours(
     buf: Uint8Array | Uint8ClampedArray,
     blend: Blend,
     wPx: number, hPx: number, wTiles: number, hTiles: number,
     cw: number[][], grassPx: Uint8Array, f: RoomFeatures,
+    hidden: Uint8Array | null = null,
 ): void {
     const planeSolid = new Map<number, Uint8Array>();
     for (const p of f.planes) {
@@ -98,6 +104,7 @@ export function drawContours(
     }
     for (let i = 0; i < wPx * hPx; i++) {
         if (thickBorder[i] !== 1) continue;
+        if (hidden && hidden[i] && !inDash(i, wPx)) continue;
         const o = i * 4;
         buf[o] = mainR; buf[o + 1] = mainG; buf[o + 2] = mainB; buf[o + 3] = 255;
     }
@@ -111,11 +118,16 @@ export function drawContours(
         const border = planeBorder.get(p) as Uint8Array;
         for (let i = 0; i < wPx * hPx; i++) {
             if (border[i] === 0) continue;
-            if (Math.floor((i % wPx + Math.floor(i / wPx)) / 3) % 2) continue;
+            if (!inDash(i, wPx)) continue;
             const o = i * 4;
             buf[o] = pr; buf[o + 1] = pg; buf[o + 2] = pb; buf[o + 3] = 255;
         }
     }
+}
+
+/** The 3-on/3-off diagonal dash the overlay marks a hidden boundary with. */
+function inDash(i: number, wPx: number): boolean {
+    return Math.floor((i % wPx + Math.floor(i / wPx)) / 3) % 2 === 0;
 }
 
 const NEIGHBOURS: Array<[number, number]> = [[-1, 0], [1, 0], [0, -1], [0, 1]];

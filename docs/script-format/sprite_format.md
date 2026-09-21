@@ -32,9 +32,17 @@ which is what identified it:
 |---|---|---|---|
 | 0 | name-table bit | 16×16 block rather than 8×8 | 39% set |
 | 1–3 | palette | 0 on 99.3%, 1 on 0.7% (not characters) | — |
-| 4–5 | **priority** | only levels 0 and 1 occur | 88% are level 1 |
+| 4–5 | priority | **not** the hardware priority — see below | only 0 and 1 occur; 88% are 1 |
 | 6 | **flip X** | mirror left-to-right | 31% |
 | 7 | flip Y | mirror top-to-bottom | 4% |
+
+Bits 4–5 are the one field that is *not* passed through. The OAM assembly at
+`$809433` does `LDA $DF / AND $07 / ADC $06`, and `$07` is the high byte of
+the attribute word the entity built (`$CC` or `$FC`) — so the chunk's
+priority bits are masked out and the hardware priority comes from the
+entity's own word, which `$8FC773` chose from the tile it stands on. Within
+one sprite they still decide which chunk covers which, so they are kept as
+a composition order. See [sprite_priority.md](sprite_priority.md).
 
 The mirror bits matter more than their share suggests. Symmetrical sprites
 store one half and mirror it: Strongheart's chunks 0 and 1 are the *same
@@ -44,7 +52,7 @@ twice, which is exactly what a buggy-looking tile turned out to be.
 ## Draw order is not list order
 
 These chunks become OAM entries, and the PPU draws a **lower OAM index in
-front of a higher one**, with the priority bits deciding first. So the
+front of a higher one**, with bits 4–5 deciding first. So the
 correct painting order is priority ascending, and within a priority, index
 descending — the first chunk ends up on top. SoETilesViewer's `frameview.cpp`
 does exactly this (`for priority 0..3 { for i = n-1 down to 0 }`), and its
