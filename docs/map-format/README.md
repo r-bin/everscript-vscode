@@ -36,3 +36,8 @@ the decoder to TypeScript instead, to avoid requiring a Python runtime for exten
 users. The distinction that makes this safe is in the `map-format` skill — a faithful
 port validated against the Python implementation's own output is not the same thing as
 the independent re-derivations that failed here before.
+
+## Related
+
+Script, entity and sprite formats are documented in
+[../script-format/](../script-format/README.md).

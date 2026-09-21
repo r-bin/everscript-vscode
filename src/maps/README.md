@@ -87,6 +87,8 @@ bit-per-word compression, and chunk composition — ported from
 SoETilesViewer. Pinned by `checkSprites` against the reference's own walk
 count of 5128.
 
-It is addressable by sprite index only. Getting from a character to its
-sprite needs the animation format, which nobody has decoded; see
-[docs/sprite-rendering.md](../../docs/sprite-rendering.md).
+`characters.ts` goes from a character to its idle sprite, animation frames
+and palette. See
+[docs/script-format/sprite_format.md](../../docs/script-format/sprite_format.md),
+[animation_format.md](../../docs/script-format/animation_format.md) and
+[character_table.md](../../docs/script-format/character_table.md).

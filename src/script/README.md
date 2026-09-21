@@ -1,5 +1,10 @@
 # script/ — Everscript Script Decoder
 
+> Format documentation lives in
+> [docs/script-format/](../../docs/script-format/README.md): the operand
+> grammar, the instruction set, loot, transitions and enemy spawns, each with
+> how it was established.
+
 A **TypeScript port** of [SoEScriptDumper](https://github.com/black-sliver/SoEScriptDumper)
 (`list-rooms.cpp`), the reference disassembler that ships inside the sibling
 `SoETilesViewer` checkout. Pure: takes a ROM buffer, returns data. No VS Code

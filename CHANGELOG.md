@@ -1,3 +1,25 @@
+## [0.26.0] — 2026-09-21
+
+Enemies animate, and every format researched in this series now has a written-up page.
+
+### Animation
+- **`characterAnimation()`** walks a character's idle script into frames with their hold durations, and `renderSpriteAt()` renders any frame in that character's palette.
+- Spawned enemies play their idle animation on the room map, each with its own clock and a random starting phase so a field of the same enemy does not pulse in lockstep. The Wimpy Flower animates over 4 frames; **14 of the 21 spawns in South jungle** animate.
+- Enemies whose script does not reach a second sprite keep the still frame — **121 of 141** show something.
+
+### Two corrections to the animation model
+- **The set-sprite family is `0x22`–`0x2b`, not `0x22`–`0x28`.** Grouping the dispatch table at `$908000` by handler address gives the families directly (`$908418` serves ten opcodes, `$90836C` serves `0x01`–`0x1e`), which is better evidence than measuring one opcode at a time.
+- **`0x20` holds for the *next byte's* ticks** (2 bytes), which is what unblocked the Flower's second frame.
+
+### Facing
+`anim_stand` is the default idle, and the sprites it yields already face the camera — flower, mosquito, bee, chameleon and villagers all render front-on. No direction selection was needed; whether other facings live in separate animations is not investigated, and the doc says so rather than implying it is handled.
+
+### Documentation
+New **`docs/script-format/`** with an index and eight pages: the operand grammar, the instruction set, loot, map transitions, enemy spawns, the character table, the animation format and the sprite format. Each records how a claim was established — measured, read from the encoder, or traced — and what was ruled out where something is still open. `docs/sprite-rendering.md` becomes a pointer to its successors.
+
+### Structure
+`src/maps/sprites.ts` reached 424 lines and was split: `sprites.ts` keeps blocks, chunks and composition; new `characters.ts` owns the character table, animation and palette.
+
 ## [0.25.0] — 2026-09-21
 
 **The purple flower renders.** 121 of 141 enemies now resolve, up from 118.

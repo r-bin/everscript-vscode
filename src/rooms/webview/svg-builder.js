@@ -144,7 +144,9 @@ function buildRoomSvgSection(opts){
         // The game's own artwork, centred on the spawn point. Sprite pixels
         // are 1:1 with SVG units here, the same scale the map image uses.
         var sw=(v.spriteW||16)/8, sh=(v.spriteH||16)/8;
-        html+='<image class="svge-spawn" data-idx="'+i+'" data-kind="spawn" data-label="'+escH(nm)+' ('+v.x+','+v.y+')" href="'+v.sprite+'" x="'+(v.x-sw/2+0.5)+'" y="'+(v.y-sh/2+0.5)+'" width="'+sw+'" height="'+sh+'" style="image-rendering:pixelated" preserveAspectRatio="none"><title>'+escH(tip)+'</title></image>';
+        var fr=(v.spriteFrames&&v.spriteFrames.length>1)
+          ?' data-frames="'+escH(JSON.stringify(v.spriteFrames))+'"':'';
+        html+='<image class="svge-spawn" data-idx="'+i+'" data-kind="spawn"'+fr+' data-label="'+escH(nm)+' ('+v.x+','+v.y+')" href="'+v.sprite+'" x="'+(v.x-sw/2+0.5)+'" y="'+(v.y-sh/2+0.5)+'" width="'+sw+'" height="'+sh+'" style="image-rendering:pixelated" preserveAspectRatio="none"><title>'+escH(tip)+'</title></image>';
       } else {
         html+='<rect class="svge-spawn" data-idx="'+i+'" data-kind="spawn" data-label="'+escH(nm)+' ('+v.x+','+v.y+')" x="'+v.x+'" y="'+v.y+'" width="1" height="1" fill="none" stroke="#e3b341" stroke-width="0.25" rx="0.3"><title>'+escH(tip)+'</title></rect>';
       }

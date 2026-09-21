@@ -1,3 +1,9 @@
+> **Superseded.** This note's content now lives in
+> [script-format/animation_format.md](script-format/animation_format.md),
+> [script-format/sprite_format.md](script-format/sprite_format.md) and
+> [script-format/character_table.md](script-format/character_table.md).
+> Kept as a pointer so existing links still land somewhere useful.
+
 # Rendering sprites from the ROM
 
 > Status: **working for 121 of 141 enemies.** The chain from a character to

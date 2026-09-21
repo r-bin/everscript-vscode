@@ -113,6 +113,8 @@ function renderRoomDetail(room){
              dispW:svgResult.dispW,dispH:svgResult.dispH,
              zoomState:zoomState,panX:state.panX,panY:state.panY};
     setupZoomPan(zp);
+    // Enemies whose idle animation walked to more than one frame play it.
+    startSpawnAnimation(svg);
     // zp owns the pan offset; mouse handlers read it via zp._getPan(). Do not
     // mirror it into `state` — that duplicate is what used to go stale.
     setupMouseEvents({svg:svg,panel:panel,canvas:canvas,wrap:wrap,

@@ -1,0 +1,45 @@
+# Sprite format
+
+> Status: **solved.** `src/maps/sprites.ts`, ported from SoETilesViewer's
+> `spriteblock.h` and `spriteinfo.h` — the only implementation of this
+> format anywhere.
+
+## Three layers
+
+| Layer | Where |
+|---|---|
+| 16×16 block pointers | `$EC0000 + i*3`, data based at `$D90000` |
+| 8×8 block pointers | `$D80000 + i*3`, data based at `$D10000` |
+| Sprite infos (chunk lists) | from `$CA0003`, walked end to end |
+
+**Blocks** are the pixels, 4bpp planar. A 16×16 block is four 8×8 SNES tiles
+in the order top-left, top-right, bottom-left, bottom-right, 32 bytes each.
+**Bit 23 of a block pointer marks its data compressed.**
+
+**Compression** is a bit-per-word skip list: one status byte per eight
+output words, a set bit meaning "this word is zero and is not stored".
+
+**Chunks** place a block at a signed offset — five bytes: flags, x, y, and a
+16-bit block id. **Bit 0 of flags picks the pool** (set = 16×16).
+
+**Sprite infos** are `[count][dataOffset]` followed by the chunks. Nothing
+indexes them, so they are walked sequentially; a zero-length entry or one
+near the end of a bank means the list continues in the next bank.
+
+## How it is checked
+
+Two ways, in increasing strength:
+
+1. The walk finds **5128 sprites**, the same count the reference's walk ends
+   on. Sharp, because it chains on each entry's declared length — one
+   mis-sized sprite desynchronises everything after it. 9 of the 5128 are
+   blank padding between banks.
+
+2. **Against live frames.** A Mesen trace hands 11 distinct 24-bit sprite
+   pointers to the game's own renderer; decoding all of them cold from the
+   ROM produces correct, recognisable sprites. Those are addresses a running
+   game chose.
+
+Chunk offsets are signed and relative to an origin that is not a corner, so
+`composeSprite` measures the extent first rather than assuming a canvas
+size — several sprites reach well above and left of their origin.
