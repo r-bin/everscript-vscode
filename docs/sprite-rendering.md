@@ -1,8 +1,10 @@
 # Rendering sprites from the ROM
 
-> Status: **decoder done, lookup missing.** `src/maps/sprites.ts` decodes and
-> composes all 5128 sprites in the ROM. What is still missing is how to get
-> from a character — or an item — to the right one.
+> Status: **decoder done and validated; one link still missing.**
+> `src/maps/sprites.ts` decodes and composes all 5128 sprites in the ROM, and
+> renders correctly the sprites a running game handed to its own renderer.
+> The animation table is located. What remains is the base a frame offset is
+> relative to.
 
 ## What works
 
@@ -28,33 +30,64 @@ is a sharp check, because the walk chains on each entry's declared length —
 one mis-sized sprite would desynchronise every one after it. 9 of the 5128
 compose to nothing; those are padding between banks.
 
-## What is missing: character → sprite
+## The animation chain, from a trace
 
-The character table (`$8EB678`, stride 74, confirmed) holds animation
-pointers, not sprite indices: `anim_stand`, `anim_walk`, `anim_atk0..3`,
-`anim_damage`, `anim_death`, `anim_spoils`, `anim_block`. For the Wimpy
-Flower (#109) `anim_stand` is `0x495e`.
+A Mesen trace of spawning a Mosquito (character 113, `anim_stand = 0x4a36`)
+settled where the animation data lives. The decisive instruction:
 
-These point into an **animation format nobody has decoded**. SoETilesViewer
-shows the values but never resolves them; it has no character→sprite link
-either.
+```
+8FC50A  LDA $8E0032,X  [$8ED754] = $4A36   ; anim_stand, record +0x32
+8FC50E  TAX
+8FC50F  JSL $90817B
+90817B    LDA $C40000,X [$C44A36] = $0CFA  ; animation record, word 0
+90818B    LDA $C40002,X [$C44A38] = $C8    ; ... byte 2
+```
 
-Readings ruled out for `0x495e`:
+So **the animation table is at `$C40000`, indexed by `anim_stand` directly**.
+That is the same bank as the menu font and palettes.
 
-| Reading | Result |
-|---|---|
-| Index into the sprite list | Out of range (5128 entries) |
-| `$CA0003 + 0x495e` | count 242, dataoff 244 — not a sprite header |
-| `$CA0000 + 0x495e` | Parses, but composes to unrelated fragments |
-| `$90495E` | count 248, dataoff 119 — not a sprite header |
-| `$7E495E` | WRAM; empty |
+A record is a list of **4-byte frames**, `[spriteOffset:u16][u8][u8]`:
 
-A useful clue from the everscript encoder's `ANIMATION` enum: its values are
-the **low 16 bits of a 24-bit pointer**, with the bank written in the
-comments — `MENU_CLOSE = 0x61a7` next to `[A7 61 7E]`, i.e. `$7E61A7`; and
-`MENU_OPEN_BOY = 0xa8ed` next to `[ED A8 90]`, i.e. `$90A8ED`. So `anim_stand`
-is very likely the low word of a pointer whose bank comes from elsewhere —
-plausibly a per-character or per-bank field not yet identified.
+```
+$C44A36  Mosquito    fa 0c c8 40 | 0f 0d c8 00 | 24 0d c8 00 | 39 0d c8 00
+$C4495E  WimpyFlower 68 01 c7 00 | 74 01 c7 40 | a8 01 c7 00 | dc 01 c7 00
+```
+
+The Mosquito's offsets are 21 bytes apart, which is exactly a sprite with
+`dataoff 1` and four chunks (`1 + 4*5`). The Flower's gaps are 12 and 52,
+likewise sprite-sized. So the word is a **byte offset into sprite-info
+data**, not an index.
+
+## What is still missing: the base that offset is relative to
+
+Not a global one. Scanning every base in `$C00000..$D00000` for one where
+both characters' frame gaps match their sprites' declared sizes finds
+**zero** candidates, so the base is per-character or per-room — which fits
+what the draw routine does:
+
+```
+8096D8  LDA $000C,X   ; sprite pointer, low word, from the entity display list
+8096DB  STA $26
+8096E0  STA $27       ; ... and its bank
+```
+
+The pointer reaching the renderer is a full 24-bit address in banks
+`$CA`–`$CE`, taken from an entity's display-list entry rather than computed
+from a fixed base. Finding where that base is set is the remaining step.
+
+## Decoder validated against live frames
+
+The trace draws 11 distinct sprite pointers. Rendering all of them through
+`src/maps/sprites.ts` produces correct, recognisable sprites — the dog, the
+boy, villagers, NPCs. That is a stronger check than the walk count: these are
+addresses the running game handed to its own renderer, decoded cold from the
+ROM.
+
+It does **not** identify which one is the Mosquito. Two of them
+(`$CC5B38`, `$CC5B3F`, drawn 28 and 27 times alternating) are small winged
+sprites and look the part, but they are 7 bytes apart — a one-chunk sprite —
+while the Mosquito's animation record calls for four-chunk frames. So that
+pairing is not established and is not claimed.
 
 ## What is missing: item icons
 
@@ -67,14 +100,13 @@ there are effects and particles, not icons.
 So the two asks need different work: enemies need the animation format, icons
 need the menu tileset.
 
-## What would settle the animation format
+## What would settle the last step
 
-A Mesen trace of an enemy's idle animation, breaking on reads near
-`$8EB678 + 109*74 + 0x32` (where `anim_stand` lives) and following what the
-game does with the value. That gives the bank and the record shape in one
-step, the way `add_enemy` settled the spawn format.
+Break on writes to an entity's display-list entry at `+0x0C..+0x0E` — that is
+where the 24-bit sprite pointer is stored — and see what computes it. The
+frame offset from the animation record has to be added to something there.
 
-Worth trying first, though: the `everscript` encoder has `animate(entity,
-mode, animation)` and an `ANIMATION_ENEMY` enum. If its compiler resolves an
-animation id to anything concrete, that is cheaper than a trace — reading the
-encoder answered the spawn question outright when tracing looked necessary.
+Worth checking first, as ever: the `everscript` encoder has `animate(entity,
+mode, animation)`. If its compiler resolves an animation to a concrete
+address, that is cheaper than another trace. Reading `add_enemy` answered the
+spawn question outright when a trace looked necessary.

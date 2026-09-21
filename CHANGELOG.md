@@ -1,3 +1,14 @@
+## [0.23.1] — 2026-09-21
+
+### Added
+- `docs/sprite-rendering.md` updated from the Mosquito spawn trace. **The animation table is at `$C40000`, indexed by `anim_stand` directly** (`$90817B: LDA $C40000,X`), and a record is a list of 4-byte frames, `[spriteOffset:u16][u8][u8]`. The Mosquito's four frames are 21 bytes apart — exactly a four-chunk sprite — so the word is a byte offset into sprite-info data, not an index.
+- **The decoder is now validated against live frames.** The trace hands 11 distinct 24-bit sprite pointers to the game's own renderer; decoding all of them cold from the ROM produces correct sprites. That is a stronger check than the walk count.
+
+### Still missing
+The base that frame offset is relative to. Scanning every base in `$C00000..$D00000` for one where both the Mosquito's and the Flower's frame gaps match their sprites' declared sizes finds **zero** candidates, so it is per-character or per-room — consistent with the draw routine taking a full 24-bit pointer from the entity's display list (`$8096DB`) rather than computing one. The next step is a breakpoint on writes to that display-list entry.
+
+Two drawn sprites look like a mosquito and alternate 28/27 times, but they are 7 bytes apart (a one-chunk sprite) while the animation record calls for four-chunk frames — so that pairing is not claimed.
+
 ## [0.23.0] — 2026-09-21
 
 Ports the ROM's sprite decoder. **Neither "enemies on the map" nor "all item icons" is finished** — both turned out to need a lookup that does not exist yet, and this is the layer underneath them.
