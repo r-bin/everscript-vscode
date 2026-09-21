@@ -1,6 +1,6 @@
 # Rendering sprites from the ROM
 
-> Status: **working for 118 of 141 enemies.** The chain from a character to
+> Status: **working for 121 of 141 enemies.** The chain from a character to
 > its idle sprite and palette is solved and wired into the Rooms tab. The
 > rest stop on animation commands whose length has not been measured yet.
 
@@ -56,6 +56,21 @@ So:
 | Sprite pointer | `((cmd + 0xA8) << 16) \| <u16 operand>` |
 | Palette | record `+0x09`, a 16-bit address within bank `$90` |
 
+**Bit 7 of a command means "end of frame", not a different command.** The
+dispatch makes this explicit — both paths index the same table with
+`(cmd & 0x7f) * 2`:
+
+```
+9080F2  ASL              ; carry = bit 7, A = (cmd & 0x7f) * 2
+9080FA  BCC $9080EC      ; bit 7 clear: dispatch and keep going
+9080FC  JSR ($8000,X)    ; bit 7 set: dispatch, then...
+908100  DEC $0005,X      ; ...tick the frame timer and return
+```
+
+So `0xa4` is command `0x24`, a set-sprite, that also ends the frame. Reading
+the high opcodes as distinct commands is what made the Wimpy Flower look
+undecodable — its idle sprite is reached through exactly that.
+
 **Command lengths were measured, not guessed.** The interpreter reads each
 command with `LDA [$5D]` at `$9080F0`, so the distance `$5D` moves between
 consecutive reads is that command's length. A Mosquito spawn exercised
@@ -70,14 +85,17 @@ trace, which is the anchor the test pins.
 
 ## What is still missing
 
-The remaining 23 enemies stop on an animation command whose length has not
-been measured: `0xd2`, `0x50`, `0xcd`, `0xa4`, `0x5a`, `0x2d`. The **Wimpy
-Flower is one of them** — its script stops at `0xa4`.
+Twenty enemies stop on a command whose length has not been measured:
+**`0x1e` (13 of them), `0x50` (4), `0x57` (2), `0x2d` (1)**. Getting those is
+the same measurement again, from a trace in which they run — likely a boss or
+a later-act room, since the two traces so far covered act-1 field enemies.
 
-Getting those is the same measurement again, from a trace where those
-commands run. A trace of entering the South jungle would cover the Flower
-directly, since it spawns there. Alternatively the jump table at `$908000`
-gives every handler, and each handler's reads say its width.
+A caution learned here: pairing consecutive `$5D` reads only measures a
+length correctly when **one** entity is animating. The Wimpy Flower trace had
+several on screen, and the interleaving produced a wrong length for `0xa4`
+(5 instead of 3) that happened to change nothing. The safe rule is to derive
+lengths from single-entity stretches, and to re-check that a new length
+changes no already-resolved sprite.
 
 ## What is missing: item icons
 

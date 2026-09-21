@@ -246,17 +246,35 @@ const SET_SPRITE_LAST = 0x28;
 const PALETTE_BANK = 0x900000;
 
 /**
- * Total length of each animation-script command, keyed by opcode.
+ * **Bit 7 of a command means "end of frame", not a different command.**
  *
- * Measured, not guessed: the interpreter reads its next command with
- * `LDA [$5D]` at $9080F0, so the distance `$5D` moves between consecutive
- * reads is the command's length. These are the ones a Mosquito spawn
- * exercised. An opcode that is not listed stops the walk rather than being
- * skipped by a guessed width — the same rule the script decoder follows.
+ * The interpreter's dispatch makes this explicit:
+ *
+ *     9080F0  LDA [$5D]        ; the command
+ *     9080F2  ASL              ; carry = bit 7, A = (cmd & 0x7f) * 2
+ *     9080F9  TAX
+ *     9080FA  BCC $9080EC      ; bit 7 clear: dispatch and keep going
+ *     9080FC  JSR ($8000,X)    ; bit 7 set: dispatch, then...
+ *     908100  DEC $0005,X      ; ...tick the entity's frame timer and return
+ *
+ * Both paths index the same table with `(cmd & 0x7f) * 2`, so `0xa4` is
+ * command `0x24` — a set-sprite — that also ends the frame. Reading the high
+ * ones as separate opcodes is what made the Wimpy Flower look undecodable.
+ */
+const COMMAND_MASK = 0x7f;
+
+/**
+ * Total length of each command, keyed by its masked opcode.
+ *
+ * Measured rather than guessed, from the distance `$5D` moves between
+ * consecutive reads at `$9080F0`. An opcode that is not listed stops the
+ * walk rather than being skipped by a guessed width — the same rule the
+ * script decoder follows.
  */
 const COMMAND_LENGTH: Record<number, number> = {
-    0x01: 1, 0x02: 1, 0x09: 1, 0x13: 1, 0x2c: 4,
-    0x4d: 3, 0x52: 1, 0xc1: 2, 0xc2: 4, 0xd3: 2,
+    0x01: 1, 0x02: 1, 0x06: 1, 0x07: 1, 0x08: 1, 0x09: 1,
+    0x13: 1, 0x2c: 4, 0x2e: 2, 0x41: 1, 0x4d: 3, 0x52: 1,
+    0x53: 2, 0x54: 3, 0x5a: 2,
 };
 
 const MAX_COMMANDS = 64;
@@ -275,7 +293,7 @@ export function resolveCharacterSprite(rom: Uint8Array, character: number): numb
     const script = read24At(rom, ANIMATION_TABLE + read16At(rom, record + ANIM_STAND));
     let p = script;
     for (let i = 0; i < MAX_COMMANDS; i++) {
-        const cmd = at(rom, p);
+        const cmd = at(rom, p) & COMMAND_MASK;
         if (cmd >= SET_SPRITE_FIRST && cmd <= SET_SPRITE_LAST) {
             return (((cmd + SPRITE_BANK_BIAS) << 16) | read16At(rom, p + 1)) >>> 0;
         }

@@ -346,6 +346,7 @@ function checkSprites(rom) {
     // The Mosquito's own answer is the anchor: it is the one case checked
     // against a running game, which drew sprites from the same neighbourhood.
     check('mosquito idle sprite', maps.resolveCharacterSprite(rom, 113), 0xcc5b1c);
+    check('wimpy flower idle sprite', maps.resolveCharacterSprite(rom, 109), 0xcc4f3b);
     const names = require('../../src/script/names.json');
     let rendered = 0;
     let total = 0;
@@ -356,7 +357,7 @@ function checkSprites(rom) {
     }
     // The rest stop on an animation command whose length is not measured yet;
     // the walk refuses to guess a width. Raise this as more are learned.
-    check('enemies that render >= 118', rendered >= 118, true);
+    check('enemies that render >= 121', rendered >= 121, true);
     console.log(`  enemy sprites: ${rendered}/${total} resolved and rendered`);
 }
 

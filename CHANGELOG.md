@@ -1,3 +1,29 @@
+## [0.25.0] — 2026-09-21
+
+**The purple flower renders.** 121 of 141 enemies now resolve, up from 118.
+
+### The fix: bit 7 is "end of frame", not a different opcode
+The Wimpy Flower's script stopped at `0xa4`, which looked like an unknown command. It is not a command at all — the interpreter's dispatch masks it:
+
+```
+9080F2  ASL              ; carry = bit 7, A = (cmd & 0x7f) * 2
+9080FA  BCC $9080EC      ; bit 7 clear: dispatch and keep going
+9080FC  JSR ($8000,X)    ; bit 7 set: dispatch, then...
+908100  DEC $0005,X      ; ...tick the frame timer and return
+```
+
+Both paths index the same table with `(cmd & 0x7f) * 2`. So `0xa4` is command `0x24` — a set-sprite — that also ends the frame, and the Flower's idle sprite (`$CC4F3B`) is reached through exactly that.
+
+### Added
+- Opcode masking, plus command lengths for `0x06`, `0x07`, `0x08`, `0x2e`, `0x41`, `0x53`, `0x54`, `0x5a`, measured from the Wimpy Flower trace.
+- `$CC4F3B` pinned in the test alongside the Mosquito's `$CC5B1C`.
+
+### A measurement caution, learned the hard way
+Pairing consecutive `$5D` reads only gives a correct length when **one** entity is animating. The Flower trace had several, and the interleaving produced a wrong length for `0xa4` (5 instead of 3). It happened to change nothing — verified by diffing every enemy's resolved sprite before and after — but the safe rule is to measure on single-entity stretches and re-check that a new length changes no already-resolved sprite.
+
+### Still missing
+Twenty enemies stop on `0x1e` (13), `0x50` (4), `0x57` (2), `0x2d` (1). Both traces so far covered act-1 field enemies; a boss or later-act room would likely cover these.
+
 ## [0.24.0] — 2026-09-21
 
 **Enemies are drawn on the room map, in the game's own artwork and palettes.**
