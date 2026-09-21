@@ -1,3 +1,32 @@
+## [0.24.0] — 2026-09-21
+
+**Enemies are drawn on the room map, in the game's own artwork and palettes.**
+
+### The chain, solved from the Mosquito trace
+| Step | Where |
+|---|---|
+| Character record | `$8EB678 + id * 74` |
+| Idle animation | record `+0x32` (`anim_stand`) |
+| Animation script | 24-bit pointer at `$C40000 + anim_stand` |
+| Sprite command | first opcode in `0x22..0x28` while walking the script |
+| Sprite pointer | `((cmd + 0xA8) << 16) \| <u16 operand>` |
+| Palette | record `+0x09`, a 16-bit address within bank `$90` |
+
+The command byte carries the sprite's bank in itself — the interpreter does `TXA; LSR; ADC #$A8` on the doubled opcode. Command lengths were **measured**, not guessed: the interpreter reads each command with `LDA [$5D]` at `$9080F0`, so the distance `$5D` moves between reads is that command's length.
+
+### Added
+- `resolveCharacterSprite`, `characterPalette` and `renderCharacterSprite` in `src/maps/sprites.ts`.
+- Spawns on the room map now draw the enemy's idle sprite instead of a hollow box, cached per character (a jungle places fourteen flowers and they are one picture). Enemies without a resolvable sprite keep the box.
+- Test coverage: the Mosquito's sprite pointer `$CC5B1C` is pinned as the anchor — the one case checked against a running game — plus a floor of 118 enemies rendering.
+
+### Measured
+**118 of 141 enemies resolve and render.** Verified by eye against recognisable characters: blue mosquito, orange bee, green chameleon, grey boulder, Fire Eyes, Horace in armour.
+
+### Still missing
+The other 23 stop on an animation command whose length has not been measured: `0xd2`, `0x50`, `0xcd`, `0xa4`, `0x5a`, `0x2d`. **The Wimpy Flower is one of them** — its script stops at `0xa4`. A trace of entering the South jungle would cover it, since it spawns there.
+
+Item icons are still a separate, unsolved problem: they are menu background tiles, not sprites.
+
 ## [0.23.1] — 2026-09-21
 
 ### Added

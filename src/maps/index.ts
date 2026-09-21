@@ -64,4 +64,7 @@ export type { Rgba8, LabelAnchor } from './font';
 export {
     walkSprites, readSpriteInfo, composeSprite, decodeSpriteBlock, SPRITE_LIST_START,
 } from './sprites';
+export {
+    resolveCharacterSprite, characterPalette, renderCharacterSprite,
+} from './sprites';
 export type { SpriteInfo, SpriteChunk, SpritePixels, SpriteBlockPixels } from './sprites';

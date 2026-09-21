@@ -140,7 +140,14 @@ function buildRoomSvgSection(opts){
             +(v.character!=null?'\ncharacter #'+v.character:'')
             +(v.spawner?'\nspawner'+(v.quantity!=null?' x'+v.quantity:''):'')
             +'\nat '+v.x+','+v.y+' \u2014 candidate, depends on save state';
-      html+='<rect class="svge-spawn" data-idx="'+i+'" data-kind="spawn" data-label="'+escH(nm)+' ('+v.x+','+v.y+')" x="'+v.x+'" y="'+v.y+'" width="1" height="1" fill="none" stroke="#e3b341" stroke-width="0.25" rx="0.3"><title>'+escH(tip)+'</title></rect>';
+      if(v.sprite){
+        // The game's own artwork, centred on the spawn point. Sprite pixels
+        // are 1:1 with SVG units here, the same scale the map image uses.
+        var sw=(v.spriteW||16)/8, sh=(v.spriteH||16)/8;
+        html+='<image class="svge-spawn" data-idx="'+i+'" data-kind="spawn" data-label="'+escH(nm)+' ('+v.x+','+v.y+')" href="'+v.sprite+'" x="'+(v.x-sw/2+0.5)+'" y="'+(v.y-sh/2+0.5)+'" width="'+sw+'" height="'+sh+'" style="image-rendering:pixelated" preserveAspectRatio="none"><title>'+escH(tip)+'</title></image>';
+      } else {
+        html+='<rect class="svge-spawn" data-idx="'+i+'" data-kind="spawn" data-label="'+escH(nm)+' ('+v.x+','+v.y+')" x="'+v.x+'" y="'+v.y+'" width="1" height="1" fill="none" stroke="#e3b341" stroke-width="0.25" rx="0.3"><title>'+escH(tip)+'</title></rect>';
+      }
     });
 
     // Lua POI markers (cyan cross)

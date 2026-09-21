@@ -219,3 +219,101 @@ export function composeSprite(rom: Uint8Array, info: SpriteInfo): SpritePixels {
     }
     return { width, height, pixels, originX: -minX, originY: -minY };
 }
+
+// ── Character → sprite ───────────────────────────────────────────────────────
+// Solved from a Mesen trace of spawning a Mosquito; see
+// docs/sprite-rendering.md for the trace lines each step came from.
+//
+//   character record + 0x32   anim_stand, a 16-bit index
+//   $C40000 + anim_stand      a 24-bit pointer to an animation script
+//   walk that script          the first command in 0x22..0x28 sets the sprite
+//   sprite pointer            ((cmd + 0xA8) << 16) | the 16-bit operand
+//   character record + 0x09   palette, a 16-bit address within bank $90
+//
+// The command byte carries the sprite's bank in itself: the interpreter at
+// $908418 does `TXA; LSR; ADC #$A8` on the doubled opcode, which is
+// `bank = cmd + 0xA8`.
+
+/** The character table SoETilesViewer's `characterdata.h` documents. */
+const CHARACTER_TABLE = 0x8eb678;
+const CHARACTER_STRIDE = 74;
+const ANIM_STAND = 0x32;
+const PALETTE = 0x09;
+const ANIMATION_TABLE = 0xc40000;
+const SPRITE_BANK_BIAS = 0xa8;
+const SET_SPRITE_FIRST = 0x22;
+const SET_SPRITE_LAST = 0x28;
+const PALETTE_BANK = 0x900000;
+
+/**
+ * Total length of each animation-script command, keyed by opcode.
+ *
+ * Measured, not guessed: the interpreter reads its next command with
+ * `LDA [$5D]` at $9080F0, so the distance `$5D` moves between consecutive
+ * reads is the command's length. These are the ones a Mosquito spawn
+ * exercised. An opcode that is not listed stops the walk rather than being
+ * skipped by a guessed width — the same rule the script decoder follows.
+ */
+const COMMAND_LENGTH: Record<number, number> = {
+    0x01: 1, 0x02: 1, 0x09: 1, 0x13: 1, 0x2c: 4,
+    0x4d: 3, 0x52: 1, 0xc1: 2, 0xc2: 4, 0xd3: 2,
+};
+
+const MAX_COMMANDS = 64;
+
+function read16At(rom: Uint8Array, snes: number): number {
+    return at(rom, snes) | (at(rom, snes + 1) << 8);
+}
+
+function read24At(rom: Uint8Array, snes: number): number {
+    return (at(rom, snes) | (at(rom, snes + 1) << 8) | (at(rom, snes + 2) << 16)) >>> 0;
+}
+
+/** SNES address of the sprite a character stands still as, or null. */
+export function resolveCharacterSprite(rom: Uint8Array, character: number): number | null {
+    const record = CHARACTER_TABLE + character * CHARACTER_STRIDE;
+    const script = read24At(rom, ANIMATION_TABLE + read16At(rom, record + ANIM_STAND));
+    let p = script;
+    for (let i = 0; i < MAX_COMMANDS; i++) {
+        const cmd = at(rom, p);
+        if (cmd >= SET_SPRITE_FIRST && cmd <= SET_SPRITE_LAST) {
+            return (((cmd + SPRITE_BANK_BIAS) << 16) | read16At(rom, p + 1)) >>> 0;
+        }
+        const length = COMMAND_LENGTH[cmd];
+        if (!length) return null;            // unknown width: stop, never guess
+        p += length;
+    }
+    return null;
+}
+
+/** A character's 16 colours as RGB triples; index 0 is transparent. */
+export function characterPalette(rom: Uint8Array, character: number): Array<[number, number, number]> {
+    const base = PALETTE_BANK | read16At(rom, CHARACTER_TABLE + character * CHARACTER_STRIDE + PALETTE);
+    const out: Array<[number, number, number]> = [];
+    for (let i = 0; i < 16; i++) {
+        const c = read16At(rom, base + i * 2);
+        // BGR555, widened the way the PPU does.
+        out.push([(c & 31) * 8, ((c >> 5) & 31) * 8, ((c >> 10) & 31) * 8]);
+    }
+    return out;
+}
+
+/** A character's idle sprite as RGBA, or null when its script cannot be walked. */
+export function renderCharacterSprite(
+    rom: Uint8Array,
+    character: number,
+): { width: number; height: number; data: Uint8Array } | null {
+    const pointer = resolveCharacterSprite(rom, character);
+    if (pointer === null) return null;
+    const px = composeSprite(rom, readSpriteInfo(rom, pointer));
+    if (px.width <= 0 || px.height <= 0) return null;
+    const colours = characterPalette(rom, character);
+    const data = new Uint8Array(px.width * px.height * 4);
+    for (let i = 0; i < px.pixels.length; i++) {
+        const v = px.pixels[i];
+        if (v <= 0) continue;                 // -1 unset, 0 transparent
+        const [r, g, b] = colours[v];
+        data[i * 4] = r; data[i * 4 + 1] = g; data[i * 4 + 2] = b; data[i * 4 + 3] = 255;
+    }
+    return { width: px.width, height: px.height, data };
+}

@@ -341,6 +341,23 @@ function checkSprites(rom) {
     check('16x16 block size', maps.decodeSpriteBlock(rom, 0, true).pixels.length, 256);
     check('8x8 block size', maps.decodeSpriteBlock(rom, 0, false).pixels.length, 64);
     console.log(`  sprites: ${sprites.length} walked, ${empty} blank, widest ${widest}px`);
+
+    // Character -> sprite, the chain solved from the Mosquito spawn trace.
+    // The Mosquito's own answer is the anchor: it is the one case checked
+    // against a running game, which drew sprites from the same neighbourhood.
+    check('mosquito idle sprite', maps.resolveCharacterSprite(rom, 113), 0xcc5b1c);
+    const names = require('../../src/script/names.json');
+    let rendered = 0;
+    let total = 0;
+    for (const enemy of Object.values(names.enemies)) {
+        if (enemy.character === null) continue;
+        total += 1;
+        if (maps.renderCharacterSprite(rom, enemy.character)) rendered += 1;
+    }
+    // The rest stop on an animation command whose length is not measured yet;
+    // the walk refuses to guess a width. Raise this as more are learned.
+    check('enemies that render >= 118', rendered >= 118, true);
+    console.log(`  enemy sprites: ${rendered}/${total} resolved and rendered`);
 }
 
 function checkOverlayParity(rom, rooms) {
