@@ -63,13 +63,22 @@ width stops the walk rather than being skipped by a guess.
 ## Measuring lengths correctly
 
 The interpreter reads its next command with `LDA [$5D]` at `$9080F0`, so the
-distance `$5D` moves between consecutive reads is that command's length —
-**but only when the reads belong to the same entity**. The trace line
-carries `Y`, the entity pointer; pairing without grouping by it produced a
-wrong length for `0xa4` (5 instead of 3). It happened to change nothing,
-verified by diffing every enemy's resolved sprite before and after, but the
-rule is: group by `Y`, and re-check that a new length alters no
-already-resolved sprite.
+distance `$5D` moves between consecutive reads is that command's length.
+Two rules make that sound, and both were learned by getting them wrong:
+
+1. **Pair reads for the same entity.** The trace line carries `Y`, the
+   entity pointer. Without grouping by it, interleaved animations invent
+   widths — this produced 5 instead of 3 for `0xa4`.
+2. **Never measure from a command with bit 7 set.** It ends the frame, so
+   the next read happens a game-frame later and the gap stops being a width.
+   This is what made `0x42` look like 4 or 5 when it is 2.
+
+Applying both across three traces takes the ambiguous count from three to
+**zero**. `0x42` is the one exception, resolved from structure instead:
+reading it as 2 makes the following bytes a set-sprite and yields exactly
+the two frames the game was traced drawing for a Mosquito.
+
+And always re-check that a new length alters no already-resolved sprite.
 
 ## Facing
 
@@ -84,9 +93,24 @@ already-resolved sprite.
 908139  LDA $C40000,X    ; the selected record
 ```
 
-A record is `[scriptLow:u16][bank:u8][flags:u8]`. When `flags & 0x80`, the
-animation to play is at `anim_stand + 2 * facing`; otherwise the record
-stands for every direction.
+A record is `[scriptLow:u16][bank:u8][flags:u8]`, and **two** flag bits mean
+"directional":
+
+| Flags | Selection | Characters |
+|---|---|---|
+| bit 7 (`0x80`) | `anim_stand + 2 * facing` — eight poses | 7 |
+| bit 6 (`0x40`) | `anim_stand + table[facing]`, table at `$90815B` — four poses | 85 |
+| neither | one pose for every direction | 49 |
+
+```
+90812A  BIT #$4000
+90812D  BEQ $908139      ; neither bit: use this record
+908130  LDX $0022,Y      ; the facing
+908134  ADC $90815B,X    ; + the table entry
+```
+
+The `0x40` form is by far the common one, and missing it is why most NPCs
+were drawn in their first pose — which happens to be north-facing.
 
 **Entity `+0x22` holds the facing, and south is 8.** Both the spawn routine
 (`$8FB0CD`) and the FACE SOUTH opcode (`$8CDEFC`) write 8, so an unposed
@@ -107,6 +131,13 @@ sizes jitter against each other.
 `renderCharacterFrames` blits every frame into one box large enough for all
 of them, aligned on that origin, so a caller positions by the origin alone
 and the animation stays still while it plays.
+
+## Coverage
+
+**122 of 141** characters resolve to a sprite; **36** have a real animation
+(more than one distinct sprite). The Mosquito flaps between `$CC5B38` and
+`$CC5B3F` — the exact pair the game was traced drawing, 28 and 27 times
+alternating.
 
 ## Still missing
 

@@ -1,3 +1,34 @@
+## [0.28.0] — 2026-09-21
+
+Fixes all four things the screenshots showed.
+
+### Mirroring — Strongheart's buggy tile
+Chunk flags carry **mirror bits that were being ignored**: bit 6 left-to-right (31% of all chunks), bit 7 top-to-bottom (4%). Symmetrical sprites store one half and mirror it — Strongheart's chunks 0 and 1 are the *same block* at x=−7 and x=0, differing only in bit 6 — so ignoring it drew one half twice.
+
+### Facing — most NPCs looking north
+**Two** flag bits mean "directional", and only one was handled:
+
+| Flags | Selection | Characters |
+|---|---|---|
+| bit 7 (`0x80`) | `anim_stand + 2 * facing` — eight poses | 7 |
+| bit 6 (`0x40`) | `anim_stand + table[facing]`, table at `$90815B` — four poses | **85** |
+| neither | one pose for every direction | 49 |
+
+The `0x40` form is the common one, so 85 characters were drawn in their first pose — which is north-facing.
+
+### Animation — flowers standing still, mosquitos not flying
+Both were the walk stopping on an unmeasured command. Two rules fixed the measurement, and both were learned by getting them wrong:
+
+1. **Pair reads for the same entity** — the trace line carries `Y`; without it, interleaved animations invent widths.
+2. **Never measure from a command with bit 7 set** — it ends the frame, so the next read is a game-frame later and the gap stops being a width. This is what made `0x42` look like 4 or 5 when it is 2.
+
+Applying both across three traces took the ambiguous count from three to **zero**.
+
+### Measured
+- **122 of 141** characters resolve, **36** with a real animation — up from 6.
+- The Mosquito flaps between `$CC5B38` and `$CC5B3F`, the exact pair the game was traced drawing (28 and 27 times alternating). That pair is now the pinned anchor, since it comes from the running game rather than from this code.
+- All 21 spawns in South jungle animate.
+
 ## [0.27.0] — 2026-09-21
 
 Enemies face south, and sit where they belong.

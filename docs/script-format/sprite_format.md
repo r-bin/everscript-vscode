@@ -20,7 +20,19 @@ in the order top-left, top-right, bottom-left, bottom-right, 32 bytes each.
 output words, a set bit meaning "this word is zero and is not stored".
 
 **Chunks** place a block at a signed offset — five bytes: flags, x, y, and a
-16-bit block id. **Bit 0 of flags picks the pool** (set = 16×16).
+16-bit block id.
+
+| Flag bit | Meaning | Share of chunks |
+|---|---|---|
+| 0 | 16×16 block rather than 8×8 | 39% |
+| 6 | **mirror left-to-right** | 31% |
+| 7 | mirror top-to-bottom | 4% |
+| 4 | not decoded; does not affect pixels | 88% |
+
+The mirror bits matter more than their share suggests. Symmetrical sprites
+store one half and mirror it: Strongheart's chunks 0 and 1 are the *same
+block* at x=−7 and x=0, differing only in bit 6. Ignoring it draws one half
+twice, which is exactly what a buggy-looking tile turned out to be.
 
 **Sprite infos** are `[count][dataOffset]` followed by the chunks. Nothing
 indexes them, so they are walked sequentially; a zero-length entry or one

@@ -345,7 +345,13 @@ function checkSprites(rom) {
     // Character -> sprite, the chain solved from the Mosquito spawn trace.
     // The Mosquito's own answer is the anchor: it is the one case checked
     // against a running game, which drew sprites from the same neighbourhood.
-    check('mosquito idle sprite', maps.resolveCharacterSprite(rom, 113), 0xcc5b1c);
+    // $CC5B38 and $CC5B3F are the two frames the game was traced drawing for
+    // a Mosquito, 28 and 27 times alternating. Matching them is the strongest
+    // check available: it comes from the running game, not from this code.
+    check('mosquito idle sprite', maps.resolveCharacterSprite(rom, 113), 0xcc5b38);
+    const flap = maps.characterAnimation(rom, 113).frames.map((f) => f.sprite);
+    check('mosquito flaps between the traced frames',
+        new Set(flap).size === 2 && flap.includes(0xcc5b38) && flap.includes(0xcc5b3f), true);
     check('wimpy flower idle sprite', maps.resolveCharacterSprite(rom, 109), 0xcc4f3b);
     // The Viper's animation is directional, so this one is the facing test:
     // $CD2C66 is the sprite the game drew after a FACE SOUTH, and a
@@ -366,8 +372,15 @@ function checkSprites(rom) {
     }
     // The rest stop on an animation command whose length is not measured yet;
     // the walk refuses to guess a width. Raise this as more are learned.
-    check('enemies that render >= 121', rendered >= 121, true);
-    console.log(`  enemy sprites: ${rendered}/${total} resolved and rendered`);
+    check('enemies that render >= 122', rendered >= 122, true);
+    let animated = 0;
+    for (const enemy of Object.values(names.enemies)) {
+        if (enemy.character === null) continue;
+        const walk = maps.characterAnimation(rom, enemy.character);
+        if (new Set(walk.frames.map((f) => f.sprite)).size > 1) animated += 1;
+    }
+    check('enemies with a real animation >= 36', animated >= 36, true);
+    console.log(`  enemy sprites: ${rendered}/${total} resolved, ${animated} animated`);
 }
 
 function checkOverlayParity(rom, rooms) {

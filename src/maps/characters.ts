@@ -49,6 +49,24 @@ const ANIMATION_RECORD = 4;
  * which is why an unposed enemy already faces the camera.
  */
 const DIRECTIONAL_FLAG = 0x80;
+/**
+ * The other, more common directional form.
+ *
+ * When bit 6 is set instead, `$90812A` adds a table entry rather than
+ * scaling the facing:
+ *
+ *     90812A  BIT #$4000
+ *     90812D  BEQ $908139      ; neither bit: one pose for every direction
+ *     908130  LDX $0022,Y      ; the facing
+ *     908134  ADC $90815B,X    ; + this table
+ *
+ * The table maps the sixteen facings onto four records (+0, +4, +8, +12),
+ * so these characters have four poses rather than eight. 85 of the 141
+ * enemies use this form and only 7 use bit 7 — which is why so many were
+ * still drawn in their first pose.
+ */
+const TABLE_FLAG = 0x40;
+const FACING_TABLE = 0x90815b;
 export const FACING_SOUTH = 8;
 const SPRITE_BANK_BIAS = 0xa8;
 const SET_SPRITE_FIRST = 0x22;
@@ -77,13 +95,23 @@ const COMMAND_MASK = 0x7f;
  * Total length of each command, keyed by its masked opcode.
  *
  * Measured rather than guessed, from the distance `$5D` moves between
- * consecutive reads at `$9080F0`. An opcode that is not listed stops the
- * walk rather than being skipped by a guessed width — the same rule the
- * script decoder follows.
+ * consecutive reads at `$9080F0`, grouped by the entity in `Y`.
+ *
+ * Two rules make that measurement sound, and both were learned by getting
+ * them wrong. Pair only reads for the **same entity**, or interleaved
+ * animations invent widths. And never measure **from a command with bit 7
+ * set**: it ends the frame, so the next read happens a game-frame later and
+ * the gap stops being a width. Applying both takes the ambiguous count from
+ * three to zero.
+ *
+ * `0x42` is the exception: its width comes from the Mosquito's script, where
+ * reading it as 2 makes the following bytes a set-sprite and yields exactly
+ * the two frames the game was seen drawing. An opcode not listed here stops
+ * the walk rather than being skipped by a guess.
  */
 const COMMAND_LENGTH: Record<number, number> = {
-    0x00: 1, 0x2c: 4, 0x2e: 2, 0x41: 2, 0x4d: 3,
-    0x52: 1, 0x53: 2, 0x54: 3, 0x5a: 2,
+    0x00: 1, 0x2c: 4, 0x2e: 2, 0x41: 1, 0x42: 2, 0x47: 5,
+    0x4d: 3, 0x4e: 1, 0x52: 1, 0x53: 2, 0x54: 3, 0x5a: 2,
 };
 
 /**
@@ -119,7 +147,9 @@ function read24At(rom: Uint8Array, snes: number): number {
 function animationScript(rom: Uint8Array, character: number, facing: number): number {
     const record = CHARACTER_TABLE + character * CHARACTER_STRIDE;
     let anim = read16At(rom, record + ANIM_STAND);
-    if (at(rom, ANIMATION_TABLE + anim + 3) & DIRECTIONAL_FLAG) anim += 2 * facing;
+    const flags = at(rom, ANIMATION_TABLE + anim + 3);
+    if (flags & DIRECTIONAL_FLAG) anim += 2 * facing;
+    else if (flags & TABLE_FLAG) anim += read16At(rom, FACING_TABLE + facing);
     return (read16At(rom, ANIMATION_TABLE + anim) | (at(rom, ANIMATION_TABLE + anim + 2) << 16)) >>> 0;
 }
 

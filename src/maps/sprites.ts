@@ -117,7 +117,25 @@ export interface SpriteChunk {
     block: number;
     /** Bit 0 of flags: a 16x16 block rather than an 8x8 one. */
     large: boolean;
+    /** Bit 6: draw the block mirrored left-to-right. */
+    flipX: boolean;
+    /** Bit 7: mirrored top-to-bottom. */
+    flipY: boolean;
 }
+
+/**
+ * Flags that matter for drawing.
+ *
+ * Symmetrical sprites reuse one block for both halves and mirror it, so a
+ * decoder that ignores bit 6 draws the mirrored half twice — Strongheart's
+ * face comes out with one side duplicated. 31% of all chunks set it.
+ *
+ * Bit 4 is set on 88% of chunks and bit 1 on under 1%; neither affects the
+ * pixels, so neither is decoded here.
+ */
+const CHUNK_LARGE = 0x01;
+const CHUNK_FLIP_X = 0x40;
+const CHUNK_FLIP_Y = 0x80;
 
 export interface SpriteInfo {
     address: number;
@@ -143,7 +161,9 @@ export function readSpriteInfo(rom: Uint8Array, address: number): SpriteInfo {
             x: (at(rom, c + 1) << 24) >> 24,
             y: (at(rom, c + 2) << 24) >> 24,
             block: at(rom, c + 3) | (at(rom, c + 4) << 8),
-            large: (flags & 1) !== 0,
+            large: (flags & CHUNK_LARGE) !== 0,
+            flipX: (flags & CHUNK_FLIP_X) !== 0,
+            flipY: (flags & CHUNK_FLIP_Y) !== 0,
         });
         cursor += CHUNK_BYTES;
     }
@@ -208,7 +228,9 @@ export function composeSprite(rom: Uint8Array, info: SpriteInfo): SpritePixels {
         const b = decodeSpriteBlock(rom, c.block, c.large);
         for (let y = 0; y < b.size; y++) {
             for (let x = 0; x < b.size; x++) {
-                const v = b.pixels[y * b.size + x];
+                const sx = c.flipX ? b.size - 1 - x : x;
+                const sy = c.flipY ? b.size - 1 - y : y;
+                const v = b.pixels[sy * b.size + sx];
                 if (!v) continue;                       // index 0 is transparent
                 const px = c.x - minX + x;
                 const py = c.y - minY + y;
