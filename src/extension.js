@@ -127,7 +127,7 @@ function getExtConfig() {
 const roomData = require('./rooms');
 const { VANILLA_ROOMS, getMapEnum, readLuaWatchers, readScriptAllTriggers, buildVanillaRoomContent, buildVanillaRoomDetails, invalidateRoomDataCaches } = roomData;
 const roomTree = require('./rooms');
-const { findRoomImage, parseRoomContent, collectRoomsFromDir, buildRoomTree, renderVanillaTree, renderRoomsTree, buildRoomsJson, setRoomImageUris, buildRoomTileOverlay, buildRoomMetatilePalette, buildComposedPreview, buildBlankRoom, buildFamilySheet } = roomTree;
+const { findRoomImage, parseRoomContent, collectRoomsFromDir, buildRoomTree, renderVanillaTree, renderRoomsTree, buildRoomsJson, setRoomImageUris, buildRoomTileOverlay, buildRoomMetatilePalette, buildComposedPreview, buildBlankRoom, buildFamilySheet, buildFamilyCatalogue } = roomTree;
 
 const romReaders = require('./shared/rom-readers');
 const { readPngDimensions, readRomTriggerOffsets, readRomMapHeader, readRomCharacters, readRomHitLookup, detectScaleEnemies } = romReaders;
@@ -773,6 +773,22 @@ function activate(context) {
                         }
                         _radarPanel.webview.postMessage({ ...reply,
                             sheet: buildFamilySheet(romBuf, msg.family, msg.borrowFrom) });
+                    } catch (err) {
+                        _radarPanel.webview.postMessage({ ...reply, error: String(err && err.message || err) });
+                    }
+                } else if (msg.command === 'requestFamilyCatalogue') {
+                    // Every family the ROM attests, so the picker can offer
+                    // more than the seven this room happens to load.
+                    const reply = { command: 'familyCatalogue' };
+                    try {
+                        const _cfg = getExtConfig();
+                        const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
+                        if (!romBuf) {
+                            _radarPanel.webview.postMessage({ ...reply, error: 'ROM not found — set everscript.romPath' });
+                            return;
+                        }
+                        _radarPanel.webview.postMessage({ ...reply, families: buildFamilyCatalogue(romBuf) });
                     } catch (err) {
                         _radarPanel.webview.postMessage({ ...reply, error: String(err && err.message || err) });
                     }

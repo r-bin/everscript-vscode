@@ -1,30 +1,23 @@
-// Ownership: the editor's information panels — the seven family slots, the
-// tile list grouped by which rooms use tiles together, the stamps the draft
-// still needs, and anything that would stop it encoding.
+// Ownership: the editor's information panels — the tile list, the stamps the
+// draft still needs, and anything that would stop it encoding.
 //
 // These are read-outs over state owned elsewhere: the draft is
-// map-editor.js, the palette is metatile-palette.js. Nothing here writes
-// either. See docs/map-format/building-a-room-from-a-picture.md §5.
+// map-editor.js, the palette is metatile-palette.js, the family choice is
+// map-editor-families.js. Nothing here writes any of them.
 //
-// Owns: _famOpen, _famSheet, _panelOpen.
+// Owns: _famOpen, _panelOpen, _tileSource.
 
-var _famOpen = -1;        // which family slot's sheet is showing, -1 = none
-var _famSheet = null;     // the sheet the host sent for it
+/** Which family slot's art is expanded under the slots, -1 for none. */
+var _famOpen = -1;
 var _panelOpen = { families: true, tiles: true, needed: true, errors: true };
-
-/** Ask the host for every graphic vanilla draws in this family. */
-function requestFamilySheet(family, borrowFrom) {
-  if (typeof vs === 'undefined' || !vs) return;
-  _famSheet = null;
-  vs.postMessage({ command: 'requestFamilySheet', family: family, borrowFrom: borrowFrom });
-}
-
-function applyFamilySheet(msg) {
-  if (!msg || msg.error || !msg.sheet) return;
-  if (_famOpen < 0) return;
-  _famSheet = msg.sheet;
-  renderEditPanels();
-}
+/**
+ * Where the tile list draws from.
+ *
+ * `families` is the default because it answers the question the flow asks:
+ * given the seven I have chosen, what can I draw? `room` is the 92 this
+ * room actually loaded, and `groups` keeps the co-occurrence view.
+ */
+var _tileSource = 'families';
 
 /** A collapsible section, so four panels fit in one sidebar. */
 function panel(key, title, body, note) {
@@ -39,63 +32,47 @@ function panel(key, title, body, note) {
 }
 
 /**
- * The seven background palette slots.
+ * The tile list, from whichever source is selected.
  *
- * A slot is not a number, it is a decision: the family in it is what all
- * seven graphics-worth of art in that slot will be coloured by. Clicking
- * one shows every graphic vanilla has ever drawn in it, which is what makes
- * the choice reviewable rather than a guess at a palette id.
+ * `families` is the one that matters: it draws each chosen family's art
+ * **in that family**, which is the only way to see what a graphic will
+ * actually look like. A graphic carries no colours of its own, so a tile
+ * shown in the wrong palette is a different picture.
  */
-function familySlotsPanel(p) {
-  var fams = p.tileFamilies || [];
-  var html = '<div class="rd-filters rg-fam-slots">';
-  for (var i = 0; i < 7; i++) {
-    var fam = fams[i];
-    var open = _famOpen === i;
-    html += '<button class="rdf' + (open ? ' on' : '') + '" data-fam-slot="' + i + '"'
-      + ' title="' + escH(fam === undefined
-        ? 'Palette slot ' + (i + 1) + ' — this room lists no family here'
-        : 'Palette slot ' + (i + 1) + ' holds family ' + fam
-          + '. A tilemap word with pal ' + (i + 1) + ' is drawn in these colours.') + '">'
-      + (i + 1) + ': ' + (fam === undefined ? '—' : fam) + '</button>';
-  }
+function tilesPanel(p) {
+  var html = '<div class="rd-filters">';
+  [['families', 'my families', 'The art of the seven families chosen above, each in its own colours'],
+   ['room', 'this room', 'The 92 graphics Block 1 actually loaded'],
+   ['groups', 'by usage', 'This room’s graphics grouped by which rooms draw them together']]
+    .forEach(function (s) {
+      html += '<button class="rdf' + (_tileSource === s[0] ? ' on' : '') + '" data-tile-source="' + s[0]
+        + '" title="' + escH(s[2]) + '">' + s[1] + '</button>';
+    });
   html += '</div>';
 
-  if (fams.length > 7) {
-    html += '<div class="rs-note">' + fams.length + ' families listed — the loader holds '
-      + 'seven at a time and swaps the rest in at runtime.</div>';
-  }
+  if (_tileSource === 'groups') return html + tileGroupsPanel(p);
+  if (_tileSource === 'room') return html + roomTilesHtml(p);
 
-  if (_famOpen >= 0) {
-    var fam = fams[_famOpen];
-    if (fam === undefined) {
-      html += '<div class="rs-note">Slot ' + (_famOpen + 1) + ' is empty in this room.</div>';
-    } else if (!_famSheet || _famSheet.family !== fam) {
-      html += '<div class="rs-note">loading family ' + fam + '…</div>';
-    } else {
-      html += familySheetHtml(_famSheet);
-    }
-  }
+  var fams = editFamilies().filter(function (f) { return f !== undefined; });
+  if (!fams.length) return html + '<div class="rs-note">No families chosen yet — add one above.</div>';
+  html += '<div class="rs-note">Clicking a tile here adopts its family if you do not have it.</div>';
+  for (var i = 0; i < fams.length; i++) html += familyStrip(fams[i], false);
   return html;
 }
 
-/** Everything vanilla has drawn in one family, as a sheet. */
-function familySheetHtml(s) {
-  if (!s.count) {
-    return '<div class="rs-note">Family ' + s.family + ' — no room draws anything in it.</div>';
-  }
-  var html = '<div class="rs-note">family ' + s.family + ' — ' + s.total + ' graphic'
-    + (s.total === 1 ? '' : 's') + ' across ' + s.roomCount + ' room' + (s.roomCount === 1 ? '' : 's')
-    + (s.count < s.total ? ', showing the ' + s.count + ' most placed' : '') + '</div>'
-    + '<div class="rs-mt-sheet" style="--mt-sheet:url(' + s.imageUri + ');--mt-cell:' + s.cell + 'px">'
-    + '<div class="rs-mt-grid">';
-  for (var i = 0; i < s.count; i++) {
-    var slot = s.slots[i];
-    var x = (i % s.columns) * s.cell;
-    var y = Math.floor(i / s.columns) * s.cell;
-    html += '<i class="rs-mt-cell" data-fam-tile="' + slot[2] + '"'
-      + ' title="' + escH('graphic ' + slot[2] + ' — ' + slot[3] + ' placements in vanilla'
-        + '\nnot loaded by this room; adding it costs a graphics slot') + '"'
+/** The room's own loaded graphics, flat, in the palette the tab is showing. */
+function roomTilesHtml(p) {
+  var t = p.tiles;
+  if (!t) return '<div class="rs-note">no tile sheet</div>';
+  var html = '<div class="rs-mt-sheet rg-group-sheet" style="--mt-sheet:url(' + t.imageUri
+    + ');--mt-cell:' + t.cell + 'px"><div class="rs-mt-grid">';
+  for (var i = 0; i < t.count; i++) {
+    var s = t.slots[i];
+    var x = (i % t.columns) * t.cell;
+    var y = Math.floor(i / t.columns) * t.cell;
+    html += '<i class="rs-mt-cell' + (s[3] ? ' anim' : '') + (i === _mtSlot ? ' sel' : '')
+      + '" data-mt-slot="' + i + '"'
+      + ' title="' + escH('graphic #' + i + ' — tile id $' + hex4(s[2])) + '"'
       + ' style="background-position:-' + x + 'px -' + y + 'px"></i>';
   }
   return html + '</div></div>';
@@ -221,12 +198,19 @@ function renderEditPanels() {
   if (!p) { host.innerHTML = '<div class="rs-note">loading the tile palette…</div>'; return; }
   var errs = editErrors(p);
   var need = editNeededStamps(p);
+  var chosen = editFamilies().filter(function (f) { return f !== undefined; });
   host.innerHTML = budgetBar(p)
     + panel('errors', 'checks', errorsPanel(p), errs.length ? errs.length + ' to look at' : 'clear')
-    + panel('families', 'tile families', familySlotsPanel(p),
-      (p.tileFamilies || []).length + ' listed')
-    + panel('tiles', 'tiles by group', tileGroupsPanel(p),
-      (p.graphicGroups || []).length + ' groups')
+    + panel('families', 'tile families', familySlotsPanel(), chosen.length + ' of 7')
+    + panel('tiles', 'tiles', tilesPanel(p),
+      _tileSource === 'groups' ? (p.graphicGroups || []).length + ' groups' : _tileSource)
     + panel('needed', 'new metatiles', neededPanel(p),
       need.added.length ? need.added.length + ' needed' : 'none');
+  // The filter keeps focus across the redraw it causes, or typing a second
+  // character would put the caret back at the start.
+  var filter = document.getElementById('rg-fam-filter');
+  if (filter && _famPicking >= 0) {
+    filter.focus();
+    filter.setSelectionRange(filter.value.length, filter.value.length);
+  }
 }

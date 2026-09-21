@@ -128,6 +128,27 @@ function groupRoomGraphics(rom, room) {
     })).filter((g) => g.slots.length);
 }
 
+/**
+ * Every tile family the ROM attests, with how much art is in it.
+ *
+ * `[familyId, graphics, rooms]` per entry, biggest first. 329 families have
+ * at least one graphic drawn in them (365 are listed by some room), so the
+ * whole catalogue is about a kilobyte of numbers — small enough to send
+ * once and filter in the webview.
+ */
+function buildFamilyCatalogue(rom) {
+    const buf = rom instanceof Uint8Array ? rom : new Uint8Array(rom);
+    const index = vanillaIndex(buf);
+    const out = [];
+    for (const [family, list] of index.graphics) {
+        out.push([family, list.length, (index.rooms.get(family) || []).length]);
+    }
+    out.sort((a, b) => b[1] - a[1] || a[0] - b[0]);
+    return out;
+}
+
 function invalidateRoomDrafts() { SHEETS.clear(); }
 
-module.exports = { buildBlankRoom, buildFamilySheet, groupRoomGraphics, invalidateRoomDrafts };
+module.exports = {
+    buildBlankRoom, buildFamilySheet, buildFamilyCatalogue, groupRoomGraphics, invalidateRoomDrafts,
+};

@@ -59,7 +59,7 @@ function buildEditToolbarHtml() {
     + '<button class="rdf" data-edit-act="new-room" title="Start a blank room to try things in, borrowing this room’s graphics">new room</button>'
     + '<button class="rdf" data-edit-act="export" title="Copy the draft as JSON for the encoder">copy draft</button>'
     + '<span class="rg-edit-count" id="rg-edit-count"></span>';
-  return html + '</div>';
+  return html + '</div>' + buildNewRoomHtml();
 }
 
 /**
@@ -248,6 +248,10 @@ function renderEditChrome() {
   var d = editDraft();
   var bar = document.getElementById('rg-edit-bar');
   if (bar) {
+    // The bar and the new-room form are rendered together, so the form has
+    // to go with it rather than accumulate a second copy.
+    var stale = document.getElementById('rg-newroom');
+    if (stale) stale.parentNode.removeChild(stale);
     bar.outerHTML = buildEditToolbarHtml();
   }
   var count = document.getElementById('rg-edit-count');

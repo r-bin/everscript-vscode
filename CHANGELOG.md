@@ -1,3 +1,37 @@
+## [0.42.0] — 2026-09-21
+
+### Two bugs a logic test could never have caught
+
+**"new room" did nothing.** It asked for the size with `window.prompt`, which **does not exist in a VS Code webview** — the call is silently inert. Replaced with an inline form: width, height, create, cancel. Creating one now also rewrites the palette's grid and the SVG viewBox, so the editor actually paints into the new room instead of against the old room's cells.
+
+**Clicking a panel's caret did nothing.** `e.target` is the deepest node under the pointer — the `<span>` holding the caret, not the header carrying `data-panel`. The click handler now walks up to the nearest element with a known data attribute, which also fixes every button that has a `<span>` inside it.
+
+Both are now pinned by **`tests/memory/map-editor-dom.test.js`**, which drives the real chrome in a real browser through Playwright (already a devDependency). It skips cleanly where no browser is installed.
+
+### Tile families: add, remove, preview, filter
+
+The seven slots are now editable rather than a read-out.
+
+- **×** on a filled slot, **+** on an empty one, both opening the same picker.
+- The picker lists **every family the ROM attests** (329 of them), biggest first, with each one's graphic and room counts. Type an id to jump to it, or `>100` for the big ones.
+- Clicking a slot **previews that family's whole art**.
+- **Picking a tile adopts its family**: if it is not in your seven it takes the first free slot, and if all seven are taken it says so instead of silently drawing the tile in the wrong colours.
+
+Fixed while building it: the filter matched an id **or** a minimum tile count in one expression, so typing `58` also kept every family with at least 58 graphics — which is most of the big ones. The two are now separate, `>N` for the count.
+
+### Tiles are drawn in the family they belong to
+
+The tile list has three sources:
+
+- **my families** (new default) — each chosen family's art, **rendered in that family**. This is the fix for recommended tiles being shown in the wrong colours: a graphic carries no colours of its own, so a tile in the wrong palette is a different picture.
+- **this room** — the 92 graphics Block 1 loaded.
+- **by usage** — the co-occurrence grouping from 0.41.0.
+
+### Also
+
+- `buildFamilyCatalogue` on the host: 329 families as `[id, graphics, rooms]`, about a kilobyte, sent once and filtered in the webview.
+- `map-editor-input.js` split into `map-editor-families.js`, `map-editor-actions.js` and `map-editor-newroom.js` to stay inside the 400-line limit.
+
 ## [0.41.0] — 2026-09-21
 
 ### The editor, rebuilt around the inverted flow

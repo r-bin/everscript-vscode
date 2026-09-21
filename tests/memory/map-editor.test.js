@@ -280,13 +280,16 @@ const ui = new Function(`
   ${read('map-editor.js')}
   ${read('map-editor-paint.js')}
   ${read('map-editor-ui.js')}
+  ${read('map-editor-families.js')}
   ${read('map-editor-panels.js')}
   ${read('map-editor-input.js')}
+  ${read('map-editor-actions.js')}
   ${read('map-editor-newroom.js')}
   return {
     tileSlotWord: tileSlotWord, editOnTilePicked: editOnTilePicked,
     editAction: editAction, editReset: editReset, editDraft: editDraft,
-    controls: metatilePaletteControls,
+    controls: metatilePaletteControls, editFamilies: editFamilies,
+    editAdoptFamilyFor: editAdoptFamilyFor,
     budgetBar: budgetBar, vanillaEvidence: vanillaEvidence,
     editResolve: editResolve, editBlankCanopy: editBlankCanopy,
     editSaveConstruct: editSaveConstruct, editConstructWrites: editConstructWrites,

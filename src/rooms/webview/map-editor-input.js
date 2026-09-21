@@ -185,10 +185,42 @@ function renderComposer() {
   renderComposerPreview();
 }
 
+/**
+ * Every data attribute a click on this panel can mean.
+ *
+ * Needed because `e.target` is the *deepest* node under the pointer, which
+ * is often a `<span>` inside the button rather than the button. Clicking
+ * the caret of a collapsible panel put the span in `e.target`, its dataset
+ * was empty, and the panel silently refused to open — proven in a real
+ * browser before this walk-up existed.
+ */
+var EDIT_CLICK_KEYS = ['editTool', 'editPhase', 'editAct', 'editPick', 'panel',
+  'famSlot', 'famAdd', 'famPick', 'construct', 'tileSource', 'mtIndex'];
+
+/** The nearest ancestor (including `el`) that carries one of those keys. */
+function editClickTarget(el, root) {
+  for (var n = el; n && n !== root; n = n.parentNode) {
+    if (!n.dataset) continue;
+    for (var i = 0; i < EDIT_CLICK_KEYS.length; i++) {
+      var v = n.dataset[EDIT_CLICK_KEYS[i]];
+      if (v !== undefined && v !== '') return n;
+    }
+  }
+  return el;
+}
+
 /** The editor's own delegated click handler, for the bar and the composer. */
 function bindEditControls(panel, room) {
+  // The family filter is the one text input in the editor. Delegated on
+  // `input` so it survives the redraws it causes.
+  panel.addEventListener('input', function (e) {
+    if (!e.target || e.target.id !== 'rg-fam-filter') return;
+    _famFilter = e.target.value;
+    renderEditPanels();
+  });
+
   panel.addEventListener('click', function (e) {
-    var t = e.target;
+    var t = editClickTarget(e.target, panel);
     if (!t || !t.dataset) return;
 
     if (t.id === 'rg-edit-btn') { editToggle(room, t); return; }
@@ -216,9 +248,37 @@ function bindEditControls(panel, room) {
     if (t.dataset.famSlot !== undefined && t.dataset.famSlot !== '') {
       var slot = Number(t.dataset.famSlot);
       _famOpen = _famOpen === slot ? -1 : slot;
-      _famSheet = null;
-      var fam = _mtPalette && (_mtPalette.tileFamilies || [])[slot];
-      if (_famOpen >= 0 && fam !== undefined) requestFamilySheet(fam, _mtRoomId);
+      _famPicking = -1;
+      if (_famOpen >= 0) ensureFamilySheet(editFamilies()[_famOpen]);
+      renderEditPanels();
+      return;
+    }
+    if (t.dataset.famAdd !== undefined && t.dataset.famAdd !== '') {
+      // The same control frees a filled slot and fills an empty one: both
+      // are "decide what goes here".
+      _famPicking = _famPicking === Number(t.dataset.famAdd) ? -1 : Number(t.dataset.famAdd);
+      _famOpen = -1;
+      if (_famPicking >= 0) requestFamilyCatalogue();
+      renderEditPanels();
+      return;
+    }
+    if (t.dataset.famPick) {
+      var pick = t.dataset.famPick;
+      if (pick === 'clear') editClearFamily(_famPicking);
+      else if (pick !== 'none') editSetFamily(_famPicking, Number(pick));
+      _famPicking = -1;
+      renderEditChrome();
+      return;
+    }
+    if (t.dataset.tileSource) { _tileSource = t.dataset.tileSource; renderEditPanels(); return; }
+    if (t.dataset.famTile) {
+      // A tile from a family strip. Picking it is what pulls the family in.
+      var got = editAdoptFamilyFor(Number(t.dataset.famOf));
+      editNote(got.ok
+        ? (got.added ? 'added family ' + t.dataset.famOf + ' to slot ' + (got.slot + 1)
+          : 'family ' + t.dataset.famOf + ' is already in slot ' + (got.slot + 1))
+          + ' — graphic ' + t.dataset.famTile
+        : got.why);
       renderEditPanels();
       return;
     }
@@ -244,90 +304,6 @@ function bindEditControls(panel, room) {
       renderComposerPreview();
     }
   });
-}
-
-function editAction(act) {
-  var d = editDraft();
-  if (!d) return;
-  if (act === 'undo') { editUndo(); renderEditChrome(); return; }
-  if (act === 'redo') { editRedo(); renderEditChrome(); return; }
-  if (act === 'clear') {
-    editReset(d.roomId).on = true;
-    _editSel = null; _editClip = null; _editComposed = null;
-    renderEditChrome(); renderComposer();
-    return;
-  }
-  if (act === 'compose-brush') {
-    // The shortest path to a working stamp: take one that already works and
-    // change the one word you care about.
-    var pick = d.brush >= 0 ? d.brush : _mtSelected;
-    var w = pick >= 0 ? editStampWords(_mtPalette, pick) : null;
-    if (!w) { editNote('select a stamp first — “from brush” copies the selected one'); return; }
-    _editCompose.layer1 = w.layer1;
-    _editCompose.layer2 = w.layer2;
-    _editCompose.collision = w.collision;
-    _editCompose.armed = false;
-    renderComposer();
-    return;
-  }
-  if (act === 'compose-swap') {
-    var src = _editCompose.layer2 != null ? editFindCollisionFor(_editCompose.layer2) : null;
-    if (src == null) { editNote('no stamp in this room draws that terrain word yet'); return; }
-    _editCompose.collision = src;
-    renderComposer();
-    return;
-  }
-  if (act === 'compose-add') {
-    if (_editCompose.layer1 == null || _editCompose.layer2 == null) {
-      editNote('a stamp needs both a canopy and a terrain word');
-      return;
-    }
-    var coll = _editCompose.collision != null ? _editCompose.collision
-      : (editFindCollisionFor(_editCompose.layer2) || 0);
-    d.brush = editAddStamp(_mtPalette, {
-      layer1: _editCompose.layer1, layer2: _editCompose.layer2, collision: coll,
-    });
-    requestComposedPreview();
-    renderEditChrome(); renderComposer();
-    return;
-  }
-  if (act === 'save-construct') {
-    if (!_editSel) { editNote('drag a region with copy or move first'); return; }
-    var made = editSaveConstruct(_mtPalette, _editSel, null);
-    if (!made) { editNote('nothing in that selection to save'); return; }
-    _editConstruct = d.constructs.length - 1;
-    d.tool = 'stamp';
-    var a = made.attachments;
-    var extra = a.objects.length + a.bTrigger.length + a.stepOn.length;
-    editNote('saved ' + made.name + ' — ' + made.cells.length + ' cells'
-      + (extra ? ' and ' + extra + ' attachment' + (extra === 1 ? '' : 's') : ', metatiles only'));
-    renderComposer();
-    renderEditPanels();
-    return;
-  }
-  if (act === 'new-room') { editNewRoom(); return; }
-  if (act === 'export') editCopyDraft();
-}
-
-/** The collision word the room already uses with this terrain word. */
-function editFindCollisionFor(layer2Word) {
-  if (!_mtPalette) return null;
-  for (var i = 0; i < _mtPalette.count; i++) {
-    if (_mtPalette.entries[i][2] === layer2Word) return _mtPalette.entries[i][3];
-  }
-  return null;
-}
-
-/** Hand the draft over as JSON — nothing writes to the ROM yet. */
-function editCopyDraft() {
-  var json = JSON.stringify(editExport(_mtPalette), null, 2);
-  var note = document.getElementById('rg-edit-count');
-  if (navigator && navigator.clipboard) {
-    navigator.clipboard.writeText(json).then(function () {
-      if (note) note.textContent = 'draft copied to the clipboard';
-    }, function () { if (note) note.textContent = 'could not copy'; });
-  }
-  if (typeof vs !== 'undefined' && vs) vs.postMessage({ command: 'mapEditDraft', draft: editExport(_mtPalette) });
 }
 
 /** Turn edit mode on or off for the room on screen. */

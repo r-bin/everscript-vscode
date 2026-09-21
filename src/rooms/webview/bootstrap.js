@@ -29,6 +29,10 @@ if(typeof window!=='undefined'&&window.addEventListener){
       // The room's placement palette, fetched only when the section is opened.
       if(typeof applyMetatilePalette==='function')applyMetatilePalette(data);
       if(data.error)console.warn('[RoomsRender] roomMetatiles:',data.error);
+    }else if(data.command==='familyCatalogue'){
+      // Every tile family the ROM attests, for the family picker.
+      if(typeof applyFamilyCatalogue==='function')applyFamilyCatalogue(data);
+      if(data.error)console.warn('[RoomsRender] familyCatalogue:',data.error);
     }else if(data.command==='familySheet'){
       // Every graphic vanilla draws in one tile family, for the picker.
       if(typeof applyFamilySheet==='function')applyFamilySheet(data);

@@ -342,6 +342,25 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .rg-err-warn{background:rgba(227,179,65,.10);color:#e3b341;border-left:2px solid #e3b341}
 .rg-ok{font-size:10px;color:#6a9955}
 .rg-constructs{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}
+/* Family slots: a filled one is a pair (the family, and an x to free it). */
+.rg-fam-slots{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:5px}
+.rg-fam-slot{display:inline-flex;gap:0}
+.rg-fam-slot .rdf{border-radius:8px 0 0 8px;opacity:1}
+.rg-fam-slot.on .rdf{border-color:#7ecbd0}
+.rg-fam-x{border-radius:0 8px 8px 0;border-left:none;padding:1px 4px}
+.rg-fam-x:hover{color:#ff9d9d;border-color:#e05555}
+.rg-fam-empty{border-style:dashed}
+.rg-fam-browse{border:1px solid #2e2e2e;border-radius:3px;padding:4px;margin-bottom:4px}
+.rg-fam-filter{width:100%;box-sizing:border-box;margin:4px 0;padding:2px 5px;font-size:10px;
+  background:#1a1a1a;border:1px solid #3a3a3a;border-radius:3px;color:#ddd;font-family:inherit}
+.rg-fam-list{max-height:140px;overflow:auto;gap:2px}
+/* The new-room form. VS Code webviews have no window.prompt, so the size is
+   asked for inline. */
+.rg-newroom{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 4px;
+  padding:4px 6px;border:1px solid #3a3a3a;border-radius:3px;background:rgba(0,0,0,.2);font-size:10px}
+.rg-newroom label{color:#999}
+.rg-newroom input{width:52px;padding:1px 4px;font-size:10px;background:#1a1a1a;
+  border:1px solid #3a3a3a;border-radius:3px;color:#ddd;font-family:inherit}
 .rs-mt-compose{margin-top:8px;border-top:1px solid #2a2a2a;padding-top:6px}
 .rs-mt-preview{margin-top:4px;min-height:20px}
 .rs-mt-preview .rs-mt-cell{background-repeat:no-repeat}
