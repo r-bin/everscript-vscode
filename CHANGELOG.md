@@ -1,3 +1,29 @@
+## [0.45.0] — 2026-09-21
+
+### Clicking a tile in a family strip did nothing
+
+It was dead code. `editUseFamilyTile` was written in 0.44.0 but never wired up: the branch that should have called it was still the old one, because a `str.replace` I used to swap it silently matched nothing (the file had a literal em-dash where the pattern had an escape). The brush stayed at −1, the checks kept saying "no brush selected", and the map could not be painted.
+
+Now the click does the whole chain, and it is pinned by a browser test that clicks the real swatch and then paints with it.
+
+### You can see what you picked
+
+- **The swatch itself gets the selected ring.** A click with no visible confirmation reads as a dead control, which is exactly how this felt.
+- **The status line survives.** Every explanation the editor produced was being overwritten in the same tick — almost every caller of `editNote` goes on to `renderEditChrome`, which rewrote that slot with the cell/brush summary. A note now holds until the next render shows it, then hands back to the live summary:
+
+```
+brush: graphic 4186 in family 58 — stamp #175, as ground. Paint on the map.
+→ 1 cell, 1 new stamp · brush #175
+```
+
+### Tiles are 32px again
+
+0.44.0 dropped the panel strips to 1× to save vertical space, which made 16px of pixel art impossible to read — you could not tell a wall from a floor. The strips keep the palette's **integer 2× scale**; only the family picker's dense browse list stays 1×, where the rows are a list rather than swatches to aim at.
+
+### Also
+
+The browser test loads the **real stylesheet** now. Without it every swatch is 0×0, so nothing is clickable and no size assertion means anything — which is why the dead click path survived the previous round of tests. 39 checks.
+
 ## [0.44.0] — 2026-09-21
 
 ### Click a tile, get something you can stamp

@@ -73,9 +73,15 @@ async function main() {
     const pageErrors = [];
     page.on('pageerror', (e) => pageErrors.push(e.message));
 
-    await page.setContent(`<!doctype html><html><body><div id="room-detail">
-        <div class="rg-outer rs-map" id="rg-outer"><div id="rg-wrap">
-        <svg id="rg-svg" viewBox="0 0 4 4"><image id="rg-img"/></svg></div></div>
+    const CSS = fs.readFileSync(
+        path.join(__dirname, '..', '..', 'src', 'shared', 'shared.css'), 'utf8');
+    // The real stylesheet: without it every swatch is 0x0, so nothing is
+    // clickable and no size assertion means anything.
+    await page.setContent(`<!doctype html><html><head><style>${CSS}</style></head>
+        <body style="display:block;height:auto;overflow:auto"><div id="room-detail">
+        <div class="rg-outer rs-map" id="rg-outer"><div class="rg-wrap" id="rg-wrap"
+        style="width:400px;height:300px">
+        <svg class="rg-svg" id="rg-svg" viewBox="0 0 4 4"><image id="rg-img"/></svg></div></div>
         <div class="rs rs-mt-sec" id="rs-mt"><div class="rs-mt-body" id="rs-mt-body"></div></div>
         </div></body></html>`);
 
@@ -294,6 +300,52 @@ async function main() {
     check('and the preview is told about the graphic, or it would draw the wrong tile',
         sent && sent.extra && sent.extra.graphics.indexOf(4191) >= 0, JSON.stringify(sent && sent.extra));
 
+    // ── a family tile is a brush, visibly ──────────────────────────────────
+    // The whole click path, through the real handler: the dead branch that
+    // never called editUseFamilyTile left the brush at -1, so the map could
+    // not be painted and the checks still said "no brush selected".
+    await page.evaluate(() => {
+        editReset(0x34);
+        editDraft().on = true;
+        editFamilies()[2] = 58;
+        _famOpen = 2;
+        _famSheets[58] = { family: 58, count: 2, total: 74, roomCount: 3, columns: 16, cell: 16,
+            slots: [[0, 0, 4186, 9], [1, 2, 4191, 4]], imageUri: 'data:image/png;base64,ZmFt' };
+        _panelOpen.tiles = false;
+        renderEditPanels();
+    });
+    await page.click('[data-fam-tile]');
+    const armed = await page.evaluate(() => ({
+        brush: editDraft().brush,
+        added: editDraft().added.length,
+        note: document.getElementById('rg-edit-count').textContent,
+        rings: document.querySelectorAll('#rg-panels .rs-mt-cell.sel').length,
+        blocking: editErrors(_mtPalette).filter((e) => /no brush/.test(e[1])).length,
+    }));
+    check('clicking a family tile arms a brush', armed.brush >= 0 && armed.added === 1,
+        JSON.stringify(armed));
+    check('and says so, instead of being overwritten by the summary',
+        /brush: graphic 4186/.test(armed.note), armed.note);
+    check('and marks the swatch itself', armed.rings === 1, 'rings=' + armed.rings);
+    check('so the checks stop asking for a brush', armed.blocking === 0);
+
+    const painted = await page.evaluate(() => {
+        editStroke({ x: 1, y: 1 }, 'down');
+        return { cells: Object.keys(editDraft().cells).length,
+                 note: document.getElementById('rg-edit-count').textContent };
+    });
+    check('and the map can actually be painted with it', painted.cells === 1,
+        JSON.stringify(painted));
+    check('after which the status goes back to the live summary',
+        /1 cell/.test(painted.note), painted.note);
+
+    // Pixel art at 16px cannot be told apart; the strips keep the palette's
+    // integer 2x scale.
+    const cellBox = await page.$eval('[data-fam-tile]',
+        (e) => { const r = e.getBoundingClientRect(); return { w: r.width, h: r.height }; });
+    check('tile swatches are 32px, not 16', cellBox.w === 32 && cellBox.h === 32,
+        JSON.stringify(cellBox));
+
     // ── tiles in their own family ──────────────────────────────────────────
     await page.evaluate(() => applyFamilySheet({
         sheet: {
@@ -301,6 +353,7 @@ async function main() {
             slots: [[0, 0, 4191, 10], [1, 2, 4195, 5]], imageUri: 'data:image/png;base64,ZmFt',
         },
     }));
+    await page.evaluate(() => { _panelOpen.tiles = true; renderEditPanels(); });
     await page.click('[data-tile-source="families"]');
     const strip = await page.evaluate(() => document.getElementById('rg-panels').innerHTML);
     check('a family’s tiles are drawn in that family, not the room’s palette',

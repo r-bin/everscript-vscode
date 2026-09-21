@@ -15,6 +15,8 @@ var _famCatalogue = null;
 var _famFilter = '';
 /** familyId -> its rendered sheet, once fetched. */
 var _famSheets = {};
+/** The graphic+family currently armed as the brush, for the selected ring. */
+var _brushTile = null;
 /** Which slot the browser is filling, or -1 when it is closed. */
 var _famPicking = -1;
 /** The picker's page, and the strip sheet for the families on it. */
@@ -115,10 +117,16 @@ function editUseFamilyTile(graphicId, family) {
   var word = (editSlotChr(slot) | ((got.slot + 1) << 10)) & 0xffff;
   var index = editBrushFromTile(_mtPalette, word, d.phase);
 
+  // Which swatch is armed has to be visible on the swatch, not only in a
+  // line of text \u2014 clicking with no confirmation reads as a dead control.
+  _brushTile = { graphic: graphicId, family: family };
+  _mtSlot = -1;
+
   editNote('brush: graphic ' + graphicId + ' in family ' + family
     + (got.added ? ' (family added to slot ' + (got.slot + 1) + ')' : '')
     + ' \u2014 stamp #' + index
-    + (d.phase === 'deco' ? ', over whatever it is painted on' : ', as ground'));
+    + (d.phase === 'deco' ? ', drawn over what it is painted on' : ', as ground')
+    + '. Paint on the map.');
   requestComposedPreview();
   renderEditChrome();
 }
@@ -296,7 +304,9 @@ function familyStrip(family, expanded) {
     var slot = s.slots[i];
     var x = (i % s.columns) * s.cell;
     var y = Math.floor(i / s.columns) * s.cell;
-    html += '<i class="rs-mt-cell" data-fam-tile="' + slot[2] + '" data-fam-of="' + family + '"'
+    var armed = _brushTile && _brushTile.graphic === slot[2] && _brushTile.family === family;
+    html += '<i class="rs-mt-cell' + (armed ? ' sel' : '') + '" data-fam-tile="' + slot[2]
+      + '" data-fam-of="' + family + '"'
       + ' title="' + escH('graphic ' + slot[2] + ' in family ' + family
         + ' — ' + slot[3] + ' placements in vanilla') + '"'
       + ' style="background-position:-' + x + 'px -' + y + 'px"></i>';

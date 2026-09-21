@@ -180,16 +180,26 @@ function editOnTilePicked(word) {
 
   var index = editBrushFromTile(_mtPalette, word, d.phase);
   if (index < 0) return false;
+  _brushTile = null;   // the room's own sheet marks its selection with _mtSlot
   editNote('brush: stamp #' + index + ' — '
     + (d.phase === 'deco' ? 'drawn over whatever it is painted on' : 'ground, nothing over it')
-    + ', no collision yet');
+    + ', no collision yet. Paint on the map.');
   if (index >= _mtPalette.count) requestComposedPreview();
   renderEditChrome();
   return true;
 }
 
-/** Say something in the editor's status slot. */
+/**
+ * Say something in the editor's status slot.
+ *
+ * Held rather than written straight out, because almost every caller goes
+ * on to `renderEditChrome`, which rewrites that slot with the cell/brush
+ * summary — every explanation this ever produced was overwritten in the
+ * same tick. The next render shows the note instead of the summary, once.
+ */
+var _editPendingNote = '';
 function editNote(text) {
+  _editPendingNote = text;
   var el = document.getElementById('rg-edit-count');
   if (el) el.textContent = text;
 }
@@ -297,14 +307,9 @@ function bindEditControls(panel, room) {
     }
     if (t.dataset.tileSource) { _tileSource = t.dataset.tileSource; renderEditPanels(); return; }
     if (t.dataset.famTile) {
-      // A tile from a family strip. Picking it is what pulls the family in.
-      var got = editAdoptFamilyFor(Number(t.dataset.famOf));
-      editNote(got.ok
-        ? (got.added ? 'added family ' + t.dataset.famOf + ' to slot ' + (got.slot + 1)
-          : 'family ' + t.dataset.famOf + ' is already in slot ' + (got.slot + 1))
-          + ' — graphic ' + t.dataset.famTile
-        : got.why);
-      renderEditPanels();
+      // A tile from a family strip: pulls in the family, the graphic, and
+      // the metatile that can draw it, all at once.
+      editUseFamilyTile(Number(t.dataset.famTile), Number(t.dataset.famOf));
       return;
     }
     if (t.dataset.construct) {

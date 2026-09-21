@@ -259,7 +259,10 @@ function renderEditChrome() {
     bar.outerHTML = buildEditToolbarHtml();
   }
   var count = document.getElementById('rg-edit-count');
-  if (count && d) {
+  if (count && _editPendingNote) {
+    count.textContent = _editPendingNote;
+    _editPendingNote = '';
+  } else if (count && d) {
     if (!_mtPalette) {
       // Nothing can be drawn before the dictionary arrives, and a dead
       // cursor with no explanation is the worst version of that.
