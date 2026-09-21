@@ -1,3 +1,23 @@
+## [0.37.2] — 2026-09-21
+
+### Docs: building a room from scratch, with nothing left as "unknown"
+
+New tutorial: [docs/map-format/building-a-room-from-scratch.md](docs/map-format/building-a-room-from-scratch.md), plus the script that produces it ([examples-build-rooms.py](docs/map-format/examples-build-rooms.py)). Five rooms of increasing difficulty — one stamp; the same picture with half of it solid; two looks; a canopy the player walks behind; a trigger — each built, spliced into a scratch ROM, read back and rendered.
+
+**The header is now fully decoded.** The previous note called bytes 9–12 reserved/unknown. Disassembling the loader at `$908F60` shows that is wrong:
+
+- **`+9..+10` is a real 16-bit field**, read with `REP #$21` and stored at `$0F84`. Exactly one site in the ROM reads it — `$909ECC` tests **bit 14**, which pulls the camera to `focusY − 96` when it sits below that (`$0617` is the camera focus point, written at `$8EA0F5` from entity `+0x1C` minus 13). Zero in all 127 rooms, so the shipped game never uses it.
+- **`+11..+12` really are skipped** — the loader does `INY/INY` at `$90904D` and its next read is the trigger length at +13.
+
+Every other header byte is named by what the loader does with it (`$212C`/`$212D`/`$2131`/`$2130`, and the room-effect jump table at `$9092BC`), with distributions measured across all 127 rooms — `blendRules` is `2` in literally every one.
+
+**Two rules the examples discovered the hard way**, both of which broke a build:
+
+- **Borrow a whole tile set, never one entry.** A room with one Block 1 entry decodes perfectly and renders *solid black*: word `0x302C` wants character 44, which resolves to palette slot 14, and a short list silently falls back to tile 0.
+- **Stamps must be introduced in first-appearance order.** The grid compressor grows its index field as new stamps appear, so stamp *n* cannot be referenced before *0…n−1*. Build the dictionary from the grid, not the other way round.
+
+Also documented: `extraGraphics` descriptors (3 bytes → `$90D50F`), and Section 4's first byte as the grid compressor's pre-registered-stamp seed.
+
 ## [0.37.1] — 2026-09-21
 
 ### Painting smeared the whole tile sheet over the map
