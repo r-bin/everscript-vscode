@@ -73,10 +73,40 @@ already-resolved sprite.
 
 ## Facing
 
-`anim_stand` is the default idle and the sprites it yields face the camera —
-the flower, mosquito, bee, chameleon and villagers all render front-on. No
-direction selection is implemented, and none was needed for these; whether
-other directions live in separate animations has not been investigated.
+**Animations can come in a set, one per direction.** `$908124` decides:
+
+```
+908124  LDA $C40002,X    ; the record's bank + flags
+908128  BMI $908150      ; bit 7 of flags: directional
+908150  TXA
+908152  ADC $0022,Y      ; + the entity's facing
+908155  ADC $0022,Y      ; ... twice, so the stride is 2 per step
+908139  LDA $C40000,X    ; the selected record
+```
+
+A record is `[scriptLow:u16][bank:u8][flags:u8]`. When `flags & 0x80`, the
+animation to play is at `anim_stand + 2 * facing`; otherwise the record
+stands for every direction.
+
+**Entity `+0x22` holds the facing, and south is 8.** Both the spawn routine
+(`$8FB0CD`) and the FACE SOUTH opcode (`$8CDEFC`) write 8, so an unposed
+enemy already faces the camera — which is why the non-directional ones
+looked right before any of this was understood.
+
+Confirmed against the game: a Viper (character 92) made to face south draws
+`$CD2C66`, and `anim_stand + 2*8` resolves to exactly that. Reading its
+record without the facing gives `$CD2CF5`, a different pose.
+
+## Placement: sprites anchor at their feet
+
+Chunk offsets are signed around an origin that is **not** the sprite's
+centre — a 32×32 Wimpy Flower has its origin at y=25. Placing a sprite by
+its centre therefore drops it about a tile low, and frames of different
+sizes jitter against each other.
+
+`renderCharacterFrames` blits every frame into one box large enough for all
+of them, aligned on that origin, so a caller positions by the origin alone
+and the animation stays still while it plays.
 
 ## Still missing
 

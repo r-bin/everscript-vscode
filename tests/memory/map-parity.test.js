@@ -347,6 +347,15 @@ function checkSprites(rom) {
     // against a running game, which drew sprites from the same neighbourhood.
     check('mosquito idle sprite', maps.resolveCharacterSprite(rom, 113), 0xcc5b1c);
     check('wimpy flower idle sprite', maps.resolveCharacterSprite(rom, 109), 0xcc4f3b);
+    // The Viper's animation is directional, so this one is the facing test:
+    // $CD2C66 is the sprite the game drew after a FACE SOUTH, and a
+    // non-directional read gives $CD2CF5 instead.
+    check('viper faces south', maps.resolveCharacterSprite(rom, 92), 0xcd2c66);
+    // Sprites anchor at their feet, not their centre — placing by the centre
+    // drops an enemy about a tile low.
+    const flower = maps.renderCharacterFrames(rom, 109);
+    check('flower frames share one box', new Set(flower.frames.map((f) => f.data.length)).size, 1);
+    check('flower origin is below centre', flower.originY > flower.height / 2, true);
     const names = require('../../src/script/names.json');
     let rendered = 0;
     let total = 0;

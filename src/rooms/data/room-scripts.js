@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 
 const { buildRoomScriptModel } = require('../../script');
-const { renderCharacterSprite, renderSpriteAt, characterAnimation, characterPalette, encodePng } = require('../../maps');
+const { renderCharacterFrames, encodePng } = require('../../maps');
 
 const ROM_NAMES = ['Secret of Evermore (U) [!].smc', 'Secret of Evermore.smc'];
 
@@ -32,31 +32,31 @@ function loadRom(wsRoot, romPathOverride) {
  */
 const TICK_MS = 1000 / 60;
 
-/** Render one character: its idle frames if they walk, else one still. */
+/**
+ * Render one character facing south, as aligned frames.
+ *
+ * Every frame shares one box anchored on the sprite's origin, so the caller
+ * can position by the origin and the frames do not jitter against each
+ * other. A single frame is a still; only more than one is animation, since
+ * playing one sprite as a loop would claim more than was read.
+ */
 function buildSprite(rom, character) {
-    const png = (px) => 'data:image/png;base64,' + encodePng(px).toString('base64');
-    const colours = characterPalette(rom, character);
-    const walk = characterAnimation(rom, character);
-    const distinct = new Set(walk.frames.map((f) => f.sprite));
-
-    // Only animate when the walk actually produced motion. One sprite held
-    // for several frames is a still, and playing it as an animation would
-    // claim more than was read.
-    if (distinct.size > 1) {
-        const frames = [];
-        let w = 0;
-        let h = 0;
-        for (const f of walk.frames) {
-            const px = renderSpriteAt(rom, f.sprite, colours);
-            if (!px) return null;
-            w = Math.max(w, px.width);
-            h = Math.max(h, px.height);
-            frames.push({ uri: png(px), ms: Math.max(16, Math.round(f.ticks * TICK_MS)) });
-        }
-        return { uri: frames[0].uri, w, h, frames, complete: walk.complete };
-    }
-    const px = renderCharacterSprite(rom, character);
-    return px ? { uri: png(px), w: px.width, h: px.height, frames: null } : null;
+    const r = renderCharacterFrames(rom, character);
+    if (!r) return null;
+    const png = (data) => 'data:image/png;base64,'
+        + encodePng({ width: r.width, height: r.height, data }).toString('base64');
+    const frames = r.frames.map((f) => ({
+        uri: png(f.data),
+        ms: Math.max(16, Math.round(f.ticks * TICK_MS)),
+    }));
+    return {
+        uri: frames[0].uri,
+        w: r.width,
+        h: r.height,
+        ox: r.originX,
+        oy: r.originY,
+        frames: frames.length > 1 ? frames : null,
+    };
 }
 
 function attachSprites(rom, spawns) {
@@ -73,6 +73,8 @@ function attachSprites(rom, spawns) {
         spawn.sprite = sprite.uri;
         spawn.spriteW = sprite.w;
         spawn.spriteH = sprite.h;
+        spawn.spriteOX = sprite.ox;
+        spawn.spriteOY = sprite.oy;
         if (sprite.frames) spawn.spriteFrames = sprite.frames;
     }
 }

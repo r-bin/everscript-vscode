@@ -30,6 +30,26 @@ const CHARACTER_STRIDE = 74;
 const ANIM_STAND = 0x32;
 const PALETTE = 0x09;
 const ANIMATION_TABLE = 0xc40000;
+const ANIMATION_RECORD = 4;
+
+/**
+ * Animations can come in a set, one per facing.
+ *
+ * `$908124` reads the record's flags byte and, when bit 7 is set, indexes a
+ * *set* of records instead of using this one:
+ *
+ *     908124  LDA $C40002,X    ; bank + flags
+ *     908128  BMI $908150      ; bit 7 of flags: directional
+ *     908150  TXA
+ *     908152  ADC $0022,Y      ; + the entity's facing
+ *     908155  ADC $0022,Y      ; ... twice, so the stride is 2 per step
+ *
+ * Entity `+0x22` holds the facing. Spawning writes **8**, and so does the
+ * FACE SOUTH opcode, so 8 is both "south" and what an enemy starts as —
+ * which is why an unposed enemy already faces the camera.
+ */
+const DIRECTIONAL_FLAG = 0x80;
+export const FACING_SOUTH = 8;
 const SPRITE_BANK_BIAS = 0xa8;
 const SET_SPRITE_FIRST = 0x22;
 const SET_SPRITE_LAST = 0x2b;
@@ -89,10 +109,27 @@ function read24At(rom: Uint8Array, snes: number): number {
     return (at(rom, snes) | (at(rom, snes + 1) << 8) | (at(rom, snes + 2) << 16)) >>> 0;
 }
 
-/** SNES address of the sprite a character stands still as, or null. */
-export function resolveCharacterSprite(rom: Uint8Array, character: number): number | null {
+/**
+ * The animation record for a character at a given facing.
+ *
+ * A record is `[scriptLow:u16][bank:u8][flags:u8]`. When the flags say the
+ * animation is directional, the facing selects a sibling record; otherwise
+ * the same one serves every direction.
+ */
+function animationScript(rom: Uint8Array, character: number, facing: number): number {
     const record = CHARACTER_TABLE + character * CHARACTER_STRIDE;
-    const script = read24At(rom, ANIMATION_TABLE + read16At(rom, record + ANIM_STAND));
+    let anim = read16At(rom, record + ANIM_STAND);
+    if (at(rom, ANIMATION_TABLE + anim + 3) & DIRECTIONAL_FLAG) anim += 2 * facing;
+    return (read16At(rom, ANIMATION_TABLE + anim) | (at(rom, ANIMATION_TABLE + anim + 2) << 16)) >>> 0;
+}
+
+/** SNES address of the sprite a character stands still as, or null. */
+export function resolveCharacterSprite(
+    rom: Uint8Array,
+    character: number,
+    facing = FACING_SOUTH,
+): number | null {
+    const script = animationScript(rom, character, facing);
     let p = script;
     for (let i = 0; i < MAX_COMMANDS; i++) {
         const cmd = at(rom, p) & COMMAND_MASK;
@@ -141,9 +178,9 @@ const DEFAULT_HOLD = 8;
 export function characterAnimation(
     rom: Uint8Array,
     character: number,
+    facing = FACING_SOUTH,
 ): { frames: AnimationFrame[]; complete: boolean } {
-    const record = CHARACTER_TABLE + character * CHARACTER_STRIDE;
-    let p = read24At(rom, ANIMATION_TABLE + read16At(rom, record + ANIM_STAND));
+    let p = animationScript(rom, character, facing);
     const frames: AnimationFrame[] = [];
     const seen = new Set<number>();
     let sprite: number | null = null;
@@ -185,6 +222,66 @@ export function characterPalette(rom: Uint8Array, character: number): Array<[num
     return out;
 }
 
+/**
+ * A character's idle animation as aligned RGBA frames.
+ *
+ * Chunk offsets are signed around an **origin that sits at the sprite's
+ * feet**, not its centre — a 32x32 flower has its origin at y=25. Placing a
+ * sprite by its centre therefore drops it about a tile too low, and frames
+ * of different sizes jitter against each other.
+ *
+ * So every frame is blitted into one box big enough for all of them, aligned
+ * on that origin, and the caller positions the box by the origin alone.
+ */
+export function renderCharacterFrames(
+    rom: Uint8Array,
+    character: number,
+    facing = FACING_SOUTH,
+): { width: number; height: number; originX: number; originY: number;
+     frames: Array<{ data: Uint8Array; ticks: number }>; complete: boolean } | null {
+    const walk = characterAnimation(rom, character, facing);
+    const list = walk.frames.length
+        ? walk.frames
+        : (() => {
+            const p = resolveCharacterSprite(rom, character, facing);
+            return p === null ? [] : [{ sprite: p, ticks: 0 }];
+        })();
+    if (!list.length) return null;
+
+    const composed = list.map((f) => composeSprite(rom, readSpriteInfo(rom, f.sprite)));
+    let originX = 0;
+    let originY = 0;
+    let right = 0;
+    let below = 0;
+    for (const c of composed) {
+        originX = Math.max(originX, c.originX);
+        originY = Math.max(originY, c.originY);
+        right = Math.max(right, c.width - c.originX);
+        below = Math.max(below, c.height - c.originY);
+    }
+    const width = originX + right;
+    const height = originY + below;
+    if (width <= 0 || height <= 0) return null;
+
+    const colours = characterPalette(rom, character);
+    const frames = composed.map((c, i) => {
+        const data = new Uint8Array(width * height * 4);
+        const dx = originX - c.originX;
+        const dy = originY - c.originY;
+        for (let y = 0; y < c.height; y++) {
+            for (let x = 0; x < c.width; x++) {
+                const v = c.pixels[y * c.width + x];
+                if (v <= 0) continue;
+                const o = ((y + dy) * width + (x + dx)) * 4;
+                const [r, g, b] = colours[v];
+                data[o] = r; data[o + 1] = g; data[o + 2] = b; data[o + 3] = 255;
+            }
+        }
+        return { data, ticks: list[i].ticks };
+    });
+    return { width, height, originX, originY, frames, complete: walk.complete };
+}
+
 /** One sprite as RGBA in a character's palette. */
 export function renderSpriteAt(
     rom: Uint8Array,
@@ -207,8 +304,9 @@ export function renderSpriteAt(
 export function renderCharacterSprite(
     rom: Uint8Array,
     character: number,
+    facing = FACING_SOUTH,
 ): { width: number; height: number; data: Uint8Array } | null {
-    const pointer = resolveCharacterSprite(rom, character);
+    const pointer = resolveCharacterSprite(rom, character, facing);
     if (pointer === null) return null;
     return renderSpriteAt(rom, pointer, characterPalette(rom, character));
 }

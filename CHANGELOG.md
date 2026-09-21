@@ -1,3 +1,20 @@
+## [0.27.0] — 2026-09-21
+
+Enemies face south, and sit where they belong.
+
+### Facing
+**Animations come in a set, one per direction**, when the record's flags byte has bit 7 set — `$908124` then indexes `anim_stand + 2 * facing` instead of using the record directly. **Entity `+0x22` holds the facing and south is 8**, written both by the spawn routine and by the FACE SOUTH opcode, which is why an unposed enemy already faces the camera.
+
+Confirmed against the game: a Viper made to face south draws `$CD2C66`, and `anim_stand + 2*8` gives exactly that. Read without the facing it gives `$CD2CF5` — a different pose, which is what was being drawn before.
+
+### Placement
+**Sprites anchor at their feet, not their centre.** A 32×32 Wimpy Flower has its origin at y=25, so centring dropped every enemy about a tile low. `renderCharacterFrames` now blits all of a character's frames into one box aligned on that origin, so the caller positions by the origin and the animation no longer jitters between differently-sized frames.
+
+### Notes
+- Non-directional characters (Mosquito, Wimpy Flower) resolve to the same sprites as before — their records have bit 7 clear, so nothing changed for them.
+- Coverage is unchanged at 121 of 141; facing selects a better pose rather than unlocking new characters.
+- Pinned in the parity test: the Viper's south sprite, one shared frame box, and an origin below centre.
+
 ## [0.26.0] — 2026-09-21
 
 Enemies animate, and every format researched in this series now has a written-up page.
