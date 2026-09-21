@@ -109,6 +109,10 @@ directly, which is better evidence than measuring one opcode at a time:
 | `$908418` | `0x22`–`0x2b` | Set sprite; bank = `cmd + 0xA8` (3 bytes) |
 | `$90878A` | `0x00`, `0x21` | No-op, one byte — a bare frame boundary |
 | `$90877D` | `0x2d` | Restart the script |
+| `$9087BA` | `0x47` | **Strike**: a box at an offset (5 bytes) — [attack_boxes.md](attack_boxes.md) |
+| `$908725` | `0x4c` | Throw a projectile at an offset (6 bytes) |
+| `$9085A8` | `0x50` | Move the hurt box (`$0042`/`$0044`, 5 bytes) |
+| `$908453` | `0x52` | Reset: clears the sprite and puts the hurt box back |
 
 ## Measuring lengths
 
@@ -155,6 +159,28 @@ measured it at 2 as well.
 **`0x57` is genuinely variable** and is left unknown. It calls `$8FCA02`,
 which walks a list of its own through `$5D` and writes back wherever it
 stopped (`$8FCA4D STY $5D`). Only the two segmented bosses use it.
+
+Seven more came from the same reading, for the **attack** animations, which
+idle scripts never reach:
+
+| Cmd | Handler | What it does | Length |
+|---|---|---|---|
+| `0x32` | `$908B00` | a byte, then a word, stored through `($12),Y` | 4 |
+| `0x38` | `$908B6C` | one byte, written twice through `($12),Y` | 2 |
+| `0x40` | `$9088F3` | a word, then `JSL $8C81FD` | 3 |
+| `0x43` | `$9086C3` | holds while `$001E`/`$0020,Y` are non-zero | 1 |
+| `0x4b` | `$90885A` | a word, then `JSL $90CD5C` | 3 |
+| `0x4c` | `$908725` | a word and three signed bytes — a projectile | 6 |
+| `0x5b` | `$9085C1` | stores the entity's position for its facing | 1 |
+
+`0x40` has a caveat: when the entity is outside the live range or
+`$0014,Y & $0020` is set, the handler returns at `$908920` **without**
+advancing `$5D`. That is a runtime abort, not a second encoding — the operand
+is still in the script — so a static walk reads three bytes.
+
+Adding all seven changed **no idle walk**: all 141 characters produce
+byte-identical frames before and after, which is the check that a wrong width
+would fail loudly.
 
 ## Facing
 

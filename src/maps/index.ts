@@ -65,10 +65,12 @@ export {
     walkSprites, readSpriteInfo, composeSprite, decodeSpriteBlock, SPRITE_LIST_START,
 } from './sprites';
 export { renderCharacterSprite, renderSpriteAt, renderCharacterFrames } from './characters';
-export { resolveCharacterSprite, characterAnimation } from './character-animation';
+export {
+    resolveCharacterSprite, characterAnimation, strikeBoxes, characterStrikeBoxes,
+} from './character-animation';
 export {
     characterPalette, characterDisposition, characterHitbox, entitiesCollide, FACING_SOUTH,
 } from './character-record';
 export type { SpriteInfo, SpriteChunk, SpritePixels, SpriteBlockPixels } from './sprites';
-export type { AnimationFrame as SpriteAnimationFrame } from './character-animation';
+export type { AnimationFrame as SpriteAnimationFrame, StrikeBox } from './character-animation';
 export type { CharacterDisposition, CharacterHitbox } from './character-record';

@@ -16,7 +16,7 @@
 // `bank = cmd + 0xA8`.
 
 import { snesToRom, readByte } from './rom';
-import { animationScript, read16At, FACING_SOUTH } from './character-record';
+import { animationScript, read16At, FACING_SOUTH, ATTACK_FIELDS } from './character-record';
 
 /** Byte at a SNES address. */
 const at = (rom: Uint8Array, snes: number): number => readByte(rom, snesToRom(snes));
@@ -92,11 +92,35 @@ const END_FRAME = 0x80;
  * being given a length that does not exist.
  */
 const COMMAND_LENGTH: Record<number, number> = {
-    0x00: 1, 0x1f: 3, 0x21: 1, 0x2c: 4, 0x2e: 2,
-    0x41: 1, 0x42: 2, 0x44: 1, 0x45: 3, 0x46: 3, 0x47: 5,
-    0x4d: 3, 0x4e: 1, 0x4f: 1, 0x50: 5, 0x52: 1, 0x53: 1,
-    0x54: 3, 0x5a: 2,
+    0x00: 1, 0x1f: 3, 0x21: 1, 0x2c: 4, 0x2e: 2, 0x32: 4,
+    0x38: 2, 0x40: 3, 0x41: 1, 0x42: 2, 0x43: 1, 0x44: 1,
+    0x45: 3, 0x46: 3, 0x47: 5, 0x4b: 3, 0x4c: 6, 0x4d: 3,
+    0x4e: 1, 0x4f: 1, 0x50: 5, 0x52: 1, 0x53: 1, 0x54: 3,
+    0x5a: 2, 0x5b: 1,
 };
+
+/**
+ * Seven more, read the same way, for the attack animations.
+ *
+ * Idle scripts never reach these; attack, damage and death scripts stop on
+ * them constantly (`0x38` alone stopped 132 walks). Same method as above —
+ * follow every path through the handler to its `RTS` and add up what it does
+ * to `$5D`:
+ *
+ *     $908B00  0x32: one byte, then a word: STA ($12),Y               -> 4
+ *     $908B6C  0x38: LDA [$5D]; STA ($12),Y twice; INC $5D            -> 2
+ *     $9086C3  0x43: waits while $001E/$0020,Y are non-zero, RTS      -> 1
+ *     $90885A  0x4b: LDA [$5D] 16-bit; JSL $90CD5C; INX INX           -> 3
+ *     $908725  0x4c: a word and three signed bytes (an effect + where)-> 6
+ *     $9085C1  0x5b: stores the entity's position for a facing, RTS   -> 1
+ *     $9088F3  0x40: LDA [$5D] 16-bit; JSL $8C81FD; +2                -> 3
+ *
+ * `0x40` has a caveat worth stating: when the entity is out of the live
+ * range or `$0014,Y & $0020` is set, the handler returns at `$908920`
+ * **without** advancing `$5D` at all. That is a runtime abort, not a second
+ * encoding — the operand is still in the script — so a static walk reads it
+ * as three bytes.
+ */
 
 /**
  * `0x2d` restarts the script — it is where an animation loops.
@@ -257,4 +281,96 @@ export function characterAnimation(
         frames[0].ticks += (frames.pop() as AnimationFrame).ticks;
     }
     return { frames, complete };
+}
+
+/**
+ * One strike an animation declares — command `0x47`.
+ *
+ * The handler at `$9087BA` reads four operand bytes and builds a box:
+ *
+ *     9087BC  LDA [$5D]        ; two signed bytes: x then y offset
+ *     9087CB  ADC $001C,Y      ; + the attacker's position -> $48
+ *     9087E0  ADC $001A,Y      ; ...and $46
+ *     9087F5  LDA [$5D],Y      ; the third byte -> $3E, the width
+ *     9087FD  LDA [$5D],Y      ; the fourth    -> $40, the height
+ *     908807  JSL $8FB5E6      ; and swing it
+ *
+ * So it is a box of `width` x `height` pixels, centred `dx`,`dy` from the
+ * attacker. Offsets are per facing, because the animation itself is.
+ */
+export interface StrikeBox {
+    /** Offset from the attacker's position, in pixels. */
+    dx: number;
+    dy: number;
+    /** Full extent in pixels. */
+    width: number;
+    height: number;
+}
+
+const STRIKE = 0x47;
+const STRIKE_LENGTH = 5;
+
+const signed8 = (v: number): number => (v << 24) >> 24;
+
+/**
+ * Every strike command in one animation script, in script order.
+ *
+ * `complete` is false when the walk met a command of unknown width and
+ * stopped — there may be strikes it never reached.
+ */
+export function strikeBoxes(
+    rom: Uint8Array,
+    script: number,
+): { boxes: StrikeBox[]; complete: boolean } {
+    const boxes: StrikeBox[] = [];
+    const seen = new Set<number>();
+    let p = script;
+    for (let i = 0; i < MAX_COMMANDS * 2; i++) {
+        if (seen.has(p)) return { boxes, complete: true };
+        seen.add(p);
+        const cmd = at(rom, p) & COMMAND_MASK;
+        if (cmd === LOOP) return { boxes, complete: true };
+        if (cmd === STRIKE) {
+            boxes.push({
+                dx: signed8(at(rom, p + 1)),
+                dy: signed8(at(rom, p + 2)),
+                width: at(rom, p + 3),
+                height: at(rom, p + 4),
+            });
+        }
+        const length = cmd === STRIKE ? STRIKE_LENGTH : commandLength(cmd);
+        if (length === 0) return { boxes, complete: false };
+        p += length;
+    }
+    return { boxes, complete: false };
+}
+
+/**
+ * The distinct strikes a character's four attack animations declare.
+ *
+ * A script repeats the same box across the frames it stays out for, and the
+ * four attack animations often share one, so identical boxes are collapsed:
+ * what is interesting is the reach, not how many frames carry it.
+ */
+export function characterStrikeBoxes(
+    rom: Uint8Array,
+    character: number,
+    facing = FACING_SOUTH,
+): { boxes: StrikeBox[]; complete: boolean } {
+    const boxes: StrikeBox[] = [];
+    const key = new Set<string>();
+    let complete = true;
+    for (const field of ATTACK_FIELDS) {
+        const script = animationScript(rom, character, facing, field);
+        if (!script) continue;
+        const walk = strikeBoxes(rom, script);
+        if (!walk.complete) complete = false;
+        for (const b of walk.boxes) {
+            const k = `${b.dx},${b.dy},${b.width},${b.height}`;
+            if (key.has(k)) continue;
+            key.add(k);
+            boxes.push(b);
+        }
+    }
+    return { boxes, complete };
 }

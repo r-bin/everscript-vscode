@@ -23,6 +23,29 @@ const ENTITY_FLAGS = 0x05;
 const COLLISION_RADIUS = 0x0d;
 const PALETTE = 0x09;
 const ANIM_STAND = 0x32;
+
+/**
+ * The record's animation pointers, by what they are for.
+ *
+ * `characterdata.h` names them; the four attack ones are where a character's
+ * strike boxes live (see docs/script-format/attack_boxes.md).
+ */
+export const ANIMATION_FIELDS = {
+    stand: 0x32,
+    walk: 0x34,
+    run: 0x36,
+    attack0: 0x38,
+    attack1: 0x3a,
+    attack2: 0x3c,
+    attack3: 0x3e,
+    damage: 0x40,
+    death: 0x42,
+} as const;
+
+export const ATTACK_FIELDS = [
+    ANIMATION_FIELDS.attack0, ANIMATION_FIELDS.attack1,
+    ANIMATION_FIELDS.attack2, ANIMATION_FIELDS.attack3,
+];
 const PALETTE_BANK = 0x900000;
 
 export const ANIMATION_TABLE = 0xc40000;
@@ -71,9 +94,15 @@ export const FACING_SOUTH = 8;
  * animation is directional, the facing selects a sibling record; otherwise
  * the same one serves every direction.
  */
-export function animationScript(rom: Uint8Array, character: number, facing: number): number {
+export function animationScript(
+    rom: Uint8Array,
+    character: number,
+    facing: number,
+    field: number = ANIM_STAND,
+): number {
     const record = CHARACTER_TABLE + character * CHARACTER_STRIDE;
-    let anim = read16At(rom, record + ANIM_STAND);
+    let anim = read16At(rom, record + field);
+    if (!anim) return 0;                     // the record has no such animation
     const flags = at(rom, ANIMATION_TABLE + anim + 3);
     if (flags & DIRECTIONAL_FLAG) anim += 2 * facing;
     else if (flags & TABLE_FLAG) anim += read16At(rom, FACING_TABLE + facing);

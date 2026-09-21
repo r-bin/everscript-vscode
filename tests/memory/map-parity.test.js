@@ -463,6 +463,43 @@ function checkHitboxes(rom) {
     }
     check('most characters have a body', solid >= 130, true);
     console.log(`  hitboxes: ${solid} solid, ${insubstantial} walk-through`);
+    checkStrikeBoxes(rom);
+}
+
+/**
+ * Strike boxes, against the trace of the Boy hitting that same flower.
+ *
+ * The Boy's sword animation is not reachable from the character table — the
+ * party's attack animations depend on the equipped weapon — so the anchor is
+ * the script address the trace itself ran, `$C71468`. Every number below was
+ * printed by the game: `$46` = x+30, `$3E` = 23, `$40` = 17.
+ */
+function checkStrikeBoxes(rom) {
+    const swing = maps.strikeBoxes(rom, 0xc71468);
+    check('the Boy swings one box', swing.boxes.length, 1);
+    check('...23x17, 30px east', JSON.stringify(swing.boxes[0]),
+        JSON.stringify({ dx: 30, dy: 0, width: 23, height: 17 }));
+
+    // The flower's own lunge: a short box as it rears, a long one as it bites.
+    const flower = maps.characterStrikeBoxes(rom, 109);
+    check('wimpy flower strikes twice', flower.boxes.length, 2);
+    check('...reaching two tiles south', flower.boxes[1].dy, 34);
+    check('mosquito strike', maps.characterStrikeBoxes(rom, 113).boxes.length, 1);
+
+    const names = require('../../src/script/names.json');
+    let armed = 0;
+    let stopped = 0;
+    for (const enemy of Object.values(names.enemies)) {
+        if (enemy.character === null) continue;
+        const walk = maps.characterStrikeBoxes(rom, enemy.character);
+        if (walk.boxes.length) armed += 1;
+        if (!walk.complete) stopped += 1;
+    }
+    // The rest either have no attack animation or damage by contact, which
+    // uses the collision box instead ($8FB52C).
+    check('characters with a strike box >= 45', armed >= 45, true);
+    check('attack walks that stop early <= 5', stopped <= 5, true);
+    console.log(`  strike boxes: ${armed}/141 characters, ${stopped} walks incomplete`);
 }
 
 function checkOverlayParity(rom, rooms) {

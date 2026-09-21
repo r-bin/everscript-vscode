@@ -163,10 +163,12 @@ every enemy 4 px down and to the right of where the game puts it.
 
 ## Not covered
 
-- **Attack and hurt boxes.** Whatever decides that a sword swing connects is
-  a different routine; `+0x0D` is only the body. `$8FDA10` does use it —
-  halved, plus 5 — as part of an enemy's approach logic, which corroborates
-  its meaning but is not a weapon reach.
+- **Attack and hurt boxes** — now in [attack_boxes.md](attack_boxes.md).
+  They are *not* this box: a swing carries its own box from the animation,
+  and the target's half of the test uses `+0x0D` without the 2:1 squash. The
+  one case where the two meet is contact damage, which a charging enemy deals
+  through this collision box (`$8FB52C`).
+  `$8FDA10` uses `+0x0D` too — halved, plus 5 — in an enemy's approach logic.
 - **Tile collision.** Walls come from the collision word, which
   [`src/maps/collision.ts`](../../src/maps/collision.ts) already decodes; the
   move routine checks that first (`$909815`, `$8FA946`, `$909561`) and only

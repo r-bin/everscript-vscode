@@ -1,3 +1,47 @@
+## [0.31.0] — 2026-09-21
+
+Attack boxes, from the trace of the Boy hitting the flower. New doc: [docs/script-format/attack_boxes.md](docs/script-format/attack_boxes.md).
+
+### No, the attack box is not the collision box — there are three
+
+| | Collision box | Hurt box | Strike box |
+|---|---|---|---|
+| What it is | what you bump into | what a weapon lands on | what a swing sweeps |
+| Comes from | record `+0x0D` | record `+0x0D` | animation command `0x47` |
+| Size | `2r` wide, `r` tall | `2r` wide, **`2r` tall** | whatever the command says |
+| Centre | the entity's position | position + `$0042`/`$0044` | attacker's position + the command's offset |
+| Per character? | one number | the same number | **per animation frame and per facing** |
+
+`+0x0D` is the one number for how big a character is and both tests read it — but moving squashes the vertical by half (`ASL` on `|dy|` alone) while a strike doubles both axes equally. Same radius, flat box for walking, square one for being hit.
+
+### The strike command
+
+`47 <dx:s8> <dy:s8> <w:u8> <h:u8>` — five bytes, which is where the width I measured two releases ago finally got a meaning. `$9087BA` adds the offsets to the attacker's position, stashes the size in `$3E`/`$40` and calls the hit test. The Boy's east-facing swing is `47 1E 00 17 11`: a **23 × 17** box, 30 px east of him, exactly what the trace shows in `$46`/`$3E`/`$40`.
+
+A hit needs `2*(|dx| - r) < w` and `2*(|dy| - r) < h` — the strike box grown by the target's radius, then the same plane and height checks the movement test uses, after five state filters (own side, no HP, invulnerable, already hit by this attacker, dying).
+
+`$0042`/`$0044` move the hurt box; animation command `0x50` sets them and `0x52` — the reset that starts nearly every script — puts them back to `(0, −16)`, which cancels the `+16` in the test. So by default the hurt box sits exactly where the collision box does.
+
+### Contact damage does use the collision box
+
+`$8FB52C`, the handler the *movement* collision calls when a move is blocked, dispatches the attacker's `attack_proc` just as a strike does — if the mover is charging (`$0016 & $C000`) and fast enough (`$002E >= $0400`). That is how the 96 characters with no `0x47` hurt you.
+
+| | |
+|---|---|
+| declare at least one strike box | **45** |
+| no attack animation at all | 54 |
+| attack animations but no `0x47` | 42 |
+
+### Seven more command widths
+
+Reaching attack animations needed `0x32`, `0x38`, `0x40`, `0x43`, `0x4b`, `0x4c`, `0x5b`, all read off their handlers. Attack walks that stop early went from **39 to 5**, and adding them changed **no idle walk** — all 141 characters produce byte-identical frames — which is the check a wrong width would fail loudly.
+
+`0x4c` is the projectile: six bytes, a word and three signed bytes, calling `$90DCA4`.
+
+### Checked
+
+`checkStrikeBoxes` pins the Boy's swing at `$C71468` to all four traced numbers, plus the flower's two-stage lunge (22×19, then 19×27 reaching two tiles south), the Mosquito's 17×16 and the Viper's two.
+
 ## [0.30.0] — 2026-09-21
 
 Hitboxes, from the trace of the Boy walking into a Wimpy Flower. There was no research on this before; there is now [docs/script-format/hitboxes.md](docs/script-format/hitboxes.md).
