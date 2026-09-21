@@ -1,3 +1,35 @@
+## [0.44.0] — 2026-09-21
+
+### Click a tile, get something you can stamp
+
+The missing step in the inverted flow. Clicking a tile now **creates the metatile for it** and makes it the brush, with the other two words deliberately empty:
+
+| Phase | canopy | terrain | collision |
+|---|---|---|---|
+| **room** | blank | **the tile** | `$0000` |
+| **deco** | **the tile** | kept by `editResolve` | `$0000` |
+
+A bare graphic says nothing about what is drawn over it or what is solid, so inventing either would be a guess. `$0000` is the format's do-nothing collision — plane 0, geometry open — not a claim about the tile.
+
+Picking a tile out of a **family strip** does the whole chain: adopts the family into a palette slot, adopts the graphic into a Block 1 slot, builds the word that names that new slot in that family, and creates the stamp. Each step costs budget and each is reported. The composed preview is told about the adopted graphics and families too — without that, a word naming a freshly adopted tile resolves to whatever the room had in that slot and the swatch draws the wrong picture.
+
+### "The first time you click edit you get an old version of the editor"
+
+You did. Edit mode docked the **pre-rebuild tile palette section** next to the new panel column, so two different tile pickers were on screen at once and the older one was on top. The browsing palette below the map now steps aside while editing — the panel column is the editor's whole tile UI.
+
+The composer moved into the panel column with it (it was being injected into the section that is now hidden) and starts collapsed, since clicking a tile is the main path and hand-composing is the fallback.
+
+### Less clunk
+
+- Panel tile strips render at 1× instead of 2×. The palette's doubled scale made every sidebar row 32px tall and turned the column into a scrolling chore.
+- **new metatiles** and **compose & constructs** start collapsed; metrics, checks, families and tiles start open.
+- The dock is wider (300–460px), so family rows stop wrapping mid-word.
+
+### Also
+
+- `map-editor-constructs.js` split out of `map-editor.js` to stay under the 400-line limit.
+- `tests/memory/map-editor-dom.test.js` is up to 32 browser-driven checks, including that edit mode shows exactly one tile picker, and that a tile click produces a stamp with empty canopy and collision.
+
 ## [0.43.0] — 2026-09-21
 
 ### The family picker shows the art, and says what the family is for

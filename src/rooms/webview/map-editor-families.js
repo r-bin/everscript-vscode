@@ -95,6 +95,34 @@ function editAdoptFamilyFor(graphicSlotOrFamily) {
   return { ok: false, why: 'all seven palette slots are taken — clear one to make room for family ' + family };
 }
 
+/**
+ * Pick a tile out of a family's art and make it the brush.
+ *
+ * Three things have to happen for a graphic the room never loaded: its
+ * family needs a palette slot, the graphic needs a Block 1 slot, and the
+ * two combine into the word a metatile can name. Each is a budget cost,
+ * and each is reported rather than done silently.
+ */
+function editUseFamilyTile(graphicId, family) {
+  var d = editDraft();
+  if (!d) return;
+  var got = editAdoptFamilyFor(family);
+  if (!got.ok) { editNote(got.why); renderEditPanels(); return; }
+
+  var slot = editAdoptGraphic(_mtPalette, graphicId);
+  if (slot < 0) { editNote('no tile sheet loaded yet'); return; }
+  // The palette field is 1..7 and matches the slot the family sits in.
+  var word = (editSlotChr(slot) | ((got.slot + 1) << 10)) & 0xffff;
+  var index = editBrushFromTile(_mtPalette, word, d.phase);
+
+  editNote('brush: graphic ' + graphicId + ' in family ' + family
+    + (got.added ? ' (family added to slot ' + (got.slot + 1) + ')' : '')
+    + ' \u2014 stamp #' + index
+    + (d.phase === 'deco' ? ', over whatever it is painted on' : ', as ground'));
+  requestComposedPreview();
+  renderEditChrome();
+}
+
 /** The seven slots, each clearable, plus a way to fill an empty one. */
 function familySlotsPanel() {
   var fams = editFamilies();

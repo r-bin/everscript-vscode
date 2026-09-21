@@ -280,6 +280,7 @@ const ui = new Function(`
   ${read('map-editor.js')}
   ${read('map-editor-paint.js')}
   ${read('map-editor-ui.js')}
+  ${read('map-editor-constructs.js')}
   ${read('map-editor-families.js')}
   ${read('map-editor-panels.js')}
   ${read('map-editor-input.js')}

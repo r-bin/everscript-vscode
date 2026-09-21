@@ -152,22 +152,39 @@ function editOnStampPicked(index) {
 }
 
 /**
- * A raw graphic was clicked in the tiles view.
+ * A raw graphic the room already loaded was clicked.
  *
- * Only a layer source can take it: a tilemap word says which picture and
- * which family, and nothing in it says what is solid, so the collision slot
- * stays armed and waits for a stamp instead.
+ * Two readings, and the armed composer wins because arming it is an
+ * explicit request. Otherwise the click does the thing the inverted flow
+ * promises: the tile becomes a stamp you can paint with straight away,
+ * with the other two words left empty.
+ *
+ * The composer still refuses a graphic for the collision slot — a tilemap
+ * word says which picture and which family, and nothing about what is
+ * solid.
  */
 function editOnTilePicked(word) {
   var d = editDraft();
-  if (!d || !d.on || word == null || !_editCompose.armed) return false;
-  if (_editCompose.pick === 'collision') {
-    editNote('a graphic carries no collision — click a stamp for that');
-    return false;
+  if (!d || !d.on || word == null) return false;
+
+  if (_editCompose.armed) {
+    if (_editCompose.pick === 'collision') {
+      editNote('a graphic carries no collision — click a stamp for that');
+      return false;
+    }
+    _editCompose[_editCompose.pick] = word;
+    _editCompose.armed = false;
+    renderComposer();
+    return true;
   }
-  _editCompose[_editCompose.pick] = word;
-  _editCompose.armed = false;
-  renderComposer();
+
+  var index = editBrushFromTile(_mtPalette, word, d.phase);
+  if (index < 0) return false;
+  editNote('brush: stamp #' + index + ' — '
+    + (d.phase === 'deco' ? 'drawn over whatever it is painted on' : 'ground, nothing over it')
+    + ', no collision yet');
+  if (index >= _mtPalette.count) requestComposedPreview();
+  renderEditChrome();
   return true;
 }
 
@@ -195,7 +212,8 @@ function renderComposer() {
  * browser before this walk-up existed.
  */
 var EDIT_CLICK_KEYS = ['editTool', 'editPhase', 'editAct', 'editPick', 'panel',
-  'famSlot', 'famAdd', 'famPick', 'famPage', 'construct', 'tileSource', 'mtIndex'];
+  'famSlot', 'famAdd', 'famPick', 'famPage', 'famTile', 'construct', 'tileSource',
+  'mtIndex', 'mtSlot'];
 
 /** The nearest ancestor (including `el`) that carries one of those keys. */
 function editClickTarget(el, root) {
@@ -329,11 +347,8 @@ function editToggle(room, btn) {
   if (d.on && !bar) {
     var outer = document.getElementById('rg-outer');
     if (outer) outer.insertAdjacentHTML('afterbegin', buildEditToolbarHtml());
-    var sec = document.getElementById('rs-mt');
-    if (sec && !document.getElementById('rg-compose')) {
-      sec.insertAdjacentHTML('beforeend', '<div id="rg-compose"></div>');
-    }
-    renderComposer();
+    // The composer lives in the panel column now; renderEditPanels builds
+    // it, so there is nothing to inject here.
   } else if (!d.on && bar) {
     bar.parentNode.removeChild(bar);
   }

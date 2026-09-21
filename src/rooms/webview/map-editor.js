@@ -36,6 +36,14 @@ function editReset(roomId) {
     phase: 'room',
     /** Saved multi-cell constructs — see editSaveConstruct. */
     constructs: [],
+    /**
+     * Graphics the draft has pulled in that Block 1 did not load.
+     *
+     * Appended after the room's own list, so a graphic's slot is
+     * `tiles.count + i` and its `chr` follows from that. Each one costs a
+     * graphics slot, which is what the budget meter is counting.
+     */
+    addedGraphics: [],
     /** A blank room being drafted instead of a ROM room, or null. */
     blank: null,
   };
@@ -235,76 +243,67 @@ function editResolve(palette, x, y, brushIndex, phase, erasing) {
 }
 
 /**
- * Save a rectangle of the map as a reusable construct.
+ * The `chr` a tilemap word needs to name Block 1 slot `slot`.
  *
- * The stamps are stored as *words*, not indices, so the construct survives
- * being stamped into a room with a different dictionary. Triggers and
- * objects whose rectangle overlaps the selection come with it — that is the
- * difference between a gourd, which is metatiles plus a B-trigger plus an
- * object, and a hide, which is only metatiles.
+ * `renderVramLayer` resolves chr to a slot with
+ * `floor(chr/0x20)*8 + floor((chr%0x20)/2)`; this is that inverted.
  */
-function editSaveConstruct(palette, sel, name) {
-  if (!_edit || !sel || !palette) return null;
-  var cells = [];
-  for (var y = sel.y1; y <= sel.y2; y++) {
-    for (var x = sel.x1; x <= sel.x2; x++) {
-      var idx = editCellAt(palette, x, y);
-      var w = idx >= 0 ? editStampWords(palette, idx) : null;
-      if (!w) continue;
-      cells.push({ dx: x - sel.x1, dy: y - sel.y1, layer1: w.layer1, layer2: w.layer2, collision: w.collision });
-    }
-  }
-  if (!cells.length) return null;
-  var construct = {
-    name: name || ('construct ' + (_edit.constructs.length + 1)),
-    w: sel.x2 - sel.x1 + 1,
-    h: sel.y2 - sel.y1 + 1,
-    cells: cells,
-    attachments: editAttachmentsIn(palette, sel),
-  };
-  _edit.constructs.push(construct);
-  return construct;
+function editSlotChr(slot) {
+  return (slot >> 3) * 0x20 + (slot & 7) * 2;
 }
 
-/** Triggers and objects whose rectangle overlaps this selection. */
-function editAttachmentsIn(palette, sel) {
-  var a = palette && palette.attachments;
-  var out = { bTrigger: [], stepOn: [], objects: [] };
-  if (!a) return out;
-  var overlaps = function (x1, y1, x2, y2) {
-    return x1 <= sel.x2 && x2 >= sel.x1 && y1 <= sel.y2 && y2 >= sel.y1;
-  };
-  ['bTrigger', 'stepOn'].forEach(function (kind) {
-    (a[kind] || []).forEach(function (t) {
-      if (overlaps(t[0], t[1], t[2], t[3])) {
-        out[kind].push({ dx: t[0] - sel.x1, dy: t[1] - sel.y1, w: t[2] - t[0], h: t[3] - t[1], scriptId: t[4] });
-      }
-    });
-  });
-  (a.objects || []).forEach(function (o) {
-    if (overlaps(o[0], o[1], o[0] + o[2] - 1, o[1] + o[3] - 1)) {
-      out.objects.push({ dx: o[0] - sel.x1, dy: o[1] - sel.y1, w: o[2], h: o[3], objectIndex: o[4] });
-    }
-  });
-  return out;
+/**
+ * Make sure a graphic is in reach, and say which slot it landed in.
+ *
+ * A graphic the room never loaded cannot be named by any word, so picking
+ * one out of a family's art has to add it to Block 1 first. Already-loaded
+ * graphics cost nothing and keep their slot.
+ */
+function editAdoptGraphic(palette, graphicId) {
+  if (!_edit || !palette || !palette.tiles) return -1;
+  var slots = palette.tiles.slots;
+  for (var i = 0; i < palette.tiles.count; i++) {
+    if (slots[i][2] === graphicId) return i;
+  }
+  var already = _edit.addedGraphics.indexOf(graphicId);
+  if (already >= 0) return palette.tiles.count + already;
+  _edit.addedGraphics.push(graphicId);
+  return palette.tiles.count + _edit.addedGraphics.length - 1;
 }
 
-/** The writes that stamp a construct with its top-left at (x, y). */
-function editConstructWrites(palette, construct, x, y) {
-  var writes = [];
-  if (!construct) return writes;
-  for (var i = 0; i < construct.cells.length; i++) {
-    var c = construct.cells[i];
-    var cx = x + c.dx;
-    var cy = y + c.dy;
-    if (!editInBounds(palette, cx, cy)) continue;
-    writes.push({
-      x: cx, y: cy,
-      index: editAddStamp(palette, { layer1: c.layer1, layer2: c.layer2, collision: c.collision }),
-    });
-  }
-  return writes;
+/**
+ * Turn a picked tile into a brush.
+ *
+ * This is the inverted flow's smallest step: click a grass tile, get
+ * something you can immediately stamp. The metatile is created here rather
+ * than composed by hand, and **the other two words start empty** — a bare
+ * graphic says nothing about what is drawn over it or what is solid, so
+ * inventing either would be a guess. They are set later, by painting in
+ * deco phase or by editing the collision.
+ *
+ * Which word the tile becomes follows the phase, so the brush works with
+ * `editResolve` rather than against it: laying out a room puts the tile on
+ * the ground, decorating puts it over whatever ground is already there.
+ */
+function editBrushFromTile(palette, word, phase) {
+  if (!_edit || word == null) return -1;
+  var blank = editBlankCanopy(palette);
+  var stamp = phase === 'deco'
+    ? { layer1: word, layer2: blank, collision: EMPTY_COLLISION }
+    : { layer1: blank, layer2: word, collision: EMPTY_COLLISION };
+  var index = editAddStamp(palette, stamp);
+  _edit.brush = index;
+  return index;
 }
+
+/**
+ * The collision a freshly made stamp starts with.
+ *
+ * Zero is "plane 0, geometry open" — walkable, no gates, no drift. It is
+ * the honest empty: the format's do-nothing value rather than a guess at
+ * what this tile ought to block.
+ */
+var EMPTY_COLLISION = 0x0000;
 
 /**
  * The stamps this draft needs that the room does not already define.

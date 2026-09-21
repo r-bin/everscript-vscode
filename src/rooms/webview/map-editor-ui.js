@@ -71,7 +71,7 @@ function buildEditToolbarHtml() {
 function editDock(on, room) {
   var outer = document.getElementById('rg-outer');
   var sec = document.getElementById('rs-mt');
-  if (!outer || !sec) return;
+  if (!outer) return;
   var dock = document.getElementById('rg-dock');
   if (on) {
     if (!dock) {
@@ -80,10 +80,11 @@ function editDock(on, room) {
       dock = document.createElement('div');
       dock.className = 'rg-dock';
       dock.id = 'rg-dock';
-      // The panel column carries the metrics, the family slots, the tile
-      // groups, the needed metatiles and the checks — everything that
-      // answers "what will this cost" while the palette answers "what can
-      // I place".
+      // One column, and only one. The panels are the editor's whole tile
+      // UI — families, tiles, new metatiles, checks, the composer. The
+      // browsing palette below the map stays where it is and is hidden
+      // while editing: showing both put two different tile pickers on
+      // screen at once, one of them the pre-rebuild version.
       var panels = document.createElement('div');
       panels.id = 'rg-panels';
       panels.className = 'rg-panels';
@@ -92,16 +93,13 @@ function editDock(on, room) {
       row.appendChild(dock);
       dock.appendChild(panels);
     }
-    dock.appendChild(sec);
-    sec.classList.add('rs-mt-docked');
+    if (sec) sec.classList.add('rs-mt-hidden');
     // Nothing can be painted without the dictionary, so fetch it now
     // rather than making the user find the load button.
     if (!_mtPalette && room) requestMetatilePalette(room, _mtLayer);
     renderEditPanels();
   } else if (dock) {
-    var row2 = dock.parentNode;
-    sec.classList.remove('rs-mt-docked');
-    row2.parentNode.insertBefore(sec, row2.nextSibling);
+    if (sec) sec.classList.remove('rs-mt-hidden');
     dock.parentNode.removeChild(dock);
   }
 }
@@ -232,6 +230,12 @@ function requestComposedPreview() {
   vs.postMessage({
     command: 'requestComposedPreview', roomId: d.roomId, mapName: _mtRoomName,
     layer: _mtLayer, drafts: d.added,
+    // Graphics and families the draft added; without them a word naming a
+    // freshly adopted tile resolves to whatever the room had in that slot.
+    extra: {
+      graphics: d.addedGraphics,
+      families: editFamilies().filter(function (f) { return f !== undefined; }),
+    },
   });
 }
 

@@ -83,6 +83,7 @@ const ROOMS_JS_FILES = [
   'map-editor.js',       // the edit draft and undo stack (_edit)
   'map-editor-paint.js', // drawing the draft on the map (_editSel/_editClip)
   'map-editor-ui.js',    // tool bar, docked sidebar, composer, constructs
+  'map-editor-constructs.js',// saved regions, with their triggers and objects
   'map-editor-families.js',// choosing the seven families and browsing their art
   'map-editor-panels.js',// tile list, needed metatiles, checks
   'map-editor-input.js', // pointer/key gestures -> edits

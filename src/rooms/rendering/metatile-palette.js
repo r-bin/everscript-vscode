@@ -179,7 +179,7 @@ function buildTileSheet(rom, room, bgPalette) {
  *
  * @param {Array<{layer1:number,layer2:number,collision:number}>} drafts
  */
-function buildComposedPreview(rom, roomId, drafts, layer) {
+function buildComposedPreview(rom, roomId, drafts, layer, extra) {
     const buf = rom instanceof Uint8Array ? rom : new Uint8Array(rom);
     const which = LAYERS.indexOf(layer) >= 0 ? layer : 'composite';
     const entries = (drafts || []).slice(0, MAX_DRAFTS).map((d) => ({
@@ -189,7 +189,21 @@ function buildComposedPreview(rom, roomId, drafts, layer) {
     }));
     if (!entries.length) return { roomId, layer: which, count: 0, imageUri: null };
 
-    const room = maps.decodeRoom(buf, roomId);
+    let room = maps.decodeRoom(buf, roomId);
+    // The editor can pull in graphics Block 1 never loaded and families the
+    // room never listed. A preview rendered against the room as it stands
+    // would resolve those words to the wrong slot, so the draft's additions
+    // are applied first — the same list the encoder would append.
+    if (extra && (extra.graphics || extra.families)) {
+        room = {
+            ...room,
+            tilePalette: room.tilePalette.concat(
+                (extra.graphics || []).map(Number).filter((n) => !isNaN(n))),
+            tileFamilies: Array.isArray(extra.families) && extra.families.length
+                ? extra.families.map(Number).filter((n) => !isNaN(n))
+                : room.tileFamilies,
+        };
+    }
     const atlas = maps.renderMetatileAtlas(buf, maps.withMetatiles(room, entries), {
         columns: COLUMNS, layer: which,
     });

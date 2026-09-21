@@ -9,7 +9,7 @@
 
 /** Which family slot's art is expanded under the slots, -1 for none. */
 var _famOpen = -1;
-var _panelOpen = { families: true, tiles: true, needed: true, errors: true };
+var _panelOpen = { families: true, tiles: true, needed: false, errors: true, compose: false };
 /**
  * Where the tile list draws from.
  *
@@ -207,7 +207,10 @@ function renderEditPanels() {
       : _tileSource === 'room' ? (p.tiles ? p.tiles.count : 0) + ' loaded'
         : chosen.length + ' families')
     + panel('needed', 'new metatiles', neededPanel(p),
-      need.added.length ? need.added.length + ' needed' : 'none');
+      need.added.length ? need.added.length + ' needed' : 'none')
+    + panel('compose', 'compose & constructs', '<div id="rg-compose"></div>',
+      (editDraft() && editDraft().constructs.length) ? editDraft().constructs.length + ' saved' : '');
+  if (_panelOpen.compose !== false) renderComposer();
   // The filter keeps focus across the redraw it causes, or typing a second
   // character would put the caret back at the start.
   var filter = document.getElementById('rg-fam-filter');

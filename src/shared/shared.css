@@ -304,9 +304,10 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 /* ── Map editor ── */
 /* Edit mode docks the tile palette beside the map instead of below it. */
 .rg-edit-row{display:flex;gap:8px;align-items:flex-start}
-.rg-dock{flex:1;min-width:230px;max-width:420px}
-.rs-mt-docked{margin:0}
-.rs-mt-docked .rs-mt-sheet{max-height:420px}
+.rg-dock{flex:1;min-width:300px;max-width:460px}
+/* While editing, the browsing palette below the map steps aside: the panel
+   column is the editor's tile UI, and two pickers on screen is the clunk. */
+.rs-mt-hidden{display:none}
 .rg-edit-bar{margin:0 0 4px}
 .rg-edit-count{font-size:10px;color:#888;margin-left:8px;align-self:center}
 /* The draft, drawn over the map image from the palette sheet.
@@ -364,6 +365,10 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 /* The strip is 8 tiles at 1x; the 2x scale the palette cells use would make
    each row 32px tall and the picker unusable. */
 .rg-fam-art .rs-mt-cell{transform:none;margin:0;width:16px;height:16px;cursor:inherit}
+/* Same in every panel strip — 2x scale plus its margin makes each row 32px
+   tall and turns the sidebar into a scrolling chore. */
+.rg-panel-b .rs-mt-cell{transform:none;margin:0}
+.rg-panel-b .rs-mt-sheet{padding:2px}
 .rg-fam-meta{min-width:0;font-size:10px;line-height:1.3}
 .rg-fam-meta b{color:#e3b341;font-weight:400}
 .rg-fam-where{color:#7ecbd0;font-size:9px}

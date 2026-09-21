@@ -25,7 +25,7 @@ const read = (f) => fs.readFileSync(path.join(WEBVIEW, f), 'utf8');
 
 /** The editor's files, in the order the bundle concatenates them. */
 const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-paint.js', 'map-editor-ui.js',
-    'map-editor-families.js', 'map-editor-panels.js', 'map-editor-input.js',
+    'map-editor-constructs.js', 'map-editor-families.js', 'map-editor-panels.js', 'map-editor-input.js',
     'map-editor-actions.js', 'map-editor-newroom.js'];
 
 /** A palette shaped like the host's reply, small enough to read. */
@@ -98,6 +98,24 @@ async function main() {
     }, PALETTE);
 
     check('edit mode builds the panel column', !!(await page.$('#rg-panels')));
+
+    // Two tile pickers on screen at once — the panels and the pre-rebuild
+    // palette section — was "the first time you click it you get an old
+    // version of the editor".
+    check('and hides the browsing palette while it is open',
+        await page.evaluate(() => document.getElementById('rs-mt').classList.contains('rs-mt-hidden')));
+    // The composer starts collapsed — clicking a tile is the main path now,
+    // and hand-composing is the fallback. Opening it must put it in the
+    // panel column, not back in the section that is hidden while editing.
+    check('the composer is collapsed until asked for',
+        !(await page.$('#rg-compose')));
+    await page.evaluate(() => document.querySelector('[data-panel="compose"]').click());
+    check('and opens inside the panel column, not the hidden section',
+        await page.evaluate(() => {
+            var c = document.getElementById('rg-compose');
+            return !!c && !!c.closest('#rg-panels');
+        }));
+    await page.evaluate(() => document.querySelector('[data-panel="compose"]').click());
 
     // ── the caret ──────────────────────────────────────────────────────────
     const before = await page.evaluate(() => _panelOpen.families);
@@ -229,6 +247,52 @@ async function main() {
     }));
     check('a 2x2 room keeps the 8-unit minimum viewBox and a 4-unit image',
         tiny.viewBox === '0 0 8 8' && tiny.imgW === '4', JSON.stringify(tiny));
+
+    // ── a tile is a brush ──────────────────────────────────────────────────
+    // "click on a grass tile and it allows you to stamp it on the canvas,
+    // which internally creates a metatile" — with the other two words empty.
+    await page.evaluate(() => { editReset(0x34); editDraft().on = true; _mtPalette.count = 1; });
+    const asGround = await page.evaluate(() => {
+        editDraft().phase = 'room';
+        var i = editOnTilePicked(0x0c02);
+        var d = editDraft();
+        return { made: i, brush: d.brush, added: d.added.slice() };
+    });
+    check('clicking a tile in room phase makes it the ground of a new stamp',
+        asGround.added.length === 1 && asGround.added[0].layer2 === 0x0c02
+        && asGround.added[0].collision === 0, JSON.stringify(asGround));
+    check('with nothing drawn over it and no collision yet',
+        asGround.added[0].layer1 === 0xa800 && asGround.added[0].collision === 0);
+    check('and it becomes the brush straight away', asGround.brush === 1);
+
+    const asDeco = await page.evaluate(() => {
+        editDraft().phase = 'deco';
+        editOnTilePicked(0x0c04);
+        return editDraft().added.slice(-1)[0];
+    });
+    check('in deco phase the same click makes it the thing drawn over',
+        asDeco.layer1 === 0x0c04 && asDeco.collision === 0, JSON.stringify(asDeco));
+
+    // A graphic the room never loaded costs a Block 1 slot, and the word
+    // has to name that new slot.
+    const pulled = await page.evaluate(() => {
+        editReset(0x34); editDraft().on = true; editDraft().phase = 'room';
+        editFamilies()[0] = 58;
+        editUseFamilyTile(4191, 58);
+        var d = editDraft();
+        return { graphics: d.addedGraphics.slice(), added: d.added.slice(), brush: d.brush };
+    });
+    check('picking a tile the room never loaded adopts the graphic',
+        pulled.graphics.length === 1 && pulled.graphics[0] === 4191, JSON.stringify(pulled));
+    check('and names it with a word for its new slot, in that family',
+        // slot 1 (the room's sheet holds 1) -> chr 2; family 58 is in slot 1.
+        pulled.added.length === 1 && pulled.added[0].layer2 === (2 | (1 << 10)),
+        JSON.stringify(pulled.added));
+
+    const sent = await page.evaluate(
+        () => window.__sent.filter((m) => m.command === 'requestComposedPreview').slice(-1)[0]);
+    check('and the preview is told about the graphic, or it would draw the wrong tile',
+        sent && sent.extra && sent.extra.graphics.indexOf(4191) >= 0, JSON.stringify(sent && sent.extra));
 
     // ── tiles in their own family ──────────────────────────────────────────
     await page.evaluate(() => applyFamilySheet({

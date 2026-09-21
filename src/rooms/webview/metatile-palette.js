@@ -209,7 +209,6 @@ function renderMetatilePalette() {
   var p = _mtPalette;
   if (!body || !p) return;
   if (note) { note.textContent = metatilePaletteSummary(p); note.classList.remove('rs-err'); }
-  var composer = document.getElementById('rg-compose');
   var tiles = _mtView === 'tiles' && p.tiles;
   var sheetUri = tiles ? p.tiles.imageUri : p.imageUri;
   var sheetCell = tiles ? p.tiles.cell : p.cell;
@@ -218,8 +217,6 @@ function renderMetatilePalette() {
     + (tiles ? tileSheetCells(p) : metatileCells(p)) + '</div>'
     + (tiles ? tileSheetDetail(p) : metatileDetail(p))
     + budgetBar(p);
-  // The composer lives inside this section, so it has to survive a redraw.
-  if (composer) { body.appendChild(composer); if (typeof renderComposer === 'function') renderComposer(); }
 }
 
 /**

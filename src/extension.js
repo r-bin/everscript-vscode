@@ -734,7 +734,7 @@ function activate(context) {
                             return;
                         }
                         const preview = buildComposedPreview(romBuf, roomId,
-                            Array.isArray(msg.drafts) ? msg.drafts : [], msg.layer);
+                            Array.isArray(msg.drafts) ? msg.drafts : [], msg.layer, msg.extra);
                         _radarPanel.webview.postMessage({ ...reply, preview });
                     } catch (err) {
                         _radarPanel.webview.postMessage({ ...reply, error: String(err && err.message || err) });
