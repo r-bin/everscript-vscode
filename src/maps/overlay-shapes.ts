@@ -63,7 +63,7 @@ export function drawContours(
 
     // The edge where solid meets open, dilated 3x3 so the line reads at a
     // glance. Grass is transparent to every plane.
-    const contour = (mask: Uint8Array): Uint8Array => {
+    const contour = (mask: Uint8Array): { edge: Uint8Array; thick: Uint8Array } => {
         const edge = new Uint8Array(wPx * hPx);
         for (let y = 0; y < hPx; y++) {
             for (let x = 0; x < wPx; x++) {
@@ -78,30 +78,27 @@ export function drawContours(
                 }
             }
         }
-        const thick = Uint8Array.from(edge);
-        for (let y = 0; y < hPx; y++) {
-            for (let x = 0; x < wPx; x++) {
-                if (edge[y * wPx + x] !== 1) continue;
-                for (let dy = -1; dy <= 1; dy++) {
-                    for (let dx = -1; dx <= 1; dx++) {
-                        const ny = y + dy;
-                        const nx = x + dx;
-                        if (ny >= 0 && ny < hPx && nx >= 0 && nx < wPx) thick[ny * wPx + nx] = 1;
-                    }
-                }
-            }
-        }
-        return thick;
+        return { edge, thick: dilate(edge, wPx, hPx) };
     };
 
-    const planeBorder = new Map<number, Uint8Array>();
-    for (const p of f.planes) planeBorder.set(p, contour(planeSolid.get(p) as Uint8Array));
+    type Border = { edge: Uint8Array; thick: Uint8Array; dash?: Uint8Array };
+    const planeBorder = new Map<number, Border>();
+    for (const p of f.planes) {
+        const b: Border = contour(planeSolid.get(p) as Uint8Array);
+        // The dash has to be measured along the wall. A screen-space stripe
+        // is constant along one direction, and for the `(x+y)/3` pattern
+        // that direction is the 45-degree diagonal every geometry code
+        // draws — so a diagonal boundary came out fully solid while the
+        // horizontal next to it dashed correctly.
+        if (hidden) b.dash = dilate(dashAlongContour(b.edge, wPx, hPx), wPx, hPx);
+        planeBorder.set(p, b);
+    }
 
     // The dominant plane's wall tint, everywhere its own line does not reach.
     const solid = planeSolid.get(f.mainPlane) as Uint8Array;
-    const mainBorder = planeBorder.get(f.mainPlane) as Uint8Array;
+    const mainBorder = planeBorder.get(f.mainPlane) as Border;
     for (let i = 0; i < wPx * hPx; i++) {
-        if (solid[i] === 1 && grassPx[i] === 0 && mainBorder[i] === 0) {
+        if (solid[i] === 1 && grassPx[i] === 0 && mainBorder.thick[i] === 0) {
             blend(i % wPx, Math.floor(i / wPx), 220, 20, 20, 0.2);
         }
     }
@@ -111,14 +108,16 @@ export function drawContours(
     const order = [f.mainPlane].concat(f.planes.filter((p) => p !== f.mainPlane));
     for (const p of order) {
         const [pr, pg, pb] = PLANE_COLORS[p] || PLANE_COLORS[1];
-        const border = planeBorder.get(p) as Uint8Array;
+        const border = planeBorder.get(p) as Border;
+        const dash = border.dash as Uint8Array;
         for (let i = 0; i < wPx * hPx; i++) {
-            if (border[i] === 0) continue;
-            // With a visibility mask the dash means "covered" for every
+            // With a visibility mask the dash means "covered", for every
             // plane; without one it means "not the dominant plane", which is
             // what upstream draws.
-            const dashed = hidden ? hidden[i] !== 0 : p !== f.mainPlane;
-            if (dashed && !inDash(i, wPx)) continue;
+            const on = hidden
+                ? (hidden[i] ? dash[i] === 1 : border.thick[i] === 1)
+                : (border.thick[i] === 1 && (p === f.mainPlane || inDash(i, wPx)));
+            if (!on) continue;
             const o = i * 4;
             buf[o] = pr; buf[o + 1] = pg; buf[o + 2] = pb; buf[o + 3] = 255;
         }
@@ -128,6 +127,78 @@ export function drawContours(
 /** The 3-on/3-off diagonal dash a secondary plane is drawn with upstream. */
 function inDash(i: number, wPx: number): boolean {
     return Math.floor((i % wPx + Math.floor(i / wPx)) / 3) % 2 === 0;
+}
+
+/** Dash length and gap, measured in pixels **along the contour**. */
+const DASH_ON = 3;
+const DASH_PERIOD = 8;
+
+const NEIGH8: Array<[number, number]> = [
+    [-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1],
+];
+
+/**
+ * Mark the "on" part of a dash, stepping along the contour rather than
+ * across the screen.
+ *
+ * A breadth-first walk of the 1px edge gives each pixel its distance from
+ * wherever its component was entered, and that distance is what the pattern
+ * is cut from — so the dash comes out the same length whichever way the
+ * wall runs. Components are entered in raster order, so two renders of the
+ * same room produce the same dashes, which matters because the map and the
+ * canopy layer each draw it once and have to agree.
+ */
+function dashAlongContour(edge: Uint8Array, wPx: number, hPx: number): Uint8Array {
+    const n = wPx * hPx;
+    const out = new Uint8Array(n);
+    const depth = new Int32Array(n).fill(-1);
+    let edges = 0;
+    for (let i = 0; i < n; i++) if (edge[i] === 1) edges += 1;
+    if (!edges) return out;
+    const queue = new Int32Array(edges);
+
+    for (let start = 0; start < n; start++) {
+        if (edge[start] !== 1 || depth[start] >= 0) continue;
+        let head = 0;
+        let tail = 0;
+        depth[start] = 0;
+        queue[tail++] = start;
+        while (head < tail) {
+            const i = queue[head++];
+            const d = depth[i];
+            if (d % DASH_PERIOD < DASH_ON) out[i] = 1;
+            const x = i % wPx;
+            const y = (i - x) / wPx;
+            for (const [dy, dx] of NEIGH8) {
+                const ny = y + dy;
+                const nx = x + dx;
+                if (ny < 0 || ny >= hPx || nx < 0 || nx >= wPx) continue;
+                const k = ny * wPx + nx;
+                if (edge[k] !== 1 || depth[k] >= 0) continue;
+                depth[k] = d + 1;
+                queue[tail++] = k;
+            }
+        }
+    }
+    return out;
+}
+
+/** 3x3 dilation, so a dashed edge reads at the same weight as a solid one. */
+function dilate(mask: Uint8Array, wPx: number, hPx: number): Uint8Array {
+    const out = Uint8Array.from(mask);
+    for (let y = 0; y < hPx; y++) {
+        for (let x = 0; x < wPx; x++) {
+            if (mask[y * wPx + x] !== 1) continue;
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    const ny = y + dy;
+                    const nx = x + dx;
+                    if (ny >= 0 && ny < hPx && nx >= 0 && nx < wPx) out[ny * wPx + nx] = 1;
+                }
+            }
+        }
+    }
+    return out;
 }
 
 const NEIGHBOURS: Array<[number, number]> = [[-1, 0], [1, 0], [0, -1], [0, 1]];

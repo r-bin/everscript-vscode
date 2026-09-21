@@ -674,6 +674,62 @@ function checkHiddenContour(rom) {
     console.log(`  hidden contour: ${(share * 100).toFixed(1)}% of 0x76 is covered `
         + `(0x06: ${(rawShare * 100).toFixed(0)}% priority art, ${(realShare * 100).toFixed(0)}% covering), `
         + `${differ} pixels dotted`);
+
+    for (const id of [0x3b, 0x76, 0x25]) checkDashBreaks(rom, id);
+}
+
+/**
+ * A dash has to break whichever way the wall runs.
+ *
+ * The pattern used to be a screen-space stripe along `x + y`, which is
+ * constant along the 45-degree diagonal every geometry code draws — so a
+ * diagonal boundary came out fully solid next to a correctly dotted
+ * horizontal one. Measuring the longest unbroken run in each of the four
+ * directions a contour can take is what catches that: it was the length of
+ * the wall, and it is now the length of a dash.
+ */
+function checkDashBreaks(rom, roomId) {
+    const room = decodeRoom(rom, roomId);
+    const hidden = maps.hiddenTileMask(room, maps.renderRoomForeground(rom, room));
+    const plain = renderRoomComposite(rom, room);
+    const dotted = renderRoomComposite(rom, room);
+    drawCollisionOverlay(plain, room, { contours: true });
+    drawCollisionOverlay(dotted, room, { contours: true, hidden });
+
+    const w = plain.width;
+    const h = plain.height;
+    const planeColours = new Set(Object.values(maps.PLANE_COLORS).map((c) => c.join(',')));
+    const at = (img, i) => `${img.data[i * 4]},${img.data[i * 4 + 1]},${img.data[i * 4 + 2]}`;
+    // A covered contour pixel, and whether the dash left it painted.
+    const isContour = new Uint8Array(w * h);
+    const isOn = new Uint8Array(w * h);
+    for (let i = 0; i < w * h; i++) {
+        if (!hidden[i] || !planeColours.has(at(plain, i))) continue;
+        isContour[i] = 1;
+        if (planeColours.has(at(dotted, i))) isOn[i] = 1;
+    }
+
+    const LONGEST_DASH = 12;
+    for (const [name, dx, dy] of [['E', 1, 0], ['S', 0, 1], ['SE', 1, 1], ['NE', 1, -1]]) {
+        let longest = 0;
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                const i = y * w + x;
+                if (!isOn[i]) continue;
+                const px = x - dx;
+                const py = y - dy;
+                // Only start counting at the beginning of a run.
+                if (px >= 0 && py >= 0 && px < w && py < h && isOn[py * w + px]) continue;
+                let n = 0;
+                let cx = x;
+                let cy = y;
+                while (cx >= 0 && cy >= 0 && cx < w && cy < h && isOn[cy * w + cx]) { n += 1; cx += dx; cy += dy; }
+                if (n > longest) longest = n;
+            }
+        }
+        check(`0x${roomId.toString(16)} covered contour breaks going ${name} (${longest}px)`,
+            longest > 0 && longest <= LONGEST_DASH, true);
+    }
 }
 
 function checkOverlayParity(rom, rooms) {

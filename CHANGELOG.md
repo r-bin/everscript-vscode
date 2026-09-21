@@ -1,3 +1,15 @@
+## [0.35.1] — 2026-09-21
+
+### The dash was cut across the screen, not along the wall
+
+Upstream's dash pattern is `floor((x + y) / 3) % 2` — a stripe that is **constant along the 45-degree diagonal**, which is the direction half the geometry codes draw. So a diagonal boundary landed inside one band and came out fully solid, right next to a horizontal one that dotted correctly. It looked like solid/dotted was being mixed with thick/thin; it was one pattern that only works in some directions.
+
+With a visibility mask, `dashAlongContour` now breadth-first walks the 1px edge and cuts the dash from each pixel's **distance along the contour**, so a dash is the same length whichever way the wall runs. Components are entered in raster order, which keeps it deterministic — the map raster and the canopy layer each draw the contour once and have to agree pixel for pixel.
+
+Pinned by `checkDashBreaks`: in rooms `0x3b`, `0x76` and `0x25`, the longest unbroken run of covered contour is measured in all four directions and must be at most 12px. It is now 3–7px everywhere; before, a diagonal ran the length of the wall.
+
+Upstream's drawing is untouched without a mask, so `checkOverlayParity` still compares it.
+
 ## [0.35.0] — 2026-09-21
 
 Dots instead of weight, and a real answer to "what is actually covered".

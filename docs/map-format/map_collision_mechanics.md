@@ -303,3 +303,13 @@ art layers nicely; 32% of room `0x06` renders into the foreground pass that
 way and none of it hides anything. Bit 12 is the game's own statement about
 which art a character passes behind, and adding it takes `0x06` from 32%
 covered to 1% while leaving the jungle in `0x76` at 20%.
+
+**The dash is cut along the contour, not across the screen.** Upstream's
+pattern is `floor((x + y) / 3) % 2`, a stripe that is constant along the
+45-degree diagonal — which is the direction half the geometry codes draw,
+so a diagonal boundary came out fully solid beside a correctly dotted
+horizontal one. Under `hidden`, `dashAlongContour` breadth-first walks the
+1px edge and cuts the pattern from each pixel's distance along it, so a
+dash is the same length whichever way the wall runs. Components are entered
+in raster order, which keeps it deterministic — the map raster and the
+canopy layer each draw the contour once and have to agree pixel for pixel.
