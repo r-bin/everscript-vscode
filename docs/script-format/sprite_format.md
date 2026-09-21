@@ -22,17 +22,37 @@ output words, a set bit meaning "this word is zero and is not stored".
 **Chunks** place a block at a signed offset — five bytes: flags, x, y, and a
 16-bit block id.
 
-| Flag bit | Meaning | Share of chunks |
-|---|---|---|
-| 0 | 16×16 block rather than 8×8 | 39% |
-| 6 | **mirror left-to-right** | 31% |
-| 7 | mirror top-to-bottom | 4% |
-| 4 | not decoded; does not affect pixels | 88% |
+## The flags byte is an OAM attribute byte
+
+SNES OAM byte 3 is `vhoopppn`: flip Y, flip X, two priority bits, three
+palette bits, one name bit. Every field lines up with what the data does,
+which is what identified it:
+
+| Bits | OAM meaning | Here | Share of 37413 chunks |
+|---|---|---|---|
+| 0 | name-table bit | 16×16 block rather than 8×8 | 39% set |
+| 1–3 | palette | 0 on 99.3%, 1 on 0.7% (not characters) | — |
+| 4–5 | **priority** | only levels 0 and 1 occur | 88% are level 1 |
+| 6 | **flip X** | mirror left-to-right | 31% |
+| 7 | flip Y | mirror top-to-bottom | 4% |
 
 The mirror bits matter more than their share suggests. Symmetrical sprites
 store one half and mirror it: Strongheart's chunks 0 and 1 are the *same
 block* at x=−7 and x=0, differing only in bit 6. Ignoring it draws one half
 twice, which is exactly what a buggy-looking tile turned out to be.
+
+## Draw order is not list order
+
+These chunks become OAM entries, and the PPU draws a **lower OAM index in
+front of a higher one**, with the priority bits deciding first. So the
+correct painting order is priority ascending, and within a priority, index
+descending — the first chunk ends up on top. SoETilesViewer's `frameview.cpp`
+does exactly this (`for priority 0..3 { for i = n-1 down to 0 }`), and its
+output is what the format was checked against.
+
+Painting the list front to back instead leaves the *last* chunk on top. 1161
+of the 5128 sprites reuse a cell across chunks, so this is visible: it is
+what buried the Megataur's face behind its body.
 
 **Sprite infos** are `[count][dataOffset]` followed by the chunks. Nothing
 indexes them, so they are walked sequentially; a zero-length entry or one

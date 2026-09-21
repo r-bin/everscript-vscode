@@ -1,8 +1,8 @@
 # The animation format
 
-> Status: **mostly solved.** `src/maps/characters.ts`. Idle sprite for
-> **121 of 141** enemies; a multi-frame animation for those whose script
-> walks far enough.
+> Status: **solved.** `src/maps/characters.ts`. **139 of 141** enemy walks
+> now end on the script's own loop command, so the whole idle cycle is read
+> rather than a prefix of it.
 
 This is the one thing the encoder could not answer — it is engine behaviour
 with no compiler counterpart. `animate(entity, mode, id)` emits opcode
@@ -44,6 +44,59 @@ So `0xa4` is command `0x24` — a set-sprite — that also ends the frame.
 Reading the high opcodes as distinct commands is what made the Wimpy Flower
 look undecodable.
 
+## `0x2d` is where a script loops
+
+Its handler is five instructions long and says so outright:
+
+```
+90877D  REP #$20
+90877F  LDA $0003,Y     ; the script's start, saved when the animation was chosen
+908782  STA $0000,Y     ; ...becomes the running pointer again
+908785  STA $5D
+908789  RTS
+```
+
+`$0003,Y` is written by `$90817F` when an animation is selected, so this is
+a jump back to the first command. **A walk that reaches `0x2d` has seen the
+entire cycle**, and a walk that steps over it runs into whatever script was
+assembled next in the bank. That was the Wimpy Flower's bug: its idle is one
+held frame followed by `0x2d`, and reading past it played two frames of its
+attack.
+
+`0x53` can do the same thing conditionally — `$9083C7 BNE $90840D` lands on
+the identical restart when the entity is in state `$0100` — but on the 157
+occasions it was traced it fell through as an ordinary one-byte command.
+
+## How long a frame lasts
+
+The frame timer is entity `+0x05`, and the end-of-frame path is the whole
+story:
+
+```
+908100  DEC $0005,X      ; the frame timer
+908103  BEQ $908108      ; still counting? then...
+908107  RTL              ; ...leave the saved pointer where it was
+908108  LDA #$01
+90810A  STA $0005,X      ; expired: back to one
+90810F  LDA $5D
+908111  STA $0000,X      ; ...and only now step past the command
+```
+
+So a frame-ending command is **re-executed from the same point every game
+frame** until the timer runs down; only then does the script advance. A hold
+command is what loads that timer (`$90836C` stores the opcode itself into
+`+0x05`, `$90835A` stores its operand), and the timer starts at 1
+(`$908192`) and returns to 1 whenever it expires.
+
+Two consequences, both visible on screen:
+
+- A bit-7 command with no hold before it shows its sprite for exactly **one**
+  frame — not for however long the last hold was.
+- A script can end a frame several times without changing the sprite, so
+  frames that repeat a sprite are merged, including across the loop point.
+  The Wimpy Flower's idle merges to a single 102-frame still, which is what
+  the game shows.
+
 ## Command classes, from the dispatch table
 
 Grouping the 128 entries at `$908000` by handler address gives the families
@@ -54,31 +107,54 @@ directly, which is better evidence than measuring one opcode at a time:
 | `$90836C` | `0x01`–`0x1e` | Hold the current frame for `cmd` ticks |
 | `$90835A` | `0x20` | Hold for the **next byte's** ticks (2 bytes) |
 | `$908418` | `0x22`–`0x2b` | Set sprite; bank = `cmd + 0xA8` (3 bytes) |
-| `$90878A` | `0x00` | No-op |
+| `$90878A` | `0x00`, `0x21` | No-op, one byte — a bare frame boundary |
+| `$90877D` | `0x2d` | Restart the script |
 
-Other lengths were measured from the trace: `0x2c`:4, `0x2e`:2, `0x41`:2,
-`0x4d`:3, `0x52`:1, `0x53`:2, `0x54`:3, `0x5a`:2. A command with no known
-width stops the walk rather than being skipped by a guess.
+## Measuring lengths
 
-## Measuring lengths correctly
+The first method — pairing consecutive `$5D` reads — needed two correction
+rules and still threw away every pair that crossed a frame boundary. Its
+survivors gave `0x53` a width of 2 that the game does not use.
 
-The interpreter reads its next command with `LDA [$5D]` at `$9080F0`, so the
-distance `$5D` moves between consecutive reads is that command's length.
-Two rules make that sound, and both were learned by getting them wrong:
+**The interpreter states each length directly instead.** A command is read at
+`$9080E3` (first of a frame) or `$9080F0` (the rest), and the trace line
+prints the *effective address*. When the command ends the frame, `$90810F
+LDA $5D` prints where execution resumes. So:
 
-1. **Pair reads for the same entity.** The trace line carries `Y`, the
-   entity pointer. Without grouping by it, interleaved animations invent
-   widths — this produced 5 instead of 3 for `0xa4`.
-2. **Never measure from a command with bit 7 set.** It ends the frame, so
-   the next read happens a game-frame later and the gap stops being a width.
-   This is what made `0x42` look like 4 or 5 when it is 2.
+- length = the gap between two printed addresses inside one call;
+- for a frame-ending command, the gap to the pointer `$90810F` saved.
 
-Applying both across three traces takes the ambiguous count from three to
-**zero**. `0x42` is the one exception, resolved from structure instead:
-reading it as 2 makes the following bytes a set-sprite and yields exactly
-the two frames the game was traced drawing for a Mosquito.
+Nothing has to be discarded, and nothing can be contaminated by another
+entity, because one call serves one entity from start to end. Across the
+three traces this yields **29 opcodes, each with exactly one observed
+width**.
 
-And always re-check that a new length alters no already-resolved sprite.
+```
+0x00:1  0x01-0x1e:1  0x1f:3  0x20:2  0x21:1  0x22-0x26:3  0x2c:4  0x2e:2
+0x41:1  0x42:2  0x47:5  0x4d:3  0x4e:1  0x4f:1  0x52:1  0x53:1  0x54:3
+```
+
+## Lengths the handler gives, where no trace runs the command
+
+Five opcodes stopped the last enemies and appear in no trace. They still do
+not have to be guessed: the interpreter advances `$5D` by one for the opcode,
+and each handler advances it for its own operands, in plain sight.
+
+| Cmd | Handler | What it does | Length |
+|---|---|---|---|
+| `0x44` | `$9086D4` | compares `$001E,Y`, may bump the frame timer | 1 |
+| `0x45` | `$9086E5` | reads a word into `$0020,Y`, then `LDX $5D; INX; INX` | 3 |
+| `0x46` | `$9086FE` | two paths, both reaching the same `INX INX` | 3 |
+| `0x50` | `$9085A8` | `LDA [$5D]` twice, 16-bit, `INX INX` after each | 5 |
+| `0x5a` | `$908447` | `LDA [$5D]; STA $0082,Y; INC $5D` | 2 |
+
+Every path through each handler was followed to its `RTS`; none of the
+advances is conditional. `0x5a` is the check on the method — the trace
+measured it at 2 as well.
+
+**`0x57` is genuinely variable** and is left unknown. It calls `$8FCA02`,
+which walks a list of its own through `$5D` and writes back wherever it
+stopped (`$8FCA4D STY $5D`). Only the two segmented bosses use it.
 
 ## Facing
 
@@ -109,17 +185,21 @@ A record is `[scriptLow:u16][bank:u8][flags:u8]`, and **two** flag bits mean
 908134  ADC $90815B,X    ; + the table entry
 ```
 
-The `0x40` form is by far the common one, and missing it is why most NPCs
-were drawn in their first pose — which happens to be north-facing.
+The table at `$90815B` maps the sixteen facings onto four records —
+`{0:0, 2:4, 4:4, 6:4, 8:8, 10:12, 12:12, 14:12}` — so these characters have
+north, east, south and west and nothing between.
 
 **Entity `+0x22` holds the facing, and south is 8.** Both the spawn routine
 (`$8FB0CD`) and the FACE SOUTH opcode (`$8CDEFC`) write 8, so an unposed
-enemy already faces the camera — which is why the non-directional ones
-looked right before any of this was understood.
+enemy already faces the camera.
 
 Confirmed against the game: a Viper (character 92) made to face south draws
 `$CD2C66`, and `anim_stand + 2*8` resolves to exactly that. Reading its
 record without the facing gives `$CD2CF5`, a different pose.
+
+The 49 single-pose characters are bosses, statues, flowers and seated NPCs —
+the ROM holds one drawing of each, and the game shows that one whichever way
+the character is turned.
 
 ## Placement: sprites anchor at their feet
 
@@ -134,18 +214,23 @@ and the animation stays still while it plays.
 
 ## Coverage
 
-**122 of 141** characters resolve to a sprite; **36** have a real animation
-(more than one distinct sprite). The Mosquito flaps between `$CC5B38` and
-`$CC5B3F` — the exact pair the game was traced drawing, 28 and 27 times
-alternating.
+| | |
+|---|---|
+| Walks that end on the script's own loop | **139 / 141** |
+| Characters that resolve to a sprite | **126 / 141** |
+| Characters with more than one distinct sprite | **37** |
+
+The 15 that draw nothing are not failures: 13 have an idle script that sets
+no sprite at all — `$C70080` is `d2 1e 80 d3 2d`, a loop that holds nothing —
+and they are the invisible helper entities (`PLACEHOLDER`, `FAN_ENTITY`,
+`SPEAKER_ENTITY`, the tentacle and Thraxx-arm stand-ins). The game does not
+draw them either.
+
+The Mosquito flaps between `$CC5B38` and `$CC5B3F`, two frames each — the
+exact pair the game was traced drawing, 28 and 27 times alternating.
 
 ## Still missing
 
-Twenty enemies stop before any sprite command, on `0x1e`-adjacent unknowns:
-**`0x32` (13), `0x42` (9), `0x47` (5), `0x50` (4), `0x21` (5), `0x57` (2),
-`0x2d` (1), `0x46` (1)**. Multi-frame walks stop sooner than single-frame
-ones, so only a handful animate today.
-
-Both traces so far covered act-1 field enemies. A trace of a boss or a
-later-act room would extend the table — ideally with **one** entity
-animating, for the reason above.
+`0x57`, and only for **BONE_SNAKE** and **SALABOG**. Its operand is a list
+whose length is computed at run time, so it needs either an emulation of
+`$8FCA02` or a trace in which one of those two bosses animates.

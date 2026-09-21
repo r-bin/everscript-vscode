@@ -67,6 +67,7 @@ export {
 export {
     resolveCharacterSprite, characterPalette, renderCharacterSprite,
     characterAnimation, renderSpriteAt, renderCharacterFrames, FACING_SOUTH,
+    characterDisposition,
 } from './characters';
 export type { SpriteInfo, SpriteChunk, SpritePixels, SpriteBlockPixels } from './sprites';
-export type { AnimationFrame as SpriteAnimationFrame } from './characters';
+export type { AnimationFrame as SpriteAnimationFrame, CharacterDisposition } from './characters';

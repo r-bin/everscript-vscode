@@ -136,10 +136,23 @@ function buildRoomSvgSection(opts){
     romSpawns.forEach(function(v,i){
       if(v.x==null||v.y==null)return;
       var nm=v.romName||v.name||('NPC '+v.npc);
+      // Hostility is a flag, so it can be shown rather than guessed from the
+      // name: bit 1 (INVINCIBLE) is set on every townsperson and on no
+      // monster. A spawn that carries its own flags overrides the character's.
+      var disp=v.hostile==null?'':(v.hostile?'hostile':'friendly')
+            +(v.inactive?', inactive':'')
+            +' \u2014 flags 0x'+(v.flags||0).toString(16)+' from the '+v.flagsFrom;
       var tip=nm+(v.name&&v.romName?' ('+v.name+')':'')
             +(v.character!=null?'\ncharacter #'+v.character:'')
+            +(disp?'\n'+disp:'')
             +(v.spawner?'\nspawner'+(v.quantity!=null?' x'+v.quantity:''):'')
             +'\nat '+v.x+','+v.y+' \u2014 candidate, depends on save state';
+      // The tile it stands on, tinted by that flag, so a room reads at a
+      // glance. Drawn first so the sprite keeps the foreground.
+      if(v.hostile!=null){
+        var hc=v.hostile?'#ff5555':'#4fc3f7';
+        html+='<rect class="svge-spawn svge-spawn-tile" data-idx="'+i+'" data-kind="spawn" data-label="'+escH(nm)+' ('+v.x+','+v.y+')" x="'+v.x+'" y="'+v.y+'" width="1" height="1" fill="'+hc+'" fill-opacity="'+(v.inactive?0.10:0.20)+'" stroke="'+hc+'" stroke-opacity="0.75" stroke-width="0.15" stroke-dasharray="'+(v.inactive?'0.4,0.3':'none')+'" rx="0.2"><title>'+escH(tip)+'</title></rect>';
+      }
       if(v.sprite){
         // The game's own artwork, centred on the spawn point. Sprite pixels
         // are 1:1 with SVG units here, the same scale the map image uses.
@@ -152,7 +165,8 @@ function buildRoomSvgSection(opts){
         var fr=(v.spriteFrames&&v.spriteFrames.length>1)
           ?' data-frames="'+escH(JSON.stringify(v.spriteFrames))+'"':'';
         html+='<image class="svge-spawn" data-idx="'+i+'" data-kind="spawn"'+fr+' data-label="'+escH(nm)+' ('+v.x+','+v.y+')" href="'+v.sprite+'" x="'+(v.x-ox+0.5)+'" y="'+(v.y-oy+0.5)+'" width="'+sw+'" height="'+sh+'" style="image-rendering:pixelated" preserveAspectRatio="none"><title>'+escH(tip)+'</title></image>';
-      } else {
+      } else if(v.hostile==null){
+        // No character record either — nothing but a position to show.
         html+='<rect class="svge-spawn" data-idx="'+i+'" data-kind="spawn" data-label="'+escH(nm)+' ('+v.x+','+v.y+')" x="'+v.x+'" y="'+v.y+'" width="1" height="1" fill="none" stroke="#e3b341" stroke-width="0.25" rx="0.3"><title>'+escH(tip)+'</title></rect>';
       }
     });

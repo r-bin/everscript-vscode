@@ -21,10 +21,8 @@
 // The compression is a bit-per-word skip list: one status byte per eight
 // output words, a set bit meaning "this word is zero, it is not stored".
 //
-// **What this cannot do yet:** get from a character to its sprite. The
-// character table's `anim_stand` and friends point into an animation format
-// nobody has decoded — see docs/sprite-rendering.md for the readings already
-// ruled out. So sprites are addressable by index, not by enemy.
+// Getting from a character to one of these sprites is ./characters, which
+// walks the animation format. This module only knows pixels.
 
 import { snesToRom, read24, readByte } from './rom';
 
@@ -121,21 +119,37 @@ export interface SpriteChunk {
     flipX: boolean;
     /** Bit 7: mirrored top-to-bottom. */
     flipY: boolean;
+    /** Bits 4-5: the OAM priority, which decides what covers what. */
+    priority: number;
 }
 
 /**
- * Flags that matter for drawing.
+ * The flags byte is an **OAM attribute byte**, and reads as one.
+ *
+ * SNES OAM byte 3 is `vhoopppn`: flip Y, flip X, two priority bits, three
+ * palette bits, one name bit. Every field lines up with what the data does:
+ *
+ * | Bits | Meaning | In this ROM |
+ * |---|---|---|
+ * | 0 | size, in place of OAM's name bit | 39% set (16x16) |
+ * | 1-3 | palette | 0 on 99.3%, 1 on 0.7% |
+ * | 4-5 | priority | only 0 and 1 occur; 88% are 1 |
+ * | 6 | flip X | 31% |
+ * | 7 | flip Y | 4% |
  *
  * Symmetrical sprites reuse one block for both halves and mirror it, so a
  * decoder that ignores bit 6 draws the mirrored half twice — Strongheart's
- * face comes out with one side duplicated. 31% of all chunks set it.
+ * face comes out with one side duplicated.
  *
- * Bit 4 is set on 88% of chunks and bit 1 on under 1%; neither affects the
- * pixels, so neither is decoded here.
+ * The palette bits are not applied: the character's own palette already
+ * selects the 16 colours, and the 0.7% that set bit 1 are not characters.
  */
 const CHUNK_LARGE = 0x01;
+const CHUNK_PRIORITY = 0x30;
+const CHUNK_PRIORITY_SHIFT = 4;
 const CHUNK_FLIP_X = 0x40;
 const CHUNK_FLIP_Y = 0x80;
+const PRIORITY_LEVELS = 4;
 
 export interface SpriteInfo {
     address: number;
@@ -164,6 +178,7 @@ export function readSpriteInfo(rom: Uint8Array, address: number): SpriteInfo {
             large: (flags & CHUNK_LARGE) !== 0,
             flipX: (flags & CHUNK_FLIP_X) !== 0,
             flipY: (flags & CHUNK_FLIP_Y) !== 0,
+            priority: (flags & CHUNK_PRIORITY) >> CHUNK_PRIORITY_SHIFT,
         });
         cursor += CHUNK_BYTES;
     }
@@ -211,6 +226,12 @@ export interface SpritePixels {
  * Chunk offsets are signed and relative to an origin that is not at a
  * corner, so the extent is measured first rather than assuming a canvas
  * size — several sprites reach well above and left of their origin.
+ *
+ * **Draw order is not list order.** These chunks become OAM entries, and the
+ * PPU draws a lower OAM index in front of a higher one, so the first chunk
+ * belongs on top. Priority decides first, index second. Painting the list
+ * front to back instead puts the last chunk on top, which is what buried a
+ * boss's face behind its body.
  */
 export function composeSprite(rom: Uint8Array, info: SpriteInfo): SpritePixels {
     let minX = 0; let minY = 0; let maxX = 1; let maxY = 1;
@@ -224,18 +245,22 @@ export function composeSprite(rom: Uint8Array, info: SpriteInfo): SpritePixels {
     const width = maxX - minX;
     const height = maxY - minY;
     const pixels = new Int16Array(width * height).fill(-1);
-    for (const c of info.chunks) {
-        const b = decodeSpriteBlock(rom, c.block, c.large);
-        for (let y = 0; y < b.size; y++) {
-            for (let x = 0; x < b.size; x++) {
-                const sx = c.flipX ? b.size - 1 - x : x;
-                const sy = c.flipY ? b.size - 1 - y : y;
-                const v = b.pixels[sy * b.size + sx];
-                if (!v) continue;                       // index 0 is transparent
-                const px = c.x - minX + x;
-                const py = c.y - minY + y;
-                if (px < 0 || py < 0 || px >= width || py >= height) continue;
-                pixels[py * width + px] = v;
+    for (let priority = 0; priority < PRIORITY_LEVELS; priority++) {
+        for (let i = info.chunks.length - 1; i >= 0; i--) {
+            const c = info.chunks[i];
+            if (c.priority !== priority) continue;
+            const b = decodeSpriteBlock(rom, c.block, c.large);
+            for (let y = 0; y < b.size; y++) {
+                for (let x = 0; x < b.size; x++) {
+                    const sx = c.flipX ? b.size - 1 - x : x;
+                    const sy = c.flipY ? b.size - 1 - y : y;
+                    const v = b.pixels[sy * b.size + sx];
+                    if (!v) continue;                   // index 0 is transparent
+                    const px = c.x - minX + x;
+                    const py = c.y - minY + y;
+                    if (px < 0 || py < 0 || px >= width || py >= height) continue;
+                    pixels[py * width + px] = v;
+                }
             }
         }
     }

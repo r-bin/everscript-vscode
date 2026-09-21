@@ -17,7 +17,7 @@ ruled out, so the next attempt starts further along.
 | [map_transitions.md](map_transitions.md) | Doors: where a trigger sends the player | Solved |
 | [enemy_spawns.md](enemy_spawns.md) | Which NPCs a script places, and where | Solved |
 | [character_table.md](character_table.md) | Stats, palette and animation pointers per character | Solved |
-| [animation_format.md](animation_format.md) | Character → idle sprite and its frames | Mostly solved |
+| [animation_format.md](animation_format.md) | Character → idle sprite and its frames | Solved |
 | [sprite_format.md](sprite_format.md) | Sprite blocks, chunks and their compression | Solved |
 | [../room-simulation.md](../room-simulation.md) | Deciding which branch an enter script takes | **Not built** |
 | [../ingredient-icons.md](../ingredient-icons.md) | Where the menu's item icons live | **Unsolved** |
@@ -35,3 +35,10 @@ call. Check there first.
 behaviour with no encoder counterpart, and only a trace could give it.
 [animation_format.md](animation_format.md) shows the three instructions that
 settled it after five wrong guesses.
+
+**When a trace runs out, read the handler.** A trace only covers what
+happened to run. The last animation opcodes appear in none of them, and
+disassembling their handlers gave the same kind of answer — each one advances
+the script pointer in plain sight, and the one opcode that *was* also traced
+agreed with its handler. The rule stays the same: derive it or leave it
+unknown, never guess a width.

@@ -1,3 +1,62 @@
+## [0.29.0] — 2026-09-21
+
+Answers the four things in the screenshots, three of them from the same place: the ROM says so, and nobody had read that part yet.
+
+### The face behind the body — chunk flags are an OAM attribute byte
+
+`vhoopppn`: flip Y, flip X, two **priority** bits, palette, name. Every field lines up with the data — bits 4-5 only ever hold 0 and 1, bit 6 is set on 31% of chunks, bits 1-3 are zero on 99.3%.
+
+Priority changes what covers what, and so does index: the PPU draws a **lower OAM index in front of a higher one**. So the first chunk belongs on top. Painting the list front to back left the *last* chunk on top, which is what buried the Megataur's face behind its body. 1161 of the 5128 sprites reuse a cell across chunks, so it was visible on more than bosses — the Boy's arm was behind him too.
+
+SoETilesViewer's `frameview.cpp` gets this right (`for priority 0..3 { for i = n-1 down to 0 }`); the port did not.
+
+### The flowers played half their attack — `0x2d` is the loop
+
+```
+90877D  LDA $0003,Y     ; the script's start, saved when the animation was chosen
+908782  STA $0000,Y     ; ...becomes the running pointer again
+```
+
+A walk that reaches `0x2d` has seen the whole cycle; one that steps over it runs into whatever script was assembled next in the bank. The Wimpy Flower's idle is one held frame followed by `0x2d`, so reading past it played two frames of its attack.
+
+### Frames last as long as the timer, not as long as the last hold
+
+```
+908100  DEC $0005,X      ; the frame timer
+908103  BEQ $908108      ; still counting? then...
+908107  RTL              ; ...leave the saved pointer where it was
+908108  LDA #$01         ; expired: back to one
+908111  STA $0000,X      ; ...and only now step past the command
+```
+
+A frame-ending command re-runs from the same point every game frame until the timer runs down, and the timer resets to **1**. So a bit-7 command with no hold before it lasts one frame, and repeated sprites merge. The flower merges to a single 102-frame still — which is what the game shows.
+
+### Lengths, measured again from scratch
+
+The old method paired consecutive `$5D` reads and had to discard every pair crossing a frame boundary; its survivors gave `0x53` a width of 2 that the game does not use. The interpreter states each length directly instead: the command read at `$9080E3`/`$9080F0` prints its **effective address**, and `$90810F` prints where a frame-ending command resumes. Nothing is discarded and nothing is contaminated, because one call serves one entity end to end. Result: 29 opcodes, each with exactly one observed width.
+
+Five more appear in no trace at all (`0x44`, `0x45`, `0x46`, `0x50`, `0x5a`). Their handlers were disassembled instead — each advances the script pointer in plain sight, every path to its `RTS` agreeing. `0x5a` is the check on the method: the trace measured it at 2 as well.
+
+### Hostility is a flag, so the tile shows it
+
+Character record `+0x05` is the default entity flag word, the same field `add_enemy(…, flags)` overrides per spawn. Bit 1 (`INVINCIBLE`) splits the table cleanly: all 39 townspeople have it, no monster does. Each ROM spawn now draws its tile red or blue accordingly, dashed when `INACTIVE`, with the flags and their source in the tooltip.
+
+### Measured
+
+| | before | now |
+|---|---|---|
+| Walks that end on the script's own loop | — | **139 / 141** |
+| Characters that resolve to a sprite | 122 | **126** |
+| Characters with a real animation | 36 | **37** |
+
+The 15 that draw nothing are not failures: 13 share an idle script that sets no sprite at all, and they are the invisible helper entities (`PLACEHOLDER`, `FAN_ENTITY`, the tentacle and Thraxx-arm stand-ins). The game does not draw them either. The two that remain are the segmented bosses, whose `0x57` takes a run-time-length operand.
+
+Across maps 0x00–0x7f: 1433 spawns, 1095 hostile, 335 friendly, 239 inactive.
+
+### Not changed
+
+Facing was checked again and is doing the right thing: the 49 characters with neither directional bit — bosses, statues, flowers, seated NPCs — have exactly one drawing in the ROM, and the game shows that one whichever way they are turned. Turning an NPC the way a room's script turns it needs the enter-script simulation.
+
 ## [0.28.0] — 2026-09-21
 
 Fixes all four things the screenshots showed.

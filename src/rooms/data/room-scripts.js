@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 
 const { buildRoomScriptModel } = require('../../script');
-const { renderCharacterFrames, encodePng } = require('../../maps');
+const { renderCharacterFrames, encodePng, characterDisposition } = require('../../maps');
 
 const ROM_NAMES = ['Secret of Evermore (U) [!].smc', 'Secret of Evermore.smc'];
 
@@ -59,16 +59,41 @@ function buildSprite(rom, character) {
     };
 }
 
+/**
+ * Whether this placement fights back.
+ *
+ * `INVINCIBLE` (bit 1) is what separates the two: every townsperson carries
+ * it and no monster does. A spawn that names its own flags decides for
+ * itself — `add_enemy(FIRE_EYES, …, INACTIVE_IMORTAL)` places a character
+ * with no flags of her own as a harmless one — and the rest fall back to the
+ * character's default.
+ */
+const FLAG_INVINCIBLE = 0x0002;
+const FLAG_INACTIVE = 0x0020;
+
 function attachSprites(rom, spawns) {
     const cache = new Map();
     for (const spawn of spawns) {
         if (spawn.character === null || spawn.character === undefined) continue;
         if (!cache.has(spawn.character)) {
             let built = null;
-            try { built = buildSprite(rom, spawn.character); } catch { built = null; }
-            cache.set(spawn.character, built);
+            let disposition = null;
+            try {
+                built = buildSprite(rom, spawn.character);
+                disposition = characterDisposition(rom, spawn.character);
+            } catch { built = null; }
+            cache.set(spawn.character, { sprite: built, disposition });
         }
-        const sprite = cache.get(spawn.character);
+        const { sprite, disposition } = cache.get(spawn.character);
+        if (disposition) {
+            const flags = spawn.state === null || spawn.state === undefined
+                ? disposition.flags
+                : spawn.state;
+            spawn.flags = flags;
+            spawn.hostile = (flags & FLAG_INVINCIBLE) === 0;
+            spawn.inactive = (flags & FLAG_INACTIVE) !== 0;
+            spawn.flagsFrom = spawn.state === null || spawn.state === undefined ? 'character' : 'spawn';
+        }
         if (!sprite) continue;
         spawn.sprite = sprite.uri;
         spawn.spriteW = sprite.w;

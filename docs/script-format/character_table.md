@@ -16,6 +16,7 @@ and `anim_stand` (`0x4a36`).
 | Offset | Field | Used for |
 |---|---|---|
 | `+0x00` | name pointer (24-bit) | — |
+| `+0x05` | default entity flags | [hostility](#hostility) |
 | `+0x09` | palette | a 16-bit address **within bank `$90`** |
 | `+0x0f` | HP | — |
 | `+0x13` | aggro range | — |
@@ -35,6 +36,31 @@ transparent.
 Found by probing candidate banks and looking: `$90B1AB` for the Wimpy
 Flower gives a purple ramp, and `$90B34B` for the Mosquito gives blues —
 which the rendered sprites confirm.
+
+## Hostility
+
+`+0x05` is the character's **default entity flags** — the same bit field
+`add_enemy(enemy, x, y, flags)` passes per spawn, which the everscript
+compiler calls `CHARACTER_FLAG_ENEMY`. Bit 1 is `INVINCIBLE`, and it splits
+the table cleanly:
+
+| Value | Count | Who |
+|---|---|---|
+| `0x0002` | 39 | every townsperson — villagers, Fire Eyes, Horace, Strongheart, Madronius, Gomi, Tinker, the Professor, plus the rocks and the bridge |
+| `0x0000` | 97 | every monster, plus the Boy and the Dog |
+| `0x0010` | 2 | Spark, Salabog |
+| `0x0400` | 2 | the two Mosquitoes (`PHASING`) |
+| `0x0022` | 1 | `PLACEHOLDER` |
+
+No monster carries bit 1 and no townsperson lacks it, which is what makes it
+usable as "does this fight back". `0x0020` is `INACTIVE`: placed, but not
+acting until a script wakes it.
+
+A placement can override the default — `0x3c` and `0xa2` carry their own
+flags word, so `add_enemy(FIRE_EYES, …, INACTIVE_IMORTAL)` places a character
+with no flags of her own as a harmless one. The Rooms tab uses the spawn's
+flags when it has them and the record's otherwise, and says which in the
+tooltip.
 
 ## Reaching a character
 

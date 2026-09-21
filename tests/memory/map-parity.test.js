@@ -349,10 +349,20 @@ function checkSprites(rom) {
     // a Mosquito, 28 and 27 times alternating. Matching them is the strongest
     // check available: it comes from the running game, not from this code.
     check('mosquito idle sprite', maps.resolveCharacterSprite(rom, 113), 0xcc5b38);
-    const flap = maps.characterAnimation(rom, 113).frames.map((f) => f.sprite);
+    const flap = maps.characterAnimation(rom, 113).frames;
     check('mosquito flaps between the traced frames',
-        new Set(flap).size === 2 && flap.includes(0xcc5b38) && flap.includes(0xcc5b3f), true);
+        flap.length === 2 && flap[0].sprite === 0xcc5b38 && flap[1].sprite === 0xcc5b3f, true);
+    // The game drew them 28 and 27 times, so the two holds have to come out
+    // even. They do, at two frames each.
+    check('mosquito holds both frames equally', flap[0].ticks === flap[1].ticks, true);
     check('wimpy flower idle sprite', maps.resolveCharacterSprite(rom, 109), 0xcc4f3b);
+    // The flower stands still: one sprite, a long hold, then the script's own
+    // loop command. Walking past that loop is what used to play two frames of
+    // its attack instead.
+    const idle = maps.characterAnimation(rom, 109);
+    check('wimpy flower idle is a still image', idle.frames.length, 1);
+    check('wimpy flower idle holds for 102 frames', idle.frames[0].ticks, 102);
+    check('wimpy flower walk reaches its loop', idle.complete, true);
     // The Viper's animation is directional, so this one is the facing test:
     // $CD2C66 is the sprite the game drew after a FACE SOUTH, and a
     // non-directional read gives $CD2CF5 instead.
@@ -370,17 +380,41 @@ function checkSprites(rom) {
         total += 1;
         if (maps.renderCharacterSprite(rom, enemy.character)) rendered += 1;
     }
-    // The rest stop on an animation command whose length is not measured yet;
-    // the walk refuses to guess a width. Raise this as more are learned.
-    check('enemies that render >= 122', rendered >= 122, true);
+    // The 15 that do not render are 13 whose idle script draws nothing at all
+    // (tentacles, Thraxx's arms, the fan and speaker entities — the game does
+    // not draw them either) and the two segmented bosses, whose `0x57` command
+    // has no fixed length. Raise this as more are learned.
+    check('enemies that render >= 126', rendered >= 126, true);
     let animated = 0;
+    let complete = 0;
     for (const enemy of Object.values(names.enemies)) {
         if (enemy.character === null) continue;
         const walk = maps.characterAnimation(rom, enemy.character);
         if (new Set(walk.frames.map((f) => f.sprite)).size > 1) animated += 1;
+        if (walk.complete) complete += 1;
     }
-    check('enemies with a real animation >= 36', animated >= 36, true);
-    console.log(`  enemy sprites: ${rendered}/${total} resolved, ${animated} animated`);
+    check('enemies with a real animation >= 37', animated >= 37, true);
+    // A walk that ends on the script's own loop has read the whole cycle.
+    check('enemy walks that reach a loop >= 139', complete >= 139, true);
+    console.log(`  enemy sprites: ${rendered}/${total} resolved, ${animated} animated, ${complete} complete`);
+
+    // Chunk flags are an OAM attribute byte: bits 4-5 are the priority, and
+    // only two levels are ever used. Drawing order follows from that plus the
+    // OAM rule that a lower index sits in front — get it backwards and a
+    // boss's face ends up behind its body.
+    const levels = new Set();
+    let ordered = 0;
+    for (const info of sprites) for (const c of info.chunks) levels.add(c.priority);
+    check('chunk priorities in use', [...levels].sort().join(','), '0,1');
+    for (const info of sprites) {
+        const seen = new Map();
+        for (const c of info.chunks) {
+            const key = `${c.priority}:${c.x},${c.y}`;
+            if (seen.has(key)) ordered += 1;
+            seen.set(key, true);
+        }
+    }
+    check('sprites reuse a cell, so order matters', ordered > 0, true);
 }
 
 function checkOverlayParity(rom, rooms) {
