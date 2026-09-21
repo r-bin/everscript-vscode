@@ -130,6 +130,32 @@ function editOnStampPicked(index) {
   return false;
 }
 
+/**
+ * A raw graphic was clicked in the tiles view.
+ *
+ * Only a layer source can take it: a tilemap word says which picture and
+ * which family, and nothing in it says what is solid, so the collision slot
+ * stays armed and waits for a stamp instead.
+ */
+function editOnTilePicked(word) {
+  var d = editDraft();
+  if (!d || !d.on || word == null || !_editCompose.armed) return false;
+  if (_editCompose.pick === 'collision') {
+    editNote('a graphic carries no collision — click a stamp for that');
+    return false;
+  }
+  _editCompose[_editCompose.pick] = word;
+  _editCompose.armed = false;
+  renderComposer();
+  return true;
+}
+
+/** Say something in the editor's status slot. */
+function editNote(text) {
+  var el = document.getElementById('rg-edit-count');
+  if (el) el.textContent = text;
+}
+
 /** Redraw just the composer block, keeping the palette sheet untouched. */
 function renderComposer() {
   var host = document.getElementById('rg-compose');
@@ -177,13 +203,31 @@ function editAction(act) {
     renderEditChrome(); renderComposer();
     return;
   }
+  if (act === 'compose-brush') {
+    // The shortest path to a working stamp: take one that already works and
+    // change the one word you care about.
+    var pick = d.brush >= 0 ? d.brush : _mtSelected;
+    var w = pick >= 0 ? editStampWords(_mtPalette, pick) : null;
+    if (!w) { editNote('select a stamp first — “from brush” copies the selected one'); return; }
+    _editCompose.layer1 = w.layer1;
+    _editCompose.layer2 = w.layer2;
+    _editCompose.collision = w.collision;
+    _editCompose.armed = false;
+    renderComposer();
+    return;
+  }
   if (act === 'compose-swap') {
     var src = _editCompose.layer2 != null ? editFindCollisionFor(_editCompose.layer2) : null;
-    if (src != null) { _editCompose.collision = src; renderComposer(); }
+    if (src == null) { editNote('no stamp in this room draws that terrain word yet'); return; }
+    _editCompose.collision = src;
+    renderComposer();
     return;
   }
   if (act === 'compose-add') {
-    if (_editCompose.layer1 == null || _editCompose.layer2 == null) return;
+    if (_editCompose.layer1 == null || _editCompose.layer2 == null) {
+      editNote('a stamp needs both a canopy and a terrain word');
+      return;
+    }
     var coll = _editCompose.collision != null ? _editCompose.collision
       : (editFindCollisionFor(_editCompose.layer2) || 0);
     d.brush = editAddStamp(_mtPalette, {

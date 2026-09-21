@@ -262,5 +262,117 @@ test('cell positions are two map units apart, from the map origin', () => {
     assert.deepStrictEqual(api.editCellPos({ x: 0, y: 9 }, 3, 4), { x: 6, y: 17 });
 });
 
+// ---------------------------------------------------------------------------
+// The composer, run against a stub DOM.
+//
+// "add stamp" silently did nothing when a source was missing, which from the
+// outside is indistinguishable from a broken button. These tests pin both
+// halves: what it refuses, and that a complete composition really lands.
+// ---------------------------------------------------------------------------
+
+console.log('\ncomposing a stamp:');
+
+/** All five webview files in one scope, as the browser concatenates them. */
+const ui = new Function(`
+  var document = { getElementById: function () { return null; } };
+  function escH(s) { return String(s); }
+  ${read('metatile-palette.js')}
+  ${read('map-editor.js')}
+  ${read('map-editor-paint.js')}
+  ${read('map-editor-ui.js')}
+  ${read('map-editor-input.js')}
+  return {
+    tileSlotWord: tileSlotWord, editOnTilePicked: editOnTilePicked,
+    editAction: editAction, editReset: editReset, editDraft: editDraft,
+    controls: metatilePaletteControls,
+    compose: function () { return _editCompose; },
+    setPalette: function (p) { _mtPalette = p; },
+    setSelected: function (i) { _mtSelected = i; },
+    setView: function (v, pal) { _mtView = v; if (pal) _mtBgPalette = pal; },
+  };`)();
+
+/** A palette with the tile sheet the host now sends alongside it. */
+function tilePalette() {
+    const p = palette();
+    p.tileFamilies = [35, 187, 58, 165, 149, 59, 166];
+    p.tiles = {
+        count: 2, columns: 16, cell: 16, palette: 3, paletteCount: 7,
+        // [slot, chr, graphicId, animated]
+        slots: [[0, 0, 0x0422, 0], [1, 2, 0x0423, 1]],
+        imageUri: 'data:img/tiles',
+    };
+    return p;
+}
+
+test('a graphic names itself with chr plus the family it is shown in', () => {
+    const p = tilePalette();
+    // A tilemap word is vhopppcccccccccc: chr in the low ten bits, the
+    // background palette in bits 10..12. Family 3 of this room is $58.
+    assert.strictEqual(ui.tileSlotWord(p, 0), 0x0c00);
+    assert.strictEqual(ui.tileSlotWord(p, 1), 0x0c02);
+    assert.strictEqual(ui.tileSlotWord(p, 9), null, 'past the end there is no word');
+});
+
+test('the family tabs are labelled with the room’s family ids', () => {
+    ui.setView('tiles', 1);
+    const html = ui.controls(tilePalette());
+    assert.ok(/data-mt-bgpal="1"[^>]*>35</.test(html), 'tab 1 is family 35: ' + html);
+    assert.ok(/data-mt-bgpal="7"[^>]*>166</.test(html), 'tab 7 is family 166');
+    assert.ok(html.includes('tiles · 2'), 'the view button says how many graphics there are');
+});
+
+test('a picked graphic fills the armed layer source', () => {
+    const p = tilePalette();
+    ui.setPalette(p);
+    ui.editReset(0x34).on = true;
+    ui.compose().layer1 = null; ui.compose().layer2 = null; ui.compose().collision = null;
+
+    ui.compose().pick = 'layer2';
+    ui.compose().armed = true;
+    assert.strictEqual(ui.editOnTilePicked(ui.tileSlotWord(p, 1)), true);
+    assert.strictEqual(ui.compose().layer2, 0x0c02);
+    assert.strictEqual(ui.compose().armed, false, 'one pick, one slot');
+
+    // Nothing in a graphic says what is solid, so the collision slot has to
+    // wait for a stamp; taking a tilemap word here would invent geometry.
+    ui.compose().pick = 'collision';
+    ui.compose().armed = true;
+    assert.strictEqual(ui.editOnTilePicked(0x0c00), false);
+    assert.strictEqual(ui.compose().collision, null);
+});
+
+test('add stamp refuses a half-composed stamp and takes a whole one', () => {
+    const p = tilePalette();
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    d.on = true;
+    ui.compose().layer1 = null;
+    ui.compose().layer2 = 0x0c02;
+    ui.compose().collision = null;
+    ui.editAction('compose-add');
+    assert.strictEqual(d.added.length, 0, 'no canopy word, no stamp');
+
+    ui.compose().layer1 = 0x0c00;
+    ui.editAction('compose-add');
+    assert.strictEqual(d.added.length, 1, 'both words present, the stamp lands');
+    assert.strictEqual(d.brush, p.count, 'and becomes the brush');
+    // No stamp in this room draws that terrain word, so the collision falls
+    // back to 0 rather than borrowing an unrelated one.
+    assert.strictEqual(d.added[0].collision, 0);
+});
+
+test('“from brush” starts the composer off a stamp that already works', () => {
+    const p = tilePalette();
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    d.on = true;
+    d.brush = 2;
+    ui.editAction('compose-brush');
+    assert.deepStrictEqual(
+        [ui.compose().layer1, ui.compose().layer2, ui.compose().collision],
+        [0x358a, 0x19cc, 0x0010],
+    );
+});
+
 console.log(`\n  ${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);

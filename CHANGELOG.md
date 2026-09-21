@@ -1,3 +1,26 @@
+## [0.39.0] — 2026-09-21
+
+### Rooms tab: the tiles view is now a real tile browser
+
+The **graphics** view is renamed **tiles** and both view buttons carry their count, so `stamps · 175` / `tiles · 92` says up front what each one holds. The summary line follows the view instead of always describing the dictionary.
+
+**The palette selector became family tabs.** It used to read `1 2 3 4 5 6 7`; it now reads the room's own family ids — `35 187 58 165 149 59 166` — because that is the number the header lists and the number a tilemap word's palette field selects. One tab per family the room loaded, each showing the same 92 graphics in that family's sixteen colours.
+
+A graphic is now **selectable**, and the detail line under the sheet gives the whole word: `#41 word $0C02 — tile id $0423, chr 2, pal 3`. That word is the thing an editor writes, so it is the thing the tab shows.
+
+Switching family tabs no longer re-renders the metatile atlas. Tile sheets have their own cache keyed by palette, which takes a tab switch on room 0x34 from 13 ms to 2 ms — and from seven full re-renders to one on room 0x37's 2131 stamps.
+
+### Map editor: **add stamp** does something, and says so when it cannot
+
+It required a canopy word *and* a terrain word and returned silently without them, which from the outside is a dead button. Now:
+
+- **Raw tiles compose.** Clicking a graphic in the **tiles** view fills whichever composer source is armed. Previously only stamps could be picked, so the graphics sheet was a read-only reference — you could see the window tile but not build a stamp out of it.
+- **A collision word still comes from a stamp.** Nothing in a tilemap word says what is solid, so arming `collision` and clicking a graphic is refused with a reason rather than inventing geometry.
+- **`from brush`** loads all three words from the selected stamp — the shortest path to a working stamp is to take one that already works and change the one word you care about.
+- **The hint line tracks state**: what to click while a source is armed, what is missing when it is not, and that it is ready when it is. `add stamp` lights up only when it will actually do something, and the status slot explains every refusal (`a stamp needs both a canopy and a terrain word`, `no stamp in this room draws that terrain word yet`).
+
+Five new tests in `tests/memory/map-editor.test.js` pin it: the `chr | pal << 10` word, the family-id tab labels, the armed-source pick, the collision refusal, and that a half-composed stamp adds nothing while a whole one lands and becomes the brush.
+
 ## [0.38.0] — 2026-09-21
 
 ### Rooms tab: see the graphics a room actually loaded

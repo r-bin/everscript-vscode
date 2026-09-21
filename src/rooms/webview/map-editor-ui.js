@@ -76,24 +76,60 @@ function editDock(on, room) {
   }
 }
 
-/** The composer: two source words plus a collision word make a new stamp. */
+/** What each composer source is, in words the sheet above uses. */
+var COMPOSE_NAMES = {
+  layer1: 'canopy — the part drawn over the character',
+  layer2: 'terrain — the ground the character walks on',
+  collision: 'collision — where the character may walk',
+};
+
+/**
+ * The composer: two source words plus a collision word make a new stamp.
+ *
+ * The canopy and terrain words can come from a raw graphic (the **tiles**
+ * view) or from an existing stamp. A collision word cannot — nothing in the
+ * graphics says what is solid — so it is always taken from a stamp that
+ * already behaves the way the new one should.
+ */
 function buildComposerHtml() {
   var c = _editCompose;
+  var ready = c.layer1 != null && c.layer2 != null;
   var slot = function (key, label) {
     var v = c[key];
-    return '<button class="rdf' + (c.pick === key ? ' on' : '') + '" data-edit-pick="' + key + '"'
-      + ' title="Then click a stamp in the palette to take its ' + label + '">'
-      + label + (v == null ? ' —' : ' $' + hex4(v)) + '</button>';
+    return '<button class="rdf' + (c.pick === key && c.armed ? ' on' : '') + '" data-edit-pick="' + key + '"'
+      + ' title="' + escH('Arm this source, then click in the palette to set the '
+        + COMPOSE_NAMES[key]) + '">'
+      + label + ' ' + (v == null ? '—' : '$' + hex4(v)) + '</button>';
   };
+
+  var hint;
+  if (c.armed) {
+    hint = c.pick === 'collision'
+      ? 'Click a <b>stamp</b> above to copy its collision — graphics carry none.'
+      : 'Click a tile in <b>tiles</b>, or a stamp in <b>stamps</b>, to set the '
+        + escH(COMPOSE_NAMES[c.pick].split(' — ')[0]) + '.';
+  } else if (!ready) {
+    hint = 'A stamp needs a canopy word <i>and</i> a terrain word. Press <b>from brush</b> to start '
+      + 'from the selected stamp, or arm a source and click a tile.';
+  } else {
+    hint = '<b>add stamp</b> appends it to the palette and makes it the brush.';
+  }
+
   return '<div class="rs-mt-compose">'
-    + '<div class="rs-note">Compose a stamp: pick a source, then click a tile in the palette.</div>'
+    + '<div class="rs-note">Compose a stamp &mdash; ' + hint + '</div>'
     + '<div class="rd-filters">'
     + slot('layer1', 'canopy') + slot('layer2', 'terrain') + slot('collision', 'collision')
     + '<span class="rs-mt-gap"></span>'
-    + '<button class="rdf" data-edit-act="compose-swap" title="Use the terrain source’s collision">'
+    + '<button class="rdf" data-edit-act="compose-brush"'
+    + ' title="Load all three words from the stamp currently selected">from brush</button>'
+    + '<button class="rdf" data-edit-act="compose-swap"'
+    + ' title="Use the collision of the first stamp that already draws this terrain word">'
     + 'collision = terrain</button>'
-    + '<button class="rdf" data-edit-act="compose-add" title="Add it to the palette and select it as the brush">'
-    + 'add stamp</button>'
+    // `.rdf` is dim by default and `.on` is full strength, so lighting the
+    // button up is how "this will do something now" reads in this tab.
+    + '<button class="rdf' + (ready ? ' on' : '') + '" data-edit-act="compose-add"'
+    + ' title="' + escH(ready ? 'Add it to the palette and select it as the brush'
+      : 'Set a canopy word and a terrain word first') + '">add stamp</button>'
     + '</div>'
     + '<div id="rg-compose-preview" class="rs-mt-preview"></div>'
     + '</div>';

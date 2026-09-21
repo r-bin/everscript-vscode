@@ -24,6 +24,16 @@ const CACHE = new Map();
 const CACHE_MAX = 6;
 
 /**
+ * Tile sheets are cached apart from the dictionary.
+ *
+ * Switching the family tab changes only which palette the sheet is drawn in,
+ * and rebuilding a 2131-entry metatile atlas to answer that would be seven
+ * full re-renders of a room nobody asked to re-render.
+ */
+const TILE_CACHE = new Map();
+const TILE_CACHE_MAX = 14;
+
+/**
  * One row per metatile, as an array rather than an object.
  *
  * `[index, layer1Word, layer2Word, collisionWord, uses]` — the id is
@@ -46,9 +56,10 @@ function buildRoomMetatilePalette(rom, roomId, layer, bgPalette) {
     const buf = rom instanceof Uint8Array ? rom : new Uint8Array(rom);
     const which = LAYERS.indexOf(layer) >= 0 ? layer : 'composite';
     const pal = Math.min(BG_PALETTES, Math.max(1, Number(bgPalette) || 1));
-    const key = romFingerprint(buf) + ':' + roomId + ':' + which + ':' + pal;
+    const stem = romFingerprint(buf) + ':' + roomId;
+    const key = stem + ':' + which;
     const hit = CACHE.get(key);
-    if (hit) return hit;
+    if (hit) return Object.assign({}, hit, { tiles: tileSheet(buf, roomId, stem, pal) });
 
     const room = maps.decodeRoom(buf, roomId);
     const atlas = maps.renderMetatileAtlas(buf, room, { columns: COLUMNS, layer: which });
@@ -83,12 +94,24 @@ function buildRoomMetatilePalette(rom, roomId, layer, bgPalette) {
         /** Defined but never placed — a free slot for a new combination. */
         spare: table.reduce((n, m) => n + (m.uses ? 0 : 1), 0),
         /** The raw graphics Block 1 put in reach — see buildTileSheet. */
-        tiles: buildTileSheet(buf, room, pal),
+        tiles: null,
     };
 
     CACHE.set(key, out);
     if (CACHE.size > CACHE_MAX) CACHE.delete(CACHE.keys().next().value);
-    return out;
+    TILE_CACHE.set(stem + ':' + pal, buildTileSheet(buf, room, pal));
+    return Object.assign({}, out, { tiles: TILE_CACHE.get(stem + ':' + pal) });
+}
+
+/** The room's graphics in one background palette, remembered per palette. */
+function tileSheet(rom, roomId, stem, pal) {
+    const key = stem + ':' + pal;
+    const hit = TILE_CACHE.get(key);
+    if (hit) return hit;
+    const sheet = buildTileSheet(rom, maps.decodeRoom(rom, roomId), pal);
+    TILE_CACHE.set(key, sheet);
+    if (TILE_CACHE.size > TILE_CACHE_MAX) TILE_CACHE.delete(TILE_CACHE.keys().next().value);
+    return sheet;
 }
 
 /**
@@ -167,7 +190,7 @@ function buildComposedPreview(rom, roomId, drafts, layer) {
 const MAX_DRAFTS = 4096;
 
 /** Drop cached palettes (call when the ROM changes). */
-function invalidateMetatilePalettes() { CACHE.clear(); }
+function invalidateMetatilePalettes() { CACHE.clear(); TILE_CACHE.clear(); }
 
 module.exports = {
     buildRoomMetatilePalette, buildComposedPreview, invalidateMetatilePalettes, COLUMNS, LAYERS,

@@ -17,6 +17,7 @@ var _mtFilter = 'all';
 var _mtSelected = -1;
 var _mtView = 'stamps';   // 'stamps' = the dictionary, 'tiles' = Block 1 graphics
 var _mtBgPalette = 1;     // which tile family the tile sheet is drawn in
+var _mtSlot = -1;         // the selected graphic, in the tiles view
 var _mtRoomId = null;
 var _mtRoomName = '';
 
@@ -35,6 +36,9 @@ function buildMetatilePaletteHtml(room) {
 function requestMetatilePalette(room, layer) {
   var id = (typeof roomVanillaIdNum === 'function') ? roomVanillaIdNum(room) : null;
   if (id == null || typeof vs === 'undefined' || !vs) return;
+  // A selection is an index into one room's dictionary; it means something
+  // else in the next room.
+  if (_mtRoomId !== id) { _mtSelected = -1; _mtSlot = -1; }
   _mtRoomId = id;
   _mtRoomName = room && room.name;
   _mtLayer = layer || _mtLayer;
@@ -62,6 +66,12 @@ function applyMetatilePalette(msg) {
  * nothing places is a free combination for a new metatile.
  */
 function metatilePaletteSummary(p) {
+  if (_mtView === 'tiles' && p.tiles) {
+    var fam = (p.tileFamilies || [])[_mtBgPalette - 1];
+    return p.tiles.count + ' graphics this room can draw'
+      + (p.animatedCount ? ' (' + p.animatedCount + ' animated)' : '')
+      + ' · shown in ' + (fam === undefined ? 'palette ' + _mtBgPalette : 'family ' + fam);
+  }
   var used = p.count - p.spare;
   return p.count + ' metatiles — ' + used + ' placed, ' + p.spare + ' spare'
     + ' · ' + p.tileFamilies.length + ' tile famil' + (p.tileFamilies.length === 1 ? 'y' : 'ies')
@@ -73,8 +83,9 @@ function metatilePaletteControls(p) {
   // Two different questions: which stamps the room has already defined, and
   // which raw graphics it loaded that a new stamp could be built from.
   var html = '<div class="rd-filters rs-mt-bar">';
-  [['stamps', 'stamps', 'The metatile dictionary \u2014 combinations this room already defines'],
-   ['tiles', 'graphics', 'The 16x16 graphics Block 1 loaded \u2014 the raw material for a new stamp']]
+  [['stamps', 'stamps \u00b7 ' + p.count, 'The metatile dictionary \u2014 the combinations this room already defines'],
+   ['tiles', 'tiles \u00b7 ' + (p.tiles ? p.tiles.count : 0),
+    'Every 16x16 graphic this room loaded \u2014 the raw material a new stamp is built from']]
     .forEach(function (v) {
       html += '<button class="rdf' + (_mtView === v[0] ? ' on' : '') + '" data-mt-view="' + v[0]
         + '" title="' + escH(v[2]) + '">' + v[1] + '</button>';
@@ -82,15 +93,18 @@ function metatilePaletteControls(p) {
   html += '<span class="rs-mt-gap"></span>';
 
   if (_mtView === 'tiles') {
-    // A graphic has no colours of its own; the tilemap word picks one of the
-    // room's tile families. Same picture, seven possible palettes.
+    // A graphic carries no colours of its own; the tilemap word picks one of
+    // the room's tile families (a 16-colour palette at $9CC322 + id*32). Same
+    // picture, one tab per family the room loaded.
     var fams = p.tileFamilies || [];
     for (var i = 1; i <= (p.tiles ? p.tiles.paletteCount : 7); i++) {
       var fam = fams[i - 1];
       html += '<button class="rdf' + (_mtBgPalette === i ? ' on' : '') + '" data-mt-bgpal="' + i + '"'
-        + ' title="' + escH('CGRAM background palette ' + i
-          + (fam === undefined ? ' \u2014 this room lists no family here' : ' = tile family ' + fam)) + '">'
-        + i + '</button>';
+        + ' title="' + escH(fam === undefined
+          ? 'Background palette ' + i + ' \u2014 this room lists no family here'
+          : 'Tile family ' + fam + ', loaded into background palette ' + i
+            + ' \u2014 a word with pal ' + i + ' draws in these colours') + '">'
+        + (fam === undefined ? '\u2014' : fam) + '</button>';
     }
   } else {
     [['composite', 'both'], ['layer2', 'terrain'], ['layer1', 'canopy']].forEach(function (l) {
@@ -108,6 +122,13 @@ function metatilePaletteControls(p) {
   return html + '</div>';
 }
 
+/** The tilemap word that draws graphic slot `i` in the palette on screen. */
+function tileSlotWord(p, i) {
+  var t = p && p.tiles;
+  if (!t || i < 0 || i >= t.count) return null;
+  return (t.slots[i][1] | (t.palette << 10)) & 0xffff;
+}
+
 /** One cell per Block 1 graphic, with the chr value a word needs to name it. */
 function tileSheetCells(p) {
   var t = p.tiles;
@@ -117,10 +138,11 @@ function tileSheetCells(p) {
     var s = t.slots[i];
     var x = (i % t.columns) * t.cell;
     var y = Math.floor(i / t.columns) * t.cell;
-    var tip = 'slot ' + s[0] + '  graphic $' + hex4(s[2])
-      + '\nchr ' + s[1] + ' \u2014 a word of $' + hex4(s[1] | (t.palette << 10)) + ' draws this'
-      + (s[3] ? '\nanimated (Section 2)' : '');
-    html += '<i class="rs-mt-cell' + (s[3] ? ' anim' : '') + '" data-mt-slot="' + i + '"'
+    var tip = 'graphic #' + s[0] + '  tile id $' + hex4(s[2])
+      + '\nword $' + hex4(tileSlotWord(p, i)) + ' draws this (chr ' + s[1] + ', pal ' + t.palette + ')'
+      + (s[3] ? '\nanimated \u2014 the ROM swaps its pixels every few frames' : '');
+    html += '<i class="rs-mt-cell' + (s[3] ? ' anim' : '') + (i === _mtSlot ? ' sel' : '')
+      + '" data-mt-slot="' + i + '"'
       + ' title="' + escH(tip) + '" style="background-position:-' + x + 'px -' + y + 'px"></i>';
   }
   return html + '</div>';
@@ -199,12 +221,22 @@ function renderMetatilePalette() {
   if (composer) { body.appendChild(composer); if (typeof renderComposer === 'function') renderComposer(); }
 }
 
-/** What the room's graphics list is, and how much of the budget it uses. */
+/**
+ * What the room's graphics list is \u2014 and, once one is picked, the word that
+ * draws it, which is the thing an editor actually needs to write.
+ */
 function tileSheetDetail(p) {
   var t = p.tiles;
   var fams = p.tileFamilies || [];
   var loaded = Math.min(7, fams.length);
-  return '<div class="rs-mt-detail">'
+  var head = '';
+  if (_mtSlot >= 0 && _mtSlot < t.count) {
+    var s = t.slots[_mtSlot];
+    head = '<span class="rs-mt-f"><b>#' + s[0] + '</b> word $' + hex4(tileSlotWord(p, _mtSlot))
+      + ' <span class="rs-note">tile id $' + hex4(s[2]) + ', chr ' + s[1] + ', pal ' + t.palette
+      + (s[3] ? ', animated' : '') + '</span></span>';
+  }
+  return '<div class="rs-mt-detail">' + head
     + '<span class="rs-mt-f"><b>graphics</b> ' + t.count + '</span>'
     + '<span class="rs-mt-f"><b>families</b> ' + fams.join(', ') + '</span>'
     + '<span class="rs-mt-f"><b>palettes</b> ' + loaded + ' of 7 background slots'
@@ -222,7 +254,15 @@ function bindMetatilePalette(panel, room) {
     if (t.id === 'rs-mt-load' || t.dataset.mtReload) { requestMetatilePalette(room, _mtLayer); return; }
     if (t.dataset.mtView) { _mtView = t.dataset.mtView; renderMetatilePalette(); return; }
     if (t.dataset.mtBgpal) { _mtBgPalette = Number(t.dataset.mtBgpal); requestMetatilePalette(room, _mtLayer); return; }
-    if (t.dataset.mtSlot) { _mtSelected = -1; renderMetatilePalette(); return; }
+    if (t.dataset.mtSlot) {
+      // A raw graphic is not placeable on its own — it is a *word*, and the
+      // composer is what turns a word into a stamp. So a click here feeds the
+      // composer when one of its sources is armed.
+      _mtSlot = Number(t.dataset.mtSlot);
+      if (typeof editOnTilePicked === 'function') editOnTilePicked(tileSlotWord(_mtPalette, _mtSlot));
+      renderMetatilePalette();
+      return;
+    }
     if (t.dataset.mtLayer) { _mtLayer = t.dataset.mtLayer; requestMetatilePalette(room, _mtLayer); return; }
     if (t.dataset.mtFilter) { _mtFilter = t.dataset.mtFilter; renderMetatilePalette(); return; }
     if (t.dataset.mtIndex) {
