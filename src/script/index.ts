@@ -33,4 +33,6 @@ export type { TransitionFacts } from './transition';
 export type { LootFacts, LootValue, ValueEncoding } from './loot';
 
 export { buildRoomScriptModel } from './room-scripts';
+export { buildArrivalIndex, mergeArrivals } from './arrivals';
+export type { Arrival, ArrivalIndex } from './arrivals';
 export type { RoomScriptModel, RoomScriptMeta, RoomScript, RoomTrigger, ScriptRow } from './room-scripts';

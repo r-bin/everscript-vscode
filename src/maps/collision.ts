@@ -13,6 +13,8 @@ export const PLANE_TRANSPARENT = 0x0040;
 export const ENTITY_GATE_ACTIVE = 0x0100;
 export const ENTITY_GATE_MASK = 0x0f00;
 export const ALWAYS_WALKABLE = 0x2000;
+/** Bit 12: a character standing here is drawn in front of the foreground. */
+export const SPRITE_IN_FRONT = 0x1000;
 
 /** Fully solid geometry code. */
 export const SOLID = 0x0f;
@@ -35,6 +37,25 @@ export function isPlaneTransparent(cw: number): boolean {
 /** Bit 13: geometry forced to 0 via the all-zero table at $909E73. */
 export function isAlwaysWalkable(cw: number): boolean {
     return (cw & ALWAYS_WALKABLE) !== 0;
+}
+
+/**
+ * Whether a character on this tile is drawn over the foreground.
+ *
+ * `$8FC773` builds an entity's OAM attribute from the collision word of the
+ * tile it stands on. Bit 12 set, or a plane below the tile's own, gives
+ * priority **3** — in front of every background pixel. Otherwise it is
+ * priority **2**, which in Mode 1 sits behind `BG1.1` and `BG2.1`:
+ *
+ *     8FC7AA  BIT #$1000
+ *     8FC7AD  BNE $8FC7C1      ; -> LDA #$CC30, priority 3
+ *     8FC7B7  LDA #$CC20       ; otherwise priority 2
+ *
+ * A spawn's own plane comes from the tile it is placed on, so for a resting
+ * enemy this bit is the whole answer.
+ */
+export function spriteDrawsInFront(cw: number): boolean {
+    return (cw & SPRITE_IN_FRONT) !== 0;
 }
 
 /** True if standing here leaves the entity's plane unchanged ($8FA914). */

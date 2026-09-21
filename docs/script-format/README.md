@@ -21,6 +21,8 @@ ruled out, so the next attempt starts further along.
 | [sprite_format.md](sprite_format.md) | Sprite blocks, chunks and their compression | Solved |
 | [hitboxes.md](hitboxes.md) | How big a character's body is, and what blocks a move | Solved |
 | [attack_boxes.md](attack_boxes.md) | What a swing sweeps, and what it can land on | Solved |
+| [palettes.md](palettes.md) | How many enemies fit in a room before their colours glitch | Solved |
+| [arrivals.md](arrivals.md) | The doors that lead *into* a room | Solved |
 | [../room-simulation.md](../room-simulation.md) | Deciding which branch an enter script takes | **Not built** |
 | [../ingredient-icons.md](../ingredient-icons.md) | Where the menu's item icons live | **Unsolved** |
 

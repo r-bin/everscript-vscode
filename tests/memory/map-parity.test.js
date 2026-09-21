@@ -500,6 +500,63 @@ function checkStrikeBoxes(rom) {
     check('characters with a strike box >= 45', armed >= 45, true);
     check('attack walks that stop early <= 5', stopped <= 5, true);
     console.log(`  strike boxes: ${armed}/141 characters, ${stopped} walks incomplete`);
+    checkPalettes(rom);
+    checkForeground(rom);
+}
+
+/**
+ * Sprite palettes: the slot a character asks for is its `+0x09`, and two
+ * characters with the same value share one. See docs/script-format/palettes.md.
+ */
+function checkPalettes(rom) {
+    // The Mosquito's palette is the one the trace watched being loaded into
+    // slot offset 4 ($90CE92 overwriting $127C, then DMA to CGADD $A1).
+    check('mosquito palette address', maps.characterPaletteAddress(rom, 113), 0xb34b);
+    // Room 0x76's two greens really are one palette: this is what "which
+    // enemies can I add for free" rests on.
+    check('hedgadillo and blue goo share a palette',
+        maps.characterPaletteAddress(rom, 57) === maps.characterPaletteAddress(rom, 63), true);
+    check('a villager and a monster do not',
+        maps.characterPaletteAddress(rom, 4) === maps.characterPaletteAddress(rom, 88), false);
+
+    const names = require('../../src/script/names.json');
+    const distinct = new Set();
+    let none = 0;
+    for (const enemy of Object.values(names.enemies)) {
+        if (enemy.character === null) continue;
+        const addr = maps.characterPaletteAddress(rom, enemy.character);
+        if (!addr) { none += 1; continue; }     // invisible helpers carry no palette
+        distinct.add(addr);
+    }
+    check('distinct character palettes', distinct.size, 90);
+    check('characters with no palette', none, 7);
+    console.log(`  palettes: ${distinct.size} distinct across the named characters, ${none} with none`);
+}
+
+/**
+ * The canopy pass: the pixels a character standing in the room goes behind.
+ *
+ * Two things have to hold for it to be laid over the composite — it must
+ * agree with the composite wherever it is opaque, and it must not be the
+ * whole room, or it would just hide everything.
+ */
+function checkForeground(rom) {
+    const room = decodeRoom(rom, 0x76);
+    const full = renderRoomComposite(rom, room);
+    const fg = maps.renderRoomForeground(rom, room);
+    check('foreground has the room\'s size', `${fg.width}x${fg.height}`, `${full.width}x${full.height}`);
+    let opaque = 0;
+    let mismatched = 0;
+    for (let i = 0; i < fg.data.length; i += 4) {
+        if (!fg.data[i + 3]) continue;
+        opaque += 1;
+        if (fg.data[i] !== full.data[i] || fg.data[i + 1] !== full.data[i + 1]
+            || fg.data[i + 2] !== full.data[i + 2]) mismatched += 1;
+    }
+    const share = opaque / (fg.width * fg.height);
+    check('foreground pixels match the composite', mismatched, 0);
+    check('foreground is a part of the room, not all of it', share > 0.05 && share < 0.95, true);
+    console.log(`  foreground: ${(share * 100).toFixed(1)}% of room 0x76 draws over a character`);
 }
 
 function checkOverlayParity(rom, rooms) {

@@ -250,3 +250,33 @@ function buildRomScriptsHtml(c,trigOff){
   html+='</div>';
   return html;
 }
+
+/**
+ * What the room costs in sprite palettes.
+ *
+ * The game keeps five palette slots for characters ($90CD80) and reuses one
+ * whenever the palette it wants is already loaded — so the cost is the number
+ * of *distinct* palettes, not the number of enemies. Four are handed out
+ * freely; the fifth is the one an effect steals when nothing is free, which
+ * is where an enemy's colours get swapped mid-fight.
+ */
+function buildPaletteHtml(pal){
+  if(!pal||!pal.used||!pal.used.length)return '';
+  var html='<div class="rs rs-pal-sec"><div class="rs-h">Sprite palettes '
+    +'<span class="rs-note" style="font-weight:400;opacity:.6">'
+    +pal.used.length+' of '+pal.slots+' slots — '
+    +(pal.free>0?('room for '+pal.free+' more palette'+(pal.free===1?'':'s'))
+                :'full; another distinct palette shares the slot effects take')
+    +'</span></div><div class="rs-pal">';
+  pal.used.forEach(function(p){
+    var sw='<span class="rs-pal-sw">';
+    // Colour 0 is transparent, so it says nothing about how a sprite looks.
+    for(var i=1;i<p.colours.length;i++)sw+='<i style="background:'+p.colours[i]+'"></i>';
+    sw+='</span>';
+    var who=p.characters.map(function(c){return c.name;}).join(', ');
+    html+='<span class="rs-pal-e" title="'+escH('$90'+p.address.toString(16)+' — '+who+' — '+p.count+' placed')+'">'
+      +sw+'<span>'+escH(who)+'</span></span>';
+  });
+  html+='</div></div>';
+  return html;
+}

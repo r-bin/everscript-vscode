@@ -26,6 +26,25 @@ const SET_SPRITE_FIRST = 0x22;
 const SET_SPRITE_LAST = 0x2b;
 
 /**
+ * `0x2c` fills a **second** sprite slot, usually the shadow.
+ *
+ * `$908418` (the `0x22`–`0x2b` family) writes the bank to entity `+0x08` and
+ * the address to `+0x06`. `$90842F` writes to `+0x09` and `+0x0A` instead —
+ * a different pair, so an entity can carry two sprites at once:
+ *
+ *     90842F  LDA [$5D]        ; a full 24-bit pointer, bank first
+ *     908431  STA $0009,Y
+ *     908438  LDA [$5D]
+ *     90843A  STA $000A,Y
+ *
+ * What lands there is a shadow: the Hedgadillo's north record is
+ * `52 2c c5 17 cc d3 21 2d`, and `$CC17C5` is a black blob. So it is read as
+ * a sprite, but only used when the frame sets no main one — otherwise every
+ * flying enemy would gain a shadow it never had in this view.
+ */
+const SET_SPRITE_SECONDARY = 0x2c;
+
+/**
  * **Bit 7 of a command means "end of frame", not a different command.**
  *
  * The interpreter's dispatch makes this explicit:
@@ -92,35 +111,19 @@ const END_FRAME = 0x80;
  * being given a length that does not exist.
  */
 const COMMAND_LENGTH: Record<number, number> = {
-    0x00: 1, 0x1f: 3, 0x21: 1, 0x2c: 4, 0x2e: 2, 0x32: 4,
+    0x00: 1, 0x1f: 3, 0x21: 1, 0x2c: 4, 0x2e: 2, 0x32: 4,   // 0x2c: the shadow slot
     0x38: 2, 0x40: 3, 0x41: 1, 0x42: 2, 0x43: 1, 0x44: 1,
     0x45: 3, 0x46: 3, 0x47: 5, 0x4b: 3, 0x4c: 6, 0x4d: 3,
     0x4e: 1, 0x4f: 1, 0x50: 5, 0x52: 1, 0x53: 1, 0x54: 3,
     0x5a: 2, 0x5b: 1,
 };
 
-/**
- * Seven more, read the same way, for the attack animations.
- *
- * Idle scripts never reach these; attack, damage and death scripts stop on
- * them constantly (`0x38` alone stopped 132 walks). Same method as above —
- * follow every path through the handler to its `RTS` and add up what it does
- * to `$5D`:
- *
- *     $908B00  0x32: one byte, then a word: STA ($12),Y               -> 4
- *     $908B6C  0x38: LDA [$5D]; STA ($12),Y twice; INC $5D            -> 2
- *     $9086C3  0x43: waits while $001E/$0020,Y are non-zero, RTS      -> 1
- *     $90885A  0x4b: LDA [$5D] 16-bit; JSL $90CD5C; INX INX           -> 3
- *     $908725  0x4c: a word and three signed bytes (an effect + where)-> 6
- *     $9085C1  0x5b: stores the entity's position for a facing, RTS   -> 1
- *     $9088F3  0x40: LDA [$5D] 16-bit; JSL $8C81FD; +2                -> 3
- *
- * `0x40` has a caveat worth stating: when the entity is out of the live
- * range or `$0014,Y & $0020` is set, the handler returns at `$908920`
- * **without** advancing `$5D` at all. That is a runtime abort, not a second
- * encoding — the operand is still in the script — so a static walk reads it
- * as three bytes.
- */
+// Seven more come from the attack animations, which idle scripts never reach:
+// 0x32 (4), 0x38 (2), 0x40 (3), 0x43 (1), 0x4b (3), 0x4c (6), 0x5b (1), each
+// read off its handler the same way. The table in
+// docs/script-format/animation_format.md lists them with their addresses, and
+// notes 0x40's early-out at $908920, which skips the advance without changing
+// the encoding. Adding all seven changed no idle walk.
 
 /**
  * `0x2d` restarts the script — it is where an animation loops.
@@ -163,16 +166,20 @@ export function resolveCharacterSprite(
 ): number | null {
     const script = animationScript(rom, character, facing);
     let p = script;
+    let secondary: number | null = null;
     for (let i = 0; i < MAX_COMMANDS; i++) {
         const cmd = at(rom, p) & COMMAND_MASK;
         if (cmd >= SET_SPRITE_FIRST && cmd <= SET_SPRITE_LAST) {
             return (((cmd + SPRITE_BANK_BIAS) << 16) | read16At(rom, p + 1)) >>> 0;
         }
-        if (cmd === LOOP) return null;       // back to the start: nothing more to see
+        if (cmd === SET_SPRITE_SECONDARY && secondary === null) {
+            secondary = (read16At(rom, p + 1) | (at(rom, p + 3) << 16)) >>> 0;
+        }
+        if (cmd === LOOP) return secondary;  // back to the start: the shadow is all there is
         p += commandLength(cmd);
-        if (commandLength(cmd) === 0) return null;  // unknown: stop, never guess
+        if (commandLength(cmd) === 0) return secondary;  // unknown: stop, never guess
     }
-    return null;
+    return secondary;
 }
 
 /** Bytes this command occupies, or 0 when its width is not known. */
@@ -263,6 +270,9 @@ export function characterAnimation(
         }
         if (cmd >= SET_SPRITE_FIRST && cmd <= SET_SPRITE_LAST) {
             sprite = (((cmd + SPRITE_BANK_BIAS) << 16) | read16At(rom, p + 1)) >>> 0;
+        } else if (cmd === SET_SPRITE_SECONDARY) {
+            // Only as a stand-in: a frame that sets a main sprite keeps it.
+            if (sprite === null) sprite = (read16At(rom, p + 1) | (at(rom, p + 3) << 16)) >>> 0;
         } else if (cmd >= HOLD_FIRST && cmd <= HOLD_LAST) {
             ticks = cmd;
         } else if (cmd === HOLD_OPERAND) {

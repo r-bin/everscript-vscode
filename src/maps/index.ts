@@ -31,8 +31,10 @@ export {
     planesUsed,
     planeTransitionTiles,
     geometryMask,
+    spriteDrawsInFront,
     SOLID,
     OPEN,
+    SPRITE_IN_FRONT,
 } from './collision';
 export type { Entity, DriftVector } from './collision';
 
@@ -42,7 +44,7 @@ export type { GrassSwapTable, GrassRecord } from './cuttable-grass';
 export { extractTileFamilyPalette, buildRoomCgramPalettes } from './palette';
 export type { Rgba } from './palette';
 export { decompressTile16x16, decodeTilePixels } from './chr';
-export { renderVramLayer, compositeLayers, renderRoomComposite } from './render';
+export { renderVramLayer, compositeLayers, renderRoomComposite, renderRoomForeground } from './render';
 export type { PixelBuffer, RenderOptions } from './render';
 export { encodePng, encodePngDataUri } from './png';
 export { drawCollisionOverlay, PLANE_COLORS } from './collision-overlay';
@@ -69,7 +71,8 @@ export {
     resolveCharacterSprite, characterAnimation, strikeBoxes, characterStrikeBoxes,
 } from './character-animation';
 export {
-    characterPalette, characterDisposition, characterHitbox, entitiesCollide, FACING_SOUTH,
+    characterPalette, characterPaletteAddress, characterDisposition, characterHitbox,
+    entitiesCollide, FACING_SOUTH,
 } from './character-record';
 export type { SpriteInfo, SpriteChunk, SpritePixels, SpriteBlockPixels } from './sprites';
 export type { AnimationFrame as SpriteAnimationFrame, StrikeBox } from './character-animation';

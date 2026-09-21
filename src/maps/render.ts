@@ -19,9 +19,15 @@ export interface PixelBuffer {
 export interface RenderOptions {
     /** Backdrop colour for pixels no enabled layer covers. Defaults to opaque black. */
     backdrop?: Rgba;
+    /**
+     * Keep only the pixels that are drawn **in front of sprites**, leaving the
+     * rest transparent. See `renderRoomForeground`.
+     */
+    foregroundOnly?: boolean;
 }
 
 const DEFAULT_BACKDROP: Rgba = [0, 0, 0, 255];
+const TRANSPARENT: Rgba = [0, 0, 0, 0];
 
 /**
  * SNES tilemap word layout:
@@ -129,7 +135,8 @@ export function compositeLayers(room: RoomData, l1: PixelBuffer, l2: PixelBuffer
     const width = l1.width;
     const height = l1.height;
     const out = new Uint8Array(width * height * 4);
-    const backdrop = opts.backdrop || DEFAULT_BACKDROP;
+    const backdrop = opts.foregroundOnly ? TRANSPARENT : (opts.backdrop || DEFAULT_BACKDROP);
+    const foregroundOnly = opts.foregroundOnly === true;
 
     const bg1Main = (displayTm & 0x01) !== 0;
     const bg2Main = (displayTm & 0x02) !== 0;
@@ -170,6 +177,13 @@ export function compositeLayers(room: RoomData, l1: PixelBuffer, l2: PixelBuffer
                         out[i + 1] = backdrop[1];
                         out[i + 2] = backdrop[2];
                         out[i + 3] = backdrop[3];
+                        continue;
+                    }
+
+                    // Foreground pass: only the priority half of the layer that
+                    // won, which is the half an ordinary sprite goes behind.
+                    if (foregroundOnly && !((mainLayer === 1 && p1) || (mainLayer === 2 && p2))) {
+                        out[i + 3] = 0;
                         continue;
                     }
 
@@ -218,4 +232,20 @@ export function renderRoomComposite(rom: Uint8Array, room: RoomData, opts: Rende
     const l1 = renderVramLayer(rom, room, room.layer1VramWords);
     const l2 = renderVramLayer(rom, room, room.layer2VramWords);
     return compositeLayers(room, l1, l2, opts);
+}
+
+/**
+ * The part of a room that is drawn **over** the characters standing in it.
+ *
+ * In Mode 1 the layer order is `OBJ.3 > BG1.1 > BG2.1 > OBJ.2 > BG1.0 >
+ * BG2.0`, and `$8FC773` gives an entity priority 3 or 2 from the tile it is
+ * standing on — 3 when that tile's collision word has bit 12, otherwise 2.
+ * So a priority-2 character goes behind exactly the pixels this renders: the
+ * priority half of whichever layer won.
+ *
+ * Everything else comes out transparent, so the result can be laid straight
+ * over the composite and its characters.
+ */
+export function renderRoomForeground(rom: Uint8Array, room: RoomData): PixelBuffer {
+    return renderRoomComposite(rom, room, { foregroundOnly: true });
 }

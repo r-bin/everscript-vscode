@@ -416,5 +416,33 @@ test('a script past the end of a short ROM stops instead of reading zeroes', () 
     assert.strictEqual(res.instructions.length, 0);
 });
 
+// ── arrivals ────────────────────────────────────────────────────────────────
+
+test('an arrival keeps the landing spot in both pixels and map units', () => {
+    // One room whose enter script is a bare CHANGE MAP (0x22) to room 1 at
+    // map unit 32,16 — the opcode stores those shifted into pixels.
+    const rom = new Uint8Array(0x400000);
+    rom.set([0x00, 0x01, 0x00], script.snesToRom(0x9ffde7));          // map 0 data
+    rom.set([0x00, 0x01, 0x00], script.snesToRom(0x9ffdeb));          // map 1 data
+    rom.set([0x10, 0x00], script.snesToRom(0x928000));                // script table base
+    rom.set([0x00, 0x02, 0x00], script.snesToRom(0x92801b));          // enter -> $928200
+    rom.set([0x22, 0x20, 0x10, 0x01, 0x00, 0x00], script.snesToRom(0x928200));
+    const index = script.buildArrivalIndex(rom, 2);
+    const into = index.get(1) || [];
+    assert.ok(into.length >= 1, 'room 1 has a door leading into it');
+    assert.strictEqual(into[0].x, 0x0100);
+    assert.strictEqual(into[0].unitX, 32, '8 pixels to the map unit');
+    assert.strictEqual(into[0].unitY, 16);
+    assert.strictEqual(into[0].direction, null, 'no prepare script, so no guessed direction');
+});
+
+test('arrivals onto one tile from one room merge', () => {
+    const one = { fromMap: 3, kind: 'step-on', index: 0, x: 8, y: 8, unitX: 1, unitY: 1,
+                  direction: 'west', prepares: [], music: null };
+    const same = { ...one, index: 1 };
+    const elsewhere = { ...one, unitX: 9 };
+    assert.strictEqual(script.mergeArrivals([one, same, elsewhere]).length, 2);
+});
+
 console.log('\n' + (passed + failed) + ' run: ' + passed + ' passed, ' + failed + ' failed');
 if (failed) process.exit(1);

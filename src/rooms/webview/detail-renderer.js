@@ -59,7 +59,11 @@ function renderRoomDetail(room){
     // The collision box each of them carries — character record +0x0D.
     if(trig.enter.spawns.some(function(s){return s.hitW;}))
       html+='<button class="rdf on" data-hide="hide-hitbox" title="Toggle collision boxes (2r wide, r tall)">hitbox</button>';
+    // The priority half of the map, drawn back over them.
+    html+='<button class="rdf on" data-hide="hide-fg" title="Draw the canopy over the enemies, as the game does">canopy</button>';
   }
+  if(trig.arrivals&&trig.arrivals.length)
+    html+='<button class="rdf on" data-hide="hide-arrival" title="Toggle the doors that lead into this room">arrivals</button>';
   html+='<button class="rdf on" id="rg-lock-btn" title="Unlock map">locked</button>';
   html+='</div></div>';
 
@@ -75,9 +79,13 @@ function renderRoomDetail(room){
     trigOff:trigOff, stepOnNames:stepOnNames, bTrigNames:bTrigNames,
     imageUri:room.imageUri||null, imageDims:room.imageDims||null,
     rh:rh, mapName:room.name,
-    romSpawns:(trig.enter&&trig.enter.spawns)||[]
+    romSpawns:(trig.enter&&trig.enter.spawns)||[],
+    arrivals:trig.arrivals||[]
   });
   html+=svgResult.html;
+
+  // ── Sprite palettes ────────────────────────────────────────────────────────
+  html+=buildPaletteHtml(trig.palettes);
 
   // ── Entity tables ──────────────────────────────────────────────────────────
   html+=buildEntityTablesHtml(c,trigOff);
@@ -259,6 +267,22 @@ function applyRoomTileOverlay(msg){
       img.setAttribute('x',_pendingTileMapOrigin.x);
       img.setAttribute('y',_pendingTileMapOrigin.y);
       img.classList.add('rg-rom-render');
+    }
+    // The same render, reduced to the pixels that go over a character. It sits
+    // above the spawns in the SVG, so switching it on is what puts an enemy
+    // under the canopy instead of on top of it.
+    var fg=document.getElementById('rg-fg');
+    if(fg){
+      if(ov.foregroundUri){
+        fg.setAttribute('href',ov.foregroundUri);
+        fg.setAttribute('width',ov.imageWidth/8);
+        fg.setAttribute('height',ov.imageHeight/8);
+        fg.setAttribute('x',_pendingTileMapOrigin.x);
+        fg.setAttribute('y',_pendingTileMapOrigin.y);
+        fg.style.display='';
+      }else{
+        fg.style.display='none';
+      }
     }
   }
 

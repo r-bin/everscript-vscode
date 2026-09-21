@@ -109,9 +109,22 @@ export function animationScript(
     return (read16At(rom, ANIMATION_TABLE + anim) | (at(rom, ANIMATION_TABLE + anim + 2) << 16)) >>> 0;
 }
 
+/**
+ * The 16-bit value in record `+0x09` — a character's palette, as the game
+ * identifies it.
+ *
+ * This is the whole identity: `$90CD80` compares exactly this number against
+ * the five palette slots and reuses a slot when it matches, so two characters
+ * with the same value never cost two slots. See
+ * docs/script-format/palettes.md.
+ */
+export function characterPaletteAddress(rom: Uint8Array, character: number): number {
+    return read16At(rom, CHARACTER_TABLE + character * CHARACTER_STRIDE + PALETTE);
+}
+
 /** A character's 16 colours as RGB triples; index 0 is transparent. */
 export function characterPalette(rom: Uint8Array, character: number): Array<[number, number, number]> {
-    const base = PALETTE_BANK | read16At(rom, CHARACTER_TABLE + character * CHARACTER_STRIDE + PALETTE);
+    const base = PALETTE_BANK | characterPaletteAddress(rom, character);
     const out: Array<[number, number, number]> = [];
     for (let i = 0; i < 16; i++) {
         const c = read16At(rom, base + i * 2);

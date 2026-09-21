@@ -18,6 +18,7 @@
  *   .imageUri   webview image URI (or null)
  *   .imageDims  {w,h} image dimensions (or null)
  *   .rh         romHeader (or null)
+ *   .arrivals   doors leading into this room (or empty)
  * @returns {{ html: string, x1, y1, x2, y2, W, H, dispW, dispH, hasCoords, zoomState }}
  */
 function buildRoomSvgSection(opts){
@@ -26,6 +27,7 @@ function buildRoomSvgSection(opts){
   var trigOff=opts.trigOff, stepOnNames=opts.stepOnNames, bTrigNames=opts.bTrigNames;
   var imageUri=opts.imageUri, imageDims=opts.imageDims, rh=opts.rh;
   var romSpawns=opts.romSpawns||[];
+  var arrivals=opts.arrivals||[];
 
   // Compute SVG viewport bounds. ROM header dimensions are authoritative.
   var TILE=8;
@@ -185,6 +187,39 @@ function buildRoomSvgSection(opts){
         // No character record either — nothing but a position to show.
         html+='<rect class="svge-spawn" data-idx="'+i+'" data-kind="spawn" data-label="'+escH(nm)+' ('+v.x+','+v.y+')" x="'+(v.x-0.5)+'" y="'+(v.y-0.5)+'" width="1" height="1" fill="none" stroke="#e3b341" stroke-width="0.25" rx="0.3"><title>'+escH(tip)+'</title></rect>';
       }
+    });
+
+    // The canopy, drawn back over the enemies standing under it.
+    //
+    // In Mode 1 the layer order is OBJ.3 > BG1.1 > BG2.1 > OBJ.2 > BG1.0 >
+    // BG2.0, and $8FC773 gives a character priority 2 unless the tile it
+    // stands on says otherwise — so the priority half of the map covers it.
+    // The host renders exactly those pixels; everything else is transparent,
+    // so this sits harmlessly on top of the identical pixels of the base map.
+    html+='<image class="svge-fg" id="rg-fg" x="'+mapX0+'" y="'+mapY0+'" width="'+mapW+'" height="'+mapH+
+          '" preserveAspectRatio="none" style="display:none" pointer-events="none"/>';
+
+    // Doors that lead into this room, gathered from every script in the ROM.
+    // Drawn over the canopy: they are annotation, not scenery.
+    arrivals.forEach(function(a,i){
+      var dirName={north:'north',east:'east',south:'south',west:'west'}[a.direction]||'';
+      var label='from '+(a.fromName||('map 0x'+a.fromMap.toString(16)))
+            +(dirName?' — walking '+dirName:'');
+      var tip=label+'\n'+a.kind+(a.index>=0?' #'+a.index:'')+' at '+a.unitX+','+a.unitY
+            +(a.prepares&&a.prepares.length?'\n'+a.prepares.map(function(p){return p.name;}).join('\n'):'')
+            +'\nclick to open that room';
+      var cx=a.unitX, cy=a.unitY, r=0.62;
+      html+='<g class="svge-arrival" data-goto-map="'+a.fromMap.toString(16)+'" data-idx="'+i+'" data-kind="arrival" data-label="'+escH(label)+'" style="cursor:pointer">';
+      html+='<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="rgba(120,200,255,0.18)" stroke="#63c5ff" stroke-width="0.22"><title>'+escH(tip)+'</title></circle>';
+      // An arrow along the direction the player is walking as they come in.
+      var d={north:[0,-1],south:[0,1],east:[1,0],west:[-1,0]}[a.direction];
+      if(d){
+        var ax=cx+d[0]*1.35, ay=cy+d[1]*1.35;
+        html+='<line x1="'+(cx+d[0]*0.7)+'" y1="'+(cy+d[1]*0.7)+'" x2="'+ax+'" y2="'+ay+'" stroke="#63c5ff" stroke-width="0.22" pointer-events="none"/>';
+        var px=-d[1]*0.34, py=d[0]*0.34;
+        html+='<polygon points="'+ax+','+ay+' '+(ax-d[0]*0.5+px)+','+(ay-d[1]*0.5+py)+' '+(ax-d[0]*0.5-px)+','+(ay-d[1]*0.5-py)+'" fill="#63c5ff" fill-opacity="0.9" pointer-events="none"/>';
+      }
+      html+='</g>';
     });
 
     // Lua POI markers (cyan cross)

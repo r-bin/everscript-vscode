@@ -1,3 +1,41 @@
+## [0.32.0] — 2026-09-21
+
+Three asks from map `0x76`: draw enemies the way the game layers them, track palettes, and show where a room is entered from.
+
+### The canopy goes over the enemies
+
+`$8FC773` builds an entity's OAM attribute from the tile it stands on, and only ever picks priority **3** or **2**:
+
+```
+8FC7AA  BIT #$1000
+8FC7AD  BNE $8FC7C1      ; -> LDA #$CC30, priority 3: in front of everything
+8FC7B7  LDA #$CC20       ; otherwise priority 2
+```
+
+In Mode 1 the order is `OBJ.3 > BG1.1 > BG2.1 > OBJ.2 > BG1.0 > BG2.0`, so a priority-2 character goes behind exactly the priority half of whichever layer won. The host now renders that half on its own — `renderRoomForeground`, transparent everywhere else — and the Rooms tab lays it over the spawns. In room `0x76` it is 47% of the picture, which is why the Hedgadillo looked pasted on top of the leaves. Toggle: **canopy**.
+
+### Sprite palettes, and how many enemies fit
+
+New doc: [docs/script-format/palettes.md](docs/script-format/palettes.md).
+
+**Map and enemy palettes do not share slots** — sprites live in CGRAM 128..255, backgrounds in 0..127. Within the sprite half, `$90CD80` manages the table at `$7E1278`:
+
+- it first looks for the wanted palette in five slots, so **two characters with the same record `+0x09` cost one slot between them**;
+- it then looks for a free slot in only **four** of them;
+- and with nothing free, `$90CE92` overwrites sprite palette 2 unconditionally. That is the glitch: the fifth distinct palette sits in the slot the next effect takes.
+
+So the budget is **4 distinct palettes**, not 4 enemies. The Rooms tab now shows the room's palettes with swatches and how many slots are left. 90 distinct palettes cover the 134 characters that have one, and 27 are shared — a room with a Mosquito can add a Magmar, a Skullclaw or a Death Spider for free, and all eight villager palettes are one slot.
+
+### Arrivals
+
+New doc: [docs/script-format/arrivals.md](docs/script-format/arrivals.md). Nothing in a room says where you come in, so the index is built backwards: every map's triggers walked once, every `CHANGE MAP` keyed by destination. 45 ms for all 128 rooms, cached per ROM.
+
+Each door is drawn at its landing tile with an arrow for the direction the player is walking — read from the prepare script's own name ("South exit/north entrance" means still heading south) — and clicking it opens that room. Toggle: **arrivals**.
+
+### Also
+
+- **`0x2c` is a second sprite slot**, the shadow: `$90842F` writes `+0x09`/`+0x0A` where the ordinary set-sprite writes `+0x06`/`+0x08`. It is used only when a frame sets no main sprite, which is what the Hedgadillo's north pose does — it was rendering as nothing.
+- The example in map `0x76` is not a facing bug: its four records are shadow, back, side, front, so facing south really does select the side view. The selection itself is checked against a villager, the chameleon and the traced viper.
 ## [0.31.0] — 2026-09-21
 
 Attack boxes, from the trace of the Boy hitting the flower. New doc: [docs/script-format/attack_boxes.md](docs/script-format/attack_boxes.md).

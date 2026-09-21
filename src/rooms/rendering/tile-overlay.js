@@ -195,6 +195,10 @@ function cachedRender(rom, roomId, layer, ov, stateSpec) {
     const room = maps.applyObjectStates(rom, base, parseObjectStates(stateSpec));
     const image = renderLayer(rom, room, layer);
     if (ov.any) maps.drawCollisionOverlay(image, room, ov.opts);
+    // The half of the room that is drawn over the characters standing in it,
+    // so the Rooms tab can put enemies under the canopy the way the game does.
+    // Composite only: a single-layer view has no foreground to speak of.
+    const foreground = layer === 'composite' ? maps.renderRoomForeground(rom, room) : null;
     const entry = {
         room,
         // Kept so the animation can re-apply the same overlay to its frames.
@@ -203,6 +207,7 @@ function cachedRender(rom, roomId, layer, ov, stateSpec) {
         overlayOpts: ov.any ? ov.opts : null,
         features: maps.classifyRoom(room),
         imageUri: maps.encodePngDataUri(image),
+        foregroundUri: foreground ? maps.encodePngDataUri(foreground) : null,
         width: image.width,
         height: image.height,
     };
@@ -312,7 +317,7 @@ function buildRoomTileOverlay(rom, roomId, originX, originY, layer, overlay, obj
     const spec = typeof objectStates === 'string' ? objectStates : '';
     const renderKey = romFingerprint(buf) + ':' + roomId + ':' + which + ':' + ov.flags + ':' + spec;
     const entry = cachedRender(buf, roomId, which, ov, spec);
-    const { room, features, imageUri, width, height } = entry;
+    const { room, features, imageUri, foregroundUri, width, height } = entry;
     const collision = countCollision(room.collisionWords);
 
     return {
@@ -324,6 +329,7 @@ function buildRoomTileOverlay(rom, roomId, originX, originY, layer, overlay, obj
         originX: originX || 0,
         originY: originY || 0,
         imageUri,
+        foregroundUri,
         imageWidth: width,
         imageHeight: height,
         collisionTiles: collision.painted,

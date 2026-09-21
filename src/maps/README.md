@@ -98,5 +98,12 @@ Going from a character to a picture is three layers, each its own file:
 See
 [docs/script-format/sprite_format.md](../../docs/script-format/sprite_format.md),
 [animation_format.md](../../docs/script-format/animation_format.md),
-[character_table.md](../../docs/script-format/character_table.md) and
-[hitboxes.md](../../docs/script-format/hitboxes.md).
+[character_table.md](../../docs/script-format/character_table.md),
+[hitboxes.md](../../docs/script-format/hitboxes.md),
+[attack_boxes.md](../../docs/script-format/attack_boxes.md) and
+[palettes.md](../../docs/script-format/palettes.md).
+
+`render.ts` also renders the **canopy** — `renderRoomForeground`, the pixels
+a character standing in the room is drawn behind. In Mode 1 that is the
+priority half of whichever layer won, because `$8FC773` gives an entity OAM
+priority 2 unless the tile it stands on says otherwise.

@@ -8,8 +8,11 @@
 const fs = require('fs');
 const path = require('path');
 
-const { buildRoomScriptModel } = require('../../script');
-const { renderCharacterFrames, encodePng, characterDisposition, characterHitbox } = require('../../maps');
+const { buildRoomScriptModel, buildArrivalIndex, mergeArrivals } = require('../../script');
+const {
+    renderCharacterFrames, encodePng, characterDisposition, characterHitbox,
+    characterPalette, characterPaletteAddress,
+} = require('../../maps');
 
 const ROM_NAMES = ['Secret of Evermore (U) [!].smc', 'Secret of Evermore.smc'];
 
@@ -113,6 +116,60 @@ function attachSprites(rom, spawns) {
 }
 
 /**
+ * What the room costs in sprite palettes.
+ *
+ * `$90CD80` keeps five slots for characters and reuses one whenever the
+ * wanted palette is already in it, so **the cost is the number of distinct
+ * palettes, not the number of enemies**. Four of the five are handed out to
+ * whoever asks; the fifth is the one `$90CE92` overwrites when nothing is
+ * free, which is where a palette gets stolen by the next effect that needs
+ * one. See docs/script-format/palettes.md.
+ */
+const PALETTE_SLOTS = 4;
+
+function paletteSummary(rom, spawns) {
+    const groups = new Map();
+    for (const spawn of spawns) {
+        if (spawn.character === null || spawn.character === undefined) continue;
+        let addr;
+        try { addr = characterPaletteAddress(rom, spawn.character); } catch { continue; }
+        // Zero means the character has no palette of its own; `$90CD48` skips
+        // the whole allocation for it, so it costs nothing.
+        if (!addr) continue;
+        if (!groups.has(addr)) {
+            groups.set(addr, {
+                address: addr,
+                colours: characterPalette(rom, spawn.character)
+                    .map(([r, g, b]) => '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')),
+                characters: [],
+                count: 0,
+            });
+        }
+        const g = groups.get(addr);
+        g.count += 1;
+        const name = spawn.romName || spawn.name || ('NPC ' + spawn.npc);
+        if (!g.characters.some((c) => c.character === spawn.character)) {
+            g.characters.push({ character: spawn.character, name });
+        }
+    }
+    const used = [...groups.values()].sort((a, b) => b.count - a.count);
+    return { slots: PALETTE_SLOTS, used, free: Math.max(0, PALETTE_SLOTS - used.length) };
+}
+
+/** Doors that lead into this room, built once per ROM and kept. */
+let arrivalIndex = null;
+let arrivalIndexKey = '';
+
+function arrivalsFor(rom, mapId) {
+    const key = rom.length + ':' + rom[0x100] + ':' + rom[0x20000] + ':' + rom[0x100000];
+    if (arrivalIndexKey !== key) {
+        arrivalIndex = buildArrivalIndex(rom);
+        arrivalIndexKey = key;
+    }
+    return mergeArrivals(arrivalIndex.get(mapId) || []);
+}
+
+/**
  * The room's enter / step-on / B-trigger scripts, or null when there is no
  * ROM to read. A malformed room returns null rather than a partial model.
  */
@@ -122,6 +179,8 @@ function readRoomScriptModel(wsRoot, mapId, romPathOverride) {
     try {
         const model = buildRoomScriptModel(rom, mapId);
         attachSprites(rom, model.enter.spawns);
+        model.palettes = paletteSummary(rom, model.enter.spawns);
+        try { model.arrivals = arrivalsFor(rom, mapId); } catch { model.arrivals = []; }
         return model;
     } catch { return null; }
 }
