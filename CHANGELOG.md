@@ -1,3 +1,39 @@
+## [0.46.0] — 2026-09-21
+
+### A deco library, read out of the ROM
+
+Section 3 objects **are** the game's deco widgets — that is where the gourds, pots and fire pits already live. Room `0x51` is 25 gourds and pots; room `0x25`'s 4×3 objects are fire pits, lit and unlit. So the library is not invented, it is read out: **655 distinct objects**, deduplicated by the metatile words they are made of, with how often the game places each one.
+
+Click one and it becomes an armed construct you can stamp.
+
+**There are no names in the ROM.** An object is a rectangle of metatiles and an id; nothing says "gourd". So the picker is visual: a thumbnail cropped from a render of the room the object lives in (floor included, or a gourd reads as a silhouette), plus its size, its act, its room, and whether it has more than one state. Filter by act, room name, a size like `4x3`, or `open` for the 134 that open, break or burn.
+
+Copying the art is not copying the object record, and the note says so: a multi-state object stamps **its tiles only**.
+
+### `ctrl+z` now reverts the metatiles too
+
+Undo restored the cells but left every stamp it had created in the dictionary, so the budget only ever grew. Undo and redo now prune the metatiles nothing references any more — and the adopted graphics with them.
+
+Only the **tail** is pruned. An index is a position, so removing from the middle would silently repoint every cell above it; stamps still in use keep their original index. The armed brush survives even unplaced, because you chose it on purpose.
+
+### A tile goes on the layer vanilla puts it on
+
+You were right that transparency implies foreground, and the ROM can settle it: the index now counts, per graphic, how often it is drawn as canopy versus terrain. **4822 of 5628 graphics are at least 90% one-sided.**
+
+So picking a tile no longer just follows the phase — where vanilla has an opinion (≥60%), that decides which word the new metatile gets, and the status line says it is following the game. Below that the phase breaks the tie.
+
+### "2×2 shows 4×4 tiles"
+
+Two causes, both fixed:
+
+- `svg-builder` **bakes the grid paths** from the room it rendered, so swapping a blank room underneath left the previous room's lines behind. The grid is regenerated for the new size.
+- The viewBox kept `svg-builder`'s 8-unit minimum, which drew lines past the edge of a small room. It is now the room's exact extent.
+
+### Also
+
+- `map-editor-phases.js` split out of `map-editor.js` to stay under the 400-line limit.
+- The browser test is at **53 checks**, including that undo prunes from the tail only and that the regenerated grid stops at the room's edge.
+
 ## [0.45.0] — 2026-09-21
 
 ### Clicking a tile in a family strip did nothing

@@ -7,8 +7,8 @@
 function editAction(act) {
   var d = editDraft();
   if (!d) return;
-  if (act === 'undo') { editUndo(); renderEditChrome(); return; }
-  if (act === 'redo') { editRedo(); renderEditChrome(); return; }
+  if (act === 'undo') { editUndo(_mtPalette); requestComposedPreview(); renderEditChrome(); return; }
+  if (act === 'redo') { editRedo(_mtPalette); requestComposedPreview(); renderEditChrome(); return; }
   if (act === 'clear') {
     editReset(d.roomId).on = true;
     _editSel = null; _editClip = null; _editComposed = null;

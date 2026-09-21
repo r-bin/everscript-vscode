@@ -27,6 +27,14 @@ export interface VanillaIndex {
     rooms: Map<number, number[]>;
     /** Graphic id -> the rooms that draw it, ascending. */
     graphicRooms: Map<number, number[]>;
+    /**
+     * Graphic id -> how often it is drawn on each layer.
+     *
+     * A graphic with transparent pixels is usually canopy art — it is
+     * meant to have something show through it — but "usually" is a
+     * measurement, not a rule, so this counts instead of guessing.
+     */
+    layers: Map<number, { canopy: number; terrain: number }>;
     /** Terrain graphic id -> the collision words used with it. */
     collisions: Map<number, Attestation<number>[]>;
     /** How many rooms went into the index. */
@@ -81,6 +89,7 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
     const collCounts = new Map<number, Map<number, number>>();  // graphic -> collision
     const rooms = new Map<number, number[]>();
     const graphicRooms = new Map<number, Set<number>>();
+    const layers = new Map<number, { canopy: number; terrain: number }>();
     let roomCount = 0;
     let placements = 0;
 
@@ -102,7 +111,7 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
 
         for (const m of metatileTable(room)) {
             if (!m.uses) continue;
-            for (const word of [m.layer1, m.layer2]) {
+            for (const [which, word] of [[0, m.layer1], [1, m.layer2]] as const) {
                 const graphic = tileIds[charIndexToSlot(word & 0x3ff)];
                 const pal = (word >> 10) & 0x07;
                 // Palette 0 is the HUD's; a background word never selects it,
@@ -112,6 +121,10 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
                 if (fam === undefined) continue;
                 tally(famCounts, graphic, fam, m.uses);
                 tally(gfxCounts, fam, graphic, m.uses);
+                let seen = layers.get(graphic);
+                if (!seen) { seen = { canopy: 0, terrain: 0 }; layers.set(graphic, seen); }
+                if (which === 0) seen.canopy += m.uses;
+                else seen.terrain += m.uses;
                 const seenIn = graphicRooms.get(graphic);
                 if (seenIn) seenIn.add(id);
                 else graphicRooms.set(graphic, new Set([id]));
@@ -132,6 +145,7 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
         graphics: rank(gfxCounts),
         rooms,
         graphicRooms: perGraphic,
+        layers,
         collisions: rank(collCounts),
         roomCount,
         placements,
@@ -195,6 +209,29 @@ function suggest(list: Attestation<number>[] | undefined): Suggestion | null {
 /** Which family vanilla draws this graphic in. `null` if never seen. */
 export function suggestFamily(index: VanillaIndex, graphic: number): Suggestion | null {
     return suggest(index.families.get(graphic));
+}
+
+/**
+ * Which layer vanilla draws this graphic on.
+ *
+ * `'canopy'` is the part drawn over the character, `'terrain'` the ground
+ * it walks on. Returns `null` for a graphic nothing has drawn.
+ */
+export function preferredLayer(
+    index: VanillaIndex,
+    graphic: number,
+): { layer: 'canopy' | 'terrain'; confidence: number; canopy: number; terrain: number } | null {
+    const seen = index.layers.get(graphic);
+    if (!seen) return null;
+    const total = seen.canopy + seen.terrain;
+    if (!total) return null;
+    const canopyWins = seen.canopy > seen.terrain;
+    return {
+        layer: canopyWins ? 'canopy' : 'terrain',
+        confidence: (canopyWins ? seen.canopy : seen.terrain) / total,
+        canopy: seen.canopy,
+        terrain: seen.terrain,
+    };
 }
 
 /** Which collision word vanilla puts under this terrain graphic. */

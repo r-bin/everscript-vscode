@@ -9,7 +9,7 @@
 
 /** Which family slot's art is expanded under the slots, -1 for none. */
 var _famOpen = -1;
-var _panelOpen = { families: true, tiles: true, needed: false, errors: true, compose: false };
+var _panelOpen = { families: true, tiles: true, deco: true, needed: false, errors: true, compose: false };
 /**
  * Where the tile list draws from.
  *
@@ -206,6 +206,7 @@ function renderEditPanels() {
       ? (p.graphicGroups || []).length + ' groups'
       : _tileSource === 'room' ? (p.tiles ? p.tiles.count : 0) + ' loaded'
         : chosen.length + ' families')
+    + panel('deco', 'deco', decoPanel(), _deco ? _deco.length + ' objects' : '')
     + panel('needed', 'new metatiles', neededPanel(p),
       need.added.length ? need.added.length + ' needed' : 'none')
     + panel('compose', 'compose & constructs', '<div id="rg-compose"></div>',
@@ -213,9 +214,12 @@ function renderEditPanels() {
   if (_panelOpen.compose !== false) renderComposer();
   // The filter keeps focus across the redraw it causes, or typing a second
   // character would put the caret back at the start.
-  var filter = document.getElementById('rg-fam-filter');
-  if (filter && _famPicking >= 0) {
-    filter.focus();
-    filter.setSelectionRange(filter.value.length, filter.value.length);
-  }
+  ['rg-fam-filter', 'rg-deco-filter'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el && el.value === (id === 'rg-fam-filter' ? _famFilter : _decoFilter)
+        && document.activeElement !== el && (id === 'rg-fam-filter' ? _famPicking >= 0 : _decoFilter)) {
+      el.focus();
+      el.setSelectionRange(el.value.length, el.value.length);
+    }
+  });
 }

@@ -33,6 +33,14 @@ if(typeof window!=='undefined'&&window.addEventListener){
       // Every tile family the ROM attests, for the family picker.
       if(typeof applyFamilyCatalogue==='function')applyFamilyCatalogue(data);
       if(data.error)console.warn('[RoomsRender] familyCatalogue:',data.error);
+    }else if(data.command==='decoLibrary'){
+      // Every distinct object vanilla places, as stampable deco.
+      if(typeof applyDecoLibrary==='function')applyDecoLibrary(data);
+      if(data.error)console.warn('[RoomsRender] decoLibrary:',data.error);
+    }else if(data.command==='decoPreviews'){
+      if(typeof applyDecoPreviews==='function')applyDecoPreviews(data);
+    }else if(data.command==='decoCells'){
+      if(typeof applyDecoCells==='function')applyDecoCells(data);
     }else if(data.command==='familyPreviews'){
       // One strip of art per family, so the picker shows before it asks.
       if(typeof applyFamilyPreviews==='function')applyFamilyPreviews(data);

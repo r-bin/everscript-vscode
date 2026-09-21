@@ -98,16 +98,65 @@ function editRestore(batch) {
   return inverse;
 }
 
-function editUndo() {
+function editUndo(palette) {
   if (!_edit || !_edit.undo.length) return false;
   _edit.redo.push(editRestore(_edit.undo.pop()));
+  editPruneAdded(palette);
   return true;
 }
 
-function editRedo() {
+function editRedo(palette) {
   if (!_edit || !_edit.redo.length) return false;
   _edit.undo.push(editRestore(_edit.redo.pop()));
+  editPruneAdded(palette);
   return true;
+}
+
+/**
+ * Drop metatiles the draft no longer needs.
+ *
+ * Undoing the cells that used a composed stamp has to undo the stamp too,
+ * or the dictionary keeps growing with entries nothing references and the
+ * budget lies. Only the **tail** is dropped: an index is a position, so
+ * removing from the middle would silently repoint every cell above it.
+ *
+ * The current brush is kept even when unplaced — you armed it on purpose,
+ * and it is one entry.
+ */
+function editPruneAdded(palette) {
+  if (!_edit) return;
+  var base = palette ? palette.count : 0;
+  var used = {};
+  Object.keys(_edit.cells).forEach(function (k) { used[_edit.cells[k]] = true; });
+  while (_edit.added.length) {
+    var index = base + _edit.added.length - 1;
+    if (used[index] || _edit.brush === index) break;
+    _edit.added.pop();
+  }
+  if (_edit.brush >= base + _edit.added.length) _edit.brush = -1;
+  editPruneGraphics(palette);
+}
+
+/**
+ * Drop adopted graphics no surviving stamp names.
+ *
+ * Same tail-only rule, and for the same reason: a graphic's slot is its
+ * position in the list, so the words already written would point at the
+ * wrong picture if one were removed from the middle.
+ */
+function editPruneGraphics(palette) {
+  if (!_edit || !palette || !palette.tiles) return;
+  var base = palette.tiles.count;
+  var highest = -1;
+  for (var i = 0; i < _edit.added.length; i++) {
+    var a = _edit.added[i];
+    for (var j = 0; j < 2; j++) {
+      var chr = (j ? a.layer2 : a.layer1) & 0x3ff;
+      var slot = Math.floor(chr / 0x20) * 8 + Math.floor((chr % 0x20) / 2);
+      if (slot >= base && slot - base > highest) highest = slot - base;
+    }
+  }
+  _edit.addedGraphics.length = highest + 1;
 }
 
 /**
@@ -147,99 +196,6 @@ function editStampWords(palette, index) {
   }
   var e = palette && palette.entries[index];
   return e ? { layer1: e[1], layer2: e[2], collision: e[3], added: false } : null;
-}
-
-// ---------------------------------------------------------------------------
-// Layer phases: what a stroke actually writes.
-// ---------------------------------------------------------------------------
-
-/**
- * The room's blank canopy word — what "no decoration here" looks like.
- *
- * Derived rather than hardcoded, but it is `$A800` in every room measured:
- * 140 placements in room 0x34, 2034 in 0x76, 3800 in 0x38. Room 0x34's
- * graphic at that word has **zero** non-transparent pixels, so erasing to it
- * really does erase.
- */
-function editBlankCanopy(palette) {
-  if (!palette || !palette.count) return 0xa800;
-  var counts = {};
-  var best = 0xa800;
-  var bestN = -1;
-  for (var i = 0; i < palette.count; i++) {
-    var e = palette.entries[i];
-    if (!e[4]) continue;
-    var w = e[1];
-    counts[w] = (counts[w] || 0) + e[4];
-    if (counts[w] > bestN) { bestN = counts[w]; best = w; }
-  }
-  return best;
-}
-
-/**
- * How the room normally behaves on this terrain.
- *
- * Used when erasing: taking the decoration's picture away should take its
- * collision with it, or removing a gourd would leave a hole you still
- * cannot walk through. The room's own most-placed stamp on that terrain is
- * the evidence for what the bare floor does.
- */
-function editFloorCollisionFor(palette, layer2Word) {
-  if (!palette) return null;
-  var best = null;
-  var bestN = -1;
-  for (var i = 0; i < palette.count; i++) {
-    var e = palette.entries[i];
-    if (e[2] !== layer2Word || !e[4]) continue;
-    if (e[4] > bestN) { bestN = e[4]; best = e[3]; }
-  }
-  return best;
-}
-
-/**
- * The stamp a stroke should write at this cell.
- *
- * This is where the phase split lives, and it is the whole of the "first
- * draw the room, then fill it with deco" model:
- *
- * - **room**: the brush wins outright. All three words are replaced, which
- *   is what laying out a floor or a wall means.
- * - **deco**: the brush supplies the canopy and the collision, the cell
- *   keeps its terrain. Putting a gourd on a floor must not replace the
- *   floor — in room 0x34 the decorations are canopy words over an unchanged
- *   terrain word, which is exactly this operation.
- * - **erase** (deco): the canopy goes back to blank and the collision goes
- *   back to whatever the room does on bare ground of that terrain.
- *
- * Returns a metatile index, creating one through the usual find-or-create
- * rule if the combination does not exist yet.
- */
-function editResolve(palette, x, y, brushIndex, phase, erasing) {
-  var here = editCellAt(palette, x, y);
-  var under = here >= 0 ? editStampWords(palette, here) : null;
-  if (phase !== 'deco' || !under) {
-    if (erasing) return -1;
-    return brushIndex;
-  }
-
-  if (erasing) {
-    var blank = editBlankCanopy(palette);
-    if (under.layer1 === blank) return here; // already bare: nothing to erase
-    var restored = editFloorCollisionFor(palette, under.layer2);
-    return editAddStamp(palette, {
-      layer1: blank,
-      layer2: under.layer2,
-      collision: restored === null ? under.collision : restored,
-    });
-  }
-
-  var brush = editStampWords(palette, brushIndex);
-  if (!brush) return -1;
-  return editAddStamp(palette, {
-    layer1: brush.layer1,
-    layer2: under.layer2,
-    collision: brush.collision,
-  });
 }
 
 /**
@@ -285,10 +241,16 @@ function editAdoptGraphic(palette, graphicId) {
  * `editResolve` rather than against it: laying out a room puts the tile on
  * the ground, decorating puts it over whatever ground is already there.
  */
-function editBrushFromTile(palette, word, phase) {
+function editBrushFromTile(palette, word, phase, prefer) {
   if (!_edit || word == null) return -1;
   var blank = editBlankCanopy(palette);
-  var stamp = phase === 'deco'
+  // The phase is the user's intent, but the art has an opinion too: a
+  // graphic with transparent pixels is meant to have something show
+  // through it. 4822 of 5628 vanilla graphics are drawn on one layer at
+  // least 90% of the time, so where that is known it decides, and the
+  // phase only breaks the tie.
+  var canopy = prefer ? prefer === 'canopy' : phase === 'deco';
+  var stamp = canopy
     ? { layer1: word, layer2: blank, collision: EMPTY_COLLISION }
     : { layer1: blank, layer2: word, collision: EMPTY_COLLISION };
   var index = editAddStamp(palette, stamp);

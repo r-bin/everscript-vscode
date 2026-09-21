@@ -130,7 +130,11 @@ function setupEditKeys() {
     if (e.key === 'Escape') { _editSel = null; _editClip = null; renderEditChrome(); return; }
     var mod = e.metaKey || e.ctrlKey;
     if (!mod || (e.key !== 'z' && e.key !== 'Z')) return;
-    if (e.shiftKey ? editRedo() : editUndo()) { renderEditChrome(); e.preventDefault(); }
+    if (e.shiftKey ? editRedo(_mtPalette) : editUndo(_mtPalette)) {
+      requestComposedPreview();
+      renderEditChrome();
+      e.preventDefault();
+    }
   });
 }
 
@@ -223,7 +227,7 @@ function renderComposer() {
  */
 var EDIT_CLICK_KEYS = ['editTool', 'editPhase', 'editAct', 'editPick', 'panel',
   'famSlot', 'famAdd', 'famPick', 'famPage', 'famTile', 'construct', 'tileSource',
-  'mtIndex', 'mtSlot'];
+  'deco', 'decoPage', 'mtIndex', 'mtSlot'];
 
 /** The nearest ancestor (including `el`) that carries one of those keys. */
 function editClickTarget(el, root) {
@@ -242,10 +246,18 @@ function bindEditControls(panel, room) {
   // The family filter is the one text input in the editor. Delegated on
   // `input` so it survives the redraws it causes.
   panel.addEventListener('input', function (e) {
-    if (!e.target || e.target.id !== 'rg-fam-filter') return;
-    _famFilter = e.target.value;
-    _famPage = 0;   // a new filter starts at the top of its own list
-    renderEditPanels();
+    if (!e.target) return;
+    if (e.target.id === 'rg-fam-filter') {
+      _famFilter = e.target.value;
+      _famPage = 0;   // a new filter starts at the top of its own list
+      renderEditPanels();
+      return;
+    }
+    if (e.target.id === 'rg-deco-filter') {
+      _decoFilter = e.target.value;
+      _decoPage = 0;
+      renderEditPanels();
+    }
   });
 
   panel.addEventListener('click', function (e) {
@@ -306,6 +318,12 @@ function bindEditControls(panel, room) {
       return;
     }
     if (t.dataset.tileSource) { _tileSource = t.dataset.tileSource; renderEditPanels(); return; }
+    if (t.dataset.deco) { decoUse(Number(t.dataset.deco)); return; }
+    if (t.dataset.decoPage !== undefined && t.dataset.decoPage !== '') {
+      _decoPage = Number(t.dataset.decoPage);
+      renderEditPanels();
+      return;
+    }
     if (t.dataset.famTile) {
       // A tile from a family strip: pulls in the family, the graphic, and
       // the metatile that can draw it, all at once.

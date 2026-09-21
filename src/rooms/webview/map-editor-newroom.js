@@ -73,8 +73,11 @@ var MAP_DISP_H_MAX = 600;
 function resizeMapTo(room) {
   var unitsW = room.widthTiles * 2;
   var unitsH = room.heightTiles * 2;
-  var viewW = Math.max(unitsW, MIN_VIEW_UNITS);
-  var viewH = Math.max(unitsH, MIN_VIEW_UNITS);
+  // The viewBox is the room exactly. It used to keep svg-builder's 8-unit
+  // floor, which draws grid lines past the edge of a small room — a 2x2
+  // room came out looking like a 4x4 one with twelve empty cells.
+  var viewW = unitsW;
+  var viewH = unitsH;
 
   var img = document.getElementById('rg-img');
   if (img) {
@@ -91,6 +94,8 @@ function resizeMapTo(room) {
     if (el) el.setAttribute('href', '');
   });
 
+  regridMap(unitsW, unitsH);
+
   var svg = document.getElementById('rg-svg');
   var dispH = Math.min(MAP_DISP_H_MAX, Math.round(MAP_DISP_W * viewH / viewW));
   if (svg) {
@@ -102,6 +107,28 @@ function resizeMapTo(room) {
     var el = document.getElementById(id);
     if (el) { el.style.width = MAP_DISP_W + 'px'; el.style.height = dispH + 'px'; }
   });
+}
+
+/**
+ * Redraw the grid for a room of this size.
+ *
+ * svg-builder bakes both grid paths from the room it rendered, so swapping
+ * the picture underneath leaves the previous room's lines behind. That is
+ * what "2x2 shows 4x4 tiles" was: the old room's grid, clipped to the new
+ * viewBox. Same spacing as the builder — 1 unit is one 8px tile, 2 units
+ * one 16px metatile.
+ */
+function regridMap(unitsW, unitsH) {
+  var path = function (step) {
+    var d = '';
+    for (var x = 0; x <= unitsW; x += step) d += 'M' + x + ' 0V' + unitsH;
+    for (var y = 0; y <= unitsH; y += step) d += 'M0 ' + y + 'H' + unitsW;
+    return d;
+  };
+  var fine = document.querySelector('.rg-grid-fine');
+  var coarse = document.querySelector('.rg-grid-coarse');
+  if (fine) fine.setAttribute('d', path(1));
+  if (coarse) coarse.setAttribute('d', path(2));
 }
 
 /**

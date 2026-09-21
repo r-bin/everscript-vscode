@@ -89,7 +89,12 @@ function buildFamilySheet(rom, familyId, borrowFrom) {
         total: (index.graphics.get(family) || []).length,
         columns: COLUMNS,
         cell: 16,
-        slots: ids.map((id, i) => [i, maps.tileSlotChr(i), id, attested[i].uses]),
+        // [slot, chr, graphicId, placements, canopyUses, terrainUses] — the
+        // last two let the editor put a tile on the layer vanilla uses it on.
+        slots: ids.map((id, i) => {
+            const seen = index.layers.get(id) || { canopy: 0, terrain: 0 };
+            return [i, maps.tileSlotChr(i), id, attested[i].uses, seen.canopy, seen.terrain];
+        }),
         imageUri: null,
         imageWidth: 0,
         imageHeight: 0,

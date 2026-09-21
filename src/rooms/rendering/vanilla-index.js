@@ -43,12 +43,15 @@ function annotateGraphics(rom, room) {
         const fam = maps.suggestFamily(index, graphic);
         const coll = maps.suggestCollision(index, graphic);
         if (!fam && !coll) return null;
+        const seen = index.layers.get(graphic) || { canopy: 0, terrain: 0 };
         return [
             fam ? fam.value : null,
             fam ? pct(fam.confidence) : 0,
             fam ? fam.alternatives.length : 0,
             coll ? coll.value : null,
             coll ? pct(coll.confidence) : 0,
+            seen.canopy,
+            seen.terrain,
         ];
     });
 }

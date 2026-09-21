@@ -53,7 +53,18 @@ function ensureFamilySheet(family) {
 function applyFamilySheet(msg) {
   if (!msg || msg.error || !msg.sheet) return;
   _famSheets[msg.sheet.family] = msg.sheet;
+  noteLayerHints(msg.sheet.slots, 4, 5, 2);
   renderEditPanels();
+}
+
+/** Remember how vanilla splits each graphic between the two layers. */
+function noteLayerHints(rows, canopyAt, terrainAt, idAt) {
+  if (!rows) return;
+  for (var i = 0; i < rows.length; i++) {
+    var r = rows[i];
+    if (!r || r[canopyAt] === undefined) continue;
+    _famLayerHint[r[idAt]] = [r[canopyAt], r[terrainAt]];
+  }
 }
 
 /**
@@ -115,7 +126,8 @@ function editUseFamilyTile(graphicId, family) {
   if (slot < 0) { editNote('no tile sheet loaded yet'); return; }
   // The palette field is 1..7 and matches the slot the family sits in.
   var word = (editSlotChr(slot) | ((got.slot + 1) << 10)) & 0xffff;
-  var index = editBrushFromTile(_mtPalette, word, d.phase);
+  var prefer = editLayerPreference(graphicId);
+  var index = editBrushFromTile(_mtPalette, word, d.phase, prefer);
 
   // Which swatch is armed has to be visible on the swatch, not only in a
   // line of text \u2014 clicking with no confirmation reads as a dead control.
@@ -125,7 +137,10 @@ function editUseFamilyTile(graphicId, family) {
   editNote('brush: graphic ' + graphicId + ' in family ' + family
     + (got.added ? ' (family added to slot ' + (got.slot + 1) + ')' : '')
     + ' \u2014 stamp #' + index
-    + (d.phase === 'deco' ? ', drawn over what it is painted on' : ', as ground')
+    + (prefer === 'canopy' ? ', drawn over what it is painted on'
+      : prefer === 'terrain' ? ', as ground'
+        : d.phase === 'deco' ? ', drawn over what it is painted on' : ', as ground')
+    + (prefer ? ' (how vanilla draws it)' : '')
     + '. Paint on the map.');
   requestComposedPreview();
   renderEditChrome();
@@ -313,3 +328,23 @@ function familyStrip(family, expanded) {
   }
   return html + '</div></div>';
 }
+
+/**
+ * Which layer vanilla draws this graphic on, if it is one-sided enough.
+ *
+ * The host sends the count with each of the room's own graphics; for a
+ * graphic picked out of a family sheet it comes with the sheet. Below 60%
+ * there is no preference worth overriding the user's phase with.
+ */
+function editLayerPreference(graphicId) {
+  var stats = _famLayerHint[graphicId];
+  if (!stats) return null;
+  var total = stats[0] + stats[1];
+  if (!total) return null;
+  var share = Math.max(stats[0], stats[1]) / total;
+  if (share < 0.6) return null;
+  return stats[0] > stats[1] ? 'canopy' : 'terrain';
+}
+
+/** graphic id -> [canopy placements, terrain placements], from the host. */
+var _famLayerHint = {};

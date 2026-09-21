@@ -25,8 +25,8 @@ const read = (f) => fs.readFileSync(path.join(WEBVIEW, f), 'utf8');
 
 /** The editor's files, in the order the bundle concatenates them. */
 const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-paint.js', 'map-editor-ui.js',
-    'map-editor-constructs.js', 'map-editor-families.js', 'map-editor-panels.js', 'map-editor-input.js',
-    'map-editor-actions.js', 'map-editor-newroom.js'];
+    'map-editor-phases.js', 'map-editor-constructs.js', 'map-editor-families.js', 'map-editor-deco.js',
+    'map-editor-panels.js', 'map-editor-input.js', 'map-editor-actions.js', 'map-editor-newroom.js'];
 
 /** A palette shaped like the host's reply, small enough to read. */
 const PALETTE = {
@@ -81,7 +81,9 @@ async function main() {
         <body style="display:block;height:auto;overflow:auto"><div id="room-detail">
         <div class="rg-outer rs-map" id="rg-outer"><div class="rg-wrap" id="rg-wrap"
         style="width:400px;height:300px">
-        <svg class="rg-svg" id="rg-svg" viewBox="0 0 4 4"><image id="rg-img"/></svg></div></div>
+        <svg class="rg-svg" id="rg-svg" viewBox="0 0 4 4"><image id="rg-img"/>
+        <path class="rg-grid-fine" d="M0 0V99"/><path class="rg-grid-coarse" d="M0 0V99"/>
+        </svg></div></div>
         <div class="rs rs-mt-sec" id="rs-mt"><div class="rs-mt-body" id="rs-mt-body"></div></div>
         </div></body></html>`);
 
@@ -250,9 +252,21 @@ async function main() {
     const tiny = await page.evaluate(() => ({
         viewBox: document.getElementById('rg-svg').getAttribute('viewBox'),
         imgW: document.getElementById('rg-img').getAttribute('width'),
+        fine: document.querySelector('.rg-grid-fine').getAttribute('d'),
+        coarse: document.querySelector('.rg-grid-coarse').getAttribute('d'),
     }));
-    check('a 2x2 room keeps the 8-unit minimum viewBox and a 4-unit image',
-        tiny.viewBox === '0 0 8 8' && tiny.imgW === '4', JSON.stringify(tiny));
+    // The viewBox is the room exactly. svg-builder's 8-unit floor drew grid
+    // lines past the edge, so a 2x2 room looked like a 4x4 one with twelve
+    // empty cells — "2x2 shows 4x4 tiles".
+    check('a 2x2 room gets a viewBox of exactly its own size',
+        tiny.viewBox === '0 0 4 4' && tiny.imgW === '4', JSON.stringify(tiny));
+    // And the grid is redrawn: svg-builder bakes it from the room it
+    // rendered, so the previous room's lines survive a swap otherwise.
+    check('and a grid that stops at its edge',
+        tiny.fine === 'M0 0V4M1 0V4M2 0V4M3 0V4M4 0V4M0 0H4M0 1H4M0 2H4M0 3H4M0 4H4',
+        tiny.fine);
+    check('with the coarse line every metatile, not every tile',
+        tiny.coarse === 'M0 0V4M2 0V4M4 0V4M0 0H4M0 2H4M0 4H4', tiny.coarse);
 
     // ── a tile is a brush ──────────────────────────────────────────────────
     // "click on a grass tile and it allows you to stamp it on the canvas,
@@ -358,6 +372,95 @@ async function main() {
     const strip = await page.evaluate(() => document.getElementById('rg-panels').innerHTML);
     check('a family’s tiles are drawn in that family, not the room’s palette',
         strip.includes('base64,ZmFt') && strip.includes('data-fam-of="58"'));
+
+    // ── the deco library ───────────────────────────────────────────────────
+    // Section 3 objects are vanilla's own deco widgets — gourds, pots, fire
+    // pits — so the library is read out of the ROM rather than invented.
+    const DECO = [
+        { id: 0, area: 'Prehistoria', roomName: "Strong Heart's Hut", room: 0x34, w: 2, h: 2, states: 1, count: 3 },
+        { id: 1, area: 'Prehistoria', roomName: "Fire Eyes' Village", room: 0x25, w: 4, h: 3, states: 2, count: 4 },
+        { id: 2, area: 'Gothica', roomName: 'Ebon Keep', room: 0x60, w: 6, h: 6, states: 1, count: 1 },
+    ];
+    await page.evaluate((deco) => {
+        editReset(0x34);
+        editDraft().on = true;
+        _panelOpen = { families: false, tiles: false, deco: true, needed: false, errors: true, compose: false };
+        applyDecoLibrary({ deco: deco });
+        applyDecoPreviews({ previews: { ids: [0, 1, 2], columns: 6, cell: 48,
+            imageUri: 'data:image/png;base64,ZGVjbw==', imageWidth: 288, imageHeight: 48 } });
+    }, DECO);
+    check('the deco library renders as thumbnails', (await page.$$('.rg-deco')).length === 3);
+    check('each one carries its size and where it came from',
+        /Fire Eyes/.test(await page.$eval('[data-deco="1"]', (n) => n.getAttribute('title'))));
+
+    await page.click('[data-deco="1"]');
+    const askedFor = await page.evaluate(
+        () => window.__sent.filter((m) => m.command === 'requestDeco' && m.cells !== undefined).pop());
+    check('clicking one asks the host for its cells', askedFor && askedFor.cells === 1,
+        JSON.stringify(askedFor));
+
+    await page.evaluate(() => applyDecoCells({ entry: { id: 1, w: 2, h: 1, states: 2, cells: [
+        { dx: 0, dy: 0, layer1: 0x1d22, layer2: 0x4c62, collision: 0x001f },
+        { dx: 1, dy: 0, layer1: 0x1d24, layer2: 0x4c62, collision: 0x001f },
+    ] } }));
+    const armedDeco = await page.evaluate(() => {
+        const d = editDraft();
+        return { tool: d.tool, constructs: d.constructs.length, pick: _editConstruct,
+                 name: d.constructs[0].name, note: document.getElementById('rg-edit-count').textContent };
+    });
+    check('and it becomes an armed construct',
+        armedDeco.tool === 'stamp' && armedDeco.constructs === 1 && armedDeco.pick === 0,
+        JSON.stringify(armedDeco));
+    check('named for where it came from, since the ROM has no names',
+        /Fire Eyes/.test(armedDeco.name), armedDeco.name);
+    // Copying the art is not copying the object record, and saying otherwise
+    // in the construct list would be a lie.
+    check('a multi-state object says only its tiles were copied',
+        /only its tiles/.test(armedDeco.note), armedDeco.note);
+
+    const stamped = await page.evaluate(() => {
+        editStroke({ x: 0, y: 0 }, 'down');
+        return { cells: Object.keys(editDraft().cells).length, added: editDraft().added.length };
+    });
+    check('stamping it writes its cells', stamped.cells === 2 && stamped.added === 2,
+        JSON.stringify(stamped));
+
+    // ── undo takes the metatiles with it ───────────────────────────────────
+    const undone = await page.evaluate(() => {
+        editUndo(_mtPalette);
+        return { cells: Object.keys(editDraft().cells).length, added: editDraft().added.length };
+    });
+    check('undo reverts the cells and the metatiles they needed',
+        undone.cells === 0 && undone.added === 0,
+        'a dictionary that only grows makes the budget a lie: ' + JSON.stringify(undone));
+
+    // Only the tail is pruned — an index is a position, so removing from the
+    // middle would silently repoint every cell above it.
+    const tailOnly = await page.evaluate(() => {
+        editReset(0x34);
+        const d = editDraft();
+        d.on = true;
+        editAddStamp(_mtPalette, { layer1: 1, layer2: 2, collision: 3 });
+        editApply([{ x: 0, y: 0, index: _mtPalette.count }]);
+        editAddStamp(_mtPalette, { layer1: 4, layer2: 5, collision: 6 });
+        editApply([{ x: 1, y: 0, index: _mtPalette.count + 1 }]);
+        editUndo(_mtPalette);           // drops the second cell and its stamp
+        return { added: d.added.length, first: d.cells['0,0'] };
+    });
+    check('and keeps the stamps still in use, at their original index',
+        tailOnly.added === 1 && tailOnly.first === (await page.evaluate(() => _mtPalette.count)),
+        JSON.stringify(tailOnly));
+
+    // ── the deco filter ────────────────────────────────────────────────────
+    await page.fill('#rg-deco-filter', '6x6');
+    check('a size filter narrows the library',
+        (await page.$$eval('.rg-deco', (n) => n.map((e) => e.dataset.deco))).join() === '2');
+    await page.fill('#rg-deco-filter', 'gothica');
+    check('so does an act', (await page.$$eval('.rg-deco', (n) => n.length)) === 1);
+    await page.fill('#rg-deco-filter', 'open');
+    check('and "open" keeps only what has more than one state',
+        await page.evaluate(() => filterDeco(_deco, 'open').every((d) => d.states > 1)));
+    await page.fill('#rg-deco-filter', '');
 
     check('no uncaught errors in any of it', pageErrors.length === 0, pageErrors.join('; '));
 

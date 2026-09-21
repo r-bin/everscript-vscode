@@ -127,7 +127,7 @@ function getExtConfig() {
 const roomData = require('./rooms');
 const { VANILLA_ROOMS, getMapEnum, readLuaWatchers, readScriptAllTriggers, buildVanillaRoomContent, buildVanillaRoomDetails, invalidateRoomDataCaches } = roomData;
 const roomTree = require('./rooms');
-const { findRoomImage, parseRoomContent, collectRoomsFromDir, buildRoomTree, renderVanillaTree, renderRoomsTree, buildRoomsJson, setRoomImageUris, buildRoomTileOverlay, buildRoomMetatilePalette, buildComposedPreview, buildBlankRoom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews } = roomTree;
+const { findRoomImage, parseRoomContent, collectRoomsFromDir, buildRoomTree, renderVanillaTree, renderRoomsTree, buildRoomsJson, setRoomImageUris, buildRoomTileOverlay, buildRoomMetatilePalette, buildComposedPreview, buildBlankRoom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews, decoIndex, decoCells, buildDecoPreviews } = roomTree;
 
 const romReaders = require('./shared/rom-readers');
 const { readPngDimensions, readRomTriggerOffsets, readRomMapHeader, readRomCharacters, readRomHitLookup, detectScaleEnemies } = romReaders;
@@ -806,6 +806,30 @@ function activate(context) {
                         }
                         _radarPanel.webview.postMessage({ ...reply,
                             previews: buildFamilyPreviews(romBuf, msg.families) });
+                    } catch (err) {
+                        _radarPanel.webview.postMessage({ ...reply, error: String(err && err.message || err) });
+                    }
+                } else if (msg.command === 'requestDeco') {
+                    // The deco library: every distinct object vanilla places,
+                    // which is where gourds, pots and fire pits already live.
+                    const reply = { command: 'decoLibrary' };
+                    try {
+                        const _cfg = getExtConfig();
+                        const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
+                        if (!romBuf) {
+                            _radarPanel.webview.postMessage({ ...reply, error: 'ROM not found — set everscript.romPath' });
+                            return;
+                        }
+                        if (msg.cells !== undefined) {
+                            _radarPanel.webview.postMessage({
+                                command: 'decoCells', entry: decoCells(romBuf, msg.cells) });
+                        } else if (Array.isArray(msg.previews)) {
+                            _radarPanel.webview.postMessage({
+                                command: 'decoPreviews', previews: buildDecoPreviews(romBuf, msg.previews) });
+                        } else {
+                            _radarPanel.webview.postMessage({ ...reply, deco: decoIndex(romBuf) });
+                        }
                     } catch (err) {
                         _radarPanel.webview.postMessage({ ...reply, error: String(err && err.message || err) });
                     }

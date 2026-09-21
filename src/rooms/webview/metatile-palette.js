@@ -57,6 +57,16 @@ function applyMetatilePalette(msg) {
     return;
   }
   _mtPalette = msg.palette;
+  // vanilla[] rows are [family, %, alts, collision, %, canopyUses, terrainUses]
+  // and the tile sheet's slots are parallel to the room's graphics list.
+  if (typeof noteLayerHints === 'function' && msg.palette.vanilla && msg.palette.tiles) {
+    var rows = [];
+    for (var i = 0; i < msg.palette.tiles.count; i++) {
+      var v = msg.palette.vanilla[i];
+      if (v) rows.push([0, 0, msg.palette.tiles.slots[i][2], 0, v[5], v[6]]);
+    }
+    noteLayerHints(rows, 4, 5, 2);
+  }
   renderMetatilePalette();
 }
 
