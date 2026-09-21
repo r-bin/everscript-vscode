@@ -584,6 +584,20 @@ function checkSpriteDepth(rom) {
     check('a flower in 0x38 is behind the foreground',
         maps.spriteDrawsInFront(room.collisionWords[0x3c8 >> 4][0x248 >> 4]), false);
 
+    // The plane comparison at $8FC7A0 comes first, and a plane-transparent
+    // tile does not hand the character a plane ($8FA914) — so in a room with
+    // more than one plane the answer is not in the map. Room 0x3b's Rock at
+    // (89, 61) stands on 0x0061 and is exactly that case; calling it
+    // "behind" buried it under the canopy.
+    const multi = decodeRoom(rom, 0x3b);
+    const planes = maps.planesUsed(multi.collisionWords);
+    check('0x3b uses two planes', planes.length, 2);
+    check('a spawn on a plane-transparent tile has no readable depth',
+        maps.spawnDepth(multi.collisionWords[61 >> 1][89 >> 1], planes), 'unknown');
+    check('a character below the tile plane is in front', maps.spriteDepth(0x0020, 1), 'front');
+    check('a character above it is behind', maps.spriteDepth(0x1010, 2), 'behind');
+    check('same plane falls through to bit 12', maps.spriteDepth(0x1010, 1), 'front');
+
     // The distribution is the finding that matters to the Rooms tab: drawing
     // the canopy over every character was wrong for most of them.
     let inFront = 0;
@@ -601,29 +615,50 @@ function checkSpriteDepth(rom) {
 }
 
 /**
- * The dashed contour: where the foreground hides the map, the main plane's
- * boundary is drawn in the same 3-on/3-off pattern a tunnel under a bridge
- * already uses, so a covered wall never reads as a visible one.
+ * The two-weight contour: colour says which plane, weight says whether the
+ * player can see the boundary. Room 0x76 has one plane, so every difference
+ * from the upstream drawing has to come from the foreground mask alone.
  */
 function checkHiddenContour(rom) {
     const room = decodeRoom(rom, 0x76);
-    const hidden = maps.opaqueMask(maps.renderRoomForeground(rom, room));
-    const solid = renderRoomComposite(rom, room);
-    const dashed = renderRoomComposite(rom, room);
-    drawCollisionOverlay(solid, room, { contours: true });
-    drawCollisionOverlay(dashed, room, { contours: true, hidden });
+    const fg = maps.renderRoomForeground(rom, room);
+    const hidden = maps.coverageMask(fg);
+
+    // Per tile, not per pixel: foreground art is full of holes, and a mask
+    // that flickers along a wall is what made a covered boundary read as a
+    // visible one.
+    let ragged = 0;
+    for (let ty = 0; ty < fg.height; ty += 16) {
+        for (let tx = 0; tx < fg.width; tx += 16) {
+            const first = hidden[ty * fg.width + tx];
+            for (let y = ty; y < Math.min(ty + 16, fg.height); y++) {
+                for (let x = tx; x < Math.min(tx + 16, fg.width); x++) {
+                    if (hidden[y * fg.width + x] !== first) ragged += 1;
+                }
+            }
+        }
+    }
+    check('the coverage mask is whole tiles', ragged, 0);
+    const share = hidden.reduce((a, b) => a + b, 0) / hidden.length;
+    check('room 0x76 is partly covered', share > 0.1 && share < 0.9, true);
+
+    const plain = renderRoomComposite(rom, room);
+    const weighted = renderRoomComposite(rom, room);
+    drawCollisionOverlay(plain, room, { contours: true });
+    drawCollisionOverlay(weighted, room, { contours: true, hidden });
 
     let differ = 0;
     let differUncovered = 0;
     for (let i = 0; i < hidden.length; i++) {
         const o = i * 4;
-        if (solid.data[o] === dashed.data[o] && solid.data[o + 1] === dashed.data[o + 1]
-            && solid.data[o + 2] === dashed.data[o + 2]) continue;
+        if (plain.data[o] === weighted.data[o] && plain.data[o + 1] === weighted.data[o + 1]
+            && plain.data[o + 2] === weighted.data[o + 2]) continue;
         differ += 1;
         if (!hidden[i]) differUncovered += 1;
     }
-    check('the dash only touches covered pixels', differUncovered, 0);
-    check('the dash removes some contour', differ > 0, true);
+    check('only covered pixels are drawn differently', differUncovered, 0);
+    check('some contour is thinned', differ > 0, true);
+    console.log(`  hidden contour: ${(share * 100).toFixed(1)}% of 0x76's tiles are covered, ${differ} pixels thinned`);
 }
 
 function checkOverlayParity(rom, rooms) {

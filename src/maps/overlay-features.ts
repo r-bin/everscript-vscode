@@ -143,12 +143,19 @@ export interface LegendItem {
  *
  * Entries for features the room does not have are omitted, exactly as
  * upstream does — a legend listing things that are not on screen is noise.
+ *
+ * `weighted` describes the Rooms tab's drawing rather than upstream's: there
+ * every plane is solid in its own colour and the line's weight says whether
+ * the foreground covers it, so the "(DOTTED)" suffix would be a lie.
  */
-export function buildLegend(features: RoomFeatures): LegendItem[] {
+export function buildLegend(features: RoomFeatures, weighted = false): LegendItem[] {
     const items: LegendItem[] = [];
     for (const p of features.planes) {
-        const suffix = p === features.mainPlane ? '' : ' (DOTTED)';
+        const suffix = weighted ? '' : (p === features.mainPlane ? '' : ' (DOTTED)');
         items.push({ color: PLANE_COLORS[p] || PLANE_COLORS[1], label: `PLANE ${p} BOUNDARY${suffix}`, flag: 'c' });
+    }
+    if (weighted && features.planes.length) {
+        items.push({ color: [235, 235, 235], label: 'THIN BOUNDARY = THE FOREGROUND COVERS IT', flag: 'c' });
     }
     if (features.forcedWalk.length) {
         items.push({ color: [0, 188, 212], label: 'DRIFT / FORCED WALKABLE (BIT 13, ARROW = DIRECTION)', flag: 'd' });

@@ -76,6 +76,61 @@ export function spriteDrawsInFront(cw: number): boolean {
 }
 
 /**
+ * Where the engine draws a character relative to the room's scenery.
+ * `unknown` is not an engine state — see `spawnDepth`.
+ */
+export type SpriteDepth = 'front' | 'behind' | 'hidden' | 'unknown';
+
+/**
+ * Port of `$8FC773`: which side of the foreground a character is drawn on.
+ *
+ * Bit 12 is only the *last* test. Before it, the plane the character carries
+ * is compared with the plane of the tile it stands on, and a mismatch
+ * settles the question on its own:
+ *
+ *     8FC793  AND #$0030 / STA $12      ; the tile's plane
+ *     8FC798  LDA $0018,Y / AND #$0030  ; the character's plane
+ *     8FC79E  CMP $12
+ *     8FC7A0  BEQ $8FC7A9               ; equal -> bit 12 decides
+ *     8FC7A2  BMI $8FC7C1               ; below the tile -> priority 3
+ *     8FC7A4  LDA #$CC20                ; above it -> priority 2
+ *
+ * That matters because a plane-transparent or forced-walkable tile does
+ * **not** set the character's plane (`$8FA914`, see `holdsPlane`), so a
+ * character resting on one keeps the plane it walked in with and can differ
+ * from the tile under it. Use `spawnPlane` to get that plane.
+ *
+ * @param cw          the tile's collision word
+ * @param entityPlane the character's own plane, 0..3
+ */
+export function spriteDepth(cw: number, entityPlane: number): SpriteDepth {
+    if (spriteHiddenOn(cw)) return 'hidden';
+    const tileBits = cw & PLANE_MASK;
+    const ownBits = (entityPlane & 0x03) << 4;
+    if (ownBits !== tileBits) return ownBits < tileBits ? 'front' : 'behind';
+    return (cw & SPRITE_IN_FRONT) !== 0 ? 'front' : 'behind';
+}
+
+/**
+ * The depth of a character *resting* on this tile, from the map alone.
+ *
+ * A plane-setting tile hands the character its own plane, so `spriteDepth`
+ * can be answered outright. A plane-transparent or forced-walkable tile
+ * does not (`$8FA914`), and the character keeps the plane it arrived with —
+ * which the map cannot say. In a room with one plane that is no obstacle;
+ * in a room with several it is genuinely `unknown`, and guessing it would
+ * be inventing the answer. 13 of the 1402 vanilla spawns land there.
+ *
+ * @param planes the planes the room uses, as `planesUsed` returns them
+ */
+export function spawnDepth(cw: number, planes: number[]): SpriteDepth {
+    if (spriteHiddenOn(cw)) return 'hidden';
+    if (!holdsPlane(cw)) return spriteDepth(cw, tilePlane(cw));
+    if (planes.length > 1) return 'unknown';
+    return spriteDepth(cw, planes.length ? planes[0] : tilePlane(cw));
+}
+
+/**
  * Whether a character on this tile is suppressed entirely.
  *
  * Before choosing a priority, `$8FC773` tests the gate nibble and bails out

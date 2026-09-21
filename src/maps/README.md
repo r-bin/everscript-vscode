@@ -109,7 +109,13 @@ a character standing in the room *can* be drawn behind. In Mode 1 that is
 the priority half of whichever layer won.
 
 Whether a given character is actually behind it is a per-tile question:
-`$8FC773` reads the collision word of the tile it stands on and gives it OAM
-priority 3 when bit 12 is set, which is 84% of vanilla tiles. Use
-`spriteDrawsInFront()` — see
+`$8FC773` reads the collision word of the tile it stands on, compares planes
+and then tests bit 12, which is set on 84% of vanilla tiles. Use
+`spawnDepth()` for a resting spawn and `spriteDepth()` when the character's
+own plane is known — see
 [docs/script-format/sprite_priority.md](../../docs/script-format/sprite_priority.md).
+
+`coverageMask()` answers the other half of the same picture: which metatiles
+the canopy hides. Passed to `drawCollisionOverlay` as `hidden`, it switches
+the contours to solid-per-plane with the weight carrying visibility. Omit it
+and the drawing is upstream's, byte for byte.

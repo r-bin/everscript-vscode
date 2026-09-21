@@ -278,3 +278,13 @@ Plane-transparent tiles, elevation changes and entity gates each get their own
 shading; drift tiles are shaded and carry an arrow for their direction, with a
 double-headed glyph for the two motion-dependent shear handlers. The header
 banner lists the counts.
+
+**The Rooms tab draws the contours differently**, because it also draws the
+room's foreground and has a second thing to say. Passing
+`CollisionOverlayOptions.hidden` — a per-metatile mask of what the foreground
+covers — switches `drawContours` to: every plane **solid in its own colour**,
+3px where the player can see the boundary and a washed 2px where the
+foreground hides it. Upstream's dash then means one thing (secondary plane)
+and the tab's weight means another (visibility), instead of both meanings
+fighting over the same pattern. Without `hidden` the drawing is upstream's,
+byte for byte, which is what `checkOverlayParity` compares.

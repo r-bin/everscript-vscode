@@ -12,7 +12,7 @@ const { buildRoomScriptModel, buildArrivalIndex, mergeArrivals } = require('../.
 const {
     renderCharacterFrames, encodePng, characterDisposition, characterHitbox,
     characterPalette, characterPaletteAddress,
-    decodeRoom, spriteDrawsInFront, spriteHiddenOn,
+    decodeRoom, planesUsed, spawnDepth,
 } = require('../../maps');
 
 const ROM_NAMES = ['Secret of Evermore (U) [!].smc', 'Secret of Evermore.smc'];
@@ -120,16 +120,22 @@ function attachSprites(rom, spawns) {
  * Where the game draws each spawn relative to the scenery.
  *
  * `$8FC773` reads the collision word of the tile the character stands on —
- * entity `+0x3C`, filled from that metatile by `$8FAFE5` — and gives it OAM
- * priority 3 when bit 12 is set, so it passes in front of the foreground,
- * and priority 2 when not, so the foreground covers it. A spawn is placed in
- * 8-pixel units and a metatile is 16 px, hence `>> 1`.
+ * entity `+0x3C`, filled from that metatile by `$8FAFE5` — and picks OAM
+ * priority 3 (over the foreground) or 2 (under it) from the plane
+ * comparison and bit 12. A spawn is placed in 8-pixel units and a metatile
+ * is 16 px, hence `>> 1`.
+ *
+ * `unknown` means the tile does not set a plane, so the character's own
+ * plane came in with it and the map cannot say which it is. Those are drawn
+ * in front rather than hidden under the canopy, because a marker you cannot
+ * find is worse than one placed on the optimistic side.
  *
  * See docs/script-format/sprite_priority.md.
  */
 function attachTileDepth(rom, mapId, spawns) {
     let room;
     try { room = decodeRoom(rom, mapId); } catch { return; }
+    const planes = planesUsed(room.collisionWords);
     for (const spawn of spawns) {
         if (spawn.x === null || spawn.x === undefined) continue;
         const row = room.collisionWords[spawn.y >> 1];
@@ -137,8 +143,9 @@ function attachTileDepth(rom, mapId, spawns) {
         const word = row[spawn.x >> 1];
         if (word === undefined) continue;
         spawn.tileWord = word;
-        spawn.inFront = spriteDrawsInFront(word);
-        spawn.hiddenHere = spriteHiddenOn(word);
+        spawn.depth = spawnDepth(word, planes);
+        spawn.inFront = spawn.depth !== 'behind';
+        spawn.hiddenHere = spawn.depth === 'hidden';
     }
 }
 

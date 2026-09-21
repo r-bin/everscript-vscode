@@ -21,13 +21,17 @@ function spawnTip(v, nm) {
         + (v.inactive ? ', inactive' : '')
         + ' — flags 0x' + (v.flags || 0).toString(16) + ' from the ' + v.flagsFrom;
   // Where the game puts it relative to the scenery: $8FC773 reads the
-  // collision word of the tile it stands on and gives it OAM priority 3
-  // (over everything) when bit 12 is set, 2 (under the foreground) when not.
+  // collision word of the tile it stands on, compares planes, and falls back
+  // to bit 12 — priority 3 over everything, or 2 under the foreground.
+  var DEPTH = {
+    hidden: 'not drawn here — gate nibble 8',
+    front: 'in front of the foreground',
+    behind: 'behind the foreground',
+    unknown: 'depth unknown — this tile sets no plane, so the character '
+      + 'carries one the map cannot read'
+  };
   var depth = v.tileWord == null ? ''
-        : (v.hiddenHere ? 'not drawn here — gate nibble 8'
-          : v.inFront ? 'in front of the foreground'
-          : 'behind the foreground')
-          + ' — tile 0x' + v.tileWord.toString(16);
+        : (DEPTH[v.depth] || '') + ' — tile 0x' + v.tileWord.toString(16);
   return nm + (v.name && v.romName ? ' (' + v.name + ')' : '')
     + (v.character != null ? '\ncharacter #' + v.character : '')
     + (disp ? '\n' + disp : '')
@@ -68,13 +72,22 @@ function buildSpawnLayers(romSpawns) {
     var body = '';
 
     // The tile it stands on, tinted by the hostility flag, so a room reads at
-    // a glance. Under the sprite, which keeps the foreground.
+    // a glance.
+    //
+    // The tint is scenery — it belongs under the sprite, on the ground — but
+    // the outline is the marker that says "an enemy is on this tile", and a
+    // marker that the canopy can swallow is no marker. So the fill goes in
+    // the sprite's own layer and the outline goes on top with the other
+    // annotation.
     if (v.hostile != null) {
       var hc = v.hostile ? '#ff5555' : '#4fc3f7';
+      var tile = ' x="' + (v.x - 0.5) + '" y="' + (v.y - 0.5) + '" width="1" height="1" rx="0.2"';
       body += '<rect class="svge-spawn svge-spawn-tile"' + id + ' data-label="' + escH(nm) + at + '"'
-        + ' x="' + (v.x - 0.5) + '" y="' + (v.y - 0.5) + '" width="1" height="1" fill="' + hc + '"'
-        + ' fill-opacity="' + (v.inactive ? 0.10 : 0.20) + '" stroke="' + hc + '" stroke-opacity="0.75"'
-        + ' stroke-width="0.15" stroke-dasharray="' + (v.inactive ? '0.4,0.3' : 'none') + '" rx="0.2">'
+        + tile + ' fill="' + hc + '" fill-opacity="' + (v.inactive ? 0.10 : 0.20) + '" stroke="none">'
+        + '<title>' + tip + '</title></rect>';
+      out.marks += '<rect class="svge-spawn svge-spawn-tile"' + id + ' data-label="' + escH(nm) + at + '"'
+        + tile + ' fill="none" stroke="' + hc + '" stroke-opacity="0.9" stroke-width="0.15"'
+        + ' stroke-dasharray="' + (v.inactive ? '0.4,0.3' : 'none') + '">'
         + '<title>' + tip + '</title></rect>';
     }
 
@@ -116,10 +129,10 @@ function buildSpawnLayers(romSpawns) {
         + ' stroke-dasharray="0.35,0.3"><title>' + tip + '</title></rect>';
     }
 
-    // Bit 12 of the tile's collision word decides the group. Unknown — no
-    // collision data for the tile — keeps the old behaviour of going under
-    // the canopy, which is the conservative half of the guess.
-    if (v.inFront) out.front += body; else out.behind += body;
+    // Only a spawn the engine really does draw under the foreground goes
+    // under the canopy; everything else, including the ones whose plane the
+    // map cannot say, stays visible.
+    if (v.inFront || v.tileWord == null) out.front += body; else out.behind += body;
   });
   return out;
 }

@@ -33,12 +33,14 @@ export {
     geometryMask,
     spriteDrawsInFront,
     spriteHiddenOn,
+    spriteDepth,
+    spawnDepth,
     SOLID,
     OPEN,
     SPRITE_IN_FRONT,
     SPRITE_HIDDEN,
 } from './collision';
-export type { Entity, DriftVector } from './collision';
+export type { Entity, DriftVector, SpriteDepth } from './collision';
 
 export { parseGrassSwapSection, findCuttableGrassTiles, checkTableInvariants } from './cuttable-grass';
 export type { GrassSwapTable, GrassRecord } from './cuttable-grass';
@@ -46,7 +48,7 @@ export type { GrassSwapTable, GrassRecord } from './cuttable-grass';
 export { extractTileFamilyPalette, buildRoomCgramPalettes } from './palette';
 export type { Rgba } from './palette';
 export { decompressTile16x16, decodeTilePixels } from './chr';
-export { renderVramLayer, compositeLayers, renderRoomComposite, renderRoomForeground, opaqueMask } from './render';
+export { renderVramLayer, compositeLayers, renderRoomComposite, renderRoomForeground, opaqueMask, coverageMask } from './render';
 export type { PixelBuffer, RenderOptions } from './render';
 export { encodePng, encodePngDataUri } from './png';
 export { drawCollisionOverlay, PLANE_COLORS } from './collision-overlay';

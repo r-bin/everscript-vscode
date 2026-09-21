@@ -26,13 +26,17 @@ export function clamp(v: number, hi: number): number { return Math.max(0, Math.m
  *
  * The engine evaluates collision relative to the plane the entity stands on,
  * so a room with bridges or tunnels has a different walkable map per plane.
- * The dominant plane draws as a solid 2px line and the others as dashes, so
- * overlapping levels read as crossing outlines rather than one blob.
  *
- * `hidden` extends that convention: where it is set the main plane dashes
- * too, using the same pattern. The Rooms tab passes the foreground mask, so a
- * wall the player can see keeps its solid line and one behind the canopy
- * reads like a tunnel — which is what it is from the player's side.
+ * Without `hidden` this is the upstream drawing, kept byte-for-byte because
+ * `checkOverlayParity` compares it: the dominant plane as a solid 3px line
+ * and the others as dashes.
+ *
+ * With `hidden` the two meanings that were sharing the dash are separated.
+ * **Colour says which plane** and **weight says whether the player can see
+ * it**: every plane draws solid in its own colour, 3px where the room's
+ * foreground leaves it visible and 2px where the foreground covers it. A
+ * dash then no longer means two different things at once, which is what made
+ * a covered diagonal read as a visible one.
  */
 export function drawContours(
     buf: Uint8Array | Uint8ClampedArray,
@@ -57,9 +61,11 @@ export function drawContours(
         planeSolid.set(p, mask);
     }
 
-    // The edge where solid meets open, dilated 3x3 so the line reads at a
-    // glance. Grass is transparent to every plane.
-    const contour = (mask: Uint8Array): Uint8Array => {
+    // The edge where solid meets open, at two weights: 2x2 for a boundary the
+    // foreground hides and 3x3 for one the player can see. A single pixel
+    // would be the clearer contrast but disappears when the tab scales a
+    // 1300px room into a 520px panel. Grass is transparent to every plane.
+    const contour = (mask: Uint8Array): { thin: Uint8Array; thick: Uint8Array } => {
         const edge = new Uint8Array(wPx * hPx);
         for (let y = 0; y < hPx; y++) {
             for (let x = 0; x < wPx; x++) {
@@ -74,6 +80,7 @@ export function drawContours(
                 }
             }
         }
+        const thin = Uint8Array.from(edge);
         const thick = Uint8Array.from(edge);
         for (let y = 0; y < hPx; y++) {
             for (let x = 0; x < wPx; x++) {
@@ -82,50 +89,59 @@ export function drawContours(
                     for (let dx = -1; dx <= 1; dx++) {
                         const ny = y + dy;
                         const nx = x + dx;
-                        if (ny >= 0 && ny < hPx && nx >= 0 && nx < wPx) thick[ny * wPx + nx] = 1;
+                        if (ny < 0 || ny >= hPx || nx < 0 || nx >= wPx) continue;
+                        thick[ny * wPx + nx] = 1;
+                        if (dy >= 0 && dx >= 0) thin[ny * wPx + nx] = 1;
                     }
                 }
             }
         }
-        return thick;
+        return { thin, thick };
     };
 
-    const planeBorder = new Map<number, Uint8Array>();
+    const planeBorder = new Map<number, { thin: Uint8Array; thick: Uint8Array }>();
     for (const p of f.planes) planeBorder.set(p, contour(planeSolid.get(p) as Uint8Array));
 
+    // The dominant plane's wall tint, everywhere its own line does not reach.
     const solid = planeSolid.get(f.mainPlane) as Uint8Array;
-    const thickBorder = planeBorder.get(f.mainPlane) as Uint8Array;
-    const [mainR, mainG, mainB] = PLANE_COLORS[f.mainPlane] || PLANE_COLORS[1];
-
+    const mainBorder = planeBorder.get(f.mainPlane) as { thin: Uint8Array; thick: Uint8Array };
     for (let i = 0; i < wPx * hPx; i++) {
-        if (solid[i] === 1 && grassPx[i] === 0 && thickBorder[i] === 0) {
+        if (solid[i] === 1 && grassPx[i] === 0 && mainBorder.thick[i] === 0) {
             blend(i % wPx, Math.floor(i / wPx), 220, 20, 20, 0.2);
         }
     }
-    for (let i = 0; i < wPx * hPx; i++) {
-        if (thickBorder[i] !== 1) continue;
-        if (hidden && hidden[i] && !inDash(i, wPx)) continue;
-        const o = i * 4;
-        buf[o] = mainR; buf[o + 1] = mainG; buf[o + 2] = mainB; buf[o + 3] = 255;
-    }
 
-    // Secondary planes ride on top as dashes, so a shared boundary shows the
-    // dash pattern over the solid line and a tunnel under a bridge reads as
-    // two crossing outlines.
-    for (const p of f.planes) {
-        if (p === f.mainPlane) continue;
+    // Dominant plane first, the rest over it, so a shared boundary shows the
+    // upper level — which is the one the player is looking at.
+    const order = [f.mainPlane].concat(f.planes.filter((p) => p !== f.mainPlane));
+    for (const p of order) {
         const [pr, pg, pb] = PLANE_COLORS[p] || PLANE_COLORS[1];
-        const border = planeBorder.get(p) as Uint8Array;
+        const border = planeBorder.get(p) as { thin: Uint8Array; thick: Uint8Array };
         for (let i = 0; i < wPx * hPx; i++) {
-            if (border[i] === 0) continue;
-            if (!inDash(i, wPx)) continue;
+            if (hidden) {
+                // Weight carries the visibility, so both planes stay solid.
+                // A covered line is also blended rather than written flat:
+                // two pixels against three is a thin difference once the tab
+                // has scaled the room down, and the wash is what makes it
+                // read at a glance.
+                if (hidden[i]) {
+                    if (border.thin[i] === 0) continue;
+                    blend(i % wPx, Math.floor(i / wPx), pr, pg, pb, 0.6);
+                    continue;
+                }
+                if (border.thick[i] === 0) continue;
+            } else if (p === f.mainPlane) {
+                if (border.thick[i] === 0) continue;
+            } else {
+                if (border.thick[i] === 0 || !inDash(i, wPx)) continue;
+            }
             const o = i * 4;
             buf[o] = pr; buf[o + 1] = pg; buf[o + 2] = pb; buf[o + 3] = 255;
         }
     }
 }
 
-/** The 3-on/3-off diagonal dash the overlay marks a hidden boundary with. */
+/** The 3-on/3-off diagonal dash a secondary plane is drawn with upstream. */
 function inDash(i: number, wPx: number): boolean {
     return Math.floor((i % wPx + Math.floor(i / wPx)) / 3) % 2 === 0;
 }

@@ -120,28 +120,33 @@ function renderLayer(rom, room, layer) {
  * The overlay is baked into the map raster, so the canopy — which is laid
  * over that raster to cover the characters under it — would hide the very
  * marks that say where the walls are. This is the same overlay painted a
- * second time onto the canopy's own pixels and cut back to them, so it can
- * sit above everything: the map shows its solid contours where the player
- * can see the ground, and these dashed ones where the foreground covers it.
+ * second time onto the canopy's own pixels, cut back to them, and drawn
+ * above everything.
+ *
+ * Both passes are given the same `hidden` mask, so they draw the *same*
+ * lines and the cut only decides which copy of a pixel is on screen. Giving
+ * it to the canopy pass alone was the bug behind "the detection seems off":
+ * wherever the canopy art had a hole, the map's own thick line showed
+ * through a boundary the other pass had already thinned.
  *
  * Only the pixels the second pass actually changed survive, so the layer is
  * marks on transparency rather than a second copy of the canopy.
  */
-function overlayOverCanopy(foreground, room, opts) {
-    const covered = maps.opaqueMask(foreground);
+function overlayOverCanopy(foreground, room, opts, hidden) {
+    const canopyPx = maps.opaqueMask(foreground);
     const before = foreground.data;
     const marks = {
         width: foreground.width,
         height: foreground.height,
         data: Uint8Array.from(before),
     };
-    maps.drawCollisionOverlay(marks, room, Object.assign({}, opts, { hidden: covered }));
+    maps.drawCollisionOverlay(marks, room, Object.assign({}, opts, { hidden }));
     const out = marks.data;
     let painted = 0;
-    for (let i = 0; i < covered.length; i++) {
+    for (let i = 0; i < canopyPx.length; i++) {
         const o = i * 4;
         const same = out[o] === before[o] && out[o + 1] === before[o + 1] && out[o + 2] === before[o + 2];
-        if (!covered[i] || same) out[o + 3] = 0;
+        if (!canopyPx[i] || same) out[o + 3] = 0;
         else painted += 1;
     }
     return painted ? marks : null;
@@ -158,12 +163,16 @@ function cachedRender(rom, roomId, layer, ov, stateSpec) {
     const base = maps.decodeRoom(rom, roomId);
     const room = maps.applyObjectStates(rom, base, parseObjectStates(stateSpec));
     const image = renderLayer(rom, room, layer);
-    if (ov.any) maps.drawCollisionOverlay(image, room, ov.opts);
     // The half of the room that is drawn over the characters standing in it,
     // so the Rooms tab can put enemies under the canopy the way the game does.
     // Composite only: a single-layer view has no foreground to speak of.
     const foreground = layer === 'composite' ? maps.renderRoomForeground(rom, room) : null;
-    const canopyOverlay = foreground && ov.any ? overlayOverCanopy(foreground, room, ov.opts) : null;
+    // Which tiles that foreground hides, so the overlay can draw their
+    // collision as a thin line rather than claiming the player can see it.
+    const hidden = foreground ? maps.coverageMask(foreground) : null;
+    if (ov.any) maps.drawCollisionOverlay(image, room, Object.assign({}, ov.opts, { hidden }));
+    const canopyOverlay = foreground && ov.any
+        ? overlayOverCanopy(foreground, room, ov.opts, hidden) : null;
     const entry = {
         room,
         // Kept so the animation can re-apply the same overlay to its frames.
@@ -302,7 +311,7 @@ function buildRoomTileOverlay(rom, roomId, originX, originY, layer, overlay, obj
         // webview can draw them as HTML: always legible, and the raster stays
         // exactly the size of the map so it keeps lining up with the SVG layer.
         summary: maps.buildSummary(room, features),
-        legend: maps.buildLegend(features),
+        legend: maps.buildLegend(features, !!foregroundUri),
         animationChannels: room.animation.length,
         animation: animate ? cachedAnimation(buf, renderKey, which, entry) : null,
     };

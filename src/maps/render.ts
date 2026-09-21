@@ -262,3 +262,36 @@ export function opaqueMask(img: PixelBuffer): Uint8Array {
     for (let i = 0; i < out.length; i++) out[i] = img.data[i * 4 + 3] > 0 ? 1 : 0;
     return out;
 }
+
+/** Metatile side, in pixels — the granularity collision is stored at. */
+const TILE_PX = 16;
+
+/**
+ * The same question asked per **metatile**: 1 on every pixel of a tile the
+ * buffer covers at least `threshold` of.
+ *
+ * Asking it per pixel makes a wall boundary flicker between covered and
+ * visible along its length, because foreground art is full of small holes —
+ * and collision is a per-tile property anyway, so a per-tile answer is both
+ * steadier and closer to what is being described. A tile more than half
+ * hidden is one the player cannot read the floor of.
+ */
+export function coverageMask(img: PixelBuffer, threshold = 0.5): Uint8Array {
+    const out = new Uint8Array(img.width * img.height);
+    const need = threshold * TILE_PX * TILE_PX;
+    for (let ty = 0; ty < img.height; ty += TILE_PX) {
+        for (let tx = 0; tx < img.width; tx += TILE_PX) {
+            let n = 0;
+            for (let y = ty; y < ty + TILE_PX && y < img.height; y++) {
+                for (let x = tx; x < tx + TILE_PX && x < img.width; x++) {
+                    if (img.data[(y * img.width + x) * 4 + 3] > 0) n += 1;
+                }
+            }
+            if (n < need) continue;
+            for (let y = ty; y < ty + TILE_PX && y < img.height; y++) {
+                out.fill(1, y * img.width + tx, y * img.width + Math.min(tx + TILE_PX, img.width));
+            }
+        }
+    }
+    return out;
+}

@@ -1,3 +1,44 @@
+## [0.34.0] — 2026-09-21
+
+Five corrections to 0.33.0's layering, all from the same root: one signal was carrying two meanings.
+
+### The enemy marker is annotation, not scenery
+
+The red square on the tile went into the sprite's own layer, so the canopy swallowed it along with the sprite. The tint stays under the sprite, where it belongs on the ground, but the **outline is now drawn with the other annotation on top** — a marker a tree can hide is not a marker.
+
+### Depth: the plane comparison comes before bit 12
+
+`$8FC773` tests the character's plane against the tile's *first*, and only falls through to bit 12 when they match:
+
+```
+8FC798  LDA $0018,Y / AND #$0030 / CMP $12
+8FC7A0  BEQ $8FC7A9      ; same plane -> bit 12 decides
+8FC7A2  BMI $8FC7C1      ; below the tile's plane -> priority 3
+8FC7A4  LDA #$CC20       ; above it -> priority 2
+```
+
+And `$8FA914` refuses to update `$0018,Y` on a plane-transparent or forced-walkable tile, so a character resting on one keeps the plane it walked in with — which the map cannot say. `spawnDepth()` answers **`unknown`** there rather than guessing, and the tab draws those in front.
+
+That is the invisible enemy on map `0x3b`: the Rock at (89, 61) stands on tile `$0061`, plane 2 and transparent, and calling it plane 2 buried it under the rock face. 13 of the 1402 vanilla spawns are in that position; the rest now split 1069 in front, 311 behind, 9 never drawn.
+
+### Contours: colour is the plane, weight is the visibility
+
+Upstream dashes a *secondary plane*; 0.33.0 also dashed a *covered* boundary. Two meanings, one pattern — which is why a covered diagonal still read as a visible one.
+
+With `CollisionOverlayOptions.hidden`, every plane now draws **solid in its own colour**, 3px where the player can see the boundary and a washed 2px where the foreground covers it. Without `hidden` the drawing is upstream's byte for byte, so `checkOverlayParity` still compares it.
+
+### The coverage mask is per tile, and both passes get it
+
+Two fixes to "the detection seems off a bit":
+
+- **Per metatile, not per pixel.** Foreground art is full of small holes, so a per-pixel mask made a wall flicker between covered and visible along its length. A tile more than half hidden is covered. Collision is a per-tile property anyway.
+- **Both overlay passes get the same mask.** 0.33.0 gave it only to the canopy pass, so wherever the canopy art had a hole the map's own thick line showed through a boundary the other pass had already thinned.
+
+### Internals
+
+- `coverageMask()` in `src/maps/render.ts`; `spriteDepth()`, `spawnDepth()` and the `SpriteDepth` type in `collision.ts`.
+- `buildLegend(features, weighted)` — the "(DOTTED)" suffix would be a lie under the new drawing.
+
 ## [0.33.0] — 2026-09-21
 
 The canopy from 0.32.0 was drawn over *every* character. It should only cover the ones the game draws under it, and it should never cover the collision overlay.
