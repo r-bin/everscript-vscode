@@ -38,6 +38,7 @@ of:
 | `AI_ARCHITECTURE_GUIDE.md` | Architectural laws, file size limits, ownership rules |
 | `STATE_FLOW.md` | Authoritative state ownership table |
 | `docs/architecture/domain-overview.md` | Which `src/` domains to load for a given task |
+| `simulation/` | Design notes for the planned simulation domain — md only, no code yet |
 
 Full domain map (post v0.6.0 `src/` refactor): see `src/README.md`.
 

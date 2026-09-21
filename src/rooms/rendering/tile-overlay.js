@@ -167,9 +167,9 @@ function cachedRender(rom, roomId, layer, ov, stateSpec) {
     // so the Rooms tab can put enemies under the canopy the way the game does.
     // Composite only: a single-layer view has no foreground to speak of.
     const foreground = layer === 'composite' ? maps.renderRoomForeground(rom, room) : null;
-    // Which tiles that foreground hides, so the overlay can draw their
-    // collision as a thin line rather than claiming the player can see it.
-    const hidden = foreground ? maps.coverageMask(foreground) : null;
+    // Which tiles that foreground genuinely hides, so the overlay can dot
+    // their collision rather than claiming the player can see it.
+    const hidden = foreground ? maps.hiddenTileMask(room, foreground) : null;
     if (ov.any) maps.drawCollisionOverlay(image, room, Object.assign({}, ov.opts, { hidden }));
     const canopyOverlay = foreground && ov.any
         ? overlayOverCanopy(foreground, room, ov.opts, hidden) : null;

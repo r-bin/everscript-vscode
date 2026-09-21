@@ -95,6 +95,12 @@ Only the simulation itself: the expression evaluator and the starting WRAM
 described above. Until then the Rooms tab shows the superset of reachable
 spawns and labels it as such.
 
+The plan that grew out of this note lives in
+[/simulation](../simulation/README.md) — this page stays as the record of
+the enter-script problem and the two unknowns the encoder settled;
+[spawn-scenarios.md](../simulation/spawn-scenarios.md) is where picking a
+branch is designed.
+
 ## Then: drawing them
 
 `SoETilesViewer` already decodes sprites — `spriteinfo.h` (`SpriteChunk`:

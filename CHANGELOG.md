@@ -1,3 +1,26 @@
+## [0.35.0] — 2026-09-21
+
+Dots instead of weight, and a real answer to "what is actually covered".
+
+### Covered collision is dotted again
+
+Reverted the weight experiment. With a visibility mask, every plane draws **solid in its own colour** and a boundary is **dotted only where the foreground covers it**. Upstream's "dash = secondary plane" still applies when no mask is passed, so `checkOverlayParity` is untouched.
+
+### Priority art is not the same thing as a canopy
+
+The real bug behind "the detection seems off". `renderRoomForeground` returns every priority-half pixel, and rooms scatter perfectly ordinary floor across both layers with the priority bit set — purely so the art layers nicely. 32% of room `0x06` renders into that pass and none of it hides anything.
+
+`hiddenTileMask(room, foreground)` now takes **two** tests per metatile:
+
+1. the foreground covers at least half of it, and
+2. its collision word has **bit 12 clear**, so `$8FC773` would draw a character there *behind* that art.
+
+Bit 12 is the game's own statement about which art a character passes behind, which makes it the right discriminator. Room `0x06` goes from 32% covered to 1%; the jungle in `0x76` stays at 20%.
+
+### /simulation
+
+Design notes for the simulation, md only and no code, in build order: [virtual WRAM](simulation/virtual-wram.md) (the starting-state problem and the expression evaluator), [damage](simulation/damage.md), [spawn scenarios](simulation/spawn-scenarios.md), [placed entities](simulation/entities.md), [interaction](simulation/interaction.md), [cutscenes](simulation/cutscenes.md) and [routes](simulation/routes.md). Each says what already exists, what is missing, and how it would be checked. `docs/room-simulation.md` and `docs/route-planner.md` now point at them.
+
 ## [0.34.0] — 2026-09-21
 
 Five corrections to 0.33.0's layering, all from the same root: one signal was carrying two meanings.

@@ -24,7 +24,7 @@ ruled out, so the next attempt starts further along.
 | [attack_boxes.md](attack_boxes.md) | What a swing sweeps, and what it can land on | Solved |
 | [palettes.md](palettes.md) | How many enemies fit in a room before their colours glitch | Solved |
 | [arrivals.md](arrivals.md) | The doors that lead *into* a room | Solved |
-| [../room-simulation.md](../room-simulation.md) | Deciding which branch an enter script takes | **Not built** |
+| [../room-simulation.md](../room-simulation.md) | Deciding which branch an enter script takes | **Not built** — see [/simulation](../../simulation/README.md) |
 | [../ingredient-icons.md](../ingredient-icons.md) | Where the menu's item icons live | **Unsolved** |
 
 ## Two lessons that keep repaying

@@ -111,6 +111,13 @@ Nine vanilla spawns stand on a nibble-8 tile and are not drawn at all; the
 tab dims those rather than hiding them, since the point of the view is to
 find them.
 
+Bit 12 has a second use because of this. It is the only statement in the ROM
+about **which priority art is a canopy and which is just floor** — rooms put
+plain ground on the priority half of a layer all the time, purely so the art
+layers nicely. `hiddenTileMask` in `src/maps/render.ts` uses it for exactly
+that, and without it a third of room `0x06` looks covered when none of it
+is.
+
 ## What this does not cover
 
 - **A moving character.** The word is re-read every frame, so an enemy that

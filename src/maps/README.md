@@ -115,7 +115,11 @@ and then tests bit 12, which is set on 84% of vanilla tiles. Use
 own plane is known — see
 [docs/script-format/sprite_priority.md](../../docs/script-format/sprite_priority.md).
 
-`coverageMask()` answers the other half of the same picture: which metatiles
-the canopy hides. Passed to `drawCollisionOverlay` as `hidden`, it switches
-the contours to solid-per-plane with the weight carrying visibility. Omit it
-and the drawing is upstream's, byte for byte.
+`hiddenTileMask()` answers the other half of the same picture: which
+metatiles the player genuinely cannot see the ground of — the foreground
+covers them **and** bit 12 says a character there is drawn behind it. The
+second half matters: priority art is also used for plain floor, so coverage
+alone calls a third of room `0x06` hidden. Passed to `drawCollisionOverlay`
+as `hidden` it makes every plane solid in its own colour and dots only the
+boundaries the foreground hides. Omit it and the drawing is upstream's, byte
+for byte.

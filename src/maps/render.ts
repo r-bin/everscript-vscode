@@ -7,6 +7,7 @@
 import { RoomData } from './room';
 import { buildRoomCgramPalettes, Rgba } from './palette';
 import { decompressTile16x16, decodeTilePixels } from './chr';
+import { spriteDrawsInFront } from './collision';
 
 /** An RGBA pixel buffer with its dimensions. */
 export interface PixelBuffer {
@@ -267,29 +268,43 @@ export function opaqueMask(img: PixelBuffer): Uint8Array {
 const TILE_PX = 16;
 
 /**
- * The same question asked per **metatile**: 1 on every pixel of a tile the
- * buffer covers at least `threshold` of.
+ * The tiles whose ground the player genuinely cannot read, one byte per
+ * pixel, uniform within each metatile.
  *
- * Asking it per pixel makes a wall boundary flicker between covered and
- * visible along its length, because foreground art is full of small holes —
- * and collision is a per-tile property anyway, so a per-tile answer is both
- * steadier and closer to what is being described. A tile more than half
- * hidden is one the player cannot read the floor of.
+ * Two tests, and **both are needed**:
+ *
+ * 1. `renderRoomForeground` covers at least `threshold` of the tile. Asked
+ *    per pixel this flickers along a wall, because foreground art is full
+ *    of small holes; collision is a per-tile property anyway.
+ * 2. The tile's collision word has **bit 12 clear**, so `$8FC773` would draw
+ *    a character standing there *behind* that art.
+ *
+ * The second test is what separates a canopy from a floor. Rooms scatter
+ * ordinary ground across both layers with the priority bit set, purely so
+ * the art layers nicely — 35% of room `0x06` renders into the foreground
+ * pass that way, and none of it hides anything. Bit 12 is the game's own
+ * statement about which of it a character passes behind, and adding it
+ * takes `0x06` from 35% covered to 1% while leaving the jungle in `0x38` at
+ * 24%.
  */
-export function coverageMask(img: PixelBuffer, threshold = 0.5): Uint8Array {
-    const out = new Uint8Array(img.width * img.height);
+export function hiddenTileMask(room: RoomData, foreground: PixelBuffer, threshold = 0.5): Uint8Array {
+    const { width, height } = foreground;
+    const out = new Uint8Array(width * height);
     const need = threshold * TILE_PX * TILE_PX;
-    for (let ty = 0; ty < img.height; ty += TILE_PX) {
-        for (let tx = 0; tx < img.width; tx += TILE_PX) {
+    for (let r = 0; r < room.header.heightTiles; r++) {
+        for (let c = 0; c < room.header.widthTiles; c++) {
+            if (spriteDrawsInFront(room.collisionWords[r][c])) continue;
+            const ty = r * TILE_PX;
+            const tx = c * TILE_PX;
             let n = 0;
-            for (let y = ty; y < ty + TILE_PX && y < img.height; y++) {
-                for (let x = tx; x < tx + TILE_PX && x < img.width; x++) {
-                    if (img.data[(y * img.width + x) * 4 + 3] > 0) n += 1;
+            for (let y = ty; y < ty + TILE_PX && y < height; y++) {
+                for (let x = tx; x < tx + TILE_PX && x < width; x++) {
+                    if (foreground.data[(y * width + x) * 4 + 3] > 0) n += 1;
                 }
             }
             if (n < need) continue;
-            for (let y = ty; y < ty + TILE_PX && y < img.height; y++) {
-                out.fill(1, y * img.width + tx, y * img.width + Math.min(tx + TILE_PX, img.width));
+            for (let y = ty; y < ty + TILE_PX && y < height; y++) {
+                out.fill(1, y * width + tx, y * width + Math.min(tx + TILE_PX, width));
             }
         }
     }

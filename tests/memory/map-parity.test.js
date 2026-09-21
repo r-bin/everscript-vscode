@@ -615,14 +615,14 @@ function checkSpriteDepth(rom) {
 }
 
 /**
- * The two-weight contour: colour says which plane, weight says whether the
- * player can see the boundary. Room 0x76 has one plane, so every difference
- * from the upstream drawing has to come from the foreground mask alone.
+ * The dotted contour: colour says which plane, a dash says the foreground
+ * covers the boundary. Room 0x76 has one plane, so every difference from the
+ * upstream drawing has to come from the visibility mask alone.
  */
 function checkHiddenContour(rom) {
     const room = decodeRoom(rom, 0x76);
     const fg = maps.renderRoomForeground(rom, room);
-    const hidden = maps.coverageMask(fg);
+    const hidden = maps.hiddenTileMask(room, fg);
 
     // Per tile, not per pixel: foreground art is full of holes, and a mask
     // that flickers along a wall is what made a covered boundary read as a
@@ -638,27 +638,42 @@ function checkHiddenContour(rom) {
             }
         }
     }
-    check('the coverage mask is whole tiles', ragged, 0);
-    const share = hidden.reduce((a, b) => a + b, 0) / hidden.length;
-    check('room 0x76 is partly covered', share > 0.1 && share < 0.9, true);
+    check('the visibility mask is whole tiles', ragged, 0);
 
-    const plain = renderRoomComposite(rom, room);
-    const weighted = renderRoomComposite(rom, room);
-    drawCollisionOverlay(plain, room, { contours: true });
-    drawCollisionOverlay(weighted, room, { contours: true, hidden });
+    // Bit 12 is the half that keeps ordinary floor out of it: rooms scatter
+    // ground across both layers with the priority bit set purely so the art
+    // layers nicely, and none of that hides anything. Room 0x06 is the
+    // extreme case — a third of it renders into the foreground pass and
+    // almost none of it covers a character.
+    const plain = decodeRoom(rom, 0x06);
+    const plainFg = maps.renderRoomForeground(rom, plain);
+    const rawShare = maps.opaqueMask(plainFg).reduce((a, b) => a + b, 0) / (plainFg.width * plainFg.height);
+    const realShare = maps.hiddenTileMask(plain, plainFg).reduce((a, b) => a + b, 0) / (plainFg.width * plainFg.height);
+    check('0x06 renders a lot of priority floor', rawShare > 0.2, true);
+    check('but almost none of it hides the ground', realShare < 0.05, true);
+
+    const share = hidden.reduce((a, b) => a + b, 0) / hidden.length;
+    check('room 0x76 is partly covered', share > 0.05 && share < 0.9, true);
+
+    const solid = renderRoomComposite(rom, room);
+    const dotted = renderRoomComposite(rom, room);
+    drawCollisionOverlay(solid, room, { contours: true });
+    drawCollisionOverlay(dotted, room, { contours: true, hidden });
 
     let differ = 0;
     let differUncovered = 0;
     for (let i = 0; i < hidden.length; i++) {
         const o = i * 4;
-        if (plain.data[o] === weighted.data[o] && plain.data[o + 1] === weighted.data[o + 1]
-            && plain.data[o + 2] === weighted.data[o + 2]) continue;
+        if (solid.data[o] === dotted.data[o] && solid.data[o + 1] === dotted.data[o + 1]
+            && solid.data[o + 2] === dotted.data[o + 2]) continue;
         differ += 1;
         if (!hidden[i]) differUncovered += 1;
     }
     check('only covered pixels are drawn differently', differUncovered, 0);
-    check('some contour is thinned', differ > 0, true);
-    console.log(`  hidden contour: ${(share * 100).toFixed(1)}% of 0x76's tiles are covered, ${differ} pixels thinned`);
+    check('some contour is dotted', differ > 0, true);
+    console.log(`  hidden contour: ${(share * 100).toFixed(1)}% of 0x76 is covered `
+        + `(0x06: ${(rawShare * 100).toFixed(0)}% priority art, ${(realShare * 100).toFixed(0)}% covering), `
+        + `${differ} pixels dotted`);
 }
 
 function checkOverlayParity(rom, rooms) {

@@ -281,10 +281,25 @@ banner lists the counts.
 
 **The Rooms tab draws the contours differently**, because it also draws the
 room's foreground and has a second thing to say. Passing
-`CollisionOverlayOptions.hidden` — a per-metatile mask of what the foreground
-covers — switches `drawContours` to: every plane **solid in its own colour**,
-3px where the player can see the boundary and a washed 2px where the
-foreground hides it. Upstream's dash then means one thing (secondary plane)
-and the tab's weight means another (visibility), instead of both meanings
-fighting over the same pattern. Without `hidden` the drawing is upstream's,
-byte for byte, which is what `checkOverlayParity` compares.
+`CollisionOverlayOptions.hidden` switches `drawContours` to: every plane
+**solid in its own colour**, and **dotted only where the foreground hides
+the boundary**. The dash stops meaning "secondary plane" and starts meaning
+"you cannot see this", which is the thing a reader of the map actually wants
+to know. Without `hidden` the drawing is upstream's, byte for byte, which is
+what `checkOverlayParity` compares.
+
+`hiddenTileMask(room, foreground)` builds that mask, and it takes **two**
+tests per metatile, not one:
+
+1. `renderRoomForeground` covers at least half the tile. Asked per pixel
+   this flickers along a wall, because foreground art is full of small
+   holes — and collision is per-tile anyway.
+2. The tile's collision word has **bit 12 clear**, so `$8FC773` would draw a
+   character standing there behind that art.
+
+The second test is what separates a canopy from a floor. Rooms scatter
+ordinary ground across both layers with the priority bit set purely so the
+art layers nicely; 32% of room `0x06` renders into the foreground pass that
+way and none of it hides anything. Bit 12 is the game's own statement about
+which art a character passes behind, and adding it takes `0x06` from 32%
+covered to 1% while leaving the jungle in `0x76` at 20%.
