@@ -61,6 +61,14 @@ export {
     withMetatiles, renderTileListAtlas, tileSlotChr,
 } from './metatiles';
 export type { MetatileInfo, MetatileAtlas, MetatileLayer, MetatileDraft, TileListAtlas } from './metatiles';
+export {
+    buildVanillaIndex, suggestFamily, suggestCollision, graphicsForFamilies, familyExamples,
+} from './vanilla-index';
+export type { VanillaIndex, Attestation, Suggestion } from './vanilla-index';
+export {
+    roomBudget, marginalCost, wramBytes, MAX_GRAPHICS, MAX_FAMILIES, MAX_WRAM, VANILLA_MAX,
+} from './budget';
+export type { RoomBudget, BudgetLine, MarginalCost, StampTriple } from './budget';
 
 export { applyObjectStates, renderObjectState, objectStateCount, objectBounds, DEFAULT_OBJECT_STATE } from './objects';
 export type { ObjectStateMap } from './objects';

@@ -285,6 +285,7 @@ const ui = new Function(`
     tileSlotWord: tileSlotWord, editOnTilePicked: editOnTilePicked,
     editAction: editAction, editReset: editReset, editDraft: editDraft,
     controls: metatilePaletteControls,
+    budgetBar: budgetBar, vanillaEvidence: vanillaEvidence,
     compose: function () { return _editCompose; },
     setPalette: function (p) { _mtPalette = p; },
     setSelected: function (i) { _mtSelected = i; },
@@ -359,6 +360,63 @@ test('add stamp refuses a half-composed stamp and takes a whole one', () => {
     // No stamp in this room draws that terrain word, so the collision falls
     // back to 0 rather than borrowing an unrelated one.
     assert.strictEqual(d.added[0].collision, 0);
+});
+
+// ---------------------------------------------------------------------------
+// The budget meter and the vanilla evidence.
+//
+// Both exist to stop the editor asserting things it cannot back up: a
+// ceiling it would silently blow through, and a suggestion with no stated
+// confidence. See docs/map-format/building-a-room-from-a-picture.md §2, §4.
+// ---------------------------------------------------------------------------
+
+test('the budget meter marks the family ceiling as full, not merely used', () => {
+    const p = tilePalette();
+    p.budget = {
+        graphics: { used: 92, max: 264, vanilla: 255 },
+        families: { used: 7, max: 7, vanilla: 7 },
+        stamps: { used: 175, max: null, vanilla: 2131 },
+        wram: { used: 2048, max: 32768, vanilla: 32680 },
+        attested: 157,
+    };
+    const html = ui.budgetBar(p);
+    assert.ok(html.includes('92/264'), 'graphics reads used/max');
+    assert.ok(html.includes('7/7'));
+    // Seven of seven is at the ceiling, so the bar warns; it is not over it.
+    assert.ok(/rs-bg-bar warn[^>]*><i style="width:100\.0%/.test(html), 'full families warn: ' + html);
+    assert.ok(!html.includes('rs-bg-bar over'), 'nothing here is past its ceiling');
+    // Stamps have no known field limit, so no bar may be drawn for them.
+    assert.ok(html.includes('no field limit'));
+    assert.ok(html.includes('175') && !/>175\/[0-9]/.test(html), 'stamps show no denominator');
+    assert.ok(html.includes('157'), 'the attested vocabulary is shown');
+});
+
+test('a budget past its ceiling reads as over, not as 100%', () => {
+    const p = tilePalette();
+    p.budget = {
+        graphics: { used: 270, max: 264, vanilla: 255 },
+        families: { used: 7, max: 7, vanilla: 7 },
+        stamps: { used: 1, max: null, vanilla: 2131 },
+        wram: { used: 10, max: 32768, vanilla: 32680 },
+        attested: 3,
+    };
+    assert.ok(ui.budgetBar(p).includes('rs-bg-bar over'));
+});
+
+test('vanilla evidence always carries its confidence', () => {
+    const p = tilePalette();
+    //         [family, family%, familiesSeen, collision, collision%]
+    p.vanilla = [[58, 100, 1, 0x101f, 94], [149, 80, 2, null, 0], null];
+    const one = ui.vanillaEvidence(p, 0);
+    assert.ok(one.includes('family 58') && one.includes('100%'), one);
+    assert.ok(one.includes('only one seen'), 'an unambiguous graphic says so');
+    assert.ok(one.includes('$101F') && one.includes('94%'), 'collision comes with its share');
+
+    const two = ui.vanillaEvidence(p, 1);
+    assert.ok(two.includes('2 families seen'), 'an ambiguous one admits it');
+    assert.ok(!two.includes('collision'), 'a canopy-only graphic claims no collision');
+
+    assert.ok(ui.vanillaEvidence(p, 2).includes('never drawn'), 'and silence is stated, not blank');
 });
 
 test('“from brush” starts the composer off a stamp that already works', () => {

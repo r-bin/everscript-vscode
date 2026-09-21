@@ -113,6 +113,8 @@ function main() {
     checkObjectStamps(rom);
     checkAnimation(rom);
     checkMetatilePalette(rom);
+    checkVanillaIndex(rom);
+    checkBudget(rom);
 
     if (failures) {
         console.error(`\nmap-parity: ${failures} mismatch(es)`);
@@ -783,6 +785,106 @@ function checkMetatilePalette(rom) {
     check('some slots are defined but never placed', spare > 0, true);
     console.log(`  tile palette: ${sampled} cells sampled across 4 rooms, `
         + `${stamps} stamps, ${spare} never placed`);
+}
+
+/**
+ * The vanilla index: what the ROM already answers about a graphic.
+ *
+ * The index is the foundation of "build a room from a picture" — it is what
+ * turns "which family does this graphic belong to" from a guess into a
+ * lookup. These are floors, not exact equalities, because the interesting
+ * property is that the evidence stays strong, not that a count never moves.
+ * The one exact check is the gourd, which is traced cell by cell in
+ * docs/map-format/building-a-room-from-a-picture.md §3.1.
+ */
+function checkVanillaIndex(rom) {
+    const ix = maps.buildVanillaIndex(rom);
+    check('index covers every room', ix.roomCount, 127);
+    check('index counts placements', ix.placements > 700000, true);
+    check('index knows thousands of graphics', ix.families.size > 5000, true);
+
+    // Family lookup is the strong one: most graphics have exactly one.
+    let single = 0;
+    let dominant = 0;
+    for (const [, list] of ix.families) {
+        const total = list.reduce((n, a) => n + a.uses, 0);
+        if (list.length === 1) single += 1;
+        if (list[0].uses / total >= 0.9) dominant += 1;
+    }
+    const sharePct = (single / ix.families.size) * 100;
+    check('over half of graphics have exactly one family', sharePct > 55, true);
+    check('a dominant family for most graphics', dominant / ix.families.size > 0.6, true);
+
+    // Collision is the weak one, and the UI promises evidence because of it.
+    let collSingle = 0;
+    for (const [, list] of ix.collisions) if (list.length === 1) collSingle += 1;
+    const collPct = (collSingle / ix.collisions.size) * 100;
+    check('collision is genuinely ambiguous — under 60% single-valued', collPct < 60, true);
+
+    // Graphic 4191 is the gourd's terrain tile; room 0x34 draws it in f58.
+    const fam = maps.suggestFamily(ix, 4191);
+    check('graphic 4191 resolves to family 58', fam && fam.value, 58);
+    check('and vanilla never draws it in another', fam && fam.alternatives.length, 1);
+    const coll = maps.suggestCollision(ix, 4191);
+    check('its usual collision is $101F', coll && coll.value, 0x101f);
+    check('with the evidence attached', coll && coll.confidence > 0.9, true);
+
+    // Choosing seven families is what filters the tile list.
+    const picked = maps.graphicsForFamilies(ix, [35, 187, 58, 165, 149, 59, 166]);
+    check('room 0x34’s families attest a usable vocabulary', picked.length > 100, true);
+    check('and fewer graphics than a room can load', picked.length < maps.MAX_GRAPHICS, true);
+    check('a family offers examples', maps.familyExamples(ix, 166).length, 8);
+
+    console.log(`  vanilla index: ${ix.families.size} graphics, ${ix.graphics.size} families, `
+        + `${sharePct.toFixed(1)}% single-family, ${collPct.toFixed(1)}% single-collision`);
+}
+
+/**
+ * The four ceilings, and what an edit costs against them.
+ *
+ * The gourd is the worked example both ways: free in the room that already
+ * has it, and over the family ceiling in a room that does not.
+ */
+function checkBudget(rom) {
+    let worstGraphics = 0;
+    let worstWram = 0;
+    let worstStamps = 0;
+    for (let id = 0; id < maps.MAX_ROOMS; id += 1) {
+        let room;
+        try { room = decodeRoom(rom, id); } catch { continue; }
+        const b = maps.roomBudget(room);
+        worstGraphics = Math.max(worstGraphics, b.graphics.used);
+        worstWram = Math.max(worstWram, b.wram.used);
+        worstStamps = Math.max(worstStamps, b.stamps.used);
+        check(`0x${id.toString(16)} fits the graphics ceiling`, b.graphics.used <= maps.MAX_GRAPHICS, true);
+        check(`0x${id.toString(16)} fits the WRAM window`, b.wram.used <= maps.MAX_WRAM, true);
+    }
+    // The high-water marks the doc quotes. Exact, because they are the whole
+    // reason the ceilings are believed — 255 of ~264 and 32680 of 32768 are
+    // what make the margins real rather than theoretical.
+    check('fullest graphics list is 255', worstGraphics, 255);
+    check('largest WRAM footprint is 32680', worstWram, 32680);
+    check('largest dictionary is 2131 stamps', worstStamps, 2131);
+
+    const gourd = {
+        graphics: [3736, 3737, 3740, 3741, 4177, 4191, 4195, 4197, 1674, 4190],
+        families: [187, 58, 166],
+        stamps: [{ layer1: 0x1d22, layer2: 0x0c2e, collision: 0x901f }],
+    };
+    // Room 0x34 is where the gourd already lives, so re-placing it is free.
+    const home = maps.marginalCost(decodeRoom(rom, 0x34), gourd);
+    check('the gourd costs nothing in its own room', [home.graphics, home.families, home.stamps], [0, 0, 0]);
+    check('and overflows nothing', home.over.length, 0);
+
+    // Room 0x33 is the hut's exterior: same area, different families.
+    const away = maps.marginalCost(decodeRoom(rom, 0x33), gourd);
+    check('elsewhere it costs its whole art', away.graphics, 10);
+    check('and three families it does not have', away.families, 3);
+    check('which is what blows the seven-slot ceiling', away.over, ['families']);
+    check('one new stamp is eight bytes', away.wram, 8);
+
+    console.log(`  budgets: worst room ${worstGraphics}/${maps.MAX_GRAPHICS} graphics, `
+        + `${worstWram}/${maps.MAX_WRAM} B WRAM, ${worstStamps} stamps`);
 }
 
 function checkOverlayParity(rom, rooms) {

@@ -1,3 +1,36 @@
+## [0.40.0] — 2026-09-21
+
+### Inverting the editor: the vanilla ROM as a lookup table
+
+New design page, [building-a-room-from-a-picture.md](docs/map-format/building-a-room-from-a-picture.md), and the first two phases of it.
+
+The premise: you know what the room should look like; the editor should work out the families, graphics, stamps and collision words. That is possible because **127 vanilla rooms are a labelled training set** — 779 752 placements already answer "which family does this graphic belong to" and "what collision goes under this art".
+
+### `src/maps/vanilla-index.ts` — measured, not guessed
+
+One pass over all 127 rooms (~64 ms, cached) building graphic → family and graphic → collision, counted by placements and ranked.
+
+- **Family lookup is strong**: 3236 of 5628 graphics (57.5%) are only ever drawn in **one** family; 3503 (62.2%) have one carrying ≥90% of their placements. Pick the art, the family follows.
+- **Collision lookup is weak, and the UI says so**: only 1296 of 3065 (42.3%) terrain graphics have a single collision word. So it is **suggested with its confidence**, never asserted.
+- `graphicsForFamilies` turns a seven-family choice into a filtered vocabulary — room `0x34`'s set attests **157** graphics out of 6202 game-wide.
+
+### `src/maps/budget.ts` — the four ceilings
+
+`roomBudget` and `marginalCost`, the latter computed against what the room already has. The gourd in Strongheart's Hut costs **nothing** in room `0x34` and **10 graphics + 3 families + 1 stamp, over the family ceiling** in room `0x33`.
+
+**Correction**: [building-a-room-from-scratch.md](docs/map-format/building-a-room-from-scratch.md) §4.2 gives the graphics high-water mark as 246. That is Block 1 alone. Counting animated graphics, which share the same slot space, the real maximum is **255** (room `0x08`) against the ~264 ceiling — nine slots, not eighteen.
+
+### Rooms tab
+
+- **A budget meter** under the tile palette: graphics, families, stamps, WRAM, each with its bar and vanilla's own high-water mark on hover. Families is the only line that can go red — the loader hard-clamps to 7.
+- **Vanilla evidence per graphic**: select one in the **tiles** view and it reads `usually family 58 (100%, only one seen) · collision $101F (94% of placements)`, or says outright that vanilla has never drawn it.
+
+### Findings worth recording
+
+- **Vanilla has no object library.** Room `0x34`'s three gourds use three *disjoint* graphic sets — each was authored separately. Harvesting repeated 2×2 blocks (30 574 of them exist) yields grass and walls, not gourds; the gourd block occurs exactly **once**. So the object library has to be user-built, seeded by selection.
+- **The master `$EE0000` table is ordered by art group.** Ids 3728–3775 are one coherent hut/gourd/vegetation set, which makes "show me the neighbours of this graphic" a real discovery tool.
+- **The gourd is 2×3, not 2×2** — 6 stamps, 10 graphics, 3 families — and its body sits in the **canopy** layer, so the character walks behind it.
+
 ## [0.39.0] — 2026-09-21
 
 ### Rooms tab: the tiles view is now a real tile browser

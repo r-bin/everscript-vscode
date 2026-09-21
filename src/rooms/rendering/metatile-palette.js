@@ -10,6 +10,7 @@
 
 const maps = require('../../maps');
 const { romFingerprint } = require('./rom-fingerprint');
+const { annotateGraphics, budgetSummary, invalidateVanillaIndex } = require('./vanilla-index');
 
 /** Metatiles per atlas row. 16 keeps the sheet narrow enough to scroll. */
 const COLUMNS = 16;
@@ -61,6 +62,7 @@ function buildRoomMetatilePalette(rom, roomId, layer, bgPalette) {
     const hit = CACHE.get(key);
     if (hit) return Object.assign({}, hit, { tiles: tileSheet(buf, roomId, stem, pal) });
 
+
     const room = maps.decodeRoom(buf, roomId);
     const atlas = maps.renderMetatileAtlas(buf, room, { columns: COLUMNS, layer: which });
     const table = maps.metatileTable(room);
@@ -93,6 +95,10 @@ function buildRoomMetatilePalette(rom, roomId, layer, bgPalette) {
         animatedCount: room.animatedTiles.length,
         /** Defined but never placed — a free slot for a new combination. */
         spare: table.reduce((n, m) => n + (m.uses ? 0 : 1), 0),
+        /** Spend against the four ceilings, and the attested vocabulary. */
+        budget: budgetSummary(buf, room),
+        /** What vanilla says about each loaded graphic — see annotateGraphics. */
+        vanilla: annotateGraphics(buf, room),
         /** The raw graphics Block 1 put in reach — see buildTileSheet. */
         tiles: null,
     };
@@ -190,7 +196,11 @@ function buildComposedPreview(rom, roomId, drafts, layer) {
 const MAX_DRAFTS = 4096;
 
 /** Drop cached palettes (call when the ROM changes). */
-function invalidateMetatilePalettes() { CACHE.clear(); TILE_CACHE.clear(); }
+function invalidateMetatilePalettes() {
+    CACHE.clear();
+    TILE_CACHE.clear();
+    invalidateVanillaIndex();
+}
 
 module.exports = {
     buildRoomMetatilePalette, buildComposedPreview, invalidateMetatilePalettes, COLUMNS, LAYERS,

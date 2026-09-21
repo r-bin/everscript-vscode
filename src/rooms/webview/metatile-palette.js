@@ -216,7 +216,8 @@ function renderMetatilePalette() {
   body.innerHTML = metatilePaletteControls(p)
     + '<div class="rs-mt-sheet" style="--mt-sheet:url(' + sheetUri + ');--mt-cell:' + sheetCell + 'px">'
     + (tiles ? tileSheetCells(p) : metatileCells(p)) + '</div>'
-    + (tiles ? tileSheetDetail(p) : metatileDetail(p));
+    + (tiles ? tileSheetDetail(p) : metatileDetail(p))
+    + budgetBar(p);
   // The composer lives inside this section, so it has to survive a redraw.
   if (composer) { body.appendChild(composer); if (typeof renderComposer === 'function') renderComposer(); }
 }
@@ -234,13 +235,72 @@ function tileSheetDetail(p) {
     var s = t.slots[_mtSlot];
     head = '<span class="rs-mt-f"><b>#' + s[0] + '</b> word $' + hex4(tileSlotWord(p, _mtSlot))
       + ' <span class="rs-note">tile id $' + hex4(s[2]) + ', chr ' + s[1] + ', pal ' + t.palette
-      + (s[3] ? ', animated' : '') + '</span></span>';
+      + (s[3] ? ', animated' : '') + '</span></span>' + vanillaEvidence(p, _mtSlot);
   }
   return '<div class="rs-mt-detail">' + head
     + '<span class="rs-mt-f"><b>graphics</b> ' + t.count + '</span>'
     + '<span class="rs-mt-f"><b>families</b> ' + fams.join(', ') + '</span>'
     + '<span class="rs-mt-f"><b>palettes</b> ' + loaded + ' of 7 background slots'
     + (fams.length > 7 ? ' (' + fams.length + ' listed \u2014 loaded 7 at a time)' : '') + '</span>'
+    + '</div>';
+}
+
+/**
+ * What the other 126 rooms did with this graphic.
+ *
+ * The family share is the strong signal (57% of graphics are only ever
+ * drawn in one); the collision share is the weak one, so both are shown
+ * *with* their percentage rather than as a bare answer. See
+ * docs/map-format/building-a-room-from-a-picture.md \u00a72.
+ */
+function vanillaEvidence(p, slot) {
+  var v = p.vanilla && p.vanilla[slot];
+  if (!v) return '<span class="rs-mt-f rs-note">vanilla has never drawn this graphic</span>';
+  var out = '';
+  if (v[0] !== null) {
+    out += '<span class="rs-mt-f"><b>usually</b> family ' + v[0]
+      + ' <span class="rs-note">' + v[1] + '%'
+      + (v[2] > 1 ? ', ' + v[2] + ' families seen' : ', only one seen') + '</span></span>';
+  }
+  if (v[3] !== null) {
+    out += '<span class="rs-mt-f"><b>collision</b> $' + hex4(v[3])
+      + ' <span class="rs-note">' + v[4] + '% of placements</span></span>';
+  }
+  return out;
+}
+
+/** One meter line: used against a ceiling, with what an overflow looks like. */
+function budgetRow(label, line, extra) {
+  var max = line.max;
+  var frac = max ? Math.min(1, line.used / max) : 0;
+  var over = max !== null && line.used > max;
+  var bar = max
+    ? '<i class="rs-bg-bar' + (over ? ' over' : (frac > 0.9 ? ' warn' : '')) + '">'
+      + '<i style="width:' + (frac * 100).toFixed(1) + '%"></i></i>'
+    : '';
+  return '<span class="rs-mt-f" title="' + escH('vanilla\u2019s highest is ' + line.vanilla) + '">'
+    + '<b>' + label + '</b> ' + line.used + (max ? '/' + max : '') + bar
+    + (extra ? ' <span class="rs-note">' + extra + '</span>' : '') + '</span>';
+}
+
+/**
+ * The four ceilings, always visible.
+ *
+ * Families is the only hard one \u2014 the loader clamps to 7 \u2014 so it is the one
+ * that turns red. The others warn, because 32 KB of WRAM is inferred from
+ * the fullest vanilla room rather than traced.
+ */
+function budgetBar(p) {
+  var b = p.budget;
+  if (!b) return '';
+  return '<div class="rs-mt-detail rs-mt-budget">'
+    + budgetRow('graphics', b.graphics)
+    + budgetRow('families', b.families)
+    + budgetRow('stamps', b.stamps, 'no field limit')
+    + budgetRow('wram', b.wram, 'grid + dictionary')
+    + '<span class="rs-mt-f" title="' + escH('Graphics the other rooms have drawn in one of '
+      + 'this room\u2019s families \u2014 the vocabulary a family-filtered list would offer') + '">'
+    + '<b>attested</b> ' + b.attested + ' <span class="rs-note">in these families</span></span>'
     + '</div>';
 }
 
