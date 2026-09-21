@@ -286,6 +286,8 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .rs-mt-cell.sel{outline:2px solid #e3b341}
 /* A stamp the room defines but never places: free space for a new one. */
 .rs-mt-cell.spare{opacity:.45}
+/* An animated graphic (Section 2) in the tile list. */
+.rs-mt-cell.anim{outline:1px solid #e3b341}
 .rs-mt-cell.spare:hover{opacity:1}
 .rs-mt-detail{margin-top:6px;font-size:11px;color:#bbb;display:flex;flex-wrap:wrap;gap:12px}
 .rs-mt-f b{color:#888;font-weight:400;margin-right:3px}

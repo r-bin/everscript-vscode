@@ -693,7 +693,7 @@ function activate(context) {
                             _radarPanel.webview.postMessage({ ...reply, error: 'ROM not found — set everscript.romPath' });
                             return;
                         }
-                        const palette = buildRoomMetatilePalette(romBuf, roomId, msg.layer);
+                        const palette = buildRoomMetatilePalette(romBuf, roomId, msg.layer, msg.bgPalette);
                         _radarPanel.webview.postMessage({ ...reply, palette });
                     } catch (err) {
                         _radarPanel.webview.postMessage({ ...reply, error: String(err && err.message || err) });

@@ -18,9 +18,9 @@ export interface MetatileInfo {
     index: number;
     /** The WRAM offset the grid stores: `baseMetatile + index * 8`. */
     id: number;
-    /** Layer 1 (canopy / BG2) tilemap word. */
+    /** Layer 1 (canopy, BG1) tilemap word. */
     layer1: number;
-    /** Layer 2 (terrain / BG1) tilemap word. */
+    /** Layer 2 (terrain, BG2) tilemap word. */
     layer2: number;
     /** Collision word — decode with `./collision`, never by hand. */
     collision: number;
@@ -194,5 +194,86 @@ export function metatileCellRect(atlas: MetatileAtlas, index: number): { x: numb
         x: (index % atlas.columns) * atlas.cell,
         y: Math.floor(index / atlas.columns) * atlas.cell,
         size: atlas.cell,
+    };
+}
+
+// ---------------------------------------------------------------------------
+// The room's tile list — the raw 16x16 graphics a metatile word can name.
+// ---------------------------------------------------------------------------
+
+/**
+ * The `chr` value a tilemap word needs in order to draw Block 1 slot `slot`.
+ *
+ * `renderVramLayer` resolves a word's character index to a slot with
+ * `floor(chr/0x20)*8 + floor((chr%0x20)/2)`; this is that mapping inverted,
+ * so an editor can go from "the eighteenth graphic in this room" back to a
+ * word it can actually write.
+ */
+export function tileSlotChr(slot: number): number {
+    return (slot >> 3) * 0x20 + (slot & 7) * 2;
+}
+
+/** A sheet of the room's Block 1 graphics, drawn in one background palette. */
+export interface TileListAtlas {
+    image: PixelBuffer;
+    columns: number;
+    rows: number;
+    cell: number;
+    /** How many slots are real; the tail of the last row is padding. */
+    count: number;
+    /** Which CGRAM background palette (1..7) the swatches are drawn in. */
+    palette: number;
+}
+
+/**
+ * Draw every graphic the room loaded, as a sheet.
+ *
+ * This is a different question from `renderMetatileAtlas`. That one shows the
+ * **combinations the room has already defined**; this shows the **raw
+ * material** — each 16x16 graphic Block 1 put in reach, any of which a new
+ * metatile word may name. A room's visual vocabulary is this list times the
+ * seven background palettes.
+ *
+ * Rendered as a single layer rather than a composite, because a tile on its
+ * own has no second layer to combine with; colour 0 stays transparent.
+ */
+export function renderTileListAtlas(
+    rom: Uint8Array,
+    room: RoomData,
+    opts: { columns?: number; palette?: number } = {},
+): TileListAtlas {
+    const columns = Math.max(1, opts.columns || DEFAULT_COLUMNS);
+    const palette = Math.min(7, Math.max(0, opts.palette ?? 1));
+    const count = room.tilePalette.length + room.animatedTiles.length;
+    const rows = Math.max(1, Math.ceil(count / columns));
+
+    const words: number[][] = [];
+    for (let r = 0; r < rows; r++) {
+        const row: number[] = [];
+        for (let c = 0; c < columns; c++) {
+            const slot = r * columns + c;
+            row.push(slot < count ? (tileSlotChr(slot) | (palette << 10)) : 0);
+        }
+        words.push(row);
+    }
+
+    const sheet: RoomData = {
+        ...room,
+        header: {
+            ...room.header,
+            widthTiles: columns,
+            heightTiles: rows,
+            widthPixels: columns * CELL,
+            heightPixels: rows * CELL,
+        },
+        layer1VramWords: words,
+        layer2VramWords: words,
+        layer1MetatileIds: [],
+        collisionWords: [],
+    };
+
+    return {
+        image: renderVramLayer(rom, sheet, words),
+        columns, rows, cell: CELL, count, palette,
     };
 }

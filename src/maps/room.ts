@@ -93,9 +93,14 @@ export interface RoomData {
     metatileSlices: { layer1: number[]; layer2: number[]; collision: number[] };
     /** `[y][x]` metatile IDs (WRAM offsets, 8-byte aligned from baseMetatile). */
     layer1MetatileIds: number[][];
-    /** `[y][x]` Layer 1 (canopy / BG2) VRAM tilemap words. */
+    /**
+     * `[y][x]` Layer 1 VRAM tilemap words — the **canopy**, which is
+     * **BG1**: gated by `displayTm` bit 0, and above layer 2 at equal
+     * priority (Mode 1 orders BG1 over BG2). An earlier comment here said
+     * BG2; `compositeLayers` and the pixel-parity test both say otherwise.
+     */
     layer1VramWords: number[][];
-    /** `[y][x]` Layer 2 (terrain / BG1) VRAM tilemap words. */
+    /** `[y][x]` Layer 2 VRAM tilemap words — the **terrain**, which is **BG2** (`displayTm` bit 1). */
     layer2VramWords: number[][];
     /** `[y][x]` collision words — decode with `./collision`, never by hand. */
     collisionWords: number[][];

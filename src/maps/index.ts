@@ -58,9 +58,9 @@ export type { RoomFeatures, LegendItem, ObjectRect, TileXY } from './overlay-fea
 export { parseObjectStamp, objectStampSignature } from './object-stamps';
 export {
     metatileTable, renderMetatileAtlas, metatileCellRect, metatileId, metatileIndex,
-    withMetatiles,
+    withMetatiles, renderTileListAtlas, tileSlotChr,
 } from './metatiles';
-export type { MetatileInfo, MetatileAtlas, MetatileLayer, MetatileDraft } from './metatiles';
+export type { MetatileInfo, MetatileAtlas, MetatileLayer, MetatileDraft, TileListAtlas } from './metatiles';
 
 export { applyObjectStates, renderObjectState, objectStateCount, objectBounds, DEFAULT_OBJECT_STATE } from './objects';
 export type { ObjectStateMap } from './objects';

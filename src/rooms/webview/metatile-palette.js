@@ -15,6 +15,8 @@ var _mtPalette = null;
 var _mtLayer = 'composite';
 var _mtFilter = 'all';
 var _mtSelected = -1;
+var _mtView = 'stamps';   // 'stamps' = the dictionary, 'tiles' = Block 1 graphics
+var _mtBgPalette = 1;     // which tile family the tile sheet is drawn in
 var _mtRoomId = null;
 var _mtRoomName = '';
 
@@ -38,7 +40,8 @@ function requestMetatilePalette(room, layer) {
   _mtLayer = layer || _mtLayer;
   var note = document.getElementById('rs-mt-note');
   if (note) note.textContent = 'loading…';
-  vs.postMessage({ command: 'requestRoomMetatiles', roomId: id, mapName: _mtRoomName, layer: _mtLayer });
+  vs.postMessage({ command: 'requestRoomMetatiles', roomId: id, mapName: _mtRoomName,
+                   layer: _mtLayer, bgPalette: _mtBgPalette });
 }
 
 /** Host reply: keep it and draw. */
@@ -67,19 +70,59 @@ function metatilePaletteSummary(p) {
 }
 
 function metatilePaletteControls(p) {
-  var layers = [['composite', 'both'], ['layer2', 'terrain'], ['layer1', 'canopy']];
+  // Two different questions: which stamps the room has already defined, and
+  // which raw graphics it loaded that a new stamp could be built from.
   var html = '<div class="rd-filters rs-mt-bar">';
-  layers.forEach(function (l) {
-    html += '<button class="rdf' + (_mtLayer === l[0] ? ' on' : '') + '" data-mt-layer="' + l[0]
-      + '" title="Draw the stamps from this layer only">' + l[1] + '</button>';
-  });
+  [['stamps', 'stamps', 'The metatile dictionary \u2014 combinations this room already defines'],
+   ['tiles', 'graphics', 'The 16x16 graphics Block 1 loaded \u2014 the raw material for a new stamp']]
+    .forEach(function (v) {
+      html += '<button class="rdf' + (_mtView === v[0] ? ' on' : '') + '" data-mt-view="' + v[0]
+        + '" title="' + escH(v[2]) + '">' + v[1] + '</button>';
+    });
   html += '<span class="rs-mt-gap"></span>';
-  [['all', 'all'], ['used', 'placed'], ['spare', 'spare']].forEach(function (f) {
-    html += '<button class="rdf' + (_mtFilter === f[0] ? ' on' : '') + '" data-mt-filter="' + f[0] + '">'
-      + f[1] + '</button>';
-  });
+
+  if (_mtView === 'tiles') {
+    // A graphic has no colours of its own; the tilemap word picks one of the
+    // room's tile families. Same picture, seven possible palettes.
+    var fams = p.tileFamilies || [];
+    for (var i = 1; i <= (p.tiles ? p.tiles.paletteCount : 7); i++) {
+      var fam = fams[i - 1];
+      html += '<button class="rdf' + (_mtBgPalette === i ? ' on' : '') + '" data-mt-bgpal="' + i + '"'
+        + ' title="' + escH('CGRAM background palette ' + i
+          + (fam === undefined ? ' \u2014 this room lists no family here' : ' = tile family ' + fam)) + '">'
+        + i + '</button>';
+    }
+  } else {
+    [['composite', 'both'], ['layer2', 'terrain'], ['layer1', 'canopy']].forEach(function (l) {
+      html += '<button class="rdf' + (_mtLayer === l[0] ? ' on' : '') + '" data-mt-layer="' + l[0]
+        + '" title="Draw the stamps from this layer only">' + l[1] + '</button>';
+    });
+    html += '<span class="rs-mt-gap"></span>';
+    [['all', 'all'], ['used', 'placed'], ['spare', 'spare']].forEach(function (f) {
+      html += '<button class="rdf' + (_mtFilter === f[0] ? ' on' : '') + '" data-mt-filter="' + f[0] + '">'
+        + f[1] + '</button>';
+    });
+  }
   html += '<span class="rs-mt-gap"></span>';
   html += '<button class="rdf" data-mt-reload="1" title="Re-read the dictionary from the ROM">reload</button>';
+  return html + '</div>';
+}
+
+/** One cell per Block 1 graphic, with the chr value a word needs to name it. */
+function tileSheetCells(p) {
+  var t = p.tiles;
+  if (!t) return '<div class="rs-note">no tile sheet</div>';
+  var html = '<div class="rs-mt-grid">';
+  for (var i = 0; i < t.count; i++) {
+    var s = t.slots[i];
+    var x = (i % t.columns) * t.cell;
+    var y = Math.floor(i / t.columns) * t.cell;
+    var tip = 'slot ' + s[0] + '  graphic $' + hex4(s[2])
+      + '\nchr ' + s[1] + ' \u2014 a word of $' + hex4(s[1] | (t.palette << 10)) + ' draws this'
+      + (s[3] ? '\nanimated (Section 2)' : '');
+    html += '<i class="rs-mt-cell' + (s[3] ? ' anim' : '') + '" data-mt-slot="' + i + '"'
+      + ' title="' + escH(tip) + '" style="background-position:-' + x + 'px -' + y + 'px"></i>';
+  }
   return html + '</div>';
 }
 
@@ -145,12 +188,28 @@ function renderMetatilePalette() {
   if (!body || !p) return;
   if (note) { note.textContent = metatilePaletteSummary(p); note.classList.remove('rs-err'); }
   var composer = document.getElementById('rg-compose');
+  var tiles = _mtView === 'tiles' && p.tiles;
+  var sheetUri = tiles ? p.tiles.imageUri : p.imageUri;
+  var sheetCell = tiles ? p.tiles.cell : p.cell;
   body.innerHTML = metatilePaletteControls(p)
-    + '<div class="rs-mt-sheet" style="--mt-sheet:url(' + p.imageUri + ');--mt-cell:' + p.cell + 'px">'
-    + metatileCells(p) + '</div>'
-    + metatileDetail(p);
+    + '<div class="rs-mt-sheet" style="--mt-sheet:url(' + sheetUri + ');--mt-cell:' + sheetCell + 'px">'
+    + (tiles ? tileSheetCells(p) : metatileCells(p)) + '</div>'
+    + (tiles ? tileSheetDetail(p) : metatileDetail(p));
   // The composer lives inside this section, so it has to survive a redraw.
   if (composer) { body.appendChild(composer); if (typeof renderComposer === 'function') renderComposer(); }
+}
+
+/** What the room's graphics list is, and how much of the budget it uses. */
+function tileSheetDetail(p) {
+  var t = p.tiles;
+  var fams = p.tileFamilies || [];
+  var loaded = Math.min(7, fams.length);
+  return '<div class="rs-mt-detail">'
+    + '<span class="rs-mt-f"><b>graphics</b> ' + t.count + '</span>'
+    + '<span class="rs-mt-f"><b>families</b> ' + fams.join(', ') + '</span>'
+    + '<span class="rs-mt-f"><b>palettes</b> ' + loaded + ' of 7 background slots'
+    + (fams.length > 7 ? ' (' + fams.length + ' listed \u2014 loaded 7 at a time)' : '') + '</span>'
+    + '</div>';
 }
 
 /** One delegated listener for the whole section. */
@@ -161,6 +220,9 @@ function bindMetatilePalette(panel, room) {
     var t = ev.target;
     if (!t) return;
     if (t.id === 'rs-mt-load' || t.dataset.mtReload) { requestMetatilePalette(room, _mtLayer); return; }
+    if (t.dataset.mtView) { _mtView = t.dataset.mtView; renderMetatilePalette(); return; }
+    if (t.dataset.mtBgpal) { _mtBgPalette = Number(t.dataset.mtBgpal); requestMetatilePalette(room, _mtLayer); return; }
+    if (t.dataset.mtSlot) { _mtSelected = -1; renderMetatilePalette(); return; }
     if (t.dataset.mtLayer) { _mtLayer = t.dataset.mtLayer; requestMetatilePalette(room, _mtLayer); return; }
     if (t.dataset.mtFilter) { _mtFilter = t.dataset.mtFilter; renderMetatilePalette(); return; }
     if (t.dataset.mtIndex) {

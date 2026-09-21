@@ -1,3 +1,30 @@
+## [0.38.0] — 2026-09-21
+
+### Rooms tab: see the graphics a room actually loaded
+
+The Tile palette section gains a **graphics** view beside **stamps**. Stamps are the combinations the room already defines; graphics are the **raw material** — every 16×16 picture Block 1 loaded, any of which a new stamp may name. Each swatch's tooltip gives the `chr` value a tilemap word needs in order to draw it, and animated entries (Section 2) are outlined in amber.
+
+A graphic has no colours of its own, so the view has a palette selector: the same sheet redrawn in each of the room's background palettes.
+
+### Corrections — `tileFamilies` are palettes, and the canopy is BG1
+
+Two things the docs had wrong, both caught by reading the loader:
+
+- **A tile family is not a graphics bank.** It is a **16-colour palette**, a 32-byte BGR555 record at `$9CC322 + id*32`, DMA'd to CGRAM by `$90D020`. Families map to background palette slots 1–7 in list order, and **the loader clamps to 7** (`$90D037`), tracking progress in `$7E2437` — which is why 74 rooms list exactly 7 and 18 list 14 (two sets, swapped at runtime). So "how many families until VRAM is full" has no answer: they never touch VRAM. The real ceilings are 7 palettes, ~264 addressable graphics (246 is the vanilla max), and v-blank bandwidth for animation.
+- **The canopy layer is BG1, not BG2.** `room.ts` claimed BG2; `compositeLayers` gates it on `displayTm` bit 0 and the pixel-parity test agrees. Mode 1 draws BG1 above BG2, so the upper layer is BG1. Comment fixed.
+
+### Docs: [building-a-room-from-scratch.md](docs/map-format/building-a-room-from-scratch.md)
+
+Expanded with everything needed to actually choose values rather than copy defaults:
+
+- **Visible layers** — bit table and a menu of useful combinations (`21` = terrain off, `7` = sprites off, `19` = no HUD…), with the caveat that a layer switched off also leaves colour math.
+- **The blend** — all three fields together, and the **dark cave** (`0x4b`) worked end to end. The reader's guess was right: its canopy is a soft-edged disc that is *subtracted* from the terrain, and room effect 1 slides it with the camera. Refinement: the dark disc is where subtraction *stops*, so it is a lantern drawn as a hole in a mask, and the top-left square is the layer's entire extent.
+- **Room effects** — what all eight jump-table entries at `$908E74` do, and which rooms use them.
+- **Camera flags** — bit 14, the only bit any code reads.
+- **`extraGraphics`** — the 3-byte descriptor decoded field by field.
+- **Rule 7.2 corrected.** "Introduce stamps in ascending order" is the safe advice, not the rule. The literal index field widens as the sequential token fires (`bits = floor(log2(counter)) + 1`), so gaps *are* legal below that width — verified against the encoder with five cases. It is also why 7591 vanilla stamps can be defined but never placed.
+- **Real examples** for animated tiles, objects and cuttable grass, taken from the decoder rather than invented — including that object states are **XOR deltas**, not absolute stamps, and that cuttable grass can take several slashes.
+
 ## [0.37.2] — 2026-09-21
 
 ### Docs: building a room from scratch, with nothing left as "unknown"

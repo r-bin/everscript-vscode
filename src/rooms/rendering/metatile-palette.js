@@ -17,6 +17,9 @@ const COLUMNS = 16;
 /** Which renders the tab offers, matching the map's own layer switch. */
 const LAYERS = ['composite', 'layer1', 'layer2'];
 
+/** Background palettes a tile can be drawn in: CGRAM 1..7 = tile families. */
+const BG_PALETTES = 7;
+
 const CACHE = new Map();
 const CACHE_MAX = 6;
 
@@ -39,10 +42,11 @@ function packEntries(table) {
  * @param {number} roomId
  * @param {string} [layer] 'composite' (default), 'layer1' or 'layer2'
  */
-function buildRoomMetatilePalette(rom, roomId, layer) {
+function buildRoomMetatilePalette(rom, roomId, layer, bgPalette) {
     const buf = rom instanceof Uint8Array ? rom : new Uint8Array(rom);
     const which = LAYERS.indexOf(layer) >= 0 ? layer : 'composite';
-    const key = romFingerprint(buf) + ':' + roomId + ':' + which;
+    const pal = Math.min(BG_PALETTES, Math.max(1, Number(bgPalette) || 1));
+    const key = romFingerprint(buf) + ':' + roomId + ':' + which + ':' + pal;
     const hit = CACHE.get(key);
     if (hit) return hit;
 
@@ -78,11 +82,45 @@ function buildRoomMetatilePalette(rom, roomId, layer) {
         animatedCount: room.animatedTiles.length,
         /** Defined but never placed — a free slot for a new combination. */
         spare: table.reduce((n, m) => n + (m.uses ? 0 : 1), 0),
+        /** The raw graphics Block 1 put in reach — see buildTileSheet. */
+        tiles: buildTileSheet(buf, room, pal),
     };
 
     CACHE.set(key, out);
     if (CACHE.size > CACHE_MAX) CACHE.delete(CACHE.keys().next().value);
     return out;
+}
+
+/**
+ * The room's Block 1 graphics, drawn in one background palette.
+ *
+ * A different question from the metatile dictionary: that lists the
+ * *combinations the room already defines*, this lists the **raw material** —
+ * every 16x16 graphic a new metatile word is allowed to name. The room's
+ * whole visual vocabulary is this list times the seven palettes.
+ *
+ * `slots` gives, per entry, the `chr` value a tilemap word needs in order to
+ * draw it, so an editor can turn "that picture" into a word it can write.
+ */
+function buildTileSheet(rom, room, bgPalette) {
+    const atlas = maps.renderTileListAtlas(rom, room, { columns: COLUMNS, palette: bgPalette });
+    const ids = room.tilePalette.concat(room.animatedTiles);
+    const slots = [];
+    for (let i = 0; i < atlas.count; i++) {
+        slots.push([i, maps.tileSlotChr(i), ids[i] === undefined ? 0 : ids[i], i >= room.tilePalette.length ? 1 : 0]);
+    }
+    return {
+        imageUri: maps.encodePngDataUri(atlas.image),
+        imageWidth: atlas.image.width,
+        imageHeight: atlas.image.height,
+        columns: atlas.columns,
+        rows: atlas.rows,
+        cell: atlas.cell,
+        count: atlas.count,
+        palette: bgPalette,
+        paletteCount: BG_PALETTES,
+        slots,
+    };
 }
 
 /**
