@@ -79,3 +79,14 @@ was wrong for years upstream.
   the size of the map so it keeps registering with the interactive SVG layer.
   `buildSummary()` and `buildLegend()` hand that text to the webview as data.
 - Testable in plain Node.js (`tests/memory/map-parity.test.js`)
+
+## Sprites
+
+`sprites.ts` decodes character and object sprites — block pools, the
+bit-per-word compression, and chunk composition — ported from
+SoETilesViewer. Pinned by `checkSprites` against the reference's own walk
+count of 5128.
+
+It is addressable by sprite index only. Getting from a character to its
+sprite needs the animation format, which nobody has decoded; see
+[docs/sprite-rendering.md](../../docs/sprite-rendering.md).

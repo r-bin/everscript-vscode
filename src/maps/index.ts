@@ -60,3 +60,8 @@ export type {
 } from './animation';
 export { drawString3x5, drawLabelInRect, textWidth3x5 } from './font';
 export type { Rgba8, LabelAnchor } from './font';
+
+export {
+    walkSprites, readSpriteInfo, composeSprite, decodeSpriteBlock, SPRITE_LIST_START,
+} from './sprites';
+export type { SpriteInfo, SpriteChunk, SpritePixels, SpriteBlockPixels } from './sprites';

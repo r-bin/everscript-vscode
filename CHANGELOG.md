@@ -1,3 +1,22 @@
+## [0.23.0] — 2026-09-21
+
+Ports the ROM's sprite decoder. **Neither "enemies on the map" nor "all item icons" is finished** — both turned out to need a lookup that does not exist yet, and this is the layer underneath them.
+
+### Added
+- **`src/maps/sprites.ts`** — a port of SoETilesViewer's `spriteblock.h` and `spriteinfo.h`, the only implementation of this format anywhere. Decodes both block pools (16×16 at `$EC0000`/`$D90000`, 8×8 at `$D80000`/`$D10000`), the bit-per-word skip-list compression, and composes chunk lists into whole sprites.
+- `checkSprites` in the map parity harness. The walk finds **5128 sprites**, the same count the reference's walk ends on — a sharp check, since it chains on each entry's declared length and one wrong size would desynchronise everything after it. 9 of 5128 are blank padding.
+- `docs/sprite-rendering.md`.
+
+### Why neither ask is done
+- **Enemies.** The character table holds *animation pointers*, not sprite indices. Wimpy Flower's `anim_stand` is `0x495e`, and five readings of it were tried and ruled out (sprite index, `$CA0003+`, `$CA0000+`, `$90495E`, `$7E495E`). SoETilesViewer shows these values but never resolves them either. Drawing a guessed sprite would be worse than drawing none.
+- **Item icons.** They are not sprites at all. The earlier menu trace found them composited from background tiles by a blitter at `$8CA6AB`–`$8CA6C6`, and rendering the tail of the sprite list confirms it — effects and particles, no icons.
+
+### Lead worth following first
+The everscript `ANIMATION` enum's values are the low 16 bits of a 24-bit pointer, with the bank in the comments (`MENU_CLOSE = 0x61a7` beside `[A7 61 7E]`). So `anim_stand` is probably a low word whose bank comes from elsewhere. Reading the encoder answered the spawn-format question outright last time, so it is worth checking `animate()` before reaching for a trace.
+
+### Notes
+- Decoder parity unchanged: 99.992% boundaries, 99.776% summaries, 593/593 sniff flags.
+
 ## [0.22.0] — 2026-09-21
 
 Every NPC a script places is now named and plotted on the map.

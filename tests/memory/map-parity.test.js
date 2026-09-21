@@ -17,6 +17,7 @@ const {
     parseObjectStamp, applyObjectStates, objectStateCount,
     drawCollisionOverlay: paintOverlay, buildAnimationGroups, buildOverlayTransfer,
 } = require('../../src/maps');
+const maps = require('../../src/maps');
 
 const EVERSCRIPT_REPO = process.env.EVERSCRIPT_REPO ||
     path.join(path.dirname(path.dirname(path.dirname(path.resolve(__dirname)))), 'everscript');
@@ -66,6 +67,8 @@ function main() {
     const rooms = process.env.MAP_PARITY_ALL ? Array.from({ length: MAX_ROOMS }, (_, i) => i) : SAMPLE_ROOMS;
 
     console.log(`map-parity: comparing ${rooms.length} rooms against ${PYTHON}`);
+
+    checkSprites(rom);
 
     for (const roomId of rooms) {
         const id = `0x${roomId.toString(16).padStart(2, '0')}`;
@@ -306,6 +309,39 @@ function checkObjectStamps(rom) {
  * the labels were missing; there is nothing left for it to forgive.
  */
 const OVERLAY_DIFF_BUDGET = 0; // exact — the port draws every pass upstream does
+
+/**
+ * The sprite decoder, against the reference's own walk.
+ *
+ * SoETilesViewer reads this format and nothing else does, so the number of
+ * sprites its walk finds is the only external check available — and it is a
+ * sharp one: the walk chains on each entry's own length, so a single
+ * mis-sized sprite desynchronises every one after it.
+ */
+function checkSprites(rom) {
+    const sprites = maps.walkSprites(rom);
+    // SoETilesViewer's own walk from $CA0003 ends here.
+    check('sprite count', sprites.length, 5128);
+
+    // Nearly every sprite composes to something visible; an all-transparent
+    // result would mean the block pointers or the decompression came out
+    // wrong. Nine of the 5128 are genuinely blank — padding between banks —
+    // so this is a bound, not zero.
+    let empty = 0;
+    let widest = 0;
+    for (const info of sprites) {
+        const px = maps.composeSprite(rom, info);
+        if (!px.pixels.some((v) => v >= 0)) empty += 1;
+        if (px.width > widest) widest = px.width;
+    }
+    check('sprites that compose to nothing', empty <= 16, true);
+    check('widest sprite is plausible', widest > 8 && widest <= 256, true);
+
+    // Both block pools decode to their declared size.
+    check('16x16 block size', maps.decodeSpriteBlock(rom, 0, true).pixels.length, 256);
+    check('8x8 block size', maps.decodeSpriteBlock(rom, 0, false).pixels.length, 64);
+    console.log(`  sprites: ${sprites.length} walked, ${empty} blank, widest ${widest}px`);
+}
 
 function checkOverlayParity(rom, rooms) {
     // Rooms chosen to exercise the passes: 0x06 has all four elevation planes,
