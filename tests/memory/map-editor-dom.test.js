@@ -25,7 +25,8 @@ const read = (f) => fs.readFileSync(path.join(WEBVIEW, f), 'utf8');
 
 /** The editor's files, in the order the bundle concatenates them. */
 const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-paint.js', 'map-editor-ui.js',
-    'map-editor-phases.js', 'map-editor-constructs.js', 'map-editor-families.js', 'map-editor-deco.js',
+    'map-editor-phases.js', 'map-editor-constructs.js', 'map-editor-families.js',
+    'map-editor-chips.js', 'map-editor-tiles.js', 'map-editor-deco.js',
     'map-editor-panels.js', 'map-editor-gestures.js', 'map-editor-input.js', 'map-editor-actions.js', 'map-editor-newroom.js'];
 
 /** A palette shaped like the host's reply, small enough to read. */
@@ -139,7 +140,10 @@ async function main() {
     check('every chosen family is previewed up front', eager.length === 7 && eager.includes(35),
         'asked for: ' + JSON.stringify(eager));
 
-    await page.click('[data-fam-add="0"]');
+    // ── family chips ───────────────────────────────────────────────────────
+    // A family id is not a name, so a chip leads with its two most-placed
+    // tiles and the act it belongs to. The old picker made you choose an id
+    // out of a paged list of 329 before it would show you anything.
     await page.evaluate(() => applyFamilyCatalogue({ families: [
         { id: 32, tiles: 210, rooms: 13, areas: ['Antiqua', 'Prehistoria'], names: ["Fire Eyes' Village"] },
         { id: 220, tiles: 201, rooms: 13, areas: ['Omnitopia'], names: ['Reactor room'] },
@@ -147,50 +151,54 @@ async function main() {
         { id: 5, tiles: 9, rooms: 1, areas: ['Gothica'], names: ['Ebon Keep'] },
     ] }));
 
-    // What makes a family choosable: its art and where the game uses it.
-    const firstRow = await page.$eval('.rg-fam-row', (n) => n.textContent);
-    check('a family row names its act, not just its id',
-        /Antiqua|Prehistoria/.test(firstRow) && /32/.test(firstRow), firstRow);
-    check('and the room it comes from', /Fire Eyes/.test(firstRow), firstRow);
+    const chipAsk = await page.evaluate(
+        () => window.__sent.filter((m) => m.command === 'requestFamilyPreviews').pop());
+    check('chip art is asked for two tiles at a time, for every family',
+        chipAsk && chipAsk.tiles === 2 && chipAsk.families.length === 4, JSON.stringify(chipAsk));
 
-    const asked = await page.evaluate(
-        () => (window.__sent.find((m) => m.command === 'requestFamilyPreviews') || {}).families);
-    check('art is requested for the whole visible page before anything is picked',
-        Array.isArray(asked) && asked.length === 4 && asked[0] === 32, JSON.stringify(asked));
+    await page.evaluate(() => applyChipPreviews({ previews: {
+        families: [32, 220, 58, 5], columns: 2, cell: 16,
+        imageUri: 'data:image/png;base64,Y2hpcA==', imageWidth: 32, imageHeight: 64 } }));
 
-    await page.evaluate(() => applyFamilyPreviews({ previews: {
-        families: [32, 220, 58, 5], columns: 8, cell: 16,
-        imageUri: 'data:image/png;base64,cHJldg==', imageWidth: 128, imageHeight: 64 } }));
-    const art = await page.$eval('.rg-fam-row .rg-fam-art', (n) => n.getAttribute('style') || '');
-    check('each row shows that family\u2019s own strip', art.includes('base64,cHJldg=='), art);
+    const chip58 = await page.$eval('[data-chip="58"]', (n) => ({
+        art: n.querySelector('.rg-chip-art').getAttribute('style') || '', text: n.textContent }));
+    check('a chip carries its own art, not a number alone',
+        chip58.art.includes('base64,Y2hpcA==') && /58/.test(chip58.text), JSON.stringify(chip58));
+    check('and the act it belongs to', /Prehistoria/.test(chip58.text), chip58.text);
 
-    let shown = await page.$$eval('[data-fam-pick]', (n) => n.map((e) => e.dataset.famPick));
-    await page.fill('#rg-fam-filter', 'omni');
-    shown = await page.$$eval('.rg-fam-row', (n) => n.map((e) => e.dataset.famPick));
-    check('filtering by act finds the family', shown.length === 1 && shown[0] === '220',
-        'showed ' + JSON.stringify(shown));
+    // An adopted family shows a real ×; the old one opened the picker.
+    const before58 = await page.evaluate(() => editFamilies().slice());
+    await page.click('.rg-chip.adopted [data-chip-drop]');
+    const after58 = await page.evaluate(() => editFamilies().slice());
+    check('the × on a chip frees its slot',
+        before58.filter((f) => f !== undefined).length - 1
+        === after58.filter((f) => f !== undefined).length,
+        JSON.stringify(before58) + ' -> ' + JSON.stringify(after58));
+    check('and the checks panel says what that stranded',
+        await page.evaluate(() => typeof editStrandedCells === 'function'));
 
-    await page.fill('#rg-fam-filter', 'strong');
-    shown = await page.$$eval('.rg-fam-row', (n) => n.map((e) => e.dataset.famPick));
-    check('filtering by room name works too', shown.length === 1 && shown[0] === '58',
-        'showed ' + JSON.stringify(shown));
+    // A chip filters the tile list; clearing shows everything again.
+    await page.evaluate(() => { _chipSel = {}; renderEditPanels(); });
+    const allGroups = await page.$$eval('.rg-tile-group', (n) => n.length);
+    await page.click('[data-chip="220"]');
+    const oneGroup = await page.$$eval('.rg-tile-group', (n) => n.map((e) => e.textContent));
+    check('selecting a chip filters the tiles to that family',
+        oneGroup.length === 1 && /220/.test(oneGroup[0]), JSON.stringify(oneGroup.length));
+    await page.click('[data-chip="220"]');
+    check('and clearing it shows everything again',
+        (await page.$$eval('.rg-tile-group', (n) => n.length)) === allGroups);
 
-    await page.fill('#rg-fam-filter', '>200');
-    shown = await page.$$eval('.rg-fam-row', (n) => n.map((e) => e.dataset.famPick));
-    check('">200" keeps only the big families',
-        shown.includes('32') && shown.includes('220') && !shown.includes('58'),
-        'showed ' + JSON.stringify(shown));
+    await page.fill('#rg-chip-filter', 'omni');
+    const chips = await page.$$eval('[data-chip]', (n) => n.map((e) => e.dataset.chip));
+    check('the chip filter narrows by act', chips.includes('220') && !chips.includes('5'),
+        JSON.stringify(chips));
+    await page.fill('#rg-chip-filter', '');
 
-    await page.fill('#rg-fam-filter', '58');
-    shown = await page.$$eval('.rg-fam-row', (n) => n.map((e) => e.dataset.famPick));
-    check('an id filter still narrows to that id',
-        shown.length === 1 && shown[0] === '58', 'showed ' + JSON.stringify(shown));
-
-    await page.fill('#rg-fam-filter', '');
-    await page.click('.rg-fam-row[data-fam-pick="58"]');
-    check('picking a family fills the slot', await page.evaluate(() => editFamilies()[0] === 58));
-
-    await page.evaluate(() => { editFamilies()[3] = undefined; renderEditPanels(); });
+    await page.evaluate(() => {
+        for (var i = 0; i < 7; i++) if (editFamilies()[i] === undefined) editFamilies()[i] = 700 + i;
+        editFamilies()[3] = undefined;
+        renderEditPanels();
+    });
     const adopted = await page.evaluate(() => editAdoptFamilyFor(999));
     check('clicking a foreign tile adopts its family',
         adopted.ok && adopted.added && adopted.slot === 3, JSON.stringify(adopted));
@@ -322,10 +330,10 @@ async function main() {
         editReset(0x34);
         editDraft().on = true;
         editFamilies()[2] = 58;
-        _famOpen = 2;
+        _chipSel = { 58: true };
         _famSheets[58] = { family: 58, count: 2, total: 74, roomCount: 3, columns: 16, cell: 16,
             slots: [[0, 0, 4186, 9], [1, 2, 4191, 4]], imageUri: 'data:image/png;base64,ZmFt' };
-        _panelOpen.tiles = false;
+        _panelOpen.tiles = true;
         renderEditPanels();
     });
     await page.click('[data-fam-tile]');
@@ -360,28 +368,54 @@ async function main() {
     check('tile swatches are 32px, not 16', cellBox.w === 32 && cellBox.h === 32,
         JSON.stringify(cellBox));
 
-    // ── tiles in their own family ──────────────────────────────────────────
+    // ── tiles in their own family, ranked by relationship ──────────────────
     await page.evaluate(() => applyFamilySheet({
         sheet: {
-            family: 58, count: 2, total: 74, roomCount: 3, columns: 16, cell: 16,
-            slots: [[0, 0, 4191, 10], [1, 2, 4195, 5]], imageUri: 'data:image/png;base64,ZmFt',
+            family: 58, count: 3, total: 74, roomCount: 3, columns: 16, cell: 16,
+            // [slot, chr, graphic, placements, canopyUses, terrainUses]
+            slots: [[0, 0, 4191, 10, 90, 10], [1, 2, 4195, 5, 2, 40], [2, 4, 4200, 99, 0, 0]],
+            imageUri: 'data:image/png;base64,ZmFt',
         },
     }));
-    await page.evaluate(() => { _panelOpen.tiles = true; renderEditPanels(); });
-    await page.click('[data-tile-source="families"]');
+    await page.evaluate(() => { _chipSel = { 58: true }; _panelOpen.tiles = true; renderEditPanels(); });
     const strip = await page.evaluate(() => document.getElementById('rg-panels').innerHTML);
     check('a family’s tiles are drawn in that family, not the room’s palette',
         strip.includes('base64,ZmFt') && strip.includes('data-fam-of="58"'));
-    // "showing 16" hid two of eighteen for no reason. Everything the host
-    // sent is shown; the only thing worth saying is that it capped at 128.
-    const notes58 = await page.$$eval('#rg-panels .rs-note',
-        (n) => n.map((e) => e.textContent).filter((t) => /^family 58/.test(t)));
-    const stripNote = notes58[0] || '';
+    // Everything the host sent is shown. "showing 16" hid two of eighteen
+    // for no reason; the host's own 128-graphic cap is the only real one.
     const swatches58 = await page.$$eval('[data-fam-of="58"]', (n) => n.length);
-    check('every tile the host sent is shown, with no arbitrary cut',
-        notes58.length > 0 && swatches58 === 2 * notes58.length && !/showing/.test(stripNote),
-        `${notes58.length} strip(s), ${swatches58} swatches — ${stripNote}`);
-    check('and the cap the host did apply is named', /the 2 most-used shown/.test(stripNote), stripNote);
+    check('every tile the host sent is shown, with no arbitrary cut', swatches58 === 3,
+        String(swatches58));
+
+    // Vanilla decides the layer where it is one-sided enough, and the badge
+    // has to say which — 4822 of 5628 graphics are ≥90% one-sided.
+    const badges = await page.$$eval('[data-fam-of="58"]',
+        (n) => n.map((e) => [e.dataset.famTile, e.className]));
+    check('a mostly-canopy tile is badged for the foreground',
+        /rg-lay-front/.test(badges.find((b) => b[0] === '4191')[1]), JSON.stringify(badges));
+    check('and a mostly-terrain one for the ground',
+        /rg-lay-ground/.test(badges.find((b) => b[0] === '4195')[1]), JSON.stringify(badges));
+    check('while a tile vanilla is undecided about gets neither',
+        !/rg-lay-/.test(badges.find((b) => b[0] === '4200')[1]), JSON.stringify(badges));
+
+    // Any tile can be forced onto either layer — a tilemap word does not
+    // care which of the two slots it is written into.
+    await page.click('[data-layer-force="canopy"]');
+    check('forcing the foreground overrides vanilla for every tile',
+        await page.$$eval('[data-fam-of="58"]',
+            (n) => n.every((e) => /rg-lay-front/.test(e.className))));
+    await page.click('[data-layer-force="auto"]');
+
+    // Relationship ordering: with 4195 placed, its neighbours come first
+    // even though 4200 has ten times the placements.
+    await page.evaluate(() => applyRelatedTiles({
+        related: [[4191, 92, 47], [4200, 3, 2]] }));
+    const order = await page.$$eval('[data-fam-of="58"]', (n) => n.map((e) => e.dataset.famTile));
+    check('the strongest relationship sorts to the front, not the biggest count',
+        order[0] === '4191', JSON.stringify(order));
+    const strip2 = await page.evaluate(() => document.getElementById('rg-panels').textContent);
+    check('and the neighbours are offered as their own strip',
+        /Drawn next to what you have placed/.test(strip2) && /92%/.test(strip2));
 
     // ── the deco library ───────────────────────────────────────────────────
     // Section 3 objects are vanilla's own deco widgets — gourds, pots, fire
@@ -558,6 +592,74 @@ async function main() {
     check('and then picking a tile hands the clicks back to the brush',
         armedTile.tool === 'paint' && armedTile.construct === -1 && armedTile.brush >= 0,
         JSON.stringify(armedTile));
+
+    // ── resizing the canvas ────────────────────────────────────────────────
+    // The grip lives inside #rg-wrap, whose capture-phase handlers would
+    // otherwise read the drag as a paint stroke in the corner cell.
+    await page.evaluate(() => {
+        editReset(0x34);
+        const d = editDraft();
+        d.on = true;
+        d.blank = { widthTiles: 4, heightTiles: 4, borrowedFrom: 0x34, problems: [] };
+        _mtPalette = Object.assign({}, _mtPalette, { widthTiles: 4, heightTiles: 4 });
+        d.cells['3,3'] = 0;
+        d.cells['0,0'] = 0;
+        const wrap = document.getElementById('rg-wrap');
+        if (!document.getElementById('rg-resize')) {
+            wrap.insertAdjacentHTML('beforeend', buildResizeHandleHtml());
+        }
+        const svg = document.getElementById('rg-svg');
+        svg.setAttribute('width', 400); svg.setAttribute('height', 400);
+        svg.style.width = '400px'; svg.style.height = '400px';
+        wrap.style.width = '400px'; wrap.style.height = '400px';
+        setupEditGestures();
+    });
+    const grip = await page.$('#rg-resize');
+    const gb = await grip.boundingBox();
+    await page.mouse.move(gb.x + 6, gb.y + 6);
+    await page.mouse.down();
+    // 400px over four tiles is 100px each; two tiles smaller each way.
+    await page.mouse.move(gb.x + 6 - 200, gb.y + 6 - 200, { steps: 4 });
+    const live = await page.evaluate(() => ({
+        size: _resizing && [_resizing.w, _resizing.h],
+        label: document.getElementById('rg-resize-label').textContent,
+        shown: document.getElementById('rg-resize-label').style.display,
+        painted: Object.keys(editDraft().cells).length,
+    }));
+    check('dragging the grip tracks a size in tiles',
+        live.size && live.size[0] === 2 && live.size[1] === 2, JSON.stringify(live));
+    check('and says what it costs before the mouse comes up',
+        /2×2/.test(live.label) && /bytes/.test(live.label) && live.shown === 'block', live.label);
+    // The grid and the dictionary share one 32768-byte window: 2*2*2 for the
+    // grid, plus 8 for the room's one stamp.
+    check('the cost is the grid plus the dictionary', /16\/32768 bytes/.test(live.label), live.label);
+    check('and it warns which cells the shrink would drop',
+        /drops 1 cell/.test(live.label), live.label);
+    check('the drag is not also a paint stroke', live.painted === 2, String(live.painted));
+
+    await page.mouse.up();
+    const resized = await page.evaluate(
+        () => window.__sent.filter((m) => m.command === 'requestBlankRoom').pop());
+    check('releasing asks the host for a map that size',
+        resized && resized.widthTiles === 2 && resized.heightTiles === 2, JSON.stringify(resized));
+
+    // A resize keeps what still fits; a new room does not.
+    await page.evaluate(() => applyBlankRoom({ room: {
+        widthTiles: 2, heightTiles: 2, borrowedFrom: 0x34, baseMetatile: 8,
+        imageUri: 'data:image/png;base64,cg==', tileFamilies: [35], problems: [],
+        budget: _mtPalette.budget } }));
+    const kept = await page.evaluate(() => Object.keys(editDraft().cells));
+    check('the cells that still fit survive the resize', kept.join() === '0,0', JSON.stringify(kept));
+
+    // A ROM room cannot resize: baseMetatile is w*h*2, so it would renumber
+    // every metatile id in the room.
+    const refused = await page.evaluate(() => {
+        editDraft().blank = null;
+        _resizing = { w0: 4, h0: 4, w: 6, h: 6 };
+        resizeEnd();
+        return document.getElementById('rg-edit-count').textContent;
+    });
+    check('a ROM room refuses, and says why', /renumbers every metatile/.test(refused), refused);
 
     // ── binding the panel twice must not double every click ────────────────
     // #room-detail survives a room re-render — only its innerHTML is

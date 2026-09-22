@@ -68,6 +68,9 @@ function applyMetatilePalette(msg) {
     noteLayerHints(rows, 4, 5, 2);
   }
   renderMetatilePalette();
+  // `new map` cannot draft anything until the dictionary it borrows from is
+  // in hand, so it waits here rather than racing the request.
+  if (typeof newMapPaletteReady === 'function') newMapPaletteReady();
 }
 
 /**

@@ -15,6 +15,7 @@ const { buildBlankRoom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPrevi
 const { decoIndex, decoCells,
         invalidateDecoCatalogue }                                  = require('./rendering/deco-catalogue');
 const { buildDecoPreviews }                                         = require('./rendering/deco-preview');
+const { relatedTiles }                                              = require('./rendering/vanilla-index');
 const { VANILLA_ROOMS, buildVanillaRoomContent,
         buildVanillaRoomDetails, invalidateVanillaDataCaches }      = require('./data/vanilla-data');
 const { getMapEnum, readLuaWatchers, readScriptAllTriggers,
@@ -68,6 +69,7 @@ module.exports = {
     decoIndex,
     decoCells,
     buildDecoPreviews,
+    relatedTiles,
 
     // Data
     VANILLA_ROOMS,

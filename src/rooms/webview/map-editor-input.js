@@ -94,8 +94,8 @@ function renderComposer() {
  * browser before this walk-up existed.
  */
 var EDIT_CLICK_KEYS = ['editTool', 'editPhase', 'editAct', 'editPick', 'panel',
-  'famSlot', 'famAdd', 'famPick', 'famPage', 'famTile', 'construct', 'tileSource',
-  'deco', 'decoPage', 'decoFlag', 'mtIndex', 'mtSlot'];
+  'famTile', 'construct', 'chip', 'chipDrop', 'chipAdopt', 'chipMore', 'tileMore',
+  'layerForce', 'deco', 'decoPage', 'decoFlag', 'mtIndex', 'mtSlot'];
 
 /** The nearest ancestor (including `el`) that carries one of those keys. */
 function editClickTarget(el, root) {
@@ -136,9 +136,9 @@ function bindEditControls(panel, room) {
   // `input` so it survives the redraws it causes.
   panel.addEventListener('input', function (e) {
     if (!e.target) return;
-    if (e.target.id === 'rg-fam-filter') {
-      _famFilter = e.target.value;
-      _famPage = 0;   // a new filter starts at the top of its own list
+    if (e.target.id === 'rg-chip-filter') {
+      _chipFilter = e.target.value;
+      _chipPage = CHIP_PAGE;   // a new filter starts at the top of its own list
       renderEditPanels();
       return;
     }
@@ -175,38 +175,19 @@ function bindEditControls(panel, room) {
       renderEditPanels();
       return;
     }
-    if (t.dataset.famSlot !== undefined && t.dataset.famSlot !== '') {
-      var slot = Number(t.dataset.famSlot);
-      _famOpen = _famOpen === slot ? -1 : slot;
-      _famPicking = -1;
-      if (_famOpen >= 0) ensureFamilySheet(editFamilies()[_famOpen]);
+    if (t.dataset.chip) { chipToggle(t.dataset.chip); return; }
+    if (t.dataset.chipDrop !== undefined && t.dataset.chipDrop !== '') {
+      chipDrop(t.dataset.chipDrop);
+      return;
+    }
+    if (t.dataset.chipAdopt) { chipAdopt(t.dataset.chipAdopt); return; }
+    if (t.dataset.chipMore) { _chipPage += CHIP_PAGE; renderEditPanels(); return; }
+    if (t.dataset.tileMore) { _tileGroupPage += TILE_GROUP_PAGE; renderEditPanels(); return; }
+    if (t.dataset.layerForce) {
+      _layerForce = t.dataset.layerForce === 'auto' ? null : t.dataset.layerForce;
       renderEditPanels();
       return;
     }
-    if (t.dataset.famAdd !== undefined && t.dataset.famAdd !== '') {
-      // The same control frees a filled slot and fills an empty one: both
-      // are "decide what goes here".
-      _famPicking = _famPicking === Number(t.dataset.famAdd) ? -1 : Number(t.dataset.famAdd);
-      _famOpen = -1;
-      _famPage = 0;
-      if (_famPicking >= 0) requestFamilyCatalogue();
-      renderEditPanels();
-      return;
-    }
-    if (t.dataset.famPage !== undefined && t.dataset.famPage !== '') {
-      _famPage = Number(t.dataset.famPage);
-      renderEditPanels();
-      return;
-    }
-    if (t.dataset.famPick) {
-      var pick = t.dataset.famPick;
-      if (pick === 'clear') editClearFamily(_famPicking);
-      else if (pick !== 'none') editSetFamily(_famPicking, Number(pick));
-      _famPicking = -1;
-      renderEditChrome();
-      return;
-    }
-    if (t.dataset.tileSource) { _tileSource = t.dataset.tileSource; renderEditPanels(); return; }
     if (t.dataset.decoFlag) {
       _decoFlags[t.dataset.decoFlag] = !_decoFlags[t.dataset.decoFlag];
       _decoPage = 0;   // a narrower list starts at the top of its own pages

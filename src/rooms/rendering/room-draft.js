@@ -187,6 +187,8 @@ function buildFamilyCatalogue(rom) {
 
 /** Tiles shown per family in the picker's preview strip. */
 const PREVIEW_TILES = 8;
+/** Tiles on a family *chip* — just enough to recognise what it is. */
+const CHIP_TILES = 2;
 
 /**
  * A strip of each family's art, several families to one image.
@@ -197,29 +199,33 @@ const PREVIEW_TILES = 8;
  * once — and the single-row results are blitted into one sheet, one row per
  * family, in the order asked for.
  */
-function buildFamilyPreviews(rom, familyIds) {
+function buildFamilyPreviews(rom, familyIds, tilesPerFamily) {
     const buf = rom instanceof Uint8Array ? rom : new Uint8Array(rom);
     const index = vanillaIndex(buf);
-    const ids = (familyIds || []).map(Number).filter((n) => !isNaN(n)).slice(0, 40);
-    const width = PREVIEW_TILES * 16;
+    const columns = Math.max(1, Math.min(PREVIEW_TILES, Number(tilesPerFamily) || PREVIEW_TILES));
+    // A chip is two tiles, so the whole 329-family catalogue fits one sheet;
+    // a preview row is eight, and past 40 of those it is a scroll hazard.
+    const cap = columns <= CHIP_TILES ? 400 : 40;
+    const ids = (familyIds || []).map(Number).filter((n) => !isNaN(n)).slice(0, cap);
+    const width = columns * 16;
     const height = Math.max(1, ids.length) * 16;
     const sheet = { width, height, data: new Uint8Array(width * height * 4) };
     const base = maps.decodeRoom(buf, 0x76);
 
     ids.forEach((family, row) => {
-        const tiles = (index.graphics.get(family) || []).slice(0, PREVIEW_TILES).map((a) => a.value);
+        const tiles = (index.graphics.get(family) || []).slice(0, columns).map((a) => a.value);
         if (!tiles.length) return;
         const strip = maps.renderTileListAtlas(
             buf,
             { ...base, tileFamilies: [family], tilePalette: tiles, animatedTiles: [] },
-            { columns: PREVIEW_TILES, palette: 1 },
+            { columns, palette: 1 },
         );
         blit(sheet, strip.image, 0, row * 16);
     });
 
     return {
         families: ids,
-        columns: PREVIEW_TILES,
+        columns,
         cell: 16,
         imageUri: maps.encodePngDataUri(sheet),
         imageWidth: width,

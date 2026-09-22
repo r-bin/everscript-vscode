@@ -38,18 +38,88 @@ function buildNewRoomHtml() {
     + '</div>';
 }
 
-/** Read the form and ask the host for the room. */
-function editNewRoomGo() {
+/** The format's own bounds: 2 is the smallest grid that encodes, 128 is past
+ *  the widest vanilla room (`0x3c`, at 127). */
+var NEW_ROOM_MIN = 2;
+var NEW_ROOM_MAX = 128;
+
+function clampRoomSide(n, fallback) {
+  return Math.max(NEW_ROOM_MIN, Math.min(NEW_ROOM_MAX, Number(n) || fallback));
+}
+
+/** Ask the host to draw a blank grid, borrowing this room's graphics. */
+function requestBlankRoom(w, h) {
   if (typeof vs === 'undefined' || !vs) return;
-  var wEl = document.getElementById('rg-nr-w');
-  var hEl = document.getElementById('rg-nr-h');
-  var w = Math.max(2, Math.min(128, Number(wEl && wEl.value) || 16));
-  var h = Math.max(2, Math.min(128, Number(hEl && hEl.value) || 12));
-  editNote('drafting a ' + w + '×' + h + ' room…');
   vs.postMessage({
     command: 'requestBlankRoom', mapName: _mtRoomName,
     widthTiles: w, heightTiles: h, borrowFrom: _mtRoomId,
   });
+}
+
+/** Read the form and ask the host for the room. */
+function editNewRoomGo() {
+  var wEl = document.getElementById('rg-nr-w');
+  var hEl = document.getElementById('rg-nr-h');
+  var w = clampRoomSide(wEl && wEl.value, 16);
+  var h = clampRoomSide(hEl && hEl.value, 12);
+  editNote('drafting a ' + w + '×' + h + ' room…');
+  requestBlankRoom(w, h);
+}
+
+// ---------------------------------------------------------------------------
+// `> everscript new map`
+// ---------------------------------------------------------------------------
+
+/**
+ * The room a new map borrows its graphics from.
+ *
+ * A blank room cannot invent a Block 1 — a synthetic one-entry list renders
+ * black (rule 7.1) — so it borrows one. `0x34` is Strongheart's Hut: small,
+ * a plain walkable floor, and seven families that between them attest 157
+ * graphics, which is a usable starting vocabulary rather than a corner case.
+ */
+var NEW_MAP_BORROW = 0x34;
+var NEW_MAP_W = 24;
+var NEW_MAP_H = 16;
+
+/** Set while the chain below is waiting for the borrowed dictionary. */
+var _newMapWaiting = false;
+
+/**
+ * Open the editor on a blank map.
+ *
+ * Four steps that cannot be collapsed: the Rooms tab has to be showing, a
+ * room has to be rendered to borrow from, edit mode has to be on for the
+ * draft to exist, and the dictionary has to have arrived from the host
+ * before anything can be drawn. The last one is asynchronous, so the chain
+ * parks in `_newMapWaiting` and `newMapPaletteReady` finishes it.
+ */
+function roomsNewMap() {
+  var tab = document.querySelector('.tab[data-tab="rooms"]');
+  if (tab) tab.click();
+
+  if (typeof gotoVanillaRoom === 'function') gotoVanillaRoom(NEW_MAP_BORROW);
+
+  var d = editDraft();
+  if (!d || !d.on) {
+    var btn = document.getElementById('rg-edit-btn');
+    if (btn) btn.click();
+  }
+
+  if (_mtPalette) { newMapDraft(); return; }
+  _newMapWaiting = true;
+}
+
+/** The borrowed dictionary arrived; draft the grid now. */
+function newMapPaletteReady() {
+  if (!_newMapWaiting) return;
+  _newMapWaiting = false;
+  newMapDraft();
+}
+
+function newMapDraft() {
+  editNote('drafting a blank ' + NEW_MAP_W + '×' + NEW_MAP_H + ' map…');
+  requestBlankRoom(NEW_MAP_W, NEW_MAP_H);
 }
 
 /** The SVG's coordinate system: one unit is one 8px tile, so a metatile is 2. */
@@ -131,6 +201,113 @@ function regridMap(unitsW, unitsH) {
   if (coarse) coarse.setAttribute('d', path(2));
 }
 
+// ---------------------------------------------------------------------------
+// Resizing the canvas
+// ---------------------------------------------------------------------------
+
+/** The drag in progress, or null. */
+var _resizing = null;
+/** Keep the cells that still fit when the next blank room arrives. */
+var _resizeKeep = false;
+
+function buildResizeHandleHtml() {
+  return '<div class="rg-resize" id="rg-resize" title="Drag to resize the map"></div>'
+    + '<div class="rg-resize-label" id="rg-resize-label"></div>';
+}
+
+/** Begin a resize. Returns false when there is nothing to resize. */
+function resizeStart(e) {
+  if (!_mtPalette) return false;
+  _resizing = {
+    x: e.clientX, y: e.clientY,
+    w0: _mtPalette.widthTiles, h0: _mtPalette.heightTiles,
+    w: _mtPalette.widthTiles, h: _mtPalette.heightTiles,
+  };
+  resizeLabel();
+  return true;
+}
+
+/**
+ * Track the drag, in tiles.
+ *
+ * The pointer moves in screen pixels and the map is drawn at whatever zoom
+ * the panel gave it, so the conversion is the rendered box divided by the
+ * tile count — not a constant, which would drift the moment the panel is a
+ * different width.
+ */
+function resizeMove(e) {
+  if (!_resizing) return;
+  var svg = document.getElementById('rg-svg');
+  if (!svg) return;
+  var box = svg.getBoundingClientRect();
+  var perX = box.width / _resizing.w0;
+  var perY = box.height / _resizing.h0;
+  _resizing.w = clampRoomSide(Math.round(_resizing.w0 + (e.clientX - _resizing.x) / perX), _resizing.w0);
+  _resizing.h = clampRoomSide(Math.round(_resizing.h0 + (e.clientY - _resizing.y) / perY), _resizing.h0);
+  resizeLabel();
+}
+
+/**
+ * What the size costs, live.
+ *
+ * The grid and the dictionary share one 32768-byte window, and the grid term
+ * is `w * h * 2`, so a resize is a budget decision. The fullest vanilla room
+ * uses 32680 of it.
+ */
+function resizeLabel() {
+  var el = document.getElementById('rg-resize-label');
+  if (!el || !_resizing) return;
+  var stamps = editStampCount(_mtPalette);
+  var wram = _resizing.w * _resizing.h * 2 + stamps * 8;
+  var max = (_mtPalette.budget && _mtPalette.budget.wram.max) || 32768;
+  var lost = resizeLostCells(_resizing.w, _resizing.h);
+  el.textContent = _resizing.w + '×' + _resizing.h + ' · ' + wram + '/' + max + ' bytes'
+    + (lost ? ' · drops ' + lost + ' cell' + (lost === 1 ? '' : 's') : '');
+  el.className = 'rg-resize-label' + (wram > max ? ' over' : '');
+  el.style.display = 'block';
+}
+
+/** Cells the draft has drawn that would fall outside a `w`×`h` grid. */
+function resizeLostCells(w, h) {
+  var d = editDraft();
+  if (!d) return 0;
+  var n = 0;
+  Object.keys(d.cells).forEach(function (k) {
+    var p = k.split(',');
+    if (Number(p[0]) >= w || Number(p[1]) >= h) n += 1;
+  });
+  return n;
+}
+
+/**
+ * Commit the drag.
+ *
+ * Only a drafted map resizes. A ROM room's picture is the ROM's, and the
+ * editor has no way to re-render a different grid of it — but the real
+ * reason to refuse is `baseMetatile === w * h * 2`: the dictionary starts
+ * straight after the grid, so a resize renumbers **every** metatile id in
+ * the room. The draft survives that because it stores dictionary indices
+ * and only becomes ids at export; a ROM room on screen would not.
+ */
+function resizeEnd() {
+  var r = _resizing;
+  _resizing = null;
+  var el = document.getElementById('rg-resize-label');
+  if (el) el.style.display = 'none';
+  if (!r || (r.w === r.w0 && r.h === r.h0)) return;
+
+  var d = editDraft();
+  if (!d || !d.blank) {
+    editNote('only a drafted map resizes — the dictionary starts right after the grid, '
+      + 'so resizing a ROM room renumbers every metatile in it. Use “new room” first.');
+    renderEditChrome();
+    return;
+  }
+  _resizeKeep = true;
+  editNote('resizing to ' + r.w + '×' + r.h + '…');
+  requestBlankRoom(r.w, r.h);
+}
+
 /**
  * The host drew a blank room. Show it in place of the map.
  *
@@ -146,7 +323,18 @@ function applyBlankRoom(msg) {
   if (!d) return;
   var room = msg.room;
   d.blank = room;
-  d.cells = {};
+  // A resize keeps what still fits — it is a change of canvas, not a new
+  // drawing. Anything outside the new bounds is gone, which is why the drag
+  // says how many cells that is before the mouse comes up.
+  if (_resizeKeep) {
+    Object.keys(d.cells).forEach(function (k) {
+      var p = k.split(',');
+      if (Number(p[0]) >= room.widthTiles || Number(p[1]) >= room.heightTiles) delete d.cells[k];
+    });
+    _resizeKeep = false;
+  } else {
+    d.cells = {};
+  }
   d.undo = [];
   d.redo = [];
   _newRoomOpen = false;

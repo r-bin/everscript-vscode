@@ -1,3 +1,45 @@
+## [0.49.0] — 2026-09-22
+
+### `> everscript new map`
+
+A command that opens the editor **in the active column** — the whole editor area, not the right-hand strip — on the Rooms tab, already in edit mode with a blank 24×16 map drafted. It borrows graphics from room `0x34` (small, plain floor, seven families that between them attest 157 graphics), because a blank room cannot invent a Block 1: a synthetic one-entry list renders black.
+
+It works with no `.evs` file open. A new map's content comes from the ROM, so an empty in-memory document stands in rather than the editor refusing to appear.
+
+### Resize the canvas by dragging it
+
+A grip on the map's bottom-right corner. Dragging reports the size in tiles **and what it costs**, live: `w*h*2 + stamps*8` against the 32768-byte window the grid shares with the dictionary, plus how many placed cells a shrink would drop. Releasing commits, and the cells that still fit survive.
+
+The reason this is more than a CSS change: `baseMetatile === width * height * 2`. The dictionary starts immediately after the grid, so resizing **renumbers every metatile id in the room**. The draft survives that only because it stores dictionary indices and converts to ids at export. A ROM room on screen would not, so it refuses and says so rather than quietly corrupting the ids.
+
+### The relationship index — what vanilla draws beside what
+
+The genuinely new measurement. Every right- and down-neighbour of every cell in all 127 rooms, per layer: **693079 edges over 49374 distinct pairs**, folded into the existing index pass.
+
+The score is **Jaccard**, `adjacent / (placed(a) + placed(b) − adjacent)`, not a raw count — and the difference is the whole point. Graphic `3736` is the gourd body's top-left canopy tile. Its raw top four are the other two gourd pieces *and* the floor and wall it happened to stand against. Jaccard puts the two gourd pieces at exactly **1.00** — always adjacent, never apart — and drops the floor to 0.04.
+
+Relationship and family turn out to be independent: only **38.1%** of neighbour pairs share a dominant family. So grouping by one and ranking by the other is two signals, not one said twice.
+
+### The sidebar, pointed the other way round
+
+**Family chips.** A family id is not a name. Every family is now a chip leading with its two most-placed tiles — all 329 in one 81 KB sheet — plus its id and act. A chip **filters** the tile list; select several, or none for everything. The `×` **frees the slot**, which the old one did not do: it carried the picker's data attribute and opened the browser to swap the family instead. Proven in a browser before and after.
+
+**The tile list is the primary control.** Tiles are grouped by family and, within a group, ordered by how well they go with what you have already placed — so once one gourd tile is down, the rest of the gourd is at the top. Clicking a tile adopts its family, so the seven fill themselves as a consequence of drawing rather than a prerequisite for it.
+
+**Foreground or background, decided by vanilla.** Each tile is badged with the layer vanilla draws it on (4822 of 5628 graphics are ≥90% one-sided) and lands there automatically. `front` and `ground` force every pick onto a layer regardless — a tilemap word does not care which of the two slots it is written into.
+
+**A recommended-neighbours strip** under the selection, scored, one click from placing.
+
+**Removing a family is now a check, not a silent recolour.** The word still names palette slot N and slot N is now empty, so the cells that named it are stranded and the checks panel counts them and says what to do.
+
+### One scroll container
+
+The sidebar scrolls; nothing inside it does. Three nested `max-height` + `overflow` pairs are gone (`.rg-fam-list` at 140px, `.rs-mt-sheet` at 340px, panel sheets at 180px). A panel that is open is as tall as its content.
+
+### Not reproduced
+
+"The graphics are broken" was not reproducible as a rendering fault: the preview sheet is a correct 128×192 PNG of 12 rows × 8 real tiles, and in a browser every strip cell measured exactly 16px at the right offsets. What was true is that eight mostly-dark tiles at 16px in a 320px column tell you nothing. The chips show two tiles at 32×16 and the groups show everything at 2×, which is the fix if the complaint was legibility. Say so if it persists.
+
 ## [0.48.0] — 2026-09-22
 
 ### The edit and "new room" buttons work every time now

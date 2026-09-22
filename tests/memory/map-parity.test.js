@@ -836,8 +836,75 @@ function checkVanillaIndex(rom) {
     check('and fewer graphics than a room can load', picked.length < maps.MAX_GRAPHICS, true);
     check('a family offers examples', maps.familyExamples(ix, 166).length, 8);
 
+    checkRelationships(ix);
+
     console.log(`  vanilla index: ${ix.families.size} graphics, ${ix.graphics.size} families, `
         + `${sharePct.toFixed(1)}% single-family, ${collPct.toFixed(1)}% single-collision`);
+}
+
+/**
+ * What vanilla draws beside what — the relationship index.
+ *
+ * The scoring choice is the thing worth pinning. Raw adjacency counts rank
+ * by how *common* a neighbour is: graphic 3736's raw top four are the other
+ * two gourd pieces and the floor and wall it happened to stand against.
+ * Jaccard puts the gourd pieces at exactly 1.00 and the floor at 0.04, which
+ * is the difference between "what goes with this" and "what is everywhere".
+ *
+ * See docs/map-format/map-editor-window.md §2.
+ */
+function checkRelationships(ix) {
+    check('adjacency covers every graphic the index knows', ix.adjacency.size, 5628);
+    check('693079 adjacency edges', ix.edges, 693079);
+
+    let pairs = 0;
+    for (const [, inner] of ix.adjacency) pairs += inner.size;
+    // Stored both ways, so the distinct undirected pairs are half.
+    check('49374 distinct neighbour pairs', pairs / 2, 49374);
+
+    // The gourd: 3736, 3737 and 3740 are three cells of one object, so they
+    // are always adjacent and never apart.
+    const gourd = maps.relatedGraphics(ix, 3736, 4);
+    check('the gourd’s other pieces come first', [gourd[0].graphic, gourd[1].graphic], [3737, 3740]);
+    check('and score exactly 1', [gourd[0].score, gourd[1].score], [1, 1]);
+    check('while the floor it stood on does not', gourd[2].score < 0.1, true);
+
+    // Raw counts would have ranked it the other way round — that is why the
+    // score is Jaccard and not a count.
+    const raw = [...ix.adjacency.get(3736)].sort((a, b) => b[1] - a[1]);
+    check('raw counts would have ranked a floor tile third', raw[2][0], 3455);
+
+    check('a pair vanilla never places together scores 0', maps.relationship(ix, 3736, 9999), 0);
+    check('a graphic relates to itself', maps.relationship(ix, 3736, 3736), 1);
+    check('an unknown graphic has no neighbours', maps.relatedGraphics(ix, 999999).length, 0);
+
+    // Ranking a candidate list against what is already placed takes the best
+    // single relationship, not the mean: a tile that belongs with one thing
+    // in the room belongs in the room.
+    const ranked = maps.rankByRelationship(ix, [3455, 3737, 3740, 4191], [3736]);
+    check('ranking puts the related pieces first', [ranked[0].graphic, ranked[1].graphic], [3737, 3740]);
+    check('and an empty map ranks nothing',
+        maps.rankByRelationship(ix, [3455, 3737], []).every((r) => r.score === 0), true);
+
+    // Relationship and family are independent signals; if they were the same
+    // thing, grouping by one and ranking by the other would be redundant.
+    let same = 0;
+    let both = 0;
+    for (const [a, inner] of ix.adjacency) {
+        const fa = maps.suggestFamily(ix, a);
+        if (!fa) continue;
+        for (const [b] of inner) {
+            if (b < a) continue;
+            const fb = maps.suggestFamily(ix, b);
+            if (!fb) continue;
+            both += 1;
+            if (fa.value === fb.value) same += 1;
+        }
+    }
+    const pct = (same / both) * 100;
+    check('under half of neighbour pairs share a family', pct < 50, true);
+    console.log(`  relationships: ${ix.edges} edges, ${pairs / 2} pairs, `
+        + `${pct.toFixed(1)}% share a dominant family`);
 }
 
 /**

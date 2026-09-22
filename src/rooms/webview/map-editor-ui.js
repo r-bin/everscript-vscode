@@ -94,6 +94,12 @@ function editDock(on, room) {
       dock.appendChild(panels);
     }
     if (sec) sec.classList.add('rs-mt-hidden');
+    // The resize grip sits over the map's own bottom-right corner, so the
+    // map is resized where it is rather than through a form.
+    var wrap = document.getElementById('rg-wrap');
+    if (wrap && !document.getElementById('rg-resize')) {
+      wrap.insertAdjacentHTML('beforeend', buildResizeHandleHtml());
+    }
     // Nothing can be painted without the dictionary, so fetch it now
     // rather than making the user find the load button.
     if (!_mtPalette && room) requestMetatilePalette(room, _mtLayer);
@@ -101,6 +107,10 @@ function editDock(on, room) {
   } else if (dock) {
     if (sec) sec.classList.remove('rs-mt-hidden');
     dock.parentNode.removeChild(dock);
+    ['rg-resize', 'rg-resize-label'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.parentNode.removeChild(el);
+    });
   }
 }
 

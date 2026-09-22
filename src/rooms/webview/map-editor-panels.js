@@ -1,23 +1,14 @@
-// Ownership: the editor's information panels — the tile list, the stamps the
-// draft still needs, and anything that would stop it encoding.
+// Ownership: the editor's information panels — what the draft still needs
+// and anything that would stop it encoding.
 //
 // These are read-outs over state owned elsewhere: the draft is
-// map-editor.js, the palette is metatile-palette.js, the family choice is
-// map-editor-families.js. Nothing here writes any of them.
+// map-editor.js, the palette is metatile-palette.js, the families are
+// map-editor-families.js, the tile browser is map-editor-tiles.js. Nothing
+// here writes any of them.
 //
-// Owns: _famOpen, _panelOpen, _tileSource.
+// Owns: _panelOpen.
 
-/** Which family slot's art is expanded under the slots, -1 for none. */
-var _famOpen = -1;
-var _panelOpen = { families: true, tiles: true, deco: true, needed: false, errors: true, compose: false };
-/**
- * Where the tile list draws from.
- *
- * `families` is the default because it answers the question the flow asks:
- * given the seven I have chosen, what can I draw? `room` is the 92 this
- * room actually loaded, and `groups` keeps the co-occurrence view.
- */
-var _tileSource = 'families';
+var _panelOpen = { families: true, tiles: true, deco: false, needed: false, errors: true, compose: false };
 
 /** A collapsible section, so four panels fit in one sidebar. */
 function panel(key, title, body, note) {
@@ -29,94 +20,6 @@ function panel(key, title, body, note) {
     + '</div>'
     + (on ? '<div class="rg-panel-b">' + body + '</div>' : '')
     + '</div>';
-}
-
-/**
- * The tile list, from whichever source is selected.
- *
- * `families` is the one that matters: it draws each chosen family's art
- * **in that family**, which is the only way to see what a graphic will
- * actually look like. A graphic carries no colours of its own, so a tile
- * shown in the wrong palette is a different picture.
- */
-function tilesPanel(p) {
-  var html = '<div class="rd-filters">';
-  [['families', 'my families', 'The art of the seven families chosen above, each in its own colours'],
-   ['room', 'this room', 'The 92 graphics Block 1 actually loaded'],
-   ['groups', 'by usage', 'This room’s graphics grouped by which rooms draw them together']]
-    .forEach(function (s) {
-      html += '<button class="rdf' + (_tileSource === s[0] ? ' on' : '') + '" data-tile-source="' + s[0]
-        + '" title="' + escH(s[2]) + '">' + s[1] + '</button>';
-    });
-  html += '</div>';
-
-  if (_tileSource === 'groups') return html + tileGroupsPanel(p);
-  if (_tileSource === 'room') return html + roomTilesHtml(p);
-
-  var fams = editFamilies().filter(function (f) { return f !== undefined; });
-  if (!fams.length) return html + '<div class="rs-note">No families chosen yet — add one above.</div>';
-  html += '<div class="rs-note">Clicking a tile here adopts its family if you do not have it.</div>';
-  for (var i = 0; i < fams.length; i++) html += familyStrip(fams[i]);
-  return html;
-}
-
-/** The room's own loaded graphics, flat, in the palette the tab is showing. */
-function roomTilesHtml(p) {
-  var t = p.tiles;
-  if (!t) return '<div class="rs-note">no tile sheet</div>';
-  var html = '<div class="rs-mt-sheet rg-group-sheet" style="--mt-sheet:url(' + t.imageUri
-    + ');--mt-cell:' + t.cell + 'px"><div class="rs-mt-grid">';
-  for (var i = 0; i < t.count; i++) {
-    var s = t.slots[i];
-    var x = (i % t.columns) * t.cell;
-    var y = Math.floor(i / t.columns) * t.cell;
-    html += '<i class="rs-mt-cell' + (s[3] ? ' anim' : '') + (i === _mtSlot ? ' sel' : '')
-      + '" data-mt-slot="' + i + '"'
-      + ' title="' + escH('graphic #' + i + ' — tile id $' + hex4(s[2])) + '"'
-      + ' style="background-position:-' + x + 'px -' + y + 'px"></i>';
-  }
-  return html + '</div></div>';
-}
-
-/**
- * The room's own graphics, grouped by the rooms that draw them together.
- *
- * A flat sheet of 92 tiles hides its own structure. Graphics that appear in
- * exactly the same rooms were put there for the same scene, so grouping by
- * that signature separates the walls from the floor from the one-offs
- * without anyone having labelled anything.
- */
-function tileGroupsPanel(p) {
-  var groups = p.graphicGroups || [];
-  var t = p.tiles;
-  if (!t || !groups.length) return '<div class="rs-note">no grouping available</div>';
-  // The sheet URL is set once on the wrapper and inherited. Repeating it per
-  // group put a 13 KB data URI in every `style` attribute — eleven groups
-  // came to 150 KB of markup for one image.
-  var html = '<div class="rg-groups" style="--mt-sheet:url(' + t.imageUri
-    + ');--mt-cell:' + t.cell + 'px">';
-  for (var g = 0; g < groups.length; g++) {
-    var grp = groups[g];
-    var label = grp.rooms.length
-      ? grp.slots.length + ' tiles · ' + (grp.rooms.length === 1
-        ? 'only room 0x' + grp.rooms[0].toString(16)
-        : 'shared by ' + grp.rooms.length + ' rooms')
-      : grp.slots.length + ' tiles · not attested anywhere';
-    html += '<div class="rg-tile-group"><div class="rs-note">' + label + '</div>'
-      + '<div class="rs-mt-sheet rg-group-sheet"><div class="rs-mt-grid">';
-    for (var i = 0; i < grp.slots.length; i++) {
-      var slot = grp.slots[i];
-      var x = (slot % t.columns) * t.cell;
-      var y = Math.floor(slot / t.columns) * t.cell;
-      var s = t.slots[slot];
-      html += '<i class="rs-mt-cell' + (s && s[3] ? ' anim' : '') + (slot === _mtSlot ? ' sel' : '')
-        + '" data-mt-slot="' + slot + '"'
-        + ' title="' + escH('graphic #' + slot + (s ? ' — tile id $' + hex4(s[2]) : '')) + '"'
-        + ' style="background-position:-' + x + 'px -' + y + 'px"></i>';
-    }
-    html += '</div></div></div>';
-  }
-  return html + '</div>';
 }
 
 /**
@@ -177,6 +80,14 @@ function editErrors(p) {
   if (d && d.blank && d.blank.problems) {
     d.blank.problems.forEach(function (msg) { out.push(['hard', msg]); });
   }
+  // A family that has been freed leaves the cells drawn in it naming an
+  // empty palette slot. The room would still encode; it just would not look
+  // like what is on screen, which is worse than not encoding.
+  var stranded = typeof editStrandedCells === 'function' ? editStrandedCells() : [];
+  if (stranded.length) {
+    out.push(['hard', stranded.length + ' placed cell' + (stranded.length === 1 ? '' : 's')
+      + ' use a family that is no longer loaded — add it back to a slot, or replace them']);
+  }
   return out;
 }
 
@@ -199,13 +110,12 @@ function renderEditPanels() {
   var errs = editErrors(p);
   var need = editNeededStamps(p);
   var chosen = editFamilies().filter(function (f) { return f !== undefined; });
+  var picked = Object.keys(_chipSel).length;
   host.innerHTML = budgetBar(p)
     + panel('errors', 'checks', errorsPanel(p), errs.length ? errs.length + ' to look at' : 'clear')
-    + panel('families', 'tile families', familySlotsPanel(), chosen.length + ' of 7')
-    + panel('tiles', 'tiles', tilesPanel(p), _tileSource === 'groups'
-      ? (p.graphicGroups || []).length + ' groups'
-      : _tileSource === 'room' ? (p.tiles ? p.tiles.count : 0) + ' loaded'
-        : chosen.length + ' families')
+    + panel('families', 'tile families', familyChipsHtml(), chosen.length + ' of 7')
+    + panel('tiles', 'tiles', tilesPanel(p),
+      picked ? picked + ' famil' + (picked === 1 ? 'y' : 'ies') + ' selected' : 'all')
     + panel('deco', 'deco', decoPanel(), _deco ? _deco.length + ' objects' : '')
     + panel('needed', 'new metatiles', neededPanel(p),
       need.added.length ? need.added.length + ' needed' : 'none')
@@ -214,10 +124,9 @@ function renderEditPanels() {
   if (_panelOpen.compose !== false) renderComposer();
   // The filter keeps focus across the redraw it causes, or typing a second
   // character would put the caret back at the start.
-  ['rg-fam-filter', 'rg-deco-filter'].forEach(function (id) {
-    var el = document.getElementById(id);
-    if (el && el.value === (id === 'rg-fam-filter' ? _famFilter : _decoFilter)
-        && document.activeElement !== el && (id === 'rg-fam-filter' ? _famPicking >= 0 : _decoFilter)) {
+  [['rg-chip-filter', _chipFilter], ['rg-deco-filter', _decoFilter]].forEach(function (pair) {
+    var el = document.getElementById(pair[0]);
+    if (el && pair[1] && el.value === pair[1] && document.activeElement !== el) {
       el.focus();
       el.setSelectionRange(el.value.length, el.value.length);
     }

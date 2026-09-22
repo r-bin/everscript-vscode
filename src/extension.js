@@ -33,6 +33,11 @@ let _radarUpdateTimer  = null;   // debounce timer for auto-update
 let _radarRoomTree     = null;   // cached room tree (rebuilt when doc changes)
 let _radarRoomDocPath  = null;   // fsPath the room tree was built for
 let _radarActiveTab    = 'radar'; // preserved tab across re-renders
+// Which editor column the panel opens in. `Beside` is right for a radar you
+// read next to the code; the map editor is a workspace of its own and asks
+// for `Active`, which gives it the whole editor area.
+let _radarColumn       = vscode.ViewColumn.Beside;
+let _radarPendingNewMap = false; // draft a blank room as soon as the webview is up
 let _scalingChars      = null;   // cached character stat array (142 entries from ROM)
 let _hitLookup         = null;   // precomputed hit% table {hit_rate:{evade:pct}} from ROM
 let _scaleActive       = false;  // whether scale_enemies is active in workspace
@@ -127,7 +132,7 @@ function getExtConfig() {
 const roomData = require('./rooms');
 const { VANILLA_ROOMS, getMapEnum, readLuaWatchers, readScriptAllTriggers, buildVanillaRoomContent, buildVanillaRoomDetails, invalidateRoomDataCaches } = roomData;
 const roomTree = require('./rooms');
-const { findRoomImage, parseRoomContent, collectRoomsFromDir, buildRoomTree, renderVanillaTree, renderRoomsTree, buildRoomsJson, setRoomImageUris, buildRoomTileOverlay, buildRoomMetatilePalette, buildComposedPreview, buildBlankRoom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews, decoIndex, decoCells, buildDecoPreviews } = roomTree;
+const { findRoomImage, parseRoomContent, collectRoomsFromDir, buildRoomTree, renderVanillaTree, renderRoomsTree, buildRoomsJson, setRoomImageUris, buildRoomTileOverlay, buildRoomMetatilePalette, buildComposedPreview, buildBlankRoom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews, decoIndex, decoCells, buildDecoPreviews, relatedTiles } = roomTree;
 
 const romReaders = require('./shared/rom-readers');
 const { readPngDimensions, readRomTriggerOffsets, readRomMapHeader, readRomCharacters, readRomHitLookup, detectScaleEnemies } = romReaders;
@@ -577,7 +582,7 @@ function activate(context) {
                 _radarPanel = vscode.window.createWebviewPanel(
                     'everscriptRadar',
                     'Radar: ' + scope.name,
-                    vscode.ViewColumn.Beside,
+                    _radarColumn,
                     {
                         enableScripts: true,
                         retainContextWhenHidden: true,
@@ -597,7 +602,7 @@ function activate(context) {
                 }, null, context.subscriptions);
             } else {
                 _radarPanel.title = 'Radar: ' + scope.name;
-                _radarPanel.reveal(vscode.ViewColumn.Beside, true);
+                _radarPanel.reveal(_radarColumn, true);
             }
 
             // Compute ingredient image base URI (once per panel lifetime).
@@ -624,6 +629,13 @@ function activate(context) {
             const _wsRoot2b = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
             const _vrd2 = buildVanillaRoomDetails(_wsRoot2b, _extCfg2.romPath || '');
             _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree, _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, _ingrBaseUri, _hitLookup, getRadarEnums(), _vrd2, _radarByteScriptFocus, _ingrFiles);
+
+            // `everscript.newMap` asked for a blank room. The webview has just
+            // been rebuilt, so this is the first moment it can be told.
+            if (_radarPendingNewMap) {
+                _radarPendingNewMap = false;
+                _radarPanel.webview.postMessage({ command: 'newMap' });
+            }
 
             // Handle messages from the webview
             _radarPanel.webview.onDidReceiveMessage(msg => {
@@ -805,7 +817,27 @@ function activate(context) {
                             return;
                         }
                         _radarPanel.webview.postMessage({ ...reply,
-                            previews: buildFamilyPreviews(romBuf, msg.families) });
+                            previews: buildFamilyPreviews(romBuf, msg.families, msg.tiles),
+                            chips: !!msg.tiles });
+                    } catch (err) {
+                        _radarPanel.webview.postMessage({ ...reply, error: String(err && err.message || err) });
+                    }
+                } else if (msg.command === 'requestRelated') {
+                    // What vanilla draws beside the tiles already in play.
+                    // One small reply the editor turns into a lookup, rather
+                    // than re-fetching every family sheet when the selection
+                    // moves. See docs/map-format/map-editor-window.md §2.
+                    const reply = { command: 'relatedTiles' };
+                    try {
+                        const _cfg = getExtConfig();
+                        const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
+                        if (!romBuf) {
+                            _radarPanel.webview.postMessage({ ...reply, error: 'ROM not found — set everscript.romPath' });
+                            return;
+                        }
+                        _radarPanel.webview.postMessage({ ...reply,
+                            seed: msg.graphics || [], related: relatedTiles(romBuf, msg.graphics) });
                     } catch (err) {
                         _radarPanel.webview.postMessage({ ...reply, error: String(err && err.message || err) });
                     }
@@ -979,6 +1011,31 @@ function activate(context) {
             vscode.commands.executeCommand('workbench.action.openSettings', 'everscript');
         }),
         vscode.commands.registerCommand('everscript.exportRoomMaps', exportRoomMaps),
+
+        // A map editor is a workspace, not a read-out: it opens in the active
+        // column with the whole editor area, on the Rooms tab, already in edit
+        // mode with a blank room drafted. The panel itself is the radar's, so
+        // this sets the three things that differ and delegates.
+        //
+        // The radar needs a document to detect a scope from. A new map does
+        // not care which one — its content comes from the ROM — so an empty
+        // in-memory document stands in when nothing is open, rather than
+        // refusing to open the editor because no .evs file happens to be up.
+        vscode.commands.registerCommand('everscript.newMap', async () => {
+            _radarColumn = vscode.ViewColumn.Active;
+            _radarActiveTab = 'rooms';
+            _radarPendingNewMap = true;
+            let doc = vscode.window.activeTextEditor?.document;
+            if (!doc) {
+                try {
+                    doc = await vscode.workspace.openTextDocument({ content: '', language: 'everscript' });
+                } catch {
+                    vscode.window.showWarningMessage('Could not open a scratch document for the map editor.');
+                    return;
+                }
+            }
+            await vscode.commands.executeCommand('everscript.openMemoryRadar', doc, 0);
+        }),
     );
 
     context.subscriptions.push(vscode.workspace.onDidChangeConfiguration((event) => {

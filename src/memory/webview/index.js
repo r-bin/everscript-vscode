@@ -85,7 +85,9 @@ const ROOMS_JS_FILES = [
   'map-editor-ui.js',    // tool bar, docked sidebar, composer, constructs
   'map-editor-phases.js',// what a stroke writes in each phase, and the eraser
   'map-editor-constructs.js',// saved regions, with their triggers and objects
-  'map-editor-families.js',// choosing the seven families and browsing their art
+  'map-editor-families.js',// the seven families, and picking a tile out of one
+  'map-editor-chips.js', // the family chips + what vanilla draws beside what
+  'map-editor-tiles.js', // the tile browser: grouped by family, ranked by relationship
   'map-editor-deco.js',  // the deco library: vanilla's own objects, to stamp
   'map-editor-panels.js',// tile list, needed metatiles, checks
   'map-editor-gestures.js',// pointer/key gestures on the map -> edits

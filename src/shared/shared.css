@@ -303,8 +303,8 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 
 /* ── Map editor ── */
 /* Edit mode docks the tile palette beside the map instead of below it. */
-.rg-edit-row{display:flex;gap:8px;align-items:flex-start}
-.rg-dock{flex:1;min-width:300px;max-width:460px}
+.rg-edit-row{display:flex;gap:8px;align-items:flex-start;min-height:0}
+.rg-dock{flex:none;width:400px;min-width:340px;max-width:460px;min-height:0}
 /* While editing, the browsing palette below the map steps aside: the panel
    column is the editor's tile UI, and two pickers on screen is the clunk. */
 .rs-mt-hidden{display:none}
@@ -322,18 +322,33 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 /* The editor's panel column: metrics, checks, families, tile groups and the
    metatiles the draft still needs. Collapsible, because four of them do not
    fit a sidebar open at once. */
-.rg-panels{margin-bottom:8px}
+.rg-panels{margin-bottom:8px;overflow-y:auto;overflow-x:hidden;min-height:0;
+  max-height:calc(100vh - 90px);padding-right:4px}
 .rg-panel{border:1px solid #2a2a2a;border-radius:3px;margin-bottom:4px;background:rgba(0,0,0,.15)}
 .rg-panel-h{padding:3px 6px;font-size:10px;text-transform:uppercase;letter-spacing:.4px;
   color:#999;cursor:pointer;user-select:none}
 .rg-panel-h:hover{color:#ddd}
 .rg-panel-caret{display:inline-block;width:8px;color:#666}
 .rg-panel-b{padding:4px 6px 6px}
-.rg-panel-b .rs-mt-sheet{max-height:180px}
-.rg-fam-slots{margin-bottom:4px}
+/* One scroll container. A panel that is open is as tall as its content;
+   if that makes the sidebar long, the sidebar scrolls — which is what the
+   sidebar is for. Every inner max-height here was a letterbox over art the
+   whole point of which is to be looked at. */
+.rg-panel-b .rs-mt-sheet{max-height:none;overflow:visible}
 .rg-tile-group{margin-bottom:6px}
+/* The resize grip, over the map's own bottom-right corner. Only a drafted
+   map resizes: the dictionary starts right after the grid, so changing the
+   size renumbers every metatile id in the room. */
+.rg-resize{position:absolute;right:0;bottom:0;width:14px;height:14px;cursor:nwse-resize;
+  background:linear-gradient(135deg,transparent 45%,#7ecbd0 45%,#7ecbd0 55%,transparent 55%,
+    transparent 70%,#7ecbd0 70%,#7ecbd0 80%,transparent 80%);
+  z-index:6;opacity:.65}
+.rg-resize:hover{opacity:1}
+.rg-resize-label{position:absolute;right:16px;bottom:4px;display:none;z-index:6;font-size:9px;
+  padding:1px 5px;border-radius:3px;background:rgba(0,0,0,.82);color:#9fdf9f;white-space:nowrap}
+.rg-resize-label.over{color:#ff9f9f}
 .rg-group-sheet{max-height:none;padding:2px}
-.rg-need-list{margin-top:4px;max-height:140px;overflow:auto}
+.rg-need-list{margin-top:4px}
 .rg-need{font-size:10px;color:#bbb;padding:1px 0}
 .rg-need b{color:#7ecbd0;font-weight:400;margin-right:4px}
 /* Checks. A hard error is one the format cannot forgive; a warning is past
@@ -367,41 +382,46 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .rg-deco-cost{position:absolute;right:1px;top:1px;font-size:8px;line-height:10px;padding:0 2px;
   border-radius:2px;background:rgba(0,0,0,.72);color:#e3b341}
 .rg-deco-flags{margin:3px 0 2px}
-/* Family slots: a filled one is a pair (the family, and an x to free it). */
-.rg-fam-slots{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:5px}
-.rg-fam-slot{display:inline-flex;gap:0}
-.rg-fam-slot .rdf{border-radius:8px 0 0 8px;opacity:1}
-.rg-fam-slot.on .rdf{border-color:#7ecbd0}
-.rg-fam-x{border-radius:0 8px 8px 0;border-left:none;padding:1px 4px}
-.rg-fam-x:hover{color:#ff9d9d;border-color:#e05555}
-.rg-fam-empty{border-style:dashed}
-.rg-fam-browse{border:1px solid #2e2e2e;border-radius:3px;padding:4px;margin-bottom:4px}
+/* ── Family chips ──────────────────────────────────────────────────────────
+   A family id is not a name, so the chip leads with its two most-placed
+   tiles: the art is the label. Three targets — the chip filters, x frees the
+   slot, + loads one. */
+.rg-chips{display:flex;flex-wrap:wrap;gap:3px;margin:4px 0}
+.rg-chip{display:inline-flex;align-items:stretch;border:1px solid #333;border-radius:3px;
+  overflow:hidden;background:#141414}
+.rg-chip.adopted{border-color:#4a5a3a}
+.rg-chip.sel{border-color:#e3b341;box-shadow:0 0 0 1px #e3b341}
+.rg-chip-main{display:flex;align-items:center;gap:4px;padding:1px 4px 1px 0;border:none;
+  background:none;color:inherit;font:inherit;font-size:9px;cursor:pointer;line-height:16px}
+.rg-chip-main:hover{background:rgba(255,255,255,.05)}
+.rg-chip-art{display:block;width:32px;height:16px;flex:none;background-repeat:no-repeat;
+  image-rendering:pixelated;background-color:#0d0d0d}
+.rg-chip-where{opacity:.5}
+.rg-chip-x{border:none;border-left:1px solid #2a2a2a;background:none;color:#888;font:inherit;
+  font-size:10px;padding:0 4px;cursor:pointer}
+.rg-chip-x:hover{background:#3a2020;color:#ff9f9f}
+.rg-chip-add:hover{background:#203a20;color:#9fdf9f}
+.rg-chip-add-note{color:#7a6a3a}
+/* The recommended-neighbour strip: a score is the label here, not the art,
+   because the art is already in the list below. */
+.rg-neighbours .rg-neighbour{border:1px solid #2e2e2e;border-radius:3px;padding:1px 5px}
+.rg-neighbour.rg-unknown{opacity:.55}
+.rg-group-h{display:flex;align-items:baseline;gap:5px;flex-wrap:wrap}
+/* Which layer a picked tile lands on, from vanilla's own average. */
+.rs-mt-cell.rg-lay-front{box-shadow:inset 0 2px 0 #7ecbd0}
+.rs-mt-cell.rg-lay-ground{box-shadow:inset 0 -2px 0 #b58a4a}
+.rs-mt-cell.rg-rel{outline:1px solid #e3b34188}
 .rg-fam-filter{width:100%;box-sizing:border-box;margin:4px 0;padding:2px 5px;font-size:10px;
   background:#1a1a1a;border:1px solid #3a3a3a;border-radius:3px;color:#ddd;font-family:inherit}
-.rg-fam-list{max-height:140px;overflow:auto;gap:2px}
-/* A family row: its art first, then what it is and where the game uses it.
-   The id alone is not a name, so it never stands on its own. */
-.rg-fam-row{display:flex;gap:6px;align-items:center;padding:3px;border-radius:3px;
-  cursor:pointer;border:1px solid transparent}
-.rg-fam-row:hover{background:rgba(255,255,255,.04);border-color:#3a3a3a}
-.rg-fam-art{flex:none}
-.rg-fam-art .rs-mt-grid{gap:0}
-/* The strip is 8 tiles at 1x; the 2x scale the palette cells use would make
-   each row 32px tall and the picker unusable. */
-.rg-fam-art .rs-mt-cell{transform:none;margin:0;width:16px;height:16px;cursor:inherit}
 /* Panel strips keep the palette's 2x scale: these are the swatches you pick
    a brush from, and 16px of pixel art is too small to tell a wall from a
-   floor. Only the picker's dense family list (.rg-fam-art, above) stays 1x.
-   The scale is integer so the pixels stay sharp. */
+   floor. The scale is integer so the pixels stay sharp. */
 .rg-panel-b .rs-mt-sheet{padding:2px}
 .rg-panel-b .rs-mt-cell{cursor:pointer}
 /* The armed brush, called out on the swatch itself — a click with no visible
    confirmation reads as a dead control. */
 .rs-mt-cell.sel{outline:2px solid #e3b341;z-index:2}
 .rg-panel-b .rs-mt-cell.sel{outline:2px solid #e3b341}
-.rg-fam-meta{min-width:0;font-size:10px;line-height:1.3}
-.rg-fam-meta b{color:#e3b341;font-weight:400}
-.rg-fam-where{color:#7ecbd0;font-size:9px}
 /* The new-room form. VS Code webviews have no window.prompt, so the size is
    asked for inline. */
 .rg-newroom{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 4px;

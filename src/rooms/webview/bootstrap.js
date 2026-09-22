@@ -41,14 +41,25 @@ if(typeof window!=='undefined'&&window.addEventListener){
       if(typeof applyDecoPreviews==='function')applyDecoPreviews(data);
     }else if(data.command==='decoCells'){
       if(typeof applyDecoCells==='function')applyDecoCells(data);
+    }else if(data.command==='relatedTiles'){
+      // What vanilla draws beside the tiles already in play.
+      if(typeof applyRelatedTiles==='function')applyRelatedTiles(data);
+      if(data.error)console.warn('[RoomsRender] relatedTiles:',data.error);
     }else if(data.command==='familyPreviews'){
       // One strip of art per family, so the picker shows before it asks.
-      if(typeof applyFamilyPreviews==='function')applyFamilyPreviews(data);
+      // Two-tile chips and eight-tile strips share one builder; `chips`
+      // says which came back so they do not overwrite each other.
+      if(data.chips){ if(typeof applyChipPreviews==='function')applyChipPreviews(data); }
+      else if(typeof applyFamilyPreviews==='function')applyFamilyPreviews(data);
       if(data.error)console.warn('[RoomsRender] familyPreviews:',data.error);
     }else if(data.command==='familySheet'){
       // Every graphic vanilla draws in one tile family, for the picker.
       if(typeof applyFamilySheet==='function')applyFamilySheet(data);
       if(data.error)console.warn('[RoomsRender] familySheet:',data.error);
+    }else if(data.command==='newMap'){
+      // `> everscript new map`: open a room to borrow graphics from, turn
+      // edit mode on, and draft a blank grid in it.
+      if(typeof roomsNewMap==='function')roomsNewMap();
     }else if(data.command==='blankRoom'){
       // A room that is not in the ROM, to try things in.
       if(typeof applyBlankRoom==='function')applyBlankRoom(data);

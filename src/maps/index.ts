@@ -63,9 +63,9 @@ export {
 export type { MetatileInfo, MetatileAtlas, MetatileLayer, MetatileDraft, TileListAtlas } from './metatiles';
 export {
     buildVanillaIndex, suggestFamily, suggestCollision, graphicsForFamilies, familyExamples,
-    groupByRooms, preferredLayer,
+    groupByRooms, preferredLayer, relatedGraphics, relationship, rankByRelationship,
 } from './vanilla-index';
-export type { VanillaIndex, Attestation, Suggestion, GraphicGroup } from './vanilla-index';
+export type { VanillaIndex, Attestation, Suggestion, GraphicGroup, Related } from './vanilla-index';
 export { blankRoom, roomProblems, MIN_TILES, MAX_TILES } from './blank-room';
 export type { BlankRoomOptions } from './blank-room';
 export {

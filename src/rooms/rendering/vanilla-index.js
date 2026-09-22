@@ -76,10 +76,48 @@ function budgetSummary(rom, room) {
     };
 }
 
+/** How many related graphics are worth sending; past this nobody scrolls. */
+const RELATED_LIMIT = 600;
+
+/**
+ * What vanilla draws beside the graphics already in play.
+ *
+ * One message serves both uses. `scores` is the union over the whole placed
+ * set — the **best** single relationship each candidate has with anything
+ * already down, because a tile that belongs with one thing in the room
+ * belongs in the room, and averaging would punish it for being unrelated to
+ * the floor. The editor turns it into a lookup and sorts any family's art
+ * with it locally, so changing the selection costs one small round trip
+ * rather than re-fetching every sheet.
+ *
+ * Rows are `[graphic, score0to100, adjacencies]`, strongest first.
+ *
+ * See docs/map-format/map-editor-window.md §2.
+ */
+function relatedTiles(rom, graphics) {
+    const index = vanillaIndex(rom);
+    const seed = (graphics || []).map(Number).filter((n) => !isNaN(n));
+    const best = new Map();
+    for (const g of seed) {
+        for (const r of maps.relatedGraphics(index, g, RELATED_LIMIT)) {
+            const had = best.get(r.graphic);
+            if (!had || had[0] < r.score) best.set(r.graphic, [r.score, r.uses]);
+        }
+    }
+    // A seed graphic is not its own recommendation — it is already placed.
+    for (const g of seed) best.delete(g);
+    return [...best]
+        .map(([graphic, [score, uses]]) => [graphic, pct(score), uses])
+        .sort((a, b) => b[1] - a[1] || b[2] - a[2] || a[0] - b[0])
+        .slice(0, RELATED_LIMIT);
+}
+
 /** Drop the cached index (call when the ROM changes). */
 function invalidateVanillaIndex() {
     cached = null;
     cachedKey = '';
 }
 
-module.exports = { vanillaIndex, annotateGraphics, budgetSummary, invalidateVanillaIndex };
+module.exports = {
+    vanillaIndex, annotateGraphics, budgetSummary, relatedTiles, invalidateVanillaIndex,
+};

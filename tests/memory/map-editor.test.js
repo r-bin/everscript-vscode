@@ -283,6 +283,8 @@ const ui = new Function(`
   ${read('map-editor-phases.js')}
   ${read('map-editor-constructs.js')}
   ${read('map-editor-families.js')}
+  ${read('map-editor-chips.js')}
+  ${read('map-editor-tiles.js')}
   ${read('map-editor-panels.js')}
   ${read('map-editor-gestures.js')}
   ${read('map-editor-input.js')}
@@ -297,7 +299,10 @@ const ui = new Function(`
     editResolve: editResolve, editBlankCanopy: editBlankCanopy,
     editSaveConstruct: editSaveConstruct, editConstructWrites: editConstructWrites,
     editNeededStamps: editNeededStamps, editErrors: editErrors,
-    toolbar: buildEditToolbarHtml, tileGroups: tileGroupsPanel,
+    toolbar: buildEditToolbarHtml, tileGroup: tileGroupHtml,
+    setSheet: function (f, sheet) { _famSheets[f] = sheet; },
+    setRelated: function (map) { _related = map; },
+    strandedCells: editStrandedCells,
     setSel2: function (s) { _editSel = s; },
     compose: function () { return _editCompose; },
     setPalette: function (p) { _mtPalette = p; },
@@ -574,26 +579,67 @@ test('the checks catch what the format will not forgive', () => {
 
 /**
  * The grouped view shows one image many times, not many images.
- *
- * Every group is a window onto the same tile sheet, so the data URI belongs
- * on one wrapper. Putting it in each group's `style` cost 150 KB of markup
- * for eleven groups of one 13 KB image — invisible on screen, and exactly
- * the kind of thing that creeps back.
+/**
+ * A family group is a window onto one sheet, so the data URI belongs on the
+ * group wrapper and nowhere else. Repeating it per swatch once cost 150 KB
+ * of markup for one 13 KB image — invisible on screen, and exactly the kind
+ * of thing that creeps back.
  */
-test('the grouped tile view embeds its sheet once', () => {
-    const p = tilePalette();
-    p.tiles.imageUri = 'data:image/png;base64,' + 'A'.repeat(2048);
-    p.graphicGroups = [
-        { rooms: [0x34, 0x33], slots: [0, 1] },
-        { rooms: [0x34], slots: [1] },
-        { rooms: [], slots: [0] },
-    ];
-    const html = ui.tileGroups(p);
+test('a tile group embeds its sheet once, not once per swatch', () => {
+    ui.editReset(0x34);
+    ui.setPalette(tilePalette());
+    ui.setSheet(58, {
+        family: 58, count: 3, total: 74, roomCount: 3, columns: 16, cell: 16,
+        slots: [[0, 0, 4191, 10, 90, 10], [1, 2, 4195, 5, 2, 40], [2, 4, 4200, 99, 0, 0]],
+        imageUri: 'data:image/png;base64,' + 'A'.repeat(2048),
+    });
+    ui.setRelated({});
+    const html = ui.tileGroup(58);
     const uses = html.split('data:image/png').length - 1;
     assert.strictEqual(uses, 1, `the sheet URL appears ${uses} times, not once`);
-    assert.ok(html.includes('shared by 2 rooms'));
-    assert.ok(html.includes('only room 0x34'));
-    assert.ok(html.includes('not attested anywhere'), 'an unknown tile is labelled, not hidden');
+    assert.strictEqual(html.split('data-fam-tile=').length - 1, 3, 'all three tiles are offered');
+});
+
+/**
+ * Relationship beats popularity, and that is the point: 4200 has ten times
+ * the placements of 4191 and no relationship to anything in the map, so it
+ * goes last.
+ */
+test('a group is ordered by relationship first, placements second', () => {
+    ui.editReset(0x34);
+    ui.setPalette(tilePalette());
+    ui.setSheet(58, {
+        family: 58, count: 3, total: 74, roomCount: 3, columns: 16, cell: 16,
+        slots: [[0, 0, 4191, 10, 0, 0], [1, 2, 4195, 5, 0, 0], [2, 4, 4200, 99, 0, 0]],
+        imageUri: 'data:image/png;base64,ZmFt',
+    });
+    ui.setRelated({ 4191: 92, 4195: 3 });
+    const order = [...ui.tileGroup(58).matchAll(/data-fam-tile="(\d+)"/g)].map((m) => m[1]);
+    assert.deepStrictEqual(order, ['4191', '4195', '4200']);
+
+    // With nothing placed there is nothing to be related to, so the ordering
+    // falls back to how often vanilla places each tile. A real cold start,
+    // not a bug.
+    ui.setRelated({});
+    const cold = [...ui.tileGroup(58).matchAll(/data-fam-tile="(\d+)"/g)].map((m) => m[1]);
+    assert.deepStrictEqual(cold, ['4200', '4191', '4195']);
+});
+
+/**
+ * Freeing a family does not silently recolour anything: the word still names
+ * palette slot N, and slot N is now empty.
+ */
+test('clearing a family strands the cells that were drawn in it', () => {
+    const p = tilePalette();
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    d.on = true;
+    // Palette slot 3 holds family 58, so a word with pal 3 names it.
+    d.added.push({ layer1: 0x0c00, layer2: 0xa800, collision: 0 });
+    d.cells['1,1'] = p.count;
+    assert.deepStrictEqual(ui.strandedCells(), [], 'nothing is stranded while it is loaded');
+    ui.editFamilies()[2] = undefined;
+    assert.deepStrictEqual(ui.strandedCells(), ['1,1']);
 });
 
 test('the toolbar offers both phases and marks erase as deco-only', () => {

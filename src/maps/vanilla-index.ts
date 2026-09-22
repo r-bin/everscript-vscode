@@ -9,7 +9,7 @@
 
 import { RoomData, decodeRoom } from './room';
 import { MAX_ROOMS } from './rom';
-import { metatileTable } from './metatiles';
+import { metatileTable, metatileIndex } from './metatiles';
 
 /** One observed pairing, with how many grid cells attest to it. */
 export interface Attestation<T> {
@@ -37,10 +37,23 @@ export interface VanillaIndex {
     layers: Map<number, { canopy: number; terrain: number }>;
     /** Terrain graphic id -> the collision words used with it. */
     collisions: Map<number, Attestation<number>[]>;
+    /**
+     * Graphic id -> each graphic drawn beside it -> how many times.
+     *
+     * Adjacency in the *grid*, not the dictionary: every right- and
+     * down-neighbour of every cell, per layer, which covers each edge once.
+     * 693078 edges over 49374 distinct pairs. This is what answers "what
+     * goes with this tile" — see `relatedGraphics`.
+     */
+    adjacency: Map<number, Map<number, number>>;
+    /** Graphic id -> grid cells it is drawn in. The Jaccard denominator. */
+    cells: Map<number, number>;
     /** How many rooms went into the index. */
     roomCount: number;
     /** Total placements counted. */
     placements: number;
+    /** Total adjacency edges counted. */
+    edges: number;
 }
 
 /**
@@ -90,8 +103,11 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
     const rooms = new Map<number, number[]>();
     const graphicRooms = new Map<number, Set<number>>();
     const layers = new Map<number, { canopy: number; terrain: number }>();
+    const adjacency = new Map<number, Map<number, number>>();
+    const cells = new Map<number, number>();
     let roomCount = 0;
     let placements = 0;
+    let edges = 0;
 
     for (let id = 0; id < MAX_ROOMS; id++) {
         let room: RoomData;
@@ -135,6 +151,8 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
             const terrain = tileIds[charIndexToSlot(m.layer2 & 0x3ff)];
             if (terrain !== undefined) tally(collCounts, terrain, m.collision, m.uses);
         }
+
+        edges += walkAdjacency(room, tileIds, adjacency, cells);
     }
 
     const perGraphic = new Map<number, number[]>();
@@ -147,9 +165,156 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
         graphicRooms: perGraphic,
         layers,
         collisions: rank(collCounts),
+        adjacency,
+        cells,
         roomCount,
         placements,
+        edges,
     };
+}
+
+/** Record `b` as a neighbour of `a` and vice versa. */
+function link(into: Map<number, Map<number, number>>, a: number, b: number): void {
+    let inner = into.get(a);
+    if (!inner) { inner = new Map(); into.set(a, inner); }
+    inner.set(b, (inner.get(b) || 0) + 1);
+}
+
+/**
+ * Count what this room draws beside what.
+ *
+ * Only the right and the down neighbour, because that visits every edge of
+ * the grid exactly once — adding left and up would double every count
+ * without adding a fact. The two layers are counted separately: a canopy
+ * tile sitting over a floor tile is not "next to" it, it is on top of it,
+ * and conflating the two would make every decoration look related to every
+ * floor it was ever laid on.
+ */
+function walkAdjacency(
+    room: RoomData,
+    tileIds: number[],
+    adjacency: Map<number, Map<number, number>>,
+    cells: Map<number, number>,
+): number {
+    const grid = room.layer1MetatileIds;
+    const { layer1, layer2 } = room.metatileSlices;
+    const height = grid.length;
+    const width = height ? grid[0].length : 0;
+
+    // Resolve the grid once. Re-resolving per edge would decode every cell
+    // four times over for the same answer.
+    const resolved: (number | undefined)[][][] = [];
+    for (let y = 0; y < height; y++) {
+        const row: (number | undefined)[][] = [];
+        for (let x = 0; x < width; x++) {
+            const i = metatileIndex(room, grid[y][x]);
+            if (i < 0 || i >= room.metatileCount) { row.push([undefined, undefined]); continue; }
+            const pair = [
+                tileIds[charIndexToSlot((layer1[i] || 0) & 0x3ff)],
+                tileIds[charIndexToSlot((layer2[i] || 0) & 0x3ff)],
+            ];
+            for (const g of pair) if (g !== undefined) cells.set(g, (cells.get(g) || 0) + 1);
+            row.push(pair);
+        }
+        resolved.push(row);
+    }
+
+    let edges = 0;
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const here = resolved[y][x];
+            const right = x + 1 < width ? resolved[y][x + 1] : null;
+            const down = y + 1 < height ? resolved[y + 1][x] : null;
+            for (let which = 0; which < 2; which++) {
+                const a = here[which];
+                if (a === undefined) continue;
+                for (const other of [right, down]) {
+                    const b = other ? other[which] : undefined;
+                    // A tile beside a copy of itself says nothing about what
+                    // goes with what — every tiled floor would score 1.
+                    if (b === undefined || b === a) continue;
+                    link(adjacency, a, b);
+                    link(adjacency, b, a);
+                    edges += 1;
+                }
+            }
+        }
+    }
+    return edges;
+}
+
+/** A graphic the index has seen drawn beside another, and how strongly. */
+export interface Related {
+    graphic: number;
+    /** Times the two were adjacent. */
+    uses: number;
+    /** Jaccard: `uses / (cells(a) + cells(b) - uses)`, 0..1. */
+    score: number;
+}
+
+/**
+ * What vanilla draws beside this graphic, strongest relationship first.
+ *
+ * The score is **Jaccard**, not the raw count, because a raw count ranks by
+ * how common the neighbour is rather than how related it is: graphic 3736's
+ * raw top four are the other two gourd pieces *and* the floor and wall it
+ * happened to be standing against. Jaccard puts the two gourd pieces at
+ * exactly 1.00 — always adjacent, never apart — and drops the floor to 0.04.
+ *
+ * `count / min(a, b)` was the other candidate and has a degenerate case: a
+ * graphic placed twice, both times beside the query, also scores 1.00.
+ */
+export function relatedGraphics(index: VanillaIndex, graphic: number, limit = 12): Related[] {
+    const inner = index.adjacency.get(graphic);
+    if (!inner) return [];
+    const mine = index.cells.get(graphic) || 0;
+    const out: Related[] = [];
+    for (const [other, uses] of inner) {
+        const union = mine + (index.cells.get(other) || 0) - uses;
+        out.push({ graphic: other, uses, score: union > 0 ? uses / union : 0 });
+    }
+    out.sort((a, b) => b.score - a.score || b.uses - a.uses || a.graphic - b.graphic);
+    return out.slice(0, limit);
+}
+
+/**
+ * How strongly these two graphics belong together, 0..1.
+ *
+ * Zero for a pair vanilla never puts side by side, which is the whole of
+ * "never placed next to each other means a low relationship value".
+ */
+export function relationship(index: VanillaIndex, a: number, b: number): number {
+    if (a === b) return 1;
+    const uses = index.adjacency.get(a)?.get(b) || 0;
+    if (!uses) return 0;
+    const union = (index.cells.get(a) || 0) + (index.cells.get(b) || 0) - uses;
+    return union > 0 ? uses / union : 0;
+}
+
+/**
+ * Rank candidates by how well they go with everything already placed.
+ *
+ * The score against a set is the **best** single relationship, not the mean:
+ * a tile that belongs with one thing in the room belongs in the room. Taking
+ * the average would punish it for being unrelated to the floor.
+ */
+export function rankByRelationship(
+    index: VanillaIndex,
+    candidates: number[],
+    placed: number[],
+): Related[] {
+    if (!placed.length) return candidates.map((g) => ({ graphic: g, uses: 0, score: 0 }));
+    const out = candidates.map((graphic) => {
+        let best = 0;
+        let uses = 0;
+        for (const p of placed) {
+            const s = relationship(index, p, graphic);
+            if (s > best) { best = s; uses = index.adjacency.get(p)?.get(graphic) || 0; }
+        }
+        return { graphic, uses, score: best };
+    });
+    out.sort((a, b) => b.score - a.score || b.uses - a.uses || a.graphic - b.graphic);
+    return out;
 }
 
 /** Graphics that appear in exactly the same set of rooms. */

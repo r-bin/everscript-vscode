@@ -103,6 +103,12 @@ function setupEditGestures() {
   var painting = false;
   wrap.addEventListener('mousedown', function (e) {
     if (!editActive() || e.button !== 0 || e.shiftKey || e.metaKey || e.ctrlKey) return;
+    // The resize grip lives inside the map, so a drag on it must not also
+    // be read as a paint stroke starting in the corner cell.
+    if (e.target && e.target.id === 'rg-resize') {
+      if (resizeStart(e)) { e.preventDefault(); e.stopPropagation(); }
+      return;
+    }
     var cell = editEventCell(e);
     if (!cell) return;
     painting = true;
@@ -112,6 +118,7 @@ function setupEditGestures() {
   }, true);
 
   wrap.addEventListener('mousemove', function (e) {
+    if (_resizing) { resizeMove(e); e.stopPropagation(); return; }
     if (!painting || !editActive()) return;
     var cell = editEventCell(e);
     if (cell) editStroke(cell, 'move');
@@ -119,6 +126,7 @@ function setupEditGestures() {
   }, true);
 
   wrap.addEventListener('mouseup', function (e) {
+    if (_resizing) { resizeEnd(); e.stopPropagation(); return; }
     if (!painting || !editActive()) return;
     painting = false;
     var cell = editEventCell(e);

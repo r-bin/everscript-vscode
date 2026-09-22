@@ -134,8 +134,12 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   write; no state of its own
 - `map-editor-constructs.js` — saving and stamping a rectangle, in the portable
   `{graphic, family, flags}` form a word cannot travel in; no state of its own
-- `map-editor-families.js` — the seven palette slots and the family catalogue;
-  owns `_famCatalogue` / `_famFilter` / `_famSheets` / `_famPicking` / `_brushTile`
+- `map-editor-families.js` — the seven palette slots, the family catalogue and
+  picking a tile out of one; owns `_famCatalogue` / `_famSheets` / `_brushTile`
+- `map-editor-chips.js` — the family chips (art first, id second) and the
+  relationship lookup; owns `_chipSel` / `_chipPreviews` / `_related`
+- `map-editor-tiles.js` — the tile browser: grouped by family, ranked by what
+  vanilla draws beside what, badged with the layer it belongs on
 - `map-editor-deco.js` — the deco picker; owns `_deco` / `_decoFilter` /
   `_decoPage` / `_decoPreviews` / `_decoPick`
 - `map-editor-actions.js` — the toolbar's verbs, split out of the input handler
@@ -144,16 +148,16 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
 - `map-editor-ui.js` — tool bar (phases, tools), the docked sidebar, the metatile
   composer and the construct library; owns `_editOrigin` / `_editComposed` /
   `_editCompose` / `_editConstruct`
-- `map-editor-panels.js` — the metrics, checks, family slots, grouped tile list
-  and needed-metatile read-outs; owns `_famOpen` / `_famSheet` / `_panelOpen`
+- `map-editor-panels.js` — the metrics, the checks and the needed-metatile
+  read-out, and the panel column itself; owns `_panelOpen`
 - `map-editor-gestures.js` — capture-phase pointer and key gestures on the map,
   so nothing is intercepted while edit mode is off; owns `_editDrag`
 - `map-editor-input.js` — clicks on the *chrome*, routed to what they mean, plus
   the status line and the edit toggle; owns `_editPendingNote` / `_editPanelRoom`.
   Bound **once per panel node**: `#room-detail` outlives a re-render, and a second
   handler made every toggle fire twice and cancel itself out
-- `map-editor-newroom.js` — the blank-room round trip, split out to keep
-  `map-editor-input.js` under the size limit
+- `map-editor-newroom.js` — the blank-room round trip, `> everscript new map`,
+  and the canvas resize grip; owns `_newRoomOpen` / `_resizing` / `_resizeKeep`
 - `tables-builder.js` — entity tables, ROM script cards
 - `rom-header.js` — ROM header display
 - `interactions.js` — zoom/pan, mouse events, click handlers
