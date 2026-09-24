@@ -97,7 +97,7 @@ explicitly run in isolated worktrees.
 | 2 | Tab shell | `map-editor-panels.js` (likely split off a `map-editor-tabs.js`), re-home existing families/tiles/composer/budget content under Tile/Info tabs, existing trigger tables under Trigger tab | `activeTab` | Tab switching works; no functional regression, just re-homed DOM | `everscript-plugin-builder`, then `split-orchestration` if a file crosses 400 LOC |
 | 3 | Special tab (net-new) | new `map-editor-special.js`; edits to `map-editor-phases.js`, `map-editor-paint.js`, `map-editor-ui.js` (dropdown chip) | `currentSpecialId`, `specialCells` | Stairs/Gate/Entrance chips paint/erase glyphs on the grid; filter-bar gating works | `everscript-plugin-builder` |
 | 4 | Trigger tab upgrade — **landed** (see §5.2) | `map-editor-gestures.js` (select/move/copy/paste), new `map-editor-trigger-select.js` (model) + `map-editor-trigger-panel.js` (list UI), `map-editor.js` (undo-step extension), `map-editor-paint.js` (outline rendering) | `_edit.selectedTriggerRef`, `_edit.removedTriggers`, `_triggerDrag`, `_triggerClipboard` (instance field, not state) | Click-select, drag-move (clamped), Backspace/Delete, Cmd/Ctrl+C/V, capacity read-outs | `everscript-plugin-builder` + `webview-dom-safety` (input-focus guard on shortcuts) |
-| 5 | Widgets tab | **audit `map-editor-deco.js` + `deco-catalogue.js`/`deco-preview.js` first** — likely a reskin, not new work; then Widget Editor Mode (rail swap, canvas banner, back-to-map) | possibly none (if reskin) | Existing deco/widget stamping reachable through the new tab; Widget Editor Mode round-trip works | `everscript-plugin-builder` |
+| 5 | Widgets tab — **landed** (see §5.3) | `map-editor-tabs.js` (new tab), `map-editor-panels.js` (deco moved out of Tile), `map-editor-deco.js` (category grouping, visible warnings, ready-only toggle), `deco-catalogue.js` (`back` field), `map-editor-theme.css` | none new — see §5.3 for why "Ready only" is not a new boolean | Existing deco/widget stamping reachable through the new tab; cards grouped by category; warnings visible as text; Widget Editor Mode explicitly deferred, not half-built | `everscript-plugin-builder` |
 | 6 | Polish | outside-click dropdown close, zoom chip/resize grip restyle, `rooms/README.md` client-side list + `STATE_FLOW.md` updated with every new state owner, full anti-entropy checklist | — | All 7 mock screens visually/behaviorally matched; `npm run typecheck && check:circular && check:dead && test` green | direct edit or `architecture-compressor` if cleanup needed |
 
 ## 5. Open questions to resolve during Phase 3/5
@@ -201,6 +201,48 @@ mock's "Special" groups are **not** equally real:
   codebase and the test suite kept working via the bundle's shared scope;
   test files that load `map-editor.js` standalone were updated to also load
   the new file.
+
+### 5.3 Widget Editor Mode — deferred, not built (decided while executing Phase 5)
+
+The mock's own README describes a distinct **screen 7**: a mode where you
+author a *custom* widget on its own small W×H grid (an "Edit widgets" entry
+card, Export/Import widgets links). This is different in kind from
+everything else Phase 5 built — the rest of the Widgets tab picks *existing*
+vanilla Section 3 objects by sight; screen 7 is about creating new,
+user-defined ones from scratch and saving them.
+
+Checked before deciding, per this phase's own brief:
+
+- `map-editor-deco.js`'s own header comment is explicit that the ROM stores
+  no names for its objects and nothing in this subsystem invents a label —
+  there is no concept anywhere in this codebase of a user-authored, savable
+  widget definition, distinct from a ROM-sourced entry.
+- `map-editor-newroom.js` (the blank-room drafting mechanism) was inspected
+  for reusable groundwork, since a custom widget is conceptually a tiny
+  standalone canvas, similar to a blank room. What it has is a *ROM-borrowing*
+  blank room: `requestBlankRoom()` asks the host to render a grid that
+  borrows an existing room's graphics/families (`NEW_MAP_BORROW = 0x34`), and
+  the result becomes the *editor's own draft* (`_edit.blank`), not a
+  separate, independently-savable artifact. There is no serialization format,
+  no save/load message, and no storage location for "a widget" as a named,
+  reusable thing distinct from a draft room. Building one from scratch is not
+  a small extension of the newroom flow — it is a new persistence concept
+  (what gets saved, where, in what shape, and how it round-trips back into
+  the picker) that no existing model in this repository answers.
+- This subsystem also has no ROM write path at all (§5.1) and no export
+  format for anything but a room draft (`editExport()`) — a saved custom
+  widget would need its own shape, unrelated to that function's contract.
+
+Building Widget Editor Mode inside this phase would have meant inventing a
+persistence format and a save/load round-trip with no validated model or
+existing convention to build on — exactly the kind of scope creep the
+phase's own instructions call out as worse than deferring. **Not built.** The
+existing vanilla-picker experience (search, filters, category grouping,
+ready-only toggle, visible warnings, arm-and-stamp) is Phase 5's complete
+deliverable. If a future phase wants this, it needs its own design pass:
+what a saved widget looks like on disk (or in extension storage), how
+Export/Import round-trip it, and whether it reuses the construct/stamp
+machinery (`map-editor-constructs.js`) or needs its own.
 
 ## 6. Ritual reminder
 

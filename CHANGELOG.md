@@ -1,3 +1,40 @@
+## [0.54.0] — 2026-09-24
+
+### Map editor redesign, phase 5: the Widgets tab
+
+Continues `docs/map-editor-redesign-plan.md`'s structural rebuild. Confirmed
+by this phase's own audit: `map-editor-deco.js`'s deco picker already
+implemented almost exactly what the mock calls "Widgets" — a thumbnail
+picker with filters, a search box, paging, and an arm-and-stamp flow. This
+was mostly a reskin/relocation, not new work.
+
+- **New 5th tab**: `Tile / Special / Trigger / Info / Widgets`, in the
+  mock's own screen order. The deco picker moved out of the Tile tab into
+  its own tab (`map-editor-deco.js`'s `widgetsTabHtml`); the picker's own
+  state and logic are unchanged, only where they render moved.
+- **Category grouping**: cards are grouped into Foreground/Background/Misc.
+  There is no ROM-native category for this — `deco-catalogue.js`'s
+  `decoIndex` now derives a `back` field (background-only: every cell draws
+  terrain and no canopy) the same way the existing `front` field already
+  was (foreground-only: canopy, no terrain); anything that is neither is
+  Misc. Attested on the real ROM: 352 foreground, 33 background, 147 misc,
+  of 532 total.
+- **Visible warnings**: "+N families needed" / "1 B-trigger added" now show
+  as card text (`.rg-deco-warn`), not only in the hover tooltip — the mock's
+  own ask, computed from information the tooltip already had.
+- **"Ready only" toggle**: filters to entries that come with a B-trigger
+  script — mapped to the existing `works` filter flag (`d.scriptId !== null`)
+  rather than a new boolean, since the mock never defines "ready" precisely
+  and this is the closest existing semantic. The toggle and the "works" chip
+  read/write the same state through the same click key, so they cannot
+  disagree.
+- **Widget Editor Mode (the mock's screen 7 — authoring a custom widget on
+  its own grid) is explicitly deferred, not built.** No concept of a
+  user-authored, savable widget exists anywhere in this codebase, and
+  `map-editor-newroom.js`'s blank-room drafting has no serialization format
+  to build on — see `docs/map-editor-redesign-plan.md` §5.3 for the full
+  reasoning.
+
 ## [0.53.1] — 2026-09-24
 
 ### Fix: the always-visible filter bar looked like a pre-redesign leftover

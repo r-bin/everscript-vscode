@@ -289,6 +289,28 @@
 .rg-theme .rg-trigger-drag-step{stroke:var(--rg-trigger-step);stroke-dasharray:.4 .3;opacity:.8}
 .rg-theme .rg-trigger-drag-b{stroke:var(--rg-trigger-b);stroke-dasharray:.4 .3;opacity:.8}
 
+/* ── Widgets tab (map-editor-deco.js's widgetsTabHtml) ────────────────────
+ * The picker itself (`.rg-deco`, `.rg-deco-grid`, `.rg-deco-tag`, …) is
+ * shared.css's — untouched, so no other tab that might reuse it changes
+ * look. `.rg-deco` there is a fixed 48px swatch with `line-height:0` so the
+ * tag overlays the art rather than adding height; that collapses the
+ * visible warning line this phase adds (`.rg-deco-warn` — "+2 families
+ * needed" as card text, not just the title tooltip), so this reflows the
+ * card into a short flex column *only* inside `.rg-widget-group`, leaving
+ * every other `.rg-deco` user (there are none left after this phase, but a
+ * future one) at the plain shared.css layout. */
+.rg-theme .rg-widget-group{margin-bottom:12px}
+.rg-theme .rg-widget-h{font-weight:500;font-size:12px;margin:8px 0 4px}
+.rg-theme .rg-widget-group .rg-deco{line-height:normal;display:flex;flex-direction:column}
+.rg-theme .rg-widget-group .rg-deco-tag{position:static;background:transparent;text-align:left;padding:2px 3px 0}
+.rg-theme .rg-widget-group .rg-deco-warn{
+  display:block;font-size:8px;line-height:1.3;padding:0 3px 3px;color:var(--rg-warning);
+}
+/* The "Ready only" toggle rides the plain `.rdf` look every other deco/tile/
+ * family filter chip already uses (shared.css) — it is a wider label on the
+ * same control, not a new visual register. */
+.rg-theme .rg-deco-ready{margin:4px 0 2px}
+
 /* ── Trigger tab list (map-editor-trigger-panel.js's triggerTabPanelHtml) ── */
 .rg-theme .rg-trigger-section{margin-bottom:12px}
 .rg-theme .rg-trigger-list{display:flex;flex-direction:column;gap:4px;margin-top:6px}

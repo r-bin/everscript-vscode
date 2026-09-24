@@ -145,8 +145,19 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   relationship lookup; owns `_chipSel` / `_chipPreviews` / `_related`
 - `map-editor-tiles.js` — the tile browser: grouped by family, ranked by what
   vanilla draws beside what, badged with the layer it belongs on
-- `map-editor-deco.js` — the deco picker; owns `_deco` / `_decoFilter` /
-  `_decoPage` / `_decoPreviews` / `_decoPick`
+- `map-editor-deco.js` — the deco picker and the Widgets tab it renders
+  under (`widgetsTabHtml`, Phase 5 — the tab is new, the picker underneath
+  it is not); owns `_deco` / `_decoFilter` / `_decoPage` / `_decoPreviews` /
+  `_decoPick`. Cards are grouped into Foreground/Background/Misc by
+  `front`/`back`, two booleans `deco-catalogue.js`'s `decoIndex` derives
+  from the same per-cell canopy/terrain split the `front` filter flag
+  already used — there is no ROM-native category. The tab's "Ready only"
+  toggle is not new state: it reads/writes the same `_decoFlags.works`
+  boolean the "works" filter chip already owned (`d.scriptId !== null` —
+  "comes with a script that does something on placement"), through the same
+  `data-deco-flag="works"` click key, so the two controls cannot disagree.
+  Widget Editor Mode (authoring a *custom* widget, mock screen 7) was
+  scoped out of Phase 5 — see docs/map-editor-redesign-plan.md §5.3
 - `map-editor-special.js` — the Special tab (Stairs & Drift / Gate /
   Entrance): the catalog, the collision-word bit math for gate and drift
   (docs/map-format/map_collision_mechanics.md §4, §6 — stairs and entrance
@@ -174,17 +185,20 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
 - `map-editor-ui.js` — tool bar (phases, tools), the docked sidebar, the metatile
   composer and the construct library; owns `_editOrigin` / `_editComposed` /
   `_editCompose` / `_editConstruct`
-- `map-editor-tabs.js` — which of the dock's four tabs (Tile / Special /
-  Trigger / Info) is showing, and the tab strip that switches between them;
-  owns `_editActiveTab`. Renders nothing but the strip itself — see
-  `map-editor-panels.js` for what each tab holds (Special's own content is
-  `map-editor-special.js`'s `specialTabHtml`)
+- `map-editor-tabs.js` — which of the dock's five tabs (Tile / Special /
+  Trigger / Info / Widgets) is showing, and the tab strip that switches
+  between them; owns `_editActiveTab`. Renders nothing but the strip itself
+  — see `map-editor-panels.js` for what the Tile/Info/Trigger tabs hold
+  (Special's own content is `map-editor-special.js`'s `specialTabHtml`;
+  Widgets' is `map-editor-deco.js`'s `widgetsTabHtml`)
 - `map-editor-panels.js` — the metrics, the checks, the needed-metatile
   read-out, and the panel column itself, filed under the active tab
   (`tileTabHtml`/`infoTabHtml`/`triggerTabHtml`); owns `_panelOpen`. The
   Trigger tab is the dock's own authoritative trigger list as of Phase 4
   (map-editor-trigger-panel.js's `triggerTabPanelHtml`), no longer a mirror
-  of the read-only entity tables
+  of the read-only entity tables. The Tile tab no longer includes the deco
+  picker as of Phase 5 — it moved to its own Widgets tab
+  (map-editor-deco.js's `widgetsTabHtml`)
 - `map-editor-gestures.js` — capture-phase pointer and key gestures on the map,
   so nothing is intercepted while edit mode is off; owns `_editDrag`. Also
   owns the Select tool's own gesture wiring (drag start/move/commit,

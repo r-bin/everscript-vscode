@@ -6,13 +6,14 @@
 // map-editor.js, the palette is metatile-palette.js, the families are
 // map-editor-families.js, the tile browser is map-editor-tiles.js, the
 // trigger tables are tables-builder.js, the Special tab's own content is
-// map-editor-special.js's specialTabHtml. Nothing here writes any of them.
+// map-editor-special.js's specialTabHtml, the Widgets tab's own content is
+// map-editor-deco.js's widgetsTabHtml. Nothing here writes any of them.
 // Which tab is active is map-editor-tabs.js's state (_editActiveTab); this
 // file only reads it to decide what renderEditPanels() builds.
 //
 // Owns: _panelOpen.
 
-var _panelOpen = { families: true, tiles: true, deco: false, needed: false, errors: true, compose: false };
+var _panelOpen = { families: true, tiles: true, needed: false, errors: true, compose: false };
 
 /** A collapsible section, so four panels fit in one sidebar. */
 function panel(key, title, body, note) {
@@ -105,7 +106,7 @@ function errorsPanel(p) {
   return html;
 }
 
-/** Tile tab: families, tiles, deco, new metatiles, compose & constructs. */
+/** Tile tab: families, tiles, new metatiles, compose & constructs. */
 function tileTabHtml(p) {
   var need = editNeededStamps(p);
   var chosen = editFamilies().filter(function (f) { return f !== undefined; });
@@ -113,7 +114,6 @@ function tileTabHtml(p) {
   return panel('families', 'tile families', familyChipsHtml(), chosen.length + ' of 7')
     + panel('tiles', 'tiles', tilesPanel(p),
       picked ? picked + ' famil' + (picked === 1 ? 'y' : 'ies') + ' selected' : 'all')
-    + panel('deco', 'deco', decoPanel(), _deco ? _deco.length + ' objects' : '')
     + panel('needed', 'new metatiles', neededPanel(p),
       need.added.length ? need.added.length + ' needed' : 'none')
     + panel('compose', 'compose & constructs', '<div id="rg-compose"></div>',
@@ -152,6 +152,8 @@ function renderEditPanels() {
     body = triggerTabHtml();
   } else if (_editActiveTab === 'special') {
     body = specialTabHtml();
+  } else if (_editActiveTab === 'widgets') {
+    body = widgetsTabHtml();
   } else if (!p) {
     body = '<div class="rs-note">loading the tile palette…</div>';
   } else if (_editActiveTab === 'info') {
@@ -160,10 +162,12 @@ function renderEditPanels() {
     body = tileTabHtml(p);
   }
   host.innerHTML = buildEditTabStripHtml() + '<div class="rg-tab-body" id="rg-tab-body">' + body + '</div>';
-  if (_editActiveTab !== 'tile') return;
-  if (p && _panelOpen.compose !== false) renderComposer();
+  if (_editActiveTab === 'tile' && p && _panelOpen.compose !== false) renderComposer();
+  if (_editActiveTab !== 'tile' && _editActiveTab !== 'widgets') return;
   // The filter keeps focus across the redraw it causes, or typing a second
-  // character would put the caret back at the start.
+  // character would put the caret back at the start. `rg-chip-filter` only
+  // exists on the Tile tab and `rg-deco-filter` only on Widgets — whichever
+  // one is not on screen is simply not found, and the pair is skipped.
   [['rg-chip-filter', _chipFilter], ['rg-deco-filter', _decoFilter]].forEach(function (pair) {
     var el = document.getElementById(pair[0]);
     if (el && pair[1] && el.value === pair[1] && document.activeElement !== el) {

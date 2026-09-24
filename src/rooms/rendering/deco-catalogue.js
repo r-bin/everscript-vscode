@@ -301,6 +301,15 @@ function decoIndex(rom) {
          * they land on, which is what a gourd should be.
          */
         front: d.cells.every((c) => !c.terrain),
+        /**
+         * True when every cell draws on the terrain only, drawing nothing on
+         * the canopy — the same test as `front`, mirrored. 33 of the 532 are
+         * like this: floor decoration (a rug, a patch of rubble) with
+         * nothing standing above it. Used by the Widgets tab
+         * (map-editor-deco.js) to group entries into Foreground/Background/
+         * Misc, since the ROM has no category of its own to read out.
+         */
+        back: d.cells.length > 0 && d.cells.every((c) => !!c.terrain && !c.canopy),
         scriptId: d.trigger ? d.trigger.scriptId : null,
     }));
 }

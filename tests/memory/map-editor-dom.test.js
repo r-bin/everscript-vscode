@@ -120,9 +120,9 @@ async function main() {
         await page.evaluate(() => document.getElementById('rs-mt').classList.contains('rs-mt-hidden')));
 
     // ── the tab shell ──────────────────────────────────────────────────────
-    // Four tabs (Tile / Special / Trigger / Info) file everything that used
-    // to stack as one long column of collapsible panels. Widgets does not
-    // exist yet (Phase 5 — see docs/map-editor-redesign-plan.md).
+    // Five tabs (Tile / Special / Trigger / Info / Widgets) file everything
+    // that used to stack as one long column of collapsible panels
+    // (docs/map-editor-redesign-plan.md).
     check('the dock opens on the Tile tab',
         await page.evaluate(() => document.querySelector('[data-edit-active-tab="tile"]').classList.contains('on')));
     check('with the tile-family panel on screen',
@@ -677,31 +677,49 @@ async function main() {
     check('and the neighbours are offered as their own strip',
         /Drawn next to what you have placed/.test(strip2) && /92%/.test(strip2));
 
-    // ── the deco library ───────────────────────────────────────────────────
+    // ── the Widgets tab / deco library ──────────────────────────────────────
     // Section 3 objects are vanilla's own deco widgets — gourds, pots, fire
     // pits — so the library is read out of the ROM rather than invented.
+    // `front`/`back` are the server-computed category split (deco-catalogue
+    // .js's decoIndex) the Widgets tab groups cards by.
     const DECO = [
         // `families` is the ids, not a count: whether an entry is usable
         // depends on the seven the draft already holds, which only the
         // editor knows. PALETTE has 35, 187, 58, 165, 149, 59, 166.
         { id: 0, area: 'Prehistoria', roomName: "Strong Heart's Hut", room: 0x34, w: 2, h: 2,
-          states: 1, count: 3, families: [58], graphics: 3, cells: 4, front: false, scriptId: null },
+          states: 1, count: 3, families: [58], graphics: 3, cells: 4, front: false, back: true, scriptId: null },
         { id: 1, area: 'Prehistoria', roomName: "Fire Eyes' Village", room: 0x25, w: 4, h: 3,
-          states: 2, count: 4, families: [35], graphics: 2, cells: 2, front: true, scriptId: 0xd74 },
+          states: 2, count: 4, families: [35], graphics: 2, cells: 2, front: true, back: false, scriptId: 0xd74 },
         { id: 2, area: 'Gothica', roomName: 'Ebon Keep', room: 0x60, w: 6, h: 6,
-          states: 1, count: 1, families: [220, 5], graphics: 9, cells: 30, front: true, scriptId: null },
+          states: 1, count: 1, families: [220, 5], graphics: 9, cells: 30, front: true, back: false, scriptId: null },
     ];
     await page.evaluate((deco) => {
         editReset(0x34);
         editDraft().on = true;
-        _panelOpen = { families: false, tiles: false, deco: true, needed: false, errors: true, compose: false };
+        _editActiveTab = 'widgets';
         applyDecoLibrary({ deco: deco });
         applyDecoPreviews({ previews: { ids: [0, 1, 2], columns: 6, cell: 48,
             imageUri: 'data:image/png;base64,ZGVjbw==', imageWidth: 288, imageHeight: 48 } });
     }, DECO);
-    check('the deco library renders as thumbnails', (await page.$$('.rg-deco')).length === 3);
+    check('the Widgets tab renders the deco library as thumbnails', (await page.$$('.rg-deco')).length === 3);
     check('each one carries its size and where it came from',
         /Fire Eyes/.test(await page.$eval('[data-deco="1"]', (n) => n.getAttribute('title'))));
+    check('cards are grouped under Foreground/Background headings',
+        (await page.evaluate(() => document.getElementById('rg-panels').textContent))
+            .includes('Foreground') && (await page.evaluate(
+                () => document.getElementById('rg-panels').textContent)).includes('Background'));
+    // PALETTE's seven families are 35, 187, 58, 165, 149, 59, 166 — entry 0
+    // (family 58, no script) needs nothing new and has no trigger, so it is
+    // the "neither" case; entry 1 (family 35, scripted) has a trigger only;
+    // entry 2 (families 220 and 5, neither loaded) has a family cost only.
+    check('an entry that needs nothing new and has no script shows no warning badge at all',
+        (await page.$$('[data-deco="0"] .rg-deco-warn')).length === 0);
+    check('an entry with a script shows the B-trigger line as visible text, not just a tooltip',
+        await page.$eval('[data-deco="1"] .rg-deco-warn', (n) => n.textContent) === '1 B-trigger added',
+        await page.$eval('[data-deco="1"] .rg-deco-warn', (n) => n.textContent));
+    check('an entry that needs two new families says so as visible text',
+        await page.$eval('[data-deco="2"] .rg-deco-warn', (n) => n.textContent) === '+2 families needed',
+        await page.$eval('[data-deco="2"] .rg-deco-warn', (n) => n.textContent));
 
     await page.click('[data-deco="1"]');
     const askedFor = await page.evaluate(
@@ -815,7 +833,13 @@ async function main() {
     // ── the four questions, as buttons ─────────────────────────────────────
     // "A working, foreground gourd out of my own families" is the ask; it
     // is 27 of the 532 in room 0x34, and unfindable without these.
-    const onScreen = () => page.$$eval('.rg-deco', (n) => n.map((e) => e.dataset.deco).join());
+    // Sorted rather than DOM order: the Widgets tab groups cards by category
+    // (Foreground before Background before Misc), so a filter's *result
+    // set* is what these assert, not the on-screen ordering — that ordering
+    // has its own dedicated check above ("cards are grouped under
+    // Foreground/Background headings").
+    const onScreen = () => page.$$eval('.rg-deco',
+        (n) => n.map((e) => Number(e.dataset.deco)).sort((a, b) => a - b).join());
     check('an entry that needs families you lack is marked with its cost',
         await page.$eval('[data-deco="2"]', (n) => n.classList.contains('rg-deco-costly')
             && n.querySelector('.rg-deco-cost').textContent === '+2'));
@@ -837,6 +861,23 @@ async function main() {
     await page.click('[data-deco-flag="front"]');
     check('and turning them off brings the library back', await onScreen() === '0,1,2');
 
+    // ── the "Ready only" toggle ─────────────────────────────────────────────
+    // Mapped to the same `works` flag (d.scriptId !== null — "comes with a
+    // script that does something on placement"), not a second boolean: the
+    // two controls read and write one piece of state, so they can never
+    // disagree with each other.
+    check('"Ready only" starts off, same as the "works" flag chip',
+        !(await page.$eval('.rg-deco-ready', (n) => n.classList.contains('on'))));
+    await page.click('.rg-deco-ready');
+    check('clicking it filters to scripted entries only, same as "works" would',
+        await onScreen() === '1');
+    check('and the "works" flag chip shows the same "on" state back',
+        await page.$eval('[data-deco-flag="works"]', (n) => n.classList.contains('on')));
+    await page.click('[data-deco-flag="works"]');
+    check('clicking the flag chip instead clears the toggle too — one owner, not two',
+        !(await page.$eval('.rg-deco-ready', (n) => n.classList.contains('on'))));
+    check('and the library is back', await onScreen() === '0,1,2');
+
     // ── picking a tile is choosing to paint ────────────────────────────────
     // The stamp tool places the armed construct and ignores the brush, so
     // arming a widget and then clicking a tile sent the click to the
@@ -845,6 +886,7 @@ async function main() {
     await page.evaluate((entry) => applyDecoCells({ entry: entry }), ENTRY);
     check('arming a widget selects the stamp tool',
         await page.evaluate(() => editDraft().tool) === 'stamp');
+    await page.click('[data-edit-active-tab="tile"]');
     await page.evaluate(() => { _panelOpen.tiles = true; renderEditPanels(); });
     await page.click('[data-fam-tile="4191"]');
     const armedTile = await page.evaluate(

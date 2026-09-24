@@ -1023,6 +1023,18 @@ function checkDecoLibrary(rom) {
     check('the index is one row per entry', index.length, cat.length);
     check('with counts, not cells', typeof index[0].cells === 'number', true);
 
+    // `front`/`back` are the Widgets tab's Foreground/Background grouping
+    // (docs/map-editor-redesign-plan.md Phase 5) — derived the same way on
+    // both sides of the canopy/terrain split, so an entry is never both.
+    check('front and back are mutually exclusive',
+        index.every((e) => !(e.front && e.back)), true);
+    check('352 are foreground-only (canopy, no terrain)',
+        index.filter((e) => e.front).length, 352);
+    check('33 are background-only (terrain, no canopy)',
+        index.filter((e) => e.back).length, 33);
+    check('the remaining 147 are neither — misc, in the Widgets tab',
+        index.filter((e) => !e.front && !e.back).length, 147);
+
     console.log(`  deco library: ${cat.length} objects, ${cells} drawn cells, `
         + `${openPct.toFixed(1)}% leave the floor alone, ${cat.filter((e) => e.trigger).length} with a script`);
 }

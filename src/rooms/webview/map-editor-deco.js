@@ -1,4 +1,5 @@
-// Ownership: the deco library — vanilla's own objects, as things to stamp.
+// Ownership: the deco library — vanilla's own objects, as things to stamp —
+// and the Widgets tab (widgetsTabHtml) that picks from it.
 //
 // Section 3 objects are the game's deco widgets: room 0x51 is 25 gourds and
 // pots, room 0x25's 4x3 objects are fire pits. 655 distinct ones, so this
@@ -7,6 +8,17 @@
 // **The ROM stores no names.** An object is a rectangle of metatiles and an
 // id; nothing in it says "gourd". So an entry is found by its picture, its
 // size and the room it comes from, and nothing here invents a label.
+//
+// The Widgets tab (docs/map-editor-redesign-plan.md Phase 5) is this file's
+// content filed under its own tab (map-editor-tabs.js decides which tab is
+// showing; map-editor-panels.js's renderEditPanels() calls widgetsTabHtml()
+// when it is Widgets) rather than a new subsystem — the picker, its filters
+// and the arm-and-stamp flow (applyDecoCells) already existed before this
+// phase and are unchanged; only where they render moved.
+//
+// Widget Editor Mode (the mock's screen 7 — authoring a *custom*,
+// user-defined widget on its own small grid) is explicitly out of scope for
+// this phase: see docs/map-editor-redesign-plan.md §5.3.
 //
 // Owns: _deco, _decoFilter, _decoPage, _decoPreviews, _decoPick.
 
@@ -154,6 +166,22 @@ function decoFlagsHtml() {
   return html + '</div>';
 }
 
+/**
+ * A second, plainer-worded control over the same `works` flag the "works"
+ * chip above already owns — not a second piece of state. The mock's own
+ * spec never defines "ready" precisely; `d.scriptId !== null` ("comes with
+ * a script that does something on placement") is the closest existing
+ * semantic, so this reads and writes `_decoFlags.works` through the exact
+ * same `data-deco-flag="works"` click key (map-editor-input.js's
+ * EDIT_CLICK_KEYS), rather than inventing a `_decoReady` boolean that could
+ * drift out of sync with the chip.
+ */
+function decoReadyToggleHtml() {
+  return '<button class="rdf rg-deco-ready' + (_decoFlags.works ? ' on' : '') + '" data-deco-flag="works" '
+    + 'title="Only vanilla objects that come with a B-trigger script — the ones that do something '
+    + 'the moment they are placed.">Ready only</button>';
+}
+
 function ensureDecoPreviews(ids) {
   if (typeof vs === 'undefined' || !vs || !ids.length) return;
   var key = ids.join(',');
@@ -162,8 +190,90 @@ function ensureDecoPreviews(ids) {
   vs.postMessage({ command: 'requestDeco', previews: ids });
 }
 
-/** The picker: thumbnails, with where each one comes from. */
-function decoPanel() {
+/**
+ * The three groups the Widgets tab cards it into.
+ *
+ * `front`/`back` are computed server-side (deco-catalogue.js's `decoIndex`)
+ * from the same per-cell canopy/terrain split that already backs the
+ * "front" filter flag — there is no ROM category to read out, so this is
+ * derived, not invented: an entry that draws only on the canopy is
+ * Foreground, one that draws only on the terrain is Background, and
+ * anything else (both, or an edge case where a cell is pure bounding-box
+ * filler) is Misc.
+ */
+var DECO_CATEGORIES = [
+  ['front', 'Foreground', 'sits over any floor'],
+  ['back', 'Background', 'is the floor itself'],
+  ['misc', 'Misc', 'both, or something in between'],
+];
+
+function decoCategoryOf(d) {
+  if (d.front) return 'front';
+  if (d.back) return 'back';
+  return 'misc';
+}
+
+/**
+ * The warnings the mock wants as visible card text, not a hover-only
+ * tooltip — the same two facts the tooltip already computes
+ * (`decoNewFamilies`, `d.scriptId`), just also written where a glance
+ * catches them.
+ */
+function decoWarningsHtml(d) {
+  var need = decoNewFamilies(d);
+  var bits = [];
+  if (need.length) bits.push('+' + need.length + ' famil' + (need.length === 1 ? 'y' : 'ies') + ' needed');
+  if (d.scriptId !== null) bits.push('1 B-trigger added');
+  if (!bits.length) return '';
+  return '<span class="rg-deco-warn">' + bits.map(escH).join(' · ') + '</span>';
+}
+
+/** One entry's thumbnail card, with its cost written out rather than only hinted at. */
+function decoCardHtml(d) {
+  var pv = _decoPreviews;
+  var at = pv ? pv.ids.indexOf(d.id) : -1;
+  var style = '';
+  if (at >= 0) {
+    style = 'background-image:url(' + pv.imageUri + ');background-position:-'
+      + ((at % pv.columns) * pv.cell) + 'px -' + (Math.floor(at / pv.columns) * pv.cell) + 'px';
+  }
+  var need = decoNewFamilies(d);
+  return '<button class="rg-deco' + (_editConstruct >= 0 && _decoPick === d.id ? ' on' : '')
+    + (d.scriptId !== null ? ' rg-deco-live' : '')
+    + (need.length ? ' rg-deco-costly' : '')
+    + '" data-deco="' + d.id + '"'
+    + ' title="' + escH(d.w + '×' + d.h + ' — ' + d.roomName + ' (' + d.area + ')'
+      + '\nplaced ' + d.count + ' time' + (d.count === 1 ? '' : 's') + ' in vanilla'
+      + '\ndraws ' + d.cells + ' of its ' + (d.w * d.h) + ' cells; the rest keeps your floor'
+      + (d.front ? '\nforeground only — it sits over any floor' : '\nsome of it is ground, not canopy')
+      + (need.length
+        ? '\nneeds ' + need.length + ' new famil' + (need.length === 1 ? 'y' : 'ies')
+          + ' (' + need.join(', ') + ') and up to ' + d.graphics + ' tile slots'
+        : '\nyour families already draw it; up to ' + d.graphics + ' tile slots')
+      + (d.scriptId !== null
+        ? '\nB-trigger on script 0x' + d.scriptId.toString(16) + ' — it works when placed'
+        : '\nno trigger: art and collision only')
+      + (d.states > 1 ? '\n' + d.states + ' states — it opens, breaks or burns' : '')) + '">'
+    + '<i class="rg-deco-art" style="' + style + '"></i>'
+    + (need.length ? '<span class="rg-deco-cost">+' + need.length + '</span>' : '')
+    + '<span class="rg-deco-tag">' + d.w + '×' + d.h
+    + (d.scriptId !== null ? ' ·⚡' : '')
+    + (d.states > 1 ? ' · ' + d.states + 'st' : '') + '</span>'
+    + decoWarningsHtml(d)
+    + '</button>';
+}
+
+/**
+ * The Widgets tab: the deco picker, cards grouped into Foreground/
+ * Background/Misc.
+ *
+ * Grouping is applied to the current filtered *and paged* slice, not the
+ * whole library, so `_decoPage`'s existing single-counter model does not
+ * have to grow into one page cursor per group — a page still shows at most
+ * `DECO_PAGE` cards, just sorted into up to three labelled clusters instead
+ * of one flat grid.
+ */
+function widgetsTabHtml() {
   if (!_deco) { requestDeco(); return '<div class="rs-note">loading the deco library…</div>'; }
   var list = filterDeco(_deco, _decoFilter);
   var shown = list.slice(_decoPage * DECO_PAGE, _decoPage * DECO_PAGE + DECO_PAGE);
@@ -172,45 +282,19 @@ function decoPanel() {
   var html = '<div class="rs-note">' + list.length + ' of ' + _deco.length
     + ' objects, cut out of the floor they stood on. The ROM stores no names, so pick '
     + 'by sight.</div>'
+    + decoReadyToggleHtml()
     + decoFlagsHtml()
     + '<input class="rg-fam-filter" id="rg-deco-filter" value="' + escH(_decoFilter)
-    + '" placeholder="an act, a room, or a size like 2x2" />'
-    + '<div class="rg-deco-grid">';
+    + '" placeholder="an act, a room, or a size like 2x2" />';
 
-  var pv = _decoPreviews;
-  for (var i = 0; i < shown.length; i++) {
-    var d = shown[i];
-    var at = pv ? pv.ids.indexOf(d.id) : -1;
-    var style = '';
-    if (at >= 0) {
-      style = 'background-image:url(' + pv.imageUri + ');background-position:-'
-        + ((at % pv.columns) * pv.cell) + 'px -' + (Math.floor(at / pv.columns) * pv.cell) + 'px';
-    }
-    var need = decoNewFamilies(d);
-    html += '<button class="rg-deco' + (_editConstruct >= 0 && _decoPick === d.id ? ' on' : '')
-      + (d.scriptId !== null ? ' rg-deco-live' : '')
-      + (need.length ? ' rg-deco-costly' : '')
-      + '" data-deco="' + d.id + '"'
-      + ' title="' + escH(d.w + '×' + d.h + ' — ' + d.roomName + ' (' + d.area + ')'
-        + '\nplaced ' + d.count + ' time' + (d.count === 1 ? '' : 's') + ' in vanilla'
-        + '\ndraws ' + d.cells + ' of its ' + (d.w * d.h) + ' cells; the rest keeps your floor'
-        + (d.front ? '\nforeground only — it sits over any floor' : '\nsome of it is ground, not canopy')
-        + (need.length
-          ? '\nneeds ' + need.length + ' new famil' + (need.length === 1 ? 'y' : 'ies')
-            + ' (' + need.join(', ') + ') and up to ' + d.graphics + ' tile slots'
-          : '\nyour families already draw it; up to ' + d.graphics + ' tile slots')
-        + (d.scriptId !== null
-          ? '\nB-trigger on script 0x' + d.scriptId.toString(16) + ' — it works when placed'
-          : '\nno trigger: art and collision only')
-        + (d.states > 1 ? '\n' + d.states + ' states — it opens, breaks or burns' : '')) + '">'
-      + '<i class="rg-deco-art" style="' + style + '"></i>'
-      + (need.length ? '<span class="rg-deco-cost">+' + need.length + '</span>' : '')
-      + '<span class="rg-deco-tag">' + d.w + '×' + d.h
-      + (d.scriptId !== null ? ' ·⚡' : '')
-      + (d.states > 1 ? ' · ' + d.states + 'st' : '') + '</span>'
-      + '</button>';
-  }
-  html += '</div>';
+  DECO_CATEGORIES.forEach(function (cat) {
+    var group = shown.filter(function (d) { return decoCategoryOf(d) === cat[0]; });
+    if (!group.length) return;
+    html += '<div class="rg-widget-group"><div class="rg-widget-h">' + escH(cat[1])
+      + ' <span class="rs-note">— ' + escH(cat[2]) + '</span></div>'
+      + '<div class="rg-deco-grid">' + group.map(decoCardHtml).join('') + '</div></div>';
+  });
+  if (!shown.length) html += '<div class="rs-note">nothing matches.</div>';
 
   if (list.length > DECO_PAGE) {
     var last = Math.ceil(list.length / DECO_PAGE) - 1;
