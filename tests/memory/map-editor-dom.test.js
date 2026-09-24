@@ -28,6 +28,7 @@ const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-stamps.js', '
     'map-editor-ui.js', 'map-editor-phases.js', 'map-editor-constructs.js', 'map-editor-families.js',
     'map-editor-chips.js', 'map-editor-tiles.js', 'map-editor-deco.js', 'map-editor-special.js',
     'map-editor-trigger-select.js', 'map-editor-trigger-panel.js',
+    'map-editor-toolbar.js', 'map-editor-filterbar.js', 'rom-overlay.js',
     'tables-builder.js', 'map-editor-tabs.js', 'map-editor-panels.js', 'map-editor-gestures.js',
     'map-editor-input.js', 'map-editor-actions.js', 'map-editor-newroom.js'];
 
@@ -76,20 +77,31 @@ async function main() {
     const pageErrors = [];
     page.on('pageerror', (e) => pageErrors.push(e.message));
 
-    const CSS = fs.readFileSync(
-        path.join(__dirname, '..', '..', 'src', 'shared', 'shared.css'), 'utf8')
-        + '\n' + fs.readFileSync(
-        path.join(__dirname, '..', '..', 'src', 'rooms', 'webview', 'map-editor-theme.css'), 'utf8');
+    const CSS = ['shared/shared.css', 'rooms/webview/map-editor-theme.css',
+        'rooms/webview/map-editor-canvas.css']
+        .map((f) => fs.readFileSync(path.join(__dirname, '..', '..', 'src', ...f.split('/')), 'utf8'))
+        .join('\n');
     // The real stylesheets: without them every swatch is 0x0, so nothing is
     // clickable and no size assertion means anything. `.rg-theme` matches the
     // class renderRoomDetail puts on the real #room-detail (detail-renderer.js).
+    //
+    // The canvas zone / card wrappers are svg-builder.js's own structure as of
+    // Phase 7a: the card is what the tool pill positions against and what
+    // editToggle inserts it into, so a harness without it would test a
+    // different DOM shape than the one that ships.
     await page.setContent(`<!doctype html><html><head><style>${CSS}</style></head>
         <body style="display:block;height:auto;overflow:auto"><div id="room-detail" class="rg-theme">
-        <div class="rg-outer rs-map" id="rg-outer"><div class="rg-wrap" id="rg-wrap"
+        <div class="rg-outer rs-map" id="rg-outer">
+        <div class="rg-canvas-zone" id="rg-canvas-zone">
+        <div class="rg-canvas-card" id="rg-canvas-card"><div class="rg-wrap" id="rg-wrap"
         style="width:400px;height:300px">
         <svg class="rg-svg" id="rg-svg" viewBox="0 0 4 4"><image id="rg-img"/>
         <path class="rg-grid-fine" d="M0 0V99"/><path class="rg-grid-coarse" d="M0 0V99"/>
-        </svg></div></div>
+        </svg></div>
+        <div class="rg-zoom" id="rg-zoom"><button id="rg-zout">-</button>
+        <span class="rg-zoom-level" id="rg-zoom-level">—</span>
+        <button id="rg-zin">+</button><button id="rg-zfit">fit</button></div>
+        </div></div></div>
         <div class="rs rs-mt-sec" id="rs-mt"><div class="rs-mt-body" id="rs-mt-body"></div></div>
         </div></body></html>`);
 
@@ -107,11 +119,86 @@ async function main() {
         _mtPalette = palette;
         _mtRoomId = 0x34;
         editReset(0x34);
+        // The two docked bars svg-builder.js appends under the canvas card.
+        // The status bar is where `#rg-edit-count` lives as of Phase 7a, so
+        // without it every status-line assertion below would read a null.
+        document.getElementById('rg-outer').insertAdjacentHTML('beforeend',
+            buildViewFilterBarHtml({ romId: true, hasMap: true, hasTriggers: true, hasScripts: true,
+                hasObjects: true, hasEntrances: true, hasEnemies: true, hasPoi: true, hasIngr: true,
+                hasSpawns: true, hasHitbox: true, hasArrivals: true, hasHeader: true })
+            + buildStatusBarHtml({ widthTiles: 2, heightTiles: 2 }));
         bindEditControls(document.getElementById('room-detail'), {});
+        setupStatusBar();
         editToggle({}, null);
     }, PALETTE);
 
     check('edit mode builds the panel column', !!(await page.$('#rg-panels')));
+
+    // ── the canvas column: the tool pill lives inside the card ─────────────
+    // It is absolutely positioned against the card's top edge, so a pill
+    // inserted anywhere else would float against the wrong box — and
+    // `editToggle`'s host lookup is the only thing that decides which.
+    check('the tool pill is inserted inside the canvas card, not above it',
+        await page.evaluate(() => {
+            const bar = document.getElementById('rg-edit-bar');
+            return !!bar && !!bar.closest('#rg-canvas-card');
+        }));
+    check('and floats over the card rather than pushing the grid down',
+        await page.evaluate(() => getComputedStyle(document.getElementById('rg-edit-bar')).position) === 'absolute');
+    // Icon-only, one row: the words are gone, so every button must carry a
+    // tooltip or the pill is unreadable.
+    const pillButtons = await page.$$eval('#rg-edit-bar .rdf',
+        (n) => n.map((e) => ({ title: e.getAttribute('title') || '', text: e.textContent.trim() })));
+    check('every pill button has a tooltip, since the labels are icons now',
+        pillButtons.length > 0 && pillButtons.every((b) => b.title.length > 0),
+        JSON.stringify(pillButtons.filter((b) => !b.title)));
+    check('the tool buttons are icons, not words',
+        await page.$eval('[data-edit-tool="paint"]', (n) => n.textContent.trim()) === '✎');
+    check('but the room/deco phase pair keeps its documented names',
+        await page.$eval('[data-edit-phase="deco"]', (n) => n.textContent.trim()) === 'deco');
+    // discard / copy draft / new room moved behind the ⋯ overflow. They must
+    // still be reachable — that is this phase's whole constraint.
+    check('discard, copy draft and new room moved into the ⋯ overflow menu',
+        await page.evaluate(() => ['clear', 'export', 'new-room'].every((a) => {
+            const btn = document.querySelector('[data-edit-act="' + a + '"]');
+            return !!btn && !!btn.closest('#rg-tool-dropdown');
+        })));
+    const toolMenuHidden = () => page.$eval('#rg-tool-dropdown',
+        (n) => n.hidden && getComputedStyle(n).display === 'none');
+    check('the overflow menu starts closed, in computed style as well as .hidden',
+        await toolMenuHidden());
+    await page.click('[data-edit-tool-menu]');
+    check('the ⋯ button opens it',
+        await page.$eval('#rg-tool-dropdown', (n) => !n.hidden && getComputedStyle(n).display !== 'none'));
+    // Geometry, not the `bottom` declaration: Chromium resolves `bottom:auto`
+    // to a used pixel value, so only the boxes say which way it actually went.
+    check('and it opens downward, since the pill hangs off the card’s top edge',
+        await page.evaluate(() => {
+            const caret = document.querySelector('[data-edit-tool-menu]').getBoundingClientRect();
+            const pop = document.getElementById('rg-tool-dropdown').getBoundingClientRect();
+            return pop.top >= caret.bottom - 1;
+        }));
+    await page.click('[data-edit-active-tab="tile"]');
+    check('a click elsewhere closes it again', await toolMenuHidden());
+
+    // ── the zoom chip ──────────────────────────────────────────────────────
+    check('the zoom chip sits inside the card, not in a row above it',
+        await page.evaluate(() => {
+            const z = document.getElementById('rg-zoom');
+            const s = getComputedStyle(z);
+            return !!z.closest('#rg-canvas-card') && s.position === 'absolute';
+        }));
+    check('and the + / − / fit controls are still there',
+        !!(await page.$('#rg-zin')) && !!(await page.$('#rg-zout')) && !!(await page.$('#rg-zfit')));
+
+    // ── the status bar ─────────────────────────────────────────────────────
+    check('the status line moved out of the pill into the status bar',
+        await page.evaluate(() => {
+            const c = document.getElementById('rg-edit-count');
+            return !!c && !!c.closest('#rg-statusbar') && !c.closest('#rg-edit-bar');
+        }));
+    check('and reports the room size beside it',
+        await page.$eval('#rg-status-size', (n) => n.textContent) === '2 × 2');
 
     // Two tile pickers on screen at once — the panels and the pre-rebuild
     // palette section — was "the first time you click it you get an old
@@ -200,50 +287,72 @@ async function main() {
     check('and the stamp goes back to the room’s own, not a leftover gated one',
         (await page.evaluate(() => editDraft().cells['0,0'])) === 0);
 
-    // ── the filter bar's Special chip + dropdown ────────────────────────────
+    // ── the filter bar: six controls, ~25 toggles, all still reachable ─────
     // The harness never loads interactions.js (setupClickHandlers), so the
-    // dropdown's own three data-hide sub-toggles are not exercised by a real
-    // click here — every other filter chip in this bar has the same gap in
-    // this suite. Only the caret's open/close, wired through
-    // bindEditControls (map-editor-input.js), is this phase's own code.
-    await page.evaluate(() => {
-        document.getElementById('room-detail').insertAdjacentHTML('beforeend', buildSpecialFilterChipHtml());
+    // `data-hide` sub-toggles are not exercised by a real click here — every
+    // filter chip in this bar has always had that gap in this suite. What is
+    // asserted is the Phase 7a regrouping: that nothing was dropped on the
+    // way into the dropdowns, and that each caret still opens exactly one.
+    const barKeys = await page.evaluate(() => {
+        const bar = document.querySelector('.rg-view-filters');
+        return {
+            hide: [...bar.querySelectorAll('[data-hide]')].map((n) => n.dataset.hide).sort(),
+            ov: [...bar.querySelectorAll('[data-ov]')].map((n) => n.dataset.ov).sort(),
+            layer: [...bar.querySelectorAll('[data-layer]')].map((n) => n.dataset.layer).sort(),
+            vis: [...bar.querySelectorAll('[data-vis-layer]')].map((n) => n.dataset.visLayer).sort(),
+            ids: [...bar.querySelectorAll('.rg-filter-popup')].map((n) => n.id).sort(),
+            // The primary row: the segmented pill, four chip groups, the
+            // divider and the two action buttons — not 25 loose chips.
+            topLevel: bar.children.length,
+        };
     });
+    // Every pre-existing data-hide key from before the regroup. Dropping one
+    // would be silent: it is a whole overlay the user can no longer turn off.
+    const WANT_HIDE = ['hide-arrival', 'hide-btrig', 'hide-enem', 'hide-ent', 'hide-fg',
+        'hide-grid16', 'hide-grid8', 'hide-header', 'hide-hitbox', 'hide-ingr', 'hide-map',
+        'hide-obj', 'hide-poi', 'hide-scripts', 'hide-spawn', 'hide-special',
+        'hide-special-entrance', 'hide-special-gate', 'hide-special-stairs', 'hide-step',
+        'hide-trigger'].sort();
+    check('every view toggle survived the regroup into dropdowns',
+        barKeys.hide.join() === WANT_HIDE.join(),
+        'missing: ' + WANT_HIDE.filter((k) => !barKeys.hide.includes(k)).join()
+        + ' | unexpected: ' + barKeys.hide.filter((k) => !WANT_HIDE.includes(k)).join());
+    check('and every ROM feature flag, including the nine in the overflow drawer',
+        barKeys.ov.sort().join() === 'c,d,e,g,l,n,o,p,t');
+    check('with the composite layer pick reachable in that drawer',
+        barKeys.layer.join() === 'composite');
+    check('and Background/Foreground as two segments over the one layer choice',
+        barKeys.vis.join() === 'bg,fg');
+    check('the bar is six controls plus the two actions, not a wall of chips',
+        barKeys.topLevel <= 8, 'top-level children: ' + barKeys.topLevel);
+    check('four dropdowns, one mechanism',
+        barKeys.ids.join() === 'rg-more-dropdown,rg-objects-dropdown,rg-special-dropdown,rg-trigger-dropdown',
+        barKeys.ids.join());
+
     // Checks computed `display`, not just the `.hidden` IDL property — a
     // real CSS bug (`.rg-filter-popup{display:flex}`, an author rule, silently
     // beat the UA stylesheet's `[hidden]{display:none}` regardless of
     // selector specificity) left the popup visually open at all times while
     // `.hidden` still read true, and a `.hidden`-only check never caught it.
-    const specialPopupHidden = () => page.$eval('#rg-special-dropdown',
+    // `rg-more-dropdown` is a `display:grid` popup, so it needs its own
+    // `[hidden]` override and its own version of this check.
+    const popupHidden = (id) => page.$eval('#' + id,
         (n) => n.hidden && getComputedStyle(n).display === 'none');
-    const specialPopupShown = () => page.$eval('#rg-special-dropdown',
+    const popupShown = (id) => page.$eval('#' + id,
         (n) => !n.hidden && getComputedStyle(n).display !== 'none');
-    check('the special filter dropdown starts closed', await specialPopupHidden());
-    await page.click('[data-edit-special-menu]');
-    check('the caret opens it', await specialPopupShown());
-    await page.click('[data-edit-active-tab="tile"]');
-    check('and a click elsewhere in the panel closes it again', await specialPopupHidden());
+    for (const [attr, id] of [['edit-special-menu', 'rg-special-dropdown'],
+        ['edit-trigger-menu', 'rg-trigger-dropdown'],
+        ['edit-objects-menu', 'rg-objects-dropdown'],
+        ['edit-more-menu', 'rg-more-dropdown']]) {
+        check(id + ' starts closed', await popupHidden(id));
+        await page.click(`[data-${attr}]`);
+        check('its caret opens it', await popupShown(id));
+        await page.click('[data-edit-active-tab="tile"]');
+        check('and a click elsewhere in the panel closes it again', await popupHidden(id));
+    }
 
     check('switching back to Tile restores its panels',
         !!(await page.$('[data-panel="families"]')));
-
-    // ── the filter bar's Triggers chip + dropdown ───────────────────────────
-    // Same shape and same close-on-outside-click mechanism as the Special
-    // chip above (map-editor-input.js's EDIT_FILTER_MENUS); the sub-toggles
-    // ride `hide-step`/`hide-btrig`, two shared.css rules that already
-    // existed with no chip wired to them before this pass.
-    await page.evaluate(() => {
-        document.getElementById('room-detail').insertAdjacentHTML('beforeend', buildTriggerFilterChipHtml());
-    });
-    const triggerPopupHidden = () => page.$eval('#rg-trigger-dropdown',
-        (n) => n.hidden && getComputedStyle(n).display === 'none');
-    const triggerPopupShown = () => page.$eval('#rg-trigger-dropdown',
-        (n) => !n.hidden && getComputedStyle(n).display !== 'none');
-    check('the trigger filter dropdown starts closed', await triggerPopupHidden());
-    await page.click('[data-edit-trigger-menu]');
-    check('the caret opens it', await triggerPopupShown());
-    await page.click('[data-edit-active-tab="tile"]');
-    check('and a click elsewhere in the panel closes it again', await triggerPopupHidden());
 
     // ── the Select tool: real base + placed triggers, driven end to end ────
     // An 8x8 room: one base step trigger at (1,1)-(2,2), one base B-trigger
@@ -499,8 +608,13 @@ async function main() {
     check('nothing calls window.prompt', !FILES.map(read).join('').includes('prompt('),
         'a VS Code webview has no window.prompt; use the inline form');
 
+    // Reached through the ⋯ overflow now, not a permanent pill slot — §7b
+    // moves it to the rail's "+ New Map" footer, where the mock puts it.
+    await page.click('[data-edit-tool-menu]');
     await page.click('[data-edit-act="new-room"]');
     check('new room opens a form', !!(await page.$('#rg-newroom')));
+    check('and the form lands inside the canvas card, under the pill that opened it',
+        await page.evaluate(() => !!document.getElementById('rg-newroom').closest('#rg-canvas-card')));
     await page.fill('#rg-nr-w', '20');
     await page.fill('#rg-nr-h', '9');
     await page.evaluate(() => { window.__sent.length = 0; });
@@ -994,7 +1108,10 @@ async function main() {
     // toggle cancelled itself out. That was "the edit and new map button
     // work every now and then": alive after an odd number of renders.
     await page.evaluate(() => {
-        document.getElementById('room-detail').insertAdjacentHTML('afterbegin', buildEditButtonHtml());
+        // `#rg-edit-btn` already exists — the filter bar built above carries
+        // it (map-editor-filterbar.js's own action pair), so no second copy
+        // is inserted here; two nodes with one id would make which one this
+        // clicks a coin toss.
         // One more bind, for the second render of the same panel. Without
         // the guard that makes two handlers, and two is the dead case.
         bindEditControls(document.getElementById('room-detail'), {});

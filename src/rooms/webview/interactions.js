@@ -43,6 +43,9 @@ function setupByteScriptFocusBinding(panel){
 var _activePan=null,_activePanState=null,_activePanWrap=null,_globalPanBound=false;
 // How far the pointer may travel before a drag stops counting as a click.
 var PAN_CLICK_SLOP=3;
+// One SVG viewBox unit is one 8 px ROM tile, so this is the scale at which
+// the zoom chip reads 100%.
+var ZOOM_ROM_PX_PER_UNIT=8;
 
 function ensureGlobalPanHandlers(){
   if(_globalPanBound)return;
@@ -101,6 +104,12 @@ function setupZoomPan(p){
     var cx=Math.min(metrics.maxX,Math.max(metrics.minX,p.panX||0));
     var cy=Math.min(metrics.maxY,Math.max(metrics.minY,p.panY||0));
     applyPan(cx,cy);
+    // The zoom chip inside the canvas card (svg-builder.js). The scale is
+    // screen px per viewBox unit and one unit is one 8 px ROM tile, so 8 is
+    // 1:1 — "100%" means one ROM pixel per screen pixel, which is the only
+    // reading of the number that means anything here.
+    var lvl=document.getElementById('rg-zoom-level');
+    if(lvl)lvl.textContent=Math.round(getScale(s)*100/ZOOM_ROM_PX_PER_UNIT)+'%';
   }
 
   /**

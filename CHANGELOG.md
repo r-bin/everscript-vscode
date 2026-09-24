@@ -1,3 +1,54 @@
+## [0.56.0] — 2026-09-24
+
+### Map editor redesign, phase 7a: the canvas column
+
+Phases 0–6 each said "restyle only, preserve every control where it is" — and
+the result was a themed version of the old dense layout, because the mock's
+whole thesis is *reduction*. This phase changes the constraint from "every
+control keeps its position" to **"every control stays reachable"**. See
+`docs/map-editor-redesign-plan.md` §7a/§7a.1.
+
+- **Tab order fixed**: Tile / Special / Trigger / **Widgets** / Info, the
+  design mock's own order. Widgets had been shipping last since phase 5.
+- **The toolbar is a compact icon-only pill** floating over the canvas card:
+  `[↖ ✎ ⌫ ▭ ⤵] | [⧉ ✥ ❖] | [room deco] | [↶ ↷] | [⋯]`, grouped by thin
+  dividers, every button carrying its existing tooltip text. `room`/`deco`
+  keep their words — they name a real documented concept (`editResolve`), not
+  a label to reskin. New file `map-editor-toolbar.js`, split out of
+  `map-editor-ui.js`.
+- **`discard`, `copy draft` and `new room` moved into a `⋯` overflow menu.**
+  `new room` is there until §7b moves it to the left rail's `+ New Map`
+  footer, where the mock puts it.
+- **The canvas is a centred card** — rounded, bordered, shadowed, generously
+  padded — instead of a left-aligned full-bleed grid.
+- **The `+ − fit` row became a zoom chip** in the card's bottom-left, showing
+  a live percentage (100% = one ROM pixel per screen pixel). The controls and
+  the pan/pinch behaviour are unchanged.
+- **The bottom filter bar is six controls instead of ~25 chips over 3 rows**:
+  a segmented `Background | Foreground | Collision` pill, then `Triggers ▾`,
+  `Objects ▾`, `Special ▾` and `More ▾`, then `edit`/`locked` past a divider.
+  **Nothing was deleted** — all 21 view toggles and all 9 ROM feature flags
+  are still there, regrouped by affinity into the dropdowns, and a regression
+  test enumerates every key by name so dropping one cannot be silent. New
+  file `map-editor-filterbar.js`, split out of `detail-renderer.js`.
+- **`Background`/`Foreground` are two derived views of one owner.** The host
+  bakes exactly one of `composite`/`layer2`/`layer1` per render, so there is
+  no second boolean to mirror: `romLayerVis()` derives both segments from
+  `_currentLayer` and writing either one writes back through it. Turning both
+  off is refused — there is no "render nothing" layer.
+- **A full-width status bar** under the filter bar: `x: 07 y: 04 · 24 × 16 ·
+  <draft summary> · <hovered entity>`. The draft summary moved out of the
+  toolbar (same element id, same writers); the hover coordinates are new.
+- **Not built, deliberately**: the mock's `S`/`B` (start a trigger draft) and
+  `◆` (collision brush) pill buttons. No such tools exist in this codebase, and
+  a dead control is worse than an honest gap.
+- **Fixed an overlap found by visual QA**: shared.css's "decoding ROM map…"
+  badge is centred on the canvas region's top edge — exactly where the new
+  pill hangs. Re-hung on the card's own top-right corner.
+- **File sizes**: `map-editor-ui.js` 309→248, `detail-renderer.js` 388→354,
+  `map-editor-theme.css` 381→189 (the canvas column's chrome moved to a new
+  `map-editor-canvas.css`). Three new files, none over 400.
+
 ## [0.55.0] — 2026-09-24
 
 ### Map editor redesign, phase 6: polish (redesign complete)

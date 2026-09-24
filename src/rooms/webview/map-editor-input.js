@@ -96,17 +96,26 @@ function renderComposer() {
 var EDIT_CLICK_KEYS = ['editTool', 'editPhase', 'editAct', 'editPick', 'panel',
   'famTile', 'construct', 'chip', 'chipDrop', 'chipAdopt', 'chipMore', 'tileMore',
   'layerForce', 'deco', 'decoPage', 'decoFlag', 'mtIndex', 'mtSlot', 'editActiveTab',
-  'editSpecial', 'editSpecialMenu', 'editTriggerMenu', 'triggerRef', 'triggerRemove'];
+  'editSpecial', 'editSpecialMenu', 'editTriggerMenu', 'editObjectsMenu', 'editMoreMenu',
+  'editToolMenu', 'triggerRef', 'triggerRemove'];
 
 /**
- * Every filter-bar dropdown (detail-renderer.js's filtersHtml) that opens a
- * popup of sub-toggles, keyed by the dataset name its own caret carries.
- * One list, one close-on-outside-click loop below — a new dropdown only
- * needs an entry here, not a second mechanism copied from the Special one.
+ * Every dropdown in the editor's chrome that opens a popup of sub-toggles,
+ * keyed by the dataset name its own caret carries.
+ *
+ * One list drives both the open/close toggle and the close-on-outside-click
+ * sweep below, so a new dropdown is one entry here plus one key in
+ * EDIT_CLICK_KEYS — never a second mechanism. The first four are the filter
+ * bar's (map-editor-filterbar.js, map-editor-special.js); the last is the
+ * tool pill's `⋯` overflow (map-editor-toolbar.js), which shares the
+ * mechanism even though it opens downward instead of up.
  */
 var EDIT_FILTER_MENUS = [
   { key: 'editSpecialMenu', id: 'rg-special-dropdown' },
   { key: 'editTriggerMenu', id: 'rg-trigger-dropdown' },
+  { key: 'editObjectsMenu', id: 'rg-objects-dropdown' },
+  { key: 'editMoreMenu', id: 'rg-more-dropdown' },
+  { key: 'editToolMenu', id: 'rg-tool-dropdown' },
 ];
 
 /** The nearest ancestor (including `el`) that carries one of those keys. */
@@ -165,28 +174,27 @@ function bindEditControls(panel, room) {
     var t = editClickTarget(e.target, panel);
     if (!t || !t.dataset) return;
 
-    // Every filter-bar dropdown (Special, Triggers, …) closes on any click
-    // that lands outside it — including a click that goes on to do
-    // something else, like painting a cell, which is why this runs before
-    // the dispatch below rather than being its own listener.
+    // Every dropdown (Special, Triggers, Objects, more, the pill's ⋯) closes
+    // on any click that lands outside it — including a click that goes on to
+    // do something else, like painting a cell, which is why this runs before
+    // the dispatch below rather than being its own listener. The same list
+    // then answers "was this click a caret?", so a new dropdown never needs
+    // an `if` block of its own.
+    var hitMenu = null;
     EDIT_FILTER_MENUS.forEach(function (m) {
+      if (t.dataset[m.key]) hitMenu = m;
       var menu = document.getElementById(m.id);
       if (menu && !menu.hidden && !menu.contains(e.target) && !t.dataset[m.key]) {
         menu.hidden = true;
       }
     });
+    if (hitMenu) {
+      var open = document.getElementById(hitMenu.id);
+      if (open) open.hidden = !open.hidden;
+      return;
+    }
 
     if (t.id === 'rg-edit-btn') { editToggle(_editPanelRoom, t); return; }
-    if (t.dataset.editSpecialMenu) {
-      var specialMenu = document.getElementById('rg-special-dropdown');
-      if (specialMenu) specialMenu.hidden = !specialMenu.hidden;
-      return;
-    }
-    if (t.dataset.editTriggerMenu) {
-      var triggerMenu = document.getElementById('rg-trigger-dropdown');
-      if (triggerMenu) triggerMenu.hidden = !triggerMenu.hidden;
-      return;
-    }
     if (t.dataset.editSpecial) {
       var ds = editDraft();
       if (ds) {
@@ -304,14 +312,18 @@ function editToggle(room, btn) {
   if (panel) panel.classList.toggle('rg-editing', d.on);
   editDock(d.on, room);
 
-  var bar = document.getElementById('rg-edit-bar');
-  if (d.on && !bar) {
-    var outer = document.getElementById('rg-outer');
-    if (outer) outer.insertAdjacentHTML('afterbegin', buildEditToolbarHtml());
+  var chrome = document.getElementById('rg-edit-chrome');
+  if (d.on && !chrome) {
+    // Inside the canvas card, not above it: the pill is positioned against
+    // the card's own top edge (map-editor-canvas.css), so it has to be a
+    // descendant of the node that establishes that containing block.
+    // #rg-outer is the fallback for a room with no canvas at all.
+    var host = document.getElementById('rg-canvas-card') || document.getElementById('rg-outer');
+    if (host) host.insertAdjacentHTML('afterbegin', buildEditToolbarHtml());
     // The composer lives in the panel column now; renderEditPanels builds
     // it, so there is nothing to inject here.
-  } else if (!d.on && bar) {
-    bar.parentNode.removeChild(bar);
+  } else if (!d.on && chrome) {
+    chrome.parentNode.removeChild(chrome);
   }
   renderEditChrome();
 }

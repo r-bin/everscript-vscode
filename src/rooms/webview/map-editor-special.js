@@ -213,7 +213,7 @@ function specialTabHtml() {
  */
 function buildSpecialFilterChipHtml() {
   return '<span class="rg-filter-group">'
-    + '<button class="rdf on" data-hide="hide-special" title="Toggle special glyphs (stairs, gate, entrance)">special</button>'
+    + '<button class="rdf on" data-hide="hide-special" title="Toggle special glyphs (stairs, gate, entrance)">Special</button>'
     + '<button class="rdf rg-filter-caret" data-edit-special-menu="1" title="Choose which special glyphs to show" '
     + 'aria-label="Special filter groups">▾</button>'
     + '<div class="rg-filter-popup" id="rg-special-dropdown" hidden>'

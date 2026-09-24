@@ -92,8 +92,10 @@ const ROOMS_JS_FILES = [
   'map-editor-deco.js',  // the deco library: vanilla's own objects, to stamp
   'map-editor-special.js',// the Special tab: stairs/drift, gate, entrance + their filter chip
   'map-editor-trigger-select.js',// unifies base + placed triggers: select/move/delete/copy-paste
-  'map-editor-trigger-panel.js',// the Trigger tab's list UI, the Info tab's counts + their filter chip
-  'map-editor-tabs.js',  // which of the dock's four tabs is showing (_editActiveTab)
+  'map-editor-trigger-panel.js',// the Trigger tab's list UI + the Info tab's trigger counts
+  'map-editor-toolbar.js',// the floating tool pill: tools, phases, icons, the ⋯ overflow
+  'map-editor-filterbar.js',// the canvas column's docked filter bar + status bar
+  'map-editor-tabs.js',  // which of the dock's five tabs is showing (_editActiveTab)
   'map-editor-panels.js',// tab content: tile list, needed metatiles, checks, trigger lists
   'map-editor-gestures.js',// pointer/key gestures on the map -> edits
   'map-editor-input.js', // clicks on the chrome -> actions
@@ -112,10 +114,12 @@ function loadRoomsJs() {
 
 module.exports = {
   // shared.css stays the flat baseline every tab renders with; the map
-  // editor's own tokens/chrome live in a second, rooms-owned file so
-  // restyling it can never bleed into the memory/scaling/docs/route tabs.
+  // editor's own tokens/chrome live in rooms-owned files so restyling it can
+  // never bleed into the memory/scaling/docs/route tabs. theme.css declares
+  // the tokens and must come before canvas.css, which consumes them.
   css: loadFile(path.join(sharedDir, 'shared.css')) + '\n'
-    + loadFile(path.join(roomsDir, 'map-editor-theme.css')),
+    + loadFile(path.join(roomsDir, 'map-editor-theme.css')) + '\n'
+    + loadFile(path.join(roomsDir, 'map-editor-canvas.css')),
   get scalingJs() { return loadScalingJs(); },
   get roomsJs() { return loadRoomsJs(); },
   docsJs: loadFile(path.join(docsDir, 'docs-tab.js')),

@@ -35,32 +35,72 @@ var ALL_OVERLAY_FLAGS=OVERLAY_BUTTONS.map(function(b){return b.f;}).join('');
 // what is in the room, and the top bar is how you narrow it down.
 var _currentOverlay=ALL_OVERLAY_FLAGS;
 
+/** The three renders the host can bake: both layers, or one on its own. */
+var ROM_LAYER_BUTTONS=[
+  ['composite','composite','Composited map as the SNES displays it (Mode 1) — both layers at once'],
+  ['layer2','L2 terrain','Layer 2 only — terrain (BG1)'],
+  ['layer1','L1 canopy','Layer 1 only — canopy (BG2)']
+];
+
 /**
- * Top-bar HTML for the ROM views.
+ * One button per control, rather than one pre-baked row of all of them.
  *
- * Rendered from the current state rather than hardcoded defaults, so switching
- * rooms keeps your toggles instead of showing buttons that disagree with the
- * image — which is what made the bar look broken.
+ * The filter bar (map-editor-filterbar.js) arranges these into the design
+ * mock's six slots — a segmented pill, three dropdown chips and an overflow
+ * menu — so it needs each control on its own. Every button still renders
+ * from the live state here rather than from fixed defaults, so a bar rebuilt
+ * on a room switch always agrees with what is on screen.
  */
-function buildRomViewButtonsHtml(){
-  var h='<span class="rdf-sep"></span>';
-  [['composite','composite','Composited map as the SNES displays it (Mode 1)'],
-   ['layer2','L2 terrain','Layer 2 only — terrain (BG1)'],
-   ['layer1','L1 canopy','Layer 1 only — canopy (BG2)']].forEach(function(l){
-    h+='<button class="rdf rdf-layer'+(_currentLayer===l[0]?' on':'')+'" data-layer="'+l[0]+
-       '" title="'+escH(l[2])+'">'+escH(l[1])+'</button>';
-  });
-  h+='<span class="rdf-sep"></span>';
-  h+='<button class="rdf rdf-ov-all'+(_currentOverlay===ALL_OVERLAY_FLAGS?' on':'')+
-     '" title="Turn every feature overlay on, or all of them off">all</button>';
-  OVERLAY_BUTTONS.forEach(function(b){
-    h+='<button class="rdf rdf-ov'+(_currentOverlay.indexOf(b.f)>=0?' on':'')+'" data-ov="'+b.f+
-       '" title="'+escH(b.title)+'">'+escH(b.label)+'</button>';
-  });
-  h+='<span class="rdf-sep"></span>';
-  h+='<button class="rdf'+(_animateOn?' on':'')+'" id="rg-animate" title="Play the room\u2019s Section 2 tile animation \u2014 water, lava, torches, fans. The frames sit on top of the rendered map, so a collision marking on an animated tile is hidden while this is on.">animate</button>';
-  h+='<button class="rdf on" id="rg-export" title="Save exactly what is on screen \u2014 this layer, these overlays, these object states \u2014 as a PNG">export png</button>';
-  return h+'<span class="rdf-sep"></span>';
+function romLayerButtonHtml(key,label){
+  var def=null;
+  ROM_LAYER_BUTTONS.forEach(function(l){if(l[0]===key)def=l;});
+  if(!def)return '';
+  return '<button class="rdf rdf-layer'+(_currentLayer===key?' on':'')+'" data-layer="'+key+
+         '" title="'+escH(def[2])+'">'+escH(label||def[1])+'</button>';
+}
+
+function romOverlayButtonHtml(flag,label){
+  var def=null;
+  OVERLAY_BUTTONS.forEach(function(b){if(b.f===flag)def=b;});
+  if(!def)return '';
+  return '<button class="rdf rdf-ov'+(_currentOverlay.indexOf(flag)>=0?' on':'')+'" data-ov="'+flag+
+         '" title="'+escH(def.title)+'">'+escH(label||def.label)+'</button>';
+}
+
+function romAllOverlaysButtonHtml(){
+  return '<button class="rdf rdf-ov-all'+(_currentOverlay===ALL_OVERLAY_FLAGS?' on':'')+
+         '" title="Turn every feature overlay on, or all of them off">all</button>';
+}
+
+function romAnimateButtonHtml(){
+  return '<button class="rdf'+(_animateOn?' on':'')+'" id="rg-animate" title="Play the room’s '
+    +'Section 2 tile animation — water, lava, torches, fans. The frames sit on top of the '
+    +'rendered map, so a collision marking on an animated tile is hidden while this is on.">animate</button>';
+}
+
+function romExportButtonHtml(){
+  return '<button class="rdf on" id="rg-export" title="Save exactly what is on screen — this '
+    +'layer, these overlays, these object states — as a PNG">export png</button>';
+}
+
+/**
+ * Is the terrain (`bg`) or the canopy (`fg`) layer currently drawn?
+ *
+ * The host bakes exactly one of three renders per request, so "both layers
+ * visible" is the `composite` choice rather than two independent flags. The
+ * design mock's filter bar shows Background and Foreground as two
+ * independently-toggleable segments, so these two derived booleans are what
+ * those segments read and write — one owner (`_currentLayer`), two views of
+ * it, no mirrored state. Turning both off is refused in setupLayerButtons:
+ * there is no "render nothing" layer for the host to bake.
+ */
+function romLayerVis(which){
+  return _currentLayer==='composite'||_currentLayer===(which==='bg'?'layer2':'layer1');
+}
+
+function romVisSegmentHtml(which,label,title){
+  return '<button class="rdf rdf-vis'+(romLayerVis(which)?' on':'')+'" data-vis-layer="'+which+
+         '" title="'+escH(title)+'">'+escH(label)+'</button>';
 }
 
 /**
@@ -101,13 +141,38 @@ function setupLayerButtons(panel,room){
     if(all)all.classList.toggle('on',_currentOverlay===ALL_OVERLAY_FLAGS);
   }
 
+  // One sync for both views of `_currentLayer`: the three-way radio (in the
+  // filter bar's overflow menu) and the two Background/Foreground segments
+  // (its primary row). Either control can change it, so both are redrawn
+  // from it rather than each tracking its own idea of what is on.
+  function syncLayerButtons(){
+    panel.querySelectorAll('.rdf-layer').forEach(function(b){
+      b.classList.toggle('on',b.dataset.layer===_currentLayer);
+    });
+    panel.querySelectorAll('.rdf-vis').forEach(function(b){
+      b.classList.toggle('on',romLayerVis(b.dataset.visLayer));
+    });
+  }
+
   panel.querySelectorAll('.rdf-layer').forEach(function(btn){
     btn.addEventListener('click',function(){
       if(btn.dataset.layer===_currentLayer)return;
       _currentLayer=btn.dataset.layer;
-      panel.querySelectorAll('.rdf-layer').forEach(function(b){
-        b.classList.toggle('on',b.dataset.layer===_currentLayer);
-      });
+      syncLayerButtons();
+      rerender();
+    });
+  });
+
+  // The Background/Foreground segments: two booleans over the one layer
+  // choice — see romLayerVis. Both off has no render, so it is refused
+  // rather than silently doing nothing to the state.
+  panel.querySelectorAll('.rdf-vis').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var bg=romLayerVis('bg'),fg=romLayerVis('fg');
+      if(btn.dataset.visLayer==='bg')bg=!bg;else fg=!fg;
+      if(!bg&&!fg)return;
+      _currentLayer=(bg&&fg)?'composite':(bg?'layer2':'layer1');
+      syncLayerButtons();
       rerender();
     });
   });

@@ -19,9 +19,12 @@
  *   .imageDims  {w,h} image dimensions (or null)
  *   .rh         romHeader (or null)
  *   .arrivals   doors leading into this room (or empty)
- *   .filtersHtml  the per-room display-toggle bar (detail-renderer.js), docked
- *                 below the canvas card — inside #rg-outer, so it travels with
- *                 the canvas rather than the name/header line above it
+ *   .filtersHtml  the per-room display-toggle bar (map-editor-filterbar.js),
+ *                 docked below the canvas card — inside #rg-outer, so it
+ *                 travels with the canvas rather than the name/header line
+ *                 above it
+ *   .statusHtml   the bar under that: hovered cell, room size, draft summary,
+ *                 hovered-entity label (map-editor-filterbar.js)
  * @returns {{ html: string, x1, y1, x2, y2, W, H, dispW, dispH, hasCoords, zoomState }}
  */
 function buildRoomSvgSection(opts){
@@ -32,6 +35,7 @@ function buildRoomSvgSection(opts){
   var romSpawns=opts.romSpawns||[];
   var arrivals=opts.arrivals||[];
   var filtersHtml=opts.filtersHtml||'';
+  var statusHtml=opts.statusHtml||'';
 
   // Compute SVG viewport bounds. ROM header dimensions are authoritative.
   var TILE=8;
@@ -74,7 +78,14 @@ function buildRoomSvgSection(opts){
   var html='';
   if(hasCoords||imageUri){
     html+='<div class="rg-outer rs-map" id="rg-outer">';
-    html+='<div class="rg-zoom"><button id="rg-zin">+</button><button id="rg-zout">-</button><button id="rg-zfit">fit</button></div>';
+    // The canvas zone centres one rounded, bordered, shadowed card in empty
+    // space, per the design mock's canvasInnerStyle + canvasCardStyle. The
+    // grid is no longer left-aligned and full-bleed; the floating tool pill
+    // (map-editor-toolbar.js) hangs off this card's top edge and the zoom
+    // chip sits inside its bottom-left corner, which is why the card — not
+    // #rg-outer — is what establishes the positioning context for both.
+    html+='<div class="rg-canvas-zone" id="rg-canvas-zone">';
+    html+='<div class="rg-canvas-card" id="rg-canvas-card">';
     html+='<div class="rg-wrap" id="rg-wrap" style="width:'+dispW+'px;height:'+dispH+'px">';
     html+='<div id="rg-canvas" style="position:absolute;width:'+dispW+'px;height:'+dispH+'px;transform-origin:0 0;will-change:transform">';
     html+='<svg class="rg-svg" id="rg-svg" width="'+dispW+'" height="'+dispH+'" viewBox="'+x1+' '+y1+' '+W+' '+H+'">';
@@ -227,16 +238,32 @@ function buildRoomSvgSection(opts){
       else  html+='<circle class="svge-entrance" data-idx="'+i+'" data-kind="entrance" cx="'+cx+'" cy="'+cy+'" r="0.26" fill="none" stroke="#22bb55" stroke-width="0.18" pointer-events="none"/>';
     });
 
-    html+='</svg></div></div>';
-    html+='<div id="rg-tip" style="font-size:11px;color:#aaa;height:16px;padding:2px 4px;font-family:monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>';
-    // Docked under the canvas, inside the same card: see the filtersHtml
-    // param doc above and map-editor-theme.css's ".rg-view-filters" rule.
+    html+='</svg></div></div>';   // rg-canvas, rg-wrap
+    // The zoom chip: a read-out of the current level plus the three controls
+    // that change it, in the card's bottom-left corner (the mock's
+    // zoomChipStyle). The ids are the ones interactions.js's setupZoomPan
+    // already binds — this is chrome, not behaviour.
+    html+='<div class="rg-zoom" id="rg-zoom">'
+      +'<button id="rg-zout" title="Zoom out" aria-label="zoom out">−</button>'
+      +'<span class="rg-zoom-level" id="rg-zoom-level" title="Zoom — 100% is one ROM pixel per '
+      +'screen pixel. Ctrl/⌘ + scroll over the map to pinch.">—</span>'
+      +'<button id="rg-zin" title="Zoom in" aria-label="zoom in">+</button>'
+      +'<button id="rg-zfit" title="Fit the whole room in the frame">fit</button>'
+      +'</div>';
+    html+='</div></div>';   // rg-canvas-card, rg-canvas-zone
+    // Docked under the canvas card, inside the same column: see the
+    // filtersHtml/statusHtml param docs above and map-editor-canvas.css.
     html+=filtersHtml;
+    html+=statusHtml;
     html+='</div>'; // rg-outer
   }else{
-    html+='<div class="rg-outer rs-map"><div class="rg-placeholder"><span>No coordinate data</span>';
+    html+='<div class="rg-outer rs-map"><div class="rg-canvas-zone">'
+      +'<div class="rg-canvas-card" id="rg-canvas-card">';
+    html+='<div class="rg-placeholder"><span>No coordinate data</span>';
     html+='<button class="rg-pick-btn" id="rg-pick-btn" data-map="'+escH(opts.mapName||'')+'">assign image…</button></div>';
+    html+='</div></div>';
     html+=filtersHtml;
+    html+=statusHtml;
     html+='</div>';
   }
 

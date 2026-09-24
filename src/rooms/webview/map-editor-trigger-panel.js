@@ -85,29 +85,14 @@ function triggerTabPanelHtml() {
     + triggerSectionHtml('step', 'Step-on triggers') + triggerSectionHtml('b', 'B-triggers');
 }
 
-/**
- * The filter bar's Triggers chip (detail-renderer.js's filtersHtml): one
- * flat toggle for both trigger kinds, plus a caret opening step/B
- * sub-toggles — the same shape as map-editor-special.js's
- * buildSpecialFilterChipHtml, sharing its `.rg-filter-group`/
- * `.rg-filter-caret`/`.rg-filter-popup` chrome (map-editor-theme.css) and
- * map-editor-input.js's one outside-click-close mechanism.
- *
- * `hide-step`/`hide-btrig` are not new keys: shared.css already had these
- * two rules with no chip wired to them before this pass (only the combined
- * `hide-trigger` was reachable) — reused here rather than inventing new
- * data-hide names.
- */
-function buildTriggerFilterChipHtml() {
-  return '<span class="rg-filter-group">'
-    + '<button class="rdf on" data-hide="hide-trigger" title="Toggle trigger overlays and tables">trigger</button>'
-    + '<button class="rdf rg-filter-caret" data-edit-trigger-menu="1" title="Choose which trigger types to show" '
-    + 'aria-label="Trigger filter groups">▾</button>'
-    + '<div class="rg-filter-popup" id="rg-trigger-dropdown" hidden>'
-    + '<button class="rdf on" data-hide="hide-step">Step trigger</button>'
-    + '<button class="rdf on" data-hide="hide-btrig">B trigger</button>'
-    + '</div></span>';
-}
+// The filter bar's Triggers chip used to live here (Phase 6's
+// `buildTriggerFilterChipHtml`). Phase 7a moved it to
+// map-editor-filterbar.js along with the whole bar's arrangement, because it
+// grew sub-toggles this file has no business knowing about — the ROM trigger
+// overlay (rom-overlay.js's `t` flag) and the two grid overlays. It carried
+// no model of its own, unlike the Trigger tab's list below, so nothing was
+// lost by the move: `hide-trigger`/`hide-step`/`hide-btrig` are the same
+// shared.css keys they always were.
 
 /**
  * The Info tab's two trigger counts — see file header for why there is no

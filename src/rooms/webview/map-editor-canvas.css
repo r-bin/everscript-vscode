@@ -1,0 +1,395 @@
+/* Ownership: the canvas column's own chrome — the centred canvas card, the
+ * floating tool pill over it, the zoom chip inside it, the docked filter bar
+ * and status bar under it, the shared filter-dropdown chrome, and the resize
+ * grip.
+ *
+ * Split out of map-editor-theme.css in Phase 7a (it was at 381 lines and this
+ * pass rebuilt the whole column); that file keeps the design tokens every
+ * rule here consumes and the right-hand panel column's chrome. Both are
+ * scoped under `.rg-theme` — the class `renderRoomDetail` puts on
+ * `#room-detail` (detail-renderer.js) — and both are concatenated onto
+ * shared.css, tokens first, by src/memory/webview/index.js's `css` export.
+ *
+ * Layout ported from the design mock (`Map Editor UI.dc.html`):
+ * `canvasInnerStyle` ~1096, `canvasCardStyle` ~1097, `gridWrapStyle` ~1098,
+ * `floatingToolbarStyle` ~1100, `tileVisGroup.wrapStyle` ~1143,
+ * `layerDockBarStyle` ~1193, `groupMenuStyle` ~1194, `zoomChipStyle` ~1196.
+ */
+
+/* ── The canvas zone and the card it centres ──────────────────────────────
+ * The mock's whole canvas thesis: one rounded, bordered, shadowed card
+ * floating in padded empty space, rather than a left-aligned full-bleed
+ * grid. The card is the positioning context for both the tool pill (which
+ * hangs off its top edge) and the zoom chip (inside its bottom-left), so
+ * `position:relative` here is load-bearing, not decoration. */
+.rg-theme .rg-canvas-zone{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:16px;
+  padding:32px 24px;
+  min-width:0;
+  overflow:auto;
+  background:var(--rg-bg-app);
+  border-radius:12px;
+}
+.rg-theme .rg-canvas-card{
+  position:relative;
+  max-width:100%;
+  padding:20px;
+  background:var(--rg-bg-float);
+  border:1px solid var(--rg-border);
+  border-radius:12px;
+  box-shadow:var(--rg-shadow-float);
+}
+/* Room for the pill, which overlaps the top edge — but only while it is
+ * there. A permanent 52px of dead space above a browsing-mode map would be
+ * the mock's padding without the mock's reason for it. */
+.rg-theme.rg-editing .rg-canvas-card{padding-top:52px}
+/* gridWrapStyle: the grid itself gets the card's inner radius. `.rg-wrap`
+ * already clips (shared.css), so this only rounds the corners. */
+.rg-theme .rg-canvas-card .rg-wrap{border-radius:4px}
+/* The "decoding ROM map…" badge (shared.css) is positioned against
+ * `#rg-outer`'s top-centre, which is exactly where the tool pill now hangs —
+ * the two overlapped — and `#rg-outer` is the whole column now, so nudging
+ * its own ::after put the badge out beside the panel dock instead of over
+ * the map. Re-hung on the card itself, whose box *is* the map. */
+.rg-theme .rg-outer.rg-busy::after{display:none}
+.rg-theme .rg-outer.rg-busy .rg-canvas-card::after{
+  content:'decoding ROM map…';
+  position:absolute;top:10px;right:10px;z-index:5;
+  padding:2px 8px;border-radius:9px;
+  background:rgba(20,20,20,.82);color:var(--rg-text-secondary);
+  font-family:var(--rg-font-mono);font-size:10px;pointer-events:none;
+}
+
+/* ── Floating tool pill (map-editor-toolbar.js) ───────────────────────────
+ * `#rg-edit-bar` lives inside `#rg-edit-chrome`, which map-editor-input.js's
+ * editToggle inserts as the canvas card's first child while a room is in
+ * edit mode. Icon-only, one row, grouped by thin dividers — the phase pair
+ * (`room`/`deco`) is the one group that keeps words, because no glyph for
+ * "replace the floor" vs. "add over it" would read.
+ *
+ * Every rule is scoped to that id so the many other `.rd-filters`/`.rdf`
+ * rows elsewhere (family/tile/deco filters, the composer) keep the plain
+ * shared.css look they were designed against. */
+.rg-theme #rg-edit-bar{
+  position:absolute;
+  top:-17px;
+  left:50%;
+  transform:translateX(-50%);
+  display:flex;
+  flex-wrap:nowrap;
+  align-items:center;
+  gap:3px;
+  width:max-content;
+  max-width:none;
+  margin:0;
+  padding:4px;
+  background:var(--rg-bg-float);
+  border:1px solid var(--rg-border);
+  border-radius:var(--rg-radius-pill);
+  box-shadow:var(--rg-shadow-float);
+  z-index:5;
+  font-family:var(--rg-font-ui);
+}
+.rg-theme #rg-edit-bar .rg-edit-group{display:flex;align-items:center;gap:2px}
+.rg-theme #rg-edit-bar .rg-edit-divider{
+  width:1px;height:20px;background:var(--rg-border);margin:0 3px;flex-shrink:0;
+}
+.rg-theme #rg-edit-bar .rdf{
+  box-sizing:border-box;
+  height:28px;
+  min-width:28px;
+  padding:0 7px;
+  border:1px solid transparent;
+  border-radius:var(--rg-radius-control);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  background:transparent;
+  color:var(--rg-text-secondary);
+  opacity:1;
+  font-family:var(--rg-font-ui);
+  font-size:11px;
+  transition:background 120ms ease-out;
+}
+/* The icon buttons are square; only the phase pair keeps a text width. */
+.rg-theme #rg-edit-bar .rg-edit-tool-icon{width:28px;padding:0}
+.rg-theme #rg-edit-bar .rdf:hover{background:var(--rg-bg-hover);color:var(--rg-text-primary)}
+.rg-theme #rg-edit-bar .rdf.on{background:var(--rg-accent-soft);color:var(--rg-accent-text);border-color:transparent}
+.rg-theme #rg-edit-bar .rg-edit-icon{font-size:14px;line-height:1}
+/* The new-room form shares the wrapper with the pill (see
+ * buildEditToolbarHtml) but not its positioning — it is a normal flow row at
+ * the top of the card, under the pill that opened it. */
+.rg-theme .rg-edit-chrome .rg-newroom{margin:0 0 8px;font-family:var(--rg-font-ui)}
+
+/* ── Docked filter bar (map-editor-filterbar.js) ──────────────────────────
+ * The mock's `layerDockBarStyle`: a chrome-coloured bar spanning the canvas
+ * column, its six controls centred. Built once per room render as
+ * `filtersHtml` and handed to buildRoomSvgSection (svg-builder.js), which
+ * places it under the canvas card inside `#rg-outer` — so it travels with
+ * the canvas rather than the name/header line above it. Unlike the pill it is
+ * not edit-mode-only.
+ *
+ * Scoped by `.rg-view-filters` (a class the bar's own root carries alongside
+ * `.rd-filters`) rather than an `#rg-outer > .rd-filters` combinator: that
+ * combinator also matched the tool pill, and silently won the cascade over
+ * the pill's own centring and radius. */
+.rg-theme .rg-view-filters{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:center;
+  width:auto;
+  max-width:100%;
+  margin:8px 0 0;
+  padding:8px 12px;
+  background:var(--rg-bg-chrome);
+  border:1px solid var(--rg-border);
+  border-radius:10px;
+  font-family:var(--rg-font-ui);
+}
+/* Chip treatment, not shared.css's flat `.rdf` (border #444, opacity .35
+ * when off) — that look is what made this bar read as a pre-redesign
+ * leftover next to the pill and tab strip. Family/tile/deco filter rows
+ * elsewhere are `.rd-filters` *without* `.rg-view-filters`, so they are
+ * untouched. */
+.rg-theme .rg-view-filters .rdf{
+  box-sizing:border-box;
+  height:26px;
+  padding:0 10px;
+  border:1px solid transparent;
+  border-radius:var(--rg-radius-control);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  background:transparent;
+  color:var(--rg-text-secondary);
+  opacity:1;
+  font-family:var(--rg-font-ui);
+  font-size:11px;
+  transition:background 120ms ease-out;
+}
+.rg-theme .rg-view-filters .rdf:hover{background:var(--rg-bg-hover);color:var(--rg-text-primary)}
+.rg-theme .rg-view-filters .rdf.on{
+  background:var(--rg-accent-soft);
+  color:var(--rg-accent-text);
+  border-color:transparent;
+}
+/* The primary row's chips are bordered (the mock's `dockBtnStyle`); the
+ * sub-toggles inside a popup stay flat, so a popup reads as a list rather
+ * than a second bar. A chip and its caret share one border — in the mock the
+ * caret is part of the chip, not a second button beside it — so the border
+ * goes on the group and the two children lose their own. */
+.rg-theme .rg-view-filters > .rdf{
+  border-color:var(--rg-border);
+  background:var(--rg-bg-float);
+}
+.rg-theme .rg-view-filters > .rdf.on{
+  background:var(--rg-accent-soft);
+  border-color:transparent;
+}
+.rg-theme .rg-view-filters > .rg-filter-group{
+  gap:0;
+  border:1px solid var(--rg-border);
+  border-radius:var(--rg-radius-control);
+  background:var(--rg-bg-float);
+  overflow:visible;
+}
+.rg-theme .rg-view-filters > .rg-filter-group > .rdf{
+  border-color:transparent;
+  border-radius:0;
+}
+.rg-theme .rg-view-filters > .rg-filter-group > .rdf:first-child{
+  border-radius:var(--rg-radius-control) 0 0 var(--rg-radius-control);
+}
+.rg-theme .rg-view-filters > .rg-filter-group > .rg-filter-caret{
+  border-radius:0 var(--rg-radius-control) var(--rg-radius-control) 0;
+}
+/* "edit" and "locked" are verbs, not view toggles — a stronger outline keeps
+ * them from reading as two more filter chips at the end of the row. */
+.rg-theme .rg-view-filters #rg-edit-btn,
+.rg-theme .rg-view-filters #rg-lock-btn{
+  border-color:var(--rg-border-strong);
+  background:transparent;
+}
+.rg-theme .rg-view-filters #rg-lock-btn.on{
+  background:transparent;
+  color:var(--rg-text-secondary);
+  border-color:var(--rg-border-strong);
+}
+.rg-theme .rg-view-filters .rdf-sep{background:var(--rg-border-strong);height:16px;margin:0 2px}
+
+/* ── The segmented Background | Foreground | Collision group ──────────────
+ * The mock's `tileVisGroup.wrapStyle`: three segments in one bordered group,
+ * hairline-divided, no per-segment radius. Two of them are views of
+ * rom-overlay.js's single `_currentLayer`; the third is the `c` feature flag.
+ * See romLayerVis for why that is one owner rather than three booleans. */
+.rg-theme .rg-seg{
+  display:inline-flex;
+  border:1px solid var(--rg-border);
+  border-radius:var(--rg-radius-control);
+  overflow:hidden;
+}
+.rg-theme .rg-view-filters .rg-seg .rdf{
+  border:none;
+  border-right:1px solid var(--rg-border);
+  border-radius:0;
+  background:var(--rg-bg-float);
+  color:var(--rg-text-muted);
+}
+.rg-theme .rg-view-filters .rg-seg .rdf:last-child{border-right:none}
+.rg-theme .rg-view-filters .rg-seg .rdf.on{
+  background:var(--rg-accent-soft);
+  color:var(--rg-accent);
+}
+
+/* ── Filter-chip dropdowns: a chip plus a caret that opens a popup ────────
+ * One shared chrome for every dropdown in this editor —
+ * map-editor-filterbar.js's Triggers/Objects/more chips,
+ * map-editor-special.js's Special chip, and map-editor-toolbar.js's `⋯`
+ * overflow. Each popup's own id (`#rg-special-dropdown`,
+ * `#rg-tool-dropdown`, …) is what map-editor-input.js's one
+ * EDIT_FILTER_MENUS loop keys off of, not the class.
+ *
+ * Opens upward by default, like the mock's `groupMenuStyle`: the filter bar
+ * sits under the canvas, so the popup reaches back up over it rather than
+ * off the bottom of the panel. */
+.rg-theme .rg-filter-group{position:relative;display:inline-flex;gap:2px}
+.rg-theme .rg-filter-caret{color:var(--rg-text-muted)}
+.rg-theme .rg-view-filters .rg-filter-caret{padding:0 6px}
+.rg-theme .rg-filter-popup{
+  position:absolute;bottom:100%;left:0;margin-bottom:4px;
+  display:flex;flex-direction:column;gap:2px;
+  background:var(--rg-bg-float);
+  border:1px solid var(--rg-border);
+  border-radius:9px;
+  padding:4px;
+  box-shadow:var(--rg-shadow-float);
+  z-index:20;
+  white-space:nowrap;
+  min-width:150px;
+}
+/* The overflow drawer holds the ~14 toggles the mock never modelled; one
+ * column of those is taller than the canvas card. */
+.rg-theme .rg-filter-popup-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(120px,1fr));
+  gap:2px;
+}
+/* The tool pill's own `⋯` hangs off the *top* of the card, so its popup
+ * opens downward instead. */
+.rg-theme .rg-filter-popup-down{
+  top:100%;bottom:auto;left:auto;right:0;margin:4px 0 0;
+}
+/* Author styles always beat the UA stylesheet's `[hidden]{display:none}`
+ * regardless of specificity, so every `display` rule above needs its own
+ * `[hidden]` counterpart. Getting this wrong once already left the Special
+ * dropdown visually open from Phase 3 to Phase 6 while `.hidden` still read
+ * true — which is why the regression tests assert computed `display`, not
+ * just the IDL property. */
+.rg-theme .rg-filter-popup[hidden],
+.rg-theme .rg-filter-popup-grid[hidden],
+.rg-theme .rg-filter-popup-down[hidden]{display:none}
+/* A popup is a list of choices, not a second chip row: flat, full-width,
+ * left-aligned. */
+.rg-theme .rg-filter-popup .rdf{
+  justify-content:flex-start;
+  width:100%;
+  border-color:transparent;
+  background:transparent;
+}
+
+/* ── Zoom chip (svg-builder.js, inside the card's bottom-left) ────────────
+ * The mock's `zoomChipStyle` plus the three controls it replaces: `.rg-zoom`
+ * used to be its own row above the canvas. Position and radius are all that
+ * changed — the drag/pinch math and the button ids are interactions.js's
+ * setupZoomPan, untouched; the `%` read-out is written from its applyZoom. */
+.rg-theme .rg-canvas-card .rg-zoom{
+  position:absolute;
+  bottom:10px;
+  left:10px;
+  z-index:4;
+  margin:0;
+  display:flex;
+  align-items:center;
+  gap:2px;
+  padding:2px 4px;
+  background:var(--rg-bg-float);
+  border:1px solid var(--rg-border);
+  border-radius:6px;
+  box-shadow:var(--rg-shadow-subtle);
+  opacity:.92;
+}
+.rg-theme .rg-canvas-card .rg-zoom:hover{opacity:1}
+.rg-theme .rg-zoom button{
+  border:1px solid transparent;
+  border-radius:4px;
+  background:transparent;
+  color:var(--rg-text-secondary);
+  font-family:var(--rg-font-mono);
+  font-size:11px;
+}
+.rg-theme .rg-zoom button:hover{background:var(--rg-bg-hover);color:var(--rg-text-primary)}
+.rg-theme .rg-zoom-level{
+  min-width:38px;
+  text-align:center;
+  font-family:var(--rg-font-mono);
+  font-size:11px;
+  color:var(--rg-text-secondary);
+}
+
+/* ── Status bar (map-editor-filterbar.js's buildStatusBarHtml) ────────────
+ * The mock's own bottom bar: `x: 07 y: 04 · 18 × 12 · <draft summary>`, with
+ * the hovered entity's label (`#rg-tip`, which used to be a bare div under
+ * the canvas) pushed to the right end. Built on every room render, not only
+ * in edit mode — the coordinate read-out is useful while browsing too. */
+.rg-theme .rg-statusbar{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-height:24px;
+  margin-top:6px;
+  padding:4px 10px;
+  background:var(--rg-bg-chrome);
+  border:1px solid var(--rg-border);
+  border-radius:8px;
+  font-family:var(--rg-font-mono);
+  font-size:10px;
+  color:var(--rg-text-muted);
+  white-space:nowrap;
+  overflow:hidden;
+}
+.rg-theme .rg-status-sep{color:var(--rg-border-strong)}
+.rg-theme .rg-statusbar .rg-edit-count{
+  margin:0;
+  color:var(--rg-text-secondary);
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.rg-theme .rg-status-tip{
+  margin-left:auto;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  color:var(--rg-text-muted);
+}
+
+/* ── Resize grip (map-editor-newroom.js's `.rg-resize`/`.rg-resize-label`) ─
+ * Chrome only: theme palette instead of shared.css's flat teal/black.
+ * Position, size and drag behavior (resizeStart/resizeMove/resizeEnd) are
+ * untouched. */
+.rg-theme .rg-resize{
+  background:linear-gradient(135deg,transparent 45%,var(--rg-accent) 45%,var(--rg-accent) 55%,
+    transparent 55%,transparent 70%,var(--rg-accent) 70%,var(--rg-accent) 80%,transparent 80%);
+}
+.rg-theme .rg-resize-label{
+  background:var(--rg-bg-float);
+  border:1px solid var(--rg-border);
+  box-shadow:var(--rg-shadow-subtle);
+  color:var(--rg-success);
+}
+.rg-theme .rg-resize-label.over{color:var(--rg-error)}

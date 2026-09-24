@@ -1,9 +1,11 @@
-// Ownership: the editor's chrome — the tool bar, the docked tile sidebar,
-// the metatile composer, and the pointer gestures that drive them.
+// Ownership: the editor's docked tile sidebar, the metatile composer, the
+// construct library, and the chrome refresh that keeps all of it agreeing
+// with the draft.
 //
-// State is map-editor.js; the map layer is map-editor-paint.js; the palette
-// sheet itself is metatile-palette.js, which this file *moves* into the
-// sidebar rather than rendering a second copy of.
+// The floating tool pill moved to map-editor-toolbar.js in Phase 7a; state is
+// map-editor.js; the map layer is map-editor-paint.js; the palette sheet
+// itself is metatile-palette.js, which this file *moves* into the sidebar
+// rather than rendering a second copy of.
 //
 // Owns: _editOrigin, _editComposed, _editCompose (the composer's inputs).
 
@@ -11,70 +13,6 @@ var _editOrigin = { x: 0, y: 0 };
 var _editComposed = null;
 var _editCompose = { layer1: null, layer2: null, collision: null, pick: 'layer1' };
 var _editConstruct = -1;   // which saved construct the stamp tool places
-
-var EDIT_TOOLS = [
-  ['select', 'select', 'Click a trigger to select it; drag its own cells to move it. '
-    + 'Backspace/Delete removes it, Cmd/Ctrl+C/V copies and pastes it'],
-  ['paint', 'paint', 'Click or drag to stamp the selected tile'],
-  ['erase', 'erase', 'Rub decoration off: the canopy goes blank and the floor’s own collision comes back'],
-  ['rect', 'rect', 'Drag a rectangle and fill it with the selected tile'],
-  ['pick', 'pick', 'Click the map to select the tile under the cursor'],
-  ['copy', 'copy', 'Drag to take a region, then click to stamp it elsewhere'],
-  ['move', 'move', 'Drag to take a region, then click to move it; the source is backfilled with the selected tile'],
-  ['stamp', 'stamp', 'Click to place the selected construct, with its triggers and objects'],
-];
-
-/**
- * The two questions a stroke can answer.
- *
- * Not a cosmetic filter — they write different things. See `editResolve`.
- */
-var EDIT_PHASES = [
-  ['room', 'room', 'Lay out the place itself: a stroke replaces the floor, the canopy and the collision'],
-  ['deco', 'deco', 'Put things on it: a stroke keeps the floor that is already there and only adds what sits over it'],
-];
-
-/** The tool bar, shown in the map's own filter row. */
-function buildEditButtonHtml() {
-  return '<button class="rdf" id="rg-edit-btn" title="Edit the map: draw with the room’s metatiles">edit</button>';
-}
-
-/**
- * A glyph for the tools whose existing text label has an obvious one-icon
- * match (see the mock's primary tool row). The rest — the phase buttons,
- * copy/move/stamp, and every action button — keep their text label: a wrong
- * guess at a glyph is worse than the word it would replace.
- */
-var EDIT_TOOL_ICONS = { select: '↖', paint: '✎', erase: '⌫', rect: '▭', pick: '⤵' };
-
-function buildEditToolbarHtml() {
-  var d = editDraft();
-  var html = '<div class="rd-filters rg-edit-bar" id="rg-edit-bar">';
-  html += '<span class="rg-edit-group rg-edit-group-phase">';
-  EDIT_PHASES.forEach(function (ph) {
-    html += '<button class="rdf rg-phase' + (d && d.phase === ph[0] ? ' on' : '') + '" data-edit-phase="'
-      + ph[0] + '" title="' + escH(ph[2]) + '">' + ph[1] + '</button>';
-  });
-  html += '</span><span class="rg-edit-divider"></span><span class="rg-edit-group rg-edit-group-tools">';
-  EDIT_TOOLS.forEach(function (t) {
-    // Erase only means something once there is a floor to erase back to.
-    var off = t[0] === 'erase' && d && d.phase !== 'deco';
-    var icon = EDIT_TOOL_ICONS[t[0]];
-    var label = icon ? '<span class="rg-edit-icon" aria-hidden="true">' + icon + '</span>' : t[1];
-    html += '<button class="rdf' + (icon ? ' rg-edit-tool-icon' : '') + (d && d.tool === t[0] ? ' on' : '') + '" data-edit-tool="' + t[0]
-      + '" title="' + escH(off ? t[2] + ' — switch to deco first' : t[2]) + '">' + label + '</button>';
-  });
-  html += '</span><span class="rg-edit-divider"></span><span class="rg-edit-group rg-edit-group-history">'
-    + '<button class="rdf" data-edit-act="undo" title="Undo the last change">undo</button>'
-    + '<button class="rdf" data-edit-act="redo" title="Redo">redo</button>'
-    + '<button class="rdf" data-edit-act="clear" title="Discard every change in this draft">discard</button>'
-    + '</span><span class="rg-edit-divider"></span><span class="rg-edit-group rg-edit-group-room">'
-    + '<button class="rdf" data-edit-act="new-room" title="Start a blank room to try things in, borrowing this room’s graphics">new room</button>'
-    + '<button class="rdf" data-edit-act="export" title="Copy the draft as JSON for the encoder">copy draft</button>'
-    + '</span>'
-    + '<span class="rg-edit-count" id="rg-edit-count"></span>';
-  return html + '</div>' + buildNewRoomHtml();
-}
 
 /**
  * Dock the tile palette beside the map.
@@ -274,16 +212,17 @@ function applyComposedPreview(msg) {
 /** Refresh the parts of the chrome that depend on the draft. */
 function renderEditChrome() {
   var d = editDraft();
-  var bar = document.getElementById('rg-edit-bar');
-  if (bar) {
-    // The bar and the new-room form are rendered together, so the form has
-    // to go with it rather than accumulate a second copy.
-    var stale = document.getElementById('rg-newroom');
-    if (stale) stale.parentNode.removeChild(stale);
-    bar.outerHTML = buildEditToolbarHtml();
-  }
+  // Pill and new-room form share one wrapper, so one write replaces both
+  // and the form cannot accumulate a second copy.
+  var chrome = document.getElementById('rg-edit-chrome');
+  if (chrome) chrome.outerHTML = buildEditToolbarHtml();
+  renderStatusSize();
   var count = document.getElementById('rg-edit-count');
-  if (count && _editPendingNote) {
+  // The status bar (and so `#rg-edit-count`) is built on every room render
+  // now, not only in edit mode — so an empty draft summary has to be cleared
+  // rather than left as the last thing editing said.
+  if (count && (!d || !d.on)) count.textContent = '';
+  else if (count && _editPendingNote) {
     count.textContent = _editPendingNote;
     _editPendingNote = '';
   } else if (count && d) {

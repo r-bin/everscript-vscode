@@ -18,18 +18,21 @@
 var _editActiveTab = 'tile';
 
 /**
- * Special slots between Tile and Trigger, per the design mock's own tab
- * order; its content is map-editor-special.js's specialTabHtml. Widgets is
- * last, also per the mock's own screen order — its content is
- * map-editor-deco.js's widgetsTabHtml (Phase 5,
- * docs/map-editor-redesign-plan.md).
+ * Tab order is the design mock's own (`tabDefs`, `Map Editor UI.dc.html`):
+ * Tile, Special, Trigger, **Widgets, Info** — Info last, because it is the
+ * read-only one. Phase 5 shipped Widgets last by mistake and Phase 7a
+ * corrected it (docs/map-editor-redesign-plan.md §7a).
+ *
+ * Content lives with each tab's owner: Special is map-editor-special.js's
+ * specialTabHtml, Widgets is map-editor-deco.js's widgetsTabHtml, the rest
+ * are map-editor-panels.js.
  */
 var EDIT_TABS = [
   ['tile', 'Tile'],
   ['special', 'Special'],
   ['trigger', 'Trigger'],
-  ['info', 'Info'],
   ['widgets', 'Widgets'],
+  ['info', 'Info'],
 ];
 
 /** The horizontal strip at the top of the docked panel column. */

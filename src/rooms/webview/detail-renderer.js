@@ -43,72 +43,33 @@ function renderRoomDetail(room){
   if(typeof room.startLine==='number'&&room.startLine>=0)html+='<a class="ll" data-line="'+room.startLine+'" href="#">go to code</a>';
   html+='</div>';
 
-  // The per-room display toggles. Built here (it needs the header's own
-  // data — hasCoordData, roomVanillaIdNum, hasIngr — not svg-builder's),
-  // but docked below the canvas card rather than under the name line: see
-  // buildRoomSvgSection's filtersHtml param and map-editor-theme.css's
-  // ".rg-view-filters" rule.
+  // The per-room display toggles, and the status bar under them. The
+  // *arrangement* is map-editor-filterbar.js's (Phase 7a: a segmented
+  // Background|Foreground|Collision pill plus four dropdown chips, in place
+  // of the ~25 flat chips this function used to emit inline); what this file
+  // still owns is the answer to "which of them apply to this room", since
+  // that needs the header's own data — hasCoordData, roomVanillaIdNum,
+  // hasIngr — not svg-builder's.
   //
-  // Built as an array of chips/groups, not one concatenated string, so a
-  // `.rdf-sep` divider (the same primitive buildRomViewButtonsHtml already
-  // uses internally) can be dropped between logical clusters — view/ROM,
-  // entity toggles, rendering aids, the Special dropdown, then the
-  // edit/lock actions — without hand-tracking which conditional groups
-  // actually rendered anything. `fsep()` only ever adds one separator in a
-  // row, and the trim pass below drops one left dangling at either end when
-  // every chip around it was conditionally absent (e.g. no ROM id, no
-  // triggers). Pure presentation: no data-hide/data-edit-* attribute here
-  // changed from before this pass.
-  var filterParts=[];
-  function pushf(html){ if(html) filterParts.push(html); }
-  function fsep(){
-    if(filterParts.length && filterParts[filterParts.length-1].indexOf('rdf-sep')===-1)
-      filterParts.push('<span class="rdf-sep"></span>');
-  }
-  if(hasCoordData||room.imageUri)pushf('<button class="rdf on" data-hide="hide-map" title="Toggle map area">map</button>');
-  // ROM-decoded views: layer choice plus one toggle per baked feature. Built
-  // from the live state in rom-overlay.js, not from fixed defaults, so the bar
-  // always agrees with what is on screen. See buildRomViewButtonsHtml — it
-  // already brackets its own content in `.rdf-sep`s, so no extra fsep() is
-  // needed immediately around it.
-  if(roomVanillaIdNum(room)!=null)pushf(buildRomViewButtonsHtml());
-  if(rh)pushf('<button class="rdf on" data-hide="hide-header" title="Toggle ROM header section">header</button>');
-  fsep();
-  if(enterTrig||stepOn.length||bTrigger.length)pushf('<button class="rdf on" data-hide="hide-scripts" title="Toggle decoded script tables">scripts</button>');
-  // The flat chip plus a caret for step/B sub-toggles — see
-  // map-editor-trigger-panel.js's buildTriggerFilterChipHtml.
-  if(stepOn.length||bTrigger.length)pushf(buildTriggerFilterChipHtml());
-  if(entrances.length)pushf('<button class="rdf on" data-hide="hide-ent" title="Toggle entrances">entrance</button>');
-  if(objs.length)pushf('<button class="rdf on" data-hide="hide-obj" title="Toggle objects">object</button>');
-  if(enemies.length)pushf('<button class="rdf on" data-hide="hide-enem" title="Toggle enemies">enemy</button>');
-  if(poi.length)pushf('<button class="rdf on" data-hide="hide-poi" title="Toggle points of interest">POI</button>');
-  fsep();
-  if(hasCoordData||room.imageUri)pushf('<button class="rdf on" data-hide="hide-grid8" title="Toggle 8 px grid">8px</button>');
-  if(stepOn.length||bTrigger.length)pushf('<button class="rdf on" data-hide="hide-grid16" title="Toggle 16 px trigger grid">16px</button>');
-  if(hasIngr)pushf('<button class="rdf on" data-hide="hide-ingr" title="Toggle ingredient icons">🌿</button>');
-  if(trig.enter&&trig.enter.spawns&&trig.enter.spawns.length){
-    pushf('<button class="rdf on" data-hide="hide-spawn" title="Toggle NPCs the enter script can place">npc</button>');
-    // The collision box each of them carries — character record +0x0D.
-    if(trig.enter.spawns.some(function(s){return s.hitW;}))
-      pushf('<button class="rdf on" data-hide="hide-hitbox" title="Toggle collision boxes (2r wide, r tall)">hitbox</button>');
-  }
-  // The priority half of the map, drawn back over the characters the game
-  // draws under it — and, with it, the dashed collision it hides.
-  if(roomVanillaIdNum(room)!=null)
-    pushf('<button class="rdf on" data-hide="hide-fg" title="Draw the foreground over the characters it covers in game, and dash the collision it hides">canopy</button>');
-  if(trig.arrivals&&trig.arrivals.length)
-    pushf('<button class="rdf on" data-hide="hide-arrival" title="Toggle the doors that lead into this room">arrivals</button>');
-  fsep();
-  // The Special tab's own glyph overlay (stairs/drift, gate, entrance) —
-  // gated the same as the edit button, since specialCells is editor-only
-  // state (map-editor.js). See map-editor-special.js.
-  if(roomVanillaIdNum(room)!=null)pushf(buildSpecialFilterChipHtml());
-  fsep();
-  if(roomVanillaIdNum(room)!=null)pushf(buildEditButtonHtml());
-  pushf('<button class="rdf on" id="rg-lock-btn" title="Unlock map">locked</button>');
-  while(filterParts.length&&filterParts[0].indexOf('rdf-sep')>=0)filterParts.shift();
-  while(filterParts.length&&filterParts[filterParts.length-1].indexOf('rdf-sep')>=0)filterParts.pop();
-  var filtersHtml='<div class="rd-filters rg-view-filters">'+filterParts.join('')+'</div>';
+  // Both bars are docked below the canvas card rather than under the name
+  // line: see buildRoomSvgSection's filtersHtml/statusHtml params.
+  var filterCtx={
+    romId:roomVanillaIdNum(room)!=null,
+    hasMap:hasCoordData||!!room.imageUri,
+    hasHeader:!!rh,
+    hasScripts:!!(enterTrig||stepOn.length||bTrigger.length),
+    hasTriggers:!!(stepOn.length||bTrigger.length),
+    hasEntrances:entrances.length>0,
+    hasObjects:objs.length>0,
+    hasEnemies:enemies.length>0,
+    hasPoi:poi.length>0,
+    hasIngr:hasIngr,
+    hasSpawns:!!(trig.enter&&trig.enter.spawns&&trig.enter.spawns.length),
+    hasHitbox:!!(trig.enter&&trig.enter.spawns&&trig.enter.spawns.some(function(s){return s.hitW;})),
+    hasArrivals:!!(trig.arrivals&&trig.arrivals.length)
+  };
+  var filtersHtml=buildViewFilterBarHtml(filterCtx);
+  var statusHtml=buildStatusBarHtml(statusRoomSize(rh,room.imageDims));
 
   // ── Error banner ───────────────────────────────────────────────────────────
   if(roomError&&roomError.message){
@@ -121,7 +82,7 @@ function renderRoomDetail(room){
     stepOn:stepOn, bTrigger:bTrigger, poi:poi,
     trigOff:trigOff, stepOnNames:stepOnNames, bTrigNames:bTrigNames,
     imageUri:room.imageUri||null, imageDims:room.imageDims||null,
-    filtersHtml:filtersHtml,
+    filtersHtml:filtersHtml, statusHtml:statusHtml,
     rh:rh, mapName:room.name,
     romSpawns:(trig.enter&&trig.enter.spawns)||[],
     arrivals:trig.arrivals||[]
@@ -155,6 +116,11 @@ function renderRoomDetail(room){
   bindEditControls(panel,room);
   setupEditGestures();
   setupEditKeys();
+  // After setupEditGestures: both listen on #rg-wrap and the gesture handler
+  // stops propagation mid-stroke, so this one is registered on the same node
+  // (where stopPropagation cannot starve it) rather than on an ancestor.
+  setupStatusBar();
+  renderStatusSize();
 
   // Sync hide-classes to the filter buttons' initial state. Without this a
   // button rendered without .on would read as "off" while its content is still

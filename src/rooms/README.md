@@ -175,19 +175,45 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   field, not undoable); writes `_edit.selectedTriggerRef` / `.removedTriggers`
   without owning `_edit` itself — see docs/map-editor-redesign-plan.md Phase 4
 - `map-editor-trigger-panel.js` — the Trigger tab's list UI (mini position
-  crop, click-to-select, remove button), the Info tab's trigger counts, and
-  the filter bar's "trigger" chip + dropdown (`hide-step`/`hide-btrig`
-  sub-toggles); renders what map-editor-trigger-select.js's model reports,
-  the same split as map-editor-special.js (model) vs. its own tab markup
+  crop, click-to-select, remove button) and the Info tab's trigger counts;
+  renders what map-editor-trigger-select.js's model reports, the same split
+  as map-editor-special.js (model) vs. its own tab markup. The filter bar's
+  Triggers chip used to live here too — Phase 7a moved it to
+  `map-editor-filterbar.js` with the rest of the bar's arrangement, since it
+  grew sub-toggles (the ROM trigger overlay, the two grids) this file has no
+  business knowing about and it carried no model of its own
 - `map-editor-actions.js` — the toolbar's verbs, split out of the input handler
 - `map-editor-paint.js` — drawing the draft on the map from the palette atlas,
   the region maths, and the Select tool's outline/drag-preview rectangles;
   owns `_editSel` / `_editClip`
-- `map-editor-ui.js` — tool bar (phases, tools), the docked sidebar, the metatile
-  composer and the construct library; owns `_editOrigin` / `_editComposed` /
-  `_editCompose` / `_editConstruct`
+- `map-editor-ui.js` — the docked sidebar, the metatile composer, the construct
+  library and `renderEditChrome`; owns `_editOrigin` / `_editComposed` /
+  `_editCompose` / `_editConstruct`. The tool bar left in Phase 7a — see
+  `map-editor-toolbar.js`
+- `map-editor-toolbar.js` — the floating tool pill above the canvas card:
+  `EDIT_TOOLS` / `EDIT_PHASES` / their icons, and the `⋯` overflow
+  (`EDIT_OVERFLOW_ACTS`: discard, copy draft, and — until §7b moves it to the
+  rail's `+ New Map` footer — new room). Icon-only, one row, grouped by
+  dividers; the `room`/`deco` phase pair keeps its words because they name a
+  real documented concept (`editResolve`), not a label to reskin. Owns no
+  state and binds no listener: clicks reach `editAction` through
+  map-editor-input.js's one delegated handler. The mock's `S`/`B`/`◆` pill
+  buttons are **deliberately absent** — no trigger-draft or collision-brush
+  tool exists here, and a dead control is worse than an honest gap
+- `map-editor-filterbar.js` — the canvas column's two docked bars: the view
+  filter bar (`buildViewFilterBarHtml`) and the status bar
+  (`buildStatusBarHtml` + `setupStatusBar`). Owns the *arrangement* the design
+  mock asks for — a segmented `Background|Foreground|Collision` pill plus
+  `Triggers ▾`/`Objects ▾`/`Special ▾`/`More ▾` and the `edit`/`locked`
+  actions — over ~25 pre-existing toggles that all kept their own
+  `data-hide`/`data-ov`/`data-layer` keys. Owns no state: every chip renders
+  the one owner of what it shows (rom-overlay.js for the ROM views,
+  map-editor-special.js for the Special chip, shared.css's hide-classes for
+  the rest). `detail-renderer.js` still decides *which* toggles apply to a
+  given room; this file decides where they sit
 - `map-editor-tabs.js` — which of the dock's five tabs (Tile / Special /
-  Trigger / Info / Widgets) is showing, and the tab strip that switches
+  Trigger / Widgets / Info — the mock's own order, corrected in Phase 7a)
+  is showing, and the tab strip that switches
   between them; owns `_editActiveTab`. Renders nothing but the strip itself
   — see `map-editor-panels.js` for what the Tile/Info/Trigger tabs hold
   (Special's own content is `map-editor-special.js`'s `specialTabHtml`;
@@ -209,50 +235,66 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   the status line and the edit toggle; owns `_editPendingNote` / `_editPanelRoom`.
   Bound **once per panel node**: `#room-detail` outlives a re-render, and a second
   handler made every toggle fire twice and cancel itself out. Also owns
-  `EDIT_FILTER_MENUS`, the one close-on-outside-click list every filter-bar
-  dropdown (Special, Triggers) registers into, so a new dropdown needs one
-  list entry rather than a second click-outside mechanism
+  `EDIT_FILTER_MENUS`, the one list every dropdown in the editor's chrome
+  registers into — the filter bar's four (Triggers, Objects, Special, More)
+  and the tool pill's `⋯` — which drives both their open/close toggle and the
+  close-on-outside-click sweep, so a new dropdown needs one list entry plus
+  one `EDIT_CLICK_KEYS` key rather than a second mechanism
 - `map-editor-newroom.js` — the blank-room round trip, `> everscript new map`,
   and the canvas resize grip; owns `_newRoomOpen` / `_resizing` / `_resizeKeep`.
   The grip's own visual chrome (`.rg-resize`/`.rg-resize-label`) is themed in
-  map-editor-theme.css; this file owns only its drag math
+  map-editor-canvas.css; this file owns only its drag math
 - `tables-builder.js` — entity tables, ROM script cards. `buildEntityTablesHtml`
   is called unconditionally by `detail-renderer.js` (always visible, browsing
   or editing) — the Trigger tab no longer calls it (Phase 4 gave it its own
   authoritative rendering, see map-editor-trigger-panel.js)
 - `rom-header.js` — ROM header display
-- `interactions.js` — zoom/pan, mouse events, click handlers
-- `rom-overlay.js` — ROM view top bar; owns `_currentLayer` / `_currentOverlay`
-  and renders the summary, legend and ROM data tables
+- `interactions.js` — zoom/pan, mouse events, click handlers. Also writes the
+  zoom chip's `%` read-out from its own `applyZoom`, since it is the single
+  owner of the scale (100% = one ROM pixel per screen pixel: a viewBox unit
+  is an 8 px tile, so the scale is divided by 8)
+- `rom-overlay.js` — the ROM view controls; owns `_currentLayer` /
+  `_currentOverlay` and renders the summary, legend and ROM data tables.
+  Exports one builder per control (`romLayerButtonHtml`,
+  `romOverlayButtonHtml`, `romVisSegmentHtml`, …) rather than one pre-baked
+  row, because map-editor-filterbar.js arranges them into six slots.
+  `romLayerVis('bg'|'fg')` derives the filter bar's two independently
+  toggleable Background/Foreground segments from the single layer choice the
+  host actually bakes — one owner, two views, no mirrored booleans
 - `detail-renderer.js` — `renderRoomDetail(room)` orchestrator; owns
   `_pendingTileRoom` / `_pendingTileOrigin` and the roomTiles request cycle.
-  Builds the per-room filter bar (`filtersHtml`) here — it needs the header's
-  own data (`hasCoordData`, `roomVanillaIdNum`, `hasIngr`) — but hands it to
-  `buildRoomSvgSection` (`svg-builder.js`) to place below the canvas card,
-  rather than rendering it itself under `.rd-head`. The bar's root carries
-  both `.rd-filters` (shared layout primitive) and `.rg-view-filters` (this
-  bar's own theme identity, map-editor-theme.css) — see that file's comment
-  for why the second class exists instead of reusing the `#rg-outer >
-  .rd-filters` combinator
+  Decides *which* view toggles apply to this room (it has the header's own
+  data — `hasCoordData`, `roomVanillaIdNum`, `hasIngr`) and hands that as a
+  context object to `map-editor-filterbar.js`, which decides where they sit;
+  the resulting bar and status bar go to `buildRoomSvgSection`
+  (`svg-builder.js`) to place below the canvas card, rather than being
+  rendered here under `.rd-head`
 - `tab-init.js` — tab switching, area collapse, mode toggle
 - `map-editor-theme.css` — the map editor's design tokens (oklch palette
   ported from `docs/map-editor-redesign-plan.md`'s design mock) plus the
-  chrome for the floating tool pill (`#rg-edit-bar`), the docked filter bar
-  (`.rg-view-filters`, detail-renderer.js), the panel column's tab strip
-  (`#rg-tabstrip` / `.rg-tab`), the shared filter-dropdown chrome
-  (`.rg-filter-group`/`.rg-filter-caret`/`.rg-filter-popup` — one chrome for
-  both the Special and Triggers chips; only each popup's own id is
-  dropdown-specific), the zoom chip (`.rg-zoom`) and the resize grip
-  (`.rg-resize`/`.rg-resize-label`, restyled from shared.css's pre-redesign
-  flat colours in Phase 6 — position/behavior untouched). Scoped entirely
-  under `.rg-theme`, the class `renderRoomDetail` puts on `#room-detail` —
-  never touches `shared.css`, so the memory/scaling/docs/route tabs render
-  unchanged, and never touches plain `.rd-filters`/`.rdf` rows elsewhere
-  (family/tile/deco filters, the composer) — those keep the pre-redesign
-  flat look on purpose; only rows that opt in with `.rg-view-filters` or
-  `#rg-edit-bar` get the theme. Concatenated onto `shared.css` in
+  chrome for everything that is *not* the canvas column: the panel column's
+  tab strip (`#rg-tabstrip` / `.rg-tab`), the Special / Widgets / Trigger tab
+  bodies, and the two canvas overlays those tabs own (`.rg-special-glyph`,
+  `.rg-trigger-sel`). Scoped entirely under `.rg-theme`, the class
+  `renderRoomDetail` puts on `#room-detail` — never touches `shared.css`, so
+  the memory/scaling/docs/route tabs render unchanged, and never touches
+  plain `.rd-filters`/`.rdf` rows elsewhere (family/tile/deco filters, the
+  composer) — those keep the pre-redesign flat look on purpose
+- `map-editor-canvas.css` — the canvas column's own chrome, split out of
+  map-editor-theme.css in Phase 7a: the centred canvas card
+  (`.rg-canvas-zone`/`.rg-canvas-card`), the floating tool pill
+  (`#rg-edit-bar`), the zoom chip (`.rg-zoom`), the docked filter bar
+  (`.rg-view-filters`) with its segmented group (`.rg-seg`) and the shared
+  dropdown chrome (`.rg-filter-group`/`.rg-filter-caret`/`.rg-filter-popup`
+  plus the `-grid`/`-down` variants — one chrome for all five dropdowns; only
+  each popup's own id is dropdown-specific), the status bar (`.rg-statusbar`)
+  and the resize grip. Consumes theme.css's tokens, so it must be
+  concatenated after it — both are appended to `shared.css` in
   `src/memory/webview/index.js`'s `css` export, not part of the
-  `ROOMS_JS_FILES` bundle (it is CSS, not JS)
+  `ROOMS_JS_FILES` bundle (they are CSS, not JS). Every `display` rule on a
+  popup needs a matching `[hidden]` override: an author rule beats the UA
+  stylesheet's `[hidden]{display:none}` regardless of specificity, which is
+  how a dropdown once stayed visually open for four phases
 
 Because the files share one scope, a global belongs to exactly one of them.
 `rom-overlay.js` owns the view state; `detail-renderer.js` owns the request

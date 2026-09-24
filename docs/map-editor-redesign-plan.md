@@ -330,7 +330,136 @@ If a future session wants to pick up any of the above, treat it as new
 scope with its own design pass — not a continuation of this plan's
 already-closed phase table.
 
-## 7. Ritual reminder
+## 7. Fidelity pass (phases 7a/7b) — why the redesign still didn't look like the mock
+
+After phases 0–6 all shipped green, the user compared the running editor
+against the mock side by side and said: widgets look good, the right sidebar
+looks decent (but its **tab order is wrong** — the mock is Tile / Special /
+Trigger / **Widgets** / Info, we shipped Info before Widgets), special-tile
+drawing looks fine — **and "the rest is way worse."**
+
+**Root cause, and it is a briefing failure, not an execution one.** Every
+phase 0–6 brief said some version of "restyle, preserve every existing
+button, every `data-*` attribute, no new functionality, no DOM restructuring
+beyond styling hooks." Each phase honoured that faithfully. But the mock's
+entire design thesis is *reduction* — it shows 6 controls where we render
+~25, icon buttons where we render word-labels, one compact pill where we
+render a multi-row block, a centered card floating in empty space where we
+render a full-bleed grid. "Preserve every control where it is" and "look
+like the mock" are contradictory instructions. The result was a **themed
+version of the old layout**.
+
+So this pass explicitly authorizes what earlier phases forbade: moving,
+regrouping, and hiding-behind-overflow. The constraint changes from *"every
+control keeps its position"* to **"every control stays reachable."**
+
+### 7a — the canvas column (highest visual impact) — **landed** (see §7a.1)
+
+| Current | Mock (`Map Editor UI.dc.html`) |
+|---|---|
+| Multi-row toolbar block: `room`/`deco`, 5 tool icons, `copy`/`move`/`stamp` as words, then `undo`/`redo`/`discard`/`new room`/`copy draft`, then a status line | One compact icon-only pill (`floatingToolbarStyle`, ~line 1100), grouped by dividers, floating above the card |
+| `+ − fit` buttons in their own row above the canvas | A `100%` chip inside the card's bottom-left (`zoomChipStyle`, ~line 1196) |
+| Full-width flat grid, left-aligned, no card | Centered card: rounded, shadowed, padded (`canvasCardStyle` ~1097 inside `canvasInnerStyle` ~1096) |
+| 3 rows of ~25 filter chips | One row: segmented `Background\|Foreground\|Collision` pill (`tileVisGroup.wrapStyle` ~1143) + `Triggers ▾` + `Objects` + `Special ▾` (`layerDockBarStyle` ~1193) |
+| Status text buried in the toolbar block | Full-width bottom status bar: `x: 07 y: 04 · 18 × 12 · Edit 4 of 12 · Paint mode` |
+
+Mapping decisions (so nothing is lost):
+- `new room` → the rail's `+ New Map` footer (7b) — the mock puts it there.
+- `copy draft` / `discard` → overflow (`⋯`) in the pill.
+- `undo`/`redo` → icon buttons (`↶ ↷`).
+- `room`/`deco` phase → the pill slot where the mock puts `BG`/`FG`. Same
+  shape of control (which layer a stroke writes). **Keep this repo's own
+  `room`/`deco` names and semantics** — they are a real, documented concept
+  (`editResolve`), not a cosmetic label to rename for the mock's benefit.
+- The ~19 extra inspector toggles we have and the mock never modelled
+  (`map`, `composite`, `drift`, `elevation`, `pass-thru`, `gates`, `grass`,
+  `labels`, `animate`, `export png`, `header`, `scripts`, `8px`, `16px`,
+  `npc`, `hitbox`, `canopy`, `arrivals`, `🌿`) → folded into the three
+  dropdowns by affinity, plus a `more ▾` for the leftovers.
+- **Do not render a control for a tool that does not exist.** The mock's
+  pill shows `S`/`B` (draw a new step/B trigger) and `◆` (paint collision
+  directly); this codebase has no such tools. Leave them out and flag them
+  — a dead button is worse than an honest gap.
+
+### 7a.1 What actually landed
+
+Every row of the table above shipped. Details worth carrying forward:
+
+- **Tab order** fixed in one line (`EDIT_TABS`, `map-editor-tabs.js`): Tile /
+  Special / Trigger / **Widgets** / Info, matching the mock's own `tabDefs`.
+- **The canvas is a centred card.** `svg-builder.js` now wraps the grid in
+  `.rg-canvas-zone` > `.rg-canvas-card` (the mock's `canvasInnerStyle` +
+  `canvasCardStyle`). The card is deliberately the positioning context for
+  both the tool pill and the zoom chip, so `editToggle` inserts the pill into
+  `#rg-canvas-card` rather than `#rg-outer`.
+- **The toolbar is an icon-only pill** (`map-editor-toolbar.js`, split out of
+  `map-editor-ui.js`): `[↖ ✎ ⌫ ▭ ⤵] | [⧉ ✥ ❖] | [room deco] | [↶ ↷] | [⋯]`,
+  absolutely positioned over the card's top edge, every button carrying its
+  pre-existing tooltip text. `room`/`deco` keep their words — they are a
+  documented concept (`editResolve`), and no glyph for "replace the floor" vs
+  "add over it" would read.
+- **`discard` / `copy draft` / `new room` moved into the `⋯` overflow.**
+  `new room` is there *for now*; §7b moves it to the rail's `+ New Map`
+  footer, and there is a code comment in `EDIT_OVERFLOW_ACTS` saying so.
+- **The zoom row became a chip** in the card's bottom-left, showing a live
+  percentage (`100%` = one ROM pixel per screen pixel — the viewBox unit is
+  an 8 px tile, so the scale is divided by 8). `+`/`−`/`fit` are still inside
+  the chip with their original ids, so `interactions.js`'s `setupZoomPan` is
+  untouched apart from writing the read-out from its own `applyZoom`.
+- **The filter bar is six controls** (`map-editor-filterbar.js`, split out of
+  `detail-renderer.js`): a segmented `Background | Foreground | Collision`
+  pill, then `Triggers ▾`, `Objects ▾`, `Special ▾`, `More ▾`, then the two
+  actions (`edit`, `locked`) past a divider. All 21 `data-hide` keys and all
+  9 ROM feature flags survive — a regression test enumerates them by name so
+  dropping one cannot be silent.
+- **Background/Foreground are two derived views of one owner.** The host
+  bakes exactly one of `composite`/`layer2`/`layer1` per render, so there is
+  no "both layers independently visible" state to mirror. `romLayerVis()`
+  (rom-overlay.js) derives the two booleans from `_currentLayer`, and
+  clicking a segment writes back through it; "both off" is refused because
+  there is no render for it. `composite` stays reachable in `More ▾`.
+- **`Objects` got a dropdown the mock does not give it.** The mock's editor
+  draws one kind of object; this one draws seven (source objects, ROM
+  objects, NPCs, hitboxes, grass, entrances, enemies, Lua POIs). The
+  alternative was spilling six chips back into the primary row.
+- **A full-width status bar** under the filter bar: `x: 07 y: 04 · 24 × 16 ·
+  <draft summary> · <hovered entity label>`. `#rg-edit-count` kept its id and
+  its writers and just moved out of the toolbar; `#rg-tip` (the hover label)
+  likewise moved out of its bare div into the bar's right end. Hover
+  coordinates are a capture-phase `mousemove` on `#rg-wrap` — same node as
+  `setupEditGestures`'s handler, which calls `stopPropagation()` mid-stroke,
+  so a bubble-phase listener on an ancestor would have gone dead during a
+  paint drag.
+- **Not built, on purpose:** the mock's `S` / `B` (start a step- / B-trigger
+  draft) and `◆` (collision brush) pill buttons. This codebase has no such
+  tools — no trigger-drawing draft, no collision brush — so no button is
+  rendered for them. A dead control is worse than an honest gap. If a future
+  phase wants them, they are new *tools*, not new chrome.
+- **File split:** `map-editor-ui.js` 309 → 248 (the pill left),
+  `detail-renderer.js` 388 → 354 (the bar left), and
+  `map-editor-theme.css` 381 → 189 with the canvas column's chrome moving to
+  a new `map-editor-canvas.css` (395 — near the limit; the next rule added
+  there should be the trigger to split the filter-bar chrome off again).
+  `map-editor-input.js`'s per-dropdown `if` blocks collapsed into one loop
+  over `EDIT_FILTER_MENUS`, which now also drives the pill's `⋯`.
+- **Verified visually**, not just structurally: the real `roomsJs`/`css`
+  bundle rendered in headless Playwright, screenshotted in browsing mode,
+  edit mode, with both the `More ▾` drawer and the `⋯` overflow open, and on
+  every one of the five tabs. That pass caught one real overlap — shared.css's
+  "decoding ROM map…" badge is centred on `#rg-outer`'s top edge, which is
+  exactly where the pill now hangs — and it was re-hung on the card's own
+  top-right corner. Visibility assertions check computed `display`, not the
+  `.hidden` IDL property, including for the new `display:grid` popup, which
+  needs its own `[hidden]` override for the same cascade reason Phase 6 found.
+
+### 7b — the left rail
+
+Mock: a `Search rooms` input, a collapsible `VANILLA ROOMS` group with
+`ACT 0…4` + `MISC` sub-groups, a `CUSTOM ROOMS` group, and a `+ New Map`
+footer button, in a roomy sans-serif list. Current: a dense monospace list,
+no search, no footer action.
+
+## 8. Ritual reminder
 
 One prompt = one commit. This plan spans multiple prompts/sessions by design
 — do not attempt phases 0–6 in a single sitting. Each phase ends with its own

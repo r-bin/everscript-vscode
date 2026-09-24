@@ -589,6 +589,8 @@ const ui = new Function(`
   ${read('map-editor-special.js')}
   ${read('map-editor-trigger-select.js')}
   ${read('map-editor-trigger-panel.js')}
+  ${read('map-editor-toolbar.js') /* the floating tool pill, split out of map-editor-ui.js in Phase 7a */}
+  ${read('map-editor-filterbar.js') /* the docked filter bar + status bar, likewise Phase 7a */}
   ${read('tables-builder.js') /* buildEntityTablesHtml, still used above the map outside edit mode */}
   ${read('map-editor-tabs.js')}
   ${read('map-editor-panels.js')}
