@@ -1,3 +1,34 @@
+## [0.53.1] — 2026-09-24
+
+### Fix: the always-visible filter bar looked like a pre-redesign leftover
+
+The room detail filter bar (`map`, `header`, `special ▾`, `edit`, `locked`,
+etc.) is shared between browsing and edit mode, but phases 0–4 of the map
+editor redesign only restyled edit-mode chrome (the floating tool pill, the
+tab strip). Browsing a room therefore showed *more* flat, ungrouped `.rdf`
+chips than before this redesign started (phase 3 added the Special chip +
+dropdown to this same bar), with none of the new theme applied — a real
+visual regression on the default, non-editing view.
+
+- The bar's root now also carries `.rg-view-filters` (`detail-renderer.js`),
+  themed in `map-editor-theme.css` with the same tokens as the edit-mode
+  chrome — background/border/text/accent instead of `shared.css`'s hardcoded
+  `.rdf` colors. Family/tile/deco filter rows elsewhere keep the plain
+  `.rdf` look untouched (they don't carry the new class).
+- Chips are now grouped into logical clusters (view/ROM, entities, rendering
+  aids, Special, edit/lock actions) with `.rdf-sep` dividers, instead of one
+  undifferentiated two-row wall of ~20 identical buttons.
+- **Found and fixed a latent bug while doing this**: the old
+  `#rg-outer > .rd-filters` CSS selector also matched `#rg-edit-bar` (the
+  floating tool pill) — its higher specificity was silently overriding the
+  pill's own centering/padding/radius. Renaming the filter bar's hook to
+  `.rg-view-filters` removes the collision; the pill now keeps its own look
+  regardless of source order.
+- The Special dropdown menu now has a real background/border/shadow instead
+  of rendering as a bare unstyled box.
+
+No behavior changed — every `data-hide`/`data-edit-*` attribute is untouched.
+
 ## [0.53.0] — 2026-09-24
 
 ### Map editor redesign, phase 4: the Trigger tab becomes a real editor

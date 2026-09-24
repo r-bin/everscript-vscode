@@ -47,42 +47,66 @@ function renderRoomDetail(room){
   // data — hasCoordData, roomVanillaIdNum, hasIngr — not svg-builder's),
   // but docked below the canvas card rather than under the name line: see
   // buildRoomSvgSection's filtersHtml param and map-editor-theme.css's
-  // "#rg-outer > .rd-filters" rule.
-  var filtersHtml='<div class="rd-filters">';
-  if(hasCoordData||room.imageUri)filtersHtml+='<button class="rdf on" data-hide="hide-map" title="Toggle map area">map</button>';
+  // ".rg-view-filters" rule.
+  //
+  // Built as an array of chips/groups, not one concatenated string, so a
+  // `.rdf-sep` divider (the same primitive buildRomViewButtonsHtml already
+  // uses internally) can be dropped between logical clusters — view/ROM,
+  // entity toggles, rendering aids, the Special dropdown, then the
+  // edit/lock actions — without hand-tracking which conditional groups
+  // actually rendered anything. `fsep()` only ever adds one separator in a
+  // row, and the trim pass below drops one left dangling at either end when
+  // every chip around it was conditionally absent (e.g. no ROM id, no
+  // triggers). Pure presentation: no data-hide/data-edit-* attribute here
+  // changed from before this pass.
+  var filterParts=[];
+  function pushf(html){ if(html) filterParts.push(html); }
+  function fsep(){
+    if(filterParts.length && filterParts[filterParts.length-1].indexOf('rdf-sep')===-1)
+      filterParts.push('<span class="rdf-sep"></span>');
+  }
+  if(hasCoordData||room.imageUri)pushf('<button class="rdf on" data-hide="hide-map" title="Toggle map area">map</button>');
   // ROM-decoded views: layer choice plus one toggle per baked feature. Built
   // from the live state in rom-overlay.js, not from fixed defaults, so the bar
-  // always agrees with what is on screen. See buildRomViewButtonsHtml.
-  if(roomVanillaIdNum(room)!=null)filtersHtml+=buildRomViewButtonsHtml();
-  if(rh)filtersHtml+='<button class="rdf on" data-hide="hide-header" title="Toggle ROM header section">header</button>';
-  if(enterTrig||stepOn.length||bTrigger.length)filtersHtml+='<button class="rdf on" data-hide="hide-scripts" title="Toggle decoded script tables">scripts</button>';
-  if(stepOn.length||bTrigger.length)filtersHtml+='<button class="rdf on" data-hide="hide-trigger" title="Toggle trigger overlays and tables">trigger</button>';
-  if(entrances.length)filtersHtml+='<button class="rdf on" data-hide="hide-ent" title="Toggle entrances">entrance</button>';
-  if(objs.length)filtersHtml+='<button class="rdf on" data-hide="hide-obj" title="Toggle objects">object</button>';
-  if(enemies.length)filtersHtml+='<button class="rdf on" data-hide="hide-enem" title="Toggle enemies">enemy</button>';
-  if(poi.length)filtersHtml+='<button class="rdf on" data-hide="hide-poi" title="Toggle points of interest">POI</button>';
-  if(hasCoordData||room.imageUri)filtersHtml+='<button class="rdf on" data-hide="hide-grid8" title="Toggle 8 px grid">8px</button>';
-  if(stepOn.length||bTrigger.length)filtersHtml+='<button class="rdf on" data-hide="hide-grid16" title="Toggle 16 px trigger grid">16px</button>';
-  if(hasIngr)filtersHtml+='<button class="rdf on" data-hide="hide-ingr" title="Toggle ingredient icons">🌿</button>';
+  // always agrees with what is on screen. See buildRomViewButtonsHtml — it
+  // already brackets its own content in `.rdf-sep`s, so no extra fsep() is
+  // needed immediately around it.
+  if(roomVanillaIdNum(room)!=null)pushf(buildRomViewButtonsHtml());
+  if(rh)pushf('<button class="rdf on" data-hide="hide-header" title="Toggle ROM header section">header</button>');
+  fsep();
+  if(enterTrig||stepOn.length||bTrigger.length)pushf('<button class="rdf on" data-hide="hide-scripts" title="Toggle decoded script tables">scripts</button>');
+  if(stepOn.length||bTrigger.length)pushf('<button class="rdf on" data-hide="hide-trigger" title="Toggle trigger overlays and tables">trigger</button>');
+  if(entrances.length)pushf('<button class="rdf on" data-hide="hide-ent" title="Toggle entrances">entrance</button>');
+  if(objs.length)pushf('<button class="rdf on" data-hide="hide-obj" title="Toggle objects">object</button>');
+  if(enemies.length)pushf('<button class="rdf on" data-hide="hide-enem" title="Toggle enemies">enemy</button>');
+  if(poi.length)pushf('<button class="rdf on" data-hide="hide-poi" title="Toggle points of interest">POI</button>');
+  fsep();
+  if(hasCoordData||room.imageUri)pushf('<button class="rdf on" data-hide="hide-grid8" title="Toggle 8 px grid">8px</button>');
+  if(stepOn.length||bTrigger.length)pushf('<button class="rdf on" data-hide="hide-grid16" title="Toggle 16 px trigger grid">16px</button>');
+  if(hasIngr)pushf('<button class="rdf on" data-hide="hide-ingr" title="Toggle ingredient icons">🌿</button>');
   if(trig.enter&&trig.enter.spawns&&trig.enter.spawns.length){
-    filtersHtml+='<button class="rdf on" data-hide="hide-spawn" title="Toggle NPCs the enter script can place">npc</button>';
+    pushf('<button class="rdf on" data-hide="hide-spawn" title="Toggle NPCs the enter script can place">npc</button>');
     // The collision box each of them carries — character record +0x0D.
     if(trig.enter.spawns.some(function(s){return s.hitW;}))
-      filtersHtml+='<button class="rdf on" data-hide="hide-hitbox" title="Toggle collision boxes (2r wide, r tall)">hitbox</button>';
+      pushf('<button class="rdf on" data-hide="hide-hitbox" title="Toggle collision boxes (2r wide, r tall)">hitbox</button>');
   }
   // The priority half of the map, drawn back over the characters the game
   // draws under it — and, with it, the dashed collision it hides.
   if(roomVanillaIdNum(room)!=null)
-    filtersHtml+='<button class="rdf on" data-hide="hide-fg" title="Draw the foreground over the characters it covers in game, and dash the collision it hides">canopy</button>';
+    pushf('<button class="rdf on" data-hide="hide-fg" title="Draw the foreground over the characters it covers in game, and dash the collision it hides">canopy</button>');
   if(trig.arrivals&&trig.arrivals.length)
-    filtersHtml+='<button class="rdf on" data-hide="hide-arrival" title="Toggle the doors that lead into this room">arrivals</button>';
+    pushf('<button class="rdf on" data-hide="hide-arrival" title="Toggle the doors that lead into this room">arrivals</button>');
+  fsep();
   // The Special tab's own glyph overlay (stairs/drift, gate, entrance) —
   // gated the same as the edit button, since specialCells is editor-only
   // state (map-editor.js). See map-editor-special.js.
-  if(roomVanillaIdNum(room)!=null)filtersHtml+=buildSpecialFilterChipHtml();
-  if(roomVanillaIdNum(room)!=null)filtersHtml+=buildEditButtonHtml();
-  filtersHtml+='<button class="rdf on" id="rg-lock-btn" title="Unlock map">locked</button>';
-  filtersHtml+='</div>';
+  if(roomVanillaIdNum(room)!=null)pushf(buildSpecialFilterChipHtml());
+  fsep();
+  if(roomVanillaIdNum(room)!=null)pushf(buildEditButtonHtml());
+  pushf('<button class="rdf on" id="rg-lock-btn" title="Unlock map">locked</button>');
+  while(filterParts.length&&filterParts[0].indexOf('rdf-sep')>=0)filterParts.shift();
+  while(filterParts.length&&filterParts[filterParts.length-1].indexOf('rdf-sep')>=0)filterParts.pop();
+  var filtersHtml='<div class="rd-filters rg-view-filters">'+filterParts.join('')+'</div>';
 
   // ── Error banner ───────────────────────────────────────────────────────────
   if(roomError&&roomError.message){

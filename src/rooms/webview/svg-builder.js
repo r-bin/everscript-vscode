@@ -230,7 +230,7 @@ function buildRoomSvgSection(opts){
     html+='</svg></div></div>';
     html+='<div id="rg-tip" style="font-size:11px;color:#aaa;height:16px;padding:2px 4px;font-family:monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>';
     // Docked under the canvas, inside the same card: see the filtersHtml
-    // param doc above and map-editor-theme.css's "#rg-outer > .rd-filters".
+    // param doc above and map-editor-theme.css's ".rg-view-filters" rule.
     html+=filtersHtml;
     html+='</div>'; // rg-outer
   }else{

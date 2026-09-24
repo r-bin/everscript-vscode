@@ -102,26 +102,79 @@
  * places it as the last child of `#rg-outer` — below the canvas, inside the
  * same card, so it travels with the canvas rather than the name/header line
  * in `.rd-head` above it (Phase 2 DOM re-homing; Phase 1 only restyled it
- * in its old position under `.rd-head`). */
-.rg-theme #rg-outer > .rd-filters{
+ * in its old position under `.rd-head`).
+ *
+ * Scoped by `.rg-view-filters` — a class detail-renderer.js adds alongside
+ * `.rd-filters` on this bar's own root — rather than the old
+ * `#rg-outer > .rd-filters` combinator. That combinator also matched
+ * `#rg-edit-bar` (the floating tool pill, map-editor-ui.js): it too is a
+ * `.rd-filters` and a direct child of `#rg-outer`, and this block's higher
+ * specificity was silently winning the cascade over the pill's own rule
+ * below, overriding its `margin:0 auto` centering to `margin:8px 0 0` and
+ * flattening its pill radius/padding. `.rg-view-filters` cannot collide with
+ * `#rg-edit-bar` — the pill never carries that class — so both bars keep
+ * their own look regardless of source order. */
+.rg-theme .rg-view-filters{
   background:var(--rg-bg-chrome);
   border:1px solid var(--rg-border);
   border-radius:10px;
-  padding:6px 10px;
+  padding:6px 8px;
   margin:8px 0 0;
   width:fit-content;
   max-width:100%;
   font-family:var(--rg-font-ui);
+  align-items:center;
 }
-.rg-theme #rg-outer > .rd-filters .rdf{
+/* Match #rg-edit-bar's chip treatment (padding/height/hover/on) instead of
+ * shared.css's plain `.rdf` (border #444, opacity .35 off) — that flat look
+ * is what made this bar read as a pre-redesign leftover next to the pill and
+ * tab strip above it. Family/tile/deco filter rows elsewhere keep the plain
+ * `.rdf` look untouched: they are `.rd-filters` without `.rg-view-filters`. */
+.rg-theme .rg-view-filters .rdf{
+  border:1px solid transparent;
   border-radius:var(--rg-radius-control);
+  padding:4px 8px;
+  height:24px;
+  box-sizing:border-box;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  background:transparent;
+  color:var(--rg-text-secondary);
+  opacity:1;
   font-family:var(--rg-font-ui);
+  font-size:10px;
+  transition:background 120ms ease-out;
 }
-.rg-theme #rg-outer > .rd-filters .rdf.on{
+.rg-theme .rg-view-filters .rdf:hover{background:var(--rg-bg-hover);color:var(--rg-text-primary)}
+.rg-theme .rg-view-filters .rdf.on{
   background:var(--rg-accent-soft);
   color:var(--rg-accent-text);
   border-color:transparent;
 }
+/* The dropdown caret and its own dropdown are compound controls, not plain
+ * toggles — dim them slightly relative to the toggle chips around them so
+ * the wall of chips reads as "mostly one kind of thing, plus one menu"
+ * rather than N identical buttons. */
+.rg-theme .rg-view-filters .rg-special-caret{color:var(--rg-text-muted)}
+/* "edit" and "locked" are actions, not view toggles — an outline instead of
+ * the transparent-to-accent toggle fill keeps them from reading as just two
+ * more filter chips at the end of the row. */
+.rg-theme .rg-view-filters #rg-edit-btn,
+.rg-theme .rg-view-filters #rg-lock-btn{
+  border-color:var(--rg-border-strong);
+}
+.rg-theme .rg-view-filters #rg-lock-btn.on{
+  background:transparent;
+  color:var(--rg-text-secondary);
+  border-color:var(--rg-border-strong);
+}
+/* The grouping dividers between clusters (view/ROM, entities, rendering
+ * aids, Special, actions) — the same `.rdf-sep` primitive
+ * buildRomViewButtonsHtml (rom-overlay.js) already uses to separate its own
+ * layer/overlay buttons, just recoloured to the theme border instead of
+ * shared.css's flat #444. */
+.rg-theme .rg-view-filters .rdf-sep{background:var(--rg-border-strong)}
 
 /* ── Tab shell (the docked panel column's own tab strip) ─────────────────
  * `#rg-tabstrip` is buildEditTabStripHtml()'s root (map-editor-tabs.js),

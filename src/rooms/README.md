@@ -209,17 +209,24 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   Builds the per-room filter bar (`filtersHtml`) here — it needs the header's
   own data (`hasCoordData`, `roomVanillaIdNum`, `hasIngr`) — but hands it to
   `buildRoomSvgSection` (`svg-builder.js`) to place below the canvas card,
-  rather than rendering it itself under `.rd-head`
+  rather than rendering it itself under `.rd-head`. The bar's root carries
+  both `.rd-filters` (shared layout primitive) and `.rg-view-filters` (this
+  bar's own theme identity, map-editor-theme.css) — see that file's comment
+  for why the second class exists instead of reusing the `#rg-outer >
+  .rd-filters` combinator
 - `tab-init.js` — tab switching, area collapse, mode toggle
 - `map-editor-theme.css` — the map editor's design tokens (oklch palette
   ported from `docs/map-editor-redesign-plan.md`'s design mock) plus the
   chrome for the floating tool pill (`#rg-edit-bar`), the docked filter bar
-  (`#rg-outer > .rd-filters`), and the panel column's tab strip
+  (`.rg-view-filters`, detail-renderer.js), and the panel column's tab strip
   (`#rg-tabstrip` / `.rg-tab`). Scoped entirely under `.rg-theme`, the class
   `renderRoomDetail` puts on `#room-detail` — never touches `shared.css`, so
-  the memory/scaling/docs/route tabs render unchanged. Concatenated onto
-  `shared.css` in `src/memory/webview/index.js`'s `css` export, not part of
-  the `ROOMS_JS_FILES` bundle (it is CSS, not JS)
+  the memory/scaling/docs/route tabs render unchanged, and never touches
+  plain `.rd-filters`/`.rdf` rows elsewhere (family/tile/deco filters, the
+  composer) — those keep the pre-redesign flat look on purpose; only rows
+  that opt in with `.rg-view-filters` or `#rg-edit-bar` get the theme.
+  Concatenated onto `shared.css` in `src/memory/webview/index.js`'s `css`
+  export, not part of the `ROOMS_JS_FILES` bundle (it is CSS, not JS)
 
 Because the files share one scope, a global belongs to exactly one of them.
 `rom-overlay.js` owns the view state; `detail-renderer.js` owns the request
