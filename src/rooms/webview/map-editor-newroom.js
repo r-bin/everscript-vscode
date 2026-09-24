@@ -31,7 +31,7 @@ function buildNewRoomHtml() {
     + '<label>w <input type="number" id="rg-nr-w" min="2" max="128" value="16"></label>'
     + '<label>h <input type="number" id="rg-nr-h" min="2" max="128" value="12"></label>'
     + '<button class="rdf on" data-edit-act="new-room-go"'
-    + ' title="Draft it, borrowing this room’s graphics and families">create</button>'
+    + ' title="Draft an empty grid. This room lends its graphics and families; nothing is drawn.">create</button>'
     + '<button class="rdf" data-edit-act="new-room-cancel">cancel</button>'
     + (here ? '<span class="rs-note">showing a blank ' + here.widthTiles + '×' + here.heightTiles
       + ' room</span>' : '')
@@ -71,12 +71,19 @@ function editNewRoomGo() {
 // ---------------------------------------------------------------------------
 
 /**
- * The room a new map borrows its graphics from.
+ * The room a new map borrows its *vocabulary* from — not its picture.
  *
  * A blank room cannot invent a Block 1 — a synthetic one-entry list renders
- * black (rule 7.1) — so it borrows one. `0x34` is Strongheart's Hut: small,
- * a plain walkable floor, and seven families that between them attest 157
- * graphics, which is a usable starting vocabulary rather than a corner case.
+ * black (rule 7.1) — so it borrows one. `0x34` is Strongheart's Hut: small
+ * and with seven families that between them attest 157 graphics, which is a
+ * usable starting vocabulary rather than a corner case.
+ *
+ * Since v0.60.0 that is *all* it lends. The grid comes back filled with
+ * `emptyStamp` (maps/blank-room.ts), so a new map draws nothing — "dont use
+ * stronghearts room as default for a new map. new maps are completely
+ * empty". What could not be dropped, and why, is in the plan doc §8a.3: the
+ * seven palette slots stay loaded because the blank word itself names one of
+ * them, and a room with no families can colour nothing at all.
  */
 var NEW_MAP_BORROW = 0x34;
 var NEW_MAP_W = 24;
@@ -340,8 +347,18 @@ function applyBlankRoom(msg) {
   _newRoomOpen = false;
 
   if (_mtPalette) {
+    // `null`, not `0`. The host filled this room with its own empty stamp
+    // (maps/blank-room.ts's `emptyStamp`), which is **not** the donor's
+    // dictionary entry 0 — and entry 0 is what a grid of zeroes would make
+    // `editCellAt` answer. That mismatch was visible: painting a front-badged
+    // tile onto a "blank" map composed it over the donor's entry-0 terrain,
+    // so background art the user never drew appeared under it. A null cell
+    // reads back as -1, which every consumer already handles as "nothing
+    // here": editResolve lays the brush down as composed, erase finds nothing
+    // to erase, and the pick tool has nothing to pick. Nothing exports the
+    // grid (editExport only emits `_edit.cells`), so this stays client-side.
     var row = [];
-    for (var x = 0; x < room.widthTiles; x++) row.push(0);
+    for (var x = 0; x < room.widthTiles; x++) row.push(null);
     var grid = [];
     for (var y = 0; y < room.heightTiles; y++) grid.push(row.slice());
     _mtPalette = Object.assign({}, _mtPalette, {
@@ -356,8 +373,9 @@ function applyBlankRoom(msg) {
   resizeMapTo(room);
   _editOrigin = { x: 0, y: 0 };
 
-  editNote('blank ' + room.widthTiles + '×' + room.heightTiles
-    + ' room, borrowing room 0x' + room.borrowedFrom.toString(16) + '’s graphics'
+  editNote('empty ' + room.widthTiles + '×' + room.heightTiles
+    + ' room — nothing drawn; room 0x' + room.borrowedFrom.toString(16)
+    + ' lends the graphics and families, not the picture'
     + (room.problems.length ? ' — ' + room.problems.length + ' problem(s)' : ''));
   renderEditChrome();
 }

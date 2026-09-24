@@ -1,3 +1,30 @@
+## [0.60.0] — 2026-09-24
+
+### Map editor §8a.3: four more reports from using the real tool
+
+- **H/V no longer shove the tile panel off the right edge.** The panel never
+  got wider; it moved. A long status note, which is exactly what a flip writes,
+  used to force the canvas column wider, and that pushed the panel past the edge
+  of the window and clipped the `H | V` buttons. Now the canvas column can
+  shrink, and the note gets cut off with an ellipsis instead.
+- **New maps start completely empty.** They no longer open as a picture of
+  Strong Heart's Hut. Every cell is now the room's own "draws nothing" word on
+  both layers, and every cell is walkable. The donor room still lends its
+  graphics and its seven colour families, because the format cannot draw
+  anything without them. It no longer lends its picture.
+- **A front tile no longer wipes the ground under it.** Fixed in three places:
+  - The rectangle tool, and the backfill left behind by `move`, wrote the brush
+    as-is, which blanked the terrain under a front tile. They now use the same
+    per-cell rule the paint tool always has.
+  - Painting on a new map no longer puts the donor room's terrain under a front
+    tile.
+  - Picking one of the room's own graphics now respects `front` and the layer
+    vanilla uses.
+- **A full palette (7/7) shows only its own seven families.** There are no
+  outside candidates and no "N more families" pager, because there is no slot
+  to adopt into. Free a slot and they come back. This reverses v0.58.1's
+  change, which had misread an earlier report.
+
 ## [0.59.0] — 2026-09-24
 
 ### Map editor §8a.2: four things the Tile tab did not need

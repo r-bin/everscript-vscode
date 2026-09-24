@@ -610,6 +610,9 @@ real format doesn't have, the same trap §5.1/§8a already named.
   families" is clicked enough times to push the page past 7. Fixed to
   `.slice(0, _tileGroupPage)` — the page is how many *candidates* to add,
   independent of how many slots are already spent.
+  **Superseded by §8a.3.** This read the report backwards: the user wanted
+  a full palette to show *fewer* families, not more. §8a.3 gates candidates
+  on a free slot, which removes them entirely at 7/7.
 - **"When clicking on a tile the order should not change."** Confirmed:
   `editPlacedGraphics()` seeded the relationship lookup with the just-armed
   `_brushTile`, and `relatedTiles()` deletes a seed graphic from its own
@@ -643,6 +646,123 @@ real format doesn't have, the same trap §5.1/§8a already named.
   tile matches the *design mock's own* rendering of that widget, not
   anything this codebase can currently produce. Left as-is pending
   confirmation of what was actually being looked at.
+
+## 8a.3 Four more reports from real use, after v0.59.0 (v0.60.0)
+
+(There is no §8a.2 section in this doc; v0.59.0's own changes are recorded in
+code comments and `CHANGELOG.md`, which these entries cite by that name.)
+
+**1. "H/V are still broken and move the side bar further to the right."**
+*Root cause, measured:* nothing resized the dock. It stayed exactly 400px, and
+**it moved.** `#rg-outer` (the canvas column) is a flex item of `.rg-edit-row`
+with the default `min-width:auto`, and a flex item's automatic minimum is its
+*min-content* width. That width included the status bar's `white-space:nowrap`
+note. A flip re-arms the brush, which writes the longest note the editor has
+("brush: graphic 4195 in family 58 mirrored H — stamp #2, as ground (how
+vanilla draws it). Paint on the map."). The canvas column ratcheted about 150px
+wider on every long note and pushed the dock that far past the panel's right
+edge. At a 1100px viewport the dock's left edge went 690 → 776 (arm a brush)
+→ 842 (click H), with its right end at 1242, so the rightmost 142px of the dock
+was off-screen. **That is what clipped the `H | V` pill in the screenshot.** The
+earlier repro missed it because it used a 1400px viewport, which had room for
+the ratchet, and because it measured the dock's *width*, not its position.
+*The segmented row is not the mechanism:* measured at the real width it is
+392px inside a 396px tab body, and `scrollWidth === clientWidth` on both it and
+`#rg-panels`, both before and after the click. That rules out the suspicion
+recorded in the brief and in `webview-dom-safety` §7b.
+*Fix:* `.rg-edit-row>.rg-outer{min-width:0}` (shared.css, next to the row's own
+rules, and matching only in edit mode, so other tabs are untouched) and
+`min-width:0` on the status bar's `.rg-edit-count` so its ellipsis actually
+engages. There is no `overflow-x:hidden` anywhere: `.rg-canvas-zone` already
+scrolls and the status bar already clips, so both degrade as intended once the
+column is allowed to be narrow. At 820px the dock stays fully on screen and the
+canvas zone scrolls sideways. *Test:* at a 960px viewport, clicking H must
+leave the dock's left edge where it was, keep its right edge inside the
+viewport, and leave `#rg-panels` and the segmented row with no horizontal
+overflow. With the CSS line reverted the test fails (dock 628 → 968).
+
+**2. "Don't use Strongheart's room as the default for a new map. New maps are
+completely empty."** What "completely empty" can mean in this format:
+- **The grid is empty.** `blankRoom` (maps/blank-room.ts) used to fill every
+  cell with the donor's most-placed walkable floor, so a new map was a picture
+  of Strong Heart's Hut. It now fills with `emptyStamp`: the donor's
+  **most-placed canopy word on both layers, collision `0x0000`**. That is the
+  same rule and evidence (`building-a-room-from-a-picture.md` §8: `$A800`, zero
+  opaque pixels) that `editBlankCanopy` already uses client-side, so host and
+  client agree on what "nothing" is. The format has no "no metatile" cell, and
+  this stamp is the closest thing it has. A new map renders as the backdrop and
+  is walkable everywhere.
+- **The client no longer claims the cells hold donor content.**
+  `applyBlankRoom` used to set `_mtPalette.grid` to zeroes, which meant "donor
+  dictionary entry 0". That is not the stamp the host drew. So a front tile
+  painted on a "blank" map composed over the donor's entry-0 terrain, and art
+  the user never drew appeared underneath it. The grid is now `null` per cell,
+  which reads back as -1 ("nothing here") everywhere: the brush lands as
+  composed, erase has nothing to erase, and pick has nothing to pick. Nothing
+  exports the grid; `editExport` emits only `_edit.cells`.
+- **What could not be dropped, stated plainly:** a donor room is still
+  required. A room with its own synthetic Block 1 renders black (rule 7.1), and
+  `_mtPalette` (the dictionary, budget and tile sheet the whole editor runs on)
+  comes from a real room. The donor is still 0x34, and `roomsNewMap` still
+  navigates there first to get that palette. **Its seven families also stay
+  loaded.** The blank word itself names one of them (`$A800` is palette field 2,
+  chr 0, i.e. donor graphic slot 0 in slot-2 colours). Its emptiness is a fact
+  about that donor's slot 0, not a universal constant. Clearing the families
+  would leave the fill word naming an empty slot, and inventing a palette-0
+  "universal blank" word would be exactly the fabrication
+  `map-editor-rules` §4 forbids. So the donor now lends **vocabulary only**:
+  graphics, families and display registers, and no picture. Any of the seven
+  families can be dropped with its card's `×`.
+
+**3. "Drawing a tile that is marked as FG should not draw it to the BG."**
+Checked in the order the brief gave:
+- *Family-sheet click → paint tool:* correct, as v0.59.0's test already said
+  (`{layer1: art, layer2: kept terrain}`).
+- *The rect tool, and `move`'s backfill: **broken.*** `editRectWrites`
+  (map-editor-paint.js) wrote `d.brush` raw instead of going through
+  `editResolve`. A front brush is `{art, blank}`, so a dragged rectangle laid
+  the art down **and blanked the terrain under it**. It was the only tool that
+  did not honour front vs ground for the same brush. Fixed by resolving per
+  cell. `editApplyStroke` (gestures) now also requests the composed preview
+  when a resolve invents a stamp, which the paint tool always did and rect
+  never did. Paste deliberately stays raw, because it copies whole finished
+  cells.
+- *`editOnTilePicked` (the room's own raw graphics):* passed no `prefer`, so it
+  ignored both `front` and vanilla's layer. It now uses the same precedence as
+  `editUseFamilyTile` (`_layerForce || editLayerPreference(id)`). No host change
+  was needed: `applyMetatilePalette` already fills `_famLayerHint` for the
+  room's own graphics from the host's `vanilla[]` rows. Note that this path is
+  currently unreachable in edit mode, because `#rs-mt` is `display:none` while
+  editing. The fix is correct but was not the user's bug.
+- *Badge vs brush:* they cannot disagree. Both read `_layerForce` first, then
+  the same ≥60% hint. `_layerForce` has exactly one production writer
+  (map-editor-input.js). The leak remains a test hazard (`webview-dom-safety`
+  §7c), not a product one.
+- *Rendering:* `editStampSvg` crops the host-composed stamp, so a correctly
+  stored stamp renders correctly. It was not a rendering symptom.
+- *New map, as a fourth path:* item 2's zero-filled grid was a real way for a
+  front tile to pick up terrain it should not have.
+*Tests:* rect of a front tile keeps the terrain exactly as painting does; a raw
+pick with `front` forced lands in the canopy, and so does one vanilla draws in
+front on `auto`; painting a front tile on a drafted room leaves no donor
+terrain under it.
+
+**4. "If the tile family list is full (7/7) we don't show tiles from families
+outside that list!!!!"** This reverses §8a.1's first fix, which had misread an
+earlier report. The rule now: `tileGroupFamilies()` returns only the adopted
+families unless `editFreeFamilySlot()` finds a free slot. The new function in
+map-editor-families.js is also what `editAdoptFamilyFor` uses, so "can I adopt"
+and "should I show candidates" are one answer. The "N more families" pager is
+gated the same way, since at 7/7 it would page through nothing. Free a slot and
+both come back. §8a.1's two tests ("a full seven-slot palette still shows extra
+candidates…", "'more families' grows the count from a full palette") were
+rewritten to assert this rule, plus the free-slot case.
+
+**Noticed, not changed:** the collapsed family strip's empty-slot `+` button
+carries `data-fam-add`, which is not in `EDIT_CLICK_KEYS` and has no handler.
+It is a dead control, left over from §8a.2 removing the explicit add-a-family
+browser. It should either go or become a filter-to-candidates action, but that
+is a product call, not a bug fix.
 
 ## 9. Ritual reminder
 

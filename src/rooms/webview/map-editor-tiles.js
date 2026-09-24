@@ -62,22 +62,27 @@ function editBrushFlipBits() {
 /**
  * Which families the list is showing.
  *
- * Families selected means exactly those. Nothing selected means everything
- * the catalogue knows, adopted families first and the rest paged — "all
- * tiles, grouped by family" without rendering 329 sheets to say it.
+ * Families selected means exactly those. Otherwise the adopted families
+ * always, plus a page of unadopted candidates **only while a palette slot is
+ * free**.
+ *
+ * That gate is the whole rule, and §8a.3 reversed §8a.1 to get it: "if the
+ * tile family list is full (7/7) we don't show tiles from families outside
+ * that list". Seven is a hard ceiling (`editAdoptFamilyFor`), so with no free
+ * slot a candidate's tiles are tiles you cannot draw with — clicking one only
+ * produces "all seven palette slots are taken". §8a.1 read an earlier report
+ * as a pagination bug and made candidates show unconditionally; the report
+ * meant the opposite, and offering ~320 unusable families is exactly the
+ * noise the Tile tab rebuild (§8a) set out to remove. Free a slot and they
+ * come back, because then adopting one is something that can happen.
  */
 function tileGroupFamilies() {
   var picked = Object.keys(_chipSel).map(Number);
   if (picked.length) return picked;
   var fams = editFamilies().filter(function (f) { return f !== undefined; });
-  if (!_famCatalogue) return fams;
+  if (!_famCatalogue || editFreeFamilySlot() < 0) return fams;
   // `_tileGroupPage` is how many *candidates* to show beyond the adopted
-  // ones — not a shared budget the adopted count eats into. Subtracting
-  // `fams.length` here used to mean a full palette (7 adopted, the common
-  // case) always started at `Math.max(0, 6-7)=0` extra shown, and even
-  // after "more families" it only ever grew by however much the increment
-  // exceeded 7 — reading as "more families" doing nothing right when you
-  // have the most reason to browse past your own seven.
+  // ones — not a shared budget the adopted count eats into (§8a.1).
   var rest = _famCatalogue
     .filter(function (f) { return fams.indexOf(f.id) < 0; })
     .sort(function (a, b) { return b.tiles - a.tiles || a.id - b.id; })
@@ -300,7 +305,12 @@ function tilesPanel() {
   var html = '';
   for (var i = 0; i < families.length; i++) html += tileGroupHtml(families[i]);
 
-  if (!Object.keys(_chipSel).length && _famCatalogue && _famCatalogue.length > families.length) {
+  // No pager on a full palette: there is nothing to page *to*, since
+  // tileGroupFamilies shows no candidates at all without a free slot (§8a.3).
+  // A "322 more families" button that adds nothing to the list is the same
+  // dead control the plan doc has refused to render since §7a.
+  if (!Object.keys(_chipSel).length && _famCatalogue && editFreeFamilySlot() >= 0
+      && _famCatalogue.length > families.length) {
     html += '<button class="rg-fam-more" data-tile-more="1"'
       + ' title="Show more families, most art first">'
       + (_famCatalogue.length - families.length) + ' more families</button>';

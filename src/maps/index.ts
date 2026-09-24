@@ -66,7 +66,7 @@ export {
     groupByRooms, preferredLayer, relatedGraphics, relationship, rankByRelationship,
 } from './vanilla-index';
 export type { VanillaIndex, Attestation, Suggestion, GraphicGroup, Related } from './vanilla-index';
-export { blankRoom, roomProblems, MIN_TILES, MAX_TILES } from './blank-room';
+export { blankRoom, emptyStamp, roomProblems, MIN_TILES, MAX_TILES } from './blank-room';
 export type { BlankRoomOptions } from './blank-room';
 export {
     roomBudget, marginalCost, wramBytes, MAX_GRAPHICS, MAX_FAMILIES, MAX_WRAM, VANILLA_MAX,

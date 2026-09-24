@@ -366,6 +366,7 @@
 .rg-theme .rg-status-sep{color:var(--rg-border-strong)}
 .rg-theme .rg-statusbar .rg-edit-count{
   margin:0;
+  min-width:0; /* or the ellipsis never engages — plan doc §8a.3 item 1 */
   color:var(--rg-text-secondary);
   overflow:hidden;
   text-overflow:ellipsis;

@@ -691,6 +691,31 @@ async function main() {
     check('the map image is sized in viewBox units, not pixels', applied.imgW === '40',
         'width=' + applied.imgW + ', expected 40 units (320px / 8)');
 
+    // "new maps are completely empty" (§8a.3). The host fills the grid with
+    // its own empty stamp, which is not the donor's dictionary entry 0, so
+    // the client must not claim the cells hold entry 0 — that made a front
+    // tile painted on a new map compose over the donor's terrain.
+    const emptyMap = await page.evaluate(() => {
+        editDraft().on = true;
+        const under = editCellAt(_mtPalette, 3, 3);
+        const blank = editBlankCanopy(_mtPalette);
+        const idx = editBrushFromTile(_mtPalette, 0x0c02, 'canopy');
+        editDraft().tool = 'paint';
+        editStroke({ x: 3, y: 3 }, 'down');
+        const w = editStampWords(_mtPalette, editDraft().cells['3,3']);
+        const erased = editResolve(_mtPalette, 5, 5, -1, true);
+        const r = { under, idx, layer1: w && w.layer1, layer2: w && w.layer2, blank, erased,
+                    note: document.getElementById('rg-edit-count').textContent };
+        editDraft().cells = {}; editDraft().brush = -1; editDraft().tool = 'paint';
+        return r;
+    });
+    check('a drafted room\u2019s cells hold nothing the donor\u2019s dictionary can name',
+        emptyMap.under === -1, JSON.stringify(emptyMap));
+    check('so a front tile painted on it keeps its art and no donor terrain appears under it',
+        emptyMap.layer1 === 0x0c02 && emptyMap.layer2 === emptyMap.blank, JSON.stringify(emptyMap));
+    check('and the eraser finds nothing to erase on an untouched cell', emptyMap.erased === -1,
+        JSON.stringify(emptyMap));
+
     // A 2x2 room is 4 units, under svg-builder's 8-unit floor.
     await page.evaluate(() => applyBlankRoom({ room: {
         widthTiles: 2, heightTiles: 2, borrowedFrom: 0x34, baseMetatile: 8,
@@ -858,6 +883,53 @@ async function main() {
         groundPick && groundPick.layer1 === 0xa800 && groundPick.layer2 !== 0xa800,
         JSON.stringify(groundPick));
 
+    // The rect tool wrote the brush raw, bypassing editResolve: a front brush
+    // is {art, blank}, so a dragged rectangle laid the art down *and blanked
+    // the terrain under it* — the only tool that did not honour front vs
+    // ground (§8a.3). Painted and rect-filled cells must now agree.
+    const rectFront = await page.evaluate(() => {
+        _layerForce = null;
+        editReset(0x34); editDraft().on = true;
+        editFamilies()[0] = 58;
+        editUseFamilyTile(4191, 58);
+        // A floor to keep: PALETTE's entry 0 everywhere (an earlier check left
+        // an empty drafted room on screen, whose cells hold nothing).
+        _mtPalette.grid = _mtPalette.grid.map((row) => row.map(() => 0));
+        const d = editDraft();
+        d.tool = 'paint';
+        editStroke({ x: 0, y: 0 }, 'down');
+        const painted = editStampWords(_mtPalette, d.cells['0,0']);
+        d.tool = 'rect';
+        editStroke({ x: 1, y: 0 }, 'down'); editStroke({ x: 1, y: 1 }, 'up');
+        const rect = editStampWords(_mtPalette, d.cells['1,1']);
+        return { painted, rect, under: editStampWords(_mtPalette, 0) };
+    });
+    check('a rect of a front tile keeps the terrain under it, like painting does',
+        rectFront.rect && rectFront.rect.layer2 === rectFront.under.layer2
+        && rectFront.rect.layer1 === rectFront.painted.layer1
+        && rectFront.rect.layer2 === rectFront.painted.layer2,
+        JSON.stringify(rectFront));
+    // `front` forced on the room's own raw-graphic path (editOnTilePicked),
+    // which used to pass no preference at all and so always landed as ground.
+    const rawFront = await page.evaluate(() => {
+        editReset(0x34); editDraft().on = true;
+        _layerForce = 'canopy';
+        editOnTilePicked(0x0c00, 0x0422);
+        const forced = editStampWords(_mtPalette, editDraft().brush);
+        _layerForce = null;
+        _famLayerHint[0x0422] = [95, 5];
+        editOnTilePicked(0x0c00, 0x0422);
+        const hinted = editStampWords(_mtPalette, editDraft().brush);
+        delete _famLayerHint[0x0422];
+        return { forced, hinted, blank: editBlankCanopy(_mtPalette) };
+    });
+    check('a raw graphic picked with front forced lands in the canopy',
+        rawFront.forced.layer1 === 0x0c00 && rawFront.forced.layer2 === rawFront.blank,
+        JSON.stringify(rawFront));
+    check('and so does one vanilla draws in front, on auto',
+        rawFront.hinted.layer1 === 0x0c00 && rawFront.hinted.layer2 === rawFront.blank,
+        JSON.stringify(rawFront));
+
     // Any tile can be forced onto either layer — a tilemap word does not
     // care which of the two slots it is written into.
     await page.click('[data-layer-force="canopy"]');
@@ -939,6 +1011,43 @@ async function main() {
     check('and the pill says which way the brush is mirrored',
         (await page.$$eval('[data-brush-flip]', (n) => n.filter(
             (e) => e.classList.contains('on')).length)) === 0);
+
+    // ── H / V must not move the dock (§8a.3) ───────────────────────────────
+    // Reported twice, and unreproducible at a roomy viewport. The dock never
+    // changed width: it *moved*. #rg-outer is a flex item whose default
+    // min-width is its min-content width, which included the status bar's
+    // nowrap note — and a flip re-arms the brush, writing the longest note
+    // the editor has. At a panel just wide enough for canvas + dock, that
+    // ratcheted the canvas column wider and shoved the dock off the right
+    // edge, clipping the H|V pill. So: a narrow panel, and geometry.
+    await page.setViewportSize({ width: 960, height: 720 });
+    await page.evaluate(() => { editNote('short'); renderEditPanels(); });
+    const layout = () => page.evaluate(() => {
+        const row = document.querySelector('.rg-edit-row');
+        const panels = document.getElementById('rg-panels');
+        const seg = document.querySelector('.rg-tile-seg-row');
+        return {
+            dockLeft: Math.round(document.getElementById('rg-dock').getBoundingClientRect().left),
+            dockRight: Math.round(document.getElementById('rg-dock').getBoundingClientRect().right),
+            rowOverflow: row.scrollWidth - row.clientWidth,
+            panelsOverflow: panels.scrollWidth - panels.clientWidth,
+            segOverflow: seg ? seg.scrollWidth - seg.clientWidth : 0,
+            view: document.documentElement.clientWidth,
+            note: document.getElementById('rg-edit-count').textContent,
+        };
+    });
+    const beforeFlip = await layout();
+    await page.click('[data-brush-flip="h"]');
+    const afterFlip = await layout();
+    check('clicking H leaves the dock exactly where it was',
+        afterFlip.dockLeft === beforeFlip.dockLeft && /mirrored H/.test(afterFlip.note),
+        JSON.stringify([beforeFlip, afterFlip]));
+    check('and the dock stays inside the panel, so H|V is not clipped',
+        afterFlip.dockRight <= afterFlip.view && afterFlip.rowOverflow <= 0, JSON.stringify(afterFlip));
+    check('#rg-panels never scrolls sideways with the Tile tab rendered',
+        afterFlip.panelsOverflow <= 0 && afterFlip.segOverflow <= 0, JSON.stringify(afterFlip));
+    await page.click('[data-brush-flip="h"]');
+    await page.setViewportSize({ width: 1280, height: 720 });
 
     // ── the invalid-family banner ──────────────────────────────────────────
     // editStrandedCells has always known this; before §8a it surfaced only as
@@ -1080,6 +1189,10 @@ async function main() {
         /0xd74/.test(armedDeco.note), armedDeco.note);
 
     const stamped = await page.evaluate(() => {
+        // A room *with* a floor: every cell is PALETTE's entry 0 (terrain
+        // $4C62). Earlier checks left an empty drafted room on screen, whose
+        // cells hold nothing — "keep the floor" needs a floor to keep.
+        _mtPalette.grid = _mtPalette.grid.map((row) => row.map(() => 0));
         editStroke({ x: 0, y: 0 }, 'down');
         const d = editDraft();
         return { cells: Object.keys(d.cells).length, added: d.added.length,
@@ -1308,26 +1421,44 @@ async function main() {
     check('and the next click toggles it straight back',
         await page.evaluate(() => !!editDraft().on) === wasOn);
 
-    // ── the Tile tab: candidates must show past a full palette ─────────────
-    // `tileGroupFamilies()` used to spend its page budget on the adopted
-    // families themselves (`_tileGroupPage - fams.length`), so a full
-    // seven-slot palette (PALETTE.tileFamilies has exactly 7) always got
-    // Math.max(0, 6-7)=0 extra shown, and "more families" only grew by
-    // however much the click's increment overshot 7 — the exact
-    // "you can't load more tiles when your 7 slots are full" report.
+    // ── the Tile tab: a full palette shows only its own seven ──────────────
+    // "if the tile family list is full (7/7) we don't show tiles from
+    // families outside that list!!!!" — seven is a hard ceiling, so with no
+    // free slot a candidate's tiles cannot be drawn with at all and offering
+    // them is noise. These two checks replace the pair added in §8a.1, which
+    // asserted the opposite rule from a misread of an earlier report; see
+    // docs/map-editor-redesign-plan.md §8a.3.
     await page.evaluate(() => {
+        editReset(0x34);
+        editDraft().on = true;
+        _chipSel = {};
+        _tileGroupPage = 6;
         applyFamilyCatalogue({ families: Array.from({ length: 20 }, (_, i) => (
             { id: 9000 + i, tiles: 20 - i, rooms: 1, areas: ['Test'], names: [] })) });
         _editActiveTab = 'tile';
         renderEditPanels();
     });
-    const shownAtFull = await page.evaluate(() => tileGroupFamilies().length);
-    check('a full seven-slot palette still shows extra candidates without clicking anything',
-        shownAtFull > 7, `tileGroupFamilies() returned ${shownAtFull} for 7 adopted`);
-    await page.evaluate(() => { document.querySelector('[data-tile-more]').click(); });
-    const shownAfterMore = await page.evaluate(() => tileGroupFamilies().length);
-    check('"more families" grows the count from a full palette, not just once past 7',
-        shownAfterMore > shownAtFull, `${shownAtFull} -> ${shownAfterMore}`);
+    const shownAtFull = await page.evaluate(() => ({
+        families: tileGroupFamilies().length,
+        free: editFreeFamilySlot(),
+        pager: !!document.querySelector('[data-tile-more]'),
+    }));
+    check('a full seven-slot palette shows no families outside it',
+        shownAtFull.families === 7 && shownAtFull.free < 0, JSON.stringify(shownAtFull));
+    check('and drops the "N more families" pager, which would page through nothing',
+        shownAtFull.pager === false);
+    // Free one slot and the candidates come back — because now adopting one
+    // is something that can actually happen.
+    const shownWithRoom = await page.evaluate(() => {
+        editClearFamily(3);
+        renderEditPanels();
+        return { families: tileGroupFamilies().length, free: editFreeFamilySlot(),
+                 pager: !!document.querySelector('[data-tile-more]') };
+    });
+    check('freeing a slot brings the candidates back, since one can be adopted again',
+        shownWithRoom.free >= 0 && shownWithRoom.families > 6 + 1, JSON.stringify(shownWithRoom));
+    check('and the pager with them', shownWithRoom.pager === true);
+    await page.evaluate(() => { editReset(0x34); editDraft().on = true; renderEditPanels(); });
 
     // ── the Tile tab: arming a brush must not reorder its own family ───────
     // `editPlacedGraphics()` used to seed the relationship lookup with the

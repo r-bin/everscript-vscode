@@ -678,5 +678,36 @@ test('buildOverlayTransfer pins a blend so it can be re-applied to any base', ()
     }
 });
 
+// ── blank-room.ts ───────────────────────────────────────────────────────────
+
+// "New maps are completely empty" (plan doc §8a.3): a blank room is filled with
+// the donor's *blank* word, not its floor. The blank word is the most-placed
+// canopy word, which is the same rule editBlankCanopy uses client-side.
+test('emptyStamp puts the donor\'s most-placed canopy word on both layers, collision open', () => {
+    const base = 100;
+    const donor = {
+        baseMetatile: base,
+        metatileCount: 3,
+        // entry 0: a floor (canopy $A800 over terrain $4C62), entry 1: a hide on
+        // the same floor, entry 2: never placed at all.
+        metatileSlices: { layer1: [0xa800, 0x2c66, 0x1111], layer2: [0x4c62, 0x4c62, 0x2222],
+            collision: [0x0010, 0x101f, 0x0000] },
+        layer1MetatileIds: [[base, base, base + 8], [base, base, base]],
+    };
+    assert.deepStrictEqual(maps.emptyStamp(donor), { layer1: 0xa800, layer2: 0xa800, collision: 0 });
+});
+
+test('emptyStamp counts placements per word, not per dictionary entry', () => {
+    const base = 0;
+    // Two entries share canopy $2000 (2 + 2 = 4 placements) and beat one entry
+    // with canopy $A800 at 3. The word is what draws, so the word is what counts.
+    const donor = {
+        baseMetatile: base, metatileCount: 3,
+        metatileSlices: { layer1: [0xa800, 0x2000, 0x2000], layer2: [1, 2, 3], collision: [0, 0, 0] },
+        layer1MetatileIds: [[0, 0, 0, 8, 8, 16, 16]],
+    };
+    assert.strictEqual(maps.emptyStamp(donor).layer1, 0x2000);
+});
+
 console.log('\n' + (passed + failed) + ' run: ' + passed + ' passed, ' + failed + ' failed');
 if (failed) process.exit(1);

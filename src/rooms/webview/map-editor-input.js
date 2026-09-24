@@ -34,7 +34,7 @@ function editOnStampPicked(index) {
  * word says which picture and which family, and nothing about what is
  * solid.
  */
-function editOnTilePicked(word) {
+function editOnTilePicked(word, graphicId) {
   var d = editDraft();
   if (!d || !d.on || word == null) return false;
 
@@ -49,16 +49,22 @@ function editOnTilePicked(word) {
     return true;
   }
 
-  // No `prefer` passed: a raw graphic picked here carries no vanilla layer
-  // hint of its own (that comes from a family sheet — map-editor-families.js),
-  // so this always lands as ground, per editBrushFromTile's documented
-  // default for a genuinely unknown pick (§8a.2 — no phase to break the tie
-  // with any more).
-  var index = editBrushFromTile(_mtPalette, word);
+  // Same precedence as editUseFamilyTile, so the two pick paths cannot
+  // disagree about the same graphic. Through v0.59.0 this passed no `prefer`
+  // at all, which made a raw pick land as ground *unconditionally* — it
+  // ignored the Tile tab's `front` segment outright, and ignored the layer
+  // vanilla actually draws the graphic on. Neither signal needed fetching:
+  // `_famLayerHint` is already populated for the room's own graphics by
+  // applyMetatilePalette (metatile-palette.js), off the host's `vanilla[]`
+  // rows — the same canopy/terrain counts a family sheet carries.
+  var prefer = _layerForce || editLayerPreference(graphicId);
+  var index = editBrushFromTile(_mtPalette, word, prefer);
   if (index < 0) return false;
   _brushTile = null;   // the room's own sheet marks its selection with _mtSlot
   editArmBrush();
-  editNote('brush: stamp #' + index + ' — ground, nothing over it, no collision yet. Paint on the map.');
+  editNote('brush: stamp #' + index + ' — '
+    + (prefer === 'canopy' ? 'drawn over what it is painted on' : 'ground, nothing over it')
+    + ', no collision yet. Paint on the map.');
   if (index >= _mtPalette.count) requestComposedPreview();
   renderEditChrome();
   return true;

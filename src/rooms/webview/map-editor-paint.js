@@ -130,12 +130,26 @@ function editInBounds(palette, tx, ty) {
   return palette && tx >= 0 && ty >= 0 && tx < palette.widthTiles && ty < palette.heightTiles;
 }
 
-/** Fill a rectangle with the brush. */
+/**
+ * Fill a rectangle with the brush.
+ *
+ * Through the brush **resolved against each cell** (map-editor-phases.js's
+ * `editResolve`), not written raw. Writing `index` straight in was a real
+ * bug: a front-composed brush is `{layer1: art, layer2: blank}`, so a rect
+ * (or a `move`'s backfill, which shares this function) laid the art down
+ * *and blanked the terrain under it* — the drag did not honour the
+ * foreground/background distinction that the same brush honours perfectly
+ * under the paint tool, which has always gone through `editResolve`. One
+ * owner decides what a stroke writes; two tools must not answer differently
+ * for the same brush.
+ */
 function editRectWrites(x1, y1, x2, y2, index, palette) {
   var w = [];
   for (var y = Math.min(y1, y2); y <= Math.max(y1, y2); y++) {
     for (var x = Math.min(x1, x2); x <= Math.max(x1, x2); x++) {
-      if (editInBounds(palette, x, y)) w.push({ x: x, y: y, index: index });
+      if (!editInBounds(palette, x, y)) continue;
+      var at = editResolve(palette, x, y, index, false);
+      if (at >= 0) w.push({ x: x, y: y, index: at });
     }
   }
   return w;

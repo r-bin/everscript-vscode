@@ -132,19 +132,40 @@ function editStroke(cell, phase) {
   if (phase !== 'up') { renderEditLayer(_mtPalette, _editComposed, _editOrigin); return; }
 
   if (d.tool === 'rect') {
-    if (d.brush >= 0) editApply(editRectWrites(_editSel.x1, _editSel.y1, _editSel.x2, _editSel.y2, d.brush, _mtPalette));
+    if (d.brush >= 0) editApplyStroke(editRectWrites(_editSel.x1, _editSel.y1, _editSel.x2, _editSel.y2, d.brush, _mtPalette));
     _editSel = null;
   } else if (_editSel.x1 === _editSel.x2 && _editSel.y1 === _editSel.y2 && _editClip) {
-    // A single click with something on the clipboard is a paste.
+    // A single click with something on the clipboard is a paste. Raw indices
+    // on purpose: the clipboard holds whole cells lifted off the map, so
+    // re-resolving them against what they land on would merge two finished
+    // cells rather than copy one.
     editApply(editPasteWrites(_editSel.x1, _editSel.y1, _mtPalette));
     _editSel = null;
   } else {
     // A real drag takes the region; `move` also backfills it.
     var backfill = editTakeSelection(_mtPalette, d.tool === 'move');
-    if (backfill.length) editApply(backfill);
+    if (backfill.length) editApplyStroke(backfill);
   }
   _editDrag = null;
   renderEditChrome();
+}
+
+/**
+ * Apply a brush stroke's writes, and refresh the preview sheet if it needs it.
+ *
+ * `editResolve` can invent a stamp (a front-composed brush over an existing
+ * terrain composes a third, merged one), and a cell painted with a stamp the
+ * preview sheet does not have yet has no picture to crop from — it renders as
+ * nothing. The paint tool has always done this check inline; rect and move
+ * did not, which is why they are routed through here rather than calling
+ * `editApply` directly.
+ */
+function editApplyStroke(writes) {
+  if (!writes || !writes.length) return;
+  editApply(writes);
+  for (var i = 0; i < writes.length; i++) {
+    if (writes[i].index >= _mtPalette.count) { requestComposedPreview(); return; }
+  }
 }
 
 /** Attach the capture-phase gesture handlers once per rendered room. */

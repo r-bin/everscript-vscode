@@ -38,6 +38,7 @@ const api = new Function(`
   ${read('map-editor.js')}
   ${read('map-editor-stamps.js')}
   ${read('map-editor-paint.js')}
+  ${read('map-editor-phases.js')}
   ${read('map-editor-special.js')}
   ${read('map-editor-trigger-select.js')}
 return { editReset, editActive, editDraft, editKey, editApply, editUndo, editRedo,

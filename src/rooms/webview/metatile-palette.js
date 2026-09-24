@@ -329,7 +329,13 @@ function bindMetatilePalette(panel, room) {
       // composer is what turns a word into a stamp. So a click here feeds the
       // composer when one of its sources is armed.
       _mtSlot = Number(t.dataset.mtSlot);
-      if (typeof editOnTilePicked === 'function') editOnTilePicked(tileSlotWord(_mtPalette, _mtSlot));
+      if (typeof editOnTilePicked === 'function') {
+        // The graphic id as well as the word: the word says which picture and
+        // which family, but `_famLayerHint` — the record of which layer
+        // vanilla draws this art on — is keyed by graphic id.
+        var picked = _mtPalette.tiles.slots[_mtSlot];
+        editOnTilePicked(tileSlotWord(_mtPalette, _mtSlot), picked && picked[2]);
+      }
       renderMetatilePalette();
       return;
     }

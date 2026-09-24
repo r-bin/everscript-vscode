@@ -8,11 +8,19 @@
 // way. So a blank room borrows a real room's graphics list and families and
 // then overwrites only the grid and the dictionary.
 //
+// **Blank means empty.** Through v0.59.0 the grid was filled with the donor
+// room's own most-placed walkable floor, so "new map" opened on a picture of
+// Strong Heart's Hut. It now fills with `emptyStamp` — the donor's blank
+// word on *both* layers — so a new map draws nothing at all. The donor is
+// still needed and still real (its graphics list, families and display
+// registers are the vocabulary the room can draw from); it just no longer
+// contributes any *content*.
+//
 // See docs/map-format/building-a-room-from-a-picture.md §7.
 
 import { RoomData, decodeRoom } from './room';
 import { MetatileDraft } from './metatiles';
-import { planesUsed, passability, tilePlane, OPEN } from './collision';
+import { planesUsed } from './collision';
 
 export interface BlankRoomOptions {
     widthTiles: number;
@@ -32,22 +40,36 @@ export const MIN_TILES = 2;
 /** Bigger than any vanilla room (0x3c is 127 wide, 0x65 is 99 tall). */
 export const MAX_TILES = 128;
 
+/** What `emptyStamp` needs of a donor room — not the whole `RoomData`. */
+export type StampDonor = Pick<RoomData,
+    'metatileCount' | 'metatileSlices' | 'layer1MetatileIds' | 'baseMetatile'>;
+
 /**
- * A floor stamp that is guaranteed to draw, and worth looking at.
+ * The stamp an *empty* cell is made of, derived from the donor.
  *
- * Taken from the borrowed room's own dictionary rather than invented: its
- * words are known to resolve against that room's graphics list, which a
- * hand-written word is not.
+ * The format has no "no metatile here": every cell of every room names some
+ * dictionary entry. The closest thing to empty it does have is the word that
+ * draws nothing, and that word is not invented here — it is the donor's own
+ * **most-placed canopy word**, which
+ * `docs/map-format/building-a-room-from-a-picture.md` §8 measured as `$A800`
+ * in every room it looked at (140 placements in `0x34`, 2034 in `0x76`, 3800
+ * in `0x38`) and confirmed has *zero* non-transparent pixels in room `0x34`.
+ * It is the same rule, on the same evidence, that the editor's own
+ * `editBlankCanopy` (map-editor-phases.js) uses client-side to decide what
+ * the eraser puts back — so host and client agree on what "nothing" is
+ * without either of them hardcoding a word.
  *
- * The most-placed **walkable** entry, not entry 0 and not simply the most
- * placed. A room's first dictionary entry is wherever the encoder happened
- * to start, and its most-placed one is usually the black surround outside
- * the playable area — both make a new room look broken. The stamp a room
- * places most *and* lets the player stand on is its floor, which is what a
- * blank room should be made of.
+ * Both layers get it. The terrain layer has no separately attested "blank"
+ * word, and `editBrushFromTile` already uses the blank canopy word as the
+ * empty value for whichever of the two layers a pick is not writing; this
+ * follows that existing convention rather than inventing a second one.
+ *
+ * Collision `0x0000` is plane 0, geometry open — walkable, no gates, no
+ * drift. The format's do-nothing value, matching the editor's own
+ * `EMPTY_COLLISION`.
  */
-function borrowedFloor(room: RoomData): MetatileDraft {
-    const { layer1, layer2, collision } = room.metatileSlices;
+export function emptyStamp(room: StampDonor): MetatileDraft {
+    const { layer1 } = room.metatileSlices;
     const uses = new Int32Array(room.metatileCount);
     for (const row of room.layer1MetatileIds) {
         for (const id of row) {
@@ -55,15 +77,17 @@ function borrowedFloor(room: RoomData): MetatileDraft {
             if (i >= 0 && i < uses.length) uses[i] += 1;
         }
     }
-    let best = -1;
+    const placed = new Map<number, number>();
+    let blank = 0;
     let bestUses = -1;
     for (let i = 0; i < room.metatileCount; i++) {
-        const cw = collision[i] ?? 0;
-        if (passability(cw, tilePlane(cw)) !== OPEN) continue;
-        if (uses[i] > bestUses) { best = i; bestUses = uses[i]; }
+        if (!uses[i]) continue;
+        const word = layer1[i] ?? 0;
+        const n = (placed.get(word) ?? 0) + uses[i];
+        placed.set(word, n);
+        if (n > bestUses) { bestUses = n; blank = word; }
     }
-    if (best < 0) best = 0; // a room with no walkable tile at all: take what there is
-    return { layer1: layer1[best] ?? 0, layer2: layer2[best] ?? 0, collision: collision[best] ?? 0 };
+    return { layer1: blank, layer2: blank, collision: 0x0000 };
 }
 
 /**
@@ -79,7 +103,7 @@ export function blankRoom(rom: Uint8Array, opts: BlankRoomOptions): RoomData {
     const heightTiles = clamp(opts.heightTiles);
     const base = decodeRoom(rom, opts.borrowFrom);
 
-    const stamps = opts.stamps && opts.stamps.length ? opts.stamps : [borrowedFloor(base)];
+    const stamps = opts.stamps && opts.stamps.length ? opts.stamps : [emptyStamp(base)];
     const baseMetatile = widthTiles * heightTiles * 2;
 
     const layer1: number[][] = [];

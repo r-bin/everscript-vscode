@@ -96,6 +96,25 @@ function editDroppedFamilies() {
 }
 
 /**
+ * The first palette slot with nothing in it, or -1 when all seven are spent.
+ *
+ * The one question "can another family be adopted?" reduces to, and the
+ * reason it is a function rather than `fams.length < 7`: a cleared slot
+ * (editClearFamily writes `undefined` in place) leaves a hole in the middle
+ * of the array, so the length says nothing useful. `editAdoptFamilyFor`
+ * below picks the same slot this reports, and the Tile tab reads it to
+ * decide whether showing unadopted candidates is offering something or just
+ * noise (map-editor-tiles.js's tileGroupFamilies).
+ */
+function editFreeFamilySlot() {
+  var fams = editFamilies();
+  for (var i = 0; i < 7; i++) {
+    if (fams[i] === undefined) return i;
+  }
+  return -1;
+}
+
+/**
  * Bring in the family a graphic needs, and say what it cost.
  *
  * This is "pick a tile, which adds the family". If the family is already
@@ -108,11 +127,10 @@ function editAdoptFamilyFor(graphicSlotOrFamily) {
   var fams = editFamilies();
   if (family === undefined || family === null) return { ok: false, why: 'no family known for that tile' };
   if (fams.indexOf(family) >= 0) return { ok: true, added: false, slot: fams.indexOf(family) };
-  for (var i = 0; i < 7; i++) {
-    if (fams[i] === undefined) {
-      editSetFamily(i, family);
-      return { ok: true, added: true, slot: i };
-    }
+  var free = editFreeFamilySlot();
+  if (free >= 0) {
+    editSetFamily(free, family);
+    return { ok: true, added: true, slot: free };
   }
   return { ok: false, why: 'all seven palette slots are taken — clear one to make room for family ' + family };
 }
