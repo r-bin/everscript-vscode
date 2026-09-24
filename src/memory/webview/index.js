@@ -87,7 +87,9 @@ const ROOMS_JS_FILES = [
   'map-editor-phases.js',// what a stroke writes in each phase, and the eraser
   'map-editor-constructs.js',// saved regions, with their triggers and objects
   'map-editor-families.js',// the seven families, and picking a tile out of one
-  'map-editor-chips.js', // the family chips + what vanilla draws beside what
+  'map-editor-relations.js',// what vanilla draws beside what (undirected)
+  'map-editor-chips.js', // the TILE FAMILIES section: the palette's seven + candidates
+  'map-editor-stranded.js',// the invalid-family banner and its two actions
   'map-editor-tiles.js', // the tile browser: grouped by family, ranked by relationship
   'map-editor-deco.js',  // the deco library: vanilla's own objects, to stamp
   'map-editor-special.js',// the Special tab: stairs/drift, gate, entrance + their filter chip
@@ -122,6 +124,7 @@ module.exports = {
   css: loadFile(path.join(sharedDir, 'shared.css')) + '\n'
     + loadFile(path.join(roomsDir, 'map-editor-theme.css')) + '\n'
     + loadFile(path.join(roomsDir, 'map-editor-canvas.css')) + '\n'
+    + loadFile(path.join(roomsDir, 'map-editor-tile-tab.css')) + '\n'
     + loadFile(path.join(roomsDir, 'rooms-rail.css')),
   get scalingJs() { return loadScalingJs(); },
   get roomsJs() { return loadRoomsJs(); },

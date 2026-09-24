@@ -108,6 +108,12 @@ function editKey(x, y) { return x + ',' + y; }
  * batched with a list of `{x, y, id}` writes to the Special tab's overlay
  * (`specialCells`).
  *
+ * An `index` of `null` **removes** the draft's write at that cell, so the
+ * room's own tile shows through again — the same meaning `editRestore`
+ * already gives null, which is what makes undo/redo of a removal symmetric
+ * without a second mechanism. map-editor-stranded.js's "Remove tiles" is the
+ * caller; painting never passes null.
+ *
  * Batched rather than per-cell so a rectangle fill or a paste undoes in one
  * go, which is what makes "move the window back" a single keystroke — and
  * so that a single paint click carrying both a tile and a special (see
@@ -126,7 +132,8 @@ function editApply(writes, specialWrites) {
     var was = Object.prototype.hasOwnProperty.call(_edit.cells, k) ? _edit.cells[k] : null;
     if (was === w.index) continue;
     before.push({ x: w.x, y: w.y, index: was });
-    _edit.cells[k] = w.index;
+    if (w.index === null) delete _edit.cells[k];
+    else _edit.cells[k] = w.index;
     changed += 1;
   }
   var specialBefore = [];

@@ -54,7 +54,9 @@
 | `_chipSel` | `map-editor-chips.js` (webview) | `{[familyId]: true}` | Which family chips are toggled on, narrowing the tile browser |
 | `_chipFilter` | `map-editor-chips.js` (webview) | string | The chip search box's text |
 | `_chipPreviews` | `map-editor-chips.js` (webview) | object\|null | Host-rendered chip art, keyed by family id |
-| `_related` | `map-editor-chips.js` (webview) | `{[graphic]: count}` | Placement-adjacency counts for the armed brush, sorting a family's own tile strip |
+| `_related` | `map-editor-relations.js` (webview) | `{[graphic]: count}` | Placement-adjacency counts for the armed brush, sorting a family's own tile strip. **Undirected** — `relatedTiles` scores "drawn beside", never "drawn above/below", so nothing downstream may present it as a compass direction (§8a) |
+| `_layerForce` | `map-editor-tiles.js` (webview) | `null\|'canopy'\|'terrain'` | The `auto\|front\|ground` segment: override which layer a picked tile lands on, or `null` to follow what vanilla does with that graphic. Moved here from `map-editor-chips.js` in §8a so it lives with the control that renders it |
+| `_brushFlip` | `map-editor-tiles.js` (webview) | `{h: bool, v: bool}` | The `H\|V` segment: mirror bits (`0x4000`/`0x8000`) OR-ed into the next picked tile's word. Geometry, not identity — a mirrored word costs a dictionary entry but **no** graphics slot, since `editAdoptGraphic` keys on the graphic id, which a flip does not change |
 | `_famCatalogue` | `map-editor-families.js` (webview) | object\|null | The full family catalogue (tile/room counts, areas, names), fetched once |
 | `_famSheets` | `map-editor-families.js` (webview) | `{[familyId]: sheet}` | Per-family tile sheets, fetched as a family is adopted or browsed |
 | `_brushTile` | `map-editor-families.js` (webview) | number\|null | The room's own sheet's selection ring, cleared when a family-tile brush is armed instead |

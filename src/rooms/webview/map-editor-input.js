@@ -95,6 +95,7 @@ function renderComposer() {
  */
 var EDIT_CLICK_KEYS = ['editTool', 'editPhase', 'editAct', 'editPick', 'panel',
   'famTile', 'construct', 'chip', 'chipDrop', 'chipAdopt', 'chipMore', 'tileMore',
+  'famAdd', 'brushFlip', 'strandedFix', 'strandedDrop',
   'layerForce', 'deco', 'decoPage', 'decoFlag', 'mtIndex', 'mtSlot', 'editActiveTab',
   'editSpecial', 'editSpecialMenu', 'editTriggerMenu', 'editObjectsMenu', 'editMoreMenu',
   'editToolMenu', 'triggerRef', 'triggerRemove'];
@@ -253,6 +254,17 @@ function bindEditControls(panel, room) {
     if (t.dataset.chipAdopt) { chipAdopt(t.dataset.chipAdopt); return; }
     if (t.dataset.chipMore) { _chipPage += CHIP_PAGE; renderEditPanels(); return; }
     if (t.dataset.tileMore) { _tileGroupPage += TILE_GROUP_PAGE; renderEditPanels(); return; }
+    if (t.dataset.famAdd) {
+      // An empty slot in the collapsed strip opens the same disclosure, so
+      // it is never a dead square.
+      _famAddOpen = !_famAddOpen;
+      if (_famAddOpen) _panelOpen.families = true;
+      renderEditPanels();
+      return;
+    }
+    if (t.dataset.brushFlip) { brushFlipToggle(t.dataset.brushFlip); return; }
+    if (t.dataset.strandedFix) { strandedFix(t.dataset.strandedFix); return; }
+    if (t.dataset.strandedDrop) { strandedDrop(t.dataset.strandedDrop); return; }
     if (t.dataset.layerForce) {
       _layerForce = t.dataset.layerForce === 'auto' ? null : t.dataset.layerForce;
       renderEditPanels();

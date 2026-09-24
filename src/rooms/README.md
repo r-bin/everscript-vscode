@@ -141,10 +141,26 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   `{graphic, family, flags}` form a word cannot travel in; no state of its own
 - `map-editor-families.js` — the seven palette slots, the family catalogue and
   picking a tile out of one; owns `_famCatalogue` / `_famSheets` / `_brushTile`
-- `map-editor-chips.js` — the family chips (art first, id second) and the
-  relationship lookup; owns `_chipSel` / `_chipPreviews` / `_related`
+- `map-editor-chips.js` — the family cards, split into the seven adopted
+  slots and the candidates you can adopt (§8a: they used to be one
+  interleaved list, which is most of what made the tab read as noise);
+  owns `_chipSel` / `_chipPreviews` / `_chipFilter` / `_chipPage` /
+  `_famAddOpen`
+- `map-editor-relations.js` — what vanilla draws beside what, split out of
+  `map-editor-chips.js` in §8a so the model is not tangled with the cards
+  that read it; owns `_related` / `_relatedTop` / `_relatedKey`.
+  **Undirected**: `relatedTiles` (`rendering/vanilla-index.js`) scores
+  "drawn beside", not "drawn above/below", which is why the LIKELY
+  NEIGHBORS card is a ranked list and not the mock's N/E/S/W plus-shape
+- `map-editor-stranded.js` — the invalid-family banner and its two actions
+  (re-adopt the family, or clear the cells that need it). Owns nothing:
+  both actions go through existing owners, and the clear is one undoable
+  `editApply` step
 - `map-editor-tiles.js` — the tile browser: grouped by family, ranked by what
-  vanilla draws beside what, badged with the layer it belongs on
+  vanilla draws beside what, badged with the layer it belongs on; owns
+  `_tileGroupPage` / `_layerForce` / `_brushFlip` (the last two are the
+  segmented row's two brush modifiers, so they live with the control that
+  renders them)
 - `map-editor-deco.js` — the deco picker and the Widgets tab it renders
   under (`widgetsTabHtml`, Phase 5 — the tab is new, the picker underneath
   it is not); owns `_deco` / `_decoFilter` / `_decoPage` / `_decoPreviews` /
@@ -310,6 +326,11 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   popup needs a matching `[hidden]` override: an author rule beats the UA
   stylesheet's `[hidden]{display:none}` regardless of specificity, which is
   how a dropdown once stayed visually open for four phases
+- `map-editor-tile-tab.css` — the Tile tab's own chrome (§8a), in its own
+  file for the same size reason `rooms-rail.css` is: the family cards and
+  their collapsed swatch strip, the `+ add a family` control, the invalid-
+  family banner, the segmented brush-modifier row (`auto|front|ground` and
+  `H|V`), the LIKELY NEIGHBORS card, and the family group headers
 - `rooms-rail.css` — the left rail's own chrome (Phase 7b), in its own file
   because `map-editor-canvas.css` was one rule from the size limit and
   `shared.css` is shared by every radar tab. The rail is a **sibling** of

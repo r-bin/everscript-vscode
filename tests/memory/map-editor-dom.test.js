@@ -26,7 +26,8 @@ const read = (f) => fs.readFileSync(path.join(WEBVIEW, f), 'utf8');
 /** The editor's files, in the order the bundle concatenates them. */
 const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-stamps.js', 'map-editor-paint.js',
     'map-editor-ui.js', 'map-editor-phases.js', 'map-editor-constructs.js', 'map-editor-families.js',
-    'map-editor-chips.js', 'map-editor-tiles.js', 'map-editor-deco.js', 'map-editor-special.js',
+    'map-editor-relations.js', 'map-editor-chips.js', 'map-editor-stranded.js',
+    'map-editor-tiles.js', 'map-editor-deco.js', 'map-editor-special.js',
     'map-editor-trigger-select.js', 'map-editor-trigger-panel.js',
     'map-editor-toolbar.js', 'map-editor-filterbar.js', 'rom-overlay.js',
     'tables-builder.js', 'map-editor-tabs.js', 'map-editor-panels.js', 'map-editor-gestures.js',
@@ -78,7 +79,7 @@ async function main() {
     page.on('pageerror', (e) => pageErrors.push(e.message));
 
     const CSS = ['shared/shared.css', 'rooms/webview/map-editor-theme.css',
-        'rooms/webview/map-editor-canvas.css']
+        'rooms/webview/map-editor-canvas.css', 'rooms/webview/map-editor-tile-tab.css']
         .map((f) => fs.readFileSync(path.join(__dirname, '..', '..', 'src', ...f.split('/')), 'utf8'))
         .join('\n');
     // The real stylesheets: without them every swatch is 0x0, so nothing is
@@ -534,8 +535,8 @@ async function main() {
     check('every chosen family is previewed up front', eager.length === 7 && eager.includes(35),
         'asked for: ' + JSON.stringify(eager));
 
-    // ── family chips ───────────────────────────────────────────────────────
-    // A family id is not a name, so a chip leads with its two most-placed
+    // ── the TILE FAMILIES section ──────────────────────────────────────────
+    // A family id is not a name, so a card leads with its two most-placed
     // tiles and the act it belongs to. The old picker made you choose an id
     // out of a paged list of 329 before it would show you anything.
     await page.evaluate(() => applyFamilyCatalogue({ families: [
@@ -556,37 +557,78 @@ async function main() {
 
     const chip58 = await page.$eval('[data-chip="58"]', (n) => ({
         art: n.querySelector('.rg-chip-art').getAttribute('style') || '', text: n.textContent }));
-    check('a chip carries its own art, not a number alone',
+    check('a family card carries its own art, not a number alone',
         chip58.art.includes('base64,Y2hpcA==') && /58/.test(chip58.text), JSON.stringify(chip58));
     check('and the act it belongs to', /Prehistoria/.test(chip58.text), chip58.text);
 
+    // §8a: the palette's seven and the ~320 candidates are two groups, never
+    // one interleaved list — mixing two different actions (× and +) into one
+    // strip is most of why this panel read as noise.
+    const groups0 = await page.evaluate(() => ({
+        cards: document.querySelectorAll('.rg-fam-card').length,
+        drops: document.querySelectorAll('[data-chip-drop]').length,
+        adopts: document.querySelectorAll('[data-chip-adopt]').length,
+        filter: !!document.getElementById('rg-chip-filter'),
+    }));
+    check('the palette’s own seven are the section, one card each, all removable',
+        groups0.cards === 7 && groups0.drops === 7, JSON.stringify(groups0));
+    check('and no candidate is mixed in until the add disclosure is opened',
+        groups0.adopts === 0 && !groups0.filter, JSON.stringify(groups0));
+
+    await page.click('[data-fam-add]');
+    const groups1 = await page.evaluate(() => ({
+        adopts: document.querySelectorAll('[data-chip-adopt]').length,
+        filter: !!document.getElementById('rg-chip-filter'),
+    }));
+    check('opening it shows the candidates, carrying + instead of ×',
+        groups1.adopts === 3 && groups1.filter, JSON.stringify(groups1));
+
+    await page.fill('#rg-chip-filter', 'omni');
+    const cands = await page.$$eval('[data-chip-adopt]', (n) => n.map((e) => e.dataset.chipAdopt));
+    check('the search narrows the candidates by act',
+        cands.length === 1 && cands[0] === '220', JSON.stringify(cands));
+    await page.fill('#rg-chip-filter', '');
+    await page.click('[data-fam-add]');
+
+    // Collapsed is not empty — the mock's compact strip of seven slots. The
+    // `.hidden` IDL property would not catch a rule that paints anyway
+    // (Phase 6's bug), so this asserts computed display.
+    await page.evaluate(() => document.querySelector('[data-panel="families"]').click());
+    const shut = await page.evaluate(() => ({
+        cards: document.querySelectorAll('.rg-fam-card').length,
+        slots: document.querySelectorAll('.rg-fam-slot').length,
+        display: getComputedStyle(document.querySelector('.rg-fam-strip')).display,
+    }));
+    check('collapsing the section leaves the seven slots as a strip',
+        shut.cards === 0 && shut.slots === 7 && shut.display === 'flex', JSON.stringify(shut));
+    await page.evaluate(() => document.querySelector('[data-panel="families"]').click());
+
     // An adopted family shows a real ×; the old one opened the picker.
     const before58 = await page.evaluate(() => editFamilies().slice());
-    await page.click('.rg-chip.adopted [data-chip-drop]');
+    await page.click('.rg-fam-card.adopted [data-chip-drop]');
     const after58 = await page.evaluate(() => editFamilies().slice());
-    check('the × on a chip frees its slot',
+    check('the × on a card frees its slot',
         before58.filter((f) => f !== undefined).length - 1
         === after58.filter((f) => f !== undefined).length,
         JSON.stringify(before58) + ' -> ' + JSON.stringify(after58));
-    check('and the checks panel says what that stranded',
-        await page.evaluate(() => typeof editStrandedCells === 'function'));
 
-    // A chip filters the tile list; clearing shows everything again.
+    // A family filters the tile list; the clear button shows everything again.
     await page.evaluate(() => { _chipSel = {}; renderEditPanels(); });
     const allGroups = await page.$$eval('.rg-tile-group', (n) => n.length);
-    await page.click('[data-chip="220"]');
+    await page.click('[data-chip="58"]');
     const oneGroup = await page.$$eval('.rg-tile-group', (n) => n.map((e) => e.textContent));
-    check('selecting a chip filters the tiles to that family',
-        oneGroup.length === 1 && /220/.test(oneGroup[0]), JSON.stringify(oneGroup.length));
-    await page.click('[data-chip="220"]');
-    check('and clearing it shows everything again',
+    check('selecting a family filters the tiles to it',
+        oneGroup.length === 1 && /58/.test(oneGroup[0]), JSON.stringify(oneGroup.length));
+    await page.click('.rg-fam-clear');
+    check('and the clear control shows everything again',
         (await page.$$eval('.rg-tile-group', (n) => n.length)) === allGroups);
 
-    await page.fill('#rg-chip-filter', 'omni');
-    const chips = await page.$$eval('[data-chip]', (n) => n.map((e) => e.dataset.chip));
-    check('the chip filter narrows by act', chips.includes('220') && !chips.includes('5'),
-        JSON.stringify(chips));
-    await page.fill('#rg-chip-filter', '');
+    // The prose both panels used to open with is gone — every fact it carried
+    // is a count, a badge or a tooltip now (§8a).
+    const prose = await page.evaluate(() => document.getElementById('rg-tab-body').textContent);
+    check('no explanatory sentence is left in the tab body',
+        !/of 7 slots used/.test(prose) && !/Clicking a tile makes a metatile/.test(prose),
+        prose.slice(0, 200));
 
     await page.evaluate(() => {
         for (var i = 0; i < 7; i++) if (editFamilies()[i] === undefined) editFamilies()[i] = 700 + i;
@@ -812,9 +854,131 @@ async function main() {
     const order = await page.$$eval('[data-fam-of="58"]', (n) => n.map((e) => e.dataset.famTile));
     check('the strongest relationship sorts to the front, not the biggest count',
         order[0] === '4191', JSON.stringify(order));
-    const strip2 = await page.evaluate(() => document.getElementById('rg-panels').textContent);
-    check('and the neighbours are offered as their own strip',
-        /Drawn next to what you have placed/.test(strip2) && /92%/.test(strip2));
+    // ── LIKELY NEIGHBORS ───────────────────────────────────────────────────
+    // The mock draws a plus-shaped N/E/S/W grid. relatedTiles() (vanilla-index
+    // .js) returns one **undirected** score per candidate, so four compass
+    // slots would be a measurement this repo does not make — §8a. The card
+    // treatment was adopted; the ranked list under it is the real model.
+    const nb = await page.evaluate(() => ({
+        head: (document.querySelector('.rg-nb-card .rg-sec-name') || {}).textContent,
+        count: document.querySelectorAll('.rg-nb').length,
+        text: (document.querySelector('.rg-nb-card') || {}).textContent,
+    }));
+    check('the neighbours are their own collapsible card, not a loose strip',
+        /likely neighbors/.test(nb.head) && nb.count === 2 && /92%/.test(nb.text),
+        JSON.stringify(nb));
+    await page.evaluate(() => document.querySelector('[data-panel="neighbours"]').click());
+    check('and it folds down to its own header',
+        (await page.$$('.rg-nb')).length === 0 && !!(await page.$('.rg-nb-card')));
+    await page.evaluate(() => document.querySelector('[data-panel="neighbours"]').click());
+
+    // ── the segmented filter row ───────────────────────────────────────────
+    // Two pills, which is what the mock draws — but not the mock's two: its
+    // `Auto|All` is a scope toggle, which here is the "N more families" pager
+    // (one host round-trip per family, so "all" is not a button). See §8a.
+    const segs = await page.evaluate(() => Array.prototype.map.call(
+        document.querySelectorAll('.rg-tile-seg'),
+        (s) => Array.prototype.map.call(s.querySelectorAll('.rg-tile-seg-b'),
+            (b) => b.textContent).join('|')));
+    check('the filter row is two segmented pills, not five loose chips',
+        segs.length === 2 && segs[0] === 'auto|front|ground' && segs[1] === 'H|V',
+        JSON.stringify(segs));
+
+    // ── H / V mirror ───────────────────────────────────────────────────────
+    // Bit 14 is the horizontal flip and bit 15 the vertical one
+    // (docs/map-format/map_rendering_pipeline.md §3); src/maps/render.ts's
+    // renderVramLayer reads exactly those two back out per word and applies
+    // them to the whole 16x16 graphic, so nothing else has to know. The cost
+    // is one dictionary entry and **no** graphics slot, which is the whole
+    // argument for offering it.
+    const brushWord = () => page.evaluate(() => {
+        var w = editStampWords(_mtPalette, editDraft().brush);
+        var blank = editBlankCanopy(_mtPalette);
+        return { word: w.layer1 !== blank ? w.layer1 : w.layer2, brush: editDraft().brush,
+            added: editDraft().added.length, graphics: editDraft().addedGraphics.length };
+    });
+    await page.evaluate(() => { _brushFlip = { h: false, v: false }; renderEditPanels(); });
+    await page.click('[data-fam-tile="4191"]');
+    const plain = await brushWord();
+    await page.click('[data-brush-flip="h"]');
+    const flipH = await brushWord();
+    check('H sets bit 14 of the armed brush’s word and changes nothing else',
+        flipH.word === (plain.word | 0x4000), JSON.stringify([plain.word, flipH.word]));
+    check('at the cost of one dictionary entry and no graphics slot',
+        flipH.added === plain.added + 1 && flipH.graphics === plain.graphics,
+        JSON.stringify([plain, flipH]));
+    await page.click('[data-brush-flip="v"]');
+    const flipHV = await brushWord();
+    check('and V sets bit 15 on top of it',
+        flipHV.word === (plain.word | 0xc000), JSON.stringify(flipHV.word));
+    await page.click('[data-brush-flip="h"]');
+    await page.click('[data-brush-flip="v"]');
+    const unflipped = await brushWord();
+    check('turning both off re-arms the entry it started with, not a fourth one',
+        unflipped.word === plain.word && unflipped.brush === plain.brush,
+        JSON.stringify([plain, unflipped]));
+    check('and the pill says which way the brush is mirrored',
+        (await page.$$eval('[data-brush-flip]', (n) => n.filter(
+            (e) => e.classList.contains('on')).length)) === 0);
+
+    // ── the invalid-family banner ──────────────────────────────────────────
+    // editStrandedCells has always known this; before §8a it surfaced only as
+    // one line in the Info tab's checks panel. "Add family back" puts the
+    // family in the **slot the cells name** — adopting into the first free
+    // slot instead would load the art and leave them just as stranded.
+    await page.evaluate(() => {
+        editReset(0x34);
+        var d = editDraft();
+        d.on = true;
+        d.tool = 'paint';
+        d.families = [35, 187, 58, undefined, undefined, undefined, undefined];
+        _brushFlip = { h: false, v: false };
+        _chipSel = {};
+        renderEditPanels();
+    });
+    await page.click('[data-fam-tile="4191"]');
+    const dropped = await page.evaluate(() => {
+        editStroke({ x: 0, y: 0 }, 'down');
+        editStroke({ x: 1, y: 0 }, 'down');
+        chipDrop(2);
+        return { stranded: editStrandedCells().length, groups: editStrandedGroups() };
+    });
+    check('freeing a slot strands the cells drawn in it, grouped by that slot',
+        dropped.stranded === 2 && dropped.groups.length === 1 && dropped.groups[0].slot === 2
+        && dropped.groups[0].family === 58, JSON.stringify(dropped));
+
+    const banner = await page.evaluate(() => ({
+        text: document.querySelector('.rg-banner-t').textContent,
+        acts: Array.prototype.map.call(document.querySelectorAll('.rg-banner-b'), (b) => b.textContent),
+        first: document.getElementById('rg-tab-body').firstElementChild.className,
+    }));
+    check('and the Tile tab leads with a banner about it',
+        /family 58/.test(banner.text) && /rg-banner/.test(banner.first), JSON.stringify(banner));
+    check('offering both of the mock’s actions',
+        banner.acts.join('|') === 'Add family back|Remove tiles', JSON.stringify(banner.acts));
+
+    await page.click('[data-stranded-fix]');
+    const fixed = await page.evaluate(() => ({
+        fams: editFamilies().slice(), stranded: editStrandedCells().length,
+        banner: !!document.querySelector('.rg-banner'),
+    }));
+    check('“Add family back” restores the very slot the cells name',
+        fixed.fams[2] === 58 && fixed.stranded === 0 && !fixed.banner, JSON.stringify(fixed));
+
+    const removed = await page.evaluate(() => {
+        chipDrop(2);
+        var before = Object.keys(editDraft().cells).length;
+        strandedDrop(2);
+        var after = Object.keys(editDraft().cells).length;
+        var left = editStrandedCells().length;
+        editUndo(_mtPalette);
+        return { before: before, after: after, left: left,
+            undone: Object.keys(editDraft().cells).length };
+    });
+    check('“Remove tiles” clears them back to the room’s own tiles',
+        removed.after === removed.before - 2 && removed.left === 0, JSON.stringify(removed));
+    check('as one undo step on the existing stack',
+        removed.undone === removed.before, JSON.stringify(removed));
 
     // ── the Widgets tab / deco library ──────────────────────────────────────
     // Section 3 objects are vanilla's own deco widgets — gourds, pots, fire

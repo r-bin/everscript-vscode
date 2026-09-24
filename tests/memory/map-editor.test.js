@@ -584,7 +584,9 @@ const ui = new Function(`
   ${read('map-editor-phases.js')}
   ${read('map-editor-constructs.js')}
   ${read('map-editor-families.js')}
+  ${read('map-editor-relations.js') /* the undirected adjacency model, split out of chips in §8a */}
   ${read('map-editor-chips.js')}
+  ${read('map-editor-stranded.js') /* the invalid-family banner, §8a */}
   ${read('map-editor-tiles.js')}
   ${read('map-editor-special.js')}
   ${read('map-editor-trigger-select.js')}

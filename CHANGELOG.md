@@ -1,3 +1,43 @@
+## [0.58.0] — 2026-09-24
+
+### Map editor redesign, §8a: the Tile tab
+
+The tab the editor is actually used through. Restructured against the design
+mock rather than restyled — see `docs/map-editor-redesign-plan.md` §8a.
+
+- **The seven adopted families and the ~300 adoptable candidates are no longer
+  one interleaved list.** They are two groups now: a collapsed swatch strip or
+  an expanded 2-col card grid for what is in your palette, and a separate
+  `+ add a family` control for what is not. The mixed `× / +` list was the
+  single biggest source of noise in the panel.
+- **Both explanatory sentences are gone** ("7 of 7 slots used · full — remove
+  one to add another…" and "Clicking a tile makes a metatile from it and
+  adopts its family…"). The header now reads `TILE FAMILIES  7/7 active`;
+  every fact the prose carried survives as a tooltip, a count or a
+  placeholder.
+- **The invalid-family banner is finally where it is useful.**
+  `editStrandedCells()` — placed cells whose family is no longer loaded — was
+  one line buried in the Info tab's checks. It is now a banner at the top of
+  the Tile tab with its two real actions: re-adopt the family, or clear the
+  cells that need it (one undoable step, sharing the existing undo stack).
+- **New `H`/`V` mirror toggle.** Bit 14 is horizontal flip and bit 15
+  vertical (`docs/map-format/map_rendering_pipeline.md` §3), and
+  `renderVramLayer` already reads exactly those bits back per word — so
+  mirroring needs no second render path. A mirrored word costs a dictionary
+  entry but **no graphics slot**, which against a hard ceiling of seven
+  families makes it free art.
+- Layer override (`auto|front|ground`) rendered as one segmented pill. The
+  mock draws two segmented controls; only one axis exists in our data, so the
+  second was not manufactured to match the drawing.
+- `LIKELY NEIGHBORS` is now the mock's collapsible card. It stays a **ranked
+  list, not the mock's N/E/S/W plus-shape**: our adjacency model scores "drawn
+  beside", never "drawn above/below", and presenting it as compass directions
+  would invent a distinction we never measured. Directional adjacency is
+  computable and tracked as §8b.
+- Family group headers restructured from sentences into headers.
+- `map-editor-relations.js` split out of `map-editor-chips.js`;
+  `map-editor-stranded.js` and `map-editor-tile-tab.css` added.
+
 ## [0.57.0] — 2026-09-24
 
 ### Map editor redesign, phase 7b: the left rail

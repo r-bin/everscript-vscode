@@ -532,7 +532,69 @@ search, no footer action.
   cosmetic win. Also not built: the mock's `Widgets` rail mode, which
   belongs to the deferred Widget Editor Mode (§5.3), not to the rail.
 
-## 8. Ritual reminder
+## 8a. The Tile tab — **landed** (v0.58.0)
+
+The user's framing: *"work on the tiles tab. it is the focus point of this map
+editor."* Same §7 rule applied — restructure, don't restyle.
+
+**What was wrong:** the tab led with two explanatory sentences where the mock
+leads with a count; the seven adopted families and the ~300 adoptable
+candidates were **one interleaved list** (the `× / +` mix), which was most of
+why the panel read as noise; the layer override was three loose chips; the
+family group headers were sentences (`187 Prehistoria slot 2 · 9 graphics ·
+best match 62%`).
+
+**What landed:**
+- `TILE FAMILIES` / `7/7 active` header; both prose sentences deleted, every
+  fact they carried moved into tooltips, counts or placeholders.
+- Adopted families and candidates **split into two groups**, with a collapsed
+  swatch strip and an expanded 2-col card grid, plus an `+ add a family`
+  control.
+- The **invalid-family banner** promoted out of the Info tab's checks list,
+  where `editStrandedCells()` was only a single line, into the mock's banner
+  with its two real actions (re-adopt, or clear the stranded cells as one
+  undoable `editApply` step) — `map-editor-stranded.js`.
+- Segmented brush-modifier row: `auto|front|ground` (the existing
+  `_layerForce`) and a **new `H|V` mirror**.
+- `LIKELY NEIGHBORS` as the mock's collapsible card over the existing ranked
+  list.
+- Family group headers restructured from sentences into headers.
+- `map-editor-relations.js` split out of `map-editor-chips.js` (the
+  relationship model was tangled with the cards that read it).
+
+**Open questions, resolved:**
+- **H/V flip is real and correct.** Bit 14 is horizontal flip and bit 15
+  vertical (`docs/map-format/map_rendering_pipeline.md` §3); `renderVramLayer`
+  reads exactly those bits back per word, so a word this ORs them into renders
+  mirrored on canvas and in the composed preview with no second code path.
+  `building-a-room-from-a-picture.md` §9.1 ("priority and the two flips are
+  geometry, not identity") and §6 (the matcher's search space counts **4 flip
+  combinations** per graphic) confirm the format treats a mirrored tile as a
+  legal variant of the same art. It costs a dictionary entry but **no**
+  graphics slot — mirroring is free art against a 7-family ceiling, which is
+  the whole reason it is worth having.
+- **The mock's two segmented controls did not both map onto us.** Its
+  `Auto|All` + `All|BG|FG` split has no second real axis in our data; we have
+  one (`_layerForce`). Rendered as one segmented pill rather than
+  manufacturing a second control to match the drawing.
+
+### 8b — directional neighbours (open fork, not built)
+
+The mock's `LIKELY NEIGHBORS` is a **plus-shape**: centre tile, N/E/S/W
+candidates. Our adjacency model is **undirected** — `relatedTiles()`
+(`rendering/vanilla-index.js`) returns `[graphic, score, uses]` scoring "drawn
+beside", with no per-direction breakdown. Rendering compass points over it
+would fabricate a distinction we never measured, which is the same mistake
+§5.1 caught with "stairs".
+
+Unlike stairs, though, this **is** computable: the vanilla index already walks
+every room's grid, so counting pairs into four direction buckets is a data-
+model extension rather than an invention. That would make the plus-shape real
+and is the feature that makes tile painting fast (it is the autotiling idea).
+It is a genuine task in `src/maps/` — read the `map-format` skill first — and
+wants its own session.
+
+## 9. Ritual reminder
 
 One prompt = one commit. This plan spans multiple prompts/sessions by design
 — do not attempt phases 0–6 in a single sitting. Each phase ends with its own

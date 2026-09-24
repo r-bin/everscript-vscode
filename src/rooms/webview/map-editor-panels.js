@@ -13,7 +13,9 @@
 //
 // Owns: _panelOpen.
 
-var _panelOpen = { families: true, tiles: true, needed: false, errors: true, compose: false };
+var _panelOpen = {
+  families: true, neighbours: true, needed: false, errors: true, compose: false,
+};
 
 /** A collapsible section, so four panels fit in one sidebar. */
 function panel(key, title, body, note) {
@@ -91,7 +93,8 @@ function editErrors(p) {
   var stranded = typeof editStrandedCells === 'function' ? editStrandedCells() : [];
   if (stranded.length) {
     out.push(['hard', stranded.length + ' placed cell' + (stranded.length === 1 ? '' : 's')
-      + ' use a family that is no longer loaded — add it back to a slot, or replace them']);
+      + ' use a family that is no longer loaded — the Tile tab’s banner can put it '
+      + 'back or clear them']);
   }
   return out;
 }
@@ -106,14 +109,26 @@ function errorsPanel(p) {
   return html;
 }
 
-/** Tile tab: families, tiles, new metatiles, compose & constructs. */
+/**
+ * Tile tab, top to bottom: anything broken, the palette's seven families,
+ * the two brush modifiers, what goes next to what, then the tiles.
+ *
+ * Phase 8a (docs/map-editor-redesign-plan.md §8a) unwrapped the tile groups
+ * from their own `panel()`: the per-family headers are the structure, and a
+ * collapsible box titled "tiles" around the tab's whole reason for existing
+ * was chrome with nothing to say. `_panelOpen.tiles` is gone with it. The
+ * families section draws its own header (it has two states, and `panel()`
+ * renders nothing at all when shut), so it keeps `data-panel="families"`
+ * without using `panel()`.
+ */
 function tileTabHtml(p) {
   var need = editNeededStamps(p);
-  var chosen = editFamilies().filter(function (f) { return f !== undefined; });
-  var picked = Object.keys(_chipSel).length;
-  return panel('families', 'tile families', familyChipsHtml(), chosen.length + ' of 7')
-    + panel('tiles', 'tiles', tilesPanel(p),
-      picked ? picked + ' famil' + (picked === 1 ? 'y' : 'ies') + ' selected' : 'all')
+  ensureRelated();
+  return strandedBannersHtml()
+    + familiesSectionHtml()
+    + tileFilterRowHtml()
+    + neighbourCardHtml()
+    + tilesPanel()
     + panel('needed', 'new metatiles', neededPanel(p),
       need.added.length ? need.added.length + ' needed' : 'none')
     + panel('compose', 'compose & constructs', '<div id="rg-compose"></div>',

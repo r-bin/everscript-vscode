@@ -71,12 +71,28 @@ function editSetFamily(slot, family) {
   if (slot < 0 || slot > 6) return;
   while (fams.length <= slot) fams.push(undefined);
   fams[slot] = family;
+  delete editDroppedFamilies()[slot];
   ensureFamilySheet(family);
 }
 
 function editClearFamily(slot) {
   var fams = editFamilies();
-  if (slot >= 0 && slot < fams.length) fams[slot] = undefined;
+  if (slot >= 0 && slot < fams.length) {
+    // Remembered before it goes, because a tilemap word records the palette
+    // *slot*, never the family in it — so a cell left behind can say which
+    // slot it needs and nothing else. Without this the invalid-family banner
+    // could offer "remove these tiles" and never "put it back".
+    if (fams[slot] !== undefined) editDroppedFamilies()[slot] = fams[slot];
+    fams[slot] = undefined;
+  }
+}
+
+/** slot -> the family that used to be there, for as long as the slot is empty. */
+function editDroppedFamilies() {
+  var d = editDraft();
+  if (!d) return {};
+  if (!d.droppedFamilies) d.droppedFamilies = {};
+  return d.droppedFamilies;
 }
 
 /**
@@ -123,8 +139,11 @@ function editUseFamilyTile(graphicId, family) {
 
   var slot = editAdoptGraphic(_mtPalette, graphicId);
   if (slot < 0) { editNote('no tile sheet loaded yet'); return; }
-  // The palette field is 1..7 and matches the slot the family sits in.
-  var word = (editSlotChr(slot) | ((got.slot + 1) << 10)) & 0xffff;
+  // The palette field is 1..7 and matches the slot the family sits in; the
+  // two mirror bits ride along on top of it (map-editor-tiles.js's
+  // `_brushFlip` — geometry, not identity, so the word still names this
+  // graphic in this family).
+  var word = (editSlotChr(slot) | ((got.slot + 1) << 10) | editBrushFlipBits()) & 0xffff;
   var prefer = _layerForce || editLayerPreference(graphicId);
   var index = editBrushFromTile(_mtPalette, word, d.phase, prefer);
 
@@ -134,7 +153,9 @@ function editUseFamilyTile(graphicId, family) {
   _mtSlot = -1;
   editArmBrush();
 
+  var flip = (_brushFlip.h ? 'H' : '') + (_brushFlip.v ? 'V' : '');
   editNote('brush: graphic ' + graphicId + ' in family ' + family
+    + (flip ? ' mirrored ' + flip : '')
     + (got.added ? ' (family added to slot ' + (got.slot + 1) + ')' : '')
     + ' — stamp #' + index
     + (prefer === 'canopy' ? ', drawn over what it is painted on'
@@ -175,17 +196,39 @@ var _famLayerHint = {};
  * than letting the canvas and the ROM disagree.
  */
 function editStrandedCells() {
+  return editStrandedGroups().reduce(function (all, g) { return all.concat(g.cells); }, []);
+}
+
+/**
+ * The same cells, grouped by the empty slot they name.
+ *
+ * `[{slot, family, cells}]`, ordered by slot. `family` is what used to be in
+ * that slot (editDroppedFamilies) or `undefined` if this draft never saw it
+ * leave — the Tile tab's banner needs the family id to offer a restore, and
+ * the *slot* is what the cells actually name, so the restore has to go back
+ * into that exact slot to fix anything. See map-editor-stranded.js.
+ *
+ * Flip bits (14/15) and the priority bit never move the palette field, so
+ * a mirrored word is grouped exactly like an unmirrored one.
+ */
+function editStrandedGroups() {
   var d = editDraft();
   if (!d || !_mtPalette) return [];
   var fams = editFamilies();
-  var out = [];
-  Object.keys(d.cells).forEach(function (key) {
+  var dropped = editDroppedFamilies();
+  var bySlot = {};
+  Object.keys(d.cells).sort().forEach(function (key) {
     var w = editStampWords(_mtPalette, d.cells[key]);
     if (!w) return;
     for (var i = 0; i < 2; i++) {
       var pal = ((i ? w.layer2 : w.layer1) >> 10) & 0x07;
-      if (pal >= 1 && fams[pal - 1] === undefined) { out.push(key); return; }
+      if (pal >= 1 && fams[pal - 1] === undefined) {
+        if (!bySlot[pal - 1]) bySlot[pal - 1] = [];
+        bySlot[pal - 1].push(key);
+        return;
+      }
     }
   });
-  return out;
+  return Object.keys(bySlot).map(Number).sort(function (a, b) { return a - b; })
+    .map(function (slot) { return { slot: slot, family: dropped[slot], cells: bySlot[slot] }; });
 }

@@ -1,0 +1,250 @@
+/* Ownership: the Tile tab's chrome — the TILE FAMILIES section (both of its
+ * states), the invalid-family banner, the two segmented brush modifiers, the
+ * LIKELY NEIGHBORS card, and the family-group headers over the tile grid.
+ *
+ * Its own file rather than more rules in map-editor-theme.css (198 lines,
+ * and it owns four *other* tabs' chrome) or map-editor-canvas.css (395 — §7a
+ * said the next rule added there triggers a split, so none were). Tokens are
+ * declared in theme.css, which is concatenated first by
+ * src/memory/webview/index.js; nothing here declares a value of its own.
+ *
+ * Scoped under `.rg-theme` like everything else in this column, so the
+ * memory/scaling/docs/route tabs cannot see any of it. The tile swatches
+ * themselves are still shared.css's `.rs-mt-sheet`/`.rs-mt-cell` (one image,
+ * one <i> per graphic, integer 2x scale) — only spacing and the rings are
+ * restated here, and only inside `.rg-group-sheet`.
+ *
+ * See docs/map-editor-redesign-plan.md §8a.
+ */
+
+/* ── A section header: name left, count right, caret to fold ──────────────
+ * Shared by the families section and the neighbours card. Both carry
+ * `data-panel`, so `_panelOpen` and the one delegated click handler drive
+ * them; `panel()` itself is not used because both draw something when shut. */
+.rg-theme .rg-sec-h{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-bottom:8px;
+  font-family:var(--rg-font-ui);
+  font-size:11px;
+  font-weight:500;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+  color:var(--rg-text-muted);
+  cursor:pointer;
+  user-select:none;
+}
+.rg-theme .rg-sec-h:hover{color:var(--rg-text-secondary)}
+.rg-theme .rg-sec-count{
+  margin-left:auto;
+  font-family:var(--rg-font-mono);
+  font-weight:400;
+  letter-spacing:0;
+  text-transform:none;
+}
+.rg-theme .rg-sec-count.full{color:var(--rg-warning)}
+
+/* ── Families, collapsed: seven slots, art plus what each one buys ──────── */
+.rg-theme .rg-fam-sec{margin-bottom:12px}
+.rg-theme .rg-fam-strip{display:flex;flex-wrap:wrap;gap:4px}
+.rg-theme .rg-fam-slot{
+  position:relative;
+  width:34px;
+  height:22px;
+  padding:0;
+  border:1px solid var(--rg-border);
+  border-radius:6px;
+  background:var(--rg-bg-float);
+  color:var(--rg-text-muted);
+  font:inherit;
+  font-size:11px;
+  line-height:20px;
+  cursor:pointer;
+  overflow:hidden;
+}
+.rg-theme .rg-fam-slot.sel{border-color:var(--rg-accent);box-shadow:0 0 0 1px var(--rg-accent)}
+.rg-theme .rg-fam-slot.empty{border-style:dashed;background:transparent}
+.rg-theme .rg-fam-slot.empty:hover{color:var(--rg-accent);border-color:var(--rg-accent)}
+.rg-theme .rg-fam-slot .rg-chip-art{width:32px;height:16px;margin:2px 0 0}
+.rg-theme .rg-fam-slot .rg-fam-n{
+  position:absolute;
+  right:1px;
+  bottom:0;
+  font-family:var(--rg-font-mono);
+  font-size:8px;
+  line-height:1;
+  color:rgba(255,255,255,.9);
+  text-shadow:0 1px 2px rgba(0,0,0,.8);
+}
+
+/* ── Families, expanded: two columns of cards ───────────────────────────── */
+.rg-theme .rg-fam-grid{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:6px;
+}
+.rg-theme .rg-fam-card{
+  position:relative;
+  border:1px solid var(--rg-border);
+  border-radius:9px;
+  background:var(--rg-bg-float);
+  overflow:hidden;
+}
+.rg-theme .rg-fam-card.sel{border-color:var(--rg-accent);background:var(--rg-accent-soft)}
+.rg-theme .rg-fam-body{
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  width:100%;
+  padding:7px 8px;
+  border:none;
+  background:none;
+  color:inherit;
+  font-family:var(--rg-font-ui);
+  text-align:left;
+  cursor:pointer;
+}
+.rg-theme .rg-fam-body .rg-chip-art{width:32px;height:16px;border-radius:4px}
+.rg-theme .rg-fam-meta{display:flex;align-items:baseline;justify-content:space-between;gap:6px}
+.rg-theme .rg-fam-meta b{
+  font-family:var(--rg-font-mono);font-size:12px;font-weight:500;color:var(--rg-text-primary);
+}
+.rg-theme .rg-fam-n{font-family:var(--rg-font-mono);font-size:10px;color:var(--rg-text-muted)}
+.rg-theme .rg-fam-where{
+  font-size:10px;color:var(--rg-text-muted);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.rg-theme .rg-fam-x{
+  position:absolute;top:3px;right:3px;
+  width:17px;height:17px;padding:0;
+  border:none;border-radius:5px;background:transparent;
+  color:var(--rg-text-muted);font:inherit;font-size:12px;line-height:17px;cursor:pointer;
+}
+.rg-theme .rg-fam-x:hover{background:oklch(68% 0.17 25 / .2);color:var(--rg-error)}
+.rg-theme .rg-fam-plus:hover{background:oklch(68% 0.14 150 / .2);color:var(--rg-success)}
+
+/* ── The candidates, behind a disclosure (the mock's addFamilyBtn/addMenu) ─ */
+.rg-theme .rg-fam-add{
+  width:100%;
+  margin-top:6px;
+  padding:8px;
+  border:1px solid var(--rg-border);
+  border-radius:9px;
+  background:transparent;
+  color:var(--rg-text-muted);
+  font-family:var(--rg-font-ui);
+  font-size:11px;
+  cursor:pointer;
+}
+.rg-theme .rg-fam-add:hover{color:var(--rg-text-secondary);border-color:var(--rg-border-strong)}
+.rg-theme .rg-fam-add.on{background:var(--rg-accent-soft);border-color:var(--rg-accent);color:var(--rg-accent)}
+.rg-theme .rg-fam-add .rg-fam-n{margin-left:4px}
+.rg-theme .rg-fam-menu{
+  margin-top:4px;padding:6px;
+  border:1px solid var(--rg-border);border-radius:9px;background:var(--rg-bg-float);
+}
+.rg-theme .rg-fam-menu .rg-fam-filter{
+  margin:0 0 6px;padding:6px 8px;
+  border:1px solid var(--rg-border);border-radius:7px;
+  background:var(--rg-bg-hover);color:var(--rg-text-primary);
+  font-family:var(--rg-font-ui);font-size:11px;
+}
+.rg-theme .rg-fam-note{font-size:10px;line-height:1.5;color:var(--rg-text-muted);padding:2px 2px 6px}
+.rg-theme .rg-fam-more{
+  display:block;width:100%;margin-top:6px;padding:5px;
+  border:1px solid var(--rg-border);border-radius:7px;background:transparent;
+  color:var(--rg-text-muted);font-family:var(--rg-font-ui);font-size:10px;cursor:pointer;
+}
+.rg-theme .rg-fam-more:hover{color:var(--rg-text-secondary)}
+.rg-theme .rg-fam-clear{
+  display:block;margin-top:6px;padding:0;
+  border:none;background:none;color:var(--rg-accent);
+  font-family:var(--rg-font-ui);font-size:11px;cursor:pointer;
+}
+
+/* ── The invalid-family banner (the mock's invalidFamilyBanners) ─────────── */
+.rg-theme .rg-banner{
+  margin-bottom:10px;padding:9px 11px;
+  border:1px solid var(--rg-error);border-radius:8px;
+  background:oklch(68% 0.17 25 / .14);
+  font-family:var(--rg-font-ui);
+}
+.rg-theme .rg-banner-t{font-size:11px;line-height:1.5;color:var(--rg-text-primary);margin-bottom:7px}
+.rg-theme .rg-banner-a{display:flex;gap:14px}
+.rg-theme .rg-banner-b{
+  border:none;background:none;padding:0;cursor:pointer;
+  font-family:var(--rg-font-ui);font-size:11px;font-weight:500;color:var(--rg-accent);
+}
+.rg-theme .rg-banner-b.muted{font-weight:400;color:var(--rg-text-muted)}
+.rg-theme .rg-banner-b:hover{text-decoration:underline}
+
+/* ── The two segmented brush modifiers (the mock's filterSegStyle) ───────── */
+.rg-theme .rg-tile-seg-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:10px}
+.rg-theme .rg-tile-seg{
+  display:flex;padding:2px;
+  border:1px solid var(--rg-border);border-radius:7px;background:var(--rg-bg-hover);
+}
+.rg-theme .rg-tile-seg-b{
+  border:none;border-radius:5px;background:transparent;
+  padding:3px 9px;cursor:pointer;
+  font-family:var(--rg-font-ui);font-size:10px;font-weight:500;color:var(--rg-text-muted);
+  transition:background 140ms ease-out;
+}
+.rg-theme .rg-tile-seg-b:hover{color:var(--rg-text-secondary)}
+.rg-theme .rg-tile-seg-b.on{background:var(--rg-accent-soft);color:var(--rg-accent)}
+
+/* ── LIKELY NEIGHBORS: the mock's card, our undirected ranked list ───────── */
+.rg-theme .rg-nb-card{
+  margin-bottom:10px;padding:9px 10px;
+  border:1px solid var(--rg-border);border-radius:10px;background:var(--rg-bg-float);
+}
+.rg-theme .rg-nb-card .rg-sec-h{margin-bottom:0}
+.rg-theme .rg-nb-grid{display:flex;flex-wrap:wrap;gap:4px;margin-top:9px}
+.rg-theme .rg-nb{
+  display:inline-flex;align-items:baseline;gap:4px;
+  padding:2px 6px;border:1px solid var(--rg-border);border-radius:6px;
+  background:transparent;cursor:pointer;font-family:var(--rg-font-mono);font-size:9px;
+  color:var(--rg-text-secondary);
+}
+.rg-theme .rg-nb:hover{border-color:var(--rg-accent)}
+.rg-theme .rg-nb b{font-weight:500;color:var(--rg-accent)}
+.rg-theme .rg-nb-g{color:var(--rg-text-muted)}
+.rg-theme .rg-nb.rg-unknown{opacity:.55}
+
+/* ── A family group: a header, then its art ──────────────────────────────── */
+.rg-theme .rg-tile-group{margin-bottom:14px}
+.rg-theme .rg-group-h{
+  display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:nowrap;
+  font-family:var(--rg-font-ui);
+}
+.rg-theme .rg-group-name{
+  font-family:var(--rg-font-mono);font-size:12px;font-weight:500;color:var(--rg-text-primary);
+}
+.rg-theme .rg-group-where{
+  min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--rg-text-muted);
+}
+.rg-theme .rg-group-slot{
+  flex-shrink:0;padding:0 4px;border:1px solid var(--rg-border);border-radius:4px;
+  font-family:var(--rg-font-mono);font-size:8px;line-height:13px;color:var(--rg-text-muted);
+}
+.rg-theme .rg-group-slot.off{border-style:dashed}
+.rg-theme .rg-group-match{
+  flex-shrink:0;font-family:var(--rg-font-mono);font-size:9px;color:var(--rg-accent);
+}
+.rg-theme .rg-group-count{
+  margin-left:auto;flex-shrink:0;
+  font-family:var(--rg-font-mono);font-size:10px;color:var(--rg-text-muted);
+}
+/* Roomier than the palette's flush grid — these are swatches you choose art
+   from, not a dictionary read-out. The cells keep shared.css's integer 2x
+   scale (16px art, 32px on screen); only the gutters and the rings change. */
+.rg-theme .rg-group-sheet{
+  max-height:none;overflow:visible;padding:4px;
+  border:1px solid var(--rg-border);border-radius:8px;background:transparent;
+}
+.rg-theme .rg-group-sheet .rs-mt-grid{gap:4px}
+.rg-theme .rg-group-sheet .rs-mt-cell{border-radius:2px;outline-color:var(--rg-border)}
+.rg-theme .rg-group-sheet .rs-mt-cell:hover{outline:1px solid var(--rg-accent)}
+.rg-theme .rg-group-sheet .rs-mt-cell.sel{outline:2px solid var(--rg-accent)}
