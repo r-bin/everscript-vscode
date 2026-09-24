@@ -135,8 +135,14 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   of `map-editor.js` once Phase 4's trigger-selection undo support pushed it
   toward 400 lines; still DOM-free, still reads/writes `_edit` through
   `editDraft()` rather than owning it
-- `map-editor-phases.js` — what a room stroke, a deco stroke and the eraser each
-  write; no state of its own
+- `map-editor-phases.js` — what a paint stroke and the eraser each write; no
+  state of its own. Through v0.58.1 this held the `room`/`deco` phase toggle;
+  §8a.2 dropped it — `editResolve` now derives "is this a decoration?" from
+  the *brush's* own composed words when painting (blank canopy = ground,
+  replace outright; real canopy = decoration, preserve the terrain) and
+  "is there anything to erase?" from the *cell's* own words when erasing
+  (unconditionally now, not gated on a phase — a real usability fix, not
+  just a simplification)
 - `map-editor-constructs.js` — saving and stamping a rectangle, in the portable
   `{graphic, family, flags}` form a word cannot travel in; no state of its own
 - `map-editor-families.js` — the seven palette slots, the family catalogue and
@@ -207,18 +213,18 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   `_editCompose` / `_editConstruct`. The tool bar left in Phase 7a — see
   `map-editor-toolbar.js`
 - `map-editor-toolbar.js` — the floating tool pill above the canvas card:
-  `EDIT_TOOLS` / `EDIT_PHASES` / their icons, and the `⋯` overflow
-  (`EDIT_OVERFLOW_ACTS`: discard, copy draft, new room — which **stays**
-  here: Phase 7b found it is a different action from the rail's `+ New Map`,
-  borrowing the open room's graphics behind an inline w/h form rather than
-  being the project-level, works-with-nothing-open entry point). Icon-only,
-  one row, grouped by
-  dividers; the `room`/`deco` phase pair keeps its words because they name a
-  real documented concept (`editResolve`), not a label to reskin. Owns no
-  state and binds no listener: clicks reach `editAction` through
-  map-editor-input.js's one delegated handler. The mock's `S`/`B`/`◆` pill
-  buttons are **deliberately absent** — no trigger-draft or collision-brush
-  tool exists here, and a dead control is worse than an honest gap
+  `EDIT_TOOLS` / their icons, and the `⋯` overflow (`EDIT_OVERFLOW_ACTS`:
+  discard, copy draft, new room — which **stays** here: Phase 7b found it is
+  a different action from the rail's `+ New Map`, borrowing the open room's
+  graphics behind an inline w/h form rather than being the project-level,
+  works-with-nothing-open entry point). Icon-only, one row, grouped by
+  dividers. The `room`/`deco` phase pair that used to sit here is gone as of
+  §8a.2 — layer targeting is the Tile tab's own `auto|front|ground` row
+  (`_layerForce`), not a second control the pill needs. Owns no state and
+  binds no listener: clicks reach `editAction` through map-editor-input.js's
+  one delegated handler. The mock's `S`/`B`/`◆` pill buttons are
+  **deliberately absent** — no trigger-draft or collision-brush tool exists
+  here, and a dead control is worse than an honest gap
 - `map-editor-filterbar.js` — the canvas column's two docked bars: the view
   filter bar (`buildViewFilterBarHtml`) and the status bar
   (`buildStatusBarHtml` + `setupStatusBar`). Owns the *arrangement* the design

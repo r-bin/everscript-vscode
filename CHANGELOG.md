@@ -1,3 +1,28 @@
+## [0.59.0] — 2026-09-24
+
+### Map editor §8a.2: four things the Tile tab did not need
+
+All four from using the real tool, not from the mock.
+
+- **The "new metatiles" list and the hand-composer are gone from the Tile
+  tab.** "They are calculated dynamically/implicitly" — and they are: the
+  machinery is untouched, `editAddStamp` still invents a stamp the instant a
+  stroke needs one. Only the panels that surfaced that by hand are removed.
+- **H/V now flip the visible swatch,** not just the exported word. The bits
+  were always right; nothing mirrored what you were looking at, so the toggle
+  changed what you'd paint without changing what you saw.
+- **The room/deco phase toggle is gone.** Both of its jobs were already
+  implied by data we had: a brush composed as "front" always carries real art
+  in its canopy word with a blank terrain, and a "ground" brush the exact
+  opposite — so "is this a decoration or a floor tile" is readable off the
+  brush itself. `editResolve` derives it from the brush when painting and
+  from the cell when erasing. **Erase is the real winner**: it used to be a
+  flat no-op unless you remembered to switch to deco phase first, and now it
+  just works on whatever is under the cursor.
+- **"Add a family" is gone.** Clicking any tile from an unadopted family
+  already pulls that family in behind it, which is exactly what made an
+  explicit browse-by-id control redundant.
+
 ## [0.58.1] — 2026-09-24
 
 ### Fix: two real bugs from trying the Tile tab

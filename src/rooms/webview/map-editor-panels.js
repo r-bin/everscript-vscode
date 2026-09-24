@@ -14,7 +14,7 @@
 // Owns: _panelOpen.
 
 var _panelOpen = {
-  families: true, neighbours: true, needed: false, errors: true, compose: false,
+  families: true, neighbours: true, errors: true,
 };
 
 /** A collapsible section, so four panels fit in one sidebar. */
@@ -27,31 +27,6 @@ function panel(key, title, body, note) {
     + '</div>'
     + (on ? '<div class="rg-panel-b">' + body + '</div>' : '')
     + '</div>';
-}
-
-/**
- * What the draft would add to Block 3.
- *
- * Every stamp here is one the room does not already have, so the count is
- * the real cost of the edit — and it is why placing the same construct
- * twice is free.
- */
-function neededPanel(p) {
-  var need = editNeededStamps(p);
-  if (!need.added.length) {
-    return '<div class="rs-note">Nothing new yet. Painting with the room’s own stamps '
-      + 'costs no dictionary space at all.</div>';
-  }
-  var html = '<div class="rs-note">' + need.added.length + ' new stamp'
-    + (need.added.length === 1 ? '' : 's') + ', ' + need.bytes + ' bytes of the '
-    + 'grid-plus-dictionary window</div><div class="rg-need-list">';
-  for (var i = 0; i < need.added.length; i++) {
-    var a = need.added[i];
-    html += '<div class="rg-need"><b>#' + a.index + '</b> '
-      + 'canopy $' + hex4(a.layer1) + ' · terrain $' + hex4(a.layer2)
-      + ' · collision $' + hex4(a.collision) + '</div>';
-  }
-  return html + '</div>';
 }
 
 /**
@@ -120,19 +95,22 @@ function errorsPanel(p) {
  * families section draws its own header (it has two states, and `panel()`
  * renders nothing at all when shut), so it keeps `data-panel="families"`
  * without using `panel()`.
+ *
+ * §8a.2 dropped the "new metatiles" read-out and the "compose & constructs"
+ * panel: a composed stamp is calculated dynamically the moment a paint
+ * stroke needs one (`editAddStamp`'s find-or-create in editResolve), so a
+ * manual list of them and a by-hand composer were surfacing internals the
+ * user never asked to see. `editSaveConstruct`/`editConstructWrites` and the
+ * stamp tool that places a saved construct are untouched — only this tab's
+ * explicit browse/compose UI is gone.
  */
 function tileTabHtml(p) {
-  var need = editNeededStamps(p);
   ensureRelated();
   return strandedBannersHtml()
     + familiesSectionHtml()
     + tileFilterRowHtml()
     + neighbourCardHtml()
-    + tilesPanel()
-    + panel('needed', 'new metatiles', neededPanel(p),
-      need.added.length ? need.added.length + ' needed' : 'none')
-    + panel('compose', 'compose & constructs', '<div id="rg-compose"></div>',
-      (editDraft() && editDraft().constructs.length) ? editDraft().constructs.length + ' saved' : '');
+    + tilesPanel();
 }
 
 /** Info tab: the budget bars, the trigger counts, then the encoding checks. */
@@ -177,13 +155,17 @@ function renderEditPanels() {
     body = tileTabHtml(p);
   }
   host.innerHTML = buildEditTabStripHtml() + '<div class="rg-tab-body" id="rg-tab-body">' + body + '</div>';
-  if (_editActiveTab === 'tile' && p && _panelOpen.compose !== false) renderComposer();
+  // §8a.2 removed the Tile tab's "compose & constructs" panel and the
+  // `#rg-compose` host it rendered into, so there is nothing left to
+  // refresh here — renderComposer() (map-editor-input.js) is only reached
+  // now from the composer's own actions (map-editor-actions.js), which have
+  // no button left to trigger them either; see the plan doc §8a.2 item 1.
   if (_editActiveTab !== 'tile' && _editActiveTab !== 'widgets') return;
   // The filter keeps focus across the redraw it causes, or typing a second
-  // character would put the caret back at the start. `rg-chip-filter` only
-  // exists on the Tile tab and `rg-deco-filter` only on Widgets — whichever
-  // one is not on screen is simply not found, and the pair is skipped.
-  [['rg-chip-filter', _chipFilter], ['rg-deco-filter', _decoFilter]].forEach(function (pair) {
+  // character would put the caret back at the start. Only the Widgets search
+  // is left since §8a.2 removed the Tile tab's family filter; it is simply
+  // not found when that tab is not on screen, and the pair is skipped.
+  [['rg-deco-filter', _decoFilter]].forEach(function (pair) {
     var el = document.getElementById(pair[0]);
     if (el && pair[1] && el.value === pair[1] && document.activeElement !== el) {
       el.focus();

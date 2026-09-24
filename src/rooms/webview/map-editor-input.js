@@ -49,13 +49,16 @@ function editOnTilePicked(word) {
     return true;
   }
 
-  var index = editBrushFromTile(_mtPalette, word, d.phase);
+  // No `prefer` passed: a raw graphic picked here carries no vanilla layer
+  // hint of its own (that comes from a family sheet — map-editor-families.js),
+  // so this always lands as ground, per editBrushFromTile's documented
+  // default for a genuinely unknown pick (§8a.2 — no phase to break the tie
+  // with any more).
+  var index = editBrushFromTile(_mtPalette, word);
   if (index < 0) return false;
   _brushTile = null;   // the room's own sheet marks its selection with _mtSlot
   editArmBrush();
-  editNote('brush: stamp #' + index + ' — '
-    + (d.phase === 'deco' ? 'drawn over whatever it is painted on' : 'ground, nothing over it')
-    + ', no collision yet. Paint on the map.');
+  editNote('brush: stamp #' + index + ' — ground, nothing over it, no collision yet. Paint on the map.');
   if (index >= _mtPalette.count) requestComposedPreview();
   renderEditChrome();
   return true;
@@ -93,9 +96,9 @@ function renderComposer() {
  * was empty, and the panel silently refused to open — proven in a real
  * browser before this walk-up existed.
  */
-var EDIT_CLICK_KEYS = ['editTool', 'editPhase', 'editAct', 'editPick', 'panel',
-  'famTile', 'construct', 'chip', 'chipDrop', 'chipAdopt', 'chipMore', 'tileMore',
-  'famAdd', 'brushFlip', 'strandedFix', 'strandedDrop',
+var EDIT_CLICK_KEYS = ['editTool', 'editAct', 'editPick', 'panel',
+  'famTile', 'construct', 'chip', 'chipDrop', 'chipAdopt', 'tileMore',
+  'brushFlip', 'strandedFix', 'strandedDrop',
   'layerForce', 'deco', 'decoPage', 'decoFlag', 'mtIndex', 'mtSlot', 'editActiveTab',
   'editSpecial', 'editSpecialMenu', 'editTriggerMenu', 'editObjectsMenu', 'editMoreMenu',
   'editToolMenu', 'triggerRef', 'triggerRemove'];
@@ -154,16 +157,11 @@ function bindEditControls(panel, room) {
   if (!panel || panel.dataset.editBound) return;
   panel.dataset.editBound = '1';
 
-  // The family filter is the one text input in the editor. Delegated on
-  // `input` so it survives the redraws it causes.
+  // The Widgets search is the one text input left in the editor — the Tile
+  // tab's family filter went with the add-a-family disclosure (§8a.2).
+  // Delegated on `input` so it survives the redraws it causes.
   panel.addEventListener('input', function (e) {
     if (!e.target) return;
-    if (e.target.id === 'rg-chip-filter') {
-      _chipFilter = e.target.value;
-      _chipPage = CHIP_PAGE;   // a new filter starts at the top of its own list
-      renderEditPanels();
-      return;
-    }
     if (e.target.id === 'rg-deco-filter') {
       _decoFilter = e.target.value;
       _decoPage = 0;
@@ -225,17 +223,6 @@ function bindEditControls(panel, room) {
       triggerDeleteSelected();
       return;
     }
-    if (t.dataset.editPhase) {
-      var dp = editDraft();
-      if (dp) {
-        dp.phase = t.dataset.editPhase;
-        // Erase has no meaning while laying the room out, so leaving deco
-        // with it selected would arm a tool that does nothing.
-        if (dp.phase !== 'deco' && dp.tool === 'erase') dp.tool = 'paint';
-        renderEditChrome();
-      }
-      return;
-    }
     if (t.dataset.panel) {
       _panelOpen[t.dataset.panel] = _panelOpen[t.dataset.panel] === false;
       renderEditPanels();
@@ -252,16 +239,7 @@ function bindEditControls(panel, room) {
       return;
     }
     if (t.dataset.chipAdopt) { chipAdopt(t.dataset.chipAdopt); return; }
-    if (t.dataset.chipMore) { _chipPage += CHIP_PAGE; renderEditPanels(); return; }
     if (t.dataset.tileMore) { _tileGroupPage += TILE_GROUP_PAGE; renderEditPanels(); return; }
-    if (t.dataset.famAdd) {
-      // An empty slot in the collapsed strip opens the same disclosure, so
-      // it is never a dead square.
-      _famAddOpen = !_famAddOpen;
-      if (_famAddOpen) _panelOpen.families = true;
-      renderEditPanels();
-      return;
-    }
     if (t.dataset.brushFlip) { brushFlipToggle(t.dataset.brushFlip); return; }
     if (t.dataset.strandedFix) { strandedFix(t.dataset.strandedFix); return; }
     if (t.dataset.strandedDrop) { strandedDrop(t.dataset.strandedDrop); return; }

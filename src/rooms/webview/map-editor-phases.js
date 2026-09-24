@@ -1,10 +1,28 @@
-// Ownership: layer phases — what a stroke actually writes, and what the
-// eraser puts back.
+// Ownership: what a stroke actually writes, and what the eraser puts back.
 //
-// Split out of map-editor.js to keep it under the 400-line limit. This is
-// the whole of "first draw the room, then fill it with deco": the two
-// phases write different words, and the eraser derives what bare floor
-// looks like from the room rather than assuming it.
+// Split out of map-editor.js to keep it under the 400-line limit. Through
+// v0.58.1 this file also owned the `room`/`deco` phase toggle — a manual
+// mode that decided whether a stroke replaced a cell outright or preserved
+// its terrain. §8a.2 (docs/map-editor-redesign-plan.md) removed the toggle:
+// "the side panel selection should dictate if it is being drawn in the
+// fg/bg" — both of what the toggle used to decide are already implied by
+// real signals a brush and a cell already carry, so a third, independently
+// settable flag was redundant with them and could disagree with what was
+// actually about to be painted.
+//
+// - **Painting** reads the *brush's own* composed shape: a stamp with real
+//   art in its canopy word (`layer1`) and a blank terrain word is a "front"
+//   pick (map-editor-stamps.js's `editBrushFromTile`), which is exactly what
+//   the old `deco` phase meant — decorate, keep the floor. A stamp with the
+//   opposite shape is a "ground" pick, the old `room` phase's meaning —
+//   replace the cell outright. There is no third shape a freshly composed
+//   brush can have, so this reads the intent losslessly.
+// - **Erasing** reads the *cell's own* current shape instead: if its canopy
+//   is already blank there is nothing to erase (true under the old `room`
+//   phase too, since erasing there was always a no-op). If it carries real
+//   art, erase it — unconditionally now, which is a real usability fix: the
+//   old `room` phase made `erase` a no-op regardless of the cell underneath,
+//   so removing a decoration required remembering to flip to `deco` first.
 //
 // See docs/map-format/building-a-room-from-a-picture.md §8.
 
@@ -58,31 +76,43 @@ function editFloorCollisionFor(palette, layer2Word) {
 /**
  * The stamp a stroke should write at this cell.
  *
- * This is where the phase split lives, and it is the whole of the "first
- * draw the room, then fill it with deco" model:
+ * No phase argument as of §8a.2 — see the file header. Painting derives
+ * "is this a decoration?" from the *brush's own* words; erasing derives
+ * "is there anything to erase?" from the *cell's own* words. It is still the
+ * "first draw the room, then fill it with deco" model, just read off the
+ * data that already carries it instead of a separately settable flag:
  *
- * - **room**: the brush wins outright. All three words are replaced, which
- *   is what laying out a floor or a wall means.
- * - **deco**: the brush supplies the canopy and the collision, the cell
- *   keeps its terrain. Putting a gourd on a floor must not replace the
- *   floor — in room 0x34 the decorations are canopy words over an unchanged
- *   terrain word, which is exactly this operation.
- * - **erase** (deco): the canopy goes back to blank and the collision goes
- *   back to whatever the room does on bare ground of that terrain.
+ * - **paint, ground-composed brush** (blank canopy, real terrain — a "put
+ *   this on the ground" pick): wins outright, all three words replaced. This
+ *   is what laying out a floor or wall means, and what the old `room` phase
+ *   did — now it happens whenever the brush itself says "I am a floor",
+ *   including over an existing decoration (replacing it, not merging with
+ *   it, since the brush leaves nothing to merge).
+ * - **paint, canopy-composed brush** (real canopy, blank terrain — a "put
+ *   this over what's there" pick): supplies the canopy and the collision,
+ *   the cell keeps its terrain. Putting a gourd on a floor must not replace
+ *   the floor — in room 0x34 the decorations are canopy words over an
+ *   unchanged terrain word, which is exactly this operation. This is what
+ *   the old `deco` phase did for this shape of brush.
+ * - **erase**: reads the *cell*, not the brush — `brushIndex` is ignored. If
+ *   the cell's canopy is already blank there is nothing to erase. Otherwise
+ *   the canopy goes back to blank and the collision goes back to whatever
+ *   the room does on bare ground of that terrain. This now runs
+ *   unconditionally: the old `room` phase made erase a no-op regardless of
+ *   the cell, which meant remembering to switch modes before removing a
+ *   decoration — a usability gap fixed as a side effect of dropping the
+ *   toggle, not a separate feature.
  *
  * Returns a metatile index, creating one through the usual find-or-create
  * rule if the combination does not exist yet.
  */
-function editResolve(palette, x, y, brushIndex, phase, erasing) {
+function editResolve(palette, x, y, brushIndex, erasing) {
   var here = editCellAt(palette, x, y);
   var under = here >= 0 ? editStampWords(palette, here) : null;
-  if (phase !== 'deco' || !under) {
-    if (erasing) return -1;
-    return brushIndex;
-  }
+  var blank = editBlankCanopy(palette);
 
   if (erasing) {
-    var blank = editBlankCanopy(palette);
+    if (!under) return -1;
     if (under.layer1 === blank) return here; // already bare: nothing to erase
     var restored = editFloorCollisionFor(palette, under.layer2);
     return editAddStamp(palette, {
@@ -93,7 +123,12 @@ function editResolve(palette, x, y, brushIndex, phase, erasing) {
   }
 
   var brush = editStampWords(palette, brushIndex);
-  if (!brush) return -1;
+  // A brush with real art in its canopy word is a decoration; anything else
+  // (including a brush this index cannot resolve, or nothing under it to
+  // preserve) falls back to the ground-composed, replace-outright behavior.
+  var isDeco = brush && brush.layer1 !== blank;
+  if (!isDeco || !under) return brushIndex;
+
   return editAddStamp(palette, {
     layer1: brush.layer1,
     layer2: under.layer2,

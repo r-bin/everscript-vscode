@@ -145,7 +145,7 @@ function editUseFamilyTile(graphicId, family) {
   // graphic in this family).
   var word = (editSlotChr(slot) | ((got.slot + 1) << 10) | editBrushFlipBits()) & 0xffff;
   var prefer = _layerForce || editLayerPreference(graphicId);
-  var index = editBrushFromTile(_mtPalette, word, d.phase, prefer);
+  var index = editBrushFromTile(_mtPalette, word, prefer);
 
   // Which swatch is armed has to be visible on the swatch, not only in a
   // line of text — clicking with no confirmation reads as a dead control.
@@ -158,9 +158,9 @@ function editUseFamilyTile(graphicId, family) {
     + (flip ? ' mirrored ' + flip : '')
     + (got.added ? ' (family added to slot ' + (got.slot + 1) + ')' : '')
     + ' — stamp #' + index
-    + (prefer === 'canopy' ? ', drawn over what it is painted on'
-      : prefer === 'terrain' ? ', as ground'
-        : d.phase === 'deco' ? ', drawn over what it is painted on' : ', as ground')
+    // No phase to fall back to as of §8a.2: with no preference at all this
+    // is a ground pick — editBrushFromTile's own documented default.
+    + (prefer === 'canopy' ? ', drawn over what it is painted on' : ', as ground')
     + (_layerForce ? ' (forced)' : prefer ? ' (how vanilla draws it)' : '')
     + '. Paint on the map.');
   requestComposedPreview();

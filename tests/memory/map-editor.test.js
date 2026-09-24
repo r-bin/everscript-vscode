@@ -789,21 +789,25 @@ test('the blank canopy is derived from the room, not assumed', () => {
     assert.strictEqual(ui.editBlankCanopy(null), 0xa800, 'with no palette, fall back to it');
 });
 
-test('a room stroke replaces everything; a deco stroke keeps the floor', () => {
+test('a ground brush replaces everything; a canopy brush keeps the floor', () => {
     const p = decoPalette();
     ui.setPalette(p);
     const d = ui.editReset(0x34);
     d.on = true;
 
-    // Room phase: the brush wins outright, so the answer is just the brush.
-    assert.strictEqual(ui.editResolve(p, 0, 1, 2, 'room', false), 2);
+    // §8a.2: no phase argument. Which of the two a stroke does is read off
+    // the brush's own words — stamp 2 is a floor (blank canopy $A800), so it
+    // wins outright, exactly as the old `room` phase did.
+    assert.strictEqual(ui.editResolve(p, 0, 1, 2, false), 2);
     assert.strictEqual(d.added.length, 0, 'and it invents nothing');
 
-    // Deco phase at (0,1), which is floor 0 ($4C62). Painting stamp 2 there
-    // must take stamp 2's canopy and collision but keep $4C62 underneath.
-    const made = ui.editResolve(p, 0, 1, 2, 'deco', false);
+    // Stamp 1 is the hide: a real canopy word ($2C66) over a floor. Painting
+    // it at (2,0) — which is stamp 2, terrain $0C2C — must take the hide's
+    // canopy and collision but keep $0C2C underneath, which is what the old
+    // `deco` phase did and what "put this on top of that" means.
+    const made = ui.editResolve(p, 2, 0, 1, false);
     assert.strictEqual(made, p.count, 'a new stamp is needed');
-    assert.deepStrictEqual(d.added[0], { layer1: 0xa800, layer2: 0x4c62, collision: 0x101f });
+    assert.deepStrictEqual(d.added[0], { layer1: 0x2c66, layer2: 0x0c2c, collision: 0x001f });
 });
 
 test('erasing takes the picture and the collision back off the floor', () => {
@@ -816,16 +820,21 @@ test('erasing takes the picture and the collision back off the floor', () => {
     // blank canopy and the collision the room uses on bare $4C62 — which is
     // stamp 0's $0010, not the hide's $001F. Otherwise removing a gourd
     // would leave a hole you still cannot walk through.
-    const bare = ui.editResolve(p, 1, 0, -1, 'deco', true);
+    const bare = ui.editResolve(p, 1, 0, -1, true);
     assert.strictEqual(bare, 0, 'it resolves to the floor stamp the room already has');
     assert.strictEqual(d.added.length, 0, 'so nothing new is needed');
 
     // Erasing bare floor is a no-op rather than a pointless new stamp.
-    assert.strictEqual(ui.editResolve(p, 0, 1, -1, 'deco', true), 0);
+    assert.strictEqual(ui.editResolve(p, 0, 1, -1, true), 0);
     assert.strictEqual(d.added.length, 0);
 
-    // In room phase the eraser has no floor to fall back to and says so.
-    assert.strictEqual(ui.editResolve(p, 1, 0, -1, 'room', true), -1);
+    // §8a.2: erase no longer depends on a mode being set first. It used to be
+    // a flat no-op outside `deco` phase no matter what was under the cursor,
+    // so removing a decoration meant remembering to flip a toggle. Now the
+    // only thing that stops it is there being nothing there — a cell off the
+    // grid has no stamp to take a canopy off.
+    assert.strictEqual(ui.editResolve(p, 9, 9, -1, true), -1);
+    assert.strictEqual(d.added.length, 0);
 });
 
 test('a construct carries the triggers and objects inside its selection', () => {
@@ -954,18 +963,24 @@ test('clearing a family strands the cells that were drawn in it', () => {
     assert.deepStrictEqual(ui.strandedCells(), ['1,1']);
 });
 
-test('the toolbar offers both phases and marks erase as deco-only', () => {
+test('the toolbar has no phase pair, and erase is never gated on one', () => {
     const d = ui.editReset(0x34);
     d.on = true;
-    d.phase = 'room';
-    const roomBar = ui.toolbar();
-    assert.ok(/data-edit-phase="room"[^>]*class|class="[^"]*on[^"]*" data-edit-phase="room"/.test(roomBar)
-        || roomBar.includes('rg-phase on" data-edit-phase="room"'), roomBar.slice(0, 300));
-    assert.ok(roomBar.includes('switch to deco first'), 'erase explains itself in room phase');
-    assert.ok(roomBar.includes('data-edit-act="new-room"'), 'and a new room can be drafted');
+    const bar = ui.toolbar();
 
-    d.phase = 'deco';
-    assert.ok(!ui.toolbar().includes('switch to deco first'));
+    // §8a.2 removed the room/deco pair outright: layer targeting is the Tile
+    // tab's own auto|front|ground row, and editResolve reads decoration-vs-
+    // ground off the brush itself, so the pill has nothing to offer here.
+    assert.ok(!bar.includes('data-edit-phase'), 'no phase buttons remain');
+    assert.ok(!/\brg-phase\b/.test(bar), 'and no phase styling is left behind');
+
+    // Erase used to be dimmed with "switch to deco first" outside deco phase.
+    // With no phase to switch to, the gate is gone and the tool is plain.
+    assert.ok(!bar.includes('switch to deco first'), 'erase carries no mode caveat');
+    assert.ok(bar.includes('data-edit-tool="erase"'), 'and is still offered');
+
+    assert.ok(bar.includes('data-edit-act="new-room"'), 'and a new room can be drafted');
+    assert.strictEqual(d.phase, undefined, 'the draft carries no phase field at all');
 });
 
 // ---------------------------------------------------------------------------

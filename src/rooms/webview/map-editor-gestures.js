@@ -56,12 +56,13 @@ function editStroke(cell, phase) {
   }
 
   if (d.tool === 'erase') {
-    // The phase decides what a deco erase means, and editResolve owns
-    // that. A special at this cell is a second, independent thing to take
-    // off, whatever the phase — clearing its glyph and, for gate/drift,
-    // the bits it wrote (see map-editor-special.js). Both land in the one
-    // final index this cell gets, so undo sees a single write per cell.
-    var bare = editResolve(_mtPalette, cell.x, cell.y, -1, d.phase, true);
+    // editResolve owns what erasing means, and reads it off the cell itself
+    // now (§8a.2) — no phase to gate it on, so this runs unconditionally. A
+    // special at this cell is a second, independent thing to take off —
+    // clearing its glyph and, for gate/drift, the bits it wrote (see
+    // map-editor-special.js). Both land in the one final index this cell
+    // gets, so undo sees a single write per cell.
+    var bare = editResolve(_mtPalette, cell.x, cell.y, -1, true);
     var hadSpecial = editSpecialAt(cell.x, cell.y);
     var finalIndex = bare;
     if (hadSpecial) {
@@ -94,7 +95,7 @@ function editStroke(cell, phase) {
     var hasBrush = d.brush >= 0;
     if (!hasBrush && !d.currentSpecialId) return;
     var before = hasBrush
-      ? editResolve(_mtPalette, cell.x, cell.y, d.brush, d.phase, false)
+      ? editResolve(_mtPalette, cell.x, cell.y, d.brush, false)
       : editCellAt(_mtPalette, cell.x, cell.y);
     if (before < 0) return;
     var idx = before;

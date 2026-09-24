@@ -155,8 +155,11 @@ async function main() {
         JSON.stringify(pillButtons.filter((b) => !b.title)));
     check('the tool buttons are icons, not words',
         await page.$eval('[data-edit-tool="paint"]', (n) => n.textContent.trim()) === '✎');
-    check('but the room/deco phase pair keeps its documented names',
-        await page.$eval('[data-edit-phase="deco"]', (n) => n.textContent.trim()) === 'deco');
+    // §8a.2 removed the room/deco pair: layer targeting is the Tile tab's
+    // auto|front|ground row, and editResolve reads decoration-vs-ground off
+    // the brush's own words, so the pill has nothing to offer here.
+    check('and the room/deco phase pair is gone from the pill',
+        await page.evaluate(() => !document.querySelector('[data-edit-phase]')));
     // discard / copy draft / new room moved behind the ⋯ overflow. They must
     // still be reachable — that is this phase's whole constraint.
     check('discard, copy draft and new room moved into the ⋯ overflow menu',
@@ -280,7 +283,7 @@ async function main() {
 
     await page.evaluate(() => {
         editDraft().tool = 'erase';
-        editDraft().phase = 'deco';
+        // No phase to set first as of §8a.2 — erase reads the cell itself.
         editStroke({ x: 0, y: 0 }, 'down');
     });
     check('erasing removes the glyph from the canvas', !(await page.$('#rg-edit .rg-special-glyph')));
@@ -508,18 +511,22 @@ async function main() {
     // this suite, which assumes the Tile tab's own panels are on screen.
     await page.click('[data-edit-active-tab="tile"]');
 
-    // The composer starts collapsed — clicking a tile is the main path now,
-    // and hand-composing is the fallback. Opening it must put it in the
-    // panel column, not back in the section that is hidden while editing.
-    check('the composer is collapsed until asked for',
-        !(await page.$('#rg-compose')));
-    await page.evaluate(() => document.querySelector('[data-panel="compose"]').click());
-    check('and opens inside the panel column, not the hidden section',
+    // §8a.2 removed both the hand-composer and the "new metatiles" read-out
+    // from the Tile tab: "the meta tile list and editor are not needed for
+    // now, they are calculated dynamically/implicitly". The machinery stays
+    // — editAddStamp still invents a stamp the moment a stroke needs one —
+    // only the panels that surfaced it by hand are gone.
+    check('the hand-composer panel is gone from the Tile tab',
+        await page.evaluate(() => !document.querySelector('[data-panel="compose"]')
+            && !document.getElementById('rg-compose')));
+    check('and so is the "new metatiles" read-out',
+        await page.evaluate(() => !document.querySelector('[data-panel="needed"]')));
+    check('but a stroke still invents the stamp it needs',
         await page.evaluate(() => {
-            var c = document.getElementById('rg-compose');
-            return !!c && !!c.closest('#rg-panels');
+            var before = editDraft().added.length;
+            editAddStamp(_mtPalette, { layer1: 0x1234, layer2: 0x5678, collision: 0 });
+            return editDraft().added.length === before + 1;
         }));
-    await page.evaluate(() => document.querySelector('[data-panel="compose"]').click());
 
     // ── the caret ──────────────────────────────────────────────────────────
     const before = await page.evaluate(() => _panelOpen.families);
@@ -572,23 +579,15 @@ async function main() {
     }));
     check('the palette’s own seven are the section, one card each, all removable',
         groups0.cards === 7 && groups0.drops === 7, JSON.stringify(groups0));
-    check('and no candidate is mixed in until the add disclosure is opened',
-        groups0.adopts === 0 && !groups0.filter, JSON.stringify(groups0));
-
-    await page.click('[data-fam-add]');
-    const groups1 = await page.evaluate(() => ({
-        adopts: document.querySelectorAll('[data-chip-adopt]').length,
-        filter: !!document.getElementById('rg-chip-filter'),
-    }));
-    check('opening it shows the candidates, carrying + instead of ×',
-        groups1.adopts === 3 && groups1.filter, JSON.stringify(groups1));
-
-    await page.fill('#rg-chip-filter', 'omni');
-    const cands = await page.$$eval('[data-chip-adopt]', (n) => n.map((e) => e.dataset.chipAdopt));
-    check('the search narrows the candidates by act',
-        cands.length === 1 && cands[0] === '220', JSON.stringify(cands));
-    await page.fill('#rg-chip-filter', '');
-    await page.click('[data-fam-add]');
+    // §8a.2 removed the add-a-family disclosure outright: "add family is
+    // obsolete (especially if there are already 7 families loaded)".
+    // Adoption still happens — clicking any tile from an unadopted family
+    // pulls that family in behind it — which is exactly why the explicit
+    // browse-by-id control was redundant.
+    check('the add-a-family disclosure is gone, and its filter with it',
+        groups0.adopts === 0 && !groups0.filter
+        && await page.evaluate(() => !document.querySelector('[data-fam-add]')),
+        JSON.stringify(groups0));
 
     // Collapsed is not empty — the mock's compact strip of seven slots. The
     // `.hidden` IDL property would not catch a rule that paints anyway
@@ -722,37 +721,34 @@ async function main() {
     // which internally creates a metatile" — with the other two words empty.
     await page.evaluate(() => { editReset(0x34); editDraft().on = true; _mtPalette.count = 1; });
     const asGround = await page.evaluate(() => {
-        editDraft().phase = 'room';
+        _layerForce = 'terrain';
         var i = editOnTilePicked(0x0c02);
         var d = editDraft();
         return { made: i, brush: d.brush, added: d.added.slice() };
     });
-    check('clicking a tile in room phase makes it the ground of a new stamp',
+    check('clicking a tile with ground forced makes it the ground of a new stamp',
         asGround.added.length === 1 && asGround.added[0].layer2 === 0x0c02
         && asGround.added[0].collision === 0, JSON.stringify(asGround));
     check('with nothing drawn over it and no collision yet',
         asGround.added[0].layer1 === 0xa800 && asGround.added[0].collision === 0);
     check('and it becomes the brush straight away', asGround.brush === 1);
 
-    const asDeco = await page.evaluate(() => {
-        editDraft().phase = 'deco';
-        editOnTilePicked(0x0c04);
-        return editDraft().added.slice(-1)[0];
-    });
-    check('in deco phase the same click makes it the thing drawn over',
-        asDeco.layer1 === 0x0c04 && asDeco.collision === 0, JSON.stringify(asDeco));
 
     // A graphic the room never loaded costs a Block 1 slot, and the word
     // has to name that new slot.
     const pulled = await page.evaluate(() => {
-        editReset(0x34); editDraft().on = true; editDraft().phase = 'room';
+        editReset(0x34); editDraft().on = true; _layerForce = 'terrain';
         editFamilies()[0] = 58;
+        // reset below — _layerForce is module-level and tileLayerBadge reads
+        // it before the per-graphic hint, so leaving it set would force every
+        // later badge assertion to agree with it.
         editUseFamilyTile(4191, 58);
         var d = editDraft();
         return { graphics: d.addedGraphics.slice(), added: d.added.slice(), brush: d.brush };
     });
     check('picking a tile the room never loaded adopts the graphic',
         pulled.graphics.length === 1 && pulled.graphics[0] === 4191, JSON.stringify(pulled));
+    await page.evaluate(() => { _layerForce = null; });
     check('and names it with a word for its new slot, in that family',
         // slot 1 (the room's sheet holds 1) -> chr 2; family 58 is in slot 1.
         pulled.added.length === 1 && pulled.added[0].layer2 === (2 | (1 << 10)),
@@ -838,6 +834,29 @@ async function main() {
         /rg-lay-ground/.test(badges.find((b) => b[0] === '4195')[1]), JSON.stringify(badges));
     check('while a tile vanilla is undecided about gets neither',
         !/rg-lay-/.test(badges.find((b) => b[0] === '4200')[1]), JSON.stringify(badges));
+
+    // "drawing a tile that is marked as FG should not draw it to the BG" —
+    // the badge and the brush must not disagree. On `auto`, a front-badged
+    // graphic has to land in layer1 (the canopy), leaving layer2 blank.
+    const frontPick = await page.evaluate(() => {
+        _layerForce = null;
+        editReset(0x34); editDraft().on = true;
+        editFamilies()[0] = 58;
+        editUseFamilyTile(4191, 58);
+        return editDraft().added.slice(-1)[0];
+    });
+    check('a front-badged tile picked on auto lands in the canopy, not the ground',
+        frontPick && frontPick.layer1 !== 0xa800 && frontPick.layer2 === 0xa800,
+        JSON.stringify(frontPick));
+    const groundPick = await page.evaluate(() => {
+        editReset(0x34); editDraft().on = true;
+        editFamilies()[0] = 58;
+        editUseFamilyTile(4195, 58);
+        return editDraft().added.slice(-1)[0];
+    });
+    check('and a ground-badged one lands in the terrain, canopy left blank',
+        groundPick && groundPick.layer1 === 0xa800 && groundPick.layer2 !== 0xa800,
+        JSON.stringify(groundPick));
 
     // Any tile can be forced onto either layer — a tilemap word does not
     // care which of the two slots it is written into.

@@ -41,12 +41,8 @@ function editReset(roomId) {
      * map is what draws the glyph and is never exported — see editExport.
      */
     specialCells: {},
-    /** The special armed for painting, or null. Set directly, like `tool`/`phase`/`brush`. */
+    /** The special armed for painting, or null. Set directly, like `tool`/`brush`. */
     currentSpecialId: null,
-    // Which question a stroke is answering. 'room' lays out the place
-    // itself and writes all three words; 'deco' puts things *on* it and
-    // keeps the floor that is already there. See editResolve.
-    phase: 'room',
     /** Saved multi-cell constructs — see editSaveConstruct. */
     constructs: [],
     /**

@@ -89,22 +89,27 @@ function editAdoptGraphic(palette, graphicId) {
  * something you can immediately stamp. The metatile is created here rather
  * than composed by hand, and **the other two words start empty** — a bare
  * graphic says nothing about what is drawn over it or what is solid, so
- * inventing either would be a guess. They are set later, by painting in
- * deco phase or by editing the collision.
+ * inventing either would be a guess. They are set later, by painting over an
+ * existing terrain or by editing the collision.
  *
- * Which word the tile becomes follows the phase, so the brush works with
- * `editResolve` rather than against it: laying out a room puts the tile on
- * the ground, decorating puts it over whatever ground is already there.
+ * Which word the tile becomes decides how `editResolve` will treat it later
+ * (map-editor-phases.js, §8a.2): a graphic that lands in the canopy word
+ * paints as a decoration over whatever is already there; one that lands in
+ * the terrain word paints as the ground, replacing the cell outright.
+ *
+ * `prefer` is `'canopy'`/`'terrain'`/undefined — `_layerForce`'s explicit
+ * override, or `editLayerPreference`'s reading of how vanilla draws this
+ * graphic (map-editor-families.js), whichever the caller has. With neither
+ * (a graphic with no vanilla placement data at all, picked with
+ * `_layerForce` at `'auto'`) this lands on the *ground*: the same bias
+ * `editReset`'s own former default phase (`'room'`) already gave an
+ * unlabelled pick, and this file's own "draw the room, then fill it with
+ * deco" ordering — not a new threshold invented for this case.
  */
-function editBrushFromTile(palette, word, phase, prefer) {
+function editBrushFromTile(palette, word, prefer) {
   if (!_edit || word == null) return -1;
   var blank = editBlankCanopy(palette);
-  // The phase is the user's intent, but the art has an opinion too: a
-  // graphic with transparent pixels is meant to have something show
-  // through it. 4822 of 5628 vanilla graphics are drawn on one layer at
-  // least 90% of the time, so where that is known it decides, and the
-  // phase only breaks the tie.
-  var canopy = prefer ? prefer === 'canopy' : phase === 'deco';
+  var canopy = prefer === 'canopy';
   var stamp = canopy
     ? { layer1: word, layer2: blank, collision: EMPTY_COLLISION }
     : { layer1: blank, layer2: word, collision: EMPTY_COLLISION };

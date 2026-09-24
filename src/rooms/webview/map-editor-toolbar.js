@@ -1,5 +1,5 @@
-// Ownership: the floating tool pill above the canvas card — which tools and
-// phases exist, their icons, and the overflow menu.
+// Ownership: the floating tool pill above the canvas card — which tools
+// exist, their icons, and the overflow menu.
 //
 // Split out of map-editor-ui.js in Phase 7a
 // (docs/map-editor-redesign-plan.md §7a), which still owns the docked
@@ -23,20 +23,15 @@ var EDIT_TOOLS = [
 ];
 
 /**
- * The two questions a stroke can answer.
- *
- * Not a cosmetic filter — they write different things. See `editResolve`.
- *
- * These occupy the pill slot the design mock gives its `BG`/`FG` pair: the
- * same kind of control (which layer a stroke writes into), under this repo's
- * own names, which are a documented concept rather than a label to rename.
- * They keep their words for the same reason — a two-letter icon for "room"
- * vs. "deco" would be a guess, and §7a explicitly allows short text here.
+ * The `room`/`deco` phase pair that used to live here (through v0.58.1) is
+ * gone as of §8a.2 (docs/map-editor-redesign-plan.md): "the side panel
+ * selection should dictate if it is being drawn in the fg/bg." Both of what
+ * the toggle decided are now read directly off the brush and the cell in
+ * `editResolve` (map-editor-phases.js) — see that file's header for the
+ * derivation. There is no replacement control here: layer targeting is the
+ * Tile tab's own `auto|front|ground` segmented row (map-editor-tiles.js's
+ * `_layerForce`), not a second thing the pill needs to offer.
  */
-var EDIT_PHASES = [
-  ['room', 'room', 'Lay out the place itself: a stroke replaces the floor, the canopy and the collision'],
-  ['deco', 'deco', 'Put things on it: a stroke keeps the floor that is already there and only adds what sits over it'],
-];
 
 /** The pill's groups, in order, separated by a thin divider each. */
 var EDIT_TOOL_GROUPS = [
@@ -88,11 +83,11 @@ function editToolButtonHtml(key) {
   EDIT_TOOLS.forEach(function (t) { if (t[0] === key) def = t; });
   if (!def) return '';
   var d = editDraft();
-  // Erase only means something once there is a floor to erase back to.
-  var off = key === 'erase' && d && d.phase !== 'deco';
-  var title = def[2] + (off ? ' — switch to deco first' : '');
+  // Erase used to be dimmed outside `deco` phase; §8a.2 dropped the phase,
+  // and editResolve's own erase branch is already a no-op on a bare cell, so
+  // there is nothing left to gate the button on.
   return '<button class="rdf rg-edit-tool-icon' + (d && d.tool === key ? ' on' : '')
-    + '" data-edit-tool="' + key + '" title="' + escH(title) + '" aria-label="' + escH(def[1]) + '">'
+    + '" data-edit-tool="' + key + '" title="' + escH(def[2]) + '" aria-label="' + escH(def[1]) + '">'
     + '<span class="rg-edit-icon" aria-hidden="true">' + EDIT_TOOL_ICONS[key] + '</span></button>';
 }
 
@@ -106,7 +101,6 @@ function editToolButtonHtml(key) {
  * redraw (which is what the stale-`#rg-newroom` sweep used to clean up).
  */
 function buildEditToolbarHtml() {
-  var d = editDraft();
   var html = '<div class="rg-edit-chrome" id="rg-edit-chrome">'
     + '<div class="rd-filters rg-edit-bar" id="rg-edit-bar">';
   EDIT_TOOL_GROUPS.forEach(function (group, i) {
@@ -115,12 +109,8 @@ function buildEditToolbarHtml() {
     group.forEach(function (key) { html += editToolButtonHtml(key); });
     html += '</span>';
   });
-  html += '<span class="rg-edit-divider"></span><span class="rg-edit-group rg-edit-group-phase">';
-  EDIT_PHASES.forEach(function (ph) {
-    html += '<button class="rdf rg-phase' + (d && d.phase === ph[0] ? ' on' : '') + '" data-edit-phase="'
-      + ph[0] + '" title="' + escH(ph[2]) + '">' + ph[1] + '</button>';
-  });
-  html += '</span><span class="rg-edit-divider"></span><span class="rg-edit-group">'
+  // The room/deco phase pair that used to sit here is gone — §8a.2.
+  html += '<span class="rg-edit-divider"></span><span class="rg-edit-group">'
     + '<button class="rdf rg-edit-tool-icon" data-edit-act="undo" title="Undo the last change"'
     + ' aria-label="undo"><span class="rg-edit-icon" aria-hidden="true">↶</span></button>'
     + '<button class="rdf rg-edit-tool-icon" data-edit-act="redo" title="Redo"'

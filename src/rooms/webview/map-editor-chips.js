@@ -1,5 +1,5 @@
 // Ownership: the Tile tab's TILE FAMILIES section — the seven families this
-// draft has loaded, and the ~320 others it could adopt.
+// draft has loaded.
 //
 // A family id is not a name. The old picker made you choose one out of a
 // paged list of 329 numbers before it would show you anything; a card shows
@@ -7,12 +7,15 @@
 // filtering: select some and the tile list narrows to them, select none and
 // it is unfiltered.
 //
-// **Two groups, never interleaved** (Phase 8a, docs/map-editor-redesign-plan.md).
-// Before this phase one flat list mixed "the seven I am working with" with
-// "the three hundred I could add", each carrying a different action (× vs +),
-// which is most of why the panel read as noise. Now the palette's own seven
-// are the section, and the candidates sit behind an "add a family"
-// disclosure with the search that scopes them.
+// **Adopted families only** (§8a.2, docs/map-editor-redesign-plan.md).
+// Phase 8a put the ~320 unadopted candidates behind their own "add a family"
+// disclosure — a search-by-id menu and a paged candidate grid. §8a.2 removed
+// that disclosure: "add family is obsolete (especially if there are already
+// 7 families loaded)." The **implicit** adoption path it was in front of is
+// untouched and does all the same work — clicking any tile from a family
+// this draft has not loaded yet (`editUseFamilyTile` -> `editAdoptFamilyFor`)
+// already pulls the family into a free slot on its own, which is exactly why
+// the explicit browse-first control was obsolete rather than load-bearing.
 //
 // Two states, like the mock: collapsed is a strip of seven slots (art plus
 // graphic count, empty slots dashed), expanded is the card grid. The collapse
@@ -21,7 +24,7 @@
 //
 // The adjacency model that used to live here is map-editor-relations.js.
 //
-// Owns: _chipSel, _chipPreviews, _chipFilter, _chipPage, _famAddOpen.
+// Owns: _chipSel, _chipPreviews.
 //
 // See docs/map-format/map-editor-window.md §4.
 
@@ -29,9 +32,6 @@
 var _chipSel = {};
 /** The two-tiles-per-family sheet, once fetched. */
 var _chipPreviews = null;
-var _chipFilter = '';
-/** Is the "add a family" disclosure open? Candidates are hidden until asked for. */
-var _famAddOpen = false;
 
 /**
  * Ask for every family's chip art.
@@ -54,29 +54,6 @@ function applyChipPreviews(msg) {
   _chipPreviews = msg.previews;
   renderEditPanels();
 }
-
-/** Every family, adopted ones first (in slot order), then by how much art they have. */
-function chipList() {
-  if (!_famCatalogue) return [];
-  var fams = editFamilies();
-  var q = String(_chipFilter || '').trim().toLowerCase();
-  var out = _famCatalogue.filter(function (f) {
-    if (!q) return true;
-    if (String(f.id).indexOf(q) === 0) return true;
-    var where = f.areas.concat(f.names).join(' ').toLowerCase();
-    return where.indexOf(q) >= 0;
-  });
-  return out.sort(function (a, b) {
-    var ai = fams.indexOf(a.id), bi = fams.indexOf(b.id);
-    if ((ai >= 0) !== (bi >= 0)) return ai >= 0 ? -1 : 1;
-    if (ai >= 0 && bi >= 0) return ai - bi;
-    return b.tiles - a.tiles || a.id - b.id;
-  });
-}
-
-/** How many candidate families to show before asking. */
-var CHIP_PAGE = 24;
-var _chipPage = CHIP_PAGE;
 
 function chipArtStyle(familyId) {
   var pv = _chipPreviews;
@@ -148,44 +125,6 @@ function familyCardHtml(f, slot) {
 }
 
 /**
- * The candidates, behind a disclosure.
- *
- * Shut by default: three hundred families you have not chosen are a
- * reference, not a workspace. The filter input only exists while it is open,
- * which the focus-restore block in map-editor-panels.js already tolerates.
- */
-function familyAddHtml(fams, free) {
-  var rest = chipList().filter(function (f) { return fams.indexOf(f.id) < 0; });
-  var total = (_famCatalogue || []).length - fams.filter(function (f) { return f !== undefined; }).length;
-  var html = '<button class="rg-fam-add' + (_famAddOpen ? ' on' : '') + '" data-fam-add="1"'
-    + ' title="' + escH(free
-      ? free + ' of the seven palette slots are free'
-      : 'All seven slots are taken — remove one before adding another') + '">'
-    + (_famAddOpen ? '▾ ' : '+ ') + 'add a family <span class="rg-fam-n">' + total + '</span></button>';
-  if (!_famAddOpen) return html;
-
-  html += '<div class="rg-fam-menu">'
-    + '<input class="rg-fam-filter" id="rg-chip-filter" value="' + escH(_chipFilter)
-    + '" placeholder="an act, a room, or a family id" />';
-  if (!free) {
-    html += '<div class="rg-fam-note">All seven slots are taken. Remove one above first — '
-      + 'adopting is what a tile click does, and it needs a free slot.</div>';
-  }
-  if (!rest.length) {
-    html += '<div class="rg-fam-note">No family matches that.</div>';
-  } else {
-    html += '<div class="rg-fam-grid">';
-    for (var i = 0; i < Math.min(rest.length, _chipPage); i++) html += familyCardHtml(rest[i], -1);
-    html += '</div>';
-    if (rest.length > _chipPage) {
-      html += '<button class="rg-fam-more" data-chip-more="1">'
-        + (rest.length - _chipPage) + ' more</button>';
-    }
-  }
-  return html + '</div>';
-}
-
-/**
  * The whole section: its own header, then one of the two states.
  *
  * The header is unconditional — including before the catalogue arrives. A
@@ -224,7 +163,7 @@ function familiesSectionHtml() {
         if (id === undefined) return '';
         return familyCardHtml(chipMeta(id) || { id: id, tiles: 0, areas: [], names: [] }, slot);
       }).join('')
-      + '</div>' + familyAddHtml(fams, 7 - used)
+      + '</div>'
     : familyStripHtml(fams);
 
   var picked = Object.keys(_chipSel).length;

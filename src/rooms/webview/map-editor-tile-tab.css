@@ -248,3 +248,10 @@
 .rg-theme .rg-group-sheet .rs-mt-cell{border-radius:2px;outline-color:var(--rg-border)}
 .rg-theme .rg-group-sheet .rs-mt-cell:hover{outline:1px solid var(--rg-accent)}
 .rg-theme .rg-group-sheet .rs-mt-cell.sel{outline:2px solid var(--rg-accent)}
+/* The armed swatch mirrors what H/V will actually paint (bits 14/15 of the
+   word, map-editor-tiles.js's _brushFlip, §8a.2 item 2). Composed with
+   shared.css's own `scale(2)` rather than replacing it, or the mirror would
+   cancel the zoom instead of riding along with it. */
+.rg-theme .rg-group-sheet .rs-mt-cell.sel.rg-flip-h{transform:scale(2) scaleX(-1)}
+.rg-theme .rg-group-sheet .rs-mt-cell.sel.rg-flip-v{transform:scale(2) scaleY(-1)}
+.rg-theme .rg-group-sheet .rs-mt-cell.sel.rg-flip-h.rg-flip-v{transform:scale(2) scaleX(-1) scaleY(-1)}

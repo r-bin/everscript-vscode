@@ -190,8 +190,15 @@ function tileGroupHtml(family) {
     var armed = _brushTile && _brushTile.graphic === slot[2] && _brushTile.family === family;
     var badge = tileLayerBadge(slot[2]);
     var rel = relatedScore(slot[2]);
+    // The armed swatch is the one "what you're about to paint" preview this
+    // tab has (§8a.2 item 2) — H/V wrote the mirror bits into the exported
+    // word from the start (§8a), but nothing mirrored the picture you were
+    // looking at, so the swatch and the paint disagreed. A candidate swatch
+    // you have not picked yet stays unflipped: it is showing you the art,
+    // not a commitment.
+    var flipCls = armed ? (_brushFlip.h ? ' rg-flip-h' : '') + (_brushFlip.v ? ' rg-flip-v' : '') : '';
     html += '<i class="rs-mt-cell' + (armed ? ' sel' : '')
-      + (badge[0] ? ' rg-lay-' + badge[0] : '') + (rel >= 50 ? ' rg-rel' : '')
+      + (badge[0] ? ' rg-lay-' + badge[0] : '') + (rel >= 50 ? ' rg-rel' : '') + flipCls
       + '" data-fam-tile="' + slot[2] + '" data-fam-of="' + family + '"'
       + ' title="' + escH('graphic ' + slot[2] + ' in family ' + family
         + '\n' + slot[3] + ' placements in vanilla'
