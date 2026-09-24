@@ -30,6 +30,23 @@ function editStroke(cell, phase) {
   var d = editDraft();
   if (!d || !editInBounds(_mtPalette, cell.x, cell.y)) return;
 
+  if (d.tool === 'select') {
+    // The only tool that reads a click as "pick a trigger" rather than
+    // "paint a cell" — see map-editor-trigger-select.js's file header and
+    // docs/map-editor-redesign-plan.md Phase 4. A mousedown that lands on
+    // the already-selected trigger's own footprint starts a drag instead of
+    // re-selecting it, so the same click that begins a drag doesn't also
+    // reselect the thing already selected.
+    if (phase === 'down') {
+      if (triggerDragStart(cell)) return;
+      triggerSelect(editTriggerAt(cell.x, cell.y));
+      return;
+    }
+    if (phase === 'move') { triggerDragMove(cell); return; }
+    if (phase === 'up') { triggerDragCommit(); return; }
+    return;
+  }
+
   if (d.tool === 'pick') {
     if (phase !== 'down') return;
     var at = editCellAt(_mtPalette, cell.x, cell.y);
@@ -170,19 +187,51 @@ function setupEditGestures() {
   }, true);
 }
 
-/** Undo/redo, and escape to drop a selection. */
+/**
+ * The text-input guard every keyboard shortcut in this file shares: a
+ * shortcut key typed while filtering the family list or naming a new room
+ * must reach that input, not the editor. See the webview-dom-safety skill.
+ */
+function editFocusInTextInput(e) {
+  var tag = e.target && e.target.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA';
+}
+
+/**
+ * Undo/redo, escape to drop a selection, and the Select tool's own
+ * shortcuts (Backspace/Delete, Cmd/Ctrl+C/V) — see
+ * map-editor-trigger-select.js, which owns what each of these actually does.
+ * All of it is inert while a text input has focus, and while edit mode is
+ * off, exactly like the undo/redo shortcuts already here.
+ */
 function setupEditKeys() {
   if (typeof window === 'undefined' || window._editKeysBound) return;
   window._editKeysBound = true;
   window.addEventListener('keydown', function (e) {
-    if (!editActive()) return;
-    if (e.key === 'Escape') { _editSel = null; _editClip = null; renderEditChrome(); return; }
-    var mod = e.metaKey || e.ctrlKey;
-    if (!mod || (e.key !== 'z' && e.key !== 'Z')) return;
-    if (e.shiftKey ? editRedo(_mtPalette) : editUndo(_mtPalette)) {
-      requestComposedPreview();
+    if (!editActive() || editFocusInTextInput(e)) return;
+    var d = editDraft();
+    if (e.key === 'Escape') {
+      _editSel = null; _editClip = null;
+      if (d) { d.selectedTriggerRef = null; _triggerDrag = null; }
       renderEditChrome();
-      e.preventDefault();
+      return;
     }
+    var mod = e.metaKey || e.ctrlKey;
+    if (mod && (e.key === 'z' || e.key === 'Z')) {
+      if (e.shiftKey ? editRedo(_mtPalette) : editUndo(_mtPalette)) {
+        requestComposedPreview();
+        renderEditChrome();
+        e.preventDefault();
+      }
+      return;
+    }
+    if (!d || d.tool !== 'select') return;
+    // Paste only needs a clipboard, which can outlive the selection that
+    // filled it (Escape clears the selection, not the clipboard); delete and
+    // copy both act on whatever is currently selected.
+    if (mod && (e.key === 'v' || e.key === 'V')) { triggerPasteClipboard(); e.preventDefault(); return; }
+    if (!d.selectedTriggerRef) return;
+    if (e.key === 'Backspace' || e.key === 'Delete') { triggerDeleteSelected(); e.preventDefault(); return; }
+    if (mod && (e.key === 'c' || e.key === 'C')) { triggerCopySelected(); e.preventDefault(); }
   });
 }

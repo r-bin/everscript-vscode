@@ -81,6 +81,18 @@ function renderEditLayer(palette, composed, origin) {
     var pos = editCellPos(origin, Number(p[0]), Number(p[1]));
     html += editSpecialGlyphSvg(d.specialCells[k], pos.x, pos.y);
   });
+  // The Select tool's own outlines: the selected trigger, and a live preview
+  // of where a drag would land it — see map-editor-trigger-select.js.
+  if (d.selectedTriggerRef) {
+    var selTrig = editTriggerFind(d.selectedTriggerRef);
+    if (selTrig) html += triggerOutlineSvg(selTrig, d.selectedTriggerRef.kind, origin, 'rg-trigger-sel');
+  }
+  if (_triggerDrag) {
+    html += triggerOutlineSvg({
+      x1: _triggerDrag.x, y1: _triggerDrag.y,
+      x2: _triggerDrag.x + _triggerDrag.w - 1, y2: _triggerDrag.y + _triggerDrag.h - 1,
+    }, _triggerDrag.ref.kind, origin, 'rg-trigger-drag');
+  }
   if (_editSel) {
     var a = editCellPos(origin, _editSel.x1, _editSel.y1);
     html += '<rect class="rg-edit-sel" x="' + a.x + '" y="' + a.y
@@ -88,6 +100,18 @@ function renderEditLayer(palette, composed, origin) {
       + '" height="' + ((_editSel.y2 - _editSel.y1 + 1) * EDIT_UNITS) + '"/>';
   }
   g.innerHTML = html;
+}
+
+/**
+ * A selection/drag outline for a trigger box, in the accent colour of its
+ * kind (step ~ pink, B ~ yellow — `--rg-trigger-step`/`--rg-trigger-b`,
+ * reserved in map-editor-theme.css since Phase 1 for exactly this).
+ */
+function triggerOutlineSvg(box, kind, origin, cls) {
+  var a = editCellPos(origin, box.x1, box.y1);
+  return '<rect class="' + cls + ' ' + cls + '-' + kind + '" x="' + a.x + '" y="' + a.y
+    + '" width="' + ((box.x2 - box.x1 + 1) * EDIT_UNITS)
+    + '" height="' + ((box.y2 - box.y1 + 1) * EDIT_UNITS) + '"/>';
 }
 
 /** What is in a cell right now: the draft first, then the room's own grid. */

@@ -13,6 +13,8 @@ var _editCompose = { layer1: null, layer2: null, collision: null, pick: 'layer1'
 var _editConstruct = -1;   // which saved construct the stamp tool places
 
 var EDIT_TOOLS = [
+  ['select', 'select', 'Click a trigger to select it; drag its own cells to move it. '
+    + 'Backspace/Delete removes it, Cmd/Ctrl+C/V copies and pastes it'],
   ['paint', 'paint', 'Click or drag to stamp the selected tile'],
   ['erase', 'erase', 'Rub decoration off: the canopy goes blank and the floor’s own collision comes back'],
   ['rect', 'rect', 'Drag a rectangle and fill it with the selected tile'],
@@ -43,7 +45,7 @@ function buildEditButtonHtml() {
  * copy/move/stamp, and every action button — keep their text label: a wrong
  * guess at a glyph is worse than the word it would replace.
  */
-var EDIT_TOOL_ICONS = { paint: '✎', erase: '⌫', rect: '▭', pick: '⤵' };
+var EDIT_TOOL_ICONS = { select: '↖', paint: '✎', erase: '⌫', rect: '▭', pick: '⤵' };
 
 function buildEditToolbarHtml() {
   var d = editDraft();
@@ -296,7 +298,10 @@ function renderEditChrome() {
         + (d.tool === 'erase' ? ' · rubbing out'
           : d.tool === 'stamp' ? (_editConstruct >= 0 ? ' · placing ' + d.constructs[_editConstruct].name
             : ' · save a construct first')
-            : d.brush >= 0 ? ' · brush #' + d.brush : ' · pick a tile to draw with');
+            : d.tool === 'select' ? (d.selectedTriggerRef
+              ? ' · trigger selected — drag to move, Delete to remove'
+              : ' · click a trigger to select it')
+              : d.brush >= 0 ? ' · brush #' + d.brush : ' · pick a tile to draw with');
     }
   }
   renderEditLayer(_mtPalette, _editComposed, _editOrigin);

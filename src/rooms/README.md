@@ -130,6 +130,11 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
 - `map-editor.js` — the edit draft, undo stack and export shape; owns `_edit`.
   Deliberately DOM-free, which is what makes `tests/memory/map-editor.test.js`
   possible
+- `map-editor-stamps.js` — the stamp dictionary: composing/deduplicating
+  drafted metatile combinations and adopting graphics into Block 1. Split out
+  of `map-editor.js` once Phase 4's trigger-selection undo support pushed it
+  toward 400 lines; still DOM-free, still reads/writes `_edit` through
+  `editDraft()` rather than owning it
 - `map-editor-phases.js` — what a room stroke, a deco stroke and the eraser each
   write; no state of its own
 - `map-editor-constructs.js` — saving and stamping a rectangle, in the portable
@@ -149,9 +154,23 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   bar's "special" chip + dropdown. State (`currentSpecialId`,
   `specialCells`) lives in map-editor.js's `_edit`; this file only reads and
   writes it through `editDraft()`/`editApply()`
+- `map-editor-trigger-select.js` — unifies the room's own ROM-sourced
+  triggers (`_mtPalette.attachments`, read-only) with this draft's own
+  (`_edit.placed`) into one selectable/movable/deletable/copy-pasteable
+  concept for the Select tool: hit-testing, drag math, and the
+  delete/move/copy/paste verbs, each going through `editApplyTriggerOp()`
+  (map-editor.js) so they share the tile grid's own undo stack. Owns
+  `_triggerDrag` (the in-progress drag) and `_triggerClipboard` (an instance
+  field, not undoable); writes `_edit.selectedTriggerRef` / `.removedTriggers`
+  without owning `_edit` itself — see docs/map-editor-redesign-plan.md Phase 4
+- `map-editor-trigger-panel.js` — the Trigger tab's list UI (mini position
+  crop, click-to-select, remove button) and the Info tab's trigger counts;
+  renders what map-editor-trigger-select.js's model reports, the same split
+  as map-editor-special.js (model) vs. its own tab markup
 - `map-editor-actions.js` — the toolbar's verbs, split out of the input handler
 - `map-editor-paint.js` — drawing the draft on the map from the palette atlas,
-  and the region maths; owns `_editSel` / `_editClip`
+  the region maths, and the Select tool's outline/drag-preview rectangles;
+  owns `_editSel` / `_editClip`
 - `map-editor-ui.js` — tool bar (phases, tools), the docked sidebar, the metatile
   composer and the construct library; owns `_editOrigin` / `_editComposed` /
   `_editCompose` / `_editConstruct`
@@ -163,11 +182,14 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
 - `map-editor-panels.js` — the metrics, the checks, the needed-metatile
   read-out, and the panel column itself, filed under the active tab
   (`tileTabHtml`/`infoTabHtml`/`triggerTabHtml`); owns `_panelOpen`. The
-  Trigger tab is a placeholder for this phase: it mirrors
-  `tables-builder.js`'s `buildEntityTablesHtml` output rather than owning its
-  own trigger-editing state — see `docs/map-editor-redesign-plan.md` Phase 4
+  Trigger tab is the dock's own authoritative trigger list as of Phase 4
+  (map-editor-trigger-panel.js's `triggerTabPanelHtml`), no longer a mirror
+  of the read-only entity tables
 - `map-editor-gestures.js` — capture-phase pointer and key gestures on the map,
-  so nothing is intercepted while edit mode is off; owns `_editDrag`
+  so nothing is intercepted while edit mode is off; owns `_editDrag`. Also
+  owns the Select tool's own gesture wiring (drag start/move/commit,
+  Backspace/Delete, Cmd/Ctrl+C/V) and their text-input focus guard, though the
+  model those call into is map-editor-trigger-select.js's
 - `map-editor-input.js` — clicks on the *chrome*, routed to what they mean, plus
   the status line and the edit toggle; owns `_editPendingNote` / `_editPanelRoom`.
   Bound **once per panel node**: `#room-detail` outlives a re-render, and a second
@@ -175,9 +197,9 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
 - `map-editor-newroom.js` — the blank-room round trip, `> everscript new map`,
   and the canvas resize grip; owns `_newRoomOpen` / `_resizing` / `_resizeKeep`
 - `tables-builder.js` — entity tables, ROM script cards. `buildEntityTablesHtml`
-  is called twice: once unconditionally by `detail-renderer.js` (always
-  visible, browsing or editing), and once by `map-editor-panels.js`'s Trigger
-  tab while editing (a placeholder mirror — see that file's note)
+  is called unconditionally by `detail-renderer.js` (always visible, browsing
+  or editing) — the Trigger tab no longer calls it (Phase 4 gave it its own
+  authoritative rendering, see map-editor-trigger-panel.js)
 - `rom-header.js` — ROM header display
 - `interactions.js` — zoom/pan, mouse events, click handlers
 - `rom-overlay.js` — ROM view top bar; owns `_currentLayer` / `_currentOverlay`

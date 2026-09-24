@@ -155,7 +155,11 @@ function editStampedConstruct(construct, x, y) {
   ['bTrigger', 'stepOn'].forEach(function (kind) {
     (a[kind] || []).forEach(function (t) {
       _edit.placed.push({
+        // uid gives this placement a stable identity so the Select tool
+        // (map-editor-trigger-select.js) can select/move/delete a stamped
+        // gourd's trigger the same way it does a pasted one.
         kind: kind, x: x + t.dx, y: y + t.dy, w: t.w, h: t.h, scriptId: t.scriptId,
+        uid: editNextPlacedUid(),
       });
       extras.push(kind === 'bTrigger'
         ? 'B-trigger on script 0x' + Number(t.scriptId).toString(16)

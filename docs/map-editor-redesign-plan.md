@@ -96,7 +96,7 @@ explicitly run in isolated worktrees.
 | 1 | Layout shell | `map-editor-ui.js` (toolbar → floating pill, bottom filter bar split out of the inline row) | none | All existing tools still work; pill floats above canvas; filter bar spans only canvas column | `everscript-plugin-builder` + `webview-dom-safety` |
 | 2 | Tab shell | `map-editor-panels.js` (likely split off a `map-editor-tabs.js`), re-home existing families/tiles/composer/budget content under Tile/Info tabs, existing trigger tables under Trigger tab | `activeTab` | Tab switching works; no functional regression, just re-homed DOM | `everscript-plugin-builder`, then `split-orchestration` if a file crosses 400 LOC |
 | 3 | Special tab (net-new) | new `map-editor-special.js`; edits to `map-editor-phases.js`, `map-editor-paint.js`, `map-editor-ui.js` (dropdown chip) | `currentSpecialId`, `specialCells` | Stairs/Gate/Entrance chips paint/erase glyphs on the grid; filter-bar gating works | `everscript-plugin-builder` |
-| 4 | Trigger tab upgrade | `map-editor-gestures.js` (select/move/copy/paste), panels/list UI | `selectedTriggerRef`, `moveDrag`, `_triggerClipboard` (instance field, not state) | Click-select, drag-move, Backspace/Delete, Cmd/Ctrl+C/V, drag-reorder, capacity bars (x/16) | `everscript-plugin-builder` + `webview-dom-safety` (input-focus guard on shortcuts) |
+| 4 | Trigger tab upgrade — **landed** (see §5.2) | `map-editor-gestures.js` (select/move/copy/paste), new `map-editor-trigger-select.js` (model) + `map-editor-trigger-panel.js` (list UI), `map-editor.js` (undo-step extension), `map-editor-paint.js` (outline rendering) | `_edit.selectedTriggerRef`, `_edit.removedTriggers`, `_triggerDrag`, `_triggerClipboard` (instance field, not state) | Click-select, drag-move (clamped), Backspace/Delete, Cmd/Ctrl+C/V, capacity read-outs | `everscript-plugin-builder` + `webview-dom-safety` (input-focus guard on shortcuts) |
 | 5 | Widgets tab | **audit `map-editor-deco.js` + `deco-catalogue.js`/`deco-preview.js` first** — likely a reskin, not new work; then Widget Editor Mode (rail swap, canvas banner, back-to-map) | possibly none (if reskin) | Existing deco/widget stamping reachable through the new tab; Widget Editor Mode round-trip works | `everscript-plugin-builder` |
 | 6 | Polish | outside-click dropdown close, zoom chip/resize grip restyle, `rooms/README.md` client-side list + `STATE_FLOW.md` updated with every new state owner, full anti-entropy checklist | — | All 7 mock screens visually/behaviorally matched; `npm run typecheck && check:circular && check:dead && test` green | direct edit or `architecture-compressor` if cleanup needed |
 
@@ -145,6 +145,62 @@ mock's "Special" groups are **not** equally real:
   project; it restyles/extends the existing shipping
   `src/rooms/webview/map-editor-*.js` system. Do not create `src/map-editor/`
   or assume its existence.
+
+### 5.2 Decisions made while executing Phase 4
+
+- **Unifying base vs. placed triggers**: implemented the plan's own suggested
+  design almost exactly. `_edit.removedTriggers` (`{kind, index}`) marks a
+  base-room trigger hidden; moving one hides it and pushes a new
+  `_edit.placed` entry at the new position (reusing the existing addition
+  mechanism, which already flowed into `editExport()`). One refinement beyond
+  the suggestion: deleting a *placed* trigger soft-deletes it (`removed:
+  true`) rather than splicing it out of the array, and every `placed` entry
+  that is a trigger now carries a stable `uid` (`editNextPlacedUid()`,
+  map-editor.js) assigned at creation — including the ones a stamped
+  construct's B-trigger/step-on already adds (map-editor-constructs.js). Both
+  changes exist so a `selectedTriggerRef` of `'placed:'+uid` keeps naming the
+  same trigger across re-renders and across the pre-existing tail-only
+  undo-prune rule for `_edit.placed` (`editPruneAdded`'s doc comment,
+  map-editor.js) — a positionally-addressed splice from the middle would have
+  broken that rule the same way removing a middle metatile dictionary entry
+  would.
+- **Undo/redo extension**: a trigger op (delete/move/paste) is recorded as a
+  full before/after snapshot of `{removedTriggers, placed}` (both arrays are
+  small — a room's own trigger count plus whatever the draft added), rather
+  than a cell-by-cell diff. `editUndo`/`editRedo` branch on whether a step
+  carries `.triggers`, sharing one stack with `editApply`'s steps as required
+  — see `editApplyTriggerOp()` in map-editor.js. A real bug turned up writing
+  the tests for this: undoing a paste (or redoing a delete) could leave
+  `_edit.selectedTriggerRef` pointing at a trigger that no longer exists,
+  since neither snapshot touches selection (it's UI focus, not draft data).
+  Fixed with `editDropStaleTriggerSelection()`, called at the end of both
+  `editUndo` and `editRedo`.
+- **No "x/16" trigger capacity ceiling**: `docs/map-format/rom-map.md`'s
+  step/B-trigger tables are byte-length-prefixed (`step_len`/`b_len`), not
+  count-limited, and no per-room maximum trigger count is attested anywhere
+  in `docs/map-format/`. The design mock's "x/16" is its own placeholder
+  state, not ROM evidence. The Info tab shows the count with no denominator
+  instead — the same honest shape the existing "stamps" budget row already
+  uses ("no field limit") — rather than fabricate a ceiling.
+- **Drag-to-reorder within/between the step and B lists** (mentioned in the
+  mock's own spec) was **not implemented**. Reordering a *base* trigger has
+  no attested meaning — whether step/B-trigger table order affects in-game
+  evaluation priority when boxes overlap is unconfirmed by any doc in
+  `docs/map-format/`, and inventing reorder semantics for ROM-sourced entries
+  would be exactly the kind of unvalidated mechanics simulation this
+  project's rules forbid. Reordering *placed* triggers only (leaving base
+  order alone) was considered but cut for scope given everything else in this
+  phase; flagged here as an open question for whoever picks up Phase 5/6, not
+  silently dropped.
+- **File-size proactive split**: `map-editor.js` was already at 396 lines
+  before this phase's undo-stack changes; rather than let it cross 400,
+  `editStampCount`/`editAddStamp`/`editStampWords`/`editSlotChr`/
+  `editAdoptGraphic`/`editBrushFromTile`/`editNeededStamps` (the "stamp
+  dictionary" concern, no undo-stack logic of its own) moved to a new
+  `map-editor-stamps.js`. Purely a location change — every caller across the
+  codebase and the test suite kept working via the bundle's shared scope;
+  test files that load `map-editor.js` standalone were updated to also load
+  the new file.
 
 ## 6. Ritual reminder
 

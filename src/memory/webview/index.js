@@ -81,6 +81,7 @@ const ROOMS_JS_FILES = [
   'object-states.js',    // Section 3 object browser (_objectStates) + state pickers
   'metatile-palette.js', // the room's placement palette (_mtPalette/_mtLayer/_mtFilter)
   'map-editor.js',       // the edit draft and undo stack (_edit)
+  'map-editor-stamps.js',// the stamp dictionary: composing/adopting stamps and graphics
   'map-editor-paint.js', // drawing the draft on the map (_editSel/_editClip)
   'map-editor-ui.js',    // tool bar, docked sidebar, composer, constructs
   'map-editor-phases.js',// what a stroke writes in each phase, and the eraser
@@ -90,8 +91,10 @@ const ROOMS_JS_FILES = [
   'map-editor-tiles.js', // the tile browser: grouped by family, ranked by relationship
   'map-editor-deco.js',  // the deco library: vanilla's own objects, to stamp
   'map-editor-special.js',// the Special tab: stairs/drift, gate, entrance + their filter chip
+  'map-editor-trigger-select.js',// unifies base + placed triggers: select/move/delete/copy-paste
+  'map-editor-trigger-panel.js',// the Trigger tab's list UI + the Info tab's trigger counts
   'map-editor-tabs.js',  // which of the dock's four tabs is showing (_editActiveTab)
-  'map-editor-panels.js',// tab content: tile list, needed metatiles, checks, mirrored triggers
+  'map-editor-panels.js',// tab content: tile list, needed metatiles, checks, trigger lists
   'map-editor-gestures.js',// pointer/key gestures on the map -> edits
   'map-editor-input.js', // clicks on the chrome -> actions
   'map-editor-actions.js',// toolbar actions (undo, compose, constructs, export)

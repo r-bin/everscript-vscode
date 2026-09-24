@@ -120,31 +120,26 @@ function tileTabHtml(p) {
       (editDraft() && editDraft().constructs.length) ? editDraft().constructs.length + ' saved' : '');
 }
 
-/** Info tab: the budget bars, then the checks that would stop this draft encoding. */
+/** Info tab: the budget bars, the trigger counts, then the encoding checks. */
 function infoTabHtml(p) {
   var errs = editErrors(p);
-  return budgetBar(p)
+  return budgetBar(p) + triggerCapacityHtml()
     + panel('errors', 'checks', errorsPanel(p), errs.length ? errs.length + ' to look at' : 'clear');
 }
 
 /**
- * Trigger tab: a mirror of the entity tables detail-renderer.js already
- * renders unconditionally above the map (tables-builder.js's
- * buildEntityTablesHtml), so the dock has something while editing rather
- * than nothing.
+ * Trigger tab: the dock's own authoritative trigger list — select, move,
+ * delete, copy/paste (map-editor-trigger-select.js, map-editor-gestures.js),
+ * rendered by map-editor-trigger-panel.js's triggerTabPanelHtml.
  *
- * Deliberately a duplicate, not a move: the always-visible copy outside
- * edit mode is what a room shows while just browsing, and this phase does
- * not touch it. Real select/drag-move/copy-paste interactions (Phase 4 —
- * see docs/map-editor-redesign-plan.md) replace this placeholder with the
- * dock's own authoritative rendering.
+ * Phase 4 (docs/map-editor-redesign-plan.md) replaced this tab's earlier
+ * placeholder, which only mirrored the read-only entity tables
+ * detail-renderer.js renders unconditionally above the map
+ * (tables-builder.js's buildEntityTablesHtml) — that copy is still there for
+ * browsing outside edit mode; this tab no longer duplicates it.
  */
 function triggerTabHtml() {
-  var room = _editPanelRoom;
-  var c = (room && room.content) || {};
-  var trigOff = c.trigOffset || null;
-  var html = buildEntityTablesHtml(c, trigOff);
-  return html || '<div class="rs-note">Nothing to show yet — this mirrors the tables above the map.</div>';
+  return triggerTabPanelHtml();
 }
 
 /** Redraw the panel column: the tab strip, then whichever tab is active. */

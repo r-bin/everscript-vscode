@@ -67,18 +67,41 @@ function editReset(roomId) {
     placed: [],
     /** A blank room being drafted instead of a ROM room, or null. */
     blank: null,
+    /**
+     * Base-room triggers (from `_mtPalette.attachments`) this draft has
+     * hidden — `{kind: 'step'|'b', index}`, index into that kind's
+     * attachments array. A base trigger is never mutated in place (it isn't
+     * this draft's to rewrite); "moving" or "deleting" one marks it here and,
+     * for a move, adds the new position to `placed` instead. See
+     * map-editor-trigger-select.js, which is the only file that pushes to
+     * this besides editUndo/editRedo restoring a snapshot of it.
+     */
+    removedTriggers: [],
+    /**
+     * Which trigger the Select tool has selected, or null — `{kind, id}`,
+     * see map-editor-trigger-select.js's file header for the id scheme.
+     * Cleared whenever the tool changes away from 'select' (map-editor-input.js)
+     * and restored by undo/redo like everything else in this draft.
+     */
+    selectedTriggerRef: null,
+    /** Counter for `placed` entries that need a stable identity across
+     * re-renders (triggers, so the Select tool can refer to one even after
+     * others are added or removed) — see editNextPlacedUid. */
+    placedSeq: 0,
   };
   return _edit;
+}
+
+/** A fresh, stable id for a new `placed` entry — see `_edit.placedSeq`. */
+function editNextPlacedUid() {
+  if (!_edit) return 0;
+  _edit.placedSeq = (_edit.placedSeq || 0) + 1;
+  return _edit.placedSeq;
 }
 
 function editActive() { return !!(_edit && _edit.on); }
 function editDraft() { return _edit; }
 function editKey(x, y) { return x + ',' + y; }
-
-/** How many stamps exist for this room, the room's own plus composed ones. */
-function editStampCount(palette) {
-  return (palette ? palette.count : 0) + (_edit ? _edit.added.length : 0);
-}
 
 /**
  * Apply a list of `{x, y, index}` writes as one undoable step, optionally
@@ -125,6 +148,35 @@ function editApply(writes, specialWrites) {
   return changed;
 }
 
+/**
+ * One undo step for a trigger-select operation (delete/move/paste) —
+ * map-editor-trigger-select.js's only way to touch the shared undo stack.
+ *
+ * Unlike `editApply`'s cell-by-cell diff, a trigger op is recorded as a full
+ * before/after snapshot of `{removedTriggers, placed}`: both arrays are tiny
+ * (a room's own trigger count, plus whatever this draft added) so snapshotting
+ * is cheap, and it sidesteps the tail-only indexing rule `editPruneAdded`
+ * needs for the metatile dictionary — trigger identity is a `uid`, not a
+ * position, so nothing here needs to be tail-only.
+ *
+ * Shares one stack with `editApply`'s steps (see docs/map-editor-redesign-plan.md
+ * Phase 4): `editUndo`/`editRedo` branch on whether a step carries `.triggers`
+ * rather than running a second, parallel undo mechanism.
+ */
+function editApplyTriggerOp(before, after) {
+  if (!_edit) return;
+  _edit.undo.push({ cells: [], special: [], placed: _edit.placed.length, dropped: [], triggers: { before: before, after: after } });
+  _edit.redo.length = 0;
+}
+
+/** Deep-enough copy of a trigger snapshot's two arrays — see editApplyTriggerOp. */
+function editCloneTriggerSnapshot(snap) {
+  return {
+    removedTriggers: snap.removedTriggers.map(function (r) { return { kind: r.kind, index: r.index }; }),
+    placed: snap.placed.map(function (p) { return Object.assign({}, p); }),
+  };
+}
+
 /** Put a batch of `{x, y, index}` back, where `index === null` clears. */
 function editRestore(batch) {
   var inverse = [];
@@ -158,10 +210,41 @@ function editUndo(palette) {
   var step = _edit.undo.pop();
   var inverse = editRestore(step.cells);
   var specialInverse = editRestoreSpecial(step.special || []);
-  // Everything the step attached, set aside so redo can put it back.
-  _edit.redo.push({ cells: inverse, special: specialInverse, placed: step.placed, dropped: _edit.placed.splice(step.placed) });
+  // A trigger-op step restores its own snapshot instead of the tail-splice
+  // below — see editApplyTriggerOp. Both kinds of step still share one stack.
+  var dropped;
+  if (step.triggers) {
+    var before = editCloneTriggerSnapshot(step.triggers.before);
+    _edit.removedTriggers = before.removedTriggers;
+    _edit.placed = before.placed;
+    dropped = [];
+  } else {
+    dropped = _edit.placed.splice(step.placed);
+  }
+  _edit.redo.push({ cells: inverse, special: specialInverse, placed: step.placed, dropped: dropped, triggers: step.triggers });
   editPruneAdded(palette);
+  editDropStaleTriggerSelection();
   return true;
+}
+
+/**
+ * Clear `selectedTriggerRef` if undo/redo just made it point at nothing.
+ *
+ * Undoing a paste (or redoing a delete) removes the very trigger that was
+ * selected, and neither snapshot in `editApplyTriggerOp` touches
+ * `selectedTriggerRef` itself — it is UI focus, not a property of the
+ * trigger. Left alone, the Trigger tab would keep highlighting a row that no
+ * longer exists. `editTriggerFind` lives in map-editor-trigger-select.js,
+ * loaded after this file in the concatenated bundle; by the time a user
+ * action can call `editUndo`/`editRedo` the whole bundle has already run, so
+ * the function is always in reach here — see the `typeof` guard only for
+ * the handful of standalone test bundles that load this file alone.
+ */
+function editDropStaleTriggerSelection() {
+  if (_edit && _edit.selectedTriggerRef && typeof editTriggerFind === 'function'
+    && !editTriggerFind(_edit.selectedTriggerRef)) {
+    _edit.selectedTriggerRef = null;
+  }
 }
 
 function editRedo(palette) {
@@ -169,9 +252,16 @@ function editRedo(palette) {
   var step = _edit.redo.pop();
   var inverse = editRestore(step.cells);
   var specialInverse = editRestoreSpecial(step.special || []);
-  for (var i = 0; i < step.dropped.length; i++) _edit.placed.push(step.dropped[i]);
-  _edit.undo.push({ cells: inverse, special: specialInverse, placed: step.placed, dropped: [] });
+  if (step.triggers) {
+    var after = editCloneTriggerSnapshot(step.triggers.after);
+    _edit.removedTriggers = after.removedTriggers;
+    _edit.placed = after.placed;
+  } else {
+    for (var i = 0; i < step.dropped.length; i++) _edit.placed.push(step.dropped[i]);
+  }
+  _edit.undo.push({ cells: inverse, special: specialInverse, placed: step.placed, dropped: [], triggers: step.triggers });
   editPruneAdded(palette);
+  editDropStaleTriggerSelection();
   return true;
 }
 
@@ -223,132 +313,6 @@ function editPruneGraphics(palette) {
 }
 
 /**
- * Add a composed stamp, or return the index of an identical one.
- *
- * Reuse first, because a dictionary entry is not free: an editor that
- * appends on every click turns a 500-entry dictionary into thousands. The
- * room's own spare slots are offered separately by the UI; this only
- * deduplicates within the draft.
- */
-function editAddStamp(palette, draft) {
-  if (!_edit) return -1;
-  var base = palette ? palette.count : 0;
-  for (var i = 0; i < _edit.added.length; i++) {
-    var a = _edit.added[i];
-    if (a.layer1 === draft.layer1 && a.layer2 === draft.layer2 && a.collision === draft.collision) {
-      return base + i;
-    }
-  }
-  // An exact match already in the room costs nothing at all.
-  if (palette) {
-    for (var j = 0; j < palette.count; j++) {
-      var e = palette.entries[j];
-      if (e[1] === draft.layer1 && e[2] === draft.layer2 && e[3] === draft.collision) return j;
-    }
-  }
-  _edit.added.push({ layer1: draft.layer1, layer2: draft.layer2, collision: draft.collision });
-  return base + _edit.added.length - 1;
-}
-
-/** The three words of a stamp, whether it is the room's or the draft's. */
-function editStampWords(palette, index) {
-  var base = palette ? palette.count : 0;
-  if (index >= base) {
-    var a = _edit && _edit.added[index - base];
-    return a ? { layer1: a.layer1, layer2: a.layer2, collision: a.collision, added: true } : null;
-  }
-  var e = palette && palette.entries[index];
-  return e ? { layer1: e[1], layer2: e[2], collision: e[3], added: false } : null;
-}
-
-/**
- * The `chr` a tilemap word needs to name Block 1 slot `slot`.
- *
- * `renderVramLayer` resolves chr to a slot with
- * `floor(chr/0x20)*8 + floor((chr%0x20)/2)`; this is that inverted.
- */
-function editSlotChr(slot) {
-  return (slot >> 3) * 0x20 + (slot & 7) * 2;
-}
-
-/**
- * Make sure a graphic is in reach, and say which slot it landed in.
- *
- * A graphic the room never loaded cannot be named by any word, so picking
- * one out of a family's art has to add it to Block 1 first. Already-loaded
- * graphics cost nothing and keep their slot.
- */
-function editAdoptGraphic(palette, graphicId) {
-  if (!_edit || !palette || !palette.tiles) return -1;
-  var slots = palette.tiles.slots;
-  for (var i = 0; i < palette.tiles.count; i++) {
-    if (slots[i][2] === graphicId) return i;
-  }
-  var already = _edit.addedGraphics.indexOf(graphicId);
-  if (already >= 0) return palette.tiles.count + already;
-  _edit.addedGraphics.push(graphicId);
-  return palette.tiles.count + _edit.addedGraphics.length - 1;
-}
-
-/**
- * Turn a picked tile into a brush.
- *
- * This is the inverted flow's smallest step: click a grass tile, get
- * something you can immediately stamp. The metatile is created here rather
- * than composed by hand, and **the other two words start empty** — a bare
- * graphic says nothing about what is drawn over it or what is solid, so
- * inventing either would be a guess. They are set later, by painting in
- * deco phase or by editing the collision.
- *
- * Which word the tile becomes follows the phase, so the brush works with
- * `editResolve` rather than against it: laying out a room puts the tile on
- * the ground, decorating puts it over whatever ground is already there.
- */
-function editBrushFromTile(palette, word, phase, prefer) {
-  if (!_edit || word == null) return -1;
-  var blank = editBlankCanopy(palette);
-  // The phase is the user's intent, but the art has an opinion too: a
-  // graphic with transparent pixels is meant to have something show
-  // through it. 4822 of 5628 vanilla graphics are drawn on one layer at
-  // least 90% of the time, so where that is known it decides, and the
-  // phase only breaks the tie.
-  var canopy = prefer ? prefer === 'canopy' : phase === 'deco';
-  var stamp = canopy
-    ? { layer1: word, layer2: blank, collision: EMPTY_COLLISION }
-    : { layer1: blank, layer2: word, collision: EMPTY_COLLISION };
-  var index = editAddStamp(palette, stamp);
-  _edit.brush = index;
-  return index;
-}
-
-/**
- * The collision a freshly made stamp starts with.
- *
- * Zero is "plane 0, geometry open" — walkable, no gates, no drift. It is
- * the honest empty: the format's do-nothing value rather than a guess at
- * what this tile ought to block.
- */
-var EMPTY_COLLISION = 0x0000;
-
-/**
- * The stamps this draft needs that the room does not already define.
- *
- * The "metatiles calculated to be needed by the creation" — every composed
- * stamp, plus what it costs. Placing the same construct twice adds nothing,
- * because `editAddStamp` deduplicates first.
- */
-function editNeededStamps(palette) {
-  if (!_edit) return { added: [], bytes: 0 };
-  var base = palette ? palette.count : 0;
-  return {
-    added: _edit.added.map(function (a, i) {
-      return { index: base + i, layer1: a.layer1, layer2: a.layer2, collision: a.collision };
-    }),
-    bytes: _edit.added.length * 8,
-  };
-}
-
-/**
  * The draft as the shape `rebuild_model` wants.
  *
  * Cell writes are grid coordinates and metatile **ids**, because that is
@@ -366,6 +330,13 @@ function editNeededStamps(palette) {
  * placement helper with no confirmed encoder field to write into, and
  * stairs has no attested collision encoding. Both stay visual-only until
  * one of those is confirmed.
+ *
+ * `removedTriggers` is the Select tool's counterpart to `attachments`: a
+ * base trigger this draft hid (deleted, or moved — a move hides the base one
+ * and adds a new `attachments` entry for the moved position). Soft-deleted
+ * `placed` entries (`removed: true`, from deleting a placed trigger — see
+ * map-editor-trigger-select.js) are dropped here rather than exported as
+ * attachments nobody asked for.
  */
 function editExport(palette) {
   if (!_edit) return null;
@@ -391,6 +362,7 @@ function editExport(palette) {
     // The draft's own copy, not `editFamilies()`: this file owns `_edit` and
     // reaching into the families panel from here would invert that.
     families: (_edit.families || []).slice(),
-    attachments: _edit.placed.slice(),
+    attachments: _edit.placed.filter(function (p) { return !p.removed; }),
+    removedTriggers: (_edit.removedTriggers || []).slice(),
   };
 }

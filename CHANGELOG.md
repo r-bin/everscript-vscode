@@ -1,3 +1,65 @@
+## [0.53.0] — 2026-09-24
+
+### Map editor redesign, phase 4: the Trigger tab becomes a real editor
+
+Continues `docs/map-editor-redesign-plan.md`'s structural rebuild. The
+Trigger tab's placeholder (a read-only mirror of the entity tables above the
+map) is replaced with real select/move/delete/copy-paste interactions over
+the room's triggers, and a new Select tool (↖) drives them.
+
+- **One unified trigger concept, two real sources.** A room's own ROM-sourced
+  triggers (`_mtPalette.attachments.bTrigger`/`.stepOn`, read-only tuples)
+  and this draft's own additions (`_edit.placed`) are merged by a new
+  `map-editor-trigger-select.js` into one list per kind, addressed by a
+  `{kind: 'step'|'b', id}` ref (`'base:'+i` or `'placed:'+uid`). Deleting a
+  base trigger marks it hidden (`_edit.removedTriggers`) rather than mutating
+  the room's own array; moving one hides it and adds a new placed entry at
+  the new position, reusing the addition mechanism that already flowed into
+  `editExport()`. Deleting a placed trigger soft-deletes it
+  (`removed: true`) so `_edit.placed` stays append-only, preserving the
+  existing tail-only undo-prune rule for the metatile dictionary.
+- **A real Select tool** (new first entry in `EDIT_TOOLS`, map-editor-ui.js):
+  click a trigger to select it (outlines on the canvas in its kind's accent —
+  step pink, B yellow, tokens reserved since Phase 1), drag its own cells to
+  move it (clamped to the room), Backspace/Delete to remove it, Cmd/Ctrl+C/V
+  to copy and paste (offset +1 row/+1 col, also clamped). Every shortcut is
+  inert while a text input has focus. Switching to any other tool clears the
+  selection; selecting a trigger (canvas or list row) switches the dock to
+  the Trigger tab.
+- **One shared undo stack, not a parallel one.** A trigger op (delete/move/
+  paste) is recorded as a before/after snapshot of
+  `{removedTriggers, placed}` and interleaves with the tile grid's own
+  `editApply` steps in `_edit.undo`/`_edit.redo` (`editApplyTriggerOp()`,
+  map-editor.js). Fixed a real bug found while testing this: undo/redo could
+  leave `selectedTriggerRef` pointing at a trigger that had just been
+  removed/restored out from under it — `editDropStaleTriggerSelection()`
+  clears it when that happens.
+- **The Trigger tab's list UI** (new `map-editor-trigger-panel.js`): step/B
+  sections with click-to-select rows, a mini position+crop preview cut from
+  the room's own already-loaded picture (no second image pipeline), and a
+  remove button. The Info tab gains step/B trigger counts — deliberately with
+  no "x/16" ceiling: the ROM's trigger tables are byte-length-prefixed, not
+  count-limited, and no per-room maximum is attested anywhere in
+  `docs/map-format/`, so inventing one would be exactly the kind of
+  unvalidated mechanics claim this project's rules forbid.
+- **Not implemented, flagged for later**: drag-to-reorder the trigger lists
+  (the mock's own spec mentions it) — whether ROM trigger-table order affects
+  in-game evaluation priority for overlapping boxes is unconfirmed, so no
+  reorder semantics were invented for base triggers. See
+  `docs/map-editor-redesign-plan.md` §5.2 for the full list of decisions.
+- **Proactive file-size split**: `map-editor.js` was already at 396 lines
+  before this phase's undo changes; the stamp-dictionary functions
+  (`editAddStamp`/`editStampWords`/`editAdoptGraphic`/`editBrushFromTile`/
+  `editNeededStamps` and friends) moved to a new `map-editor-stamps.js` to
+  stay well under the 400-line limit — a pure location change, no behavior
+  difference.
+- Tests: `tests/memory/map-editor.test.js` gained a full model-level suite
+  (list merging, hit-testing, move/clamp, delete, copy/paste, export
+  filtering); `tests/memory/map-editor-dom.test.js` gained an end-to-end
+  Select-tool suite driven through real `editStroke`/keyboard-event calls
+  (select/deselect, drag-move with clamping, undo/redo, delete, copy/paste,
+  the tab-switch-on-select behavior, and the text-input shortcut guard).
+
 ## [0.52.0] — 2026-09-24
 
 ### Map editor redesign, phase 3: the Special tab (Stairs & Drift / Gate / Entrance)

@@ -24,17 +24,34 @@ const read = (f) => fs.readFileSync(path.join(WEBVIEW, f), 'utf8');
 // region maths; its one DOM function (renderEditLayer) is not called.
 // map-editor-special.js is DOM-free too: its catalog and bit math only
 // touch editDraft()/editAddStamp()/editStampWords(), which map-editor.js
-// already supplies. escH is only used by the HTML-string builders
-// (specialTabHtml, buildSpecialFilterChipHtml) that this suite does not
-// call, so no stub is needed here.
-const api = new Function(`${read('map-editor.js')}\n${read('map-editor-paint.js')}\n${read('map-editor-special.js')}
+// (now split into map-editor.js + map-editor-stamps.js) already supplies.
+// map-editor-trigger-select.js is DOM-free the same way: every render call
+// it makes is guarded by `typeof renderEditChrome === 'function'` etc., so
+// it runs with none of those defined; `_mtPalette`/`_editActiveTab` are
+// stubbed here since their real owners (metatile-palette.js/
+// map-editor-tabs.js) are not part of this minimal bundle. escH is only used
+// by the HTML-string builders (specialTabHtml, buildSpecialFilterChipHtml)
+// that this suite does not call, so no stub is needed for it.
+const api = new Function(`
+  var _mtPalette = null;
+  var _editActiveTab = 'tile';
+  ${read('map-editor.js')}
+  ${read('map-editor-stamps.js')}
+  ${read('map-editor-paint.js')}
+  ${read('map-editor-special.js')}
+  ${read('map-editor-trigger-select.js')}
 return { editReset, editActive, editDraft, editKey, editApply, editUndo, editRedo,
          editAddStamp, editStampWords, editExport, editStampCount,
          editCellAt, editRectWrites, editPasteWrites, editTakeSelection,
          editStampSvg, editCellPos,
          editSpecialById, editSpecialAppliedIndex, editSpecialAt, editSpecialGroupOf,
          groups: EDIT_SPECIAL_GROUPS,
-         setSel: (s) => { _editSel = s; }, clip: () => _editClip };`)();
+         setSel: (s) => { _editSel = s; }, clip: () => _editClip,
+         editTriggerList, editTriggerAt, editTriggerFind, triggerParseRef,
+         triggerSelect, triggerDeleteSelected, triggerCommitMove,
+         triggerCopySelected, triggerPasteClipboard,
+         setPalette: (p) => { _mtPalette = p; }, getActiveTab: () => _editActiveTab,
+         setActiveTab: (t) => { _editActiveTab = t; } };`)();
 
 let passed = 0;
 let failed = 0;
@@ -362,6 +379,190 @@ test('specialCells is a UI-only overlay, never part of the export', () => {
 });
 
 // ---------------------------------------------------------------------------
+// The Select tool's trigger model — map-editor-trigger-select.js. An 8x8
+// room, one base step trigger and one base B-trigger, so a move has room to
+// land and a clamp has an edge to reach. See
+// docs/map-editor-redesign-plan.md Phase 4 for the unification this pins:
+// base triggers (`_mtPalette.attachments`, read-only) and this draft's own
+// (`_edit.placed`) as one selectable/movable/deletable/copy-pasteable list.
+// ---------------------------------------------------------------------------
+
+console.log('\nSelect tool: the unified trigger model:');
+
+function triggerPalette() {
+    return {
+        widthTiles: 8, heightTiles: 8,
+        attachments: {
+            stepOn: [[1, 1, 2, 2, 0x1111]],
+            bTrigger: [[7, 0, 7, 1, 0x2222]],
+            objects: [],
+        },
+    };
+}
+
+test('the list merges base and placed triggers of one kind', () => {
+    api.editReset(0x76);
+    api.setPalette(triggerPalette());
+    const step = api.editTriggerList('step');
+    assert.strictEqual(step.length, 1);
+    assert.deepStrictEqual(step[0].ref, { kind: 'step', id: 'base:0' });
+    assert.strictEqual(step[0].origin, 'base');
+    assert.deepStrictEqual([step[0].x1, step[0].y1, step[0].x2, step[0].y2], [1, 1, 2, 2]);
+    assert.strictEqual(api.editTriggerList('b').length, 1);
+});
+
+test('hit-testing finds the trigger under a cell, and nothing off it', () => {
+    api.editReset(0x76);
+    api.setPalette(triggerPalette());
+    assert.deepStrictEqual(api.editTriggerAt(1, 1), { kind: 'step', id: 'base:0' });
+    assert.deepStrictEqual(api.editTriggerAt(7, 0), { kind: 'b', id: 'base:0' });
+    assert.strictEqual(api.editTriggerAt(0, 0), null, 'outside every box');
+});
+
+test('selecting switches the active tab to Trigger; deselecting does not touch it', () => {
+    api.editReset(0x76);
+    api.setPalette(triggerPalette());
+    api.setActiveTab('tile');
+    api.triggerSelect({ kind: 'step', id: 'base:0' });
+    assert.strictEqual(api.getActiveTab(), 'trigger');
+    api.setActiveTab('info');
+    api.triggerSelect(null);
+    assert.strictEqual(api.getActiveTab(), 'info', 'clearing a selection is not itself a reason to switch tabs');
+});
+
+test('moving a base trigger hides the base one and adds a placed one at the new spot', () => {
+    api.editReset(0x76);
+    api.setPalette(triggerPalette());
+    api.triggerSelect({ kind: 'step', id: 'base:0' });
+    api.triggerCommitMove({ kind: 'step', id: 'base:0' }, 4, 4);
+
+    const list = api.editTriggerList('step');
+    assert.strictEqual(list.length, 1, 'one trigger, not two — the base one is hidden, not duplicated');
+    assert.strictEqual(list[0].origin, 'placed');
+    assert.deepStrictEqual([list[0].x1, list[0].y1, list[0].x2, list[0].y2], [4, 4, 5, 5]);
+    assert.strictEqual(list[0].scriptId, 0x1111, 'the script id travels with the move');
+    assert.deepStrictEqual(api.editDraft().selectedTriggerRef, list[0].ref,
+        'the selection follows the trigger to its new identity');
+
+    assert.strictEqual(api.editUndo(triggerPalette()), true);
+    assert.strictEqual(api.editTriggerList('step')[0].origin, 'base', 'undo restores the base trigger');
+    assert.strictEqual(api.editRedo(triggerPalette()), true);
+    assert.strictEqual(api.editTriggerList('step')[0].origin, 'placed', 'redo moves it again');
+});
+
+test('moving an already-placed trigger mutates it in place, keeping its identity', () => {
+    api.editReset(0x76);
+    api.setPalette(triggerPalette());
+    api.triggerSelect({ kind: 'step', id: 'base:0' });
+    api.triggerCommitMove({ kind: 'step', id: 'base:0' }, 4, 4);
+    const firstRef = api.editDraft().selectedTriggerRef;
+
+    api.triggerCommitMove(firstRef, 6, 6);
+    assert.deepStrictEqual(api.editDraft().selectedTriggerRef, firstRef, 'same placed trigger, not a new one');
+    assert.strictEqual(api.editDraft().undo.length, 2, 'two separate moves, two undo steps');
+});
+
+test('a move is clamped to the last position that keeps the whole box on the grid', () => {
+    api.editReset(0x76);
+    api.setPalette(triggerPalette());
+    api.triggerSelect({ kind: 'step', id: 'base:0' });
+    api.triggerCommitMove({ kind: 'step', id: 'base:0' }, 20, 20);
+    const t = api.editTriggerFind(api.editDraft().selectedTriggerRef);
+    // 8 wide, box is 2 wide: the last position that fits is 6.
+    assert.deepStrictEqual([t.x1, t.y1, t.x2, t.y2], [6, 6, 7, 7]);
+});
+
+test('deleting a base trigger marks it removed rather than mutating the base array', () => {
+    const p = triggerPalette();
+    api.editReset(0x76);
+    api.setPalette(p);
+    api.triggerSelect({ kind: 'b', id: 'base:0' });
+    api.triggerDeleteSelected();
+
+    assert.strictEqual(api.editTriggerList('b').length, 0);
+    assert.deepStrictEqual(p.attachments.bTrigger, [[7, 0, 7, 1, 0x2222]],
+        'the room’s own attachments array is never touched');
+    assert.strictEqual(api.editDraft().selectedTriggerRef, null);
+    assert.ok(api.editDraft().removedTriggers.some((r) => r.kind === 'b' && r.index === 0));
+
+    assert.strictEqual(api.editUndo(p), true);
+    assert.strictEqual(api.editTriggerList('b').length, 1, 'undo brings it back');
+    assert.strictEqual(api.editRedo(p), true);
+    assert.strictEqual(api.editTriggerList('b').length, 0);
+});
+
+test('deleting a placed trigger soft-deletes it, so `placed` stays append-only', () => {
+    api.editReset(0x76);
+    api.setPalette(triggerPalette());
+    api.triggerSelect({ kind: 'step', id: 'base:0' });
+    api.triggerCommitMove({ kind: 'step', id: 'base:0' }, 4, 4);
+    const ref = api.editDraft().selectedTriggerRef;
+
+    api.triggerDeleteSelected();
+    assert.strictEqual(api.editTriggerList('step').length, 0);
+    const raw = api.editDraft().placed.filter((p) => p.uid != null);
+    assert.strictEqual(raw.length, 1, 'the entry is still there, just tombstoned');
+    assert.strictEqual(raw[0].removed, true);
+
+    assert.strictEqual(api.editUndo(triggerPalette()), true);
+    assert.deepStrictEqual(api.editDraft().selectedTriggerRef, null,
+        'undo restores the trigger, but does not re-select it — selection is UI focus, not part of the snapshot');
+    assert.strictEqual(api.editTriggerList('step').length, 1);
+    assert.deepStrictEqual(api.editTriggerFind(ref).ref, ref, 'and it is the very same trigger, not a new one');
+});
+
+test('copy/paste offsets by +1 row, +1 col, clamped, and selects the new one', () => {
+    api.editReset(0x76);
+    api.setPalette(triggerPalette());
+    api.triggerSelect({ kind: 'step', id: 'base:0' });   // box (1,1)-(2,2)
+    api.triggerCopySelected();
+    api.triggerPasteClipboard();
+
+    const list = api.editTriggerList('step');
+    assert.strictEqual(list.length, 2, 'the original base trigger is untouched by a copy');
+    const placedOnes = list.filter((t) => t.origin === 'placed');
+    assert.strictEqual(placedOnes.length, 1);
+    assert.deepStrictEqual([placedOnes[0].x1, placedOnes[0].y1], [2, 2], 'offset by +1, +1 from (1,1)');
+    assert.strictEqual(placedOnes[0].scriptId, 0x1111);
+    assert.deepStrictEqual(api.editDraft().selectedTriggerRef, placedOnes[0].ref);
+});
+
+test('pasting past the edge clamps like a drag would', () => {
+    api.editReset(0x76);
+    api.setPalette(triggerPalette());
+    api.triggerSelect({ kind: 'step', id: 'base:0' });
+    api.triggerCommitMove({ kind: 'step', id: 'base:0' }, 6, 6);   // already at the max clamp
+    api.triggerCopySelected();
+    api.triggerPasteClipboard();
+    const t = api.editTriggerFind(api.editDraft().selectedTriggerRef);
+    assert.deepStrictEqual([t.x1, t.y1], [6, 6], '+1 offset from (6,6) clamps right back to (6,6)');
+});
+
+test('exporting drops soft-deleted placed triggers and carries removedTriggers', () => {
+    const p = triggerPalette();
+    api.editReset(0x76);
+    api.setPalette(p);
+    api.triggerSelect({ kind: 'b', id: 'base:0' });
+    api.triggerDeleteSelected();          // a removed base trigger
+    api.triggerSelect({ kind: 'step', id: 'base:0' });
+    api.triggerCommitMove({ kind: 'step', id: 'base:0' }, 4, 4);   // a placed trigger
+    api.triggerDeleteSelected();          // ...then soft-deleted
+
+    const out = api.editExport(p);
+    // Two hidden base triggers: the B-trigger deleted outright, and the step
+    // trigger hidden by its own move (before the moved copy was itself
+    // deleted) — both are real removals the exported room must account for.
+    assert.deepStrictEqual(out.removedTriggers, [{ kind: 'b', index: 0 }, { kind: 'step', index: 0 }]);
+    assert.ok(!out.attachments.some((a) => a.removed), 'no soft-deleted placed trigger is exported');
+    assert.strictEqual(out.attachments.length, 0);
+});
+
+test('triggerParseRef splits only on the first colon, since an id can contain one', () => {
+    assert.deepStrictEqual(api.triggerParseRef('step:base:2'), { kind: 'step', id: 'base:2' });
+    assert.deepStrictEqual(api.triggerParseRef('b:placed:14'), { kind: 'b', id: 'placed:14' });
+});
+
+// ---------------------------------------------------------------------------
 // The composer, run against a stub DOM.
 //
 // "add stamp" silently did nothing when a source was missing, which from the
@@ -377,6 +578,7 @@ const ui = new Function(`
   function escH(s) { return String(s); }
   ${read('metatile-palette.js')}
   ${read('map-editor.js')}
+  ${read('map-editor-stamps.js')}
   ${read('map-editor-paint.js')}
   ${read('map-editor-ui.js')}
   ${read('map-editor-phases.js')}
@@ -385,7 +587,9 @@ const ui = new Function(`
   ${read('map-editor-chips.js')}
   ${read('map-editor-tiles.js')}
   ${read('map-editor-special.js')}
-  ${read('tables-builder.js') /* buildEntityTablesHtml, for the Trigger tab */}
+  ${read('map-editor-trigger-select.js')}
+  ${read('map-editor-trigger-panel.js')}
+  ${read('tables-builder.js') /* buildEntityTablesHtml, still used above the map outside edit mode */}
   ${read('map-editor-tabs.js')}
   ${read('map-editor-panels.js')}
   ${read('map-editor-gestures.js')}

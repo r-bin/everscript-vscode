@@ -96,7 +96,7 @@ function renderComposer() {
 var EDIT_CLICK_KEYS = ['editTool', 'editPhase', 'editAct', 'editPick', 'panel',
   'famTile', 'construct', 'chip', 'chipDrop', 'chipAdopt', 'chipMore', 'tileMore',
   'layerForce', 'deco', 'decoPage', 'decoFlag', 'mtIndex', 'mtSlot', 'editActiveTab',
-  'editSpecial', 'editSpecialMenu'];
+  'editSpecial', 'editSpecialMenu', 'triggerRef', 'triggerRemove'];
 
 /** The nearest ancestor (including `el`) that carries one of those keys. */
 function editClickTarget(el, root) {
@@ -182,7 +182,20 @@ function bindEditControls(panel, room) {
     }
     if (t.dataset.editTool) {
       var d = editDraft();
-      if (d) { d.tool = t.dataset.editTool; _editSel = null; renderEditChrome(); }
+      if (d) {
+        d.tool = t.dataset.editTool;
+        _editSel = null;
+        // Every tool but Select clears the trigger selection — the mock's
+        // own rule (docs/map-editor-redesign-plan.md Phase 4).
+        if (d.tool !== 'select') { d.selectedTriggerRef = null; _triggerDrag = null; }
+        renderEditChrome();
+      }
+      return;
+    }
+    if (t.dataset.triggerRef) { triggerSelect(triggerParseRef(t.dataset.triggerRef)); return; }
+    if (t.dataset.triggerRemove) {
+      triggerSelect(triggerParseRef(t.dataset.triggerRemove));
+      triggerDeleteSelected();
       return;
     }
     if (t.dataset.editPhase) {

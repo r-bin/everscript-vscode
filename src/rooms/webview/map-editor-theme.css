@@ -221,3 +221,33 @@
 .rg-theme.hide-special-stairs .rg-special-glyph-stairs{display:none!important}
 .rg-theme.hide-special-gate .rg-special-glyph-gate{display:none!important}
 .rg-theme.hide-special-entrance .rg-special-glyph-entrance{display:none!important}
+
+/* ── Trigger selection + drag preview on the canvas (map-editor-paint.js's
+ * triggerOutlineSvg, drawn inside #rg-edit by renderEditLayer). Step ~ pink,
+ * B ~ yellow, the same accents the toolbar's own step/B trigger tools will
+ * use — see map-editor-trigger-select.js. */
+.rg-theme .rg-trigger-sel, .rg-theme .rg-trigger-drag{
+  fill:none;
+  stroke-width:.3;
+  pointer-events:none;
+}
+.rg-theme .rg-trigger-sel-step{stroke:var(--rg-trigger-step)}
+.rg-theme .rg-trigger-sel-b{stroke:var(--rg-trigger-b)}
+.rg-theme .rg-trigger-drag-step{stroke:var(--rg-trigger-step);stroke-dasharray:.4 .3;opacity:.8}
+.rg-theme .rg-trigger-drag-b{stroke:var(--rg-trigger-b);stroke-dasharray:.4 .3;opacity:.8}
+
+/* ── Trigger tab list (map-editor-trigger-panel.js's triggerTabPanelHtml) ── */
+.rg-theme .rg-trigger-section{margin-bottom:12px}
+.rg-theme .rg-trigger-list{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+.rg-theme .rg-trigger-row{
+  display:flex;align-items:center;gap:8px;padding:4px;cursor:pointer;
+  border:1px solid transparent;border-radius:var(--rg-radius-control);
+}
+.rg-theme .rg-trigger-row:hover{background:var(--rg-bg-hover)}
+.rg-theme .rg-trigger-row.on{border-color:var(--rg-accent);background:var(--rg-accent-soft)}
+.rg-theme .rg-trigger-crop{
+  display:inline-block;flex-shrink:0;background-repeat:no-repeat;
+  border:1px solid var(--rg-border);border-radius:3px;image-rendering:pixelated;
+}
+.rg-theme .rg-trigger-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;overflow:hidden}
+.rg-theme .rg-trigger-remove{margin-left:auto;flex-shrink:0}

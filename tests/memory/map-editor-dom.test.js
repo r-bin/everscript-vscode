@@ -24,9 +24,10 @@ const WEBVIEW = path.join(__dirname, '..', '..', 'src', 'rooms', 'webview');
 const read = (f) => fs.readFileSync(path.join(WEBVIEW, f), 'utf8');
 
 /** The editor's files, in the order the bundle concatenates them. */
-const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-paint.js', 'map-editor-ui.js',
-    'map-editor-phases.js', 'map-editor-constructs.js', 'map-editor-families.js',
+const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-stamps.js', 'map-editor-paint.js',
+    'map-editor-ui.js', 'map-editor-phases.js', 'map-editor-constructs.js', 'map-editor-families.js',
     'map-editor-chips.js', 'map-editor-tiles.js', 'map-editor-deco.js', 'map-editor-special.js',
+    'map-editor-trigger-select.js', 'map-editor-trigger-panel.js',
     'tables-builder.js', 'map-editor-tabs.js', 'map-editor-panels.js', 'map-editor-gestures.js',
     'map-editor-input.js', 'map-editor-actions.js', 'map-editor-newroom.js'];
 
@@ -135,7 +136,13 @@ async function main() {
     check("and the Tile tab's panels are gone, not just hidden",
         !(await page.$('[data-panel="families"]')));
 
-    await page.evaluate((room) => bindEditControls(document.getElementById('room-detail'), room), {
+    // The Trigger tab reads the room's own base triggers off `_mtPalette.attachments`
+    // (the same tuples map-editor-constructs.js already uses), not the read-only
+    // entity tables — see map-editor-trigger-panel.js.
+    await page.evaluate((room) => {
+        _mtPalette.attachments = { bTrigger: [], stepOn: [[0, 0, 1, 1, 0x1234]], objects: [] };
+        bindEditControls(document.getElementById('room-detail'), room);
+    }, {
         content: {
             triggers: { stepOn: [{ x1: 0, y1: 0, x2: 1, y2: 1 }], bTrigger: [] },
             triggerNames: { stepOn: ['test_step'], bTrigger: [] },
@@ -143,8 +150,9 @@ async function main() {
     });
     await page.click('[data-edit-active-tab="trigger"]');
     const trigText = await page.evaluate(() => document.getElementById('rg-panels').textContent);
-    check("the Trigger tab mirrors the room's step/B-trigger tables",
-        /Step-on triggers/.test(trigText) && /test_step/.test(trigText), trigText.slice(0, 200));
+    check("the Trigger tab lists the room's own step/B triggers, named from the source",
+        /Step-on triggers/.test(trigText) && /test_step/.test(trigText) && /0x1234/.test(trigText),
+        trigText.slice(0, 300));
 
     // ── the Special tab ────────────────────────────────────────────────────
     await page.click('[data-edit-active-tab="special"]');
@@ -211,6 +219,159 @@ async function main() {
 
     check('switching back to Tile restores its panels',
         !!(await page.$('[data-panel="families"]')));
+
+    // ── the Select tool: real base + placed triggers, driven end to end ────
+    // An 8x8 room: one base step trigger at (1,1)-(2,2), one base B-trigger
+    // tucked out of the way at (7,0)-(7,1) so it never collides with where
+    // the step trigger's moves/drags land below.
+    await page.evaluate(() => {
+        editReset(0x34);
+        editDraft().on = true;
+        _mtPalette = Object.assign({}, _mtPalette, {
+            widthTiles: 8, heightTiles: 8,
+            attachments: { bTrigger: [[7, 0, 7, 1, 0x2222]], stepOn: [[1, 1, 2, 2, 0x1111]], objects: [] },
+        });
+        _editActiveTab = 'tile';
+        editDraft().tool = 'select';
+    });
+
+    const picked = await page.evaluate(() => {
+        editStroke({ x: 1, y: 1 }, 'down');
+        return { ref: editDraft().selectedTriggerRef, tab: _editActiveTab };
+    });
+    check('clicking a base trigger selects it',
+        picked.ref && picked.ref.kind === 'step' && picked.ref.id === 'base:0', JSON.stringify(picked));
+    check('and switches the dock to the Trigger tab', picked.tab === 'trigger', picked.tab);
+    check('the outline for the selected trigger is drawn on the canvas',
+        !!(await page.$('.rg-trigger-sel-step')));
+
+    await page.evaluate(() => editStroke({ x: 7, y: 7 }, 'down'));
+    check('clicking empty ground deselects it',
+        (await page.evaluate(() => editDraft().selectedTriggerRef)) === null);
+
+    // Drag the base step trigger (grabbed at its own top-left, so the drop
+    // cell becomes the new top-left) from (1,1) to (4,4).
+    await page.evaluate(() => editStroke({ x: 1, y: 1 }, 'down'));   // reselect it
+    const dragged = await page.evaluate(() => {
+        editStroke({ x: 1, y: 1 }, 'down');   // mousedown on the selection's own cell starts a drag
+        editStroke({ x: 4, y: 4 }, 'move');
+        const live = !!document.querySelector('.rg-trigger-drag-step');
+        editStroke({ x: 4, y: 4 }, 'up');
+        return {
+            livePreview: live, ref: editDraft().selectedTriggerRef, undoLen: editDraft().undo.length,
+            box: editTriggerFind(editDraft().selectedTriggerRef),
+            baseGone: editTriggerList('step').filter((t) => t.origin === 'base').length,
+        };
+    });
+    check('dragging shows a live preview outline', dragged.livePreview);
+    check('and commits as a new placed trigger, since a base one cannot move in place',
+        dragged.ref && dragged.ref.kind === 'step' && dragged.ref.id === 'placed:1', JSON.stringify(dragged));
+    check('landing exactly where it was dropped', dragged.box.x1 === 4 && dragged.box.y1 === 4, JSON.stringify(dragged.box));
+    check('the move is one undo step', dragged.undoLen === 1, String(dragged.undoLen));
+    check('and the base trigger it came from no longer appears in the live list',
+        dragged.baseGone === 0, String(dragged.baseGone));
+
+    // Copy/paste while there is still headroom (4,4) to see the +1/+1 offset
+    // land somewhere new, before the corner-clamp test below eats that room.
+    const pasted = await page.evaluate(() => {
+        const before = editTriggerFind(editDraft().selectedTriggerRef);
+        triggerCopySelected();
+        triggerPasteClipboard();
+        return { before: before, ref: editDraft().selectedTriggerRef, box: editTriggerFind(editDraft().selectedTriggerRef) };
+    });
+    check('pasting creates a new trigger offset by +1 row, +1 col from the copy',
+        pasted.box.x1 === pasted.before.x1 + 1 && pasted.box.y1 === pasted.before.y1 + 1,
+        JSON.stringify(pasted));
+    check('and selects the new one, distinct from the copied one',
+        pasted.ref.id !== pasted.before.ref.id && pasted.ref.id === 'placed:2', JSON.stringify(pasted));
+
+    // Reselect the original (uid 1, still at (4,4)) — click its own top-left,
+    // which the pasted copy (at (5,5)) does not cover.
+    await page.evaluate(() => editStroke({ x: 4, y: 4 }, 'down'));
+    check('clicking the original again re-selects it, not the overlapping paste',
+        (await page.evaluate(() => editDraft().selectedTriggerRef.id)) === 'placed:1');
+
+    // Clamp: drag it toward the bottom-right corner — (7,7) is the last cell
+    // in bounds (`editStroke` itself refuses any cell outside the room, the
+    // same guard every tool shares), and it is still enough to push a 2-wide
+    // box on an 8-wide room past where it fits, so it must stop at (6,6).
+    const clampedDrag = await page.evaluate(() => {
+        editStroke({ x: 4, y: 4 }, 'down');
+        editStroke({ x: 7, y: 7 }, 'move');
+        editStroke({ x: 7, y: 7 }, 'up');
+        return editTriggerFind(editDraft().selectedTriggerRef);
+    });
+    check('a drag past the edge clamps to the last position that fits',
+        clampedDrag.x1 === 6 && clampedDrag.y1 === 6 && clampedDrag.x2 === 7 && clampedDrag.y2 === 7,
+        JSON.stringify(clampedDrag));
+
+    const undoneClamp = await page.evaluate(() => {
+        editUndo(_mtPalette);
+        return editTriggerFind(editDraft().selectedTriggerRef);
+    });
+    check('undo restores the pre-clamp position', undoneClamp.x1 === 4 && undoneClamp.y1 === 4, JSON.stringify(undoneClamp));
+    const redoneClamp = await page.evaluate(() => {
+        editRedo(_mtPalette);
+        return editTriggerFind(editDraft().selectedTriggerRef);
+    });
+    check('redo puts the clamped move back', redoneClamp.x1 === 6 && redoneClamp.y1 === 6, JSON.stringify(redoneClamp));
+
+    // Delete a base trigger: the B-trigger tucked at (7,0)-(7,1).
+    const bPicked = await page.evaluate(() => {
+        editStroke({ x: 7, y: 0 }, 'down');
+        return editDraft().selectedTriggerRef;
+    });
+    check('selecting the base B-trigger', bPicked && bPicked.kind === 'b' && bPicked.id === 'base:0', JSON.stringify(bPicked));
+    const bDeleted = await page.evaluate(() => {
+        triggerDeleteSelected();
+        return {
+            selected: editDraft().selectedTriggerRef,
+            count: editTriggerList('b').length,
+            removed: editDraft().removedTriggers.slice(),
+        };
+    });
+    check('deleting a base trigger clears the selection and hides it from the list',
+        bDeleted.selected === null && bDeleted.count === 0, JSON.stringify(bDeleted));
+    check('by marking it removed, not by mutating the room’s own attachments array',
+        bDeleted.removed.some((r) => r.kind === 'b' && r.index === 0), JSON.stringify(bDeleted.removed));
+    await page.evaluate(() => editUndo(_mtPalette));
+    check('undo brings the base trigger back', (await page.evaluate(() => editTriggerList('b').length)) === 1);
+    await page.evaluate(() => editRedo(_mtPalette));
+
+    // Capacity counts on the Info tab: base (minus removed) + placed. At this
+    // point step has the two placed triggers (uid 1 at (6,6), uid 2 at
+    // (5,5)) and the base one is hidden; B has none (deleted just above).
+    await page.click('[data-edit-active-tab="info"]');
+    const infoText = await page.evaluate(() => document.getElementById('rg-panels').textContent);
+    check('the Info tab shows the trigger counts with no fabricated ceiling',
+        /step triggers\D*2/.test(infoText) && /B-triggers\D*0/.test(infoText) && /no confirmed limit/.test(infoText),
+        infoText.slice(0, 400));
+
+    // ── keyboard shortcuts: text-input guard, then the real thing ──────────
+    await page.click('[data-edit-active-tab="tile"]');
+    await page.evaluate(() => { setupEditKeys(); editStroke({ x: 5, y: 5 }, 'down'); });   // select uid 2, at (5,5)
+    const guarded = await page.evaluate(() => {
+        const before = editDraft().undo.length;
+        const input = document.createElement('input');
+        document.body.appendChild(input);
+        input.focus();
+        input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true }));
+        input.remove();
+        return { blockedByInput: editDraft().undo.length === before, hasSelection: !!editDraft().selectedTriggerRef };
+    });
+    check('Delete is inert while a text input has focus, per webview-dom-safety',
+        guarded.blockedByInput && guarded.hasSelection, JSON.stringify(guarded));
+
+    const deletedByKey = await page.evaluate(() => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete' }));
+        return editDraft().selectedTriggerRef;
+    });
+    check('Delete with real focus removes the selected trigger', deletedByKey === null);
+
+    // Selecting a trigger (above) switched the dock to the Trigger tab, same
+    // as every other select in this block — back to Tile for the rest of
+    // this suite, which assumes the Tile tab's own panels are on screen.
+    await page.click('[data-edit-active-tab="tile"]');
 
     // The composer starts collapsed — clicking a tile is the main path now,
     // and hand-composing is the fallback. Opening it must put it in the
