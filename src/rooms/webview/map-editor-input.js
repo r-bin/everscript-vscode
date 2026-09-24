@@ -95,7 +95,7 @@ function renderComposer() {
  */
 var EDIT_CLICK_KEYS = ['editTool', 'editPhase', 'editAct', 'editPick', 'panel',
   'famTile', 'construct', 'chip', 'chipDrop', 'chipAdopt', 'chipMore', 'tileMore',
-  'layerForce', 'deco', 'decoPage', 'decoFlag', 'mtIndex', 'mtSlot'];
+  'layerForce', 'deco', 'decoPage', 'decoFlag', 'mtIndex', 'mtSlot', 'editActiveTab'];
 
 /** The nearest ancestor (including `el`) that carries one of those keys. */
 function editClickTarget(el, root) {
@@ -172,6 +172,11 @@ function bindEditControls(panel, room) {
     }
     if (t.dataset.panel) {
       _panelOpen[t.dataset.panel] = _panelOpen[t.dataset.panel] === false;
+      renderEditPanels();
+      return;
+    }
+    if (t.dataset.editActiveTab) {
+      _editActiveTab = t.dataset.editActiveTab;
       renderEditPanels();
       return;
     }

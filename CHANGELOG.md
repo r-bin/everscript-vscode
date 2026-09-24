@@ -1,3 +1,43 @@
+## [0.51.0] — 2026-09-24
+
+### Map editor redesign, phase 2: the tab shell
+
+Continues `docs/map-editor-redesign-plan.md`'s structural rebuild. The right
+panel that used to stack families/tiles/deco/new-metatiles/compose/checks/
+budget as one long column of collapsible sections now files them under three
+real tabs — Tile, Trigger, Info — with a horizontal strip (2px accent
+underline on the active tab, dimmed inactive labels) that switches between
+them. Special and Widgets tabs are not built yet (Phase 3/5).
+
+A new `src/rooms/webview/map-editor-tabs.js` owns `_editActiveTab` and
+renders the tab strip; it has no content of its own. `map-editor-panels.js`
+now builds three content groups instead of one flat stack: `tileTabHtml`
+(families/tiles/deco/needed metatiles/compose — unchanged content, just
+re-homed), `infoTabHtml` (the budget bars + checks panel), and
+`triggerTabHtml` — a deliberate placeholder that mirrors
+`tables-builder.js`'s `buildEntityTablesHtml` output rather than owning any
+trigger-editing state of its own; real click-select/drag-move/copy-paste
+interactions are Phase 4's job. The always-visible entity tables
+`detail-renderer.js` renders unconditionally (browsing or editing) are
+untouched — the Trigger tab is an edit-mode-only duplicate, not a move.
+Switching tabs needed no new event listener: `data-edit-active-tab` is just
+another key in the dock's existing delegated, bind-once click handler.
+
+The per-room filter bar (`.rd-filters`, restyled in Phase 1 but left under
+`.rd-head`) is now built as its own `filtersHtml` string in
+`detail-renderer.js` and handed to `buildRoomSvgSection` (`svg-builder.js`),
+which docks it as the last child of `#rg-outer` — below the canvas card,
+inside the same card, so it travels with the canvas in both browsing and
+editing layouts instead of sitting under the room's name line.
+
+Every existing button, filter input, `data-*` attribute, and collapsible-
+panel toggle keeps working exactly as before, just filed under a tab — no
+new functionality beyond the tab mechanism itself. 9 new DOM tests
+(`tests/memory/map-editor-dom.test.js`) cover the tab strip's default state,
+switching between all three tabs, content actually leaving the DOM (not just
+CSS-hidden) on tab switch, and the Trigger tab mirroring a room's step/B
+trigger tables.
+
 ## [0.50.0] — 2026-09-24
 
 ### Map editor redesign, phases 0+1: design tokens and a floating tool pill

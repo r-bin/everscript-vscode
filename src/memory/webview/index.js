@@ -89,7 +89,8 @@ const ROOMS_JS_FILES = [
   'map-editor-chips.js', // the family chips + what vanilla draws beside what
   'map-editor-tiles.js', // the tile browser: grouped by family, ranked by relationship
   'map-editor-deco.js',  // the deco library: vanilla's own objects, to stamp
-  'map-editor-panels.js',// tile list, needed metatiles, checks
+  'map-editor-tabs.js',  // which of the dock's three tabs is showing (_editActiveTab)
+  'map-editor-panels.js',// tab content: tile list, needed metatiles, checks, mirrored triggers
   'map-editor-gestures.js',// pointer/key gestures on the map -> edits
   'map-editor-input.js', // clicks on the chrome -> actions
   'map-editor-actions.js',// toolbar actions (undo, compose, constructs, export)

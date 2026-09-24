@@ -41,37 +41,44 @@ function renderRoomDetail(room){
   if(room.vanillaId)html+='<span class="rd-vid">'+escH(room.vanillaId)+'</span>';
   html+='<span class="rd-file">'+escH(room.relPath||'')+'</span>';
   if(typeof room.startLine==='number'&&room.startLine>=0)html+='<a class="ll" data-line="'+room.startLine+'" href="#">go to code</a>';
-  html+='<div class="rd-filters">';
-  if(hasCoordData||room.imageUri)html+='<button class="rdf on" data-hide="hide-map" title="Toggle map area">map</button>';
+  html+='</div>';
+
+  // The per-room display toggles. Built here (it needs the header's own
+  // data — hasCoordData, roomVanillaIdNum, hasIngr — not svg-builder's),
+  // but docked below the canvas card rather than under the name line: see
+  // buildRoomSvgSection's filtersHtml param and map-editor-theme.css's
+  // "#rg-outer > .rd-filters" rule.
+  var filtersHtml='<div class="rd-filters">';
+  if(hasCoordData||room.imageUri)filtersHtml+='<button class="rdf on" data-hide="hide-map" title="Toggle map area">map</button>';
   // ROM-decoded views: layer choice plus one toggle per baked feature. Built
   // from the live state in rom-overlay.js, not from fixed defaults, so the bar
   // always agrees with what is on screen. See buildRomViewButtonsHtml.
-  if(roomVanillaIdNum(room)!=null)html+=buildRomViewButtonsHtml();
-  if(rh)html+='<button class="rdf on" data-hide="hide-header" title="Toggle ROM header section">header</button>';
-  if(enterTrig||stepOn.length||bTrigger.length)html+='<button class="rdf on" data-hide="hide-scripts" title="Toggle decoded script tables">scripts</button>';
-  if(stepOn.length||bTrigger.length)html+='<button class="rdf on" data-hide="hide-trigger" title="Toggle trigger overlays and tables">trigger</button>';
-  if(entrances.length)html+='<button class="rdf on" data-hide="hide-ent" title="Toggle entrances">entrance</button>';
-  if(objs.length)html+='<button class="rdf on" data-hide="hide-obj" title="Toggle objects">object</button>';
-  if(enemies.length)html+='<button class="rdf on" data-hide="hide-enem" title="Toggle enemies">enemy</button>';
-  if(poi.length)html+='<button class="rdf on" data-hide="hide-poi" title="Toggle points of interest">POI</button>';
-  if(hasCoordData||room.imageUri)html+='<button class="rdf on" data-hide="hide-grid8" title="Toggle 8 px grid">8px</button>';
-  if(stepOn.length||bTrigger.length)html+='<button class="rdf on" data-hide="hide-grid16" title="Toggle 16 px trigger grid">16px</button>';
-  if(hasIngr)html+='<button class="rdf on" data-hide="hide-ingr" title="Toggle ingredient icons">🌿</button>';
+  if(roomVanillaIdNum(room)!=null)filtersHtml+=buildRomViewButtonsHtml();
+  if(rh)filtersHtml+='<button class="rdf on" data-hide="hide-header" title="Toggle ROM header section">header</button>';
+  if(enterTrig||stepOn.length||bTrigger.length)filtersHtml+='<button class="rdf on" data-hide="hide-scripts" title="Toggle decoded script tables">scripts</button>';
+  if(stepOn.length||bTrigger.length)filtersHtml+='<button class="rdf on" data-hide="hide-trigger" title="Toggle trigger overlays and tables">trigger</button>';
+  if(entrances.length)filtersHtml+='<button class="rdf on" data-hide="hide-ent" title="Toggle entrances">entrance</button>';
+  if(objs.length)filtersHtml+='<button class="rdf on" data-hide="hide-obj" title="Toggle objects">object</button>';
+  if(enemies.length)filtersHtml+='<button class="rdf on" data-hide="hide-enem" title="Toggle enemies">enemy</button>';
+  if(poi.length)filtersHtml+='<button class="rdf on" data-hide="hide-poi" title="Toggle points of interest">POI</button>';
+  if(hasCoordData||room.imageUri)filtersHtml+='<button class="rdf on" data-hide="hide-grid8" title="Toggle 8 px grid">8px</button>';
+  if(stepOn.length||bTrigger.length)filtersHtml+='<button class="rdf on" data-hide="hide-grid16" title="Toggle 16 px trigger grid">16px</button>';
+  if(hasIngr)filtersHtml+='<button class="rdf on" data-hide="hide-ingr" title="Toggle ingredient icons">🌿</button>';
   if(trig.enter&&trig.enter.spawns&&trig.enter.spawns.length){
-    html+='<button class="rdf on" data-hide="hide-spawn" title="Toggle NPCs the enter script can place">npc</button>';
+    filtersHtml+='<button class="rdf on" data-hide="hide-spawn" title="Toggle NPCs the enter script can place">npc</button>';
     // The collision box each of them carries — character record +0x0D.
     if(trig.enter.spawns.some(function(s){return s.hitW;}))
-      html+='<button class="rdf on" data-hide="hide-hitbox" title="Toggle collision boxes (2r wide, r tall)">hitbox</button>';
+      filtersHtml+='<button class="rdf on" data-hide="hide-hitbox" title="Toggle collision boxes (2r wide, r tall)">hitbox</button>';
   }
   // The priority half of the map, drawn back over the characters the game
   // draws under it — and, with it, the dashed collision it hides.
   if(roomVanillaIdNum(room)!=null)
-    html+='<button class="rdf on" data-hide="hide-fg" title="Draw the foreground over the characters it covers in game, and dash the collision it hides">canopy</button>';
+    filtersHtml+='<button class="rdf on" data-hide="hide-fg" title="Draw the foreground over the characters it covers in game, and dash the collision it hides">canopy</button>';
   if(trig.arrivals&&trig.arrivals.length)
-    html+='<button class="rdf on" data-hide="hide-arrival" title="Toggle the doors that lead into this room">arrivals</button>';
-  if(roomVanillaIdNum(room)!=null)html+=buildEditButtonHtml();
-  html+='<button class="rdf on" id="rg-lock-btn" title="Unlock map">locked</button>';
-  html+='</div></div>';
+    filtersHtml+='<button class="rdf on" data-hide="hide-arrival" title="Toggle the doors that lead into this room">arrivals</button>';
+  if(roomVanillaIdNum(room)!=null)filtersHtml+=buildEditButtonHtml();
+  filtersHtml+='<button class="rdf on" id="rg-lock-btn" title="Unlock map">locked</button>';
+  filtersHtml+='</div>';
 
   // ── Error banner ───────────────────────────────────────────────────────────
   if(roomError&&roomError.message){
@@ -84,6 +91,7 @@ function renderRoomDetail(room){
     stepOn:stepOn, bTrigger:bTrigger, poi:poi,
     trigOff:trigOff, stepOnNames:stepOnNames, bTrigNames:bTrigNames,
     imageUri:room.imageUri||null, imageDims:room.imageDims||null,
+    filtersHtml:filtersHtml,
     rh:rh, mapName:room.name,
     romSpawns:(trig.enter&&trig.enter.spawns)||[],
     arrivals:trig.arrivals||[]

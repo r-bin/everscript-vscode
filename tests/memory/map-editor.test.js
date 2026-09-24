@@ -285,6 +285,8 @@ const ui = new Function(`
   ${read('map-editor-families.js')}
   ${read('map-editor-chips.js')}
   ${read('map-editor-tiles.js')}
+  ${read('tables-builder.js') /* buildEntityTablesHtml, for the Trigger tab */}
+  ${read('map-editor-tabs.js')}
   ${read('map-editor-panels.js')}
   ${read('map-editor-gestures.js')}
   ${read('map-editor-input.js')}

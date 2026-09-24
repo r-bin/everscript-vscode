@@ -1,0 +1,34 @@
+// Ownership: which of the editor's three tabs is showing, and the tab strip
+// that switches between them.
+//
+// The content each tab gates lives elsewhere — map-editor-panels.js owns
+// the families/tiles/deco/needed/compose panels (Tile tab) and the budget +
+// checks panels (Info tab); tables-builder.js owns the entity tables
+// mirrored into the Trigger tab. This file only decides which group is on
+// screen; it renders nothing of its own beyond the strip itself.
+//
+// Clicking a tab needs no listener of its own: `data-edit-active-tab` is
+// just another key in map-editor-input.js's EDIT_CLICK_KEYS, so the same
+// delegated, bind-once handler that already drives every other control in
+// the dock (see the webview-dom-safety skill) covers it too.
+//
+// Owns: _editActiveTab.
+
+var _editActiveTab = 'tile';
+
+/** Special/Widgets are not built yet (Phase 3/5) — three tabs is correct here. */
+var EDIT_TABS = [
+  ['tile', 'Tile'],
+  ['trigger', 'Trigger'],
+  ['info', 'Info'],
+];
+
+/** The horizontal strip at the top of the docked panel column. */
+function buildEditTabStripHtml() {
+  var html = '<div class="rg-tabstrip" id="rg-tabstrip">';
+  EDIT_TABS.forEach(function (t) {
+    html += '<button class="rg-tab' + (_editActiveTab === t[0] ? ' on' : '') + '" data-edit-active-tab="'
+      + t[0] + '">' + t[1] + '</button>';
+  });
+  return html + '</div>';
+}

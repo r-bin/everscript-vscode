@@ -1,10 +1,13 @@
 // Ownership: the editor's information panels — what the draft still needs
-// and anything that would stop it encoding.
+// and anything that would stop it encoding — plus which tab's content is
+// assembled into the docked panel column.
 //
 // These are read-outs over state owned elsewhere: the draft is
 // map-editor.js, the palette is metatile-palette.js, the families are
-// map-editor-families.js, the tile browser is map-editor-tiles.js. Nothing
-// here writes any of them.
+// map-editor-families.js, the tile browser is map-editor-tiles.js, the
+// trigger tables are tables-builder.js. Nothing here writes any of them.
+// Which tab is active is map-editor-tabs.js's state (_editActiveTab); this
+// file only reads it to decide what renderEditPanels() builds.
 //
 // Owns: _panelOpen.
 
@@ -101,19 +104,12 @@ function errorsPanel(p) {
   return html;
 }
 
-/** Redraw the panel column. */
-function renderEditPanels() {
-  var host = document.getElementById('rg-panels');
-  if (!host) return;
-  var p = _mtPalette;
-  if (!p) { host.innerHTML = '<div class="rs-note">loading the tile palette…</div>'; return; }
-  var errs = editErrors(p);
+/** Tile tab: families, tiles, deco, new metatiles, compose & constructs. */
+function tileTabHtml(p) {
   var need = editNeededStamps(p);
   var chosen = editFamilies().filter(function (f) { return f !== undefined; });
   var picked = Object.keys(_chipSel).length;
-  host.innerHTML = budgetBar(p)
-    + panel('errors', 'checks', errorsPanel(p), errs.length ? errs.length + ' to look at' : 'clear')
-    + panel('families', 'tile families', familyChipsHtml(), chosen.length + ' of 7')
+  return panel('families', 'tile families', familyChipsHtml(), chosen.length + ' of 7')
     + panel('tiles', 'tiles', tilesPanel(p),
       picked ? picked + ' famil' + (picked === 1 ? 'y' : 'ies') + ' selected' : 'all')
     + panel('deco', 'deco', decoPanel(), _deco ? _deco.length + ' objects' : '')
@@ -121,7 +117,53 @@ function renderEditPanels() {
       need.added.length ? need.added.length + ' needed' : 'none')
     + panel('compose', 'compose & constructs', '<div id="rg-compose"></div>',
       (editDraft() && editDraft().constructs.length) ? editDraft().constructs.length + ' saved' : '');
-  if (_panelOpen.compose !== false) renderComposer();
+}
+
+/** Info tab: the budget bars, then the checks that would stop this draft encoding. */
+function infoTabHtml(p) {
+  var errs = editErrors(p);
+  return budgetBar(p)
+    + panel('errors', 'checks', errorsPanel(p), errs.length ? errs.length + ' to look at' : 'clear');
+}
+
+/**
+ * Trigger tab: a mirror of the entity tables detail-renderer.js already
+ * renders unconditionally above the map (tables-builder.js's
+ * buildEntityTablesHtml), so the dock has something while editing rather
+ * than nothing.
+ *
+ * Deliberately a duplicate, not a move: the always-visible copy outside
+ * edit mode is what a room shows while just browsing, and this phase does
+ * not touch it. Real select/drag-move/copy-paste interactions (Phase 4 —
+ * see docs/map-editor-redesign-plan.md) replace this placeholder with the
+ * dock's own authoritative rendering.
+ */
+function triggerTabHtml() {
+  var room = _editPanelRoom;
+  var c = (room && room.content) || {};
+  var trigOff = c.trigOffset || null;
+  var html = buildEntityTablesHtml(c, trigOff);
+  return html || '<div class="rs-note">Nothing to show yet — this mirrors the tables above the map.</div>';
+}
+
+/** Redraw the panel column: the tab strip, then whichever tab is active. */
+function renderEditPanels() {
+  var host = document.getElementById('rg-panels');
+  if (!host) return;
+  var p = _mtPalette;
+  var body;
+  if (_editActiveTab === 'trigger') {
+    body = triggerTabHtml();
+  } else if (!p) {
+    body = '<div class="rs-note">loading the tile palette…</div>';
+  } else if (_editActiveTab === 'info') {
+    body = infoTabHtml(p);
+  } else {
+    body = tileTabHtml(p);
+  }
+  host.innerHTML = buildEditTabStripHtml() + '<div class="rg-tab-body" id="rg-tab-body">' + body + '</div>';
+  if (_editActiveTab !== 'tile') return;
+  if (p && _panelOpen.compose !== false) renderComposer();
   // The filter keeps focus across the redraw it causes, or typing a second
   // character would put the caret back at the start.
   [['rg-chip-filter', _chipFilter], ['rg-deco-filter', _decoFilter]].forEach(function (pair) {

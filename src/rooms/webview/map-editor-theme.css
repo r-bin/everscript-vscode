@@ -1,12 +1,13 @@
 /* Ownership: design tokens for the map editor's own chrome (the floating
- * tool pill, the docked filter bar, the tab shell phases still to come).
+ * tool pill, the docked filter bar, and the docked panel column's tab
+ * strip).
  *
  * Scoped under `.rg-theme`, a class `renderRoomDetail` puts on `#room-detail`
  * (see detail-renderer.js) — the one node that already wraps every piece of
- * the map editor's DOM (the canvas, the docked panel column, and the
- * per-room filter bar above it). Nothing here touches `shared.css`: these
- * variables do not exist outside `.rg-theme`, so the memory/scaling/docs/
- * route tabs render exactly as before.
+ * the map editor's DOM (the canvas card, the docked panel column, and the
+ * per-room filter bar docked under the canvas). Nothing here touches
+ * `shared.css`: these variables do not exist outside `.rg-theme`, so the
+ * memory/scaling/docs/route tabs render exactly as before.
  *
  * Values ported from the design mock (`Map Editor UI.dc.html`, lines
  * ~969-976) — its own README calls them a placeholder, so exact hue-matching
@@ -94,14 +95,15 @@
 }
 
 /* ── Docked filter bar (the per-room view toggles, detail-renderer.js) ───
- * The closest existing analogue to the mock's `layerDockBarStyle`: this is
- * the bar of `data-hide` toggles (map/header/scripts/trigger/…) that
- * `renderRoomDetail` builds inside `.rd-head`. It isn't edit-mode-only —
- * unlike the floating pill above — so it keeps rendering above the canvas;
- * moving it below the canvas card is DOM re-homing work reserved for the
- * tab-shell phase, not this one. This is the visual restyle only: chrome
- * background, shrink-to-fit width instead of stretching the full column. */
-.rg-theme .rd-head > .rd-filters{
+ * The closest existing analogue to the mock's `layerDockBarStyle`. It isn't
+ * edit-mode-only — unlike the floating pill above — so unlike `#rg-edit-bar`
+ * it is not removed when editing stops; it is built once per render as
+ * `filtersHtml` and handed to buildRoomSvgSection (svg-builder.js), which
+ * places it as the last child of `#rg-outer` — below the canvas, inside the
+ * same card, so it travels with the canvas rather than the name/header line
+ * in `.rd-head` above it (Phase 2 DOM re-homing; Phase 1 only restyled it
+ * in its old position under `.rd-head`). */
+.rg-theme #rg-outer > .rd-filters{
   background:var(--rg-bg-chrome);
   border:1px solid var(--rg-border);
   border-radius:10px;
@@ -111,12 +113,57 @@
   max-width:100%;
   font-family:var(--rg-font-ui);
 }
-.rg-theme .rd-head > .rd-filters .rdf{
+.rg-theme #rg-outer > .rd-filters .rdf{
   border-radius:var(--rg-radius-control);
   font-family:var(--rg-font-ui);
 }
-.rg-theme .rd-head > .rd-filters .rdf.on{
+.rg-theme #rg-outer > .rd-filters .rdf.on{
   background:var(--rg-accent-soft);
   color:var(--rg-accent-text);
   border-color:transparent;
+}
+
+/* ── Tab shell (the docked panel column's own tab strip) ─────────────────
+ * `#rg-tabstrip` is buildEditTabStripHtml()'s root (map-editor-tabs.js),
+ * the first child of `#rg-panels` on every redraw. `#rg-tab-body` is the
+ * scroll container for whichever tab is active; the strip itself does not
+ * scroll away with it. Ported from the mock's `tabStripStyle` (a 2px accent
+ * underline on the active tab, dimmed inactive labels). */
+.rg-theme .rg-panels{
+  display:flex;
+  flex-direction:column;
+}
+.rg-theme .rg-tab-body{
+  flex:1;
+  min-height:0;
+  overflow-y:auto;
+  padding-right:4px;
+}
+.rg-theme .rg-tabstrip{
+  display:flex;
+  gap:14px;
+  flex-shrink:0;
+  padding:0 2px 8px;
+  margin-bottom:8px;
+  border-bottom:1px solid var(--rg-border);
+  font-family:var(--rg-font-ui);
+}
+.rg-theme .rg-tab{
+  border:none;
+  background:transparent;
+  cursor:pointer;
+  padding:4px 0 8px;
+  margin-bottom:-9px;
+  font-family:var(--rg-font-ui);
+  font-size:12px;
+  font-weight:400;
+  color:var(--rg-text-muted);
+  border-bottom:2px solid transparent;
+  transition:color 140ms ease-out;
+}
+.rg-theme .rg-tab:hover{color:var(--rg-text-primary)}
+.rg-theme .rg-tab.on{
+  color:var(--rg-text-primary);
+  font-weight:500;
+  border-bottom-color:var(--rg-accent);
 }

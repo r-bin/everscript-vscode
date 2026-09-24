@@ -26,8 +26,9 @@ const read = (f) => fs.readFileSync(path.join(WEBVIEW, f), 'utf8');
 /** The editor's files, in the order the bundle concatenates them. */
 const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-paint.js', 'map-editor-ui.js',
     'map-editor-phases.js', 'map-editor-constructs.js', 'map-editor-families.js',
-    'map-editor-chips.js', 'map-editor-tiles.js', 'map-editor-deco.js',
-    'map-editor-panels.js', 'map-editor-gestures.js', 'map-editor-input.js', 'map-editor-actions.js', 'map-editor-newroom.js'];
+    'map-editor-chips.js', 'map-editor-tiles.js', 'map-editor-deco.js', 'tables-builder.js',
+    'map-editor-tabs.js', 'map-editor-panels.js', 'map-editor-gestures.js', 'map-editor-input.js',
+    'map-editor-actions.js', 'map-editor-newroom.js'];
 
 /** A palette shaped like the host's reply, small enough to read. */
 const PALETTE = {
@@ -75,11 +76,14 @@ async function main() {
     page.on('pageerror', (e) => pageErrors.push(e.message));
 
     const CSS = fs.readFileSync(
-        path.join(__dirname, '..', '..', 'src', 'shared', 'shared.css'), 'utf8');
-    // The real stylesheet: without it every swatch is 0x0, so nothing is
-    // clickable and no size assertion means anything.
+        path.join(__dirname, '..', '..', 'src', 'shared', 'shared.css'), 'utf8')
+        + '\n' + fs.readFileSync(
+        path.join(__dirname, '..', '..', 'src', 'rooms', 'webview', 'map-editor-theme.css'), 'utf8');
+    // The real stylesheets: without them every swatch is 0x0, so nothing is
+    // clickable and no size assertion means anything. `.rg-theme` matches the
+    // class renderRoomDetail puts on the real #room-detail (detail-renderer.js).
     await page.setContent(`<!doctype html><html><head><style>${CSS}</style></head>
-        <body style="display:block;height:auto;overflow:auto"><div id="room-detail">
+        <body style="display:block;height:auto;overflow:auto"><div id="room-detail" class="rg-theme">
         <div class="rg-outer rs-map" id="rg-outer"><div class="rg-wrap" id="rg-wrap"
         style="width:400px;height:300px">
         <svg class="rg-svg" id="rg-svg" viewBox="0 0 4 4"><image id="rg-img"/>
@@ -113,6 +117,39 @@ async function main() {
     // version of the editor".
     check('and hides the browsing palette while it is open',
         await page.evaluate(() => document.getElementById('rs-mt').classList.contains('rs-mt-hidden')));
+
+    // ── the tab shell ──────────────────────────────────────────────────────
+    // Three tabs (Tile / Trigger / Info) file everything that used to stack
+    // as one long column of collapsible panels. Special/Widgets do not exist
+    // yet (Phase 3/5 — see docs/map-editor-redesign-plan.md).
+    check('the dock opens on the Tile tab',
+        await page.evaluate(() => document.querySelector('[data-edit-active-tab="tile"]').classList.contains('on')));
+    check('with the tile-family panel on screen',
+        !!(await page.$('[data-panel="families"]')));
+    check('and the budget bar off screen until Info is picked',
+        !(await page.$('.rs-mt-budget')));
+
+    await page.click('[data-edit-active-tab="info"]');
+    check('switching to Info shows the budget bars',
+        !!(await page.$('.rs-mt-budget')));
+    check("and the Tile tab's panels are gone, not just hidden",
+        !(await page.$('[data-panel="families"]')));
+
+    await page.evaluate((room) => bindEditControls(document.getElementById('room-detail'), room), {
+        content: {
+            triggers: { stepOn: [{ x1: 0, y1: 0, x2: 1, y2: 1 }], bTrigger: [] },
+            triggerNames: { stepOn: ['test_step'], bTrigger: [] },
+        },
+    });
+    await page.click('[data-edit-active-tab="trigger"]');
+    const trigText = await page.evaluate(() => document.getElementById('rg-panels').textContent);
+    check("the Trigger tab mirrors the room's step/B-trigger tables",
+        /Step-on triggers/.test(trigText) && /test_step/.test(trigText), trigText.slice(0, 200));
+
+    await page.click('[data-edit-active-tab="tile"]');
+    check('switching back to Tile restores its panels',
+        !!(await page.$('[data-panel="families"]')));
+
     // The composer starts collapsed — clicking a tile is the main path now,
     // and hand-composing is the fallback. Opening it must put it in the
     // panel column, not back in the section that is hidden while editing.

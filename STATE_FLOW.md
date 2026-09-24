@@ -29,6 +29,7 @@
 | vanilla mode | `tab-init.js` (webview) | `_vanillaMode` | Client-side only |
 | byte script focus | `bootstrap.js` (webview) | `_currentByteScriptFocus` | Updated via message |
 | emulator ROM state | `debugger/emulator/panel.js` | local | Per-panel |
+| map editor active tab | `map-editor-tabs.js` (webview) | `_editActiveTab` | `'tile'\|'trigger'\|'info'`; gates what `map-editor-panels.js`'s `renderEditPanels()` builds into `#rg-panels`. Other map-editor dock state (`_panelOpen`, `_editOrigin`, `_editCompose`, …) predates this table — see `src/rooms/README.md`'s client-side file list, not this doc, for the full inventory |
 
 ---
 

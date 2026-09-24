@@ -19,6 +19,9 @@
  *   .imageDims  {w,h} image dimensions (or null)
  *   .rh         romHeader (or null)
  *   .arrivals   doors leading into this room (or empty)
+ *   .filtersHtml  the per-room display-toggle bar (detail-renderer.js), docked
+ *                 below the canvas card — inside #rg-outer, so it travels with
+ *                 the canvas rather than the name/header line above it
  * @returns {{ html: string, x1, y1, x2, y2, W, H, dispW, dispH, hasCoords, zoomState }}
  */
 function buildRoomSvgSection(opts){
@@ -28,6 +31,7 @@ function buildRoomSvgSection(opts){
   var imageUri=opts.imageUri, imageDims=opts.imageDims, rh=opts.rh;
   var romSpawns=opts.romSpawns||[];
   var arrivals=opts.arrivals||[];
+  var filtersHtml=opts.filtersHtml||'';
 
   // Compute SVG viewport bounds. ROM header dimensions are authoritative.
   var TILE=8;
@@ -225,10 +229,15 @@ function buildRoomSvgSection(opts){
 
     html+='</svg></div></div>';
     html+='<div id="rg-tip" style="font-size:11px;color:#aaa;height:16px;padding:2px 4px;font-family:monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>';
+    // Docked under the canvas, inside the same card: see the filtersHtml
+    // param doc above and map-editor-theme.css's "#rg-outer > .rd-filters".
+    html+=filtersHtml;
     html+='</div>'; // rg-outer
   }else{
     html+='<div class="rg-outer rs-map"><div class="rg-placeholder"><span>No coordinate data</span>';
-    html+='<button class="rg-pick-btn" id="rg-pick-btn" data-map="'+escH(opts.mapName||'')+'">assign image…</button></div></div>';
+    html+='<button class="rg-pick-btn" id="rg-pick-btn" data-map="'+escH(opts.mapName||'')+'">assign image…</button></div>';
+    html+=filtersHtml;
+    html+='</div>';
   }
 
   return{html:html,x1:x1,y1:y1,x2:x2,y2:y2,W:W,H:H,dispW:dispW,dispH:dispH,
