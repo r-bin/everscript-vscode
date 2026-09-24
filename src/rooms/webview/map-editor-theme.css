@@ -167,3 +167,57 @@
   font-weight:500;
   border-bottom-color:var(--rg-accent);
 }
+
+/* ── Special filter chip + dropdown (detail-renderer.js's filtersHtml, ────
+ * map-editor-special.js's buildSpecialFilterChipHtml). Opens upward, like
+ * the mock: the filter bar sits under the canvas, so the dropdown reaches
+ * back up over it rather than off the bottom of the card. */
+.rg-theme .rg-special-filter{position:relative;display:inline-flex;gap:2px}
+.rg-theme .rg-special-caret{padding:4px 6px;min-width:0}
+.rg-theme .rg-special-dropdown{
+  position:absolute;bottom:100%;left:0;margin-bottom:4px;
+  display:flex;flex-direction:column;gap:2px;
+  background:var(--rg-bg-float);
+  border:1px solid var(--rg-border);
+  border-radius:var(--rg-radius-control);
+  padding:6px;
+  box-shadow:var(--rg-shadow-float);
+  z-index:20;
+  white-space:nowrap;
+}
+
+/* ── Special tab (map-editor-special.js's specialTabHtml) ────────────────
+ * A 4-column grid of chips per group, matching the mock's layout. */
+.rg-theme .rg-special-group{margin-bottom:12px}
+.rg-theme .rg-special-h{font-weight:500;font-size:12px;margin-bottom:2px}
+.rg-theme .rg-special-grid{
+  display:grid;
+  grid-template-columns:repeat(4, 1fr);
+  gap:4px;
+  margin-top:6px;
+}
+.rg-theme .rg-special-chip{
+  flex-direction:column;
+  height:auto;
+  padding:6px 2px;
+  gap:2px;
+  font-size:10px;
+  line-height:1.2;
+  text-align:center;
+}
+.rg-theme .rg-special-glyph-ic{font-size:16px;line-height:1}
+
+/* ── Special glyph overlay on the map canvas (map-editor-paint.js) ───────
+ * Drawn non-blocking of the tile beneath it, per the mock. A thin stroke in
+ * the app background keeps a light glyph legible over a light tile. */
+.rg-theme .rg-special-glyph{
+  fill:var(--rg-text-primary);
+  paint-order:stroke;
+  stroke:var(--rg-bg-app);
+  stroke-width:.3;
+  stroke-linejoin:round;
+}
+.rg-theme.hide-special .rg-special-glyph{display:none!important}
+.rg-theme.hide-special-stairs .rg-special-glyph-stairs{display:none!important}
+.rg-theme.hide-special-gate .rg-special-glyph-gate{display:none!important}
+.rg-theme.hide-special-entrance .rg-special-glyph-entrance{display:none!important}

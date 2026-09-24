@@ -29,7 +29,9 @@
 | vanilla mode | `tab-init.js` (webview) | `_vanillaMode` | Client-side only |
 | byte script focus | `bootstrap.js` (webview) | `_currentByteScriptFocus` | Updated via message |
 | emulator ROM state | `debugger/emulator/panel.js` | local | Per-panel |
-| map editor active tab | `map-editor-tabs.js` (webview) | `_editActiveTab` | `'tile'\|'trigger'\|'info'`; gates what `map-editor-panels.js`'s `renderEditPanels()` builds into `#rg-panels`. Other map-editor dock state (`_panelOpen`, `_editOrigin`, `_editCompose`, …) predates this table — see `src/rooms/README.md`'s client-side file list, not this doc, for the full inventory |
+| map editor active tab | `map-editor-tabs.js` (webview) | `_editActiveTab` | `'tile'\|'special'\|'trigger'\|'info'`; gates what `map-editor-panels.js`'s `renderEditPanels()` builds into `#rg-panels`. Other map-editor dock state (`_panelOpen`, `_editOrigin`, `_editCompose`, …) predates this table — see `src/rooms/README.md`'s client-side file list, not this doc, for the full inventory |
+| `_edit.currentSpecialId` | `map-editor.js` (webview), field on `_edit` | string\|null | The Special tab's armed pick (e.g. `'gate-dog'`); set directly by `map-editor-special.js`'s click handler in `map-editor-input.js`, the same way `_edit.tool`/`_edit.phase`/`_edit.brush` already are |
+| `_edit.specialCells` | `map-editor.js` (webview), field on `_edit` | `{"x,y": specialId}` | The Special tab's glyph overlay, written only through `editApply()`'s `specialWrites` param so it shares `_edit.undo`/`_edit.redo` with the tile grid — see `map-editor-special.js`. Gate/drift's *real* collision effect is not stored here: it lands in `_edit.cells` as an ordinary (possibly newly composed) stamp, exactly like a tile paint. This field is UI-only and is never read by `editExport()` |
 
 ---
 

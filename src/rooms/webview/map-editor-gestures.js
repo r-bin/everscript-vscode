@@ -39,9 +39,22 @@ function editStroke(cell, phase) {
   }
 
   if (d.tool === 'erase') {
-    // The phase decides what "erase" means, and editResolve owns that.
+    // The phase decides what a deco erase means, and editResolve owns
+    // that. A special at this cell is a second, independent thing to take
+    // off, whatever the phase — clearing its glyph and, for gate/drift,
+    // the bits it wrote (see map-editor-special.js). Both land in the one
+    // final index this cell gets, so undo sees a single write per cell.
     var bare = editResolve(_mtPalette, cell.x, cell.y, -1, d.phase, true);
-    if (bare >= 0) editApply([{ x: cell.x, y: cell.y, index: bare }]);
+    var hadSpecial = editSpecialAt(cell.x, cell.y);
+    var finalIndex = bare;
+    if (hadSpecial) {
+      var base = finalIndex >= 0 ? finalIndex : editCellAt(_mtPalette, cell.x, cell.y);
+      var cleared = editSpecialAppliedIndex(_mtPalette, base, null, true);
+      if (cleared !== base) finalIndex = cleared;
+    }
+    var eraseWrites = finalIndex >= 0 ? [{ x: cell.x, y: cell.y, index: finalIndex }] : [];
+    var eraseSpecial = hadSpecial ? [{ x: cell.x, y: cell.y, id: null }] : [];
+    if (eraseWrites.length || eraseSpecial.length) editApply(eraseWrites, eraseSpecial);
     renderEditChrome();
     return;
   }
@@ -58,12 +71,34 @@ function editStroke(cell, phase) {
   }
 
   if (d.tool === 'paint') {
-    if (d.brush < 0) return;
-    var idx = editResolve(_mtPalette, cell.x, cell.y, d.brush, d.phase, false);
-    if (idx < 0) return;
-    editApply([{ x: cell.x, y: cell.y, index: idx }]);
-    // A deco stroke can invent a stamp, which the preview sheet must catch
-    // up with or the painted cell has no picture to crop from.
+    // A special is cosmetically independent of the tile brush (the design
+    // mock's own note): a click can carry a tile, a special, or both, so
+    // there is nothing to do only when neither is armed.
+    var hasBrush = d.brush >= 0;
+    if (!hasBrush && !d.currentSpecialId) return;
+    var before = hasBrush
+      ? editResolve(_mtPalette, cell.x, cell.y, d.brush, d.phase, false)
+      : editCellAt(_mtPalette, cell.x, cell.y);
+    if (before < 0) return;
+    var idx = before;
+    var paintSpecial = [];
+    if (d.currentSpecialId) {
+      // Gate/drift fold their bits into this same index (one final stamp
+      // per cell — see editSpecialAppliedIndex); stairs/entrance leave it
+      // untouched and only the glyph below is new.
+      idx = editSpecialAppliedIndex(_mtPalette, before, d.currentSpecialId, false);
+      paintSpecial.push({ x: cell.x, y: cell.y, id: d.currentSpecialId });
+    }
+    // Only a real brush paint, or a special that actually rewrote the
+    // collision word, touches the tile grid. A special-only click with no
+    // bitfield of its own (stairs, entrance) leaves the grid untouched —
+    // otherwise a plain glyph click would inflate the "N cells" count with
+    // an override that changes nothing.
+    var paintWrites = (hasBrush || idx !== before) ? [{ x: cell.x, y: cell.y, index: idx }] : [];
+    editApply(paintWrites, paintSpecial);
+    // A deco stroke (or a special's bit rewrite) can invent a stamp, which
+    // the preview sheet must catch up with or the painted cell has no
+    // picture to crop from.
     if (idx >= _mtPalette.count) requestComposedPreview();
     renderEditChrome();
     return;

@@ -30,6 +30,19 @@ function editReset(roomId) {
     tool: 'paint',    // paint | pick | rect | copy | move | erase
     brush: -1,        // selected metatile index, -1 = none
     on: false,        // edit mode
+    /**
+     * The Special tab's own overlay: "x,y" -> a special id from
+     * map-editor-special.js's catalog (e.g. "gate-dog", "entrance-n").
+     *
+     * Cosmetically independent of `brush`/`cells` — picking a tile does not
+     * clear this, and picking a special does not clear the brush (the
+     * mock's own note). Gate and drift picks *also* modify the cell's
+     * stamp (a real collision-word write, see map-editor-special.js); this
+     * map is what draws the glyph and is never exported — see editExport.
+     */
+    specialCells: {},
+    /** The special armed for painting, or null. Set directly, like `tool`/`phase`/`brush`. */
+    currentSpecialId: null,
     // Which question a stroke is answering. 'room' lays out the place
     // itself and writes all three words; 'deco' puts things *on* it and
     // keeps the floor that is already there. See editResolve.
@@ -68,13 +81,20 @@ function editStampCount(palette) {
 }
 
 /**
- * Apply a list of `{x, y, index}` writes as one undoable step.
+ * Apply a list of `{x, y, index}` writes as one undoable step, optionally
+ * batched with a list of `{x, y, id}` writes to the Special tab's overlay
+ * (`specialCells`).
  *
  * Batched rather than per-cell so a rectangle fill or a paste undoes in one
- * go, which is what makes "move the window back" a single keystroke.
+ * go, which is what makes "move the window back" a single keystroke — and
+ * so that a single paint click carrying both a tile and a special (see
+ * map-editor-special.js) undoes as one click too, not two.
  */
-function editApply(writes) {
-  if (!_edit || !writes.length) return 0;
+function editApply(writes, specialWrites) {
+  if (!_edit) return 0;
+  writes = writes || [];
+  specialWrites = specialWrites || [];
+  if (!writes.length && !specialWrites.length) return 0;
   var before = [];
   var changed = 0;
   for (var i = 0; i < writes.length; i++) {
@@ -86,10 +106,21 @@ function editApply(writes) {
     _edit.cells[k] = w.index;
     changed += 1;
   }
+  var specialBefore = [];
+  for (var s = 0; s < specialWrites.length; s++) {
+    var sw = specialWrites[s];
+    var sk = editKey(sw.x, sw.y);
+    var wasSpecial = Object.prototype.hasOwnProperty.call(_edit.specialCells, sk) ? _edit.specialCells[sk] : null;
+    if (wasSpecial === sw.id) continue;
+    specialBefore.push({ x: sw.x, y: sw.y, id: wasSpecial });
+    if (sw.id === null) delete _edit.specialCells[sk];
+    else _edit.specialCells[sk] = sw.id;
+    changed += 1;
+  }
   if (!changed) return 0;
   // The mark is how many attachments existed before this step, so undoing
   // a stamped gourd takes its object and its B-trigger with it.
-  _edit.undo.push({ cells: before, placed: _edit.placed.length, dropped: [] });
+  _edit.undo.push({ cells: before, special: specialBefore, placed: _edit.placed.length, dropped: [] });
   _edit.redo.length = 0;
   return changed;
 }
@@ -108,12 +139,27 @@ function editRestore(batch) {
   return inverse;
 }
 
+/** The `specialCells` counterpart to editRestore, where `id === null` clears. */
+function editRestoreSpecial(batch) {
+  var inverse = [];
+  for (var i = 0; i < batch.length; i++) {
+    var w = batch[i];
+    var k = editKey(w.x, w.y);
+    var was = Object.prototype.hasOwnProperty.call(_edit.specialCells, k) ? _edit.specialCells[k] : null;
+    inverse.push({ x: w.x, y: w.y, id: was });
+    if (w.id === null) delete _edit.specialCells[k];
+    else _edit.specialCells[k] = w.id;
+  }
+  return inverse;
+}
+
 function editUndo(palette) {
   if (!_edit || !_edit.undo.length) return false;
   var step = _edit.undo.pop();
   var inverse = editRestore(step.cells);
+  var specialInverse = editRestoreSpecial(step.special || []);
   // Everything the step attached, set aside so redo can put it back.
-  _edit.redo.push({ cells: inverse, placed: step.placed, dropped: _edit.placed.splice(step.placed) });
+  _edit.redo.push({ cells: inverse, special: specialInverse, placed: step.placed, dropped: _edit.placed.splice(step.placed) });
   editPruneAdded(palette);
   return true;
 }
@@ -122,8 +168,9 @@ function editRedo(palette) {
   if (!_edit || !_edit.redo.length) return false;
   var step = _edit.redo.pop();
   var inverse = editRestore(step.cells);
+  var specialInverse = editRestoreSpecial(step.special || []);
   for (var i = 0; i < step.dropped.length; i++) _edit.placed.push(step.dropped[i]);
-  _edit.undo.push({ cells: inverse, placed: step.placed, dropped: [] });
+  _edit.undo.push({ cells: inverse, special: specialInverse, placed: step.placed, dropped: [] });
   editPruneAdded(palette);
   return true;
 }
@@ -309,6 +356,16 @@ function editNeededStamps(palette) {
  * Block 3 slices in order. Nothing here applies it — this is the handover
  * format, and the write itself needs a confirmation the extension does not
  * have yet.
+ *
+ * `specialCells` is deliberately absent. A gate or drift pick already made
+ * its real effect here — it modified the cell's stamp, which is exactly
+ * what `cells`/`appendMetatiles` already carry — so `specialCells` itself
+ * is only the glyph overlay, never a second source of truth for it.
+ * Stairs and entrance carry no ROM effect at all (see map-editor-special.js
+ * and docs/map-editor-redesign-plan.md §5.1): entrance is a room-metadata
+ * placement helper with no confirmed encoder field to write into, and
+ * stairs has no attested collision encoding. Both stay visual-only until
+ * one of those is confirmed.
  */
 function editExport(palette) {
   if (!_edit) return null;

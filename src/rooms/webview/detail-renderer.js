@@ -76,6 +76,10 @@ function renderRoomDetail(room){
     filtersHtml+='<button class="rdf on" data-hide="hide-fg" title="Draw the foreground over the characters it covers in game, and dash the collision it hides">canopy</button>';
   if(trig.arrivals&&trig.arrivals.length)
     filtersHtml+='<button class="rdf on" data-hide="hide-arrival" title="Toggle the doors that lead into this room">arrivals</button>';
+  // The Special tab's own glyph overlay (stairs/drift, gate, entrance) —
+  // gated the same as the edit button, since specialCells is editor-only
+  // state (map-editor.js). See map-editor-special.js.
+  if(roomVanillaIdNum(room)!=null)filtersHtml+=buildSpecialFilterChipHtml();
   if(roomVanillaIdNum(room)!=null)filtersHtml+=buildEditButtonHtml();
   filtersHtml+='<button class="rdf on" id="rg-lock-btn" title="Unlock map">locked</button>';
   filtersHtml+='</div>';

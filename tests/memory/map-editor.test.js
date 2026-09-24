@@ -22,11 +22,18 @@ const read = (f) => fs.readFileSync(path.join(WEBVIEW, f), 'utf8');
 // loaded the same way the browser gets them: evaluated together, then the
 // DOM-free functions handed back. map-editor-paint.js is included for the
 // region maths; its one DOM function (renderEditLayer) is not called.
-const api = new Function(`${read('map-editor.js')}\n${read('map-editor-paint.js')}
+// map-editor-special.js is DOM-free too: its catalog and bit math only
+// touch editDraft()/editAddStamp()/editStampWords(), which map-editor.js
+// already supplies. escH is only used by the HTML-string builders
+// (specialTabHtml, buildSpecialFilterChipHtml) that this suite does not
+// call, so no stub is needed here.
+const api = new Function(`${read('map-editor.js')}\n${read('map-editor-paint.js')}\n${read('map-editor-special.js')}
 return { editReset, editActive, editDraft, editKey, editApply, editUndo, editRedo,
          editAddStamp, editStampWords, editExport, editStampCount,
          editCellAt, editRectWrites, editPasteWrites, editTakeSelection,
          editStampSvg, editCellPos,
+         editSpecialById, editSpecialAppliedIndex, editSpecialAt, editSpecialGroupOf,
+         groups: EDIT_SPECIAL_GROUPS,
          setSel: (s) => { _editSel = s; }, clip: () => _editClip };`)();
 
 let passed = 0;
@@ -263,6 +270,98 @@ test('cell positions are two map units apart, from the map origin', () => {
 });
 
 // ---------------------------------------------------------------------------
+// The Special tab's collision-bit math and its undo batching.
+//
+// Gate and drift are the two picks docs/map-format/map_collision_mechanics.md
+// actually backs (§4, §6); stairs and entrance carry no `gate`/`drift` field
+// in the catalog, so they must never touch the collision word — pinned here
+// so a future edit to the catalog can't accidentally invent one.
+// ---------------------------------------------------------------------------
+
+console.log('\nspecial tab: collision-bit math:');
+
+test('a gate pick writes only the documented nibble into bits 11..8', () => {
+    const p = palette();
+    api.editReset(0x76);
+    const idx = api.editSpecialAppliedIndex(p, 0, 'gate-dog', false);
+    const w = api.editStampWords(p, idx);
+    assert.strictEqual(w.collision, (0x101f & ~0x0f00) | (0x5 << 8));
+    assert.strictEqual(w.layer1, 0xa800, 'the picture is untouched');
+    assert.strictEqual(w.layer2, 0x19ce, 'so is the terrain');
+});
+
+test('a drift pick sets the AW bit and repurposes the low nibble as direction', () => {
+    const p = palette();
+    api.editReset(0x76);
+    const idx = api.editSpecialAppliedIndex(p, 0, 'drift-e', false);
+    assert.strictEqual(api.editStampWords(p, idx).collision, (0x101f & ~0x200f) | 0x2000 | 0xa);
+});
+
+test('stairs and entrance never touch the collision word — no encoding is attested', () => {
+    const p = palette();
+    api.editReset(0x76);
+    assert.strictEqual(api.editSpecialAppliedIndex(p, 0, 'stairs-vert', false), 0,
+        'no new stamp, because nothing changed');
+    assert.strictEqual(api.editSpecialAppliedIndex(p, 0, 'entrance-n', false), 0);
+});
+
+test('erasing a special clears exactly its own bits, keeping the rest of the stamp', () => {
+    const p = palette();
+    api.editReset(0x76);
+    const gated = api.editSpecialAppliedIndex(p, 0, 'gate-dog', false);
+    const cleared = api.editSpecialAppliedIndex(p, gated, null, true);
+    assert.strictEqual(api.editStampWords(p, cleared).collision, 0x101f, 'back to the room’s own word');
+});
+
+test('the catalog marks gate/drift as real writes and nothing else as one', () => {
+    const flat = [].concat(...api.groups.map((g) => g.items));
+    const stairsOnly = flat.filter((it) => it.id.indexOf('stairs-') === 0);
+    assert.ok(stairsOnly.length && stairsOnly.every((it) => it.gate == null && it.drift == null),
+        'a "stairs" item may never carry a bitfield — none is attested');
+    const entrance = flat.filter((it) => it.id.indexOf('entrance-') === 0);
+    assert.ok(entrance.length && entrance.every((it) => it.gate == null && it.drift == null));
+    assert.strictEqual(api.editSpecialById('gate-boy').gate, 0x7);
+    assert.strictEqual(api.editSpecialById('drift-n').drift, 0x8);
+});
+
+console.log('\nspecial cells + undo:');
+
+test('a special write batches into the same undo step as its cell write', () => {
+    api.editReset(0x76);
+    assert.strictEqual(api.editApply([{ x: 1, y: 1, index: 4 }], [{ x: 1, y: 1, id: 'gate-dog' }]), 2);
+    assert.strictEqual(api.editDraft().specialCells['1,1'], 'gate-dog');
+    assert.strictEqual(api.editDraft().undo.length, 1, 'one click, one undo step');
+    assert.strictEqual(api.editUndo(), true);
+    assert.ok(!('1,1' in api.editDraft().specialCells), 'the glyph goes with the cell');
+    assert.ok(!('1,1' in api.editDraft().cells));
+    assert.strictEqual(api.editRedo(), true);
+    assert.strictEqual(api.editDraft().specialCells['1,1'], 'gate-dog');
+});
+
+test('a special-only write, with no tile change, is still one undoable step', () => {
+    api.editReset(0x76);
+    assert.strictEqual(api.editApply([], [{ x: 2, y: 2, id: 'entrance-default' }]), 1);
+    assert.strictEqual(api.editDraft().undo.length, 1);
+    assert.strictEqual(api.editUndo(), true);
+    assert.ok(!('2,2' in api.editDraft().specialCells));
+});
+
+test('editSpecialAt reads the same map editApply writes', () => {
+    api.editReset(0x76);
+    assert.strictEqual(api.editSpecialAt(3, 3), null);
+    api.editApply([], [{ x: 3, y: 3, id: 'stairs-vert' }]);
+    assert.strictEqual(api.editSpecialAt(3, 3), 'stairs-vert');
+});
+
+test('specialCells is a UI-only overlay, never part of the export', () => {
+    const p = palette();
+    api.editReset(0x76);
+    api.editApply([], [{ x: 0, y: 0, id: 'entrance-default' }]);
+    const out = api.editExport(p);
+    assert.ok(!('specialCells' in out), 'entrances/stairs glyphs are not ROM data');
+});
+
+// ---------------------------------------------------------------------------
 // The composer, run against a stub DOM.
 //
 // "add stamp" silently did nothing when a source was missing, which from the
@@ -285,6 +384,7 @@ const ui = new Function(`
   ${read('map-editor-families.js')}
   ${read('map-editor-chips.js')}
   ${read('map-editor-tiles.js')}
+  ${read('map-editor-special.js')}
   ${read('tables-builder.js') /* buildEntityTablesHtml, for the Trigger tab */}
   ${read('map-editor-tabs.js')}
   ${read('map-editor-panels.js')}
@@ -310,6 +410,8 @@ const ui = new Function(`
     setPalette: function (p) { _mtPalette = p; },
     setSelected: function (i) { _mtSelected = i; },
     setView: function (v, pal) { _mtView = v; if (pal) _mtBgPalette = pal; },
+    specialTab: specialTabHtml, specialFilterChip: buildSpecialFilterChipHtml,
+    editStroke: editStroke, editSpecialAt: editSpecialAt,
   };`)();
 
 /** A palette with the tile sheet the host now sends alongside it. */
@@ -656,6 +758,84 @@ test('the toolbar offers both phases and marks erase as deco-only', () => {
 
     d.phase = 'deco';
     assert.ok(!ui.toolbar().includes('switch to deco first'));
+});
+
+// ---------------------------------------------------------------------------
+// The Special tab's markup and its integration with a real paint/erase
+// stroke — editStroke itself, not just the bit math it calls.
+// ---------------------------------------------------------------------------
+
+console.log('\nspecial tab markup and strokes:');
+
+test('the Special tab renders all three groups and their chips', () => {
+    const html = ui.specialTab();
+    assert.ok(html.includes('Stairs &amp; Drift') || html.includes('Stairs & Drift'), html.slice(0, 200));
+    assert.ok(/data-edit-special="gate-dog"/.test(html));
+    assert.ok(/data-edit-special="entrance-n"/.test(html));
+});
+
+test('the filter chip carries a caret and the three sub-toggles', () => {
+    const html = ui.specialFilterChip();
+    assert.ok(html.includes('data-hide="hide-special"'));
+    assert.ok(html.includes('data-edit-special-menu'));
+    assert.ok(html.includes('data-hide="hide-special-stairs"'));
+    assert.ok(html.includes('data-hide="hide-special-gate"'));
+    assert.ok(html.includes('data-hide="hide-special-entrance"'));
+});
+
+test('painting a glyph-only special alongside a brush leaves the tile index alone', () => {
+    const p = tilePalette();
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    d.on = true;
+    d.brush = 0;
+    d.currentSpecialId = 'entrance-default';   // no gate/drift field: cosmetic only
+    ui.editStroke({ x: 0, y: 0 }, 'down');
+    assert.strictEqual(d.cells['0,0'], 0, 'the tile brush still wins the cell');
+    assert.strictEqual(ui.editSpecialAt(0, 0), 'entrance-default');
+    assert.strictEqual(d.undo.length, 1, 'one click, one undo step');
+});
+
+test('painting a gate/drift special alongside a brush rewrites the stamp it lands on', () => {
+    const p = tilePalette();
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    d.on = true;
+    d.brush = 0;
+    d.currentSpecialId = 'gate-dog';
+    ui.editStroke({ x: 0, y: 0 }, 'down');
+    assert.notStrictEqual(d.cells['0,0'], 0, 'a new stamp carries the gate bits, not the brush’s own');
+    assert.strictEqual(ui.editSpecialAt(0, 0), 'gate-dog');
+    assert.strictEqual(d.undo.length, 1, 'still one click, one undo step');
+});
+
+test('painting a special with no brush armed still stamps the glyph', () => {
+    const p = tilePalette();
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    d.on = true;
+    d.brush = -1;
+    d.currentSpecialId = 'stairs-vert';
+    ui.editStroke({ x: 1, y: 0 }, 'down');
+    assert.strictEqual(ui.editSpecialAt(1, 0), 'stairs-vert');
+    assert.ok(!('1,0' in d.cells), 'no brush, so the grid falls through to the room’s own tile');
+});
+
+test('erasing takes the glyph and its collision bits off in one click', () => {
+    const p = tilePalette();
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    d.on = true;
+    d.brush = 0;
+    d.currentSpecialId = 'gate-dog';
+    ui.editStroke({ x: 0, y: 0 }, 'down');
+    const gatedIndex = d.cells['0,0'];
+
+    d.tool = 'erase';
+    d.phase = 'deco';
+    ui.editStroke({ x: 0, y: 0 }, 'down');
+    assert.strictEqual(ui.editSpecialAt(0, 0), null, 'the glyph is gone');
+    assert.notStrictEqual(d.cells['0,0'], gatedIndex, 'the gate bits went with it');
 });
 
 test('“from brush” starts the composer off a stamp that already works', () => {

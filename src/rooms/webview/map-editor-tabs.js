@@ -16,9 +16,14 @@
 
 var _editActiveTab = 'tile';
 
-/** Special/Widgets are not built yet (Phase 3/5) — three tabs is correct here. */
+/**
+ * Widgets is not built yet (Phase 5) — four tabs is correct here. Special
+ * slots between Tile and Trigger, per the design mock's own tab order; its
+ * content is map-editor-special.js's specialTabHtml.
+ */
 var EDIT_TABS = [
   ['tile', 'Tile'],
+  ['special', 'Special'],
   ['trigger', 'Trigger'],
   ['info', 'Info'],
 ];

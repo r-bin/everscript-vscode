@@ -107,6 +107,45 @@ explicitly run in isolated worktrees.
 - Whether "widgets" fully subsumes "deco" naming/UX, or the mock's Widgets tab
   is deco plus a few new affordances (ready-only toggle, warnings) layered on.
 
+### 5.1 Correction found while scoping Phase 3 (important — read before executing)
+
+`docs/map-format/map_collision_mechanics.md` (byte-exact, verified) shows the
+mock's "Special" groups are **not** equally real:
+
+- **Gate** and **Drift** are real, documented collision-word bitfields (entity
+  gate = bits 11..8, `GATE_BLOCKS`; drift direction = bits 3..0 when the AW bit
+  13 is set, `DRIFT_VECTORS`) — these can and should be wired to genuine
+  collision-word writes on the stamp's `collision` field, extending the
+  existing `{layer1, layer2, collision}` model `editResolve` already uses.
+  Never invent bit values not in this doc.
+- **"Stairs" (Vertical/Diagonal L/Diagonal R)** has *no* confirmed distinct
+  collision encoding — the doc's own §8 documents a *previous* version of this
+  codebase mistaking plane-transparency for a "stairs" test and calls that
+  finding out explicitly as wrong. Do not invent a stairs bitfield. If no real
+  encoding turns up on inspection, implement "stairs" as a UI-only tile
+  category (an icon/label over an ordinary painted tile) rather than fabricate
+  collision semantics for it, and say so plainly rather than silently guessing.
+- **Entrance** placement helpers are explicitly "stored in the room's data,
+  not the tile grid" per the mock's own README — this has no obvious slot in
+  the current draft/export shape (`editExport()` in `map-editor.js` has no
+  entrance field, and it's unconfirmed whether `docs/map-format/map_encoding.md`'s
+  encoder even accepts injected entrances). Default to a **visual-only**
+  overlay for entrances in Phase 3 (not wired into `editExport()`) unless the
+  encoder contract is confirmed to support it — flag the gap rather than
+  guess at an export shape.
+- This subsystem (`src/rooms/webview/`) has **no ROM write path** today — see
+  `docs/map-format/map_editor_design.md` §1.1 ("no `writeFile`/save call
+  anywhere in `src/rooms/` or `src/maps/`"). `editExport()` only produces a
+  draft handoff for an external encoder. Nothing added in Phase 3 should
+  change that invariant.
+- Separately: `AI_ARCHITECTURE_GUIDE.md` §3 describes a **planned, unbuilt**
+  `src/map-editor/` domain (a Custom Editor Provider + external map-server
+  bridge) — a longer-term replacement vision in
+  `docs/map-format/map_editor_design.md`. This redesign plan is **not** that
+  project; it restyles/extends the existing shipping
+  `src/rooms/webview/map-editor-*.js` system. Do not create `src/map-editor/`
+  or assume its existence.
+
 ## 6. Ritual reminder
 
 One prompt = one commit. This plan spans multiple prompts/sessions by design

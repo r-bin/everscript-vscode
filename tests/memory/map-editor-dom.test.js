@@ -26,9 +26,9 @@ const read = (f) => fs.readFileSync(path.join(WEBVIEW, f), 'utf8');
 /** The editor's files, in the order the bundle concatenates them. */
 const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-paint.js', 'map-editor-ui.js',
     'map-editor-phases.js', 'map-editor-constructs.js', 'map-editor-families.js',
-    'map-editor-chips.js', 'map-editor-tiles.js', 'map-editor-deco.js', 'tables-builder.js',
-    'map-editor-tabs.js', 'map-editor-panels.js', 'map-editor-gestures.js', 'map-editor-input.js',
-    'map-editor-actions.js', 'map-editor-newroom.js'];
+    'map-editor-chips.js', 'map-editor-tiles.js', 'map-editor-deco.js', 'map-editor-special.js',
+    'tables-builder.js', 'map-editor-tabs.js', 'map-editor-panels.js', 'map-editor-gestures.js',
+    'map-editor-input.js', 'map-editor-actions.js', 'map-editor-newroom.js'];
 
 /** A palette shaped like the host's reply, small enough to read. */
 const PALETTE = {
@@ -119,9 +119,9 @@ async function main() {
         await page.evaluate(() => document.getElementById('rs-mt').classList.contains('rs-mt-hidden')));
 
     // ── the tab shell ──────────────────────────────────────────────────────
-    // Three tabs (Tile / Trigger / Info) file everything that used to stack
-    // as one long column of collapsible panels. Special/Widgets do not exist
-    // yet (Phase 3/5 — see docs/map-editor-redesign-plan.md).
+    // Four tabs (Tile / Special / Trigger / Info) file everything that used
+    // to stack as one long column of collapsible panels. Widgets does not
+    // exist yet (Phase 5 — see docs/map-editor-redesign-plan.md).
     check('the dock opens on the Tile tab',
         await page.evaluate(() => document.querySelector('[data-edit-active-tab="tile"]').classList.contains('on')));
     check('with the tile-family panel on screen',
@@ -146,7 +146,69 @@ async function main() {
     check("the Trigger tab mirrors the room's step/B-trigger tables",
         /Step-on triggers/.test(trigText) && /test_step/.test(trigText), trigText.slice(0, 200));
 
+    // ── the Special tab ────────────────────────────────────────────────────
+    await page.click('[data-edit-active-tab="special"]');
+    check('the Special tab shows its three groups',
+        !!(await page.$('[data-edit-special="gate-dog"]'))
+        && !!(await page.$('[data-edit-special="drift-n"]'))
+        && !!(await page.$('[data-edit-special="entrance-default"]')));
+
+    await page.click('[data-edit-special="gate-dog"]');
+    check('picking a chip arms it',
+        (await page.evaluate(() => editDraft().currentSpecialId)) === 'gate-dog');
+    check('and highlights the chip itself',
+        await page.$eval('[data-edit-special="gate-dog"]', (n) => n.classList.contains('on')));
+
+    await page.click('[data-edit-special="gate-dog"]');
+    check('clicking the same chip again clears it',
+        (await page.evaluate(() => editDraft().currentSpecialId)) === null);
+
+    // Paint with a real gate pick armed: the click goes through editStroke,
+    // exactly the path a mouse gesture takes (map-editor-gestures.js).
+    await page.evaluate(() => {
+        editReset(0x34);
+        editDraft().on = true;
+        editDraft().brush = 0;
+        editDraft().tool = 'paint';
+        editDraft().currentSpecialId = 'gate-dog';
+        editStroke({ x: 0, y: 0 }, 'down');
+    });
+    const gateGlyph = await page.evaluate(() => {
+        var el = document.querySelector('#rg-edit .rg-special-glyph-gate');
+        return el ? el.textContent : null;
+    });
+    check('painting with a special armed draws its glyph on the canvas', gateGlyph === 'D', 'glyph=' + gateGlyph);
+    check('and records it in specialCells', (await page.evaluate(() => editSpecialAt(0, 0))) === 'gate-dog');
+    check('and the gate bits actually landed on the stamp, not just the glyph',
+        (await page.evaluate(() => editDraft().cells['0,0'])) !== 0);
+
+    await page.evaluate(() => {
+        editDraft().tool = 'erase';
+        editDraft().phase = 'deco';
+        editStroke({ x: 0, y: 0 }, 'down');
+    });
+    check('erasing removes the glyph from the canvas', !(await page.$('#rg-edit .rg-special-glyph')));
+    check('and clears specialCells', (await page.evaluate(() => editSpecialAt(0, 0))) === null);
+    check('and the stamp goes back to the room’s own, not a leftover gated one',
+        (await page.evaluate(() => editDraft().cells['0,0'])) === 0);
+
+    // ── the filter bar's Special chip + dropdown ────────────────────────────
+    // The harness never loads interactions.js (setupClickHandlers), so the
+    // dropdown's own three data-hide sub-toggles are not exercised by a real
+    // click here — every other filter chip in this bar has the same gap in
+    // this suite. Only the caret's open/close, wired through
+    // bindEditControls (map-editor-input.js), is this phase's own code.
+    await page.evaluate(() => {
+        document.getElementById('room-detail').insertAdjacentHTML('beforeend', buildSpecialFilterChipHtml());
+    });
+    check('the special filter dropdown starts closed',
+        await page.$eval('#rg-special-dropdown', (n) => n.hidden));
+    await page.click('[data-edit-special-menu]');
+    check('the caret opens it', !(await page.$eval('#rg-special-dropdown', (n) => n.hidden)));
     await page.click('[data-edit-active-tab="tile"]');
+    check('and a click elsewhere in the panel closes it again',
+        await page.$eval('#rg-special-dropdown', (n) => n.hidden));
+
     check('switching back to Tile restores its panels',
         !!(await page.$('[data-panel="families"]')));
 

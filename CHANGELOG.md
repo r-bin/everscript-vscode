@@ -1,3 +1,53 @@
+## [0.52.0] — 2026-09-24
+
+### Map editor redesign, phase 3: the Special tab (Stairs & Drift / Gate / Entrance)
+
+Continues `docs/map-editor-redesign-plan.md`'s structural rebuild. A new,
+net-new fourth tab — Special, between Tile and Trigger — lets a room pick
+Stairs & Drift, Gate, or Entrance glyphs onto a cell, alongside the tile
+brush rather than instead of it.
+
+What's real vs. cosmetic follows `docs/map-format/map_collision_mechanics.md`
+byte for byte, not the design mock's own bit-level assumptions (which carry
+no ROM authority):
+
+- **Gate** (bits 11..8) and **Drift** (bit 13 + bits 3..0) are genuine
+  collision-word writes. Picking one modifies the affected cell's stamp
+  through the existing `{layer1, layer2, collision}` model (`editAddStamp`/
+  `editStampWords`), exactly like painting a tile — no new bit values were
+  invented; every nibble traces to the doc's §4/§6 tables. "Boy"/"Dog"/"Rest
+  of party" map to the three nibbles (7/5/3) actually attested in vanilla
+  ROMs; no boy-only nibble exists, and the UI note says so.
+- **Stairs** (Vertical/Diagonal L/Diagonal R) has no attested distinct
+  collision encoding (the doc's own §8 documents a past mistake here) — it
+  is an icon-only glyph over an ordinary painted tile, never a collision
+  write. The four Drift picks in the same group *are* real writes.
+- **Entrance** is "stored in the room's data, not the tile grid" per the
+  design mock's own README, and `editExport()` has no field to put it in —
+  visual-only, not exported, flagged as a known gap for a later phase.
+
+New state on the draft (`map-editor.js`'s `_edit`): `specialCells`
+(`"x,y" -> specialId`) and `currentSpecialId`, both documented in
+`STATE_FLOW.md`. `editApply`/`editUndo`/`editRedo` now take an optional
+second `specialWrites` batch so a single click that paints both a tile and a
+special glyph undoes as one step, not two — the existing undo stack, not a
+parallel one. A new `src/rooms/webview/map-editor-special.js` (211 LOC) owns
+the catalog, the bit math, the tab's markup, and the filter bar's new
+"special" chip + its caret dropdown (Stairs & Drift / Gate / Entrance
+sub-toggles) — the dropdown's open/close rides the dock's existing
+delegated, bind-once click handler rather than a second mechanism.
+`map-editor-paint.js`'s `renderEditLayer` draws each glyph as a `<text>`
+overlay, non-blocking of the tile beneath it. Paint and Erase
+(`map-editor-gestures.js`) compose a tile write and a special write into one
+final stamp per cell, so undo never sees two writes for the same
+coordinate.
+
+15 new pure-logic tests (`tests/memory/map-editor.test.js`) cover the bit
+math, the catalog's own real-vs-cosmetic invariant, and the undo batching;
+13 new DOM checks (`tests/memory/map-editor-dom.test.js`) cover the tab,
+chip selection, paint/erase through a real `editStroke`, and the filter
+dropdown's open/close.
+
 ## [0.51.0] — 2026-09-24
 
 ### Map editor redesign, phase 2: the tab shell

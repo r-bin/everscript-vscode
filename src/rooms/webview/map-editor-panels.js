@@ -5,7 +5,8 @@
 // These are read-outs over state owned elsewhere: the draft is
 // map-editor.js, the palette is metatile-palette.js, the families are
 // map-editor-families.js, the tile browser is map-editor-tiles.js, the
-// trigger tables are tables-builder.js. Nothing here writes any of them.
+// trigger tables are tables-builder.js, the Special tab's own content is
+// map-editor-special.js's specialTabHtml. Nothing here writes any of them.
 // Which tab is active is map-editor-tabs.js's state (_editActiveTab); this
 // file only reads it to decide what renderEditPanels() builds.
 //
@@ -154,6 +155,8 @@ function renderEditPanels() {
   var body;
   if (_editActiveTab === 'trigger') {
     body = triggerTabHtml();
+  } else if (_editActiveTab === 'special') {
+    body = specialTabHtml();
   } else if (!p) {
     body = '<div class="rs-note">loading the tile palette…</div>';
   } else if (_editActiveTab === 'info') {

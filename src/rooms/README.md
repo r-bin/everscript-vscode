@@ -142,16 +142,24 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   vanilla draws beside what, badged with the layer it belongs on
 - `map-editor-deco.js` — the deco picker; owns `_deco` / `_decoFilter` /
   `_decoPage` / `_decoPreviews` / `_decoPick`
+- `map-editor-special.js` — the Special tab (Stairs & Drift / Gate /
+  Entrance): the catalog, the collision-word bit math for gate and drift
+  (docs/map-format/map_collision_mechanics.md §4, §6 — stairs and entrance
+  are UI-only, see that file's header), the tab's markup, and the filter
+  bar's "special" chip + dropdown. State (`currentSpecialId`,
+  `specialCells`) lives in map-editor.js's `_edit`; this file only reads and
+  writes it through `editDraft()`/`editApply()`
 - `map-editor-actions.js` — the toolbar's verbs, split out of the input handler
 - `map-editor-paint.js` — drawing the draft on the map from the palette atlas,
   and the region maths; owns `_editSel` / `_editClip`
 - `map-editor-ui.js` — tool bar (phases, tools), the docked sidebar, the metatile
   composer and the construct library; owns `_editOrigin` / `_editComposed` /
   `_editCompose` / `_editConstruct`
-- `map-editor-tabs.js` — which of the dock's three tabs (Tile / Trigger / Info)
-  is showing, and the tab strip that switches between them; owns
-  `_editActiveTab`. Renders nothing but the strip itself — see
-  `map-editor-panels.js` for what each tab holds
+- `map-editor-tabs.js` — which of the dock's four tabs (Tile / Special /
+  Trigger / Info) is showing, and the tab strip that switches between them;
+  owns `_editActiveTab`. Renders nothing but the strip itself — see
+  `map-editor-panels.js` for what each tab holds (Special's own content is
+  `map-editor-special.js`'s `specialTabHtml`)
 - `map-editor-panels.js` — the metrics, the checks, the needed-metatile
   read-out, and the panel column itself, filed under the active tab
   (`tileTabHtml`/`infoTabHtml`/`triggerTabHtml`); owns `_panelOpen`. The

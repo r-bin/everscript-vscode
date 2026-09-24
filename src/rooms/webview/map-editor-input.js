@@ -95,7 +95,8 @@ function renderComposer() {
  */
 var EDIT_CLICK_KEYS = ['editTool', 'editPhase', 'editAct', 'editPick', 'panel',
   'famTile', 'construct', 'chip', 'chipDrop', 'chipAdopt', 'chipMore', 'tileMore',
-  'layerForce', 'deco', 'decoPage', 'decoFlag', 'mtIndex', 'mtSlot', 'editActiveTab'];
+  'layerForce', 'deco', 'decoPage', 'decoFlag', 'mtIndex', 'mtSlot', 'editActiveTab',
+  'editSpecial', 'editSpecialMenu'];
 
 /** The nearest ancestor (including `el`) that carries one of those keys. */
 function editClickTarget(el, root) {
@@ -153,7 +154,32 @@ function bindEditControls(panel, room) {
     var t = editClickTarget(e.target, panel);
     if (!t || !t.dataset) return;
 
+    // The special filter's dropdown (buildSpecialFilterChipHtml,
+    // map-editor-special.js) closes on any click that lands outside it —
+    // including a click that goes on to do something else, like painting a
+    // cell, which is why this runs before the dispatch below rather than
+    // being its own listener.
+    var specialMenu = document.getElementById('rg-special-dropdown');
+    if (specialMenu && !specialMenu.hidden && !specialMenu.contains(e.target) && !t.dataset.editSpecialMenu) {
+      specialMenu.hidden = true;
+    }
+
     if (t.id === 'rg-edit-btn') { editToggle(_editPanelRoom, t); return; }
+    if (t.dataset.editSpecialMenu) {
+      if (specialMenu) specialMenu.hidden = !specialMenu.hidden;
+      return;
+    }
+    if (t.dataset.editSpecial) {
+      var ds = editDraft();
+      if (ds) {
+        // A radio pick, but click-again clears it — the Special tab has no
+        // separate "none" chip, and painting nothing is a real intent too.
+        ds.currentSpecialId = ds.currentSpecialId === t.dataset.editSpecial ? null : t.dataset.editSpecial;
+        editNote(ds.currentSpecialId ? 'special: ' + ds.currentSpecialId + ' armed' : 'special cleared');
+        renderEditChrome();
+      }
+      return;
+    }
     if (t.dataset.editTool) {
       var d = editDraft();
       if (d) { d.tool = t.dataset.editTool; _editSel = null; renderEditChrome(); }
