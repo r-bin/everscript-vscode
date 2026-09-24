@@ -594,6 +594,56 @@ and is the feature that makes tile painting fast (it is the autotiling idea).
 It is a genuine task in `src/maps/` — read the `map-format` skill first — and
 wants its own session.
 
+## 8a.1 Bugs found in real use, after v0.58.0
+
+The user tried the shipped Tile tab and reported four things. Two were
+confirmed and fixed here; two need more information before touching code —
+guessing at either risked either a no-op patch or fabricating behavior the
+real format doesn't have, the same trap §5.1/§8a already named.
+
+**Fixed:**
+- **"You can't load more tiles when your 7 family slots are full."**
+  Confirmed: `tileGroupFamilies()`'s candidate slice was
+  `Math.max(0, _tileGroupPage - fams.length)` — a shared budget the adopted
+  count ate into. At a full seven-slot palette (the common case, and
+  `TILE_GROUP_PAGE` is 6), that's always `Math.max(0, 6-7)=0` until "more
+  families" is clicked enough times to push the page past 7. Fixed to
+  `.slice(0, _tileGroupPage)` — the page is how many *candidates* to add,
+  independent of how many slots are already spent.
+- **"When clicking on a tile the order should not change."** Confirmed:
+  `editPlacedGraphics()` seeded the relationship lookup with the just-armed
+  `_brushTile`, and `relatedTiles()` deletes a seed graphic from its own
+  results (it cannot recommend itself), so the tile you just clicked scored
+  0 and sank to the bottom of its own family's grid — on every click, before
+  anything was even painted. Fixed by seeding only from `d.cells` (actually
+  placed content). Order now only moves when the map genuinely changes, not
+  when browsing candidates; the neighbours card and per-family ranking still
+  work once you've placed something.
+
+**Needs more information, not fixed here:**
+- **"Clicking H/V distorts the right sidebar."** Reproduced the click
+  sequence in headless Playwright against the real bundle — armed a real
+  brush from a seeded family sheet, clicked H then V, measured
+  `#rg-outer`/`#rg-dock`/`.rg-edit-row` before and after. No width change in
+  any of them (`#rg-dock` stayed exactly 400px throughout). Nothing in
+  `map-editor-canvas.css`/`map-editor-tile-tab.css` sets width from content,
+  and no JS in `src/rooms/webview/` sets `.style.width` outside the room
+  canvas image and the new-room resize grip, neither of which the flip
+  toggle touches. Could not confirm this happens from the code alone. Needs
+  either a live repro (was a brush already armed? did the *whole* VS Code
+  window narrow, or just this panel? does it recover on the next render?)
+  or a screen recording.
+- **The mock's plus-shaped N/E/S/W "Likely Neighbors" grid, shown expanded.**
+  No code in this repository renders a directional plus-shape — `grep` for
+  `grid-template-areas`/`rg-nb-n`/`rg-nb-s`/etc. across every webview file
+  and stylesheet turns up nothing, and `neighbourCardHtml()` (added in this
+  same v0.58.0) explicitly renders a flat `.rg-nb-grid` ranked list, by
+  design (§8a, §8b — the index is undirected). The screenshot showing a
+  cross-shaped grid with N/S/E/W-positioned color swatches around a centre
+  tile matches the *design mock's own* rendering of that widget, not
+  anything this codebase can currently produce. Left as-is pending
+  confirmation of what was actually being looked at.
+
 ## 9. Ritual reminder
 
 One prompt = one commit. This plan spans multiple prompts/sessions by design

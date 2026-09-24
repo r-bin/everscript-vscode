@@ -71,10 +71,17 @@ function tileGroupFamilies() {
   if (picked.length) return picked;
   var fams = editFamilies().filter(function (f) { return f !== undefined; });
   if (!_famCatalogue) return fams;
+  // `_tileGroupPage` is how many *candidates* to show beyond the adopted
+  // ones — not a shared budget the adopted count eats into. Subtracting
+  // `fams.length` here used to mean a full palette (7 adopted, the common
+  // case) always started at `Math.max(0, 6-7)=0` extra shown, and even
+  // after "more families" it only ever grew by however much the increment
+  // exceeded 7 — reading as "more families" doing nothing right when you
+  // have the most reason to browse past your own seven.
   var rest = _famCatalogue
     .filter(function (f) { return fams.indexOf(f.id) < 0; })
     .sort(function (a, b) { return b.tiles - a.tiles || a.id - b.id; })
-    .slice(0, Math.max(0, _tileGroupPage - fams.length))
+    .slice(0, _tileGroupPage)
     .map(function (f) { return f.id; });
   return fams.concat(rest);
 }

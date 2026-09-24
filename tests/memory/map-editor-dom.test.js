@@ -1289,6 +1289,52 @@ async function main() {
     check('and the next click toggles it straight back',
         await page.evaluate(() => !!editDraft().on) === wasOn);
 
+    // ── the Tile tab: candidates must show past a full palette ─────────────
+    // `tileGroupFamilies()` used to spend its page budget on the adopted
+    // families themselves (`_tileGroupPage - fams.length`), so a full
+    // seven-slot palette (PALETTE.tileFamilies has exactly 7) always got
+    // Math.max(0, 6-7)=0 extra shown, and "more families" only grew by
+    // however much the click's increment overshot 7 — the exact
+    // "you can't load more tiles when your 7 slots are full" report.
+    await page.evaluate(() => {
+        applyFamilyCatalogue({ families: Array.from({ length: 20 }, (_, i) => (
+            { id: 9000 + i, tiles: 20 - i, rooms: 1, areas: ['Test'], names: [] })) });
+        _editActiveTab = 'tile';
+        renderEditPanels();
+    });
+    const shownAtFull = await page.evaluate(() => tileGroupFamilies().length);
+    check('a full seven-slot palette still shows extra candidates without clicking anything',
+        shownAtFull > 7, `tileGroupFamilies() returned ${shownAtFull} for 7 adopted`);
+    await page.evaluate(() => { document.querySelector('[data-tile-more]').click(); });
+    const shownAfterMore = await page.evaluate(() => tileGroupFamilies().length);
+    check('"more families" grows the count from a full palette, not just once past 7',
+        shownAfterMore > shownAtFull, `${shownAtFull} -> ${shownAfterMore}`);
+
+    // ── the Tile tab: arming a brush must not reorder its own family ───────
+    // `editPlacedGraphics()` used to seed the relationship lookup with the
+    // just-armed brush tile. A seed graphic scores 0 in its own results
+    // (relatedTiles cannot recommend a graphic to itself), so clicking any
+    // tile sank it to the bottom of its own family's grid on every click —
+    // "when clicking on a tile the order should not change".
+    await page.evaluate(() => { editDraft().cells = {}; _brushTile = null; });
+    const sentBefore = await page.evaluate(() => window.__sent.filter((m) => m.command === 'requestRelated').length);
+    await page.evaluate(() => { _brushTile = { graphic: 701, family: 35 }; renderEditPanels(); });
+    const sentAfterArm = await page.evaluate(() => window.__sent.filter((m) => m.command === 'requestRelated').length);
+    check('arming a brush with nothing painted does not ask for related tiles',
+        sentAfterArm === sentBefore, `requestRelated sent ${sentAfterArm - sentBefore} time(s) just from arming`);
+    await page.evaluate(() => {
+        // PALETTE's own entry 0 has a blank layer1 and a layer2 whose chr
+        // falls outside `_mtPalette.tiles.slots` (there is only one slot),
+        // so it resolves to no graphic at all — useless as a seed. Compose
+        // a stamp whose layer2 chr (1) lands on that one slot (graphic 700).
+        var idx = editAddStamp(_mtPalette, { layer1: 0xa800, layer2: 1, collision: 0 });
+        editDraft().cells['0,0'] = idx;
+        renderEditPanels();
+    });
+    const sentAfterPaint = await page.evaluate(() => window.__sent.filter((m) => m.command === 'requestRelated').length);
+    check('but actually placing a cell still asks — the feature still works once something is built',
+        sentAfterPaint > sentAfterArm, `requestRelated sent ${sentAfterPaint - sentAfterArm} time(s) after a real placement`);
+
     check('no uncaught errors in any of it', pageErrors.length === 0, pageErrors.join('; '));
 
     await browser.close();

@@ -1,3 +1,26 @@
+## [0.58.1] — 2026-09-24
+
+### Fix: two real bugs from trying the Tile tab
+
+- **"You can't load more tiles when your 7 family slots are full."** The
+  candidate-family pager spent its page budget on the adopted families
+  themselves, so a full seven-slot palette always started at zero extra
+  shown, and "more families" barely moved. Fixed — the page size is now
+  independent of how many slots are already spent.
+- **"When clicking on a tile the order should not change."** Arming a brush
+  seeded the relationship lookup with the tile you just clicked, which
+  scores 0 in its own results (it can't recommend itself) — so every click
+  sank that tile to the bottom of its own family's grid, before you'd even
+  painted anything. Fixed — the lookup now seeds only from placed cells;
+  order moves when the map changes, not when you're browsing.
+
+Two other reports (an H/V-triggered layout shift; the mock's directional
+plus-shaped neighbours widget, which this codebase does not render) are
+recorded in `docs/map-editor-redesign-plan.md` §8a.1, unfixed pending more
+information — the first didn't reproduce under a real Playwright repro
+against the actual bundle, and the second doesn't match any code in this
+repository.
+
 ## [0.58.0] — 2026-09-24
 
 ### Map editor redesign, §8a: the Tile tab

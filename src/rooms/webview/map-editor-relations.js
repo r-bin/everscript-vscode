@@ -31,9 +31,16 @@ function editGraphicOfWord(word) {
 /**
  * What is actually in play, as a seed for "what goes with this".
  *
- * The draft's own cells plus the armed brush — not the whole room, whose
- * hundreds of graphics would average out to no signal at all. The blank
- * canopy is skipped: "what gets drawn next to nothing" is every tile.
+ * The draft's own cells — not the armed brush, and not the whole room. Not
+ * the armed brush: this seed feeds a sort, and a graphic that is its own
+ * seed scores 0 (`relatedTiles` deletes a seed from its own results — it
+ * cannot recommend itself), so a family's tile grid re-sorting on every
+ * single click, sinking whatever you just clicked to the bottom, is exactly
+ * what including it produced. Basing it on placed cells instead means the
+ * order only moves when something real changes the map, not when you are
+ * merely browsing candidates. Not the whole room: hundreds of graphics
+ * would average out to no signal at all. The blank canopy is skipped: "what
+ * gets drawn next to nothing" is every tile.
  */
 function editPlacedGraphics() {
   var d = editDraft();
@@ -45,7 +52,6 @@ function editPlacedGraphics() {
     if (g === undefined || g === null || seen[g]) return;
     seen[g] = 1; out.push(g);
   };
-  if (_brushTile) add(_brushTile.graphic);
   Object.keys(d.cells).forEach(function (k) {
     var w = editStampWords(_mtPalette, d.cells[k]);
     if (!w) return;
