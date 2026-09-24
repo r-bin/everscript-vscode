@@ -110,6 +110,10 @@ to what you're touching.
 
 @.github/instructions/webview-dom-safety.instructions.md
 
+### Map editor rules
+
+@.github/instructions/map-editor-rules.instructions.md
+
 ---
 
 ## 4. Architectural cognitive stabilization

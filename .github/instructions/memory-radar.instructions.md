@@ -149,8 +149,11 @@ scripts should never legitimately share an address. Do not add overlap-warning U
 
 ## Rooms tab
 
-Two tabs share one webview: **Memory** (grid above) and **Rooms** (map browser). Tab
-switching is client-side only.
+Six tabs share one webview — **Memory**, **Rooms**, **Scaling**, **Route**, **Docs**,
+**RNG** — and tab switching is client-side only (`tab-init.js`). This section covers
+Rooms. **The map editor that lives inside the Rooms tab has its own rules** — the seven
+tile-family slots, the word layouts, what a stroke writes — in the `map-editor-rules`
+skill; read that before touching any `map-editor*` file.
 
 ### Data flow
 
@@ -196,10 +199,23 @@ returns `NaN` for null/empty/unparseable. Pure, tested in `tests/memory/radar.te
 ```
 <div class="tab-pane" data-tab="rooms">
   <div class="rm-panels">
-    <div class="rm-left">         <!-- collapsible tree -->
-    <div class="rm-right">        <!-- room detail: header + SVG grid + sections -->
-      <div id="room-detail">
+    <div class="rm-left rg-rail">  <!-- the rail: search, two groups, + New Map footer -->
+    <div class="rm-right">         <!-- room detail: header + SVG grid + sections -->
+      <div id="room-detail" class="rg-theme">
 ```
+
+**The rail (Phase 7b, `rooms-rail.js` + `rooms-rail.css`)** is one list with two
+collapsible groups — `VANILLA ROOMS` (the ROM catalogue, grouped by **area**, which is
+the game's own structure) and `CUSTOM ROOMS` (rooms declared in the active `.evs`). There
+is **no Live/Vanilla mode toggle any more** and no `_vanillaMode`: a row carries its own
+provenance (`data-vid` = catalogue, `data-map` + `data-line` = source), so "which tree"
+is not state. Group/area expansion lives in the DOM (`[hidden]`, `.collapsed`), not in
+JS. Its only JS state is `_railQuery`. Anything that navigates to a room — the exit links
+in particular — goes through `gotoVanillaRoom`, which clears the search and opens the
+Vanilla group first, because a `display:none` row cannot be clicked into view.
+
+The rail sits outside `#room-detail`, so it is outside `.rg-theme`; it carries its own
+`.rg-rail` hook, which `map-editor-theme.css` declares the same tokens on.
 
 Sections: **Entrances**, **Enemies**, **Objects**, **Transitions**. Each entity row is
 `<a class="ll" data-line="N">`, posting `{command:'goToLine', line:N}` to the host.
@@ -217,9 +233,14 @@ Rendered client-side in `renderRoomDetail()`:
 
 ### Entity filter buttons
 
-`.rd-filters` renders `<button class="rdf on" data-hide="hide-XXX">` only for entity
-types present in the room. Toggling sets `.on` on the button and `hide-XXX` on
-`#room-detail`:
+The mechanism is unchanged: a `<button class="rdf on" data-hide="hide-XXX">` toggles
+`.on` on itself and `hide-XXX` on `#room-detail`. **The layout is not** — since Phase 7a
+the ~25 toggles are not a flat wall of chips. `map-editor-filterbar.js` arranges them
+as the design mock's single row: a segmented `Background | Foreground | Collision`
+group, then `Triggers ▾`, `Objects ▾`, `Special ▾` and `More ▾` dropdowns, with
+`edit`/`locked` kept apart as actions. Every `data-hide` key is still reachable and a
+DOM test enumerates them by name, so adding a toggle means adding it to a group, not
+appending a chip:
 ```
 .hide-ent   .svge-entrance, .hide-ent   .rs-entrance   { display:none }
 .hide-enem  .svge-enemy,   .hide-enem  .rs-enemies    { display:none }

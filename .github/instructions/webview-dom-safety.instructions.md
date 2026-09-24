@@ -1,6 +1,6 @@
 ---
 name: webview-dom-safety
-description: Use when writing or debugging click/pointer handling, delegated event binding, or SVG-based rendering in any src/**/webview/** file in everscript-vscode. Covers idempotent binding, event-target walk-up, VS Code webview API gaps, and SVG coordinate systems — the specific bug class that produced "the caret does nothing", "the edit button works every now and then", and "new room does nothing".
+description: Use when writing or debugging click/pointer handling, delegated event binding, or SVG-based rendering in any src/**/webview/** file in everscript-vscode. Covers idempotent binding, event-target walk-up, VS Code webview API gaps, SVG coordinate systems, and why a green suite still ships broken UI — `[hidden]` losing to author `display` rules, layout bugs that only reproduce at the real container width, and module-level state leaking across tests. The bug class behind "the caret does nothing", "the edit button works every now and then", "new room does nothing", a dropdown visibly stuck open for three releases, and "H/V moves the side bar".
 applyTo: "src/**/webview/**"
 ---
 
@@ -172,3 +172,58 @@ wrong picture — index `i` names position `i`, not identity `i`. This generaliz
 undo: any "compact the dictionary" or "remove unused entries" feature over a
 positionally-addressed format has the same constraint, and needs the same tail-only
 rule or an explicit re-indexing pass over every reference.
+
+## 7. Three ways a green test suite still shipped a visibly broken UI
+
+Each of these passed every assertion and was caught only by a person looking at the
+rendered panel. They are why §5 is not enough on its own.
+
+### 7a. `[hidden]` loses to any author `display` rule
+
+**Symptom:** a dropdown that should be closed is visibly open — for three releases —
+while every test that "closes" it passes.
+
+The browser hides `[hidden]` with a **user-agent** stylesheet rule. Author styles beat
+user-agent styles by *origin*, before specificity is even consulted, so a component rule
+like `.rg-filter-popup { display: flex }` overrides `hidden` no matter how weak its
+selector is. The element keeps its `hidden` attribute, `el.hidden` stays `true`, and it
+paints anyway.
+
+**Fix:** pair every author `display` rule on a hideable element with an explicit
+override — `.rg-filter-popup[hidden] { display: none }`.
+**Test:** never assert visibility through the `.hidden` IDL property or the attribute.
+Assert `getComputedStyle(el).display === 'none'` — that is the only check that agrees
+with what the user sees.
+
+### 7b. Reproduce at the real container width, not a roomy viewport
+
+**Symptom:** "clicking H/V moves the side bar to the right." A Playwright repro at a
+1400px-wide viewport measured every container before and after the click and found
+**no change at all**, so the report looked unreproducible.
+
+The real dock is a fixed ~400px column (`.rg-dock`, `flex:none`, so it cannot shrink).
+At that width a row of segmented controls no longer fits, and the horizontal overflow
+inside `#rg-panels` is what displaces things. At 1400px there was room, so the bug
+simply was not there to find.
+
+**Rule:** render the component at the width it actually ships at, with its real
+content. When a layout bug will not reproduce, the viewport is the first suspect. For
+any panel, assert `el.scrollWidth <= el.clientWidth` — no horizontal overflow — rather
+than only that a click handler ran.
+**Do not "fix" overflow with `overflow-x: hidden`**: that clips the control instead of
+fitting it, which trades a visible bug for an invisible one.
+
+### 7c. Module-level state leaks across tests — and across the real UI
+
+**Symptom:** two assertions about which layer a tile is badged for failed, reporting
+every tile as `ground`.
+
+The webview files share one concatenated scope, so a `var _layerForce` is a single
+global. A test that set it to `'terrain'` to exercise one path and never reset it
+silently forced every *later* badge in the same page. The failures looked exactly like
+the product bug being investigated.
+
+**Rule:** any test that writes a module-level webview variable restores it — the same
+suite runs every check in one page. And treat the same leak as a real product risk: if
+a code path sets shared state like `_layerForce` without clearing it, the UI shows the
+identical symptom to the user.
