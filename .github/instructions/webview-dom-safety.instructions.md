@@ -1,6 +1,6 @@
 ---
 name: webview-dom-safety
-description: Use when writing or debugging click/pointer handling, delegated event binding, or SVG-based rendering in any src/**/webview/** file in everscript-vscode. Covers idempotent binding, event-target walk-up, VS Code webview API gaps, SVG coordinate systems, and why a green suite still ships broken UI — `[hidden]` losing to author `display` rules, layout bugs that only reproduce at the real container width, and module-level state leaking across tests. The bug class behind "the caret does nothing", "the edit button works every now and then", "new room does nothing", a dropdown visibly stuck open for three releases, and "H/V moves the side bar".
+description: Use when writing or debugging click/pointer handling, delegated event binding, or SVG-based rendering in any src/**/webview/** file in everscript-vscode. Covers idempotent binding, event-target walk-up, VS Code webview API gaps, SVG coordinate systems, and why a green suite still ships broken UI — `[hidden]` losing to author `display` rules, flex items propped open by unwrappable text (only visible at the real container width), and module-level state leaking across tests. The bug class behind "the caret does nothing", "the edit button works every now and then", "new room does nothing", a dropdown visibly stuck open for three releases, and "H/V moves the side bar".
 applyTo: "src/**/webview/**"
 ---
 
@@ -195,23 +195,34 @@ override — `.rg-filter-popup[hidden] { display: none }`.
 Assert `getComputedStyle(el).display === 'none'` — that is the only check that agrees
 with what the user sees.
 
-### 7b. Reproduce at the real container width, not a roomy viewport
+### 7b. Reproduce at the real container width — and measure position, not just size
 
 **Symptom:** "clicking H/V moves the side bar to the right." A Playwright repro at a
-1400px-wide viewport measured every container before and after the click and found
+1400px-wide viewport measured the dock's *width* before and after the click and found
 **no change at all**, so the report looked unreproducible.
 
-The real dock is a fixed ~400px column (`.rg-dock`, `flex:none`, so it cannot shrink).
-At that width a row of segmented controls no longer fits, and the horizontal overflow
-inside `#rg-panels` is what displaces things. At 1400px there was room, so the bug
-simply was not there to find.
+It was real, and both halves of that repro were wrong. The dock never got wider — it
+**moved**. Its sibling, the canvas column (`#rg-outer`), is a flex item, and a flex
+item's default `min-width` is `auto`: it may not shrink below its content's min-content
+width. That content included the status-bar note, which is `white-space: nowrap`.
+Re-arming the brush on an H/V click writes the editor's longest note, the canvas column
+grows to hold it, and the fixed-width dock is shoved right until it clips off-screen. At
+1400px there was slack to absorb the growth, and a width-only measurement could never
+have seen a move anyway.
 
-**Rule:** render the component at the width it actually ships at, with its real
-content. When a layout bug will not reproduce, the viewport is the first suspect. For
-any panel, assert `el.scrollWidth <= el.clientWidth` — no horizontal overflow — rather
-than only that a click handler ran.
-**Do not "fix" overflow with `overflow-x: hidden`**: that clips the control instead of
-fitting it, which trades a visible bug for an invisible one.
+**Fix:** `min-width: 0` on the flex item that holds unwrappable text
+(`.rg-edit-row > .rg-outer`), plus `min-width: 0` and an ellipsis on the text itself so
+it truncates instead of propping its column open.
+
+**Rules:**
+- Render at the width the component actually ships at, with its real content. When a
+  layout bug will not reproduce, the viewport is the first suspect.
+- Measure **position** (`getBoundingClientRect().left`) as well as size. "It moved" and
+  "it grew" are different bugs, and checking only one of them hides the other.
+- Any flex item containing `nowrap` text needs `min-width: 0`, or the longest string it
+  will ever show becomes that column's minimum width.
+- **Do not "fix" it with `overflow-x: hidden`** — that clips the control instead of
+  fitting it, trading a visible bug for an invisible one.
 
 ### 7c. Module-level state leaks across tests — and across the real UI
 
