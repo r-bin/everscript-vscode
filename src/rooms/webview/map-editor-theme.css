@@ -156,7 +156,7 @@
  * toggles — dim them slightly relative to the toggle chips around them so
  * the wall of chips reads as "mostly one kind of thing, plus one menu"
  * rather than N identical buttons. */
-.rg-theme .rg-view-filters .rg-special-caret{color:var(--rg-text-muted)}
+.rg-theme .rg-view-filters .rg-filter-caret{color:var(--rg-text-muted)}
 /* "edit" and "locked" are actions, not view toggles — an outline instead of
  * the transparent-to-accent toggle fill keeps them from reading as just two
  * more filter chips at the end of the row. */
@@ -221,13 +221,19 @@
   border-bottom-color:var(--rg-accent);
 }
 
-/* ── Special filter chip + dropdown (detail-renderer.js's filtersHtml, ────
- * map-editor-special.js's buildSpecialFilterChipHtml). Opens upward, like
- * the mock: the filter bar sits under the canvas, so the dropdown reaches
- * back up over it rather than off the bottom of the card. */
-.rg-theme .rg-special-filter{position:relative;display:inline-flex;gap:2px}
-.rg-theme .rg-special-caret{padding:4px 6px;min-width:0}
-.rg-theme .rg-special-dropdown{
+/* ── Filter-chip dropdowns (detail-renderer.js's filtersHtml): a flat toggle
+ * plus a caret that opens a small popup of sub-toggles. One shared chrome
+ * for every dropdown in this bar — map-editor-special.js's
+ * buildSpecialFilterChipHtml (Special) and map-editor-trigger-panel.js's
+ * buildTriggerFilterChipHtml (Triggers) both use these three classes; the
+ * popup's own id (`#rg-special-dropdown`, `#rg-trigger-dropdown`, …) is what
+ * map-editor-input.js's outside-click-close loop and each chip's own open/
+ * close handler key off of, not the class. Opens upward, like the mock: the
+ * filter bar sits under the canvas, so the popup reaches back up over it
+ * rather than off the bottom of the card. */
+.rg-theme .rg-filter-group{position:relative;display:inline-flex;gap:2px}
+.rg-theme .rg-filter-caret{padding:4px 6px;min-width:0}
+.rg-theme .rg-filter-popup{
   position:absolute;bottom:100%;left:0;margin-bottom:4px;
   display:flex;flex-direction:column;gap:2px;
   background:var(--rg-bg-float);
@@ -238,6 +244,14 @@
   z-index:20;
   white-space:nowrap;
 }
+/* Author styles always win over the UA stylesheet's `[hidden]{display:none}`
+ * regardless of selector specificity, so the `display:flex` above silently
+ * defeated the `hidden` property both dropdowns are toggled through
+ * (map-editor-input.js sets `menu.hidden = true/false`) — the popup was
+ * visible at all times, just never noticed because the existing DOM test
+ * only asserted the `.hidden` IDL property, not actual paint. Found in this
+ * phase's own visual QA pass (docs/map-editor-redesign-plan.md Phase 6). */
+.rg-theme .rg-filter-popup[hidden]{display:none}
 
 /* ── Special tab (map-editor-special.js's specialTabHtml) ────────────────
  * A 4-column grid of chips per group, matching the mock's layout. */
@@ -326,3 +340,42 @@
 }
 .rg-theme .rg-trigger-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;overflow:hidden}
 .rg-theme .rg-trigger-remove{margin-left:auto;flex-shrink:0}
+
+/* ── Zoom chip (svg-builder.js's `.rg-zoom` row, above the canvas card) ────
+ * Chrome only — background/border/radius/shadow, matching the mock's own
+ * `zoomChipStyle` (small, bordered, subtle shadow). Position and behavior
+ * (interactions.js's setupZoomPan) are untouched; shared.css still owns the
+ * layout (`display:flex`, `margin-bottom`) for the rooms this class predates. */
+.rg-theme .rg-zoom{
+  background:var(--rg-bg-float);
+  border:1px solid var(--rg-border);
+  border-radius:6px;
+  padding:2px 4px;
+  box-shadow:var(--rg-shadow-subtle);
+  width:fit-content;
+}
+.rg-theme .rg-zoom button{
+  border:1px solid transparent;
+  border-radius:4px;
+  background:transparent;
+  color:var(--rg-text-secondary);
+  font-family:var(--rg-font-mono);
+  font-size:11px;
+}
+.rg-theme .rg-zoom button:hover{background:var(--rg-bg-hover);color:var(--rg-text-primary)}
+
+/* ── Resize grip (map-editor-newroom.js's `.rg-resize`/`.rg-resize-label`) ─
+ * Chrome only: theme palette instead of shared.css's flat teal/black.
+ * Position, size and drag behavior (resizeStart/resizeMove/resizeEnd) are
+ * untouched. */
+.rg-theme .rg-resize{
+  background:linear-gradient(135deg,transparent 45%,var(--rg-accent) 45%,var(--rg-accent) 55%,
+    transparent 55%,transparent 70%,var(--rg-accent) 70%,var(--rg-accent) 80%,transparent 80%);
+}
+.rg-theme .rg-resize-label{
+  background:var(--rg-bg-float);
+  border:1px solid var(--rg-border);
+  box-shadow:var(--rg-shadow-subtle);
+  color:var(--rg-success);
+}
+.rg-theme .rg-resize-label.over{color:var(--rg-error)}

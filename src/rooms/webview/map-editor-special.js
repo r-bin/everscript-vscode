@@ -206,14 +206,17 @@ function specialTabHtml() {
  * render time, same as "map"/"header"/"canopy"); only the dropdown's own
  * open/close is new, and that is wired through map-editor-input.js's
  * already-bind-once panel click handler (`editSpecialMenu`), not a second
- * mechanism.
+ * mechanism. `.rg-filter-group`/`.rg-filter-caret`/`.rg-filter-popup`
+ * (map-editor-theme.css) are the shared chip+caret+popup chrome every
+ * filter-bar dropdown uses — see map-editor-trigger-panel.js's
+ * buildTriggerFilterChipHtml for the other one.
  */
 function buildSpecialFilterChipHtml() {
-  return '<span class="rg-special-filter">'
+  return '<span class="rg-filter-group">'
     + '<button class="rdf on" data-hide="hide-special" title="Toggle special glyphs (stairs, gate, entrance)">special</button>'
-    + '<button class="rdf rg-special-caret" data-edit-special-menu="1" title="Choose which special glyphs to show" '
+    + '<button class="rdf rg-filter-caret" data-edit-special-menu="1" title="Choose which special glyphs to show" '
     + 'aria-label="Special filter groups">▾</button>'
-    + '<div class="rg-special-dropdown" id="rg-special-dropdown" hidden>'
+    + '<div class="rg-filter-popup" id="rg-special-dropdown" hidden>'
     + '<button class="rdf on" data-hide="hide-special-stairs">Stairs &amp; Drift</button>'
     + '<button class="rdf on" data-hide="hide-special-gate">Gate</button>'
     + '<button class="rdf on" data-hide="hide-special-entrance">Entrance</button>'

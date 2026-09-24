@@ -92,7 +92,7 @@ const ROOMS_JS_FILES = [
   'map-editor-deco.js',  // the deco library: vanilla's own objects, to stamp
   'map-editor-special.js',// the Special tab: stairs/drift, gate, entrance + their filter chip
   'map-editor-trigger-select.js',// unifies base + placed triggers: select/move/delete/copy-paste
-  'map-editor-trigger-panel.js',// the Trigger tab's list UI + the Info tab's trigger counts
+  'map-editor-trigger-panel.js',// the Trigger tab's list UI, the Info tab's counts + their filter chip
   'map-editor-tabs.js',  // which of the dock's four tabs is showing (_editActiveTab)
   'map-editor-panels.js',// tab content: tile list, needed metatiles, checks, trigger lists
   'map-editor-gestures.js',// pointer/key gestures on the map -> edits

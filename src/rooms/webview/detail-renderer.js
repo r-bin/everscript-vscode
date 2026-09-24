@@ -75,7 +75,9 @@ function renderRoomDetail(room){
   if(rh)pushf('<button class="rdf on" data-hide="hide-header" title="Toggle ROM header section">header</button>');
   fsep();
   if(enterTrig||stepOn.length||bTrigger.length)pushf('<button class="rdf on" data-hide="hide-scripts" title="Toggle decoded script tables">scripts</button>');
-  if(stepOn.length||bTrigger.length)pushf('<button class="rdf on" data-hide="hide-trigger" title="Toggle trigger overlays and tables">trigger</button>');
+  // The flat chip plus a caret for step/B sub-toggles — see
+  // map-editor-trigger-panel.js's buildTriggerFilterChipHtml.
+  if(stepOn.length||bTrigger.length)pushf(buildTriggerFilterChipHtml());
   if(entrances.length)pushf('<button class="rdf on" data-hide="hide-ent" title="Toggle entrances">entrance</button>');
   if(objs.length)pushf('<button class="rdf on" data-hide="hide-obj" title="Toggle objects">object</button>');
   if(enemies.length)pushf('<button class="rdf on" data-hide="hide-enem" title="Toggle enemies">enemy</button>');

@@ -1,3 +1,46 @@
+## [0.55.0] — 2026-09-24
+
+### Map editor redesign, phase 6: polish (redesign complete)
+
+Closes out `docs/map-editor-redesign-plan.md`'s six-phase plan.
+
+- **Triggers filter dropdown**: the flat "trigger" chip in the per-room
+  filter bar gained a caret opening Step-trigger/B-trigger sub-toggles, the
+  same shape as the Special chip's dropdown. `hide-step`/`hide-btrig` were
+  already real `shared.css` rules with no chip wired to them — reused
+  rather than inventing new keys. Lives in `map-editor-trigger-panel.js`
+  (`buildTriggerFilterChipHtml`), the file that already owns the Trigger
+  tab's list UI.
+- **Shared filter-dropdown chrome**: the Special chip's three CSS classes
+  (`.rg-special-filter`/`.rg-special-caret`/`.rg-special-dropdown`) were
+  generalized to `.rg-filter-group`/`.rg-filter-caret`/`.rg-filter-popup` so
+  the new Triggers dropdown reuses one chrome definition instead of a
+  second copy of the same ~15 lines of CSS. `map-editor-input.js`'s
+  outside-click-close logic is now one `EDIT_FILTER_MENUS` list instead of
+  a block hardcoded to the Special dropdown alone.
+- **Fixed a real, pre-existing visibility bug** found by this phase's own
+  visual QA pass (rendering the real bundle in a headless browser and
+  looking at screenshots): the filter-dropdown popup's `display:flex` rule
+  (an author style) always overrode the browser's own
+  `[hidden]{display:none}` rule regardless of selector specificity, so the
+  Special dropdown had been visually open at all times since it shipped in
+  phase 3 — the only existing test asserted the DOM `.hidden` property, not
+  actual paint. One `[hidden]{display:none}` override fixes both dropdowns;
+  the regression test now also checks computed `display`.
+- **Zoom chip / resize grip restyle**: `.rg-zoom` (the +/-/fit controls) and
+  `.rg-resize`/`.rg-resize-label` (the canvas resize grip) now use
+  `map-editor-theme.css` tokens instead of `shared.css`'s pre-redesign flat
+  colours. Chrome only — position, sizing and drag behavior are unchanged.
+- **`STATE_FLOW.md` backfilled**: every map-editor webview state variable
+  that predated the redesign table (`_edit`, `_panelOpen`, `_editOrigin`,
+  `_editCompose`/`_editComposed`/`_editConstruct`, `_editSel`/`_editClip`,
+  the chip/family/deco/metatile-palette state, `_editDrag`, the new-room/
+  resize state, `_editPendingNote`/`_editPanelRoom`) now has a row.
+- **Plan doc closed out**: `docs/map-editor-redesign-plan.md`'s phase table
+  marks phase 6 landed, and a new "Redesign complete" section summarizes
+  all six phases plus the deliberately deferred future work (the Entrance
+  export-shape gap, Widget Editor Mode, trigger reordering).
+
 ## [0.54.0] — 2026-09-24
 
 ### Map editor redesign, phase 5: the Widgets tab

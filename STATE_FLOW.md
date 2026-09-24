@@ -29,7 +29,7 @@
 | vanilla mode | `tab-init.js` (webview) | `_vanillaMode` | Client-side only |
 | byte script focus | `bootstrap.js` (webview) | `_currentByteScriptFocus` | Updated via message |
 | emulator ROM state | `debugger/emulator/panel.js` | local | Per-panel |
-| map editor active tab | `map-editor-tabs.js` (webview) | `_editActiveTab` | `'tile'\|'special'\|'trigger'\|'info'\|'widgets'`; gates what `map-editor-panels.js`'s `renderEditPanels()` builds into `#rg-panels` (Widgets routes to `map-editor-deco.js`'s `widgetsTabHtml`, Phase 5). Other map-editor dock state (`_panelOpen`, `_editOrigin`, `_editCompose`, …) predates this table — see `src/rooms/README.md`'s client-side file list, not this doc, for the full inventory |
+| map editor active tab | `map-editor-tabs.js` (webview) | `_editActiveTab` | `'tile'\|'special'\|'trigger'\|'info'\|'widgets'`; gates what `map-editor-panels.js`'s `renderEditPanels()` builds into `#rg-panels` (Widgets routes to `map-editor-deco.js`'s `widgetsTabHtml`, Phase 5). The rest of the map-editor's dock/gesture/palette state (`_panelOpen`, `_editOrigin`, `_editCompose`, `_mtPalette`, …) predated this table until Phase 6 — see the backfill block below the ownership table |
 | Widgets tab "Ready only" toggle | `map-editor-deco.js` (webview) | `_decoFlags.works` | Not new state — the Widgets tab's toggle and the picker's own "works" filter chip read/write the same boolean (`d.scriptId !== null`) through the same `data-deco-flag="works"` click key, so the two controls cannot disagree. Category grouping (Foreground/Background/Misc) reads `d.front`/`d.back`, computed server-side by `deco-catalogue.js`'s `decoIndex` — no client state of its own |
 | `_edit.currentSpecialId` | `map-editor.js` (webview), field on `_edit` | string\|null | The Special tab's armed pick (e.g. `'gate-dog'`); set directly by `map-editor-special.js`'s click handler in `map-editor-input.js`, the same way `_edit.tool`/`_edit.phase`/`_edit.brush` already are |
 | `_edit.specialCells` | `map-editor.js` (webview), field on `_edit` | `{"x,y": specialId}` | The Special tab's glyph overlay, written only through `editApply()`'s `specialWrites` param so it shares `_edit.undo`/`_edit.redo` with the tile grid — see `map-editor-special.js`. Gate/drift's *real* collision effect is not stored here: it lands in `_edit.cells` as an ordinary (possibly newly composed) stamp, exactly like a tile paint. This field is UI-only and is never read by `editExport()` |
@@ -38,6 +38,42 @@
 | `_edit.placed[].uid` | `map-editor.js`'s `editNextPlacedUid()` (webview) | number | Stable identity for a `_edit.placed` entry across re-renders, so a `selectedTriggerRef` of `'placed:'+uid` keeps pointing at the same trigger even as others are added/removed. Assigned once, at creation, by `editStampedConstruct()` (map-editor-constructs.js, for a stamped gourd's trigger) or by `map-editor-trigger-select.js` (a paste, or a base-trigger move) |
 | `_triggerDrag` | `map-editor-trigger-select.js` (webview), module-local | `{ref, w, h, grabDx, grabDy, x, y}\|null` | The Select tool's in-progress drag, live-updated by pointer move and read by `map-editor-paint.js`'s `renderEditLayer` for the preview outline. Not part of `_edit`: a drag that never commits is not a draft change, so it is not in the undo history |
 | `_triggerClipboard` | `map-editor-trigger-select.js` (webview), module-local | `{kind, x1, y1, w, h, scriptId}\|null` | The last copied trigger. An instance field, not reactive state and not part of `_edit` — Cmd/Ctrl+V still works after Escape clears the selection that filled it, and neither copy nor its later paste is itself undoable (only the paste's resulting `_edit.placed` mutation is, via `editApplyTriggerOp`) |
+
+**Map-editor state that predates this table (Phase 6 backfill — see `src/rooms/README.md`'s client-side file list for the fuller narrative each of these files carries):**
+
+| State | Owner File | Type | Notes |
+|---|---|---|---|
+| `_edit` | `map-editor.js` (webview) | object\|null | The draft for the room on screen — cells, added stamps, undo/redo, tool/phase/brush. Only this file assigns to it; every other map-editor file reads/writes fields through `editDraft()` |
+| `_panelOpen` | `map-editor-panels.js` (webview) | `{families,tiles,needed,errors,compose}` | Which Tile-tab panels are expanded, toggled by a `data-panel` click |
+| `_editOrigin` | `map-editor-ui.js` (webview) | `{x,y}` | The map's own top-left in viewBox units, set once per render from `buildRoomSvgSection`'s result |
+| `_editCompose` | `map-editor-ui.js` (webview) | `{layer1,layer2,collision,pick,armed?}` | The hand-composer's in-progress stamp and which of its three slots the next click fills |
+| `_editComposed` | `map-editor-ui.js` (webview) | object\|null | The host's rendered preview of `_editCompose`, once requested |
+| `_editConstruct` | `map-editor-ui.js` (webview) | number | Which saved construct (map-editor-constructs.js) the Stamp tool places; `-1` when none is armed |
+| `_editSel` | `map-editor-paint.js` (webview) | `{x1,y1,x2,y2}`\|null | The box-select tool's in-progress or committed rectangle |
+| `_editClip` | `map-editor-paint.js` (webview) | object\|null | The box-select tool's own copied region — distinct from `_triggerClipboard`, the Select tool's |
+| `_chipSel` | `map-editor-chips.js` (webview) | `{[familyId]: true}` | Which family chips are toggled on, narrowing the tile browser |
+| `_chipFilter` | `map-editor-chips.js` (webview) | string | The chip search box's text |
+| `_chipPreviews` | `map-editor-chips.js` (webview) | object\|null | Host-rendered chip art, keyed by family id |
+| `_related` | `map-editor-chips.js` (webview) | `{[graphic]: count}` | Placement-adjacency counts for the armed brush, sorting a family's own tile strip |
+| `_famCatalogue` | `map-editor-families.js` (webview) | object\|null | The full family catalogue (tile/room counts, areas, names), fetched once |
+| `_famSheets` | `map-editor-families.js` (webview) | `{[familyId]: sheet}` | Per-family tile sheets, fetched as a family is adopted or browsed |
+| `_brushTile` | `map-editor-families.js` (webview) | number\|null | The room's own sheet's selection ring, cleared when a family-tile brush is armed instead |
+| `_deco` | `map-editor-deco.js` (webview) | array\|null | The deco/widget catalogue, fetched once |
+| `_decoFilter` | `map-editor-deco.js` (webview) | string | The Widgets tab's search box text |
+| `_decoPage` | `map-editor-deco.js` (webview) | number | Pagination offset into the filtered deco list |
+| `_decoPreviews` | `map-editor-deco.js` (webview) | object\|null | Host-rendered deco thumbnails |
+| `_decoPick` | `map-editor-deco.js` (webview) | number | The entry whose cells are being requested from the host; `-1` when none |
+| `_decoFlags` | `map-editor-deco.js` (webview) | `{fits,works,front,open}` | The Widgets tab's filter chips — `works` is also the "Ready only" toggle's own boolean (one owner, see the row above) |
+| `_mtPalette` | `metatile-palette.js` (webview) | object\|null | The room's own decoded palette (dictionary atlas, grid, budget, attachments) — read-only room data every map-editor file reads through |
+| `_mtLayer` | `metatile-palette.js` (webview) | string | Which layer the Tile palette section renders (`'composite'`/`'layer1'`/`'layer2'`/`'collision'`) |
+| `_mtFilter` | `metatile-palette.js` (webview) | string | The Tile palette's own family filter |
+| `_mtSelected` | `metatile-palette.js` (webview) | number | The selected stamp index in the browsing (non-edit) Tile palette |
+| `_editDrag` | `map-editor-gestures.js` (webview) | `{x1,y1}`\|null | The box-select tool's in-progress pointer drag — distinct from the Select tool's own `_triggerDrag` |
+| `_newRoomOpen` | `map-editor-newroom.js` (webview) | bool | Whether the "new room" inline form is open |
+| `_resizing` | `map-editor-newroom.js` (webview) | `{x,y,w0,h0,w,h}`\|null | The canvas resize grip's in-progress drag, in tiles |
+| `_resizeKeep` | `map-editor-newroom.js` (webview) | bool | Whether the next blank-room reply should keep the cells that still fit — set only by a resize, not a fresh "new room" |
+| `_editPendingNote` | `map-editor-input.js` (webview) | string | The last explanatory message written to the status slot, overwritten by the next render's summary |
+| `_editPanelRoom` | `map-editor-input.js` (webview) | object\|null | The room the delegated panel click handler currently acts on, re-pointed every render since the handler's closure is bound once |
 
 ---
 

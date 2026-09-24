@@ -86,6 +86,30 @@ function triggerTabPanelHtml() {
 }
 
 /**
+ * The filter bar's Triggers chip (detail-renderer.js's filtersHtml): one
+ * flat toggle for both trigger kinds, plus a caret opening step/B
+ * sub-toggles — the same shape as map-editor-special.js's
+ * buildSpecialFilterChipHtml, sharing its `.rg-filter-group`/
+ * `.rg-filter-caret`/`.rg-filter-popup` chrome (map-editor-theme.css) and
+ * map-editor-input.js's one outside-click-close mechanism.
+ *
+ * `hide-step`/`hide-btrig` are not new keys: shared.css already had these
+ * two rules with no chip wired to them before this pass (only the combined
+ * `hide-trigger` was reachable) — reused here rather than inventing new
+ * data-hide names.
+ */
+function buildTriggerFilterChipHtml() {
+  return '<span class="rg-filter-group">'
+    + '<button class="rdf on" data-hide="hide-trigger" title="Toggle trigger overlays and tables">trigger</button>'
+    + '<button class="rdf rg-filter-caret" data-edit-trigger-menu="1" title="Choose which trigger types to show" '
+    + 'aria-label="Trigger filter groups">▾</button>'
+    + '<div class="rg-filter-popup" id="rg-trigger-dropdown" hidden>'
+    + '<button class="rdf on" data-hide="hide-step">Step trigger</button>'
+    + '<button class="rdf on" data-hide="hide-btrig">B trigger</button>'
+    + '</div></span>';
+}
+
+/**
  * The Info tab's two trigger counts — see file header for why there is no
  * ceiling to bar-chart against.
  */

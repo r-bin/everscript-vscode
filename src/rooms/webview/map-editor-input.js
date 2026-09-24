@@ -96,7 +96,18 @@ function renderComposer() {
 var EDIT_CLICK_KEYS = ['editTool', 'editPhase', 'editAct', 'editPick', 'panel',
   'famTile', 'construct', 'chip', 'chipDrop', 'chipAdopt', 'chipMore', 'tileMore',
   'layerForce', 'deco', 'decoPage', 'decoFlag', 'mtIndex', 'mtSlot', 'editActiveTab',
-  'editSpecial', 'editSpecialMenu', 'triggerRef', 'triggerRemove'];
+  'editSpecial', 'editSpecialMenu', 'editTriggerMenu', 'triggerRef', 'triggerRemove'];
+
+/**
+ * Every filter-bar dropdown (detail-renderer.js's filtersHtml) that opens a
+ * popup of sub-toggles, keyed by the dataset name its own caret carries.
+ * One list, one close-on-outside-click loop below — a new dropdown only
+ * needs an entry here, not a second mechanism copied from the Special one.
+ */
+var EDIT_FILTER_MENUS = [
+  { key: 'editSpecialMenu', id: 'rg-special-dropdown' },
+  { key: 'editTriggerMenu', id: 'rg-trigger-dropdown' },
+];
 
 /** The nearest ancestor (including `el`) that carries one of those keys. */
 function editClickTarget(el, root) {
@@ -154,19 +165,26 @@ function bindEditControls(panel, room) {
     var t = editClickTarget(e.target, panel);
     if (!t || !t.dataset) return;
 
-    // The special filter's dropdown (buildSpecialFilterChipHtml,
-    // map-editor-special.js) closes on any click that lands outside it —
-    // including a click that goes on to do something else, like painting a
-    // cell, which is why this runs before the dispatch below rather than
-    // being its own listener.
-    var specialMenu = document.getElementById('rg-special-dropdown');
-    if (specialMenu && !specialMenu.hidden && !specialMenu.contains(e.target) && !t.dataset.editSpecialMenu) {
-      specialMenu.hidden = true;
-    }
+    // Every filter-bar dropdown (Special, Triggers, …) closes on any click
+    // that lands outside it — including a click that goes on to do
+    // something else, like painting a cell, which is why this runs before
+    // the dispatch below rather than being its own listener.
+    EDIT_FILTER_MENUS.forEach(function (m) {
+      var menu = document.getElementById(m.id);
+      if (menu && !menu.hidden && !menu.contains(e.target) && !t.dataset[m.key]) {
+        menu.hidden = true;
+      }
+    });
 
     if (t.id === 'rg-edit-btn') { editToggle(_editPanelRoom, t); return; }
     if (t.dataset.editSpecialMenu) {
+      var specialMenu = document.getElementById('rg-special-dropdown');
       if (specialMenu) specialMenu.hidden = !specialMenu.hidden;
+      return;
+    }
+    if (t.dataset.editTriggerMenu) {
+      var triggerMenu = document.getElementById('rg-trigger-dropdown');
+      if (triggerMenu) triggerMenu.hidden = !triggerMenu.hidden;
       return;
     }
     if (t.dataset.editSpecial) {

@@ -209,16 +209,41 @@ async function main() {
     await page.evaluate(() => {
         document.getElementById('room-detail').insertAdjacentHTML('beforeend', buildSpecialFilterChipHtml());
     });
-    check('the special filter dropdown starts closed',
-        await page.$eval('#rg-special-dropdown', (n) => n.hidden));
+    // Checks computed `display`, not just the `.hidden` IDL property — a
+    // real CSS bug (`.rg-filter-popup{display:flex}`, an author rule, silently
+    // beat the UA stylesheet's `[hidden]{display:none}` regardless of
+    // selector specificity) left the popup visually open at all times while
+    // `.hidden` still read true, and a `.hidden`-only check never caught it.
+    const specialPopupHidden = () => page.$eval('#rg-special-dropdown',
+        (n) => n.hidden && getComputedStyle(n).display === 'none');
+    const specialPopupShown = () => page.$eval('#rg-special-dropdown',
+        (n) => !n.hidden && getComputedStyle(n).display !== 'none');
+    check('the special filter dropdown starts closed', await specialPopupHidden());
     await page.click('[data-edit-special-menu]');
-    check('the caret opens it', !(await page.$eval('#rg-special-dropdown', (n) => n.hidden)));
+    check('the caret opens it', await specialPopupShown());
     await page.click('[data-edit-active-tab="tile"]');
-    check('and a click elsewhere in the panel closes it again',
-        await page.$eval('#rg-special-dropdown', (n) => n.hidden));
+    check('and a click elsewhere in the panel closes it again', await specialPopupHidden());
 
     check('switching back to Tile restores its panels',
         !!(await page.$('[data-panel="families"]')));
+
+    // ── the filter bar's Triggers chip + dropdown ───────────────────────────
+    // Same shape and same close-on-outside-click mechanism as the Special
+    // chip above (map-editor-input.js's EDIT_FILTER_MENUS); the sub-toggles
+    // ride `hide-step`/`hide-btrig`, two shared.css rules that already
+    // existed with no chip wired to them before this pass.
+    await page.evaluate(() => {
+        document.getElementById('room-detail').insertAdjacentHTML('beforeend', buildTriggerFilterChipHtml());
+    });
+    const triggerPopupHidden = () => page.$eval('#rg-trigger-dropdown',
+        (n) => n.hidden && getComputedStyle(n).display === 'none');
+    const triggerPopupShown = () => page.$eval('#rg-trigger-dropdown',
+        (n) => !n.hidden && getComputedStyle(n).display !== 'none');
+    check('the trigger filter dropdown starts closed', await triggerPopupHidden());
+    await page.click('[data-edit-trigger-menu]');
+    check('the caret opens it', await triggerPopupShown());
+    await page.click('[data-edit-active-tab="tile"]');
+    check('and a click elsewhere in the panel closes it again', await triggerPopupHidden());
 
     // ── the Select tool: real base + placed triggers, driven end to end ────
     // An 8x8 room: one base step trigger at (1,1)-(2,2), one base B-trigger

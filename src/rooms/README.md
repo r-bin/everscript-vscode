@@ -175,9 +175,10 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   field, not undoable); writes `_edit.selectedTriggerRef` / `.removedTriggers`
   without owning `_edit` itself — see docs/map-editor-redesign-plan.md Phase 4
 - `map-editor-trigger-panel.js` — the Trigger tab's list UI (mini position
-  crop, click-to-select, remove button) and the Info tab's trigger counts;
-  renders what map-editor-trigger-select.js's model reports, the same split
-  as map-editor-special.js (model) vs. its own tab markup
+  crop, click-to-select, remove button), the Info tab's trigger counts, and
+  the filter bar's "trigger" chip + dropdown (`hide-step`/`hide-btrig`
+  sub-toggles); renders what map-editor-trigger-select.js's model reports,
+  the same split as map-editor-special.js (model) vs. its own tab markup
 - `map-editor-actions.js` — the toolbar's verbs, split out of the input handler
 - `map-editor-paint.js` — drawing the draft on the map from the palette atlas,
   the region maths, and the Select tool's outline/drag-preview rectangles;
@@ -207,9 +208,14 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
 - `map-editor-input.js` — clicks on the *chrome*, routed to what they mean, plus
   the status line and the edit toggle; owns `_editPendingNote` / `_editPanelRoom`.
   Bound **once per panel node**: `#room-detail` outlives a re-render, and a second
-  handler made every toggle fire twice and cancel itself out
+  handler made every toggle fire twice and cancel itself out. Also owns
+  `EDIT_FILTER_MENUS`, the one close-on-outside-click list every filter-bar
+  dropdown (Special, Triggers) registers into, so a new dropdown needs one
+  list entry rather than a second click-outside mechanism
 - `map-editor-newroom.js` — the blank-room round trip, `> everscript new map`,
-  and the canvas resize grip; owns `_newRoomOpen` / `_resizing` / `_resizeKeep`
+  and the canvas resize grip; owns `_newRoomOpen` / `_resizing` / `_resizeKeep`.
+  The grip's own visual chrome (`.rg-resize`/`.rg-resize-label`) is themed in
+  map-editor-theme.css; this file owns only its drag math
 - `tables-builder.js` — entity tables, ROM script cards. `buildEntityTablesHtml`
   is called unconditionally by `detail-renderer.js` (always visible, browsing
   or editing) — the Trigger tab no longer calls it (Phase 4 gave it its own
@@ -232,15 +238,21 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
 - `map-editor-theme.css` — the map editor's design tokens (oklch palette
   ported from `docs/map-editor-redesign-plan.md`'s design mock) plus the
   chrome for the floating tool pill (`#rg-edit-bar`), the docked filter bar
-  (`.rg-view-filters`, detail-renderer.js), and the panel column's tab strip
-  (`#rg-tabstrip` / `.rg-tab`). Scoped entirely under `.rg-theme`, the class
-  `renderRoomDetail` puts on `#room-detail` — never touches `shared.css`, so
-  the memory/scaling/docs/route tabs render unchanged, and never touches
-  plain `.rd-filters`/`.rdf` rows elsewhere (family/tile/deco filters, the
-  composer) — those keep the pre-redesign flat look on purpose; only rows
-  that opt in with `.rg-view-filters` or `#rg-edit-bar` get the theme.
-  Concatenated onto `shared.css` in `src/memory/webview/index.js`'s `css`
-  export, not part of the `ROOMS_JS_FILES` bundle (it is CSS, not JS)
+  (`.rg-view-filters`, detail-renderer.js), the panel column's tab strip
+  (`#rg-tabstrip` / `.rg-tab`), the shared filter-dropdown chrome
+  (`.rg-filter-group`/`.rg-filter-caret`/`.rg-filter-popup` — one chrome for
+  both the Special and Triggers chips; only each popup's own id is
+  dropdown-specific), the zoom chip (`.rg-zoom`) and the resize grip
+  (`.rg-resize`/`.rg-resize-label`, restyled from shared.css's pre-redesign
+  flat colours in Phase 6 — position/behavior untouched). Scoped entirely
+  under `.rg-theme`, the class `renderRoomDetail` puts on `#room-detail` —
+  never touches `shared.css`, so the memory/scaling/docs/route tabs render
+  unchanged, and never touches plain `.rd-filters`/`.rdf` rows elsewhere
+  (family/tile/deco filters, the composer) — those keep the pre-redesign
+  flat look on purpose; only rows that opt in with `.rg-view-filters` or
+  `#rg-edit-bar` get the theme. Concatenated onto `shared.css` in
+  `src/memory/webview/index.js`'s `css` export, not part of the
+  `ROOMS_JS_FILES` bundle (it is CSS, not JS)
 
 Because the files share one scope, a global belongs to exactly one of them.
 `rom-overlay.js` owns the view state; `detail-renderer.js` owns the request

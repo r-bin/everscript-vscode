@@ -98,7 +98,7 @@ explicitly run in isolated worktrees.
 | 3 | Special tab (net-new) | new `map-editor-special.js`; edits to `map-editor-phases.js`, `map-editor-paint.js`, `map-editor-ui.js` (dropdown chip) | `currentSpecialId`, `specialCells` | Stairs/Gate/Entrance chips paint/erase glyphs on the grid; filter-bar gating works | `everscript-plugin-builder` |
 | 4 | Trigger tab upgrade — **landed** (see §5.2) | `map-editor-gestures.js` (select/move/copy/paste), new `map-editor-trigger-select.js` (model) + `map-editor-trigger-panel.js` (list UI), `map-editor.js` (undo-step extension), `map-editor-paint.js` (outline rendering) | `_edit.selectedTriggerRef`, `_edit.removedTriggers`, `_triggerDrag`, `_triggerClipboard` (instance field, not state) | Click-select, drag-move (clamped), Backspace/Delete, Cmd/Ctrl+C/V, capacity read-outs | `everscript-plugin-builder` + `webview-dom-safety` (input-focus guard on shortcuts) |
 | 5 | Widgets tab — **landed** (see §5.3) | `map-editor-tabs.js` (new tab), `map-editor-panels.js` (deco moved out of Tile), `map-editor-deco.js` (category grouping, visible warnings, ready-only toggle), `deco-catalogue.js` (`back` field), `map-editor-theme.css` | none new — see §5.3 for why "Ready only" is not a new boolean | Existing deco/widget stamping reachable through the new tab; cards grouped by category; warnings visible as text; Widget Editor Mode explicitly deferred, not half-built | `everscript-plugin-builder` |
-| 6 | Polish | outside-click dropdown close, zoom chip/resize grip restyle, `rooms/README.md` client-side list + `STATE_FLOW.md` updated with every new state owner, full anti-entropy checklist | — | All 7 mock screens visually/behaviorally matched; `npm run typecheck && check:circular && check:dead && test` green | direct edit or `architecture-compressor` if cleanup needed |
+| 6 | Polish — **landed** (see §5.4) | Triggers filter dropdown (detail-renderer.js/map-editor-trigger-panel.js), zoom chip/resize grip restyle (map-editor-theme.css), `rooms/README.md` client-side list + `STATE_FLOW.md` backfilled with every remaining state owner, full anti-entropy checklist | none | All 7 mock screens visually/behaviorally matched; `npm run typecheck && check:circular && check:dead && check:deps && test` green | direct edit |
 
 ## 5. Open questions to resolve during Phase 3/5
 
@@ -244,7 +244,93 @@ what a saved widget looks like on disk (or in extension storage), how
 Export/Import round-trip it, and whether it reuses the construct/stamp
 machinery (`map-editor-constructs.js`) or needs its own.
 
-## 6. Ritual reminder
+### 5.4 Decisions made while executing Phase 6
+
+- **Triggers filter dropdown**: added the same shape as the Special chip
+  (flat toggle + caret + popup of sub-toggles), reusing rather than
+  inventing state: `hide-step`/`hide-btrig` were already real
+  `shared.css` rules with no chip wired to them (only the combined
+  `hide-trigger` was reachable before this phase). Lives in
+  `map-editor-trigger-panel.js` (`buildTriggerFilterChipHtml`), the same
+  file that already owns the Trigger tab's list UI — not a new file, since
+  the chip carries no model of its own (unlike Special's collision-word
+  math). The three filter-dropdown CSS classes (`.rg-special-filter`/
+  `.rg-special-caret`/`.rg-special-dropdown`) were generalized to
+  `.rg-filter-group`/`.rg-filter-caret`/`.rg-filter-popup` so both chips
+  share one chrome definition instead of duplicating ~15 lines of CSS; each
+  popup's own id (`#rg-special-dropdown`, `#rg-trigger-dropdown`) is what
+  the close-on-outside-click logic and each chip's own toggle key off of,
+  not the class. `map-editor-input.js`'s single `EDIT_FILTER_MENUS` list
+  replaces the Special-only close-on-outside-click block from Phase 3 — a
+  third dropdown needs one list entry, not a second mechanism.
+- **A real, pre-existing visibility bug found by this phase's own visual QA
+  pass**: `.rg-special-filter`/now `.rg-filter-group`'s popup rule set
+  `display:flex` unconditionally. Author stylesheet rules always win over
+  the browser's own `[hidden]{display:none}` UA rule regardless of
+  selector specificity, so the Special dropdown had been visually open at
+  all times since Phase 3 shipped — nobody noticed because the only
+  regression test asserted the DOM `.hidden` IDL property (which the
+  `hidden` *attribute* still reflects correctly), not actual computed
+  paint. Fixed with one `.rg-filter-popup[hidden]{display:none}` override,
+  and `tests/memory/map-editor-dom.test.js`'s two dropdown-close checks now
+  also assert `getComputedStyle(...).display === 'none'` so this class of
+  bug cannot regress silently again. Caught by rendering the real bundle
+  (`src/memory/webview/index.js`'s `roomsJs`/`css` exports) with Playwright
+  and looking at a screenshot, exactly as this phase's brief asked for —
+  the existing DOM test suite's own `.hidden`-only assertions would never
+  have caught it on their own.
+- **Zoom chip / resize grip**: chrome-only restyle
+  (`.rg-zoom`/`.rg-resize`/`.rg-resize-label` in map-editor-theme.css,
+  scoped under `.rg-theme` like everything else there) — position, sizing
+  and drag math (`interactions.js`'s `setupZoomPan`,
+  `map-editor-newroom.js`'s `resizeStart`/`resizeMove`/`resizeEnd`) are
+  untouched, per the phase's own constraint.
+- **STATE_FLOW.md backfill**: one terse table per the brief, appended below
+  the existing ownership table rather than interleaved with it, so the
+  Phase 3-5 rows (already well-documented) are undisturbed. The forward
+  reference that used to say "see `src/rooms/README.md`... for the full
+  inventory" now points at this new block instead.
+- **Nothing else in the mock's 7 screens needed a fix.** The full visual QA
+  pass (browsing mode + all five edit tabs, both filter-bar dropdowns
+  open) turned up only the `[hidden]` bug above — no layout overlap, no
+  missing theme tokens, no broken tab switching.
+
+## 6. Redesign complete
+
+Phases 0-6 have all landed, across the following commits (develop branch,
+chronological): design tokens and layout shell (Phase 0-1), the tab shell
+(Phase 2), the Special tab (Phase 3, `v0.52.0`), a filter-bar visual fix
+(`v0.53.1`), the Trigger tab upgrade (Phase 4, `v0.53.0`), the Widgets tab
+(Phase 5, `v0.54.0`), and this polish pass (Phase 6). The right panel is now
+five real tabs (Tile / Special / Trigger / Info / Widgets) over a themed
+canvas card, matching the design mock's own screens.
+
+**Known future work, deliberately deferred rather than half-built:**
+
+- **Entrance export-shape gap** (flagged in §5.1, Phase 3): Special-tab
+  entrance placement helpers are visual-only — `editExport()` has no field
+  for them, and it remains unconfirmed whether the sibling `everscript`
+  repo's Python encoder accepts injected entrances at all. Before wiring
+  entrances into the real export, confirm that encoder contract first;
+  don't guess at a shape.
+- **Widget Editor Mode** (flagged in §5.3, Phase 5): authoring a *new*,
+  user-defined widget from scratch (the mock's screen 7 — its own small
+  W×H grid, Export/Import). This needs a genuinely new persistence concept
+  (what gets saved, where, in what shape, how it round-trips into the
+  picker) that no existing model in this repository answers yet — not a
+  small extension of the existing vanilla-picker Widgets tab.
+- **Trigger reorder** (flagged in Phase 4's own decisions, §5.2): the
+  mock's drag-to-reorder within/between the step and B lists was not
+  built. Reordering a *base* (ROM-sourced) trigger has no attested
+  in-game meaning in `docs/map-format/`; reordering only *placed*
+  triggers was considered and cut for scope. Still open if a future
+  session wants it.
+
+If a future session wants to pick up any of the above, treat it as new
+scope with its own design pass — not a continuation of this plan's
+already-closed phase table.
+
+## 7. Ritual reminder
 
 One prompt = one commit. This plan spans multiple prompts/sessions by design
 — do not attempt phases 0–6 in a single sitting. Each phase ends with its own
