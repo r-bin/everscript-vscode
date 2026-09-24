@@ -1,0 +1,221 @@
+/* Ownership: the Rooms tab's left rail — the room-tree column's own chrome.
+ *
+ * Split out as its own file in Phase 7b rather than appended to
+ * `map-editor-canvas.css` (395 lines, one rule from the limit) or to
+ * `shared.css` (which every radar tab renders with, so a font or colour
+ * rule there would bleed into memory/scaling/docs/route). Concatenated onto
+ * the `css` export in `src/memory/webview/index.js` after
+ * `map-editor-theme.css`, which is where the `--rg-*` tokens this file
+ * consumes are declared.
+ *
+ * The rail is not part of `#room-detail`, so it is outside `.rg-theme`'s
+ * scope. It carries its own hook, `.rg-rail`, which theme.css's token block
+ * also matches — one declaration of the palette, two scopes, no duplicated
+ * values. That hook is also what switches the rail (and only the rail) from
+ * shared.css's monospace body font to `--rg-font-ui`; ids/hex tags inside it
+ * stay mono on purpose.
+ *
+ * Several rules here deliberately outrank shared.css's flat pre-redesign
+ * tree rules (`.rn-map`, `.rn-area-label`, `.vn-map`, …). They do it on
+ * specificity (`.rg-rail li.rn-map` beats `.rn-map`), not on source order
+ * alone, so the outcome does not depend on how the bundle is concatenated.
+ * shared.css keeps its own rules untouched: any future non-rail user of the
+ * room tree still gets the old dense look.
+ *
+ * Geometry ported from the design mock (`Map Editor UI.dc.html`, lines
+ * ~1036-1060): `railStyle`, `railPad`, `searchInputStyle`, `treeScrollStyle`,
+ * `groupHeaderStyle`, `railFooterStyle`, `ghostBtnStyle`, and the per-room
+ * `rowStyle`/`accentBarStyle`/`labelStyle`.
+ */
+
+/* ── The rail shell ──────────────────────────────────────────────────────
+ * A flex column: search pinned at the top, the tree scrolling in the
+ * middle, the `+ New Map` footer pinned at the bottom. shared.css's
+ * `.rm-left` makes the whole column one scroll box, which cannot pin a
+ * footer, so `overflow` and `padding` are both overridden here. */
+.rm-rail{
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  padding:0;
+  background:var(--rg-bg-chrome);
+  border-right:1px solid var(--rg-border);
+  font-family:var(--rg-font-ui);
+  font-size:13px;
+  color:var(--rg-text-secondary);
+}
+
+/* ── Search (net-new in 7b; the mock's `railPad` + `searchInputStyle`) ─── */
+.rm-rail-search{padding:12px 12px 8px;flex-shrink:0}
+.rm-rail-q{
+  width:100%;
+  border:none;
+  border-bottom:1px solid var(--rg-border);
+  background:transparent;
+  color:var(--rg-text-primary);
+  font-family:var(--rg-font-ui);
+  font-size:13px;
+  padding:6px 2px;
+  outline:none;
+}
+.rm-rail-q::placeholder{color:var(--rg-text-muted)}
+.rm-rail-q:focus{border-bottom-color:var(--rg-accent)}
+/* Chromium draws a clear "x" inside `type=search`; the mock's field is a
+   bare underline, and Escape already clears it. */
+.rm-rail-q::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}
+
+.rm-rail-scroll{flex:1;min-height:0;overflow-y:auto;padding:4px 8px}
+
+/* ── The two top-level groups (Vanilla rooms / Custom rooms) ─────────────
+ * The mock's `vanillaHeaderStyle`: 12px, 600, uppercase, a chevron in a
+ * fixed 10px box so the labels line up whichever way it points. */
+.rm-grp-h{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  width:100%;
+  border:none;
+  background:transparent;
+  cursor:pointer;
+  text-align:left;
+  font-family:var(--rg-font-ui);
+  font-size:12px;
+  font-weight:600;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--rg-text-secondary);
+  padding:10px 8px 6px;
+  transition:color 140ms ease-out;
+}
+.rm-grp-h:hover{color:var(--rg-text-primary)}
+.rm-grp-chev{font-size:9px;width:10px;flex-shrink:0;display:inline-block}
+/* The mock's `groupHeaderStyleSpaced` — extra air above every group but the
+   first, so the two groups read as separate lists rather than one run. */
+.rm-grp + .rm-grp > .rm-grp-h{margin-top:16px}
+/* No `display` is set on a collapsed body, so the UA's own
+   `[hidden]{display:none}` does the hiding — the cascade trap Phase 6
+   found works in our favour here. The searching override below is the one
+   place that has to beat it, and it does so on specificity. */
+.rm-grp-body[hidden]{display:none}
+
+/* ── Area sub-headers, inside the Vanilla group and any live area node ───
+ * Indented 18px per the mock's own group headers, with a chevron that
+ * follows shared.css's existing `.collapsed` class rather than a second
+ * state of its own. */
+.rg-rail .rn-area-label{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  padding:10px 8px 6px 18px;
+  font-size:11px;
+  font-weight:500;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--rg-text-muted);
+  opacity:1;
+  transition:color 140ms ease-out;
+}
+.rg-rail .rn-area-label:hover{color:var(--rg-text-secondary);opacity:1}
+.rg-rail .rn-area-label::before{
+  content:'\25be';font-size:9px;width:10px;flex-shrink:0;display:inline-block;
+}
+.rg-rail .rn-area.collapsed > .rn-area-label::before{content:'\25b8'}
+/* Rows keep one fixed indent whatever their nesting depth, like the mock:
+   only the headers step in. */
+.rg-rail .rt .rt{padding-left:0}
+
+/* ── Room rows (the mock's `rowStyle` / `accentBarStyle` / `labelStyle`) ──
+ * One rule set for both trees: a vanilla row is `li.rn-map.vn-map`, a live
+ * one is `li.rn-map`, and `.rsel` means selected in either. The 2px accent
+ * bar is a pseudo-element, so `tree-renderer.js` does not have to emit a
+ * spacer span the old flat look never needed. */
+.rg-rail li.rn-map{
+  position:relative;
+  height:32px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin:0;
+  padding:0 8px 0 12px;
+  border-radius:6px;
+  background:transparent;
+  cursor:pointer;
+  transition:background 140ms ease-out;
+}
+.rg-rail li.rn-map::before{
+  content:'';
+  position:absolute;
+  left:0;top:6px;bottom:6px;
+  width:2px;
+  border-radius:1px;
+  background:transparent;
+}
+.rg-rail li.rn-map:hover{background:var(--rg-bg-hover)}
+.rg-rail li.rn-map.rsel{background:var(--rg-accent-soft)}
+.rg-rail li.rn-map.rsel::before{background:var(--rg-accent)}
+
+.rg-rail .rn-map-label,
+.rg-rail .rn-label{
+  flex:1;
+  min-width:0;
+  font-size:13px;
+  font-weight:400;
+  color:var(--rg-text-secondary);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.rg-rail li.rn-map.rsel .rn-map-label,
+.rg-rail li.rn-map.rsel .rn-label{
+  color:var(--rg-text-primary);
+  font-weight:500;
+}
+/* Room ids stay monospace — they are data, not chrome. */
+.rg-rail .rn-vid-tag,
+.rg-rail .rv-id{
+  font-family:var(--rg-font-mono);
+  font-size:9px;
+  color:var(--rg-text-muted);
+  opacity:1;
+  flex-shrink:0;
+}
+.rg-rail .rv-id{margin-left:6px}
+
+.rg-rail .rm-empty{
+  padding:2px 12px 8px;
+  font-size:12px;
+  color:var(--rg-text-muted);
+  opacity:1;
+}
+
+/* ── Search results ─────────────────────────────────────────────────────
+ * `.rm-off` is the only thing the filter writes on a row/header/group: it is
+ * `!important` because it has to beat every `display` rule above it and
+ * below it, in either concatenation order. Expansion state is never touched
+ * by searching — `.rm-searching` force-reveals collapsed groups and areas
+ * for the duration instead, so clearing the field restores exactly the tree
+ * the user had open. */
+.rm-off{display:none!important}
+.rm-searching .rm-grp-body[hidden]{display:block}
+.rm-searching .rn-area.collapsed > .rt{display:block}
+.rm-rail-none{padding:14px 10px;font-size:12px;color:var(--rg-text-muted)}
+.rm-rail-none[hidden]{display:none}
+
+/* ── Footer (the mock's `railFooterStyle` + `ghostBtnStyle`) ─────────────
+ * Pinned: it is a sibling of the scroll box, not inside it. */
+.rm-rail-foot{padding:8px;flex-shrink:0;border-top:1px solid var(--rg-border)}
+.rm-rail-new{
+  width:100%;
+  border:none;
+  background:transparent;
+  color:var(--rg-text-secondary);
+  font-family:var(--rg-font-ui);
+  font-size:13px;
+  font-weight:500;
+  padding:7px 14px;
+  border-radius:7px;
+  text-align:left;
+  cursor:pointer;
+  transition:background 140ms ease-out;
+}
+.rm-rail-new:hover{background:var(--rg-bg-hover);color:var(--rg-text-primary)}

@@ -15,14 +15,23 @@
  * (see detail-renderer.js) — the one node that already wraps every piece of
  * the map editor's DOM (the canvas card, the docked panel column, and the
  * per-room filter bar docked under the canvas). Nothing here touches
- * `shared.css`: these variables do not exist outside `.rg-theme`, so the
+ * `shared.css`: these variables do not exist outside these two scopes, so the
  * memory/scaling/docs/route tabs render exactly as before.
+ *
+ * `.rg-rail` is the second scope, added in Phase 7b: the Rooms tab's left
+ * rail is a *sibling* of `#room-detail`, not a descendant, so it cannot
+ * inherit tokens declared only on `.rg-theme`. Listing it here keeps one
+ * declaration of the palette instead of a second copy in
+ * `rooms-rail.css` — that file consumes these and owns no values of its own.
+ * Nothing else in this file matches a rail node: every rule below is scoped
+ * to a `.rg-theme` descendant with a `.rg-*` class the rail never carries.
  *
  * Values ported from the design mock (`Map Editor UI.dc.html`, lines
  * ~969-976) — its own README calls them a placeholder, so exact hue-matching
  * was never the goal.
  */
-.rg-theme{
+.rg-theme,
+.rg-rail{
   --rg-bg-app: oklch(20% 0.004 250);
   --rg-bg-chrome: oklch(22% 0.004 250);
   --rg-bg-float: oklch(24% 0.005 250);

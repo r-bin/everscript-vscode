@@ -1,3 +1,40 @@
+## [0.57.0] — 2026-09-24
+
+### Map editor redesign, phase 7b: the left rail
+
+The rail was a dense monospace list with a `ROOMS` header, `Live`/`Vanilla`
+mode buttons, no search and no footer action. It is now the mock's roomy
+sans-serif list. See `docs/map-editor-redesign-plan.md` §7b/§7b.1.
+
+- **The `Live`/`Vanilla` mode toggle is gone.** The two trees are now two
+  collapsible groups — `VANILLA ROOMS` and `CUSTOM ROOMS` — in one scrolling
+  list, which is the mock's structure. Nothing is lost: a row already said
+  which tree it came from, so the mode button was a rendering choice rather
+  than state. Custom is open and Vanilla collapsed on load, showing exactly
+  what the old `Live` default showed. Two behaviour fixes fall out of it —
+  selecting a room now clears the *other* tree's highlight (both could look
+  selected before), and switching groups no longer blanks the detail panel.
+- **Search rooms**, net-new and client-side: it matches a room's name *and*
+  its id, so `sewers` and `0x12` both find Ebon Keep sewers. Empty areas and
+  empty groups fold away, and "No rooms match" is an explicit state.
+  Collapsed groups open for the duration of a search and close again when you
+  clear it — your expansion state is never overwritten.
+- **Rooms are grouped by area, not by act.** The mock shows `ACT 0…4`; the
+  ROM catalogue groups by area (`Prehistoria`, `Antiqua`, `Gothica`, …) and
+  that is the game's real structure, so the mock's *look* was adopted and its
+  placeholder content was not.
+- **`+ New Map` in the footer** runs the project-level new-map action — the
+  same one the `Everscript: New Map` command runs. The editor's own
+  `new room…` is a different thing (an inline width/height form that borrows
+  whichever room is open) and stays in the tool pill's `⋯` overflow.
+- **32px rows, a 2px accent bar on the selected one**, quiet uppercase group
+  headers, and a sans-serif face scoped to the rail alone. The
+  memory/scaling/route/docs/RNG tabs and the room detail panel were rendered
+  before and after and are **pixel-identical**.
+- New files `rooms-rail.js` / `rooms-rail.css`; `tab-init.js` is down to the
+  tab strip; `shared.css` lost three rules that died with the mode toggle.
+  33 new browser-driven checks in `tests/memory/rooms-rail-dom.test.js`.
+
 ## [0.56.0] — 2026-09-24
 
 ### Map editor redesign, phase 7a: the canvas column

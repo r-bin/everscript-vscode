@@ -61,10 +61,16 @@ var EDIT_TOOL_ICONS = {
 /**
  * The actions that did not earn a permanent slot.
  *
- * `new room` is here **for now**: §7b moves it to the left rail's
- * `+ New Map` footer, where the mock puts it. Leave it registered here until
- * that lands, so the only way to draft a blank room does not disappear
- * between two sessions.
+ * `new room` **stays here** — Phase 7a expected §7b to move it to the rail's
+ * `+ New Map` footer, but checking the two turned up two different actions,
+ * not one. This one opens an inline w/h form and drafts a blank room
+ * borrowing *the room currently open in the editor*: an in-editor tool, only
+ * meaningful once a room is rendered. The rail's `+ New Map` is the
+ * project-level entry point — the same thing the `everscript.newMap` command
+ * runs (`roomsNewMap()`, map-editor-newroom.js): a fixed 24×16 grid borrowing
+ * Strong Heart's Hut, usable with nothing open at all. Collapsing them into
+ * one control would have lost the size form or lost the no-room-open entry
+ * point, so both stay, in the place each belongs.
  */
 var EDIT_OVERFLOW_ACTS = [
   ['clear', 'Discard draft', 'Discard every change in this draft'],

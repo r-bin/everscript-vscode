@@ -6,7 +6,8 @@
 
 const { buildMemoryTabHtml }     = require('./render-memory-tab');
 const { buildDocsTabHtml, buildRngTabHtml } = require('../docs/render-docs-tab');
-const { renderRoomsTree, renderVanillaTree, buildRoomsJson, VANILLA_ROOMS } = require('../rooms');
+const { renderRoomsTree, renderVanillaTree, buildRoomRailHtml,
+        buildRoomsJson, VANILLA_ROOMS } = require('../rooms');
 const radarWebview               = require('./webview');
 
 /**
@@ -96,14 +97,7 @@ function renderRadarHtml(
     const roomsTabHtml =
         '<div class="tab-pane" data-tab="rooms" style="display:none">' +
         '<div class="rm-panels">' +
-        '<div class="rm-left">' +
-        '<div class="rm-ph"><span>Rooms</span><div class="rm-mode">' +
-        '<button class="rmm active" id="rmm-live" title="Show rooms from the active .evs file">Live</button>' +
-        '<button class="rmm" id="rmm-vanilla" title="Show all vanilla rooms">Vanilla</button>' +
-        '</div></div>' +
-        '<div id="rm-live-tree">' + treeHtml + '</div>' +
-        '<div id="rm-vanilla-tree" style="display:none">' + vanillaTreeHtml + '</div>' +
-        '</div>' +
+        buildRoomRailHtml(treeHtml, vanillaTreeHtml) +
         '<div class="rm-right"><div id="room-detail" class="rm-detail-placeholder"><span>Select a room</span></div></div>' +
         '</div>' +
         '</div>';

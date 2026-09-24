@@ -26,6 +26,58 @@ function renderVanillaTree(vanillaRooms) {
 }
 
 /**
+ * Server-side render of the Rooms tab's left rail: search, the two room
+ * groups, and the `+ New Map` footer.
+ *
+ * Phase 7b replaced the old `Live` / `Vanilla` mode toggle (two trees, one
+ * visible at a time) with one scrolling list carrying both, as two
+ * collapsible top-level groups — the design mock's own structure. The
+ * distinction survives as the group labels and as the rows' own data
+ * attributes: a live row carries `data-map` + `data-line`, a vanilla row
+ * carries `data-vid`, and `rooms-rail.js` routes the click by which is
+ * present. The two container ids (`rm-live-tree` / `rm-vanilla-tree`) are the
+ * pre-7b ones on purpose.
+ *
+ * Custom rooms are expanded and Vanilla collapsed on load, which is the same
+ * information the pre-7b default (`Live` mode) showed; the 127-room ROM
+ * catalogue is one click — or one search term — away rather than filling the
+ * rail before you have asked for it.
+ *
+ * @param {string} treeHtml         renderRoomsTree output (the active file's rooms).
+ * @param {string} vanillaTreeHtml  renderVanillaTree output (the ROM catalogue).
+ * @returns {string} HTML string.
+ */
+function buildRoomRailHtml(treeHtml, vanillaTreeHtml) {
+    const group = (key, label, title, open, body) =>
+        '<div class="rm-grp" id="rm-grp-' + key + '">'
+        + '<button class="rm-grp-h" data-rail-grp="' + key + '"'
+        + ' aria-expanded="' + (open ? 'true' : 'false') + '"'
+        + ' aria-controls="rm-' + key + '-tree" title="' + radarEsc(title) + '">'
+        + '<span class="rm-grp-chev" aria-hidden="true">' + (open ? '▾' : '▸') + '</span>'
+        + radarEsc(label) + '</button>'
+        + '<div class="rm-grp-body" id="rm-' + key + '-tree"' + (open ? '' : ' hidden') + '>'
+        + body + '</div></div>';
+
+    return '<div class="rm-left rm-rail rg-rail">'
+        + '<div class="rm-rail-search">'
+        + '<input id="rm-rail-q" class="rm-rail-q" type="search" autocomplete="off"'
+        + ' spellcheck="false" placeholder="Search rooms" aria-label="Search rooms">'
+        + '</div>'
+        + '<div class="rm-rail-scroll" id="rm-rail-scroll">'
+        + group('vanilla', 'Vanilla rooms', 'Every room in the ROM, grouped by area',
+            false, vanillaTreeHtml)
+        + group('live', 'Custom rooms', 'Rooms declared in the active .evs file',
+            true, treeHtml)
+        + '<div class="rm-rail-none" id="rm-rail-none" hidden>No rooms match</div>'
+        + '</div>'
+        + '<div class="rm-rail-foot">'
+        + '<button class="rm-rail-new" id="rm-new-map"'
+        + ' title="Draft a blank 24×16 map, borrowing Strong Heart’s Hut for graphics">'
+        + '+ New Map</button>'
+        + '</div></div>';
+}
+
+/**
  * Server-side render of the collapsible live room tree as HTML.
  * @param {Array} nodes  Room tree nodes from buildRoomTree.
  * @returns {string} HTML string.
@@ -112,4 +164,4 @@ function buildRoomsJson(tree, activeTab, selectedMap) {
          + ';var SELECTED_MAP=' + JSON.stringify(selectedMap || null) + ';';
 }
 
-module.exports = { renderVanillaTree, renderRoomsTree, buildRoomsJson };
+module.exports = { renderVanillaTree, renderRoomsTree, buildRoomRailHtml, buildRoomsJson };

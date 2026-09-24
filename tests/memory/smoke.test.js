@@ -604,13 +604,20 @@ test('a door trigger renders its destination as a link to that room', () => {
 });
 
 test('following an exit reuses the tree\'s own room selection', () => {
+    // Moved from tab-init.js to rooms-rail.js in Phase 7b: the exit link
+    // navigates the rail, so it belongs with the rail's own selection logic.
     const src = fs.readFileSync(
-        path.join(__dirname, '..', '..', 'src', 'rooms', 'webview', 'tab-init.js'), 'utf8');
+        path.join(__dirname, '..', '..', 'src', 'rooms', 'webview', 'rooms-rail.js'), 'utf8');
     assert.ok(/function gotoVanillaRoom/.test(src), 'expected a gotoVanillaRoom helper');
     assert.ok(/data-goto-map/.test(src), 'expected a delegated handler for exit links');
-    // Navigating by clicking the tree entry keeps selection, mode switching
-    // and rendering owned by one place instead of duplicating them here.
+    // Navigating by clicking the tree entry keeps selection and rendering
+    // owned by one place instead of duplicating them here.
     assert.ok(/found\.click\(\)/.test(src), 'expected navigation to go through the tree entry');
+    // Pre-7b this pressed the `Vanilla` mode button; with one combined list
+    // the row can be hidden by a collapsed group or an active search filter,
+    // and a click on a `display:none` row renders nothing.
+    assert.ok(/railClearSearch\(\)/.test(src), 'expected the search filter to be cleared first');
+    assert.ok(/railSetGroup\('vanilla', true\)/.test(src), 'expected the Vanilla group to be opened');
 });
 
 test('clicking the map selects without jumping; cmd-click jumps', () => {

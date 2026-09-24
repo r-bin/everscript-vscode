@@ -6,7 +6,8 @@
 const { parseRoomContent }                                          = require('./parsing/content-parser');
 const { findRoomImage, collectRoomsFromDir, buildRoomTree,
         setRoomImageUris }                                          = require('./parsing/file-scanner');
-const { renderVanillaTree, renderRoomsTree, buildRoomsJson }        = require('./rendering/tree-renderer');
+const { renderVanillaTree, renderRoomsTree, buildRoomRailHtml,
+        buildRoomsJson }                                            = require('./rendering/tree-renderer');
 const { buildRoomTileOverlay, invalidateRoomRenders }               = require('./rendering/tile-overlay');
 const { buildRoomMetatilePalette, buildComposedPreview,
         invalidateMetatilePalettes }                               = require('./rendering/metatile-palette');
@@ -56,6 +57,7 @@ module.exports = {
     // Rendering
     renderVanillaTree: renderVanillaTreeCompat,
     renderRoomsTree,
+    buildRoomRailHtml,
     buildRoomsJson,
     buildRoomTileOverlay,
     invalidateRoomRenders,

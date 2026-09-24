@@ -17,7 +17,7 @@ rooms/
     content-parser.js         — parseRoomContent(filePath, startLine, endLine) → room data object
     file-scanner.js           — buildRoomTree, collectRoomsFromDir, findRoomImage, setRoomImageUris
   rendering/
-    tree-renderer.js          — renderVanillaTree(rooms), renderRoomsTree(nodes), buildRoomsJson(tree)
+    tree-renderer.js          — renderVanillaTree(rooms), renderRoomsTree(nodes), buildRoomRailHtml(live, vanilla), buildRoomsJson(tree)
     tile-overlay.js           — buildRoomTileOverlay: the map raster, the canopy, and the canopy overlay
     object-previews.js        — Section 3 objects: states, thumbnails, the selection wire form
     rom-fingerprint.js        — romFingerprint(rom): the cache key every render cache shares
@@ -192,8 +192,11 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   `map-editor-toolbar.js`
 - `map-editor-toolbar.js` — the floating tool pill above the canvas card:
   `EDIT_TOOLS` / `EDIT_PHASES` / their icons, and the `⋯` overflow
-  (`EDIT_OVERFLOW_ACTS`: discard, copy draft, and — until §7b moves it to the
-  rail's `+ New Map` footer — new room). Icon-only, one row, grouped by
+  (`EDIT_OVERFLOW_ACTS`: discard, copy draft, new room — which **stays**
+  here: Phase 7b found it is a different action from the rail's `+ New Map`,
+  borrowing the open room's graphics behind an inline w/h form rather than
+  being the project-level, works-with-nothing-open entry point). Icon-only,
+  one row, grouped by
   dividers; the `room`/`deco` phase pair keeps its words because they name a
   real documented concept (`editResolve`), not a label to reskin. Owns no
   state and binds no listener: clicks reach `editAction` through
@@ -269,7 +272,19 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   the resulting bar and status bar go to `buildRoomSvgSection`
   (`svg-builder.js`) to place below the canvas card, rather than being
   rendered here under `.rd-head`
-- `tab-init.js` — tab switching, area collapse, mode toggle
+- `rooms-rail.js` — the left rail: the two collapsible top-level groups
+  (`Vanilla rooms` / `Custom rooms`), area collapse, the client-side search
+  filter, which row is selected, the `+ New Map` footer, and
+  `gotoVanillaRoom` (the exit-link target — see §Exits). Owns `_railQuery`
+  and `_railExitBound`. There is **no `_vanillaMode`** any more: the pre-7b
+  mode toggle swapped two trees in and out, and the rail now shows both at
+  once, so "which tree am I looking at" is not state — a row says which it
+  came from itself (`data-vid` = ROM catalogue, `data-map` + `data-line` = a
+  room declared in the active `.evs` file). One delegated click listener on
+  `#rm-rail-scroll`, guarded by a dataset flag, walking up from `e.target`
+  in three branches (group header / area label / room row)
+- `tab-init.js` — the radar panel's top-level tab strip, and nothing else
+  since Phase 7b moved the rail out
 - `map-editor-theme.css` — the map editor's design tokens (oklch palette
   ported from `docs/map-editor-redesign-plan.md`'s design mock) plus the
   chrome for everything that is *not* the canvas column: the panel column's
@@ -295,6 +310,17 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   popup needs a matching `[hidden]` override: an author rule beats the UA
   stylesheet's `[hidden]{display:none}` regardless of specificity, which is
   how a dropdown once stayed visually open for four phases
+- `rooms-rail.css` — the left rail's own chrome (Phase 7b), in its own file
+  because `map-editor-canvas.css` was one rule from the size limit and
+  `shared.css` is shared by every radar tab. The rail is a **sibling** of
+  `#room-detail`, so `.rg-theme` cannot reach it: it carries its own hook,
+  `.rg-rail`, which theme.css's token selector also lists (`.rg-theme,
+  .rg-rail`) — one declaration of the palette, two scopes. That hook is also
+  what switches the rail, and only the rail, off shared.css's monospace body
+  font; ids inside it stay mono. Rules here outrank shared.css's flat
+  pre-redesign tree rules on **specificity** (`.rg-rail li.rn-map` beats
+  `.rn-map`), never on source order, so the result does not depend on how
+  the bundle is concatenated
 
 Because the files share one scope, a global belongs to exactly one of them.
 `rom-overlay.js` owns the view state; `detail-renderer.js` owns the request
@@ -315,10 +341,13 @@ its emoji rather than drawing an empty box.
 ## Exits
 
 `src/script/` reads a script's `CHANGE MAP` destinations, so a door trigger
-shows where it leads. The link navigates by pressing the Vanilla mode button
-and clicking that room's tree entry, rather than duplicating the selection
-logic — one place owns highlight, mode and render. All 605 exits in the ROM
-land on a room the catalogue lists, so no link is dead.
+shows where it leads. The link navigates by clicking that room's own tree
+entry (`gotoVanillaRoom`, rooms-rail.js) rather than duplicating the
+selection logic — one place owns highlight and render. Since Phase 7b it
+first clears the search filter and opens the `Vanilla rooms` group, because
+a `display:none` row cannot be clicked into view; before 7b the equivalent
+step was pressing the `Vanilla` mode button. All 605 exits in the ROM land
+on a room the catalogue lists, so no link is dead.
 
 ## Clicking the map
 

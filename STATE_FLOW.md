@@ -26,7 +26,7 @@
 | zoom/pan | `detail-renderer.js` (webview) | local | Per-render, not persisted |
 | selection | `interactions.js` (webview) | local | Per-render, not persisted |
 | filter toggles | `interactions.js` (webview) | local | DOM class toggles |
-| vanilla mode | `tab-init.js` (webview) | `_vanillaMode` | Client-side only |
+| room rail search | `rooms-rail.js` (webview) | `_railQuery` | Client-side only. Replaced `tab-init.js`'s `_vanillaMode` in Phase 7b: the rail is one list with two collapsible groups now, not two trees swapped by a mode button, so "which tree" is no longer state — a row says which it came from (`data-vid` vs `data-map`). Group/area expansion is not mirrored into JS either: it lives in the DOM (`[hidden]` on a group body, `.collapsed` on an area), and a search never writes it — `.rm-searching` force-reveals through CSS for the duration instead, so clearing the field restores what the user had open |
 | byte script focus | `bootstrap.js` (webview) | `_currentByteScriptFocus` | Updated via message |
 | emulator ROM state | `debugger/emulator/panel.js` | local | Per-panel |
 | map editor active tab | `map-editor-tabs.js` (webview) | `_editActiveTab` | `'tile'\|'special'\|'trigger'\|'widgets'\|'info'` (the design mock's own order; Phase 5 shipped Widgets last by mistake, Phase 7a corrected it); gates what `map-editor-panels.js`'s `renderEditPanels()` builds into `#rg-panels` (Widgets routes to `map-editor-deco.js`'s `widgetsTabHtml`, Phase 5). The rest of the map-editor's dock/gesture/palette state (`_panelOpen`, `_editOrigin`, `_editCompose`, `_mtPalette`, …) predated this table until Phase 6 — see the backfill block below the ownership table |
@@ -142,6 +142,11 @@ buildRoomTree(doc, wsRoot, extCfg) [room-tree.js → rooms/index.js]
   → readRomMapHeader(...)         [memory_radar/rom-readers.js]
   ↓
 renderRoomsTree(tree)             [rooms/rendering/tree-renderer.js]
+renderVanillaTree(VANILLA_ROOMS)  [rooms/rendering/tree-renderer.js]
+  ↓
+buildRoomRailHtml(live, vanilla)  [rooms/rendering/tree-renderer.js]
+  the rail shell: search, the two collapsible groups, the + New Map footer
+  ↓
 buildRoomsJson(tree)              [rooms/rendering/tree-renderer.js]
   ↓
 injected into webview as ROOMS, VANILLA_ROOM_DETAILS JS globals

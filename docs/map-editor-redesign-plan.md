@@ -452,12 +452,85 @@ Every row of the table above shipped. Details worth carrying forward:
   `.hidden` IDL property, including for the new `display:grid` popup, which
   needs its own `[hidden]` override for the same cascade reason Phase 6 found.
 
-### 7b — the left rail
+### 7b — the left rail — **landed** (see §7b.1)
 
 Mock: a `Search rooms` input, a collapsible `VANILLA ROOMS` group with
 `ACT 0…4` + `MISC` sub-groups, a `CUSTOM ROOMS` group, and a `+ New Map`
-footer button, in a roomy sans-serif list. Current: a dense monospace list,
-no search, no footer action.
+footer button, in a roomy sans-serif list. Before this phase: a dense
+monospace list with a `ROOMS` header and `Live`/`Vanilla` mode buttons, no
+search, no footer action.
+
+### 7b.1 What actually landed
+
+- **The `Live` / `Vanilla` mode toggle is gone; the rail is one list.** The
+  two trees are now two collapsible top-level groups, `VANILLA ROOMS` and
+  `CUSTOM ROOMS`, in one scroll box — the mock's own structure. This was a
+  judgement call the brief left open, and the reason it is safe is that the
+  distinction was never *modal*: a row already said which tree it came from
+  (`data-vid` = ROM catalogue, `data-map` + `data-line` = a room declared in
+  the active `.evs` file), and `renderRoomDetail` already accepted either
+  shape. So `_vanillaMode` was not state at all, only a rendering mode for
+  two lists that could always have been shown at once. Custom is expanded
+  and Vanilla collapsed on load, which shows exactly the information the old
+  `Live` default did. **Real behaviour changes, both improvements:** one
+  selection now clears the other (pre-7b each tree cleared only its own
+  `.rsel`, so a live row and a vanilla row could both look selected), and
+  switching groups no longer blanks the detail panel.
+- **Grouping stayed as areas.** The mock shows `ACT 0…4`; the catalogue
+  groups by area (`Prehistoria`, `Antiqua`, `Gothica`, …), which is the
+  game's own structure and real data. The mock's *treatment* was adopted
+  (collapsible headers with a chevron, quiet uppercase 11px labels indented
+  18px, roomy rows) — its placeholder content was not.
+- **Search is net-new** and client-side only: no host round-trip, no second
+  copy of the room list. It matches on a row's label *and* its id, so
+  `sewers` and `0x12` both find Ebon Keep sewers; an area sub-header or a
+  whole group left with nothing in it is hidden, and "No rooms match" is an
+  explicit empty state rather than a blank rail. Expansion state is never
+  *written* while filtering — a `.rm-searching` class force-reveals collapsed
+  groups and areas through CSS for the duration — so clearing the field
+  restores exactly the tree the user had open.
+- **`+ New Map` and the editor's `new room…` turned out to be two different
+  actions**, so they stayed two controls. §7a's note said 7b would move
+  `new room` out of the `⋯` overflow; checking first showed the overflow
+  action opens an inline w/h form and drafts a blank room borrowing
+  *whichever room is currently open* (`editNewRoom` → `requestBlankRoom`),
+  while `everscript.newMap` is a project-level entry point that works with
+  nothing open at all (`roomsNewMap()`: navigate to the graphics donor 0x34,
+  turn edit mode on, draft a fixed 24×16). The rail footer got the second
+  one — it calls `roomsNewMap()` directly rather than posting a message the
+  host would only bounce back — and the overflow kept the first. Collapsing
+  them would have lost either the size form or the no-room-open path.
+- **Font scoping.** The rail is a *sibling* of `#room-detail`, so
+  `.rg-theme`'s tokens cannot reach it. It carries its own hook, `.rg-rail`,
+  added to theme.css's token selector (`.rg-theme, .rg-rail`) — one
+  declaration of the palette, two scopes, no duplicated values — and that
+  same hook is what switches the rail, and only the rail, off shared.css's
+  monospace body font. Room ids inside it stay mono on purpose.
+- **New files, not new rules in a full one.** `rooms-rail.css` (the chrome)
+  and `rooms-rail.js` (every rail interaction, split out of `tab-init.js`,
+  which now owns only the tab strip). `map-editor-canvas.css` was at 395
+  lines and §7a's own note said the next rule added there should trigger a
+  split, so nothing was added there; nothing went into `shared.css` either,
+  which every radar tab renders with. `shared.css` in fact *lost* three
+  rules (`.rm-ph`/`.rm-mode`/`.rmm`) that died with the mode toggle.
+  `tree-renderer.js` gained `buildRoomRailHtml()` so `render-radar.js` stays
+  an orchestrator.
+- **Verified visually and by pixel diff.** The rail was screenshotted from
+  the real `renderRadarHtml()` output in headless Playwright in six states
+  (default, Vanilla open, a room selected, a search term active, no matches,
+  no rooms in the file) and compared against the mock. Separately, the five
+  non-Rooms tabs (memory/scaling/route/docs/rng) and the room *detail* panel
+  were rendered at `HEAD` and at this change and diffed: **pixel-identical**,
+  which is the hard requirement every phase since Phase 0 has carried.
+  `tests/memory/rooms-rail-dom.test.js` (33 checks) locks the behaviour in,
+  asserting computed `display` rather than the `.hidden` IDL property
+  throughout, for the cascade reason Phase 6 found the hard way.
+- **Not built, on purpose:** the mock's collapsed 44px rail with per-room
+  avatar initials (`railCollapsedFlag`/`avatarStyle`/`railHandleStyle`) — a
+  200px rail inside a VS Code panel that is already narrow buys little, and
+  a drag-to-resize handle is a whole state owner (persisted width) for a
+  cosmetic win. Also not built: the mock's `Widgets` rail mode, which
+  belongs to the deferred Widget Editor Mode (§5.3), not to the rail.
 
 ## 8. Ritual reminder
 

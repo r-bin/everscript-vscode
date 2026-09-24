@@ -103,7 +103,8 @@ const ROOMS_JS_FILES = [
   'map-editor-newroom.js',// drafting a room that is not in the ROM
   'rom-overlay.js',      // ROM view top bar (_currentLayer/_currentOverlay) + renderRomDataSections
   'detail-renderer.js',  // renderRoomDetail (orchestrator)
-  'tab-init.js',         // tab switching, area collapse, mode toggle, room click handlers
+  'rooms-rail.js',       // the left rail: groups, area collapse, search, selection, + New Map
+  'tab-init.js',         // the top-level tab strip
 ];
 
 function loadRoomsJs() {
@@ -116,10 +117,12 @@ module.exports = {
   // shared.css stays the flat baseline every tab renders with; the map
   // editor's own tokens/chrome live in rooms-owned files so restyling it can
   // never bleed into the memory/scaling/docs/route tabs. theme.css declares
-  // the tokens and must come before canvas.css, which consumes them.
+  // the tokens and must come before canvas.css and rooms-rail.css, which
+  // both only consume them.
   css: loadFile(path.join(sharedDir, 'shared.css')) + '\n'
     + loadFile(path.join(roomsDir, 'map-editor-theme.css')) + '\n'
-    + loadFile(path.join(roomsDir, 'map-editor-canvas.css')),
+    + loadFile(path.join(roomsDir, 'map-editor-canvas.css')) + '\n'
+    + loadFile(path.join(roomsDir, 'rooms-rail.css')),
   get scalingJs() { return loadScalingJs(); },
   get roomsJs() { return loadRoomsJs(); },
   docsJs: loadFile(path.join(docsDir, 'docs-tab.js')),
