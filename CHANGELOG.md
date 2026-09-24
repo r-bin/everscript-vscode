@@ -1,4 +1,34 @@
-## [0.49.0] — 2026-09-22
+## [0.50.0] — 2026-09-24
+
+### Map editor redesign, phases 0+1: design tokens and a floating tool pill
+
+The first two steps of `docs/map-editor-redesign-plan.md`'s structural rebuild
+(scoped from a design mock — see the plan doc for the full multi-phase map).
+
+**Phase 0 — design tokens.** A new `src/rooms/webview/map-editor-theme.css`
+ports the mock's oklch palette (backgrounds, borders, text, accent,
+success/warning/error, the step/B trigger colors for a later phase) as CSS
+custom properties, scoped entirely under `.rg-theme` — the class
+`renderRoomDetail` now puts on `#room-detail`, the node that already wraps
+every piece of the map editor's DOM. `shared.css` is untouched, so the
+memory/scaling/docs/route tabs render exactly as before. Typography stays
+offline: a system-ui stack for chrome text, the existing mono stack for
+coordinates/counts/badges — no Google Fonts fetch.
+
+**Phase 1 — layout shell.** The edit toolbar (`buildEditToolbarHtml()`) is
+now a floating pill above the canvas — rounded, shadowed, grouped by divider
+into phases / tools / undo-redo-discard / new-room-export — instead of one
+flat inline row. Four tools (paint/erase/rect/pick) get a Unicode glyph in
+place of their text label; copy/move/stamp and every phase/action button keep
+their word, since a wrong icon guess is worse than the text it would replace.
+The per-room filter bar (the `data-hide` view toggles in `detail-renderer.js`)
+gets the mock's "docked chrome bar" look — its own background, rounded
+corners, shrink-to-fit width instead of spanning the whole detail column.
+Every existing button, `data-edit-tool`/`data-edit-phase`/`data-edit-act`
+attribute, and tooltip is unchanged — this is a restyle of existing markup,
+not new functionality or new state.
+
+
 
 ### `> everscript new map`
 

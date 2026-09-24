@@ -166,6 +166,14 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
 - `detail-renderer.js` — `renderRoomDetail(room)` orchestrator; owns
   `_pendingTileRoom` / `_pendingTileOrigin` and the roomTiles request cycle
 - `tab-init.js` — tab switching, area collapse, mode toggle
+- `map-editor-theme.css` — the map editor's design tokens (oklch palette
+  ported from `docs/map-editor-redesign-plan.md`'s design mock) plus the
+  chrome for the floating tool pill (`#rg-edit-bar`) and the docked filter
+  bar (`.rd-head > .rd-filters`). Scoped entirely under `.rg-theme`, the
+  class `renderRoomDetail` puts on `#room-detail` — never touches
+  `shared.css`, so the memory/scaling/docs/route tabs render unchanged.
+  Concatenated onto `shared.css` in `src/memory/webview/index.js`'s `css`
+  export, not part of the `ROOMS_JS_FILES` bundle (it is CSS, not JS)
 
 Because the files share one scope, a global belongs to exactly one of them.
 `rom-overlay.js` owns the view state; `detail-renderer.js` owns the request

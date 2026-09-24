@@ -106,7 +106,11 @@ function loadRoomsJs() {
 }
 
 module.exports = {
-  css: loadFile(path.join(sharedDir, 'shared.css')),
+  // shared.css stays the flat baseline every tab renders with; the map
+  // editor's own tokens/chrome live in a second, rooms-owned file so
+  // restyling it can never bleed into the memory/scaling/docs/route tabs.
+  css: loadFile(path.join(sharedDir, 'shared.css')) + '\n'
+    + loadFile(path.join(roomsDir, 'map-editor-theme.css')),
   get scalingJs() { return loadScalingJs(); },
   get roomsJs() { return loadRoomsJs(); },
   docsJs: loadFile(path.join(docsDir, 'docs-tab.js')),

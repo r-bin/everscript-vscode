@@ -11,7 +11,10 @@
 function renderRoomDetail(room){
   var panel=document.getElementById('room-detail');
   if(!panel)return;
-  panel.className='';
+  // rg-theme scopes the map editor's design tokens (map-editor-theme.css) —
+  // #room-detail is the one node that already wraps the canvas, the docked
+  // panel column and the filter bar above it, so no extra wrapper is needed.
+  panel.className='rg-theme';
   console.log('[RoomsRender] renderRoomDetail:start', {room: room && room.name});
   var c=room.content||{};
   var im=c.initMap;

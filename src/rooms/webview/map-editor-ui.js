@@ -37,27 +37,39 @@ function buildEditButtonHtml() {
   return '<button class="rdf" id="rg-edit-btn" title="Edit the map: draw with the room’s metatiles">edit</button>';
 }
 
+/**
+ * A glyph for the tools whose existing text label has an obvious one-icon
+ * match (see the mock's primary tool row). The rest — the phase buttons,
+ * copy/move/stamp, and every action button — keep their text label: a wrong
+ * guess at a glyph is worse than the word it would replace.
+ */
+var EDIT_TOOL_ICONS = { paint: '✎', erase: '⌫', rect: '▭', pick: '⤵' };
+
 function buildEditToolbarHtml() {
   var d = editDraft();
   var html = '<div class="rd-filters rg-edit-bar" id="rg-edit-bar">';
+  html += '<span class="rg-edit-group rg-edit-group-phase">';
   EDIT_PHASES.forEach(function (ph) {
     html += '<button class="rdf rg-phase' + (d && d.phase === ph[0] ? ' on' : '') + '" data-edit-phase="'
       + ph[0] + '" title="' + escH(ph[2]) + '">' + ph[1] + '</button>';
   });
-  html += '<span class="rs-mt-gap"></span>';
+  html += '</span><span class="rg-edit-divider"></span><span class="rg-edit-group rg-edit-group-tools">';
   EDIT_TOOLS.forEach(function (t) {
     // Erase only means something once there is a floor to erase back to.
     var off = t[0] === 'erase' && d && d.phase !== 'deco';
-    html += '<button class="rdf' + (d && d.tool === t[0] ? ' on' : '') + '" data-edit-tool="' + t[0]
-      + '" title="' + escH(off ? t[2] + ' — switch to deco first' : t[2]) + '">' + t[1] + '</button>';
+    var icon = EDIT_TOOL_ICONS[t[0]];
+    var label = icon ? '<span class="rg-edit-icon" aria-hidden="true">' + icon + '</span>' : t[1];
+    html += '<button class="rdf' + (icon ? ' rg-edit-tool-icon' : '') + (d && d.tool === t[0] ? ' on' : '') + '" data-edit-tool="' + t[0]
+      + '" title="' + escH(off ? t[2] + ' — switch to deco first' : t[2]) + '">' + label + '</button>';
   });
-  html += '<span class="rs-mt-gap"></span>'
+  html += '</span><span class="rg-edit-divider"></span><span class="rg-edit-group rg-edit-group-history">'
     + '<button class="rdf" data-edit-act="undo" title="Undo the last change">undo</button>'
     + '<button class="rdf" data-edit-act="redo" title="Redo">redo</button>'
     + '<button class="rdf" data-edit-act="clear" title="Discard every change in this draft">discard</button>'
-    + '<span class="rs-mt-gap"></span>'
+    + '</span><span class="rg-edit-divider"></span><span class="rg-edit-group rg-edit-group-room">'
     + '<button class="rdf" data-edit-act="new-room" title="Start a blank room to try things in, borrowing this room’s graphics">new room</button>'
     + '<button class="rdf" data-edit-act="export" title="Copy the draft as JSON for the encoder">copy draft</button>'
+    + '</span>'
     + '<span class="rg-edit-count" id="rg-edit-count"></span>';
   return html + '</div>' + buildNewRoomHtml();
 }

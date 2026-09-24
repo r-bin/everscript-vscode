@@ -1,0 +1,122 @@
+/* Ownership: design tokens for the map editor's own chrome (the floating
+ * tool pill, the docked filter bar, the tab shell phases still to come).
+ *
+ * Scoped under `.rg-theme`, a class `renderRoomDetail` puts on `#room-detail`
+ * (see detail-renderer.js) — the one node that already wraps every piece of
+ * the map editor's DOM (the canvas, the docked panel column, and the
+ * per-room filter bar above it). Nothing here touches `shared.css`: these
+ * variables do not exist outside `.rg-theme`, so the memory/scaling/docs/
+ * route tabs render exactly as before.
+ *
+ * Values ported from the design mock (`Map Editor UI.dc.html`, lines
+ * ~969-976) — its own README calls them a placeholder, so exact hue-matching
+ * was never the goal.
+ */
+.rg-theme{
+  --rg-bg-app: oklch(20% 0.004 250);
+  --rg-bg-chrome: oklch(22% 0.004 250);
+  --rg-bg-float: oklch(24% 0.005 250);
+  --rg-bg-hover: oklch(27% 0.005 250);
+  --rg-border: oklch(32% 0.005 250);
+  --rg-border-strong: oklch(38% 0.005 250);
+  --rg-text-primary: oklch(93% 0.003 250);
+  --rg-text-secondary: oklch(72% 0.005 250);
+  --rg-text-muted: oklch(52% 0.005 250);
+  --rg-accent: oklch(70% 0.14 260);
+  --rg-accent-soft: oklch(70% 0.14 260 / 0.16);
+  --rg-accent-text: oklch(97% 0.01 260);
+  --rg-success: oklch(68% 0.14 150);
+  --rg-warning: oklch(78% 0.14 80);
+  --rg-error: oklch(68% 0.17 25);
+  --rg-stripe-a: oklch(30% 0.006 250);
+  --rg-stripe-b: oklch(26% 0.006 250);
+  /* Trigger accents: step ~ pink, B ~ yellow. Not consumed until the
+     trigger tools land (see docs/map-editor-redesign-plan.md Phase 1/4). */
+  --rg-trigger-step: oklch(72% 0.19 350);
+  --rg-trigger-b: oklch(80% 0.17 95);
+  --rg-shadow-float: 0 8px 24px rgba(0,0,0,.45);
+  --rg-shadow-subtle: 0 2px 6px rgba(0,0,0,.3);
+  --rg-radius-pill: 12px;
+  --rg-radius-control: 7px;
+  /* System stack for UI chrome text — no network font fetch. The mono
+     stack is the one shared.css already uses (line 3): keep it for
+     coordinates/counts/badges so that register doesn't change. */
+  --rg-font-ui: -apple-system, "Segoe UI", system-ui, sans-serif;
+  --rg-font-mono: "SF Mono","Cascadia Code",monospace;
+}
+
+/* ── Floating tool pill (above the canvas card) ──────────────────────────
+ * `#rg-edit-bar` is `buildEditToolbarHtml()`'s root (map-editor-ui.js),
+ * inserted at the top of `#rg-outer` only while a room is in edit mode.
+ * Scoping every rule to that id keeps this from touching the many other
+ * `.rd-filters`/`.rdf` rows elsewhere (family/tile/deco filters, the
+ * composer) that intentionally keep the plain shared.css look for now. */
+.rg-theme #rg-edit-bar{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:2px;
+  width:fit-content;
+  max-width:100%;
+  margin:0 auto 10px;
+  padding:4px 6px;
+  background:var(--rg-bg-float);
+  border:1px solid var(--rg-border);
+  border-radius:var(--rg-radius-pill);
+  box-shadow:var(--rg-shadow-float);
+  font-family:var(--rg-font-ui);
+}
+.rg-theme #rg-edit-bar .rg-edit-group{display:flex;align-items:center;gap:2px}
+.rg-theme #rg-edit-bar .rg-edit-divider{width:1px;height:20px;background:var(--rg-border);margin:0 4px;flex-shrink:0}
+.rg-theme #rg-edit-bar .rdf{
+  border:1px solid transparent;
+  border-radius:var(--rg-radius-control);
+  padding:4px 8px;
+  min-width:26px;
+  height:26px;
+  box-sizing:border-box;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  background:transparent;
+  color:var(--rg-text-secondary);
+  opacity:1;
+  font-family:var(--rg-font-ui);
+  font-size:11px;
+  transition:background 120ms ease-out;
+}
+.rg-theme #rg-edit-bar .rdf:hover{background:var(--rg-bg-hover);color:var(--rg-text-primary)}
+.rg-theme #rg-edit-bar .rdf.on{background:var(--rg-accent-soft);color:var(--rg-accent-text);border-color:transparent}
+.rg-theme #rg-edit-bar .rg-edit-icon{font-size:14px;line-height:1}
+.rg-theme #rg-edit-bar .rg-edit-count{
+  font-family:var(--rg-font-mono);color:var(--rg-text-muted);font-size:10px;
+  margin-left:4px;align-self:center;white-space:nowrap;
+}
+
+/* ── Docked filter bar (the per-room view toggles, detail-renderer.js) ───
+ * The closest existing analogue to the mock's `layerDockBarStyle`: this is
+ * the bar of `data-hide` toggles (map/header/scripts/trigger/…) that
+ * `renderRoomDetail` builds inside `.rd-head`. It isn't edit-mode-only —
+ * unlike the floating pill above — so it keeps rendering above the canvas;
+ * moving it below the canvas card is DOM re-homing work reserved for the
+ * tab-shell phase, not this one. This is the visual restyle only: chrome
+ * background, shrink-to-fit width instead of stretching the full column. */
+.rg-theme .rd-head > .rd-filters{
+  background:var(--rg-bg-chrome);
+  border:1px solid var(--rg-border);
+  border-radius:10px;
+  padding:6px 10px;
+  margin:8px 0 0;
+  width:fit-content;
+  max-width:100%;
+  font-family:var(--rg-font-ui);
+}
+.rg-theme .rd-head > .rd-filters .rdf{
+  border-radius:var(--rg-radius-control);
+  font-family:var(--rg-font-ui);
+}
+.rg-theme .rd-head > .rd-filters .rdf.on{
+  background:var(--rg-accent-soft);
+  color:var(--rg-accent-text);
+  border-color:transparent;
+}
