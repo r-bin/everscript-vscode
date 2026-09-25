@@ -1,3 +1,14 @@
+## [0.66.1] — 2026-09-25
+
+### Emulator: a stale core path no longer leaves the panel blank
+
+- If `everscript.snesCorePath` points to a file that no longer exists, the
+  emulator now falls back to its built-in core and shows a warning. Before,
+  it loaded no core, so Play in emulator opened an empty panel. Old settings
+  can still point to `debugger/core/…`, a location from before the code was
+  reorganized. To stop the warning, clear the setting or point it at a real
+  core.
+
 ## [0.66.0] — 2026-09-25
 
 ### Map editor: Play in emulator

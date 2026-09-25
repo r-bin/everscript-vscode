@@ -483,6 +483,50 @@ test('webview sends gameStarted after startWithRom success', () => {
 })();
 
 
+// A stale everscript.snesCorePath (the pre-refactor `debugger/core/...` path,
+// pointing into a checkout) used to resolve to no core at all: "Play in
+// emulator" opened a blank panel. It must fall back to the bundled core.
+test('a missing snesCorePath falls back to the bundled core, with a warning', () => {
+    const Mod = require('module');
+    const load = Mod._load.bind(Mod);
+    let html = '';
+    const warnings = [];
+    const webview = {
+        get html() { return html; }, set html(v) { html = v; },
+        postMessage() {}, onDidReceiveMessage() { return { dispose() {} }; },
+        asWebviewUri(uri) { return { toString() { return 'vscode-resource:' + uri.fsPath; } }; },
+        cspSource: 'vscode-resource:',
+    };
+    const vscodeMock = {
+        window: {
+            createWebviewPanel() { return { webview, reveal() {}, onDidDispose() { return { dispose() {} }; } }; },
+            visibleTextEditors: [], activeTextEditor: null,
+            createOutputChannel() { return { appendLine() {}, show() {} }; },
+            setStatusBarMessage() { return { dispose() {} }; },
+            showErrorMessage() {}, showWarningMessage(m) { warnings.push(m); },
+        },
+        ViewColumn: { Beside: 2, Active: 1 },
+        Uri: { file(p) { return { fsPath: p, toString() { return 'file://' + p; } }; } },
+        workspace: {
+            getConfiguration() {
+                return { get(k, d) { return k === 'snesCorePath' ? '/nowhere/debugger/core/snes9x2005-wasm/snes9x_2005.js' : (d !== undefined ? d : ''); } };
+            },
+            workspaceFolders: [],
+        },
+        debug: { activeDebugSession: null, startDebugging: async () => false },
+    };
+    Mod._load = (req, parent, isMain) => (req === 'vscode' ? vscodeMock : load(req, parent, isMain));
+    delete require.cache[require.resolve(PANEL_JS)];
+    try {
+        require(PANEL_JS).openEmulatorPanel({ extensionPath: ROOT, subscriptions: [] }, null, null);
+    } finally {
+        Mod._load = load;
+        delete require.cache[require.resolve(PANEL_JS)];
+    }
+    assert.ok(html.includes(CORE_JS), 'panel HTML does not load the bundled core');
+    assert.ok(warnings.some((w) => /using the bundled core/.test(w)), 'no warning about the bad setting: ' + warnings);
+});
+
 console.log('');
 if (xfails.length) {
     console.log('  Known issues (xfail):');

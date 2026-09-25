@@ -216,24 +216,40 @@ function _remapLegacyCorePath(rawPath) {
 /**
  * Resolve the snes9x core to use.
  * everscript.snesCorePath (if set) must point to a snes9x2005-wasm .js file.
- * Falls back to the bundled debugger/core/snes9x2005-wasm-vanilla/snes9x_2005.js.
- * Returns { path, wasmPath, label, warning? }.
+ * Otherwise - and whenever the configured one is missing or unusable - the
+ * bundled src/emulator/core/snes9x2005-wasm-vanilla/snes9x_2005.js is used.
+ * Returns { path, wasmPath, label, source?, warning? }.
+ *
+ * A bad setting used to return no core at all, which left the panel blank
+ * with only an output-channel line to say why. The setting is typically a
+ * leftover `debugger/core/...` path from before the src/ refactor, pointing
+ * into a checkout rather than the extension, so the legacy remap cannot
+ * catch it. Falling back keeps the emulator working and still says so.
  */
 function _resolveCore() {
+    const bundled = _bundledCore();
     const raw = vscode.workspace.getConfiguration('everscript').get('snesCorePath', '').trim();
-    if (raw) {
+    if (!raw) return bundled;
+    const custom = _customCore(raw);
+    if (custom.path) return custom;
+    if (!bundled.path) return { ...bundled, warning: custom.warning + '; ' + bundled.warning };
+    return { ...bundled, warning: custom.warning + ' - using the bundled core instead' };
+}
+
+function _customCore(raw) {
     const configured = path.isAbsolute(raw) ? raw : path.resolve(raw);
     const resolved = _remapLegacyCorePath(configured);
-        if (!fs.existsSync(resolved))
-            return { path: '', wasmPath: '', label: '', warning: `snesCorePath "${raw}" does not exist` };
-        if (!resolved.toLowerCase().endsWith('.js'))
-            return { path: '', wasmPath: '', label: '', warning: `snesCorePath must point to a snes9x2005-wasm .js build, got "${path.extname(resolved)}"` };
-        const wasmPath = path.join(path.dirname(resolved), CORE_WASM);
-        if (!fs.existsSync(wasmPath)) {
-          return { path: '', wasmPath: '', label: '', warning: `Custom core JS found but WASM missing: ${wasmPath}` };
-        }
-        return { path: resolved, wasmPath, label: path.basename(resolved), source: 'custom' };
-    }
+    if (!fs.existsSync(resolved))
+        return { path: '', wasmPath: '', label: '', warning: `snesCorePath "${raw}" does not exist` };
+    if (!resolved.toLowerCase().endsWith('.js'))
+        return { path: '', wasmPath: '', label: '', warning: `snesCorePath must point to a snes9x2005-wasm .js build, got "${path.extname(resolved)}"` };
+    const wasmPath = path.join(path.dirname(resolved), CORE_WASM);
+    if (!fs.existsSync(wasmPath))
+        return { path: '', wasmPath: '', label: '', warning: `Custom core JS found but WASM missing: ${wasmPath}` };
+    return { path: resolved, wasmPath, label: path.basename(resolved), source: 'custom' };
+}
+
+function _bundledCore() {
     const jsPath   = path.join(_extensionPath, CORE_SUBDIR, CORE_JS);
     const wasmPath = path.join(_extensionPath, CORE_SUBDIR, CORE_WASM);
     if (!fs.existsSync(jsPath)) {
