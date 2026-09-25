@@ -71,6 +71,7 @@ var EDIT_OVERFLOW_ACTS = [
   ['clear', 'Discard draft', 'Discard every change in this draft'],
   ['export', 'Copy draft as JSON', 'Copy the draft as JSON for the encoder'],
   ['export-rom', 'Export ROM…', 'Build a playable ROM: this custom map in Brian’s room (0x15), entered straight from the intro'],
+  ['play-rom', 'Play in emulator', 'Build the same ROM and run it in the embedded emulator — no file is written'],
   ['new-room', 'New room…', 'Start a blank room to try things in, borrowing this room’s graphics'],
 ];
 

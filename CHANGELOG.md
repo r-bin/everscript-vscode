@@ -1,3 +1,12 @@
+## [0.66.0] — 2026-09-25
+
+### Map editor: Play in emulator
+
+- **Play in emulator** is a new item in the map editor's ⋯ menu, next to
+  Export ROM. It builds the same ROM and runs it in the built-in emulator
+  panel, starting in your custom map. Nothing is written to disk and no save
+  dialog opens.
+
 ## [0.65.2] — 2026-09-25
 
 ### Export ROM: a second export no longer fails

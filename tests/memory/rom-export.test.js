@@ -78,10 +78,15 @@ const read = (f) => fs.readFileSync(path.join(WEBVIEW, f), 'utf8');
 const webview = new Function(`
   var _mtPalette = null;
   var _customActive = null;
+  var sent = [];
+  var vs = { postMessage: function (m) { sent.push(m); } };
+  function editNote() {}
+  function renderEditChrome() {}
   ${read('map-editor.js')}
   ${read('map-editor-stamps.js')}
   ${read('map-editor-rom-export.js')}
-  return { editReset, editDraft, romExportPayload, setPalette: (p) => { _mtPalette = p; } };`)();
+  return { editReset, editDraft, romExportPayload, editExportRom, editPlayRom, applyRomExportDone,
+           sent: sent, setPalette: (p) => { _mtPalette = p; } };`)();
 
 test('the payload resolves painted cells to their words and the rest to the empty stamp', () => {
     const d = webview.editReset(0x34);
@@ -101,6 +106,19 @@ test('the payload resolves painted cells to their words and the rest to the empt
     assert.deepStrictEqual(p.start, { x: 2, y: 1 });
     assert.deepStrictEqual(p.graphics, [0x777]);
     assert.deepStrictEqual(p.families, [0x23]);
+});
+
+test('Play in emulator sends the same draft as Export ROM, under its own command', () => {
+    const d = webview.editReset(0x34);
+    webview.setPalette({ count: 0, entries: [] });
+    d.blank = { widthTiles: 2, heightTiles: 2, floor: { layer1: 0xa800, layer2: 0xa800, collision: 0 } };
+    webview.sent.length = 0;
+    webview.editExportRom();
+    webview.applyRomExportDone({ path: '/x.sfc' });
+    webview.editPlayRom();
+    webview.applyRomExportDone({ played: 'x.sfc' });
+    assert.deepStrictEqual(webview.sent.map((m) => m.command), ['mapExportRom', 'mapPlayRom']);
+    assert.deepStrictEqual(webview.sent[0].draft, webview.sent[1].draft);
 });
 
 test('a ROM room draft is not exportable', () => {

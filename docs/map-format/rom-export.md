@@ -1,7 +1,9 @@
 # Export ROM
 
 The map editor's **Export ROM…** action (⋯ menu, custom maps only) writes a
-playable ROM. It starts from the vanilla ROM, moves the custom map into Brian's
+playable ROM. **Play in emulator** builds the same ROM in memory and loads it
+into the embedded emulator panel (`openEmulatorPanel`), which uses the same
+snes9x core the export was boot-tested on. It starts from the vanilla ROM, moves the custom map into Brian's
 Test Ground's slot (`0x15`), and makes the game start there.
 
 Code: `src/maps/encode.ts` (a port of `everscript/tools/encode_room.py`),

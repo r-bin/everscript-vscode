@@ -784,6 +784,25 @@ function activate(context) {
                             vscode.window.showErrorMessage('ROM export failed: ' + error);
                         }
                     })();
+                } else if (msg.command === 'mapPlayRom') {
+                    // Export ROM without the file: the same ROM, straight into
+                    // the embedded emulator, the way a build's output is loaded.
+                    const reply = { command: 'mapExportRomDone' };
+                    try {
+                        const _cfg = getExtConfig();
+                        const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
+                        if (!romBuf) throw new Error('ROM not found — set everscript.romPath');
+                        const { rom } = buildExportRom(romBuf, msg.draft || {});
+                        const name = String(msg.name || 'custom map') + '.sfc';
+                        const dataUrl = 'data:application/octet-stream;base64,' + Buffer.from(rom).toString('base64');
+                        require('./emulator/panel').openEmulatorPanel(context, { dataUrl, name });
+                        _radarPanel?.webview.postMessage({ ...reply, played: name });
+                    } catch (err) {
+                        const error = String(err && err.message || err);
+                        _radarPanel?.webview.postMessage({ ...reply, error });
+                        vscode.window.showErrorMessage('Play in emulator failed: ' + error);
+                    }
                 } else if (msg.command === 'requestComposedPreview') {
                     // Swatches for metatiles the editor has composed but not
                     // written. Rendered against the room they are for, so the

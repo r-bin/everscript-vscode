@@ -1,5 +1,6 @@
-// Ownership: "Export ROM" — handing a custom map to the host as a fully
-// resolved grid, and reporting what came back.
+// Ownership: "Export ROM" and "Play in emulator" — handing a custom map to
+// the host as a fully resolved grid, and reporting what came back. Play is
+// the same ROM, loaded into the embedded emulator instead of saved.
 //
 // The host (rooms/rendering/rom-export.js) builds the blob, puts it in
 // Brian's Test Ground's slot, points the intro at it and re-decodes the
@@ -47,8 +48,13 @@ function romExportPayload(why) {
   };
 }
 
-/** The `export-rom` action: ask the host for a ROM. */
-function editExportRom() {
+/** The `export-rom` action: ask the host for a ROM file. */
+function editExportRom() { romExportSend('mapExportRom', 'building the ROM…'); }
+
+/** The `play-rom` action: the same ROM, run in the embedded emulator. */
+function editPlayRom() { romExportSend('mapPlayRom', 'building the ROM for the emulator…'); }
+
+function romExportSend(command, busyNote) {
   if (_romExportBusy) return;
   var why = { text: '' };
   var draft = romExportPayload(why);
@@ -56,9 +62,9 @@ function editExportRom() {
   if (typeof vs === 'undefined' || !vs) return;
   var m = typeof customFind === 'function' ? customFind(_customActive) : null;
   _romExportBusy = true;
-  editNote('building the ROM…');
+  editNote(busyNote);
   renderEditChrome();
-  vs.postMessage({ command: 'mapExportRom', name: m ? m.name : 'custom map', draft: draft });
+  vs.postMessage({ command: command, name: m ? m.name : 'custom map', draft: draft });
 }
 
 /** The host's answer (bootstrap.js routes `mapExportRomDone` here). */
@@ -67,6 +73,7 @@ function applyRomExportDone(msg) {
   if (!msg) return;
   if (msg.error) editNote('export failed: ' + msg.error);
   else if (msg.cancelled) editNote('export cancelled');
+  else if (msg.played) editNote('running ' + msg.played + ' in the emulator — the game starts in this map');
   else editNote('exported to ' + msg.path + ' — the game starts in this map');
   renderEditChrome();
 }
