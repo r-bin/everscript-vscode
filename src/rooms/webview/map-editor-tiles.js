@@ -330,7 +330,7 @@ function tileGroupHtml(family, width) {
       + (badge[0] ? ' rg-lay-' + badge[0] : '') + (rel >= 50 ? ' rg-rel' : '') + flipCls
       + '" data-fam-tile="' + slot[2] + '" data-fam-of="' + family + '"'
       + ' title="' + escH('graphic ' + slot[2] + ' in family ' + family
-        + '\n' + slot[3] + ' placements in vanilla'
+        + '\n' + slot[3] + (slot[10] === 2 ? ' cells show it once their grass is cut' : ' placements in vanilla')
         + (badge[0] ? '\ndrawn in the ' + badge[0] + (badge[1] ? ' — ' + badge[1] : '') : '')
         + (rel ? '\ngoes with what you have placed: ' + rel + '%' : '')
         + (typeof tileCollisionTitle === 'function' ? tileCollisionTitle(slot) : '')

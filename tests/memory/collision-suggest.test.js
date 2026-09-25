@@ -130,9 +130,16 @@ if (!fs.existsSync(ROM_PATH)) {
         assert.strictEqual(index.grass.has(489), false, 'the blank canopy graphic is not grass');
         assert.ok([...index.grass.values()].every((f) => f >= 1 && f <= 3));
         const f32 = rooms.buildFamilyCatalogue(rom).find((f) => f.id === 32);
-        assert.strictEqual(f32.grass, 28);
+        assert.strictEqual(f32.grass, 31);
         const sheet = rooms.buildFamilySheet(rom, 32, 0x34);
-        assert.strictEqual(sheet.slots.filter((r) => r[10]).length, 28);
+        assert.strictEqual(sheet.slots.filter((r) => r[10]).length, 31);
+        // The stubble cut grass reveals in Act 1 is never *placed* — it only
+        // exists at run time — yet it must be in its family's tile list.
+        for (const g of [677, 685, 691]) {
+            const row = sheet.slots.find((r) => r[2] === g);
+            assert.ok(row && row[10] === 2, `graphic ${g} missing from family 32 or not flagged as cut state`);
+            assert.strictEqual(maps.suggestGeometry(index, g, 'terrain').value, 0x00, `cut grass ${g} is walkable`);
+        }
     });
 
     test('a drafted map’s collision layer draws solid cells and leaves open ones clear', () => {

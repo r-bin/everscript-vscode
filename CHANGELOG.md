@@ -1,3 +1,18 @@
+## [0.68.1] — 2026-09-25
+
+### Tile tab: the tiles revealed by cutting grass are listed
+
+- **The cut-grass stubble from Act 1 (graphics 677, 685 and 691) is now in the
+  tile list**, in family 32, and the `cuttable` filter shows it. These tiles
+  never appear in a room's saved layout: the game only shows them once the
+  grass on top is cut. The tile list was built from saved layouts alone, so
+  no family listed them.
+- Such tiles now count toward their tile family and their layer, weighted by
+  how many cells would show them once cut. Their suggested collision comes
+  from the cut state, which is walkable.
+- Their tooltip says how many cells show them once the grass is cut, instead
+  of a placement count.
+
 ## [0.68.0] — 2026-09-25
 
 ### Map editor: a `cuttable` filter in the Tile tab

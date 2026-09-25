@@ -14,6 +14,7 @@ import {
     DirectionalAdjacency, DirectionalTally, ResolvedCell,
     newDirectionalTally, walkResolvedGrid, compactDirectional,
 } from './vanilla-adjacency';
+import { noteGrass } from './vanilla-grass';
 
 /** One observed pairing, with how many grid cells attest to it. */
 export interface Attestation<T> {
@@ -188,7 +189,21 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
             if (canopy !== undefined && m.layer1 !== blankCanopy) tally(canopyCollCounts, canopy, m.collision, m.uses);
         }
 
-        noteGrass(room, tileIds, blankCanopy, grass);
+        // What cutting grass reveals is never placed, so it is counted here —
+        // by the cells that would show it — or no family would list it.
+        const graphicOf = (w: number): number | undefined => tileIds[charIndexToSlot(w & 0x3ff)];
+        for (const r of noteGrass(room, graphicOf, blankCanopy, grass)) {
+            const fam = fams[((r.word >> 10) & 0x07) - 1];
+            if (fam === undefined) continue;
+            tally(famCounts, r.graphic, fam, r.uses);
+            tally(gfxCounts, fam, r.graphic, r.uses);
+            let seen = layers.get(r.graphic);
+            if (!seen) { seen = { canopy: 0, terrain: 0 }; layers.set(r.graphic, seen); }
+            if (r.layer === 0) seen.canopy += r.uses;
+            else { seen.terrain += r.uses; tally(collCounts, r.graphic, r.collision, r.uses); }
+            const seenIn = graphicRooms.get(r.graphic);
+            if (seenIn) seenIn.add(id); else graphicRooms.set(r.graphic, new Set([id]));
+        }
         edges += walkAdjacency(room, tileIds, adjacency, cells, sides);
     }
 
@@ -211,29 +226,6 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
         placements,
         edges,
     };
-}
-
-export const GRASS_UNCUT = 1;
-export const GRASS_CUT = 2;
-
-/** Flag the graphics this room's cuttable-grass records change (see `grass`). */
-function noteGrass(room: RoomData, tileIds: number[], blankCanopy: number, into: Map<number, number>): void {
-    const { layer1, layer2 } = room.metatileSlices;
-    for (const rec of room.cuttableGrass.table.records) {
-        const chain = [rec.source, ...rec.sequence]
-            .map((id) => metatileIndex(room, id))
-            .filter((i) => i >= 0 && i < room.metatileCount);
-        for (const words of [layer1, layer2]) {
-            if (new Set(chain.map((i) => words[i])).size < 2) continue; // this layer never changes
-            chain.forEach((i, k) => {
-                // Cut grass often leaves the blank canopy word behind; that
-                // is "nothing here", not a grass graphic.
-                if (words === layer1 && words[i] === blankCanopy) return;
-                const g = tileIds[charIndexToSlot((words[i] || 0) & 0x3ff)];
-                if (g !== undefined) into.set(g, (into.get(g) || 0) | (k === 0 ? GRASS_UNCUT : GRASS_CUT));
-            });
-        }
-    }
 }
 
 /**
