@@ -301,9 +301,11 @@ function applyBlankRoom(msg) {
     d.cells = {};
     d.cut = {};
     d.start = null; // a new drawing — editStartPlace re-centres the Boy below
+    d.undo = [];
+    d.redo = [];
   }
-  d.undo = [];
-  d.redo = [];
+  // A reopened or resized map keeps its history: it is kept for good
+  // (docs/map-format/custom-map-files.md §3).
   _newRoomOpen = false;
   // Exactly one Boy start, on the map — placed now, or pulled back inside
   // by a resize (map-editor-start.js).

@@ -104,6 +104,8 @@ function renderEditLayer(palette, composed, origin) {
   }
   // Triggers this draft placed, and one being dragged out (map-editor-drawable.js).
   if (typeof editTriggerSvg === 'function') html += editTriggerSvg(origin);
+  // Stamped objects, while selecting or selected (map-editor-groups.js).
+  if (typeof editGroupSvg === 'function') html += editGroupSvg(origin);
   if (_editSel) {
     var a = editCellPos(origin, _editSel.x1, _editSel.y1);
     html += '<rect class="rg-edit-sel" x="' + a.x + '" y="' + a.y

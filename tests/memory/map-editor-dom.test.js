@@ -32,7 +32,8 @@ const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-stamps.js', '
     'map-editor-toolbar.js', 'map-editor-filterbar.js', 'rom-overlay.js',
     'tables-builder.js', 'map-editor-tabs.js', 'map-editor-panels.js', 'map-editor-gestures.js',
     'map-editor-input.js', 'map-editor-actions.js', 'map-editor-newroom.js', 'map-editor-start.js', 'map-editor-custom.js',
-    'map-editor-rom-export.js', 'map-editor-collision.js', 'map-editor-cutlayer.js', 'map-editor-drawable.js'];
+    'map-editor-rom-export.js', 'map-editor-collision.js', 'map-editor-cutlayer.js', 'map-editor-drawable.js',
+    'map-editor-levels.js', 'map-editor-groups.js', 'map-editor-custom-store.js'];
 
 /** A palette shaped like the host's reply, small enough to read. */
 const PALETTE = {
@@ -168,6 +169,20 @@ async function main() {
         JSON.stringify(pillButtons.filter((b) => !b.title)));
     check('the tool buttons are icons, not words',
         await page.$eval('[data-edit-tool="paint"] .rg-edit-icon', (n) => n.textContent.trim()) === '✎');
+    // v0.71.0: levels 3..0 in a vertical bar at the card's left edge, 1 lit.
+    const levels = await page.evaluate(() => ({
+        order: Array.prototype.map.call(document.querySelectorAll('#rg-level-bar [data-edit-level]'), (b) => b.textContent).join(''),
+        on: (document.querySelector('#rg-level-bar .rg-level-b.on') || {}).textContent,
+        inCard: !!document.querySelector('#rg-canvas-card #rg-level-bar'),
+        menu: ['export-map', 'delete-map'].every((a) => !!document.querySelector('#rg-tool-dropdown [data-edit-act="' + a + '"]')),
+    }));
+    check('a level bar offers levels 3..0 top to bottom, level 1 by default, on the canvas card',
+        levels.order === '3210' && levels.on === '1' && levels.inCard, JSON.stringify(levels));
+    check('the ⋯ menu offers Export map and Delete map', levels.menu, JSON.stringify(levels));
+    await page.click('[data-edit-level="2"]');
+    check('clicking a level makes it the one tiles are drawn on',
+        await page.evaluate(() => editDraft().plane === 2 && document.querySelector('.rg-level-b.on').textContent === '2'));
+    await page.evaluate(() => { editDraft().plane = 1; renderEditChrome(); });
     await page.hover('[data-edit-tool="erase"]');
     await page.waitForTimeout(600);
     const tipShown = await page.$eval('[data-edit-tool="erase"]', (n) => {
@@ -700,7 +715,7 @@ async function main() {
     const made = await page.evaluate(() => ({
         room: window.__rendered,
         map: _customMaps[_customMaps.length - 1],
-        saved: window.__sent.filter((m) => m.command === 'saveUiPref' && m.key === 'customMaps').length,
+        saved: window.__sent.filter((m) => m.command === 'saveCustomMap').length,
     }));
     // A new custom map, not a draft laid over the room on screen: that room
     // only lends its graphics (map-editor-custom.js).
@@ -1985,7 +2000,8 @@ async function main() {
     check('with it on, painting writes the cuttable layer and leaves the map beneath alone',
         cut.cells === '{"0,0":0}' && Object.keys(JSON.parse(cut.cut)).length === 1 && cut.marks === 1, JSON.stringify(cut));
     check('Export ROM gets the cuttable tile\u2019s words; undo takes it off the layer',
-        cut.payload.length === 1 && cut.payload[0][3] === 0x0c02 && cut.payload[0][4] === 0x0f && cut.undone === 0,
+        // 0x1f: the shape, on level 1 — every tile lands on the chosen level (v0.71.0).
+        cut.payload.length === 1 && cut.payload[0][3] === 0x0c02 && cut.payload[0][4] === 0x1f && cut.undone === 0,
         JSON.stringify(cut));
     check('erasing on the cuttable layer removes the cuttable tile, not the map',
         cut.erased.cut === 0 && cut.erased.cells === 1, JSON.stringify(cut));
@@ -2047,14 +2063,13 @@ async function main() {
     check('a sheet that arrives is swapped into its own group; the rest of the list is left alone',
         swap.swapped && swap.untouched, JSON.stringify(swap));
 
-    // The host posts `uiPrefs` right after `newMap`, so the saved list lands
-    // after the new map exists. Replacing the list orphaned it — no row, no
-    // blank room, no Boy.
+    // The saved list can land after a new map exists (the host posts `newMap`
+    // first). Replacing the list orphaned it — no row, no blank room, no Boy.
     const merged = await page.evaluate(() => {
         _customMaps = [];
         customNew(16, 14);
         const key = _customActive;
-        customLoadPrefs({ customMaps: [{ key: 'custom-old', name: 'New map 1', borrow: 0x34, w: 16, h: 14 }] });
+        customLoadMaps({ maps: [{ key: 'custom-old', name: 'New map 1', borrow: 0x34, w: 16, h: 14 }] });
         const m = customFind(key);
         const r = { kept: !!m, name: m && m.name, rows: _customMaps.length };
         window.__sent.length = 0;
@@ -2065,8 +2080,29 @@ async function main() {
         _customActive = null; _customMaps = [];
         return r;
     });
-    check('saved prefs arriving after a new map keep it (renumbered) and it still gets its blank room',
+    check('the saved list arriving after a new map keeps it (renumbered) and it still gets its blank room',
         merged.kept && merged.rows === 2 && merged.name === 'New map 2' && merged.asked, JSON.stringify(merged));
+
+    // v0.71.0: New Map reopens an untouched map; a drawn one gets a sibling.
+    const reuse = await page.evaluate(() => {
+        _customMaps = []; _customActive = null;
+        editReset(0x34);                     // no draft left bound to an earlier map
+        const loaded = _customLoaded;
+        _customLoaded = 'yes'; // the host's list is in (this stub host never answers)
+        const a = customNew(16, 14);
+        const again = customNew(16, 14);
+        const r = { same: again && again.key === a.key, rows: _customMaps.length };
+        editReset(0x34).customKey = a.key;   // renderRoomDetail is stubbed here; bind by hand
+        editDraft().cells['0,0'] = 0;
+        editDraft().undo.push({ cells: [], special: [], placed: 0, dropped: [] });
+        const b = customNew(16, 14);
+        r.second = b && b.key !== a.key && _customMaps.length === 2;
+        r.otherSize = customNew(20, 9).key !== b.key;
+        _customActive = null; _customMaps = []; _customLoaded = loaded;
+        return r;
+    });
+    check('New Map on an untouched map reopens it; once drawn on, the next is a new map',
+        reuse.same && reuse.rows === 1 && reuse.second && reuse.otherSize, JSON.stringify(reuse));
 
     check('no uncaught errors in any of it', pageErrors.length === 0, pageErrors.join('; '));
 

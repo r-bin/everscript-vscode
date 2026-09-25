@@ -106,11 +106,14 @@ const ROOMS_JS_FILES = [
   'map-editor-actions.js',// toolbar actions (undo, compose, constructs, export)
   'map-editor-newroom.js',// drafting a room that is not in the ROM
   'map-editor-start.js',  // the Boy's start marker on a drafted map
-  'map-editor-custom.js', // custom maps: their own rail rows, drafts and persistence
+  'map-editor-custom.js', // custom maps: their own rail rows and drafts
+  'map-editor-custom-store.js', // custom maps on the host: load, save with history, export, delete
   'map-editor-rom-export.js', // Export ROM: a custom map into Brian's room, intro jumps there
   'map-editor-collision.js', // suggested collision on tiles, a drafted map's collision layer
   'map-editor-cutlayer.js', // the cuttable layer: tiles the player cuts away, and its toggle
   'map-editor-drawable.js', // what the pencil draws: the open tab's pick; drawing triggers
+  'map-editor-levels.js', // levels (elevation planes 0..3) and the bar that picks one
+  'map-editor-groups.js', // stamped objects kept as one thing: select, move, delete
   'rom-overlay.js',      // ROM view top bar (_currentLayer/_currentOverlay) + renderRomDataSections
   'detail-renderer.js',  // renderRoomDetail (orchestrator)
   'rooms-rail.js',       // the left rail: groups, area collapse, search, selection, + New Map

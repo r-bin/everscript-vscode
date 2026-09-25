@@ -74,6 +74,8 @@ function editAction(act) {
   if (act === 'export-rom') editExportRom();
   if (act === 'cut-layer') { editCutToggle(); return; }
   if (act === 'play-rom') editPlayRom();
+  if (act === 'export-map') customExportMap();
+  if (act === 'delete-map') customDeleteMap();
 }
 
 /** The collision word the room already uses with this terrain word. */

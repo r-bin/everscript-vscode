@@ -13,6 +13,7 @@ Does NOT own: client-side room interactions, SVG rendering (those live in `webvi
 ```
 rooms/
   index.js                    — Public API + backwards-compat adapters
+  custom-host.js              — custom maps: the webview's list/save/delete/export messages (VS Code API injected)
   parsing/
     content-parser.js         — parseRoomContent(filePath, startLine, endLine) → room data object
     file-scanner.js           — buildRoomTree, collectRoomsFromDir, findRoomImage, setRoomImageUris
@@ -26,9 +27,12 @@ rooms/
     room-draft.js             — blank rooms, family sheets, the family catalogue and its preview strips
     deco-catalogue.js         — the deco library: vanilla's Section 3 objects as portable, floor-free entries
     deco-preview.js           — one entry rendered on nothing, so the thumbnail is the thing not the place
+    rom-export.js             — Export ROM: a custom map in room 0x15, the intro jumping there
+    custom-export.js          — Export map: the .zip (blob, map.json, sample .evs, stamps.json, README)
   data/
     vanilla-data.js           — VANILLA_ROOMS catalogue + buildVanillaRoomContent/Details + ROM backing
     lua-watchers.js           — getMapEnum, readLuaWatchers, readScriptAllTriggers + caches
+    custom-store.js           — custom maps on disk: one folder per map (map.json + history.json)
 ```
 
 ---

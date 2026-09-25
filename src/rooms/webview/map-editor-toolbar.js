@@ -80,6 +80,8 @@ var EDIT_OVERFLOW_ACTS = [
   ['export-rom', 'Export ROM…', 'Build a playable ROM: this custom map in Brian’s room (0x15), entered straight from the intro'],
   ['play-rom', 'Play in emulator', 'Build the same ROM and run it in the embedded emulator — no file is written'],
   ['new-room', 'New room…', 'Start a blank room to try things in, borrowing this room’s graphics'],
+  ['export-map', 'Export map…', 'Save this custom map as a .zip: the room blob, the editor file, a sample .evs and its stamps'],
+  ['delete-map', 'Delete map…', 'Delete this custom map and its whole edit history (asks first)'],
 ];
 
 /** The tool bar, shown in the map's own filter row. */
@@ -134,7 +136,9 @@ function buildEditToolbarHtml() {
     + ' aria-label="redo"><span class="rg-edit-icon" aria-hidden="true">↷</span></button>'
     + '</span><span class="rg-edit-divider"></span>'
     + buildEditOverflowHtml()
-    + '</div>' + buildNewRoomHtml() + '</div>';
+    + '</div>' + buildNewRoomHtml()
+    // The level bar sits at the card's left edge (map-editor-levels.js).
+    + (typeof buildLevelBarHtml === 'function' ? buildLevelBarHtml() : '') + '</div>';
   return html;
 }
 

@@ -188,8 +188,11 @@ room with no Block 1 renders black), and **nothing else**:
 
 ---
 
-A custom map is saved to the host's `uiPrefs` (`customMaps`) as draft *data*
-(cells, stamps, graphics, families, start), not as session state. The webview is
+A custom map is saved by the host as its own folder — `map.json` (draft *data*:
+cells, stamps, graphics, families, start, groups, level) and `history.json` — in the
+extension's global storage (docs/map-format/custom-map-files.md). Not in `uiPrefs` any
+more; old maps there are migrated. `+ New Map` reopens an untouched map rather than
+making another. The webview is
 rebuilt whenever the active document changes, and a map lost with it was never a map.
 
 ## 6. What the editor may and may not write
@@ -200,7 +203,18 @@ writes bytes. Before wiring a new kind of edit into the export, confirm the enco
 actually accepts it — entrances, for instance, are **room metadata, not tile-grid
 state**, and have no slot in the export shape today.
 
-Undo is one history for everything. Cell writes, special-glyph writes, trigger
+Undo is one history for everything, **one step per gesture** (a drag, however many
+cells it crosses; a group move; a stamp), and it is **saved with the map for good**
+(`history.json`, docs/map-format/custom-map-files.md §3). A history entry that names
+an added stamp carries its words too (`editStampRef`), because pruning may drop the
+stamp and the entry must be able to bring it back. Wrap any multi-write operation in
+`editBegin`/`editEnd` rather than calling `editApply` several times.
+
+Every tile write lands on the **level** picked in the left bar (collision bits 5..4,
+`editOnLevel`); level 1 is the default. A stamped construct or widget is a **group**
+(map-editor-groups.js): moved and deleted whole, restoring what it covered.
+
+ Cell writes, special-glyph writes, trigger
 operations and start moves all go through `editApply`/`editApplyTriggerOp`/
 `editMoveStart` and share `_edit.undo`. Do
 not add a second stack — a user pressing undo means "the last thing I did", whatever

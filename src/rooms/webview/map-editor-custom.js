@@ -14,11 +14,12 @@
 // through `_edit.roomId`, which is what every host request keys the tile
 // data on. Nothing of the donor is drawn.
 //
-// Persisted through the host's `uiPrefs` (key `customMaps`), because the
-// webview is rebuilt whenever the active document changes and a map that
+// Persisted on the host, one folder per map with its whole edit history
+// (map-editor-custom-store.js, docs/map-format/custom-map-files.md): the
+// webview is rebuilt whenever the active document changes, and a map that
 // vanished with it would not be a map.
 //
-// Owns: _customMaps, _customActive, _customSaveTimer, _newMapWaiting.
+// Owns: _customMaps, _customActive, _newMapWaiting.
 
 /** The donor for a map made from `+ New Map` — see map-editor-newroom.js. */
 var CUSTOM_MAP_BORROW = 0x34;
@@ -28,18 +29,15 @@ var CUSTOM_MAP_BORROW = 0x34;
  */
 var CUSTOM_MAP_W = 16;
 var CUSTOM_MAP_H = 14;
-/** The `uiPrefs` key the list is saved under. */
-var CUSTOM_MAPS_PREF = 'customMaps';
-
 /**
- * `[{key, name, borrow, w, h, saved}]`, oldest first. `saved` is the draft's
- * data (customSerialize) — the live `_edit` while the map is on screen is
- * the authority, and is folded back in by customStash on the way out.
+ * `[{key, name, borrow, w, h, saved, history, created}]`, oldest first.
+ * `saved` is the draft's data (customSerialize) and `history` its undo and
+ * redo stacks — the live `_edit` while the map is on screen is the
+ * authority, and is folded back in by customStash on the way out.
  */
 var _customMaps = [];
 /** Key of the custom map on screen, or null when a ROM/.evs room is. */
 var _customActive = null;
-var _customSaveTimer = null;
 /** Set while a custom map waits for its borrowed dictionary to arrive. */
 var _newMapWaiting = false;
 
@@ -103,18 +101,31 @@ function customNextName(maps) {
 }
 
 function customNew(w, h, borrow) {
+  // The saved list is on its way: decide once it is here, or "New Map"
+  // could not see the untouched map it should reopen.
+  if (customWaitForMaps(function () { customNew(w, h, borrow); })) return null;
+  // An untouched map of this size is reopened instead of making another.
+  var idle = customPristineMap(w || CUSTOM_MAP_W, h || CUSTOM_MAP_H, typeof borrow === 'number' ? borrow : CUSTOM_MAP_BORROW);
+  if (idle) {
+    if (_customActive !== idle.key) customOpen(idle.key);
+    editNote(idle.name + ' is still empty — draw on it; a new map is made once this one has something in it');
+    renderEditChrome();
+    return idle;
+  }
   var name = customNextName(_customMaps);
   var m = {
-    key: 'custom-' + Date.now().toString(36) + '-' + name.slice(8),
+    // Time plus a random part: a key is a folder name for good, and two maps
+    // made in the same millisecond (or under a frozen test clock) must differ.
+    key: 'custom-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6) + '-' + name.slice(8),
     name: name,
     borrow: typeof borrow === 'number' ? borrow : CUSTOM_MAP_BORROW,
     w: w || CUSTOM_MAP_W, h: h || CUSTOM_MAP_H,
-    saved: null,
+    saved: null, history: null, created: new Date().toISOString(),
   };
   _customMaps.push(m);
   customRenderRows();
-  customSave();
   customOpen(m.key);
+  customSave(m);
   return m;
 }
 
@@ -146,6 +157,7 @@ function customOpen(key) {
   }
   _customActive = key;
   renderRoomDetail(customRoomDetail(m));
+  customRememberActive(key);
 }
 
 /**
@@ -162,6 +174,11 @@ function customBindDraft(room) {
   // only those seven and nothing else could be drawn.
   d.families = [];
   if (m && m.saved) customRestore(d, m.saved);
+  // The history is the map's, for good: undo reaches past a restart.
+  if (m && m.history) {
+    d.undo = JSON.parse(JSON.stringify(m.history.undo || []));
+    d.redo = JSON.parse(JSON.stringify(m.history.redo || []));
+  }
   return d;
 }
 
@@ -215,21 +232,29 @@ function customStash() {
   var m = customFind(_customActive);
   var d = editDraft();
   if (m && d && d.customKey === m.key) {
-    m.saved = customSerialize(d);
-    customSave();
+    customCapture(m, d);
+    customSave(m);
   }
   _customActive = null;
 }
 
-// ── persistence ──────────────────────────────────────────────────────────────
+/** Fold the live draft into its map entry: data and history. */
+function customCapture(m, d) {
+  if (d.txn) editEnd();
+  m.saved = customSerialize(d);
+  m.history = { undo: JSON.parse(JSON.stringify(d.undo || [])), redo: JSON.parse(JSON.stringify(d.redo || [])) };
+}
+
+// ── the draft's data ─────────────────────────────────────────────────────────
+// Saving, loading, export and delete are map-editor-custom-store.js.
 
 /**
- * The draft's *data*, not its session: no undo stack, tool or brush. Undo
- * history does not survive a reload in any editor worth copying, and a
- * serialised stack would be most of the payload.
+ * The draft's *data*, not its session: no tool or brush. The undo and redo
+ * stacks travel separately, as the map's history (customCapture).
  */
 var CUSTOM_DRAFT_FIELDS = ['cells', 'added', 'specialCells', 'addedGraphics', 'placed',
-  'families', 'autoFamilies', 'start', 'placedSeq', 'constructs', 'cut'];
+  'families', 'autoFamilies', 'start', 'placedSeq', 'constructs', 'cut', 'groups', 'groupSeq', 'plane',
+  'removedTriggers'];
 
 function customSerialize(d) {
   var out = {};
@@ -243,58 +268,4 @@ function customRestore(d, saved) {
   CUSTOM_DRAFT_FIELDS.forEach(function (f) {
     if (saved[f] !== undefined) d[f] = JSON.parse(JSON.stringify(saved[f]));
   });
-}
-
-function customSave() {
-  if (typeof vs === 'undefined' || !vs) return;
-  vs.postMessage({ command: 'saveUiPref', key: CUSTOM_MAPS_PREF, value: _customMaps.map(function (m) {
-    return { key: m.key, name: m.name, borrow: m.borrow, w: m.w, h: m.h, saved: m.saved };
-  }) });
-}
-
-/**
- * Save the map on screen a moment after the last edit — renderEditChrome
- * runs after every stroke, and one host write per stroke is needless.
- */
-function customSaveSoon() {
-  if (!_customActive) return;
-  if (_customSaveTimer) clearTimeout(_customSaveTimer);
-  _customSaveTimer = setTimeout(function () {
-    _customSaveTimer = null;
-    var m = customFind(_customActive);
-    var d = editDraft();
-    if (m && d && d.customKey === m.key) { m.saved = customSerialize(d); customSave(); }
-  }, 600);
-}
-
-/** The host's remembered list arrived (bootstrap.js, `uiPrefs`). */
-function customLoadPrefs(prefs) {
-  var list = prefs && prefs[CUSTOM_MAPS_PREF];
-  if (!Array.isArray(list)) return;
-  var loaded = list.filter(function (m) { return m && m.key; }).map(function (m) {
-    return { key: m.key, name: m.name || 'New map', borrow: Number(m.borrow) || CUSTOM_MAP_BORROW,
-      w: Number(m.w) || CUSTOM_MAP_W, h: Number(m.h) || CUSTOM_MAP_H, saved: m.saved || null };
-  });
-  // Merge, never replace. The host posts `uiPrefs` right after `newMap`
-  // when the panel is (re)built, so a map made a moment ago is not in the
-  // saved list yet. Replacing dropped it: the map on screen had no row,
-  // newMapPaletteReady could not find it, and the blank room — and with it
-  // the Boy's start — never came.
-  var known = {};
-  loaded.forEach(function (m) { known[m.key] = true; });
-  _customMaps.forEach(function (m) {
-    if (known[m.key]) return;
-    // Named before the saved list was in hand, so "New map 1" may be taken.
-    if (loaded.some(function (o) { return o.name === m.name; })) {
-      m.name = customNextName(loaded);
-      if (m.key === _customActive) {
-        var head = document.querySelector('#room-detail .rd-name');
-        if (head) head.textContent = m.name;
-      }
-    }
-    loaded.push(m);
-  });
-  _customMaps = loaded;
-  customRenderRows();
-  if (_customActive && customFind(_customActive)) customSave();
 }

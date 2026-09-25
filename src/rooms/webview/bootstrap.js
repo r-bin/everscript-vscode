@@ -67,7 +67,15 @@ if(typeof window!=='undefined'&&window.addEventListener){
     }else if(data.command==='uiPrefs'){
       // UI state the host remembers across panels (map-editor-tiles.js).
       if(typeof applyUiPrefs==='function')applyUiPrefs(data.prefs);
-      if(typeof customLoadPrefs==='function')customLoadPrefs(data.prefs);
+      // Custom maps live in their own folders on the host now; the prefs
+      // arriving is the moment to ask for them (map-editor-custom-store.js).
+      if(typeof customRequestMaps==='function')customRequestMaps();
+    }else if(data.command==='customMaps'){
+      if(typeof customLoadMaps==='function')customLoadMaps(data);
+    }else if(data.command==='customMapDeleted'){
+      if(typeof applyCustomMapDeleted==='function')applyCustomMapDeleted(data);
+    }else if(data.command==='customMapExported'){
+      if(typeof applyCustomMapExported==='function')applyCustomMapExported(data);
     }else if(data.command==='draftCollision'){
       // A drafted map's collision layer (map-editor-collision.js).
       if(typeof applyDraftCollision==='function')applyDraftCollision(data);

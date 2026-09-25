@@ -229,10 +229,14 @@ async function main() {
         !made.vanillaSelected, JSON.stringify(made));
     check('the room on screen is the new map, not Strong Heart\u2019s Hut',
         made.header === 'New map 1' && !made.vid && made.spawns === 0, JSON.stringify(made));
+    // v0.71.0: "pressing new room multiple times does not open a new room,
+    // if the current room is still in the default state/empty".
     await page.click('#rm-new-map');
-    check('a second one is a second entry',
-        await page.evaluate(() => document.querySelectorAll('#rm-live-tree .cm-map').length === 2
-            && document.querySelector('.cm-map.rsel').textContent.indexOf('New map 2') >= 0));
+    check('pressing it again on an untouched map reopens that map, no second entry',
+        await page.evaluate(() => document.querySelectorAll('#rm-live-tree .cm-map').length === 1
+            && document.querySelector('.cm-map.rsel').textContent.indexOf('New map 1') >= 0));
+    // Once something is drawn a second press makes a second map —
+    // map-editor-dom.test.js checks that, where the draft is reachable.
 
     // ── idempotent binding ───────────────────────────────────────────────
     // The rail node outlives its contents, so a second bind would stack a

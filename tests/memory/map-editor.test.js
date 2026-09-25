@@ -608,6 +608,9 @@ const ui = new Function(`
   ${read('map-editor-start.js') /* the Boy's start on a drafted map */}
   ${read('map-editor-custom.js') /* custom maps: their rail rows and drafts */}
   ${read('map-editor-drawable.js') /* what the pencil draws: the open tab's pick */}
+  ${read('map-editor-levels.js')}
+  ${read('map-editor-groups.js')}
+  ${read('map-editor-custom-store.js')}
   return {
     tileSlotWord: tileSlotWord, editOnTilePicked: editOnTilePicked,
     editAction: editAction, editReset: editReset, editDraft: editDraft,
@@ -631,6 +634,10 @@ const ui = new Function(`
     specialTab: specialTabHtml, specialFilterChip: buildSpecialFilterChipHtml,
     editStroke: editStroke, editSpecialAt: editSpecialAt, editStampWords: editStampWords,
     setTab: function (t) { _editActiveTab = t; },
+    editBegin: editBegin, editEnd: editEnd, editUndo: editUndo, editRedo: editRedo, editApply: editApply,
+    editStampGroup: editStampGroup, editGroupMove: editGroupMove, editGroupDelete: editGroupDelete,
+    editGroupAt: editGroupAt, editPruneAdded: editPruneAdded, editLevelPick: editLevelPick,
+    customIsPristine: customIsPristine, setCustom: function (list, active) { _customMaps = list; _customActive = active; },
   };`)();
 
 /** A palette with the tile sheet the host now sends alongside it. */
@@ -1157,6 +1164,160 @@ test('“from brush” starts the composer off a stamp that already works', () =
         [ui.compose().layer1, ui.compose().layer2, ui.compose().collision],
         [0x358a, 0x19cc, 0x0010],
     );
+});
+
+// ---------------------------------------------------------------------------
+// v0.71.0: one gesture is one step, levels, stamped objects as groups, and a
+// history that is kept for good (docs/map-format/custom-map-files.md).
+// ---------------------------------------------------------------------------
+
+console.log('\nsteps, levels and groups:');
+
+/** A fresh draft on the tile palette, pencil on the Tile tab. */
+function fresh() {
+    const p = tilePalette();
+    p.attachments = { bTrigger: [], stepOn: [], objects: [] };
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    d.on = true;
+    d.tool = 'paint';
+    ui.setTab('tile');
+    return { p, d };
+}
+
+test('a pencil drag across three cells is one undo step, and undo takes all three back', () => {
+    const { d } = fresh();
+    d.brush = 2;
+    ui.editBegin();
+    ui.editStroke({ x: 0, y: 0 }, 'down');
+    ui.editStroke({ x: 1, y: 0 }, 'move');
+    ui.editStroke({ x: 2, y: 0 }, 'move');
+    ui.editStroke({ x: 2, y: 0 }, 'up');
+    ui.editEnd();
+    assert.strictEqual(Object.keys(d.cells).length, 3);
+    assert.strictEqual(d.undo.length, 1, 'one gesture, one step');
+    ui.editUndo(ui.editDraft && tilePalette());
+    assert.deepStrictEqual(d.cells, {}, 'all three undone together');
+    ui.editRedo(tilePalette());
+    assert.strictEqual(Object.keys(d.cells).length, 3, 'and redone together');
+});
+
+test('crossing the same cell twice in one drag still undoes to what it was before the drag', () => {
+    const { d } = fresh();
+    ui.editApply([{ x: 0, y: 0, index: 1 }]);
+    ui.editBegin();
+    ui.editApply([{ x: 0, y: 0, index: 2 }]);
+    ui.editApply([{ x: 0, y: 0, index: 0 }]);
+    ui.editEnd();
+    ui.editUndo(tilePalette());
+    assert.strictEqual(d.cells['0,0'], 1);
+});
+
+test('tiles land on the chosen level: collision bits 5..4, the rest of the word kept', () => {
+    const { p, d } = fresh();
+    d.brush = 2;                        // collision 0x0010: level 1
+    ui.editStroke({ x: 0, y: 0 }, 'down');
+    assert.strictEqual(ui.editStampWords(p, d.cells['0,0']).collision, 0x0010, 'level 1 is the default');
+    ui.editLevelPick(3);
+    ui.editStroke({ x: 1, y: 0 }, 'down');
+    assert.strictEqual(ui.editStampWords(p, d.cells['1,0']).collision, 0x0030);
+    ui.editLevelPick(0);
+    ui.editStroke({ x: 2, y: 0 }, 'down');
+    assert.strictEqual(ui.editStampWords(p, d.cells['2,0']).collision, 0x0000);
+    assert.strictEqual(d.plane, 0, 'the level is the draft’s, so it is saved with the map');
+});
+
+const GOURD = {
+    name: 'gourd', w: 2, h: 1,
+    cells: [{ dx: 0, dy: 0, canopy: { word: 0x358a }, terrain: null, collision: 0x001f },
+            { dx: 1, dy: 0, canopy: { word: 0x358b }, terrain: null, collision: 0x001f }],
+    attachments: { bTrigger: [{ dx: 0, dy: 0, w: 2, h: 1, scriptId: 0x40 }], stepOn: [], objects: [] },
+};
+
+test('stamping an object makes one group, in one undo step, with its trigger', () => {
+    const { p, d } = fresh();
+    ui.editStampGroup(p, GOURD, 0, 1);
+    assert.strictEqual(d.groups.length, 1);
+    const g = d.groups[0];
+    assert.deepStrictEqual([g.x, g.y, g.w, g.h], [0, 1, 2, 1]);
+    assert.strictEqual(g.placed.length, 1, 'its B-trigger belongs to it');
+    assert.strictEqual(d.undo.length, 1);
+    assert.strictEqual(ui.editGroupAt(1, 1).uid, g.uid);
+    ui.editUndo(p);
+    assert.strictEqual(d.groups.length, 0, 'undo takes the group, its cells and its trigger');
+    assert.deepStrictEqual(d.cells, {});
+    assert.strictEqual(d.placed.filter((x) => !x.removed).length, 0);
+});
+
+test('a group moves whole: what it covered comes back, its trigger follows, one step', () => {
+    const { p, d } = fresh();
+    ui.editApply([{ x: 0, y: 1, index: 1 }]);      // something under the gourd
+    ui.editStampGroup(p, GOURD, 0, 1);
+    const uid = d.groups[0].uid;
+    const stamped = d.cells['0,1'];
+    const steps = d.undo.length;
+    assert.ok(ui.editGroupMove(p, uid, 1, 0));
+    assert.strictEqual(d.undo.length, steps + 1, 'a move is one step');
+    assert.strictEqual(d.cells['0,1'], 1, 'the cell it covered is back');
+    assert.ok(!('1,1' in d.cells), 'and the one that was unpainted is unpainted again');
+    assert.strictEqual(d.cells['1,0'], stamped, 'the gourd is at its new place');
+    const trig = d.placed.find((x) => x.kind === 'bTrigger');
+    assert.deepStrictEqual([trig.x, trig.y], [1, 0], 'its trigger moved with it');
+    assert.ok(!ui.editGroupMove(p, uid, 5, 0), 'it will not move off the map');
+    ui.editUndo(p);
+    assert.strictEqual(d.cells['0,1'], stamped, 'undo puts it back where it was');
+    assert.deepStrictEqual([d.groups[0].x, d.groups[0].y], [0, 1]);
+});
+
+test('deleting a group restores what it covered and removes its trigger, in one step', () => {
+    const { p, d } = fresh();
+    ui.editStampGroup(p, GOURD, 0, 0);
+    ui.editGroupDelete(d.groups[0].uid);
+    assert.deepStrictEqual(d.cells, {});
+    assert.strictEqual(d.groups.length, 0);
+    assert.ok(d.placed.every((x) => x.removed), 'its trigger is gone');
+    ui.editUndo(p);
+    assert.strictEqual(d.groups.length, 1, 'and undo brings it all back');
+    assert.ok(d.placed.some((x) => !x.removed));
+});
+
+test('a stamp the history writes back comes back, even after it was pruned', () => {
+    const { p, d } = fresh();
+    // A level-2 stamp is painted, then a level-3 one over it: the level-2
+    // stamp is on the map no more, but undo writes it back.
+    d.brush = 2;
+    ui.editLevelPick(2);
+    ui.editStroke({ x: 0, y: 0 }, 'down');
+    const first = d.cells['0,0'];
+    ui.editLevelPick(3);
+    ui.editStroke({ x: 0, y: 0 }, 'down');
+    ui.editPruneAdded(p);
+    const firstWords = ui.editStampWords(p, first);
+    ui.editUndo(p);
+    assert.deepStrictEqual(ui.editStampWords(p, d.cells['0,0']), firstWords, 'the same stamp, by its words');
+    ui.editRedo(p);
+    assert.strictEqual(ui.editStampWords(p, d.cells['0,0']).collision & 0x30, 0x30, 'and redo too');
+    ui.editUndo(p);
+    // As it would after a restart: the history as JSON, the pruned tail gone.
+    const hist = JSON.parse(JSON.stringify(d.redo));
+    d.added.length = 0;
+    d.redo = hist;
+    ui.editRedo(p);
+    assert.strictEqual(ui.editStampWords(p, d.cells['0,0']).collision & 0x30, 0x30, 'from saved history as well');
+});
+
+test('a custom map is untouched until something is done to it', () => {
+    const { d } = fresh();
+    const m = { key: 'k1', w: 16, h: 14, borrow: 0x34, saved: null, history: null };
+    d.customKey = 'k1';
+    ui.setCustom([m], 'k1');
+    assert.ok(ui.customIsPristine(m));
+    d.brush = 2;
+    ui.editStroke({ x: 0, y: 0 }, 'down');
+    assert.ok(!ui.customIsPristine(m), 'painted');
+    ui.editUndo(tilePalette());
+    assert.ok(ui.customIsPristine(m), 'undone back to empty, it is empty again — New Map may reuse it');
+    ui.setCustom([], null);
 });
 
 console.log(`\n  ${passed} passed, ${failed} failed`);

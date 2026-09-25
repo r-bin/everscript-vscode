@@ -107,7 +107,7 @@ var EDIT_CLICK_KEYS = ['editTool', 'editAct', 'editPick', 'panel',
   'brushFlip', 'tileFilter', 'strandedFix', 'strandedDrop', 'nbSide', 'nbCentre', 'nbUse',
   'layerForce', 'deco', 'decoPage', 'decoFlag', 'mtIndex', 'mtSlot', 'editActiveTab',
   'editSpecial', 'editSpecialMenu', 'editTriggerMenu', 'editMoreMenu',
-  'editToolMenu', 'triggerRef', 'triggerRemove'];
+  'editToolMenu', 'triggerRef', 'triggerRemove', 'triggerKind', 'editLevel'];
 
 /**
  * Every dropdown in the editor's chrome that opens a popup of sub-toggles,
@@ -227,6 +227,7 @@ function bindEditControls(panel, room) {
       return;
     }
     if (t.dataset.triggerKind) { triggerKindPick(t.dataset.triggerKind); return; }
+    if (t.dataset.editLevel) { editLevelPick(t.dataset.editLevel); return; }
     if (t.dataset.triggerRef) { triggerSelect(triggerParseRef(t.dataset.triggerRef)); return; }
     if (t.dataset.triggerRemove) {
       triggerSelect(triggerParseRef(t.dataset.triggerRemove));

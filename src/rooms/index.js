@@ -17,6 +17,8 @@ const { decoIndex, decoCells,
         invalidateDecoCatalogue }                                  = require('./rendering/deco-catalogue');
 const { buildDecoPreviews }                                         = require('./rendering/deco-preview');
 const { buildExportRom }                                            = require('./rendering/rom-export');
+const { buildCustomMapArchive }                                     = require('./rendering/custom-export');
+const { handlesCustomMapMessage, handleCustomMapMessage }           = require('./custom-host');
 const { relatedTiles, neighbourTiles }                              = require('./rendering/vanilla-index');
 const { VANILLA_ROOMS, buildVanillaRoomContent,
         buildVanillaRoomDetails, invalidateVanillaDataCaches }      = require('./data/vanilla-data');
@@ -68,6 +70,9 @@ module.exports = {
     buildBlankRoom,
     buildDraftCollision,
     buildExportRom,
+    buildCustomMapArchive,
+    handlesCustomMapMessage,
+    handleCustomMapMessage,
     buildFamilySheet,
     buildFamilyCatalogue,
     buildFamilyPreviews,

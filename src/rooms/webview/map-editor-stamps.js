@@ -196,3 +196,85 @@ function editPruneGraphics(palette) {
   }
   _edit.addedGraphics.length = highest + 1;
 }
+
+/**
+ * The draft as the shape `rebuild_model` wants.
+ *
+ * Cell writes are grid coordinates and metatile **ids**, because that is
+ * what `layer1_metatile_ids` holds; composed stamps are appended to the
+ * Block 3 slices in order. Nothing here applies it — this is the handover
+ * format, and the write itself needs a confirmation the extension does not
+ * have yet.
+ *
+ * `specialCells` is deliberately absent. A gate or drift pick already made
+ * its real effect here — it modified the cell's stamp, which is exactly
+ * what `cells`/`appendMetatiles` already carry — so `specialCells` itself
+ * is only the glyph overlay, never a second source of truth for it.
+ * Diagonal stairs are drift-style writes too. Vertical stairs and entrance
+ * carry no ROM effect at all (see map-editor-special.js and
+ * docs/map-editor-redesign-plan.md §5.1): entrance is a room-metadata
+ * placement helper with no confirmed encoder field to write into, and
+ * vertical stairs have no attested collision encoding.
+ *
+ * `removedTriggers` is the Select tool's counterpart to `attachments`: a
+ * base trigger this draft hid (deleted, or moved — a move hides the base one
+ * and adds a new `attachments` entry for the moved position). Soft-deleted
+ * `placed` entries (`removed: true`, from deleting a placed trigger — see
+ * map-editor-trigger-select.js) are dropped here rather than exported as
+ * attachments nobody asked for.
+ */
+function editExport(palette) {
+  if (!_edit) return null;
+  var base = palette ? palette.baseMetatile : 0;
+  var count = palette ? palette.count : 0;
+  var cells = [];
+  Object.keys(_edit.cells).forEach(function (k) {
+    var p = k.split(',');
+    cells.push({ x: Number(p[0]), y: Number(p[1]), metatileId: base + _edit.cells[k] * 8 });
+  });
+  cells.sort(function (a, b) { return a.y - b.y || a.x - b.x; });
+  return {
+    roomId: _edit.roomId,
+    baseMetatile: base,
+    originalMetatileCount: count,
+    cells: cells,
+    appendMetatiles: _edit.added.map(function (a) {
+      return { layer1: a.layer1, layer2: a.layer2, collision: a.collision };
+    }),
+    // Graphics Block 1 has to gain for the words above to resolve, and the
+    // objects and triggers the stamped constructs need to actually work.
+    appendGraphics: _edit.addedGraphics.slice(),
+    // The draft's own copy, not `editFamilies()`: this file owns `_edit` and
+    // reaching into the families panel from here would invert that.
+    families: (_edit.families || []).slice(),
+    attachments: _edit.placed.filter(function (p) { return !p.removed; }),
+    removedTriggers: (_edit.removedTriggers || []).slice(),
+  };
+}
+
+/**
+ * A history entry for a cell: its stamp index, plus the stamp's words when
+ * it is one the draft added. Undo prunes added stamps nobody uses, and the
+ * history is kept for good (docs/map-format/custom-map-files.md §3), so an
+ * entry must be able to bring its stamp back rather than trust the index.
+ */
+function editStampRef(x, y, index, layer) {
+  var ref = { x: x, y: y, index: index, layer: layer };
+  var words = editAddedWords(index);
+  if (words) ref.words = words;
+  return ref;
+}
+
+function editAddedWords(index) {
+  if (index == null || typeof _mtPalette === 'undefined' || !_mtPalette || index < _mtPalette.count) return null;
+  var w = typeof editStampWords === 'function' ? editStampWords(_mtPalette, index) : null;
+  return w ? { layer1: w.layer1, layer2: w.layer2, collision: w.collision } : null;
+}
+
+/** The index to write for a history entry: its own, or its stamp added again. */
+function editStampResolve(index, words) {
+  if (index == null || !words || typeof _mtPalette === 'undefined' || !_mtPalette) return index;
+  var w = editStampWords(_mtPalette, index);
+  if (w && w.layer1 === words.layer1 && w.layer2 === words.layer2 && w.collision === words.collision) return index;
+  return editAddStamp(_mtPalette, words);
+}

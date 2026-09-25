@@ -132,7 +132,7 @@ function getExtConfig() {
 const roomData = require('./rooms');
 const { VANILLA_ROOMS, getMapEnum, readLuaWatchers, readScriptAllTriggers, buildVanillaRoomContent, buildVanillaRoomDetails, invalidateRoomDataCaches } = roomData;
 const roomTree = require('./rooms');
-const { findRoomImage, parseRoomContent, collectRoomsFromDir, buildRoomTree, renderVanillaTree, renderRoomsTree, buildRoomsJson, setRoomImageUris, buildRoomTileOverlay, buildRoomMetatilePalette, buildComposedPreview, buildBlankRoom, buildDraftCollision, buildExportRom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews, decoIndex, decoCells, buildDecoPreviews, relatedTiles, neighbourTiles } = roomTree;
+const { findRoomImage, parseRoomContent, collectRoomsFromDir, buildRoomTree, renderVanillaTree, renderRoomsTree, buildRoomsJson, setRoomImageUris, buildRoomTileOverlay, buildRoomMetatilePalette, buildComposedPreview, buildBlankRoom, buildDraftCollision, buildExportRom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews, decoIndex, decoCells, buildDecoPreviews, relatedTiles, neighbourTiles, handlesCustomMapMessage, handleCustomMapMessage } = roomTree;
 
 const romReaders = require('./shared/rom-readers');
 const { readPngDimensions, readRomTriggerOffsets, readRomMapHeader, readRomCharacters, readRomHitLookup, detectScaleEnemies } = romReaders;
@@ -747,6 +747,24 @@ function activate(context) {
                             vscode.window.showErrorMessage('Could not open the map draft: ' + String(err && err.message || err));
                         }
                     })();
+                } else if (handlesCustomMapMessage(msg.command)) {
+                    // Custom maps on disk: list, save, delete, export
+                    // (rooms/custom-host.js, docs/map-format/custom-map-files.md).
+                    handleCustomMapMessage(msg, {
+                        vscode,
+                        root: path.join(context.globalStorageUri.fsPath, 'custom-maps'),
+                        post: (m) => _radarPanel?.webview.postMessage(m),
+                        prefs: () => context.globalState.get(ROOMS_UI_PREFS_KEY, {}),
+                        setPrefs: (v) => context.globalState.update(ROOMS_UI_PREFS_KEY, v),
+                        loadRom: () => {
+                            const _cfg = getExtConfig();
+                            const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+                            return {
+                                romPath: romReaders.resolveRomPath(_ws, _cfg.romPath || ''),
+                                romBuf: romReaders.loadRomBuffer(_ws, _cfg.romPath || ''),
+                            };
+                        },
+                    });
                 } else if (msg.command === 'mapExportRom') {
                     // A playable ROM: the vanilla ROM, extended, with this
                     // custom map in Brian's room's slot and the intro jumping

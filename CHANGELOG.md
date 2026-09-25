@@ -1,3 +1,41 @@
+## [0.71.0] — 2026-09-25
+
+### Map editor: levels, saved maps with their history, stamped objects that move
+
+- **Levels.** A vertical bar at the left of the map picks the level (0–3)
+  that new tiles are drawn on. Level 1, the red one, is the default. A level
+  is the collision word's elevation plane: tiles on another level are walls,
+  unless they're see-through. That's how bridges pass over tunnels.
+- **Custom maps are saved on their own, as files.** Each map is a folder in
+  the extension's storage with `map.json` (the map) and `history.json`
+  (every edit). Maps saved in the old place are moved over the first time.
+  There's no save button: a map is written a moment after each change.
+- **Reopening the panel shows the map you were on**, as you left it.
+- **The edit history is kept for good.** Undo and redo work after closing
+  and reopening VS Code.
+- **One gesture is one undo step.** A pencil or eraser drag across many
+  cells undoes and redoes in one go.
+- **Stamped objects stay one thing.** Stamping a gourd or a saved construct
+  makes a group. With the Select tool:
+  - click it to select it;
+  - drag it to move it, along with its trigger;
+  - press Delete to remove it. What it covered comes back.
+- **Export map…** (in the `⋯` menu) saves a `.zip` with:
+  - the room blob, round-trip checked like Export ROM;
+  - the editor file;
+  - a sample `.evs` that skips the intro into the map;
+  - `stamps.json`, every stamp the map uses;
+  - a README.
+- **Delete map…** (in the `⋯` menu) asks first, then removes the map and
+  its history.
+- **New Map no longer piles up empty maps.** If the current map, or any
+  other, is still untouched, that map is opened instead of making another.
+- **Fixed:** the Trigger tab's B-trigger / Step trigger choice didn't
+  respond to clicks.
+- **Fixed:** undo or redo could bring back a tile whose stamp had been
+  cleaned up, and that cell then drew nothing.
+- The file format is described in `docs/map-format/custom-map-files.md`.
+
 ## [0.70.0] — 2026-09-25
 
 ### Map editor: a smart pencil, stairs tiles, working tool tooltips

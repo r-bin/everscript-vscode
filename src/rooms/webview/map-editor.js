@@ -93,8 +93,59 @@ function editReset(roomId) {
      * re-renders (triggers, so the Select tool can refer to one even after
      * others are added or removed) — see editNextPlacedUid. */
     placedSeq: 0,
+    /** Stamped constructs and widgets, each one movable thing — map-editor-groups.js. */
+    groups: [],
+    groupSeq: 0,
+    /** The level (elevation plane, 0..3) new tiles are drawn on — map-editor-levels.js. */
+    plane: 1,
+    /** The open compound step, or null — see editBegin. Never saved. */
+    txn: null,
   };
   return _edit;
+}
+
+/**
+ * Start a compound step: every write until editEnd is one undo step — a
+ * pencil drag across twenty cells, a group move (lift + place + its
+ * triggers). Writes merge into it, keeping the *first* value each cell had,
+ * so undo puts back what was there before the gesture began.
+ */
+function editBegin() {
+  if (!_edit) return;
+  if (_edit.txn) editEnd();
+  _edit.txn = { step: null, seen: {}, seenSpecial: {}, snap: editTxnSnapshot() };
+}
+
+/**
+ * Close the compound step. Triggers, objects and groups changed inside it
+ * are recorded as before/after snapshots, the same way editApplyTriggerOp
+ * records a trigger op, so undo restores them wholesale.
+ */
+function editEnd() {
+  var t = _edit && _edit.txn;
+  if (!t) return;
+  _edit.txn = null;
+  var now = editTxnSnapshot();
+  if (now === t.snap) return;
+  var step = t.step || editTxnStep(t);
+  var a = JSON.parse(t.snap);
+  var b = JSON.parse(now);
+  step.triggers = { before: { removedTriggers: a.r, placed: a.p }, after: { removedTriggers: b.r, placed: b.p } };
+  step.groups = { before: a.g, after: b.g };
+}
+
+function editTxnSnapshot() {
+  return JSON.stringify({ r: _edit.removedTriggers || [], p: _edit.placed || [], g: _edit.groups || [] });
+}
+
+/** The open compound step, pushed on first use. */
+function editTxnStep(t) {
+  if (!t.step) {
+    t.step = { cells: [], special: [], placed: _edit.placed.length, dropped: [] };
+    _edit.undo.push(t.step);
+    _edit.redo.length = 0;
+  }
+  return t.step;
 }
 
 /** A fresh, stable id for a new `placed` entry — see `_edit.placedSeq`. */
@@ -137,7 +188,7 @@ function editApply(writes, specialWrites) {
     var into = editLayerMap(w);
     var was = Object.prototype.hasOwnProperty.call(into, k) ? into[k] : null;
     if (was === w.index) continue;
-    before.push({ x: w.x, y: w.y, index: was, layer: w.layer });
+    before.push(editStampRef(w.x, w.y, was, w.layer));
     if (w.index === null) delete into[k];
     else into[k] = w.index;
     changed += 1;
@@ -154,6 +205,20 @@ function editApply(writes, specialWrites) {
     changed += 1;
   }
   if (!changed) return 0;
+  if (_edit.txn) {
+    // Inside a gesture: fold into its one step, first value per cell wins.
+    var step = editTxnStep(_edit.txn);
+    before.forEach(function (b) {
+      var id = (b.layer || '') + ':' + b.x + ',' + b.y;
+      if (!_edit.txn.seen[id]) { _edit.txn.seen[id] = true; step.cells.push(b); }
+    });
+    specialBefore.forEach(function (b) {
+      var id = b.x + ',' + b.y;
+      if (!_edit.txn.seenSpecial[id]) { _edit.txn.seenSpecial[id] = true; step.special.push(b); }
+    });
+    editCellsChanged();
+    return changed;
+  }
   // The mark is how many attachments existed before this step, so undoing
   // a stamped gourd takes its object and its B-trigger with it.
   _edit.undo.push({ cells: before, special: specialBefore, placed: _edit.placed.length, dropped: [] });
@@ -179,6 +244,7 @@ function editApply(writes, specialWrites) {
  */
 function editApplyTriggerOp(before, after) {
   if (!_edit) return;
+  if (_edit.txn) return; // the compound step snapshots triggers itself
   _edit.undo.push({ cells: [], special: [], placed: _edit.placed.length, dropped: [], triggers: { before: before, after: after } });
   _edit.redo.length = 0;
 }
@@ -194,9 +260,15 @@ function editApplyTriggerOp(before, after) {
 function editMoveStart(x, y) {
   if (!_edit || !_edit.start) return false;
   if (_edit.start.x === x && _edit.start.y === y) return false;
-  _edit.undo.push({ cells: [], special: [], placed: _edit.placed.length, dropped: [],
-    start: { x: _edit.start.x, y: _edit.start.y } });
-  _edit.redo.length = 0;
+  if (_edit.txn) {
+    // A drag of the Boy is one step: remember only where he started.
+    var st = editTxnStep(_edit.txn);
+    if (!st.start) st.start = { x: _edit.start.x, y: _edit.start.y };
+  } else {
+    _edit.undo.push({ cells: [], special: [], placed: _edit.placed.length, dropped: [],
+      start: { x: _edit.start.x, y: _edit.start.y } });
+    _edit.redo.length = 0;
+  }
   _edit.start = { x: x, y: y };
   return true;
 }
@@ -231,12 +303,16 @@ function editRestore(batch) {
     var k = editKey(w.x, w.y);
     var into = editLayerMap(w);
     var was = Object.prototype.hasOwnProperty.call(into, k) ? into[k] : null;
-    inverse.push({ x: w.x, y: w.y, index: was, layer: w.layer });
-    if (w.index === null) delete into[k];
-    else into[k] = w.index;
+    inverse.push(editStampRef(w.x, w.y, was, w.layer));
+    var to = editStampResolve(w.index, w.words);
+    if (to === null) delete into[k];
+    else into[k] = to;
   }
   return inverse;
 }
+
+// editStampRef / editStampResolve (history entries that can bring their
+// stamp back) are in map-editor-stamps.js.
 
 /** The `specialCells` counterpart to editRestore, where `id === null` clears. */
 function editRestoreSpecial(batch) {
@@ -253,8 +329,10 @@ function editRestoreSpecial(batch) {
 }
 
 function editUndo(palette) {
+  if (_edit && _edit.txn) editEnd();
   if (!_edit || !_edit.undo.length) return false;
   var step = _edit.undo.pop();
+  if (step.groups) _edit.groups = JSON.parse(JSON.stringify(step.groups.before));
   var inverse = editRestore(step.cells);
   var specialInverse = editRestoreSpecial(step.special || []);
   // A trigger-op step restores its own snapshot instead of the tail-splice
@@ -269,7 +347,7 @@ function editUndo(palette) {
     dropped = _edit.placed.splice(step.placed);
   }
   _edit.redo.push({ cells: inverse, special: specialInverse, placed: step.placed, dropped: dropped, triggers: step.triggers,
-    start: editRestoreStart(step) });
+    groups: step.groups, start: editRestoreStart(step) });
   editPruneAdded(palette);
   if (typeof editDropStaleTriggerSelection === 'function') editDropStaleTriggerSelection();
   editCellsChanged();
@@ -284,8 +362,10 @@ function editCellsChanged() {
 }
 
 function editRedo(palette) {
+  if (_edit && _edit.txn) editEnd();
   if (!_edit || !_edit.redo.length) return false;
   var step = _edit.redo.pop();
+  if (step.groups) _edit.groups = JSON.parse(JSON.stringify(step.groups.after));
   var inverse = editRestore(step.cells);
   var specialInverse = editRestoreSpecial(step.special || []);
   if (step.triggers) {
@@ -296,65 +376,11 @@ function editRedo(palette) {
     for (var i = 0; i < step.dropped.length; i++) _edit.placed.push(step.dropped[i]);
   }
   _edit.undo.push({ cells: inverse, special: specialInverse, placed: step.placed, dropped: [], triggers: step.triggers,
-    start: editRestoreStart(step) });
+    groups: step.groups, start: editRestoreStart(step) });
   editPruneAdded(palette);
   if (typeof editDropStaleTriggerSelection === 'function') editDropStaleTriggerSelection();
   editCellsChanged();
   return true;
 }
 
-
-/**
- * The draft as the shape `rebuild_model` wants.
- *
- * Cell writes are grid coordinates and metatile **ids**, because that is
- * what `layer1_metatile_ids` holds; composed stamps are appended to the
- * Block 3 slices in order. Nothing here applies it — this is the handover
- * format, and the write itself needs a confirmation the extension does not
- * have yet.
- *
- * `specialCells` is deliberately absent. A gate or drift pick already made
- * its real effect here — it modified the cell's stamp, which is exactly
- * what `cells`/`appendMetatiles` already carry — so `specialCells` itself
- * is only the glyph overlay, never a second source of truth for it.
- * Diagonal stairs are drift-style writes too. Vertical stairs and entrance
- * carry no ROM effect at all (see map-editor-special.js and
- * docs/map-editor-redesign-plan.md §5.1): entrance is a room-metadata
- * placement helper with no confirmed encoder field to write into, and
- * vertical stairs have no attested collision encoding.
- *
- * `removedTriggers` is the Select tool's counterpart to `attachments`: a
- * base trigger this draft hid (deleted, or moved — a move hides the base one
- * and adds a new `attachments` entry for the moved position). Soft-deleted
- * `placed` entries (`removed: true`, from deleting a placed trigger — see
- * map-editor-trigger-select.js) are dropped here rather than exported as
- * attachments nobody asked for.
- */
-function editExport(palette) {
-  if (!_edit) return null;
-  var base = palette ? palette.baseMetatile : 0;
-  var count = palette ? palette.count : 0;
-  var cells = [];
-  Object.keys(_edit.cells).forEach(function (k) {
-    var p = k.split(',');
-    cells.push({ x: Number(p[0]), y: Number(p[1]), metatileId: base + _edit.cells[k] * 8 });
-  });
-  cells.sort(function (a, b) { return a.y - b.y || a.x - b.x; });
-  return {
-    roomId: _edit.roomId,
-    baseMetatile: base,
-    originalMetatileCount: count,
-    cells: cells,
-    appendMetatiles: _edit.added.map(function (a) {
-      return { layer1: a.layer1, layer2: a.layer2, collision: a.collision };
-    }),
-    // Graphics Block 1 has to gain for the words above to resolve, and the
-    // objects and triggers the stamped constructs need to actually work.
-    appendGraphics: _edit.addedGraphics.slice(),
-    // The draft's own copy, not `editFamilies()`: this file owns `_edit` and
-    // reaching into the families panel from here would invert that.
-    families: (_edit.families || []).slice(),
-    attachments: _edit.placed.filter(function (p) { return !p.removed; }),
-    removedTriggers: (_edit.removedTriggers || []).slice(),
-  };
-}
+// editExport (the draft as the encoder's handoff JSON) is in map-editor-stamps.js.

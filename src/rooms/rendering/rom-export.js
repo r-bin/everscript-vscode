@@ -144,6 +144,9 @@ function buildExportRom(vanilla, draft) {
 
     return {
         rom,
+        // The map's own bytes, as written into room 0x15 — the export archive's
+        // `.bin` (custom-export.js), checked by the same round trip as the ROM.
+        blob: built.blob,
         report: {
             room: BRIAN_ROOM,
             widthTiles: w,

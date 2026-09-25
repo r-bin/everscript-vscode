@@ -11,6 +11,8 @@
 // that was already there: this file is the map, that one is the chrome.
 
 var _editDrag = null;
+/** Ends the gesture in progress when the button comes up off the map. */
+var _editGestureRelease = null;
 
 /** Map coordinates for a pointer event, in metatile cells. */
 function editEventCell(e) {
@@ -44,9 +46,13 @@ function editStroke(cell, phase) {
     // reselect the thing already selected.
     if (phase === 'down') {
       if (triggerDragStart(cell)) return;
+      // A stamped object before a trigger: its B-trigger covers it
+      // (map-editor-groups.js).
+      if (groupSelectGesture(cell, phase)) return;
       triggerSelect(editTriggerAt(cell.x, cell.y));
       return;
     }
+    if (groupSelectGesture(cell, phase)) return;
     if (phase === 'move') { triggerDragMove(cell); return; }
     if (phase === 'up') { triggerDragCommit(); return; }
     return;
@@ -109,11 +115,11 @@ function editStroke(cell, phase) {
   var kind = drawKind();
   if (d.tool === 'stamp' || (d.tool === 'paint' && kind === 'widgets')) {
     if (phase !== 'down' || _editConstruct < 0) return;
-    var got = editConstructWrites(_mtPalette, d.constructs[_editConstruct], cell.x, cell.y);
-    if (got.writes.length) { editApply(got.writes); requestComposedPreview(); }
+    // One group: moved and deleted whole with the Select tool (map-editor-groups.js).
+    var got = editStampGroup(_mtPalette, d.constructs[_editConstruct], cell.x, cell.y);
+    if (got.writes.length) requestComposedPreview();
     if (got.problems.length) editNote(got.problems.join(' · '));
     else if (!got.writes.length) editNote('nothing to place there');
-    else editStampedConstruct(d.constructs[_editConstruct], cell.x, cell.y);
     renderEditChrome();
     return;
   }
@@ -127,14 +133,15 @@ function editStroke(cell, phase) {
     // The Tile tab's pencil puts down the armed tile and nothing else — the
     // armed special is the Special tab's (map-editor-drawable.js).
     if (d.brush < 0) return;
+    // Every tile lands on the level picked in the left bar (map-editor-levels.js).
     if (cutLayerActive()) {
-      editApplyStroke([editCutWrite(cell.x, cell.y, d.brush, false)].filter(Boolean));
+      editApplyStroke(onLevel([editCutWrite(cell.x, cell.y, d.brush, false)].filter(Boolean)));
       renderEditChrome();
       return;
     }
     var idx = editResolve(_mtPalette, cell.x, cell.y, d.brush, false);
     if (idx < 0) return;
-    editApplyStroke([{ x: cell.x, y: cell.y, index: idx }]);
+    editApplyStroke(onLevel([{ x: cell.x, y: cell.y, index: idx }]));
     renderEditChrome();
     return;
   }
@@ -161,9 +168,9 @@ function editStroke(cell, phase) {
       }
       editApplySpecial(sw, ss);
     } else if (kind === 'tile' && d.brush >= 0) {
-      editApplyStroke(cutLayerActive()
+      editApplyStroke(onLevel(cutLayerActive()
         ? editCutRectWrites(_editSel.x1, _editSel.y1, _editSel.x2, _editSel.y2, d.brush)
-        : editRectWrites(_editSel.x1, _editSel.y1, _editSel.x2, _editSel.y2, d.brush, _mtPalette));
+        : editRectWrites(_editSel.x1, _editSel.y1, _editSel.x2, _editSel.y2, d.brush, _mtPalette)));
     }
     _editSel = null;
   } else if (_editSel.x1 === _editSel.x2 && _editSel.y1 === _editSel.y2 && _editClip) {
@@ -180,6 +187,11 @@ function editStroke(cell, phase) {
   }
   _editDrag = null;
   renderEditChrome();
+}
+
+/** Writes moved onto the current level, when the levels file is loaded. */
+function onLevel(writes) {
+  return typeof editWritesOnLevel === 'function' ? editWritesOnLevel(_mtPalette, writes) : writes;
 }
 
 /** Which tab's drawable the pencil and eraser use (map-editor-drawable.js). */
@@ -261,6 +273,9 @@ function setupEditGestures() {
     var cell = editEventCell(e);
     if (!cell) return;
     painting = true;
+    // Down to up is one gesture and one undo step, however many cells it
+    // crosses (map-editor.js editBegin).
+    editBegin();
     editStroke(cell, 'down');
     e.preventDefault();
     e.stopPropagation();
@@ -280,8 +295,23 @@ function setupEditGestures() {
     painting = false;
     var cell = editEventCell(e);
     if (cell) editStroke(cell, 'up');
+    editEnd();
+    renderEditChrome();
     e.stopPropagation();
   }, true);
+
+  // Released outside the map: the gesture still ends, as one step. One
+  // window listener for the page, pointed at this room's gesture state.
+  _editGestureRelease = function () {
+    if (!painting) return;
+    painting = false;
+    editEnd();
+    renderEditChrome();
+  };
+  if (typeof window !== 'undefined' && window.addEventListener && !window._editReleaseBound) {
+    window._editReleaseBound = true;
+    window.addEventListener('mouseup', function () { if (_editGestureRelease) _editGestureRelease(); });
+  }
 }
 
 /**
@@ -310,6 +340,7 @@ function setupEditKeys() {
     if (e.key === 'Escape') {
       _editSel = null; _editClip = null;
       if (d) { d.selectedTriggerRef = null; _triggerDrag = null; }
+      if (typeof _groupSel !== 'undefined') { _groupSel = null; _groupDrag = null; }
       renderEditChrome();
       return;
     }
@@ -323,6 +354,11 @@ function setupEditKeys() {
       return;
     }
     if (!d || d.tool !== 'select') return;
+    if (typeof _groupSel !== 'undefined' && _groupSel != null && (e.key === 'Backspace' || e.key === 'Delete')) {
+      if (editGroupDelete(_groupSel)) { requestComposedPreview(); renderEditChrome(); }
+      e.preventDefault();
+      return;
+    }
     // Paste only needs a clipboard, which can outlive the selection that
     // filled it (Escape clears the selection, not the clipboard); delete and
     // copy both act on whatever is currently selected.
