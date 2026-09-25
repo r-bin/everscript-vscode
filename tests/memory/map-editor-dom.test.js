@@ -27,7 +27,7 @@ const read = (f) => fs.readFileSync(path.join(WEBVIEW, f), 'utf8');
 const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-stamps.js', 'map-editor-paint.js',
     'map-editor-ui.js', 'map-editor-phases.js', 'map-editor-constructs.js', 'map-editor-families.js',
     'map-editor-relations.js', 'map-editor-chips.js', 'map-editor-stranded.js',
-    'map-editor-tiles.js', 'map-editor-tile-lazy.js', 'map-editor-neighbours.js', 'map-editor-deco.js', 'map-editor-special.js',
+    'map-editor-tiles.js', 'map-editor-tile-lazy.js', 'map-editor-tile-filters.js', 'map-editor-neighbours.js', 'map-editor-deco.js', 'map-editor-special.js',
     'map-editor-trigger-select.js', 'map-editor-trigger-panel.js',
     'map-editor-toolbar.js', 'map-editor-filterbar.js', 'rom-overlay.js',
     'tables-builder.js', 'map-editor-tabs.js', 'map-editor-panels.js', 'map-editor-gestures.js',
@@ -1077,13 +1077,14 @@ async function main() {
             (n) => n.every((e) => /rg-lay-front/.test(e.className))));
     await page.click('[data-layer-force="auto"]');
 
-    // Relationship ordering: with 4195 placed, its neighbours come first
-    // even though 4200 has ten times the placements.
+    // v0.74.0: a relationship arriving does not reorder the list ("the order
+    // of the tile list still changes once you use one. it should not").
+    const orderBefore = await page.$$eval('[data-fam-of="58"]', (n) => n.map((e) => e.dataset.famTile));
     await page.evaluate(() => applyRelatedTiles({
         related: [[4191, 92, 47], [4200, 3, 2]] }));
     const order = await page.$$eval('[data-fam-of="58"]', (n) => n.map((e) => e.dataset.famTile));
-    check('the strongest relationship sorts to the front, not the biggest count',
-        order[0] === '4191', JSON.stringify(order));
+    check('related tiles keep their place: the list is in placement order, before and after',
+        order.join() === orderBefore.join() && order[0] === '4200', JSON.stringify([orderBefore, order]));
     // ── LIKELY NEIGHBORS: the plus-shape (§8b) ─────────────────────────────
     // The mock's N/E/S/W grid around the armed brush. It is honest now
     // because the index counts each side separately (src/maps/vanilla-
@@ -1318,8 +1319,10 @@ async function main() {
             (b) => b.textContent).join('|')));
     // A third, since v0.68.0: the `cuttable` filter, asked for "next to H/V";
     // `stairs` joined it in v0.70.0 — one list filter at a time.
-    check('the filter row is three segmented pills, not loose chips',
-        segs.length === 3 && segs[0] === 'auto|front|ground' && segs[1] === 'H|V' && segs[2] === 'cuttable|stairs',
+    check('the filter row is four segmented pills, not loose chips',
+        // v0.74.0: all|floor|edge|wall — what to build floors, walls and the filler with.
+        segs.length === 4 && segs[0] === 'auto|front|ground' && segs[1] === 'H|V' && segs[2] === 'all|floor|edge|wall'
+        && segs[3] === 'cuttable|stairs',
         JSON.stringify(segs));
 
     // ── the cuttable filter ────────────────────────────────────────────────

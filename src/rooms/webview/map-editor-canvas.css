@@ -434,7 +434,8 @@
   background:var(--rg-bg-float);color:var(--rg-accent-text);box-shadow:0 0 0 1px var(--rg-border);
 }
 .rg-theme #rg-edit-bar .rg-draw-badge.idle{color:var(--rg-text-secondary);opacity:.7}
-.rg-theme #rg-edit-bar .rg-draw-trigger{color:var(--rg-trigger-b)}
+.rg-theme #rg-edit-bar .rg-draw-trigger-b{color:var(--rg-trigger-b)}
+.rg-theme #rg-edit-bar .rg-draw-trigger-step{color:var(--rg-trigger-step)}
 
 /* Triggers the draft placed (map-editor-drawable.js editTriggerSvg). */
 .rg-theme .rg-trigger-placed rect{fill-opacity:.18;stroke-width:.12}
@@ -483,3 +484,7 @@
 /* A selected special and where a drag would drop it (map-editor-special-select.js). */
 .rg-theme .rg-special-sel{fill:var(--rg-accent-soft);fill-opacity:.4;stroke:var(--rg-accent);stroke-width:.16;pointer-events:none}
 .rg-theme .rg-special-ghost{fill:none;stroke:var(--rg-accent);stroke-width:.14;stroke-dasharray:.4 .3;pointer-events:none}
+
+/* A copy on the pointer, waiting for the click that puts it down (map-editor-clipboard.js). */
+.rg-theme .rg-paste-ghost{opacity:.6}
+.rg-theme .rg-paste-box{fill:none;stroke:var(--rg-accent);stroke-width:.16;stroke-dasharray:.4 .3;pointer-events:none}

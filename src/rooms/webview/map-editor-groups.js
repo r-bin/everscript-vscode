@@ -54,6 +54,9 @@ function editStampGroup(palette, construct, x, y) {
   var d = editDraft();
   var got = editConstructWrites(palette, construct, x, y);
   if (!got.writes.length) return got;
+  // On the level picked in the left bar, like every other tile written: a
+  // widget cut from a vanilla room carries that room's level otherwise.
+  if (typeof editWritesOnLevel === 'function') got.writes = editWritesOnLevel(palette, got.writes);
   editBegin();
   var under = got.writes.map(function (w) { return groupRef(w.x - x, w.y - y, editDraftValue(w.x, w.y)); });
   var firstPlaced = d.placed.length;
@@ -177,7 +180,7 @@ function editGroupSvg(origin) {
   var d = editDraft();
   if (!d || !d.groups || !d.groups.length) return '';
   var html = '';
-  var selecting = d.tool === 'select' || d.tool === 'copy';
+  var selecting = d.tool === 'select';
   d.groups.forEach(function (g) {
     var sel = g.uid === _groupSel;
     if (!sel && !selecting) return;

@@ -592,6 +592,8 @@ const ui = new Function(`
   ${read('map-editor-chips.js')}
   ${read('map-editor-stranded.js') /* the invalid-family banner, §8a */}
   ${read('map-editor-tiles.js')}
+  ${read('map-editor-tile-filters.js')}
+  ${read('map-editor-collision.js')}
   ${read('map-editor-neighbours.js') /* the plus-shaped LIKELY NEIGHBORS card, §8b */}
   ${read('map-editor-special.js')}
   ${read('map-editor-trigger-select.js')}
@@ -648,6 +650,8 @@ const ui = new Function(`
     triggerKind: function () { return _editTriggerKind; },
     specialSel: function () { return _specialSel; }, triggerTab: triggerTabPanelHtml,
     setTriggerKind: function (k) { _editTriggerKind = k; },
+    pasteFloat: function () { return _pasteFloat; }, dropPaste: function () { _pasteFloat = null; },
+    tileSlotPasses: tileSlotPasses, tileShapePick: function (v) { _tileShape = v === 'all' ? null : v; },
   };`)();
 
 /** A palette with the tile sheet the host now sends alongside it. */
@@ -957,7 +961,7 @@ test('a tile group embeds its sheet once, not once per swatch', () => {
  * the placements of 4191 and no relationship to anything in the map, so it
  * goes last.
  */
-test('a group is ordered by relationship first, placements second', () => {
+test('a group is ordered by placements, and relationship never reorders it', () => {
     ui.editReset(0x34);
     ui.setPalette(tilePalette());
     ui.setSheet(58, {
@@ -965,16 +969,14 @@ test('a group is ordered by relationship first, placements second', () => {
         slots: [[0, 0, 4191, 10, 0, 0], [1, 2, 4195, 5, 0, 0], [2, 4, 4200, 99, 0, 0]],
         imageUri: 'data:image/png;base64,ZmFt',
     });
+    // "the order of the tile list still changes once you use one. it should
+    // not" — the % badge says how related a tile is; its place does not move.
     ui.setRelated({ 4191: 92, 4195: 3 });
     const order = [...ui.tileGroup(58).matchAll(/data-fam-tile="(\d+)"/g)].map((m) => m[1]);
-    assert.deepStrictEqual(order, ['4191', '4195', '4200']);
-
-    // With nothing placed there is nothing to be related to, so the ordering
-    // falls back to how often vanilla places each tile. A real cold start,
-    // not a bug.
+    assert.deepStrictEqual(order, ['4200', '4191', '4195']);
     ui.setRelated({});
     const cold = [...ui.tileGroup(58).matchAll(/data-fam-tile="(\d+)"/g)].map((m) => m[1]);
-    assert.deepStrictEqual(cold, ['4200', '4191', '4195']);
+    assert.deepStrictEqual(cold, order);
 });
 
 /**
@@ -1388,7 +1390,7 @@ test('the eyedropper picks a special or a trigger with their own tab', () => {
     ui.setTab('tile');
 });
 
-test('copy a region, paste it under the pointer as one selected object, drag it', () => {
+test('copy a region; paste picks it up on the pointer, a click puts it down as one selected object', () => {
     const { p, d } = fresh();
     d.tool = 'copy';
     ui.setSel({ x1: 0, y1: 0, x2: 1, y2: 0 });
@@ -1396,17 +1398,21 @@ test('copy a region, paste it under the pointer as one selected object, drag it'
     assert.ok(key('c'));
     ui.setHover({ x: 1, y: 1 });
     assert.ok(key('v'));
+    assert.strictEqual(d.groups.length, 0, 'nothing is written until the click');
+    assert.deepStrictEqual(ui.pasteFloat(), { x: 0, y: 1 }, 'centred on the pointer, kept on the map');
+    ui.editStroke({ x: 1, y: 1 }, 'down');
     assert.strictEqual(d.groups.length, 1);
     const g = d.groups[0];
-    assert.deepStrictEqual([g.x, g.y, g.w, g.h], [1, 1, 2, 1], 'where the pointer is, clamped to fit');
+    assert.deepStrictEqual([g.x, g.y, g.w, g.h], [0, 1, 2, 1], 'where it was shown');
     assert.strictEqual(ui.groupSel(), g.uid, 'and selected');
+    assert.strictEqual(ui.pasteFloat(), null);
     ui.editBegin();
-    ui.editStroke({ x: 2, y: 1 }, 'down');
-    ui.editStroke({ x: 1, y: 1 }, 'move');
-    ui.editStroke({ x: 1, y: 1 }, 'up');
+    ui.editStroke({ x: 1, y: 1 }, 'down');
+    ui.editStroke({ x: 2, y: 1 }, 'move');
+    ui.editStroke({ x: 2, y: 1 }, 'up');
     ui.editEnd();
-    assert.deepStrictEqual([d.groups[0].x, d.groups[0].y], [0, 1], 'dragged while selected');
-    ui.editStroke({ x: 2, y: 0 }, 'down');
+    assert.deepStrictEqual([d.groups[0].x, d.groups[0].y], [1, 1], 'dragged while selected');
+    ui.editStroke({ x: 0, y: 0 }, 'down');
     assert.strictEqual(ui.groupSel(), null, 'a click elsewhere lets it go');
 });
 
@@ -1446,15 +1452,16 @@ test('a stairs flag with no glyph moves too', () => {
     ui.setTab('tile');
 });
 
-test('a paste puts the tile the pointer was on at copy time under the pointer', () => {
+test('Escape drops a copy on the pointer without writing anything', () => {
     const { d } = fresh();
     d.tool = 'copy';
-    ui.setSel({ x1: 0, y1: 0, x2: 1, y2: 0 });
-    ui.setHover({ x: 1, y: 0 });                             // on the region's right tile
+    ui.setSel({ x1: 0, y1: 0, x2: 0, y2: 0 });
     ui.editClipboardKey({ key: 'c' }, true);
-    ui.setHover({ x: 2, y: 1 });
     ui.editClipboardKey({ key: 'v' }, true);
-    assert.deepStrictEqual([d.groups[0].x, d.groups[0].y], [1, 1], 'its right tile at 2,1');
+    assert.ok(ui.pasteFloat());
+    ui.dropPaste();
+    ui.editStroke({ x: 2, y: 1 }, 'down');
+    assert.strictEqual(d.groups.length, 0);
 });
 
 test('the Trigger tab has a sub-tab per kind; the open one is what the pencil draws and what is listed', () => {
@@ -1471,6 +1478,57 @@ test('the Trigger tab has a sub-tab per kind; the open one is what the pencil dr
 test('the rectangle tool is gone', () => {
     fresh();
     assert.ok(!ui.toolbar().includes('data-edit-tool="rect"'));
+});
+
+console.log('\nv0.74.0:');
+
+test('floor / edge / wall list tiles by the collision they would be painted with', () => {
+    // [slot, chr, graphic, uses, canopyUses, terrainUses, groundShape, groundPct, frontShape, frontPct, grass, gStairs, fStairs]
+    const row = (shape, stairs) => [0, 0, 5000 + shape, 1, 0, 9, shape, 90, -1, 0, 0, stairs || 0, 0];
+    ui.tileShapePick('floor');
+    assert.ok(ui.tileSlotPasses(row(0)) && ui.tileSlotPasses(row(0x0f, 3)), 'open, and stairs');
+    assert.ok(!ui.tileSlotPasses(row(0x0f)));
+    ui.tileShapePick('wall');
+    assert.ok(ui.tileSlotPasses(row(0x0f)) && !ui.tileSlotPasses(row(0x03)));
+    ui.tileShapePick('edge');
+    assert.ok(ui.tileSlotPasses(row(0x03)) && ui.tileSlotPasses(row(0x05)) && !ui.tileSlotPasses(row(0)));
+    assert.ok(!ui.tileSlotPasses([0, 0, 1, 1, 0, 0, -1, 0, -1, 0, 0, 0, 0]), 'never seen: only under all');
+    ui.tileShapePick('all');
+    assert.ok(ui.tileSlotPasses(row(0x05)));
+});
+
+test('a stamped or pasted object lands on the chosen level', () => {
+    const { p, d } = fresh();
+    ui.editLevelPick(2);
+    ui.editStampGroup(p, GOURD, 0, 0);                        // GOURD's collision is level 1 (0x1f)
+    assert.strictEqual(ui.editStampWords(p, d.cells['0,0']).collision & 0x30, 0x20);
+    ui.editLevelPick(1);
+});
+
+test('on the Trigger tab the Select tool picks a trigger over a stamped object', () => {
+    const { p, d } = fresh();
+    ui.editStampGroup(p, GOURD, 0, 0);                        // its B-trigger covers it
+    d.tool = 'select';
+    ui.setTab('tile');
+    ui.editStroke({ x: 0, y: 0 }, 'down');
+    assert.ok(ui.groupSel() != null && !d.selectedTriggerRef, 'elsewhere: the object');
+    ui.setTab('trigger');
+    ui.editStroke({ x: 0, y: 0 }, 'down');
+    assert.ok(d.selectedTriggerRef && d.selectedTriggerRef.kind === 'b', 'on the Trigger tab: the trigger');
+    ui.setTab('tile');
+});
+
+test('the tile list keeps its order when a tile is used', () => {
+    const { p } = fresh();
+    ui.setSheet(51, { family: 51, count: 3, columns: 16, cell: 16, imageUri: 'data:,',
+        slots: [[0, 0, 901, 5, 0, 5, -1, 0, -1, 0, 0, 0, 0], [1, 0, 902, 9, 0, 9, -1, 0, -1, 0, 0, 0, 0],
+                [2, 0, 903, 1, 0, 1, -1, 0, -1, 0, 0, 0, 0]] });
+    const order = () => (ui.tileGroup(51, 360).match(/data-fam-tile="(\d+)"/g) || []).join();
+    const before = order();
+    ui.setRelated({ 903: 100 });                              // 903 now "goes with" the map
+    assert.strictEqual(order(), before, 'related-ness does not reorder it');
+    assert.ok(before.indexOf('902') < before.indexOf('901'), 'most-placed first');
+    ui.setRelated({});
 });
 
 console.log(`\n  ${passed} passed, ${failed} failed`);

@@ -1,3 +1,30 @@
+## [0.74.0] — 2026-09-25
+
+### Map editor: floor/edge/wall filter, paste on the pointer, stable tile order
+
+- **Tile tab: `all | floor | edge | wall`.** Lists tiles by the collision
+  they'd be painted with:
+  - **floor**: walkable, including stairs;
+  - **wall**: fully solid;
+  - **edge**: half tiles and diagonals, the filler in between.
+
+  Combines with `cuttable | stairs`. Families with nothing to show drop
+  out before they load.
+- **Stamped widgets and pasted objects use the chosen level.** They used to
+  keep the level of the vanilla room they came from, often level 0, which
+  is why they were outlined blue on a level-1 map.
+- **Paste rides on the pointer.** Cmd/Ctrl+V shows a see-through preview of
+  the copy's own tiles, centred on the pointer, and it follows the pointer.
+  A click puts it down exactly there, as one object, selected. Escape drops
+  it. The dashed outlines of every object no longer show while copying.
+- **The Select tool follows the open tab.** On the Trigger tab it picks a
+  trigger even under a stamped object. Elsewhere the object comes first.
+- **The pencil's S badge (step trigger) is pink**, like step triggers on the
+  map.
+- **The tile list keeps its order.** Tiles are ordered by how often vanilla
+  places them, and using one no longer reshuffles the list. The % badge
+  still shows how well a tile goes with the map.
+
 ## [0.73.0] — 2026-09-25
 
 ### Map editor: tiles on load, collision modes, moving specials, trigger sub-tabs

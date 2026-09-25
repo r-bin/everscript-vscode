@@ -80,7 +80,8 @@ function editEraseTarget() {
 /** The pencil's (or the eraser's) badge, inside its button (map-editor-toolbar.js). */
 function editDrawBadgeHtml(erase) {
   var dr = erase ? editEraseTarget() : editDrawable();
-  return '<span class="rg-draw-badge rg-draw-' + dr.kind + (dr.ready ? '' : ' idle') + '" aria-hidden="true">'
+  var sub = dr.kind === 'trigger' ? ' rg-draw-trigger-' + _editTriggerKind : '';
+  return '<span class="rg-draw-badge rg-draw-' + dr.kind + sub + (dr.ready ? '' : ' idle') + '" aria-hidden="true">'
     + escH(dr.glyph) + '</span>';
 }
 
@@ -98,6 +99,7 @@ function editDeselectAll() {
   if (typeof _groupSel !== 'undefined') { _groupSel = null; _groupDrag = null; }
   if (typeof _startSel !== 'undefined') { _startSel = false; _startDrag = null; }
   if (typeof _specialSel !== 'undefined') { _specialSel = null; _specialDrag = null; }
+  if (typeof _pasteFloat !== 'undefined') _pasteFloat = null;
 }
 
 /** Pick the trigger kind the pencil draws, and arm the pencil. */

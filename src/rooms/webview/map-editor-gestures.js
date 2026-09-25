@@ -39,6 +39,12 @@ function editStroke(cell, phase) {
   var d = editDraft();
   if (!d || !editInBounds(_mtPalette, cell.x, cell.y)) return;
 
+  // A copy on the pointer: the click puts it down, whatever the tool (map-editor-clipboard.js).
+  if (typeof _pasteFloat !== 'undefined' && _pasteFloat) {
+    if (phase === 'down') editPasteFloatPlace();
+    return;
+  }
+
   if (d.tool === 'select') {
     // The only tool that reads a click as "pick a trigger" rather than
     // "paint a cell" — see map-editor-trigger-select.js's file header and
@@ -53,10 +59,13 @@ function editStroke(cell, phase) {
       && specialSelectGesture(cell, phase)) return;
     if (phase === 'down') {
       if (triggerDragStart(cell)) return;
-      // A stamped object before a trigger: its B-trigger covers it
-      // (map-editor-groups.js).
+      // What the open tab is about comes first: on the Trigger tab a trigger
+      // over a stamped object is the trigger; elsewhere the object (its own
+      // B-trigger covers it, and clicking a gourd means the gourd).
+      var trig = editTriggerAt(cell.x, cell.y);
+      if (drawKind() === 'trigger' && trig) { triggerSelect(trig); return; }
       if (groupSelectGesture(cell, phase)) return;
-      triggerSelect(editTriggerAt(cell.x, cell.y));
+      triggerSelect(trig);
       return;
     }
     if (groupSelectGesture(cell, phase)) return;
@@ -291,7 +300,10 @@ function setupEditGestures() {
   wrap.addEventListener('mousemove', function (e) {
     if (_resizing) { resizeMove(e); e.stopPropagation(); return; }
     // Where a paste lands (map-editor-clipboard.js).
-    if (editActive()) _editHover = editEventCell(e);
+    if (editActive()) {
+      _editHover = editEventCell(e);
+      if (typeof _pasteFloat !== 'undefined' && _pasteFloat) editPasteFloatMove(_editHover);
+    }
     if (!painting || !editActive()) return;
     var cell = editEventCell(e);
     if (cell) editStroke(cell, 'move');
@@ -348,6 +360,7 @@ function setupEditKeys() {
     var d = editDraft();
     if (e.key === 'Escape') {
       _editSel = null; _editClip = null;
+      if (typeof _pasteFloat !== 'undefined') _pasteFloat = null;
       if (typeof editDeselectAll === 'function') editDeselectAll();
       renderEditChrome();
       return;

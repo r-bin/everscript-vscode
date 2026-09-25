@@ -92,6 +92,7 @@ const ROOMS_JS_FILES = [
   'map-editor-stranded.js',// the invalid-family banner and its two actions
   'map-editor-tiles.js', // the tile browser: grouped by family, ranked by relationship
   'map-editor-tile-lazy.js', // lazy loading of the Tile tab's family groups
+  'map-editor-tile-filters.js', // the Tile tab's filter row: layer, mirror, cuttable/stairs, floor/edge/wall
   'map-editor-neighbours.js',// the LIKELY NEIGHBORS plus-shape: the brush and its four sides
   'map-editor-deco.js',  // the deco library: vanilla's own objects, to stamp
   'map-editor-special.js',// the Special tab: stairs/drift, gate, entrance + their filter chip

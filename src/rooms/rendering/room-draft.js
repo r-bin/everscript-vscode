@@ -37,6 +37,24 @@ const SHEETS_MAX = 24;
  * so before the user invests in it.
  */
 
+/** The collision filter's class of a suggested shape: floor (open or stairs), wall (solid) or edge. */
+function shapeClass(index, graphic, layer) {
+    if (stairsOf(index, graphic, layer)) return 'floor';
+    const g = maps.suggestGeometry(index, graphic, layer);
+    if (!g) return null;
+    return g.value === 0 ? 'floor' : g.value === 0x0f ? 'wall' : 'edge';
+}
+
+/** How many of a family's graphics each collision class could list. */
+function shapeCounts(index, list) {
+    const out = { floor: 0, edge: 0, wall: 0 };
+    for (const a of list) {
+        const seen = new Set([shapeClass(index, a.value, 'terrain'), shapeClass(index, a.value, 'canopy')]);
+        for (const k of Object.keys(out)) if (seen.has(k)) out[k] += 1;
+    }
+    return out;
+}
+
 /** A graphic's stairs direction on one layer, 0 when it is not stairs. */
 function stairsOf(index, graphic, layer) {
     const s = maps.suggestStairs(index, graphic, layer);
@@ -265,6 +283,10 @@ function buildFamilyCatalogue(rom) {
             grass: list.filter((a) => index.grass.has(a.value)).length,
             // The same for the `stairs` filter.
             stairs: list.filter((a) => stairsOf(index, a.value, 'terrain') || stairsOf(index, a.value, 'canopy')).length,
+            // And for the collision filter (floor / edge / wall): graphics with
+            // that suggested shape on either layer — a superset, so a family is
+            // never dropped that could show one.
+            shapes: shapeCounts(index, list),
         });
     }
     out.sort((a, b) => b.tiles - a.tiles || a.id - b.id);

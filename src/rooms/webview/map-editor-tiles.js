@@ -8,7 +8,7 @@
 // dominant family, so grouping by one and ranking by the other is not a
 // tautology — see docs/map-format/map-editor-window.md §2.2.
 //
-// Owns: _tileOrder, _tileOrderFor, _layerForce, _brushFlip, _tileFilter.
+// Owns: _tileOrder, _tileOrderFor, _layerForce, _brushFlip.
 // Lazy loading of the groups is map-editor-tile-lazy.js.
 //
 // **Every tile, no pager, nothing collapsible** (§8e): "the tile list cannot
@@ -73,43 +73,7 @@ var BRUSH_FLIP_H = 0x4000;
 var BRUSH_FLIP_V = 0x8000;
 var _brushFlip = { h: false, v: false };
 
-/**
- * The list filter, one at a time (off by default):
- * - `grass`: graphics that take part in cuttable grass — drawn in a swap
- *   record's uncut metatile or in what it turns into (maps/vanilla-index.ts
- *   `grass`, slot row [10]);
- * - `stairs`: graphics vanilla draws as stairs (maps/vanilla-stairs.ts, slot
- *   rows [11]/[12]).
- * A family with none is left out without fetching its sheet: the catalogue
- * carries both counts.
- */
-var _tileFilter = null;
-
-/** Turn a filter on, or off when it is the one already on. */
-function tileFilterToggle(which) {
-  _tileFilter = _tileFilter === which ? null : which;
-  renderEditPanels();
-}
-
-/** A catalogue family the filter keeps, or every family while it is off. */
-function tileFamilyPasses(family) {
-  if (!_tileFilter) return true;
-  return tileFamilyCount(family) > 0;
-}
-
-/** How many tiles of a family the filter lists, from the catalogue; 0 if unknown. */
-function tileFamilyCount(family) {
-  var meta = chipMeta(family);
-  if (!meta) return 0;
-  return _tileFilter === 'grass' ? meta.grass || 0 : _tileFilter === 'stairs' ? meta.stairs || 0 : meta.tiles;
-}
-
-/** A family-sheet slot the filter keeps. */
-function tileSlotPasses(slot) {
-  if (_tileFilter === 'grass') return !!slot[10];
-  if (_tileFilter === 'stairs') return !!(slot[11] || slot[12]);
-  return true;
-}
+// The list filters (cuttable/stairs, floor/edge/wall) are map-editor-tile-filters.js.
 
 /** The mirror bits a freshly picked tile's word should carry. */
 function editBrushFlipBits() {
@@ -217,37 +181,6 @@ function tileSegHtml(key, opts, isOn) {
   return html + '</div>';
 }
 
-/**
- * The filter row: which layer a pick lands on, and whether it is mirrored.
- *
- * Two pills, which is what the mock draws — but not the mock's two. Its
- * `Auto|All` segment is a *scope* toggle (show only loaded families vs all of
- * them); ours is the "N more" pager below, and it stays a pager because "all"
- * here would mean one host round-trip per family for 329 families. See the
- * plan doc §8a.
- */
-function tileFilterRowHtml() {
-  return '<div class="rg-tile-seg-row">'
-    + tileSegHtml('layer-force', [
-      ['auto', 'auto', 'Put each tile on the layer vanilla draws it on'],
-      ['canopy', 'front', 'Draw every picked tile over whatever it lands on'],
-      ['terrain', 'ground', 'Draw every picked tile as the ground'],
-    ], function (v) { return (_layerForce || 'auto') === v; })
-    + tileSegHtml('brush-flip', [
-      ['h', 'H', 'Mirror the picked tile left-to-right (bit 14 of its word).\n'
-        + 'A mirrored tile is one more dictionary entry and no extra graphic.'],
-      ['v', 'V', 'Mirror the picked tile top-to-bottom (bit 15 of its word).\n'
-        + 'A mirrored tile is one more dictionary entry and no extra graphic.'],
-    ], function (v) { return !!_brushFlip[v]; })
-    + tileSegHtml('tile-filter', [
-      ['grass', 'cuttable', 'Show only tiles that are part of cuttable grass — the uncut tile, '
-        + 'or what it turns into when cut. Off: every tile.'],
-      ['stairs', 'stairs', 'Show only tiles vanilla draws as stairs. Painting one gives it the stairs '
-        + 'flag (always-walkable, climbing diagonally), mirrored with H. Off: every tile.'],
-    ], function (v) { return _tileFilter === v; })
-    + '</div>';
-}
-
 /** Flip the brush, and re-arm it so the toggle is visibly live. */
 function brushFlipToggle(axis) {
   if (axis !== 'h' && axis !== 'v') return;
@@ -289,14 +222,16 @@ function tileGroupHtml(family, width) {
   // Closes the group's own div — tileGroupShell leaves it open for the sheet.
   if (!s.count) return tileGroupShell(family, null, 'no room draws anything in it') + '</div>';
 
-  // Sorted by how well each tile goes with what is already in the map, then
-  // by how often vanilla places it — which is also the whole ordering on an
-  // empty map, where there is nothing to be related to yet.
+  // A fixed order — by how often vanilla places each tile — so a tile stays
+  // where it was found. Sorting by relationship to what is on the map moved
+  // every tile the moment one was painted; the % badge still says it.
   var order = s.slots.filter(tileSlotPasses).sort(function (a, b) {
-    return relatedScore(b[2]) - relatedScore(a[2]) || b[3] - a[3] || a[2] - b[2];
+    return b[3] - a[3] || a[2] - b[2];
   });
+  if (!order.length) return '';
 
-  var best = order.length ? relatedScore(order[0][2]) : 0;
+  var best = 0;
+  order.forEach(function (slot) { best = Math.max(best, relatedScore(slot[2])); });
   var html = tileGroupShell(family, s, best ? best + '%' : '')
     + '<div class="rs-mt-sheet rg-group-sheet" style="--mt-sheet:url(' + s.imageUri
     + ');--mt-cell:' + s.cell + 'px"><div class="rs-mt-grid">';
