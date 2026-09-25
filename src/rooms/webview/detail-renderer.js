@@ -15,6 +15,8 @@ function renderRoomDetail(room){
   // #room-detail is the one node that already wraps the canvas, the docked
   // panel column and the filter bar above it, so no extra wrapper is needed.
   panel.className='rg-theme';
+  // Leaving a custom map keeps its draft (map-editor-custom.js).
+  if(!room.custom&&typeof customStash==='function')customStash();
   console.log('[RoomsRender] renderRoomDetail:start', {room: room && room.name});
   var c=room.content||{};
   var im=c.initMap;
@@ -112,7 +114,10 @@ function renderRoomDetail(room){
   // The editor: its own draft per room, and gesture handlers that stay out
   // of the way until edit mode is on.
   _editOrigin={x:svgResult.mapX0||0,y:svgResult.mapY0||0};
-  if(!editDraft()||editDraft().roomId!==roomVanillaIdNum(room))editReset(roomVanillaIdNum(room));
+  // A custom map has its own draft, keyed by its own id rather than by the
+  // room it borrows graphics from — so it is never mistaken for that room's.
+  if(room.custom)customBindDraft(room);
+  else if(!editDraft()||editDraft().customKey||editDraft().roomId!==roomVanillaIdNum(room))editReset(roomVanillaIdNum(room));
   bindEditControls(panel,room);
   setupEditGestures();
   setupEditKeys();
@@ -175,6 +180,7 @@ function renderRoomDetail(room){
   resetObjectStatesFor(room.name);
   setupLayerButtons(panel,room);
   requestRoomTileOverlay(room,svgResult);
+  if(room.custom)customAfterRender(room);
 }
 
 // Name of the room whose tile overlay was last requested. Responses for any
@@ -234,6 +240,9 @@ function setTileBusy(busy){
 /** Post a tile-overlay request to the extension host for the rendered room. */
 function requestRoomTileOverlay(room,svgResult,layer){
   var id=roomVanillaIdNum(room);
+  // A custom map's id is only where its graphics come from; rendering that
+  // room would put the donor's picture under the new map.
+  if(room&&room.custom)return;
   if(id==null||typeof vs==='undefined'||!vs||!svgResult)return;
   var which=layer||_currentLayer;
   _pendingTileRoom=room.name;

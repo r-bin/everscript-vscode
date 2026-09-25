@@ -105,6 +105,7 @@ const ROOMS_JS_FILES = [
   'map-editor-actions.js',// toolbar actions (undo, compose, constructs, export)
   'map-editor-newroom.js',// drafting a room that is not in the ROM
   'map-editor-start.js',  // the Boy's start marker on a drafted map
+  'map-editor-custom.js', // custom maps: their own rail rows, drafts and persistence
   'rom-overlay.js',      // ROM view top bar (_currentLayer/_currentOverlay) + renderRomDataSections
   'detail-renderer.js',  // renderRoomDetail (orchestrator)
   'rooms-rail.js',       // the left rail: groups, area collapse, search, selection, + New Map

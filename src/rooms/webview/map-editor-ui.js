@@ -212,6 +212,8 @@ function applyComposedPreview(msg) {
 /** Refresh the parts of the chrome that depend on the draft. */
 function renderEditChrome() {
   var d = editDraft();
+  // Every stroke ends here, so this is where a custom map is kept saved.
+  if (d && d.customKey && typeof customSaveSoon === 'function') customSaveSoon();
   // Pill and new-room form share one wrapper, so one write replaces both
   // and the form cannot accumulate a second copy.
   var chrome = document.getElementById('rg-edit-chrome');

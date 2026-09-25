@@ -270,6 +270,12 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   and the tool pill's `⋯` — which drives both their open/close toggle and the
   close-on-outside-click sweep, so a new dropdown needs one list entry plus
   one `EDIT_CLICK_KEYS` key rather than a second mechanism
+- `map-editor-custom.js` — custom maps: `+ New Map` / the `new map` command /
+  the inline "new room" form each make one, as a row under Custom rooms with its
+  own name and draft (`_edit.customKey`). Opens it through `renderRoomDetail`
+  with a synthetic room (`custom`, `romRoomId` = the donor), then fetches the
+  donor's dictionary and a blank grid. Persists the list through `uiPrefs`.
+  Owns `_customMaps` / `_customActive` / `_newMapWaiting`
 - `map-editor-start.js` — the Boy's start marker on a drafted map: placed when
   the blank room arrives, drawn from the ROM's own Boy sprite, moved by the
   Special tab's `start` pick, never removable; also strips the donor room's

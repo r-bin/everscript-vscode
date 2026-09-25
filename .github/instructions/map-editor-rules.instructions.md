@@ -152,10 +152,19 @@ dead button is worse than an honest gap — say so in the plan doc instead.
 
 ---
 
-## 5. A drafted map: empty, with exactly one Boy
+## 5. A custom map: its own room, empty, with exactly one Boy
 
-A new map borrows a donor room (`0x34`) for its graphics list and families
-(rule 7.1: a room with no Block 1 renders black), and **nothing else**:
+`+ New Map` makes a **custom map**: a new row under Custom rooms, with its own name
+and its own draft (`_edit.customKey`, map-editor-custom.js), one SNES screen (16×14
+tiles) to start. It is never a draft laid over a ROM room, and never selects one in
+the Vanilla list: *only a vanilla room is in the vanilla list.*
+
+It borrows a donor room (`0x34`) for its graphics list and families (rule 7.1: a
+room with no Block 1 renders black), and **nothing else**:
+- The donor is `_edit.roomId`, the key the host's tile requests use. It is not the
+  room on screen: the detail panel's name, header and rail row are the custom map's,
+  and `requestRoomTileOverlay` refuses a custom room, so the donor's picture is
+  never rendered under it.
 - No donor *content*. The grid is `emptyStamp`, and `editClearDonorScenery`
   removes the donor's NPCs, doors, triggers and markers from the canvas. Any new
   overlay svg-builder draws for a room belongs in its `DONOR_SCENERY` list.
@@ -165,6 +174,10 @@ A new map borrows a donor room (`0x34`) for its graphics list and families
   it. ROM rooms have no start marker; their entrances are their doors.
 
 ---
+
+A custom map is saved to the host's `uiPrefs` (`customMaps`) as draft *data*
+(cells, stamps, graphics, families, start), not as session state. The webview is
+rebuilt whenever the active document changes, and a map lost with it was never a map.
 
 ## 6. What the editor may and may not write
 

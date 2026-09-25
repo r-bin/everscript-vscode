@@ -203,15 +203,36 @@ async function main() {
         await page.$eval('.rn-map.rsel', (n) => n.dataset.vid) === '0x12');
 
     // ── + New Map ────────────────────────────────────────────────────────
-    // The footer runs the project-level action — the same `roomsNewMap()`
-    // the `everscript.newMap` command posts for, which navigates to the
-    // graphics-donor room (0x34, Strong Heart's Hut) before drafting. The
-    // editor's own `new room…` is a *different* action (an inline w/h form
-    // borrowing whichever room is open) and stays in the tool pill's ⋯
-    // overflow; conflating them would have lost one of the two.
+    // A new map is a room of its own, under Custom rooms: "a new map creates
+    // a new entry in custom rooms … you can only be in the vanilla room list
+    // if you are a vanilla room". It used to open Strong Heart's Hut (0x34),
+    // select it in the Vanilla list and draft over it. It still borrows that
+    // room's graphics — through the draft, not the rail.
     await page.click('#rm-new-map');
-    check('the footer button runs the project-level new map action',
-        await page.$eval('.rn-map.rsel', (n) => n.dataset.vid) === '0x34');
+    const made = await page.evaluate(() => {
+        const sel = document.querySelectorAll('.rn-map.rsel');
+        return {
+            selected: sel.length,
+            custom: sel[0] && sel[0].dataset.custom,
+            inCustom: !!(sel[0] && sel[0].closest('#rm-live-tree')),
+            label: sel[0] && sel[0].textContent,
+            vanillaSelected: !!document.querySelector('.vn-map.rsel'),
+            header: (document.querySelector('.rd-head .rd-name') || {}).textContent,
+            vid: !!document.querySelector('.rd-head .rd-vid'),
+            spawns: document.querySelectorAll('#rg-svg .svge-spawn, #rg-svg .svge-arrival').length,
+        };
+    });
+    check('+ New Map adds an entry under Custom rooms and selects it',
+        made.selected === 1 && !!made.custom && made.inCustom && /New map 1/.test(made.label)
+        && /16×14/.test(made.label), JSON.stringify(made));
+    check('and nothing in the Vanilla list is selected',
+        !made.vanillaSelected, JSON.stringify(made));
+    check('the room on screen is the new map, not Strong Heart\u2019s Hut',
+        made.header === 'New map 1' && !made.vid && made.spawns === 0, JSON.stringify(made));
+    await page.click('#rm-new-map');
+    check('a second one is a second entry',
+        await page.evaluate(() => document.querySelectorAll('#rm-live-tree .cm-map').length === 2
+            && document.querySelector('.cm-map.rsel').textContent.indexOf('New map 2') >= 0));
 
     // ── idempotent binding ───────────────────────────────────────────────
     // The rail node outlives its contents, so a second bind would stack a

@@ -38,6 +38,8 @@ function railScrollEl() { return document.getElementById('rm-rail-scroll'); }
  */
 function railSelectRow(li) {
   if (!li) return;
+  // A custom map (map-editor-custom.js) selects itself.
+  if (li.dataset.custom !== undefined) { customOpen(li.dataset.custom); return; }
   document.querySelectorAll('.rn-map.rsel').forEach(function (x) { x.classList.remove('rsel'); });
   li.classList.add('rsel');
   if (li.dataset.vid !== undefined) {
@@ -76,7 +78,8 @@ function railSetGroup(key, open) {
 
 /** What a row matches against: its visible label plus its id. */
 function railRowHaystack(li) {
-  return ((li.textContent || '') + ' ' + (li.dataset.vid || '') + ' ' + (li.dataset.map || ''))
+  return ((li.textContent || '') + ' ' + (li.dataset.vid || '') + ' ' + (li.dataset.map || '')
+    + ' ' + (li.dataset.custom ? 'custom' : ''))
     .toLowerCase();
 }
 

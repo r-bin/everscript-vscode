@@ -67,6 +67,7 @@ if(typeof window!=='undefined'&&window.addEventListener){
     }else if(data.command==='uiPrefs'){
       // UI state the host remembers across panels (map-editor-tiles.js).
       if(typeof applyUiPrefs==='function')applyUiPrefs(data.prefs);
+      if(typeof customLoadPrefs==='function')customLoadPrefs(data.prefs);
     }else if(data.command==='blankRoom'){
       // A room that is not in the ROM, to try things in.
       if(typeof applyBlankRoom==='function')applyBlankRoom(data);

@@ -206,10 +206,13 @@ returns `NaN` for null/empty/unparseable. Pure, tested in `tests/memory/radar.te
 
 **The rail (Phase 7b, `rooms-rail.js` + `rooms-rail.css`)** is one list with two
 collapsible groups — `VANILLA ROOMS` (the ROM catalogue, grouped by **area**, which is
-the game's own structure) and `CUSTOM ROOMS` (rooms declared in the active `.evs`). There
-is **no Live/Vanilla mode toggle any more** and no `_vanillaMode`: a row carries its own
-provenance (`data-vid` = catalogue, `data-map` + `data-line` = source), so "which tree"
-is not state. Group/area expansion lives in the DOM (`[hidden]`, `.collapsed`), not in
+the game's own structure) and `CUSTOM ROOMS` (the maps made with `+ New Map`, then the
+rooms declared in the active `.evs`). There is **no Live/Vanilla mode toggle any more** and
+no `_vanillaMode`: a row carries its own provenance (`data-vid` = catalogue, `data-map` +
+`data-line` = source, `data-custom` = a custom map, owned by `map-editor-custom.js`), so
+"which tree" is not state. **Only a ROM room is ever selected in the Vanilla group.** A
+custom map borrows a donor room's graphics through its draft (`_edit.roomId`), never by
+selecting that room's row. Group/area expansion lives in the DOM (`[hidden]`, `.collapsed`), not in
 JS. Its only JS state is `_railQuery`. Anything that navigates to a room — the exit links
 in particular — goes through `gotoVanillaRoom`, which clears the search and opens the
 Vanilla group first, because a `display:none` row cannot be clicked into view.

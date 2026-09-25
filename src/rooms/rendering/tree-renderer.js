@@ -66,13 +66,13 @@ function buildRoomRailHtml(treeHtml, vanillaTreeHtml) {
         + '<div class="rm-rail-scroll" id="rm-rail-scroll">'
         + group('vanilla', 'Vanilla rooms', 'Every room in the ROM, grouped by area',
             false, vanillaTreeHtml)
-        + group('live', 'Custom rooms', 'Rooms declared in the active .evs file',
+        + group('live', 'Custom rooms', 'New maps you have made, and rooms declared in the active .evs file',
             true, treeHtml)
         + '<div class="rm-rail-none" id="rm-rail-none" hidden>No rooms match</div>'
         + '</div>'
         + '<div class="rm-rail-foot">'
         + '<button class="rm-rail-new" id="rm-new-map"'
-        + ' title="Draft a blank 24×16 map, borrowing Strong Heart’s Hut for graphics">'
+        + ' title="A new, empty custom map, one SNES screen (16×14 tiles)">'
         + '+ New Map</button>'
         + '</div></div>';
 }

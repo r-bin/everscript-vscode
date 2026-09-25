@@ -31,7 +31,7 @@ const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-stamps.js', '
     'map-editor-trigger-select.js', 'map-editor-trigger-panel.js',
     'map-editor-toolbar.js', 'map-editor-filterbar.js', 'rom-overlay.js',
     'tables-builder.js', 'map-editor-tabs.js', 'map-editor-panels.js', 'map-editor-gestures.js',
-    'map-editor-input.js', 'map-editor-actions.js', 'map-editor-newroom.js', 'map-editor-start.js'];
+    'map-editor-input.js', 'map-editor-actions.js', 'map-editor-newroom.js', 'map-editor-start.js', 'map-editor-custom.js'];
 
 /** A palette shaped like the host's reply, small enough to read. */
 const PALETTE = {
@@ -113,6 +113,9 @@ async function main() {
         function escH(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
         function roomVanillaIdNum(){ return 0x34; }
         function renderMetatilePalette(){}
+        // The room detail is detail-renderer.js's, not the editor's; a custom
+        // map is opened through it (rooms-rail-dom.test.js drives the real one).
+        function renderRoomDetail(room){ window.__rendered = room; }
         ${FILES.map(read).join('\n')}
     ` });
 
@@ -662,11 +665,32 @@ async function main() {
         await page.evaluate(() => !!document.getElementById('rg-newroom').closest('#rg-canvas-card')));
     await page.fill('#rg-nr-w', '20');
     await page.fill('#rg-nr-h', '9');
-    await page.evaluate(() => { window.__sent.length = 0; });
+    await page.evaluate(() => { window.__sent.length = 0; window.__rendered = null; });
     await page.click('[data-edit-act="new-room-go"]');
-    const req = await page.evaluate(() => window.__sent.find((m) => m.command === 'requestBlankRoom'));
-    check('create asks the host for the size typed',
-        req && req.widthTiles === 20 && req.heightTiles === 9, JSON.stringify(req));
+    const made = await page.evaluate(() => ({
+        room: window.__rendered,
+        map: _customMaps[_customMaps.length - 1],
+        saved: window.__sent.filter((m) => m.command === 'saveUiPref' && m.key === 'customMaps').length,
+    }));
+    // A new custom map, not a draft laid over the room on screen: that room
+    // only lends its graphics (map-editor-custom.js).
+    check('create makes a custom map the size typed, borrowing this room\u2019s graphics',
+        made.map && made.map.w === 20 && made.map.h === 9 && made.map.borrow === 0x34
+        && made.room && made.room.custom === made.map.key && made.room.name === made.map.name
+        && made.saved > 0, JSON.stringify(made));
+    // And opening it asks for the blank grid once the dictionary is in.
+    const req = await page.evaluate(() => {
+        window.__sent.length = 0;
+        editDraft().customKey = _customActive;
+        _newMapWaiting = true;
+        newMapPaletteReady();
+        const r = window.__sent.find((m) => m.command === 'requestBlankRoom');
+        editDraft().customKey = undefined;
+        return r;
+    });
+    check('which asks the host for a blank grid that size',
+        req && req.widthTiles === 20 && req.heightTiles === 9 && req.borrowFrom === 0x34, JSON.stringify(req));
+    await page.evaluate(() => { _customActive = null; });
 
     // The donor room's scenery, as svg-builder would have drawn it.
     await page.evaluate(() => {

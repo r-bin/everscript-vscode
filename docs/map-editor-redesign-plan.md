@@ -893,6 +893,35 @@ the collapsed headers their counts and makes opening a group instant. Fixed on
 the way: the `loading…` / empty-family early returns never closed the group's
 `<div>`, which nested every later group inside it.
 
+## 8d. A new map is a custom room (v0.63.0)
+
+**"this is still stronghearts map!!! a new map creates a new entry in custom
+rooms and shows an empty grid (maybe the exact size of one snes screen?) with
+an debug entrance featuring the box … no objects, no triggers. you can only be
+in the vanilla room list if you are a vanilla room."**
+
+§8c removed the donor's *drawings*, but the new map was still that room: the
+rail had 0x34 selected in the Vanilla list, and the header, the draft key and the
+tile-overlay requests all belonged to it. Now `map-editor-custom.js` makes each
+new map a room of its own:
+- It gets a row under **Custom rooms** ("New map N", tagged with its size) and is
+  selected there. Nothing in the Vanilla list is selected.
+- `renderRoomDetail` gets a synthetic room: its name, `custom: key`, the donor as
+  `romRoomId`, and `initMap` bounds so svg-builder draws an empty canvas the map's
+  size. `requestRoomTileOverlay` refuses a custom room, so the donor is never
+  rendered under it, and no spawns, arrivals or triggers are built at all.
+- Its draft is its own (`_edit.customKey`). It is stashed when you leave and
+  restored when you come back. The draft's data is saved to `uiPrefs` so it
+  survives a webview rebuild.
+- Size: **16×14 tiles**, one SNES screen (256×224). The inline "new room" form
+  also makes a custom map now (borrowing the graphics of the room on screen)
+  instead of drafting over it.
+- "Discard" on a custom map clears the drawing but keeps the map and its Boy.
+
+Not done: renaming or deleting a custom map, and exporting one. A custom map
+cannot be exported, for the same reason as §8c's start marker: the encoder has no
+new-room path yet.
+
 ## 9. Ritual reminder
 
 One prompt = one commit. This plan spans multiple prompts/sessions by design

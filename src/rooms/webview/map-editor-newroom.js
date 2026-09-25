@@ -28,10 +28,10 @@ function buildNewRoomHtml() {
   var here = d && d.blank;
   return '<div class="rg-newroom" id="rg-newroom">'
     + '<span class="rs-note">New room, in 16px tiles:</span>'
-    + '<label>w <input type="number" id="rg-nr-w" min="2" max="128" value="16"></label>'
-    + '<label>h <input type="number" id="rg-nr-h" min="2" max="128" value="12"></label>'
+    + '<label>w <input type="number" id="rg-nr-w" min="2" max="128" value="' + CUSTOM_MAP_W + '"></label>'
+    + '<label>h <input type="number" id="rg-nr-h" min="2" max="128" value="' + CUSTOM_MAP_H + '"></label>'
     + '<button class="rdf on" data-edit-act="new-room-go"'
-    + ' title="Draft an empty grid. This room lends its graphics and families; nothing is drawn.">create</button>'
+    + ' title="A new custom map. This room lends its graphics and families; nothing of it is drawn.">create</button>'
     + '<button class="rdf" data-edit-act="new-room-cancel">cancel</button>'
     + (here ? '<span class="rs-note">showing a blank ' + here.widthTiles + '×' + here.heightTiles
       + ' room</span>' : '')
@@ -56,77 +56,33 @@ function requestBlankRoom(w, h) {
   });
 }
 
-/** Read the form and ask the host for the room. */
+/**
+ * Read the form and make a custom map that size, drawing with the graphics
+ * of the room on screen — a new entry under Custom rooms, never a draft
+ * laid over the room it borrows from.
+ */
 function editNewRoomGo() {
   var wEl = document.getElementById('rg-nr-w');
   var hEl = document.getElementById('rg-nr-h');
-  var w = clampRoomSide(wEl && wEl.value, 16);
-  var h = clampRoomSide(hEl && hEl.value, 12);
-  editNote('drafting a ' + w + '×' + h + ' room…');
-  requestBlankRoom(w, h);
+  var w = clampRoomSide(wEl && wEl.value, CUSTOM_MAP_W);
+  var h = clampRoomSide(hEl && hEl.value, CUSTOM_MAP_H);
+  _newRoomOpen = false;
+  customNew(w, h, typeof _mtRoomId === 'number' ? _mtRoomId : undefined);
 }
 
 // ---------------------------------------------------------------------------
-// `> everscript new map`
+// `> everscript new map` / `+ New Map`
 // ---------------------------------------------------------------------------
 
 /**
- * The room a new map borrows its *vocabulary* from — not its picture.
+ * Make a new custom map, one SNES screen big, and open it.
  *
- * A blank room cannot invent a Block 1 — a synthetic one-entry list renders
- * black (rule 7.1) — so it borrows one. `0x34` is Strongheart's Hut: small
- * and with seven families that between them attest 157 graphics, which is a
- * usable starting vocabulary rather than a corner case.
- *
- * Since v0.60.0 that is *all* it lends. The grid comes back filled with
- * `emptyStamp` (maps/blank-room.ts), so a new map draws nothing — "dont use
- * stronghearts room as default for a new map. new maps are completely
- * empty". What could not be dropped, and why, is in the plan doc §8a.3: the
- * seven palette slots stay loaded because the blank word itself names one of
- * them, and a room with no families can colour nothing at all.
- */
-var NEW_MAP_BORROW = 0x34;
-var NEW_MAP_W = 24;
-var NEW_MAP_H = 16;
-
-/** Set while the chain below is waiting for the borrowed dictionary. */
-var _newMapWaiting = false;
-
-/**
- * Open the editor on a blank map.
- *
- * Four steps that cannot be collapsed: the Rooms tab has to be showing, a
- * room has to be rendered to borrow from, edit mode has to be on for the
- * draft to exist, and the dictionary has to have arrived from the host
- * before anything can be drawn. The last one is asynchronous, so the chain
- * parks in `_newMapWaiting` and `newMapPaletteReady` finishes it.
+ * Since v0.63.0 this is a room of its own under Custom rooms
+ * (map-editor-custom.js), not a draft over Strong Heart's Hut: "you can only
+ * be in the vanilla room list if you are a vanilla room".
  */
 function roomsNewMap() {
-  var tab = document.querySelector('.tab[data-tab="rooms"]');
-  if (tab) tab.click();
-
-  if (typeof gotoVanillaRoom === 'function') gotoVanillaRoom(NEW_MAP_BORROW);
-
-  var d = editDraft();
-  if (!d || !d.on) {
-    var btn = document.getElementById('rg-edit-btn');
-    if (btn) btn.click();
-  }
-
-  if (_mtPalette) { newMapDraft(); return; }
-  _newMapWaiting = true;
-}
-
-/** The borrowed dictionary arrived; draft the grid now. */
-function newMapPaletteReady() {
-  if (!_newMapWaiting) return;
-  _newMapWaiting = false;
-  newMapDraft();
-}
-
-function newMapDraft() {
-  editNote('drafting a blank ' + NEW_MAP_W + '×' + NEW_MAP_H + ' map…');
-  requestBlankRoom(NEW_MAP_W, NEW_MAP_H);
+  customNew(CUSTOM_MAP_W, CUSTOM_MAP_H);
 }
 
 /** The SVG's coordinate system: one unit is one 8px tile, so a metatile is 2. */
@@ -380,6 +336,7 @@ function applyBlankRoom(msg) {
   resizeMapTo(room);
   editClearDonorScenery();
   _editOrigin = { x: 0, y: 0 };
+  customNoteBlank(room);
 
   editNote('empty ' + room.widthTiles + '×' + room.heightTiles
     + ' room — nothing drawn; room 0x' + room.borrowedFrom.toString(16)

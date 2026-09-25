@@ -603,6 +603,7 @@ const ui = new Function(`
   ${read('map-editor-actions.js')}
   ${read('map-editor-newroom.js')}
   ${read('map-editor-start.js') /* the Boy's start on a drafted map */}
+  ${read('map-editor-custom.js') /* custom maps: their rail rows and drafts */}
   return {
     tileSlotWord: tileSlotWord, editOnTilePicked: editOnTilePicked,
     editAction: editAction, editReset: editReset, editDraft: editDraft,

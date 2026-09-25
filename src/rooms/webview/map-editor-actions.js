@@ -10,7 +10,11 @@ function editAction(act) {
   if (act === 'undo') { editUndo(_mtPalette); requestComposedPreview(); renderEditChrome(); return; }
   if (act === 'redo') { editRedo(_mtPalette); requestComposedPreview(); renderEditChrome(); return; }
   if (act === 'clear') {
-    editReset(d.roomId).on = true;
+    var fresh = editReset(d.roomId);
+    fresh.on = true;
+    // Discarding a custom map's drawing keeps the map: its identity, its
+    // blank grid and its one Boy (map-editor-rules §5).
+    if (d.customKey) { fresh.customKey = d.customKey; fresh.blank = d.blank; fresh.start = d.start; }
     _editSel = null; _editClip = null; _editComposed = null;
     renderEditChrome(); renderComposer();
     return;

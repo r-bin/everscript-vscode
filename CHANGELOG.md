@@ -1,3 +1,22 @@
+## [0.63.0] — 2026-09-25
+
+### Map editor §8d: a new map is its own room
+
+- **`+ New Map` makes a custom map** instead of opening Strong Heart's Hut. The
+  map gets its own entry under **Custom rooms** ("New map 1", "New map 2", …)
+  and is selected there. Nothing in the Vanilla list is highlighted: only a ROM
+  room is ever selected in that list.
+- **It starts as one SNES screen**, 16×14 tiles: an empty grid with the Boy in
+  the middle. It has no objects and no triggers. It still borrows room
+  `0x34`'s graphics and families to draw with, but nothing of that room is
+  shown.
+- **Your custom maps are kept.** Switching to another room and back returns
+  your drawing and the Boy's position. The maps are saved by VS Code, so they
+  survive the panel being rebuilt and restarts.
+- The editor's inline **new room…** form also makes a custom map now, using
+  the graphics of the room you are in.
+- Custom maps can't be renamed, deleted or exported yet.
+
 ## [0.62.0] — 2026-09-25
 
 ### Map editor §8c: new maps are empty, the Boy marks the start, families start collapsed
