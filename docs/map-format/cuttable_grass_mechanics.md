@@ -109,6 +109,7 @@ Per slot:
 ### 3.4 Not yet traced
 
 - **UNVERIFIED:** the weapon-hitbox code path that fills a queue slot. Both traces begin after the slots were already populated.
+- **Observed, not traced** (everscript-vscode v0.69.1, headless snes9x): in the same room, with the same button presses, the Laser Lance (`GAIN_WEAPON.SPEAR_4`) cut a grass cell, and the Bone Crusher did not. The Bone Crusher also cut nothing in rooms `0x05`, `0x36`, `0x41`, `0x5B` or `0x69`, but the Boy's position there was not confirmed. So which weapons can cut is open, and this is one data point.
 - **UNVERIFIED:** the meaning of the per-record `steps` byte (hit count? step delay? sequence length?). It is `0x01` in all 206 vanilla records.
 - **UNVERIFIED:** whether cut tiles persist across a room reload, and if so where the flag lives.
 

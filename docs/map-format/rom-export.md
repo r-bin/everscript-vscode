@@ -20,7 +20,7 @@ Code: `src/maps/encode.ts` (a port of `everscript/tools/encode_room.py`),
 | 1 | `0x300000..0x3FFFFF` | ROM grows from 3 MB to 4 MB, filled with zeroes. The header already says 4 MB (`$FFD7 = 0x0C`). | everscript `linker.py`: extension = `0x300000..0x3fffff` |
 | 2 | `0x3D8000` = `$BD:8000` | The room blob, up to 32 KB | `encode_room.write_room_into_rom(at_offset=…)` |
 | 3 | `$9FFDE7 + 0x15*4` | Room 0x15's map pointer, set to `$BD8000` | the map pointer table |
-| 4 | `0x3C8000` = `$BC:8000` | `A3 36 00`: `fade_in(); end` | core `fade_in()` = `call_id(0x36)` |
+| 4 | `0x3C8000` = `$BC:8000` | `14 E9 01 E8 A3 36 00`: `MEMORY.GAIN_WEAPON = GAIN_WEAPON.SPEAR_4; fade_in(); end` | core `fade_in()` = `call_id(0x36)`; `$2441` is `GAIN_WEAPON`, `0x18` the Laser Lance |
 | 5 | `$92801B + 0x15*5` | Room 0x15's enter-script pointer (packed), set to `$BC8000` | `linker.py` `MapData.trigger_enter` |
 | 6 | `$92E0CA` | `22 x y 15 00 00`: `load_map(0x15, x, y); end` | `ADDRESS.INTRO_FIRST_CODE_EXECUTED`, the practice ROM's `intro_skip()` |
 | 7 | `$FFDC..$FFDF` | Header checksum recomputed | |
@@ -82,13 +82,15 @@ in `cuttable_grass_mechanics.md`:
 The read-back check also confirms that there are no invariant warnings, and
 that each cuttable cell cuts to exactly the words of the tile beneath it.
 
-**Not yet seen working in the game.** In a headless boot the Boy has the Bone
-Crusher equipped and swings, but no grass was cut. That includes vanilla
-grass in rooms 0x05, 0x36, 0x41, 0x5B and 0x69. So the gap is in the test
-harness: how the Boy is placed and how the swing registers. The code that
-turns a weapon hit into a cut has not been traced either
-(`cuttable_grass_mechanics.md` §3.4). Try it by hand with **Play in
-emulator**.
+**Seen working in the game** (v0.69.1). A headless boot of an export with
+grass directly north of the Boy's start went like this: face north, one B
+press. The grass cell's metatile id in WRAM changed from the source (`1c0`)
+to exactly the tile beneath (`1d0`). That needed a weapon that cuts. With
+only the Bone Crusher the Boy starts with after the intro skip, the same
+presses cut nothing, including vanilla grass in five rooms. So the enter
+script now gives him the Laser Lance
+(`MEMORY.GAIN_WEAPON = GAIN_WEAPON.SPEAR_4;`, `14 E9 01 E8`) before fading
+in.
 
 ## Verification
 

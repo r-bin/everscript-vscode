@@ -11,8 +11,9 @@
 //   2. The intro's first script code ($92E0CA, `ADDRESS.INTRO_FIRST_CODE_
 //      EXECUTED`) becomes `load_map(0x15, x, y); end` — the same jump the
 //      practice ROM's `intro_skip()` makes, minus its music and state setup.
-//   3. Room 0x15's enter script ($92801B + id*5) is pointed at `fade_in();
-//      end`. Its vanilla pointer is 0, i.e. `$928000`, the head of the
+//   3. Room 0x15's enter script ($92801B + id*5) is pointed at
+//      `MEMORY.GAIN_WEAPON = GAIN_WEAPON.SPEAR_4; fade_in(); end` — a spear,
+//      so the test ROM can cut its cuttable grass. Its vanilla pointer is 0, i.e. `$928000`, the head of the
 //      script pointer table, which is not a script; a room entered with no
 //      fade-in stays black.
 //
@@ -48,6 +49,15 @@ const BLOB_OFFSET = 0x3d8000;   // $BD:8000, up to 32 KB
 
 /** `load_map(map, x, y)`: `22 x y map 00`, coordinates in 8px units. */
 const OP_CHANGE_MAP = 0x22;
+/**
+ * `MEMORY.GAIN_WEAPON = GAIN_WEAPON.SPEAR_4;` — opcode `0x14` writes a byte,
+ * its address is an offset from `$2258` (`$2441` -> `E9 01`), and `0x18` is
+ * the inline constant `0xE0 + (0x18 - 0x10)`. The Boy gets the Laser Lance,
+ * so a test ROM can cut grass: after the intro skip he has only the Bone
+ * Crusher.
+ */
+const GAIN_SPEAR_4 = [0x14, 0xe9, 0x01, 0xe8];
+
 /** `call_id(0x36)` — what `fade_in()` compiles to in the everscript core. */
 const OP_CALL_GLOBAL = 0xa3;
 const GLOBAL_FADE_IN = 0x36;
@@ -118,7 +128,7 @@ function buildExportRom(vanilla, draft) {
     maps.writeRoomAt(rom, BRIAN_ROOM, built.blob, BLOB_OFFSET);
 
     // 3. The enter script, and room 0x15's pointer to it.
-    rom.set([OP_CALL_GLOBAL, GLOBAL_FADE_IN, OP_END], SCRIPT_OFFSET);
+    rom.set(GAIN_SPEAR_4.concat([OP_CALL_GLOBAL, GLOBAL_FADE_IN, OP_END]), SCRIPT_OFFSET);
     const packed = script.snesToScriptValue(0x800000 | SCRIPT_OFFSET);
     const entry = snesOffset(ENTER_TABLE + BRIAN_ROOM * ENTER_STRIDE);
     rom[entry] = packed & 0xff;
@@ -189,9 +199,10 @@ function verifyExport(rom, built, draft, at) {
     }
 
     const enter = script.buildRoomScriptModel(rom, BRIAN_ROOM).enter;
-    const call = enter && enter.instructions[0];
-    if (!call || call.opcode !== OP_CALL_GLOBAL || !enter.terminated) {
-        throw new Error('export check: room 0x15 does not enter with fade_in()');
+    const ops = enter ? enter.instructions.map((r) => r.opcode) : [];
+    if (ops.join() !== [GAIN_SPEAR_4[0], OP_CALL_GLOBAL, OP_END].join() || !enter.terminated
+        || !/\$2441\) = .*\(0x18\)/.test(enter.instructions[0].summary)) {
+        throw new Error('export check: room 0x15 does not enter with the spear and fade_in()');
     }
 
     const intro = script.decodeScript(rom, INTRO_FIRST_CODE).instructions[0];

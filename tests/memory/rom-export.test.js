@@ -227,14 +227,15 @@ if (!fs.existsSync(ROM_PATH)) {
         }
     });
 
-    test('the intro loads room 0x15 at the start marker, and the room fades in', () => {
+    test('the intro loads room 0x15 at the start marker; the Boy gets a spear, and the room fades in', () => {
         const { rom: out } = buildExportRom(rom, draft);
         const intro = script.decodeScript(out, INTRO_FIRST_CODE).instructions;
         assert.deepStrictEqual(Array.from(out.slice(0x12e0ca, 0x12e0ca + 6)), [0x22, 17, 15, 0x15, 0x00, 0x00]);
         assert.strictEqual(intro[0].opcode, 0x22);
         const enter = script.buildRoomScriptModel(out, BRIAN_ROOM).enter;
-        assert.deepStrictEqual(enter.instructions.map((r) => r.opcode), [0xa3, 0x00]);
-        assert.match(enter.instructions[0].summary, /0x36/);
+        assert.deepStrictEqual(enter.instructions.map((r) => r.opcode), [0x14, 0xa3, 0x00]);
+        assert.match(enter.instructions[0].summary, /\$2441\) = .*\(0x18\)/, 'GAIN_WEAPON = SPEAR_4');
+        assert.match(enter.instructions[1].summary, /0x36/);
     });
 
     test('the header checksum is valid', () => {

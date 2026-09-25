@@ -1,3 +1,14 @@
+## [0.69.1] — 2026-09-25
+
+### Export ROM: the Boy gets a spear, so cuttable grass can be tested
+
+- **Test ROMs now give the Boy the Laser Lance before the room fades in**
+  (`MEMORY.GAIN_WEAPON = GAIN_WEAPON.SPEAR_4;`). After the intro skip he only
+  has the Bone Crusher, and that didn't cut grass.
+- **Cutting now confirmed in the game.** In the built-in emulator, one swing
+  at a cuttable tile revealed exactly the tile beneath it. The v0.69.0 notes
+  said this was unverified.
+
 ## [0.69.0] — 2026-09-25
 
 ### Map editor: a cuttable layer
