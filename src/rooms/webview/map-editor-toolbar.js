@@ -14,7 +14,9 @@ var EDIT_TOOLS = [
   ['select', 'select', 'Click a trigger to select it; drag its own cells to move it. '
     + 'Backspace/Delete removes it, Cmd/Ctrl+C/V copies and pastes it'],
   ['paint', 'paint', 'Click or drag to stamp the selected tile'],
-  ['erase', 'erase', 'Rub decoration off: the canopy goes blank and the floor’s own collision comes back'],
+  ['erase', 'erase', 'Erase what the selected layer shows: the cuttable tile with Cuttable on; '
+    + 'the front art with Foreground; the ground with Background; with both, the front art first, '
+    + 'then the tile itself'],
   ['rect', 'rect', 'Drag a rectangle and fill it with the selected tile'],
   ['pick', 'pick', 'Click the map to select the tile under the cursor'],
   ['copy', 'copy', 'Drag to take a region, then click to stamp it elsewhere'],

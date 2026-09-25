@@ -830,8 +830,11 @@ test('erasing takes the picture and the collision back off the floor', () => {
     assert.strictEqual(bare, 0, 'it resolves to the floor stamp the room already has');
     assert.strictEqual(d.added.length, 0, 'so nothing new is needed');
 
-    // Erasing bare floor is a no-op rather than a pointless new stamp.
-    assert.strictEqual(ui.editResolve(p, 0, 1, -1, true), 0);
+    // Erasing bare floor makes no new stamp. Since v0.69.2 it asks for the
+    // draft's own write at the cell to be taken back (EDIT_ERASE_CELL, -2);
+    // the stroke only does that where the draft painted, so the room's own
+    // floor here is left as it is.
+    assert.strictEqual(ui.editResolve(p, 0, 1, -1, true), -2);
     assert.strictEqual(d.added.length, 0);
 
     // §8a.2: erase no longer depends on a mode being set first. It used to be

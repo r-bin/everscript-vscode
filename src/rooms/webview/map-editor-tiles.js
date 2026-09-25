@@ -8,7 +8,8 @@
 // dominant family, so grouping by one and ranking by the other is not a
 // tautology — see docs/map-format/map-editor-window.md §2.2.
 //
-// Owns: _tileObserver, _tileOrder, _tileOrderFor, _layerForce, _brushFlip, _tileGrassOnly.
+// Owns: _tileOrder, _tileOrderFor, _layerForce, _brushFlip, _tileGrassOnly.
+// Lazy loading of the groups is map-editor-tile-lazy.js.
 //
 // **Every tile, no pager, nothing collapsible** (§8e): "the tile list cannot
 // be collapsed, we always show all available tiles" and "show more is not
@@ -16,15 +17,6 @@
 // catalogue's tile count before its sheet exists, and the sheet is fetched
 // only when the group scrolls near the view — so 329 families cost a few
 // requests, and nothing below moves when one arrives.
-
-/**
- * Loads a family's sheet as its placeholder nears the visible part of the
- * list. Rebuilt on every render, because every render replaces the nodes it
- * was watching.
- */
-var _tileObserver = null;
-/** How far outside the view a group starts loading, in px. */
-var TILE_LAZY_MARGIN = 600;
 
 /** One swatch is 16px art at 2x, plus shared.css's margin: 32px; 4px gutters. */
 var TILE_PITCH = 36;
@@ -40,26 +32,6 @@ function tileSheetHeight(count, width) {
 }
 
 /** Watch every placeholder in the Tile tab and fetch what comes near. */
-function tileLazyObserve() {
-  if (_tileObserver) { _tileObserver.disconnect(); _tileObserver = null; }
-  var body = document.getElementById('rg-tab-body');
-  if (!body) return;
-  var lazy = body.querySelectorAll('[data-lazy-fam]');
-  if (!lazy.length) return;
-  if (typeof IntersectionObserver === 'undefined') {
-    // No observer (an old host): load the first screenful, never all 329.
-    for (var i = 0; i < Math.min(lazy.length, 8); i++) ensureFamilySheet(Number(lazy[i].dataset.lazyFam));
-    return;
-  }
-  _tileObserver = new IntersectionObserver(function (entries) {
-    entries.forEach(function (e) {
-      if (!e.isIntersecting) return;
-      _tileObserver.unobserve(e.target);
-      ensureFamilySheet(Number(e.target.dataset.lazyFam));
-    });
-  }, { root: body, rootMargin: TILE_LAZY_MARGIN + 'px 0px' });
-  for (var j = 0; j < lazy.length; j++) _tileObserver.observe(lazy[j]);
-}
 
 /**
  * Force the next placement onto a layer, or null to follow vanilla.

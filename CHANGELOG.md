@@ -1,3 +1,24 @@
+## [0.69.2] — 2026-09-25
+
+### Map editor: drawing order, erasing by layer, smoother tile list
+
+- **Drawing order no longer matters.** Painting a ground tile onto a cell
+  that already has a front tile (like the skull) keeps the front tile and
+  only changes the ground. That's the same result as painting the ground
+  first. The front tile's collision is used either way.
+- **The eraser follows the selected layer:**
+  - With **Cuttable** on, it removes the cuttable tile.
+  - With only **Foreground** on, it removes the front tile.
+  - With only **Background** on, it removes the ground and keeps any front
+    tile.
+  - With both on, it removes the front tile first, then the painted tile
+    itself.
+- **Erasing on a custom map now works on ground tiles too.** Before, erase
+  only removed front tiles, so erasing a ground tile did nothing.
+- **Scrolling the Tile tab is smoother.** Tiles load several screens ahead
+  instead of one. A family's tiles now appear in place when they arrive,
+  instead of redrawing the whole list each time.
+
 ## [0.69.1] — 2026-09-25
 
 ### Export ROM: the Boy gets a spear, so cuttable grass can be tested

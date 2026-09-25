@@ -47,6 +47,8 @@ function applyFamilySheet(msg) {
   if (!msg || msg.error || !msg.sheet) return;
   _famSheets[msg.sheet.family] = msg.sheet;
   noteLayerHints(msg.sheet.slots, 4, 5, 2);
+  // Only this family's group, when it is on screen (map-editor-tiles.js).
+  if (typeof tileGroupSwap === 'function' && tileGroupSwap(msg.sheet.family)) return;
   renderEditPanels();
 }
 

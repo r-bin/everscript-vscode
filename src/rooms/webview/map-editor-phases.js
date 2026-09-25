@@ -117,25 +117,47 @@ function editResolve(palette, x, y, brushIndex, erasing, hereIndex) {
 
   if (erasing) {
     if (!under) return -1;
-    if (under.layer1 === blank) return here; // already bare: nothing to erase
-    var restored = editFloorCollisionFor(palette, under.layer2);
-    return editAddStamp(palette, {
-      layer1: blank,
-      layer2: under.layer2,
-      collision: restored === null ? under.collision : restored,
-    });
+    var layers = editEraseLayers();
+    var hasCanopy = under.layer1 !== blank;
+    // The front art goes first whenever it is shown and there is some.
+    if (layers.fg && hasCanopy) {
+      var restored = editFloorCollisionFor(palette, under.layer2);
+      return editAddStamp(palette, {
+        layer1: blank,
+        layer2: under.layer2,
+        collision: restored === null ? under.collision : restored,
+      });
+    }
+    if (!layers.bg) return here; // only the front is selected, and it is bare
+    // The ground: under front art, only the ground goes; otherwise the whole
+    // cell — the draft's own write at it — is taken back.
+    if (hasCanopy) return editAddStamp(palette, { layer1: under.layer1, layer2: blank, collision: under.collision });
+    return EDIT_ERASE_CELL;
   }
 
   var brush = editStampWords(palette, brushIndex);
-  // A brush with real art in its canopy word is a decoration; anything else
-  // (including a brush this index cannot resolve, or nothing under it to
-  // preserve) falls back to the ground-composed, replace-outright behavior.
-  var isDeco = brush && brush.layer1 !== blank;
-  if (!isDeco || !under) return brushIndex;
+  if (!brush || !under) return brushIndex;
+  // A brush with real art in its canopy word is a decoration: it takes the
+  // cell's ground. A ground brush over a decoration keeps that decoration —
+  // the same stamp either order makes, so front-then-ground and
+  // ground-then-front agree (the collision is the decoration's either way).
+  if (brush.layer1 !== blank) {
+    return editAddStamp(palette, { layer1: brush.layer1, layer2: under.layer2, collision: brush.collision });
+  }
+  if (under.layer1 !== blank && brush.layer2 !== blank) {
+    return editAddStamp(palette, { layer1: under.layer1, layer2: brush.layer2, collision: under.collision });
+  }
+  return brushIndex;
+}
 
-  return editAddStamp(palette, {
-    layer1: brush.layer1,
-    layer2: under.layer2,
-    collision: brush.collision,
-  });
+/** editResolve's answer when erasing should take the draft's write off the cell. */
+var EDIT_ERASE_CELL = -2;
+
+/**
+ * Which layers the eraser works on: the bottom bar's Background/Foreground
+ * segments (rom-overlay.js). Both on — the default — erases the top-most.
+ */
+function editEraseLayers() {
+  if (typeof romLayerVis !== 'function') return { bg: true, fg: true };
+  return { bg: romLayerVis('bg'), fg: romLayerVis('fg') };
 }

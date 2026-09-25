@@ -27,7 +27,7 @@ const read = (f) => fs.readFileSync(path.join(WEBVIEW, f), 'utf8');
 const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-stamps.js', 'map-editor-paint.js',
     'map-editor-ui.js', 'map-editor-phases.js', 'map-editor-constructs.js', 'map-editor-families.js',
     'map-editor-relations.js', 'map-editor-chips.js', 'map-editor-stranded.js',
-    'map-editor-tiles.js', 'map-editor-neighbours.js', 'map-editor-deco.js', 'map-editor-special.js',
+    'map-editor-tiles.js', 'map-editor-tile-lazy.js', 'map-editor-neighbours.js', 'map-editor-deco.js', 'map-editor-special.js',
     'map-editor-trigger-select.js', 'map-editor-trigger-panel.js',
     'map-editor-toolbar.js', 'map-editor-filterbar.js', 'rom-overlay.js',
     'tables-builder.js', 'map-editor-tabs.js', 'map-editor-panels.js', 'map-editor-gestures.js',
@@ -1929,6 +1929,63 @@ async function main() {
         JSON.stringify(cut));
     check('erasing on the cuttable layer removes the cuttable tile, not the map',
         cut.erased.cut === 0 && cut.erased.cells === 1, JSON.stringify(cut));
+
+    // ── v0.69.2: order-independent stamps, erase by layer, lazy swap ──────
+    const ord = await page.evaluate(() => {
+        const d = editReset(0x34);
+        d.on = true; d.tool = 'paint';
+        d.blank = { widthTiles: 2, heightTiles: 2, floor: { layer1: 0xa800, layer2: 0xa800, collision: 0 } };
+        _mtPalette.grid = [[null, null], [null, null]];
+        const front = editAddStamp(_mtPalette, { layer1: 0x2c66, layer2: 0xa800, collision: 0x1f });
+        const ground = editAddStamp(_mtPalette, { layer1: 0xa800, layer2: 0x4c62, collision: 0x10 });
+        const words = (x, y) => editStampWords(_mtPalette, d.cells[x + ',' + y]);
+        d.brush = front; editStroke({ x: 0, y: 0 }, 'down'); d.brush = ground; editStroke({ x: 0, y: 0 }, 'down');
+        d.brush = ground; editStroke({ x: 1, y: 0 }, 'down'); d.brush = front; editStroke({ x: 1, y: 0 }, 'down');
+        const r = { a: words(0, 0), b: words(1, 0) };
+        // Erase by layer, on a front-over-ground cell.
+        const erase = (layer) => {
+            d.cells['1,1'] = d.cells['0,0'];
+            _currentLayer = layer; d.tool = 'erase'; editStroke({ x: 1, y: 1 }, 'down');
+            const w = d.cells['1,1'] === undefined ? null : editStampWords(_mtPalette, d.cells['1,1']);
+            return w && [w.layer1, w.layer2];
+        };
+        r.fgOnly = erase('layer1');
+        r.bgOnly = erase('layer2');
+        r.both = erase('composite');
+        d.cells['1,1'] = ground; _currentLayer = 'composite'; editStroke({ x: 1, y: 1 }, 'down');
+        r.bothBare = d.cells['1,1'] === undefined;
+        d.tool = 'paint'; d.brush = -1; d.cells = {}; d.blank = null;
+        return r;
+    });
+    check('front-then-ground and ground-then-front make the same stamp',
+        ord.a && ord.b && ord.a.layer1 === 0x2c66 && ord.a.layer2 === 0x4c62
+        && ord.b.layer1 === 0x2c66 && ord.b.layer2 === 0x4c62 && ord.a.collision === ord.b.collision,
+        JSON.stringify(ord));
+    check('erase follows the selected layer: Foreground takes the front art, Background the ground',
+        ord.fgOnly && ord.fgOnly[0] === 0xa800 && ord.fgOnly[1] === 0x4c62
+        && ord.bgOnly && ord.bgOnly[0] === 0x2c66 && ord.bgOnly[1] === 0xa800, JSON.stringify(ord));
+    check('with both, the front art goes first, then the painted tile itself',
+        ord.both && ord.both[0] === 0xa800 && ord.bothBare, JSON.stringify(ord));
+
+    const swap = await page.evaluate(() => {
+        editDraft().families = [];
+        _chipSel = {};
+        _famCatalogue = [{ id: 61, tiles: 1, rooms: 1, areas: [], names: [], grass: 0 },
+                         { id: 62, tiles: 1, rooms: 1, areas: [], names: [], grass: 0 }];
+        _famSheets = {};
+        _editActiveTab = 'tile';
+        renderEditPanels();
+        const other = document.querySelector('.rg-tile-group[data-group-fam="62"]');
+        applyFamilySheet({ sheet: { family: 61, count: 1, columns: 16, cell: 16, imageUri: 'data:,',
+            slots: [[0, 0, 911, 1, 0, 1, -1, 0, -1, 0, 0]] } });
+        const r = { swapped: !!document.querySelector('[data-fam-tile="911"]'),
+                    untouched: document.querySelector('.rg-tile-group[data-group-fam="62"]') === other };
+        _famCatalogue = null; _famSheets = {};
+        renderEditPanels();
+        return r;
+    });
+    check('a sheet that arrives is swapped into its own group; the rest of the list is left alone',
+        swap.swapped && swap.untouched, JSON.stringify(swap));
 
     // The host posts `uiPrefs` right after `newMap`, so the saved list lands
     // after the new map exists. Replacing the list orphaned it — no row, no
