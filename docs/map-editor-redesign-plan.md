@@ -578,21 +578,114 @@ best match 62%`).
   one (`_layerForce`). Rendered as one segmented pill rather than
   manufacturing a second control to match the drawing.
 
-### 8b — directional neighbours (open fork, not built)
+### 8b — directional neighbours — **landed** (v0.61.0, see §8b.1)
 
 The mock's `LIKELY NEIGHBORS` is a **plus-shape**: centre tile, N/E/S/W
-candidates. Our adjacency model is **undirected** — `relatedTiles()`
-(`rendering/vanilla-index.js`) returns `[graphic, score, uses]` scoring "drawn
-beside", with no per-direction breakdown. Rendering compass points over it
-would fabricate a distinction we never measured, which is the same mistake
-§5.1 caught with "stairs".
+candidates. Until v0.61.0 the adjacency model was **undirected** —
+`relatedTiles()` (`rendering/vanilla-index.js`) returns `[graphic, score,
+uses]` scoring "drawn beside", with no per-direction breakdown — so the card
+was a ranked list, because compass points over it would have fabricated a
+distinction never measured (the §5.1 "stairs" mistake). Unlike stairs, it was
+computable: the walk already visited right and down neighbours separately and
+only then collapsed them. §8b.1 is what extending it looked like.
 
-Unlike stairs, though, this **is** computable: the vanilla index already walks
-every room's grid, so counting pairs into four direction buckets is a data-
-model extension rather than an invention. That would make the plus-shape real
-and is the feature that makes tile painting fast (it is the autotiling idea).
-It is a genuine task in `src/maps/` — read the `map-format` skill first — and
-wants its own session.
+### 8b.1 What landed
+
+The user: *"likely neighbors should be implemented as specified"* — the design
+handoff README §2: centre = current tile, N/E/S/W = predicted candidates with
+a match-% badge, click/scroll a side to cycle, click the centre to toggle the
+draw layer.
+
+**Data (`src/maps/vanilla-adjacency.ts`, split out of `vanilla-index.ts`).**
+- The grid walk moved into its own module (vanilla-index.ts 432 → 402 LOC) and
+  now files every edge twice more: a right pair is `b` east of `a` and `a`
+  west of `b`; a down pair `b` south / `a` north. Same loop, no second scan,
+  no new decoding. The undirected `adjacency` is byte-identical (693079 edges,
+  49374 pairs) and still drives ranking, `rankByRelationship` and the family
+  sort. `npm run check:maps` asserts every pair's four sides over both layers
+  sum to exactly its undirected count, and that east/west and north/south are
+  exact mirrors (0 mismatches on the real ROM).
+- **Per layer.** Keyed `graphic*2 + layer`. The walk only ever pairs canopy
+  with canopy and terrain with terrain, so a front brush's east neighbour is
+  the next piece of the object and a floor brush's is the next piece of
+  floor; merging would hand a gourd the floors it was laid on. Measured: the
+  gourd (3736) has four empty terrain sides.
+- **Representation.** Built as nested Maps during the walk, then compacted
+  to `Map<key, Int32Array>` of `[other*4 + side, uses]` pairs, grouped by side
+  and pre-ranked by score, so a query is one scan with no sort. 174586
+  entries over 6971 keys: **2.02 MB** retained heap (the undirected map is
+  4.53 MB for 98748 entries), whole index 8.7 → 10.7 MB. Build ~115 → ~175 ms
+  warm, once per ROM (cached).
+- **Score: per-side Jaccard over that layer's cells** —
+  `uses / (cells_L(a) + cells_L(b) - uses)`. The sets are edge slots: each
+  cell `a` is drawn in has one east slot, each `b` cell one west slot, and an
+  attested `a|b` edge is both. It mirrors `relatedGraphics`' denominator
+  restricted to the layer asked about. "East edges out of `a`" was rejected
+  as the denominator: it excludes self-pairs and room borders, so a floor
+  almost always beside more floor gets a tiny denominator and an inflated
+  score for its rare neighbours. Self-pairs are skipped (as undirected does):
+  "more of the same" is the brush already armed.
+
+**Host.** `neighbourTiles(rom, graphic)` → both layers, 8 candidates per side,
+rows `[graphic, pct, uses, families(≤4, most-placed first), canopyUses,
+terrainUses]`, on its own `requestNeighbours` / `neighbourTiles` messages. Its
+seed is the **armed brush only**; `editPlacedGraphics()` still excludes the
+brush (§8a.1's "order changes when I click a tile" stays fixed — its test is
+untouched and green).
+
+**Client.**
+- Model: `map-editor-relations.js` owns `_nbAnswer` / `_nbKey` / `_nbView` /
+  `_nbCycle` / `_nbFocus` (STATE_FLOW.md). The centre is read off the
+  **brush's own words** (`nbCentre`), not `_brushTile` alone, since the
+  eyedropper arms a brush without clearing `_brushTile`. A reply for a
+  graphic other than `_nbKey` is dropped as stale.
+- Card: new `map-editor-neighbours.js` (161 LOC); the flat list and
+  `tileFamilyOf` left `map-editor-tiles.js` (319 → 285) and `_relatedTop` left
+  relations. Cells are 34px with real art cropped from the family sheet at 2x
+  (`background-size`, so the mirror can use `transform`); a graphic past the
+  sheet's 128-tile cap shows its id, never a guess. No card without an armed
+  family tile (the mock's `hasCurrentTile`).
+- **Click semantics — one deliberate deviation.** The README says click
+  cycles; taken literally, the first click would skip vanilla's best
+  candidate and nothing would let you *use* the one you found. So: first
+  click **focuses** a side, further clicks (and scroll, either way, wrapping)
+  **cycle** it; the focused candidate is spelled out under the grid with a
+  **use** button that arms it (via `editUseFamilyTile`, so family adoption,
+  layer preference and mirror bits all follow the normal path). The card
+  then re-centres on it — walking an object piece by piece. Wheel is
+  accumulated (60px per step) so a trackpad does not spin the list; bound
+  once in `bindEditControls`, `passive:false` so the dock does not scroll.
+- **Centre** = `brushLayerToggle()` in `map-editor-tiles.js` (the owner of
+  `_layerForce`): force the opposite of the brush's actual layer and re-arm,
+  like the mock's `toggleDrawLayer`. This is a second production writer of
+  `_layerForce` (§8a.3 said "exactly one"), kept in the owning file; the pill
+  shows the result.
+- **Unusable candidates are dimmed, not skipped.** A candidate is drawn from
+  an adopted family it is attested in if any; else its most-placed family,
+  which needs a free slot. At 7/7 it is shown at 30% opacity with its real
+  score, and `use` is disabled with the reason. Skipping would put a weaker
+  neighbour in the cell and claim it was vanilla's best.
+- **H/V handled, not deferred.** H swaps e↔w and V swaps n↔s
+  (`nbSourceSide`), and centre and candidates are drawn — and armed — with
+  the same mirror. Vanilla's `[W][A]`, mirrored whole, is `[A'][W']`: still a
+  pair vanilla attests. The cycle/focus reset when graphic, layer or mirror
+  changes.
+- **Empty sides** are a dashed empty cell with no badge; never filled from
+  `_related`.
+
+**Verified.** Unit (map-units, synthetic grids: only-east has empty west,
+down pairs, four buckets sum to undirected, layers never meet, self skipped,
+Jaccard ranking); real ROM (map-parity: counts, sum and mirror invariants,
+the gourd's 2x2 at exactly 1.00); DOM (plus geometry by bounding boxes, empty
+side, art crop, dimmed candidate, focus → cycle, wheel incl. a double bind and
+trackpad accumulation, centre toggle switching layer data with no refetch, H
+swap + mirrored art + mirrored `use`, stale reply dropped, collapse). At a
+960px viewport / 400px dock with real ROM data and sheets, the dock stayed
+at left 550 / right 950 / width 400 through focus, cycle, H and the centre
+toggle, with zero horizontal overflow (§7b).
+
+**Resolves** §8a.1's "the mock's plus-shaped N/E/S/W grid" item: it is now
+what this codebase renders.
 
 ## 8a.1 Bugs found in real use, after v0.58.0
 

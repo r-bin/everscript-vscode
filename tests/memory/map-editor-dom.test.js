@@ -27,7 +27,7 @@ const read = (f) => fs.readFileSync(path.join(WEBVIEW, f), 'utf8');
 const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-stamps.js', 'map-editor-paint.js',
     'map-editor-ui.js', 'map-editor-phases.js', 'map-editor-constructs.js', 'map-editor-families.js',
     'map-editor-relations.js', 'map-editor-chips.js', 'map-editor-stranded.js',
-    'map-editor-tiles.js', 'map-editor-deco.js', 'map-editor-special.js',
+    'map-editor-tiles.js', 'map-editor-neighbours.js', 'map-editor-deco.js', 'map-editor-special.js',
     'map-editor-trigger-select.js', 'map-editor-trigger-panel.js',
     'map-editor-toolbar.js', 'map-editor-filterbar.js', 'rom-overlay.js',
     'tables-builder.js', 'map-editor-tabs.js', 'map-editor-panels.js', 'map-editor-gestures.js',
@@ -945,23 +945,227 @@ async function main() {
     const order = await page.$$eval('[data-fam-of="58"]', (n) => n.map((e) => e.dataset.famTile));
     check('the strongest relationship sorts to the front, not the biggest count',
         order[0] === '4191', JSON.stringify(order));
-    // ── LIKELY NEIGHBORS ───────────────────────────────────────────────────
-    // The mock draws a plus-shaped N/E/S/W grid. relatedTiles() (vanilla-index
-    // .js) returns one **undirected** score per candidate, so four compass
-    // slots would be a measurement this repo does not make — §8a. The card
-    // treatment was adopted; the ranked list under it is the real model.
-    const nb = await page.evaluate(() => ({
-        head: (document.querySelector('.rg-nb-card .rg-sec-name') || {}).textContent,
-        count: document.querySelectorAll('.rg-nb').length,
-        text: (document.querySelector('.rg-nb-card') || {}).textContent,
-    }));
-    check('the neighbours are their own collapsible card, not a loose strip',
-        /likely neighbors/.test(nb.head) && nb.count === 2 && /92%/.test(nb.text),
-        JSON.stringify(nb));
+    // ── LIKELY NEIGHBORS: the plus-shape (§8b) ─────────────────────────────
+    // The mock's N/E/S/W grid around the armed brush. It is honest now
+    // because the index counts each side separately (src/maps/vanilla-
+    // adjacency.ts); before §8b it was a ranked list, since the only score
+    // was undirected. 4191 is canopy-leaning (90/10), so it arms as front and
+    // the card reads the canopy half of the answer.
+    const NB = {
+        graphic: 4191,
+        canopy: {
+            n: [],
+            e: [[4195, 62, 31, [58], 2, 40], [4200, 20, 5, [58], 0, 0], [9001, 0, 1, [300], 5, 0]],
+            s: [[4200, 40, 9, [58], 0, 0]],
+            w: [[9001, 55, 12, [300], 5, 0]],
+        },
+        terrain: { n: [[4195, 12, 3, [58], 2, 40]], e: [], s: [], w: [] },
+    };
+    const sentNb = () => page.evaluate(() => window.__sent
+        .filter((m) => m.command === 'requestNeighbours').map((m) => m.graphic));
+    // Everything this block writes is module-level and shared with the checks
+    // after it (webview-dom-safety §7c), so the draft and the brush state it
+    // replaces are put back at the end.
+    await page.evaluate(() => {
+        window.__nbSaved = { edit: _edit, brushTile: _brushTile, chipSel: _chipSel,
+            mtSlot: _mtSlot, sheets: Object.assign({}, _famSheets) };
+        _layerForce = null; _brushFlip = { h: false, v: false }; _panelOpen.neighbours = true;
+        editReset(0x34);
+        const d = editDraft();
+        d.on = true; d.tool = 'paint';
+        d.families = [35, 187, 58, 165, 149, 59, 166];   // 7/7: family 300 cannot come in
+        _chipSel = { 58: true };
+        renderEditPanels();
+    });
+    check('no armed tile, no card — there is nothing to be beside',
+        !(await page.$('.rg-nb-card')) && !(await page.$('.rg-nb-plus')));
+    const nbBefore = (await sentNb()).length;
+    await page.click('[data-fam-tile="4191"]');
+    check('arming a tile asks for its neighbours, by the brush alone',
+        (await sentNb()).slice(nbBefore).join() === '4191', JSON.stringify(await sentNb()));
+    check('and says it is reading until the answer arrives',
+        /reading vanilla/.test(await page.$eval('.rg-nb-card', (e) => e.textContent)));
+    await page.evaluate((nb) => applyNeighbourTiles(nb), NB);
+
+    const plus = await page.evaluate(() => {
+        const box = (sel) => {
+            const e = document.querySelector(sel);
+            if (!e) return null;
+            const r = e.getBoundingClientRect();
+            return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width),
+                h: Math.round(r.height), display: getComputedStyle(e).display };
+        };
+        return { c: box('.rg-nb-centre'), n: box('.rg-nb-n'), e: box('.rg-nb-e'),
+            s: box('.rg-nb-s'), w: box('.rg-nb-w'),
+            layer: document.querySelector('.rg-nb-card .rg-sec-count').textContent };
+    });
+    const at = (a, dx, dy) => a && plus.c && a.x === plus.c.x + dx && a.y === plus.c.y + dy;
+    check('the card is a plus: N above the centre, E right, S below, W left',
+        at(plus.n, 0, -34) && at(plus.e, 34, 0) && at(plus.s, 0, 34) && at(plus.w, -34, 0),
+        JSON.stringify(plus));
+    check('every cell is a visible 34px square',
+        ['c', 'n', 'e', 's', 'w'].every((k) => plus[k].w === 34 && plus[k].h === 34
+            && plus[k].display !== 'none'), JSON.stringify(plus));
+    check('it reads the layer the brush actually paints', plus.layer === 'front', plus.layer);
+
+    const cell = (side) => page.evaluate((sd) => {
+        const e = document.querySelector('.rg-nb-' + sd);
+        const art = e.querySelector('.rg-nb-art');
+        return {
+            cls: e.className, text: e.textContent, tag: e.tagName,
+            art: art ? art.getAttribute('style') || '' : null,
+            artCls: art ? art.className : '',
+            opacity: art ? getComputedStyle(art).opacity : null,
+            badge: e.querySelector('.rg-nb-pct') ? e.querySelector('.rg-nb-pct').textContent : null,
+        };
+    }, side);
+    const north = await cell('n');
+    check('a side vanilla never fills is an empty cell — no art, no badge, not borrowed',
+        /rg-nb-empty/.test(north.cls) && north.art === null && north.badge === null
+        && north.text === '', JSON.stringify(north));
+    const east = await cell('e');
+    check('a side shows its best candidate, with its per-side score',
+        east.badge === '62%' && /ZmFt/.test(east.art), JSON.stringify(east));
+    check('as real tile art, cropped from the family sheet at 2x',
+        // 4195 is slot 1 of family 58's one-row, 16-column sheet: x = 1 * 16 * 2.
+        /background-position:\s*-32px -0px/.test(east.art) && /background-size:\s*512px 32px/.test(east.art),
+        east.art);
+    const west = await cell('w');
+    check('a candidate from an unloaded family at 7/7 is dimmed, not skipped',
+        /rg-nb-off/.test(west.cls) && west.badge === '55%' && Number(west.opacity) < 0.5,
+        JSON.stringify(west));
+    check('and the art for it is fetched, not guessed',
+        (await page.evaluate(() => window.__sent.some((m) => m.command === 'requestFamilySheet' && m.family === 300))));
+
+    // Click focuses, click again cycles, scroll cycles — both directions, wrapping.
+    const detail = () => page.$eval('.rg-nb-detail', (e) => e.textContent);
+    await page.click('.rg-nb-e');
+    check('the first click on a side picks it without skipping vanilla’s best',
+        /rg-nb-e.*\bon\b|\bon\b/.test((await cell('e')).cls) && /^E 1\/3/.test(await detail())
+        && (await cell('e')).badge === '62%', await detail());
+    await page.click('.rg-nb-e');
+    check('clicking it again cycles to the next candidate',
+        /^E 2\/3/.test(await detail()) && (await cell('e')).badge === '20%', await detail());
+    const wheel = (dy) => page.evaluate((d) => document.querySelector('.rg-nb-e .rg-nb-pct')
+        .dispatchEvent(new WheelEvent('wheel', { deltaY: d, bubbles: true, cancelable: true })), dy);
+    // A second bind must not stack a second wheel listener (webview-dom-safety §1).
+    await page.evaluate(() => bindEditControls(document.getElementById('room-detail'), {}));
+    const notCancelled = await wheel(100);
+    check('one scroll notch is one step, even after a second bind',
+        /^E 3\/3/.test(await detail()), await detail());
+    check('and the scroll is consumed, so the dock does not scroll with it', notCancelled === false);
+    check('a weak but real neighbour reads <1%, not a false 0%', (await cell('e')).badge === '<1%');
+    await wheel(100);
+    check('scrolling past the last wraps to the first', /^E 1\/3/.test(await detail()), await detail());
+    await wheel(-100);
+    check('and scrolling up goes back', /^E 3\/3/.test(await detail()), await detail());
+    await wheel(20); await wheel(20);
+    check('small trackpad deltas accumulate instead of spinning the list',
+        /^E 3\/3/.test(await detail()), await detail());
+    await wheel(30);
+    check('until they add up to a step', /^E 1\/3/.test(await detail()), await detail());
+
+    await page.click('.rg-nb-w');
+    check('an unusable candidate offers no use, and says why',
+        await page.$eval('.rg-nb-use', (b) => b.disabled && /seven palette slots/.test(b.title)));
+
+    // The centre: the mock's toggleDrawLayer. It flips the override to the
+    // other layer and re-arms, so the brush and the auto|front|ground pill
+    // both move with it — and the card switches to that layer's data.
+    await page.click('.rg-nb-centre');
+    const toGround = await page.evaluate(() => {
+        const w = editStampWords(_mtPalette, editDraft().brush);
+        return { force: _layerForce, groundArt: w.layer1 === editBlankCanopy(_mtPalette),
+            layer: document.querySelector('.rg-nb-card .rg-sec-count').textContent,
+            n: (document.querySelector('.rg-nb-n .rg-nb-pct') || {}).textContent,
+            e: document.querySelector('.rg-nb-e').className,
+            pill: document.querySelector('[data-layer-force].on').dataset.layerForce };
+    });
+    check('clicking the centre draws the brush as ground instead',
+        toGround.force === 'terrain' && toGround.groundArt && toGround.pill === 'terrain',
+        JSON.stringify(toGround));
+    check('and the sides now show what vanilla draws beside it on the ground',
+        toGround.layer === 'ground' && toGround.n === '12%' && /rg-nb-empty/.test(toGround.e),
+        JSON.stringify(toGround));
+    check('without asking the host again — both layers came in one answer',
+        (await sentNb()).slice(nbBefore).join() === '4191', JSON.stringify(await sentNb()));
+    await page.click('.rg-nb-centre');
+    check('and clicking it again brings it back to the front',
+        await page.evaluate(() => _layerForce === 'canopy'
+            && document.querySelector('.rg-nb-card .rg-sec-count').textContent === 'front'));
+    await page.evaluate(() => { _layerForce = null; renderEditPanels(); });
+
+    // H mirrors the brush, so its east edge is the unmirrored west edge:
+    // vanilla's [W][A] mirrored whole is [A'][W']. The sides swap and every
+    // candidate is drawn mirrored too, so the picture is still a true pair.
+    await page.click('[data-brush-flip="h"]');
+    const mirrored = { e: await cell('e'), w: await cell('w'), centre: await page.$eval(
+        '.rg-nb-centre .rg-nb-art', (a) => [a.className, getComputedStyle(a).transform]) };
+    check('with H on, east shows what vanilla draws west of it, and vice versa',
+        mirrored.e.badge === '55%' && mirrored.w.badge === '62%', JSON.stringify(mirrored));
+    check('drawn mirrored, centre and candidates alike',
+        /rg-flip-h/.test(mirrored.w.artCls) && /rg-flip-h/.test(mirrored.centre[0])
+        && /^matrix\(-1/.test(mirrored.centre[1]), JSON.stringify(mirrored));
+    check('while north and south, which H does not touch, stay put',
+        /rg-nb-empty/.test((await cell('n')).cls) && (await cell('s')).badge === '40%');
+    // `use` arms the candidate with the same mirror it was shown with.
+    await page.click('.rg-nb-w');
+    const nbSentBeforeUse = (await sentNb()).length;
+    await page.click('.rg-nb-use');
+    const used = await page.evaluate(() => {
+        const w = editStampWords(_mtPalette, editDraft().brush);
+        const art = w.layer1 !== editBlankCanopy(_mtPalette) ? w.layer1 : w.layer2;
+        return { tile: _brushTile, mirrored: (art & 0x4000) !== 0 };
+    });
+    check('use arms the shown candidate as the brush, mirrored as shown',
+        used.tile.graphic === 4195 && used.tile.family === 58 && used.mirrored, JSON.stringify(used));
+    check('and the card re-centres on it', (await sentNb()).slice(nbSentBeforeUse).join() === '4195');
+    await page.click('[data-brush-flip="h"]');
+
+    // A slow answer for a brush that has since changed must not land.
+    const stale = await page.evaluate((nb) => {
+        const before = _nbAnswer;
+        applyNeighbourTiles(nb);   // still for 4191; the brush is 4195 now
+        return _nbAnswer === before;
+    }, NB);
+    check('a reply for an earlier brush is dropped', stale);
+
+    // The card must not shove the dock sideways at the real width (§7b):
+    // measured by position, at a panel just wide enough for canvas + dock.
+    await page.setViewportSize({ width: 960, height: 720 });
+    await page.click('[data-fam-tile="4191"]');
+    await page.evaluate((nb) => applyNeighbourTiles(nb), NB);
+    const nbLayout = () => page.evaluate(() => {
+        const dock = document.getElementById('rg-dock').getBoundingClientRect();
+        const panels = document.getElementById('rg-panels');
+        const card = document.querySelector('.rg-nb-card').getBoundingClientRect();
+        return { dockLeft: Math.round(dock.left), dockRight: Math.round(dock.right),
+            dockW: Math.round(dock.width), cardRight: Math.round(card.right),
+            overflow: panels.scrollWidth - panels.clientWidth, view: document.documentElement.clientWidth };
+    });
+    const nbL0 = await nbLayout();
+    await page.click('.rg-nb-e'); await page.click('.rg-nb-e');
+    await page.click('.rg-nb-centre');
+    const nbL1 = await nbLayout();
+    check('picking, cycling and switching layer leave the dock where it was',
+        nbL1.dockLeft === nbL0.dockLeft && nbL1.dockW === nbL0.dockW, JSON.stringify([nbL0, nbL1]));
+    check('with the card inside the dock and nothing scrolling sideways',
+        nbL1.cardRight <= nbL1.dockRight && nbL1.overflow <= 0 && nbL1.dockRight <= nbL1.view,
+        JSON.stringify(nbL1));
+    await page.evaluate(() => { _layerForce = null; });
+    await page.setViewportSize({ width: 1280, height: 720 });
+
     await page.evaluate(() => document.querySelector('[data-panel="neighbours"]').click());
-    check('and it folds down to its own header',
-        (await page.$$('.rg-nb')).length === 0 && !!(await page.$('.rg-nb-card')));
+    check('the card folds down to its own header',
+        !(await page.$('.rg-nb-plus')) && !!(await page.$('.rg-nb-card')));
     await page.evaluate(() => document.querySelector('[data-panel="neighbours"]').click());
+    await page.evaluate(() => {
+        const saved = window.__nbSaved;
+        _edit = saved.edit; _brushTile = saved.brushTile; _chipSel = saved.chipSel;
+        _mtSlot = saved.mtSlot; _famSheets = saved.sheets;
+        _layerForce = null; _brushFlip = { h: false, v: false };
+        renderEditPanels();
+    });
 
     // ── the segmented filter row ───────────────────────────────────────────
     // Two pills, which is what the mock draws — but not the mock's two: its

@@ -87,10 +87,11 @@ const ROOMS_JS_FILES = [
   'map-editor-phases.js',// what a stroke writes in each phase, and the eraser
   'map-editor-constructs.js',// saved regions, with their triggers and objects
   'map-editor-families.js',// the seven families, and picking a tile out of one
-  'map-editor-relations.js',// what vanilla draws beside what (undirected)
+  'map-editor-relations.js',// what vanilla draws beside what (undirected + per side)
   'map-editor-chips.js', // the TILE FAMILIES section: the palette's seven + candidates
   'map-editor-stranded.js',// the invalid-family banner and its two actions
   'map-editor-tiles.js', // the tile browser: grouped by family, ranked by relationship
+  'map-editor-neighbours.js',// the LIKELY NEIGHBORS plus-shape: the brush and its four sides
   'map-editor-deco.js',  // the deco library: vanilla's own objects, to stamp
   'map-editor-special.js',// the Special tab: stairs/drift, gate, entrance + their filter chip
   'map-editor-trigger-select.js',// unifies base + placed triggers: select/move/delete/copy-paste

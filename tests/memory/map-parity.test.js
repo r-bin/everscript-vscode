@@ -837,6 +837,7 @@ function checkVanillaIndex(rom) {
     check('a family offers examples', maps.familyExamples(ix, 166).length, 8);
 
     checkRelationships(ix);
+    checkDirectional(ix);
 
     console.log(`  vanilla index: ${ix.families.size} graphics, ${ix.graphics.size} families, `
         + `${sharePct.toFixed(1)}% single-family, ${collPct.toFixed(1)}% single-collision`);
@@ -905,6 +906,64 @@ function checkRelationships(ix) {
     check('under half of neighbour pairs share a family', pct < 50, true);
     console.log(`  relationships: ${ix.edges} edges, ${pairs / 2} pairs, `
         + `${pct.toFixed(1)}% share a dominant family`);
+}
+
+/**
+ * The same edges, kept apart by side and layer — the plus-shape's data (§8b).
+ *
+ * Directional is a split of the undirected count, never a second opinion:
+ * every pair's four sides over both layers must sum to exactly the
+ * undirected count, and "b is east of a" must be the same fact as "a is west
+ * of b". The gourd is a 2x2 object, so each of its pieces has exactly one
+ * certain neighbour on two sides and only noise on the other two.
+ */
+function checkDirectional(ix) {
+    const d = ix.directional;
+    let entries = 0;
+    for (const [, flat] of d.pairs) entries += flat.length / 2;
+    check('174586 directional (graphic, layer, side, neighbour) entries', entries, 174586);
+
+    let mismatched = 0;
+    for (const [a, inner] of ix.adjacency) {
+        for (const [b, uses] of inner) {
+            let sum = 0;
+            for (const layer of [0, 1]) {
+                const flat = d.pairs.get(a * 2 + layer);
+                if (!flat) continue;
+                for (let i = 0; i < flat.length; i += 2) if ((flat[i] >> 2) === b) sum += flat[i + 1];
+            }
+            if (sum !== uses) mismatched += 1;
+        }
+    }
+    check('the four sides of every pair sum to its undirected count', mismatched, 0);
+
+    let asymmetric = 0;
+    for (const [key, flat] of d.pairs) {
+        const a = key >> 1;
+        const layer = key & 1;
+        for (let i = 0; i < flat.length; i += 2) {
+            const back = d.pairs.get((flat[i] >> 2) * 2 + layer);
+            const want = a * 4 + (((flat[i] & 3) + 2) & 3);
+            let uses = 0;
+            for (let j = 0; back && j < back.length; j += 2) if (back[j] === want) uses = back[j + 1];
+            if (uses !== flat[i + 1]) asymmetric += 1;
+        }
+    }
+    check('b east of a is the same count as a west of b (and n/s likewise)', asymmetric, 0);
+
+    // 3736 3737
+    // 3740 3741   — on the canopy layer; none of it is ever drawn as ground.
+    const top = (g, side) => (maps.directionalNeighbours(d, g, 0, 1)[side][0] || {});
+    check('the gourd’s top-left has its top-right to the east', top(3736, 'e').graphic, 3737);
+    check('and its bottom-left to the south', top(3736, 's').graphic, 3740);
+    check('both at exactly 1', [top(3736, 'e').score, top(3736, 's').score], [1, 1]);
+    check('the bottom-left has the top-left north, the bottom-right east',
+        [top(3740, 'n').graphic, top(3740, 'e').graphic], [3736, 3737 + 4]);
+    check('while its free sides score only noise', top(3736, 'w').score < 0.1, true);
+    const ground = maps.directionalNeighbours(d, 3736, 1);
+    check('a canopy-only graphic has four empty terrain sides',
+        ground.n.length + ground.e.length + ground.s.length + ground.w.length, 0);
+    console.log(`  directional: ${entries} entries over ${d.pairs.size} (graphic, layer) keys`);
 }
 
 /**

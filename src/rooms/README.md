@@ -154,10 +154,15 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   `_famAddOpen`
 - `map-editor-relations.js` — what vanilla draws beside what, split out of
   `map-editor-chips.js` in §8a so the model is not tangled with the cards
-  that read it; owns `_related` / `_relatedTop` / `_relatedKey`.
-  **Undirected**: `relatedTiles` (`rendering/vanilla-index.js`) scores
-  "drawn beside", not "drawn above/below", which is why the LIKELY
-  NEIGHBORS card is a ranked list and not the mock's N/E/S/W plus-shape
+  that read it; owns `_related` / `_relatedKey` (undirected, seeded from
+  placed cells, sorts the tile grids) and `_nbAnswer` / `_nbKey` / `_nbView`
+  / `_nbCycle` / `_nbFocus` (directional, seeded from the armed brush alone,
+  feeds only the plus-shape — §8b). Two seeds, never mixed
+- `map-editor-neighbours.js` — the LIKELY NEIGHBORS plus-shape: the brush in
+  the centre, `neighbourTiles`' per-side candidates around it; click to
+  focus/cycle, scroll to cycle (one wheel listener, bound in
+  `bindEditControls`), centre toggles front/ground (`brushLayerToggle`, in
+  `map-editor-tiles.js` beside the `_layerForce` it writes). Owns `_nbWheel`
 - `map-editor-stranded.js` — the invalid-family banner and its two actions
   (re-adopt the family, or clear the cells that need it). Owns nothing:
   both actions go through existing owners, and the clear is one undoable

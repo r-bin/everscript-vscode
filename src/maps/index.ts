@@ -66,6 +66,12 @@ export {
     groupByRooms, preferredLayer, relatedGraphics, relationship, rankByRelationship,
 } from './vanilla-index';
 export type { VanillaIndex, Attestation, Suggestion, GraphicGroup, Related } from './vanilla-index';
+export {
+    DIRECTIONS, directionalNeighbours, walkResolvedGrid, newDirectionalTally, compactDirectional,
+} from './vanilla-adjacency';
+export type {
+    Direction, GridLayer, DirectionalAdjacency, DirectionalRelated, DirectionalTally, ResolvedCell,
+} from './vanilla-adjacency';
 export { blankRoom, emptyStamp, roomProblems, MIN_TILES, MAX_TILES } from './blank-room';
 export type { BlankRoomOptions } from './blank-room';
 export {

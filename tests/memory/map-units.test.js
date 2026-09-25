@@ -709,5 +709,84 @@ test('emptyStamp counts placements per word, not per dictionary entry', () => {
     assert.strictEqual(maps.emptyStamp(donor).layer1, 0x2000);
 });
 
+// ── vanilla-adjacency.ts: the four sides, off one walk (§8b) ────────────────
+
+/** Walk a synthetic `[canopy, terrain]` grid and compact it. */
+function walkSynthetic(grid) {
+    const adjacency = new Map();
+    const cells = new Map();
+    const tally = maps.newDirectionalTally();
+    const edges = maps.walkResolvedGrid(grid, adjacency, cells, tally);
+    return { adjacency, cells, edges, directional: maps.compactDirectional(tally) };
+}
+const U = undefined;
+const graphicsOf = (list) => list.map((r) => r.graphic);
+
+test('a tile with only an east neighbour has an empty west bucket', () => {
+    // Terrain row: 1 2. Nothing is west of 1 and nothing is east of 2.
+    const { directional } = walkSynthetic([[[U, 1], [U, 2]]]);
+    const one = maps.directionalNeighbours(directional, 1, 1);
+    assert.deepStrictEqual(graphicsOf(one.e), [2]);
+    assert.deepStrictEqual([one.w, one.n, one.s], [[], [], []]);
+    const two = maps.directionalNeighbours(directional, 2, 1);
+    assert.deepStrictEqual(graphicsOf(two.w), [1]);
+    assert.deepStrictEqual([two.e, two.n, two.s], [[], [], []]);
+});
+
+test('a down pair files b south of a and a north of b', () => {
+    const { directional } = walkSynthetic([[[U, 1]], [[U, 2]]]);
+    assert.deepStrictEqual(graphicsOf(maps.directionalNeighbours(directional, 1, 1).s), [2]);
+    assert.deepStrictEqual(graphicsOf(maps.directionalNeighbours(directional, 2, 1).n), [1]);
+    assert.deepStrictEqual(maps.directionalNeighbours(directional, 1, 1).e, []);
+});
+
+test('the four buckets count every edge, and sum to the undirected count', () => {
+    // 1 2 1
+    // 3 1 2
+    const grid = [[[U, 1], [U, 2], [U, 1]], [[U, 3], [U, 1], [U, 2]]];
+    const { adjacency, directional, edges } = walkSynthetic(grid);
+    const one = maps.directionalNeighbours(directional, 1, 1);
+    const count = (side, g) => (side.find((r) => r.graphic === g) || { uses: 0 }).uses;
+    assert.strictEqual(count(one.e, 2), 2, 'row 0 col 0 and row 1 col 1 both have 2 east');
+    assert.strictEqual(count(one.w, 2), 1, 'row 0 col 2 has 2 west');
+    assert.strictEqual(count(one.w, 3), 1, 'row 1 col 1 has 3 west');
+    assert.strictEqual(count(one.s, 2), 1, 'row 0 col 2 has 2 south');
+    assert.strictEqual(count(one.s, 3), 1, 'row 0 col 0 has 3 south');
+    assert.strictEqual(count(one.n, 2), 1, 'row 1 col 1 has 2 north');
+    const sum = ['n', 'e', 's', 'w'].reduce((n, d) => n + count(one[d], 2), 0);
+    assert.strictEqual(sum, adjacency.get(1).get(2), 'the four sides sum to the undirected pair');
+    assert.strictEqual(edges, 7, '4 horizontal + 3 vertical edges, none a self pair');
+});
+
+test('the two layers never meet: a canopy tile is not beside the floor under it', () => {
+    // Canopy 9 over floor 1, beside canopy 8 over floor 2.
+    const { directional } = walkSynthetic([[[9, 1], [8, 2]]]);
+    assert.deepStrictEqual(graphicsOf(maps.directionalNeighbours(directional, 9, 0).e), [8]);
+    assert.deepStrictEqual(maps.directionalNeighbours(directional, 9, 1).e, [], 'nothing on the terrain side');
+    assert.deepStrictEqual(graphicsOf(maps.directionalNeighbours(directional, 1, 1).e), [2]);
+});
+
+test('a tile beside itself is not its own candidate', () => {
+    const { directional } = walkSynthetic([[[U, 5], [U, 5], [U, 6]]]);
+    assert.deepStrictEqual(graphicsOf(maps.directionalNeighbours(directional, 5, 1).e), [6]);
+});
+
+test('the per-side score is Jaccard over that layer\'s cells, ranked best first', () => {
+    // 1 is drawn 3 times. 2 is east of it once and drawn once (1/(3+1-1) = .33);
+    // 4 is east of it once and drawn twice (1/(3+2-1) = .25) — 2 ranks first.
+    const grid = [[[U, 1], [U, 2]], [[U, 1], [U, 4]], [[U, 1], [U, 7]], [[U, 4], [U, 7]]];
+    const { directional } = walkSynthetic(grid);
+    const east = maps.directionalNeighbours(directional, 1, 1).e;
+    assert.deepStrictEqual(graphicsOf(east), [2, 4, 7]);
+    assert.ok(Math.abs(east[0].score - 1 / 3) < 1e-9, String(east[0].score));
+    assert.ok(Math.abs(east[1].score - 1 / 4) < 1e-9, String(east[1].score));
+});
+
+test('an unknown graphic has four empty sides, and limit caps each side', () => {
+    const { directional } = walkSynthetic([[[U, 1], [U, 2]], [[U, 1], [U, 3]], [[U, 1], [U, 4]]]);
+    assert.deepStrictEqual(maps.directionalNeighbours(directional, 99, 1), { n: [], e: [], s: [], w: [] });
+    assert.strictEqual(maps.directionalNeighbours(directional, 1, 1, 2).e.length, 2);
+});
+
 console.log('\n' + (passed + failed) + ' run: ' + passed + ' passed, ' + failed + ' failed');
 if (failed) process.exit(1);

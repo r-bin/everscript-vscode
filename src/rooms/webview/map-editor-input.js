@@ -104,7 +104,7 @@ function renderComposer() {
  */
 var EDIT_CLICK_KEYS = ['editTool', 'editAct', 'editPick', 'panel',
   'famTile', 'construct', 'chip', 'chipDrop', 'chipAdopt', 'tileMore',
-  'brushFlip', 'strandedFix', 'strandedDrop',
+  'brushFlip', 'strandedFix', 'strandedDrop', 'nbSide', 'nbCentre', 'nbUse',
   'layerForce', 'deco', 'decoPage', 'decoFlag', 'mtIndex', 'mtSlot', 'editActiveTab',
   'editSpecial', 'editSpecialMenu', 'editTriggerMenu', 'editObjectsMenu', 'editMoreMenu',
   'editToolMenu', 'triggerRef', 'triggerRemove'];
@@ -174,6 +174,10 @@ function bindEditControls(panel, room) {
       renderEditPanels();
     }
   });
+
+  // Scroll-to-cycle on the neighbour card's sides (map-editor-neighbours.js).
+  // Not passive: it has to preventDefault, or the dock scrolls as well.
+  panel.addEventListener('wheel', neighbourWheel, { passive: false });
 
   panel.addEventListener('click', function (e) {
     var t = editClickTarget(e.target, panel);
@@ -247,6 +251,9 @@ function bindEditControls(panel, room) {
     if (t.dataset.chipAdopt) { chipAdopt(t.dataset.chipAdopt); return; }
     if (t.dataset.tileMore) { _tileGroupPage += TILE_GROUP_PAGE; renderEditPanels(); return; }
     if (t.dataset.brushFlip) { brushFlipToggle(t.dataset.brushFlip); return; }
+    if (t.dataset.nbSide) { nbSideClick(t.dataset.nbSide); return; }
+    if (t.dataset.nbCentre) { brushLayerToggle(); return; }
+    if (t.dataset.nbUse) { nbUse(t.dataset.nbUse); return; }
     if (t.dataset.strandedFix) { strandedFix(t.dataset.strandedFix); return; }
     if (t.dataset.strandedDrop) { strandedDrop(t.dataset.strandedDrop); return; }
     if (t.dataset.layerForce) {

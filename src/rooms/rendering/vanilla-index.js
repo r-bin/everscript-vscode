@@ -112,6 +112,49 @@ function relatedTiles(rom, graphics) {
         .slice(0, RELATED_LIMIT);
 }
 
+/** Candidates per side; the plus-shape cycles through these. */
+const NEIGHBOUR_LIMIT = 8;
+/** Families sent per candidate — enough to find one already adopted. */
+const NEIGHBOUR_FAMILIES = 4;
+
+/**
+ * What vanilla draws on each side of one graphic — the armed brush.
+ *
+ * Its own request and its own seed, deliberately: `relatedTiles` is seeded
+ * from what is *placed* and must not include the brush (§8a.1 — a seed
+ * scores itself 0 and sank to the bottom of its own family's grid on every
+ * click). The plus-shape is about the brush and nothing else.
+ *
+ * Both layers come back, because which one applies is the brush's layer,
+ * and the card's centre toggles it without a round trip.
+ *
+ * Rows are `[graphic, score0to100, uses, families, canopyUses, terrainUses]`:
+ * `families` are where vanilla draws the candidate, most-placed first, so
+ * the editor can crop it from a sheet it has and tell whether using it
+ * needs a palette slot; the two layer counts are what `editLayerPreference`
+ * reads when it is armed.
+ *
+ * See docs/map-editor-redesign-plan.md §8b.
+ */
+function neighbourTiles(rom, graphic) {
+    const index = vanillaIndex(rom);
+    const g = Number(graphic);
+    const out = { graphic: g, canopy: null, terrain: null };
+    if (isNaN(g)) return out;
+    const row = (r) => {
+        const fam = maps.suggestFamily(index, r.graphic);
+        const seen = index.layers.get(r.graphic) || { canopy: 0, terrain: 0 };
+        return [r.graphic, pct(r.score), r.uses,
+            fam ? fam.alternatives.slice(0, NEIGHBOUR_FAMILIES).map((a) => a.value) : [],
+            seen.canopy, seen.terrain];
+    };
+    for (const [name, layer] of [['canopy', 0], ['terrain', 1]]) {
+        const sides = maps.directionalNeighbours(index.directional, g, layer, NEIGHBOUR_LIMIT);
+        out[name] = { n: sides.n.map(row), e: sides.e.map(row), s: sides.s.map(row), w: sides.w.map(row) };
+    }
+    return out;
+}
+
 /** Drop the cached index (call when the ROM changes). */
 function invalidateVanillaIndex() {
     cached = null;
@@ -119,5 +162,5 @@ function invalidateVanillaIndex() {
 }
 
 module.exports = {
-    vanillaIndex, annotateGraphics, budgetSummary, relatedTiles, invalidateVanillaIndex,
+    vanillaIndex, annotateGraphics, budgetSummary, relatedTiles, neighbourTiles, invalidateVanillaIndex,
 };

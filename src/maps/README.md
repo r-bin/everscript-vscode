@@ -29,6 +29,7 @@ it. See the `map-format` and `rom-map-data` skills.
 | `render.ts` | Layer rasterization and SNES Mode 1 compositing (TM/TS, priority, CGADSUB) |
 | `metatiles.ts` | The metatile dictionary as a placement palette — entries, usage counts, and an atlas |
 | `vanilla-index.ts` | What the 127 rooms already attest: graphic → tile family, graphic → collision |
+| `vanilla-adjacency.ts` | The grid walk behind it: undirected adjacency (tile ranking) and, off the same edges, per-side per-layer neighbours (`directionalNeighbours`, §8b) |
 | `budget.ts` | The four ceilings (graphics, families, stamps, WRAM) and what an edit adds to them |
 | `overlay-features.ts` | Classifies a room into feature sets; builds the legend and summary |
 | `overlay-shapes.ts` | The raster primitives the overlay paints with (contours, grass, arrows) |

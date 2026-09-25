@@ -194,23 +194,65 @@
 .rg-theme .rg-tile-seg-b:hover{color:var(--rg-text-secondary)}
 .rg-theme .rg-tile-seg-b.on{background:var(--rg-accent-soft);color:var(--rg-accent)}
 
-/* ── LIKELY NEIGHBORS: the mock's card, our undirected ranked list ───────── */
+/* ── LIKELY NEIGHBORS: the mock's plus-shaped mini grid (§8b) ────────────
+   The mock's neighborGridStyle: 3x34px, areas ". n ." / "w c e" / ". s .".
+   Cells are 34px boxes around 32px art (16px graphics at 2x), so a 1px
+   border fits exactly. Focus and the centre use an inset outline, which
+   cannot change the box, so nothing in the card reflows on a click. */
 .rg-theme .rg-nb-card{
   margin-bottom:10px;padding:9px 10px;
   border:1px solid var(--rg-border);border-radius:10px;background:var(--rg-bg-float);
 }
 .rg-theme .rg-nb-card .rg-sec-h{margin-bottom:0}
-.rg-theme .rg-nb-grid{display:flex;flex-wrap:wrap;gap:4px;margin-top:9px}
-.rg-theme .rg-nb{
-  display:inline-flex;align-items:baseline;gap:4px;
-  padding:2px 6px;border:1px solid var(--rg-border);border-radius:6px;
-  background:transparent;cursor:pointer;font-family:var(--rg-font-mono);font-size:9px;
-  color:var(--rg-text-secondary);
+.rg-theme .rg-nb-plus{
+  display:grid;grid-template-areas:". n ." "w c e" ". s .";
+  grid-template-columns:repeat(3,34px);grid-template-rows:repeat(3,34px);
+  justify-content:center;margin-top:10px;
 }
-.rg-theme .rg-nb:hover{border-color:var(--rg-accent)}
-.rg-theme .rg-nb b{font-weight:500;color:var(--rg-accent)}
-.rg-theme .rg-nb-g{color:var(--rg-text-muted)}
-.rg-theme .rg-nb.rg-unknown{opacity:.55}
+.rg-theme .rg-nb-n{grid-area:n}
+.rg-theme .rg-nb-e{grid-area:e}
+.rg-theme .rg-nb-s{grid-area:s}
+.rg-theme .rg-nb-w{grid-area:w}
+.rg-theme .rg-nb-side,.rg-theme .rg-nb-centre{
+  position:relative;box-sizing:border-box;width:34px;height:34px;padding:0;margin:0;
+  border:1px solid var(--rg-border-strong);background:var(--rg-bg-app);
+  cursor:pointer;overflow:hidden;
+}
+.rg-theme .rg-nb-centre{grid-area:c;z-index:2;outline:2px solid var(--rg-accent);outline-offset:-2px}
+.rg-theme .rg-nb-side:hover{border-color:var(--rg-accent)}
+.rg-theme .rg-nb-side.on{outline:2px solid var(--rg-accent);outline-offset:-2px;z-index:1}
+/* Vanilla draws nothing on this side: an empty cell, never a borrowed score. */
+.rg-theme .rg-nb-empty{border-style:dashed;border-color:var(--rg-border);background:transparent;cursor:default}
+/* Needs a palette slot there is none of (map-editor-rules §1): dimmed, not skipped. */
+.rg-theme .rg-nb-off .rg-nb-art{opacity:.3}
+.rg-theme .rg-nb-art{
+  display:block;width:32px;height:32px;background-repeat:no-repeat;image-rendering:pixelated;
+}
+.rg-theme .rg-nb-art.rg-flip-h{transform:scaleX(-1)}
+.rg-theme .rg-nb-art.rg-flip-v{transform:scaleY(-1)}
+.rg-theme .rg-nb-art.rg-flip-h.rg-flip-v{transform:scale(-1,-1)}
+.rg-theme .rg-nb-wait,.rg-theme .rg-nb-id{
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--rg-font-mono);font-size:8px;color:var(--rg-text-muted);
+}
+.rg-theme .rg-nb-pct{
+  position:absolute;left:1px;right:1px;bottom:1px;
+  font-family:var(--rg-font-mono);font-size:8px;font-weight:400;line-height:10px;
+  color:rgba(255,255,255,.9);background:rgba(0,0,0,.45);text-align:center;
+}
+.rg-theme .rg-nb-detail{
+  display:flex;align-items:center;gap:6px;min-width:0;margin-top:8px;
+  font-family:var(--rg-font-mono);font-size:10px;color:var(--rg-text-secondary);
+}
+.rg-theme .rg-nb-hint{justify-content:center;font-family:var(--rg-font-ui);color:var(--rg-text-muted)}
+.rg-theme .rg-nb-where{flex-shrink:0;color:var(--rg-accent)}
+.rg-theme .rg-nb-what{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rg-theme .rg-nb-use{
+  margin-left:auto;flex-shrink:0;padding:1px 8px;border:1px solid var(--rg-border);border-radius:6px;
+  background:transparent;font-family:var(--rg-font-ui);font-size:10px;color:var(--rg-accent);cursor:pointer;
+}
+.rg-theme .rg-nb-use:hover{border-color:var(--rg-accent)}
+.rg-theme .rg-nb-use[disabled]{color:var(--rg-text-muted);cursor:not-allowed}
 
 /* ── A family group: a header, then its art ──────────────────────────────── */
 .rg-theme .rg-tile-group{margin-bottom:14px}

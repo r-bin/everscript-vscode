@@ -168,6 +168,22 @@ function brushFlipToggle(axis) {
   else renderEditChrome();
 }
 
+/**
+ * Draw the armed brush on the other layer — the neighbour card's centre.
+ *
+ * The mock's `toggleDrawLayer`: it flips the explicit override to the
+ * opposite of the layer the brush is *actually* on, then re-arms, exactly as
+ * brushFlipToggle does, so the brush and the `auto|front|ground` pill both
+ * show the change. It lives here because this file owns `_layerForce`, and
+ * the override is sticky on purpose — it is the same state the pill sets.
+ */
+function brushLayerToggle() {
+  var c = nbCentre();
+  if (!c) return;
+  _layerForce = c.layer === 'canopy' ? 'terrain' : 'canopy';
+  editUseFamilyTile(c.graphic, c.family);
+}
+
 /** One family's art, ordered by relationship, with layer badges. */
 function tileGroupHtml(family) {
   var s = _famSheets[family];
@@ -243,56 +259,6 @@ function tileGroupShell(family, sheet, badge) {
     + '<span class="rg-group-count">'
     + escH(sheet ? String(sheet.count) : '…') + '</span>'
     + '</div>';
-}
-
-/**
- * The recommended neighbours of whatever is armed, as the mock's collapsible
- * card — but a ranked list, not its plus-shaped N/E/S/W grid.
- *
- * This is the discovery tool: the other pieces of a gourd score 1.00 — they
- * are always adjacent and never apart — so they arrive at the top, one click
- * from being placed. The ranking is **undirected** (see
- * map-editor-relations.js): drawing it as four compass slots would claim a
- * per-direction measurement the ROM index does not make. The plan doc §8a
- * records that as the open fork.
- */
-function neighbourCardHtml() {
-  if (!_relatedTop.length) return '';
-  var open = _panelOpen.neighbours !== false;
-  var top = _relatedTop.slice(0, 16);
-  var html = '<div class="rg-nb-card"><div class="rg-sec-h" data-panel="neighbours"'
-    + ' title="' + escH('Graphics vanilla draws beside what this draft has placed, best first.\n'
-      + 'The score is how often the two are adjacent anywhere — it has no direction.') + '">'
-    + '<span class="rg-panel-caret">' + (open ? '▾' : '▸') + '</span>'
-    + '<span class="rg-sec-name">likely neighbors</span>'
-    + '<span class="rg-sec-count">' + top.length + '</span></div>';
-  if (!open) return html + '</div>';
-
-  html += '<div class="rg-nb-grid">';
-  for (var i = 0; i < top.length; i++) {
-    var g = top[i][0];
-    var fam = tileFamilyOf(g);
-    html += '<button class="rg-nb' + (fam === null ? ' rg-unknown' : '')
-      + '" data-fam-tile="' + g + '" data-fam-of="' + (fam === null ? '' : fam) + '"'
-      + ' title="' + escH('graphic ' + g + (fam === null ? ' — family not known yet' : ' — family ' + fam)
-        + '\n' + top[i][1] + '% relationship, ' + top[i][2] + ' placements side by side'
-        + '\nClick to make it the brush.') + '">'
-      + '<b>' + top[i][1] + '%</b><span class="rg-nb-g">' + g + '</span></button>';
-  }
-  return html + '</div></div>';
-}
-
-/** The family a graphic is known to live in, from whatever sheet has it. */
-function tileFamilyOf(graphic) {
-  var keys = Object.keys(_famSheets);
-  for (var i = 0; i < keys.length; i++) {
-    var s = _famSheets[keys[i]];
-    if (!s || s === 'pending') continue;
-    for (var j = 0; j < s.slots.length; j++) {
-      if (s.slots[j][2] === graphic) return s.family;
-    }
-  }
-  return null;
 }
 
 /** The tile groups, and nothing else — the row and the card are their own. */

@@ -10,6 +10,10 @@
 import { RoomData, decodeRoom } from './room';
 import { MAX_ROOMS } from './rom';
 import { metatileTable, metatileIndex } from './metatiles';
+import {
+    DirectionalAdjacency, DirectionalTally, ResolvedCell,
+    newDirectionalTally, walkResolvedGrid, compactDirectional,
+} from './vanilla-adjacency';
 
 /** One observed pairing, with how many grid cells attest to it. */
 export interface Attestation<T> {
@@ -46,6 +50,12 @@ export interface VanillaIndex {
      * goes with this tile" — see `relatedGraphics`.
      */
     adjacency: Map<number, Map<number, number>>;
+    /**
+     * The same edges, kept apart by side and by layer — what the LIKELY
+     * NEIGHBORS plus-shape reads (`directionalNeighbours`). Alongside
+     * `adjacency`, not instead of it: tile ranking stays undirected.
+     */
+    directional: DirectionalAdjacency;
     /** Graphic id -> grid cells it is drawn in. The Jaccard denominator. */
     cells: Map<number, number>;
     /** How many rooms went into the index. */
@@ -105,6 +115,7 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
     const layers = new Map<number, { canopy: number; terrain: number }>();
     const adjacency = new Map<number, Map<number, number>>();
     const cells = new Map<number, number>();
+    const sides = newDirectionalTally();
     let roomCount = 0;
     let placements = 0;
     let edges = 0;
@@ -152,7 +163,7 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
             if (terrain !== undefined) tally(collCounts, terrain, m.collision, m.uses);
         }
 
-        edges += walkAdjacency(room, tileIds, adjacency, cells);
+        edges += walkAdjacency(room, tileIds, adjacency, cells, sides);
     }
 
     const perGraphic = new Map<number, number[]>();
@@ -166,6 +177,7 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
         layers,
         collisions: rank(collCounts),
         adjacency,
+        directional: compactDirectional(sides),
         cells,
         roomCount,
         placements,
@@ -173,74 +185,32 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
     };
 }
 
-/** Record `b` as a neighbour of `a` and vice versa. */
-function link(into: Map<number, Map<number, number>>, a: number, b: number): void {
-    let inner = into.get(a);
-    if (!inner) { inner = new Map(); into.set(a, inner); }
-    inner.set(b, (inner.get(b) || 0) + 1);
-}
-
 /**
- * Count what this room draws beside what.
+ * Resolve this room's grid to graphics and count what it draws beside what.
  *
- * Only the right and the down neighbour, because that visits every edge of
- * the grid exactly once — adding left and up would double every count
- * without adding a fact. The two layers are counted separately: a canopy
- * tile sitting over a floor tile is not "next to" it, it is on top of it,
- * and conflating the two would make every decoration look related to every
- * floor it was ever laid on.
+ * The counting itself — undirected and directional, from the same edges —
+ * is `walkResolvedGrid` (vanilla-adjacency.ts); this only turns metatile ids
+ * into `[canopy, terrain]` graphic pairs, once per cell. Re-resolving per
+ * edge would decode every cell four times over for the same answer.
  */
 function walkAdjacency(
     room: RoomData,
     tileIds: number[],
     adjacency: Map<number, Map<number, number>>,
     cells: Map<number, number>,
+    sides: DirectionalTally,
 ): number {
     const grid = room.layer1MetatileIds;
     const { layer1, layer2 } = room.metatileSlices;
-    const height = grid.length;
-    const width = height ? grid[0].length : 0;
-
-    // Resolve the grid once. Re-resolving per edge would decode every cell
-    // four times over for the same answer.
-    const resolved: (number | undefined)[][][] = [];
-    for (let y = 0; y < height; y++) {
-        const row: (number | undefined)[][] = [];
-        for (let x = 0; x < width; x++) {
-            const i = metatileIndex(room, grid[y][x]);
-            if (i < 0 || i >= room.metatileCount) { row.push([undefined, undefined]); continue; }
-            const pair = [
-                tileIds[charIndexToSlot((layer1[i] || 0) & 0x3ff)],
-                tileIds[charIndexToSlot((layer2[i] || 0) & 0x3ff)],
-            ];
-            for (const g of pair) if (g !== undefined) cells.set(g, (cells.get(g) || 0) + 1);
-            row.push(pair);
-        }
-        resolved.push(row);
-    }
-
-    let edges = 0;
-    for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-            const here = resolved[y][x];
-            const right = x + 1 < width ? resolved[y][x + 1] : null;
-            const down = y + 1 < height ? resolved[y + 1][x] : null;
-            for (let which = 0; which < 2; which++) {
-                const a = here[which];
-                if (a === undefined) continue;
-                for (const other of [right, down]) {
-                    const b = other ? other[which] : undefined;
-                    // A tile beside a copy of itself says nothing about what
-                    // goes with what — every tiled floor would score 1.
-                    if (b === undefined || b === a) continue;
-                    link(adjacency, a, b);
-                    link(adjacency, b, a);
-                    edges += 1;
-                }
-            }
-        }
-    }
-    return edges;
+    const resolved: ResolvedCell[][] = grid.map((row) => row.map((id) => {
+        const i = metatileIndex(room, id);
+        if (i < 0 || i >= room.metatileCount) return [undefined, undefined];
+        return [
+            tileIds[charIndexToSlot((layer1[i] || 0) & 0x3ff)],
+            tileIds[charIndexToSlot((layer2[i] || 0) & 0x3ff)],
+        ];
+    }));
+    return walkResolvedGrid(resolved, adjacency, cells, sides);
 }
 
 /** A graphic the index has seen drawn beside another, and how strongly. */

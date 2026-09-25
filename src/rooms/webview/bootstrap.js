@@ -45,6 +45,10 @@ if(typeof window!=='undefined'&&window.addEventListener){
       // What vanilla draws beside the tiles already in play.
       if(typeof applyRelatedTiles==='function')applyRelatedTiles(data);
       if(data.error)console.warn('[RoomsRender] relatedTiles:',data.error);
+    }else if(data.command==='neighbourTiles'){
+      // What vanilla draws on each side of the armed brush (§8b).
+      if(typeof applyNeighbourTiles==='function')applyNeighbourTiles(data);
+      if(data.error)console.warn('[RoomsRender] neighbourTiles:',data.error);
     }else if(data.command==='familyPreviews'){
       // One strip of art per family, so the picker shows before it asks.
       // Two-tile chips and eight-tile strips share one builder; `chips`

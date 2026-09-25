@@ -1,3 +1,30 @@
+## [0.61.0] — 2026-09-25
+
+### Map editor §8b: LIKELY NEIGHBORS is the plus-shape the design specifies
+
+- **The neighbour card is now a plus.** The armed tile sits in the centre, and
+  each of the N, E, S and W cells shows the tile vanilla draws **on that side**,
+  on the same layer, drawn as the real tile art with a match % badge. The
+  gourd's top-left piece shows its other pieces east and south at 100%, and
+  noise on its free sides.
+- **Click a side** to pick it. **Click it again, or scroll over it,** to cycle
+  through that side's candidates. The picked candidate is spelled out under the
+  grid with a **use** button, which makes it the brush. The card then centres
+  on it, so you can walk an object piece by piece.
+- **Click the centre** to switch the brush between front and ground. The
+  `auto | front | ground` pill follows, and the card shows the other layer's
+  neighbours.
+- **H/V are honoured.** A mirrored brush's east edge is its unmirrored west
+  edge, so the sides swap and every candidate is drawn and armed with the same
+  mirror.
+- **Honest gaps.** A side vanilla never draws anything on is an empty cell.
+  A candidate from a family you have no slot for (7/7) is shown dimmed, and
+  its **use** button says why.
+- Under the hood, the vanilla index now counts every adjacency per side and
+  per layer, off the same single pass it already made. That adds about 2 MB and
+  about 60 ms, once per ROM. Tile ranking still uses the undirected score and
+  is unchanged.
+
 ## [0.60.0] — 2026-09-24
 
 ### Map editor §8a.3: four more reports from using the real tool

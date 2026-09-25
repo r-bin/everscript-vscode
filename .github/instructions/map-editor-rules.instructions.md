@@ -132,10 +132,16 @@ for anyway:
 - **"Stairs" has no attested collision encoding.** An earlier version of this codebase
   mistook plane-transparency for a stairs test. If a stairs affordance is wanted, it is
   an icon over an ordinary tile, not a bitfield.
-- **Adjacency is undirected.** `relatedGraphics` scores "drawn beside", not "drawn
-  above/below" — `walkAdjacency` visits right- and down-neighbours and then collapses
-  both into one bucket. Do not render it as N/E/S/W unless the index has actually been
-  extended to count four directions.
+- **Adjacency comes in two kinds, and they are not interchangeable.**
+  `relatedGraphics`/`relatedTiles` is **undirected** ("drawn beside, any side") and
+  drives tile ranking. Since §8b the same walk (`src/maps/vanilla-adjacency.ts`) also
+  counts **per side and per layer** — a right pair is `b` east of `a` and `a` west of
+  `b`, a down pair `b` south / `a` north — and `directionalNeighbours`/`neighbourTiles`
+  answer N/E/S/W for one graphic. Only the directional data may be drawn as a compass
+  direction; a side it leaves empty stays empty, never filled from the undirected
+  score. The two layers never mix (a canopy piece is on top of the floor, not beside
+  it). Under H/V the sides swap (H: e↔w, V: n↔s) and candidates are drawn and armed
+  with the same mirror — the whole pair mirrored is still a pair vanilla attests.
 - **Family names.** Families are ROM ids with an area, not `GRASS`/`STONE`. Do not
   invent friendly names to match a mock.
 - **Room groupings.** The catalogue groups by area, which is the game's own structure —
