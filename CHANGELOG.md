@@ -1,3 +1,15 @@
+## [0.65.2] — 2026-09-25
+
+### Export ROM: a second export no longer fails
+
+- **Fixed "ROM export failed: Room 0x34: Block 2 … expected 0x07 / 448".**
+  An export changed the extension's in-memory copy of the vanilla ROM: it
+  wrote the new map's size into the header of the room the map borrows its
+  graphics from. The first export worked, but after that the borrowed room
+  could no longer be read, so the next export failed and rendering that room
+  broke too. Exports now work on a private copy and never touch the ROM the
+  extension has loaded. The ROM file on disk was never modified.
+
 ## [0.65.1] — 2026-09-25
 
 ### Map editor: new maps keep their Boy, and families follow the map

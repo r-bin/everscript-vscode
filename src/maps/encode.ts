@@ -119,6 +119,12 @@ export function buildBlob(model: RoomModel): Uint8Array {
  * original bytes exactly. Compressed payloads are kept verbatim.
  */
 export function modelFromRom(rom: Uint8Array, roomId: number): RoomModel {
+    // Copies, never views. The ROM is often a Node Buffer, whose `slice()`
+    // shares memory: an edit to a model's header (custom-room.ts sets the
+    // size) then wrote straight into the cached vanilla ROM, and every later
+    // decode of the donor room failed.
+    const copy = (from: number, to: number): Uint8Array => Uint8Array.prototype.slice.call(rom, from, to);
+
     const blob = snesToRom(read24(rom, MAP_LIST_ADDR + roomId * MAP_TABLE_STRIDE));
     const L = parseBlobLayout(rom, blob);
 
@@ -132,7 +138,7 @@ export function modelFromRom(rom: Uint8Array, roomId: number): RoomModel {
     };
     const block = (off: number): Block => {
         const payloadLen = read16(rom, off);
-        return { sub: rom[off + 2], decomp: read16(rom, off + 3), data: rom.slice(off + 5, off + 2 + payloadLen) };
+        return { sub: rom[off + 2], decomp: read16(rom, off + 3), data: copy(off + 5, off + 2 + payloadLen) };
     };
 
     const tileFamilies: number[] = [];
@@ -141,19 +147,19 @@ export function modelFromRom(rom: Uint8Array, roomId: number): RoomModel {
     for (let i = 0; i < L.objectCount; i++) objectOffsets.push(read16(rom, L.section3 + 1 + i * 2));
 
     return {
-        header: rom.slice(blob, blob + 13),
+        header: copy(blob, blob + 13),
         stepOn: records(blob + 0x0f, L.stepLen),
         bTrigger: records(L.bLenOffset + 2, L.bLen),
         tileFamilies,
-        extras: rom.slice(L.extrasOffset + 1, L.block1.offset),
+        extras: copy(L.extrasOffset + 1, L.block1.offset),
         block1: block(L.block1.offset),
         section2Count: L.section2Count,
-        section2Data: rom.slice(L.section2 + 3, L.section3),
+        section2Data: copy(L.section2 + 3, L.section3),
         objectOffsets,
         block2: block(L.block2.offset),
-        section4: rom.slice(L.section4 + 2, L.block3.offset),
+        section4: copy(L.section4 + 2, L.block3.offset),
         block3: block(L.block3.offset),
-        objectArea: rom.slice(L.objectArea, objectAreaEnd(rom, L)),
+        objectArea: copy(L.objectArea, objectAreaEnd(rom, L)),
     };
 }
 
@@ -225,7 +231,7 @@ export function wrapBlock(raw: Uint8Array, compress: boolean): Block {
 /** A block's decompressed payload, whichever sub_flag it uses. */
 export function unpackBlock(b: Block): Uint8Array {
     if (b.sub === SUB_LZSS) return decompressLzss(b.data, 0, b.decomp).slice(0, b.decomp);
-    if (b.sub === SUB_RAW) return b.data.slice(0, b.decomp);
+    if (b.sub === SUB_RAW) return Uint8Array.prototype.slice.call(b.data, 0, b.decomp);
     throw new Error(`cannot unpack sub_flag 0x${b.sub.toString(16)}`);
 }
 

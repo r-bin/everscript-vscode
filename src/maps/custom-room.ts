@@ -106,7 +106,7 @@ export function buildCustomRoomBlob(rom: Uint8Array, input: CustomRoomInput): Cu
         throw new Error(`the grid and ${l1.length} stamps need ${wramBytes} bytes of the ${MAX_WRAM}-byte window`);
     }
 
-    const header = donor.header.slice();
+    const header = Uint8Array.from(donor.header);
     header[HEADER_ORIGIN_X] = 0;
     header[HEADER_ORIGIN_Y] = 0;
     header[2] = w;

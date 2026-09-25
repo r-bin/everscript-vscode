@@ -201,6 +201,20 @@ if (!fs.existsSync(ROM_PATH)) {
         assert.strictEqual(total, sum);
     });
 
+    // v0.65.2: the extension hands over its cached ROM as a Node Buffer, whose
+    // `slice()` is a view. Setting the new map's size in a "copied" header
+    // wrote 16x14 into the donor's header in that cache, and the second
+    // export (and every render of room 0x34) failed.
+    test('exporting from a Buffer leaves it untouched, and a second export works', () => {
+        const buf = Buffer.from(rom);
+        buildExportRom(buf, draft);
+        buildExportRom(buf, draft);
+        assert.ok(buf.equals(Buffer.from(rom)), 'the vanilla buffer changed');
+        const model = maps.modelFromRom(buf, 0x34);
+        model.header[2] = 1;
+        assert.ok(buf.equals(Buffer.from(rom)), 'modelFromRom returned a view, not a copy');
+    });
+
     test('Export ROM refuses anything but the 3 MB vanilla ROM', () => {
         assert.throws(() => buildExportRom(new Uint8Array(0x400000), draft), /vanilla ROM/);
     });

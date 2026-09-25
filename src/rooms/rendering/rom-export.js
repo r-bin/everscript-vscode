@@ -92,7 +92,9 @@ function fixChecksum(rom) {
  * cannot be encoded or the result does not decode back to it.
  */
 function buildExportRom(vanilla, draft) {
-    const src = vanilla instanceof Uint8Array ? vanilla : new Uint8Array(vanilla);
+    // A private copy: the caller's buffer is the extension's cached ROM, and
+    // nothing an export does may ever reach it.
+    const src = Uint8Array.from(vanilla);
     if (src.length !== VANILLA_SIZE) {
         throw new Error(`expected the 3 MB vanilla ROM, got ${src.length} bytes — `
             + 'export starts from an unmodified Secret of Evermore (U)');
