@@ -103,7 +103,7 @@ function renderComposer() {
  * browser before this walk-up existed.
  */
 var EDIT_CLICK_KEYS = ['editTool', 'editAct', 'editPick', 'panel',
-  'famTile', 'construct', 'chip', 'chipDrop', 'chipAdopt', 'tileMore',
+  'famTile', 'construct', 'chip', 'chipDrop', 'chipAdopt', 'tileMore', 'tileGroup',
   'brushFlip', 'strandedFix', 'strandedDrop', 'nbSide', 'nbCentre', 'nbUse',
   'layerForce', 'deco', 'decoPage', 'decoFlag', 'mtIndex', 'mtSlot', 'editActiveTab',
   'editSpecial', 'editSpecialMenu', 'editTriggerMenu', 'editObjectsMenu', 'editMoreMenu',
@@ -250,6 +250,7 @@ function bindEditControls(panel, room) {
     }
     if (t.dataset.chipAdopt) { chipAdopt(t.dataset.chipAdopt); return; }
     if (t.dataset.tileMore) { _tileGroupPage += TILE_GROUP_PAGE; renderEditPanels(); return; }
+    if (t.dataset.tileGroup) { tileGroupToggle(t.dataset.tileGroup); return; }
     if (t.dataset.brushFlip) { brushFlipToggle(t.dataset.brushFlip); return; }
     if (t.dataset.nbSide) { nbSideClick(t.dataset.nbSide); return; }
     if (t.dataset.nbCentre) { brushLayerToggle(); return; }

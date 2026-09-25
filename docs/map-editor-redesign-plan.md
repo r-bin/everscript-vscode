@@ -857,6 +857,42 @@ It is a dead control, left over from §8a.2 removing the explicit add-a-family
 browser. It should either go or become a filter-to-candidates action, but that
 is a product call, not a bug fix.
 
+## 8c. New maps, the Boy's start, and collapsed families (v0.62.0)
+
+**1. "new maps should be empty, I don't want to see strongheart when I press
+new."** §8a.3 emptied the *grid*, but a new map is drafted on top of the donor
+room (`0x34`, Strongheart's Hut) that `roomsNewMap` opens first, and
+`applyBlankRoom` swapped only the map image. The donor's svg-builder layers
+stayed: its enter-script NPCs (Strongheart himself), the doors into it, its
+triggers. `_mtPalette.attachments` also kept its triggers, so the Trigger tab
+listed them. Now `editClearDonorScenery` (map-editor-start.js) removes those
+nodes, and `applyBlankRoom` empties `attachments`. The donor still lends
+graphics and families, for the rule-7.1 reason in §8a.3.
+
+**2. "I want to see the boy on the map as special tile (same as in mario
+maker, where you mark a debug entrance) — it has to be on the map somewhere,
+you cant remove it."** A drafted map now has exactly one start marker,
+`_edit.start`. It is drawn with the ROM's own Boy sprite: character record 0,
+whose name pointer goes to the player-name buffer in WRAM. It is centred on a
+new map and clamped inside on a resize. It moves only through the Special tab's
+new **Start → Boy** pick (click or drag), as its own `start` undo step. It is
+deliberately **not** a `specialCells` entry: a special is one per cell, so it
+would overwrite a gate or drift glyph there (or be overwritten), and erase
+clears specials. It is not exported, since the encoder's shape has no entrance
+field (map-editor-rules §6). ROM rooms don't get one: their doors are already
+drawn as arrivals.
+
+**3. "tile families should be pre-collapsed (and store it's state
+persistently)."** Each Tile-tab family group now starts as its header only,
+and the header toggles it. Which groups are open is `_tileGroupOpen`, keyed by
+family id rather than by room, and the host keeps it in
+`globalState['everscript.roomsUi']` (`uiPrefs` / `saveUiPref`). Webview
+storage would not do: the panel's origin changes whenever it is rebuilt.
+Sheets for the seven loaded families are still fetched up front, which gives
+the collapsed headers their counts and makes opening a group instant. Fixed on
+the way: the `loading…` / empty-family early returns never closed the group's
+`<div>`, which nested every later group inside it.
+
 ## 9. Ritual reminder
 
 One prompt = one commit. This plan spans multiple prompts/sessions by design

@@ -602,6 +602,7 @@ const ui = new Function(`
   ${read('map-editor-input.js')}
   ${read('map-editor-actions.js')}
   ${read('map-editor-newroom.js')}
+  ${read('map-editor-start.js') /* the Boy's start on a drafted map */}
   return {
     tileSlotWord: tileSlotWord, editOnTilePicked: editOnTilePicked,
     editAction: editAction, editReset: editReset, editDraft: editDraft,
@@ -613,6 +614,8 @@ const ui = new Function(`
     editNeededStamps: editNeededStamps, editErrors: editErrors,
     toolbar: buildEditToolbarHtml, tileGroup: tileGroupHtml,
     setSheet: function (f, sheet) { _famSheets[f] = sheet; },
+    setGroupOpen: function (f, on) { if (on) _tileGroupOpen[f] = true; else delete _tileGroupOpen[f]; },
+    uiPrefs: applyUiPrefs,
     setRelated: function (map) { _related = map; },
     strandedCells: editStrandedCells,
     setSel2: function (s) { _editSel = s; },
@@ -917,7 +920,9 @@ test('a tile group embeds its sheet once, not once per swatch', () => {
         imageUri: 'data:image/png;base64,' + 'A'.repeat(2048),
     });
     ui.setRelated({});
+    ui.setGroupOpen(58, true);
     const html = ui.tileGroup(58);
+    ui.setGroupOpen(58, false);
     const uses = html.split('data:image/png').length - 1;
     assert.strictEqual(uses, 1, `the sheet URL appears ${uses} times, not once`);
     assert.strictEqual(html.split('data-fam-tile=').length - 1, 3, 'all three tiles are offered');
@@ -937,6 +942,7 @@ test('a group is ordered by relationship first, placements second', () => {
         imageUri: 'data:image/png;base64,ZmFt',
     });
     ui.setRelated({ 4191: 92, 4195: 3 });
+    ui.setGroupOpen(58, true);
     const order = [...ui.tileGroup(58).matchAll(/data-fam-tile="(\d+)"/g)].map((m) => m[1]);
     assert.deepStrictEqual(order, ['4191', '4195', '4200']);
 
@@ -946,6 +952,33 @@ test('a group is ordered by relationship first, placements second', () => {
     ui.setRelated({});
     const cold = [...ui.tileGroup(58).matchAll(/data-fam-tile="(\d+)"/g)].map((m) => m[1]);
     assert.deepStrictEqual(cold, ['4200', '4191', '4195']);
+    ui.setGroupOpen(58, false);
+});
+
+/**
+ * Seven groups of art open at once bury the one you are drawing with, so a
+ * group starts as just its header until it is opened; what is open is
+ * remembered by the host (`uiPrefs`).
+ */
+test('a tile group starts collapsed, and the remembered set opens it', () => {
+    ui.editReset(0x34);
+    ui.setPalette(tilePalette());
+    ui.setSheet(58, {
+        family: 58, count: 1, total: 1, roomCount: 1, columns: 16, cell: 16,
+        slots: [[0, 0, 4191, 10, 0, 0]], imageUri: 'data:image/png;base64,ZmFt',
+    });
+    const shut = ui.tileGroup(58);
+    assert.ok(!shut.includes('data-fam-tile='), 'collapsed shows no art');
+    assert.ok(/rg-group-count">1</.test(shut), 'but the header still says how much there is');
+    assert.ok(shut.includes('data-tile-group="58"') && shut.includes('aria-expanded="false"'),
+        'the header is the toggle');
+    assert.strictEqual(shut.split('<div').length, shut.split('</div>').length, 'every div is closed');
+
+    ui.uiPrefs({ openFamilies: [58] });
+    const open = ui.tileGroup(58);
+    assert.ok(open.includes('data-fam-tile="4191"') && open.includes('aria-expanded="true"'));
+    ui.uiPrefs({});
+    assert.ok(!ui.tileGroup(58).includes('data-fam-tile='), 'prefs replace, they do not add');
 });
 
 /**

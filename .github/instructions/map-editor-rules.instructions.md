@@ -152,7 +152,21 @@ dead button is worse than an honest gap — say so in the plan doc instead.
 
 ---
 
-## 5. What the editor may and may not write
+## 5. A drafted map: empty, with exactly one Boy
+
+A new map borrows a donor room (`0x34`) for its graphics list and families
+(rule 7.1: a room with no Block 1 renders black), and **nothing else**:
+- No donor *content*. The grid is `emptyStamp`, and `editClearDonorScenery`
+  removes the donor's NPCs, doors, triggers and markers from the canvas. Any new
+  overlay svg-builder draws for a room belongs in its `DONOR_SCENERY` list.
+- **Exactly one Boy start** (`_edit.start`), always inside the map. It is
+  placed on arrival, clamped on resize, and moved only by `editMoveStart` (an
+  undo step). It is never a `specialCells` entry, and erase must never reach
+  it. ROM rooms have no start marker; their entrances are their doors.
+
+---
+
+## 6. What the editor may and may not write
 
 **There is no ROM write path in this subsystem, and adding one is not a casual change.**
 `editExport()` produces a handoff shape for the sibling repo's encoder; nothing here
@@ -160,7 +174,8 @@ writes bytes. Before wiring a new kind of edit into the export, confirm the enco
 actually accepts it — entrances, for instance, are **room metadata, not tile-grid
 state**, and have no slot in the export shape today.
 
-Undo is one history for everything. Cell writes, special-glyph writes and trigger
-operations all go through `editApply`/`editApplyTriggerOp` and share `_edit.undo`. Do
+Undo is one history for everything. Cell writes, special-glyph writes, trigger
+operations and start moves all go through `editApply`/`editApplyTriggerOp`/
+`editMoveStart` and share `_edit.undo`. Do
 not add a second stack — a user pressing undo means "the last thing I did", whatever
 kind of thing it was.

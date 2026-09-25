@@ -8,11 +8,41 @@
 // dominant family, so grouping by one and ranking by the other is not a
 // tautology — see docs/map-format/map-editor-window.md §2.2.
 //
-// Owns: _tileGroupPage, _layerForce, _brushFlip.
+// Owns: _tileGroupPage, _tileGroupOpen, _layerForce, _brushFlip.
 
 /** Families shown at once when no family is filtering. */
 var TILE_GROUP_PAGE = 6;
 var _tileGroupPage = TILE_GROUP_PAGE;
+
+/**
+ * Family id -> true for the groups the user has expanded. Everything else is
+ * collapsed: seven groups of art open at once bury the one you are working
+ * in. Remembered by the host across panels and sessions (`saveUiPref`), so
+ * it is keyed by family id, not by room — a family you keep open is one you
+ * keep drawing with, wherever you are.
+ */
+var _tileGroupOpen = {};
+/** The `uiPrefs` key `_tileGroupOpen` is stored under. */
+var TILE_GROUP_PREF = 'openFamilies';
+
+/** The host's remembered UI state arrived (bootstrap.js, `uiPrefs`). */
+function applyUiPrefs(prefs) {
+  var open = prefs && prefs[TILE_GROUP_PREF];
+  _tileGroupOpen = {};
+  if (Array.isArray(open)) open.forEach(function (f) { _tileGroupOpen[f] = true; });
+  if (typeof renderEditPanels === 'function' && editActive()) renderEditPanels();
+}
+
+/** Expand or collapse one family's group, and remember it. */
+function tileGroupToggle(family) {
+  var f = Number(family);
+  if (_tileGroupOpen[f]) delete _tileGroupOpen[f]; else _tileGroupOpen[f] = true;
+  if (typeof vs !== 'undefined' && vs) {
+    vs.postMessage({ command: 'saveUiPref', key: TILE_GROUP_PREF,
+      value: Object.keys(_tileGroupOpen).map(Number) });
+  }
+  renderEditPanels();
+}
 
 /**
  * Force the next placement onto a layer, or null to follow vanilla.
@@ -187,9 +217,17 @@ function brushLayerToggle() {
 /** One family's art, ordered by relationship, with layer badges. */
 function tileGroupHtml(family) {
   var s = _famSheets[family];
-  if (!s) { ensureFamilySheet(family); return tileGroupShell(family, null, 'loading…'); }
-  if (s === 'pending') return tileGroupShell(family, null, 'loading…');
-  if (!s.count) return tileGroupShell(family, null, 'no room draws anything in it');
+  // Collapsed is only the header. The sheet is still fetched: it is what
+  // gives the header its tile count, and it makes opening the group instant.
+  if (!_tileGroupOpen[family]) {
+    if (!s) ensureFamilySheet(family);
+    return tileGroupShell(family, s && s !== 'pending' ? s : null, '') + '</div>';
+  }
+  // Each of these closes the group's own div — tileGroupShell leaves it open
+  // for the sheet, and an unclosed one nested every later group inside it.
+  if (!s) { ensureFamilySheet(family); return tileGroupShell(family, null, 'loading…') + '</div>'; }
+  if (s === 'pending') return tileGroupShell(family, null, 'loading…') + '</div>';
+  if (!s.count) return tileGroupShell(family, null, 'no room draws anything in it') + '</div>';
 
   // Sorted by how well each tile goes with what is already in the map, then
   // by how often vanilla places it — which is also the whole ordering on an
@@ -250,7 +288,11 @@ function tileGroupShell(family, sheet, badge) {
     + (sheet ? '\n' + sheet.total + ' graphic' + (sheet.total === 1 ? '' : 's')
       + (sheet.count < sheet.total ? ', the ' + sheet.count + ' most-used shown' : '') : '')
     + (badge ? '\nbest match with what you have placed: ' + badge : '');
-  return '<div class="rg-tile-group"><div class="rg-group-h" title="' + escH(title) + '">'
+  var open = !!_tileGroupOpen[family];
+  return '<div class="rg-tile-group' + (open ? ' open' : '') + '">'
+    + '<div class="rg-group-h" data-tile-group="' + family + '" role="button" aria-expanded="' + open + '"'
+    + ' title="' + escH(title + '\nclick to ' + (open ? 'collapse' : 'expand')) + '">'
+    + '<span class="rg-group-caret" aria-hidden="true">' + (open ? '▾' : '▸') + '</span>'
     + '<b class="rg-group-name">' + family + '</b>'
     + '<span class="rg-group-where">' + escH(meta && meta.areas.length ? meta.areas[0] : '') + '</span>'
     + (slot >= 0 ? '<span class="rg-group-slot">slot ' + (slot + 1) + '</span>'

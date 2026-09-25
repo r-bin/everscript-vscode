@@ -255,10 +255,19 @@
 .rg-theme .rg-nb-use[disabled]{color:var(--rg-text-muted);cursor:not-allowed}
 
 /* ── A family group: a header, then its art ──────────────────────────────── */
-.rg-theme .rg-tile-group{margin-bottom:14px}
+.rg-theme .rg-tile-group{margin-bottom:6px}
+.rg-theme .rg-tile-group.open{margin-bottom:14px}
+/* The whole header is the collapse toggle (map-editor-tiles.js's
+   tileGroupToggle); groups start collapsed. */
 .rg-theme .rg-group-h{
-  display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:nowrap;
+  display:flex;align-items:center;gap:6px;flex-wrap:nowrap;
+  padding:3px 4px;margin:0 -4px;border-radius:6px;cursor:pointer;user-select:none;
   font-family:var(--rg-font-ui);
+}
+.rg-theme .rg-group-h:hover{background:var(--rg-bg-hover)}
+.rg-theme .rg-tile-group.open .rg-group-h{margin-bottom:6px}
+.rg-theme .rg-group-caret{
+  flex-shrink:0;width:10px;font-size:9px;color:var(--rg-text-muted);
 }
 .rg-theme .rg-group-name{
   font-family:var(--rg-font-mono);font-size:12px;font-weight:500;color:var(--rg-text-primary);

@@ -1,3 +1,20 @@
+## [0.62.0] — 2026-09-25
+
+### Map editor §8c: new maps are empty, the Boy marks the start, families start collapsed
+
+- **No more Strongheart on a new map.** A new map borrows room `0x34`'s
+  graphics and families, and until now it also kept that room's NPCs (Strong
+  Heart himself), its doors and its triggers on the canvas and in the Trigger
+  tab. Those are now removed when the blank map arrives.
+- **The Boy marks where the map starts**, like a level editor's debug entrance.
+  He is drawn with the game's own sprite and placed in the middle of every new
+  map. There is always exactly one: move him with **Special → Start → Boy**
+  (click or drag), and undo works. The eraser cannot remove him, and a resize
+  pulls him back inside. He is not exported yet, because the encoder has no
+  entrance field.
+- **Tile families start collapsed.** Click a family's header to open it. Which
+  families are open is remembered by VS Code across panels and restarts.
+
 ## [0.61.0] — 2026-09-25
 
 ### Map editor §8b: LIKELY NEIGHBORS is the plus-shape the design specifies

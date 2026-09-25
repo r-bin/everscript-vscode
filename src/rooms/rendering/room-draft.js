@@ -56,6 +56,34 @@ function buildBlankRoom(rom, opts) {
         // a budget without it renders "attested undefined".
         budget: budgetSummary(buf, room),
         problems: maps.roomProblems(room),
+        startSprite: boySprite(buf),
+    };
+}
+
+/**
+ * The character record the player's Boy is.
+ *
+ * Record 0 of the character table (`$8EB678`, stride 74) is the only one
+ * whose name pointer is into WRAM (`$7E2210`, the name the player typed) —
+ * record 2 is the villager called "Boy", with ROM text and the INVINCIBLE
+ * flag every townsperson carries. Record 0's flags are `0x0000`, the value
+ * docs/script-format/character_table.md gives for "the Boy and the Dog".
+ */
+const BOY_CHARACTER = 0;
+
+/**
+ * The Boy facing south, for a drafted map's start marker — the game's own
+ * sprite, so the marker is a picture of who arrives there, not an icon.
+ * Null when the animation cannot be walked; the marker falls back to a glyph.
+ */
+function boySprite(rom) {
+    let r = null;
+    try { r = maps.renderCharacterFrames(rom, BOY_CHARACTER); } catch { r = null; }
+    if (!r || !r.frames.length) return null;
+    return {
+        uri: 'data:image/png;base64,'
+            + maps.encodePng({ width: r.width, height: r.height, data: r.frames[0].data }).toString('base64'),
+        w: r.width, h: r.height, ox: r.originX, oy: r.originY,
     };
 }
 

@@ -89,6 +89,8 @@ function editStroke(cell, phase) {
   }
 
   if (d.tool === 'paint') {
+    // The Boy's start pick moves the marker instead of painting anything.
+    if (editStartGesture(cell, phase)) return;
     // A special is cosmetically independent of the tile brush (the design
     // mock's own note): a click can carry a tile, a special, or both, so
     // there is nothing to do only when neither is armed.

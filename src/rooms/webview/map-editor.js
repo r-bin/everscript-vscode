@@ -64,6 +64,14 @@ function editReset(roomId) {
     /** A blank room being drafted instead of a ROM room, or null. */
     blank: null,
     /**
+     * Where the Boy starts on a drafted map, `{x, y}` in metatiles, or null
+     * on a ROM room (whose arrivals are its doors). Exactly one, always on
+     * the map: map-editor-start.js places it when the blank room arrives,
+     * editMoveStart is the only way to move it, and nothing removes it —
+     * the "debug entrance" a level editor needs to test from.
+     */
+    start: null,
+    /**
      * Base-room triggers (from `_mtPalette.attachments`) this draft has
      * hidden — `{kind: 'step'|'b', index}`, index into that kind's
      * attachments array. A base trigger is never mutated in place (it isn't
@@ -172,6 +180,32 @@ function editApplyTriggerOp(before, after) {
   _edit.redo.length = 0;
 }
 
+/**
+ * Move the Boy's start marker, as one undoable step on the shared stack.
+ *
+ * Its own step kind (`start`), like a trigger op: it is not a cell and not a
+ * special — a special is one per cell and would overwrite (or be overwritten
+ * by) a gate or drift glyph there, and erase clears specials. The start
+ * survives both by not being one.
+ */
+function editMoveStart(x, y) {
+  if (!_edit || !_edit.start) return false;
+  if (_edit.start.x === x && _edit.start.y === y) return false;
+  _edit.undo.push({ cells: [], special: [], placed: _edit.placed.length, dropped: [],
+    start: { x: _edit.start.x, y: _edit.start.y } });
+  _edit.redo.length = 0;
+  _edit.start = { x: x, y: y };
+  return true;
+}
+
+/** Swap a step's saved start with the current one; returns the inverse. */
+function editRestoreStart(step) {
+  if (!step.start || !_edit.start) return undefined;
+  var was = { x: _edit.start.x, y: _edit.start.y };
+  _edit.start = { x: step.start.x, y: step.start.y };
+  return was;
+}
+
 /** Deep-enough copy of a trigger snapshot's two arrays — see editApplyTriggerOp. */
 function editCloneTriggerSnapshot(snap) {
   return {
@@ -224,7 +258,8 @@ function editUndo(palette) {
   } else {
     dropped = _edit.placed.splice(step.placed);
   }
-  _edit.redo.push({ cells: inverse, special: specialInverse, placed: step.placed, dropped: dropped, triggers: step.triggers });
+  _edit.redo.push({ cells: inverse, special: specialInverse, placed: step.placed, dropped: dropped, triggers: step.triggers,
+    start: editRestoreStart(step) });
   editPruneAdded(palette);
   editDropStaleTriggerSelection();
   return true;
@@ -262,7 +297,8 @@ function editRedo(palette) {
   } else {
     for (var i = 0; i < step.dropped.length; i++) _edit.placed.push(step.dropped[i]);
   }
-  _edit.undo.push({ cells: inverse, special: specialInverse, placed: step.placed, dropped: [], triggers: step.triggers });
+  _edit.undo.push({ cells: inverse, special: specialInverse, placed: step.placed, dropped: [], triggers: step.triggers,
+    start: editRestoreStart(step) });
   editPruneAdded(palette);
   editDropStaleTriggerSelection();
   return true;

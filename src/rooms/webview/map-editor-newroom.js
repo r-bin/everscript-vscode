@@ -341,10 +341,14 @@ function applyBlankRoom(msg) {
     _resizeKeep = false;
   } else {
     d.cells = {};
+    d.start = null; // a new drawing — editStartPlace re-centres the Boy below
   }
   d.undo = [];
   d.redo = [];
   _newRoomOpen = false;
+  // Exactly one Boy start, on the map — placed now, or pulled back inside
+  // by a resize (map-editor-start.js).
+  editStartPlace(room, room.startSprite);
 
   if (_mtPalette) {
     // `null`, not `0`. The host filled this room with its own empty stamp
@@ -367,10 +371,14 @@ function applyBlankRoom(msg) {
       heightTiles: room.heightTiles,
       baseMetatile: room.baseMetatile,
       budget: room.budget,
+      // The donor's triggers and objects are its own, not the new map's —
+      // left in, the Trigger tab listed Strongheart's Hut's.
+      attachments: { bTrigger: [], stepOn: [], objects: [] },
     });
   }
 
   resizeMapTo(room);
+  editClearDonorScenery();
   _editOrigin = { x: 0, y: 0 };
 
   editNote('empty ' + room.widthTiles + '×' + room.heightTiles

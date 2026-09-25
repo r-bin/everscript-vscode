@@ -145,6 +145,18 @@
 .rg-theme.hide-special-gate .rg-special-glyph-gate{display:none!important}
 .rg-theme.hide-special-entrance .rg-special-glyph-entrance{display:none!important}
 
+/* ── The Boy's start on a drafted map (map-editor-start.js) ──────────────
+ * Deliberately not under any hide-special filter: it is the map's one
+ * entrance and always on it. Success-green like the ROM entrances. */
+.rg-theme .rg-start-cell{
+  fill:var(--rg-success);fill-opacity:.18;
+  stroke:var(--rg-success);stroke-width:.14;stroke-dasharray:.4,.25;
+}
+.rg-theme .rg-start-glyph{
+  fill:var(--rg-text-primary);paint-order:stroke;stroke:var(--rg-bg-app);stroke-width:.3;
+}
+.rg-theme .rg-start-ic{height:22px;image-rendering:pixelated;display:block;margin:-3px auto}
+
 /* ── Trigger selection + drag preview on the canvas (map-editor-paint.js's
  * triggerOutlineSvg, drawn inside #rg-edit by renderEditLayer). Step ~ pink,
  * B ~ yellow, the same accents the toolbar's own step/B trigger tools will

@@ -488,6 +488,9 @@ class RadarCodeLensProvider {
     }
 }
 
+/** globalState key for the Rooms webview's remembered UI state. */
+const ROOMS_UI_PREFS_KEY = 'everscript.roomsUi';
+
 function activate(context) {
     const idx = lp.loadIndex(context.extensionPath);
 
@@ -637,6 +640,13 @@ function activate(context) {
                 _radarPanel.webview.postMessage({ command: 'newMap' });
             }
 
+            // Webview UI state that should outlive the panel — which tile
+            // families are expanded, for one. The webview's own storage is
+            // not it: its origin is new every time the panel is built.
+            _radarPanel.webview.postMessage({
+                command: 'uiPrefs', prefs: context.globalState.get(ROOMS_UI_PREFS_KEY, {}),
+            });
+
             // Handle messages from the webview
             _radarPanel.webview.onDidReceiveMessage(msg => {
                 if (msg.command === 'goToLine') {
@@ -656,6 +666,10 @@ function activate(context) {
                     _radarPinned = false;
                 } else if (msg.command === 'tabChange') {
                     _radarActiveTab = msg.tab || 'radar';
+                } else if (msg.command === 'saveUiPref' && typeof msg.key === 'string') {
+                    const prefs = { ...context.globalState.get(ROOMS_UI_PREFS_KEY, {}) };
+                    prefs[msg.key] = msg.value;
+                    context.globalState.update(ROOMS_UI_PREFS_KEY, prefs);
                 } else if (msg.command === 'requestRoomTiles') {
                     // Decode a vanilla room's collision grid on demand and send back
                     // SVG path data for the Rooms tab map view. On demand rather than

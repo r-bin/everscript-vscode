@@ -31,7 +31,7 @@ const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-stamps.js', '
     'map-editor-trigger-select.js', 'map-editor-trigger-panel.js',
     'map-editor-toolbar.js', 'map-editor-filterbar.js', 'rom-overlay.js',
     'tables-builder.js', 'map-editor-tabs.js', 'map-editor-panels.js', 'map-editor-gestures.js',
-    'map-editor-input.js', 'map-editor-actions.js', 'map-editor-newroom.js'];
+    'map-editor-input.js', 'map-editor-actions.js', 'map-editor-newroom.js', 'map-editor-start.js'];
 
 /** A palette shaped like the host's reply, small enough to read. */
 const PALETTE = {
@@ -120,6 +120,10 @@ async function main() {
         _mtPalette = palette;
         _mtRoomId = 0x34;
         editReset(0x34);
+        // Groups start collapsed (map-editor-tiles.js); the tests below click
+        // swatches, so the harness opens the families they use, the way a
+        // remembered \`uiPrefs\` would. The collapsed default has its own test.
+        applyUiPrefs({ openFamilies: [35, 58] });
         // The two docked bars svg-builder.js appends under the canvas card.
         // The status bar is where `#rg-edit-count` lives as of Phase 7a, so
         // without it every status-line assertion below would read a null.
@@ -664,6 +668,13 @@ async function main() {
     check('create asks the host for the size typed',
         req && req.widthTiles === 20 && req.heightTiles === 9, JSON.stringify(req));
 
+    // The donor room's scenery, as svg-builder would have drawn it.
+    await page.evaluate(() => {
+        document.getElementById('rg-svg').insertAdjacentHTML('beforeend',
+            '<image class="svge-spawn" data-kind="spawn"/><g class="svge-arrival"></g>'
+            + '<rect class="svge-step"/><rect class="svge-btrig"/>');
+        _mtPalette.attachments = { bTrigger: [[1, 1, 2, 2, 7]], stepOn: [], objects: [] };
+    });
     await page.evaluate(() => applyBlankRoom({
         room: {
             widthTiles: 20, heightTiles: 9, borrowedFrom: 0x34, baseMetatile: 360,
@@ -682,6 +693,12 @@ async function main() {
         inBounds: editInBounds(_mtPalette, 19, 8),
         outOfBounds: !editInBounds(_mtPalette, 20, 9),
     }));
+    const donor = await page.evaluate(() => ({
+        left: document.querySelectorAll('#rg-svg .svge-spawn, #rg-svg .svge-arrival, #rg-svg .svge-step, #rg-svg .svge-btrig').length,
+        triggers: _mtPalette.attachments.bTrigger.length,
+    }));
+    check('the donor\u2019s NPCs, doors and triggers do not come with it — no Strongheart',
+        donor.left === 0 && donor.triggers === 0, JSON.stringify(donor));
     check('the map becomes the blank room and can be painted',
         applied.viewBox === '0 0 40 18' && applied.w === 20 && applied.h === 9
         && applied.formClosed && applied.inBounds && applied.outOfBounds,
@@ -716,6 +733,42 @@ async function main() {
     check('and the eraser finds nothing to erase on an untouched cell', emptyMap.erased === -1,
         JSON.stringify(emptyMap));
 
+    // ── the Boy's start on a drafted map (map-editor-start.js) ────────────
+    // "new maps should be empty, I don't want to see strongheart" — the
+    // donor's NPCs were svg-builder's, left standing under the blank room.
+    // And "the boy [on] the map as special tile … you cant remove it".
+    const start = await page.evaluate(() => {
+        const d = editDraft();
+        const r = { placed: d.start && { x: d.start.x, y: d.start.y },
+                    drawn: !!document.querySelector('#rg-edit .rg-start') };
+        // Special tab offers the pick on a drafted map.
+        r.offered = specialTabHtml().includes('data-edit-special="start"');
+        d.currentSpecialId = 'start'; d.tool = 'paint'; d.brush = -1;
+        editStroke({ x: 2, y: 1 }, 'down');
+        editStroke({ x: 4, y: 6 }, 'move');
+        r.moved = { x: d.start.x, y: d.start.y };
+        r.cells = Object.keys(d.cells).length;
+        r.specials = Object.keys(d.specialCells).length;
+        editUndo(_mtPalette);
+        r.undone = { x: d.start.x, y: d.start.y };
+        editRedo(_mtPalette);
+        r.redone = { x: d.start.x, y: d.start.y };
+        d.currentSpecialId = null; d.tool = 'erase';
+        editStroke({ x: 4, y: 6 }, 'down');
+        r.afterErase = !!d.start && d.start.x === 4 && d.start.y === 6;
+        d.tool = 'paint';
+        return r;
+    });
+    check('a new map places exactly one Boy start, in the middle, and draws it',
+        start.placed && start.placed.x === 10 && start.placed.y === 4 && start.drawn, JSON.stringify(start));
+    check('the start pick moves him by click or drag, painting nothing',
+        start.offered && start.moved.x === 4 && start.moved.y === 6 && start.cells === 0 && start.specials === 0,
+        JSON.stringify(start));
+    check('moving him is undoable on the one shared stack',
+        start.undone.x === 2 && start.undone.y === 1 && start.redone.x === 4 && start.redone.y === 6,
+        JSON.stringify(start));
+    check('and the eraser cannot remove him', start.afterErase, JSON.stringify(start));
+
     // A 2x2 room is 4 units, under svg-builder's 8-unit floor.
     await page.evaluate(() => applyBlankRoom({ room: {
         widthTiles: 2, heightTiles: 2, borrowedFrom: 0x34, baseMetatile: 8,
@@ -738,6 +791,8 @@ async function main() {
     check('and a grid that stops at its edge',
         tiny.fine === 'M0 0V4M1 0V4M2 0V4M3 0V4M4 0V4M0 0H4M0 1H4M0 2H4M0 3H4M0 4H4',
         tiny.fine);
+    check('a second new map re-centres the Boy rather than inheriting the last one\u2019s spot',
+        await page.evaluate(() => editDraft().start.x === 1 && editDraft().start.y === 1));
     check('with the coarse line every metatile, not every tile',
         tiny.coarse === 'M0 0V4M2 0V4M4 0V4M0 0H4M0 2H4M0 4H4', tiny.coarse);
 
@@ -796,8 +851,27 @@ async function main() {
         _famSheets[58] = { family: 58, count: 2, total: 74, roomCount: 3, columns: 16, cell: 16,
             slots: [[0, 0, 4186, 9], [1, 2, 4191, 4]], imageUri: 'data:image/png;base64,ZmFt' };
         _panelOpen.tiles = true;
+        // Collapsed, as a family is until the user opens it.
+        applyUiPrefs({ openFamilies: [35] });
+        window.__sent.length = 0;
         renderEditPanels();
     });
+    const folded = await page.evaluate(() => ({
+        swatches: document.querySelectorAll('#rg-panels [data-fam-tile]').length,
+        headers: document.querySelectorAll('#rg-panels [data-tile-group="58"]').length,
+    }));
+    check('a family group starts collapsed: a header and no art',
+        folded.swatches === 0 && folded.headers === 1, JSON.stringify(folded));
+    // Clicking the name, a span inside the header — the e.target walk-up.
+    await page.click('[data-tile-group="58"] .rg-group-name');
+    const opened = await page.evaluate(() => ({
+        swatches: document.querySelectorAll('#rg-panels [data-fam-tile]').length,
+        saved: window.__sent.filter((m) => m.command === 'saveUiPref').pop(),
+    }));
+    check('clicking its header opens it, and the host is told to remember that',
+        opened.swatches === 2 && opened.saved && opened.saved.key === 'openFamilies'
+        && opened.saved.value.indexOf(58) >= 0 && opened.saved.value.indexOf(35) >= 0,
+        JSON.stringify(opened));
     await page.click('[data-fam-tile]');
     const armed = await page.evaluate(() => ({
         brush: editDraft().brush,
@@ -1591,6 +1665,9 @@ async function main() {
         budget: _mtPalette.budget } }));
     const kept = await page.evaluate(() => Object.keys(editDraft().cells));
     check('the cells that still fit survive the resize', kept.join() === '0,0', JSON.stringify(kept));
+    const pulledIn = await page.evaluate(() => editDraft().start);
+    check('and the Boy is pulled back inside, never off the map',
+        pulledIn && pulledIn.x <= 1 && pulledIn.y <= 1, JSON.stringify(pulledIn));
 
     // A ROM room cannot resize: baseMetatile is w*h*2, so it would renumber
     // every metatile id in the room.

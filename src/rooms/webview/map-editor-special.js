@@ -27,6 +27,16 @@
  */
 var EDIT_SPECIAL_GROUPS = [
   {
+    // Only on a drafted map (specialTabHtml) — see map-editor-start.js.
+    id: 'start', label: 'Start', draftOnly: true,
+    note: 'Where the Boy enters this map. There is always exactly one: pick it and click '
+      + 'or drag on the map to move him. It cannot be erased. Not exported yet — the '
+      + 'encoder has no field for an entrance.',
+    items: [
+      { id: 'start', label: 'Boy', glyph: '☺' },
+    ],
+  },
+  {
     id: 'stairs', label: 'Stairs & Drift',
     note: 'One per tile — picking a new one replaces the last. Vertical/Diagonal L/Diagonal R '
       + 'are icon-only: no distinct collision encoding is attested for them. The four Drift '
@@ -184,15 +194,20 @@ function specialGroupHtml(group) {
   group.items.forEach(function (it) {
     html += '<button class="rdf rg-special-chip' + (current === it.id ? ' on' : '') + '" data-edit-special="'
       + it.id + '" title="' + escH(it.label) + '">'
-      + '<span class="rg-special-glyph-ic" aria-hidden="true">' + escH(it.glyph) + '</span>'
+      + '<span class="rg-special-glyph-ic" aria-hidden="true">'
+      + (it.id === START_SPECIAL_ID && _startSprite
+        ? '<img class="rg-start-ic" src="' + _startSprite.uri + '" alt="">' : escH(it.glyph))
+      + '</span>'
       + '<span class="rg-special-label">' + escH(it.label) + '</span></button>';
   });
   return html + '</div></div>';
 }
 
-/** Special tab body: three groups of pickable glyphs. */
+/** Special tab body: the groups of pickable glyphs this room can use. */
 function specialTabHtml() {
-  return EDIT_SPECIAL_GROUPS.map(specialGroupHtml).join('');
+  var d = editDraft();
+  return EDIT_SPECIAL_GROUPS.filter(function (g) { return !g.draftOnly || (d && d.blank); })
+    .map(specialGroupHtml).join('');
 }
 
 /**

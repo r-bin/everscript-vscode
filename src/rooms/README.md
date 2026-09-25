@@ -270,6 +270,10 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   and the tool pill's `⋯` — which drives both their open/close toggle and the
   close-on-outside-click sweep, so a new dropdown needs one list entry plus
   one `EDIT_CLICK_KEYS` key rather than a second mechanism
+- `map-editor-start.js` — the Boy's start marker on a drafted map: placed when
+  the blank room arrives, drawn from the ROM's own Boy sprite, moved by the
+  Special tab's `start` pick, never removable; also strips the donor room's
+  NPCs/doors/triggers off the canvas (`editClearDonorScenery`). Owns `_startSprite`
 - `map-editor-newroom.js` — the blank-room round trip, `> everscript new map`,
   and the canvas resize grip; owns `_newRoomOpen` / `_resizing` / `_resizeKeep`.
   The grip's own visual chrome (`.rg-resize`/`.rg-resize-label`) is themed in

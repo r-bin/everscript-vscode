@@ -81,6 +81,8 @@ function renderEditLayer(palette, composed, origin) {
     var pos = editCellPos(origin, Number(p[0]), Number(p[1]));
     html += editSpecialGlyphSvg(d.specialCells[k], pos.x, pos.y);
   });
+  // The Boy's start, over the tiles and glyphs — map-editor-start.js.
+  html += editStartSvg(origin);
   // The Select tool's own outlines: the selected trigger, and a live preview
   // of where a drag would land it — see map-editor-trigger-select.js.
   if (d.selectedTriggerRef) {
