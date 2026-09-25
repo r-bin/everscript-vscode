@@ -335,10 +335,12 @@ function buildDraftCollision(rom, draft) {
     const cells = Array.isArray(draft.cells) ? draft.cells : [];
     if (!(w >= 1 && h >= 1) || cells.length !== w * h * 3) throw new Error('draft grid does not match its size');
     const room = maps.blankRoom(buf, { widthTiles: w, heightTiles: h, borrowFrom: Number(draft.borrowFrom) || 0x76 });
+    // The collision the room loads with: uncut grass where there is some.
+    const shown = maps.draftTopCells({ widthTiles: w, cells, cut: draft.cut || [] });
     const collisionWords = [];
     for (let y = 0; y < h; y++) {
         const row = [];
-        for (let x = 0; x < w; x++) row.push(cells[(y * w + x) * 3 + 2] & 0xffff);
+        for (let x = 0; x < w; x++) row.push(shown[(y * w + x) * 3 + 2] & 0xffff);
         collisionWords.push(row);
     }
     const drafted = { ...room, collisionWords, elevationPlanes: maps.planesUsed(collisionWords) };

@@ -24,6 +24,7 @@ function editReset(roomId) {
   _edit = {
     roomId: roomId,
     cells: {},        // "x,y" -> metatile index
+    cut: {},          // the cuttable layer over it, same shape — map-editor-cutlayer.js
     added: [],        // {layer1, layer2, collision}
     undo: [],
     redo: [],
@@ -133,11 +134,12 @@ function editApply(writes, specialWrites) {
   for (var i = 0; i < writes.length; i++) {
     var w = writes[i];
     var k = editKey(w.x, w.y);
-    var was = Object.prototype.hasOwnProperty.call(_edit.cells, k) ? _edit.cells[k] : null;
+    var into = editLayerMap(w);
+    var was = Object.prototype.hasOwnProperty.call(into, k) ? into[k] : null;
     if (was === w.index) continue;
-    before.push({ x: w.x, y: w.y, index: was });
-    if (w.index === null) delete _edit.cells[k];
-    else _edit.cells[k] = w.index;
+    before.push({ x: w.x, y: w.y, index: was, layer: w.layer });
+    if (w.index === null) delete into[k];
+    else into[k] = w.index;
     changed += 1;
   }
   var specialBefore = [];
@@ -199,6 +201,12 @@ function editMoveStart(x, y) {
   return true;
 }
 
+/** The map a write lands in: the cuttable layer for `layer: 'cut'`, else the cells. */
+function editLayerMap(w) {
+  if (w.layer !== 'cut') return _edit.cells;
+  return _edit.cut || (_edit.cut = {});
+}
+
 /** Swap a step's saved start with the current one; returns the inverse. */
 function editRestoreStart(step) {
   if (!step.start || !_edit.start) return undefined;
@@ -221,10 +229,11 @@ function editRestore(batch) {
   for (var i = 0; i < batch.length; i++) {
     var w = batch[i];
     var k = editKey(w.x, w.y);
-    var was = Object.prototype.hasOwnProperty.call(_edit.cells, k) ? _edit.cells[k] : null;
-    inverse.push({ x: w.x, y: w.y, index: was });
-    if (w.index === null) delete _edit.cells[k];
-    else _edit.cells[k] = w.index;
+    var into = editLayerMap(w);
+    var was = Object.prototype.hasOwnProperty.call(into, k) ? into[k] : null;
+    inverse.push({ x: w.x, y: w.y, index: was, layer: w.layer });
+    if (w.index === null) delete into[k];
+    else into[k] = w.index;
   }
   return inverse;
 }
@@ -294,52 +303,6 @@ function editRedo(palette) {
   return true;
 }
 
-/**
- * Drop metatiles the draft no longer needs.
- *
- * Undoing the cells that used a composed stamp has to undo the stamp too,
- * or the dictionary keeps growing with entries nothing references and the
- * budget lies. Only the **tail** is dropped: an index is a position, so
- * removing from the middle would silently repoint every cell above it.
- *
- * The current brush is kept even when unplaced — you armed it on purpose,
- * and it is one entry.
- */
-function editPruneAdded(palette) {
-  if (!_edit) return;
-  var base = palette ? palette.count : 0;
-  var used = {};
-  Object.keys(_edit.cells).forEach(function (k) { used[_edit.cells[k]] = true; });
-  while (_edit.added.length) {
-    var index = base + _edit.added.length - 1;
-    if (used[index] || _edit.brush === index) break;
-    _edit.added.pop();
-  }
-  if (_edit.brush >= base + _edit.added.length) _edit.brush = -1;
-  editPruneGraphics(palette);
-}
-
-/**
- * Drop adopted graphics no surviving stamp names.
- *
- * Same tail-only rule, and for the same reason: a graphic's slot is its
- * position in the list, so the words already written would point at the
- * wrong picture if one were removed from the middle.
- */
-function editPruneGraphics(palette) {
-  if (!_edit || !palette || !palette.tiles) return;
-  var base = palette.tiles.count;
-  var highest = -1;
-  for (var i = 0; i < _edit.added.length; i++) {
-    var a = _edit.added[i];
-    for (var j = 0; j < 2; j++) {
-      var chr = (j ? a.layer2 : a.layer1) & 0x3ff;
-      var slot = Math.floor(chr / 0x20) * 8 + Math.floor((chr % 0x20) / 2);
-      if (slot >= base && slot - base > highest) highest = slot - base;
-    }
-  }
-  _edit.addedGraphics.length = highest + 1;
-}
 
 /**
  * The draft as the shape `rebuild_model` wants.

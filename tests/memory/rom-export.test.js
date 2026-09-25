@@ -199,6 +199,34 @@ if (!fs.existsSync(ROM_PATH)) {
         }
     });
 
+    // The cuttable layer (maps/custom-room.ts): Section 4 sources first,
+    // one per (cuttable stamp, stamp beneath) pair, each cut to what it covers.
+    test('a cuttable layer becomes vanilla-shaped grass records, each cut to the tile beneath', () => {
+        const floorA = [0xa800, 0x05c6, 0x0000];
+        const floorB = [0xa800, 0x05e4, 0x0000];
+        const grass = [0xa800, 0x45c0, 0x000f];
+        const cells2 = cells.slice();
+        const set = (x, y, wds) => { const i = (y * W + x) * 3; cells2[i] = wds[0]; cells2[i + 1] = wds[1]; cells2[i + 2] = wds[2]; };
+        set(2, 2, floorA); set(3, 2, floorA); set(4, 2, floorB);
+        const cut = [[2, 2, ...grass], [3, 2, ...grass], [4, 2, ...grass]];
+        const { rom: out, report } = buildExportRom(rom, { ...draft, cells: cells2, cut });
+        assert.strictEqual(report.cuttable, 3);
+        const room = maps.decodeRoom(out, BRIAN_ROOM);
+        const g = room.cuttableGrass;
+        assert.deepStrictEqual(g.tiles, [[2, 2], [3, 2], [4, 2]]);
+        assert.deepStrictEqual(g.warnings, [], 'sources are entries 0..N-1 and the header counts them');
+        // The same grass over two different floors is two sources.
+        assert.strictEqual(g.table.sourceCount, 2);
+        assert.ok(g.table.records.every((r) => r.steps === 1 && r.sequence.length === 1), 'vanilla 7-byte records');
+        const S = room.metatileSlices;
+        for (const [x, y] of g.tiles) {
+            assert.strictEqual(room.layer2VramWords[y][x], grass[1], 'the room loads showing the grass');
+            const dst = (g.table.swaps.get(room.layer1MetatileIds[y][x]) - room.baseMetatile) / 8;
+            const want = x === 4 ? floorB : floorA;
+            assert.deepStrictEqual([S.layer1[dst], S.layer2[dst], S.collision[dst]], want, `cutting (${x},${y})`);
+        }
+    });
+
     test('the intro loads room 0x15 at the start marker, and the room fades in', () => {
         const { rom: out } = buildExportRom(rom, draft);
         const intro = script.decodeScript(out, INTRO_FIRST_CODE).instructions;

@@ -68,6 +68,7 @@ function visSegmentsHtml(ctx) {
     + romVisSegmentHtml('fg', 'Foreground',
       'Draw the canopy layer (BG2 — the “L1 canopy” render). Both segments on is the composite.')
     + romOverlayButtonHtml('c', 'Collision')
+    + (typeof cutLayerButtonHtml === 'function' ? cutLayerButtonHtml() : '')
     + '</span>';
 }
 

@@ -59,6 +59,37 @@ collision) from the editor:
   origin 0.
 - **Empty:** triggers, objects, and cuttable grass (Section 4 = `[0x00]`).
 
+## The cuttable layer
+
+The editor's **Cuttable** toggle, next to Collision, draws on a second layer
+over the map. A cuttable cell shows its own tile until the player cuts it,
+and then the map's tile beneath (`src/rooms/webview/map-editor-cutlayer.js`).
+The export turns that layer into the room's grass table, following the rules
+in `cuttable_grass_mechanics.md`:
+
+- Each distinct pair of cuttable tile and tile beneath becomes one **source**,
+  and the sources take dictionary entries `0…N−1`. The same grass over two
+  different floors is two sources, because a source can only be cut to one
+  tile.
+- Section 4 is `[N]` followed by one vanilla-shaped 7-byte record per source,
+  `01 <source> <beneath> 00 00`. That same `N` is the `$0FC4` counter the
+  Markov encoder starts from.
+- The grid holds the source id at each cuttable cell. The tile beneath goes
+  in the dictionary even when it isn't placed anywhere else.
+- Cutting swaps the metatile id only, so the collision after cutting is the
+  tile beneath's own.
+
+The read-back check also confirms that there are no invariant warnings, and
+that each cuttable cell cuts to exactly the words of the tile beneath it.
+
+**Not yet seen working in the game.** In a headless boot the Boy has the Bone
+Crusher equipped and swings, but no grass was cut. That includes vanilla
+grass in rooms 0x05, 0x36, 0x41, 0x5B and 0x69. So the gap is in the test
+harness: how the Boy is placed and how the swing registers. The code that
+turns a weapon hit into a cut has not been traced either
+(`cuttable_grass_mechanics.md` §3.4). Try it by hand with **Play in
+emulator**.
+
 ## Verification
 
 Before a ROM is handed back, the export decodes it again. The result must

@@ -25,6 +25,11 @@ function editEventCell(e) {
   };
 }
 
+/** The cuttable layer is the one being drawn on (map-editor-cutlayer.js). */
+function cutLayerActive() {
+  return typeof editCutLayerOn === 'function' && editCutLayerOn();
+}
+
 /** A click or drag step with the current tool. */
 function editStroke(cell, phase) {
   var d = editDraft();
@@ -62,6 +67,13 @@ function editStroke(cell, phase) {
     // clearing its glyph and, for gate/drift, the bits it wrote (see
     // map-editor-special.js). Both land in the one final index this cell
     // gets, so undo sees a single write per cell.
+    // On the cuttable layer, erase takes the cuttable tile off whole.
+    if (cutLayerActive()) {
+      var cutErase = editCutWrite(cell.x, cell.y, -1, true);
+      if (cutErase) editApply([cutErase]);
+      renderEditChrome();
+      return;
+    }
     var bare = editResolve(_mtPalette, cell.x, cell.y, -1, true);
     var hadSpecial = editSpecialAt(cell.x, cell.y);
     var finalIndex = bare;
@@ -96,6 +108,12 @@ function editStroke(cell, phase) {
     // there is nothing to do only when neither is armed.
     var hasBrush = d.brush >= 0;
     if (!hasBrush && !d.currentSpecialId) return;
+    // The cuttable layer takes the tile; specials stay on the map itself.
+    if (cutLayerActive() && hasBrush) {
+      editApplyStroke([editCutWrite(cell.x, cell.y, d.brush, false)].filter(Boolean));
+      renderEditChrome();
+      return;
+    }
     var before = hasBrush
       ? editResolve(_mtPalette, cell.x, cell.y, d.brush, false)
       : editCellAt(_mtPalette, cell.x, cell.y);
@@ -134,7 +152,11 @@ function editStroke(cell, phase) {
   if (phase !== 'up') { renderEditLayer(_mtPalette, _editComposed, _editOrigin); return; }
 
   if (d.tool === 'rect') {
-    if (d.brush >= 0) editApplyStroke(editRectWrites(_editSel.x1, _editSel.y1, _editSel.x2, _editSel.y2, d.brush, _mtPalette));
+    if (d.brush >= 0) {
+      editApplyStroke(cutLayerActive()
+        ? editCutRectWrites(_editSel.x1, _editSel.y1, _editSel.x2, _editSel.y2, d.brush)
+        : editRectWrites(_editSel.x1, _editSel.y1, _editSel.x2, _editSel.y2, d.brush, _mtPalette));
+    }
     _editSel = null;
   } else if (_editSel.x1 === _editSel.x2 && _editSel.y1 === _editSel.y2 && _editClip) {
     // A single click with something on the clipboard is a paste. Raw indices

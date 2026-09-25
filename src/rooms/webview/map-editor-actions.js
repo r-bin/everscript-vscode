@@ -72,6 +72,7 @@ function editAction(act) {
   if (act === 'new-room-cancel') { _newRoomOpen = false; renderEditChrome(); return; }
   if (act === 'export') editCopyDraft();
   if (act === 'export-rom') editExportRom();
+  if (act === 'cut-layer') { editCutToggle(); return; }
   if (act === 'play-rom') editPlayRom();
 }
 

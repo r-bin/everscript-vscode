@@ -1,3 +1,26 @@
+## [0.69.0] — 2026-09-25
+
+### Map editor: a cuttable layer
+
+- **A `Cuttable` toggle next to Collision**, off by default. While it's on,
+  painting, rectangles and erasing work on the cuttable layer: tiles drawn
+  over the map that the player can cut away to reveal the map's tile beneath.
+  A cuttable tile is a full tile (background, foreground and collision), and
+  a front tile painted on this layer is drawn over what it covers. Cuttable
+  cells get a green outline while the layer is being edited.
+- **Export ROM and Play in emulator turn the layer into real cuttable
+  grass.** Each cuttable tile gets a record in the same format the game's own
+  rooms use, and cutting it reveals the tile beneath it. The exported ROM is
+  read back and checked that every cuttable cell cuts to exactly the tile
+  under it.
+- The Collision view shows the collision the room starts with, so cuttable
+  tiles count as blocking until they are cut.
+- Undo, redo, saving and resizing all include the cuttable layer, and a tile
+  family used only by cuttable tiles stays loaded.
+- **Not yet seen working in the game.** The ROM data has been checked, but
+  cutting could not be tested in the emulator from the command line, not even
+  on the game's own grass. Try it by hand with Play in emulator.
+
 ## [0.68.1] — 2026-09-25
 
 ### Tile tab: the tiles revealed by cutting grass are listed

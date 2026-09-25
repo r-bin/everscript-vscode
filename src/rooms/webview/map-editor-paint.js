@@ -71,6 +71,8 @@ function renderEditLayer(palette, composed, origin) {
     var pos = editCellPos(origin, Number(p[0]), Number(p[1]));
     html += editStampSvg(palette, composed, d.cells[k], pos.x, pos.y, 'rg-edit-cell');
   });
+  // The cuttable layer, over the cells it covers (map-editor-cutlayer.js).
+  if (typeof editCutSvg === 'function') html += editCutSvg(palette, composed, origin);
   // Special glyphs (stairs/drift, gate, entrance) sit on their own key
   // space (see map-editor.js's specialCells), so they are drawn in their
   // own pass rather than folded into the cell loop above — a cell can be

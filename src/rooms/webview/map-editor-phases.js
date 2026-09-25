@@ -105,9 +105,13 @@ function editFloorCollisionFor(palette, layer2Word) {
  *
  * Returns a metatile index, creating one through the usual find-or-create
  * rule if the combination does not exist yet.
+ *
+ * `hereIndex`, when given, is the stamp to resolve against instead of the
+ * cell's own — the cuttable layer resolves against what it covers
+ * (map-editor-cutlayer.js).
  */
-function editResolve(palette, x, y, brushIndex, erasing) {
-  var here = editCellAt(palette, x, y);
+function editResolve(palette, x, y, brushIndex, erasing, hereIndex) {
+  var here = hereIndex === undefined ? editCellAt(palette, x, y) : hereIndex;
   var under = here >= 0 ? editStampWords(palette, here) : null;
   var blank = editBlankCanopy(palette);
 

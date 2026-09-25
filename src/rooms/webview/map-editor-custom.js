@@ -229,7 +229,7 @@ function customStash() {
  * serialised stack would be most of the payload.
  */
 var CUSTOM_DRAFT_FIELDS = ['cells', 'added', 'specialCells', 'addedGraphics', 'placed',
-  'families', 'autoFamilies', 'start', 'placedSeq', 'constructs'];
+  'families', 'autoFamilies', 'start', 'placedSeq', 'constructs', 'cut'];
 
 function customSerialize(d) {
   var out = {};

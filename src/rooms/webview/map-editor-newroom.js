@@ -290,13 +290,16 @@ function applyBlankRoom(msg) {
   // drawing. Anything outside the new bounds is gone, which is why the drag
   // says how many cells that is before the mouse comes up.
   if (_resizeKeep) {
-    Object.keys(d.cells).forEach(function (k) {
-      var p = k.split(',');
-      if (Number(p[0]) >= room.widthTiles || Number(p[1]) >= room.heightTiles) delete d.cells[k];
+    [d.cells, d.cut || {}].forEach(function (layer) {
+      Object.keys(layer).forEach(function (k) {
+        var p = k.split(',');
+        if (Number(p[0]) >= room.widthTiles || Number(p[1]) >= room.heightTiles) delete layer[k];
+      });
     });
     _resizeKeep = false;
   } else {
     d.cells = {};
+    d.cut = {};
     d.start = null; // a new drawing — editStartPlace re-centres the Boy below
   }
   d.undo = [];

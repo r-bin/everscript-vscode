@@ -32,7 +32,7 @@ const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-stamps.js', '
     'map-editor-toolbar.js', 'map-editor-filterbar.js', 'rom-overlay.js',
     'tables-builder.js', 'map-editor-tabs.js', 'map-editor-panels.js', 'map-editor-gestures.js',
     'map-editor-input.js', 'map-editor-actions.js', 'map-editor-newroom.js', 'map-editor-start.js', 'map-editor-custom.js',
-    'map-editor-rom-export.js', 'map-editor-collision.js'];
+    'map-editor-rom-export.js', 'map-editor-collision.js', 'map-editor-cutlayer.js'];
 
 /** A palette shaped like the host's reply, small enough to read. */
 const PALETTE = {
@@ -1892,6 +1892,43 @@ async function main() {
     });
     check('a picked tile’s stamp gets vanilla’s collision shape for the layer it is painted on',
         coll.ground === 0x0f && coll.front === 0x00, JSON.stringify(coll));
+
+    // ── the cuttable layer (map-editor-cutlayer.js) ────────────────────────
+    // "the cuttable layer behaves like a regular tile … default off; when
+    // the button is active we draw on the cuttable layer instead".
+    const cut = await page.evaluate(() => {
+        const d = editReset(0x34);
+        d.on = true; d.tool = 'paint';
+        d.blank = { widthTiles: 2, heightTiles: 2, floor: { layer1: 0xa800, layer2: 0xa800, collision: 0 } };
+        _mtPalette.grid = [[null, null], [null, null]];
+        document.getElementById('rg-outer').insertAdjacentHTML('beforeend',
+            '<span class="rg-seg" id="t-cutseg">' + cutLayerButtonHtml() + '</span>');
+        const r = { off: !editCutLayerOn() && !document.querySelector('.rdf-cut.on') };
+        d.brush = 0;
+        editStroke({ x: 0, y: 0 }, 'down');                          // the map
+        document.querySelector('[data-edit-act="cut-layer"]').click();
+        r.on = editCutLayerOn() && !!document.querySelector('.rdf-cut.on');
+        d.brush = editAddStamp(_mtPalette, { layer1: 0xa800, layer2: 0x0c02, collision: 0x0f });
+        editStroke({ x: 0, y: 0 }, 'down');                          // cuttable, over it
+        r.cells = JSON.stringify(d.cells); r.cut = JSON.stringify(d.cut);
+        r.marks = document.querySelectorAll('#rg-edit .rg-cut-mark').length;
+        r.payload = romExportPayload({}).cut;
+        editUndo(_mtPalette); r.undone = Object.keys(d.cut).length; editRedo(_mtPalette);
+        d.tool = 'erase'; editStroke({ x: 0, y: 0 }, 'down');
+        r.erased = { cut: Object.keys(d.cut).length, cells: Object.keys(d.cells).length };
+        document.querySelector('[data-edit-act="cut-layer"]').click();
+        document.getElementById('t-cutseg').remove();
+        d.tool = 'paint'; d.brush = -1; d.cells = {}; d.cut = {}; d.blank = null;
+        return r;
+    });
+    check('Cuttable is off by default, and its button turns it on', cut.off && cut.on, JSON.stringify(cut));
+    check('with it on, painting writes the cuttable layer and leaves the map beneath alone',
+        cut.cells === '{"0,0":0}' && Object.keys(JSON.parse(cut.cut)).length === 1 && cut.marks === 1, JSON.stringify(cut));
+    check('Export ROM gets the cuttable tile\u2019s words; undo takes it off the layer',
+        cut.payload.length === 1 && cut.payload[0][3] === 0x0c02 && cut.payload[0][4] === 0x0f && cut.undone === 0,
+        JSON.stringify(cut));
+    check('erasing on the cuttable layer removes the cuttable tile, not the map',
+        cut.erased.cut === 0 && cut.erased.cells === 1, JSON.stringify(cut));
 
     // The host posts `uiPrefs` right after `newMap`, so the saved list lands
     // after the new map exists. Replacing the list orphaned it — no row, no

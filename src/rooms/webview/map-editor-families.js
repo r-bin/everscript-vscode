@@ -199,8 +199,11 @@ function editSyncPaintedFamilies() {
   var slots = Object.keys(auto);
   if (!slots.length) return;
   var named = {};
-  Object.keys(d.cells).forEach(function (key) {
-    var w = editStampWords(_mtPalette, d.cells[key]);
+  // The cuttable layer's tiles are on the map too, so they keep a family loaded.
+  var placed = Object.keys(d.cells).map(function (k) { return d.cells[k]; })
+    .concat(Object.keys(d.cut || {}).map(function (k) { return d.cut[k]; }));
+  placed.forEach(function (index) {
+    var w = editStampWords(_mtPalette, index);
     if (!w) return;
     var a = editWordFamilySlot(w.layer1);
     var b = editWordFamilySlot(w.layer2);

@@ -145,3 +145,54 @@ function editNeededStamps(palette) {
     bytes: _edit.added.length * 8,
   };
 }
+
+// Moved from map-editor.js (400-line limit): pruning is the dictionary's own
+// housekeeping, called by editUndo/editRedo there.
+/**
+ * Drop metatiles the draft no longer needs.
+ *
+ * Undoing the cells that used a composed stamp has to undo the stamp too,
+ * or the dictionary keeps growing with entries nothing references and the
+ * budget lies. Only the **tail** is dropped: an index is a position, so
+ * removing from the middle would silently repoint every cell above it.
+ *
+ * The current brush is kept even when unplaced — you armed it on purpose,
+ * and it is one entry.
+ */
+function editPruneAdded(palette) {
+  if (!_edit) return;
+  var base = palette ? palette.count : 0;
+  var used = {};
+  Object.keys(_edit.cells).forEach(function (k) { used[_edit.cells[k]] = true; });
+  // The cuttable layer's stamps are just as placed (map-editor-cutlayer.js).
+  Object.keys(_edit.cut || {}).forEach(function (k) { used[_edit.cut[k]] = true; });
+  while (_edit.added.length) {
+    var index = base + _edit.added.length - 1;
+    if (used[index] || _edit.brush === index) break;
+    _edit.added.pop();
+  }
+  if (_edit.brush >= base + _edit.added.length) _edit.brush = -1;
+  editPruneGraphics(palette);
+}
+
+/**
+ * Drop adopted graphics no surviving stamp names.
+ *
+ * Same tail-only rule, and for the same reason: a graphic's slot is its
+ * position in the list, so the words already written would point at the
+ * wrong picture if one were removed from the middle.
+ */
+function editPruneGraphics(palette) {
+  if (!_edit || !palette || !palette.tiles) return;
+  var base = palette.tiles.count;
+  var highest = -1;
+  for (var i = 0; i < _edit.added.length; i++) {
+    var a = _edit.added[i];
+    for (var j = 0; j < 2; j++) {
+      var chr = (j ? a.layer2 : a.layer1) & 0x3ff;
+      var slot = Math.floor(chr / 0x20) * 8 + Math.floor((chr % 0x20) / 2);
+      if (slot >= base && slot - base > highest) highest = slot - base;
+    }
+  }
+  _edit.addedGraphics.length = highest + 1;
+}

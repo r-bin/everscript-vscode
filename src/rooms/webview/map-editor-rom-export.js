@@ -45,6 +45,8 @@ function romExportPayload(why) {
     graphics: (d.addedGraphics || []).slice(),
     families: (d.families || []).slice(),
     start: d.start ? { x: d.start.x, y: d.start.y } : null,
+    // Tiles the player can cut; `cells` above is what cutting reveals.
+    cut: typeof editCutPayload === 'function' ? editCutPayload() : [],
   };
 }
 

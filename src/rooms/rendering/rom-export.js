@@ -108,6 +108,7 @@ function buildExportRom(vanilla, draft) {
         cells: draft.cells,
         graphics: draft.graphics || [],
         families: draft.families || [],
+        cut: draft.cut || [],
     });
 
     const rom = new Uint8Array(EXPANDED_SIZE);
@@ -140,6 +141,7 @@ function buildExportRom(vanilla, draft) {
             blobBytes: built.blob.length,
             blobAddress: 0x800000 | BLOB_OFFSET,
             metatiles: built.metatileCount,
+            cuttable: (draft.cut || []).length,
             wramBytes: built.wramBytes,
             start: at,
         },
@@ -149,6 +151,8 @@ function buildExportRom(vanilla, draft) {
 /** Decode what was written and compare it with what was asked for. */
 function verifyExport(rom, built, draft, at) {
     const room = maps.decodeRoom(rom, BRIAN_ROOM);
+    // What the room shows on load: the cuttable layer where there is one.
+    const shown = maps.draftTopCells({ widthTiles: Number(draft.widthTiles), cells: draft.cells, cut: draft.cut || [] });
     const w = room.header.widthTiles;
     const h = room.header.heightTiles;
     if (w !== Number(draft.widthTiles) || h !== Number(draft.heightTiles)) {
@@ -158,7 +162,7 @@ function verifyExport(rom, built, draft, at) {
         for (let x = 0; x < w; x++) {
             const i = (y * w + x) * 3;
             const got = [room.layer1VramWords[y][x], room.layer2VramWords[y][x], room.collisionWords[y][x]];
-            const want = [draft.cells[i] & 0xffff, draft.cells[i + 1] & 0xffff, draft.cells[i + 2] & 0xffff];
+            const want = [shown[i] & 0xffff, shown[i + 1] & 0xffff, shown[i + 2] & 0xffff];
             if (got[0] !== want[0] || got[1] !== want[1] || got[2] !== want[2]) {
                 throw new Error(`export check: cell (${x},${y}) decodes differently from the draft`);
             }
@@ -166,6 +170,22 @@ function verifyExport(rom, built, draft, at) {
     }
     if (room.metatileCount !== built.metatileCount) {
         throw new Error(`export check: ${room.metatileCount} metatiles decoded, ${built.metatileCount} written`);
+    }
+
+    // Each cuttable cell is cut to exactly the words beneath it.
+    const grass = room.cuttableGrass;
+    if (grass.warnings.length) throw new Error('export check: grass table — ' + grass.warnings.join('; '));
+    if (grass.tiles.length !== (draft.cut || []).length) {
+        throw new Error(`export check: ${grass.tiles.length} cuttable cells decoded, ${(draft.cut || []).length} drawn`);
+    }
+    const S = room.metatileSlices;
+    for (const [x, y] of grass.tiles) {
+        const dst = (grass.table.swaps.get(room.layer1MetatileIds[y][x]) - room.baseMetatile) / 8;
+        const i = (y * w + x) * 3;
+        if (S.layer1[dst] !== (draft.cells[i] & 0xffff) || S.layer2[dst] !== (draft.cells[i + 1] & 0xffff)
+            || S.collision[dst] !== (draft.cells[i + 2] & 0xffff)) {
+            throw new Error(`export check: cutting (${x},${y}) does not reveal the tile beneath it`);
+        }
     }
 
     const enter = script.buildRoomScriptModel(rom, BRIAN_ROOM).enter;

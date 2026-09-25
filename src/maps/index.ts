@@ -113,5 +113,5 @@ export {
     SUB_RAW, SUB_LZSS, SUB_MARKOV,
 } from './encode';
 export type { Block, RoomModel, TriggerRecord as EncodedTrigger } from './encode';
-export { buildCustomRoomBlob } from './custom-room';
+export { buildCustomRoomBlob, draftTopCells } from './custom-room';
 export type { CustomRoomInput, CustomRoomBlob } from './custom-room';

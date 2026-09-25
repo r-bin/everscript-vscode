@@ -394,3 +394,8 @@
   color:var(--rg-success);
 }
 .rg-theme .rg-resize-label.over{color:var(--rg-error)}
+
+/* The cuttable layer while it is being edited (map-editor-cutlayer.js): a
+   green outline per cuttable cell, the colour upstream render_map.py gives
+   cuttable grass. */
+.rg-cut-mark{fill:rgba(60,200,90,.12);stroke:rgb(60,200,90);stroke-width:.18;pointer-events:none}

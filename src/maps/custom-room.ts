@@ -25,10 +25,17 @@ export interface CustomRoomInput {
     graphics?: number[];
     /** The draft's tile families by palette slot (`null` = empty); none means the donor's. */
     families?: Array<number | null>;
+    /**
+     * The cuttable layer: `[x, y, l1, l2, cw]` per cuttable cell. That cell
+     * shows these words until it is cut, and then the `cells` words beneath.
+     */
+    cut?: number[][];
 }
 
 export interface CustomRoomBlob {
     blob: Uint8Array;
+    /** Distinct cuttable (stamp, beneath) pairs — the Section 4 sources. */
+    cuttable: number;
     model: RoomModel;
     metatileCount: number;
     wramBytes: number;
@@ -82,24 +89,8 @@ export function buildCustomRoomBlob(rom: Uint8Array, input: CustomRoomInput): Cu
     const donorRoom = decodeRoom(rom, input.borrowFrom);
 
     const base = w * h * 2;
-    const key = new Map<string, number>();
-    const l1: number[] = [];
-    const l2: number[] = [];
-    const cw: number[] = [];
-    const grid = new Array<number>(w * h);
-    for (let i = 0; i < w * h; i++) {
-        const a = input.cells[i * 3] & 0xffff;
-        const b = input.cells[i * 3 + 1] & 0xffff;
-        const c = input.cells[i * 3 + 2] & 0xffff;
-        const k = a + ',' + b + ',' + c;
-        let idx = key.get(k);
-        if (idx === undefined) {
-            idx = l1.length;
-            key.set(k, idx);
-            l1.push(a); l2.push(b); cw.push(c);
-        }
-        grid[i] = base + idx * 8;
-    }
+    const dict = buildDictionary(input, w, h, base);
+    const { l1, l2, cw, grid } = dict;
 
     const wramBytes = base + l1.length * 8;
     if (wramBytes > MAX_WRAM) {
@@ -131,10 +122,91 @@ export function buildCustomRoomBlob(rom: Uint8Array, input: CustomRoomInput): Cu
         section2Count: 0,
         section2Data: EMPTY_SECTION2,
         objectOffsets: [],
-        block2: encodeBlock2(grid, w, h, base, 0),
-        section4: EMPTY_SECTION4,
+        block2: encodeBlock2(grid, w, h, base, dict.sources),
+        section4: dict.section4,
         block3: encodeBlock3(l1, l2, cw, true),
         objectArea: new Uint8Array(0),
     };
-    return { blob: buildBlob(model), model, metatileCount: l1.length, wramBytes };
+    return { blob: buildBlob(model), model, metatileCount: l1.length, wramBytes, cuttable: dict.sources };
+}
+
+/** The words every cell shows when the room loads: the cuttable layer where there is one. */
+export function draftTopCells(input: CustomRoomInput): number[] {
+    const w = input.widthTiles | 0;
+    const top = input.cells.slice();
+    for (const c of input.cut || []) {
+        const i = ((c[1] | 0) * w + (c[0] | 0)) * 3;
+        if (i >= 0 && i + 2 < top.length) { top[i] = c[2]; top[i + 1] = c[3]; top[i + 2] = c[4]; }
+    }
+    return top;
+}
+
+/**
+ * Number the dictionary and write the grass table.
+ *
+ * **Cuttable grass** (docs/map-format/cuttable_grass_mechanics.md): a cell
+ * is cuttable iff its metatile id is a *source* in Section 4, and cutting
+ * stamps the record's other id into the grid. Two rules the ROM attests in
+ * all 7 rooms that use it: the sources are dictionary entries `0..N-1`, and
+ * Section 4 opens with `N` — the same byte the Markov decoder takes as its
+ * starting counter ($0FC4), so the grid can name a source without
+ * introducing it. A source maps to exactly one cut target (duplicates are
+ * unverified), so each distinct *(cuttable stamp, stamp beneath)* pair gets
+ * its own entry — the same grass over two floors is two sources.
+ *
+ * Records are vanilla's own 7-byte shape: `01 <source> <cut> 00 00`.
+ *
+ * Every other entry follows in first-appearance order from `N`, the one
+ * order the Markov encoder always accepts; a beneath stamp that is never
+ * placed goes last, since the grid never names it.
+ */
+function buildDictionary(input: CustomRoomInput, w: number, h: number, base: number) {
+    const l1: number[] = [];
+    const l2: number[] = [];
+    const cw: number[] = [];
+    const add = (a: number, b: number, c: number): number => { l1.push(a & 0xffff); l2.push(b & 0xffff); cw.push(c & 0xffff); return l1.length - 1; };
+    const words = (flat: number[], i: number): number[] => [flat[i * 3] & 0xffff, flat[i * 3 + 1] & 0xffff, flat[i * 3 + 2] & 0xffff];
+
+    // 1. Sources, first. `cutAt` is cell -> source index.
+    const cutAt = new Map<number, number>();
+    const pairs = new Map<string, number>();
+    const beneathOf: number[][] = [];
+    const cuts = (input.cut || []).slice().sort((a, b) => (a[1] - b[1]) || (a[0] - b[0]));
+    for (const c of cuts) {
+        const i = (c[1] | 0) * w + (c[0] | 0);
+        if (c[0] < 0 || c[1] < 0 || c[0] >= w || c[1] >= h || cutAt.has(i)) continue;
+        const top = [c[2] & 0xffff, c[3] & 0xffff, c[4] & 0xffff];
+        const under = words(input.cells, i);
+        const k = top.join(',') + '|' + under.join(',');
+        let s = pairs.get(k);
+        if (s === undefined) { s = add(top[0], top[1], top[2]); pairs.set(k, s); beneathOf.push(under); }
+        cutAt.set(i, s);
+    }
+    const sources = l1.length;
+
+    // 2. Everything the grid shows, in first-appearance order.
+    const key = new Map<string, number>();
+    const grid = new Array<number>(w * h);
+    for (let i = 0; i < w * h; i++) {
+        const s = cutAt.get(i);
+        if (s !== undefined) { grid[i] = base + s * 8; continue; }
+        const [a, b, c] = words(input.cells, i);
+        const k = a + ',' + b + ',' + c;
+        let idx = key.get(k);
+        if (idx === undefined) { idx = add(a, b, c); key.set(k, idx); }
+        grid[i] = base + idx * 8;
+    }
+
+    // 3. What each source is cut to, and the records.
+    const section = [sources];
+    for (let s = 0; s < sources; s++) {
+        const [a, b, c] = beneathOf[s];
+        const k = a + ',' + b + ',' + c;
+        let dst = key.get(k);
+        if (dst === undefined) { dst = add(a, b, c); key.set(k, dst); }
+        const src = base + s * 8;
+        const cut = base + dst * 8;
+        section.push(0x01, src & 0xff, src >> 8, cut & 0xff, cut >> 8, 0x00, 0x00);
+    }
+    return { l1, l2, cw, grid, sources, section4: sources ? Uint8Array.from(section) : EMPTY_SECTION4 };
 }
