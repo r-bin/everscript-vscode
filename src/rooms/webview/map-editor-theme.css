@@ -202,10 +202,12 @@
 /* ── Trigger tab list (map-editor-trigger-panel.js's triggerTabPanelHtml) ── */
 .rg-theme .rg-trigger-section{margin-bottom:12px}
 /* What the Trigger tab's pencil draws (map-editor-drawable.js), B first. */
-.rg-theme button.rg-trigger-kind{display:flex;align-items:center;gap:6px;width:100%;text-align:left;
-  background:transparent;border:1px solid transparent;border-radius:var(--rg-radius-control);padding:4px 6px;
-  color:inherit;font:inherit;cursor:pointer}
-.rg-theme button.rg-trigger-kind:hover{background:var(--rg-bg-hover)}
+.rg-theme .rg-subtabs{display:flex;gap:4px;margin-bottom:8px;border-bottom:1px solid var(--rg-border)}
+.rg-theme .rg-subtab{display:flex;align-items:center;gap:6px;flex:1;justify-content:center;padding:6px 8px;
+  background:transparent;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;
+  color:var(--rg-text-secondary);font:500 12px var(--rg-font-ui);cursor:pointer}
+.rg-theme .rg-subtab:hover{color:var(--rg-text-primary)}
+.rg-theme .rg-subtab.on{color:var(--rg-text-primary);border-bottom-color:var(--rg-accent)}
 .rg-theme .rg-trigger-kind b{display:inline-block;min-width:1.1em;text-align:center}
 .rg-theme .rg-trigger-kind-b b{color:var(--rg-trigger-b)}
 .rg-theme .rg-trigger-kind-step b{color:var(--rg-trigger-step)}

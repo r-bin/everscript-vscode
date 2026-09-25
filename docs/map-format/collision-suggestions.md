@@ -126,6 +126,15 @@ H-flipped swaps 1 and 2.
   above its painted cells (`#rg-canopy-ov`). It is redrawn after every change
   to the cells, and whenever Collision is switched on.
 
+**Two modes**, behind the Collision chip's caret:
+- **Outline** (the default): each level's walls as a contour, with the wall
+  tint inside.
+- **Tile by tile**: every pixel a tile's geometry makes solid, filled in its
+  level's colour. This is the `tiles` option of `drawCollisionOverlay`; the
+  webview sends it as flag `k`, which is never part of "all".
+
+The tile list's collision marks use the colour of the level being drawn on.
+
 **Colours:** each elevation plane has its own contour colour: plane 0 is blue
 and plane 1 red (`PLANE_COLORS`, matching upstream `render_map.py`). The walls
 of a custom map are plane 0, so they draw blue.

@@ -34,7 +34,7 @@ const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-stamps.js', '
     'map-editor-input.js', 'map-editor-actions.js', 'map-editor-newroom.js', 'map-editor-start.js', 'map-editor-custom.js',
     'map-editor-rom-export.js', 'map-editor-collision.js', 'map-editor-cutlayer.js', 'map-editor-drawable.js',
     'map-editor-levels.js', 'map-editor-groups.js', 'map-editor-custom-store.js',
-    'map-editor-clipboard.js', 'map-editor-pick.js'];
+    'map-editor-clipboard.js', 'map-editor-pick.js', 'map-editor-special-select.js'];
 
 /** A palette shaped like the host's reply, small enough to read. */
 const PALETTE = {
@@ -277,6 +277,8 @@ async function main() {
         },
     });
     await page.click('[data-edit-active-tab="trigger"]');
+    // A sub-tab per kind since v0.73.0; the room's trigger is a step-on one.
+    await page.click('[data-trigger-kind="step"]');
     const trigText = await page.evaluate(() => document.getElementById('rg-panels').textContent);
     check("the Trigger tab lists the room's own step/B triggers, named from the source",
         /Step-on triggers/.test(trigText) && /test_step/.test(trigText) && /0x1234/.test(trigText),
@@ -369,8 +371,9 @@ async function main() {
     // §8e: Objects is one toggle with no menu ("objects are distinct object
     // tiles. the arrow should be removed"), and Triggers holds only the two
     // kinds of trigger; everything else they carried is in More.
-    check('three dropdowns, one mechanism — Objects has none',
-        barKeys.ids.join() === 'rg-more-dropdown,rg-special-dropdown,rg-trigger-dropdown',
+    // v0.73.0: Collision's caret picks outline or tile-by-tile drawing.
+    check('four dropdowns, one mechanism — Objects has none',
+        barKeys.ids.join() === 'rg-collision-dropdown,rg-more-dropdown,rg-special-dropdown,rg-trigger-dropdown',
         barKeys.ids.join());
     check('Triggers offers only step-on and B triggers',
         await page.evaluate(() => [...document.querySelectorAll('#rg-trigger-dropdown [data-hide]')]
@@ -1035,8 +1038,8 @@ async function main() {
         d.tool = 'paint';
         editStroke({ x: 0, y: 0 }, 'down');
         const painted = editStampWords(_mtPalette, d.cells['0,0']);
-        d.tool = 'rect';
-        editStroke({ x: 1, y: 0 }, 'down'); editStroke({ x: 1, y: 1 }, 'up');
+        // The rect tool is gone (v0.73.0); its writes still backfill a move.
+        editApply(editRectWrites(1, 0, 1, 1, d.brush, _mtPalette));
         const rect = editStampWords(_mtPalette, d.cells['1,1']);
         return { painted, rect, under: editStampWords(_mtPalette, 0) };
     });

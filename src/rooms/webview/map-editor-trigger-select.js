@@ -122,6 +122,8 @@ function triggerSelect(ref) {
   d.selectedTriggerRef = ref;
   _triggerDrag = null;
   if (ref && typeof _editActiveTab !== 'undefined') _editActiveTab = 'trigger';
+  // Its kind's sub-tab, or its row would not be listed (map-editor-trigger-panel.js).
+  if (ref && typeof _editTriggerKind !== 'undefined') _editTriggerKind = ref.kind;
   if (typeof renderEditChrome === 'function') renderEditChrome();
 }
 

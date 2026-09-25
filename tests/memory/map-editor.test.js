@@ -613,6 +613,7 @@ const ui = new Function(`
   ${read('map-editor-custom-store.js')}
   ${read('map-editor-clipboard.js')}
   ${read('map-editor-pick.js')}
+  ${read('map-editor-special-select.js')}
   return {
     tileSlotWord: tileSlotWord, editOnTilePicked: editOnTilePicked,
     editAction: editAction, editReset: editReset, editDraft: editDraft,
@@ -645,6 +646,8 @@ const ui = new Function(`
     groupSel: function () { return _groupSel; }, startSel: function () { return _startSel; },
     tab: function () { return _editActiveTab; }, brushTile: function () { return _brushTile; },
     triggerKind: function () { return _editTriggerKind; },
+    specialSel: function () { return _specialSel; }, triggerTab: triggerTabPanelHtml,
+    setTriggerKind: function (k) { _editTriggerKind = k; },
   };`)();
 
 /** A palette with the tile sheet the host now sends alongside it. */
@@ -1405,6 +1408,69 @@ test('copy a region, paste it under the pointer as one selected object, drag it'
     assert.deepStrictEqual([d.groups[0].x, d.groups[0].y], [0, 1], 'dragged while selected');
     ui.editStroke({ x: 2, y: 0 }, 'down');
     assert.strictEqual(ui.groupSel(), null, 'a click elsewhere lets it go');
+});
+
+console.log('\nv0.73.0:');
+
+test('the Select tool on the Special tab selects a cell’s specials and drags them, glyph and bits', () => {
+    const { p, d } = fresh();
+    d.currentSpecialId = 'gate-dog';
+    ui.setTab('special');
+    ui.editStroke({ x: 0, y: 0 }, 'down');                   // pencil: a dog gate at 0,0
+    d.tool = 'select';
+    ui.editBegin();
+    ui.editStroke({ x: 0, y: 0 }, 'down');
+    assert.deepStrictEqual(ui.specialSel(), { x: 0, y: 0 }, 'selected');
+    ui.editStroke({ x: 2, y: 1 }, 'move');
+    ui.editStroke({ x: 2, y: 1 }, 'up');
+    ui.editEnd();
+    assert.strictEqual(ui.editSpecialAt(0, 0), null, 'the glyph left');
+    assert.strictEqual(ui.editSpecialAt(2, 1), 'gate-dog', 'and arrived');
+    assert.strictEqual((ui.editStampWords(p, d.cells['0,0']).collision >> 8) & 0xf, 0, 'the source lost the gate');
+    assert.strictEqual((ui.editStampWords(p, d.cells['2,1']).collision >> 8) & 0xf, 5, 'the target has it');
+    ui.editUndo(p);
+    assert.strictEqual(ui.editSpecialAt(0, 0), 'gate-dog', 'one step: undo puts it back');
+    ui.setTab('tile');
+});
+
+test('a stairs flag with no glyph moves too', () => {
+    const { p, d } = fresh();
+    const w = ui.editStampWords(p, 0);
+    d.cells['0,0'] = ui.editAddStamp(p, { layer1: w.layer1, layer2: w.layer2, collision: 0x2012 });
+    ui.setTab('special');
+    d.tool = 'select';
+    ui.editStroke({ x: 0, y: 0 }, 'down');
+    ui.editStroke({ x: 1, y: 0 }, 'up');
+    assert.strictEqual(ui.editStampWords(p, d.cells['1,0']).collision & 0x200f, 0x2002);
+    assert.strictEqual(ui.editStampWords(p, d.cells['0,0']).collision & 0x2000, 0);
+    ui.setTab('tile');
+});
+
+test('a paste puts the tile the pointer was on at copy time under the pointer', () => {
+    const { d } = fresh();
+    d.tool = 'copy';
+    ui.setSel({ x1: 0, y1: 0, x2: 1, y2: 0 });
+    ui.setHover({ x: 1, y: 0 });                             // on the region's right tile
+    ui.editClipboardKey({ key: 'c' }, true);
+    ui.setHover({ x: 2, y: 1 });
+    ui.editClipboardKey({ key: 'v' }, true);
+    assert.deepStrictEqual([d.groups[0].x, d.groups[0].y], [1, 1], 'its right tile at 2,1');
+});
+
+test('the Trigger tab has a sub-tab per kind; the open one is what the pencil draws and what is listed', () => {
+    const { d } = fresh();
+    d.placed.push({ kind: 'stepOn', x: 0, y: 0, w: 1, h: 1, scriptId: null, uid: 7 });
+    ui.setTab('trigger');
+    ui.setTriggerKind('b');
+    const html = ui.triggerTab();
+    assert.match(html, /rg-subtab rg-trigger-kind rg-trigger-kind-b on/);
+    assert.ok(!/placed #7/.test(html), 'the step trigger is on the other sub-tab');
+    ui.setTab('tile');
+});
+
+test('the rectangle tool is gone', () => {
+    fresh();
+    assert.ok(!ui.toolbar().includes('data-edit-tool="rect"'));
 });
 
 console.log(`\n  ${passed} passed, ${failed} failed`);

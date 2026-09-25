@@ -68,8 +68,13 @@ function tileCollisionMarkHtml(slot) {
   if (!s) return '<svg class="rg-coll-mark" viewBox="0 0 16 16"><text x="8" y="11" class="rg-coll-q">?</text></svg>';
   var unsure = s.pct < COLL_SURE_PCT;
   var poly = COLL_SHAPES[s.shape];
+  // In the colour of the level it will be painted on (map-editor-levels.js),
+  // the same colour the map draws that level's collision in.
+  var line = typeof LEVEL_COLORS !== 'undefined' && typeof editLevel === 'function' ? LEVEL_COLORS[editLevel()] : COLL_LINE;
+  var tiles = typeof _collisionMode === 'string' && _collisionMode === 'tiles';
+  var fill = tiles ? line.replace('rgb(', 'rgba(').replace(')', ',.5)') : COLL_FILL;
   return '<svg class="rg-coll-mark' + (unsure ? ' unsure' : '') + '" viewBox="0 0 16 16">'
-    + (poly ? '<polygon points="' + poly + '" fill="' + COLL_FILL + '" stroke="' + COLL_LINE
+    + (poly ? '<polygon points="' + poly + '" fill="' + fill + '" stroke="' + line
       + '" stroke-width="1"' + (unsure ? ' stroke-dasharray="2 1.5"' : '') + '/>' : '')
     + '<text x="15.5" y="15.2" class="rg-coll-pct">' + s.pct + '</text></svg>';
 }
@@ -177,6 +182,7 @@ function draftCollisionRequest() {
   if (!collisionOn()) { if (layer) layer.style.display = 'none'; return; }
   var draft = romExportPayload({});
   if (!draft || typeof vs === 'undefined' || !vs) return;
+  if (typeof _collisionMode === 'string') draft.mode = _collisionMode;
   vs.postMessage({ command: 'requestDraftCollision', key: d.customKey, draft: draft });
 }
 

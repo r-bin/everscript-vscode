@@ -28,7 +28,7 @@ function editReset(roomId) {
     added: [],        // {layer1, layer2, collision}
     undo: [],
     redo: [],
-    tool: 'paint',    // paint | pick | rect | copy | move | erase
+    tool: 'paint',    // select | paint | erase | pick | copy | move | stamp
     brush: -1,        // selected metatile index, -1 = none
     on: false,        // edit mode
     /**

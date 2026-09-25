@@ -67,9 +67,29 @@ function visSegmentsHtml(ctx) {
       'Draw the terrain layer (BG1 — the “L2 terrain” render). Both segments on is the composite.')
     + romVisSegmentHtml('fg', 'Foreground',
       'Draw the canopy layer (BG2 — the “L1 canopy” render). Both segments on is the composite.')
-    + romOverlayButtonHtml('c', 'Collision')
+    + collisionChipHtml()
     + (typeof cutLayerButtonHtml === 'function' ? cutLayerButtonHtml() : '')
     + '</span>';
+}
+
+/**
+ * Collision, and behind its caret how it is drawn: the smart outline (the
+ * per-plane contours, default) or tile by tile — every solid pixel in its
+ * level's colour. rom-overlay.js owns the mode (`_collisionMode`).
+ */
+function collisionChipHtml() {
+  var mode = typeof _collisionMode === 'string' ? _collisionMode : 'outline';
+  var opt = function (key, label, tip) {
+    return '<button class="rdf' + (mode === key ? ' on' : '') + '" data-collision-mode="' + key + '" title="'
+      + escH(tip) + '">' + escH(label) + '</button>';
+  };
+  return '<span class="rg-filter-group rg-seg-group">' + romOverlayButtonHtml('c', 'Collision')
+    + '<button class="rdf rg-filter-caret" data-edit-collision-menu="1" title="How collision is drawn"'
+    + ' aria-label="How collision is drawn">▾</button>'
+    + '<div class="rg-filter-popup" id="rg-collision-dropdown" hidden>'
+    + opt('outline', 'Outline', 'The smart outline: each level’s walls as a contour, the wall tint inside')
+    + opt('tiles', 'Tile by tile', 'Every pixel a tile makes solid, filled in its level’s colour')
+    + '</div></span>';
 }
 
 /**

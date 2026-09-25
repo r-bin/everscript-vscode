@@ -48,6 +48,9 @@ function editStroke(cell, phase) {
     // reselect the thing already selected.
     // The Boy first: he stands on top of everything (map-editor-start.js).
     if (typeof startSelectGesture === 'function' && startSelectGesture(cell, phase)) return;
+    // On the Special tab the Select tool picks a cell's specials (map-editor-special-select.js).
+    if (drawKind() === 'special' && typeof specialSelectGesture === 'function'
+      && specialSelectGesture(cell, phase)) return;
     if (phase === 'down') {
       if (triggerDragStart(cell)) return;
       // A stamped object before a trigger: its B-trigger covers it
@@ -132,8 +135,8 @@ function editStroke(cell, phase) {
     return;
   }
 
-  // The Trigger tab's pencil (and rect) drag out a new trigger's box.
-  if (kind === 'trigger' && (d.tool === 'paint' || d.tool === 'rect')) { editTriggerStroke(cell, phase); return; }
+  // The Trigger tab's pencil drags out a new trigger's box.
+  if (kind === 'trigger' && d.tool === 'paint') { editTriggerStroke(cell, phase); return; }
 
   if (d.tool === 'paint' && kind === 'special') { editSpecialStroke(d, cell, false, phase); return; }
 
@@ -160,7 +163,7 @@ function editStroke(cell, phase) {
     if (phase === 'down' ? groupDragSelected(cell) : groupSelectGesture(cell, phase)) return;
   }
 
-  // rect / copy / move all drag out a rectangle first.
+  // copy / move drag out a rectangle first.
   if (phase === 'down') {
     _editDrag = { x1: cell.x, y1: cell.y }; _editSel = null;
     if (d.tool === 'copy' && typeof editDeselectAll === 'function') editDeselectAll();
@@ -172,25 +175,7 @@ function editStroke(cell, phase) {
   };
   if (phase !== 'up') { renderEditLayer(_mtPalette, _editComposed, _editOrigin); return; }
 
-  if (d.tool === 'rect') {
-    // The rectangle fills with the tab's drawable too: specials cell by
-    // cell; a widget is placed with the pencil, not filled.
-    if (kind === 'special' && d.currentSpecialId && d.currentSpecialId !== START_SPECIAL_ID) {
-      var sw = [], ss = [];
-      for (var ry = _editSel.y1; ry <= _editSel.y2; ry++) {
-        for (var rx = _editSel.x1; rx <= _editSel.x2; rx++) {
-          var one = editSpecialWrites(d, { x: rx, y: ry }, false);
-          if (one) { sw = sw.concat(one.writes); ss = ss.concat(one.special); }
-        }
-      }
-      editApplySpecial(sw, ss);
-    } else if (kind === 'tile' && d.brush >= 0) {
-      editApplyStroke(onLevel(cutLayerActive()
-        ? editCutRectWrites(_editSel.x1, _editSel.y1, _editSel.x2, _editSel.y2, d.brush)
-        : editRectWrites(_editSel.x1, _editSel.y1, _editSel.x2, _editSel.y2, d.brush, _mtPalette)));
-    }
-    _editSel = null;
-  } else if (d.tool === 'copy') {
+  if (d.tool === 'copy') {
     // The region stays selected for Cmd/Ctrl+C; nothing is stamped by a click.
     editNote((_editSel.x2 - _editSel.x1 + 1) + '×' + (_editSel.y2 - _editSel.y1 + 1)
       + ' selected — Cmd/Ctrl+C to copy it, Cmd/Ctrl+V to paste it as one object');
@@ -264,7 +249,7 @@ function editApplySpecial(writes, special) {
  * `editResolve` can invent a stamp (a front-composed brush over an existing
  * terrain composes a third, merged one), and a cell painted with a stamp the
  * preview sheet does not have yet has no picture to crop from — it renders as
- * nothing. The paint tool has always done this check inline; rect and move
+ * nothing. The paint tool has always done this check inline; move
  * did not, which is why they are routed through here rather than calling
  * `editApply` directly.
  */
@@ -293,6 +278,7 @@ function setupEditGestures() {
     }
     var cell = editEventCell(e);
     if (!cell) return;
+    _editHover = cell;
     painting = true;
     // Down to up is one gesture and one undo step, however many cells it
     // crosses (map-editor.js editBegin).

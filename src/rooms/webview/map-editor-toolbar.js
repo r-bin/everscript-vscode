@@ -21,8 +21,6 @@ var EDIT_TOOLS = [
   ['erase', 'erase', 'Erase what the open tab draws. Tile: the cuttable tile with Cuttable on; '
     + 'the front art with Foreground; the ground with Background; with both, the front art first, '
     + 'then the tile itself. Special: the special. Trigger: the trigger under the cursor'],
-  ['rect', 'rect', 'Drag a rectangle and fill it with the selected tile or special; on the Trigger tab, '
-    + 'a new trigger'],
   ['pick', 'pick', 'Click the map to pick up what is there — the Boy, a special, a trigger or the tile — '
     + 'with the tab, the tool and the level that draw it'],
   ['copy', 'copy', 'Drag to select a region, Cmd/Ctrl+C to copy it, Cmd/Ctrl+V to paste it as one object — '
@@ -44,7 +42,7 @@ var EDIT_TOOLS = [
 
 /** The pill's groups, in order, separated by a thin divider each. */
 var EDIT_TOOL_GROUPS = [
-  ['select', 'paint', 'erase', 'rect', 'pick'],
+  ['select', 'paint', 'erase', 'pick'],
   ['copy', 'move', 'stamp'],
 ];
 
@@ -58,7 +56,7 @@ var EDIT_TOOL_GROUPS = [
  * see §7a of the plan, where the gap is recorded.
  */
 var EDIT_TOOL_ICONS = {
-  select: '↖', paint: '✎', erase: '⌫', rect: '▭', pick: '⤵',
+  select: '↖', paint: '✎', erase: '⌫', pick: '⤵',
   copy: '⧉', move: '✥', stamp: '❖',
 };
 

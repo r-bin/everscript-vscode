@@ -173,6 +173,24 @@ if (!fs.existsSync(ROM_PATH)) {
         assert.ok(cat.filter((f) => f.stairs).length >= 25, 'many families have stair art, vertical included');
     });
 
+    test('tile-by-tile collision fills each solid pixel in its level’s colour', () => {
+        const w = 2, h = 2;
+        // A solid tile on level 1 beside one on level 0; open below.
+        const words = [[0x1f, 0x0f], [0x10, 0x10]];
+        const cells = [];
+        words.forEach((row) => row.forEach((cw) => cells.push(0xa800, 0xa800, cw)));
+        const out = rooms.buildDraftCollision(rom, { borrowFrom: 0x34, widthTiles: w, heightTiles: h, cells, mode: 'tiles' });
+        assert.ok(out.imageUri.length > 50);
+        const buf = { width: 32, height: 32, data: new Uint8ClampedArray(32 * 32 * 4) };
+        const room = maps.blankRoom(rom, { widthTiles: w, heightTiles: h, borrowFrom: 0x34 });
+        const drafted = { ...room, collisionWords: words, elevationPlanes: maps.planesUsed(words) };
+        maps.drawCollisionOverlay(buf, drafted, { contours: true, tiles: true, drift: false, grass: false, gates: false,
+            transparent: false, elevation: false, objects: false, triggers: false, labels: false });
+        const px = (x, y) => Array.from(buf.data.slice((y * 32 + x) * 4, (y * 32 + x) * 4 + 3));
+        assert.ok(px(8, 8)[0] > px(8, 8)[2], 'level 1 is red: ' + px(8, 8));
+        assert.ok(px(24, 8)[2] > px(24, 8)[0], 'level 0 is blue: ' + px(24, 8));
+    });
+
     test('a drafted map’s collision layer draws solid cells and leaves open ones clear', () => {
         const w = 6, h = 4, cells = [];
         for (let i = 0; i < w * h; i++) cells.push(0xa800, 0xa800, (i % w) >= 2 && (i % w) <= 3 ? 0x0f : 0);

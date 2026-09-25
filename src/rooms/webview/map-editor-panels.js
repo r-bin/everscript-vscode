@@ -26,6 +26,8 @@ var PANEL_OPEN_PREF = 'panelOpen';
 
 /** The host's remembered UI state arrived (bootstrap.js, `uiPrefs`). */
 function applyUiPrefs(prefs) {
+  if (prefs && (prefs.collisionMode === 'tiles' || prefs.collisionMode === 'outline')
+    && typeof _collisionMode !== 'undefined') _collisionMode = prefs.collisionMode;
   var saved = prefs && prefs[PANEL_OPEN_PREF];
   if (saved && typeof saved === 'object') {
     Object.keys(saved).forEach(function (k) { _panelOpen[k] = !!saved[k]; });

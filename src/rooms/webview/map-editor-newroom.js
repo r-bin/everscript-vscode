@@ -343,6 +343,9 @@ function applyBlankRoom(msg) {
   _editOrigin = { x: 0, y: 0 };
   customNoteBlank(room);
   if (typeof draftCollisionSoon === 'function') draftCollisionSoon();
+  // A reopened map's own stamps need their pictures: without this its cells
+  // stayed blank until a tile pick happened to ask for the sheet.
+  if (d.added.length) requestComposedPreview();
 
   editNote('empty ' + room.widthTiles + '×' + room.heightTiles
     + ' room — nothing drawn; room 0x' + room.borrowedFrom.toString(16)

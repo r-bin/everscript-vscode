@@ -37,6 +37,32 @@ var ALL_OVERLAY_FLAGS=OVERLAY_BUTTONS.map(function(b){return b.f;}).join('');
 // on to look at, not the one you look through (§8e).
 var _currentOverlay=ALL_OVERLAY_FLAGS.replace('c','');
 
+// How collision (`c`) is drawn: 'outline' — the per-plane contours, the
+// default — or 'tiles' — every tile's solid pixels filled in its level's
+// colour. Not a feature flag of its own: it rides along as `k` in the
+// string the host gets (romOverlayFlags), so "all" never turns it on.
+var _collisionMode='outline';
+
+/** The flag string for a render request: the features, plus how collision is drawn. */
+function romOverlayFlags(){
+  return _currentOverlay+(_collisionMode==='tiles'&&_currentOverlay.indexOf('c')>=0?'k':'');
+}
+
+/** Pick how collision is drawn (the Collision chip's menu, map-editor-filterbar.js). */
+function collisionModeSet(mode){
+  _collisionMode=mode==='tiles'?'tiles':'outline';
+  if(_currentOverlay.indexOf('c')<0){
+    _currentOverlay=ALL_OVERLAY_FLAGS.split('').filter(function(ch){return ch==='c'||_currentOverlay.indexOf(ch)>=0;}).join('');
+    document.querySelectorAll('.rdf-ov[data-ov="c"]').forEach(function(b){b.classList.add('on');});
+  }
+  document.querySelectorAll('[data-collision-mode]').forEach(function(b){
+    b.classList.toggle('on',b.dataset.collisionMode===_collisionMode);
+  });
+  if(typeof vs!=='undefined'&&vs)vs.postMessage({command:'saveUiPref',key:'collisionMode',value:_collisionMode});
+  if(_romRerender)_romRerender();
+  if(typeof collisionFlagsChanged==='function')collisionFlagsChanged();
+}
+
 /** The three renders the host can bake: both layers, or one on its own. */
 var ROM_LAYER_BUTTONS=[
   ['composite','composite','Composited map as the SNES displays it (Mode 1) — both layers at once'],
@@ -132,7 +158,7 @@ function setupLayerButtons(panel,room){
     // URI already on screen: a data URI large enough for a 2048x1120 room is
     // not something to round-trip through postMessage a second time.
     vs.postMessage({command:'exportRoomPng',roomId:id,mapName:room.name,
-                    layer:_currentLayer,overlay:_currentOverlay,
+                    layer:_currentLayer,overlay:romOverlayFlags(),
                     objectStates:objectStateSpec()});
   });
   function syncOverlayButtons(){

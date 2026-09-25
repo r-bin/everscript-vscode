@@ -252,7 +252,7 @@ function requestRoomTileOverlay(room,svgResult,layer){
   // Serve a previously received overlay immediately; the origin is part of the
   // geometry, so only reuse it when the viewBox origin still matches.
   var states=objectStateSpec();
-  var hit=_overlayCache[overlayCacheKey(id,which,_currentOverlay,states)];
+  var hit=_overlayCache[overlayCacheKey(id,which,romOverlayFlags(),states)];
   if(hit&&hit.originX===_pendingTileOrigin.x&&hit.originY===_pendingTileOrigin.y){
     applyRoomTileOverlay({command:'roomTiles',mapName:room.name,roomId:id,overlay:hit});
     return;
@@ -260,7 +260,7 @@ function requestRoomTileOverlay(room,svgResult,layer){
 
   setTileBusy(true);
   vs.postMessage({command:'requestRoomTiles',roomId:id,mapName:room.name,
-                  layer:which,overlay:_currentOverlay,objectStates:states,animate:_animateOn,
+                  layer:which,overlay:romOverlayFlags(),objectStates:states,animate:_animateOn,
                   originX:_pendingTileOrigin.x,originY:_pendingTileOrigin.y});
 }
 

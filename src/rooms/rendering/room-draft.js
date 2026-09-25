@@ -354,7 +354,8 @@ function buildDraftCollision(rom, draft) {
         collisionWords.push(row);
     }
     const drafted = { ...room, collisionWords, elevationPlanes: maps.planesUsed(collisionWords) };
-    const opts = overlayOptions('c').opts;
+    // `mode: 'tiles'` draws collision tile by tile rather than as outlines.
+    const opts = overlayOptions(draft.mode === 'tiles' ? 'ck' : 'c').opts;
     const image = maps.overlayLayer(w * 16, h * 16, (img) => maps.drawCollisionOverlay(img, drafted, opts));
     return { imageUri: maps.encodePngDataUri(image), imageWidth: image.width, imageHeight: image.height };
 }

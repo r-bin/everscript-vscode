@@ -35,10 +35,13 @@ const OVERLAY_FLAGS = {
     o: 'objects',
     t: 'triggers',
     l: 'labels',
+    // Not a feature but how `c` is drawn: tile by tile instead of outlines.
+    // Never part of "everything on".
+    k: 'tiles',
 };
 
 /** Every feature on — what a room shows before the user opts anything out. */
-const ALL_OVERLAY_FLAGS = Object.keys(OVERLAY_FLAGS).join('');
+const ALL_OVERLAY_FLAGS = Object.keys(OVERLAY_FLAGS).filter((ch) => ch !== 'k').join('');
 
 /**
  * Turn a flag string into the maps domain's per-feature options.

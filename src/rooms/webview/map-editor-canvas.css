@@ -232,8 +232,14 @@
   display:inline-flex;
   border:1px solid var(--rg-border);
   border-radius:var(--rg-radius-control);
-  overflow:hidden;
+  /* Visible, not hidden: Collision's menu opens out of the pill. The end
+     segments carry the rounding instead. */
+  overflow:visible;
 }
+.rg-theme .rg-seg > :first-child{border-radius:var(--rg-radius-control) 0 0 var(--rg-radius-control)!important}
+.rg-theme .rg-seg > :last-child{border-radius:0 var(--rg-radius-control) var(--rg-radius-control) 0!important}
+.rg-theme .rg-seg .rg-seg-group{display:inline-flex;position:relative}
+.rg-theme .rg-view-filters .rg-seg .rg-seg-group .rdf.rg-filter-caret{border-right:1px solid var(--rg-border)}
 .rg-theme .rg-view-filters .rg-seg .rdf{
   border:none;
   border-right:1px solid var(--rg-border);
@@ -473,3 +479,7 @@
 .rg-theme .rg-group{stroke:var(--rg-accent-text);stroke-width:.08;stroke-dasharray:.3 .25;opacity:.55}
 .rg-theme .rg-group-sel{stroke:var(--rg-accent-text);stroke-width:.16;fill:var(--rg-accent-soft);fill-opacity:.25}
 .rg-theme .rg-group-ghost{stroke:var(--rg-accent-text);stroke-width:.14;stroke-dasharray:.4 .3}
+
+/* A selected special and where a drag would drop it (map-editor-special-select.js). */
+.rg-theme .rg-special-sel{fill:var(--rg-accent-soft);fill-opacity:.4;stroke:var(--rg-accent);stroke-width:.16;pointer-events:none}
+.rg-theme .rg-special-ghost{fill:none;stroke:var(--rg-accent);stroke-width:.14;stroke-dasharray:.4 .3;pointer-events:none}

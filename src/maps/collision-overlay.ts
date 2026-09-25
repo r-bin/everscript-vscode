@@ -12,7 +12,7 @@
 
 import { RoomData } from './room';
 import { PixelBuffer } from './render';
-import { driftVector } from './collision';
+import { driftVector, geometryMask, isAlwaysWalkable, tilePlane } from './collision';
 import { classifyRoom, RoomFeatures, PLANE_COLORS } from './overlay-features';
 import { drawLabelInRect, Rgba8 } from './font';
 import { clamp, drawArrow, drawContours, drawGrass } from './overlay-shapes';
@@ -26,6 +26,11 @@ export { PLANE_COLORS };
 export interface CollisionOverlayOptions {
     /** Per-plane passability contours and the dominant plane's wall tint. */
     contours?: boolean;
+    /**
+     * With `contours`: draw collision tile by tile instead of as outlines —
+     * each tile's solid pixels (its geometry) filled in its level's colour.
+     */
+    tiles?: boolean;
     /** Forced-walkable tiles (bit 13) and their drift arrows. */
     drift?: boolean;
     /** Plane-transparent tiles (bit 6). */
@@ -109,7 +114,8 @@ export function drawCollisionOverlay(
     // 2. Per-plane solid masks, evaluated as $909DE8 would for an entity
     //    standing on that plane, then contoured.
     if (on(opts.contours) && f.planes.length) {
-        drawContours(buf, blend, wPx, hPx, wTiles, hTiles, cw, grassPx, f, opts.hidden || null);
+        if (opts.tiles) drawTileCollision(blend, wTiles, hTiles, cw);
+        else drawContours(buf, blend, wPx, hPx, wTiles, hTiles, cw, grassPx, f, opts.hidden || null);
     }
 
     // 3. Forced-walkable tiles (bit 13): cyan wash plus a drift arrow. Under
@@ -229,4 +235,28 @@ export function drawCollisionOverlay(
     }
 
     return image;
+}
+
+/**
+ * Collision tile by tile: every pixel a tile's geometry makes solid, in the
+ * colour of the level (plane) it is on. Always-walkable tiles (bit 13:
+ * drift, stairs) have no geometry — their nibble is a direction.
+ */
+function drawTileCollision(
+    blend: (x: number, y: number, r: number, g: number, b: number, a: number) => void,
+    wTiles: number, hTiles: number, cw: number[][],
+): void {
+    for (let tr = 0; tr < hTiles; tr++) {
+        for (let tc = 0; tc < wTiles; tc++) {
+            const word = cw[tr][tc];
+            if (isAlwaysWalkable(word)) continue;
+            const code = word & 0x0f;
+            if (!code) continue;
+            const mask = geometryMask(code);
+            const [r, g, b] = PLANE_COLORS[tilePlane(word)] || PLANE_COLORS[1];
+            for (let py = 0; py < 16; py++) {
+                for (let px = 0; px < 16; px++) if (mask[py * 16 + px]) blend(tc * 16 + px, tr * 16 + py, r, g, b, 0.5);
+            }
+        }
+    }
 }

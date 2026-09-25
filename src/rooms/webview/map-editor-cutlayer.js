@@ -8,7 +8,7 @@
 // metatile id only, so collision comes from the tile beneath too). The
 // encoder builds that table from this layer (maps/custom-room.ts).
 //
-// With the toggle on, paint, rect and erase work on this layer; everything
+// With the toggle on, paint and erase work on this layer; everything
 // else (pick, copy, move, stamps, specials) still works on the cells.
 //
 // State is `_edit.cut` ("x,y" -> stamp index), written only through
@@ -61,18 +61,6 @@ function editCutWrite(x, y, brush, erasing) {
   var under = cut >= 0 ? cut : editCellAt(_mtPalette, x, y);
   var idx = under >= 0 ? editResolve(_mtPalette, x, y, brush, false, under) : brush;
   return idx < 0 ? null : { x: x, y: y, index: idx, layer: 'cut' };
-}
-
-/** A rectangle's worth of cuttable writes. */
-function editCutRectWrites(x1, y1, x2, y2, brush) {
-  var out = [];
-  for (var y = y1; y <= y2; y++) {
-    for (var x = x1; x <= x2; x++) {
-      var w = editCutWrite(x, y, brush, false);
-      if (w) out.push(w);
-    }
-  }
-  return out;
 }
 
 /** The layer, drawn over the cells; outlined while it is the one being edited. */

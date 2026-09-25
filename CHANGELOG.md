@@ -1,3 +1,29 @@
+## [0.73.0] — 2026-09-25
+
+### Map editor: tiles on load, collision modes, moving specials, trigger sub-tabs
+
+- **Fixed: a reopened map shows its tiles straight away.** Before, painted
+  cells stayed blank until you picked a tile.
+- **Collision in the level's colour.** The tile list's collision marks use
+  the colour of the level you're drawing on, e.g. red on level 1.
+- **Two ways to draw collision**, behind the Collision chip's ▾:
+  - **Outline** (the default), as before;
+  - **Tile by tile**: every pixel a tile makes solid, filled in its level's
+    colour.
+
+  The choice is remembered.
+- **Move specials with the Select tool.** On the Special tab, click a tile's
+  specials to select them (highlighted), then drag them to another tile.
+  They include the glyph and the gate, drift or stairs bits. A stairs flag
+  that came from a stair tile moves too. The target keeps its own level
+  and shape. One undo step.
+- **The rectangle fill tool is gone.**
+- **Paste lines up with the pointer.** The tile your pointer was on when
+  you copied lands under the pointer when you paste.
+- **Trigger tab:** a sub-tab each for B-triggers and Step-on triggers. The
+  open one is what the pencil draws, and the only one listed. Selecting a
+  trigger on the map opens its sub-tab.
+
 ## [0.72.0] — 2026-09-25
 
 ### Map editor: vertical stairs, one armed look, a smart eyedropper, copy and paste

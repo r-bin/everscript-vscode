@@ -63,34 +63,39 @@ function triggerRowHtml(t, kind) {
     + '</div>';
 }
 
-function triggerSectionHtml(kind, label) {
+function triggerSectionHtml(kind) {
   var list = editTriggerList(kind);
-  // The heading is the pencil's pick for this kind (map-editor-drawable.js):
-  // click it to draw this kind; the armed one carries the shared armed look.
-  var armed = typeof _editTriggerKind !== 'undefined' && _editTriggerKind === kind;
-  var html = '<div class="rg-trigger-section"><button class="rg-panel-h rg-trigger-kind rg-trigger-kind-' + kind
-    + (armed ? ' rg-armed' : '') + '" data-trigger-kind="' + kind + '" title="'
-    + escH('Draw ' + label.toLowerCase() + ' with the pencil: drag a box on the map') + '">'
-    + '<b>' + (kind === 'b' ? 'B' : 'S') + '</b> ' + escH(label)
-    + ' <span class="rs-note">' + list.length + '</span></button>';
-  if (!list.length) return html + '<div class="rs-note">none yet</div></div>';
-  html += '<div class="rg-trigger-list">';
+  if (!list.length) return '<div class="rs-note">none yet — drag a box on the map with the pencil</div>';
+  var html = '<div class="rg-trigger-list">';
   list.forEach(function (t) { html += triggerRowHtml(t, kind); });
-  return html + '</div></div>';
+  return html + '</div>';
 }
 
+/** The kinds, in order: B-triggers first, the default. */
+var TRIGGER_SUBTABS = [
+  ['b', 'B-triggers', 'Run when the Boy presses B facing them — a sign, a chest, a person'],
+  ['step', 'Step-on triggers', 'Run when the Boy walks onto them — a door, a cutscene zone'],
+];
+
 /**
- * Trigger tab body: what the pencil draws (map-editor-drawable.js), then the
- * B and step sections — B first, the same order as the pencil's choices — each a list of selectable,
- * removable rows. Click-select here or on the canvas share one selection
- * (`_edit.selectedTriggerRef`) and one Select-tool gesture set — see
- * map-editor-trigger-select.js and map-editor-gestures.js.
+ * Trigger tab body: a tab per kind at the top. The open one is what the
+ * pencil draws (map-editor-drawable.js's `_editTriggerKind`) and the one
+ * listed below — select, move, delete, copy/paste (map-editor-trigger-select.js,
+ * map-editor-gestures.js).
  */
 function triggerTabPanelHtml() {
-  return '<div class="rs-note">Click a heading to draw that kind: the pencil drags out its box. '
-    + 'Select tool: click a trigger to select it, drag its own cells to move it, Delete to remove, '
-    + 'Cmd/Ctrl+C/V to copy — or click a row.</div>'
-    + triggerSectionHtml('b', 'B-triggers') + triggerSectionHtml('step', 'Step-on triggers');
+  var kind = typeof _editTriggerKind !== 'undefined' ? _editTriggerKind : 'b';
+  var html = '<div class="rg-subtabs" role="tablist">';
+  TRIGGER_SUBTABS.forEach(function (t) {
+    html += '<button class="rg-subtab rg-trigger-kind rg-trigger-kind-' + t[0] + (kind === t[0] ? ' on' : '')
+      + '" role="tab" aria-selected="' + (kind === t[0]) + '" data-trigger-kind="' + t[0] + '" title="' + escH(t[2]) + '">'
+      + '<b>' + (t[0] === 'b' ? 'B' : 'S') + '</b> ' + escH(t[1])
+      + ' <span class="rs-note">' + editTriggerList(t[0]).length + '</span></button>';
+  });
+  return html + '</div>'
+    + '<div class="rs-note">The pencil drags out a new one. Select tool: click one to select it, drag its '
+    + 'own cells to move it, Delete to remove, Cmd/Ctrl+C/V to copy — or click a row.</div>'
+    + triggerSectionHtml(kind);
 }
 
 // The filter bar's Triggers chip used to live here (Phase 6's

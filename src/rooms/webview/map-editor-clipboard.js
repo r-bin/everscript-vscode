@@ -48,6 +48,12 @@ function editCopy(d) {
   var c = editBuildConstruct(_mtPalette, sel, name || ('pasted ' + (sel.x2 - sel.x1 + 1) + '×' + (sel.y2 - sel.y1 + 1)));
   if (!c) { editNote('nothing painted there to copy'); renderEditChrome(); return true; }
   c.x = sel.x1; c.y = sel.y1;
+  // Which of its tiles the pointer is on: that tile is the one a paste puts
+  // under the pointer. The top-left when the pointer is outside it.
+  var h = _editHover;
+  var inside = h && h.x >= sel.x1 && h.x <= sel.x2 && h.y >= sel.y1 && h.y <= sel.y2;
+  c.grabX = inside ? h.x - sel.x1 : 0;
+  c.grabY = inside ? h.y - sel.y1 : 0;
   _regionClip = c;
   if (typeof _triggerClipboard !== 'undefined') _triggerClipboard = null;
   editNote('copied ' + c.w + '×' + c.h + ' — Cmd/Ctrl+V pastes it under the pointer');
@@ -60,7 +66,7 @@ function editPaste(d) {
   if (!_regionClip) return false;
   var c = _regionClip;
   var at = _editHover && editInBounds(_mtPalette, _editHover.x, _editHover.y)
-    ? { x: _editHover.x, y: _editHover.y } : { x: c.x + 1, y: c.y + 1 };
+    ? { x: _editHover.x - (c.grabX || 0), y: _editHover.y - (c.grabY || 0) } : { x: c.x + 1, y: c.y + 1 };
   at.x = Math.max(0, Math.min(_mtPalette.widthTiles - c.w, at.x));
   at.y = Math.max(0, Math.min(_mtPalette.heightTiles - c.h, at.y));
   if (typeof editDeselectAll === 'function') editDeselectAll();

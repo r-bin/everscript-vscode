@@ -97,18 +97,19 @@ function editDeselectAll() {
   if (typeof _triggerDrag !== 'undefined') _triggerDrag = null;
   if (typeof _groupSel !== 'undefined') { _groupSel = null; _groupDrag = null; }
   if (typeof _startSel !== 'undefined') { _startSel = false; _startDrag = null; }
+  if (typeof _specialSel !== 'undefined') { _specialSel = null; _specialDrag = null; }
 }
 
 /** Pick the trigger kind the pencil draws, and arm the pencil. */
 function triggerKindPick(kind) {
   _editTriggerKind = editTriggerKindDef(kind)[0];
   var d = editDraft();
-  if (d && d.tool !== 'rect') d.tool = 'paint';
+  if (d) d.tool = 'paint';
   editNote('pencil: drag a box on the map to add a ' + editTriggerKindDef(_editTriggerKind)[1]);
   renderEditChrome();
 }
 
-/** A pencil (or rect) gesture on the Trigger tab: drag a box, release to add it. */
+/** A pencil gesture on the Trigger tab: drag a box, release to add it. */
 function editTriggerStroke(cell, phase) {
   if (phase === 'down') _triggerDraw = { ax: cell.x, ay: cell.y };
   if (!_triggerDraw) return;
