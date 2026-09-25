@@ -11,11 +11,70 @@
 // Which tab is active is map-editor-tabs.js's state (_editActiveTab); this
 // file only reads it to decide what renderEditPanels() builds.
 //
-// Owns: _panelOpen.
+// Owns: _panelOpen, _tileAnchorFam.
 
+/**
+ * Which collapsible sections are open. TILE FAMILIES and LIKELY NEIGHBORS
+ * start **closed** (§8e): the tile list is what the Tile tab is for, and the
+ * two cards above it are refinements you open when you want them. Remembered
+ * by the host (`uiPrefs`, key `panelOpen`) once you change them.
+ */
 var _panelOpen = {
-  families: true, neighbours: true, errors: true,
+  families: false, neighbours: false, errors: true,
 };
+var PANEL_OPEN_PREF = 'panelOpen';
+
+/** The host's remembered UI state arrived (bootstrap.js, `uiPrefs`). */
+function applyUiPrefs(prefs) {
+  var saved = prefs && prefs[PANEL_OPEN_PREF];
+  if (saved && typeof saved === 'object') {
+    Object.keys(saved).forEach(function (k) { _panelOpen[k] = !!saved[k]; });
+  }
+  if (editActive()) renderEditPanels();
+}
+
+/** Open or close a section, and remember it. */
+function panelToggle(key) {
+  _panelOpen[key] = _panelOpen[key] === false;
+  if (typeof vs !== 'undefined' && vs) {
+    vs.postMessage({ command: 'saveUiPref', key: PANEL_OPEN_PREF, value: _panelOpen });
+  }
+  renderEditPanels();
+}
+
+/**
+ * The family whose group a click just landed in, so the redraw that click
+ * causes keeps *that* group where it was on screen. Set by the tile click
+ * handler, consumed (and cleared) by renderEditPanels.
+ */
+var _tileAnchorFam = null;
+
+/**
+ * Where the list is scrolled, as "this group, this far from the top" — not
+ * a raw scrollTop, which is wrong the moment a group above changes size or
+ * moves (a family adopted into a slot jumps to the top of the list).
+ */
+function panelScrollAnchor(body) {
+  if (!body) return null;
+  var top = body.getBoundingClientRect().top;
+  var el = _tileAnchorFam !== null
+    ? body.querySelector('[data-group-fam="' + _tileAnchorFam + '"]') : null;
+  if (!el) {
+    var groups = body.querySelectorAll('[data-group-fam]');
+    for (var i = 0; i < groups.length; i++) {
+      if (groups[i].getBoundingClientRect().bottom > top) { el = groups[i]; break; }
+    }
+  }
+  return { scrollTop: body.scrollTop, fam: el ? el.dataset.groupFam : null,
+    offset: el ? el.getBoundingClientRect().top - top : 0 };
+}
+
+function panelRestoreScroll(body, anchor) {
+  if (!body || !anchor) return;
+  body.scrollTop = anchor.scrollTop;
+  var el = anchor.fam !== null ? body.querySelector('[data-group-fam="' + anchor.fam + '"]') : null;
+  if (el) body.scrollTop += (el.getBoundingClientRect().top - body.getBoundingClientRect().top) - anchor.offset;
+}
 
 /** A collapsible section, so four panels fit in one sidebar. */
 function panel(key, title, body, note) {
@@ -154,7 +213,17 @@ function renderEditPanels() {
   } else {
     body = tileTabHtml(p);
   }
-  host.innerHTML = buildEditTabStripHtml() + '<div class="rg-tab-body" id="rg-tab-body">' + body + '</div>';
+  // The scroll box is rebuilt below, so its position is carried across —
+  // without this every click, and every lazily arriving sheet, threw the
+  // list back to the top ("show more jumps to the top", tiles "jumping").
+  var oldBody = document.getElementById('rg-tab-body');
+  var anchor = oldBody && oldBody.dataset.tab === _editActiveTab ? panelScrollAnchor(oldBody) : null;
+  _tileAnchorFam = null;
+  host.innerHTML = buildEditTabStripHtml() + '<div class="rg-tab-body" id="rg-tab-body" data-tab="'
+    + _editActiveTab + '">' + body + '</div>';
+  var newBody = document.getElementById('rg-tab-body');
+  panelRestoreScroll(newBody, anchor);
+  if (_editActiveTab === 'tile') tileLazyObserve();
   // §8a.2 removed the Tile tab's "compose & constructs" panel and the
   // `#rg-compose` host it rendered into, so there is nothing left to
   // refresh here — renderComposer() (map-editor-input.js) is only reached

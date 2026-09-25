@@ -103,10 +103,10 @@ function renderComposer() {
  * browser before this walk-up existed.
  */
 var EDIT_CLICK_KEYS = ['editTool', 'editAct', 'editPick', 'panel',
-  'famTile', 'construct', 'chip', 'chipDrop', 'chipAdopt', 'tileMore', 'tileGroup',
+  'famTile', 'construct', 'chip', 'chipDrop', 'chipAdopt',
   'brushFlip', 'strandedFix', 'strandedDrop', 'nbSide', 'nbCentre', 'nbUse',
   'layerForce', 'deco', 'decoPage', 'decoFlag', 'mtIndex', 'mtSlot', 'editActiveTab',
-  'editSpecial', 'editSpecialMenu', 'editTriggerMenu', 'editObjectsMenu', 'editMoreMenu',
+  'editSpecial', 'editSpecialMenu', 'editTriggerMenu', 'editMoreMenu',
   'editToolMenu', 'triggerRef', 'triggerRemove'];
 
 /**
@@ -115,7 +115,7 @@ var EDIT_CLICK_KEYS = ['editTool', 'editAct', 'editPick', 'panel',
  *
  * One list drives both the open/close toggle and the close-on-outside-click
  * sweep below, so a new dropdown is one entry here plus one key in
- * EDIT_CLICK_KEYS — never a second mechanism. The first four are the filter
+ * EDIT_CLICK_KEYS — never a second mechanism. The first three are the filter
  * bar's (map-editor-filterbar.js, map-editor-special.js); the last is the
  * tool pill's `⋯` overflow (map-editor-toolbar.js), which shares the
  * mechanism even though it opens downward instead of up.
@@ -123,7 +123,6 @@ var EDIT_CLICK_KEYS = ['editTool', 'editAct', 'editPick', 'panel',
 var EDIT_FILTER_MENUS = [
   { key: 'editSpecialMenu', id: 'rg-special-dropdown' },
   { key: 'editTriggerMenu', id: 'rg-trigger-dropdown' },
-  { key: 'editObjectsMenu', id: 'rg-objects-dropdown' },
   { key: 'editMoreMenu', id: 'rg-more-dropdown' },
   { key: 'editToolMenu', id: 'rg-tool-dropdown' },
 ];
@@ -233,11 +232,7 @@ function bindEditControls(panel, room) {
       triggerDeleteSelected();
       return;
     }
-    if (t.dataset.panel) {
-      _panelOpen[t.dataset.panel] = _panelOpen[t.dataset.panel] === false;
-      renderEditPanels();
-      return;
-    }
+    if (t.dataset.panel) { panelToggle(t.dataset.panel); return; }
     if (t.dataset.editActiveTab) {
       _editActiveTab = t.dataset.editActiveTab;
       renderEditPanels();
@@ -249,8 +244,6 @@ function bindEditControls(panel, room) {
       return;
     }
     if (t.dataset.chipAdopt) { chipAdopt(t.dataset.chipAdopt); return; }
-    if (t.dataset.tileMore) { _tileGroupPage += TILE_GROUP_PAGE; renderEditPanels(); return; }
-    if (t.dataset.tileGroup) { tileGroupToggle(t.dataset.tileGroup); return; }
     if (t.dataset.brushFlip) { brushFlipToggle(t.dataset.brushFlip); return; }
     if (t.dataset.nbSide) { nbSideClick(t.dataset.nbSide); return; }
     if (t.dataset.nbCentre) { brushLayerToggle(); return; }
@@ -276,7 +269,10 @@ function bindEditControls(panel, room) {
     }
     if (t.dataset.famTile) {
       // A tile from a family strip: pulls in the family, the graphic, and
-      // the metatile that can draw it, all at once.
+      // the metatile that can draw it, all at once. The redraw keeps this
+      // tile's group where it is on screen, even if adopting the family
+      // moves it up the list (map-editor-panels.js's panelScrollAnchor).
+      _tileAnchorFam = Number(t.dataset.famOf);
       editUseFamilyTile(Number(t.dataset.famTile), Number(t.dataset.famOf));
       return;
     }

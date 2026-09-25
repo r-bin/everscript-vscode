@@ -17,8 +17,13 @@ const { VANILLA_ROOMS } = require('../data/vanilla-data');
 /** Tiles per sheet row, matching the metatile atlas. */
 const COLUMNS = 16;
 
-/** A family sheet is a browsing aid; past this it is a scrolling hazard. */
-const MAX_FAMILY_TILES = 128;
+/**
+ * Past every family the ROM has (the largest attests 210 graphics). The Tile
+ * tab shows *all* of a family's art (§8e — "we always show all available
+ * tiles"); the list is lazy, so a big family costs one sheet when it scrolls
+ * into view, not a truncation.
+ */
+const MAX_FAMILY_TILES = 256;
 
 const SHEETS = new Map();
 const SHEETS_MAX = 24;
@@ -72,19 +77,47 @@ function buildBlankRoom(rom, opts) {
 const BOY_CHARACTER = 0;
 
 /**
+ * The sprite block the Boy's idle pose holds his weapon in.
+ *
+ * Measured, not decoded: his south-facing idle sprite (`$CA10F7`) is four
+ * chunks — head and body (two 16px), an 8px arm piece on the right, and an
+ * 8px piece at his left hand, block `$D3`, which is the weapon. The game
+ * loads the equipped weapon's own palette for that piece at run time; in the
+ * character palette it comes out bright green, a bone club that is not
+ * there. Nothing in the chunk flags marks it (its `$90` is flip-Y plus
+ * priority 1), so it is named by block. If the block is not in the pose, the
+ * whole sprite is drawn — a green club beats a missing Boy.
+ */
+const BOY_WEAPON_BLOCK = 0xd3;
+
+/**
  * The Boy facing south, for a drafted map's start marker — the game's own
- * sprite, so the marker is a picture of who arrives there, not an icon.
- * Null when the animation cannot be walked; the marker falls back to a glyph.
+ * sprite in his idle pose, without the weapon, so the marker is a picture of
+ * who arrives there rather than an icon. Null when the pose cannot be read;
+ * the marker falls back to a glyph.
  */
 function boySprite(rom) {
-    let r = null;
-    try { r = maps.renderCharacterFrames(rom, BOY_CHARACTER); } catch { r = null; }
-    if (!r || !r.frames.length) return null;
-    return {
-        uri: 'data:image/png;base64,'
-            + maps.encodePng({ width: r.width, height: r.height, data: r.frames[0].data }).toString('base64'),
-        w: r.width, h: r.height, ox: r.originX, oy: r.originY,
-    };
+    try {
+        const walk = maps.characterAnimation(rom, BOY_CHARACTER);
+        const address = walk.frames.length ? walk.frames[0].sprite : maps.resolveCharacterSprite(rom, BOY_CHARACTER);
+        if (address === null || address === undefined) return null;
+        const info = maps.readSpriteInfo(rom, address);
+        const chunks = info.chunks.filter((c) => c.large || c.block !== BOY_WEAPON_BLOCK);
+        const sp = maps.composeSprite(rom, { ...info, chunks: chunks.length ? chunks : info.chunks });
+        const colours = maps.characterPalette(rom, BOY_CHARACTER);
+        const data = new Uint8Array(sp.width * sp.height * 4);
+        for (let i = 0; i < sp.pixels.length; i++) {
+            const v = sp.pixels[i];
+            if (v <= 0 || !colours[v]) continue;
+            const [r, g, b] = colours[v];
+            data[i * 4] = r; data[i * 4 + 1] = g; data[i * 4 + 2] = b; data[i * 4 + 3] = 255;
+        }
+        return {
+            uri: 'data:image/png;base64,'
+                + maps.encodePng({ width: sp.width, height: sp.height, data }).toString('base64'),
+            w: sp.width, h: sp.height, ox: sp.originX, oy: sp.originY,
+        };
+    } catch { return null; }
 }
 
 /**

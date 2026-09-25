@@ -123,10 +123,11 @@ async function main() {
         _mtPalette = palette;
         _mtRoomId = 0x34;
         editReset(0x34);
-        // Groups start collapsed (map-editor-tiles.js); the tests below click
-        // swatches, so the harness opens the families they use, the way a
-        // remembered \`uiPrefs\` would. The collapsed default has its own test.
-        applyUiPrefs({ openFamilies: [35, 58] });
+        // First look (§8e): TILE FAMILIES and LIKELY NEIGHBORS closed.
+        window.__firstLook = { families: _panelOpen.families, neighbours: _panelOpen.neighbours };
+        // Most checks below are about the open cards, so the harness opens
+        // them the way a remembered \`uiPrefs\` would.
+        applyUiPrefs({ panelOpen: { families: true, neighbours: true } });
         // The two docked bars svg-builder.js appends under the canvas card.
         // The status bar is where `#rg-edit-count` lives as of Phase 7a, so
         // without it every status-line assertion below would read a null.
@@ -141,6 +142,8 @@ async function main() {
     }, PALETTE);
 
     check('edit mode builds the panel column', !!(await page.$('#rg-panels')));
+    check('on first look TILE FAMILIES and LIKELY NEIGHBORS are closed',
+        await page.evaluate(() => window.__firstLook.families === false && window.__firstLook.neighbours === false));
 
     // ── the canvas column: the tool pill lives inside the card ─────────────
     // It is absolutely positioned against the card's top edge, so a pill
@@ -336,9 +339,26 @@ async function main() {
         barKeys.vis.join() === 'bg,fg');
     check('the bar is six controls plus the two actions, not a wall of chips',
         barKeys.topLevel <= 8, 'top-level children: ' + barKeys.topLevel);
-    check('four dropdowns, one mechanism',
-        barKeys.ids.join() === 'rg-more-dropdown,rg-objects-dropdown,rg-special-dropdown,rg-trigger-dropdown',
+    // §8e: Objects is one toggle with no menu ("objects are distinct object
+    // tiles. the arrow should be removed"), and Triggers holds only the two
+    // kinds of trigger; everything else they carried is in More.
+    check('three dropdowns, one mechanism — Objects has none',
+        barKeys.ids.join() === 'rg-more-dropdown,rg-special-dropdown,rg-trigger-dropdown',
         barKeys.ids.join());
+    check('Triggers offers only step-on and B triggers',
+        await page.evaluate(() => [...document.querySelectorAll('#rg-trigger-dropdown [data-hide]')]
+            .map((b) => b.dataset.hide).join() === 'hide-step,hide-btrig'));
+    check('NPCs, hitboxes, grass and the grids moved to More',
+        await page.evaluate(() => ['hide-spawn', 'hide-hitbox', 'hide-grid8', 'hide-grid16']
+            .every((k) => document.querySelector('#rg-more-dropdown [data-hide="' + k + '"]'))
+            && !!document.querySelector('#rg-more-dropdown [data-ov="g"]')
+            && !!document.querySelector('#rg-more-dropdown [data-ov="t"]')));
+    check('everything starts on but collision',
+        await page.evaluate(() => {
+            const off = [...document.querySelectorAll('.rg-view-filters .rdf[data-hide], .rg-view-filters .rdf-ov')]
+                .filter((b) => !b.classList.contains('on')).map((b) => b.dataset.hide || b.dataset.ov);
+            return off.join() === 'c';
+        }));
 
     // Checks computed `display`, not just the `.hidden` IDL property — a
     // real CSS bug (`.rg-filter-popup{display:flex}`, an author rule, silently
@@ -353,7 +373,6 @@ async function main() {
         (n) => !n.hidden && getComputedStyle(n).display !== 'none');
     for (const [attr, id] of [['edit-special-menu', 'rg-special-dropdown'],
         ['edit-trigger-menu', 'rg-trigger-dropdown'],
-        ['edit-objects-menu', 'rg-objects-dropdown'],
         ['edit-more-menu', 'rg-more-dropdown']]) {
         check(id + ' starts closed', await popupHidden(id));
         await page.click(`[data-${attr}]`);
@@ -875,27 +894,16 @@ async function main() {
         _famSheets[58] = { family: 58, count: 2, total: 74, roomCount: 3, columns: 16, cell: 16,
             slots: [[0, 0, 4186, 9], [1, 2, 4191, 4]], imageUri: 'data:image/png;base64,ZmFt' };
         _panelOpen.tiles = true;
-        // Collapsed, as a family is until the user opens it.
-        applyUiPrefs({ openFamilies: [35] });
         window.__sent.length = 0;
         renderEditPanels();
     });
-    const folded = await page.evaluate(() => ({
+    // §8e: "the tile list cannot be collapsed, we always show all available tiles".
+    const listed = await page.evaluate(() => ({
         swatches: document.querySelectorAll('#rg-panels [data-fam-tile]').length,
-        headers: document.querySelectorAll('#rg-panels [data-tile-group="58"]').length,
+        toggles: document.querySelectorAll('#rg-panels [data-tile-group], #rg-panels [data-tile-more]').length,
     }));
-    check('a family group starts collapsed: a header and no art',
-        folded.swatches === 0 && folded.headers === 1, JSON.stringify(folded));
-    // Clicking the name, a span inside the header — the e.target walk-up.
-    await page.click('[data-tile-group="58"] .rg-group-name');
-    const opened = await page.evaluate(() => ({
-        swatches: document.querySelectorAll('#rg-panels [data-fam-tile]').length,
-        saved: window.__sent.filter((m) => m.command === 'saveUiPref').pop(),
-    }));
-    check('clicking its header opens it, and the host is told to remember that',
-        opened.swatches === 2 && opened.saved && opened.saved.key === 'openFamilies'
-        && opened.saved.value.indexOf(58) >= 0 && opened.saved.value.indexOf(35) >= 0,
-        JSON.stringify(opened));
+    check('a family\u2019s tiles are all shown, with no collapse or pager control',
+        listed.swatches === 2 && listed.toggles === 0, JSON.stringify(listed));
     await page.click('[data-fam-tile]');
     const armed = await page.evaluate(() => ({
         brush: editDraft().brush,
@@ -1075,8 +1083,10 @@ async function main() {
         _chipSel = { 58: true };
         renderEditPanels();
     });
-    check('no armed tile, no card — there is nothing to be beside',
-        !(await page.$('.rg-nb-card')) && !(await page.$('.rg-nb-plus')));
+    // §8e: "prediction exists, but is … empty" — the card is always there,
+    // so arming a tile does not push the list down; it has no plus yet.
+    check('no armed tile: the card is there but empty — there is nothing to be beside',
+        !!(await page.$('.rg-nb-card')) && !(await page.$('.rg-nb-plus')));
     const nbBefore = (await sentNb()).length;
     await page.click('[data-fam-tile="4191"]');
     check('arming a tile asks for its neighbours, by the brush alone',
@@ -1737,7 +1747,6 @@ async function main() {
         editReset(0x34);
         editDraft().on = true;
         _chipSel = {};
-        _tileGroupPage = 6;
         applyFamilyCatalogue({ families: Array.from({ length: 20 }, (_, i) => (
             { id: 9000 + i, tiles: 20 - i, rooms: 1, areas: ['Test'], names: [] })) });
         _editActiveTab = 'tile';
@@ -1760,9 +1769,17 @@ async function main() {
         return { families: tileGroupFamilies().length, free: editFreeFamilySlot(),
                  pager: !!document.querySelector('[data-tile-more]') };
     });
-    check('freeing a slot brings the candidates back, since one can be adopted again',
-        shownWithRoom.free >= 0 && shownWithRoom.families > 6 + 1, JSON.stringify(shownWithRoom));
-    check('and the pager with them', shownWithRoom.pager === true);
+    // §8e: all of them, lazily, never a page at a time behind a button.
+    check('freeing a slot brings back every candidate, with no pager',
+        shownWithRoom.free >= 0 && shownWithRoom.families === 6 + 20 && shownWithRoom.pager === false,
+        JSON.stringify(shownWithRoom));
+    const lazy = await page.evaluate(() => ({
+        placeholders: document.querySelectorAll('#rg-tab-body [data-lazy-fam]').length,
+        asked: window.__sent.filter((m) => m.command === 'requestFamilySheet'
+            && m.family >= 9000).map((m) => m.family),
+    }));
+    check('candidates wait as placeholders, and only the ones near the view are fetched',
+        lazy.placeholders > 0 && lazy.asked.length < 20, JSON.stringify(lazy));
     await page.evaluate(() => { editReset(0x34); editDraft().on = true; renderEditPanels(); });
 
     // ── the Tile tab: arming a brush must not reorder its own family ───────

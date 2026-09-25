@@ -1,3 +1,25 @@
+## [0.64.0] — 2026-09-25
+
+### Map editor §8e: the Tile tab's first look, and a simpler bottom bar
+
+- **A new map starts with no tile families (0/7).** Every family's tiles are
+  listed, and picking a tile loads its family into a slot.
+- **TILE FAMILIES and LIKELY NEIGHBORS start closed.** LIKELY NEIGHBORS is
+  always there, and empty until you pick a tile. Whether each is open is
+  remembered.
+- **The tile list shows everything.** It has no collapse control and no
+  "N more families" button. Every family is listed with all of its tiles, and
+  tiles load as you scroll near them. The list doesn't shift while they load.
+- **Clicked tiles no longer jump.** The list keeps its scroll position. A
+  family keeps its place in the list when it is loaded into a slot, and the
+  panel no longer slides sideways when the status line gets longer.
+- **Bottom bar:** everything is shown by default except collision.
+  **Objects** is now a single on/off toggle. **Triggers** has only Step
+  trigger and B trigger. NPCs, hitboxes, grass, the grids, script tables and
+  ROM triggers moved to **More**.
+- **The Boy's start marker no longer holds a green club.** The weapon piece
+  was drawn in the wrong palette, so it is left out.
+
 ## [0.63.0] — 2026-09-25
 
 ### Map editor §8d: a new map is its own room

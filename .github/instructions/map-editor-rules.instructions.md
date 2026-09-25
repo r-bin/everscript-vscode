@@ -36,6 +36,10 @@ Consequences that have already come up:
   to adopt into, so candidates are noise. Show them only when a slot is free.
 - Adoption is implicit: clicking a tile from an unadopted family pulls that family in
   behind it. An explicit "add a family" browser is redundant with that.
+- While a slot is free, the Tile tab lists **every** family with **all** its art,
+  lazily, never behind a pager or a collapse. And a click must not move what was
+  clicked: groups keep their place in the list when their family is adopted, and
+  the scroll position survives the redraw. A custom map starts at 0/7.
 - Freeing a slot **strands** every placed cell whose word names it. The word still says
   "palette slot N" and slot N is now something else. Say so (`editStrandedCells`), and
   offer to re-adopt or clear — never silently recolour.

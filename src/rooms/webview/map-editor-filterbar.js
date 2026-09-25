@@ -71,61 +71,40 @@ function visSegmentsHtml(ctx) {
     + '</span>';
 }
 
-/** Triggers: the boxes, the grids they are read against, and the tables. */
+/**
+ * Triggers: only the two kinds of trigger (§8e — "only B and step-on are
+ * triggers"). The tables, the ROM trigger render and the grids used to be
+ * filed here by affinity; they are in More now.
+ */
 function triggerFilterGroupHtml(ctx) {
-  var subs = [];
-  if (ctx.hasTriggers) {
-    subs.push(viewHideBtnHtml('hide-step', 'Step trigger', 'Step-on trigger boxes'));
-    subs.push(viewHideBtnHtml('hide-btrig', 'B trigger', 'B-trigger boxes'));
-  }
-  if (ctx.hasScripts) subs.push(viewHideBtnHtml('hide-scripts', 'Script tables', 'Decoded script tables below the map'));
-  if (ctx.romId) subs.push(romOverlayButtonHtml('t', 'ROM triggers'));
-  if (ctx.hasMap) subs.push(viewHideBtnHtml('hide-grid8', '8 px grid', 'The 8 px tile grid'));
-  if (ctx.hasTriggers) subs.push(viewHideBtnHtml('hide-grid16', '16 px grid', 'The 16 px metatile grid triggers are measured in'));
-  if (!subs.length) return '';
+  if (!ctx.hasTriggers) return '';
   return filterGroupHtml({
-    flat: ctx.hasTriggers
-      ? viewHideBtnHtml('hide-trigger', 'Triggers', 'Trigger overlays and their tables')
-      : '',
+    flat: viewHideBtnHtml('hide-trigger', 'Triggers', 'Step-on and B-trigger boxes'),
     label: 'Triggers', menuAttr: 'edit-trigger-menu', id: 'rg-trigger-dropdown',
-    caretTitle: 'Which trigger overlays to show', subs: subs,
+    caretTitle: 'Which kind of trigger to show',
+    subs: [
+      viewHideBtnHtml('hide-step', 'Step trigger', 'Step-on trigger boxes'),
+      viewHideBtnHtml('hide-btrig', 'B trigger', 'B-trigger boxes'),
+    ],
   });
 }
 
 /**
- * Objects: everything the room *places* rather than paints.
- *
- * The mock gives this chip no dropdown, but it has only one kind of object;
- * this editor draws seven (source objects, ROM objects, NPCs and their
- * hitboxes, cuttable grass, entrances, enemies, Lua POIs), so it gets one —
- * flagged in §7a rather than dropped or spilled back into the main row.
+ * Objects: the room's object tiles, one toggle, no menu (§8e — "objects are
+ * distinct object tiles. the arrow should be removed"). On a ROM room that
+ * is the `o` feature render; on a source room, the objects its script
+ * defines. NPCs, hitboxes, grass and the rest moved to More.
  */
 function objectFilterGroupHtml(ctx) {
-  var subs = [];
-  if (ctx.romId) subs.push(romOverlayButtonHtml('o', 'ROM objects'));
-  if (ctx.hasSpawns) subs.push(viewHideBtnHtml('hide-spawn', 'NPCs', 'NPCs the enter script can place'));
-  if (ctx.hasHitbox) subs.push(viewHideBtnHtml('hide-hitbox', 'Hitboxes', 'Collision boxes (2r wide, r tall)'));
-  if (ctx.romId) subs.push(romOverlayButtonHtml('g', 'Grass'));
-  if (ctx.hasEntrances) subs.push(viewHideBtnHtml('hide-ent', 'Entrances', 'Entrance markers'));
-  if (ctx.hasEnemies) subs.push(viewHideBtnHtml('hide-enem', 'Enemies', 'Enemies'));
-  if (ctx.hasPoi) subs.push(viewHideBtnHtml('hide-poi', 'POI', 'Lua points of interest'));
-  if (!subs.length) return '';
-  return filterGroupHtml({
-    flat: ctx.hasObjects
-      ? viewHideBtnHtml('hide-obj', 'Objects', 'Objects defined in this room’s source')
-      : '',
-    label: 'Objects', menuAttr: 'edit-objects-menu', id: 'rg-objects-dropdown',
-    caretTitle: 'Which placed things to show', subs: subs,
-  });
+  if (ctx.romId) return romOverlayButtonHtml('o', 'Objects');
+  if (ctx.hasObjects) return viewHideBtnHtml('hide-obj', 'Objects', 'Objects defined in this room’s source');
+  return '';
 }
 
 /**
- * The long tail the mock never modelled.
- *
- * Nineteen toggles that have no slot in a six-control bar and no affinity
- * with Triggers, Objects or Special: the collision-word feature renders, the
+ * Everything else, in one drawer: the collision-word feature renders, what
+ * the room places besides objects, the trigger tables and grids, the
  * sections below the map, and the two actions (`animate`, `export png`).
- * Reachable, out of the way, and honest about being a leftover drawer.
  */
 function moreFilterGroupHtml(ctx) {
   var subs = [];
@@ -137,6 +116,19 @@ function moreFilterGroupHtml(ctx) {
     subs.push(viewHideBtnHtml('hide-fg', 'Canopy over sprites',
       'Draw the foreground over the characters it covers in game, and dash the collision it hides'));
   }
+  // Placed things that are not object tiles (§8e: "the items should be in misc").
+  if (ctx.hasSpawns) subs.push(viewHideBtnHtml('hide-spawn', 'NPCs', 'NPCs the enter script can place'));
+  if (ctx.hasHitbox) subs.push(viewHideBtnHtml('hide-hitbox', 'Hitboxes', 'Collision boxes (2r wide, r tall)'));
+  if (ctx.romId) subs.push(romOverlayButtonHtml('g', 'Grass'));
+  if (ctx.romId && ctx.hasObjects) subs.push(viewHideBtnHtml('hide-obj', 'Source objects', 'Objects defined in this room’s source'));
+  if (ctx.hasEntrances) subs.push(viewHideBtnHtml('hide-ent', 'Entrances', 'Entrance markers'));
+  if (ctx.hasEnemies) subs.push(viewHideBtnHtml('hide-enem', 'Enemies', 'Enemies'));
+  if (ctx.hasPoi) subs.push(viewHideBtnHtml('hide-poi', 'POI', 'Lua points of interest'));
+  // What used to sit under Triggers without being a trigger.
+  if (ctx.hasScripts) subs.push(viewHideBtnHtml('hide-scripts', 'Script tables', 'Decoded script tables below the map'));
+  if (ctx.romId) subs.push(romOverlayButtonHtml('t', 'ROM triggers'));
+  if (ctx.hasMap) subs.push(viewHideBtnHtml('hide-grid8', '8 px grid', 'The 8 px tile grid'));
+  if (ctx.hasMap) subs.push(viewHideBtnHtml('hide-grid16', '16 px grid', 'The 16 px metatile grid triggers are measured in'));
   if (ctx.hasIngr) subs.push(viewHideBtnHtml('hide-ingr', '🌿 Ingredients', 'Ingredient icons on B-triggers'));
   if (ctx.hasArrivals) subs.push(viewHideBtnHtml('hide-arrival', 'Arrivals', 'The doors that lead into this room'));
   if (ctx.hasHeader) subs.push(viewHideBtnHtml('hide-header', 'ROM header', 'The ROM header section'));

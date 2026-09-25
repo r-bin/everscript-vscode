@@ -922,6 +922,55 @@ Not done: renaming or deleting a custom map, and exporting one. A custom map
 cannot be exported, for the same reason as §8c's start marker: the encoder has no
 new-room path yet.
 
+## 8e. The Tile tab's first look, and the bottom bar (v0.64.0)
+
+§8c misread "tile families should be pre-collapsed". It meant the **TILE
+FAMILIES card**, not each family's group of tiles. Corrected, along with the
+rest of this report:
+
+**Tile tab.**
+- TILE FAMILIES and LIKELY NEIGHBORS start **closed** (`_panelOpen`), and
+  their state is remembered in `uiPrefs.panelOpen`. LIKELY NEIGHBORS is
+  always present, empty until a tile is armed, so arming one does not push
+  the list down.
+- A custom map starts with **no families** (0/7). The donor's seven are not
+  the map's, and pre-filled they left no free slot, so only those seven
+  could be drawn. Picking a tile adopts its family.
+- **The tile list cannot be collapsed and has no pager.** Every family (all
+  329 while a slot is free) is listed with **all** its art: the sheet cap
+  went from 128 to 256, and the largest family has 210. It is lazy. A group
+  is drawn at its final height from the catalogue count
+  (`tileSheetHeight`: 36px pitch, 32px swatches, a 10px frame), and an
+  IntersectionObserver fetches the sheet 600px before it scrolls into view.
+  A new map's first look fetched 2 sheets, not 329. Nothing moves when a
+  sheet lands.
+- **"Tiles jumping when you click on them"** had three causes, each measured
+  on the real bundle:
+  1. `#rg-tab-body` is rebuilt on every render, so the scroll went to 0.
+     `renderEditPanels` now carries the position across, anchored to the
+     group that was clicked (`_tileAnchorFam`), or else the first visible one.
+  2. Adopting a family moved its group to the top, since adopted families
+     list first. Groups now keep their place (`_tileOrder`).
+  3. The canvas column sized to its content whenever the row had spare room,
+     so the longer status note after a click widened it by 18px and slid the
+     dock right. `.rg-edit-row>.rg-outer` is now `flex:1 1 0`.
+  After all three, a tile clicked 6000px down the list stays on the same
+  pixel.
+
+**Bottom bar.** Everything starts on except collision (`_currentOverlay`
+drops `c`). **Objects** is now a single toggle with no menu (the `o` render
+on a ROM room). **Triggers**' menu holds only Step trigger and B trigger.
+NPCs, hitboxes, grass, source objects, entrances, enemies, POI, script
+tables, ROM triggers and both grids moved to **More**.
+
+**The Boy's green club.** His idle sprite's 8px piece at the left hand
+(block `$D3`) is the weapon, which the game draws in the equipped weapon's
+palette. In the character palette it came out bright green, so the start
+marker now leaves that piece out (`BOY_WEAPON_BLOCK`, room-draft.js). The
+chunk flags do not mark it (`$90` is flip-Y plus priority), so the piece is
+identified by its block. This is measured on this one pose, and the marker
+falls back to the whole sprite if the block ever moves.
+
 ## 9. Ritual reminder
 
 One prompt = one commit. This plan spans multiple prompts/sessions by design

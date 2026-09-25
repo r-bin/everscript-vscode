@@ -8,40 +8,57 @@
 // dominant family, so grouping by one and ranking by the other is not a
 // tautology — see docs/map-format/map-editor-window.md §2.2.
 //
-// Owns: _tileGroupPage, _tileGroupOpen, _layerForce, _brushFlip.
-
-/** Families shown at once when no family is filtering. */
-var TILE_GROUP_PAGE = 6;
-var _tileGroupPage = TILE_GROUP_PAGE;
+// Owns: _tileObserver, _tileOrder, _tileOrderFor, _layerForce, _brushFlip.
+//
+// **Every tile, no pager, nothing collapsible** (§8e): "the tile list cannot
+// be collapsed, we always show all available tiles" and "show more is not
+// good UX … use lazy loading". A group is drawn at its final height from the
+// catalogue's tile count before its sheet exists, and the sheet is fetched
+// only when the group scrolls near the view — so 329 families cost a few
+// requests, and nothing below moves when one arrives.
 
 /**
- * Family id -> true for the groups the user has expanded. Everything else is
- * collapsed: seven groups of art open at once bury the one you are working
- * in. Remembered by the host across panels and sessions (`saveUiPref`), so
- * it is keyed by family id, not by room — a family you keep open is one you
- * keep drawing with, wherever you are.
+ * Loads a family's sheet as its placeholder nears the visible part of the
+ * list. Rebuilt on every render, because every render replaces the nodes it
+ * was watching.
  */
-var _tileGroupOpen = {};
-/** The `uiPrefs` key `_tileGroupOpen` is stored under. */
-var TILE_GROUP_PREF = 'openFamilies';
+var _tileObserver = null;
+/** How far outside the view a group starts loading, in px. */
+var TILE_LAZY_MARGIN = 600;
 
-/** The host's remembered UI state arrived (bootstrap.js, `uiPrefs`). */
-function applyUiPrefs(prefs) {
-  var open = prefs && prefs[TILE_GROUP_PREF];
-  _tileGroupOpen = {};
-  if (Array.isArray(open)) open.forEach(function (f) { _tileGroupOpen[f] = true; });
-  if (typeof renderEditPanels === 'function' && editActive()) renderEditPanels();
+/** One swatch is 16px art at 2x, plus shared.css's margin: 32px; 4px gutters. */
+var TILE_PITCH = 36;
+var TILE_BOX = 32;
+/** The sheet frame: 4px padding and a 1px border, each side. */
+var TILE_FRAME = 10;
+
+/** Height a group's sheet will have, so the placeholder is that tall already. */
+function tileSheetHeight(count, width) {
+  var perRow = Math.max(1, Math.floor((width - TILE_FRAME + 4) / TILE_PITCH));
+  var rows = Math.max(1, Math.ceil(count / perRow));
+  return rows * TILE_BOX + (rows - 1) * 4 + TILE_FRAME;
 }
 
-/** Expand or collapse one family's group, and remember it. */
-function tileGroupToggle(family) {
-  var f = Number(family);
-  if (_tileGroupOpen[f]) delete _tileGroupOpen[f]; else _tileGroupOpen[f] = true;
-  if (typeof vs !== 'undefined' && vs) {
-    vs.postMessage({ command: 'saveUiPref', key: TILE_GROUP_PREF,
-      value: Object.keys(_tileGroupOpen).map(Number) });
+/** Watch every placeholder in the Tile tab and fetch what comes near. */
+function tileLazyObserve() {
+  if (_tileObserver) { _tileObserver.disconnect(); _tileObserver = null; }
+  var body = document.getElementById('rg-tab-body');
+  if (!body) return;
+  var lazy = body.querySelectorAll('[data-lazy-fam]');
+  if (!lazy.length) return;
+  if (typeof IntersectionObserver === 'undefined') {
+    // No observer (an old host): load the first screenful, never all 329.
+    for (var i = 0; i < Math.min(lazy.length, 8); i++) ensureFamilySheet(Number(lazy[i].dataset.lazyFam));
+    return;
   }
-  renderEditPanels();
+  _tileObserver = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (!e.isIntersecting) return;
+      _tileObserver.unobserve(e.target);
+      ensureFamilySheet(Number(e.target.dataset.lazyFam));
+    });
+  }, { root: body, rootMargin: TILE_LAZY_MARGIN + 'px 0px' });
+  for (var j = 0; j < lazy.length; j++) _tileObserver.observe(lazy[j]);
 }
 
 /**
@@ -107,16 +124,44 @@ function editBrushFlipBits() {
  * come back, because then adopting one is something that can happen.
  */
 function tileGroupFamilies() {
+  return tileStableOrder(tileGroupFamiliesWanted());
+}
+
+/**
+ * The order the groups were last drawn in, and the draft it was for.
+ *
+ * "I dont like that tiles in the tiles list are jumping when you click on
+ * them" (§8e): clicking a tile from a family not yet in a slot adopts it,
+ * and adopted families list first — so the group you clicked in leapt to
+ * the top. Now a group keeps the place it was shown in; only families the
+ * list has not shown before are placed by the rule.
+ */
+var _tileOrder = [];
+var _tileOrderFor = null;
+
+function tileStableOrder(want) {
+  var d = editDraft();
+  if (_tileOrderFor !== d) { _tileOrderFor = d; _tileOrder = []; }
+  var wanted = {};
+  want.forEach(function (f) { wanted[f] = true; });
+  var kept = _tileOrder.filter(function (f) { return wanted[f]; });
+  var seen = {};
+  kept.forEach(function (f) { seen[f] = true; });
+  _tileOrder = kept.concat(want.filter(function (f) { return !seen[f]; }));
+  return _tileOrder.slice();
+}
+
+/** Which families should be listed, in the order a fresh list puts them. */
+function tileGroupFamiliesWanted() {
   var picked = Object.keys(_chipSel).map(Number);
   if (picked.length) return picked;
   var fams = editFamilies().filter(function (f) { return f !== undefined; });
   if (!_famCatalogue || editFreeFamilySlot() < 0) return fams;
-  // `_tileGroupPage` is how many *candidates* to show beyond the adopted
-  // ones — not a shared budget the adopted count eats into (§8a.1).
+  // Every candidate, most art first — no page size (§8e). The list is lazy,
+  // so listing all 329 costs headers and placeholders, not sheets.
   var rest = _famCatalogue
     .filter(function (f) { return fams.indexOf(f.id) < 0; })
     .sort(function (a, b) { return b.tiles - a.tiles || a.id - b.id; })
-    .slice(0, _tileGroupPage)
     .map(function (f) { return f.id; });
   return fams.concat(rest);
 }
@@ -215,18 +260,18 @@ function brushLayerToggle() {
 }
 
 /** One family's art, ordered by relationship, with layer badges. */
-function tileGroupHtml(family) {
+function tileGroupHtml(family, width) {
   var s = _famSheets[family];
-  // Collapsed is only the header. The sheet is still fetched: it is what
-  // gives the header its tile count, and it makes opening the group instant.
-  if (!_tileGroupOpen[family]) {
-    if (!s) ensureFamilySheet(family);
-    return tileGroupShell(family, s && s !== 'pending' ? s : null, '') + '</div>';
+  // Not here yet: the group at its final height, so nothing below moves when
+  // the sheet lands. tileLazyObserve fetches it once it nears the view.
+  if (!s || s === 'pending') {
+    var meta = chipMeta(family);
+    var n = meta && meta.tiles ? meta.tiles : 1;
+    return tileGroupShell(family, null, '', n)
+      + '<div class="rg-group-sheet rg-group-lazy"' + (s ? '' : ' data-lazy-fam="' + family + '"')
+      + ' style="height:' + tileSheetHeight(n, width || 360) + 'px"></div></div>';
   }
-  // Each of these closes the group's own div — tileGroupShell leaves it open
-  // for the sheet, and an unclosed one nested every later group inside it.
-  if (!s) { ensureFamilySheet(family); return tileGroupShell(family, null, 'loading…') + '</div>'; }
-  if (s === 'pending') return tileGroupShell(family, null, 'loading…') + '</div>';
+  // Closes the group's own div — tileGroupShell leaves it open for the sheet.
   if (!s.count) return tileGroupShell(family, null, 'no room draws anything in it') + '</div>';
 
   // Sorted by how well each tile goes with what is already in the map, then
@@ -277,7 +322,7 @@ function tileGroupHtml(family) {
  * family and moved to the tooltip; the names stay ids and areas, because
  * that is what the ROM has (a family has no name to invent).
  */
-function tileGroupShell(family, sheet, badge) {
+function tileGroupShell(family, sheet, badge, expected) {
   var fams = editFamilies();
   var slot = fams.indexOf(family);
   var meta = chipMeta(family);
@@ -288,18 +333,15 @@ function tileGroupShell(family, sheet, badge) {
     + (sheet ? '\n' + sheet.total + ' graphic' + (sheet.total === 1 ? '' : 's')
       + (sheet.count < sheet.total ? ', the ' + sheet.count + ' most-used shown' : '') : '')
     + (badge ? '\nbest match with what you have placed: ' + badge : '');
-  var open = !!_tileGroupOpen[family];
-  return '<div class="rg-tile-group' + (open ? ' open' : '') + '">'
-    + '<div class="rg-group-h" data-tile-group="' + family + '" role="button" aria-expanded="' + open + '"'
-    + ' title="' + escH(title + '\nclick to ' + (open ? 'collapse' : 'expand')) + '">'
-    + '<span class="rg-group-caret" aria-hidden="true">' + (open ? '▾' : '▸') + '</span>'
+  return '<div class="rg-tile-group" data-group-fam="' + family + '">'
+    + '<div class="rg-group-h" title="' + escH(title) + '">'
     + '<b class="rg-group-name">' + family + '</b>'
     + '<span class="rg-group-where">' + escH(meta && meta.areas.length ? meta.areas[0] : '') + '</span>'
     + (slot >= 0 ? '<span class="rg-group-slot">slot ' + (slot + 1) + '</span>'
       : '<span class="rg-group-slot off">not loaded</span>')
     + (badge ? '<span class="rg-group-match">' + escH(badge) + '</span>' : '')
     + '<span class="rg-group-count">'
-    + escH(sheet ? String(sheet.count) : '…') + '</span>'
+    + escH(sheet ? String(sheet.count) : expected ? String(expected) : '…') + '</span>'
     + '</div>';
 }
 
@@ -307,21 +349,15 @@ function tileGroupShell(family, sheet, badge) {
 function tilesPanel() {
   var families = tileGroupFamilies();
   if (!families.length) {
-    return '<div class="rs-note">Nothing selected shows every family; this shows none. '
-      + 'Clear the family filter above.</div>';
+    return '<div class="rs-note">' + (Object.keys(_chipSel).length
+      ? 'Nothing in the selected families. Clear the family filter above.'
+      : 'loading the families…') + '</div>';
   }
+  // The width the sheets will wrap at: the list's own, known before this
+  // render replaces it. Placeholder heights are only honest against it.
+  var body = document.getElementById('rg-tab-body');
+  var width = body && body.clientWidth ? body.clientWidth - 4 : 360;
   var html = '';
-  for (var i = 0; i < families.length; i++) html += tileGroupHtml(families[i]);
-
-  // No pager on a full palette: there is nothing to page *to*, since
-  // tileGroupFamilies shows no candidates at all without a free slot (§8a.3).
-  // A "322 more families" button that adds nothing to the list is the same
-  // dead control the plan doc has refused to render since §7a.
-  if (!Object.keys(_chipSel).length && _famCatalogue && editFreeFamilySlot() >= 0
-      && _famCatalogue.length > families.length) {
-    html += '<button class="rg-fam-more" data-tile-more="1"'
-      + ' title="Show more families, most art first">'
-      + (_famCatalogue.length - families.length) + ' more families</button>';
-  }
+  for (var i = 0; i < families.length; i++) html += tileGroupHtml(families[i], width);
   return html;
 }

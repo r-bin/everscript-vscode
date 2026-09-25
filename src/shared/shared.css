@@ -306,7 +306,11 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 /* The canvas column may shrink: its default min-width is min-content, which
    included the status bar's nowrap note, so a long note (H/V) pushed the dock
    off-screen. See docs/map-editor-redesign-plan.md §8a.3 item 1. */
-.rg-edit-row>.rg-outer{min-width:0}
+/* …and it takes *all* the room the dock leaves, whatever its content says.
+   Sized by content, it grew 18px when a tile click wrote a longer note, and
+   the dock (and every swatch in it) slid right under the pointer — the
+   "tiles are jumping when you click on them" of §8e. */
+.rg-edit-row>.rg-outer{min-width:0;flex:1 1 0}
 .rg-dock{flex:none;width:400px;min-width:340px;max-width:460px;min-height:0}
 /* While editing, the browsing palette below the map steps aside: the panel
    column is the editor's tile UI, and two pickers on screen is the clunk. */

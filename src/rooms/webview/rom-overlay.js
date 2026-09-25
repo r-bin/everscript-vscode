@@ -31,9 +31,11 @@ var OVERLAY_BUTTONS=[
 /** Every feature on — what a room shows before the user opts anything out. */
 var ALL_OVERLAY_FLAGS=OVERLAY_BUTTONS.map(function(b){return b.f;}).join('');
 
-// Baked feature flags. Everything is on by default: the view exists to show
-// what is in the room, and the top bar is how you narrow it down.
-var _currentOverlay=ALL_OVERLAY_FLAGS;
+// Baked feature flags. Everything is on by default — the view exists to show
+// what is in the room, and the bar is how you narrow it down — **except
+// collision**, which paints contours over every tile and is the one you turn
+// on to look at, not the one you look through (§8e).
+var _currentOverlay=ALL_OVERLAY_FLAGS.replace('c','');
 
 /** The three renders the host can bake: both layers, or one on its own. */
 var ROM_LAYER_BUTTONS=[

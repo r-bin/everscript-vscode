@@ -168,8 +168,10 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   both actions go through existing owners, and the clear is one undoable
   `editApply` step
 - `map-editor-tiles.js` — the tile browser: grouped by family, ranked by what
-  vanilla draws beside what, badged with the layer it belongs on; owns
-  `_tileGroupPage` / `_layerForce` / `_brushFlip` (the last two are the
+  vanilla draws beside what, badged with the layer it belongs on. Lists every
+  family's full art with no pager, lazily (`_tileObserver` fetches a sheet as
+  its fixed-height placeholder nears the view), and keeps each group's place
+  in the list (`_tileOrder`); owns those and `_layerForce` / `_brushFlip` (the last two are the
   segmented row's two brush modifiers, so they live with the control that
   renders them)
 - `map-editor-deco.js` — the deco picker and the Widgets tab it renders

@@ -380,7 +380,7 @@ test('rooms detail renders ROM header and decoded script tables without bottom r
     assert.ok(!detail.includes('rr-canvas'), 'Did not expect bottom ROM render canvas');
 });
 
-test('rooms detail shows every ROM feature toggle, all on by default', () => {
+test('rooms detail shows every ROM feature toggle, all on by default but collision', () => {
     const roomTreeData = [{
         kind:'map', name:'toggle_room', vanillaId:'0x33', romRoomId:0x33, relPath:'vanilla (rom)', startLine:0, endLine:2,
         imageUri:null, imageDims:null,
@@ -400,12 +400,14 @@ test('rooms detail shows every ROM feature toggle, all on by default', () => {
     assert.deepStrictEqual(rendered.slice().sort().join(''), ALL_OVERLAY_FLAGS.split('').sort().join(''),
         'Expected one toggle per overlay flag the host understands');
 
-    // Default is the full view: the point of the tab is to show what is in the
-    // room, and the bar is how you narrow it down. Collision shipping off by
-    // default is the bug this guards.
+    // Default is the full view — the point of the tab is to show what is in
+    // the room, and the bar is how you narrow it down — except collision,
+    // which paints contours over every tile and is off until asked for
+    // (map editor §8e: "all toggles are active … but the collision, which is
+    // default off"). A feature flag silently shipping off is still the bug.
     ALL_OVERLAY_FLAGS.split('').forEach((flag) => {
-        assert.ok(new RegExp('class="rdf rdf-ov on" data-ov="' + flag + '"').test(detail),
-            'Expected overlay flag ' + flag + ' to default on');
+        const on = new RegExp('class="rdf rdf-ov on" data-ov="' + flag + '"').test(detail);
+        assert.strictEqual(on, flag !== 'c', 'Expected overlay flag ' + flag + ' to default ' + (flag === 'c' ? 'off' : 'on'));
     });
 });
 

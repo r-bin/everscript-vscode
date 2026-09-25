@@ -615,8 +615,8 @@ const ui = new Function(`
     editNeededStamps: editNeededStamps, editErrors: editErrors,
     toolbar: buildEditToolbarHtml, tileGroup: tileGroupHtml,
     setSheet: function (f, sheet) { _famSheets[f] = sheet; },
-    setGroupOpen: function (f, on) { if (on) _tileGroupOpen[f] = true; else delete _tileGroupOpen[f]; },
-    uiPrefs: applyUiPrefs,
+    setCatalogue: function (c) { _famCatalogue = c; },
+    sheetHeight: tileSheetHeight,
     setRelated: function (map) { _related = map; },
     strandedCells: editStrandedCells,
     setSel2: function (s) { _editSel = s; },
@@ -921,9 +921,7 @@ test('a tile group embeds its sheet once, not once per swatch', () => {
         imageUri: 'data:image/png;base64,' + 'A'.repeat(2048),
     });
     ui.setRelated({});
-    ui.setGroupOpen(58, true);
     const html = ui.tileGroup(58);
-    ui.setGroupOpen(58, false);
     const uses = html.split('data:image/png').length - 1;
     assert.strictEqual(uses, 1, `the sheet URL appears ${uses} times, not once`);
     assert.strictEqual(html.split('data-fam-tile=').length - 1, 3, 'all three tiles are offered');
@@ -943,7 +941,6 @@ test('a group is ordered by relationship first, placements second', () => {
         imageUri: 'data:image/png;base64,ZmFt',
     });
     ui.setRelated({ 4191: 92, 4195: 3 });
-    ui.setGroupOpen(58, true);
     const order = [...ui.tileGroup(58).matchAll(/data-fam-tile="(\d+)"/g)].map((m) => m[1]);
     assert.deepStrictEqual(order, ['4191', '4195', '4200']);
 
@@ -953,33 +950,24 @@ test('a group is ordered by relationship first, placements second', () => {
     ui.setRelated({});
     const cold = [...ui.tileGroup(58).matchAll(/data-fam-tile="(\d+)"/g)].map((m) => m[1]);
     assert.deepStrictEqual(cold, ['4200', '4191', '4195']);
-    ui.setGroupOpen(58, false);
 });
 
 /**
- * Seven groups of art open at once bury the one you are drawing with, so a
- * group starts as just its header until it is opened; what is open is
- * remembered by the host (`uiPrefs`).
+ * Every family is listed, and a group whose sheet has not arrived is drawn at
+ * the height it will have — so lazy loading never moves the list (§8e).
  */
-test('a tile group starts collapsed, and the remembered set opens it', () => {
+test('a group not loaded yet is a placeholder at its final height, fetched when seen', () => {
     ui.editReset(0x34);
     ui.setPalette(tilePalette());
-    ui.setSheet(58, {
-        family: 58, count: 1, total: 1, roomCount: 1, columns: 16, cell: 16,
-        slots: [[0, 0, 4191, 10, 0, 0]], imageUri: 'data:image/png;base64,ZmFt',
-    });
-    const shut = ui.tileGroup(58);
-    assert.ok(!shut.includes('data-fam-tile='), 'collapsed shows no art');
-    assert.ok(/rg-group-count">1</.test(shut), 'but the header still says how much there is');
-    assert.ok(shut.includes('data-tile-group="58"') && shut.includes('aria-expanded="false"'),
-        'the header is the toggle');
-    assert.strictEqual(shut.split('<div').length, shut.split('</div>').length, 'every div is closed');
-
-    ui.uiPrefs({ openFamilies: [58] });
-    const open = ui.tileGroup(58);
-    assert.ok(open.includes('data-fam-tile="4191"') && open.includes('aria-expanded="true"'));
-    ui.uiPrefs({});
-    assert.ok(!ui.tileGroup(58).includes('data-fam-tile='), 'prefs replace, they do not add');
+    ui.setCatalogue([{ id: 77, tiles: 20, rooms: 1, areas: ['Gothica'], names: [] }]);
+    const html = ui.tileGroup(77, 370);
+    assert.ok(/data-lazy-fam="77"/.test(html), 'it waits to be seen: ' + html);
+    assert.ok(/rg-group-count">20</.test(html), 'and already says how much art it has');
+    // 370px wide: (370 - 10 + 4) / 36 = 10 per row, so 20 tiles are two rows.
+    assert.strictEqual(ui.sheetHeight(20, 370), 2 * 32 + 4 + 10);
+    assert.ok(html.includes('height:' + ui.sheetHeight(20, 370) + 'px'));
+    assert.strictEqual(html.split('<div').length, html.split('</div>').length, 'every div is closed');
+    ui.setCatalogue(null);
 });
 
 /**

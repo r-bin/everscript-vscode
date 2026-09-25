@@ -150,6 +150,11 @@ function customBindDraft(room) {
   var m = customFind(room.custom);
   var d = editReset(m ? m.borrow : room.romRoomId);
   d.customKey = room.custom;
+  // No families: a new map's seven slots are its own to fill, and picking a
+  // tile adopts its family (map-editor-rules §1). The donor's seven are not
+  // the map's — pre-filled, they left no free slot, so the Tile tab showed
+  // only those seven and nothing else could be drawn.
+  d.families = [];
   if (m && m.saved) customRestore(d, m.saved);
   return d;
 }

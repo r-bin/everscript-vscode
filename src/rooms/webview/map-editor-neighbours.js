@@ -103,14 +103,23 @@ function nbDetailHtml() {
 }
 
 /**
- * The card. Nothing at all without an armed family tile — the mock's
- * `hasCurrentTile` gate: with no centre there is nothing to be beside.
+ * The card. Always there (§8e: "prediction exists, but is collapsed (and
+ * empty)") — a card that appears only once a tile is armed reads as the
+ * layout jumping. Without a centre it is a header and, if opened, a hint.
  */
 function neighbourCardHtml() {
   ensureNeighbours();
   var c = nbCentre();
-  if (!c) return '';
   var open = _panelOpen.neighbours !== false;
+  if (!c) {
+    return '<div class="rg-nb-card"><div class="rg-sec-h" data-panel="neighbours"'
+      + ' title="What vanilla draws on each side of the tile you pick.">'
+      + '<span class="rg-panel-caret">' + (open ? '▾' : '▸') + '</span>'
+      + '<span class="rg-sec-name">likely neighbors</span>'
+      + '<span class="rg-sec-count">—</span></div>'
+      + (open ? '<div class="rg-nb-detail rg-nb-hint">pick a tile to see what vanilla draws beside it</div>' : '')
+      + '</div>';
+  }
   var layerName = c.layer === 'canopy' ? 'front' : 'ground';
   var html = '<div class="rg-nb-card"><div class="rg-sec-h" data-panel="neighbours"'
     + ' title="' + escH('What vanilla draws on each side of the armed tile, on the '
