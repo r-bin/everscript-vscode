@@ -104,3 +104,11 @@ export {
 export type { SpriteInfo, SpriteChunk, SpritePixels, SpriteBlockPixels } from './sprites';
 export type { AnimationFrame as SpriteAnimationFrame, StrikeBox } from './character-animation';
 export type { CharacterDisposition, CharacterHitbox } from './character-record';
+export {
+    lzssCompress, encodeMarkovGrid, buildBlob, modelFromRom, objectAreaEnd,
+    encodeBlock1, encodeBlock2, encodeBlock3, wrapBlock, unpackBlock, writeRoomAt,
+    SUB_RAW, SUB_LZSS, SUB_MARKOV,
+} from './encode';
+export type { Block, RoomModel, TriggerRecord as EncodedTrigger } from './encode';
+export { buildCustomRoomBlob } from './custom-room';
+export type { CustomRoomInput, CustomRoomBlob } from './custom-room';

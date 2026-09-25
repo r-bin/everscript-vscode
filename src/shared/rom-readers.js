@@ -35,6 +35,14 @@ function loadRomBuffer(wsRoot, romPathOverride = '') {
     return null;
 }
 
+/** The ROM file `loadRomBuffer` would read, or null when none exists. */
+function resolveRomPath(wsRoot, romPathOverride = '') {
+    for (const p of romCandidates(wsRoot, romPathOverride)) {
+        if (p && fs.existsSync(p)) return p;
+    }
+    return null;
+}
+
 /** Drop the cached ROM buffer (call when the ROM path setting changes). */
 function invalidateRomBuffer() { _romCache = null; }
 
@@ -305,5 +313,6 @@ module.exports = {
     readRomHitLookup,
     detectScaleEnemies,
     loadRomBuffer,
+    resolveRomPath,
     invalidateRomBuffer,
 };

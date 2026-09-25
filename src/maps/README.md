@@ -30,6 +30,9 @@ it. See the `map-format` and `rom-map-data` skills.
 | `metatiles.ts` | The metatile dictionary as a placement palette — entries, usage counts, and an atlas |
 | `vanilla-index.ts` | What the 127 rooms already attest: graphic → tile family, graphic → collision |
 | `vanilla-adjacency.ts` | The grid walk behind it: undirected adjacency (tile ranking) and, off the same edges, per-side per-layer neighbours (`directionalNeighbours`, §8b) |
+| `encode.ts` | The write path: block encoders, `buildBlob`, `modelFromRom`, `writeRoomAt` (port of `encode_room.py`) |
+| `encode-streams.ts` | The LZSS and Markov compressors `encode.ts` uses |
+| `custom-room.ts` | A custom map's resolved grid → a room blob, borrowing a donor's graphics ([rom-export.md](../../docs/map-format/rom-export.md)) |
 | `budget.ts` | The four ceilings (graphics, families, stamps, WRAM) and what an edit adds to them |
 | `overlay-features.ts` | Classifies a room into feature sets; builds the legend and summary |
 | `overlay-shapes.ts` | The raster primitives the overlay paints with (contours, grass, arrows) |

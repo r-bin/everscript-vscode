@@ -71,6 +71,7 @@ function editAction(act) {
   if (act === 'new-room-go') { editNewRoomGo(); return; }
   if (act === 'new-room-cancel') { _newRoomOpen = false; renderEditChrome(); return; }
   if (act === 'export') editCopyDraft();
+  if (act === 'export-rom') editExportRom();
 }
 
 /** The collision word the room already uses with this terrain word. */

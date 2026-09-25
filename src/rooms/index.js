@@ -16,6 +16,7 @@ const { buildBlankRoom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPrevi
 const { decoIndex, decoCells,
         invalidateDecoCatalogue }                                  = require('./rendering/deco-catalogue');
 const { buildDecoPreviews }                                         = require('./rendering/deco-preview');
+const { buildExportRom }                                            = require('./rendering/rom-export');
 const { relatedTiles, neighbourTiles }                              = require('./rendering/vanilla-index');
 const { VANILLA_ROOMS, buildVanillaRoomContent,
         buildVanillaRoomDetails, invalidateVanillaDataCaches }      = require('./data/vanilla-data');
@@ -65,6 +66,7 @@ module.exports = {
     buildComposedPreview,
     invalidateMetatilePalettes,
     buildBlankRoom,
+    buildExportRom,
     buildFamilySheet,
     buildFamilyCatalogue,
     buildFamilyPreviews,

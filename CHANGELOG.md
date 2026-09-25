@@ -1,3 +1,25 @@
+## [0.65.0] — 2026-09-25
+
+### Map editor: Export ROM
+
+- **Export ROM…** is a new item in the map editor's ⋯ menu. It works on custom
+  maps and saves a playable ROM that starts inside your map: the intro is
+  skipped and the game fades straight in, with the Boy standing on his start
+  marker.
+- The export is built from your vanilla ROM, which is never modified. The
+  output ROM is 4 MB. Your map replaces Brian's Test Ground (room 0x15) and
+  lives in the ROM extension at `$BD:8000`.
+- The intro's first script becomes `load_map(0x15, x, y)`. Brian's room gets a
+  `fade_in()` enter script, because its original enter script is empty and
+  the screen would stay black.
+- Before saving, the export reads back the ROM it wrote and checks the room,
+  the enter script and the intro jump. If anything doesn't match, nothing is
+  saved.
+- The room encoder is a port of the everscript repo's `encode_room.py`. It
+  reproduces all 127 vanilla rooms byte for byte.
+- Not exported yet: triggers, objects, and edits to vanilla rooms. See
+  `docs/map-format/rom-export.md`.
+
 ## [0.64.0] — 2026-09-25
 
 ### Map editor §8e: the Tile tab's first look, and a simpler bottom bar

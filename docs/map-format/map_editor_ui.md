@@ -2,9 +2,10 @@
 
 > Status: **drawing works.** The tile palette, a docked sidebar, five tools
 > (paint / rect / pick / copy / move), undo, a metatile composer and a JSON
-> draft export are shipped. The ROM write itself is not — the draft is the
-> handover format, and §6 says where it plugs in. Everything else here is
-> design.
+> draft export are shipped. A custom map can also be exported as a playable
+> ROM ([rom-export.md](rom-export.md)). Writing a draft back into a vanilla
+> room's own slot is not shipped yet; the draft is still the handover format
+> for that, and §6 says where it plugs in. Everything else here is design.
 >
 > Companion pages: [map_editor_design.md](map_editor_design.md) decided it is
 > a VS Code extension; [map_editor_architecture_and_limitations.md](map_editor_architecture_and_limitations.md)

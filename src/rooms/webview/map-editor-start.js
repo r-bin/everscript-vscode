@@ -11,8 +11,9 @@
 // which the map already draws as arrivals; a second, invented entrance
 // there would be a control for something that does not exist.
 //
-// Not exported: entrances are room metadata, not tile-grid state, and the
-// encoder's handoff shape has no field for one yet (map-editor-rules §6).
+// Not in the JSON draft (entrances are room metadata, not tile-grid state,
+// map-editor-rules §6) — but Export ROM uses it: it is where the intro's
+// `load_map` puts the Boy (map-editor-rom-export.js, rom-export.js).
 //
 // Owns: _startSprite.
 

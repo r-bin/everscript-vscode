@@ -132,7 +132,7 @@ function getExtConfig() {
 const roomData = require('./rooms');
 const { VANILLA_ROOMS, getMapEnum, readLuaWatchers, readScriptAllTriggers, buildVanillaRoomContent, buildVanillaRoomDetails, invalidateRoomDataCaches } = roomData;
 const roomTree = require('./rooms');
-const { findRoomImage, parseRoomContent, collectRoomsFromDir, buildRoomTree, renderVanillaTree, renderRoomsTree, buildRoomsJson, setRoomImageUris, buildRoomTileOverlay, buildRoomMetatilePalette, buildComposedPreview, buildBlankRoom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews, decoIndex, decoCells, buildDecoPreviews, relatedTiles, neighbourTiles } = roomTree;
+const { findRoomImage, parseRoomContent, collectRoomsFromDir, buildRoomTree, renderVanillaTree, renderRoomsTree, buildRoomsJson, setRoomImageUris, buildRoomTileOverlay, buildRoomMetatilePalette, buildComposedPreview, buildBlankRoom, buildExportRom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews, decoIndex, decoCells, buildDecoPreviews, relatedTiles, neighbourTiles } = roomTree;
 
 const romReaders = require('./shared/rom-readers');
 const { readPngDimensions, readRomTriggerOffsets, readRomMapHeader, readRomCharacters, readRomHitLookup, detectScaleEnemies } = romReaders;
@@ -739,6 +739,43 @@ function activate(context) {
                             await vscode.window.showTextDocument(doc, { preview: false });
                         } catch (err) {
                             vscode.window.showErrorMessage('Could not open the map draft: ' + String(err && err.message || err));
+                        }
+                    })();
+                } else if (msg.command === 'mapExportRom') {
+                    // A playable ROM: the vanilla ROM, extended, with this
+                    // custom map in Brian's room's slot and the intro jumping
+                    // there. Written only where the user picks, never over the
+                    // vanilla ROM. See docs/map-format/rom-export.md.
+                    (async () => {
+                        const reply = { command: 'mapExportRomDone' };
+                        try {
+                            const _cfg = getExtConfig();
+                            const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+                            const romPath = romReaders.resolveRomPath(_ws, _cfg.romPath || '');
+                            const romBuf = romPath && romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
+                            if (!romBuf) throw new Error('ROM not found — set everscript.romPath');
+                            const { rom, report } = buildExportRom(romBuf, msg.draft || {});
+                            const stem = String(msg.name || 'custom map').replace(/[^\w.-]+/g, '_');
+                            const target = await vscode.window.showSaveDialog({
+                                defaultUri: vscode.Uri.file(path.join(path.dirname(romPath), stem + '.sfc')),
+                                filters: { 'SNES ROM': ['sfc', 'smc'] },
+                                saveLabel: 'Export ROM',
+                            });
+                            if (!target) { _radarPanel?.webview.postMessage({ ...reply, cancelled: true }); return; }
+                            if (path.resolve(target.fsPath) === path.resolve(romPath)) {
+                                throw new Error('refusing to overwrite the vanilla ROM the export is built from');
+                            }
+                            fs.writeFileSync(target.fsPath, rom);
+                            _radarPanel?.webview.postMessage({ ...reply, path: target.fsPath, report });
+                            const pick = await vscode.window.showInformationMessage(
+                                `Exported ${report.widthTiles}×${report.heightTiles} map into Brian's room (0x15) — `
+                                + `${report.blobBytes} bytes at $${report.blobAddress.toString(16).toUpperCase()}. `
+                                + 'The game starts in it.', 'Reveal');
+                            if (pick === 'Reveal') vscode.commands.executeCommand('revealFileInOS', target);
+                        } catch (err) {
+                            const error = String(err && err.message || err);
+                            _radarPanel?.webview.postMessage({ ...reply, error });
+                            vscode.window.showErrorMessage('ROM export failed: ' + error);
                         }
                     })();
                 } else if (msg.command === 'requestComposedPreview') {
