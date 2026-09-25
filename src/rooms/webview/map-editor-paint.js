@@ -36,11 +36,17 @@ function editStampSvg(palette, composed, index, x, y, cls) {
     i = index - palette.count;
   }
   if (!sheet || !sheet.imageUri || i < 0 || i >= sheet.count) return '';
-  var cx = (i % sheet.columns) * sheet.cell;
-  var cy = Math.floor(i / sheet.columns) * sheet.cell;
+  var still = editCropSvg(cls, x, y, sheet, sheet.imageUri, sheet.imageWidth, sheet.imageHeight, i, '');
+  return typeof editStampAnimSvg === 'function' ? editStampAnimSvg(sheet, i, still, cls, x, y) : still;
+}
+
+/** Cell `i` of an atlas image as a nested <svg>, optionally with an <animate> inside. */
+function editCropSvg(cls, x, y, grid, uri, w, h, i, inner) {
+  var cx = (i % grid.columns) * grid.cell;
+  var cy = Math.floor(i / grid.columns) * grid.cell;
   return '<svg class="' + cls + '" x="' + x + '" y="' + y + '" width="' + EDIT_UNITS + '" height="' + EDIT_UNITS
-    + '" viewBox="' + cx + ' ' + cy + ' ' + sheet.cell + ' ' + sheet.cell + '">'
-    + '<image href="' + sheet.imageUri + '" width="' + sheet.imageWidth + '" height="' + sheet.imageHeight
+    + '" viewBox="' + cx + ' ' + cy + ' ' + grid.cell + ' ' + grid.cell + '">' + inner
+    + '<image href="' + uri + '" width="' + w + '" height="' + h
     + '" style="image-rendering:pixelated"/></svg>';
 }
 

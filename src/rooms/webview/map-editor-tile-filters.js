@@ -79,19 +79,21 @@ function tileSlotPasses(slot) {
   return true;
 }
 
-/** The swatch's animation mark: `▶n` on an animation, `k/n` on a later frame. */
+/** The swatch's animation mark: `▶n` on an animation, `k/n` on a frame listed on its own. */
 function tileAnimMarkHtml(sheet, slot) {
   var kind = slot[13];
   if (!kind) return '';
   var a = sheet && sheet.animations && sheet.animations[slot[14]];
   var n = a ? a.frames.length : 0;
-  var text = kind === 1 ? '▶' + (n || '') : (slot[15] + 1) + (n ? '/' + n : '');
+  // Listed frame by frame, the first frame is frame 1 of n like the others.
+  var text = kind === 1 && !_tileFramesSplit ? '▶' + (n || '') : (kind === 1 ? 1 : slot[15] + 1) + (n ? '/' + n : '');
   return '<b class="rg-anim-mark' + (kind === 2 ? ' later' : '') + '" aria-hidden="true">' + text + '</b>';
 }
 
 function tileAnimTitle(sheet, slot) {
   var a = sheet && sheet.animations && sheet.animations[slot[14]];
   var n = a ? a.frames.length : 0;
+  if (slot[13] === 1 && _tileFramesSplit) return '\nframe 1' + (n ? ' of ' + n : '') + ' — the frame the game places; it plays the rest in place';
   if (slot[13] === 1) return '\nanimation: ' + n + ' frames, played in place by the game — its frames are never placed on their own';
   if (slot[13] === 2) return '\nframe ' + (slot[15] + 1) + (n ? ' of ' + n : '') + ' of the animation starting at graphic ' + slot[14];
   return '';

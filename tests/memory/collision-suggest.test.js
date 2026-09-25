@@ -207,6 +207,22 @@ if (!fs.existsSync(ROM_PATH)) {
         assert.ok(cat.frames > 0 && cat.frames < cat.tiles);
     });
 
+    test('a placed animated tile carries its other frames, rendered with the stamp', () => {
+        const room = maps.decodeRoom(rom, 0x34);
+        const slot = room.tilePalette.length; // where the draft's first added graphic lands
+        const torch = maps.tileSlotChr(slot) | (1 << 10);
+        const still = maps.tileSlotChr(0) | (1 << 10);
+        const p = rooms.buildComposedPreview(rom, 0x34,
+            [{ layer1: still, layer2: still, collision: 0 }, { layer1: torch, layer2: still, collision: 0 }],
+            'composite', { graphics: [2742] });
+        const cycle = index.animations.byFirst.get(2742);
+        assert.ok(p.anim, 'the torch stamp animates');
+        assert.deepStrictEqual(p.anim.entries.map((e) => e[0]), [1], 'only the torch stamp, by its index');
+        assert.deepStrictEqual(p.anim.entries[0][1], cycle.delays);
+        assert.strictEqual(p.anim.sheets.length, cycle.frames.length - 1, 'one sheet per later frame');
+        assert.notStrictEqual(p.anim.sheets[0].imageUri, p.anim.sheets[1].imageUri);
+    });
+
     test('relationship scores never pass 100%', () => {
         let worst = 0;
         for (const g of [...index.adjacency.keys()].slice(0, 400)) {

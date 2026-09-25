@@ -83,6 +83,7 @@ const ROOMS_JS_FILES = [
   'map-editor.js',       // the edit draft and undo stack (_edit)
   'map-editor-stamps.js',// the stamp dictionary: composing/adopting stamps and graphics
   'map-editor-paint.js', // drawing the draft on the map (_editSel/_editClip)
+  'map-editor-anim.js', // animated stamps on the map (stateless)
   'map-editor-ui.js',    // tool bar, docked sidebar, composer, constructs
   'map-editor-phases.js',// what a stroke writes in each phase, and the eraser
   'map-editor-constructs.js',// saved regions, with their triggers and objects

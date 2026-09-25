@@ -23,6 +23,7 @@ rooms/
     object-previews.js        — Section 3 objects: states, thumbnails, the selection wire form
     rom-fingerprint.js        — romFingerprint(rom): the cache key every render cache shares
     metatile-palette.js       — buildRoomMetatilePalette: the dictionary atlas + one packed row per stamp
+    stamp-animation.js        — animated stamps' later frames (`anim`), so a placed torch flickers on the canvas
     vanilla-index.js          — the vanilla index + room budget, cached per ROM, packaged for the tab
     room-draft.js             — blank rooms, family sheets, the family catalogue and its preview strips
     deco-catalogue.js         — the deco library: vanilla's Section 3 objects as portable, floor-free entries
@@ -219,6 +220,8 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
 - `map-editor-paint.js` — drawing the draft on the map from the palette atlas,
   the region maths, and the Select tool's outline/drag-preview rectangles;
   owns `_editSel` / `_editClip`
+- `map-editor-anim.js` — an animated stamp drawn as its frames, one shown at a
+  time on the document clock (stateless)
 - `map-editor-ui.js` — the docked sidebar, the metatile composer, the construct
   library and `renderEditChrome`; owns `_editOrigin` / `_editComposed` /
   `_editCompose` / `_editConstruct`. The tool bar left in Phase 7a — see

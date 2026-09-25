@@ -219,11 +219,29 @@ never placed on their own.
 The Tile tab (`map-editor-tile-filters.js`):
 - **`anim`** (the default) shows each animation once, as a swatch that plays
   its frames at vanilla's timing (delays are 60 Hz ticks), marked `▶n`.
-- **`frames`** lists every frame as its own swatch, marked `k/n`.
+- **`frames`** lists every frame as its own swatch, marked `k/n` — the frame
+  the game places is `1/n`.
 
 Family-sheet slot rows carry `[13] kind` (1 frame 0, 2 later frame), `[14]`
 frame 0 and `[15]` frame number. The sheet carries `animations` (frame 0 →
 frames and delays), and the catalogue carries a `frames` count.
+
+## On the editor's map canvas
+
+A stamp is drawn from an atlas the host renders, which shows only what the
+slot holds now: frame 0. `rooms/rendering/stamp-animation.js` renders the rest.
+For every stamp whose tilemap word names an animated graphic, it renders the
+stamp once more per later frame, with that slot holding the frame the channel
+would put there at that step. Both the room's palette and the draft's composed
+preview carry these as `anim`: `{sheets, columns, cell, entries: [[stamp, delays]]}`.
+A later-frame graphic starts at its own place in the cycle.
+
+`map-editor-anim.js` stacks the frames in the cell and shows one at a time.
+It uses SMIL `<animate calcMode="discrete">` on the document clock, so a
+redrawn edit layer doesn't restart it and every torch on one cycle stays in
+step, as one channel keeps them in the game. Only one frame is visible at a
+time, because a later frame drawn over frame 0 would let frame 0 show through
+its transparent pixels.
 
 **Not done yet:** Export ROM writes no Section 2 for a custom map
 (`maps/custom-room.ts`), so an animated tile painted there is its first frame,

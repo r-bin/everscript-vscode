@@ -25,7 +25,7 @@ const read = (f) => fs.readFileSync(path.join(WEBVIEW, f), 'utf8');
 
 /** The editor's files, in the order the bundle concatenates them. */
 const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-stamps.js', 'map-editor-paint.js',
-    'map-editor-ui.js', 'map-editor-phases.js', 'map-editor-constructs.js', 'map-editor-families.js',
+    'map-editor-anim.js', 'map-editor-ui.js', 'map-editor-phases.js', 'map-editor-constructs.js', 'map-editor-families.js',
     'map-editor-relations.js', 'map-editor-chips.js', 'map-editor-stranded.js',
     'map-editor-tiles.js', 'map-editor-tile-lazy.js', 'map-editor-tile-filters.js', 'map-editor-neighbours.js', 'map-editor-deco.js', 'map-editor-special.js',
     'map-editor-trigger-select.js', 'map-editor-trigger-panel.js',
@@ -1325,6 +1325,39 @@ async function main() {
         segs.length === 5 && segs[0] === 'auto|front|ground' && segs[1] === 'H|V' && segs[2] === 'all|floor|edge|wall'
         && segs[3] === 'anim|frames' && segs[4] === 'cuttable|stairs',
         JSON.stringify(segs));
+
+    // v0.76.0: a placed animated stamp plays on the map — its frames stacked,
+    // one visible at a time on the document clock — and the frames list
+    // marks the first frame 1/n like the rest ("what does ▶6 mean in frames mode?").
+    const anim = await page.evaluate(() => {
+        const sheet = { imageUri: 'data:a', imageWidth: 32, imageHeight: 16, columns: 2, cell: 16, count: 2,
+            anim: { columns: 16, cell: 16, entries: [[1, [8, 4, 8]]],
+                sheets: [{ imageUri: 'data:b', imageWidth: 16, imageHeight: 16 }, { imageUri: 'data:c', imageWidth: 16, imageHeight: 16 }] } };
+        const box = document.createElement('div');
+        box.innerHTML = '<svg>' + editStampAnimSvg(sheet, 1, 'STILL', 'rg-edit-cell', 0, 0) + '</svg>';
+        const anims = box.querySelectorAll('animate');
+        const saved = _tileFramesSplit;
+        _tileFramesSplit = true;
+        const split = tileAnimMarkHtml({ animations: { 5: { frames: [5, 6, 7], delays: [1, 1, 1] } } }, [0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 5, 0]);
+        _tileFramesSplit = false;
+        const combined = tileAnimMarkHtml({ animations: { 5: { frames: [5, 6, 7], delays: [1, 1, 1] } } }, [0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 5, 0]);
+        _tileFramesSplit = saved;
+        return {
+            still: editStampAnimSvg(sheet, 0, 'STILL', 'rg-edit-cell', 0, 0),
+            ghost: editStampAnimSvg(sheet, 1, 'STILL', 'rg-edit-cell rg-paste-ghost', 0, 0),
+            frames: box.querySelectorAll('svg svg').length,
+            values: Array.prototype.map.call(anims, (a) => a.getAttribute('values')),
+            keyTimes: anims[0] && anims[0].getAttribute('keyTimes'), dur: anims[0] && anims[0].getAttribute('dur'),
+            split, combined,
+        };
+    });
+    check('an animated stamp is drawn as its frames, each shown in its turn at vanilla timing',
+        anim.frames === 3 && anim.values.join(' ') === '1;0;0 0;1;0 0;0;1'
+        && anim.keyTimes === '0.0000;0.4000;0.6000' && anim.dur === '0.333s', JSON.stringify(anim));
+    check('a stamp that does not animate, and the paste ghost, stay one still picture',
+        anim.still === 'STILL' && anim.ghost === 'STILL', JSON.stringify(anim));
+    check('frames mode marks the first frame 1/n; combined it is ▶n',
+        anim.split.indexOf('>1/3<') > 0 && anim.combined.indexOf('>▶3<') > 0, anim.split + ' ' + anim.combined);
 
     // ── the cuttable filter ────────────────────────────────────────────────
     // "shows only tiles that are involved in cuttable tiles when turned on

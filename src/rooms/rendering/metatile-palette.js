@@ -12,6 +12,7 @@ const maps = require('../../maps');
 const { romFingerprint } = require('./rom-fingerprint');
 const { annotateGraphics, budgetSummary, invalidateVanillaIndex } = require('./vanilla-index');
 const { groupRoomGraphics } = require('./room-draft');
+const { buildStampAnimations } = require('./stamp-animation');
 
 /** Metatiles per atlas row. 16 keeps the sheet narrow enough to scroll. */
 const COLUMNS = 16;
@@ -80,6 +81,8 @@ function buildRoomMetatilePalette(rom, roomId, layer, bgPalette) {
         imageWidth: atlas.image.width,
         imageHeight: atlas.image.height,
         entries: packEntries(table),
+        /** Animated stamps' later frames, for the editor's map canvas (stamp-animation.js). */
+        anim: buildStampAnimations(buf, room, table, { columns: COLUMNS, layer: which }),
         // The room's own grid, as dictionary indices rather than WRAM ids.
         // The editor needs it to pick a stamp off the map, to fill, and to
         // copy a region — 42 KB on the largest room (0x4b, 106x125), which
@@ -209,6 +212,7 @@ function buildComposedPreview(rom, roomId, drafts, layer, extra) {
     const atlas = maps.renderMetatileAtlas(buf, maps.withMetatiles(room, entries), {
         columns: COLUMNS, layer: which,
     });
+    const anim = buildStampAnimations(buf, room, entries, { columns: COLUMNS, layer: which });
     return {
         roomId,
         layer: which,
@@ -220,6 +224,7 @@ function buildComposedPreview(rom, roomId, drafts, layer, extra) {
         imageWidth: atlas.image.width,
         imageHeight: atlas.image.height,
         entries: entries.map((e, i) => [i, e.layer1, e.layer2, e.collision, 0]),
+        anim,
     };
 }
 

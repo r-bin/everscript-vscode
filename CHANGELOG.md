@@ -1,3 +1,14 @@
+## [0.76.0] — 2026-09-25
+
+### Map editor: placed animations play on the map
+
+- **Placed animated tiles animate.** A torch, water or flame painted on the
+  map now plays its frames at the game's own timing, like its swatch in the
+  Tile tab. Tiles on one cycle flicker in step, as in the game.
+- **`frames` mode marks the first frame `1/n`**, like the other frames. `▶n`
+  is only for a whole animation in `anim` mode.
+- **Not yet:** an exported custom map still doesn't animate in the game.
+
 ## [0.75.0] — 2026-09-25
 
 ### Map editor: animations in the tile list
