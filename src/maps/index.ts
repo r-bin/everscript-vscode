@@ -62,10 +62,11 @@ export {
 } from './metatiles';
 export type { MetatileInfo, MetatileAtlas, MetatileLayer, MetatileDraft, TileListAtlas } from './metatiles';
 export {
-    buildVanillaIndex, suggestFamily, suggestCollision, graphicsForFamilies, familyExamples,
-    groupByRooms, preferredLayer, relatedGraphics, relationship, rankByRelationship,
+    buildVanillaIndex, graphicsForFamilies, familyExamples, groupByRooms, relatedGraphics, relationship, rankByRelationship,
 } from './vanilla-index';
-export type { VanillaIndex, Attestation, Suggestion, GraphicGroup, Related } from './vanilla-index';
+export { suggestFamily, suggestCollision, suggestGeometry, GEOMETRY_BITS, preferredLayer } from './vanilla-suggest';
+export type { VanillaIndex, Attestation, GraphicGroup, Related } from './vanilla-index';
+export type { Suggestion } from './vanilla-suggest';
 export {
     DIRECTIONS, directionalNeighbours, walkResolvedGrid, newDirectionalTally, compactDirectional,
 } from './vanilla-adjacency';
@@ -82,7 +83,7 @@ export type { RoomBudget, BudgetLine, MarginalCost, StampTriple } from './budget
 export { applyObjectStates, renderObjectState, objectStateCount, objectBounds, DEFAULT_OBJECT_STATE } from './objects';
 export type { ObjectStateMap } from './objects';
 export type { ObjectStamp } from './object-stamps';
-export { parseAnimationChannels, buildAnimationGroups, buildOverlayTransfer } from './animation';
+export { parseAnimationChannels, buildAnimationGroups, buildOverlayTransfer, overlayLayer } from './animation';
 export type {
     AnimationChannel, AnimationFrame, AnimationGroup, AnimationLayer, AnimationOptions,
     OverlayTransfer, Section2Ref,

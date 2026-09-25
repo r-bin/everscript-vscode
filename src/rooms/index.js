@@ -11,7 +11,7 @@ const { renderVanillaTree, renderRoomsTree, buildRoomRailHtml,
 const { buildRoomTileOverlay, invalidateRoomRenders }               = require('./rendering/tile-overlay');
 const { buildRoomMetatilePalette, buildComposedPreview,
         invalidateMetatilePalettes }                               = require('./rendering/metatile-palette');
-const { buildBlankRoom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews,
+const { buildBlankRoom, buildDraftCollision, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews,
         invalidateRoomDrafts }                                     = require('./rendering/room-draft');
 const { decoIndex, decoCells,
         invalidateDecoCatalogue }                                  = require('./rendering/deco-catalogue');
@@ -66,6 +66,7 @@ module.exports = {
     buildComposedPreview,
     invalidateMetatilePalettes,
     buildBlankRoom,
+    buildDraftCollision,
     buildExportRom,
     buildFamilySheet,
     buildFamilyCatalogue,

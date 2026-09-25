@@ -307,8 +307,10 @@ function tileGroupHtml(family, width) {
       + ' title="' + escH('graphic ' + slot[2] + ' in family ' + family
         + '\n' + slot[3] + ' placements in vanilla'
         + (badge[0] ? '\ndrawn in the ' + badge[0] + (badge[1] ? ' — ' + badge[1] : '') : '')
-        + (rel ? '\ngoes with what you have placed: ' + rel + '%' : '')) + '"'
-      + ' style="background-position:-' + x + 'px -' + y + 'px"></i>';
+        + (rel ? '\ngoes with what you have placed: ' + rel + '%' : '')
+        + (typeof tileCollisionTitle === 'function' ? tileCollisionTitle(slot) : '')) + '"'
+      + ' style="background-position:-' + x + 'px -' + y + 'px">'
+      + (typeof tileCollisionMarkHtml === 'function' ? tileCollisionMarkHtml(slot) : '') + '</i>';
   }
   return html + '</div></div></div>';
 }

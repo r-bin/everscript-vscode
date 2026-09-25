@@ -296,3 +296,15 @@
 .rg-theme .rg-group-sheet .rs-mt-cell.sel.rg-flip-h{transform:scale(2) scaleX(-1)}
 .rg-theme .rg-group-sheet .rs-mt-cell.sel.rg-flip-v{transform:scale(2) scaleY(-1)}
 .rg-theme .rg-group-sheet .rs-mt-cell.sel.rg-flip-h.rg-flip-v{transform:scale(2) scaleX(-1) scaleY(-1)}
+
+/* Suggested collision on a tile swatch (map-editor-collision.js): the shape
+   vanilla gives the graphic on the layer it would be painted on, drawn in the
+   map's own collision colours, with how much of vanilla agrees. Dashed when
+   vanilla uses the tile both ways. */
+.rg-theme .rg-group-sheet .rs-mt-cell{position:relative}
+.rg-coll-mark{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.rg-coll-mark.unsure{opacity:.75}
+.rg-coll-pct{font:3px var(--vscode-editor-font-family,monospace);fill:#fff;text-anchor:end;
+  paint-order:stroke;stroke:#000;stroke-width:.8px}
+.rg-coll-q{font:7px var(--vscode-editor-font-family,monospace);fill:#fff;text-anchor:middle;opacity:.6;
+  paint-order:stroke;stroke:#000;stroke-width:1px}

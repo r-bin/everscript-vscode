@@ -13,6 +13,7 @@ const maps = require('../../maps');
 const { romFingerprint } = require('./rom-fingerprint');
 const { vanillaIndex, budgetSummary } = require('./vanilla-index');
 const { VANILLA_ROOMS } = require('../data/vanilla-data');
+const { overlayOptions } = require('./tile-overlay');
 
 /** Tiles per sheet row, matching the metatile atlas. */
 const COLUMNS = 16;
@@ -150,11 +151,18 @@ function buildFamilySheet(rom, familyId, borrowFrom) {
         total: (index.graphics.get(family) || []).length,
         columns: COLUMNS,
         cell: 16,
-        // [slot, chr, graphicId, placements, canopyUses, terrainUses] — the
-        // last two let the editor put a tile on the layer vanilla uses it on.
+        // [slot, chr, graphicId, placements, canopyUses, terrainUses,
+        //  groundShape, groundPct, frontShape, frontPct] — canopy/terrain
+        // uses let the editor put a tile on the layer vanilla uses it on; the
+        // shapes are the collision it gets there (-1 = never seen), with how
+        // much of vanilla agrees (maps/vanilla-suggest.ts suggestGeometry).
         slots: ids.map((id, i) => {
             const seen = index.layers.get(id) || { canopy: 0, terrain: 0 };
-            return [i, maps.tileSlotChr(i), id, attested[i].uses, seen.canopy, seen.terrain];
+            const ground = maps.suggestGeometry(index, id, 'terrain');
+            const front = maps.suggestGeometry(index, id, 'canopy');
+            return [i, maps.tileSlotChr(i), id, attested[i].uses, seen.canopy, seen.terrain,
+                ground ? ground.value : -1, ground ? Math.round(ground.confidence * 100) : 0,
+                front ? front.value : -1, front ? Math.round(front.confidence * 100) : 0];
         }),
         imageUri: null,
         imageWidth: 0,
@@ -305,9 +313,36 @@ function blit(dst, src, x, y) {
     }
 }
 
+/**
+ * The collision of a drafted map, drawn the way the Rooms tab draws a ROM
+ * room's — same contours, same wall tint — as a transparent layer for the
+ * editor to put over its painted cells.
+ *
+ * `draft` is the Export ROM payload (map-editor-rom-export.js): three words
+ * per cell. Only collision is read; the picture is the editor's own.
+ */
+function buildDraftCollision(rom, draft) {
+    const buf = rom instanceof Uint8Array ? rom : new Uint8Array(rom);
+    const w = Number(draft.widthTiles);
+    const h = Number(draft.heightTiles);
+    const cells = Array.isArray(draft.cells) ? draft.cells : [];
+    if (!(w >= 1 && h >= 1) || cells.length !== w * h * 3) throw new Error('draft grid does not match its size');
+    const room = maps.blankRoom(buf, { widthTiles: w, heightTiles: h, borrowFrom: Number(draft.borrowFrom) || 0x76 });
+    const collisionWords = [];
+    for (let y = 0; y < h; y++) {
+        const row = [];
+        for (let x = 0; x < w; x++) row.push(cells[(y * w + x) * 3 + 2] & 0xffff);
+        collisionWords.push(row);
+    }
+    const drafted = { ...room, collisionWords, elevationPlanes: maps.planesUsed(collisionWords) };
+    const opts = overlayOptions('c').opts;
+    const image = maps.overlayLayer(w * 16, h * 16, (img) => maps.drawCollisionOverlay(img, drafted, opts));
+    return { imageUri: maps.encodePngDataUri(image), imageWidth: image.width, imageHeight: image.height };
+}
+
 function invalidateRoomDrafts() { SHEETS.clear(); }
 
 module.exports = {
     buildBlankRoom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews,
-    groupRoomGraphics, invalidateRoomDrafts,
+    groupRoomGraphics, invalidateRoomDrafts, buildDraftCollision,
 };

@@ -42,6 +42,12 @@ export interface VanillaIndex {
     /** Terrain graphic id -> the collision words used with it. */
     collisions: Map<number, Attestation<number>[]>;
     /**
+     * Canopy graphic id -> the collision words under it, counting only cells
+     * whose canopy is real art — not the room's blank canopy word, which
+     * sits on most cells and would vote for whatever the floor does.
+     */
+    canopyCollisions: Map<number, Attestation<number>[]>;
+    /**
      * Graphic id -> each graphic drawn beside it -> how many times.
      *
      * Adjacency in the *grid*, not the dictionary: every right- and
@@ -110,6 +116,7 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
     const famCounts = new Map<number, Map<number, number>>();   // graphic -> family
     const gfxCounts = new Map<number, Map<number, number>>();   // family  -> graphic
     const collCounts = new Map<number, Map<number, number>>();  // graphic -> collision
+    const canopyCollCounts = new Map<number, Map<number, number>>(); // canopy graphic -> collision
     const rooms = new Map<number, number[]>();
     const graphicRooms = new Map<number, Set<number>>();
     const layers = new Map<number, { canopy: number; terrain: number }>();
@@ -136,7 +143,16 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
             else rooms.set(fam, [id]);
         }
 
-        for (const m of metatileTable(room)) {
+        const table = metatileTable(room);
+        // The room's blank canopy: its most-placed canopy word, the same rule
+        // blank-room.ts's emptyStamp and the editor's editBlankCanopy use.
+        const canopyUses = new Map<number, number>();
+        for (const m of table) if (m.uses) canopyUses.set(m.layer1, (canopyUses.get(m.layer1) || 0) + m.uses);
+        let blankCanopy = -1;
+        let blankUses = -1;
+        for (const [word, n] of canopyUses) if (n > blankUses) { blankUses = n; blankCanopy = word; }
+
+        for (const m of table) {
             if (!m.uses) continue;
             for (const [which, word] of [[0, m.layer1], [1, m.layer2]] as const) {
                 const graphic = tileIds[charIndexToSlot(word & 0x3ff)];
@@ -161,6 +177,8 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
             // player is standing on, so that is what it is attributed to.
             const terrain = tileIds[charIndexToSlot(m.layer2 & 0x3ff)];
             if (terrain !== undefined) tally(collCounts, terrain, m.collision, m.uses);
+            const canopy = tileIds[charIndexToSlot(m.layer1 & 0x3ff)];
+            if (canopy !== undefined && m.layer1 !== blankCanopy) tally(canopyCollCounts, canopy, m.collision, m.uses);
         }
 
         edges += walkAdjacency(room, tileIds, adjacency, cells, sides);
@@ -176,6 +194,7 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
         graphicRooms: perGraphic,
         layers,
         collisions: rank(collCounts),
+        canopyCollisions: rank(canopyCollCounts),
         adjacency,
         directional: compactDirectional(sides),
         cells,
@@ -318,60 +337,6 @@ export function groupByRooms(index: VanillaIndex, graphics: number[]): GraphicGr
     return [...bySignature.values()].sort(
         (a, b) => b.graphics.length - a.graphics.length || (a.rooms[0] ?? 1e9) - (b.rooms[0] ?? 1e9),
     );
-}
-
-/** A suggestion, with the evidence that produced it. */
-export interface Suggestion {
-    value: number;
-    /** Share of this graphic's placements, 0..1. */
-    confidence: number;
-    uses: number;
-    /** Everything observed, most-placed first — the suggestion is `[0]`. */
-    alternatives: Attestation<number>[];
-}
-
-function suggest(list: Attestation<number>[] | undefined): Suggestion | null {
-    if (!list || !list.length) return null;
-    const total = list.reduce((n, a) => n + a.uses, 0);
-    return {
-        value: list[0].value,
-        confidence: total ? list[0].uses / total : 0,
-        uses: list[0].uses,
-        alternatives: list,
-    };
-}
-
-/** Which family vanilla draws this graphic in. `null` if never seen. */
-export function suggestFamily(index: VanillaIndex, graphic: number): Suggestion | null {
-    return suggest(index.families.get(graphic));
-}
-
-/**
- * Which layer vanilla draws this graphic on.
- *
- * `'canopy'` is the part drawn over the character, `'terrain'` the ground
- * it walks on. Returns `null` for a graphic nothing has drawn.
- */
-export function preferredLayer(
-    index: VanillaIndex,
-    graphic: number,
-): { layer: 'canopy' | 'terrain'; confidence: number; canopy: number; terrain: number } | null {
-    const seen = index.layers.get(graphic);
-    if (!seen) return null;
-    const total = seen.canopy + seen.terrain;
-    if (!total) return null;
-    const canopyWins = seen.canopy > seen.terrain;
-    return {
-        layer: canopyWins ? 'canopy' : 'terrain',
-        confidence: (canopyWins ? seen.canopy : seen.terrain) / total,
-        canopy: seen.canopy,
-        terrain: seen.terrain,
-    };
-}
-
-/** Which collision word vanilla puts under this terrain graphic. */
-export function suggestCollision(index: VanillaIndex, graphic: number): Suggestion | null {
-    return suggest(index.collisions.get(graphic));
 }
 
 /**

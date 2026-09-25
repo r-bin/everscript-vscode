@@ -68,6 +68,9 @@ if(typeof window!=='undefined'&&window.addEventListener){
       // UI state the host remembers across panels (map-editor-tiles.js).
       if(typeof applyUiPrefs==='function')applyUiPrefs(data.prefs);
       if(typeof customLoadPrefs==='function')customLoadPrefs(data.prefs);
+    }else if(data.command==='draftCollision'){
+      // A drafted map's collision layer (map-editor-collision.js).
+      if(typeof applyDraftCollision==='function')applyDraftCollision(data);
     }else if(data.command==='mapExportRomDone'){
       // Export ROM finished, failed or was cancelled (map-editor-rom-export.js).
       if(typeof applyRomExportDone==='function')applyRomExportDone(data);

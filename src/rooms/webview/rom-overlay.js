@@ -190,6 +190,7 @@ function setupLayerButtons(panel,room){
       }).join('');
       syncOverlayButtons();
       rerender();
+      if(typeof collisionFlagsChanged==='function')collisionFlagsChanged();
     });
   });
 
@@ -206,6 +207,7 @@ function setupLayerButtons(panel,room){
     _currentOverlay=(_currentOverlay===ALL_OVERLAY_FLAGS)?'':ALL_OVERLAY_FLAGS;
     syncOverlayButtons();
     rerender();
+    if(typeof collisionFlagsChanged==='function')collisionFlagsChanged();
   });
 
   syncRomTriggerClass(panel);

@@ -337,6 +337,7 @@ function applyBlankRoom(msg) {
   editClearDonorScenery();
   _editOrigin = { x: 0, y: 0 };
   customNoteBlank(room);
+  if (typeof draftCollisionSoon === 'function') draftCollisionSoon();
 
   editNote('empty ' + room.widthTiles + '×' + room.heightTiles
     + ' room — nothing drawn; room 0x' + room.borrowedFrom.toString(16)

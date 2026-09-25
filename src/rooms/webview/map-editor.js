@@ -267,9 +267,11 @@ function editUndo(palette) {
   return true;
 }
 
-/** Families that came in by painting follow the cells (map-editor-families.js). */
+/** Families that came in by painting follow the cells (map-editor-families.js),
+ *  and a drafted map's collision layer is redrawn (map-editor-collision.js). */
 function editCellsChanged() {
   if (typeof editSyncPaintedFamilies === 'function') editSyncPaintedFamilies();
+  if (typeof draftCollisionSoon === 'function') draftCollisionSoon();
 }
 
 function editRedo(palette) {

@@ -1,3 +1,27 @@
+## [0.67.0] — 2026-09-25
+
+### Map editor: suggested collision
+
+- **Tiles show their recommended collision.** With **Collision** on in the
+  bottom bar, every tile in the Tile tab shows the collision shape the game
+  usually gives it, plus a number for how many of the game's rooms agree. A
+  dashed shape means the game uses the tile both ways, walkable in some rooms
+  and blocked in others. A `?` means the tile never appears on that layer.
+- **Painted tiles get that collision.** When you paint a tile on a custom map,
+  it gets the recommended shape: from the ground layer for ground tiles, from
+  the foreground for front tiles. The shape goes on elevation plane 0,
+  because copying the game's full collision value would also copy its plane,
+  gates and sprite settings.
+- **Custom maps show their collision.** With Collision on, a custom map now
+  draws its walls in the same style as the game's own rooms, and the drawing
+  updates as you paint, erase, undo or redo. Walls on elevation plane 0 are
+  drawn blue.
+- **Checked against all 127 rooms** by predicting each room's collision from
+  the other 126. The recommended shape was right 77% of the time. Where 95% or
+  more of the game agrees, it was right 92% of the time. Rerun the check with
+  `npm run check:collision`; details are in
+  `docs/map-format/collision-suggestions.md`.
+
 ## [0.66.1] — 2026-09-25
 
 ### Emulator: a stale core path no longer leaves the panel blank

@@ -31,7 +31,8 @@ const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-stamps.js', '
     'map-editor-trigger-select.js', 'map-editor-trigger-panel.js',
     'map-editor-toolbar.js', 'map-editor-filterbar.js', 'rom-overlay.js',
     'tables-builder.js', 'map-editor-tabs.js', 'map-editor-panels.js', 'map-editor-gestures.js',
-    'map-editor-input.js', 'map-editor-actions.js', 'map-editor-newroom.js', 'map-editor-start.js', 'map-editor-custom.js'];
+    'map-editor-input.js', 'map-editor-actions.js', 'map-editor-newroom.js', 'map-editor-start.js', 'map-editor-custom.js',
+    'map-editor-rom-export.js', 'map-editor-collision.js'];
 
 /** A palette shaped like the host's reply, small enough to read. */
 const PALETTE = {
@@ -1837,6 +1838,24 @@ async function main() {
         fam.stranded === 0, JSON.stringify(fam));
     check('undoing the only tile unloads the family, redo brings it back',
         fam.undone === 0 && fam.redone[0] === 40, JSON.stringify(fam));
+
+    // "when drawing tiles with collision it is added to the meta tile list
+    // with collision": a picked tile's stamp carries vanilla's shape for it.
+    const coll = await page.evaluate(() => {
+        const d = editReset(0x34);
+        d.on = true; d.tool = 'paint'; d.families = [];
+        _brushTile = null; _layerForce = null;
+        _famSheets[41] = { family: 41, slots: [[0, 0, 0x0998, 5, 0, 5, 0x0f, 99, 0x00, 80]] };
+        editUseFamilyTile(0x0998, 41);
+        const ground = editStampWords(_mtPalette, d.brush).collision;
+        _layerForce = 'canopy';
+        editUseFamilyTile(0x0998, 41);
+        const front = editStampWords(_mtPalette, d.brush).collision;
+        _layerForce = null; _brushTile = null; d.brush = -1;
+        return { ground, front };
+    });
+    check('a picked tile’s stamp gets vanilla’s collision shape for the layer it is painted on',
+        coll.ground === 0x0f && coll.front === 0x00, JSON.stringify(coll));
 
     // The host posts `uiPrefs` right after `newMap`, so the saved list lands
     // after the new map exists. Replacing the list orphaned it — no row, no

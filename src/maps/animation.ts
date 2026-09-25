@@ -162,6 +162,28 @@ export function buildOverlayTransfer(
     return { atZero: probe(0), atFull: probe(255) };
 }
 
+/**
+ * The overlay on its own, as a transparent RGBA image.
+ *
+ * The same two probes as `buildOverlayTransfer`, solved for what was drawn:
+ * `alpha = 1 - (atFull - atZero) / 255` and `colour = atZero / alpha`. Used
+ * where the marks have to sit *above* something the render never saw — a
+ * drafted room's painted cells, which the editor draws in its own layer.
+ */
+export function overlayLayer(width: number, height: number, paint: (image: PixelBuffer) => void): PixelBuffer {
+    const t = buildOverlayTransfer(width, height, paint);
+    const data = new Uint8Array(width * height * 4);
+    for (let i = 0; i < width * height; i++) {
+        let spread = 0;
+        for (let c = 0; c < 3; c++) spread = Math.max(spread, t.atFull[i * 3 + c] - t.atZero[i * 3 + c]);
+        const alpha = 1 - spread / 255;
+        if (alpha <= 0) continue;
+        for (let c = 0; c < 3; c++) data[i * 4 + c] = Math.min(255, Math.round(t.atZero[i * 3 + c] / alpha));
+        data[i * 4 + 3] = Math.round(alpha * 255);
+    }
+    return { width, height, data };
+}
+
 /** One animated region: the cells it covers, and the frames they cycle through. */
 export interface AnimationGroup {
     /** Bounding box in metatile units. */

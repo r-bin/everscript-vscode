@@ -29,6 +29,7 @@ it. See the `map-format` and `rom-map-data` skills.
 | `render.ts` | Layer rasterization and SNES Mode 1 compositing (TM/TS, priority, CGADSUB) |
 | `metatiles.ts` | The metatile dictionary as a placement palette — entries, usage counts, and an atlas |
 | `vanilla-index.ts` | What the 127 rooms already attest: graphic → tile family, graphic → collision |
+| `vanilla-suggest.ts` | What the index suggests for one graphic: family, layer, collision word and collision **shape** ([collision-suggestions.md](../../docs/map-format/collision-suggestions.md)) |
 | `vanilla-adjacency.ts` | The grid walk behind it: undirected adjacency (tile ranking) and, off the same edges, per-side per-layer neighbours (`directionalNeighbours`, §8b) |
 | `encode.ts` | The write path: block encoders, `buildBlob`, `modelFromRom`, `writeRoomAt` (port of `encode_room.py`) |
 | `encode-streams.ts` | The LZSS and Markov compressors `encode.ts` uses |

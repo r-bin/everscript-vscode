@@ -106,13 +106,14 @@ function editAdoptGraphic(palette, graphicId) {
  * unlabelled pick, and this file's own "draw the room, then fill it with
  * deco" ordering — not a new threshold invented for this case.
  */
-function editBrushFromTile(palette, word, prefer) {
+function editBrushFromTile(palette, word, prefer, collision) {
   if (!_edit || word == null) return -1;
   var blank = editBlankCanopy(palette);
   var canopy = prefer === 'canopy';
+  var cw = collision == null ? EMPTY_COLLISION : collision;
   var stamp = canopy
-    ? { layer1: word, layer2: blank, collision: EMPTY_COLLISION }
-    : { layer1: blank, layer2: word, collision: EMPTY_COLLISION };
+    ? { layer1: word, layer2: blank, collision: cw }
+    : { layer1: blank, layer2: word, collision: cw };
   var index = editAddStamp(palette, stamp);
   _edit.brush = index;
   return index;
