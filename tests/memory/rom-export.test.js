@@ -227,6 +227,33 @@ if (!fs.existsSync(ROM_PATH)) {
         }
     });
 
+    // Section 2 (maps/custom-animation.ts): a placed graphic vanilla animates
+    // moves past Block 1 with a channel of its own, starting at the frame placed.
+    test('placed animated graphics get Section 2 channels and play their vanilla cycle', () => {
+        const index = maps.buildVanillaIndex(rom);
+        const base = donor.tilePalette.length + donor.animatedTiles.length;
+        const word = (slot, bits) => maps.tileSlotChr(slot) | (1 << 10) | bits;
+        const cells3 = cells.slice();
+        const set = (x, y, l1) => { const i = (y * W + x) * 3; cells3[i] = l1; };
+        set(1, 1, word(base, 0)); set(2, 1, word(base, 0x4000)); set(1, 2, word(base + 1, 0));
+        const { rom: out, report } = buildExportRom(rom, { ...draft, cells: cells3, graphics: [2743, 1856] });
+        assert.strictEqual(report.animated, 2);
+        const room = maps.decodeRoom(out, BRIAN_ROOM);
+        assert.deepStrictEqual(room.animatedTiles, [2743, 1856], 'frame 0 of each channel is the graphic placed');
+        const flame = index.animations.byFirst.get(2742);
+        const at = flame.frames.indexOf(2743);
+        assert.deepStrictEqual(room.animation[0].frames.map((f) => f.tileId),
+            flame.frames.slice(at).concat(flame.frames.slice(0, at)), 'the cycle, from the placed frame');
+        assert.deepStrictEqual(room.animation[1].frames.map((f) => f.tileId), [1856, 1857, 1858, 1859]);
+        const ids = room.tilePalette.concat(room.animatedTiles);
+        const shows = (x, y) => ids[maps.wordSlot(room.layer1VramWords[y][x])];
+        assert.strictEqual(shows(1, 1), 2743);
+        assert.strictEqual(shows(2, 1), 2743);
+        assert.strictEqual(room.layer1VramWords[1][2] & 0x4000, 0x4000, 'the mirror bit is kept');
+        assert.strictEqual(shows(1, 2), 1856);
+        assert.ok(maps.wordSlot(room.layer1VramWords[1][1]) >= room.tilePalette.length, 'past Block 1: animated');
+    });
+
     test('the intro loads room 0x15 at the start marker; the Boy gets a spear, and the room fades in', () => {
         const { rom: out } = buildExportRom(rom, draft);
         const intro = script.decodeScript(out, INTRO_FIRST_CODE).instructions;

@@ -794,6 +794,8 @@ function activate(context) {
                             const pick = await vscode.window.showInformationMessage(
                                 `Exported ${report.widthTiles}×${report.heightTiles} map into Brian's room (0x15) — `
                                 + `${report.blobBytes} bytes at $${report.blobAddress.toString(16).toUpperCase()}. `
+                                + (report.animated ? `${report.animated} animated tile${report.animated === 1 ? '' : 's'}. ` : '')
+                                + (report.stillAnimated ? `${report.stillAnimated} more stay still (42 animations is the most a vanilla room runs). ` : '')
                                 + 'The game starts in it.', 'Reveal');
                             if (pick === 'Reveal') vscode.commands.executeCommand('revealFileInOS', target);
                         } catch (err) {

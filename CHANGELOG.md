@@ -1,3 +1,20 @@
+## [0.77.0] — 2026-09-25
+
+### Map editor: animated tiles animate in the exported game
+
+- **Export ROM writes the room's animation data (Section 2).** A torch,
+  flame or water tile painted on a custom map now animates in the game, as
+  it does in the editor. Each animated graphic gets its own animation, which
+  plays vanilla's frames and timing, starting from the frame you placed.
+- Vanilla often runs the same torch at different starting frames so torches
+  flicker out of step. A custom map doesn't: torches placed from the same
+  frame flicker together.
+- A room can have up to 42 animated graphics, the most any vanilla room has.
+  Beyond that, the extra ones stay still and the export message says how
+  many.
+- Checked by booting an exported ROM in the bundled emulator: the flames
+  change from frame to frame.
+
 ## [0.76.0] — 2026-09-25
 
 ### Map editor: placed animations play on the map

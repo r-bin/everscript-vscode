@@ -23,6 +23,7 @@
 
 const maps = require('../../maps');
 const script = require('../../script');
+const { vanillaIndex } = require('./vanilla-index');
 
 /** Brian's Test Ground — a developer room, empty, never reached in play. */
 const BRIAN_ROOM = 0x15;
@@ -119,6 +120,8 @@ function buildExportRom(vanilla, draft) {
         graphics: draft.graphics || [],
         families: draft.families || [],
         cut: draft.cut || [],
+        // A placed torch gets a Section 2 channel and flickers in the game.
+        animations: vanillaIndex(src).animations,
     });
 
     const rom = new Uint8Array(EXPANDED_SIZE);
@@ -156,6 +159,10 @@ function buildExportRom(vanilla, draft) {
             metatiles: built.metatileCount,
             cuttable: (draft.cut || []).length,
             wramBytes: built.wramBytes,
+            /** Section 2 channels: placed graphics that animate. */
+            animated: built.animation.channels.length,
+            /** Animated graphics left still past the channel limit. */
+            stillAnimated: built.animation.skipped,
             start: at,
         },
     };
@@ -175,7 +182,8 @@ function verifyExport(rom, built, draft, at) {
         for (let x = 0; x < w; x++) {
             const i = (y * w + x) * 3;
             const got = [room.layer1VramWords[y][x], room.layer2VramWords[y][x], room.collisionWords[y][x]];
-            const want = [shown[i] & 0xffff, shown[i + 1] & 0xffff, shown[i + 2] & 0xffff];
+            // The same graphics: an animated one sits in its channel's slot now.
+            const want = [built.remap(shown[i]), built.remap(shown[i + 1]), shown[i + 2] & 0xffff];
             if (got[0] !== want[0] || got[1] !== want[1] || got[2] !== want[2]) {
                 throw new Error(`export check: cell (${x},${y}) decodes differently from the draft`);
             }
@@ -195,11 +203,23 @@ function verifyExport(rom, built, draft, at) {
     for (const [x, y] of grass.tiles) {
         const dst = (grass.table.swaps.get(room.layer1MetatileIds[y][x]) - room.baseMetatile) / 8;
         const i = (y * w + x) * 3;
-        if (S.layer1[dst] !== (draft.cells[i] & 0xffff) || S.layer2[dst] !== (draft.cells[i + 1] & 0xffff)
+        if (S.layer1[dst] !== built.remap(draft.cells[i]) || S.layer2[dst] !== built.remap(draft.cells[i + 1])
             || S.collision[dst] !== (draft.cells[i + 2] & 0xffff)) {
             throw new Error(`export check: cutting (${x},${y}) does not reveal the tile beneath it`);
         }
     }
+
+    // Each channel drives the graphic it was planned for, with its cycle.
+    const chans = built.animation.channels;
+    if (room.animation.length !== chans.length) {
+        throw new Error(`export check: ${room.animation.length} animation channels decoded, ${chans.length} written`);
+    }
+    chans.forEach((c, k) => {
+        const got = room.animation[k].frames.map((f) => f.tileId);
+        if (room.animatedTiles[k] !== c.graphic || got.join() !== c.frames.join()) {
+            throw new Error(`export check: animation channel ${k} does not play graphic ${c.graphic}'s cycle`);
+        }
+    });
 
     const enter = script.buildRoomScriptModel(rom, BRIAN_ROOM).enter;
     const ops = enter ? enter.instructions.map((r) => r.opcode) : [];

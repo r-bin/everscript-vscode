@@ -50,10 +50,20 @@ collision) from the editor:
   appearance, row by row. That is the one order the Markov encoder always
   accepts (see `map_encoding.md`).
 - **Block 1:** the donor's tile list, then the donor's animated tiles as
-  ordinary tiles, then the draft's adopted graphics. This is exactly the slot
-  numbering the editor drew with (`tiles.count` includes animated tiles).
-  Section 2 is left empty, so the donor's animation is dropped. A custom map
-  never drew it.
+  ordinary tiles, then the draft's adopted graphics. This is the slot
+  numbering the editor drew with (`tiles.count` includes animated tiles),
+  minus the graphics that animate.
+- **Section 2 (`maps/custom-animation.ts`):** every placed graphic that
+  vanilla animates gets a channel. Its slot moves past Block 1, where the
+  engine appends each channel's frame 0, and every word naming it is
+  renumbered to the new slot. The mirror, palette and priority bits are kept.
+  - The channel plays the vanilla cycle from the frame placed, with vanilla's
+    delays and an initial countdown of 0.
+  - Vanilla runs some cycles at several phases. A custom map doesn't: one
+    channel per placed graphic.
+  - At most 42 channels, the most any vanilla room runs. More animated
+    graphics than that stay still, and the export says so.
+  - The export check compares the renumbered words and each channel's frames.
 - **Families:** the draft's own, or the donor's when the draft has none.
 - **Header:** the donor's display registers, the map's size, and trigger
   origin 0.

@@ -13,6 +13,8 @@ import { decodeRoom } from './room';
 import { RoomModel, buildBlob, encodeBlock1, encodeBlock2, encodeBlock3, modelFromRom } from './encode';
 import { MAX_WRAM } from './budget';
 import { MIN_TILES, MAX_TILES } from './blank-room';
+import { AnimationIndex } from './vanilla-animation';
+import { CustomAnimationPlan, planCustomAnimation, remapWord } from './custom-animation';
 
 export interface CustomRoomInput {
     /** The room whose graphics and families the map was drawn with. */
@@ -30,6 +32,12 @@ export interface CustomRoomInput {
      * shows these words until it is cut, and then the `cells` words beneath.
      */
     cut?: number[][];
+    /**
+     * Vanilla's animations (the vanilla index's `animations`). With it, a
+     * placed graphic vanilla animates gets a Section 2 channel and plays in
+     * the game (custom-animation.ts); without it every graphic is still.
+     */
+    animations?: AnimationIndex;
 }
 
 export interface CustomRoomBlob {
@@ -39,6 +47,10 @@ export interface CustomRoomBlob {
     model: RoomModel;
     metatileCount: number;
     wramBytes: number;
+    /** The Section 2 plan: its channels, and how words were renumbered. */
+    animation: CustomAnimationPlan;
+    /** A draft word as written into the room: the same graphic, in its new slot. */
+    remap: (word: number) => number;
 }
 
 /**
@@ -49,12 +61,6 @@ export interface CustomRoomBlob {
  */
 const HEADER_ORIGIN_X = 0;
 const HEADER_ORIGIN_Y = 1;
-
-/**
- * An empty Section 2: no animated tiles. Byte-for-byte what rooms 0x15,
- * 0x34 and 0x76 carry (`count 0`, a one-byte payload of `ff`).
- */
-const EMPTY_SECTION2 = Uint8Array.from([0xff]);
 
 /** Section 4 with `$0FC4 = 0` and no swap records, as in 0x15, 0x34 and 0x76. */
 const EMPTY_SECTION4 = Uint8Array.from([0x00]);
@@ -70,10 +76,13 @@ const EMPTY_SECTION4 = Uint8Array.from([0x00]);
  *
  * **Graphics.** The editor numbers slots over the donor's *whole* tile list
  * — Block 1 then its animated tiles (`tiles.count`, metatile-palette.js) —
- * and appends adopted graphics after that. So Block 1 here is exactly that
- * list, in that order, with the animated tiles written as ordinary ones and
- * Section 2 left empty. Every word the editor drew names the same graphic in
- * the game. The donor's animation is lost, which a custom map never drew.
+ * and appends adopted graphics after that. Block 1 here is that list, in
+ * that order, minus the graphics that animate: those move past Block 1 with
+ * a Section 2 channel each, and every word naming them is renumbered to the
+ * new slot (custom-animation.ts). With no `animations` nothing moves, and
+ * Section 2 is empty — `count 0` and a lone `ff`, byte-for-byte what rooms
+ * 0x15, 0x34 and 0x76 carry. Either way every word names the same graphic in
+ * the game that it named in the editor.
  */
 export function buildCustomRoomBlob(rom: Uint8Array, input: CustomRoomInput): CustomRoomBlob {
     const w = input.widthTiles | 0;
@@ -112,22 +121,27 @@ export function buildCustomRoomBlob(rom: Uint8Array, input: CustomRoomInput): Cu
     while (slots.length && slots[slots.length - 1] === 0) slots.pop();
     const families = slots.length ? slots : donor.tileFamilies;
 
+    const animation = planCustomAnimation(graphics, l1.concat(l2), input.animations);
+    const remap = (word: number): number => remapWord(animation, word & 0xffff);
+
     const model: RoomModel = {
         header,
         stepOn: [],
         bTrigger: [],
         tileFamilies: families,
         extras: donor.extras,
-        block1: encodeBlock1(graphics, true),
-        section2Count: 0,
-        section2Data: EMPTY_SECTION2,
+        block1: encodeBlock1(animation.block1, true),
+        section2Count: animation.section2Count,
+        section2Data: animation.section2Data,
         objectOffsets: [],
         block2: encodeBlock2(grid, w, h, base, dict.sources),
         section4: dict.section4,
-        block3: encodeBlock3(l1, l2, cw, true),
+        block3: encodeBlock3(l1.map(remap), l2.map(remap), cw, true),
         objectArea: new Uint8Array(0),
     };
-    return { blob: buildBlob(model), model, metatileCount: l1.length, wramBytes, cuttable: dict.sources };
+    return {
+        blob: buildBlob(model), model, metatileCount: l1.length, wramBytes, cuttable: dict.sources, animation, remap,
+    };
 }
 
 /** The words every cell shows when the room loads: the cuttable layer where there is one. */

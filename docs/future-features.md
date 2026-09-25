@@ -155,11 +155,10 @@ args, feeding into the problem matcher above.
 ### 16. Map editor: tuning animations from vanilla presets
 
 Requested 2026-09-25, not scheduled. A placed animation plays vanilla's own
-cycle (`maps/vanilla-animation.ts`). Tuning would let a map pick another
-timing or phase that vanilla attests for the same graphics: the same torch
-cycle at another phase, or another room's delays. It depends on Export ROM
-writing Section 2 for custom maps, which it doesn't yet
-(`docs/map-format/map_animated_tiles.md`).
+cycle (`maps/vanilla-animation.ts`), one channel per placed graphic
+(`maps/custom-animation.ts`). Tuning would let a map pick another timing or
+phase that vanilla attests for the same graphics: the same torch cycle at
+another phase, so neighbours flicker out of step, or another room's delays.
 
 ## Data Requirements
 

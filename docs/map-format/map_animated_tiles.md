@@ -243,6 +243,19 @@ step, as one channel keeps them in the game. Only one frame is visible at a
 time, because a later frame drawn over frame 0 would let frame 0 show through
 its transparent pixels.
 
-**Not done yet:** Export ROM writes no Section 2 for a custom map
-(`maps/custom-room.ts`), so an animated tile painted there is its first frame,
-standing still, in the game.
+## In an exported custom map
+
+Export ROM writes Section 2 for a custom map (`maps/custom-animation.ts`,
+called from `maps/custom-room.ts`):
+- Every placed graphic that vanilla animates gets a channel.
+- Block 1 is the other graphics. The animated graphics follow in channel
+  order, so the engine's frame-0 append (§4) puts each in the slot its
+  renumbered words name.
+- The channel plays the cycle from the frame placed, at vanilla's delays.
+- Phase variants are not reproduced: two placed torches on one cycle share
+  one channel and flicker in step.
+- The cap is 42 channels, vanilla's most in one room.
+
+Verified by the export test (`tests/memory/rom-export.test.js`), and by
+booting an exported ROM in the bundled snes9x core: the flames change
+between frames.
