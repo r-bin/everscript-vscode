@@ -1319,10 +1319,11 @@ async function main() {
             (b) => b.textContent).join('|')));
     // A third, since v0.68.0: the `cuttable` filter, asked for "next to H/V";
     // `stairs` joined it in v0.70.0 — one list filter at a time.
-    check('the filter row is four segmented pills, not loose chips',
+    check('the filter row is five segmented pills, not loose chips',
         // v0.74.0: all|floor|edge|wall — what to build floors, walls and the filler with.
-        segs.length === 4 && segs[0] === 'auto|front|ground' && segs[1] === 'H|V' && segs[2] === 'all|floor|edge|wall'
-        && segs[3] === 'cuttable|stairs',
+        // v0.75.0: anim|frames — an animation as one playing swatch, or each frame.
+        segs.length === 5 && segs[0] === 'auto|front|ground' && segs[1] === 'H|V' && segs[2] === 'all|floor|edge|wall'
+        && segs[3] === 'anim|frames' && segs[4] === 'cuttable|stairs',
         JSON.stringify(segs));
 
     // ── the cuttable filter ────────────────────────────────────────────────

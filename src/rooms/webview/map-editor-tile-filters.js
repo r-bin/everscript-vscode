@@ -10,16 +10,28 @@
 //   room's floor, walls and the filler between them with. A tile vanilla
 //   never drew on that layer has no suggestion and shows only under `all`.
 //
-// The two combine. A family with nothing to show is left out without
+// - `anim | frames`: an animation (Section 2, maps/vanilla-animation.ts) is
+//   one swatch that plays its frames — its later frames are never placed on
+//   their own — or, with `frames`, every frame is its own swatch. Slot rows
+//   [13..15]: kind (1 first frame, 2 later frame), frame 0, frame number.
+//
+// They combine. A family with nothing to show is left out without
 // fetching its sheet: the catalogue carries every count (room-draft.js).
 //
 // Split out of map-editor-tiles.js (400-line limit).
 //
-// Owns: _tileFilter, _tileShape.
+// Owns: _tileFilter, _tileShape, _tileFramesSplit.
 
 var _tileFilter = null;
 /** null = all, or 'floor' | 'edge' | 'wall'. */
 var _tileShape = null;
+/** false (the default): an animation is one swatch. true: each frame is. */
+var _tileFramesSplit = false;
+
+function tileFramesPick(which) {
+  _tileFramesSplit = which === 'frames';
+  renderEditPanels();
+}
 
 /** Turn a filter on, or off when it is the one already on. */
 function tileFilterToggle(which) {
@@ -34,6 +46,7 @@ function tileShapePick(which) {
 
 /** A catalogue family the filters keep. */
 function tileFamilyPasses(family) {
+  // Combining frames never hides a whole family: only the two list filters do.
   if (!_tileFilter && !_tileShape) return true;
   return tileFamilyCount(family) > 0;
 }
@@ -42,7 +55,8 @@ function tileFamilyPasses(family) {
 function tileFamilyCount(family) {
   var meta = chipMeta(family);
   if (!meta) return 0;
-  var n = _tileFilter === 'grass' ? meta.grass || 0 : _tileFilter === 'stairs' ? meta.stairs || 0 : meta.tiles;
+  var n = _tileFilter === 'grass' ? meta.grass || 0 : _tileFilter === 'stairs' ? meta.stairs || 0
+    : meta.tiles - (_tileFramesSplit ? 0 : meta.frames || 0);
   if (_tileShape) n = Math.min(n, (meta.shapes && meta.shapes[_tileShape]) || 0);
   return n;
 }
@@ -61,7 +75,56 @@ function tileSlotPasses(slot) {
   if (_tileFilter === 'grass' && !slot[10]) return false;
   if (_tileFilter === 'stairs' && !(slot[11] || slot[12])) return false;
   if (_tileShape && tileShapeClass(slot) !== _tileShape) return false;
+  if (!_tileFramesSplit && slot[13] === 2) return false;
   return true;
+}
+
+/** The swatch's animation mark: `▶n` on an animation, `k/n` on a later frame. */
+function tileAnimMarkHtml(sheet, slot) {
+  var kind = slot[13];
+  if (!kind) return '';
+  var a = sheet && sheet.animations && sheet.animations[slot[14]];
+  var n = a ? a.frames.length : 0;
+  var text = kind === 1 ? '▶' + (n || '') : (slot[15] + 1) + (n ? '/' + n : '');
+  return '<b class="rg-anim-mark' + (kind === 2 ? ' later' : '') + '" aria-hidden="true">' + text + '</b>';
+}
+
+function tileAnimTitle(sheet, slot) {
+  var a = sheet && sheet.animations && sheet.animations[slot[14]];
+  var n = a ? a.frames.length : 0;
+  if (slot[13] === 1) return '\nanimation: ' + n + ' frames, played in place by the game — its frames are never placed on their own';
+  if (slot[13] === 2) return '\nframe ' + (slot[15] + 1) + (n ? ' of ' + n : '') + ' of the animation starting at graphic ' + slot[14];
+  return '';
+}
+
+/**
+ * A combined animation's swatch plays its frames, at vanilla's timing
+ * (delays are 60 Hz ticks): one `@keyframes` per animation, stepping the
+ * swatch's background to each frame's place in the sheet. Frames the sheet
+ * does not hold are skipped. `{css, style}`, both empty when it does not play.
+ */
+function tileAnimPlay(sheet, slot) {
+  if (_tileFramesSplit || slot[13] !== 1) return { css: '', style: '' };
+  var a = sheet.animations && sheet.animations[slot[2]];
+  if (!a) return { css: '', style: '' };
+  var steps = [];
+  var total = 0;
+  a.frames.forEach(function (g, i) {
+    var at = -1;
+    for (var k = 0; k < sheet.slots.length; k++) if (sheet.slots[k][2] === g) { at = k; break; }
+    if (at < 0) return;
+    steps.push({ at: at, from: total });
+    total += Math.max(1, a.delays[i] || 1);
+  });
+  if (steps.length < 2) return { css: '', style: '' };
+  var name = 'rg-anim-' + sheet.family + '-' + slot[2];
+  var css = '@keyframes ' + name + '{';
+  steps.forEach(function (st) {
+    css += (100 * st.from / total).toFixed(2) + '%{background-position:-' + ((st.at % sheet.columns) * sheet.cell)
+      + 'px -' + (Math.floor(st.at / sheet.columns) * sheet.cell) + 'px}';
+  });
+  css += '}';
+  return { css: css, style: 'animation:' + name + ' ' + (total / 60).toFixed(3) + 's steps(1,end) infinite;' };
 }
 
 /**
@@ -88,6 +151,11 @@ function tileFilterRowHtml() {
       ['edge', 'edge', 'Partly solid: half tiles and diagonals — the filler between floor and wall'],
       ['wall', 'wall', 'Fully solid tiles'],
     ], function (v) { return (_tileShape || 'all') === v; })
+    + tileSegHtml('tile-frames', [
+      ['anim', 'anim', 'An animation is one swatch that plays its frames — the game only ever places its '
+        + 'first frame and plays the rest in place'],
+      ['frames', 'frames', 'Every animation frame as its own swatch'],
+    ], function (v) { return (_tileFramesSplit ? 'frames' : 'anim') === v; })
     + tileSegHtml('tile-filter', [
       ['grass', 'cuttable', 'Show only tiles that are part of cuttable grass — the uncut tile, '
         + 'or what it turns into when cut. Off: every tile.'],

@@ -204,3 +204,27 @@ tile swap — but it has not been ruled out by tracing.
 - [Map Objects](map_objects.md) — §4b, the XOR stamp format that can move a cell between channels
 - [Map Rendering Pipeline](map_rendering_pipeline.md) — Mode 1 compositing the frames go through
 - [Map Editor Architecture & Limitations](map_editor_architecture_and_limitations.md) — §2, the V-Blank DMA budget that caps animation per room
+
+---
+
+## In the map editor's tile list
+
+`src/maps/vanilla-animation.ts` tallies every channel into the vanilla index.
+Vanilla often runs **one cycle at several phases**: the Halls torches have
+channels starting at 2742, 2743, 2744… that all cycle through 2742–2746. So an
+animation is the cycle, whatever phase it starts at, named by its lowest
+graphic. Across all rooms that gives 329 animations whose 636 later frames are
+never placed on their own.
+
+The Tile tab (`map-editor-tile-filters.js`):
+- **`anim`** (the default) shows each animation once, as a swatch that plays
+  its frames at vanilla's timing (delays are 60 Hz ticks), marked `▶n`.
+- **`frames`** lists every frame as its own swatch, marked `k/n`.
+
+Family-sheet slot rows carry `[13] kind` (1 frame 0, 2 later frame), `[14]`
+frame 0 and `[15]` frame number. The sheet carries `animations` (frame 0 →
+frames and delays), and the catalogue carries a `frames` count.
+
+**Not done yet:** Export ROM writes no Section 2 for a custom map
+(`maps/custom-room.ts`), so an animated tile painted there is its first frame,
+standing still, in the game.

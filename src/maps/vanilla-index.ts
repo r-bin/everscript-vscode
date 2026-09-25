@@ -16,6 +16,7 @@ import {
 } from './vanilla-adjacency';
 import { noteGrass } from './vanilla-grass';
 import { StairsTally, noteStairsCell, compactStairs } from './vanilla-stairs';
+import { Animation, AnimationIndex, noteAnimations, compactAnimations } from './vanilla-animation';
 
 /** One observed pairing, with how many grid cells attest to it. */
 export interface Attestation<T> {
@@ -74,6 +75,8 @@ export interface VanillaIndex {
     grass: Map<number, number>;
     /** Graphic id -> how often it is drawn as stairs, per layer (vanilla-stairs.ts). */
     stairs: StairsTally;
+    /** Section 2 animations: frame 0 -> its frames, and later frames -> frame 0 (vanilla-animation.ts). */
+    animations: AnimationIndex;
     /** How many rooms went into the index. */
     roomCount: number;
     /** Total placements counted. */
@@ -129,6 +132,7 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
     const canopyCollCounts = new Map<number, Map<number, number>>(); // canopy graphic -> collision
     const grass = new Map<number, number>();
     const stairs: StairsTally = new Map();
+    const anims = new Map<number, Map<string, Animation>>();
     const rooms = new Map<number, number[]>();
     const graphicRooms = new Map<number, Set<number>>();
     const layers = new Map<number, { canopy: number; terrain: number }>();
@@ -210,6 +214,7 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
             if (seenIn) seenIn.add(id); else graphicRooms.set(r.graphic, new Set([id]));
         }
         edges += walkAdjacency(room, tileIds, adjacency, cells, sides);
+        noteAnimations(room, anims);
     }
 
     const perGraphic = new Map<number, number[]>();
@@ -225,6 +230,7 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
         canopyCollisions: rank(canopyCollCounts),
         grass,
         stairs: compactStairs(stairs),
+        animations: compactAnimations(anims),
         adjacency,
         directional: compactDirectional(sides),
         cells,
@@ -262,79 +268,8 @@ function walkAdjacency(
     return walkResolvedGrid(resolved, adjacency, cells, sides);
 }
 
-/** A graphic the index has seen drawn beside another, and how strongly. */
-export interface Related {
-    graphic: number;
-    /** Times the two were adjacent. */
-    uses: number;
-    /** Jaccard: `uses / (cells(a) + cells(b) - uses)`, 0..1. */
-    score: number;
-}
-
-/**
- * What vanilla draws beside this graphic, strongest relationship first.
- *
- * The score is **Jaccard**, not the raw count, because a raw count ranks by
- * how common the neighbour is rather than how related it is: graphic 3736's
- * raw top four are the other two gourd pieces *and* the floor and wall it
- * happened to be standing against. Jaccard puts the two gourd pieces at
- * exactly 1.00 — always adjacent, never apart — and drops the floor to 0.04.
- *
- * `count / min(a, b)` was the other candidate and has a degenerate case: a
- * graphic placed twice, both times beside the query, also scores 1.00.
- */
-export function relatedGraphics(index: VanillaIndex, graphic: number, limit = 12): Related[] {
-    const inner = index.adjacency.get(graphic);
-    if (!inner) return [];
-    const mine = index.cells.get(graphic) || 0;
-    const out: Related[] = [];
-    for (const [other, uses] of inner) {
-        const union = mine + (index.cells.get(other) || 0) - uses;
-        out.push({ graphic: other, uses, score: union > 0 ? uses / union : 0 });
-    }
-    out.sort((a, b) => b.score - a.score || b.uses - a.uses || a.graphic - b.graphic);
-    return out.slice(0, limit);
-}
-
-/**
- * How strongly these two graphics belong together, 0..1.
- *
- * Zero for a pair vanilla never puts side by side, which is the whole of
- * "never placed next to each other means a low relationship value".
- */
-export function relationship(index: VanillaIndex, a: number, b: number): number {
-    if (a === b) return 1;
-    const uses = index.adjacency.get(a)?.get(b) || 0;
-    if (!uses) return 0;
-    const union = (index.cells.get(a) || 0) + (index.cells.get(b) || 0) - uses;
-    return union > 0 ? uses / union : 0;
-}
-
-/**
- * Rank candidates by how well they go with everything already placed.
- *
- * The score against a set is the **best** single relationship, not the mean:
- * a tile that belongs with one thing in the room belongs in the room. Taking
- * the average would punish it for being unrelated to the floor.
- */
-export function rankByRelationship(
-    index: VanillaIndex,
-    candidates: number[],
-    placed: number[],
-): Related[] {
-    if (!placed.length) return candidates.map((g) => ({ graphic: g, uses: 0, score: 0 }));
-    const out = candidates.map((graphic) => {
-        let best = 0;
-        let uses = 0;
-        for (const p of placed) {
-            const s = relationship(index, p, graphic);
-            if (s > best) { best = s; uses = index.adjacency.get(p)?.get(graphic) || 0; }
-        }
-        return { graphic, uses, score: best };
-    });
-    out.sort((a, b) => b.score - a.score || b.uses - a.uses || a.graphic - b.graphic);
-    return out;
-}
+// Relationships between graphics (relatedGraphics, relationship,
+// rankByRelationship) are vanilla-related.ts.
 
 /** Graphics that appear in exactly the same set of rooms. */
 export interface GraphicGroup {

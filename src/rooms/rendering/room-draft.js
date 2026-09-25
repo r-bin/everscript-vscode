@@ -37,6 +37,23 @@ const SHEETS_MAX = 24;
  * so before the user invests in it.
  */
 
+/** `[kind, frame0, frame]` for a graphic: 1 = an animation's frame 0, 2 = a later frame, 0 = neither. */
+function animationOf(index, graphic) {
+    if (index.animations.byFirst.has(graphic)) return [1, graphic, 0];
+    const f = index.animations.frameOf.get(graphic);
+    return f ? [2, f.first, f.index] : [0, 0, 0];
+}
+
+/** The animations that start among these graphics. */
+function sheetAnimations(index, ids) {
+    const out = {};
+    for (const g of ids) {
+        const a = index.animations.byFirst.get(g);
+        if (a) out[g] = { frames: a.frames, delays: a.delays };
+    }
+    return out;
+}
+
 /** The collision filter's class of a suggested shape: floor (open or stairs), wall (solid) or edge. */
 function shapeClass(index, graphic, layer) {
     if (stairsOf(index, graphic, layer)) return 'floor';
@@ -177,13 +194,15 @@ function buildFamilySheet(rom, familyId, borrowFrom) {
         cell: 16,
         // [slot, chr, graphicId, placements, canopyUses, terrainUses,
         //  groundShape, groundPct, frontShape, frontPct, grass,
-        //  groundStairs, frontStairs] — canopy/terrain
+        //  groundStairs, frontStairs, animKind, animFirst, animFrame] — canopy/terrain
         // uses let the editor put a tile on the layer vanilla uses it on; the
         // shapes are the collision it gets there (-1 = never seen), with how
         // much of vanilla agrees (maps/vanilla-suggest.ts suggestGeometry);
         // `grass` is the graphic's part in cuttable grass (index.grass flags,
         // 0 = none); the stairs are the direction it rises drawn unflipped on
-        // that layer, 1 right / 2 left / 0 not stairs (maps/vanilla-stairs.ts).
+        // that layer, 1 right / 2 left / 3 vertical / 0 not stairs (maps/vanilla-stairs.ts);
+        // animKind is 1 for an animation's frame 0, 2 for a later frame, 0 for
+        // neither, with its frame 0 and frame number (maps/vanilla-animation.ts).
         slots: ids.map((id, i) => {
             const seen = index.layers.get(id) || { canopy: 0, terrain: 0 };
             const ground = maps.suggestGeometry(index, id, 'terrain');
@@ -191,8 +210,12 @@ function buildFamilySheet(rom, familyId, borrowFrom) {
             return [i, maps.tileSlotChr(i), id, attested[i].uses, seen.canopy, seen.terrain,
                 ground ? ground.value : -1, ground ? Math.round(ground.confidence * 100) : 0,
                 front ? front.value : -1, front ? Math.round(front.confidence * 100) : 0,
-                index.grass.get(id) || 0, stairsOf(index, id, 'terrain'), stairsOf(index, id, 'canopy')];
+                index.grass.get(id) || 0, stairsOf(index, id, 'terrain'), stairsOf(index, id, 'canopy'),
+                ...animationOf(index, id)];
         }),
+        // Frame-0 graphic -> {frames, delays} for each animation that starts
+        // in this family, so the Tile tab can show it moving.
+        animations: sheetAnimations(index, ids),
         imageUri: null,
         imageWidth: 0,
         imageHeight: 0,
@@ -281,6 +304,8 @@ function buildFamilyCatalogue(rom) {
             // Tile tab's `cuttable` filter can skip a family without
             // fetching its sheet.
             grass: list.filter((a) => index.grass.has(a.value)).length,
+            // Later animation frames: listed only when frames are not combined.
+            frames: list.filter((a) => index.animations.frameOf.has(a.value)).length,
             // The same for the `stairs` filter.
             stairs: list.filter((a) => stairsOf(index, a.value, 'terrain') || stairsOf(index, a.value, 'canopy')).length,
             // And for the collision filter (floor / edge / wall): graphics with

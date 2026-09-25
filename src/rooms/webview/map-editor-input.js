@@ -104,7 +104,7 @@ function renderComposer() {
  */
 var EDIT_CLICK_KEYS = ['editTool', 'editAct', 'editPick', 'panel',
   'famTile', 'construct', 'chip', 'chipDrop', 'chipAdopt',
-  'brushFlip', 'tileFilter', 'tileShape', 'strandedFix', 'strandedDrop', 'nbSide', 'nbCentre', 'nbUse',
+  'brushFlip', 'tileFilter', 'tileShape', 'tileFrames', 'strandedFix', 'strandedDrop', 'nbSide', 'nbCentre', 'nbUse',
   'layerForce', 'deco', 'decoPage', 'decoFlag', 'mtIndex', 'mtSlot', 'editActiveTab',
   'editSpecial', 'editSpecialMenu', 'editTriggerMenu', 'editMoreMenu',
   'editToolMenu', 'triggerRef', 'triggerRemove', 'triggerKind', 'editLevel', 'editCollisionMenu', 'collisionMode'];
@@ -261,6 +261,7 @@ function bindEditControls(panel, room) {
     if (t.dataset.brushFlip) { brushFlipToggle(t.dataset.brushFlip); return; }
     if (t.dataset.tileFilter) { tileFilterToggle(t.dataset.tileFilter); return; }
     if (t.dataset.tileShape) { tileShapePick(t.dataset.tileShape); return; }
+    if (t.dataset.tileFrames) { tileFramesPick(t.dataset.tileFrames); return; }
     if (t.dataset.nbSide) { nbSideClick(t.dataset.nbSide); return; }
     if (t.dataset.nbCentre) { brushLayerToggle(); return; }
     if (t.dataset.nbUse) { nbUse(t.dataset.nbUse); return; }

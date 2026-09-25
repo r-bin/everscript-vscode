@@ -236,9 +236,13 @@ function tileGroupHtml(family, width) {
     + '<div class="rs-mt-sheet rg-group-sheet" style="--mt-sheet:url(' + s.imageUri
     + ');--mt-cell:' + s.cell + 'px"><div class="rs-mt-grid">';
 
+  var animCss = '';
   for (var i = 0; i < order.length; i++) {
     var slot = order[i];
     var at = s.slots.indexOf(slot);
+    // A combined animation plays its frames (map-editor-tile-filters.js).
+    var play = typeof tileAnimPlay === 'function' ? tileAnimPlay(s, slot) : { css: '', style: '' };
+    animCss += play.css;
     var x = (at % s.columns) * s.cell;
     var y = Math.floor(at / s.columns) * s.cell;
     var armed = _brushTile && _brushTile.graphic === slot[2] && _brushTile.family === family;
@@ -261,12 +265,14 @@ function tileGroupHtml(family, width) {
         + (typeof tileCollisionTitle === 'function' ? tileCollisionTitle(slot) : '')
         + (slot[10] ? '\ncuttable grass: ' + ['', 'the uncut tile', 'what cut grass turns into',
           'uncut and cut'][slot[10] & 3] : '')
-        + (typeof tileStairsTitle === 'function' ? tileStairsTitle(slot) : '')) + '"'
-      + ' style="background-position:-' + x + 'px -' + y + 'px">'
+        + (typeof tileStairsTitle === 'function' ? tileStairsTitle(slot) : '')
+        + (typeof tileAnimTitle === 'function' ? tileAnimTitle(s, slot) : '')) + '"'
+      + ' style="background-position:-' + x + 'px -' + y + 'px;' + play.style + '">'
       + (typeof tileCollisionMarkHtml === 'function' ? tileCollisionMarkHtml(slot) : '')
-      + (typeof tileStairsMarkHtml === 'function' ? tileStairsMarkHtml(slot) : '') + '</i>';
+      + (typeof tileStairsMarkHtml === 'function' ? tileStairsMarkHtml(slot) : '')
+      + (typeof tileAnimMarkHtml === 'function' ? tileAnimMarkHtml(s, slot) : '') + '</i>';
   }
-  return html + '</div></div></div>';
+  return html + '</div></div>' + (animCss ? '<style>' + animCss + '</style>' : '') + '</div>';
 }
 
 /**

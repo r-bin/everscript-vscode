@@ -651,7 +651,7 @@ const ui = new Function(`
     specialSel: function () { return _specialSel; }, triggerTab: triggerTabPanelHtml,
     setTriggerKind: function (k) { _editTriggerKind = k; },
     pasteFloat: function () { return _pasteFloat; }, dropPaste: function () { _pasteFloat = null; },
-    tileSlotPasses: tileSlotPasses, tileShapePick: function (v) { _tileShape = v === 'all' ? null : v; },
+    tileSlotPasses: tileSlotPasses, tileAnimPlay: tileAnimPlay, tileFramesPick: tileFramesPick, tileShapePick: function (v) { _tileShape = v === 'all' ? null : v; },
   };`)();
 
 /** A palette with the tile sheet the host now sends alongside it. */
@@ -1529,6 +1529,24 @@ test('the tile list keeps its order when a tile is used', () => {
     assert.strictEqual(order(), before, 'related-ness does not reorder it');
     assert.ok(before.indexOf('902') < before.indexOf('901'), 'most-placed first');
     ui.setRelated({});
+});
+
+console.log('\nv0.75.0 — animations in the tile list:');
+
+test('an animation is one swatch that plays its frames; `frames` lists each frame', () => {
+    fresh();
+    const row = (g, kind, first, frame) => [0, 0, g, 1, 0, 1, -1, 0, -1, 0, 0, 0, 0, kind, first, frame];
+    const sheet = { family: 9, columns: 16, cell: 16, imageUri: 'data:,',
+        slots: [row(700, 1, 700, 0), row(701, 2, 700, 1), row(702, 2, 700, 2), row(710, 0, 0, 0)],
+        animations: { 700: { frames: [700, 701, 702], delays: [10, 10, 20] } } };
+    assert.ok(ui.tileSlotPasses(sheet.slots[0]) && !ui.tileSlotPasses(sheet.slots[1]), 'later frames folded in');
+    const play = ui.tileAnimPlay(sheet, sheet.slots[0]);
+    assert.match(play.css, /@keyframes rg-anim-9-700\{0\.00%\{background-position:-0px -0px\}25\.00%\{background-position:-16px -0px\}50\.00%/);
+    assert.match(play.style, /0\.667s steps\(1,end\) infinite/, '40 ticks at 60 Hz');
+    ui.tileFramesPick('frames');
+    assert.ok(ui.tileSlotPasses(sheet.slots[1]), 'each frame on its own');
+    assert.strictEqual(ui.tileAnimPlay(sheet, sheet.slots[0]).css, '', 'and nothing plays');
+    ui.tileFramesPick('anim');
 });
 
 console.log(`\n  ${passed} passed, ${failed} failed`);

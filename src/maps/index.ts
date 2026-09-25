@@ -62,13 +62,16 @@ export {
 } from './metatiles';
 export type { MetatileInfo, MetatileAtlas, MetatileLayer, MetatileDraft, TileListAtlas } from './metatiles';
 export {
-    buildVanillaIndex, graphicsForFamilies, familyExamples, groupByRooms, relatedGraphics, relationship, rankByRelationship,
+    buildVanillaIndex, graphicsForFamilies, familyExamples, groupByRooms,
 } from './vanilla-index';
 export { GRASS_UNCUT, GRASS_CUT } from './vanilla-grass';
 export type { GrassReveal } from './vanilla-grass';
 export { suggestFamily, suggestCollision, suggestGeometry, suggestStairs, shapeOf, GEOMETRY_BITS, preferredLayer } from './vanilla-suggest';
 export { stairsNibble, stairsForWord, stairsCollision, ALWAYS_WALKABLE, STAIRS_RISE_RIGHT, STAIRS_RISE_LEFT, STAIRS_VERTICAL } from './vanilla-stairs';
-export type { VanillaIndex, Attestation, GraphicGroup, Related } from './vanilla-index';
+export type { VanillaIndex, Attestation, GraphicGroup } from './vanilla-index';
+export { relatedGraphics, relationship, rankByRelationship } from './vanilla-related';
+export type { Related } from './vanilla-related';
+export type { Animation, AnimationIndex } from './vanilla-animation';
 export type { Suggestion } from './vanilla-suggest';
 export {
     DIRECTIONS, directionalNeighbours, walkResolvedGrid, newDirectionalTally, compactDirectional,

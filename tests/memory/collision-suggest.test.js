@@ -120,7 +120,7 @@ if (!fs.existsSync(ROM_PATH)) {
     test('family sheet slots carry ground and front shapes with their scores', () => {
         const sheet = rooms.buildFamilySheet(rom, 32, 0x34);
         const row = sheet.slots.find((s) => s[2] === 641);
-        assert.ok(row && row.length === 13, JSON.stringify(row));
+        assert.ok(row && row.length === 16, JSON.stringify(row));
         assert.strictEqual(row[6], 0x0f);
         assert.ok(row[7] >= 90);
     });
@@ -189,6 +189,30 @@ if (!fs.existsSync(ROM_PATH)) {
         const px = (x, y) => Array.from(buf.data.slice((y * 32 + x) * 4, (y * 32 + x) * 4 + 3));
         assert.ok(px(8, 8)[0] > px(8, 8)[2], 'level 1 is red: ' + px(8, 8));
         assert.ok(px(24, 8)[2] > px(24, 8)[0], 'level 0 is blue: ' + px(24, 8));
+    });
+
+    test('animations: every phase of a cycle is one animation, named by its lowest graphic', () => {
+        const a = index.animations;
+        // Room 0x71's torch runs 1856..1859; the Halls torches run one cycle at several phases.
+        assert.deepStrictEqual(a.byFirst.get(1856).frames, [1856, 1857, 1858, 1859]);
+        assert.deepStrictEqual(a.frameOf.get(1858), { first: 1856, index: 2 });
+        assert.ok(a.byFirst.has(2742) && !a.byFirst.has(2743), '2743 starts a channel too, but it is 2742’s cycle');
+        assert.strictEqual(a.frameOf.get(2743).first, 2742);
+        const sheet = rooms.buildFamilySheet(rom, 115, 0x34);
+        const first = sheet.slots.find((r) => r[2] === 2742);
+        assert.deepStrictEqual(first.slice(13), [1, 2742, 0]);
+        assert.deepStrictEqual(sheet.slots.find((r) => r[2] === 2743).slice(13), [2, 2742, 1]);
+        assert.ok(sheet.animations[2742].delays.length === sheet.animations[2742].frames.length);
+        const cat = rooms.buildFamilyCatalogue(rom).find((f) => f.id === 115);
+        assert.ok(cat.frames > 0 && cat.frames < cat.tiles);
+    });
+
+    test('relationship scores never pass 100%', () => {
+        let worst = 0;
+        for (const g of [...index.adjacency.keys()].slice(0, 400)) {
+            for (const r of maps.relatedGraphics(index, g, 50)) worst = Math.max(worst, r.score);
+        }
+        assert.ok(worst <= 1, 'worst ' + worst);
     });
 
     test('a drafted map’s collision layer draws solid cells and leaves open ones clear', () => {

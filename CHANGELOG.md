@@ -1,3 +1,22 @@
+## [0.75.0] — 2026-09-25
+
+### Map editor: animations in the tile list
+
+- **Animations are marked.** A swatch that animates in the game carries
+  `▶n` (an animation of n frames). A single frame shown on its own carries
+  `k/n`. The tooltip says which.
+- **Tile tab: `anim | frames`.** With `anim` (the default) an animation such
+  as a torch is one swatch that plays its frames at the game's own timing.
+  The game only ever places the first frame and plays the rest in place.
+  `frames` lists every frame separately.
+- The game often runs one torch cycle at several phases so torches flicker
+  out of step. Those are recognised as one animation: 329 in all, whose 636
+  other frames no longer crowd the list.
+- **Fixed:** the family "goes with your map" score could pass 100% (it
+  showed 114%).
+- **Not yet:** an exported custom map doesn't animate. A painted torch is
+  its first frame, standing still, in the game.
+
 ## [0.74.0] — 2026-09-25
 
 ### Map editor: floor/edge/wall filter, paste on the pointer, stable tile order
