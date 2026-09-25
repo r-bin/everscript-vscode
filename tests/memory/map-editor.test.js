@@ -315,12 +315,13 @@ test('a drift pick sets the AW bit and repurposes the low nibble as direction', 
     assert.strictEqual(api.editStampWords(p, idx).collision, (0x101f & ~0x200f) | 0x2000 | 0xa);
 });
 
-test('stairs and entrance never touch the collision word — no encoding is attested', () => {
+test('an entrance never touches the collision word; vertical stairs write bit 13 + nibble 0', () => {
     const p = palette();
     api.editReset(0x76);
-    assert.strictEqual(api.editSpecialAppliedIndex(p, 0, 'stairs-vert', false), 0,
-        'no new stamp, because nothing changed');
-    assert.strictEqual(api.editSpecialAppliedIndex(p, 0, 'entrance-n', false), 0);
+    assert.strictEqual(api.editSpecialAppliedIndex(p, 0, 'entrance-n', false), 0, 'no new stamp');
+    // Vanilla puts bit 13 with nibble 0 under its step art (maps/vanilla-stairs.ts).
+    const vert = api.editSpecialAppliedIndex(p, 0, 'stairs-vert', false);
+    assert.strictEqual(api.editStampWords(p, vert).collision & 0x200f, 0x2000);
 });
 
 test('erasing a special clears exactly its own bits, keeping the rest of the stamp', () => {
@@ -331,14 +332,13 @@ test('erasing a special clears exactly its own bits, keeping the rest of the sta
     assert.strictEqual(api.editStampWords(p, cleared).collision, 0x101f, 'back to the room’s own word');
 });
 
-test('the catalog marks gate/drift/diagonal stairs as real writes and nothing else as one', () => {
+test('the catalog marks gate/drift/stairs as real writes and nothing else as one', () => {
     const flat = [].concat(...api.groups.map((g) => g.items));
     // Diagonal stairs are the two shear drift nibbles vanilla puts under its
     // stair art (maps/vanilla-stairs.ts); vertical stairs have no encoding.
     assert.strictEqual(api.editSpecialById('stairs-diag-r').drift, 0x1, 'rises to the right');
     assert.strictEqual(api.editSpecialById('stairs-diag-l').drift, 0x2, 'rises to the left');
-    const vert = api.editSpecialById('stairs-vert');
-    assert.ok(vert.gate == null && vert.drift == null, 'vertical stairs carry no bitfield — none is attested');
+    assert.strictEqual(api.editSpecialById('stairs-vert').drift, 0x0, 'vertical: walkable, no drift');
     const entrance = flat.filter((it) => it.id.indexOf('entrance-') === 0);
     assert.ok(entrance.length && entrance.every((it) => it.gate == null && it.drift == null));
     assert.strictEqual(api.editSpecialById('gate-boy').gate, 0x7);
@@ -611,6 +611,8 @@ const ui = new Function(`
   ${read('map-editor-levels.js')}
   ${read('map-editor-groups.js')}
   ${read('map-editor-custom-store.js')}
+  ${read('map-editor-clipboard.js')}
+  ${read('map-editor-pick.js')}
   return {
     tileSlotWord: tileSlotWord, editOnTilePicked: editOnTilePicked,
     editAction: editAction, editReset: editReset, editDraft: editDraft,
@@ -638,6 +640,11 @@ const ui = new Function(`
     editStampGroup: editStampGroup, editGroupMove: editGroupMove, editGroupDelete: editGroupDelete,
     editGroupAt: editGroupAt, editPruneAdded: editPruneAdded, editLevelPick: editLevelPick,
     customIsPristine: customIsPristine, setCustom: function (list, active) { _customMaps = list; _customActive = active; },
+    editClipboardKey: editClipboardKey, editAddStamp: editAddStamp, editSmartPick: editSmartPick, startSelectGesture: startSelectGesture,
+    setSel: function (s) { _editSel = s; }, setHover: function (c) { _editHover = c; },
+    groupSel: function () { return _groupSel; }, startSel: function () { return _startSel; },
+    tab: function () { return _editActiveTab; }, brushTile: function () { return _brushTile; },
+    triggerKind: function () { return _editTriggerKind; },
   };`)();
 
 /** A palette with the tile sheet the host now sends alongside it. */
@@ -1101,10 +1108,10 @@ test('a glyph-only special stamps the glyph and leaves the grid alone', () => {
     d.on = true;
     d.tool = 'paint';
     d.brush = -1;
-    d.currentSpecialId = 'stairs-vert';
+    d.currentSpecialId = 'entrance-n';
     ui.setTab('special');
     ui.editStroke({ x: 1, y: 0 }, 'down');
-    assert.strictEqual(ui.editSpecialAt(1, 0), 'stairs-vert');
+    assert.strictEqual(ui.editSpecialAt(1, 0), 'entrance-n');
     assert.ok(!('1,0' in d.cells), 'the grid falls through to the room’s own tile');
     ui.setTab('tile');
 });
@@ -1318,6 +1325,86 @@ test('a custom map is untouched until something is done to it', () => {
     ui.editUndo(tilePalette());
     assert.ok(ui.customIsPristine(m), 'undone back to empty, it is empty again — New Map may reuse it');
     ui.setCustom([], null);
+});
+
+console.log('\nselection, the eyedropper, copy and paste:');
+
+test('the Special eraser takes a stairs flag off a tile that has no glyph', () => {
+    const { p, d } = fresh();
+    const w = ui.editStampWords(p, 0);
+    d.cells['0,0'] = ui.editAddStamp(p, { layer1: w.layer1, layer2: w.layer2, collision: 0x2010 });
+    ui.setTab('special');
+    d.tool = 'erase';
+    ui.editStroke({ x: 0, y: 0 }, 'down');
+    assert.strictEqual(ui.editStampWords(p, d.cells['0,0']).collision & 0x2000, 0, 'the stairs bit is gone');
+    assert.strictEqual(ui.editStampWords(p, d.cells['0,0']).collision & 0x30, 0x10, 'the level stays');
+    ui.setTab('tile');
+});
+
+test('the Boy: a click selects him, a drag moves him in one step', () => {
+    const { d } = fresh();
+    d.start = { x: 1, y: 1 };
+    d.tool = 'select';
+    ui.editBegin();
+    ui.editStroke({ x: 1, y: 1 }, 'down');
+    assert.ok(ui.startSel(), 'selected');
+    ui.editStroke({ x: 2, y: 0 }, 'move');
+    ui.editStroke({ x: 2, y: 1 }, 'up');
+    ui.editEnd();
+    assert.deepStrictEqual(d.start, { x: 2, y: 1 });
+    assert.strictEqual(d.undo.length, 1);
+    ui.editStroke({ x: 0, y: 0 }, 'down');
+    assert.ok(!ui.startSel(), 'a click elsewhere lets him go');
+});
+
+test('the eyedropper picks a tile with its tab, the pencil, its flip and its level', () => {
+    const { p, d } = fresh();
+    ui.setTab('special');
+    d.tool = 'pick';
+    ui.editStroke({ x: 2, y: 0 }, 'down');       // the room's own stamp 1 (0x101f: level 1)
+    assert.strictEqual(ui.tab(), 'tile');
+    assert.strictEqual(d.tool, 'paint');
+    assert.strictEqual(d.brush, 1);
+    assert.strictEqual(d.plane, 1);
+});
+
+test('the eyedropper picks a special or a trigger with their own tab', () => {
+    const { d } = fresh();
+    d.specialCells['1,0'] = 'gate-dog';
+    d.tool = 'pick';
+    ui.editStroke({ x: 1, y: 0 }, 'down');
+    assert.strictEqual(ui.tab(), 'special');
+    assert.strictEqual(d.currentSpecialId, 'gate-dog');
+    d.placed.push({ kind: 'stepOn', x: 0, y: 1, w: 1, h: 1, scriptId: null, uid: 99 });
+    ui.setTab('trigger');
+    d.tool = 'pick';
+    ui.editStroke({ x: 0, y: 1 }, 'down');
+    assert.strictEqual(ui.tab(), 'trigger');
+    assert.strictEqual(ui.triggerKind(), 'step');
+    assert.deepStrictEqual(d.selectedTriggerRef, { kind: 'step', id: 'placed:99' });
+    ui.setTab('tile');
+});
+
+test('copy a region, paste it under the pointer as one selected object, drag it', () => {
+    const { p, d } = fresh();
+    d.tool = 'copy';
+    ui.setSel({ x1: 0, y1: 0, x2: 1, y2: 0 });
+    const key = (k) => ui.editClipboardKey({ key: k }, true);
+    assert.ok(key('c'));
+    ui.setHover({ x: 1, y: 1 });
+    assert.ok(key('v'));
+    assert.strictEqual(d.groups.length, 1);
+    const g = d.groups[0];
+    assert.deepStrictEqual([g.x, g.y, g.w, g.h], [1, 1, 2, 1], 'where the pointer is, clamped to fit');
+    assert.strictEqual(ui.groupSel(), g.uid, 'and selected');
+    ui.editBegin();
+    ui.editStroke({ x: 2, y: 1 }, 'down');
+    ui.editStroke({ x: 1, y: 1 }, 'move');
+    ui.editStroke({ x: 1, y: 1 }, 'up');
+    ui.editEnd();
+    assert.deepStrictEqual([d.groups[0].x, d.groups[0].y], [0, 1], 'dragged while selected');
+    ui.editStroke({ x: 2, y: 0 }, 'down');
+    assert.strictEqual(ui.groupSel(), null, 'a click elsewhere lets it go');
 });
 
 console.log(`\n  ${passed} passed, ${failed} failed`);

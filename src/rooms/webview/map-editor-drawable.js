@@ -11,8 +11,11 @@
 // still armed. Info draws nothing of its own, so it keeps the last tab's.
 // The eraser follows the same choice (map-editor-gestures.js).
 //
-// The pill shows which drawable is live as a badge on the pencil, and the
-// tab's own pick is the highlighted one there.
+// The pill shows which drawable is live as a badge on the pencil (and on
+// the eraser, what it takes off), and the tab's own pick is highlighted
+// there with the one armed look every tab shares (`.rg-armed`, the selected
+// tile's accent ring). On the Trigger tab the section headings are the
+// picks: B-triggers (first, the default) or step-on triggers.
 //
 // Owns: _editDrawTab, _editTriggerKind, _triggerDraw.
 
@@ -65,24 +68,35 @@ function editDrawable() {
     : { kind: 'tile', glyph: '▦', label: 'a tile — pick one in the Tile tab', ready: false };
 }
 
-/** The pencil's badge, inside its button (map-editor-toolbar.js). */
-function editDrawBadgeHtml() {
-  var dr = editDrawable();
+/** What the eraser takes off on the open tab, for its badge and tooltip. */
+function editEraseTarget() {
+  var kind = editDrawKind();
+  if (kind === 'special') return { kind: kind, glyph: '◇', label: 'every special on a cell: stairs, drift, gate, glyph', ready: true };
+  if (kind === 'trigger') return { kind: kind, glyph: '▭', label: 'the trigger under the cursor', ready: true };
+  var cut = typeof editCutLayerOn === 'function' && editCutLayerOn();
+  return { kind: 'tile', glyph: '▦', label: cut ? 'the cuttable tile' : 'the tile, by the layers shown', ready: true };
+}
+
+/** The pencil's (or the eraser's) badge, inside its button (map-editor-toolbar.js). */
+function editDrawBadgeHtml(erase) {
+  var dr = erase ? editEraseTarget() : editDrawable();
   return '<span class="rg-draw-badge rg-draw-' + dr.kind + (dr.ready ? '' : ' idle') + '" aria-hidden="true">'
     + escH(dr.glyph) + '</span>';
 }
 
 // ── the Trigger tab's pencil ────────────────────────────────────────────────
 
-/** The row of trigger kinds at the top of the Trigger tab. */
-function triggerDrawRowHtml() {
-  var html = '<div class="rg-trigger-draw"><span class="rg-panel-h">Draw</span>';
-  EDIT_TRIGGER_KINDS.forEach(function (k) {
-    html += '<button class="rdf rg-trigger-kind rg-trigger-kind-' + k[0] + (_editTriggerKind === k[0] ? ' on' : '')
-      + '" data-trigger-kind="' + k[0] + '" title="' + escH(k[3]) + '">'
-      + '<b>' + k[2] + '</b> ' + escH(k[1]) + '</button>';
-  });
-  return html + '</div>';
+/**
+ * Everything selected on the map goes: the Boy, a group, a trigger. One
+ * selection at a time — called before anything new is selected, and when
+ * the tab or the tool changes, or on Escape.
+ */
+function editDeselectAll() {
+  var d = editDraft();
+  if (d) d.selectedTriggerRef = null;
+  if (typeof _triggerDrag !== 'undefined') _triggerDrag = null;
+  if (typeof _groupSel !== 'undefined') { _groupSel = null; _groupDrag = null; }
+  if (typeof _startSel !== 'undefined') { _startSel = false; _startDrag = null; }
 }
 
 /** Pick the trigger kind the pencil draws, and arm the pencil. */

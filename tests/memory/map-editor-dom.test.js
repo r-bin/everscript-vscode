@@ -33,7 +33,8 @@ const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-stamps.js', '
     'tables-builder.js', 'map-editor-tabs.js', 'map-editor-panels.js', 'map-editor-gestures.js',
     'map-editor-input.js', 'map-editor-actions.js', 'map-editor-newroom.js', 'map-editor-start.js', 'map-editor-custom.js',
     'map-editor-rom-export.js', 'map-editor-collision.js', 'map-editor-cutlayer.js', 'map-editor-drawable.js',
-    'map-editor-levels.js', 'map-editor-groups.js', 'map-editor-custom-store.js'];
+    'map-editor-levels.js', 'map-editor-groups.js', 'map-editor-custom-store.js',
+    'map-editor-clipboard.js', 'map-editor-pick.js'];
 
 /** A palette shaped like the host's reply, small enough to read. */
 const PALETTE = {
@@ -1502,7 +1503,9 @@ async function main() {
     const banner = await page.evaluate(() => ({
         text: document.querySelector('.rg-banner-t').textContent,
         acts: Array.prototype.map.call(document.querySelectorAll('.rg-banner-b'), (b) => b.textContent),
-        first: document.getElementById('rg-tab-body').firstElementChild.className,
+        // The banner leads the Tile tab's fixed head (v0.72.0: the head stays, the tiles scroll).
+        first: (document.querySelector('#rg-tab-body .rg-tile-head') || document.getElementById('rg-tab-body'))
+            .firstElementChild.className,
     }));
     check('and the Tile tab leads with a banner about it',
         /family 58/.test(banner.text) && /rg-banner/.test(banner.first), JSON.stringify(banner));

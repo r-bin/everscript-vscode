@@ -8,6 +8,14 @@
 // uses them only in castle and tower rooms (Ebon Keep, Ivor Tower, 0x0d's
 // staircase hall, the 0x75 stairwell) and only under stair art.
 //
+// Vertical stairs — steps climbed up the screen — are bit 13 with nibble 0:
+// always walkable, no drift. Vanilla puts that word under its step art
+// (1592/1595 beside the diagonal stairs in 0x0b/0x2b, 1877 through Ebon Keep
+// and Ivor Tower, the log steps of 0x65). Bit 13 also keeps the entity's
+// level ($8FA914), which is what lets a staircase join two levels. A few
+// filler tiles in 0x65 carry the same word; they are listed too, since the
+// game treats them the same way.
+//
 // The direction is the art's: an unflipped stair graphic carries nibble 1
 // and its H-mirrored copy nibble 2, in every room measured. So the index
 // records a graphic's direction *as drawn unflipped*, and whoever paints it
@@ -17,29 +25,39 @@
 
 /** Always-walkable: the low nibble is a drift direction, not geometry. */
 export const ALWAYS_WALKABLE = 0x2000;
-/** The two stair directions (drift nibbles 1 and 2). */
+/**
+ * The three kinds of stairs. Kinds 1 and 2 are the drift nibbles themselves;
+ * vertical stairs (kind 3) are nibble 0.
+ */
 export const STAIRS_RISE_RIGHT = 1;
 export const STAIRS_RISE_LEFT = 2;
+export const STAIRS_VERTICAL = 3;
 const H_FLIP = 0x4000;
 
 /** Below this share of a graphic's placements, it is not a stairs tile. */
 export const STAIRS_MIN_SHARE = 0.5;
 
-/** The stairs nibble a collision word carries, or 0. */
+/** The kind of stairs a collision word is (1 right, 2 left, 3 vertical), or 0. */
 export function stairsNibble(collision: number): number {
     if (!(collision & ALWAYS_WALKABLE)) return 0;
     const n = collision & 0x0f;
+    if (n === 0) return STAIRS_VERTICAL;
     return n === STAIRS_RISE_RIGHT || n === STAIRS_RISE_LEFT ? n : 0;
 }
 
-/** Swap the direction for an H-flipped word; the same swap turns it back. */
-export function stairsForWord(nibble: number, word: number): number {
-    if (!nibble) return 0;
-    return word & H_FLIP ? 3 - nibble : nibble;
+/** Swap a diagonal's direction for an H-flipped word; the same swap turns it back. */
+export function stairsForWord(kind: number, word: number): number {
+    if (!kind || kind === STAIRS_VERTICAL) return kind;
+    return word & H_FLIP ? 3 - kind : kind;
 }
 
-/** One graphic on one layer: placements, stair placements, and how many rose right. */
-export interface StairsCount { total: number; stairs: number; right: number }
+/** The collision word a kind of stairs writes: bit 13 and its nibble. */
+export function stairsCollision(kind: number): number {
+    return ALWAYS_WALKABLE | (kind === STAIRS_VERTICAL ? 0 : kind);
+}
+
+/** One graphic on one layer: placements, stair placements, how many rose right, how many were vertical. */
+export interface StairsCount { total: number; stairs: number; right: number; vertical: number }
 
 export type StairsTally = Map<number, { terrain: StairsCount; canopy: StairsCount }>;
 
@@ -50,7 +68,7 @@ export function noteStairs(
 ): void {
     let g = into.get(graphic);
     if (!g) {
-        g = { terrain: { total: 0, stairs: 0, right: 0 }, canopy: { total: 0, stairs: 0, right: 0 } };
+        g = { terrain: { total: 0, stairs: 0, right: 0, vertical: 0 }, canopy: { total: 0, stairs: 0, right: 0, vertical: 0 } };
         into.set(graphic, g);
     }
     const c = g[layer];
@@ -58,7 +76,8 @@ export function noteStairs(
     const n = stairsNibble(collision);
     if (!n) return;
     c.stairs += uses;
-    if (stairsForWord(n, word) === STAIRS_RISE_RIGHT) c.right += uses;
+    if (n === STAIRS_VERTICAL) c.vertical += uses;
+    else if (stairsForWord(n, word) === STAIRS_RISE_RIGHT) c.right += uses;
 }
 
 /** One placed stamp: its terrain and (real, not blank) canopy graphic, either may be absent. */
@@ -78,8 +97,9 @@ export function compactStairs(all: StairsTally): StairsTally {
 }
 
 /**
- * Is this graphic stairs on this layer, and which way does it rise, drawn
- * unflipped? `null` when vanilla draws it as stairs under half the time.
+ * Is this graphic stairs on this layer, and which kind — vertical, or the
+ * way a diagonal rises drawn unflipped? `null` when vanilla draws it as
+ * stairs under half the time.
  */
 export function suggestStairs(
     stairs: StairsTally, graphic: number, layer: 'terrain' | 'canopy',
@@ -87,8 +107,8 @@ export function suggestStairs(
     const g = stairs.get(graphic);
     const c = g && g[layer];
     if (!c || !c.total || c.stairs / c.total < STAIRS_MIN_SHARE) return null;
-    return {
-        nibble: c.right * 2 >= c.stairs ? STAIRS_RISE_RIGHT : STAIRS_RISE_LEFT,
-        confidence: c.stairs / c.total,
-    };
+    const diagonal = c.stairs - c.vertical;
+    let nibble = STAIRS_VERTICAL;
+    if (c.vertical * 2 < c.stairs) nibble = c.right * 2 >= diagonal ? STAIRS_RISE_RIGHT : STAIRS_RISE_LEFT;
+    return { nibble, confidence: c.stairs / c.total };
 }

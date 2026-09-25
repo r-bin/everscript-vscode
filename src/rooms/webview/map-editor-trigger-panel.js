@@ -65,8 +65,14 @@ function triggerRowHtml(t, kind) {
 
 function triggerSectionHtml(kind, label) {
   var list = editTriggerList(kind);
-  var html = '<div class="rg-trigger-section"><div class="rg-panel-h">' + escH(label)
-    + ' <span class="rs-note">' + list.length + '</span></div>';
+  // The heading is the pencil's pick for this kind (map-editor-drawable.js):
+  // click it to draw this kind; the armed one carries the shared armed look.
+  var armed = typeof _editTriggerKind !== 'undefined' && _editTriggerKind === kind;
+  var html = '<div class="rg-trigger-section"><button class="rg-panel-h rg-trigger-kind rg-trigger-kind-' + kind
+    + (armed ? ' rg-armed' : '') + '" data-trigger-kind="' + kind + '" title="'
+    + escH('Draw ' + label.toLowerCase() + ' with the pencil: drag a box on the map') + '">'
+    + '<b>' + (kind === 'b' ? 'B' : 'S') + '</b> ' + escH(label)
+    + ' <span class="rs-note">' + list.length + '</span></button>';
   if (!list.length) return html + '<div class="rs-note">none yet</div></div>';
   html += '<div class="rg-trigger-list">';
   list.forEach(function (t) { html += triggerRowHtml(t, kind); });
@@ -81,10 +87,9 @@ function triggerSectionHtml(kind, label) {
  * map-editor-trigger-select.js and map-editor-gestures.js.
  */
 function triggerTabPanelHtml() {
-  var draw = typeof triggerDrawRowHtml === 'function' ? triggerDrawRowHtml() : '';
-  return draw + '<div class="rs-note">Pencil: drag a box on the map to add the trigger picked above. '
+  return '<div class="rs-note">Click a heading to draw that kind: the pencil drags out its box. '
     + 'Select tool: click a trigger to select it, drag its own cells to move it, Delete to remove, '
-    + 'Cmd/Ctrl+C/V to copy — or click a row below.</div>'
+    + 'Cmd/Ctrl+C/V to copy — or click a row.</div>'
     + triggerSectionHtml('b', 'B-triggers') + triggerSectionHtml('step', 'Step-on triggers');
 }
 

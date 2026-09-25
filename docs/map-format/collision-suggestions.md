@@ -74,7 +74,17 @@ the suggestion is right:
 ## Stairs
 
 Stairs are a collision *flag*, not a shape: bit 13 (always-walkable) with
-drift nibble 1 or 2. Those are the two "shear" handlers of
+drift nibble 1, 2 or 0. Bit 13 also keeps the entity's level ($8FA914), which
+is what lets a staircase join two levels.
+
+**Vertical stairs** (steps climbed up the screen) are nibble 0: walkable,
+no drift. Vanilla puts that word under its step art: 1592/1595 beside the
+diagonal stairs in 0x0b and 0x2b, 1877 through Ebon Keep and Ivor Tower,
+2205–2210 in 0x13 and 0x37, and the log steps of 0x65. A few dark filler
+tiles in 0x65 carry the same word, so they're listed too: the game treats
+them exactly like the steps. The index calls this kind 3.
+
+**Diagonal stairs** are nibbles 1 and 2. Those are the two "shear" handlers of
 [map_collision_mechanics.md §6](map_collision_mechanics.md#6-drift-and-sliding--the-low-nibble-is-the-direction):
 walking sideways also moves you up or down. Nibble 1 rises to the right
 (walking east climbs north), nibble 2 rises to the left. Vanilla uses them
@@ -89,18 +99,19 @@ H-flipped swaps 1 and 2.
 
 - `src/maps/vanilla-stairs.ts`: the tally, `suggestStairs`. A graphic
   counts as stairs on a layer when at least half its placements there carry
-  the flag. That covers 11 families, e.g. graphic 1833 in Ebon Keep.
-- The family sheet's slot rows carry it as `[11]` (ground) and `[12]`
-  (front), and the catalogue carries a `stairs` count.
+  the flag. That covers 30 families (96 tiles), e.g. graphic 1833
+  (diagonal) and 1877 (vertical) in Ebon Keep.
+- The family sheet's slot rows carry the kind as `[11]` (ground) and
+  `[12]` (front): 1 or 2 as drawn unflipped, 3 vertical. The catalogue
+  carries a `stairs` count.
 - **Tile tab:** the `stairs` filter (next to `cuttable`; one filter at a
   time) lists only stair tiles. A stair tile shows its direction in a corner
   of its swatch, always, because the flag is part of what painting it
   writes.
 - **Painting** a stair tile gives the stamp `0x2000 | nibble` instead of a
   shape. A painted stairs cell shows the same glyph on the map.
-- **Special tab:** Diagonal R and Diagonal L write the same flag (nibble 1
-  and 2) onto any tile. Vertical stairs have no encoding of their own and
-  stay an icon.
+- **Special tab:** Vertical, Diagonal R and Diagonal L write the same flag
+  (nibble 0, 1 and 2) onto any tile.
 
 ## How it is drawn
 

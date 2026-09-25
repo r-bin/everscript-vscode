@@ -23,8 +23,10 @@ var EDIT_TOOLS = [
     + 'then the tile itself. Special: the special. Trigger: the trigger under the cursor'],
   ['rect', 'rect', 'Drag a rectangle and fill it with the selected tile or special; on the Trigger tab, '
     + 'a new trigger'],
-  ['pick', 'pick', 'Click the map to select the tile under the cursor'],
-  ['copy', 'copy', 'Drag to take a region, then click to stamp it elsewhere'],
+  ['pick', 'pick', 'Click the map to pick up what is there — the Boy, a special, a trigger or the tile — '
+    + 'with the tab, the tool and the level that draw it'],
+  ['copy', 'copy', 'Drag to select a region, Cmd/Ctrl+C to copy it, Cmd/Ctrl+V to paste it as one object — '
+    + 'drag it where it goes while it is selected'],
   ['move', 'move', 'Drag to take a region, then click to move it; the source is backfilled with the selected tile'],
   ['stamp', 'stamp', 'Click to place the selected construct, with its triggers and objects'],
 ];
@@ -101,9 +103,11 @@ function editToolButtonHtml(key) {
   var tip = def[2];
   var badge = '';
   if (key === 'paint' && typeof editDrawable === 'function') {
-    var dr = editDrawable();
-    tip = 'Pencil — draws ' + dr.label + '\n' + def[2];
-    badge = editDrawBadgeHtml();
+    tip = 'Pencil — draws ' + editDrawable().label + '\n' + def[2];
+    badge = editDrawBadgeHtml(false);
+  } else if (key === 'erase' && typeof editEraseTarget === 'function') {
+    tip = 'Eraser — takes off ' + editEraseTarget().label + '\n' + def[2];
+    badge = editDrawBadgeHtml(true);
   }
   return '<button class="rdf rg-edit-tool-icon' + (d && d.tool === key ? ' on' : '')
     + '" data-edit-tool="' + key + '" data-tip="' + escH(tip) + '" aria-label="' + escH(def[1]) + '">'

@@ -376,7 +376,7 @@ function tilesPanel() {
   }
   // The width the sheets will wrap at: the list's own, known before this
   // render replaces it. Placeholder heights are only honest against it.
-  var body = document.getElementById('rg-tab-body');
+  var body = document.getElementById('rg-tile-scroll') || document.getElementById('rg-tab-body');
   var width = body && body.clientWidth ? body.clientWidth - 4 : 360;
   var html = '';
   for (var i = 0; i < families.length; i++) html += tileGroupHtml(families[i], width);

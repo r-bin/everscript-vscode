@@ -67,7 +67,7 @@ export {
 export { GRASS_UNCUT, GRASS_CUT } from './vanilla-grass';
 export type { GrassReveal } from './vanilla-grass';
 export { suggestFamily, suggestCollision, suggestGeometry, suggestStairs, shapeOf, GEOMETRY_BITS, preferredLayer } from './vanilla-suggest';
-export { stairsNibble, stairsForWord, ALWAYS_WALKABLE, STAIRS_RISE_RIGHT, STAIRS_RISE_LEFT } from './vanilla-stairs';
+export { stairsNibble, stairsForWord, stairsCollision, ALWAYS_WALKABLE, STAIRS_RISE_RIGHT, STAIRS_RISE_LEFT, STAIRS_VERTICAL } from './vanilla-stairs';
 export type { VanillaIndex, Attestation, GraphicGroup, Related } from './vanilla-index';
 export type { Suggestion } from './vanilla-suggest';
 export {

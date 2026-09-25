@@ -238,7 +238,7 @@ function decoCardHtml(d) {
       + ((at % pv.columns) * pv.cell) + 'px -' + (Math.floor(at / pv.columns) * pv.cell) + 'px';
   }
   var need = decoNewFamilies(d);
-  return '<button class="rg-deco' + (_editConstruct >= 0 && _decoPick === d.id ? ' on' : '')
+  return '<button class="rg-deco' + (_editConstruct >= 0 && _decoPick === d.id ? ' on rg-armed' : '')
     + (d.scriptId !== null ? ' rg-deco-live' : '')
     + (need.length ? ' rg-deco-costly' : '')
     + '" data-deco="' + d.id + '"'

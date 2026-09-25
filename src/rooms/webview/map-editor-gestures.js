@@ -11,6 +11,8 @@
 // that was already there: this file is the map, that one is the chrome.
 
 var _editDrag = null;
+/** The cell under the pointer, or null — where Cmd/Ctrl+V pastes. */
+var _editHover = null;
 /** Ends the gesture in progress when the button comes up off the map. */
 var _editGestureRelease = null;
 
@@ -44,6 +46,8 @@ function editStroke(cell, phase) {
     // the already-selected trigger's own footprint starts a drag instead of
     // re-selecting it, so the same click that begins a drag doesn't also
     // reselect the thing already selected.
+    // The Boy first: he stands on top of everything (map-editor-start.js).
+    if (typeof startSelectGesture === 'function' && startSelectGesture(cell, phase)) return;
     if (phase === 'down') {
       if (triggerDragStart(cell)) return;
       // A stamped object before a trigger: its B-trigger covers it
@@ -60,6 +64,8 @@ function editStroke(cell, phase) {
 
   if (d.tool === 'pick') {
     if (phase !== 'down') return;
+    // Picks up what is there with its tab and tool (map-editor-pick.js).
+    if (typeof editSmartPick === 'function') { editSmartPick(cell); return; }
     var at = editCellAt(_mtPalette, cell.x, cell.y);
     if (at >= 0) { d.brush = at; _mtSelected = at; renderMetatilePalette(); }
     renderEditChrome();
@@ -81,7 +87,9 @@ function editStroke(cell, phase) {
       return;
     }
     if (eraseKind === 'special') {
-      if (editSpecialAt(cell.x, cell.y)) editSpecialStroke(d, cell, true);
+      // Every special flag on the cell, glyph or not: a stairs tile carries
+      // its flag in its collision word with no glyph at all.
+      editSpecialStroke(d, cell, true);
       renderEditChrome();
       return;
     }
@@ -146,8 +154,17 @@ function editStroke(cell, phase) {
     return;
   }
 
+  // The copy tool: a pasted object, selected, moves by dragging it; a drag
+  // anywhere else selects a region for Cmd/Ctrl+C (map-editor-clipboard.js).
+  if (d.tool === 'copy' && typeof _groupSel !== 'undefined' && (phase !== 'down' || _groupSel != null)) {
+    if (phase === 'down' ? groupDragSelected(cell) : groupSelectGesture(cell, phase)) return;
+  }
+
   // rect / copy / move all drag out a rectangle first.
-  if (phase === 'down') { _editDrag = { x1: cell.x, y1: cell.y }; _editSel = null; }
+  if (phase === 'down') {
+    _editDrag = { x1: cell.x, y1: cell.y }; _editSel = null;
+    if (d.tool === 'copy' && typeof editDeselectAll === 'function') editDeselectAll();
+  }
   if (!_editDrag) return;
   _editSel = {
     x1: Math.min(_editDrag.x1, cell.x), y1: Math.min(_editDrag.y1, cell.y),
@@ -173,6 +190,10 @@ function editStroke(cell, phase) {
         : editRectWrites(_editSel.x1, _editSel.y1, _editSel.x2, _editSel.y2, d.brush, _mtPalette)));
     }
     _editSel = null;
+  } else if (d.tool === 'copy') {
+    // The region stays selected for Cmd/Ctrl+C; nothing is stamped by a click.
+    editNote((_editSel.x2 - _editSel.x1 + 1) + '×' + (_editSel.y2 - _editSel.y1 + 1)
+      + ' selected — Cmd/Ctrl+C to copy it, Cmd/Ctrl+V to paste it as one object');
   } else if (_editSel.x1 === _editSel.x2 && _editSel.y1 === _editSel.y2 && _editClip) {
     // A single click with something on the clipboard is a paste. Raw indices
     // on purpose: the clipboard holds whole cells lifted off the map, so
@@ -283,6 +304,8 @@ function setupEditGestures() {
 
   wrap.addEventListener('mousemove', function (e) {
     if (_resizing) { resizeMove(e); e.stopPropagation(); return; }
+    // Where a paste lands (map-editor-clipboard.js).
+    if (editActive()) _editHover = editEventCell(e);
     if (!painting || !editActive()) return;
     var cell = editEventCell(e);
     if (cell) editStroke(cell, 'move');
@@ -339,8 +362,7 @@ function setupEditKeys() {
     var d = editDraft();
     if (e.key === 'Escape') {
       _editSel = null; _editClip = null;
-      if (d) { d.selectedTriggerRef = null; _triggerDrag = null; }
-      if (typeof _groupSel !== 'undefined') { _groupSel = null; _groupDrag = null; }
+      if (typeof editDeselectAll === 'function') editDeselectAll();
       renderEditChrome();
       return;
     }
@@ -353,6 +375,9 @@ function setupEditKeys() {
       }
       return;
     }
+    // Regions and objects: copy, paste, delete (map-editor-clipboard.js) —
+    // before the Select tool's own trigger shortcuts below.
+    if (d && typeof editClipboardKey === 'function' && editClipboardKey(e, mod)) { e.preventDefault(); return; }
     if (!d || d.tool !== 'select') return;
     if (typeof _groupSel !== 'undefined' && _groupSel != null && (e.key === 'Backspace' || e.key === 'Delete')) {
       if (editGroupDelete(_groupSel)) { requestComposedPreview(); renderEditChrome(); }

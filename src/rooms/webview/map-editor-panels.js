@@ -165,11 +165,18 @@ function errorsPanel(p) {
  */
 function tileTabHtml(p) {
   ensureRelated();
-  return strandedBannersHtml()
+  // The head stays put; only the tile list scrolls (`#rg-tile-scroll`).
+  return '<div class="rg-tile-head">' + strandedBannersHtml()
     + familiesSectionHtml()
     + tileFilterRowHtml()
-    + neighbourCardHtml()
-    + tilesPanel();
+    + neighbourCardHtml() + '</div>'
+    + '<div class="rg-tile-scroll" id="rg-tile-scroll">' + tilesPanel() + '</div>';
+}
+
+/** The box that scrolls on this tab: the tile list on the Tile tab, else the whole body. */
+function panelScroller(body) {
+  if (!body) return null;
+  return body.querySelector('#rg-tile-scroll') || body;
 }
 
 /** Info tab: the budget bars, the trigger counts, then the encoding checks. */
@@ -217,12 +224,12 @@ function renderEditPanels() {
   // without this every click, and every lazily arriving sheet, threw the
   // list back to the top ("show more jumps to the top", tiles "jumping").
   var oldBody = document.getElementById('rg-tab-body');
-  var anchor = oldBody && oldBody.dataset.tab === _editActiveTab ? panelScrollAnchor(oldBody) : null;
+  var anchor = oldBody && oldBody.dataset.tab === _editActiveTab ? panelScrollAnchor(panelScroller(oldBody)) : null;
   _tileAnchorFam = null;
   host.innerHTML = buildEditTabStripHtml() + '<div class="rg-tab-body" id="rg-tab-body" data-tab="'
     + _editActiveTab + '">' + body + '</div>';
   var newBody = document.getElementById('rg-tab-body');
-  panelRestoreScroll(newBody, anchor);
+  panelRestoreScroll(panelScroller(newBody), anchor);
   if (_editActiveTab === 'tile') tileLazyObserve();
   // §8a.2 removed the Tile tab's "compose & constructs" panel and the
   // `#rg-compose` host it rendered into, so there is nothing left to

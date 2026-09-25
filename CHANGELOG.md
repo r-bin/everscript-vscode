@@ -1,3 +1,48 @@
+## [0.72.0] — 2026-09-25
+
+### Map editor: vertical stairs, one armed look, a smart eyedropper, copy and paste
+
+- **The stairs filter now lists vertical stairs.** In vanilla, the steps
+  you climb up the screen carry bit 13 with no drift direction. Examples:
+  the steps beside the diagonal stairs in 0x0b and 0x2b, Ebon Keep's and
+  Ivor Tower's steps, and the log steps in 0x65. The filter now covers 30
+  families (96 tiles), up from 11. Bit 13 also keeps the Boy's level,
+  which is how a staircase joins two levels.
+- **The Special tab's Vertical writes that flag too.** All three stairs are
+  now real collision writes.
+- **One look for what's armed.** The special, trigger kind or widget the
+  open tab will draw now wears the same accent ring as the selected tile.
+  With the eraser out on the Special tab, a note at the top says what it
+  removes. The eraser has a badge like the pencil's.
+- **Trigger tab:** the Draw row is gone. Click the B-triggers or Step-on
+  triggers heading to choose what the pencil draws. B-triggers is first and
+  selected by default.
+- **The Boy can be selected.** With the Select tool:
+  - click him to select and highlight him;
+  - drag him to move him (one undo step).
+
+  Selecting something else, changing tab or tool, or pressing Escape lets
+  him go.
+- **Tile tab:** the families, filters and likely-neighbours card stay in
+  place. Only the tile list scrolls.
+- **The eraser removes every special on the Special tab.** That covers
+  stairs, drift and gate flags and the glyph, including a stairs flag that
+  came from a stair tile and has no glyph.
+- **The eyedropper picks up what you click, with its tab and tool:**
+  - **the Boy:** the Special tab with the Boy pick;
+  - **a special:** the Special tab with that special;
+  - **a trigger:** the Trigger tab with its kind, and the trigger selected;
+  - **a tile:** the Tile tab with that exact tile, its swatch highlighted
+    and scrolled into view, and H/V and the level taken from the cell.
+- **Copy and paste instead of click-to-stamp.** With the copy tool:
+  - drag to select a region;
+  - Cmd/Ctrl+C copies it;
+  - Cmd/Ctrl+V pastes it under the pointer as one object.
+
+  Drag the pasted object into place while it's selected. It stays a movable
+  object afterwards, like a stamped widget. A selected object copies the
+  same way, and Delete removes it.
+
 ## [0.71.0] — 2026-09-25
 
 ### Map editor: levels, saved maps with their history, stamped objects that move

@@ -14,9 +14,10 @@
 //     handlers: walking east also climbs or descends) with bit 13 set —
 //     vanilla puts exactly these under its stair art, and nowhere else
 //     (maps/vanilla-stairs.ts). Diagonal R/L write them like a drift.
-//     Vertical stairs have no encoding of their own (§8 of that doc is an
-//     earlier version of this codebase mistaking plane-transparency for
-//     one): that item is an icon over an ordinary tile, nothing else.
+//     Vertical stairs are bit 13 with nibble 0 — no drift, the level kept —
+//     the word vanilla puts under its step art (maps/vanilla-stairs.ts).
+//     (§8 of that doc is an earlier version of this codebase mistaking
+//     plane-transparency for a stairs test; that is still wrong.)
 //   - Entrance is "stored in the room's data, not the tile grid" per the
 //     design mock's own README, and editExport() has no field to put it in
 //     (docs/map-editor-redesign-plan.md §5.1) — visual-only, not exported.
@@ -39,12 +40,12 @@ var EDIT_SPECIAL_GROUPS = [
   },
   {
     id: 'stairs', label: 'Stairs & Drift',
-    note: 'One per tile — picking a new one replaces the last. Diagonal L/R are real stairs: '
-      + 'always-walkable, and walking sideways climbs (R rises to the right, L to the left), as '
-      + 'vanilla’s stair tiles are. Vertical is icon-only: no encoding is attested for it. The '
+    note: 'One per tile — picking a new one replaces the last. All three stairs are real: '
+      + 'always-walkable, keeping the Boy’s level, as vanilla’s stair tiles are. Vertical has no '
+      + 'drift; on Diagonal L/R walking sideways climbs (R rises to the right, L to the left). The '
       + 'four Drift picks are real collision-word writes too (always-walkable + a direction nibble).',
     items: [
-      { id: 'stairs-vert', label: 'Vertical', glyph: '⭥' },
+      { id: 'stairs-vert', label: 'Vertical', glyph: '⭥', drift: 0x0 },
       { id: 'stairs-diag-l', label: 'Diagonal L', glyph: '◣', drift: 0x2 },
       { id: 'stairs-diag-r', label: 'Diagonal R', glyph: '◢', drift: 0x1 },
       { id: 'drift-n', label: 'Drift N', glyph: '↑', drift: 0x8 },
@@ -111,9 +112,9 @@ function editSpecialAt(x, y) {
 
 // ---------------------------------------------------------------------------
 // Collision-word bit math — docs/map-format/map_collision_mechanics.md §4
-// (gate) and §6 (drift, and diagonal stairs). Never touched for vertical
-// stairs/entrance: those items carry no `gate`/`drift` field, so the
-// functions below leave the word exactly as editResolve already left it.
+// (gate) and §6 (drift, and stairs). Never touched for entrance: those
+// items carry no `gate`/`drift` field, so the functions below leave the
+// word exactly as editResolve already left it.
 // ---------------------------------------------------------------------------
 
 var SPECIAL_GATE_MASK = 0x0f00;   // entity gate, bits 11..8
@@ -194,7 +195,7 @@ function specialGroupHtml(group) {
     + '<div class="rs-note">' + escH(group.note) + '</div>'
     + '<div class="rg-special-grid">';
   group.items.forEach(function (it) {
-    html += '<button class="rdf rg-special-chip' + (current === it.id ? ' on' : '') + '" data-edit-special="'
+    html += '<button class="rdf rg-special-chip' + (current === it.id ? ' on rg-armed' : '') + '" data-edit-special="'
       + it.id + '" title="' + escH(it.label) + '">'
       + '<span class="rg-special-glyph-ic" aria-hidden="true">'
       + (it.id === START_SPECIAL_ID && _startSprite
@@ -208,7 +209,11 @@ function specialGroupHtml(group) {
 /** Special tab body: the groups of pickable glyphs this room can use. */
 function specialTabHtml() {
   var d = editDraft();
-  return EDIT_SPECIAL_GROUPS.filter(function (g) { return !g.draftOnly || (d && d.blank); })
+  // With the eraser out, what it takes off is shown the same armed way.
+  var erasing = d && d.tool === 'erase'
+    ? '<div class="rg-erase-target rg-armed">Eraser: takes every special off a cell — stairs, drift and '
+      + 'gate bits and the glyph</div>' : '';
+  return erasing + EDIT_SPECIAL_GROUPS.filter(function (g) { return !g.draftOnly || (d && d.blank); })
     .map(specialGroupHtml).join('');
 }
 

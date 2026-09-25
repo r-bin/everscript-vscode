@@ -145,8 +145,7 @@ function groupSelectGesture(cell, phase) {
   if (phase === 'down') {
     var g = editGroupAt(cell.x, cell.y);
     if (!g) { _groupSel = null; return false; }
-    var d = editDraft();
-    if (d) d.selectedTriggerRef = null;
+    if (typeof editDeselectAll === 'function') editDeselectAll();
     _groupSel = g.uid;
     _groupDrag = { uid: g.uid, grabX: cell.x - g.x, grabY: cell.y - g.y, x: g.x, y: g.y };
     editNote(g.name + ' selected — drag to move it, Delete to remove it');
@@ -164,12 +163,21 @@ function groupSelectGesture(cell, phase) {
   return true;
 }
 
+/** Down on the selected group starts dragging it; anywhere else deselects it. */
+function groupDragSelected(cell) {
+  var g = _groupSel != null ? editGroupFind(_groupSel) : null;
+  var on = g && g.cells.some(function (c) { return g.x + c.dx === cell.x && g.y + c.dy === cell.y; });
+  if (!on) { _groupSel = null; _groupDrag = null; return false; }
+  _groupDrag = { uid: g.uid, grabX: cell.x - g.x, grabY: cell.y - g.y, x: g.x, y: g.y };
+  return true;
+}
+
 /** Outlines: every group faintly while selecting, the selected one and its drag ghost clearly. */
 function editGroupSvg(origin) {
   var d = editDraft();
   if (!d || !d.groups || !d.groups.length) return '';
   var html = '';
-  var selecting = d.tool === 'select';
+  var selecting = d.tool === 'select' || d.tool === 'copy';
   d.groups.forEach(function (g) {
     var sel = g.uid === _groupSel;
     if (!sel && !selecting) return;

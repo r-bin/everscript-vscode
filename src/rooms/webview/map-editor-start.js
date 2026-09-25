@@ -15,7 +15,12 @@
 // map-editor-rules §6) — but Export ROM uses it: it is where the intro's
 // `load_map` puts the Boy (map-editor-rom-export.js, rom-export.js).
 //
-// Owns: _startSprite.
+// Selecting him: the Select tool (or the Special tab's Boy pick) — a click
+// on him selects and highlights him, a drag moves him (one undo step, the
+// gesture's own), and selecting anything else, leaving the tab, a tool
+// change or Escape deselects him (editDeselectAll, map-editor-input.js).
+//
+// Owns: _startSprite, _startSel, _startDrag.
 
 /** The special-catalog id of the pick that moves the marker. */
 var START_SPECIAL_ID = 'start';
@@ -25,6 +30,47 @@ var START_SPECIAL_ID = 'start';
  * `{uri, w, h, ox, oy}` in pixels, or null to draw the glyph instead.
  */
 var _startSprite = null;
+/** The Boy is selected (highlighted); `_startDrag` is `{dx, dy}` while he is dragged. */
+var _startSel = false;
+var _startDrag = null;
+
+/** His cell, or the one above it, where his sprite's head is. */
+function startHit(cell) {
+  var d = editDraft();
+  return !!(d && d.start && cell.x === d.start.x && (cell.y === d.start.y || cell.y === d.start.y - 1));
+}
+
+/**
+ * The Select tool on the Boy: down on him selects him, a drag moves him.
+ * Returns true when the gesture was his.
+ */
+function startSelectGesture(cell, phase) {
+  var d = editDraft();
+  if (!d || !d.start) return false;
+  if (phase === 'down') {
+    if (!startHit(cell)) { _startSel = false; _startDrag = null; return false; }
+    if (typeof editDeselectAll === 'function') editDeselectAll();
+    _startSel = true;
+    _startDrag = { dx: cell.x - d.start.x, dy: cell.y - d.start.y };
+    editNote('the Boy is selected — drag him to move him');
+    renderEditChrome();
+    return true;
+  }
+  if (!_startDrag) return false;
+  var x = Math.max(0, Math.min(_mtPalette.widthTiles - 1, cell.x - _startDrag.dx));
+  var y = Math.max(0, Math.min(_mtPalette.heightTiles - 1, cell.y - _startDrag.dy));
+  editMoveStart(x, y);
+  if (phase === 'up') _startDrag = null;
+  renderEditLayer(_mtPalette, _editComposed, _editOrigin);
+  return true;
+}
+
+/** He is highlighted when selected, and while the Special tab's Boy pick is armed. */
+function startHighlighted() {
+  var d = editDraft();
+  return _startSel || !!(d && d.currentSpecialId === START_SPECIAL_ID
+    && typeof _editActiveTab !== 'undefined' && _editActiveTab === 'special');
+}
 
 /**
  * Put the marker on a freshly drafted or resized map.
@@ -77,8 +123,8 @@ function editStartSvg(origin) {
   if (!d || !d.start) return '';
   var pos = editCellPos(origin, d.start.x, d.start.y);
   var tip = 'Boy start (' + d.start.x + ',' + d.start.y + ') — where this map is entered from.'
-    + '\nMove it with Special → Start. It cannot be removed.';
-  var html = '<g class="rg-start" pointer-events="none">'
+    + '\nSelect him and drag to move him. He cannot be removed.';
+  var html = '<g class="rg-start' + (startHighlighted() ? ' sel' : '') + '" pointer-events="none">'
     + '<rect class="rg-start-cell" x="' + pos.x + '" y="' + pos.y + '" width="' + EDIT_UNITS
     + '" height="' + EDIT_UNITS + '"/>';
   var s = _startSprite;

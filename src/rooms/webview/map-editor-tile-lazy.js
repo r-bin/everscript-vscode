@@ -51,6 +51,6 @@ function tileLazyObserve() {
       _tileObserver.unobserve(e.target);
       ensureFamilySheet(Number(e.target.dataset.lazyFam));
     });
-  }, { root: body, rootMargin: TILE_LAZY_MARGIN + 'px 0px' });
+  }, { root: typeof panelScroller === 'function' ? panelScroller(body) : body, rootMargin: TILE_LAZY_MARGIN + 'px 0px' });
   for (var j = 0; j < lazy.length; j++) _tileObserver.observe(lazy[j]);
 }

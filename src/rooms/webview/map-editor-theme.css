@@ -80,6 +80,12 @@
   overflow-y:auto;
   padding-right:4px;
 }
+.rg-theme .rg-tab-body[data-tab="tile"]{
+  overflow:hidden;display:flex;flex-direction:column;padding-right:0;
+}
+/* The Tile tab: families, filters and neighbours stay; the tiles scroll. */
+.rg-theme .rg-tile-head{flex-shrink:0;padding-right:4px;padding-bottom:6px}
+.rg-theme .rg-tile-scroll{flex:1;min-height:0;overflow-y:auto;padding-right:4px}
 .rg-theme .rg-tabstrip{
   display:flex;
   gap:14px;
@@ -196,8 +202,10 @@
 /* ── Trigger tab list (map-editor-trigger-panel.js's triggerTabPanelHtml) ── */
 .rg-theme .rg-trigger-section{margin-bottom:12px}
 /* What the Trigger tab's pencil draws (map-editor-drawable.js), B first. */
-.rg-theme .rg-trigger-draw{display:flex;align-items:center;gap:6px;margin-bottom:8px}
-.rg-theme .rg-trigger-draw .rg-panel-h{margin:0 4px 0 0}
+.rg-theme button.rg-trigger-kind{display:flex;align-items:center;gap:6px;width:100%;text-align:left;
+  background:transparent;border:1px solid transparent;border-radius:var(--rg-radius-control);padding:4px 6px;
+  color:inherit;font:inherit;cursor:pointer}
+.rg-theme button.rg-trigger-kind:hover{background:var(--rg-bg-hover)}
 .rg-theme .rg-trigger-kind b{display:inline-block;min-width:1.1em;text-align:center}
 .rg-theme .rg-trigger-kind-b b{color:var(--rg-trigger-b)}
 .rg-theme .rg-trigger-kind-step b{color:var(--rg-trigger-step)}
@@ -214,3 +222,17 @@
 }
 .rg-theme .rg-trigger-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;overflow:hidden}
 .rg-theme .rg-trigger-remove{margin-left:auto;flex-shrink:0}
+
+/* ── The armed look ────────────────────────────────────────────────────────
+ * What the open tab will draw, select or erase — a special, a trigger kind,
+ * a widget — wears the selected tile swatch's own accent ring
+ * (map-editor-tile-tab.css `.rs-mt-cell.sel`), so every tab says it the
+ * same way. */
+.rg-theme .rg-armed{
+  outline:2px solid var(--rg-accent)!important;outline-offset:1px;
+  border-color:transparent!important;background:var(--rg-accent-soft)!important;
+  color:var(--rg-accent)!important;opacity:1!important;
+}
+.rg-theme .rg-erase-target{margin:0 0 10px;padding:6px 8px;border-radius:var(--rg-radius-control);font-size:11px}
+/* The Boy, selected (map-editor-start.js). */
+.rg-theme .rg-start.sel .rg-start-cell{stroke:var(--rg-accent);stroke-width:.2;stroke-dasharray:none;fill:var(--rg-accent-soft);fill-opacity:.35}

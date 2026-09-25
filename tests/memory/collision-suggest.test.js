@@ -149,6 +149,10 @@ if (!fs.existsSync(ROM_PATH)) {
         assert.strictEqual(maps.suggestStairs(index, 641, 'terrain'), null, 'a wall is not stairs');
         assert.strictEqual(maps.stairsNibble(0x2001), 1);
         assert.strictEqual(maps.stairsNibble(0x2008), 0, 'drift north is not stairs');
+        assert.strictEqual(maps.stairsNibble(0x2000), 3, 'bit 13 with no drift is vertical stairs');
+        assert.strictEqual(maps.stairsForWord(3, 0x4000), 3, 'a flip does not turn vertical stairs');
+        // Vertical stairs: the step art beside the diagonals in 0x0b/0x2b, and 1877 in Ebon Keep.
+        for (const g of [1592, 1595, 1877]) assert.strictEqual(maps.suggestStairs(index, g, 'terrain').nibble, 3, 'graphic ' + g);
         assert.strictEqual(maps.stairsNibble(0x0001), 0, 'without bit 13 the nibble is geometry');
         assert.strictEqual(maps.stairsForWord(1, 0x4000), 2);
         // The shape of a bit-13 word is open, not the diagonal its nibble would
@@ -166,7 +170,7 @@ if (!fs.existsSync(ROM_PATH)) {
         const row = sheet.slots.find((s) => s[2] === 1833);
         assert.ok(row && (row[11] || row[12]), JSON.stringify(row));
         const cat = rooms.buildFamilyCatalogue(rom);
-        assert.ok(cat.filter((f) => f.stairs).length >= 5, 'several families have stair art');
+        assert.ok(cat.filter((f) => f.stairs).length >= 25, 'many families have stair art, vertical included');
     });
 
     test('a drafted map’s collision layer draws solid cells and leaves open ones clear', () => {

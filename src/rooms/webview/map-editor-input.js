@@ -217,11 +217,13 @@ function bindEditControls(panel, room) {
     if (t.dataset.editTool) {
       var d = editDraft();
       if (d) {
+        var fromTool = d.tool;
         d.tool = t.dataset.editTool;
         _editSel = null;
-        // Every tool but Select clears the trigger selection — the mock's
-        // own rule (docs/map-editor-redesign-plan.md Phase 4).
-        if (d.tool !== 'select') { d.selectedTriggerRef = null; _triggerDrag = null; }
+        // A tool change lets go of what is selected (the mock's own rule,
+        // docs/map-editor-redesign-plan.md Phase 4) — the Select tool's
+        // selection survives picking Select again.
+        if (d.tool !== fromTool) editDeselectAll();
         renderEditChrome();
       }
       return;
@@ -236,6 +238,13 @@ function bindEditControls(panel, room) {
     }
     if (t.dataset.panel) { panelToggle(t.dataset.panel); return; }
     if (t.dataset.editActiveTab) {
+      // Leaving a tab drops what was selected on it; the Boy pick is the
+      // Special tab's, so it is let go too.
+      if (t.dataset.editActiveTab !== _editActiveTab) {
+        editDeselectAll();
+        var dt = editDraft();
+        if (dt && dt.currentSpecialId === START_SPECIAL_ID) dt.currentSpecialId = null;
+      }
       _editActiveTab = t.dataset.editActiveTab;
       // The pencil draws the tab's pick, so its badge changes with the tab.
       renderEditChrome();

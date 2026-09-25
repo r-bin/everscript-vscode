@@ -70,6 +70,13 @@ function editWordFromPart(palette, part) {
  * B-trigger plus an object, and a hide, which is only metatiles.
  */
 function editSaveConstruct(palette, sel, name) {
+  var construct = editBuildConstruct(palette, sel, name || ('construct ' + ((_edit && _edit.constructs.length) + 1)));
+  if (construct) _edit.constructs.push(construct);
+  return construct;
+}
+
+/** A rectangle of the map as a construct, without saving it — the clipboard's (map-editor-clipboard.js). */
+function editBuildConstruct(palette, sel, name) {
   if (!_edit || !sel || !palette) return null;
   var cells = [];
   for (var y = sel.y1; y <= sel.y2; y++) {
@@ -86,15 +93,13 @@ function editSaveConstruct(palette, sel, name) {
     }
   }
   if (!cells.length) return null;
-  var construct = {
-    name: name || ('construct ' + (_edit.constructs.length + 1)),
+  return {
+    name: name,
     w: sel.x2 - sel.x1 + 1,
     h: sel.y2 - sel.y1 + 1,
     cells: cells,
     attachments: editAttachmentsIn(palette, sel),
   };
-  _edit.constructs.push(construct);
-  return construct;
 }
 
 /** Triggers and objects whose rectangle overlaps this selection. */

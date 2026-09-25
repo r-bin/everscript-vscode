@@ -114,6 +114,8 @@ const ROOMS_JS_FILES = [
   'map-editor-drawable.js', // what the pencil draws: the open tab's pick; drawing triggers
   'map-editor-levels.js', // levels (elevation planes 0..3) and the bar that picks one
   'map-editor-groups.js', // stamped objects kept as one thing: select, move, delete
+  'map-editor-clipboard.js', // copy/paste of regions and objects (Cmd/Ctrl+C/V)
+  'map-editor-pick.js', // the smart eyedropper: picks up what is there, with its tab and tool
   'rom-overlay.js',      // ROM view top bar (_currentLayer/_currentOverlay) + renderRomDataSections
   'detail-renderer.js',  // renderRoomDetail (orchestrator)
   'rooms-rail.js',       // the left rail: groups, area collapse, search, selection, + New Map

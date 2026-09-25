@@ -142,9 +142,9 @@ for anyway:
 - **Diagonal stairs are bit 13 + drift nibble 1 or 2** (the two "shear" handlers of
   `map_collision_mechanics.md` §6), measured over every vanilla room: only stair art
   carries them, and the direction follows the art's H flip (`src/maps/vanilla-stairs.ts`).
-  **Vertical stairs have no attested encoding.** An earlier version of this codebase
-  mistook plane-transparency (bit 6) for a stairs test. Vertical stairs stay an icon
-  over an ordinary tile, not a bitfield.
+  **Vertical stairs are bit 13 + nibble 0** (walkable, no drift, the level kept): the
+  word vanilla puts under its step art. An earlier version of this codebase mistook
+  plane-transparency (bit 6) for a stairs test; that is still wrong.
 - **Adjacency comes in two kinds, and they are not interchangeable.**
   `relatedGraphics`/`relatedTiles` is **undirected** ("drawn beside, any side") and
   drives tile ranking. Since §8b the same walk (`src/maps/vanilla-adjacency.ts`) also

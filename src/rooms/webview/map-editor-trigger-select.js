@@ -240,6 +240,7 @@ function triggerCopySelected() {
   if (!d || !d.selectedTriggerRef) return;
   var t = editTriggerFind(d.selectedTriggerRef);
   if (!t) return;
+  if (typeof _regionClip !== 'undefined') _regionClip = null; // the last copy is what pastes
   _triggerClipboard = {
     kind: t.ref.kind, x1: t.x1, y1: t.y1,
     w: t.x2 - t.x1 + 1, h: t.y2 - t.y1 + 1, scriptId: t.scriptId,

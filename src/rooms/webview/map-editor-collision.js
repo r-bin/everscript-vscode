@@ -99,33 +99,43 @@ function collisionShapeName(shape) {
  */
 function tileSuggestedCollision(slot, layer, word) {
   var stairs = tileStairsFor(slot, layer, word || 0);
-  if (stairs) return STAIRS_AW | stairs;
+  if (stairs) return stairsCollisionWord(stairs);
   var s = tileCollisionFor(slot, layer);
   return s ? (s.shape & 0x0f) : EMPTY_COLLISION;
 }
 
 // ── stairs ──────────────────────────────────────────────────────────────────
-// A collision flag, not a shape: bit 13 (always-walkable) with drift nibble
-// 1 (rises to the right: walking east climbs north) or 2 (rises to the left)
-// — maps/vanilla-stairs.ts. Slot rows carry the direction as drawn unflipped
-// ([11] ground, [12] front); an H-flipped word rises the other way.
+// A collision flag, not a shape: bit 13 (always-walkable, keeps the level)
+// with drift nibble 1 (rises to the right: walking east climbs north), 2
+// (rises to the left) or 0 (vertical: steps climbed up the screen) —
+// maps/vanilla-stairs.ts. Slot rows carry the kind ([11] ground, [12]
+// front): 1/2 as drawn unflipped, 3 vertical. An H-flipped diagonal rises
+// the other way.
 
 var STAIRS_AW = 0x2000;
-var STAIRS_GLYPH = { 1: '◢', 2: '◣' };
-var STAIRS_NAME = { 1: 'rises to the right', 2: 'rises to the left' };
+var STAIRS_VERTICAL = 3;
+var STAIRS_GLYPH = { 1: '◢', 2: '◣', 3: '⭥' };
+var STAIRS_NAME = { 1: 'rises to the right', 2: 'rises to the left', 3: 'vertical — walkable, keeps the level' };
 
-/** The stairs nibble a collision word carries, or 0. */
+/** The kind of stairs a collision word is (1, 2, 3 vertical), or 0. */
 function stairsOfCollision(cw) {
   if (!(cw & STAIRS_AW)) return 0;
   var n = cw & 0x0f;
+  if (n === 0) return STAIRS_VERTICAL;
   return n === 1 || n === 2 ? n : 0;
 }
 
-/** The stairs direction a slot gets on this layer, drawn with `word`; 0 = not stairs. */
+/** The collision word a kind of stairs writes. */
+function stairsCollisionWord(kind) {
+  return STAIRS_AW | (kind === STAIRS_VERTICAL ? 0 : kind);
+}
+
+/** The stairs kind a slot gets on this layer, drawn with `word`; 0 = not stairs. */
 function tileStairsFor(slot, layer, word) {
   if (!slot || slot.length < 13) return 0;
   var n = layer === 'canopy' ? slot[12] : slot[11];
   if (!n) return 0;
+  if (n === STAIRS_VERTICAL) return n;
   return word & 0x4000 ? 3 - n : n;
 }
 
@@ -137,7 +147,8 @@ function tileStairsMarkHtml(slot) {
 
 function tileStairsTitle(slot) {
   var n = tileStairsFor(slot, tilePaintLayer(slot[2]), 0);
-  return n ? '\nstairs: ' + STAIRS_NAME[n] + ' (H mirrors it) — painting it sets the stairs flag' : '';
+  return n ? '\nstairs: ' + STAIRS_NAME[n] + (n === STAIRS_VERTICAL ? '' : ' (H mirrors it)')
+    + ' — painting it sets the stairs flag' : '';
 }
 
 /** A painted cell's stairs glyph on the map, from its stamp's collision (renderEditLayer). */
