@@ -74,15 +74,18 @@ function triggerSectionHtml(kind, label) {
 }
 
 /**
- * Trigger tab body: step and B sections, each a list of selectable,
+ * Trigger tab body: what the pencil draws (map-editor-drawable.js), then the
+ * B and step sections — B first, the same order as the pencil's choices — each a list of selectable,
  * removable rows. Click-select here or on the canvas share one selection
  * (`_edit.selectedTriggerRef`) and one Select-tool gesture set — see
  * map-editor-trigger-select.js and map-editor-gestures.js.
  */
 function triggerTabPanelHtml() {
-  return '<div class="rs-note">Select tool: click a trigger to select it, drag its own '
-    + 'cells to move it, Delete to remove, Cmd/Ctrl+C/V to copy — or click a row below.</div>'
-    + triggerSectionHtml('step', 'Step-on triggers') + triggerSectionHtml('b', 'B-triggers');
+  var draw = typeof triggerDrawRowHtml === 'function' ? triggerDrawRowHtml() : '';
+  return draw + '<div class="rs-note">Pencil: drag a box on the map to add the trigger picked above. '
+    + 'Select tool: click a trigger to select it, drag its own cells to move it, Delete to remove, '
+    + 'Cmd/Ctrl+C/V to copy — or click a row below.</div>'
+    + triggerSectionHtml('b', 'B-triggers') + triggerSectionHtml('step', 'Step-on triggers');
 }
 
 // The filter bar's Triggers chip used to live here (Phase 6's

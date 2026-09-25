@@ -120,7 +120,7 @@ if (!fs.existsSync(ROM_PATH)) {
     test('family sheet slots carry ground and front shapes with their scores', () => {
         const sheet = rooms.buildFamilySheet(rom, 32, 0x34);
         const row = sheet.slots.find((s) => s[2] === 641);
-        assert.ok(row && row.length === 11, JSON.stringify(row));
+        assert.ok(row && row.length === 13, JSON.stringify(row));
         assert.strictEqual(row[6], 0x0f);
         assert.ok(row[7] >= 90);
     });
@@ -140,6 +140,33 @@ if (!fs.existsSync(ROM_PATH)) {
             assert.ok(row && row[10] === 2, `graphic ${g} missing from family 32 or not flagged as cut state`);
             assert.strictEqual(maps.suggestGeometry(index, g, 'terrain').value, 0x00, `cut grass ${g} is walkable`);
         }
+    });
+
+    test('stairs: vanilla’s stair art carries bit 13 + a shear nibble, and its direction follows the H flip', () => {
+        // Graphic 1833: stair art in Ebon Keep, drawn as ground and as front.
+        const g = maps.suggestStairs(index, 1833, 'terrain');
+        assert.ok(g && (g.nibble === 1 || g.nibble === 2) && g.confidence >= 0.5, JSON.stringify(g));
+        assert.strictEqual(maps.suggestStairs(index, 641, 'terrain'), null, 'a wall is not stairs');
+        assert.strictEqual(maps.stairsNibble(0x2001), 1);
+        assert.strictEqual(maps.stairsNibble(0x2008), 0, 'drift north is not stairs');
+        assert.strictEqual(maps.stairsNibble(0x0001), 0, 'without bit 13 the nibble is geometry');
+        assert.strictEqual(maps.stairsForWord(1, 0x4000), 2);
+        // The shape of a bit-13 word is open, not the diagonal its nibble would
+        // be as geometry — stairs are walkable.
+        assert.strictEqual(maps.shapeOf(0x2001), 0);
+        assert.strictEqual(maps.suggestGeometry(index, 1833, 'terrain').value, 0);
+        // Every stairs placement in vanilla, normalised to the art's frame,
+        // agrees with its graphic's direction most of the time.
+        let agree = 0; let all = 0;
+        for (const [, v] of index.stairs) for (const c of [v.terrain, v.canopy]) {
+            all += c.stairs; agree += Math.max(c.right, c.stairs - c.right);
+        }
+        assert.ok(agree / all > 0.9, `direction follows the flip in ${(100 * agree / all).toFixed(1)}%`);
+        const sheet = rooms.buildFamilySheet(rom, maps.suggestFamily(index, 1833).value, 0x34);
+        const row = sheet.slots.find((s) => s[2] === 1833);
+        assert.ok(row && (row[11] || row[12]), JSON.stringify(row));
+        const cat = rooms.buildFamilyCatalogue(rom);
+        assert.ok(cat.filter((f) => f.stairs).length >= 5, 'several families have stair art');
     });
 
     test('a drafted map’s collision layer draws solid cells and leaves open ones clear', () => {

@@ -6,6 +6,7 @@
 // reading an answer off them are two different jobs.
 
 import { Attestation, VanillaIndex } from './vanilla-index';
+import { ALWAYS_WALKABLE, suggestStairs as stairsOf } from './vanilla-stairs';
 
 /** A suggestion, with the evidence that produced it. */
 export interface Suggestion {
@@ -60,6 +61,14 @@ export function preferredLayer(
 export const GEOMETRY_BITS = 0x0f;
 
 /**
+ * The shape a word draws. With bit 13 (always-walkable) set the low nibble
+ * is a drift or stairs direction, not geometry, and the tile is open.
+ */
+export function shapeOf(word: number): number {
+    return word & ALWAYS_WALKABLE ? 0 : word & GEOMETRY_BITS;
+}
+
+/**
  * Which collision *shape* vanilla gives this graphic on this layer.
  *
  * The shape, not the whole word: measured leave-one-room-out over all 127
@@ -73,7 +82,7 @@ export function suggestGeometry(index: VanillaIndex, graphic: number, layer: 'te
     const words = (layer === 'canopy' ? index.canopyCollisions : index.collisions).get(graphic);
     if (!words) return null;
     const byShape = new Map<number, number>();
-    for (const a of words) byShape.set(a.value & GEOMETRY_BITS, (byShape.get(a.value & GEOMETRY_BITS) || 0) + a.uses);
+    for (const a of words) byShape.set(shapeOf(a.value), (byShape.get(shapeOf(a.value)) || 0) + a.uses);
     const list = [...byShape].map(([value, uses]) => ({ value, uses }));
     list.sort((a, b) => b.uses - a.uses || a.value - b.value);
     return suggest(list);
@@ -82,4 +91,12 @@ export function suggestGeometry(index: VanillaIndex, graphic: number, layer: 'te
 /** Which collision word vanilla puts under this terrain graphic. */
 export function suggestCollision(index: VanillaIndex, graphic: number): Suggestion | null {
     return suggest(index.collisions.get(graphic));
+}
+
+/**
+ * Whether vanilla draws this graphic as stairs on this layer, and which way
+ * it rises drawn unflipped (1 right, 2 left). `null` if not stairs.
+ */
+export function suggestStairs(index: VanillaIndex, graphic: number, layer: 'terrain' | 'canopy'): { nibble: number; confidence: number } | null {
+    return stairsOf(index.stairs, graphic, layer);
 }

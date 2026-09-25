@@ -92,10 +92,63 @@ function collisionShapeName(shape) {
   return 'shape 0x' + shape.toString(16);
 }
 
-/** The collision word a painted tile starts with: the suggested shape on plane 0. */
-function tileSuggestedCollision(slot, layer) {
+/**
+ * The collision word a painted tile starts with: the suggested shape on
+ * plane 0 — or, for a stairs tile, the stairs flag (always-walkable + its
+ * direction), mirrored when `word` is H-flipped.
+ */
+function tileSuggestedCollision(slot, layer, word) {
+  var stairs = tileStairsFor(slot, layer, word || 0);
+  if (stairs) return STAIRS_AW | stairs;
   var s = tileCollisionFor(slot, layer);
   return s ? (s.shape & 0x0f) : EMPTY_COLLISION;
+}
+
+// ── stairs ──────────────────────────────────────────────────────────────────
+// A collision flag, not a shape: bit 13 (always-walkable) with drift nibble
+// 1 (rises to the right: walking east climbs north) or 2 (rises to the left)
+// — maps/vanilla-stairs.ts. Slot rows carry the direction as drawn unflipped
+// ([11] ground, [12] front); an H-flipped word rises the other way.
+
+var STAIRS_AW = 0x2000;
+var STAIRS_GLYPH = { 1: '◢', 2: '◣' };
+var STAIRS_NAME = { 1: 'rises to the right', 2: 'rises to the left' };
+
+/** The stairs nibble a collision word carries, or 0. */
+function stairsOfCollision(cw) {
+  if (!(cw & STAIRS_AW)) return 0;
+  var n = cw & 0x0f;
+  return n === 1 || n === 2 ? n : 0;
+}
+
+/** The stairs direction a slot gets on this layer, drawn with `word`; 0 = not stairs. */
+function tileStairsFor(slot, layer, word) {
+  if (!slot || slot.length < 13) return 0;
+  var n = layer === 'canopy' ? slot[12] : slot[11];
+  if (!n) return 0;
+  return word & 0x4000 ? 3 - n : n;
+}
+
+/** The swatch's stairs badge — always shown: it is what painting the tile writes. */
+function tileStairsMarkHtml(slot) {
+  var n = tileStairsFor(slot, tilePaintLayer(slot[2]), 0);
+  return n ? '<b class="rg-stairs-mark" aria-hidden="true">' + STAIRS_GLYPH[n] + '</b>' : '';
+}
+
+function tileStairsTitle(slot) {
+  var n = tileStairsFor(slot, tilePaintLayer(slot[2]), 0);
+  return n ? '\nstairs: ' + STAIRS_NAME[n] + ' (H mirrors it) — painting it sets the stairs flag' : '';
+}
+
+/** A painted cell's stairs glyph on the map, from its stamp's collision (renderEditLayer). */
+function editStairsSvg(palette, index, x, y) {
+  var w = typeof editStampWords === 'function' ? editStampWords(palette, index) : null;
+  var n = w ? stairsOfCollision(w.collision) : 0;
+  if (!n) return '';
+  var fs = EDIT_UNITS * 0.6;
+  return '<text class="rg-special-glyph rg-special-glyph-stairs rg-stairs-cell" x="' + (x + EDIT_UNITS - fs * 0.35)
+    + '" y="' + (y + fs * 0.85) + '" text-anchor="middle" font-size="' + fs + '" pointer-events="none">'
+    + STAIRS_GLYPH[n] + '<title>stairs: ' + STAIRS_NAME[n] + '</title></text>';
 }
 
 // ── the drafted map's collision layer ───────────────────────────────────────

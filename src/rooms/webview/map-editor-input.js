@@ -226,6 +226,7 @@ function bindEditControls(panel, room) {
       }
       return;
     }
+    if (t.dataset.triggerKind) { triggerKindPick(t.dataset.triggerKind); return; }
     if (t.dataset.triggerRef) { triggerSelect(triggerParseRef(t.dataset.triggerRef)); return; }
     if (t.dataset.triggerRemove) {
       triggerSelect(triggerParseRef(t.dataset.triggerRemove));
@@ -235,7 +236,8 @@ function bindEditControls(panel, room) {
     if (t.dataset.panel) { panelToggle(t.dataset.panel); return; }
     if (t.dataset.editActiveTab) {
       _editActiveTab = t.dataset.editActiveTab;
-      renderEditPanels();
+      // The pencil draws the tab's pick, so its badge changes with the tab.
+      renderEditChrome();
       return;
     }
     if (t.dataset.chip) { chipToggle(t.dataset.chip); return; }
@@ -245,7 +247,7 @@ function bindEditControls(panel, room) {
     }
     if (t.dataset.chipAdopt) { chipAdopt(t.dataset.chipAdopt); return; }
     if (t.dataset.brushFlip) { brushFlipToggle(t.dataset.brushFlip); return; }
-    if (t.dataset.tileFilter === 'grass') { tileGrassToggle(); return; }
+    if (t.dataset.tileFilter) { tileFilterToggle(t.dataset.tileFilter); return; }
     if (t.dataset.nbSide) { nbSideClick(t.dataset.nbSide); return; }
     if (t.dataset.nbCentre) { brushLayerToggle(); return; }
     if (t.dataset.nbUse) { nbUse(t.dataset.nbUse); return; }

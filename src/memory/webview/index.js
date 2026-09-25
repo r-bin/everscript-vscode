@@ -110,6 +110,7 @@ const ROOMS_JS_FILES = [
   'map-editor-rom-export.js', // Export ROM: a custom map into Brian's room, intro jumps there
   'map-editor-collision.js', // suggested collision on tiles, a drafted map's collision layer
   'map-editor-cutlayer.js', // the cuttable layer: tiles the player cuts away, and its toggle
+  'map-editor-drawable.js', // what the pencil draws: the open tab's pick; drawing triggers
   'rom-overlay.js',      // ROM view top bar (_currentLayer/_currentOverlay) + renderRomDataSections
   'detail-renderer.js',  // renderRoomDetail (orchestrator)
   'rooms-rail.js',       // the left rail: groups, area collapse, search, selection, + New Map

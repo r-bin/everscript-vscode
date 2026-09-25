@@ -32,7 +32,7 @@ const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-stamps.js', '
     'map-editor-toolbar.js', 'map-editor-filterbar.js', 'rom-overlay.js',
     'tables-builder.js', 'map-editor-tabs.js', 'map-editor-panels.js', 'map-editor-gestures.js',
     'map-editor-input.js', 'map-editor-actions.js', 'map-editor-newroom.js', 'map-editor-start.js', 'map-editor-custom.js',
-    'map-editor-rom-export.js', 'map-editor-collision.js', 'map-editor-cutlayer.js'];
+    'map-editor-rom-export.js', 'map-editor-collision.js', 'map-editor-cutlayer.js', 'map-editor-drawable.js'];
 
 /** A palette shaped like the host's reply, small enough to read. */
 const PALETTE = {
@@ -159,13 +159,23 @@ async function main() {
         await page.evaluate(() => getComputedStyle(document.getElementById('rg-edit-bar')).position) === 'absolute');
     // Icon-only, one row: the words are gone, so every button must carry a
     // tooltip or the pill is unreadable.
+    // `data-tip`, drawn by CSS: the native `title` tooltip never showed on
+    // the pill (the menu's items, inside a dropdown, keep `title`).
     const pillButtons = await page.$$eval('#rg-edit-bar .rdf',
-        (n) => n.map((e) => ({ title: e.getAttribute('title') || '', text: e.textContent.trim() })));
+        (n) => n.map((e) => ({ title: e.getAttribute('data-tip') || e.getAttribute('title') || '', text: e.textContent.trim() })));
     check('every pill button has a tooltip, since the labels are icons now',
         pillButtons.length > 0 && pillButtons.every((b) => b.title.length > 0),
         JSON.stringify(pillButtons.filter((b) => !b.title)));
     check('the tool buttons are icons, not words',
-        await page.$eval('[data-edit-tool="paint"]', (n) => n.textContent.trim()) === '✎');
+        await page.$eval('[data-edit-tool="paint"] .rg-edit-icon', (n) => n.textContent.trim()) === '✎');
+    await page.hover('[data-edit-tool="erase"]');
+    await page.waitForTimeout(600);
+    const tipShown = await page.$eval('[data-edit-tool="erase"]', (n) => {
+        const a = getComputedStyle(n, '::after');
+        return { content: a.content, visibility: a.visibility };
+    });
+    check('hovering a tool shows its tooltip in the page, without a native title',
+        /Erase what the open tab draws/.test(tipShown.content) && tipShown.visibility === 'visible', JSON.stringify(tipShown));
     // §8a.2 removed the room/deco pair: layer targeting is the Tile tab's
     // auto|front|ground row, and editResolve reads decoration-vs-ground off
     // the brush's own words, so the pill has nothing to offer here.
@@ -787,6 +797,8 @@ async function main() {
                     drawn: !!document.querySelector('#rg-edit .rg-start') };
         // Special tab offers the pick on a drafted map.
         r.offered = specialTabHtml().includes('data-edit-special="start"');
+        // The pick is on the Special tab, which is what the pencil draws from.
+        _editActiveTab = 'special';
         d.currentSpecialId = 'start'; d.tool = 'paint'; d.brush = -1;
         editStroke({ x: 2, y: 1 }, 'down');
         editStroke({ x: 4, y: 6 }, 'move');
@@ -801,6 +813,7 @@ async function main() {
         editStroke({ x: 4, y: 6 }, 'down');
         r.afterErase = !!d.start && d.start.x === 4 && d.start.y === 6;
         d.tool = 'paint';
+        _editActiveTab = 'tile';
         return r;
     });
     check('a new map places exactly one Boy start, in the middle, and draws it',
@@ -1284,9 +1297,10 @@ async function main() {
         document.querySelectorAll('.rg-tile-seg'),
         (s) => Array.prototype.map.call(s.querySelectorAll('.rg-tile-seg-b'),
             (b) => b.textContent).join('|')));
-    // A third, since v0.68.0: the `cuttable` filter, asked for "next to H/V".
+    // A third, since v0.68.0: the `cuttable` filter, asked for "next to H/V";
+    // `stairs` joined it in v0.70.0 — one list filter at a time.
     check('the filter row is three segmented pills, not loose chips',
-        segs.length === 3 && segs[0] === 'auto|front|ground' && segs[1] === 'H|V' && segs[2] === 'cuttable',
+        segs.length === 3 && segs[0] === 'auto|front|ground' && segs[1] === 'H|V' && segs[2] === 'cuttable|stairs',
         JSON.stringify(segs));
 
     // ── the cuttable filter ────────────────────────────────────────────────
@@ -1323,6 +1337,52 @@ async function main() {
     check('turned on, only tiles that are part of cuttable grass are listed, and families with none drop out',
         grass.onOn && grass.on.join() === '901,903' && grass.families.join() === '51', JSON.stringify(grass));
     check('and turned off again, everything is back', grass.back.join() === '901,902,903,904,905', JSON.stringify(grass));
+
+    // ── the stairs filter ──────────────────────────────────────────────────
+    // "we identify which tiles have the stairs flag active and add a filter
+    // where they can be listed". Slot rows [11]/[12] are the direction a
+    // graphic rises drawn unflipped (ground/front); the catalogue's `stairs`
+    // count drops a family with none unfetched. The swatch shows the flag.
+    const stairs = await page.evaluate(() => {
+        const saved = { cat: _famCatalogue, sheets: _famSheets, fams: editDraft().families, sel: _chipSel, lf: _layerForce };
+        _chipSel = {};
+        editDraft().families = [];
+        _layerForce = 'terrain';
+        _famCatalogue = [{ id: 51, tiles: 3, rooms: 1, areas: [], names: [], grass: 0, stairs: 1 },
+                         { id: 52, tiles: 1, rooms: 1, areas: [], names: [], grass: 0, stairs: 0 }];
+        const row = (g, ground, front) => [0, 0, g, 1, 0, 1, 0, 90, -1, 0, 0, ground, front];
+        _famSheets = { 51: { family: 51, count: 3, columns: 16, cell: 16, imageUri: 'data:,',
+                            slots: [row(911, 1, 0), row(912, 0, 0), row(913, 0, 2)] },
+                       52: { family: 52, count: 1, columns: 16, cell: 16, imageUri: 'data:,', slots: [row(914, 0, 0)] } };
+        const shown = () => Array.prototype.map.call(
+            document.querySelectorAll('[data-fam-tile]'), (t) => Number(t.dataset.famTile)).sort();
+        renderEditPanels();
+        document.querySelector('[data-tile-filter="stairs"]').click();
+        const r = { on: shown(), families: tileGroupFamilies(),
+            onBtn: document.querySelector('[data-tile-filter="stairs"]').classList.contains('on'),
+            grassOff: !document.querySelector('[data-tile-filter="grass"]').classList.contains('on'),
+            mark: (document.querySelector('[data-fam-tile="911"] .rg-stairs-mark') || {}).textContent || '',
+            title: document.querySelector('[data-fam-tile="911"]').getAttribute('title'),
+            flipped: tileSuggestedCollision(row(911, 1, 0), 'terrain', 0x4000),
+            plain: tileSuggestedCollision(row(911, 1, 0), 'terrain', 0),
+            notStairs: tileSuggestedCollision(row(912, 0, 0), 'terrain', 0) };
+        document.querySelector('[data-tile-filter="grass"]').click();
+        r.switched = document.querySelector('[data-tile-filter="grass"]').classList.contains('on')
+            && !document.querySelector('[data-tile-filter="stairs"]').classList.contains('on');
+        document.querySelector('[data-tile-filter="grass"]').click();
+        _famCatalogue = saved.cat; _famSheets = saved.sheets; editDraft().families = saved.fams;
+        _chipSel = saved.sel; _layerForce = saved.lf;
+        renderEditPanels();
+        return r;
+    });
+    check('stairs lists only stair tiles — as ground or as front — and drops families with none',
+        stairs.onBtn && stairs.on.join() === '911,913' && stairs.families.join() === '51', JSON.stringify(stairs));
+    check('a stair tile carries the flag on its swatch and in its tooltip',
+        stairs.mark === '◢' && /stairs: rises to the right/.test(stairs.title), JSON.stringify(stairs));
+    check('painting it writes the stairs flag, mirrored by H; other tiles keep their shape',
+        stairs.plain === 0x2001 && stairs.flipped === 0x2002 && stairs.notStairs === 0, JSON.stringify(stairs));
+    check('the two filters are one choice: picking cuttable turns stairs off', stairs.grassOff && stairs.switched,
+        JSON.stringify(stairs));
 
     // ── H / V mirror ───────────────────────────────────────────────────────
     // Bit 14 is the horizontal flip and bit 15 the vertical one

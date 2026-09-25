@@ -246,7 +246,8 @@ function renderEditChrome() {
             : d.tool === 'select' ? (d.selectedTriggerRef
               ? ' · trigger selected — drag to move, Delete to remove'
               : ' · click a trigger to select it')
-              : d.brush >= 0 ? ' · brush #' + d.brush : ' · pick a tile to draw with');
+              : d.tool === 'paint' && typeof editDrawable === 'function' ? ' · pencil draws ' + editDrawable().label
+                : d.brush >= 0 ? ' · brush #' + d.brush : ' · pick a tile to draw with');
     }
   }
   renderEditLayer(_mtPalette, _editComposed, _editOrigin);

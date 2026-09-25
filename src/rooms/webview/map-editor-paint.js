@@ -70,6 +70,11 @@ function renderEditLayer(palette, composed, origin) {
     var p = k.split(',');
     var pos = editCellPos(origin, Number(p[0]), Number(p[1]));
     html += editStampSvg(palette, composed, d.cells[k], pos.x, pos.y, 'rg-edit-cell');
+    // A stairs cell painted from a stair tile says so (map-editor-collision.js);
+    // one drawn with the Special tab already shows that pick's glyph.
+    if (typeof editStairsSvg === 'function' && !(d.specialCells || {})[k]) {
+      html += editStairsSvg(palette, d.cells[k], pos.x, pos.y);
+    }
   });
   // The cuttable layer, over the cells it covers (map-editor-cutlayer.js).
   if (typeof editCutSvg === 'function') html += editCutSvg(palette, composed, origin);
@@ -97,6 +102,8 @@ function renderEditLayer(palette, composed, origin) {
       x2: _triggerDrag.x + _triggerDrag.w - 1, y2: _triggerDrag.y + _triggerDrag.h - 1,
     }, _triggerDrag.ref.kind, origin, 'rg-trigger-drag');
   }
+  // Triggers this draft placed, and one being dragged out (map-editor-drawable.js).
+  if (typeof editTriggerSvg === 'function') html += editTriggerSvg(origin);
   if (_editSel) {
     var a = editCellPos(origin, _editSel.x1, _editSel.y1);
     html += '<rect class="rg-edit-sel" x="' + a.x + '" y="' + a.y

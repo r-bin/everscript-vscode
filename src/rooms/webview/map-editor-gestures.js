@@ -67,6 +67,18 @@ function editStroke(cell, phase) {
     // clearing its glyph and, for gate/drift, the bits it wrote (see
     // map-editor-special.js). Both land in the one final index this cell
     // gets, so undo sees a single write per cell.
+    // The eraser takes off what the pencil would put down: a trigger on the
+    // Trigger tab, the special alone on the Special tab (map-editor-drawable.js).
+    var eraseKind = drawKind();
+    if (eraseKind === 'trigger') {
+      if (phase === 'down') editEraseTriggerAt(cell);
+      return;
+    }
+    if (eraseKind === 'special') {
+      if (editSpecialAt(cell.x, cell.y)) editSpecialStroke(d, cell, true);
+      renderEditChrome();
+      return;
+    }
     // On the cuttable layer, erase takes the cuttable tile off whole.
     if (cutLayerActive()) {
       var cutErase = editCutWrite(cell.x, cell.y, -1, true);
@@ -94,7 +106,8 @@ function editStroke(cell, phase) {
     return;
   }
 
-  if (d.tool === 'stamp') {
+  var kind = drawKind();
+  if (d.tool === 'stamp' || (d.tool === 'paint' && kind === 'widgets')) {
     if (phase !== 'down' || _editConstruct < 0) return;
     var got = editConstructWrites(_mtPalette, d.constructs[_editConstruct], cell.x, cell.y);
     if (got.writes.length) { editApply(got.writes); requestComposedPreview(); }
@@ -105,44 +118,23 @@ function editStroke(cell, phase) {
     return;
   }
 
+  // The Trigger tab's pencil (and rect) drag out a new trigger's box.
+  if (kind === 'trigger' && (d.tool === 'paint' || d.tool === 'rect')) { editTriggerStroke(cell, phase); return; }
+
+  if (d.tool === 'paint' && kind === 'special') { editSpecialStroke(d, cell, false, phase); return; }
+
   if (d.tool === 'paint') {
-    // The Boy's start pick moves the marker instead of painting anything.
-    if (editStartGesture(cell, phase)) return;
-    // A special is cosmetically independent of the tile brush (the design
-    // mock's own note): a click can carry a tile, a special, or both, so
-    // there is nothing to do only when neither is armed.
-    var hasBrush = d.brush >= 0;
-    if (!hasBrush && !d.currentSpecialId) return;
-    // The cuttable layer takes the tile; specials stay on the map itself.
-    if (cutLayerActive() && hasBrush) {
+    // The Tile tab's pencil puts down the armed tile and nothing else — the
+    // armed special is the Special tab's (map-editor-drawable.js).
+    if (d.brush < 0) return;
+    if (cutLayerActive()) {
       editApplyStroke([editCutWrite(cell.x, cell.y, d.brush, false)].filter(Boolean));
       renderEditChrome();
       return;
     }
-    var before = hasBrush
-      ? editResolve(_mtPalette, cell.x, cell.y, d.brush, false)
-      : editCellAt(_mtPalette, cell.x, cell.y);
-    if (before < 0) return;
-    var idx = before;
-    var paintSpecial = [];
-    if (d.currentSpecialId) {
-      // Gate/drift fold their bits into this same index (one final stamp
-      // per cell — see editSpecialAppliedIndex); stairs/entrance leave it
-      // untouched and only the glyph below is new.
-      idx = editSpecialAppliedIndex(_mtPalette, before, d.currentSpecialId, false);
-      paintSpecial.push({ x: cell.x, y: cell.y, id: d.currentSpecialId });
-    }
-    // Only a real brush paint, or a special that actually rewrote the
-    // collision word, touches the tile grid. A special-only click with no
-    // bitfield of its own (stairs, entrance) leaves the grid untouched —
-    // otherwise a plain glyph click would inflate the "N cells" count with
-    // an override that changes nothing.
-    var paintWrites = (hasBrush || idx !== before) ? [{ x: cell.x, y: cell.y, index: idx }] : [];
-    editApply(paintWrites, paintSpecial);
-    // A deco stroke (or a special's bit rewrite) can invent a stamp, which
-    // the preview sheet must catch up with or the painted cell has no
-    // picture to crop from.
-    if (idx >= _mtPalette.count) requestComposedPreview();
+    var idx = editResolve(_mtPalette, cell.x, cell.y, d.brush, false);
+    if (idx < 0) return;
+    editApplyStroke([{ x: cell.x, y: cell.y, index: idx }]);
     renderEditChrome();
     return;
   }
@@ -157,7 +149,18 @@ function editStroke(cell, phase) {
   if (phase !== 'up') { renderEditLayer(_mtPalette, _editComposed, _editOrigin); return; }
 
   if (d.tool === 'rect') {
-    if (d.brush >= 0) {
+    // The rectangle fills with the tab's drawable too: specials cell by
+    // cell; a widget is placed with the pencil, not filled.
+    if (kind === 'special' && d.currentSpecialId && d.currentSpecialId !== START_SPECIAL_ID) {
+      var sw = [], ss = [];
+      for (var ry = _editSel.y1; ry <= _editSel.y2; ry++) {
+        for (var rx = _editSel.x1; rx <= _editSel.x2; rx++) {
+          var one = editSpecialWrites(d, { x: rx, y: ry }, false);
+          if (one) { sw = sw.concat(one.writes); ss = ss.concat(one.special); }
+        }
+      }
+      editApplySpecial(sw, ss);
+    } else if (kind === 'tile' && d.brush >= 0) {
       editApplyStroke(cutLayerActive()
         ? editCutRectWrites(_editSel.x1, _editSel.y1, _editSel.x2, _editSel.y2, d.brush)
         : editRectWrites(_editSel.x1, _editSel.y1, _editSel.x2, _editSel.y2, d.brush, _mtPalette));
@@ -177,6 +180,49 @@ function editStroke(cell, phase) {
   }
   _editDrag = null;
   renderEditChrome();
+}
+
+/** Which tab's drawable the pencil and eraser use (map-editor-drawable.js). */
+function drawKind() {
+  return typeof editDrawKind === 'function' ? editDrawKind() : 'tile';
+}
+
+/**
+ * The Special tab's pencil: the armed special on the cell, and nothing else.
+ *
+ * Gate, drift and diagonal stairs fold their bits into the cell's stamp (one
+ * final stamp per cell — editSpecialAppliedIndex); vertical stairs and
+ * entrance only add the glyph, so they leave the grid untouched — otherwise
+ * a glyph click would inflate the "N cells" count with an override that
+ * changes nothing. `erasing` takes the special off, bits and glyph.
+ */
+function editSpecialStroke(d, cell, erasing, phase) {
+  if (!erasing && editStartGesture(cell, phase)) return;
+  var w = editSpecialWrites(d, cell, erasing);
+  if (!w) return;
+  editApplySpecial(w.writes, w.special);
+  if (!erasing) renderEditChrome();
+}
+
+/** What one special pick (or its removal) writes at a cell, or null. */
+function editSpecialWrites(d, cell, erasing) {
+  if (!erasing && !d.currentSpecialId) return null;
+  var before = editCellAt(_mtPalette, cell.x, cell.y);
+  if (before < 0) return null;
+  var idx = editSpecialAppliedIndex(_mtPalette, before, erasing ? null : d.currentSpecialId, erasing);
+  return {
+    writes: idx !== before ? [{ x: cell.x, y: cell.y, index: idx }] : [],
+    special: [{ x: cell.x, y: cell.y, id: erasing ? null : d.currentSpecialId }],
+  };
+}
+
+/** One undo step for special writes, and a preview refresh if they made a stamp. */
+function editApplySpecial(writes, special) {
+  if (!special.length) return;
+  editApply(writes, special);
+  for (var i = 0; i < writes.length; i++) {
+    if (writes[i].index >= _mtPalette.count) { requestComposedPreview(); return; }
+  }
 }
 
 /**

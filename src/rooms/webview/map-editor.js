@@ -317,11 +317,11 @@ function editRedo(palette) {
  * its real effect here — it modified the cell's stamp, which is exactly
  * what `cells`/`appendMetatiles` already carry — so `specialCells` itself
  * is only the glyph overlay, never a second source of truth for it.
- * Stairs and entrance carry no ROM effect at all (see map-editor-special.js
- * and docs/map-editor-redesign-plan.md §5.1): entrance is a room-metadata
+ * Diagonal stairs are drift-style writes too. Vertical stairs and entrance
+ * carry no ROM effect at all (see map-editor-special.js and
+ * docs/map-editor-redesign-plan.md §5.1): entrance is a room-metadata
  * placement helper with no confirmed encoder field to write into, and
- * stairs has no attested collision encoding. Both stay visual-only until
- * one of those is confirmed.
+ * vertical stairs have no attested collision encoding.
  *
  * `removedTriggers` is the Select tool's counterpart to `attachments`: a
  * base trigger this draft hid (deleted, or moved — a move hides the base one

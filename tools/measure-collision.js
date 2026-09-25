@@ -63,7 +63,7 @@ function predictor(key, target) {
 }
 
 const pct = (a, b) => (b ? (100 * a / b).toFixed(1) : '0.0') + '%';
-const shape = (c) => c.cw & maps.GEOMETRY_BITS;
+const shape = (c) => maps.shapeOf(c.cw); // bit 13 (drift, stairs) is open
 const keys = { 'terrain graphic': (c) => c.t, 'terrain + canopy': (c) => c.t + ':' + c.c };
 const targets = { 'shape (& 0x0F)': shape, 'full word': (c) => c.cw };
 

@@ -8,16 +8,21 @@
 // map-editor-input.js's one delegated handler, so nothing here binds a
 // listener of its own.
 //
+// Tooltips are `data-tip` (map-editor-canvas.css), not `title`: the native
+// tooltip never showed on the pill, which hangs over the card's top edge.
+//
 // Owns no state — the pill renders `editDraft()`.
 
 var EDIT_TOOLS = [
   ['select', 'select', 'Click a trigger to select it; drag its own cells to move it. '
     + 'Backspace/Delete removes it, Cmd/Ctrl+C/V copies and pastes it'],
-  ['paint', 'paint', 'Click or drag to stamp the selected tile'],
-  ['erase', 'erase', 'Erase what the selected layer shows: the cuttable tile with Cuttable on; '
+  ['paint', 'pencil', 'Draw what the open tab has selected: a tile (Tile), a special (Special), '
+    + 'a trigger — drag out its box (Trigger), a widget (Widgets)'],
+  ['erase', 'erase', 'Erase what the open tab draws. Tile: the cuttable tile with Cuttable on; '
     + 'the front art with Foreground; the ground with Background; with both, the front art first, '
-    + 'then the tile itself'],
-  ['rect', 'rect', 'Drag a rectangle and fill it with the selected tile'],
+    + 'then the tile itself. Special: the special. Trigger: the trigger under the cursor'],
+  ['rect', 'rect', 'Drag a rectangle and fill it with the selected tile or special; on the Trigger tab, '
+    + 'a new trigger'],
   ['pick', 'pick', 'Click the map to select the tile under the cursor'],
   ['copy', 'copy', 'Drag to take a region, then click to stamp it elsewhere'],
   ['move', 'move', 'Drag to take a region, then click to move it; the source is backfilled with the selected tile'],
@@ -90,9 +95,17 @@ function editToolButtonHtml(key) {
   // Erase used to be dimmed outside `deco` phase; §8a.2 dropped the phase,
   // and editResolve's own erase branch is already a no-op on a bare cell, so
   // there is nothing left to gate the button on.
+  // The pencil says what it draws: a badge, and the tooltip's first line.
+  var tip = def[2];
+  var badge = '';
+  if (key === 'paint' && typeof editDrawable === 'function') {
+    var dr = editDrawable();
+    tip = 'Pencil — draws ' + dr.label + '\n' + def[2];
+    badge = editDrawBadgeHtml();
+  }
   return '<button class="rdf rg-edit-tool-icon' + (d && d.tool === key ? ' on' : '')
-    + '" data-edit-tool="' + key + '" title="' + escH(def[2]) + '" aria-label="' + escH(def[1]) + '">'
-    + '<span class="rg-edit-icon" aria-hidden="true">' + EDIT_TOOL_ICONS[key] + '</span></button>';
+    + '" data-edit-tool="' + key + '" data-tip="' + escH(tip) + '" aria-label="' + escH(def[1]) + '">'
+    + '<span class="rg-edit-icon" aria-hidden="true">' + EDIT_TOOL_ICONS[key] + '</span>' + badge + '</button>';
 }
 
 /**
@@ -115,9 +128,9 @@ function buildEditToolbarHtml() {
   });
   // The room/deco phase pair that used to sit here is gone — §8a.2.
   html += '<span class="rg-edit-divider"></span><span class="rg-edit-group">'
-    + '<button class="rdf rg-edit-tool-icon" data-edit-act="undo" title="Undo the last change"'
+    + '<button class="rdf rg-edit-tool-icon" data-edit-act="undo" data-tip="Undo the last change"'
     + ' aria-label="undo"><span class="rg-edit-icon" aria-hidden="true">↶</span></button>'
-    + '<button class="rdf rg-edit-tool-icon" data-edit-act="redo" title="Redo"'
+    + '<button class="rdf rg-edit-tool-icon" data-edit-act="redo" data-tip="Redo"'
     + ' aria-label="redo"><span class="rg-edit-icon" aria-hidden="true">↷</span></button>'
     + '</span><span class="rg-edit-divider"></span>'
     + buildEditOverflowHtml()
@@ -138,7 +151,7 @@ function buildEditOverflowHtml() {
   }).join('');
   return '<span class="rg-filter-group">'
     + '<button class="rdf rg-edit-tool-icon rg-filter-caret" data-edit-tool-menu="1"'
-    + ' title="Discard, copy the draft as JSON, or start a blank room" aria-label="more actions">'
+    + ' data-tip="More: export or play a ROM, copy the draft, discard it, or start a blank room" aria-label="more actions">'
     + '<span class="rg-edit-icon" aria-hidden="true">⋯</span></button>'
     + '<div class="rg-filter-popup rg-filter-popup-down" id="rg-tool-dropdown" hidden>'
     + items + '</div></span>';

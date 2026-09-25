@@ -10,12 +10,13 @@
 //   - Gate (§4, bits 11..8) and Drift (§6, bit 13 + bits 3..0) are genuine
 //     collision-word writes, wired below through the same
 //     {layer1, layer2, collision} stamp model editResolve already uses.
-//   - "Stairs" has no attested distinct encoding — §8 of that doc is a
-//     previous version of this codebase mistaking plane-transparency for a
-//     stairs test, called out explicitly as wrong. The three Stairs items
-//     below carry no `gate`/`drift` field, so editSpecialAppliedIndex never
-//     touches the collision word for them: they are an icon over an
-//     ordinary painted tile, nothing else.
+//   - Diagonal stairs are drift nibbles 1 and 2 (§6's two "shear"
+//     handlers: walking east also climbs or descends) with bit 13 set —
+//     vanilla puts exactly these under its stair art, and nowhere else
+//     (maps/vanilla-stairs.ts). Diagonal R/L write them like a drift.
+//     Vertical stairs have no encoding of their own (§8 of that doc is an
+//     earlier version of this codebase mistaking plane-transparency for
+//     one): that item is an icon over an ordinary tile, nothing else.
 //   - Entrance is "stored in the room's data, not the tile grid" per the
 //     design mock's own README, and editExport() has no field to put it in
 //     (docs/map-editor-redesign-plan.md §5.1) — visual-only, not exported.
@@ -38,13 +39,14 @@ var EDIT_SPECIAL_GROUPS = [
   },
   {
     id: 'stairs', label: 'Stairs & Drift',
-    note: 'One per tile — picking a new one replaces the last. Vertical/Diagonal L/Diagonal R '
-      + 'are icon-only: no distinct collision encoding is attested for them. The four Drift '
-      + 'picks are real collision-word writes (always-walkable + a direction nibble).',
+    note: 'One per tile — picking a new one replaces the last. Diagonal L/R are real stairs: '
+      + 'always-walkable, and walking sideways climbs (R rises to the right, L to the left), as '
+      + 'vanilla’s stair tiles are. Vertical is icon-only: no encoding is attested for it. The '
+      + 'four Drift picks are real collision-word writes too (always-walkable + a direction nibble).',
     items: [
       { id: 'stairs-vert', label: 'Vertical', glyph: '⭥' },
-      { id: 'stairs-diag-l', label: 'Diagonal L', glyph: '◺' },
-      { id: 'stairs-diag-r', label: 'Diagonal R', glyph: '◹' },
+      { id: 'stairs-diag-l', label: 'Diagonal L', glyph: '◣', drift: 0x2 },
+      { id: 'stairs-diag-r', label: 'Diagonal R', glyph: '◢', drift: 0x1 },
       { id: 'drift-n', label: 'Drift N', glyph: '↑', drift: 0x8 },
       { id: 'drift-e', label: 'Drift E', glyph: '→', drift: 0xa },
       { id: 'drift-s', label: 'Drift S', glyph: '↓', drift: 0xf },
@@ -109,9 +111,9 @@ function editSpecialAt(x, y) {
 
 // ---------------------------------------------------------------------------
 // Collision-word bit math — docs/map-format/map_collision_mechanics.md §4
-// (gate) and §6 (drift). Never touched for stairs/entrance: those items
-// carry no `gate`/`drift` field, so the functions below leave the word
-// exactly as editResolve already left it.
+// (gate) and §6 (drift, and diagonal stairs). Never touched for vertical
+// stairs/entrance: those items carry no `gate`/`drift` field, so the
+// functions below leave the word exactly as editResolve already left it.
 // ---------------------------------------------------------------------------
 
 var SPECIAL_GATE_MASK = 0x0f00;   // entity gate, bits 11..8

@@ -331,11 +331,14 @@ test('erasing a special clears exactly its own bits, keeping the rest of the sta
     assert.strictEqual(api.editStampWords(p, cleared).collision, 0x101f, 'back to the room’s own word');
 });
 
-test('the catalog marks gate/drift as real writes and nothing else as one', () => {
+test('the catalog marks gate/drift/diagonal stairs as real writes and nothing else as one', () => {
     const flat = [].concat(...api.groups.map((g) => g.items));
-    const stairsOnly = flat.filter((it) => it.id.indexOf('stairs-') === 0);
-    assert.ok(stairsOnly.length && stairsOnly.every((it) => it.gate == null && it.drift == null),
-        'a "stairs" item may never carry a bitfield — none is attested');
+    // Diagonal stairs are the two shear drift nibbles vanilla puts under its
+    // stair art (maps/vanilla-stairs.ts); vertical stairs have no encoding.
+    assert.strictEqual(api.editSpecialById('stairs-diag-r').drift, 0x1, 'rises to the right');
+    assert.strictEqual(api.editSpecialById('stairs-diag-l').drift, 0x2, 'rises to the left');
+    const vert = api.editSpecialById('stairs-vert');
+    assert.ok(vert.gate == null && vert.drift == null, 'vertical stairs carry no bitfield — none is attested');
     const entrance = flat.filter((it) => it.id.indexOf('entrance-') === 0);
     assert.ok(entrance.length && entrance.every((it) => it.gate == null && it.drift == null));
     assert.strictEqual(api.editSpecialById('gate-boy').gate, 0x7);
@@ -604,6 +607,7 @@ const ui = new Function(`
   ${read('map-editor-newroom.js')}
   ${read('map-editor-start.js') /* the Boy's start on a drafted map */}
   ${read('map-editor-custom.js') /* custom maps: their rail rows and drafts */}
+  ${read('map-editor-drawable.js') /* what the pencil draws: the open tab's pick */}
   return {
     tileSlotWord: tileSlotWord, editOnTilePicked: editOnTilePicked,
     editAction: editAction, editReset: editReset, editDraft: editDraft,
@@ -625,7 +629,8 @@ const ui = new Function(`
     setSelected: function (i) { _mtSelected = i; },
     setView: function (v, pal) { _mtView = v; if (pal) _mtBgPalette = pal; },
     specialTab: specialTabHtml, specialFilterChip: buildSpecialFilterChipHtml,
-    editStroke: editStroke, editSpecialAt: editSpecialAt,
+    editStroke: editStroke, editSpecialAt: editSpecialAt, editStampWords: editStampWords,
+    setTab: function (t) { _editActiveTab = t; },
   };`)();
 
 /** A palette with the tile sheet the host now sends alongside it. */
@@ -1033,42 +1038,93 @@ test('the filter chip carries a caret and the three sub-toggles', () => {
     assert.ok(html.includes('data-hide="hide-special-entrance"'));
 });
 
-test('painting a glyph-only special alongside a brush leaves the tile index alone', () => {
+// The pencil draws the open tab's pick and only that (map-editor-drawable.js):
+// a stairs special armed on the Special tab used to ride along with every
+// tile stroke on the Tile tab.
+test('on the Tile tab the pencil paints the tile only, even with a special armed', () => {
     const p = tilePalette();
     ui.setPalette(p);
     const d = ui.editReset(0x34);
     d.on = true;
-    d.brush = 0;
-    d.currentSpecialId = 'entrance-default';   // no gate/drift field: cosmetic only
+    d.tool = 'paint';
+    d.brush = 1;
+    d.currentSpecialId = 'stairs-diag-r';
+    ui.setTab('tile');
     ui.editStroke({ x: 0, y: 0 }, 'down');
-    assert.strictEqual(d.cells['0,0'], 0, 'the tile brush still wins the cell');
-    assert.strictEqual(ui.editSpecialAt(0, 0), 'entrance-default');
+    assert.strictEqual(d.cells['0,0'], 1, 'the tile, exactly');
+    assert.strictEqual(ui.editSpecialAt(0, 0), null, 'and no special came with it');
     assert.strictEqual(d.undo.length, 1, 'one click, one undo step');
 });
 
-test('painting a gate/drift special alongside a brush rewrites the stamp it lands on', () => {
+test('on the Special tab the pencil puts down the special only, keeping the cell’s tile', () => {
     const p = tilePalette();
     ui.setPalette(p);
     const d = ui.editReset(0x34);
     d.on = true;
-    d.brush = 0;
+    d.tool = 'paint';
+    d.brush = 1;
     d.currentSpecialId = 'gate-dog';
+    ui.setTab('special');
     ui.editStroke({ x: 0, y: 0 }, 'down');
-    assert.notStrictEqual(d.cells['0,0'], 0, 'a new stamp carries the gate bits, not the brush’s own');
+    const w = ui.editStampWords(p, d.cells['0,0']);
+    assert.strictEqual(w.layer2, 0x19ce, 'the room’s own ground, not the armed tile’s');
+    assert.strictEqual((w.collision >> 8) & 0xf, 0x5, 'with the gate bits');
     assert.strictEqual(ui.editSpecialAt(0, 0), 'gate-dog');
     assert.strictEqual(d.undo.length, 1, 'still one click, one undo step');
+    ui.setTab('tile');
 });
 
-test('painting a special with no brush armed still stamps the glyph', () => {
+test('diagonal stairs write the stairs flag: always-walkable + the shear nibble', () => {
     const p = tilePalette();
     ui.setPalette(p);
     const d = ui.editReset(0x34);
     d.on = true;
+    d.tool = 'paint';
+    d.currentSpecialId = 'stairs-diag-l';
+    ui.setTab('special');
+    ui.editStroke({ x: 2, y: 0 }, 'down');
+    assert.strictEqual(ui.editStampWords(p, d.cells['2,0']).collision & 0x200f, 0x2002);
+    ui.setTab('tile');
+});
+
+test('a glyph-only special stamps the glyph and leaves the grid alone', () => {
+    const p = tilePalette();
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    d.on = true;
+    d.tool = 'paint';
     d.brush = -1;
     d.currentSpecialId = 'stairs-vert';
+    ui.setTab('special');
     ui.editStroke({ x: 1, y: 0 }, 'down');
     assert.strictEqual(ui.editSpecialAt(1, 0), 'stairs-vert');
-    assert.ok(!('1,0' in d.cells), 'no brush, so the grid falls through to the room’s own tile');
+    assert.ok(!('1,0' in d.cells), 'the grid falls through to the room’s own tile');
+    ui.setTab('tile');
+});
+
+test('on the Trigger tab the pencil drags out a B-trigger by default, one undo step', () => {
+    const p = tilePalette();
+    p.attachments = { bTrigger: [], stepOn: [], objects: [] };
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    d.on = true;
+    d.tool = 'paint';
+    d.brush = 0;
+    ui.setTab('trigger');
+    ui.editStroke({ x: 0, y: 0 }, 'down');
+    ui.editStroke({ x: 2, y: 1 }, 'move');
+    ui.editStroke({ x: 2, y: 1 }, 'up');
+    assert.deepStrictEqual(d.cells, {}, 'no tile was painted');
+    assert.strictEqual(d.placed.length, 1);
+    const t = d.placed[0];
+    assert.deepStrictEqual([t.kind, t.x, t.y, t.w, t.h], ['bTrigger', 0, 0, 3, 2]);
+    assert.strictEqual(d.selectedTriggerRef.kind, 'b', 'and it is selected');
+    assert.strictEqual(d.undo.length, 1);
+    // The eraser on the same tab takes it off again.
+    d.tool = 'erase';
+    ui.editStroke({ x: 1, y: 1 }, 'down');
+    assert.ok(d.placed[0].removed, 'erased');
+    ui.setTab('tile');
 });
 
 test('erasing takes the glyph and its collision bits off in one click', () => {
@@ -1078,6 +1134,7 @@ test('erasing takes the glyph and its collision bits off in one click', () => {
     d.on = true;
     d.brush = 0;
     d.currentSpecialId = 'gate-dog';
+    ui.setTab('special');
     ui.editStroke({ x: 0, y: 0 }, 'down');
     const gatedIndex = d.cells['0,0'];
 
@@ -1086,6 +1143,7 @@ test('erasing takes the glyph and its collision bits off in one click', () => {
     ui.editStroke({ x: 0, y: 0 }, 'down');
     assert.strictEqual(ui.editSpecialAt(0, 0), null, 'the glyph is gone');
     assert.notStrictEqual(d.cells['0,0'], gatedIndex, 'the gate bits went with it');
+    ui.setTab('tile');
 });
 
 test('“from brush” starts the composer off a stamp that already works', () => {

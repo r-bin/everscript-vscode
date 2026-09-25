@@ -15,6 +15,7 @@ import {
     newDirectionalTally, walkResolvedGrid, compactDirectional,
 } from './vanilla-adjacency';
 import { noteGrass } from './vanilla-grass';
+import { StairsTally, noteStairsCell, compactStairs } from './vanilla-stairs';
 
 /** One observed pairing, with how many grid cells attest to it. */
 export interface Attestation<T> {
@@ -71,6 +72,8 @@ export interface VanillaIndex {
      * layers whose word changes count, never the blank canopy left behind.
      */
     grass: Map<number, number>;
+    /** Graphic id -> how often it is drawn as stairs, per layer (vanilla-stairs.ts). */
+    stairs: StairsTally;
     /** How many rooms went into the index. */
     roomCount: number;
     /** Total placements counted. */
@@ -125,6 +128,7 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
     const collCounts = new Map<number, Map<number, number>>();  // graphic -> collision
     const canopyCollCounts = new Map<number, Map<number, number>>(); // canopy graphic -> collision
     const grass = new Map<number, number>();
+    const stairs: StairsTally = new Map();
     const rooms = new Map<number, number[]>();
     const graphicRooms = new Map<number, Set<number>>();
     const layers = new Map<number, { canopy: number; terrain: number }>();
@@ -187,6 +191,7 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
             if (terrain !== undefined) tally(collCounts, terrain, m.collision, m.uses);
             const canopy = tileIds[charIndexToSlot(m.layer1 & 0x3ff)];
             if (canopy !== undefined && m.layer1 !== blankCanopy) tally(canopyCollCounts, canopy, m.collision, m.uses);
+            noteStairsCell(stairs, terrain, m.layer1 === blankCanopy ? undefined : canopy, m);
         }
 
         // What cutting grass reveals is never placed, so it is counted here —
@@ -219,6 +224,7 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
         collisions: rank(collCounts),
         canopyCollisions: rank(canopyCollCounts),
         grass,
+        stairs: compactStairs(stairs),
         adjacency,
         directional: compactDirectional(sides),
         cells,

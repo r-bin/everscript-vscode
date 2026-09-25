@@ -128,7 +128,7 @@
   line-height:1.2;
   text-align:center;
 }
-.rg-theme .rg-special-glyph-ic{font-size:16px;line-height:1}
+.rg-theme .rg-special-glyph-ic{font-size:16px;line-height:1;display:inline-block;min-width:1.25em;text-align:center}
 
 /* ── Special glyph overlay on the map canvas (map-editor-paint.js) ───────
  * Drawn non-blocking of the tile beneath it, per the mock. A thin stroke in
@@ -195,6 +195,12 @@
 
 /* ── Trigger tab list (map-editor-trigger-panel.js's triggerTabPanelHtml) ── */
 .rg-theme .rg-trigger-section{margin-bottom:12px}
+/* What the Trigger tab's pencil draws (map-editor-drawable.js), B first. */
+.rg-theme .rg-trigger-draw{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.rg-theme .rg-trigger-draw .rg-panel-h{margin:0 4px 0 0}
+.rg-theme .rg-trigger-kind b{display:inline-block;min-width:1.1em;text-align:center}
+.rg-theme .rg-trigger-kind-b b{color:var(--rg-trigger-b)}
+.rg-theme .rg-trigger-kind-step b{color:var(--rg-trigger-step)}
 .rg-theme .rg-trigger-list{display:flex;flex-direction:column;gap:4px;margin-top:6px}
 .rg-theme .rg-trigger-row{
   display:flex;align-items:center;gap:8px;padding:4px;cursor:pointer;

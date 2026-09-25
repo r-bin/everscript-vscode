@@ -276,12 +276,13 @@ function editUseFamilyTile(graphicId, family) {
   var word = (editSlotChr(slot) | ((got.slot + 1) << 10) | editBrushFlipBits()) & 0xffff;
   var prefer = _layerForce || editLayerPreference(graphicId);
   // The collision vanilla gives this graphic on that layer — its shape,
-  // on plane 0 (map-editor-collision.js). Open when vanilla never drew it.
+  // on plane 0, or the stairs flag for stair art (map-editor-collision.js).
+  // Open when vanilla never drew it.
   var sheet = _famSheets[family];
   var row = null;
   if (sheet && sheet.slots) for (var r = 0; r < sheet.slots.length; r++) if (sheet.slots[r][2] === graphicId) { row = sheet.slots[r]; break; }
   var collision = typeof tileSuggestedCollision === 'function'
-    ? tileSuggestedCollision(row, prefer === 'canopy' ? 'canopy' : 'terrain') : null;
+    ? tileSuggestedCollision(row, prefer === 'canopy' ? 'canopy' : 'terrain', word) : null;
   var index = editBrushFromTile(_mtPalette, word, prefer, collision);
 
   // Which swatch is armed has to be visible on the swatch, not only in a

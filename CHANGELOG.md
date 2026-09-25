@@ -1,3 +1,44 @@
+## [0.70.0] — 2026-09-25
+
+### Map editor: a smart pencil, stairs tiles, working tool tooltips
+
+- **The pencil draws what the open tab has selected, and only that:**
+  - **Tile:** the selected tile.
+  - **Special:** the selected special.
+  - **Trigger:** a new trigger. Drag out its box. A **B-trigger /
+    Step trigger** choice sits at the top of the tab; B-trigger comes first
+    and is selected by default.
+  - **Widgets:** the selected widget.
+  - **Info** keeps the last tab's choice.
+
+  A badge on the pencil shows what it will draw, and so does the status
+  bar. The eraser and the rectangle follow the same choice: on the Trigger
+  tab the eraser removes the trigger under the cursor, and on the Special
+  tab it removes only the special.
+- **Fixed: a selected stairs special no longer paints along with the tile.**
+  Before, one click drew both the tile and the special.
+- **Triggers you add are drawn on the map**, as a box with a B or S in its
+  kind's colour. They're saved with a custom map and undo like everything
+  else. They have no script yet.
+- **Stairs tiles.** The game marks diagonal stairs in the collision word:
+  bit 13 plus direction 1 (rises to the right) or 2 (rises to the left). It
+  uses this only under stair art, and the direction follows the tile's
+  horizontal flip. So:
+  - A new **`stairs`** filter next to `cuttable` lists only stair tiles.
+    Only one of the two filters is on at a time.
+  - A stair tile shows its direction in a corner of its swatch, and its
+    tooltip says which way it climbs.
+  - Painting a stair tile gives it the stairs flag, mirrored when H is on.
+    The map shows the flag on each such cell.
+  - The Special tab's **Diagonal L / R** now write the same flag onto any
+    tile. **Vertical** stays an icon only: the game has no encoding for it.
+- **Collision suggestions treat stairs and drift tiles as walkable.** Before,
+  their direction number was read as a slope shape. Suggestion accuracy
+  moves from 76.9% to 77.1%.
+- **The toolbar's tooltips now appear.** They're drawn by the page itself,
+  below the button, after a short hover.
+- The Special tab's icons no longer run into their labels.
+
 ## [0.69.2] — 2026-09-25
 
 ### Map editor: drawing order, erasing by layer, smoother tile list

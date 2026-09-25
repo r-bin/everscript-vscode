@@ -97,6 +97,12 @@ A stamp is `{layer1: canopy, layer2: terrain, collision}` — one dictionary ent
   make the user manage them. A manual "new metatiles" list and a hand-composer were
   both removed for this reason.
 
+**The pencil draws the open tab's pick, and only that** (`map-editor-drawable.js`):
+the Tile tab's tile, the Special tab's special, a new trigger box on the Trigger tab
+(B first), the Widgets tab's widget. Info keeps the last tab's. The eraser follows the
+same choice. A click never carries two drawables. Before this rule, an armed stairs
+special rode along with every tile stroke.
+
 **What a stroke writes is read off the brush, not a mode toggle** (there is no `phase`
 field — §8a.2 removed it):
 
@@ -133,9 +139,12 @@ Things that are **real** and can be relied on:
 
 Things that are **not** real, and that a design mock or a plausible-looking UI has asked
 for anyway:
-- **"Stairs" has no attested collision encoding.** An earlier version of this codebase
-  mistook plane-transparency for a stairs test. If a stairs affordance is wanted, it is
-  an icon over an ordinary tile, not a bitfield.
+- **Diagonal stairs are bit 13 + drift nibble 1 or 2** (the two "shear" handlers of
+  `map_collision_mechanics.md` §6), measured over every vanilla room: only stair art
+  carries them, and the direction follows the art's H flip (`src/maps/vanilla-stairs.ts`).
+  **Vertical stairs have no attested encoding.** An earlier version of this codebase
+  mistook plane-transparency (bit 6) for a stairs test. Vertical stairs stay an icon
+  over an ordinary tile, not a bitfield.
 - **Adjacency comes in two kinds, and they are not interchangeable.**
   `relatedGraphics`/`relatedTiles` is **undirected** ("drawn beside, any side") and
   drives tile ranking. Since §8b the same walk (`src/maps/vanilla-adjacency.ts`) also

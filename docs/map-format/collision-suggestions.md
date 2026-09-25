@@ -26,12 +26,16 @@ placed on a new map.
 
 | Target | Key | Key seen elsewhere | Right when seen |
 |---|---|---:|---:|
-| shape (`cw & 0x0F`) | terrain graphic | 90.3% | **76.9%** |
-| shape | terrain + canopy graphic | 60.5% | 87.2% |
+| shape (`shapeOf(cw)`) | terrain graphic | 90.3% | **77.1%** |
+| shape | terrain + canopy graphic | 60.5% | 87.5% |
 | full collision word | terrain graphic | 90.3% | 57.8% |
 | full collision word | terrain + canopy graphic | 60.5% | 67.4% |
 
-For comparison, guessing "solid" every time is right 57.9% of the time.
+The shape is `cw & 0x0F`, except that a word with bit 13 (always-walkable)
+set is open: its low nibble is a drift or stairs direction, not geometry
+(`shapeOf`, maps/vanilla-suggest.ts).
+
+For comparison, guessing "solid" every time is right 57.8% of the time.
 
 **The score is calibrated.** The score is the share of vanilla placements that
 agree with the suggestion (terrain graphic, shape), and it predicts how often
@@ -41,7 +45,7 @@ the suggestion is right:
 |---|---:|---:|
 | ≥ 95% | 27% | 92% |
 | 80–95% | 28% | 85% |
-| 60–80% | 25% | 65% |
+| 60–80% | 24% | 65% |
 | < 60% | 11% | 45% |
 
 ## What that decided
@@ -66,6 +70,37 @@ the suggestion is right:
   under 3% of cells.
 - **A graphic vanilla never drew on that layer** shows a `?` and is painted
   open.
+
+## Stairs
+
+Stairs are a collision *flag*, not a shape: bit 13 (always-walkable) with
+drift nibble 1 or 2. Those are the two "shear" handlers of
+[map_collision_mechanics.md §6](map_collision_mechanics.md#6-drift-and-sliding--the-low-nibble-is-the-direction):
+walking sideways also moves you up or down. Nibble 1 rises to the right
+(walking east climbs north), nibble 2 rises to the left. Vanilla uses them
+only in castle and tower rooms (Ebon Keep, Ivor Tower, the 0x0d staircase
+hall, the 0x75 stairwell), and only under stair art.
+
+**The direction belongs to the art.** An unflipped stair graphic carries one
+nibble and its H-mirrored copy the other. 93% of vanilla's stair placements
+agree with their graphic's direction once the flip is taken out. So the
+index records each graphic's direction as drawn unflipped, and painting it
+H-flipped swaps 1 and 2.
+
+- `src/maps/vanilla-stairs.ts`: the tally, `suggestStairs`. A graphic
+  counts as stairs on a layer when at least half its placements there carry
+  the flag. That covers 11 families, e.g. graphic 1833 in Ebon Keep.
+- The family sheet's slot rows carry it as `[11]` (ground) and `[12]`
+  (front), and the catalogue carries a `stairs` count.
+- **Tile tab:** the `stairs` filter (next to `cuttable`; one filter at a
+  time) lists only stair tiles. A stair tile shows its direction in a corner
+  of its swatch, always, because the flag is part of what painting it
+  writes.
+- **Painting** a stair tile gives the stamp `0x2000 | nibble` instead of a
+  shape. A painted stairs cell shows the same glyph on the map.
+- **Special tab:** Diagonal R and Diagonal L write the same flag (nibble 1
+  and 2) onto any tile. Vertical stairs have no encoding of their own and
+  stay an icon.
 
 ## How it is drawn
 

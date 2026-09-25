@@ -399,3 +399,42 @@
    green outline per cuttable cell, the colour upstream render_map.py gives
    cuttable grass. */
 .rg-cut-mark{fill:rgba(60,200,90,.12);stroke:rgb(60,200,90);stroke-width:.18;pointer-events:none}
+
+/* ── The pill's tooltips (map-editor-toolbar.js `data-tip`) ───────────────
+ * Drawn here rather than by the native `title`, which never appeared on the
+ * pill. Below the button, after a short hover, one line per `\n`. */
+.rg-theme #rg-edit-bar [data-tip]{position:relative}
+.rg-theme #rg-edit-bar [data-tip]::after{
+  content:attr(data-tip);
+  position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);
+  width:max-content;max-width:280px;white-space:pre-line;text-align:left;
+  padding:6px 9px;border-radius:6px;
+  background:var(--rg-bg-float);color:var(--rg-text-primary);
+  border:1px solid var(--rg-border);box-shadow:var(--rg-shadow-float);
+  font:11px/1.4 var(--rg-font-ui);
+  z-index:20;pointer-events:none;
+  visibility:hidden;opacity:0;transition:opacity 80ms ease-out 0s,visibility 0s 80ms;
+}
+.rg-theme #rg-edit-bar [data-tip]:hover::after{
+  visibility:visible;opacity:1;transition:opacity 80ms ease-out 350ms,visibility 0s 350ms;
+}
+/* Only while its menu is closed — the menu opens where the tip would be. */
+.rg-theme #rg-edit-bar .rg-filter-group:has(.rg-filter-popup:not([hidden])) [data-tip]::after{display:none}
+
+/* The pencil's badge: what it draws right now (map-editor-drawable.js). */
+.rg-theme #rg-edit-bar .rg-draw-badge{
+  position:absolute;right:1px;bottom:1px;min-width:10px;height:10px;padding:0 1px;
+  border-radius:3px;font:700 8px/10px var(--rg-font-ui);text-align:center;
+  background:var(--rg-bg-float);color:var(--rg-accent-text);box-shadow:0 0 0 1px var(--rg-border);
+}
+.rg-theme #rg-edit-bar .rg-draw-badge.idle{color:var(--rg-text-secondary);opacity:.7}
+.rg-theme #rg-edit-bar .rg-draw-trigger{color:var(--rg-trigger-b)}
+
+/* Triggers the draft placed (map-editor-drawable.js editTriggerSvg). */
+.rg-theme .rg-trigger-placed rect{fill-opacity:.18;stroke-width:.12}
+.rg-theme .rg-trigger-placed text{font-family:var(--rg-font-ui);font-weight:700;paint-order:stroke;stroke:#000;stroke-width:.08}
+.rg-theme .rg-trigger-placed-b rect{fill:var(--rg-trigger-b);stroke:var(--rg-trigger-b)}
+.rg-theme .rg-trigger-placed-b text{fill:var(--rg-trigger-b)}
+.rg-theme .rg-trigger-placed-step rect{fill:var(--rg-trigger-step);stroke:var(--rg-trigger-step)}
+.rg-theme .rg-trigger-placed-step text{fill:var(--rg-trigger-step)}
+.hide-trigger .rg-trigger-placed,.hide-btrig .rg-trigger-placed-b,.hide-step .rg-trigger-placed-step{display:none}

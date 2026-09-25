@@ -8,7 +8,7 @@
 // dominant family, so grouping by one and ranking by the other is not a
 // tautology — see docs/map-format/map-editor-window.md §2.2.
 //
-// Owns: _tileOrder, _tileOrderFor, _layerForce, _brushFlip, _tileGrassOnly.
+// Owns: _tileOrder, _tileOrderFor, _layerForce, _brushFlip, _tileFilter.
 // Lazy loading of the groups is map-editor-tile-lazy.js.
 //
 // **Every tile, no pager, nothing collapsible** (§8e): "the tile list cannot
@@ -74,24 +74,41 @@ var BRUSH_FLIP_V = 0x8000;
 var _brushFlip = { h: false, v: false };
 
 /**
- * The `cuttable` filter: list only graphics that take part in cuttable
- * grass — drawn in a swap record's uncut metatile or in what it turns into
- * (maps/vanilla-index.ts `grass`). Off by default. A family with none is
- * left out without fetching its sheet: the catalogue carries the count.
+ * The list filter, one at a time (off by default):
+ * - `grass`: graphics that take part in cuttable grass — drawn in a swap
+ *   record's uncut metatile or in what it turns into (maps/vanilla-index.ts
+ *   `grass`, slot row [10]);
+ * - `stairs`: graphics vanilla draws as stairs (maps/vanilla-stairs.ts, slot
+ *   rows [11]/[12]).
+ * A family with none is left out without fetching its sheet: the catalogue
+ * carries both counts.
  */
-var _tileGrassOnly = false;
+var _tileFilter = null;
 
-/** Toggle the `cuttable` filter. */
-function tileGrassToggle() {
-  _tileGrassOnly = !_tileGrassOnly;
+/** Turn a filter on, or off when it is the one already on. */
+function tileFilterToggle(which) {
+  _tileFilter = _tileFilter === which ? null : which;
   renderEditPanels();
 }
 
 /** A catalogue family the filter keeps, or every family while it is off. */
 function tileFamilyPasses(family) {
-  if (!_tileGrassOnly) return true;
+  if (!_tileFilter) return true;
+  return tileFamilyCount(family) > 0;
+}
+
+/** How many tiles of a family the filter lists, from the catalogue; 0 if unknown. */
+function tileFamilyCount(family) {
   var meta = chipMeta(family);
-  return !!(meta && meta.grass);
+  if (!meta) return 0;
+  return _tileFilter === 'grass' ? meta.grass || 0 : _tileFilter === 'stairs' ? meta.stairs || 0 : meta.tiles;
+}
+
+/** A family-sheet slot the filter keeps. */
+function tileSlotPasses(slot) {
+  if (_tileFilter === 'grass') return !!slot[10];
+  if (_tileFilter === 'stairs') return !!(slot[11] || slot[12]);
+  return true;
 }
 
 /** The mirror bits a freshly picked tile's word should carry. */
@@ -225,7 +242,9 @@ function tileFilterRowHtml() {
     + tileSegHtml('tile-filter', [
       ['grass', 'cuttable', 'Show only tiles that are part of cuttable grass — the uncut tile, '
         + 'or what it turns into when cut. Off: every tile.'],
-    ], function () { return _tileGrassOnly; })
+      ['stairs', 'stairs', 'Show only tiles vanilla draws as stairs. Painting one gives it the stairs '
+        + 'flag (always-walkable, climbing diagonally), mirrored with H. Off: every tile.'],
+    ], function (v) { return _tileFilter === v; })
     + '</div>';
 }
 
@@ -262,8 +281,7 @@ function tileGroupHtml(family, width) {
   // Not here yet: the group at its final height, so nothing below moves when
   // the sheet lands. tileLazyObserve fetches it once it nears the view.
   if (!s || s === 'pending') {
-    var meta = chipMeta(family);
-    var n = meta && (_tileGrassOnly ? meta.grass : meta.tiles) || 1;
+    var n = tileFamilyCount(family) || 1;
     return tileGroupShell(family, null, '', n)
       + '<div class="rg-group-sheet rg-group-lazy"' + (s ? '' : ' data-lazy-fam="' + family + '"')
       + ' style="height:' + tileSheetHeight(n, width || 360) + 'px"></div></div>';
@@ -274,7 +292,7 @@ function tileGroupHtml(family, width) {
   // Sorted by how well each tile goes with what is already in the map, then
   // by how often vanilla places it — which is also the whole ordering on an
   // empty map, where there is nothing to be related to yet.
-  var order = s.slots.filter(function (slot) { return !_tileGrassOnly || slot[10]; }).sort(function (a, b) {
+  var order = s.slots.filter(tileSlotPasses).sort(function (a, b) {
     return relatedScore(b[2]) - relatedScore(a[2]) || b[3] - a[3] || a[2] - b[2];
   });
 
@@ -307,9 +325,11 @@ function tileGroupHtml(family, width) {
         + (rel ? '\ngoes with what you have placed: ' + rel + '%' : '')
         + (typeof tileCollisionTitle === 'function' ? tileCollisionTitle(slot) : '')
         + (slot[10] ? '\ncuttable grass: ' + ['', 'the uncut tile', 'what cut grass turns into',
-          'uncut and cut'][slot[10] & 3] : '')) + '"'
+          'uncut and cut'][slot[10] & 3] : '')
+        + (typeof tileStairsTitle === 'function' ? tileStairsTitle(slot) : '')) + '"'
       + ' style="background-position:-' + x + 'px -' + y + 'px">'
-      + (typeof tileCollisionMarkHtml === 'function' ? tileCollisionMarkHtml(slot) : '') + '</i>';
+      + (typeof tileCollisionMarkHtml === 'function' ? tileCollisionMarkHtml(slot) : '')
+      + (typeof tileStairsMarkHtml === 'function' ? tileStairsMarkHtml(slot) : '') + '</i>';
   }
   return html + '</div></div></div>';
 }

@@ -36,6 +36,12 @@ const SHEETS_MAX = 24;
  * problems `roomProblems` found, so a draft that could not be encoded says
  * so before the user invests in it.
  */
+
+/** A graphic's stairs direction on one layer, 0 when it is not stairs. */
+function stairsOf(index, graphic, layer) {
+    const s = maps.suggestStairs(index, graphic, layer);
+    return s ? s.nibble : 0;
+}
 function buildBlankRoom(rom, opts) {
     const buf = rom instanceof Uint8Array ? rom : new Uint8Array(rom);
     const room = maps.blankRoom(buf, {
@@ -152,12 +158,14 @@ function buildFamilySheet(rom, familyId, borrowFrom) {
         columns: COLUMNS,
         cell: 16,
         // [slot, chr, graphicId, placements, canopyUses, terrainUses,
-        //  groundShape, groundPct, frontShape, frontPct, grass] — canopy/terrain
+        //  groundShape, groundPct, frontShape, frontPct, grass,
+        //  groundStairs, frontStairs] — canopy/terrain
         // uses let the editor put a tile on the layer vanilla uses it on; the
         // shapes are the collision it gets there (-1 = never seen), with how
         // much of vanilla agrees (maps/vanilla-suggest.ts suggestGeometry);
         // `grass` is the graphic's part in cuttable grass (index.grass flags,
-        // 0 = none).
+        // 0 = none); the stairs are the direction it rises drawn unflipped on
+        // that layer, 1 right / 2 left / 0 not stairs (maps/vanilla-stairs.ts).
         slots: ids.map((id, i) => {
             const seen = index.layers.get(id) || { canopy: 0, terrain: 0 };
             const ground = maps.suggestGeometry(index, id, 'terrain');
@@ -165,7 +173,7 @@ function buildFamilySheet(rom, familyId, borrowFrom) {
             return [i, maps.tileSlotChr(i), id, attested[i].uses, seen.canopy, seen.terrain,
                 ground ? ground.value : -1, ground ? Math.round(ground.confidence * 100) : 0,
                 front ? front.value : -1, front ? Math.round(front.confidence * 100) : 0,
-                index.grass.get(id) || 0];
+                index.grass.get(id) || 0, stairsOf(index, id, 'terrain'), stairsOf(index, id, 'canopy')];
         }),
         imageUri: null,
         imageWidth: 0,
@@ -255,6 +263,8 @@ function buildFamilyCatalogue(rom) {
             // Tile tab's `cuttable` filter can skip a family without
             // fetching its sheet.
             grass: list.filter((a) => index.grass.has(a.value)).length,
+            // The same for the `stairs` filter.
+            stairs: list.filter((a) => stairsOf(index, a.value, 'terrain') || stairsOf(index, a.value, 'canopy')).length,
         });
     }
     out.sort((a, b) => b.tiles - a.tiles || a.id - b.id);

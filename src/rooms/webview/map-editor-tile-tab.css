@@ -308,3 +308,8 @@
   paint-order:stroke;stroke:#000;stroke-width:.8px}
 .rg-coll-q{font:7px var(--vscode-editor-font-family,monospace);fill:#fff;text-anchor:middle;opacity:.6;
   paint-order:stroke;stroke:#000;stroke-width:1px}
+
+/* A stairs tile (map-editor-collision.js tileStairsMarkHtml): the direction
+   it climbs, in a corner. Always shown — it is part of what painting it writes. */
+.rg-stairs-mark{position:absolute;right:1px;top:1px;font:700 5px/1 var(--rg-font-ui,sans-serif);
+  color:var(--rg-trigger-b,#e3b341);text-shadow:0 0 1px #000,0 0 1px #000;pointer-events:none;opacity:.9}
