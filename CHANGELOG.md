@@ -1,3 +1,18 @@
+## [0.68.0] — 2026-09-25
+
+### Map editor: a `cuttable` filter in the Tile tab
+
+- **A new `cuttable` toggle next to H/V**, off by default. Turned on, the tile
+  list shows only tiles that are part of cuttable grass: the uncut tile, or
+  what it turns into when cut. Families with no such tiles are hidden without
+  loading their tiles. That leaves 38 tiles in 9 families, 28 of them in
+  family 32 (Antiqua), taken from the 7 rooms that have cuttable grass.
+- **Only tiles that actually change count.** The ground under a cuttable bush
+  stays the same when it's cut, so it isn't listed. Neither is the empty tile
+  that cut grass leaves behind.
+- A tile's tooltip says whether it is the uncut tile, what cut grass turns
+  into, or both.
+
 ## [0.67.0] — 2026-09-25
 
 ### Map editor: suggested collision

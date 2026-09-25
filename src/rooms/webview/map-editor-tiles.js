@@ -8,7 +8,7 @@
 // dominant family, so grouping by one and ranking by the other is not a
 // tautology — see docs/map-format/map-editor-window.md §2.2.
 //
-// Owns: _tileObserver, _tileOrder, _tileOrderFor, _layerForce, _brushFlip.
+// Owns: _tileObserver, _tileOrder, _tileOrderFor, _layerForce, _brushFlip, _tileGrassOnly.
 //
 // **Every tile, no pager, nothing collapsible** (§8e): "the tile list cannot
 // be collapsed, we always show all available tiles" and "show more is not
@@ -101,6 +101,27 @@ var BRUSH_FLIP_H = 0x4000;
 var BRUSH_FLIP_V = 0x8000;
 var _brushFlip = { h: false, v: false };
 
+/**
+ * The `cuttable` filter: list only graphics that take part in cuttable
+ * grass — drawn in a swap record's uncut metatile or in what it turns into
+ * (maps/vanilla-index.ts `grass`). Off by default. A family with none is
+ * left out without fetching its sheet: the catalogue carries the count.
+ */
+var _tileGrassOnly = false;
+
+/** Toggle the `cuttable` filter. */
+function tileGrassToggle() {
+  _tileGrassOnly = !_tileGrassOnly;
+  renderEditPanels();
+}
+
+/** A catalogue family the filter keeps, or every family while it is off. */
+function tileFamilyPasses(family) {
+  if (!_tileGrassOnly) return true;
+  var meta = chipMeta(family);
+  return !!(meta && meta.grass);
+}
+
 /** The mirror bits a freshly picked tile's word should carry. */
 function editBrushFlipBits() {
   return (_brushFlip.h ? BRUSH_FLIP_H : 0) | (_brushFlip.v ? BRUSH_FLIP_V : 0);
@@ -154,13 +175,13 @@ function tileStableOrder(want) {
 /** Which families should be listed, in the order a fresh list puts them. */
 function tileGroupFamiliesWanted() {
   var picked = Object.keys(_chipSel).map(Number);
-  if (picked.length) return picked;
-  var fams = editFamilies().filter(function (f) { return f !== undefined; });
+  if (picked.length) return picked.filter(tileFamilyPasses);
+  var fams = editFamilies().filter(function (f) { return f !== undefined && tileFamilyPasses(f); });
   if (!_famCatalogue || editFreeFamilySlot() < 0) return fams;
   // Every candidate, most art first — no page size (§8e). The list is lazy,
   // so listing all 329 costs headers and placeholders, not sheets.
   var rest = _famCatalogue
-    .filter(function (f) { return fams.indexOf(f.id) < 0; })
+    .filter(function (f) { return fams.indexOf(f.id) < 0 && tileFamilyPasses(f.id); })
     .sort(function (a, b) { return b.tiles - a.tiles || a.id - b.id; })
     .map(function (f) { return f.id; });
   return fams.concat(rest);
@@ -229,6 +250,10 @@ function tileFilterRowHtml() {
       ['v', 'V', 'Mirror the picked tile top-to-bottom (bit 15 of its word).\n'
         + 'A mirrored tile is one more dictionary entry and no extra graphic.'],
     ], function (v) { return !!_brushFlip[v]; })
+    + tileSegHtml('tile-filter', [
+      ['grass', 'cuttable', 'Show only tiles that are part of cuttable grass — the uncut tile, '
+        + 'or what it turns into when cut. Off: every tile.'],
+    ], function () { return _tileGrassOnly; })
     + '</div>';
 }
 
@@ -266,7 +291,7 @@ function tileGroupHtml(family, width) {
   // the sheet lands. tileLazyObserve fetches it once it nears the view.
   if (!s || s === 'pending') {
     var meta = chipMeta(family);
-    var n = meta && meta.tiles ? meta.tiles : 1;
+    var n = meta && (_tileGrassOnly ? meta.grass : meta.tiles) || 1;
     return tileGroupShell(family, null, '', n)
       + '<div class="rg-group-sheet rg-group-lazy"' + (s ? '' : ' data-lazy-fam="' + family + '"')
       + ' style="height:' + tileSheetHeight(n, width || 360) + 'px"></div></div>';
@@ -277,7 +302,7 @@ function tileGroupHtml(family, width) {
   // Sorted by how well each tile goes with what is already in the map, then
   // by how often vanilla places it — which is also the whole ordering on an
   // empty map, where there is nothing to be related to yet.
-  var order = s.slots.slice().sort(function (a, b) {
+  var order = s.slots.filter(function (slot) { return !_tileGrassOnly || slot[10]; }).sort(function (a, b) {
     return relatedScore(b[2]) - relatedScore(a[2]) || b[3] - a[3] || a[2] - b[2];
   });
 
@@ -308,7 +333,9 @@ function tileGroupHtml(family, width) {
         + '\n' + slot[3] + ' placements in vanilla'
         + (badge[0] ? '\ndrawn in the ' + badge[0] + (badge[1] ? ' — ' + badge[1] : '') : '')
         + (rel ? '\ngoes with what you have placed: ' + rel + '%' : '')
-        + (typeof tileCollisionTitle === 'function' ? tileCollisionTitle(slot) : '')) + '"'
+        + (typeof tileCollisionTitle === 'function' ? tileCollisionTitle(slot) : '')
+        + (slot[10] ? '\ncuttable grass: ' + ['', 'the uncut tile', 'what cut grass turns into',
+          'uncut and cut'][slot[10] & 3] : '')) + '"'
       + ' style="background-position:-' + x + 'px -' + y + 'px">'
       + (typeof tileCollisionMarkHtml === 'function' ? tileCollisionMarkHtml(slot) : '') + '</i>';
   }

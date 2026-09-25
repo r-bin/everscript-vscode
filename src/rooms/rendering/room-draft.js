@@ -152,17 +152,20 @@ function buildFamilySheet(rom, familyId, borrowFrom) {
         columns: COLUMNS,
         cell: 16,
         // [slot, chr, graphicId, placements, canopyUses, terrainUses,
-        //  groundShape, groundPct, frontShape, frontPct] — canopy/terrain
+        //  groundShape, groundPct, frontShape, frontPct, grass] — canopy/terrain
         // uses let the editor put a tile on the layer vanilla uses it on; the
         // shapes are the collision it gets there (-1 = never seen), with how
-        // much of vanilla agrees (maps/vanilla-suggest.ts suggestGeometry).
+        // much of vanilla agrees (maps/vanilla-suggest.ts suggestGeometry);
+        // `grass` is the graphic's part in cuttable grass (index.grass flags,
+        // 0 = none).
         slots: ids.map((id, i) => {
             const seen = index.layers.get(id) || { canopy: 0, terrain: 0 };
             const ground = maps.suggestGeometry(index, id, 'terrain');
             const front = maps.suggestGeometry(index, id, 'canopy');
             return [i, maps.tileSlotChr(i), id, attested[i].uses, seen.canopy, seen.terrain,
                 ground ? ground.value : -1, ground ? Math.round(ground.confidence * 100) : 0,
-                front ? front.value : -1, front ? Math.round(front.confidence * 100) : 0];
+                front ? front.value : -1, front ? Math.round(front.confidence * 100) : 0,
+                index.grass.get(id) || 0];
         }),
         imageUri: null,
         imageWidth: 0,
@@ -248,6 +251,10 @@ function buildFamilyCatalogue(rom) {
             areas,
             // Enough to recognise the place; the full list is in the tooltip.
             names: roomLabels.slice(0, 6),
+            // How many of its graphics are part of cuttable grass, so the
+            // Tile tab's `cuttable` filter can skip a family without
+            // fetching its sheet.
+            grass: list.filter((a) => index.grass.has(a.value)).length,
         });
     }
     out.sort((a, b) => b.tiles - a.tiles || a.id - b.id);

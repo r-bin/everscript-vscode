@@ -64,6 +64,12 @@ export interface VanillaIndex {
     directional: DirectionalAdjacency;
     /** Graphic id -> grid cells it is drawn in. The Jaccard denominator. */
     cells: Map<number, number>;
+    /**
+     * Graphic id -> its part in cuttable grass: `GRASS_UNCUT` (1) in a swap
+     * record's source metatile, `GRASS_CUT` (2) in what it turns into. Only
+     * layers whose word changes count, never the blank canopy left behind.
+     */
+    grass: Map<number, number>;
     /** How many rooms went into the index. */
     roomCount: number;
     /** Total placements counted. */
@@ -117,6 +123,7 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
     const gfxCounts = new Map<number, Map<number, number>>();   // family  -> graphic
     const collCounts = new Map<number, Map<number, number>>();  // graphic -> collision
     const canopyCollCounts = new Map<number, Map<number, number>>(); // canopy graphic -> collision
+    const grass = new Map<number, number>();
     const rooms = new Map<number, number[]>();
     const graphicRooms = new Map<number, Set<number>>();
     const layers = new Map<number, { canopy: number; terrain: number }>();
@@ -181,6 +188,7 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
             if (canopy !== undefined && m.layer1 !== blankCanopy) tally(canopyCollCounts, canopy, m.collision, m.uses);
         }
 
+        noteGrass(room, tileIds, blankCanopy, grass);
         edges += walkAdjacency(room, tileIds, adjacency, cells, sides);
     }
 
@@ -195,6 +203,7 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
         layers,
         collisions: rank(collCounts),
         canopyCollisions: rank(canopyCollCounts),
+        grass,
         adjacency,
         directional: compactDirectional(sides),
         cells,
@@ -202,6 +211,29 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
         placements,
         edges,
     };
+}
+
+export const GRASS_UNCUT = 1;
+export const GRASS_CUT = 2;
+
+/** Flag the graphics this room's cuttable-grass records change (see `grass`). */
+function noteGrass(room: RoomData, tileIds: number[], blankCanopy: number, into: Map<number, number>): void {
+    const { layer1, layer2 } = room.metatileSlices;
+    for (const rec of room.cuttableGrass.table.records) {
+        const chain = [rec.source, ...rec.sequence]
+            .map((id) => metatileIndex(room, id))
+            .filter((i) => i >= 0 && i < room.metatileCount);
+        for (const words of [layer1, layer2]) {
+            if (new Set(chain.map((i) => words[i])).size < 2) continue; // this layer never changes
+            chain.forEach((i, k) => {
+                // Cut grass often leaves the blank canopy word behind; that
+                // is "nothing here", not a grass graphic.
+                if (words === layer1 && words[i] === blankCanopy) return;
+                const g = tileIds[charIndexToSlot((words[i] || 0) & 0x3ff)];
+                if (g !== undefined) into.set(g, (into.get(g) || 0) | (k === 0 ? GRASS_UNCUT : GRASS_CUT));
+            });
+        }
+    }
 }
 
 /**

@@ -120,9 +120,19 @@ if (!fs.existsSync(ROM_PATH)) {
     test('family sheet slots carry ground and front shapes with their scores', () => {
         const sheet = rooms.buildFamilySheet(rom, 32, 0x34);
         const row = sheet.slots.find((s) => s[2] === 641);
-        assert.ok(row && row.length === 10, JSON.stringify(row));
+        assert.ok(row && row.length === 11, JSON.stringify(row));
         assert.strictEqual(row[6], 0x0f);
         assert.ok(row[7] >= 90);
+    });
+
+    test('cuttable grass flags the graphics a swap record changes, not the blank it leaves', () => {
+        assert.strictEqual(index.grass.size, 38);
+        assert.strictEqual(index.grass.has(489), false, 'the blank canopy graphic is not grass');
+        assert.ok([...index.grass.values()].every((f) => f >= 1 && f <= 3));
+        const f32 = rooms.buildFamilyCatalogue(rom).find((f) => f.id === 32);
+        assert.strictEqual(f32.grass, 28);
+        const sheet = rooms.buildFamilySheet(rom, 32, 0x34);
+        assert.strictEqual(sheet.slots.filter((r) => r[10]).length, 28);
     });
 
     test('a drafted map’s collision layer draws solid cells and leaves open ones clear', () => {

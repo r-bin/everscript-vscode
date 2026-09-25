@@ -63,6 +63,7 @@ export {
 export type { MetatileInfo, MetatileAtlas, MetatileLayer, MetatileDraft, TileListAtlas } from './metatiles';
 export {
     buildVanillaIndex, graphicsForFamilies, familyExamples, groupByRooms, relatedGraphics, relationship, rankByRelationship,
+    GRASS_UNCUT, GRASS_CUT,
 } from './vanilla-index';
 export { suggestFamily, suggestCollision, suggestGeometry, GEOMETRY_BITS, preferredLayer } from './vanilla-suggest';
 export type { VanillaIndex, Attestation, GraphicGroup, Related } from './vanilla-index';

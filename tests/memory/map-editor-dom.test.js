@@ -1284,9 +1284,45 @@ async function main() {
         document.querySelectorAll('.rg-tile-seg'),
         (s) => Array.prototype.map.call(s.querySelectorAll('.rg-tile-seg-b'),
             (b) => b.textContent).join('|')));
-    check('the filter row is two segmented pills, not five loose chips',
-        segs.length === 2 && segs[0] === 'auto|front|ground' && segs[1] === 'H|V',
+    // A third, since v0.68.0: the `cuttable` filter, asked for "next to H/V".
+    check('the filter row is three segmented pills, not loose chips',
+        segs.length === 3 && segs[0] === 'auto|front|ground' && segs[1] === 'H|V' && segs[2] === 'cuttable',
         JSON.stringify(segs));
+
+    // ── the cuttable filter ────────────────────────────────────────────────
+    // "shows only tiles that are involved in cuttable tiles when turned on
+    // (default off)". Slot row [10] is the graphic's grass flag; the
+    // catalogue's `grass` count lets a family with none drop out unfetched.
+    const grass = await page.evaluate(() => {
+        const saved = { cat: _famCatalogue, sheets: _famSheets, fams: editDraft().families, sel: _chipSel };
+        _chipSel = {};
+        editDraft().families = [];
+        _famCatalogue = [{ id: 51, tiles: 3, rooms: 1, areas: [], names: [], grass: 2 },
+                         { id: 52, tiles: 2, rooms: 1, areas: [], names: [], grass: 0 }];
+        const row = (g, flag) => [0, 0, g, 1, 0, 1, -1, 0, -1, 0, flag];
+        _famSheets = { 51: { family: 51, count: 3, columns: 16, cell: 16, imageUri: 'data:,',
+                            slots: [row(901, 1), row(902, 0), row(903, 2)] },
+                       52: { family: 52, count: 2, columns: 16, cell: 16, imageUri: 'data:,',
+                            slots: [row(904, 0), row(905, 0)] } };
+        const shown = () => Array.prototype.map.call(
+            document.querySelectorAll('[data-fam-tile]'), (t) => Number(t.dataset.famTile)).sort();
+        renderEditPanels();
+        const r = { off: shown(), offOn: !!document.querySelector('[data-tile-filter].on') };
+        document.querySelector('[data-tile-filter="grass"]').click();
+        r.on = shown();
+        r.onOn = !!document.querySelector('[data-tile-filter].on');
+        r.families = tileGroupFamilies();
+        document.querySelector('[data-tile-filter="grass"]').click();
+        r.back = shown();
+        _famCatalogue = saved.cat; _famSheets = saved.sheets; editDraft().families = saved.fams; _chipSel = saved.sel;
+        renderEditPanels();
+        return r;
+    });
+    check('cuttable is off by default and every tile is listed',
+        !grass.offOn && grass.off.join() === '901,902,903,904,905', JSON.stringify(grass));
+    check('turned on, only tiles that are part of cuttable grass are listed, and families with none drop out',
+        grass.onOn && grass.on.join() === '901,903' && grass.families.join() === '51', JSON.stringify(grass));
+    check('and turned off again, everything is back', grass.back.join() === '901,902,903,904,905', JSON.stringify(grass));
 
     // ── H / V mirror ───────────────────────────────────────────────────────
     // Bit 14 is the horizontal flip and bit 15 the vertical one
