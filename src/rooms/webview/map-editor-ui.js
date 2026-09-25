@@ -196,7 +196,11 @@ function requestComposedPreview() {
     // freshly adopted tile resolves to whatever the room had in that slot.
     extra: {
       graphics: d.addedGraphics,
-      families: editFamilies().filter(function (f) { return f !== undefined; }),
+      // By slot, holes as null: a word names a *slot*, so compacting the
+      // list moved every family after an empty slot down one. A family a
+      // picked tile will bring in is included, or its swatch draws in
+      // whatever the slot holds (nothing).
+      families: editPreviewFamilies(),
     },
   });
 }

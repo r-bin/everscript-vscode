@@ -92,15 +92,21 @@ function customRenderRows() {
  * Make a new custom map and open it. `borrow` is the room whose graphics it
  * may draw with; `+ New Map` passes nothing and gets the default donor.
  */
-function customNew(w, h, borrow) {
+/** `New map N`, one past the highest N in `maps`. */
+function customNextName(maps) {
   var n = 1;
-  _customMaps.forEach(function (m) {
+  maps.forEach(function (m) {
     var k = /^New map (\d+)$/.exec(m.name);
     if (k) n = Math.max(n, Number(k[1]) + 1);
   });
+  return 'New map ' + n;
+}
+
+function customNew(w, h, borrow) {
+  var name = customNextName(_customMaps);
   var m = {
-    key: 'custom-' + Date.now().toString(36) + '-' + n,
-    name: 'New map ' + n,
+    key: 'custom-' + Date.now().toString(36) + '-' + name.slice(8),
+    name: name,
     borrow: typeof borrow === 'number' ? borrow : CUSTOM_MAP_BORROW,
     w: w || CUSTOM_MAP_W, h: h || CUSTOM_MAP_H,
     saved: null,
@@ -223,7 +229,7 @@ function customStash() {
  * serialised stack would be most of the payload.
  */
 var CUSTOM_DRAFT_FIELDS = ['cells', 'added', 'specialCells', 'addedGraphics', 'placed',
-  'families', 'start', 'placedSeq', 'constructs'];
+  'families', 'autoFamilies', 'start', 'placedSeq', 'constructs'];
 
 function customSerialize(d) {
   var out = {};
@@ -265,9 +271,30 @@ function customSaveSoon() {
 function customLoadPrefs(prefs) {
   var list = prefs && prefs[CUSTOM_MAPS_PREF];
   if (!Array.isArray(list)) return;
-  _customMaps = list.filter(function (m) { return m && m.key; }).map(function (m) {
+  var loaded = list.filter(function (m) { return m && m.key; }).map(function (m) {
     return { key: m.key, name: m.name || 'New map', borrow: Number(m.borrow) || CUSTOM_MAP_BORROW,
       w: Number(m.w) || CUSTOM_MAP_W, h: Number(m.h) || CUSTOM_MAP_H, saved: m.saved || null };
   });
+  // Merge, never replace. The host posts `uiPrefs` right after `newMap`
+  // when the panel is (re)built, so a map made a moment ago is not in the
+  // saved list yet. Replacing dropped it: the map on screen had no row,
+  // newMapPaletteReady could not find it, and the blank room — and with it
+  // the Boy's start — never came.
+  var known = {};
+  loaded.forEach(function (m) { known[m.key] = true; });
+  _customMaps.forEach(function (m) {
+    if (known[m.key]) return;
+    // Named before the saved list was in hand, so "New map 1" may be taken.
+    if (loaded.some(function (o) { return o.name === m.name; })) {
+      m.name = customNextName(loaded);
+      if (m.key === _customActive) {
+        var head = document.querySelector('#room-detail .rd-name');
+        if (head) head.textContent = m.name;
+      }
+    }
+    loaded.push(m);
+  });
+  _customMaps = loaded;
   customRenderRows();
+  if (_customActive && customFind(_customActive)) customSave();
 }

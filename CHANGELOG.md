@@ -1,3 +1,27 @@
+## [0.65.1] — 2026-09-25
+
+### Map editor: new maps keep their Boy, and families follow the map
+
+- **Every new map shows the Boy's start marker again.** When the panel
+  opened through `everscript: new map`, the saved custom-map list arrived just
+  after the new map was created and replaced the list. The new map was left
+  without a row, its empty room was never built, and there was no Boy. Saved
+  maps are now merged into the list instead. A new map whose name is already
+  taken gets the next number.
+- **Every request is answered once.** The panel added a new message handler
+  each time it refreshed and never removed the old ones, so after a few
+  refreshes each request was answered several times. Export ROM could open
+  several save dialogs.
+- **Clicking a tile no longer adds its family.** The family is loaded when one
+  of its tiles is painted on the map, and removed again when the last one is
+  erased or undone. Families you add with `+` stay until you remove them.
+- **No more "N placed cells name palette slot 2" warning** after painting a
+  new map. The empty tile (`$A800`) draws nothing, so the palette slot it
+  names no longer counts.
+- The tile preview and the exported ROM now keep each family in its own
+  palette slot when an earlier slot is empty. Before, the families after a
+  gap moved up one slot and drew in the wrong colours.
+
 ## [0.65.0] — 2026-09-25
 
 ### Map editor: Export ROM

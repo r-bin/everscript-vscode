@@ -647,8 +647,14 @@ function activate(context) {
                 command: 'uiPrefs', prefs: context.globalState.get(ROOMS_UI_PREFS_KEY, {}),
             });
 
-            // Handle messages from the webview
-            _radarPanel.webview.onDidReceiveMessage(msg => {
+            // Handle messages from the webview. This block runs on every panel
+            // refresh, and each registration used to stay alive — so after N
+            // refreshes every request was answered N times (N blank rooms, N
+            // save dialogs for Export ROM). One subscription per panel: the
+            // previous one is disposed first. Kept on the panel it belongs to,
+            // not in a module variable.
+            if (_radarPanel.__radarMessages) _radarPanel.__radarMessages.dispose();
+            _radarPanel.__radarMessages = _radarPanel.webview.onDidReceiveMessage(msg => {
                 if (msg.command === 'goToLine') {
                     const line = Math.max(0, Math.min(Number(msg.line), document.lineCount - 1));
                     const pos  = new vscode.Position(line, 0);

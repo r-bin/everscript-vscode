@@ -156,6 +156,7 @@ function editApply(writes, specialWrites) {
   // a stamped gourd takes its object and its B-trigger with it.
   _edit.undo.push({ cells: before, special: specialBefore, placed: _edit.placed.length, dropped: [] });
   _edit.redo.length = 0;
+  editCellsChanged();
   return changed;
 }
 
@@ -261,28 +262,14 @@ function editUndo(palette) {
   _edit.redo.push({ cells: inverse, special: specialInverse, placed: step.placed, dropped: dropped, triggers: step.triggers,
     start: editRestoreStart(step) });
   editPruneAdded(palette);
-  editDropStaleTriggerSelection();
+  if (typeof editDropStaleTriggerSelection === 'function') editDropStaleTriggerSelection();
+  editCellsChanged();
   return true;
 }
 
-/**
- * Clear `selectedTriggerRef` if undo/redo just made it point at nothing.
- *
- * Undoing a paste (or redoing a delete) removes the very trigger that was
- * selected, and neither snapshot in `editApplyTriggerOp` touches
- * `selectedTriggerRef` itself — it is UI focus, not a property of the
- * trigger. Left alone, the Trigger tab would keep highlighting a row that no
- * longer exists. `editTriggerFind` lives in map-editor-trigger-select.js,
- * loaded after this file in the concatenated bundle; by the time a user
- * action can call `editUndo`/`editRedo` the whole bundle has already run, so
- * the function is always in reach here — see the `typeof` guard only for
- * the handful of standalone test bundles that load this file alone.
- */
-function editDropStaleTriggerSelection() {
-  if (_edit && _edit.selectedTriggerRef && typeof editTriggerFind === 'function'
-    && !editTriggerFind(_edit.selectedTriggerRef)) {
-    _edit.selectedTriggerRef = null;
-  }
+/** Families that came in by painting follow the cells (map-editor-families.js). */
+function editCellsChanged() {
+  if (typeof editSyncPaintedFamilies === 'function') editSyncPaintedFamilies();
 }
 
 function editRedo(palette) {
@@ -300,7 +287,8 @@ function editRedo(palette) {
   _edit.undo.push({ cells: inverse, special: specialInverse, placed: step.placed, dropped: [], triggers: step.triggers,
     start: editRestoreStart(step) });
   editPruneAdded(palette);
-  editDropStaleTriggerSelection();
+  if (typeof editDropStaleTriggerSelection === 'function') editDropStaleTriggerSelection();
+  editCellsChanged();
   return true;
 }
 

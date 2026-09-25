@@ -199,8 +199,10 @@ function buildComposedPreview(rom, roomId, drafts, layer, extra) {
             ...room,
             tilePalette: room.tilePalette.concat(
                 (extra.graphics || []).map(Number).filter((n) => !isNaN(n))),
+            // Positional: a hole (null) stays a hole, as family 0, so the
+            // families after it keep the slots their words name.
             tileFamilies: Array.isArray(extra.families) && extra.families.length
-                ? extra.families.map(Number).filter((n) => !isNaN(n))
+                ? extra.families.map((n) => (n === null || n === undefined || isNaN(Number(n)) ? 0 : Number(n)))
                 : room.tileFamilies,
         };
     }

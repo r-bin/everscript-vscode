@@ -23,8 +23,8 @@ export interface CustomRoomInput {
     cells: number[];
     /** Graphics the draft adopted, slotted after the donor's whole tile list. */
     graphics?: number[];
-    /** The draft's tile families; empty means the donor's. */
-    families?: number[];
+    /** The draft's tile families by palette slot (`null` = empty); none means the donor's. */
+    families?: Array<number | null>;
 }
 
 export interface CustomRoomBlob {
@@ -115,7 +115,11 @@ export function buildCustomRoomBlob(rom: Uint8Array, input: CustomRoomInput): Cu
     const graphics = donorRoom.tilePalette
         .concat(donorRoom.animatedTiles)
         .concat((input.graphics || []).map(Number));
-    const families = input.families && input.families.length ? input.families.map(Number) : donor.tileFamilies;
+    // By slot: a word names a palette slot, so an empty slot stays in place
+    // (as family 0) and only trailing empties are dropped.
+    const slots = (input.families || []).map((f) => (f === null || f === undefined ? 0 : Number(f)));
+    while (slots.length && slots[slots.length - 1] === 0) slots.pop();
+    const families = slots.length ? slots : donor.tileFamilies;
 
     const model: RoomModel = {
         header,

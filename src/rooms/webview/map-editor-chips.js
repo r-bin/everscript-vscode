@@ -13,8 +13,8 @@
 // that disclosure: "add family is obsolete (especially if there are already
 // 7 families loaded)." The **implicit** adoption path it was in front of is
 // untouched and does all the same work — clicking any tile from a family
-// this draft has not loaded yet (`editUseFamilyTile` -> `editAdoptFamilyFor`)
-// already pulls the family into a free slot on its own, which is exactly why
+// this draft has not loaded yet (`editUseFamilyTile` -> `editPlanFamilyFor`)
+// plans it a free slot, and painting one of its tiles loads it, which is why
 // the explicit browse-first control was obsolete rather than load-bearing.
 //
 // Two states, like the mock: collapsed is a strip of seven slots (art plus

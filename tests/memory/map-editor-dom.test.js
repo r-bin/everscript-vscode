@@ -1807,6 +1807,58 @@ async function main() {
     check('but actually placing a cell still asks — the feature still works once something is built',
         sentAfterPaint > sentAfterArm, `requestRelated sent ${sentAfterPaint - sentAfterArm} time(s) after a real placement`);
 
+    // ── v0.65.1: families follow the map, the empty word names none ───────
+    // "clicking on a tile should not add it to the tile families, only if a
+    // tile of the family is on the map we add the family".
+    const fam = await page.evaluate(() => {
+        const d = editReset(0x34);
+        d.on = true; d.tool = 'paint'; d.families = [];
+        d.blank = { widthTiles: 2, heightTiles: 2, floor: { layer1: 0xa800, layer2: 0xa800, collision: 0 } };
+        _mtPalette.grid = [[null, null], [null, null]];
+        _brushTile = null; _layerForce = null;
+        editUseFamilyTile(0x0999, 40);
+        const r = { picked: editFamilies().filter((f) => f !== undefined).length,
+                    preview: editPreviewFamilies() };
+        editStroke({ x: 1, y: 1 }, 'down');
+        r.painted = editFamilies().slice();
+        r.stranded = editStrandedCells().length;
+        editUndo(_mtPalette);
+        r.undone = editFamilies().filter((f) => f !== undefined).length;
+        editRedo(_mtPalette);
+        r.redone = editFamilies().slice();
+        d.cells = {}; d.brush = -1; _brushTile = null;
+        return r;
+    });
+    check('picking a tile plans its family but does not load it', fam.picked === 0
+        && fam.preview.length === 1 && fam.preview[0] === 40, JSON.stringify(fam));
+    check('painting one of its tiles loads it, into the slot the brush names',
+        fam.painted[0] === 40, JSON.stringify(fam));
+    check('the empty word ($A800, palette field 2) does not strand the painted cell',
+        fam.stranded === 0, JSON.stringify(fam));
+    check('undoing the only tile unloads the family, redo brings it back',
+        fam.undone === 0 && fam.redone[0] === 40, JSON.stringify(fam));
+
+    // The host posts `uiPrefs` right after `newMap`, so the saved list lands
+    // after the new map exists. Replacing the list orphaned it — no row, no
+    // blank room, no Boy.
+    const merged = await page.evaluate(() => {
+        _customMaps = [];
+        customNew(16, 14);
+        const key = _customActive;
+        customLoadPrefs({ customMaps: [{ key: 'custom-old', name: 'New map 1', borrow: 0x34, w: 16, h: 14 }] });
+        const m = customFind(key);
+        const r = { kept: !!m, name: m && m.name, rows: _customMaps.length };
+        window.__sent.length = 0;
+        editDraft().customKey = key;
+        _newMapWaiting = true;
+        newMapPaletteReady();
+        r.asked = window.__sent.some((x) => x.command === 'requestBlankRoom');
+        _customActive = null; _customMaps = [];
+        return r;
+    });
+    check('saved prefs arriving after a new map keep it (renumbered) and it still gets its blank room',
+        merged.kept && merged.rows === 2 && merged.name === 'New map 2' && merged.asked, JSON.stringify(merged));
+
     check('no uncaught errors in any of it', pageErrors.length === 0, pageErrors.join('; '));
 
     await browser.close();

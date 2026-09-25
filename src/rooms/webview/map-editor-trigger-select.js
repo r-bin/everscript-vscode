@@ -259,3 +259,21 @@ function triggerPasteClipboard() {
   editApplyTriggerOp(before, triggerSnapshot());
   triggerSelect({ kind: c.kind, id: 'placed:' + uid });
 }
+
+/**
+ * Clear `selectedTriggerRef` if undo/redo just made it point at nothing.
+ *
+ * Undoing a paste (or redoing a delete) removes the very trigger that was
+ * selected, and neither snapshot in `editApplyTriggerOp` touches
+ * `selectedTriggerRef` itself — it is UI focus, not a property of the
+ * trigger. Left alone, the Trigger tab would keep highlighting a row that no
+ * longer exists. Called by map-editor.js's `editUndo`/`editRedo`
+ * (through a `typeof` guard, for the standalone test bundles that load that
+ * file without this one); lives here because selection is this file's.
+ */
+function editDropStaleTriggerSelection() {
+  if (_edit && _edit.selectedTriggerRef && typeof editTriggerFind === 'function'
+    && !editTriggerFind(_edit.selectedTriggerRef)) {
+    _edit.selectedTriggerRef = null;
+  }
+}
