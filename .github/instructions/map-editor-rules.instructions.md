@@ -99,7 +99,9 @@ A stamp is `{layer1: canopy, layer2: terrain, collision}` — one dictionary ent
 
 **The pencil draws the open tab's pick, and only that** (`map-editor-drawable.js`):
 the Tile tab's tile, the Special tab's special, a new trigger box on the Trigger tab
-(B first), the Widgets tab's widget. Info keeps the last tab's. The eraser follows the
+(B first), on the Object tab a new object's area or the selected object's tiles, the
+Widgets tab's widget. Info keeps the last tab's. Arming a widget selects the *pencil*,
+never the old Stamp tool: Stamp stamps on every tab. The eraser follows the
 same choice. A click never carries two drawables. Before this rule, an armed stairs
 special rode along with every tile stroke.
 
@@ -198,11 +200,16 @@ rebuilt whenever the active document changes, and a map lost with it was never a
 
 ## 6. What the editor may and may not write
 
-**There is no ROM write path in this subsystem, and adding one is not a casual change.**
-`editExport()` produces a handoff shape for the sibling repo's encoder; nothing here
-writes bytes. Before wiring a new kind of edit into the export, confirm the encoder
-actually accepts it — entrances, for instance, are **room metadata, not tile-grid
-state**, and have no slot in the export shape today.
+**A custom map has one ROM write path: Export ROM** (docs/map-format/rom-export.md,
+`maps/custom-room.ts`). It writes the grid, the dictionary, Block 1, the cuttable
+table (Section 4), and animated tiles (Section 2, `maps/custom-animation.ts`). It
+writes **no triggers, objects or scripts** yet. Its check decodes the result again
+and compares, so anything added to it must be added to the check as well. A vanilla
+room's draft still only has `editExport()`, a handoff shape for the sibling repo's
+encoder. Before wiring a new kind of edit into either, confirm what the format
+accepts. Entrances, for instance, are **room metadata, not tile-grid state**, and
+have no slot today. A vanilla trigger script is not portable either: a gourd's names
+its room's object number and a shared flag.
 
 Undo is one history for everything, **one step per gesture** (a drag, however many
 cells it crosses; a group move; a stamp), and it is **saved with the map for good**
@@ -213,7 +220,21 @@ stamp and the entry must be able to bring it back. Wrap any multi-write operatio
 
 Every tile write lands on the **level** picked in the left bar (collision bits 5..4,
 `editOnLevel`); level 1 is the default. A stamped construct or widget is a **group**
-(map-editor-groups.js): moved and deleted whole, restoring what it covered.
+(map-editor-groups.js): moved and deleted whole, restoring what it covered. A stamp
+takes the level of the **floor it lands on** (`editFloorLevel`, the covered cells'
+most common level), and the bar's only on open ground. A gourd on a level-2 plateau
+is a level-2 gourd.
+
+**Layers over the map.** The cuttable layer (`_edit.cut`) and each object's `layer`
+(its changed look, map-editor-objects.js) hold stamps drawn *on top of* the map's own
+cells. They are never written into `_edit.cells`. Each is shown only while its
+control is on: the Cuttable chip, or the Object tab. Every stamp either one uses
+must count as in use for pruning and for the family sync.
+
+**Widgets** (map-editor-widgets.js) are portable constructs in one library file every
+map shares. Their cells are `{graphic, family, flags}` per layer, or `null` for "keep
+the floor". Never store a raw word in a widget unless no room could explain it: a
+word is room-relative.
 
  Cell writes, special-glyph writes, trigger
 operations and start moves all go through `editApply`/`editApplyTriggerOp`/

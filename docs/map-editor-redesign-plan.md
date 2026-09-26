@@ -202,7 +202,11 @@ mock's "Special" groups are **not** equally real:
   test files that load `map-editor.js` standalone were updated to also load
   the new file.
 
-### 5.3 Widget Editor Mode — deferred, not built (decided while executing Phase 5)
+### 5.3 Widget Editor Mode — deferred in Phase 5, built in v0.79.0
+
+> Superseded: built on request in v0.79.0 (2026-09-26) — see the "Known
+> future work" list below and docs/map-format/custom-map-files.md §6. The
+> reasoning that follows is why it waited, kept as the record.
 
 The mock's own README describes a distinct **screen 7**: a mode where you
 author a *custom* widget on its own small W×H grid (an "Edit widgets" entry
@@ -981,3 +985,21 @@ falls back to the whole sprite if the block ever moves.
 One prompt = one commit. This plan spans multiple prompts/sessions by design
 — do not attempt phases 0–6 in a single sitting. Each phase ends with its own
 version bump, validation run, and commit per `release-ritual`.
+
+## Since the plan (v0.70.0 – v0.80.0)
+
+The dock has grown past the mock's five tabs. What was added, where it lives:
+
+- **Object tab** (v0.80.0, after Trigger, `map-editor-objects.js`). An object
+  is an area plus what it turns into when its state changes. That look is a
+  layer over the map, drawn only while the tab is open.
+- **Your own widgets** (v0.79.0, `map-editor-widgets.js`,
+  `map-editor-widget-edit.js`), listed first. The generated vanilla library
+  is behind a `vanilla` toggle, and the list scrolls instead of paging.
+  Widget Editor Mode edits a widget on its own canvas.
+- **Trigger rows** (v0.78.0) follow the mock: grip, room thumbnail, tile
+  crop, `#n · N tiles`. Rows drag to reorder or to change kind
+  (`map-editor-trigger-order.js`).
+- **Levels, groups, copy/paste, the smart pencil and eyedropper,
+  collision modes, stairs and animations** (v0.70.0 – v0.77.0): see
+  CHANGELOG.md and `.github/instructions/map-editor-rules.instructions.md`.

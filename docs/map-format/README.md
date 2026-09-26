@@ -25,6 +25,10 @@ copy first, since that's the upstream.
 | `map_editor_vscode_plan.md` | Repo placement, lexer/parser reuse, IPC/packaging options |
 | `map_editor_ui.md` | **The editor's UI**: which tiles can be placed, editing layers independently, resize, and the write-back plan |
 | `building-a-room-from-scratch.md` | **Tutorial**: five rooms of increasing difficulty, built and verified; every header field named; the blob as JSON |
+| `building-a-room-from-a-picture.md` | Drafting a room from vanilla's vocabulary — the vanilla index, portable constructs, the deco library |
+| `collision-suggestions.md` | The collision a painted tile gets from vanilla, stairs, and the two collision views |
+| `custom-map-files.md` | **Custom maps on disk**: `map.json`, `history.json`, the export archive, and the widget library `widgets.json` |
+| `rom-export.md` | Export ROM: a custom map in room 0x15 — grid, dictionary, cuttable grass, animated tiles — and the round-trip check |
 
 ## Upstream
 

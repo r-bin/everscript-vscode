@@ -1,3 +1,16 @@
+## [0.80.1] — 2026-09-26
+
+### Docs: brought up to date with the map editor
+
+- `STATE_FLOW.md`: the editor's state as of v0.80.0 — six tabs, custom maps
+  on disk, widgets, objects, levels, groups, trigger order, the clipboard,
+  the lazy vanilla list — and a map of the editor's host messages.
+- The map-editor rules: the Object tab in the pencil rule; Export ROM as
+  the custom map's write path (and what it doesn't write yet); stamps
+  taking the floor's level; layers drawn over the map; portable widgets.
+- `src/rooms/README.md`, the redesign plan (what was built after it) and the
+  map-format index.
+
 ## [0.80.0] — 2026-09-26
 
 ### Map editor: an Object tab, trigger toggles, and fixes

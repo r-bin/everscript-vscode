@@ -180,10 +180,11 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   in the list (`_tileOrder`); owns those and `_layerForce` / `_brushFlip` (the last two are the
   segmented row's two brush modifiers, so they live with the control that
   renders them)
-- `map-editor-deco.js` — the deco picker and the Widgets tab it renders
-  under (`widgetsTabHtml`, Phase 5 — the tab is new, the picker underneath
-  it is not); owns `_deco` / `_decoFilter` / `_decoPage` / `_decoPreviews` /
-  `_decoPick`. Cards are grouped into Foreground/Background/Misc by
+- `map-editor-deco.js` — the generated vanilla library, the Widgets tab's
+  second section (`decoLibraryHtml`, shown with the `vanilla` toggle; the tab
+  itself is `map-editor-widgets.js`). One scrolling list, with thumbnails
+  loaded lazily; owns `_deco` / `_decoFilter` / `_decoArt` / `_decoPick` /
+  `_decoSaveWanted`. Cards are grouped into Foreground/Background/Misc by
   `front`/`back`, two booleans `deco-catalogue.js`'s `decoIndex` derives
   from the same per-cell canopy/terrain split the `front` filter flag
   already used — there is no ROM-native category. The tab's "Ready only"
@@ -259,13 +260,14 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   map-editor-special.js for the Special chip, shared.css's hide-classes for
   the rest). `detail-renderer.js` still decides *which* toggles apply to a
   given room; this file decides where they sit
-- `map-editor-tabs.js` — which of the dock's five tabs (Tile / Special /
-  Trigger / Widgets / Info — the mock's own order, corrected in Phase 7a)
+- `map-editor-tabs.js` — which of the dock's six tabs (Tile / Special /
+  Trigger / Object / Widgets / Info — the mock's own order, plus Object)
   is showing, and the tab strip that switches
   between them; owns `_editActiveTab`. Renders nothing but the strip itself
   — see `map-editor-panels.js` for what the Tile/Info/Trigger tabs hold
   (Special's own content is `map-editor-special.js`'s `specialTabHtml`;
-  Widgets' is `map-editor-deco.js`'s `widgetsTabHtml`)
+  Object's is `map-editor-objects.js`'s `objectTabHtml`; Widgets' is
+  `map-editor-widgets.js`'s `widgetsTabHtml`)
 - `map-editor-panels.js` — the metrics, the checks, the needed-metatile
   read-out, and the panel column itself, filed under the active tab
   (`tileTabHtml`/`infoTabHtml`/`triggerTabHtml`); owns `_panelOpen`. The
