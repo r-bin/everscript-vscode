@@ -43,6 +43,8 @@ var _newMapWaiting = false;
 
 function customFind(key) {
   for (var i = 0; i < _customMaps.length; i++) if (_customMaps[i].key === key) return _customMaps[i];
+  // A widget being edited is a custom map the rail never lists (map-editor-widget-edit.js).
+  if (typeof _widgetEdit !== 'undefined' && _widgetEdit && _widgetEdit.key === key) return _widgetEdit;
   return null;
 }
 
@@ -226,6 +228,7 @@ function customNoteBlank(room) {
     m.w = room.widthTiles; m.h = room.heightTiles;
     customRenderRows();
   }
+  if (m.widget && typeof widgetEditBlank === 'function') widgetEditBlank(m);
   customSaveSoon();
 }
 
@@ -237,6 +240,8 @@ function customStash() {
     customCapture(m, d);
     customSave(m);
   }
+  // Leaving a widget's canvas ends the session: it is saved into the widget.
+  if (m && m.widget) _widgetEdit = null;
   _customActive = null;
 }
 

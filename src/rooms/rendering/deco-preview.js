@@ -119,22 +119,67 @@ function buildDecoPreviews(rom, ids) {
     const buf = rom instanceof Uint8Array ? rom : new Uint8Array(rom);
     const catalogue = buildDecoCatalogue(buf);
     const want = (ids || []).map(Number).filter((n) => !isNaN(n)).slice(0, MAX_PREVIEWS);
+    return previewSheet(buf, want, want.map((id) => {
+        const entry = catalogue.find((d) => d.id === id);
+        return entry ? { entry, room: entry.room } : null;
+    }));
+}
 
+/** Graphic and family lists of portable cells, as entryRoom wants them. */
+function portableLists(cells) {
+    const graphics = [];
+    const families = [];
+    for (const c of cells || []) {
+        for (const part of [c.canopy, c.terrain]) {
+            if (!part || part.graphic === undefined) continue;
+            if (graphics.indexOf(part.graphic) < 0) graphics.push(part.graphic);
+            if (families.indexOf(part.family) < 0) families.push(part.family);
+        }
+    }
+    return { graphics, families };
+}
+
+/**
+ * Thumbnails for the user's own widgets (webview map-editor-widgets.js):
+ * `[{id, w, h, cells}]`, cells portable as a deco entry's are. Drawn with the
+ * same packing, against the default donor's display registers. A cell kept
+ * as a raw word (`{word}`, one no room could explain) is drawn blank.
+ */
+function buildWidgetPreviews(rom, widgets) {
+    const buf = rom instanceof Uint8Array ? rom : new Uint8Array(rom);
+    const list = (widgets || []).slice(0, MAX_PREVIEWS);
+    return previewSheet(buf, list.map((w) => w.id), list.map((w) => {
+        const cells = (w.cells || []).map((c) => ({
+            dx: c.dx, dy: c.dy,
+            canopy: c.canopy && c.canopy.graphic !== undefined ? c.canopy : null,
+            terrain: c.terrain && c.terrain.graphic !== undefined ? c.terrain : null,
+        }));
+        const lists = portableLists(cells);
+        if (lists.families.length > 7) return null;
+        return { entry: { w: w.w, h: w.h, cells, graphics: lists.graphics, families: lists.families }, room: WIDGET_BASE };
+    }));
+}
+
+/** The room a widget's thumbnail borrows its display registers from — the default donor. */
+const WIDGET_BASE = 0x34;
+
+/** Render `items[i]` (`{entry, room}` or null) into cell i of one sheet named by `ids`. */
+function previewSheet(buf, ids, items) {
     const columns = PREVIEW_COLUMNS;
-    const rows = Math.max(1, Math.ceil(want.length / columns));
+    const rows = Math.max(1, Math.ceil(ids.length / columns));
     const width = columns * PREVIEW_CELL;
     const height = rows * PREVIEW_CELL;
     const sheet = { width, height, data: new Uint8Array(width * height * 4) };
 
     // One decode per source room, reused by every entry that came from it.
     const bases = new Map();
-    want.forEach((id, i) => {
-        const entry = catalogue.find((d) => d.id === id);
-        if (!entry) return;
-        let base = bases.get(entry.room);
+    items.forEach((item, i) => {
+        if (!item) return;
+        const entry = item.entry;
+        let base = bases.get(item.room);
         if (!base) {
-            try { base = maps.decodeRoom(buf, entry.room); } catch { return; }
-            bases.set(entry.room, base);
+            try { base = maps.decodeRoom(buf, item.room); } catch { return; }
+            bases.set(item.room, base);
         }
         let image;
         try {
@@ -148,7 +193,7 @@ function buildDecoPreviews(rom, ids) {
     });
 
     return {
-        ids: want,
+        ids,
         columns,
         cell: PREVIEW_CELL,
         imageUri: maps.encodePngDataUri(sheet),
@@ -157,4 +202,5 @@ function buildDecoPreviews(rom, ids) {
     };
 }
 
-module.exports = { buildDecoPreviews, entryRoom };
+
+module.exports = { buildDecoPreviews, buildWidgetPreviews, entryRoom };

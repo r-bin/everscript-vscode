@@ -83,6 +83,8 @@ function editStartPlace(room, sprite) {
   var d = editDraft();
   if (!d || !room) return;
   if (sprite !== undefined) _startSprite = sprite || null;
+  // A widget's canvas is not a room: nobody starts in it (map-editor-widget-edit.js).
+  if (typeof widgetEditing === 'function' && widgetEditing() && d.customKey === _widgetEdit.key) { d.start = null; return; }
   var w = room.widthTiles;
   var h = room.heightTiles;
   if (!d.start) {

@@ -28,6 +28,9 @@ var PANEL_OPEN_PREF = 'panelOpen';
 function applyUiPrefs(prefs) {
   if (prefs && (prefs.collisionMode === 'tiles' || prefs.collisionMode === 'outline')
     && typeof _collisionMode !== 'undefined') _collisionMode = prefs.collisionMode;
+  if (prefs && typeof prefs.widgetsVanilla === 'boolean' && typeof _widgetsVanilla !== 'undefined') {
+    _widgetsVanilla = prefs.widgetsVanilla;
+  }
   var saved = prefs && prefs[PANEL_OPEN_PREF];
   if (saved && typeof saved === 'object') {
     Object.keys(saved).forEach(function (k) { _panelOpen[k] = !!saved[k]; });
@@ -228,11 +231,18 @@ function renderEditPanels() {
   var oldBody = document.getElementById('rg-tab-body');
   var anchor = oldBody && oldBody.dataset.tab === _editActiveTab ? panelScrollAnchor(panelScroller(oldBody)) : null;
   _tileAnchorFam = null;
-  host.innerHTML = buildEditTabStripHtml() + '<div class="rg-tab-body" id="rg-tab-body" data-tab="'
+  // The widget's name keeps its caret across the redraws its own saves cause.
+  var named = document.activeElement && document.activeElement.id === 'rg-widget-name'
+    ? document.activeElement.selectionStart : -1;
+  host.innerHTML = (typeof widgetEditBannerHtml === 'function' ? widgetEditBannerHtml() : '')
+    + buildEditTabStripHtml() + '<div class="rg-tab-body" id="rg-tab-body" data-tab="'
     + _editActiveTab + '">' + body + '</div>';
+  var nameEl = named >= 0 && document.getElementById('rg-widget-name');
+  if (nameEl) { nameEl.focus(); nameEl.setSelectionRange(named, named); }
   var newBody = document.getElementById('rg-tab-body');
   panelRestoreScroll(panelScroller(newBody), anchor);
   if (_editActiveTab === 'tile') tileLazyObserve();
+  if (_editActiveTab === 'widgets' && typeof decoLazyObserve === 'function') decoLazyObserve();
   // §8a.2 removed the Tile tab's "compose & constructs" panel and the
   // `#rg-compose` host it rendered into, so there is nothing left to
   // refresh here — renderComposer() (map-editor-input.js) is only reached

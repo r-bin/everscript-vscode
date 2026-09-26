@@ -85,6 +85,8 @@ function customNothingOpen() {
 function customSave(m) {
   m = m || customFind(_customActive);
   if (!m || m.readOnly || typeof vs === 'undefined' || !vs) return;
+  // A widget's canvas saves into the widget, not a map folder (map-editor-widget-edit.js).
+  if (m.widget) { if (typeof widgetFromSession === 'function') widgetFromSession(m); return; }
   var d = editDraft();
   if (d && d.customKey === m.key) customCapture(m, d);
   vs.postMessage({ command: 'saveCustomMap',
@@ -118,6 +120,7 @@ if (typeof window !== 'undefined' && window.addEventListener) {
 }
 
 function customRememberActive(key) {
+  if (typeof _widgetEdit !== 'undefined' && _widgetEdit && _widgetEdit.key === key) return; // not a map to reopen
   if (typeof vs !== 'undefined' && vs && _customLoaded === 'yes') vs.postMessage({ command: 'setCustomActive', key: key });
 }
 

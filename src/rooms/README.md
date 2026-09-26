@@ -31,6 +31,7 @@ rooms/
     rom-export.js             — Export ROM: a custom map in room 0x15, the intro jumping there
     custom-export.js          — Export map: the .zip (blob, map.json, sample .evs, stamps.json, README)
   data/
+    widget-store.js           — the user's own widgets: <globalStorage>/widgets.json (list, save, delete)
     vanilla-data.js           — VANILLA_ROOMS catalogue + buildVanillaRoomContent/Details + ROM backing
     lua-watchers.js           — getMapEnum, readLuaWatchers, readScriptAllTriggers + caches
     custom-store.js           — custom maps on disk: one folder per map (map.json + history.json)
@@ -218,6 +219,10 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   business knowing about and it carried no model of its own
 - `map-editor-trigger-order.js` — dragging trigger rows: the list's order
   (`_edit.triggerOrder`) and changing a trigger's kind; owns `_triggerDragRow`
+- `map-editor-widgets.js` — the user's own widgets and the Widgets tab (yours first,
+  vanilla behind a toggle); owns `_widgets` / `_widgetArt` / `_widgetsVanilla`
+- `map-editor-widget-edit.js` — Widget Editor Mode: a widget on its own canvas, a
+  custom map the rail never lists; owns `_widgetEdit` / `_widgetBack`
 - `map-editor-actions.js` — the toolbar's verbs, split out of the input handler
 - `map-editor-paint.js` — drawing the draft on the map from the palette atlas,
   the region maths, and the Select tool's outline/drag-preview rectangles;

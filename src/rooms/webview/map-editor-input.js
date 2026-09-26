@@ -105,7 +105,7 @@ function renderComposer() {
 var EDIT_CLICK_KEYS = ['editTool', 'editAct', 'editPick', 'panel',
   'famTile', 'construct', 'chip', 'chipDrop', 'chipAdopt',
   'brushFlip', 'tileFilter', 'tileShape', 'tileFrames', 'strandedFix', 'strandedDrop', 'nbSide', 'nbCentre', 'nbUse',
-  'layerForce', 'deco', 'decoPage', 'decoFlag', 'mtIndex', 'mtSlot', 'editActiveTab',
+  'layerForce', 'deco', 'decoSave', 'widget', 'widgetEdit', 'widgetAct', 'decoFlag', 'mtIndex', 'mtSlot', 'editActiveTab',
   'editSpecial', 'editSpecialMenu', 'editTriggerMenu', 'editMoreMenu',
   'editToolMenu', 'triggerRef', 'triggerRemove', 'triggerKind', 'editLevel', 'editCollisionMenu', 'collisionMode'];
 
@@ -168,9 +168,9 @@ function bindEditControls(panel, room) {
   // Delegated on `input` so it survives the redraws it causes.
   panel.addEventListener('input', function (e) {
     if (!e.target) return;
+    if (e.target.id === 'rg-widget-name') { widgetEditRename(e.target.value); return; }
     if (e.target.id === 'rg-deco-filter') {
       _decoFilter = e.target.value;
-      _decoPage = 0;
       renderEditPanels();
     }
   });
@@ -274,16 +274,13 @@ function bindEditControls(panel, room) {
     }
     if (t.dataset.decoFlag) {
       _decoFlags[t.dataset.decoFlag] = !_decoFlags[t.dataset.decoFlag];
-      _decoPage = 0;   // a narrower list starts at the top of its own pages
       renderEditPanels();
       return;
     }
+    if (t.dataset.decoSave) { decoSaveAsMine(Number(t.dataset.decoSave)); return; }
     if (t.dataset.deco) { decoUse(Number(t.dataset.deco)); return; }
-    if (t.dataset.decoPage !== undefined && t.dataset.decoPage !== '') {
-      _decoPage = Number(t.dataset.decoPage);
-      renderEditPanels();
-      return;
-    }
+    // The user's own widgets: arm, edit, and the tab's actions (map-editor-widgets.js).
+    if ((t.dataset.widget || t.dataset.widgetEdit || t.dataset.widgetAct) && widgetClick(t)) return;
     if (t.dataset.famTile) {
       // A tile from a family strip: pulls in the family, the graphic, and
       // the metatile that can draw it, all at once. The redraw keeps this

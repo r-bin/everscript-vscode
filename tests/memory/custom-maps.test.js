@@ -12,6 +12,7 @@ const path = require('path');
 const assert = require('assert');
 
 const store = require('../../src/rooms/data/custom-store');
+const widgetStore = require('../../src/rooms/data/widget-store');
 const { buildZip, readZip } = require('../../src/shared/zip');
 const { handleCustomMapMessage, handlesCustomMapMessage } = require('../../src/rooms/custom-host');
 const { mapSlug, sampleEvs } = require('../../src/rooms/rendering/custom-export');
@@ -148,6 +149,46 @@ test('delete asks first: cancelled keeps the map, confirmed removes it', async (
 });
 
 
+// The user's own widgets: one file, shared by every map (v0.79.0).
+const WIDGET = { id: 'w-abc', name: 'Gourd', w: 2, h: 2,
+    cells: [{ dx: 0, dy: 0, canopy: { graphic: 1058, family: 58, flags: 0 }, terrain: null, collision: 0x1f }],
+    attachments: { bTrigger: [{ dx: 0, dy: 0, w: 3, h: 3, scriptId: 0xd74 }], stepOn: [], objects: [{ dx: 0, dy: 0, w: 2, h: 2, states: 1 }] } };
+
+test('widgets: saved, replaced by id, listed and deleted; a bad id is refused', () => {
+    const file = path.join(tmp(), 'widgets.json');
+    assert.deepStrictEqual(widgetStore.listWidgets(file), []);
+    widgetStore.saveWidget(file, WIDGET);
+    widgetStore.saveWidget(file, { ...WIDGET, name: 'Pot' });
+    const list = widgetStore.listWidgets(file);
+    assert.strictEqual(list.length, 1);
+    assert.strictEqual(list[0].name, 'Pot');
+    assert.deepStrictEqual(list[0].attachments, WIDGET.attachments);
+    assert.strictEqual(JSON.parse(fs.readFileSync(file, 'utf8')).format, 'everscript-widgets');
+    assert.throws(() => widgetStore.saveWidget(file, { ...WIDGET, id: '../x' }), /invalid widget id/);
+    assert.deepStrictEqual(widgetStore.deleteWidget(file, 'w-abc'), []);
+});
+
+test('widget messages: list, save, and delete only after the confirm', async () => {
+    const file = path.join(tmp(), 'widgets.json');
+    const posted = [];
+    let answer = 'Delete';
+    const deps = { widgetsFile: file, post: (m) => posted.push(m),
+        vscode: { window: { showWarningMessage: async () => answer, showErrorMessage: () => {} } } };
+    assert.ok(handlesCustomMapMessage('saveWidget'));
+    handleCustomMapMessage({ command: 'saveWidget', widget: WIDGET }, deps);
+    handleCustomMapMessage({ command: 'requestWidgets' }, deps);
+    assert.strictEqual(posted.pop().widgets[0].id, 'w-abc');
+    answer = undefined;
+    handleCustomMapMessage({ command: 'deleteWidget', id: 'w-abc', name: 'Gourd' }, deps);
+    await new Promise((r) => setTimeout(r, 10));
+    assert.strictEqual(widgetStore.listWidgets(file).length, 1, 'cancelled keeps it');
+    answer = 'Delete';
+    handleCustomMapMessage({ command: 'deleteWidget', id: 'w-abc', name: 'Gourd' }, deps);
+    await new Promise((r) => setTimeout(r, 10));
+    assert.strictEqual(widgetStore.listWidgets(file).length, 0);
+    assert.strictEqual(posted.pop().deleted, 'w-abc');
+});
+
 test('zip: what is written reads back, names and bytes', () => {
     const files = [{ name: 'a/b.bin', data: Buffer.from([0, 1, 2, 250]) }, { name: 'a/c.txt', data: 'héllo\n'.repeat(50) }];
     const back = readZip(buildZip(files));
@@ -197,6 +238,13 @@ if (!fs.existsSync(ROM_PATH)) {
         const st = JSON.parse(files.find((f) => f.name.endsWith('stamps.json')).data);
         assert.strictEqual(st.stamps[0].level, 1);
         assert.match(files.find((f) => f.name.endsWith('.evs')).data.toString(), /load_map\(MAP\.BRIAN, 0x11, 0x0f\)/);
+    });
+
+    test('a widget gets a thumbnail drawn from its portable cells', () => {
+        const { buildWidgetPreviews } = require('../../src/rooms/rendering/deco-preview');
+        const p = buildWidgetPreviews(rom, [WIDGET, { id: 'w-empty', w: 1, h: 1, cells: [] }]);
+        assert.deepStrictEqual(p.ids, ['w-abc', 'w-empty']);
+        assert.ok(/^data:image\/png;base64,/.test(p.imageUri));
     });
 }
 

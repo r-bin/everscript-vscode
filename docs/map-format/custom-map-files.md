@@ -244,3 +244,40 @@ external tool needs to know without decoding the blob.
 
 **Delete map…** in the `⋯` menu asks for confirmation (a modal dialog on the
 host), then removes the map's folder, history included. There is no undo.
+
+## 6. Your own widgets: `widgets.json`
+
+Widgets are not part of any one map. They live in one file every map shares:
+
+```
+<globalStorage>/widgets.json
+{ "format": "everscript-widgets", "version": 1, "widgets": [
+  { "id": "w-muimq9areswg", "name": "Hut gourd", "w": 2, "h": 2,
+    "cells": [ { "dx": 0, "dy": 0, "canopy": { "graphic": 1058, "family": 58, "flags": 0 },
+                 "terrain": null, "collision": 31 } ],
+    "attachments": { "bTrigger": [ { "dx": 0, "dy": 0, "w": 3, "h": 3, "scriptId": 3444 } ],
+                     "stepOn": [], "objects": [ { "dx": 0, "dy": 0, "w": 2, "h": 2, "states": 1 } ] },
+    "source": { "deco": 326, "room": 81 }, "created": "…", "modified": "…" } ] }
+```
+
+- **Cells are portable.** Each layer is `{graphic, family, flags}` and is
+  rebuilt in whichever map the widget is stamped into, adopting the graphic
+  and family it needs. A `null` layer means "keep whatever is there", so a
+  gourd keeps the floor it lands on. A layer no room could explain is kept
+  as `{word}`.
+- **Attachments** are the triggers and objects that come with it, relative
+  to its top-left. Scripts are vanilla's ids: two copies of one gourd run one
+  script and share its flag.
+- **Level.** Collision is stored as it was drawn. Stamping re-levels it to
+  the floor it lands on: the level most of the covered cells already have,
+  or the level bar's on open ground (`map-editor-levels.js`
+  `editFloorLevel`).
+- **Where widgets come from:**
+  - "+ New widget";
+  - "+ From selection", the copy tool's region or a stamped object;
+  - ☆ on a vanilla card. The vanilla library is generated automatically
+    from vanilla rooms, so it is behind the Widgets tab's `vanilla` toggle.
+- **Editing** (✎) opens the widget on its own canvas, a custom map the rail
+  never lists. Every save writes back into `widgets.json`, and nothing goes
+  to `custom-maps/`. The Boy has no start there. Delete asks first, like a
+  map. Maps a widget was stamped into keep their copy.

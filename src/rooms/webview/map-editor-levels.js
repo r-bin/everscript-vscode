@@ -50,18 +50,41 @@ function editLevelPick(p) {
  * when it is already there, else one with bits 5..4 changed and the rest
  * of the collision word kept.
  */
-function editOnLevel(palette, index) {
+function editOnLevel(palette, index, level) {
   if (index == null || index < 0) return index;
   var w = editStampWords(palette, index);
   if (!w) return index;
-  var want = editLevel() << 4;
+  var want = (level >= 0 && level <= 3 ? level : editLevel()) << 4;
   if ((w.collision & LEVEL_BITS) === want) return index;
   return editAddStamp(palette, { layer1: w.layer1, layer2: w.layer2, collision: (w.collision & ~LEVEL_BITS) | want });
 }
 
 /** The same for a list of writes, leaving removals alone. */
-function editWritesOnLevel(palette, writes) {
+function editWritesOnLevel(palette, writes, level) {
   return (writes || []).map(function (w) {
-    return w && w.index != null ? Object.assign({}, w, { index: editOnLevel(palette, w.index) }) : w;
+    return w && w.index != null ? Object.assign({}, w, { index: editOnLevel(palette, w.index, level) }) : w;
   });
+}
+
+/**
+ * The level of the floor under a stamp's footprint: the one most of the
+ * cells it covers already have. A gourd dropped on a level-2 plateau is a
+ * level-2 gourd, whatever the bar says — otherwise it would be a wall the
+ * Boy on that plateau walks into, and a hole in the plateau for him too.
+ * Open ground (nothing there yet) says nothing; with none, the bar decides.
+ */
+function editFloorLevel(palette, writes) {
+  var count = [0, 0, 0, 0];
+  var seen = 0;
+  (writes || []).forEach(function (w) {
+    var i = editCellAt(palette, w.x, w.y);
+    var words = i >= 0 ? editStampWords(palette, i) : null;
+    if (!words) return;
+    count[(words.collision & LEVEL_BITS) >> 4] += 1;
+    seen += 1;
+  });
+  if (!seen) return editLevel();
+  var best = 0;
+  for (var p = 1; p < 4; p++) if (count[p] > count[best]) best = p;
+  return best;
 }

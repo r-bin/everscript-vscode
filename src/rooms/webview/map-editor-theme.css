@@ -198,6 +198,20 @@
  * family filter chip already uses (shared.css) — it is a wider label on the
  * same control, not a new visual register. */
 .rg-theme .rg-deco-ready{margin:4px 0 2px}
+/* The Widgets tab: yours first, the generated vanilla ones behind a toggle (map-editor-widgets.js). */
+.rg-theme .rg-widget-top{display:flex;align-items:center;gap:8px;margin:2px 0 6px}
+.rg-theme .rg-deco-keep{position:absolute;right:2px;top:2px;font-size:11px;line-height:14px;width:16px;height:16px;
+  text-align:center;border-radius:4px;background:var(--rg-bg-app);color:var(--rg-text-secondary);opacity:0;cursor:pointer}
+.rg-theme .rg-deco:hover .rg-deco-keep,.rg-theme .rg-widget-card .rg-deco-keep{opacity:1}
+.rg-theme .rg-deco-keep:hover{color:var(--rg-accent-text);background:var(--rg-accent-soft)}
+.rg-theme .rg-widget-add{border-style:dashed;color:var(--rg-text-muted);justify-content:center;align-items:center}
+.rg-theme .rg-widget-add[disabled]{opacity:.45;cursor:default}
+.rg-theme .rg-widget-plus{display:block;height:36px;line-height:36px;font-size:20px;text-align:center}
+.rg-theme .rg-widget-h-vanilla{margin-top:14px;padding-top:8px;border-top:1px solid var(--rg-border)}
+.rg-theme .rg-widget-banner{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 8px;padding:6px 10px;
+  border-radius:7px;background:var(--rg-accent-soft);color:var(--rg-accent-text);font-size:12px;font-weight:500}
+.rg-theme .rg-widget-name{flex:1;min-width:80px;font:inherit;color:var(--rg-text-primary);background:var(--rg-bg-app);
+  border:1px solid var(--rg-border);border-radius:5px;padding:2px 6px}
 
 /* ── Trigger tab list (map-editor-trigger-panel.js's triggerTabPanelHtml) ── */
 .rg-theme .rg-trigger-section{margin-bottom:12px}

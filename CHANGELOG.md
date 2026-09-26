@@ -1,3 +1,31 @@
+## [0.79.0] — 2026-09-26
+
+### Map editor: your own widgets, and a gourd that works on any level
+
+- **Widgets scroll** instead of paging. Thumbnails load as they come into
+  view.
+- **Your widgets come first.** The 532 widgets generated automatically from
+  vanilla rooms are hit and miss, so they only show while the new `vanilla`
+  toggle is on. The toggle is remembered.
+- **Add and edit widgets.** You can create one three ways:
+  - "+ New widget" starts an empty one;
+  - "+ From selection" keeps the copy tool's region or a stamped object;
+  - ☆ on a vanilla card keeps that one.
+
+  ✎ opens a widget on its own canvas with every tool (the design mock's
+  Widget Editor Mode): tiles, collision, specials and triggers. You can
+  rename and resize it, and delete it (you're asked first). It saves as you
+  go, and "← Back to map" returns to your map. Widgets are shared by every
+  map, in `widgets.json`.
+- **A gourd stamps whole:** its tiles, collision, B-trigger and object, as
+  one object you can move and delete. It lands on the **level of the floor
+  it's placed on**, so on a level-2 plateau it is a level-2 gourd whatever
+  the level bar says. On open ground the bar decides.
+- **Not yet in the game:** the exported ROM still writes no triggers or
+  objects. The gourd's vanilla script also points at its original room's
+  object number and "already looted" flag, so making it work in the game
+  needs new scripts, which is its own step.
+
 ## [0.78.0] — 2026-09-26
 
 ### Map editor: trigger rows as the design mock draws them

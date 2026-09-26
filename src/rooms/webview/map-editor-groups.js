@@ -54,9 +54,13 @@ function editStampGroup(palette, construct, x, y) {
   var d = editDraft();
   var got = editConstructWrites(palette, construct, x, y);
   if (!got.writes.length) return got;
-  // On the level picked in the left bar, like every other tile written: a
-  // widget cut from a vanilla room carries that room's level otherwise.
-  if (typeof editWritesOnLevel === 'function') got.writes = editWritesOnLevel(palette, got.writes);
+  // On the level of the floor it lands on (the bar's where there is none):
+  // a widget cut from a vanilla room carries that room's level otherwise.
+  if (typeof editWritesOnLevel === 'function') {
+    var level = typeof editFloorLevel === 'function' ? editFloorLevel(palette, got.writes) : undefined;
+    got.writes = editWritesOnLevel(palette, got.writes, level);
+    got.level = level;
+  }
   editBegin();
   var under = got.writes.map(function (w) { return groupRef(w.x - x, w.y - y, editDraftValue(w.x, w.y)); });
   var firstPlaced = d.placed.length;

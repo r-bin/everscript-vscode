@@ -74,6 +74,9 @@ if(typeof window!=='undefined'&&window.addEventListener){
       if(typeof customLoadMaps==='function')customLoadMaps(data);
     }else if(data.command==='customMapDeleted'){
       if(typeof applyCustomMapDeleted==='function')applyCustomMapDeleted(data);
+    }else if(data.command==='widgets'){
+      // The user's own widgets (map-editor-widgets.js).
+      if(typeof applyWidgets==='function')applyWidgets(data);
     }else if(data.command==='customMapExported'){
       if(typeof applyCustomMapExported==='function')applyCustomMapExported(data);
     }else if(data.command==='draftCollision'){

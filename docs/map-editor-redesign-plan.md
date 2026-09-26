@@ -313,12 +313,15 @@ canvas card, matching the design mock's own screens.
   repo's Python encoder accepts injected entrances at all. Before wiring
   entrances into the real export, confirm that encoder contract first;
   don't guess at a shape.
-- **Widget Editor Mode** (flagged in §5.3, Phase 5): authoring a *new*,
-  user-defined widget from scratch (the mock's screen 7 — its own small
-  W×H grid, Export/Import). This needs a genuinely new persistence concept
-  (what gets saved, where, in what shape, how it round-trips into the
-  picker) that no existing model in this repository answers yet — not a
-  small extension of the existing vanilla-picker Widgets tab.
+- **Widget Editor Mode** (flagged in §5.3, Phase 5): built in v0.79.0
+  (2026-09-26) at the user's request. The persistence question was answered
+  by the custom-map work that came after:
+  - Widgets are portable constructs in one library file,
+    `<globalStorage>/widgets.json`
+    (`docs/map-format/custom-map-files.md` §6).
+  - A widget is edited as a custom map the rail never lists, at the widget's
+    own size, with every tool (`map-editor-widget-edit.js`).
+  - Export/Import of the library is not built.
 - **Trigger reorder** (flagged in Phase 4's own decisions, §5.2): built in
   v0.78.0 (2026-09-26), at the user's request, in
   `map-editor-trigger-order.js`. A row drags within its list, or onto the

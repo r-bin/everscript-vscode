@@ -13,15 +13,23 @@
 //   setCustomActive {key}
 //   deleteCustomMap {key, name}     -> customMapDeleted {key} (after a modal confirm)
 //   exportCustomMap {map, draft, stamps} -> customMapExported {path} | {error} | {cancelled}
+//   requestWidgets                  -> widgets {widgets}
+//   saveWidget {widget}             -> widgets {widgets}
+//   deleteWidget {id, name}         -> widgets {widgets, deleted} (after a modal confirm)
+//
+// Widgets (data/widget-store.js) live beside the maps, in one file every map
+// shares: `deps.widgetsFile`.
 //
 // See docs/map-format/custom-map-files.md.
 
 const fs = require('fs');
 const path = require('path');
 const store = require('./data/custom-store');
+const widgetStore = require('./data/widget-store');
 const { buildCustomMapArchive } = require('./rendering/custom-export');
 
-const COMMANDS = new Set(['requestCustomMaps', 'saveCustomMap', 'setCustomActive', 'deleteCustomMap', 'exportCustomMap']);
+const COMMANDS = new Set(['requestCustomMaps', 'saveCustomMap', 'setCustomActive', 'deleteCustomMap', 'exportCustomMap',
+    'requestWidgets', 'saveWidget', 'deleteWidget']);
 
 /** The prefs key the maps lived under before they had folders. */
 const LEGACY_PREF = 'customMaps';
@@ -48,6 +56,10 @@ function handleCustomMapMessage(msg, deps) {
         } catch (err) {
             post({ command: 'customMaps', maps: [], active: null, error: String(err && err.message || err) });
         }
+        return;
+    }
+    if (msg.command === 'requestWidgets' || msg.command === 'saveWidget' || msg.command === 'deleteWidget') {
+        handleWidgetMessage(msg, deps);
         return;
     }
     if (msg.command === 'saveCustomMap') {
@@ -109,6 +121,34 @@ function handleCustomMapMessage(msg, deps) {
             }
         })();
     }
+}
+
+/** The widget library: list, save, delete (with a modal confirm). */
+function handleWidgetMessage(msg, deps) {
+    const { vscode, post, widgetsFile } = deps;
+    const reply = (extra) => post({ command: 'widgets', ...extra });
+    if (msg.command === 'requestWidgets') {
+        try { reply({ widgets: widgetStore.listWidgets(widgetsFile) }); } catch (err) {
+            reply({ widgets: [], error: String(err && err.message || err) });
+        }
+        return;
+    }
+    if (msg.command === 'saveWidget') {
+        try { reply({ widgets: widgetStore.saveWidget(widgetsFile, msg.widget || {}), saved: msg.widget && msg.widget.id }); } catch (err) {
+            vscode.window.showErrorMessage('Could not save the widget: ' + String(err && err.message || err));
+        }
+        return;
+    }
+    (async () => {
+        const name = String(msg.name || 'this widget');
+        const pick = await vscode.window.showWarningMessage(
+            `Delete the widget “${name}”? Maps it was stamped into keep their copy. This cannot be undone.`,
+            { modal: true }, 'Delete');
+        if (pick !== 'Delete') return;
+        try { reply({ widgets: widgetStore.deleteWidget(widgetsFile, msg.id), deleted: msg.id }); } catch (err) {
+            vscode.window.showErrorMessage('Could not delete the widget: ' + String(err && err.message || err));
+        }
+    })();
 }
 
 module.exports = { handlesCustomMapMessage, handleCustomMapMessage };

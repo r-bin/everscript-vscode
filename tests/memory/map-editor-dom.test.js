@@ -27,7 +27,7 @@ const read = (f) => fs.readFileSync(path.join(WEBVIEW, f), 'utf8');
 const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-stamps.js', 'map-editor-paint.js',
     'map-editor-anim.js', 'map-editor-ui.js', 'map-editor-phases.js', 'map-editor-constructs.js', 'map-editor-families.js',
     'map-editor-relations.js', 'map-editor-chips.js', 'map-editor-stranded.js',
-    'map-editor-tiles.js', 'map-editor-tile-lazy.js', 'map-editor-tile-filters.js', 'map-editor-neighbours.js', 'map-editor-deco.js', 'map-editor-special.js',
+    'map-editor-tiles.js', 'map-editor-tile-lazy.js', 'map-editor-tile-filters.js', 'map-editor-neighbours.js', 'map-editor-deco.js', 'map-editor-widgets.js', 'map-editor-widget-edit.js', 'map-editor-special.js',
     'map-editor-trigger-select.js', 'map-editor-trigger-panel.js', 'map-editor-trigger-order.js',
     'map-editor-toolbar.js', 'map-editor-filterbar.js', 'rom-overlay.js',
     'tables-builder.js', 'map-editor-tabs.js', 'map-editor-panels.js', 'map-editor-gestures.js',
@@ -1639,11 +1639,14 @@ async function main() {
         editReset(0x34);
         editDraft().on = true;
         _editActiveTab = 'widgets';
+        // v0.79.0: the generated vanilla library is behind the `vanilla` toggle.
+        _widgets = [];
+        _widgetsVanilla = true;
         applyDecoLibrary({ deco: deco });
         applyDecoPreviews({ previews: { ids: [0, 1, 2], columns: 6, cell: 48,
             imageUri: 'data:image/png;base64,ZGVjbw==', imageWidth: 288, imageHeight: 48 } });
     }, DECO);
-    check('the Widgets tab renders the deco library as thumbnails', (await page.$$('.rg-deco')).length === 3);
+    check('the Widgets tab renders the deco library as thumbnails', (await page.$$('.rg-deco[data-deco]')).length === 3);
     check('each one carries its size and where it came from',
         /Fire Eyes/.test(await page.$eval('[data-deco="1"]', (n) => n.getAttribute('title'))));
     check('cards are grouped under Foreground/Background headings',
@@ -1768,12 +1771,12 @@ async function main() {
     // ── the deco filter ────────────────────────────────────────────────────
     await page.fill('#rg-deco-filter', '6x6');
     check('a size filter narrows the library',
-        (await page.$$eval('.rg-deco', (n) => n.map((e) => e.dataset.deco))).join() === '2');
+        (await page.$$eval('.rg-deco[data-deco]', (n) => n.map((e) => e.dataset.deco))).join() === '2');
     await page.fill('#rg-deco-filter', 'gothica');
-    check('so does an act', (await page.$$eval('.rg-deco', (n) => n.length)) === 1);
+    check('so does an act', (await page.$$eval('.rg-deco[data-deco]', (n) => n.length)) === 1);
     await page.fill('#rg-deco-filter', 'ebon keep');
     check('and every word has to match, so two narrow further',
-        (await page.$$eval('.rg-deco', (n) => n.map((e) => e.dataset.deco))).join() === '2');
+        (await page.$$eval('.rg-deco[data-deco]', (n) => n.map((e) => e.dataset.deco))).join() === '2');
     await page.fill('#rg-deco-filter', '');
 
     // ── the four questions, as buttons ─────────────────────────────────────
@@ -1784,7 +1787,7 @@ async function main() {
     // set* is what these assert, not the on-screen ordering — that ordering
     // has its own dedicated check above ("cards are grouped under
     // Foreground/Background headings").
-    const onScreen = () => page.$$eval('.rg-deco',
+    const onScreen = () => page.$$eval('.rg-deco[data-deco]',
         (n) => n.map((e) => Number(e.dataset.deco)).sort((a, b) => a - b).join());
     check('an entry that needs families you lack is marked with its cost',
         await page.$eval('[data-deco="2"]', (n) => n.classList.contains('rg-deco-costly')
@@ -2190,6 +2193,92 @@ async function main() {
     });
     check('New Map on an untouched map reopens it; once drawn on, the next is a new map',
         reuse.same && reuse.rows === 1 && reuse.second && reuse.otherSize, JSON.stringify(reuse));
+
+    // ── v0.79.0: the Widgets tab — yours first, vanilla behind a toggle ────
+    const wtab = await page.evaluate(() => {
+        editReset(0x34); editDraft().on = true;
+        _editActiveTab = 'widgets'; _widgets = []; _widgetsVanilla = false;
+        renderEditPanels();
+        const r = { vanillaCards: document.querySelectorAll('.rg-deco[data-deco]').length,
+            add: !!document.querySelector('[data-widget-act="new"]'),
+            pages: document.querySelectorAll('[data-deco-page]').length };
+        window.__sent.length = 0;
+        document.querySelector('[data-widget-act="vanilla"]').click();
+        r.after = document.querySelectorAll('.rg-deco[data-deco]').length;
+        r.pref = window.__sent.some((m) => m.command === 'saveUiPref' && m.key === 'widgetsVanilla' && m.value === true);
+        r.previews = window.__sent.filter((m) => m.command === 'requestDeco' && m.previews).map((m) => m.previews.length);
+        return r;
+    });
+    check('Widgets shows your own first; the generated vanilla ones only with the toggle, remembered',
+        wtab.vanillaCards === 0 && wtab.add && wtab.after === 3 && wtab.pref, JSON.stringify(wtab));
+    check('the vanilla list scrolls instead of paging', wtab.pages === 0, JSON.stringify(wtab));
+
+    const keptW = await page.evaluate(() => {
+        window.__sent.length = 0;
+        widgetSaveFromDeco({ id: 1, w: 2, h: 1, states: 2, room: 0x25,
+            trigger: { dx: 0, dy: 0, w: 3, h: 2, scriptId: 0xd74 },
+            cells: [{ dx: 0, dy: 0, canopy: { graphic: 0x0422, family: 58, flags: 0 }, terrain: null, collision: 0x001f }] },
+            '2×1 from Fire Eyes');
+        const sent = window.__sent.filter((m) => m.command === 'saveWidget').pop();
+        renderEditPanels();
+        const id = _widgets[0].id;
+        document.querySelector('[data-widget="' + id + '"]').click();
+        const d = editDraft();
+        return { n: _widgets.length, sent: !!sent, trig: sent && sent.widget.attachments.bTrigger.length,
+            obj: sent && sent.widget.attachments.objects[0].states, card: !!document.querySelector('[data-widget-edit="' + id + '"]'),
+            armed: _editConstruct >= 0 && d.constructs[_editConstruct].widget === id };
+    });
+    check('☆ keeps a vanilla one as your widget — trigger and object included — and a click arms it',
+        keptW.n === 1 && keptW.sent && keptW.trig === 1 && keptW.obj === 2 && keptW.card && keptW.armed, JSON.stringify(keptW));
+
+    // "stamp a gourd with B-trigger, collision and object … regardless of the elevation"
+    const gourd = await page.evaluate(() => {
+        const d = editReset(0x34); d.on = true; d.plane = 1;
+        const high = editAddStamp(_mtPalette, { layer1: 0xa800, layer2: 0x05c6, collision: 0x0020 });
+        d.cells['0,0'] = high; d.cells['1,0'] = high; // _mtPalette is the 2×2 blank room by now
+        const c = { name: 'gourd', w: 2, h: 1,
+            cells: [{ dx: 0, dy: 0, canopy: { word: 0x1422 }, terrain: null, collision: 0x001f },
+                    { dx: 1, dy: 0, canopy: { word: 0x1423 }, terrain: null, collision: 0x001f }],
+            attachments: { bTrigger: [{ dx: 0, dy: 0, w: 2, h: 2, scriptId: 0xd74 }], stepOn: [],
+                objects: [{ dx: 0, dy: 0, w: 2, h: 1, states: 2 }] } };
+        const got = editStampGroup(_mtPalette, c, 0, 0);
+        const w = editStampWords(_mtPalette, d.cells['0,0']);
+        const r = { level: got.level, plane: (w.collision >> 4) & 3, shape: w.collision & 0x0f,
+            trig: d.placed.filter((p) => p.kind === 'bTrigger').length, obj: d.placed.filter((p) => p.kind === 'object').length,
+            groups: d.groups.length };
+        editUndo();
+        const open = editStampGroup(_mtPalette, c, 0, 1);
+        r.openLevel = open.level; r.dims = [_mtPalette.widthTiles, _mtPalette.heightTiles];
+        return r;
+    });
+    check('a stamped gourd brings its collision, B-trigger and object, on the level of the floor it lands on',
+        gourd.level === 2 && gourd.plane === 2 && gourd.shape === 0x0f && gourd.trig === 1 && gourd.obj === 1
+        && gourd.groups === 1, JSON.stringify(gourd));
+    check('on open ground it takes the level from the bar', gourd.openLevel === 1, JSON.stringify(gourd));
+
+    // Widget Editor Mode saves the canvas back into the widget: the blank
+    // floor's own words become null ("keep the floor"), triggers come along.
+    const session = await page.evaluate(() => {
+        const w = { id: 'w-test', name: 'Widget 9', w: 2, h: 2, cells: [], attachments: { bTrigger: [], stepOn: [], objects: [] } };
+        _widgets = [w];
+        const d = editReset(0x34); d.on = true;
+        _widgetEdit = { key: 'widget-test', widget: 'w-test', name: 'Pot', w: 2, h: 2, borrow: 0x34 };
+        d.customKey = 'widget-test';
+        d.blank = { floor: { layer1: 0xa800, layer2: 0x05c6, collision: 0 } };
+        d.cells['1,0'] = editAddStamp(_mtPalette, { layer1: 0x1422, layer2: 0x05c6, collision: 0x001f });
+        d.placed.push({ kind: 'bTrigger', x: 1, y: 0, w: 1, h: 2, scriptId: 7, uid: 99 });
+        window.__sent.length = 0;
+        widgetFromSession(_widgetEdit);
+        const sent = window.__sent.filter((m) => m.command === 'saveWidget').pop();
+        const found = customFind('widget-test') === _widgetEdit;
+        _widgetEdit = null;
+        return { found, sent: sent && sent.widget };
+    });
+    check('a widget being edited is a custom map the rail never lists, found by its key', session.found);
+    check('editing saves the canvas into the widget: its name, cells (floor left null) and triggers',
+        session.sent && session.sent.name === 'Pot' && session.sent.cells.length === 1
+        && session.sent.cells[0].dx === 1 && session.sent.cells[0].terrain === null
+        && session.sent.attachments.bTrigger[0].scriptId === 7, JSON.stringify(session.sent));
 
     check('no uncaught errors in any of it', pageErrors.length === 0, pageErrors.join('; '));
 

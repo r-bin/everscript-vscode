@@ -1,5 +1,6 @@
 // Ownership: the deco library — vanilla's own objects, as things to stamp —
-// and the Widgets tab (widgetsTabHtml) that picks from it.
+// and its section of the Widgets tab (decoLibraryHtml, under the user's own
+// widgets: map-editor-widgets.js's widgetsTabHtml).
 //
 // Section 3 objects are the game's deco widgets: room 0x51 is 25 gourds and
 // pots, room 0x25's 4x3 objects are fire pits. 655 distinct ones, so this
@@ -16,23 +17,31 @@
 // and the arm-and-stamp flow (applyDecoCells) already existed before this
 // phase and are unchanged; only where they render moved.
 //
-// Widget Editor Mode (the mock's screen 7 — authoring a *custom*,
-// user-defined widget on its own small grid) is explicitly out of scope for
-// this phase: see docs/map-editor-redesign-plan.md §5.3.
+// The list scrolls, it is not paged: every card is drawn at its final size
+// and its thumbnail is asked for as it nears the view (decoLazyObserve), a
+// chunk at a time. The vanilla entries are generated — cut automatically
+// out of vanilla rooms, so whether one is any good is luck — and are shown
+// only while the Widgets tab's `vanilla` toggle is on; the user's own
+// widgets are map-editor-widgets.js.
 //
-// Owns: _deco, _decoFilter, _decoPage, _decoPreviews, _decoPick.
+// Owns: _deco, _decoFilter, _decoArt, _decoPick, _decoSaveWanted.
 
 var _deco = null;          // the catalogue, once fetched
 var _decoFilter = '';
-var _decoPage = 0;
-var _decoPreviews = null;
-var _decoPreviewKey = '';
+/** id -> `{uri, x, y}`: each thumbnail's place in the sheet it arrived in. */
+var _decoArt = {};
+/** ids asked for and not arrived yet. */
+var _decoAsked = {};
 var _decoPick = -1;        // the entry whose cells are being fetched
+/** The entry whose cells are being fetched to be saved as the user's own widget, or -1. */
+var _decoSaveWanted = -1;
 /** Which of the four questions below are being asked of the library. */
 var _decoFlags = { fits: false, works: false, front: false, open: false };
-
-/** Entries per page. Each is a 48px thumbnail, so this is two rows of six. */
-var DECO_PAGE = 12;
+/** Thumbnails per request — the host renders at most 48 to a sheet. */
+var DECO_CHUNK = 24;
+var _decoObserver = null;
+var _decoLazyTimer = null;
+var _decoLazyWant = [];
 
 function requestDeco() {
   if (_deco || typeof vs === 'undefined' || !vs) return;
@@ -45,10 +54,28 @@ function applyDecoLibrary(msg) {
   renderEditPanels();
 }
 
+/** A sheet of thumbnails arrived: remember where each one is, and draw them in place. */
 function applyDecoPreviews(msg) {
-  if (!msg || !msg.previews) return;
-  _decoPreviews = msg.previews;
-  renderEditPanels();
+  var pv = msg && msg.previews;
+  if (!pv || !pv.ids) return;
+  var art = msg.mine ? (typeof _widgetArt !== 'undefined' ? _widgetArt : null) : _decoArt;
+  if (!art) return;
+  pv.ids.forEach(function (id, i) {
+    delete _decoAsked[(msg.mine ? 'w:' : '') + id];
+    art[id] = { uri: pv.imageUri, x: (i % pv.columns) * pv.cell, y: Math.floor(i / pv.columns) * pv.cell };
+  });
+  // In place: rebuilding the tab for every chunk would jump the scroll.
+  var body = document.getElementById('rg-tab-body');
+  if (!body || _editActiveTab !== 'widgets') return;
+  pv.ids.forEach(function (id) {
+    var sel = msg.mine ? '[data-widget-art="' + id + '"]' : '.rg-deco[data-deco="' + id + '"] .rg-deco-art';
+    var el = body.querySelector(sel);
+    if (el) el.setAttribute('style', decoArtStyle(art[id]));
+  });
+}
+
+function decoArtStyle(a) {
+  return a ? 'background-image:url(' + a.uri + ');background-position:-' + a.x + 'px -' + a.y + 'px' : '';
 }
 
 /**
@@ -65,6 +92,12 @@ function applyDecoCells(msg) {
   if (!d || !msg || !msg.entry) return;
   var entry = msg.entry;
   var name = entry.w + '×' + entry.h + ' from ' + (entry.roomName || ('room 0x' + entry.room.toString(16)));
+  // ☆ on a card: it becomes one of the user's own widgets, not a stamp.
+  if (_decoSaveWanted === entry.id && typeof widgetSaveFromDeco === 'function') {
+    _decoSaveWanted = -1;
+    widgetSaveFromDeco(entry, name);
+    return;
+  }
 
   d.constructs.push({
     name: name,
@@ -182,12 +215,57 @@ function decoReadyToggleHtml() {
     + 'the moment they are placed.">Ready only</button>';
 }
 
+/** Ask for the thumbnails of `ids` not yet here or on their way, a chunk at a time. */
 function ensureDecoPreviews(ids) {
-  if (typeof vs === 'undefined' || !vs || !ids.length) return;
-  var key = ids.join(',');
-  if (_decoPreviewKey === key) return;
-  _decoPreviewKey = key;
-  vs.postMessage({ command: 'requestDeco', previews: ids });
+  if (typeof vs === 'undefined' || !vs) return;
+  var want = ids.filter(function (id) { return !_decoArt[id] && !_decoAsked[id]; });
+  for (var i = 0; i < want.length; i += DECO_CHUNK) {
+    var chunk = want.slice(i, i + DECO_CHUNK);
+    chunk.forEach(function (id) { _decoAsked[id] = true; });
+    vs.postMessage({ command: 'requestDeco', previews: chunk });
+  }
+}
+
+/** ☆ on a vanilla card: fetch its cells, and save them as the user's own widget. */
+function decoSaveAsMine(id) {
+  if (typeof vs === 'undefined' || !vs) return;
+  _decoSaveWanted = id;
+  vs.postMessage({ command: 'requestDeco', cells: id });
+}
+
+/**
+ * Thumbnails load as their cards near the view: every card is drawn at its
+ * final size, so a loading one moves nothing. Rebuilt on every render, like
+ * the Tile tab's (map-editor-tile-lazy.js).
+ */
+function decoLazyObserve() {
+  if (_decoObserver) { _decoObserver.disconnect(); _decoObserver = null; }
+  var body = document.getElementById('rg-tab-body');
+  if (!body) return;
+  var cards = body.querySelectorAll('.rg-deco[data-deco]');
+  var missing = [];
+  for (var i = 0; i < cards.length; i++) if (!_decoArt[cards[i].dataset.deco]) missing.push(cards[i]);
+  if (!missing.length) return;
+  if (typeof IntersectionObserver === 'undefined') {
+    ensureDecoPreviews(missing.slice(0, DECO_CHUNK).map(function (c) { return Number(c.dataset.deco); }));
+    return;
+  }
+  _decoObserver = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (!e.isIntersecting) return;
+      _decoObserver.unobserve(e.target);
+      _decoLazyWant.push(Number(e.target.dataset.deco));
+    });
+    // One request for everything that came into view together.
+    if (_decoLazyTimer) return;
+    _decoLazyTimer = setTimeout(function () {
+      _decoLazyTimer = null;
+      var ids = _decoLazyWant;
+      _decoLazyWant = [];
+      ensureDecoPreviews(ids);
+    }, 30);
+  }, { root: typeof panelScroller === 'function' ? panelScroller(body) : body, rootMargin: '600px 0px' });
+  missing.forEach(function (c) { _decoObserver.observe(c); });
 }
 
 /**
@@ -230,13 +308,7 @@ function decoWarningsHtml(d) {
 
 /** One entry's thumbnail card, with its cost written out rather than only hinted at. */
 function decoCardHtml(d) {
-  var pv = _decoPreviews;
-  var at = pv ? pv.ids.indexOf(d.id) : -1;
-  var style = '';
-  if (at >= 0) {
-    style = 'background-image:url(' + pv.imageUri + ');background-position:-'
-      + ((at % pv.columns) * pv.cell) + 'px -' + (Math.floor(at / pv.columns) * pv.cell) + 'px';
-  }
+  var style = decoArtStyle(_decoArt[d.id]);
   var need = decoNewFamilies(d);
   return '<button class="rg-deco' + (_editConstruct >= 0 && _decoPick === d.id ? ' on rg-armed' : '')
     + (d.scriptId !== null ? ' rg-deco-live' : '')
@@ -255,6 +327,8 @@ function decoCardHtml(d) {
         : '\nno trigger: art and collision only')
       + (d.states > 1 ? '\n' + d.states + ' states — it opens, breaks or burns' : '')) + '">'
     + '<i class="rg-deco-art" style="' + style + '"></i>'
+    + '<span class="rg-deco-keep" role="button" data-deco-save="' + d.id + '" title="Save to my widgets — '
+    + 'then it can be renamed and edited">☆</span>'
     + (need.length ? '<span class="rg-deco-cost">+' + need.length + '</span>' : '')
     + '<span class="rg-deco-tag">' + d.w + '×' + d.h
     + (d.scriptId !== null ? ' ·⚡' : '')
@@ -264,45 +338,28 @@ function decoCardHtml(d) {
 }
 
 /**
- * The Widgets tab: the deco picker, cards grouped into Foreground/
- * Background/Misc.
- *
- * Grouping is applied to the current filtered *and paged* slice, not the
- * whole library, so `_decoPage`'s existing single-counter model does not
- * have to grow into one page cursor per group — a page still shows at most
- * `DECO_PAGE` cards, just sorted into up to three labelled clusters instead
- * of one flat grid.
+ * The vanilla section of the Widgets tab (map-editor-widgets.js puts it
+ * under the user's own): the generated library, filtered, in its three
+ * groups, as one scrolling list.
  */
-function widgetsTabHtml() {
-  if (!_deco) { requestDeco(); return '<div class="rs-note">loading the deco library…</div>'; }
+function decoLibraryHtml() {
+  if (!_deco) { requestDeco(); return '<div class="rs-note">loading the vanilla library…</div>'; }
   var list = filterDeco(_deco, _decoFilter);
-  var shown = list.slice(_decoPage * DECO_PAGE, _decoPage * DECO_PAGE + DECO_PAGE);
-  ensureDecoPreviews(shown.map(function (d) { return d.id; }));
-
   var html = '<div class="rs-note">' + list.length + ' of ' + _deco.length
-    + ' objects, cut out of the floor they stood on. The ROM stores no names, so pick '
-    + 'by sight.</div>'
+    + ' objects, cut automatically out of vanilla rooms and the floor they stood on — some are good, '
+    + 'some are not. The ROM stores no names, so pick by sight; ☆ keeps one as your own.</div>'
     + decoReadyToggleHtml()
     + decoFlagsHtml()
     + '<input class="rg-fam-filter" id="rg-deco-filter" value="' + escH(_decoFilter)
     + '" placeholder="an act, a room, or a size like 2x2" />';
 
   DECO_CATEGORIES.forEach(function (cat) {
-    var group = shown.filter(function (d) { return decoCategoryOf(d) === cat[0]; });
+    var group = list.filter(function (d) { return decoCategoryOf(d) === cat[0]; });
     if (!group.length) return;
     html += '<div class="rg-widget-group"><div class="rg-widget-h">' + escH(cat[1])
-      + ' <span class="rs-note">— ' + escH(cat[2]) + '</span></div>'
+      + ' <span class="rs-note">— ' + escH(cat[2]) + ' · ' + group.length + '</span></div>'
       + '<div class="rg-deco-grid">' + group.map(decoCardHtml).join('') + '</div></div>';
   });
-  if (!shown.length) html += '<div class="rs-note">nothing matches.</div>';
-
-  if (list.length > DECO_PAGE) {
-    var last = Math.ceil(list.length / DECO_PAGE) - 1;
-    html += '<div class="rd-filters">'
-      + '<button class="rdf" data-deco-page="' + Math.max(0, _decoPage - 1) + '">‹ back</button>'
-      + '<span class="rs-note">page ' + (_decoPage + 1) + ' of ' + (last + 1) + '</span>'
-      + '<button class="rdf" data-deco-page="' + Math.min(last, _decoPage + 1) + '">more ›</button>'
-      + '</div>';
-  }
+  if (!list.length) html += '<div class="rs-note">nothing matches.</div>';
   return html;
 }

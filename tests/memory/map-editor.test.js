@@ -1497,11 +1497,14 @@ test('floor / edge / wall list tiles by the collision they would be painted with
     assert.ok(ui.tileSlotPasses(row(0x05)));
 });
 
-test('a stamped or pasted object lands on the chosen level', () => {
+test('a stamped or pasted object lands on the level of the floor under it', () => {
     const { p, d } = fresh();
     ui.editLevelPick(2);
-    ui.editStampGroup(p, GOURD, 0, 0);                        // GOURD's collision is level 1 (0x1f)
-    assert.strictEqual(ui.editStampWords(p, d.cells['0,0']).collision & 0x30, 0x20);
+    // v0.79.0: the room's floor here is level 1, so the gourd is too, whatever
+    // the bar says — on open ground the bar decides (map-editor-dom.test.js).
+    const got = ui.editStampGroup(p, GOURD, 0, 0);
+    assert.strictEqual(got.level, 1);
+    assert.strictEqual(ui.editStampWords(p, d.cells['0,0']).collision & 0x30, 0x10);
     ui.editLevelPick(1);
 });
 

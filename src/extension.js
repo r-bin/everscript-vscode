@@ -132,7 +132,7 @@ function getExtConfig() {
 const roomData = require('./rooms');
 const { VANILLA_ROOMS, getMapEnum, readLuaWatchers, readScriptAllTriggers, buildVanillaRoomContent, buildVanillaRoomDetails, invalidateRoomDataCaches } = roomData;
 const roomTree = require('./rooms');
-const { findRoomImage, parseRoomContent, collectRoomsFromDir, buildRoomTree, renderVanillaTree, renderRoomsTree, buildRoomsJson, setRoomImageUris, buildRoomTileOverlay, buildRoomMetatilePalette, buildComposedPreview, buildBlankRoom, buildDraftCollision, buildExportRom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews, decoIndex, decoCells, buildDecoPreviews, relatedTiles, neighbourTiles, handlesCustomMapMessage, handleCustomMapMessage } = roomTree;
+const { findRoomImage, parseRoomContent, collectRoomsFromDir, buildRoomTree, renderVanillaTree, renderRoomsTree, buildRoomsJson, setRoomImageUris, buildRoomTileOverlay, buildRoomMetatilePalette, buildComposedPreview, buildBlankRoom, buildDraftCollision, buildExportRom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews, decoIndex, decoCells, buildDecoPreviews, buildWidgetPreviews, relatedTiles, neighbourTiles, handlesCustomMapMessage, handleCustomMapMessage } = roomTree;
 
 const romReaders = require('./shared/rom-readers');
 const { readPngDimensions, readRomTriggerOffsets, readRomMapHeader, readRomCharacters, readRomHitLookup, detectScaleEnemies } = romReaders;
@@ -753,6 +753,7 @@ function activate(context) {
                     handleCustomMapMessage(msg, {
                         vscode,
                         root: path.join(context.globalStorageUri.fsPath, 'custom-maps'),
+                        widgetsFile: path.join(context.globalStorageUri.fsPath, 'widgets.json'),
                         post: (m) => _radarPanel?.webview.postMessage(m),
                         prefs: () => context.globalState.get(ROOMS_UI_PREFS_KEY, {}),
                         setPrefs: (v) => context.globalState.update(ROOMS_UI_PREFS_KEY, v),
@@ -985,6 +986,10 @@ function activate(context) {
                         } else if (Array.isArray(msg.previews)) {
                             _radarPanel.webview.postMessage({
                                 command: 'decoPreviews', previews: buildDecoPreviews(romBuf, msg.previews) });
+                        } else if (Array.isArray(msg.widgets)) {
+                            // Thumbnails for the user's own widgets (map-editor-widgets.js).
+                            _radarPanel.webview.postMessage({
+                                command: 'decoPreviews', mine: true, previews: buildWidgetPreviews(romBuf, msg.widgets) });
                         } else {
                             _radarPanel.webview.postMessage({ ...reply, deco: decoIndex(romBuf) });
                         }

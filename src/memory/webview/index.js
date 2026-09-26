@@ -96,6 +96,8 @@ const ROOMS_JS_FILES = [
   'map-editor-tile-filters.js', // the Tile tab's filter row: layer, mirror, cuttable/stairs, floor/edge/wall
   'map-editor-neighbours.js',// the LIKELY NEIGHBORS plus-shape: the brush and its four sides
   'map-editor-deco.js',  // the deco library: vanilla's own objects, to stamp
+  'map-editor-widgets.js', // the user's own widgets and the Widgets tab (_widgets/_widgetArt/_widgetsVanilla)
+  'map-editor-widget-edit.js', // editing a widget on its own canvas (_widgetEdit/_widgetBack)
   'map-editor-special.js',// the Special tab: stairs/drift, gate, entrance + their filter chip
   'map-editor-trigger-select.js',// unifies base + placed triggers: select/move/delete/copy-paste
   'map-editor-trigger-panel.js',// the Trigger tab's list UI + the Info tab's trigger counts
