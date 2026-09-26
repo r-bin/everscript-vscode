@@ -1,3 +1,31 @@
+## [0.80.0] — 2026-09-26
+
+### Map editor: an Object tab, trigger toggles, and fixes
+
+- **New Object tab**, after Trigger. An object is an area that changes when a
+  script changes its state: a gourd breaks, a chest opens.
+  - Drag out its area with the pencil.
+  - With it selected, draw what the area turns into, using the Tile tab's
+    brush. The eraser takes a tile off.
+  - The object's tiles sit on top of the map, like the cuttable layer. They
+    show only while the Object tab is open; elsewhere the area is a dashed
+    outline.
+  - The list shows each object's place in the room and its tiles, with × to
+    remove it.
+- **Vanilla widgets bring their changed look.** A stamped gourd now carries
+  its broken look as the object's tiles. 530 of the 532 generated widgets
+  have one.
+- **Triggers in the bottom bar**, with B and step-on toggled separately
+  under its ▾. It now shows on custom maps too; default on.
+- **Fixed:** picking a tile from a new family could put it in the second
+  palette slot while the first was empty. A slot reserved by a pick you
+  never painted with is now given back.
+- **Fixed:** with Cuttable off, the map showed the cuttable tile. It now
+  shows the tile beneath; turn Cuttable on to see and edit the cuttable
+  layer.
+- **Fixed:** arming a vanilla widget selected the old Stamp tool, which then
+  kept stamping on other tabs. It arms the pencil now.
+
 ## [0.79.0] — 2026-09-26
 
 ### Map editor: your own widgets, and a gourd that works on any level

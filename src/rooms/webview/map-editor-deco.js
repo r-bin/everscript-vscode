@@ -107,11 +107,13 @@ function applyDecoCells(msg) {
     attachments: {
       bTrigger: entry.trigger ? [entry.trigger] : [],
       stepOn: [],
-      objects: [{ dx: 0, dy: 0, w: entry.w, h: entry.h, states: entry.states }],
+      objects: [{ dx: 0, dy: 0, w: entry.w, h: entry.h, states: entry.states, cells: entry.stateCells || [] }],
     },
   });
   _editConstruct = d.constructs.length - 1;
-  d.tool = 'stamp';
+  // The pencil, which on the Widgets tab stamps it — not the Stamp tool,
+  // which would keep stamping on every other tab too.
+  d.tool = 'paint';
 
   // What it will cost is knowable before the click, and a refusal after
   // seven families are already spent is a worse place to learn it.

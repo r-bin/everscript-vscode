@@ -194,6 +194,42 @@ function objectCells(rom, room, state, background) {
 }
 
 /**
+ * What an object's area turns into at its first change, in portable form —
+ * the look the editor's Object tab draws over the map (map-editor-objects.js).
+ *
+ * A state descriptor is an XOR of the area's metatile ids (maps/objects.ts),
+ * so the changed id is the grid's id XOR the delta; its words are resolved
+ * through the room's dictionary like any cell. A cell the change leaves
+ * alone is left out. Relative to the entry's own rectangle. Empty when the
+ * change cannot be read or names something no other room could draw.
+ */
+function objectStateCells(rom, room, object, rect) {
+    const st = object.states[0];
+    if (!st) return [];
+    let stamp;
+    try { stamp = maps.parseObjectStamp(rom, room.objectArea, st.metatileId); } catch { return []; }
+    if (!stamp || !stamp.valid) return [];
+    const tileIds = room.tilePalette.concat(room.animatedTiles);
+    const { layer1, layer2, collision } = room.metatileSlices;
+    const out = [];
+    for (let k = 0; k < stamp.deltas.length; k++) {
+        const delta = stamp.deltas[k];
+        if (delta === null || delta === 0) continue;
+        const tx = st.tileX + (k % stamp.tw);
+        const ty = st.tileY + Math.floor(k / stamp.tw);
+        const row = room.layer1MetatileIds[ty];
+        if (!row || row[tx] === undefined) continue;
+        const i = maps.metatileIndex(room, row[tx] ^ delta);
+        if (i < 0 || i >= room.metatileCount) continue;
+        const canopy = portable(room, tileIds, layer1[i] || 0);
+        const terrain = portable(room, tileIds, layer2[i] || 0);
+        if (canopy === undefined || terrain === undefined) return [];
+        out.push({ dx: tx - rect.tileX, dy: ty - rect.tileY, canopy, terrain, collision: collision[i] || 0 });
+    }
+    return out;
+}
+
+/**
  * The B-trigger that makes an object do something, if it has one.
  *
  * 99 of the 863 candidate objects sit under one, and 50 of those use the
@@ -264,6 +300,8 @@ function buildDecoCatalogue(rom) {
                 /** More than one state means it opens, breaks or burns. */
                 states: object.states.length,
                 trigger: triggerFor(room, state),
+                /** Its first change, portable (objectStateCells). */
+                stateCells: objectStateCells(buf, room, object, state),
                 count: 1,
                 families: built.families,
                 graphics: built.graphics,
@@ -322,7 +360,7 @@ function decoCells(rom, id) {
         id: hit.id, w: hit.w, h: hit.h, states: hit.states,
         roomName: hit.roomName, room: hit.room,
         families: hit.families, graphics: hit.graphics,
-        trigger: hit.trigger, cells: hit.cells,
+        trigger: hit.trigger, cells: hit.cells, stateCells: hit.stateCells || [],
     };
 }
 

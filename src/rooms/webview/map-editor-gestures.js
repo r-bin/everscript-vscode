@@ -44,6 +44,8 @@ function editStroke(cell, phase) {
     if (phase === 'down') editPasteFloatPlace();
     return;
   }
+  // The Object tab: areas, and the tiles drawn over them (map-editor-objects.js).
+  if (drawKind() === 'object' && typeof editObjectGesture === 'function' && editObjectGesture(d, cell, phase)) return;
 
   if (d.tool === 'select') {
     // The only tool that reads a click as "pick a trigger" rather than

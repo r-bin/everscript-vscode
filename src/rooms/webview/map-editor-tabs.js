@@ -31,6 +31,7 @@ var EDIT_TABS = [
   ['tile', 'Tile'],
   ['special', 'Special'],
   ['trigger', 'Trigger'],
+  ['object', 'Object'],
   ['widgets', 'Widgets'],
   ['info', 'Info'],
 ];

@@ -113,7 +113,16 @@ have already changed the cell's stamp, and that is what gets exported.
 `placed` entries:
 - **Trigger:** `{kind: "bTrigger" | "stepOn", x, y, w, h, scriptId, uid}`.
   A trigger drawn with the pencil has `scriptId: null`.
-- **Object record:** `{kind: "object", x, y, w, h, states}`.
+- **Object:** `{kind: "object", uid, x, y, w, h, states, layer}`. `layer`
+  is `{"dx,dy": stamp}`, what the area turns into when a script changes the
+  object's state (a gourd breaks, a chest opens). It is drawn over the map
+  like the cuttable layer, and only while the Object tab is open
+  (`map-editor-objects.js`). A vanilla object brings its first change, read
+  from vanilla's XOR descriptor. `states` is how many changes vanilla has;
+  the editor shows the first.
+- **Planned family slots** (`plannedOnly`, `{slot: true}`) are slots a tile
+  pick reserved and nothing has painted with yet. The next pick of another
+  family takes them back.
 - A deleted entry stays in the list, flagged `removed: true`, so each
   `uid` stays unique.
 
@@ -266,7 +275,8 @@ Widgets are not part of any one map. They live in one file every map shares:
   gourd keeps the floor it lands on. A layer no room could explain is kept
   as `{word}`.
 - **Attachments** are the triggers and objects that come with it, relative
-  to its top-left. Scripts are vanilla's ids: two copies of one gourd run one
+  to its top-left. An object carries `cells`, its changed look, as portable
+  cells. Scripts are vanilla's ids: two copies of one gourd run one
   script and share its flag.
 - **Level.** Collision is stored as it was drawn. Stamping re-levels it to
   the floor it lands on: the level most of the covered cells already have,

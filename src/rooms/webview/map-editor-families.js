@@ -149,6 +149,14 @@ function editPlanFamilyFor(family) {
   for (var k in auto) {
     if (auto[k] === family && fams[k] === undefined) return { ok: true, added: true, slot: Number(k) };
   }
+  // A slot planned for a pick that was never painted holds nothing worth
+  // keeping: without this, picking one tile and then another from a new
+  // family put the second in slot 2 while slot 1 sat empty.
+  var planned = editPlannedOnly();
+  Object.keys(planned).forEach(function (k) {
+    if (fams[k] === undefined) delete auto[k];
+    delete planned[k];
+  });
   var free = -1;
   for (var i = 0; i < 7; i++) {
     if (fams[i] !== undefined) continue;
@@ -157,8 +165,17 @@ function editPlanFamilyFor(family) {
   }
   if (free < 0) return { ok: false, why: 'all seven palette slots are taken — clear one to make room for family ' + family };
   auto[free] = family;
+  planned[free] = true;
   ensureFamilySheet(family);
   return { ok: true, added: true, slot: free };
+}
+
+/** Slots planned by a pick and not painted with yet (dropped by the first cell that names them). */
+function editPlannedOnly() {
+  var d = editDraft();
+  if (!d) return {};
+  if (!d.plannedOnly) d.plannedOnly = {};
+  return d.plannedOnly;
 }
 
 /**
@@ -203,7 +220,8 @@ function editSyncPaintedFamilies() {
   var named = {};
   // The cuttable layer's tiles are on the map too, so they keep a family loaded.
   var placed = Object.keys(d.cells).map(function (k) { return d.cells[k]; })
-    .concat(Object.keys(d.cut || {}).map(function (k) { return d.cut[k]; }));
+    .concat(Object.keys(d.cut || {}).map(function (k) { return d.cut[k]; }))
+    .concat(typeof editObjectStamps === 'function' ? editObjectStamps() : []);
   placed.forEach(function (index) {
     var w = editStampWords(_mtPalette, index);
     if (!w) return;
@@ -213,8 +231,10 @@ function editSyncPaintedFamilies() {
     if (b >= 0) named[b] = true;
   });
   var fams = editFamilies();
+  var planned = editPlannedOnly();
   slots.forEach(function (k) {
     var slot = Number(k);
+    if (named[slot]) delete planned[k];
     if (named[slot] && fams[slot] === undefined) {
       while (fams.length <= slot) fams.push(undefined);
       fams[slot] = auto[k];

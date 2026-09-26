@@ -153,7 +153,7 @@ function editArmBrush() {
  * so: two copies of the same entry run the same script and therefore share
  * its "already opened" flag until one is pointed at a new one.
  */
-function editStampedConstruct(construct, x, y) {
+function editStampedConstruct(construct, x, y, level) {
   if (!_edit) return;
   var a = construct.attachments || { bTrigger: [], stepOn: [], objects: [] };
   var extras = [];
@@ -174,6 +174,7 @@ function editStampedConstruct(construct, x, y) {
   (a.objects || []).forEach(function (o) {
     _edit.placed.push({
       kind: 'object', x: x + o.dx, y: y + o.dy, w: o.w, h: o.h, states: o.states || 1,
+      uid: editNextPlacedUid(), layer: editObjectLayerFrom(o.cells, level),
     });
     extras.push('an object record' + (o.states > 1 ? ' with ' + o.states + ' states' : ''));
   });
@@ -183,6 +184,26 @@ function editStampedConstruct(construct, x, y) {
       ? ' — with ' + extras.join(' and ')
         + '. The script is vanilla’s, so two copies share its flag.'
       : ' — metatiles only.'));
+}
+
+/**
+ * An object's changed look (map-editor-objects.js) from portable cells: each
+ * rebuilt here like any stamped cell, on `level` when one is given. A cell
+ * whose family cannot find a slot is left out — the area keeps its own tile.
+ */
+function editObjectLayerFrom(cells, level) {
+  var layer = {};
+  (cells || []).forEach(function (c) {
+    var canopy = editWordFromPart(_mtPalette, c.canopy);
+    var terrain = editWordFromPart(_mtPalette, c.terrain);
+    if ((canopy && canopy.error) || (terrain && terrain.error)) return;
+    var blank = editBlankCanopy(_mtPalette);
+    var idx = editAddStamp(_mtPalette, { layer1: canopy ? canopy.word : blank, layer2: terrain ? terrain.word : blank,
+      collision: c.collision || 0 });
+    if (level >= 0 && typeof editOnLevel === 'function') idx = editOnLevel(_mtPalette, idx, level);
+    layer[c.dx + ',' + c.dy] = idx;
+  });
+  return layer;
 }
 
 /**

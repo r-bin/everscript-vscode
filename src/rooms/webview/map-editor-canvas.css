@@ -488,3 +488,11 @@
 /* A copy on the pointer, waiting for the click that puts it down (map-editor-clipboard.js). */
 .rg-theme .rg-paste-ghost{opacity:.6}
 .rg-theme .rg-paste-box{fill:none;stroke:var(--rg-accent);stroke-width:.16;stroke-dasharray:.4 .3;pointer-events:none}
+
+/* Objects (map-editor-objects.js): the area, dashed; the selected one solid and tinted. */
+.rg-theme { --rg-object: oklch(78% 0.13 200); }
+.rg-theme .rg-obj-area{fill:none;stroke:var(--rg-object);stroke-width:.12;stroke-dasharray:.45 .3;pointer-events:none}
+.rg-theme .rg-obj-area.sel{stroke-width:.2;stroke-dasharray:none;fill:var(--rg-object);fill-opacity:.1}
+.rg-theme .rg-obj-drag{stroke-dasharray:none;fill:var(--rg-object);fill-opacity:.18}
+.rg-theme .rg-object-where-box{fill:var(--rg-object);fill-opacity:.7;stroke:var(--rg-object);stroke-width:.6}
+.rg-theme #rg-edit-bar .rg-draw-object{color:var(--rg-object)}

@@ -99,7 +99,7 @@ function widgetSaveFromDeco(entry, name) {
     id: widgetNewId(), name: name, w: entry.w, h: entry.h, cells: entry.cells,
     attachments: {
       bTrigger: entry.trigger ? [entry.trigger] : [], stepOn: [],
-      objects: [{ dx: 0, dy: 0, w: entry.w, h: entry.h, states: entry.states }],
+      objects: [{ dx: 0, dy: 0, w: entry.w, h: entry.h, states: entry.states, cells: entry.stateCells || [] }],
     },
     source: { deco: entry.id, room: entry.room },
   };

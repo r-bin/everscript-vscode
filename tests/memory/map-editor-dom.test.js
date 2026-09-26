@@ -28,7 +28,7 @@ const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-stamps.js', '
     'map-editor-anim.js', 'map-editor-ui.js', 'map-editor-phases.js', 'map-editor-constructs.js', 'map-editor-families.js',
     'map-editor-relations.js', 'map-editor-chips.js', 'map-editor-stranded.js',
     'map-editor-tiles.js', 'map-editor-tile-lazy.js', 'map-editor-tile-filters.js', 'map-editor-neighbours.js', 'map-editor-deco.js', 'map-editor-widgets.js', 'map-editor-widget-edit.js', 'map-editor-special.js',
-    'map-editor-trigger-select.js', 'map-editor-trigger-panel.js', 'map-editor-trigger-order.js',
+    'map-editor-trigger-select.js', 'map-editor-trigger-panel.js', 'map-editor-trigger-order.js', 'map-editor-objects.js',
     'map-editor-toolbar.js', 'map-editor-filterbar.js', 'rom-overlay.js',
     'tables-builder.js', 'map-editor-tabs.js', 'map-editor-panels.js', 'map-editor-gestures.js',
     'map-editor-input.js', 'map-editor-actions.js', 'map-editor-newroom.js', 'map-editor-start.js', 'map-editor-custom.js',
@@ -1692,7 +1692,7 @@ async function main() {
                  name: d.constructs[0].name, note: document.getElementById('rg-edit-count').textContent };
     });
     check('and it becomes an armed construct',
-        armedDeco.tool === 'stamp' && armedDeco.constructs === 1 && armedDeco.pick === 0,
+        armedDeco.tool === 'paint' && armedDeco.constructs === 1 && armedDeco.pick === 0,
         JSON.stringify(armedDeco));
     check('named for where it came from, since the ROM has no names',
         /Fire Eyes/.test(armedDeco.name), armedDeco.name);
@@ -1833,8 +1833,10 @@ async function main() {
     // widget: "I'm not allowed to stamp a gourd tile".
     await page.click('[data-deco="1"]');
     await page.evaluate((entry) => applyDecoCells({ entry: entry }), ENTRY);
-    check('arming a widget selects the stamp tool',
-        await page.evaluate(() => editDraft().tool) === 'stamp');
+    // v0.80.0: the pencil, which stamps it on the Widgets tab only — the old
+    // Stamp tool kept stamping on the Object tab too.
+    check('arming a widget selects the pencil',
+        await page.evaluate(() => editDraft().tool) === 'paint');
     await page.click('[data-edit-active-tab="tile"]');
     await page.evaluate(() => { _panelOpen.tiles = true; renderEditPanels(); });
     await page.click('[data-fam-tile="4191"]');
@@ -2279,6 +2281,66 @@ async function main() {
         session.sent && session.sent.name === 'Pot' && session.sent.cells.length === 1
         && session.sent.cells[0].dx === 1 && session.sent.cells[0].terrain === null
         && session.sent.attachments.bTrigger[0].scriptId === 7, JSON.stringify(session.sent));
+
+    // ── v0.80.0 ─────────────────────────────────────────────────────────────
+    const v80 = await page.evaluate(() => {
+        const r = {};
+        // Draft stamps draw from the host's composed sheet; this page has no host.
+        const composed = _editComposed;
+        _editComposed = { imageUri: 'data:image/png;base64,eA==', count: 256, columns: 16, cell: 16, imageWidth: 256, imageHeight: 256 };
+        // A family picked and never painted keeps no slot from the next one.
+        let d = editReset(0x34); d.on = true; d.families = [];
+        r.first = editPlanFamilyFor(115).slot;
+        r.second = editPlanFamilyFor(53).slot;
+        // Triggers toggle on a custom map too, B and step-on apart.
+        const bar = buildViewFilterBarHtml({ romId: 0x34, hasTriggers: false });
+        r.triggers = /data-hide="hide-trigger"/.test(bar) && /data-hide="hide-step"/.test(bar) && /data-hide="hide-btrig"/.test(bar);
+        // Cuttable off: the map shows the tile beneath, not the cuttable one.
+        d = editReset(0x34); d.on = true;
+        d.cut = { '0,0': editAddStamp(_mtPalette, { layer1: 0xa800, layer2: 0x0c02, collision: 0x0f }) };
+        r.cutOff = editCutSvg(_mtPalette, _editComposed, _editOrigin) === '';
+        _editCutLayer = true;
+        r.cutOn = editCutSvg(_mtPalette, _editComposed, _editOrigin).indexOf('rg-edit-cut') >= 0;
+        _editCutLayer = false; d.cut = {};
+        // The Object tab, after Trigger.
+        r.tabs = Array.prototype.map.call(document.querySelectorAll('#rg-tabstrip .rg-tab'), (b) => b.dataset.editActiveTab).join();
+        _editActiveTab = 'object'; d.tool = 'paint';
+        editBegin(); editStroke({ x: 0, y: 0 }, 'down'); editStroke({ x: 1, y: 1 }, 'up'); editEnd();
+        const o = editObjects()[0];
+        r.area = o && [o.x, o.y, o.w, o.h].join();
+        r.sel = _objectSel === (o && o.uid);
+        d.brush = editAddStamp(_mtPalette, { layer1: 0x1422, layer2: 0x05c6, collision: 0x001f });
+        editBegin(); editStroke({ x: 1, y: 0 }, 'down'); editStroke({ x: 1, y: 1 }, 'move'); editStroke({ x: 1, y: 1 }, 'up'); editEnd();
+        r.layer = Object.keys(editObjects()[0].layer).sort().join(' ');
+        r.drawnOpen = editObjectSvg(_mtPalette, _editComposed, _editOrigin).split('rg-obj-cell').length - 1;
+        _editActiveTab = 'tile';
+        r.drawnClosed = editObjectSvg(_mtPalette, _editComposed, _editOrigin).split('rg-obj-cell').length - 1;
+        r.mapUntouched = Object.keys(d.cells).length === 0;
+        editUndo();
+        r.undone = Object.keys(editObjects()[0].layer).length;
+        editUndo();
+        r.gone = editObjects().length;
+        // A stamped vanilla object brings its changed look.
+        _editActiveTab = 'tile';
+        const c = { name: 'gourd', w: 1, h: 1, cells: [{ dx: 0, dy: 0, canopy: { word: 0x1422 }, terrain: null, collision: 0x1f }],
+            attachments: { bTrigger: [], stepOn: [], objects: [{ dx: 0, dy: 0, w: 1, h: 1, states: 1,
+                cells: [{ dx: 0, dy: 0, canopy: { word: 0x1423 }, terrain: { word: 0x05c6 }, collision: 0x1f }] }] } };
+        editStampGroup(_mtPalette, c, 0, 0);
+        const so = editObjects()[0];
+        r.stamped = !!(so && so.uid && so.layer['0,0'] >= 0 && editStampWords(_mtPalette, so.layer['0,0']).layer1 === 0x1423);
+        _editComposed = composed;
+        return r;
+    });
+    check('a family picked but never painted leaves its slot to the next one (slot 1 is used first)',
+        v80.first === 0 && v80.second === 0, JSON.stringify(v80));
+    check('the bottom bar has Triggers with B and step-on apart, on a custom map too', v80.triggers, JSON.stringify(v80));
+    check('with Cuttable off the map shows the tile beneath; on, the cuttable one', v80.cutOff && v80.cutOn, JSON.stringify(v80));
+    check('there is an Object tab, after Trigger', /trigger,object,widgets/.test(v80.tabs), v80.tabs);
+    check('on the Object tab the pencil drags out an area, selected', v80.area === '0,0,2,2' && v80.sel, JSON.stringify(v80));
+    check('and draws its tiles over the map, not into it — shown only while the tab is open',
+        v80.layer === '1,0 1,1' && v80.drawnOpen === 2 && v80.drawnClosed === 0 && v80.mapUntouched, JSON.stringify(v80));
+    check('each is one undo step', v80.undone === 0 && v80.gone === 0, JSON.stringify(v80));
+    check('a stamped vanilla object brings the look it changes to', v80.stamped, JSON.stringify(v80));
 
     check('no uncaught errors in any of it', pageErrors.length === 0, pageErrors.join('; '));
 

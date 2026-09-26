@@ -219,6 +219,8 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   business knowing about and it carried no model of its own
 - `map-editor-trigger-order.js` — dragging trigger rows: the list's order
   (`_edit.triggerOrder`) and changing a trigger's kind; owns `_triggerDragRow`
+- `map-editor-objects.js` — the Object tab: object areas and the tiles drawn over them
+  (their changed look); owns `_objectSel` / `_objectDraw`
 - `map-editor-widgets.js` — the user's own widgets and the Widgets tab (yours first,
   vanilla behind a toggle); owns `_widgets` / `_widgetArt` / `_widgetsVanilla`
 - `map-editor-widget-edit.js` — Widget Editor Mode: a widget on its own canvas, a

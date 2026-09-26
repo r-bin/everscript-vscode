@@ -4,6 +4,7 @@
 //   Tile     the armed tile (on the cuttable layer while that is on)
 //   Special  the armed special: stairs, drift, gate, entrance, the Boy
 //   Trigger  a new trigger: drag out its box (B-trigger or step, B first)
+//   Object   a new object's area, or the selected object's tiles (map-editor-objects.js)
 //   Widgets  the armed construct or vanilla object
 //
 // Only one of them at a time — before, a click carried the armed tile *and*
@@ -25,7 +26,7 @@ var _editTriggerKind = 'b';
 /** `{x1, y1, x2, y2}` while a trigger box is being dragged out, else null. */
 var _triggerDraw = null;
 
-var EDIT_DRAW_TABS = { tile: true, special: true, trigger: true, widgets: true };
+var EDIT_DRAW_TABS = { tile: true, special: true, trigger: true, object: true, widgets: true };
 
 /** The Trigger tab's pencil choices, in order — the first is the default. */
 var EDIT_TRIGGER_KINDS = [
@@ -57,6 +58,11 @@ function editDrawable() {
     var t = editTriggerKindDef(_editTriggerKind);
     return { kind: kind, glyph: t[2], label: t[1] + ' — drag out its box', ready: true };
   }
+  if (kind === 'object') {
+    var o = typeof editObjectFind === 'function' ? editObjectFind(_objectSel) : null;
+    return o ? { kind: kind, glyph: '◆', label: 'the selected object’s tiles — with the Tile tab’s brush', ready: d && d.brush >= 0 }
+      : { kind: kind, glyph: '◆', label: 'an object — drag out its area', ready: true };
+  }
   if (kind === 'widgets') {
     var c = d && typeof _editConstruct !== 'undefined' && _editConstruct >= 0 ? d.constructs[_editConstruct] : null;
     return c ? { kind: kind, glyph: '❖', label: 'widget: ' + c.name, ready: true }
@@ -73,6 +79,7 @@ function editEraseTarget() {
   var kind = editDrawKind();
   if (kind === 'special') return { kind: kind, glyph: '◇', label: 'every special on a cell: stairs, drift, gate, glyph', ready: true };
   if (kind === 'trigger') return { kind: kind, glyph: '▭', label: 'the trigger under the cursor', ready: true };
+  if (kind === 'object') return { kind: kind, glyph: '◆', label: 'a tile of the selected object', ready: true };
   var cut = typeof editCutLayerOn === 'function' && editCutLayerOn();
   return { kind: 'tile', glyph: '▦', label: cut ? 'the cuttable tile' : 'the tile, by the layers shown', ready: true };
 }

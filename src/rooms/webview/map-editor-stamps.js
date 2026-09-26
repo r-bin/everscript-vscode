@@ -166,6 +166,8 @@ function editPruneAdded(palette) {
   Object.keys(_edit.cells).forEach(function (k) { used[_edit.cells[k]] = true; });
   // The cuttable layer's stamps are just as placed (map-editor-cutlayer.js).
   Object.keys(_edit.cut || {}).forEach(function (k) { used[_edit.cut[k]] = true; });
+  // So are an object's tiles (map-editor-objects.js).
+  if (typeof editObjectStamps === 'function') editObjectStamps().forEach(function (i) { used[i] = true; });
   while (_edit.added.length) {
     var index = base + _edit.added.length - 1;
     if (used[index] || _edit.brush === index) break;

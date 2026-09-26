@@ -89,6 +89,8 @@ function renderEditLayer(palette, composed, origin) {
   // The cuttable layer, over the cells it covers (map-editor-cutlayer.js).
   if (typeof editCutSvg === 'function') tiles += editCutSvg(palette, composed, origin);
   html = '<g id="rg-edit-tiles">' + tiles + '</g>' + html;
+  // Objects: their areas, and with the Object tab open their tiles on top (map-editor-objects.js).
+  if (typeof editObjectSvg === 'function') html += editObjectSvg(palette, composed, origin);
   // Special glyphs (stairs/drift, gate, entrance) sit on their own key
   // space (see map-editor.js's specialCells), so they are drawn in their
   // own pass rather than folded into the cell loop above — a cell can be

@@ -216,6 +216,8 @@ function renderEditPanels() {
     body = triggerTabHtml();
   } else if (_editActiveTab === 'special') {
     body = specialTabHtml();
+  } else if (_editActiveTab === 'object') {
+    body = objectTabHtml();
   } else if (_editActiveTab === 'widgets') {
     body = widgetsTabHtml();
   } else if (!p) {

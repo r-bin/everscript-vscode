@@ -66,7 +66,9 @@ function editCutWrite(x, y, brush, erasing) {
 /** The layer, drawn over the cells; outlined while it is the one being edited. */
 function editCutSvg(palette, composed, origin) {
   var d = editDraft();
-  if (!d || !d.cut) return '';
+  // Off, the map shows what it shows once cut — the tile beneath. The layer
+  // is still there and still exported; turn Cuttable on to see and edit it.
+  if (!d || !d.cut || !_editCutLayer) return '';
   var html = '';
   Object.keys(d.cut).forEach(function (k) {
     var p = k.split(',');

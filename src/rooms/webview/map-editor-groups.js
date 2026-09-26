@@ -65,7 +65,7 @@ function editStampGroup(palette, construct, x, y) {
   var under = got.writes.map(function (w) { return groupRef(w.x - x, w.y - y, editDraftValue(w.x, w.y)); });
   var firstPlaced = d.placed.length;
   editApply(got.writes);
-  editStampedConstruct(construct, x, y);
+  editStampedConstruct(construct, x, y, got.level);
   var uids = d.placed.slice(firstPlaced).map(function (p) {
     if (p.uid == null) p.uid = editNextPlacedUid();
     return p.uid;

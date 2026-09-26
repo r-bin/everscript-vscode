@@ -98,7 +98,8 @@ function collisionChipHtml() {
  * filed here by affinity; they are in More now.
  */
 function triggerFilterGroupHtml(ctx) {
-  if (!ctx.hasTriggers) return '';
+  // A custom map has no source triggers, but the ones drawn on it still toggle.
+  if (!ctx.hasTriggers && !ctx.romId) return '';
   return filterGroupHtml({
     flat: viewHideBtnHtml('hide-trigger', 'Triggers', 'Step-on and B-trigger boxes'),
     label: 'Triggers', menuAttr: 'edit-trigger-menu', id: 'rg-trigger-dropdown',
