@@ -1,3 +1,17 @@
+## [0.78.0] — 2026-09-26
+
+### Map editor: trigger rows as the design mock draws them
+
+- **Each row matches the mock:** a ⠿ grip, a thumbnail of the whole room with
+  the trigger's box lit in its colour, a crop of the tiles it covers, then
+  `#n · N tiles` and ×. The name, the cells and the script are in the row's
+  tooltip.
+- **Both previews are the map itself**, not a copy, so they show your
+  painted tiles, follow every stroke and even play animated tiles.
+- **Drag a row by ⠿ to reorder the list.** Drop it on the other kind's tab
+  (B-triggers ↔ Step-on triggers) to change its kind; it keeps its box and
+  script. Both are one undo step, and a custom map saves the order.
+
 ## [0.77.0] — 2026-09-25
 
 ### Map editor: animated tiles animate in the exported game

@@ -81,7 +81,8 @@ function editTriggerList(kind) {
       x1: p.x, y1: p.y, x2: p.x + p.w - 1, y2: p.y + p.h - 1, scriptId: p.scriptId,
     });
   });
-  return out;
+  // The order the Trigger tab was dragged into (map-editor-trigger-order.js).
+  return typeof triggerOrdered === 'function' ? triggerOrdered(kind, out) : out;
 }
 
 /** The box+origin for a ref, or null if it no longer exists. */
@@ -133,6 +134,7 @@ function triggerSnapshot() {
   return {
     removedTriggers: (d.removedTriggers || []).map(function (r) { return { kind: r.kind, index: r.index }; }),
     placed: (d.placed || []).map(function (p) { return Object.assign({}, p); }),
+    triggerOrder: JSON.parse(JSON.stringify(d.triggerOrder || null)),
   };
 }
 
@@ -195,6 +197,8 @@ function triggerCommitMove(ref, x, y) {
     var uid = editNextPlacedUid();
     d.placed.push({ kind: triggerDataKind(ref.kind), x: at.x, y: at.y, w: w, h: h, scriptId: t.scriptId, uid: uid });
     newRef = { kind: ref.kind, id: 'placed:' + uid };
+    // It keeps its place in the list under its new id.
+    if (typeof triggerOrderRename === 'function') triggerOrderRename(ref.kind, ref.id, newRef.id);
   } else {
     var item = d.placed.filter(function (p) { return p.uid === t.uid; })[0];
     if (item) { item.x = at.x; item.y = at.y; }

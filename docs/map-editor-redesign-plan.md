@@ -319,12 +319,14 @@ canvas card, matching the design mock's own screens.
   (what gets saved, where, in what shape, how it round-trips into the
   picker) that no existing model in this repository answers yet — not a
   small extension of the existing vanilla-picker Widgets tab.
-- **Trigger reorder** (flagged in Phase 4's own decisions, §5.2): the
-  mock's drag-to-reorder within/between the step and B lists was not
-  built. Reordering a *base* (ROM-sourced) trigger has no attested
-  in-game meaning in `docs/map-format/`; reordering only *placed*
-  triggers was considered and cut for scope. Still open if a future
-  session wants it.
+- **Trigger reorder** (flagged in Phase 4's own decisions, §5.2): built in
+  v0.78.0 (2026-09-26), at the user's request, in
+  `map-editor-trigger-order.js`. A row drags within its list, or onto the
+  other kind's sub-tab to change kind. The order is the draft's
+  (`_edit.triggerOrder`), undoable and saved with a custom map, and a row's
+  `#n` is its place in it. What the order means in the game is still not
+  attested: vanilla scans the tables in order, but no room is known to
+  depend on it.
 
 If a future session wants to pick up any of the above, treat it as new
 scope with its own design pass — not a continuation of this plan's

@@ -213,17 +213,28 @@
 .rg-theme .rg-trigger-kind-step b{color:var(--rg-trigger-step)}
 .rg-theme .rg-trigger-list{display:flex;flex-direction:column;gap:4px;margin-top:6px}
 .rg-theme .rg-trigger-row{
-  display:flex;align-items:center;gap:8px;padding:4px;cursor:pointer;
-  border:1px solid transparent;border-radius:var(--rg-radius-control);
+  position:relative;display:flex;align-items:center;gap:8px;padding:6px 8px;cursor:pointer;
+  border:1px solid var(--rg-border);border-radius:7px;
 }
 .rg-theme .rg-trigger-row:hover{background:var(--rg-bg-hover)}
 .rg-theme .rg-trigger-row.on{border-color:var(--rg-accent);background:var(--rg-accent-soft)}
-.rg-theme .rg-trigger-crop{
-  display:inline-block;flex-shrink:0;background-repeat:no-repeat;
-  border:1px solid var(--rg-border);border-radius:3px;image-rendering:pixelated;
+.rg-theme .rg-trigger-row.rg-dragging{opacity:.45}
+.rg-theme .rg-trigger-row.rg-drop-before::before{
+  content:'';position:absolute;left:4px;right:4px;top:-4px;height:2px;border-radius:1px;background:var(--rg-accent);
 }
-.rg-theme .rg-trigger-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;overflow:hidden}
-.rg-theme .rg-trigger-remove{margin-left:auto;flex-shrink:0}
+.rg-theme .rg-trigger-list.rg-drop-on,.rg-theme .rg-trigger-kind.rg-drop-on{outline:1px dashed var(--rg-accent);outline-offset:2px}
+.rg-theme .rg-trigger-grip{font-size:13px;color:var(--rg-text-muted);cursor:grab;flex-shrink:0}
+.rg-theme .rg-trigger-where,.rg-theme .rg-trigger-tiles{
+  width:44px;height:30px;flex-shrink:0;border:1px solid var(--rg-border);border-radius:4px;
+  background:var(--rg-bg-app,#0b0b0d);image-rendering:pixelated;pointer-events:none;
+}
+.rg-theme .rg-trigger-where-map{opacity:.4}
+.rg-theme .rg-trigger-where-box{stroke-width:.6;fill-opacity:.7}
+.rg-theme .rg-trigger-where-b{fill:var(--rg-trigger-b);stroke:var(--rg-trigger-b)}
+.rg-theme .rg-trigger-where-step{fill:var(--rg-trigger-step);stroke:var(--rg-trigger-step)}
+.rg-theme .rg-trigger-label{flex:1;min-width:0;font-family:var(--rg-font-mono,monospace);font-size:12px;
+  color:var(--rg-text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rg-theme .rg-trigger-remove{margin-left:auto;flex-shrink:0;border:none;background:transparent;color:var(--rg-text-muted)}
 
 /* ── The armed look ────────────────────────────────────────────────────────
  * What the open tab will draw, select or erase — a special, a trigger kind,

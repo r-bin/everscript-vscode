@@ -28,7 +28,7 @@ const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-stamps.js', '
     'map-editor-anim.js', 'map-editor-ui.js', 'map-editor-phases.js', 'map-editor-constructs.js', 'map-editor-families.js',
     'map-editor-relations.js', 'map-editor-chips.js', 'map-editor-stranded.js',
     'map-editor-tiles.js', 'map-editor-tile-lazy.js', 'map-editor-tile-filters.js', 'map-editor-neighbours.js', 'map-editor-deco.js', 'map-editor-special.js',
-    'map-editor-trigger-select.js', 'map-editor-trigger-panel.js',
+    'map-editor-trigger-select.js', 'map-editor-trigger-panel.js', 'map-editor-trigger-order.js',
     'map-editor-toolbar.js', 'map-editor-filterbar.js', 'rom-overlay.js',
     'tables-builder.js', 'map-editor-tabs.js', 'map-editor-panels.js', 'map-editor-gestures.js',
     'map-editor-input.js', 'map-editor-actions.js', 'map-editor-newroom.js', 'map-editor-start.js', 'map-editor-custom.js',
@@ -280,9 +280,53 @@ async function main() {
     // A sub-tab per kind since v0.73.0; the room's trigger is a step-on one.
     await page.click('[data-trigger-kind="step"]');
     const trigText = await page.evaluate(() => document.getElementById('rg-panels').textContent);
+    // v0.78.0: the design mock's row — grip, where in the room, the tiles
+    // covered, `#n · N tiles`, remove; the name and script in its tooltip.
+    const trigRow = await page.evaluate(() => {
+        const r = document.querySelector('.rg-trigger-row');
+        return r && {
+            title: r.getAttribute('title'), draggable: r.getAttribute('draggable'),
+            grip: !!r.querySelector('.rg-trigger-grip'), label: r.querySelector('.rg-trigger-label').textContent,
+            where: r.querySelectorAll('.rg-trigger-where use').length, box: !!r.querySelector('.rg-trigger-where-step'),
+            tiles: r.querySelector('.rg-trigger-tiles') && r.querySelector('.rg-trigger-tiles').getAttribute('viewBox'),
+            tileUses: Array.prototype.map.call(r.querySelectorAll('.rg-trigger-tiles use'), (u) => u.getAttribute('href')).join(),
+        };
+    });
     check("the Trigger tab lists the room's own step/B triggers, named from the source",
-        /Step-on triggers/.test(trigText) && /test_step/.test(trigText) && /0x1234/.test(trigText),
+        /Step-on triggers/.test(trigText) && trigRow && /test_step/.test(trigRow.title) && /0x1234/.test(trigRow.title),
         trigText.slice(0, 300));
+    check('a trigger row is the mock\'s: grip, the room with its box lit, its own tiles, "#0 · 4 tiles"',
+        trigRow && trigRow.draggable === 'true' && trigRow.grip && trigRow.label === '#0 · 4 tiles'
+        && trigRow.where === 2 && trigRow.box && trigRow.tileUses === '#rg-img,#rg-edit-tiles'
+        && trigRow.tiles === '0 0 4 4', JSON.stringify(trigRow));
+
+    // Dragging rows: the order is the draft's, one undo step; onto the other
+    // kind's tab converts it (map-editor-trigger-order.js).
+    const reorder = await page.evaluate(() => {
+        const d = editDraft();
+        const a = editAddTrigger('step', { x1: 2, y1: 2, x2: 2, y2: 2 });
+        const b = editAddTrigger('step', { x1: 3, y1: 3, x2: 4, y2: 3 });
+        const ids = () => editTriggerList('step').map((t) => t.ref.id).join(' ');
+        const start = ids();
+        triggerReorder(b, 'step', { kind: 'step', id: 'base:0' });
+        const moved = ids();
+        editUndo();
+        const undone = ids();
+        editRedo();
+        const base = triggerReorder({ kind: 'step', id: 'base:0' }, 'b', null);
+        const out = { start, moved, undone, step: ids(), b: editTriggerList('b').map((t) => t.ref.id).join(' '),
+            baseKept: editTriggerFind(base) && editTriggerFind(base).scriptId, a: a.id, bb: b.id };
+        editUndo(); editUndo(); editUndo(); editUndo();
+        d.triggerOrder = null;
+        return out;
+    });
+    check('dragging a row reorders the list, and undo puts it back',
+        reorder.start === 'base:0 ' + reorder.a + ' ' + reorder.bb
+        && reorder.moved === reorder.bb + ' base:0 ' + reorder.a
+        && reorder.undone === reorder.start, JSON.stringify(reorder));
+    check('dropping a room trigger on the other tab makes it that kind, keeping its box and script',
+        reorder.step === reorder.bb + ' ' + reorder.a && /^placed:/.test(reorder.b) && reorder.baseKept === 0x1234,
+        JSON.stringify(reorder));
 
     // ── the Special tab ────────────────────────────────────────────────────
     await page.click('[data-edit-active-tab="special"]');

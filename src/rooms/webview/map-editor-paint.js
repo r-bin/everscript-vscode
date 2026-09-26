@@ -71,11 +71,15 @@ function renderEditLayer(palette, composed, origin) {
   var d = editDraft();
   if (!d) { g.innerHTML = ''; return; }
 
+  // The painted tiles alone, in their own group: the Trigger tab's row
+  // previews show them by `<use href="#rg-edit-tiles">`, and a copy made
+  // that way loses the page's CSS, so the overlays below would draw black.
+  var tiles = '';
   var html = '';
   Object.keys(d.cells).forEach(function (k) {
     var p = k.split(',');
     var pos = editCellPos(origin, Number(p[0]), Number(p[1]));
-    html += editStampSvg(palette, composed, d.cells[k], pos.x, pos.y, 'rg-edit-cell');
+    tiles += editStampSvg(palette, composed, d.cells[k], pos.x, pos.y, 'rg-edit-cell');
     // A stairs cell painted from a stair tile says so (map-editor-collision.js);
     // one drawn with the Special tab already shows that pick's glyph.
     if (typeof editStairsSvg === 'function' && !(d.specialCells || {})[k]) {
@@ -83,7 +87,8 @@ function renderEditLayer(palette, composed, origin) {
     }
   });
   // The cuttable layer, over the cells it covers (map-editor-cutlayer.js).
-  if (typeof editCutSvg === 'function') html += editCutSvg(palette, composed, origin);
+  if (typeof editCutSvg === 'function') tiles += editCutSvg(palette, composed, origin);
+  html = '<g id="rg-edit-tiles">' + tiles + '</g>' + html;
   // Special glyphs (stairs/drift, gate, entrance) sit on their own key
   // space (see map-editor.js's specialCells), so they are drawn in their
   // own pass rather than folded into the cell loop above — a cell can be

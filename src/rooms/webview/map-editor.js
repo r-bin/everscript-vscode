@@ -82,6 +82,8 @@ function editReset(roomId) {
      * this besides editUndo/editRedo restoring a snapshot of it.
      */
     removedTriggers: [],
+    /** `{b: [id...], step: [id...]}`: the Trigger tab's order, or null for the room's own (map-editor-trigger-order.js). */
+    triggerOrder: null,
     /**
      * Which trigger the Select tool has selected, or null — `{kind, id}`,
      * see map-editor-trigger-select.js's file header for the id scheme.
@@ -130,12 +132,14 @@ function editEnd() {
   var step = t.step || editTxnStep(t);
   var a = JSON.parse(t.snap);
   var b = JSON.parse(now);
-  step.triggers = { before: { removedTriggers: a.r, placed: a.p }, after: { removedTriggers: b.r, placed: b.p } };
+  step.triggers = { before: { removedTriggers: a.r, placed: a.p, triggerOrder: a.o },
+    after: { removedTriggers: b.r, placed: b.p, triggerOrder: b.o } };
   step.groups = { before: a.g, after: b.g };
 }
 
 function editTxnSnapshot() {
-  return JSON.stringify({ r: _edit.removedTriggers || [], p: _edit.placed || [], g: _edit.groups || [] });
+  return JSON.stringify({ r: _edit.removedTriggers || [], p: _edit.placed || [], g: _edit.groups || [],
+    o: _edit.triggerOrder || null });
 }
 
 /** The open compound step, pushed on first use. */
@@ -292,6 +296,8 @@ function editCloneTriggerSnapshot(snap) {
   return {
     removedTriggers: snap.removedTriggers.map(function (r) { return { kind: r.kind, index: r.index }; }),
     placed: snap.placed.map(function (p) { return Object.assign({}, p); }),
+    // Absent in steps saved before the order existed: those leave it alone.
+    triggerOrder: 'triggerOrder' in snap ? JSON.parse(JSON.stringify(snap.triggerOrder || null)) : undefined,
   };
 }
 
@@ -342,6 +348,7 @@ function editUndo(palette) {
     var before = editCloneTriggerSnapshot(step.triggers.before);
     _edit.removedTriggers = before.removedTriggers;
     _edit.placed = before.placed;
+    if (before.triggerOrder !== undefined) _edit.triggerOrder = before.triggerOrder;
     dropped = [];
   } else {
     dropped = _edit.placed.splice(step.placed);
@@ -372,6 +379,7 @@ function editRedo(palette) {
     var after = editCloneTriggerSnapshot(step.triggers.after);
     _edit.removedTriggers = after.removedTriggers;
     _edit.placed = after.placed;
+    if (after.triggerOrder !== undefined) _edit.triggerOrder = after.triggerOrder;
   } else {
     for (var i = 0; i < step.dropped.length; i++) _edit.placed.push(step.dropped[i]);
   }

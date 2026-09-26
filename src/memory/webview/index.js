@@ -99,6 +99,7 @@ const ROOMS_JS_FILES = [
   'map-editor-special.js',// the Special tab: stairs/drift, gate, entrance + their filter chip
   'map-editor-trigger-select.js',// unifies base + placed triggers: select/move/delete/copy-paste
   'map-editor-trigger-panel.js',// the Trigger tab's list UI + the Info tab's trigger counts
+  'map-editor-trigger-order.js', // dragging trigger rows: order and kind (_triggerDragRow)
   'map-editor-toolbar.js',// the floating tool pill: tools, phases, icons, the ⋯ overflow
   'map-editor-filterbar.js',// the canvas column's docked filter bar + status bar
   'map-editor-tabs.js',  // which of the dock's five tabs is showing (_editActiveTab)

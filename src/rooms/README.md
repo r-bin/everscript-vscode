@@ -216,6 +216,8 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   `map-editor-filterbar.js` with the rest of the bar's arrangement, since it
   grew sub-toggles (the ROM trigger overlay, the two grids) this file has no
   business knowing about and it carried no model of its own
+- `map-editor-trigger-order.js` — dragging trigger rows: the list's order
+  (`_edit.triggerOrder`) and changing a trigger's kind; owns `_triggerDragRow`
 - `map-editor-actions.js` — the toolbar's verbs, split out of the input handler
 - `map-editor-paint.js` — drawing the draft on the map from the palette atlas,
   the region maths, and the Select tool's outline/drag-preview rectangles;

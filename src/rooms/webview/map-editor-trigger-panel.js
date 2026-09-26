@@ -1,6 +1,7 @@
-// Ownership: the Trigger tab's list UI — step/B trigger rows with a
-// position+crop preview, click-to-select, and a remove button — plus the
-// two trigger counts shown on the Info tab.
+// Ownership: the Trigger tab's list UI — step/B trigger rows as the design
+// mock draws them (grip, where in the room, the tiles covered, `#n · N
+// tiles`, remove), click-to-select — plus the two trigger counts shown on
+// the Info tab. Dragging a row is map-editor-trigger-order.js.
 //
 // The trigger model (which triggers exist, hit-testing, select/move/delete/
 // copy-paste) is map-editor-trigger-select.js; this file only renders what
@@ -16,30 +17,34 @@
 // uses for the "stamps" budget row ("no field limit").
 
 /**
- * A small crop of the room's own rendered picture, showing where a trigger's
- * box sits — reusing the image `svg-builder.js` already loaded into `#rg-img`
- * (`_editPanelRoom.imageUri`/`.imageDims`) rather than a second image
- * pipeline, the same crop-by-background-position technique
- * `renderComposerPreview` (map-editor-ui.js) already uses for a stamp swatch.
+ * The row's two pictures, as the design mock draws them: where the trigger
+ * sits in the room (the whole room, dimmed, its box lit in its kind's
+ * colour), and the tiles it covers.
+ *
+ * Both are the map itself, not a copy: an SVG `<use>` of the room image
+ * (`#rg-img`, svg-builder.js) and of the painted tiles (`#rg-edit-tiles`,
+ * map-editor-paint.js) under a viewBox framing the room or the box. Only the
+ * tiles: a `<use>` copy loses the page's CSS, so the edit layer's overlays
+ * (trigger boxes, outlines) would draw as solid black. So a
+ * custom map's painted tiles show — they live only in the edit layer — the
+ * previews follow every stroke, and animated tiles play; a room-wide box
+ * costs no more than a one-cell one.
  */
-function triggerCropStyle(t) {
-  var room = _editPanelRoom;
-  var img = room && room.imageUri;
-  if (!img || !_mtPalette || !_mtPalette.widthTiles || !_mtPalette.heightTiles) return '';
-  var dims = room.imageDims || {};
-  var iw = dims.width || _mtPalette.widthTiles * 16;
-  var ih = dims.height || _mtPalette.heightTiles * 16;
-  var cellW = iw / _mtPalette.widthTiles;
-  var cellH = ih / _mtPalette.heightTiles;
-  var boxW = Math.max(1, (t.x2 - t.x1 + 1) * cellW);
-  var boxH = Math.max(1, (t.y2 - t.y1 + 1) * cellH);
-  var previewH = 32;
-  var zoom = previewH / boxH;
-  var previewW = Math.max(20, Math.min(96, boxW * zoom));
-  return 'width:' + previewW.toFixed(1) + 'px;height:' + previewH + 'px;'
-    + 'background-image:url(' + img + ');'
-    + 'background-size:' + (iw * zoom).toFixed(1) + 'px ' + (ih * zoom).toFixed(1) + 'px;'
-    + 'background-position:-' + (t.x1 * cellW * zoom).toFixed(1) + 'px -' + (t.y1 * cellH * zoom).toFixed(1) + 'px;';
+function triggerPreviewsHtml(t, kind) {
+  var W = _mtPalette && _mtPalette.widthTiles;
+  var H = _mtPalette && _mtPalette.heightTiles;
+  if (!W || !H) return '';
+  var o = _editOrigin;
+  var map = '<use href="#rg-img"/><use href="#rg-edit-tiles"/>';
+  var b = editCellPos(o, t.x1, t.y1);
+  var bw = (t.x2 - t.x1 + 1) * EDIT_UNITS;
+  var bh = (t.y2 - t.y1 + 1) * EDIT_UNITS;
+  return '<svg class="rg-trigger-where" viewBox="' + o.x + ' ' + o.y + ' ' + (W * EDIT_UNITS) + ' ' + (H * EDIT_UNITS)
+    + '" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><g class="rg-trigger-where-map">' + map + '</g>'
+    + '<rect class="rg-trigger-where-box rg-trigger-where-' + kind + '" x="' + b.x + '" y="' + b.y + '" width="' + bw
+    + '" height="' + bh + '"/></svg>'
+    + '<svg class="rg-trigger-tiles" viewBox="' + b.x + ' ' + b.y + ' ' + bw + ' ' + bh
+    + '" preserveAspectRatio="xMidYMid meet" aria-hidden="true">' + map + '</svg>';
 }
 
 /** The room-source name for a base trigger, or a synthetic one for a placed trigger. */
@@ -47,27 +52,32 @@ function triggerRowName(t, kind) {
   if (t.origin === 'placed') return 'placed #' + t.uid;
   var room = _editPanelRoom;
   var names = room && room.content && room.content.triggerNames && room.content.triggerNames[triggerDataKind(kind)];
-  return (names && names[t.index]) || ('#' + t.index);
+  return (names && names[t.index]) || ('room trigger ' + t.index);
 }
 
-function triggerRowHtml(t, kind) {
+/** One row: grip, where, tiles, `#n · N tiles`, remove. Drag it to reorder (map-editor-trigger-order.js). */
+function triggerRowHtml(t, kind, n) {
   var d = editDraft();
   var sel = d && triggerRefsEqual(d.selectedTriggerRef, t.ref);
   var refStr = t.ref.kind + ':' + t.ref.id;
-  return '<div class="rg-trigger-row' + (sel ? ' on' : '') + '" data-trigger-ref="' + escH(refStr) + '">'
-    + '<i class="rg-trigger-crop" style="' + triggerCropStyle(t) + '"></i>'
-    + '<span class="rg-trigger-info"><code>' + escH(triggerRowName(t, kind)) + '</code>'
-    + '<span class="rs-note">[' + t.x1 + ',' + t.y1 + ':' + t.x2 + ',' + t.y2 + ']'
-    + (typeof t.scriptId === 'number' ? ' script 0x' + Number(t.scriptId).toString(16) : '') + '</span></span>'
+  var tiles = (t.x2 - t.x1 + 1) * (t.y2 - t.y1 + 1);
+  var title = triggerRowName(t, kind) + ' — cells ' + t.x1 + ',' + t.y1 + ' to ' + t.x2 + ',' + t.y2
+    + (typeof t.scriptId === 'number' ? '\nscript 0x' + Number(t.scriptId).toString(16) : '\nno script yet')
+    + '\nclick to select · drag to reorder, or onto the other tab to change its kind';
+  return '<div class="rg-trigger-row' + (sel ? ' on' : '') + '" draggable="true" data-trigger-ref="' + escH(refStr)
+    + '" title="' + escH(title) + '">'
+    + '<span class="rg-trigger-grip" aria-hidden="true">⠿</span>'
+    + triggerPreviewsHtml(t, kind)
+    + '<span class="rg-trigger-label">#' + n + ' · ' + tiles + ' tile' + (tiles === 1 ? '' : 's') + '</span>'
     + '<button class="rdf rg-trigger-remove" data-trigger-remove="' + escH(refStr) + '" title="Remove this trigger">×</button>'
     + '</div>';
 }
 
 function triggerSectionHtml(kind) {
   var list = editTriggerList(kind);
-  if (!list.length) return '<div class="rs-note">none yet — drag a box on the map with the pencil</div>';
-  var html = '<div class="rg-trigger-list">';
-  list.forEach(function (t) { html += triggerRowHtml(t, kind); });
+  var html = '<div class="rg-trigger-list" data-trigger-list="' + kind + '">';
+  if (!list.length) html += '<div class="rs-note">none yet — drag a box on the map with the pencil</div>';
+  list.forEach(function (t, i) { html += triggerRowHtml(t, kind, i); });
   return html + '</div>';
 }
 
@@ -94,7 +104,8 @@ function triggerTabPanelHtml() {
   });
   return html + '</div>'
     + '<div class="rs-note">The pencil drags out a new one. Select tool: click one to select it, drag its '
-    + 'own cells to move it, Delete to remove, Cmd/Ctrl+C/V to copy — or click a row.</div>'
+    + 'own cells to move it, Delete to remove, Cmd/Ctrl+C/V to copy — or click a row. Drag a row by ⠿ to '
+    + 'reorder it, or onto the other tab to change its kind.</div>'
     + triggerSectionHtml(kind);
 }
 
