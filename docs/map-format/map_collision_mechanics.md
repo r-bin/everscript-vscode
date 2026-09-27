@@ -35,19 +35,24 @@ The same structure is used by all 127 rooms.
 ## 2. Anatomy of the 16-bit collision word
 
 ```
- 15 14 13 12 11 10  9  8  7  6  5  4  3  2  1  0
-  ?  ? AW  ? [ entity gate ]  0 PT [pln] [geometry]
+ 15  14  13  12  11  10   9   8   7   6   5   4   3   2   1   0
+┌───┬───┬───┬───┬───────────────┬───┬───┬───────┬───────────────┐
+│ I │ T │AW │ P │  Entity Gate  │ 0 │PT │ Plane │ Geometry/Drift│
+└───┴───┴───┴───┴───────────────┴───┴───┴───────┴───────────────┘
 ```
 
 | Field | Bits | Meaning |
 |---|---|---|
-| **geometry** | 3..0 | Sub-tile passability and slope, see §5 |
+| **geometry** | 3..0 | Sub-tile passability and slope (if bit 13 = 0), see §5 |
+| **drift** | 3..0 | Drift / conveyor vector (if bit 13 = 1), see §6 |
 | **plane** | 5..4 | **Elevation plane, 0..3** |
 | **PT** | 6 | Plane-transparent — walkable from any *other* plane |
-| — | 7 | Never set in any vanilla tile |
+| — | 7 | Never set in any vanilla tile (always 0) |
 | **entity gate** | 11..8 | Active when bit 8 is set, see §4 |
+| **P (Priority)** | 12 | Sprite priority / depth flag (`$8FC773` / `$8FC780`). 1 = character drawn in front of canopy (OAM pri 3); 0 = drawn behind canopy (OAM pri 2) |
 | **AW** | 13 | Always-walkable override — geometry forced to 0, and bits 3..0 become a **drift direction** instead (§6) |
-| unknown | 12, 15..14 | Read by the sprite-priority routine `$8FC780`. **UNVERIFIED** |
+| **T (Tracking)** | 14 | Interactive target tracking (`$8FB07B` / `$90812A`) — updates interactable target pointer `$2429` |
+| **I (Interact)** | 15 | **Interactive Target Gate** (`$8FCE43`). 1 = B-button checks B-trigger bounding boxes (`$8FAC84`); 0 = B-button swings weapon (`$8FCE9C`). Default is 0. See §7.1. |
 
 ---
 
@@ -223,6 +228,41 @@ open.
 
 **UNVERIFIED:** how momentum is maintained between tiles, and the exact speed
 ramp (`$8FAD51`'s `$0064,Y` cap).
+
+---
+
+## 7.1 The Interact Gate: Bit 15 (`0x8000`) and the B-Button Dispatcher
+
+Every metatile in Block 3 Slice 2 carries a 16-bit collision word. While bits 0..13 govern physical movement passability, **Bit 15 (`0x8000`, "I") is the engine-wide gate for controller interaction**.
+
+### The Dispatch Routine (`$8FCE39..$8FCE49`)
+When the player presses the **B** button, before any B-trigger bounding boxes are checked, the engine inspects the collision word of the tile directly in front of the boy:
+```asm
+8FCE3A  LDA $7F0000,X       ; X = coordinate offset in WRAM metatile grid
+8FCE3E  TAX                 ; Metatile ID
+8FCE3F  LDA $7F0004,X       ; Read Block 3 Slice 2: The Collision Word
+8FCE43  BIT #$8000          ; TEST BIT 15: Interactive Object Flag
+8FCE46  BEQ $8FCE9C         ; IF 0 -> NOT INTERACTIVE! Branch to weapon attack!
+8FCE49  JSL $8FAC84         ; IF 1 -> INTERACTIVE! Check B-trigger rectangles!
+```
+
+### Key Properties & Invariants
+1. **Default is 0 (Off):**
+   Over 99% of all map tiles (floors, walls, trees, water, cliffs) have Bit 15 = 0. This ensures pressing B anywhere in ordinary space immediately swings or charges the weapon without wasting CPU cycles scanning trigger tables.
+2. **Opt-in for Interactions (1):**
+   Bit 15 is set on all tiles designed to intercept B:
+   - **Containers:** Closed gourds, chests, urns, pots, pods (`$9019`, `$901F`).
+   - **Sniff spots:** Active alchemy ingredient tiles (`$801F`, `$821F`).
+   - **Machinery:** Levers, wall switches, pressure plates, airlock terminals.
+   - **Dialogue props:** Signposts, shop counters, altars, save monuments.
+3. **State Transitions Clear Bit 15:**
+   When an object is looted or toggled, the engine applies an XOR delta stamp (`$90A4E8`). This stamp swaps the Closed metatile (Bit 15 = 1) for the Open metatile (Bit 15 = 0). Once Bit 15 is cleared, subsequent B-presses fail `BIT #$8000` and swing the weapon.
+4. **Step-On Triggers Ignore Bit 15:**
+   Step-on triggers (doorways, warp pads, stairs, floor cutscenes) are evaluated on entity movement into coordinate bounding boxes (`$8FAC..`). They operate on walkable floor tiles (e.g. `0x1010`) where Bit 15 is 0. Bit 15 has no effect on step-on triggers.
+5. **Editor Tooling:**
+   The Map Editor provides:
+   - **Special tab -> Interact group:** Allows painting **Force 1** (sets Bit 15) or **Force 0** (clears Bit 15) overrides on any tile.
+   - **Bottom bar -> Interact toggle:** Visual overlay (default off) displaying the state of each cell: `forced 1` (green F1), `forced 0` (red F0), natural `1` (amber 1), or default `0` (faint 0).
 
 ---
 

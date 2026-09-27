@@ -27,6 +27,7 @@ function specialBitsAt(x, y) {
   if (SPECIAL_GATES.indexOf((cw >> 8) & 0xf) >= 0) mask |= 0x0f00;
   if (cw & 0x2000) mask |= 0x200f;
   var glyph = editSpecialAt(x, y);
+  if (glyph && (glyph === 'interact-force-1' || glyph === 'interact-force-0')) mask |= 0x8000;
   if (!mask && !glyph) return null;
   return { mask: mask, bits: cw & mask, glyph: glyph };
 }

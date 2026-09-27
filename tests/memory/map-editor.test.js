@@ -46,6 +46,7 @@ return { editReset, editActive, editDraft, editKey, editApply, editUndo, editRed
          editCellAt, editRectWrites, editPasteWrites, editTakeSelection,
          editStampSvg, editCellPos,
          editSpecialById, editSpecialAppliedIndex, editSpecialAt, editSpecialGroupOf,
+         editCellInteractState, interactOverlayOn, editInteractToggle,
          groups: EDIT_SPECIAL_GROUPS,
          setSel: (s) => { _editSel = s; }, clip: () => _editClip,
          editTriggerList, editTriggerAt, editTriggerFind, triggerParseRef,
@@ -343,6 +344,37 @@ test('the catalog marks gate/drift/stairs as real writes and nothing else as one
     assert.ok(entrance.length && entrance.every((it) => it.gate == null && it.drift == null));
     assert.strictEqual(api.editSpecialById('gate-boy').gate, 0x7);
     assert.strictEqual(api.editSpecialById('drift-n').drift, 0x8);
+    assert.strictEqual(api.editSpecialById('interact-force-1').interact, 1);
+    assert.strictEqual(api.editSpecialById('interact-force-0').interact, 0);
+});
+
+test('interact picks force Bit 15 on (Force 1) or off (Force 0)', () => {
+    const p = palette();
+    api.editReset(0x76);
+    const f1 = api.editSpecialAppliedIndex(p, 0, 'interact-force-1', false);
+    assert.strictEqual(api.editStampWords(p, f1).collision & 0x8000, 0x8000, 'Bit 15 set');
+    assert.strictEqual(api.editStampWords(p, f1).collision, 0x901f, '0x101f | 0x8000 = 0x901f');
+
+    const f0 = api.editSpecialAppliedIndex(p, f1, 'interact-force-0', false);
+    assert.strictEqual(api.editStampWords(p, f0).collision & 0x8000, 0, 'Bit 15 cleared');
+    assert.strictEqual(api.editStampWords(p, f0).collision, 0x101f);
+});
+
+test('editCellInteractState reports forced 1, forced 0, natural 1, and 0', () => {
+    const p = palette();
+    api.setPalette(p);
+    api.editReset(0x76);
+    assert.strictEqual(api.editCellInteractState(p, 0, 0), '0');
+
+    api.editApply([], [{ x: 1, y: 1, id: 'interact-force-1' }]);
+    assert.strictEqual(api.editCellInteractState(p, 1, 1), 'forced 1');
+
+    api.editApply([], [{ x: 2, y: 2, id: 'interact-force-0' }]);
+    assert.strictEqual(api.editCellInteractState(p, 2, 2), 'forced 0');
+
+    const s1 = api.editAddStamp(p, { layer1: 0, layer2: 0, collision: 0x9019 });
+    api.editApply([{ x: 3, y: 3, index: s1 }], []);
+    assert.strictEqual(api.editCellInteractState(p, 3, 3), '1');
 });
 
 console.log('\nspecial cells + undo:');

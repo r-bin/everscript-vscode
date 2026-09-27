@@ -68,8 +68,16 @@ function visSegmentsHtml(ctx) {
     + romVisSegmentHtml('fg', 'Foreground',
       'Draw the canopy layer (BG2 — the “L1 canopy” render). Both segments on is the composite.')
     + collisionChipHtml()
+    + interactChipHtml()
     + (typeof cutLayerButtonHtml === 'function' ? cutLayerButtonHtml() : '')
     + '</span>';
+}
+
+/** Toggle button for Bit 15 (Interact) overlay. */
+function interactChipHtml() {
+  var on = typeof interactOverlayOn === 'function' && interactOverlayOn();
+  return '<button class="rdf rdf-interact' + (on ? ' on' : '') + '" data-edit-act="interact-overlay"'
+    + ' title="' + escH('Toggle Bit 15 (Interact) overlay: shows forced 0, forced 1, 1, or 0. Off by default.') + '">Interact</button>';
 }
 
 /**
@@ -253,7 +261,12 @@ function setupStatusBar() {
   }
   wrap.addEventListener('mousemove', function (e) {
     var cell = (typeof editEventCell === 'function') ? editEventCell(e) : null;
-    write(cell ? 'x: ' + statusPad2(cell.x) + ' y: ' + statusPad2(cell.y) : STATUS_NO_XY);
+    var interactInfo = '';
+    if (cell && typeof editCellInteractState === 'function') {
+      var st = editCellInteractState(typeof _mtPalette !== 'undefined' ? _mtPalette : null, cell.x, cell.y);
+      interactInfo = ' · interact: ' + st;
+    }
+    write(cell ? 'x: ' + statusPad2(cell.x) + ' y: ' + statusPad2(cell.y) + interactInfo : STATUS_NO_XY);
   }, true);
   wrap.addEventListener('mouseleave', function () { write(STATUS_NO_XY); }, true);
 }

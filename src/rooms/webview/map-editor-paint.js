@@ -127,6 +127,9 @@ function renderEditLayer(palette, composed, origin) {
       + '" width="' + ((_editSel.x2 - _editSel.x1 + 1) * EDIT_UNITS)
       + '" height="' + ((_editSel.y2 - _editSel.y1 + 1) * EDIT_UNITS) + '"/>';
   }
+  if (typeof interactOverlaySvg === 'function' && typeof interactOverlayOn === 'function' && interactOverlayOn()) {
+    html += interactOverlaySvg(palette, origin);
+  }
   g.innerHTML = html;
 }
 

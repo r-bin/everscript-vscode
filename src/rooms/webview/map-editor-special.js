@@ -31,19 +31,14 @@ var EDIT_SPECIAL_GROUPS = [
   {
     // Only on a drafted map (specialTabHtml) — see map-editor-start.js.
     id: 'start', label: 'Start', draftOnly: true,
-    note: 'Where the Boy enters this map. There is always exactly one: pick it and click '
-      + 'or drag on the map to move him. It cannot be erased. Not exported yet — the '
-      + 'encoder has no field for an entrance.',
+    note: 'Boy’s map entrance position.',
     items: [
       { id: 'start', label: 'Boy', glyph: '☺' },
     ],
   },
   {
     id: 'stairs', label: 'Stairs & Drift',
-    note: 'One per tile — picking a new one replaces the last. All three stairs are real: '
-      + 'always-walkable, keeping the Boy’s level, as vanilla’s stair tiles are. Vertical has no '
-      + 'drift; on Diagonal L/R walking sideways climbs (R rises to the right, L to the left). The '
-      + 'four Drift picks are real collision-word writes too (always-walkable + a direction nibble).',
+    note: 'Always-walkable stairs and conveyor drift tiles.',
     items: [
       { id: 'stairs-vert', label: 'Vertical', glyph: '⭥', drift: 0x0 },
       { id: 'stairs-diag-l', label: 'Diagonal L', glyph: '◣', drift: 0x2 },
@@ -56,10 +51,7 @@ var EDIT_SPECIAL_GROUPS = [
   },
   {
     id: 'gate', label: 'Gate',
-    note: 'Collision only — no visual. A real entity-gate write: "Rest of party" is nibble 3 '
-      + '(blocks everything except the boy and the dog), "Dog" is nibble 5 (blocks the dog '
-      + 'only), "Boy" is nibble 7 (blocks the boy and the dog together — no boy-only nibble is '
-      + 'attested in any vanilla room).',
+    note: 'Entity passability filters (Boy, Dog, NPCs).',
     items: [
       { id: 'gate-boy', label: 'Boy', glyph: 'B', gate: 0x7 },
       { id: 'gate-dog', label: 'Dog', glyph: 'D', gate: 0x5 },
@@ -67,9 +59,16 @@ var EDIT_SPECIAL_GROUPS = [
     ],
   },
   {
+    id: 'interact', label: 'Interact',
+    note: 'B-button interaction (Bit 15) vs weapon attack.',
+    items: [
+      { id: 'interact-force-1', label: 'Force 1', glyph: '1', interact: 1 },
+      { id: 'interact-force-0', label: 'Force 0', glyph: '0', interact: 0 },
+    ],
+  },
+  {
     id: 'entrance', label: 'Entrance',
-    note: 'Stored in the room’s data, not the tile grid — these are placement helpers only. '
-      + 'Visual-only here: not written into the exported draft.',
+    note: 'Visual entrance markers (non-exported).',
     items: [
       { id: 'entrance-default', label: 'Default', glyph: '◆' },
       { id: 'entrance-n', label: 'North', glyph: '▲' },
@@ -119,6 +118,7 @@ function editSpecialAt(x, y) {
 
 var SPECIAL_GATE_MASK = 0x0f00;   // entity gate, bits 11..8
 var SPECIAL_DRIFT_MASK = 0x200f;  // AW (bit 13) + the low nibble it repurposes
+var SPECIAL_INTERACT_MASK = 0x8000; // Bit 15 (Interact)
 
 function editSpecialGateWord(word, nibble) {
   return (word & ~SPECIAL_GATE_MASK) | ((nibble & 0xf) << 8);
@@ -126,6 +126,10 @@ function editSpecialGateWord(word, nibble) {
 
 function editSpecialDriftWord(word, nibble) {
   return (word & ~SPECIAL_DRIFT_MASK) | 0x2000 | (nibble & 0xf);
+}
+
+function editSpecialInteractWord(word, bit) {
+  return bit ? (word | SPECIAL_INTERACT_MASK) : (word & ~SPECIAL_INTERACT_MASK);
 }
 
 /**
@@ -140,6 +144,7 @@ function editSpecialDriftWord(word, nibble) {
 function editSpecialClearWord(word) {
   var cleared = word & ~SPECIAL_GATE_MASK;
   if (cleared & 0x2000) cleared &= ~SPECIAL_DRIFT_MASK;
+  cleared &= ~SPECIAL_INTERACT_MASK;
   return cleared;
 }
 
@@ -148,9 +153,9 @@ function editSpecialClearWord(word) {
  * `baseIndex` — the tile-paint result when a brush is also armed, or just
  * the cell's existing stamp when only a special is being painted.
  *
- * `erasing` clears whatever gate/drift bits are present regardless of which
- * catalog item put them there: there is exactly one gate field and one
- * AW+direction field per collision word, so "clear the special here" is
+ * `erasing` clears whatever gate/drift/interact bits are present regardless of which
+ * catalog item put them there: there is exactly one gate field, one
+ * AW+direction field, and one interact bit per collision word, so "clear the special here" is
  * unambiguous without knowing which pick it was.
  */
 function editSpecialAppliedIndex(palette, baseIndex, specialId, erasing) {
@@ -163,10 +168,12 @@ function editSpecialAppliedIndex(palette, baseIndex, specialId, erasing) {
     return editAddStamp(palette, { layer1: words.layer1, layer2: words.layer2, collision: cleared });
   }
   var def = editSpecialById(specialId);
-  if (!def || (def.gate == null && def.drift == null)) return baseIndex;
-  var next = def.gate != null
-    ? editSpecialGateWord(words.collision, def.gate)
-    : editSpecialDriftWord(words.collision, def.drift);
+  if (!def || (def.gate == null && def.drift == null && def.interact == null)) return baseIndex;
+  var next = def.interact != null
+    ? editSpecialInteractWord(words.collision, def.interact)
+    : (def.gate != null
+      ? editSpecialGateWord(words.collision, def.gate)
+      : editSpecialDriftWord(words.collision, def.drift));
   if (next === words.collision) return baseIndex;
   return editAddStamp(palette, { layer1: words.layer1, layer2: words.layer2, collision: next });
 }
@@ -235,12 +242,93 @@ function specialTabHtml() {
  */
 function buildSpecialFilterChipHtml() {
   return '<span class="rg-filter-group">'
-    + '<button class="rdf on" data-hide="hide-special" title="Toggle special glyphs (stairs, gate, entrance)">Special</button>'
+    + '<button class="rdf on" data-hide="hide-special" title="Toggle special glyphs (stairs, gate, interact, entrance)">Special</button>'
     + '<button class="rdf rg-filter-caret" data-edit-special-menu="1" title="Choose which special glyphs to show" '
     + 'aria-label="Special filter groups">▾</button>'
     + '<div class="rg-filter-popup" id="rg-special-dropdown" hidden>'
     + '<button class="rdf on" data-hide="hide-special-stairs">Stairs &amp; Drift</button>'
     + '<button class="rdf on" data-hide="hide-special-gate">Gate</button>'
+    + '<button class="rdf on" data-hide="hide-special-interact">Interact</button>'
     + '<button class="rdf on" data-hide="hide-special-entrance">Entrance</button>'
     + '</div></span>';
 }
+
+// ---------------------------------------------------------------------------
+// Bit 15 (Interact) overlay & state reporting.
+// ---------------------------------------------------------------------------
+
+var _interactOverlayOn = false;
+
+function interactOverlayOn() {
+  return _interactOverlayOn;
+}
+
+function editInteractToggle() {
+  _interactOverlayOn = !_interactOverlayOn;
+  var btns = document.querySelectorAll('.rdf-interact');
+  for (var i = 0; i < btns.length; i++) btns[i].classList.toggle('on', _interactOverlayOn);
+  if (typeof editNote === 'function') {
+    editNote(_interactOverlayOn
+      ? 'Interact overlay ON — showing Bit 15 states (forced 0, forced 1, 1, 0)'
+      : 'Interact overlay OFF');
+  }
+  if (typeof renderEditChrome === 'function') renderEditChrome();
+  var p = typeof _mtPalette !== 'undefined' ? _mtPalette : null;
+  if (typeof renderEditLayer === 'function' && p) renderEditLayer(p, typeof _editComposed !== 'undefined' ? _editComposed : null, typeof _editOrigin !== 'undefined' ? _editOrigin : { x: 0, y: 0 });
+}
+
+/**
+ * State of Bit 15 for cell (x, y):
+ * - 'forced 1': explicitly set to 1 via Special tab
+ * - 'forced 0': explicitly set to 0 via Special tab
+ * - '1': Bit 15 is 1 in the stamp collision word
+ * - '0': Bit 15 is 0 in the stamp collision word (default)
+ */
+function editCellInteractState(palette, x, y) {
+  var sp = editSpecialAt(x, y);
+  if (sp === 'interact-force-1') return 'forced 1';
+  if (sp === 'interact-force-0') return 'forced 0';
+  var p = palette || (typeof _mtPalette !== 'undefined' ? _mtPalette : null);
+  var idx = typeof editCellAt === 'function' && p ? editCellAt(p, x, y) : -1;
+  if (idx >= 0 && typeof editStampWords === 'function') {
+    var w = editStampWords(p, idx);
+    if (w && (w.collision & 0x8000)) return '1';
+  }
+  return '0';
+}
+
+function interactOverlaySvg(palette, origin) {
+  var p = palette || (typeof _mtPalette !== 'undefined' ? _mtPalette : null);
+  if (!p || !p.widthTiles || !p.heightTiles) return '';
+  var w = p.widthTiles;
+  var h = p.heightTiles;
+  var html = '<g id="rg-interact-overlay" pointer-events="none">';
+  for (var y = 0; y < h; y++) {
+    for (var x = 0; x < w; x++) {
+      var st = editCellInteractState(p, x, y);
+      var pos = typeof editCellPos === 'function' ? editCellPos(origin, x, y) : { x: x * EDIT_UNITS, y: y * EDIT_UNITS };
+      var cx = pos.x + EDIT_UNITS / 2;
+      var cy = pos.y + EDIT_UNITS / 2 + 3;
+      if (st === 'forced 1') {
+        html += '<rect class="rg-interact-cell rg-interact-f1" x="' + pos.x + '" y="' + pos.y + '" width="' + EDIT_UNITS + '" height="' + EDIT_UNITS
+          + '" fill="rgba(34,197,94,0.35)" stroke="#22c55e" stroke-width="1"/>'
+          + '<text class="rg-interact-lbl" x="' + cx + '" y="' + cy + '" fill="#22c55e" font-size="8" font-weight="bold" text-anchor="middle">F1</text>';
+      } else if (st === 'forced 0') {
+        html += '<rect class="rg-interact-cell rg-interact-f0" x="' + pos.x + '" y="' + pos.y + '" width="' + EDIT_UNITS + '" height="' + EDIT_UNITS
+          + '" fill="rgba(239,68,68,0.35)" stroke="#ef4444" stroke-width="1"/>'
+          + '<text class="rg-interact-lbl" x="' + cx + '" y="' + cy + '" fill="#ef4444" font-size="8" font-weight="bold" text-anchor="middle">F0</text>';
+      } else if (st === '1') {
+        html += '<rect class="rg-interact-cell rg-interact-1" x="' + pos.x + '" y="' + pos.y + '" width="' + EDIT_UNITS + '" height="' + EDIT_UNITS
+          + '" fill="rgba(234,179,8,0.25)" stroke="#eab308" stroke-width="1"/>'
+          + '<text class="rg-interact-lbl" x="' + cx + '" y="' + cy + '" fill="#eab308" font-size="8" font-weight="bold" text-anchor="middle">1</text>';
+      } else {
+        html += '<rect class="rg-interact-cell rg-interact-0" x="' + pos.x + '" y="' + pos.y + '" width="' + EDIT_UNITS + '" height="' + EDIT_UNITS
+          + '" fill="none" stroke="rgba(100,100,100,0.18)" stroke-width="0.5"/>'
+          + '<text class="rg-interact-lbl" x="' + cx + '" y="' + cy + '" fill="rgba(150,150,150,0.4)" font-size="7" text-anchor="middle">0</text>';
+      }
+    }
+  }
+  html += '</g>';
+  return html;
+}
+

@@ -1,3 +1,12 @@
+## [0.81.0] — 2026-09-27
+
+### Map editor: Bit 15 (Interact), concise Special tab, Force 0/1 tools, and Interact overlay
+
+- **Bit 15 (Interact) documented and verified:** Decoded engine B-button dispatch routine `$8FCE39..$8FCE46` testing `BIT #$8000` to distinguish B-interactions from weapon attacks.
+- **Concise Special tab:** Replaced verbose multi-sentence paragraphs across Start, Stairs & Drift, Gate, and Entrance with compact one-line descriptions.
+- **New Interact group in Special tab:** Added `Force 1` and `Force 0` special tools to explicitly set (`0x8000`) or clear Bit 15 on any metatile.
+- **Bottom bar Interact toggle:** Added an `Interact` button alongside `Collision` (default off) that renders Bit 15 states (`forced 1`, `forced 0`, `1`, `0`) over the map and reports live state in the status bar on hover.
+
 ## [0.80.1] — 2026-09-26
 
 ### Docs: brought up to date with the map editor
