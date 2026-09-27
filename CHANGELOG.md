@@ -1,10 +1,13 @@
-## [0.81.3] — 2026-09-27
+## [0.81.4] — 2026-09-27
 
-### Map editor: Deflect special tool, multi-flag interact overlay, and tile filters for special flags
+### Map editor: Multi-special flag lists, unified grid layout, deflect tool, and object drift indexing
 
-- **Deflect special tool:** Added `Deflect` (`DF`) tool to Gate & Deflect in the Special tab to set Bit 8 (`0x0100`) on collision words, making weapon slashes against walls deflect.
-- **Simultaneous 1 and F0/F1 visualization:** Interact overlay renders both symbols when a cell is covered by a B-trigger (natural 1) and has an explicit override (`Force 0` or `Force 1`), displaying them cleanly across diagonal quadrants.
+- **Multi-special flag lists per tile:** Paint operations merge compatible attributes from different categories (e.g. vertical stairs + Force 1, gate + deflect) instead of clobbering, while replacing mutually exclusive flags within the same group (e.g. drift direction, Force 0 vs Force 1).
+- **Unified white glyphs & adaptive grid layout:** All special and interact glyphs render in crisp white with dark stroke outlines. Glyphs arrange into a standardized grid based on active flag count: 1 entry centered, 2–4 entries in a 2×2 grid (top-left to bottom-right), and 5–9 entries in a 3×3 grid.
+- **Fixed false `1` on Force 1:** Painting `Force 1` no longer renders a spurious natural `1` glyph; `1` is strictly reserved for metatiles covered by an active B-trigger.
+- **Deflect special tool:** Added `Deflect` (`DF`) tool in the Special tab to set Bit 8 (`0x0100`) on collision words, making weapon slashes against walls deflect.
 - **Tile filters for special flags:** Extended the Tile tab filter pill with options for `drift` (conveyor drift flag `0x2000`), `deflect` (Bit 8 `0x0100`), and `interaction` (Bit 15 `0x8000`).
+- **Object drift tiles indexing:** Indexed unplaced room metatiles in `vanillaIndex` so sewer water currents (Family 28) and sliding volcano metatiles appear in the drift tile filter.
 
 ## [0.81.2] — 2026-09-27
 

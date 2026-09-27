@@ -202,10 +202,11 @@ function editApply(writes, specialWrites) {
     var sw = specialWrites[s];
     var sk = editKey(sw.x, sw.y);
     var wasSpecial = Object.prototype.hasOwnProperty.call(_edit.specialCells, sk) ? _edit.specialCells[sk] : null;
-    if (wasSpecial === sw.id) continue;
+    var nextVal = typeof editMergeSpecial === 'function' ? editMergeSpecial(wasSpecial, sw.id) : sw.id;
+    if (JSON.stringify(nextVal) === JSON.stringify(wasSpecial)) continue;
     specialBefore.push({ x: sw.x, y: sw.y, id: wasSpecial });
-    if (sw.id === null) delete _edit.specialCells[sk];
-    else _edit.specialCells[sk] = sw.id;
+    if (nextVal === null) delete _edit.specialCells[sk];
+    else _edit.specialCells[sk] = nextVal;
     changed += 1;
   }
   if (!changed) return 0;
@@ -329,7 +330,7 @@ function editRestoreSpecial(batch) {
     var was = Object.prototype.hasOwnProperty.call(_edit.specialCells, k) ? _edit.specialCells[k] : null;
     inverse.push({ x: w.x, y: w.y, id: was });
     if (w.id === null) delete _edit.specialCells[k];
-    else _edit.specialCells[k] = w.id;
+    else _edit.specialCells[k] = Array.isArray(w.id) ? w.id.slice() : w.id;
   }
   return inverse;
 }

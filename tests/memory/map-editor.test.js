@@ -46,8 +46,8 @@ return { editReset, editActive, editDraft, editKey, editApply, editUndo, editRed
          editCellAt, editRectWrites, editPasteWrites, editTakeSelection,
          editStampSvg, editCellPos,
          editSpecialById, editSpecialAppliedIndex, editSpecialAt, editSpecialGroupOf,
+         editSpecialsAt, editCellSymbols, editSpecialGlyphSvg, interactOverlaySvg,
          editCellInteractState, interactOverlayOn, editInteractToggle,
-         interactOverlaySvg, editSpecialGlyphSvg,
          groups: EDIT_SPECIAL_GROUPS,
          setSel: (s) => { _editSel = s; }, clip: () => _editClip,
          editTriggerList, editTriggerAt, editTriggerFind, triggerParseRef,
@@ -374,18 +374,6 @@ test('interact picks force Bit 15 on (Force 1) or off (Force 0)', () => {
     assert.strictEqual(api.editStampWords(p, f0).collision, 0x101f);
 });
 
-test('a cell can be 1 and F0/F1 at the same time in interactOverlaySvg', () => {
-    const p = palette();
-    api.setPalette(p);
-    const d = api.editReset(0x76);
-    d.placed.push({ kind: 'bTrigger', uid: 1, x: 0, y: 0, w: 2, h: 1 });
-    api.editApply([], [{ x: 0, y: 0, id: 'interact-force-0' }, { x: 1, y: 0, id: 'interact-force-1' }]);
-    const ov = api.interactOverlaySvg(p, { x: 0, y: 0 });
-    assert.ok(ov.includes('>F0<'), 'includes F0 for cell (0,0)');
-    assert.ok(ov.includes('>F1<'), 'includes F1 for cell (1,0)');
-    assert.ok(ov.includes('>1<'), 'includes 1 for B-trigger on cells');
-});
-
 test('editCellInteractState reports forced 1, forced 0, natural 1, and 0', () => {
     const p = palette();
     api.setPalette(p);
@@ -401,6 +389,50 @@ test('editCellInteractState reports forced 1, forced 0, natural 1, and 0', () =>
     const s1 = api.editAddStamp(p, { layer1: 0, layer2: 0, collision: 0x9019 });
     api.editApply([{ x: 3, y: 3, index: s1 }], []);
     assert.strictEqual(api.editCellInteractState(p, 3, 3), '1');
+});
+
+test('multiple special flags can be added to a tile and render in grid', () => {
+    const p = palette();
+    api.setPalette(p);
+    const d = api.editReset(0x76);
+
+    // 1. Paint vertical stairs
+    api.editApply([], [{ x: 2, y: 2, id: 'stairs-vert' }]);
+    assert.deepStrictEqual(api.editSpecialsAt(2, 2), ['stairs-vert']);
+    assert.deepStrictEqual(api.editCellSymbols(p, 2, 2), ['⭥']);
+
+    // 2. Also paint Force 1 (F1): both stairs and F1 are kept, NO duplicate 1!
+    api.editApply([], [{ x: 2, y: 2, id: 'interact-force-1' }]);
+    assert.deepStrictEqual(api.editSpecialsAt(2, 2), ['stairs-vert', 'interact-force-1']);
+    const syms2 = api.editCellSymbols(p, 2, 2);
+    assert.deepStrictEqual(syms2, ['⭥', 'F1'], 'vertical stairs + F1 gives [⭥, F1], not F1+1');
+
+    // 3. Grid of 4 (2x2 layout): SVG contains both glyphs and dashed box
+    const svg2 = api.editSpecialGlyphSvg(['stairs-vert', 'interact-force-1'], 4, 4);
+    assert.ok(svg2.includes('>⭥<'));
+    assert.ok(svg2.includes('>F1<'));
+    assert.ok(svg2.includes('rg-special-cell-box'));
+
+    // 4. Paint Gate (Boy): adds B into 3rd slot of 4-grid
+    api.editApply([], [{ x: 2, y: 2, id: 'gate-boy' }]);
+    assert.deepStrictEqual(api.editSpecialsAt(2, 2), ['stairs-vert', 'interact-force-1', 'gate-boy']);
+    assert.deepStrictEqual(api.editCellSymbols(p, 2, 2), ['⭥', 'F1', 'B']);
+
+    // 5. Paint drift-n: replaces stairs-vert (same group stairs) but preserves F1 and B
+    api.editApply([], [{ x: 2, y: 2, id: 'drift-n' }]);
+    assert.deepStrictEqual(api.editSpecialsAt(2, 2), ['interact-force-1', 'gate-boy', 'drift-n']);
+    assert.deepStrictEqual(api.editCellSymbols(p, 2, 2), ['F1', 'B', '↑']);
+
+    // 6. Active B-trigger covering the tile adds 1 as 4th symbol
+    d.placed.push({ kind: 'bTrigger', uid: 99, x: 2, y: 2, w: 1, h: 1 });
+    assert.deepStrictEqual(api.editCellSymbols(p, 2, 2), ['F1', 'B', '↑', '1']);
+
+    // 7. 5 to 9 symbols render as 3x3 grid (up to 9 items)
+    api.editApply([], [{ x: 2, y: 2, id: 'entrance-n' }]);
+    const syms5 = api.editCellSymbols(p, 2, 2);
+    assert.deepStrictEqual(syms5, ['F1', 'B', '↑', '▲', '1']);
+    const svg5 = api.editSpecialGlyphSvg(api.editDraft().specialCells['2,2'], 4, 4);
+    assert.ok(svg5.includes('>▲<'));
 });
 
 console.log('\nspecial cells + undo:');

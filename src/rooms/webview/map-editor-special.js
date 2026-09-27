@@ -39,19 +39,15 @@ var EDIT_SPECIAL_GROUPS = [
       { id: 'stairs-vert', label: 'Vertical', glyph: '⭥', drift: 0x0 },
       { id: 'stairs-diag-l', label: 'Diagonal L', glyph: '◣', drift: 0x2 },
       { id: 'stairs-diag-r', label: 'Diagonal R', glyph: '◢', drift: 0x1 },
-      { id: 'drift-n', label: 'Drift N', glyph: '↑', drift: 0x8 },
-      { id: 'drift-e', label: 'Drift E', glyph: '→', drift: 0xa },
-      { id: 'drift-s', label: 'Drift S', glyph: '↓', drift: 0xf },
-      { id: 'drift-w', label: 'Drift W', glyph: '←', drift: 0xd },
+      { id: 'drift-n', label: 'Drift N', glyph: '↑', drift: 0x8 }, { id: 'drift-e', label: 'Drift E', glyph: '→', drift: 0xa },
+      { id: 'drift-s', label: 'Drift S', glyph: '↓', drift: 0xf }, { id: 'drift-w', label: 'Drift W', glyph: '←', drift: 0xd },
     ],
   },
   {
     id: 'gate', label: 'Gate & Deflect', note: 'Entity passability filters and slash deflection (Bit 8).',
     items: [
-      { id: 'gate-boy', label: 'Boy', glyph: 'B', gate: 0x7 },
-      { id: 'gate-dog', label: 'Dog', glyph: 'D', gate: 0x5 },
-      { id: 'gate-party', label: 'Rest of party', glyph: 'P', gate: 0x3 },
-      { id: 'deflect', label: 'Deflect', glyph: 'DF', deflect: 1, gate: 0x1 },
+      { id: 'gate-boy', label: 'Boy', glyph: 'B', gate: 0x7 }, { id: 'gate-dog', label: 'Dog', glyph: 'D', gate: 0x5 },
+      { id: 'gate-party', label: 'Rest of party', glyph: 'P', gate: 0x3 }, { id: 'deflect', label: 'Deflect', glyph: 'DF', deflect: 1, gate: 0x1 },
     ],
   },
   {
@@ -65,10 +61,8 @@ var EDIT_SPECIAL_GROUPS = [
     id: 'entrance', label: 'Entrance', note: 'Visual entrance markers (non-exported).',
     items: [
       { id: 'entrance-default', label: 'Default', glyph: '◆' },
-      { id: 'entrance-n', label: 'North', glyph: '▲' },
-      { id: 'entrance-e', label: 'East', glyph: '▶' },
-      { id: 'entrance-s', label: 'South', glyph: '▼' },
-      { id: 'entrance-w', label: 'West', glyph: '◀' },
+      { id: 'entrance-n', label: 'North', glyph: '▲' }, { id: 'entrance-e', label: 'East', glyph: '▶' },
+      { id: 'entrance-s', label: 'South', glyph: '▼' }, { id: 'entrance-w', label: 'West', glyph: '◀' },
     ],
   },
 ];
@@ -77,30 +71,45 @@ var EDIT_SPECIAL_GROUPS = [
 function editSpecialById(id) {
   for (var g = 0; g < EDIT_SPECIAL_GROUPS.length; g++) {
     var items = EDIT_SPECIAL_GROUPS[g].items;
-    for (var i = 0; i < items.length; i++) {
-      if (items[i].id === id) return items[i];
-    }
+    for (var i = 0; i < items.length; i++) if (items[i].id === id) return items[i];
   }
   return null;
 }
 
-/** Which of the three groups an id belongs to, for filter-bar gating. */
+/** Which of the groups an id belongs to, for filter-bar gating and exclusivity. */
 function editSpecialGroupOf(id) {
   for (var g = 0; g < EDIT_SPECIAL_GROUPS.length; g++) {
     var group = EDIT_SPECIAL_GROUPS[g];
-    for (var i = 0; i < group.items.length; i++) {
-      if (group.items[i].id === id) return group.id;
-    }
+    for (var i = 0; i < group.items.length; i++) if (group.items[i].id === id) return group.id;
   }
   return null;
 }
 
-/** What `specialCells` holds at this cell, or null. */
-function editSpecialAt(x, y) {
+/** Merge a new special write ID with existing cell specials. Mutually exclusive within same group. */
+function editMergeSpecial(was, swId) {
+  if (swId === null) return null;
+  if (Array.isArray(swId)) return swId.length === 1 ? swId[0] : swId.slice();
+  var prev = was ? (Array.isArray(was) ? was.slice() : [was]) : [];
+  var grp = editSpecialGroupOf(swId);
+  var next = prev.filter(function (id) { return grp ? editSpecialGroupOf(id) !== grp : id !== swId; });
+  next.push(swId);
+  return next.length === 1 ? next[0] : next;
+}
+
+/** Array of all special IDs on cell (x, y). */
+function editSpecialsAt(x, y) {
   var d = editDraft();
-  if (!d) return null;
+  if (!d || !d.specialCells) return [];
   var k = editKey(x, y);
-  return Object.prototype.hasOwnProperty.call(d.specialCells, k) ? d.specialCells[k] : null;
+  var v = Object.prototype.hasOwnProperty.call(d.specialCells, k) ? d.specialCells[k] : null;
+  if (!v) return [];
+  return Array.isArray(v) ? v : [v];
+}
+
+/** What `specialCells` holds at this cell, or null (last item if multiple). */
+function editSpecialAt(x, y) {
+  var list = editSpecialsAt(x, y);
+  return list.length ? list[list.length - 1] : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -162,10 +171,12 @@ function editSpecialAppliedIndex(palette, baseIndex, specialId, erasing) {
     return editAddStamp(palette, { layer1: words.layer1, layer2: words.layer2, collision: cleared });
   }
   var def = editSpecialById(specialId);
-  if (!def || (def.gate == null && def.drift == null && def.interact == null && def.deflect == null)) return baseIndex;
-  var next = def.interact != null ? editSpecialInteractWord(words.collision, def.interact)
-    : (def.deflect != null ? ((words.collision & ~SPECIAL_GATE_MASK) | 0x0100)
-      : (def.gate != null ? editSpecialGateWord(words.collision, def.gate) : editSpecialDriftWord(words.collision, def.drift)));
+  if (!def || (def.gate == null && def.drift == null && def.interact == null)) return baseIndex;
+  var next = def.interact != null
+    ? editSpecialInteractWord(words.collision, def.interact)
+    : (def.gate != null
+      ? editSpecialGateWord(words.collision, def.gate)
+      : editSpecialDriftWord(words.collision, def.drift));
   if (next === words.collision) return baseIndex;
   return editAddStamp(palette, { layer1: words.layer1, layer2: words.layer2, collision: next });
 }
@@ -177,9 +188,7 @@ function editEscH(s) {
 
 /**
  * Render a special tile's white dashed outline and list of white symbols inside.
- * 1 entry: centered.
- * 2 entries: grid of 4 (top-left, bottom-right).
- * 3-4 entries: 4 quadrants.
+ * 1 = centered, 2…4 = grid of 4, 5…9 = grid of 9 (top left to bottom right).
  */
 function editRenderSpecialBoxSvg(symbols, pos, extraClass, isInteract) {
   if (!symbols || !symbols.length) return '';
@@ -192,50 +201,64 @@ function editRenderSpecialBoxSvg(symbols, pos, extraClass, isInteract) {
   var lblCls = 'rg-special-glyph-text' + (isInteract ? ' rg-interact-lbl' : '') + cls;
   function makeTxt(txt, cx, cy, sz) {
     return '<text class="' + lblCls + '" x="' + cx + '" y="' + (cy + sz * 0.35)
-      + '" text-anchor="middle" font-size="' + sz + '" font-weight="bold" fill="#ffffff" stroke="rgba(0,0,0,0.85)" stroke-width="0.08" paint-order="stroke" style="user-select:none;font-family:monospace" pointer-events="none">'
+      + '" text-anchor="middle" font-size="' + sz + '" font-weight="bold" fill="#ffffff" stroke="rgba(0,0,0,0.85)" stroke-width="' + (sz * 0.18) + '" paint-order="stroke" style="user-select:none;font-family:monospace" pointer-events="none">'
       + editEscH(txt) + '</text>';
   }
 
   if (symbols.length === 1) {
     html += makeTxt(symbols[0], pos.x + EDIT_UNITS / 2, pos.y + EDIT_UNITS / 2, EDIT_UNITS * 0.52);
-  } else if (symbols.length === 2) {
-    var fs2 = EDIT_UNITS * 0.36;
-    html += makeTxt(symbols[0], pos.x + EDIT_UNITS * 0.3, pos.y + EDIT_UNITS * 0.3, fs2);
-    html += makeTxt(symbols[1], pos.x + EDIT_UNITS * 0.7, pos.y + EDIT_UNITS * 0.7, fs2);
+  } else if (symbols.length <= 4) {
+    var fs = EDIT_UNITS * 0.32, u = EDIT_UNITS;
+    var c4 = [{ x: pos.x + u * 0.3, y: pos.y + u * 0.3 }, { x: pos.x + u * 0.7, y: pos.y + u * 0.3 },
+      { x: pos.x + u * 0.3, y: pos.y + u * 0.7 }, { x: pos.x + u * 0.7, y: pos.y + u * 0.7 }];
+    for (var i = 0; i < symbols.length; i++) html += makeTxt(symbols[i], c4[i].x, c4[i].y, fs);
   } else {
-    var fs4 = EDIT_UNITS * 0.30;
-    var coords = [
-      { x: pos.x + EDIT_UNITS * 0.28, y: pos.y + EDIT_UNITS * 0.28 },
-      { x: pos.x + EDIT_UNITS * 0.72, y: pos.y + EDIT_UNITS * 0.28 },
-      { x: pos.x + EDIT_UNITS * 0.28, y: pos.y + EDIT_UNITS * 0.72 },
-      { x: pos.x + EDIT_UNITS * 0.72, y: pos.y + EDIT_UNITS * 0.72 },
-    ];
-    for (var i = 0; i < Math.min(symbols.length, 4); i++) {
-      html += makeTxt(symbols[i], coords[i].x, coords[i].y, fs4);
+    var fs9 = EDIT_UNITS * 0.20, xs = [0.22, 0.50, 0.78], ys = [0.22, 0.50, 0.78];
+    for (var j = 0; j < Math.min(symbols.length, 9); j++) {
+      html += makeTxt(symbols[j], pos.x + EDIT_UNITS * xs[j % 3], pos.y + EDIT_UNITS * ys[Math.floor(j / 3)], fs9);
     }
   }
   html += '</g>';
   return html;
 }
 
+function editCellSymbols(palette, x, y, specials) {
+  var list = specials !== undefined ? (Array.isArray(specials) ? specials : (specials ? [specials] : [])) : editSpecialsAt(x, y);
+  var syms = [], hasF0 = false, hasF1 = false;
+  for (var i = 0; i < list.length; i++) {
+    var id = list[i];
+    if (id === 'interact-force-1') { syms.push('F1'); hasF1 = true; }
+    else if (id === 'interact-force-0') { syms.push('F0'); hasF0 = true; }
+    else {
+      var def = editSpecialById(id);
+      if (def && def.glyph) syms.push(def.glyph);
+    }
+  }
+  if (editHasBTriggerAt(x, y)) {
+    syms.push('1');
+  } else if (!hasF0 && !hasF1 && typeof interactOverlayOn === 'function' && interactOverlayOn()) {
+    var p = palette || (typeof _mtPalette !== 'undefined' ? _mtPalette : null);
+    var idx = typeof editCellAt === 'function' && p ? editCellAt(p, x, y) : -1;
+    if (idx >= 0 && typeof editStampWords === 'function') {
+      var sw = editStampWords(p, idx);
+      if (sw && (sw.collision & 0x8000)) syms.push('1');
+    }
+  }
+  return syms;
+}
+
 /** Special glyph overlay on a cell: white dashed outline + white symbol(s). */
-function editSpecialGlyphSvg(specialId, x, y) {
-  var cellX = Math.round(x / EDIT_UNITS);
-  var cellY = Math.round(y / EDIT_UNITS);
-  var p = typeof _mtPalette !== 'undefined' ? _mtPalette : null;
-  if (typeof interactOverlayOn === 'function' && interactOverlayOn() && p) {
-    var ist = editCellInteractState(p, cellX, cellY);
-    if (ist !== '0') return ''; // Rendered by interactOverlaySvg with unified symbols
+function editSpecialGlyphSvg(specialIdOrList, x, y) {
+  var cellX = Math.round(x / EDIT_UNITS), cellY = Math.round(y / EDIT_UNITS);
+  var list = specialIdOrList !== undefined ? (Array.isArray(specialIdOrList) ? specialIdOrList : (specialIdOrList ? [specialIdOrList] : [])) : editSpecialsAt(cellX, cellY);
+  var syms = editCellSymbols(typeof _mtPalette !== 'undefined' ? _mtPalette : null, cellX, cellY, list);
+  if (!syms.length) return '';
+  var cls = 'rg-special-glyph';
+  for (var i = 0; i < list.length; i++) {
+    var g = editSpecialGroupOf(list[i]);
+    if (g && cls.indexOf('rg-special-glyph-' + g) < 0) cls += ' rg-special-glyph-' + g;
   }
-  var syms = [];
-  if (specialId === 'interact-force-1') syms.push('F1');
-  else if (specialId === 'interact-force-0') syms.push('F0');
-  else {
-    var def = editSpecialById(specialId);
-    if (def && def.glyph) syms.push(def.glyph);
-  }
-  var group = editSpecialGroupOf(specialId);
-  return editRenderSpecialBoxSvg(syms, { x: x, y: y }, 'rg-special-glyph rg-special-glyph-' + group, false);
+  return editRenderSpecialBoxSvg(syms, { x: x, y: y }, cls, false);
 }
 
 // ---------------------------------------------------------------------------
@@ -290,8 +313,7 @@ function specialTabHtml() {
 function buildSpecialFilterChipHtml() {
   return '<span class="rg-filter-group">'
     + '<button class="rdf on" data-hide="hide-special" title="Toggle special glyphs (stairs, gate, entrance)">Special</button>'
-    + '<button class="rdf rg-filter-caret" data-edit-special-menu="1" title="Choose which special glyphs to show" '
-    + 'aria-label="Special filter groups">▾</button>'
+    + '<button class="rdf rg-filter-caret" data-edit-special-menu="1" title="Choose which special glyphs to show" aria-label="Special filter groups">▾</button>'
     + '<div class="rg-filter-popup" id="rg-special-dropdown" hidden>'
     + '<button class="rdf on" data-hide="hide-special-stairs">Stairs &amp; Drift</button>'
     + '<button class="rdf on" data-hide="hide-special-gate">Gate &amp; Deflect</button>'
@@ -304,19 +326,14 @@ function buildSpecialFilterChipHtml() {
 // ---------------------------------------------------------------------------
 
 var _interactOverlayOn = false;
-
-function interactOverlayOn() {
-  return _interactOverlayOn;
-}
+function interactOverlayOn() { return _interactOverlayOn; }
 
 function editInteractToggle() {
   _interactOverlayOn = !_interactOverlayOn;
   var btns = document.querySelectorAll('.rdf-interact');
   for (var i = 0; i < btns.length; i++) btns[i].classList.toggle('on', _interactOverlayOn);
   if (typeof editNote === 'function') {
-    editNote(_interactOverlayOn
-      ? 'Interact overlay ON — showing Bit 15 states (forced 0, forced 1, 1)'
-      : 'Interact overlay OFF');
+    editNote(_interactOverlayOn ? 'Interact overlay ON — showing Bit 15 states (forced 0, forced 1, 1)' : 'Interact overlay OFF');
   }
   if (typeof renderEditChrome === 'function') renderEditChrome();
   var p = typeof _mtPalette !== 'undefined' ? _mtPalette : null;
@@ -349,9 +366,9 @@ function editHasBTriggerAt(x, y) {
  * - '0': Bit 15 is 0 (default)
  */
 function editCellInteractState(palette, x, y) {
-  var sp = editSpecialAt(x, y);
-  if (sp === 'interact-force-1') return 'forced 1';
-  if (sp === 'interact-force-0') return 'forced 0';
+  var list = editSpecialsAt(x, y);
+  if (list.indexOf('interact-force-1') >= 0) return 'forced 1';
+  if (list.indexOf('interact-force-0') >= 0) return 'forced 0';
   if (editHasBTriggerAt(x, y)) return '1';
   var p = palette || (typeof _mtPalette !== 'undefined' ? _mtPalette : null);
   var idx = typeof editCellAt === 'function' && p ? editCellAt(p, x, y) : -1;
@@ -362,33 +379,19 @@ function editCellInteractState(palette, x, y) {
   return '0';
 }
 
-function interactOverlaySvg(palette, origin) {
+function interactOverlaySvg(palette, origin, drawnKeys) {
   var p = palette || (typeof _mtPalette !== 'undefined' ? _mtPalette : null);
   if (!p || !p.widthTiles || !p.heightTiles) return '';
-  var w = p.widthTiles;
-  var h = p.heightTiles;
+  var w = p.widthTiles, h = p.heightTiles;
   var html = '<g id="rg-interact-overlay" pointer-events="none">';
   for (var y = 0; y < h; y++) {
     for (var x = 0; x < w; x++) {
-      var natural1 = editHasBTriggerAt(x, y);
-      if (!natural1 && typeof editCellAt === 'function' && typeof editStampWords === 'function' && p) {
-        var idx = editCellAt(p, x, y);
-        var sw = idx >= 0 ? editStampWords(p, idx) : null;
-        if (sw && (sw.collision & 0x8000)) natural1 = true;
-      }
-      var sp = editSpecialAt(x, y), syms = [], cls = '';
-      if (sp && sp !== 'interact-force-1' && sp !== 'interact-force-0') {
-        var sdef = editSpecialById(sp);
-        if (sdef && sdef.glyph) syms.push(sdef.glyph);
-      }
-      if (sp === 'interact-force-1') { syms.push('F1'); if (natural1) syms.push('1'); cls = 'rg-interact-cell rg-interact-f1'; }
-      else if (sp === 'interact-force-0') { syms.push('F0'); if (natural1) syms.push('1'); cls = 'rg-interact-cell rg-interact-f0'; }
-      else if (natural1) { syms.push('1'); cls = 'rg-interact-cell rg-interact-1'; }
+      if (drawnKeys && drawnKeys[x + ',' + y]) continue;
+      var syms = editCellSymbols(p, x, y, []);
       if (!syms.length) continue;
       var pos = typeof editCellPos === 'function' ? editCellPos(origin, x, y) : { x: x * EDIT_UNITS, y: y * EDIT_UNITS };
-      html += editRenderSpecialBoxSvg(syms, pos, cls, true);
+      html += editRenderSpecialBoxSvg(syms, pos, 'rg-interact-cell', true);
     }
   }
-  html += '</g>';
-  return html;
+  return html + '</g>';
 }

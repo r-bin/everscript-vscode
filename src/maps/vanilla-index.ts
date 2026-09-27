@@ -197,7 +197,6 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
             if (canopy !== undefined && m.layer1 !== blankCanopy) tally(canopyCollCounts, canopy, m.collision, m.uses);
             noteStairsCell(stairs, terrain, m.layer1 === blankCanopy ? undefined : canopy, m);
         }
-
         // What cutting grass reveals is never placed, so it is counted here —
         // by the cells that would show it — or no family would list it.
         const graphicOf = (w: number): number | undefined => tileIds[charIndexToSlot(w & 0x3ff)];
@@ -212,6 +211,30 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
             else { seen.terrain += r.uses; tally(collCounts, r.graphic, r.collision, r.uses); }
             const seenIn = graphicRooms.get(r.graphic);
             if (seenIn) seenIn.add(id); else graphicRooms.set(r.graphic, new Set([id]));
+        }
+        // What objects place (chests, gourds, sewer water gates/currents) is defined in
+        // the room's metatile dictionary as unplaced entries (uses === 0).
+        for (const m of table) {
+            if (m.uses) continue;
+            for (const [which, word] of [[0, m.layer1], [1, m.layer2]] as const) {
+                const graphic = tileIds[charIndexToSlot(word & 0x3ff)];
+                const pal = (word >> 10) & 0x07;
+                if (graphic === undefined || pal < 1) continue;
+                const fam = fams[pal - 1];
+                if (fam === undefined) continue;
+                tally(famCounts, graphic, fam, 1);
+                tally(gfxCounts, fam, graphic, 1);
+                let seen = layers.get(graphic);
+                if (!seen) { seen = { canopy: 0, terrain: 0 }; layers.set(graphic, seen); }
+                if (which === 0) seen.canopy += 1;
+                else seen.terrain += 1;
+                const seenIn = graphicRooms.get(graphic);
+                if (seenIn) seenIn.add(id); else graphicRooms.set(graphic, new Set([id]));
+            }
+            const terrain = tileIds[charIndexToSlot(m.layer2 & 0x3ff)];
+            if (terrain !== undefined) tally(collCounts, terrain, m.collision, 1);
+            const canopy = tileIds[charIndexToSlot(m.layer1 & 0x3ff)];
+            if (canopy !== undefined && m.layer1 !== blankCanopy) tally(canopyCollCounts, canopy, m.collision, 1);
         }
         edges += walkAdjacency(room, tileIds, adjacency, cells, sides);
         noteAnimations(room, anims);
