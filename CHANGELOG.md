@@ -1,4 +1,12 @@
+## [0.81.8] — 2026-09-27
+
+### Fix: Object tab regression — all frame buttons broken again (v0.81.7 reverted the EDIT_CLICK_KEYS fix)
+
+- The v0.81.7 commit accidentally reverted the `map-editor-input.js` changes from v0.81.6 (the `replace_file_content` call matched the wrong version of the line and undid the expanded `EDIT_CLICK_KEYS` + dispatch guard). The installed 0.81.7 extension had the correct `map-editor-objects.js` but the old broken `map-editor-input.js`, so all frame buttons still fired nothing.
+- Restored both changes: the 8 missing object data attributes in `EDIT_CLICK_KEYS` and the full 10-key dispatch guard for `objectClick`.
+
 ## [0.81.7] — 2026-09-27
+
 
 ### Fix: Object tab — three frame-editing bugs
 
