@@ -1,3 +1,13 @@
+## [0.82.2] — 2026-09-27
+
+### Object lifecycle: State 0 first, then +Frame 1
+
+- **New objects start in State 0 only.** `editAddObject` in `map-editor-objects.js` now creates objects with `frames: []` and `_objectActiveFrame = 0`. The base room appearance is edited by painting on the map while State 0 is active; no implicit Frame 1 is created.
+- **Frame 1 is created explicitly.** Clicking the `+` button (or any `objectAddFrame` path) adds Frame 1 and switches to it. Delta tiles painted afterwards are stored only in that frame.
+- **Frame labels updated.** Empty frames now show "same as base" instead of "empty" in the chip tooltip and frame-info bar, making it clear they do not introduce new tiles.
+- **Object tab delegation completed.** `map-editor-input.js` now dispatches all object-tab data attributes through `objectClick`, not just `objectSel`/`objectRemove`.
+- **Tests:** Rewrote the object workflow assertions in `tests/memory/map-editor-dom.test.js` to match the new lifecycle: drag an area in State 0, add Frame 1, paint a 2×1 delta, add Frame 2, and assert each frame keeps only its own tiles.
+
 ## [0.82.1] — 2026-09-27
 
 ### Fix: Object tab frame chips and frame isolation

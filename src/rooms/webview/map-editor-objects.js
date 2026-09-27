@@ -21,7 +21,7 @@ function editObjectFind(uid) {
 
 function editObjectFrames(o) {
   if (!o.frames || !Array.isArray(o.frames)) {
-    o.frames = (o.layer && Object.keys(o.layer).length) ? [Object.assign({}, o.layer)] : [{}];
+    o.frames = (o.layer && Object.keys(o.layer).length) ? [Object.assign({}, o.layer)] : [];
   }
   return o.frames;
 }
@@ -56,9 +56,9 @@ function objectSelect(uid) {
   var o = editObjectFind(uid);
   if (o) {
     var frames = editObjectFrames(o);
-    if (_objectActiveFrame < 0 || _objectActiveFrame > frames.length) _objectActiveFrame = 1;
+    if (_objectActiveFrame < 0 || _objectActiveFrame > frames.length) _objectActiveFrame = frames.length > 0 ? 1 : 0;
     o.layer = _objectActiveFrame >= 1 ? (frames[_objectActiveFrame - 1] || {}) : {};
-    o.states = frames.length;
+    o.states = frames.length + 1;
     editNote('obj #' + editObjects().indexOf(o) + ' selected — frame #' + _objectActiveFrame + ' active');
   }
   renderEditChrome();
@@ -69,7 +69,9 @@ function objectSelectFrame(f) {
   var o = editObjectFind(_objectSel);
   if (o) {
     var frames = editObjectFrames(o);
-    o.layer = f >= 1 ? (frames[f - 1] || {}) : {};
+    if (_objectActiveFrame < 0) _objectActiveFrame = 0;
+    if (_objectActiveFrame > frames.length) _objectActiveFrame = frames.length > 0 ? frames.length : 0;
+    o.layer = _objectActiveFrame >= 1 ? (frames[_objectActiveFrame - 1] || {}) : {};
     editNote('obj #' + editObjects().indexOf(o) + ' — ' + (f === 0 ? 'State 0 (base)' : 'Frame #' + f));
   }
   renderEditChrome();
@@ -82,7 +84,7 @@ function objectAddFrame(uid) {
   editBegin();
   var frames = editObjectFrames(o), newFrame = {};
   frames.push(newFrame);
-  o.states = frames.length;
+  o.states = frames.length + 1;
   _objectSel = uid; _objectExpanded = uid;
   _objectActiveFrame = frames.length;
   o.layer = newFrame; _confirmRemoveFrame = null;
@@ -98,10 +100,9 @@ function objectRemoveFrame(uid, f) {
   editBegin();
   var frames = editObjectFrames(o);
   frames.splice(f - 1, 1);
-  if (!frames.length) frames.push({});
-  o.states = frames.length;
-  _objectActiveFrame = Math.max(1, Math.min(_objectActiveFrame, frames.length));
-  o.layer = frames[_objectActiveFrame - 1];
+  o.states = frames.length + 1;
+  _objectActiveFrame = Math.max(0, Math.min(_objectActiveFrame, frames.length));
+  o.layer = _objectActiveFrame >= 1 ? frames[_objectActiveFrame - 1] : {};
   _confirmRemoveFrame = null;
   editEnd();
   editNote('Removed frame #' + f + ' from obj #' + editObjects().indexOf(o));
@@ -179,13 +180,14 @@ function editObjectContains(o, cell) {
 
 /** A new object over `box` (inclusive cells), selected. Part of the gesture's undo step. */
 function editAddObject(box) {
-  var d = editDraft(), uid = editNextPlacedUid(), frame1 = {};
+  var d = editDraft(), uid = editNextPlacedUid();
   var o = { kind: 'object', uid: uid, x: box.x1, y: box.y1, w: box.x2 - box.x1 + 1, h: box.y2 - box.y1 + 1,
-    states: 1, frames: [frame1], layer: frame1 };
+    states: 1, frames: [], layer: {} };
   d.placed.push(o);
-  _objectSel = uid; _objectExpanded = uid; _objectActiveFrame = 1; _confirmRemoveFrame = null;
-  editNote('obj #' + (editObjects().length - 1) + ' added — ' + o.w + '×' + o.h + '. Draw what it turns into with the Tile brush.');
+  _objectSel = uid; _objectExpanded = uid; _objectActiveFrame = 0; _confirmRemoveFrame = null;
+  editNote('obj #' + (editObjects().length - 1) + ' added — ' + o.w + '×' + o.h + '. Click + Frame to add a changed state.');
   renderEditChrome();
+  renderEditLayer(_mtPalette, _editComposed, _editOrigin);
 }
 
 function objectCellLevel(cell) {
@@ -254,7 +256,8 @@ function editObjectSvg(palette, composed, origin) {
   var open = typeof _editActiveTab !== 'undefined' && _editActiveTab === 'object', html = '';
   editObjects().forEach(function (o, idx) {
     var isSel = (o.uid === _objectSel), frames = editObjectFrames(o);
-    var activeIdx = isSel ? _objectActiveFrame : 1;
+    // Only the selected object previews its active frame; others show base (State 0).
+    var activeIdx = isSel ? _objectActiveFrame : 0;
     var curLayer = activeIdx >= 1 ? (frames[activeIdx - 1] || o.layer || {}) : {};
     if (open) {
       Object.keys(curLayer).forEach(function (k) {
@@ -319,7 +322,7 @@ function objectRowHtml(o, n, listLen) {
       + objectFrameThumb(o, 0, org) + '<span class="ro-lbl">0</span></button>';
     for (var f = 1; f <= frames.length; f++) {
       var b = objectFrameBounds(frames[f - 1]);
-      var tip = 'Frame ' + f + (b ? ' — ' + b.w + '×' + b.h + ' (' + b.count + ' delta tiles)' : ' — empty');
+      var tip = 'Frame ' + f + (b ? ' — ' + b.w + '×' + b.h + ' (' + b.count + ' delta tiles)' : ' — same as base');
       h += '<button class="ro-chip' + (_objectActiveFrame === f ? ' sel' : '') + '" data-object-uid="' + o.uid
         + '" data-object-frame="' + f + '" title="' + escH(tip) + '">'
         + objectFrameThumb(o, f, org) + '<span class="ro-lbl">' + f + '</span></button>';
@@ -331,7 +334,7 @@ function objectRowHtml(o, n, listLen) {
         + (frames.length ? '<button class="rdf rdf-xs" data-object-uid="' + o.uid + '" data-object-frame="1" title="Frame 1">▶</button>' : '');
     } else {
       var curB = objectFrameBounds(frames[_objectActiveFrame - 1]);
-      var deltaInfo = curB ? (curB.w + '×' + curB.h + ' (' + curB.count + ' delta tiles)') : 'empty';
+      var deltaInfo = curB ? (curB.w + '×' + curB.h + ' (' + curB.count + ' delta tiles)') : 'same as base';
       var prevF = _objectActiveFrame - 1, nextF = _objectActiveFrame + 1;
       h += '<span class="rg-obj-frame-info">Frame ' + _objectActiveFrame + ': ' + deltaInfo + '</span>'
         + '<button class="rdf rdf-xs" data-object-uid="' + o.uid + '" data-object-frame="' + prevF

@@ -2305,20 +2305,26 @@ async function main() {
         // The Object tab, after Trigger.
         r.tabs = Array.prototype.map.call(document.querySelectorAll('#rg-tabstrip .rg-tab'), (b) => b.dataset.editActiveTab).join();
         _editActiveTab = 'object'; d.tool = 'paint';
+        // Use a 2×2 blank grid so object-area painting writes base room cells.
+        _mtPalette.grid = [[null, null], [null, null]];
+        d.brush = editAddStamp(_mtPalette, { layer1: 0xa800, layer2: 0xa800, collision: 0 });
         editBegin(); editStroke({ x: 0, y: 0 }, 'down'); editStroke({ x: 1, y: 1 }, 'up'); editEnd();
         const o = editObjects()[0];
         r.area = o && [o.x, o.y, o.w, o.h].join();
         r.sel = _objectSel === (o && o.uid);
+        objectAddFrame(o.uid);
         d.brush = editAddStamp(_mtPalette, { layer1: 0x1422, layer2: 0x05c6, collision: 0x001f });
         editBegin(); editStroke({ x: 1, y: 0 }, 'down'); editStroke({ x: 1, y: 1 }, 'move'); editStroke({ x: 1, y: 1 }, 'up'); editEnd();
-        r.layer = Object.keys(editObjects()[0].layer).sort().join(' ');
+        r.layer = Object.keys(editObjects()[0].layer || {}).sort().join(' ');
         r.drawnOpen = editObjectSvg(_mtPalette, _editComposed, _editOrigin).split('rg-obj-cell').length - 1;
         _editActiveTab = 'tile';
         r.drawnClosed = editObjectSvg(_mtPalette, _editComposed, _editOrigin).split('rg-obj-cell').length - 1;
         r.mapUntouched = Object.keys(d.cells).length === 0;
+        // Undo the Frame 1 delta paint: object layer should clear but object stays.
         editUndo();
-        r.undone = Object.keys(editObjects()[0].layer).length;
-        editUndo();
+        r.undone = Object.keys(editObjects()[0] && editObjects()[0].layer || {}).length;
+        // Undo the object-area stroke and the add-frame step: object should be removed.
+        editUndo(); editUndo();
         r.gone = editObjects().length;
         // A stamped vanilla object brings its changed look.
         _editActiveTab = 'tile';
@@ -2331,14 +2337,24 @@ async function main() {
 
         // Object cluster, frames, automatic delta bounds and solid blue frame
         editRemoveObject(so.uid);
+        d.cells = {}; d.placed = d.placed.filter((p) => p.kind !== 'object');
+        _objectSel = null; _objectExpanded = null; _objectActiveFrame = 0;
         _editActiveTab = 'object';
         editBegin(); editStroke({ x: 0, y: 0 }, 'down'); editStroke({ x: 1, y: 1 }, 'up'); editEnd();
-        const obj2 = editObjects()[0];
+        let obj2 = editObjects()[0];
         r.objCluster = editObjectSvg(_mtPalette, _editComposed, _editOrigin).includes('rg-obj-cluster');
 
-        // Frame 1 active: paint delta tiles at 0,0 and 1,0 (2x1 delta box)
+        // New object starts in State 0: its delta layer is empty.
+        r.baseStateEmpty = Object.keys(obj2.layer).length === 0;
+
+        // Add Frame 1 explicitly, then paint delta tiles at 0,0 and 1,0 (2x1 delta box)
+        objectAddFrame(obj2.uid);
+        obj2 = editObjects()[0];
+        r.frame1Added = _objectActiveFrame === 1 && obj2.frames.length === 1;
         d.brush = editAddStamp(_mtPalette, { layer1: 0x1422, layer2: 0x05c6, collision: 0x001f });
-        editBegin(); editStroke({ x: 0, y: 0 }, 'down'); editStroke({ x: 1, y: 0 }, 'up'); editEnd();
+        editBegin(); editStroke({ x: 0, y: 0 }, 'down'); editStroke({ x: 1, y: 0 }, 'move'); editStroke({ x: 1, y: 0 }, 'up'); editEnd();
+        obj2 = editObjects()[0];
+        r.frame1Layer = Object.keys(obj2.layer).sort().join(' ');
         const svgFrame = editObjectSvg(_mtPalette, _editComposed, _editOrigin);
         r.solidFrame = svgFrame.includes('rg-obj-frame');
         r.solidFrameW2H1 = svgFrame.includes('width="4"') && svgFrame.includes('height="2"');
@@ -2383,16 +2399,22 @@ async function main() {
     check('on the Object tab the pencil drags out an area, selected', v80.area === '0,0,2,2' && v80.sel, JSON.stringify(v80));
     check('and draws its tiles over the map, not into it — shown only while the tab is open',
         v80.layer === '1,0 1,1' && v80.drawnOpen === 2 && v80.drawnClosed === 0 && v80.mapUntouched, JSON.stringify(v80));
+    // This test's first paint stroke now lands in State 0 and writes the base room,
+    // not the object's delta layer; the Frame 1 delta-paint workflow is asserted below.
     check('each is one undo step', v80.undone === 0 && v80.gone === 0, JSON.stringify(v80));
     check('a stamped vanilla object brings the look it changes to', v80.stamped, JSON.stringify(v80));
     check('object cluster has dotted outline and active frame has solid blue frame with auto delta bounds',
         v80.objCluster && v80.solidFrame && v80.solidFrameW2H1, JSON.stringify(v80));
+    check('a new object starts in State 0 with an empty delta layer',
+        v80.baseStateEmpty, JSON.stringify(v80));
+    check('Frame 1 is created with + and receives the delta paint',
+        v80.frame1Added && v80.frame1Layer === '0,0 1,0', JSON.stringify(v80));
     check('object expands to show state chips and frames can be added, reordered and removed',
         v80.framesCount === 2 && v80.activeFrame2 && v80.tabHasChips && v80.tabHasFrames
         && v80.reorderedActive && v80.reorderedF1Layer === '1,1' && v80.framesAfterRemove === 1, JSON.stringify(v80));
-    check('frame 0 shows the base room and does not hold object delta tiles',
+    check('State 0 shows the base room and does not hold object delta tiles',
         v80.frame0LayerEmpty, JSON.stringify(v80));
-    check('frame 2 keeps its own delta tile and is not polluted by frame 1',
+    check('Frame 2 keeps its own delta tile and is not polluted by frame 1',
         v80.frame2HasItsTile, JSON.stringify(v80));
 
     check('no uncaught errors in any of it', pageErrors.length === 0, pageErrors.join('; '));
