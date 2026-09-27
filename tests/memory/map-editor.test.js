@@ -433,6 +433,12 @@ test('multiple special flags can be added to a tile and render in grid', () => {
     assert.deepStrictEqual(syms5, ['F1', 'B', '↑', '▲', '1']);
     const svg5 = api.editSpecialGlyphSvg(api.editDraft().specialCells['2,2'], 4, 4);
     assert.ok(svg5.includes('>▲<'));
+
+    // 8. Explicit Force 0 suppresses the B-trigger's '1' and displays 'F0'
+    api.editApply([], [{ x: 2, y: 2, id: 'interact-force-0' }]);
+    const symsF0 = api.editCellSymbols(p, 2, 2);
+    assert.ok(symsF0.includes('F0'), 'includes F0');
+    assert.ok(!symsF0.includes('1'), 'suppresses 1');
 });
 
 console.log('\nspecial cells + undo:');

@@ -2606,6 +2606,25 @@ async function main() {
             r.activeAfterClick1 = _objectActiveFrame;
             r.svgAfterClick1 = document.getElementById('rg-edit').innerHTML;
 
+            // Test 1: Picking tile does not jump to object tab
+            _editActiveTab = 'tile';
+            editOnStampPicked(1);
+            r.tabAfterStampPick = _editActiveTab;
+
+            // Test 2: Drawing special F0 on an object cell draws special, does not corrupt object frame
+            _editActiveTab = 'special';
+            d.currentSpecialId = 'interact-force-0';
+            const f1CountBefore = Object.keys(o.frames[0] || {}).length;
+            editSpecialStroke(d, { x: 1, y: 1 }, false, 'up');
+            r.f1CountAfterSpecial = Object.keys(o.frames[0] || {}).length === f1CountBefore;
+            r.hasSpecialF0 = (editSpecialsAt(1, 1) || []).includes('interact-force-0');
+
+            // Test 3: Objects overlay off hides blue boxes
+            const panel = document.getElementById('rg-panel');
+            panel.classList.add('hide-obj');
+            r.objectsVisibleWhenHidden = editObjectsVisible();
+            panel.classList.remove('hide-obj');
+
             _editComposed = composed;
             return r;
         });
@@ -2623,6 +2642,12 @@ async function main() {
             flow.activeAfterClick0 === 0 && !flow.svgAfterClick0.includes('rg-obj-cell')
             && flow.activeAfterClick1 === 1 && flow.svgAfterClick1.includes('rg-obj-cell'),
             JSON.stringify(flow));
+        check('picking a stamp on the tile tab does not switch tab to object',
+            flow.tabAfterStampPick === 'tile', JSON.stringify(flow));
+        check('drawing special on object cell writes special and preserves object frame',
+            flow.f1CountAfterSpecial && flow.hasSpecialF0, JSON.stringify(flow));
+        check('editObjectsVisible returns false when hide-obj class is present',
+            flow.objectsVisibleWhenHidden === false, JSON.stringify(flow));
     }
 
     check('no uncaught errors in any of it', pageErrors.length === 0, pageErrors.join('; '));

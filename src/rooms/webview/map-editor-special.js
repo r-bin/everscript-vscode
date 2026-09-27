@@ -234,7 +234,7 @@ function editCellSymbols(palette, x, y, specials) {
       if (def && def.glyph) syms.push(def.glyph);
     }
   }
-  if (editHasBTriggerAt(x, y)) {
+  if (!hasF0 && editHasBTriggerAt(x, y)) {
     syms.push('1');
   } else if (!hasF0 && !hasF1 && typeof interactOverlayOn === 'function' && interactOverlayOn()) {
     var p = palette || (typeof _mtPalette !== 'undefined' ? _mtPalette : null);

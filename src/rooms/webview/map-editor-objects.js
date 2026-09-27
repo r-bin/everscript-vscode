@@ -26,19 +26,9 @@ function editObjectFrames(o) {
   return o.frames;
 }
 
-/**
- * Drop phantom frames: an object whose every frame holds no tiles is a
- * State-0-only object (`frames: []`). Objects made before v0.82.2 were born
- * with an implicit empty Frame 1, and a State-0-only object saved into a
- * widget fell through `editStampedConstruct`'s legacy `cells` branch and came
- * back with one — both showed "2 frames" with nothing in them. A frame that
- * holds tiles keeps its position: scripts name states by index, so a
- * non-empty list is never renumbered here.
- */
 function objectNormalizeFrames(frames) {
   if (!Array.isArray(frames)) return [];
-  var anyTiles = frames.some(function (f) { return f && Object.keys(f).length > 0; });
-  return anyTiles ? frames : [];
+  return frames.some(function (f) { return f && Object.keys(f).length > 0; }) ? frames : [];
 }
 
 /** Tightly bounded delta tiles box for an object frame. */
@@ -263,10 +253,15 @@ function editObjectStamps() {
   return out;
 }
 
-// ── drawing ────────────────────────────────────────────────────────────────
+function editObjectsVisible() {
+  var p = document.getElementById('rg-panel');
+  if (p && p.classList.contains('hide-obj')) return false;
+  return typeof _currentOverlay !== 'string' || _currentOverlay.indexOf('o') >= 0;
+}
 
 /** Areas as dotted blue clusters; active frame delta as solid blue frame. */
 function editObjectSvg(palette, composed, origin) {
+  if (!editObjectsVisible()) return '';
   var open = typeof _editActiveTab !== 'undefined' && _editActiveTab === 'object', html = '';
   editObjects().forEach(function (o, idx) {
     var isSel = (o.uid === _objectSel), frames = editObjectFrames(o);

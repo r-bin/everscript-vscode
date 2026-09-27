@@ -45,7 +45,7 @@ function editStroke(cell, phase) {
     return;
   }
   // The Object tab: areas, and the tiles drawn over them (map-editor-objects.js).
-  var objActive = drawKind() === 'object' || (typeof _objectActiveFrame !== 'undefined' && _objectActiveFrame >= 1 && typeof _objectSel !== 'undefined' && _objectSel != null);
+  var objActive = drawKind() === 'object' || (drawKind() === 'tile' && typeof _objectActiveFrame !== 'undefined' && _objectActiveFrame >= 1 && typeof _objectSel !== 'undefined' && _objectSel != null);
   if (objActive && typeof editObjectGesture === 'function' && editObjectGesture(d, cell, phase)) return;
 
   if (d.tool === 'select') {
@@ -238,7 +238,10 @@ function editSpecialStroke(d, cell, erasing, phase) {
 function editSpecialWrites(d, cell, erasing) {
   if (!erasing && !d.currentSpecialId) return null;
   var before = editCellAt(_mtPalette, cell.x, cell.y);
-  if (before < 0) return null;
+  if (before < 0) {
+    if (erasing) return null;
+    before = d.blank && d.blank.floor != null ? d.blank.floor : 0;
+  }
   var idx = editSpecialAppliedIndex(_mtPalette, before, erasing ? null : d.currentSpecialId, erasing);
   return {
     writes: idx !== before ? [{ x: cell.x, y: cell.y, index: idx }] : [],
@@ -250,27 +253,14 @@ function editSpecialWrites(d, cell, erasing) {
 function editApplySpecial(writes, special) {
   if (!special.length) return;
   editApply(writes, special);
-  for (var i = 0; i < writes.length; i++) {
-    if (writes[i].index >= _mtPalette.count) { requestComposedPreview(); return; }
-  }
+  for (var i = 0; i < writes.length; i++) if (writes[i].index >= _mtPalette.count) { requestComposedPreview(); return; }
 }
 
-/**
- * Apply a brush stroke's writes, and refresh the preview sheet if it needs it.
- *
- * `editResolve` can invent a stamp (a front-composed brush over an existing
- * terrain composes a third, merged one), and a cell painted with a stamp the
- * preview sheet does not have yet has no picture to crop from — it renders as
- * nothing. The paint tool has always done this check inline; move
- * did not, which is why they are routed through here rather than calling
- * `editApply` directly.
- */
+/** Apply a brush stroke's writes, and refresh the preview sheet if it needs it. */
 function editApplyStroke(writes) {
   if (!writes || !writes.length) return;
   editApply(writes);
-  for (var i = 0; i < writes.length; i++) {
-    if (writes[i].index >= _mtPalette.count) { requestComposedPreview(); return; }
-  }
+  for (var i = 0; i < writes.length; i++) if (writes[i].index >= _mtPalette.count) { requestComposedPreview(); return; }
 }
 
 /** Attach the capture-phase gesture handlers once per rendered room. */

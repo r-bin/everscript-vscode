@@ -310,9 +310,6 @@ function editUseFamilyTile(graphicId, family) {
   _brushTile = { graphic: graphicId, family: family };
   _mtSlot = -1;
   editArmBrush();
-  if (typeof _objectSel !== 'undefined' && _objectSel != null && typeof _objectActiveFrame !== 'undefined' && _objectActiveFrame >= 1) {
-    _editActiveTab = 'object';
-  }
 
   var flip = (_brushFlip.h ? 'H' : '') + (_brushFlip.v ? 'V' : '');
   editNote('brush: graphic ' + graphicId + ' in family ' + family

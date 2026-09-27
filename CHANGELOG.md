@@ -1,3 +1,14 @@
+## [0.82.5] — 2026-09-28
+
+### Fix: Drawing context routing, tab stability on tile pick, and object box overlay toggle
+
+- **Drawing context respected:** In `map-editor-gestures.js`, `editStroke` only routes to `editObjectGesture` when `drawKind() === 'object' || drawKind() === 'tile'`. When the user is on the Special or Trigger tabs, clicks on an object write specials (such as `F0` / `interact-force-0` or stairs) or triggers rather than corrupting the object's active delta frame with brush tiles.
+- **Special write fallback on empty cells:** In `map-editor-gestures.js`, `editSpecialWrites` falls back to `d.blank.floor` when `editCellAt` returns `< 0`, allowing specials to be placed on empty floor cells.
+- **Explicit F0 suppresses default B-trigger '1' glyph:** In `map-editor-special.js`, `editCellSymbols` checks `!hasF0 && editHasBTriggerAt(x, y)` so that explicitly painting `F0` (Force 0) suppresses the white `'1'` and displays `'F0'`.
+- **No auto-tab jumps on tile pick:** Removed `_editActiveTab = 'object'` from `editOnStampPicked` and `editOnTilePicked` in `map-editor-input.js` and `editUseFamilyTile` in `map-editor-families.js`. Picking a tile or stamp while an object is selected stays on the current tab without jumping to the Object tab.
+- **Hide object blue boxes when Objects overlay is off:** In `src/rooms/webview/map-editor-objects.js`, `editObjectSvg` checks `editObjectsVisible()` and skips rendering `.rg-obj-area` and `.rg-obj-frame` when Objects is unchecked. In `rom-overlay.js`, `syncRomTriggerClass` toggles `.hide-obj` when `'o'` is disabled. In `src/shared/shared.css`, `.hide-obj` hides `.rg-obj-area`, `.rg-obj-frame`, and `.rg-obj-cell`.
+- **Tests:** Added assertions in `map-editor.test.js` and `map-editor-dom.test.js` verifying that picking a stamp stays on the Tile tab, `F0` suppresses B-trigger `'1'` and writes specials without mutating the object frame, and `editObjectsVisible()` reflects the `hide-obj` state.
+
 ## [0.82.4] — 2026-09-27
 
 ### Fix: Object delta frame stroke routing and State 0 preview isolation

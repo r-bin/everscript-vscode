@@ -140,7 +140,10 @@ function romVisSegmentHtml(which,label,title){
  * double-drawing every trigger in two different colours.
  */
 function syncRomTriggerClass(panel){
-  if(panel)panel.classList.toggle('rom-triggers',_currentOverlay.indexOf('t')>=0);
+  if(panel){
+    panel.classList.toggle('rom-triggers',_currentOverlay.indexOf('t')>=0);
+    panel.classList.toggle('hide-obj',_currentOverlay.indexOf('o')<0);
+  }
 }
 
 /** Wire the layer, feature and export buttons for the ROM map view. */
