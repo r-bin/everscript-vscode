@@ -1,3 +1,12 @@
+## [0.82.0] — 2026-09-27
+
+### Widget editor now preserves every object frame
+
+- **Bug:** A widget containing an object with multiple delta frames would lose all frames except the active one when saved from the widget editor. Re-opening the widget (or stamping it on a map) showed only frame 1; frames 2..N were empty.
+- **Save path:** `widgetPlacedIn` in `map-editor-widget-edit.js` now serializes the full `frames` array for each object, not just the active `layer`. Frame 0 (the base room look) is still derived at runtime and not stored.
+- **Restore path:** `editStampedConstruct` in `map-editor-constructs.js` restores all saved delta frames into the placed object's `frames` array. Old widgets that only stored a single `cells` array keep working.
+- **Tests:** Added a headless round-trip test in `tests/memory/map-editor.test.js`. Fixed underlying event-delegation instability in `tests/memory/map-editor-dom.test.js` by stopping click/wheel propagation from `#rg-dock` so the same gesture is not handled twice when the dock is nested inside `#room-detail`.
+
 ## [0.81.9] — 2026-09-27
 
 ### Fix: Object tab buttons (◀ ▶, Delete frame, frame chips, +) were always dead — actual root cause

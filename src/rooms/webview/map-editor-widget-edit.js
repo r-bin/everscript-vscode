@@ -128,19 +128,33 @@ function widgetPlacedIn(d, sel) {
     if (p.removed || p.x > sel.x2 || p.x + p.w - 1 < sel.x1 || p.y > sel.y2 || p.y + p.h - 1 < sel.y1) return;
     var rel = { dx: p.x - sel.x1, dy: p.y - sel.y1, w: p.w, h: p.h };
     if (p.kind === 'bTrigger' || p.kind === 'stepOn') out[p.kind].push(Object.assign(rel, { scriptId: p.scriptId }));
-    else if (p.kind === 'object') out.objects.push(Object.assign(rel, { states: p.states || 1, cells: widgetObjectCells(p) }));
+    else if (p.kind === 'object') {
+      // Save all delta frames so multi-state objects survive a round-trip
+      // through the widget editor (frame 0 is the base room and is not stored).
+      var frames = editObjectFrames(p);
+      out.objects.push(Object.assign(rel, {
+        states: frames.length + 1,
+        cells: widgetLayerCells(frames[0] || {}),
+        frames: frames.map(widgetLayerCells),
+      }));
+    }
   });
   return out;
 }
 
-/** An object's changed look as portable cells, for keeping in a widget. */
-function widgetObjectCells(o) {
-  return Object.keys(o.layer || {}).map(function (k) {
+/** Portable cells for one object frame layer. */
+function widgetLayerCells(layer) {
+  return Object.keys(layer || {}).map(function (k) {
     var p = k.split(',').map(Number);
-    var w = editStampWords(_mtPalette, o.layer[k]);
+    var w = editStampWords(_mtPalette, layer[k]);
     return w ? { dx: p[0], dy: p[1], canopy: editPartFromWord(_mtPalette, w.layer1),
       terrain: editPartFromWord(_mtPalette, w.layer2), collision: w.collision } : null;
   }).filter(Boolean);
+}
+
+/** An object's changed look as portable cells, for keeping in a widget. */
+function widgetObjectCells(o) {
+  return widgetLayerCells(o.layer);
 }
 
 /** Rename the widget being edited. */

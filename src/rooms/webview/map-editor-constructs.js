@@ -172,11 +172,17 @@ function editStampedConstruct(construct, x, y, level) {
     });
   });
   (a.objects || []).forEach(function (o) {
+    // Restore every saved delta frame; old widgets that only stored `cells`
+    // keep that single frame.
+    var objFrames = (o.frames && o.frames.length) ? o.frames : [o.cells || []];
+    var frameLayers = objFrames.map(function (cells) { return editObjectLayerFrom(cells, level); });
+    if (!frameLayers.length) frameLayers.push(editObjectLayerFrom([], level));
     _edit.placed.push({
-      kind: 'object', x: x + o.dx, y: y + o.dy, w: o.w, h: o.h, states: o.states || 1,
-      uid: editNextPlacedUid(), layer: editObjectLayerFrom(o.cells, level),
+      kind: 'object', x: x + o.dx, y: y + o.dy, w: o.w, h: o.h,
+      states: o.frames ? (o.frames.length + 1) : (o.states || 1),
+      uid: editNextPlacedUid(), frames: frameLayers, layer: frameLayers[0],
     });
-    extras.push('an object record' + (o.states > 1 ? ' with ' + o.states + ' states' : ''));
+    extras.push('an object record' + (frameLayers.length > 1 || o.states > 1 ? ' with ' + (frameLayers.length + 1) + ' states' : ''));
   });
 
   editNote('placed ' + construct.name + ' at ' + x + ',' + y

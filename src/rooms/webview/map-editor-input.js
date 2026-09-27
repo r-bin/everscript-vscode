@@ -177,9 +177,18 @@ function bindEditControls(panel, room) {
 
   // Scroll-to-cycle on the neighbour card's sides (map-editor-neighbours.js).
   // Not passive: it has to preventDefault, or the dock scrolls as well.
-  panel.addEventListener('wheel', neighbourWheel, { passive: false });
+  // Stop propagation from the dock so the same wheel event is not handled
+  // twice when the dock is inside #room-detail.
+  panel.addEventListener('wheel', function (e) {
+    if (panel.id === 'rg-dock') e.stopPropagation();
+    neighbourWheel(e);
+  }, { passive: false });
 
   panel.addEventListener('click', function (e) {
+    // The dock contains its own tab panels; when it is nested inside
+    // #room-detail the room-detail copy of this listener would otherwise
+    // see the same click and toggle state twice.
+    if (panel.id === 'rg-dock') e.stopPropagation();
     var t = editClickTarget(e.target, panel);
     if (!t || !t.dataset) return;
 

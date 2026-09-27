@@ -705,6 +705,9 @@ const ui = new Function(`
   ${read('map-editor-custom-store.js')}
   ${read('map-editor-clipboard.js')}
   ${read('map-editor-pick.js')}
+  ${read('map-editor-objects.js')}
+  ${read('map-editor-widgets.js')}
+  ${read('map-editor-widget-edit.js')}
   ${read('map-editor-special-select.js')}
   return {
     tileSlotWord: tileSlotWord, editOnTilePicked: editOnTilePicked,
@@ -742,6 +745,7 @@ const ui = new Function(`
     setTriggerKind: function (k) { _editTriggerKind = k; },
     pasteFloat: function () { return _pasteFloat; }, dropPaste: function () { _pasteFloat = null; },
     tileSlotPasses: tileSlotPasses, tileFilterToggle: tileFilterToggle, tileAnimPlay: tileAnimPlay, tileFramesPick: tileFramesPick, tileShapePick: function (v) { _tileShape = v === 'all' ? null : v; },
+    editStampedConstruct: editStampedConstruct, widgetPlacedIn: widgetPlacedIn, editObjectFrames: editObjectFrames,
   };`)();
 
 /** A palette with the tile sheet the host now sends alongside it. */
@@ -1671,6 +1675,47 @@ test('an animation is one swatch that plays its frames; `frames` lists each fram
     assert.ok(ui.tileSlotPasses(sheet.slots[1]), 'each frame on its own');
     assert.strictEqual(ui.tileAnimPlay(sheet, sheet.slots[0]).css, '', 'and nothing plays');
     ui.tileFramesPick('anim');
+});
+
+test('widgets preserve every object frame across save and reopen', () => {
+    const p = tilePalette();
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    d.on = true;
+
+    // A widget whose object has two delta frames (state 0 is the base room).
+    const w = {
+        name: 'gourd', w: 2, h: 2, cells: [],
+        attachments: {
+            bTrigger: [], stepOn: [],
+            objects: [{
+                dx: 0, dy: 0, w: 2, h: 2, states: 3,
+                frames: [
+                    [{ dx: 0, dy: 0, canopy: { word: 0x1422 }, terrain: null, collision: 0x001f }],
+                    [{ dx: 1, dy: 1, canopy: { word: 0x1423 }, terrain: null, collision: 0x001f }],
+                ],
+            }],
+        },
+    };
+    ui.editStampedConstruct(w, 0, 0);
+    const placed = d.placed.filter((x) => x.kind === 'object');
+    assert.strictEqual(placed.length, 1, 'object was placed');
+    const o = placed[0];
+    const frames = ui.editObjectFrames(o);
+    assert.strictEqual(frames.length, 2, 'both delta frames restored');
+    assert.ok(frames[0]['0,0'] >= 0, 'frame 1 tile restored');
+    assert.ok(frames[1]['1,1'] >= 0, 'frame 2 tile restored');
+
+    // Edit frame 2 and save the widget: every frame must survive the round-trip.
+    o.layer = frames[1];
+    const saved = ui.widgetPlacedIn(d, { x1: 0, y1: 0, x2: 1, y2: 1 });
+    assert.strictEqual(saved.objects.length, 1, 'object serialized');
+    const so = saved.objects[0];
+    assert.strictEqual(so.states, 3, 'states count includes base + two deltas');
+    assert.ok(Array.isArray(so.frames) && so.frames.length === 2, 'both frames serialized');
+    assert.strictEqual(so.frames[0].length, 1, 'frame 1 cells saved');
+    assert.strictEqual(so.frames[1].length, 1, 'frame 2 cells saved');
+    assert.strictEqual(so.frames[1][0].dx, 1, 'frame 2 delta position saved');
 });
 
 console.log(`\n  ${passed} passed, ${failed} failed`);
