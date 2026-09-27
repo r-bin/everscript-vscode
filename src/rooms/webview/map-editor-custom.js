@@ -275,4 +275,12 @@ function customRestore(d, saved) {
   CUSTOM_DRAFT_FIELDS.forEach(function (f) {
     if (saved[f] !== undefined) d[f] = JSON.parse(JSON.stringify(saved[f]));
   });
+  // Objects saved before v0.82.2 carry an implicit empty Frame 1; collapse
+  // them to the State-0-only shape the Object tab uses now (map-editor-objects.js).
+  (d.placed || []).forEach(function (p) {
+    if (p.kind !== 'object' || typeof objectNormalizeFrames !== 'function') return;
+    p.frames = objectNormalizeFrames(p.frames);
+    p.states = p.frames.length + 1;
+    p.layer = p.frames[0] || {};
+  });
 }

@@ -2417,6 +2417,107 @@ async function main() {
     check('Frame 2 keeps its own delta tile and is not polluted by frame 1',
         v80.frame2HasItsTile, JSON.stringify(v80));
 
+    // ── real pointer gestures, the way the panel actually drives them ──────
+    // The checks above call the gesture functions directly; this block drives
+    // the same flow through #rg-wrap's capture-phase mousedown/mousemove/
+    // mouseup handlers and real clicks on the Object tab chips, so the
+    // editBegin/editEnd wrapping the real UI adds is exercised too.
+    const gest = await page.evaluate(() => {
+        const r = {};
+        // Draft stamps draw from the host's composed sheet; this page has no host.
+        const composed = _editComposed;
+        _editComposed = { imageUri: 'data:image/png;base64,eA==', count: 256, columns: 16, cell: 16, imageWidth: 256, imageHeight: 256 };
+        const d = editReset(0x34); d.on = true; d.tool = 'paint';
+        _editActiveTab = 'object';
+        _objectSel = null; _objectExpanded = null; _objectActiveFrame = 0;
+        _mtPalette.grid = [[null, null], [null, null]];
+        renderEditChrome();
+        const svg = document.getElementById('rg-svg');
+        const wrap = document.getElementById('rg-wrap');
+        if (!svg || !svg.getScreenCTM || !wrap) { r.skip = 'no svg/wrap'; return r; }
+        const ctm = svg.getScreenCTM();
+        if (!ctm) { r.skip = 'no ctm'; return r; }
+        const mouse = (type, tx, ty) => {
+            const pt = svg.createSVGPoint();
+            pt.x = _editOrigin.x + (tx + 0.5) * EDIT_UNITS;
+            pt.y = _editOrigin.y + (ty + 0.5) * EDIT_UNITS;
+            const s = pt.matrixTransform(ctm);
+            wrap.dispatchEvent(new MouseEvent(type, { clientX: s.x, clientY: s.y, button: 0, bubbles: true }));
+        };
+        // 1. Drag out an object with real mouse events.
+        mouse('mousedown', 0, 0); mouse('mousemove', 1, 1); mouse('mouseup', 1, 1);
+        const o = editObjects()[0];
+        r.created = !!o && o.w === 2 && o.h === 2;
+        r.framesAtBirth = o && o.frames.length;
+        r.activeAtBirth = _objectActiveFrame;
+        r.chipsAtBirth = document.querySelectorAll('#rg-panels .ro-chip:not(.ro-chip-add)').length;
+        // 2. Painting in State 0 with real events is refused, not leaked anywhere.
+        d.brush = editAddStamp(_mtPalette, { layer1: 0x1422, layer2: 0x05c6, collision: 0x001f });
+        mouse('mousedown', 0, 0); mouse('mouseup', 0, 0);
+        r.state0LayerStillEmpty = Object.keys(o.layer).length === 0;
+        r.state0CellsUntouched = Object.keys(d.cells).length === 0;
+        // 3. A real click on + creates Frame 1.
+        const addBtn = document.querySelector('[data-object-add-frame]');
+        r.addBtnFound = !!addBtn;
+        if (addBtn) addBtn.click();
+        r.frameAfterPlus = o.frames.length;
+        r.activeAfterPlus = _objectActiveFrame;
+        // 4. A real paint drag lands only in Frame 1.
+        mouse('mousedown', 0, 0); mouse('mousemove', 1, 0); mouse('mouseup', 1, 0);
+        r.frame1Keys = Object.keys(o.frames[0] || {}).sort().join(' ');
+        r.cellsStillUntouched = Object.keys(d.cells).length === 0;
+        // 5. Real chip clicks toggle the preview: State 0 hides the delta, Frame 1 shows it.
+        // Chips are re-queried after every click: each click re-renders the tab
+        // body, so a chip captured before the click is detached and dead.
+        const chip0 = document.querySelector('[data-object-frame="0"]');
+        r.chipsFound = !!chip0 && !!document.querySelector('[data-object-frame="1"]');
+        if (chip0) chip0.click();
+        r.state0Layer = Object.keys(o.layer).length;
+        r.state0Drawn = editObjectSvg(_mtPalette, _editComposed, _editOrigin).split('rg-obj-cell').length - 1;
+        const chip1 = document.querySelector('[data-object-frame="1"]');
+        r.chip1Requery = !!chip1 && !!chip1.isConnected;
+        if (chip1) chip1.click();
+        r.frame1Layer = Object.keys(o.layer).sort().join(' ');
+        r.frame1Drawn = editObjectSvg(_mtPalette, _editComposed, _editOrigin).split('rg-obj-cell').length - 1;
+
+        // 6. Old saved shapes collapse: an object saved with the pre-0.82.2
+        //    implicit empty Frame 1 restores as State-0-only, and a State-0-only
+        //    object stamped from a widget gets no phantom Frame 1.
+        d.placed.push({ kind: 'object', uid: 991, x: 0, y: 0, w: 1, h: 1, states: 1, frames: [{}], layer: {} });
+        customRestore(d, { placed: d.placed });
+        const migrated = editObjects().filter((p) => p.uid === 991)[0];
+        r.migratedFrames = migrated && migrated.frames.length;
+        r.migratedStates = migrated && migrated.states;
+        editStampGroup(_mtPalette, { name: 'bare', w: 1, h: 1,
+            cells: [{ dx: 0, dy: 0, canopy: { word: 0x1422 }, terrain: null, collision: 0x1f }],
+            attachments: { bTrigger: [], stepOn: [], objects: [{ dx: 0, dy: 0, w: 1, h: 1, states: 1, frames: [] }] } }, 0, 0);
+        const stampedObj = editObjects()[editObjects().length - 1];
+        r.stampedFrames = stampedObj && stampedObj.frames.length;
+        r.stampedStates = stampedObj && stampedObj.states;
+        _editComposed = composed;
+        return r;
+    });
+    if (gest.skip) {
+        console.log('  (real-pointer object gesture checks skipped: ' + gest.skip + ')');
+    } else {
+        check('a real mouse drag creates one object with only State 0',
+            gest.created && gest.framesAtBirth === 0 && gest.activeAtBirth === 0 && gest.chipsAtBirth === 1,
+            JSON.stringify(gest));
+        check('painting in State 0 is refused and leaks nowhere', 
+            gest.state0LayerStillEmpty && gest.state0CellsUntouched, JSON.stringify(gest));
+        check('a real click on + creates Frame 1 and selects it',
+            gest.addBtnFound && gest.frameAfterPlus === 1 && gest.activeAfterPlus === 1, JSON.stringify(gest));
+        check('a real paint drag lands only in Frame 1, never in the base room',
+            gest.frame1Keys === '0,0 1,0' && gest.cellsStillUntouched, JSON.stringify(gest));
+        check('real chip clicks toggle between State 0 (base) and Frame 1 (delta)',
+            gest.chipsFound && gest.state0Layer === 0 && gest.state0Drawn === 0
+            && gest.frame1Layer === '0,0 1,0' && gest.frame1Drawn === 2, JSON.stringify(gest));
+        check('an object saved with an empty implicit Frame 1 restores as State 0 only',
+            gest.migratedFrames === 0 && gest.migratedStates === 1, JSON.stringify(gest));
+        check('a State-0-only widget object stamps with no phantom Frame 1',
+            gest.stampedFrames === 0 && gest.stampedStates === 1, JSON.stringify(gest));
+    }
+
     check('no uncaught errors in any of it', pageErrors.length === 0, pageErrors.join('; '));
 
     await browser.close();

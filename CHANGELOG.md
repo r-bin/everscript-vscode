@@ -1,3 +1,11 @@
+## [0.82.3] — 2026-09-27
+
+### Fix: phantom Frame 1 on restored and widget-stamped objects
+
+- **Why objects still showed two frames:** two paths bypassed the v0.82.2 State-0-only lifecycle. Objects saved before it (custom maps auto-save their whole draft, `placed` included) restore with the old implicit empty Frame 1 baked in. And `editStampedConstruct` fell through to its legacy `cells` branch for a State-0-only object (`frames: []` is length-0), so every object stamped from a widget came back with a phantom empty Frame 1.
+- **Fix:** new `objectNormalizeFrames` in `map-editor-objects.js` collapses an all-empty frame list to `[]` (State 0 only). A list with any painted frame is kept verbatim — scripts name states by index, so non-empty frames are never renumbered. Applied on custom-map restore (`customRestore`) and when stamping a widget object (`editStampedConstruct`), which no longer fabricates a frame for `frames: []`.
+- **Tests:** the object workflow block in `tests/memory/map-editor-dom.test.js` now drives the whole flow through real `#rg-wrap` mouse gestures and real chip clicks instead of calling the gesture functions directly: drag creates a State-0-only object, State-0 painting is refused and leaks nowhere, `+` creates Frame 1, a real paint drag lands only in Frame 1, and chip clicks toggle the preview. Plus assertions for the restore migration and the widget stamp path.
+
 ## [0.82.2] — 2026-09-27
 
 ### Object lifecycle: State 0 first, then +Frame 1
