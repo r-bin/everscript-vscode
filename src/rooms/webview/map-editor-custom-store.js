@@ -140,9 +140,13 @@ function customIsPristine(m) {
 
 /** An untouched map to reopen instead of making a new one: the open one first, then the newest. */
 function customPristineMap(w, h, borrow) {
-  var fits = function (m) { return m && m.w === w && m.h === h && m.borrow === borrow && !m.readOnly && customIsPristine(m); };
+  var fits = function (m) { return m && m.w === w && m.h === h && !m.readOnly && customIsPristine(m); };
   var open = customFind(_customActive);
   if (fits(open)) return open;
+  if (_customMaps.length > 0) {
+    var last = _customMaps[_customMaps.length - 1];
+    if (fits(last)) return last;
+  }
   for (var i = _customMaps.length - 1; i >= 0; i--) if (fits(_customMaps[i])) return _customMaps[i];
   return null;
 }

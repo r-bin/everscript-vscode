@@ -46,7 +46,8 @@ return { editReset, editActive, editDraft, editKey, editApply, editUndo, editRed
          editCellAt, editRectWrites, editPasteWrites, editTakeSelection,
          editStampSvg, editCellPos,
          editSpecialById, editSpecialAppliedIndex, editSpecialAt, editSpecialGroupOf,
-         editCellInteractState, interactOverlayOn, editInteractToggle, interactOverlaySvg,
+         editCellInteractState, interactOverlayOn, editInteractToggle,
+         interactOverlaySvg, editSpecialGlyphSvg,
          groups: EDIT_SPECIAL_GROUPS,
          setSel: (s) => { _editSel = s; }, clip: () => _editClip,
          editTriggerList, editTriggerAt, editTriggerFind, triggerParseRef,
@@ -377,27 +378,39 @@ test('editCellInteractState reports forced 1, forced 0, natural 1, and 0', () =>
     assert.strictEqual(api.editCellInteractState(p, 3, 3), '1');
 });
 
-test('interactOverlaySvg renders nothing for default 0 cells and only draws forced 1, forced 0, and 1', () => {
+test('all B triggers set covered tiles to 1 unless forced 0', () => {
     const p = palette();
     api.setPalette(p);
-    api.editReset(0x76);
-    // When all cells are 0, overlay has no cell rects or labels
-    const emptySvg = api.interactOverlaySvg(p, { x: 0, y: 0 });
-    assert.strictEqual(emptySvg, '<g id="rg-interact-overlay" pointer-events="none"></g>');
+    const d = api.editReset(0x76);
+    // Add placed B-trigger at (0, 0) with width 2, height 1
+    d.placed.push({ kind: 'bTrigger', uid: 1, x: 0, y: 0, w: 2, h: 1, scriptId: 0x22 });
+    assert.strictEqual(api.editCellInteractState(p, 0, 0), '1', '(0,0) is in B trigger');
+    assert.strictEqual(api.editCellInteractState(p, 1, 0), '1', '(1,0) is in B trigger');
+    assert.strictEqual(api.editCellInteractState(p, 2, 0), '0', '(2,0) outside B trigger is 0');
 
-    // Apply forced 1, forced 0, and a tile with Bit 15 set (1) within the 3x2 grid
-    api.editApply([{ x: 2, y: 1, index: api.editAddStamp(p, { layer1: 0, layer2: 0, collision: 0x9019 }) }],
-                   [{ x: 0, y: 0, id: 'interact-force-1' }, { x: 1, y: 0, id: 'interact-force-0' }]);
+    // Forced 0 overrides B trigger
+    api.editApply([], [{ x: 0, y: 0, id: 'interact-force-0' }]);
+    assert.strictEqual(api.editCellInteractState(p, 0, 0), 'forced 0', 'forced 0 overrides B trigger');
+    assert.strictEqual(api.editCellInteractState(p, 1, 0), '1', '(1,0) remains 1');
+});
 
-    const svg = api.interactOverlaySvg(p, { x: 0, y: 0 });
-    assert.ok(svg.includes('rg-interact-f1'), 'includes forced 1');
-    assert.ok(svg.includes('>F1<'), 'includes F1 label');
-    assert.ok(svg.includes('rg-interact-f0'), 'includes forced 0');
-    assert.ok(svg.includes('>F0<'), 'includes F0 label');
-    assert.ok(svg.includes('rg-interact-1'), 'includes natural 1');
-    assert.ok(svg.includes('>1<'), 'includes 1 label');
-    assert.ok(!svg.includes('>0<'), 'does not render any 0 labels');
-    assert.ok(!svg.includes('rg-interact-0'), 'does not render any default cell rects');
+test('special tiles render white dashed outline and list symbols (1 centered, 2 in quadrants)', () => {
+    const p = palette();
+    api.setPalette(p);
+    const d = api.editReset(0x76);
+    // Single special: centered white dashed outline and white symbol
+    api.editApply([], [{ x: 0, y: 0, id: 'gate-boy' }]);
+    const svg1 = api.editSpecialGlyphSvg('gate-boy', 0, 0);
+    assert.ok(svg1.includes('rg-special-cell-box'), 'includes white dashed outline');
+    assert.ok(svg1.includes('stroke-dasharray="0.35 0.2"'), 'has dashed stroke');
+    assert.ok(svg1.includes('>B<'), 'includes white symbol B');
+
+    // 2 symbols: B trigger on cell with gate-boy
+    d.placed.push({ kind: 'bTrigger', uid: 1, x: 0, y: 0, w: 1, h: 1 });
+    const ovSvg = api.interactOverlaySvg(p, { x: 0, y: 0 });
+    assert.ok(ovSvg.includes('>B<'), 'includes B symbol');
+    assert.ok(ovSvg.includes('>1<'), 'includes 1 symbol');
+    assert.ok(ovSvg.includes('rg-special-cell-box'), 'includes white dashed outline');
 });
 
 console.log('\nspecial cells + undo:');

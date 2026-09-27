@@ -30,15 +30,11 @@
 var EDIT_SPECIAL_GROUPS = [
   {
     // Only on a drafted map (specialTabHtml) — see map-editor-start.js.
-    id: 'start', label: 'Start', draftOnly: true,
-    note: 'Boy’s map entrance position.',
-    items: [
-      { id: 'start', label: 'Boy', glyph: '☺' },
-    ],
+    id: 'start', label: 'Start', draftOnly: true, note: 'Boy’s map entrance position.',
+    items: [{ id: 'start', label: 'Boy', glyph: '☺' }],
   },
   {
-    id: 'stairs', label: 'Stairs & Drift',
-    note: 'Always-walkable stairs and conveyor drift tiles.',
+    id: 'stairs', label: 'Stairs & Drift', note: 'Always-walkable stairs and conveyor drift tiles.',
     items: [
       { id: 'stairs-vert', label: 'Vertical', glyph: '⭥', drift: 0x0 },
       { id: 'stairs-diag-l', label: 'Diagonal L', glyph: '◣', drift: 0x2 },
@@ -50,8 +46,7 @@ var EDIT_SPECIAL_GROUPS = [
     ],
   },
   {
-    id: 'gate', label: 'Gate',
-    note: 'Entity passability filters (Boy, Dog, NPCs).',
+    id: 'gate', label: 'Gate', note: 'Entity passability filters (Boy, Dog, NPCs).',
     items: [
       { id: 'gate-boy', label: 'Boy', glyph: 'B', gate: 0x7 },
       { id: 'gate-dog', label: 'Dog', glyph: 'D', gate: 0x5 },
@@ -59,16 +54,14 @@ var EDIT_SPECIAL_GROUPS = [
     ],
   },
   {
-    id: 'interact', label: 'Interact',
-    note: 'B-button interaction (Bit 15) vs weapon attack.',
+    id: 'interact', label: 'Interact', note: 'B-button interaction (Bit 15) vs weapon attack.',
     items: [
-      { id: 'interact-force-1', label: 'Force 1', glyph: '1', interact: 1 },
-      { id: 'interact-force-0', label: 'Force 0', glyph: '0', interact: 0 },
+      { id: 'interact-force-1', label: 'Force 1', glyph: 'F1', interact: 1 },
+      { id: 'interact-force-0', label: 'Force 0', glyph: 'F0', interact: 0 },
     ],
   },
   {
-    id: 'entrance', label: 'Entrance',
-    note: 'Visual entrance markers (non-exported).',
+    id: 'entrance', label: 'Entrance', note: 'Visual entrance markers (non-exported).',
     items: [
       { id: 'entrance-default', label: 'Default', glyph: '◆' },
       { id: 'entrance-n', label: 'North', glyph: '▲' },
@@ -178,17 +171,72 @@ function editSpecialAppliedIndex(palette, baseIndex, specialId, erasing) {
   return editAddStamp(palette, { layer1: words.layer1, layer2: words.layer2, collision: next });
 }
 
-/** One glyph, cropped to nothing — a `<text>` over the painted cell, drawn by renderEditLayer. */
+function editEscH(s) {
+  if (typeof escH === 'function') return escH(s);
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/**
+ * Render a special tile's white dashed outline and list of white symbols inside.
+ * 1 entry: centered.
+ * 2 entries: grid of 4 (top-left, bottom-right).
+ * 3-4 entries: 4 quadrants.
+ */
+function editRenderSpecialBoxSvg(symbols, pos, extraClass, isInteract) {
+  if (!symbols || !symbols.length) return '';
+  var cls = extraClass ? ' ' + extraClass : '';
+  var html = '<g class="' + (cls ? cls.trim() : 'rg-special-box') + '">';
+  html += '<rect class="rg-special-cell-box" x="' + (pos.x + 0.05) + '" y="' + (pos.y + 0.05)
+    + '" width="' + (EDIT_UNITS - 0.1) + '" height="' + (EDIT_UNITS - 0.1)
+    + '" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="0.1" stroke-dasharray="0.35 0.2" pointer-events="none"/>';
+
+  var lblCls = 'rg-special-glyph-text' + (isInteract ? ' rg-interact-lbl' : '') + cls;
+  function makeTxt(txt, cx, cy, sz) {
+    return '<text class="' + lblCls + '" x="' + cx + '" y="' + (cy + sz * 0.35)
+      + '" text-anchor="middle" font-size="' + sz + '" font-weight="bold" fill="#ffffff" stroke="rgba(0,0,0,0.85)" stroke-width="0.08" paint-order="stroke" style="user-select:none;font-family:monospace" pointer-events="none">'
+      + editEscH(txt) + '</text>';
+  }
+
+  if (symbols.length === 1) {
+    html += makeTxt(symbols[0], pos.x + EDIT_UNITS / 2, pos.y + EDIT_UNITS / 2, EDIT_UNITS * 0.52);
+  } else if (symbols.length === 2) {
+    var fs2 = EDIT_UNITS * 0.36;
+    html += makeTxt(symbols[0], pos.x + EDIT_UNITS * 0.3, pos.y + EDIT_UNITS * 0.3, fs2);
+    html += makeTxt(symbols[1], pos.x + EDIT_UNITS * 0.7, pos.y + EDIT_UNITS * 0.7, fs2);
+  } else {
+    var fs4 = EDIT_UNITS * 0.30;
+    var coords = [
+      { x: pos.x + EDIT_UNITS * 0.28, y: pos.y + EDIT_UNITS * 0.28 },
+      { x: pos.x + EDIT_UNITS * 0.72, y: pos.y + EDIT_UNITS * 0.28 },
+      { x: pos.x + EDIT_UNITS * 0.28, y: pos.y + EDIT_UNITS * 0.72 },
+      { x: pos.x + EDIT_UNITS * 0.72, y: pos.y + EDIT_UNITS * 0.72 },
+    ];
+    for (var i = 0; i < Math.min(symbols.length, 4); i++) {
+      html += makeTxt(symbols[i], coords[i].x, coords[i].y, fs4);
+    }
+  }
+  html += '</g>';
+  return html;
+}
+
+/** Special glyph overlay on a cell: white dashed outline + white symbol(s). */
 function editSpecialGlyphSvg(specialId, x, y) {
-  var def = editSpecialById(specialId);
-  if (!def) return '';
+  var cellX = Math.round(x / EDIT_UNITS);
+  var cellY = Math.round(y / EDIT_UNITS);
+  var p = typeof _mtPalette !== 'undefined' ? _mtPalette : null;
+  if (typeof interactOverlayOn === 'function' && interactOverlayOn() && p) {
+    var ist = editCellInteractState(p, cellX, cellY);
+    if (ist !== '0') return ''; // Rendered by interactOverlaySvg with unified symbols
+  }
+  var syms = [];
+  if (specialId === 'interact-force-1') syms.push('F1');
+  else if (specialId === 'interact-force-0') syms.push('F0');
+  else {
+    var def = editSpecialById(specialId);
+    if (def && def.glyph) syms.push(def.glyph);
+  }
   var group = editSpecialGroupOf(specialId);
-  var fs = EDIT_UNITS * 0.8;
-  var cx = x + EDIT_UNITS / 2;
-  var cy = y + EDIT_UNITS / 2 + fs * 0.35;
-  return '<text class="rg-special-glyph rg-special-glyph-' + group + '" x="' + cx + '" y="' + cy
-    + '" text-anchor="middle" font-size="' + fs + '" pointer-events="none" style="user-select:none">'
-    + escH(def.glyph) + '</text>';
+  return editRenderSpecialBoxSvg(syms, { x: x, y: y }, 'rg-special-glyph rg-special-glyph-' + group, false);
 }
 
 // ---------------------------------------------------------------------------
@@ -283,10 +331,29 @@ function editInteractToggle() {
  * - '1': Bit 15 is 1 in the stamp collision word
  * - '0': Bit 15 is 0 in the stamp collision word (default)
  */
+function editHasBTriggerAt(x, y) {
+  if (typeof editTriggerList !== 'function') return false;
+  var bList = editTriggerList('b');
+  if (!bList || !bList.length) return false;
+  for (var i = 0; i < bList.length; i++) {
+    var t = bList[i];
+    if (x >= t.x1 && x <= t.x2 && y >= t.y1 && y <= t.y2) return true;
+  }
+  return false;
+}
+
+/**
+ * State of Bit 15 for cell (x, y):
+ * - 'forced 1': explicitly set to 1 via Special tab
+ * - 'forced 0': explicitly set to 0 via Special tab
+ * - '1': Bit 15 is 1 in the stamp collision word, or cell is covered by an active B trigger
+ * - '0': Bit 15 is 0 (default)
+ */
 function editCellInteractState(palette, x, y) {
   var sp = editSpecialAt(x, y);
   if (sp === 'interact-force-1') return 'forced 1';
   if (sp === 'interact-force-0') return 'forced 0';
+  if (editHasBTriggerAt(x, y)) return '1';
   var p = palette || (typeof _mtPalette !== 'undefined' ? _mtPalette : null);
   var idx = typeof editCellAt === 'function' && p ? editCellAt(p, x, y) : -1;
   if (idx >= 0 && typeof editStampWords === 'function') {
@@ -301,31 +368,25 @@ function interactOverlaySvg(palette, origin) {
   if (!p || !p.widthTiles || !p.heightTiles) return '';
   var w = p.widthTiles;
   var h = p.heightTiles;
-  var fs = EDIT_UNITS * 0.55;
   var html = '<g id="rg-interact-overlay" pointer-events="none">';
   for (var y = 0; y < h; y++) {
     for (var x = 0; x < w; x++) {
       var st = editCellInteractState(p, x, y);
       if (st === '0') continue;
       var pos = typeof editCellPos === 'function' ? editCellPos(origin, x, y) : { x: x * EDIT_UNITS, y: y * EDIT_UNITS };
-      var cx = pos.x + EDIT_UNITS / 2;
-      var cy = pos.y + EDIT_UNITS / 2 + fs * 0.35;
-      if (st === 'forced 1') {
-        html += '<rect class="rg-interact-cell rg-interact-f1" x="' + pos.x + '" y="' + pos.y + '" width="' + EDIT_UNITS + '" height="' + EDIT_UNITS
-          + '" fill="rgba(34,197,94,0.3)" stroke="#22c55e" stroke-width="0.12"/>'
-          + '<text class="rg-interact-lbl" x="' + cx + '" y="' + cy + '" fill="#22c55e" font-size="' + fs + '" font-weight="bold" text-anchor="middle">F1</text>';
-      } else if (st === 'forced 0') {
-        html += '<rect class="rg-interact-cell rg-interact-f0" x="' + pos.x + '" y="' + pos.y + '" width="' + EDIT_UNITS + '" height="' + EDIT_UNITS
-          + '" fill="rgba(239,68,68,0.3)" stroke="#ef4444" stroke-width="0.12"/>'
-          + '<text class="rg-interact-lbl" x="' + cx + '" y="' + cy + '" fill="#ef4444" font-size="' + fs + '" font-weight="bold" text-anchor="middle">F0</text>';
-      } else if (st === '1') {
-        html += '<rect class="rg-interact-cell rg-interact-1" x="' + pos.x + '" y="' + pos.y + '" width="' + EDIT_UNITS + '" height="' + EDIT_UNITS
-          + '" fill="rgba(234,179,8,0.25)" stroke="#eab308" stroke-width="0.12"/>'
-          + '<text class="rg-interact-lbl" x="' + cx + '" y="' + cy + '" fill="#eab308" font-size="' + fs + '" font-weight="bold" text-anchor="middle">1</text>';
+      var syms = [];
+      var sp = editSpecialAt(x, y);
+      if (sp && sp !== 'interact-force-1' && sp !== 'interact-force-0') {
+        var sdef = editSpecialById(sp);
+        if (sdef && sdef.glyph) syms.push(sdef.glyph);
       }
+      var cls = '';
+      if (st === 'forced 1') { syms.push('F1'); cls = 'rg-interact-cell rg-interact-f1'; }
+      else if (st === 'forced 0') { syms.push('F0'); cls = 'rg-interact-cell rg-interact-f0'; }
+      else if (st === '1') { syms.push('1'); cls = 'rg-interact-cell rg-interact-1'; }
+      html += editRenderSpecialBoxSvg(syms, pos, cls, true);
     }
   }
   html += '</g>';
   return html;
 }
-

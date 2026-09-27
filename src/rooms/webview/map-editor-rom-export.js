@@ -34,7 +34,13 @@ function romExportPayload(why) {
       var k = editKey(x, y);
       var s = Object.prototype.hasOwnProperty.call(d.cells, k) ? editStampWords(_mtPalette, d.cells[k]) : null;
       var words = s || floor;
-      cells.push(words.layer1, words.layer2, words.collision);
+      var col = words.collision;
+      if (typeof editCellInteractState === 'function') {
+        var ist = editCellInteractState(_mtPalette, x, y);
+        if (ist === 'forced 1' || ist === '1') col |= 0x8000;
+        else if (ist === 'forced 0') col &= ~0x8000;
+      }
+      cells.push(words.layer1, words.layer2, col);
     }
   }
   return {

@@ -1,3 +1,12 @@
+## [0.81.2] — 2026-09-27
+
+### Map editor: Pristine custom map reuse, B-trigger Bit 15 interaction, and quadrant special tiles
+
+- **Reuse pristine custom maps:** `> new map` reuses the most recently added or opened custom map if it has not been modified yet, preventing map list clutter.
+- **B-triggers set Bit 15 naturally:** Any cell covered by an active B-trigger (vanilla or placed) evaluates to `1` in interact state and sets Bit 15 in exported ROM collision words, unless explicitly overridden by `Force 0`.
+- **Special tiles visual clarity:** Special and interact tiles render with crisp white dashed outlines (`.rg-special-cell-box`) and high-contrast white glyphs with dark strokes.
+- **Quadrant layout for multi-flags:** Cells carrying multiple flags (e.g. gate + B-trigger / interact state) arrange active symbols in cleanly separated quadrants so nothing overlaps.
+
 ## [0.81.1] — 2026-09-27
 
 ### Map editor: Clean Interact overlay UX
