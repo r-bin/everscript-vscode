@@ -2376,13 +2376,13 @@ async function main() {
         r.frame0LayerEmpty = Object.keys(obj2.layer).length === 0;
         r.frame0Cells = Object.keys(d.cells).length;
         objectSelectFrame(2);
-        r.frame2Layer = Object.keys(obj2.layer).join();
-        r.frame2HasItsTile = r.frame2Layer === '1,1';
+        r.frame2Layer = Object.keys(obj2.layer).sort().join();
+        r.frame2HasItsTile = r.frame2Layer.includes('1,1') && !Object.keys(obj2.frames[0]).includes('1,1');
 
         // Reorder Frame 2 to position 1 (move left):
         objectMoveFrame(obj2.uid, -1);
         r.reorderedActive = _objectActiveFrame === 1;
-        r.reorderedF1Layer = Object.keys(obj2.frames[0]).join();
+        r.reorderedF1Layer = Object.keys(obj2.frames[0]).sort().join();
 
         // Remove frame:
         objectRemoveFrame(obj2.uid, 1);
@@ -2397,8 +2397,8 @@ async function main() {
     check('with Cuttable off the map shows the tile beneath; on, the cuttable one', v80.cutOff && v80.cutOn, JSON.stringify(v80));
     check('there is an Object tab, after Trigger', /trigger,object,widgets/.test(v80.tabs), v80.tabs);
     check('on the Object tab the pencil drags out an area, selected', v80.area === '0,0,2,2' && v80.sel, JSON.stringify(v80));
-    check('and draws its tiles over the map, not into it — shown only while the tab is open',
-        v80.layer === '1,0 1,1' && v80.drawnOpen === 2 && v80.drawnClosed === 0 && v80.mapUntouched, JSON.stringify(v80));
+    check('and draws its tiles over the map, not into it — previewed on tile tab as well',
+        v80.layer === '1,0 1,1' && v80.drawnOpen === 2 && v80.drawnClosed === 2 && v80.mapUntouched, JSON.stringify(v80));
     // This test's first paint stroke now lands in State 0 and writes the base room,
     // not the object's delta layer; the Frame 1 delta-paint workflow is asserted below.
     check('each is one undo step', v80.undone === 0 && v80.gone === 0, JSON.stringify(v80));
@@ -2411,10 +2411,10 @@ async function main() {
         v80.frame1Added && v80.frame1Layer === '0,0 1,0', JSON.stringify(v80));
     check('object expands to show state chips and frames can be added, reordered and removed',
         v80.framesCount === 2 && v80.activeFrame2 && v80.tabHasChips && v80.tabHasFrames
-        && v80.reorderedActive && v80.reorderedF1Layer === '1,1' && v80.framesAfterRemove === 1, JSON.stringify(v80));
+        && v80.reorderedActive && v80.reorderedF1Layer === '0,0,1,0,1,1' && v80.framesAfterRemove === 1, JSON.stringify(v80));
     check('State 0 shows the base room and does not hold object delta tiles',
         v80.frame0LayerEmpty, JSON.stringify(v80));
-    check('Frame 2 keeps its own delta tile and is not polluted by frame 1',
+    check('Frame 2 clones frame 1 on +, adds its own tile, and does not pollute frame 1',
         v80.frame2HasItsTile, JSON.stringify(v80));
 
     // ── real pointer gestures, the way the panel actually drives them ──────
@@ -2606,21 +2606,35 @@ async function main() {
             r.activeAfterClick1 = _objectActiveFrame;
             r.svgAfterClick1 = document.getElementById('rg-edit').innerHTML;
 
-            // Test 1: Picking tile does not jump to object tab
+            // Test 1: Showing grass on tile tab when Frame 1 is active
+            _objectActiveFrame = 1;
             _editActiveTab = 'tile';
+            renderEditLayer(_mtPalette, _editComposed, _editOrigin);
+            r.svgOnTileTabWithFrame1 = document.getElementById('rg-edit').innerHTML;
+
+            // Picking tile does not jump to object tab
             editOnStampPicked(1);
             r.tabAfterStampPick = _editActiveTab;
 
-            // Test 2: Drawing special F0 on an object cell draws special, does not corrupt object frame
+            // Test 2: Drawing special F0 in Frame 1 does not apply to State 0
+            _objectActiveFrame = 1;
             _editActiveTab = 'special';
             d.currentSpecialId = 'interact-force-0';
-            const f1CountBefore = Object.keys(o.frames[0] || {}).length;
             editSpecialStroke(d, { x: 1, y: 1 }, false, 'up');
-            r.f1CountAfterSpecial = Object.keys(o.frames[0] || {}).length === f1CountBefore;
-            r.hasSpecialF0 = (editSpecialsAt(1, 1) || []).includes('interact-force-0');
+            r.hasSpecialF0InFrame1 = (editSpecialsAt(1, 1) || []).includes('interact-force-0');
 
-            // Test 3: Objects overlay off hides blue boxes
-            const panel = document.getElementById('rg-panel');
+            // Switch to State 0: does not have F0
+            _objectActiveFrame = 0;
+            r.hasSpecialF0InState0 = (editSpecialsAt(1, 1) || []).includes('interact-force-0');
+
+            // Test 3: Pressing '+' copies the currently selected frame, not State 0
+            _objectActiveFrame = 1;
+            objectAddFrame(o.uid);
+            r.frame2TileCount = Object.keys(o.frames[1] || {}).length;
+            r.frame1TileCount = Object.keys(o.frames[0] || {}).length;
+
+            // Test 4: Objects overlay off hides blue boxes
+            const panel = document.getElementById('room-detail') || document.getElementById('rg-outer');
             panel.classList.add('hide-obj');
             r.objectsVisibleWhenHidden = editObjectsVisible();
             panel.classList.remove('hide-obj');
@@ -2642,10 +2656,14 @@ async function main() {
             flow.activeAfterClick0 === 0 && !flow.svgAfterClick0.includes('rg-obj-cell')
             && flow.activeAfterClick1 === 1 && flow.svgAfterClick1.includes('rg-obj-cell'),
             JSON.stringify(flow));
+        check('selecting 1 and going to Tile tab still shows grass delta',
+            flow.svgOnTileTabWithFrame1.includes('rg-obj-cell'), JSON.stringify(flow));
         check('picking a stamp on the tile tab does not switch tab to object',
             flow.tabAfterStampPick === 'tile', JSON.stringify(flow));
-        check('drawing special on object cell writes special and preserves object frame',
-            flow.f1CountAfterSpecial && flow.hasSpecialF0, JSON.stringify(flow));
+        check('drawing special F0 into Frame 1 does not apply to State 0',
+            flow.hasSpecialF0InFrame1 === true && flow.hasSpecialF0InState0 === false, JSON.stringify(flow));
+        check('pressing + copies the currently selected frame, not empty State 0',
+            flow.frame2TileCount === flow.frame1TileCount && flow.frame2TileCount > 0, JSON.stringify(flow));
         check('editObjectsVisible returns false when hide-obj class is present',
             flow.objectsVisibleWhenHidden === false, JSON.stringify(flow));
     }

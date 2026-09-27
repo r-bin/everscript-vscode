@@ -47,6 +47,21 @@ function romExportPayload(why) {
     start: d.start ? { x: d.start.x, y: d.start.y } : null,
     // Tiles the player can cut; `cells` above is what cutting reveals.
     cut: typeof editCutPayload === 'function' ? editCutPayload() : [],
+    objects: (typeof editObjects === 'function' ? editObjects() : []).map(function (o) {
+      var frames = typeof editObjectFrames === 'function' ? editObjectFrames(o) : [];
+      return {
+        x: o.x, y: o.y, w: o.w, h: o.h,
+        states: frames.length + 1,
+        frames: frames.map(function (f) {
+          var delta = {};
+          Object.keys(f || {}).forEach(function (k) {
+            var s = editStampWords(_mtPalette, f[k]);
+            if (s) delta[k] = { layer1: s.layer1, layer2: s.layer2, collision: s.collision };
+          });
+          return delta;
+        }),
+      };
+    }),
   };
 }
 

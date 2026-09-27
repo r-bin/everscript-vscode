@@ -98,6 +98,19 @@ function editMergeSpecial(was, swId) {
 
 /** Array of all special IDs on cell (x, y). */
 function editSpecialsAt(x, y) {
+  if (typeof _objectActiveFrame !== 'undefined' && _objectActiveFrame >= 1) {
+    var sel = (typeof editObjectFind === 'function' && typeof _objectSel !== 'undefined' && _objectSel != null) ? editObjectFind(_objectSel) : null;
+    if (!sel && typeof editObjects === 'function') {
+      var objs = editObjects();
+      for (var i = 0; i < objs.length; i++) {
+        if (x >= objs[i].x && y >= objs[i].y && x < objs[i].x + objs[i].w && y < objs[i].y + objs[i].h) { sel = objs[i]; break; }
+      }
+    }
+    if (sel && sel.frameSpecials && sel.frameSpecials[_objectActiveFrame - 1]) {
+      var fk = (x - sel.x) + ',' + (y - sel.y), fv = sel.frameSpecials[_objectActiveFrame - 1][fk];
+      if (fv) return Array.isArray(fv) ? fv : [fv];
+    }
+  }
   var d = editDraft();
   if (!d || !d.specialCells) return [];
   var k = editKey(x, y);
@@ -113,42 +126,19 @@ function editSpecialAt(x, y) {
 }
 
 // ---------------------------------------------------------------------------
-// Collision-word bit math — docs/map-format/map_collision_mechanics.md §4
-// (gate) and §6 (drift, and stairs). Never touched for entrance: those
-// items carry no `gate`/`drift` field, so the functions below leave the
-// word exactly as editResolve already left it.
+// Collision-word bit math — docs/map-format/map_collision_mechanics.md §4, §6
 // ---------------------------------------------------------------------------
-
 var SPECIAL_GATE_MASK = 0x0f00;   // entity gate, bits 11..8
 var SPECIAL_DRIFT_MASK = 0x200f;  // AW (bit 13) + the low nibble it repurposes
 var SPECIAL_INTERACT_MASK = 0x8000; // Bit 15 (Interact)
 
-function editSpecialGateWord(word, nibble) {
-  return (word & ~SPECIAL_GATE_MASK) | ((nibble & 0xf) << 8);
-}
-
-function editSpecialDriftWord(word, nibble) {
-  return (word & ~SPECIAL_DRIFT_MASK) | 0x2000 | (nibble & 0xf);
-}
-
-function editSpecialInteractWord(word, bit) {
-  return bit ? (word | SPECIAL_INTERACT_MASK) : (word & ~SPECIAL_INTERACT_MASK);
-}
-
-/**
- * Undo either field, leaving the rest of the word — plane, PT, geometry —
- * untouched.
- *
- * The drift mask also covers bits 3..0, which are ordinary geometry (not a
- * direction) unless bit 13 (AW) is actually set — clearing them
- * unconditionally would erase real geometry off a tile that only ever had
- * a gate on it. Only clear them when AW says they were a direction.
- */
+function editSpecialGateWord(word, nibble) { return (word & ~SPECIAL_GATE_MASK) | ((nibble & 0xf) << 8); }
+function editSpecialDriftWord(word, nibble) { return (word & ~SPECIAL_DRIFT_MASK) | 0x2000 | (nibble & 0xf); }
+function editSpecialInteractWord(word, bit) { return bit ? (word | SPECIAL_INTERACT_MASK) : (word & ~SPECIAL_INTERACT_MASK); }
 function editSpecialClearWord(word) {
   var cleared = word & ~SPECIAL_GATE_MASK;
   if (cleared & 0x2000) cleared &= ~SPECIAL_DRIFT_MASK;
-  cleared &= ~SPECIAL_INTERACT_MASK;
-  return cleared;
+  return cleared & ~SPECIAL_INTERACT_MASK;
 }
 
 /**

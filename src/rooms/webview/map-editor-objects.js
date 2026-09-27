@@ -88,8 +88,13 @@ function objectAddFrame(uid) {
   var o = editObjectFind(uid);
   if (!o) return;
   editBegin();
-  var frames = editObjectFrames(o), newFrame = {};
+  var frames = editObjectFrames(o);
+  var curFrame = _objectActiveFrame >= 1 ? (frames[_objectActiveFrame - 1] || {}) : {};
+  var newFrame = Object.assign({}, curFrame);
   frames.push(newFrame);
+  o.frameSpecials = o.frameSpecials || [];
+  var curSpecials = _objectActiveFrame >= 1 ? (o.frameSpecials[_objectActiveFrame - 1] || {}) : {};
+  o.frameSpecials.push(Object.assign({}, curSpecials));
   o.states = frames.length + 1;
   _objectSel = uid; _objectExpanded = uid; _objectActiveFrame = frames.length;
   o.layer = newFrame; _confirmRemoveFrame = null;
@@ -105,6 +110,7 @@ function objectRemoveFrame(uid, f) {
   editBegin();
   var frames = editObjectFrames(o);
   frames.splice(f - 1, 1);
+  if (o.frameSpecials) o.frameSpecials.splice(f - 1, 1);
   o.states = frames.length + 1;
   _objectActiveFrame = Math.max(0, Math.min(_objectActiveFrame, frames.length));
   o.layer = _objectActiveFrame >= 1 ? frames[_objectActiveFrame - 1] : {};
@@ -122,6 +128,9 @@ function objectMoveFrame(uid, dir) {
   if (from < 0 || to < 0 || to >= frames.length) return;
   editBegin();
   var tmp = frames[from]; frames[from] = frames[to]; frames[to] = tmp;
+  if (o.frameSpecials) {
+    var tmps = o.frameSpecials[from]; o.frameSpecials[from] = o.frameSpecials[to]; o.frameSpecials[to] = tmps;
+  }
   _objectActiveFrame = to + 1; o.layer = frames[_objectActiveFrame - 1]; _confirmRemoveFrame = null;
   editEnd();
   editNote('Moved frame to #' + _objectActiveFrame);
@@ -254,7 +263,7 @@ function editObjectStamps() {
 }
 
 function editObjectsVisible() {
-  var p = document.getElementById('rg-panel');
+  var p = document.getElementById('room-detail') || document.getElementById('rg-outer');
   if (p && p.classList.contains('hide-obj')) return false;
   return typeof _currentOverlay !== 'string' || _currentOverlay.indexOf('o') >= 0;
 }
@@ -262,29 +271,25 @@ function editObjectsVisible() {
 /** Areas as dotted blue clusters; active frame delta as solid blue frame. */
 function editObjectSvg(palette, composed, origin) {
   if (!editObjectsVisible()) return '';
-  var open = typeof _editActiveTab !== 'undefined' && _editActiveTab === 'object', html = '';
+  var html = '';
   editObjects().forEach(function (o, idx) {
     var isSel = (o.uid === _objectSel), frames = editObjectFrames(o);
-    // Only the selected object previews its active frame; others show base (State 0).
     var activeIdx = isSel ? _objectActiveFrame : 0;
     var curLayer = activeIdx >= 1 ? (frames[activeIdx - 1] || o.layer || {}) : {};
-    if (open) {
-      Object.keys(curLayer).forEach(function (k) {
-        var p = k.split(','), pos = editCellPos(origin, o.x + Number(p[0]), o.y + Number(p[1]));
-        html += editStampSvg(palette, composed, curLayer[k], pos.x, pos.y, 'rg-edit-cell rg-obj-cell');
-      });
-    }
+    Object.keys(curLayer).forEach(function (k) {
+      var p = k.split(','), pos = editCellPos(origin, o.x + Number(p[0]), o.y + Number(p[1]));
+      html += editStampSvg(palette, composed, curLayer[k], pos.x, pos.y, 'rg-edit-cell rg-obj-cell');
+    });
     var a = editCellPos(origin, o.x, o.y);
     html += '<rect class="rg-obj-area rg-obj-cluster' + (isSel ? ' sel' : '') + '" x="' + a.x + '" y="' + a.y
       + '" width="' + (o.w * EDIT_UNITS) + '" height="' + (o.h * EDIT_UNITS) + '">'
       + '<title>' + escH('obj #' + idx + ' cluster: ' + o.w + '×' + o.h + ' at ' + o.x + ',' + o.y) + '</title></rect>';
-    if (open && isSel && activeIdx >= 1) {
+    if (isSel && activeIdx >= 1) {
       var b = objectFrameBounds(curLayer);
       if (b) {
         var fx = editCellPos(origin, o.x + b.dx, o.y + b.dy);
         html += '<rect class="rg-obj-frame" x="' + fx.x + '" y="' + fx.y + '" width="' + (b.w * EDIT_UNITS)
-          + '" height="' + (b.h * EDIT_UNITS) + '">'
-          + '<title>' + escH('frame #' + activeIdx + ' delta: ' + b.w + '×' + b.h + ' (' + b.count + ' tiles)') + '</title></rect>';
+          + '" height="' + (b.h * EDIT_UNITS) + '"><title>' + escH('frame #' + activeIdx + ' delta: ' + b.w + '×' + b.h + ' (' + b.count + ' tiles)') + '</title></rect>';
       }
     }
   });

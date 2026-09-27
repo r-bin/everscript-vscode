@@ -68,8 +68,7 @@ function editStroke(cell, phase) {
       var trig = editTriggerAt(cell.x, cell.y);
       if (drawKind() === 'trigger' && trig) { triggerSelect(trig); return; }
       if (groupSelectGesture(cell, phase)) return;
-      triggerSelect(trig);
-      return;
+      triggerSelect(trig); return;
     }
     if (groupSelectGesture(cell, phase)) return;
     if (phase === 'move') { triggerDragMove(cell); return; }
@@ -79,41 +78,20 @@ function editStroke(cell, phase) {
 
   if (d.tool === 'pick') {
     if (phase !== 'down') return;
-    // Picks up what is there with its tab and tool (map-editor-pick.js).
     if (typeof editSmartPick === 'function') { editSmartPick(cell); return; }
     var at = editCellAt(_mtPalette, cell.x, cell.y);
     if (at >= 0) { d.brush = at; _mtSelected = at; renderMetatilePalette(); }
-    renderEditChrome();
-    return;
+    renderEditChrome(); return;
   }
 
   if (d.tool === 'erase') {
-    // editResolve owns what erasing means, and reads it off the cell itself
-    // now (§8a.2) — no phase to gate it on, so this runs unconditionally. A
-    // special at this cell is a second, independent thing to take off —
-    // clearing its glyph and, for gate/drift, the bits it wrote (see
-    // map-editor-special.js). Both land in the one final index this cell
-    // gets, so undo sees a single write per cell.
-    // The eraser takes off what the pencil would put down: a trigger on the
-    // Trigger tab, the special alone on the Special tab (map-editor-drawable.js).
     var eraseKind = drawKind();
-    if (eraseKind === 'trigger') {
-      if (phase === 'down') editEraseTriggerAt(cell);
-      return;
-    }
-    if (eraseKind === 'special') {
-      // Every special flag on the cell, glyph or not: a stairs tile carries
-      // its flag in its collision word with no glyph at all.
-      editSpecialStroke(d, cell, true);
-      renderEditChrome();
-      return;
-    }
-    // On the cuttable layer, erase takes the cuttable tile off whole.
+    if (eraseKind === 'trigger') { if (phase === 'down') editEraseTriggerAt(cell); return; }
+    if (eraseKind === 'special') { editSpecialStroke(d, cell, true); renderEditChrome(); return; }
     if (cutLayerActive()) {
       var cutErase = editCutWrite(cell.x, cell.y, -1, true);
       if (cutErase) editApply([cutErase]);
-      renderEditChrome();
-      return;
+      renderEditChrome(); return;
     }
     var bare = editResolve(_mtPalette, cell.x, cell.y, -1, true);
     var hadSpecial = editSpecialAt(cell.x, cell.y);
@@ -228,10 +206,42 @@ function drawKind() {
  */
 function editSpecialStroke(d, cell, erasing, phase) {
   if (!erasing && editStartGesture(cell, phase)) return;
+  if (typeof _objectActiveFrame !== 'undefined' && _objectActiveFrame >= 1) {
+    var sel = (typeof editObjectFind === 'function' && typeof _objectSel !== 'undefined' && _objectSel != null) ? editObjectFind(_objectSel) : null;
+    if (!sel && typeof editObjects === 'function') {
+      var objs = editObjects();
+      for (var i = 0; i < objs.length; i++) {
+        if (cell.x >= objs[i].x && cell.y >= objs[i].y && cell.x < objs[i].x + objs[i].w && cell.y < objs[i].y + objs[i].h) { sel = objs[i]; break; }
+      }
+    }
+    if (sel && typeof editObjectContains === 'function' && editObjectContains(sel, cell)) {
+      if (editSpecialObjectWrite(sel, cell, erasing ? null : d.currentSpecialId, erasing, phase)) {
+        if (!erasing) renderEditChrome();
+        return;
+      }
+    }
+  }
   var w = editSpecialWrites(d, cell, erasing);
   if (!w) return;
   editApplySpecial(w.writes, w.special);
   if (!erasing) renderEditChrome();
+}
+
+function editSpecialObjectWrite(o, cell, specialId, erase, phase) {
+  if (phase === 'down') editBegin();
+  var frames = editObjectFrames(o), cur = frames[_objectActiveFrame - 1] || {};
+  var k = (cell.x - o.x) + ',' + (cell.y - o.y), before = cur[k] != null ? cur[k] : editCellAt(_mtPalette, cell.x, cell.y);
+  if (before < 0) { var d = editDraft(); before = d && d.blank && d.blank.floor != null ? d.blank.floor : 0; }
+  var idx = editSpecialAppliedIndex(_mtPalette, before, erase ? null : specialId, erase);
+  cur[k] = idx; frames[_objectActiveFrame - 1] = cur; o.layer = cur;
+  o.frameSpecials = o.frameSpecials || [];
+  while (o.frameSpecials.length < frames.length) o.frameSpecials.push({});
+  if (erase) delete o.frameSpecials[_objectActiveFrame - 1][k];
+  else o.frameSpecials[_objectActiveFrame - 1][k] = specialId;
+  if (typeof editCellsChanged === 'function') editCellsChanged();
+  requestComposedPreview(); renderEditLayer(_mtPalette, _editComposed, _editOrigin);
+  if (phase === 'up') editEnd();
+  return true;
 }
 
 /** What one special pick (or its removal) writes at a cell, or null. */

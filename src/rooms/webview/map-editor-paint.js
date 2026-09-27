@@ -97,12 +97,29 @@ function renderEditLayer(palette, composed, origin) {
   // painted with a tile, a special, both, or neither. Non-blocking of the
   // base tile colour, per the design mock.
   var drawnKeys = {};
+  var activeObj = (typeof _objectSel !== 'undefined' && _objectSel != null && typeof _objectActiveFrame !== 'undefined' && _objectActiveFrame >= 1 && typeof editObjectFind === 'function') ? editObjectFind(_objectSel) : null;
+  var fs = (activeObj && activeObj.frameSpecials && activeObj.frameSpecials[_objectActiveFrame - 1]) || null;
   Object.keys(d.specialCells || {}).forEach(function (k) {
+    if (activeObj && fs) {
+      var p0 = k.split(','), tx = Number(p0[0]), ty = Number(p0[1]);
+      if (tx >= activeObj.x && ty >= activeObj.y && tx < activeObj.x + activeObj.w && ty < activeObj.y + activeObj.h) {
+        var fk = (tx - activeObj.x) + ',' + (ty - activeObj.y);
+        if (Object.prototype.hasOwnProperty.call(fs, fk)) return;
+      }
+    }
     drawnKeys[k] = true;
     var p = k.split(',');
     var pos = editCellPos(origin, Number(p[0]), Number(p[1]));
     html += editSpecialGlyphSvg(d.specialCells[k], pos.x, pos.y);
   });
+  if (activeObj && fs) {
+    Object.keys(fs).forEach(function (fk) {
+      if (!fs[fk]) return;
+      var p = fk.split(','), tx = activeObj.x + Number(p[0]), ty = activeObj.y + Number(p[1]);
+      var pos = editCellPos(origin, tx, ty);
+      html += editSpecialGlyphSvg(fs[fk], pos.x, pos.y);
+    });
+  }
   // The Boy's start, over the tiles and glyphs — map-editor-start.js.
   html += editStartSvg(origin);
   // The Select tool's own outlines: the selected trigger, and a live preview

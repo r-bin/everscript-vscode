@@ -1,3 +1,13 @@
+## [0.82.6] — 2026-09-28
+
+### Fix: Preview active frame on tile tab, isolate frame specials, copy current frame on +, and export objects to ROM
+
+- **Active frame preview on Tile tab:** In `src/rooms/webview/map-editor-objects.js`, removed tab gating around `curLayer` rendering in `editObjectSvg`. When an object frame is active (`_objectActiveFrame >= 1`), its delta tiles remain visible over the map on `#rg-edit` even when navigating to the Tile tab.
+- **Isolated special flags per frame:** In `src/rooms/webview/map-editor-gestures.js`, `editSpecialObjectWrite` records special writes (such as `F0` / `interact-force-0`) into `o.frameSpecials[_objectActiveFrame - 1]` for that frame instead of global `d.specialCells` / `d.cells`. In `map-editor-special.js`, `editSpecialsAt` checks the active object frame's specials first, and in `map-editor-paint.js`, `editSpecialGlyphs` overrides base cell glyphs with `o.frameSpecials`. Toggling back to State 0 restores the base specials without contamination.
+- **Copy current frame on `+`:** In `src/rooms/webview/map-editor-objects.js`, `objectAddFrame` clones the currently selected frame's delta tiles (`curFrame`) and specials (`curSpecials`) rather than creating an empty frame that falls back to State 0. Frame reordering (`objectMoveFrame`) and removal (`objectRemoveFrame`) keep `o.frameSpecials` synchronized with `o.frames`.
+- **ROM object export (Section 3):** In `src/rooms/webview/map-editor-rom-export.js`, `romExportPayload` resolves each frame's layer1/layer2/collision words into `objects`. In `src/maps/custom-room.ts`, `buildDictionary` registers all object delta tiles into Block 3, and `buildCustomRoomBlob` encodes Section 3 object records and stamp records with XOR deltas (`targetId ^ baseId`) for native `$90A4E8` transition execution. Passed through `src/rooms/rendering/rom-export.js` into ROM blob generation.
+- **Tests:** Added comprehensive test coverage in `tests/memory/rom-export.test.js` (verifying Block 3 dictionary registration, Section 3 encoding, and `applyObjectStates` XOR transition matching the target grid) and `tests/memory/map-editor-dom.test.js` (testing Tile tab active frame rendering, `F0` frame isolation from State 0, and current frame cloning on `+`).
+
 ## [0.82.5] — 2026-09-28
 
 ### Fix: Drawing context routing, tab stability on tile pick, and object box overlay toggle

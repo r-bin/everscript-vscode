@@ -296,6 +296,29 @@ if (!fs.existsSync(ROM_PATH)) {
     test('a draft with the wrong number of words is refused, not guessed at', () => {
         assert.throws(() => buildExportRom(rom, { ...draft, cells: cells.slice(3) }), /expected/);
     });
+
+    test('objects are encoded into Section 3 and transition in state 1', () => {
+        const objDraft = {
+            ...draft,
+            objects: [{
+                x: 2, y: 2, w: 2, h: 2, states: 2,
+                frames: [{
+                    '0,0': { layer1: 0x0005, layer2: 0x0000, collision: 0x0001 },
+                    '1,0': { layer1: 0x0005, layer2: 0x0000, collision: 0x0001 },
+                }],
+            }],
+        };
+        const { rom: out } = buildExportRom(rom, objDraft);
+        const room = maps.decodeRoom(out, BRIAN_ROOM);
+        assert.strictEqual(room.objects.length, 1);
+        assert.strictEqual(room.objects[0].maxState, 1);
+        assert.strictEqual(room.objects[0].states[0].tileX, 2);
+        assert.strictEqual(room.objects[0].states[0].tileY, 2);
+
+        // Applying state 1 transforms the metatile at (2, 2)
+        const morphed = maps.applyObjectStates(out, room, { 0: 1 });
+        assert.notStrictEqual(morphed.layer1MetatileIds[2][2], room.layer1MetatileIds[2][2]);
+    });
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

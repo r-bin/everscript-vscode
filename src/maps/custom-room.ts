@@ -16,6 +16,15 @@ import { MIN_TILES, MAX_TILES } from './blank-room';
 import { AnimationIndex } from './vanilla-animation';
 import { CustomAnimationPlan, planCustomAnimation, remapWord } from './custom-animation';
 
+export interface CustomObjectInput {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    states?: number;
+    frames: Array<Record<string, { layer1: number; layer2: number; collision: number }>>;
+}
+
 export interface CustomRoomInput {
     /** The room whose graphics and families the map was drawn with. */
     borrowFrom: number;
@@ -38,6 +47,8 @@ export interface CustomRoomInput {
      * the game (custom-animation.ts); without it every graphic is still.
      */
     animations?: AnimationIndex;
+    /** Placed objects with state transition frames. */
+    objects?: CustomObjectInput[];
 }
 
 export interface CustomRoomBlob {
@@ -124,6 +135,57 @@ export function buildCustomRoomBlob(rom: Uint8Array, input: CustomRoomInput): Cu
     const animation = planCustomAnimation(graphics, l1.concat(l2), input.animations);
     const remap = (word: number): number => remapWord(animation, word & 0xffff);
 
+    const objectOffsets: number[] = [];
+    const objectAreaSink: number[] = [];
+    const validObjects = (input.objects || []).filter((o) => (o.frames || []).length > 0);
+
+    for (const obj of validObjects) {
+        const recOffset = objectAreaSink.length;
+        objectOffsets.push(recOffset);
+        const frames = obj.frames;
+        const maxState = frames.length;
+        const recLen = 1 + maxState * 5;
+        const recBytes: number[] = [maxState];
+        const stateStamps: number[][] = [];
+        for (let s = 0; s < maxState; s++) {
+            const frame = frames[s] || {};
+            const tw = obj.w, th = obj.h;
+            const stampBytes: number[] = [tw, th];
+            const n = tw * th;
+            let mask = 0, bit = 0;
+            const deltaBytes: number[] = [];
+            for (let k = 0; k < n; k++) {
+                const dx = k % tw, dy = Math.floor(k / tw);
+                const cellIdx = (obj.y + dy) * w + (obj.x + dx);
+                const f = frame[dx + ',' + dy];
+                if (f) {
+                    mask |= (1 << bit);
+                    const kStr = (f.layer1 & 0xffff) + ',' + (f.layer2 & 0xffff) + ',' + (f.collision & 0xffff);
+                    const targetIdx = dict.key.get(kStr) ?? 0;
+                    const delta = ((base + targetIdx * 8) ^ (grid[cellIdx] ?? 0)) & 0xffff;
+                    deltaBytes.push(delta & 0xff, (delta >> 8) & 0xff);
+                }
+                bit++;
+                if (bit === 8 || k === n - 1) {
+                    stampBytes.push(mask);
+                    for (let b = 0; b < deltaBytes.length; b++) stampBytes.push(deltaBytes[b]);
+                    mask = 0; bit = 0; deltaBytes.length = 0;
+                }
+            }
+            stateStamps.push(stampBytes);
+        }
+
+        let curStampOffset = recOffset + recLen;
+        for (let s = 0; s < maxState; s++) {
+            recBytes.push(obj.w, obj.x, obj.y, curStampOffset & 0xff, (curStampOffset >> 8) & 0xff);
+            curStampOffset += stateStamps[s].length;
+        }
+        for (let b = 0; b < recBytes.length; b++) objectAreaSink.push(recBytes[b]);
+        for (let s = 0; s < maxState; s++) {
+            for (let b = 0; b < stateStamps[s].length; b++) objectAreaSink.push(stateStamps[s][b]);
+        }
+    }
+
     const model: RoomModel = {
         header,
         stepOn: [],
@@ -133,11 +195,11 @@ export function buildCustomRoomBlob(rom: Uint8Array, input: CustomRoomInput): Cu
         block1: encodeBlock1(animation.block1, true),
         section2Count: animation.section2Count,
         section2Data: animation.section2Data,
-        objectOffsets: [],
+        objectOffsets,
         block2: encodeBlock2(grid, w, h, base, dict.sources),
         section4: dict.section4,
         block3: encodeBlock3(l1.map(remap), l2.map(remap), cw, true),
-        objectArea: new Uint8Array(0),
+        objectArea: Uint8Array.from(objectAreaSink),
     };
     return {
         blob: buildBlob(model), model, metatileCount: l1.length, wramBytes, cuttable: dict.sources, animation, remap,
@@ -211,6 +273,22 @@ function buildDictionary(input: CustomRoomInput, w: number, h: number, base: num
         grid[i] = base + idx * 8;
     }
 
+    // 2b. Tiles introduced by object frames, in appearance order.
+    for (const obj of input.objects || []) {
+        for (const frame of obj.frames || []) {
+            for (const fk of Object.keys(frame || {})) {
+                const f = frame[fk];
+                if (!f) continue;
+                const [a, b, c] = [f.layer1 & 0xffff, f.layer2 & 0xffff, f.collision & 0xffff];
+                const k = a + ',' + b + ',' + c;
+                if (!key.has(k)) {
+                    const idx = add(a, b, c);
+                    key.set(k, idx);
+                }
+            }
+        }
+    }
+
     // 3. What each source is cut to, and the records.
     const section = [sources];
     for (let s = 0; s < sources; s++) {
@@ -222,5 +300,5 @@ function buildDictionary(input: CustomRoomInput, w: number, h: number, base: num
         const cut = base + dst * 8;
         section.push(0x01, src & 0xff, src >> 8, cut & 0xff, cut >> 8, 0x00, 0x00);
     }
-    return { l1, l2, cw, grid, sources, section4: sources ? Uint8Array.from(section) : EMPTY_SECTION4 };
+    return { l1, l2, cw, grid, sources, section4: sources ? Uint8Array.from(section) : EMPTY_SECTION4, key };
 }

@@ -120,6 +120,7 @@ function buildExportRom(vanilla, draft) {
         graphics: draft.graphics || [],
         families: draft.families || [],
         cut: draft.cut || [],
+        objects: draft.objects || [],
         // A placed torch gets a Section 2 channel and flickers in the game.
         animations: vanillaIndex(src).animations,
     });
