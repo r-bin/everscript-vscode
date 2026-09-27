@@ -1,3 +1,13 @@
+## [0.81.5] — 2026-09-27
+
+### Map editor: Object clusters, expandable frames with automatic delta bounds, and reordering
+
+- **Object clusters (dotted blue rectangle):** Dragging with the pencil on the Object tab marks the cluster area with a dotted blue line representing the working bounds for that object.
+- **Expandable object frames (states):** Clicking on an object in the Object tab list expands it to reveal individual frame chips (State 0 for base room map look, Frames 1..N for changed states) styled like the ROM objects state list.
+- **Automatic delta bounds & solid blue frame:** Drawing on an object frame automatically calculates the tight bounding box and dimensions of the changed delta tiles, rendering a solid blue outline around the delta.
+- **Add, remove, and reorder frames:** Added `+` button to add new frames to an object, `◀` / `▶` buttons to reorder frames in sequence, and a confirmation-protected delete button to safely remove frames.
+- **Order-sensitive objects:** Objects display their 0-indexed identity (`obj 0`, `obj 1`, ...) and can be reordered up/down in the object list.
+
 ## [0.81.4] — 2026-09-27
 
 ### Map editor: Multi-special flag lists, unified grid layout, deflect tool, and object drift indexing

@@ -265,3 +265,19 @@
 .rg-theme .rg-erase-target{margin:0 0 10px;padding:6px 8px;border-radius:var(--rg-radius-control);font-size:11px}
 /* The Boy, selected (map-editor-start.js). */
 .rg-theme .rg-start.sel .rg-start-cell{stroke:var(--rg-accent);stroke-width:.2;stroke-dasharray:none;fill:var(--rg-accent-soft);fill-opacity:.35}
+
+/* ── Object cluster & frames (map-editor-objects.js) ────────────────────────── */
+.rg-theme .rg-obj-cluster{fill:none;stroke:var(--rg-object);stroke-width:.14;stroke-dasharray:.3 .3;pointer-events:none}
+.rg-theme .rg-obj-cluster.sel{fill:var(--rg-object);fill-opacity:.06;stroke-width:.18}
+.rg-theme .rg-obj-frame{fill:none;stroke:var(--rg-object);stroke-width:.2;stroke-dasharray:none;pointer-events:none}
+.rg-theme .rg-object-card{margin:4px 0;border:1px solid transparent;border-radius:4px}
+.rg-theme .rg-object-card.on{border-color:var(--rg-border);background:var(--rg-bg-chrome)}
+.rg-theme .rg-object-caret{cursor:pointer;display:inline-block;width:14px;text-align:center;font-size:11px;color:var(--rg-text-muted);user-select:none}
+.rg-theme .rg-object-expanded{padding:6px 8px 8px;border-top:1px solid var(--rg-border)}
+.rg-theme .ro-chip-add{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px dashed var(--rg-border);border-radius:3px;background:transparent;color:var(--rg-text-secondary);cursor:pointer;font-size:16px;font-weight:bold}
+.rg-theme .ro-chip-add:hover{border-color:var(--rg-accent);color:var(--rg-accent)}
+.rg-theme .rg-object-frame-bar{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:11px;color:var(--rg-text-secondary)}
+.rg-theme .rg-obj-frame-info{flex:1}
+.rg-theme .rg-obj-move{padding:1px 4px;font-size:9px}
+.rg-theme .rdf-xs{padding:2px 6px;font-size:11px}
+.rg-theme .rdf-warn{color:#ef4444;border-color:#ef4444}

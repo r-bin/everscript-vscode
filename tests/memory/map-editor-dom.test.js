@@ -2328,6 +2328,42 @@ async function main() {
         editStampGroup(_mtPalette, c, 0, 0);
         const so = editObjects()[0];
         r.stamped = !!(so && so.uid && so.layer['0,0'] >= 0 && editStampWords(_mtPalette, so.layer['0,0']).layer1 === 0x1423);
+
+        // Object cluster, frames, automatic delta bounds and solid blue frame
+        editRemoveObject(so.uid);
+        _editActiveTab = 'object';
+        editBegin(); editStroke({ x: 0, y: 0 }, 'down'); editStroke({ x: 1, y: 1 }, 'up'); editEnd();
+        const obj2 = editObjects()[0];
+        r.objCluster = editObjectSvg(_mtPalette, _editComposed, _editOrigin).includes('rg-obj-cluster');
+
+        // Frame 1 active: paint delta tiles at 0,0 and 1,0 (2x1 delta box)
+        d.brush = editAddStamp(_mtPalette, { layer1: 0x1422, layer2: 0x05c6, collision: 0x001f });
+        editBegin(); editStroke({ x: 0, y: 0 }, 'down'); editStroke({ x: 1, y: 0 }, 'up'); editEnd();
+        const svgFrame = editObjectSvg(_mtPalette, _editComposed, _editOrigin);
+        r.solidFrame = svgFrame.includes('rg-obj-frame');
+        r.solidFrameW2H1 = svgFrame.includes('width="4"') && svgFrame.includes('height="2"');
+
+        // Add Frame 2:
+        objectAddFrame(obj2.uid);
+        r.framesCount = obj2.frames.length;
+        r.activeFrame2 = _objectActiveFrame === 2;
+        editBegin(); editStroke({ x: 1, y: 1 }, 'down'); editStroke({ x: 1, y: 1 }, 'up'); editEnd();
+        r.f2Layer = Object.keys(obj2.frames[1]).join();
+
+        // Tab HTML contains ro-chips with State 0, Frame 1, Frame 2, and add-frame button
+        const tabHtml = objectTabHtml();
+        r.tabHasChips = tabHtml.includes('ro-chip') && tabHtml.includes('ro-chip-add');
+        r.tabHasFrames = tabHtml.includes('Frame 1') && tabHtml.includes('Frame 2') && tabHtml.includes('State 0');
+
+        // Reorder Frame 2 to position 1 (move left):
+        objectMoveFrame(obj2.uid, -1);
+        r.reorderedActive = _objectActiveFrame === 1;
+        r.reorderedF1Layer = Object.keys(obj2.frames[0]).join();
+
+        // Remove frame:
+        objectRemoveFrame(obj2.uid, 1);
+        r.framesAfterRemove = obj2.frames.length;
+
         _editComposed = composed;
         return r;
     });
@@ -2341,6 +2377,11 @@ async function main() {
         v80.layer === '1,0 1,1' && v80.drawnOpen === 2 && v80.drawnClosed === 0 && v80.mapUntouched, JSON.stringify(v80));
     check('each is one undo step', v80.undone === 0 && v80.gone === 0, JSON.stringify(v80));
     check('a stamped vanilla object brings the look it changes to', v80.stamped, JSON.stringify(v80));
+    check('object cluster has dotted outline and active frame has solid blue frame with auto delta bounds',
+        v80.objCluster && v80.solidFrame && v80.solidFrameW2H1, JSON.stringify(v80));
+    check('object expands to show state chips and frames can be added, reordered and removed',
+        v80.framesCount === 2 && v80.activeFrame2 && v80.tabHasChips && v80.tabHasFrames
+        && v80.reorderedActive && v80.reorderedF1Layer === '1,1' && v80.framesAfterRemove === 1, JSON.stringify(v80));
 
     check('no uncaught errors in any of it', pageErrors.length === 0, pageErrors.join('; '));
 
