@@ -149,13 +149,15 @@ function editObjectGesture(d, cell, phase) {
     objectSelect(hit.uid); return true;
   }
   if (d.tool === 'erase') {
+    if (phase === 'down') editBegin();
     if (sel && editObjectContains(sel, cell)) objectLayerWrite(sel, cell, true);
+    if (phase === 'up') editEnd();
     return true;
   }
   if (d.tool !== 'paint') return false;
   if (phase === 'down') {
     _objectPainting = false;
-    if (sel && hit && hit.uid === sel.uid) { _objectPainting = true; objectLayerWrite(sel, cell, false); return true; }
+    if (sel && hit && hit.uid === sel.uid) { editBegin(); _objectPainting = true; objectLayerWrite(sel, cell, false); return true; }
     if (hit) { objectSelect(hit.uid); return true; }
     _objectDraw = { ax: cell.x, ay: cell.y };
   }
@@ -167,7 +169,7 @@ function editObjectGesture(d, cell, phase) {
     editAddObject(box); return true;
   }
   if (_objectPainting && sel && phase !== 'up' && editObjectContains(sel, cell)) objectLayerWrite(sel, cell, false);
-  if (phase === 'up') _objectPainting = false;
+  if (phase === 'up') { if (_objectPainting) editEnd(); _objectPainting = false; }
   return true;
 }
 

@@ -2355,6 +2355,14 @@ async function main() {
         r.tabHasChips = tabHtml.includes('ro-chip') && tabHtml.includes('ro-chip-add');
         r.tabHasFrames = tabHtml.includes('Frame 1') && tabHtml.includes('Frame 2') && tabHtml.includes('State 0');
 
+        // Frame isolation: State 0 shows the base room, Frame 2 keeps its own tile.
+        objectSelectFrame(0);
+        r.frame0LayerEmpty = Object.keys(obj2.layer).length === 0;
+        r.frame0Cells = Object.keys(d.cells).length;
+        objectSelectFrame(2);
+        r.frame2Layer = Object.keys(obj2.layer).join();
+        r.frame2HasItsTile = r.frame2Layer === '1,1';
+
         // Reorder Frame 2 to position 1 (move left):
         objectMoveFrame(obj2.uid, -1);
         r.reorderedActive = _objectActiveFrame === 1;
@@ -2382,6 +2390,10 @@ async function main() {
     check('object expands to show state chips and frames can be added, reordered and removed',
         v80.framesCount === 2 && v80.activeFrame2 && v80.tabHasChips && v80.tabHasFrames
         && v80.reorderedActive && v80.reorderedF1Layer === '1,1' && v80.framesAfterRemove === 1, JSON.stringify(v80));
+    check('frame 0 shows the base room and does not hold object delta tiles',
+        v80.frame0LayerEmpty, JSON.stringify(v80));
+    check('frame 2 keeps its own delta tile and is not polluted by frame 1',
+        v80.frame2HasItsTile, JSON.stringify(v80));
 
     check('no uncaught errors in any of it', pageErrors.length === 0, pageErrors.join('; '));
 

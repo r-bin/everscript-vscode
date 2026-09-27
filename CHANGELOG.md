@@ -1,3 +1,12 @@
+## [0.82.1] — 2026-09-27
+
+### Fix: Object tab frame chips and frame isolation
+
+- **Root cause (again):** `EDIT_CLICK_KEYS` in `map-editor-input.js` was missing most object-tab data attributes (`objectToggle`, `objectFrame`, `objectAddFrame`, `objectRemoveFrame`, `objectConfirmRemoveFrame`, `objectCancelRemoveFrame`, `objectMoveFrame`, `objectMoveObj`). The `editClickTarget` walk-up skipped past them, so clicks on State 0, Frame 1, Frame 2, `+`, `◀`, `▶`, and Delete frame landed on an inner `<span>` and were silently dropped. This is the same walk-up bug that v0.81.6 fixed for the first batch of object keys; the rest were never added.
+- **Fix:** Added every object-tab `data-*` attribute to `EDIT_CLICK_KEYS`.
+- **Undoable object strokes:** `editObjectGesture` now wraps paint and erase strokes on objects in `editBegin`/`editEnd`, so one drag is one undo step and the `frames`/`layer` state stays consistent across the gesture.
+- **Tests:** Extended `tests/memory/map-editor-dom.test.js` to switch to State 0 and Frame 2 after painting, asserting frame 0 stays empty and frame 2 keeps only its own tile.
+
 ## [0.82.0] — 2026-09-27
 
 ### Widget editor now preserves every object frame

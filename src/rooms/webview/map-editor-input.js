@@ -105,7 +105,10 @@ function renderComposer() {
 var EDIT_CLICK_KEYS = ['editTool', 'editAct', 'editPick', 'panel',
   'famTile', 'construct', 'chip', 'chipDrop', 'chipAdopt',
   'brushFlip', 'tileFilter', 'tileShape', 'tileFrames', 'strandedFix', 'strandedDrop', 'nbSide', 'nbCentre', 'nbUse',
-  'layerForce', 'deco', 'decoSave', 'widget', 'widgetEdit', 'widgetAct', 'objectSel', 'objectRemove', 'decoFlag', 'mtIndex', 'mtSlot', 'editActiveTab',
+  'layerForce', 'deco', 'decoSave', 'widget', 'widgetEdit', 'widgetAct',
+  'objectSel', 'objectToggle', 'objectFrame', 'objectAddFrame', 'objectRemove', 'objectRemoveFrame',
+  'objectConfirmRemoveFrame', 'objectCancelRemoveFrame', 'objectMoveFrame', 'objectMoveObj',
+  'decoFlag', 'mtIndex', 'mtSlot', 'editActiveTab',
   'editSpecial', 'editSpecialMenu', 'editTriggerMenu', 'editMoreMenu',
   'editToolMenu', 'triggerRef', 'triggerRemove', 'triggerKind', 'editLevel', 'editCollisionMenu', 'collisionMode'];
 
