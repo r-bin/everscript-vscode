@@ -45,7 +45,8 @@ function editStroke(cell, phase) {
     return;
   }
   // The Object tab: areas, and the tiles drawn over them (map-editor-objects.js).
-  if (drawKind() === 'object' && typeof editObjectGesture === 'function' && editObjectGesture(d, cell, phase)) return;
+  var objActive = drawKind() === 'object' || (typeof _objectActiveFrame !== 'undefined' && _objectActiveFrame >= 1 && typeof _objectSel !== 'undefined' && _objectSel != null);
+  if (objActive && typeof editObjectGesture === 'function' && editObjectGesture(d, cell, phase)) return;
 
   if (d.tool === 'select') {
     // The only tool that reads a click as "pick a trigger" rather than

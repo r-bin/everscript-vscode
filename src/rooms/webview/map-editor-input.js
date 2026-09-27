@@ -18,6 +18,9 @@ function editOnStampPicked(index) {
     return true;
   }
   d.brush = index;
+  if (typeof _objectSel !== 'undefined' && _objectSel != null && typeof _objectActiveFrame !== 'undefined' && _objectActiveFrame >= 1) {
+    _editActiveTab = 'object';
+  }
   renderEditChrome();
   return false;
 }
@@ -62,6 +65,9 @@ function editOnTilePicked(word, graphicId) {
   if (index < 0) return false;
   _brushTile = null;   // the room's own sheet marks its selection with _mtSlot
   editArmBrush();
+  if (typeof _objectSel !== 'undefined' && _objectSel != null && typeof _objectActiveFrame !== 'undefined' && _objectActiveFrame >= 1) {
+    _editActiveTab = 'object';
+  }
   editNote('brush: stamp #' + index + ' — '
     + (prefer === 'canopy' ? 'drawn over what it is painted on' : 'ground, nothing over it')
     + ', no collision yet. Paint on the map.');

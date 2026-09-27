@@ -170,7 +170,8 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
   font:inherit;font-size:8px;line-height:1.1;min-width:22px}
 .ro-chip:hover{border-color:#6e7681;color:#ddd}
 .ro-chip.sel{border-color:#58a6ff;background:#152232;color:#cfe4ff}
-.ro-img{display:block;image-rendering:pixelated}
+.ro-chip *{pointer-events:none}
+.ro-img{display:block;image-rendering:pixelated;pointer-events:none}
 .ro-noimg{display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;color:#b5783a}
 .rs-note-dim{font-size:9px;opacity:.4;margin:3px 0}
 /* Object boxes on the map: invisible until hovered, selected or changed, so

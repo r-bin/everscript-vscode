@@ -1,3 +1,14 @@
+## [0.82.4] — 2026-09-27
+
+### Fix: Object delta frame stroke routing and State 0 preview isolation
+
+- **Root cause:** When painting delta tiles on an object after picking a tile from the palette or family strip, the editor was on the Tile tab (`_editActiveTab === 'tile'`). `map-editor-gestures.js` guarded `editObjectGesture` behind `drawKind() === 'object'`, so paint strokes fell through to `editPaintStroke` and wrote into `d.cells` (the room's base cells) instead of the object's active frame (`o.frames[0]`). Because `#rg-edit-tiles` renders `d.cells`, and State 0 preview thumbnail uses `<use href="#rg-edit-tiles"/>`, the painted tile erroneously contaminated State 0 preview thumbnail and the base map view.
+- **Gesture routing:** In `map-editor-gestures.js`, strokes inside an object area are routed to `editObjectGesture` whenever an object delta frame is active (`_objectActiveFrame >= 1 && _objectSel != null`). In `map-editor-objects.js`, `editObjectGesture` handles strokes inside the selected object and falls through safely if outside when not on the Object tab.
+- **Seamless tab workflow:** Picking a tile or stamp from `editOnStampPicked`, `editOnTilePicked`, or `editUseFamilyTile` while an object frame is active (`_objectActiveFrame >= 1`) automatically returns to the Object tab so the active frame chips and object controls remain visible.
+- **Chip click object selection:** `objectSelectFrame` now accepts an optional `uid` passed from chip clicks (`t.dataset.objectUid`), ensuring the selected object and active frame stay in sync.
+- **CSS pointer events:** Added `pointer-events: none` on `.ro-chip *` and `.ro-img` in `src/shared/shared.css` to prevent click target walk-up mismatches on nested thumbnail elements.
+- **Tests:** Added end-to-end DOM tests verifying real paint strokes on a 2×2 object with Frame 1 write exclusively to `o.frames[0]` while leaving `d.cells` untouched (0 base cells), State 0 thumbnail shows the base dirt without delta tiles, Frame 1 thumbnail shows the grass delta, and clicking State 0 vs Frame 1 chips properly toggles between the base map and delta view on `#rg-edit`.
+
 ## [0.82.3] — 2026-09-27
 
 ### Fix: phantom Frame 1 on restored and widget-stamped objects

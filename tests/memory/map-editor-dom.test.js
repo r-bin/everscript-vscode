@@ -2518,6 +2518,113 @@ async function main() {
             gest.stampedFrames === 0 && gest.stampedStates === 1, JSON.stringify(gest));
     }
 
+    // 7. The reported flow, end to end with real mouse events: floor painted
+    //    on the Tile tab first, then object, +Frame 1, grass — and the State 0
+    //    thumbnail must show the floor, not the grass. The thumbnail is
+    //    `<use href="#rg-img"/><use href="#rg-edit-tiles"/>`, so the only way
+    //    grass appears in it is grass living in `d.cells`.
+    const flow = await page.evaluate(() => {
+            const r = {};
+            const composed = _editComposed;
+            _editComposed = { imageUri: 'data:image/png;base64,eA==', count: 256, columns: 16, cell: 16, imageWidth: 256, imageHeight: 256 };
+            const d = editReset(0x34); d.on = true; d.tool = 'paint';
+            _editActiveTab = 'tile';
+            _objectSel = null; _objectExpanded = null; _objectActiveFrame = 0;
+            _mtPalette.grid = [[null, null, null, null], [null, null, null, null], [null, null, null, null], [null, null, null, null]];
+            _mtPalette.widthTiles = 4; _mtPalette.heightTiles = 4;
+            renderEditChrome();
+            const svg = document.getElementById('rg-svg');
+            const wrap = document.getElementById('rg-wrap');
+            const ctm = svg && svg.getScreenCTM();
+            if (!svg || !wrap || !ctm) { r.skip = 'no svg'; return r; }
+            const mouse = (type, tx, ty) => {
+                const pt = svg.createSVGPoint();
+                pt.x = _editOrigin.x + (tx + 0.5) * EDIT_UNITS;
+                pt.y = _editOrigin.y + (ty + 0.5) * EDIT_UNITS;
+                const s = pt.matrixTransform(ctm);
+                wrap.dispatchEvent(new MouseEvent(type, { clientX: s.x, clientY: s.y, button: 0, bubbles: true }));
+            };
+            const strokeCells = (cells) => {
+                cells.forEach(([x, y], i) => {
+                    if (i === 0) mouse('mousedown', x, y);
+                    else mouse('mousemove', x, y);
+                });
+                const last = cells[cells.length - 1];
+                mouse('mouseup', last[0], last[1]);
+            };
+            const fill = (x1, y1, x2, y2) => {
+                const cells = [];
+                for (let y = y1; y <= y2; y++) for (let x = x1; x <= x2; x++) cells.push([x, y]);
+                return cells;
+            };
+            // 1. A real new map starts with empty d.cells and brown tiles in #rg-img.
+            r.startCells = Object.keys(d.cells).length;
+            // 2. Object tab: drag a 2×2 area, add Frame 1.
+            _editActiveTab = 'object'; d.tool = 'paint'; renderEditChrome();
+            mouse('mousedown', 1, 1); mouse('mousemove', 2, 2); mouse('mouseup', 2, 2);
+            const o = editObjects()[0];
+            r.created = !!o && o.w === 2 && o.h === 2;
+            r.framesAtBirth = o && o.frames.length;
+            document.querySelector('[data-object-add-frame]').click();
+            r.activeAfterPlus = _objectActiveFrame;
+            // 3. User goes to Tile tab to pick grass tile:
+            const grass = editAddStamp(_mtPalette, { layer1: 0x1422, layer2: 0x05c6, collision: 0x001f });
+            _editActiveTab = 'tile';
+            d.brush = grass;
+            renderEditChrome();
+
+            // What if user paints grass directly on the 2x2 area now (without switching to Object tab)?
+            // Or what if user switches back to Object tab? Let's check both or check what happens!
+            r.tabBeforePaint = _editActiveTab;
+            // What if user does NOT switch back to Object tab before painting?
+            // const objTabBtn = document.querySelector('[data-edit-active-tab="object"]');
+            // if (objTabBtn) objTabBtn.click();
+            r.tabAfterSwitch = _editActiveTab;
+            // Paint grass on 1,1 to 2,2:
+            strokeCells(fill(1, 1, 2, 2));
+            r.frame1Keys = Object.keys(o.frames[0] || {}).sort().join(' ');
+            r.cellsAfterGrass = Object.keys(d.cells).length;
+
+            // Now switch to Object tab to see what happened:
+            const objTabBtn = document.querySelector('[data-edit-active-tab="object"]');
+            if (objTabBtn) objTabBtn.click();
+
+            // Check State 0 thumbnail in DOM:
+            const thumb0El = document.querySelector('[data-object-frame="0"]');
+            r.thumb0Html = thumb0El ? thumb0El.innerHTML : '';
+            const thumb1El = document.querySelector('[data-object-frame="1"]');
+            r.thumb1Html = thumb1El ? thumb1El.innerHTML : '';
+
+            // Click State 0 chip:
+            if (thumb0El) thumb0El.click();
+            r.activeAfterClick0 = _objectActiveFrame;
+            r.svgAfterClick0 = document.getElementById('rg-edit').innerHTML;
+
+            // Click Frame 1 chip:
+            const thumb1Requery = document.querySelector('[data-object-frame="1"]');
+            if (thumb1Requery) thumb1Requery.click();
+            r.activeAfterClick1 = _objectActiveFrame;
+            r.svgAfterClick1 = document.getElementById('rg-edit').innerHTML;
+
+            _editComposed = composed;
+            return r;
+        });
+    if (flow.skip) {
+        console.log('  (floor-then-object flow skipped: ' + flow.skip + ')');
+    } else {
+        check('drawing grass on an object with active Frame 1 writes only to object frame, never base cells',
+            flow.startCells === 0 && flow.cellsAfterGrass === 0 && flow.frame1Keys === '0,0 0,1 1,0 1,1',
+            JSON.stringify(flow));
+        check('State 0 preview thumbnail shows base dirt while Frame 1 preview shows grass delta',
+            flow.thumb0Html.includes('<use href="#rg-img"') && !flow.thumb0Html.includes('rg-edit-cell')
+            && flow.thumb1Html.includes('rg-edit-cell'),
+            JSON.stringify(flow));
+        check('clicking State 0 chip shows dirt on map; clicking Frame 1 chip shows grass delta on map',
+            flow.activeAfterClick0 === 0 && !flow.svgAfterClick0.includes('rg-obj-cell')
+            && flow.activeAfterClick1 === 1 && flow.svgAfterClick1.includes('rg-obj-cell'),
+            JSON.stringify(flow));
+    }
+
     check('no uncaught errors in any of it', pageErrors.length === 0, pageErrors.join('; '));
 
     await browser.close();
