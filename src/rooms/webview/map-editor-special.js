@@ -242,13 +242,12 @@ function specialTabHtml() {
  */
 function buildSpecialFilterChipHtml() {
   return '<span class="rg-filter-group">'
-    + '<button class="rdf on" data-hide="hide-special" title="Toggle special glyphs (stairs, gate, interact, entrance)">Special</button>'
+    + '<button class="rdf on" data-hide="hide-special" title="Toggle special glyphs (stairs, gate, entrance)">Special</button>'
     + '<button class="rdf rg-filter-caret" data-edit-special-menu="1" title="Choose which special glyphs to show" '
     + 'aria-label="Special filter groups">▾</button>'
     + '<div class="rg-filter-popup" id="rg-special-dropdown" hidden>'
     + '<button class="rdf on" data-hide="hide-special-stairs">Stairs &amp; Drift</button>'
     + '<button class="rdf on" data-hide="hide-special-gate">Gate</button>'
-    + '<button class="rdf on" data-hide="hide-special-interact">Interact</button>'
     + '<button class="rdf on" data-hide="hide-special-entrance">Entrance</button>'
     + '</div></span>';
 }
@@ -269,7 +268,7 @@ function editInteractToggle() {
   for (var i = 0; i < btns.length; i++) btns[i].classList.toggle('on', _interactOverlayOn);
   if (typeof editNote === 'function') {
     editNote(_interactOverlayOn
-      ? 'Interact overlay ON — showing Bit 15 states (forced 0, forced 1, 1, 0)'
+      ? 'Interact overlay ON — showing Bit 15 states (forced 0, forced 1, 1)'
       : 'Interact overlay OFF');
   }
   if (typeof renderEditChrome === 'function') renderEditChrome();
@@ -302,29 +301,27 @@ function interactOverlaySvg(palette, origin) {
   if (!p || !p.widthTiles || !p.heightTiles) return '';
   var w = p.widthTiles;
   var h = p.heightTiles;
+  var fs = EDIT_UNITS * 0.55;
   var html = '<g id="rg-interact-overlay" pointer-events="none">';
   for (var y = 0; y < h; y++) {
     for (var x = 0; x < w; x++) {
       var st = editCellInteractState(p, x, y);
+      if (st === '0') continue;
       var pos = typeof editCellPos === 'function' ? editCellPos(origin, x, y) : { x: x * EDIT_UNITS, y: y * EDIT_UNITS };
       var cx = pos.x + EDIT_UNITS / 2;
-      var cy = pos.y + EDIT_UNITS / 2 + 3;
+      var cy = pos.y + EDIT_UNITS / 2 + fs * 0.35;
       if (st === 'forced 1') {
         html += '<rect class="rg-interact-cell rg-interact-f1" x="' + pos.x + '" y="' + pos.y + '" width="' + EDIT_UNITS + '" height="' + EDIT_UNITS
-          + '" fill="rgba(34,197,94,0.35)" stroke="#22c55e" stroke-width="1"/>'
-          + '<text class="rg-interact-lbl" x="' + cx + '" y="' + cy + '" fill="#22c55e" font-size="8" font-weight="bold" text-anchor="middle">F1</text>';
+          + '" fill="rgba(34,197,94,0.3)" stroke="#22c55e" stroke-width="0.12"/>'
+          + '<text class="rg-interact-lbl" x="' + cx + '" y="' + cy + '" fill="#22c55e" font-size="' + fs + '" font-weight="bold" text-anchor="middle">F1</text>';
       } else if (st === 'forced 0') {
         html += '<rect class="rg-interact-cell rg-interact-f0" x="' + pos.x + '" y="' + pos.y + '" width="' + EDIT_UNITS + '" height="' + EDIT_UNITS
-          + '" fill="rgba(239,68,68,0.35)" stroke="#ef4444" stroke-width="1"/>'
-          + '<text class="rg-interact-lbl" x="' + cx + '" y="' + cy + '" fill="#ef4444" font-size="8" font-weight="bold" text-anchor="middle">F0</text>';
+          + '" fill="rgba(239,68,68,0.3)" stroke="#ef4444" stroke-width="0.12"/>'
+          + '<text class="rg-interact-lbl" x="' + cx + '" y="' + cy + '" fill="#ef4444" font-size="' + fs + '" font-weight="bold" text-anchor="middle">F0</text>';
       } else if (st === '1') {
         html += '<rect class="rg-interact-cell rg-interact-1" x="' + pos.x + '" y="' + pos.y + '" width="' + EDIT_UNITS + '" height="' + EDIT_UNITS
-          + '" fill="rgba(234,179,8,0.25)" stroke="#eab308" stroke-width="1"/>'
-          + '<text class="rg-interact-lbl" x="' + cx + '" y="' + cy + '" fill="#eab308" font-size="8" font-weight="bold" text-anchor="middle">1</text>';
-      } else {
-        html += '<rect class="rg-interact-cell rg-interact-0" x="' + pos.x + '" y="' + pos.y + '" width="' + EDIT_UNITS + '" height="' + EDIT_UNITS
-          + '" fill="none" stroke="rgba(100,100,100,0.18)" stroke-width="0.5"/>'
-          + '<text class="rg-interact-lbl" x="' + cx + '" y="' + cy + '" fill="rgba(150,150,150,0.4)" font-size="7" text-anchor="middle">0</text>';
+          + '" fill="rgba(234,179,8,0.25)" stroke="#eab308" stroke-width="0.12"/>'
+          + '<text class="rg-interact-lbl" x="' + cx + '" y="' + cy + '" fill="#eab308" font-size="' + fs + '" font-weight="bold" text-anchor="middle">1</text>';
       }
     }
   }

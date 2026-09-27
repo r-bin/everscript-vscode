@@ -1,3 +1,11 @@
+## [0.81.1] — 2026-09-27
+
+### Map editor: Clean Interact overlay UX
+
+- **Clean map overlay:** Kept default Bit 15 = 0 cells completely transparent instead of rendering labels on every tile, keeping the map clean and readable.
+- **Accurate 3-state visualization:** Only active states (`force 1` as green `F1`, `force 0` as red `F0`, and natural 1 / B-trigger target as yellow `1`) are drawn.
+- **Proper SVG scaling:** Aligned font size and stroke width to the editor coordinate system (`EDIT_UNITS = 2`) so text and cell borders render sharply within metatile boundaries.
+
 ## [0.81.0] — 2026-09-27
 
 ### Map editor: Bit 15 (Interact), concise Special tab, Force 0/1 tools, and Interact overlay

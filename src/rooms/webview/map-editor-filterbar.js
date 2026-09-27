@@ -77,7 +77,7 @@ function visSegmentsHtml(ctx) {
 function interactChipHtml() {
   var on = typeof interactOverlayOn === 'function' && interactOverlayOn();
   return '<button class="rdf rdf-interact' + (on ? ' on' : '') + '" data-edit-act="interact-overlay"'
-    + ' title="' + escH('Toggle Bit 15 (Interact) overlay: shows forced 0, forced 1, 1, or 0. Off by default.') + '">Interact</button>';
+    + ' title="' + escH('Toggle Bit 15 (Interact) overlay: shows force 1, force 0, and 1 (B-trigger). Default is empty. Off by default.') + '">Interact</button>';
 }
 
 /**
