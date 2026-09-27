@@ -44,6 +44,11 @@ function editDock(on, room) {
       row.appendChild(outer);
       row.appendChild(dock);
       dock.appendChild(panels);
+      // #rg-panels is outside #room-detail, so its clicks never reach the
+      // #room-detail listener that bindEditControls attaches. Bind the same
+      // handler on the dock itself so all tab-panel buttons (Object tab frame
+      // chips, ◀ ▶, Delete frame, +, etc.) are routed correctly.
+      bindEditControls(dock, room);
     }
     if (sec) sec.classList.add('rs-mt-hidden');
     // The resize grip sits over the map's own bottom-right corner, so the

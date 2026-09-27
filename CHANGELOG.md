@@ -1,4 +1,12 @@
+## [0.81.9] — 2026-09-27
+
+### Fix: Object tab buttons (◀ ▶, Delete frame, frame chips, +) were always dead — actual root cause
+
+- **Root cause found:** `#rg-panels` (where the Object tab lives) is a child of `#rg-dock`, which is a sibling of `#rg-outer` in the DOM — completely outside `#room-detail`. `bindEditControls` attaches its delegated click listener to `#room-detail`, so clicks on any tab-panel button bubble up through `#rg-dock` and never reach that listener. Every EDIT_CLICK_KEYS fix in v0.81.6–v0.81.8 was correct but irrelevant: the clicks were never delivered to the handler in the first place.
+- **Fix:** Added `bindEditControls(dock, room)` immediately after the dock is created in `editDock` (`map-editor-ui.js`). The `editBound` guard ensures the listener is added only once per dock lifetime; the dock is destroyed when edit mode is toggled off so there is no leak.
+
 ## [0.81.8] — 2026-09-27
+
 
 ### Fix: Object tab regression — all frame buttons broken again (v0.81.7 reverted the EDIT_CLICK_KEYS fix)
 
