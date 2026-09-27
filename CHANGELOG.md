@@ -1,3 +1,10 @@
+## [0.81.6] — 2026-09-27
+
+### Fix: Object tab frame navigation buttons were stuck / non-responsive
+
+- **Root cause:** Eight object data attributes (`objectToggle`, `objectFrame`, `objectAddFrame`, `objectRemoveFrame`, `objectConfirmRemoveFrame`, `objectCancelRemoveFrame`, `objectMoveFrame`, `objectMoveObj`) were missing from `EDIT_CLICK_KEYS` in `map-editor-input.js`. The walk-up in `editClickTarget` only searches that list, so clicking a frame chip, `+`, `◀`, `▶`, or "Delete frame" returned the raw inner `<span>` (whose dataset was empty), and the click was silently swallowed.
+- **Fix:** Added all eight missing keys to `EDIT_CLICK_KEYS`; widened the dispatch guard from a two-key OR (`objectSel || objectRemove`) to cover every data attribute that `objectClick` handles, so all frame actions now route correctly.
+
 ## [0.81.5] — 2026-09-27
 
 ### Map editor: Object clusters, expandable frames with automatic delta bounds, and reordering
