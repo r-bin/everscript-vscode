@@ -1,11 +1,20 @@
+## [0.81.7] — 2026-09-27
+
+### Fix: Object tab — three frame-editing bugs
+
+- **Delete frame did nothing:** `window.confirm` is suppressed in VS Code webviews, so the confirmed path never ran. Removed `window.confirm`; "Delete frame" now always shows the inline two-step "Delete? / Cancel" confirmation.
+- **◀ ▶ arrows couldn't reach frame 0:** The arrows were wired to `objectMoveFrame` (reorder), disabled at frame 1. Changed to `objectSelectFrame` navigation: ◀ at frame 1 now reaches frame 0, a ▶ is also shown on the State 0 bar for symmetrical stepping.
+- **Stale tiles remained after object delete:** `editRemoveObject` only called `renderEditChrome`. Added `renderEditLayer` + `requestComposedPreview` so delta tile overlays clear from the canvas immediately on delete.
+
 ## [0.81.6] — 2026-09-27
 
 ### Fix: Object tab frame navigation buttons were stuck / non-responsive
 
-- **Root cause:** Eight object data attributes (`objectToggle`, `objectFrame`, `objectAddFrame`, `objectRemoveFrame`, `objectConfirmRemoveFrame`, `objectCancelRemoveFrame`, `objectMoveFrame`, `objectMoveObj`) were missing from `EDIT_CLICK_KEYS` in `map-editor-input.js`. The walk-up in `editClickTarget` only searches that list, so clicking a frame chip, `+`, `◀`, `▶`, or "Delete frame" returned the raw inner `<span>` (whose dataset was empty), and the click was silently swallowed.
-- **Fix:** Added all eight missing keys to `EDIT_CLICK_KEYS`; widened the dispatch guard from a two-key OR (`objectSel || objectRemove`) to cover every data attribute that `objectClick` handles, so all frame actions now route correctly.
+- **Root cause:** Eight object data attributes (`objectToggle`, `objectFrame`, `objectAddFrame`, `objectRemoveFrame`, `objectConfirmRemoveFrame`, `objectCancelRemoveFrame`, `objectMoveFrame`, `objectMoveObj`) were missing from `EDIT_CLICK_KEYS` in `map-editor-input.js`. The `editClickTarget` walk-up only searches that list, so clicking a frame chip, `+`, `◀`, `▶`, or "Delete frame" returned the inner `<span>` (empty dataset) and the click was silently swallowed.
+- **Fix:** Added all eight missing keys; widened the dispatch guard to cover every data attribute that `objectClick` handles.
 
 ## [0.81.5] — 2026-09-27
+
 
 ### Map editor: Object clusters, expandable frames with automatic delta bounds, and reordering
 

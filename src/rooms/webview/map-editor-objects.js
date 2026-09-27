@@ -228,6 +228,10 @@ function editRemoveObject(uid) {
   if (_objectExpanded === uid) _objectExpanded = null;
   editNote('object removed');
   renderEditChrome();
+  // The object's delta tiles are SVG overlays drawn by renderEditLayer.
+  // Without this call they remain on the canvas after the object is gone.
+  renderEditLayer(_mtPalette, _editComposed, _editOrigin);
+  requestComposedPreview();
 }
 
 /** Stamps an object's layer uses, for pruning and the family sync. */
@@ -321,13 +325,17 @@ function objectRowHtml(o, n, listLen) {
     h += '<button class="ro-chip ro-chip-add" data-object-add-frame="' + o.uid + '" title="Add new frame to obj #' + n + '">+</button></div>'
       + '<div class="rg-object-frame-bar">';
     if (_objectActiveFrame === 0) {
-      h += '<span class="rg-obj-frame-info">State 0: Base look (loads with room)</span>';
+      h += '<span class="rg-obj-frame-info">State 0: Base look (loads with room)</span>'
+        + (frames.length ? '<button class="rdf rdf-xs" data-object-uid="' + o.uid + '" data-object-frame="1" title="Frame 1">▶</button>' : '');
     } else {
       var curB = objectFrameBounds(frames[_objectActiveFrame - 1]);
       var deltaInfo = curB ? (curB.w + '×' + curB.h + ' (' + curB.count + ' delta tiles)') : 'empty';
+      var prevF = _objectActiveFrame - 1, nextF = _objectActiveFrame + 1;
       h += '<span class="rg-obj-frame-info">Frame ' + _objectActiveFrame + ': ' + deltaInfo + '</span>'
-        + '<button class="rdf rdf-xs" data-object-uid="' + o.uid + '" data-object-move-frame="-1" title="Move frame left (earlier)"' + (_objectActiveFrame <= 1 ? ' disabled' : '') + '>◀</button>'
-        + '<button class="rdf rdf-xs" data-object-uid="' + o.uid + '" data-object-move-frame="1" title="Move frame right (later)"' + (_objectActiveFrame >= frames.length ? ' disabled' : '') + '>▶</button>';
+        + '<button class="rdf rdf-xs" data-object-uid="' + o.uid + '" data-object-frame="' + prevF
+          + '" title="' + (prevF === 0 ? 'State 0 (base)' : 'Frame ' + prevF) + '">◀</button>'
+        + '<button class="rdf rdf-xs" data-object-uid="' + o.uid + '" data-object-frame="' + nextF
+          + '" title="Frame ' + nextF + '"' + (_objectActiveFrame >= frames.length ? ' disabled' : '') + '>▶</button>';
       if (_confirmRemoveFrame === _objectActiveFrame) {
         h += '<button class="rdf rdf-xs rdf-warn" data-object-uid="' + o.uid + '" data-object-confirm-remove-frame="' + _objectActiveFrame + '" title="Confirm delete">Delete?</button>'
           + '<button class="rdf rdf-xs" data-object-cancel-remove-frame="1" title="Cancel">Cancel</button>';
@@ -366,10 +374,8 @@ function objectClick(t) {
   if (t.dataset.objectFrame) { objectSelectFrame(Number(t.dataset.objectFrame)); return true; }
   if (t.dataset.objectAddFrame) { objectAddFrame(Number(t.dataset.objectAddFrame)); return true; }
   if (t.dataset.objectRemoveFrame) {
-    var rf = Number(t.dataset.objectRemoveFrame), confirmed = false;
-    try { if (typeof window !== 'undefined' && typeof window.confirm === 'function') confirmed = window.confirm('Remove frame #' + rf + '?'); } catch (_) {}
-    if (confirmed) { objectRemoveFrame(Number(t.dataset.objectUid), rf); }
-    else { _confirmRemoveFrame = rf; renderEditChrome(); }
+    _confirmRemoveFrame = Number(t.dataset.objectRemoveFrame);
+    renderEditChrome();
     return true;
   }
   if (t.dataset.objectConfirmRemoveFrame) { objectRemoveFrame(Number(t.dataset.objectUid), Number(t.dataset.objectConfirmRemoveFrame)); return true; }
