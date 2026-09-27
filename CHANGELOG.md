@@ -1,3 +1,11 @@
+## [0.81.3] — 2026-09-27
+
+### Map editor: Deflect special tool, multi-flag interact overlay, and tile filters for special flags
+
+- **Deflect special tool:** Added `Deflect` (`DF`) tool to Gate & Deflect in the Special tab to set Bit 8 (`0x0100`) on collision words, making weapon slashes against walls deflect.
+- **Simultaneous 1 and F0/F1 visualization:** Interact overlay renders both symbols when a cell is covered by a B-trigger (natural 1) and has an explicit override (`Force 0` or `Force 1`), displaying them cleanly across diagonal quadrants.
+- **Tile filters for special flags:** Extended the Tile tab filter pill with options for `drift` (conveyor drift flag `0x2000`), `deflect` (Bit 8 `0x0100`), and `interaction` (Bit 15 `0x8000`).
+
 ## [0.81.2] — 2026-09-27
 
 ### Map editor: Pristine custom map reuse, B-trigger Bit 15 interaction, and quadrant special tiles

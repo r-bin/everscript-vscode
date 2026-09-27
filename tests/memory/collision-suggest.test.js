@@ -120,7 +120,7 @@ if (!fs.existsSync(ROM_PATH)) {
     test('family sheet slots carry ground and front shapes with their scores', () => {
         const sheet = rooms.buildFamilySheet(rom, 32, 0x34);
         const row = sheet.slots.find((s) => s[2] === 641);
-        assert.ok(row && row.length === 16, JSON.stringify(row));
+        assert.ok(row && row.length === 17, JSON.stringify(row));
         assert.strictEqual(row[6], 0x0f);
         assert.ok(row[7] >= 90);
     });
@@ -200,8 +200,8 @@ if (!fs.existsSync(ROM_PATH)) {
         assert.strictEqual(a.frameOf.get(2743).first, 2742);
         const sheet = rooms.buildFamilySheet(rom, 115, 0x34);
         const first = sheet.slots.find((r) => r[2] === 2742);
-        assert.deepStrictEqual(first.slice(13), [1, 2742, 0]);
-        assert.deepStrictEqual(sheet.slots.find((r) => r[2] === 2743).slice(13), [2, 2742, 1]);
+        assert.deepStrictEqual(first.slice(13, 16), [1, 2742, 0]);
+        assert.deepStrictEqual(sheet.slots.find((r) => r[2] === 2743).slice(13, 16), [2, 2742, 1]);
         assert.ok(sheet.animations[2742].delays.length === sheet.animations[2742].frames.length);
         const cat = rooms.buildFamilyCatalogue(rom).find((f) => f.id === 115);
         assert.ok(cat.frames > 0 && cat.frames < cat.tiles);

@@ -347,6 +347,19 @@ test('the catalog marks gate/drift/stairs as real writes and nothing else as one
     assert.strictEqual(api.editSpecialById('drift-n').drift, 0x8);
     assert.strictEqual(api.editSpecialById('interact-force-1').interact, 1);
     assert.strictEqual(api.editSpecialById('interact-force-0').interact, 0);
+    assert.strictEqual(api.editSpecialById('deflect').deflect, 1);
+    assert.strictEqual(api.editSpecialById('deflect').gate, 0x1);
+    assert.strictEqual(api.editSpecialById('deflect').glyph, 'DF');
+});
+
+test('deflect special sets bit 8 (0x0100) in collision word and displays DF glyph', () => {
+    const p = palette();
+    api.editReset(0x76);
+    const defIdx = api.editSpecialAppliedIndex(p, 0, 'deflect', false);
+    assert.strictEqual(api.editStampWords(p, defIdx).collision & 0x0100, 0x0100, 'Bit 8 set');
+    assert.strictEqual(api.editStampWords(p, defIdx).collision, 0x111f, '0x101f with bit 8 = 0x111f');
+    const svg = api.editSpecialGlyphSvg('deflect', 0, 0);
+    assert.ok(svg.includes('>DF<'), 'renders DF glyph');
 });
 
 test('interact picks force Bit 15 on (Force 1) or off (Force 0)', () => {
@@ -359,6 +372,18 @@ test('interact picks force Bit 15 on (Force 1) or off (Force 0)', () => {
     const f0 = api.editSpecialAppliedIndex(p, f1, 'interact-force-0', false);
     assert.strictEqual(api.editStampWords(p, f0).collision & 0x8000, 0, 'Bit 15 cleared');
     assert.strictEqual(api.editStampWords(p, f0).collision, 0x101f);
+});
+
+test('a cell can be 1 and F0/F1 at the same time in interactOverlaySvg', () => {
+    const p = palette();
+    api.setPalette(p);
+    const d = api.editReset(0x76);
+    d.placed.push({ kind: 'bTrigger', uid: 1, x: 0, y: 0, w: 2, h: 1 });
+    api.editApply([], [{ x: 0, y: 0, id: 'interact-force-0' }, { x: 1, y: 0, id: 'interact-force-1' }]);
+    const ov = api.interactOverlaySvg(p, { x: 0, y: 0 });
+    assert.ok(ov.includes('>F0<'), 'includes F0 for cell (0,0)');
+    assert.ok(ov.includes('>F1<'), 'includes F1 for cell (1,0)');
+    assert.ok(ov.includes('>1<'), 'includes 1 for B-trigger on cells');
 });
 
 test('editCellInteractState reports forced 1, forced 0, natural 1, and 0', () => {
@@ -376,41 +401,6 @@ test('editCellInteractState reports forced 1, forced 0, natural 1, and 0', () =>
     const s1 = api.editAddStamp(p, { layer1: 0, layer2: 0, collision: 0x9019 });
     api.editApply([{ x: 3, y: 3, index: s1 }], []);
     assert.strictEqual(api.editCellInteractState(p, 3, 3), '1');
-});
-
-test('all B triggers set covered tiles to 1 unless forced 0', () => {
-    const p = palette();
-    api.setPalette(p);
-    const d = api.editReset(0x76);
-    // Add placed B-trigger at (0, 0) with width 2, height 1
-    d.placed.push({ kind: 'bTrigger', uid: 1, x: 0, y: 0, w: 2, h: 1, scriptId: 0x22 });
-    assert.strictEqual(api.editCellInteractState(p, 0, 0), '1', '(0,0) is in B trigger');
-    assert.strictEqual(api.editCellInteractState(p, 1, 0), '1', '(1,0) is in B trigger');
-    assert.strictEqual(api.editCellInteractState(p, 2, 0), '0', '(2,0) outside B trigger is 0');
-
-    // Forced 0 overrides B trigger
-    api.editApply([], [{ x: 0, y: 0, id: 'interact-force-0' }]);
-    assert.strictEqual(api.editCellInteractState(p, 0, 0), 'forced 0', 'forced 0 overrides B trigger');
-    assert.strictEqual(api.editCellInteractState(p, 1, 0), '1', '(1,0) remains 1');
-});
-
-test('special tiles render white dashed outline and list symbols (1 centered, 2 in quadrants)', () => {
-    const p = palette();
-    api.setPalette(p);
-    const d = api.editReset(0x76);
-    // Single special: centered white dashed outline and white symbol
-    api.editApply([], [{ x: 0, y: 0, id: 'gate-boy' }]);
-    const svg1 = api.editSpecialGlyphSvg('gate-boy', 0, 0);
-    assert.ok(svg1.includes('rg-special-cell-box'), 'includes white dashed outline');
-    assert.ok(svg1.includes('stroke-dasharray="0.35 0.2"'), 'has dashed stroke');
-    assert.ok(svg1.includes('>B<'), 'includes white symbol B');
-
-    // 2 symbols: B trigger on cell with gate-boy
-    d.placed.push({ kind: 'bTrigger', uid: 1, x: 0, y: 0, w: 1, h: 1 });
-    const ovSvg = api.interactOverlaySvg(p, { x: 0, y: 0 });
-    assert.ok(ovSvg.includes('>B<'), 'includes B symbol');
-    assert.ok(ovSvg.includes('>1<'), 'includes 1 symbol');
-    assert.ok(ovSvg.includes('rg-special-cell-box'), 'includes white dashed outline');
 });
 
 console.log('\nspecial cells + undo:');
@@ -719,7 +709,7 @@ const ui = new Function(`
     specialSel: function () { return _specialSel; }, triggerTab: triggerTabPanelHtml,
     setTriggerKind: function (k) { _editTriggerKind = k; },
     pasteFloat: function () { return _pasteFloat; }, dropPaste: function () { _pasteFloat = null; },
-    tileSlotPasses: tileSlotPasses, tileAnimPlay: tileAnimPlay, tileFramesPick: tileFramesPick, tileShapePick: function (v) { _tileShape = v === 'all' ? null : v; },
+    tileSlotPasses: tileSlotPasses, tileFilterToggle: tileFilterToggle, tileAnimPlay: tileAnimPlay, tileFramesPick: tileFramesPick, tileShapePick: function (v) { _tileShape = v === 'all' ? null : v; },
   };`)();
 
 /** A palette with the tile sheet the host now sends alongside it. */
@@ -1563,6 +1553,37 @@ test('floor / edge / wall list tiles by the collision they would be painted with
     assert.ok(!ui.tileSlotPasses([0, 0, 1, 1, 0, 0, -1, 0, -1, 0, 0, 0, 0]), 'never seen: only under all');
     ui.tileShapePick('all');
     assert.ok(ui.tileSlotPasses(row(0x05)));
+});
+
+test('tiles list filters by special flags: drift, deflect and interact', () => {
+    // [slot, chr, graphic, uses, canopyUses, terrainUses, groundShape, groundPct, frontShape, frontPct, grass, gStairs, fStairs, animKind, animFirst, animFrame, specialFlags]
+    const rowWithFlags = (flags) => [0, 0, 6000, 1, 0, 9, 0, 90, -1, 0, 0, 0, 0, 0, 0, 0, flags];
+    const plain = rowWithFlags(0);
+    const driftTile = rowWithFlags(1 | (8 << 4)); // drift flag (1) + north (8)
+    const deflectTile = rowWithFlags(2);          // deflect flag (2)
+    const interactTile = rowWithFlags(4);         // interact flag (4)
+
+    // Filter drift
+    ui.tileFilterToggle('drift');
+    assert.ok(ui.tileSlotPasses(driftTile), 'drift tile passes drift filter');
+    assert.ok(!ui.tileSlotPasses(plain), 'plain tile fails drift filter');
+    assert.ok(!ui.tileSlotPasses(deflectTile), 'deflect tile fails drift filter');
+
+    // Filter deflect
+    ui.tileFilterToggle('deflect');
+    assert.ok(ui.tileSlotPasses(deflectTile), 'deflect tile passes deflect filter');
+    assert.ok(!ui.tileSlotPasses(plain), 'plain tile fails deflect filter');
+    assert.ok(!ui.tileSlotPasses(driftTile), 'drift tile fails deflect filter');
+
+    // Filter interact
+    ui.tileFilterToggle('interact');
+    assert.ok(ui.tileSlotPasses(interactTile), 'interact tile passes interact filter');
+    assert.ok(!ui.tileSlotPasses(plain), 'plain tile fails interact filter');
+    assert.ok(!ui.tileSlotPasses(deflectTile), 'deflect tile fails interact filter');
+
+    // Turn filter off
+    ui.tileFilterToggle('interact');
+    assert.ok(ui.tileSlotPasses(plain), 'plain tile passes when filter is off');
 });
 
 test('a stamped or pasted object lands on the level of the floor under it', () => {

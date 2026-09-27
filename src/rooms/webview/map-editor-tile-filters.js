@@ -55,7 +55,11 @@ function tileFamilyPasses(family) {
 function tileFamilyCount(family) {
   var meta = chipMeta(family);
   if (!meta) return 0;
-  var n = _tileFilter === 'grass' ? meta.grass || 0 : _tileFilter === 'stairs' ? meta.stairs || 0
+  var n = _tileFilter === 'grass' ? meta.grass || 0
+    : _tileFilter === 'stairs' ? meta.stairs || 0
+    : _tileFilter === 'drift' ? meta.drift || 0
+    : _tileFilter === 'deflect' ? meta.deflect || 0
+    : _tileFilter === 'interact' ? meta.interact || 0
     : meta.tiles - (_tileFramesSplit ? 0 : meta.frames || 0);
   if (_tileShape) n = Math.min(n, (meta.shapes && meta.shapes[_tileShape]) || 0);
   return n;
@@ -74,6 +78,9 @@ function tileShapeClass(slot) {
 function tileSlotPasses(slot) {
   if (_tileFilter === 'grass' && !slot[10]) return false;
   if (_tileFilter === 'stairs' && !(slot[11] || slot[12])) return false;
+  if (_tileFilter === 'drift' && !(slot[16] & 1)) return false;
+  if (_tileFilter === 'deflect' && !(slot[16] & 2)) return false;
+  if (_tileFilter === 'interact' && !(slot[16] & 4)) return false;
   if (_tileShape && tileShapeClass(slot) !== _tileShape) return false;
   if (!_tileFramesSplit && slot[13] === 2) return false;
   return true;
@@ -163,6 +170,9 @@ function tileFilterRowHtml() {
         + 'or what it turns into when cut. Off: every tile.'],
       ['stairs', 'stairs', 'Show only tiles vanilla draws as stairs. Painting one gives it the stairs '
         + 'flag (always-walkable, keeps the level), mirrored with H. Off: every tile.'],
+      ['drift', 'drift', 'Show only conveyor drift tiles (water currents, conveyor belts, quicksand, pipes). Off: every tile.'],
+      ['deflect', 'deflect', 'Show only tiles that deflect weapon slashes (bit 8 set in collision). Off: every tile.'],
+      ['interact', 'interaction', 'Show only interactive object tiles (containers, sniff spots, switches — bit 15 set). Off: every tile.'],
     ], function (v) { return _tileFilter === v; })
     + '</div>';
 }

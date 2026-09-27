@@ -46,11 +46,12 @@ var EDIT_SPECIAL_GROUPS = [
     ],
   },
   {
-    id: 'gate', label: 'Gate', note: 'Entity passability filters (Boy, Dog, NPCs).',
+    id: 'gate', label: 'Gate & Deflect', note: 'Entity passability filters and slash deflection (Bit 8).',
     items: [
       { id: 'gate-boy', label: 'Boy', glyph: 'B', gate: 0x7 },
       { id: 'gate-dog', label: 'Dog', glyph: 'D', gate: 0x5 },
       { id: 'gate-party', label: 'Rest of party', glyph: 'P', gate: 0x3 },
+      { id: 'deflect', label: 'Deflect', glyph: 'DF', deflect: 1, gate: 0x1 },
     ],
   },
   {
@@ -161,12 +162,10 @@ function editSpecialAppliedIndex(palette, baseIndex, specialId, erasing) {
     return editAddStamp(palette, { layer1: words.layer1, layer2: words.layer2, collision: cleared });
   }
   var def = editSpecialById(specialId);
-  if (!def || (def.gate == null && def.drift == null && def.interact == null)) return baseIndex;
-  var next = def.interact != null
-    ? editSpecialInteractWord(words.collision, def.interact)
-    : (def.gate != null
-      ? editSpecialGateWord(words.collision, def.gate)
-      : editSpecialDriftWord(words.collision, def.drift));
+  if (!def || (def.gate == null && def.drift == null && def.interact == null && def.deflect == null)) return baseIndex;
+  var next = def.interact != null ? editSpecialInteractWord(words.collision, def.interact)
+    : (def.deflect != null ? ((words.collision & ~SPECIAL_GATE_MASK) | 0x0100)
+      : (def.gate != null ? editSpecialGateWord(words.collision, def.gate) : editSpecialDriftWord(words.collision, def.drift)));
   if (next === words.collision) return baseIndex;
   return editAddStamp(palette, { layer1: words.layer1, layer2: words.layer2, collision: next });
 }
@@ -295,7 +294,7 @@ function buildSpecialFilterChipHtml() {
     + 'aria-label="Special filter groups">▾</button>'
     + '<div class="rg-filter-popup" id="rg-special-dropdown" hidden>'
     + '<button class="rdf on" data-hide="hide-special-stairs">Stairs &amp; Drift</button>'
-    + '<button class="rdf on" data-hide="hide-special-gate">Gate</button>'
+    + '<button class="rdf on" data-hide="hide-special-gate">Gate &amp; Deflect</button>'
     + '<button class="rdf on" data-hide="hide-special-entrance">Entrance</button>'
     + '</div></span>';
 }
@@ -371,19 +370,22 @@ function interactOverlaySvg(palette, origin) {
   var html = '<g id="rg-interact-overlay" pointer-events="none">';
   for (var y = 0; y < h; y++) {
     for (var x = 0; x < w; x++) {
-      var st = editCellInteractState(p, x, y);
-      if (st === '0') continue;
-      var pos = typeof editCellPos === 'function' ? editCellPos(origin, x, y) : { x: x * EDIT_UNITS, y: y * EDIT_UNITS };
-      var syms = [];
-      var sp = editSpecialAt(x, y);
+      var natural1 = editHasBTriggerAt(x, y);
+      if (!natural1 && typeof editCellAt === 'function' && typeof editStampWords === 'function' && p) {
+        var idx = editCellAt(p, x, y);
+        var sw = idx >= 0 ? editStampWords(p, idx) : null;
+        if (sw && (sw.collision & 0x8000)) natural1 = true;
+      }
+      var sp = editSpecialAt(x, y), syms = [], cls = '';
       if (sp && sp !== 'interact-force-1' && sp !== 'interact-force-0') {
         var sdef = editSpecialById(sp);
         if (sdef && sdef.glyph) syms.push(sdef.glyph);
       }
-      var cls = '';
-      if (st === 'forced 1') { syms.push('F1'); cls = 'rg-interact-cell rg-interact-f1'; }
-      else if (st === 'forced 0') { syms.push('F0'); cls = 'rg-interact-cell rg-interact-f0'; }
-      else if (st === '1') { syms.push('1'); cls = 'rg-interact-cell rg-interact-1'; }
+      if (sp === 'interact-force-1') { syms.push('F1'); if (natural1) syms.push('1'); cls = 'rg-interact-cell rg-interact-f1'; }
+      else if (sp === 'interact-force-0') { syms.push('F0'); if (natural1) syms.push('1'); cls = 'rg-interact-cell rg-interact-f0'; }
+      else if (natural1) { syms.push('1'); cls = 'rg-interact-cell rg-interact-1'; }
+      if (!syms.length) continue;
+      var pos = typeof editCellPos === 'function' ? editCellPos(origin, x, y) : { x: x * EDIT_UNITS, y: y * EDIT_UNITS };
       html += editRenderSpecialBoxSvg(syms, pos, cls, true);
     }
   }

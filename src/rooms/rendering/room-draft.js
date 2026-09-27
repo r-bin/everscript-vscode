@@ -77,6 +77,19 @@ function stairsOf(index, graphic, layer) {
     const s = maps.suggestStairs(index, graphic, layer);
     return s ? s.nibble : 0;
 }
+
+/** Special collision flags: 1=drift, 2=deflect (bit 8), 4=interact (bit 15), with drift nibble in high nibble. */
+function specialFlagsOf(index, graphicId) {
+    const list = (index.collisions.get(graphicId) || []).concat(index.canopyCollisions.get(graphicId) || []);
+    let flags = 0, driftDir = 0;
+    for (const a of list) {
+        if ((a.value & 0x2000) && (a.value & 0x0f) >= 8) { flags |= 1; driftDir = a.value & 0x0f; }
+        if (a.value & 0x0100) flags |= 2;
+        if (a.value & 0x8000) flags |= 4;
+    }
+    return ((driftDir & 0x0f) << 4) | (flags & 0x0f);
+}
+
 function buildBlankRoom(rom, opts) {
     const buf = rom instanceof Uint8Array ? rom : new Uint8Array(rom);
     const room = maps.blankRoom(buf, {
@@ -211,7 +224,7 @@ function buildFamilySheet(rom, familyId, borrowFrom) {
                 ground ? ground.value : -1, ground ? Math.round(ground.confidence * 100) : 0,
                 front ? front.value : -1, front ? Math.round(front.confidence * 100) : 0,
                 index.grass.get(id) || 0, stairsOf(index, id, 'terrain'), stairsOf(index, id, 'canopy'),
-                ...animationOf(index, id)];
+                ...animationOf(index, id), specialFlagsOf(index, id)];
         }),
         // Frame-0 graphic -> {frames, delays} for each animation that starts
         // in this family, so the Tile tab can show it moving.
@@ -308,6 +321,9 @@ function buildFamilyCatalogue(rom) {
             frames: list.filter((a) => index.animations.frameOf.has(a.value)).length,
             // The same for the `stairs` filter.
             stairs: list.filter((a) => stairsOf(index, a.value, 'terrain') || stairsOf(index, a.value, 'canopy')).length,
+            drift: list.filter((a) => (specialFlagsOf(index, a.value) & 1) !== 0).length,
+            deflect: list.filter((a) => (specialFlagsOf(index, a.value) & 2) !== 0).length,
+            interact: list.filter((a) => (specialFlagsOf(index, a.value) & 4) !== 0).length,
             // And for the collision filter (floor / edge / wall): graphics with
             // that suggested shape on either layer — a superset, so a family is
             // never dropped that could show one.

@@ -82,9 +82,16 @@ function tileCollisionMarkHtml(slot) {
 /** The swatch tooltip line for the same suggestion. */
 function tileCollisionTitle(slot) {
   var s = tileCollisionFor(slot, tilePaintLayer(slot[2]));
-  if (!s) return '\ncollision: vanilla never drew it on this layer — painted open';
-  return '\ncollision: ' + collisionShapeName(s.shape) + ' — ' + s.pct + '% of vanilla agrees'
-    + (s.pct < COLL_SURE_PCT ? ' (unsure: vanilla uses it both ways)' : '');
+  var title = !s ? '\ncollision: vanilla never drew it on this layer — painted open'
+    : '\ncollision: ' + collisionShapeName(s.shape) + ' — ' + s.pct + '% of vanilla agrees'
+      + (s.pct < COLL_SURE_PCT ? ' (unsure: vanilla uses it both ways)' : '');
+  if (slot && slot.length > 16 && slot[16]) {
+    var f = slot[16] & 0x0f;
+    if (f & 1) title += '\nspecial: drift conveyor';
+    if (f & 2) title += '\nspecial: deflect slashes (bit 8)';
+    if (f & 4) title += '\nspecial: interact target (bit 15)';
+  }
+  return title;
 }
 
 function collisionShapeName(shape) {
@@ -106,7 +113,15 @@ function tileSuggestedCollision(slot, layer, word) {
   var stairs = tileStairsFor(slot, layer, word || 0);
   if (stairs) return stairsCollisionWord(stairs);
   var s = tileCollisionFor(slot, layer);
-  return s ? (s.shape & 0x0f) : EMPTY_COLLISION;
+  var base = s ? (s.shape & 0x0f) : EMPTY_COLLISION;
+  if (slot && slot.length > 16 && slot[16]) {
+    var flags = slot[16] & 0x0f;
+    var drift = slot[16] >> 4;
+    if (flags & 1) base = STAIRS_AW | (drift || 0x08);
+    if (flags & 2) base |= 0x0100;
+    if (flags & 4) base |= 0x8000;
+  }
+  return base;
 }
 
 // ── stairs ──────────────────────────────────────────────────────────────────

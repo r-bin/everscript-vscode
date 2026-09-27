@@ -153,8 +153,6 @@
 .rg-theme.hide-special-entrance .rg-special-glyph-entrance{display:none!important}
 .rg-theme .rg-special-glyph-interact{fill:#eab308;font-weight:bold}
 .rg-theme .rg-interact-lbl{font-family:monospace;pointer-events:none;user-select:none}
-.rg-theme .rg-special-cell-box{stroke:rgba(255,255,255,0.85);stroke-width:0.1;stroke-dasharray:0.35 0.2;fill:none;pointer-events:none}
-.rg-theme .rg-special-glyph-text{font-family:monospace;font-weight:bold;fill:#ffffff;stroke:rgba(0,0,0,0.85);stroke-width:0.08;paint-order:stroke;pointer-events:none;user-select:none}
 
 /* ── The Boy's start on a drafted map (map-editor-start.js) ──────────────
  * Deliberately not under any hide-special filter: it is the map's one
