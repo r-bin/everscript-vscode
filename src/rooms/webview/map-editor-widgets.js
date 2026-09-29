@@ -116,6 +116,7 @@ function widgetSaveFromSelection() {
   var sel = g ? { x1: g.x, y1: g.y, x2: g.x + g.w - 1, y2: g.y + g.h - 1 } : _editSel;
   if (!sel) { editNote('select a region with the copy tool, or a stamped object, first'); renderEditChrome(); return; }
   var name = g ? g.name : widgetNextName();
+  if (!_mtPalette) { editNote('metatiles still loading — try again in a moment'); renderEditChrome(); return; }
   var c = editBuildConstruct(_mtPalette, sel, name);
   if (!c) { editNote('nothing painted there to keep'); renderEditChrome(); return; }
   var placed = widgetPlacedIn(d, sel);
@@ -123,6 +124,7 @@ function widgetSaveFromSelection() {
   widgetStore({ id: widgetNewId(), name: name, w: c.w, h: c.h, cells: c.cells, attachments: c.attachments });
   editNote('kept ' + c.w + '×' + c.h + ' as your widget “' + name + '” — ✎ edits it');
   renderEditChrome();
+  renderEditPanels();
 }
 
 function widgetHasSelection() {

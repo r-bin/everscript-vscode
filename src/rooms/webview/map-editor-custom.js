@@ -39,7 +39,7 @@ var _customMaps = [];
 /** Key of the custom map on screen, or null when a ROM/.evs room is. */
 var _customActive = null;
 /** Set while a custom map waits for its borrowed dictionary to arrive. */
-var _newMapWaiting = false;
+var _newMapWaiting = false, _copyMapPending = null;
 
 function customFind(key) {
   for (var i = 0; i < _customMaps.length; i++) if (_customMaps[i].key === key) return _customMaps[i];
@@ -146,6 +146,13 @@ function customDuplicateMap(targetRoom) {
   var room = targetRoom || _editPanelRoom;
   var d = editDraft();
   var borrow = (room && room.romRoomId != null) ? room.romRoomId : ((d && d.roomId) || (typeof _mtRoomId === 'number' ? _mtRoomId : CUSTOM_MAP_BORROW));
+  if (room && !room.custom && (!_mtPalette || (_mtPalette.roomId != null ? _mtPalette.roomId !== borrow : !_mtPalette.grid))) {
+    _copyMapPending = room;
+    requestMetatilePalette(room, _mtLayer);
+    editNote('loading map data to copy…');
+    renderEditChrome();
+    return null;
+  }
   var w = (_mtPalette && _mtPalette.widthTiles) || (room && room.widthTiles) || CUSTOM_MAP_W;
   var h = (_mtPalette && _mtPalette.heightTiles) || (room && room.heightTiles) || CUSTOM_MAP_H;
   var baseName = (room && room.name) || (room && room.custom && customFind(room.custom) ? customFind(room.custom).name : 'Map');
@@ -198,17 +205,14 @@ function customDuplicateMap(targetRoom) {
     if (isCur && d.placed) {
       d.placed.forEach(function (p) {
         if (p.removed) return;
-        var cp = JSON.parse(JSON.stringify(p));
-        cp.uid = pSeq++;
-        placed.push(cp);
+        var cp = JSON.parse(JSON.stringify(p)); cp.uid = pSeq++; placed.push(cp);
       });
     }
 
     var added = (isCur && d.added) ? JSON.parse(JSON.stringify(d.added)) : [];
     var addedGraphics = (isCur && d.addedGraphics) ? JSON.parse(JSON.stringify(d.addedGraphics)) : [];
     var constructs = (isCur && d.constructs) ? JSON.parse(JSON.stringify(d.constructs)) : [];
-    var cut = (isCur && d.cut) ? JSON.parse(JSON.stringify(d.cut)) : {};
-    var groups = (isCur && d.groups) ? JSON.parse(JSON.stringify(d.groups)) : [];
+    var cut = (isCur && d.cut) ? JSON.parse(JSON.stringify(d.cut)) : {}, groups = (isCur && d.groups) ? JSON.parse(JSON.stringify(d.groups)) : [];
 
     saved = {
       cells: cells, families: families, specialCells: specialCells, start: start,
@@ -315,6 +319,11 @@ function newMapPaletteReady() {
   editNote('drafting ' + m.name + '…');
   _resizeKeep = !!(m.saved && m.saved.start); // a reopened map keeps what it had
   requestBlankRoom(m.w, m.h);
+}
+
+function customCopyMapReady() {
+  if (!_copyMapPending) return;
+  var r = _copyMapPending; _copyMapPending = null; customDuplicateMap(r);
 }
 
 /**

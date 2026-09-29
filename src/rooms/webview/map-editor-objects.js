@@ -14,15 +14,11 @@ function editObjects() {
 }
 
 function editObjectFind(uid) {
-  var list = editObjects();
-  for (var i = 0; i < list.length; i++) if (list[i].uid === uid) return list[i];
-  return null;
+  return editObjects().find(function (p) { return p.uid === uid; }) || null;
 }
 
 function editObjectFrames(o) {
-  if (!o.frames || !Array.isArray(o.frames)) {
-    o.frames = (o.layer && Object.keys(o.layer).length) ? [Object.assign({}, o.layer)] : [];
-  }
+  if (!o.frames || !Array.isArray(o.frames)) o.frames = (o.layer && Object.keys(o.layer).length) ? [Object.assign({}, o.layer)] : [];
   return o.frames;
 }
 
@@ -38,8 +34,8 @@ function objectFrameBounds(layer) {
   var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
   for (var i = 0; i < keys.length; i++) {
     var p = keys[i].split(','), x = Number(p[0]), y = Number(p[1]);
-    if (x < minX) minX = x; if (x > maxX) maxX = x;
-    if (y < minY) minY = y; if (y > maxY) maxY = y;
+    minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+    minY = Math.min(minY, y); maxY = Math.max(maxY, y);
   }
   return { dx: minX, dy: minY, w: maxX - minX + 1, h: maxY - minY + 1, count: keys.length };
 }
@@ -61,7 +57,12 @@ function objectSelect(uid) {
   var o = editObjectFind(uid);
   if (o) {
     var frames = editObjectFrames(o);
-    if (_objectActiveFrame < 0 || _objectActiveFrame > frames.length) _objectActiveFrame = frames.length > 0 ? 1 : 0;
+    if (o.activeFrame != null && o.activeFrame >= 0 && o.activeFrame <= frames.length) {
+      _objectActiveFrame = o.activeFrame;
+    } else if (_objectActiveFrame < 0 || _objectActiveFrame > frames.length) {
+      _objectActiveFrame = frames.length > 0 ? 1 : 0;
+    }
+    o.activeFrame = _objectActiveFrame;
     o.layer = _objectActiveFrame >= 1 ? (frames[_objectActiveFrame - 1] || {}) : {};
     o.states = frames.length + 1;
     editNote('obj #' + editObjects().indexOf(o) + ' selected — frame #' + _objectActiveFrame + ' active');
@@ -77,6 +78,7 @@ function objectSelectFrame(f, uid) {
     var frames = editObjectFrames(o);
     if (_objectActiveFrame < 0) _objectActiveFrame = 0;
     if (_objectActiveFrame > frames.length) _objectActiveFrame = frames.length > 0 ? frames.length : 0;
+    o.activeFrame = _objectActiveFrame;
     o.layer = _objectActiveFrame >= 1 ? (frames[_objectActiveFrame - 1] || {}) : {};
     editNote('obj #' + editObjects().indexOf(o) + ' — ' + (f === 0 ? 'State 0 (base)' : 'Frame #' + f));
   }
@@ -97,6 +99,7 @@ function objectAddFrame(uid) {
   o.frameSpecials.push(Object.assign({}, curSpecials));
   o.states = frames.length + 1;
   _objectSel = uid; _objectExpanded = uid; _objectActiveFrame = frames.length;
+  o.activeFrame = _objectActiveFrame;
   o.layer = newFrame; _confirmRemoveFrame = null;
   editEnd();
   editNote('Added frame #' + _objectActiveFrame + ' to obj #' + editObjects().indexOf(o));
@@ -113,6 +116,7 @@ function objectRemoveFrame(uid, f) {
   if (o.frameSpecials) o.frameSpecials.splice(f - 1, 1);
   o.states = frames.length + 1;
   _objectActiveFrame = Math.max(0, Math.min(_objectActiveFrame, frames.length));
+  o.activeFrame = _objectActiveFrame;
   o.layer = _objectActiveFrame >= 1 ? frames[_objectActiveFrame - 1] : {};
   _confirmRemoveFrame = null;
   editEnd();
@@ -131,7 +135,7 @@ function objectMoveFrame(uid, dir) {
   if (o.frameSpecials) {
     var tmps = o.frameSpecials[from]; o.frameSpecials[from] = o.frameSpecials[to]; o.frameSpecials[to] = tmps;
   }
-  _objectActiveFrame = to + 1; o.layer = frames[_objectActiveFrame - 1]; _confirmRemoveFrame = null;
+  _objectActiveFrame = to + 1; o.activeFrame = _objectActiveFrame; o.layer = frames[_objectActiveFrame - 1]; _confirmRemoveFrame = null;
   editEnd();
   editNote('Moved frame to #' + _objectActiveFrame);
   renderEditChrome();
@@ -274,7 +278,7 @@ function editObjectSvg(palette, composed, origin) {
   var html = '';
   editObjects().forEach(function (o, idx) {
     var isSel = (o.uid === _objectSel), frames = editObjectFrames(o);
-    var activeIdx = isSel ? _objectActiveFrame : 0;
+    var activeIdx = isSel ? _objectActiveFrame : (o.activeFrame != null ? o.activeFrame : (frames.length > 0 ? 1 : 0));
     var curLayer = activeIdx >= 1 ? (frames[activeIdx - 1] || o.layer || {}) : {};
     Object.keys(curLayer).forEach(function (k) {
       var p = k.split(','), pos = editCellPos(origin, o.x + Number(p[0]), o.y + Number(p[1]));
@@ -377,19 +381,14 @@ function objectTabHtml() {
 function objectClick(t) {
   if (t.dataset.objectRemove) { editRemoveObject(Number(t.dataset.objectRemove)); return true; }
   if (t.dataset.objectToggle) {
-    var tuid = Number(t.dataset.objectToggle);
-    _objectExpanded = (_objectExpanded === tuid) ? null : tuid;
+    var tuid = Number(t.dataset.objectToggle); _objectExpanded = (_objectExpanded === tuid) ? null : tuid;
     if (_objectExpanded) objectSelect(tuid); else renderEditChrome();
     return true;
   }
   if (t.dataset.objectSel) { objectSelect(Number(t.dataset.objectSel)); return true; }
   if (t.dataset.objectFrame) { objectSelectFrame(Number(t.dataset.objectFrame), t.dataset.objectUid ? Number(t.dataset.objectUid) : undefined); return true; }
   if (t.dataset.objectAddFrame) { objectAddFrame(Number(t.dataset.objectAddFrame)); return true; }
-  if (t.dataset.objectRemoveFrame) {
-    _confirmRemoveFrame = Number(t.dataset.objectRemoveFrame);
-    renderEditChrome();
-    return true;
-  }
+  if (t.dataset.objectRemoveFrame) { _confirmRemoveFrame = Number(t.dataset.objectRemoveFrame); renderEditChrome(); return true; }
   if (t.dataset.objectConfirmRemoveFrame) { objectRemoveFrame(Number(t.dataset.objectUid), Number(t.dataset.objectConfirmRemoveFrame)); return true; }
   if (t.dataset.objectCancelRemoveFrame) { _confirmRemoveFrame = null; renderEditChrome(); return true; }
   if (t.dataset.objectMoveFrame) { objectMoveFrame(Number(t.dataset.objectUid), Number(t.dataset.objectMoveFrame)); return true; }

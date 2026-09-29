@@ -57,6 +57,7 @@ function applyMetatilePalette(msg) {
     return;
   }
   _mtPalette = msg.palette;
+  if (_mtPalette && _mtPalette.roomId == null && msg.roomId != null) _mtPalette.roomId = msg.roomId;
   // vanilla[] rows are [family, %, alts, collision, %, canopyUses, terrainUses]
   // and the tile sheet's slots are parallel to the room's graphics list.
   if (typeof noteLayerHints === 'function' && msg.palette.vanilla && msg.palette.tiles) {
@@ -71,6 +72,7 @@ function applyMetatilePalette(msg) {
   // `new map` cannot draft anything until the dictionary it borrows from is
   // in hand, so it waits here rather than racing the request.
   if (typeof newMapPaletteReady === 'function') newMapPaletteReady();
+  if (typeof customCopyMapReady === 'function') customCopyMapReady();
 }
 
 /**

@@ -330,7 +330,7 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
   stroke-dasharray:.6,.4;pointer-events:none}
 /* While editing, the map takes a crosshair and the overlays stay clickable-through. */
 .rg-editing .rg-svg{cursor:crosshair}
-.rg-editing #rg-objlayer,.rg-editing .svge-romobj{pointer-events:none!important}
+.rg-editing [class*="svge-"],.rg-editing #rg-objlayer,.rg-editing .svge-romobj{pointer-events:none!important}
 /* The editor's panel column: metrics, checks, families, tile groups and the
    metatiles the draft still needs. Collapsible, because four of them do not
    fit a sidebar open at once. */

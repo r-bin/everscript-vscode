@@ -23,10 +23,7 @@ function editEventCell(e) {
   var pt = svg.createSVGPoint();
   pt.x = e.clientX; pt.y = e.clientY;
   var p = pt.matrixTransform(svg.getScreenCTM().inverse());
-  return {
-    x: Math.floor((p.x - _editOrigin.x) / EDIT_UNITS),
-    y: Math.floor((p.y - _editOrigin.y) / EDIT_UNITS),
-  };
+  return { x: Math.floor((p.x - _editOrigin.x) / EDIT_UNITS), y: Math.floor((p.y - _editOrigin.y) / EDIT_UNITS) };
 }
 
 /** The cuttable layer is the one being drawn on (map-editor-cutlayer.js). */
@@ -37,7 +34,11 @@ function cutLayerActive() {
 /** A click or drag step with the current tool. */
 function editStroke(cell, phase) {
   var d = editDraft();
-  if (!d || !editInBounds(_mtPalette, cell.x, cell.y)) return;
+  if (!d) return;
+  if (phase !== 'down' && _mtPalette && _mtPalette.widthTiles && _mtPalette.heightTiles) {
+    cell = { x: Math.max(0, Math.min(_mtPalette.widthTiles - 1, cell.x)), y: Math.max(0, Math.min(_mtPalette.heightTiles - 1, cell.y)) };
+  }
+  if (!editInBounds(_mtPalette, cell.x, cell.y)) return;
 
   // A copy on the pointer: the click puts it down, whatever the tool (map-editor-clipboard.js).
   if (typeof _pasteFloat !== 'undefined' && _pasteFloat) {
@@ -109,8 +110,7 @@ function editStroke(cell, phase) {
     }
     var eraseSpecial = hadSpecial ? [{ x: cell.x, y: cell.y, id: null }] : [];
     if (eraseWrites.length || eraseSpecial.length) editApply(eraseWrites, eraseSpecial);
-    renderEditChrome();
-    return;
+    renderEditChrome(); return;
   }
 
   var kind = drawKind();
@@ -121,8 +121,7 @@ function editStroke(cell, phase) {
     if (got.writes.length) requestComposedPreview();
     if (got.problems.length) editNote(got.problems.join(' · '));
     else if (!got.writes.length) editNote('nothing to place there');
-    renderEditChrome();
-    return;
+    renderEditChrome(); return;
   }
 
   // The Trigger tab's pencil drags out a new trigger's box.
@@ -137,14 +136,12 @@ function editStroke(cell, phase) {
     // Every tile lands on the level picked in the left bar (map-editor-levels.js).
     if (cutLayerActive()) {
       editApplyStroke(onLevel([editCutWrite(cell.x, cell.y, d.brush, false)].filter(Boolean)));
-      renderEditChrome();
-      return;
+      renderEditChrome(); return;
     }
     var idx = editResolve(_mtPalette, cell.x, cell.y, d.brush, false);
     if (idx < 0) return;
     editApplyStroke(onLevel([{ x: cell.x, y: cell.y, index: idx }]));
-    renderEditChrome();
-    return;
+    renderEditChrome(); return;
   }
 
   // The copy tool: a pasted object, selected, moves by dragging it; a drag
@@ -159,10 +156,8 @@ function editStroke(cell, phase) {
     if (d.tool === 'copy' && typeof editDeselectAll === 'function') editDeselectAll();
   }
   if (!_editDrag) return;
-  _editSel = {
-    x1: Math.min(_editDrag.x1, cell.x), y1: Math.min(_editDrag.y1, cell.y),
-    x2: Math.max(_editDrag.x1, cell.x), y2: Math.max(_editDrag.y1, cell.y),
-  };
+  _editSel = { x1: Math.min(_editDrag.x1, cell.x), y1: Math.min(_editDrag.y1, cell.y),
+    x2: Math.max(_editDrag.x1, cell.x), y2: Math.max(_editDrag.y1, cell.y) };
   if (phase !== 'up') { renderEditLayer(_mtPalette, _editComposed, _editOrigin); return; }
 
   if (d.tool === 'copy') {
@@ -174,8 +169,7 @@ function editStroke(cell, phase) {
     // on purpose: the clipboard holds whole cells lifted off the map, so
     // re-resolving them against what they land on would merge two finished
     // cells rather than copy one.
-    editApply(editPasteWrites(_editSel.x1, _editSel.y1, _mtPalette));
-    _editSel = null;
+    editApply(editPasteWrites(_editSel.x1, _editSel.y1, _mtPalette)); _editSel = null;
   } else {
     // A real drag takes the region; `move` also backfills it.
     var backfill = editTakeSelection(_mtPalette, d.tool === 'move');
@@ -324,17 +318,20 @@ function setupEditGestures() {
     e.stopPropagation();
   }, true);
 
-  // Released outside the map: the gesture still ends, as one step. One
-  // window listener for the page, pointed at this room's gesture state.
+  // Released outside the map: the gesture still ends, as one step.
   _editGestureRelease = function () {
     if (!painting) return;
-    painting = false;
-    editEnd();
-    renderEditChrome();
+    painting = false; editEnd(); renderEditChrome();
   };
   if (typeof window !== 'undefined' && window.addEventListener && !window._editReleaseBound) {
     window._editReleaseBound = true;
-    window.addEventListener('mouseup', function () { if (_editGestureRelease) _editGestureRelease(); });
+    window.addEventListener('mouseup', function (e) {
+      if (painting && editActive()) {
+        painting = false; var cell = editEventCell(e);
+        if (cell) editStroke(cell, 'up');
+      }
+      if (_editGestureRelease) _editGestureRelease();
+    });
   }
 }
 

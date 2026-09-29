@@ -68,8 +68,15 @@ function renderEditLayer(palette, composed, origin) {
     img.parentNode.insertBefore(g, img.nextSibling);
   }
   g.setAttribute('pointer-events', 'none');
+  var overlay = document.getElementById('rg-edit-overlay');
+  if (!overlay) {
+    overlay = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    overlay.setAttribute('id', 'rg-edit-overlay');
+    svg.appendChild(overlay);
+  }
+  overlay.setAttribute('pointer-events', 'none');
   var d = editDraft();
-  if (!d) { g.innerHTML = ''; return; }
+  if (!d) { g.innerHTML = ''; overlay.innerHTML = ''; return; }
 
   // The painted tiles alone, in their own group: the Trigger tab's row
   // previews show them by `<use href="#rg-edit-tiles">`, and a copy made
@@ -97,59 +104,71 @@ function renderEditLayer(palette, composed, origin) {
   // painted with a tile, a special, both, or neither. Non-blocking of the
   // base tile colour, per the design mock.
   var drawnKeys = {};
-  var activeObj = (typeof _objectSel !== 'undefined' && _objectSel != null && typeof _objectActiveFrame !== 'undefined' && _objectActiveFrame >= 1 && typeof editObjectFind === 'function') ? editObjectFind(_objectSel) : null;
-  var fs = (activeObj && activeObj.frameSpecials && activeObj.frameSpecials[_objectActiveFrame - 1]) || null;
+  var objList = typeof editObjects === 'function' ? editObjects() : [];
+  var activeSpecials = [];
+  objList.forEach(function (o) {
+    var isSel = (typeof _objectSel !== 'undefined' && o.uid === _objectSel);
+    var af = isSel ? (typeof _objectActiveFrame !== 'undefined' ? _objectActiveFrame : 1)
+      : (o.activeFrame != null ? o.activeFrame : (typeof editObjectFrames === 'function' && editObjectFrames(o).length > 0 ? 1 : 0));
+    if (af >= 1 && o.frameSpecials && o.frameSpecials[af - 1]) {
+      activeSpecials.push({ obj: o, fs: o.frameSpecials[af - 1] });
+    }
+  });
   Object.keys(d.specialCells || {}).forEach(function (k) {
-    if (activeObj && fs) {
-      var p0 = k.split(','), tx = Number(p0[0]), ty = Number(p0[1]);
-      if (tx >= activeObj.x && ty >= activeObj.y && tx < activeObj.x + activeObj.w && ty < activeObj.y + activeObj.h) {
-        var fk = (tx - activeObj.x) + ',' + (ty - activeObj.y);
-        if (Object.prototype.hasOwnProperty.call(fs, fk)) return;
+    var p0 = k.split(','), tx = Number(p0[0]), ty = Number(p0[1]);
+    for (var i = 0; i < activeSpecials.length; i++) {
+      var item = activeSpecials[i], ao = item.obj;
+      if (tx >= ao.x && ty >= ao.y && tx < ao.x + ao.w && ty < ao.y + ao.h) {
+        var fk = (tx - ao.x) + ',' + (ty - ao.y);
+        if (Object.prototype.hasOwnProperty.call(item.fs, fk)) return;
       }
     }
     drawnKeys[k] = true;
-    var p = k.split(',');
-    var pos = editCellPos(origin, Number(p[0]), Number(p[1]));
+    var pos = editCellPos(origin, tx, ty);
     html += editSpecialGlyphSvg(d.specialCells[k], pos.x, pos.y);
   });
-  if (activeObj && fs) {
-    Object.keys(fs).forEach(function (fk) {
-      if (!fs[fk]) return;
-      var p = fk.split(','), tx = activeObj.x + Number(p[0]), ty = activeObj.y + Number(p[1]);
+  activeSpecials.forEach(function (item) {
+    var ao = item.obj;
+    Object.keys(item.fs).forEach(function (fk) {
+      if (!item.fs[fk]) return;
+      var p = fk.split(','), tx = ao.x + Number(p[0]), ty = ao.y + Number(p[1]);
       var pos = editCellPos(origin, tx, ty);
-      html += editSpecialGlyphSvg(fs[fk], pos.x, pos.y);
+      html += editSpecialGlyphSvg(item.fs[fk], pos.x, pos.y);
     });
-  }
+  });
   // The Boy's start, over the tiles and glyphs — map-editor-start.js.
   html += editStartSvg(origin);
+  g.innerHTML = html;
+
+  var ovHtml = '';
   // The Select tool's own outlines: the selected trigger, and a live preview
   // of where a drag would land it — see map-editor-trigger-select.js.
   if (d.selectedTriggerRef) {
     var selTrig = editTriggerFind(d.selectedTriggerRef);
-    if (selTrig) html += triggerOutlineSvg(selTrig, d.selectedTriggerRef.kind, origin, 'rg-trigger-sel');
+    if (selTrig) ovHtml += triggerOutlineSvg(selTrig, d.selectedTriggerRef.kind, origin, 'rg-trigger-sel');
   }
   if (_triggerDrag) {
-    html += triggerOutlineSvg({
+    ovHtml += triggerOutlineSvg({
       x1: _triggerDrag.x, y1: _triggerDrag.y,
       x2: _triggerDrag.x + _triggerDrag.w - 1, y2: _triggerDrag.y + _triggerDrag.h - 1,
     }, _triggerDrag.ref.kind, origin, 'rg-trigger-drag');
   }
   // Triggers this draft placed, and one being dragged out (map-editor-drawable.js).
-  if (typeof editTriggerSvg === 'function') html += editTriggerSvg(origin);
+  if (typeof editTriggerSvg === 'function') ovHtml += editTriggerSvg(origin);
   // Stamped objects, while selecting or selected (map-editor-groups.js).
-  if (typeof editGroupSvg === 'function') html += editGroupSvg(origin);
-  if (typeof editSpecialSelSvg === 'function') html += editSpecialSelSvg(origin);
-  if (typeof editPasteGhostSvg === 'function') html += editPasteGhostSvg(palette, composed, origin);
+  if (typeof editGroupSvg === 'function') ovHtml += editGroupSvg(origin);
+  if (typeof editSpecialSelSvg === 'function') ovHtml += editSpecialSelSvg(origin);
+  if (typeof editPasteGhostSvg === 'function') ovHtml += editPasteGhostSvg(palette, composed, origin);
   if (_editSel) {
     var a = editCellPos(origin, _editSel.x1, _editSel.y1);
-    html += '<rect class="rg-edit-sel" x="' + a.x + '" y="' + a.y
+    ovHtml += '<rect class="rg-edit-sel" x="' + a.x + '" y="' + a.y
       + '" width="' + ((_editSel.x2 - _editSel.x1 + 1) * EDIT_UNITS)
       + '" height="' + ((_editSel.y2 - _editSel.y1 + 1) * EDIT_UNITS) + '" pointer-events="none"/>';
   }
   if (typeof interactOverlaySvg === 'function' && typeof interactOverlayOn === 'function' && interactOverlayOn()) {
-    html += interactOverlaySvg(palette, origin, drawnKeys);
+    ovHtml += interactOverlaySvg(palette, origin, drawnKeys);
   }
-  g.innerHTML = html;
+  overlay.innerHTML = ovHtml;
 }
 
 /**

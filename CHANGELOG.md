@@ -1,3 +1,14 @@
+## [0.82.9] — 2026-09-29
+
+### Fix: Selection overlay layer order, gesture edge clamping, async room duplication, and persistent object active frame
+
+- **Top-level selection overlay (#rg-edit-overlay):** In `src/rooms/webview/map-editor-paint.js`, created a dedicated `#rg-edit-overlay` group appended as the last child of `#rg-svg` (above `#rg-fg` Mode 1 priority foreground tiles, `#rg-canopy-ov`, and all map layers). Selection rectangles (`.rg-edit-sel`), trigger drag outlines, group outlines, and paste ghosts now render strictly on top of priority tiles and canopies.
+- **Gesture edge clamping and pointer events:** In `src/rooms/webview/map-editor-gestures.js`, clamped `cell.x` and `cell.y` to map boundaries during `move` and `up` phases so mouse gestures moving past room edges do not abort and drag selections finalize cleanly. In `src/shared/shared.css`, added all `[class*="svge-"]` elements to `pointer-events: none !important;` during editing to prevent vanilla SVG layers from intercepting mouse clicks and drags.
+- **Async vanilla room copying:** In `src/rooms/webview/map-editor-custom.js`, `detail-renderer.js`, `map-editor-ui.js`, and `metatile-palette.js`, fixed `_mtPalette` tracking across rooms. When copying a vanilla room whose metatile palette is not yet cached or loaded, `customDuplicateMap` requests the palette and triggers `customCopyMapReady()` when the dictionary arrives, successfully populating all cells and attachments instead of creating a blank map.
+- **Widget creation on vanilla rooms:** In `src/rooms/webview/map-editor-widgets.js`, added a readiness check for `_mtPalette` and immediate UI panel re-rendering on `widgetStore`, allowing "From selection" widgets to be created seamlessly from vanilla rooms like Strongheart's Hut.
+- **Persistent object active frame:** In `src/rooms/webview/map-editor-objects.js` and `map-editor-paint.js`, tracked `o.activeFrame` on each object instance. In `editObjectSvg`, unselected objects now default to rendering their active frame delta tiles (or Frame 1 when delta frames exist) instead of falling back to State 0 until the Objects tab is clicked.
+- **Tests:** Added unit test coverage in `tests/memory/map-editor.test.js` verifying out-of-bounds gesture edge clamping, unselected object delta rendering, and deferred vanilla room duplication.
+
 ## [0.82.8] — 2026-09-29
 
 ### Fix: Box-select sticking under overlays, Copy Map action, and selection widget creation

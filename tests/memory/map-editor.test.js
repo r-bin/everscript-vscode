@@ -767,6 +767,8 @@ const ui = new Function(`
     setGroupSel: function (g) { _groupSel = g; },
     widgetHasSelection: widgetHasSelection, widgetSaveFromSelection: widgetSaveFromSelection,
     editBuildConstruct: editBuildConstruct, moreFilterGroupHtml: moreFilterGroupHtml,
+    getEditSel: function () { return _editSel; }, customCopyMapReady: customCopyMapReady,
+    objectSelect: objectSelect, objectSelectFrame: objectSelectFrame,
   };`)();
 
 /** A palette with the tile sheet the host now sends alongside it. */
@@ -1830,6 +1832,76 @@ test('editBuildConstruct captures specialCells and editConstructWrites reproduce
     assert.strictEqual(written.specials[0].id, 'gate-dog');
     assert.strictEqual(written.specials[0].x, 0);
     assert.strictEqual(written.specials[0].y, 0);
+});
+
+test('editStroke clamps out-of-bounds drag coordinates on move and up, allowing edge selection', () => {
+    const p = tilePalette();
+    p.widthTiles = 4;
+    p.heightTiles = 4;
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    d.on = true;
+    d.tool = 'copy';
+
+    // Start inside at (0, 0)
+    ui.editStroke({ x: 0, y: 0 }, 'down');
+    // Drag way past bottom-right edge to (10, 10)
+    ui.editStroke({ x: 10, y: 10 }, 'move');
+    // Release outside bounds at (12, 12)
+    ui.editStroke({ x: 12, y: 12 }, 'up');
+
+    const sel = ui.getEditSel();
+    assert.ok(sel, 'selection created even when dragged past edge');
+    assert.strictEqual(sel.x1, 0);
+    assert.strictEqual(sel.y1, 0);
+    assert.strictEqual(sel.x2, 3, 'clamped to widthTiles - 1');
+    assert.strictEqual(sel.y2, 3, 'clamped to heightTiles - 1');
+});
+
+test('editObjectSvg renders object delta tiles even when object is unselected', () => {
+    const p = Object.assign(tilePalette(), {
+        imageUri: 'data:img/room', imageWidth: 256, imageHeight: 16, columns: 16, cell: 16
+    });
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    d.on = true;
+    d.placed = [{
+        kind: 'object', uid: 42, x: 1, y: 1, w: 2, h: 2, states: 2,
+        frames: [{ '0,0': 1 }], layer: { '0,0': 1 }, activeFrame: 1
+    }];
+
+    // Deselect any selected object
+    ui.editDeselectAll();
+    const svg = ui.editObjectSvg(p, null, { x: 0, y: 0 });
+    assert.ok(svg.includes('rg-obj-cell'), 'delta tile is rendered even without object selection');
+});
+
+test('customDuplicateMap defers copying vanilla room until palette loads and copies correctly', () => {
+    ui.editReset(0x33);
+    ui.setPanelRoom({ romRoomId: 0x33, name: "Strong Heart's Exterior", widthTiles: 4, heightTiles: 4 });
+    ui.setCustom([], null);
+    // Palette is not loaded yet for 0x33
+    ui.setPalette(null);
+
+    const pending = ui.customDuplicateMap();
+    assert.strictEqual(pending, null, 'defers synchronously when palette is not loaded');
+
+    // Simulate palette arrival from host
+    const p = tilePalette();
+    p.roomId = 0x33;
+    p.widthTiles = 4;
+    p.heightTiles = 4;
+    p.grid = [[0, 1, 0, 1], [1, 0, 1, 0], [0, 1, 0, 1], [1, 0, 1, 0]];
+    p.attachments = { bTrigger: [[0, 0, 2, 2, 0x99]], stepOn: [], objects: [] };
+    ui.setPalette(p);
+
+    ui.customCopyMapReady();
+    const maps = ui.customMaps();
+    assert.strictEqual(maps.length, 1, 'map duplicated once palette ready');
+    assert.strictEqual(maps[0].name, "Copy of Strong Heart's Exterior");
+    assert.strictEqual(maps[0].saved.cells['0,0'], 0);
+    assert.strictEqual(maps[0].saved.cells['1,0'], 1);
+    assert.strictEqual(maps[0].saved.placed.length, 1);
 });
 
 console.log(`\n  ${passed} passed, ${failed} failed`);

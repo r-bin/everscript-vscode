@@ -59,7 +59,8 @@ function editDock(on, room) {
     }
     // Nothing can be painted without the dictionary, so fetch it now
     // rather than making the user find the load button.
-    if (!_mtPalette && room) requestMetatilePalette(room, _mtLayer);
+    var curBorrow = room.custom ? (typeof customFind === 'function' && customFind(room.custom) ? customFind(room.custom).borrow : null) : (typeof roomVanillaIdNum === 'function' ? roomVanillaIdNum(room) : null);
+    if ((!_mtPalette || _mtPalette.roomId !== curBorrow) && room) requestMetatilePalette(room, _mtLayer);
     renderEditPanels();
   } else if (dock) {
     if (sec) sec.classList.remove('rs-mt-hidden');

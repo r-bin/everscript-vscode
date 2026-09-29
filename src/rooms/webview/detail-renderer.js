@@ -114,8 +114,8 @@ function renderRoomDetail(room){
   // The editor: its own draft per room, and gesture handlers that stay out
   // of the way until edit mode is on.
   _editOrigin={x:svgResult.mapX0||0,y:svgResult.mapY0||0};
-  // A custom map has its own draft, keyed by its own id rather than by the
-  // room it borrows graphics from — so it is never mistaken for that room's.
+  var curBorrow=room.custom?(typeof customFind==='function'&&customFind(room.custom)?customFind(room.custom).borrow:null):roomVanillaIdNum(room);
+  if(_mtPalette&&_mtPalette.roomId!==curBorrow)_mtPalette=null;
   if(room.custom)customBindDraft(room);
   else if(!editDraft()||editDraft().customKey||editDraft().roomId!==roomVanillaIdNum(room))editReset(roomVanillaIdNum(room));
   bindEditControls(panel,room);
