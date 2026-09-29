@@ -131,6 +131,107 @@ function customNew(w, h, borrow) {
   return m;
 }
 
+function customCopyName(baseName) {
+  var base = 'Copy of ' + (baseName || 'Map').replace(/^Copy of /, '');
+  var existing = _customMaps || [];
+  if (!existing.some(function (m) { return m.name === base; })) return base;
+  var n = 2;
+  while (existing.some(function (m) { return m.name === base + ' ' + n; })) {
+    n++;
+  }
+  return base + ' ' + n;
+}
+
+function customDuplicateMap(targetRoom) {
+  var room = targetRoom || _editPanelRoom;
+  var d = editDraft();
+  var borrow = (room && room.romRoomId != null) ? room.romRoomId : ((d && d.roomId) || (typeof _mtRoomId === 'number' ? _mtRoomId : CUSTOM_MAP_BORROW));
+  var w = (_mtPalette && _mtPalette.widthTiles) || (room && room.widthTiles) || CUSTOM_MAP_W;
+  var h = (_mtPalette && _mtPalette.heightTiles) || (room && room.heightTiles) || CUSTOM_MAP_H;
+  var baseName = (room && room.name) || (room && room.custom && customFind(room.custom) ? customFind(room.custom).name : 'Map');
+  var name = customCopyName(baseName);
+
+  var isCur = !!(d && (room ? (room.custom ? d.customKey === room.custom : d.roomId === borrow) : true));
+  var saved = null;
+  if (room && room.custom) {
+    var curM = customFind(room.custom);
+    if (isCur) saved = customSerialize(d);
+    else if (curM && curM.saved) saved = JSON.parse(JSON.stringify(curM.saved));
+  }
+
+  if (!saved) {
+    var cells = {};
+    if (_mtPalette && _mtPalette.grid) {
+      for (var y = 0; y < h; y++) {
+        for (var x = 0; x < w; x++) {
+          var k = x + ',' + y;
+          var idx = (isCur && d.cells && d.cells[k] !== undefined) ? d.cells[k] : (_mtPalette.grid[y] ? _mtPalette.grid[y][x] : null);
+          if (idx !== null && idx >= 0) cells[k] = idx;
+        }
+      }
+    } else if (isCur && d.cells) {
+      cells = JSON.parse(JSON.stringify(d.cells));
+    }
+
+    var families = (isCur && d.families && d.families.length) ? d.families.slice()
+      : ((_mtPalette && _mtPalette.tileFamilies) ? _mtPalette.tileFamilies.slice() : []);
+
+    var specialCells = (isCur && d.specialCells) ? JSON.parse(JSON.stringify(d.specialCells)) : {};
+    var start = (isCur && d.start) ? JSON.parse(JSON.stringify(d.start)) : { x: Math.floor(w / 2), y: Math.floor(h / 2) };
+
+    var placed = [];
+    var pSeq = 1;
+    if (_mtPalette && _mtPalette.attachments) {
+      var att = _mtPalette.attachments;
+      (att.bTrigger || []).forEach(function (t, i) {
+        if (isCur && typeof triggerBaseRemoved === 'function' && triggerBaseRemoved('b', i)) return;
+        placed.push({ kind: 'bTrigger', x: t[0], y: t[1], w: t[2] - t[0], h: t[3] - t[1], scriptId: t[4], uid: pSeq++ });
+      });
+      (att.stepOn || []).forEach(function (t, i) {
+        if (isCur && typeof triggerBaseRemoved === 'function' && triggerBaseRemoved('step', i)) return;
+        placed.push({ kind: 'stepOn', x: t[0], y: t[1], w: t[2] - t[0], h: t[3] - t[1], scriptId: t[4], uid: pSeq++ });
+      });
+      (att.objects || []).forEach(function (o) {
+        placed.push({ kind: 'object', x: o[0], y: o[1], w: o[2], h: o[3], objectIndex: o[4], uid: pSeq++, frames: [], layer: {}, states: 1 });
+      });
+    }
+    if (isCur && d.placed) {
+      d.placed.forEach(function (p) {
+        if (p.removed) return;
+        var cp = JSON.parse(JSON.stringify(p));
+        cp.uid = pSeq++;
+        placed.push(cp);
+      });
+    }
+
+    var added = (isCur && d.added) ? JSON.parse(JSON.stringify(d.added)) : [];
+    var addedGraphics = (isCur && d.addedGraphics) ? JSON.parse(JSON.stringify(d.addedGraphics)) : [];
+    var constructs = (isCur && d.constructs) ? JSON.parse(JSON.stringify(d.constructs)) : [];
+    var cut = (isCur && d.cut) ? JSON.parse(JSON.stringify(d.cut)) : {};
+    var groups = (isCur && d.groups) ? JSON.parse(JSON.stringify(d.groups)) : [];
+
+    saved = {
+      cells: cells, families: families, specialCells: specialCells, start: start,
+      placed: placed, placedSeq: pSeq, added: added, addedGraphics: addedGraphics,
+      constructs: constructs, cut: cut, groups: groups,
+      groupSeq: (d && d.groupSeq) || groups.length || 0, plane: (d && d.plane) || 1,
+    };
+  }
+
+  var key = 'custom-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6) + '-' + name.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10);
+  var m = {
+    key: key, name: name, borrow: borrow, w: w, h: h, saved: saved,
+    history: { undo: [], redo: [] }, created: new Date().toISOString(),
+  };
+  _customMaps.push(m);
+  customRenderRows();
+  customOpen(m.key);
+  customSave(m);
+  editNote('duplicated as “' + m.name + '”');
+  renderEditChrome();
+  return m;
+}
+
 /** What renderRoomDetail draws for a custom map: a named, empty canvas. */
 function customRoomDetail(m) {
   return {

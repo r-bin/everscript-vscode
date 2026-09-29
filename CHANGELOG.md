@@ -1,3 +1,21 @@
+## [0.82.8] — 2026-09-29
+
+### Fix: Box-select sticking under overlays, Copy Map action, and selection widget creation
+
+- **Box-select overlay interception fix:** In `src/rooms/webview/map-editor-paint.js`, `map-editor-groups.js`, `map-editor-objects.js`, and `src/shared/shared.css`, added `pointer-events="none"` to `#rg-edit`, `.rg-edit-sel`, `groupBoxSvg`, `.rg-obj-area.rg-obj-cluster`, `.rg-obj-frame`, and `.svge-romobj` during editing so rubber-band box selections drag cleanly across placed groups and objects without pointer capture interruption.
+- **"Copy map" action:** Added "Copy map" button to the ⋯ More dropdown menu (`map-editor-filterbar.js`) and overflow toolbar actions (`map-editor-toolbar.js`). Handled via `customDuplicateMap()` (`map-editor-custom.js`), duplicating the current room's metatiles, tile families, triggers, objects, and Boy start into a new editable custom map (`_customMaps`) and opening it immediately.
+- **Preserve selection on tab switch:** In `src/rooms/webview/map-editor-drawable.js` and `map-editor-input.js`, tab navigation passes `keepSelection = true` to `editDeselectAll()` so `_groupSel` and `_editSel` are not cleared when switching to the Widgets tab. Added a direct "Save as widget" fast-path button on the tool pill when a selection is active.
+- **Capture special flags in constructs:** In `src/rooms/webview/map-editor-constructs.js`, `editBuildConstruct` records cell special flags (`specialCells`) into construct cells, and `editConstructWrites` propagates `specials` on placement.
+- **Tests:** Added comprehensive test assertions in `tests/memory/map-editor.test.js` covering SVG overlay pointer-events, More menu copy button markup, room duplication with pre-seeded cells and attachments, selection preservation across tab changes, and construct special flag roundtripping.
+
+## [0.82.7] — 2026-09-28
+
+### Docs: todo files — map editor, research topics, copy-room-as-widget
+
+- `docs/map-editor-todo.md` — 17 open items: vanilla sidebar/bottom-bar wiring, widget special-state loss, Select cursor background bug, collision shape picker, PT tile, widget locking, flood fill, animation phase, ROM write-back, trigger UI, room resize, Info tab cleanup, pan-while-editing, all-direction resize, header effect presets, procedural tile fill + cross-map references.
+- `docs/todo/research-topics.md` — 8 research topics: audio/SPC + AKAO, slash weapon hitboxes, alchemy scripts, item icons, script simulator, hex editor, on-screen trigger overlay, enemy attribute tab.
+- `docs/todo/copy-room-as-widget.md` — 3 bugs blocking "copy Strongheart's Hut as widget": box-select stuck under group SVG rects (`pointer-events` not set to none), Copy Map missing from ⋯ More menu, From Selection clears `_editSel` on tab switch.
+
 ## [0.82.6] — 2026-09-28
 
 ### Fix: Preview active frame on tile tab, isolate frame specials, copy current frame on +, and export objects to ROM

@@ -12,3 +12,4 @@ traces/
 # TypeScript build output (src/*/**.ts -> dist); rebuilt by `npm run build:maps` / `build:script`
 src/maps/dist/
 src/script/dist/
+.emscripten_cache/

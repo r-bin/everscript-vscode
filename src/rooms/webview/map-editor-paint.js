@@ -65,9 +65,9 @@ function renderEditLayer(palette, composed, origin) {
   if (!g) {
     g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     g.setAttribute('id', 'rg-edit');
-    g.setAttribute('pointer-events', 'none');
     img.parentNode.insertBefore(g, img.nextSibling);
   }
+  g.setAttribute('pointer-events', 'none');
   var d = editDraft();
   if (!d) { g.innerHTML = ''; return; }
 
@@ -144,7 +144,7 @@ function renderEditLayer(palette, composed, origin) {
     var a = editCellPos(origin, _editSel.x1, _editSel.y1);
     html += '<rect class="rg-edit-sel" x="' + a.x + '" y="' + a.y
       + '" width="' + ((_editSel.x2 - _editSel.x1 + 1) * EDIT_UNITS)
-      + '" height="' + ((_editSel.y2 - _editSel.y1 + 1) * EDIT_UNITS) + '"/>';
+      + '" height="' + ((_editSel.y2 - _editSel.y1 + 1) * EDIT_UNITS) + '" pointer-events="none"/>';
   }
   if (typeof interactOverlaySvg === 'function' && typeof interactOverlayOn === 'function' && interactOverlayOn()) {
     html += interactOverlaySvg(palette, origin, drawnKeys);
@@ -161,7 +161,7 @@ function triggerOutlineSvg(box, kind, origin, cls) {
   var a = editCellPos(origin, box.x1, box.y1);
   return '<rect class="' + cls + ' ' + cls + '-' + kind + '" x="' + a.x + '" y="' + a.y
     + '" width="' + ((box.x2 - box.x1 + 1) * EDIT_UNITS)
-    + '" height="' + ((box.y2 - box.y1 + 1) * EDIT_UNITS) + '"/>';
+    + '" height="' + ((box.y2 - box.y1 + 1) * EDIT_UNITS) + '" pointer-events="none"/>';
 }
 
 /** What is in a cell right now: the draft first, then the room's own grid. */

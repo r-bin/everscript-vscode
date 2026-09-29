@@ -76,6 +76,8 @@ var EDIT_TOOL_ICONS = {
  */
 var EDIT_OVERFLOW_ACTS = [
   ['clear', 'Discard draft', 'Discard every change in this draft'],
+  ['copy-map', 'Copy map', 'Duplicate this room as a new custom map'],
+  ['save-widget', 'Save as widget', 'Save the current selection or stamped object as a widget in the library'],
   ['export', 'Copy draft as JSON', 'Copy the draft as JSON for the encoder'],
   ['export-rom', 'Export ROM…', 'Build a playable ROM: this custom map in Brian’s room (0x15), entered straight from the intro'],
   ['play-rom', 'Play in emulator', 'Build the same ROM and run it in the embedded emulator — no file is written'],
@@ -128,6 +130,12 @@ function buildEditToolbarHtml() {
     if (i) html += '<span class="rg-edit-divider"></span>';
     html += '<span class="rg-edit-group">';
     group.forEach(function (key) { html += editToolButtonHtml(key); });
+    if (i === 1) {
+      var hasSel = (typeof widgetHasSelection === 'function') ? widgetHasSelection() : !!_editSel;
+      if (hasSel) {
+        html += '<button class="rdf rg-edit-tool-icon" data-edit-act="save-widget" data-tip="Save selection as a widget in library" aria-label="save widget"><span class="rg-edit-icon" aria-hidden="true">⬚</span></button>';
+      }
+    }
     html += '</span>';
   });
   // The room/deco phase pair that used to sit here is gone — §8a.2.

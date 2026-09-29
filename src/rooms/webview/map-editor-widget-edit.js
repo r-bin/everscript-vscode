@@ -75,7 +75,7 @@ function widgetEditBlank(m) {
   var d = editDraft();
   if (!d || !_mtPalette || !w.cells.length && !widgetHasAttachments(w)) return;
   var got = editConstructWrites(_mtPalette, widgetConstruct(w), 0, 0);
-  editApply(got.writes);
+  editApply(got.writes, got.specials);
   editStampedConstruct(widgetConstruct(w), 0, 0);
   // Opening is not an edit: undo starts from the widget as it was.
   d.undo = [];
@@ -105,12 +105,14 @@ function widgetFromSession(m) {
     if (!words) return;
     var keepCanopy = words.layer1 === blankCanopy || (floor && words.layer1 === floor.layer1);
     var keepTerrain = floor && words.layer2 === floor.layer2;
-    cells.push({
+    var cRec = {
       dx: p[0], dy: p[1],
       canopy: keepCanopy ? null : editPartFromWord(_mtPalette, words.layer1),
       terrain: keepTerrain ? null : editPartFromWord(_mtPalette, words.layer2),
       collision: words.collision,
-    });
+    };
+    if (d.specialCells && d.specialCells[k]) cRec.special = d.specialCells[k];
+    cells.push(cRec);
   });
   cells.sort(function (a, b) { return a.dy - b.dy || a.dx - b.dx; });
   var next = Object.assign({}, w, {

@@ -99,11 +99,13 @@ function editDrawBadgeHtml(erase) {
  * selection at a time — called before anything new is selected, and when
  * the tab or the tool changes, or on Escape.
  */
-function editDeselectAll() {
+function editDeselectAll(keepSelection) {
   var d = editDraft();
   if (d) d.selectedTriggerRef = null;
   if (typeof _triggerDrag !== 'undefined') _triggerDrag = null;
-  if (typeof _groupSel !== 'undefined') { _groupSel = null; _groupDrag = null; }
+  if (!keepSelection) {
+    if (typeof _groupSel !== 'undefined') { _groupSel = null; _groupDrag = null; }
+  }
   if (typeof _startSel !== 'undefined') { _startSel = false; _startDrag = null; }
   if (typeof _specialSel !== 'undefined') { _specialSel = null; _specialDrag = null; }
   if (typeof _pasteFloat !== 'undefined') _pasteFloat = null;

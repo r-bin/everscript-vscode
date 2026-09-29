@@ -77,6 +77,8 @@ function editAction(act) {
   if (act === 'play-rom') editPlayRom();
   if (act === 'export-map') customExportMap();
   if (act === 'delete-map') customDeleteMap();
+  if (act === 'copy-map') { if (typeof customDuplicateMap === 'function') customDuplicateMap(); return; }
+  if (act === 'save-widget') { if (typeof widgetSaveFromSelection === 'function') widgetSaveFromSelection(); return; }
 }
 
 /** The collision word the room already uses with this terrain word. */

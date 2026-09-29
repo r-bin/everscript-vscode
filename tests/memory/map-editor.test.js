@@ -674,8 +674,18 @@ console.log('\ncomposing a stamp:');
 
 /** All five webview files in one scope, as the browser concatenates them. */
 const ui = new Function(`
-  var document = { getElementById: function () { return null; } };
+  var document = {
+    getElementById: function () { return null; },
+    querySelector: function () { return null; },
+    querySelectorAll: function () { return []; }
+  };
   function escH(s) { return String(s); }
+  function renderRoomDetail() {}
+  function romLayerButtonHtml() { return ''; }
+  function romAllOverlaysButtonHtml() { return ''; }
+  function romOverlayButtonHtml() { return ''; }
+  function romAnimateButtonHtml() { return ''; }
+  function romExportButtonHtml() { return ''; }
   ${read('metatile-palette.js')}
   ${read('map-editor.js')}
   ${read('map-editor-stamps.js')}
@@ -752,6 +762,11 @@ const ui = new Function(`
     pasteFloat: function () { return _pasteFloat; }, dropPaste: function () { _pasteFloat = null; },
     tileSlotPasses: tileSlotPasses, tileFilterToggle: tileFilterToggle, tileAnimPlay: tileAnimPlay, tileFramesPick: tileFramesPick, tileShapePick: function (v) { _tileShape = v === 'all' ? null : v; },
     editStampedConstruct: editStampedConstruct, widgetPlacedIn: widgetPlacedIn, editObjectFrames: editObjectFrames,
+    customDuplicateMap: customDuplicateMap, customMaps: function () { return _customMaps; }, setPanelRoom: function (r) { _editPanelRoom = r; },
+    groupBoxSvg: groupBoxSvg, editObjectSvg: editObjectSvg, editDeselectAll: editDeselectAll,
+    setGroupSel: function (g) { _groupSel = g; },
+    widgetHasSelection: widgetHasSelection, widgetSaveFromSelection: widgetSaveFromSelection,
+    editBuildConstruct: editBuildConstruct, moreFilterGroupHtml: moreFilterGroupHtml,
   };`)();
 
 /** A palette with the tile sheet the host now sends alongside it. */
@@ -1722,6 +1737,99 @@ test('widgets preserve every object frame across save and reopen', () => {
     assert.strictEqual(so.frames[0].length, 1, 'frame 1 cells saved');
     assert.strictEqual(so.frames[1].length, 1, 'frame 2 cells saved');
     assert.strictEqual(so.frames[1][0].dx, 1, 'frame 2 delta position saved');
+});
+
+console.log('\nv0.82.8 — copy room as widget and map editor bugfixes:');
+
+test('SVG overlay elements for groups and objects carry pointer-events="none"', () => {
+    const box = ui.groupBoxSvg(2, 3, { w: 2, h: 2, name: 'hut' }, { x: 0, y: 0 }, 'rg-group');
+    assert.match(box, /pointer-events="none"/, 'groupBoxSvg carries pointer-events="none"');
+
+    const p = tilePalette();
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    d.on = true;
+    d.placed.push({
+        kind: 'object', uid: 10, x: 2, y: 2, w: 2, h: 2, states: 1, frames: [], layer: {}
+    });
+    const objSvg = ui.editObjectSvg(p, null, { x: 0, y: 0 });
+    assert.match(objSvg, /class="rg-obj-area rg-obj-cluster[^"]*"[^>]*pointer-events="none"/, 'object cluster carries pointer-events="none"');
+});
+
+test('More menu includes Copy map button', () => {
+    const html = ui.moreFilterGroupHtml({ romId: 0x34, hasMap: true });
+    assert.match(html, /data-edit-act="copy-map"/, 'More menu has Copy map button');
+    assert.match(html, /Copy map<\/button>/, 'Copy map button text');
+});
+
+test('customDuplicateMap duplicates a vanilla room with pre-seeded cells and attachments', () => {
+    ui.editReset(0x34);
+    const p = tilePalette();
+    p.widthTiles = 4;
+    p.heightTiles = 4;
+    p.grid = [
+        [0, 1, 0, 1],
+        [1, 0, 1, 0],
+        [0, 1, 0, 1],
+        [1, 0, 1, 0]
+    ];
+    p.attachments = {
+        bTrigger: [[1, 1, 2, 2, 0x1234]],
+        stepOn: [],
+        objects: [[2, 2, 1, 1, 5]]
+    };
+    ui.setPalette(p);
+    ui.setPanelRoom({ romRoomId: 0x34, name: "Strongheart's Hut", widthTiles: 4, heightTiles: 4 });
+    ui.setCustom([], null);
+
+    const dup = ui.customDuplicateMap();
+    assert.ok(dup, 'duplicate map created');
+    assert.strictEqual(dup.name, "Copy of Strongheart's Hut");
+    assert.strictEqual(dup.borrow, 0x34);
+    assert.strictEqual(dup.w, 4);
+    assert.strictEqual(dup.h, 4);
+    assert.ok(dup.saved, 'draft data saved');
+    assert.strictEqual(dup.saved.cells['0,0'], 0);
+    assert.strictEqual(dup.saved.cells['1,0'], 1);
+    assert.strictEqual(dup.saved.placed.length, 2, 'bTrigger and object copied');
+    assert.deepStrictEqual(dup.saved.families, p.tileFamilies);
+});
+
+test('switching tabs with keepSelection preserves selection and widgetHasSelection returns true', () => {
+    ui.setSel(null);
+    ui.setGroupSel(5);
+    assert.strictEqual(ui.widgetHasSelection(), true, 'group selection is active');
+
+    ui.editDeselectAll(true);
+    assert.strictEqual(ui.widgetHasSelection(), true, 'selection preserved after tab change');
+
+    ui.editDeselectAll(false);
+    assert.strictEqual(ui.widgetHasSelection(), false, 'selection cleared on tool change / escape');
+
+    ui.setSel({ x1: 1, y1: 1, x2: 3, y2: 3 });
+    assert.strictEqual(ui.widgetHasSelection(), true, 'box selection is active');
+    ui.setSel(null);
+    assert.strictEqual(ui.widgetHasSelection(), false, 'cleared');
+});
+
+test('editBuildConstruct captures specialCells and editConstructWrites reproduces them', () => {
+    const p = tilePalette();
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    d.cells['0,0'] = 0;
+    d.specialCells = { '0,0': 'gate-dog' };
+
+    const c = ui.editBuildConstruct(p, { x1: 0, y1: 0, x2: 1, y2: 1 }, 'test');
+    assert.ok(c, 'construct built');
+    const cellWithSpecial = c.cells.find((cell) => cell.dx === 0 && cell.dy === 0);
+    assert.ok(cellWithSpecial, 'cell found');
+    assert.strictEqual(cellWithSpecial.special, 'gate-dog', 'special recorded in cell');
+
+    const written = ui.editConstructWrites(p, c, 0, 0);
+    assert.ok(written.specials && written.specials.length === 1, 'special collected in writes');
+    assert.strictEqual(written.specials[0].id, 'gate-dog');
+    assert.strictEqual(written.specials[0].x, 0);
+    assert.strictEqual(written.specials[0].y, 0);
 });
 
 console.log(`\n  ${passed} passed, ${failed} failed`);

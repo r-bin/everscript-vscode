@@ -232,11 +232,13 @@ function bindEditControls(panel, room) {
       if (d) {
         var fromTool = d.tool;
         d.tool = t.dataset.editTool;
-        _editSel = null;
         // A tool change lets go of what is selected (the mock's own rule,
         // docs/map-editor-redesign-plan.md Phase 4) — the Select tool's
         // selection survives picking Select again.
-        if (d.tool !== fromTool) editDeselectAll();
+        if (d.tool !== fromTool) {
+          _editSel = null;
+          editDeselectAll();
+        }
         renderEditChrome();
       }
       return;
@@ -253,9 +255,10 @@ function bindEditControls(panel, room) {
     if (t.dataset.panel) { panelToggle(t.dataset.panel); return; }
     if (t.dataset.editActiveTab) {
       // Leaving a tab drops what was selected on it; the Boy pick is the
-      // Special tab's, so it is let go too.
+      // Special tab's, so it is let go too. Groups and regions stay selected
+      // so "+ From selection" on Widgets can keep them.
       if (t.dataset.editActiveTab !== _editActiveTab) {
-        editDeselectAll();
+        editDeselectAll(true);
         var dt = editDraft();
         if (dt && dt.currentSpecialId === START_SPECIAL_ID) dt.currentSpecialId = null;
       }

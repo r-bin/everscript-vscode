@@ -131,6 +131,10 @@ function objectFilterGroupHtml(ctx) {
   return '';
 }
 
+function copyMapButtonHtml() {
+  return '<button class="rdf rg-filter-sub" data-edit-act="copy-map" title="Duplicate this room as a new custom map">Copy map</button>';
+}
+
 /**
  * Everything else, in one drawer: the collision-word feature renders, what
  * the room places besides objects, the trigger tables and grids, the
@@ -162,6 +166,7 @@ function moreFilterGroupHtml(ctx) {
   if (ctx.hasIngr) subs.push(viewHideBtnHtml('hide-ingr', '🌿 Ingredients', 'Ingredient icons on B-triggers'));
   if (ctx.hasArrivals) subs.push(viewHideBtnHtml('hide-arrival', 'Arrivals', 'The doors that lead into this room'));
   if (ctx.hasHeader) subs.push(viewHideBtnHtml('hide-header', 'ROM header', 'The ROM header section'));
+  if (ctx.romId || ctx.hasMap) subs.push(copyMapButtonHtml());
   if (ctx.romId) { subs.push(romAnimateButtonHtml()); subs.push(romExportButtonHtml()); }
   if (!subs.length) return '';
   return filterGroupHtml({

@@ -282,21 +282,21 @@ function editObjectSvg(palette, composed, origin) {
     });
     var a = editCellPos(origin, o.x, o.y);
     html += '<rect class="rg-obj-area rg-obj-cluster' + (isSel ? ' sel' : '') + '" x="' + a.x + '" y="' + a.y
-      + '" width="' + (o.w * EDIT_UNITS) + '" height="' + (o.h * EDIT_UNITS) + '">'
+      + '" width="' + (o.w * EDIT_UNITS) + '" height="' + (o.h * EDIT_UNITS) + '" pointer-events="none">'
       + '<title>' + escH('obj #' + idx + ' cluster: ' + o.w + '×' + o.h + ' at ' + o.x + ',' + o.y) + '</title></rect>';
     if (isSel && activeIdx >= 1) {
       var b = objectFrameBounds(curLayer);
       if (b) {
         var fx = editCellPos(origin, o.x + b.dx, o.y + b.dy);
         html += '<rect class="rg-obj-frame" x="' + fx.x + '" y="' + fx.y + '" width="' + (b.w * EDIT_UNITS)
-          + '" height="' + (b.h * EDIT_UNITS) + '"><title>' + escH('frame #' + activeIdx + ' delta: ' + b.w + '×' + b.h + ' (' + b.count + ' tiles)') + '</title></rect>';
+          + '" height="' + (b.h * EDIT_UNITS) + '" pointer-events="none"><title>' + escH('frame #' + activeIdx + ' delta: ' + b.w + '×' + b.h + ' (' + b.count + ' tiles)') + '</title></rect>';
       }
     }
   });
   if (_objectDraw && _objectDraw.x1 != null) {
     var b = editCellPos(origin, _objectDraw.x1, _objectDraw.y1);
     html += '<rect class="rg-obj-area rg-obj-drag" x="' + b.x + '" y="' + b.y + '" width="'
-      + ((_objectDraw.x2 - _objectDraw.x1 + 1) * EDIT_UNITS) + '" height="' + ((_objectDraw.y2 - _objectDraw.y1 + 1) * EDIT_UNITS) + '"/>';
+      + ((_objectDraw.x2 - _objectDraw.x1 + 1) * EDIT_UNITS) + '" height="' + ((_objectDraw.y2 - _objectDraw.y1 + 1) * EDIT_UNITS) + '" pointer-events="none"/>';
   }
   return html;
 }

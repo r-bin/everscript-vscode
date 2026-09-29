@@ -84,12 +84,16 @@ function editBuildConstruct(palette, sel, name) {
       var idx = editCellAt(palette, x, y);
       var w = idx >= 0 ? editStampWords(palette, idx) : null;
       if (!w) continue;
-      cells.push({
+      var cRec = {
         dx: x - sel.x1, dy: y - sel.y1,
         canopy: editPartFromWord(palette, w.layer1),
         terrain: editPartFromWord(palette, w.layer2),
         collision: w.collision,
-      });
+      };
+      if (_edit.specialCells && _edit.specialCells[x + ',' + y]) {
+        cRec.special = _edit.specialCells[x + ',' + y];
+      }
+      cells.push(cRec);
     }
   }
   if (!cells.length) return null;
@@ -222,7 +226,7 @@ function editObjectLayerFrom(cells, level) {
  * the wrong colours is worse than a refusal you can act on.
  */
 function editConstructWrites(palette, construct, x, y) {
-  var out = { writes: [], problems: [] };
+  var out = { writes: [], problems: [], specials: [] };
   if (!construct) return out;
   var blank = editBlankCanopy(palette);
   var seen = {};
@@ -253,6 +257,9 @@ function editConstructWrites(palette, construct, x, y) {
         collision: c.collision,
       }),
     });
+    if (c.special) {
+      out.specials.push({ x: cx, y: cy, id: c.special });
+    }
   }
   return out;
 }
