@@ -16,7 +16,10 @@
 // Widgets pencil; each stamp is one object on the map (map-editor-groups.js)
 // on the level of the floor it lands on.
 //
-// Owns: _widgets (null until loaded), _widgetArt, _widgetsVanilla.
+// Two views, a tab each: Library (the above) and Placed — the widgets
+// stamped on this map, in draw order (map-editor-placed-list.js).
+//
+// Owns: _widgets (null until loaded), _widgetArt, _widgetsVanilla, _widgetsView.
 
 var _widgets = null;
 var _widgetsAsked = false;
@@ -24,6 +27,8 @@ var _widgetsAsked = false;
 var _widgetArt = {};
 /** Show the generated vanilla library too. Off by default; remembered in uiPrefs. */
 var _widgetsVanilla = false;
+/** Which half of the tab is showing: 'library' (what you can stamp) or 'placed' (what you stamped). */
+var _widgetsView = 'library';
 
 function requestWidgets() {
   if (_widgetsAsked || typeof vs === 'undefined' || !vs) return;
@@ -139,6 +144,7 @@ function widgetClick(t) {
   if (t.dataset.widgetEdit) { widgetEditOpen(t.dataset.widgetEdit); return true; }
   if (t.dataset.widget) { widgetArm(t.dataset.widget); return true; }
   var act = t.dataset.widgetAct;
+  if (act === 'library' || act === 'placed') { _widgetsView = act; renderEditPanels(); return true; }
   if (act === 'vanilla') {
     _widgetsVanilla = !_widgetsVanilla;
     if (typeof vs !== 'undefined' && vs) vs.postMessage({ command: 'saveUiPref', key: 'widgetsVanilla', value: _widgetsVanilla });
@@ -183,8 +189,22 @@ function widgetCardHtml(w) {
     + '</button>';
 }
 
-/** The Widgets tab. */
+/** The Widgets tab: Library | Placed. */
 function widgetsTabHtml() {
+  var d = editDraft();
+  var placed = ((d && d.groups) || []).length;
+  var tabs = [['library', 'Library', (_widgets || []).length, 'The widgets you can stamp'],
+    ['placed', 'Placed', placed, 'The widgets stamped on this map, in draw order']];
+  var html = '<div class="rg-subtabs" role="tablist">' + tabs.map(function (t) {
+    var on = _widgetsView === t[0];
+    return '<button class="rg-subtab' + (on ? ' on' : '') + '" role="tab" aria-selected="' + on + '" data-widget-act="' + t[0]
+      + '" title="' + escH(t[3]) + '">' + t[1] + ' <span class="rs-note">' + t[2] + '</span></button>';
+  }).join('') + '</div>';
+  return html + (_widgetsView === 'placed' ? placedListHtml() : widgetsLibraryHtml());
+}
+
+/** The Library view: your widgets, and the generated vanilla ones while that is on. */
+function widgetsLibraryHtml() {
   requestWidgets();
   ensureWidgetPreviews();
   var list = _widgets || [];

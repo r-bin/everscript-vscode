@@ -1,3 +1,14 @@
+## [0.96.0] — 2026-10-01
+
+### Feat: Widgets › Placed — what you stamped, in draw order, with disband
+
+- **The Widgets tab has two tabs: Library** (the widgets you can stamp) **and Placed** (the ones stamped on this map, empty at first).
+- **Placed rows** show where each sits in the room and how it looks, with its size, position, triggers and objects. Click a row to select it on the map.
+- **The list is the draw order**: a later row is drawn over an earlier one where they overlap. Drag a row by ⠿ to reorder (one undo step).
+- **× removes** a placed widget with its triggers and objects.
+- **A placed widget's triggers and objects are locked to it**: deleting or moving its trigger, or removing or editing its object, says so instead.
+- **Disband** writes the widget into the map and lets its triggers and objects go, to be edited on their own (one undo step).
+
 ## [0.95.1] — 2026-10-01
 
 ### Fix: stamped gourds losing tiles and floor

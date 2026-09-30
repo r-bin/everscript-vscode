@@ -735,6 +735,7 @@ const ui = new Function(`
   ${read('map-editor-pick.js')}
   ${read('map-editor-objects.js')}
   ${read('map-editor-object-list.js')}
+  ${read('map-editor-placed-list.js')}
   ${read('map-editor-widgets.js')}
   ${read('map-editor-widget-edit.js')}
   ${read('map-editor-special-select.js')}
@@ -764,7 +765,9 @@ const ui = new Function(`
     editBegin: editBegin, editEnd: editEnd, editUndo: editUndo, editRedo: editRedo, editApply: editApply,
     editStampGroup: editStampGroup, editGroupMove: editGroupMove, editGroupDelete: editGroupDelete,
     editGroupAt: editGroupAt, editCellAt: editCellAt, editBakedCells: editBakedCells,
-    editObjectFrameIndex: editObjectFrameIndex, editGroupsUpgrade: editGroupsUpgrade, editPruneAdded: editPruneAdded, editLevelPick: editLevelPick,
+    editObjectFrameIndex: editObjectFrameIndex, editGroupsUpgrade: editGroupsUpgrade, editGroupDisband: editGroupDisband,
+    placedReorder: placedReorder, widgetsTab: widgetsTabHtml, setWidgetsView: function (v) { _widgetsView = v; },
+    triggerDeleteSelected: triggerDeleteSelected, editRemoveObject: editRemoveObject, editPruneAdded: editPruneAdded, editLevelPick: editLevelPick,
     customIsPristine: customIsPristine, setCustom: function (list, active) { _customMaps = list; _customActive = active; },
     editClipboardKey: editClipboardKey, editAddStamp: editAddStamp, editSmartPick: editSmartPick, startSelectGesture: startSelectGesture,
     setSel: function (s) { _editSel = s; }, setHover: function (c) { _editHover = c; },
@@ -1566,6 +1569,59 @@ test('a cell an old group did not change is dropped, collision too', () => {
     ui.editGroupsUpgrade(p);
     assert.deepStrictEqual(d.groups[0].cells, []);
     assert.strictEqual(ui.editCellAt(p, 0, 0), 0);
+});
+
+test('Widgets › Placed lists what is stamped, in draw order; reordering changes what is on top', () => {
+    const { p, d } = fresh();
+    const words = (i) => ui.editStampWords(p, i);
+    ui.setWidgetsView('placed');
+    assert.match(ui.widgetsTab(), /none yet/, 'empty at first');
+    const one = (w) => ({ name: 'n' + w.toString(16), w: 1, h: 1, attachments: { bTrigger: [], stepOn: [], objects: [] },
+        cells: [{ dx: 0, dy: 0, canopy: { word: w }, terrain: null, collision: 0x001f }] });
+    ui.editStampGroup(p, one(0x358a), 0, 0);
+    ui.editStampGroup(p, one(0x358b), 0, 0);
+    const html = ui.widgetsTab();
+    assert.ok(html.indexOf('#0 · n358a') >= 0 && html.indexOf('#1 · n358b') > html.indexOf('#0 · n358a'), 'rows in draw order');
+    assert.strictEqual(words(ui.editCellAt(p, 0, 0)).layer1, 0x358b, 'the later one is on top');
+    const steps = d.undo.length;
+    ui.placedReorder(d.groups[1].uid, d.groups[0].uid);
+    assert.strictEqual(words(ui.editCellAt(p, 0, 0)).layer1, 0x358a, 'moved below, it is under');
+    assert.strictEqual(d.undo.length, steps + 1, 'one step');
+    ui.setWidgetsView('library');
+});
+
+test('a placed widget’s parts are locked to it; disbanding writes it into the map and lets them go', () => {
+    const { p, d } = fresh();
+    const words = (i) => ui.editStampWords(p, i);
+    const red = ui.editAddStamp(p, { layer1: 0xa800, layer2: 0x0c02, collision: 0x0010 });
+    ui.editApply([{ x: 0, y: 1, index: red }]);
+    const pot = { name: 'gourd', w: 1, h: 1,
+        cells: [{ dx: 0, dy: 0, canopy: { word: 0x358a }, terrain: null, collision: 0x001f }],
+        attachments: { bTrigger: [{ dx: 0, dy: 0, w: 1, h: 1, scriptId: 0x40 }], stepOn: [], objects: [{ dx: 0, dy: 0, w: 1, h: 1, states: 2,
+            frames: [[{ dx: 0, dy: 0, canopy: { word: 0x358b }, terrain: null, collision: 0x001f }]] }] } };
+    ui.editStampGroup(p, pot, 0, 1);
+    const g = d.groups[0];
+    const trig = d.placed.find((x) => x.kind === 'bTrigger');
+    const obj = d.placed.find((x) => x.kind === 'object');
+    d.selectedTriggerRef = { kind: 'b', id: 'placed:' + trig.uid };
+    ui.triggerDeleteSelected();
+    assert.ok(!trig.removed, 'its trigger cannot be deleted on its own');
+    ui.editRemoveObject(obj.uid);
+    assert.ok(d.placed.includes(obj), 'nor its object');
+    const steps = d.undo.length;
+    assert.ok(ui.editGroupDisband(p, g.uid));
+    assert.strictEqual(d.undo.length, steps + 1, 'disbanding is one step');
+    assert.strictEqual(d.groups.length, 0);
+    const cell = words(d.cells['0,1']);
+    assert.deepStrictEqual([cell.layer1, cell.layer2], [0x358a, 0x0c02], 'the map holds it now, on its floor');
+    assert.strictEqual(words(obj.frames[0]['0,0']).layer2, 0x0c02, 'its state keeps that floor');
+    d.selectedTriggerRef = { kind: 'b', id: 'placed:' + trig.uid };
+    ui.triggerDeleteSelected();
+    assert.ok(trig.removed, 'its trigger is its own now');
+    ui.editUndo(p);                       // the trigger's delete
+    ui.editUndo(p);                       // the disband
+    assert.strictEqual(d.groups.length, 1, 'undo brings the widget back');
+    assert.strictEqual(d.cells['0,1'], red, 'and the map as it was');
 });
 
 test('deleting a group restores what it covered and removes its trigger, in one step', () => {

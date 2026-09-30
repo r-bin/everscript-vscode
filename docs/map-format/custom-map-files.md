@@ -151,6 +151,13 @@ deleted or painted under without disturbing it:
   under it; `collision` (null: the one under it) goes on the level of what
   is under it (`level` where there is nothing). The objects a group brought sit on the floor the same way —
   a blank terrain in one of their states is the floor under it.
+- **Order**: `groups` is the draw order — a later group is drawn over an
+  earlier one where they overlap. The Widgets tab's Placed list shows and
+  reorders it.
+- **Disbanding** a group writes what it shows into `cells`, gives its
+  objects' states the floor they sit on, and removes the group: its
+  triggers and objects stay, now edited on their own. Until then they are
+  locked to it.
 - **Moving** a group changes `x, y`; its triggers and objects move by the
   same offset. **Deleting** it removes it and them. The map is never
   written either way.

@@ -222,6 +222,7 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   (`_edit.triggerOrder`) and changing a trigger's kind; owns `_triggerDragRow`
 - `map-editor-objects.js` — the Object tab: object areas and the tiles drawn over them
 - `map-editor-object-list.js` — the Object tab's rows (drawn like the trigger rows), open/closed, drag to reorder
+- `map-editor-placed-list.js` — the Widgets tab's Placed rows: stamped widgets in draw order, drag to reorder, disband, remove
   (their changed look); owns `_objectSel` / `_objectDraw`
 - `map-editor-widgets.js` — the user's own widgets and the Widgets tab (yours first,
   vanilla behind a toggle); owns `_widgets` / `_widgetArt` / `_widgetsVanilla`

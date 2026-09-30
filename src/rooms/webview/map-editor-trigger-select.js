@@ -159,6 +159,7 @@ function triggerDeleteSelected() {
   if (!d || !d.selectedTriggerRef) return;
   var t = editTriggerFind(d.selectedTriggerRef);
   if (!t) { d.selectedTriggerRef = null; return; }
+  if (typeof editGroupLocks === 'function' && editGroupLocks(t.uid)) return;
   var before = triggerSnapshot();
   if (t.origin === 'base') {
     d.removedTriggers.push({ kind: t.ref.kind, index: t.index });
@@ -190,6 +191,7 @@ function triggerCommitMove(ref, x, y) {
   var h = t.y2 - t.y1 + 1;
   var at = triggerClamp(x, y, w, h);
   if (at.x === t.x1 && at.y === t.y1) return; // no real move — nothing to undo
+  if (typeof editGroupLocks === 'function' && editGroupLocks(t.uid)) return;
   var before = triggerSnapshot();
   var newRef = ref;
   if (t.origin === 'base') {

@@ -311,6 +311,8 @@ function bindEditControls(panel, room) {
     if (t.dataset.deco) { decoUse(Number(t.dataset.deco)); return; }
     // The user's own widgets: arm, edit, and the tab's actions (map-editor-widgets.js).
     if ((t.dataset.widget || t.dataset.widgetEdit || t.dataset.widgetAct) && widgetClick(t)) return;
+    // What is stamped on the map: select, remove, disband (map-editor-placed-list.js).
+    if ((t.dataset.placedSel || t.dataset.placedRemove || t.dataset.placedDisband) && placedClick(t)) return;
     if ((t.dataset.objectSel || t.dataset.objectRemove || t.dataset.objectToggle
         || t.dataset.objectFrame || t.dataset.objectAddFrame || t.dataset.objectRemoveFrame
         || t.dataset.objectConfirmRemoveFrame || t.dataset.objectCancelRemoveFrame

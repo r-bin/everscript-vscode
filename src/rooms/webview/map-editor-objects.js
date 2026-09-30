@@ -9,6 +9,11 @@
 var _objectSel = null, _objectActiveFrame = 1;
 var _confirmRemoveFrame = null, _objectDraw = null, _objectPainting = false;
 
+/** Part of a placed widget, and so locked to it (map-editor-groups.js editGroupLocks). */
+function objectLocked(uid) {
+  return typeof editGroupLocks === 'function' && editGroupLocks(uid);
+}
+
 function editObjects() {
   var d = editDraft();
   return ((d && d.placed) || []).filter(function (p) { return p.kind === 'object' && !p.removed; });
@@ -98,7 +103,7 @@ function objectSelectFrame(f, uid) {
 
 function objectAddFrame(uid) {
   var o = editObjectFind(uid);
-  if (!o) return;
+  if (!o || objectLocked(uid)) return;
   editBegin();
   var frames = editObjectFrames(o);
   var curFrame = _objectActiveFrame >= 1 ? (frames[_objectActiveFrame - 1] || {}) : {};
@@ -119,7 +124,7 @@ function objectAddFrame(uid) {
 
 function objectRemoveFrame(uid, f) {
   var o = editObjectFind(uid);
-  if (!o || f < 1) return;
+  if (!o || f < 1 || objectLocked(uid)) return;
   editBegin();
   var frames = editObjectFrames(o);
   frames.splice(f - 1, 1);
@@ -137,7 +142,7 @@ function objectRemoveFrame(uid, f) {
 
 function objectMoveFrame(uid, dir) {
   var o = editObjectFind(uid);
-  if (!o || _objectActiveFrame < 1) return;
+  if (!o || _objectActiveFrame < 1 || objectLocked(uid)) return;
   var frames = editObjectFrames(o), from = _objectActiveFrame - 1, to = from + dir;
   if (from < 0 || to < 0 || to >= frames.length) return;
   editBegin();
@@ -213,6 +218,7 @@ function objectCellLevel(cell) {
 /** Draw (or erase) one tile of an object's layer with the brush. */
 function objectLayerWrite(o, cell, erase) {
   var d = editDraft();
+  if (objectLocked(o.uid)) return;
   if (_objectActiveFrame === 0) {
     editNote('Frame 0 is base map — select Frame 1 or click + Frame to draw changed tiles');
     renderEditChrome(); return;
@@ -238,7 +244,7 @@ function objectLayerWrite(o, cell, erase) {
 /** Remove an object (the list's ×). One undo step. */
 function editRemoveObject(uid) {
   var d = editDraft();
-  if (!d) return;
+  if (!d || objectLocked(uid)) return;
   editBegin();
   d.placed = d.placed.filter(function (p) { return !(p.kind === 'object' && p.uid === uid); });
   editEnd();

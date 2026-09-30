@@ -243,10 +243,66 @@ function editGroupConstruct(palette, g) {
     }) };
 }
 
+/** The group a trigger or object (by placed uid) came with, or null. */
+function editGroupOwning(uid) {
+  var d = editDraft();
+  if (!d || uid == null) return null;
+  var list = d.groups || [];
+  for (var i = 0; i < list.length; i++) if (list[i].placed.indexOf(uid) >= 0) return list[i];
+  return null;
+}
+
 /** An object that came with a group sits on the map's floor, like the group. */
 function editGroupOwnsObject(o) {
+  return !!(o && editGroupOwning(o.uid));
+}
+
+/**
+ * True, with a note saying so, when `uid` is part of a placed widget: its
+ * parts are locked to it, moved and removed whole — or disbanded first.
+ */
+function editGroupLocks(uid) {
+  var g = editGroupOwning(uid);
+  if (!g) return false;
+  editNote('part of the placed “' + g.name + '” — move or remove it whole, or disband it (Widgets › Placed) to edit its parts');
+  if (typeof renderEditChrome === 'function') renderEditChrome();
+  return true;
+}
+
+/**
+ * Disband a group: what it shows is written into the map, its objects keep
+ * their states as they look on that floor, and its triggers and objects are
+ * let go — each edited on its own from then on. One undo step.
+ */
+function editGroupDisband(palette, uid) {
   var d = editDraft();
-  return !!(d && o && (d.groups || []).some(function (g) { return g.placed.indexOf(o.uid) >= 0; }));
+  var g = editGroupFind(uid);
+  if (!d || !g) return false;
+  var objs = d.placed.filter(function (p) { return p.kind === 'object' && !p.removed && g.placed.indexOf(p.uid) >= 0; });
+  var frames = objs.map(function (o) {
+    return editObjectFrames(o).map(function (f) {
+      var out = {};
+      Object.keys(f || {}).forEach(function (k) { out[k] = editObjectFrameIndex(o, k, f[k]); });
+      return out;
+    });
+  });
+  // What it alone shows over the map: another group under or over it stays one.
+  var all = d.groups;
+  d.groups = [g];
+  var writes = g.cells.filter(function (c) { return editInBounds(palette, g.x + c.dx, g.y + c.dy); })
+    .map(function (c) { return { x: g.x + c.dx, y: g.y + c.dy, index: editCellAt(palette, g.x + c.dx, g.y + c.dy) }; });
+  d.groups = all;
+  editBegin();
+  editApply(writes);
+  objs.forEach(function (o, i) {
+    o.frames = frames[i];
+    o.layer = o.activeFrame >= 1 ? (o.frames[o.activeFrame - 1] || {}) : {};
+  });
+  d.groups = d.groups.filter(function (x) { return x.uid !== uid; });
+  editEnd();
+  if (_groupSel === uid) _groupSel = null;
+  editNote(g.name + ' disbanded — its tiles are the map’s now, and its triggers and objects are edited on their own');
+  return true;
 }
 
 /**

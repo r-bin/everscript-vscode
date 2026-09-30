@@ -266,6 +266,12 @@ are made on the fly, so the preview sheet must be asked for them
 draw) — or they draw as nothing, a gourd missing tiles. A stamped object
 shows **state 0** until a state is picked (`activeFrame: 0`).
 
+The Widgets tab has two views: **Library** (what can be stamped) and **Placed**
+(map-editor-placed-list.js: `_edit.groups`, whose order is the draw order). A
+placed widget's triggers and objects are **locked** to it (`editGroupLocks`):
+moved and removed whole. **Disband** (`editGroupDisband`) writes it into the map
+and lets its parts go.
+
 **Layers over the map.** The cuttable layer (`_edit.cut`) and each object's `layer`
 (its changed look, map-editor-objects.js) hold stamps drawn *on top of* the map's own
 cells. They are never written into `_edit.cells`. Each is shown only while its
