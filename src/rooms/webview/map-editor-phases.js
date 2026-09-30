@@ -154,10 +154,17 @@ function editResolve(palette, x, y, brushIndex, erasing, hereIndex) {
 var EDIT_ERASE_CELL = -2;
 
 /**
- * Which layers the eraser works on: the bottom bar's Background/Foreground
- * segments (rom-overlay.js). Both on — the default — erases the top-most.
+ * Which layers the eraser works on. The Tile tab's `auto | front | ground`
+ * (`_layerForce`) says it outright: front takes only front art, ground only
+ * the ground. On auto, the layers the bottom bar shows (rom-overlay.js) —
+ * both, the default, erase the top-most first. The bar alone was not enough:
+ * on a custom map or a widget it changes nothing you can see, so front-only
+ * and ground-only erasing were out of reach there (v0.83.1).
  */
 function editEraseLayers() {
+  var force = typeof _layerForce !== 'undefined' ? _layerForce : null;
+  if (force === 'canopy') return { fg: true, bg: false };
+  if (force === 'terrain') return { fg: false, bg: true };
   if (typeof romLayerVis !== 'function') return { bg: true, fg: true };
   return { bg: romLayerVis('bg'), fg: romLayerVis('fg') };
 }

@@ -33,13 +33,18 @@ decisions about what the room can look like.
 
 Consequences that have already come up:
 - With all seven slots full, **do not offer families outside them.** There is no slot
-  to adopt into, so candidates are noise. Show them only when a slot is free.
+  to adopt into, so candidates are noise.
+- **The tile list is the draft's own families**, even with a slot free — "the tiles
+  aren't limited to the 7 families" was the bug when a free slot listed all ~320
+  others unasked. The other families come in only on request: the free slot's `+`
+  (`_famBrowse`), or when nothing is loaded at all (a custom map starts at 0/7).
+  A family a pick has planned a slot for stays listed until painted.
 - Adoption is implicit: clicking a tile from an unadopted family pulls that family in
-  behind it. An explicit "add a family" browser is redundant with that.
-- While a slot is free, the Tile tab lists **every** family with **all** its art,
-  lazily, never behind a pager or a collapse. And a click must not move what was
-  clicked: groups keep their place in the list when their family is adopted, and
-  the scroll position survives the redraw. A custom map starts at 0/7.
+  behind it.
+- When the others are listed, it is **every** family with **all** its art, lazily,
+  never behind a pager or a collapse. And a click must not move what was clicked:
+  groups keep their place in the list when their family is adopted, and the scroll
+  position survives the redraw.
 - Freeing a slot **strands** every placed cell whose word names it. The word still says
   "palette slot N" and slot N is now something else. Say so (`editStrandedCells`), and
   offer to re-adopt or clear — never silently recolour.
@@ -125,6 +130,10 @@ nothing to erase; otherwise the canopy goes back to blank and the collision back
 whatever the room does on bare ground of that terrain (`editFloorCollisionFor`).
 Removing a decoration must take its collision with it, or a removed gourd leaves a hole
 you still cannot walk through.
+Which layer it takes is the Tile tab's `auto | front | ground` (`editEraseLayers`):
+front takes only front art, ground only the ground (front art over it stays), and
+auto the top-most layer the bottom bar shows — front art first, then the painted
+tile. A stroke with nothing on the chosen layer writes nothing.
 
 ---
 

@@ -125,6 +125,9 @@ async function main() {
     await page.evaluate((palette) => {
         _mtPalette = palette;
         _mtRoomId = 0x34;
+        // The saved-map list is in: this stub host never answers
+        // requestCustomMaps, and New Map now waits for that answer.
+        _customLoaded = 'yes';
         editReset(0x34);
         // First look (§8e): TILE FAMILIES and LIKELY NEIGHBORS closed.
         window.__firstLook = { families: _panelOpen.families, neighbours: _panelOpen.neighbours };
@@ -1965,18 +1968,23 @@ async function main() {
         shownAtFull.families === 7 && shownAtFull.free < 0, JSON.stringify(shownAtFull));
     check('and drops the "N more families" pager, which would page through nothing',
         shownAtFull.pager === false);
-    // Free one slot and the candidates come back — because now adopting one
-    // is something that can actually happen.
+    // Free one slot: the list is still the room's own families. "The tiles
+    // aren't limited to the 7 families" — a free slot used to list every
+    // other family unasked. The free slot's `+` brings them in.
     const shownWithRoom = await page.evaluate(() => {
         editClearFamily(3);
         renderEditPanels();
-        return { families: tileGroupFamilies().length, free: editFreeFamilySlot(),
-                 pager: !!document.querySelector('[data-tile-more]') };
+        const r = { families: tileGroupFamilies().length, free: editFreeFamilySlot() };
+        document.querySelector('.rg-fam-sec [data-fam-add]').click();
+        r.browsing = tileGroupFamilies().length;
+        r.pager = !!document.querySelector('[data-tile-more]');
+        return r;
     });
+    check('a free slot alone still lists only the loaded families',
+        shownWithRoom.free >= 0 && shownWithRoom.families === 6, JSON.stringify(shownWithRoom));
     // §8e: all of them, lazily, never a page at a time behind a button.
-    check('freeing a slot brings back every candidate, with no pager',
-        shownWithRoom.free >= 0 && shownWithRoom.families === 6 + 20 && shownWithRoom.pager === false,
-        JSON.stringify(shownWithRoom));
+    check('its + lists every other family, with no pager',
+        shownWithRoom.browsing === 6 + 20 && shownWithRoom.pager === false, JSON.stringify(shownWithRoom));
     const lazy = await page.evaluate(() => ({
         placeholders: document.querySelectorAll('#rg-tab-body [data-lazy-fam]').length,
         asked: window.__sent.filter((m) => m.command === 'requestFamilySheet'
@@ -1984,7 +1992,7 @@ async function main() {
     }));
     check('candidates wait as placeholders, and only the ones near the view are fetched',
         lazy.placeholders > 0 && lazy.asked.length < 20, JSON.stringify(lazy));
-    await page.evaluate(() => { editReset(0x34); editDraft().on = true; renderEditPanels(); });
+    await page.evaluate(() => { _famBrowse = false; editReset(0x34); editDraft().on = true; renderEditPanels(); });
 
     // ── the Tile tab: arming a brush must not reorder its own family ───────
     // `editPlacedGraphics()` used to seed the relationship lookup with the

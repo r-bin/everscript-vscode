@@ -32,6 +32,13 @@
 var _chipSel = {};
 /** The two-tiles-per-family sheet, once fetched. */
 var _chipPreviews = null;
+/**
+ * Whether the tile list also shows families this draft has not loaded. Off
+ * by default: the list is the room's own families (up to seven), and a free
+ * slot's `+` opens the rest — adopting one is a choice, not what the list
+ * shows whenever a slot happens to be free.
+ */
+var _famBrowse = false;
 
 /**
  * Ask for every family's chip art.
@@ -92,8 +99,10 @@ function familyStripHtml(fams) {
   for (var i = 0; i < 7; i++) {
     var id = fams[i];
     if (id === undefined) {
-      html += '<button class="rg-fam-slot empty" data-fam-add="1"'
-        + ' title="' + escH('Palette slot ' + (i + 1) + ' is free — click to add a family') + '">+</button>';
+      html += '<button class="rg-fam-slot empty' + (_famBrowse ? ' on' : '') + '" data-fam-add="1"'
+        + ' title="' + escH('Palette slot ' + (i + 1) + ' is free — ' + (_famBrowse
+          ? 'click to list only the loaded families again' : 'click to list every other family below; '
+          + 'picking one of its tiles adopts it')) + '">+</button>';
       continue;
     }
     var meta = chipMeta(id);
@@ -163,6 +172,10 @@ function familiesSectionHtml() {
         if (id === undefined) return '';
         return familyCardHtml(chipMeta(id) || { id: id, tiles: 0, areas: [], names: [] }, slot);
       }).join('')
+      + (editFreeFamilySlot() >= 0 ? '<button class="rg-fam-card rg-fam-addcard' + (_famBrowse ? ' on' : '')
+        + '" data-fam-add="1" title="' + escH(_famBrowse ? 'List only the loaded families again'
+          : 'List every other family below — picking one of its tiles adopts it') + '">+ '
+        + (_famBrowse ? 'hide other families' : 'add a family') + '</button>' : '')
       + '</div>'
     : familyStripHtml(fams);
 
@@ -185,6 +198,14 @@ function chipToggle(id) {
   if (_chipSel[key]) delete _chipSel[key];
   else _chipSel[key] = true;
   renderEditPanels();
+}
+
+/** A free slot's `+`: show or hide the families this draft has not loaded. */
+function chipBrowseToggle() {
+  _famBrowse = !_famBrowse;
+  editNote(_famBrowse ? 'every other family is listed below the loaded ones — picking a tile adopts its family'
+    : 'the tile list shows the loaded families only');
+  renderEditChrome();
 }
 
 /** Put a family in a free slot, from a candidate card's `+`. */

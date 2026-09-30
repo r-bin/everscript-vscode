@@ -273,6 +273,7 @@ function bindEditControls(panel, room) {
       return;
     }
     if (t.dataset.chipAdopt) { chipAdopt(t.dataset.chipAdopt); return; }
+    if (t.dataset.famAdd) { chipBrowseToggle(); return; }
     if (t.dataset.brushFlip) { brushFlipToggle(t.dataset.brushFlip); return; }
     if (t.dataset.tileFilter) { tileFilterToggle(t.dataset.tileFilter); return; }
     if (t.dataset.tileShape) { tileShapePick(t.dataset.tileShape); return; }

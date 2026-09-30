@@ -83,19 +83,15 @@ function editBrushFlipBits() {
 /**
  * Which families the list is showing.
  *
- * Families selected means exactly those. Otherwise the adopted families
- * always, plus a page of unadopted candidates **only while a palette slot is
- * free**.
+ * Families selected means exactly those. Otherwise the draft's own families
+ * — the seven slots are what the room can draw, so they are what the list
+ * offers ("the tiles aren't limited to the 7 families": a free slot used to
+ * list all ~320 others unasked). The rest come in only when asked for, with
+ * a free slot's `+` (map-editor-chips.js's `_famBrowse`), or when nothing is
+ * loaded at all; picking one of their tiles still adopts its family.
  *
- * That gate is the whole rule, and §8a.3 reversed §8a.1 to get it: "if the
- * tile family list is full (7/7) we don't show tiles from families outside
- * that list". Seven is a hard ceiling (`editAdoptFamilyFor`), so with no free
- * slot a candidate's tiles are tiles you cannot draw with — clicking one only
- * produces "all seven palette slots are taken". §8a.1 read an earlier report
- * as a pagination bug and made candidates show unconditionally; the report
- * meant the opposite, and offering ~320 unusable families is exactly the
- * noise the Tile tab rebuild (§8a) set out to remove. Free a slot and they
- * come back, because then adopting one is something that can happen.
+ * With no free slot they never show: seven is a hard ceiling
+ * (`editAdoptFamilyFor`), so their tiles could not be drawn (§8a.3).
  */
 function tileGroupFamilies() {
   return tileStableOrder(tileGroupFamiliesWanted());
@@ -129,8 +125,15 @@ function tileStableOrder(want) {
 function tileGroupFamiliesWanted() {
   var picked = Object.keys(_chipSel).map(Number);
   if (picked.length) return picked.filter(tileFamilyPasses);
-  var fams = editFamilies().filter(function (f) { return f !== undefined && tileFamilyPasses(f); });
-  if (!_famCatalogue || editFreeFamilySlot() < 0) return fams;
+  // The loaded families, and one a pick has planned a slot for but no cell
+  // names yet — its group must not vanish under the tile just clicked.
+  var auto = editAutoFamilies();
+  var loaded = editFamilies().filter(function (f) { return f !== undefined; });
+  var fams = loaded.concat(Object.keys(editPlannedOnly()).map(function (k) { return auto[k]; }))
+    .filter(function (f, i, all) { return f !== undefined && all.indexOf(f) === i && tileFamilyPasses(f); });
+  // A map with nothing loaded yet (a new custom map starts at 0/7) has
+  // nothing to choose from without the rest, so it lists them unasked.
+  if (!_famCatalogue || editFreeFamilySlot() < 0 || (!_famBrowse && loaded.length)) return fams;
   // Every candidate, most art first — no page size (§8e). The list is lazy,
   // so listing all 329 costs headers and placeholders, not sheets.
   var rest = _famCatalogue

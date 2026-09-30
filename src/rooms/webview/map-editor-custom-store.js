@@ -31,6 +31,11 @@ function customRequestMaps() {
 
 /** Run `fn` once the list is in; true when it had to wait. */
 function customWaitForMaps(fn) {
+  // `> new map` reaches a freshly built panel *before* `uiPrefs` asks for
+  // the list (extension.js posts `newMap` first), so not having asked yet is
+  // no answer either: ask now and wait. Otherwise every such New Map made
+  // another empty "New map 1" beside the untouched one it should reopen.
+  if (_customLoaded === 'no') customRequestMaps();
   if (_customLoaded !== 'asking') return false;
   _customLoadWaiters.push(fn);
   return true;

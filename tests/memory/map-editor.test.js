@@ -769,6 +769,7 @@ const ui = new Function(`
     widgetHasSelection: widgetHasSelection, widgetSaveFromSelection: widgetSaveFromSelection,
     editBuildConstruct: editBuildConstruct, moreFilterGroupHtml: moreFilterGroupHtml,
     getEditSel: function () { return _editSel; }, customCopyMapReady: customCopyMapReady,
+    setLayerForce: function (f) { _layerForce = f; },
     objectSelect: objectSelect, objectSelectFrame: objectSelectFrame,
     mtPaletteFits: mtPaletteFits, editSeedRoomObjects: editSeedRoomObjects, editObjects: editObjects,
     editWordSpecialIds: editWordSpecialIds, editOnRomRoom: editOnRomRoom, editTriggerSvg: editTriggerSvg,
@@ -991,6 +992,33 @@ test('erasing takes the picture and the collision back off the floor', () => {
     // grid has no stamp to take a canopy off.
     assert.strictEqual(ui.editResolve(p, 9, 9, -1, true), -1);
     assert.strictEqual(d.added.length, 0);
+});
+
+test('the Tile tab\'s front/ground picks what the eraser takes; auto takes the top-most', () => {
+    const p = palette();
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    d.on = true;
+    const words = (i) => { const w = ui.editStampWords(p, i); return [w.layer1, w.layer2]; };
+    // Cell (1,1) is stamp 2: front art $358A over ground $19CC. (0,0) is bare ground.
+    ui.setLayerForce('canopy');
+    assert.deepStrictEqual(words(ui.editResolve(p, 1, 1, -1, true)), [0xa800, 0x19cc], 'front: the art goes, the ground stays');
+    assert.strictEqual(ui.editResolve(p, 0, 0, -1, true), 0, 'front on bare ground: nothing to take');
+    ui.setLayerForce('terrain');
+    assert.deepStrictEqual(words(ui.editResolve(p, 1, 1, -1, true)), [0x358a, 0xa800], 'ground: the art stays, the ground goes');
+    assert.strictEqual(ui.editResolve(p, 0, 0, -1, true), -2, 'ground under no front art: the whole cell');
+    ui.setLayerForce(null);
+    assert.deepStrictEqual(words(ui.editResolve(p, 1, 1, -1, true)), [0xa800, 0x19cc], 'auto: the front art first');
+    assert.strictEqual(ui.editResolve(p, 0, 0, -1, true), -2, 'auto on bare ground: the painted tile');
+    // A stroke with nothing on the chosen layer writes nothing.
+    d.tool = 'erase';
+    ui.setLayerForce('canopy');
+    ui.editStroke({ x: 0, y: 0 }, 'down');
+    assert.strictEqual(d.cells['0,0'], undefined, 'no write, so the draft is not dirtied');
+    ui.editStroke({ x: 1, y: 1 }, 'down');
+    assert.deepStrictEqual(words(d.cells['1,1']), [0xa800, 0x19cc], 'the front art is erased');
+    ui.setLayerForce(null);
+    d.tool = 'paint';
 });
 
 test('a construct carries the triggers and objects inside its selection', () => {

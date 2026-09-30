@@ -1,3 +1,11 @@
+## [0.83.2] — 2026-09-30
+
+### Fix: Tile list limited to the room's families, front/ground erasing, New Map reuse
+
+- **Tiles limited to the chosen families:** the Tile tab lists the draft's own families (and one a pick has planned a slot for), even when a slot is free. A free slot used to list all ~320 other families unasked — room 0x33 has six. The free slot's `+` (strip and card grid) now lists the others on request; it was a dead button before. A map with nothing loaded (a new custom map) still lists everything.
+- **Eraser front/ground:** the Tile tab's `front` erases only front art and `ground` only the ground again — v0.83.1 left only the bottom bar's layer toggles, which do nothing visible on a custom map or widget. `auto` keeps smart erasing: top-most layer first. A stroke with nothing on the chosen layer no longer writes the cell.
+- **New Map reopens the untouched map:** `> new map` reaches a freshly built panel before it has asked for the saved maps, so it saw an empty list and made another "New map 1" each time. It now asks and waits.
+
 ## [0.83.1] — 2026-09-30
 
 ### Fix: Smart erasing — the top-most visible layer goes first

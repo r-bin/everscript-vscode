@@ -81,7 +81,10 @@ function editEraseTarget() {
   if (kind === 'trigger') return { kind: kind, glyph: '▭', label: 'the trigger under the cursor', ready: true };
   if (kind === 'object') return { kind: kind, glyph: '◆', label: 'a tile of the selected object', ready: true };
   var cut = typeof editCutLayerOn === 'function' && editCutLayerOn();
-  return { kind: 'tile', glyph: '▦', label: cut ? 'the cuttable tile' : 'the tile, by the layers shown', ready: true };
+  var force = typeof _layerForce !== 'undefined' ? _layerForce : null;
+  var what = force === 'canopy' ? 'the front art only' : force === 'terrain' ? 'the ground only'
+    : 'the top-most layer shown — front art first, then the tile';
+  return { kind: 'tile', glyph: '▦', label: cut ? 'the cuttable tile' : what, ready: true };
 }
 
 /** The pencil's (or the eraser's) badge, inside its button (map-editor-toolbar.js). */
