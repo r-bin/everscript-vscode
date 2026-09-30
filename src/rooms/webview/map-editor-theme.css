@@ -270,8 +270,8 @@
 .rg-theme .rg-obj-cluster{fill:none;stroke:var(--rg-object);stroke-width:.14;stroke-dasharray:.3 .3;pointer-events:none}
 .rg-theme .rg-obj-cluster.sel{fill:var(--rg-object);fill-opacity:.06;stroke-width:.18}
 .rg-theme .rg-obj-frame{fill:none;stroke:var(--rg-object);stroke-width:.2;stroke-dasharray:none;pointer-events:none}
-.rg-theme .rg-object-card{margin:4px 0;border:1px solid transparent;border-radius:4px}
-.rg-theme .rg-object-card.on{border-color:var(--rg-border);background:var(--rg-bg-chrome)}
+.rg-theme .rg-object-card.on{border-radius:7px;background:var(--rg-bg-chrome)}
+.rg-theme .rg-object-still{font-family:var(--rg-font-ui);font-size:11px;color:var(--rg-text-muted);margin-left:4px}
 .rg-theme .rg-object-caret{cursor:pointer;display:inline-block;width:14px;text-align:center;font-size:11px;color:var(--rg-text-muted);user-select:none}
 .rg-theme .rg-object-expanded{padding:6px 8px 8px;border-top:1px solid var(--rg-border)}
 .rg-theme .ro-chip-add{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px dashed var(--rg-border);border-radius:3px;background:transparent;color:var(--rg-text-secondary);cursor:pointer;font-size:16px;font-weight:bold}

@@ -28,7 +28,7 @@ const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-stamps.js', '
     'map-editor-anim.js', 'map-editor-ui.js', 'map-editor-phases.js', 'map-editor-constructs.js', 'map-editor-families.js',
     'map-editor-relations.js', 'map-editor-chips.js', 'map-editor-stranded.js',
     'map-editor-tiles.js', 'map-editor-tile-lazy.js', 'map-editor-tile-filters.js', 'map-editor-neighbours.js', 'map-editor-deco.js', 'map-editor-widgets.js', 'map-editor-widget-edit.js', 'map-editor-special.js',
-    'map-editor-trigger-select.js', 'map-editor-trigger-panel.js', 'map-editor-trigger-order.js', 'map-editor-objects.js',
+    'map-editor-trigger-select.js', 'map-editor-trigger-panel.js', 'map-editor-trigger-order.js', 'map-editor-objects.js', 'map-editor-object-list.js',
     'map-editor-toolbar.js', 'map-editor-filterbar.js', 'rom-overlay.js',
     'tables-builder.js', 'map-editor-tabs.js', 'map-editor-panels.js', 'map-editor-gestures.js',
     'map-editor-input.js', 'map-editor-actions.js', 'map-editor-newroom.js', 'map-editor-start.js', 'map-editor-custom.js',
@@ -2348,7 +2348,7 @@ async function main() {
         // Object cluster, frames, automatic delta bounds and solid blue frame
         editRemoveObject(so.uid);
         d.cells = {}; d.placed = d.placed.filter((p) => p.kind !== 'object');
-        _objectSel = null; _objectExpanded = null; _objectActiveFrame = 0;
+        _objectSel = null; _objectOpen = {}; _objectActiveFrame = 0;
         _editActiveTab = 'object';
         editBegin(); editStroke({ x: 0, y: 0 }, 'down'); editStroke({ x: 1, y: 1 }, 'up'); editEnd();
         let obj2 = editObjects()[0];
@@ -2439,7 +2439,7 @@ async function main() {
         _editComposed = { imageUri: 'data:image/png;base64,eA==', count: 256, columns: 16, cell: 16, imageWidth: 256, imageHeight: 256 };
         const d = editReset(0x34); d.on = true; d.tool = 'paint';
         _editActiveTab = 'object';
-        _objectSel = null; _objectExpanded = null; _objectActiveFrame = 0;
+        _objectSel = null; _objectOpen = {}; _objectActiveFrame = 0;
         _mtPalette.grid = [[null, null], [null, null]];
         renderEditChrome();
         const svg = document.getElementById('rg-svg');
@@ -2539,7 +2539,7 @@ async function main() {
             _editComposed = { imageUri: 'data:image/png;base64,eA==', count: 256, columns: 16, cell: 16, imageWidth: 256, imageHeight: 256 };
             const d = editReset(0x34); d.on = true; d.tool = 'paint';
             _editActiveTab = 'tile';
-            _objectSel = null; _objectExpanded = null; _objectActiveFrame = 0;
+            _objectSel = null; _objectOpen = {}; _objectActiveFrame = 0;
             _mtPalette.grid = [[null, null, null, null], [null, null, null, null], [null, null, null, null], [null, null, null, null]];
             _mtPalette.widthTiles = 4; _mtPalette.heightTiles = 4;
             renderEditChrome();

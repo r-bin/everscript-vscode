@@ -722,6 +722,7 @@ const ui = new Function(`
   ${read('map-editor-clipboard.js')}
   ${read('map-editor-pick.js')}
   ${read('map-editor-objects.js')}
+  ${read('map-editor-object-list.js')}
   ${read('map-editor-widgets.js')}
   ${read('map-editor-widget-edit.js')}
   ${read('map-editor-special-select.js')}
@@ -776,6 +777,7 @@ const ui = new Function(`
     editWordSpecialIds: editWordSpecialIds, editOnRomRoom: editOnRomRoom, editTriggerSvg: editTriggerSvg,
     editRoomSpecialsSvg: editRoomSpecialsSvg, editExport: editExport, infoTabHtml: infoTabHtml, infoMeasure: infoMeasure,
     editHeaderSet: editHeaderSet, infoHeaderBit: infoHeaderBit, infoHeader: infoHeader,
+    objectLooksStatic: objectLooksStatic, objectIsOpen: objectIsOpen, objectReorder: objectReorder, objectTabHtml: objectTabHtml,
   };`)();
 
 /** A palette with the tile sheet the host now sends alongside it. */
@@ -2139,6 +2141,29 @@ test('editing a vanilla room draws its own triggers and specials; a custom map o
     assert.strictEqual(ui.editOnRomRoom(), false);
     assert.ok(!ui.editTriggerSvg({ x: 0, y: 0 }).includes('rg-trigger-placed'), 'a custom map draws only placed ones');
 });
+test('an object whose states all look alike starts collapsed; rows reorder by drag, one undo step', () => {
+    const p = Object.assign(tilePalette(), { roomId: 0x34 });
+    const here = p.grid[0][0], other = [0, 1, 2].find((i) => i !== here && i !== p.grid[0][1]);
+    p.roomObjects = [
+        { index: 0, x: 0, y: 0, w: 1, h: 1, frames: [{ '0,0': here }] },        // a sniff spot: nothing changes
+        { index: 1, x: 1, y: 0, w: 1, h: 1, frames: [{ '0,0': other }] },       // a real change
+    ];
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    ui.editSeedRoomObjects();
+    const [a, b] = ui.editObjects();
+    assert.ok(ui.objectLooksStatic(a) && !ui.objectIsOpen(a), 'alike: collapsed');
+    assert.ok(!ui.objectLooksStatic(b) && ui.objectIsOpen(b), 'changes: open');
+    const html = ui.objectTabHtml();
+    assert.ok(!html.includes('Base look'), 'no State 0 caption');
+    assert.ok(html.includes('draggable="true"') && html.includes('rg-trigger-where'), 'drawn like a trigger row');
+    ui.objectReorder(b.uid, a.uid);
+    assert.deepStrictEqual(ui.editObjects().map((o) => o.roomObject), [1, 0]);
+    assert.strictEqual(d.undo.length, 1, 'one undo step');
+    ui.editUndo(p);
+    assert.deepStrictEqual(ui.editObjects().map((o) => o.roomObject), [0, 1]);
+});
+
 
 console.log(`\n  ${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);

@@ -310,7 +310,7 @@ function bindEditControls(panel, room) {
     if ((t.dataset.objectSel || t.dataset.objectRemove || t.dataset.objectToggle
         || t.dataset.objectFrame || t.dataset.objectAddFrame || t.dataset.objectRemoveFrame
         || t.dataset.objectConfirmRemoveFrame || t.dataset.objectCancelRemoveFrame
-        || t.dataset.objectMoveFrame || t.dataset.objectMoveObj) && objectClick(t)) return;
+        || t.dataset.objectMoveFrame) && objectClick(t)) return;
     if (t.dataset.famTile) {
       // A tile from a family strip: pulls in the family, the graphic, and
       // the metatile that can draw it, all at once. The redraw keeps this

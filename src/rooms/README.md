@@ -221,6 +221,7 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
 - `map-editor-trigger-order.js` — dragging trigger rows: the list's order
   (`_edit.triggerOrder`) and changing a trigger's kind; owns `_triggerDragRow`
 - `map-editor-objects.js` — the Object tab: object areas and the tiles drawn over them
+- `map-editor-object-list.js` — the Object tab's rows (drawn like the trigger rows), open/closed, drag to reorder
   (their changed look); owns `_objectSel` / `_objectDraw`
 - `map-editor-widgets.js` — the user's own widgets and the Widgets tab (yours first,
   vanilla behind a toggle); owns `_widgets` / `_widgetArt` / `_widgetsVanilla`
@@ -266,7 +267,7 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   between them; owns `_editActiveTab`. Renders nothing but the strip itself
   — see `map-editor-panels.js` for what the Tile/Info/Trigger tabs hold
   (Special's own content is `map-editor-special.js`'s `specialTabHtml`;
-  Object's is `map-editor-objects.js`'s `objectTabHtml`; Widgets' is
+  Object's is `map-editor-object-list.js`'s `objectTabHtml`; Widgets' is
   `map-editor-widgets.js`'s `widgetsTabHtml`)
 - `map-editor-panels.js` — the metrics, the checks, the needed-metatile
   read-out, and the panel column itself, filed under the active tab

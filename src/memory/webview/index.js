@@ -104,6 +104,7 @@ const ROOMS_JS_FILES = [
   'map-editor-trigger-panel.js',// the Trigger tab's list UI + the Info tab's trigger counts
   'map-editor-trigger-order.js', // dragging trigger rows: order and kind (_triggerDragRow)
   'map-editor-objects.js', // the Object tab: areas and their tiles (_objectSel/_objectDraw)
+  'map-editor-object-list.js', // the Object tab's rows: open/closed, drag to reorder (_objectOpen/_objectDragRow)
   'map-editor-toolbar.js',// the floating tool pill: tools, phases, icons, the ⋯ overflow
   'map-editor-filterbar.js',// the canvas column's docked filter bar + status bar
   'map-editor-tabs.js',  // which of the dock's five tabs is showing (_editActiveTab)

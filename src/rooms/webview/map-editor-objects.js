@@ -4,8 +4,9 @@
 //   - State 0: base room appearance (what the map loads with)
 //   - Frame 1..N: changed states with delta tiles; size and delta bounds calculated automatically (solid blue frame).
 // Objects and frames are order sensitive (0..x). Frames can be added, removed (with confirmation), and reordered.
+// The tab's list (rows, state chips, drag to reorder) is map-editor-object-list.js.
 
-var _objectSel = null, _objectExpanded = null, _objectActiveFrame = 1;
+var _objectSel = null, _objectActiveFrame = 1;
 var _confirmRemoveFrame = null, _objectDraw = null, _objectPainting = false;
 
 function editObjects() {
@@ -52,7 +53,7 @@ function editObjectAt(x, y) {
 
 function objectSelect(uid) {
   if (typeof editDeselectAll === 'function') editDeselectAll();
-  _objectSel = uid; _objectExpanded = uid; _confirmRemoveFrame = null;
+  _objectSel = uid; _confirmRemoveFrame = null;
   if (uid != null && typeof _editActiveTab !== 'undefined') _editActiveTab = 'object';
   var o = editObjectFind(uid);
   if (o) {
@@ -98,7 +99,7 @@ function objectAddFrame(uid) {
   var curSpecials = _objectActiveFrame >= 1 ? (o.frameSpecials[_objectActiveFrame - 1] || {}) : {};
   o.frameSpecials.push(Object.assign({}, curSpecials));
   o.states = frames.length + 1;
-  _objectSel = uid; _objectExpanded = uid; _objectActiveFrame = frames.length;
+  _objectSel = uid; _objectActiveFrame = frames.length;
   o.activeFrame = _objectActiveFrame;
   o.layer = newFrame; _confirmRemoveFrame = null;
   editEnd();
@@ -140,21 +141,6 @@ function objectMoveFrame(uid, dir) {
   editNote('Moved frame to #' + _objectActiveFrame);
   renderEditChrome();
   renderEditLayer(_mtPalette, _editComposed, _editOrigin);
-}
-
-function objectMove(uid, dir) {
-  var d = editDraft();
-  if (!d || !d.placed) return;
-  var objs = editObjects(), idx = -1;
-  for (var i = 0; i < objs.length; i++) if (objs[i].uid === uid) { idx = i; break; }
-  var to = idx + dir;
-  if (idx < 0 || to < 0 || to >= objs.length) return;
-  editBegin();
-  var p1 = objs[idx], p2 = objs[to];
-  d.placed[d.placed.indexOf(p1)] = p2; d.placed[d.placed.indexOf(p2)] = p1;
-  editEnd();
-  editNote('Moved object to index #' + to);
-  renderEditChrome();
 }
 
 /** A gesture on the Object tab. Returns true when it was the object's. */
@@ -203,7 +189,7 @@ function editAddObject(box) {
   var d = editDraft(), uid = editNextPlacedUid();
   var o = { kind: 'object', uid: uid, x: box.x1, y: box.y1, w: box.x2 - box.x1 + 1, h: box.y2 - box.y1 + 1, states: 1, frames: [], layer: {} };
   d.placed.push(o);
-  _objectSel = uid; _objectExpanded = uid; _objectActiveFrame = 0; _confirmRemoveFrame = null;
+  _objectSel = uid; _objectActiveFrame = 0; _confirmRemoveFrame = null;
   editNote('obj #' + (editObjects().length - 1) + ' added — ' + o.w + '×' + o.h + '. Click + Frame to add a changed state.');
   renderEditChrome();
   renderEditLayer(_mtPalette, _editComposed, _editOrigin);
@@ -248,7 +234,6 @@ function editRemoveObject(uid) {
   d.placed = d.placed.filter(function (p) { return !(p.kind === 'object' && p.uid === uid); });
   editEnd();
   if (_objectSel === uid) _objectSel = null;
-  if (_objectExpanded === uid) _objectExpanded = null;
   editNote('object removed');
   renderEditChrome();
   renderEditLayer(_mtPalette, _editComposed, _editOrigin);
@@ -303,93 +288,4 @@ function editObjectSvg(palette, composed, origin) {
       + ((_objectDraw.x2 - _objectDraw.x1 + 1) * EDIT_UNITS) + '" height="' + ((_objectDraw.y2 - _objectDraw.y1 + 1) * EDIT_UNITS) + '" pointer-events="none"/>';
   }
   return html;
-}
-
-// ── the tab ────────────────────────────────────────────────────────────────
-
-function objectFrameThumb(o, frameIdx, org) {
-  var a = editCellPos(org, o.x, o.y), bw = o.w * EDIT_UNITS, bh = o.h * EDIT_UNITS;
-  var maxDim = Math.max(o.w, o.h, 1), tw = Math.round(30 * o.w / maxDim), th = Math.round(30 * o.h / maxDim), tiles = '';
-  if (frameIdx >= 1) {
-    var frames = editObjectFrames(o), layer = frames[frameIdx - 1] || {};
-    Object.keys(layer).forEach(function (k) {
-      var p = k.split(','), pos = editCellPos(org, o.x + Number(p[0]), o.y + Number(p[1]));
-      tiles += editStampSvg(_mtPalette, _editComposed, layer[k], pos.x, pos.y, 'rg-edit-cell');
-    });
-  }
-  return '<svg class="ro-img" width="' + tw + '" height="' + th + '" viewBox="' + a.x + ' ' + a.y + ' ' + bw + ' ' + bh
-    + '" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><use href="#rg-img"/><use href="#rg-edit-tiles"/>' + tiles + '</svg>';
-}
-
-/** One object row with expanded state chips. */
-function objectRowHtml(o, n, listLen) {
-  var org = _editOrigin, frames = editObjectFrames(o);
-  var isSel = (o.uid === _objectSel), isExpanded = (o.uid === _objectExpanded);
-  var h = '<div class="rg-object-card' + (isSel ? ' on' : '') + '">'
-    + '<div class="rg-trigger-row rg-object-row' + (isSel ? ' on' : '') + '" data-object-sel="' + o.uid
-    + '" title="' + escH('obj #' + n + ' at ' + o.x + ',' + o.y + ' (' + o.w + '×' + o.h + ') — ' + (frames.length + 1) + ' states'
-      + (o.roomObject != null ? '\nthe room’s own OBJ ' + o.roomObject : '')) + '">'
-    + '<span class="rg-object-caret" data-object-toggle="' + o.uid + '">' + (isExpanded ? '▾' : '▸') + '</span>'
-    + '<span class="rg-trigger-label"><b>obj ' + n + '</b> · ' + o.w + '×' + o.h + ' at ' + o.x + ',' + o.y + '</span>'
-    + '<button class="rdf rdf-xs rg-obj-move" data-object-move-obj="-1" data-object-uid="' + o.uid + '" title="Move object up in order"' + (n === 0 ? ' disabled' : '') + '>▲</button>'
-    + '<button class="rdf rdf-xs rg-obj-move" data-object-move-obj="1" data-object-uid="' + o.uid + '" title="Move object down in order"' + (n >= listLen - 1 ? ' disabled' : '') + '>▼</button>'
-    + '<button class="rdf rg-trigger-remove" data-object-remove="' + o.uid + '" title="Remove this object">×</button></div>';
-  if (isExpanded) {
-    h += '<div class="rg-object-expanded"><div class="ro-chips">'
-      + '<button class="ro-chip' + (_objectActiveFrame === 0 ? ' sel' : '') + '" data-object-uid="' + o.uid + '" data-object-frame="0" title="State 0 — base look (as the room loads)">'
-      + objectFrameThumb(o, 0, org) + '<span class="ro-lbl">0</span></button>';
-    for (var f = 1; f <= frames.length; f++) {
-      var b = objectFrameBounds(frames[f - 1]);
-      var tip = 'Frame ' + f + (b ? ' — ' + b.w + '×' + b.h + ' (' + b.count + ' delta tiles)' : ' — same as base');
-      h += '<button class="ro-chip' + (_objectActiveFrame === f ? ' sel' : '') + '" data-object-uid="' + o.uid + '" data-object-frame="' + f + '" title="' + escH(tip) + '">'
-        + objectFrameThumb(o, f, org) + '<span class="ro-lbl">' + f + '</span></button>';
-    }
-    h += '<button class="ro-chip ro-chip-add" data-object-add-frame="' + o.uid + '" title="Add new frame to obj #' + n + '">+</button></div>'
-      + '<div class="rg-object-frame-bar">';
-    if (_objectActiveFrame === 0) {
-      h += '<span class="rg-obj-frame-info">State 0: Base look (loads with room)</span>'
-        + (frames.length ? '<button class="rdf rdf-xs" data-object-uid="' + o.uid + '" data-object-frame="1" title="Frame 1">▶</button>' : '');
-    } else {
-      var curB = objectFrameBounds(frames[_objectActiveFrame - 1]);
-      var deltaInfo = curB ? (curB.w + '×' + curB.h + ' (' + curB.count + ' delta tiles)') : 'same as base';
-      var prevF = _objectActiveFrame - 1, nextF = _objectActiveFrame + 1;
-      h += '<span class="rg-obj-frame-info">Frame ' + _objectActiveFrame + ': ' + deltaInfo + '</span>'
-        + '<button class="rdf rdf-xs" data-object-uid="' + o.uid + '" data-object-frame="' + prevF + '" title="' + (prevF === 0 ? 'State 0 (base)' : 'Frame ' + prevF) + '">◀</button>'
-        + '<button class="rdf rdf-xs" data-object-uid="' + o.uid + '" data-object-frame="' + nextF + '" title="Frame ' + nextF + '"' + (_objectActiveFrame >= frames.length ? ' disabled' : '') + '>▶</button>';
-      h += (_confirmRemoveFrame === _objectActiveFrame)
-        ? '<button class="rdf rdf-xs rdf-warn" data-object-uid="' + o.uid + '" data-object-confirm-remove-frame="' + _objectActiveFrame + '" title="Confirm delete">Delete?</button><button class="rdf rdf-xs" data-object-cancel-remove-frame="1" title="Cancel">Cancel</button>'
-        : '<button class="rdf rdf-xs" data-object-uid="' + o.uid + '" data-object-remove-frame="' + _objectActiveFrame + '" title="Remove frame ' + _objectActiveFrame + '">Delete frame</button>';
-    }
-    h += '</div></div>';
-  }
-  return h + '</div>';
-}
-
-function objectTabHtml() {
-  var list = editObjects();
-  var html = '<div class="rs-note">Objects are areas that change appearance when a script triggers them. '
-    + 'The dotted blue line marks the cluster rectangle. Inside it, draw delta tiles for each frame (solid blue frame).'
-    + '</div><div class="rg-trigger-list">';
-  if (!list.length) html += '<div class="rs-note">none yet — drag an area on the map with the pencil</div>';
-  list.forEach(function (o, i) { html += objectRowHtml(o, i, list.length); });
-  return html + '</div>';
-}
-
-/** A click the Object tab owns (map-editor-input.js). */
-function objectClick(t) {
-  if (t.dataset.objectRemove) { editRemoveObject(Number(t.dataset.objectRemove)); return true; }
-  if (t.dataset.objectToggle) {
-    var tuid = Number(t.dataset.objectToggle); _objectExpanded = (_objectExpanded === tuid) ? null : tuid;
-    if (_objectExpanded) objectSelect(tuid); else renderEditChrome();
-    return true;
-  }
-  if (t.dataset.objectSel) { objectSelect(Number(t.dataset.objectSel)); return true; }
-  if (t.dataset.objectFrame) { objectSelectFrame(Number(t.dataset.objectFrame), t.dataset.objectUid ? Number(t.dataset.objectUid) : undefined); return true; }
-  if (t.dataset.objectAddFrame) { objectAddFrame(Number(t.dataset.objectAddFrame)); return true; }
-  if (t.dataset.objectRemoveFrame) { _confirmRemoveFrame = Number(t.dataset.objectRemoveFrame); renderEditChrome(); return true; }
-  if (t.dataset.objectConfirmRemoveFrame) { objectRemoveFrame(Number(t.dataset.objectUid), Number(t.dataset.objectConfirmRemoveFrame)); return true; }
-  if (t.dataset.objectCancelRemoveFrame) { _confirmRemoveFrame = null; renderEditChrome(); return true; }
-  if (t.dataset.objectMoveFrame) { objectMoveFrame(Number(t.dataset.objectUid), Number(t.dataset.objectMoveFrame)); return true; }
-  if (t.dataset.objectMoveObj) { objectMove(Number(t.dataset.objectUid), Number(t.dataset.objectMoveObj)); return true; }
-  return false;
 }

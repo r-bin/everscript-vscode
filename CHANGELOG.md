@@ -1,3 +1,13 @@
+## [0.88.0] — 2026-09-30
+
+### Feat: Object tab drawn like the trigger lists
+
+- **Rows as the Trigger tab draws them:** grip, where the object sits in the room (its area lit), how it looks on the map now, `#n · size at x,y`, remove. Drag a row by ⠿ to reorder (one undo step); the ▲▼ buttons are gone.
+- **Sniff spots collapse:** an object whose states all look the same (same front and ground art in every state — e.g. 31 of room 0x4B's 32 objects only clear the interact bit) starts collapsed and says "no change". Every other object, and the selected one, starts open; the caret overrides either way.
+- The "State 0: Base look (loads with room)" caption is gone; the chips say it.
+- Locked maps: no grip, no remove, and removing, adding or reordering frames is refused with a note.
+- The list moved into its own file, `map-editor-object-list.js`.
+
 ## [0.87.0] — 2026-09-30
 
 ### Feat: Info tab redesign — header first, in words; measured rows as bars
