@@ -83,21 +83,27 @@ function renderEditLayer(palette, composed, origin) {
   // that way loses the page's CSS, so the overlays below would draw black.
   var tiles = '';
   var html = '';
+  var romRoom = editOnRomRoom();
   Object.keys(d.cells).forEach(function (k) {
     var p = k.split(',');
     var pos = editCellPos(origin, Number(p[0]), Number(p[1]));
     tiles += editStampSvg(palette, composed, d.cells[k], pos.x, pos.y, 'rg-edit-cell');
     // A stairs cell painted from a stair tile says so (map-editor-collision.js);
-    // one drawn with the Special tab already shows that pick's glyph.
-    if (typeof editStairsSvg === 'function' && !(d.specialCells || {})[k]) {
+    // one drawn with the Special tab already shows that pick's glyph. A ROM
+    // room's cells show theirs below, with the rest of the room's.
+    if (!romRoom && typeof editStairsSvg === 'function' && !(d.specialCells || {})[k]) {
       html += editStairsSvg(palette, d.cells[k], pos.x, pos.y);
     }
   });
   // The cuttable layer, over the cells it covers (map-editor-cutlayer.js).
   if (typeof editCutSvg === 'function') tiles += editCutSvg(palette, composed, origin);
   html = '<g id="rg-edit-tiles">' + tiles + '</g>' + html;
+  // Objects and special glyphs go in the overlay group, over the canopy: on a
+  // ROM room the host's canopy layer (#rg-fg) sits above this group and hid
+  // them. A custom map has no canopy picture, so it looked fine there.
+  var marks = '';
   // Objects: their areas, and with the Object tab open their tiles on top (map-editor-objects.js).
-  if (typeof editObjectSvg === 'function') html += editObjectSvg(palette, composed, origin);
+  if (typeof editObjectSvg === 'function') marks += editObjectSvg(palette, composed, origin);
   // Special glyphs (stairs/drift, gate, entrance) sit on their own key
   // space (see map-editor.js's specialCells), so they are drawn in their
   // own pass rather than folded into the cell loop above — a cell can be
@@ -125,22 +131,25 @@ function renderEditLayer(palette, composed, origin) {
     }
     drawnKeys[k] = true;
     var pos = editCellPos(origin, tx, ty);
-    html += editSpecialGlyphSvg(d.specialCells[k], pos.x, pos.y);
+    marks += editSpecialGlyphSvg(d.specialCells[k], pos.x, pos.y);
   });
+  // A ROM room's own specials live only in its collision words: shown with
+  // the same glyphs the Special tab draws, read off each cell as it is now.
+  if (romRoom && palette && palette.grid) marks += editRoomSpecialsSvg(palette, origin, d, drawnKeys);
   activeSpecials.forEach(function (item) {
     var ao = item.obj;
     Object.keys(item.fs).forEach(function (fk) {
       if (!item.fs[fk]) return;
       var p = fk.split(','), tx = ao.x + Number(p[0]), ty = ao.y + Number(p[1]);
       var pos = editCellPos(origin, tx, ty);
-      html += editSpecialGlyphSvg(item.fs[fk], pos.x, pos.y);
+      marks += editSpecialGlyphSvg(item.fs[fk], pos.x, pos.y);
     });
   });
-  // The Boy's start, over the tiles and glyphs — map-editor-start.js.
+  // The Boy's start, over the tiles — map-editor-start.js.
   html += editStartSvg(origin);
   g.innerHTML = html;
 
-  var ovHtml = '';
+  var ovHtml = marks;
   // The Select tool's own outlines: the selected trigger, and a live preview
   // of where a drag would land it — see map-editor-trigger-select.js.
   if (d.selectedTriggerRef) {

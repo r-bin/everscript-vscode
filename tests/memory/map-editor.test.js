@@ -725,6 +725,7 @@ const ui = new Function(`
   ${read('map-editor-widgets.js')}
   ${read('map-editor-widget-edit.js')}
   ${read('map-editor-special-select.js')}
+  ${read('map-editor-romroom.js') /* a vanilla room in the editor (map-editor-rules §7) */}
   return {
     tileSlotWord: tileSlotWord, editOnTilePicked: editOnTilePicked,
     editAction: editAction, editReset: editReset, editDraft: editDraft,
@@ -770,6 +771,9 @@ const ui = new Function(`
     getEditSel: function () { return _editSel; }, customCopyMapReady: customCopyMapReady,
     setLayerForce: function (f) { _layerForce = f; },
     objectSelect: objectSelect, objectSelectFrame: objectSelectFrame,
+    mtPaletteFits: mtPaletteFits, editSeedRoomObjects: editSeedRoomObjects, editObjects: editObjects,
+    editWordSpecialIds: editWordSpecialIds, editOnRomRoom: editOnRomRoom, editTriggerSvg: editTriggerSvg,
+    editRoomSpecialsSvg: editRoomSpecialsSvg, editExport: editExport,
   };`)();
 
 /** A palette with the tile sheet the host now sends alongside it. */
@@ -1797,11 +1801,14 @@ test('customDuplicateMap duplicates a vanilla room with pre-seeded cells and att
         [0, 1, 0, 1],
         [1, 0, 1, 0]
     ];
+    p.roomId = 0x34;
     p.attachments = {
         bTrigger: [[1, 1, 2, 2, 0x1234]],
         stepOn: [],
         objects: [[2, 2, 1, 1, 5]]
     };
+    // The object with its states, as the host sends it (object-previews.js's editorObjects).
+    p.roomObjects = [{ index: 5, x: 2, y: 2, w: 1, h: 1, frames: [{ '0,0': 1 }] }];
     ui.setPalette(p);
     ui.setPanelRoom({ romRoomId: 0x34, name: "Strongheart's Hut", widthTiles: 4, heightTiles: 4 });
     ui.setCustom([], null);
@@ -1816,6 +1823,11 @@ test('customDuplicateMap duplicates a vanilla room with pre-seeded cells and att
     assert.strictEqual(dup.saved.cells['0,0'], 0);
     assert.strictEqual(dup.saved.cells['1,0'], 1);
     assert.strictEqual(dup.saved.placed.length, 2, 'bTrigger and object copied');
+    const trig = dup.saved.placed.find((q) => q.kind === 'bTrigger');
+    assert.deepStrictEqual([trig.x, trig.y, trig.w, trig.h], [1, 1, 2, 2], 'inclusive cells 1..2 are a 2x2 box');
+    const obj = dup.saved.placed.find((q) => q.kind === 'object');
+    assert.deepStrictEqual(obj.frames, [{ '0,0': 1 }], 'the object keeps its states');
+    assert.strictEqual(obj.activeFrame, 0, 'and shows the room as it loads');
     assert.deepStrictEqual(dup.saved.families, p.tileFamilies);
 });
 
@@ -1924,6 +1936,94 @@ test('customDuplicateMap defers copying vanilla room until palette loads and cop
     assert.strictEqual(maps[0].saved.cells['0,0'], 0);
     assert.strictEqual(maps[0].saved.cells['1,0'], 1);
     assert.strictEqual(maps[0].saved.placed.length, 1);
+});
+
+// ── a vanilla room, connected to the editor ─────────────────────────────────
+
+test('a custom map\'s palette is never taken for its donor vanilla room', () => {
+    // map-editor-newroom.js reshapes the donor's palette into the blank map
+    // and keeps its roomId — opening the donor then kept the map's grid,
+    // size and families on the ROM room.
+    const p = Object.assign(tilePalette(), { roomId: 0x34 });
+    ui.setPalette(p);
+    assert.strictEqual(ui.mtPaletteFits({ romRoomId: 0x34 }), true, 'the room\'s own palette fits');
+    ui.setPalette(Object.assign({}, p, { customBlank: true }));
+    assert.strictEqual(ui.mtPaletteFits({ romRoomId: 0x34 }), false, 'a custom map\'s does not');
+    assert.strictEqual(ui.mtPaletteFits({ romRoomId: 0x33 }), false, 'nor another room\'s');
+});
+
+test('a vanilla room\'s objects join its draft once, with their frames, at the loaded state', () => {
+    const p = Object.assign(tilePalette(), { roomId: 0x34,
+        roomObjects: [{ index: 0, x: 1, y: 0, w: 2, h: 1, frames: [{ '0,0': 2 }, { '0,0': 2, '1,0': 1 }] }] });
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    ui.editSeedRoomObjects();
+    ui.editSeedRoomObjects();
+    const objs = ui.editObjects();
+    assert.strictEqual(objs.length, 1, 'seeded once, however often asked');
+    assert.strictEqual(objs[0].roomObject, 0);
+    assert.strictEqual(objs[0].states, 3, 'two deltas are three states');
+    assert.strictEqual(objs[0].activeFrame, 0, 'shows the room as it loads');
+    // Frames are the draft's own copies: editing one must not edit the palette.
+    objs[0].frames[0]['0,0'] = 1;
+    assert.strictEqual(p.roomObjects[0].frames[0]['0,0'], 2);
+    // Not a new attachment in the export — it is already in the ROM.
+    const ex = ui.editExport(p);
+    assert.strictEqual(ex.attachments.length, 0);
+    assert.strictEqual(ex.roomObjects.length, 1);
+    assert.ok(d.roomObjectsSeeded);
+});
+
+test('seeding waits outside an open undo step, and never touches a custom map', () => {
+    const p = Object.assign(tilePalette(), { roomId: 0x34,
+        roomObjects: [{ index: 0, x: 0, y: 0, w: 1, h: 1, frames: [{ '0,0': 1 }] }] });
+    ui.setPalette(p);
+    ui.editReset(0x34);
+    ui.editBegin();
+    ui.editSeedRoomObjects();
+    assert.strictEqual(ui.editObjects().length, 0, 'not inside a gesture');
+    ui.editEnd();
+    ui.editSeedRoomObjects();
+    assert.strictEqual(ui.editObjects().length, 1);
+    const d = ui.editReset(0x34);
+    d.customKey = 'custom-x';
+    ui.editSeedRoomObjects();
+    assert.strictEqual(ui.editObjects().length, 0, 'a custom map has only its own objects');
+});
+
+test('a collision word names the Special tab pick it already carries', () => {
+    assert.deepStrictEqual(ui.editWordSpecialIds(0x0000), []);
+    assert.deepStrictEqual(ui.editWordSpecialIds(0x2000), ['stairs-vert']);
+    assert.deepStrictEqual(ui.editWordSpecialIds(0x2001), ['stairs-diag-r']);
+    assert.deepStrictEqual(ui.editWordSpecialIds(0x2002), ['stairs-diag-l']);
+    assert.deepStrictEqual(ui.editWordSpecialIds(0x200a), ['drift-e']);
+    // The four diagonal handlers and 3..7 (§6), all placed in vanilla.
+    assert.deepStrictEqual(ui.editWordSpecialIds(0x2009), ['drift-ne']);
+    assert.deepStrictEqual(ui.editWordSpecialIds(0x200c), ['drift-nw']);
+    assert.deepStrictEqual(ui.editWordSpecialIds(0x2006), ['walkable']);
+    // Gates: bit 8 plus the nibble; 9 has no effect of its own and no pick.
+    assert.deepStrictEqual(ui.editWordSpecialIds(0x0510), ['gate-dog']);
+    assert.deepStrictEqual(ui.editWordSpecialIds(0x0910), []);
+    assert.deepStrictEqual(ui.editWordSpecialIds(0x0400), [], 'no gate without bit 8');
+    assert.deepStrictEqual(ui.editWordSpecialIds(0x2708), ['drift-n', 'gate-boy']);
+});
+
+test('editing a vanilla room draws its own triggers and specials; a custom map only its own', () => {
+    const p = Object.assign(tilePalette(), { roomId: 0x34,
+        entries: [[0, 0xa800, 0x19ce, 0x2008, 1], [1, 0xa800, 0x19cc, 0x101f, 1], [2, 0x358a, 0x19cc, 0x0010, 0]],
+        attachments: { bTrigger: [[0, 0, 1, 0, 0x99]], stepOn: [], objects: [] } });
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    assert.strictEqual(ui.editOnRomRoom(), false, 'not while browsing');
+    d.on = true;
+    assert.strictEqual(ui.editOnRomRoom(), true);
+    assert.ok(ui.editTriggerSvg({ x: 0, y: 0 }).includes('rg-trigger-placed-b'), 'the room\'s B-trigger is drawn');
+    // Stamp 0 carries drift north; the grid has it at 0,0 1,1 2,1... per palette().grid.
+    const svg = ui.editRoomSpecialsSvg(p, { x: 0, y: 0 }, d, {});
+    assert.ok(svg.includes('↑'), 'its drift shows with the Special tab\'s glyph');
+    d.customKey = 'custom-x';
+    assert.strictEqual(ui.editOnRomRoom(), false);
+    assert.ok(!ui.editTriggerSvg({ x: 0, y: 0 }).includes('rg-trigger-placed'), 'a custom map draws only placed ones');
 });
 
 console.log(`\n  ${passed} passed, ${failed} failed`);

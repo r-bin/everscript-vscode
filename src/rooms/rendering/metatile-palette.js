@@ -13,6 +13,7 @@ const { romFingerprint } = require('./rom-fingerprint');
 const { annotateGraphics, budgetSummary, invalidateVanillaIndex } = require('./vanilla-index');
 const { groupRoomGraphics } = require('./room-draft');
 const { buildStampAnimations } = require('./stamp-animation');
+const { editorObjects } = require('./object-previews');
 
 /** Metatiles per atlas row. 16 keeps the sheet narrow enough to scroll. */
 const COLUMNS = 16;
@@ -49,6 +50,21 @@ function packEntries(table) {
 }
 
 /**
+ * A ROM trigger as the editor's `[x1, y1, x2, y2, scriptId]`: inclusive cells
+ * of the map grid. The record is neither — it counts from the header's origin
+ * and its far edge is exclusive (collision-overlay.ts draws `(x - originX) * 16`
+ * up to `x2`). Read raw, every box sat `originX, originY` cells off and one
+ * cell too big: room 0x38's gourd triggers landed out in the canopy.
+ */
+function mapCellBox(room, t) {
+    const ox = room.header.originX;
+    const oy = room.header.originY;
+    const x1 = Math.min(t.x1, t.x2) - ox;
+    const y1 = Math.min(t.y1, t.y2) - oy;
+    return [x1, y1, Math.max(x1, Math.max(t.x1, t.x2) - ox - 1), Math.max(y1, Math.max(t.y1, t.y2) - oy - 1), t.scriptId];
+}
+
+/**
  * Everything the tab needs to draw and describe the placement palette.
  *
  * @param {Uint8Array|Buffer} rom
@@ -68,6 +84,7 @@ function buildRoomMetatilePalette(rom, roomId, layer, bgPalette) {
     const room = maps.decodeRoom(buf, roomId);
     const atlas = maps.renderMetatileAtlas(buf, room, { columns: COLUMNS, layer: which });
     const table = maps.metatileTable(room);
+    const objects = editorObjects(buf, room);
 
     const out = {
         roomId,
@@ -110,13 +127,14 @@ function buildRoomMetatilePalette(rom, roomId, layer, bgPalette) {
         // with a B-trigger and an object while a hide comes with neither —
         // the difference is only visible here.
         attachments: {
-            bTrigger: room.triggers.bTrigger.map((t) => [t.x1, t.y1, t.x2, t.y2, t.scriptId]),
-            stepOn: room.triggers.stepOn.map((t) => [t.x1, t.y1, t.x2, t.y2, t.scriptId]),
-            objects: room.objects.map((o) => {
-                const s0 = o.states[0];
-                return s0 ? [s0.tileX, s0.tileY, s0.targetWidth, s0.targetHeight, o.objectIndex] : null;
-            }).filter(Boolean),
+            bTrigger: room.triggers.bTrigger.map((t) => mapCellBox(room, t)),
+            stepOn: room.triggers.stepOn.map((t) => mapCellBox(room, t)),
+            // The whole area an object can change, not its first delta's
+            // footprint — that one is often a single cell of a bigger object.
+            objects: objects.map((o) => [o.x, o.y, o.w, o.h, o.index]),
         },
+        /** The same objects with their states as frames, for the Object tab. */
+        roomObjects: objects,
         /** The raw graphics Block 1 put in reach — see buildTileSheet. */
         tiles: null,
     };

@@ -335,6 +335,10 @@ function applyBlankRoom(msg) {
       // The donor's triggers and objects are its own, not the new map's —
       // left in, the Trigger tab listed Strongheart's Hut's.
       attachments: { bTrigger: [], stepOn: [], objects: [] },
+      // Still keyed by the donor's roomId, so without this mark opening the
+      // donor as a vanilla room kept this palette — the custom map's grid,
+      // size and families on a ROM room (mtPaletteFits).
+      customBlank: true,
     });
   }
 

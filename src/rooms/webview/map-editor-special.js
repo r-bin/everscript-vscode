@@ -41,6 +41,12 @@ var EDIT_SPECIAL_GROUPS = [
       { id: 'stairs-diag-r', label: 'Diagonal R', glyph: '◢', drift: 0x1 },
       { id: 'drift-n', label: 'Drift N', glyph: '↑', drift: 0x8 }, { id: 'drift-e', label: 'Drift E', glyph: '→', drift: 0xa },
       { id: 'drift-s', label: 'Drift S', glyph: '↓', drift: 0xf }, { id: 'drift-w', label: 'Drift W', glyph: '←', drift: 0xd },
+      // The four diagonal handlers of §6 — vanilla places all of them.
+      { id: 'drift-ne', label: 'Drift NE', glyph: '↗', drift: 0x9 }, { id: 'drift-se', label: 'Drift SE', glyph: '↘', drift: 0xb },
+      { id: 'drift-sw', label: 'Drift SW', glyph: '↙', drift: 0xe }, { id: 'drift-nw', label: 'Drift NW', glyph: '↖', drift: 0xc },
+      // §6: nibbles 3..7 share one handler — forced walkable, no drift. 4 is
+      // the one vanilla uses most (413 cells), so it is what this writes.
+      { id: 'walkable', label: 'Walkable', glyph: 'W', drift: 0x4 },
     ],
   },
   {

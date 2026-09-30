@@ -59,8 +59,7 @@ function editDock(on, room) {
     }
     // Nothing can be painted without the dictionary, so fetch it now
     // rather than making the user find the load button.
-    var curBorrow = room.custom ? (typeof customFind === 'function' && customFind(room.custom) ? customFind(room.custom).borrow : null) : (typeof roomVanillaIdNum === 'function' ? roomVanillaIdNum(room) : null);
-    if ((!_mtPalette || _mtPalette.roomId !== curBorrow) && room) requestMetatilePalette(room, _mtLayer);
+    if (room && !mtPaletteFits(room)) requestMetatilePalette(room, _mtLayer);
     renderEditPanels();
   } else if (dock) {
     if (sec) sec.classList.remove('rs-mt-hidden');
@@ -224,6 +223,8 @@ function renderEditChrome() {
   var d = editDraft();
   // Every stroke ends here, so this is where a custom map is kept saved.
   if (d && d.customKey && typeof customSaveSoon === 'function') customSaveSoon();
+  // A ROM room's draft made after its palette arrived still gets its objects.
+  if (typeof editSeedRoomObjects === 'function') editSeedRoomObjects();
   // Pill and new-room form share one wrapper, so one write replaces both
   // and the form cannot accumulate a second copy.
   var chrome = document.getElementById('rg-edit-chrome');

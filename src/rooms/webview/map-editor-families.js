@@ -21,7 +21,13 @@ var _brushTile = null;
 function editFamilies() {
   var d = editDraft();
   if (!d) return [];
-  if (!d.families) d.families = ((_mtPalette && _mtPalette.tileFamilies) || []).slice(0, 7);
+  // Taken from the room's palette once it is here — asked earlier, an empty
+  // list would stick and a ROM room would open at 0/7 with every family
+  // listed as a candidate. (A custom map sets its own `[]` on purpose.)
+  if (!d.families) {
+    if (!_mtPalette || (_mtPalette.roomId != null && _mtPalette.roomId !== d.roomId)) return [];
+    d.families = (_mtPalette.tileFamilies || []).slice(0, 7);
+  }
   return d.families;
 }
 

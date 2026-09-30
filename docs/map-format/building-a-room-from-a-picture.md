@@ -440,9 +440,14 @@ bTrigger  (8,11)-(10,13) script 1854 · (14,11)-(16,13) 1857 · (15,13)-(17,15) 
 stepOn    (11,23)-(13,24) script 1851
 ```
 
-**99 of the 863 objects** sit under a B-trigger, 50 of them with the same
-shape: the object's rectangle grown one tile right and down. After
-deduplication **68 of the 532 library entries** carry one. Room `0x51`'s 25
+A trigger record is **not** in grid cells: it counts from the header's
+origin (`0x34`'s is `(3,6)`) and its far edge is exclusive, the way
+`collision-overlay.ts` draws it. So `(8,11)-(10,13)` is cells `(5,5)..(6,6)` —
+exactly gourd `#0`. An earlier version compared the raw numbers with the
+object's cells, took the exclusive edge for "the object's rectangle grown one
+tile right and down", and matched 68 library entries. Read correctly, **188 of
+the 532 library entries** carry one, 123 of them covering exactly the object.
+Room `0x51`'s 25
 gourds each have their own script — `0xd74`, `0xd71`, `0xd6e`, … descending
 by three — which is what makes them give different things.
 

@@ -232,9 +232,12 @@ function objectStateCells(rom, room, object, rect) {
 /**
  * The B-trigger that makes an object do something, if it has one.
  *
- * 99 of the 863 candidate objects sit under one, and 50 of those use the
- * same shape: the object's rectangle grown one tile right and down. The
- * script id is vanilla's — a stamped gourd runs the gourd script it was
+ * A trigger record counts from the header's origin and its far edge is
+ * exclusive (collision-overlay.ts), while an object's tile is a grid cell —
+ * so the box is converted before the two are compared. Compared raw, the
+ * "grown one tile right and down" shape counted here earlier was that
+ * exclusive edge, and any room with an origin matched the wrong trigger.
+ * The script id is vanilla's — a stamped gourd runs the gourd script it was
  * copied from, which is what makes it work on placement and also what the
  * editor has to say out loud, because two gourds sharing a script share its
  * flag as well.
@@ -242,11 +245,15 @@ function objectStateCells(rom, room, object, rect) {
 function triggerFor(room, state) {
     const x2 = state.tileX + state.targetWidth - 1;
     const y2 = state.tileY + state.targetHeight - 1;
+    const ox = room.header.originX;
+    const oy = room.header.originY;
     for (const t of room.triggers.bTrigger) {
-        if (t.x1 > x2 || t.x2 < state.tileX || t.y1 > y2 || t.y2 < state.tileY) continue;
+        const tx1 = t.x1 - ox, ty1 = t.y1 - oy;
+        const tx2 = Math.max(tx1, t.x2 - ox - 1), ty2 = Math.max(ty1, t.y2 - oy - 1);
+        if (tx1 > x2 || tx2 < state.tileX || ty1 > y2 || ty2 < state.tileY) continue;
         return {
-            dx: t.x1 - state.tileX, dy: t.y1 - state.tileY,
-            w: t.x2 - t.x1 + 1, h: t.y2 - t.y1 + 1,
+            dx: tx1 - state.tileX, dy: ty1 - state.tileY,
+            w: tx2 - tx1 + 1, h: ty2 - ty1 + 1,
             scriptId: t.scriptId,
         };
     }

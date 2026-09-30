@@ -117,7 +117,7 @@ function editAttachmentsIn(palette, sel) {
   ['bTrigger', 'stepOn'].forEach(function (kind) {
     (a[kind] || []).forEach(function (t) {
       if (overlaps(t[0], t[1], t[2], t[3])) {
-        out[kind].push({ dx: t[0] - sel.x1, dy: t[1] - sel.y1, w: t[2] - t[0], h: t[3] - t[1], scriptId: t[4] });
+        out[kind].push({ dx: t[0] - sel.x1, dy: t[1] - sel.y1, w: t[2] - t[0] + 1, h: t[3] - t[1] + 1, scriptId: t[4] });
       }
     });
   });
@@ -149,7 +149,7 @@ function editArmBrush() {
  * Record what a placement owes the room beyond its metatiles.
  *
  * A gourd is art **plus** an object record **plus** a B-trigger pointing at
- * a script — 68 of the 532 library entries carry one. Keeping them here is
+ * a script — 188 of the 532 library entries carry one. Keeping them here is
  * what makes a stamped gourd a working gourd rather than a picture of one.
  *
  * The script id is vanilla's, copied along with the art. That is what makes

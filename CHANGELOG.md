@@ -1,3 +1,17 @@
+## [0.83.0] — 2026-09-30
+
+### Fix: Vanilla rooms connected to the map editor
+
+Editing a ROM room now looks and behaves like editing a custom map.
+
+- **Palette leak:** a custom map's palette keeps its donor's `roomId`, so opening the donor as a vanilla room reused it — the custom map's grid, size and families (the "6/7 active" with a `?` family, and every family listed as a candidate). It is now marked `customBlank` and refused by `mtPaletteFits`. The Tile tab also redraws when the palette arrives instead of staying on "loading the tile palette…", and `editFamilies` no longer caches an empty list asked for before then.
+- **Triggers in the right place:** ROM trigger records count from the header's origin and end exclusive. The palette handed them over raw, so every box sat `originX, originY` cells off and one cell too big (room 0x38's gourd triggers were out in the canopy, and the Trigger tab previews were black). They now arrive as inclusive map cells; copying a room and saving constructs read them that way. The deco catalogue had the same misreading: 188 of its 532 objects (not 68) carry their B-trigger, 123 covering the object exactly.
+- **Objects listed and editable:** a vanilla room's objects join its draft once, each with its whole area (the union of its deltas, not the first one's footprint) and its states as frames, built from the XOR deltas (`editorObjects`). They export as `roomObjects`, not as new attachments. Copy Map keeps their frames.
+- **Specials as on a custom map:** while a ROM room is edited its drift, stairs and gate bits show with the Special tab's own glyphs, read off each cell's collision word, instead of the old baked arrows and borders. The Special tab gains the four diagonal drifts and "walkable" (nibbles 3..7) — vanilla places all of them (§6 of the collision doc).
+- **One copy of everything:** in edit mode the render leaves out its baked drift, gates, objects, triggers and labels; the editor draws them, so a moved or deleted trigger is gone from the picture. Objects and glyphs draw above the canopy layer that hid them.
+- **Grid:** covers the map only, counted from its corner, as on a custom map. It ran one 8px strip past the map on 54 of 126 rooms.
+- New `map-editor-romroom.js` holds the vanilla-room pieces; `map-editor-rules` §7 records the rules.
+
 ## [0.82.10] — 2026-09-30
 
 ### Feat: Right panel layer-force aware eraser (FG-only, BG-only, and auto erase)

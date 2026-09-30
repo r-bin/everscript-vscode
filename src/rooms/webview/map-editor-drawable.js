@@ -159,14 +159,17 @@ function editEraseTriggerAt(cell) {
 }
 
 /**
- * The placed triggers, drawn on the map with their kind's colour and letter —
- * the room's own ones are the ROM overlay's. Plus the box being dragged out.
+ * The placed triggers, drawn on the map with their kind's colour and letter,
+ * plus the box being dragged out. A ROM room's own triggers too while it is
+ * edited: their baked boxes are left out of the render then (romOverlayFlags),
+ * so one moved or deleted here is gone from the map as well.
  */
 function editTriggerSvg(origin) {
   var html = '';
+  var all = editOnRomRoom();
   ['b', 'step'].forEach(function (kind) {
     editTriggerList(kind).forEach(function (t) {
-      if (t.origin !== 'placed') return;
+      if (t.origin !== 'placed' && !all) return;
       var a = editCellPos(origin, t.x1, t.y1);
       html += '<g class="rg-trigger-placed rg-trigger-placed-' + kind + '">'
         + '<rect x="' + a.x + '" y="' + a.y + '" width="' + ((t.x2 - t.x1 + 1) * EDIT_UNITS)

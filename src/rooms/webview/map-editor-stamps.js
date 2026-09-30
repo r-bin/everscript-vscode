@@ -248,7 +248,10 @@ function editExport(palette) {
     // The draft's own copy, not `editFamilies()`: this file owns `_edit` and
     // reaching into the families panel from here would invert that.
     families: (_edit.families || []).slice(),
-    attachments: _edit.placed.filter(function (p) { return !p.removed; }),
+    attachments: _edit.placed.filter(function (p) { return !p.removed && p.roomObject == null; }),
+    // The room's own objects as the draft has them (map-editor-objects.js's
+    // editSeedRoomObjects) — already in the ROM, so not new attachments.
+    roomObjects: _edit.placed.filter(function (p) { return p.roomObject != null; }),
     removedTriggers: (_edit.removedTriggers || []).slice(),
   };
 }

@@ -69,6 +69,16 @@ function applyMetatilePalette(msg) {
     noteLayerHints(rows, 4, 5, 2);
   }
   renderMetatilePalette();
+  // A ROM room's objects join its draft now that they are known.
+  // The dock was drawn while this was on its way, so it still says
+  // "loading the tile palette…" until something redraws it — do that here.
+  // Not for a custom map: newMapPaletteReady turns this palette into the
+  // map's own first, and redraws then.
+  var d = typeof editDraft === 'function' ? editDraft() : null;
+  if (d && !d.customKey && typeof editSeedRoomObjects === 'function') {
+    editSeedRoomObjects();
+    if (d.on && typeof renderEditChrome === 'function') renderEditChrome();
+  }
   // `new map` cannot draft anything until the dictionary it borrows from is
   // in hand, so it waits here rather than racing the request.
   if (typeof newMapPaletteReady === 'function') newMapPaletteReady();

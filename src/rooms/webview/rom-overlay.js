@@ -45,7 +45,11 @@ var _collisionMode='outline';
 
 /** The flag string for a render request: the features, plus how collision is drawn. */
 function romOverlayFlags(){
-  return _currentOverlay+(_collisionMode==='tiles'&&_currentOverlay.indexOf('c')>=0?'k':'');
+  // While a ROM room is edited the editor draws its drift/gate specials,
+  // objects and triggers itself (map-editor.js's editOnRomRoom), so those are
+  // not baked in as well — a deleted trigger would stay on the picture.
+  var f=typeof editOnRomRoom==='function'&&editOnRomRoom()?_currentOverlay.replace(/[dnotl]/g,''):_currentOverlay;
+  return f+(_collisionMode==='tiles'&&_currentOverlay.indexOf('c')>=0?'k':'');
 }
 
 /** Pick how collision is drawn (the Collision chip's menu, map-editor-filterbar.js). */

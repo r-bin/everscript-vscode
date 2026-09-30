@@ -146,7 +146,7 @@ function customDuplicateMap(targetRoom) {
   var room = targetRoom || _editPanelRoom;
   var d = editDraft();
   var borrow = (room && room.romRoomId != null) ? room.romRoomId : ((d && d.roomId) || (typeof _mtRoomId === 'number' ? _mtRoomId : CUSTOM_MAP_BORROW));
-  if (room && !room.custom && (!_mtPalette || (_mtPalette.roomId != null ? _mtPalette.roomId !== borrow : !_mtPalette.grid))) {
+  if (room && !room.custom && !mtPaletteFits(room)) {
     _copyMapPending = room;
     requestMetatilePalette(room, _mtLayer);
     editNote('loading map data to copy…');
@@ -190,22 +190,25 @@ function customDuplicateMap(targetRoom) {
     var pSeq = 1;
     if (_mtPalette && _mtPalette.attachments) {
       var att = _mtPalette.attachments;
-      (att.bTrigger || []).forEach(function (t, i) {
-        if (isCur && typeof triggerBaseRemoved === 'function' && triggerBaseRemoved('b', i)) return;
-        placed.push({ kind: 'bTrigger', x: t[0], y: t[1], w: t[2] - t[0], h: t[3] - t[1], scriptId: t[4], uid: pSeq++ });
+      [['bTrigger', 'b'], ['stepOn', 'step']].forEach(function (k) {
+        (att[k[0]] || []).forEach(function (t, i) { // inclusive cells, so +1
+          if (isCur && typeof triggerBaseRemoved === 'function' && triggerBaseRemoved(k[1], i)) return;
+          placed.push({ kind: k[0], x: t[0], y: t[1], w: t[2] - t[0] + 1, h: t[3] - t[1] + 1, scriptId: t[4], uid: pSeq++ });
+        });
       });
-      (att.stepOn || []).forEach(function (t, i) {
-        if (isCur && typeof triggerBaseRemoved === 'function' && triggerBaseRemoved('step', i)) return;
-        placed.push({ kind: 'stepOn', x: t[0], y: t[1], w: t[2] - t[0], h: t[3] - t[1], scriptId: t[4], uid: pSeq++ });
-      });
-      (att.objects || []).forEach(function (o) {
-        placed.push({ kind: 'object', x: o[0], y: o[1], w: o[2], h: o[3], objectIndex: o[4], uid: pSeq++, frames: [], layer: {}, states: 1 });
+      // The room's objects with their states — unless the draft below holds them.
+      if (!(isCur && d.roomObjectsSeeded)) (_mtPalette.roomObjects || []).forEach(function (o) {
+        var frames = o.frames.map(function (f) { return Object.assign({}, f); });
+        placed.push({ kind: 'object', x: o.x, y: o.y, w: o.w, h: o.h, objectIndex: o.index, uid: pSeq++,
+          frames: frames, layer: {}, states: frames.length + 1, activeFrame: 0 });
       });
     }
     if (isCur && d.placed) {
       d.placed.forEach(function (p) {
         if (p.removed) return;
-        var cp = JSON.parse(JSON.stringify(p)); cp.uid = pSeq++; placed.push(cp);
+        var cp = JSON.parse(JSON.stringify(p)); cp.uid = pSeq++;
+        if (cp.roomObject != null) { cp.objectIndex = cp.roomObject; delete cp.roomObject; } // just an object here
+        placed.push(cp);
       });
     }
 

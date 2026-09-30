@@ -246,6 +246,40 @@ if (!fs.existsSync(ROM_PATH)) {
         assert.deepStrictEqual(p.ids, ['w-abc', 'w-empty']);
         assert.ok(/^data:image\/png;base64,/.test(p.imageUri));
     });
+
+    // A vanilla room in the editor: its triggers and objects as the palette
+    // hands them over (src/rooms/rendering/metatile-palette.js).
+    const { buildRoomMetatilePalette } = require('../../src/rooms');
+    test('a vanilla room\'s triggers arrive as inclusive map cells, on the objects they belong to', () => {
+        // Room 0x38 (origin 17,11): each gourd's B-trigger covers exactly its
+        // 2x2 object. Read raw, the boxes were 17,11 cells off and one too big.
+        const p = buildRoomMetatilePalette(rom, 0x38);
+        const objs = p.roomObjects;
+        const gourd = objs.find((o) => o.x === 39 && o.y === 63);
+        assert.ok(gourd && gourd.w === 2 && gourd.h === 2, 'object 39,63 2x2');
+        const t = p.attachments.bTrigger.find((b) => b[0] === 39 && b[1] === 63);
+        assert.deepStrictEqual(t && t.slice(0, 4), [39, 63, 40, 64]);
+        p.attachments.bTrigger.concat(p.attachments.stepOn).forEach((b) => {
+            assert.ok(b[2] >= b[0] && b[3] >= b[1], 'never inverted');
+        });
+    });
+
+    test('a vanilla room\'s objects come with their states as frames of stamps it has', () => {
+        // Room 0x3d, the pipe maze: nine objects, each with a changed state.
+        const p = buildRoomMetatilePalette(rom, 0x3d);
+        assert.strictEqual(p.roomObjects.length, 9);
+        p.roomObjects.forEach((o) => {
+            assert.ok(o.frames.length >= 1, 'obj ' + o.index + ' has a changed state');
+            o.frames.forEach((f) => Object.keys(f).forEach((k) => {
+                const [dx, dy] = k.split(',').map(Number);
+                assert.ok(dx >= 0 && dy >= 0 && dx < o.w && dy < o.h, 'inside the area');
+                assert.ok(f[k] >= 0 && f[k] < p.count, 'a stamp in the dictionary');
+            }));
+        });
+        // attachments.objects is the same area, not the first delta's footprint.
+        assert.deepStrictEqual(p.attachments.objects.map((a) => a.slice(0, 4)),
+            p.roomObjects.map((o) => [o.x, o.y, o.w, o.h]));
+    });
 }
 
 (async () => {

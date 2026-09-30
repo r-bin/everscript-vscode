@@ -241,3 +241,32 @@ operations and start moves all go through `editApply`/`editApplyTriggerOp`/
 `editMoveStart` and share `_edit.undo`. Do
 not add a second stack — a user pressing undo means "the last thing I did", whatever
 kind of thing it was.
+
+---
+
+## 7. A vanilla room in the editor: the same editor, not a second one
+
+Editing a ROM room must look and behave like editing a custom map. What that
+took, so none of it comes undone:
+
+- **A palette belongs to one room.** A custom map's palette is its donor's,
+  reshaped into the blank map, and keeps the donor's `roomId` — so it is marked
+  `customBlank`, and `mtPaletteFits` refuses it for the donor opened as a ROM
+  room. Without that, the ROM room drew with the custom map's grid, size and
+  families.
+- **Trigger records are not grid cells.** They count from the header's origin
+  and their far edge is exclusive (`collision-overlay.ts`). The palette hands
+  the editor inclusive map cells (`mapCellBox`); anything else reading
+  `room.triggers` must convert the same way (the deco catalogue does).
+- **Objects are the room's own, editable.** The host sends each object's area
+  (the union of every delta's footprint — never the first one's) and its states
+  as frames of dictionary indices (`editorObjects`). `editSeedRoomObjects` puts
+  them in the draft once, outside any undo step, at state 0. They export as
+  `roomObjects`, not as new attachments.
+- **The editor draws, the render does not.** While a ROM room is edited
+  (`editOnRomRoom`), the render leaves out its baked drift, gates, objects,
+  triggers and labels (`romOverlayFlags`), and the editor draws the room's
+  triggers, objects and — read off each cell's collision word — its specials,
+  with the Special tab's own glyphs. Marks go in `#rg-edit-overlay`: a ROM room
+  has a canopy picture (`#rg-fg`) above `#rg-edit` that hides anything there.
+- **The grid covers the map, not the viewBox**, counted from the map's corner.

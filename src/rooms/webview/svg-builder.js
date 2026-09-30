@@ -105,12 +105,16 @@ function buildRoomSvgSection(opts){
     // = one 16px metatile. These used to coarsen to 2 or 4 units on large maps,
     // which made the "8px" grid draw every 32px and stopped it lining up with
     // the rendered map. One <path> per grid keeps the DOM small at any size.
-    function gridPath(step,ox,oy){
+    // Over the map only, counted from its corner — as a custom map's grid is
+    // (map-editor-newroom.js's regridMap). Over the whole viewBox it ran past
+    // the map wherever an entity widened it (54 of 126 rooms, by one 8px
+    // strip), and the 16px lines snapped to even viewBox units rather than to
+    // the map's metatiles.
+    function gridPath(step){
       var d='';
-      var gx0=x1-((x1%step+step)%step);
-      var gy0=y1-((y1%step+step)%step);
-      for(var gx=gx0;gx<=x2;gx+=step)if(gx>=x1)d+='M'+gx+' '+y1+'V'+y2;
-      for(var gy=gy0;gy<=y2;gy+=step)if(gy>=y1)d+='M'+x1+' '+gy+'H'+x2;
+      var gx1=mapX0+mapW, gy1=mapY0+mapH;
+      for(var gx=mapX0;gx<=gx1;gx+=step)d+='M'+gx+' '+mapY0+'V'+gy1;
+      for(var gy=mapY0;gy<=gy1;gy+=step)d+='M'+mapX0+' '+gy+'H'+gx1;
       return d;
     }
     over+='<path class="rg-grid-fine" d="'+gridPath(1)+'" fill="none" stroke="rgba(255,255,255,0.11)" stroke-width="0.07"/>';

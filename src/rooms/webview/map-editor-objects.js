@@ -327,7 +327,8 @@ function objectRowHtml(o, n, listLen) {
   var isSel = (o.uid === _objectSel), isExpanded = (o.uid === _objectExpanded);
   var h = '<div class="rg-object-card' + (isSel ? ' on' : '') + '">'
     + '<div class="rg-trigger-row rg-object-row' + (isSel ? ' on' : '') + '" data-object-sel="' + o.uid
-    + '" title="' + escH('obj #' + n + ' at ' + o.x + ',' + o.y + ' (' + o.w + '×' + o.h + ') — ' + (frames.length + 1) + ' states') + '">'
+    + '" title="' + escH('obj #' + n + ' at ' + o.x + ',' + o.y + ' (' + o.w + '×' + o.h + ') — ' + (frames.length + 1) + ' states'
+      + (o.roomObject != null ? '\nthe room’s own OBJ ' + o.roomObject : '')) + '">'
     + '<span class="rg-object-caret" data-object-toggle="' + o.uid + '">' + (isExpanded ? '▾' : '▸') + '</span>'
     + '<span class="rg-trigger-label"><b>obj ' + n + '</b> · ' + o.w + '×' + o.h + ' at ' + o.x + ',' + o.y + '</span>'
     + '<button class="rdf rdf-xs rg-obj-move" data-object-move-obj="-1" data-object-uid="' + o.uid + '" title="Move object up in order"' + (n === 0 ? ' disabled' : '') + '>▲</button>'
@@ -371,10 +372,7 @@ function objectTabHtml() {
     + '</div><div class="rg-trigger-list">';
   if (!list.length) html += '<div class="rs-note">none yet — drag an area on the map with the pencil</div>';
   list.forEach(function (o, i) { html += objectRowHtml(o, i, list.length); });
-  html += '</div>';
-  var own = (_mtPalette && _mtPalette.attachments && _mtPalette.attachments.objects) || [];
-  if (own.length) html += '<div class="rs-note">This room also has ' + own.length + ' object' + (own.length === 1 ? '' : 's') + ' of its own.</div>';
-  return html;
+  return html + '</div>';
 }
 
 /** A click the Object tab owns (map-editor-input.js). */

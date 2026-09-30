@@ -34,7 +34,7 @@ const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-stamps.js', '
     'map-editor-input.js', 'map-editor-actions.js', 'map-editor-newroom.js', 'map-editor-start.js', 'map-editor-custom.js',
     'map-editor-rom-export.js', 'map-editor-collision.js', 'map-editor-cutlayer.js', 'map-editor-drawable.js',
     'map-editor-levels.js', 'map-editor-groups.js', 'map-editor-custom-store.js',
-    'map-editor-clipboard.js', 'map-editor-pick.js', 'map-editor-special-select.js'];
+    'map-editor-clipboard.js', 'map-editor-pick.js', 'map-editor-special-select.js', 'map-editor-romroom.js'];
 
 /** A palette shaped like the host's reply, small enough to read. */
 const PALETTE = {
@@ -356,7 +356,7 @@ async function main() {
         editStroke({ x: 0, y: 0 }, 'down');
     });
     const gateGlyph = await page.evaluate(() => {
-        var el = document.querySelector('#rg-edit .rg-special-glyph-gate');
+        var el = document.querySelector('#rg-edit-overlay .rg-special-glyph-gate');
         return el ? el.textContent : null;
     });
     check('painting with a special armed draws its glyph on the canvas', gateGlyph === 'D', 'glyph=' + gateGlyph);
@@ -369,7 +369,7 @@ async function main() {
         // No phase to set first as of §8a.2 — erase reads the cell itself.
         editStroke({ x: 0, y: 0 }, 'down');
     });
-    check('erasing removes the glyph from the canvas', !(await page.$('#rg-edit .rg-special-glyph')));
+    check('erasing removes the glyph from the canvas', !(await page.$('#rg-edit-overlay .rg-special-glyph')));
     check('and clears specialCells', (await page.evaluate(() => editSpecialAt(0, 0))) === null);
     check('and the stamp goes back to the room’s own, not a leftover gated one',
         (await page.evaluate(() => editDraft().cells['0,0'])) === 0);
@@ -2612,19 +2612,19 @@ async function main() {
             // Click State 0 chip:
             if (thumb0El) thumb0El.click();
             r.activeAfterClick0 = _objectActiveFrame;
-            r.svgAfterClick0 = document.getElementById('rg-edit').innerHTML;
+            r.svgAfterClick0 = document.getElementById('rg-edit-overlay').innerHTML;
 
             // Click Frame 1 chip:
             const thumb1Requery = document.querySelector('[data-object-frame="1"]');
             if (thumb1Requery) thumb1Requery.click();
             r.activeAfterClick1 = _objectActiveFrame;
-            r.svgAfterClick1 = document.getElementById('rg-edit').innerHTML;
+            r.svgAfterClick1 = document.getElementById('rg-edit-overlay').innerHTML;
 
             // Test 1: Showing grass on tile tab when Frame 1 is active
             _objectActiveFrame = 1;
             _editActiveTab = 'tile';
             renderEditLayer(_mtPalette, _editComposed, _editOrigin);
-            r.svgOnTileTabWithFrame1 = document.getElementById('rg-edit').innerHTML;
+            r.svgOnTileTabWithFrame1 = document.getElementById('rg-edit-overlay').innerHTML;
 
             // Picking tile does not jump to object tab
             editOnStampPicked(1);

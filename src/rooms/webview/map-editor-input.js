@@ -344,6 +344,9 @@ function editToggle(room, btn) {
   var panel = document.getElementById('room-detail');
   if (panel) panel.classList.toggle('rg-editing', d.on);
   editDock(d.on, room);
+  // A ROM room's render bakes its triggers, objects and specials only while
+  // it is not edited (romOverlayFlags), so the picture changes with the mode.
+  if (!room.custom && typeof _romRerender === 'function') _romRerender();
 
   var chrome = document.getElementById('rg-edit-chrome');
   if (d.on && !chrome) {
