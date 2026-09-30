@@ -24,6 +24,12 @@
     var growth=targetGrowth(target);
     return growth?alchemyMagicDefenseAtLevel(targetMagicDefense(target),growth.defG,level):targetMagicDefense(target);
   }
+  // The formula's ring-menu icon, decoded from the ROM by the host
+  // (ITEM_ICONS.alchemy, by formula name); nothing without a ROM.
+  function alchemyIconHtml(label){
+    var icons=(typeof ITEM_ICONS!=='undefined'&&ITEM_ICONS&&ITEM_ICONS.alchemy)||{};
+    return icons[label]?'<img class="sc-leg-icon" src="'+icons[label]+'" alt="">':'';
+  }
   function updateAlchemySliderLabels(){
     var spellNum=document.getElementById('sc-al-spell-lv-num');
     if(spellNum)spellNum.textContent=String(alSpellLevel);

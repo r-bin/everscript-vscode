@@ -103,6 +103,7 @@ Going from a character to a picture is three layers, each its own file:
 | `character-record.ts` | the table at `$8EB678` — palette, disposition, hitbox, and which animation record a facing selects |
 | `character-animation.ts` | walking that animation script into frames |
 | `characters.ts` | blitting those frames, origin-aligned, in the character's palette |
+| `item-icons.ts` | the ring menu's icon table at `$CE8000` — an icon's record and palette, and which icon a loot reward or alchemy formula shows ([item-icons.md](../../docs/item-icons.md)) |
 
 See
 [docs/script-format/sprite_format.md](../../docs/script-format/sprite_format.md),

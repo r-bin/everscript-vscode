@@ -523,7 +523,7 @@ test('rooms detail surfaces explicit room errors and avoids the stale vanilla pl
 function loadRoomsUtils(extraGlobals) {
     const roomsDir = path.join(__dirname, '..', '..', 'src', 'rooms', 'webview');
     const code = fs.readFileSync(path.join(roomsDir, 'utils.js'), 'utf8');
-    const sandbox = Object.assign({ INGR_BASE: '', INGR_FILES: [], Math, JSON, String, Array }, extraGlobals || {});
+    const sandbox = Object.assign({ Math, JSON, String, Array }, extraGlobals || {});
     vm.createContext(sandbox);
     vm.runInContext(code, sandbox, { timeout: 5000 });
     return sandbox;
@@ -534,27 +534,37 @@ test('a vanilla trigger takes its icon name from the decoded loot', () => {
     const trigger = { loot: [{ itemName: 'WAX', amount: 1 }] };
     // No source name at all — the live path's only input — so this used to
     // resolve to nothing and the box stayed empty.
-    assert.strictEqual(s.trigIngrName(trigger, ''), 'WAX');
-    assert.ok(s.getIngrIcon(s.trigIngrName(trigger, '')), 'expected an icon for WAX');
+    assert.strictEqual(s.trigItemName(trigger, ''), 'WAX');
+    assert.ok(s.itemEmoji(s.trigItemName(trigger, '')), 'expected an icon for WAX');
     // A name the author wrote still wins over the derived one.
-    assert.strictEqual(s.trigIngrName(trigger, 'sniff_oil_3'), 'sniff_oil_3');
+    assert.strictEqual(s.trigItemName(trigger, 'sniff_oil_3'), 'sniff_oil_3');
 });
 
-test('plural and compound reward names still resolve to an icon', () => {
+test('ingredients, consumables and armour all have icons; trade goods borrow none', () => {
     const s = loadRoomsUtils();
-    for (const name of ['ROOTS', 'ACORNS', 'MUD_PEPPER', 'DRY_ICE', 'ATLAS_MEDALLION']) {
-        assert.ok(s.getIngrIcon(s.trigIngrName({ loot: [{ itemName: name }] }, '')), 'no icon for ' + name);
+    for (const name of ['ROOTS', 'ACORNS', 'MUD_PEPPER', 'DRY_ICE', 'ATLAS_MEDALLION',
+        'CALL_BEADS', 'PETAL', 'HERBAL_ESSENCE', 'CHEST_1_1', 'COLLAR_4']) {
+        assert.ok(s.itemEmoji(s.trigItemName({ loot: [{ itemName: name }] }, '')), 'no icon for ' + name);
     }
-    // Rewards that are not ingredients have no icon, and must not borrow one.
-    assert.strictEqual(s.trigIngrName({ loot: [{ itemName: 'CALL_BEADS' }] }, ''), '');
+    // A decoded reward is matched exactly: LIMESTONE_TABLET is a trade good,
+    // not the Limestone ingredient its name contains.
+    for (const name of ['LIMESTONE_TABLET', 'CERAMIC_POT', 'MONEY']) {
+        assert.strictEqual(s.trigItemName({ loot: [{ itemName: name }] }, ''), '', name + ' borrowed an icon');
+    }
 });
 
-test('an icon with no asset file falls back to its emoji instead of an empty box', () => {
-    // INGR_MAP names more ingredients than the assets folder ships.
-    const s = loadRoomsUtils({ INGR_BASE: 'https://example/', INGR_FILES: ['Wax.webp'] });
-    assert.ok(s.ingrSvgImg('WAX', 0, 0, 2), 'Wax.webp is present, so an <image> is right');
-    assert.strictEqual(s.ingrSvgImg('NECTAR', 0, 0, 2), null, 'Nectar.webp is absent');
-    assert.ok(s.getIngrIcon('NECTAR'), 'but it still has an emoji to fall back to');
+test('the ROM icon is drawn at its native size; without a ROM the emoji stands in', () => {
+    const uri = 'data:image/png;base64,AAAA';
+    const s = loadRoomsUtils({ ITEM_ICONS: { loot: { WAX: uri, PETAL: uri }, alchemy: {} } });
+    const img = s.itemSvgImg('WAX', 10, 20);
+    assert.ok(img && img.includes('href="' + uri + '"'), 'expected the ROM icon: ' + img);
+    // 16px icon, one viewBox unit = one 8px tile: two units square, centred.
+    assert.ok(img.includes('x="9.00"') && img.includes('y="19.00"') && img.includes('width="2"'), img);
+    assert.ok(s.itemSvgImg('sniff_petal_1', 0, 0), 'a live trigger name finds the icon by keyword');
+    assert.strictEqual(s.itemSvgImg('NECTAR', 0, 0), null, 'no icon for it in this ROM map');
+    const bare = loadRoomsUtils();
+    assert.strictEqual(bare.itemSvgImg('WAX', 0, 0), null, 'no ROM, no <image>');
+    assert.ok(bare.itemEmoji('WAX'), 'but the emoji is still there');
 });
 
 test('the trigger tooltip names the reward, the object and the flag', () => {
@@ -589,7 +599,7 @@ test('a door trigger renders its destination as a link to that room', () => {
     const roomsDir = path.join(__dirname, '..', '..', 'src', 'rooms', 'webview');
     const code = ['utils.js', 'map-editor-trigger-scripts.js']
         .map((f) => fs.readFileSync(path.join(roomsDir, f), 'utf8')).join('\n');
-    const sandbox = { INGR_BASE: '', INGR_FILES: [], Math, JSON, String, Array };
+    const sandbox = { Math, JSON, String, Array };
     vm.createContext(sandbox);
     vm.runInContext(code, sandbox, { timeout: 5000 });
 

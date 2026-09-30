@@ -108,6 +108,9 @@ export {
     characterPalette, characterPaletteAddress, characterDisposition, characterHitbox,
     entitiesCollide, FACING_SOUTH,
 } from './character-record';
+export {
+    renderItemIcon, lootIconId, alchemyIconId, iconEntry, ICON_ID_LAST, ALCHEMY_FORMULAS,
+} from './item-icons';
 export type { SpriteInfo, SpriteChunk, SpritePixels, SpriteBlockPixels } from './sprites';
 export type { AnimationFrame as SpriteAnimationFrame, StrikeBox } from './character-animation';
 export type { CharacterDisposition, CharacterHitbox } from './character-record';

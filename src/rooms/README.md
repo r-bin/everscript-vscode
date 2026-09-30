@@ -397,15 +397,23 @@ state. Do not mirror either into the other.
 
 ## Loot icons
 
-A B-trigger's ingredient icon is looked up by name. Live rooms name their
-triggers in the source; vanilla rooms have no names, so the name comes from
-the reward `src/script/` read out of the ROM script. `trigIngrName()` in
-`webview/utils.js` owns that choice — source name first, decoded reward
-second — so both paths go through one renderer.
+A B-trigger shows the ring menu's own icon for what it hands over —
+ingredients, consumables and armour — decoded from the user's ROM, never a
+bundled image. `data/item-icons.js` encodes them once per ROM buffer and the
+page receives them as `ITEM_ICONS.loot`, a PNG data URI per `LOOT_REWARD` name
+(the Scaling tab reads `ITEM_ICONS.alchemy` from the same global). The format
+is [docs/item-icons.md](../../docs/item-icons.md).
 
-The icon map names more ingredients than the assets folder ships, so the host
-passes the directory listing as `INGR_FILES` and a missing file falls back to
-its emoji rather than drawing an empty box.
+Live rooms name their triggers in the source; vanilla rooms have no names, so
+the name comes from the reward `src/script/` read out of the ROM script.
+`trigItemName()` in `webview/utils.js` owns that choice — source name first,
+decoded reward second — so both paths go through one renderer. Keywords
+(`sniff_wax_2` → `WAX`) apply only to a name an author wrote; a decoded reward
+is matched exactly, or `LIMESTONE_TABLET` would draw as Limestone.
+
+An icon is drawn 2×2 viewBox units — 16px against an 8px tile, the size the
+game draws it. Without a ROM, `itemEmoji()` stands in. Money, trade goods and
+charms have no ring icon and get nothing.
 
 ## Exits
 

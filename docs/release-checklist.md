@@ -26,7 +26,7 @@ The extension currently assumes a specific workspace layout and local asset path
 | `in/` directory | `everscript.inDirectory` | `<workspace>/in` | Required for static code analysis (scope detection, room tree, imports) |
 | `patches/` directory | `everscript.patchesDirectory` | `<workspace>/patches` | Required for `detectScaleEnemies` and patch resolution |
 | ROM path | `everscript.romPath` | `<workspace>/Secret of Evermore (U) [!].smc` | Required for character data (Scaling tab) and trigger offset reads |
-| Assets directory | `everscript.assetsPath` | `<hardcoded local path>` | Contains ingredient images. Should ship bundled in the extension instead |
+| ~~Assets directory~~ | ~~`everscript.assetsPath`~~ | — | **Removed.** Item icons are decoded from the ROM at run time ([item-icons.md](item-icons.md)) |
 | `scale_enemies` patch detection | (derived from in/patches dirs above) | — | Re-evaluated per-document already |
 
 ---
@@ -68,10 +68,10 @@ When a setting is not configured, the extension should degrade gracefully:
 
 ## 6. Asset Pack (Optional)
 
-If ingredient images and/or room maps cannot be bundled in the extension:
+If room maps cannot be bundled in the extension (item icons no longer need this — they come from the ROM):
 
 - Provide a separate optional downloadable zip (`everscript-assets-<version>.zip`)
-- The user configures `everscript.assetsPath` to point to the unzipped folder
+- The user points a setting at the unzipped folder
 - Document this in the README
 
 ---

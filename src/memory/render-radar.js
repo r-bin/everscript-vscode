@@ -19,9 +19,8 @@ const radarWebview               = require('./webview');
 function renderRadarHtml(
     scope, refs, pools, argRefs, mapByAddr,
     roomTree = [], activeTab = 'radar', selectedMap = null,
-    chars = [], scaleActive = false, ingrBaseUri = '', hitLookup = null,
-    enumByAddr = new Map(), vanillaRoomDetails = {}, byteScriptFocus = '',
-    ingrFiles = []
+    chars = [], scaleActive = false, itemIcons = null, hitLookup = null,
+    enumByAddr = new Map(), vanillaRoomDetails = {}, byteScriptFocus = ''
 ) {
     // ── Memory tab (grid + detail table) ───────────────────────────────────
     const { html: memoryTabHtml, cellData } = buildMemoryTabHtml(
@@ -30,15 +29,17 @@ function renderRadarHtml(
 
     // ── JS data blobs ───────────────────────────────────────────────────────
     const css    = radarWebview.css;
-    const jsData = 'var CELLS=' + JSON.stringify(cellData).replace(/<\/script>/gi, '<\\/script>') + ';';
+    const jsData = 'var CELLS=' + JSON.stringify(cellData).replace(/<\/script>/gi, '<\\/script>') + ';' +
+        // The ring menu's icons, decoded from the ROM (rooms/data/item-icons.js):
+        // `loot` by LOOT_REWARD name for the Rooms tab, `alchemy` by formula
+        // name for the Scaling tab. Empty without a ROM — both fall back.
+        '\nvar ITEM_ICONS=' + JSON.stringify(itemIcons || { loot: {}, alchemy: {} }) + ';';
 
     // ── Rooms tab data ──────────────────────────────────────────────────────
     const treeHtml        = renderRoomsTree(roomTree);
     const vanillaTreeHtml = renderVanillaTree();
     const roomsData =
         buildRoomsJson(roomTree, activeTab, selectedMap) +
-        '\nvar INGR_BASE=' + JSON.stringify(ingrBaseUri) + ';' +
-        '\nvar INGR_FILES=' + JSON.stringify(ingrFiles) + ';' +
         '\nvar ACTIVE_BYTE_SCRIPT_FOCUS=' + JSON.stringify(byteScriptFocus || '') + ';' +
         '\nvar VANILLA_ROOMS_DATA=' + JSON.stringify(VANILLA_ROOMS) + ';' +
         '\nvar VANILLA_ROOM_DETAILS=' + JSON.stringify(vanillaRoomDetails).replace(/<\/script>/gi, '<\\/script>') + ';';

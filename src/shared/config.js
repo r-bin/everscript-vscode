@@ -2,8 +2,6 @@
 
 const path = require('path');
 
-const DEFAULT_ASSETS_PATH = '/Users/v/Documents/assets';
-
 function normalizePath(value) {
     return typeof value === 'string' ? value.trim() : '';
 }
@@ -41,7 +39,6 @@ function resolveExtConfig(rawConfig, wsRoot) {
         patchesDirectory: normalizePath(raw.patchesDirectory) || legacyPatchesPath || defaults.patchesDirectory,
         patchesPath: legacyPatchesPath,
         romPath: normalizePath(raw.romPath) || defaults.romPath,
-        assetsPath: normalizePath(raw.assetsPath) || DEFAULT_ASSETS_PATH,
         compilerPath: normalizePath(raw.compilerPath) || defaults.compilerPath,
         pythonPath: normalizePath(raw.pythonPath) || defaults.pythonPath,
         snesCorePath: normalizePath(raw.snesCorePath),
@@ -63,7 +60,6 @@ function getRepoAutofillUpdates(rawConfig, wsRoot) {
 }
 
 module.exports = {
-    DEFAULT_ASSETS_PATH,
     normalizePath,
     buildRepoDefaults,
     resolveExtConfig,

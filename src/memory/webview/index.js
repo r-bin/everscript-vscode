@@ -71,7 +71,7 @@ function loadScalingJs() {
 // Load rooms tab JS from split modules in src/rooms/webview/ (concatenated in dependency order).
 const ROOMS_JS_FILES = [
   'bootstrap.js',        // globals: _currentByteScriptFocus, _applyByteScriptFocus, message listener
-  'utils.js',            // escH, hexNum, normScriptAddr, tsvg, INGR_MAP/EMOJI helpers
+  'utils.js',            // escH, hexNum, normScriptAddr, tsvg, item icon helpers (ITEM_ICONS)
   'svg-spawns.js',       // buildSpawnLayers (the NPC layers svg-builder places)
   'svg-builder.js',      // buildRoomSvgSection
   'rooms-layout.js',     // the rail and dock resize handles (_layoutWidths)

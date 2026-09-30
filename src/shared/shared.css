@@ -521,6 +521,7 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
 .sc-leg-sel{background:rgba(255,255,255,.1)!important}
 .sc-leg-dim{opacity:.28}
 .sc-leg-dot{display:inline-block;width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sc-leg-icon{width:16px;height:16px;flex-shrink:0;image-rendering:pixelated}
 .sc-leg-name{min-width:58px;font-weight:600}
 .sc-leg-range{opacity:.5;font-size:8px}
 /* ── Docs tab ── */

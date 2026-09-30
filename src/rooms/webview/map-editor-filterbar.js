@@ -178,7 +178,7 @@ function moreFilterGroupHtml(ctx) {
   if (ctx.romId) subs.push(romOverlayButtonHtml('t', 'ROM triggers'));
   if (ctx.hasMap) subs.push(viewHideBtnHtml('hide-grid8', '8 px grid', 'The 8 px tile grid'));
   if (ctx.hasMap) subs.push(viewHideBtnHtml('hide-grid16', '16 px grid', 'The 16 px metatile grid triggers are measured in'));
-  if (ctx.hasIngr) subs.push(viewHideBtnHtml('hide-ingr', '🌿 Ingredients', 'Ingredient icons on B-triggers'));
+  if (ctx.hasIngr) subs.push(viewHideBtnHtml('hide-ingr', '🌿 Item icons', 'The icon of what a B-trigger hands over — ingredients, consumables, armour'));
   if (ctx.hasArrivals) subs.push(viewHideBtnHtml('hide-arrival', 'Arrivals', 'The doors that lead into this room'));
   if (ctx.hasHeader) subs.push(viewHideBtnHtml('hide-header', 'ROM header', 'The ROM header section'));
   if (ctx.romId || ctx.hasMap) subs.push(copyMapButtonHtml());

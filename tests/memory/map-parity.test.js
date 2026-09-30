@@ -69,6 +69,7 @@ function main() {
     console.log(`map-parity: comparing ${rooms.length} rooms against ${PYTHON}`);
 
     checkSprites(rom);
+    checkItemIcons(rom);
 
     for (const roomId of rooms) {
         const id = `0x${roomId.toString(16).padStart(2, '0')}`;
@@ -431,6 +432,53 @@ function checkSprites(rom) {
  * agreed with all of them, so the boundaries below are the game's, not this
  * code's idea of them.
  */
+/**
+ * The ring menu's item icons (docs/item-icons.md): the table at $CE8000, the
+ * reward and formula joins, and one icon checked pixel-for-pixel against a
+ * screenshot of the game — the Crystal, in its own palette.
+ */
+function checkItemIcons(rom) {
+    let unresolved = 0;
+    for (let id = 0; id <= maps.ICON_ID_LAST; id += 2) if (!maps.renderItemIcon(rom, id)) unresolved += 1;
+    check('item icons: every one of the 162 ids draws', unresolved, 0);
+
+    // 22 ingredients, 40 armour, 8 consumables — each to its own icon.
+    const rewards = [];
+    for (let i = 0; i <= 0x15; i++) rewards.push(0x0200 + i);
+    for (let i = 1; i <= 0x28; i++) rewards.push(0x0400 + i);
+    for (let i = 0; i <= 0x07; i++) rewards.push(0x0800 + i);
+    const ids = rewards.map((r) => maps.lootIconId(rom, r));
+    check('item icons: rewards without an icon', ids.filter((x) => x === null).length, 0);
+    check('item icons: rewards sharing an icon', rewards.length - new Set(ids).size, 0);
+    check('item icons: CRYSTAL 0x020F', maps.lootIconId(rom, 0x020f), 0x0120);
+    check('item icons: PETAL 0x0800', maps.lootIconId(rom, 0x0800), 0x008e);
+    check('item icons: CHEST_1_1 0x0401', maps.lootIconId(rom, 0x0401), 0x00a0);
+    check('item icons: money and trade goods have none', [0x0001, 0x1006].map((r) => maps.lootIconId(rom, r)), [null, null]);
+
+    const formulas = Array.from({ length: maps.ALCHEMY_FORMULAS }, (_, n) => maps.alchemyIconId(rom, n));
+    check('item icons: 35 distinct formulas', new Set(formulas.filter((x) => x !== null)).size, 35);
+    // everscript's RING_MENU_ICON: ALCHEMY_ACID_RAIN, ALCHEMY_LEVITATE, ALCHEMY_FIREBALL.
+    check('item icons: formulas 0, 21, 13', [formulas[0], formulas[21], formulas[13]], [0x56, 0x48, 0x6c]);
+
+    // The screenshot's five colours: outline, highlight, three greens.
+    const key = { '0,8,8': 'f', '240,240,248': '1', '56,240,56': '5', '16,168,16': '6', '0,104,0': '7' };
+    const px = maps.renderItemIcon(rom, 0x0120);
+    const rows = [];
+    for (let y = 0; y < 12; y++) {
+        let row = '';
+        for (let x = 0; x < 16; x++) {
+            const o = (y * px.width + x) * 4;
+            row += px.data[o + 3] ? (key[`${px.data[o]},${px.data[o + 1]},${px.data[o + 2]}`] || '?') : '.';
+        }
+        rows.push(row);
+    }
+    check('item icons: Crystal', [px.width, px.height, rows], [16, 16, [
+        '......f.........', '.....f1f........', '....f155f.......', '...f5f5f6f......',
+        '...f55f66f......', '...f55f66f......', '...f55f66f......', '...f55f66f......',
+        '...f5f7f6f......', '....f777f.......', '.....f7f........', '......f.........',
+    ]]);
+}
+
 function checkHitboxes(rom) {
     const flower = maps.characterHitbox(rom, 109);
     const boy = maps.characterHitbox(rom, 0);

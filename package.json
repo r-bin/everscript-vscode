@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.96.0",
+  "version": "0.97.0",
   "publisher": "rbin",
   "main": "./src/extension.js",
   "engines": {
@@ -252,11 +252,6 @@
           "type": "string",
           "default": "",
           "markdownDescription": "Path to the Secret of Evermore ROM (`.smc`, no header). Used by the Scaling tab and the Rooms tab ROM-backed vanilla/script readers. Auto-filled from `repoPath` when empty, otherwise defaults to `<workspace>/Secret of Evermore (U) [!].smc`."
-        },
-        "everscript.assetsPath": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "Path to the assets directory. Should contain an `ingredients/` subfolder with `.webp` ingredient icons. Defaults to the bundled extension assets."
         },
         "everscript.snesCorePath": {
           "type": "string",

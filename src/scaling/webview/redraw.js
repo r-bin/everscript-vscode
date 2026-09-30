@@ -44,6 +44,7 @@
         var r9=fmtDmgRange(d9.min,d9.max,d9.pct999,false);
         leg+='<div class="sc-leg-row'+(isAct?' sc-leg-sel':'')+(isOther?' sc-leg-dim':'')+'" data-wid="'+wd.id+'">'
           +'<span class="sc-leg-dot" style="background:'+col+'"></span>'
+          +alchemyIconHtml(wd.label)
           +'<span class="sc-leg-name">'+wd.label+'</span>'
           +'<span class="sc-leg-range">S'+alSpellLevel+':'+r1+' \u2192 S9/T'+(growth?SC_MAX_LEVEL:1)+':'+r9+'</span>'
           +'</div>';

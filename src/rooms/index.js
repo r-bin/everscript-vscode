@@ -20,6 +20,7 @@ const { buildExportRom }                                            = require('.
 const { buildCustomMapArchive }                                     = require('./rendering/custom-export');
 const { handlesCustomMapMessage, handleCustomMapMessage }           = require('./custom-host');
 const { relatedTiles, neighbourTiles }                              = require('./rendering/vanilla-index');
+const { buildItemIcons }                                            = require('./data/item-icons');
 const { VANILLA_ROOMS, buildVanillaRoomContent,
         buildVanillaRoomDetails, invalidateVanillaDataCaches }      = require('./data/vanilla-data');
 const { getMapEnum, readLuaWatchers, readScriptAllTriggers,
@@ -90,5 +91,6 @@ module.exports = {
     readScriptAllTriggers,
     buildVanillaRoomContent,
     buildVanillaRoomDetails,
+    buildItemIcons,
     invalidateRoomDataCaches,
 };

@@ -1,3 +1,13 @@
+## [0.97.0] — 2026-10-01
+
+### Feat: item icons come from your ROM — ingredients, consumables, armour, alchemy
+
+- **B-triggers show the game's own ring-menu icon** for what they hand over, decoded from the ROM set in `everscript.romPath`. That covers all 22 ingredients (the four without a picture before now have one), plus the 8 consumables and 40 armour pieces, which had no icon at all.
+- **Icons are drawn at their true size**: 16px against the map's 8px tiles, as the game draws them, rather than stretched to fill the trigger.
+- **The Scaling tab shows each alchemy formula's icon** in its legend.
+- **`everscript.assetsPath` is removed.** The extension no longer reads a folder of `.webp` images. Without a ROM, the emoji fallback is unchanged.
+- Money, trade goods and charms still have no icon: the ring menu has none for them.
+
 ## [0.96.0] — 2026-10-01
 
 ### Feat: Widgets › Placed — what you stamped, in draw order, with disband

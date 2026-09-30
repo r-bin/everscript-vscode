@@ -41,8 +41,6 @@ let _radarPendingNewMap = false; // draft a blank room as soon as the webview is
 let _scalingChars      = null;   // cached character stat array (142 entries from ROM)
 let _hitLookup         = null;   // precomputed hit% table {hit_rate:{evade:pct}} from ROM
 let _scaleActive       = false;  // whether scale_enemies is active in workspace
-let _ingrBaseUri       = '';     // webview URI base for ingredient images (set on panel creation)
-let _ingrFiles         = [];     // filenames actually present there, so a missing icon falls back to its emoji
 let _radarByteScriptFocus = '';  // currently focused byte-script address from emulator panel
 
 function getRadarMap() {
@@ -112,7 +110,6 @@ function getExtConfig() {
         patchesDirectory: cfg.get('patchesDirectory'),
         patchesPath: cfg.get('patchesPath'),
         romPath: cfg.get('romPath'),
-        assetsPath: cfg.get('assetsPath'),
         compilerPath: cfg.get('compilerPath'),
         pythonPath: cfg.get('pythonPath'),
         snesCorePath: cfg.get('snesCorePath'),
@@ -121,7 +118,6 @@ function getExtConfig() {
         inDir: resolved.inDirectory || null,
         patchesDir: resolved.patchesDirectory || null,
         romPath: resolved.romPath || null,
-        assetsPath: resolved.assetsPath,
         repoPath: resolved.repoPath || null,
         compilerPath: resolved.compilerPath || null,
         pythonPath: resolved.pythonPath || null,
@@ -130,7 +126,13 @@ function getExtConfig() {
 }
 
 const roomData = require('./rooms');
-const { VANILLA_ROOMS, getMapEnum, readLuaWatchers, readScriptAllTriggers, buildVanillaRoomContent, buildVanillaRoomDetails, invalidateRoomDataCaches } = roomData;
+const { VANILLA_ROOMS, getMapEnum, readLuaWatchers, readScriptAllTriggers, buildVanillaRoomContent, buildVanillaRoomDetails, buildItemIcons, invalidateRoomDataCaches } = roomData;
+
+/** The ring menu's item icons from the configured ROM, for the radar page (rooms/data/item-icons.js). */
+function radarItemIcons() {
+    const ws = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+    return buildItemIcons(romReaders.loadRomBuffer(ws, getExtConfig().romPath || ''));
+}
 const roomTree = require('./rooms');
 const { findRoomImage, parseRoomContent, collectRoomsFromDir, buildRoomTree, renderVanillaTree, renderRoomsTree, buildRoomsJson, setRoomImageUris, buildRoomTileOverlay, buildRoomMetatilePalette, buildComposedPreview, buildBlankRoom, buildDraftCollision, buildExportRom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews, decoIndex, decoCells, buildDecoPreviews, buildWidgetPreviews, relatedTiles, neighbourTiles, handlesCustomMapMessage, handleCustomMapMessage } = roomTree;
 
@@ -466,7 +468,7 @@ function refreshRadar(editor) {
     const _extCfg1 = getExtConfig();
     const _wsRoot1 = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
     const _vrd1 = buildVanillaRoomDetails(_wsRoot1, _extCfg1.romPath || '');
-    _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree || [], _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, _ingrBaseUri, _hitLookup, getRadarEnums(), _vrd1, _radarByteScriptFocus, _ingrFiles);
+    _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree || [], _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, radarItemIcons(), _hitLookup, getRadarEnums(), _vrd1, _radarByteScriptFocus);
     _radarPanel.title = 'Radar: ' + scope.name;
 }
 
@@ -589,7 +591,7 @@ function activate(context) {
                     {
                         enableScripts: true,
                         retainContextWhenHidden: true,
-                        localResourceRoots: [wsRootUri, vscode.Uri.file(getExtConfig().assetsPath)].filter(Boolean),
+                        localResourceRoots: [wsRootUri].filter(Boolean),
                     },
                 );
                 _radarPanel.onDidDispose(() => {
@@ -599,25 +601,11 @@ function activate(context) {
                     _radarRoomTree = null;
                     _radarRoomDocPath = null;
                     _radarActiveTab = 'radar';
-                    _ingrBaseUri = '';
-                    _ingrFiles = [];
                     _radarByteScriptFocus = '';
                 }, null, context.subscriptions);
             } else {
                 _radarPanel.title = 'Radar: ' + scope.name;
                 _radarPanel.reveal(_radarColumn, true);
-            }
-
-            // Compute ingredient image base URI (once per panel lifetime).
-            // The directory listing goes with it: the icon map names more
-            // ingredients than the assets folder ships, and a missing file
-            // renders as an empty box rather than falling back to its emoji.
-            if (!_ingrBaseUri) {
-                try {
-                    const ingrDir = path.join(getExtConfig().assetsPath, 'ingredients');
-                    _ingrBaseUri = _radarPanel.webview.asWebviewUri(vscode.Uri.file(ingrDir)).toString() + '/';
-                    _ingrFiles = fs.existsSync(ingrDir) ? fs.readdirSync(ingrDir) : [];
-                } catch { _ingrBaseUri = ''; _ingrFiles = []; }
             }
 
             // Build or reuse room tree (rebuild when document changes)
@@ -631,7 +619,7 @@ function activate(context) {
             const _extCfg2 = getExtConfig();
             const _wsRoot2b = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
             const _vrd2 = buildVanillaRoomDetails(_wsRoot2b, _extCfg2.romPath || '');
-            _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree, _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, _ingrBaseUri, _hitLookup, getRadarEnums(), _vrd2, _radarByteScriptFocus, _ingrFiles);
+            _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree, _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, radarItemIcons(), _hitLookup, getRadarEnums(), _vrd2, _radarByteScriptFocus);
 
             // `everscript.newMap` asked for a blank room. The webview has just
             // been rebuilt, so this is the first moment it can be told.
@@ -1016,7 +1004,7 @@ function activate(context) {
                         const _extCfg3 = getExtConfig();
                         const _wsRoot3 = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
                         const _vrd3 = buildVanillaRoomDetails(_wsRoot3, _extCfg3.romPath || '');
-                        _radarPanel.webview.html = renderRadarHtml(gscope, refs, pools, argRefs, getRadarMap(), _radarRoomTree || [], _radarActiveTab, null, _scalingChars || [], _scaleActive, _ingrBaseUri, _hitLookup, getRadarEnums(), _vrd3, _radarByteScriptFocus, _ingrFiles);
+                        _radarPanel.webview.html = renderRadarHtml(gscope, refs, pools, argRefs, getRadarMap(), _radarRoomTree || [], _radarActiveTab, null, _scalingChars || [], _scaleActive, radarItemIcons(), _hitLookup, getRadarEnums(), _vrd3, _radarByteScriptFocus);
                         _radarPanel.title = 'Radar: (global)';
                     }
                 } else if (msg.command === 'autoScope') {

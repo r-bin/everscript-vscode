@@ -151,6 +151,8 @@ and each handler advances it for its own operands, in plain sight.
 | `0x46` | `$9086FE` | two paths, both reaching the same `INX INX` | 3 |
 | `0x50` | `$9085A8` | `LDA [$5D]` twice, 16-bit, `INX INX` after each | 5 |
 | `0x5a` | `$908447` | `LDA [$5D]; STA $0082,Y; INC $5D` | 2 |
+| `0x30` | `$908AE0` | `LDA $5D; STA $0003,Y` — sets the restart point; ring-menu icons ([item-icons.md](../item-icons.md)) | 1 |
+| `0x56` | `$90878C` | a word (a formula index), then `LDX $5D; INX; INX`; greys the icon out via `$91CE38` | 3 |
 
 Every path through each handler was followed to its `RTS`; none of the
 advances is conditional. `0x5a` is the check on the method — the trace

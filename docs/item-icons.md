@@ -1,8 +1,8 @@
 # Item icons: ingredients, consumables, weapons, armour, alchemy
 
-> Status: **located and decoded, not implemented.** Every icon the ring menu
-> shows can be drawn straight from the ROM with code the extension already
-> has. Checked pixel-exact: the Crystal decoded from the vanilla ROM matches a
+> Status: **solved and in use** (v0.97.0). `src/maps/item-icons.ts` decodes
+> them; the Rooms tab draws them on B-triggers and the Scaling tab beside each
+> formula, and the old assets folder and `everscript.assetsPath` are gone. Checked pixel-exact: the Crystal decoded from the vanilla ROM matches a
 > reference screenshot on all 576 pixels (24×24 at 2×, zero mismatches).
 > Supersedes [ingredient-icons.md](ingredient-icons.md), which went looking in
 > VRAM and the font and did not find them.
@@ -167,58 +167,45 @@ no ring icon. The tracker package in
 the ROM's and this doc does not propose using it. Their in-game graphics, if
 any, are still an open question.
 
-## What the plugin needs to use them
+## How the plugin uses them
 
-1. **A pure decoder, `src/maps/item-icons.ts`.** Given the ROM and an icon id
-   it returns `{ frames: SpritePixels[], ticks, palette, greyPalette? }`,
-   composed with the existing `readSpriteInfo` / `composeSprite`. It should
-   walk the script with the character walker's rules plus `0x56` (3) and
-   `0x30` (1), not with a new ad-hoc skip. Put the widths in
-   `COMMAND_LENGTH` in `character-animation.ts` so there is one table, and
-   check that no character walk changes, the way
-   [animation_format.md](script-format/animation_format.md) checked the last
-   batch.
-2. **A reward → icon id map** built from the table as above, next to the
-   decoder, so `src/script/` and the webview never need to know the ids.
-3. **Rasterise on the host, not in the webview.** Encode each icon once per
-   ROM with `encodePngDataUri` (`src/maps/png.ts`) and send the data URIs with
-   the room payload, keyed by reward id. That is 70 small PNGs for all
-   ingredients, consumables and armour, cached per ROM path. The webview then
-   draws `<image href="data:…" style="image-rendering:pixelated">` exactly
-   where `ingrSvgImg()` draws the asset today.
-4. **Retire the assets-folder path.** `INGR_MAP`, `INGR_BASE`, `INGR_FILES`
-   in `src/rooms/webview/utils.js` and the `ingredients/` listing in
-   `src/extension.js` become unnecessary once a ROM is configured. Keep the
-   emoji (`INGR_EMOJI`) only as the no-ROM fallback. The keyword match on the
-   trigger name (`getIngrKey`) still has a job for *live* rooms whose
-   triggers are named but not yet decoded, and should then resolve to a
-   reward id rather than to a filename.
-5. **Tests**, in the style of the existing `src/maps` ones:
-   - all 162 ids resolve to at least one sprite;
-   - all 22 ingredients, 8 consumables and 40 armour pieces join to a reward;
-   - Crystal (`0x0120`) matches a stored 16×16 index grid pixel-for-pixel:
+| Piece | Where |
+|---|---|
+| Table, palette, first frame as RGBA; reward and formula → icon id | `src/maps/item-icons.ts` (`renderItemIcon`, `lootIconId`, `alchemyIconId`) |
+| The script walk, including `0x56` (3) and `0x30` (1) | `walkAnimationScript` in `src/maps/character-animation.ts`, shared with characters; all 141 characters × 8 facings walk byte-identically with the two widths added |
+| PNG data URIs keyed by `LOOT_REWARD` name and by formula name, once per ROM buffer | `src/rooms/data/item-icons.js` (`buildItemIcons`) |
+| One `ITEM_ICONS` global on the radar page | `src/memory/render-radar.js` |
+| B-trigger icons, 2×2 viewBox units (native 16px against 8px tiles) | `itemSvgImg` / `trigItemName` in `src/rooms/webview/utils.js` |
+| An icon beside each formula in the Scaling legend | `alchemyIconHtml` in `src/scaling/webview/helpers.js` |
 
-     ```
-     ......f.........
-     .....f1f........
-     ....f155f.......
-     ...f5f5f6f......
-     ...f55f66f......
-     ...f55f66f......
-     ...f55f66f......
-     ...f55f66f......
-     ...f5f7f6f......
-     ....f777f.......
-     .....f7f........
-     ......f.........
-     ```
+Formula names come from the "known" flags at `$2258` (`src/script` names),
+one bit per formula, which is also the entry's `+6` word halved. Bit 20,
+Laser, has no name there, so Laser has no icon until it does.
 
-     (hex palette index per pixel, `.` transparent). This is what was checked
-     against the screenshot.
+Only the first frame is drawn, in colour. The alchemy animation and the
+greyed variant are decoded but unused.
 
-Nothing here needs new ROM access. The `everscript.romPath` setting the
-Rooms tab already reads is enough. No ROM-derived image should be committed;
-the icons are rendered from the user's ROM at run time, like the maps are.
+`tests/memory/map-parity.test.js` (`checkItemIcons`) pins all 162 ids, the 70
+reward joins, the 35 formulas, and the Crystal pixel-for-pixel:
+
+```
+......f.........
+.....f1f........
+....f155f.......
+...f5f5f6f......
+...f55f66f......
+...f55f66f......
+...f55f66f......
+...f55f66f......
+...f5f7f6f......
+....f777f.......
+.....f7f........
+......f.........
+```
+
+(palette index per pixel, `.` transparent), which is what was checked against
+the screenshot. No ROM-derived image is committed; the icons come from the
+user's ROM at run time, like the maps.
 
 ## How it was found
 

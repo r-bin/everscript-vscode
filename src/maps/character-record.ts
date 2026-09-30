@@ -106,7 +106,16 @@ export function animationScript(
     const flags = at(rom, ANIMATION_TABLE + anim + 3);
     if (flags & DIRECTIONAL_FLAG) anim += 2 * facing;
     else if (flags & TABLE_FLAG) anim += read16At(rom, FACING_TABLE + facing);
-    return (read16At(rom, ANIMATION_TABLE + anim) | (at(rom, ANIMATION_TABLE + anim + 2) << 16)) >>> 0;
+    return recordScript(rom, anim);
+}
+
+/**
+ * The script an animation record at `$C40000 + record` points to, taken as
+ * it stands — no facing applied. Ring-menu icons use these records too
+ * (./item-icons), and none of theirs is directional.
+ */
+export function recordScript(rom: Uint8Array, record: number): number {
+    return (read16At(rom, ANIMATION_TABLE + record) | (at(rom, ANIMATION_TABLE + record + 2) << 16)) >>> 0;
 }
 
 /**
@@ -124,7 +133,16 @@ export function characterPaletteAddress(rom: Uint8Array, character: number): num
 
 /** A character's 16 colours as RGB triples; index 0 is transparent. */
 export function characterPalette(rom: Uint8Array, character: number): Array<[number, number, number]> {
-    const base = PALETTE_BANK | characterPaletteAddress(rom, character);
+    return paletteAt(rom, characterPaletteAddress(rom, character));
+}
+
+/**
+ * 16 colours at a 16-bit address in the palette bank, as RGB triples; index 0
+ * is transparent. Characters name theirs in record `+0x09`; ring-menu icons
+ * in their entry's `+4` word (./item-icons) — the same bank either way.
+ */
+export function paletteAt(rom: Uint8Array, address: number): Array<[number, number, number]> {
+    const base = PALETTE_BANK | address;
     const out: Array<[number, number, number]> = [];
     for (let i = 0; i < 16; i++) {
         const c = read16At(rom, base + i * 2);

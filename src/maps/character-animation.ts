@@ -116,7 +116,12 @@ const COMMAND_LENGTH: Record<number, number> = {
     0x45: 3, 0x46: 3, 0x47: 5, 0x4b: 3, 0x4c: 6, 0x4d: 3,
     0x4e: 1, 0x4f: 1, 0x50: 5, 0x52: 1, 0x53: 1, 0x54: 3,
     0x5a: 2, 0x5b: 1,
+    0x30: 1, 0x56: 3,                                        // ring-menu icons, below
 };
+
+// 0x30 (sets the restart point) and 0x56 (greys a formula's icon out) open
+// the alchemy icons (./item-icons); widths read off $908AE0 and $90878C, as in
+// docs/script-format/animation_format.md. No character walk changes with them.
 
 // Seven more come from the attack animations, which idle scripts never reach:
 // 0x32 (4), 0x38 (2), 0x40 (3), 0x43 (1), 0x4b (3), 0x4c (6), 0x5b (1), each
@@ -243,7 +248,15 @@ export function characterAnimation(
     character: number,
     facing = FACING_SOUTH,
 ): { frames: AnimationFrame[]; complete: boolean } {
-    let p = animationScript(rom, character, facing);
+    return walkAnimationScript(rom, animationScript(rom, character, facing));
+}
+
+/** The walk itself, for any script — ring-menu icons run it too (./item-icons). */
+export function walkAnimationScript(
+    rom: Uint8Array,
+    script: number,
+): { frames: AnimationFrame[]; complete: boolean } {
+    let p = script;
     const frames: AnimationFrame[] = [];
     const seen = new Set<number>();
     let sprite: number | null = null;

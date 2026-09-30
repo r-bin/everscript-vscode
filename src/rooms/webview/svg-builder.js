@@ -1,6 +1,6 @@
 // Ownership: build the SVG map grid + entity elements for a room detail panel.
 // Pure function: receives entity arrays and config, returns an HTML string.
-// Uses utils.js globals: escH, tsvg, getIngrKey, getIngrIcon, ingrSvgImg, INGR_BASE.
+// Uses utils.js globals: escH, tsvg, trigItemName, itemEmoji, itemSvgImg (ITEM_ICONS).
 
 /**
  * Build the SVG map section HTML string for a room.
@@ -128,23 +128,23 @@ function buildRoomSvgSection(opts){
       over+='<rect class="svge-step" data-idx="'+i+'" data-kind="step" data-label="'+escH(nm||exitLabel(t)||t.label||'')+' ['+t.x1+','+t.y1+':'+t.x2+','+t.y2+']" x="'+sv.sx+'" y="'+sv.sy+'" width="'+sv.sw+'" height="'+sv.sh+'" fill="rgba(255,100,180,0.18)" stroke="#ff69b4" stroke-width="0.3"><title>'+tip+'</title></rect>';
     });
 
-    // B-trigger rects (yellow) + ingredient icons
+    // B-trigger rects (yellow) + the ring-menu icon of what they hand over
     bTrigger.forEach(function(t,i){
       var nm=bTrigNames[i]||'';
       var sv=tsvg(t,trigOff);
       // Vanilla rooms have no trigger names, so the reward the ROM decoder
       // read out of the script is what names the icon and fills the tooltip.
-      var iconName=trigIngrName(t,nm||t.label||'');
+      var iconName=trigItemName(t,nm||t.label||'');
       var tip='B-trig'+(nm?' '+escH(nm):'')+lootTip(t)+exitTip(t)+(t.label?' — '+escH(t.label):'');
-      var ingrEmoji=getIngrIcon(iconName);
+      var ingrEmoji=itemEmoji(iconName);
       var blabel=escH(nm||lootLabel(t)||exitLabel(t)||t.label||'')+(ingrEmoji?' '+ingrEmoji:'')+' ['+t.x1+','+t.y1+':'+t.x2+','+t.y2+']';
       over+='<rect class="svge-btrig" data-idx="'+i+'" data-kind="btrig" data-label="'+blabel+'" x="'+sv.sx+'" y="'+sv.sy+'" width="'+sv.sw+'" height="'+sv.sh+'" fill="rgba(255,210,0,0.13)" stroke="#ffcc00" stroke-width="0.3"><title>'+(ingrEmoji?ingrEmoji+' ':'')+tip+'</title></rect>';
       if(ingrEmoji){
-        var ifs=Math.max(1.5,Math.min(sv.sw,sv.sh,2.8));
-        var imgHtml=ingrSvgImg(iconName,sv.sx+sv.sw/2,sv.sy+sv.sh/2,ifs*1.2);
+        var imgHtml=itemSvgImg(iconName,sv.sx+sv.sw/2,sv.sy+sv.sh/2);
         if(imgHtml){
           over+='<g class="svge-btrig svge-ingr">'+imgHtml+'</g>';
         }else{
+          var ifs=Math.max(1.5,Math.min(sv.sw,sv.sh,2.8));
           over+='<text class="svge-btrig svge-ingr" x="'+(sv.sx+sv.sw/2)+'" y="'+(sv.sy+sv.sh/2+ifs*0.4)+'" text-anchor="middle" font-size="'+ifs+'" pointer-events="none" style="user-select:none">'+ingrEmoji+'</text>';
         }
       }
