@@ -252,6 +252,13 @@ takes the level of the **floor it lands on** (`editFloorLevel`, the covered cell
 most common level), and the bar's only on open ground. A gourd on a level-2 plateau
 is a level-2 gourd.
 
+A group sits **over** the map, never in place of it. A layer that showed the floor
+under it — and a blank terrain always does — takes the floor of wherever it is,
+both when stamped and when moved (`editRefloor`), and so do its objects' states:
+a gourd moved off red floor onto grass is a gourd on grass, broken or not. A stamped
+object shows **state 0** until a state is picked (`activeFrame: 0`); drawing frame
+1 by default was the "floor turned black" report.
+
 **Layers over the map.** The cuttable layer (`_edit.cut`) and each object's `layer`
 (its changed look, map-editor-objects.js) hold stamps drawn *on top of* the map's own
 cells. They are never written into `_edit.cells`. Each is shown only while its

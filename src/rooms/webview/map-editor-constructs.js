@@ -181,12 +181,13 @@ function editStampedConstruct(construct, x, y, level) {
     // State-0-only — no phantom empty frame (map-editor-objects.js).
     var objFrames = (o.frames && o.frames.length) ? o.frames
       : (o.cells && o.cells.length ? [o.cells] : []);
-    var frameLayers = objFrames.map(function (cells) { return editObjectLayerFrom(cells, level); });
+    var frameLayers = objFrames.map(function (cells) { return editObjectLayerFrom(cells, level, x + o.dx, y + o.dy); });
     if (typeof objectNormalizeFrames === 'function') frameLayers = objectNormalizeFrames(frameLayers);
     _edit.placed.push({
       kind: 'object', x: x + o.dx, y: y + o.dy, w: o.w, h: o.h,
       states: frameLayers.length + 1,
-      uid: editNextPlacedUid(), frames: frameLayers, layer: frameLayers[0] || {},
+      // It shows state 0, the look the room loads with, until a state is picked.
+      uid: editNextPlacedUid(), frames: frameLayers, layer: {}, activeFrame: 0,
     });
     extras.push('an object record' + (frameLayers.length ? ' with ' + (frameLayers.length + 1) + ' states' : ''));
   });
@@ -202,8 +203,12 @@ function editStampedConstruct(construct, x, y, level) {
  * An object's changed look (map-editor-objects.js) from portable cells: each
  * rebuilt here like any stamped cell, on `level` when one is given. A cell
  * whose family cannot find a slot is left out — the area keeps its own tile.
+ *
+ * With the object's corner (`ox`, `oy`), a frame's missing or blank terrain
+ * is the floor it lands on: a gourd's broken look sits on the room's floor,
+ * not on the black one of wherever it was cut from.
  */
-function editObjectLayerFrom(cells, level) {
+function editObjectLayerFrom(cells, level, ox, oy) {
   var layer = {};
   (cells || []).forEach(function (c) {
     var canopy = editWordFromPart(_mtPalette, c.canopy);
@@ -212,10 +217,31 @@ function editObjectLayerFrom(cells, level) {
     var blank = editBlankCanopy(_mtPalette);
     var idx = editAddStamp(_mtPalette, { layer1: canopy ? canopy.word : blank, layer2: terrain ? terrain.word : blank,
       collision: c.collision || 0 });
+    if (ox != null) {
+      var here = editCellAt(_mtPalette, ox + c.dx, oy + c.dy);
+      idx = editRefloor(_mtPalette, idx, null, here >= 0 ? editStampWords(_mtPalette, here) : null);
+    }
     if (level >= 0 && typeof editOnLevel === 'function') idx = editOnLevel(_mtPalette, idx, level);
     layer[c.dx + ',' + c.dy] = idx;
   });
   return layer;
+}
+
+/**
+ * The stamp `index` on a new floor. A layer that showed the floor it sat
+ * on (`floorWas`, its words; a blank terrain always does) takes the new
+ * floor's (`floor`) instead; the rest of the stamp is kept. This is what
+ * lets an object sit *over* the map rather than replace it: moved, a gourd
+ * takes the floor of where it lands, not the one it left.
+ */
+function editRefloor(palette, index, floorWas, floor) {
+  var w = index >= 0 ? editStampWords(palette, index) : null;
+  if (!w || !floor) return index;
+  var blank = editBlankCanopy(palette);
+  var l1 = floorWas && w.layer1 === floorWas.layer1 ? floor.layer1 : w.layer1;
+  var l2 = (floorWas && w.layer2 === floorWas.layer2) || w.layer2 === blank ? floor.layer2 : w.layer2;
+  if (l1 === w.layer1 && l2 === w.layer2) return index;
+  return editAddStamp(palette, { layer1: l1, layer2: l2, collision: w.collision });
 }
 
 /**

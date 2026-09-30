@@ -1479,13 +1479,41 @@ test('a group moves whole: what it covered comes back, its trigger follows, one 
     assert.strictEqual(d.undo.length, steps + 1, 'a move is one step');
     assert.strictEqual(d.cells['0,1'], 1, 'the cell it covered is back');
     assert.ok(!('1,1' in d.cells), 'and the one that was unpainted is unpainted again');
-    assert.strictEqual(d.cells['1,0'], stamped, 'the gourd is at its new place');
+    const words = (i) => ui.editStampWords(p, i);
+    assert.strictEqual(words(d.cells['1,0']).layer1, words(stamped).layer1, 'the gourd is at its new place');
+    assert.strictEqual(words(d.cells['1,0']).layer2, words(p.grid[0][1]).layer2,
+        'on the floor there, not the one it left');
     const trig = d.placed.find((x) => x.kind === 'bTrigger');
     assert.deepStrictEqual([trig.x, trig.y], [1, 0], 'its trigger moved with it');
     assert.ok(!ui.editGroupMove(p, uid, 5, 0), 'it will not move off the map');
     ui.editUndo(p);
     assert.strictEqual(d.cells['0,1'], stamped, 'undo puts it back where it was');
     assert.deepStrictEqual([d.groups[0].x, d.groups[0].y], [0, 1]);
+});
+
+test('a stamped object sits over the floor: its states keep it, and moving takes the new one', () => {
+    const { p, d } = fresh();
+    const words = (i) => ui.editStampWords(p, i);
+    const red = ui.editAddStamp(p, { layer1: 0xa800, layer2: 0x0c02, collision: 0x0010 });
+    ui.editApply([{ x: 0, y: 1, index: red }]);
+    const pot = { name: 'gourd', w: 1, h: 1,
+        cells: [{ dx: 0, dy: 0, canopy: { word: 0x358a }, terrain: null, collision: 0x001f }],
+        attachments: { bTrigger: [], stepOn: [], objects: [{ dx: 0, dy: 0, w: 1, h: 1, states: 2,
+            frames: [[{ dx: 0, dy: 0, canopy: { word: 0x358b }, terrain: { word: 0xa800 }, collision: 0x001f }]] }] } };
+    ui.editStampGroup(p, pot, 0, 1);
+    const o = d.placed.find((x) => x.kind === 'object');
+    assert.strictEqual(o.activeFrame, 0, 'it shows state 0 until a state is picked');
+    assert.strictEqual(words(d.cells['0,1']).layer2, 0x0c02, 'state 0 keeps the red floor');
+    assert.strictEqual(words(o.frames[0]['0,0']).layer2, 0x0c02, 'and so does state 1, not a black one');
+    assert.ok(ui.editGroupMove(p, d.groups[0].uid, 1, 0));
+    const floor = words(p.grid[0][1]).layer2;
+    assert.strictEqual(d.cells['0,1'], red, 'the red floor is back where it was');
+    assert.strictEqual(words(d.cells['1,0']).layer1, 0x358a, 'the gourd is where it went');
+    assert.strictEqual(words(d.cells['1,0']).layer2, floor, 'on that floor');
+    assert.strictEqual(words(o.frames[0]['0,0']).layer1, 0x358b);
+    assert.strictEqual(words(o.frames[0]['0,0']).layer2, floor, 'state 1 on that floor too');
+    ui.editGroupDelete(d.groups[0].uid);
+    assert.deepStrictEqual(d.cells, { '0,1': red }, 'deleting it leaves the map as it was');
 });
 
 test('deleting a group restores what it covered and removes its trigger, in one step', () => {

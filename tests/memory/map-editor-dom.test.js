@@ -2353,7 +2353,9 @@ async function main() {
                 cells: [{ dx: 0, dy: 0, canopy: { word: 0x1423 }, terrain: { word: 0x05c6 }, collision: 0x1f }] }] } };
         editStampGroup(_mtPalette, c, 0, 0);
         const so = editObjects()[0];
-        r.stamped = !!(so && so.uid && so.layer['0,0'] >= 0 && editStampWords(_mtPalette, so.layer['0,0']).layer1 === 0x1423);
+        // It shows state 0 (the map's own cells) until a state is picked.
+        r.stamped = !!(so && so.uid && so.activeFrame === 0 && !Object.keys(so.layer).length
+            && editStampWords(_mtPalette, so.frames[0]['0,0']).layer1 === 0x1423);
 
         // Object cluster, frames, automatic delta bounds and solid blue frame
         editRemoveObject(so.uid);

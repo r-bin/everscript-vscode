@@ -118,7 +118,7 @@ function renderEditLayer(palette, composed, origin) {
   objList.forEach(function (o) {
     var isSel = (typeof _objectSel !== 'undefined' && o.uid === _objectSel);
     var af = isSel ? (typeof _objectActiveFrame !== 'undefined' ? _objectActiveFrame : 1)
-      : (o.activeFrame != null ? o.activeFrame : (typeof editObjectFrames === 'function' && editObjectFrames(o).length > 0 ? 1 : 0));
+      : (o.activeFrame || 0);
     if (af >= 1 && o.frameSpecials && o.frameSpecials[af - 1]) {
       activeSpecials.push({ obj: o, fs: o.frameSpecials[af - 1] });
     }

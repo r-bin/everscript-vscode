@@ -1,3 +1,11 @@
+## [0.94.1] — 2026-09-30
+
+### Fix: a stamped object sits over the map instead of replacing it
+
+- **A stamped gourd keeps the floor it lands on.** It showed its frame 1 by default, which carried a blank (black) floor from the widget; objects now show **state 0** until a state is picked, and a frame's blank floor becomes the floor under it.
+- **Moving a stamped object takes the floor of where it lands**, for state 0 and every other state, and puts the old floor back. Before, the gourd dragged its old floor (and state 0's look) along. It also lands on that floor's level, as a fresh stamp does.
+- So a hut with three gourds stamped into it: the gourds can be moved or deleted without disturbing the hut.
+
 ## [0.94.0] — 2026-09-30
 
 ### Feat: the lock and ⋯ on the room's name line, loot quick filters, resize that keeps what it hides

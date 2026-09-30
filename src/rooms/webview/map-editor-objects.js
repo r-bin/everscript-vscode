@@ -58,11 +58,8 @@ function objectSelect(uid) {
   var o = editObjectFind(uid);
   if (o) {
     var frames = editObjectFrames(o);
-    if (o.activeFrame != null && o.activeFrame >= 0 && o.activeFrame <= frames.length) {
-      _objectActiveFrame = o.activeFrame;
-    } else if (_objectActiveFrame < 0 || _objectActiveFrame > frames.length) {
-      _objectActiveFrame = frames.length > 0 ? 1 : 0;
-    }
+    // Its own state, else state 0 — never the last object's frame number.
+    _objectActiveFrame = o.activeFrame != null && o.activeFrame >= 0 && o.activeFrame <= frames.length ? o.activeFrame : 0;
     o.activeFrame = _objectActiveFrame;
     o.layer = _objectActiveFrame >= 1 ? (frames[_objectActiveFrame - 1] || {}) : {};
     o.states = frames.length + 1;
@@ -263,7 +260,7 @@ function editObjectSvg(palette, composed, origin) {
   var html = '';
   editObjects().forEach(function (o, idx) {
     var isSel = (o.uid === _objectSel), frames = editObjectFrames(o);
-    var activeIdx = isSel ? _objectActiveFrame : (o.activeFrame != null ? o.activeFrame : (frames.length > 0 ? 1 : 0));
+    var activeIdx = isSel ? _objectActiveFrame : (o.activeFrame || 0);
     var curLayer = activeIdx >= 1 ? (frames[activeIdx - 1] || o.layer || {}) : {};
     Object.keys(curLayer).forEach(function (k) {
       var p = k.split(','), pos = editCellPos(origin, o.x + Number(p[0]), o.y + Number(p[1]));

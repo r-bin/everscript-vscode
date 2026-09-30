@@ -115,18 +115,60 @@ function editGroupMove(palette, uid, x, y) {
   var inside = g.cells.every(function (c) { return editInBounds(palette, x + c.dx, y + c.dy); });
   if (!inside) { editNote('it does not fit there — the whole object has to stay on the map'); return false; }
   editBegin();
-  var cells = editGroupLift(g);
-  g.under = cells.map(function (c) { return groupRef(c.dx, c.dy, editDraftValue(x + c.dx, y + c.dy)); });
-  editApply(cells.map(function (c) { return { x: x + c.dx, y: y + c.dy, index: c.index }; }));
   var ox = x - g.x;
   var oy = y - g.y;
+  var objects = d.placed.filter(function (p) { return p.kind === 'object' && g.placed.indexOf(p.uid) >= 0; });
+  // Each object frame cell's state 0 before the move: what its floor was.
+  var frameFloors = objects.map(function (o) { return groupFrameFloors(palette, o, o.x, o.y); });
+  var cells = editGroupLift(g);
+  // It sits over the map, not in place of it: a layer that showed the floor
+  // where it was takes the floor where it lands (editRefloor), and the whole
+  // of it goes on that floor's level, as when it was stamped.
+  var writes = cells.map(function (c) {
+    var was = editStampWords(palette, editCellAt(palette, g.x + c.dx, g.y + c.dy));
+    var here = editStampWords(palette, editCellAt(palette, x + c.dx, y + c.dy));
+    return { x: x + c.dx, y: y + c.dy, index: editRefloor(palette, c.index, was, here) };
+  });
+  var level = typeof editFloorLevel === 'function' ? editFloorLevel(palette, writes) : undefined;
+  if (typeof editWritesOnLevel === 'function') writes = editWritesOnLevel(palette, writes, level);
+  g.under = cells.map(function (c) { return groupRef(c.dx, c.dy, editDraftValue(x + c.dx, y + c.dy)); });
+  editApply(writes);
   d.placed.forEach(function (p) {
     if (g.placed.indexOf(p.uid) >= 0) { p.x += ox; p.y += oy; }
   });
+  objects.forEach(function (o, i) { groupRefloorFrames(palette, o, frameFloors[i], level); });
+  cells = writes.map(function (w) { return groupRef(w.x - x, w.y - y, w.index); });
   g.cells = cells;
   g.x = x; g.y = y;
   editEnd();
   return true;
+}
+
+/** The state-0 words under each of an object's frame cells, with its corner at (x, y). */
+function groupFrameFloors(palette, o, x, y) {
+  var out = {};
+  editObjectFrames(o).forEach(function (f) {
+    Object.keys(f || {}).forEach(function (k) {
+      if (k in out) return;
+      var p = k.split(',');
+      out[k] = editStampWords(palette, editCellAt(palette, x + Number(p[0]), y + Number(p[1])));
+    });
+  });
+  return out;
+}
+
+/** A moved object's states, each laid over the floor its cells now sit on. */
+function groupRefloorFrames(palette, o, floorsWas, level) {
+  var now = groupFrameFloors(palette, o, o.x, o.y);
+  o.frames = editObjectFrames(o).map(function (f) {
+    var out = {};
+    Object.keys(f || {}).forEach(function (k) {
+      var idx = editRefloor(palette, f[k], floorsWas[k], now[k]);
+      out[k] = typeof editOnLevel === 'function' ? editOnLevel(palette, idx, level) : idx;
+    });
+    return out;
+  });
+  o.layer = o.activeFrame >= 1 ? (o.frames[o.activeFrame - 1] || {}) : {};
 }
 
 /** Delete a group: what it covered comes back, its triggers go. One undo step. */
