@@ -1,7 +1,10 @@
 # Ingredient Icons — where they come from
 
-> Status: **not solved.** A research note, not a format description. Two
-> traces have narrowed it a long way; none of it is implemented.
+> **Superseded.** The icons are found: they are ordinary sprites reached
+> through a 162-entry table at `$CE8000`, one per ring-menu icon id, with a
+> palette per entry. See [item-icons.md](item-icons.md). What is below is the
+> earlier VRAM-side search, kept for its notes on the Formulas screen's
+> blitter and the Mesen `[REG]` pitfall, which still hold.
 
 The Rooms tab draws an ingredient icon on a loot trigger
 ([src/script/README.md](../src/script/README.md) explains how the reward

@@ -169,6 +169,7 @@ Override with `SOE_TILES_VIEWER`, `SOE_SCRIPT_DUMP`, `EVERSCRIPT_ROM`.
   three opcodes are scored on boundaries only.
 - **Item icons from the ROM.** A pickup's icon comes from a local assets
   folder, so four ingredients have no picture and non-ingredient rewards have
-  none at all. Neither reference knows where the game's own icons live; see
-  [docs/ingredient-icons.md](../../docs/ingredient-icons.md) for what one
-  trace established and what would settle it.
+  none at all. The game's own icons are now located and decoded (a table at
+  `$CE8000`, joined to a reward by its index);
+  [docs/item-icons.md](../../docs/item-icons.md) has the format and what the
+  plugin needs to draw them.
