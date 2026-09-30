@@ -768,6 +768,7 @@ const ui = new Function(`
     widgetHasSelection: widgetHasSelection, widgetSaveFromSelection: widgetSaveFromSelection,
     editBuildConstruct: editBuildConstruct, moreFilterGroupHtml: moreFilterGroupHtml,
     getEditSel: function () { return _editSel; }, customCopyMapReady: customCopyMapReady,
+    setLayerForce: function (f) { _layerForce = f; },
     objectSelect: objectSelect, objectSelectFrame: objectSelectFrame,
   };`)();
 
@@ -965,28 +966,49 @@ test('erasing takes the picture and the collision back off the floor', () => {
     const d = ui.editReset(0x34);
     d.on = true;
 
-    // Cell (1,0) is the hide: canopy $2C66, solid. Erasing restores the
+    // 1. With front/FG forced ('canopy'):
+    // Cell (1,0) is the hide: canopy $2C66, solid. Erasing FG restores the
     // blank canopy and the collision the room uses on bare $4C62 — which is
-    // stamp 0's $0010, not the hide's $001F. Otherwise removing a gourd
-    // would leave a hole you still cannot walk through.
+    // stamp 0's $0010, not the hide's $001F.
+    ui.setLayerForce('canopy');
     const bare = ui.editResolve(p, 1, 0, -1, true);
     assert.strictEqual(bare, 0, 'it resolves to the floor stamp the room already has');
     assert.strictEqual(d.added.length, 0, 'so nothing new is needed');
 
-    // Erasing bare floor makes no new stamp. Since v0.69.2 it asks for the
-    // draft's own write at the cell to be taken back (EDIT_ERASE_CELL, -2);
-    // the stroke only does that where the draft painted, so the room's own
-    // floor here is left as it is.
-    assert.strictEqual(ui.editResolve(p, 0, 1, -1, true), -2);
-    assert.strictEqual(d.added.length, 0);
+    // On bare floor (0,1), erasing FG finds no canopy to erase, returning here (0)
+    assert.strictEqual(ui.editResolve(p, 0, 1, -1, true), 0);
 
-    // §8a.2: erase no longer depends on a mode being set first. It used to be
-    // a flat no-op outside `deco` phase no matter what was under the cursor,
-    // so removing a decoration meant remembering to flip a toggle. Now the
-    // only thing that stops it is there being nothing there — a cell off the
-    // grid has no stamp to take a canopy off.
+    // 2. With ground/BG forced ('terrain'):
+    // Cell (1,0) has canopy + terrain: erasing BG leaves the canopy and solid collision
+    ui.setLayerForce('terrain');
+    const bgErased = ui.editResolve(p, 1, 0, -1, true);
+    assert.strictEqual(bgErased, p.count, 'a new stamp is needed for canopy with blank ground');
+    const bgWords = ui.editStampWords(p, bgErased);
+    assert.strictEqual(bgWords.layer1, 0x2c66, 'canopy is kept');
+    assert.strictEqual(bgWords.layer2, 0xa800, 'ground is blanked');
+    assert.strictEqual(bgWords.collision, 0x001f, 'collision is kept');
+
+    // On bare floor (0,1), erasing BG leaves no art at all -> EDIT_ERASE_CELL (-2)
+    assert.strictEqual(ui.editResolve(p, 0, 1, -1, true), -2);
+
+    // 3. With auto (null / 'auto'): erases both layers -> EDIT_ERASE_CELL (-2)
+    ui.setLayerForce(null);
+    assert.strictEqual(ui.editResolve(p, 1, 0, -1, true), -2, 'auto erases both FG and BG');
+    assert.strictEqual(ui.editResolve(p, 0, 1, -1, true), -2);
+
+    // Out of bounds has no cell stamp to erase
     assert.strictEqual(ui.editResolve(p, 9, 9, -1, true), -1);
-    assert.strictEqual(d.added.length, 0);
+
+    // 4. In gestures (editStroke):
+    d.tool = 'erase';
+    ui.setLayerForce('canopy');
+    ui.editStroke({ x: 1, y: 0 }, 'down');
+    assert.strictEqual(d.cells['1,0'], 0, 'erasing FG writes stamp 0');
+    // Clicking bare floor with FG eraser does not dirty d.cells:
+    ui.editStroke({ x: 0, y: 0 }, 'down');
+    assert.strictEqual(d.cells['0,0'], undefined, 'erasing bare FG writes nothing');
+
+    ui.setLayerForce(null);
 });
 
 test('a construct carries the triggers and objects inside its selection', () => {

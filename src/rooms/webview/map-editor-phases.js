@@ -119,8 +119,13 @@ function editResolve(palette, x, y, brushIndex, erasing, hereIndex) {
     if (!under) return -1;
     var layers = editEraseLayers();
     var hasCanopy = under.layer1 !== blank;
-    // The front art goes first whenever it is shown and there is some.
-    if (layers.fg && hasCanopy) {
+    var hasTerrain = under.layer2 !== blank;
+
+    if (layers.auto) {
+      return EDIT_ERASE_CELL;
+    }
+    if (layers.fg && !layers.bg) {
+      if (!hasCanopy) return here;
       var restored = editFloorCollisionFor(palette, under.layer2);
       return editAddStamp(palette, {
         layer1: blank,
@@ -128,10 +133,17 @@ function editResolve(palette, x, y, brushIndex, erasing, hereIndex) {
         collision: restored === null ? under.collision : restored,
       });
     }
-    if (!layers.bg) return here; // only the front is selected, and it is bare
-    // The ground: under front art, only the ground goes; otherwise the whole
-    // cell — the draft's own write at it — is taken back.
-    if (hasCanopy) return editAddStamp(palette, { layer1: under.layer1, layer2: blank, collision: under.collision });
+    if (layers.bg && !layers.fg) {
+      if (!hasTerrain) return here;
+      if (hasCanopy) {
+        return editAddStamp(palette, {
+          layer1: under.layer1,
+          layer2: blank,
+          collision: under.collision,
+        });
+      }
+      return EDIT_ERASE_CELL;
+    }
     return EDIT_ERASE_CELL;
   }
 
@@ -154,10 +166,18 @@ function editResolve(palette, x, y, brushIndex, erasing, hereIndex) {
 var EDIT_ERASE_CELL = -2;
 
 /**
- * Which layers the eraser works on: the bottom bar's Background/Foreground
- * segments (rom-overlay.js). Both on — the default — erases the top-most.
+ * Which layers the eraser works on: reads the right panel's layer override
+ * (_layerForce: 'canopy' -> front/FG only, 'terrain' -> ground/BG only, auto -> both),
+ * falling back to the bottom bar's romLayerVis if a layer is toggled off in the viewer.
  */
 function editEraseLayers() {
-  if (typeof romLayerVis !== 'function') return { bg: true, fg: true };
-  return { bg: romLayerVis('bg'), fg: romLayerVis('fg') };
+  var force = (typeof _layerForce !== 'undefined') ? _layerForce : null;
+  if (force === 'canopy') return { fg: true, bg: false, auto: false };
+  if (force === 'terrain') return { fg: false, bg: true, auto: false };
+  if (typeof romLayerVis === 'function') {
+    var vbg = romLayerVis('bg'), vfg = romLayerVis('fg');
+    if (!vbg && vfg) return { fg: true, bg: false, auto: false };
+    if (!vfg && vbg) return { fg: false, bg: true, auto: false };
+  }
+  return { fg: true, bg: true, auto: true };
 }

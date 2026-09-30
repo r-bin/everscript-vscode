@@ -1,3 +1,14 @@
+## [0.82.10] — 2026-09-30
+
+### Feat: Right panel layer-force aware eraser (FG-only, BG-only, and auto erase)
+
+- **Layer-force aware eraser tool:** In `src/rooms/webview/map-editor-phases.js`, updated `editEraseLayers()` and `editResolve()` to respect the right panel's layer control (`_layerForce`):
+  - When set to `front` (`'canopy'`), the eraser removes only foreground (canopy) art, preserving background terrain and restoring walkable floor collision.
+  - When set to `ground` (`'terrain'`), the eraser removes only background (terrain) art, preserving foreground canopy art. If the tile has no canopy art, it clears the cell.
+  - When set to `auto` (or `null`), the eraser erases both layers at once (`EDIT_ERASE_CELL`), allowing one-stroke clearing.
+- **Idempotent erase gestures:** In `src/rooms/webview/map-editor-gestures.js`, guarded against redundant draft writes and history pushes when clicking an eraser on a cell whose selected layer is already bare (`finalIndex === here`).
+- **Tests:** Updated `tests/memory/map-editor.test.js` and `tests/memory/map-editor-dom.test.js` to verify FG-only, BG-only, and auto erasure through both `editResolve` and `editStroke` gestures.
+
 ## [0.82.9] — 2026-09-29
 
 ### Fix: Selection overlay layer order, gesture edge clamping, async room duplication, and persistent object active frame

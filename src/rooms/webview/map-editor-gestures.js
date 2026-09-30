@@ -94,15 +94,16 @@ function editStroke(cell, phase) {
       if (cutErase) editApply([cutErase]);
       renderEditChrome(); return;
     }
-    var bare = editResolve(_mtPalette, cell.x, cell.y, -1, true);
+    var here = editCellAt(_mtPalette, cell.x, cell.y);
+    var bare = editResolve(_mtPalette, cell.x, cell.y, -1, true, here);
     var hadSpecial = editSpecialAt(cell.x, cell.y);
     var finalIndex = bare;
     if (hadSpecial) {
-      var base = finalIndex >= 0 ? finalIndex : editCellAt(_mtPalette, cell.x, cell.y);
+      var base = finalIndex >= 0 ? finalIndex : here;
       var cleared = editSpecialAppliedIndex(_mtPalette, base, null, true);
       if (cleared !== base) finalIndex = cleared;
     }
-    var eraseWrites = finalIndex >= 0 ? [{ x: cell.x, y: cell.y, index: finalIndex }] : [];
+    var eraseWrites = (finalIndex >= 0 && finalIndex !== here) ? [{ x: cell.x, y: cell.y, index: finalIndex }] : [];
     // The whole painted cell: take the draft's write back (the room's own
     // tile shows again — nothing, on a new map).
     if (finalIndex === EDIT_ERASE_CELL && Object.prototype.hasOwnProperty.call(d.cells, editKey(cell.x, cell.y))) {
