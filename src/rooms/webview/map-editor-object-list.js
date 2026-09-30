@@ -9,7 +9,8 @@
 //
 // The object model (frames, painting, the map overlay) is map-editor-objects.js.
 //
-// Owns: _objectOpen (uid → the caret's explicit open/closed), _objectDragRow.
+// Owns: _objectOpen ("<map>:<uid>" → the caret's explicit open/closed; uids repeat
+// across maps), _objectDragRow.
 
 var _objectOpen = {}, _objectDragRow = null;
 
@@ -25,8 +26,15 @@ function objectLooksStatic(o) {
   });
 }
 
+/** The caret's key: uids start at 1 in every map, so a map's own. */
+function objectOpenKey(o) {
+  var d = editDraft();
+  return (d ? d.customKey || d.roomId : '') + ':' + o.uid;
+}
+
 function objectIsOpen(o) {
-  if (Object.prototype.hasOwnProperty.call(_objectOpen, o.uid)) return _objectOpen[o.uid];
+  var k = objectOpenKey(o);
+  if (Object.prototype.hasOwnProperty.call(_objectOpen, k)) return _objectOpen[k];
   return o.uid === _objectSel || !objectLooksStatic(o);
 }
 
@@ -94,7 +102,7 @@ function objectStatesHtml(o, n) {
 function objectRowHtml(o, n) {
   var frames = editObjectFrames(o), sel = o.uid === _objectSel, open = objectIsOpen(o), still = objectLooksStatic(o);
   var locked = editLocked();
-  var title = 'obj #' + n + ' — ' + o.w + '×' + o.h + ' at ' + o.x + ',' + o.y + ', ' + (frames.length + 1) + ' states'
+  var title = 'obj #' + n + ' — ' + o.w + '×' + o.h + ' tiles at ' + o.x + ',' + o.y + ', ' + (frames.length + 1) + ' states'
     + (still ? ', all alike (a sniff spot?)' : '')
     + (o.roomObject != null ? '\nthe room’s own object ' + o.roomObject : '')
     + (locked ? '' : '\nclick to select · drag ⠿ to reorder');
@@ -103,7 +111,7 @@ function objectRowHtml(o, n) {
     + '" title="' + escH(title) + '">'
     + (locked ? '' : '<span class="rg-trigger-grip" aria-hidden="true">⠿</span>')
     + objectWhereSvg(o) + objectFrameThumb(o, sel ? _objectActiveFrame : (o.activeFrame || 0), _editOrigin, 'rg-trigger-tiles')
-    + '<span class="rg-trigger-label">#' + n + ' · ' + o.w + '×' + o.h + ' at ' + o.x + ',' + o.y
+    + '<span class="rg-trigger-label">#' + n + ' · ' + o.w + '×' + o.h + ' tiles'
     + (still ? ' <span class="rg-object-still">no change</span>' : '') + '</span>'
     + '<span class="rg-object-caret" data-object-toggle="' + o.uid + '" title="' + (open ? 'Hide' : 'Show') + ' its states">'
     + (open ? '▾' : '▸') + '</span>'
@@ -130,7 +138,7 @@ function objectClick(t) {
   if (t.dataset.objectRemove) { editRemoveObject(Number(t.dataset.objectRemove)); return true; }
   if (t.dataset.objectToggle) {
     var o = editObjectFind(Number(t.dataset.objectToggle));
-    if (o) _objectOpen[o.uid] = !objectIsOpen(o);
+    if (o) _objectOpen[objectOpenKey(o)] = !objectIsOpen(o);
     renderEditChrome();
     return true;
   }

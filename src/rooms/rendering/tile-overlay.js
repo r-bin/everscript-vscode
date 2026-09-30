@@ -13,6 +13,7 @@
 
 const maps = require('../../maps');
 const { romFingerprint } = require('./rom-fingerprint');
+const { headerSpec, withHeader } = require('./header-overrides');
 const { buildObjects, parseObjectStates, cachedObjectPreviews } = require('./object-previews');
 
 /** Which render the map image shows. */
@@ -155,8 +156,8 @@ function overlayOverCanopy(foreground, room, opts, hidden) {
     return painted ? marks : null;
 }
 
-function cachedRender(rom, roomId, layer, ov, stateSpec) {
-    const key = romFingerprint(rom) + ':' + roomId + ':' + layer + ':' + ov.flags + ':' + stateSpec;
+function cachedRender(rom, roomId, layer, ov, stateSpec, header) {
+    const key = romFingerprint(rom) + ':' + roomId + ':' + layer + ':' + ov.flags + ':' + stateSpec + ':' + headerSpec(header);
     const hit = RENDER_CACHE.get(key);
     if (hit) return hit;
 
@@ -164,7 +165,8 @@ function cachedRender(rom, roomId, layer, ov, stateSpec) {
     // open or the bridge extended. Collision follows automatically: it is
     // looked up from the same metatile ID the stamp rewrites.
     const base = maps.decodeRoom(rom, roomId);
-    const room = maps.applyObjectStates(rom, base, parseObjectStates(stateSpec));
+    // The editor's header overrides (TM/TS/colour math) change how the layers composite.
+    const room = withHeader(maps.applyObjectStates(rom, base, parseObjectStates(stateSpec)), header);
     const image = renderLayer(rom, room, layer);
     // The half of the room that is drawn over the characters standing in it,
     // so the Rooms tab can put enemies under the canopy the way the game does.
@@ -272,13 +274,13 @@ function invalidateRoomRenders() { RENDER_CACHE.clear(); PREVIEW_CACHE.clear(); 
  *                                 '20:1'. Objects not listed show state 0.
  * @param {boolean} [animate]      Include the Section 2 animation overlays.
  */
-function buildRoomTileOverlay(rom, roomId, originX, originY, layer, overlay, objectStates, animate) {
+function buildRoomTileOverlay(rom, roomId, originX, originY, layer, overlay, objectStates, animate, header) {
     const buf = rom instanceof Uint8Array ? rom : new Uint8Array(rom);
     const which = LAYERS.indexOf(layer) >= 0 ? layer : 'composite';
     const ov = overlayOptions(overlay);
     const spec = typeof objectStates === 'string' ? objectStates : '';
-    const renderKey = romFingerprint(buf) + ':' + roomId + ':' + which + ':' + ov.flags + ':' + spec;
-    const entry = cachedRender(buf, roomId, which, ov, spec);
+    const renderKey = romFingerprint(buf) + ':' + roomId + ':' + which + ':' + ov.flags + ':' + spec + ':' + headerSpec(header);
+    const entry = cachedRender(buf, roomId, which, ov, spec, header);
     const { room, features, imageUri, foregroundUri, canopyOverlayUri, width, height } = entry;
     const collision = countCollision(room.collisionWords);
 

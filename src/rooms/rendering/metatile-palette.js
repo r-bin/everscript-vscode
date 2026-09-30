@@ -10,6 +10,7 @@
 
 const maps = require('../../maps');
 const { romFingerprint } = require('./rom-fingerprint');
+const { headerSpec, withHeader } = require('./header-overrides');
 const { annotateGraphics, budgetSummary, invalidateVanillaIndex } = require('./vanilla-index');
 const { groupRoomGraphics } = require('./room-draft');
 const { buildStampAnimations } = require('./stamp-animation');
@@ -71,18 +72,19 @@ function mapCellBox(room, t) {
  * @param {number} roomId
  * @param {string} [layer] 'composite' (default), 'layer1' or 'layer2'
  */
-function buildRoomMetatilePalette(rom, roomId, layer, bgPalette) {
+function buildRoomMetatilePalette(rom, roomId, layer, bgPalette, header) {
     const buf = rom instanceof Uint8Array ? rom : new Uint8Array(rom);
     const which = LAYERS.indexOf(layer) >= 0 ? layer : 'composite';
     const pal = Math.min(BG_PALETTES, Math.max(1, Number(bgPalette) || 1));
     const stem = romFingerprint(buf) + ':' + roomId;
-    const key = stem + ':' + which;
+    const key = stem + ':' + which + ':' + headerSpec(header);
     const hit = CACHE.get(key);
     if (hit) return Object.assign({}, hit, { tiles: tileSheet(buf, roomId, stem, pal) });
 
 
     const room = maps.decodeRoom(buf, roomId);
-    const atlas = maps.renderMetatileAtlas(buf, room, { columns: COLUMNS, layer: which });
+    // Header overrides change how each stamp's layers composite; `header` below stays the room's own.
+    const atlas = maps.renderMetatileAtlas(buf, withHeader(room, header), { columns: COLUMNS, layer: which });
     const table = maps.metatileTable(room);
     const objects = editorObjects(buf, room);
 
@@ -235,7 +237,7 @@ function buildComposedPreview(rom, roomId, drafts, layer, extra) {
                 : room.tileFamilies,
         };
     }
-    const atlas = maps.renderMetatileAtlas(buf, maps.withMetatiles(room, entries), {
+    const atlas = maps.renderMetatileAtlas(buf, maps.withMetatiles(withHeader(room, extra && extra.header), entries), {
         columns: COLUMNS, layer: which,
     });
     const anim = buildStampAnimations(buf, room, entries, { columns: COLUMNS, layer: which });

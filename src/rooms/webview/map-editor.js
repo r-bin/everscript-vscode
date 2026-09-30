@@ -343,7 +343,7 @@ function editUndo(palette) {
   if (!_edit || !_edit.undo.length) return false;
   var step = _edit.undo.pop();
   if (step.groups) _edit.groups = JSON.parse(JSON.stringify(step.groups.before));
-  if (step.header) _edit.header = JSON.parse(JSON.stringify(step.header.before));
+  if (step.header) editRestoreHeader(step.header.before);
   var inverse = editRestore(step.cells);
   var specialInverse = editRestoreSpecial(step.special || []);
   // A trigger-op step restores its own snapshot instead of the tail-splice
@@ -378,7 +378,7 @@ function editRedo(palette) {
   if (!_edit || !_edit.redo.length) return false;
   var step = _edit.redo.pop();
   if (step.groups) _edit.groups = JSON.parse(JSON.stringify(step.groups.after));
-  if (step.header) _edit.header = JSON.parse(JSON.stringify(step.header.after));
+  if (step.header) editRestoreHeader(step.header.after);
   var inverse = editRestore(step.cells);
   var specialInverse = editRestoreSpecial(step.special || []);
   if (step.triggers) {

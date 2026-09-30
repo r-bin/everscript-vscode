@@ -55,21 +55,22 @@ function triggerRowName(t, kind) {
   return (names && names[t.index]) || ('room trigger ' + t.index);
 }
 
-/** One row: grip, where, tiles, `#n · N tiles`, remove. Drag it to reorder (map-editor-trigger-order.js). */
+/** One row: grip, where, tiles, `#n · W×H tiles`, remove. Drag it to reorder (map-editor-trigger-order.js). */
 function triggerRowHtml(t, kind, n) {
   var d = editDraft();
   var sel = d && triggerRefsEqual(d.selectedTriggerRef, t.ref);
   var refStr = t.ref.kind + ':' + t.ref.id;
-  var tiles = (t.x2 - t.x1 + 1) * (t.y2 - t.y1 + 1);
+  var w = t.x2 - t.x1 + 1, h = t.y2 - t.y1 + 1, locked = editLocked();
   var title = triggerRowName(t, kind) + ' — cells ' + t.x1 + ',' + t.y1 + ' to ' + t.x2 + ',' + t.y2
     + (typeof t.scriptId === 'number' ? '\nscript 0x' + Number(t.scriptId).toString(16) : '\nno script yet')
-    + '\nclick to select · drag to reorder, or onto the other tab to change its kind';
-  return '<div class="rg-trigger-row' + (sel ? ' on' : '') + '" draggable="true" data-trigger-ref="' + escH(refStr)
-    + '" title="' + escH(title) + '">'
-    + '<span class="rg-trigger-grip" aria-hidden="true">⠿</span>'
+    + (locked ? '' : '\nclick to select · drag to reorder, or onto the other tab to change its kind');
+  // Locked: no grip, no remove — nothing here may change.
+  return '<div class="rg-trigger-row' + (sel ? ' on' : '') + '"' + (locked ? '' : ' draggable="true"')
+    + ' data-trigger-ref="' + escH(refStr) + '" title="' + escH(title) + '">'
+    + (locked ? '' : '<span class="rg-trigger-grip" aria-hidden="true">⠿</span>')
     + triggerPreviewsHtml(t, kind)
-    + '<span class="rg-trigger-label">#' + n + ' · ' + tiles + ' tile' + (tiles === 1 ? '' : 's') + '</span>'
-    + '<button class="rdf rg-trigger-remove" data-trigger-remove="' + escH(refStr) + '" title="Remove this trigger">×</button>'
+    + '<span class="rg-trigger-label">#' + n + ' · ' + w + '×' + h + ' tiles</span>'
+    + (locked ? '' : '<button class="rdf rg-trigger-remove" data-trigger-remove="' + escH(refStr) + '" title="Remove this trigger">×</button>')
     + '</div>';
 }
 

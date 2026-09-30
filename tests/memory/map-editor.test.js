@@ -777,7 +777,7 @@ const ui = new Function(`
     editWordSpecialIds: editWordSpecialIds, editOnRomRoom: editOnRomRoom, editTriggerSvg: editTriggerSvg,
     editRoomSpecialsSvg: editRoomSpecialsSvg, editExport: editExport, infoTabHtml: infoTabHtml, infoMeasure: infoMeasure,
     editHeaderSet: editHeaderSet, infoHeaderBit: infoHeaderBit, infoHeader: infoHeader,
-    objectLooksStatic: objectLooksStatic, objectIsOpen: objectIsOpen, objectReorder: objectReorder, objectTabHtml: objectTabHtml,
+    objectLooksStatic: objectLooksStatic, objectIsOpen: objectIsOpen, setObjectOpen: function (k, v) { _objectOpen[k] = v; }, objectReorder: objectReorder, objectTabHtml: objectTabHtml,
   };`)();
 
 /** A palette with the tile sheet the host now sends alongside it. */
@@ -2165,6 +2165,30 @@ test('an object whose states all look alike starts collapsed; rows reorder by dr
     assert.deepStrictEqual(ui.editObjects().map((o) => o.roomObject), [0, 1]);
 });
 
+
+test('an object’s caret is kept per map: uids start again in every map', () => {
+    const p = Object.assign(tilePalette(), { roomId: 0x34 });
+    const other = [0, 1, 2].find((i) => i !== p.grid[0][1]);
+    p.roomObjects = [{ index: 0, x: 1, y: 0, w: 1, h: 1, frames: [{ '0,0': other }] }];
+    ui.setPalette(p);
+    ui.editReset(0x34);
+    ui.editSeedRoomObjects();
+    const o = ui.editObjects()[0];
+    ui.setObjectOpen('0x33-elsewhere:' + o.uid, false);   // the same uid, closed in another map
+    assert.ok(ui.objectIsOpen(o), 'another map\'s caret does not reach this one');
+});
+
+test('a locked map’s trigger rows have no grip, no remove, and do not drag', () => {
+    ui.setPalette(tilePalette());
+    const d = ui.editReset(0x34);
+    d.on = true;
+    d.placed.push({ kind: 'bTrigger', x: 0, y: 0, w: 2, h: 3, scriptId: 1, uid: 1 });
+    assert.ok(ui.triggerTab().includes('#0 · 2×3 tiles'), 'size as W×H tiles');
+    assert.ok(ui.triggerTab().includes('draggable="true"'));
+    d.locked = true;
+    const html = ui.triggerTab();
+    assert.ok(!html.includes('draggable') && !html.includes('rg-trigger-grip') && !html.includes('data-trigger-remove'));
+});
 
 console.log(`\n  ${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);

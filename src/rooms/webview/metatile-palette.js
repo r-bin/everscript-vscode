@@ -45,7 +45,8 @@ function requestMetatilePalette(room, layer) {
   var note = document.getElementById('rs-mt-note');
   if (note) note.textContent = 'loading…';
   vs.postMessage({ command: 'requestRoomMetatiles', roomId: id, mapName: _mtRoomName,
-                   layer: _mtLayer, bgPalette: _mtBgPalette });
+                   layer: _mtLayer, bgPalette: _mtBgPalette,
+                   header: typeof infoRenderHeader === 'function' ? infoRenderHeader(id) : null });
 }
 
 /** Host reply: keep it and draw. */
@@ -54,6 +55,16 @@ function applyMetatilePalette(msg) {
   if (msg.error) {
     var n = document.getElementById('rs-mt-note');
     if (n) { n.textContent = msg.error; n.classList.add('rs-err'); }
+    return;
+  }
+  // A header edit (map-editor-info.js) redraws the stamps' pictures and nothing else:
+  // the palette in hand may be a custom map's own (its grid, size and families).
+  if (msg.atlasOnly) {
+    if (_mtPalette && msg.palette) {
+      _mtPalette.imageUri = msg.palette.imageUri;
+      renderMetatilePalette();
+      if (typeof renderEditLayer === 'function') renderEditLayer(_mtPalette, _editComposed, _editOrigin);
+    }
     return;
   }
   _mtPalette = msg.palette;

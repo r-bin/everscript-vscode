@@ -281,7 +281,34 @@ function editHeaderSet(key, value) {
   d.header = Object.keys(h).length ? h : null;
   editEnd();
   editNote('header: ' + key + ' = ' + infoHex(value, key === 'param' ? 4 : 2));
+  infoApplyHeader();
   renderEditChrome();
+}
+
+/** Undo/redo's way back to a header (map-editor.js): set it, and redraw with it. */
+function editRestoreHeader(h) {
+  _edit.header = h ? JSON.parse(JSON.stringify(h)) : null;
+  infoApplyHeader();
+}
+
+/** The draft's header overrides when the draft is for room `id` — for the host's renders. */
+function infoRenderHeader(id) {
+  var d = typeof editDraft === 'function' ? editDraft() : null;
+  return d && d.header && d.roomId === id ? d.header : null;
+}
+
+/**
+ * Show a header change at once: main/sub screen and colour math decide how
+ * every stamp's layers composite, so the host redraws the room image (a ROM
+ * room), the palette's stamps and the draft's own (header-overrides.js).
+ */
+function infoApplyHeader() {
+  var d = editDraft();
+  if (!d || typeof vs === 'undefined' || !vs) return;
+  if (!d.customKey && !d.blank && typeof _romRerender === 'function' && _romRerender) _romRerender();
+  if (typeof requestComposedPreview === 'function') requestComposedPreview();
+  vs.postMessage({ command: 'requestRoomMetatiles', roomId: d.roomId, mapName: _mtRoomName, layer: _mtLayer,
+    bgPalette: _mtBgPalette, header: d.header, atlasOnly: true });
 }
 
 /** A layer chip: flip that bit of the field. */

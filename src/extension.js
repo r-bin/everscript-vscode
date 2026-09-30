@@ -701,7 +701,7 @@ function activate(context) {
                             romBuf, roomId,
                             Number(msg.originX) || 0, Number(msg.originY) || 0,
                             msg.layer, typeof msg.overlay === 'string' ? msg.overlay : undefined,
-                            msg.objectStates, msg.animate === true);
+                            msg.objectStates, msg.animate === true, msg.header);
                         _radarPanel.webview.postMessage({ ...reply, overlay });
                     } catch (err) {
                         _radarPanel.webview.postMessage({ ...reply, error: String(err && err.message || err) });
@@ -725,8 +725,9 @@ function activate(context) {
                             _radarPanel.webview.postMessage({ ...reply, error: 'ROM not found — set everscript.romPath' });
                             return;
                         }
-                        const palette = buildRoomMetatilePalette(romBuf, roomId, msg.layer, msg.bgPalette);
-                        _radarPanel.webview.postMessage({ ...reply, palette });
+                        const palette = buildRoomMetatilePalette(romBuf, roomId, msg.layer, msg.bgPalette, msg.header);
+                        // `atlasOnly`: a header edit wants the stamps' pictures redrawn, nothing else.
+                        _radarPanel.webview.postMessage({ ...reply, palette, atlasOnly: msg.atlasOnly === true });
                     } catch (err) {
                         _radarPanel.webview.postMessage({ ...reply, error: String(err && err.message || err) });
                     }

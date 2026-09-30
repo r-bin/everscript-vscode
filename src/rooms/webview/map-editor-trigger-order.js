@@ -61,6 +61,7 @@ function triggerReorder(ref, toKind, beforeRef) {
   var d = editDraft();
   var t = editTriggerFind(ref);
   if (!d || !t || !triggerDataKind(toKind)) return null;
+  if (editLocked()) { editNote('this map is locked — unlock it to reorder its triggers'); renderEditChrome(); return null; }
   var beforeId = beforeRef && beforeRef.kind === toKind && beforeRef.id !== ref.id ? beforeRef.id : null;
   var before = triggerSnapshot();
   var order = Object.assign({}, d.triggerOrder || {});

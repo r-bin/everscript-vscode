@@ -206,6 +206,8 @@ function requestComposedPreview() {
       // picked tile will bring in is included, or its swatch draws in
       // whatever the slot holds (nothing).
       families: editPreviewFamilies(),
+      // Main/sub screen and colour math, as the Info tab has them.
+      header: d.header,
     },
   });
 }

@@ -272,6 +272,18 @@ if (!fs.existsSync(ROM_PATH)) {
         assert.strictEqual(sheet.slots.filter((s) => s[16] & 2).length, 0, 'family 32 has no deflect art');
     });
 
+    test('a header edit redraws: main screen without the front layer changes the stamps and the room image', () => {
+        // Room 0x34's TM is $17; $16 turns BG1 (the front) off, as room 0x4B does.
+        const { buildRoomTileOverlay } = require('../../src/rooms');
+        const own = buildRoomMetatilePalette(rom, 0x34);
+        const off = buildRoomMetatilePalette(rom, 0x34, undefined, undefined, { displayTm: 0x16 });
+        assert.notStrictEqual(off.imageUri, own.imageUri, 'the stamps are drawn without their front art');
+        assert.strictEqual(off.header.displayTm, own.header.displayTm, 'the palette still reports the room\'s own header');
+        assert.strictEqual(buildRoomMetatilePalette(rom, 0x34).imageUri, own.imageUri, 'no override, no change');
+        const img = buildRoomTileOverlay(rom, 0x34, 0, 0, 'composite', '', '', false, { displayTm: 0x16 }).imageUri;
+        assert.notStrictEqual(img, buildRoomTileOverlay(rom, 0x34, 0, 0, 'composite', '', '', false).imageUri);
+    });
+
     test('a vanilla room\'s objects come with their states as frames of stamps it has', () => {
         // Room 0x3d, the pipe maze: nine objects, each with a changed state.
         const p = buildRoomMetatilePalette(rom, 0x3d);

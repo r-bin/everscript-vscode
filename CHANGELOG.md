@@ -1,3 +1,13 @@
+## [0.89.0] — 2026-09-30
+
+### Feat: Header edits show at once; trigger and object lists follow the lock
+
+- **Header changes redraw immediately:** main screen, sub screen and colour math decide how every stamp's layers composite, so a change re-renders the room image, the palette's stamps and the draft's own stamps with the edited header (`rendering/header-overrides.js`, threaded through `buildRoomTileOverlay`, `buildRoomMetatilePalette` and `buildComposedPreview`). Undo and redo redraw too. The palette refresh replaces only its picture, so a custom map keeps its own grid.
+- **Locked maps:** trigger rows, like object rows, lose their grip and remove button and no longer drag; reordering a trigger is refused with a note.
+- **One border per object:** the card frames its row and its state chips together.
+- **Sizes read "2×3 tiles"** on trigger and object rows; an object's position moves to its tooltip.
+- **Fix:** an object's open/closed state was kept by uid alone, and uids restart in every map — closing object 5 in one map collapsed object 5 in the next. It is now kept per map.
+
 ## [0.88.1] — 2026-09-30
 
 ### Fix: Info tab header — compact when unlocked

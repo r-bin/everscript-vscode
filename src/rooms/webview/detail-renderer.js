@@ -237,7 +237,8 @@ var _overlayCache={};
 var _OVERLAY_CACHE_MAX=16;
 
 function overlayCacheKey(id,layer,ov,states){
-  return id+':'+layer+':'+(ov||'')+':'+(states||'')+':'+(_animateOn?'a':'');
+  var hdr=typeof infoRenderHeader==='function'?infoRenderHeader(id):null;
+  return id+':'+layer+':'+(ov||'')+':'+(states||'')+':'+(_animateOn?'a':'')+(hdr?':'+JSON.stringify(hdr):'');
 }
 
 function cacheOverlay(id,layer,ov,states,overlay){
@@ -276,7 +277,8 @@ function requestRoomTileOverlay(room,svgResult,layer){
   setTileBusy(true);
   vs.postMessage({command:'requestRoomTiles',roomId:id,mapName:room.name,
                   layer:which,overlay:romOverlayFlags(),objectStates:states,animate:_animateOn,
-                  originX:_pendingTileOrigin.x,originY:_pendingTileOrigin.y});
+                  originX:_pendingTileOrigin.x,originY:_pendingTileOrigin.y,
+                  header:typeof infoRenderHeader==='function'?infoRenderHeader(id):null});
 }
 
 /**

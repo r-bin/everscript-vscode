@@ -298,8 +298,8 @@ async function main() {
     check("the Trigger tab lists the room's own step/B triggers, named from the source",
         /Step-on triggers/.test(trigText) && trigRow && /test_step/.test(trigRow.title) && /0x1234/.test(trigRow.title),
         trigText.slice(0, 300));
-    check('a trigger row is the mock\'s: grip, the room with its box lit, its own tiles, "#0 · 4 tiles"',
-        trigRow && trigRow.draggable === 'true' && trigRow.grip && trigRow.label === '#0 · 4 tiles'
+    check('a trigger row is the mock\'s: grip, the room with its box lit, its own tiles, "#0 · 2×2 tiles"',
+        trigRow && trigRow.draggable === 'true' && trigRow.grip && trigRow.label === '#0 · 2×2 tiles'
         && trigRow.where === 2 && trigRow.box && trigRow.tileUses === '#rg-img,#rg-edit-tiles'
         && trigRow.tiles === '0 0 4 4', JSON.stringify(trigRow));
 
