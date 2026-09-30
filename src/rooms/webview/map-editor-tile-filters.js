@@ -171,7 +171,7 @@ function tileFilterRowHtml() {
       ['stairs', 'stairs', 'Show only tiles vanilla draws as stairs. Painting one gives it the stairs '
         + 'flag (always-walkable, keeps the level), mirrored with H. Off: every tile.'],
       ['drift', 'drift', 'Show only conveyor drift tiles (water currents, conveyor belts, quicksand, pipes). Off: every tile.'],
-      ['deflect', 'deflect', 'Show only tiles that deflect weapon slashes (bit 8 set in collision). Off: every tile.'],
+      ['deflect', 'deflect', 'Show only tiles vanilla mostly gives the Deflect gate (bit 8, nibble 1 — the Special tab’s Deflect). Off: every tile.'],
       ['interact', 'interaction', 'Show only interactive object tiles (containers, sniff spots, switches — bit 15 set). Off: every tile.'],
     ], function (v) { return _tileFilter === v; })
     + '</div>';

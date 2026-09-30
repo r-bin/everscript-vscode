@@ -171,6 +171,13 @@ for anyway:
   with the same mirror — the whole pair mirrored is still a pair vanilla attests.
 - **Family names.** Families are ROM ids with an area, not `GRASS`/`STONE`. Do not
   invent friendly names to match a mock.
+- **Ceilings.** The Info tab bars only attested ones: 7 families, 264 graphics, the
+  32 KB WRAM window. The mock's "Meta tiles /128" and "triggers /16" are its
+  placeholders — stamps and triggers are counts, with no bar.
+- **Tile flags come from most placements, not any.** A collision word belongs to the
+  cell, so one gated placement says nothing about the art (the empty canopy sits
+  over every gated cell). `specialFlagsOf` needs a majority on a layer, and
+  `deflect` is the Special tab's Deflect (gate nibble 1), not every bit-8 word.
 - **Room groupings.** The catalogue groups by area, which is the game's own structure —
   not by act.
 

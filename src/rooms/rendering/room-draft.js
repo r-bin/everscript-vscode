@@ -78,14 +78,39 @@ function stairsOf(index, graphic, layer) {
     return s ? s.nibble : 0;
 }
 
-/** Special collision flags: 1=drift, 2=deflect (bit 8), 4=interact (bit 15), with drift nibble in high nibble. */
+/**
+ * Special collision flags: 1=drift, 2=deflect, 4=interact (bit 15), with the
+ * drift nibble in the high nibble.
+ *
+ * A flag needs **most** of the graphic's placements on one layer to carry it.
+ * Any single placement used to be enough, and a collision word belongs to the
+ * cell, not the art: the empty canopy sits over every gated cell and a grass
+ * tile was gated somewhere once, so the Tile tab's `deflect` filter listed
+ * 643 graphics, blank ones among them. Deflect is the Special tab's pick —
+ * gate nibble 1 (map-editor-special.js) — not any bit-8 word, which also
+ * takes the boy/dog walls (3, 5, 7).
+ */
 function specialFlagsOf(index, graphicId) {
-    const list = (index.collisions.get(graphicId) || []).concat(index.canopyCollisions.get(graphicId) || []);
     let flags = 0, driftDir = 0;
-    for (const a of list) {
-        if ((a.value & 0x2000) && (a.value & 0x0f) >= 8) { flags |= 1; driftDir = a.value & 0x0f; }
-        if (a.value & 0x0100) flags |= 2;
-        if (a.value & 0x8000) flags |= 4;
+    for (const list of [index.collisions.get(graphicId) || [], index.canopyCollisions.get(graphicId) || []]) {
+        let total = 0, drift = 0, deflect = 0, interact = 0;
+        const dirs = {};
+        for (const a of list) {
+            total += a.uses;
+            if ((a.value & 0x2000) && (a.value & 0x0f) >= 8) {
+                drift += a.uses;
+                dirs[a.value & 0x0f] = (dirs[a.value & 0x0f] || 0) + a.uses;
+            }
+            if ((a.value & 0x0100) && ((a.value >> 8) & 0x0f) === 1) deflect += a.uses;
+            if (a.value & 0x8000) interact += a.uses;
+        }
+        if (!total) continue;
+        if (drift * 2 >= total) {
+            flags |= 1;
+            driftDir = Number(Object.keys(dirs).sort((x, y) => dirs[y] - dirs[x])[0]);
+        }
+        if (deflect * 2 >= total) flags |= 2;
+        if (interact * 2 >= total) flags |= 4;
     }
     return ((driftDir & 0x0f) << 4) | (flags & 0x0f);
 }

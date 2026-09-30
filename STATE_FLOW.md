@@ -154,7 +154,7 @@ buildRomHeaderHtml(rh)            [rom-header.js]
   ↓
 panel.innerHTML = combined HTML
   ↓
-setupZoomPan(...)                 [interactions.js]
+setupZoomPan(...)                 [zoom-pan.js]
 setupMouseEvents(...)             [interactions.js]
 setupHoverHighlights(...)         [interactions.js]
 setupClickHandlers(...)           [interactions.js]

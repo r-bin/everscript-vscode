@@ -1,3 +1,11 @@
+## [0.85.0] — 2026-09-30
+
+### Feat: Two-finger panning, the Info tab as the mock draws it; fix the deflect filter
+
+- **Two-finger panning:** a plain two-finger scroll over the map pans it while it is bigger than the view (a pinch still zooms); at fit, or at the map's edge, the panel scrolls as before. Zoom and pan moved into their own file, `zoom-pan.js`.
+- **Info tab redesigned** to the mock's inspector: a CAPACITY section — label, `used/max · pct%` in mono and a thin bar that warns when full — and CHECKS as dot-and-line rows. Only attested ceilings get a bar (7 families, 264 graphics, the 32 KB WRAM window); stamps, room size and triggers are counts, not the mock's placeholder `/128` and `/16`. Families are the draft's own, so the tab agrees with the Tile tab (it read 7/7 on a six-family room). "No brush selected" is no longer listed as a check.
+- **Deflect filter:** a tile was flagged when any single vanilla placement had bit 8 set — blank canopy art over gated cells, grass gated once somewhere. A flag now needs most of the graphic's placements on a layer, and deflect is the Special tab's Deflect (gate nibble 1), not the boy/dog walls. The drift and interaction filters use the same majority rule.
+
 ## [0.84.0] — 2026-09-30
 
 ### Feat: Every map opens in the editor; vanilla maps open locked

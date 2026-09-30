@@ -1,7 +1,7 @@
 // Ownership: the Trigger tab's list UI — step/B trigger rows as the design
 // mock draws them (grip, where in the room, the tiles covered, `#n · N
-// tiles`, remove), click-to-select — plus the two trigger counts shown on
-// the Info tab. Dragging a row is map-editor-trigger-order.js.
+// tiles`, remove), click-to-select. The Info tab's trigger counts are
+// map-editor-panels.js's. Dragging a row is map-editor-trigger-order.js.
 //
 // The trigger model (which triggers exist, hit-testing, select/move/delete/
 // copy-paste) is map-editor-trigger-select.js; this file only renders what
@@ -118,18 +118,3 @@ function triggerTabPanelHtml() {
 // lost by the move: `hide-trigger`/`hide-step`/`hide-btrig` are the same
 // shared.css keys they always were.
 
-/**
- * The Info tab's two trigger counts — see file header for why there is no
- * ceiling to bar-chart against.
- */
-function triggerCapacityHtml() {
-  var step = editTriggerList('step').length;
-  var b = editTriggerList('b').length;
-  var title = 'No per-room trigger-count ceiling is attested — the ROM field is a byte length, not a count';
-  return '<div class="rs-mt-detail rs-mt-budget">'
-    + '<span class="rs-mt-f" title="' + escH(title) + '"><b>step triggers</b> ' + step
-    + ' <span class="rs-note">no confirmed limit</span></span>'
-    + '<span class="rs-mt-f" title="' + escH(title) + '"><b>B-triggers</b> ' + b
-    + ' <span class="rs-note">no confirmed limit</span></span>'
-    + '</div>';
-}

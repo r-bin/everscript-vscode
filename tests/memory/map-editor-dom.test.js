@@ -259,11 +259,11 @@ async function main() {
     check('with the tile-family panel on screen',
         !!(await page.$('[data-panel="families"]')));
     check('and the budget bar off screen until Info is picked',
-        !(await page.$('.rs-mt-budget')));
+        !(await page.$('.rg-cap')));
 
     await page.click('[data-edit-active-tab="info"]');
-    check('switching to Info shows the budget bars',
-        !!(await page.$('.rs-mt-budget')));
+    check('switching to Info shows the capacity bars',
+        !!(await page.$('.rg-cap-track')));
     check("and the Tile tab's panels are gone, not just hidden",
         !(await page.$('[data-panel="families"]')));
 
@@ -585,7 +585,8 @@ async function main() {
     await page.click('[data-edit-active-tab="info"]');
     const infoText = await page.evaluate(() => document.getElementById('rg-panels').textContent);
     check('the Info tab shows the trigger counts with no fabricated ceiling',
-        /step triggers\D*2/.test(infoText) && /B-triggers\D*0/.test(infoText) && /no confirmed limit/.test(infoText),
+        /Step-on triggers\D*2/.test(infoText) && /B-triggers\D*0/.test(infoText) && /no confirmed limit/.test(infoText)
+        && !/triggers\s*\d+\/\d/.test(infoText),
         infoText.slice(0, 400));
 
     // ── keyboard shortcuts: text-input guard, then the real thing ──────────

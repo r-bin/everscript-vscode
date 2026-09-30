@@ -76,7 +76,8 @@ const ROOMS_JS_FILES = [
   'svg-builder.js',      // buildRoomSvgSection
   'tables-builder.js',   // renderScriptTable/Card, buildEntityTablesHtml, buildRomScriptsHtml
   'rom-header.js',       // buildRomHeaderHtml
-  'interactions.js',     // setupByteScriptFocusBinding, setupZoomPan, setupMouseEvents, setupHoverHighlights, setupClickHandlers
+  'zoom-pan.js',         // setupZoomPan: scale, pan offset, pinch and two-finger panning
+  'interactions.js',     // setupByteScriptFocusBinding, setupMouseEvents, setupHoverHighlights, setupClickHandlers
   'animation.js',        // Section 2 tile animation overlay + rAF playback
   'object-states.js',    // Section 3 object browser (_objectStates) + state pickers
   'metatile-palette.js', // the room's placement palette (_mtPalette/_mtLayer/_mtFilter)

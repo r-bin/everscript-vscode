@@ -264,6 +264,14 @@ if (!fs.existsSync(ROM_PATH)) {
         });
     });
 
+    test('the Tile tab\'s deflect filter needs most placements to carry the Deflect gate', () => {
+        // Any one placement used to be enough, so blank canopy art and grass
+        // gated once somewhere were listed as deflect tiles.
+        const { buildFamilySheet } = require('../../src/rooms');
+        const sheet = buildFamilySheet(rom, 32);
+        assert.strictEqual(sheet.slots.filter((s) => s[16] & 2).length, 0, 'family 32 has no deflect art');
+    });
+
     test('a vanilla room\'s objects come with their states as frames of stamps it has', () => {
         // Room 0x3d, the pipe maze: nine objects, each with a changed state.
         const p = buildRoomMetatilePalette(rom, 0x3d);

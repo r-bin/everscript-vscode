@@ -773,7 +773,7 @@ const ui = new Function(`
     objectSelect: objectSelect, objectSelectFrame: objectSelectFrame,
     mtPaletteFits: mtPaletteFits, editSeedRoomObjects: editSeedRoomObjects, editObjects: editObjects,
     editWordSpecialIds: editWordSpecialIds, editOnRomRoom: editOnRomRoom, editTriggerSvg: editTriggerSvg,
-    editRoomSpecialsSvg: editRoomSpecialsSvg, editExport: editExport,
+    editRoomSpecialsSvg: editRoomSpecialsSvg, editExport: editExport, infoTabHtml: infoTabHtml,
   };`)();
 
 /** A palette with the tile sheet the host now sends alongside it. */
@@ -873,6 +873,27 @@ test('the budget meter marks the family ceiling as full, not merely used', () =>
     assert.ok(html.includes('no field limit'));
     assert.ok(html.includes('175') && !/>175\/[0-9]/.test(html), 'stamps show no denominator');
     assert.ok(html.includes('157'), 'the attested vocabulary is shown');
+});
+
+test('the Info tab bars only real ceilings, and counts the draft\'s own families', () => {
+    const p = tilePalette();
+    p.budget = {
+        graphics: { used: 92, max: 264, vanilla: 255 },
+        families: { used: 7, max: 7, vanilla: 7 },
+        stamps: { used: 175, max: null, vanilla: 2131 },
+        wram: { used: 2048, max: 32768, vanilla: 32680 },
+        attested: 157,
+    };
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    d.families = [35, 187, 58, 165, 149, 59];       // six, like room 0x33
+    const html = ui.infoTabHtml(p);
+    assert.ok(html.includes('6/7 · 86%'), 'families are the draft\'s, as on the Tile tab');
+    assert.ok(html.includes('92/264'));
+    assert.strictEqual((html.match(/rg-cap-track/g) || []).length, 3, 'bars for families, graphics and WRAM only');
+    assert.ok(!/\/128|\/16/.test(html), 'no placeholder ceilings from the mock');
+    assert.ok(html.includes('Nothing blocking'), 'an empty check list says so');
+    assert.ok(!html.includes('no brush selected'), 'the brush hint is not a check');
 });
 
 test('a budget past its ceiling reads as over, not as 100%', () => {

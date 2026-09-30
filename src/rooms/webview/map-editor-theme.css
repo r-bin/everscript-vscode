@@ -281,3 +281,23 @@
 .rg-theme .rg-obj-move{padding:1px 4px;font-size:9px}
 .rg-theme .rdf-xs{padding:2px 6px;font-size:11px}
 .rg-theme .rdf-warn{color:#ef4444;border-color:#ef4444}
+
+/* ── Info tab: CAPACITY bars and CHECKS, the mock's inspector layout ────── */
+.rg-theme .rg-info-sec{margin-bottom:24px;font-family:var(--rg-font-ui)}
+.rg-theme .rg-info-h{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--rg-text-muted);margin-bottom:10px}
+.rg-theme .rg-cap{margin-bottom:10px}
+.rg-theme .rg-cap-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.rg-theme .rg-cap-l{font-size:11px;color:var(--rg-text-muted)}
+.rg-theme .rg-cap-v{font-size:13px;line-height:1.5;color:var(--rg-text-primary);font-family:var(--rg-font-mono)}
+.rg-theme .rg-cap-n{font-size:11px;color:var(--rg-text-muted);font-family:var(--rg-font-ui)}
+.rg-theme .rg-cap-track{height:6px;border-radius:3px;background:var(--rg-bg-hover);overflow:hidden}
+.rg-theme .rg-cap-fill{display:block;height:100%;border-radius:3px;background:var(--rg-accent)}
+.rg-theme .rg-cap-fill.full{background:var(--rg-warning)}
+.rg-theme .rg-cap-fill.over{background:var(--rg-error)}
+.rg-theme .rg-info-foot{font-size:11px;color:var(--rg-text-muted);margin-top:4px}
+.rg-theme .rg-check{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--rg-border);
+  font-size:13px;line-height:1.5;color:var(--rg-text-secondary)}
+.rg-theme .rg-check-dot{width:7px;height:7px;border-radius:50%;margin-top:5px;flex-shrink:0;background:var(--rg-text-muted)}
+.rg-theme .rg-check-warning{background:var(--rg-warning)}
+.rg-theme .rg-check-error{background:var(--rg-error)}
