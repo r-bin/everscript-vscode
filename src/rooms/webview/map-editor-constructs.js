@@ -255,7 +255,7 @@ function editConstructParts(palette, construct, x, y) {
       return;
     }
     out.parts.push({ dx: c.dx, dy: c.dy, layer1: canopy ? canopy.word : null,
-      layer2: terrain ? terrain.word : null, collision: c.collision || 0 });
+      layer2: terrain ? terrain.word : null, collision: c.collision != null ? c.collision : null });
     out.writes.push({ x: x + c.dx, y: y + c.dy });
     if (c.special) out.specials.push({ x: x + c.dx, y: y + c.dy, id: c.special });
   });
@@ -298,7 +298,7 @@ function editConstructWrites(palette, construct, x, y) {
         // room's floor, which is what "agnostic of the background" means.
         layer1: canopy ? canopy.word : (under ? under.layer1 : blank),
         layer2: terrain ? terrain.word : (under ? under.layer2 : blank),
-        collision: c.collision,
+        collision: c.collision != null ? c.collision : (under ? under.collision : 0),
       }),
     });
     if (c.special) {

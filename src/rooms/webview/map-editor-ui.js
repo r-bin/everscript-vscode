@@ -196,10 +196,19 @@ function renderComposerPreview() {
 }
 
 /** Ask the host to draw the draft's composed stamps against this room. */
+/** The draft stamps the last preview request drew (JSON), to know when it is stale. */
+var _composedSig = null;
+
 function requestComposedPreview() {
   var d = editDraft();
   if (!d || typeof vs === 'undefined' || !vs) return;
+  // A stamped group's cells and its objects' states are stamps made on the
+  // fly (map-editor-groups.js editGroupOver): make them now, or the sheet
+  // lacks them and those cells draw as nothing — a gourd missing a tile.
+  if (typeof editBakedCells === 'function') editBakedCells(_mtPalette);
+  if (typeof editObjectStamps === 'function') editObjectStamps();
   if (!d.added.length) { _editComposed = null; renderComposerPreview(); return; }
+  _composedSig = JSON.stringify(d.added);
   vs.postMessage({
     command: 'requestComposedPreview', roomId: d.roomId, mapName: _mtRoomName,
     layer: _mtLayer, drafts: d.added,
@@ -216,6 +225,16 @@ function requestComposedPreview() {
       header: d.header,
     },
   });
+}
+
+/**
+ * Ask again when drawing needed a stamp the last request did not have:
+ * painting the floor under a group, or moving one, makes new stamps, and a
+ * prune can reuse an index for different words.
+ */
+function ensureComposedPreview() {
+  var d = editDraft();
+  if (d && d.added.length && JSON.stringify(d.added) !== _composedSig) requestComposedPreview();
 }
 
 function applyComposedPreview(msg) {

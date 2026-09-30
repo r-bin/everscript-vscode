@@ -2283,6 +2283,26 @@ async function main() {
         && gourd.groups === 1, JSON.stringify(gourd));
     check('on open ground it takes the level from the bar', gourd.openLevel === 1, JSON.stringify(gourd));
 
+    // v0.95.1: a group's cells are stamps made on the fly while drawing; a
+    // sheet asked for before they existed draws them as nothing ("stamping it
+    // removes a tile from the gourd and all of the background").
+    const sheet = await page.evaluate(() => {
+        const d = editReset(0x34); d.on = true;
+        requestComposedPreview();
+        const asks = () => window.__sent.filter((m) => m.command === 'requestComposedPreview').length;
+        const before = asks();
+        renderEditLayer(_mtPalette, _editComposed, _editOrigin);
+        const r = { quiet: asks() === before };
+        editAddStamp(_mtPalette, { layer1: 0x1422, layer2: 0x0c02, collision: 0x001f });   // as drawing a group does
+        renderEditLayer(_mtPalette, _editComposed, _editOrigin);
+        r.asked = asks() === before + 1;
+        const last = window.__sent.filter((m) => m.command === 'requestComposedPreview').slice(-1)[0];
+        r.has = last.drafts.some((a) => a.layer1 === 0x1422 && a.layer2 === 0x0c02);
+        return r;
+    });
+    check('drawing asks for the preview sheet again when it made a stamp the sheet lacks, and only then',
+        sheet.quiet && sheet.asked && sheet.has, JSON.stringify(sheet));
+
     // Widget Editor Mode saves the canvas back into the widget: the blank
     // floor's own words become null ("keep the floor"), triggers come along.
     const session = await page.evaluate(() => {

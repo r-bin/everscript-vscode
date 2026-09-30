@@ -1537,6 +1537,37 @@ test('a group saved before v0.95.0 is lifted out of the map it was written into'
     assert.strictEqual(ui.editStampWords(p, ui.editCellAt(p, 0, 0)).layer1, 0x358a, 'the map shows the same');
 });
 
+test('groups stacked before v0.95.0 lift out together: the map gets back what was first under them', () => {
+    const { p, d } = fresh();
+    const words = (i) => ui.editStampWords(p, i);
+    // A pasted floor (group 1) over the room's own cell, then a gourd (group 2) on that floor.
+    const floor = ui.editAddStamp(p, { layer1: 0xa800, layer2: 0x0c02, collision: 0x0010 });
+    const gourd = ui.editAddStamp(p, { layer1: 0x358a, layer2: 0x0c02, collision: 0x001f });
+    d.cells['0,0'] = gourd;
+    d.groups = [
+        { uid: 1, name: 'pasted', x: 0, y: 0, w: 1, h: 1, cells: [{ dx: 0, dy: 0, index: floor }], under: [{ dx: 0, dy: 0, index: null }], placed: [] },
+        { uid: 2, name: 'gourd', x: 0, y: 0, w: 1, h: 1, cells: [{ dx: 0, dy: 0, index: gourd }], under: [{ dx: 0, dy: 0, index: floor }], placed: [] },
+    ];
+    ui.editGroupsUpgrade(p);
+    assert.deepStrictEqual(d.cells, {}, 'the room’s own cell, not the floor the gourd covered');
+    assert.strictEqual(d.groups[0].cells[0].layer2, 0x0c02, 'the paste keeps its floor');
+    assert.deepStrictEqual(d.groups[1].cells[0], { dx: 0, dy: 0, layer1: 0x358a, layer2: null, collision: 0x001f },
+        'the gourd keeps only what it changed');
+    const shown = words(ui.editCellAt(p, 0, 0));
+    assert.deepStrictEqual([shown.layer1, shown.layer2], [0x358a, 0x0c02], 'the gourd shows on the pasted floor');
+    ui.editGroupDelete(2);
+    assert.strictEqual(words(ui.editCellAt(p, 0, 0)).layer2, 0x0c02, 'without it, the pasted floor shows');
+});
+
+test('a cell an old group did not change is dropped, collision too', () => {
+    const { p, d } = fresh();
+    d.groups = [{ uid: 1, name: 'x', x: 0, y: 0, w: 1, h: 1, cells: [{ dx: 0, dy: 0, index: 0 }],
+        under: [{ dx: 0, dy: 0, index: null }], placed: [] }];
+    ui.editGroupsUpgrade(p);
+    assert.deepStrictEqual(d.groups[0].cells, []);
+    assert.strictEqual(ui.editCellAt(p, 0, 0), 0);
+});
+
 test('deleting a group restores what it covered and removes its trigger, in one step', () => {
     const { p, d } = fresh();
     ui.editStampGroup(p, GOURD, 0, 0);

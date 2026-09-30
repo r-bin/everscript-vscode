@@ -145,10 +145,11 @@ deleted or painted under without disturbing it:
 }
 ```
 
-- **What a cell shows** is the map's cell with the topmost group's words
-  over it: a null layer, and a blank terrain, is the map's; the collision is
-  the group's, on the level of the map's cell there (`level` where the map
-  has none). The objects a group brought sit on the floor the same way —
+- **What a cell shows** is the map's cell with every group there over it,
+  in list order, each over what is under it (a gourd stamped on a pasted
+  floor is on that floor): a null layer, and a blank terrain, is what is
+  under it; `collision` (null: the one under it) goes on the level of what
+  is under it (`level` where there is nothing). The objects a group brought sit on the floor the same way —
   a blank terrain in one of their states is the floor under it.
 - **Moving** a group changes `x, y`; its triggers and objects move by the
   same offset. **Deleting** it removes it and them. The map is never
@@ -157,8 +158,11 @@ deleted or painted under without disturbing it:
   the grid: that is the only place the two meet.
 - Files written before v0.95.0 hold groups that were written into `cells`,
   with `cells: [{dx, dy, index}]` and `under` (what they covered). The
-  editor lifts them out on load: `cells` gets `under` back, and the group
-  keeps only the layers that differ from it.
+  editor lifts them out on load, all together: `cells` gets back what the
+  *first* group there covered, each group keeps only what it stamped that
+  differs from what it covered, and a cell that changed nothing is dropped.
+  (v0.95.0 lifted stacked groups one by one and garbled their overlaps;
+  v0.95.1 lifts them together.)
 
 ## 3. `history.json`, the edit history
 

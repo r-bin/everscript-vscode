@@ -254,12 +254,16 @@ is a level-2 gourd.
 
 A group is **stored apart from the map** and never written into `_edit.cells`
 (`g.cells` holds its own words, null for "the map's"). What a cell shows is the
-map's cell with the group over it (`editCellAt` → `editGroupOver`; the map alone
+map's cell with every group there over it, in order, each over what is under it
+(`editCellAt` → `editGroupOver`; the map alone
 is `editBaseCellAt`), and only drawing and the exports bake it in
 (`editBakedCells`). So a gourd stamped into a hut moves or deletes without
 touching the hut, and its states sit on the floor under them
 (`editObjectFrameIndex`). Anything new that reads "the map as it shows" must go
-through `editCellAt`/`editBakedCells`, not `_edit.cells`. A stamped object
+through `editCellAt`/`editBakedCells`, not `_edit.cells`. Those composed stamps
+are made on the fly, so the preview sheet must be asked for them
+(`requestComposedPreview` makes them first; `ensureComposedPreview` after each
+draw) — or they draw as nothing, a gourd missing tiles. A stamped object
 shows **state 0** until a state is picked (`activeFrame: 0`).
 
 **Layers over the map.** The cuttable layer (`_edit.cut`) and each object's `layer`

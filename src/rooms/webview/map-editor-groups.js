@@ -42,38 +42,52 @@ function editGroupAt(x, y) {
   return hit ? hit.group : null;
 }
 
-/** `{group, part}` for the topmost group cell at (x, y), or null. */
-function groupPartAt(x, y) {
+/** `{group, part}` for every group cell at (x, y), bottom first. */
+function groupPartsAt(x, y) {
   var d = editDraft();
   var list = (d && d.groups) || [];
-  for (var i = list.length - 1; i >= 0; i--) {
+  var out = [];
+  for (var i = 0; i < list.length; i++) {
     var g = list[i];
     if (x < g.x || y < g.y || x >= g.x + g.w || y >= g.y + g.h) continue;
     for (var j = 0; j < g.cells.length; j++) {
-      if (g.x + g.cells[j].dx === x && g.y + g.cells[j].dy === y) return { group: g, part: g.cells[j] };
+      if (g.x + g.cells[j].dx === x && g.y + g.cells[j].dy === y) { out.push({ group: g, part: g.cells[j] }); break; }
     }
   }
-  return null;
+  return out;
+}
+
+/** `{group, part}` for the topmost group cell at (x, y), or null. */
+function groupPartAt(x, y) {
+  var all = groupPartsAt(x, y);
+  return all.length ? all[all.length - 1] : null;
 }
 
 /**
- * What (x, y) shows: `base` (the map's stamp there) with the topmost
- * group's words over it. A layer the group leaves null, and a blank
- * terrain, is the map's; the collision is the group's on the map's level.
+ * What (x, y) shows: `base` (the map's stamp there) with every group there
+ * over it, each over what is under it — a gourd stamped on a pasted floor
+ * is on that floor, not on the bare map. A layer a group leaves null, and a
+ * blank terrain, is what is under it; its collision (null: the one under
+ * it) goes on the level of what is under it.
  */
 function editGroupOver(palette, x, y, base) {
   var d = editDraft();
   if (!d || !d.groups || !d.groups.length) return base;
   editGroupsUpgrade(palette);
-  var hit = groupPartAt(x, y);
-  if (!hit) return base;
-  var p = hit.part;
-  var under = base >= 0 ? editStampWords(palette, base) : null;
+  var parts = groupPartsAt(x, y);
+  if (!parts.length) return base;
   var blank = editBlankCanopy(palette);
-  var l1 = p.layer1 != null ? p.layer1 : (under ? under.layer1 : blank);
-  var l2 = p.layer2 != null && p.layer2 !== blank ? p.layer2 : (under ? under.layer2 : blank);
-  var level = under ? under.collision & LEVEL_BITS : (hit.group.level || 0) << 4;
-  return editAddStamp(palette, { layer1: l1, layer2: l2, collision: (p.collision & ~LEVEL_BITS) | level });
+  var w = base >= 0 ? editStampWords(palette, base) : null;
+  parts.forEach(function (hit) {
+    var p = hit.part;
+    var level = w ? w.collision & LEVEL_BITS : (hit.group.level || 0) << 4;
+    w = {
+      layer1: p.layer1 != null ? p.layer1 : (w ? w.layer1 : blank),
+      layer2: p.layer2 != null && p.layer2 !== blank ? p.layer2 : (w ? w.layer2 : blank),
+      collision: p.collision != null ? (p.collision & ~LEVEL_BITS) | level : (w ? w.collision : level),
+    };
+  });
+  return editAddStamp(palette, w);
 }
 
 /** The map as it shows, key → stamp: the draft's cells with every group baked over them. */
@@ -127,32 +141,60 @@ function editStampGroup(palette, construct, x, y) {
 }
 
 /**
- * Lift groups saved before they were kept apart (they have `under`): the
- * map gets back what they covered, and each cell keeps only the layers it
- * changed. Not an undo step — the map shows the same either way.
+ * Lift groups saved before they were kept apart (they have `under`: what
+ * each covered when stamped). Not an undo step — the map shows the same.
+ *
+ * Groups stacked on one another are lifted together, not one by one: the
+ * map gets back what the *first* group there covered, and each group keeps
+ * only what it stamped that differs from what it covered. It reads only the
+ * groups, never the map, so running it again (undo into an old step) gives
+ * the same answer. A cell that changed nothing is dropped, collision
+ * included, so an empty leftover cannot make a wall walkable.
  */
 function editGroupsUpgrade(palette) {
   var d = editDraft();
   if (!d || !palette || !(d.groups || []).some(function (g) { return g.under; })) return;
   var blank = editBlankCanopy(palette);
+  var words = function (i) { return i != null && i >= 0 ? editStampWords(palette, i) : null; };
+  var first = {};
   d.groups.forEach(function (g) {
     if (!g.under) return;
     var under = {};
     g.under.forEach(function (u) { under[u.dx + ',' + u.dy] = u; });
-    g.cells = g.cells.map(function (c) {
+    g._under = under;
+    g.cells.forEach(function (c) {
       var k = editKey(g.x + c.dx, g.y + c.dy);
-      var now = Object.prototype.hasOwnProperty.call(d.cells, k) ? d.cells[k] : editStampResolve(c.index, c.words);
-      var u = under[c.dx + ',' + c.dy];
-      var ui = u ? editStampResolve(u.index, u.words) : null;
-      if (ui == null) delete d.cells[k]; else d.cells[k] = ui;
-      var was = editStampWords(palette, editBaseCellAt(palette, g.x + c.dx, g.y + c.dy));
-      var w = editStampWords(palette, now) || { layer1: blank, layer2: blank, collision: 0 };
-      return { dx: c.dx, dy: c.dy, collision: w.collision,
-        layer1: was && w.layer1 === was.layer1 ? null : w.layer1,
-        layer2: w.layer2 === blank || (was && w.layer2 === was.layer2) ? null : w.layer2 };
+      if (!(k in first)) first[k] = under[c.dx + ',' + c.dy] || null;
     });
-    g.level = g.cells.length ? (g.cells[0].collision & LEVEL_BITS) >> 4 : 1;
+  });
+  d.groups.forEach(function (g) {
+    if (!g.under) return;
+    var kept = [];
+    g.cells.forEach(function (c) {
+      var x = g.x + c.dx, y = g.y + c.dy, k = editKey(x, y);
+      var shows = editStampResolve(c.index, c.words);
+      var u = g._under[c.dx + ',' + c.dy];
+      var ui = u ? editStampResolve(u.index, u.words) : null;
+      var was = words(ui != null ? ui : (palette.grid && palette.grid[y] ? palette.grid[y][x] : -1));
+      var w = words(shows);
+      if (!w) return;
+      var part = { dx: c.dx, dy: c.dy,
+        layer1: was && w.layer1 === was.layer1 ? null : w.layer1,
+        layer2: w.layer2 === blank || (was && w.layer2 === was.layer2) ? null : w.layer2,
+        collision: was && w.collision === was.collision ? null : w.collision };
+      if (part.layer1 == null && part.layer2 == null && part.collision == null) return;
+      kept.push(part);
+    });
+    g.cells = kept;
+    var lv = kept.filter(function (c) { return c.collision != null; })[0];
+    g.level = lv ? (lv.collision & LEVEL_BITS) >> 4 : 1;
     delete g.under;
+    delete g._under;
+  });
+  Object.keys(first).forEach(function (k) {
+    var u = first[k];
+    var ui = u ? editStampResolve(u.index, u.words) : null;
+    if (ui == null) delete d.cells[k]; else d.cells[k] = ui;
   });
 }
 

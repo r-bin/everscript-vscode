@@ -183,6 +183,8 @@ function renderEditLayer(palette, composed, origin) {
     ovHtml += interactOverlaySvg(palette, origin, drawnKeys);
   }
   overlay.innerHTML = ovHtml;
+  // Drawing a group makes its stamps on the fly; the sheet must have them.
+  if (typeof ensureComposedPreview === 'function') ensureComposedPreview();
 }
 
 /**

@@ -1,3 +1,11 @@
+## [0.95.1] — 2026-10-01
+
+### Fix: stamped gourds losing tiles and floor
+
+- **A stamped or moved gourd no longer loses tiles or its floor.** Its tiles are made on the fly, after the preview sheet had been asked for, so they drew as nothing. The sheet is now asked for them first, and again whenever drawing needs one it lacks.
+- **Stamped objects stack**: a gourd stamped onto a pasted floor sits on that floor, not on the bare map under both.
+- **Opening a map saved before v0.95.0 lifts overlapping stamped objects correctly.** v0.95.0 lifted them one by one and garbled where they overlapped; cells an old stamp never changed are dropped, so they no longer override collision.
+
 ## [0.95.0] — 2026-10-01
 
 ### Feat: a stamped widget is kept apart from the map, and baked in only on export
