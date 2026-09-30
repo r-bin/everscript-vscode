@@ -183,67 +183,7 @@ function panelScroller(body) {
   return body.querySelector('#rg-tile-scroll') || body;
 }
 
-/**
- * Info tab, as the design mock lays it out: CAPACITY — a label, `used/max ·
- * pct%` in mono and a thin bar per ceiling — then CHECKS, a dot and a line
- * each.
- *
- * Only real ceilings get a bar: seven families (the loader clamps), 264
- * graphics (what a tilemap word can name) and the 32 KB WRAM window. The
- * mock's "Meta tiles /128" and "triggers /16" are its placeholders — no such
- * limit is attested (the stamp dictionary has no field limit, trigger tables
- * are byte-length prefixed) — so those are counts with no bar, not invented
- * denominators. Families are the draft's own, so this agrees with the Tile tab.
- */
-function infoTabHtml(p) {
-  var d = editDraft();
-  var b = p.budget || {};
-  var fams = editFamilies().filter(function (f) { return f !== undefined; }).length;
-  var added = d ? d.added.length : 0;
-  var graphics = b.graphics ? b.graphics.used + (d ? d.addedGraphics.length : 0) : null;
-  var wram = b.wram ? b.wram.used + editNeededStamps(p).bytes : null;
-  var html = '<div class="rg-info-sec"><div class="rg-info-h">Capacity</div>'
-    + infoCapRow('Tile families', fams, 7, 'A palette slot per family; the loader clamps to seven')
-    + (graphics == null ? '' : infoCapRow('Graphics', graphics, b.graphics.max,
-      'Block 1 slots — what a tilemap word can name. Vanilla’s highest is ' + b.graphics.vanilla))
-    + (wram == null ? '' : infoCapRow('WRAM', wram, b.wram.max,
-      'The grid plus the stamp dictionary share one 32 KB window. Vanilla’s fullest room uses ' + b.wram.vanilla))
-    + infoCountRow('Stamps', (b.stamps ? b.stamps.used : 0) + added, 'no field limit',
-      'Distinct {front, ground, collision} combinations — 8 bytes each, counted in WRAM above')
-    + infoCountRow('Room size', p.widthTiles + '×' + p.heightTiles, 'metatiles', 'Counted in WRAM above: two bytes a cell')
-    + infoCountRow('Step-on triggers', editTriggerList('step').length, 'no confirmed limit',
-      'The table is byte-length prefixed; no count ceiling is attested')
-    + infoCountRow('B-triggers', editTriggerList('b').length, 'no confirmed limit',
-      'The table is byte-length prefixed; no count ceiling is attested')
-    + (b.attested != null ? '<div class="rg-info-foot" title="Graphics other rooms draw in this room’s families">'
-      + b.attested + ' graphics attested in these families</div>' : '')
-    + '</div>';
-  var errs = editErrors(p);
-  html += '<div class="rg-info-sec"><div class="rg-info-h">Checks</div>';
-  if (!errs.length) html += infoCheckRow('ok', 'Nothing blocking — this draft would encode');
-  errs.forEach(function (e) { html += infoCheckRow(e[0] === 'hard' ? 'error' : 'warning', e[1]); });
-  return html + '</div>';
-}
-
-/** A ceiling: label, `used/max · pct%`, and a bar that warns when full and errs when over. */
-function infoCapRow(label, used, max, title) {
-  var pct = max ? used / max * 100 : 0;
-  var state = used > max ? ' over' : used >= max ? ' full' : '';
-  return '<div class="rg-cap" title="' + escH(title) + '"><div class="rg-cap-h"><span class="rg-cap-l">' + escH(label)
-    + '</span><span class="rg-cap-v">' + used + '/' + max + ' · ' + Math.round(pct) + '%</span></div>'
-    + '<div class="rg-cap-track"><i class="rg-cap-fill' + state + '" style="width:' + Math.min(100, pct).toFixed(1)
-    + '%"></i></div></div>';
-}
-
-/** A count with no attested ceiling: no bar, and says so. */
-function infoCountRow(label, value, note, title) {
-  return '<div class="rg-cap" title="' + escH(title) + '"><div class="rg-cap-h"><span class="rg-cap-l">' + escH(label)
-    + '</span><span class="rg-cap-v">' + escH(String(value)) + ' <span class="rg-cap-n">' + escH(note) + '</span></span></div></div>';
-}
-
-function infoCheckRow(status, text) {
-  return '<div class="rg-check"><i class="rg-check-dot rg-check-' + status + '"></i><span>' + escH(text) + '</span></div>';
-}
+// The Info tab is map-editor-info.js.
 
 /**
  * Trigger tab: the dock's own authoritative trigger list — select, move,

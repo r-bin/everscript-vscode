@@ -178,6 +178,11 @@ function bindEditControls(panel, room) {
     }
   });
 
+  // A header field (map-editor-info.js) takes its value when you leave it or press Enter.
+  panel.addEventListener('change', function (e) {
+    if (e.target && e.target.dataset && e.target.dataset.headerField) infoHeaderInput(e.target);
+  });
+
   // Scroll-to-cycle on the neighbour card's sides (map-editor-neighbours.js).
   // Not passive: it has to preventDefault, or the dock scrolls as well.
   // Stop propagation from the dock so the same wheel event is not handled
@@ -277,6 +282,7 @@ function bindEditControls(panel, room) {
       return;
     }
     if (t.dataset.chipAdopt) { chipAdopt(t.dataset.chipAdopt); return; }
+    if (t.dataset.headerBit) { infoHeaderBit(t.dataset.headerBit); return; }
     if (t.dataset.famAdd) { chipAddFamily(); return; }
     if (t.dataset.brushFlip) { brushFlipToggle(t.dataset.brushFlip); return; }
     if (t.dataset.tileFilter) { tileFilterToggle(t.dataset.tileFilter); return; }

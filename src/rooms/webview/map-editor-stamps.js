@@ -253,6 +253,8 @@ function editExport(palette) {
     // editSeedRoomObjects) — already in the ROM, so not new attachments.
     roomObjects: _edit.placed.filter(function (p) { return p.roomObject != null; }),
     removedTriggers: (_edit.removedTriggers || []).slice(),
+    // Header fields set on the Info tab, over the room's own (map-editor-info.js).
+    header: _edit.header ? JSON.parse(JSON.stringify(_edit.header)) : null,
   };
 }
 

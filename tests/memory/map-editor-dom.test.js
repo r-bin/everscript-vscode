@@ -34,7 +34,7 @@ const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-stamps.js', '
     'map-editor-input.js', 'map-editor-actions.js', 'map-editor-newroom.js', 'map-editor-start.js', 'map-editor-custom.js',
     'map-editor-rom-export.js', 'map-editor-collision.js', 'map-editor-cutlayer.js', 'map-editor-drawable.js',
     'map-editor-levels.js', 'map-editor-groups.js', 'map-editor-custom-store.js',
-    'map-editor-clipboard.js', 'map-editor-pick.js', 'map-editor-special-select.js', 'map-editor-romroom.js'];
+    'map-editor-clipboard.js', 'map-editor-pick.js', 'map-editor-special-select.js', 'map-editor-romroom.js', 'map-editor-info.js'];
 
 /** A palette shaped like the host's reply, small enough to read. */
 const PALETTE = {
@@ -585,7 +585,7 @@ async function main() {
     await page.click('[data-edit-active-tab="info"]');
     const infoText = await page.evaluate(() => document.getElementById('rg-panels').textContent);
     check('the Info tab shows the trigger counts with no fabricated ceiling',
-        /Step-on triggers\D*2/.test(infoText) && /B-triggers\D*0/.test(infoText) && /no confirmed limit/.test(infoText)
+        /Step-on triggers\D*2/.test(infoText) && /B-triggers\D*0/.test(infoText) && /16-bit table/.test(infoText)
         && !/triggers\s*\d+\/\d/.test(infoText),
         infoText.slice(0, 400));
 

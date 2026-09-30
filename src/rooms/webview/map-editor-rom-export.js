@@ -45,6 +45,8 @@ function romExportPayload(why) {
     graphics: (d.addedGraphics || []).slice(),
     families: (d.families || []).slice(),
     start: d.start ? { x: d.start.x, y: d.start.y } : null,
+    // Header fields set on the Info tab (map-editor-info.js); the rest are the donor's.
+    header: d.header ? JSON.parse(JSON.stringify(d.header)) : null,
     // Tiles the player can cut; `cells` above is what cutting reveals.
     cut: typeof editCutPayload === 'function' ? editCutPayload() : [],
     objects: (typeof editObjects === 'function' ? editObjects() : []).map(function (o) {

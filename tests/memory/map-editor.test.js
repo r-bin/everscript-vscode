@@ -726,6 +726,7 @@ const ui = new Function(`
   ${read('map-editor-widget-edit.js')}
   ${read('map-editor-special-select.js')}
   ${read('map-editor-romroom.js') /* a vanilla room in the editor (map-editor-rules §7) */}
+  ${read('map-editor-info.js') /* the Info tab */}
   return {
     tileSlotWord: tileSlotWord, editOnTilePicked: editOnTilePicked,
     editAction: editAction, editReset: editReset, editDraft: editDraft,
@@ -773,7 +774,8 @@ const ui = new Function(`
     objectSelect: objectSelect, objectSelectFrame: objectSelectFrame,
     mtPaletteFits: mtPaletteFits, editSeedRoomObjects: editSeedRoomObjects, editObjects: editObjects,
     editWordSpecialIds: editWordSpecialIds, editOnRomRoom: editOnRomRoom, editTriggerSvg: editTriggerSvg,
-    editRoomSpecialsSvg: editRoomSpecialsSvg, editExport: editExport, infoTabHtml: infoTabHtml,
+    editRoomSpecialsSvg: editRoomSpecialsSvg, editExport: editExport, infoTabHtml: infoTabHtml, infoMeasure: infoMeasure,
+    editHeaderSet: editHeaderSet, infoHeaderBit: infoHeaderBit, infoHeader: infoHeader,
   };`)();
 
 /** A palette with the tile sheet the host now sends alongside it. */
@@ -891,9 +893,46 @@ test('the Info tab bars only real ceilings, and counts the draft\'s own families
     assert.ok(html.includes('6/7 · 86%'), 'families are the draft\'s, as on the Tile tab');
     assert.ok(html.includes('92/264'));
     assert.strictEqual((html.match(/rg-cap-track/g) || []).length, 3, 'bars for families, graphics and WRAM only');
-    assert.ok(!/\/128|\/16/.test(html), 'no placeholder ceilings from the mock');
+    assert.ok(!/\/128|\/16\b/.test(html), 'no placeholder ceilings from the mock');
     assert.ok(html.includes('Nothing blocking'), 'an empty check list says so');
     assert.ok(!html.includes('no brush selected'), 'the brush hint is not a check');
+});
+
+test('the Info tab measures the map: walkable, solid, canopy, levels', () => {
+    const p = palette();                       // stamps: 0,1 blank canopy solid ($101F), 2 front art open ($0010)
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    const f = ui.infoMeasure(p);
+    assert.strictEqual(f.cells, 6);
+    assert.strictEqual(f.solid, 5, 'geometry F');
+    assert.strictEqual(f.open, 1, 'geometry 0');
+    assert.strictEqual(f.canopy, 1, 'one cell has front art');
+    assert.deepStrictEqual(f.levels, [0, 6, 0, 0], 'all on level 1');
+    assert.ok(ui.infoTabHtml(p).includes('rg-info-facts'), 'in its own section');
+    d.on = true;
+});
+
+test('header fields are editable when unlocked, one undo step each, and ride the exports', () => {
+    const p = Object.assign(palette(), { header: { originX: 3, originY: 6, widthTiles: 3, heightTiles: 2,
+        displayTm: 0x17, subscreenTs: 0x11, colorMath: 2, colorWindow: 2, effectVariant: 0, param: 0 } });
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    d.on = true;
+    d.locked = true;
+    ui.infoHeaderBit('displayTm:0');
+    assert.strictEqual(d.header, null, 'locked: nothing changes');
+    d.locked = false;
+    ui.infoHeaderBit('displayTm:0');           // BG1 off: no foreground
+    assert.deepStrictEqual(d.header, { displayTm: 0x16 });
+    assert.strictEqual(d.undo.length, 1, 'one undo step');
+    ui.editHeaderSet('param', 0x1234);
+    assert.strictEqual(ui.infoHeader(p).param, 0x1234);
+    assert.strictEqual(ui.editExport(p).header.param, 0x1234, 'the vanilla handoff carries it');
+    ui.editUndo(p);
+    assert.deepStrictEqual(d.header, { displayTm: 0x16 }, 'undo takes the last change back');
+    ui.infoHeaderBit('displayTm:0');           // back to the room's own value
+    assert.strictEqual(d.header, null, 'the room\'s own value is no override');
+    assert.ok(ui.infoTabHtml(p).includes('$212C'), 'the register is named');
 });
 
 test('a budget past its ceiling reads as over, not as 100%', () => {

@@ -125,6 +125,7 @@ const ROOMS_JS_FILES = [
   'map-editor-pick.js', // the smart eyedropper: picks up what is there, with its tab and tool
   'map-editor-special-select.js', // the Select tool on the Special tab: select and drag a cell's specials
   'map-editor-romroom.js', // a vanilla room in the editor: its palette check, objects, triggers and specials
+  'map-editor-info.js',  // the Info tab: capacity, the map's measured facts, the room header, checks
   'rom-overlay.js',      // ROM view top bar (_currentLayer/_currentOverlay) + renderRomDataSections
   'detail-renderer.js',  // renderRoomDetail (orchestrator)
   'rooms-rail.js',       // the left rail: groups, area collapse, search, selection, + New Map

@@ -49,6 +49,40 @@ export interface CustomRoomInput {
     animations?: AnimationIndex;
     /** Placed objects with state transition frames. */
     objects?: CustomObjectInput[];
+    /**
+     * Header bytes the map sets itself rather than taking the donor's: the
+     * PPU layer designations and colour math, the effect variant and its
+     * 16-bit parameter. Origin and size always come from the map.
+     */
+    header?: HeaderOverrides;
+}
+
+export interface HeaderOverrides {
+    displayTm?: number;
+    subscreenTs?: number;
+    colorMath?: number;
+    colorWindow?: number;
+    effectVariant?: number;
+    /** Header bytes 9..10, stored at `$0F84`. */
+    param?: number;
+}
+
+/** Header byte offsets of the overridable fields (docs/map-format/map_decompression_trace_analysis.md). */
+const HEADER_BYTES: Array<[keyof HeaderOverrides, number]> = [
+    ['displayTm', 4], ['subscreenTs', 5], ['colorMath', 6], ['colorWindow', 7], ['effectVariant', 8],
+];
+
+/** Write the overrides into a 13-byte header copy. */
+export function applyHeaderOverrides(header: Uint8Array, o: HeaderOverrides | undefined): void {
+    if (!o) return;
+    for (const [k, at] of HEADER_BYTES) {
+        const v = o[k];
+        if (typeof v === 'number' && Number.isFinite(v)) header[at] = v & 0xff;
+    }
+    if (typeof o.param === 'number' && Number.isFinite(o.param)) {
+        header[9] = o.param & 0xff;
+        header[10] = (o.param >> 8) & 0xff;
+    }
 }
 
 export interface CustomRoomBlob {
@@ -122,6 +156,7 @@ export function buildCustomRoomBlob(rom: Uint8Array, input: CustomRoomInput): Cu
     header[HEADER_ORIGIN_Y] = 0;
     header[2] = w;
     header[3] = h;
+    applyHeaderOverrides(header, input.header);
 
     const graphics = donorRoom.tilePalette
         .concat(donorRoom.animatedTiles)

@@ -1,3 +1,12 @@
+## [0.86.0] — 2026-09-30
+
+### Feat: Info tab — the map's measured facts and the room header (editable)
+
+- **MAP section** (its own tinted card — readings, not budgets): drawn cells, walkable / partly solid / solid, canopy coverage, levels, cuttable, drift, stairs, gated and interactive cells, objects — counted off the map as it is now.
+- **HEADER section:** origin and size (set by the map), then the fields the map does not decide — main and sub screen layers (TM `$212C` / TS `$212D`, as BG1–4/OBJ chips; BG1 is the foreground), colour math (`$2131`), colour window (`$2130`), effect variant and the 16-bit parameter at bytes 9–10. Editable when the map is unlocked, one undo step per change, saved with a custom map, written by Export ROM (`applyHeaderOverrides`) and carried by the vanilla draft's export.
+- **Triggers:** shown as counts with the bytes they take. The step-on and B tables have 16-bit byte lengths and the engine walks them with a 16-bit index (`$8FAC84`); what is 8-bit is each box's coordinates — 0..255 cells from the origin — so no count ceiling is drawn.
+- The Info tab moved into its own file, `map-editor-info.js`.
+
 ## [0.85.0] — 2026-09-30
 
 ### Feat: Two-finger panning, the Info tab as the mock draws it; fix the deflect filter

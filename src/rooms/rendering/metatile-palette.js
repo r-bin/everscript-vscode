@@ -135,6 +135,12 @@ function buildRoomMetatilePalette(rom, roomId, layer, bgPalette) {
         },
         /** The same objects with their states as frames, for the Object tab. */
         roomObjects: objects,
+        /**
+         * The room header (13 bytes at the blob's start) for the Info tab:
+         * the decoded fields, plus the 16-bit parameter at bytes 9..10
+         * (stored at `$0F84`) that RoomHeader does not carry.
+         */
+        header: Object.assign({}, room.header, { param: maps.read16(buf, room.romPointerFile + 9) }),
         /** Cells of the room's own cuttable grass (Section 4), `[x, y]` — the Cuttable chip's marks. */
         cuttable: room.cuttableGrass.tiles.map((t) => [t[0], t[1]]),
         /** The raw graphics Block 1 put in reach — see buildTileSheet. */

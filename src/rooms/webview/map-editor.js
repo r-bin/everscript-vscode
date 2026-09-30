@@ -100,6 +100,8 @@ function editReset(roomId) {
     groupSeq: 0,
     /** The level (elevation plane, 0..3) new tiles are drawn on — map-editor-levels.js. */
     plane: 1,
+    /** Header fields this draft sets over the room's (the Info tab, map-editor-info.js), or null. */
+    header: null,
     /** The open compound step, or null — see editBegin. Never saved. */
     txn: null,
   };
@@ -134,12 +136,12 @@ function editEnd() {
   var b = JSON.parse(now);
   step.triggers = { before: { removedTriggers: a.r, placed: a.p, triggerOrder: a.o },
     after: { removedTriggers: b.r, placed: b.p, triggerOrder: b.o } };
-  step.groups = { before: a.g, after: b.g };
+  step.groups = { before: a.g, after: b.g }; step.header = { before: a.h, after: b.h };
 }
 
 function editTxnSnapshot() {
   return JSON.stringify({ r: _edit.removedTriggers || [], p: _edit.placed || [], g: _edit.groups || [],
-    o: _edit.triggerOrder || null });
+    o: _edit.triggerOrder || null, h: _edit.header || null });
 }
 
 /** The open compound step, pushed on first use. */
@@ -160,8 +162,7 @@ function editNextPlacedUid() {
 }
 
 function editActive() { return !!(_edit && _edit.on); }
-/** The bar's `locked`: look, pick and copy, change nothing (map-editor-input.js). Vanilla rooms open locked. */
-function editLocked() { return !!(_edit && _edit.locked); }
+function editLocked() { return !!(_edit && _edit.locked); } // the bar's `locked`: nothing may change (map-editor-input.js)
 function editDraft() { return _edit; }
 function editKey(x, y) { return x + ',' + y; }
 
@@ -342,6 +343,7 @@ function editUndo(palette) {
   if (!_edit || !_edit.undo.length) return false;
   var step = _edit.undo.pop();
   if (step.groups) _edit.groups = JSON.parse(JSON.stringify(step.groups.before));
+  if (step.header) _edit.header = JSON.parse(JSON.stringify(step.header.before));
   var inverse = editRestore(step.cells);
   var specialInverse = editRestoreSpecial(step.special || []);
   // A trigger-op step restores its own snapshot instead of the tail-splice
@@ -357,7 +359,7 @@ function editUndo(palette) {
     dropped = _edit.placed.splice(step.placed);
   }
   _edit.redo.push({ cells: inverse, special: specialInverse, placed: step.placed, dropped: dropped, triggers: step.triggers,
-    groups: step.groups, start: editRestoreStart(step) });
+    groups: step.groups, header: step.header, start: editRestoreStart(step) });
   editPruneAdded(palette);
   if (typeof editDropStaleTriggerSelection === 'function') editDropStaleTriggerSelection();
   editCellsChanged();
@@ -376,6 +378,7 @@ function editRedo(palette) {
   if (!_edit || !_edit.redo.length) return false;
   var step = _edit.redo.pop();
   if (step.groups) _edit.groups = JSON.parse(JSON.stringify(step.groups.after));
+  if (step.header) _edit.header = JSON.parse(JSON.stringify(step.header.after));
   var inverse = editRestore(step.cells);
   var specialInverse = editRestoreSpecial(step.special || []);
   if (step.triggers) {
@@ -387,7 +390,7 @@ function editRedo(palette) {
     for (var i = 0; i < step.dropped.length; i++) _edit.placed.push(step.dropped[i]);
   }
   _edit.undo.push({ cells: inverse, special: specialInverse, placed: step.placed, dropped: [], triggers: step.triggers,
-    groups: step.groups, start: editRestoreStart(step) });
+    groups: step.groups, header: step.header, start: editRestoreStart(step) });
   editPruneAdded(palette);
   if (typeof editDropStaleTriggerSelection === 'function') editDropStaleTriggerSelection();
   editCellsChanged();

@@ -265,6 +265,17 @@ if (!fs.existsSync(ROM_PATH)) {
         assert.match(enter.instructions[1].summary, /0x36/);
     });
 
+    test('header fields set on the Info tab are written; origin and size stay the map\'s', () => {
+        const { rom: out } = buildExportRom(rom, { ...draft, header: { displayTm: 0x16, effectVariant: 1, param: 0x1234 } });
+        const room = maps.decodeRoom(out, BRIAN_ROOM);
+        assert.strictEqual(room.header.displayTm, 0x16, 'BG1 off');
+        assert.strictEqual(room.header.effectVariant, 1);
+        assert.strictEqual(maps.read16(out, room.romPointerFile + 9), 0x1234);
+        assert.deepStrictEqual([room.header.originX, room.header.originY], [0, 0]);
+        assert.strictEqual(room.header.widthTiles, draft.widthTiles);
+        assert.strictEqual(room.header.subscreenTs, maps.decodeRoom(rom, 0x34).header.subscreenTs, 'unset fields are the donor\'s');
+    });
+
     test('the header checksum is valid', () => {
         const { rom: out } = buildExportRom(rom, draft);
         const sum = out[0xffde] | (out[0xffdf] << 8);

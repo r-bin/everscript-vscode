@@ -121,6 +121,8 @@ function buildExportRom(vanilla, draft) {
         families: draft.families || [],
         cut: draft.cut || [],
         objects: draft.objects || [],
+        // The map's own header settings (the Info tab), over the donor's.
+        header: draft.header || undefined,
         // A placed torch gets a Section 2 channel and flickers in the game.
         animations: vanillaIndex(src).animations,
     });

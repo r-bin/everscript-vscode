@@ -173,7 +173,14 @@ for anyway:
   invent friendly names to match a mock.
 - **Ceilings.** The Info tab bars only attested ones: 7 families, 264 graphics, the
   32 KB WRAM window. The mock's "Meta tiles /128" and "triggers /16" are its
-  placeholders — stamps and triggers are counts, with no bar.
+  placeholders — stamps and triggers are counts, with no bar. Trigger tables are
+  16-bit byte-length prefixed and `$8FAC84` walks them with a 16-bit index
+  (`LDY #$0000 … CPY $12`); what is 8-bit is each box's coordinates (`SEP #$20`
+  before the compares), so a box reaches 0..255 cells from the origin.
+- **The header.** Origin and size come from the map. The PPU designations (TM/TS),
+  colour math (CGADSUB/CGWSEL), effect variant and the 16-bit parameter at bytes
+  9–10 do not, so the Info tab edits them (`_edit.header`, overrides only, one undo
+  step each) and both exports carry them (`applyHeaderOverrides`).
 - **Tile flags come from most placements, not any.** A collision word belongs to the
   cell, so one gated placement says nothing about the art (the empty canopy sits
   over every gated cell). `specialFlagsOf` needs a majority on a layer, and
