@@ -86,6 +86,9 @@ function renderEditLayer(palette, composed, origin) {
   var romRoom = editOnRomRoom();
   Object.keys(d.cells).forEach(function (k) {
     var p = k.split(',');
+    // A map made smaller keeps the cells past its edge, undrawn and unencoded
+    // (map-editor-newroom.js applyBlankRoom): they come back if it grows.
+    if (!editInBounds(palette, Number(p[0]), Number(p[1]))) return;
     var pos = editCellPos(origin, Number(p[0]), Number(p[1]));
     tiles += editStampSvg(palette, composed, d.cells[k], pos.x, pos.y, 'rg-edit-cell');
     // A stairs cell painted from a stair tile says so (map-editor-collision.js);

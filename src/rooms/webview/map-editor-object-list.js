@@ -149,10 +149,15 @@ function objectRowHtml(o, n) {
 
 function objectTabHtml() {
   var list = editObjects();
+  var hasLoot = list.map(function (o, i) { return !!objectScriptWhat(o, i); });
+  var loot = hasLoot.filter(Boolean).length;
   var html = '<div class="rs-note">Areas that change look when a script sets their state. The pencil drags out a new '
-    + 'one; with one selected it draws that state’s tiles. Drag a row by ⠿ to reorder.</div><div class="rg-trigger-list">';
+    + 'one; with one selected it draws that state’s tiles. Drag a row by ⠿ to reorder.</div>'
+    + (loot && typeof lootFilterHtml === 'function' ? lootFilterHtml('object', loot) : '') + '<div class="rg-trigger-list">';
   if (!list.length) html += '<div class="rs-note">none yet — drag an area on the map with the pencil</div>';
-  list.forEach(function (o, i) { html += objectRowHtml(o, i); });
+  list.forEach(function (o, i) {
+    if (!loot || !_lootOnly.object || hasLoot[i]) html += objectRowHtml(o, i);
+  });
   return html + '</div>';
 }
 

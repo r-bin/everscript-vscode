@@ -88,9 +88,13 @@ function triggerRowHtml(t, kind, n) {
 
 function triggerSectionHtml(kind) {
   var list = editTriggerList(kind);
-  var html = '<div class="rg-trigger-list" data-trigger-list="' + kind + '">';
+  var loot = list.filter(function (t) { return triggerHasLoot(t, kind); }).length;
+  var html = (loot ? lootFilterHtml('trigger', loot) : '') + '<div class="rg-trigger-list" data-trigger-list="' + kind + '">';
   if (!list.length) html += '<div class="rs-note">none yet — drag a box on the map with the pencil</div>';
-  list.forEach(function (t, i) { html += triggerRowHtml(t, kind, i); });
+  // Filtered rows keep their number: #n is the place in the table, not in the view.
+  list.forEach(function (t, i) {
+    if (!loot || !_lootOnly.trigger || triggerHasLoot(t, kind)) html += triggerRowHtml(t, kind, i);
+  });
   return html + '</div>';
 }
 

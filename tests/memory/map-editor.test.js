@@ -748,7 +748,7 @@ const ui = new Function(`
     editResolve: editResolve, editBlankCanopy: editBlankCanopy,
     editSaveConstruct: editSaveConstruct, editConstructWrites: editConstructWrites,
     editNeededStamps: editNeededStamps, editErrors: editErrors,
-    toolbar: buildEditToolbarHtml, tileGroup: tileGroupHtml,
+    toolbar: buildEditToolbarHtml, headActs: editHeadActsHtml, tileGroup: tileGroupHtml,
     setSheet: function (f, sheet) { _famSheets[f] = sheet; },
     setCatalogue: function (c) { _famCatalogue = c; },
     sheetHeight: tileSheetHeight,
@@ -788,7 +788,7 @@ const ui = new Function(`
     editRoomSpecialsSvg: editRoomSpecialsSvg, editExport: editExport, infoTabHtml: infoTabHtml, infoMeasure: infoMeasure,
     editHeaderSet: editHeaderSet, infoHeaderBit: infoHeaderBit, infoHeader: infoHeader,
     setPanelRoom: function (r) { _editPanelRoom = r; }, triggerToggle: triggerToggle, triggerEnterPick: triggerEnterPick,
-    triggerScriptWhat: triggerScriptWhat, scriptHighlight: scriptHighlight,
+    triggerScriptWhat: triggerScriptWhat, scriptHighlight: scriptHighlight, lootFilterToggle: lootFilterToggle,
     objectLooksStatic: objectLooksStatic, objectIsOpen: objectIsOpen, setObjectOpen: function (k, v) { _objectOpen[k] = v; }, objectReorder: objectReorder, objectTabHtml: objectTabHtml,
   };`)();
 
@@ -1236,7 +1236,8 @@ test('the toolbar has no phase pair, and erase is never gated on one', () => {
     assert.ok(!bar.includes('switch to deco first'), 'erase carries no mode caveat');
     assert.ok(bar.includes('data-edit-tool="erase"'), 'and is still offered');
 
-    assert.ok(bar.includes('data-edit-act="new-room"'), 'and a new room can be drafted');
+    // v0.94.0: the ⋯ menu moved to the room's name line (editHeadActsHtml).
+    assert.ok(ui.headActs().includes('data-edit-act="new-room"'), 'and a new room can be drafted');
     assert.strictEqual(d.phase, undefined, 'the draft carries no phase field at all');
 });
 
@@ -2193,14 +2194,16 @@ test('an object row says what the script that names it hands over, as its Eversc
     ui.setPanelRoom(null);
 });
 
-test('the lock sits at the pill’s right end; locked, the tools that change the map go dark', () => {
+test('the lock and the ⋯ menu sit on the room’s name line; locked, the tools that change the map go dark', () => {
     ui.setPalette(tilePalette());
     const d = ui.editReset(0x34);
     d.on = true;
     d.tool = 'paint';
     d.locked = false;
     let html = ui.toolbar();
-    assert.ok(/id="rg-lock-btn"[^>]*data-edit-act="lock"/.test(html) && html.includes('<svg class="rg-lock-ic"'), 'a padlock button');
+    const acts = ui.headActs();
+    assert.ok(/id="rg-lock-btn"[^>]*data-edit-act="lock"/.test(acts) && acts.includes('<svg class="rg-lock-ic"'), 'a padlock on the name line');
+    assert.ok(!html.includes('rg-lock-btn') && !html.includes('rg-tool-dropdown'), 'not on the tool pill');
     assert.ok(!/data-edit-tool="paint"[^>]*disabled/.test(html), 'unlocked: the pencil works');
     ui.editAction('lock');
     assert.strictEqual(d.locked, true);
@@ -2214,6 +2217,25 @@ test('the lock sits at the pill’s right end; locked, the tools that change the
     assert.ok(/data-edit-level="1"[^>]*disabled/.test(html), 'and the level bar');
     ui.editAction('lock');
     assert.strictEqual(d.locked, false);
+});
+
+test('“Loot only” narrows the trigger list to what hands something over, and rows keep their numbers', () => {
+    const p = Object.assign(tilePalette(), { roomId: 0x34 });
+    p.attachments = { bTrigger: [[0, 0, 0, 0, 0x100], [1, 0, 1, 0, 0x101]], stepOn: [], objects: [] };
+    ui.setPalette(p);
+    ui.editReset(0x34).on = true;
+    ui.setPanelRoom({ content: { triggers: { stepOn: [], bTrigger: [
+        { scriptId: 0x100, instructions: [] },
+        { scriptId: 0x101, instructions: [], loot: [{ objectId: 0, itemName: 'Oil', amount: 1 }] }] } } });
+    let html = ui.triggerTab();
+    assert.ok(html.includes('Loot only · 1'), 'the chip counts the rows with loot');
+    assert.strictEqual((html.match(/data-trigger-ref=/g) || []).length, 2, 'off: every row');
+    ui.lootFilterToggle('trigger');
+    html = ui.triggerTab();
+    assert.strictEqual((html.match(/data-trigger-ref=/g) || []).length, 1, 'on: only the loot row');
+    assert.ok(html.replace(/<[^>]+>/g, '').includes('#1 · 1×1 tiles'), 'still #1, its place in the table');
+    ui.lootFilterToggle('trigger');
+    ui.setPanelRoom(null);
 });
 
 console.log(`\n  ${passed} passed, ${failed} failed`);

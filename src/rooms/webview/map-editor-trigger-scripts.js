@@ -19,9 +19,29 @@
 // looked up by id in the room, then across every vanilla room.
 //
 // Owns: _triggerOpen ("<map>:<kind>:<id>" → open), _triggerEnterView,
-// _triggerScriptIds (the lazy script-id index).
+// _triggerScriptIds (the lazy script-id index), _lootOnly (the Trigger and
+// Object tabs' "Loot only" quick filters).
 
 var _triggerOpen = {}, _triggerEnterView = false, _triggerScriptIds = null;
+var _lootOnly = { trigger: false, object: false };
+
+/** A trigger whose script hands something over (a gourd, a chest, a sniff spot). */
+function triggerHasLoot(t, kind) {
+  var s = triggerScriptFor(t, kind);
+  return !!(s && s.loot && s.loot.length);
+}
+
+/** The quick filter over a tab's list: `on` shows only the rows with loot; `n` of them. */
+function lootFilterHtml(which, n) {
+  var on = _lootOnly[which];
+  return '<div class="rd-filters rg-list-filter"><button class="rdf' + (on ? ' on' : '') + '" data-list-loot="' + which + '"'
+    + ' title="Show only what hands over loot — gourds, chests, sniff spots">Loot only · ' + n + '</button></div>';
+}
+
+function lootFilterToggle(which) {
+  _lootOnly[which] = !_lootOnly[which];
+  renderEditChrome();
+}
 
 function triggerRoomContent() {
   var room = typeof _editPanelRoom !== 'undefined' ? _editPanelRoom : null;

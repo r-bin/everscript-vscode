@@ -1,5 +1,6 @@
 // Ownership: the floating tool pill above the canvas card — which tools
-// exist, their icons, and the overflow menu.
+// exist and their icons — and the room's actions on its name line: the
+// overflow menu and the lock.
 //
 // Split out of map-editor-ui.js in Phase 7a
 // (docs/map-editor-redesign-plan.md §7a), which still owns the docked
@@ -97,7 +98,23 @@ function editLockIconSvg(locked) {
     + ' stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
 }
 
-/** The lock, at the pill's right end: locked, the map can be looked at, picked from and copied. */
+/**
+ * The room's own actions, at the right end of its name line (detail-renderer.js
+ * `#rg-head-acts`): the `⋯` menu, then the lock. They act on the map, not on
+ * a stroke, so they are not tools.
+ */
+function editHeadActsHtml() {
+  // Native tooltips here: the styled `data-tip` is the pill's own (map-editor-canvas.css).
+  return (buildEditOverflowHtml() + editLockButtonHtml()).replace(/ data-tip="/g, ' title="');
+}
+
+/** Redraw the name line's actions — the lock's icon follows the draft. */
+function renderEditHeadActs() {
+  var el = document.getElementById('rg-head-acts');
+  if (el) el.innerHTML = editDraft() ? editHeadActsHtml() : '';
+}
+
+/** The lock: locked, the map can be looked at, picked from and copied. */
 function editLockButtonHtml() {
   var locked = editLocked();
   return '<button class="rdf rg-edit-tool-icon rg-lock' + (locked ? ' on' : '') + '" id="rg-lock-btn"'
@@ -163,9 +180,7 @@ function buildEditToolbarHtml() {
     + ' aria-label="undo"' + dis + '><span class="rg-edit-icon" aria-hidden="true">↶</span></button>'
     + '<button class="rdf rg-edit-tool-icon" data-edit-act="redo" data-tip="Redo"'
     + ' aria-label="redo"' + dis + '><span class="rg-edit-icon" aria-hidden="true">↷</span></button>'
-    + '</span><span class="rg-edit-divider"></span>'
-    + buildEditOverflowHtml()
-    + '<span class="rg-edit-divider"></span>' + editLockButtonHtml()
+    + '</span>'
     + '</div>' + buildNewRoomHtml()
     // The level bar sits at the map's left edge (map-editor-levels.js).
     + (typeof buildLevelBarHtml === 'function' ? buildLevelBarHtml() : '') + '</div>';

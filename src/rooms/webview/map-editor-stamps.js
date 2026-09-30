@@ -231,6 +231,8 @@ function editExport(palette) {
   var cells = [];
   Object.keys(_edit.cells).forEach(function (k) {
     var p = k.split(',');
+    // Cells past a shrunk map's edge are kept, not exported.
+    if (palette && palette.widthTiles && !editInBounds(palette, Number(p[0]), Number(p[1]))) return;
     cells.push({ x: Number(p[0]), y: Number(p[1]), metatileId: base + _edit.cells[k] * 8 });
   });
   cells.sort(function (a, b) { return a.y - b.y || a.x - b.x; });

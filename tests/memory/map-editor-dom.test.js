@@ -95,6 +95,7 @@ async function main() {
     // different DOM shape than the one that ships.
     await page.setContent(`<!doctype html><html><head><style>${CSS}</style></head>
         <body style="display:block;height:auto;overflow:auto"><div id="room-detail" class="rg-theme">
+        <div class="rd-head"><span class="rd-name">test</span><span class="rd-head-acts" id="rg-head-acts"></span></div>
         <div class="rg-outer rs-map" id="rg-outer">
         <div class="rg-canvas-zone" id="rg-canvas-zone">
         <div class="rg-canvas-card" id="rg-canvas-card"><div class="rg-wrap" id="rg-wrap"
@@ -1869,7 +1870,12 @@ async function main() {
         svg.setAttribute('width', 400); svg.setAttribute('height', 400);
         svg.style.width = '400px'; svg.style.height = '400px';
         wrap.style.width = '400px'; wrap.style.height = '400px';
+        svg.setAttribute('viewBox', '0 0 8 8');
+        const img = document.getElementById('rg-img');
+        ['x', 'y'].forEach((a) => img.setAttribute(a, 0)); img.setAttribute('width', 8); img.setAttribute('height', 8);
         setupEditGestures();
+        // v0.94.0: the grip sits on the map's own corner, shown only on a drafted map.
+        editPlaceResizeGrip();
     });
     const grip = await page.$('#rg-resize');
     const gb = await grip.boundingBox();
@@ -1890,8 +1896,8 @@ async function main() {
     // The grid and the dictionary share one 32768-byte window: 2*2*2 for the
     // grid, plus 8 for the room's one stamp.
     check('the cost is the grid plus the dictionary', /16\/32768 bytes/.test(live.label), live.label);
-    check('and it warns which cells the shrink would drop',
-        /drops 1 cell/.test(live.label), live.label);
+    check('and it says which cells the shrink would hide — kept, not dropped',
+        /hides 1 cell \(kept\)/.test(live.label), live.label);
     check('the drag is not also a paint stroke', live.painted === 2, String(live.painted));
 
     await page.mouse.up();
@@ -1900,13 +1906,16 @@ async function main() {
     check('releasing asks the host for a map that size',
         resized && resized.widthTiles === 2 && resized.heightTiles === 2, JSON.stringify(resized));
 
-    // A resize keeps what still fits; a new room does not.
+    // A resize keeps every cell — past the new edge they are hidden, not
+    // encoded, and back if the map grows (v0.94.0); a new room keeps none.
     await page.evaluate(() => applyBlankRoom({ room: {
         widthTiles: 2, heightTiles: 2, borrowedFrom: 0x34, baseMetatile: 8,
         imageUri: 'data:image/png;base64,cg==', tileFamilies: [35], problems: [],
         budget: _mtPalette.budget } }));
-    const kept = await page.evaluate(() => Object.keys(editDraft().cells));
-    check('the cells that still fit survive the resize', kept.join() === '0,0', JSON.stringify(kept));
+    const kept = await page.evaluate(() => ({ cells: Object.keys(editDraft().cells).sort(),
+        exported: editExport(_mtPalette).cells.map((c) => c.x + ',' + c.y) }));
+    check('a shrink keeps every cell in the draft', kept.cells.join() === '0,0,3,3', JSON.stringify(kept));
+    check('but only the ones inside the map are exported', kept.exported.join() === '0,0', JSON.stringify(kept));
     const pulledIn = await page.evaluate(() => editDraft().start);
     check('and the Boy is pulled back inside, never off the map',
         pulledIn && pulledIn.x <= 1 && pulledIn.y <= 1, JSON.stringify(pulledIn));

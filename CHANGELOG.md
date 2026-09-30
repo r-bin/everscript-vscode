@@ -1,3 +1,11 @@
+## [0.94.0] — 2026-09-30
+
+### Feat: the lock and ⋯ on the room's name line, loot quick filters, resize that keeps what it hides
+
+- **The lock and the ⋯ menu live on the room's name line**, at its right end (⋯ left of the lock), not on the tool pill: they act on the map, not on a stroke. The ⋯ menu opens downwards, right-aligned.
+- **"Loot only" quick filter** on the Trigger and Object tabs, with a count — shown when the room has any loot (gourds, chests, sniff spots). Filtered rows keep their table number.
+- **Resize:** the grip sits on the map's own bottom-right corner at any zoom (it was placed against the view), shows only on a drafted map and not while it is locked. Making a map smaller no longer deletes the cells past its new edge: they stay in the draft, undrawn and not encoded (the ROM export reads the grid; the JSON export skips them), and come back if the map grows again. The drag label says how many it hides.
+
 ## [0.93.0] — 2026-09-30
 
 ### Feat: the lock moves to the tool pill; locking greys out the editing tools

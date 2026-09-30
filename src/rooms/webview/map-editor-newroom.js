@@ -142,6 +142,7 @@ function resizeMapTo(room) {
   });
   // The viewport fills the editor (rooms-layout.css): fit the new extent to it.
   if (typeof _zoomRefit === 'function' && _zoomRefit) _zoomRefit();
+  editPlaceResizeGrip();
 }
 
 /**
@@ -227,9 +228,36 @@ function resizeLabel() {
   var max = (_mtPalette.budget && _mtPalette.budget.wram.max) || 32768;
   var lost = resizeLostCells(_resizing.w, _resizing.h);
   el.textContent = _resizing.w + '×' + _resizing.h + ' · ' + wram + '/' + max + ' bytes'
-    + (lost ? ' · drops ' + lost + ' cell' + (lost === 1 ? '' : 's') : '');
+    + (lost ? ' · hides ' + lost + ' cell' + (lost === 1 ? '' : 's') + ' (kept)' : '');
   el.className = 'rg-resize-label' + (wram > max ? ' over' : '');
   el.style.display = 'block';
+}
+
+/**
+ * The grip on the map's own bottom-right corner, wherever the zoom put it:
+ * in percent of the canvas, which is the viewBox at the current scale. Only a
+ * drafted (custom) map resizes, and not while it is locked.
+ */
+function editPlaceResizeGrip() {
+  var grip = document.getElementById('rg-resize');
+  if (!grip) return;
+  var d = editDraft();
+  var svg = document.getElementById('rg-svg');
+  var img = document.getElementById('rg-img');
+  var vb = svg && svg.viewBox && svg.viewBox.baseVal;
+  var ok = d && d.blank && !editLocked() && vb && vb.width && img;
+  grip.style.display = ok ? '' : 'none';
+  if (!ok) return;
+  var right = Number(img.getAttribute('x')) + Number(img.getAttribute('width'));
+  var bottom = Number(img.getAttribute('y')) + Number(img.getAttribute('height'));
+  var at = { left: ((right - vb.x) / vb.width * 100) + '%', top: ((bottom - vb.y) / vb.height * 100) + '%' };
+  // Anchored by its own corner (the grip) or its right edge beside the grip (the label).
+  [[grip, 'translate(-100%,-100%)'], [document.getElementById('rg-resize-label'), 'translate(calc(-100% - 18px),-100%)']]
+    .forEach(function (e) {
+      if (!e[0]) return;
+      e[0].style.left = at.left; e[0].style.top = at.top;
+      e[0].style.right = 'auto'; e[0].style.bottom = 'auto'; e[0].style.transform = e[1];
+    });
 }
 
 /** Cells the draft has drawn that would fall outside a `w`×`h` grid. */
@@ -288,16 +316,11 @@ function applyBlankRoom(msg) {
   if (!d) return;
   var room = msg.room;
   d.blank = room;
-  // A resize keeps what still fits — it is a change of canvas, not a new
-  // drawing. Anything outside the new bounds is gone, which is why the drag
-  // says how many cells that is before the mouse comes up.
+  // A resize is a change of canvas, not a new drawing. Cells past a smaller
+  // map's edge are kept in the draft — undrawn, and not encoded: the ROM
+  // export reads the grid, the JSON export skips them — so making it bigger
+  // again brings them back. The drag says how many it hides.
   if (_resizeKeep) {
-    [d.cells, d.cut || {}].forEach(function (layer) {
-      Object.keys(layer).forEach(function (k) {
-        var p = k.split(',');
-        if (Number(p[0]) >= room.widthTiles || Number(p[1]) >= room.heightTiles) delete layer[k];
-      });
-    });
     _resizeKeep = false;
   } else {
     d.cells = {};

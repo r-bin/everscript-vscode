@@ -214,6 +214,8 @@ room with no Block 1 renders black), and **nothing else**:
   undo step). It is never a `specialCells` entry, and erase must never reach
   it. ROM rooms have no start marker; their entrances are their doors.
 
+**Resizing a custom map never deletes cells.** Past a smaller map's edge they stay in `_edit.cells`, undrawn and not encoded (the ROM export reads the grid; `editExport` skips them), so growing it again brings them back. A ROM room does not resize at all: its dictionary starts right after the grid.
+
 ---
 
 A custom map is saved by the host as its own folder — `map.json` (draft *data*:

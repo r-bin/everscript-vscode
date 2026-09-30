@@ -45,6 +45,8 @@ function renderRoomDetail(room){
   if(room.vanillaId)html+='<span class="rd-vid">'+escH(room.vanillaId)+'</span>';
   html+='<span class="rd-file">'+escH(room.relPath||'')+'</span>';
   if(typeof room.startLine==='number'&&room.startLine>=0)html+='<a class="ll" data-line="'+room.startLine+'" href="#">go to code</a>';
+  // The map's own actions — the ⋯ menu and the lock (map-editor-toolbar.js renderEditHeadActs).
+  html+='<span class="rd-head-acts" id="rg-head-acts"></span>';
   html+='</div>';
 
   // The per-room display toggles, and the status bar under them. The

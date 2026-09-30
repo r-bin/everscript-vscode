@@ -240,6 +240,8 @@ function renderEditChrome() {
   // and the form cannot accumulate a second copy.
   var chrome = document.getElementById('rg-edit-chrome');
   if (chrome) chrome.outerHTML = buildEditToolbarHtml();
+  renderEditHeadActs();
+  if (typeof editPlaceResizeGrip === 'function') editPlaceResizeGrip();
   renderStatusSize();
   var count = document.getElementById('rg-edit-count');
   // The status bar (and so `#rg-edit-count`) is built on every room render

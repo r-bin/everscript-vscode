@@ -93,12 +93,21 @@ body.rg-resizing{cursor:col-resize;user-select:none}
 /* The status bar is the column's floor: a flat strip, edge to edge. */
 .rg-theme .rg-edit-row > .rg-outer > .rg-statusbar{margin:0;border:none;border-top:1px solid var(--rg-border);border-radius:0}
 /* The grip rides the map's own corner inside the canvas. */
-.rg-theme #rg-canvas > .rg-resize{position:absolute;right:0;bottom:0}
-.rg-theme #rg-canvas > .rg-resize-label{position:absolute;right:16px;bottom:4px}
+/* (placed on the map's corner by map-editor-newroom.js editPlaceResizeGrip) */
 
 /* The lock, at the tool pill's right end; lit while locked. Disabled tools
  * (locked) read as unavailable rather than merely unselected. */
-.rg-theme #rg-edit-bar .rg-lock{color:var(--rg-text-secondary)}
-.rg-theme #rg-edit-bar .rg-lock.on{color:var(--rg-warning);background:color-mix(in srgb,var(--rg-warning) 14%,transparent)}
-.rg-theme #rg-edit-bar .rg-lock-ic{display:block}
+.rg-theme .rd-head{position:relative}
+.rg-theme .rd-head-acts{position:absolute;right:0;top:0;display:flex;align-items:center;gap:4px}
+.rg-theme .rd-head-acts .rdf{display:flex;align-items:center;justify-content:center;min-width:28px;height:26px;padding:0 6px;
+  border:1px solid var(--rg-border);border-radius:var(--rg-radius-control);background:var(--rg-bg-float);color:var(--rg-text-secondary)}
+.rg-theme .rd-head-acts .rdf:hover{color:var(--rg-text-primary);background:var(--rg-bg-hover)}
+.rg-theme .rd-head-acts .rg-lock.on{color:var(--rg-warning);background:color-mix(in srgb,var(--rg-warning) 14%,transparent)}
+.rg-theme .rd-head-acts .rg-lock-ic{display:block}
+/* The ⋯ menu opens down from the name line, right-aligned with it. */
+.rg-theme .rd-head-acts .rg-filter-group{position:relative}
+.rg-theme .rd-head-acts .rg-filter-popup{top:calc(100% + 4px);bottom:auto;left:auto;right:0;z-index:20;min-width:180px}
 .rg-theme #rg-edit-bar .rdf:disabled,.rg-theme .rg-level-b:disabled{opacity:.3;cursor:not-allowed}
+
+/* The Trigger and Object tabs' "Loot only" quick filter. */
+.rg-theme .rg-list-filter{margin:6px 0 2px;display:flex;gap:4px}
