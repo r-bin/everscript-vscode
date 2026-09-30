@@ -1,3 +1,13 @@
+## [0.95.0] — 2026-10-01
+
+### Feat: a stamped widget is kept apart from the map, and baked in only on export
+
+- **A stamped gourd no longer changes the map under it.** A placed widget (or pasted region) is stored as its own layer over the map: the floor, the hut, whatever it sits on stays exactly as it was. Moving it, deleting it, or painting the floor under it never disturbs the other.
+- **What shows is composed on the fly**: the widget's own art over the map's cell, on the map's floor and level. Its object's states (a broken gourd) sit on that floor too — no black floor carried along from where the widget was cut.
+- **Only the exports bake it in** (Export ROM and the JSON handoff).
+- Copying a stamped object, or keeping it as a widget with "+ From selection", keeps its own cells, not the floor it happened to be on.
+- Maps saved before this lift their stamped objects back out of the map when opened.
+
 ## [0.94.1] — 2026-09-30
 
 ### Fix: a stamped object sits over the map instead of replacing it

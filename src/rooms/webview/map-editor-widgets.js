@@ -117,10 +117,13 @@ function widgetSaveFromSelection() {
   if (!sel) { editNote('select a region with the copy tool, or a stamped object, first'); renderEditChrome(); return; }
   var name = g ? g.name : widgetNextName();
   if (!_mtPalette) { editNote('metatiles still loading — try again in a moment'); renderEditChrome(); return; }
-  var c = editBuildConstruct(_mtPalette, sel, name);
+  // A stamped object keeps its own cells, not the floor it sits on.
+  var c = g ? editGroupConstruct(_mtPalette, g) : editBuildConstruct(_mtPalette, sel, name);
   if (!c) { editNote('nothing painted there to keep'); renderEditChrome(); return; }
-  var placed = widgetPlacedIn(d, sel);
-  ['bTrigger', 'stepOn', 'objects'].forEach(function (k) { c.attachments[k] = (c.attachments[k] || []).concat(placed[k]); });
+  if (!g) {
+    var placed = widgetPlacedIn(d, sel);
+    ['bTrigger', 'stepOn', 'objects'].forEach(function (k) { c.attachments[k] = (c.attachments[k] || []).concat(placed[k]); });
+  }
   widgetStore({ id: widgetNewId(), name: name, w: c.w, h: c.h, cells: c.cells, attachments: c.attachments });
   editNote('kept ' + c.w + '×' + c.h + ' as your widget “' + name + '” — ✎ edits it');
   renderEditChrome();

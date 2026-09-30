@@ -225,7 +225,8 @@ function editSyncPaintedFamilies() {
   if (!slots.length) return;
   var named = {};
   // The cuttable layer's tiles are on the map too, so they keep a family loaded.
-  var placed = Object.keys(d.cells).map(function (k) { return d.cells[k]; })
+  var shown = typeof editBakedCells === 'function' ? editBakedCells(_mtPalette) : d.cells;
+  var placed = Object.keys(shown).map(function (k) { return shown[k]; })
     .concat(Object.keys(d.cut || {}).map(function (k) { return d.cut[k]; }))
     .concat(typeof editObjectStamps === 'function' ? editObjectStamps() : []);
   placed.forEach(function (index) {

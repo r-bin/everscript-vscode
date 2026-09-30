@@ -1,14 +1,23 @@
-// Ownership: groups — a stamped construct or widget kept as one thing, so a
-// gourd stamped into the map can be selected, moved and deleted whole.
+// Ownership: groups — a stamped construct or widget kept as one thing, over
+// the map, so a gourd stamped into a hut can be selected, moved and deleted
+// whole without touching the hut.
 //
-// A group remembers what it stamped (`cells`), what it covered (`under`,
-// the draft's value there or null for the room's own tile) and the
-// triggers and objects that came with it (`placed`, by uid). Moving puts
-// `under` back, stamps the group at the new place and moves its triggers;
-// deleting puts `under` back and removes them. Each is one compound step
-// (editBegin/editEnd), so it undoes in one go. A cell painted over after
-// stamping moves with the group: moving takes the group's footprint as it
-// is now. See docs/map-format/custom-map-files.md §2.5.
+// A group is **stored apart from the map** and never written into
+// `_edit.cells`: `cells` holds its own words per cell (`{dx, dy, layer1,
+// layer2, collision}`, a null layer meaning "the map's own here"), and
+// `placed` the triggers and objects that came with it (by uid). What a cell
+// shows is the map's cell with the topmost group's words over it
+// (editGroupOver) — composed on the fly, so the floor under a gourd stays
+// the floor, wherever the gourd goes, and painting the floor under it
+// changes the floor, not the gourd. Only drawing and the exports bake it in
+// (editBakedCells). Moving changes `x, y`; deleting drops the group. Each is
+// one compound step (editBegin/editEnd). See docs/map-format/custom-map-files.md §2.5.
+//
+// A group takes the level of the floor under each cell, as a stamp does.
+// Its objects' states sit on the floor the same way (editObjectFrameIndex).
+//
+// Groups saved before v0.95.0 were written into the map and remembered
+// what they covered (`under`); editGroupsUpgrade lifts them out.
 //
 // The Select tool picks a group before a trigger: a gourd's B-trigger
 // covers the gourd, and clicking the gourd means the gourd.
@@ -29,42 +38,77 @@ function editGroupFind(uid) {
 
 /** The group whose footprint holds this cell (the latest on top), or null. */
 function editGroupAt(x, y) {
+  var hit = groupPartAt(x, y);
+  return hit ? hit.group : null;
+}
+
+/** `{group, part}` for the topmost group cell at (x, y), or null. */
+function groupPartAt(x, y) {
   var d = editDraft();
   var list = (d && d.groups) || [];
   for (var i = list.length - 1; i >= 0; i--) {
     var g = list[i];
+    if (x < g.x || y < g.y || x >= g.x + g.w || y >= g.y + g.h) continue;
     for (var j = 0; j < g.cells.length; j++) {
-      if (g.x + g.cells[j].dx === x && g.y + g.cells[j].dy === y) return g;
+      if (g.x + g.cells[j].dx === x && g.y + g.cells[j].dy === y) return { group: g, part: g.cells[j] };
     }
   }
   return null;
 }
 
-function editDraftValue(x, y) {
+/**
+ * What (x, y) shows: `base` (the map's stamp there) with the topmost
+ * group's words over it. A layer the group leaves null, and a blank
+ * terrain, is the map's; the collision is the group's on the map's level.
+ */
+function editGroupOver(palette, x, y, base) {
   var d = editDraft();
-  var k = editKey(x, y);
-  return Object.prototype.hasOwnProperty.call(d.cells, k) ? d.cells[k] : null;
+  if (!d || !d.groups || !d.groups.length) return base;
+  editGroupsUpgrade(palette);
+  var hit = groupPartAt(x, y);
+  if (!hit) return base;
+  var p = hit.part;
+  var under = base >= 0 ? editStampWords(palette, base) : null;
+  var blank = editBlankCanopy(palette);
+  var l1 = p.layer1 != null ? p.layer1 : (under ? under.layer1 : blank);
+  var l2 = p.layer2 != null && p.layer2 !== blank ? p.layer2 : (under ? under.layer2 : blank);
+  var level = under ? under.collision & LEVEL_BITS : (hit.group.level || 0) << 4;
+  return editAddStamp(palette, { layer1: l1, layer2: l2, collision: (p.collision & ~LEVEL_BITS) | level });
+}
+
+/** The map as it shows, key → stamp: the draft's cells with every group baked over them. */
+function editBakedCells(palette) {
+  var d = editDraft();
+  if (!d) return {};
+  if (!d.groups || !d.groups.length) return d.cells;
+  editGroupsUpgrade(palette);
+  var out = Object.assign({}, d.cells);
+  d.groups.forEach(function (g) {
+    g.cells.forEach(function (c) {
+      var x = g.x + c.dx, y = g.y + c.dy;
+      if (!editInBounds(palette, x, y)) return;
+      var i = editCellAt(palette, x, y);
+      if (i >= 0) out[editKey(x, y)] = i;
+    });
+  });
+  return out;
 }
 
 /**
  * Stamp a construct as a group — the Stamp tool's and the Widgets pencil's
- * one entry point. Returns the problems editConstructWrites reported.
+ * one entry point. Returns the problems editConstructParts reported, and
+ * `writes`, the cells it covers.
  */
 function editStampGroup(palette, construct, x, y) {
   var d = editDraft();
-  var got = editConstructWrites(palette, construct, x, y);
-  if (!got.writes.length) return got;
+  var got = editConstructParts(palette, construct, x, y);
+  if (!got.parts.length) return got;
   // On the level of the floor it lands on (the bar's where there is none):
   // a widget cut from a vanilla room carries that room's level otherwise.
-  if (typeof editWritesOnLevel === 'function') {
-    var level = typeof editFloorLevel === 'function' ? editFloorLevel(palette, got.writes) : undefined;
-    got.writes = editWritesOnLevel(palette, got.writes, level);
-    got.level = level;
-  }
+  got.level = typeof editFloorLevel === 'function' ? editFloorLevel(palette, got.writes) : editLevel();
   editBegin();
-  var under = got.writes.map(function (w) { return groupRef(w.x - x, w.y - y, editDraftValue(w.x, w.y)); });
+  if (got.specials.length) editApply([], got.specials);
   var firstPlaced = d.placed.length;
-  editApply(got.writes, got.specials);
   editStampedConstruct(construct, x, y, got.level);
   var uids = d.placed.slice(firstPlaced).map(function (p) {
     if (p.uid == null) p.uid = editNextPlacedUid();
@@ -72,39 +116,44 @@ function editStampGroup(palette, construct, x, y) {
   });
   d.groupSeq = (d.groupSeq || 0) + 1;
   (d.groups || (d.groups = [])).push({
-    uid: d.groupSeq, name: construct.name, x: x, y: y,
-    w: 1 + Math.max.apply(null, got.writes.map(function (w) { return w.x - x; })),
-    h: 1 + Math.max.apply(null, got.writes.map(function (w) { return w.y - y; })),
-    cells: got.writes.map(function (w) { return groupRef(w.x - x, w.y - y, w.index); }),
-    under: under, placed: uids,
+    uid: d.groupSeq, name: construct.name, x: x, y: y, level: got.level,
+    w: 1 + Math.max.apply(null, got.parts.map(function (c) { return c.dx; })),
+    h: 1 + Math.max.apply(null, got.parts.map(function (c) { return c.dy; })),
+    cells: got.parts, placed: uids,
   });
   editEnd();
   _groupSel = d.groupSeq;
   return got;
 }
 
-/** Put back what a group covered; returns the group's cells as they are now. */
-function editGroupLift(g) {
-  var now = g.cells.map(function (c) {
-    var v = editDraftValue(g.x + c.dx, g.y + c.dy);
-    return v == null ? groupRef(c.dx, c.dy, editStampResolve(c.index, c.words)) : groupRef(c.dx, c.dy, v);
-  });
-  editApply(g.under.map(function (u) {
-    return { x: g.x + u.dx, y: g.y + u.dy, index: editStampResolve(u.index, u.words) };
-  }));
-  return now;
-}
-
 /**
- * One cell of a group, with its stamp's words when the draft added it — a
- * group can outlive its stamps being pruned (it is kept in the history too),
- * and editStampResolve brings them back.
+ * Lift groups saved before they were kept apart (they have `under`): the
+ * map gets back what they covered, and each cell keeps only the layers it
+ * changed. Not an undo step — the map shows the same either way.
  */
-function groupRef(dx, dy, index) {
-  var r = { dx: dx, dy: dy, index: index };
-  var words = editAddedWords(index);
-  if (words) r.words = words;
-  return r;
+function editGroupsUpgrade(palette) {
+  var d = editDraft();
+  if (!d || !palette || !(d.groups || []).some(function (g) { return g.under; })) return;
+  var blank = editBlankCanopy(palette);
+  d.groups.forEach(function (g) {
+    if (!g.under) return;
+    var under = {};
+    g.under.forEach(function (u) { under[u.dx + ',' + u.dy] = u; });
+    g.cells = g.cells.map(function (c) {
+      var k = editKey(g.x + c.dx, g.y + c.dy);
+      var now = Object.prototype.hasOwnProperty.call(d.cells, k) ? d.cells[k] : editStampResolve(c.index, c.words);
+      var u = under[c.dx + ',' + c.dy];
+      var ui = u ? editStampResolve(u.index, u.words) : null;
+      if (ui == null) delete d.cells[k]; else d.cells[k] = ui;
+      var was = editStampWords(palette, editBaseCellAt(palette, g.x + c.dx, g.y + c.dy));
+      var w = editStampWords(palette, now) || { layer1: blank, layer2: blank, collision: 0 };
+      return { dx: c.dx, dy: c.dy, collision: w.collision,
+        layer1: was && w.layer1 === was.layer1 ? null : w.layer1,
+        layer2: w.layer2 === blank || (was && w.layer2 === was.layer2) ? null : w.layer2 };
+    });
+    g.level = g.cells.length ? (g.cells[0].collision & LEVEL_BITS) >> 4 : 1;
+    delete g.under;
+  });
 }
 
 /** Move a group so its top-left lands at (x, y). One undo step. */
@@ -117,73 +166,45 @@ function editGroupMove(palette, uid, x, y) {
   editBegin();
   var ox = x - g.x;
   var oy = y - g.y;
-  var objects = d.placed.filter(function (p) { return p.kind === 'object' && g.placed.indexOf(p.uid) >= 0; });
-  // Each object frame cell's state 0 before the move: what its floor was.
-  var frameFloors = objects.map(function (o) { return groupFrameFloors(palette, o, o.x, o.y); });
-  var cells = editGroupLift(g);
-  // It sits over the map, not in place of it: a layer that showed the floor
-  // where it was takes the floor where it lands (editRefloor), and the whole
-  // of it goes on that floor's level, as when it was stamped.
-  var writes = cells.map(function (c) {
-    var was = editStampWords(palette, editCellAt(palette, g.x + c.dx, g.y + c.dy));
-    var here = editStampWords(palette, editCellAt(palette, x + c.dx, y + c.dy));
-    return { x: x + c.dx, y: y + c.dy, index: editRefloor(palette, c.index, was, here) };
-  });
-  var level = typeof editFloorLevel === 'function' ? editFloorLevel(palette, writes) : undefined;
-  if (typeof editWritesOnLevel === 'function') writes = editWritesOnLevel(palette, writes, level);
-  g.under = cells.map(function (c) { return groupRef(c.dx, c.dy, editDraftValue(x + c.dx, y + c.dy)); });
-  editApply(writes);
   d.placed.forEach(function (p) {
     if (g.placed.indexOf(p.uid) >= 0) { p.x += ox; p.y += oy; }
   });
-  objects.forEach(function (o, i) { groupRefloorFrames(palette, o, frameFloors[i], level); });
-  cells = writes.map(function (w) { return groupRef(w.x - x, w.y - y, w.index); });
-  g.cells = cells;
   g.x = x; g.y = y;
   editEnd();
   return true;
 }
 
-/** The state-0 words under each of an object's frame cells, with its corner at (x, y). */
-function groupFrameFloors(palette, o, x, y) {
-  var out = {};
-  editObjectFrames(o).forEach(function (f) {
-    Object.keys(f || {}).forEach(function (k) {
-      if (k in out) return;
-      var p = k.split(',');
-      out[k] = editStampWords(palette, editCellAt(palette, x + Number(p[0]), y + Number(p[1])));
-    });
-  });
-  return out;
-}
-
-/** A moved object's states, each laid over the floor its cells now sit on. */
-function groupRefloorFrames(palette, o, floorsWas, level) {
-  var now = groupFrameFloors(palette, o, o.x, o.y);
-  o.frames = editObjectFrames(o).map(function (f) {
-    var out = {};
-    Object.keys(f || {}).forEach(function (k) {
-      var idx = editRefloor(palette, f[k], floorsWas[k], now[k]);
-      out[k] = typeof editOnLevel === 'function' ? editOnLevel(palette, idx, level) : idx;
-    });
-    return out;
-  });
-  o.layer = o.activeFrame >= 1 ? (o.frames[o.activeFrame - 1] || {}) : {};
-}
-
-/** Delete a group: what it covered comes back, its triggers go. One undo step. */
+/** Delete a group: the map under it shows again, its triggers go. One undo step. */
 function editGroupDelete(uid) {
   var d = editDraft();
   var g = editGroupFind(uid);
   if (!d || !g) return false;
   editBegin();
-  editGroupLift(g);
   d.placed.forEach(function (p) { if (g.placed.indexOf(p.uid) >= 0) p.removed = true; });
   d.groups = d.groups.filter(function (o) { return o.uid !== uid; });
   editEnd();
   if (_groupSel === uid) _groupSel = null;
   editNote(g.name + ' deleted');
   return true;
+}
+
+/** A group as a construct — its own words, not the floor under it — for copy and "+ From selection". */
+function editGroupConstruct(palette, g) {
+  var d = editDraft();
+  var part = function (word) { return word == null ? null : editPartFromWord(palette, word); };
+  var placed = typeof widgetPlacedIn === 'function'
+    ? widgetPlacedIn(d, { x1: g.x, y1: g.y, x2: g.x + g.w - 1, y2: g.y + g.h - 1 })
+    : { bTrigger: [], stepOn: [], objects: [] };
+  return { name: g.name, w: g.w, h: g.h, attachments: placed,
+    cells: g.cells.map(function (c) {
+      return { dx: c.dx, dy: c.dy, canopy: part(c.layer1), terrain: part(c.layer2), collision: c.collision };
+    }) };
+}
+
+/** An object that came with a group sits on the map's floor, like the group. */
+function editGroupOwnsObject(o) {
+  var d = editDraft();
+  return !!(d && o && (d.groups || []).some(function (g) { return g.placed.indexOf(o.uid) >= 0; }));
 }
 
 /**

@@ -47,7 +47,9 @@ function editCopy(d) {
   } else {
     return false; // a selected trigger copies itself
   }
-  var c = editBuildConstruct(_mtPalette, sel, name || ('pasted ' + (sel.x2 - sel.x1 + 1) + '×' + (sel.y2 - sel.y1 + 1)));
+  // A group copies as itself, not with the floor it happens to sit on.
+  var c = g ? editGroupConstruct(_mtPalette, g)
+    : editBuildConstruct(_mtPalette, sel, name || ('pasted ' + (sel.x2 - sel.x1 + 1) + '×' + (sel.y2 - sel.y1 + 1)));
   if (!c) { editNote('nothing painted there to copy'); renderEditChrome(); return true; }
   c.x = sel.x1; c.y = sel.y1;
   // What the preview on the pointer shows: the cells' own stamps.

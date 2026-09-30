@@ -54,8 +54,9 @@ function editPlacedGraphics() {
     if (g === undefined || g === null || seen[g]) return;
     seen[g] = 1; out.push(g);
   };
-  Object.keys(d.cells).forEach(function (k) {
-    var w = editStampWords(_mtPalette, d.cells[k]);
+  var shown = typeof editBakedCells === 'function' ? editBakedCells(_mtPalette) : d.cells;
+  Object.keys(shown).forEach(function (k) {
+    var w = editStampWords(_mtPalette, shown[k]);
     if (!w) return;
     if (w.layer1 !== blank) add(editGraphicOfWord(w.layer1));
     if (w.layer2 !== blank) add(editGraphicOfWord(w.layer2));

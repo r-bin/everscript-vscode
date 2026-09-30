@@ -19,8 +19,9 @@ function objectLooksStatic(o) {
   return editObjectFrames(o).every(function (f) {
     return Object.keys(f || {}).every(function (k) {
       var p = k.split(','), here = editCellAt(_mtPalette, o.x + Number(p[0]), o.y + Number(p[1]));
-      if (f[k] === here) return true;
-      var a = editStampWords(_mtPalette, f[k]), b = editStampWords(_mtPalette, here);
+      var at = editObjectFrameIndex(o, k, f[k]);
+      if (at === here) return true;
+      var a = editStampWords(_mtPalette, at), b = editStampWords(_mtPalette, here);
       return !!(a && b && a.layer1 === b.layer1 && a.layer2 === b.layer2);
     });
   });
@@ -46,7 +47,7 @@ function objectFrameThumb(o, frameIdx, org, cls) {
     var layer = editObjectFrames(o)[frameIdx - 1] || {};
     Object.keys(layer).forEach(function (k) {
       var p = k.split(','), pos = editCellPos(org, o.x + Number(p[0]), o.y + Number(p[1]));
-      tiles += editStampSvg(_mtPalette, _editComposed, layer[k], pos.x, pos.y, 'rg-edit-cell');
+      tiles += editStampSvg(_mtPalette, _editComposed, editObjectFrameIndex(o, k, layer[k]), pos.x, pos.y, 'rg-edit-cell');
     });
   }
   var size = cls ? 'class="' + cls + '"'

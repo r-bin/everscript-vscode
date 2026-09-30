@@ -29,10 +29,12 @@ function romExportPayload(why) {
   var h = room.heightTiles;
   var floor = room.floor;
   var cells = [];
+  // Stamped groups are kept apart from the map (map-editor-groups.js); the export bakes them in.
+  var baked = typeof editBakedCells === 'function' ? editBakedCells(_mtPalette) : d.cells;
   for (var y = 0; y < h; y++) {
     for (var x = 0; x < w; x++) {
       var k = editKey(x, y);
-      var s = Object.prototype.hasOwnProperty.call(d.cells, k) ? editStampWords(_mtPalette, d.cells[k]) : null;
+      var s = Object.prototype.hasOwnProperty.call(baked, k) ? editStampWords(_mtPalette, baked[k]) : null;
       var words = s || floor;
       cells.push(words.layer1, words.layer2, words.collision);
     }
@@ -57,7 +59,7 @@ function romExportPayload(why) {
         frames: frames.map(function (f) {
           var delta = {};
           Object.keys(f || {}).forEach(function (k) {
-            var s = editStampWords(_mtPalette, f[k]);
+            var s = editStampWords(_mtPalette, typeof editObjectFrameIndex === 'function' ? editObjectFrameIndex(o, k, f[k]) : f[k]);
             if (s) delta[k] = { layer1: s.layer1, layer2: s.layer2, collision: s.collision };
           });
           return delta;

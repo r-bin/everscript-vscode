@@ -181,7 +181,7 @@ function editStampedConstruct(construct, x, y, level) {
     // State-0-only — no phantom empty frame (map-editor-objects.js).
     var objFrames = (o.frames && o.frames.length) ? o.frames
       : (o.cells && o.cells.length ? [o.cells] : []);
-    var frameLayers = objFrames.map(function (cells) { return editObjectLayerFrom(cells, level, x + o.dx, y + o.dy); });
+    var frameLayers = objFrames.map(function (cells) { return editObjectLayerFrom(cells, level); });
     if (typeof objectNormalizeFrames === 'function') frameLayers = objectNormalizeFrames(frameLayers);
     _edit.placed.push({
       kind: 'object', x: x + o.dx, y: y + o.dy, w: o.w, h: o.h,
@@ -203,12 +203,10 @@ function editStampedConstruct(construct, x, y, level) {
  * An object's changed look (map-editor-objects.js) from portable cells: each
  * rebuilt here like any stamped cell, on `level` when one is given. A cell
  * whose family cannot find a slot is left out — the area keeps its own tile.
- *
- * With the object's corner (`ox`, `oy`), a frame's missing or blank terrain
- * is the floor it lands on: a gourd's broken look sits on the room's floor,
- * not on the black one of wherever it was cut from.
+ * A missing terrain is left blank: a stamped object's states sit on the
+ * floor under them, composed when drawn (editObjectFrameIndex).
  */
-function editObjectLayerFrom(cells, level, ox, oy) {
+function editObjectLayerFrom(cells, level) {
   var layer = {};
   (cells || []).forEach(function (c) {
     var canopy = editWordFromPart(_mtPalette, c.canopy);
@@ -217,10 +215,6 @@ function editObjectLayerFrom(cells, level, ox, oy) {
     var blank = editBlankCanopy(_mtPalette);
     var idx = editAddStamp(_mtPalette, { layer1: canopy ? canopy.word : blank, layer2: terrain ? terrain.word : blank,
       collision: c.collision || 0 });
-    if (ox != null) {
-      var here = editCellAt(_mtPalette, ox + c.dx, oy + c.dy);
-      idx = editRefloor(_mtPalette, idx, null, here >= 0 ? editStampWords(_mtPalette, here) : null);
-    }
     if (level >= 0 && typeof editOnLevel === 'function') idx = editOnLevel(_mtPalette, idx, level);
     layer[c.dx + ',' + c.dy] = idx;
   });
@@ -228,20 +222,44 @@ function editObjectLayerFrom(cells, level, ox, oy) {
 }
 
 /**
- * The stamp `index` on a new floor. A layer that showed the floor it sat
- * on (`floorWas`, its words; a blank terrain always does) takes the new
- * floor's (`floor`) instead; the rest of the stamp is kept. This is what
- * lets an object sit *over* the map rather than replace it: moved, a gourd
- * takes the floor of where it lands, not the one it left.
+ * The stamp `index` on a floor (`floor`, its words): a blank terrain is the
+ * floor's, and the collision goes on the floor's level. This is what lets an
+ * object's state sit *over* the map rather than replace it.
  */
-function editRefloor(palette, index, floorWas, floor) {
+function editRefloor(palette, index, floor) {
   var w = index >= 0 ? editStampWords(palette, index) : null;
   if (!w || !floor) return index;
-  var blank = editBlankCanopy(palette);
-  var l1 = floorWas && w.layer1 === floorWas.layer1 ? floor.layer1 : w.layer1;
-  var l2 = (floorWas && w.layer2 === floorWas.layer2) || w.layer2 === blank ? floor.layer2 : w.layer2;
-  if (l1 === w.layer1 && l2 === w.layer2) return index;
-  return editAddStamp(palette, { layer1: l1, layer2: l2, collision: w.collision });
+  var l2 = w.layer2 === editBlankCanopy(palette) ? floor.layer2 : w.layer2;
+  var col = (w.collision & ~LEVEL_BITS) | (floor.collision & LEVEL_BITS);
+  if (l2 === w.layer2 && col === w.collision) return index;
+  return editAddStamp(palette, { layer1: w.layer1, layer2: l2, collision: col });
+}
+
+/**
+ * A construct as a group's own words, with its top-left at (x, y) — nothing
+ * of the floor there (map-editor-groups.js). `{ parts, writes, problems,
+ * specials }`: `writes` are the cells it covers; a cell whose family cannot
+ * be found a slot is skipped and named, as in editConstructWrites.
+ */
+function editConstructParts(palette, construct, x, y) {
+  var out = { parts: [], writes: [], problems: [], specials: [] };
+  if (!construct) return out;
+  var seen = {};
+  construct.cells.forEach(function (c) {
+    if (!editInBounds(palette, x + c.dx, y + c.dy)) return;
+    var canopy = editWordFromPart(palette, c.canopy);
+    var terrain = editWordFromPart(palette, c.terrain);
+    var bad = (canopy && canopy.error) || (terrain && terrain.error);
+    if (bad) {
+      if (!seen[bad]) { seen[bad] = true; out.problems.push(bad); }
+      return;
+    }
+    out.parts.push({ dx: c.dx, dy: c.dy, layer1: canopy ? canopy.word : null,
+      layer2: terrain ? terrain.word : null, collision: c.collision || 0 });
+    out.writes.push({ x: x + c.dx, y: y + c.dy });
+    if (c.special) out.specials.push({ x: x + c.dx, y: y + c.dy, id: c.special });
+  });
+  return out;
 }
 
 /**

@@ -1714,11 +1714,16 @@ async function main() {
         _mtPalette.grid = _mtPalette.grid.map((row) => row.map(() => 0));
         editStroke({ x: 0, y: 0 }, 'down');
         const d = editDraft();
-        return { cells: Object.keys(d.cells).length, added: d.added.length,
+        // A stamped group is kept apart from the map: the map's own cells are
+        // untouched, and what it shows is baked on the fly.
+        const baked = editBakedCells(_mtPalette);
+        return { cells: d.groups[0].cells.length, mapCells: Object.keys(d.cells).length,
+                 shown: Object.keys(baked).length, added: d.added.length,
                  graphics: d.addedGraphics.slice(), placed: d.placed.slice(),
                  words: d.added.map((a) => [a.layer1, a.layer2]) };
     });
-    check('stamping it writes its cells', stamped.cells === 2 && stamped.added === 2,
+    check('stamping it keeps its cells over the map, not in it',
+        stamped.cells === 2 && stamped.mapCells === 0 && stamped.shown === 2 && stamped.added === 2,
         JSON.stringify(stamped));
     // Family 58 already sits in palette slot 3, so the word is rebuilt as
     // pal 3 pointing at whichever Block 1 slot the graphic landed in.
@@ -2264,7 +2269,7 @@ async function main() {
             attachments: { bTrigger: [{ dx: 0, dy: 0, w: 2, h: 2, scriptId: 0xd74 }], stepOn: [],
                 objects: [{ dx: 0, dy: 0, w: 2, h: 1, states: 2 }] } };
         const got = editStampGroup(_mtPalette, c, 0, 0);
-        const w = editStampWords(_mtPalette, d.cells['0,0']);
+        const w = editStampWords(_mtPalette, editCellAt(_mtPalette, 0, 0));
         const r = { level: got.level, plane: (w.collision >> 4) & 3, shape: w.collision & 0x0f,
             trig: d.placed.filter((p) => p.kind === 'bTrigger').length, obj: d.placed.filter((p) => p.kind === 'object').length,
             groups: d.groups.length };

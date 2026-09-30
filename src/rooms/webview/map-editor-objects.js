@@ -28,6 +28,18 @@ function objectNormalizeFrames(frames) {
   return frames.some(function (f) { return f && Object.keys(f).length > 0; }) ? frames : [];
 }
 
+/**
+ * The stamp a frame shows at `key`: its own, except that a stamped
+ * object's (one a group brought, map-editor-groups.js) sits on the floor
+ * under it — a blank terrain is the map's, on the map's level — so a gourd
+ * broken open on red floor is on red floor wherever it was stamped or moved.
+ */
+function editObjectFrameIndex(o, key, index) {
+  if (typeof editGroupOwnsObject !== 'function' || !editGroupOwnsObject(o)) return index;
+  var p = key.split(','), here = editCellAt(_mtPalette, o.x + Number(p[0]), o.y + Number(p[1]));
+  return editRefloor(_mtPalette, index, here >= 0 ? editStampWords(_mtPalette, here) : null);
+}
+
 /** Tightly bounded delta tiles box for an object frame. */
 function objectFrameBounds(layer) {
   var keys = Object.keys(layer || {});
@@ -242,7 +254,7 @@ function editObjectStamps() {
   var out = [];
   editObjects().forEach(function (o) {
     editObjectFrames(o).forEach(function (f) {
-      Object.keys(f || {}).forEach(function (k) { out.push(f[k]); });
+      Object.keys(f || {}).forEach(function (k) { out.push(f[k], editObjectFrameIndex(o, k, f[k])); });
     });
   });
   return out;
@@ -264,7 +276,7 @@ function editObjectSvg(palette, composed, origin) {
     var curLayer = activeIdx >= 1 ? (frames[activeIdx - 1] || o.layer || {}) : {};
     Object.keys(curLayer).forEach(function (k) {
       var p = k.split(','), pos = editCellPos(origin, o.x + Number(p[0]), o.y + Number(p[1]));
-      html += editStampSvg(palette, composed, curLayer[k], pos.x, pos.y, 'rg-edit-cell rg-obj-cell');
+      html += editStampSvg(palette, composed, editObjectFrameIndex(o, k, curLayer[k]), pos.x, pos.y, 'rg-edit-cell rg-obj-cell');
     });
     var a = editCellPos(origin, o.x, o.y);
     // The number a script's SET OBJ names: the room's own, else its place in the list.

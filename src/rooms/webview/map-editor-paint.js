@@ -84,18 +84,20 @@ function renderEditLayer(palette, composed, origin) {
   var tiles = '';
   var html = '';
   var romRoom = editOnRomRoom();
-  Object.keys(d.cells).forEach(function (k) {
+  // Stamped groups are kept apart from the map and baked in only here and in the exports.
+  var cells = typeof editBakedCells === 'function' ? editBakedCells(palette) : d.cells;
+  Object.keys(cells).forEach(function (k) {
     var p = k.split(',');
     // A map made smaller keeps the cells past its edge, undrawn and unencoded
     // (map-editor-newroom.js applyBlankRoom): they come back if it grows.
     if (!editInBounds(palette, Number(p[0]), Number(p[1]))) return;
     var pos = editCellPos(origin, Number(p[0]), Number(p[1]));
-    tiles += editStampSvg(palette, composed, d.cells[k], pos.x, pos.y, 'rg-edit-cell');
+    tiles += editStampSvg(palette, composed, cells[k], pos.x, pos.y, 'rg-edit-cell');
     // A stairs cell painted from a stair tile says so (map-editor-collision.js);
     // one drawn with the Special tab already shows that pick's glyph. A ROM
     // room's cells show theirs below, with the rest of the room's.
     if (!romRoom && typeof editStairsSvg === 'function' && !(d.specialCells || {})[k]) {
-      html += editStairsSvg(palette, d.cells[k], pos.x, pos.y);
+      html += editStairsSvg(palette, cells[k], pos.x, pos.y);
     }
   });
   // The cuttable layer, over the cells it covers (map-editor-cutlayer.js).
@@ -195,8 +197,17 @@ function triggerOutlineSvg(box, kind, origin, cls) {
     + '" height="' + ((box.y2 - box.y1 + 1) * EDIT_UNITS) + '" pointer-events="none"/>';
 }
 
-/** What is in a cell right now: the draft first, then the room's own grid. */
+/**
+ * What a cell shows right now: the map's cell (editBaseCellAt) with any
+ * stamped group over it (map-editor-groups.js editGroupOver).
+ */
 function editCellAt(palette, tx, ty) {
+  var i = editBaseCellAt(palette, tx, ty);
+  return typeof editGroupOver === 'function' ? editGroupOver(palette, tx, ty, i) : i;
+}
+
+/** The map's own cell, under any group: the draft first, then the room's own grid. */
+function editBaseCellAt(palette, tx, ty) {
   var d = editDraft();
   if (d) {
     var k = editKey(tx, ty);

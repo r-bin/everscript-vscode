@@ -129,27 +129,36 @@ have already changed the cell's stamp, and that is what gets exported.
 ### 2.5 Groups: stamped objects
 
 Stamping a construct or a widget (a gourd, a fire pit) makes a **group**.
-The stamp is recorded as one thing, so it can be selected, moved or deleted
-as a whole:
+A group is stored **apart from `cells`** and sits over the map: it is never
+written into `cells`, so the map under it is untouched and can be moved,
+deleted or painted under without disturbing it:
 
 ```jsonc
 {
   "uid": 1,
-  "name": "2×2 from Nobilia, Market",
+  "name": "gourd",
   "x": 4, "y": 6, "w": 2, "h": 2,
-  "cells":  [ { "dx": 0, "dy": 0, "index": 57 } ],   // what it stamped
-  "under":  [ { "dx": 0, "dy": 0, "index": null } ], // what it covered (null = floor)
-  "placed": [ 2, 3 ]                                   // uids of its triggers/objects
+  "level": 1,                                   // the floor's level when stamped
+  "cells":  [ { "dx": 0, "dy": 0,               // its own words; null = the map's
+                "layer1": 13706, "layer2": null, "collision": 31 } ],
+  "placed": [ 2, 3 ]                            // uids of its triggers/objects
 }
 ```
 
-- **Moving** a group puts `under` back, then stamps `cells` at the new
-  place, recording what that place had as the new `under`. Its triggers and
-  objects move by the same offset.
-- **Deleting** a group puts `under` back and removes its triggers and
-  objects.
-- Painting over one cell of a group leaves the group in place. That cell
-  moves with the group from then on.
+- **What a cell shows** is the map's cell with the topmost group's words
+  over it: a null layer, and a blank terrain, is the map's; the collision is
+  the group's, on the level of the map's cell there (`level` where the map
+  has none). The objects a group brought sit on the floor the same way —
+  a blank terrain in one of their states is the floor under it.
+- **Moving** a group changes `x, y`; its triggers and objects move by the
+  same offset. **Deleting** it removes it and them. The map is never
+  written either way.
+- **Exporting** (Export ROM, and the JSON handoff) bakes every group into
+  the grid: that is the only place the two meet.
+- Files written before v0.95.0 hold groups that were written into `cells`,
+  with `cells: [{dx, dy, index}]` and `under` (what they covered). The
+  editor lifts them out on load: `cells` gets `under` back, and the group
+  keeps only the layers that differ from it.
 
 ## 3. `history.json`, the edit history
 

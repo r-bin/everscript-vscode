@@ -763,7 +763,8 @@ const ui = new Function(`
     setTab: function (t) { _editActiveTab = t; },
     editBegin: editBegin, editEnd: editEnd, editUndo: editUndo, editRedo: editRedo, editApply: editApply,
     editStampGroup: editStampGroup, editGroupMove: editGroupMove, editGroupDelete: editGroupDelete,
-    editGroupAt: editGroupAt, editPruneAdded: editPruneAdded, editLevelPick: editLevelPick,
+    editGroupAt: editGroupAt, editCellAt: editCellAt, editBakedCells: editBakedCells,
+    editObjectFrameIndex: editObjectFrameIndex, editGroupsUpgrade: editGroupsUpgrade, editPruneAdded: editPruneAdded, editLevelPick: editLevelPick,
     customIsPristine: customIsPristine, setCustom: function (list, active) { _customMaps = list; _customActive = active; },
     editClipboardKey: editClipboardKey, editAddStamp: editAddStamp, editSmartPick: editSmartPick, startSelectGesture: startSelectGesture,
     setSel: function (s) { _editSel = s; }, setHover: function (c) { _editHover = c; },
@@ -1468,30 +1469,30 @@ test('stamping an object makes one group, in one undo step, with its trigger', (
     assert.strictEqual(d.placed.filter((x) => !x.removed).length, 0);
 });
 
-test('a group moves whole: what it covered comes back, its trigger follows, one step', () => {
+test('a group moves whole: the map under it shows again, its trigger follows, one step', () => {
     const { p, d } = fresh();
+    const words = (i) => ui.editStampWords(p, i);
     ui.editApply([{ x: 0, y: 1, index: 1 }]);      // something under the gourd
     ui.editStampGroup(p, GOURD, 0, 1);
     const uid = d.groups[0].uid;
-    const stamped = d.cells['0,1'];
+    assert.deepStrictEqual(d.cells, { '0,1': 1 }, 'a group is not written into the map');
+    assert.strictEqual(words(ui.editCellAt(p, 0, 1)).layer1, 0x358a, 'but the map shows it');
     const steps = d.undo.length;
     assert.ok(ui.editGroupMove(p, uid, 1, 0));
     assert.strictEqual(d.undo.length, steps + 1, 'a move is one step');
-    assert.strictEqual(d.cells['0,1'], 1, 'the cell it covered is back');
-    assert.ok(!('1,1' in d.cells), 'and the one that was unpainted is unpainted again');
-    const words = (i) => ui.editStampWords(p, i);
-    assert.strictEqual(words(d.cells['1,0']).layer1, words(stamped).layer1, 'the gourd is at its new place');
-    assert.strictEqual(words(d.cells['1,0']).layer2, words(p.grid[0][1]).layer2,
-        'on the floor there, not the one it left');
+    assert.strictEqual(ui.editCellAt(p, 0, 1), 1, 'the cell it covered shows again');
+    assert.strictEqual(ui.editCellAt(p, 1, 1), p.grid[1][1], 'and so does the room’s own');
+    assert.strictEqual(words(ui.editCellAt(p, 1, 0)).layer1, 0x358a, 'the gourd is at its new place');
+    assert.strictEqual(words(ui.editCellAt(p, 1, 0)).layer2, words(p.grid[0][1]).layer2, 'on the floor there');
     const trig = d.placed.find((x) => x.kind === 'bTrigger');
     assert.deepStrictEqual([trig.x, trig.y], [1, 0], 'its trigger moved with it');
     assert.ok(!ui.editGroupMove(p, uid, 5, 0), 'it will not move off the map');
     ui.editUndo(p);
-    assert.strictEqual(d.cells['0,1'], stamped, 'undo puts it back where it was');
+    assert.strictEqual(words(ui.editCellAt(p, 0, 1)).layer1, 0x358a, 'undo puts it back where it was');
     assert.deepStrictEqual([d.groups[0].x, d.groups[0].y], [0, 1]);
 });
 
-test('a stamped object sits over the floor: its states keep it, and moving takes the new one', () => {
+test('a stamped object sits over the floor: its states keep it, wherever it goes', () => {
     const { p, d } = fresh();
     const words = (i) => ui.editStampWords(p, i);
     const red = ui.editAddStamp(p, { layer1: 0xa800, layer2: 0x0c02, collision: 0x0010 });
@@ -1502,18 +1503,38 @@ test('a stamped object sits over the floor: its states keep it, and moving takes
             frames: [[{ dx: 0, dy: 0, canopy: { word: 0x358b }, terrain: { word: 0xa800 }, collision: 0x001f }]] }] } };
     ui.editStampGroup(p, pot, 0, 1);
     const o = d.placed.find((x) => x.kind === 'object');
+    const state1 = () => words(ui.editObjectFrameIndex(o, '0,0', o.frames[0]['0,0']));
     assert.strictEqual(o.activeFrame, 0, 'it shows state 0 until a state is picked');
-    assert.strictEqual(words(d.cells['0,1']).layer2, 0x0c02, 'state 0 keeps the red floor');
-    assert.strictEqual(words(o.frames[0]['0,0']).layer2, 0x0c02, 'and so does state 1, not a black one');
+    assert.strictEqual(d.cells['0,1'], red, 'the red floor is still the map’s');
+    assert.strictEqual(words(ui.editCellAt(p, 0, 1)).layer2, 0x0c02, 'state 0 shows on it');
+    assert.strictEqual(state1().layer2, 0x0c02, 'and so does state 1, not a black one');
+    const grass = ui.editAddStamp(p, { layer1: 0xa800, layer2: 0x0c00, collision: 0x0010 });
+    ui.editApply([{ x: 0, y: 1, index: grass }]);
+    assert.strictEqual(words(ui.editCellAt(p, 0, 1)).layer1, 0x358a, 'painting the floor under it keeps the gourd');
+    assert.strictEqual(state1().layer2, 0x0c00, 'and its states are on the new floor');
+    ui.editApply([{ x: 0, y: 1, index: red }]);
     assert.ok(ui.editGroupMove(p, d.groups[0].uid, 1, 0));
     const floor = words(p.grid[0][1]).layer2;
-    assert.strictEqual(d.cells['0,1'], red, 'the red floor is back where it was');
-    assert.strictEqual(words(d.cells['1,0']).layer1, 0x358a, 'the gourd is where it went');
-    assert.strictEqual(words(d.cells['1,0']).layer2, floor, 'on that floor');
-    assert.strictEqual(words(o.frames[0]['0,0']).layer1, 0x358b);
-    assert.strictEqual(words(o.frames[0]['0,0']).layer2, floor, 'state 1 on that floor too');
+    assert.strictEqual(ui.editCellAt(p, 0, 1), red, 'the red floor shows where it was');
+    assert.strictEqual(words(ui.editCellAt(p, 1, 0)).layer2, floor, 'the gourd is on the floor where it went');
+    assert.strictEqual(state1().layer1, 0x358b);
+    assert.strictEqual(state1().layer2, floor, 'state 1 too');
     ui.editGroupDelete(d.groups[0].uid);
     assert.deepStrictEqual(d.cells, { '0,1': red }, 'deleting it leaves the map as it was');
+    assert.deepStrictEqual(Object.keys(ui.editBakedCells(p)), ['0,1']);
+});
+
+test('a group saved before v0.95.0 is lifted out of the map it was written into', () => {
+    const { p, d } = fresh();
+    const gourd = ui.editAddStamp(p, { layer1: 0x358a, layer2: 0x19cc, collision: 0x001f });
+    d.cells['0,0'] = gourd;
+    d.groups = [{ uid: 1, name: 'gourd', x: 0, y: 0, w: 1, h: 1, cells: [{ dx: 0, dy: 0, index: gourd }],
+        under: [{ dx: 0, dy: 0, index: 1 }], placed: [] }];
+    ui.editGroupsUpgrade(p);
+    assert.deepStrictEqual(d.cells, { '0,0': 1 }, 'the map gets back what it covered');
+    assert.deepStrictEqual(d.groups[0].cells[0], { dx: 0, dy: 0, collision: 0x001f, layer1: 0x358a, layer2: null },
+        'and the group keeps only what it changed');
+    assert.strictEqual(ui.editStampWords(p, ui.editCellAt(p, 0, 0)).layer1, 0x358a, 'the map shows the same');
 });
 
 test('deleting a group restores what it covered and removes its trigger, in one step', () => {
@@ -1770,7 +1791,7 @@ test('a stamped or pasted object lands on the level of the floor under it', () =
     // the bar says — on open ground the bar decides (map-editor-dom.test.js).
     const got = ui.editStampGroup(p, GOURD, 0, 0);
     assert.strictEqual(got.level, 1);
-    assert.strictEqual(ui.editStampWords(p, d.cells['0,0']).collision & 0x30, 0x10);
+    assert.strictEqual(ui.editStampWords(p, ui.editCellAt(p, 0, 0)).collision & 0x30, 0x10);
     ui.editLevelPick(1);
 });
 

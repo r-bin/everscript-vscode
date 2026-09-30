@@ -98,10 +98,12 @@ function widgetFromSession(m) {
   var floor = d.blank && d.blank.floor;
   var blankCanopy = editBlankCanopy(_mtPalette);
   var cells = [];
-  Object.keys(d.cells).forEach(function (k) {
+  // A widget stamped onto the canvas is a group over it (map-editor-groups.js): keep it too.
+  var shown = editBakedCells(_mtPalette);
+  Object.keys(shown).forEach(function (k) {
     var p = k.split(',').map(Number);
     if (p[0] >= m.w || p[1] >= m.h) return;
-    var words = editStampWords(_mtPalette, d.cells[k]);
+    var words = editStampWords(_mtPalette, shown[k]);
     if (!words) return;
     var keepCanopy = words.layer1 === blankCanopy || (floor && words.layer1 === floor.layer1);
     var keepTerrain = floor && words.layer2 === floor.layer2;
