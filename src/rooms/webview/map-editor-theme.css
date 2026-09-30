@@ -305,9 +305,11 @@
 /* MAP: readings of the map, not budgets — the capacity rows, their bars in another colour. */
 .rg-theme .rg-cap-fill.measured{background:var(--rg-success)}
 /* HEADER: every value in words; the controls sit under it, like a capacity row's bar. */
+.rg-theme .rg-hdr-row{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:24px;margin-bottom:6px}
+.rg-theme .rg-hdr-row .rg-cap-l{flex-shrink:0}
 .rg-theme .rg-hdr-v{font-size:12px;color:var(--rg-text-primary);text-align:right}
-.rg-theme .rg-hdr-ctl{display:flex;gap:4px;flex-wrap:wrap;margin-top:2px}
-.rg-theme .rg-hdr-bit{padding:2px 8px;font-size:11px}
+.rg-theme .rg-hdr-ctl{display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-end}
+.rg-theme .rg-hdr-bit{padding:1px 6px;font-size:11px;line-height:16px}
 .rg-theme .rg-hdr-in,.rg-theme .rg-hdr-sel{font-family:var(--rg-font-ui);font-size:11px;
   background:var(--rg-bg-hover);color:var(--rg-text-primary);border:1px solid var(--rg-border);border-radius:4px;padding:2px 6px}
 .rg-theme .rg-hdr-in{width:72px;font-family:var(--rg-font-mono)}

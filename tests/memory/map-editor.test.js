@@ -939,13 +939,14 @@ test('header fields are editable when unlocked, one undo step each, and ride the
     const html = ui.infoTabHtml(p);
     assert.ok(html.includes('$212C'), 'the register is named');
     assert.ok(html.indexOf('rg-info-header') < html.indexOf('Capacity'), 'the header comes first');
-    assert.ok(html.includes('Front · Ground · HUD · Sprites'), 'TM $17 in words');
-    assert.ok(html.includes('Add on Ground'), 'CGADSUB $02 in words');
-    assert.ok(html.includes('sub screen, everywhere'), 'CGWSEL $02 in words');
+    assert.ok(html.includes('data-header-bit') && !html.includes('rg-hdr-v'), 'unlocked: the controls are the value');
+    assert.ok(html.includes('title="Front · Ground · HUD · Sprites'), 'its words in the tooltip');
     d.locked = true;
     const locked = ui.infoTabHtml(p);
-    assert.ok(!locked.includes('data-header-bit') && locked.includes('Front · Ground · HUD · Sprites'),
-        'locked: the values stay as text, the controls go');
+    assert.ok(!locked.includes('data-header-bit'), 'locked: no controls');
+    assert.ok(locked.includes('>Front · Ground · HUD · Sprites<'), 'TM $17 in words');
+    assert.ok(locked.includes('>Add on Ground<'), 'CGADSUB $02 in words');
+    assert.ok(locked.includes('>sub screen, everywhere<'), 'CGWSEL $02 in words');
 });
 
 test('a budget past its ceiling reads as over, not as 100%', () => {

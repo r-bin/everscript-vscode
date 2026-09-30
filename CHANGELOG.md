@@ -1,3 +1,10 @@
+## [0.88.1] — 2026-09-30
+
+### Fix: Info tab header — compact when unlocked
+
+- Unlocked, each header field is one line: its label, and its controls on the right. The lit chips and the selects' choices are the value; the words ("Front · Ground · HUD · Sprites") move to the row's tooltip. Locked maps keep the words in place of the controls.
+- Size and trigger origin share one row.
+
 ## [0.88.0] — 2026-09-30
 
 ### Feat: Object tab drawn like the trigger lists

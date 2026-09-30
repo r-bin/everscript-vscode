@@ -248,8 +248,8 @@ function infoHeaderHtml(p) {
   var h = infoHeader(p), own = (d && d.header) || {}, locked = editLocked();
   var html = '<div class="rg-info-sec rg-info-header"><div class="rg-info-h">Header'
     + (locked ? ' <span class="rg-info-hn">locked</span>' : '') + '</div>'
-    + infoCountRow('Size', h.widthTiles + ' × ' + h.heightTiles, 'metatiles', 'Bytes 2–3 — set by the map')
-    + infoCountRow('Trigger origin', h.originX + ', ' + h.originY, '', 'Bytes 0–1: where trigger boxes count from — set by the map');
+    + infoCountRow('Size', h.widthTiles + ' × ' + h.heightTiles, 'origin ' + h.originX + ', ' + h.originY,
+      'Bytes 2–3: the size in metatiles. Bytes 0–1: the trigger origin, where trigger boxes count from. Both set by the map');
   INFO_HEADER_FIELDS.forEach(function (fd) {
     var v = Number(h[fd.key]) || 0;
     var edited = Object.prototype.hasOwnProperty.call(own, fd.key);
@@ -257,10 +257,11 @@ function infoHeaderHtml(p) {
     var base = Number((p.header || {})[fd.key]) || 0;
     var title = fd.title + (e ? ' — ' + e.rooms : '') + '\n' + fd.reg + ' = ' + infoHex(v, fd.hex || 2)
       + (edited ? '\nthe room’s own: ' + infoHeaderText(fd, base) : '');
-    html += '<div class="rg-cap rg-hdr-row' + (edited ? ' edited' : '') + '" title="' + escH(title) + '">'
-      + '<div class="rg-cap-h"><span class="rg-cap-l">' + escH(fd.label) + '</span>'
-      + '<span class="rg-hdr-v">' + escH(infoHeaderText(fd, v)) + '</span></div>'
-      + (locked ? '' : '<div class="rg-hdr-ctl">' + infoHeaderControls(fd, v) + '</div>') + '</div>';
+    // Unlocked, the controls are the value: a lit chip, a select's choice. The words go to the tooltip.
+    html += '<div class="rg-hdr-row' + (edited ? ' edited' : '') + '" title="' + escH(infoHeaderText(fd, v) + '\n' + title) + '">'
+      + '<span class="rg-cap-l">' + escH(fd.label) + '</span>'
+      + (locked ? '<span class="rg-hdr-v">' + escH(infoHeaderText(fd, v)) + '</span>'
+        : '<span class="rg-hdr-ctl">' + infoHeaderControls(fd, v) + '</span>') + '</div>';
   });
   return html + '</div>';
 }
