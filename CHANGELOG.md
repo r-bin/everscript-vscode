@@ -1,3 +1,12 @@
+## [0.87.0] — 2026-09-30
+
+### Feat: Info tab redesign — header first, in words; measured rows as bars
+
+- **Order:** Header, Capacity, Map, Checks.
+- **Header in words:** layers read Front · Ground · HUD · Sprites (BG1–3/OBJ), colour math reads "Subtract on Ground · Sprites", the blend source "sub screen, everywhere", and the effect by name (None, Lantern mask, Layered canopy, Arena, Heat shimmer — only the variants vanilla rooms use, each named after what those rooms do). Register and raw value are in the tooltip.
+- **Locked maps** show the values as plain text instead of dimmed disabled chips; the controls (layer chips, mode/source/region/effect selects, parameter input) sit under each value only while unlocked.
+- **Map section:** the same rows as Capacity, with bars in green (readings, not budgets) instead of a tinted card of plain numbers.
+
 ## [0.86.0] — 2026-09-30
 
 ### Feat: Info tab — the map's measured facts and the room header (editable)

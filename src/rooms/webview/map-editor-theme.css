@@ -302,14 +302,13 @@
 .rg-theme .rg-check-warning{background:var(--rg-warning)}
 .rg-theme .rg-check-error{background:var(--rg-error)}
 .rg-theme .rg-info-hn{text-transform:none;letter-spacing:0;font-weight:400;margin-left:6px}
-/* MAP: readings of the map, not budgets — a tinted card, values in the accent's text colour. */
-.rg-theme .rg-info-facts{background:var(--rg-accent-soft);border-radius:var(--rg-radius-control);padding:12px 12px 4px}
-.rg-theme .rg-info-facts .rg-cap-v{color:var(--rg-accent-text)}
-.rg-theme .rg-hdr-row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
-.rg-theme .rg-hdr-reg{font-family:var(--rg-font-mono);font-size:10px;opacity:.7}
-.rg-theme .rg-hdr-ctl{display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-end}
-.rg-theme .rg-hdr-bit{padding:1px 6px;font-size:11px}
-.rg-theme .rg-hdr-in{width:64px;font-family:var(--rg-font-mono);font-size:12px;text-align:right;
+/* MAP: readings of the map, not budgets — the capacity rows, their bars in another colour. */
+.rg-theme .rg-cap-fill.measured{background:var(--rg-success)}
+/* HEADER: every value in words; the controls sit under it, like a capacity row's bar. */
+.rg-theme .rg-hdr-v{font-size:12px;color:var(--rg-text-primary);text-align:right}
+.rg-theme .rg-hdr-ctl{display:flex;gap:4px;flex-wrap:wrap;margin-top:2px}
+.rg-theme .rg-hdr-bit{padding:2px 8px;font-size:11px}
+.rg-theme .rg-hdr-in,.rg-theme .rg-hdr-sel{font-family:var(--rg-font-ui);font-size:11px;
   background:var(--rg-bg-hover);color:var(--rg-text-primary);border:1px solid var(--rg-border);border-radius:4px;padding:2px 6px}
-.rg-theme .rg-hdr-in:disabled,.rg-theme .rg-hdr-bit:disabled{opacity:.55;cursor:default}
+.rg-theme .rg-hdr-in{width:72px;font-family:var(--rg-font-mono)}
 .rg-theme .rg-hdr-row.edited .rg-cap-l{color:var(--rg-warning)}

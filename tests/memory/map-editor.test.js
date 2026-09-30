@@ -892,7 +892,7 @@ test('the Info tab bars only real ceilings, and counts the draft\'s own families
     const html = ui.infoTabHtml(p);
     assert.ok(html.includes('6/7 · 86%'), 'families are the draft\'s, as on the Tile tab');
     assert.ok(html.includes('92/264'));
-    assert.strictEqual((html.match(/rg-cap-track/g) || []).length, 3, 'bars for families, graphics and WRAM only');
+    assert.strictEqual((html.match(/rg-cap-fill( full| over)?"/g) || []).length, 3, 'ceiling bars for families, graphics and WRAM only');
     assert.ok(!/\/128|\/16\b/.test(html), 'no placeholder ceilings from the mock');
     assert.ok(html.includes('Nothing blocking'), 'an empty check list says so');
     assert.ok(!html.includes('no brush selected'), 'the brush hint is not a check');
@@ -908,7 +908,9 @@ test('the Info tab measures the map: walkable, solid, canopy, levels', () => {
     assert.strictEqual(f.open, 1, 'geometry 0');
     assert.strictEqual(f.canopy, 1, 'one cell has front art');
     assert.deepStrictEqual(f.levels, [0, 6, 0, 0], 'all on level 1');
-    assert.ok(ui.infoTabHtml(p).includes('rg-info-facts'), 'in its own section');
+    const html = ui.infoTabHtml(p);
+    assert.ok(html.includes('rg-cap-fill measured'), 'measured shares are bars in their own colour');
+    assert.ok(html.includes('5/6 · 83%'), 'solid: five of six drawn cells');
     d.on = true;
 });
 
@@ -932,7 +934,16 @@ test('header fields are editable when unlocked, one undo step each, and ride the
     assert.deepStrictEqual(d.header, { displayTm: 0x16 }, 'undo takes the last change back');
     ui.infoHeaderBit('displayTm:0');           // back to the room's own value
     assert.strictEqual(d.header, null, 'the room\'s own value is no override');
-    assert.ok(ui.infoTabHtml(p).includes('$212C'), 'the register is named');
+    const html = ui.infoTabHtml(p);
+    assert.ok(html.includes('$212C'), 'the register is named');
+    assert.ok(html.indexOf('rg-info-header') < html.indexOf('Capacity'), 'the header comes first');
+    assert.ok(html.includes('Front · Ground · HUD · Sprites'), 'TM $17 in words');
+    assert.ok(html.includes('Add on Ground'), 'CGADSUB $02 in words');
+    assert.ok(html.includes('sub screen, everywhere'), 'CGWSEL $02 in words');
+    d.locked = true;
+    const locked = ui.infoTabHtml(p);
+    assert.ok(!locked.includes('data-header-bit') && locked.includes('Front · Ground · HUD · Sprites'),
+        'locked: the values stay as text, the controls go');
 });
 
 test('a budget past its ceiling reads as over, not as 100%', () => {

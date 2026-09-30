@@ -1,15 +1,15 @@
 // Ownership: the Info tab — four sections, top to bottom:
+//   HEADER    the room header's 13 bytes, in words; the fields the map does
+//             not decide are editable (`_edit.header`, one undo step each)
 //   CAPACITY  the attested ceilings, as the design mock draws them
-//   MAP       facts measured off the map as it is now (a different colour:
-//             these are readings, not budgets)
-//   HEADER    the room header's 13 bytes; the fields the map does not decide
-//             are editable (`_edit.header`, one undo step per change)
+//   MAP       facts measured off the map as it is now — the same rows, in
+//             another colour: these are readings, not budgets
 //   CHECKS    what would stop the draft encoding
 // Split out of map-editor-panels.js, which keeps the other tabs.
 
 /** Info tab body. */
 function infoTabHtml(p) {
-  return infoCapacityHtml(p) + infoFactsHtml(p) + infoHeaderHtml(p) + infoChecksHtml(p);
+  return infoHeaderHtml(p) + infoCapacityHtml(p) + infoFactsHtml(p) + infoChecksHtml(p);
 }
 
 // ── CAPACITY ────────────────────────────────────────────────────────────────
@@ -48,8 +48,16 @@ function infoCapacityHtml(p) {
 
 /** A ceiling: label, `used/max · pct%`, and a bar that warns when full and errs when over. */
 function infoCapRow(label, used, max, title) {
+  return infoBarRow(label, used, max, title, used > max ? ' over' : used >= max ? ' full' : '');
+}
+
+/** A measured share: the same row, its bar in the reading colour, never a warning. */
+function infoShareRow(label, n, of, title) {
+  return infoBarRow(label, n, of, title, ' measured');
+}
+
+function infoBarRow(label, used, max, title, state) {
   var pct = max ? used / max * 100 : 0;
-  var state = used > max ? ' over' : used >= max ? ' full' : '';
   return '<div class="rg-cap" title="' + escH(title) + '"><div class="rg-cap-h"><span class="rg-cap-l">' + escH(label)
     + '</span><span class="rg-cap-v">' + used + '/' + max + ' · ' + Math.round(pct) + '%</span></div>'
     + '<div class="rg-cap-track"><i class="rg-cap-fill' + state + '" style="width:' + Math.min(100, pct).toFixed(1)
@@ -94,51 +102,72 @@ function infoMeasure(p) {
   return f;
 }
 
-function infoPct(n, of) { return of ? Math.round(n / of * 100) + '%' : '—'; }
-
-/** The MAP section: what the grid holds right now, in its own colour. */
+/** The MAP section: what the grid holds right now, as shares of the drawn cells. */
 function infoFactsHtml(p) {
   if (!p.widthTiles || !p.heightTiles) return '';
   var d = editDraft();
   var f = infoMeasure(p);
-  var levels = f.levels.map(function (n, lv) { return n ? lv + ': ' + infoPct(n, f.cells) : ''; })
-    .filter(Boolean).join(' · ');
   var cut = Object.keys((d && d.cut) || {}).length
     + (d && !d.customKey && !d.blank && p.cuttable ? p.cuttable.length : 0);
-  var row = function (label, n, title) { return infoCountRow(label, n + ' cells', infoPct(n, f.cells), title); };
-  return '<div class="rg-info-sec rg-info-facts"><div class="rg-info-h">Map <span class="rg-info-hn">measured, not a budget</span></div>'
-    + infoCountRow('Drawn', f.cells + ' of ' + f.area, infoPct(f.cells, f.area),
-      'Cells with a stamp; a custom map’s empty cells hold nothing yet')
-    + row('Walkable', f.open, 'Geometry 0 (fully open) or always-walkable (bit 13)')
-    + row('Partly solid', f.partial, 'A slope or half-tile barrier (geometry 1..E)')
-    + row('Solid', f.solid, 'Geometry F, not always-walkable')
-    + (f.canopy ? row('Canopy coverage', f.canopy, 'Cells with front (BG1) art — drawn over the characters')
-      : infoCountRow('Canopy coverage', 'none', 'no front art', 'No cell has front (BG1) art'))
-    + infoCountRow('Levels', levels || '—', '', 'Share of drawn cells on each elevation plane (collision bits 5..4)')
-    + infoCountRow('Cuttable', cut + ' cells', '', 'Cells the player can cut away')
-    + (f.drift ? row('Drift', f.drift, 'Always-walkable with a push direction (bit 13, nibble 8..F)') : '')
-    + (f.stairs ? row('Stairs', f.stairs, 'Bit 13 with nibble 0, 1 or 2') : '')
-    + (f.gated ? row('Gated', f.gated, 'Entity gate 3, 5 or 7 — solid for some of the party') : '')
-    + (f.interact ? row('Interactive', f.interact, 'Bit 15 — pressing B facing it runs the B-trigger') : '')
+  var used = f.levels.filter(Boolean).length;
+  var html = '<div class="rg-info-sec rg-info-facts"><div class="rg-info-h">Map <span class="rg-info-hn">measured</span></div>'
+    + (f.cells < f.area ? infoShareRow('Drawn', f.cells, f.area, 'Cells with a stamp; a custom map’s empty cells hold nothing yet') : '')
+    + infoShareRow('Walkable', f.open, f.cells, 'Geometry 0 (fully open) or always-walkable (bit 13)')
+    + infoShareRow('Partly solid', f.partial, f.cells, 'A slope or half-tile barrier (geometry 1..E)')
+    + infoShareRow('Solid', f.solid, f.cells, 'Geometry F, not always-walkable')
+    + infoShareRow('Canopy coverage', f.canopy, f.cells, 'Cells with front (BG1) art — drawn over the characters');
+  f.levels.forEach(function (n, lv) {
+    if (n && used > 1) html += infoShareRow('Level ' + lv, n, f.cells, 'Cells on elevation plane ' + lv + ' (collision bits 5..4)');
+  });
+  if (used === 1) html += infoCountRow('Levels', 'one', 'level ' + f.levels.map(Boolean).indexOf(true), 'Every drawn cell is on one elevation plane');
+  html += infoShareRow('Cuttable', cut, f.cells, 'Cells the player can cut away')
+    + (f.drift ? infoShareRow('Drift', f.drift, f.cells, 'Always-walkable with a push direction (bit 13, nibble 8..F)') : '')
+    + (f.stairs ? infoShareRow('Stairs', f.stairs, f.cells, 'Bit 13 with nibble 0, 1 or 2') : '')
+    + (f.gated ? infoShareRow('Gated', f.gated, f.cells, 'Entity gate 3, 5 or 7 — solid for some of the party') : '')
+    + (f.interact ? infoShareRow('Interactive', f.interact, f.cells, 'Bit 15 — pressing B facing it runs the B-trigger') : '')
     + infoCountRow('Objects', (typeof editObjects === 'function' ? editObjects().length : 0), '',
-      'Areas that change look when a script sets their state')
-    + '</div>';
+      'Areas that change look when a script sets their state');
+  return html + '</div>';
 }
 
 // ── HEADER ──────────────────────────────────────────────────────────────────
 
-/** The fields the map does not decide, in header order, with their byte and register. */
-var INFO_HEADER_FIELDS = [
-  { key: 'displayTm', label: 'Main screen', reg: '$212C · byte 4', bits: true,
-    title: 'Which layers the main screen shows. BG1 is the foreground (canopy) — room 0x4B turns it off' },
-  { key: 'subscreenTs', label: 'Sub screen', reg: '$212D · byte 5', bits: true,
-    title: 'Which layers the sub screen shows, for colour math' },
-  { key: 'colorMath', label: 'Color math', reg: '$2131 · byte 6', hex: 2, title: 'CGADSUB: which layers add or subtract' },
-  { key: 'colorWindow', label: 'Color window', reg: '$2130 · byte 7', hex: 2, title: 'CGWSEL: where colour math applies' },
-  { key: 'effectVariant', label: 'Effect', reg: 'byte 8', hex: 2, title: 'Room effect variant — indexes the effect table at $908E74' },
-  { key: 'param', label: 'Parameter', reg: 'bytes 9–10', hex: 4, title: 'A 16-bit value the loader stores at $0F84' },
+/*
+ * Every value reads as words, locked or not; the controls only appear when
+ * the map is unlocked. The names are the SNES registers' own meanings, and
+ * the room layers are what this engine puts on them (rom-map-data): BG1 the
+ * front/canopy, BG2 the ground, BG3 the HUD, BG4 unused in mode 1.
+ */
+var INFO_LAYERS = ['Front', 'Ground', 'HUD', 'BG4', 'Sprites', 'Backdrop'];
+var INFO_LAYER_REGS = ['BG1', 'BG2', 'BG3', 'BG4', 'OBJ', 'backdrop'];
+
+/**
+ * Effect variants vanilla uses (byte 8), named by what the room does with it
+ * and the rooms that do — a value no room uses is not offered.
+ */
+var INFO_EFFECTS = [
+  { v: 0, name: 'None', rooms: '117 rooms' },
+  { v: 1, name: 'Lantern mask', rooms: '0x4B Oglin cave — the front layer follows the player' },
+  { v: 2, name: 'Layered canopy', rooms: '0x22, 0x31, 0x38, 0x41, 0x5B, 0x6A' },
+  { v: 4, name: 'Arena', rooms: '0x1D Vigor’s arena' },
+  { v: 5, name: 'Heat shimmer', rooms: '0x52 top of the volcano' },
 ];
-var INFO_LAYER_BITS = ['BG1', 'BG2', 'BG3', 'BG4', 'OBJ'];
+var INFO_MATH_MODES = [[0x00, 'Add'], [0x40, 'Add ½'], [0x80, 'Subtract'], [0xc0, 'Subtract ½']];
+var INFO_MATH_WHERE = ['everywhere', 'inside the window', 'outside the window', 'nowhere'];
+
+/** The fields the map does not decide, in header order. */
+var INFO_HEADER_FIELDS = [
+  { key: 'displayTm', label: 'Main screen', reg: '$212C (TM) · byte 4', layers: 5,
+    title: 'The layers the screen shows. Front is the canopy — room 0x4B turns it off' },
+  { key: 'subscreenTs', label: 'Sub screen', reg: '$212D (TS) · byte 5', layers: 5,
+    title: 'The layers drawn behind, for colour math to blend with' },
+  { key: 'colorMath', label: 'Colour math', reg: '$2131 (CGADSUB) · byte 6',
+    title: 'How the sub screen is blended into these main-screen layers' },
+  { key: 'colorWindow', label: 'Blend source', reg: '$2130 (CGWSEL) · byte 7',
+    title: 'What colour math blends with, and where on screen' },
+  { key: 'effectVariant', label: 'Effect', reg: 'byte 8', title: 'The room effect the loader runs' },
+  { key: 'param', label: 'Parameter', reg: 'bytes 9–10', hex: 4, title: 'A 16-bit value the loader stores at $0F84 — 0 in every vanilla room' },
+];
 
 /** The header as this draft would write it: the room's, with the draft's own fields over it. */
 function infoHeader(p) {
@@ -152,32 +181,86 @@ function infoHeader(p) {
 
 function infoHex(v, n) { return '$' + ('0000' + (v >>> 0).toString(16).toUpperCase()).slice(-n); }
 
+function infoLayerList(v, n) {
+  var on = INFO_LAYERS.slice(0, n).filter(function (_, bit) { return v & (1 << bit); });
+  return on.length ? on.join(' · ') : 'nothing';
+}
+
+function infoEffect(v) {
+  return INFO_EFFECTS.filter(function (e) { return e.v === v; })[0];
+}
+
+/** A field's value in words. */
+function infoHeaderText(fd, v) {
+  if (fd.layers) return infoLayerList(v, fd.layers);
+  if (fd.key === 'colorMath') {
+    if (!(v & 0x3f)) return 'off';
+    var mode = INFO_MATH_MODES.filter(function (m) { return m[0] === (v & 0xc0); })[0][1];
+    return mode + ' on ' + infoLayerList(v, 6);
+  }
+  if (fd.key === 'colorWindow') {
+    return (v & 0x02 ? 'sub screen' : 'fixed colour') + ', ' + INFO_MATH_WHERE[(v >> 4) & 3]
+      + ((v >> 6) & 3 ? ' · clips to black' : '');
+  }
+  if (fd.key === 'effectVariant') { var e = infoEffect(v); return e ? e.name : 'unknown ' + infoHex(v, 2); }
+  return infoHex(v, fd.hex || 2);
+}
+
+/** A layer chip: one bit of the field. */
+function infoLayerChip(key, v, bit) {
+  return '<button class="rdf rg-hdr-bit' + (v & (1 << bit) ? ' on' : '') + '" data-header-bit="' + key + ':' + bit + '"'
+    + ' title="' + INFO_LAYER_REGS[bit] + '">' + INFO_LAYERS[bit] + '</button>';
+}
+
+/** A select whose options are whole byte values, so a change is one set. */
+function infoSelect(key, v, options) {
+  return '<select class="rg-hdr-sel" data-header-field="' + key + '">' + options.map(function (o) {
+    return '<option value="' + o[0] + '"' + (o[0] === v ? ' selected' : '') + '>' + escH(o[1]) + '</option>';
+  }).join('') + '</select>';
+}
+
+/** The controls for a field, shown under it while the map is unlocked. */
+function infoHeaderControls(fd, v) {
+  var chips = function (n) {
+    var out = '';
+    for (var bit = 0; bit < n; bit++) out += infoLayerChip(fd.key, v, bit);
+    return out;
+  };
+  if (fd.layers) return chips(fd.layers);
+  if (fd.key === 'colorMath') {
+    return infoSelect(fd.key, v, INFO_MATH_MODES.map(function (m) { return [(v & 0x3f) | m[0], m[1]]; })) + chips(6);
+  }
+  if (fd.key === 'colorWindow') {
+    return infoSelect(fd.key, v, [[v | 0x02, 'Sub screen'], [v & ~0x02, 'Fixed colour']])
+      + infoSelect(fd.key, v, INFO_MATH_WHERE.map(function (w, i) { return [(v & ~0x30) | (i << 4), w]; }));
+  }
+  if (fd.key === 'effectVariant') {
+    var opts = INFO_EFFECTS.map(function (e) { return [e.v, e.name]; });
+    if (!infoEffect(v)) opts.push([v, 'unknown ' + infoHex(v, 2)]);
+    return infoSelect(fd.key, v, opts);
+  }
+  return '<input class="rg-hdr-in" data-header-field="' + fd.key + '" value="' + infoHex(v, fd.hex) + '" spellcheck="false">';
+}
+
 function infoHeaderHtml(p) {
   if (!p.header) return '';
   var d = editDraft();
   var h = infoHeader(p), own = (d && d.header) || {}, locked = editLocked();
   var html = '<div class="rg-info-sec rg-info-header"><div class="rg-info-h">Header'
-    + (locked ? ' <span class="rg-info-hn">unlock the map to change it</span>' : '') + '</div>'
-    + infoCountRow('Origin', h.originX + ', ' + h.originY, 'bytes 0–1',
-      'Where trigger boxes count from, in metatiles — set by the map, not here')
-    + infoCountRow('Size', h.widthTiles + '×' + h.heightTiles, 'bytes 2–3', 'The map’s size in metatiles — set by the map');
+    + (locked ? ' <span class="rg-info-hn">locked</span>' : '') + '</div>'
+    + infoCountRow('Size', h.widthTiles + ' × ' + h.heightTiles, 'metatiles', 'Bytes 2–3 — set by the map')
+    + infoCountRow('Trigger origin', h.originX + ', ' + h.originY, '', 'Bytes 0–1: where trigger boxes count from — set by the map');
   INFO_HEADER_FIELDS.forEach(function (fd) {
     var v = Number(h[fd.key]) || 0;
     var edited = Object.prototype.hasOwnProperty.call(own, fd.key);
-    var ctl;
-    if (fd.bits) {
-      ctl = INFO_LAYER_BITS.map(function (name, bit) {
-        return '<button class="rdf rg-hdr-bit' + (v & (1 << bit) ? ' on' : '') + '" data-header-bit="' + fd.key + ':' + bit + '"'
-          + (locked ? ' disabled' : '') + '>' + name + '</button>';
-      }).join('');
-    } else {
-      ctl = '<input class="rg-hdr-in" data-header-field="' + fd.key + '" value="' + infoHex(v, fd.hex) + '"'
-        + ' spellcheck="false"' + (locked ? ' disabled' : '') + '>';
-    }
-    html += '<div class="rg-hdr-row' + (edited ? ' edited' : '') + '" title="' + escH(fd.title
-      + (edited ? '\nthe room’s own: ' + infoHex(Number((p.header || {})[fd.key]) || 0, fd.hex || 2) : '')) + '">'
-      + '<span class="rg-cap-l">' + escH(fd.label) + ' <span class="rg-hdr-reg">' + escH(fd.reg) + '</span></span>'
-      + '<span class="rg-hdr-ctl">' + ctl + '</span></div>';
+    var e = fd.key === 'effectVariant' ? infoEffect(v) : null;
+    var base = Number((p.header || {})[fd.key]) || 0;
+    var title = fd.title + (e ? ' — ' + e.rooms : '') + '\n' + fd.reg + ' = ' + infoHex(v, fd.hex || 2)
+      + (edited ? '\nthe room’s own: ' + infoHeaderText(fd, base) : '');
+    html += '<div class="rg-cap rg-hdr-row' + (edited ? ' edited' : '') + '" title="' + escH(title) + '">'
+      + '<div class="rg-cap-h"><span class="rg-cap-l">' + escH(fd.label) + '</span>'
+      + '<span class="rg-hdr-v">' + escH(infoHeaderText(fd, v)) + '</span></div>'
+      + (locked ? '' : '<div class="rg-hdr-ctl">' + infoHeaderControls(fd, v) + '</div>') + '</div>';
   });
   return html + '</div>';
 }
@@ -200,18 +283,19 @@ function editHeaderSet(key, value) {
   renderEditChrome();
 }
 
-/** A layer chip: flip that bit of TM or TS. */
+/** A layer chip: flip that bit of the field. */
 function infoHeaderBit(spec) {
   var parts = String(spec).split(':');
   var cur = Number(infoHeader(_mtPalette)[parts[0]]) || 0;
   editHeaderSet(parts[0], cur ^ (1 << Number(parts[1])));
 }
 
-/** A typed value: `$1F`, `0x1F`, `1F` read as hex; clamped to the field's bytes. */
+/** A select carries the whole byte; the parameter is typed as hex (`$1F`, `0x1F`, `1F`). */
 function infoHeaderInput(el) {
   var key = el.dataset.headerField;
   var fd = INFO_HEADER_FIELDS.filter(function (f) { return f.key === key; })[0];
-  var n = parseInt(String(el.value).trim().replace(/^(\$|0x)/i, ''), 16);
+  var n = el.tagName === 'SELECT' ? Number(el.value)
+    : parseInt(String(el.value).trim().replace(/^(\$|0x)/i, ''), 16);
   if (!fd || !isFinite(n) || n < 0) { renderEditChrome(); return; }
   editHeaderSet(key, n & (fd.hex === 4 ? 0xffff : 0xff));
 }
