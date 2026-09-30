@@ -1,3 +1,11 @@
+## [0.83.1] — 2026-09-30
+
+### Fix: Smart erasing — the top-most visible layer goes first
+
+- **Erase reads what is shown, not the Tile tab's front/ground pick:** `editEraseLayers()` (map-editor-phases.js) follows the bottom bar's Background/Foreground segments again, replacing v0.82.10's `_layerForce` (the pick for how a *new* tile is placed) as the eraser's switch.
+- **Both layers shown (the default):** the front art goes first where a cell has any, restoring the floor's collision under it; a second stroke takes the painted tile itself back. Foreground only takes just the front art; Background only takes the ground, keeping any front art.
+- **Gestures:** map-editor-gestures.js writes the resolved stamp as before; tests updated to the top-most-first behaviour.
+
 ## [0.83.0] — 2026-09-30
 
 ### Fix: Vanilla rooms connected to the map editor

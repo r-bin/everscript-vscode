@@ -2122,17 +2122,6 @@ async function main() {
         r.both = erase('composite');
         d.cells['1,1'] = ground; _currentLayer = 'composite'; editStroke({ x: 1, y: 1 }, 'down');
         r.bothBare = d.cells['1,1'] === undefined;
-        // Erase using right panel _layerForce override on composite:
-        _currentLayer = 'composite';
-        d.cells['1,1'] = d.cells['0,0'];
-        _layerForce = 'canopy'; editStroke({ x: 1, y: 1 }, 'down');
-        const wCanopy = d.cells['1,1'] === undefined ? null : editStampWords(_mtPalette, d.cells['1,1']);
-        r.forceCanopy = wCanopy && [wCanopy.layer1, wCanopy.layer2];
-        d.cells['1,1'] = d.cells['0,0'];
-        _layerForce = 'terrain'; editStroke({ x: 1, y: 1 }, 'down');
-        const wTerrain = d.cells['1,1'] === undefined ? null : editStampWords(_mtPalette, d.cells['1,1']);
-        r.forceTerrain = wTerrain && [wTerrain.layer1, wTerrain.layer2];
-        _layerForce = null;
         d.tool = 'paint'; d.brush = -1; d.cells = {}; d.blank = null;
         return r;
     });
@@ -2143,11 +2132,8 @@ async function main() {
     check('erase follows the selected layer: Foreground takes the front art, Background the ground',
         ord.fgOnly && ord.fgOnly[0] === 0xa800 && ord.fgOnly[1] === 0x4c62
         && ord.bgOnly && ord.bgOnly[0] === 0x2c66 && ord.bgOnly[1] === 0xa800, JSON.stringify(ord));
-    check('with auto (both), the whole painted tile is erased at once',
-        ord.both === null && ord.bothBare, JSON.stringify(ord));
-    check('erase follows right panel _layerForce: canopy takes front art, terrain takes ground',
-        ord.forceCanopy && ord.forceCanopy[0] === 0xa800 && ord.forceCanopy[1] === 0x4c62
-        && ord.forceTerrain && ord.forceTerrain[0] === 0x2c66 && ord.forceTerrain[1] === 0xa800, JSON.stringify(ord));
+    check('with both, the front art goes first, then the painted tile itself',
+        ord.both && ord.both[0] === 0xa800 && ord.bothBare, JSON.stringify(ord));
 
     const swap = await page.evaluate(() => {
         editDraft().families = [];
