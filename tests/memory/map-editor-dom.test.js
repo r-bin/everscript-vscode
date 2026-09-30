@@ -399,7 +399,7 @@ async function main() {
         'hide-grid16', 'hide-grid8', 'hide-header', 'hide-hitbox', 'hide-ingr', 'hide-map',
         'hide-obj', 'hide-poi', 'hide-scripts', 'hide-spawn', 'hide-special',
         'hide-special-entrance', 'hide-special-gate', 'hide-special-stairs', 'hide-step',
-        'hide-trigger'].sort();
+        'hide-trig-type', 'hide-trigger'].sort();
     check('every view toggle survived the regroup into dropdowns',
         barKeys.hide.join() === WANT_HIDE.join(),
         'missing: ' + WANT_HIDE.filter((k) => !barKeys.hide.includes(k)).join()
@@ -412,16 +412,19 @@ async function main() {
         barKeys.vis.join() === 'bg,fg');
     check('the bar is six controls plus the two actions, not a wall of chips',
         barKeys.topLevel <= 8, 'top-level children: ' + barKeys.topLevel);
-    // §8e: Objects is one toggle with no menu ("objects are distinct object
-    // tiles. the arrow should be removed"), and Triggers holds only the two
-    // kinds of trigger; everything else they carried is in More.
-    // v0.73.0: Collision's caret picks outline or tile-by-tile drawing.
-    check('four dropdowns, one mechanism — Objects has none',
-        barKeys.ids.join() === 'rg-collision-dropdown,rg-more-dropdown,rg-special-dropdown,rg-trigger-dropdown',
+    // §8e: Triggers holds only what triggers show; everything else they
+    // carried is in More. v0.73.0: Collision's caret picks outline or
+    // tile-by-tile drawing. v0.91.0: Objects gets a menu again — its number
+    // and its sub-frames — and Triggers their type letter and script id.
+    check('five dropdowns, one mechanism',
+        barKeys.ids.join() === 'rg-collision-dropdown,rg-more-dropdown,rg-object-dropdown,rg-special-dropdown,rg-trigger-dropdown',
         barKeys.ids.join());
-    check('Triggers offers only step-on and B triggers',
-        await page.evaluate(() => [...document.querySelectorAll('#rg-trigger-dropdown [data-hide]')]
-            .map((b) => b.dataset.hide).join() === 'hide-step,hide-btrig'));
+    check('Triggers offers the two kinds, the type letter and the script id',
+        await page.evaluate(() => [...document.querySelectorAll('#rg-trigger-dropdown [data-hide], #rg-trigger-dropdown [data-show]')]
+            .map((b) => b.dataset.hide || b.dataset.show).join() === 'hide-step,hide-btrig,hide-trig-type,show-trig-id'));
+    check('Objects offers the object number and its sub-frames, both off',
+        await page.evaluate(() => [...document.querySelectorAll('#rg-object-dropdown [data-show]')]
+            .map((b) => b.dataset.show + (b.classList.contains('on') ? '+' : '')).join() === 'show-obj-id,show-obj-frames'));
     check('NPCs, hitboxes, grass and the grids moved to More',
         await page.evaluate(() => ['hide-spawn', 'hide-hitbox', 'hide-grid8', 'hide-grid16']
             .every((k) => document.querySelector('#rg-more-dropdown [data-hide="' + k + '"]'))

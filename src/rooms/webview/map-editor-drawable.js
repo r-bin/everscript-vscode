@@ -168,6 +168,23 @@ function editEraseTriggerAt(cell) {
  * edited: their baked boxes are left out of the render then (romOverlayFlags),
  * so one moved or deleted here is gone from the map as well.
  */
+/**
+ * Small labels in a box's first cell, on the top row of the special glyphs'
+ * 3×3 grid (map-editor-special.js editRenderSpecialBoxSvg): the first part in
+ * the first slot, the rest after it. Each part is `[text, class]`; the filter
+ * bar's toggles show or hide a class (rooms-layout.css).
+ */
+function editCornerLabelSvg(pos, parts) {
+  var fs = EDIT_UNITS * 0.22, x = pos.x + EDIT_UNITS * 0.12, y = pos.y + EDIT_UNITS * 0.3;
+  var html = '';
+  parts.forEach(function (p, i) {
+    if (!p[0]) return;
+    html += '<text class="rg-corner-lbl ' + p[1] + '" x="' + (i ? x + EDIT_UNITS * 0.24 : x) + '" y="' + y
+      + '" font-size="' + fs + '" pointer-events="none">' + escH(p[0]) + '</text>';
+  });
+  return html;
+}
+
 function editTriggerSvg(origin) {
   var html = '';
   var all = editOnRomRoom();
@@ -175,11 +192,11 @@ function editTriggerSvg(origin) {
     editTriggerList(kind).forEach(function (t) {
       if (t.origin !== 'placed' && !all) return;
       var a = editCellPos(origin, t.x1, t.y1);
+      var id = typeof t.scriptId === 'number' ? t.scriptId.toString(16).toUpperCase() : '';
       html += '<g class="rg-trigger-placed rg-trigger-placed-' + kind + '">'
         + '<rect x="' + a.x + '" y="' + a.y + '" width="' + ((t.x2 - t.x1 + 1) * EDIT_UNITS)
         + '" height="' + ((t.y2 - t.y1 + 1) * EDIT_UNITS) + '"/>'
-        + '<text x="' + (a.x + EDIT_UNITS * 0.12) + '" y="' + (a.y + EDIT_UNITS * 0.55) + '" font-size="'
-        + (EDIT_UNITS * 0.5) + '">' + editTriggerKindDef(kind)[2] + '</text></g>';
+        + editCornerLabelSvg(a, [[editTriggerKindDef(kind)[2], 'rg-trig-type'], [id, 'rg-trig-id']]) + '</g>';
     });
   });
   if (_triggerDraw && _triggerDraw.x1 != null) {

@@ -41,6 +41,9 @@ function editDock(on, room) {
       panels.className = 'rg-panels';
       outer.parentNode.insertBefore(row, outer);
       row.appendChild(outer);
+      // The room's name line heads the map column, so the dock reaches the top.
+      var head = row.parentNode.querySelector(':scope > .rd-head');
+      if (head) outer.insertBefore(head, outer.firstChild);
       // The handle that resizes the dock (rooms-layout.js).
       row.insertAdjacentHTML('beforeend', '<div class="rg-split" data-split="dock" title="Drag to resize"></div>');
       row.appendChild(dock);

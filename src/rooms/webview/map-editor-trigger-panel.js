@@ -79,7 +79,7 @@ function triggerRowHtml(t, kind, n) {
     + (locked ? '' : '<span class="rg-trigger-grip" aria-hidden="true">⠿</span>')
     + triggerPreviewsHtml(t, kind)
     + '<span class="rg-trigger-label">#' + n + ' · ' + w + '×' + h + ' tiles'
-    + (what ? '<span class="rg-trigger-what">' + escH(what) + '</span>' : '') + '</span>'
+    + (what ? '<span class="rg-trigger-what">' + scriptHighlight(what) + '</span>' : '') + '</span>'
     + '<span class="rg-object-caret" data-trigger-toggle="' + escH(refStr) + '" title="' + (open ? 'Hide' : 'Show')
     + ' its script">' + (open ? '▾' : '▸') + '</span>'
     + (locked ? '' : '<button class="rdf rg-trigger-remove" data-trigger-remove="' + escH(refStr) + '" title="Remove this trigger">×</button>')

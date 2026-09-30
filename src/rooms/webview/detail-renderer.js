@@ -350,7 +350,8 @@ function showTileError(message){
   var el=document.createElement('div');
   el.className='rs rs-error rs-tile-error';
   el.innerHTML='<div class="rs-h">Map render unavailable</div><div class="rs-note">'+escH(message)+'</div>';
-  if(head&&head.nextSibling)panel.insertBefore(el,head.nextSibling);
+  // The name line may sit inside the map column (map-editor-ui.js editDock).
+  if(head&&head.parentNode)head.parentNode.insertBefore(el,head.nextSibling);
   else panel.appendChild(el);
 }
 

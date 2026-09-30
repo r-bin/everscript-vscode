@@ -788,6 +788,7 @@ const ui = new Function(`
     editRoomSpecialsSvg: editRoomSpecialsSvg, editExport: editExport, infoTabHtml: infoTabHtml, infoMeasure: infoMeasure,
     editHeaderSet: editHeaderSet, infoHeaderBit: infoHeaderBit, infoHeader: infoHeader,
     setPanelRoom: function (r) { _editPanelRoom = r; }, triggerToggle: triggerToggle, triggerEnterPick: triggerEnterPick,
+    triggerScriptWhat: triggerScriptWhat, scriptHighlight: scriptHighlight,
     objectLooksStatic: objectLooksStatic, objectIsOpen: objectIsOpen, setObjectOpen: function (k, v) { _objectOpen[k] = v; }, objectReorder: objectReorder, objectTabHtml: objectTabHtml,
   };`)();
 
@@ -2148,11 +2149,13 @@ test('trigger rows start collapsed, say what their script does, and open to its 
     ui.setPanelRoom({ content: { triggers: { bTrigger: [script], stepOn: [],
         enter: { scriptAddressSnes: 0x96b630, instructions: [{ addressSnes: 0x96b630, summary: 'fade in' }] } } } });
     let html = ui.triggerTab();
-    assert.ok(html.includes('Mushroom ×2'), 'the collapsed row says what it hands over');
+    assert.ok(html.replace(/<[^>]+>/g, '').includes('Mushroom ×2'), 'the collapsed row says what it hands over');
     assert.ok(!html.includes('give Mushroom'), 'collapsed: no script lines');
     ui.triggerToggle('b:base:0');
     html = ui.triggerTab();
-    assert.ok(html.includes('give Mushroom ×2') && html.includes('op 0x00'), 'open: one line per instruction, summary or opcode');
+    const text = html.replace(/<[^>]+>/g, '');
+    assert.ok(text.includes('give Mushroom ×2') && text.includes('op 0x00'), 'open: one line per instruction, summary or opcode');
+    assert.ok(html.includes('<span class="sx-num">0x00</span>'), 'numbers are coloured');
     assert.ok(html.includes('data-script-addr="96AB5E"'), 'the emulator highlight can find the line');
     ui.triggerEnterPick(true);
     html = ui.triggerTab();
@@ -2160,6 +2163,17 @@ test('trigger rows start collapsed, say what their script does, and open to its 
     assert.ok(!html.includes('data-trigger-ref'), 'and no trigger rows');
     ui.triggerEnterPick(false);
     ui.setPanelRoom(null);
+});
+
+test('a pickup reads as its Everscript, and script lines colour numbers, names and the closing note', () => {
+    assert.strictEqual(ui.triggerScriptWhat({ loot: [{ itemName: 'Oil', amount: 1 }], everscript: ['_loot_chest(0x03, OIL);'] }),
+        '_loot_chest(0x03, OIL);');
+    const h = ui.scriptHighlight('IF $2273&0x01 SKIP 19 (to 0x94e65d)');
+    assert.ok(h.includes('SKIP <span class="sx-num">19</span>'), 'the skip count is a value');
+    assert.ok(h.includes('<span class="sx-aside">(to '), 'the note that ends the line is dimmed');
+    assert.ok(!ui.scriptHighlight('$2273 |= 0x01 if ($22ea & 0x01) else $2273 &= ~0x01').includes('sx-aside'),
+        'a condition mid-line is not a note');
+    assert.ok(ui.scriptHighlight('CALL "Loot gourd?" (0x3a)').includes('<span class="sx-str">"Loot gourd?"</span>'));
 });
 
 console.log(`\n  ${passed} passed, ${failed} failed`);

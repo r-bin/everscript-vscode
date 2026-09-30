@@ -1,3 +1,14 @@
+## [0.91.0] — 2026-09-30
+
+### Feat: readable trigger scripts, map labels for triggers and objects, dock to the top
+
+- **Pickups as Everscript:** a collapsed trigger row shows the call that writes its loot (`_loot_chest(0x03, OIL);`) instead of just the item name.
+- **Coloured script lines:** numbers and addresses (`SKIP 19`, `$2273`, `0x94e65d`, `0d01`), quoted names, the leading keyword and the Everscript function each get their own colour; the note that ends a line (`(to 0x94e65d)`) is dimmed, a condition mid-line is not.
+- **One instruction, one row:** a wrapped line hangs under its first and rows alternate their background, so a long instruction no longer reads as two.
+- **The dock runs to the top:** the room's name line heads the map column, not the whole page.
+- **Triggers menu:** *Type* (the B/S letter, on) and *Script ID* (the script each box runs, in hex, off), drawn small in the box's first cell on the special glyphs' 3×3 grid.
+- **Objects menu:** *ID* (the number a script's `SET OBJ` names, top-right of the area) and *Sub-frames* (where each changed state draws, for every object), both off by default.
+
 ## [0.90.0] — 2026-09-30
 
 ### Feat: the editor takes the whole Rooms tab — scripts in the trigger rows, nothing under the map

@@ -107,9 +107,9 @@ var EDIT_CLICK_KEYS = ['editTool', 'editAct', 'editPick', 'panel',
   'brushFlip', 'tileFilter', 'tileShape', 'tileFrames', 'strandedFix', 'strandedDrop', 'nbSide', 'nbCentre', 'nbUse',
   'layerForce', 'deco', 'decoSave', 'widget', 'widgetEdit', 'widgetAct',
   'objectSel', 'objectToggle', 'objectFrame', 'objectAddFrame', 'objectRemove', 'objectRemoveFrame',
-  'objectConfirmRemoveFrame', 'objectCancelRemoveFrame', 'objectMoveFrame', 'objectMoveObj',
+  'objectConfirmRemoveFrame', 'objectCancelRemoveFrame', 'objectMoveFrame',
   'decoFlag', 'mtIndex', 'mtSlot', 'editActiveTab',
-  'editSpecial', 'editSpecialMenu', 'editTriggerMenu', 'editMoreMenu',
+  'editSpecial', 'editSpecialMenu', 'editTriggerMenu', 'editObjectMenu', 'editMoreMenu',
   'editToolMenu', 'triggerRef', 'triggerRemove', 'triggerKind', 'triggerEnter', 'triggerToggle', 'editLevel', 'editCollisionMenu', 'collisionMode'];
 
 /**
@@ -126,6 +126,7 @@ var EDIT_CLICK_KEYS = ['editTool', 'editAct', 'editPick', 'panel',
 var EDIT_FILTER_MENUS = [
   { key: 'editSpecialMenu', id: 'rg-special-dropdown' },
   { key: 'editTriggerMenu', id: 'rg-trigger-dropdown' },
+  { key: 'editObjectMenu', id: 'rg-object-dropdown' },
   { key: 'editMoreMenu', id: 'rg-more-dropdown' },
   { key: 'editToolMenu', id: 'rg-tool-dropdown' },
   { key: 'editCollisionMenu', id: 'rg-collision-dropdown' },

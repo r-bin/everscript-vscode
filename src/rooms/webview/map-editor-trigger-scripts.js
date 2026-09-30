@@ -52,15 +52,51 @@ function triggerScriptFor(t, kind) {
   return mine || triggerScriptIndex()[t.scriptId] || null;
 }
 
-/** What the script was recognised to do, in a few words — '' when nothing was. */
+/**
+ * What the script was recognised to do, in a few words — '' when nothing was.
+ * A pickup reads as the Everscript that writes it (`_loot_chest(0x03, OIL);`,
+ * script/everscript.ts lootToEverscript), which is copyable, not just a name.
+ */
 function triggerScriptWhat(s) {
   if (!s) return '';
   var bits = [];
-  if (typeof lootLabel === 'function' && lootLabel(s)) bits.push(lootLabel(s));
+  var code = (s.everscript || []).filter(Boolean);
+  if (code.length) bits.push(code[0] + (code.length > 1 ? ' +' + (code.length - 1) : ''));
+  else if (typeof lootLabel === 'function' && lootLabel(s)) bits.push(lootLabel(s));
   if (typeof exitLabel === 'function' && exitLabel(s)) bits.push(exitLabel(s));
   var sp = (s.spawns || []).length;
   if (sp) bits.push(sp + ' NPC' + (sp === 1 ? '' : 's'));
   return bits.join(' · ');
+}
+
+/**
+ * A decoded summary (or an Everscript line), coloured: numbers and addresses,
+ * quoted names, the keyword that leads an instruction, and the note that ends
+ * a line (`(to 0x94e65d)`) dimmed. Escaped first; the patterns only ever wrap
+ * text, never cut an entity.
+ */
+var SCRIPT_TOKEN = /("[^"]*")|(\([^()]*\))|(\$[0-9a-fA-F]+|0x[0-9a-fA-F]+|\b0d\d+\b|\b\d+\b)|(^[A-Z][A-Z_?]+(?: [A-Z][A-Z_?]+)?\b|\b_[a-z_]+(?=\())/g;
+
+function scriptHighlight(text) {
+  var out = '', last = 0, m;
+  var src = String(text);
+  // Its own regex per call: an aside recurses, and a shared lastIndex loops.
+  var re = new RegExp(SCRIPT_TOKEN.source, 'g');
+  while ((m = re.exec(src))) {
+    out += escH(src.slice(last, m.index));
+    if (m[2]) {
+      // Only the note that ends a line is an aside (`(to 0x94e65d)`); a
+      // condition in the middle (`if ($22ea & 0x01) else …`) is the instruction.
+      var aside = !src.slice(m.index + m[0].length).trim();
+      var inner = '(' + scriptHighlight(m[2].slice(1, -1)) + ')';
+      out += aside ? '<span class="sx-aside">' + inner + '</span>' : inner;
+    } else {
+      out += '<span class="' + (m[1] ? 'sx-str' : m[3] ? 'sx-num' : 'sx-kw') + '">' + escH(m[0]) + '</span>';
+    }
+    last = m.index + m[0].length;
+    if (m[0].length === 0) re.lastIndex++;
+  }
+  return out + escH(src.slice(last));
 }
 
 /** The script, one instruction per line: its summary, or its opcode when it has none. */
@@ -73,7 +109,7 @@ function triggerScriptLinesHtml(s) {
     var addr = typeof r.addressSnes === 'number' ? normScriptAddr(hexNum(r.addressSnes, 6)) : '';
     html += '<div class="' + cls + '" data-script-addr="' + addr + '" title="' + escH(hexNum(r.addressSnes, 6).replace('&ndash;', '')
       + '  ' + (r.opcodeHex || '') + (r.bytesHex ? '  ' + r.bytesHex : '')) + '">'
-      + escH(r.summary || ('op ' + (r.opcodeHex || '?'))) + '</div>';
+      + scriptHighlight(r.summary || ('op ' + (r.opcodeHex || '?'))) + '</div>';
   });
   if (s.terminated === false) html += '<div class="rs-note rs-err">stopped: ' + escH(s.stopReason || 'unknown') + '</div>';
   return html + '</div>';
@@ -121,7 +157,7 @@ function triggerEnterHtml() {
   return '<div class="rs-note">Runs as the room loads. It has no box, so the pencil cannot draw one.</div>'
     + '<div class="rg-trigger-body rg-enter-body"><div class="rs-note">'
     + (typeof s.scriptAddressSnes === 'number' ? 'at ' + hexNum(s.scriptAddressSnes, 6) : '')
-    + (what ? ' · ' + escH(what) : '') + '</div>' + triggerExitsHtml(s) + triggerScriptLinesHtml(s) + '</div>';
+    + (what ? ' · ' + scriptHighlight(what) : '') + '</div>' + triggerExitsHtml(s) + triggerScriptLinesHtml(s) + '</div>';
 }
 
 /** Show the Enter tab, or back to a drawable kind. */

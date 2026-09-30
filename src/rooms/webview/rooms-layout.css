@@ -8,6 +8,9 @@
 .rm-right:has(> #room-detail.rg-theme){overflow:hidden;display:flex;flex-direction:column;padding-bottom:8px}
 #room-detail.rg-theme{flex:1;min-height:0;display:flex;flex-direction:column}
 #room-detail.rg-theme > *{flex:none}
+/* The room's name line heads the map column, not the page: the dock runs to
+ * the top (map-editor-ui.js editDock moves it into #rg-outer). */
+.rg-theme .rg-outer > .rd-head{flex:none;margin-bottom:6px}
 /* The editor row takes all the height left under the room's name; the map
  * column stacks canvas, filter bar and status bar, the status bar last — the
  * bottom of the screen. */
@@ -39,10 +42,30 @@ body.rg-resizing{cursor:col-resize;user-select:none}
 .rg-theme .rg-enter-body{padding-left:10px;border:1px solid var(--rg-border);border-radius:7px;margin-top:6px}
 .rg-theme .rg-script{display:flex;flex-direction:column;gap:1px;margin-top:4px;font-family:var(--rg-font-mono);
   font-size:11px;line-height:1.45;color:var(--rg-text-secondary)}
-/* Summaries wrap: a long one reads better on two lines than cut off. */
-.rg-theme .rg-script-line{white-space:normal;overflow-wrap:anywhere;padding:0 4px;border-radius:3px}
+/* Summaries wrap: a long one reads better on two lines than cut off. So one
+ * instruction reads as one row, a wrapped line hangs under its first, and
+ * rows alternate their background. */
+.rg-theme .rg-script-line{white-space:normal;overflow-wrap:anywhere;padding:1px 4px 1px 18px;text-indent:-14px;border-radius:3px}
+.rg-theme .rg-script-line:nth-child(even){background:rgba(255,255,255,.035)}
+/* Colours in a summary (map-editor-trigger-scripts.js scriptHighlight). */
+.rg-theme .sx-kw{color:var(--rg-accent)}
+.rg-theme .sx-num{color:oklch(78% 0.12 55)}
+.rg-theme .sx-str{color:var(--rg-success)}
+.rg-theme .sx-aside{color:var(--rg-text-muted)}
+.rg-theme .sx-aside .sx-num{color:inherit}
 .rg-theme .rg-script-line.rs-guess{opacity:.55}
 .rg-theme .rg-script-line.rs-err{color:var(--rg-error)}
 .rg-theme .rg-script-line.rs-term{color:var(--rg-text-muted)}
 .rg-theme .rg-script-line.rs-current{background:var(--rg-accent-soft);color:var(--rg-text-primary)}
 .rg-theme .rg-script-exit{display:block;margin:2px 0;font-family:var(--rg-font-ui)}
+
+/* ── Map labels: trigger type/script id, object number, sub-frames ─────────
+ * Drawn always (map-editor-drawable.js editCornerLabelSvg, map-editor-objects.js),
+ * shown by the filter bar's Triggers and Objects menus. */
+.rg-theme text.rg-corner-lbl{font-family:var(--rg-font-mono);font-weight:700;paint-order:stroke;stroke:#000;
+  stroke-width:.06;user-select:none}
+.hide-trig-type .rg-trig-type{display:none}
+.rg-theme .rg-trig-id,.rg-theme .rg-obj-id,.rg-theme .rg-obj-subframe{display:none}
+.show-trig-id .rg-trig-id,.show-obj-id .rg-obj-id,.show-obj-frames .rg-obj-subframe{display:inline}
+.rg-theme .rg-obj-id{fill:var(--rg-object)}
+.rg-theme .rg-obj-subframe{fill:none;stroke:var(--rg-object);stroke-width:.1;stroke-dasharray:.2 .15;opacity:.8}

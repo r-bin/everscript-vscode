@@ -270,9 +270,24 @@ function editObjectSvg(palette, composed, origin) {
       html += editStampSvg(palette, composed, curLayer[k], pos.x, pos.y, 'rg-edit-cell rg-obj-cell');
     });
     var a = editCellPos(origin, o.x, o.y);
+    // The number a script's SET OBJ names: the room's own, else its place in the list.
+    var num = o.roomObject != null ? o.roomObject : o.objectIndex != null ? o.objectIndex : idx;
     html += '<rect class="rg-obj-area rg-obj-cluster' + (isSel ? ' sel' : '') + '" x="' + a.x + '" y="' + a.y
       + '" width="' + (o.w * EDIT_UNITS) + '" height="' + (o.h * EDIT_UNITS) + '" pointer-events="none">'
-      + '<title>' + escH('obj #' + idx + ' cluster: ' + o.w + '×' + o.h + ' at ' + o.x + ',' + o.y) + '</title></rect>';
+      + '<title>' + escH('obj ' + num + ' (0x' + num.toString(16) + ') cluster: ' + o.w + '×' + o.h + ' at ' + o.x + ',' + o.y) + '</title></rect>'
+      // Top-right: the top-left belongs to a trigger's label, and a gourd's
+      // B-trigger shares its first cell with it.
+      + '<text class="rg-corner-lbl rg-obj-id" x="' + (a.x + o.w * EDIT_UNITS - EDIT_UNITS * 0.12) + '" y="' + (a.y + EDIT_UNITS * 0.3)
+      + '" font-size="' + (EDIT_UNITS * 0.22) + '" text-anchor="end" pointer-events="none">' + num + '</text>';
+    // Where each changed state draws, for every object (the filter bar's Sub-frames).
+    frames.forEach(function (f, fi) {
+      var sb = objectFrameBounds(f);
+      if (!sb) return;
+      var sp = editCellPos(origin, o.x + sb.dx, o.y + sb.dy);
+      html += '<rect class="rg-obj-subframe" x="' + sp.x + '" y="' + sp.y + '" width="' + (sb.w * EDIT_UNITS)
+        + '" height="' + (sb.h * EDIT_UNITS) + '" pointer-events="none"><title>' + escH('obj ' + num + ' frame ' + (fi + 1)
+        + ': ' + sb.w + '×' + sb.h + ' (' + sb.count + ' tiles)') + '</title></rect>';
+    });
     if (isSel && activeIdx >= 1) {
       var b = objectFrameBounds(curLayer);
       if (b) {

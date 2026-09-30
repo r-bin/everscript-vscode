@@ -30,6 +30,11 @@ function viewHideBtnHtml(key, label, title) {
     + escH(label) + '</button>';
 }
 
+/** The opposite default: off until clicked, and on it adds `key` to the panel. */
+function viewShowBtnHtml(key, label, title) {
+  return '<button class="rdf" data-show="' + key + '" title="' + escH(title) + '">' + escH(label) + '</button>';
+}
+
 /**
  * A chip plus a caret that opens a popup of sub-toggles.
  *
@@ -115,20 +120,31 @@ function triggerFilterGroupHtml(ctx) {
     subs: [
       viewHideBtnHtml('hide-step', 'Step trigger', 'Step-on trigger boxes'),
       viewHideBtnHtml('hide-btrig', 'B trigger', 'B-trigger boxes'),
+      // Labels in the box's first cell, on the special glyphs' 3×3 grid.
+      viewHideBtnHtml('hide-trig-type', 'Type', 'B or S in the corner of each box'),
+      viewShowBtnHtml('show-trig-id', 'Script ID', 'The script each box runs, in hex, beside its type'),
     ],
   });
 }
 
 /**
- * Objects: the room's object tiles, one toggle, no menu (§8e — "objects are
- * distinct object tiles. the arrow should be removed"). On a ROM room that
- * is the `o` feature render; on a source room, the objects its script
- * defines. NPCs, hitboxes, grass and the rest moved to More.
+ * Objects: the room's object tiles. On a ROM room that is the `o` feature
+ * render; on a source room, the objects its script defines. Its menu holds
+ * only what an object itself shows — its number and its sub-frames (v0.91.0);
+ * NPCs, hitboxes, grass and the rest stay in More.
  */
 function objectFilterGroupHtml(ctx) {
-  if (ctx.romId) return romOverlayButtonHtml('o', 'Objects');
-  if (ctx.hasObjects) return viewHideBtnHtml('hide-obj', 'Objects', 'Objects defined in this room’s source');
-  return '';
+  var flat = ctx.romId ? romOverlayButtonHtml('o', 'Objects')
+    : ctx.hasObjects ? viewHideBtnHtml('hide-obj', 'Objects', 'Objects defined in this room’s source') : '';
+  if (!flat) return '';
+  return filterGroupHtml({
+    flat: flat, label: 'Objects', menuAttr: 'edit-object-menu', id: 'rg-object-dropdown',
+    caretTitle: 'What each object shows',
+    subs: [
+      viewShowBtnHtml('show-obj-id', 'ID', 'Each object’s number — the one a script’s SET OBJ names'),
+      viewShowBtnHtml('show-obj-frames', 'Sub-frames', 'Where each changed state draws, for every object'),
+    ],
+  });
 }
 
 function copyMapButtonHtml() {
