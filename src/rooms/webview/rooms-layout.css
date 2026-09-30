@@ -69,3 +69,29 @@ body.rg-resizing{cursor:col-resize;user-select:none}
 .show-trig-id .rg-trig-id,.show-obj-id .rg-obj-id,.show-obj-frames .rg-obj-subframe{display:inline}
 .rg-theme .rg-obj-id{fill:var(--rg-object)}
 .rg-theme .rg-obj-subframe{fill:none;stroke:var(--rg-object);stroke-width:.1;stroke-dasharray:.2 .15;opacity:.8}
+
+/* ── The map fills the space between the bars ──────────────────────────────
+ * The canvas card is the whole zone now: no padding, border or shadow. The
+ * viewport (#rg-wrap) fills it and zoom-pan.js fits the map to its live size.
+ * The interactive bars float in front of the map: the tools at the top, the
+ * levels against the right edge, the filters at the bottom, the zoom chip
+ * top-right. */
+.rg-theme .rg-edit-row > .rg-outer > .rg-canvas-zone{position:relative;padding:0;gap:0;border-radius:0;overflow:hidden}
+.rg-theme .rg-canvas-zone > .rg-canvas-card{position:absolute;inset:0;max-width:none;padding:0;background:none;
+  border:none;border-radius:0;box-shadow:none}
+.rg-theme.rg-editing .rg-canvas-zone > .rg-canvas-card{padding-top:0}
+.rg-theme .rg-canvas-zone .rg-wrap{width:100%!important;height:100%!important;border-radius:0;background:var(--rg-bg-app)}
+.rg-theme .rg-canvas-zone #rg-edit-bar{top:8px}
+.rg-theme .rg-canvas-zone .rg-level-bar{left:auto;right:8px}
+.rg-theme .rg-canvas-card .rg-zoom{top:8px;right:8px;bottom:auto;left:auto}
+.rg-theme .rg-canvas-zone .rg-view-filters{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);z-index:5;
+  margin:0;flex-wrap:nowrap;width:max-content;max-width:calc(100% - 16px);padding:5px 8px;gap:4px;
+  background:var(--rg-bg-float);border-radius:var(--rg-radius-pill);box-shadow:var(--rg-shadow-float)}
+.rg-theme .rg-canvas-zone .rg-view-filters .rdf{white-space:nowrap}
+/* A popup opens upwards: the bar is on the map's bottom edge. */
+.rg-theme .rg-canvas-zone .rg-view-filters .rg-filter-popup{top:auto;bottom:calc(100% + 6px)}
+/* The status bar is the column's floor: a flat strip, edge to edge. */
+.rg-theme .rg-edit-row > .rg-outer > .rg-statusbar{margin:0;border:none;border-top:1px solid var(--rg-border);border-radius:0}
+/* The grip rides the map's own corner inside the canvas. */
+.rg-theme #rg-canvas > .rg-resize{position:absolute;right:0;bottom:0}
+.rg-theme #rg-canvas > .rg-resize-label{position:absolute;right:16px;bottom:4px}

@@ -55,10 +55,12 @@ function editDock(on, room) {
       bindEditControls(dock, room);
     }
     // The resize grip sits over the map's own bottom-right corner, so the
-    // map is resized where it is rather than through a form.
-    var wrap = document.getElementById('rg-wrap');
-    if (wrap && !document.getElementById('rg-resize')) {
-      wrap.insertAdjacentHTML('beforeend', buildResizeHandleHtml());
+    // map is resized where it is rather than through a form. In the map
+    // canvas, not the viewport: the viewport fills the editor, the canvas is
+    // the map at its zoom and pan.
+    var mapBox = document.getElementById('rg-canvas') || document.getElementById('rg-wrap');
+    if (mapBox && !document.getElementById('rg-resize')) {
+      mapBox.insertAdjacentHTML('beforeend', buildResizeHandleHtml());
     }
     // Nothing can be painted without the dictionary, so fetch it now
     // rather than making the user find the load button.

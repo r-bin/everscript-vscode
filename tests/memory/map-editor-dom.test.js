@@ -1934,11 +1934,12 @@ async function main() {
         bindEditControls(document.getElementById('room-detail'), {});
     });
     const wasOn = await page.evaluate(() => interactOverlayOn());
-    await page.click('#room-detail .rdf-interact');
+    // Interact lives in the Special menu since v0.92.0, so a closed popup hides it.
+    await page.$eval('#room-detail .rdf-interact', (b) => b.click());
     const nowOn = await page.evaluate(() => interactOverlayOn());
     check('binding the panel again does not double every click', nowOn === !wasOn,
         `the Interact overlay went ${wasOn} -> ${nowOn} after one click, with the panel bound twice`);
-    await page.click('#room-detail .rdf-interact');
+    await page.$eval('#room-detail .rdf-interact', (b) => b.click());
     check('and the next click toggles it straight back',
         await page.evaluate(() => interactOverlayOn()) === wasOn);
 

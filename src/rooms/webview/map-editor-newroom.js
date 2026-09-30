@@ -140,6 +140,8 @@ function resizeMapTo(room) {
     var el = document.getElementById(id);
     if (el) { el.style.width = MAP_DISP_W + 'px'; el.style.height = dispH + 'px'; }
   });
+  // The viewport fills the editor (rooms-layout.css): fit the new extent to it.
+  if (typeof _zoomRefit === 'function' && _zoomRefit) _zoomRefit();
 }
 
 /**

@@ -98,10 +98,37 @@ function objectStatesHtml(o, n) {
   return h + '</div>';
 }
 
+/** The number a script's `SET OBJ` names: the room's own, else its place in the list. */
+function objectNumber(o, n) {
+  return o.roomObject != null ? o.roomObject : o.objectIndex != null ? o.objectIndex : n;
+}
+
+/**
+ * What a trigger's script does with this object, as the Trigger tab says it:
+ * a gourd's or a chest's B-trigger hands over loot naming the object by
+ * number (`loot[].objectId`), and its Everscript names it the same way
+ * (`_loot_chest(0x03, OIL);`). '' when no script names it.
+ */
+function objectScriptWhat(o, n) {
+  if (typeof triggerScriptFor !== 'function' || typeof editTriggerList !== 'function') return '';
+  var num = objectNumber(o, n), arg = '(0x' + ('0' + num.toString(16)).slice(-2);
+  var out = '';
+  ['b', 'step'].some(function (kind) {
+    return editTriggerList(kind).some(function (t) {
+      var s = triggerScriptFor(t, kind);
+      if (!s || !(s.loot || []).some(function (f) { return f && f.objectId === num; })) return false;
+      var code = (s.everscript || []).filter(function (c) { return c && c.indexOf(arg + ',') >= 0; })[0];
+      out = code || triggerScriptWhat(s);
+      return true;
+    });
+  });
+  return out;
+}
+
 /** One object: grip, where, its look now, `#n · size at x,y`, remove — and its states when open. */
 function objectRowHtml(o, n) {
   var frames = editObjectFrames(o), sel = o.uid === _objectSel, open = objectIsOpen(o), still = objectLooksStatic(o);
-  var locked = editLocked();
+  var locked = editLocked(), what = objectScriptWhat(o, n);
   var title = 'obj #' + n + ' — ' + o.w + '×' + o.h + ' tiles at ' + o.x + ',' + o.y + ', ' + (frames.length + 1) + ' states'
     + (still ? ', all alike (a sniff spot?)' : '')
     + (o.roomObject != null ? '\nthe room’s own object ' + o.roomObject : '')
@@ -112,7 +139,8 @@ function objectRowHtml(o, n) {
     + (locked ? '' : '<span class="rg-trigger-grip" aria-hidden="true">⠿</span>')
     + objectWhereSvg(o) + objectFrameThumb(o, sel ? _objectActiveFrame : (o.activeFrame || 0), _editOrigin, 'rg-trigger-tiles')
     + '<span class="rg-trigger-label">#' + n + ' · ' + o.w + '×' + o.h + ' tiles'
-    + (still ? ' <span class="rg-object-still">no change</span>' : '') + '</span>'
+    + (still ? ' <span class="rg-object-still">no change</span>' : '')
+    + (what ? '<span class="rg-trigger-what">' + scriptHighlight(what) + '</span>' : '') + '</span>'
     + '<span class="rg-object-caret" data-object-toggle="' + o.uid + '" title="' + (open ? 'Hide' : 'Show') + ' its states">'
     + (open ? '▾' : '▸') + '</span>'
     + (locked ? '' : '<button class="rdf rg-trigger-remove" data-object-remove="' + o.uid + '" title="Remove this object">×</button>') + '</div>'

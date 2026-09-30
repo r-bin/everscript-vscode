@@ -68,17 +68,16 @@ function filterGroupHtml(p) {
 function visSegmentsHtml(ctx) {
   if (!ctx.romId) return '';
   return '<span class="rg-seg">'
-    + romVisSegmentHtml('bg', 'Background',
-      'Draw the terrain layer (BG1 — the “L2 terrain” render). Both segments on is the composite.')
-    + romVisSegmentHtml('fg', 'Foreground',
-      'Draw the canopy layer (BG2 — the “L1 canopy” render). Both segments on is the composite.')
+    + romVisSegmentHtml('bg', 'BG',
+      'Background: draw the terrain layer (the “L2 terrain” render). Both segments on is the composite.')
+    + romVisSegmentHtml('fg', 'FG',
+      'Foreground: draw the canopy layer (the “L1 canopy” render). Both segments on is the composite.')
     + collisionChipHtml()
-    + interactChipHtml()
     + (typeof cutLayerButtonHtml === 'function' ? cutLayerButtonHtml() : '')
     + '</span>';
 }
 
-/** Toggle button for Bit 15 (Interact) overlay. */
+/** Toggle button for Bit 15 (Interact) overlay — in the Special menu (map-editor-special.js). */
 function interactChipHtml() {
   var on = typeof interactOverlayOn === 'function' && interactOverlayOn();
   return '<button class="rdf rdf-interact' + (on ? ' on' : '') + '" data-edit-act="interact-overlay"'

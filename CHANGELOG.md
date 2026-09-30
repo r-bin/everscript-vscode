@@ -1,3 +1,12 @@
+## [0.92.0] — 2026-09-30
+
+### Feat: the map fills the editor; loot on object rows; a one-line filter bar
+
+- **Object rows say what they hand over:** the Everscript call of the trigger whose loot names the object by number (`_loot_chest(0x01, WAX, 0d01);`), coloured like the Trigger tab's.
+- **The map fills the space between the bars.** The canvas card is gone: the viewport runs from the name line to the status bar and from the rooms list to the dock, and "fit" fits the map to it (live — it refits as the window or a column handle changes it). The bars float in front of the map: tools at the top, levels against the right edge, filters at the bottom, the zoom chip top-right. The resize grip rides the map's own corner.
+- **The status bar is a flat strip** across the bottom of the map column.
+- **The filter bar is one line:** *BG* / *FG* for Background / Foreground, and *Interact* moved into the Special menu.
+
 ## [0.91.0] — 2026-09-30
 
 ### Feat: readable trigger scripts, map labels for triggers and objects, dock to the top

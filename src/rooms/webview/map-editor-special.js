@@ -314,6 +314,7 @@ function buildSpecialFilterChipHtml() {
     + '<button class="rdf on" data-hide="hide-special-stairs">Stairs &amp; Drift</button>'
     + '<button class="rdf on" data-hide="hide-special-gate">Gate &amp; Deflect</button>'
     + '<button class="rdf on" data-hide="hide-special-entrance">Entrance</button>'
+    + (typeof interactChipHtml === 'function' ? interactChipHtml() : '')
     + '</div></span>';
 }
 

@@ -271,7 +271,7 @@ function editObjectSvg(palette, composed, origin) {
     });
     var a = editCellPos(origin, o.x, o.y);
     // The number a script's SET OBJ names: the room's own, else its place in the list.
-    var num = o.roomObject != null ? o.roomObject : o.objectIndex != null ? o.objectIndex : idx;
+    var num = objectNumber(o, idx);
     html += '<rect class="rg-obj-area rg-obj-cluster' + (isSel ? ' sel' : '') + '" x="' + a.x + '" y="' + a.y
       + '" width="' + (o.w * EDIT_UNITS) + '" height="' + (o.h * EDIT_UNITS) + '" pointer-events="none">'
       + '<title>' + escH('obj ' + num + ' (0x' + num.toString(16) + ') cluster: ' + o.w + '×' + o.h + ' at ' + o.x + ',' + o.y) + '</title></rect>'

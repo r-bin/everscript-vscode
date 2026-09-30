@@ -254,10 +254,10 @@ function buildRoomSvgSection(opts){
       +'<button id="rg-zin" title="Zoom in" aria-label="zoom in">+</button>'
       +'<button id="rg-zfit" title="Fit the whole room in the frame">fit</button>'
       +'</div>';
-    html+='</div></div>';   // rg-canvas-card, rg-canvas-zone
-    // Docked under the canvas card, inside the same column: see the
-    // filtersHtml/statusHtml param docs above and map-editor-canvas.css.
+    // The filter bar floats over the map's bottom edge, like the tool pill
+    // over its top (rooms-layout.css); the status bar is the column's floor.
     html+=filtersHtml;
+    html+='</div></div>';   // rg-canvas-card, rg-canvas-zone
     html+=statusHtml;
     html+='</div>'; // rg-outer
   }else{

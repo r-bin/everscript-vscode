@@ -5,14 +5,34 @@
 // One SVG viewBox unit is one 8 px ROM tile, so this is the scale at which
 // the zoom chip reads 100%.
 var ZOOM_ROM_PX_PER_UNIT=8;
+// Fit the map to the viewport again — set by setupZoomPan for whoever changes
+// the map's extent (map-editor-newroom.js resizeMapTo).
+var _zoomRefit=null;
 
 function setupZoomPan(p){
-  var svg=p.svg,canvas=p.canvas,wrap=p.wrap,W=p.W,H=p.H,dispW=p.dispW,dispH=p.dispH,zoomState=p.zoomState;
-  function getScale(s){return(s===0)?Math.min(dispW/W,dispH/H,20):s;}
+  var svg=p.svg,canvas=p.canvas,wrap=p.wrap,dispW=p.dispW,dispH=p.dispH,zoomState=p.zoomState;
+  // The map's extent is read off the SVG each time, not kept: a custom map's
+  // resize changes the viewBox under a zoom set up for the old one.
+  function extent(){
+    var vb=svg&&svg.viewBox&&svg.viewBox.baseVal;
+    return vb&&vb.width?{w:vb.width,h:vb.height}:{w:p.W,h:p.H};
+  }
+  // Fit is the viewport as it is now — it fills the space between the bars
+  // (rooms-layout.css), so its size is the layout's, not a constant.
+  function view(){
+    var w=wrap&&wrap.clientWidth,h=wrap&&wrap.clientHeight;
+    return{w:w||dispW,h:h||dispH};
+  }
+  function getScale(s){
+    if(s!==0)return s;
+    var e=extent(),v=view();
+    return Math.min(v.w/e.w,v.h/e.h,20);
+  }
   function getViewportMetrics(scale){
     var s=getScale(scale||zoomState.scale);
-    var pxW=Math.round(W*s),pxH=Math.round(H*s);
-    var wW=wrap?wrap.clientWidth:dispW,wH=wrap?wrap.clientHeight:dispH;
+    var e=extent();
+    var pxW=Math.round(e.w*s),pxH=Math.round(e.h*s);
+    var v=view(),wW=v.w,wH=v.h;
     var minX=pxW<=wW?Math.round((wW-pxW)/2):wW-pxW;
     var maxX=pxW<=wW?minX:0;
     var minY=pxH<=wH?Math.round((wH-pxH)/2):wH-pxH;
@@ -90,5 +110,13 @@ function setupZoomPan(p){
     zoomAt(getScale(zoomState.scale)*Math.exp(-e.deltaY*0.01),e.clientX-r.left,e.clientY-r.top);
   },{passive:false});
 
+  _zoomRefit=function(){zoomState.scale=0;applyPan(0,0);applyZoom(getScale(0));};
+  // The viewport changes size with the window and the column handles: a fit
+  // map stays fit, a zoomed one keeps its scale and is clamped back in view.
+  if(wrap&&typeof ResizeObserver!=='undefined'){
+    if(wrap._rgResize)wrap._rgResize.disconnect();
+    wrap._rgResize=new ResizeObserver(function(){applyZoom(zoomState.scale||getScale(0));});
+    wrap._rgResize.observe(wrap);
+  }
   applyZoom(getScale(0));
 }

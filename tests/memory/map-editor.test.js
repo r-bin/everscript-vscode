@@ -2176,5 +2176,22 @@ test('a pickup reads as its Everscript, and script lines colour numbers, names a
     assert.ok(ui.scriptHighlight('CALL "Loot gourd?" (0x3a)').includes('<span class="sx-str">"Loot gourd?"</span>'));
 });
 
+test('an object row says what the script that names it hands over, as its Everscript', () => {
+    const p = Object.assign(tilePalette(), { roomId: 0x34 });
+    const other = [0, 1, 2].find((i) => i !== p.grid[0][1]);
+    p.roomObjects = [{ index: 1, x: 1, y: 0, w: 1, h: 1, frames: [{ '0,0': other }] }];
+    p.attachments = { bTrigger: [[1, 0, 1, 0, 0x73e]], stepOn: [], objects: [] };
+    ui.setPalette(p);
+    ui.editReset(0x34).on = true;
+    ui.editSeedRoomObjects();
+    ui.setPanelRoom({ content: { triggers: { stepOn: [], bTrigger: [{ scriptId: 0x73e, instructions: [],
+        loot: [{ objectId: 0, itemName: 'Wax', amount: 1 }, { objectId: 1, itemName: 'Oil', amount: 1 }],
+        everscript: ['_loot_chest(0x00, WAX, 0d01);', '_loot_chest(0x01, OIL, 0d01);'] }] } } });
+    const text = ui.objectTabHtml().replace(/<[^>]+>/g, '');
+    assert.ok(text.includes('_loot_chest(0x01, OIL, 0d01);'), 'its own call, by object number: ' + text);
+    assert.ok(!text.includes('WAX'), 'not the other object’s');
+    ui.setPanelRoom(null);
+});
+
 console.log(`\n  ${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);

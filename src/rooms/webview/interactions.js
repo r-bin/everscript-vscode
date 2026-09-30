@@ -119,10 +119,8 @@ function setupMouseEvents(p){
     if(e.metaKey||e.ctrlKey)return;
     {
       // Only enable pan when the canvas is larger than the viewport
-      var W2=p.W,H2=p.H,dispW2=p.dispW,dispH2=p.dispH;
-      var s=p._getScale?p._getScale(zoomState.scale):zoomState.scale||1;
-      var pxW=Math.round(W2*s),pxH=Math.round(H2*s);
-      if(pxW<=dispW2&&pxH<=dispH2)return;
+      var m=p._getViewportMetrics?p._getViewportMetrics():null;
+      if(m&&m.pxW<=m.wW&&m.pxH<=m.wH)return;
       // Base the drag on the live pan offset, not a stale local copy.
       var cur=p._getPan?p._getPan():{x:state.panX||0,y:state.panY||0};
       state.panActive=true;state.panCX=e.clientX;state.panCY=e.clientY;state.panBX=cur.x;state.panBY=cur.y;
