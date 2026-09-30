@@ -1,3 +1,11 @@
+## [0.93.0] — 2026-09-30
+
+### Feat: the lock moves to the tool pill; locking greys out the editing tools
+
+- **The lock is a padlock at the tool pill's right end** — shut and amber while locked, open while not — instead of a "locked" chip in the filter bar.
+- **Locked, the tools that change the map go dark:** pencil, eraser, move, stamp, undo/redo and the level bar are disabled; select, pick and copy still work. Locking puts the pencil down (back to Select), and anything that would arm it while locked — a tile or special picked, a widget chosen — falls back to Select.
+- **The level bar sits against the map's left edge.**
+
 ## [0.92.0] — 2026-09-30
 
 ### Feat: the map fills the editor; loot on object rows; a one-line filter bar

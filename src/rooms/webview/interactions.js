@@ -172,6 +172,10 @@ function setupMouseEvents(p){
   svg.addEventListener('dblclick',clearSelection);
 }
 
+// The map's drag state (setupClickHandlers's `state`) — `locked` stops a
+// source entity being dragged; the lock button flips it.
+var _mapLockState=null;
+
 /** Wire hover highlights on the SVG entities, and their label in the status bar. */
 function setupHoverHighlights(svg,panel){
   function setHi(kind,idx,on){
@@ -222,22 +226,10 @@ function setupClickHandlers(svg,panel,state){
       panel.classList.toggle(btn.dataset.hide,!btn.classList.contains('on'));
     });
   });
-  // Lock toggle
-  var lockBtn=document.getElementById('rg-lock-btn');
-  if(lockBtn){
-    if(svg)svg.querySelectorAll('.svge-mv').forEach(function(el){el.style.cursor='default';});
-    lockBtn.addEventListener('click',function(){
-      state.locked=!state.locked;
-      lockBtn.textContent=state.locked?'locked':'unlocked';
-      lockBtn.classList.toggle('on',state.locked);
-      lockBtn.title=state.locked?'Unlock map':'Lock map';
-      // The editor's lock too (editLocked): unlocked, a vanilla room's draft can change.
-      var ld=typeof editDraft==='function'?editDraft():null;
-      if(ld){ld.locked=state.locked;editNote(state.locked?'locked — look, pick and copy; nothing changes'
-        :'unlocked — edits go into this map’s draft');renderEditChrome();}
-      if(svg)svg.querySelectorAll('.svge-mv').forEach(function(el){el.style.cursor=state.locked?'default':'grab';});
-    });
-  }
+  // The lock is the tool pill's (map-editor-actions.js editLockToggle); this
+  // render's drag state follows it through _mapLockState.
+  _mapLockState=state;
+  if(svg)svg.querySelectorAll('.svge-mv').forEach(function(el){el.style.cursor=state.locked?'default':'grab';});
   // Assign image button
   var pickBtn=document.getElementById('rg-pick-btn');
   if(pickBtn){

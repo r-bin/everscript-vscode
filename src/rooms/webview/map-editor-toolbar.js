@@ -86,6 +86,26 @@ var EDIT_OVERFLOW_ACTS = [
   ['delete-map', 'Delete map…', 'Delete this custom map and its whole edit history (asks first)'],
 ];
 
+/** The tools that change the map: off while it is locked (map-editor-gestures.js refuses them too). */
+var EDIT_LOCKED_TOOLS = { paint: true, erase: true, move: true, stamp: true };
+
+/** A padlock, shut or open — the lock button's icon. */
+function editLockIconSvg(locked) {
+  return '<svg class="rg-lock-ic" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">'
+    + '<rect x="3" y="7" width="10" height="7.5" rx="1.6" fill="currentColor"/>'
+    + '<path d="' + (locked ? 'M5.2 7V5a2.8 2.8 0 0 1 5.6 0v2' : 'M5.2 7V5a2.8 2.8 0 0 1 5.4-1') + '" fill="none"'
+    + ' stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+}
+
+/** The lock, at the pill's right end: locked, the map can be looked at, picked from and copied. */
+function editLockButtonHtml() {
+  var locked = editLocked();
+  return '<button class="rdf rg-edit-tool-icon rg-lock' + (locked ? ' on' : '') + '" id="rg-lock-btn"'
+    + ' data-edit-act="lock" aria-pressed="' + locked + '" aria-label="' + (locked ? 'unlock map' : 'lock map') + '"'
+    + ' data-tip="' + escH(locked ? 'Locked — look, pick and copy; nothing changes. Click to unlock'
+      : 'Unlocked — edits go into this map’s draft. Click to lock') + '">' + editLockIconSvg(locked) + '</button>';
+}
+
 function editToolButtonHtml(key) {
   var def = null;
   EDIT_TOOLS.forEach(function (t) { if (t[0] === key) def = t; });
@@ -104,8 +124,11 @@ function editToolButtonHtml(key) {
     tip = 'Eraser — takes off ' + editEraseTarget().label + '\n' + def[2];
     badge = editDrawBadgeHtml(true);
   }
+  var off = EDIT_LOCKED_TOOLS[key] && editLocked();
+  if (off) tip = 'Locked — unlock the map to use this\n' + tip;
   return '<button class="rdf rg-edit-tool-icon' + (d && d.tool === key ? ' on' : '')
-    + '" data-edit-tool="' + key + '" data-tip="' + escH(tip) + '" aria-label="' + escH(def[1]) + '">'
+    + '" data-edit-tool="' + key + '" data-tip="' + escH(tip) + '" aria-label="' + escH(def[1]) + '"'
+    + (off ? ' disabled' : '') + '>'
     + '<span class="rg-edit-icon" aria-hidden="true">' + EDIT_TOOL_ICONS[key] + '</span>' + badge + '</button>';
 }
 
@@ -134,15 +157,17 @@ function buildEditToolbarHtml() {
     html += '</span>';
   });
   // The room/deco phase pair that used to sit here is gone — §8a.2.
+  var dis = editLocked() ? ' disabled' : '';
   html += '<span class="rg-edit-divider"></span><span class="rg-edit-group">'
     + '<button class="rdf rg-edit-tool-icon" data-edit-act="undo" data-tip="Undo the last change"'
-    + ' aria-label="undo"><span class="rg-edit-icon" aria-hidden="true">↶</span></button>'
+    + ' aria-label="undo"' + dis + '><span class="rg-edit-icon" aria-hidden="true">↶</span></button>'
     + '<button class="rdf rg-edit-tool-icon" data-edit-act="redo" data-tip="Redo"'
-    + ' aria-label="redo"><span class="rg-edit-icon" aria-hidden="true">↷</span></button>'
+    + ' aria-label="redo"' + dis + '><span class="rg-edit-icon" aria-hidden="true">↷</span></button>'
     + '</span><span class="rg-edit-divider"></span>'
     + buildEditOverflowHtml()
+    + '<span class="rg-edit-divider"></span>' + editLockButtonHtml()
     + '</div>' + buildNewRoomHtml()
-    // The level bar sits at the card's left edge (map-editor-levels.js).
+    // The level bar sits at the map's left edge (map-editor-levels.js).
     + (typeof buildLevelBarHtml === 'function' ? buildLevelBarHtml() : '') + '</div>';
   return html;
 }

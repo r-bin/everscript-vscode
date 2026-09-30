@@ -82,7 +82,7 @@ body.rg-resizing{cursor:col-resize;user-select:none}
 .rg-theme.rg-editing .rg-canvas-zone > .rg-canvas-card{padding-top:0}
 .rg-theme .rg-canvas-zone .rg-wrap{width:100%!important;height:100%!important;border-radius:0;background:var(--rg-bg-app)}
 .rg-theme .rg-canvas-zone #rg-edit-bar{top:8px}
-.rg-theme .rg-canvas-zone .rg-level-bar{left:auto;right:8px}
+.rg-theme .rg-canvas-zone .rg-level-bar{left:8px;right:auto}
 .rg-theme .rg-canvas-card .rg-zoom{top:8px;right:8px;bottom:auto;left:auto}
 .rg-theme .rg-canvas-zone .rg-view-filters{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);z-index:5;
   margin:0;flex-wrap:nowrap;width:max-content;max-width:calc(100% - 16px);padding:5px 8px;gap:4px;
@@ -95,3 +95,10 @@ body.rg-resizing{cursor:col-resize;user-select:none}
 /* The grip rides the map's own corner inside the canvas. */
 .rg-theme #rg-canvas > .rg-resize{position:absolute;right:0;bottom:0}
 .rg-theme #rg-canvas > .rg-resize-label{position:absolute;right:16px;bottom:4px}
+
+/* The lock, at the tool pill's right end; lit while locked. Disabled tools
+ * (locked) read as unavailable rather than merely unselected. */
+.rg-theme #rg-edit-bar .rg-lock{color:var(--rg-text-secondary)}
+.rg-theme #rg-edit-bar .rg-lock.on{color:var(--rg-warning);background:color-mix(in srgb,var(--rg-warning) 14%,transparent)}
+.rg-theme #rg-edit-bar .rg-lock-ic{display:block}
+.rg-theme #rg-edit-bar .rdf:disabled,.rg-theme .rg-level-b:disabled{opacity:.3;cursor:not-allowed}

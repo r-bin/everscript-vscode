@@ -2193,5 +2193,28 @@ test('an object row says what the script that names it hands over, as its Eversc
     ui.setPanelRoom(null);
 });
 
+test('the lock sits at the pill’s right end; locked, the tools that change the map go dark', () => {
+    ui.setPalette(tilePalette());
+    const d = ui.editReset(0x34);
+    d.on = true;
+    d.tool = 'paint';
+    d.locked = false;
+    let html = ui.toolbar();
+    assert.ok(/id="rg-lock-btn"[^>]*data-edit-act="lock"/.test(html) && html.includes('<svg class="rg-lock-ic"'), 'a padlock button');
+    assert.ok(!/data-edit-tool="paint"[^>]*disabled/.test(html), 'unlocked: the pencil works');
+    ui.editAction('lock');
+    assert.strictEqual(d.locked, true);
+    assert.strictEqual(d.tool, 'select', 'locking puts the pencil down');
+    html = ui.toolbar();
+    ['paint', 'erase', 'move', 'stamp'].forEach((k) =>
+        assert.ok(new RegExp('data-edit-tool="' + k + '"[^>]*disabled').test(html), k + ' is off while locked'));
+    ['select', 'pick', 'copy'].forEach((k) =>
+        assert.ok(!new RegExp('data-edit-tool="' + k + '"[^>]*disabled').test(html), k + ' still works'));
+    assert.ok(/data-edit-act="undo"[^>]*disabled/.test(html), 'undo too');
+    assert.ok(/data-edit-level="1"[^>]*disabled/.test(html), 'and the level bar');
+    ui.editAction('lock');
+    assert.strictEqual(d.locked, false);
+});
+
 console.log(`\n  ${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);

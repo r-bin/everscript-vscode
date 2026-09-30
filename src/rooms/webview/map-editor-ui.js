@@ -229,6 +229,9 @@ function applyComposedPreview(msg) {
 /** Refresh the parts of the chrome that depend on the draft. */
 function renderEditChrome() {
   var d = editDraft();
+  // A locked map has no drawing tool: whatever armed the pencil (a tile or a
+  // special picked, a widget chosen) falls back to Select here, in one place.
+  if (d && typeof EDIT_LOCKED_TOOLS !== 'undefined' && EDIT_LOCKED_TOOLS[d.tool] && editLocked()) d.tool = 'select';
   // Every stroke ends here, so this is where a custom map is kept saved.
   if (d && d.customKey && typeof customSaveSoon === 'function') customSaveSoon();
   // A ROM room's draft made after its palette arrived still gets its objects.

@@ -7,6 +7,7 @@
 function editAction(act) {
   var d = editDraft();
   if (!d) return;
+  if (act === 'lock') { editLockToggle(); return; }
   if (act === 'undo') { editUndo(_mtPalette); requestComposedPreview(); renderEditChrome(); return; }
   if (act === 'redo') { editRedo(_mtPalette); requestComposedPreview(); renderEditChrome(); return; }
   if (act === 'clear') {
@@ -100,4 +101,21 @@ function editCopyDraft() {
     }, function () { if (note) note.textContent = 'could not copy'; });
   }
   if (typeof vs !== 'undefined' && vs) vs.postMessage({ command: 'mapEditDraft', draft: editExport(_mtPalette) });
+}
+
+/**
+ * Lock or unlock the map on screen. Locked, it can be looked at, picked from
+ * and copied, and nothing else: the tools that change it go dark, and a
+ * stroke with one is refused (map-editor-gestures.js).
+ */
+function editLockToggle() {
+  var d = editDraft();
+  if (!d) return;
+  d.locked = !editLocked();
+  if (d.locked && EDIT_LOCKED_TOOLS[d.tool]) d.tool = 'select';
+  if (typeof _mapLockState !== 'undefined' && _mapLockState) _mapLockState.locked = d.locked;
+  var svg = document.getElementById('rg-svg');
+  if (svg) svg.querySelectorAll('.svge-mv').forEach(function (el) { el.style.cursor = d.locked ? 'default' : 'grab'; });
+  editNote(d.locked ? 'locked — look, pick and copy; nothing changes' : 'unlocked — edits go into this map’s draft');
+  renderEditChrome();
 }

@@ -191,10 +191,8 @@ function moreFilterGroupHtml(ctx) {
 }
 
 /**
- * The bar itself: the mock's six primary slots, then the two actions.
- *
- * `locked` is a verb, not a view filter, so it sits past a divider with its
- * own outline treatment (Phase 6). There is no `edit` any more: every map
+ * The bar itself: the mock's primary slots — view filters only. The lock
+ * is a verb, so it is the tool pill's (map-editor-toolbar.js); every map
  * opens in the editor, and a vanilla one opens locked (detail-renderer.js).
  */
 function buildViewFilterBarHtml(ctx) {
@@ -205,11 +203,8 @@ function buildViewFilterBarHtml(ctx) {
     ctx.romId ? buildSpecialFilterChipHtml() : '',
     moreFilterGroupHtml(ctx),
   ].filter(function (h) { return !!h; });
-  var acts = ctx.locked === false
-    ? '<button class="rdf" id="rg-lock-btn" title="Lock map">unlocked</button>'
-    : '<button class="rdf on" id="rg-lock-btn" title="Unlock map">locked</button>';
-  return '<div class="rd-filters rg-view-filters">' + parts.join('')
-    + '<span class="rdf-sep"></span>' + acts + '</div>';
+  // The lock moved to the tool pill's right end (map-editor-toolbar.js).
+  return '<div class="rd-filters rg-view-filters">' + parts.join('') + '</div>';
 }
 
 // ── the status bar ────────────────────────────────────────────────────────

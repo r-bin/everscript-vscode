@@ -23,6 +23,8 @@ function editLevel() {
 /** The bar: levels 3 at the top to 0 at the bottom, the current one lit. */
 function buildLevelBarHtml() {
   var cur = editLevel();
+  // Locked, the level is the map's, not a choice (the lock is map-editor-toolbar.js's).
+  var off = typeof editLocked === 'function' && editLocked();
   var html = '<div class="rg-level-bar" id="rg-level-bar" role="radiogroup" aria-label="Level">'
     + '<span class="rg-level-h">Level</span>';
   for (var p = 3; p >= 0; p--) {
@@ -30,7 +32,7 @@ function buildLevelBarHtml() {
       + ' style="--lv:' + LEVEL_COLORS[p] + '" role="radio" aria-checked="' + (p === cur) + '"'
       + ' data-tip="' + escH('Level ' + p + (p === 1 ? ' (the usual one)' : '')
         + ' — new tiles are drawn on it. Tiles on another level are walls, unless '
-        + 'plane-transparent: that is how bridges pass over tunnels.') + '">' + p + '</button>';
+        + 'plane-transparent: that is how bridges pass over tunnels.') + '"' + (off ? ' disabled' : '') + '>' + p + '</button>';
   }
   return html + '</div>';
 }
