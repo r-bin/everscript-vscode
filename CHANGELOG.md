@@ -1,3 +1,13 @@
+## [0.84.0] — 2026-09-30
+
+### Feat: Every map opens in the editor; vanilla maps open locked
+
+- **No `edit` button:** every map opens in the editor. The bar's `locked` is the one switch: a vanilla (or .evs) room opens locked — look, pick, copy and select, but strokes, undo, paste, delete and the dock's changing buttons are refused — and unlocking lets its draft change. A custom map opens unlocked.
+- **Tile families follow the lock:** an unlocked map with a free slot lists every family again (v0.83.2 limited it); a locked map lists only its own. The free slot's `+` scrolls to the other families.
+- **Eraser really erases:** one click ran the eraser on down *and* up, so the second pass took the rest of a layered cell and put a vanilla cell straight back. Each cell is now erased once per gesture.
+- **Bar chips on vanilla maps:** Triggers now hides the loot icons with their B-triggers (edit mode had hidden the icons outright), Cuttable marks the room's own cuttable grass, and the baked grass outlines leave the render while editing. Special and Interact work because the editor always draws them now.
+- New `editEraseCells` (map-editor-phases.js) holds the eraser's per-cell pass; map-editor-rules §1, §3, §7 updated.
+
 ## [0.83.2] — 2026-09-30
 
 ### Fix: Tile list limited to the room's families, front/ground erasing, New Map reuse

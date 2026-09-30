@@ -168,3 +168,45 @@ function editEraseLayers() {
   if (typeof romLayerVis !== 'function') return { bg: true, fg: true };
   return { bg: romLayerVis('bg'), fg: romLayerVis('fg') };
 }
+
+/** Cells the eraser has already taken a layer off in this gesture. */
+var _eraseSeen = null;
+
+/**
+ * The eraser on the Tile tab (map-editor-gestures.js's editStroke): the
+ * cuttable layer while that is on, else the layers editEraseLayers picks,
+ * plus any special on the cell. One undoable write per cell.
+ */
+function editEraseCells(d, cell, phase) {
+  if (cutLayerActive()) {
+    var cutErase = editCutWrite(cell.x, cell.y, -1, true);
+    if (cutErase) editApply([cutErase]);
+    renderEditChrome(); return;
+  }
+  // One pass per cell per gesture. The stroke also runs on `move` and `up`,
+  // and erasing is layered (front art first, then the tile): a click took
+  // the front art off on `down` and the rest on `up`, which put a vanilla
+  // cell straight back — "the eraser can't erase FG/BG".
+  var ek = editKey(cell.x, cell.y);
+  if (phase === 'down' || !_eraseSeen) _eraseSeen = {};
+  if (_eraseSeen[ek]) return;
+  _eraseSeen[ek] = true;
+  var here = editCellAt(_mtPalette, cell.x, cell.y);
+  var bare = editResolve(_mtPalette, cell.x, cell.y, -1, true, here);
+  var hadSpecial = editSpecialAt(cell.x, cell.y);
+  var finalIndex = bare;
+  if (hadSpecial) {
+    var base = finalIndex >= 0 ? finalIndex : here;
+    var cleared = editSpecialAppliedIndex(_mtPalette, base, null, true);
+    if (cleared !== base) finalIndex = cleared;
+  }
+  // Nothing on the chosen layer: no write, so the draft is not dirtied.
+  var eraseWrites = (finalIndex >= 0 && finalIndex !== here) ? [{ x: cell.x, y: cell.y, index: finalIndex }] : [];
+  // The whole painted cell: take the draft's write back (the room's own
+  // tile shows again — nothing, on a new map).
+  if (finalIndex === EDIT_ERASE_CELL && Object.prototype.hasOwnProperty.call(d.cells, editKey(cell.x, cell.y))) {
+    eraseWrites = [{ x: cell.x, y: cell.y, index: null }];
+  }
+  var eraseSpecial = hadSpecial ? [{ x: cell.x, y: cell.y, id: null }] : [];
+  if (eraseWrites.length || eraseSpecial.length) editApply(eraseWrites, eraseSpecial);
+}

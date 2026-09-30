@@ -178,9 +178,9 @@ function moreFilterGroupHtml(ctx) {
 /**
  * The bar itself: the mock's six primary slots, then the two actions.
  *
- * `edit` and `locked` are verbs, not view filters, so they sit past a divider
- * with their own outline treatment (Phase 6) rather than reading as two more
- * chips.
+ * `locked` is a verb, not a view filter, so it sits past a divider with its
+ * own outline treatment (Phase 6). There is no `edit` any more: every map
+ * opens in the editor, and a vanilla one opens locked (detail-renderer.js).
  */
 function buildViewFilterBarHtml(ctx) {
   var parts = [
@@ -190,8 +190,9 @@ function buildViewFilterBarHtml(ctx) {
     ctx.romId ? buildSpecialFilterChipHtml() : '',
     moreFilterGroupHtml(ctx),
   ].filter(function (h) { return !!h; });
-  var acts = (ctx.romId ? buildEditButtonHtml() : '')
-    + '<button class="rdf on" id="rg-lock-btn" title="Unlock map">locked</button>';
+  var acts = ctx.locked === false
+    ? '<button class="rdf" id="rg-lock-btn" title="Lock map">unlocked</button>'
+    : '<button class="rdf on" id="rg-lock-btn" title="Unlock map">locked</button>';
   return '<div class="rd-filters rg-view-filters">' + parts.join('')
     + '<span class="rdf-sep"></span>' + acts + '</div>';
 }

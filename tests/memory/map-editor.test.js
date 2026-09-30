@@ -1021,6 +1021,43 @@ test('the Tile tab\'s front/ground picks what the eraser takes; auto takes the t
     d.tool = 'paint';
 });
 
+test('one click erases one layer: down, move and up do not erase the same cell twice', () => {
+    const p = palette();
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    d.on = true;
+    d.tool = 'erase';
+    ui.setLayerForce(null);
+    // (1,1) is front art over ground. The stroke runs on down and on up; the
+    // second pass used to take the rest and put the vanilla cell back.
+    ui.editStroke({ x: 1, y: 1 }, 'down');
+    ui.editStroke({ x: 1, y: 1 }, 'move');
+    ui.editStroke({ x: 1, y: 1 }, 'up');
+    const w = ui.editStampWords(p, d.cells['1,1']);
+    assert.deepStrictEqual([w.layer1, w.layer2], [0xa800, 0x19cc], 'the front art is gone, the ground stays');
+    ui.editStroke({ x: 1, y: 1 }, 'down');
+    assert.strictEqual(d.cells['1,1'], undefined, 'the next click takes the painted tile itself');
+    d.tool = 'paint';
+});
+
+test('a locked map changes nothing: strokes are refused, picking still works', () => {
+    const p = palette();
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    d.on = true;
+    d.locked = true;
+    d.tool = 'erase';
+    ui.editStroke({ x: 1, y: 1 }, 'down');
+    d.tool = 'paint'; d.brush = 2;
+    ui.editStroke({ x: 0, y: 0 }, 'down');
+    assert.deepStrictEqual(d.cells, {}, 'neither erase nor paint wrote');
+    assert.strictEqual(d.undo.length, 0);
+    d.tool = 'pick'; d.brush = -1;
+    ui.editStroke({ x: 1, y: 1 }, 'down');
+    assert.notStrictEqual(d.brush, -1, 'the eyedropper still picks');
+    d.locked = false; d.tool = 'paint';
+});
+
 test('a construct carries the triggers and objects inside its selection', () => {
     const p = decoPalette();
     ui.setPalette(p);

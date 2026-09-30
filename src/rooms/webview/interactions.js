@@ -382,6 +382,10 @@ function setupClickHandlers(svg,panel,state){
       lockBtn.textContent=state.locked?'locked':'unlocked';
       lockBtn.classList.toggle('on',state.locked);
       lockBtn.title=state.locked?'Unlock map':'Lock map';
+      // The editor's lock too (editLocked): unlocked, a vanilla room's draft can change.
+      var ld=typeof editDraft==='function'?editDraft():null;
+      if(ld){ld.locked=state.locked;editNote(state.locked?'locked — look, pick and copy; nothing changes'
+        :'unlocked — edits go into this map’s draft');renderEditChrome();}
       if(svg)svg.querySelectorAll('.svge-mv').forEach(function(el){el.style.cursor=state.locked?'default':'grab';});
     });
   }

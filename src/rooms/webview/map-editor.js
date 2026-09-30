@@ -160,6 +160,8 @@ function editNextPlacedUid() {
 }
 
 function editActive() { return !!(_edit && _edit.on); }
+/** The bar's `locked`: look, pick and copy, change nothing (map-editor-input.js). Vanilla rooms open locked. */
+function editLocked() { return !!(_edit && _edit.locked); }
 function editDraft() { return _edit; }
 function editKey(x, y) { return x + ',' + y; }
 

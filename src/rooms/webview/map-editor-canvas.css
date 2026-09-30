@@ -211,7 +211,6 @@
 }
 /* "edit" and "locked" are verbs, not view toggles — a stronger outline keeps
  * them from reading as two more filter chips at the end of the row. */
-.rg-theme .rg-view-filters #rg-edit-btn,
 .rg-theme .rg-view-filters #rg-lock-btn{
   border-color:var(--rg-border-strong);
   background:transparent;

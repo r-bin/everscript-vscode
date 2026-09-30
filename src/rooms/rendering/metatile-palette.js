@@ -135,6 +135,8 @@ function buildRoomMetatilePalette(rom, roomId, layer, bgPalette) {
         },
         /** The same objects with their states as frames, for the Object tab. */
         roomObjects: objects,
+        /** Cells of the room's own cuttable grass (Section 4), `[x, y]` — the Cuttable chip's marks. */
+        cuttable: room.cuttableGrass.tiles.map((t) => [t[0], t[1]]),
         /** The raw graphics Block 1 put in reach — see buildTileSheet. */
         tiles: null,
     };

@@ -32,13 +32,6 @@
 var _chipSel = {};
 /** The two-tiles-per-family sheet, once fetched. */
 var _chipPreviews = null;
-/**
- * Whether the tile list also shows families this draft has not loaded. Off
- * by default: the list is the room's own families (up to seven), and a free
- * slot's `+` opens the rest — adopting one is a choice, not what the list
- * shows whenever a slot happens to be free.
- */
-var _famBrowse = false;
 
 /**
  * Ask for every family's chip art.
@@ -99,10 +92,10 @@ function familyStripHtml(fams) {
   for (var i = 0; i < 7; i++) {
     var id = fams[i];
     if (id === undefined) {
-      html += '<button class="rg-fam-slot empty' + (_famBrowse ? ' on' : '') + '" data-fam-add="1"'
-        + ' title="' + escH('Palette slot ' + (i + 1) + ' is free — ' + (_famBrowse
-          ? 'click to list only the loaded families again' : 'click to list every other family below; '
-          + 'picking one of its tiles adopts it')) + '">+</button>';
+      html += '<button class="rg-fam-slot empty" data-fam-add="1"'
+        + ' title="' + escH('Palette slot ' + (i + 1) + ' is free — ' + (editLocked()
+          ? 'unlock the map to add a family' : 'click to go to the other families; picking one of '
+          + 'their tiles adopts it')) + '">+</button>';
       continue;
     }
     var meta = chipMeta(id);
@@ -172,10 +165,8 @@ function familiesSectionHtml() {
         if (id === undefined) return '';
         return familyCardHtml(chipMeta(id) || { id: id, tiles: 0, areas: [], names: [] }, slot);
       }).join('')
-      + (editFreeFamilySlot() >= 0 ? '<button class="rg-fam-card rg-fam-addcard' + (_famBrowse ? ' on' : '')
-        + '" data-fam-add="1" title="' + escH(_famBrowse ? 'List only the loaded families again'
-          : 'List every other family below — picking one of its tiles adopts it') + '">+ '
-        + (_famBrowse ? 'hide other families' : 'add a family') + '</button>' : '')
+      + (editFreeFamilySlot() >= 0 && !editLocked() ? '<button class="rg-fam-card rg-fam-addcard" data-fam-add="1"'
+        + ' title="Go to the other families — picking one of their tiles adopts it">+ add a family</button>' : '')
       + '</div>'
     : familyStripHtml(fams);
 
@@ -200,12 +191,22 @@ function chipToggle(id) {
   renderEditPanels();
 }
 
-/** A free slot's `+`: show or hide the families this draft has not loaded. */
-function chipBrowseToggle() {
-  _famBrowse = !_famBrowse;
-  editNote(_famBrowse ? 'every other family is listed below the loaded ones — picking a tile adopts its family'
-    : 'the tile list shows the loaded families only');
-  renderEditChrome();
+/**
+ * A free slot's `+`: scroll to the first family this draft has not loaded —
+ * they are listed below the loaded ones while a slot is free. A locked map
+ * lists only its own and cannot adopt, so it says so instead.
+ */
+function chipAddFamily() {
+  if (editLocked()) { editNote('this map is locked — unlock it to add a family'); renderEditChrome(); return; }
+  var fams = editFamilies();
+  var groups = document.querySelectorAll('.rg-tile-group[data-group-fam]');
+  for (var i = 0; i < groups.length; i++) {
+    if (fams.indexOf(Number(groups[i].dataset.groupFam)) < 0) {
+      if (groups[i].scrollIntoView) groups[i].scrollIntoView({ block: 'start' });
+      editNote('the other families — picking one of their tiles adopts it into a free slot');
+      return;
+    }
+  }
 }
 
 /** Put a family in a free slot, from a candidate card's `+`. */

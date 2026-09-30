@@ -83,14 +83,14 @@ function editBrushFlipBits() {
 /**
  * Which families the list is showing.
  *
- * Families selected means exactly those. Otherwise the draft's own families
- * — the seven slots are what the room can draw, so they are what the list
- * offers ("the tiles aren't limited to the 7 families": a free slot used to
- * list all ~320 others unasked). The rest come in only when asked for, with
- * a free slot's `+` (map-editor-chips.js's `_famBrowse`), or when nothing is
- * loaded at all; picking one of their tiles still adopts its family.
+ * Families selected means exactly those. Otherwise the draft's own families,
+ * plus — while a palette slot is free and the map is not locked — every
+ * other family, all of it, lazily. A locked map (a vanilla room opens
+ * locked) cannot adopt one, so it lists only its own: room 0x33 has six
+ * families, and listing ~330 more on a map that cannot change was the
+ * "tiles aren't limited to the 7 families" report.
  *
- * With no free slot they never show: seven is a hard ceiling
+ * With no free slot the others never show: seven is a hard ceiling
  * (`editAdoptFamilyFor`), so their tiles could not be drawn (§8a.3).
  */
 function tileGroupFamilies() {
@@ -131,9 +131,7 @@ function tileGroupFamiliesWanted() {
   var loaded = editFamilies().filter(function (f) { return f !== undefined; });
   var fams = loaded.concat(Object.keys(editPlannedOnly()).map(function (k) { return auto[k]; }))
     .filter(function (f, i, all) { return f !== undefined && all.indexOf(f) === i && tileFamilyPasses(f); });
-  // A map with nothing loaded yet (a new custom map starts at 0/7) has
-  // nothing to choose from without the rest, so it lists them unasked.
-  if (!_famCatalogue || editFreeFamilySlot() < 0 || (!_famBrowse && loaded.length)) return fams;
+  if (!_famCatalogue || editFreeFamilySlot() < 0 || editLocked()) return fams;
   // Every candidate, most art first — no page size (§8e). The list is lazy,
   // so listing all 329 costs headers and placeholders, not sheets.
   var rest = _famCatalogue

@@ -1925,23 +1925,21 @@ async function main() {
     // replaced — so a second bind stacked a second handler and every
     // toggle cancelled itself out. That was "the edit and new map button
     // work every now and then": alive after an odd number of renders.
+    // The `edit` button this used to click is gone (every map opens in the
+    // editor); the Interact chip is routed through the same handler.
     await page.evaluate(() => {
-        // `#rg-edit-btn` already exists — the filter bar built above carries
-        // it (map-editor-filterbar.js's own action pair), so no second copy
-        // is inserted here; two nodes with one id would make which one this
-        // clicks a coin toss.
         // One more bind, for the second render of the same panel. Without
         // the guard that makes two handlers, and two is the dead case.
         bindEditControls(document.getElementById('room-detail'), {});
     });
-    const wasOn = await page.evaluate(() => !!editDraft().on);
-    await page.click('#rg-edit-btn');
-    const nowOn = await page.evaluate(() => !!editDraft().on);
+    const wasOn = await page.evaluate(() => interactOverlayOn());
+    await page.click('#room-detail .rdf-interact');
+    const nowOn = await page.evaluate(() => interactOverlayOn());
     check('binding the panel again does not double every click', nowOn === !wasOn,
-        `edit mode went ${wasOn} -> ${nowOn} after one click, with the panel bound twice`);
-    await page.click('#rg-edit-btn');
+        `the Interact overlay went ${wasOn} -> ${nowOn} after one click, with the panel bound twice`);
+    await page.click('#room-detail .rdf-interact');
     check('and the next click toggles it straight back',
-        await page.evaluate(() => !!editDraft().on) === wasOn);
+        await page.evaluate(() => interactOverlayOn()) === wasOn);
 
     // ── the Tile tab: a full palette shows only its own seven ──────────────
     // "if the tile family list is full (7/7) we don't show tiles from
@@ -1968,23 +1966,26 @@ async function main() {
         shownAtFull.families === 7 && shownAtFull.free < 0, JSON.stringify(shownAtFull));
     check('and drops the "N more families" pager, which would page through nothing',
         shownAtFull.pager === false);
-    // Free one slot: the list is still the room's own families. "The tiles
-    // aren't limited to the 7 families" — a free slot used to list every
-    // other family unasked. The free slot's `+` brings them in.
+    // Free one slot on an unlocked map and every candidate comes back —
+    // adopting one is something that can happen. A locked map (a vanilla
+    // room opens locked) cannot adopt, so it lists only its own.
     const shownWithRoom = await page.evaluate(() => {
         editClearFamily(3);
         renderEditPanels();
-        const r = { families: tileGroupFamilies().length, free: editFreeFamilySlot() };
-        document.querySelector('.rg-fam-sec [data-fam-add]').click();
-        r.browsing = tileGroupFamilies().length;
-        r.pager = !!document.querySelector('[data-tile-more]');
+        const r = { families: tileGroupFamilies().length, free: editFreeFamilySlot(),
+                    pager: !!document.querySelector('[data-tile-more]') };
+        editDraft().locked = true;
+        r.locked = tileGroupFamilies().length;
+        editDraft().locked = false;
+        renderEditPanels();
         return r;
     });
-    check('a free slot alone still lists only the loaded families',
-        shownWithRoom.free >= 0 && shownWithRoom.families === 6, JSON.stringify(shownWithRoom));
     // §8e: all of them, lazily, never a page at a time behind a button.
-    check('its + lists every other family, with no pager',
-        shownWithRoom.browsing === 6 + 20 && shownWithRoom.pager === false, JSON.stringify(shownWithRoom));
+    check('freeing a slot brings back every candidate, with no pager',
+        shownWithRoom.free >= 0 && shownWithRoom.families === 6 + 20 && shownWithRoom.pager === false,
+        JSON.stringify(shownWithRoom));
+    check('but a locked map lists only its own families',
+        shownWithRoom.locked === 6, JSON.stringify(shownWithRoom));
     const lazy = await page.evaluate(() => ({
         placeholders: document.querySelectorAll('#rg-tab-body [data-lazy-fam]').length,
         asked: window.__sent.filter((m) => m.command === 'requestFamilySheet'
@@ -1992,7 +1993,7 @@ async function main() {
     }));
     check('candidates wait as placeholders, and only the ones near the view are fetched',
         lazy.placeholders > 0 && lazy.asked.length < 20, JSON.stringify(lazy));
-    await page.evaluate(() => { _famBrowse = false; editReset(0x34); editDraft().on = true; renderEditPanels(); });
+    await page.evaluate(() => { editReset(0x34); editDraft().on = true; renderEditPanels(); });
 
     // ── the Tile tab: arming a brush must not reorder its own family ───────
     // `editPlacedGraphics()` used to seed the relationship lookup with the

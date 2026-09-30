@@ -300,10 +300,7 @@ function customBindDraft(room) {
  */
 function customAfterRender(room) {
   var d = editDraft();
-  if (d && !d.on) {
-    var btn = document.getElementById('rg-edit-btn');
-    if (btn) btn.click(); else editToggle(room, null);
-  }
+  if (d && !d.on) editToggle(room, null);
   // Always a fresh request: `_mtPalette` outlives a room change, and a
   // custom map drawing with the previous room's dictionary would name the
   // wrong graphics in every word.

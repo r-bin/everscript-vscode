@@ -215,7 +215,11 @@ function bindEditControls(panel, room) {
       return;
     }
 
-    if (t.id === 'rg-edit-btn') { editToggle(_editPanelRoom, t); return; }
+    if (editLocked() && editLockBlocks(t)) {
+      editNote('this map is locked — unlock it in the bar below the map to change it');
+      renderEditChrome();
+      return;
+    }
     if (t.dataset.editSpecial) {
       var ds = editDraft();
       if (ds) {
@@ -273,7 +277,7 @@ function bindEditControls(panel, room) {
       return;
     }
     if (t.dataset.chipAdopt) { chipAdopt(t.dataset.chipAdopt); return; }
-    if (t.dataset.famAdd) { chipBrowseToggle(); return; }
+    if (t.dataset.famAdd) { chipAddFamily(); return; }
     if (t.dataset.brushFlip) { brushFlipToggle(t.dataset.brushFlip); return; }
     if (t.dataset.tileFilter) { tileFilterToggle(t.dataset.tileFilter); return; }
     if (t.dataset.tileShape) { tileShapePick(t.dataset.tileShape); return; }
@@ -332,6 +336,14 @@ function bindEditControls(panel, room) {
       renderComposerPreview();
     }
   });
+}
+
+/** Dock buttons that change the map, refused while it is locked (the rest only look or pick). */
+var EDIT_LOCK_BLOCKS = ['triggerRemove', 'chipDrop', 'chipAdopt', 'strandedFix', 'strandedDrop', 'objectRemove',
+  'objectAddFrame', 'objectRemoveFrame', 'objectConfirmRemoveFrame', 'objectMoveFrame', 'objectMoveObj'];
+function editLockBlocks(t) {
+  if (t.dataset.editAct === 'undo' || t.dataset.editAct === 'redo') return true;
+  return EDIT_LOCK_BLOCKS.some(function (k) { return t.dataset[k] !== undefined && t.dataset[k] !== ''; });
 }
 
 /** Turn edit mode on or off for the room on screen. */

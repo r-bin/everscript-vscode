@@ -101,7 +101,7 @@ function renderEditLayer(palette, composed, origin) {
   // Objects and special glyphs go in the overlay group, over the canopy: on a
   // ROM room the host's canopy layer (#rg-fg) sits above this group and hid
   // them. A custom map has no canopy picture, so it looked fine there.
-  var marks = '';
+  var marks = typeof editRoomCutSvg === 'function' ? editRoomCutSvg(palette, origin) : '';
   // Objects: their areas, and with the Object tab open their tiles on top (map-editor-objects.js).
   if (typeof editObjectSvg === 'function') marks += editObjectSvg(palette, composed, origin);
   // Special glyphs (stairs/drift, gate, entrance) sit on their own key

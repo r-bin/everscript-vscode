@@ -68,7 +68,10 @@ function renderRoomDetail(room){
     hasIngr:hasIngr,
     hasSpawns:!!(trig.enter&&trig.enter.spawns&&trig.enter.spawns.length),
     hasHitbox:!!(trig.enter&&trig.enter.spawns&&trig.enter.spawns.some(function(s){return s.hitW;})),
-    hasArrivals:!!(trig.arrivals&&trig.arrivals.length)
+    hasArrivals:!!(trig.arrivals&&trig.arrivals.length),
+    // A vanilla (or .evs) room opens locked, a custom map unlocked; the same
+    // room redrawn keeps what its draft says (interactions.js's lock button).
+    locked:roomLockedNow(room)
   };
   var filtersHtml=buildViewFilterBarHtml(filterCtx);
   var statusHtml=buildStatusBarHtml(statusRoomSize(rh,room.imageDims));
@@ -117,6 +120,7 @@ function renderRoomDetail(room){
   if(_mtPalette&&!mtPaletteFits(room))_mtPalette=null;
   if(room.custom)customBindDraft(room);
   else if(!editDraft()||editDraft().customKey||editDraft().roomId!==roomVanillaIdNum(room))editReset(roomVanillaIdNum(room));
+  if(editDraft())editDraft().locked=filterCtx.locked;
   bindEditControls(panel,room);
   setupEditGestures();
   setupEditKeys();
@@ -145,7 +149,7 @@ function renderRoomDetail(room){
 
   if(svg&&canvas&&wrap){
     var zoomState=svgResult.zoomState;
-    var state={panX:0,panY:0,panActive:false,locked:true,dragEnt:null,selActive:false,
+    var state={panX:0,panY:0,panActive:false,locked:filterCtx.locked,dragEnt:null,selActive:false,
                selSx:0,selSy:0,panCX:0,panCY:0,panBX:0,panBY:0};
     var zp={svg:svg,canvas:canvas,wrap:wrap,
              W:svgResult.W,H:svgResult.H,
@@ -180,6 +184,18 @@ function renderRoomDetail(room){
   setupLayerButtons(panel,room);
   requestRoomTileOverlay(room,svgResult);
   if(room.custom)customAfterRender(room);
+  // Every map opens in the editor — there is no `edit` button. The panel was
+  // just rebuilt, so a draft already on is switched on again to rebuild its
+  // tool pill and dock; a locked vanilla room can be looked at, not changed.
+  else if(roomVanillaIdNum(room)!=null&&editDraft()){editDraft().on=false;editToggle(room,null);}
+}
+
+/** Whether this room opens locked: a custom map never, anything else yes, unless its draft says otherwise. */
+function roomLockedNow(room){
+  if(room.custom)return false;
+  var d=editDraft();
+  if(d&&!d.customKey&&d.roomId===roomVanillaIdNum(room)&&typeof d.locked==='boolean')return d.locked;
+  return true;
 }
 
 // Name of the room whose tile overlay was last requested. Responses for any

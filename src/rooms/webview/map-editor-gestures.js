@@ -39,6 +39,14 @@ function editStroke(cell, phase) {
     cell = { x: Math.max(0, Math.min(_mtPalette.widthTiles - 1, cell.x)), y: Math.max(0, Math.min(_mtPalette.heightTiles - 1, cell.y)) };
   }
   if (!editInBounds(_mtPalette, cell.x, cell.y)) return;
+  // Locked: the eyedropper, a copy box and selecting a trigger — nothing that writes.
+  if (editLocked() && d.tool !== 'pick' && d.tool !== 'copy') {
+    if (phase !== 'down') return;
+    if (d.tool === 'select') { triggerSelect(editTriggerAt(cell.x, cell.y)); return; }
+    editNote('this map is locked — unlock it in the bar below the map to change it');
+    renderEditChrome();
+    return;
+  }
 
   // A copy on the pointer: the click puts it down, whatever the tool (map-editor-clipboard.js).
   if (typeof _pasteFloat !== 'undefined' && _pasteFloat) {
@@ -89,29 +97,7 @@ function editStroke(cell, phase) {
     var eraseKind = drawKind();
     if (eraseKind === 'trigger') { if (phase === 'down') editEraseTriggerAt(cell); return; }
     if (eraseKind === 'special') { editSpecialStroke(d, cell, true); renderEditChrome(); return; }
-    if (cutLayerActive()) {
-      var cutErase = editCutWrite(cell.x, cell.y, -1, true);
-      if (cutErase) editApply([cutErase]);
-      renderEditChrome(); return;
-    }
-    var here = editCellAt(_mtPalette, cell.x, cell.y);
-    var bare = editResolve(_mtPalette, cell.x, cell.y, -1, true, here);
-    var hadSpecial = editSpecialAt(cell.x, cell.y);
-    var finalIndex = bare;
-    if (hadSpecial) {
-      var base = finalIndex >= 0 ? finalIndex : here;
-      var cleared = editSpecialAppliedIndex(_mtPalette, base, null, true);
-      if (cleared !== base) finalIndex = cleared;
-    }
-    // Nothing on the chosen layer: no write, so the draft is not dirtied.
-    var eraseWrites = (finalIndex >= 0 && finalIndex !== here) ? [{ x: cell.x, y: cell.y, index: finalIndex }] : [];
-    // The whole painted cell: take the draft's write back (the room's own
-    // tile shows again — nothing, on a new map).
-    if (finalIndex === EDIT_ERASE_CELL && Object.prototype.hasOwnProperty.call(d.cells, editKey(cell.x, cell.y))) {
-      eraseWrites = [{ x: cell.x, y: cell.y, index: null }];
-    }
-    var eraseSpecial = hadSpecial ? [{ x: cell.x, y: cell.y, id: null }] : [];
-    if (eraseWrites.length || eraseSpecial.length) editApply(eraseWrites, eraseSpecial);
+    editEraseCells(d, cell, phase);
     renderEditChrome(); return;
   }
 
@@ -368,6 +354,8 @@ function setupEditKeys() {
       return;
     }
     var mod = e.metaKey || e.ctrlKey;
+    // Locked: copying is the only key that does anything (no undo, paste or delete).
+    if (editLocked() && !(mod && (e.key === 'c' || e.key === 'C'))) return;
     if (mod && (e.key === 'z' || e.key === 'Z')) {
       if (e.shiftKey ? editRedo(_mtPalette) : editUndo(_mtPalette)) {
         requestComposedPreview();

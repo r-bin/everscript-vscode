@@ -46,9 +46,10 @@ var _collisionMode='outline';
 /** The flag string for a render request: the features, plus how collision is drawn. */
 function romOverlayFlags(){
   // While a ROM room is edited the editor draws its drift/gate specials,
-  // objects and triggers itself (map-editor.js's editOnRomRoom), so those are
-  // not baked in as well — a deleted trigger would stay on the picture.
-  var f=typeof editOnRomRoom==='function'&&editOnRomRoom()?_currentOverlay.replace(/[dnotl]/g,''):_currentOverlay;
+  // objects, triggers and cuttable grass itself (editOnRomRoom), so those are
+  // not baked in as well — a deleted trigger would stay on the picture, and
+  // the bar's chips could not hide what is in the image.
+  var f=typeof editOnRomRoom==='function'&&editOnRomRoom()?_currentOverlay.replace(/[dnotlg]/g,''):_currentOverlay;
   return f+(_collisionMode==='tiles'&&_currentOverlay.indexOf('c')>=0?'k':'');
 }
 

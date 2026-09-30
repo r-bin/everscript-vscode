@@ -82,6 +82,25 @@ function editCutSvg(palette, composed, origin) {
   return html;
 }
 
+/**
+ * A ROM room's own cuttable grass, marked while the chip is on. It lives in
+ * the room's grid and its Section 4 table, not in `_edit.cut`, and the render
+ * leaves its baked outlines out while editing (romOverlayFlags). Drawn in the
+ * overlay (map-editor-paint.js): the canopy picture would cover it lower down.
+ */
+function editRoomCutSvg(palette, origin) {
+  var d = editDraft();
+  if (!_editCutLayer || !d || !palette || !palette.cuttable || !editOnRomRoom()) return '';
+  var html = '';
+  palette.cuttable.forEach(function (c) {
+    if (d.cut && Object.prototype.hasOwnProperty.call(d.cut, c[0] + ',' + c[1])) return;
+    var at = editCellPos(origin, c[0], c[1]);
+    html += '<rect class="rg-cut-mark rg-cut-room" x="' + at.x + '" y="' + at.y + '" width="' + EDIT_UNITS
+      + '" height="' + EDIT_UNITS + '"><title>the room’s cuttable grass</title></rect>';
+  });
+  return html;
+}
+
 /** Export ROM's `cut`: `[x, y, l1, l2, cw]` per cuttable cell (maps/custom-room.ts). */
 function editCutPayload() {
   var d = editDraft();

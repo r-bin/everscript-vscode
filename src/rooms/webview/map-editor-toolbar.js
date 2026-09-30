@@ -86,11 +86,6 @@ var EDIT_OVERFLOW_ACTS = [
   ['delete-map', 'Delete map…', 'Delete this custom map and its whole edit history (asks first)'],
 ];
 
-/** The tool bar, shown in the map's own filter row. */
-function buildEditButtonHtml() {
-  return '<button class="rdf" id="rg-edit-btn" title="Edit the map: draw with the room’s metatiles">edit</button>';
-}
-
 function editToolButtonHtml(key) {
   var def = null;
   EDIT_TOOLS.forEach(function (t) { if (t[0] === key) def = t; });

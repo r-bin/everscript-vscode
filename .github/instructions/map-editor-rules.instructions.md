@@ -34,14 +34,14 @@ decisions about what the room can look like.
 Consequences that have already come up:
 - With all seven slots full, **do not offer families outside them.** There is no slot
   to adopt into, so candidates are noise.
-- **The tile list is the draft's own families**, even with a slot free — "the tiles
-  aren't limited to the 7 families" was the bug when a free slot listed all ~320
-  others unasked. The other families come in only on request: the free slot's `+`
-  (`_famBrowse`), or when nothing is loaded at all (a custom map starts at 0/7).
-  A family a pick has planned a slot for stays listed until painted.
+- **While a slot is free and the map is unlocked**, the Tile tab lists every other
+  family too; a **locked** map (a vanilla room opens locked) lists only its own
+  families — it cannot adopt one, and listing ~330 more there was the "tiles aren't
+  limited to the 7 families" report. The free slot's `+` scrolls to the others.
+  A custom map starts at 0/7.
 - Adoption is implicit: clicking a tile from an unadopted family pulls that family in
   behind it.
-- When the others are listed, it is **every** family with **all** its art, lazily,
+- The others are **every** family with **all** its art, lazily,
   never behind a pager or a collapse. And a click must not move what was clicked:
   groups keep their place in the list when their family is adopted, and the scroll
   position survives the redraw.
@@ -133,7 +133,9 @@ you still cannot walk through.
 Which layer it takes is the Tile tab's `auto | front | ground` (`editEraseLayers`):
 front takes only front art, ground only the ground (front art over it stays), and
 auto the top-most layer the bottom bar shows — front art first, then the painted
-tile. A stroke with nothing on the chosen layer writes nothing.
+tile. A stroke with nothing on the chosen layer writes nothing, and one gesture
+erases each cell **once** (`_eraseSeen`): the stroke runs on down, move and up, and a
+second pass on a layered cell put a vanilla cell straight back.
 
 ---
 
@@ -279,3 +281,12 @@ took, so none of it comes undone:
   with the Special tab's own glyphs. Marks go in `#rg-edit-overlay`: a ROM room
   has a canopy picture (`#rg-fg`) above `#rg-edit` that hides anything there.
 - **The grid covers the map, not the viewBox**, counted from the map's corner.
+- **Every map opens in the editor; there is no `edit` button.** The bar's `locked`
+  is the one switch (`_edit.locked`, `editLocked`): a vanilla room opens locked —
+  look, pick, copy and select, nothing that writes (strokes, undo, paste, delete and
+  the dock's changing buttons are refused) — and unlocking lets its draft change. A
+  custom map opens unlocked.
+- **The bar's chips work on what the editor draws**: Triggers hides the triggers and
+  their loot icons (a B-trigger's script is where the loot is), Special the glyphs,
+  Interact the bit-15 overlay, Cuttable the room's own cuttable grass
+  (`editRoomCutSvg`). So none of those may be baked into the render while editing.
