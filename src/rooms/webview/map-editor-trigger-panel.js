@@ -1,6 +1,7 @@
 // Ownership: the Trigger tab's list UI — step/B trigger rows as the design
-// mock draws them (grip, where in the room, the tiles covered, `#n · N
-// tiles`, remove), click-to-select. The Info tab's trigger counts are
+// mock draws them (grip, where in the room, the tiles covered, `#n · W×H
+// tiles`, what the script does, remove), click-to-select; opened, the
+// script (map-editor-trigger-scripts.js, which also owns the Enter tab). The Info tab's trigger counts are
 // map-editor-panels.js's. Dragging a row is map-editor-trigger-order.js.
 //
 // The trigger model (which triggers exist, hit-testing, select/move/delete/
@@ -55,23 +56,34 @@ function triggerRowName(t, kind) {
   return (names && names[t.index]) || ('room trigger ' + t.index);
 }
 
-/** One row: grip, where, tiles, `#n · W×H tiles`, remove. Drag it to reorder (map-editor-trigger-order.js). */
+/**
+ * One trigger: a card with its row — grip, where, tiles, `#n · W×H tiles`,
+ * what its script does, caret, remove — and, opened, its script
+ * (map-editor-trigger-scripts.js). Rows start collapsed. Drag the row to
+ * reorder (map-editor-trigger-order.js).
+ */
 function triggerRowHtml(t, kind, n) {
   var d = editDraft();
   var sel = d && triggerRefsEqual(d.selectedTriggerRef, t.ref);
   var refStr = t.ref.kind + ':' + t.ref.id;
   var w = t.x2 - t.x1 + 1, h = t.y2 - t.y1 + 1, locked = editLocked();
+  var open = triggerIsOpen(t.ref), what = triggerScriptWhat(triggerScriptFor(t, kind));
   var title = triggerRowName(t, kind) + ' — cells ' + t.x1 + ',' + t.y1 + ' to ' + t.x2 + ',' + t.y2
     + (typeof t.scriptId === 'number' ? '\nscript 0x' + Number(t.scriptId).toString(16) : '\nno script yet')
+    + (what ? '\n' + what : '')
     + (locked ? '' : '\nclick to select · drag to reorder, or onto the other tab to change its kind');
   // Locked: no grip, no remove — nothing here may change.
-  return '<div class="rg-trigger-row' + (sel ? ' on' : '') + '"' + (locked ? '' : ' draggable="true"')
+  return '<div class="rg-trigger-card' + (sel ? ' on' : '') + '">'
+    + '<div class="rg-trigger-row' + (sel ? ' on' : '') + '"' + (locked ? '' : ' draggable="true"')
     + ' data-trigger-ref="' + escH(refStr) + '" title="' + escH(title) + '">'
     + (locked ? '' : '<span class="rg-trigger-grip" aria-hidden="true">⠿</span>')
     + triggerPreviewsHtml(t, kind)
-    + '<span class="rg-trigger-label">#' + n + ' · ' + w + '×' + h + ' tiles</span>'
+    + '<span class="rg-trigger-label">#' + n + ' · ' + w + '×' + h + ' tiles'
+    + (what ? '<span class="rg-trigger-what">' + escH(what) + '</span>' : '') + '</span>'
+    + '<span class="rg-object-caret" data-trigger-toggle="' + escH(refStr) + '" title="' + (open ? 'Hide' : 'Show')
+    + ' its script">' + (open ? '▾' : '▸') + '</span>'
     + (locked ? '' : '<button class="rdf rg-trigger-remove" data-trigger-remove="' + escH(refStr) + '" title="Remove this trigger">×</button>')
-    + '</div>';
+    + '</div>' + (open ? triggerScriptBodyHtml(t, kind) : '') + '</div>';
 }
 
 function triggerSectionHtml(kind) {
@@ -82,31 +94,37 @@ function triggerSectionHtml(kind) {
   return html + '</div>';
 }
 
-/** The kinds, in order: B-triggers first, the default. */
+/** The kinds, in order: B-triggers first, the default; then the enter script, which has no box. */
 var TRIGGER_SUBTABS = [
   ['b', 'B-triggers', 'Run when the Boy presses B facing them — a sign, a chest, a person'],
-  ['step', 'Step-on triggers', 'Run when the Boy walks onto them — a door, a cutscene zone'],
+  ['step', 'Step-on', 'Step-on triggers: run when the Boy walks onto them — a door, a cutscene zone'],
+  ['enter', 'Enter', 'Runs as the room loads — shown, not drawn'],
 ];
 
 /**
- * Trigger tab body: a tab per kind at the top. The open one is what the
+ * Trigger tab body: a tab per kind at the top. B and step are what the
  * pencil draws (map-editor-drawable.js's `_editTriggerKind`) and the one
  * listed below — select, move, delete, copy/paste (map-editor-trigger-select.js,
- * map-editor-gestures.js).
+ * map-editor-gestures.js). Enter only shows the enter script.
  */
 function triggerTabPanelHtml() {
   var kind = typeof _editTriggerKind !== 'undefined' ? _editTriggerKind : 'b';
+  var enter = typeof _triggerEnterView !== 'undefined' && _triggerEnterView;
   var html = '<div class="rg-subtabs" role="tablist">';
   TRIGGER_SUBTABS.forEach(function (t) {
-    html += '<button class="rg-subtab rg-trigger-kind rg-trigger-kind-' + t[0] + (kind === t[0] ? ' on' : '')
-      + '" role="tab" aria-selected="' + (kind === t[0]) + '" data-trigger-kind="' + t[0] + '" title="' + escH(t[2]) + '">'
-      + '<b>' + (t[0] === 'b' ? 'B' : 'S') + '</b> ' + escH(t[1])
-      + ' <span class="rs-note">' + editTriggerList(t[0]).length + '</span></button>';
+    var on = t[0] === 'enter' ? enter : !enter && kind === t[0];
+    var count = t[0] === 'enter' ? '' : ' <span class="rs-note">' + editTriggerList(t[0]).length + '</span>';
+    html += '<button class="rg-subtab rg-trigger-kind rg-trigger-kind-' + t[0] + (on ? ' on' : '')
+      + '" role="tab" aria-selected="' + on + '"'
+      + (t[0] === 'enter' ? ' data-trigger-enter="1"' : ' data-trigger-kind="' + t[0] + '"') + ' title="' + escH(t[2]) + '">'
+      + '<b>' + (t[0] === 'b' ? 'B' : t[0] === 'step' ? 'S' : 'E') + '</b> ' + escH(t[1]) + count + '</button>';
   });
-  return html + '</div>'
+  html += '</div>';
+  if (enter) return html + triggerEnterHtml();
+  return html
     + '<div class="rs-note">The pencil drags out a new one. Select tool: click one to select it, drag its '
-    + 'own cells to move it, Delete to remove, Cmd/Ctrl+C/V to copy — or click a row. Drag a row by ⠿ to '
-    + 'reorder it, or onto the other tab to change its kind.</div>'
+    + 'own cells to move it, Delete to remove, Cmd/Ctrl+C/V to copy — or click a row; ▸ shows its script. '
+    + 'Drag a row by ⠿ to reorder it, or onto the other tab to change its kind.</div>'
     + triggerSectionHtml(kind);
 }
 

@@ -673,6 +673,17 @@ test('triggerParseRef splits only on the first colon, since an id can contain on
 console.log('\ncomposing a stamp:');
 
 /** All five webview files in one scope, as the browser concatenates them. */
+/** Only the named top-level functions of a webview file — utils.js whole would replace the stubs above. */
+function helpersFrom(file, names) {
+    const src = read(file);
+    return names.map((n) => {
+        const a = src.indexOf('function ' + n + '(');
+        if (a < 0) throw new Error(n + ' not in ' + file);
+        const b = src.indexOf('\n}\n', a);
+        return src.slice(a, b + 2);
+    }).join('\n');
+}
+
 const ui = new Function(`
   var document = {
     getElementById: function () { return null; },
@@ -706,7 +717,8 @@ const ui = new Function(`
   ${read('map-editor-trigger-panel.js')}
   ${read('map-editor-toolbar.js') /* the floating tool pill, split out of map-editor-ui.js in Phase 7a */}
   ${read('map-editor-filterbar.js') /* the docked filter bar + status bar, likewise Phase 7a */}
-  ${read('tables-builder.js') /* buildEntityTablesHtml, still used above the map outside edit mode */}
+  ${read('map-editor-trigger-scripts.js') /* the scripts in the Trigger tab's rows */}
+  ${helpersFrom('utils.js', ['lootLabel', 'exitLabel', 'hexNum', 'normScriptAddr'])}
   ${read('map-editor-tabs.js')}
   ${read('map-editor-panels.js')}
   ${read('map-editor-gestures.js')}
@@ -729,11 +741,10 @@ const ui = new Function(`
   ${read('map-editor-romroom.js') /* a vanilla room in the editor (map-editor-rules §7) */}
   ${read('map-editor-info.js') /* the Info tab */}
   return {
-    tileSlotWord: tileSlotWord, editOnTilePicked: editOnTilePicked,
+    editOnTilePicked: editOnTilePicked,
     editAction: editAction, editReset: editReset, editDraft: editDraft,
-    controls: metatilePaletteControls, editFamilies: editFamilies,
+    editFamilies: editFamilies,
     editAdoptFamilyFor: editAdoptFamilyFor,
-    budgetBar: budgetBar, vanillaEvidence: vanillaEvidence,
     editResolve: editResolve, editBlankCanopy: editBlankCanopy,
     editSaveConstruct: editSaveConstruct, editConstructWrites: editConstructWrites,
     editNeededStamps: editNeededStamps, editErrors: editErrors,
@@ -747,7 +758,6 @@ const ui = new Function(`
     compose: function () { return _editCompose; },
     setPalette: function (p) { _mtPalette = p; },
     setSelected: function (i) { _mtSelected = i; },
-    setView: function (v, pal) { _mtView = v; if (pal) _mtBgPalette = pal; },
     specialTab: specialTabHtml, specialFilterChip: buildSpecialFilterChipHtml,
     editStroke: editStroke, editSpecialAt: editSpecialAt, editStampWords: editStampWords,
     setTab: function (t) { _editActiveTab = t; },
@@ -777,6 +787,7 @@ const ui = new Function(`
     editWordSpecialIds: editWordSpecialIds, editOnRomRoom: editOnRomRoom, editTriggerSvg: editTriggerSvg,
     editRoomSpecialsSvg: editRoomSpecialsSvg, editExport: editExport, infoTabHtml: infoTabHtml, infoMeasure: infoMeasure,
     editHeaderSet: editHeaderSet, infoHeaderBit: infoHeaderBit, infoHeader: infoHeader,
+    setPanelRoom: function (r) { _editPanelRoom = r; }, triggerToggle: triggerToggle, triggerEnterPick: triggerEnterPick,
     objectLooksStatic: objectLooksStatic, objectIsOpen: objectIsOpen, setObjectOpen: function (k, v) { _objectOpen[k] = v; }, objectReorder: objectReorder, objectTabHtml: objectTabHtml,
   };`)();
 
@@ -793,23 +804,6 @@ function tilePalette() {
     return p;
 }
 
-test('a graphic names itself with chr plus the family it is shown in', () => {
-    const p = tilePalette();
-    // A tilemap word is vhopppcccccccccc: chr in the low ten bits, the
-    // background palette in bits 10..12. Family 3 of this room is $58.
-    assert.strictEqual(ui.tileSlotWord(p, 0), 0x0c00);
-    assert.strictEqual(ui.tileSlotWord(p, 1), 0x0c02);
-    assert.strictEqual(ui.tileSlotWord(p, 9), null, 'past the end there is no word');
-});
-
-test('the family tabs are labelled with the room’s family ids', () => {
-    ui.setView('tiles', 1);
-    const html = ui.controls(tilePalette());
-    assert.ok(/data-mt-bgpal="1"[^>]*>35</.test(html), 'tab 1 is family 35: ' + html);
-    assert.ok(/data-mt-bgpal="7"[^>]*>166</.test(html), 'tab 7 is family 166');
-    assert.ok(html.includes('tiles · 2'), 'the view button says how many graphics there are');
-});
-
 test('a picked graphic fills the armed layer source', () => {
     const p = tilePalette();
     ui.setPalette(p);
@@ -818,7 +812,7 @@ test('a picked graphic fills the armed layer source', () => {
 
     ui.compose().pick = 'layer2';
     ui.compose().armed = true;
-    assert.strictEqual(ui.editOnTilePicked(ui.tileSlotWord(p, 1)), true);
+    assert.strictEqual(ui.editOnTilePicked(0x0c02), true);   // slot 1's word in family 3
     assert.strictEqual(ui.compose().layer2, 0x0c02);
     assert.strictEqual(ui.compose().armed, false, 'one pick, one slot');
 
@@ -857,27 +851,6 @@ test('add stamp refuses a half-composed stamp and takes a whole one', () => {
 // ceiling it would silently blow through, and a suggestion with no stated
 // confidence. See docs/map-format/building-a-room-from-a-picture.md §2, §4.
 // ---------------------------------------------------------------------------
-
-test('the budget meter marks the family ceiling as full, not merely used', () => {
-    const p = tilePalette();
-    p.budget = {
-        graphics: { used: 92, max: 264, vanilla: 255 },
-        families: { used: 7, max: 7, vanilla: 7 },
-        stamps: { used: 175, max: null, vanilla: 2131 },
-        wram: { used: 2048, max: 32768, vanilla: 32680 },
-        attested: 157,
-    };
-    const html = ui.budgetBar(p);
-    assert.ok(html.includes('92/264'), 'graphics reads used/max');
-    assert.ok(html.includes('7/7'));
-    // Seven of seven is at the ceiling, so the bar warns; it is not over it.
-    assert.ok(/rs-bg-bar warn[^>]*><i style="width:100\.0%/.test(html), 'full families warn: ' + html);
-    assert.ok(!html.includes('rs-bg-bar over'), 'nothing here is past its ceiling');
-    // Stamps have no known field limit, so no bar may be drawn for them.
-    assert.ok(html.includes('no field limit'));
-    assert.ok(html.includes('175') && !/>175\/[0-9]/.test(html), 'stamps show no denominator');
-    assert.ok(html.includes('157'), 'the attested vocabulary is shown');
-});
 
 test('the Info tab bars only real ceilings, and counts the draft\'s own families', () => {
     const p = tilePalette();
@@ -947,34 +920,6 @@ test('header fields are editable when unlocked, one undo step each, and ride the
     assert.ok(locked.includes('>Front · Ground · HUD · Sprites<'), 'TM $17 in words');
     assert.ok(locked.includes('>Add on Ground<'), 'CGADSUB $02 in words');
     assert.ok(locked.includes('>sub screen, everywhere<'), 'CGWSEL $02 in words');
-});
-
-test('a budget past its ceiling reads as over, not as 100%', () => {
-    const p = tilePalette();
-    p.budget = {
-        graphics: { used: 270, max: 264, vanilla: 255 },
-        families: { used: 7, max: 7, vanilla: 7 },
-        stamps: { used: 1, max: null, vanilla: 2131 },
-        wram: { used: 10, max: 32768, vanilla: 32680 },
-        attested: 3,
-    };
-    assert.ok(ui.budgetBar(p).includes('rs-bg-bar over'));
-});
-
-test('vanilla evidence always carries its confidence', () => {
-    const p = tilePalette();
-    //         [family, family%, familiesSeen, collision, collision%]
-    p.vanilla = [[58, 100, 1, 0x101f, 94], [149, 80, 2, null, 0], null];
-    const one = ui.vanillaEvidence(p, 0);
-    assert.ok(one.includes('family 58') && one.includes('100%'), one);
-    assert.ok(one.includes('only one seen'), 'an unambiguous graphic says so');
-    assert.ok(one.includes('$101F') && one.includes('94%'), 'collision comes with its share');
-
-    const two = ui.vanillaEvidence(p, 1);
-    assert.ok(two.includes('2 families seen'), 'an ambiguous one admits it');
-    assert.ok(!two.includes('collision'), 'a canopy-only graphic claims no collision');
-
-    assert.ok(ui.vanillaEvidence(p, 2).includes('never drawn'), 'and silence is stated, not blank');
 });
 
 // ---------------------------------------------------------------------------
@@ -2188,6 +2133,33 @@ test('a locked map’s trigger rows have no grip, no remove, and do not drag', (
     d.locked = true;
     const html = ui.triggerTab();
     assert.ok(!html.includes('draggable') && !html.includes('rg-trigger-grip') && !html.includes('data-trigger-remove'));
+});
+
+test('trigger rows start collapsed, say what their script does, and open to its lines; Enter shows the enter script', () => {
+    const p = Object.assign(tilePalette(), { roomId: 0x34 });
+    p.attachments = { bTrigger: [[1, 1, 2, 2, 0x201]], stepOn: [], objects: [] };
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    d.on = true;
+    const script = { scriptId: 0x201, scriptAddressSnes: 0x96ab5e, terminated: true,
+        loot: [{ itemName: 'Mushroom', amount: 2 }],
+        instructions: [{ addressSnes: 0x96ab5e, opcodeHex: '0x3c', summary: 'give Mushroom ×2' },
+                       { addressSnes: 0x96ab62, opcodeHex: '0x00', terminal: true }] };
+    ui.setPanelRoom({ content: { triggers: { bTrigger: [script], stepOn: [],
+        enter: { scriptAddressSnes: 0x96b630, instructions: [{ addressSnes: 0x96b630, summary: 'fade in' }] } } } });
+    let html = ui.triggerTab();
+    assert.ok(html.includes('Mushroom ×2'), 'the collapsed row says what it hands over');
+    assert.ok(!html.includes('give Mushroom'), 'collapsed: no script lines');
+    ui.triggerToggle('b:base:0');
+    html = ui.triggerTab();
+    assert.ok(html.includes('give Mushroom ×2') && html.includes('op 0x00'), 'open: one line per instruction, summary or opcode');
+    assert.ok(html.includes('data-script-addr="96AB5E"'), 'the emulator highlight can find the line');
+    ui.triggerEnterPick(true);
+    html = ui.triggerTab();
+    assert.ok(html.includes('fade in') && html.includes('rg-trigger-kind-enter on'), 'the Enter tab shows the enter script');
+    assert.ok(!html.includes('data-trigger-ref'), 'and no trigger rows');
+    ui.triggerEnterPick(false);
+    ui.setPanelRoom(null);
 });
 
 console.log(`\n  ${passed} passed, ${failed} failed`);

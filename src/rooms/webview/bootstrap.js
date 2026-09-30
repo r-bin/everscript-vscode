@@ -6,7 +6,7 @@
 // injected by the extension host via ACTIVE_BYTE_SCRIPT_FOCUS template variable.
 var _currentByteScriptFocus=(typeof ACTIVE_BYTE_SCRIPT_FOCUS==='string'?ACTIVE_BYTE_SCRIPT_FOCUS:'').replace(/^0x/i,'').toUpperCase();
 
-// _applyByteScriptFocus: set by setupByteScriptFocusBinding() when a room is rendered.
+// _applyByteScriptFocus: set by setupByteScriptFocus() (interactions.js) when a room is rendered.
 // Initially a no-op.
 var _applyByteScriptFocus=function(){};
 

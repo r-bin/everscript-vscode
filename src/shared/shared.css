@@ -316,9 +316,6 @@ a.ll{color:#9fcfff;cursor:pointer;text-decoration:none}a.ll.lw{color:#ff9f9f}a.l
    "tiles are jumping when you click on them" of §8e. */
 .rg-edit-row>.rg-outer{min-width:0;flex:1 1 0}
 .rg-dock{flex:none;width:400px;min-width:340px;max-width:460px;min-height:0}
-/* While editing, the browsing palette below the map steps aside: the panel
-   column is the editor's tile UI, and two pickers on screen is the clunk. */
-.rs-mt-hidden{display:none}
 .rg-edit-bar{margin:0 0 4px}
 .rg-edit-count{font-size:10px;color:#888;margin-left:8px;align-self:center}
 /* The draft, drawn over the map image from the palette sheet.

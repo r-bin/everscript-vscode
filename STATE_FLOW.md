@@ -96,7 +96,8 @@
 | `_editCutLayer` | `map-editor-cutlayer.js` (webview) | bool | Whether the cuttable layer is shown and drawn on. Off, the map shows the tiles beneath |
 | `_mtPalette` | `metatile-palette.js` (webview) | object\|null | The room's own decoded palette (dictionary atlas, grid, budget, attachments) — read-only room data every map-editor file reads through |
 | `_mtLayer` | `metatile-palette.js` (webview) | string | Which layer the Tile palette section renders (`'composite'`/`'layer1'`/`'layer2'`/`'collision'`) |
-| `_mtFilter` | `metatile-palette.js` (webview) | string | The Tile palette's own family filter |
+| `_triggerOpen` / `_triggerEnterView` | `map-editor-trigger-scripts.js` (webview) | {"<map>:<kind>:<id>": bool} / bool | Which trigger rows show their script (all start collapsed), and whether the Trigger tab shows the enter script |
+| `_layoutWidths` | `rooms-layout.js` (webview) | {rail, dock} px | The resizable rail and dock widths; CSS vars on the page root, saved as the `layoutWidths` UI pref |
 | `_mtSelected` | `metatile-palette.js` (webview) | number | The selected stamp index in the browsing (non-edit) Tile palette |
 | `_editDrag` | `map-editor-gestures.js` (webview) | `{x1,y1}`\|null | The box-select tool's in-progress pointer drag — distinct from the Select tool's own `_triggerDrag` |
 | `_newRoomOpen` | `map-editor-newroom.js` (webview) | bool | Whether the "new room" inline form is open |
@@ -149,11 +150,9 @@ User clicks room in tree (webview)
 renderRoomDetail(room)            [detail-renderer.js]
   ↓
 buildRoomSvgSection(opts)         [svg-builder.js]
-buildEntityTablesHtml(c, trigOff) [tables-builder.js]
-buildRomScriptsHtml(c, trigOff)   [tables-builder.js]
-buildRomHeaderHtml(rh)            [rom-header.js]
   ↓
-panel.innerHTML = combined HTML
+panel.innerHTML = header + editor (nothing under it since v0.90.0 —
+                  scripts: Trigger tab; parked sections: sandbox/room-data/)
   ↓
 setupZoomPan(...)                 [zoom-pan.js]
 setupMouseEvents(...)             [interactions.js]

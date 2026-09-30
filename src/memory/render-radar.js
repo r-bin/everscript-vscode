@@ -98,6 +98,8 @@ function renderRadarHtml(
         '<div class="tab-pane" data-tab="rooms" style="display:none">' +
         '<div class="rm-panels">' +
         buildRoomRailHtml(treeHtml, vanillaTreeHtml) +
+        // The handle that resizes the rail (rooms/webview/rooms-layout.js).
+        '<div class="rm-split" data-split="rail" title="Drag to resize"></div>' +
         '<div class="rm-right"><div id="room-detail" class="rm-detail-placeholder"><span>Select a room</span></div></div>' +
         '</div>' +
         '</div>';

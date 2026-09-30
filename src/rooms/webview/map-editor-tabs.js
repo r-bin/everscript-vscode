@@ -3,8 +3,8 @@
 //
 // The content each tab gates lives elsewhere — map-editor-panels.js owns
 // the families/tiles/needed/compose panels (Tile tab) and the budget +
-// checks panels (Info tab); tables-builder.js owns the entity tables
-// mirrored into the Trigger tab; map-editor-deco.js owns the Widgets tab
+// checks panels (Info tab); map-editor-trigger-panel.js the Trigger tab
+// (its scripts map-editor-trigger-scripts.js); map-editor-deco.js owns the Widgets tab
 // (widgetsTabHtml). This file only decides which group is on screen; it
 // renders nothing of its own beyond the strip itself.
 //

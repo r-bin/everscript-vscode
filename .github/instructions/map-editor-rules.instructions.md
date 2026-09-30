@@ -105,7 +105,7 @@ A stamp is `{layer1: canopy, layer2: terrain, collision}` — one dictionary ent
 **The pencil draws the open tab's pick, and only that** (`map-editor-drawable.js`):
 the Tile tab's tile, the Special tab's special, a new trigger box on the Trigger tab
 (B first), on the Object tab a new object's area or the selected object's tiles, the
-Widgets tab's widget. Info keeps the last tab's. Arming a widget selects the *pencil*,
+Widgets tab's widget. Info keeps the last tab's. The Trigger tab's **Enter** tab only shows the enter script: it has no box, so choosing it never arms the pencil (`_triggerEnterView`, not `_editTriggerKind`). Arming a widget selects the *pencil*,
 never the old Stamp tool: Stamp stamps on every tab. The eraser follows the
 same choice. A click never carries two drawables. Before this rule, an armed stairs
 special rode along with every tile stroke.

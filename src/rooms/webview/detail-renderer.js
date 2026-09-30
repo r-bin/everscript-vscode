@@ -1,11 +1,13 @@
 // Ownership: renderRoomDetail coordinator, and the request/response cycle for
 // the host-rendered ROM map image.
-// Orchestrates: header HTML, SVG section, entity tables, ROM scripts, ROM header.
+// Orchestrates: the header line and the editor (SVG section, filter bar,
+// status bar). Nothing is drawn under the editor any more: the trigger
+// scripts live in the Trigger tab, the header in Info, and what the editor
+// has no place for is parked in sandbox/room-data/ (its README says what and why).
 // Then wires all interactions.
-// Depends on: utils.js, svg-builder.js, tables-builder.js, rom-header.js,
-// interactions.js, rom-overlay.js (all globals — the webview JS is concatenated
-// into one script). rom-overlay.js owns the top bar and the ROM data section;
-// this file owns _pendingTileRoom / _pendingTileOrigin and reads that bar's
+// Depends on: utils.js, svg-builder.js, interactions.js, rom-overlay.js (all
+// globals — the webview JS is concatenated into one script). rom-overlay.js
+// owns the top bar; this file owns _pendingTileRoom / _pendingTileOrigin and reads that bar's
 // _currentLayer / _currentOverlay when building a request.
 
 function renderRoomDetail(room){
@@ -94,26 +96,8 @@ function renderRoomDetail(room){
   });
   html+=svgResult.html;
 
-  // ── Sprite palettes ────────────────────────────────────────────────────────
-  html+=buildPaletteHtml(trig.palettes);
-
-  // ── Tile palette ───────────────────────────────────────────────────────────
-  // The stamps this room can place. Empty until asked for: see
-  // src/rooms/webview/metatile-palette.js.
-  html+=buildMetatilePaletteHtml(room);
-
-  // ── Entity tables ──────────────────────────────────────────────────────────
-  html+=buildEntityTablesHtml(c,trigOff);
-
-  // ── ROM scripts section ────────────────────────────────────────────────────
-  html+=buildRomScriptsHtml(c,trigOff);
-
-  // ── ROM header section ─────────────────────────────────────────────────────
-  html+=buildRomHeaderHtml(rh);
-
   panel.innerHTML=html;
   bindLinks(panel);
-  bindMetatilePalette(panel,room);
   // The editor: its own draft per room, and gesture handlers that stay out
   // of the way until edit mode is on.
   _editOrigin={x:svgResult.mapX0||0,y:svgResult.mapY0||0};
@@ -141,7 +125,7 @@ function renderRoomDetail(room){
   });
 
   // ── Post-render interaction setup ──────────────────────────────────────────
-  setupByteScriptFocusBinding(panel);
+  setupByteScriptFocus();
 
   var svg=document.getElementById('rg-svg');
   var canvas=document.getElementById('rg-canvas');
@@ -180,7 +164,6 @@ function renderRoomDetail(room){
   // The old room's overlay is about to be thrown away with the panel HTML;
   // stop its timer first so it is not left ticking against detached nodes.
   stopRoomAnimation();
-  resetObjectStatesFor(room.name);
   setupLayerButtons(panel,room);
   requestRoomTileOverlay(room,svgResult);
   if(room.custom)customAfterRender(room);
@@ -267,7 +250,7 @@ function requestRoomTileOverlay(room,svgResult,layer){
 
   // Serve a previously received overlay immediately; the origin is part of the
   // geometry, so only reuse it when the viewBox origin still matches.
-  var states=objectStateSpec();
+  var states='';
   var hit=_overlayCache[overlayCacheKey(id,which,romOverlayFlags(),states)];
   if(hit&&hit.originX===_pendingTileOrigin.x&&hit.originY===_pendingTileOrigin.y){
     applyRoomTileOverlay({command:'roomTiles',mapName:room.name,roomId:id,overlay:hit});
@@ -351,7 +334,6 @@ function applyRoomTileOverlay(msg){
   // the rendered image by the host (a port of render_map.py, verified
   // pixel-identical), so there is nothing to draw here — the SVG layer is left
   // for the interactive entity and trigger overlays that were always there.
-  renderRomDataSections(ov);
 }
 
 /**

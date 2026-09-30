@@ -110,7 +110,7 @@ var EDIT_CLICK_KEYS = ['editTool', 'editAct', 'editPick', 'panel',
   'objectConfirmRemoveFrame', 'objectCancelRemoveFrame', 'objectMoveFrame', 'objectMoveObj',
   'decoFlag', 'mtIndex', 'mtSlot', 'editActiveTab',
   'editSpecial', 'editSpecialMenu', 'editTriggerMenu', 'editMoreMenu',
-  'editToolMenu', 'triggerRef', 'triggerRemove', 'triggerKind', 'editLevel', 'editCollisionMenu', 'collisionMode'];
+  'editToolMenu', 'triggerRef', 'triggerRemove', 'triggerKind', 'triggerEnter', 'triggerToggle', 'editLevel', 'editCollisionMenu', 'collisionMode'];
 
 /**
  * Every dropdown in the editor's chrome that opens a popup of sub-toggles,
@@ -253,6 +253,8 @@ function bindEditControls(panel, room) {
       return;
     }
     if (t.dataset.triggerKind) { triggerKindPick(t.dataset.triggerKind); return; }
+    if (t.dataset.triggerEnter) { triggerEnterPick(true); return; }
+    if (t.dataset.triggerToggle) { triggerToggle(t.dataset.triggerToggle); return; }
     if (t.dataset.editLevel) { editLevelPick(t.dataset.editLevel); return; }
     if (t.dataset.collisionMode) { collisionModeSet(t.dataset.collisionMode); return; }
     if (t.dataset.triggerRef) { triggerSelect(triggerParseRef(t.dataset.triggerRef)); return; }

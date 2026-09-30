@@ -353,7 +353,9 @@ test('rooms detail emits render log messages in rooms tab path', () => {
     assert.ok(joined.includes('[RoomsRender] renderRoomDetail:start'), 'Expected room render start log');
 });
 
-test('rooms detail renders ROM header and decoded script tables without bottom render canvas', () => {
+test('rooms detail draws nothing under the editor: no ROM header, script tables or render canvas', () => {
+    // v0.90.0: the scripts moved into the Trigger tab, the header into Info;
+    // what the editor has no place for is parked in sandbox/room-data/.
     const roomTreeData = [{
         kind:'map', name:'script_room', vanillaId:'0x33', relPath:'vanilla (rom)', startLine:0, endLine:2,
         imageUri:null, imageDims:null,
@@ -373,10 +375,9 @@ test('rooms detail renders ROM header and decoded script tables without bottom r
     const js = extractScript(html);
     const { sandbox } = runWebviewJs(js);
     const detail = sandbox.document.getElementById('room-detail').innerHTML || '';
-    assert.ok(detail.includes('ROM Map Data'), 'Expected ROM header section');
-    assert.ok(detail.includes('ROM scripts'), 'Expected ROM scripts section');
-    assert.ok(detail.includes('Step-on #0'), 'Expected step-on script card');
-    assert.ok(detail.includes('CHANGE MAP = 0x34'), 'Expected decoded CHANGE MAP summary');
+    assert.ok(!detail.includes('ROM Map Data'), 'no ROM header section');
+    assert.ok(!detail.includes('ROM scripts'), 'no ROM scripts section');
+    assert.ok(!/class="rs rs-/.test(detail), 'no data section of any kind under the editor');
     assert.ok(!detail.includes('rr-canvas'), 'Did not expect bottom ROM render canvas');
 });
 
@@ -583,8 +584,10 @@ test('webview source is pasted into the bundle literally, not as a replacement p
 // ── Exits ─────────────────────────────────────────────────────────────────────
 
 test('a door trigger renders its destination as a link to that room', () => {
+    // v0.90.0: the scripts moved from a table under the map into the Trigger
+    // tab's rows (map-editor-trigger-scripts.js); the exit is still a link.
     const roomsDir = path.join(__dirname, '..', '..', 'src', 'rooms', 'webview');
-    const code = ['utils.js', 'tables-builder.js']
+    const code = ['utils.js', 'map-editor-trigger-scripts.js']
         .map((f) => fs.readFileSync(path.join(roomsDir, f), 'utf8')).join('\n');
     const sandbox = { INGR_BASE: '', INGR_FILES: [], Math, JSON, String, Array };
     vm.createContext(sandbox);
@@ -595,10 +598,10 @@ test('a door trigger renders its destination as a link to that room', () => {
         prepares: [{ id: 0, name: 'Fade-out / stop music' }], music: null,
         writes: [{ addr: 0x24fd, name: '$24fd', value: 5 }],
     }] };
-    const html = sandbox.renderScriptCard('Step-on #0', '', trigger, 'step', 0);
+    const html = sandbox.triggerExitsHtml(trigger);
     assert.ok(html.includes('data-goto-map="0x48"'), 'destination is not a link: ' + html);
     assert.ok(html.includes('Omnitopia - Metroplex tunnels'), 'destination is not named');
-    assert.ok(/title="[^"]*Fade-out/.test(html), 'preparation should be in the tooltip');
+    assert.ok(sandbox.triggerScriptWhat(trigger).includes('Omnitopia'), 'the collapsed row names the destination');
 
     assert.ok(sandbox.exitLabel(trigger).includes('Omnitopia'), 'map label should name the destination');
     assert.ok(sandbox.exitTip(trigger).includes('0x48'), 'map tooltip should carry the id');
@@ -622,15 +625,12 @@ test('following an exit reuses the tree\'s own room selection', () => {
     assert.ok(/railSetGroup\('vanilla', true\)/.test(src), 'expected the Vanilla group to be opened');
 });
 
-test('clicking the map selects without jumping; cmd-click jumps', () => {
+test('clicking the map marks what is under it and scrolls nothing', () => {
+    // The tables a click used to scroll to are gone (v0.90.0): nothing under the map.
     const src = fs.readFileSync(
         path.join(__dirname, '..', '..', 'src', 'rooms', 'webview', 'interactions.js'), 'utf8');
-    assert.ok(/selectAt\(Math\.floor\(pt\.x\),Math\.floor\(pt\.y\),e\.metaKey\|\|e\.ctrlKey\)/.test(src),
-        'map clicks should pass the modifier through as the jump flag');
-    assert.ok(/if\(jump&&r\.scrollIntoView\)/.test(src),
-        'row scrolling should be behind the jump flag');
-    assert.ok(/if\(jump&&card\.scrollIntoView\)/.test(src),
-        'card scrolling should be behind the jump flag');
+    assert.ok(/selectAt\(Math\.floor\(pt\.x\),Math\.floor\(pt\.y\)\)/.test(src), 'map clicks select');
+    assert.ok(!/scrollIntoView\(\{block:'nearest'\}\);\s*\}\);\s*\}\s*stepOn/.test(src), 'no row scrolling');
 });
 
 // ── Summary ───────────────────────────────────────────────────────────────────

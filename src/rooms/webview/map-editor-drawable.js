@@ -117,6 +117,7 @@ function editDeselectAll(keepSelection) {
 /** Pick the trigger kind the pencil draws, and arm the pencil. */
 function triggerKindPick(kind) {
   _editTriggerKind = editTriggerKindDef(kind)[0];
+  if (typeof _triggerEnterView !== 'undefined') _triggerEnterView = false;
   var d = editDraft();
   if (d) d.tool = 'paint';
   editNote('pencil: drag a box on the map to add a ' + editTriggerKindDef(_editTriggerKind)[1]);

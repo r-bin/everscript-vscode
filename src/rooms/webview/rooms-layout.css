@@ -1,0 +1,48 @@
+/* Ownership: the Rooms tab's page layout — the editor fills the tab, nothing
+ * is drawn under it, and the rail and the dock are resizable (rooms-layout.js).
+ * Also the Trigger tab's cards and compact scripts (map-editor-trigger-scripts.js).
+ * Loaded after the other rooms stylesheets; consumes theme.css's tokens. */
+
+/* ── One screen, no page scroll ─────────────────────────────────────────── */
+.rm-left.rm-rail{width:var(--rm-rail-w,200px)}
+.rm-right:has(> #room-detail.rg-theme){overflow:hidden;display:flex;flex-direction:column;padding-bottom:8px}
+#room-detail.rg-theme{flex:1;min-height:0;display:flex;flex-direction:column}
+#room-detail.rg-theme > *{flex:none}
+/* The editor row takes all the height left under the room's name; the map
+ * column stacks canvas, filter bar and status bar, the status bar last — the
+ * bottom of the screen. */
+#room-detail.rg-theme > .rg-edit-row{flex:1;min-height:0;align-items:stretch;gap:0}
+.rg-theme .rg-edit-row > .rg-outer{display:flex;flex-direction:column;min-height:0;margin-bottom:0}
+.rg-theme .rg-edit-row > .rg-outer > .rg-canvas-zone{flex:1;min-height:0}
+.rg-theme .rg-edit-row > .rg-outer > .rd-filters,
+.rg-theme .rg-edit-row > .rg-outer > .rg-statusbar{flex:none}
+/* The dock runs the full height and scrolls inside its tab body. */
+.rg-theme .rg-dock{display:flex;flex-direction:column;min-height:0;width:var(--rg-dock-w,400px);min-width:300px;max-width:none}
+.rg-theme .rg-dock > .rg-panels{flex:1;min-height:0;max-height:none;margin-bottom:0}
+
+/* ── Resize handles ─────────────────────────────────────────────────────── */
+.rm-split,.rg-theme .rg-split{flex:none;width:8px;cursor:col-resize;position:relative;touch-action:none}
+.rm-split::after,.rg-theme .rg-split::after{
+  content:'';position:absolute;top:0;bottom:0;left:3px;width:2px;border-radius:1px;background:transparent;
+  transition:background .12s}
+.rm-split:hover::after,.rg-theme .rg-split:hover::after,.rg-resizing .rm-split::after,.rg-resizing .rg-split::after{
+  background:var(--rg-accent,#6aa0ff)}
+body.rg-resizing{cursor:col-resize;user-select:none}
+
+/* ── Trigger cards: the row and, opened, its script, in one border ──────── */
+.rg-theme .rg-trigger-card{border:1px solid var(--rg-border);border-radius:7px;overflow:hidden}
+.rg-theme .rg-trigger-card.on{border-color:var(--rg-accent);background:var(--rg-bg-chrome)}
+.rg-theme .rg-trigger-card > .rg-trigger-row{border:none;border-radius:0}
+.rg-theme .rg-trigger-what{display:block;font-family:var(--rg-font-ui);font-size:11px;color:var(--rg-text-muted);
+  overflow:hidden;text-overflow:ellipsis}
+.rg-theme .rg-trigger-body{padding:6px 10px 8px 30px;border-top:1px solid var(--rg-border);font-size:11px}
+.rg-theme .rg-enter-body{padding-left:10px;border:1px solid var(--rg-border);border-radius:7px;margin-top:6px}
+.rg-theme .rg-script{display:flex;flex-direction:column;gap:1px;margin-top:4px;font-family:var(--rg-font-mono);
+  font-size:11px;line-height:1.45;color:var(--rg-text-secondary)}
+/* Summaries wrap: a long one reads better on two lines than cut off. */
+.rg-theme .rg-script-line{white-space:normal;overflow-wrap:anywhere;padding:0 4px;border-radius:3px}
+.rg-theme .rg-script-line.rs-guess{opacity:.55}
+.rg-theme .rg-script-line.rs-err{color:var(--rg-error)}
+.rg-theme .rg-script-line.rs-term{color:var(--rg-text-muted)}
+.rg-theme .rg-script-line.rs-current{background:var(--rg-accent-soft);color:var(--rg-text-primary)}
+.rg-theme .rg-script-exit{display:block;margin:2px 0;font-family:var(--rg-font-ui)}

@@ -286,12 +286,14 @@ test('Rooms HTML includes room render canvas styles', () => {
     assert.ok(htmlRooms.includes('hide-scripts'), 'Missing new scripts filter rule in Rooms HTML');
 });
 
-test('Rooms JS renders ROM header and script sections without the removed render canvas block', () => {
+test('Rooms JS draws nothing under the editor: no ROM header, script tables or render canvas', () => {
+    // v0.90.0: scripts are in the Trigger tab, the header in Info; the rest is
+    // parked in sandbox/room-data/.
     const roomsElements = runWithTrackingDoc(jsRoomsCode);
     const detail = (roomsElements['room-detail'] && roomsElements['room-detail'].innerHTML) || '';
-    assert.ok(detail.includes('ROM Map Data'), 'Expected ROM header section in room detail');
-    assert.ok(detail.includes('ROM scripts'), 'Expected ROM scripts section in room detail');
-    assert.ok(detail.includes('CHANGE MAP = 0x34'), 'Expected decoded script summary in room detail');
+    assert.ok(detail.includes('rd-head'), 'Expected the room header line');
+    assert.ok(!detail.includes('ROM Map Data'), 'no ROM header section');
+    assert.ok(!detail.includes('ROM scripts'), 'no ROM scripts section');
     assert.ok(!detail.includes('rr-canvas'), 'Did not expect removed render canvas block');
 });
 

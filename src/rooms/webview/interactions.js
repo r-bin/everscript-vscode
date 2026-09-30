@@ -3,33 +3,21 @@
 // Requires globals: escH (utils.js), vs (shared.js), goToLine (shared.js).
 
 /**
- * Wire up the byte-script focus highlighting and ROM-header collapse toggle.
- * Must be called after panel.innerHTML is set.
+ * Highlight the script line the emulator is running (`_currentByteScriptFocus`,
+ * a normalised SNES address). The lines are the Trigger tab's compact scripts
+ * (map-editor-trigger-scripts.js), which carry `data-script-addr`.
  */
-function setupByteScriptFocusBinding(panel){
+function setupByteScriptFocus(){
   function apply(){
-    panel.querySelectorAll('tr.rs-current').forEach(function(row){row.classList.remove('rs-current');});
-    panel.querySelectorAll('.rs-script.rs-current').forEach(function(card){card.classList.remove('rs-current');});
+    document.querySelectorAll('.rs-current').forEach(function(el){el.classList.remove('rs-current');});
     if(!_currentByteScriptFocus)return;
-    panel.querySelectorAll('tr[data-script-addr="'+_currentByteScriptFocus+'"]').forEach(function(row){
-      row.classList.add('rs-current');
-      var card=row.closest?row.closest('.rs-script'):null;
-      if(card)card.classList.add('rs-current');
-      if(row.scrollIntoView)row.scrollIntoView({block:'nearest'});
+    document.querySelectorAll('[data-script-addr="'+_currentByteScriptFocus+'"]').forEach(function(el){
+      el.classList.add('rs-current');
+      if(el.scrollIntoView)el.scrollIntoView({block:'nearest'});
     });
   }
   _applyByteScriptFocus=apply;
   apply();
-
-  // ROM header collapse toggle
-  var rshToggle=panel.querySelector('#rsh-toggle');
-  var rshBody=panel.querySelector('#rsh-body');
-  if(rshToggle&&rshBody){
-    rshToggle.addEventListener('click',function(){
-      var col=rshBody.classList.toggle('rsh-collapsed');
-      rshToggle.textContent='ROM Map Data '+(col?'▴':'▾');
-    });
-  }
 }
 
 /**
@@ -86,50 +74,14 @@ function setupMouseEvents(p){
     var pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;
     return pt.matrixTransform(svg.getScreenCTM().inverse());
   }
-  var selRect=svg?svg.querySelector('#rg-sel'):null;
-
-  function applyBoxFilter(sx,sy,ex,ey){
-    var rx1=Math.min(sx,ex),rx2=Math.max(sx,ex),ry1=Math.min(sy,ey),ry2=Math.max(sy,ey);
-    if(rx2-rx1<1&&ry2-ry1<1){clearBoxFilter();return;}
-    panel.querySelectorAll('tr[data-kind][data-idx]').forEach(function(row){
-      var kind=row.dataset.kind,idx=parseInt(row.dataset.idx),ok=false;
-      if(kind==='entrance'){var en=entrances[idx];if(en)ok=(en.x>=rx1&&en.x<=rx2&&en.y>=ry1&&en.y<=ry2);}
-      else if(kind==='step'){var t=stepOn[idx];if(t){var sv=tsvg(t,p.trigOff);ok=(sv.sx+sv.sw>=rx1&&sv.sx<=rx2&&sv.sy+sv.sh>=ry1&&sv.sy<=ry2);}}
-      else if(kind==='btrig'){var t=bTrigger[idx];if(t){var sv=tsvg(t,p.trigOff);ok=(sv.sx+sv.sw>=rx1&&sv.sx<=rx2&&sv.sy+sv.sh>=ry1&&sv.sy<=ry2);}}
-      else if(kind==='enemy'){var en=enemies[idx];if(en)ok=(en.x>=rx1&&en.x<=rx2&&en.y>=ry1&&en.y<=ry2);}
-      else ok=true;
-      row.classList.toggle('hrow',!ok);
-    });
-  }
-  function clearBoxFilter(){
-    panel.querySelectorAll('tr.hrow').forEach(function(r){r.classList.remove('hrow');});
-    if(selRect){selRect.setAttribute('display','none');selRect.setAttribute('width','0');selRect.setAttribute('height','0');}
-  }
   function clearSelection(){
     if(svg)svg.querySelectorAll('.svge-sel').forEach(function(el){el.classList.remove('svge-sel');});
-    panel.querySelectorAll('tr.sel-row').forEach(function(r){r.classList.remove('sel-row');});
-    panel.querySelectorAll('.rs-script.sel-script').forEach(function(card){card.classList.remove('sel-script');});
   }
-  /**
-   * Select whatever is under the map at (tx,ty).
-   *
-   * `jump` scrolls the matching table row or script card into view. That is
-   * held behind cmd/ctrl-click, browser style: a plain click should let you
-   * point at things on the map without the panel below lurching to a
-   * different scroll position each time.
-   */
-  function selectAt(tx,ty,jump){
+  /** Mark whatever is under the map at (tx,ty). */
+  function selectAt(tx,ty){
     clearSelection();
     function hi(kind,i){
       if(svg)svg.querySelectorAll('[data-kind="'+kind+'"][data-idx="'+i+'"]').forEach(function(el){el.classList.add('svge-sel');});
-      panel.querySelectorAll('tr[data-kind="'+kind+'"][data-idx="'+i+'"]').forEach(function(r){
-        r.classList.add('sel-row');
-        if(jump&&r.scrollIntoView)r.scrollIntoView({block:'nearest'});
-      });
-      panel.querySelectorAll('.rs-script[data-kind="'+kind+'"][data-idx="'+i+'"]').forEach(function(card){
-        card.classList.add('sel-script');
-        if(jump&&card.scrollIntoView)card.scrollIntoView({block:'nearest'});
-      });
     }
     stepOn.forEach(function(t,i){var sv=tsvg(t,p.trigOff);if(tx>=sv.sx&&tx<sv.sx+sv.sw&&ty>=sv.sy&&ty<sv.sy+sv.sh)hi('step',i);});
     bTrigger.forEach(function(t,i){var sv=tsvg(t,p.trigOff);if(tx>=sv.sx&&tx<sv.sx+sv.sw&&ty>=sv.sy&&ty<sv.sy+sv.sh)hi('btrig',i);});
@@ -165,11 +117,7 @@ function setupMouseEvents(p){
   svg.addEventListener('mousedown',function(e){
     if(e.button!==0||state.dragEnt)return;
     if(e.metaKey||e.ctrlKey)return;
-    var pt=svgPt(e);
-    if(e.shiftKey){
-      state.selSx=pt.x;state.selSy=pt.y;state.selActive=true;
-      if(selRect)selRect.setAttribute('display','');
-    } else {
+    {
       // Only enable pan when the canvas is larger than the viewport
       var W2=p.W,H2=p.H,dispW2=p.dispW,dispH2=p.dispH;
       var s=p._getScale?p._getScale(zoomState.scale):zoomState.scale||1;
@@ -192,12 +140,6 @@ function setupMouseEvents(p){
       state.dragEnt.ghostEl.setAttribute('x',tx);state.dragEnt.ghostEl.setAttribute('y',ty);
       return;
     }
-    if(state.selActive){
-      var pt=svgPt(e);
-      var rx=Math.min(state.selSx,pt.x),ry=Math.min(state.selSy,pt.y),rw=Math.abs(pt.x-state.selSx),rh2=Math.abs(pt.y-state.selSy);
-      if(selRect){selRect.setAttribute('x',rx);selRect.setAttribute('y',ry);selRect.setAttribute('width',rw);selRect.setAttribute('height',rh2);}
-      return;
-    }
     // Panning itself is handled by the window-level handler, so a drag keeps
     // working past the edge of the SVG. Nothing to do here.
   });
@@ -209,7 +151,6 @@ function setupMouseEvents(p){
       if(state.dragEnt.ghostEl&&state.dragEnt.ghostEl.parentNode)state.dragEnt.ghostEl.parentNode.removeChild(state.dragEnt.ghostEl);
       state.dragEnt=null;return;
     }
-    if(state.selActive){state.selActive=false;var pt=svgPt(e);applyBoxFilter(state.selSx,state.selSy,pt.x,pt.y);return;}
     if(state.panActive){state.panActive=false;if(wrap)wrap.classList.remove('rg-panning');}
   });
 
@@ -228,19 +169,15 @@ function setupMouseEvents(p){
     // you release a drag.
     if(state.panMoved){state.panMoved=false;return;}
     var pt=svgPt(e);
-    selectAt(Math.floor(pt.x),Math.floor(pt.y),e.metaKey||e.ctrlKey);
+    selectAt(Math.floor(pt.x),Math.floor(pt.y));
   });
-  svg.addEventListener('dblclick',function(){clearBoxFilter();clearSelection();});
+  svg.addEventListener('dblclick',clearSelection);
 }
 
-/**
- * Wire hover highlights between SVG entities and table rows (bidirectional).
- */
+/** Wire hover highlights on the SVG entities, and their label in the status bar. */
 function setupHoverHighlights(svg,panel){
   function setHi(kind,idx,on){
     if(svg)svg.querySelectorAll('[data-kind="'+kind+'"][data-idx="'+idx+'"]').forEach(function(el){el.classList.toggle('hi',on);});
-    panel.querySelectorAll('tr[data-kind="'+kind+'"][data-idx="'+idx+'"]').forEach(function(row){row.classList.toggle('hi-row',on);});
-    panel.querySelectorAll('.rs-script[data-kind="'+kind+'"][data-idx="'+idx+'"]').forEach(function(card){card.classList.toggle('hi-card',on);});
   }
   if(svg){
     svg.querySelectorAll('[data-kind][data-idx]').forEach(function(el){
@@ -248,10 +185,6 @@ function setupHoverHighlights(svg,panel){
       el.addEventListener('mouseleave',function(){setHi(el.dataset.kind,el.dataset.idx,false);});
     });
   }
-  panel.querySelectorAll('tr[data-kind][data-idx]').forEach(function(row){
-    row.addEventListener('mouseenter',function(){setHi(row.dataset.kind,row.dataset.idx,true);});
-    row.addEventListener('mouseleave',function(){setHi(row.dataset.kind,row.dataset.idx,false);});
-  });
   // Hover status bar
   var tipDiv=document.getElementById('rg-tip');
   if(svg&&tipDiv){

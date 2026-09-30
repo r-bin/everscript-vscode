@@ -30,7 +30,7 @@ const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-stamps.js', '
     'map-editor-tiles.js', 'map-editor-tile-lazy.js', 'map-editor-tile-filters.js', 'map-editor-neighbours.js', 'map-editor-deco.js', 'map-editor-widgets.js', 'map-editor-widget-edit.js', 'map-editor-special.js',
     'map-editor-trigger-select.js', 'map-editor-trigger-panel.js', 'map-editor-trigger-order.js', 'map-editor-objects.js', 'map-editor-object-list.js',
     'map-editor-toolbar.js', 'map-editor-filterbar.js', 'rom-overlay.js',
-    'tables-builder.js', 'map-editor-tabs.js', 'map-editor-panels.js', 'map-editor-gestures.js',
+    'map-editor-trigger-scripts.js', 'map-editor-tabs.js', 'map-editor-panels.js', 'map-editor-gestures.js',
     'map-editor-input.js', 'map-editor-actions.js', 'map-editor-newroom.js', 'map-editor-start.js', 'map-editor-custom.js',
     'map-editor-rom-export.js', 'map-editor-collision.js', 'map-editor-cutlayer.js', 'map-editor-drawable.js',
     'map-editor-levels.js', 'map-editor-groups.js', 'map-editor-custom-store.js',
@@ -106,7 +106,6 @@ async function main() {
         <span class="rg-zoom-level" id="rg-zoom-level">—</span>
         <button id="rg-zin">+</button><button id="rg-zfit">fit</button></div>
         </div></div></div>
-        <div class="rs rs-mt-sec" id="rs-mt"><div class="rs-mt-body" id="rs-mt-body"></div></div>
         </div></body></html>`);
 
     // Stubs for the few things the editor reaches for outside its own files.
@@ -115,7 +114,6 @@ async function main() {
         var vs = { postMessage: function (m) { window.__sent.push(m); } };
         function escH(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
         function roomVanillaIdNum(){ return 0x34; }
-        function renderMetatilePalette(){}
         // The room detail is detail-renderer.js's, not the editor's; a custom
         // map is opened through it (rooms-rail-dom.test.js drives the real one).
         function renderRoomDetail(room){ window.__rendered = room; }
@@ -244,11 +242,10 @@ async function main() {
     check('and reports the room size beside it',
         await page.$eval('#rg-status-size', (n) => n.textContent) === '2 × 2');
 
-    // Two tile pickers on screen at once — the panels and the pre-rebuild
-    // palette section — was "the first time you click it you get an old
-    // version of the editor".
-    check('and hides the browsing palette while it is open',
-        await page.evaluate(() => document.getElementById('rs-mt').classList.contains('rs-mt-hidden')));
+    // v0.90.0: the dock gets a resize handle between it and the map.
+    check('a resize handle sits between the map and the dock',
+        await page.evaluate(() => { const h = document.querySelector('.rg-edit-row > .rg-split[data-split="dock"]');
+            return !!h && h.nextElementSibling && h.nextElementSibling.id === 'rg-dock'; }));
 
     // ── the tab shell ──────────────────────────────────────────────────────
     // Five tabs (Tile / Special / Trigger / Info / Widgets) file everything
@@ -296,7 +293,7 @@ async function main() {
         };
     });
     check("the Trigger tab lists the room's own step/B triggers, named from the source",
-        /Step-on triggers/.test(trigText) && trigRow && /test_step/.test(trigRow.title) && /0x1234/.test(trigRow.title),
+        /Step-on/.test(trigText) && trigRow && /test_step/.test(trigRow.title) && /0x1234/.test(trigRow.title),
         trigText.slice(0, 300));
     check('a trigger row is the mock\'s: grip, the room with its box lit, its own tiles, "#0 · 2×2 tiles"',
         trigRow && trigRow.draggable === 'true' && trigRow.grip && trigRow.label === '#0 · 2×2 tiles'

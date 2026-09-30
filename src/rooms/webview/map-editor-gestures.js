@@ -89,7 +89,7 @@ function editStroke(cell, phase) {
     if (phase !== 'down') return;
     if (typeof editSmartPick === 'function') { editSmartPick(cell); return; }
     var at = editCellAt(_mtPalette, cell.x, cell.y);
-    if (at >= 0) { d.brush = at; _mtSelected = at; renderMetatilePalette(); }
+    if (at >= 0) { d.brush = at; _mtSelected = at; }
     renderEditChrome(); return;
   }
 

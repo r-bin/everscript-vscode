@@ -1,3 +1,13 @@
+## [0.90.0] — 2026-09-30
+
+### Feat: the editor takes the whole Rooms tab — scripts in the trigger rows, nothing under the map
+
+- **Nothing under the editor.** The data column under the map is gone. Redundant sections were removed: the old tile palette, the trigger tables, the ROM-scripts meta row, the source objects table and object-state browser, the ROM header table (which also carried wrong labels, e.g. TM `$16` as "the Oglin cave variant"), and the summary strip. What the editor has no place for yet was parked in `sandbox/room-data/` with a README: sprite palettes, the `.evs` source tables (entrances, enemies, objects, transitions), the ROM feature table and legend.
+- **Trigger scripts in the Trigger tab.** Rows start collapsed and say what their script does when the decoder recognised it (loot, the room it leads to, NPCs it places); ▸ opens the script as one summary line per instruction, with door destinations as links. Placed triggers find their script by id. The emulator's current-instruction highlight lands on these lines.
+- **Enter tab** beside B and Step-on: the room's enter script, shown, not drawn.
+- **Full-height layout:** the dock runs the whole height and scrolls inside; the filter and status bars sit at the bottom of the screen; the page itself no longer scrolls.
+- **Resizable columns:** drag the handle between the rooms list and the editor, or between the map and the dock. Minimum widths 160 / 300 px; remembered across sessions.
+
 ## [0.89.0] — 2026-09-30
 
 ### Feat: Header edits show at once; trigger and object lists follow the lock

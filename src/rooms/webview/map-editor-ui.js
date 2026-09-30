@@ -22,7 +22,6 @@ var _editConstruct = -1;   // which saved construct the stamp tool places
  */
 function editDock(on, room) {
   var outer = document.getElementById('rg-outer');
-  var sec = document.getElementById('rs-mt');
   if (!outer) return;
   var dock = document.getElementById('rg-dock');
   if (on) {
@@ -42,6 +41,8 @@ function editDock(on, room) {
       panels.className = 'rg-panels';
       outer.parentNode.insertBefore(row, outer);
       row.appendChild(outer);
+      // The handle that resizes the dock (rooms-layout.js).
+      row.insertAdjacentHTML('beforeend', '<div class="rg-split" data-split="dock" title="Drag to resize"></div>');
       row.appendChild(dock);
       dock.appendChild(panels);
       // #rg-panels is outside #room-detail, so its clicks never reach the
@@ -50,7 +51,6 @@ function editDock(on, room) {
       // chips, ◀ ▶, Delete frame, +, etc.) are routed correctly.
       bindEditControls(dock, room);
     }
-    if (sec) sec.classList.add('rs-mt-hidden');
     // The resize grip sits over the map's own bottom-right corner, so the
     // map is resized where it is rather than through a form.
     var wrap = document.getElementById('rg-wrap');
@@ -62,7 +62,8 @@ function editDock(on, room) {
     if (room && !mtPaletteFits(room)) requestMetatilePalette(room, _mtLayer);
     renderEditPanels();
   } else if (dock) {
-    if (sec) sec.classList.remove('rs-mt-hidden');
+    var split = dock.parentNode.querySelector('.rg-split');
+    if (split) split.parentNode.removeChild(split);
     dock.parentNode.removeChild(dock);
     ['rg-resize', 'rg-resize-label'].forEach(function (id) {
       var el = document.getElementById(id);

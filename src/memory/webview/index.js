@@ -74,13 +74,11 @@ const ROOMS_JS_FILES = [
   'utils.js',            // escH, hexNum, normScriptAddr, tsvg, INGR_MAP/EMOJI helpers
   'svg-spawns.js',       // buildSpawnLayers (the NPC layers svg-builder places)
   'svg-builder.js',      // buildRoomSvgSection
-  'tables-builder.js',   // renderScriptTable/Card, buildEntityTablesHtml, buildRomScriptsHtml
-  'rom-header.js',       // buildRomHeaderHtml
+  'rooms-layout.js',     // the rail and dock resize handles (_layoutWidths)
   'zoom-pan.js',         // setupZoomPan: scale, pan offset, pinch and two-finger panning
-  'interactions.js',     // setupByteScriptFocusBinding, setupMouseEvents, setupHoverHighlights, setupClickHandlers
+  'interactions.js',     // setupByteScriptFocus, setupMouseEvents, setupHoverHighlights, setupClickHandlers
   'animation.js',        // Section 2 tile animation overlay + rAF playback
-  'object-states.js',    // Section 3 object browser (_objectStates) + state pickers
-  'metatile-palette.js', // the room's placement palette (_mtPalette/_mtLayer/_mtFilter)
+  'metatile-palette.js', // the room's metatile dictionary from the host (_mtPalette/_mtLayer)
   'map-editor.js',       // the edit draft and undo stack (_edit)
   'map-editor-stamps.js',// the stamp dictionary: composing/adopting stamps and graphics
   'map-editor-paint.js', // drawing the draft on the map (_editSel/_editClip)
@@ -101,7 +99,8 @@ const ROOMS_JS_FILES = [
   'map-editor-widget-edit.js', // editing a widget on its own canvas (_widgetEdit/_widgetBack)
   'map-editor-special.js',// the Special tab: stairs/drift, gate, entrance + their filter chip
   'map-editor-trigger-select.js',// unifies base + placed triggers: select/move/delete/copy-paste
-  'map-editor-trigger-panel.js',// the Trigger tab's list UI + the Info tab's trigger counts
+  'map-editor-trigger-panel.js',// the Trigger tab's list UI
+  'map-editor-trigger-scripts.js', // the scripts in the Trigger tab's rows, and its Enter tab (_triggerOpen/_triggerEnterView)
   'map-editor-trigger-order.js', // dragging trigger rows: order and kind (_triggerDragRow)
   'map-editor-objects.js', // the Object tab: areas and their tiles (_objectSel/_objectDraw)
   'map-editor-object-list.js', // the Object tab's rows: open/closed, drag to reorder (_objectOpen/_objectDragRow)
@@ -127,7 +126,7 @@ const ROOMS_JS_FILES = [
   'map-editor-special-select.js', // the Select tool on the Special tab: select and drag a cell's specials
   'map-editor-romroom.js', // a vanilla room in the editor: its palette check, objects, triggers and specials
   'map-editor-info.js',  // the Info tab: capacity, the map's measured facts, the room header, checks
-  'rom-overlay.js',      // ROM view top bar (_currentLayer/_currentOverlay) + renderRomDataSections
+  'rom-overlay.js',      // ROM view top bar (_currentLayer/_currentOverlay)
   'detail-renderer.js',  // renderRoomDetail (orchestrator)
   'rooms-rail.js',       // the left rail: groups, area collapse, search, selection, + New Map
   'tab-init.js',         // the top-level tab strip
@@ -149,7 +148,8 @@ module.exports = {
     + loadFile(path.join(roomsDir, 'map-editor-theme.css')) + '\n'
     + loadFile(path.join(roomsDir, 'map-editor-canvas.css')) + '\n'
     + loadFile(path.join(roomsDir, 'map-editor-tile-tab.css')) + '\n'
-    + loadFile(path.join(roomsDir, 'rooms-rail.css')),
+    + loadFile(path.join(roomsDir, 'rooms-rail.css')) + '\n'
+    + loadFile(path.join(roomsDir, 'rooms-layout.css')),
   get scalingJs() { return loadScalingJs(); },
   get roomsJs() { return loadRoomsJs(); },
   docsJs: loadFile(path.join(docsDir, 'docs-tab.js')),

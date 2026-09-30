@@ -5,7 +5,7 @@
 // These are read-outs over state owned elsewhere: the draft is
 // map-editor.js, the palette is metatile-palette.js, the families are
 // map-editor-families.js, the tile browser is map-editor-tiles.js, the
-// trigger tables are tables-builder.js, the Special tab's own content is
+// Trigger tab is map-editor-trigger-panel.js, the Special tab's own content is
 // map-editor-special.js's specialTabHtml, the Widgets tab's own content is
 // map-editor-deco.js's widgetsTabHtml. Nothing here writes any of them.
 // Which tab is active is map-editor-tabs.js's state (_editActiveTab); this
@@ -31,6 +31,7 @@ function applyUiPrefs(prefs) {
   if (prefs && typeof prefs.widgetsVanilla === 'boolean' && typeof _widgetsVanilla !== 'undefined') {
     _widgetsVanilla = prefs.widgetsVanilla;
   }
+  if (prefs && typeof layoutApplyPrefs === 'function') layoutApplyPrefs(prefs.layoutWidths);
   var saved = prefs && prefs[PANEL_OPEN_PREF];
   if (saved && typeof saved === 'object') {
     Object.keys(saved).forEach(function (k) { _panelOpen[k] = !!saved[k]; });
@@ -191,10 +192,8 @@ function panelScroller(body) {
  * rendered by map-editor-trigger-panel.js's triggerTabPanelHtml.
  *
  * Phase 4 (docs/map-editor-redesign-plan.md) replaced this tab's earlier
- * placeholder, which only mirrored the read-only entity tables
- * detail-renderer.js renders unconditionally above the map
- * (tables-builder.js's buildEntityTablesHtml) — that copy is still there for
- * browsing outside edit mode; this tab no longer duplicates it.
+ * placeholder; since v0.90.0 the trigger tables and script cards that sat
+ * under the map are gone too — the rows here carry the scripts.
  */
 function triggerTabHtml() {
   return triggerTabPanelHtml();

@@ -132,7 +132,7 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
 - `svg-builder.js` — `buildRoomSvgSection()` → `{html, zoomState, ...}`; stacks
   map → spawns behind → canopy → spawns in front → canopy overlay → annotation
 - `metatile-palette.js` — the Tile palette section; owns `_mtPalette` / `_mtLayer` /
-  `_mtFilter` / `_mtSelected` and the `requestRoomMetatiles` cycle
+  `_mtSelected` and the `requestRoomMetatiles` cycle
 - `map-editor.js` — the edit draft, undo stack and export shape; owns `_edit`.
   Deliberately DOM-free, which is what makes `tests/memory/map-editor.test.js`
   possible
@@ -305,17 +305,22 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   and the canvas resize grip; owns `_newRoomOpen` / `_resizing` / `_resizeKeep`.
   The grip's own visual chrome (`.rg-resize`/`.rg-resize-label`) is themed in
   map-editor-canvas.css; this file owns only its drag math
-- `tables-builder.js` — entity tables, ROM script cards. `buildEntityTablesHtml`
-  is called unconditionally by `detail-renderer.js` (always visible, browsing
-  or editing) — the Trigger tab no longer calls it (Phase 4 gave it its own
-  authoritative rendering, see map-editor-trigger-panel.js)
-- `rom-header.js` — ROM header display
+- `map-editor-trigger-scripts.js` — the scripts in the Trigger tab's rows
+  (collapsed: what the script does; open: one summary line per instruction)
+  and the Enter tab; owns `_triggerOpen` / `_triggerEnterView`
+- `rooms-layout.js` / `rooms-layout.css` — the tab fills the screen with
+  nothing under the editor; the rail and dock resize handles (`_layoutWidths`,
+  saved as the `layoutWidths` UI pref)
+- Nothing is drawn under the editor since v0.90.0: the entity tables, script
+  cards, ROM header, sprite palettes, ROM data section and object-state
+  browser were removed or parked in `sandbox/room-data/` (its README says
+  which and why)
 - `interactions.js` — zoom/pan, mouse events, click handlers. Also writes the
   zoom chip's `%` read-out from its own `applyZoom`, since it is the single
   owner of the scale (100% = one ROM pixel per screen pixel: a viewBox unit
   is an 8 px tile, so the scale is divided by 8)
 - `rom-overlay.js` — the ROM view controls; owns `_currentLayer` /
-  `_currentOverlay` and renders the summary, legend and ROM data tables.
+  `_currentOverlay`.
   Exports one builder per control (`romLayerButtonHtml`,
   `romOverlayButtonHtml`, `romVisSegmentHtml`, …) rather than one pre-baked
   row, because map-editor-filterbar.js arranges them into six slots.
