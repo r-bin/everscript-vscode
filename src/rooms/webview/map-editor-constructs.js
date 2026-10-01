@@ -55,11 +55,41 @@ function editPartFromWord(palette, word) {
 function editWordFromPart(palette, part) {
   if (!part) return null;
   if (part.word !== undefined) return { word: part.word };
-  var got = editAdoptFamilyFor(part.family);
+  var got = editAdoptPaintedFamily(part.family);
   if (!got.ok) return { error: got.why };
   var slot = editAdoptGraphic(palette, part.graphic);
   if (slot < 0) return { error: 'no tile sheet loaded yet' };
   return { word: (editSlotChr(slot) | ((got.slot + 1) << 10) | (part.flags || 0)) & 0xffff };
+}
+
+/**
+ * A family a stamped widget brings in: loaded now — the group's words name
+ * its slot at once — but as a *painted* family (editAutoFamilies), so it
+ * leaves with the last cell that names it. Adopted by hand
+ * (editAdoptFamilyFor) it stayed in the strip after the widget was deleted.
+ * A free slot no painted family remembers is preferred, as in
+ * editPlanFamilyFor, so an undo cannot bring cells back into a slot another
+ * family has taken since.
+ */
+function editAdoptPaintedFamily(family) {
+  var fams = editFamilies();
+  if (family === undefined || family === null) return { ok: false, why: 'no family known for that tile' };
+  if (fams.indexOf(family) >= 0) return { ok: true, added: false, slot: fams.indexOf(family) };
+  var auto = editAutoFamilies();
+  var free = -1;
+  for (var i = 0; i < 7; i++) {
+    if (fams[i] !== undefined) continue;
+    if (auto[i] === family) { free = i; break; }
+    if (free < 0 || (auto[free] !== undefined && auto[i] === undefined)) free = i;
+  }
+  if (free < 0) return { ok: false, why: 'all seven palette slots are taken — clear one to make room for family ' + family };
+  while (fams.length <= free) fams.push(undefined);
+  fams[free] = family;
+  auto[free] = family;
+  delete editDroppedFamilies()[free];
+  delete editPlannedOnly()[free];
+  ensureFamilySheet(family);
+  return { ok: true, added: true, slot: free };
 }
 
 /**

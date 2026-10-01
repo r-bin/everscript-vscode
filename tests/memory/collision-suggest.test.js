@@ -109,6 +109,17 @@ if (!fs.existsSync(ROM_PATH)) {
         assert.strictEqual(maps.suggestGeometry(index, 0xfffff, 'terrain'), null);
     });
 
+    test('the widget colourings table is exactly what vanilla attests', () => {
+        // map-editor-widgets.js offers one variation per family in it; a
+        // family the ROM never drew a graphic in renders as wrong colours.
+        const src = fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'rooms', 'webview', 'map-editor-widgets.js'), 'utf8');
+        const table = new Function(src + ';return WIDGET_GRAPHIC_FAMILIES')();
+        Object.keys(table).forEach((g) => {
+            const attested = (index.families.get(Number(g)) || []).map((a) => a.value);
+            assert.deepStrictEqual(table[g], attested, `graphic ${g}`);
+        });
+    });
+
     test('the canopy tally leaves out each room’s blank canopy word', () => {
         assert.ok(index.canopyCollisions.size > 0);
         // Graphic 489 is drawn as the blank canopy in many rooms; as *real*

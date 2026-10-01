@@ -2986,51 +2986,63 @@ test('placed widgets render object-like cards with clickable variant preview chi
     assert.ok(updatedRowHtml.includes('data-placed-var-idx="1" title="Variation #184"><i class="ro-img rg-widget-var-thumb"'), 'variant 1 rendered as active');
 });
 
-test('antiqua urn has 10 attested variants and switching variation manages palette slots cleanly', () => {
-    // 1. 10 attested families for Antiqua urns
+test('antiqua urn offers only the colourings vanilla attests for all its pieces', () => {
     const urnCells = [
-        { dx: 0, dy: 0, canopy: { graphic: 643, family: 115, flags: 0 }, terrain: null }
+        { dx: 0, dy: 0, canopy: { graphic: 643, family: 115, flags: 0 }, terrain: null },
+        { dx: 1, dy: 0, canopy: { graphic: 644, family: 115, flags: 0 }, terrain: null },
+        { dx: 0, dy: 1, canopy: { graphic: 647, family: 115, flags: 0 }, terrain: null },
+        { dx: 1, dy: 1, canopy: { graphic: 648, family: 115, flags: 0 }, terrain: null },
     ];
-    const fams = ui.widgetAttestedFamilies(urnCells);
-    assert.deepStrictEqual(fams, [115, 35, 127, 139, 159, 188, 158, 128, 111, 141], 'exactly 10 attested families for Antiqua urns');
+    // #127 colours only the top pair; #128/#111/#141 never coloured any of it.
+    assert.deepStrictEqual(ui.widgetAttestedFamilies(urnCells), [115, 35, 139, 159, 188, 158]);
+    assert.deepStrictEqual(ui.widgetAttestedFamilies(urnCells.slice(0, 2)), [115, 35, 127, 139, 159, 188, 158]);
+    assert.strictEqual(ui.widgetAttestedFamilies([{ dx: 0, dy: 0, canopy: { graphic: 1, family: 2 } }]), null);
 
-    // 2. Widget ensure variations generates all 10 variations
-    const urnWidget = { id: 'w-urn', name: 'Antiqua Urn', w: 2, h: 2, cells: urnCells };
+    // A library widget saved with the old invented colourings loses them.
+    const old = [115, 35, 127, 139, 159, 188, 158, 128, 111, 141].map((f) => ({ id: 'fam-' + f, name: '#' + f, frames: [] }));
+    const saved = { id: 'w-old', cells: urnCells, variations: old };
+    ui.widgetEnsureVariations(saved);
+    assert.deepStrictEqual(saved.variations.map((v) => v.id), ['fam-115', 'fam-35', 'fam-139', 'fam-159', 'fam-188', 'fam-158']);
+    // Hand-made variations are the user's, never trimmed.
+    const mine = { id: 'w-mine', cells: urnCells, variations: [{ id: 'v-a' }, { id: 'v-b' }] };
+    ui.widgetEnsureVariations(mine);
+    assert.strictEqual(mine.variations.length, 2);
+});
+
+test('switching a placed widget variation replaces its family slot, and deleting it frees the slot', () => {
+    const urnCells = [{ dx: 0, dy: 0, canopy: { graphic: 643, family: 115, flags: 0 }, terrain: null }];
+    const urnWidget = { id: 'w-urn', name: 'Antiqua Urn', w: 1, h: 1, cells: urnCells };
     ui.widgetEnsureVariations(urnWidget);
-    assert.strictEqual(urnWidget.variations.length, 10, '10 variations created for urn widget');
-    assert.strictEqual(urnWidget.variations[5].name, '#188', 'variant 5 is #188');
-    assert.strictEqual(urnWidget.variations[6].name, '#158', 'variant 6 is #158');
-
-    // 3. Stamping and cycling variations does not fill up the 7 palette slots
     const p = tilePalette();
     p.widthTiles = 10;
     p.heightTiles = 10;
-    p.tileFamilies = [206, undefined, 115]; // slot 0: 206, slot 2: 115
+    p.tileFamilies = [206];
     ui.setPalette(p);
     ui.editReset(1).on = true;
     const d = ui.editDraft();
-    d.families = [206, undefined, 115];
+    d.families = [206];
     ui.applyWidgets({ widgets: [urnWidget] });
+    const c = ui.widgetConstruct(urnWidget, 0);
+    c.widget = 'w-urn'; c.variation = 'fam-115';
+    ui.editStampGroup(p, c, 2, 2);
+    const g = d.groups[0];
+    assert.deepStrictEqual(ui.editFamilies().filter((f) => f !== undefined), [206, 115], 'stamping brings #115 in');
 
-    const placedUrn = {
-        uid: 42, name: 'Antiqua Urn', x: 2, y: 2, w: 2, h: 2, level: 0,
-        widget: 'w-urn', variation: 'fam-115', variationIdx: 0,
-        cells: [{ dx: 0, dy: 0, layer1: 0x4800 | (3 << 10), layer2: null, collision: null }], // uses slot 2 (pal 3)
-        placed: [],
-    };
-    d.groups = [placedUrn];
-
-    // Click through variants 1, 2, 3, 4, 5, 6...
-    for (let idx = 1; idx <= 6; idx++) {
-        ui.placedSetVariation(p, 42, idx);
-        assert.strictEqual(placedUrn.variationIdx, idx, `switched to variant ${idx}`);
-        // Palette should NOT be full of dead variants: only 206 and the current active variant family
-        const activeFams = ui.editFamilies().filter((f) => f !== undefined);
-        assert.ok(activeFams.length <= 3, `active families count (${activeFams.length}) stays bounded, not accumulating dead variants`);
+    for (let idx = 1; idx < urnWidget.variations.length; idx++) {
+        ui.placedSetVariation(p, g.uid, idx);
+        const want = Number(urnWidget.variations[idx].id.slice(4));
+        assert.strictEqual(g.variationIdx, idx);
+        assert.deepStrictEqual(ui.editFamilies().filter((f) => f !== undefined), [206, want], `variant ${idx} replaced the old family`);
     }
+    // One undo step per switch, slots included.
+    ui.editUndo(p);
+    assert.deepStrictEqual(ui.editFamilies().filter((f) => f !== undefined), [206, Number(urnWidget.variations[urnWidget.variations.length - 2].id.slice(4))]);
+    ui.editRedo(p);
 
-    // Variants 5 (#188) and 6 (#158) succeeded
-    assert.strictEqual(placedUrn.variation, 'fam-158', 'variant 6 (#158) was successfully applied');
+    ui.editGroupDelete(g.uid);
+    assert.deepStrictEqual(ui.editFamilies().filter((f) => f !== undefined), [206], 'the widget took its family with it');
+    ui.editUndo(p);
+    assert.strictEqual(ui.editFamilies().filter((f) => f !== undefined).length, 2, 'undoing the delete brings it back');
 });
 
 console.log(`\n  ${passed} passed, ${failed} failed`);

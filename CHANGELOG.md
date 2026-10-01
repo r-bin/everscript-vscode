@@ -1,3 +1,12 @@
+## [0.108.3] — 2026-10-01
+
+### Fix: placed widgets keep collision and family slots in step with the map; urn colourings are the ROM's
+
+- **Collision follows a placed widget.** Stamping, moving, deleting, reordering or recolouring a widget changes what the map shows without a cell write, so the drafted collision layer was never asked for again until the overlay was toggled. `editEnd` now runs the cells-changed hooks (collision redraw, painted-family sync) whenever the step changed the groups.
+- **Variation switch replaces the family.** `placedSetVariation` counted slot usage over the baked map, which still held the widget itself, so the old family never read as free and the new one took a second slot. The widget is now lifted off while its slots are counted; the slots only it used are freed, the new colouring takes one, and the whole switch — slots included — is one undo step.
+- **A widget's family leaves with the widget.** Families a stamped widget brings in are adopted as painted families (`editAdoptPaintedFamily`), so they drop out of the strip once no cell names them — deleting the widget frees the slot, undo brings it back.
+- **Only attested colourings.** The hand-written variant lists are replaced by `WIDGET_GRAPHIC_FAMILIES`, measured over every vanilla room and checked against `buildVanillaIndex` by a ROM test. A variation needs a family that colours *every* piece of the widget: the 2×2 Antiqua urn has 6 (#127 only ever coloured its top half; #128, #111, #141 never coloured it at all), the smooth Prehistoria gourd has one, and the Gothica barrel has one. Library widgets saved with the old generated lists are trimmed on load; hand-made variations are untouched.
+
 ## [0.108.2] — 2026-10-01
 
 ### Fix: prevent palette slot exhaustion on placed widget variation changes, restore thumbnails & add 10 urn variants

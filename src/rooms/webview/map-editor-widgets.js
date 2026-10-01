@@ -129,90 +129,90 @@ function widgetArm(id, varIdx) {
   renderEditChrome();
 }
 
-/** The tile families vanilla pairs with these graphics across the ROM. */
+/**
+ * Graphic -> every tile family vanilla draws it in, most-placed first —
+ * measured over all rooms by maps.buildVanillaIndex, and checked against
+ * the ROM by tests/memory/collision-suggest.test.js. Only the decorations
+ * vanilla draws in more than one colouring. A family missing here never
+ * coloured that graphic; the earlier hand-written lists offered three urn
+ * colourings (#128, #111, #141) no room ever used, and they looked it.
+ */
+var WIDGET_GRAPHIC_FAMILIES = {
+  // Antiqua urns: the top pair also in #127, the bottom pair never
+  643: [115, 35, 127, 139, 159, 188, 158], 644: [115, 35, 127, 139, 159, 188, 158],
+  647: [115, 35, 139, 159, 188, 158], 648: [115, 35, 139, 159, 188, 158],
+  // Prehistoria gourds, smooth and ribbed
+  3736: [166], 3737: [166], 3738: [167], 3739: [167], 3740: [166], 3741: [166],
+  3867: [35, 184], 3868: [35, 184], 3870: [35, 184, 203], 3871: [35, 184, 203],
+  // Gothica barrels
+  1895: [60], 1897: [60],
+  // Omnitopia canisters
+  17: [220, 0, 227, 231], 20: [220, 0, 227, 231],
+};
+
+/**
+ * The tile families every measured graphic of these cells is drawn in — a
+ * family that colours only half a widget is not a colouring of it. null
+ * when none of the cells is in the table.
+ */
 function widgetAttestedFamilies(cells) {
-  var gMap = {};
+  var out = null;
   (cells || []).forEach(function (c) {
-    if (c.canopy && c.canopy.graphic != null) gMap[c.canopy.graphic] = true;
-    if (c.terrain && c.terrain.graphic != null) gMap[c.terrain.graphic] = true;
+    [c.canopy, c.terrain].forEach(function (part) {
+      var fams = part && WIDGET_GRAPHIC_FAMILIES[part.graphic];
+      if (!fams) return;
+      out = out ? out.filter(function (f) { return fams.indexOf(f) >= 0; }) : fams.slice();
+    });
   });
-  var keys = Object.keys(gMap).map(Number);
-  if (!keys.length) return null;
-  // Prehistoria gourds: smooth 3736..3741 or ribbed 3867..3871
-  if (keys.some(function (g) { return (g >= 3736 && g <= 3741) || (g >= 3867 && g <= 3871); })) {
-    return [166, 184, 35, 33, 58, 199, 83, 203, 7, 115];
-  }
-  // Antiqua urns / pots: 643..648
-  if (keys.some(function (g) { return g >= 643 && g <= 648; })) {
-    return [115, 35, 127, 139, 159, 188, 158, 128, 111, 141];
-  }
-  // Gothica barrels / pots: 1895, 1897
-  if (keys.some(function (g) { return g === 1895 || g === 1897; })) {
-    return [60, 329];
-  }
-  // Omnitopia canisters: 17, 20
-  if (keys.some(function (g) { return g === 17 || g === 20; })) {
-    return [220, 0, 227, 231];
-  }
-  return null;
+  return out;
 }
 
+/** The cells of `cells` recoloured into `fam`. */
+function widgetCellsInFamily(cells, fam) {
+  return (cells || []).map(function (c) {
+    return {
+      dx: c.dx, dy: c.dy,
+      canopy: c.canopy ? { graphic: c.canopy.graphic, family: fam, flags: c.canopy.flags || 0 } : null,
+      terrain: c.terrain ? { graphic: c.terrain.graphic, family: fam, flags: c.terrain.flags || 0 } : null,
+      collision: c.collision,
+    };
+  });
+}
+
+/**
+ * A widget's colourings, one per attested family (`fam-<id>`). Made when it
+ * has none, and trimmed when it has only made ones: a library saved before
+ * the table above still carries colourings the ROM never drew.
+ */
 function widgetEnsureVariations(w) {
-  if (!w || (w.variations && w.variations.length > 1)) return;
+  if (!w) return;
+  var vars = w.variations || [];
+  var made = vars.length > 0 && vars.every(function (v) { return /^fam-\d+$/.test(v.id); });
+  if (vars.length > 1 && !made) return;
   var fams = widgetAttestedFamilies(w.cells);
+  if (made) {
+    var kept = fams ? vars.filter(function (v) { return fams.indexOf(Number(v.id.slice(4))) >= 0; }) : vars;
+    if (kept.length !== vars.length) w.variations = kept.length > 1 ? kept : undefined;
+    return;
+  }
   if (fams && fams.length > 1) {
     w.variations = fams.map(function (fam) {
-      return {
-        id: 'fam-' + fam,
-        name: '#' + fam,
-        frames: [{
-          cells: (w.cells || []).map(function (c) {
-            return {
-              dx: c.dx, dy: c.dy,
-              canopy: c.canopy ? { graphic: c.canopy.graphic, family: fam, flags: c.canopy.flags || 0 } : null,
-              terrain: c.terrain ? { graphic: c.terrain.graphic, family: fam, flags: c.terrain.flags || 0 } : null,
-              collision: c.collision,
-            };
-          }),
-          delay: 8,
-        }],
-      };
+      return { id: 'fam-' + fam, name: '#' + fam, frames: [{ cells: widgetCellsInFamily(w.cells, fam), delay: 8 }] };
     });
   }
 }
 
 /** ☆ on a vanilla card, once its cells arrived (map-editor-deco.js applyDecoCells). */
 function widgetSaveFromDeco(entry, name) {
-  var fams = widgetAttestedFamilies(entry.cells);
-  var variations = [];
-  if (fams && fams.length > 1) {
-    variations = fams.map(function (fam) {
-      return {
-        id: 'fam-' + fam,
-        name: '#' + fam,
-        frames: [{
-          cells: (entry.cells || []).map(function (c) {
-            return {
-              dx: c.dx, dy: c.dy,
-              canopy: c.canopy ? { graphic: c.canopy.graphic, family: fam, flags: c.canopy.flags || 0 } : null,
-              terrain: c.terrain ? { graphic: c.terrain.graphic, family: fam, flags: c.terrain.flags || 0 } : null,
-              collision: c.collision,
-            };
-          }),
-          delay: 8,
-        }],
-      };
-    });
-  }
   var w = {
     id: widgetNewId(), name: name, w: entry.w, h: entry.h, cells: entry.cells,
-    variations: variations.length ? variations : undefined,
     attachments: {
       bTrigger: entry.trigger ? [entry.trigger] : [], stepOn: [],
       objects: [{ dx: 0, dy: 0, w: entry.w, h: entry.h, states: entry.states, cells: entry.stateCells || [] }],
     },
     source: { deco: entry.id, room: entry.room },
   };
+  widgetEnsureVariations(w);
   widgetStore(w);
   editNote('kept as your widget “' + name + '” — ✎ edits it');
   renderEditChrome();

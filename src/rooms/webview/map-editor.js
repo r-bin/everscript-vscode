@@ -118,20 +118,18 @@ function editBegin() {
   _edit.txn = { step: null, seen: {}, seenSpecial: {}, snap: editTxnSnapshot() };
 }
 
-/**
- * Close the compound step. Triggers, objects and groups changed inside it
- * are recorded as before/after snapshots, the same way editApplyTriggerOp
- * records a trigger op, so undo restores them wholesale.
- */
+/** Close the compound step: triggers, objects and groups as before/after snapshots, restored wholesale on undo.
+ *  A group changes what the map shows without an editApply, so the cells-changed hooks run here for it. */
 function editEnd() {
   var t = _edit && _edit.txn;
   if (!t) return;
   _edit.txn = null;
   var now = editTxnSnapshot();
   if (now === t.snap) return;
-  var step = t.step || editTxnStep(t);
   var a = JSON.parse(t.snap);
   var b = JSON.parse(now);
+  if (JSON.stringify(a.g) !== JSON.stringify(b.g)) { editCellsChanged(); b = JSON.parse(editTxnSnapshot()); }
+  var step = t.step || editTxnStep(t);
   step.triggers = { before: { removedTriggers: a.r, placed: a.p, triggerOrder: a.o },
     after: { removedTriggers: b.r, placed: b.p, triggerOrder: b.o } };
   step.groups = { before: a.g, after: b.g }; step.header = { before: a.h, after: b.h };

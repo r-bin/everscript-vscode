@@ -139,64 +139,68 @@ function placedSetVariation(palette, uid, varIdx) {
   var c = typeof widgetConstruct === 'function' ? widgetConstruct(w, varIdx) : null;
   if (!c) return;
 
-  var targetFam = null;
-  (c.cells || []).forEach(function (part) {
-    if (targetFam == null && part.canopy && part.canopy.family != null) targetFam = part.canopy.family;
-    if (targetFam == null && part.terrain && part.terrain.family != null) targetFam = part.terrain.family;
-  });
-
+  // Replace, never add: the slots only this widget used are freed before
+  // the new colouring takes one, so switching #115 → #35 leaves one slot
+  // spent, not two — and undo puts both back (one step, slots included).
+  editBegin();
+  var oldCells = g.cells, obj = placedGroupObject(g);
+  var oldFrames = obj ? obj.frames : null, oldLayer = obj ? obj.layer : null;
+  var famSnap = editFamiliesSnapshot();
   var gSlots = [];
-  (g.cells || []).forEach(function (part) {
-    var s1 = editWordFamilySlot(part.layer1);
-    if (s1 >= 0 && gSlots.indexOf(s1) < 0) gSlots.push(s1);
-    var s2 = editWordFamilySlot(part.layer2);
-    if (s2 >= 0 && gSlots.indexOf(s2) < 0) gSlots.push(s2);
+  oldCells.forEach(function (part) {
+    [part.layer1, part.layer2].forEach(function (word) {
+      var s = word == null ? -1 : editWordFamilySlot(word);
+      if (s >= 0 && gSlots.indexOf(s) < 0) gSlots.push(s);
+    });
   });
-
-  var fams = editFamilies();
-  var attested = typeof widgetAttestedFamilies === 'function' ? (widgetAttestedFamilies(w.cells) || []) : [];
-
-  for (var s = 0; s < 7; s++) {
-    if (fams[s] !== undefined && fams[s] !== targetFam && attested.indexOf(fams[s]) >= 0) {
-      if (editSlotUsageCount(palette, s, g.uid) === 0) editClearFamily(s);
-    }
-  }
-
-  if (targetFam != null && fams.indexOf(targetFam) < 0) {
-    var assignedSlot = -1;
-    for (var i = 0; i < gSlots.length; i++) {
-      if (editSlotUsageCount(palette, gSlots[i], g.uid) === 0) { assignedSlot = gSlots[i]; break; }
-    }
-    if (assignedSlot < 0) assignedSlot = editFreeFamilySlot();
-    if (assignedSlot < 0) {
-      for (var j = 0; j < 7; j++) {
-        if (editSlotUsageCount(palette, j, g.uid) === 0) { assignedSlot = j; break; }
-      }
-    }
-    if (assignedSlot >= 0) editSetFamily(assignedSlot, targetFam);
-  }
+  (oldFrames || []).forEach(function (f) {
+    Object.keys(f || {}).forEach(function (k) {
+      var w = editStampWords(palette, f[k]);
+      [w && w.layer1, w && w.layer2].forEach(function (word) {
+        var s = word == null ? -1 : editWordFamilySlot(word);
+        if (s >= 0 && gSlots.indexOf(s) < 0) gSlots.push(s);
+      });
+    });
+  });
+  // Off the map while the slots are counted, so its own cells do not hold them.
+  g.cells = [];
+  if (obj) { obj.frames = []; obj.layer = {}; }
+  var fams = editFamilies(), auto = editAutoFamilies();
+  gSlots.forEach(function (s) {
+    if (fams[s] === undefined || editSlotUsageCount(palette, s, g.uid) !== 0) return;
+    fams[s] = undefined;
+    delete auto[s];
+  });
 
   var got = typeof editConstructParts === 'function' ? editConstructParts(palette, c, g.x, g.y) : null;
   if (!got || (!got.parts.length && c.cells && c.cells.length)) {
+    g.cells = oldCells;
+    if (obj) { obj.frames = oldFrames; obj.layer = oldLayer; }
+    editFamiliesRestore(famSnap);
+    editEnd();
     if (got && got.problems && got.problems.length) editNote('cannot switch variation: ' + got.problems.join(', '));
+    renderEditChrome();
     return;
   }
-  editBegin();
   g.cells = got.parts;
   g.variation = v.id;
   g.variationIdx = varIdx;
   g.widget = w.id;
   g.name = c.name;
-  var obj = placedGroupObject(g);
-  if (obj && c.attachments && c.attachments.objects && c.attachments.objects[0]) {
-    var oSpec = c.attachments.objects[0];
-    var objFrames = (oSpec.frames && oSpec.frames.length) ? oSpec.frames
+  if (obj) {
+    var oSpec = c.attachments && c.attachments.objects && c.attachments.objects[0];
+    var objFrames = !oSpec ? null : (oSpec.frames && oSpec.frames.length) ? oSpec.frames
       : (oSpec.cells && oSpec.cells.length ? [oSpec.cells] : []);
-    var frameLayers = objFrames.map(function (cells) { return editObjectLayerFrom(cells, g.level); });
-    if (typeof objectNormalizeFrames === 'function') frameLayers = objectNormalizeFrames(frameLayers);
-    obj.frames = frameLayers;
-    obj.states = frameLayers.length + 1;
-    if (obj.activeFrame >= obj.states) obj.activeFrame = 0;
+    if (objFrames) {
+      var frameLayers = objFrames.map(function (cells) { return editObjectLayerFrom(cells, g.level); });
+      if (typeof objectNormalizeFrames === 'function') frameLayers = objectNormalizeFrames(frameLayers);
+      obj.frames = frameLayers;
+      obj.states = frameLayers.length + 1;
+      if (obj.activeFrame >= obj.states) obj.activeFrame = 0;
+    } else {
+      obj.frames = oldFrames;
+    }
+    obj.layer = obj.activeFrame >= 1 ? (obj.frames[obj.activeFrame - 1] || {}) : {};
   }
   editEnd();
   editNote('switched ' + g.name + ' to variation ' + v.name);
@@ -225,9 +229,10 @@ function placedRowHtml(g, n) {
   if (open) {
     chipsHtml = '<div class="rg-object-expanded"><div class="ro-chips">';
     if (hasVars) {
-      var curIdx = g.variationIdx != null ? g.variationIdx
-        : (g.variation ? vars.findIndex(function (v) { return v.id === g.variation; }) : 0);
-      if (curIdx < 0) curIdx = 0;
+      // By id first: a library widget's list can lose a colouring the ROM
+      // never attested (widgetEnsureVariations), which shifts the indices.
+      var curIdx = g.variation ? vars.findIndex(function (v) { return v.id === g.variation; }) : -1;
+      if (curIdx < 0) curIdx = g.variationIdx != null && g.variationIdx < vars.length ? g.variationIdx : 0;
       vars.forEach(function (v, idx) {
         var on = idx === curIdx;
         var vKey = w.id + ':' + v.id;
