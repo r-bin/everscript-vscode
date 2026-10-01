@@ -2,6 +2,7 @@
 // tab decides what it puts down:
 //
 //   Tile     the armed tile (on the cuttable layer while that is on)
+//   Collision  the armed collision shape, over the cell's own (map-editor-collision-tab.js)
 //   Special  the armed special: stairs, drift, gate, entrance, the Boy
 //   Trigger  a new trigger: drag out its box (B-trigger or step, B first)
 //   Object   a new object's area, or the selected object's tiles (map-editor-objects.js)
@@ -26,7 +27,7 @@ var _editTriggerKind = 'b';
 /** `{x1, y1, x2, y2}` while a trigger box is being dragged out, else null. */
 var _triggerDraw = null;
 
-var EDIT_DRAW_TABS = { tile: true, special: true, trigger: true, object: true, widgets: true };
+var EDIT_DRAW_TABS = { tile: true, collision: true, special: true, trigger: true, object: true, widgets: true };
 
 /** The Trigger tab's pencil choices, in order — the first is the default. */
 var EDIT_TRIGGER_KINDS = [
@@ -54,6 +55,11 @@ function editDrawable() {
     return def ? { kind: kind, glyph: def.glyph, label: 'special: ' + def.label, ready: true }
       : { kind: kind, glyph: '◇', label: 'a special — pick one in the Special tab', ready: false };
   }
+  if (kind === 'collision') {
+    var cd = typeof collCodeDef === 'function' ? collCodeDef(_collPick) : null;
+    return cd ? { kind: kind, glyph: '◩', label: 'collision: ' + cd[1] + ' (0x' + cd[0].toString(16) + ')', ready: true }
+      : { kind: kind, glyph: '◩', label: 'a collision shape — pick one in the Collision tab', ready: false };
+  }
   if (kind === 'trigger') {
     var t = editTriggerKindDef(_editTriggerKind);
     return { kind: kind, glyph: t[2], label: t[1] + ' — drag out its box', ready: true };
@@ -79,6 +85,7 @@ function editEraseTarget() {
   var kind = editDrawKind();
   if (kind === 'special') return { kind: kind, glyph: '◇', label: 'every special on a cell: stairs, drift, gate, glyph', ready: true };
   if (kind === 'trigger') return { kind: kind, glyph: '▭', label: 'the trigger under the cursor', ready: true };
+  if (kind === 'collision') return { kind: kind, glyph: '◩', label: 'a collision shape set by hand — the tile’s estimate comes back', ready: true };
   if (kind === 'object') return { kind: kind, glyph: '◆', label: 'a tile of the selected object', ready: true };
   var cut = typeof editCutLayerOn === 'function' && editCutLayerOn();
   var force = typeof _layerForce !== 'undefined' ? _layerForce : null;

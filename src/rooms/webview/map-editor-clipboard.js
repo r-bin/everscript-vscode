@@ -25,6 +25,7 @@ function editClipboardKey(e, mod) {
   var d = editDraft();
   if (!d) return false;
   var key = e.key && e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  if (mod && key === 'a') return editSelectAll(d);
   if (mod && key === 'c') return editCopy(d);
   if (mod && key === 'v') return editPaste(d);
   if ((e.key === 'Backspace' || e.key === 'Delete') && _groupSel != null && d.tool !== 'select') {
@@ -32,6 +33,17 @@ function editClipboardKey(e, mod) {
     return true;
   }
   return false;
+}
+
+/** Cmd/Ctrl+A: the whole map as the copy tool's region — Cmd/Ctrl+C then copies it. */
+function editSelectAll(d) {
+  if (!_mtPalette || !_mtPalette.widthTiles) return false;
+  if (typeof editDeselectAll === 'function') editDeselectAll();
+  d.tool = 'copy';
+  _editSel = { x1: 0, y1: 0, x2: _mtPalette.widthTiles - 1, y2: _mtPalette.heightTiles - 1 };
+  editNote('all ' + _mtPalette.widthTiles + '×' + _mtPalette.heightTiles + ' selected — Cmd/Ctrl+C to copy it');
+  renderEditChrome();
+  return true;
 }
 
 /** Copy the selected group, or the copy tool's region. */

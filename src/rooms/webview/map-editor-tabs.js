@@ -29,6 +29,7 @@ var _editActiveTab = 'tile';
  */
 var EDIT_TABS = [
   ['tile', 'Tile'],
+  ['collision', 'Collision'],
   ['special', 'Special'],
   ['trigger', 'Trigger'],
   ['object', 'Object'],

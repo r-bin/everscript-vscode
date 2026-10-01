@@ -1,3 +1,13 @@
+## [0.102.0] — 2026-10-01
+
+### Feat: a Collision tab to set a cell's shape by hand; Cmd/Ctrl+A selects the whole map
+
+- **New Collision tab, right after Tile.** It lists all 16 collision shapes, each drawn the way "Tile by tile" shows it: the solid pixels in the colour of the level you're painting on. Pick one and the pencil sets that cell's shape, replacing the shape its tile was given. The tile itself is not changed, so erasing the override brings the original shape back. Overrides show on the map while the tab is open or the Collision overlay is on, and they are used by the collision view and by Export ROM. Undo covers them.
+  - Six pairs of shapes cover exactly the same pixels (0x02/0x06, for example), and nothing documented says how the two differ, so both are listed and each says which one it matches.
+  - An override replaces the shape and turns off "always walkable" (stairs and drift). The cell keeps its level, gate, see-through and interact settings.
+- **Cmd/Ctrl+A selects the whole map** with the copy tool; Cmd/Ctrl+C then copies it. This also works on a locked map.
+- **Cut grass no longer hides the grid.**
+
 ## [0.101.0] — 2026-10-01
 
 ### Fix: disbanding a widget keeps its look; resize and family slots are undoable

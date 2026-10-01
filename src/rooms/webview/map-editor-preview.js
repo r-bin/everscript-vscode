@@ -62,6 +62,11 @@ function editPreviewSvg() {
     return previewBoxSvg(c.x, c.y, 1, 1, 'rg-preview-box rg-preview-trigger-' + (typeof _editTriggerKind !== 'undefined' ? _editTriggerKind : 'b'));
   }
   if (kind === 'object') return previewBoxSvg(c.x, c.y, 1, 1, 'rg-preview-box');
+  if (kind === 'collision') {
+    if (_collPick < 0) return '';
+    return '<path class="rg-preview-ghost" d="' + collMaskPath(_collPick, pos.x, pos.y, EDIT_UNITS / 16) + '" fill="'
+      + collLevelColor(collCellLevel(c.x, c.y)) + '"/>' + previewBoxSvg(c.x, c.y, 1, 1, 'rg-preview-box');
+  }
   if (kind === 'special') {
     if (!d.currentSpecialId || typeof editSpecialGlyphSvg !== 'function') return '';
     return '<g class="rg-preview-ghost">' + editSpecialGlyphSvg(d.currentSpecialId, pos.x, pos.y) + '</g>'
@@ -93,6 +98,8 @@ function previewEraseSvg(d, c, kind) {
     if (t) { hit = true; box = { x: t.x1, y: t.y1, w: t.x2 - t.x1 + 1, h: t.y2 - t.y1 + 1 }; }
   } else if (kind === 'special') {
     hit = !!editSpecialAt(c.x, c.y);
+  } else if (kind === 'collision') {
+    hit = editCollisionAt(c.x, c.y) >= 0;
   } else if (cutLayerActive()) {
     hit = !!(d.cut && d.cut[editKey(c.x, c.y)] != null);
   } else {

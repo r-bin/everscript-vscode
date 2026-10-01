@@ -262,6 +262,8 @@ function editExport(palette) {
     removedTriggers: (_edit.removedTriggers || []).slice(),
     // Header fields set on the Info tab, over the room's own (map-editor-info.js).
     header: _edit.header ? JSON.parse(JSON.stringify(_edit.header)) : null,
+    // Collision shapes set by hand, over the cells' own (map-editor-collision-tab.js).
+    collisionOverrides: typeof editCollisionPayload === 'function' ? editCollisionPayload() : [],
   };
 }
 
@@ -273,6 +275,7 @@ function editExport(palette) {
  */
 function editStampRef(x, y, index, layer) {
   var ref = { x: x, y: y, index: index, layer: layer };
+  if (layer === 'coll') return ref; // a geometry code, not a stamp
   var words = editAddedWords(index);
   if (words) ref.words = words;
   return ref;

@@ -120,6 +120,7 @@ const ROOMS_JS_FILES = [
   'map-editor-custom-store.js', // custom maps on the host: load, save with history, export, delete
   'map-editor-rom-export.js', // Export ROM: a custom map into Brian's room, intro jumps there
   'map-editor-collision.js', // suggested collision on tiles, a drafted map's collision layer
+  'map-editor-collision-tab.js', // the Collision tab: shapes set by hand over the estimate (_collPick)
   'map-editor-cutlayer.js', // the cuttable layer: tiles the player cuts away, and its toggle
   'map-editor-drawable.js', // what the pencil draws: the open tab's pick; drawing triggers
   'map-editor-levels.js', // levels (elevation planes 0..3) and the bar that picks one

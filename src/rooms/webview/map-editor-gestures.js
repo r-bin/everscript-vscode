@@ -96,6 +96,7 @@ function editStroke(cell, phase) {
   if (d.tool === 'erase') {
     var eraseKind = drawKind();
     if (eraseKind === 'trigger') { if (phase === 'down') editEraseTriggerAt(cell); return; }
+    if (eraseKind === 'collision') { editCollisionStroke(cell, true); return; }
     // A placed widget's tiles are locked to it: disband it to erase them (map-editor-groups.js).
     var grp = typeof editGroupAt === 'function' && !cutLayerActive() ? editGroupAt(cell.x, cell.y) : null;
     if (grp) { if (phase === 'down') editGroupLockNote(grp); return; }
@@ -119,6 +120,7 @@ function editStroke(cell, phase) {
   if (kind === 'trigger' && d.tool === 'paint') { editTriggerStroke(cell, phase); return; }
 
   if (d.tool === 'paint' && kind === 'special') { editSpecialStroke(d, cell, false, phase); return; }
+  if (d.tool === 'paint' && kind === 'collision') { editCollisionStroke(cell, false); return; }
 
   if (d.tool === 'paint') {
     // The Tile tab's pencil puts down the armed tile and nothing else — the
@@ -369,7 +371,7 @@ function setupEditKeys() {
     }
     var mod = e.metaKey || e.ctrlKey;
     // Locked: copying is the only key that does anything (no undo, paste or delete).
-    if (editLocked() && !(mod && (e.key === 'c' || e.key === 'C'))) return;
+    if (editLocked() && !(mod && /^[cCaA]$/.test(e.key))) return; // copying and selecting all
     if (mod && (e.key === 'z' || e.key === 'Z')) {
       if (e.shiftKey ? editRedo(_mtPalette) : editUndo(_mtPalette)) {
         requestComposedPreview();

@@ -136,6 +136,16 @@
 }
 .rg-theme .rg-special-glyph-ic{font-size:16px;line-height:1;display:inline-block;min-width:1.25em;text-align:center}
 
+/* ── Collision tab (map-editor-collision-tab.js) ─────────────────────────
+ * Each shape as "Tile by tile" draws it: its solid pixels in the level's colour. */
+.rg-theme .rg-coll-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:6px}
+.rg-theme .rg-coll-chip{opacity:1;display:flex;flex-direction:column;align-items:center;gap:3px;height:auto;padding:6px 2px;
+  font-size:10px;line-height:1.2;text-align:center;color:var(--rg-text-secondary)}
+.rg-theme .rg-coll-chip:hover{color:var(--rg-text-primary)}
+.rg-theme .rg-coll-swatch{width:36px;height:36px;image-rendering:pixelated;border-radius:3px}
+.rg-theme .rg-coll-swatch-bg{fill:var(--rg-bg-app)}
+.rg-theme .rg-coll-lbl b{display:block;font:500 9px var(--rg-font-mono, monospace);color:var(--rg-text-muted)}
+
 /* ── Special glyph overlay on the map canvas (map-editor-paint.js) ───────
  * Drawn non-blocking of the tile beneath it, per the mock. A thin stroke in
  * the app background keeps a light glyph legible over a light tile. */

@@ -36,7 +36,9 @@ function romExportPayload(why) {
       var k = editKey(x, y);
       var s = Object.prototype.hasOwnProperty.call(baked, k) ? editStampWords(_mtPalette, baked[k]) : null;
       var words = s || floor;
-      cells.push(words.layer1, words.layer2, words.collision);
+      // A shape set by hand wins over the tile's estimate (map-editor-collision-tab.js).
+      var cw = typeof editCollisionApplied === 'function' ? editCollisionApplied(x, y, words.collision) : words.collision;
+      cells.push(words.layer1, words.layer2, cw);
     }
   }
   return {

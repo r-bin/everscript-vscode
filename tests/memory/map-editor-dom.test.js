@@ -32,7 +32,7 @@ const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-history.js', 
     'map-editor-toolbar.js', 'map-editor-filterbar.js', 'rom-overlay.js',
     'map-editor-trigger-scripts.js', 'map-editor-tabs.js', 'map-editor-panels.js', 'map-editor-gestures.js',
     'map-editor-input.js', 'map-editor-actions.js', 'map-editor-newroom.js', 'map-editor-start.js', 'map-editor-custom.js',
-    'map-editor-rom-export.js', 'map-editor-collision.js', 'map-editor-cutlayer.js', 'map-editor-drawable.js',
+    'map-editor-rom-export.js', 'map-editor-collision.js', 'map-editor-collision-tab.js', 'map-editor-cutlayer.js', 'map-editor-drawable.js',
     'map-editor-levels.js', 'map-editor-groups.js', 'map-editor-custom-store.js',
     'map-editor-clipboard.js', 'map-editor-pick.js', 'map-editor-special-select.js', 'map-editor-romroom.js', 'map-editor-info.js'];
 

@@ -209,6 +209,8 @@ function renderEditPanels() {
     body = triggerTabHtml();
   } else if (_editActiveTab === 'special') {
     body = specialTabHtml();
+  } else if (_editActiveTab === 'collision') {
+    body = collisionTabHtml();
   } else if (_editActiveTab === 'object') {
     body = objectTabHtml();
   } else if (_editActiveTab === 'widgets') {

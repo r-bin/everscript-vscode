@@ -713,6 +713,7 @@ const ui = new Function(`
   ${read('map-editor-tiles.js')}
   ${read('map-editor-tile-filters.js')}
   ${read('map-editor-collision.js')}
+  ${read('map-editor-collision-tab.js')}
   ${read('map-editor-neighbours.js') /* the plus-shaped LIKELY NEIGHBORS card, §8b */}
   ${read('map-editor-special.js')}
   ${read('map-editor-trigger-select.js')}
@@ -800,6 +801,8 @@ const ui = new Function(`
     editPreviewSvg: editPreviewSvg, setPreviewCell: function (c) { _previewCell = c; },
     editRoomCutBeneathSvg: editRoomCutBeneathSvg, setCutLayer: function (v) { _editCutLayer = v; },
     editGridPatchSvg: editGridPatchSvg, editSpecialAppliedIndex: editSpecialAppliedIndex,
+    collPick: collPick, collisionTabHtml: collisionTabHtml, editCollisionAt: editCollisionAt,
+    editCollisionApplied: editCollisionApplied, editClipboardKeyTest: function (k) { return editClipboardKey({ key: k }, true); },
     chipDrop: chipDrop, editResizeStep: editResizeStep, resizeKeep: function () { var k = _resizeKeep; _resizeKeep = false; return k; },
     customRename: customRename, editPutDown: editPutDown, construct: function () { return _editConstruct; },
     clampRoomSide: clampRoomSide, widgetEditHeadHtml: widgetEditHeadHtml,
@@ -2573,6 +2576,39 @@ test('the eraser leaves a placed widget’s tiles alone until it is disbanded', 
     ui.editGroupDisband(p, d.groups[0].uid);
     ui.editBegin(); ui.editStroke({ x: 0, y: 1 }, 'down'); ui.editEnd();
     assert.strictEqual(d.undo.length, steps + 2, 'disbanded: its tile is the map’s, and erasable');
+    d.tool = 'paint';
+});
+
+test('the Collision tab sets a shape over the tile’s estimate; erasing brings the estimate back', () => {
+    const { p, d } = fresh();
+    ui.setTab('collision');
+    const html = ui.collisionTabHtml();
+    assert.strictEqual((html.match(/data-coll-pick=/g) || []).length, 16, 'every geometry code §5 documents');
+    assert.ok(html.includes('nothing documented tells the two apart'), 'twins say so');
+    ui.collPick(0x0f);
+    assert.strictEqual(d.tool, 'paint', 'picking arms the pencil');
+    ui.editBegin(); ui.editStroke({ x: 1, y: 0 }, 'down'); ui.editEnd();
+    assert.strictEqual(ui.editCollisionAt(1, 0), 0x0f);
+    assert.deepStrictEqual(d.cells, {}, 'the tile itself is untouched — its estimate stays in its stamp');
+    assert.strictEqual(ui.editCollisionApplied(1, 0, 0x2018), 0x001f, 'applied: the shape, always-walkable cleared, the level kept');
+    assert.strictEqual(ui.editCollisionApplied(2, 0, 0x2018), 0x2018, 'a cell without one is its own');
+    assert.deepStrictEqual(ui.editExport(p).collisionOverrides, [{ x: 1, y: 0, geometry: 0x0f }], 'the handoff carries it apart');
+    ui.editUndo(p);
+    assert.strictEqual(ui.editCollisionAt(1, 0), -1, 'one undo step');
+    ui.editRedo(p);
+    d.tool = 'erase';
+    ui.editBegin(); ui.editStroke({ x: 1, y: 0 }, 'down'); ui.editEnd();
+    assert.strictEqual(ui.editCollisionAt(1, 0), -1, 'the eraser takes it off');
+    d.tool = 'paint';
+    ui.setTab('tile');
+});
+
+test('Cmd/Ctrl+A selects the whole map for the copy tool', () => {
+    const { p, d } = fresh();
+    assert.ok(ui.editClipboardKeyTest('a'));
+    assert.strictEqual(d.tool, 'copy');
+    assert.deepStrictEqual(ui.getEditSel(), { x1: 0, y1: 0, x2: p.widthTiles - 1, y2: p.heightTiles - 1 });
+    ui.setSel(null);
     d.tool = 'paint';
 });
 

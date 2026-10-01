@@ -286,6 +286,22 @@ function editGridPatchSvg(a, w, h) {
     + '<path class="rg-grid-coarse rg-grid-patch" d="' + path(EDIT_UNITS) + '" fill="none" stroke="rgba(160,140,80,0.42)" stroke-width="0.18" pointer-events="none"/>';
 }
 
+/** The same grid over scattered cells (`[{x, y}]` in map units), each line once. */
+function editGridCellsSvg(cells) {
+  var fine = {}, coarse = {}, h = EDIT_UNITS / 2;
+  cells.forEach(function (a) {
+    [[0, 0, 1, 0], [0, 1, 1, 1], [0, 0, 0, 1], [1, 0, 1, 1]].forEach(function (e) {
+      coarse['M' + (a.x + e[0] * EDIT_UNITS) + ' ' + (a.y + e[1] * EDIT_UNITS) + 'L' + (a.x + e[2] * EDIT_UNITS) + ' ' + (a.y + e[3] * EDIT_UNITS)] = true;
+    });
+    fine['M' + (a.x + h) + ' ' + a.y + 'v' + EDIT_UNITS + 'M' + a.x + ' ' + (a.y + h) + 'h' + EDIT_UNITS] = true;
+  });
+  if (!cells.length) return '';
+  return '<path class="rg-grid-fine rg-grid-patch" d="' + Object.keys(fine).join('') + Object.keys(coarse).join('')
+    + '" fill="none" stroke="rgba(255,255,255,0.11)" stroke-width="0.07" pointer-events="none"/>'
+    + '<path class="rg-grid-coarse rg-grid-patch" d="' + Object.keys(coarse).join('')
+    + '" fill="none" stroke="rgba(160,140,80,0.42)" stroke-width="0.18" pointer-events="none"/>';
+}
+
 function editObjectSvg(palette, composed, origin) {
   if (!editObjectsVisible()) return '';
   var html = '';

@@ -111,6 +111,8 @@ function renderEditLayer(palette, composed, origin) {
   if (typeof editRoomCutBeneathSvg === 'function') marks = editRoomCutBeneathSvg(palette, composed, origin) + marks;
   // Objects: their areas, and with the Object tab open their tiles on top (map-editor-objects.js).
   if (typeof editObjectSvg === 'function') marks += editObjectSvg(palette, composed, origin);
+  // Collision shapes set by hand (map-editor-collision-tab.js).
+  if (typeof editCollisionOverlaySvg === 'function') marks += editCollisionOverlaySvg(origin);
   // Special glyphs (stairs/drift, gate, entrance) sit on their own key
   // space (see map-editor.js's specialCells), so they are drawn in their
   // own pass rather than folded into the cell loop above — a cell can be

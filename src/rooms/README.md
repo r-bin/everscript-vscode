@@ -229,6 +229,9 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
 - `map-editor-widget-edit.js` — Widget Editor Mode: a widget on its own canvas, a
   custom map the rail never lists, down to 1×1; while open, the room's name line is
   the widget's app bar (back, name, size, Delete); owns `_widgetEdit` / `_widgetBack`
+- `map-editor-collision-tab.js` — the Collision tab: a cell's geometry set by hand on
+  its own layer (`_edit.coll`), over the tile's estimate, applied only where a word
+  leaves the editor (romExportPayload, editExport); owns `_collPick`
 - `map-editor-history.js` — the undo-step parts beyond cells/triggers/groups/header:
   the seven family slots and a resize's size; stateless
 - `map-editor-preview.js` — hover ghosts of what a pencil/stamp/eraser click would

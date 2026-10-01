@@ -291,6 +291,16 @@ placed widget's triggers and objects are **locked** to it (`editGroupLocks`):
 moved and removed whole. **Disband** (`editGroupDisband`) writes it into the map
 and lets its parts go.
 
+**A collision shape set by hand is a layer too** (`_edit.coll`, the Collision tab,
+map-editor-collision-tab.js): a geometry code per cell over the estimate the
+tile's stamp carries. It is never baked into the stamp — erasing it brings the
+estimate back — and is applied only where a word leaves the editor
+(romExportPayload, editExport's `collisionOverrides`). It sets bits 3..0 and
+clears bit 13 (under it the nibble is drift, not shape); level, gate,
+see-through and interact stay the cell's. All 16 codes are offered; the six
+pairs sharing a solid region say so, since nothing attested tells them apart.
+The Special tab's flags stay there: they sit on top of a shape.
+
 **Layers over the map.** The cuttable layer (`_edit.cut`) and each object's `layer`
 (its changed look, map-editor-objects.js) hold stamps drawn *on top of* the map's own
 cells. They are never written into `_edit.cells`. Each is shown only while its

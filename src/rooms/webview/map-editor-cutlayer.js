@@ -92,15 +92,17 @@ function editCutSvg(palette, composed, origin) {
 function editRoomCutBeneathSvg(palette, composed, origin) {
   var d = editDraft();
   if (_editCutLayer || !d || !palette || !palette.cuttable || !editOnRomRoom()) return '';
-  var html = '';
+  var html = '', drawn = [];
   palette.cuttable.forEach(function (c) {
     var k = c[0] + ',' + c[1];
     if (c[2] == null || c[2] < 0 || Object.prototype.hasOwnProperty.call(d.cells, k)
       || (d.cut && Object.prototype.hasOwnProperty.call(d.cut, k))) return;
     var at = editCellPos(origin, c[0], c[1]);
     html += editStampSvg(palette, composed, c[2], at.x, at.y, 'rg-edit-cell rg-cut-beneath');
+    drawn.push(at);
   });
-  return html;
+  // Over the map's grid, so the grid goes back on top (map-editor-objects.js).
+  return html + (typeof editGridCellsSvg === 'function' ? editGridCellsSvg(drawn) : '');
 }
 
 /**
