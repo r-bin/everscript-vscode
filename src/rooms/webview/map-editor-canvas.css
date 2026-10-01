@@ -428,6 +428,8 @@
   border-radius:3px;font:700 8px/10px var(--rg-font-ui);text-align:center;
   background:var(--rg-bg-float);color:var(--rg-accent-text);box-shadow:0 0 0 1px var(--rg-border);
 }
+.rg-theme #rg-edit-bar .rg-draw-badge .rg-coll-swatch{display:block;width:12px;height:12px;border-radius:2px}
+.rg-theme #rg-edit-bar .rg-draw-badge:has(.rg-coll-swatch){padding:0;height:12px;right:0;bottom:0}
 .rg-theme #rg-edit-bar .rg-draw-badge.idle{color:var(--rg-text-secondary);opacity:.7}
 .rg-theme #rg-edit-bar .rg-draw-trigger-b{color:var(--rg-trigger-b)}
 .rg-theme #rg-edit-bar .rg-draw-trigger-step{color:var(--rg-trigger-step)}

@@ -57,8 +57,9 @@ function editDrawable() {
   }
   if (kind === 'collision') {
     var cd = typeof collCodeDef === 'function' ? collCodeDef(_collPick) : null;
-    return cd ? { kind: kind, glyph: '◩', label: 'collision: ' + cd[1] + ' (0x' + cd[0].toString(16) + ')', ready: true }
-      : { kind: kind, glyph: '◩', label: 'a collision shape — pick one in the Collision tab', ready: false };
+    // The badge is the armed entry in miniature (map-editor-collision-tab.js collBadgeSvg).
+    return { kind: kind, glyph: '◩', icon: typeof collBadgeSvg === 'function' ? collBadgeSvg() : '', ready: true,
+      label: cd ? 'collision: ' + cd[1] + ' (0x' + cd[0].toString(16) + ') on whole cells' : 'collision: the 8px pen — right-click carves' };
   }
   if (kind === 'trigger') {
     var t = editTriggerKindDef(_editTriggerKind);
@@ -85,7 +86,7 @@ function editEraseTarget() {
   var kind = editDrawKind();
   if (kind === 'special') return { kind: kind, glyph: '◇', label: 'every special on a cell: stairs, drift, gate, glyph', ready: true };
   if (kind === 'trigger') return { kind: kind, glyph: '▭', label: 'the trigger under the cursor', ready: true };
-  if (kind === 'collision') return { kind: kind, glyph: '◩', label: 'a collision shape set by hand — the tile’s estimate comes back', ready: true };
+  if (kind === 'collision') return { kind: kind, glyph: '◩', label: 'collision set by hand — back to the predicted collision', ready: true };
   if (kind === 'object') return { kind: kind, glyph: '◆', label: 'a tile of the selected object', ready: true };
   var cut = typeof editCutLayerOn === 'function' && editCutLayerOn();
   var force = typeof _layerForce !== 'undefined' ? _layerForce : null;
@@ -99,7 +100,7 @@ function editDrawBadgeHtml(erase) {
   var dr = erase ? editEraseTarget() : editDrawable();
   var sub = dr.kind === 'trigger' ? ' rg-draw-trigger-' + _editTriggerKind : '';
   return '<span class="rg-draw-badge rg-draw-' + dr.kind + sub + (dr.ready ? '' : ' idle') + '" aria-hidden="true">'
-    + escH(dr.glyph) + '</span>';
+    + (dr.icon && !erase ? dr.icon : escH(dr.glyph)) + '</span>';
 }
 
 // ── the Trigger tab's pencil ────────────────────────────────────────────────

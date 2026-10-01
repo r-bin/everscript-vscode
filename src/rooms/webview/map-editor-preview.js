@@ -53,7 +53,7 @@ function editPreviewSvg() {
   if (!editInBounds(_mtPalette, c.x, c.y)) return '';
   var kind = drawKind();
   // Drawing collision on the 8px grid: what the cell becomes, pencil or eraser (map-editor-collision-tab.js).
-  if (kind === 'collision' && _collMode === 'draw' && c.qx != null && (d.tool === 'paint' || d.tool === 'erase')) return previewCollDrawSvg(d, c);
+  if (kind === 'collision' && _collPick < 0 && c.qx != null && d.tool === 'paint') return previewCollDrawSvg(d, c);
   if (d.tool === 'erase') return previewEraseSvg(d, c, kind);
   if (d.tool === 'stamp' || (d.tool === 'paint' && kind === 'widgets')) {
     return _editConstruct >= 0 ? previewConstructSvg(d.constructs[_editConstruct], c) : '';
@@ -82,11 +82,11 @@ function editPreviewSvg() {
 /** The cell as this pen (or eraser) stroke would leave it — the tile it would match, or a "?". */
 function previewCollDrawSvg(d, c) {
   var pos = editCellPos(_editOrigin, c.x, c.y), h = EDIT_UNITS / 2;
-  var erasing = d.tool === 'erase';
-  var next = collDrawNext(c, erasing);
-  var code = collCodeOfQuarters(next & 15, !(next & COLL_STOP));
-  return (next ? '<g class="rg-preview-ghost">' + collDrawnCellSvg(pos, next, code, collLevelColor(collCellLevel(c.x, c.y))) + '</g>' : '')
-    + '<rect class="' + (erasing ? 'rg-preview-erase' : 'rg-preview-box') + '" x="' + (pos.x + c.qx * h)
+  // The pen's stroke; a right-button carve shows itself as it happens.
+  var next = collDrawNext(c, false);
+  var code = collCodeOfQuarters(next & 15, next & COLL_STOP);
+  return '<g class="rg-preview-ghost">' + collDrawnCellSvg(pos, next, code, collLevelColor(collCellLevel(c.x, c.y))) + '</g>'
+    + '<rect class="rg-preview-box" x="' + (pos.x + c.qx * h)
     + '" y="' + (pos.y + c.qy * h) + '" width="' + h + '" height="' + h + '"/>';
 }
 
@@ -112,7 +112,7 @@ function previewEraseSvg(d, c, kind) {
   } else if (kind === 'special') {
     hit = !!editSpecialAt(c.x, c.y);
   } else if (kind === 'collision') {
-    hit = editCollisionAt(c.x, c.y) >= 0;
+    hit = editCollisionAt(c.x, c.y) >= 0 || collDrawAt(c.x, c.y) >= 0;
   } else if (cutLayerActive()) {
     hit = !!(d.cut && d.cut[editKey(c.x, c.y)] != null);
   } else {

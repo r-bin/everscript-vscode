@@ -19,25 +19,26 @@
 // undo stack. The Special tab's collision flags stay there: they are flags
 // on top of a shape, not shapes.
 //
-// Two ways to set one: **Shapes** (pick one of the codes; `_edit.coll`) and
-// **Draw 8px** — a pen on the 8px grid. The drawing is kept as drawn
-// (`_edit.collDraw`, "x,y" -> the four quarters, bits 1 TL, 2 TR, 4 BL,
-// 8 BR, plus 16 for "diagonals stop"), and a cell takes a shape only while
-// its quarters match a 16px tile: all four solid, two along a side a half,
-// an L of three the 45° diagonal on that side. A lone corner or two
-// opposite corners match nothing — they stay drawn, marked, and the cell
-// keeps its own shape. A cell has a picked shape or a drawing, never both.
+// One pen. With the **8px pen** armed (the list's first entry, the default)
+// it draws and carves 8px squares into the cell's collision as it is now —
+// the prediction, or a shape set earlier — and the cell keeps the drawing as
+// drawn (`_edit.collDraw`, "x,y" -> quarters: 1 TL, 2 TR, 4 BL, 8 BR, plus
+// 16 for the diagonal twin that stops). The cell takes a code only while the
+// quarters match a 16px tile: none open, all four solid, two along a side a
+// half, an L of three the 45° diagonal on that side. A lone corner or two
+// opposite corners match nothing: drawn, marked, and the cell keeps its own.
+// With a **shape** armed it sets whole cells (`_edit.coll`). A cell holds one
+// or the other. Right-click carves (an 8px square, or a whole cell open);
+// the eraser takes the override away, back to the prediction.
 //
-// Owns: _collPick, _collMode, _collSlide, _collVanillaOnly.
+// Owns: _collPick, _collVanillaOnly, _collCarving.
 
-/** The armed shape, 0..15, or -1. */
+/** The armed entry: -1 the 8px pen, else a shape code 0..15. */
 var _collPick = -1;
-/** 'shapes' (pick a code) or 'draw' (8px quarters). */
-var _collMode = 'shapes';
-/** Diagonals drawn freehand take the variant that slides (true) or stops (false). */
-var _collSlide = true;
 /** Hide the codes no vanilla room places (the filter row). */
 var _collVanillaOnly = true;
+/** A right-button carve in progress. */
+var _collCarving = false;
 
 /**
  * Every code §5 documents, in the tab's order: `[code, label, twin, how]`.
@@ -67,34 +68,57 @@ var COLL_HOW = {
 // ── the 8px drawing ─────────────────────────────────────────────────────────
 
 var COLL_STOP = 16;
+/** The diagonal twins that stop you; their 3-point twins slide (COLL_CODES). */
+var COLL_STOPPERS = { 0x06: true, 0x05: true, 0x0a: true, 0x09: true };
 
-/** The code a drawing's quarters match, or -1 when they match no tile (or nothing is drawn). */
-function collCodeOfQuarters(q, slide) {
+/** The code quarters match, or -1. `stop` picks the diagonal twin. */
+function collCodeOfQuarters(q, stop) {
   var diag = { 13: [0x02, 0x06], 14: [0x01, 0x05], 7: [0x0e, 0x0a], 11: [0x0d, 0x09] }[q];
-  if (diag) return diag[slide ? 0 : 1];
-  var plain = { 15: 0x0f, 3: 0x0c, 12: 0x03, 5: 0x07, 10: 0x08 }[q];
+  if (diag) return diag[stop ? 1 : 0];
+  var plain = { 0: 0x00, 15: 0x0f, 3: 0x0c, 12: 0x03, 5: 0x07, 10: 0x08 }[q];
   return plain === undefined ? -1 : plain;
 }
 
-/** The drawing at a cell (quarters + stop flag), or 0. */
+/** The quarters a code fills — what the pen starts from (twins alike; 0x04/0x0B are open). */
+function collQuarters(code) {
+  return ({ 0x0f: 15, 0x0c: 3, 0x03: 12, 0x07: 5, 0x08: 10,
+    0x02: 13, 0x06: 13, 0x01: 14, 0x05: 14, 0x0e: 7, 0x0a: 7, 0x0d: 11, 0x09: 11 })[code] || 0;
+}
+
+/** The drawing at a cell (quarters + stop flag), or -1 when there is none. */
 function collDrawAt(x, y) {
   var d = editDraft();
   var k = editKey(x, y);
-  return d && d.collDraw && Object.prototype.hasOwnProperty.call(d.collDraw, k) ? d.collDraw[k] : 0;
+  return d && d.collDraw && Object.prototype.hasOwnProperty.call(d.collDraw, k) ? d.collDraw[k] : -1;
 }
 
-/** The code a cell's drawing gives it, or -1. */
+/** The code a cell's drawing gives it, or -1 (no drawing, or one that matches nothing). */
 function collDrawCode(x, y) {
   var v = collDrawAt(x, y);
-  return v ? collCodeOfQuarters(v & 15, !(v & COLL_STOP)) : -1;
+  return v < 0 ? -1 : collCodeOfQuarters(v & 15, v & COLL_STOP);
 }
 
-/** The pen (or eraser) on one 8px quarter: the drawing's next value, 0 = nothing drawn. */
-function collDrawNext(cell, erasing) {
+/** The prediction: the stamp's geometry, open under always-walkable or with nothing drawn. */
+function collEstimate(x, y) {
+  var i = typeof editCellAt === 'function' ? editCellAt(_mtPalette, x, y) : -1;
+  var w = i >= 0 ? editStampWords(_mtPalette, i) : null;
+  return !w || (w.collision & 0x2000) ? 0 : w.collision & 0x0f;
+}
+
+/** What the pen starts from at a cell: its drawing, else its shape now as quarters. */
+function collDrawBase(x, y) {
+  var v = collDrawAt(x, y);
+  if (v >= 0) return v;
+  var code = editCollisionAt(x, y);
+  if (code < 0) code = collEstimate(x, y);
+  return collQuarters(code) | (COLL_STOPPERS[code] ? COLL_STOP : 0);
+}
+
+/** The drawing after the pen (or a carve) on one 8px quarter. */
+function collDrawNext(cell, carving) {
   var bit = 1 << ((cell.qy ? 2 : 0) + (cell.qx ? 1 : 0));
-  var q = collDrawAt(cell.x, cell.y) & 15;
-  q = erasing ? q & ~bit : q | bit;
-  return q ? q | (_collSlide ? 0 : COLL_STOP) : 0;
+  var v = collDrawBase(cell.x, cell.y);
+  return carving ? v & ~bit : v | bit;
 }
 
 /** maps/collision.ts geometryMask, as a test for one pixel: is (px, py) solid? */
@@ -157,13 +181,14 @@ function editCollisionPayload() {
   return out;
 }
 
-/** Arm a shape: the Collision tab's pencil draws it. */
+/** Arm an entry: -1 the 8px pen, else a shape. Shown under the pencil. */
 function collPick(code) {
   _collPick = Number(code);
   var d = editDraft();
   if (d && !editLocked()) d.tool = 'paint';
   var def = collCodeDef(_collPick);
-  editNote('pencil: collision ' + (def ? def[1] : '') + ' (0x' + _collPick.toString(16) + ') — overrides the tile’s estimate; the eraser takes it off');
+  editNote(def ? 'pencil: ' + def[1] + ' (0x' + _collPick.toString(16) + ') on whole cells — right-click opens a cell'
+    : 'pencil: 8px pen — draw, right-click to carve; the eraser goes back to the prediction');
   renderEditChrome();
 }
 
@@ -173,26 +198,38 @@ function collCodeDef(code) {
 }
 
 /**
- * The Collision tab's pencil (or eraser) on one cell. Shapes: the picked code
- * on the `coll` layer. Draw: one 8px quarter of the drawing on `collDraw`.
- * Either clears the other at that cell, in the same undo step.
+ * The Collision tab on one cell: `draw` (left button), `carve` (right
+ * button) or `reset` (the eraser: back to the prediction). One write per
+ * layer, folded into the gesture's one undo step.
  */
-function editCollisionStroke(cell, erasing) {
-  var writes = [];
-  var k = editKey(cell.x, cell.y), d = editDraft();
-  var picked = d && d.coll && Object.prototype.hasOwnProperty.call(d.coll, k);
-  if (_collMode === 'draw' && cell.qx != null) {
-    var next = collDrawNext(cell, erasing);
-    if (next === collDrawAt(cell.x, cell.y) && !picked) return;
-    writes.push({ x: cell.x, y: cell.y, index: next || null, layer: 'collDraw' });
-    // A picked shape there goes, pen or eraser — the drawing is the cell's now.
-    if (picked) writes.push({ x: cell.x, y: cell.y, index: null, layer: 'coll' });
+function editCollisionStroke(cell, how) {
+  if (how === true) how = 'reset';
+  else if (how === false || how == null) how = 'draw';
+  var d = editDraft(), k = editKey(cell.x, cell.y);
+  var picked = !!(d && d.coll && Object.prototype.hasOwnProperty.call(d.coll, k));
+  var drawn = collDrawAt(cell.x, cell.y) >= 0;
+  var coll, draw;                     // undefined: leave that layer alone; null: clear it
+  if (how === 'reset') {
+    if (!picked && !drawn) return;
+    coll = null; draw = null;
+  } else if (_collPick < 0 && cell.qx != null) {
+    var next = collDrawNext(cell, how === 'carve');
+    if (next === collDrawBase(cell.x, cell.y) && drawn) return;
+    // Drawn back to exactly the prediction: no override left.
+    var same = !picked && collCodeOfQuarters(next & 15, next & COLL_STOP) === collEstimate(cell.x, cell.y)
+      && (next & 15) === collQuarters(collEstimate(cell.x, cell.y));
+    if (same && !drawn) return;
+    draw = same ? null : next;
+    if (picked) coll = null;
   } else {
-    if (!erasing && _collPick < 0) return;
-    if (erasing ? !picked && !collDrawAt(cell.x, cell.y) : picked && d.coll[k] === _collPick) return;
-    writes.push({ x: cell.x, y: cell.y, index: erasing ? null : _collPick, layer: 'coll' });
-    if (collDrawAt(cell.x, cell.y)) writes.push({ x: cell.x, y: cell.y, index: null, layer: 'collDraw' });
+    var to = how === 'carve' ? 0x00 : _collPick;
+    if (to < 0 || (picked && d.coll[k] === to)) return;
+    coll = to;
+    if (drawn) draw = null;
   }
+  var writes = [];
+  if (coll !== undefined) writes.push({ x: cell.x, y: cell.y, index: coll, layer: 'coll' });
+  if (draw !== undefined) writes.push({ x: cell.x, y: cell.y, index: draw, layer: 'collDraw' });
   editApply(writes);
   if (typeof draftCollisionSoon === 'function') draftCollisionSoon();
   renderEditLayer(_mtPalette, _editComposed, _editOrigin);
@@ -200,15 +237,45 @@ function editCollisionStroke(cell, erasing) {
 
 /** A click the Collision tab owns (map-editor-input.js). */
 function collClick(t) {
-  var ds = t.dataset;
-  if (ds.collPick !== undefined) { _collMode = 'shapes'; collPick(ds.collPick); return; }
-  if (ds.collMode) _collMode = ds.collMode;
-  if (ds.collSlide) _collSlide = ds.collSlide === 'slide';
-  if (ds.collVanilla) _collVanillaOnly = !_collVanillaOnly;
-  var d = editDraft();
-  if ((ds.collMode === 'draw' || ds.collSlide) && d && !editLocked()) d.tool = 'paint';
-  if (_collMode === 'draw') editNote('pencil: draw collision on the 8px grid — the eraser takes quarters off');
+  if (t.dataset.collPick !== undefined) { collPick(t.dataset.collPick); return; }
+  if (t.dataset.collVanilla) _collVanillaOnly = !_collVanillaOnly;
   renderEditChrome();
+}
+
+/**
+ * Right-button carving on the map, Collision tab only: a gesture of its own
+ * (map-editor-gestures.js takes the left button), one undo step per drag.
+ * Bound once per rendered map (detail-renderer.js).
+ */
+function setupCollisionCarve() {
+  var wrap = document.getElementById('rg-wrap');
+  if (!wrap || wrap.dataset.collCarveBound) return;
+  wrap.dataset.collCarveBound = '1';
+  var on = function () { return editActive() && !editLocked() && drawKind() === 'collision'; };
+  wrap.addEventListener('contextmenu', function (e) { if (on()) e.preventDefault(); }, true);
+  wrap.addEventListener('mousedown', function (e) {
+    if (e.button !== 2 || !on()) return;
+    var cell = editEventCell(e);
+    if (!cell) return;
+    _collCarving = true;
+    editBegin();
+    editCollisionStroke(cell, 'carve');
+    e.preventDefault(); e.stopPropagation();
+  }, true);
+  wrap.addEventListener('mousemove', function (e) {
+    if (!_collCarving) return;
+    var cell = editEventCell(e);
+    if (cell && editInBounds(_mtPalette, cell.x, cell.y)) editCollisionStroke(cell, 'carve');
+  }, true);
+  // Released anywhere, the carve ends — once per page, not per map.
+  if (typeof window === 'undefined' || !window.addEventListener || window._collCarveBound) return;
+  window._collCarveBound = true;
+  window.addEventListener('mouseup', function (e) {
+    if (!_collCarving || e.button !== 2) return;
+    _collCarving = false;
+    editEnd();
+    renderEditChrome();
+  });
 }
 
 /** A cell's level, off what it shows: overrides are drawn in its colour. */
@@ -281,44 +348,48 @@ function collSwatchSvg(code, color) {
     + '<path d="' + collMaskPath(code, 0, 0, 1) + '" fill="' + color + '" fill-opacity=".75"/></svg>';
 }
 
-/** The tab: the filter row, the two ways to draw, and every shape. */
+/** The 8px pen's own swatch: a 2×2 of quarters, one drawn. */
+function collPenSwatchSvg(color) {
+  return '<svg class="rg-coll-swatch" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">'
+    + '<rect width="16" height="16" class="rg-coll-swatch-bg"/>'
+    + '<path d="M0 8h8v8h-8zM8 8h8v8h-8zM0 0h8v8h-8z" fill="' + color + '" fill-opacity=".75"/>'
+    + '<path d="M8 0v16M0 8h16" stroke="currentColor" stroke-opacity=".5" stroke-width=".6"/></svg>';
+}
+
+/** The pencil's badge on the Collision tab: what it draws, in miniature (map-editor-drawable.js). */
+function collBadgeSvg() {
+  var color = collLevelColor(typeof editLevel === 'function' ? editLevel() : 1);
+  return _collPick < 0 ? collPenSwatchSvg(color) : collSwatchSvg(_collPick, color);
+}
+
+/** The tab: the filter row, the pen, every shape, and how the buttons work. */
 function collisionTabHtml() {
   var d = editDraft();
   var color = collLevelColor(typeof editLevel === 'function' ? editLevel() : 1);
-  var n = Object.keys((d && d.coll) || {}).length;
+  var n = Object.keys((d && d.coll) || {}).length + Object.keys((d && d.collDraw) || {}).length;
   var uses = _mtPalette && _mtPalette.vanillaGeometry;
-  var seg = function (attr, val, on, label, tip) {
-    return '<button class="rdf rg-subtab' + (on ? ' on' : '') + '" data-' + attr + '="' + val + '" title="' + escH(tip) + '">' + label + '</button>';
-  };
   var html = '<div class="rg-coll-filters">'
     + '<button class="rdf rg-chip-toggle' + (_collVanillaOnly ? ' on' : '') + '" data-coll-vanilla="1" aria-pressed="' + _collVanillaOnly
     + '" title="Only the shapes vanilla places somewhere">Used in vanilla</button></div>'
-    + '<div class="rg-subtabs">'
-    + seg('coll-mode', 'shapes', _collMode === 'shapes', 'Shapes', 'Pick a shape; the pencil sets it on whole cells')
-    + seg('coll-mode', 'draw', _collMode === 'draw', 'Draw 8px', 'Freehand on the 8px grid: the quarters you fill name the shape') + '</div>';
-  if (_collMode === 'draw') {
-    html += '<div class="rs-note">A pen on the 8px grid. Where a 16px cell’s drawing matches a collision tile — all four, two along a side '
-      + '(_), an L of three (45°) — the cell takes it. A lone corner or two opposite corners match none: they stay drawn, marked, '
-      + 'and the cell keeps its own shape. The eraser takes 8px squares off.</div>'
-      + '<div class="rg-coll-slide">Diagonals: '
-      + seg('coll-slide', 'slide', _collSlide, 'slide along', COLL_HOW.slides)
-      + seg('coll-slide', 'stop', !_collSlide, 'stop you', COLL_HOW.stops) + '</div>';
-  }
-  html += '<div class="rg-special-group"><div class="rg-special-h">Collision shape</div>'
-    + '<div class="rs-note">Sets a cell’s shape by hand, over the one its tile was given. The tile keeps its estimate: '
-    + 'erase the override and it comes back. Shown in the level’s colour; it clears always-walkable (stairs, drift).'
-    + (n ? ' ' + n + ' cell' + (n === 1 ? '' : 's') + ' set by hand.' : '') + '</div>'
-    + '<div class="rg-coll-grid">';
+    + '<div class="rg-coll-keys"><span><kbd>Left</kbd> draw</span><span><kbd>Right</kbd> carve</span>'
+    + '<span><kbd>Eraser</kbd> back to predicted</span></div>'
+    + '<div class="rg-coll-grid">'
+    + '<button class="rdf rg-coll-chip rg-coll-pen' + (_collPick < 0 ? ' on rg-armed' : '') + '" data-coll-pick="-1" title="'
+    + escH('8px pen — draws and carves 8px squares into the collision the cell has now. A 16px cell takes a tile while its squares '
+      + 'match one: all four, two along a side, an L of three (45°). A lone corner or opposite corners match none: '
+      + 'they stay drawn with a "?", and the cell keeps its own.') + '">'
+    + collPenSwatchSvg(color) + '<span class="rg-coll-lbl">8px pen<b>draw · carve</b></span></button>';
   COLL_CODES.forEach(function (c) {
     var count = uses ? uses[c[0]] || 0 : null;
     if (_collVanillaOnly && count === 0) return;
-    var on = _collMode === 'shapes' && _collPick === c[0];
-    var tip = c[1] + (c[3] ? ', ' + c[3] : '') + ' — code 0x' + c[0].toString(16)
+    var on = _collPick === c[0];
+    var tip = c[1] + (c[3] ? ', ' + c[3] : '') + ' — code 0x' + c[0].toString(16) + ', on whole cells'
       + (count != null ? '\nPlaced on ' + count + ' vanilla cell' + (count === 1 ? '' : 's') : '')
       + (c[3] ? '\n' + COLL_HOW[c[3]] : c[2] != null ? '\nSame solid pixels as 0x' + c[2].toString(16)
         + (count === 0 ? '; open in the engine’s tables, and no vanilla room places it' : '') : '');
     html += '<button class="rdf rg-coll-chip' + (on ? ' on rg-armed' : '') + '" data-coll-pick="' + c[0] + '" title="' + escH(tip) + '">'
       + collSwatchSvg(c[0], color) + '<span class="rg-coll-lbl">' + escH(c[1] + (c[3] ? ' · ' + c[3] : '')) + '<b>0x' + c[0].toString(16) + '</b></span></button>';
   });
-  return html + '</div></div>';
+  return html + '</div><div class="rs-note rg-coll-foot">Over the collision each tile was predicted; '
+    + 'it clears always-walkable (stairs, drift).' + (n ? ' ' + n + ' cell' + (n === 1 ? '' : 's') + ' set by hand.' : '') + '</div>';
 }

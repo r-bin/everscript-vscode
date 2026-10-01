@@ -118,6 +118,7 @@ function renderRoomDetail(room){
   if(editDraft())editDraft().locked=filterCtx.locked;
   bindEditControls(panel,room);
   setupEditGestures();
+  if(typeof setupCollisionCarve==='function')setupCollisionCarve(); // right-button carving (map-editor-collision-tab.js)
   setupEditKeys();
   // After setupEditGestures: both listen on #rg-wrap and the gesture handler
   // stops propagation mid-stroke, so this one is registered on the same node

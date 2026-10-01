@@ -802,8 +802,8 @@ const ui = new Function(`
     editRoomCutBeneathSvg: editRoomCutBeneathSvg, setCutLayer: function (v) { _editCutLayer = v; },
     editGridPatchSvg: editGridPatchSvg, editSpecialAppliedIndex: editSpecialAppliedIndex,
     editCollisionOverlaySvg: editCollisionOverlaySvg, collMaskPath: collMaskPath,
-    collPick: collPick, collClick: collClick, collCodeOfQuarters: collCodeOfQuarters,
-    setCollMode: function (m) { _collMode = m; }, setCollSlide: function (v) { _collSlide = v; }, collisionTabHtml: collisionTabHtml, editCollisionAt: editCollisionAt,
+    editCollisionStrokeTest: editCollisionStroke, collPick: collPick, collClick: collClick, collCodeOfQuarters: collCodeOfQuarters,
+    collBadgeSvg: collBadgeSvg, editDrawable: editDrawable, collisionTabHtml: collisionTabHtml, editCollisionAt: editCollisionAt,
     editCollisionApplied: editCollisionApplied, editClipboardKeyTest: function (k) { return editClipboardKey({ key: k }, true); },
     chipDrop: chipDrop, editResizeStep: editResizeStep, resizeKeep: function () { var k = _resizeKeep; _resizeKeep = false; return k; },
     customRename: customRename, editPutDown: editPutDown, construct: function () { return _editConstruct; },
@@ -2585,7 +2585,7 @@ test('the Collision tab sets a shape over the tile’s estimate; erasing brings 
     const { p, d } = fresh();
     ui.setTab('collision');
     const html = ui.collisionTabHtml();
-    assert.strictEqual((html.match(/data-coll-pick=/g) || []).length, 16, 'every geometry code §5 documents');
+    assert.strictEqual((html.match(/data-coll-pick=/g) || []).length, 17, 'the 8px pen, and every geometry code §5 documents');
     assert.ok(html.includes('diagonal SW · slides') && html.includes('diagonal SW · stops'), 'diagonal twins say which is which');
     ui.collPick(0x0f);
     assert.strictEqual(d.tool, 'paint', 'picking arms the pencil');
@@ -2618,47 +2618,55 @@ test('the Collision tab’s filter hides what no vanilla room places', () => {
     const { p } = fresh();
     p.vanillaGeometry = [9, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 9];
     let html = ui.collisionTabHtml();
-    assert.strictEqual((html.match(/data-coll-pick=/g) || []).length, 14, '0x04 and 0x0B hidden');
+    assert.strictEqual((html.match(/data-coll-pick=/g) || []).length, 15, '0x04 and 0x0B hidden');
     ui.collClick({ dataset: { collVanilla: '1' } });
     html = ui.collisionTabHtml();
-    assert.strictEqual((html.match(/data-coll-pick=/g) || []).length, 16, 'off: all of them');
+    assert.strictEqual((html.match(/data-coll-pick=/g) || []).length, 17, 'off: all of them');
     assert.ok(html.includes('open in the engine’s tables, and no vanilla room places it'));
     ui.collClick({ dataset: { collVanilla: '1' } });
     delete p.vanillaGeometry;
 });
 
-test('the 8px pen keeps the drawing as drawn; a cell takes a shape only while it matches a tile', () => {
-    // Bits: 1 TL, 2 TR, 4 BL, 8 BR.
-    assert.strictEqual(ui.collCodeOfQuarters(0, true), -1, 'empty: nothing drawn, the cell keeps its own');
-    assert.strictEqual(ui.collCodeOfQuarters(15, true), 0x0f, '## / ##: solid');
-    assert.strictEqual(ui.collCodeOfQuarters(1 | 4 | 8, true), 0x02, '#_ / ##: 45°');
-    assert.strictEqual(ui.collCodeOfQuarters(2 | 4 | 8, true), 0x01, '_# / ##: 45°');
-    assert.strictEqual(ui.collCodeOfQuarters(1 | 4 | 8, false), 0x06, 'the twin that stops you');
-    assert.strictEqual(ui.collCodeOfQuarters(1 | 2, true), 0x0c, '## / __: the top half');
-    assert.strictEqual(ui.collCodeOfQuarters(1, true), -1, '#_ / __: invalid');
-    assert.strictEqual(ui.collCodeOfQuarters(8, true), -1, '__ / _#: invalid');
-    assert.strictEqual(ui.collCodeOfQuarters(1 | 8, true), -1, 'opposite corners: invalid');
-    const { d } = fresh();
+test('one pen: it draws and carves 8px squares into the predicted collision; a cell takes a tile only while it matches', () => {
+    // Bits: 1 TL, 2 TR, 4 BL, 8 BR; the second argument picks the twin that stops.
+    assert.strictEqual(ui.collCodeOfQuarters(0, false), 0x00, '__ / __: open');
+    assert.strictEqual(ui.collCodeOfQuarters(15, false), 0x0f, '## / ##: solid');
+    assert.strictEqual(ui.collCodeOfQuarters(1 | 4 | 8, false), 0x02, '#_ / ##: 45°');
+    assert.strictEqual(ui.collCodeOfQuarters(2 | 4 | 8, false), 0x01, '_# / ##: 45°');
+    assert.strictEqual(ui.collCodeOfQuarters(1 | 4 | 8, true), 0x06, 'the twin that stops');
+    assert.strictEqual(ui.collCodeOfQuarters(1 | 2, false), 0x0c, '## / __: the top half');
+    assert.strictEqual(ui.collCodeOfQuarters(1, false), -1, '#_ / __: invalid');
+    assert.strictEqual(ui.collCodeOfQuarters(8, false), -1, '__ / _#: invalid');
+    assert.strictEqual(ui.collCodeOfQuarters(1 | 8, false), -1, 'opposite corners: invalid');
+    const { p, d } = fresh();
     ui.setTab('collision');
-    ui.setCollMode('draw');
-    ui.setCollSlide(true);
-    const pen = (qx, qy) => { ui.editBegin(); ui.editStroke({ x: 2, y: 1, qx, qy }, 'down'); ui.editEnd(); };
-    pen(0, 0);
-    assert.strictEqual(d.collDraw['2,1'], 1, 'one corner is kept as drawn');
-    assert.strictEqual(ui.editCollisionAt(2, 1), -1, 'but matches no tile: no override');
-    pen(0, 1);
-    assert.strictEqual(ui.editCollisionAt(2, 1), 0x07, 'two down the left: the left half');
-    pen(1, 1);
-    assert.strictEqual(ui.editCollisionAt(2, 1), 0x02, 'an L: the 45° diagonal');
-    d.tool = 'erase';
-    pen(0, 1);
-    assert.strictEqual(d.collDraw['2,1'], 1 | 8, 'the eraser takes one square off');
-    assert.strictEqual(ui.editCollisionAt(2, 1), -1, 'opposite corners: no shape again');
-    pen(0, 0); pen(1, 1);
-    assert.strictEqual(d.collDraw['2,1'], undefined, 'erased to nothing: no drawing left');
-    d.tool = 'paint';
-    ui.setCollMode('shapes');
+    ui.collPick(-1);
+    assert.ok(ui.editDrawable().icon.includes('rg-coll-swatch'), 'the pencil’s badge shows the pen');
+    assert.strictEqual(ui.editStampWords(p, ui.editCellAt(p, 2, 1)).collision & 0x0f, 0x0f, 'predicted solid here');
+    const at = (how, qx, qy) => { ui.editBegin(); ui.editCollisionStrokeTest({ x: 2, y: 1, qx, qy }, how); ui.editEnd(); };
+    at('draw', 0, 0);
+    assert.strictEqual((d.collDraw || {})['2,1'], undefined, 'drawing on solid changes nothing');
+    at('carve', 1, 0);
+    assert.strictEqual(ui.editCollisionAt(2, 1), 0x02, 'carving a corner off the prediction: the 45°');
+    at('carve', 1, 1);
+    assert.strictEqual(ui.editCollisionAt(2, 1), 0x07, 'and another: the left half');
+    at('carve', 0, 0);
+    assert.strictEqual(ui.editCollisionAt(2, 1), -1, 'a lone corner matches none: the cell keeps its own');
+    assert.strictEqual((d.collDraw || {})['2,1'], 4, 'but it stays drawn');
+    at('carve', 0, 1);
+    assert.strictEqual(ui.editCollisionAt(2, 1), 0x00, 'all carved away: open');
+    at('draw', 0, 0); at('draw', 1, 0); at('draw', 0, 1); at('draw', 1, 1);
+    assert.strictEqual((d.collDraw || {})['2,1'], undefined, 'drawn back to the prediction: no override left');
+    ui.collPick(0x0c);
+    at('draw');
+    assert.strictEqual(ui.editCollisionAt(2, 1), 0x0c, 'a picked shape sets the whole cell');
+    at('carve');
+    assert.strictEqual(ui.editCollisionAt(2, 1), 0x00, 'right-click with a shape opens the cell');
+    at('reset');
+    assert.strictEqual(ui.editCollisionAt(2, 1), -1, 'the eraser: back to the prediction');
+    ui.collPick(-1);
     ui.setTab('tile');
+    d.tool = 'paint';
 });
 
 test('a drawn L shows as the 45° tile it makes; a lone corner shows as unmatched, not in a level colour', () => {

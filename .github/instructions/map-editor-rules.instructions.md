@@ -303,12 +303,15 @@ no room places and the engine's tables treat as open. The diagonal twins differ
 in the per-code tables read after `$909DE8` — `$8FA3F8` (open compass points:
 three for 0x02/0x01/0x0E/0x0D, one for 0x06/0x05/0x0A/0x09) and `$8FA418` (a
 slide entry only for the three-point twin) — labelled "slides"/"stops", which is
-a reading of those tables, not confirmed in game. **Draw 8px** is a pen whose drawing
-is kept as drawn (`_edit.collDraw`, four quarters per cell): a cell takes a code
-only while its quarters match a tile (`collCodeOfQuarters`: all four, two along a
-side, an L of three). A lone corner or opposite corners match none — they stay
-drawn and marked, and the cell keeps its own shape; never rounded to something.
-A cell holds a picked shape or a drawing, not both.
+a reading of those tables, not confirmed in game. **One pen**: the list's first entry
+is the 8px pen, the default; it draws (left) and carves (right) 8px squares into the
+collision the cell has *now* — the prediction or a shape set earlier — and keeps the
+drawing as drawn (`_edit.collDraw`). A cell takes a code only while its quarters match
+a tile (`collCodeOfQuarters`: none open, all four, two along a side, an L of three); a
+lone corner or opposite corners match none — drawn with a "?", the cell keeps its own,
+never rounded. A diagonal keeps the twin the cell had (`COLL_STOP`), else the sliding
+one. A picked shape sets whole cells; right-click with it opens one. The eraser is
+"back to the prediction". A cell holds a picked shape or a drawing, not both.
 The Special tab's flags stay there: they sit on top of a shape.
 
 **Layers over the map.** The cuttable layer (`_edit.cut`) and each object's `layer`

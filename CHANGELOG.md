@@ -1,3 +1,14 @@
+## [0.104.0] — 2026-10-01
+
+### Feat: one collision pen that draws and carves into the predicted collision
+
+- **One pen instead of two modes.** The Collision tab's list starts with the **8px pen**, which is armed by default. Whatever is armed shows in miniature under the pencil in the tool bar.
+- **The pen works on the collision each cell already has**, whether that's the predicted collision or a shape you set. Left-drag draws 8px squares; **right-drag carves** them away. Carve one corner off a solid wall and you get a 45° slope; carve everything and the cell is open. Draw a cell back to its prediction and its override disappears.
+- A cell only takes on a drawing that matches a real collision tile (open, solid, a half, an L for 45°). A lone corner or two opposite corners stay drawn with a "?", and the cell keeps its own collision.
+- **Picking a shape** sets whole cells; right-click with a shape makes a cell open. **The eraser** returns cells to their predicted collision.
+- **No more slide/stop toggle.** A drawn diagonal keeps the variant the cell already had, otherwise the one vanilla uses most. The variants can still be picked from the shape list.
+- The tab now shows what each mouse button and the eraser do, in place of the long explanation.
+
 ## [0.103.2] — 2026-10-01
 
 ### Fix: a drawn L shows as its 45° collision tile
