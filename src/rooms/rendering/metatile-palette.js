@@ -11,7 +11,7 @@
 const maps = require('../../maps');
 const { romFingerprint } = require('./rom-fingerprint');
 const { headerSpec, withHeader } = require('./header-overrides');
-const { annotateGraphics, budgetSummary, invalidateVanillaIndex } = require('./vanilla-index');
+const { annotateGraphics, budgetSummary, invalidateVanillaIndex, vanillaGeometry } = require('./vanilla-index');
 const { groupRoomGraphics } = require('./room-draft');
 const { buildStampAnimations } = require('./stamp-animation');
 const { editorObjects } = require('./object-previews');
@@ -122,6 +122,8 @@ function buildRoomMetatilePalette(rom, roomId, layer, bgPalette, header) {
         budget: budgetSummary(buf, room),
         /** What vanilla says about each loaded graphic — see annotateGraphics. */
         vanilla: annotateGraphics(buf, room),
+        /** Placed cells per collision shape over all of vanilla — the Collision tab's "used in vanilla". */
+        vanillaGeometry: vanillaGeometry(buf),
         /** The graphics grouped by which rooms draw them together. */
         graphicGroups: groupRoomGraphics(buf, room),
         // Where the room's triggers and objects sit, in metatile cells. A

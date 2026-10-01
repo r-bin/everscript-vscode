@@ -22,7 +22,7 @@ var _ghostAsked = {};
 /** The pointer is over `cell` (or off the map, null), with no button down. */
 function editPreviewHover(cell) {
   var a = _previewCell;
-  if (a === cell || (a && cell && a.x === cell.x && a.y === cell.y)) return;
+  if (a === cell || (a && cell && a.x === cell.x && a.y === cell.y && a.qx === cell.qx && a.qy === cell.qy)) return;
   _previewCell = cell;
   renderEditPreview();
 }
@@ -52,6 +52,8 @@ function editPreviewSvg() {
   if (typeof _pasteFloat !== 'undefined' && _pasteFloat) return '';
   if (!editInBounds(_mtPalette, c.x, c.y)) return '';
   var kind = drawKind();
+  // Drawing collision on the 8px grid: what the cell becomes, pencil or eraser (map-editor-collision-tab.js).
+  if (kind === 'collision' && _collMode === 'draw' && c.qx != null && (d.tool === 'paint' || d.tool === 'erase')) return previewCollDrawSvg(d, c);
   if (d.tool === 'erase') return previewEraseSvg(d, c, kind);
   if (d.tool === 'stamp' || (d.tool === 'paint' && kind === 'widgets')) {
     return _editConstruct >= 0 ? previewConstructSvg(d.constructs[_editConstruct], c) : '';
@@ -75,6 +77,17 @@ function editPreviewSvg() {
   if (d.brush < 0) return '';
   return editStampSvg(_mtPalette, _editComposed, d.brush, pos.x, pos.y, 'rg-edit-cell rg-preview-ghost')
     + previewBoxSvg(c.x, c.y, 1, 1, 'rg-preview-box');
+}
+
+/** The shape a quarter drawn (or erased) here would make, and the quarter itself. */
+function previewCollDrawSvg(d, c) {
+  var pos = editCellPos(_editOrigin, c.x, c.y), h = EDIT_UNITS / 2;
+  var code = collDrawResult(c, d.tool === 'erase');
+  var q = '<rect class="' + (d.tool === 'erase' ? 'rg-preview-erase' : 'rg-preview-box') + '" x="' + (pos.x + c.qx * h)
+    + '" y="' + (pos.y + c.qy * h) + '" width="' + h + '" height="' + h + '"/>';
+  if (code < 0) return q;
+  return '<path class="rg-preview-ghost" d="' + collMaskPath(code, pos.x, pos.y, EDIT_UNITS / 16) + '" fill="'
+    + collLevelColor(collCellLevel(c.x, c.y)) + '"/>' + previewBoxSvg(c.x, c.y, 1, 1, 'rg-preview-box') + q;
 }
 
 /** A cell-aligned outline, `w`×`h` cells from (x, y). */

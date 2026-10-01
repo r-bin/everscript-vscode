@@ -144,6 +144,11 @@
 .rg-theme .rg-coll-chip:hover{color:var(--rg-text-primary)}
 .rg-theme .rg-coll-swatch{width:36px;height:36px;image-rendering:pixelated;border-radius:3px}
 .rg-theme .rg-coll-swatch-bg{fill:var(--rg-bg-app)}
+.rg-theme .rg-coll-filters{display:flex;gap:4px;margin-bottom:8px}
+.rg-theme .rg-coll-filters .rdf{opacity:1}
+.rg-theme .rg-coll-filters .rdf.on{background:var(--rg-accent-soft);color:var(--rg-accent-text);border-color:transparent}
+.rg-theme .rg-coll-slide{display:flex;align-items:center;gap:4px;margin:6px 0;font-size:11px;color:var(--rg-text-secondary)}
+.rg-theme .rg-coll-slide .rg-subtab{flex:none}
 .rg-theme .rg-coll-lbl b{display:block;font:500 9px var(--rg-font-mono, monospace);color:var(--rg-text-muted)}
 
 /* ── Special glyph overlay on the map canvas (map-editor-paint.js) ───────

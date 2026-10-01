@@ -297,8 +297,15 @@ tile's stamp carries. It is never baked into the stamp — erasing it brings the
 estimate back — and is applied only where a word leaves the editor
 (romExportPayload, editExport's `collisionOverrides`). It sets bits 3..0 and
 clears bit 13 (under it the nibble is drift, not shape); level, gate,
-see-through and interact stay the cell's. All 16 codes are offered; the six
-pairs sharing a solid region say so, since nothing attested tells them apart.
+see-through and interact stay the cell's. All 16 codes exist; "used in vanilla"
+(default on, `vanillaGeometry` from the vanilla index) hides 0x04 and 0x0B, which
+no room places and the engine's tables treat as open. The diagonal twins differ
+in the per-code tables read after `$909DE8` — `$8FA3F8` (open compass points:
+three for 0x02/0x01/0x0E/0x0D, one for 0x06/0x05/0x0A/0x09) and `$8FA418` (a
+slide entry only for the three-point twin) — labelled "slides"/"stops", which is
+a reading of those tables, not confirmed in game. **Draw 8px** paints quarters:
+the quarters filled name the code (`collCodeOfQuarters`); opposite corners name
+none and are refused, never rounded to something.
 The Special tab's flags stay there: they sit on top of a shape.
 
 **Layers over the map.** The cuttable layer (`_edit.cut`) and each object's `layer`

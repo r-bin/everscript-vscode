@@ -801,7 +801,8 @@ const ui = new Function(`
     editPreviewSvg: editPreviewSvg, setPreviewCell: function (c) { _previewCell = c; },
     editRoomCutBeneathSvg: editRoomCutBeneathSvg, setCutLayer: function (v) { _editCutLayer = v; },
     editGridPatchSvg: editGridPatchSvg, editSpecialAppliedIndex: editSpecialAppliedIndex,
-    collPick: collPick, collisionTabHtml: collisionTabHtml, editCollisionAt: editCollisionAt,
+    collPick: collPick, collClick: collClick, collCodeOfQuarters: collCodeOfQuarters,
+    setCollMode: function (m) { _collMode = m; }, setCollSlide: function (v) { _collSlide = v; }, collisionTabHtml: collisionTabHtml, editCollisionAt: editCollisionAt,
     editCollisionApplied: editCollisionApplied, editClipboardKeyTest: function (k) { return editClipboardKey({ key: k }, true); },
     chipDrop: chipDrop, editResizeStep: editResizeStep, resizeKeep: function () { var k = _resizeKeep; _resizeKeep = false; return k; },
     customRename: customRename, editPutDown: editPutDown, construct: function () { return _editConstruct; },
@@ -2584,7 +2585,7 @@ test('the Collision tab sets a shape over the tile’s estimate; erasing brings 
     ui.setTab('collision');
     const html = ui.collisionTabHtml();
     assert.strictEqual((html.match(/data-coll-pick=/g) || []).length, 16, 'every geometry code §5 documents');
-    assert.ok(html.includes('nothing documented tells the two apart'), 'twins say so');
+    assert.ok(html.includes('diagonal SW · slides') && html.includes('diagonal SW · stops'), 'diagonal twins say which is which');
     ui.collPick(0x0f);
     assert.strictEqual(d.tool, 'paint', 'picking arms the pencil');
     ui.editBegin(); ui.editStroke({ x: 1, y: 0 }, 'down'); ui.editEnd();
@@ -2610,6 +2611,44 @@ test('Cmd/Ctrl+A selects the whole map for the copy tool', () => {
     assert.deepStrictEqual(ui.getEditSel(), { x1: 0, y1: 0, x2: p.widthTiles - 1, y2: p.heightTiles - 1 });
     ui.setSel(null);
     d.tool = 'paint';
+});
+
+test('the Collision tab’s filter hides what no vanilla room places', () => {
+    const { p } = fresh();
+    p.vanillaGeometry = [9, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 9];
+    let html = ui.collisionTabHtml();
+    assert.strictEqual((html.match(/data-coll-pick=/g) || []).length, 14, '0x04 and 0x0B hidden');
+    ui.collClick({ dataset: { collVanilla: '1' } });
+    html = ui.collisionTabHtml();
+    assert.strictEqual((html.match(/data-coll-pick=/g) || []).length, 16, 'off: all of them');
+    assert.ok(html.includes('open in the engine’s tables, and no vanilla room places it'));
+    ui.collClick({ dataset: { collVanilla: '1' } });
+    delete p.vanillaGeometry;
+});
+
+test('drawing collision on the 8px grid: the quarters name the shape', () => {
+    assert.strictEqual(ui.collCodeOfQuarters(0, true), 0x00);
+    assert.strictEqual(ui.collCodeOfQuarters(15, true), 0x0f);
+    assert.strictEqual(ui.collCodeOfQuarters(1 | 2, true), 0x0c, '_ along the top: the top half');
+    assert.strictEqual(ui.collCodeOfQuarters(4 | 8, true), 0x03, 'along the bottom');
+    assert.strictEqual(ui.collCodeOfQuarters(1 | 4 | 8, true), 0x02, 'an L: the 45° diagonal on that side');
+    assert.strictEqual(ui.collCodeOfQuarters(1 | 4 | 8, false), 0x06, 'its twin that stops you');
+    assert.strictEqual(ui.collCodeOfQuarters(1 | 8, true), -1, 'opposite corners: no shape');
+    const { p, d } = fresh();
+    ui.setTab('collision');
+    ui.setCollMode('draw');
+    ui.setCollSlide(true);
+    const draw = (qx, qy) => { ui.editBegin(); ui.editStroke({ x: 2, y: 1, qx, qy }, 'down'); ui.editEnd(); };
+    const est = ui.editStampWords(p, ui.editCellAt(p, 2, 1)).collision & 0x0f;
+    assert.strictEqual(est, 0x0f, 'the estimate here is solid');
+    d.tool = 'erase';
+    draw(1, 0);                                   // take the top-right quarter off a solid cell
+    assert.strictEqual(ui.editCollisionAt(2, 1), 0x02, 'solid minus a corner: the L, a diagonal');
+    d.tool = 'paint';
+    draw(1, 0);                                   // put it back
+    assert.strictEqual(ui.editCollisionAt(2, 1), -1, 'back to the estimate: no override left');
+    ui.setCollMode('shapes');
+    ui.setTab('tile');
 });
 
 console.log(`\n  ${passed} passed, ${failed} failed`);

@@ -110,7 +110,7 @@ var EDIT_CLICK_KEYS = ['editTool', 'editAct', 'editPick', 'panel',
   'objectConfirmRemoveFrame', 'objectCancelRemoveFrame', 'objectMoveFrame',
   'decoFlag', 'mtIndex', 'mtSlot', 'editActiveTab',
   'editSpecial', 'editSpecialMenu', 'editTriggerMenu', 'editObjectMenu', 'editMoreMenu',
-  'editToolMenu', 'triggerRef', 'triggerRemove', 'triggerKind', 'triggerEnter', 'triggerToggle', 'listLoot', 'editLevel', 'editCollisionMenu', 'collisionMode', 'collPick'];
+  'editToolMenu', 'triggerRef', 'triggerRemove', 'triggerKind', 'triggerEnter', 'triggerToggle', 'listLoot', 'editLevel', 'editCollisionMenu', 'collisionMode', 'collPick', 'collMode', 'collSlide', 'collVanilla'];
 
 /**
  * Every dropdown in the editor's chrome that opens a popup of sub-toggles,
@@ -308,7 +308,7 @@ function bindEditControls(panel, room) {
       renderEditPanels();
       return;
     }
-    if (t.dataset.collPick !== undefined) { collPick(t.dataset.collPick); return; }
+    if (t.dataset.collPick !== undefined || t.dataset.collMode || t.dataset.collSlide || t.dataset.collVanilla) { collClick(t); return; }
     if (t.dataset.decoSave) { decoSaveAsMine(Number(t.dataset.decoSave)); return; }
     if (t.dataset.deco) { decoUse(Number(t.dataset.deco)); return; }
     // The user's own widgets: arm, edit, and the tab's actions (map-editor-widgets.js).

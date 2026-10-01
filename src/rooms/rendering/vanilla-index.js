@@ -156,11 +156,17 @@ function neighbourTiles(rom, graphic) {
 }
 
 /** Drop the cached index (call when the ROM changes). */
+/** Placed cells per collision geometry code, over every vanilla room (the Collision tab's filter). */
+function vanillaGeometry(rom) {
+    return vanillaIndex(rom).geometry.slice();
+}
+
 function invalidateVanillaIndex() {
     cached = null;
     cachedKey = '';
 }
 
 module.exports = {
+    vanillaGeometry,
     vanillaIndex, annotateGraphics, budgetSummary, relatedTiles, neighbourTiles, invalidateVanillaIndex,
 };

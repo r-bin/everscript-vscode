@@ -1,3 +1,11 @@
+## [0.103.0] — 2026-10-01
+
+### Feat: draw collision freehand on the 8px grid; filter to the shapes vanilla uses
+
+- **Draw 8px** (Collision tab): draw collision by filling 8px quarters of a cell, and the editor turns them into the matching shape. Two quarters along a side make a half wall (`_`). Three in an L, or a single corner, make a 45° diagonal. All four make a solid tile. The eraser removes quarters. Two opposite corners don't match any shape the game has, so that stroke is refused with a note. A choice in the tab sets whether diagonals **slide along** or **stop you**. If a cell ends up back at the shape its tile already had, the override is removed. While you hover, the preview shows the quarter you're on and the shape the cell would become.
+- **Used in vanilla** filter (top of the Collision tab, on by default): hides the two shapes no vanilla room uses (0x04 and 0x0B). The game's own tables treat both as fully open, so the "half wall" drawing they used to get was misleading. Each shape's tooltip shows how many vanilla cells use it, counted from your ROM.
+- **The diagonal twins are now labelled "slides" and "stops"** (for example 0x02 and 0x06). They cover the same pixels, but the game handles them differently: only the "slides" one is set up to push you along the slope. That reading comes from the game's tables and hasn't been confirmed in play.
+
 ## [0.102.0] — 2026-10-01
 
 ### Feat: a Collision tab to set a cell's shape by hand; Cmd/Ctrl+A selects the whole map

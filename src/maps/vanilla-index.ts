@@ -77,6 +77,13 @@ export interface VanillaIndex {
     stairs: StairsTally;
     /** Section 2 animations: frame 0 -> its frames, and later frames -> frame 0 (vanilla-animation.ts). */
     animations: AnimationIndex;
+    /**
+     * Placed cells per collision geometry code 0..15 (bits 3..0), counting
+     * only cells without always-walkable (bit 13), where the nibble is a
+     * drift direction instead. Codes vanilla never places read 0 — the
+     * Collision tab's "used in vanilla" filter.
+     */
+    geometry: number[];
     /** How many rooms went into the index. */
     roomCount: number;
     /** Total placements counted. */
@@ -139,6 +146,7 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
     const adjacency = new Map<number, Map<number, number>>();
     const cells = new Map<number, number>();
     const sides = newDirectionalTally();
+    const geometry: number[] = new Array(16).fill(0);
     let roomCount = 0;
     let placements = 0;
     let edges = 0;
@@ -170,6 +178,7 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
 
         for (const m of table) {
             if (!m.uses) continue;
+            if (!(m.collision & 0x2000)) geometry[m.collision & 0x0f] += m.uses;
             for (const [which, word] of [[0, m.layer1], [1, m.layer2]] as const) {
                 const graphic = tileIds[charIndexToSlot(word & 0x3ff)];
                 const pal = (word >> 10) & 0x07;
@@ -257,6 +266,7 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
         adjacency,
         directional: compactDirectional(sides),
         cells,
+        geometry,
         roomCount,
         placements,
         edges,

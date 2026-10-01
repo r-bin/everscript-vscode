@@ -20,10 +20,10 @@ var _editGestureRelease = null;
 function editEventCell(e) {
   var svg = document.getElementById('rg-svg');
   if (!svg || !svg.getScreenCTM) return null;
-  var pt = svg.createSVGPoint();
-  pt.x = e.clientX; pt.y = e.clientY;
-  var p = pt.matrixTransform(svg.getScreenCTM().inverse());
-  return { x: Math.floor((p.x - _editOrigin.x) / EDIT_UNITS), y: Math.floor((p.y - _editOrigin.y) / EDIT_UNITS) };
+  var pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+  var p = pt.matrixTransform(svg.getScreenCTM().inverse()), ux = (p.x - _editOrigin.x) / EDIT_UNITS, uy = (p.y - _editOrigin.y) / EDIT_UNITS;
+  // qx/qy: which 8px quarter of the 16px cell — the Collision tab draws on them (map-editor-collision-tab.js).
+  return { x: Math.floor(ux), y: Math.floor(uy), qx: ux - Math.floor(ux) >= 0.5 ? 1 : 0, qy: uy - Math.floor(uy) >= 0.5 ? 1 : 0 };
 }
 
 /** The cuttable layer is the one being drawn on (map-editor-cutlayer.js). */
@@ -36,7 +36,7 @@ function editStroke(cell, phase) {
   var d = editDraft();
   if (!d) return;
   if (phase !== 'down' && _mtPalette && _mtPalette.widthTiles && _mtPalette.heightTiles) {
-    cell = { x: Math.max(0, Math.min(_mtPalette.widthTiles - 1, cell.x)), y: Math.max(0, Math.min(_mtPalette.heightTiles - 1, cell.y)) };
+    cell = { x: Math.max(0, Math.min(_mtPalette.widthTiles - 1, cell.x)), y: Math.max(0, Math.min(_mtPalette.heightTiles - 1, cell.y)), qx: cell.qx, qy: cell.qy };
   }
   if (!editInBounds(_mtPalette, cell.x, cell.y)) return;
   // Locked: the eyedropper, a copy box and selecting a trigger — nothing that writes.
