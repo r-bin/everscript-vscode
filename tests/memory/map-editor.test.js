@@ -2420,5 +2420,28 @@ test('a widget canvas goes down to 1×1, a room stays at 2×2; its name line bec
     ui.setWidgetEdit(null);
 });
 
+test('a widget with no tiles — a sniff spot — still places its trigger and object, and is selected by its box', () => {
+    const p = palette();
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    d.on = true;
+    const sniff = { name: 'sniff spot', w: 1, h: 1, cells: [], attachments: {
+        bTrigger: [{ dx: 0, dy: 0, w: 1, h: 1, scriptId: null }], stepOn: [],
+        objects: [{ dx: 0, dy: 0, w: 1, h: 1, states: 2, cells: [], frames: [[]] }] } };
+    const got = ui.editStampGroup(p, sniff, 2, 1);
+    assert.strictEqual(got.placed, 2, 'the B-trigger and the object');
+    assert.strictEqual(d.placed.filter((x) => !x.removed).length, 2);
+    assert.deepStrictEqual(d.cells, {}, 'and no tile written');
+    assert.strictEqual(d.groups.length, 1);
+    assert.deepStrictEqual([d.groups[0].w, d.groups[0].h], [1, 1], 'its box is the widget’s size');
+    assert.strictEqual(ui.editGroupAt(2, 1), d.groups[0], 'found by its box');
+    assert.strictEqual(ui.editGroupAt(0, 0), null);
+    assert.strictEqual(ui.editGroupMove(p, d.groups[0].uid, 5, 5), false, 'it cannot be moved off the map');
+    assert.strictEqual(ui.editGroupMove(p, d.groups[0].uid, 0, 0), true);
+    assert.ok(d.placed.every((x) => x.x === 0 && x.y === 0), 'its parts move with it');
+    const empty = ui.editStampGroup(p, { name: 'nothing', w: 1, h: 1, cells: [], attachments: {} }, 0, 0);
+    assert.ok(!empty.placed && d.groups.length === 1, 'a widget with nothing at all places nothing');
+});
+
 console.log(`\n  ${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);

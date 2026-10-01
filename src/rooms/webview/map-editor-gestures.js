@@ -108,7 +108,7 @@ function editStroke(cell, phase) {
     var got = editStampGroup(_mtPalette, d.constructs[_editConstruct], cell.x, cell.y);
     if (got.writes.length) requestComposedPreview();
     if (got.problems.length) editNote(got.problems.join(' · '));
-    else if (!got.writes.length) editNote('nothing to place there');
+    else if (!got.writes.length && !got.placed) editNote('nothing to place there');
     renderEditChrome(); return;
   }
 

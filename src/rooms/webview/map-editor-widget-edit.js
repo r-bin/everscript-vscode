@@ -73,7 +73,7 @@ function widgetEditBlank(m) {
   var w = m.pending;
   m.pending = null;
   var d = editDraft();
-  if (!d || !_mtPalette || !w.cells.length && !widgetHasAttachments(w)) return;
+  if (!d || !_mtPalette || !w.cells.length && !editConstructHasAttachments(w)) return;
   var got = editConstructWrites(_mtPalette, widgetConstruct(w), 0, 0);
   editApply(got.writes, got.specials);
   editStampedConstruct(widgetConstruct(w), 0, 0);
@@ -83,11 +83,6 @@ function widgetEditBlank(m) {
   if (got.problems.length) editNote(got.problems.join(' · '));
   requestComposedPreview();
   renderEditChrome();
-}
-
-function widgetHasAttachments(w) {
-  var a = w.attachments || {};
-  return !!((a.bTrigger || []).length || (a.stepOn || []).length || (a.objects || []).length);
 }
 
 /** Save a session back into its widget (called where a custom map would save). */

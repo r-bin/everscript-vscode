@@ -106,7 +106,7 @@ function editPasteFloatPlace() {
   if (!at || !c) return;
   var got = editStampGroup(_mtPalette, c, at.x, at.y);
   if (got.problems.length) editNote(got.problems.join(' · '));
-  else if (!got.writes.length) editNote('nothing to paste there');
+  else if (!got.writes.length && !got.placed) editNote('nothing to paste there');
   else editNote('pasted ' + c.name + ' — drag it to move it; it stays one object');
   requestComposedPreview();
   renderEditChrome();

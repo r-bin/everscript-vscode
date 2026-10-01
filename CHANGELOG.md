@@ -1,3 +1,10 @@
+## [0.98.1] — 2026-10-01
+
+### Fix: a widget with no visible tile can be stamped
+
+- **Stamping a widget that has no tiles now places what it carries.** A sniff spot (a B-trigger and a two-state object on an invisible cell) used to leave nothing on the map. Its trigger and object now land where you click.
+- **Such a widget is selected, moved and deleted by its box,** since it has no tile to click. It cannot be moved off the map.
+
 ## [0.98.0] — 2026-10-01
 
 ### Feat: the map editor previews every change; widgets edit in the app bar and shrink to 1×1

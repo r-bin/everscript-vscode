@@ -39,7 +39,15 @@ function editGroupFind(uid) {
 /** The group whose footprint holds this cell (the latest on top), or null. */
 function editGroupAt(x, y) {
   var hit = groupPartAt(x, y);
-  return hit ? hit.group : null;
+  if (hit) return hit.group;
+  // A widget with nothing to draw — a sniff spot is a B-trigger and an
+  // object on an invisible cell — is found by its box, the topmost first.
+  var list = (editDraft() && editDraft().groups) || [];
+  for (var i = list.length - 1; i >= 0; i--) {
+    var g = list[i];
+    if (!g.cells.length && x >= g.x && y >= g.y && x < g.x + g.w && y < g.y + g.h) return g;
+  }
+  return null;
 }
 
 /** `{group, part}` for every group cell at (x, y), bottom first. */
@@ -116,7 +124,10 @@ function editBakedCells(palette) {
 function editStampGroup(palette, construct, x, y) {
   var d = editDraft();
   var got = editConstructParts(palette, construct, x, y);
-  if (!got.parts.length) return got;
+  // No tiles is still a widget when it carries triggers or objects (a sniff
+  // spot); then its box is its footprint, and the box must be on the map.
+  var bare = !got.parts.length;
+  if (bare && (!editConstructHasAttachments(construct) || !editInBounds(palette, x, y))) return got;
   // On the level of the floor it lands on (the bar's where there is none):
   // a widget cut from a vanilla room carries that room's level otherwise.
   got.level = typeof editFloorLevel === 'function' ? editFloorLevel(palette, got.writes) : editLevel();
@@ -131,13 +142,20 @@ function editStampGroup(palette, construct, x, y) {
   d.groupSeq = (d.groupSeq || 0) + 1;
   (d.groups || (d.groups = [])).push({
     uid: d.groupSeq, name: construct.name, x: x, y: y, level: got.level,
-    w: 1 + Math.max.apply(null, got.parts.map(function (c) { return c.dx; })),
-    h: 1 + Math.max.apply(null, got.parts.map(function (c) { return c.dy; })),
+    w: bare ? construct.w || 1 : 1 + Math.max.apply(null, got.parts.map(function (c) { return c.dx; })),
+    h: bare ? construct.h || 1 : 1 + Math.max.apply(null, got.parts.map(function (c) { return c.dy; })),
     cells: got.parts, placed: uids,
   });
   editEnd();
   _groupSel = d.groupSeq;
+  got.placed = uids.length;
   return got;
+}
+
+/** Whether a construct brings triggers or objects along. */
+function editConstructHasAttachments(construct) {
+  var a = construct.attachments || {};
+  return !!((a.bTrigger || []).length || (a.stepOn || []).length || (a.objects || []).length);
 }
 
 /**
@@ -203,7 +221,8 @@ function editGroupMove(palette, uid, x, y) {
   var d = editDraft();
   var g = editGroupFind(uid);
   if (!d || !g || (g.x === x && g.y === y)) return false;
-  var inside = g.cells.every(function (c) { return editInBounds(palette, x + c.dx, y + c.dy); });
+  var inside = g.cells.length ? g.cells.every(function (c) { return editInBounds(palette, x + c.dx, y + c.dy); })
+    : editInBounds(palette, x, y) && editInBounds(palette, x + g.w - 1, y + g.h - 1);
   if (!inside) { editNote('it does not fit there — the whole object has to stay on the map'); return false; }
   editBegin();
   var ox = x - g.x;
