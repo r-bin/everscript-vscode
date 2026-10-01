@@ -69,8 +69,10 @@ function applyDecoPreviews(msg) {
   if (!body || _editActiveTab !== 'widgets') return;
   pv.ids.forEach(function (id) {
     var sel = msg.mine ? '[data-widget-art="' + id + '"]' : '.rg-deco[data-deco="' + id + '"] .rg-deco-art';
-    var el = body.querySelector(sel);
-    if (el) el.setAttribute('style', decoArtStyle(art[id]));
+    var els = body.querySelectorAll(sel);
+    for (var k = 0; k < els.length; k++) {
+      els[k].setAttribute('style', decoArtStyle(art[id]));
+    }
   });
 }
 

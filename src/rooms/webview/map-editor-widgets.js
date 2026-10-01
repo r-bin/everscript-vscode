@@ -129,10 +129,84 @@ function widgetArm(id, varIdx) {
   renderEditChrome();
 }
 
+/** The tile families vanilla pairs with these graphics across the ROM. */
+function widgetAttestedFamilies(cells) {
+  var gMap = {};
+  (cells || []).forEach(function (c) {
+    if (c.canopy && c.canopy.graphic != null) gMap[c.canopy.graphic] = true;
+    if (c.terrain && c.terrain.graphic != null) gMap[c.terrain.graphic] = true;
+  });
+  var keys = Object.keys(gMap).map(Number);
+  if (!keys.length) return null;
+  // Prehistoria gourds: smooth 3736..3741 or ribbed 3867..3871
+  if (keys.some(function (g) { return (g >= 3736 && g <= 3741) || (g >= 3867 && g <= 3871); })) {
+    return [166, 184, 35, 33, 58, 199, 83, 203, 7, 115];
+  }
+  // Antiqua urns / pots: 643..648
+  if (keys.some(function (g) { return g >= 643 && g <= 648; })) {
+    return [115, 35, 127, 139, 159, 188, 158];
+  }
+  // Gothica barrels / pots: 1895, 1897
+  if (keys.some(function (g) { return g === 1895 || g === 1897; })) {
+    return [60, 329];
+  }
+  // Omnitopia canisters: 17, 20
+  if (keys.some(function (g) { return g === 17 || g === 20; })) {
+    return [220, 0, 227, 231];
+  }
+  return null;
+}
+
+function widgetEnsureVariations(w) {
+  if (!w || (w.variations && w.variations.length > 1)) return;
+  var fams = widgetAttestedFamilies(w.cells);
+  if (fams && fams.length > 1) {
+    w.variations = fams.map(function (fam) {
+      return {
+        id: 'fam-' + fam,
+        name: '#' + fam,
+        frames: [{
+          cells: (w.cells || []).map(function (c) {
+            return {
+              dx: c.dx, dy: c.dy,
+              canopy: c.canopy ? { graphic: c.canopy.graphic, family: fam, flags: c.canopy.flags || 0 } : null,
+              terrain: c.terrain ? { graphic: c.terrain.graphic, family: fam, flags: c.terrain.flags || 0 } : null,
+              collision: c.collision,
+            };
+          }),
+          delay: 8,
+        }],
+      };
+    });
+  }
+}
+
 /** ☆ on a vanilla card, once its cells arrived (map-editor-deco.js applyDecoCells). */
 function widgetSaveFromDeco(entry, name) {
+  var fams = widgetAttestedFamilies(entry.cells);
+  var variations = [];
+  if (fams && fams.length > 1) {
+    variations = fams.map(function (fam) {
+      return {
+        id: 'fam-' + fam,
+        name: '#' + fam,
+        frames: [{
+          cells: (entry.cells || []).map(function (c) {
+            return {
+              dx: c.dx, dy: c.dy,
+              canopy: c.canopy ? { graphic: c.canopy.graphic, family: fam, flags: c.canopy.flags || 0 } : null,
+              terrain: c.terrain ? { graphic: c.terrain.graphic, family: fam, flags: c.terrain.flags || 0 } : null,
+              collision: c.collision,
+            };
+          }),
+          delay: 8,
+        }],
+      };
+    });
+  }
   var w = {
     id: widgetNewId(), name: name, w: entry.w, h: entry.h, cells: entry.cells,
+    variations: variations.length ? variations : undefined,
     attachments: {
       bTrigger: entry.trigger ? [entry.trigger] : [], stepOn: [],
       objects: [{ dx: 0, dy: 0, w: entry.w, h: entry.h, states: entry.states, cells: entry.stateCells || [] }],
@@ -212,15 +286,27 @@ function widgetClick(t) {
   return false;
 }
 
-/** Thumbnails for the user's widgets that have none yet. */
+/** Thumbnails for the user's widgets and their variations that have none yet. */
 function ensureWidgetPreviews() {
   if (typeof vs === 'undefined' || !vs || !_widgets) return;
-  var want = _widgets.filter(function (w) { return !_widgetArt[w.id] && !_decoAsked['w:' + w.id]; });
+  var want = [];
+  _widgets.forEach(function (w) {
+    if (typeof widgetEnsureVariations === 'function') widgetEnsureVariations(w);
+    if (!_widgetArt[w.id] && !_decoAsked['w:' + w.id]) {
+      _decoAsked['w:' + w.id] = true;
+      want.push({ id: w.id, w: w.w, h: w.h, cells: w.cells });
+    }
+    (w.variations || []).forEach(function (v) {
+      var vKey = w.id + ':' + v.id;
+      if (!_widgetArt[vKey] && !_decoAsked['w:' + vKey]) {
+        _decoAsked['w:' + vKey] = true;
+        var vCells = (v.frames && v.frames[0] && v.frames[0].cells) || w.cells || [];
+        want.push({ id: vKey, w: w.w, h: w.h, cells: vCells });
+      }
+    });
+  });
   if (!want.length) return;
-  want.forEach(function (w) { _decoAsked['w:' + w.id] = true; });
-  vs.postMessage({ command: 'requestDeco', widgets: want.slice(0, 48).map(function (w) {
-    return { id: w.id, w: w.w, h: w.h, cells: w.cells };
-  }) });
+  vs.postMessage({ command: 'requestDeco', widgets: want.slice(0, 48) });
 }
 
 function widgetCardHtml(w) {
@@ -229,6 +315,7 @@ function widgetCardHtml(w) {
     && editDraft().constructs[_editConstruct].widget === w.id;
   var trig = (a.bTrigger || []).length + (a.stepOn || []).length;
   var objs = (a.objects || []).length;
+  if (typeof widgetEnsureVariations === 'function') widgetEnsureVariations(w);
   var vars = w.variations || [];
   var hasVars = vars.length > 1;
   var curV = vars[w.activeVariation || 0] || vars[0];
@@ -237,26 +324,31 @@ function widgetCardHtml(w) {
 
   var varChips = '';
   if (hasVars) {
-    varChips = '<span class="rg-widget-card-vars">' + vars.map(function (v, idx) {
+    varChips = '<div class="ro-chips rg-widget-card-chips">' + vars.map(function (v, idx) {
       var on = (w.activeVariation || 0) === idx;
-      return '<span class="rg-widget-pill' + (on ? ' on' : '') + '" data-widget="' + escH(w.id)
-        + '" data-widget-arm-var="' + idx + '" title="Arm variation ' + escH(v.name) + '">' + escH(v.name) + '</span>';
-    }).join('') + '</span>';
+      var vKey = w.id + ':' + v.id;
+      var vArt = _widgetArt[vKey] || _widgetArt[w.id];
+      return '<button class="ro-chip' + (on ? ' sel' : '') + '" data-widget="' + escH(w.id)
+        + '" data-widget-arm-var="' + idx + '" title="Arm variation ' + escH(v.name) + '">'
+        + '<i class="ro-img rg-widget-var-thumb" data-widget-art="' + escH(vKey) + '" style="' + (typeof decoArtStyle === 'function' ? decoArtStyle(vArt) : '') + '"></i>'
+        + '<span class="ro-lbl">' + escH(v.name) + '</span></button>';
+    }).join('') + '</div>';
   }
 
   var animBadge = isAnim ? ' · ▶ ' + frames.length + 'f' : '';
+  var activeArt = (curV && _widgetArt[w.id + ':' + curV.id]) || _widgetArt[w.id];
 
-  return '<button class="rg-deco rg-widget-card' + (armed ? ' on rg-armed' : '') + (trig ? ' rg-deco-live' : '')
-    + '" data-widget="' + escH(w.id) + '" title="' + escH(w.name + ' — ' + w.w + '×' + w.h + ', ' + w.cells.length
+  return '<div class="rg-deco rg-widget-card' + (armed ? ' on rg-armed' : '') + (trig ? ' rg-deco-live' : '')
+    + '" data-widget="' + escH(w.id) + '" role="button" tabindex="0" title="' + escH(w.name + ' — ' + w.w + '×' + w.h + ', ' + w.cells.length
       + ' cells' + (hasVars ? '\n' + vars.length + ' variations' : '') + (isAnim ? '\n' + frames.length + ' animation frames' : '')
       + (trig ? '\n' + trig + ' trigger' + (trig === 1 ? '' : 's') : '') + (objs ? '\n' + objs + ' object' + (objs === 1 ? '' : 's') : '')
       + '\nclick to arm the pencil · ✎ to edit') + '">'
-    + '<i class="rg-deco-art" data-widget-art="' + escH(w.id) + '" style="' + decoArtStyle(_widgetArt[w.id]) + '"></i>'
+    + '<i class="rg-deco-art" data-widget-art="' + escH(w.id) + '" style="' + (typeof decoArtStyle === 'function' ? decoArtStyle(activeArt) : '') + '"></i>'
     + '<span class="rg-deco-keep" role="button" data-widget-edit="' + escH(w.id) + '" title="Edit this widget">✎</span>'
     + '<span class="rg-deco-tag">' + escH(w.name) + '</span>'
     + varChips
     + '<span class="rg-deco-warn">' + w.w + '×' + w.h + animBadge + (trig ? ' · ⚡' : '') + (objs ? ' · ◆' : '') + '</span>'
-    + '</button>';
+    + '</div>';
 }
 
 /** The Widgets tab: Library | Placed. */

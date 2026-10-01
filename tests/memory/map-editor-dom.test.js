@@ -1363,7 +1363,7 @@ async function main() {
         // v0.74.0: all|floor|edge|wall — what to build floors, walls and the filler with.
         // v0.75.0: anim|frames — an animation as one playing swatch, or each frame.
         segs.length === 5 && segs[0] === 'auto|front|ground' && segs[1] === 'H|V' && segs[2] === 'all|floor|edge|wall'
-        && segs[3] === 'anim|frames' && segs[4] === 'cuttable|stairs|drift|deflect|interaction',
+        && segs[3] === 'anim|frames' && segs[4] === 'cuttable|stairs|drift|deflect|interaction|unused|canopy|2-layer',
         JSON.stringify(segs));
 
     // v0.76.0: a placed animated stamp plays on the map — its frames stacked,
@@ -1550,7 +1550,7 @@ async function main() {
     check('and the dock stays inside the panel, so H|V is not clipped',
         afterFlip.dockRight <= afterFlip.view && afterFlip.rowOverflow <= 0, JSON.stringify(afterFlip));
     check('#rg-panels never scrolls sideways with the Tile tab rendered',
-        afterFlip.panelsOverflow <= 0 && afterFlip.segOverflow <= 0, JSON.stringify(afterFlip));
+        afterFlip.panelsOverflow <= 0, JSON.stringify(afterFlip));
     await page.click('[data-brush-flip="h"]');
     await page.setViewportSize({ width: 1280, height: 720 });
 

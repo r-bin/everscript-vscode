@@ -824,6 +824,7 @@ const ui = new Function(`
     neighbourCardHtml: neighbourCardHtml, setNbMode: setNbMode, getNbMode: getNbMode,
     applyNeighbourTiles: applyNeighbourTiles,
     applyVanillaExamples: applyVanillaExamples, applyProceduralFill: applyProceduralFill,
+    widgetCardHtml: widgetCardHtml, widgetArm: widgetArm,
     setBrushTile: function (bt) { _brushTile = bt; },
     setPanelOpen: function (k, v) { _panelOpen[k] = v; },
   };`)();
@@ -2912,6 +2913,53 @@ test('widgets support tile variations (e.g. gourd A/B/C/D) and animations (e.g. 
 
     // Clean up
     ui.setWidgetEdit(null);
+});
+
+test('widget cards render clickable variant preview chips without extra buttons', () => {
+    const ws = require('../../src/rooms/data/widget-store');
+    const os = require('os');
+    const tempFile = path.join(os.tmpdir(), 'widgets-variants-test-' + Date.now() + '.json');
+
+    const multiVarGourd = ws.saveWidget(tempFile, {
+        id: 'w-gourd-variants', name: 'Prehistoric Gourd', w: 2, h: 2,
+        variations: [
+            { id: 'v-166', name: '#166', frames: [{ cells: [{ dx: 0, dy: 0, canopy: { graphic: 3736, family: 166 } }], delay: 8 }] },
+            { id: 'v-184', name: '#184', frames: [{ cells: [{ dx: 0, dy: 0, canopy: { graphic: 3736, family: 184 } }], delay: 8 }] },
+            { id: 'v-35',  name: '#35',  frames: [{ cells: [{ dx: 0, dy: 0, canopy: { graphic: 3736, family: 35 } }], delay: 8 }] },
+        ],
+    });
+    const found = multiVarGourd.find((w) => w.id === 'w-gourd-variants');
+    assert.ok(found);
+
+    ui.setWidgets([found]);
+    const cardHtml = ui.widgetCardHtml(found);
+
+    // 1. Renders .ro-chips container with .rg-widget-card-chips
+    assert.ok(cardHtml.includes('class="ro-chips rg-widget-card-chips"'), 'contains ro-chips container');
+
+    // 2. Renders .ro-chip preview buttons for each variant
+    assert.ok(cardHtml.includes('data-widget="w-gourd-variants" data-widget-arm-var="0"'), 'first variant chip');
+    assert.ok(cardHtml.includes('data-widget="w-gourd-variants" data-widget-arm-var="1"'), 'second variant chip');
+    assert.ok(cardHtml.includes('data-widget="w-gourd-variants" data-widget-arm-var="2"'), 'third variant chip');
+
+    // 3. Variant thumbnails and labels
+    assert.ok(cardHtml.includes('class="ro-img rg-widget-var-thumb"'), 'variant image thumbnail');
+    assert.ok(cardHtml.includes('<span class="ro-lbl">#166</span>'), 'variant label 166');
+    assert.ok(cardHtml.includes('<span class="ro-lbl">#184</span>'), 'variant label 184');
+    assert.ok(cardHtml.includes('<span class="ro-lbl">#35</span>'), 'variant label 35');
+
+    // 4. Default variant is selected (sel)
+    assert.ok(cardHtml.includes('ro-chip sel'), 'active variant has sel class');
+
+    // 5. No extra buttons like + or delete on the card
+    assert.ok(!cardHtml.includes('ro-chip-add'), 'no + button on widget card');
+    assert.ok(!cardHtml.includes('rg-widget-var-del'), 'no delete buttons on widget card');
+
+    // 6. Arming variation 1 selects variant 1
+    ui.widgetArm(found.id, 1);
+    assert.strictEqual(found.activeVariation, 1, 'active variation switched to 1');
+    const armedHtml = ui.widgetCardHtml(found);
+    assert.ok(armedHtml.includes('data-widget-arm-var="1" title="Arm variation #184"'), 'variant 1 rendered');
 });
 
 console.log(`\n  ${passed} passed, ${failed} failed`);

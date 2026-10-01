@@ -1,3 +1,15 @@
+## [0.108.0] — 2026-10-01
+
+### Feat: clickable widget variant preview chips filtered by contained tiles
+
+- **Clickable variant preview chips.** Widget cards in the Widgets tab now display visual object preview chips (`.ro-chip`) for each variant:
+  - Each chip features a live pixelated thumbnail (`.ro-img.rg-widget-var-thumb`) rendering the exact tile palette override and a concise label (e.g. `#166`, `#184`, `#35`).
+  - Active/armed variant is highlighted with the `.sel` state.
+  - Clicking any chip arms that specific variant for stamp placement immediately without altering the widget pencil mode.
+  - Cards stay clean without extra clutter — no `+`, delete, or dropdown select buttons on the card.
+- **Attested tile family filtering.** Automatically extracts all contained graphics from saved widgets (such as Prehistoria Gourds or Antiqua Urns) and filters variants to the verified vanilla tile family sets where those graphics appear.
+- **Card DOM semantics.** Rendered `.rg-widget-card` as an accessible interactive container (`<div role="button" tabindex="0">`) so nested `.ro-chip` buttons maintain valid HTML and clean pointer-event dispatch.
+
 ## [0.107.0] — 2026-10-01
 
 ### Feat: unused tile tagging & filter, canopy filter, and dual-layer ground filter

@@ -248,7 +248,9 @@
 .rg-theme .rg-widget-var-chip.on{background:var(--rg-accent);color:#fff;border-color:var(--rg-accent)}
 .rg-theme .rg-widget-var-btn{padding:1px 6px;border-radius:10px;border:1px dashed var(--rg-border);background:transparent;color:var(--rg-text-secondary);font:10px var(--rg-font-ui);cursor:pointer}
 .rg-theme .rg-widget-var-btn:hover{color:var(--rg-text-primary);border-color:var(--rg-accent);background:var(--rg-accent-soft)}
-.rg-theme .rg-widget-var-btn.rg-widget-var-del:hover{color:var(--rg-error);border-color:var(--rg-error)}
+.rg-theme .rg-widget-card{cursor:pointer;user-select:none}
+.rg-theme .rg-widget-card-chips{display:flex;flex-wrap:wrap;gap:3px;padding:3px 2px;justify-content:center}
+.rg-theme .rg-widget-var-thumb{width:28px;height:28px;display:block;background-repeat:no-repeat;image-rendering:pixelated;border-radius:2px}
 .rg-theme .rg-widget-card-vars{display:flex;gap:3px;padding:2px 4px;flex-wrap:wrap}
 .rg-theme .rg-widget-pill{font-size:9px;padding:0 4px;border-radius:6px;background:rgba(255,255,255,.08);color:var(--rg-text-secondary);border:1px solid transparent}
 .rg-theme .rg-widget-pill.on{color:var(--rg-accent-text);border-color:var(--rg-accent);font-weight:700}
