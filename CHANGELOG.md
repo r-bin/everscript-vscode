@@ -1,3 +1,17 @@
+## [0.106.0] — 2026-10-01
+
+### Feat: widget tile variations and animation timeline with seek bar
+
+- **Tile variations (e.g. gourd A/B/C/D).** Widgets now support multiple variations (named A, B, C, D...) with a dedicated variation bar in the Widget Editor app bar.
+  - Quick actions to add blank variation (`+ Var`), clone existing variation (`Duplicate`), swap tile family (`Swap Family`) to recolor every tile in a variation instantly, or delete (`✕ Var`).
+  - The Widgets tab library card displays variation chips (`A`, `B`, `C`...), allowing quick selection and arming of any variation.
+- **Animation frames & seek bar (e.g. torch A/B/C/D).** A floating animation timeline dock sits at the bottom of the Widget Editor canvas:
+  - **Play / Pause button** (`▶` / `⏸`, shortcut: Space): Plays the animation live on the canvas driven by a requestAnimationFrame loop.
+  - **Seek bar / scrubber**: Interactive range slider to scrub through animation frames in real time with frame count badge (`1 / N`) and step buttons (`◀` / `▶`, Left / Right arrows).
+  - **Delay setting**: Configurable hold delay per frame in 60 Hz ticks (with real-time ms preview, e.g. `8 ticks ≈ 133ms`).
+  - **Frame management**: `+ Frame` adds a new frame, `⧉ Clone` duplicates the current frame for subtle animation tweaks (such as torch flicker), and `✕` deletes a frame.
+- **Backwards compatibility & persistence.** Widget library storage (`widgets.json`) transparently normalizes legacy single-frame widgets into variation 'A' while persisting all variations, frames, and delay timings cleanly. Stamping an animated widget creates an animated object with all its states.
+
 ## [0.105.0] — 2026-10-01
 
 ### Feat: prediction modes — relationship +, vanilla examples, and procedural filling

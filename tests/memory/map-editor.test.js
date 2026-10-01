@@ -741,6 +741,7 @@ const ui = new Function(`
   ${read('map-editor-placed-list.js')}
   ${read('map-editor-widgets.js')}
   ${read('map-editor-widget-edit.js')}
+  ${read('map-editor-widget-anim.js')}
   ${read('map-editor-preview.js')}
   ${read('map-editor-special-select.js')}
   ${read('map-editor-romroom.js') /* a vanilla room in the editor (map-editor-rules §7) */}
@@ -809,6 +810,16 @@ const ui = new Function(`
     customRename: customRename, editPutDown: editPutDown, construct: function () { return _editConstruct; },
     clampRoomSide: clampRoomSide, widgetEditHeadHtml: widgetEditHeadHtml,
     setWidgetEdit: function (w) { _widgetEdit = w; },
+    widgetEditTimelineHtml: widgetEditTimelineHtml,
+    widgetSelectVar: widgetSelectVar, widgetAddVar: widgetAddVar, widgetDuplicateVar: widgetDuplicateVar,
+    widgetRemoveVar: widgetRemoveVar, widgetSwapFamily: widgetSwapFamily,
+    widgetSelectFrame: widgetSelectFrame, widgetAddFrame: widgetAddFrame, widgetRemoveFrame: widgetRemoveFrame,
+    widgetSetDelay: widgetSetDelay, widgetTogglePlay: widgetTogglePlay,
+    widgetConstruct: widgetConstruct, widgetArm: widgetArm,
+    setWidgets: function (ws) { _widgets = ws; },
+    getWidgetVarIdx: function () { return _widgetVarIdx; },
+    getWidgetFrameIdx: function () { return _widgetFrameIdx; },
+    getWidgetPlaying: function () { return _widgetPlaying; },
     objectLooksStatic: objectLooksStatic, objectIsOpen: objectIsOpen, setObjectOpen: function (k, v) { _objectOpen[k] = v; }, objectReorder: objectReorder, objectTabHtml: objectTabHtml,
     neighbourCardHtml: neighbourCardHtml, setNbMode: setNbMode, getNbMode: getNbMode,
     applyNeighbourTiles: applyNeighbourTiles,
@@ -2757,6 +2768,119 @@ test('prediction card supports relationship +, vanilla examples, and procedural 
 
     // Reset back to cross
     ui.setNbMode('cross');
+});
+
+test('widgets support tile variations (e.g. gourd A/B/C/D) and animations (e.g. torch delays)', () => {
+    const ws = require('../../src/rooms/data/widget-store');
+    const os = require('os');
+    const tempFile = path.join(os.tmpdir(), 'widgets-test-' + Date.now() + '.json');
+
+    // 1. Legacy widget without variations gets upgraded to 1 variation 'A', 1 frame, delay 8
+    const legacy = ws.saveWidget(tempFile, {
+        id: 'w-legacy', name: 'Legacy Pot', w: 2, h: 2,
+        cells: [{ dx: 0, dy: 0, canopy: { graphic: 10, family: 35, flags: 0 }, collision: 0 }],
+    });
+    const foundLegacy = legacy.find((w) => w.id === 'w-legacy');
+    assert.ok(foundLegacy, 'saved legacy widget');
+    assert.strictEqual(foundLegacy.variations.length, 1, 'legacy widget gets 1 variation');
+    assert.strictEqual(foundLegacy.variations[0].name, 'A', 'default variation is A');
+    assert.strictEqual(foundLegacy.variations[0].frames.length, 1, '1 frame');
+    assert.strictEqual(foundLegacy.variations[0].frames[0].delay, 8, 'default delay 8 ticks');
+    assert.strictEqual(foundLegacy.cells.length, 1, 'legacy cells property maintained');
+
+    // 2. Gourd widget with 4 tile family variations (gourd A/B/C/D)
+    const gourd = ws.saveWidget(tempFile, {
+        id: 'w-gourd', name: 'Gourd', w: 1, h: 1,
+        variations: [
+            { id: 'v-a', name: 'A', frames: [{ cells: [{ dx: 0, dy: 0, terrain: { graphic: 50, family: 35 } }], delay: 8 }] },
+            { id: 'v-b', name: 'B', frames: [{ cells: [{ dx: 0, dy: 0, terrain: { graphic: 50, family: 187 } }], delay: 8 }] },
+            { id: 'v-c', name: 'C', frames: [{ cells: [{ dx: 0, dy: 0, terrain: { graphic: 50, family: 58 } }], delay: 8 }] },
+            { id: 'v-d', name: 'D', frames: [{ cells: [{ dx: 0, dy: 0, terrain: { graphic: 50, family: 165 } }], delay: 8 }] },
+        ],
+    });
+    const foundGourd = gourd.find((w) => w.id === 'w-gourd');
+    assert.strictEqual(foundGourd.variations.length, 4, 'gourd has 4 variations');
+    assert.deepStrictEqual(foundGourd.variations.map((v) => v.name), ['A', 'B', 'C', 'D'], 'variations A/B/C/D');
+    assert.strictEqual(foundGourd.variations[1].frames[0].cells[0].terrain.family, 187, 'variation B uses family 187');
+
+    // 3. Torch widget with animations and different delays (torch A/B/C/D)
+    const torch = ws.saveWidget(tempFile, {
+        id: 'w-torch', name: 'Torch', w: 1, h: 2,
+        variations: [
+            {
+                id: 'v-a', name: 'A',
+                frames: [
+                    { cells: [{ dx: 0, dy: 0, canopy: { graphic: 200, family: 35 } }], delay: 6 },
+                    { cells: [{ dx: 0, dy: 0, canopy: { graphic: 201, family: 35 } }], delay: 6 },
+                    { cells: [{ dx: 0, dy: 0, canopy: { graphic: 202, family: 35 } }], delay: 6 },
+                ],
+            },
+            {
+                id: 'v-b', name: 'B',
+                frames: [
+                    { cells: [{ dx: 0, dy: 0, canopy: { graphic: 200, family: 35 } }], delay: 10 },
+                    { cells: [{ dx: 0, dy: 0, canopy: { graphic: 201, family: 35 } }], delay: 10 },
+                    { cells: [{ dx: 0, dy: 0, canopy: { graphic: 202, family: 35 } }], delay: 10 },
+                ],
+            },
+        ],
+    });
+    const foundTorch = torch.find((w) => w.id === 'w-torch');
+    assert.strictEqual(foundTorch.variations[0].frames[0].delay, 6, 'torch A has delay 6');
+    assert.strictEqual(foundTorch.variations[1].frames[0].delay, 10, 'torch B has delay 10');
+
+    // 4. Widget editor UI: header variations & timeline seek bar
+    ui.setWidgets([foundTorch]);
+    ui.setWidgetEdit({ key: 'widget-torch', widget: 'w-torch', name: 'Torch', w: 1, h: 2, borrow: 0x34 });
+    const head = ui.widgetEditHeadHtml();
+    assert.ok(head.includes('class="rg-widget-vars"'), 'app bar renders variations row');
+    assert.ok(head.includes('data-widget-var="0"') && head.includes('data-widget-var="1"'), 'renders variation chips');
+    assert.ok(head.includes('data-widget-var-act="add"'), 'renders + Var button');
+    assert.ok(head.includes('data-widget-var-act="dup"'), 'renders Duplicate variation button');
+    assert.ok(head.includes('data-widget-var-act="recolor"'), 'renders Swap Family button');
+
+    const timeline = ui.widgetEditTimelineHtml();
+    assert.ok(timeline.includes('id="rg-widget-timeline"'), 'timeline rendered');
+    assert.ok(timeline.includes('data-widget-seek="play"'), 'play/pause button');
+    assert.ok(timeline.includes('id="rg-seek-slider"'), 'scrubber seek slider');
+    assert.ok(timeline.includes('id="rg-seek-delay"'), 'frame delay input');
+    assert.ok(timeline.includes('data-widget-seek="add"'), '+ Frame button');
+    assert.ok(timeline.includes('data-widget-seek="clone"'), 'Clone frame button');
+
+    // 5. Timeline scrubbing & frame selection
+    assert.strictEqual(ui.getWidgetFrameIdx(), 0, 'starts at frame 0');
+    ui.widgetSelectFrame(1);
+    assert.strictEqual(ui.getWidgetFrameIdx(), 1, 'switched to frame 1');
+    ui.widgetSelectFrame(2);
+    assert.strictEqual(ui.getWidgetFrameIdx(), 2, 'switched to frame 2');
+
+    // Delay adjustment
+    ui.widgetSetDelay(12);
+    assert.strictEqual(foundTorch.variations[0].frames[2].delay, 12, 'frame delay updated to 12 ticks');
+
+    // Play / pause
+    assert.strictEqual(ui.getWidgetPlaying(), false, 'initially stopped');
+    ui.widgetTogglePlay();
+    assert.strictEqual(ui.getWidgetPlaying(), true, 'playing started');
+    ui.widgetTogglePlay();
+    assert.strictEqual(ui.getWidgetPlaying(), false, 'playing stopped');
+
+    // Variations switching & duplication
+    ui.widgetSelectVar(1);
+    assert.strictEqual(ui.getWidgetVarIdx(), 1, 'active variation is B');
+    assert.strictEqual(ui.getWidgetFrameIdx(), 0, 'frame index resets on variation switch');
+
+    ui.widgetDuplicateVar();
+    assert.strictEqual(foundTorch.variations.length, 3, 'duplicated variation adds variation C');
+    assert.strictEqual(ui.getWidgetVarIdx(), 2, 'switched to new variation C');
+
+    // Construct generation carries variation and animation frames
+    const construct = ui.widgetConstruct(foundTorch, 0);
+    assert.ok(construct.delays.length >= 3, 'construct carries animation frame delays');
+    assert.ok(construct.attachments.objects.length > 0, 'multi-frame widget produces object attachments');
+
+    // Clean up
+    ui.setWidgetEdit(null);
 });
 
 console.log(`\n  ${passed} passed, ${failed} failed`);

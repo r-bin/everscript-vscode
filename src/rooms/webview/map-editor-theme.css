@@ -240,6 +240,32 @@
   background:transparent;border:1px solid transparent;border-radius:5px;padding:2px 5px;margin-left:-6px}
 .rg-theme .rg-appbar-name:hover{border-color:var(--rg-border)}
 .rg-theme .rg-appbar-name:focus{outline:none;border-color:var(--rg-accent);background:var(--rg-bg-app)}
+.rg-theme .rg-appbar-title-row{display:flex;align-items:baseline;gap:8px}
+.rg-theme .rg-widget-vars{display:flex;align-items:center;gap:5px;margin-top:3px;flex-wrap:wrap}
+.rg-theme .rg-widget-vars-lbl{font-size:10px;color:var(--rg-text-muted);text-transform:uppercase;letter-spacing:.5px}
+.rg-theme .rg-widget-var-chip{padding:1px 7px;border-radius:10px;border:1px solid var(--rg-border);background:var(--rg-bg-app);color:var(--rg-text-secondary);font:600 11px var(--rg-font-ui);cursor:pointer}
+.rg-theme .rg-widget-var-chip:hover{color:var(--rg-text-primary);border-color:var(--rg-accent)}
+.rg-theme .rg-widget-var-chip.on{background:var(--rg-accent);color:#fff;border-color:var(--rg-accent)}
+.rg-theme .rg-widget-var-btn{padding:1px 6px;border-radius:10px;border:1px dashed var(--rg-border);background:transparent;color:var(--rg-text-secondary);font:10px var(--rg-font-ui);cursor:pointer}
+.rg-theme .rg-widget-var-btn:hover{color:var(--rg-text-primary);border-color:var(--rg-accent);background:var(--rg-accent-soft)}
+.rg-theme .rg-widget-var-btn.rg-widget-var-del:hover{color:var(--rg-error);border-color:var(--rg-error)}
+.rg-theme .rg-widget-card-vars{display:flex;gap:3px;padding:2px 4px;flex-wrap:wrap}
+.rg-theme .rg-widget-pill{font-size:9px;padding:0 4px;border-radius:6px;background:rgba(255,255,255,.08);color:var(--rg-text-secondary);border:1px solid transparent}
+.rg-theme .rg-widget-pill.on{color:var(--rg-accent-text);border-color:var(--rg-accent);font-weight:700}
+.rg-theme .rg-widget-timeline{position:absolute;bottom:52px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--rg-bg-app,#1e1e1e);border:1px solid var(--rg-border);border-radius:18px;box-shadow:0 4px 14px rgba(0,0,0,.5);z-index:90;font:11px var(--rg-font-ui);color:var(--rg-text-primary);user-select:none}
+.rg-theme .rg-seek-btn{display:flex;align-items:center;justify-content:center;height:24px;min-width:24px;padding:0 6px;border:1px solid var(--rg-border);border-radius:12px;background:transparent;color:var(--rg-text-primary);cursor:pointer;font-size:11px}
+.rg-theme .rg-seek-btn:hover:not([disabled]){background:var(--rg-bg-hover);color:var(--rg-accent-text);border-color:var(--rg-accent)}
+.rg-theme .rg-seek-btn[disabled]{opacity:.4;cursor:default}
+.rg-theme .rg-seek-play.on{background:var(--rg-accent);color:#fff;border-color:var(--rg-accent)}
+.rg-theme .rg-seek-count{font-family:var(--rg-font-mono);font-size:11px;font-weight:600;min-width:36px;text-align:center;color:var(--rg-text-primary)}
+.rg-theme .rg-seek-slider{width:100px;accent-color:var(--rg-accent);cursor:pointer}
+.rg-theme .rg-seek-delay-wrap{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--rg-text-secondary);margin-left:4px}
+.rg-theme .rg-seek-delay{width:36px;padding:1px 3px;font:11px var(--rg-font-mono);background:#111;border:1px solid var(--rg-border);border-radius:4px;color:var(--rg-text-primary);text-align:center}
+.rg-theme .rg-seek-ticks{font-size:10px;color:var(--rg-text-muted)}
+.rg-theme .rg-seek-ms{font-size:10px;color:var(--rg-text-muted);font-family:var(--rg-font-mono)}
+.rg-theme .rg-seek-divider{width:1px;height:16px;background:var(--rg-border);margin:0 2px}
+.rg-theme .rg-seek-act{font-size:10px}
+.rg-theme .rg-seek-del:hover:not([disabled]){color:var(--rg-error);border-color:var(--rg-error)}
 .rg-theme .rd-head .rd-name-input{width:calc(100% - 110px);font-size:12px}
 .rg-theme .rg-appbar .rd-file{opacity:.7;color:var(--rg-accent-text)}
 .rg-theme .rg-appbar .rd-head-acts .rg-appbar-delete:hover{color:var(--rg-error)}

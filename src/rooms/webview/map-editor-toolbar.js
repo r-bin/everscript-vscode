@@ -179,7 +179,9 @@ function buildEditToolbarHtml() {
     + '</span>'
     + '</div>'
     // The level bar sits at the map's left edge (map-editor-levels.js).
-    + (typeof buildLevelBarHtml === 'function' ? buildLevelBarHtml() : '') + '</div>';
+    + (typeof buildLevelBarHtml === 'function' ? buildLevelBarHtml() : '')
+    // When editing a widget, the animation timeline sits at the bottom.
+    + (typeof widgetEditTimelineHtml === 'function' ? widgetEditTimelineHtml() : '') + '</div>';
   return html;
 }
 

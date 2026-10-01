@@ -73,27 +73,58 @@ function widgetStore(w) {
 }
 
 /** A widget as the stamp machinery's construct. */
-function widgetConstruct(w) {
-  return { name: w.name, w: w.w, h: w.h, cells: w.cells || [],
-    attachments: w.attachments || { bTrigger: [], stepOn: [], objects: [] }, widget: w.id };
+function widgetConstruct(w, varIdx) {
+  var v = (w.variations && w.variations.length)
+    ? (w.variations[varIdx != null ? varIdx : (w.activeVariation || 0)] || w.variations[0])
+    : null;
+  var frames = (v && v.frames) || [{ cells: w.cells || [], delay: 8 }];
+  var baseCells = (frames[0] && frames[0].cells) || w.cells || [];
+  var attach = Object.assign({}, w.attachments || { bTrigger: [], stepOn: [], objects: [] });
+  if (frames.length > 1) {
+    attach.objects = (attach.objects || []).slice();
+    var objFrames = frames.slice(1).map(function (f) { return f.cells; });
+    attach.objects.push({
+      dx: 0, dy: 0, w: w.w, h: w.h,
+      states: frames.length,
+      cells: frames[0].cells,
+      frames: objFrames,
+      delays: frames.map(function (f) { return f.delay || 8; }),
+    });
+  }
+  var varName = (v && v.name && v.name !== 'A') ? ' (' + v.name + ')' : '';
+  return {
+    name: w.name + varName,
+    w: w.w, h: w.h,
+    cells: baseCells,
+    attachments: attach,
+    widget: w.id,
+    variation: v ? v.id : null,
+    delays: frames.map(function (f) { return f.delay || 8; }),
+  };
 }
 
 /** Arm a widget: the Widgets pencil stamps it. */
-function widgetArm(id) {
+function widgetArm(id, varIdx) {
   var d = editDraft();
   var w = widgetFind(id);
   if (!d || !w) return;
-  d.constructs.push(widgetConstruct(w));
+  if (varIdx != null && varIdx >= 0) w.activeVariation = varIdx;
+  d.constructs.push(widgetConstruct(w, varIdx));
   _editConstruct = d.constructs.length - 1;
   if (typeof _decoPick !== 'undefined') _decoPick = -1;
   d.tool = 'paint';
+  var v = (w.variations && w.variations[w.activeVariation || 0]);
+  var vName = (v && v.name && v.name !== 'A') ? ' (' + v.name + ')' : '';
+  var frames = (v && v.frames) || [];
+  var cells = (frames[0] && frames[0].cells) || w.cells || [];
+  var animText = frames.length > 1 ? ' (' + frames.length + ' animation frames)' : '';
   var a = w.attachments || {};
   var extras = [];
   if ((a.bTrigger || []).length) extras.push((a.bTrigger.length === 1 ? 'a B-trigger' : a.bTrigger.length + ' B-triggers'));
   if ((a.stepOn || []).length) extras.push('step triggers');
   if ((a.objects || []).length) extras.push((a.objects.length === 1 ? 'an object' : a.objects.length + ' objects'));
-  editNote('armed ' + w.name + ' — ' + w.cells.length + ' cell' + (w.cells.length === 1 ? '' : 's')
-    + (extras.length ? ' with ' + extras.join(', ') : '') + '. Click the map to place it; it lands on the level of the floor there.');
+  editNote('armed ' + w.name + vName + ' — ' + cells.length + ' cell' + (cells.length === 1 ? '' : 's')
+    + animText + (extras.length ? ' with ' + extras.join(', ') : '') + '. Click the map to place it; it lands on the level of the floor there.');
   requestComposedPreview();
   renderEditChrome();
 }
@@ -141,6 +172,10 @@ function widgetHasSelection() {
 
 /** A click the Widgets tab owns (map-editor-input.js). */
 function widgetClick(t) {
+  if (t.dataset.widgetArmVar !== undefined) {
+    widgetArm(t.dataset.widget, Number(t.dataset.widgetArmVar));
+    return true;
+  }
   if (t.dataset.widgetEdit) { widgetEditOpen(t.dataset.widgetEdit); return true; }
   if (t.dataset.widget) { widgetArm(t.dataset.widget); return true; }
   var act = t.dataset.widgetAct;
@@ -158,6 +193,22 @@ function widgetClick(t) {
     vs.postMessage({ command: 'deleteWidget', id: _widgetEdit.widget, name: _widgetEdit.name });
     return true;
   }
+  if (t.dataset.widgetVar !== undefined) {
+    if (typeof widgetSelectVar === 'function') widgetSelectVar(Number(t.dataset.widgetVar));
+    return true;
+  }
+  var varAct = t.dataset.widgetVarAct;
+  if (varAct === 'add') { if (typeof widgetAddVar === 'function') widgetAddVar(); return true; }
+  if (varAct === 'dup') { if (typeof widgetDuplicateVar === 'function') widgetDuplicateVar(); return true; }
+  if (varAct === 'del') { if (typeof widgetRemoveVar === 'function') widgetRemoveVar(_widgetVarIdx); return true; }
+  if (varAct === 'recolor') { if (typeof widgetSwapFamily === 'function') widgetSwapFamily(); return true; }
+  var seek = t.dataset.widgetSeek;
+  if (seek === 'play') { if (typeof widgetTogglePlay === 'function') widgetTogglePlay(); return true; }
+  if (seek === 'prev') { if (typeof widgetSelectFrame === 'function') widgetSelectFrame(_widgetFrameIdx - 1); return true; }
+  if (seek === 'next') { if (typeof widgetSelectFrame === 'function') widgetSelectFrame(_widgetFrameIdx + 1); return true; }
+  if (seek === 'add') { if (typeof widgetAddFrame === 'function') widgetAddFrame(false); return true; }
+  if (seek === 'clone') { if (typeof widgetAddFrame === 'function') widgetAddFrame(true); return true; }
+  if (seek === 'del') { if (typeof widgetRemoveFrame === 'function') widgetRemoveFrame(_widgetFrameIdx); return true; }
   return false;
 }
 
@@ -178,14 +229,33 @@ function widgetCardHtml(w) {
     && editDraft().constructs[_editConstruct].widget === w.id;
   var trig = (a.bTrigger || []).length + (a.stepOn || []).length;
   var objs = (a.objects || []).length;
+  var vars = w.variations || [];
+  var hasVars = vars.length > 1;
+  var curV = vars[w.activeVariation || 0] || vars[0];
+  var frames = (curV && curV.frames) || [];
+  var isAnim = frames.length > 1;
+
+  var varChips = '';
+  if (hasVars) {
+    varChips = '<span class="rg-widget-card-vars">' + vars.map(function (v, idx) {
+      var on = (w.activeVariation || 0) === idx;
+      return '<span class="rg-widget-pill' + (on ? ' on' : '') + '" data-widget="' + escH(w.id)
+        + '" data-widget-arm-var="' + idx + '" title="Arm variation ' + escH(v.name) + '">' + escH(v.name) + '</span>';
+    }).join('') + '</span>';
+  }
+
+  var animBadge = isAnim ? ' · ▶ ' + frames.length + 'f' : '';
+
   return '<button class="rg-deco rg-widget-card' + (armed ? ' on rg-armed' : '') + (trig ? ' rg-deco-live' : '')
     + '" data-widget="' + escH(w.id) + '" title="' + escH(w.name + ' — ' + w.w + '×' + w.h + ', ' + w.cells.length
-      + ' cells' + (trig ? '\n' + trig + ' trigger' + (trig === 1 ? '' : 's') : '') + (objs ? '\n' + objs + ' object' + (objs === 1 ? '' : 's') : '')
+      + ' cells' + (hasVars ? '\n' + vars.length + ' variations' : '') + (isAnim ? '\n' + frames.length + ' animation frames' : '')
+      + (trig ? '\n' + trig + ' trigger' + (trig === 1 ? '' : 's') : '') + (objs ? '\n' + objs + ' object' + (objs === 1 ? '' : 's') : '')
       + '\nclick to arm the pencil · ✎ to edit') + '">'
     + '<i class="rg-deco-art" data-widget-art="' + escH(w.id) + '" style="' + decoArtStyle(_widgetArt[w.id]) + '"></i>'
     + '<span class="rg-deco-keep" role="button" data-widget-edit="' + escH(w.id) + '" title="Edit this widget">✎</span>'
     + '<span class="rg-deco-tag">' + escH(w.name) + '</span>'
-    + '<span class="rg-deco-warn">' + w.w + '×' + w.h + (trig ? ' · ⚡' : '') + (objs ? ' · ◆' : '') + '</span>'
+    + varChips
+    + '<span class="rg-deco-warn">' + w.w + '×' + w.h + animBadge + (trig ? ' · ⚡' : '') + (objs ? ' · ◆' : '') + '</span>'
     + '</button>';
 }
 

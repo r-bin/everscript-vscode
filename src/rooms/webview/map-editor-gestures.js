@@ -361,14 +361,14 @@ function setupEditKeys() {
     if (!editActive() || editFocusInTextInput(e)) return;
     var d = editDraft();
     if (e.key === 'Escape') {
-      _editSel = null; _editClip = null;
-      if (typeof _pasteFloat !== 'undefined') _pasteFloat = null;
+      _editSel = null; _editClip = null; if (typeof _pasteFloat !== 'undefined') _pasteFloat = null;
       if (typeof editDeselectAll === 'function') editDeselectAll();
       // Whatever is on the pointer goes too (map-editor-drawable.js).
       editPutDown(d);
       renderEditChrome();
       return;
     }
+    if (typeof widgetAnimKey === 'function' && widgetAnimKey(e)) { e.preventDefault(); return; }
     var mod = e.metaKey || e.ctrlKey;
     // Locked: copying is the only key that does anything (no undo, paste or delete).
     if (editLocked() && !(mod && /^[cCaA]$/.test(e.key))) return; // copying and selecting all

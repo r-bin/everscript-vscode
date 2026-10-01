@@ -106,7 +106,7 @@ var EDIT_CLICK_KEYS = ['editTool', 'editAct', 'editPick', 'panel',
   'famTile', 'construct', 'chip', 'chipDrop', 'chipAdopt',
   'brushFlip', 'tileFilter', 'tileShape', 'tileFrames', 'strandedFix', 'strandedDrop', 'nbSide', 'nbCentre', 'nbUse',
   'nbMode', 'nbRegenerate', 'nbFillSize', 'nbFillStamp', 'nbExampleStamp', 'nbExampleRoom', 'nbTilePick', 'nbFamPick',
-  'layerForce', 'deco', 'decoSave', 'widget', 'widgetEdit', 'widgetAct',
+  'layerForce', 'deco', 'decoSave', 'widget', 'widgetArmVar', 'widgetEdit', 'widgetAct', 'widgetVar', 'widgetVarAct', 'widgetSeek',
   'objectSel', 'objectToggle', 'objectFrame', 'objectAddFrame', 'objectRemove', 'objectRemoveFrame',
   'objectConfirmRemoveFrame', 'objectCancelRemoveFrame', 'objectMoveFrame',
   'decoFlag', 'mtIndex', 'mtSlot', 'editActiveTab',
@@ -177,11 +177,13 @@ function bindEditControls(panel, room) {
       _decoFilter = e.target.value;
       renderEditPanels();
     }
+    if (typeof widgetInputHandler === 'function' && widgetInputHandler(e)) return;
   });
 
   // A header field (map-editor-info.js) takes its value when you leave it or press Enter.
   panel.addEventListener('change', function (e) {
     if (e.target && e.target.dataset && e.target.dataset.headerField) infoHeaderInput(e.target);
+    if (typeof widgetInputHandler === 'function' && widgetInputHandler(e)) return;
   });
   // The map's or widget's name on the name line (map-editor-custom-store.js).
   bindNameFields(panel);
@@ -313,7 +315,7 @@ function bindEditControls(panel, room) {
     if (t.dataset.decoSave) { decoSaveAsMine(Number(t.dataset.decoSave)); return; }
     if (t.dataset.deco) { decoUse(Number(t.dataset.deco)); return; }
     // The user's own widgets: arm, edit, and the tab's actions (map-editor-widgets.js).
-    if ((t.dataset.widget || t.dataset.widgetEdit || t.dataset.widgetAct) && widgetClick(t)) return;
+    if ((t.dataset.widget || t.dataset.widgetArmVar || t.dataset.widgetEdit || t.dataset.widgetAct || t.dataset.widgetVar || t.dataset.widgetVarAct || t.dataset.widgetSeek) && widgetClick(t)) return;
     // What is stamped on the map: select, remove, disband (map-editor-placed-list.js).
     if ((t.dataset.placedSel || t.dataset.placedRemove || t.dataset.placedDisband) && placedClick(t)) return;
     if ((t.dataset.objectSel || t.dataset.objectRemove || t.dataset.objectToggle
