@@ -1,3 +1,14 @@
+## [0.108.1] — 2026-10-01
+
+### Fix: restore clean widget library cards & move variant preview chips to Placed list
+
+- **Clean My Widgets library cards.** Removed variant preview chips from the Library grid cards (`widgetCardHtml`), eliminating vertical stretching and restoring uniform compact cards with concise variation count badges (`2×2 · 10v`).
+- **Object-like Placed Widgets list.** Transformed each stamped row in the Placed tab (`placedRowHtml`) to follow the Object tab card layout:
+  - Header row with grip, room position preview, thumbnail, label, caret toggle (`▾`/`▸`), disband, and remove buttons.
+  - Expanded section (`.rg-object-expanded .ro-chips`) displaying clickable variation preview chips (`.ro-chip`) with live pixelated thumbnails and family labels.
+  - Clicking any chip immediately switches the variation of that placed widget on the map (`placedSetVariation`) in one undo step, recomposing and updating the canvas and chrome.
+  - Clean chips layout without extra `+` add or delete buttons.
+
 ## [0.108.0] — 2026-10-01
 
 ### Feat: clickable widget variant preview chips filtered by contained tiles

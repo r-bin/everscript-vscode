@@ -322,33 +322,20 @@ function widgetCardHtml(w) {
   var frames = (curV && curV.frames) || [];
   var isAnim = frames.length > 1;
 
-  var varChips = '';
-  if (hasVars) {
-    varChips = '<div class="ro-chips rg-widget-card-chips">' + vars.map(function (v, idx) {
-      var on = (w.activeVariation || 0) === idx;
-      var vKey = w.id + ':' + v.id;
-      var vArt = _widgetArt[vKey] || _widgetArt[w.id];
-      return '<button class="ro-chip' + (on ? ' sel' : '') + '" data-widget="' + escH(w.id)
-        + '" data-widget-arm-var="' + idx + '" title="Arm variation ' + escH(v.name) + '">'
-        + '<i class="ro-img rg-widget-var-thumb" data-widget-art="' + escH(vKey) + '" style="' + (typeof decoArtStyle === 'function' ? decoArtStyle(vArt) : '') + '"></i>'
-        + '<span class="ro-lbl">' + escH(v.name) + '</span></button>';
-    }).join('') + '</div>';
-  }
-
   var animBadge = isAnim ? ' · ▶ ' + frames.length + 'f' : '';
+  var varBadge = hasVars ? ' · ' + vars.length + 'v' : '';
   var activeArt = (curV && _widgetArt[w.id + ':' + curV.id]) || _widgetArt[w.id];
 
-  return '<div class="rg-deco rg-widget-card' + (armed ? ' on rg-armed' : '') + (trig ? ' rg-deco-live' : '')
-    + '" data-widget="' + escH(w.id) + '" role="button" tabindex="0" title="' + escH(w.name + ' — ' + w.w + '×' + w.h + ', ' + w.cells.length
+  return '<button class="rg-deco rg-widget-card' + (armed ? ' on rg-armed' : '') + (trig ? ' rg-deco-live' : '')
+    + '" data-widget="' + escH(w.id) + '" title="' + escH(w.name + ' — ' + w.w + '×' + w.h + ', ' + w.cells.length
       + ' cells' + (hasVars ? '\n' + vars.length + ' variations' : '') + (isAnim ? '\n' + frames.length + ' animation frames' : '')
       + (trig ? '\n' + trig + ' trigger' + (trig === 1 ? '' : 's') : '') + (objs ? '\n' + objs + ' object' + (objs === 1 ? '' : 's') : '')
       + '\nclick to arm the pencil · ✎ to edit') + '">'
     + '<i class="rg-deco-art" data-widget-art="' + escH(w.id) + '" style="' + (typeof decoArtStyle === 'function' ? decoArtStyle(activeArt) : '') + '"></i>'
     + '<span class="rg-deco-keep" role="button" data-widget-edit="' + escH(w.id) + '" title="Edit this widget">✎</span>'
     + '<span class="rg-deco-tag">' + escH(w.name) + '</span>'
-    + varChips
-    + '<span class="rg-deco-warn">' + w.w + '×' + w.h + animBadge + (trig ? ' · ⚡' : '') + (objs ? ' · ◆' : '') + '</span>'
-    + '</div>';
+    + '<span class="rg-deco-warn">' + w.w + '×' + w.h + varBadge + animBadge + (trig ? ' · ⚡' : '') + (objs ? ' · ◆' : '') + '</span>'
+    + '</button>';
 }
 
 /** The Widgets tab: Library | Placed. */

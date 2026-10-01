@@ -13,7 +13,42 @@
 //
 // Owns: _placedDragRow.
 
-var _placedDragRow = null;
+var _placedDragRow = null, _placedOpen = {};
+
+/** Find the widget definition for a placed group. */
+function placedFindWidget(g) {
+  if (typeof _widgets === 'undefined' || !_widgets) return null;
+  if (g.widget) {
+    for (var i = 0; i < _widgets.length; i++) if (_widgets[i].id === g.widget) return _widgets[i];
+  }
+  for (var j = 0; j < _widgets.length; j++) {
+    var w = _widgets[j];
+    if (w.name === g.name || (g.name && g.name.indexOf(w.name) === 0)) return w;
+  }
+  return null;
+}
+
+/** Find the first attached object of a group, if any. */
+function placedGroupObject(g) {
+  var d = editDraft();
+  if (!d || !d.placed || !g.placed) return null;
+  for (var i = 0; i < d.placed.length; i++) {
+    var p = d.placed[i];
+    if (!p.removed && p.kind === 'object' && g.placed.indexOf(p.uid) >= 0) return p;
+  }
+  return null;
+}
+
+function placedOpenKey(g) {
+  var d = editDraft();
+  return (d ? d.customKey || d.roomId : '') + ':' + g.uid;
+}
+
+function placedIsOpen(g, hasChips) {
+  var k = placedOpenKey(g);
+  if (Object.prototype.hasOwnProperty.call(_placedOpen, k)) return _placedOpen[k];
+  return g.uid === _groupSel || !!hasChips;
+}
 
 /** Its triggers and objects, as a short phrase ('' when none). */
 function placedPartsText(g) {
@@ -29,25 +64,122 @@ function placedPartsText(g) {
   return out.join(', ');
 }
 
+/** Switch the variation of a placed widget on the map. One undo step. */
+function placedSetVariation(palette, uid, varIdx) {
+  var g = editGroupFind(uid);
+  if (!g) return;
+  if (editLocked()) {
+    editNote('this map is locked — unlock it to change what is placed on it');
+    renderEditChrome(); return;
+  }
+  var w = placedFindWidget(g);
+  if (!w) return;
+  if (typeof widgetEnsureVariations === 'function') widgetEnsureVariations(w);
+  if (!w.variations || !w.variations[varIdx]) return;
+  var v = w.variations[varIdx];
+  var c = typeof widgetConstruct === 'function' ? widgetConstruct(w, varIdx) : null;
+  if (!c) return;
+  var got = typeof editConstructParts === 'function' ? editConstructParts(palette, c, g.x, g.y) : null;
+  if (!got || (!got.parts.length && c.cells && c.cells.length)) {
+    if (got && got.problems && got.problems.length) editNote('cannot switch variation: ' + got.problems.join(', '));
+    return;
+  }
+  editBegin();
+  g.cells = got.parts;
+  g.variation = v.id;
+  g.variationIdx = varIdx;
+  g.widget = w.id;
+  g.name = c.name;
+  var obj = placedGroupObject(g);
+  if (obj && c.attachments && c.attachments.objects && c.attachments.objects[0]) {
+    var oSpec = c.attachments.objects[0];
+    var objFrames = (oSpec.frames && oSpec.frames.length) ? oSpec.frames
+      : (oSpec.cells && oSpec.cells.length ? [oSpec.cells] : []);
+    var frameLayers = objFrames.map(function (cells) { return editObjectLayerFrom(cells, g.level); });
+    if (typeof objectNormalizeFrames === 'function') frameLayers = objectNormalizeFrames(frameLayers);
+    obj.frames = frameLayers;
+    obj.states = frameLayers.length + 1;
+    if (obj.activeFrame >= obj.states) obj.activeFrame = 0;
+  }
+  editEnd();
+  editNote('switched ' + g.name + ' to variation ' + v.name);
+  requestComposedPreview();
+  renderEditChrome();
+  renderEditLayer(_mtPalette, _editComposed, _editOrigin);
+}
+
 function placedRowHtml(g, n) {
   var sel = g.uid === _groupSel, locked = editLocked(), parts = placedPartsText(g);
+  var w = placedFindWidget(g);
+  if (w && typeof widgetEnsureVariations === 'function') widgetEnsureVariations(w);
+  var vars = (w && w.variations) || [];
+  var hasVars = vars.length > 1;
+  var obj = placedGroupObject(g);
+  var objFrames = obj && typeof editObjectFrames === 'function' ? editObjectFrames(obj) : [];
+  var hasObjStates = !hasVars && obj && (objFrames.length > 0 || (obj.states && obj.states > 1));
+  var hasChips = hasVars || hasObjStates;
+  var open = hasChips && placedIsOpen(g, hasChips);
+
   var title = g.name + ' — ' + g.w + '×' + g.h + ' at ' + g.x + ',' + g.y + (parts ? ', with ' + parts : '')
     + '\ndrawn #' + n + ': a later row is drawn over an earlier one'
     + (locked ? '' : '\nclick to select · drag ⠿ to reorder');
-  return '<div class="rg-trigger-row rg-placed-row' + (sel ? ' on' : '') + '"' + (locked ? '' : ' draggable="true"')
+
+  var chipsHtml = '';
+  if (open) {
+    chipsHtml = '<div class="rg-object-expanded"><div class="ro-chips">';
+    if (hasVars) {
+      var curIdx = g.variationIdx != null ? g.variationIdx
+        : (g.variation ? vars.findIndex(function (v) { return v.id === g.variation; }) : 0);
+      if (curIdx < 0) curIdx = 0;
+      vars.forEach(function (v, idx) {
+        var on = idx === curIdx;
+        var vKey = w.id + ':' + v.id;
+        var vArt = _widgetArt && (_widgetArt[vKey] || _widgetArt[w.id]);
+        chipsHtml += '<button class="ro-chip' + (on ? ' sel' : '') + '" data-placed-var-uid="' + g.uid
+          + '" data-placed-var-idx="' + idx + '" title="Variation ' + escH(v.name) + '">'
+          + '<i class="ro-img rg-widget-var-thumb" data-widget-art="' + escH(vKey) + '" style="'
+          + (typeof decoArtStyle === 'function' ? decoArtStyle(vArt) : '') + '"></i>'
+          + '<span class="ro-lbl">' + escH(v.name) + '</span></button>';
+      });
+    } else if (hasObjStates) {
+      var active = obj.activeFrame || 0;
+      chipsHtml += '<button class="ro-chip' + (active === 0 ? ' sel' : '') + '" data-placed-obj-uid="' + obj.uid
+        + '" data-placed-obj-frame="0" title="State 0">' + objectFrameThumb(obj, 0, _editOrigin)
+        + '<span class="ro-lbl">0</span></button>';
+      for (var f = 1; f <= objFrames.length; f++) {
+        chipsHtml += '<button class="ro-chip' + (active === f ? ' sel' : '') + '" data-placed-obj-uid="' + obj.uid
+          + '" data-placed-obj-frame="' + f + '" title="Frame ' + f + '">' + objectFrameThumb(obj, f, _editOrigin)
+          + '<span class="ro-lbl">' + f + '</span></button>';
+      }
+    }
+    chipsHtml += '</div></div>';
+  }
+
+  var caretHtml = '';
+  if (hasChips) {
+    caretHtml = '<span class="rg-object-caret" data-placed-toggle="' + g.uid + '" title="'
+      + (open ? 'Hide' : 'Show') + ' variations">' + (open ? '▾' : '▸') + '</span>';
+  }
+
+  return '<div class="rg-object-card rg-placed-card' + (sel ? ' on' : '') + '">'
+    + '<div class="rg-trigger-row rg-placed-row' + (sel ? ' on' : '') + '"' + (locked ? '' : ' draggable="true"')
     + ' data-placed-sel="' + g.uid + '" title="' + escH(title) + '">'
     + (locked ? '' : '<span class="rg-trigger-grip" aria-hidden="true">⠿</span>')
     + objectWhereSvg(g) + objectFrameThumb(g, 0, _editOrigin, 'rg-trigger-tiles')
     + '<span class="rg-trigger-label">#' + n + ' · ' + escH(g.name)
     + '<span class="rg-trigger-what">' + g.w + '×' + g.h + ' at ' + g.x + ',' + g.y + (parts ? ' · ' + escH(parts) : '') + '</span></span>'
+    + caretHtml
     + (locked ? '' : '<button class="rdf rdf-xs" data-placed-disband="' + g.uid + '" title="Disband: write it into the map, and '
       + 'let its triggers and objects go — each is then edited on its own">disband</button>'
       + '<button class="rdf rg-trigger-remove" data-placed-remove="' + g.uid + '" title="Remove it, with its triggers and objects">×</button>')
+    + '</div>'
+    + chipsHtml
     + '</div>';
 }
 
 /** The Placed list: every stamped widget, in draw order. */
 function placedListHtml() {
+  if (typeof ensureWidgetPreviews === 'function') ensureWidgetPreviews();
   var d = editDraft();
   var list = (d && d.groups) || [];
   var html = '<div class="rs-note">What you stamped, in draw order — a later row is drawn over an earlier one. '
@@ -61,6 +193,24 @@ function placedListHtml() {
 /** A click the Placed list owns (map-editor-input.js). */
 function placedClick(t) {
   var ds = t.dataset;
+  if (ds.placedToggle) {
+    var tog = editGroupFind(Number(ds.placedToggle));
+    if (tog) {
+      _placedOpen[placedOpenKey(tog)] = !placedIsOpen(tog, true);
+      renderEditChrome();
+      return true;
+    }
+  }
+  if (ds.placedVarIdx != null && ds.placedVarUid != null) {
+    placedSetVariation(_mtPalette, Number(ds.placedVarUid), Number(ds.placedVarIdx));
+    return true;
+  }
+  if (ds.placedObjFrame != null && ds.placedObjUid != null) {
+    if (typeof objectSelectFrame === 'function') {
+      objectSelectFrame(Number(ds.placedObjFrame), Number(ds.placedObjUid));
+    }
+    return true;
+  }
   if ((ds.placedRemove || ds.placedDisband) && editLocked()) {
     editNote('this map is locked — unlock it to change what is placed on it'); renderEditChrome(); return true;
   }

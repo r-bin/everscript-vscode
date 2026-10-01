@@ -144,7 +144,7 @@ function editStampGroup(palette, construct, x, y) {
     uid: d.groupSeq, name: construct.name, x: x, y: y, level: got.level,
     w: bare ? construct.w || 1 : 1 + Math.max.apply(null, got.parts.map(function (c) { return c.dx; })),
     h: bare ? construct.h || 1 : 1 + Math.max.apply(null, got.parts.map(function (c) { return c.dy; })),
-    cells: got.parts, placed: uids,
+    cells: got.parts, placed: uids, widget: construct.widget, variation: construct.variation,
   });
   editEnd();
   _groupSel = d.groupSeq;

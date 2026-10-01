@@ -824,7 +824,7 @@ const ui = new Function(`
     neighbourCardHtml: neighbourCardHtml, setNbMode: setNbMode, getNbMode: getNbMode,
     applyNeighbourTiles: applyNeighbourTiles,
     applyVanillaExamples: applyVanillaExamples, applyProceduralFill: applyProceduralFill,
-    widgetCardHtml: widgetCardHtml, widgetArm: widgetArm,
+    widgetCardHtml: widgetCardHtml, placedRowHtml: placedRowHtml, placedListHtml: placedListHtml, placedSetVariation: placedSetVariation,
     setBrushTile: function (bt) { _brushTile = bt; },
     setPanelOpen: function (k, v) { _panelOpen[k] = v; },
   };`)();
@@ -2915,10 +2915,10 @@ test('widgets support tile variations (e.g. gourd A/B/C/D) and animations (e.g. 
     ui.setWidgetEdit(null);
 });
 
-test('widget cards render clickable variant preview chips without extra buttons', () => {
+test('placed widgets render object-like cards with clickable variant preview chips and clean library cards', () => {
     const ws = require('../../src/rooms/data/widget-store');
     const os = require('os');
-    const tempFile = path.join(os.tmpdir(), 'widgets-variants-test-' + Date.now() + '.json');
+    const tempFile = path.join(os.tmpdir(), 'widgets-placed-test-' + Date.now() + '.json');
 
     const multiVarGourd = ws.saveWidget(tempFile, {
         id: 'w-gourd-variants', name: 'Prehistoric Gourd', w: 2, h: 2,
@@ -2932,34 +2932,57 @@ test('widget cards render clickable variant preview chips without extra buttons'
     assert.ok(found);
 
     ui.setWidgets([found]);
+
+    // 1. Library card is clean without ro-chips
     const cardHtml = ui.widgetCardHtml(found);
+    assert.ok(!cardHtml.includes('ro-chips'), 'library card does not have ro-chips');
+    assert.ok(!cardHtml.includes('rg-widget-card-chips'), 'library card does not have giant chip stack');
+    assert.ok(cardHtml.includes('2×2 · 3v'), 'library card shows compact variation count badge');
 
-    // 1. Renders .ro-chips container with .rg-widget-card-chips
-    assert.ok(cardHtml.includes('class="ro-chips rg-widget-card-chips"'), 'contains ro-chips container');
+    // 2. Placed widget renders as an object-like card (.rg-object-card.rg-placed-card)
+    const placedGroup = {
+        uid: 1, name: 'Prehistoric Gourd', x: 0, y: 0, w: 2, h: 2, level: 0,
+        widget: 'w-gourd-variants',
+        cells: [{ dx: 0, dy: 0, layer1: 0x1234, layer2: null, collision: null }],
+        placed: [],
+    };
+    const rowHtml = ui.placedRowHtml(placedGroup, 0);
 
-    // 2. Renders .ro-chip preview buttons for each variant
-    assert.ok(cardHtml.includes('data-widget="w-gourd-variants" data-widget-arm-var="0"'), 'first variant chip');
-    assert.ok(cardHtml.includes('data-widget="w-gourd-variants" data-widget-arm-var="1"'), 'second variant chip');
-    assert.ok(cardHtml.includes('data-widget="w-gourd-variants" data-widget-arm-var="2"'), 'third variant chip');
+    assert.ok(rowHtml.includes('class="rg-object-card rg-placed-card'), 'renders as rg-object-card');
+    assert.ok(rowHtml.includes('class="rg-trigger-row rg-placed-row'), 'contains placed trigger row');
+    assert.ok(rowHtml.includes('class="rg-object-caret"'), 'contains expand/collapse caret');
+    assert.ok(rowHtml.includes('class="rg-object-expanded"'), 'contains expanded section');
+    assert.ok(rowHtml.includes('class="ro-chips"'), 'contains ro-chips container in placed widget');
 
-    // 3. Variant thumbnails and labels
-    assert.ok(cardHtml.includes('class="ro-img rg-widget-var-thumb"'), 'variant image thumbnail');
-    assert.ok(cardHtml.includes('<span class="ro-lbl">#166</span>'), 'variant label 166');
-    assert.ok(cardHtml.includes('<span class="ro-lbl">#184</span>'), 'variant label 184');
-    assert.ok(cardHtml.includes('<span class="ro-lbl">#35</span>'), 'variant label 35');
+    // 3. Variant preview chips
+    assert.ok(rowHtml.includes('data-placed-var-uid="1" data-placed-var-idx="0"'), 'chip for variant 0');
+    assert.ok(rowHtml.includes('data-placed-var-uid="1" data-placed-var-idx="1"'), 'chip for variant 1');
+    assert.ok(rowHtml.includes('data-placed-var-uid="1" data-placed-var-idx="2"'), 'chip for variant 2');
+    assert.ok(rowHtml.includes('class="ro-img rg-widget-var-thumb"'), 'variant image thumbnail');
+    assert.ok(rowHtml.includes('<span class="ro-lbl">#166</span>'), 'variant label 166');
+    assert.ok(rowHtml.includes('<span class="ro-lbl">#184</span>'), 'variant label 184');
+    assert.ok(rowHtml.includes('<span class="ro-lbl">#35</span>'), 'variant label 35');
+    assert.ok(rowHtml.includes('ro-chip sel'), 'default variant is selected');
 
-    // 4. Default variant is selected (sel)
-    assert.ok(cardHtml.includes('ro-chip sel'), 'active variant has sel class');
+    // 4. No extra buttons like + or delete
+    assert.ok(!rowHtml.includes('ro-chip-add'), 'no + button on placed chips');
+    assert.ok(!rowHtml.includes('rg-widget-var-del'), 'no delete variation buttons');
 
-    // 5. No extra buttons like + or delete on the card
-    assert.ok(!cardHtml.includes('ro-chip-add'), 'no + button on widget card');
-    assert.ok(!cardHtml.includes('rg-widget-var-del'), 'no delete buttons on widget card');
+    // 5. Switching variation
+    const p = tilePalette();
+    p.widthTiles = 10;
+    p.heightTiles = 10;
+    p.tileFamilies = [166, 184, 35];
+    ui.setPalette(p);
+    ui.editReset(1).on = true;
+    const d = ui.editDraft();
+    d.groups = [placedGroup];
+    ui.placedSetVariation(p, 1, 1);
+    assert.strictEqual(placedGroup.variationIdx, 1, 'placed widget switched to variation index 1');
+    assert.strictEqual(placedGroup.variation, 'v-184', 'placed widget has variation v-184');
 
-    // 6. Arming variation 1 selects variant 1
-    ui.widgetArm(found.id, 1);
-    assert.strictEqual(found.activeVariation, 1, 'active variation switched to 1');
-    const armedHtml = ui.widgetCardHtml(found);
-    assert.ok(armedHtml.includes('data-widget-arm-var="1" title="Arm variation #184"'), 'variant 1 rendered');
+    const updatedRowHtml = ui.placedRowHtml(placedGroup, 0);
+    assert.ok(updatedRowHtml.includes('data-placed-var-idx="1" title="Variation #184"><i class="ro-img rg-widget-var-thumb"'), 'variant 1 rendered as active');
 });
 
 console.log(`\n  ${passed} passed, ${failed} failed`);
