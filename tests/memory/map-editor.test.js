@@ -801,6 +801,7 @@ const ui = new Function(`
     editPreviewSvg: editPreviewSvg, setPreviewCell: function (c) { _previewCell = c; },
     editRoomCutBeneathSvg: editRoomCutBeneathSvg, setCutLayer: function (v) { _editCutLayer = v; },
     editGridPatchSvg: editGridPatchSvg, editSpecialAppliedIndex: editSpecialAppliedIndex,
+    editCollisionOverlaySvg: editCollisionOverlaySvg, collMaskPath: collMaskPath,
     collPick: collPick, collClick: collClick, collCodeOfQuarters: collCodeOfQuarters,
     setCollMode: function (m) { _collMode = m; }, setCollSlide: function (v) { _collSlide = v; }, collisionTabHtml: collisionTabHtml, editCollisionAt: editCollisionAt,
     editCollisionApplied: editCollisionApplied, editClipboardKeyTest: function (k) { return editClipboardKey({ key: k }, true); },
@@ -2657,6 +2658,19 @@ test('the 8px pen keeps the drawing as drawn; a cell takes a shape only while it
     assert.strictEqual(d.collDraw['2,1'], undefined, 'erased to nothing: no drawing left');
     d.tool = 'paint';
     ui.setCollMode('shapes');
+    ui.setTab('tile');
+});
+
+test('a drawn L shows as the 45° tile it makes; a lone corner shows as unmatched, not in a level colour', () => {
+    const { d } = fresh();
+    ui.setTab('collision');
+    d.collDraw = { '0,0': 1 | 4 | 8, '1,0': 1 };
+    const svg = ui.editCollisionOverlaySvg({ x: 0, y: 0 });
+    assert.ok(svg.includes(ui.collMaskPath(0x02, 0, 0, 2 / 16)), 'the L is drawn as diagonal SW');
+    assert.ok(/drawn: diagonal SW/.test(svg));
+    assert.ok(/class="rg-coll-drawn bad"[\s\S]*>\?<\/text>/.test(svg), 'the corner gets a "?"');
+    assert.ok(/no collision tile looks like this/.test(svg));
+    d.collDraw = {};
     ui.setTab('tile');
 });
 

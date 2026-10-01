@@ -234,20 +234,39 @@ function editCollisionOverlaySvg(origin) {
     html += '<g class="rg-coll-override"><path d="' + collMaskPath(d.coll[k], a.x, a.y, s) + '" fill="' + col + '" fill-opacity=".55"/>'
       + collCellBoxSvg(a, col, false) + '<title>collision picked: ' + collCodeDef(d.coll[k])[1] + ' (0x' + d.coll[k].toString(16) + ')</title></g>';
   });
-  // The drawing, as drawn: its 8px squares. Matching a tile, in the level's
-  // colour; matching none, marked — that cell keeps its own shape.
+  // A drawing that matches a tile is shown as that tile — the 45° it makes,
+  // not the squares that made it — with the squares traced faintly over it.
+  // One that matches none: grey squares, an amber dotted box and a "?" —
+  // never a level colour, which it would be mistaken for (level 1 is red).
   Object.keys(d.collDraw || {}).forEach(function (k) {
-    var p = k.split(','), x = Number(p[0]), y = Number(p[1]), v = d.collDraw[k];
+    var p = k.split(','), x = Number(p[0]), y = Number(p[1]);
     if (!editInBounds(_mtPalette, x, y)) return;
-    var a = editCellPos(origin, x, y), code = collDrawCode(x, y), ok = code >= 0;
-    var col = ok ? collLevelColor(collCellLevel(x, y)) : 'var(--rg-error, #e5534b)';
-    var sq = '';
-    for (var b = 0; b < 4; b++) if (v & (1 << b)) sq += 'M' + (a.x + (b & 1) * h) + ' ' + (a.y + (b >> 1) * h) + 'h' + h + 'v' + h + 'h' + (-h) + 'z';
-    html += '<g class="rg-coll-drawn' + (ok ? '' : ' bad') + '"><path d="' + sq + '" fill="' + col + '" fill-opacity="' + (ok ? '.55' : '.35') + '"/>'
-      + collCellBoxSvg(a, col, !ok) + '<title>' + (ok ? 'drawn: ' + collCodeDef(code)[1] + ' (0x' + code.toString(16) + ')'
-        : 'drawn, but no collision tile looks like this — the cell keeps its own shape') + '</title></g>';
+    html += collDrawnCellSvg(editCellPos(origin, x, y), d.collDraw[k], collDrawCode(x, y), collLevelColor(collCellLevel(x, y)));
   });
   return html;
+}
+
+/** The 8px squares of a drawing, as one path. */
+function collSquaresPath(a, v) {
+  var h = EDIT_UNITS / 2, sq = '';
+  for (var b = 0; b < 4; b++) if (v & (1 << b)) sq += 'M' + (a.x + (b & 1) * h) + ' ' + (a.y + (b >> 1) * h) + 'h' + h + 'v' + h + 'h' + (-h) + 'z';
+  return sq;
+}
+
+/** One drawn cell: the tile it matches, or its squares marked as matching none. */
+function collDrawnCellSvg(a, v, code, col) {
+  var sq = collSquaresPath(a, v);
+  if (code >= 0) {
+    return '<g class="rg-coll-drawn"><path d="' + collMaskPath(code, a.x, a.y, EDIT_UNITS / 16) + '" fill="' + col + '" fill-opacity=".6"/>'
+      + (sq ? '<path d="' + sq + '" fill="none" stroke="' + col + '" stroke-width="0.06" stroke-opacity=".7"/>' : '')
+      + collCellBoxSvg(a, col, false) + '<title>drawn: ' + collCodeDef(code)[1] + ' (0x' + code.toString(16) + ')</title></g>';
+  }
+  var warn = 'var(--rg-warning, #e3b341)';
+  return '<g class="rg-coll-drawn bad">' + (sq ? '<path d="' + sq + '" fill="rgba(200,200,200,.35)"/>' : '')
+    + collCellBoxSvg(a, warn, true)
+    + '<text x="' + (a.x + EDIT_UNITS / 2) + '" y="' + (a.y + EDIT_UNITS * 0.68) + '" text-anchor="middle" font-size="' + (EDIT_UNITS * 0.5)
+    + '" fill="' + warn + '" font-weight="bold" pointer-events="none">?</text>'
+    + '<title>drawn, but no collision tile looks like this — the cell keeps its own shape</title></g>';
 }
 
 function collCellBoxSvg(a, col, bad) {

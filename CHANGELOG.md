@@ -1,3 +1,10 @@
+## [0.103.2] — 2026-10-01
+
+### Fix: a drawn L shows as its 45° collision tile
+
+- **When a drawing matches a collision tile, the cell now shows that tile**: an L of three squares shows as its 45° diagonal, with your squares traced faintly on top. Before, the editor did detect the match but still showed only the squares, so nothing ever looked like a diagonal.
+- **A drawing that matches no tile is now easy to tell apart**: grey squares with an amber dotted box and a "?". It used to be marked in red, the same colour as level 1, so it looked just like a match. The hover preview uses the same look.
+
 ## [0.103.1] — 2026-10-01
 
 ### Fix: Draw 8px is a pen — the drawing stays as drawn and applies only where it matches a tile

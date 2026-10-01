@@ -79,17 +79,13 @@ function editPreviewSvg() {
     + previewBoxSvg(c.x, c.y, 1, 1, 'rg-preview-box');
 }
 
-/** The cell's drawing as this pen (or eraser) stroke would leave it: green-lit if it matches a tile. */
+/** The cell as this pen (or eraser) stroke would leave it — the tile it would match, or a "?". */
 function previewCollDrawSvg(d, c) {
   var pos = editCellPos(_editOrigin, c.x, c.y), h = EDIT_UNITS / 2;
   var erasing = d.tool === 'erase';
   var next = collDrawNext(c, erasing);
-  var ok = collCodeOfQuarters(next & 15, true) >= 0;
-  var col = ok ? collLevelColor(collCellLevel(c.x, c.y)) : 'var(--rg-error, #e5534b)';
-  var sq = '';
-  for (var b = 0; b < 4; b++) if (next & (1 << b)) sq += 'M' + (pos.x + (b & 1) * h) + ' ' + (pos.y + (b >> 1) * h) + 'h' + h + 'v' + h + 'h' + (-h) + 'z';
-  return (sq ? '<path class="rg-preview-ghost" d="' + sq + '" fill="' + col + '"/>' : '')
-    + previewBoxSvg(c.x, c.y, 1, 1, 'rg-preview-box')
+  var code = collCodeOfQuarters(next & 15, !(next & COLL_STOP));
+  return (next ? '<g class="rg-preview-ghost">' + collDrawnCellSvg(pos, next, code, collLevelColor(collCellLevel(c.x, c.y))) + '</g>' : '')
     + '<rect class="' + (erasing ? 'rg-preview-erase' : 'rg-preview-box') + '" x="' + (pos.x + c.qx * h)
     + '" y="' + (pos.y + c.qy * h) + '" width="' + h + '" height="' + h + '"/>';
 }
