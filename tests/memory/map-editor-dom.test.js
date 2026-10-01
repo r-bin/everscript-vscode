@@ -400,7 +400,7 @@ async function main() {
     const WANT_HIDE = ['hide-arrival', 'hide-btrig', 'hide-enem', 'hide-ent', 'hide-fg',
         'hide-grid16', 'hide-grid8', 'hide-header', 'hide-hitbox', 'hide-ingr', 'hide-map',
         'hide-obj', 'hide-poi', 'hide-scripts', 'hide-spawn', 'hide-special',
-        'hide-special-entrance', 'hide-special-gate', 'hide-special-stairs', 'hide-step',
+        'hide-special-entrance', 'hide-special-gate', 'hide-special-plane', 'hide-special-stairs', 'hide-step',
         'hide-trig-type', 'hide-trigger'].sort();
     check('every view toggle survived the regroup into dropdowns',
         barKeys.hide.join() === WANT_HIDE.join(),

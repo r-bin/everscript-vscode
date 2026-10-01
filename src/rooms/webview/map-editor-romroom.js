@@ -72,6 +72,7 @@ function editWordSpecialIds(cw) {
     var gid = _specialByNibble.gate[(cw >> 8) & 0xf];
     if (gid) out.push(gid);
   }
+  if (cw & 0x40) out.push('plane-transparent');
   return out;
 }
 /** Nibble -> catalog id, built once from EDIT_SPECIAL_GROUPS. */

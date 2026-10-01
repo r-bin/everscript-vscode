@@ -741,6 +741,7 @@ const ui = new Function(`
   ${read('map-editor-preview.js')}
   ${read('map-editor-special-select.js')}
   ${read('map-editor-romroom.js') /* a vanilla room in the editor (map-editor-rules §7) */}
+  ${read('map-editor-cutlayer.js') /* the cuttable layer, and a ROM room's grass */}
   ${read('map-editor-info.js') /* the Info tab */}
   return {
     editOnTilePicked: editOnTilePicked,
@@ -795,6 +796,8 @@ const ui = new Function(`
     setPanelRoom: function (r) { _editPanelRoom = r; }, triggerToggle: triggerToggle, triggerEnterPick: triggerEnterPick,
     triggerScriptWhat: triggerScriptWhat, scriptHighlight: scriptHighlight, lootFilterToggle: lootFilterToggle,
     editPreviewSvg: editPreviewSvg, setPreviewCell: function (c) { _previewCell = c; },
+    editRoomCutBeneathSvg: editRoomCutBeneathSvg, setCutLayer: function (v) { _editCutLayer = v; },
+    editGridPatchSvg: editGridPatchSvg, editSpecialAppliedIndex: editSpecialAppliedIndex,
     customRename: customRename, editPutDown: editPutDown, construct: function () { return _editConstruct; },
     clampRoomSide: clampRoomSide, widgetEditHeadHtml: widgetEditHeadHtml,
     setWidgetEdit: function (w) { _widgetEdit = w; },
@@ -2469,6 +2472,41 @@ test('the ⋯ menu has no discard or new room; a custom map renames; Escape lets
     ui.editPutDown(d);
     assert.strictEqual(d.tool, 'pick', 'a tool that draws nothing stays');
     ui.setTab('tile');
+});
+
+test('see-through (bit 6) is a special: painted, read back off a ROM word, and taken off by the eraser', () => {
+    const p = palette();
+    ui.setPalette(p);
+    ui.editReset(0x34);
+    const i = ui.editSpecialAppliedIndex(p, 0, 'plane-transparent', false);
+    assert.strictEqual(ui.editStampWords(p, i).collision, 0x101f | 0x40, 'bit 6 set, the rest kept');
+    assert.deepStrictEqual(ui.editWordSpecialIds(0x0050), ['plane-transparent'], 'a vanilla word with bit 6 shows it');
+    const off = ui.editSpecialAppliedIndex(p, i, null, true);
+    assert.strictEqual(ui.editStampWords(p, off).collision & 0x40, 0, 'the eraser clears it');
+});
+
+test('a ROM room’s grass shows what is beneath it while Cuttable is off', () => {
+    const p = Object.assign(palette(), { roomId: 0x34, imageUri: 'data:img', imageWidth: 48, imageHeight: 16,
+        columns: 3, cell: 16, cuttable: [[0, 0, 2], [1, 0, -1]] });
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    d.on = true;
+    ui.setCutLayer(false);
+    const svg = ui.editRoomCutBeneathSvg(p, null, { x: 0, y: 0 });
+    assert.strictEqual((svg.match(/rg-cut-beneath/g) || []).length, 1, 'the cell with a known cut stamp, only');
+    assert.ok(svg.includes('viewBox="32 0 16 16"'), 'drawn with the stamp the swap table names (index 2)');
+    d.cells['0,0'] = 1;
+    assert.strictEqual(ui.editRoomCutBeneathSvg(p, null, { x: 0, y: 0 }), '', 'a cell the draft changed is the draft’s');
+    delete d.cells['0,0'];
+    ui.setCutLayer(true);
+    assert.strictEqual(ui.editRoomCutBeneathSvg(p, null, { x: 0, y: 0 }), '', 'on: the grass is shown, to be edited');
+    ui.setCutLayer(false);
+});
+
+test('an object’s tiles get the grid drawn back over them, under the grid toggles’ classes', () => {
+    const svg = ui.editGridPatchSvg({ x: 4, y: 2 }, 2, 1);
+    assert.ok(/class="rg-grid-fine rg-grid-patch"/.test(svg) && /class="rg-grid-coarse rg-grid-patch"/.test(svg));
+    assert.ok(svg.includes('M4 2V4') && svg.includes('M8 2V4'), 'lines at both edges of the 2×1 box');
 });
 
 console.log(`\n  ${passed} passed, ${failed} failed`);

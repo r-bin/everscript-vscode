@@ -143,8 +143,16 @@ function buildRoomMetatilePalette(rom, roomId, layer, bgPalette, header) {
          * (stored at `$0F84`) that RoomHeader does not carry.
          */
         header: Object.assign({}, room.header, { param: maps.read16(buf, room.romPointerFile + 9) }),
-        /** Cells of the room's own cuttable grass (Section 4), `[x, y]` — the Cuttable chip's marks. */
-        cuttable: room.cuttableGrass.tiles.map((t) => [t[0], t[1]]),
+        /**
+         * Cells of the room's own cuttable grass (Section 4), `[x, y, cutIndex]`: the
+         * Cuttable chip's marks, and the stamp the swap table puts there once cut
+         * (-1 when it names no dictionary entry), which the map shows with the chip off.
+         */
+        cuttable: room.cuttableGrass.tiles.map((t) => {
+            const to = room.cuttableGrass.table.swaps.get(room.layer1MetatileIds[t[1]][t[0]]);
+            const i = to === undefined ? -1 : maps.metatileIndex(room, to);
+            return [t[0], t[1], i == null || i < 0 ? -1 : i];
+        }),
         /** The raw graphics Block 1 put in reach — see buildTileSheet. */
         tiles: null,
     };

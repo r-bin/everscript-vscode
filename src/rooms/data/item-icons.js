@@ -23,7 +23,37 @@ const _cache = new WeakMap();
 function iconUri(rom, id) {
     if (id === null) return null;
     const px = renderItemIcon(rom, id);
-    return px ? encodePngDataUri(px) : null;
+    return px ? encodePngDataUri(centreIcon(px)) : null;
+}
+
+/**
+ * The same frame, its opaque pixels moved to the middle. The ring menu's art
+ * sits in the top-left of its 16×16 frame (most are ~12px, centred near 6,6),
+ * so drawn centred on a trigger the icon landed up and to the left of it.
+ */
+function centreIcon(px) {
+    const { width: w, height: h, data } = px;
+    let x0 = w, y0 = h, x1 = -1, y1 = -1;
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+            if (!data[(y * w + x) * 4 + 3]) continue;
+            if (x < x0) x0 = x; if (x > x1) x1 = x;
+            if (y < y0) y0 = y; if (y > y1) y1 = y;
+        }
+    }
+    if (x1 < 0) return px;
+    const dx = Math.floor((w - (x1 - x0 + 1)) / 2) - x0;
+    const dy = Math.floor((h - (y1 - y0 + 1)) / 2) - y0;
+    if (!dx && !dy) return px;
+    const out = new Uint8Array(data.length);
+    for (let y = y0; y <= y1; y++) {
+        for (let x = x0; x <= x1; x++) {
+            const from = (y * w + x) * 4;
+            const to = ((y + dy) * w + x + dx) * 4;
+            for (let c = 0; c < 4; c++) out[to + c] = data[from + c];
+        }
+    }
+    return { width: w, height: h, data: out };
 }
 
 /** `(Acid Rain) ` → `Acid Rain`; '' when the flag has no name. */

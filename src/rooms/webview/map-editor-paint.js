@@ -107,6 +107,8 @@ function renderEditLayer(palette, composed, origin) {
   // ROM room the host's canopy layer (#rg-fg) sits above this group and hid
   // them. A custom map has no canopy picture, so it looked fine there.
   var marks = typeof editRoomCutSvg === 'function' ? editRoomCutSvg(palette, origin) : '';
+  // Off, a ROM room's grass shows what is beneath it (map-editor-cutlayer.js).
+  if (typeof editRoomCutBeneathSvg === 'function') marks = editRoomCutBeneathSvg(palette, composed, origin) + marks;
   // Objects: their areas, and with the Object tab open their tiles on top (map-editor-objects.js).
   if (typeof editObjectSvg === 'function') marks += editObjectSvg(palette, composed, origin);
   // Special glyphs (stairs/drift, gate, entrance) sit on their own key

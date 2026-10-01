@@ -162,6 +162,12 @@ for anyway:
   **Vertical stairs are bit 13 + nibble 0** (walkable, no drift, the level kept): the
   word vanilla puts under its step art. An earlier version of this codebase mistook
   plane-transparency (bit 6) for a stairs test; that is still wrong.
+- **See-through is bit 6, elevation change is not a bit.** The Special tab's
+  *See-through* (Level group) sets bit 6: open from any other plane, and standing
+  on it keeps your plane (§3) — the overlay's purple wash. The overlay's amber
+  "elevation change" rungs are *derived*: an ordinary walkable cell beside one
+  on another plane (`planeTransitionTiles`). Make one by painting levels; never
+  offer it as a special.
 - **Adjacency comes in two kinds, and they are not interchangeable.**
   `relatedGraphics`/`relatedTiles` is **undirected** ("drawn beside, any side") and
   drives the tile list's % badges — **not its order**: the list is in placement order

@@ -122,8 +122,9 @@ function regridMap(unitsW, unitsH) {
     for (var y = 0; y <= unitsH; y += step) d += 'M0 ' + y + 'H' + unitsW;
     return d;
   };
-  var fine = document.querySelector('.rg-grid-fine');
-  var coarse = document.querySelector('.rg-grid-coarse');
+  // Not an object's patch of it (map-editor-objects.js editGridPatchSvg).
+  var fine = document.querySelector('.rg-grid-fine:not(.rg-grid-patch)');
+  var coarse = document.querySelector('.rg-grid-coarse:not(.rg-grid-patch)');
   if (fine) fine.setAttribute('d', path(1));
   if (coarse) coarse.setAttribute('d', path(2));
 }

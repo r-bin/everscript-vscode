@@ -33,10 +33,14 @@ function setupZoomPan(p){
     var e=extent();
     var pxW=Math.round(e.w*s),pxH=Math.round(e.h*s);
     var v=view(),wW=v.w,wH=v.h;
-    var minX=pxW<=wW?Math.round((wW-pxW)/2):wW-pxW;
-    var maxX=pxW<=wW?minX:0;
-    var minY=pxH<=wH?Math.round((wH-pxH)/2):wH-pxH;
-    var maxY=pxH<=wH?minY:0;
+    // Slack: any edge of the map may come in as far as the viewport's middle,
+    // so what sits under the tool pill, the filter bar or the zoom chip can be
+    // pulled out from under them. A fitted map rests centred, as before.
+    var sx=Math.round(wW/2),sy=Math.round(wH/2);
+    var minX=pxW<=wW?Math.round((wW-pxW)/2)-sx:wW-pxW-sx;
+    var maxX=pxW<=wW?Math.round((wW-pxW)/2)+sx:sx;
+    var minY=pxH<=wH?Math.round((wH-pxH)/2)-sy:wH-pxH-sy;
+    var maxY=pxH<=wH?Math.round((wH-pxH)/2)+sy:sy;
     return{pxW:pxW,pxH:pxH,wW:wW,wH:wH,minX:minX,maxX:maxX,minY:minY,maxY:maxY};
   }
   p._getScale=getScale;
@@ -87,7 +91,15 @@ function setupZoomPan(p){
   function centre(){var m=getViewportMetrics();return{x:m.wW/2,y:m.wH/2};}
   if(zinBtn)zinBtn.addEventListener('click',function(){var c=centre();zoomAt(getScale(zoomState.scale)*1.4,c.x,c.y);});
   if(zoutBtn)zoutBtn.addEventListener('click',function(){var c=centre();zoomAt(getScale(zoomState.scale)/1.4,c.x,c.y);});
-  if(zfitBtn)zfitBtn.addEventListener('click',function(){zoomState.scale=0;applyPan(0,0);applyZoom(getScale(0));});
+  // Fit: the whole map, centred. The pan slack would otherwise let it rest
+  // wherever the last pan left it.
+  function fit(){
+    zoomState.scale=0;
+    var m=getViewportMetrics(getScale(0));
+    applyPan(Math.round((m.wW-m.pxW)/2),Math.round((m.wH-m.pxH)/2));
+    applyZoom(getScale(0));
+  }
+  if(zfitBtn)zfitBtn.addEventListener('click',fit);
 
   // Trackpad pinch arrives as a wheel event with ctrlKey set (Chromium has no
   // gesture event). A plain two-finger scroll pans the map while it is bigger
@@ -110,13 +122,13 @@ function setupZoomPan(p){
     zoomAt(getScale(zoomState.scale)*Math.exp(-e.deltaY*0.01),e.clientX-r.left,e.clientY-r.top);
   },{passive:false});
 
-  _zoomRefit=function(){zoomState.scale=0;applyPan(0,0);applyZoom(getScale(0));};
+  _zoomRefit=fit;
   // The viewport changes size with the window and the column handles: a fit
   // map stays fit, a zoomed one keeps its scale and is clamped back in view.
   if(wrap&&typeof ResizeObserver!=='undefined'){
     if(wrap._rgResize)wrap._rgResize.disconnect();
-    wrap._rgResize=new ResizeObserver(function(){applyZoom(zoomState.scale||getScale(0));});
+    wrap._rgResize=new ResizeObserver(function(){if(zoomState.scale)applyZoom(zoomState.scale);else fit();});
     wrap._rgResize.observe(wrap);
   }
-  applyZoom(getScale(0));
+  fit();
 }

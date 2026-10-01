@@ -273,6 +273,19 @@ function editObjectsVisible() {
 }
 
 /** Areas as dotted blue clusters; active frame delta as solid blue frame. */
+/** svg-builder's two grid lines over a `w`×`h`-cell box at map units `a`, for tiles drawn above the grid. */
+function editGridPatchSvg(a, w, h) {
+  var path = function (step) {
+    var d = '', W = w * EDIT_UNITS, H = h * EDIT_UNITS;
+    for (var x = 0; x <= W; x += step) d += 'M' + (a.x + x) + ' ' + a.y + 'V' + (a.y + H);
+    for (var y = 0; y <= H; y += step) d += 'M' + a.x + ' ' + (a.y + y) + 'H' + (a.x + W);
+    return d;
+  };
+  // The grid's own classes, so the 8 px / 16 px toggles hide these too.
+  return '<path class="rg-grid-fine rg-grid-patch" d="' + path(1) + '" fill="none" stroke="rgba(255,255,255,0.11)" stroke-width="0.07" pointer-events="none"/>'
+    + '<path class="rg-grid-coarse rg-grid-patch" d="' + path(EDIT_UNITS) + '" fill="none" stroke="rgba(160,140,80,0.42)" stroke-width="0.18" pointer-events="none"/>';
+}
+
 function editObjectSvg(palette, composed, origin) {
   if (!editObjectsVisible()) return '';
   var html = '';
@@ -285,6 +298,8 @@ function editObjectSvg(palette, composed, origin) {
       html += editStampSvg(palette, composed, editObjectFrameIndex(o, k, curLayer[k]), pos.x, pos.y, 'rg-edit-cell rg-obj-cell');
     });
     var a = editCellPos(origin, o.x, o.y);
+    // Its tiles are drawn over the map's grid; the grid goes back on top of them.
+    if (Object.keys(curLayer).length) html += editGridPatchSvg(a, o.w, o.h);
     // The number a script's SET OBJ names: the room's own, else its place in the list.
     var num = objectNumber(o, idx);
     html += '<rect class="rg-obj-area rg-obj-cluster' + (isSel ? ' sel' : '') + '" x="' + a.x + '" y="' + a.y

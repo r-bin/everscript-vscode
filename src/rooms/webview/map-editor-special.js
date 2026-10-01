@@ -50,6 +50,11 @@ var EDIT_SPECIAL_GROUPS = [
     ],
   },
   {
+    // Bit 6 (map_collision_mechanics.md §3), the overlay's purple wash; its amber rungs are not a bit.
+    id: 'plane', label: 'Level', note: 'See-through: walkable from any other level, and keeps the level you are on (Bit 6). Elevation changes are where two levels meet — paint levels with the bar on the left.',
+    items: [{ id: 'plane-transparent', label: 'See-through', glyph: 'T', transparent: 1 }],
+  },
+  {
     id: 'gate', label: 'Gate & Deflect', note: 'Entity passability filters and slash deflection (Bit 8).',
     items: [
       { id: 'gate-boy', label: 'Boy', glyph: 'B', gate: 0x7 }, { id: 'gate-dog', label: 'Dog', glyph: 'D', gate: 0x5 },
@@ -137,6 +142,7 @@ function editSpecialAt(x, y) {
 var SPECIAL_GATE_MASK = 0x0f00;   // entity gate, bits 11..8
 var SPECIAL_DRIFT_MASK = 0x200f;  // AW (bit 13) + the low nibble it repurposes
 var SPECIAL_INTERACT_MASK = 0x8000; // Bit 15 (Interact)
+var SPECIAL_TRANSPARENT = 0x0040; // Bit 6 (plane-transparent)
 
 function editSpecialGateWord(word, nibble) { return (word & ~SPECIAL_GATE_MASK) | ((nibble & 0xf) << 8); }
 function editSpecialDriftWord(word, nibble) { return (word & ~SPECIAL_DRIFT_MASK) | 0x2000 | (nibble & 0xf); }
@@ -144,7 +150,7 @@ function editSpecialInteractWord(word, bit) { return bit ? (word | SPECIAL_INTER
 function editSpecialClearWord(word) {
   var cleared = word & ~SPECIAL_GATE_MASK;
   if (cleared & 0x2000) cleared &= ~SPECIAL_DRIFT_MASK;
-  return cleared & ~SPECIAL_INTERACT_MASK;
+  return cleared & ~SPECIAL_INTERACT_MASK & ~SPECIAL_TRANSPARENT;
 }
 
 /**
@@ -167,8 +173,8 @@ function editSpecialAppliedIndex(palette, baseIndex, specialId, erasing) {
     return editAddStamp(palette, { layer1: words.layer1, layer2: words.layer2, collision: cleared });
   }
   var def = editSpecialById(specialId);
-  if (!def || (def.gate == null && def.drift == null && def.interact == null)) return baseIndex;
-  var next = def.interact != null
+  if (!def || (def.gate == null && def.drift == null && def.interact == null && !def.transparent)) return baseIndex;
+  var next = def.transparent ? words.collision | SPECIAL_TRANSPARENT : def.interact != null
     ? editSpecialInteractWord(words.collision, def.interact)
     : (def.gate != null
       ? editSpecialGateWord(words.collision, def.gate)
@@ -177,9 +183,9 @@ function editSpecialAppliedIndex(palette, baseIndex, specialId, erasing) {
   return editAddStamp(palette, { layer1: words.layer1, layer2: words.layer2, collision: next });
 }
 
-function editEscH(s) {
-  if (typeof escH === 'function') return escH(s);
-  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+function editEscH(s) { // escH, where the page has one (some test harnesses load this file alone)
+  return typeof escH === 'function' ? escH(s)
+    : String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 /**
@@ -312,7 +318,7 @@ function buildSpecialFilterChipHtml() {
     + '<button class="rdf rg-filter-caret" data-edit-special-menu="1" title="Choose which special glyphs to show" aria-label="Special filter groups">▾</button>'
     + '<div class="rg-filter-popup" id="rg-special-dropdown" hidden>'
     + '<button class="rdf on" data-hide="hide-special-stairs">Stairs &amp; Drift</button>'
-    + '<button class="rdf on" data-hide="hide-special-gate">Gate &amp; Deflect</button>'
+    + '<button class="rdf on" data-hide="hide-special-plane">Level (see-through)</button><button class="rdf on" data-hide="hide-special-gate">Gate &amp; Deflect</button>'
     + '<button class="rdf on" data-hide="hide-special-entrance">Entrance</button>'
     + (typeof interactChipHtml === 'function' ? interactChipHtml() : '')
     + '</div></span>';

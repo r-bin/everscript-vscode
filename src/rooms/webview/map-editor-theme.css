@@ -149,6 +149,7 @@
 .rg-theme.hide-special .rg-special-glyph{display:none!important}
 .rg-theme.hide-special-stairs .rg-special-glyph-stairs{display:none!important}
 .rg-theme.hide-special-gate .rg-special-glyph-gate{display:none!important}
+.rg-theme.hide-special-plane .rg-special-glyph-plane{display:none!important}
 .rg-theme.hide-special-interact .rg-special-glyph-interact{display:none!important}
 .rg-theme.hide-special-entrance .rg-special-glyph-entrance{display:none!important}
 .rg-theme .rg-interact-lbl{font-family:monospace;pointer-events:none;user-select:none}

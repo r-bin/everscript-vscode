@@ -1,3 +1,13 @@
+## [0.100.0] — 2026-10-01
+
+### Feat: see-through tiles in the Special tab; vanilla grass shows what is beneath it; freer panning
+
+- **New Special: Level › See-through** (collision bit 6, `T`). A see-through tile can be walked through from any other level, and standing on it keeps the level you are on. Vanilla rooms show their own see-through cells with the same `T`, and the Special filter can hide them. These are the purple cells in the collision overlay. The amber rungs are not a setting: they appear wherever two levels meet, so you get them by painting levels with the bar on the left.
+- **With Cuttable off, a vanilla room's grass shows the tile under it**, the tile the game swaps in when the grass is cut. This already worked on custom maps; turn Cuttable on to see the grass again.
+- **Item icons sit in the middle of their trigger.** The game's art fills only the top-left of its 16×16 frame, so icons used to look shifted up and left.
+- **The map can be dragged out from under the tools.** Any edge can now come as far as the middle of the view, at any zoom. Fit still centres the map.
+- **An object's states no longer hide the grid.** The grid is drawn back over its tiles, and the 8 px / 16 px grid toggles still apply.
+
 ## [0.99.0] — 2026-10-01
 
 ### Feat: rename a custom map in place; Escape puts down what you are stamping; a clearer ⋯ menu
