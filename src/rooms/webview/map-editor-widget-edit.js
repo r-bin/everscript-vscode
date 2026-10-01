@@ -168,13 +168,45 @@ function widgetEditRename(name) {
   customSaveSoon();
 }
 
-/** The banner over the dock while a widget is open. */
-function widgetEditBannerHtml() {
+/** The room on screen is the widget being edited. */
+function widgetEditShowing(room) {
+  return !!_widgetEdit && !!room && room.custom === _widgetEdit.key;
+}
+
+/**
+ * The name line while a widget is open — a contextual app bar, as Android
+ * does it: the same bar, its content swapped for the thing being edited.
+ * Back on the left (save, and return to the map), the widget's name as the
+ * title, its size under it, and the widget's own actions on the right in
+ * place of the map's ⋯ and lock (editHeadActsHtml).
+ */
+function widgetEditHeadHtml() {
   if (!_widgetEdit) return '';
-  return '<div class="rg-widget-banner">Editing widget: '
-    + '<input id="rg-widget-name" class="rg-widget-name" value="' + escH(_widgetEdit.name) + '" aria-label="Widget name"/>'
-    + '<span class="rs-note">' + _widgetEdit.w + '×' + _widgetEdit.h + ' · drag the corner to resize</span>'
-    + '<button class="rdf" data-widget-act="delete" title="Delete this widget">Delete</button>'
-    + '<button class="rdf on" data-widget-act="done" title="Save, and go back to the map">← Back to map</button>'
+  return '<div class="rd-head rg-appbar">'
+    + '<button class="rg-appbar-back" data-widget-act="done" title="Save, and go back to the map"'
+    + ' aria-label="Back to map"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">'
+    + '<path d="M13 8H3.5M7.5 3.5L3 8l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6"'
+    + ' stroke-linecap="round" stroke-linejoin="round"/></svg></button>'
+    + '<div class="rg-appbar-title">'
+    + '<input id="rg-widget-name" class="rg-appbar-name" value="' + escH(_widgetEdit.name) + '" aria-label="Widget name"'
+    + ' title="The widget’s name — saves as you type"/>'
+    + '<span class="rd-file" id="rg-widget-size">' + widgetEditSizeText() + '</span>'
+    + '</div>'
+    + '<span class="rd-head-acts" id="rg-head-acts"></span>'
     + '</div>';
+}
+
+function widgetEditSizeText() {
+  return 'editing widget · ' + _widgetEdit.w + '×' + _widgetEdit.h + ' · drag the corner to resize, down to 1×1';
+}
+
+/** The widget's own actions, where the map's ⋯ and lock are otherwise. */
+function widgetEditActsHtml() {
+  return '<button class="rdf rg-appbar-delete" data-widget-act="delete" title="Delete this widget">Delete</button>';
+}
+
+/** Keep the size line in step with a resize (renderEditHeadActs). */
+function widgetEditHeadSync() {
+  var el = _widgetEdit && document.getElementById('rg-widget-size');
+  if (el) el.textContent = widgetEditSizeText();
 }

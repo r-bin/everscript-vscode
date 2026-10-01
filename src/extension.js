@@ -134,7 +134,7 @@ function radarItemIcons() {
     return buildItemIcons(romReaders.loadRomBuffer(ws, getExtConfig().romPath || ''));
 }
 const roomTree = require('./rooms');
-const { findRoomImage, parseRoomContent, collectRoomsFromDir, buildRoomTree, renderVanillaTree, renderRoomsTree, buildRoomsJson, setRoomImageUris, buildRoomTileOverlay, buildRoomMetatilePalette, buildComposedPreview, buildBlankRoom, buildDraftCollision, buildExportRom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews, decoIndex, decoCells, buildDecoPreviews, buildWidgetPreviews, relatedTiles, neighbourTiles, handlesCustomMapMessage, handleCustomMapMessage } = roomTree;
+const { findRoomImage, parseRoomContent, collectRoomsFromDir, buildRoomTree, renderVanillaTree, renderRoomsTree, buildRoomsJson, setRoomImageUris, buildRoomTileOverlay, buildRoomMetatilePalette, buildComposedPreview, buildBlankRoom, buildDraftCollision, buildExportRom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews, decoIndex, decoCells, buildDecoPreviews, buildWidgetPreviews, buildConstructGhost, relatedTiles, neighbourTiles, handlesCustomMapMessage, handleCustomMapMessage } = roomTree;
 
 const romReaders = require('./shared/rom-readers');
 const { readPngDimensions, readRomTriggerOffsets, readRomMapHeader, readRomCharacters, readRomHitLookup, detectScaleEnemies } = romReaders;
@@ -866,6 +866,7 @@ function activate(context) {
                         }
                         _radarPanel.webview.postMessage({ ...reply, room: buildBlankRoom(romBuf, {
                             widthTiles: msg.widthTiles, heightTiles: msg.heightTiles, borrowFrom: msg.borrowFrom,
+                            minTiles: msg.minTiles,
                         }) });
                     } catch (err) {
                         _radarPanel.webview.postMessage({ ...reply, error: String(err && err.message || err) });
@@ -969,7 +970,11 @@ function activate(context) {
                             _radarPanel.webview.postMessage({ ...reply, error: 'ROM not found — set everscript.romPath' });
                             return;
                         }
-                        if (msg.cells !== undefined) {
+                        if (msg.ghost) {
+                            // What an armed widget would stamp, at 1:1 (map-editor-preview.js).
+                            _radarPanel.webview.postMessage({
+                                command: 'decoGhost', key: msg.ghost.key, ghost: buildConstructGhost(romBuf, msg.ghost) });
+                        } else if (msg.cells !== undefined) {
                             _radarPanel.webview.postMessage({
                                 command: 'decoCells', entry: decoCells(romBuf, msg.cells) });
                         } else if (Array.isArray(msg.previews)) {

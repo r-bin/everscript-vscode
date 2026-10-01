@@ -203,4 +203,27 @@ function previewSheet(buf, ids, items) {
 }
 
 
-module.exports = { buildDecoPreviews, buildWidgetPreviews, entryRoom };
+/**
+ * A construct about to be stamped, at 1:1 — the map editor's hover ghost
+ * (webview map-editor-preview.js). `{w, h, cells}`, cells portable as a
+ * widget's are; a layer left `null` ("keep the floor") draws nothing, so the
+ * map shows through it exactly as it will once stamped. Rendered here because
+ * the webview can only picture a cell by making its stamp, and a preview must
+ * never add one.
+ */
+function buildConstructGhost(rom, construct) {
+    const buf = rom instanceof Uint8Array ? rom : new Uint8Array(rom);
+    const cells = (construct.cells || []).map((c) => ({
+        dx: c.dx, dy: c.dy,
+        canopy: c.canopy && c.canopy.graphic !== undefined ? c.canopy : null,
+        terrain: c.terrain && c.terrain.graphic !== undefined ? c.terrain : null,
+    }));
+    const lists = portableLists(cells);
+    if (lists.families.length > 7) return null;
+    const entry = { w: construct.w, h: construct.h, cells, graphics: lists.graphics, families: lists.families };
+    const image = maps.renderRoomComposite(buf, entryRoom(buf, entry, maps.decodeRoom(buf, WIDGET_BASE)),
+        { backdrop: [0, 0, 0, 0] });
+    return { imageUri: maps.encodePngDataUri(image), width: image.width, height: image.height };
+}
+
+module.exports = { buildDecoPreviews, buildWidgetPreviews, buildConstructGhost, entryRoom };

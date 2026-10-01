@@ -32,6 +32,11 @@ export interface BlankRoomOptions {
     borrowFrom: number;
     /** The dictionary. Entry 0 is what the whole grid is filled with. */
     stamps?: MetatileDraft[];
+    /**
+     * The smallest side to allow. A widget's canvas is never encoded as a
+     * room, so it may be 1; a room is at least `MIN_TILES`.
+     */
+    minTiles?: number;
 }
 
 /** Smallest room the format allows: one stamp, a grid that points at it. */
@@ -99,8 +104,9 @@ export function emptyStamp(room: StampDonor): MetatileDraft {
  * the ids the grid holds are the ids an encoder would write.
  */
 export function blankRoom(rom: Uint8Array, opts: BlankRoomOptions): RoomData {
-    const widthTiles = clamp(opts.widthTiles);
-    const heightTiles = clamp(opts.heightTiles);
+    const min = opts.minTiles === 1 ? 1 : MIN_TILES;
+    const widthTiles = clamp(opts.widthTiles, min);
+    const heightTiles = clamp(opts.heightTiles, min);
     const base = decodeRoom(rom, opts.borrowFrom);
 
     const stamps = opts.stamps && opts.stamps.length ? opts.stamps : [emptyStamp(base)];
@@ -164,9 +170,9 @@ export function blankRoom(rom: Uint8Array, opts: BlankRoomOptions): RoomData {
     };
 }
 
-function clamp(n: number): number {
+function clamp(n: number, min: number = MIN_TILES): number {
     const v = Math.round(Number(n) || 0);
-    return Math.max(MIN_TILES, Math.min(MAX_TILES, v));
+    return Math.max(min, Math.min(MAX_TILES, v));
 }
 
 /**
@@ -175,10 +181,10 @@ function clamp(n: number): number {
  * Returned as a list rather than thrown, because the editor wants to show
  * every problem at once and keep working, not stop at the first.
  */
-export function roomProblems(room: RoomData): string[] {
+export function roomProblems(room: RoomData, minTiles: number = MIN_TILES): string[] {
     const out: string[] = [];
     const { widthTiles, heightTiles } = room.header;
-    if (widthTiles < MIN_TILES || heightTiles < MIN_TILES) {
+    if (widthTiles < minTiles || heightTiles < minTiles) {
         out.push(`a room smaller than ${MIN_TILES}x${MIN_TILES} has no grid to encode`);
     }
     if (room.metatileCount < 1) out.push('a room needs at least one metatile');

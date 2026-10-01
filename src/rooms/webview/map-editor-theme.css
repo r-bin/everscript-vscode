@@ -210,10 +210,19 @@
 .rg-theme .rg-widget-add[disabled]{opacity:.45;cursor:default}
 .rg-theme .rg-widget-plus{display:block;height:36px;line-height:36px;font-size:20px;text-align:center}
 .rg-theme .rg-widget-h-vanilla{margin-top:14px;padding-top:8px;border-top:1px solid var(--rg-border)}
-.rg-theme .rg-widget-banner{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 8px;padding:6px 10px;
-  border-radius:7px;background:var(--rg-accent-soft);color:var(--rg-accent-text);font-size:12px;font-weight:500}
-.rg-theme .rg-widget-name{flex:1;min-width:80px;font:inherit;color:var(--rg-text-primary);background:var(--rg-bg-app);
-  border:1px solid var(--rg-border);border-radius:5px;padding:2px 6px}
+.rg-theme .rd-head.rg-appbar{display:flex;align-items:center;gap:8px;padding:4px 8px 6px 4px;border-radius:8px 8px 0 0;
+  background:var(--rg-accent-soft);border-bottom:2px solid var(--rg-accent)}
+.rg-theme .rg-appbar .rd-head-acts{position:static;margin-left:auto}
+.rg-theme .rg-appbar-back{flex:none;display:flex;align-items:center;justify-content:center;width:30px;height:30px;padding:0;
+  border:none;border-radius:50%;background:transparent;color:var(--rg-accent-text);cursor:pointer}
+.rg-theme .rg-appbar-back:hover{background:var(--rg-bg-hover);color:var(--rg-text-primary)}
+.rg-theme .rg-appbar-title{flex:1;min-width:0;display:flex;flex-direction:column}
+.rg-theme .rg-appbar-name{width:100%;max-width:360px;font:700 12px var(--rg-font-ui);color:var(--rg-text-primary);
+  background:transparent;border:1px solid transparent;border-radius:5px;padding:2px 5px;margin-left:-6px}
+.rg-theme .rg-appbar-name:hover{border-color:var(--rg-border)}
+.rg-theme .rg-appbar-name:focus{outline:none;border-color:var(--rg-accent);background:var(--rg-bg-app)}
+.rg-theme .rg-appbar .rd-file{opacity:.7;color:var(--rg-accent-text)}
+.rg-theme .rg-appbar .rd-head-acts .rg-appbar-delete:hover{color:var(--rg-error)}
 
 /* ── Trigger tab list (map-editor-trigger-panel.js's triggerTabPanelHtml) ── */
 .rg-theme .rg-trigger-section{margin-bottom:12px}

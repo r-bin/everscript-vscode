@@ -488,6 +488,18 @@
 .rg-theme .rg-paste-ghost{opacity:.6}
 .rg-theme .rg-paste-box{fill:none;stroke:var(--rg-accent);stroke-width:.16;stroke-dasharray:.4 .3;pointer-events:none}
 
+/* What a click would do, under the pointer (map-editor-preview.js): the
+ * pencil's or stamp's picture see-through in a dashed box, the eraser's cells
+ * struck through, and a resize drag's new size with what lies outside dimmed. */
+.rg-theme .rg-preview-ghost{opacity:.65}
+.rg-theme .rg-preview-box{fill:none;stroke:var(--rg-accent);stroke-width:.14;stroke-dasharray:.4 .3}
+.rg-theme .rg-preview-trigger-b{fill:var(--rg-trigger-b);fill-opacity:.25;stroke:var(--rg-trigger-b);stroke-width:.14;stroke-dasharray:.4 .3}
+.rg-theme .rg-preview-trigger-step{fill:var(--rg-trigger-step);fill-opacity:.25;stroke:var(--rg-trigger-step);stroke-width:.14;stroke-dasharray:.4 .3}
+.rg-theme .rg-preview-erase{fill:var(--rg-error);fill-opacity:.28;stroke:var(--rg-error);stroke-width:.16}
+.rg-theme .rg-preview-erase-x{fill:none;stroke:var(--rg-error);stroke-width:.16;stroke-linecap:round}
+.rg-theme .rg-resize-ghost{position:absolute;pointer-events:none;z-index:5;outline:2px dashed var(--rg-accent);
+  box-shadow:0 0 0 100000px rgba(0,0,0,.4)}
+
 /* Objects (map-editor-objects.js): the area, dashed; the selected one solid and tinted. */
 .rg-theme { --rg-object: oklch(78% 0.13 200); }
 .rg-theme .rg-obj-area{fill:none;stroke:var(--rg-object);stroke-width:.12;stroke-dasharray:.45 .3;pointer-events:none}

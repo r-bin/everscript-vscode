@@ -44,7 +44,13 @@ var NEW_ROOM_MIN = 2;
 var NEW_ROOM_MAX = 128;
 
 function clampRoomSide(n, fallback) {
-  return Math.max(NEW_ROOM_MIN, Math.min(NEW_ROOM_MAX, Number(n) || fallback));
+  var v = Number(n);
+  return Math.max(editMinSide(), Math.min(NEW_ROOM_MAX, isFinite(v) && n !== '' && n != null ? v : fallback));
+}
+
+/** A widget's canvas is never encoded as a room, so it goes down to 1×1. */
+function editMinSide() {
+  return typeof widgetEditing === 'function' && widgetEditing() ? 1 : NEW_ROOM_MIN;
 }
 
 /** Ask the host to draw a blank grid, borrowing this room's graphics. */
@@ -52,7 +58,7 @@ function requestBlankRoom(w, h) {
   if (typeof vs === 'undefined' || !vs) return;
   vs.postMessage({
     command: 'requestBlankRoom', mapName: _mtRoomName,
-    widthTiles: w, heightTiles: h, borrowFrom: _mtRoomId,
+    widthTiles: w, heightTiles: h, borrowFrom: _mtRoomId, minTiles: editMinSide(),
   });
 }
 
@@ -231,6 +237,8 @@ function resizeLabel() {
     + (lost ? ' · hides ' + lost + ' cell' + (lost === 1 ? '' : 's') + ' (kept)' : '');
   el.className = 'rg-resize-label' + (wram > max ? ' over' : '');
   el.style.display = 'block';
+  // The new size itself, outlined over the map (map-editor-preview.js).
+  if (typeof resizePreviewSync === 'function') resizePreviewSync();
 }
 
 /**
@@ -287,6 +295,7 @@ function resizeEnd() {
   _resizing = null;
   var el = document.getElementById('rg-resize-label');
   if (el) el.style.display = 'none';
+  if (typeof resizePreviewSync === 'function') resizePreviewSync();
   if (!r || (r.w === r.w0 && r.h === r.h0)) return;
 
   var d = editDraft();

@@ -183,6 +183,8 @@ function renderEditLayer(palette, composed, origin) {
     ovHtml += interactOverlaySvg(palette, origin, drawnKeys);
   }
   overlay.innerHTML = ovHtml;
+  // The hover ghost, over all of it: the tool or the map just changed under it.
+  if (typeof renderEditPreview === 'function') renderEditPreview();
   // Drawing a group makes its stamps on the fly; the sheet must have them.
   if (typeof ensureComposedPreview === 'function') ensureComposedPreview();
 }

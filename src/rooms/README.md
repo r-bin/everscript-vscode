@@ -227,7 +227,12 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
 - `map-editor-widgets.js` — the user's own widgets and the Widgets tab (yours first,
   vanilla behind a toggle); owns `_widgets` / `_widgetArt` / `_widgetsVanilla`
 - `map-editor-widget-edit.js` — Widget Editor Mode: a widget on its own canvas, a
-  custom map the rail never lists; owns `_widgetEdit` / `_widgetBack`
+  custom map the rail never lists, down to 1×1; while open, the room's name line is
+  the widget's app bar (back, name, size, Delete); owns `_widgetEdit` / `_widgetBack`
+- `map-editor-preview.js` — hover ghosts of what a pencil/stamp/eraser click would
+  do, and the outline of a resize drag's new size; never writes (no stamp, no
+  adoption — a widget's ghost is host-rendered, `requestDeco {ghost}`); owns
+  `_previewCell` / `_ghostArt` / `_ghostAsked`
 - `map-editor-actions.js` — the toolbar's verbs, split out of the input handler
 - `map-editor-paint.js` — drawing the draft on the map from the palette atlas,
   the region maths, and the Select tool's outline/drag-preview rectangles;

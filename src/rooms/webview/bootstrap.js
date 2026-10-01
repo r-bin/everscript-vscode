@@ -39,6 +39,9 @@ if(typeof window!=='undefined'&&window.addEventListener){
       if(data.error)console.warn('[RoomsRender] decoLibrary:',data.error);
     }else if(data.command==='decoPreviews'){
       if(typeof applyDecoPreviews==='function')applyDecoPreviews(data);
+    }else if(data.command==='decoGhost'){
+      // An armed widget's picture at 1:1, for the hover ghost.
+      if(typeof applyDecoGhost==='function')applyDecoGhost(data);
     }else if(data.command==='decoCells'){
       if(typeof applyDecoCells==='function')applyDecoCells(data);
     }else if(data.command==='relatedTiles'){

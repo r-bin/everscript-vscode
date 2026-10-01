@@ -226,14 +226,9 @@ function renderEditPanels() {
   var oldBody = document.getElementById('rg-tab-body');
   var anchor = oldBody && oldBody.dataset.tab === _editActiveTab ? panelScrollAnchor(panelScroller(oldBody)) : null;
   _tileAnchorFam = null;
-  // The widget's name keeps its caret across the redraws its own saves cause.
-  var named = document.activeElement && document.activeElement.id === 'rg-widget-name'
-    ? document.activeElement.selectionStart : -1;
-  host.innerHTML = (typeof widgetEditBannerHtml === 'function' ? widgetEditBannerHtml() : '')
-    + buildEditTabStripHtml() + '<div class="rg-tab-body" id="rg-tab-body" data-tab="'
+  // A widget being edited is named in the app bar above the map, not here.
+  host.innerHTML = buildEditTabStripHtml() + '<div class="rg-tab-body" id="rg-tab-body" data-tab="'
     + _editActiveTab + '">' + body + '</div>';
-  var nameEl = named >= 0 && document.getElementById('rg-widget-name');
-  if (nameEl) { nameEl.focus(); nameEl.setSelectionRange(named, named); }
   var newBody = document.getElementById('rg-tab-body');
   panelRestoreScroll(panelScroller(newBody), anchor);
   if (_editActiveTab === 'tile') tileLazyObserve();

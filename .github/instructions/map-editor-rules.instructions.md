@@ -107,7 +107,11 @@ the Tile tab's tile, the Special tab's special, a new trigger box on the Trigger
 (B first), on the Object tab a new object's area or the selected object's tiles, the
 Widgets tab's widget. Info keeps the last tab's. The Trigger tab's **Enter** tab only shows the enter script: it has no box, so choosing it never arms the pencil (`_triggerEnterView`, not `_editTriggerKind`). Arming a widget selects the *pencil*,
 never the old Stamp tool: Stamp stamps on every tab. The eraser follows the
-same choice. A click never carries two drawables. Before this rule, an armed stairs
+same choice. A click never carries two drawables. **What a click would do is shown
+before it is done** (map-editor-preview.js): the pencil's, stamp's and eraser's
+hover ghosts, and a resize drag's new outline. A preview must never write — no
+`editAddStamp`, no family or graphic adopted — so a widget's ghost is rendered by
+the host from its portable cells, not by stamping and undoing. Before this rule, an armed stairs
 special rode along with every tile stroke.
 
 **What a stroke writes is read off the brush, not a mode toggle** (there is no `phase`

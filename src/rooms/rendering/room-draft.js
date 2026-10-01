@@ -121,6 +121,8 @@ function buildBlankRoom(rom, opts) {
         widthTiles: Number(opts.widthTiles) || 16,
         heightTiles: Number(opts.heightTiles) || 12,
         borrowFrom: Number(opts.borrowFrom) || 0x76,
+        // A widget's canvas (map-editor-widget-edit.js) is never a room, so it may be 1×1.
+        minTiles: opts.minTiles === 1 ? 1 : undefined,
     });
     const image = maps.renderRoomComposite(buf, room);
     return {
@@ -140,7 +142,7 @@ function buildBlankRoom(rom, opts) {
         // budgetSummary, not roomBudget: the meter shows `attested` too, and
         // a budget without it renders "attested undefined".
         budget: budgetSummary(buf, room),
-        problems: maps.roomProblems(room),
+        problems: maps.roomProblems(room, opts.minTiles === 1 ? 1 : undefined),
         startSprite: boySprite(buf),
     };
 }

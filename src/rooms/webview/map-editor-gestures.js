@@ -274,6 +274,8 @@ function setupEditGestures() {
     if (!cell) return;
     _editHover = cell;
     painting = true;
+    // The stroke itself shows what it does from here on (map-editor-preview.js).
+    if (typeof editPreviewHover === 'function') editPreviewHover(null);
     // Down to up is one gesture and one undo step, however many cells it
     // crosses (map-editor.js editBegin).
     editBegin();
@@ -288,6 +290,8 @@ function setupEditGestures() {
     if (editActive()) {
       _editHover = editEventCell(e);
       if (typeof _pasteFloat !== 'undefined' && _pasteFloat) editPasteFloatMove(_editHover);
+      // What a click here would do, before it does it (map-editor-preview.js).
+      if (!painting && typeof editPreviewHover === 'function') editPreviewHover(_editHover);
     }
     if (!painting || !editActive()) return;
     var cell = editEventCell(e);
@@ -305,6 +309,11 @@ function setupEditGestures() {
     renderEditChrome();
     e.stopPropagation();
   }, true);
+
+  // Off the map, nothing is about to happen there.
+  wrap.addEventListener('mouseleave', function () {
+    if (typeof editPreviewHover === 'function') editPreviewHover(null);
+  });
 
   // Released outside the map: the gesture still ends, as one step.
   _editGestureRelease = function () {

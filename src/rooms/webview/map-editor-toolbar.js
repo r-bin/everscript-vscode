@@ -104,6 +104,8 @@ function editLockIconSvg(locked) {
  * a stroke, so they are not tools.
  */
 function editHeadActsHtml() {
+  // Editing a widget, the bar is the widget's (map-editor-widget-edit.js).
+  if (typeof widgetEditing === 'function' && widgetEditing()) return widgetEditActsHtml();
   // Native tooltips here: the styled `data-tip` is the pill's own (map-editor-canvas.css).
   return (buildEditOverflowHtml() + editLockButtonHtml()).replace(/ data-tip="/g, ' title="');
 }
@@ -112,6 +114,7 @@ function editHeadActsHtml() {
 function renderEditHeadActs() {
   var el = document.getElementById('rg-head-acts');
   if (el) el.innerHTML = editDraft() ? editHeadActsHtml() : '';
+  if (typeof widgetEditHeadSync === 'function') widgetEditHeadSync();
 }
 
 /** The lock: locked, the map can be looked at, picked from and copied. */

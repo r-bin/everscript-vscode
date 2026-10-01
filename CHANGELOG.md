@@ -1,3 +1,16 @@
+## [0.98.0] — 2026-10-01
+
+### Feat: the map editor previews every change; widgets edit in the app bar and shrink to 1×1
+
+- **Editing a widget turns the room's name line into its app bar**, the way Android swaps its top bar for whatever you are editing: ← back (saves and returns to the map), the widget's name to edit in place, its size underneath, and Delete where the map's ⋯ and lock usually sit. The banner over the dock is gone.
+- **Widgets can be resized down to 1×1.** Rooms still stop at 2×2, the smallest grid the format can encode.
+- **Before you click, the map shows what the click will do:**
+  - the pencil shows the tile, special or trigger box under the pointer;
+  - the stamp tool and an armed widget show the whole widget, drawn at full size;
+  - the eraser strikes through what it would remove, or shows only an outline when there is nothing there to remove.
+- **Dragging the resize grip outlines the new size** and dims everything outside it, so you see what a shrink would hide before you let go. The grip and its size label follow the pointer.
+- A preview never changes the map: it adds no stamps, takes no family slots and adds nothing to undo.
+
 ## [0.97.0] — 2026-10-01
 
 ### Feat: item icons come from your ROM — ingredients, consumables, armour, alchemy

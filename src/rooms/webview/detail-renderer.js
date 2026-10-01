@@ -40,14 +40,20 @@ function renderRoomDetail(room){
   var hasIngr=bTrigger.some(function(t,i){return !!itemEmoji(trigItemName(t,bTrigNames[i]||t.label||''));});
   var enterTrig=trig.enter||null;
   var hasCoordData=(im!=null)||(entrances.length>0)||(enemies.length>0)||(stepOn.length>0)||(bTrigger.length>0)||(poi.length>0);
-  var html='<div class="rd-head">';
-  html+='<span class="rd-name">'+escH(room.name)+'</span>';
-  if(room.vanillaId)html+='<span class="rd-vid">'+escH(room.vanillaId)+'</span>';
-  html+='<span class="rd-file">'+escH(room.relPath||'')+'</span>';
-  if(typeof room.startLine==='number'&&room.startLine>=0)html+='<a class="ll" data-line="'+room.startLine+'" href="#">go to code</a>';
-  // The map's own actions — the ⋯ menu and the lock (map-editor-toolbar.js renderEditHeadActs).
-  html+='<span class="rd-head-acts" id="rg-head-acts"></span>';
-  html+='</div>';
+  var html;
+  // Editing a widget, the same bar is the widget's (map-editor-widget-edit.js).
+  if(typeof widgetEditShowing==='function'&&widgetEditShowing(room)){
+    html=widgetEditHeadHtml();
+  }else{
+    html='<div class="rd-head">';
+    html+='<span class="rd-name">'+escH(room.name)+'</span>';
+    if(room.vanillaId)html+='<span class="rd-vid">'+escH(room.vanillaId)+'</span>';
+    html+='<span class="rd-file">'+escH(room.relPath||'')+'</span>';
+    if(typeof room.startLine==='number'&&room.startLine>=0)html+='<a class="ll" data-line="'+room.startLine+'" href="#">go to code</a>';
+    // The map's own actions — the ⋯ menu and the lock (map-editor-toolbar.js renderEditHeadActs).
+    html+='<span class="rd-head-acts" id="rg-head-acts"></span>';
+    html+='</div>';
+  }
 
   // The per-room display toggles, and the status bar under them. The
   // *arrangement* is map-editor-filterbar.js's (Phase 7a: a segmented

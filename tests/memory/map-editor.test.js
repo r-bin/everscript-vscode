@@ -738,6 +738,7 @@ const ui = new Function(`
   ${read('map-editor-placed-list.js')}
   ${read('map-editor-widgets.js')}
   ${read('map-editor-widget-edit.js')}
+  ${read('map-editor-preview.js')}
   ${read('map-editor-special-select.js')}
   ${read('map-editor-romroom.js') /* a vanilla room in the editor (map-editor-rules §7) */}
   ${read('map-editor-info.js') /* the Info tab */}
@@ -793,6 +794,9 @@ const ui = new Function(`
     editHeaderSet: editHeaderSet, infoHeaderBit: infoHeaderBit, infoHeader: infoHeader,
     setPanelRoom: function (r) { _editPanelRoom = r; }, triggerToggle: triggerToggle, triggerEnterPick: triggerEnterPick,
     triggerScriptWhat: triggerScriptWhat, scriptHighlight: scriptHighlight, lootFilterToggle: lootFilterToggle,
+    editPreviewSvg: editPreviewSvg, setPreviewCell: function (c) { _previewCell = c; },
+    clampRoomSide: clampRoomSide, widgetEditHeadHtml: widgetEditHeadHtml,
+    setWidgetEdit: function (w) { _widgetEdit = w; },
     objectLooksStatic: objectLooksStatic, objectIsOpen: objectIsOpen, setObjectOpen: function (k, v) { _objectOpen[k] = v; }, objectReorder: objectReorder, objectTabHtml: objectTabHtml,
   };`)();
 
@@ -2372,6 +2376,48 @@ test('“Loot only” narrows the trigger list to what hands something over, and
     assert.ok(html.replace(/<[^>]+>/g, '').includes('#1 · 1×1 tiles'), 'still #1, its place in the table');
     ui.lootFilterToggle('trigger');
     ui.setPanelRoom(null);
+});
+
+test('a hover shows what a click would do, and looking adds nothing to the dictionary', () => {
+    const p = palette();
+    ui.setPalette(p);
+    const d = ui.editReset(0x34);
+    d.on = true;
+    ui.setTab('tile');
+    ui.setLayerForce(null);
+    d.tool = 'paint';
+    d.brush = 2;
+    ui.setPreviewCell({ x: 0, y: 0 });
+    assert.ok(ui.editPreviewSvg().includes('rg-preview-box'), 'the pencil: a box where the tile lands');
+    assert.strictEqual(d.added.length, 0, 'no stamp made by looking');
+    assert.deepStrictEqual(d.cells, {}, 'nor a cell written');
+    d.tool = 'erase';
+    ui.setPreviewCell({ x: 1, y: 1 });
+    assert.ok(ui.editPreviewSvg().includes('rg-preview-erase'), 'the eraser over front art: struck through');
+    ui.setPreviewCell({ x: 0, y: 0 });
+    assert.ok(!ui.editPreviewSvg().includes('rg-preview-erase'), 'over bare ground it has nothing to take');
+    assert.strictEqual(d.added.length, 0, 'and the eraser preview made no stamp either');
+    d.locked = true;
+    assert.strictEqual(ui.editPreviewSvg(), '', 'locked: nothing would happen, so nothing is shown');
+    d.locked = false;
+    ui.setPreviewCell(null);
+    d.tool = 'paint';
+});
+
+test('a widget canvas goes down to 1×1, a room stays at 2×2; its name line becomes an app bar', () => {
+    assert.strictEqual(ui.clampRoomSide(0, 5), 2, 'a room: 2 is the smallest grid that encodes');
+    assert.strictEqual(ui.clampRoomSide(1, 5), 2);
+    ui.setWidgetEdit({ key: 'widget-t', widget: 'w-t', name: 'Pot', w: 1, h: 1, borrow: 0x34 });
+    assert.strictEqual(ui.clampRoomSide(1, 5), 1, 'a widget: one cell is fine');
+    assert.strictEqual(ui.clampRoomSide(0, 5), 1, 'and a drag past it stops there, not back at the start');
+    const head = ui.widgetEditHeadHtml();
+    assert.ok(/rg-appbar-back[^>]*data-widget-act="done"/.test(head), 'back on the left saves and returns');
+    assert.ok(head.includes('id="rg-widget-name"') && head.includes('value="Pot"'), 'the name is the title');
+    assert.ok(head.includes('1×1'), 'with its size under it');
+    ui.editReset(0x34).on = true;
+    const acts = ui.headActs();
+    assert.ok(acts.includes('data-widget-act="delete"') && !acts.includes('rg-lock-btn'), 'the widget’s actions replace the map’s');
+    ui.setWidgetEdit(null);
 });
 
 console.log(`\n  ${passed} passed, ${failed} failed`);

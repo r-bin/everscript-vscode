@@ -15,7 +15,7 @@ const { buildBlankRoom, buildDraftCollision, buildFamilySheet, buildFamilyCatalo
         invalidateRoomDrafts }                                     = require('./rendering/room-draft');
 const { decoIndex, decoCells,
         invalidateDecoCatalogue }                                  = require('./rendering/deco-catalogue');
-const { buildDecoPreviews, buildWidgetPreviews }                    = require('./rendering/deco-preview');
+const { buildDecoPreviews, buildWidgetPreviews, buildConstructGhost } = require('./rendering/deco-preview');
 const { buildExportRom }                                            = require('./rendering/rom-export');
 const { buildCustomMapArchive }                                     = require('./rendering/custom-export');
 const { handlesCustomMapMessage, handleCustomMapMessage }           = require('./custom-host');
@@ -81,6 +81,7 @@ module.exports = {
     decoCells,
     buildDecoPreviews,
     buildWidgetPreviews,
+    buildConstructGhost,
     relatedTiles,
     neighbourTiles,
 
