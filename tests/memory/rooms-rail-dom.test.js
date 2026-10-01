@@ -217,7 +217,8 @@ async function main() {
             inCustom: !!(sel[0] && sel[0].closest('#rm-live-tree')),
             label: sel[0] && sel[0].textContent,
             vanillaSelected: !!document.querySelector('.vn-map.rsel'),
-            header: (document.querySelector('.rd-head .rd-name') || {}).textContent,
+            // A custom map's name is a text box on its name line (v0.99.0).
+            header: (document.querySelector('.rd-head #rg-map-name') || {}).value,
             vid: !!document.querySelector('.rd-head .rd-vid'),
             spawns: document.querySelectorAll('#rg-svg .svge-spawn, #rg-svg .svge-arrival').length,
         };

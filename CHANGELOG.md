@@ -1,3 +1,12 @@
+## [0.99.0] — 2026-10-01
+
+### Feat: rename a custom map in place; Escape puts down what you are stamping; a clearer ⋯ menu
+
+- **A custom map's name is a text box on its name line**, like a widget's. Type to rename it; the list on the left updates as you type. Enter or Escape finishes, and leaving it empty keeps the old name. A vanilla room's name is the game's own and stays as it is.
+- **Escape puts down whatever is on the cursor.** An armed widget is disarmed and the pencil, stamp or eraser goes back to Select, so the next click changes nothing.
+- **The ⋯ menu no longer looks greyed out.** Its items show at full strength as a plain list, with Delete map in red.
+- **Discard draft and New room… are gone from the ⋯ menu.** Use undo to take changes back, and `+ New Map` to start a map.
+
 ## [0.98.1] — 2026-10-01
 
 ### Fix: a widget with no visible tile can be stamped

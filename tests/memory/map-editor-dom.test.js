@@ -199,13 +199,14 @@ async function main() {
     // the brush's own words, so the pill has nothing to offer here.
     check('and the room/deco phase pair is gone from the pill',
         await page.evaluate(() => !document.querySelector('[data-edit-phase]')));
-    // discard / copy draft / new room moved behind the ⋯ overflow. They must
-    // still be reachable — that is this phase's whole constraint.
-    check('discard, copy draft and new room moved into the ⋯ overflow menu',
-        await page.evaluate(() => ['clear', 'export', 'new-room'].every((a) => {
-            const btn = document.querySelector('[data-edit-act="' + a + '"]');
-            return !!btn && !!btn.closest('#rg-tool-dropdown');
-        })));
+    // Copy draft lives behind the ⋯ overflow; discard and new room were
+    // removed from it (v0.99.0: `+ New Map` makes a map, undo takes edits back).
+    check('copy draft is in the ⋯ overflow menu; discard and new room are gone',
+        await page.evaluate(() => {
+            const btn = document.querySelector('[data-edit-act="export"]');
+            return !!btn && !!btn.closest('#rg-tool-dropdown')
+                && !document.querySelector('[data-edit-act="clear"], [data-edit-act="new-room"]');
+        }));
     const toolMenuHidden = () => page.$eval('#rg-tool-dropdown',
         (n) => n.hidden && getComputedStyle(n).display === 'none');
     check('the overflow menu starts closed, in computed style as well as .hidden',
@@ -754,17 +755,8 @@ async function main() {
     check('nothing calls window.prompt', !FILES.map(read).join('').includes('prompt('),
         'a VS Code webview has no window.prompt; use the inline form');
 
-    // Reached through the ⋯ overflow now, not a permanent pill slot — §7b
-    // moves it to the rail's "+ New Map" footer, where the mock puts it.
-    await page.click('[data-edit-tool-menu]');
-    await page.click('[data-edit-act="new-room"]');
-    check('new room opens a form', !!(await page.$('#rg-newroom')));
-    check('and the form lands inside the canvas card, under the pill that opened it',
-        await page.evaluate(() => !!document.getElementById('rg-newroom').closest('#rg-canvas-card')));
-    await page.fill('#rg-nr-w', '20');
-    await page.fill('#rg-nr-h', '9');
-    await page.evaluate(() => { window.__sent.length = 0; window.__rendered = null; });
-    await page.click('[data-edit-act="new-room-go"]');
+    // The rail's "+ New Map" (customNew), borrowing the room on screen.
+    await page.evaluate(() => { window.__sent.length = 0; window.__rendered = null; customNew(20, 9, 0x34); });
     const made = await page.evaluate(() => ({
         room: window.__rendered,
         map: _customMaps[_customMaps.length - 1],
@@ -810,7 +802,6 @@ async function main() {
         imgW: document.getElementById('rg-img').getAttribute('width'),
         w: _mtPalette.grid[0].length,
         h: _mtPalette.grid.length,
-        formClosed: !document.getElementById('rg-newroom'),
         // A metatile is two of the map's 8px units.
         inBounds: editInBounds(_mtPalette, 19, 8),
         outOfBounds: !editInBounds(_mtPalette, 20, 9),
@@ -823,7 +814,7 @@ async function main() {
         donor.left === 0 && donor.triggers === 0, JSON.stringify(donor));
     check('the map becomes the blank room and can be painted',
         applied.viewBox === '0 0 40 18' && applied.w === 20 && applied.h === 9
-        && applied.formClosed && applied.inBounds && applied.outOfBounds,
+        && applied.inBounds && applied.outOfBounds,
         JSON.stringify(applied));
     // The image lives in viewBox units of 8px, not pixels. Giving it 320
     // made a room eight times too big — the "very weird grid".

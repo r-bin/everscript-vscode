@@ -120,10 +120,6 @@
 .rg-theme #rg-edit-bar .rdf:hover{background:var(--rg-bg-hover);color:var(--rg-text-primary)}
 .rg-theme #rg-edit-bar .rdf.on{background:var(--rg-accent-soft);color:var(--rg-accent-text);border-color:transparent}
 .rg-theme #rg-edit-bar .rg-edit-icon{font-size:14px;line-height:1}
-/* The new-room form shares the wrapper with the pill (see
- * buildEditToolbarHtml) but not its positioning — it is a normal flow row at
- * the top of the card, under the pill that opened it. */
-.rg-theme .rg-edit-chrome .rg-newroom{margin:0 0 8px;font-family:var(--rg-font-ui)}
 
 /* ── Docked filter bar (map-editor-filterbar.js) ──────────────────────────
  * The mock's `layerDockBarStyle`: a chrome-coloured bar spanning the canvas

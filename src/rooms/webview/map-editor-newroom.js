@@ -1,42 +1,11 @@
 // Ownership: drafting a room that is not in the ROM.
 //
-// `window.prompt` does not exist in a VS Code webview — calling it is
-// silently inert, which is exactly how the first version of this failed.
-// So the size is asked for with an inline form instead.
+// A new custom map is made from the rail's `+ New Map` (roomsNewMap) at one
+// SNES screen, and resized from the map's own corner grip.
 //
-// Owns: _newRoomOpen.
+// Owns: _resizing, _resizeKeep.
 //
 // See docs/map-format/building-a-room-from-a-picture.md §7.
-
-var _newRoomOpen = false;
-
-/** Toggle the form. Nothing is drafted until `create` is pressed. */
-function editNewRoom() {
-  _newRoomOpen = !_newRoomOpen;
-  renderEditChrome();
-}
-
-/**
- * The form, shown above the map while it is open.
- *
- * The bounds are the format's: two tiles is the smallest grid that encodes,
- * and 128 is past the widest vanilla room (`0x3c` at 127).
- */
-function buildNewRoomHtml() {
-  if (!_newRoomOpen) return '';
-  var d = editDraft();
-  var here = d && d.blank;
-  return '<div class="rg-newroom" id="rg-newroom">'
-    + '<span class="rs-note">New room, in 16px tiles:</span>'
-    + '<label>w <input type="number" id="rg-nr-w" min="2" max="128" value="' + CUSTOM_MAP_W + '"></label>'
-    + '<label>h <input type="number" id="rg-nr-h" min="2" max="128" value="' + CUSTOM_MAP_H + '"></label>'
-    + '<button class="rdf on" data-edit-act="new-room-go"'
-    + ' title="A new custom map. This room lends its graphics and families; nothing of it is drawn.">create</button>'
-    + '<button class="rdf" data-edit-act="new-room-cancel">cancel</button>'
-    + (here ? '<span class="rs-note">showing a blank ' + here.widthTiles + '×' + here.heightTiles
-      + ' room</span>' : '')
-    + '</div>';
-}
 
 /** The format's own bounds: 2 is the smallest grid that encodes, 128 is past
  *  the widest vanilla room (`0x3c`, at 127). */
@@ -60,20 +29,6 @@ function requestBlankRoom(w, h) {
     command: 'requestBlankRoom', mapName: _mtRoomName,
     widthTiles: w, heightTiles: h, borrowFrom: _mtRoomId, minTiles: editMinSide(),
   });
-}
-
-/**
- * Read the form and make a custom map that size, drawing with the graphics
- * of the room on screen — a new entry under Custom rooms, never a draft
- * laid over the room it borrows from.
- */
-function editNewRoomGo() {
-  var wEl = document.getElementById('rg-nr-w');
-  var hEl = document.getElementById('rg-nr-h');
-  var w = clampRoomSide(wEl && wEl.value, CUSTOM_MAP_W);
-  var h = clampRoomSide(hEl && hEl.value, CUSTOM_MAP_H);
-  _newRoomOpen = false;
-  customNew(w, h, typeof _mtRoomId === 'number' ? _mtRoomId : undefined);
 }
 
 // ---------------------------------------------------------------------------
@@ -340,7 +295,6 @@ function applyBlankRoom(msg) {
   }
   // A reopened or resized map keeps its history: it is kept for good
   // (docs/map-format/custom-map-files.md §3).
-  _newRoomOpen = false;
   // Exactly one Boy start, on the map — placed now, or pulled back inside
   // by a resize (map-editor-start.js).
   editStartPlace(room, room.startSprite);

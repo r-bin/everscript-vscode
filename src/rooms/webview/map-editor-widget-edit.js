@@ -184,7 +184,7 @@ function widgetEditHeadHtml() {
     + ' stroke-linecap="round" stroke-linejoin="round"/></svg></button>'
     + '<div class="rg-appbar-title">'
     + '<input id="rg-widget-name" class="rg-appbar-name" value="' + escH(_widgetEdit.name) + '" aria-label="Widget name"'
-    + ' title="The widget’s name — saves as you type"/>'
+    + ' title="The widget’s name — saves as you type; Enter to finish"/>'
     + '<span class="rd-file" id="rg-widget-size">' + widgetEditSizeText() + '</span>'
     + '</div>'
     + '<span class="rd-head-acts" id="rg-head-acts"></span>'

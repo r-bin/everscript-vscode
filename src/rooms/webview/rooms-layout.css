@@ -107,6 +107,12 @@ body.rg-resizing{cursor:col-resize;user-select:none}
 /* The ⋯ menu opens down from the name line, right-aligned with it. */
 .rg-theme .rd-head-acts .rg-filter-group{position:relative}
 .rg-theme .rd-head-acts .rg-filter-popup{top:calc(100% + 4px);bottom:auto;left:auto;right:0;z-index:20;min-width:180px}
+/* Its rows are actions, not toggles: full strength (shared.css dims an `.rdf`
+ * that is not `.on`), flat and left-aligned, not the name line's bordered buttons. */
+.rg-theme .rd-head-acts .rg-filter-popup .rdf{opacity:1;justify-content:flex-start;height:28px;padding:0 10px;
+  border-color:transparent;background:transparent;color:var(--rg-text-primary);font:500 12px var(--rg-font-ui)}
+.rg-theme .rd-head-acts .rg-filter-popup .rdf:hover{background:var(--rg-bg-hover)}
+.rg-theme .rd-head-acts .rg-filter-popup .rdf[data-edit-act="delete-map"]{color:var(--rg-error)}
 .rg-theme #rg-edit-bar .rdf:disabled,.rg-theme .rg-level-b:disabled{opacity:.3;cursor:not-allowed}
 
 /* The Trigger and Object tabs' "Loot only" quick filter. */

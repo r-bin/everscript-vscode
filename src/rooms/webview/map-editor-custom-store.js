@@ -102,6 +102,44 @@ function customSave(m) {
 }
 
 /**
+ * Rename a custom map from its name line (detail-renderer.js `#rg-map-name`).
+ * An empty name is not applied: the field shows the last one when left.
+ */
+function customRename(key, name) {
+  var m = customFind(key);
+  var n = String(name || '').trim().slice(0, 80);
+  if (!m || m.widget || m.readOnly || !n || n === m.name) return;
+  m.name = n;
+  customRenderRows();
+  customSaveSoon();
+}
+
+/**
+ * The name fields on the name line — a custom map's (`#rg-map-name`) and a
+ * widget's (`#rg-widget-name`, map-editor-widget-edit.js). Typing renames;
+ * Enter or Escape is done typing; a map's field left empty shows the name it kept.
+ * Delegated on the panel, once (bindEditControls), so it survives redraws.
+ */
+function bindNameFields(panel) {
+  panel.addEventListener('input', function (e) {
+    var id = e.target && e.target.id;
+    if (id === 'rg-widget-name') widgetEditRename(e.target.value);
+    else if (id === 'rg-map-name') customRename(_customActive, e.target.value);
+  });
+  panel.addEventListener('change', function (e) {
+    var m = e.target && e.target.id === 'rg-map-name' && customFind(_customActive);
+    if (m) e.target.value = m.name;
+  });
+  panel.addEventListener('keydown', function (e) {
+    var id = e.target && e.target.id;
+    if ((id === 'rg-map-name' || id === 'rg-widget-name') && (e.key === 'Enter' || e.key === 'Escape')) {
+      e.preventDefault();
+      e.target.blur();
+    }
+  });
+}
+
+/**
  * Save the map on screen a moment after the last edit — renderEditChrome
  * runs after every stroke, and one host write per stroke is needless.
  */

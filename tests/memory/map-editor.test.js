@@ -795,6 +795,7 @@ const ui = new Function(`
     setPanelRoom: function (r) { _editPanelRoom = r; }, triggerToggle: triggerToggle, triggerEnterPick: triggerEnterPick,
     triggerScriptWhat: triggerScriptWhat, scriptHighlight: scriptHighlight, lootFilterToggle: lootFilterToggle,
     editPreviewSvg: editPreviewSvg, setPreviewCell: function (c) { _previewCell = c; },
+    customRename: customRename, editPutDown: editPutDown, construct: function () { return _editConstruct; },
     clampRoomSide: clampRoomSide, widgetEditHeadHtml: widgetEditHeadHtml,
     setWidgetEdit: function (w) { _widgetEdit = w; },
     objectLooksStatic: objectLooksStatic, objectIsOpen: objectIsOpen, setObjectOpen: function (k, v) { _objectOpen[k] = v; }, objectReorder: objectReorder, objectTabHtml: objectTabHtml,
@@ -1245,7 +1246,7 @@ test('the toolbar has no phase pair, and erase is never gated on one', () => {
     assert.ok(bar.includes('data-edit-tool="erase"'), 'and is still offered');
 
     // v0.94.0: the ⋯ menu moved to the room's name line (editHeadActsHtml).
-    assert.ok(ui.headActs().includes('data-edit-act="new-room"'), 'and a new room can be drafted');
+    assert.ok(ui.headActs().includes('data-edit-act="export"'), 'and the draft can be handed over');
     assert.strictEqual(d.phase, undefined, 'the draft carries no phase field at all');
 });
 
@@ -2441,6 +2442,33 @@ test('a widget with no tiles — a sniff spot — still places its trigger and o
     assert.ok(d.placed.every((x) => x.x === 0 && x.y === 0), 'its parts move with it');
     const empty = ui.editStampGroup(p, { name: 'nothing', w: 1, h: 1, cells: [], attachments: {} }, 0, 0);
     assert.ok(!empty.placed && d.groups.length === 1, 'a widget with nothing at all places nothing');
+});
+
+test('the ⋯ menu has no discard or new room; a custom map renames; Escape lets go of what is on the pointer', () => {
+    ui.editReset(0x34).on = true;
+    const acts = ui.headActs();
+    assert.ok(!acts.includes('data-edit-act="clear"') && !acts.includes('data-edit-act="new-room"'), 'both entries are gone');
+    assert.ok(acts.includes('data-edit-act="export-rom"'), 'the rest stay');
+
+    const m = { key: 'custom-t', name: 'Old', borrow: 0x34, w: 16, h: 14 };
+    ui.setCustom([m], null);
+    ui.customRename('custom-t', '  New name ');
+    assert.strictEqual(m.name, 'New name', 'trimmed');
+    ui.customRename('custom-t', '   ');
+    assert.strictEqual(m.name, 'New name', 'an empty name is not applied');
+    ui.setCustom([], null);
+
+    const d = ui.editDraft();
+    d.constructs.push({ name: 'pot', w: 1, h: 1, cells: [], attachments: {} });
+    ui.setTab('widgets');
+    d.tool = 'paint';
+    ui.editPutDown(d);
+    assert.strictEqual(ui.construct(), -1, 'the widget is disarmed');
+    assert.strictEqual(d.tool, 'select', 'and the pencil put down');
+    d.tool = 'pick';
+    ui.editPutDown(d);
+    assert.strictEqual(d.tool, 'pick', 'a tool that draws nothing stays');
+    ui.setTab('tile');
 });
 
 console.log(`\n  ${passed} passed, ${failed} failed`);

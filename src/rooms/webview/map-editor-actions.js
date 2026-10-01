@@ -1,5 +1,5 @@
-// Ownership: the editor's toolbar actions — undo, discard, compose, save a
-// construct, draft a room, hand the draft over.
+// Ownership: the editor's toolbar actions — undo, compose, save a
+// construct, hand the draft over.
 //
 // Split out of map-editor-input.js, which owns the pointer gestures, to keep
 // both inside the 400-line limit. One `act` string per button.
@@ -10,16 +10,6 @@ function editAction(act) {
   if (act === 'lock') { editLockToggle(); return; }
   if (act === 'undo') { editUndo(_mtPalette); requestComposedPreview(); renderEditChrome(); return; }
   if (act === 'redo') { editRedo(_mtPalette); requestComposedPreview(); renderEditChrome(); return; }
-  if (act === 'clear') {
-    var fresh = editReset(d.roomId);
-    fresh.on = true;
-    // Discarding a custom map's drawing keeps the map: its identity, its
-    // blank grid and its one Boy (map-editor-rules §5).
-    if (d.customKey) { fresh.customKey = d.customKey; fresh.blank = d.blank; fresh.start = d.start; }
-    _editSel = null; _editClip = null; _editComposed = null;
-    renderEditChrome(); renderComposer();
-    return;
-  }
   if (act === 'compose-brush') {
     // The shortest path to a working stamp: take one that already works and
     // change the one word you care about.
@@ -68,9 +58,6 @@ function editAction(act) {
     renderEditPanels();
     return;
   }
-  if (act === 'new-room') { editNewRoom(); return; }
-  if (act === 'new-room-go') { editNewRoomGo(); return; }
-  if (act === 'new-room-cancel') { _newRoomOpen = false; renderEditChrome(); return; }
   if (act === 'export') editCopyDraft();
   if (act === 'export-rom') editExportRom();
   if (act === 'cut-layer') { editCutToggle(); return; }

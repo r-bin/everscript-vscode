@@ -359,6 +359,8 @@ function setupEditKeys() {
       _editSel = null; _editClip = null;
       if (typeof _pasteFloat !== 'undefined') _pasteFloat = null;
       if (typeof editDeselectAll === 'function') editDeselectAll();
+      // Whatever is on the pointer goes too (map-editor-drawable.js).
+      editPutDown(d);
       renderEditChrome();
       return;
     }

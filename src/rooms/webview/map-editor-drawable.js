@@ -204,3 +204,15 @@ function editTriggerSvg(origin) {
   }
   return html;
 }
+
+/**
+ * Escape: let go of what is on the pointer. An armed widget or construct is
+ * disarmed, and a drawing tool goes back to Select, so the next click on the
+ * map stamps, paints or erases nothing.
+ */
+function editPutDown(d) {
+  if (!d) return;
+  _editConstruct = -1;
+  if (typeof _decoPick !== 'undefined') _decoPick = -1;
+  if (d.tool === 'paint' || d.tool === 'stamp' || d.tool === 'erase') d.tool = 'select';
+}

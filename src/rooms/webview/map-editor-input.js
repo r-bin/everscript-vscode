@@ -172,7 +172,6 @@ function bindEditControls(panel, room) {
   // Delegated on `input` so it survives the redraws it causes.
   panel.addEventListener('input', function (e) {
     if (!e.target) return;
-    if (e.target.id === 'rg-widget-name') { widgetEditRename(e.target.value); return; }
     if (e.target.id === 'rg-deco-filter') {
       _decoFilter = e.target.value;
       renderEditPanels();
@@ -183,6 +182,8 @@ function bindEditControls(panel, room) {
   panel.addEventListener('change', function (e) {
     if (e.target && e.target.dataset && e.target.dataset.headerField) infoHeaderInput(e.target);
   });
+  // The map's or widget's name on the name line (map-editor-custom-store.js).
+  bindNameFields(panel);
 
   // Scroll-to-cycle on the neighbour card's sides (map-editor-neighbours.js).
   // Not passive: it has to preventDefault, or the dock scrolls as well.

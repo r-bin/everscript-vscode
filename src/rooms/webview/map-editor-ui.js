@@ -255,8 +255,7 @@ function renderEditChrome() {
   if (d && d.customKey && typeof customSaveSoon === 'function') customSaveSoon();
   // A ROM room's draft made after its palette arrived still gets its objects.
   if (typeof editSeedRoomObjects === 'function') editSeedRoomObjects();
-  // Pill and new-room form share one wrapper, so one write replaces both
-  // and the form cannot accumulate a second copy.
+  // The pill and the level bar share one wrapper, replaced in one write.
   var chrome = document.getElementById('rg-edit-chrome');
   if (chrome) chrome.outerHTML = buildEditToolbarHtml();
   renderEditHeadActs();

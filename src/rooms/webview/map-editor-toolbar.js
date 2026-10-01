@@ -76,13 +76,11 @@ var EDIT_TOOL_ICONS = {
  * point, so both stay, in the place each belongs.
  */
 var EDIT_OVERFLOW_ACTS = [
-  ['clear', 'Discard draft', 'Discard every change in this draft'],
   ['copy-map', 'Copy map', 'Duplicate this room as a new custom map'],
   ['save-widget', 'Save as widget', 'Save the current selection or stamped object as a widget in the library'],
   ['export', 'Copy draft as JSON', 'Copy the draft as JSON for the encoder'],
   ['export-rom', 'Export ROM…', 'Build a playable ROM: this custom map in Brian’s room (0x15), entered straight from the intro'],
   ['play-rom', 'Play in emulator', 'Build the same ROM and run it in the embedded emulator — no file is written'],
-  ['new-room', 'New room…', 'Start a blank room to try things in, borrowing this room’s graphics'],
   ['export-map', 'Export map…', 'Save this custom map as a .zip: the room blob, the editor file, a sample .evs and its stamps'],
   ['delete-map', 'Delete map…', 'Delete this custom map and its whole edit history (asks first)'],
 ];
@@ -153,13 +151,8 @@ function editToolButtonHtml(key) {
 }
 
 /**
- * The pill, plus the new-room form, inside one wrapper.
- *
- * The wrapper exists because the pill is absolutely positioned over the
- * canvas card's top edge while the form is a normal flow row — and
- * `renderEditChrome` replaces the whole thing in one `outerHTML` write, so
- * they have to share one node or the form leaks a second copy on every
- * redraw (which is what the stale-`#rg-newroom` sweep used to clean up).
+ * The pill, plus the level bar, inside one wrapper that `renderEditChrome`
+ * replaces in one `outerHTML` write.
  */
 function buildEditToolbarHtml() {
   var html = '<div class="rg-edit-chrome" id="rg-edit-chrome">'
@@ -184,7 +177,7 @@ function buildEditToolbarHtml() {
     + '<button class="rdf rg-edit-tool-icon" data-edit-act="redo" data-tip="Redo"'
     + ' aria-label="redo"' + dis + '><span class="rg-edit-icon" aria-hidden="true">↷</span></button>'
     + '</span>'
-    + '</div>' + buildNewRoomHtml()
+    + '</div>'
     // The level bar sits at the map's left edge (map-editor-levels.js).
     + (typeof buildLevelBarHtml === 'function' ? buildLevelBarHtml() : '') + '</div>';
   return html;
