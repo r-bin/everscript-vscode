@@ -283,6 +283,11 @@ function editGroupOwnsObject(o) {
 function editGroupLocks(uid) {
   var g = editGroupOwning(uid);
   if (!g) return false;
+  return editGroupLockNote(g);
+}
+
+/** The note editGroupLocks gives, for a group's tiles as well as its parts. */
+function editGroupLockNote(g) {
   editNote('part of the placed “' + g.name + '” — move or remove it whole, or disband it (Widgets › Placed) to edit its parts');
   if (typeof renderEditChrome === 'function') renderEditChrome();
   return true;
@@ -305,19 +310,29 @@ function editGroupDisband(palette, uid) {
       return out;
     });
   });
-  // What it alone shows over the map: another group under or over it stays one.
+  // What it shows, with whatever is beneath it: the map is drawn under every
+  // group, so a widget stamped on a pasted floor written alone into the map
+  // came out under that floor — the gourd went missing. The groups beneath
+  // give those cells up, since the map holds them now; groups above stay above.
   var all = d.groups;
-  d.groups = [g];
-  var writes = g.cells.filter(function (c) { return editInBounds(palette, g.x + c.dx, g.y + c.dy); })
-    .map(function (c) { return { x: g.x + c.dx, y: g.y + c.dy, index: editCellAt(palette, g.x + c.dx, g.y + c.dy) }; });
+  var at = all.indexOf(g);
+  d.groups = all.slice(0, at + 1);
+  var cells = g.cells.filter(function (c) { return editInBounds(palette, g.x + c.dx, g.y + c.dy); });
+  var writes = cells.map(function (c) { return { x: g.x + c.dx, y: g.y + c.dy, index: editCellAt(palette, g.x + c.dx, g.y + c.dy) }; });
   d.groups = all;
+  var taken = {};
+  writes.forEach(function (w) { taken[editKey(w.x, w.y)] = true; });
   editBegin();
   editApply(writes);
+  all.slice(0, at).forEach(function (b) {
+    b.cells = b.cells.filter(function (c) { return !taken[editKey(b.x + c.dx, b.y + c.dy)]; });
+  });
   objs.forEach(function (o, i) {
     o.frames = frames[i];
     o.layer = o.activeFrame >= 1 ? (o.frames[o.activeFrame - 1] || {}) : {};
   });
-  d.groups = d.groups.filter(function (x) { return x.uid !== uid; });
+  // A group beneath with nothing left — no cell, no trigger or object — is gone.
+  d.groups = d.groups.filter(function (x) { return x.uid !== uid && (x.cells.length || x.placed.length); });
   editEnd();
   if (_groupSel === uid) _groupSel = null;
   editNote(g.name + ' disbanded — its tiles are the map’s now, and its triggers and objects are edited on their own');

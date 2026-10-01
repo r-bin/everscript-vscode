@@ -80,6 +80,7 @@ const ROOMS_JS_FILES = [
   'animation.js',        // Section 2 tile animation overlay + rAF playback
   'metatile-palette.js', // the room's metatile dictionary from the host (_mtPalette/_mtLayer)
   'map-editor.js',       // the edit draft and undo stack (_edit)
+  'map-editor-history.js', // undo steps' family slots and resize (stateless)
   'map-editor-stamps.js',// the stamp dictionary: composing/adopting stamps and graphics
   'map-editor-paint.js', // drawing the draft on the map (_editSel/_editClip)
   'map-editor-anim.js', // animated stamps on the map (stateless)

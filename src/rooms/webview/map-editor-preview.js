@@ -109,6 +109,8 @@ function previewEraseSvg(d, c, kind) {
 
 /** Whether the Tile eraser has anything to take at `c` (editResolve's erase branch, read-only). */
 function previewEraseHits(c) {
+  // A placed widget's tiles are locked to it (map-editor-gestures.js).
+  if (typeof editGroupAt === 'function' && editGroupAt(c.x, c.y)) return false;
   if (editSpecialAt(c.x, c.y)) return true;
   var here = editCellAt(_mtPalette, c.x, c.y);
   var under = here >= 0 ? editStampWords(_mtPalette, here) : null;

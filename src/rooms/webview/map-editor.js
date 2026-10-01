@@ -3,10 +3,8 @@
 // draws it and map-editor-paint.js drives it.
 //
 // Nothing here writes to the ROM. An edit lives in this draft until it is
-// exported; see docs/map-format/map_editor_ui.md §6 for where the draft
-// plugs into the verified Python encoder.
-//
-// Owns: _edit. Only this file assigns to it.
+// exported (docs/map-format/map_editor_ui.md §6). A step's family slots and
+// resize are map-editor-history.js's. Owns: _edit; only this file assigns it.
 
 /**
  * The draft for the room on screen.
@@ -137,11 +135,12 @@ function editEnd() {
   step.triggers = { before: { removedTriggers: a.r, placed: a.p, triggerOrder: a.o },
     after: { removedTriggers: b.r, placed: b.p, triggerOrder: b.o } };
   step.groups = { before: a.g, after: b.g }; step.header = { before: a.h, after: b.h };
+  if (typeof editStepExtras === 'function') editStepExtras(step, a, b); // family slots (map-editor-history.js)
 }
 
 function editTxnSnapshot() {
   return JSON.stringify({ r: _edit.removedTriggers || [], p: _edit.placed || [], g: _edit.groups || [],
-    o: _edit.triggerOrder || null, h: _edit.header || null });
+    o: _edit.triggerOrder || null, h: _edit.header || null, f: typeof editFamiliesSnapshot === 'function' ? editFamiliesSnapshot() : null });
 }
 
 /** The open compound step, pushed on first use. */
@@ -344,6 +343,7 @@ function editUndo(palette) {
   var step = _edit.undo.pop();
   if (step.groups) _edit.groups = JSON.parse(JSON.stringify(step.groups.before));
   if (step.header) editRestoreHeader(step.header.before);
+  if (typeof editRestoreExtras === 'function') editRestoreExtras(step, 'before');
   var inverse = editRestore(step.cells);
   var specialInverse = editRestoreSpecial(step.special || []);
   // A trigger-op step restores its own snapshot instead of the tail-splice
@@ -359,7 +359,7 @@ function editUndo(palette) {
     dropped = _edit.placed.splice(step.placed);
   }
   _edit.redo.push({ cells: inverse, special: specialInverse, placed: step.placed, dropped: dropped, triggers: step.triggers,
-    groups: step.groups, header: step.header, start: editRestoreStart(step) });
+    groups: step.groups, header: step.header, families: step.families, resize: step.resize, start: editRestoreStart(step) });
   editPruneAdded(palette);
   if (typeof editDropStaleTriggerSelection === 'function') editDropStaleTriggerSelection();
   editCellsChanged();
@@ -379,6 +379,7 @@ function editRedo(palette) {
   var step = _edit.redo.pop();
   if (step.groups) _edit.groups = JSON.parse(JSON.stringify(step.groups.after));
   if (step.header) editRestoreHeader(step.header.after);
+  if (typeof editRestoreExtras === 'function') editRestoreExtras(step, 'after');
   var inverse = editRestore(step.cells);
   var specialInverse = editRestoreSpecial(step.special || []);
   if (step.triggers) {
@@ -390,11 +391,9 @@ function editRedo(palette) {
     for (var i = 0; i < step.dropped.length; i++) _edit.placed.push(step.dropped[i]);
   }
   _edit.undo.push({ cells: inverse, special: specialInverse, placed: step.placed, dropped: [], triggers: step.triggers,
-    groups: step.groups, header: step.header, start: editRestoreStart(step) });
+    groups: step.groups, header: step.header, families: step.families, resize: step.resize, start: editRestoreStart(step) });
   editPruneAdded(palette);
   if (typeof editDropStaleTriggerSelection === 'function') editDropStaleTriggerSelection();
   editCellsChanged();
   return true;
 }
-
-// editExport (the draft as the encoder's handoff JSON) is in map-editor-stamps.js.

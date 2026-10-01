@@ -59,7 +59,9 @@ function strandedFix(slot) {
   var g = null;
   for (var i = 0; i < groups.length; i++) if (groups[i].slot === Number(slot)) g = groups[i];
   if (!g || g.family === undefined) return;
+  editBegin(); // one undo step (map-editor-history.js)
   editSetFamily(g.slot, g.family);
+  editEnd();
   editNote('family ' + g.family + ' back in slot ' + (g.slot + 1)
     + ' — ' + g.cells.length + ' cell' + (g.cells.length === 1 ? '' : 's') + ' valid again');
   renderEditChrome();

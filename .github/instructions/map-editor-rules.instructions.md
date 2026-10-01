@@ -248,12 +248,21 @@ accepts. Entrances, for instance, are **room metadata, not tile-grid state**, an
 have no slot today. A vanilla trigger script is not portable either: a gourd's names
 its room's object number and a shared flag.
 
-Undo is one history for everything, **one step per gesture** (a drag, however many
+Undo is one history for everything — cells, specials, triggers, objects, groups
+(stamp, move, delete, disband), the header, the Boy, the family slots and a
+resize (map-editor-history.js) — **one step per gesture** (a drag, however many
 cells it crosses; a group move; a stamp), and it is **saved with the map for good**
 (`history.json`, docs/map-format/custom-map-files.md §3). A history entry that names
 an added stamp carries its words too (`editStampRef`), because pruning may drop the
 stamp and the entry must be able to bring it back. Wrap any multi-write operation in
-`editBegin`/`editEnd` rather than calling `editApply` several times.
+`editBegin`/`editEnd` rather than calling `editApply` several times. **Not** on it:
+a map's or widget's name, and view choices (tool, tab, level bar, chips, which
+object state is shown).
+
+**Disbanding writes what the cells show**, the groups beneath included, and those
+groups give the cells up: the map is drawn under every group, so a widget written
+alone into it vanished under a pasted floor it was stamped on. A placed widget's
+tiles are locked like its parts: the eraser refuses them until it is disbanded.
 
 Every tile write lands on the **level** picked in the left bar (collision bits 5..4,
 `editOnLevel`); level 1 is the default. A stamped construct or widget is a **group**

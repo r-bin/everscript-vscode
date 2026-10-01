@@ -230,7 +230,9 @@ function chipAdopt(id) {
 function chipDrop(slot) {
   var fams = editFamilies();
   var gone = fams[Number(slot)];
+  editBegin(); // one undo step (map-editor-history.js)
   editClearFamily(Number(slot));
+  editEnd();
   delete _chipSel[gone];
   var stranded = editStrandedCells().length;
   editNote('family ' + gone + ' removed from slot ' + (Number(slot) + 1)

@@ -36,6 +36,7 @@ const api = new Function(`
   var _mtPalette = null;
   var _editActiveTab = 'tile';
   ${read('map-editor.js')}
+  ${read('map-editor-history.js')}
   ${read('map-editor-stamps.js')}
   ${read('map-editor-paint.js')}
   ${read('map-editor-phases.js')}
@@ -699,6 +700,7 @@ const ui = new Function(`
   function romExportButtonHtml() { return ''; }
   ${read('metatile-palette.js')}
   ${read('map-editor.js')}
+  ${read('map-editor-history.js')}
   ${read('map-editor-stamps.js')}
   ${read('map-editor-paint.js')}
   ${read('map-editor-ui.js')}
@@ -798,6 +800,7 @@ const ui = new Function(`
     editPreviewSvg: editPreviewSvg, setPreviewCell: function (c) { _previewCell = c; },
     editRoomCutBeneathSvg: editRoomCutBeneathSvg, setCutLayer: function (v) { _editCutLayer = v; },
     editGridPatchSvg: editGridPatchSvg, editSpecialAppliedIndex: editSpecialAppliedIndex,
+    chipDrop: chipDrop, editResizeStep: editResizeStep, resizeKeep: function () { var k = _resizeKeep; _resizeKeep = false; return k; },
     customRename: customRename, editPutDown: editPutDown, construct: function () { return _editConstruct; },
     clampRoomSide: clampRoomSide, widgetEditHeadHtml: widgetEditHeadHtml,
     setWidgetEdit: function (w) { _widgetEdit = w; },
@@ -2507,6 +2510,70 @@ test('an object’s tiles get the grid drawn back over them, under the grid togg
     const svg = ui.editGridPatchSvg({ x: 4, y: 2 }, 2, 1);
     assert.ok(/class="rg-grid-fine rg-grid-patch"/.test(svg) && /class="rg-grid-coarse rg-grid-patch"/.test(svg));
     assert.ok(svg.includes('M4 2V4') && svg.includes('M8 2V4'), 'lines at both edges of the 2×1 box');
+});
+
+test('disbanding a widget stamped on a pasted floor keeps it on top: the floor beneath gives those cells up', () => {
+    const { p, d } = fresh();
+    const FLOOR = { name: 'floor', w: 3, h: 1, attachments: {},
+        cells: [0, 1, 2].map((dx) => ({ dx, dy: 0, canopy: { word: 0xa800 }, terrain: { word: 0x0c02 }, collision: 0x0010 })) };
+    ui.editStampGroup(p, FLOOR, 0, 1);
+    ui.editStampGroup(p, GOURD, 0, 1);
+    const words = (x, y) => { const w = ui.editStampWords(p, ui.editCellAt(p, x, y)); return [w.layer1, w.layer2]; };
+    const before = [0, 1, 2].map((x) => words(x, 1));
+    assert.deepStrictEqual(before[0], [0x358a, 0x0c02], 'the gourd, on the pasted floor');
+    ui.editGroupDisband(p, d.groups[1].uid);
+    assert.deepStrictEqual([0, 1, 2].map((x) => words(x, 1)), before, 'the map shows exactly what it did');
+    assert.strictEqual(d.groups.length, 1, 'the floor stays a group');
+    assert.deepStrictEqual(d.groups[0].cells.map((c) => c.dx), [2], 'minus the cells the map now holds');
+    ui.editUndo(p);
+    assert.strictEqual(d.groups.length, 2, 'undo brings the widget back');
+    assert.strictEqual(d.groups[0].cells.length, 3, 'and the floor whole');
+});
+
+test('freeing a family slot by hand is one undo step, and redo frees it again', () => {
+    const { p, d } = fresh();
+    d.families = [35, 187, 58];
+    ui.chipDrop(1);
+    assert.strictEqual(d.families[1], undefined);
+    assert.strictEqual(d.undo.length, 1, 'one step');
+    ui.editUndo(p);
+    assert.strictEqual(d.families[1], 187, 'undo puts it back in its slot');
+    ui.editRedo(p);
+    assert.strictEqual(d.families[1], undefined, 'redo frees it again, a hole and not a null');
+    assert.ok(!d.families.includes(null));
+});
+
+test('a resize is one undo step that redo can repeat; a rename is not on the history', () => {
+    const { p, d } = fresh();
+    d.start = { x: 5, y: 5 };
+    ui.editResizeStep({ w: 16, h: 14 }, { w: 4, h: 4 });
+    d.start = { x: 3, y: 3 };                       // what the shrink's blank room clamps him to
+    assert.ok(ui.editUndo(p));
+    assert.ok(ui.resizeKeep(), 'undo asks for the old size, keeping the cells');
+    assert.deepStrictEqual(d.start, { x: 5, y: 5 }, 'and the Boy goes back where he was');
+    assert.deepStrictEqual(d.redo[d.redo.length - 1].resize, { before: { w: 16, h: 14 }, after: { w: 4, h: 4 } });
+    assert.ok(ui.editRedo(p), 'redo is there');
+    assert.ok(ui.resizeKeep());
+    const m = { key: 'custom-r', name: 'A', borrow: 0x34, w: 16, h: 14 };
+    ui.setCustom([m], null);
+    const steps = d.undo.length;
+    ui.customRename('custom-r', 'B');
+    assert.strictEqual(d.undo.length, steps, 'renaming adds no step');
+    ui.setCustom([], null);
+});
+
+test('the eraser leaves a placed widget’s tiles alone until it is disbanded', () => {
+    const { p, d } = fresh();
+    ui.editStampGroup(p, GOURD, 0, 1);
+    d.tool = 'erase';
+    const steps = d.undo.length;
+    ui.editBegin(); ui.editStroke({ x: 0, y: 1 }, 'down'); ui.editEnd();
+    assert.strictEqual(d.undo.length, steps, 'locked: nothing written');
+    assert.deepStrictEqual(d.cells, {});
+    ui.editGroupDisband(p, d.groups[0].uid);
+    ui.editBegin(); ui.editStroke({ x: 0, y: 1 }, 'down'); ui.editEnd();
+    assert.strictEqual(d.undo.length, steps + 2, 'disbanded: its tile is the map’s, and erasable');
+    d.tool = 'paint';
 });
 
 console.log(`\n  ${passed} passed, ${failed} failed`);

@@ -262,6 +262,8 @@ function resizeEnd() {
     return;
   }
   _resizeKeep = true;
+  // One undo step, redone the same way (map-editor-history.js).
+  if (typeof editResizeStep === 'function') editResizeStep({ w: r.w0, h: r.h0 }, { w: r.w, h: r.h });
   editNote('resizing to ' + r.w + '×' + r.h + '…');
   requestBlankRoom(r.w, r.h);
 }

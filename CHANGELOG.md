@@ -1,3 +1,13 @@
+## [0.101.0] — 2026-10-01
+
+### Fix: disbanding a widget keeps its look; resize and family slots are undoable
+
+- **Disbanding a widget no longer changes what the map shows.** A widget stamped on top of another one (a gourd on a pasted floor) used to lose its art and leave bare floor. It now stays exactly as it looked. The widget underneath gives up the cells it shared, since the map holds them now. Checked against every widget on your test map: the picture is identical before and after.
+- **A placed widget's tiles can't be erased until it is disbanded**, the same as its triggers and objects. The eraser says so, and its preview shows nothing to erase there.
+- **Resizing a map can be undone and redone.** Undo also puts the Boy back if the shrink moved him.
+- **Removing a tile family (✕), or putting one back, can be undone and redone.**
+- Renaming a map or widget, and view choices (tool, tab, level, filters, which object state is shown), stay out of undo on purpose.
+
 ## [0.100.0] — 2026-10-01
 
 ### Feat: see-through tiles in the Special tab; vanilla grass shows what is beneath it; freer panning

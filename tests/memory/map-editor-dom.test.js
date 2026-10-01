@@ -24,7 +24,7 @@ const WEBVIEW = path.join(__dirname, '..', '..', 'src', 'rooms', 'webview');
 const read = (f) => fs.readFileSync(path.join(WEBVIEW, f), 'utf8');
 
 /** The editor's files, in the order the bundle concatenates them. */
-const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-stamps.js', 'map-editor-paint.js',
+const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-history.js', 'map-editor-stamps.js', 'map-editor-paint.js',
     'map-editor-anim.js', 'map-editor-ui.js', 'map-editor-phases.js', 'map-editor-constructs.js', 'map-editor-families.js',
     'map-editor-relations.js', 'map-editor-chips.js', 'map-editor-stranded.js',
     'map-editor-tiles.js', 'map-editor-tile-lazy.js', 'map-editor-tile-filters.js', 'map-editor-neighbours.js', 'map-editor-deco.js', 'map-editor-widgets.js', 'map-editor-widget-edit.js', 'map-editor-preview.js', 'map-editor-special.js',

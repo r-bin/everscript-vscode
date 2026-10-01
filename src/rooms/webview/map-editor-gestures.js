@@ -96,6 +96,9 @@ function editStroke(cell, phase) {
   if (d.tool === 'erase') {
     var eraseKind = drawKind();
     if (eraseKind === 'trigger') { if (phase === 'down') editEraseTriggerAt(cell); return; }
+    // A placed widget's tiles are locked to it: disband it to erase them (map-editor-groups.js).
+    var grp = typeof editGroupAt === 'function' && !cutLayerActive() ? editGroupAt(cell.x, cell.y) : null;
+    if (grp) { if (phase === 'down') editGroupLockNote(grp); return; }
     if (eraseKind === 'special') { editSpecialStroke(d, cell, true); renderEditChrome(); return; }
     editEraseCells(d, cell, phase);
     renderEditChrome(); return;
