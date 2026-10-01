@@ -256,12 +256,24 @@ function tileGroupHtml(family, width) {
     // you have not picked yet stays unflipped: it is showing you the art,
     // not a commitment.
     var flipCls = armed ? (_brushFlip.h ? ' rg-flip-h' : '') + (_brushFlip.v ? ' rg-flip-v' : '') : '';
+    var catFlags = (slot.length > 17 ? slot[17] : 0) || ((slot[16] || 0) >> 8);
+    var isUnused = (catFlags & 1) !== 0 || (slot[3] === 0 && !slot[10]);
+    var isDual = (catFlags & 4) !== 0;
+    var unusedCls = isUnused ? ' rg-tile-unused' : '';
+    var dualCls = isDual ? ' rg-tile-dual' : '';
+    var placeText = isUnused ? '\nunused in vanilla (0 grid placements)'
+      : '\n' + slot[3] + (slot[10] === 2 ? ' cells show it once their grass is cut' : ' placements in vanilla');
+    var dualText = isDual ? '\nneeds 2 layers with no canopy to look complete (dual-layer ground)' : '';
+    var catMark = isUnused ? '<b class="rg-unused-mark" aria-hidden="true">Ø</b>'
+      : isDual ? '<b class="rg-dual-mark" aria-hidden="true">2L</b>' : '';
+
     html += '<i class="rs-mt-cell' + (armed ? ' sel' : '')
-      + (badge[0] ? ' rg-lay-' + badge[0] : '') + (rel >= 50 ? ' rg-rel' : '') + flipCls
+      + (badge[0] ? ' rg-lay-' + badge[0] : '') + unusedCls + dualCls + (rel >= 50 ? ' rg-rel' : '') + flipCls
       + '" data-fam-tile="' + slot[2] + '" data-fam-of="' + family + '"'
       + ' title="' + escH('graphic ' + slot[2] + ' in family ' + family
-        + '\n' + slot[3] + (slot[10] === 2 ? ' cells show it once their grass is cut' : ' placements in vanilla')
+        + placeText
         + (badge[0] ? '\ndrawn in the ' + badge[0] + (badge[1] ? ' — ' + badge[1] : '') : '')
+        + dualText
         + (rel ? '\ngoes with what you have placed: ' + rel + '%' : '')
         + (typeof tileCollisionTitle === 'function' ? tileCollisionTitle(slot) : '')
         + (slot[10] ? '\ncuttable grass: ' + ['', 'the uncut tile', 'what cut grass turns into',
@@ -271,7 +283,8 @@ function tileGroupHtml(family, width) {
       + ' style="background-position:-' + x + 'px -' + y + 'px;' + play.style + '">'
       + (typeof tileCollisionMarkHtml === 'function' ? tileCollisionMarkHtml(slot) : '')
       + (typeof tileStairsMarkHtml === 'function' ? tileStairsMarkHtml(slot) : '')
-      + (typeof tileAnimMarkHtml === 'function' ? tileAnimMarkHtml(s, slot) : '') + '</i>';
+      + (typeof tileAnimMarkHtml === 'function' ? tileAnimMarkHtml(s, slot) : '')
+      + catMark + '</i>';
   }
   return html + '</div></div>' + (animCss ? '<style>' + animCss + '</style>' : '') + '</div>';
 }

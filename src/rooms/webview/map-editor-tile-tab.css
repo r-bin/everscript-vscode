@@ -380,4 +380,17 @@
 .rg-anim-mark{position:absolute;left:1px;bottom:1px;font:700 5px/1 var(--rg-font-mono,monospace);
   color:#fff;background:rgba(0,0,0,.6);padding:0 1px;border-radius:1px;pointer-events:none}
 .rg-anim-mark.later{color:#ccc;background:rgba(0,0,0,.45)}
+
+/* Unused tiles: dimmed in the catalogue, restored when hovered or armed */
+.rg-theme .rg-group-sheet .rs-mt-cell.rg-tile-unused{opacity:.55}
+.rg-theme .rg-group-sheet .rs-mt-cell.rg-tile-unused:hover,
+.rg-theme .rg-group-sheet .rs-mt-cell.rg-tile-unused.sel{opacity:1}
+.rg-unused-mark{position:absolute;left:1px;top:1px;font:700 6px/1 var(--rg-font-mono,monospace);
+  color:#ff6b6b;background:rgba(0,0,0,.65);padding:0 1px;border-radius:1px;pointer-events:none}
+
+/* Dual-layer ground tiles: needs 2 layers with no canopy to look complete */
+.rg-theme .rg-group-sheet .rs-mt-cell.rg-tile-dual{box-shadow:inset 0 2px 0 #7ecbd0,inset 0 -2px 0 #b58a4a}
+.rg-dual-mark{position:absolute;left:1px;top:1px;font:700 5px/1 var(--rg-font-mono,monospace);
+  color:#7ecbd0;background:rgba(0,0,0,.65);padding:0 1px;border-radius:1px;pointer-events:none}
+
 @media (prefers-reduced-motion:reduce){.rg-theme .rg-group-sheet .rs-mt-cell{animation:none!important}}

@@ -60,6 +60,9 @@ function tileFamilyCount(family) {
     : _tileFilter === 'drift' ? meta.drift || 0
     : _tileFilter === 'deflect' ? meta.deflect || 0
     : _tileFilter === 'interact' ? meta.interact || 0
+    : _tileFilter === 'unused' ? meta.unused || 0
+    : _tileFilter === 'canopy' ? meta.canopy || 0
+    : _tileFilter === 'dual' ? meta.dual || 0
     : meta.tiles - (_tileFramesSplit ? 0 : meta.frames || 0);
   if (_tileShape) n = Math.min(n, (meta.shapes && meta.shapes[_tileShape]) || 0);
   return n;
@@ -81,6 +84,10 @@ function tileSlotPasses(slot) {
   if (_tileFilter === 'drift' && !(slot[16] & 1)) return false;
   if (_tileFilter === 'deflect' && !(slot[16] & 2)) return false;
   if (_tileFilter === 'interact' && !(slot[16] & 4)) return false;
+  var catFlags = (slot.length > 17 ? slot[17] : 0) || ((slot[16] || 0) >> 8);
+  if (_tileFilter === 'unused' && !(catFlags & 1 || (slot[3] === 0 && !slot[10]))) return false;
+  if (_tileFilter === 'canopy' && !(catFlags & 2 || (slot[4] > slot[5]))) return false;
+  if (_tileFilter === 'dual' && !(catFlags & 4)) return false;
   if (_tileShape && tileShapeClass(slot) !== _tileShape) return false;
   if (!_tileFramesSplit && slot[13] === 2) return false;
   return true;
@@ -173,6 +180,9 @@ function tileFilterRowHtml() {
       ['drift', 'drift', 'Show only conveyor drift tiles (water currents, conveyor belts, quicksand, pipes). Off: every tile.'],
       ['deflect', 'deflect', 'Show only tiles vanilla mostly gives the Deflect gate (bit 8, nibble 1 — the Special tab’s Deflect). Off: every tile.'],
       ['interact', 'interaction', 'Show only interactive object tiles (containers, sniff spots, switches — bit 15 set). Off: every tile.'],
+      ['unused', 'unused', 'Show only unused tiles (never placed in any vanilla room grid). Off: every tile.'],
+      ['canopy', 'canopy', 'Show only canopy tiles (drawn in the front/canopy layer over characters). Off: every tile.'],
+      ['dual', '2-layer', 'Show only tiles that need 2 layers with no canopy to look complete (dual-layer ground). Off: every tile.'],
     ], function (v) { return _tileFilter === v; })
     + '</div>';
 }

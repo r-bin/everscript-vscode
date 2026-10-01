@@ -63,6 +63,7 @@ export {
 export type { MetatileInfo, MetatileAtlas, MetatileLayer, MetatileDraft, TileListAtlas } from './metatiles';
 export {
     buildVanillaIndex, graphicsForFamilies, familyExamples, groupByRooms,
+    isUnusedGraphic, isCanopyGraphic, isDualLayerGraphic, tileCategoryFlags,
 } from './vanilla-index';
 export { GRASS_UNCUT, GRASS_CUT } from './vanilla-grass';
 export type { GrassReveal } from './vanilla-grass';

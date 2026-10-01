@@ -1,3 +1,17 @@
+## [0.107.0] — 2026-10-01
+
+### Feat: unused tile tagging & filter, canopy filter, and dual-layer ground filter
+
+- **Unused tile tagging & filter.** Identified and tagged tiles never placed on any vanilla room grid:
+  - Tiles with 0 placements across all 127 vanilla room grids are tagged as unused with a dimmed swatch (`.rg-tile-unused`) and a red `Ø` mark (`.rg-unused-mark`).
+  - Swatch tooltip explicitly states `unused in vanilla (0 grid placements)` rather than showing misleading unplaced dictionary entry counts.
+  - New **`unused`** filter button in the Tile tab filter bar isolates unused graphics. Families with no unused graphics are skipped without fetching sheets.
+- **Canopy filter.** Added a **`canopy`** filter button in the Tile tab to display graphics drawn predominantly in the front / overhead canopy layer over characters.
+- **Dual-layer ground filter.** Added a **`2-layer`** filter button for tiles that need 2 layers with no canopy to look complete (metatiles where both Layer 1 and Layer 2 are used with sprite priority 1 so characters walk in front of both layers).
+  - Dual-layer ground tiles feature a dual-toned border (`box-shadow: inset 0 2px 0 #7ecbd0, inset 0 -2px 0 #b58a4a`) and a `2L` mark (`.rg-dual-mark`).
+  - Swatch tooltip indicates `needs 2 layers with no canopy to look complete (dual-layer ground)`.
+- **Accurate grid placement metric.** Fixed `buildFamilySheet` and `buildVanillaIndex` so placement counts report authentic placed grid cell totals (`index.cells`), correctly identifying leftover and unplaced metatile dictionary entries.
+
 ## [0.106.0] — 2026-10-01
 
 ### Feat: widget tile variations and animation timeline with seek bar

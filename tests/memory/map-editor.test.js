@@ -1903,6 +1903,37 @@ test('tiles list filters by special flags: drift, deflect and interact', () => {
     assert.ok(ui.tileSlotPasses(plain), 'plain tile passes when filter is off');
 });
 
+test('tiles list filters by unused, canopy, and 2-layer', () => {
+    // [slot, chr, graphic, uses, canopyUses, terrainUses, groundShape, groundPct, frontShape, frontPct, grass, gStairs, fStairs, animKind, animFirst, animFrame, specialFlags, categoryFlags]
+    const rowWithCat = (uses, canopyUses, terrainUses, catFlags) => [0, 0, 6000, uses, canopyUses, terrainUses, 0, 90, -1, 0, 0, 0, 0, 0, 0, 0, 0, catFlags];
+    const unusedTile = rowWithCat(0, 0, 0, 1);
+    const canopyTile = rowWithCat(5, 5, 0, 2);
+    const dualTile = rowWithCat(4, 4, 4, 4);
+    const plain = rowWithCat(10, 0, 10, 0);
+
+    // Filter unused
+    ui.tileFilterToggle('unused');
+    assert.ok(ui.tileSlotPasses(unusedTile), 'unused tile passes unused filter');
+    assert.ok(!ui.tileSlotPasses(plain), 'plain tile fails unused filter');
+    assert.ok(!ui.tileSlotPasses(canopyTile), 'canopy tile fails unused filter');
+
+    // Filter canopy
+    ui.tileFilterToggle('canopy');
+    assert.ok(ui.tileSlotPasses(canopyTile), 'canopy tile passes canopy filter');
+    assert.ok(!ui.tileSlotPasses(plain), 'plain tile fails canopy filter');
+    assert.ok(!ui.tileSlotPasses(unusedTile), 'unused tile fails canopy filter');
+
+    // Filter dual (2-layer)
+    ui.tileFilterToggle('dual');
+    assert.ok(ui.tileSlotPasses(dualTile), 'dual-layer tile passes dual filter');
+    assert.ok(!ui.tileSlotPasses(plain), 'plain tile fails dual filter');
+    assert.ok(!ui.tileSlotPasses(unusedTile), 'unused tile fails dual filter');
+
+    // Turn filter off
+    ui.tileFilterToggle('dual');
+    assert.ok(ui.tileSlotPasses(plain), 'plain tile passes when filter is off');
+});
+
 test('a stamped or pasted object lands on the level of the floor under it', () => {
     const { p, d } = fresh();
     ui.editLevelPick(2);

@@ -65,6 +65,8 @@ export interface VanillaIndex {
      * `adjacency`, not instead of it: tile ranking stays undirected.
      */
     directional: DirectionalAdjacency;
+    /** Graphic id -> grid cells placed in dual-layer configurations with no overhead canopy (P=1). */
+    dualNoCanopy: Map<number, number>;
     /** Graphic id -> grid cells it is drawn in. The Jaccard denominator. */
     cells: Map<number, number>;
     /**
@@ -143,6 +145,7 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
     const rooms = new Map<number, number[]>();
     const graphicRooms = new Map<number, Set<number>>();
     const layers = new Map<number, { canopy: number; terrain: number }>();
+    const dualNoCanopy = new Map<number, number>();
     const adjacency = new Map<number, Map<number, number>>();
     const cells = new Map<number, number>();
     const sides = newDirectionalTally();
@@ -203,7 +206,14 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
             const terrain = tileIds[charIndexToSlot(m.layer2 & 0x3ff)];
             if (terrain !== undefined) tally(collCounts, terrain, m.collision, m.uses);
             const canopy = tileIds[charIndexToSlot(m.layer1 & 0x3ff)];
-            if (canopy !== undefined && m.layer1 !== blankCanopy) tally(canopyCollCounts, canopy, m.collision, m.uses);
+            if (canopy !== undefined && m.layer1 !== blankCanopy) {
+                tally(canopyCollCounts, canopy, m.collision, m.uses);
+                // Dual-layer metatile with no overhead canopy (P=1: character drawn in front of both layers)
+                if ((m.collision & 0x1000) !== 0) {
+                    dualNoCanopy.set(canopy, (dualNoCanopy.get(canopy) || 0) + m.uses);
+                    if (terrain !== undefined) dualNoCanopy.set(terrain, (dualNoCanopy.get(terrain) || 0) + m.uses);
+                }
+            }
             noteStairsCell(stairs, terrain, m.layer1 === blankCanopy ? undefined : canopy, m);
         }
         // What cutting grass reveals is never placed, so it is counted here —
@@ -265,6 +275,7 @@ export function buildVanillaIndex(rom: Uint8Array): VanillaIndex {
         animations: compactAnimations(anims),
         adjacency,
         directional: compactDirectional(sides),
+        dualNoCanopy,
         cells,
         geometry,
         roomCount,
@@ -363,3 +374,47 @@ export function graphicsForFamilies(index: VanillaIndex, families: number[]): nu
 export function familyExamples(index: VanillaIndex, family: number, limit = 8): number[] {
     return (index.graphics.get(family) || []).slice(0, limit).map((a) => a.value);
 }
+
+/**
+ * Check if a graphic is unused in vanilla (0 placements on any room grid).
+ */
+export function isUnusedGraphic(index: VanillaIndex, graphic: number): boolean {
+    return (index.cells.get(graphic) || 0) === 0 && !index.grass.has(graphic);
+}
+
+/**
+ * Check if a graphic is drawn predominantly on the canopy layer (overhead canopy / front layer).
+ */
+export function isCanopyGraphic(index: VanillaIndex, graphic: number): boolean {
+    const seen = index.layers.get(graphic);
+    if (!seen || !seen.canopy) return false;
+    return seen.canopy > seen.terrain;
+}
+
+/**
+ * Check if a graphic needs 2 layers with no canopy to look complete (dual-layer ground).
+ */
+export function isDualLayerGraphic(index: VanillaIndex, graphic: number): boolean {
+    const dual = index.dualNoCanopy.get(graphic) || 0;
+    if (!dual) return false;
+    const total = index.cells.get(graphic) || 0;
+    if (!total) return false;
+    const seen = index.layers.get(graphic);
+    const singleGround = (seen ? seen.terrain : 0) - dual;
+    return dual >= singleGround;
+}
+
+/**
+ * Category flags bitmask for a graphic:
+ * - bit 0 (0x01): unused in vanilla
+ * - bit 1 (0x02): canopy tile (overhead / front layer)
+ * - bit 2 (0x04): needs 2 layers with no canopy to look complete
+ */
+export function tileCategoryFlags(index: VanillaIndex, graphic: number): number {
+    let f = 0;
+    if (isUnusedGraphic(index, graphic)) f |= 1;
+    if (isCanopyGraphic(index, graphic)) f |= 2;
+    if (isDualLayerGraphic(index, graphic)) f |= 4;
+    return f;
+}
+

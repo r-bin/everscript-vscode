@@ -234,24 +234,18 @@ function buildFamilySheet(rom, familyId, borrowFrom) {
         cell: 16,
         // [slot, chr, graphicId, placements, canopyUses, terrainUses,
         //  groundShape, groundPct, frontShape, frontPct, grass,
-        //  groundStairs, frontStairs, animKind, animFirst, animFrame] — canopy/terrain
-        // uses let the editor put a tile on the layer vanilla uses it on; the
-        // shapes are the collision it gets there (-1 = never seen), with how
-        // much of vanilla agrees (maps/vanilla-suggest.ts suggestGeometry);
-        // `grass` is the graphic's part in cuttable grass (index.grass flags,
-        // 0 = none); the stairs are the direction it rises drawn unflipped on
-        // that layer, 1 right / 2 left / 3 vertical / 0 not stairs (maps/vanilla-stairs.ts);
-        // animKind is 1 for an animation's frame 0, 2 for a later frame, 0 for
-        // neither, with its frame 0 and frame number (maps/vanilla-animation.ts).
+        //  groundStairs, frontStairs, animKind, animFirst, animFrame, specialFlags, categoryFlags]
         slots: ids.map((id, i) => {
             const seen = index.layers.get(id) || { canopy: 0, terrain: 0 };
             const ground = maps.suggestGeometry(index, id, 'terrain');
             const front = maps.suggestGeometry(index, id, 'canopy');
-            return [i, maps.tileSlotChr(i), id, attested[i].uses, seen.canopy, seen.terrain,
+            const realUses = index.cells.get(id) || (index.grass.get(id) === 2 ? attested[i].uses : 0);
+            const catFlags = maps.tileCategoryFlags(index, id);
+            return [i, maps.tileSlotChr(i), id, realUses, seen.canopy, seen.terrain,
                 ground ? ground.value : -1, ground ? Math.round(ground.confidence * 100) : 0,
                 front ? front.value : -1, front ? Math.round(front.confidence * 100) : 0,
                 index.grass.get(id) || 0, stairsOf(index, id, 'terrain'), stairsOf(index, id, 'canopy'),
-                ...animationOf(index, id), specialFlagsOf(index, id)];
+                ...animationOf(index, id), specialFlagsOf(index, id) | (catFlags << 8)];
         }),
         // Frame-0 graphic -> {frames, delays} for each animation that starts
         // in this family, so the Tile tab can show it moving.
@@ -351,6 +345,9 @@ function buildFamilyCatalogue(rom) {
             drift: list.filter((a) => (specialFlagsOf(index, a.value) & 1) !== 0).length,
             deflect: list.filter((a) => (specialFlagsOf(index, a.value) & 2) !== 0).length,
             interact: list.filter((a) => (specialFlagsOf(index, a.value) & 4) !== 0).length,
+            unused: list.filter((a) => maps.isUnusedGraphic(index, a.value)).length,
+            canopy: list.filter((a) => maps.isCanopyGraphic(index, a.value)).length,
+            dual: list.filter((a) => maps.isDualLayerGraphic(index, a.value)).length,
             // And for the collision filter (floor / edge / wall): graphics with
             // that suggested shape on either layer — a superset, so a family is
             // never dropped that could show one.

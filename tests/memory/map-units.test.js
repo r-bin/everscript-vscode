@@ -856,5 +856,35 @@ test('proceduralPatch uses directional neighbours to populate adjacent cells', (
     assert.strictEqual(patch[1][2].family, 5);
 });
 
+test('tile category helpers classify unused, canopy, and dual-layer graphics', () => {
+    const mockIndex = {
+        cells: new Map([[100, 10], [200, 20], [300, 0]]),
+        grass: new Map(),
+        layers: new Map([
+            [100, { canopy: 15, terrain: 2 }],
+            [200, { canopy: 10, terrain: 10 }],
+            [300, { canopy: 0, terrain: 0 }],
+        ]),
+        dualNoCanopy: new Map([[200, 15]]),
+    };
+
+    // 300 has 0 cells placed and no grass -> unused
+    assert.strictEqual(maps.isUnusedGraphic(mockIndex, 300), true);
+    assert.strictEqual(maps.isUnusedGraphic(mockIndex, 100), false);
+
+    // 100 has canopy 15 > terrain 2 -> canopy
+    assert.strictEqual(maps.isCanopyGraphic(mockIndex, 100), true);
+    assert.strictEqual(maps.isCanopyGraphic(mockIndex, 200), false);
+
+    // 200 has dualNoCanopy 15 >= singleGround (10 - 15 = 0) -> dual-layer
+    assert.strictEqual(maps.isDualLayerGraphic(mockIndex, 200), true);
+    assert.strictEqual(maps.isDualLayerGraphic(mockIndex, 100), false);
+
+    // Bitmasks
+    assert.strictEqual(maps.tileCategoryFlags(mockIndex, 300), 1, 'bit 0 for unused');
+    assert.strictEqual(maps.tileCategoryFlags(mockIndex, 100), 2, 'bit 1 for canopy');
+    assert.strictEqual(maps.tileCategoryFlags(mockIndex, 200), 4, 'bit 2 for dual');
+});
+
 console.log('\n' + (passed + failed) + ' run: ' + passed + ' passed, ' + failed + ' failed');
 if (failed) process.exit(1);
