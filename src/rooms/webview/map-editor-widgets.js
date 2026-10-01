@@ -144,7 +144,7 @@ function widgetAttestedFamilies(cells) {
   }
   // Antiqua urns / pots: 643..648
   if (keys.some(function (g) { return g >= 643 && g <= 648; })) {
-    return [115, 35, 127, 139, 159, 188, 158];
+    return [115, 35, 127, 139, 159, 188, 158, 128, 111, 141];
   }
   // Gothica barrels / pots: 1895, 1897
   if (keys.some(function (g) { return g === 1895 || g === 1897; })) {
@@ -293,20 +293,20 @@ function ensureWidgetPreviews() {
   _widgets.forEach(function (w) {
     if (typeof widgetEnsureVariations === 'function') widgetEnsureVariations(w);
     if (!_widgetArt[w.id] && !_decoAsked['w:' + w.id]) {
-      _decoAsked['w:' + w.id] = true;
       want.push({ id: w.id, w: w.w, h: w.h, cells: w.cells });
     }
     (w.variations || []).forEach(function (v) {
       var vKey = w.id + ':' + v.id;
       if (!_widgetArt[vKey] && !_decoAsked['w:' + vKey]) {
-        _decoAsked['w:' + vKey] = true;
         var vCells = (v.frames && v.frames[0] && v.frames[0].cells) || w.cells || [];
         want.push({ id: vKey, w: w.w, h: w.h, cells: vCells });
       }
     });
   });
   if (!want.length) return;
-  vs.postMessage({ command: 'requestDeco', widgets: want.slice(0, 48) });
+  var chunk = want.slice(0, 48);
+  chunk.forEach(function (c) { _decoAsked['w:' + c.id] = true; });
+  vs.postMessage({ command: 'requestDeco', widgets: chunk });
 }
 
 function widgetCardHtml(w) {

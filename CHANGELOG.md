@@ -1,3 +1,12 @@
+## [0.108.2] — 2026-10-01
+
+### Fix: prevent palette slot exhaustion on placed widget variation changes, restore thumbnails & add 10 urn variants
+
+- **Palette slot management on variation switch (`placedSetVariation`).** Switching variation now reuses the group's existing palette slot if unshared, or allocates an unused slot while actively pruning orphaned widget variation families that have 0 usage across the room. Prevents the 7/7 palette limit from being reached when cycling variants, allowing variants 5 and 6 (and all others) to be selected smoothly.
+- **Variation chip thumbnail rendering (`widgetArtStyle`).** Fixed empty / blank chip thumbnails by replacing invalid `background-size: contain` and `background-position: center` rules with `widgetArtStyle()`, correctly positioning and centering sprite-sheet previews into 30×30 chip thumbnails with `data-w` and `data-h` tracking.
+- **10 attested Antiqua urn variants (`widgetAttestedFamilies`).** Expanded Antiqua urn attested families to all 10 verified ROM families (`[115, 35, 127, 139, 159, 188, 158, 128, 111, 141]`).
+- **Deferred widget preview loading.** Placed list now calls `requestWidgets()` if `_widgets` is not loaded yet, and `ensureWidgetPreviews()` marks only the chunk of 48 actually requested to prevent starvation.
+
 ## [0.108.1] — 2026-10-01
 
 ### Fix: restore clean widget library cards & move variant preview chips to Placed list

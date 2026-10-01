@@ -71,7 +71,9 @@ function applyDecoPreviews(msg) {
     var sel = msg.mine ? '[data-widget-art="' + id + '"]' : '.rg-deco[data-deco="' + id + '"] .rg-deco-art';
     var els = body.querySelectorAll(sel);
     for (var k = 0; k < els.length; k++) {
-      els[k].setAttribute('style', decoArtStyle(art[id]));
+      var fn = (els[k].classList.contains('rg-widget-var-thumb') && typeof widgetArtStyle === 'function')
+        ? widgetArtStyle : decoArtStyle;
+      els[k].setAttribute('style', fn(art[id], Number(els[k].dataset.w), Number(els[k].dataset.h), 30));
     }
   });
 }

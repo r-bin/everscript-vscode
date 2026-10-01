@@ -330,7 +330,7 @@
 .rg-theme .rg-object-card.on{border-color:var(--rg-accent);background:var(--rg-bg-chrome)}
 .rg-theme .rg-object-card .rg-object-row,.rg-theme .rg-placed-card .rg-placed-row{border:none;border-radius:0}
 .rg-theme .rg-placed-card{margin-bottom:6px}
-.rg-theme .rg-widget-var-thumb{display:inline-block;width:28px;height:28px;background-size:contain;background-repeat:no-repeat;background-position:center;image-rendering:pixelated}
+.rg-theme .rg-widget-var-thumb{display:block;width:30px;height:30px;background-repeat:no-repeat;image-rendering:pixelated}
 .rg-theme .rg-object-still{font-family:var(--rg-font-ui);font-size:11px;color:var(--rg-text-muted);margin-left:4px}
 .rg-theme .rg-object-caret{cursor:pointer;display:inline-block;width:14px;text-align:center;font-size:11px;color:var(--rg-text-muted);user-select:none}
 .rg-theme .rg-object-expanded{padding:6px 8px 8px 30px;border-top:1px solid var(--rg-border)}

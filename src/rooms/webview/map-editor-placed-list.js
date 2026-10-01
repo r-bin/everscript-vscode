@@ -17,13 +17,23 @@ var _placedDragRow = null, _placedOpen = {};
 
 /** Find the widget definition for a placed group. */
 function placedFindWidget(g) {
-  if (typeof _widgets === 'undefined' || !_widgets) return null;
-  if (g.widget) {
-    for (var i = 0; i < _widgets.length; i++) if (_widgets[i].id === g.widget) return _widgets[i];
+  if (typeof _widgets !== 'undefined' && _widgets) {
+    if (g.widget) {
+      for (var i = 0; i < _widgets.length; i++) if (_widgets[i].id === g.widget) return _widgets[i];
+    }
+    for (var j = 0; j < _widgets.length; j++) {
+      var w = _widgets[j];
+      if (w.name === g.name || (g.name && g.name.indexOf(w.name) === 0)) return w;
+    }
   }
-  for (var j = 0; j < _widgets.length; j++) {
-    var w = _widgets[j];
-    if (w.name === g.name || (g.name && g.name.indexOf(w.name) === 0)) return w;
+  if (g.cells && typeof widgetAttestedFamilies === 'function') {
+    var c = typeof editGroupConstruct === 'function' ? editGroupConstruct(_mtPalette, g) : null;
+    var fams = c && widgetAttestedFamilies(c.cells);
+    if (fams && fams.length > 1) {
+      var gw = { id: 'g-' + g.uid, name: g.name, w: g.w, h: g.h, cells: c.cells };
+      if (typeof widgetEnsureVariations === 'function') widgetEnsureVariations(gw);
+      return gw;
+    }
   }
   return null;
 }
@@ -64,6 +74,55 @@ function placedPartsText(g) {
   return out.join(', ');
 }
 
+function editSlotUsageCount(palette, slot, excludeUid) {
+  var d = editDraft();
+  if (!d || !palette) return 0;
+  var count = 0;
+  var shown = typeof editBakedCells === 'function' ? editBakedCells(palette) : d.cells;
+  var keys = Object.keys(shown || {});
+  for (var i = 0; i < keys.length; i++) {
+    var w = editStampWords(palette, shown[keys[i]]);
+    if (w && (editWordFamilySlot(w.layer1) === slot || editWordFamilySlot(w.layer2) === slot)) count++;
+  }
+  if (d.cut) {
+    var cutKeys = Object.keys(d.cut);
+    for (var j = 0; j < cutKeys.length; j++) {
+      var cw = editStampWords(palette, d.cut[cutKeys[j]]);
+      if (cw && (editWordFamilySlot(cw.layer1) === slot || editWordFamilySlot(cw.layer2) === slot)) count++;
+    }
+  }
+  if (typeof editObjectStamps === 'function') {
+    var ostamps = editObjectStamps();
+    for (var k = 0; k < ostamps.length; k++) {
+      var ow = editStampWords(palette, ostamps[k]);
+      if (ow && (editWordFamilySlot(ow.layer1) === slot || editWordFamilySlot(ow.layer2) === slot)) count++;
+    }
+  }
+  var groups = d.groups || [];
+  for (var m = 0; m < groups.length; m++) {
+    var og = groups[m];
+    if (og.uid === excludeUid) continue;
+    var gcells = og.cells || [];
+    for (var n = 0; n < gcells.length; n++) {
+      var part = gcells[n];
+      if (editWordFamilySlot(part.layer1) === slot || editWordFamilySlot(part.layer2) === slot) count++;
+    }
+  }
+  return count;
+}
+
+function widgetArtStyle(a, w, h, target) {
+  if (!a) return '';
+  var size = target || 30;
+  var pxW = (w || 2) * 16, pxH = (h || 2) * 16;
+  var n = 1;
+  while (pxW / n > 48 || pxH / n > 48) n *= 2;
+  var dw = Math.floor(pxW / n), dh = Math.floor(pxH / n);
+  var sx = a.x + Math.floor((48 - dw) / 2) - Math.floor((size - dw) / 2);
+  var sy = a.y + Math.floor((48 - dh) / 2) - Math.floor((size - dh) / 2);
+  return 'background-image:url(' + a.uri + ');background-position:-' + sx + 'px -' + sy + 'px;background-repeat:no-repeat;';
+}
+
 /** Switch the variation of a placed widget on the map. One undo step. */
 function placedSetVariation(palette, uid, varIdx) {
   var g = editGroupFind(uid);
@@ -79,6 +138,44 @@ function placedSetVariation(palette, uid, varIdx) {
   var v = w.variations[varIdx];
   var c = typeof widgetConstruct === 'function' ? widgetConstruct(w, varIdx) : null;
   if (!c) return;
+
+  var targetFam = null;
+  (c.cells || []).forEach(function (part) {
+    if (targetFam == null && part.canopy && part.canopy.family != null) targetFam = part.canopy.family;
+    if (targetFam == null && part.terrain && part.terrain.family != null) targetFam = part.terrain.family;
+  });
+
+  var gSlots = [];
+  (g.cells || []).forEach(function (part) {
+    var s1 = editWordFamilySlot(part.layer1);
+    if (s1 >= 0 && gSlots.indexOf(s1) < 0) gSlots.push(s1);
+    var s2 = editWordFamilySlot(part.layer2);
+    if (s2 >= 0 && gSlots.indexOf(s2) < 0) gSlots.push(s2);
+  });
+
+  var fams = editFamilies();
+  var attested = typeof widgetAttestedFamilies === 'function' ? (widgetAttestedFamilies(w.cells) || []) : [];
+
+  for (var s = 0; s < 7; s++) {
+    if (fams[s] !== undefined && fams[s] !== targetFam && attested.indexOf(fams[s]) >= 0) {
+      if (editSlotUsageCount(palette, s, g.uid) === 0) editClearFamily(s);
+    }
+  }
+
+  if (targetFam != null && fams.indexOf(targetFam) < 0) {
+    var assignedSlot = -1;
+    for (var i = 0; i < gSlots.length; i++) {
+      if (editSlotUsageCount(palette, gSlots[i], g.uid) === 0) { assignedSlot = gSlots[i]; break; }
+    }
+    if (assignedSlot < 0) assignedSlot = editFreeFamilySlot();
+    if (assignedSlot < 0) {
+      for (var j = 0; j < 7; j++) {
+        if (editSlotUsageCount(palette, j, g.uid) === 0) { assignedSlot = j; break; }
+      }
+    }
+    if (assignedSlot >= 0) editSetFamily(assignedSlot, targetFam);
+  }
+
   var got = typeof editConstructParts === 'function' ? editConstructParts(palette, c, g.x, g.y) : null;
   if (!got || (!got.parts.length && c.cells && c.cells.length)) {
     if (got && got.problems && got.problems.length) editNote('cannot switch variation: ' + got.problems.join(', '));
@@ -137,8 +234,8 @@ function placedRowHtml(g, n) {
         var vArt = _widgetArt && (_widgetArt[vKey] || _widgetArt[w.id]);
         chipsHtml += '<button class="ro-chip' + (on ? ' sel' : '') + '" data-placed-var-uid="' + g.uid
           + '" data-placed-var-idx="' + idx + '" title="Variation ' + escH(v.name) + '">'
-          + '<i class="ro-img rg-widget-var-thumb" data-widget-art="' + escH(vKey) + '" style="'
-          + (typeof decoArtStyle === 'function' ? decoArtStyle(vArt) : '') + '"></i>'
+          + '<i class="ro-img rg-widget-var-thumb" data-widget-art="' + escH(vKey) + '" data-w="' + (w.w || 2) + '" data-h="' + (w.h || 2) + '" style="'
+          + widgetArtStyle(vArt, w.w, w.h, 30) + '"></i>'
           + '<span class="ro-lbl">' + escH(v.name) + '</span></button>';
       });
     } else if (hasObjStates) {
@@ -179,6 +276,7 @@ function placedRowHtml(g, n) {
 
 /** The Placed list: every stamped widget, in draw order. */
 function placedListHtml() {
+  if (typeof requestWidgets === 'function') requestWidgets();
   if (typeof ensureWidgetPreviews === 'function') ensureWidgetPreviews();
   var d = editDraft();
   var list = (d && d.groups) || [];
