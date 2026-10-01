@@ -275,7 +275,7 @@ function editExport(palette) {
  */
 function editStampRef(x, y, index, layer) {
   var ref = { x: x, y: y, index: index, layer: layer };
-  if (layer === 'coll') return ref; // a geometry code, not a stamp
+  if (layer === 'coll' || layer === 'collDraw') return ref; // a code or a drawing, not a stamp
   var words = editAddedWords(index);
   if (words) ref.words = words;
   return ref;

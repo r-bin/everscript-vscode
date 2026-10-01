@@ -79,15 +79,19 @@ function editPreviewSvg() {
     + previewBoxSvg(c.x, c.y, 1, 1, 'rg-preview-box');
 }
 
-/** The shape a quarter drawn (or erased) here would make, and the quarter itself. */
+/** The cell's drawing as this pen (or eraser) stroke would leave it: green-lit if it matches a tile. */
 function previewCollDrawSvg(d, c) {
   var pos = editCellPos(_editOrigin, c.x, c.y), h = EDIT_UNITS / 2;
-  var code = collDrawResult(c, d.tool === 'erase');
-  var q = '<rect class="' + (d.tool === 'erase' ? 'rg-preview-erase' : 'rg-preview-box') + '" x="' + (pos.x + c.qx * h)
+  var erasing = d.tool === 'erase';
+  var next = collDrawNext(c, erasing);
+  var ok = collCodeOfQuarters(next & 15, true) >= 0;
+  var col = ok ? collLevelColor(collCellLevel(c.x, c.y)) : 'var(--rg-error, #e5534b)';
+  var sq = '';
+  for (var b = 0; b < 4; b++) if (next & (1 << b)) sq += 'M' + (pos.x + (b & 1) * h) + ' ' + (pos.y + (b >> 1) * h) + 'h' + h + 'v' + h + 'h' + (-h) + 'z';
+  return (sq ? '<path class="rg-preview-ghost" d="' + sq + '" fill="' + col + '"/>' : '')
+    + previewBoxSvg(c.x, c.y, 1, 1, 'rg-preview-box')
+    + '<rect class="' + (erasing ? 'rg-preview-erase' : 'rg-preview-box') + '" x="' + (pos.x + c.qx * h)
     + '" y="' + (pos.y + c.qy * h) + '" width="' + h + '" height="' + h + '"/>';
-  if (code < 0) return q;
-  return '<path class="rg-preview-ghost" d="' + collMaskPath(code, pos.x, pos.y, EDIT_UNITS / 16) + '" fill="'
-    + collLevelColor(collCellLevel(c.x, c.y)) + '"/>' + previewBoxSvg(c.x, c.y, 1, 1, 'rg-preview-box') + q;
 }
 
 /** A cell-aligned outline, `w`×`h` cells from (x, y). */

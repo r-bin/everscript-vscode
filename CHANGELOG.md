@@ -1,3 +1,11 @@
+## [0.103.1] — 2026-10-01
+
+### Fix: Draw 8px is a pen — the drawing stays as drawn and applies only where it matches a tile
+
+- **What you draw stays exactly as drawn**, 8px square by 8px square. A cell's collision changes only while its four quarters match a real collision tile: all four (solid), two along a side (half), or an L of three (45°). Anything else stays on the map, marked in red, and the cell keeps its own collision: a lone corner, two opposite corners, or nothing left after erasing. Before this fix, every stroke was turned into a shape straight away, so a single corner became a diagonal.
+- The eraser removes single 8px squares. Drawing over a cell set with Shapes replaces that shape, and picking a shape over a drawing replaces the drawing; each is one undo step. Cells drawn with 0.103.0 count as picked shapes, and the pen or eraser clears them the same way.
+- The hover preview shows the cell as your stroke would leave it, marked red if that won't match a tile.
+
 ## [0.103.0] — 2026-10-01
 
 ### Feat: draw collision freehand on the 8px grid; filter to the shapes vanilla uses

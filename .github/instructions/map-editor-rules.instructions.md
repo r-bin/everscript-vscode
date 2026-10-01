@@ -303,9 +303,12 @@ no room places and the engine's tables treat as open. The diagonal twins differ
 in the per-code tables read after `$909DE8` — `$8FA3F8` (open compass points:
 three for 0x02/0x01/0x0E/0x0D, one for 0x06/0x05/0x0A/0x09) and `$8FA418` (a
 slide entry only for the three-point twin) — labelled "slides"/"stops", which is
-a reading of those tables, not confirmed in game. **Draw 8px** paints quarters:
-the quarters filled name the code (`collCodeOfQuarters`); opposite corners name
-none and are refused, never rounded to something.
+a reading of those tables, not confirmed in game. **Draw 8px** is a pen whose drawing
+is kept as drawn (`_edit.collDraw`, four quarters per cell): a cell takes a code
+only while its quarters match a tile (`collCodeOfQuarters`: all four, two along a
+side, an L of three). A lone corner or opposite corners match none — they stay
+drawn and marked, and the cell keeps its own shape; never rounded to something.
+A cell holds a picked shape or a drawing, not both.
 The Special tab's flags stay there: they sit on top of a shape.
 
 **Layers over the map.** The cuttable layer (`_edit.cut`) and each object's `layer`

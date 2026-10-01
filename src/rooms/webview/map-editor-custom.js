@@ -370,7 +370,7 @@ function customCapture(m, d) {
  * stacks travel separately, as the map's history (customCapture).
  */
 var CUSTOM_DRAFT_FIELDS = ['cells', 'added', 'specialCells', 'addedGraphics', 'placed',
-  'families', 'autoFamilies', 'start', 'placedSeq', 'constructs', 'cut', 'coll', 'groups', 'groupSeq', 'plane',
+  'families', 'autoFamilies', 'start', 'placedSeq', 'constructs', 'cut', 'coll', 'collDraw', 'groups', 'groupSeq', 'plane',
   'removedTriggers', 'triggerOrder', 'plannedOnly', 'header'];
 
 function customSerialize(d) {

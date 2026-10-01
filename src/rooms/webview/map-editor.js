@@ -282,7 +282,7 @@ function editMoveStart(x, y) {
 
 /** The map a write lands in: the cuttable layer for `layer: 'cut'`, else the cells. */
 function editLayerMap(w) {
-  if (w.layer === 'coll') return _edit.coll || (_edit.coll = {}); // map-editor-collision-tab.js
+  if (w.layer === 'coll' || w.layer === 'collDraw') return _edit[w.layer] || (_edit[w.layer] = {}); // map-editor-collision-tab.js
   if (w.layer !== 'cut') return _edit.cells;
   return _edit.cut || (_edit.cut = {});
 }
