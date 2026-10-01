@@ -810,6 +810,11 @@ const ui = new Function(`
     clampRoomSide: clampRoomSide, widgetEditHeadHtml: widgetEditHeadHtml,
     setWidgetEdit: function (w) { _widgetEdit = w; },
     objectLooksStatic: objectLooksStatic, objectIsOpen: objectIsOpen, setObjectOpen: function (k, v) { _objectOpen[k] = v; }, objectReorder: objectReorder, objectTabHtml: objectTabHtml,
+    neighbourCardHtml: neighbourCardHtml, setNbMode: setNbMode, getNbMode: getNbMode,
+    applyNeighbourTiles: applyNeighbourTiles,
+    applyVanillaExamples: applyVanillaExamples, applyProceduralFill: applyProceduralFill,
+    setBrushTile: function (bt) { _brushTile = bt; },
+    setPanelOpen: function (k, v) { _panelOpen[k] = v; },
   };`)();
 
 /** A palette with the tile sheet the host now sends alongside it. */
@@ -2682,5 +2687,78 @@ test('a drawn L shows as the 45° tile it makes; a lone corner shows as unmatche
     ui.setTab('tile');
 });
 
+test('prediction card supports relationship +, vanilla examples, and procedural fill modes', () => {
+    const { d } = fresh();
+    const p = tilePalette();
+    ui.setPalette(p);
+    // Arm brush with a stamp whose layer2 has graphic 0x0422 (chr 0 in palette slot 0)
+    d.brush = ui.editAddStamp(p, { layer1: 0xa800, layer2: 0x0400, collision: 0 });
+    ui.setBrushTile({ graphic: 0x0422, family: 35 });
+    ui.setPanelOpen('neighbours', true);
+    // Initial call sets _nbKey
+    ui.neighbourCardHtml();
+    ui.applyNeighbourTiles({
+        graphic: 0x0422,
+        terrain: { n: [], e: [], s: [], w: [] },
+        canopy: { n: [], e: [], s: [], w: [] },
+    });
+
+    // Initial default mode is cross (relationship +)
+    let card = ui.neighbourCardHtml();
+    assert.ok(card.includes('data-nb-mode="cross"'));
+    assert.ok(card.includes('data-nb-mode="examples"'));
+    assert.ok(card.includes('data-nb-mode="fill"'));
+    assert.ok(card.includes('class="rg-nb-plus"'), 'cross mode must render plus shape');
+
+    // Switch to vanilla examples mode
+    ui.setNbMode('examples');
+    assert.strictEqual(ui.getNbMode(), 'examples');
+
+    // Provide mock examples
+    ui.applyVanillaExamples({
+        graphic: 0x0422,
+        examples: [{
+            roomId: 1,
+            hexId: '0x01',
+            roomName: "Exterior of Blimp's Hut",
+            area: 'Prehistoria',
+            count: 3,
+            layer: 'canopy',
+            patch: [
+                [null, { c: [10, 8, 0, 0] }, null],
+                [{ c: [11, 8, 0, 0] }, { c: [0x0422, 8, 0, 0] }, { c: [12, 8, 0, 0] }],
+                [null, { c: [13, 8, 0, 0] }, null],
+            ],
+        }],
+    });
+    card = ui.neighbourCardHtml();
+    assert.ok(card.includes("Exterior of Blimp's Hut"), 'examples mode must render room name');
+    assert.ok(card.includes('data-nb-example-stamp="0"'), 'examples mode must offer arm stamp');
+    assert.ok(card.includes('data-nb-example-room="0x01"'), 'examples mode must offer open room');
+
+    // Switch to procedural filling mode
+    ui.setNbMode('fill');
+    assert.strictEqual(ui.getNbMode(), 'fill');
+    card = ui.neighbourCardHtml();
+    assert.ok(card.includes('data-nb-regenerate="1"'), 'fill mode must render re-generate button');
+    assert.ok(card.includes('data-nb-fill-stamp="1"'), 'fill mode must render arm stamp button');
+
+    // Provide mock procedural fill patch
+    ui.applyProceduralFill({
+        graphic: 0x0422,
+        patch: [
+            [{ graphic: 10, family: 8 }, { graphic: 11, family: 8 }, { graphic: 12, family: 8 }],
+            [{ graphic: 13, family: 8 }, { graphic: 0x0422, family: 8 }, { graphic: 14, family: 8 }],
+            [{ graphic: 15, family: 8 }, { graphic: 16, family: 8 }, { graphic: 17, family: 8 }],
+        ],
+    });
+    card = ui.neighbourCardHtml();
+    assert.ok(card.includes('data-nb-tile-pick="10"'), 'fill mode renders generated tiles');
+
+    // Reset back to cross
+    ui.setNbMode('cross');
+});
+
 console.log(`\n  ${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);
+

@@ -105,6 +105,7 @@ function renderComposer() {
 var EDIT_CLICK_KEYS = ['editTool', 'editAct', 'editPick', 'panel',
   'famTile', 'construct', 'chip', 'chipDrop', 'chipAdopt',
   'brushFlip', 'tileFilter', 'tileShape', 'tileFrames', 'strandedFix', 'strandedDrop', 'nbSide', 'nbCentre', 'nbUse',
+  'nbMode', 'nbRegenerate', 'nbFillSize', 'nbFillStamp', 'nbExampleStamp', 'nbExampleRoom', 'nbTilePick', 'nbFamPick',
   'layerForce', 'deco', 'decoSave', 'widget', 'widgetEdit', 'widgetAct',
   'objectSel', 'objectToggle', 'objectFrame', 'objectAddFrame', 'objectRemove', 'objectRemoveFrame',
   'objectConfirmRemoveFrame', 'objectCancelRemoveFrame', 'objectMoveFrame',
@@ -261,11 +262,7 @@ function bindEditControls(panel, room) {
     if (t.dataset.editLevel) { editLevelPick(t.dataset.editLevel); return; }
     if (t.dataset.collisionMode) { collisionModeSet(t.dataset.collisionMode); return; }
     if (t.dataset.triggerRef) { triggerSelect(triggerParseRef(t.dataset.triggerRef)); return; }
-    if (t.dataset.triggerRemove) {
-      triggerSelect(triggerParseRef(t.dataset.triggerRemove));
-      triggerDeleteSelected();
-      return;
-    }
+    if (t.dataset.triggerRemove) { triggerSelect(triggerParseRef(t.dataset.triggerRemove)); triggerDeleteSelected(); return; }
     if (t.dataset.panel) { panelToggle(t.dataset.panel); return; }
     if (t.dataset.editActiveTab) {
       // Leaving a tab drops what was selected on it; the Boy pick is the
@@ -282,10 +279,7 @@ function bindEditControls(panel, room) {
       return;
     }
     if (t.dataset.chip) { chipToggle(t.dataset.chip); return; }
-    if (t.dataset.chipDrop !== undefined && t.dataset.chipDrop !== '') {
-      chipDrop(t.dataset.chipDrop);
-      return;
-    }
+    if (t.dataset.chipDrop !== undefined && t.dataset.chipDrop !== '') { chipDrop(t.dataset.chipDrop); return; }
     if (t.dataset.chipAdopt) { chipAdopt(t.dataset.chipAdopt); return; }
     if (t.dataset.headerBit) { infoHeaderBit(t.dataset.headerBit); return; }
     if (t.dataset.famAdd) { chipAddFamily(); return; }
@@ -296,6 +290,13 @@ function bindEditControls(panel, room) {
     if (t.dataset.nbSide) { nbSideClick(t.dataset.nbSide); return; }
     if (t.dataset.nbCentre) { brushLayerToggle(); return; }
     if (t.dataset.nbUse) { nbUse(t.dataset.nbUse); return; }
+    if (t.dataset.nbMode) { setNbMode(t.dataset.nbMode); return; }
+    if (t.dataset.nbRegenerate) { regenerateProceduralFill(); return; }
+    if (t.dataset.nbFillStamp) { armProceduralFillStamp(); return; }
+    if (t.dataset.nbFillSize) { setProceduralFillSize(Number(t.dataset.nbFillSize)); return; }
+    if (t.dataset.nbExampleRoom) { openVanillaRoom(t.dataset.nbExampleRoom); return; }
+    if (t.dataset.nbExampleStamp !== undefined) { armExampleStamp(Number(t.dataset.nbExampleStamp)); return; }
+    if (t.dataset.nbTilePick) { editUseFamilyTile(Number(t.dataset.nbTilePick), t.dataset.nbFamPick ? Number(t.dataset.nbFamPick) : null); return; }
     if (t.dataset.strandedFix) { strandedFix(t.dataset.strandedFix); return; }
     if (t.dataset.strandedDrop) { strandedDrop(t.dataset.strandedDrop); return; }
     if (t.dataset.layerForce) {

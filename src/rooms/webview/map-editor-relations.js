@@ -220,3 +220,150 @@ function nbFamilyFor(row) {
   return { family: list[0], usable: false,
     why: 'family ' + list[0] + ' is not loaded and all seven palette slots are taken' };
 }
+
+// ── prediction modes: relationship +, vanilla examples, procedural fill ───────
+
+var _nbMode = 'cross'; // 'cross' | 'examples' | 'fill'
+var _nbExamples = null;
+var _nbExamplesKey = null;
+var _nbFill = null;
+var _nbFillKey = null;
+var _nbFillSize = 3;
+
+function getNbMode() {
+  if (typeof uiPrefs !== 'undefined' && uiPrefs && uiPrefs.nbMode) return uiPrefs.nbMode;
+  return _nbMode;
+}
+
+function setNbMode(mode) {
+  _nbMode = mode;
+  if (mode === 'examples') ensureVanillaExamples();
+  else if (mode === 'fill') ensureProceduralFill(false);
+  if (typeof uiPrefs !== 'undefined' && uiPrefs) {
+    uiPrefs.nbMode = mode;
+    if (typeof saveUiPrefs === 'function') saveUiPrefs();
+  }
+  renderEditPanels();
+}
+
+function ensureVanillaExamples() {
+  var c = nbCentre();
+  var g = c ? c.graphic : null;
+  if (g === _nbExamplesKey) return;
+  _nbExamplesKey = g;
+  _nbExamples = null;
+  if (g === null || typeof vs === 'undefined' || !vs) return;
+  vs.postMessage({ command: 'requestVanillaExamples', graphic: g });
+}
+
+function applyVanillaExamples(msg) {
+  if (!msg) return;
+  if (_nbExamplesKey !== null && msg.graphic !== _nbExamplesKey) return;
+  _nbExamplesKey = msg.graphic;
+  _nbExamples = msg.examples || [];
+  renderEditPanels();
+}
+
+function ensureProceduralFill(force) {
+  var c = nbCentre();
+  if (!c) { _nbFill = null; _nbFillKey = null; return; }
+  var key = [c.graphic, c.layer, _nbFillSize, _brushFlip.h ? 'H' : '', _brushFlip.v ? 'V' : ''].join('|');
+  if (!force && key === _nbFillKey && _nbFill) return;
+  _nbFillKey = key;
+  if (typeof vs === 'undefined' || !vs) return;
+  vs.postMessage({
+    command: 'requestProceduralFill',
+    graphic: c.graphic,
+    layer: c.layer,
+    width: _nbFillSize,
+    height: _nbFillSize,
+    seed: Math.floor(Math.random() * 1000000)
+  });
+}
+
+function applyProceduralFill(msg) {
+  if (!msg || !_nbFillKey || !msg.patch) return;
+  _nbFill = msg.patch;
+  renderEditPanels();
+}
+
+function regenerateProceduralFill() {
+  ensureProceduralFill(true);
+}
+
+function setProceduralFillSize(sz) {
+  _nbFillSize = sz === 4 ? 4 : 3;
+  ensureProceduralFill(true);
+}
+
+function armProceduralFillStamp() {
+  var d = editDraft();
+  var c = nbCentre();
+  if (!d || !c || !_nbFill || !_nbFill.length) return;
+  var h = _nbFill.length;
+  var w = _nbFill[0].length;
+  var cells = [];
+  var flags = (_brushFlip.h ? 0x4000 : 0) | (_brushFlip.v ? 0x8000 : 0);
+  for (var y = 0; y < h; y++) {
+    for (var x = 0; x < w; x++) {
+      var tile = _nbFill[y][x];
+      if (!tile || tile.graphic == null) continue;
+      var part = { graphic: tile.graphic, family: tile.family, flags: flags };
+      cells.push({
+        dx: x, dy: y,
+        canopy: c.layer === 'canopy' ? part : null,
+        terrain: c.layer === 'terrain' ? part : null
+      });
+    }
+  }
+  if (!cells.length) return;
+  var name = w + '×' + h + ' procedural ' + (c.layer === 'canopy' ? 'front' : 'ground');
+  d.constructs.push({
+    name: name,
+    w: w, h: h,
+    cells: cells,
+    attachments: { bTrigger: [], stepOn: [], objects: [] }
+  });
+  _editConstruct = d.constructs.length - 1;
+  d.tool = 'paint';
+  editNote('armed ' + name + ' — paint to stamp');
+  renderEditChrome();
+}
+
+function armExampleStamp(exampleIdx) {
+  var d = editDraft();
+  if (!d || !_nbExamples || !_nbExamples[exampleIdx]) return;
+  var ex = _nbExamples[exampleIdx];
+  var cells = [];
+  for (var y = 0; y < ex.patch.length; y++) {
+    for (var x = 0; x < ex.patch[y].length; x++) {
+      var cell = ex.patch[y][x];
+      if (!cell) continue;
+      var cPart = cell.c ? { graphic: cell.c[0], family: cell.c[1], flags: (cell.c[2] ? 0x4000 : 0) | (cell.c[3] ? 0x8000 : 0) } : null;
+      var tPart = cell.t ? { graphic: cell.t[0], family: cell.t[1], flags: (cell.t[2] ? 0x4000 : 0) | (cell.t[3] ? 0x8000 : 0) } : null;
+      cells.push({ dx: x, dy: y, canopy: cPart, terrain: tPart });
+    }
+  }
+  if (!cells.length) return;
+  var name = '3×3 from ' + ex.roomName;
+  d.constructs.push({
+    name: name,
+    w: 3, h: 3,
+    cells: cells,
+    attachments: { bTrigger: [], stepOn: [], objects: [] }
+  });
+  _editConstruct = d.constructs.length - 1;
+  d.tool = 'paint';
+  editNote('armed ' + name + ' — paint to stamp');
+  renderEditChrome();
+}
+
+function openVanillaRoom(hexId) {
+  if (typeof VANILLA_ROOM_DETAILS !== 'undefined' && VANILLA_ROOM_DETAILS && VANILLA_ROOM_DETAILS[hexId]) {
+    renderRoomDetail(VANILLA_ROOM_DETAILS[hexId]);
+    return;
+  }
+  var el = document.querySelector('.vn-map[data-vid="' + hexId + '"]');
+  if (el && typeof railSelectRow === 'function') railSelectRow(el);
+}
+

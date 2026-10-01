@@ -81,6 +81,8 @@ export type {
 } from './vanilla-adjacency';
 export { blankRoom, emptyStamp, roomProblems, MIN_TILES, MAX_TILES } from './blank-room';
 export type { BlankRoomOptions } from './blank-room';
+export { proceduralPatch } from './vanilla-procedural';
+export type { ProceduralTile } from './vanilla-procedural';
 export {
     roomBudget, marginalCost, wramBytes, MAX_GRAPHICS, MAX_FAMILIES, MAX_WRAM, VANILLA_MAX,
 } from './budget';

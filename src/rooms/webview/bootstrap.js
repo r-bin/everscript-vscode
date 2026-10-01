@@ -52,6 +52,12 @@ if(typeof window!=='undefined'&&window.addEventListener){
       // What vanilla draws on each side of the armed brush (§8b).
       if(typeof applyNeighbourTiles==='function')applyNeighbourTiles(data);
       if(data.error)console.warn('[RoomsRender] neighbourTiles:',data.error);
+    }else if(data.command==='vanillaExamples'){
+      if(typeof applyVanillaExamples==='function')applyVanillaExamples(data);
+      if(data.error)console.warn('[RoomsRender] vanillaExamples:',data.error);
+    }else if(data.command==='proceduralFill'){
+      if(typeof applyProceduralFill==='function')applyProceduralFill(data);
+      if(data.error)console.warn('[RoomsRender] proceduralFill:',data.error);
     }else if(data.command==='familyPreviews'){
       // One strip of art per family, so the picker shows before it asks.
       // Two-tile chips and eight-tile strips share one builder; `chips`

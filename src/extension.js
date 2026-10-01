@@ -134,7 +134,7 @@ function radarItemIcons() {
     return buildItemIcons(romReaders.loadRomBuffer(ws, getExtConfig().romPath || ''));
 }
 const roomTree = require('./rooms');
-const { findRoomImage, parseRoomContent, collectRoomsFromDir, buildRoomTree, renderVanillaTree, renderRoomsTree, buildRoomsJson, setRoomImageUris, buildRoomTileOverlay, buildRoomMetatilePalette, buildComposedPreview, buildBlankRoom, buildDraftCollision, buildExportRom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews, decoIndex, decoCells, buildDecoPreviews, buildWidgetPreviews, buildConstructGhost, relatedTiles, neighbourTiles, handlesCustomMapMessage, handleCustomMapMessage } = roomTree;
+const { findRoomImage, parseRoomContent, collectRoomsFromDir, buildRoomTree, renderVanillaTree, renderRoomsTree, buildRoomsJson, setRoomImageUris, buildRoomTileOverlay, buildRoomMetatilePalette, buildComposedPreview, buildBlankRoom, buildDraftCollision, buildExportRom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews, decoIndex, decoCells, buildDecoPreviews, buildWidgetPreviews, buildConstructGhost, relatedTiles, neighbourTiles, vanillaExamples, proceduralFill, handlesCustomMapMessage, handleCustomMapMessage } = roomTree;
 
 const romReaders = require('./shared/rom-readers');
 const { readPngDimensions, readRomTriggerOffsets, readRomMapHeader, readRomCharacters, readRomHitLookup, detectScaleEnemies } = romReaders;
@@ -955,6 +955,35 @@ function activate(context) {
                             return;
                         }
                         _radarPanel.webview.postMessage({ ...reply, ...neighbourTiles(romBuf, msg.graphic) });
+                    } catch (err) {
+                        _radarPanel.webview.postMessage({ ...reply, graphic: msg.graphic, error: String(err && err.message || err) });
+                    }
+                } else if (msg.command === 'requestVanillaExamples') {
+                    const reply = { command: 'vanillaExamples' };
+                    try {
+                        const _cfg = getExtConfig();
+                        const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
+                        if (!romBuf) {
+                            _radarPanel.webview.postMessage({ ...reply, graphic: msg.graphic, error: 'ROM not found — set everscript.romPath' });
+                            return;
+                        }
+                        _radarPanel.webview.postMessage({ ...reply, graphic: msg.graphic, examples: vanillaExamples(romBuf, msg.graphic) });
+                    } catch (err) {
+                        _radarPanel.webview.postMessage({ ...reply, graphic: msg.graphic, error: String(err && err.message || err) });
+                    }
+                } else if (msg.command === 'requestProceduralFill') {
+                    const reply = { command: 'proceduralFill' };
+                    try {
+                        const _cfg = getExtConfig();
+                        const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
+                        if (!romBuf) {
+                            _radarPanel.webview.postMessage({ ...reply, graphic: msg.graphic, error: 'ROM not found — set everscript.romPath' });
+                            return;
+                        }
+                        const patch = proceduralFill(romBuf, msg.graphic, msg.layer, msg.width, msg.height, msg.seed);
+                        _radarPanel.webview.postMessage({ ...reply, graphic: msg.graphic, layer: msg.layer, width: msg.width, height: msg.height, patch });
                     } catch (err) {
                         _radarPanel.webview.postMessage({ ...reply, graphic: msg.graphic, error: String(err && err.message || err) });
                     }

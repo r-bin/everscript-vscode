@@ -788,5 +788,73 @@ test('an unknown graphic has four empty sides, and limit caps each side', () => 
     assert.strictEqual(maps.directionalNeighbours(directional, 1, 1, 2).e.length, 2);
 });
 
+// ── vanilla-procedural.ts ───────────────────────────────────────────────────
+
+test('proceduralPatch places seedGraphic at center of grid', () => {
+    const { adjacency, directional, cells } = walkSynthetic([
+        [[U, 10], [U, 20]],
+        [[U, 30], [U, 40]],
+    ]);
+    const mockIndex = {
+        families: new Map([[10, [{ value: 1, uses: 5 }]], [20, [{ value: 1, uses: 5 }]]]),
+        graphics: new Map(),
+        rooms: new Map(),
+        graphicRooms: new Map(),
+        layers: new Map(),
+        collisions: new Map(),
+        canopyCollisions: new Map(),
+        grass: new Map(),
+        stairs: new Map(),
+        animations: { framesOf: new Map(), frameZeroOf: new Map() },
+        adjacency,
+        directional,
+        cells,
+        geometry: [],
+        roomCount: 1,
+        placements: 4,
+        edges: 4,
+    };
+    const patch3 = maps.proceduralPatch(mockIndex, 10, 1, 3, 3);
+    assert.strictEqual(patch3.length, 3);
+    assert.strictEqual(patch3[0].length, 3);
+    assert.strictEqual(patch3[1][1].graphic, 10, 'center of 3x3 must be seed graphic');
+
+    const patch4 = maps.proceduralPatch(mockIndex, 20, 1, 4, 4);
+    assert.strictEqual(patch4.length, 4);
+    assert.strictEqual(patch4[0].length, 4);
+    assert.strictEqual(patch4[2][2].graphic, 20, 'center of 4x4 must be seed graphic');
+});
+
+test('proceduralPatch uses directional neighbours to populate adjacent cells', () => {
+    const { adjacency, directional, cells } = walkSynthetic([
+        [[U, 1], [U, 2]],
+    ]);
+    const mockIndex = {
+        families: new Map([[1, [{ value: 5, uses: 10 }]], [2, [{ value: 5, uses: 10 }]]]),
+        graphics: new Map(),
+        rooms: new Map(),
+        graphicRooms: new Map(),
+        layers: new Map(),
+        collisions: new Map(),
+        canopyCollisions: new Map(),
+        grass: new Map(),
+        stairs: new Map(),
+        animations: { framesOf: new Map(), frameZeroOf: new Map() },
+        adjacency,
+        directional,
+        cells,
+        geometry: [],
+        roomCount: 1,
+        placements: 2,
+        edges: 1,
+    };
+    // 2 is east of 1
+    const patch = maps.proceduralPatch(mockIndex, 1, 1, 3, 3, () => 0.5);
+    // Center is (1, 1) = 1. East is (1, 2)
+    assert.strictEqual(patch[1][1].graphic, 1);
+    assert.strictEqual(patch[1][2].graphic, 2, 'east neighbour of 1 should be 2');
+    assert.strictEqual(patch[1][2].family, 5);
+});
+
 console.log('\n' + (passed + failed) + ' run: ' + passed + ' passed, ' + failed + ' failed');
 if (failed) process.exit(1);

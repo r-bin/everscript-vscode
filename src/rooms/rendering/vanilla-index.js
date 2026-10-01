@@ -155,6 +155,148 @@ function neighbourTiles(rom, graphic) {
     return out;
 }
 
+const { VANILLA_ROOMS } = require('../data/vanilla-data');
+
+let roomMetaMap = null;
+function getRoomMeta(roomId) {
+    if (!roomMetaMap) {
+        roomMetaMap = new Map();
+        for (const { area, rooms } of VANILLA_ROOMS) {
+            for (const r of rooms) {
+                roomMetaMap.set(parseInt(r.id, 16), { name: r.name, area, hexId: r.id });
+            }
+        }
+    }
+    return roomMetaMap.get(roomId) || { name: 'Room ' + roomId, area: 'Vanilla', hexId: '0x' + roomId.toString(16) };
+}
+
+function charIndexToSlot(charIdx) {
+    return Math.floor(charIdx / 0x20) * 8 + Math.floor((charIdx % 0x20) / 2);
+}
+
+/**
+ * Find vanilla scenarios where `graphic` is used.
+ *
+ * Returns up to `limit` scenarios across vanilla rooms. Each scenario includes
+ * the room ID, name, area, total placements, layer, and a 3x3 surrounding patch
+ * showing the graphic in its authentic vanilla context.
+ */
+function vanillaExamples(rom, graphic, limit = 8) {
+    const index = vanillaIndex(rom);
+    const g = Number(graphic);
+    if (isNaN(g)) return [];
+    const roomIds = index.graphicRooms.get(g) || [];
+    const results = [];
+
+    for (const id of roomIds) {
+        if (results.length >= limit) break;
+        let room;
+        try {
+            room = maps.decodeRoom(rom, id);
+        } catch {
+            continue;
+        }
+        const tileIds = room.tilePalette.concat(room.animatedTiles);
+        const { layer1, layer2 } = room.metatileSlices;
+        const grid = room.layer1MetatileIds;
+        if (!grid || !grid.length) continue;
+
+        let count = 0;
+        let bestLoc = null;
+        const layerSeen = { canopy: false, terrain: false };
+
+        const h = grid.length;
+        const w = grid[0].length;
+
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                const mid = grid[y][x];
+                const i = maps.metatileIndex(room, mid);
+                if (i < 0 || i >= room.metatileCount) continue;
+                const w1 = layer1[i] || 0;
+                const w2 = layer2[i] || 0;
+                const g1 = tileIds[charIndexToSlot(w1 & 0x3ff)];
+                const g2 = tileIds[charIndexToSlot(w2 & 0x3ff)];
+                const match1 = g1 === g;
+                const match2 = g2 === g;
+                if (match1) { count++; layerSeen.canopy = true; }
+                if (match2) { count++; layerSeen.terrain = true; }
+                if ((match1 || match2) && !bestLoc) {
+                    bestLoc = { x, y, layer: match1 ? 'canopy' : 'terrain' };
+                }
+            }
+        }
+        if (!bestLoc) continue;
+
+        // 3x3 patch centered on bestLoc
+        const patch = [];
+        for (let dy = -1; dy <= 1; dy++) {
+            const row = [];
+            for (let dx = -1; dx <= 1; dx++) {
+                const cy = bestLoc.y + dy;
+                const cx = bestLoc.x + dx;
+                if (cy < 0 || cy >= h || cx < 0 || cx >= w) {
+                    row.push(null);
+                    continue;
+                }
+                const mid = grid[cy][cx];
+                const i = maps.metatileIndex(room, mid);
+                if (i < 0 || i >= room.metatileCount) {
+                    row.push(null);
+                    continue;
+                }
+                const w1 = layer1[i] || 0;
+                const w2 = layer2[i] || 0;
+                const p1 = (w1 >> 10) & 7;
+                const p2 = (w2 >> 10) & 7;
+                const g1 = tileIds[charIndexToSlot(w1 & 0x3ff)];
+                const g2 = tileIds[charIndexToSlot(w2 & 0x3ff)];
+                const fam1 = p1 >= 1 ? room.tileFamilies[p1 - 1] : null;
+                const fam2 = p2 >= 1 ? room.tileFamilies[p2 - 1] : null;
+                row.push({
+                    c: g1 !== undefined ? [g1, fam1, (w1 & 0x4000) ? 1 : 0, (w1 & 0x8000) ? 1 : 0] : null,
+                    t: g2 !== undefined ? [g2, fam2, (w2 & 0x4000) ? 1 : 0, (w2 & 0x8000) ? 1 : 0] : null,
+                });
+            }
+            patch.push(row);
+        }
+
+        const meta = getRoomMeta(id);
+        results.push({
+            roomId: id,
+            hexId: meta.hexId,
+            roomName: meta.name,
+            area: meta.area,
+            count,
+            layer: layerSeen.canopy && layerSeen.terrain ? 'both' : (layerSeen.canopy ? 'canopy' : 'terrain'),
+            x: bestLoc.x,
+            y: bestLoc.y,
+            patch,
+        });
+    }
+
+    return results;
+}
+
+/**
+ * Generate a procedural patch of tiles around `graphic`.
+ */
+function proceduralFill(rom, graphic, layerName, width = 3, height = 3, seed) {
+    const index = vanillaIndex(rom);
+    const g = Number(graphic);
+    if (isNaN(g)) return [];
+    const layer = layerName === 'canopy' ? 0 : 1;
+    let rng = Math.random;
+    if (seed !== undefined && seed !== null) {
+        let s = Number(seed) || 1234567;
+        rng = () => {
+            s = (s * 9301 + 49297) % 233280;
+            return s / 233280;
+        };
+    }
+    return maps.proceduralPatch(index, g, layer, width, height, rng);
+}
+
 /** Drop the cached index (call when the ROM changes). */
 /** Placed cells per collision geometry code, over every vanilla room (the Collision tab's filter). */
 function vanillaGeometry(rom) {
@@ -168,5 +310,7 @@ function invalidateVanillaIndex() {
 
 module.exports = {
     vanillaGeometry,
-    vanillaIndex, annotateGraphics, budgetSummary, relatedTiles, neighbourTiles, invalidateVanillaIndex,
+    vanillaIndex, annotateGraphics, budgetSummary, relatedTiles, neighbourTiles,
+    vanillaExamples, proceduralFill, invalidateVanillaIndex,
 };
+

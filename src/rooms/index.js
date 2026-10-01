@@ -19,7 +19,7 @@ const { buildDecoPreviews, buildWidgetPreviews, buildConstructGhost } = require(
 const { buildExportRom }                                            = require('./rendering/rom-export');
 const { buildCustomMapArchive }                                     = require('./rendering/custom-export');
 const { handlesCustomMapMessage, handleCustomMapMessage }           = require('./custom-host');
-const { relatedTiles, neighbourTiles }                              = require('./rendering/vanilla-index');
+const { relatedTiles, neighbourTiles, vanillaExamples, proceduralFill } = require('./rendering/vanilla-index');
 const { buildItemIcons }                                            = require('./data/item-icons');
 const { VANILLA_ROOMS, buildVanillaRoomContent,
         buildVanillaRoomDetails, invalidateVanillaDataCaches }      = require('./data/vanilla-data');
@@ -84,6 +84,8 @@ module.exports = {
     buildConstructGhost,
     relatedTiles,
     neighbourTiles,
+    vanillaExamples,
+    proceduralFill,
 
     // Data
     VANILLA_ROOMS,

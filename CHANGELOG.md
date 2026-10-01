@@ -1,3 +1,13 @@
+## [0.105.0] — 2026-10-01
+
+### Feat: prediction modes — relationship +, vanilla examples, and procedural filling
+
+- **Prediction modes toggle bar.** The "likely neighbors" card on the Tile tab now includes segmented buttons to switch between three prediction modes:
+  - **relationship +** (`cross`): The directional compass showing likely North, East, South, and West neighbors based on authentic vanilla metatile adjacency and Jaccard co-occurrence scores.
+  - **vanilla examples** (`examples`): Authentic scenarios where the tile appears across the 127 vanilla rooms. Each card displays room name, area, layer, occurrence count, and an interactive 3×3 surrounding context patch with controls to pick neighbor tiles, arm the entire 3×3 patch as a multi-cell stamp, or jump directly to the room in the editor.
+  - **procedural filling** (`fill`): Procedural patch generation using directional Markov transitions weighted by adjacency. Features a **⟳ re-generate** button to cycle combinations, 3×3 and 4×4 size toggles, tile picking, and an **arm stamp** action to paint the generated cluster onto your map.
+- **Pure generator & engine index.** Implemented pure TypeScript `proceduralPatch` in `src/maps/vanilla-procedural.ts`, along with `vanillaExamples` and `proceduralFill` helpers in `src/rooms/rendering/vanilla-index.js`.
+
 ## [0.104.0] — 2026-10-01
 
 ### Feat: one collision pen that draws and carves into the predicted collision

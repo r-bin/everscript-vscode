@@ -102,6 +102,120 @@ function nbDetailHtml() {
     + (fam.usable ? 'use' : 'no slot') + '</button></div>';
 }
 
+/** The 3 prediction modes: relationship +, vanilla examples, procedural filling */
+function nbModesBarHtml() {
+  var mode = typeof getNbMode === 'function' ? getNbMode() : 'cross';
+  return '<div class="rg-nb-modes">'
+    + '<button class="rg-nb-mode-b' + (mode === 'cross' ? ' on' : '') + '" data-nb-mode="cross" title="Which tile is likely to neighbor it (compass directions)">relationship +</button>'
+    + '<button class="rg-nb-mode-b' + (mode === 'examples' ? ' on' : '') + '" data-nb-mode="examples" title="Vanilla scenarios where this tile is used">vanilla examples</button>'
+    + '<button class="rg-nb-mode-b' + (mode === 'fill' ? ' on' : '') + '" data-nb-mode="fill" title="Procedural patch with combinations using relationship values">procedural filling</button>'
+    + '</div>';
+}
+
+/** Mode 1: the classic plus-shaped directional neighbor view. */
+function nbCrossHtml(c, layerName) {
+  ensureNeighbours();
+  if (!_nbAnswer) return '<div class="rg-nb-detail rg-nb-hint">reading vanilla…</div>';
+  if (_nbAnswer.error) return '<div class="rg-nb-detail rg-nb-hint">' + escH(_nbAnswer.error) + '</div>';
+
+  var html = '<div class="rg-nb-plus">'
+    + '<button class="rg-nb-centre" data-nb-centre="1" title="' + escH('graphic ' + c.graphic
+      + ' in family ' + c.family + ', the brush — drawn as ' + layerName
+      + '\nClick to draw it as ' + (c.layer === 'canopy' ? 'ground' : 'front') + ' instead') + '">'
+    + nbArtHtml(c.graphic, c.family, nbFlipCls()) + '</button>';
+  for (var i = 0; i < 4; i++) html += nbSideHtml('nesw'.charAt(i), layerName);
+  return html + '</div>' + nbDetailHtml();
+}
+
+/** Mode 2: authentic vanilla scenarios where this tile appears. */
+function nbExamplesHtml(c) {
+  ensureVanillaExamples();
+  if (!_nbExamples) return '<div class="rg-nb-detail rg-nb-hint">reading vanilla scenarios…</div>';
+  if (!_nbExamples.length) return '<div class="rg-nb-detail rg-nb-hint">this tile is not placed in any vanilla room.</div>';
+
+  var html = '<div class="rg-nb-examples">';
+  for (var i = 0; i < _nbExamples.length; i++) {
+    var ex = _nbExamples[i];
+    html += '<div class="rg-nb-example-card">';
+    html += '<div class="rg-nb-ex-head">'
+      + '<span class="rg-nb-ex-room" title="' + escH(ex.hexId + ' ' + ex.roomName + ' (' + ex.area + ')') + '">'
+      + escH(ex.hexId + ' ' + ex.roomName) + '</span>'
+      + '<span class="rg-nb-ex-count">' + ex.count + '× · ' + ex.layer + '</span>'
+      + '</div>';
+
+    html += '<div class="rg-nb-patch-grid rg-nb-grid-3">';
+    for (var y = 0; y < ex.patch.length; y++) {
+      for (var x = 0; x < ex.patch[y].length; x++) {
+        var cell = ex.patch[y][x];
+        var isCenter = (x === 1 && y === 1);
+        if (!cell) {
+          html += '<span class="rg-nb-cell rg-nb-empty"></span>';
+          continue;
+        }
+        var part = c.layer === 'canopy' ? (cell.c || cell.t) : (cell.t || cell.c);
+        if (!part) {
+          html += '<span class="rg-nb-cell rg-nb-empty"></span>';
+          continue;
+        }
+        var g = part[0];
+        var fam = part[1];
+        var flip = (part[2] ? ' rg-flip-h' : '') + (part[3] ? ' rg-flip-v' : '');
+        html += '<button class="rg-nb-cell' + (isCenter ? ' on' : '') + '" data-nb-tile-pick="' + g + '"'
+          + (fam !== null && fam !== undefined ? ' data-nb-fam-pick="' + fam + '"' : '')
+          + ' title="' + escH('graphic ' + g + (fam !== null ? ' in family ' + fam : '') + (isCenter ? ' (this tile)' : ' · click to pick')) + '">'
+          + nbArtHtml(g, fam, flip) + '</button>';
+      }
+    }
+    html += '</div>';
+
+    html += '<div class="rg-nb-ex-actions">'
+      + '<button class="rg-nb-use" data-nb-example-stamp="' + i + '" title="Arm this 3×3 scenario as a stamp to paint">arm stamp</button>'
+      + '<button class="rg-nb-use" data-nb-example-room="' + ex.hexId + '" title="Open ' + escH(ex.hexId + ' ' + ex.roomName) + ' in the editor">open room</button>'
+      + '</div>';
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+/** Mode 3: procedural filling using relationship values with re-generate button. */
+function nbFillHtml(c, layerName) {
+  ensureProceduralFill(false);
+  var html = '<div class="rg-nb-fill-bar">'
+    + '<button class="rg-nb-btn" data-nb-regenerate="1" title="Generate new combinations from relationship values">⟳ re-generate</button>'
+    + '<button class="rg-nb-btn' + (_nbFillSize === 3 ? ' on' : '') + '" data-nb-fill-size="3" title="3×3 patch">3×3</button>'
+    + '<button class="rg-nb-btn' + (_nbFillSize === 4 ? ' on' : '') + '" data-nb-fill-size="4" title="4×4 patch">4×4</button>'
+    + '<button class="rg-nb-btn" data-nb-fill-stamp="1" title="Arm this combination as a stamp to paint on the map">arm stamp</button>'
+    + '</div>';
+
+  if (!_nbFill) return html + '<div class="rg-nb-detail rg-nb-hint">generating procedural combination…</div>';
+
+  var gridCls = _nbFillSize === 4 ? 'rg-nb-grid-4' : 'rg-nb-grid-3';
+  html += '<div class="rg-nb-patch-grid ' + gridCls + '">';
+  var cx = Math.floor(_nbFillSize / 2);
+  var cy = Math.floor(_nbFillSize / 2);
+
+  for (var y = 0; y < _nbFill.length; y++) {
+    for (var x = 0; x < _nbFill[y].length; x++) {
+      var tile = _nbFill[y][x];
+      var isCenter = (x === cx && y === cy);
+      if (!tile || tile.graphic == null) {
+        html += '<span class="rg-nb-cell rg-nb-empty"></span>';
+        continue;
+      }
+      var g = tile.graphic;
+      var fam = tile.family;
+      html += '<button class="rg-nb-cell' + (isCenter ? ' on' : '') + '" data-nb-tile-pick="' + g + '"'
+        + (fam !== null && fam !== undefined ? ' data-nb-fam-pick="' + fam + '"' : '')
+        + ' title="' + escH('graphic ' + g + (fam !== null ? ' in family ' + fam : '') + (isCenter ? ' (seed)' : ' · click to pick')) + '">'
+        + nbArtHtml(g, fam, nbFlipCls()) + '</button>';
+    }
+  }
+  html += '</div>';
+  html += '<div class="rg-nb-detail rg-nb-hint">click a tile to pick · re-generate for new combinations</div>';
+  return html;
+}
+
 /**
  * The card. Always there (§8e: "prediction exists, but is collapsed (and
  * empty)") — a card that appears only once a tile is armed reads as the
@@ -113,31 +227,33 @@ function neighbourCardHtml() {
   var open = _panelOpen.neighbours !== false;
   if (!c) {
     return '<div class="rg-nb-card"><div class="rg-sec-h" data-panel="neighbours"'
-      + ' title="What vanilla draws on each side of the tile you pick.">'
+      + ' title="Prediction: likely neighbors, vanilla scenarios, and procedural fills for the tile you pick.">'
       + '<span class="rg-panel-caret">' + (open ? '▾' : '▸') + '</span>'
       + '<span class="rg-sec-name">likely neighbors</span>'
       + '<span class="rg-sec-count">—</span></div>'
-      + (open ? '<div class="rg-nb-detail rg-nb-hint">pick a tile to see what vanilla draws beside it</div>' : '')
+      + (open ? '<div class="rg-nb-detail rg-nb-hint">pick a tile to see neighbors, scenarios, or procedural fills</div>' : '')
       + '</div>';
   }
   var layerName = c.layer === 'canopy' ? 'front' : 'ground';
+  var mode = typeof getNbMode === 'function' ? getNbMode() : 'cross';
   var html = '<div class="rg-nb-card"><div class="rg-sec-h" data-panel="neighbours"'
-    + ' title="' + escH('What vanilla draws on each side of the armed tile, on the '
-      + layerName + ' layer. Scored per side — a side vanilla never fills stays empty.') + '">'
+    + ' title="' + escH('Prediction modes for graphic ' + c.graphic + ' on ' + layerName + ' layer.') + '">'
     + '<span class="rg-panel-caret">' + (open ? '▾' : '▸') + '</span>'
     + '<span class="rg-sec-name">likely neighbors</span>'
     + '<span class="rg-sec-count">' + layerName + '</span></div>';
   if (!open) return html + '</div>';
-  if (!_nbAnswer) return html + '<div class="rg-nb-detail rg-nb-hint">reading vanilla…</div></div>';
-  if (_nbAnswer.error) return html + '<div class="rg-nb-detail rg-nb-hint">' + escH(_nbAnswer.error) + '</div></div>';
 
-  html += '<div class="rg-nb-plus">'
-    + '<button class="rg-nb-centre" data-nb-centre="1" title="' + escH('graphic ' + c.graphic
-      + ' in family ' + c.family + ', the brush — drawn as ' + layerName
-      + '\nClick to draw it as ' + (c.layer === 'canopy' ? 'ground' : 'front') + ' instead') + '">'
-    + nbArtHtml(c.graphic, c.family, nbFlipCls()) + '</button>';
-  for (var i = 0; i < 4; i++) html += nbSideHtml('nesw'.charAt(i), layerName);
-  return html + '</div>' + nbDetailHtml() + '</div>';
+  html += nbModesBarHtml();
+
+  if (mode === 'examples') {
+    html += nbExamplesHtml(c);
+  } else if (mode === 'fill') {
+    html += nbFillHtml(c, layerName);
+  } else {
+    html += nbCrossHtml(c, layerName);
+  }
+
+  return html + '</div>';
 }
 
 /** A click on a side: focus it first, cycle it once it is focused. */

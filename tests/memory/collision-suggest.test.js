@@ -10,9 +10,10 @@ const assert = require('assert');
 
 const maps = require('../../src/maps');
 
+const LOCAL_ROM = path.join(__dirname, '..', '..', 'script_parser', 'dependencies', 'Secret of Evermore (U) [!].smc');
 const EVERSCRIPT_REPO = process.env.EVERSCRIPT_REPO ||
     path.join(path.dirname(path.dirname(path.dirname(path.resolve(__dirname)))), 'everscript');
-const ROM_PATH = process.env.EVERSCRIPT_ROM || path.join(EVERSCRIPT_REPO, 'Secret of Evermore (U) [!].smc');
+const ROM_PATH = process.env.EVERSCRIPT_ROM || (fs.existsSync(LOCAL_ROM) ? LOCAL_ROM : path.join(EVERSCRIPT_REPO, 'Secret of Evermore (U) [!].smc'));
 
 let passed = 0;
 let failed = 0;
@@ -240,6 +241,35 @@ if (!fs.existsSync(ROM_PATH)) {
         const png = Buffer.from(out.imageUri.split(',')[1], 'base64');
         assert.ok(png.length > 100);
         assert.throws(() => rooms.buildDraftCollision(rom, { widthTiles: w, heightTiles: h, cells: cells.slice(3) }), /does not match/);
+    });
+
+    test('vanillaExamples returns real scenario patches for attested graphic', () => {
+        const examples = rooms.vanillaExamples(rom, 120, 5);
+        assert.ok(examples.length > 0, 'must find at least one vanilla room using graphic 120');
+        const ex0 = examples[0];
+        assert.ok(ex0.roomId !== undefined);
+        assert.ok(ex0.roomName);
+        assert.ok(ex0.area);
+        assert.ok(ex0.count >= 1);
+        assert.strictEqual(ex0.patch.length, 3, 'patch must be 3 rows');
+        assert.strictEqual(ex0.patch[0].length, 3, 'patch must be 3 cols');
+        // Center of patch (1, 1) must contain graphic 120 on canopy or terrain
+        const center = ex0.patch[1][1];
+        assert.ok(center, 'center cell must exist');
+        const gCenter = (center.c && center.c[0]) || (center.t && center.t[0]);
+        assert.strictEqual(gCenter, 120, 'center cell of scenario must be graphic 120');
+    });
+
+    test('proceduralFill generates 3x3 and 4x4 combinations from relationship graph', () => {
+        const patch3 = rooms.proceduralFill(rom, 120, 'canopy', 3, 3, 42);
+        assert.strictEqual(patch3.length, 3);
+        assert.strictEqual(patch3[0].length, 3);
+        assert.strictEqual(patch3[1][1].graphic, 120);
+
+        const patch4 = rooms.proceduralFill(rom, 120, 'terrain', 4, 4, 99);
+        assert.strictEqual(patch4.length, 4);
+        assert.strictEqual(patch4[0].length, 4);
+        assert.strictEqual(patch4[2][2].graphic, 120);
     });
 }
 
