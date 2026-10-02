@@ -1,3 +1,9 @@
+## [0.117.2] — 2026-10-02
+
+### Changed: state 0's step shows as a fixed 1
+
+- **Under state 0, a greyed-out `1`.** The first step always happens on the next tick, because the game starts the countdown at zero when a script sets the state. The box shows that rather than leaving a gap; it cannot be edited. The last state still has no box, since nothing comes after it.
+
 ## [0.117.1] — 2026-10-02
 
 ### Fix: an object's Play works, and its tick boxes are narrow

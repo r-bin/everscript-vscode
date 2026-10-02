@@ -2261,11 +2261,14 @@ test('a vanilla object brings how long it holds each state; frames keep their ho
     const tabBefore = ui.tab();
     let o = ui.editObjects()[0];
     assert.deepStrictEqual(o.holds, [0, 7, 9]);
-    // State 0 and the last state are never held: no tick box under them.
+    // Only the held states have a field to edit.
     ui.objectSelect(o.uid);
     const html = ui.objectStatesHtml(o, 0);
     assert.deepStrictEqual((html.match(/data-object-hold="(\d+)"/g) || []).map((m) => m.match(/\d+/)[0]), ['1', '2']);
     assert.match(html, /data-object-play=/);
+    // State 0 to 1 is always the next tick: a greyed-out 1, not a field.
+    assert.match(html, /<input[^>]*rg-object-hold-fixed[^>]*value="1" disabled/);
+    assert.strictEqual((html.match(/rg-object-hold-none/g) || []).length, 1, 'only the last state has no box');
     // 1 for the first step, then 7 and 9.
     assert.strictEqual(ui.objectRunTicks(o), 17);
 

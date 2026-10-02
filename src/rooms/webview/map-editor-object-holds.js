@@ -60,10 +60,18 @@ function objectRunTicks(o) {
   return t;
 }
 
-/** The tick box under state `s`'s chip — or a spacer, for a state never held. */
+/**
+ * The tick box under state `s`'s chip: how long until the next step. State 0's
+ * is fixed at 1 — `$90A395` zeroes the countdown when the script sets the
+ * state, so the first step is always the next tick — and shown greyed out.
+ * The last state has nothing after it: a spacer.
+ */
 function objectHoldCellHtml(o, s) {
-  if (!objectStateHeld(o, s)) return '<span class="rg-object-hold-none" title="'
-    + (s === 0 ? 'State 0 is where it starts or stops — never held' : 'The last state is where it stops — never held') + '"></span>';
+  if (s === 0 && editObjectFrames(o).length) {
+    return '<input type="number" class="rg-anim-ticks rg-object-hold rg-object-hold-fixed" value="1" disabled'
+      + ' aria-label="State 0 to 1: always 1 tick" title="Always the next tick: the game starts the first step at once"/>';
+  }
+  if (!objectStateHeld(o, s)) return '<span class="rg-object-hold-none" title="The last state is where it stops — nothing after it"></span>';
   var t = objectHolds(o)[s], dis = editLocked() ? ' disabled' : '';
   return '<input type="number" class="rg-anim-ticks rg-object-hold" min="0" max="' + OBJECT_HOLD_MAX + '" value="' + t
     + '" data-object-hold="' + s + '" data-object-uid="' + o.uid + '" aria-label="State ' + s + ' hold in ticks"'

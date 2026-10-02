@@ -326,8 +326,9 @@ must count as in use for pruning and for the family sync.
 **An object steps, it does not jump** (map-editor-object-holds.js). A script setting
 a state walks the object there one state at a time, and byte 0 of each descriptor —
 once read as a width, it is not one — is how many 60 Hz ticks that state is held on
-the way through (`o.holds[s]`, map_objects.md §4c). State 0 and the last state are
-never held, so they get no tick box. Holds travel with their state when frames are
+the way through (`o.holds[s]`, map_objects.md §4c). State 0 to 1 is always one
+tick (the countdown starts at zero), shown as a greyed-out `1`; the last state has
+nothing after it, so no box. Holds travel with their state when frames are
 added, moved or removed; a vanilla object's come from the ROM, a new state's is 1.
 Play on the tab is `0x7e` from the start: it shows state 0, then steps to the last
 state as the engine would (first step on the next tick, then each hold), once — no
