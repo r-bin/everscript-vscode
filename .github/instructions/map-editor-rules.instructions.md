@@ -329,8 +329,9 @@ once read as a width, it is not one — is how many 60 Hz ticks that state is he
 the way through (`o.holds[s]`, map_objects.md §4c). State 0 and the last state are
 never held, so they get no tick box. Holds travel with their state when frames are
 added, moved or removed; a vanilla object's come from the ROM, a new state's is 1.
-Play on the tab steps it as the engine would: first step on the next tick, then each
-hold.
+Play on the tab is `0x7e` from the start: it shows state 0, then steps to the last
+state as the engine would (first step on the next tick, then each hold), once — no
+loop, and never back down.
 
 **Widgets** (map-editor-widgets.js) are portable constructs in one library file every
 map shares. Their cells are `{graphic, family, flags, anim}` per layer, or `null` for "keep

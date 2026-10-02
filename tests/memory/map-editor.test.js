@@ -2312,8 +2312,9 @@ test('Play steps an object one state at a time, holding each for its ticks', () 
         assert.strictEqual(o.activeFrame, 2);
         assert.strictEqual(ui.objectPlaying(), null, 'stops at the last state');
         assert.strictEqual(timers.length, 2);
-        // From the last state it plays back down.
+        // Like setting it to 0x7e from the start: again from state 0, never back down.
         ui.objectPlay(o.uid);
+        assert.strictEqual(o.activeFrame, 0);
         timers[2].fn();
         assert.strictEqual(o.activeFrame, 1);
     } finally {

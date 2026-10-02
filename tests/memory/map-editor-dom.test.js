@@ -2426,6 +2426,27 @@ async function main() {
         objectRemoveFrame(obj2.uid, 1);
         r.framesAfterRemove = obj2.frames.length;
 
+        // Play and the hold boxes, clicked and measured in the real panel.
+        objectAddFrame(obj2.uid);
+        objectAddFrame(obj2.uid);
+        objectSelect(obj2.uid);
+        renderEditChrome();
+        const play = document.querySelector('[data-object-play]');
+        r.playLit = !!play && getComputedStyle(play).opacity === '1';
+        if (play) play.click();
+        r.playRuns = !!_objectPlay;
+        objectStopPlay();
+        const hold = document.querySelector('input[data-object-hold]');
+        r.holdWidth = hold ? hold.getBoundingClientRect().width : -1;
+        if (hold) {
+            const probe = document.createElement('span');
+            probe.style.font = getComputedStyle(hold).font;
+            probe.textContent = '255';
+            document.body.appendChild(probe);
+            r.digitsWidth = probe.getBoundingClientRect().width;
+            probe.remove();
+        }
+
         _editComposed = composed;
         return r;
     });
@@ -2433,6 +2454,9 @@ async function main() {
         v80.first === 0 && v80.second === 0, JSON.stringify(v80));
     check('the bottom bar has Triggers with B and step-on apart, on a custom map too', v80.triggers, JSON.stringify(v80));
     check('with Cuttable off the map shows the tile beneath; on, the cuttable one', v80.cutOff && v80.cutOn, JSON.stringify(v80));
+    check('an object’s Play is lit, and clicking it starts stepping', v80.playLit && v80.playRuns, JSON.stringify(v80));
+    check('a hold box barely fits three digits', v80.holdWidth >= v80.digitsWidth && v80.holdWidth <= v80.digitsWidth + 12,
+        JSON.stringify({ holdWidth: v80.holdWidth, digitsWidth: v80.digitsWidth }));
     check('there is an Object tab, after Trigger', /trigger,object,widgets/.test(v80.tabs), v80.tabs);
     check('Collision and Animation are sub-tabs of Tile, not top tabs', /^(tile|collision|anim),special,trigger/.test(v80.tabs) && !/collision,|anim,/.test(v80.tabs.replace(/^[a-z]+,/, '')), v80.tabs);
     check('on the Object tab the pencil drags out an area, selected', v80.area === '0,0,2,2' && v80.sel, JSON.stringify(v80));

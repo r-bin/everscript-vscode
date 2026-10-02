@@ -1,3 +1,11 @@
+## [0.117.1] — 2026-10-02
+
+### Fix: an object's Play works, and its tick boxes are narrow
+
+- **▶ Play on the Object tab now runs.** A click on it never reached the tab, so it did nothing. It also looked disabled, like every small button in the panel; it is lit now, here and on the Animation tab.
+- **Play does what `object[n] = 0x7e` does.** It starts from state 0 and steps once to the last state, holding each state on the way, then stops there without looping.
+- **A hold's tick box is just wide enough for three digits**, since a hold is 0 to 255.
+
 ## [0.117.0] — 2026-10-02
 
 ### Added: objects step through their states, holding each one for its ticks

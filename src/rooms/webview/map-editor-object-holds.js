@@ -65,7 +65,7 @@ function objectHoldCellHtml(o, s) {
   if (!objectStateHeld(o, s)) return '<span class="rg-object-hold-none" title="'
     + (s === 0 ? 'State 0 is where it starts or stops — never held' : 'The last state is where it stops — never held') + '"></span>';
   var t = objectHolds(o)[s], dis = editLocked() ? ' disabled' : '';
-  return '<input type="number" class="rg-anim-ticks" min="0" max="' + OBJECT_HOLD_MAX + '" value="' + t
+  return '<input type="number" class="rg-anim-ticks rg-object-hold" min="0" max="' + OBJECT_HOLD_MAX + '" value="' + t
     + '" data-object-hold="' + s + '" data-object-uid="' + o.uid + '" aria-label="State ' + s + ' hold in ticks"'
     + ' title="Held ' + Math.max(1, t) + ' tick' + (Math.max(1, t) === 1 ? '' : 's') + ' (' + Math.round(Math.max(1, t) * OBJECT_TICK_MS)
     + ' ms) on the way through — 0 and 1 are both the next tick"' + dis + '/>';
@@ -78,7 +78,7 @@ function objectTimingHtml(o) {
   var playing = _objectPlay && _objectPlay.uid === o.uid, t = objectRunTicks(o);
   return '<div class="rg-anim-bar">'
     + '<button class="rdf rdf-xs' + (playing ? ' on' : '') + '" data-object-play="' + o.uid + '" title="'
-    + (playing ? 'Stop where it is' : 'Step it on the map as a script setting its state would') + '">'
+    + (playing ? 'Stop where it is' : 'From state 0, step it to state ' + n + ' as a script setting it to 0x7e would') + '">'
     + (playing ? '■ Stop' : '▶ Play') + '</button>'
     + '<span title="from state 0 to state ' + n + ', or back">' + t + ' tick' + (t === 1 ? '' : 's')
     + ' · ' + Math.round(t * OBJECT_TICK_MS) + ' ms</span></div>';
@@ -97,7 +97,10 @@ function objectStopPlay() {
   _objectPlay = null;
 }
 
-/** Step `uid` to its far end — the last state, or back to 0 from there — holding each state on the way. */
+/**
+ * What `object[n] = 0x7e` does: from state 0, step to the last state, holding
+ * each state on the way. Once, never looping; it stays on the last state.
+ */
 function objectPlay(uid) {
   if (_objectPlay && _objectPlay.uid === uid) { objectStopPlay(); renderEditChrome(); return; }
   objectStopPlay();
@@ -105,8 +108,8 @@ function objectPlay(uid) {
   if (!o) return;
   var last = editObjectFrames(o).length;
   if (!last) return;
-  var from = o.uid === _objectSel ? _objectActiveFrame : (o.activeFrame || 0);
-  var target = from < last ? last : 0, dir = target > from ? 1 : -1;
+  objectShowState(o, 0);
+  var target = last, dir = 1;
   var play = _objectPlay = { uid: uid, timer: null };
   var step = function () {
     if (_objectPlay !== play) return;
@@ -121,6 +124,7 @@ function objectPlay(uid) {
   };
   play.timer = setTimeout(step, OBJECT_TICK_MS);
   renderEditChrome();
+  renderEditLayer(_mtPalette, _editComposed, _editOrigin);
 }
 
 /** Set state `s`'s hold. One undo step. */
