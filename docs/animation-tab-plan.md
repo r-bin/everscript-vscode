@@ -56,6 +56,13 @@ frames as layers over it (frame 0 is what the map shows), plus
   the phases (start frames) and the delay patterns vanilla attests for that
   cycle.
 
+## v0.115.0
+
+- Letters come from vanilla's whole pattern table, sent with the palette
+  (`cycles`): a ROM channel is never `custom`, whatever sheets are loaded.
+- Touching tiles on one pattern (ticks + countdown) are one row and one
+  outline (dotted bounding box round an odd shape); edits apply to all.
+
 ## v0.114.0
 
 - Sets: a pencil rectangle is one animated tile per cell on one timing (a 2×2

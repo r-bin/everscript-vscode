@@ -510,6 +510,10 @@
 .rg-theme .rg-anim-cell{fill:var(--rg-anim);fill-opacity:0;stroke:var(--rg-anim);stroke-opacity:.75;stroke-width:.08;pointer-events:none}
 .rg-theme .rg-anim-cell.sel{fill-opacity:.15;stroke-opacity:1;stroke-width:.14}
 .rg-theme text.rg-anim-lbl{fill:var(--rg-anim)}
+.rg-theme .rg-anim-shape{fill:none;stroke:var(--rg-anim);stroke-opacity:.8;stroke-width:.1}
+.rg-theme .rg-anim-shape.sel{stroke-opacity:1;stroke-width:.16}
+.rg-theme .rg-anim-shape-fill{fill:var(--rg-anim);fill-opacity:.15}
+.rg-theme .rg-anim-bbox{fill:none;stroke:var(--rg-anim);stroke-opacity:.7;stroke-width:.08;stroke-dasharray:.25 .2}
 .rg-theme .rg-anim-backing{fill:#000}
 .rg-theme .rg-anim-cell.empty{fill-opacity:.35;stroke-dasharray:.3 .2;stroke-opacity:1}
 .rg-theme .rg-anim-where-room{fill:var(--rg-bg-app);stroke:var(--rg-border);stroke-width:.3}

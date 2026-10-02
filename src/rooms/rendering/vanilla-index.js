@@ -324,8 +324,25 @@ function graphicFamilies(rom, graphics) {
     return out;
 }
 
+/**
+ * Every cycle vanilla animates and every pattern it runs it at, for the
+ * Animation tab's letters: `{'f0,f1,…': [[delays, channels], …]}`, frames turned to start
+ * at their lowest graphic (vanilla-animation.ts `canonical`), patterns
+ * most-used first (letter A first). ~470 cycles; built once per ROM.
+ */
+function vanillaCycleTimings(rom) {
+    const index = vanillaIndex(rom);
+    if (index._cycleTimings) return index._cycleTimings;
+    const out = {};
+    for (const list of index.animations.cycles.values()) {
+        for (const c of list) out[c.frames.join(',')] = (c.timings || []).map((t) => [t.delays, t.channels]);
+    }
+    index._cycleTimings = out;
+    return out;
+}
+
 module.exports = {
-    vanillaGeometry,
+    vanillaGeometry, vanillaCycleTimings,
     vanillaIndex, annotateGraphics, budgetSummary, relatedTiles, neighbourTiles,
     vanillaExamples, proceduralFill, invalidateVanillaIndex, graphicFamilies,
 };

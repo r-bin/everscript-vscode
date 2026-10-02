@@ -187,9 +187,10 @@ function animTurn(xs, r) { return xs.slice(r).concat(xs.slice(0, r)); }
  * drawn animation of other frames has none.
  */
 function editAnimPresets(e) {
-  if (!editAnimComplete(e) || typeof _famSheets === 'undefined') return [];
-  // Asked for every row and every mark: kept per frame list until another sheet arrives.
-  var seq = e.frames, memo = seq.join(','), n = Object.keys(_famSheets).length;
+  if (!editAnimComplete(e)) return [];
+  // Asked for every row and every mark: kept per frame list until the palette or another sheet arrives.
+  var sheets = typeof _famSheets === 'undefined' ? {} : _famSheets;
+  var seq = e.frames, memo = seq.join(','), n = Object.keys(sheets).length + '|' + (_mtPalette && _mtPalette.cycles ? _mtPalette.roomId : '-');
   if (_animPresetMemo.n !== n) _animPresetMemo = { n: n, by: {} };
   if (!_animPresetMemo.by[memo]) _animPresetMemo.by[memo] = animPresetsFor(seq);
   return _animPresetMemo.by[memo];
@@ -198,6 +199,16 @@ var _animPresetMemo = { n: -1, by: {} };
 
 function animPresetsFor(seq) {
   var lo = Math.min.apply(null, seq), key = animCycleKey(seq);
+  // Vanilla's table, with the palette (vanilla-index.js vanillaCycleTimings): every cycle, whatever sheets are loaded.
+  var table = _mtPalette && _mtPalette.cycles && _mtPalette.cycles[key];
+  if (table && table.length) {
+    var canon = key.split(',').map(Number);
+    for (var r0 = 0; r0 < seq.length; r0++) {
+      if (animTurn(canon, r0).join(',') !== seq.join(',')) continue;
+      return table.map(function (t, i) { return { delays: animTurn(t[0], r0), channels: t[1], letter: ANIM_LETTERS[i] || '?' }; });
+    }
+  }
+  if (typeof _famSheets === 'undefined') return [];
   for (var f in _famSheets) {
     var anims = _famSheets[f] && _famSheets[f].animations;
     // The cycle the Tile tab lists for `lo`, then every other cycle vanilla names by it (room-draft.js).

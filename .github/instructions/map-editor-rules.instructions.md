@@ -355,7 +355,12 @@ A pencil rectangle on the Animation tab is a **set** (`set` on each entry,
 map-editor-anim-sets.js): one animated tile — one channel — per cell, sharing ticks,
 countdown and frame count, listed as one row. Vanilla's patterns come from *every*
 cycle a graphic runs in (`animations.cycles`, not only `byFirst`), so a ROM room's
-own channel always has its letter. A frame is one
+own channel always has its letter. The table travels with the palette (`cycles`,
+vanilla-index.js `vanillaCycleTimings`), so letters never depend on which family sheets
+are loaded: a vanilla channel is never `custom`. Touching animated cells running the
+same pattern (same ticks, same countdown) are one row and one outline on the map,
+with a dotted bounding box when the shape is not a rectangle; an edit on that row
+changes every tile in it (`editAnimGroup`). A frame is one
 graphic, not a stamp: the Tile tab's pencil on an unfinished tile's cell tiles a frame,
 never the map beneath, and the frame being looked at is drawn over the cell
 (map-editor-anim-map.js). Every animated cell carries a violet border and its pattern

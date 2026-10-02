@@ -11,7 +11,7 @@
 const maps = require('../../maps');
 const { romFingerprint } = require('./rom-fingerprint');
 const { headerSpec, withHeader } = require('./header-overrides');
-const { annotateGraphics, budgetSummary, invalidateVanillaIndex, vanillaGeometry } = require('./vanilla-index');
+const { annotateGraphics, budgetSummary, invalidateVanillaIndex, vanillaGeometry, vanillaCycleTimings } = require('./vanilla-index');
 const { groupRoomGraphics } = require('./room-draft');
 const { buildStampAnimations } = require('./stamp-animation');
 const { editorObjects } = require('./object-previews');
@@ -108,6 +108,8 @@ function buildRoomMetatilePalette(rom, roomId, layer, bgPalette, header) {
          */
         channels: room.animation.map((ch, i) => [room.tilePalette.length + i, ch.delay,
             ch.frames.map((f) => [f.tileId, f.delay])]),
+        /** Vanilla's patterns per cycle (vanilla-index.js): how the tab letters every animated tile. */
+        cycles: vanillaCycleTimings(buf),
         // The room's own grid, as dictionary indices rather than WRAM ids.
         // The editor needs it to pick a stamp off the map, to fill, and to
         // copy a region — 42 KB on the largest room (0x4b, 106x125), which

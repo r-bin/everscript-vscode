@@ -27,8 +27,8 @@ function editAnimMembers(e) {
  * graphic past 127 ticks by repeating it (892: ten frames of 127); the tab
  * shows that as one frame. Empty frames never merge.
  */
-function editAnimRuns(e) {
-  var ms = editAnimMembers(e), out = [];
+function editAnimRuns(e, members) {
+  var ms = members || editAnimMembers(e), out = [];
   e.frames.forEach(function (g, i) {
     var last = out[out.length - 1];
     var same = last && ms.every(function (m) { return m.frames[i] != null && m.frames[i] === m.frames[i - 1]; });
@@ -38,17 +38,17 @@ function editAnimRuns(e) {
 }
 
 /** The run frame `k` is part of. */
-function editAnimRunAt(e, k) {
-  return editAnimRuns(e).filter(function (r) { return k >= r.start && k < r.start + r.count; })[0] || null;
+function editAnimRunAt(e, k, members) {
+  return editAnimRuns(e, members).filter(function (r) { return k >= r.start && k < r.start + r.count; })[0] || null;
 }
 
 /** Hold run `r` for `ticks`, in every member: as many frames of at most 127 ticks as that takes. */
-function editAnimSetRunTicks(e, r, ticks) {
-  var run = editAnimRuns(e)[r];
+function editAnimSetRunTicks(e, r, ticks, members) {
+  var run = editAnimRuns(e, members)[r];
   if (!run) return;
   var parts = [];
   for (var left = Math.max(1, ticks); left > 0; left -= ANIM_MAX_TICKS) parts.push(Math.min(ANIM_MAX_TICKS, left));
-  editAnimMembers(e).forEach(function (m) {
+  (members || editAnimMembers(e)).forEach(function (m) {
     var g = m.frames[run.start];
     m.frames.splice.apply(m.frames, [run.start, run.count].concat(parts.map(function () { return g; })));
     m.delays.splice.apply(m.delays, [run.start, run.count].concat(parts));
@@ -56,8 +56,20 @@ function editAnimSetRunTicks(e, r, ticks) {
 }
 
 /** Every member complete. */
-function editAnimSetComplete(e) {
-  return editAnimMembers(e).every(editAnimComplete);
+function editAnimSetComplete(e, members) {
+  return (members || editAnimMembers(e)).every(editAnimComplete);
+}
+
+/**
+ * The tiles an edit of `e` changes together: the open row's, when `e` is in
+ * it (tiles side by side on one pattern), with their sets; else its set.
+ */
+function editAnimGroup(e) {
+  if (!e) return [];
+  var open = _mtPalette ? animOpenEntry(editAnimsListed(_mtPalette)) : null;
+  var ms = open && open.members.indexOf(e) >= 0 ? open.members.slice() : [e];
+  ms.slice().forEach(function (m) { editAnimMembers(m).forEach(function (x) { if (ms.indexOf(x) < 0) ms.push(x); }); });
+  return ms;
 }
 
 /**
@@ -79,30 +91,40 @@ function editAnimNewSet(x1, y1, x2, y2) {
 }
 
 /**
- * What the tab lists: every placement — each run of touching cells showing
- * a tile or a set — so a tile used ten times is ten rows, sharing frames and
- * ticks. `{g, members, of: {cell: member}, cells, part, parts}`. An open
- * one with no cells yet is one row.
+ * What the tab lists: every placement. Cells side by side join one row when
+ * they are one tile, one set, or finished tiles running the same pattern —
+ * the same ticks from the same start, so they stay in step (a torch's flame
+ * over its base, a lava pool). A tile used ten times apart is ten rows.
+ * `{g, members, of: {cell: tile}, cells, part, parts}`; an open tile with no
+ * cells yet is one row.
  */
 function editAnimsListed(palette) {
-  var cells = editAnimCellMap(palette), out = [], done = {};
+  var cells = editAnimCellMap(palette), of = {}, keys = [];
   editAnims().forEach(function (e) {
-    var key = e.set != null ? 's' + e.set : 'u' + e.uid;
-    if (done[key]) return;
-    done[key] = true;
-    var members = editAnimMembers(e), of = {}, all = [];
-    members.forEach(function (m) {
-      (cells[m.uid] || []).forEach(function (k) { if (!of[k]) { of[k] = m; all.push(k); } });
-    });
-    var parts = animClusters(all);
-    if (!parts.length && members.some(function (m) { return m.uid === _animSel; })) parts = [[]];
-    parts.forEach(function (c, i) { out.push({ g: e, members: members, of: of, cells: c, part: i, parts: parts.length }); });
+    (cells[e.uid] || []).forEach(function (k) { if (!of[k]) { of[k] = e; keys.push(k); } });
   });
+  var timing = function (e) { return editAnimComplete(e) ? e.delays.join(',') + '|' + (e.init || 0) : null; };
+  var joins = function (a, b) {
+    return a === b || (a.set != null && a.set === b.set) || (timing(a) != null && timing(a) === timing(b));
+  };
+  var out = [], seen = {}, partsOf = {};
+  animClusters(keys, function (k, n) { return joins(of[k], of[n]); }).forEach(function (c) {
+    var members = [];
+    c.forEach(function (k) { if (members.indexOf(of[k]) < 0) members.push(of[k]); });
+    var g = members[0], key = g.set != null ? 's' + g.set : 'u' + g.uid;
+    partsOf[key] = (partsOf[key] || 0) + 1;
+    members.forEach(function (m) { seen[m.uid] = true; });
+    out.push({ g: g, members: members, of: of, cells: c, part: partsOf[key] - 1, key: key });
+  });
+  out.forEach(function (x) { x.parts = partsOf[x.key]; });
+  // Open, with no cells yet (a new tile before it is placed).
+  var sel = editAnimFind(_animSel);
+  if (sel && !seen[sel.uid]) out.push({ g: sel, members: editAnimMembers(sel), of: of, cells: [], part: 0, parts: 1, key: 'u' + sel.uid });
   return out;
 }
 
-/** Cell keys split into runs of side-by-side cells, in reading order. */
-function animClusters(keys) {
+/** Cell keys split into runs of side-by-side cells (`joins(a, b)` too, when given), in reading order. */
+function animClusters(keys, joins) {
   var left = {}, out = [];
   keys.forEach(function (k) { left[k] = true; });
   keys.forEach(function (k) {
@@ -114,7 +136,7 @@ function animClusters(keys) {
       part.push(c);
       [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(function (d) {
         var n = (xy[0] + d[0]) + ',' + (xy[1] + d[1]);
-        if (left[n]) { delete left[n]; todo.push(n); }
+        if (left[n] && (!joins || joins(c, n))) { delete left[n]; todo.push(n); }
       });
     }
     out.push(part);

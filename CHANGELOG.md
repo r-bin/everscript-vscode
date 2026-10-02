@@ -1,3 +1,10 @@
+## [0.115.0] — 2026-10-02
+
+### Changed: vanilla patterns always found; touching animated tiles on one pattern are one animation
+
+- **No vanilla animated tile shows `custom`.** Letters were looked up in the family tile sheets the editor had loaded, so a room whose families were not open in the Tile tab had none. The palette now carries vanilla's whole pattern table (every cycle, every pattern it runs at, ~470 cycles), so a ROM room's own animation always finds its letter, A when vanilla runs it only one way.
+- **Touching animated tiles on the same pattern are one animation**: one row, one outline on the map and one letter. A torch's flame and base, or a pool of lava, are one animation, even though each tile is its own channel. Same pattern means the same ticks from the same start, so they stay in step. A shape that is not a rectangle gets a dotted bounding box. The open row has a line of frames per tile, and a pattern, tick, countdown or frame change applies to every tile in it.
+
 ## [0.114.0] — 2026-10-02
 
 ### Added: sets of animated tiles on one timing, copy and paste; vanilla patterns for every ROM channel

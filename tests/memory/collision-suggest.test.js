@@ -264,6 +264,12 @@ if (!fs.existsSync(ROM_PATH)) {
             }
         }
         assert.ok(n > 1000);
+        // The palette carries the table the Animation tab letters from: every channel of the room is in it.
+        const pal = rooms.buildRoomMetatilePalette(rom, 0x3b);
+        for (const ch of pal.channels) {
+            const fr = ch[2].map((f) => f[0]);
+            assert.ok(pal.cycles[canon(fr)], '0x3b channel ' + fr.join(' '));
+        }
     });
 
     test('a placed animated tile carries its other frames, rendered with the stamp', () => {

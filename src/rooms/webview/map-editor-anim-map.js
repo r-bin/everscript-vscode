@@ -57,8 +57,10 @@ function animUnderSvg(e, c, a) {
 /**
  * Purple on the map, in the overlay (over the canopy). An unfinished tile's
  * shown frame: its graphic, or a purple box while it has none. With the chip
- * on, or on the Animation tab: every animated cell's border and its pattern
- * letter (`*` for its own ticks), the open one brighter.
+ * on, or on the Animation tab: each row's cells outlined as one shape (a
+ * group of touching tiles on one pattern is one), its pattern letter once
+ * (`*` for its own ticks), a dotted bounding box when the shape is not a
+ * rectangle, the open one brighter.
  */
 function editAnimSvg(origin) {
   var p = _mtPalette;
@@ -67,7 +69,8 @@ function editAnimSvg(origin) {
   var marks = _animMarks || onTab, html = '';
   editAnimsListed(p).forEach(function (entry) {
     var sel = entry.members.some(function (m) { return m.uid === _animSel; });
-    var letter = marks && editAnimSetComplete(entry.g) ? (editAnimLetter(entry.g) || '*') : '';
+    var letter = marks && editAnimSetComplete(entry.g, entry.members) ? (editAnimLetter(entry.g) || '*') : '';
+    if (marks) html += animShapeSvg(origin, entry.cells, sel, letter);
     entry.cells.forEach(function (key) {
       // Each cell's own tile: a set's cells are each their own.
       var e = entry.of[key] || entry.g, done = editAnimComplete(e);
@@ -76,11 +79,9 @@ function editAnimSvg(origin) {
       var cls = 'rg-anim-cell' + (!done && g == null ? ' empty' : '') + (sel ? ' sel' : '');
       var c = key.split(',').map(Number), a = editCellPos(origin, c[0], c[1]);
       if (fam != null) html += animUnderSvg(e, c, a) + animGraphicSvg(g, fam, e.pal || 0, a.x, a.y);
-      if (!marks && done) return;
-      if (marks || g == null) {
+      if (g == null && !done) {
         html += '<rect class="' + cls + '" x="' + a.x + '" y="' + a.y + '" width="' + EDIT_UNITS + '" height="' + EDIT_UNITS + '" pointer-events="none"/>';
       }
-      if (letter) html += editCornerLabelSvg(a, [[letter, 'rg-anim-lbl']]);
     });
   });
   // A new rectangle being dragged out (map-editor-anim-tab.js).
@@ -91,6 +92,33 @@ function editAnimSvg(origin) {
       + '" height="' + (Math.abs(r.y1 - r.y0) + 1) * EDIT_UNITS + '" pointer-events="none"/>';
   }
   return html;
+}
+
+/** One row's cells as one outline (edges with no neighbour of its own), its letter in the first cell, a dotted box round an odd shape. */
+function animShapeSvg(origin, cells, sel, letter) {
+  if (!cells.length) return '';
+  var has = {}, u = EDIT_UNITS, path = '', fill = '';
+  cells.forEach(function (k) { has[k] = true; });
+  var xy = cells.map(function (k) { return k.split(',').map(Number); });
+  xy.forEach(function (c) {
+    var a = editCellPos(origin, c[0], c[1]);
+    if (sel) fill += 'M' + a.x + ' ' + a.y + 'h' + u + 'v' + u + 'h' + -u + 'z';
+    if (!has[c[0] + ',' + (c[1] - 1)]) path += 'M' + a.x + ' ' + a.y + 'h' + u;
+    if (!has[c[0] + ',' + (c[1] + 1)]) path += 'M' + a.x + ' ' + (a.y + u) + 'h' + u;
+    if (!has[(c[0] - 1) + ',' + c[1]]) path += 'M' + a.x + ' ' + a.y + 'v' + u;
+    if (!has[(c[0] + 1) + ',' + c[1]]) path += 'M' + (a.x + u) + ' ' + a.y + 'v' + u;
+  });
+  var xs = xy.map(function (c) { return c[0]; }), ys = xy.map(function (c) { return c[1]; });
+  var x0 = Math.min.apply(null, xs), y0 = Math.min.apply(null, ys), x1 = Math.max.apply(null, xs), y1 = Math.max.apply(null, ys);
+  var html = (fill ? '<path class="rg-anim-shape-fill" d="' + fill + '"/>' : '') + '<path class="rg-anim-shape' + (sel ? ' sel' : '') + '" d="' + path + '"/>';
+  if (cells.length !== (x1 - x0 + 1) * (y1 - y0 + 1)) {
+    var b = editCellPos(origin, x0, y0);
+    html += '<rect class="rg-anim-bbox" x="' + b.x + '" y="' + b.y + '" width="' + (x1 - x0 + 1) * u + '" height="' + (y1 - y0 + 1) * u + '"/>';
+  }
+  // The letter in the top row's first cell.
+  var first = xy.filter(function (c) { return c[1] === y0; }).sort(function (a, b) { return a[0] - b[0]; })[0];
+  if (letter) html += editCornerLabelSvg(editCellPos(origin, first[0], first[1]), [[letter, 'rg-anim-lbl']]);
+  return '<g pointer-events="none">' + html + '</g>';
 }
 
 /**
@@ -105,7 +133,7 @@ function editAnimTileStroke(d, cell, phase) {
   var e = animAt(cell);
   if (!e || editAnimComplete(e) || e.vanilla) return !!owned;
   var k = _animTileTouch[e.uid];
-  var inOpen = editAnimMembers(editAnimFind(_animSel)).indexOf(e) >= 0;
+  var inOpen = editAnimGroup(editAnimFind(_animSel)).indexOf(e) >= 0;
   if (k == null) k = inOpen && _animFrame < e.frames.length ? _animFrame : e.frames.indexOf(null);
   if (k < 0) return !!owned;
   _animTileTouch[e.uid] = k;

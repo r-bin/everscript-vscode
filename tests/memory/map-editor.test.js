@@ -3085,7 +3085,12 @@ test('a ROM room lists every one of its channels as an animated tile, locked, wi
     assert.ok(anims.every((e) => e.rom && e.vanilla && e.layer === 'canopy'));
     assert.deepStrictEqual(anims[2].delays, [3, 3]);
     assert.strictEqual(anims[2].init, 2);
-    assert.strictEqual(ui.editAnimsListed(p).length, 3);
+    // (0,0) and (0,1) touch and both run 5 5 from 0: one row, two tiles. (2,0) runs 3 3.
+    assert.deepStrictEqual(ui.editAnimsListed(p).map((x) => x.members.length), [2, 1]);
+    // Vanilla's pattern table rides with the palette: a room's own channel always has its letter.
+    p.cycles = { '2742,2743': [[[3, 3], 9], [[5, 5], 4]] };
+    assert.strictEqual(ui.editAnimLetter(anims[0]), 'B');
+    assert.strictEqual(ui.editAnimLetter(anims[2]), 'A');
     ui.editSeedRoomAnims(p);
     assert.strictEqual(ui.editAnims().length, 3, 'seeded once');
 });

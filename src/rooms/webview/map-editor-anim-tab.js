@@ -29,10 +29,10 @@ var _animSelPart = null;
 function animPlural(n, word) { return n + ' ' + word + (n === 1 ? '' : 's'); }
 
 /** Its pattern as a chip: the letter, `custom`, or how far its frames are tiled. */
-function animBadgeHtml(e, presets) {
-  if (!editAnimSetComplete(e)) {
+function animBadgeHtml(e, presets, members) {
+  if (!editAnimSetComplete(e, members)) {
     var done = 0, all = 0;
-    editAnimMembers(e).forEach(function (m) { all += m.frames.length; done += m.frames.filter(function (g) { return g != null; }).length; });
+    members.forEach(function (m) { all += m.frames.length; done += m.frames.filter(function (g) { return g != null; }).length; });
     return '<span class="rg-anim-badge empty" title="every frame needs a tile before it animates">' + done + '/' + all + ' tiled</span>';
   }
   var letter = editAnimLetter(e, presets);
@@ -50,10 +50,10 @@ function animRowHtml(entry, locked, open, many) {
       + '\nclick to ' + (open ? 'close' : 'open it')) + '">'
     + animWhereSvg(entry.cells, many) + animPreviewHtml(e, fam, 30, entry.cells)
     + '<span class="rg-trigger-label">' + (set ? animPlural(entry.members.length, 'tile') + ', one timing' : e.frames[0] != null ? e.frames[0] : 'new animated tile') + (e.vanilla ? ' <span class="rg-anim-lock" aria-label="locked">🔒</span>' : '')
-    + '<span class="rg-trigger-what">' + animPlural(editAnimRuns(e).length, 'frame') + ' · ' + animPlural(entry.cells.length, 'cell')
+    + '<span class="rg-trigger-what">' + animPlural(editAnimRuns(e, entry.members).length, 'frame') + ' · ' + animPlural(entry.cells.length, 'cell')
       + (entry.parts > 1 ? ' · <span title="every copy changes together: frames and ticks are shared">' + (entry.part + 1) + ' of ' + entry.parts + '</span>' : '') + '</span></span>'
-    + animBadgeHtml(e, presets)
-    + (locked || !editAnimSetComplete(e) || set ? '' : '<button class="rdf rdf-xs' + (_animPlace === e.uid ? ' on' : '') + '" data-anim-act="place" data-anim-uid="' + e.uid
+    + animBadgeHtml(e, presets, entry.members)
+    + (locked || !editAnimSetComplete(e, entry.members) || set ? '' : '<button class="rdf rdf-xs' + (_animPlace === e.uid ? ' on' : '') + '" data-anim-act="place" data-anim-uid="' + e.uid
       + '" title="' + (_animPlace === e.uid ? 'Stop placing it' : 'Place it with the pencil, like a tile — every copy changes together') + '">place</button>')
     + '<span class="rg-object-caret">' + (open ? '▾' : '▸') + '</span>'
     + (locked ? '' : '<button class="rdf rg-trigger-remove" data-anim-act="delete" data-anim-uid="' + e.uid
@@ -81,7 +81,7 @@ function animOpenHtml(entry, fam, presets, locked) {
   if (entry.members.length > 1) html += animSetFramesHtml(entry);
   html += '<div class="ro-chips">';
   // One chip per graphic held in a row (editAnimRuns): 10 frames of 127 ticks read as one of 1270.
-  editAnimRuns(e).forEach(function (r, k) {
+  editAnimRuns(e, entry.members).forEach(function (r, k) {
     var t = r.ticks, on = _animFrame >= r.start && _animFrame < r.start + r.count;
     html += '<div class="rg-anim-frame-col">'
       + '<button class="ro-chip' + (on ? ' sel' : '') + (r.graphic == null ? ' rg-anim-empty' : '') + '" data-anim-frame="' + r.start + '" title="Frame ' + k
@@ -100,19 +100,20 @@ function animOpenHtml(entry, fam, presets, locked) {
     + '" data-anim-init="1" title="Initial countdown in ticks — shifts it against the others"' + dis + '/> ticks</label>';
   if (!locked && !e.vanilla) {
     html += '<button class="rdf rdf-xs" data-anim-act="add-frame" title="Add an empty frame — tile it before it works">+ Frame</button>'
-      + (editAnimRuns(e).length > 2 && _animFrame > 0 ? '<button class="rdf rdf-xs" data-anim-act="del-frame" title="Remove the open frame">− Frame</button>' : '');
+      + (editAnimRuns(e, entry.members).length > 2 && _animFrame > 0 ? '<button class="rdf rdf-xs" data-anim-act="del-frame" title="Remove the open frame">− Frame</button>' : '');
   }
   if (!locked && e.vanilla) html += '<button class="rdf rdf-xs" data-anim-act="disband" title="Unlock its frames to change them — it is your own from then on">disband</button>';
   return html + '</div></div>';
 }
 
-/** A set's frames: one line per tile, at its cell, each frame tiled in its turn. */
+/** A group's frames: one line per tile, at its first cell, each frame tiled in its turn. */
 function animSetFramesHtml(entry) {
   var html = '<div class="rg-anim-set">';
-  entry.cells.forEach(function (k) {
-    var m = entry.of[k], fam = animFamilyOf(m, [k]);
+  entry.members.forEach(function (m) {
+    var k = entry.cells.filter(function (c) { return entry.of[c] === m; })[0] || (m.pending || [])[0] || '';
+    var fam = animFamilyOf(m, k ? [k] : []);
     html += '<div class="rg-anim-set-line"><span class="rg-anim-timing-lbl">' + escH(k) + '</span>';
-    editAnimRuns(m).forEach(function (r, i) {
+    editAnimRuns(m, entry.members).forEach(function (r, i) {
       html += '<button class="ro-chip' + (_animFrame >= r.start && _animFrame < r.start + r.count ? ' sel' : '') + (r.graphic == null ? ' rg-anim-empty' : '')
         + '" data-anim-frame="' + r.start + '" title="Frame ' + i + ' of the tile at ' + escH(k) + '">' + animFrameSwatchHtml(r.graphic, fam, [k], r.start) + '</button>';
     });
@@ -174,7 +175,7 @@ function animClick(t) {
   var e = editAnimFind(ds.animUid ? Number(ds.animUid) : _animSel);
   if (!e) return true;
   // A set's tiles share their timing and frame count: every change is all of theirs.
-  var ms = editAnimMembers(e);
+  var ms = editAnimGroup(e);
   editBegin();
   if (ds.animPreset != null) {
     var t2 = editAnimPresets(e)[Number(ds.animPreset)];
@@ -193,8 +194,8 @@ function animClick(t) {
     ms.forEach(function (m) { m.frames.push(null); m.delays.push(m.delays[m.delays.length - 1] || 8); });
     _animFrame = e.frames.length - 1;
     editNote('frame ' + _animFrame + ' added — tile it with the pencil on ' + (ms.length > 1 ? 'each of its cells' : 'one of its cells'));
-  } else if (ds.animAct === 'del-frame' && !e.vanilla && _animFrame > 0 && editAnimRuns(e).length > 2) {
-    var run = editAnimRunAt(e, _animFrame);
+  } else if (ds.animAct === 'del-frame' && !e.vanilla && _animFrame > 0 && editAnimRuns(e, ms).length > 2) {
+    var run = editAnimRunAt(e, _animFrame, ms);
     ms.forEach(function (m) { m.frames.splice(run.start, run.count); m.delays.splice(run.start, run.count); });
     _animFrame = Math.min(run.start, e.frames.length - 1);
   }
@@ -211,8 +212,9 @@ function animInputHandler(ev) {
   if (!e || editLocked() || ev.type !== 'change') return true;
   var v = Math.max(t.dataset.animInit ? 0 : 1, Math.min(t.dataset.animInit ? 255 : ANIM_MAX_TICKS * 64, Number(t.value) | 0));
   editBegin();
-  if (t.dataset.animInit) editAnimMembers(e).forEach(function (m) { m.init = v; });
-  else editAnimSetRunTicks(e, Number(t.dataset.animDelay), v);
+  var ms = editAnimGroup(e);
+  if (t.dataset.animInit) ms.forEach(function (m) { m.init = v; });
+  else editAnimSetRunTicks(e, Number(t.dataset.animDelay), v, ms);
   editEnd();
   animRedraw();
   return true;
@@ -315,7 +317,7 @@ function editAnimGesture(d, cell, phase) {
       var hit = open && animAt(cell) === open ? open : animAt(cell);
       _animStroke = { mode: 'erase', uid: hit ? hit.uid : (open ? open.uid : null) };
       if (hit) animUnplace(hit, cell);
-    } else if (open && editAnimMembers(open).indexOf(animAt(cell)) >= 0 && _animPlace !== open.uid) {
+    } else if (open && editAnimGroup(open).indexOf(animAt(cell)) >= 0 && _animPlace !== open.uid) {
       // A cell of the open tile, or of its set: that tile's open frame.
       _animStroke = { mode: 'tile', uid: open.uid };
       animTile(animAt(cell), _animFrame);
