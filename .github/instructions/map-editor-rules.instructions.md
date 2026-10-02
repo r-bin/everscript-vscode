@@ -179,6 +179,8 @@ for anyway:
   score. The two layers never mix (a canopy piece is on top of the floor, not beside
   it). Under H/V the sides swap (H: e↔w, V: n↔s) and candidates are drawn and armed
   with the same mirror — the whole pair mirrored is still a pair vanilla attests.
+  What counts as "next to" — every object state and animation frame, never only
+  state 0 — and what counts as unused is `map-construction` §3–§4.
 - **Family names.** Families are ROM ids with an area, not `GRASS`/`STONE`. Do not
   invent friendly names to match a mock.
 - **Ceilings.** The Info tab bars only attested ones: 7 families, 264 graphics, the

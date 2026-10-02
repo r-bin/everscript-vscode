@@ -66,6 +66,7 @@ imports — Gemini). Edit the target in `.github/instructions/`, not the symlink
 | `split-orchestration` | decomposing god files (`src/extension.js`, panel files) |
 | `webview-dom-safety` | idempotent event binding, `e.target` walk-up, VS Code webview API gaps, SVG coordinate systems — read before writing click/pointer handling in any `webview/` file |
 | `map-editor-rules` | the editor's hard rules: the **7 tile-family slots** and other ROM budgets, tilemap- vs collision-word bit layouts, what a paint/erase stroke writes, and never inventing data the ROM does not attest — read before changing any `map-editor*` file |
+| `map-construction` | how a map is built from cell to graphic, what "tile", "used" and "next to each other" mean (every object state and animation frame counts), and what animation groups and their timings really are in vanilla — read before counting, ranking or grouping vanilla tiles |
 
 The same content is also available to Copilot as path-scoped instructions
 (`.github/instructions/*.instructions.md`) and to Gemini via `GEMINI.md` imports —

@@ -114,6 +114,10 @@ to what you're touching.
 
 @.github/instructions/map-editor-rules.instructions.md
 
+### Map construction
+
+@.github/instructions/map-construction.instructions.md
+
 ---
 
 ## 4. Architectural cognitive stabilization
