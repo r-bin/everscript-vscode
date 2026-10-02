@@ -56,6 +56,17 @@ frames as layers over it (frame 0 is what the map shows), plus
   the phases (start frames) and the delay patterns vanilla attests for that
   cycle.
 
+## v0.113.0
+
+- A frame is one graphic: the Tile tab's pencil on an unfinished animated tile
+  tiles its open (else first empty) frame; the frame being looked at is drawn
+  over the cell, above the canopy, as the cuttable layer is.
+- Frames holding one graphic in a row are one chip with their summed ticks;
+  past 127 ticks (vanilla's maximum) a hold is stored as several frames.
+- A row's preview is the map's own stamp for its first cell.
+- The filter bar's `Animation` chip (default on, saved) shows a violet border
+  and the pattern letter on every animated cell.
+
 ## v0.112.0 — an animated tile is a channel
 
 The user's rules (2026-10-02): an animated tile is a tile that changes over time —

@@ -33,6 +33,7 @@ function applyUiPrefs(prefs) {
   }
   // Animation on the map, on or off (map-editor-animations.js), as it was left.
   if (prefs && typeof prefs.animateTiles === 'boolean' && typeof _animOff !== 'undefined') _animOff = !prefs.animateTiles;
+  if (prefs && typeof prefs.animMarks === 'boolean' && typeof _animMarks !== 'undefined') _animMarks = prefs.animMarks;
   if (prefs && typeof layoutApplyPrefs === 'function') layoutApplyPrefs(prefs.layoutWidths);
   var saved = prefs && prefs[PANEL_OPEN_PREF];
   if (saved && typeof saved === 'object') {

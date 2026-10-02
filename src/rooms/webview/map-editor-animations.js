@@ -32,6 +32,8 @@ var _animPlaying = false;
 var _animOff = false;
 
 var ANIM_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+/** The longest a frame holds in the ROM; a longer hold is the same graphic over several frames. */
+var ANIM_MAX_TICKS = 127;
 
 function editAnims() {
   var d = editDraft();
@@ -93,6 +95,36 @@ function editAnimNew(props) {
   var e = Object.assign({ uid: d.animSeq, slot: null, frames: [null, null], delays: [8, 8], init: 0 }, props || {});
   editAnims().push(e);
   return e;
+}
+
+/**
+ * Frames that hold one graphic in a row, as one: `[{start, count, graphic,
+ * ticks}]`. Vanilla holds a graphic past 127 ticks by repeating it (892:
+ * ten frames of 127); the tab shows that as one frame. Empty frames never merge.
+ */
+function editAnimRuns(e) {
+  var out = [];
+  e.frames.forEach(function (g, i) {
+    var last = out[out.length - 1];
+    if (last && g != null && last.graphic === g) { last.count++; last.ticks += e.delays[i]; }
+    else out.push({ start: i, count: 1, graphic: g, ticks: e.delays[i] });
+  });
+  return out;
+}
+
+/** The run frame `k` is part of. */
+function editAnimRunAt(e, k) {
+  return editAnimRuns(e).filter(function (r) { return k >= r.start && k < r.start + r.count; })[0] || null;
+}
+
+/** Hold run `r` for `ticks`: as many frames of at most 127 ticks as that takes. */
+function editAnimSetRunTicks(e, r, ticks) {
+  var run = editAnimRuns(e)[r];
+  if (!run) return;
+  var parts = [];
+  for (var left = Math.max(1, ticks); left > 0; left -= ANIM_MAX_TICKS) parts.push(Math.min(ANIM_MAX_TICKS, left));
+  e.frames.splice.apply(e.frames, [run.start, run.count].concat(parts.map(function () { return run.graphic; })));
+  e.delays.splice.apply(e.delays, [run.start, run.count].concat(parts));
 }
 
 /** A word naming `slot` with an animated tile's palette and mirror bits. */

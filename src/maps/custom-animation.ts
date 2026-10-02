@@ -106,7 +106,7 @@ export function planCustomAnimation(
             animated.push(s);
             // Frame 0 is what the slot holds: the invariant every vanilla channel keeps.
             const frames = [graphics[s]].concat(c.frames.slice(1).map(Number));
-            const delays = frames.map((_, i) => Math.max(1, Math.min(255, Number(c.delays[i]) || 1)));
+            const delays = frames.map((_, i) => Math.max(1, Math.min(127, Number(c.delays[i]) || 1)));
             channels.push({ graphic: graphics[s], frames, delays, init: Math.max(0, Math.min(255, Number(c.init) || 0)) });
         }
     } else if (index) {

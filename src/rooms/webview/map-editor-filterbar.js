@@ -201,6 +201,7 @@ function buildViewFilterBarHtml(ctx) {
     triggerFilterGroupHtml(ctx),
     objectFilterGroupHtml(ctx),
     ctx.romId ? buildSpecialFilterChipHtml() : '',
+    typeof animMarksButtonHtml === 'function' ? animMarksButtonHtml() : '',
     moreFilterGroupHtml(ctx),
   ].filter(function (h) { return !!h; });
   // The lock moved to the tool pill's right end (map-editor-toolbar.js).

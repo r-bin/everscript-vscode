@@ -738,6 +738,7 @@ const ui = new Function(`
   ${read('map-editor-pick.js')}
   ${read('map-editor-animations.js')}
   ${read('map-editor-anim-tab.js')}
+  ${read('map-editor-anim-map.js')}
   ${read('map-editor-anim-placed.js')}
   ${read('map-editor-objects.js')}
   ${read('map-editor-object-list.js')}
@@ -821,6 +822,8 @@ const ui = new Function(`
     editSeedRoomAnims: editSeedRoomAnims, animTabHtml: animTabHtml, animClick: animClick, editAnimShownFrame: editAnimShownFrame,
     editAnimPresets: editAnimPresets, editAnimLetter: editAnimLetter, editAnimComplete: editAnimComplete, animTile: animTile,
     setAnimOff: function (v) { _animOff = v; },
+    editAnimTileStroke: editAnimTileStroke, editAnimRuns: editAnimRuns, editAnimSetRunTicks: editAnimSetRunTicks,
+    animInputHandler: animInputHandler, editAnimSvg: editAnimSvg, setAnimMarks: function (v) { _animMarks = v; },
     editAnimGesture: editAnimGesture, editWordAnimSpec: editWordAnimSpec, editPartFromWord: editPartFromWord,
     editWordFromPart: editWordFromPart, placedTimingHtml: placedTimingHtml, placedSetTiming: placedSetTiming,
     editUseFamilyTile: editUseFamilyTile, setFramesSplit: function (v) { _tileFramesSplit = v; },
@@ -3145,6 +3148,50 @@ test('the pencil places a new animated tile as empty purple frames; it works onc
     ui.editAnimGesture(d, { x: 2, y: 0 }, 'down');
     ui.editAnimGesture(d, { x: 2, y: 0 }, 'up');
     assert.strictEqual(ui.editStampWords(p, ui.editCellAt(p, 2, 0)).layer1, 0xa800);
+});
+
+test('the Tile tab’s pencil on an unfinished animated tile tiles its frames, not the map beneath', () => {
+    const p = animPalette();
+    ui.setPalette(p);
+    ui.editReset(1).on = true;
+    const d = ui.editDraft();
+    d.tool = 'paint';
+    ui.editAnimGesture(d, { x: 0, y: 0 }, 'down');
+    ui.editAnimGesture(d, { x: 0, y: 0 }, 'up');
+    const e = ui.editAnims()[0];
+    ui.setAnimSel(null);
+    const before = ui.editCellAt(p, 0, 0);
+    d.brush = ui.editAddStamp(p, { layer1: 0x0402, layer2: 0xa800, collision: 0 });
+    // A drag over the cell tiles one frame: its first empty one.
+    assert.ok(ui.editAnimTileStroke(d, { x: 0, y: 0 }, 'down'));
+    ui.editAnimTileStroke(d, { x: 0, y: 0 }, 'move');
+    assert.deepStrictEqual(ui.editAnims()[0].frames, [0x423, null]);
+    assert.notStrictEqual(ui.editCellAt(p, 0, 0), before, 'the cell now shows frame 0');
+    // Open on frame 1, the next stroke tiles frame 1; it is drawn over the cell.
+    ui.setAnimSel(e.uid, 1);
+    d.brush = ui.editAddStamp(p, { layer1: 0x0400, layer2: 0xa800, collision: 0 });
+    ui.editAnimTileStroke(d, { x: 0, y: 0 }, 'down');
+    assert.deepStrictEqual(ui.editAnims()[0].frames, [0x423, 0x422]);
+    // Finished: the stroke is the map's again.
+    assert.strictEqual(ui.editAnimTileStroke(d, { x: 0, y: 0 }, 'down'), false);
+    // The marks: border and letter on, only what is unfinished off.
+    ui.setAnimMarks(true);
+    assert.ok(ui.editAnimSvg({ x: 0, y: 0 }).includes('rg-anim-lbl'));
+    ui.setAnimMarks(false);
+    assert.strictEqual(ui.editAnimSvg({ x: 0, y: 0 }), '');
+    ui.setAnimMarks(true);
+});
+
+test('frames holding one graphic in a row read as one; a hold past 127 ticks is split as the ROM stores it', () => {
+    const e = { frames: [5, 6, 6, 6, 7, null, null], delays: [10, 127, 127, 101, 10, 8, 8] };
+    assert.deepStrictEqual(ui.editAnimRuns(e).map((r) => [r.start, r.count, r.graphic, r.ticks]),
+        [[0, 1, 5, 10], [1, 3, 6, 355], [4, 1, 7, 10], [5, 1, null, 8], [6, 1, null, 8]], 'empty frames never merge');
+    ui.editAnimSetRunTicks(e, 1, 300);
+    assert.deepStrictEqual(e.frames, [5, 6, 6, 6, 7, null, null]);
+    assert.deepStrictEqual(e.delays, [10, 127, 127, 46, 10, 8, 8]);
+    ui.editAnimSetRunTicks(e, 1, 20);
+    assert.deepStrictEqual(e.frames, [5, 6, 7, null, null]);
+    assert.deepStrictEqual(e.delays, [10, 20, 10, 8, 8]);
 });
 
 test('vanilla’s patterns are lettered A, B…; the open row lists them, a locked tile needs disbanding to change its frames', () => {

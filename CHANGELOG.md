@@ -1,3 +1,12 @@
+## [0.113.0] — 2026-10-02
+
+### Changed: drawing into animated tiles, merged frames, previews from the map, Animation marks
+
+- **Drawing into frames works like the cuttable layer.** A frame is one graphic, not a stamp. The Tile tab's pencil on a cell of an unfinished animated tile puts the tile into its open frame (else its first empty one) instead of into the map beneath it. The frame you are looking at is drawn over the cell, above the canopy; an empty one is a purple box.
+- **Frames holding one graphic in a row are one frame**, with their ticks added up (the 24-frame mushroom reads as 6). A frame holds at most 127 ticks in the ROM (vanilla's maximum, checked over every room), so a longer hold is stored as several frames; the export clamps to 127.
+- **Previews show the tile as the map does**: its first cell's own stamp, both layers, its flip and its ticks, paused or off as the map is. The beam and the fire drew from the family sheet before.
+- **`Animation` chip in the filter bar** (default on, saved): a violet border and the pattern letter (`*` for custom ticks) on every animated cell, on any tab.
+
 ## [0.112.1] — 2026-10-02
 
 ### Fix: Animation tab previews, letters, and drawing a new animated tile

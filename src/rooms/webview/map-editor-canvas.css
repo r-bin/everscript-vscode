@@ -507,8 +507,10 @@
 .rg-theme #rg-edit-bar .rg-draw-object{color:var(--rg-object)}
 
 /* Animated tiles on the map (map-editor-anim-tab.js editAnimSvg): unfinished ones always, all on the Animation tab. */
-.rg-theme .rg-anim-cell{fill:var(--rg-anim);fill-opacity:.08;stroke:var(--rg-anim);stroke-opacity:.6;stroke-width:.08;pointer-events:none}
-.rg-theme .rg-anim-cell.sel{fill-opacity:.2;stroke-opacity:1;stroke-width:.14}
+.rg-theme .rg-anim-cell{fill:var(--rg-anim);fill-opacity:0;stroke:var(--rg-anim);stroke-opacity:.75;stroke-width:.08;pointer-events:none}
+.rg-theme .rg-anim-cell.sel{fill-opacity:.15;stroke-opacity:1;stroke-width:.14}
+.rg-theme text.rg-anim-lbl{fill:var(--rg-anim)}
+.rg-theme .rg-anim-backing{fill:#000}
 .rg-theme .rg-anim-cell.empty{fill-opacity:.35;stroke-dasharray:.3 .2;stroke-opacity:1}
 .rg-theme .rg-anim-where{fill:var(--rg-anim);fill-opacity:.9}
 .rg-theme .rg-preview-anim{stroke:var(--rg-anim);fill:var(--rg-anim);fill-opacity:.25;stroke-dasharray:.3 .2}

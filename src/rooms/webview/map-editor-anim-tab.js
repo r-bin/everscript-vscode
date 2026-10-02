@@ -1,7 +1,7 @@
 // Ownership: the Animation tab — its rows (one per animated tile on the
-// map), the open row's patterns, frames and ticks, what the pencil and
-// eraser do on this tab, and the purple marks on the map. The model is
-// map-editor-animations.js.
+// map), the open row's patterns, frames and ticks, and what the pencil and
+// eraser do on this tab. The model is map-editor-animations.js; the purple on
+// the map is map-editor-anim-map.js.
 //
 // A row, closed: where the tile is in the room, how it looks now (playing),
 // its pattern letter — A, B, C… for vanilla's patterns, `custom` otherwise —
@@ -49,9 +49,18 @@ function animSheetAt(graphic, family) {
   return null;
 }
 
-/** How it looks now: its frames played at its ticks, or frame 0 while animation is off or it is unfinished. */
-function animPreviewHtml(e, family, size) {
-  if (_animOff || !editAnimComplete(e)) return animSwatchHtml(e.frames[0], family, size);
+/**
+ * How it looks now: the first cell showing it, drawn as the map draws it
+ * (both layers, its flip, the same frames and ticks, off or paused as the map
+ * is). Without that stamp's art yet: its frames played from the family sheet.
+ */
+function animPreviewHtml(e, family, size, cells) {
+  if (!editAnimComplete(e)) return animSwatchHtml(e.frames[0], family, size);
+  var c = cells && cells[0] ? cells[0].split(',').map(Number) : null;
+  var idx = c ? editCellAt(_mtPalette, c[0], c[1]) : -1;
+  var cell = idx >= 0 ? editStampSvg(_mtPalette, _editComposed, idx, 0, 0, 'rg-anim-prev-cell') : '';
+  if (cell) return '<svg class="rg-anim-sw" width="' + size + '" height="' + size + '" viewBox="0 0 ' + EDIT_UNITS + ' ' + EDIT_UNITS + '">' + cell + '</svg>';
+  if (_animOff) return animSwatchHtml(e.frames[0], family, size);
   var at = e.frames.map(function (g) { return animSheetAt(g, family); });
   if (at.some(function (a) { return !a; })) return animSwatchHtml(e.frames[0], family, size);
   var s = at[0].s, k = size / s.cell, total = 0, name = 'rg-ap-' + e.uid + '-' + e.delays.join('-');
@@ -114,9 +123,9 @@ function animRowHtml(entry, locked) {
     + '<div class="rg-trigger-row rg-anim-row' + (open ? ' on' : '') + '" data-anim-sel="' + e.uid + '" title="'
     + escH((e.rom ? 'the room’s own' : e.vanilla ? 'vanilla’s frames' : 'drawn here') + (e.vanilla ? ' · locked until disbanded' : '')
       + '\nclick to ' + (open ? 'close' : 'open it')) + '">'
-    + animWhereSvg(entry.cells) + animPreviewHtml(e, fam, 30)
+    + animWhereSvg(entry.cells) + animPreviewHtml(e, fam, 30, entry.cells)
     + '<span class="rg-trigger-label">' + (e.frames[0] != null ? e.frames[0] : 'new animated tile') + (e.vanilla ? ' <span class="rg-anim-lock" aria-label="locked">🔒</span>' : '')
-    + '<span class="rg-trigger-what">' + animPlural(e.frames.length, 'frame') + ' · ' + animPlural(entry.cells.length, 'cell') + '</span></span>'
+    + '<span class="rg-trigger-what">' + animPlural(editAnimRuns(e).length, 'frame') + ' · ' + animPlural(entry.cells.length, 'cell') + '</span></span>'
     + animBadgeHtml(e, presets)
     + (locked || !editAnimComplete(e) ? '' : '<button class="rdf rdf-xs' + (_animPlace === e.uid ? ' on' : '') + '" data-anim-act="place" data-anim-uid="' + e.uid
       + '" title="' + (_animPlace === e.uid ? 'Stop placing it' : 'Place it with the pencil, like a tile — every copy changes together') + '">place</button>')
@@ -143,13 +152,17 @@ function animOpenHtml(e, fam, presets, locked) {
     html += '<span class="ro-chip rg-anim-preset custom' + (letter ? '' : ' sel') + '" title="your own ticks — set them below">custom</span></div>';
   }
   html += '<div class="ro-chips">';
-  e.delays.forEach(function (t, k) {
+  // One chip per graphic held in a row (editAnimRuns): 10 frames of 127 ticks read as one of 1270.
+  editAnimRuns(e).forEach(function (r, k) {
+    var t = r.ticks, on = _animFrame >= r.start && _animFrame < r.start + r.count;
     html += '<div class="rg-anim-frame-col">'
-      + '<button class="ro-chip' + (k === _animFrame ? ' sel' : '') + (e.frames[k] == null ? ' rg-anim-empty' : '') + '" data-anim-frame="' + k + '" title="Frame ' + k
+      + '<button class="ro-chip' + (on ? ' sel' : '') + (r.graphic == null ? ' rg-anim-empty' : '') + '" data-anim-frame="' + r.start + '" title="Frame ' + k
+      + (r.count > 1 ? ' — ' + r.count + ' frames of at most ' + ANIM_MAX_TICKS + ' ticks in the ROM' : '')
       + (e.vanilla ? ' — locked: disband to change its tiles' : ' — the pencil on one of its cells tiles it') + '">'
-      + animSwatchHtml(e.frames[k], fam, 30) + '<span class="ro-lbl">' + k + '</span></button>'
-      + '<input type="number" class="rg-anim-ticks" min="1" max="255" value="' + t + '" data-anim-delay="' + k
-      + '" aria-label="Frame ' + k + ' hold in ticks" title="Hold in 60 Hz ticks (' + Math.round(t * 1000 / 60) + ' ms)"' + dis + '/>'
+      + animSwatchHtml(r.graphic, fam, 30) + '<span class="ro-lbl">' + k + '</span></button>'
+      + '<input type="number" class="rg-anim-ticks" min="1" value="' + t + '" data-anim-delay="' + k
+      + '" aria-label="Frame ' + k + ' hold in ticks" title="Hold in 60 Hz ticks (' + Math.round(t * 1000 / 60) + ' ms)'
+      + (t > ANIM_MAX_TICKS ? ' — stored as ' + Math.ceil(t / ANIM_MAX_TICKS) + ' frames of at most ' + ANIM_MAX_TICKS : '') + '"' + dis + '/>'
       + '</div>';
   });
   html += '</div><div class="rg-anim-bar">'
@@ -159,7 +172,7 @@ function animOpenHtml(e, fam, presets, locked) {
     + '" data-anim-init="1" title="Initial countdown in ticks — shifts it against the others"' + dis + '/> ticks</label>';
   if (!locked && !e.vanilla) {
     html += '<button class="rdf rdf-xs" data-anim-act="add-frame" title="Add an empty frame — tile it before it works">+ Frame</button>'
-      + (e.frames.length > 2 && _animFrame > 0 ? '<button class="rdf rdf-xs" data-anim-act="del-frame" title="Remove frame ' + _animFrame + '">− Frame</button>' : '');
+      + (editAnimRuns(e).length > 2 && _animFrame > 0 ? '<button class="rdf rdf-xs" data-anim-act="del-frame" title="Remove the open frame">− Frame</button>' : '');
   }
   if (!locked && e.vanilla) html += '<button class="rdf rdf-xs" data-anim-act="disband" title="Unlock its frames to change them — it is your own from then on">disband</button>';
   return html + '</div></div>';
@@ -231,10 +244,11 @@ function animClick(t) {
     e.delays.push(e.delays[e.delays.length - 1] || 8);
     _animFrame = e.frames.length - 1;
     editNote('frame ' + _animFrame + ' added — tile it with the pencil on one of its cells');
-  } else if (ds.animAct === 'del-frame' && !e.vanilla && _animFrame > 0 && e.frames.length > 2) {
-    e.frames.splice(_animFrame, 1);
-    e.delays.splice(_animFrame, 1);
-    _animFrame = Math.min(_animFrame, e.frames.length - 1);
+  } else if (ds.animAct === 'del-frame' && !e.vanilla && _animFrame > 0 && editAnimRuns(e).length > 2) {
+    var run = editAnimRunAt(e, _animFrame);
+    e.frames.splice(run.start, run.count);
+    e.delays.splice(run.start, run.count);
+    _animFrame = Math.min(run.start, e.frames.length - 1);
   }
   editEnd();
   animRedraw();
@@ -247,9 +261,9 @@ function animInputHandler(ev) {
   if (!t || !t.dataset || (t.dataset.animDelay == null && !t.dataset.animInit)) return false;
   var e = editAnimFind(_animSel);
   if (!e || editLocked() || ev.type !== 'change') return true;
-  var v = Math.max(t.dataset.animInit ? 0 : 1, Math.min(255, Number(t.value) | 0));
+  var v = Math.max(t.dataset.animInit ? 0 : 1, Math.min(t.dataset.animInit ? 255 : ANIM_MAX_TICKS * 64, Number(t.value) | 0));
   editBegin();
-  if (t.dataset.animInit) e.init = v; else e.delays[Number(t.dataset.animDelay)] = v;
+  if (t.dataset.animInit) e.init = v; else editAnimSetRunTicks(e, Number(t.dataset.animDelay), v);
   editEnd();
   animRedraw();
   return true;
@@ -313,10 +327,14 @@ function animTile(e, k) {
   if (graphic == null) return;
   if (!e.layer) e.layer = canopy ? 'canopy' : 'terrain';
   if (k === 0 || e.pal == null) e.pal = bw & 0xfc00;
-  if (k !== 0) { e.frames[k] = graphic; return; }
+  // A frame held over several (editAnimRuns) takes the tile in each.
+  var run = editAnimRunAt(e, k) || { start: k, count: 1 };
+  var fill = function () { for (var i = run.start + 1; i < run.start + run.count; i++) e.frames[i] = graphic; };
+  if (k !== 0) { e.frames[k] = graphic; fill(); return; }
   if (e.slot != null && e.frames[0] === graphic && !(e.pending || []).length) return;
   var cells = (editAnimCellMap(p)[e.uid] || []).slice();
   e.frames[0] = graphic;
+  fill();
   e.pending = [];
   editAdoptGraphic(p, graphic, e.uid, true);
   cells.forEach(function (key) { var c = key.split(',').map(Number); animPlace(e, { x: c[0], y: c[1] }); });
@@ -366,25 +384,4 @@ function editAnimGesture(d, cell, phase) {
   if (placedNew) editNote('a new animated tile, opened — pick a tile on the Tile tab, then click one of its purple cells to tile frame ' + _animFrame);
   animRedraw();
   return true;
-}
-
-/**
- * Purple on the map. Always: a cell whose animated tile is not finished (its
- * frames still need tiles). On this tab: every animated tile's cells, the
- * open one brighter.
- */
-function editAnimSvg(origin) {
-  if (!_mtPalette || !editAnims().length) return '';
-  var onTab = typeof _editActiveTab !== 'undefined' && _editActiveTab === 'anim';
-  var html = '';
-  editAnimsListed(_mtPalette).forEach(function (entry) {
-    var e = entry.g, unfinished = !editAnimComplete(e);
-    if (!onTab && !unfinished) return;
-    var cls = 'rg-anim-cell' + (unfinished ? ' empty' : '') + (e.uid === _animSel ? ' sel' : '');
-    entry.cells.forEach(function (k) {
-      var c = k.split(',').map(Number), a = editCellPos(origin, c[0], c[1]);
-      html += '<rect class="' + cls + '" x="' + a.x + '" y="' + a.y + '" width="' + EDIT_UNITS + '" height="' + EDIT_UNITS + '" pointer-events="none"/>';
-    });
-  });
-  return html;
 }

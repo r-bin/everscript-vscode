@@ -125,7 +125,7 @@ function editStroke(cell, phase) {
   if (d.tool === 'paint') {
     // The Tile tab's pencil puts down the armed tile and nothing else — the
     // armed special is the Special tab's (map-editor-drawable.js).
-    if (d.brush < 0) return;
+    if (d.brush < 0 || (typeof editAnimTileStroke === 'function' && !cutLayerActive() && editAnimTileStroke(d, cell, phase))) return;
     // Every tile lands on the level picked in the left bar (map-editor-levels.js).
     if (cutLayerActive()) {
       editApplyStroke(onLevel([editCutWrite(cell.x, cell.y, d.brush, false)].filter(Boolean)));

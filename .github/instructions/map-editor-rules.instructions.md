@@ -345,7 +345,13 @@ its ticks match, else `custom`; patterns are offered only for frames vanilla run
 Vanilla animated tiles (a ROM room's, a ▶ pick's) are locked to their frames until
 disbanded. Animation on/off is map-wide and saved. Animation marks are `--rg-anim`
 (violet). The canvas and the ROM export both read `editAnimChannels`. Budget: 42
-channels, vanilla's most.
+channels, vanilla's most. A frame holds at most **127 ticks** (vanilla's maximum, 40
+frames at exactly 127): a longer hold is one graphic over several frames, and the tab
+shows frames holding one graphic in a row as one (`editAnimRuns`). A frame is one
+graphic, not a stamp: the Tile tab's pencil on an unfinished tile's cell tiles a frame,
+never the map beneath, and the frame being looked at is drawn over the cell
+(map-editor-anim-map.js). Every animated cell carries a violet border and its pattern
+letter (`*` custom) while the filter bar's `Animation` chip is on (default, saved).
 
  Cell writes, special-glyph writes, trigger
 operations and start moves all go through `editApply`/`editApplyTriggerOp`/
