@@ -106,7 +106,7 @@ var EDIT_CLICK_KEYS = ['editTool', 'editAct', 'editPick', 'panel',
   'famTile', 'construct', 'chip', 'chipDrop', 'chipAdopt',
   'brushFlip', 'tileFilter', 'tileShape', 'tileFrames', 'strandedFix', 'strandedDrop', 'nbSide', 'nbCentre', 'nbUse',
   'nbMode', 'nbRegenerate', 'nbFillSize', 'nbFillStamp', 'nbExampleStamp', 'nbExampleRoom', 'nbTilePick', 'nbFamPick',
-  'layerForce', 'deco', 'decoSave', 'widget', 'widgetArmVar', 'widgetEdit', 'widgetAct', 'animSel', 'animFrame', 'animAct', 'animTiming',
+  'layerForce', 'deco', 'decoSave', 'widget', 'widgetArmVar', 'widgetEdit', 'widgetAct', 'animSel', 'animFrame', 'animAct', 'animTiming', 'animPreset',
   'placedSel', 'placedRemove', 'placedDisband', 'placedToggle', 'placedVarIdx', 'placedObjFrame',
   'objectSel', 'objectToggle', 'objectFrame', 'objectAddFrame', 'objectRemove', 'objectRemoveFrame',
   'objectConfirmRemoveFrame', 'objectCancelRemoveFrame', 'objectMoveFrame',
@@ -317,7 +317,7 @@ function bindEditControls(panel, room) {
     if (t.dataset.deco) { decoUse(Number(t.dataset.deco)); return; }
     // The user's own widgets: arm, edit, and the tab's actions (map-editor-widgets.js).
     if ((t.dataset.widget || t.dataset.widgetArmVar || t.dataset.widgetEdit || t.dataset.widgetAct) && widgetClick(t)) return;
-    if ((t.dataset.animSel || t.dataset.animFrame != null || t.dataset.animAct || t.dataset.animTiming) && animClick(t)) return;
+    if ((t.dataset.animSel || t.dataset.animFrame != null || t.dataset.animAct || t.dataset.animTiming || t.dataset.animPreset != null) && animClick(t)) return;
     // What is stamped on the map: select, remove, disband, variations (map-editor-placed-list.js).
     if ((t.dataset.placedSel || t.dataset.placedRemove || t.dataset.placedDisband || t.dataset.placedToggle || t.dataset.placedVarIdx || t.dataset.placedObjFrame) && placedClick(t)) return;
     if ((t.dataset.objectSel || t.dataset.objectRemove || t.dataset.objectToggle

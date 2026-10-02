@@ -237,6 +237,8 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
 - `map-editor-anim-tab.js` — the Animation tab: rows, the timing editor (ticks per
   frame, initial countdown), its pencil (a rectangle becomes a group; frame painting),
   the map outlines; owns `_animDraw` / `_animPainting`
+- `map-editor-anim-placed.js` — a placed widget's timing chips (A/B/C) on the Placed
+  list, and moving its tiles onto another timing; stateless
 - `map-editor-collision-tab.js` — the Collision tab: a cell's geometry set by hand on
   its own layer (`_edit.coll`), over the tile's estimate, applied only where a word
   leaves the editor (romExportPayload, editExport); owns `_collPick`

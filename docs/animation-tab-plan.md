@@ -56,6 +56,20 @@ frames as layers over it (frame 0 is what the map shows), plus
   the phases (start frames) and the delay patterns vanilla attests for that
   cycle.
 
+## v0.111.0
+
+- A ROM room's animations are listed again (seeding keyed on a flag, not on
+  the list existing).
+- The pencil's rectangle is an empty animation object (`area`): paint frame
+  0, + Frame, paint the next. Each cell gets a slot of its own only where its
+  frames differ from the others'.
+- One row per animation; its timings are A/B/C chips under the header, `+`
+  adds one (it was a new row before). The open timing offers vanilla's own
+  timings for exactly those frames as presets, marked `v`; a timing chip whose
+  ticks are vanilla's is marked too. `vanilla-animation.ts` now keeps every
+  timing per cycle.
+- An open, paused timing shows the frame being drawn; ▶ Play runs it.
+
 ## Known gaps (v0.110.0)
 
 - A ROM room's own stamps draw their later frames from the host's render of

@@ -49,7 +49,7 @@ function sheetAnimations(index, ids) {
     const out = {};
     for (const g of ids) {
         const a = index.animations.byFirst.get(g);
-        if (a) out[g] = { frames: a.frames, delays: a.delays };
+        if (a) out[g] = { frames: a.frames, delays: a.delays, timings: a.timings || [] };
     }
     return out;
 }

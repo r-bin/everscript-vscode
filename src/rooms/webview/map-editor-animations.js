@@ -19,13 +19,17 @@
 //   - auto: brought in by placing a ▶ tile or a widget; listed while a cell
 //     shows it, kept (with its slots) so undo can bring the cells back.
 //   - rom: one of a ROM room's own channels, grouped by editSeedRoomAnims.
-//   - neither: drawn with the Animation tab's pencil.
+//   - neither: drawn with the Animation tab's pencil — `area` is the
+//     rectangle it was dragged out over; its tiles are painted frame by frame.
+// Groups of one animation (the same cycles) are its *timings*, lettered A, B,
+// C…: the tab lists one row per animation with its timings as chips.
 //
-// Owns: _animSel, _animFrame.
+// Owns: _animSel, _animFrame, _animPlaying.
 
-/** The group the Animation tab has open, and the frame its pencil draws into. */
+/** The group (timing) the Animation tab has open, the frame its pencil draws into, and whether it plays. */
 var _animSel = null;
 var _animFrame = 0;
+var _animPlaying = false;
 
 var ANIM_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
@@ -100,6 +104,10 @@ function editAnimForSpec(spec, preferUid) {
   var list = editAnims();
   var pref = preferUid != null ? editAnimFind(preferUid) : null;
   if (pref && animTimingKey(pref.delays, pref.init) === key) return pref;
+  // The open timing of the same animation: picked tiles join it, whatever its ticks.
+  var cyc = animCycleKey(spec.frames || []);
+  if (pref && pref.delays.length === (spec.frames || []).length
+    && Object.keys(pref.channels).some(function (sl) { return animCycleKey(pref.channels[sl]) === cyc; })) return pref;
   var seqKey = (spec.frames || []).join(',');
   var same = list.filter(function (g) { return !g.rom && animTimingKey(g.delays, g.init) === key; });
   for (var i = 0; i < same.length; i++) {
@@ -165,6 +173,55 @@ function editAnimCellMap(palette) {
   return out;
 }
 
+/**
+ * The tab's rows: one per animation, its timings (groups showing the same
+ * cycles) in the order they came, each with the cells it drives. A drawn
+ * group with nothing painted yet is a row of its own.
+ */
+function editAnimRows(palette) {
+  var rows = [], byKey = {};
+  editAnimsListed(palette).forEach(function (e) {
+    var k = animKind(e.g) || ('new-' + e.g.uid);
+    if (!byKey[k]) { byKey[k] = { key: k, timings: [] }; rows.push(byKey[k]); }
+    byKey[k].timings.push(e);
+  });
+  return rows;
+}
+
+/** A list turned to start at index `r`. */
+function animTurn(xs, r) { return xs.slice(r).concat(xs.slice(0, r)); }
+
+/**
+ * Vanilla's timings for a group's animation, turned to the group's phase:
+ * `[{delays, channels}]`, most-used first. Only when vanilla runs exactly
+ * this cycle (from the family sheets' `animations`, room-draft.js) — a drawn
+ * animation of other frames has none.
+ */
+function editAnimPresets(g) {
+  var slots = Object.keys(g.channels);
+  if (!slots.length || typeof _famSheets === 'undefined') return [];
+  var seq = g.channels[slots[0]];
+  var lo = Math.min.apply(null, seq), key = animCycleKey(seq);
+  for (var f in _famSheets) {
+    var a = _famSheets[f] && _famSheets[f].animations && _famSheets[f].animations[lo];
+    if (!a || a.frames.length !== seq.length || animCycleKey(a.frames) !== key) continue;
+    for (var r = 0; r < seq.length; r++) {
+      if (animTurn(a.frames, r).join(',') !== seq.join(',')) continue;
+      return (a.timings && a.timings.length ? a.timings : [{ delays: a.delays, channels: 0 }]).map(function (t) {
+        return { delays: animTurn(t.delays, r), channels: t.channels };
+      });
+    }
+  }
+  return [];
+}
+
+/** The frame an open, paused timing shows on the canvas (map-editor-anim.js), or -1 to play. */
+function editAnimShownFrame(palette, index) {
+  if (_animPlaying || _animSel == null) return -1;
+  var g = editStampAnim(palette, index);
+  return g && g.uid === _animSel ? _animFrame : -1;
+}
+
 /** The groups the tab lists: on the map, drawn by hand, or open. */
 function editAnimsListed(palette) {
   var cells = editAnimCellMap(palette);
@@ -211,6 +268,8 @@ function editAnimChannels(palette) {
       var slot = Number(k);
       var seq = g.channels[k];
       if (!seq || seq.length < 2 || seq[0] !== editSlotGraphicId(palette, slot)) return;
+      // Every frame the same graphic: it never changes, so it costs no channel.
+      if (seq.every(function (gr) { return gr === seq[0]; })) return;
       out.push({ slot: slot, frames: seq.slice(), delays: g.delays.slice(), init: g.init || 0 });
     });
   });
@@ -225,11 +284,15 @@ function editAnimChannels(palette) {
  */
 function editSeedRoomAnims(palette) {
   var d = editDraft();
-  if (!d || d.blank || d.anims || !palette || !Array.isArray(palette.channels) || !palette.grid) return;
+  // A flag, not `d.anims`: the list is made on first use, often before the palette is here.
+  if (!d || d.blank || d.customKey || d.animsSeeded || d.txn || !palette || palette.customBlank) return;
+  if (palette.roomId != null && palette.roomId !== d.roomId) return;
+  if (!Array.isArray(palette.channels) || !palette.grid) return;
+  d.animsSeeded = true;
   var chans = palette.channels.map(function (c) {
     return { slot: c[0], init: c[1] || 0, seq: c[2].map(function (f) { return f[0]; }), delays: c[2].map(function (f) { return f[1]; }) };
   }).filter(function (c) { return c.seq.length > 1; });
-  d.anims = [];
+  if (!d.anims) d.anims = [];
   if (!chans.length) return;
   var bySlot = {};
   chans.forEach(function (c, i) { bySlot[c.slot] = i; c.key = animTimingKey(c.delays, c.init); });
@@ -273,65 +336,3 @@ function editAnimTimingOf(palette, index) {
   return g ? { delays: g.delays, init: g.init || 0 } : null;
 }
 
-// ── a placed widget's timing (the Placed list's A/B/C chips) ─────────────────
-
-/** The animation groups a placed group's words move with, by uid. */
-function placedAnimsOf(g) {
-  var out = {};
-  (g.cells || []).forEach(function (c) {
-    [c.layer1, c.layer2].forEach(function (word) {
-      var a = word == null ? null : editWordAnim(_mtPalette, word);
-      if (a) out[a.uid] = a;
-    });
-  });
-  return out;
-}
-
-/** The timing chips for a placed widget whose tiles move: one per timing of the same animation. */
-function placedTimingHtml(g) {
-  if (!_mtPalette) return '';
-  var mine = placedAnimsOf(g), uids = Object.keys(mine);
-  if (uids.length !== 1) return '';
-  var cur = mine[uids[0]], kind = animKind(cur);
-  var listed = editAnimsListed(_mtPalette), letters = editAnimLetters(listed);
-  var same = listed.filter(function (e) { return animKind(e.g) === kind; });
-  if (same.length < 2) return '';
-  return '<div class="rg-anim-timing-chips"><span class="rg-anim-timing-lbl">timing</span>'
-    + same.map(function (e) {
-      return '<button class="ro-chip rg-anim-letter-chip' + (e.g.uid === cur.uid ? ' sel' : '') + '" data-anim-timing="' + e.g.uid
-        + '" data-anim-group="' + g.uid + '" title="Move with timing ' + letters[e.g.uid] + ' (' + e.g.delays.join(' ') + ' ticks)">'
-        + letters[e.g.uid] + '</button>';
-    }).join('') + '</div>';
-}
-
-/**
- * Move a placed widget's tiles to another timing of the same animation:
- * each word goes to the target group's slot on the same cycle (adopted for
- * it when it has none). One undo step.
- */
-function placedSetTiming(groupUid, animUid) {
-  var g = editGroupFind(groupUid), to = editAnimFind(animUid);
-  if (!g || !to) return;
-  if (editLocked()) { editNote('this map is locked — unlock it to change what is placed on it'); return; }
-  var p = _mtPalette;
-  var slotFor = function (word) {
-    var from = editWordAnim(p, word);
-    if (!from || from === to) return null;
-    var seq = from.channels[animWordSlot(word)], key = animCycleKey(seq);
-    for (var s in to.channels) if (animCycleKey(to.channels[s]) === key && editAnimOfSlot(p, Number(s)) === to) return Number(s);
-    var ns = editAdoptGraphic(p, seq[0], to.uid);
-    if (ns >= 0) to.channels[ns] = seq.slice(0, to.delays.length);
-    return ns >= 0 ? ns : null;
-  };
-  var move = function (word) {
-    var ns = word == null ? null : slotFor(word);
-    if (ns == null) return word;
-    var s = animWordSlot(word);
-    return (word & ~0x3ff & 0xffff) | ((editSlotChr(ns) + ((word & 0x3ff) - editSlotChr(s))) & 0x3ff);
-  };
-  editBegin();
-  g.cells = g.cells.map(function (c) { return Object.assign({}, c, { layer1: move(c.layer1), layer2: move(c.layer2) }); });
-  editEnd();
-  editNote(g.name + ' now moves with timing ' + (editAnimLetters(editAnimsListed(p))[to.uid] || ''));
-  requestComposedPreview();
-}

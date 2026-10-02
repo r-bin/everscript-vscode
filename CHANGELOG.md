@@ -1,3 +1,14 @@
+## [0.111.0] — 2026-10-02
+
+### Changed: Animation tab — one row per animation, timings as chips, vanilla presets, drawn animations are objects
+
+- **Vanilla rooms list their animations again.** Seeding the room's channels waited for an empty list, but the list was made on first use, often before the palette arrived. It now keys on a flag (Volcano Room 2: 5 channels over 200 cells).
+- **A rectangle is an empty animation.** The pencil drags out an animation object over any cells, even empty ones, opened on frame 0. Paint frame 0, + Frame, paint the next. A cell gets a slot of its own only where its frames differ from the other cells', and a cell whose frames never change costs no channel. The eraser sets a frame back to the one before it.
+- **One row per animation, its timings as chips.** A, B, C… sit under the row's header, always visible; `+` adds a timing to the same animation (it used to add a row). Remove timing takes one off; × stops the whole animation.
+- **Vanilla's timings as presets.** The open timing offers every timing vanilla runs exactly these frames at, turned to the timing's phase and marked `v` (the Antiqua torch: `5 5 5 5 3 3` on 17 channels, `7 7 7 7 7 4`, …). A timing chip whose ticks are vanilla's is marked too. Frames vanilla never runs get no presets. (`vanilla-animation.ts` keeps every timing per cycle; the family sheets carry them.)
+- **Draw what you see.** An open timing, paused, shows the frame being drawn on the map; ▶ Play runs it.
+- A ▶ tile picked while a timing of its animation is open joins that timing.
+
 ## [0.110.0] — 2026-10-02
 
 ### Added: the Animation tab; a frame picked on its own stays still

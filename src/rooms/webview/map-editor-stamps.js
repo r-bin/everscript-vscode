@@ -75,9 +75,12 @@ function editSlotChr(slot) {
  * cell naming it, so a still frame and an animated copy of the same graphic
  * need a slot each.
  */
-function editAdoptGraphic(palette, graphicId, animUid) {
+function editAdoptGraphic(palette, graphicId, animUid, fresh) {
   if (!_edit || !palette || !palette.tiles) return -1;
   var want = animUid == null ? null : animUid;
+  // `fresh`: a slot of its own even when one already fits — a drawn
+  // animation's cell whose frames differ from its neighbours'.
+  if (fresh) return editAdoptFresh(palette, graphicId, want);
   var moves = function (slot) {
     var g = typeof editAnimOfSlot === 'function' ? editAnimOfSlot(palette, slot) : null;
     return g ? g.uid : null;
@@ -89,6 +92,10 @@ function editAdoptGraphic(palette, graphicId, animUid) {
   for (var j = 0; j < _edit.addedGraphics.length; j++) {
     if (_edit.addedGraphics[j] === graphicId && moves(palette.tiles.count + j) === want) return palette.tiles.count + j;
   }
+  return editAdoptFresh(palette, graphicId, want);
+}
+
+function editAdoptFresh(palette, graphicId, want) {
   _edit.addedGraphics.push(graphicId);
   var slot = palette.tiles.count + _edit.addedGraphics.length - 1;
   // A slot pruned and taken again keeps no binding from before; an animated one is bound

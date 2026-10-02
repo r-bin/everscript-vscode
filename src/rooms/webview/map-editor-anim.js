@@ -39,6 +39,13 @@ function editStampAnimSvg(sheet, i, still, cls, x, y, palette, index) {
   var a = sheet.anim;
   var n = hit.delays.length;
   if (n < 2 || a.sheets.length < n - 1) return still;
+  // The open timing, paused: the frame being drawn, still (map-editor-animations.js).
+  var shown = palette && typeof editAnimShownFrame === 'function' ? editAnimShownFrame(palette, index) : -1;
+  if (shown === 0) return still;
+  if (shown > 0 && shown < n) {
+    return editCropSvg(cls, x, y, a, a.sheets[shown - 1].imageUri, a.sheets[shown - 1].imageWidth,
+      a.sheets[shown - 1].imageHeight, hit.row, '');
+  }
   var timing = palette && typeof editAnimTimingOf === 'function' ? editAnimTimingOf(palette, index) : null;
   var delays = timing && timing.delays.length === n ? timing.delays : hit.delays;
   var times = [];

@@ -508,3 +508,5 @@
 /* The Animation tab's outlines (map-editor-anim-tab.js editAnimSvg). */
 .rg-theme .rg-anim-cell{fill:var(--rg-warning);fill-opacity:.06;stroke:var(--rg-warning);stroke-opacity:.5;stroke-width:.08;pointer-events:none}
 .rg-theme .rg-anim-cell.sel{fill-opacity:.16;stroke-opacity:1;stroke-width:.14}
+.rg-theme .rg-anim-area{stroke:var(--rg-warning)}
+.rg-theme .rg-anim-area.sel{fill:var(--rg-warning);fill-opacity:.06;stroke-dasharray:none;stroke-width:.16}

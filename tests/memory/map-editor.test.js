@@ -738,6 +738,7 @@ const ui = new Function(`
   ${read('map-editor-pick.js')}
   ${read('map-editor-animations.js')}
   ${read('map-editor-anim-tab.js')}
+  ${read('map-editor-anim-placed.js')}
   ${read('map-editor-objects.js')}
   ${read('map-editor-object-list.js')}
   ${read('map-editor-placed-list.js')}
@@ -3031,7 +3032,8 @@ test('a ▶ tile animates in a slot of its own; the same graphic as a still fram
     assert.strictEqual(ui.editAnimsListed(p).length, 0);
     ui.editApply([{ x: 0, y: 0, index: ui.editAddStamp(p, { layer1: chrOf(moving) | (1 << 10), layer2: 0x0400, collision: 0 }) }]);
     assert.strictEqual(ui.editAnimsListed(p).length, 1);
-    assert.ok(ui.animTabHtml().includes('2742 · <b class="rg-anim-letter">A</b>'));
+    const tab = ui.animTabHtml();
+    assert.ok(tab.includes('2742<span') && tab.includes('>A</button>'), 'a row named by its graphic, its timing a chip');
 });
 
 test('picking in the Tile tab: an animation’s swatch places it moving, `frames` places it still', () => {
@@ -3062,6 +3064,8 @@ test('a ROM room lists its own channels, touching ones of one timing as one anim
     p.channels = [[2, 0, [[2742, 5], [2743, 5]]], [3, 0, [[2747, 5], [2748, 5]]], [4, 0, [[2742, 3], [2743, 3]]]];
     ui.setPalette(p);
     ui.editReset(0x29).on = true;
+    // Asked before the palette came: the list is made empty, and the room's channels must still arrive.
+    ui.editAnims();
     ui.editSeedRoomAnims(p);
     const anims = ui.editAnims();
     assert.strictEqual(anims.length, 2, 'the torch (two slots, touching) and the third channel, at another timing');
@@ -3074,31 +3078,77 @@ test('a ROM room lists its own channels, touching ones of one timing as one anim
     assert.strictEqual(ui.editAnims().length, 2, 'seeded once');
 });
 
-test('the Animation tab’s pencil: a rectangle becomes an animation, + Frame and painting set its frames, undo takes it back', () => {
+test('the Animation tab’s pencil: a rectangle is an empty animation; painting its frames gives each cell the slots its frames need', () => {
     const p = animPalette();
     ui.setPalette(p);
     ui.editReset(1).on = true;
     const d = ui.editDraft();
-    ui.editBegin(); ui.editAnimFromRect({ x1: 1, y1: 0, x2: 1, y2: 0 }); ui.editEnd();
-    const g = ui.editAnims()[0];
-    const slots = Object.keys(g.channels).map(Number);
-    assert.strictEqual(slots.length, 1, 'only the canopy moves, not the floor under it');
-    assert.ok(slots[0] >= 2, 'a slot of its own: the canopy at (2,1) on slot 1 stays still');
-    assert.strictEqual(ui.editAnimOfSlot(p, 1), null);
-    assert.strictEqual(ui.animSel(), g.uid);
-    ui.animClick({ dataset: { animAct: 'add-frame' } });
-    assert.deepStrictEqual(g.delays, [8, 8]);
-    d.brush = ui.editAddStamp(p, { layer1: 0x0400, layer2: 0x0400, collision: 0 }); // graphic 0x422 as canopy
     d.tool = 'paint';
-    ui.setAnimSel(g.uid, 1);
+    // An empty rectangle on an empty map: an animation object all the same.
+    ui.editAnimGesture(d, { x: 0, y: 0 }, 'down');
+    ui.editAnimGesture(d, { x: 1, y: 1 }, 'move');
+    ui.editAnimGesture(d, { x: 1, y: 1 }, 'up');
+    const g = ui.editAnims()[0];
+    assert.deepStrictEqual(g.area, { x: 0, y: 0, w: 2, h: 2 });
+    assert.deepStrictEqual(g.channels, {});
+    assert.strictEqual(ui.animSel(), g.uid);
+    assert.ok(ui.animTabHtml().includes('new animation'), 'listed before anything is painted');
+    ui.editUndo(p);
+    assert.strictEqual(ui.editAnims().length, 0, 'dragging it out was one step');
+    ui.editRedo(p);
+    const h = ui.editAnims()[0];
+    ui.setAnimSel(h.uid, 0);
+    // Frame 0: graphic 0x423 (slot 1) as canopy at both (0,0) and (1,0).
+    d.brush = ui.editAddStamp(p, { layer1: 0x0402, layer2: 0xa800, collision: 0 });
+    ui.editAnimGesture(d, { x: 0, y: 0 }, 'down');
+    ui.editAnimGesture(d, { x: 1, y: 0 }, 'move');
+    ui.editAnimGesture(d, { x: 1, y: 0 }, 'up');
+    const slots0 = Object.keys(ui.editAnims()[0].channels);
+    assert.strictEqual(slots0.length, 1, 'two cells with the same frames share one slot');
+    ui.animClick({ dataset: { animAct: 'add-frame' } });
+    // Frame 1 differs at (1,0) only: that cell gets a slot of its own.
+    d.brush = ui.editAddStamp(p, { layer1: 0x0400, layer2: 0xa800, collision: 0 });
+    ui.setAnimSel(h.uid, 1);
     ui.editAnimGesture(d, { x: 1, y: 0 }, 'down');
     ui.editAnimGesture(d, { x: 1, y: 0 }, 'up');
-    assert.deepStrictEqual(ui.editAnims()[0].channels[slots[0]], [0x423, 0x422]);
-    assert.deepStrictEqual(ui.editAnimChannels(p).map((c) => c.frames), [[0x423, 0x422]]);
-    ui.editUndo(p);
-    assert.deepStrictEqual(ui.editAnims()[0].channels[slots[0]], [0x423, 0x423], 'the frame paint was one step');
-    ui.editUndo(p);
-    assert.deepStrictEqual(ui.editAnims()[0].delays, [8], '+ Frame was one step');
+    const chans = ui.editAnims()[0].channels;
+    const seqs = Object.keys(chans).map((k) => chans[k].join(',')).sort();
+    assert.deepStrictEqual(seqs, [[0x423, 0x422].join(','), [0x423, 0x423].join(',')]);
+    assert.strictEqual(ui.editAnimChannels(p).length, 1, 'only the cell that changes needs a channel');
+    // The eraser sets a frame back to the one before.
+    d.tool = 'erase';
+    ui.editAnimGesture(d, { x: 1, y: 0 }, 'down');
+    ui.editAnimGesture(d, { x: 1, y: 0 }, 'up');
+    assert.strictEqual(ui.editAnimChannels(p).length, 0);
+});
+
+test('vanilla’s timings are offered for its own frames, turned to the timing’s phase, and marked', () => {
+    const p = animPalette();
+    ui.setPalette(p);
+    ui.editReset(1).on = true;
+    ui.setSheet(115, { family: 115, count: 1, columns: 16, cell: 16, imageUri: 'data:,', slots: [[0, 0, 2742, 10, 0, 0]],
+        animations: { 2742: { frames: TORCH.frames, delays: TORCH.delays,
+            timings: [{ delays: [5, 5, 5, 5, 3, 3], channels: 17 }, { delays: [7, 7, 7, 7, 7, 4], channels: 2 }] } } });
+    // A timing starting at 2744's second showing (frame 5): the presets turn with it.
+    const spec = { frames: [2744, 2742, 2743, 2744, 2745, 2746], delays: [3, 5, 5, 5, 5, 3] };
+    const s = ui.editAdoptAnimated(p, 2744, spec, null);
+    const g = ui.editAnimOfSlot(p, s);
+    ui.editApply([{ x: 0, y: 0, index: ui.editAddStamp(p, { layer1: chrOf(s) | (1 << 10), layer2: 0x0400, collision: 0 }) }]);
+    ui.setAnimSel(g.uid, 0);
+    const html = ui.animTabHtml();
+    assert.ok(html.includes('<b>v</b> 3 5 5 5 5 3') && html.includes('<b>v</b> 4 7 7 7 7 7'), html.match(/rg-anim-presets[^]*?<\/div>/)[0]);
+    assert.ok(/rg-anim-letter-chip sel vanilla/.test(html), 'the timing chip says it is vanilla’s');
+    ui.animClick({ dataset: { animPreset: '1' } });
+    assert.deepStrictEqual(g.delays, [4, 7, 7, 7, 7, 7]);
+    assert.ok(ui.animTabHtml().includes('rg-anim-preset vanilla sel'));
+    // A ▶ tile picked while the timing is open joins it, at its ticks.
+    assert.strictEqual(ui.editAdoptAnimated(p, 2742, TORCH, g.uid) >= 0, true);
+    assert.strictEqual(ui.editAnims().length, 1, 'the open timing, not a new group');
+    // New timing: the same row, a second chip.
+    ui.animClick({ dataset: { animAct: 'new-timing' } });
+    const tab = ui.animTabHtml();
+    assert.strictEqual((tab.match(/class="rg-object-card rg-anim-card/g) || []).length, 1, 'one row');
+    assert.ok(tab.includes('>A</button>') && tab.includes('>B</button>'));
 });
 
 test('a placed widget switches timing: its words move to the other timing’s slots', () => {

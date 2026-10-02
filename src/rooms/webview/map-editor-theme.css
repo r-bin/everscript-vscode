@@ -390,3 +390,10 @@
 .rg-theme .rg-anim-timing-chips{display:flex;align-items:center;gap:6px;padding:4px 8px 8px 30px}
 .rg-theme .rg-anim-timing-lbl{font:10px var(--rg-font-mono);color:var(--rg-text-muted);text-transform:uppercase;letter-spacing:.06em}
 .rg-theme .rg-anim-letter-chip{min-width:28px;justify-content:center;font-family:var(--rg-font-mono)}
+.rg-theme .rg-anim-timings,.rg-theme .rg-anim-presets{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:4px 8px 8px 30px}
+.rg-theme .rg-anim-presets{padding:0 0 8px}
+.rg-theme .rg-anim-letter-chip.vanilla,.rg-theme .rg-anim-preset.vanilla{border-color:color-mix(in srgb,var(--rg-warning) 55%,transparent);color:var(--rg-warning)}
+.rg-theme .rg-anim-preset{font:11px var(--rg-font-mono);padding:3px 8px}
+.rg-theme .rg-anim-preset b{font-weight:600;opacity:.8}
+.rg-theme .rg-anim-add{border-style:dashed;color:var(--rg-text-muted)}
+.rg-theme .rg-anim-sw-new{display:inline-grid;place-items:center;color:var(--rg-text-muted);font-size:12px;border:1px dashed var(--rg-border)}

@@ -19,6 +19,12 @@ export interface Animation {
     delays: number[];
     /** Rooms animating frame 0 with this sequence. */
     rooms: number;
+    /**
+     * Every timing vanilla runs this cycle at, in the same rotation as
+     * `frames`, most-used first: `delays` per frame and how many channels
+     * use them. The Animation tab offers these as presets for this cycle.
+     */
+    timings?: Array<{ delays: number[]; channels: number }>;
 }
 
 export interface AnimationIndex {
@@ -36,10 +42,18 @@ export function noteAnimations(room: RoomData, seen: Map<number, Map<string, Ani
         const key = frames.join(',');
         let byKey = seen.get(frames[0]);
         if (!byKey) { byKey = new Map(); seen.set(frames[0], byKey); }
+        const delays = ch.frames.map((f) => f.delay);
         const had = byKey.get(key);
-        if (had) had.rooms += 1;
-        else byKey.set(key, { frames, delays: ch.frames.map((f) => f.delay), rooms: 1 });
+        if (had) { had.rooms += 1; noteTiming(had, delays, 1); }
+        else byKey.set(key, { frames, delays, rooms: 1, timings: [{ delays, channels: 1 }] });
     }
+}
+
+function noteTiming(a: Animation, delays: number[], channels: number): void {
+    const key = delays.join(',');
+    const t = (a.timings || (a.timings = [])).find((x) => x.delays.join(',') === key);
+    if (t) t.channels += channels;
+    else a.timings.push({ delays: delays.slice(), channels });
 }
 
 /** A sequence turned so its lowest graphic comes first: every phase of one cycle gives the same answer. */
@@ -47,7 +61,10 @@ function canonical(a: Animation): Animation {
     let at = 0;
     a.frames.forEach((g, i) => { if (g < a.frames[at]) at = i; });
     const turn = <T>(xs: T[]): T[] => xs.slice(at).concat(xs.slice(0, at));
-    return { frames: turn(a.frames), delays: turn(a.delays), rooms: a.rooms };
+    return {
+        frames: turn(a.frames), delays: turn(a.delays), rooms: a.rooms,
+        timings: (a.timings || []).map((t) => ({ delays: turn(t.delays), channels: t.channels })),
+    };
 }
 
 /**
@@ -67,13 +84,16 @@ export function compactAnimations(seen: Map<number, Map<string, Animation>>): An
             const c = canonical(a);
             const key = c.frames.join(',');
             const had = cycles.get(key);
-            if (had) had.rooms += c.rooms;
-            else cycles.set(key, c);
+            if (had) {
+                had.rooms += c.rooms;
+                (c.timings || []).forEach((t) => noteTiming(had, t.delays, t.channels));
+            } else cycles.set(key, c);
         }
     }
     const byFirst = new Map<number, Animation>();
     const frameOf = new Map<number, { first: number; index: number }>();
     const owned = new Set<number>();
+    for (const c of cycles.values()) (c.timings || []).sort((a, b) => b.channels - a.channels);
     const list = [...cycles.values()].sort((a, b) => b.rooms - a.rooms || a.frames[0] - b.frames[0]);
     for (const c of list) {
         if (c.frames.some((g) => owned.has(g))) continue;

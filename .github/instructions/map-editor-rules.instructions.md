@@ -336,7 +336,12 @@ slot's graphic. Never decide "it animates" from the graphic: a frame picked on i
 (`frames` view) is a **still** tile, in a slot no group lists; a ▶ swatch adopts the
 graphic into a slot bound to a group at vanilla's timing. One graphic may sit in
 several slots (still, timing A, timing B) — vanilla does this too. Out of step is a
-second group (another timing letter), never a per-cell clock. The canvas and the ROM
+second group (another timing letter), never a per-cell clock. The tab lists one row
+per animation with its timings as A/B/C chips; vanilla's own timings for exactly those
+frames (`timings` on the family sheets' `animations`) are offered as presets and marked
+— never for frames vanilla does not run. A rectangle dragged out with the pencil is an
+empty animation (`area`); painting a frame gives a cell a slot of its own only where its
+frames differ, and a slot whose frames never change costs no channel. The canvas and the ROM
 export both read `editAnimChannels`; a draft from before this sends none and gets
 vanilla's cycles (rom-export.js). Budget: 42 channels, vanilla's most.
 
