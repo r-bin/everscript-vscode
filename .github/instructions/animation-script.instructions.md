@@ -20,6 +20,8 @@ wrong.
 | Linear idle walk (room view) | | `src/maps/character-animation.ts` |
 | Catalogue of every animation + owners | | `src/sprites/animation-catalog.js` |
 | Render + script listing for the Sprites tab | | `src/sprites/animation-decoder.js` |
+| Projectile records, straight-line velocity | `$900000 + id` | `src/maps/projectiles.ts` |
+| Projectile spawns + their animations for the tab | | `src/sprites/projectile-render.js` |
 
 **Widths live only in `animation-opcodes.ts`.** Never add a width table anywhere
 else; the linear walker reads `opcode()` too.
@@ -33,6 +35,13 @@ else; the linear walker reads `opcode()` too.
 - **Global ids** (`animate(entity, mode, id)`, `id < 0x8000`): record =
   `$C43C92 + id` (`$8CE13C`). 212 entries. `id >= 0x8000` means the character's own
   field `+0x32 + (id & 0x7FFF)`.
+- **Projectiles**: `0x4C` throws record `$900000 + id` (24 bytes, `$90D9A6`..`$90DB86`):
+  `+0x00` animation record, `+0x02` palette (`0` = thrower's), `+0x08` routine, `+0x0E`
+  speed (1/16 px/tick), `+0x16` power (`0` = thrower's). Only routines 2 and 4 fly
+  straight (`$90DD88` direction table); never animate the others as if they did.
+- **Boy palette = equipped weapon's `+0x04`**, from the data, not a traced reader. His
+  own `+0x09` palette leaves slots 12–13 placeholder green; don't render weapons or
+  their projectiles in it.
 - **`$910000` is font graphics, not an animation table.** Anything resolved through
   it is a coincidence (it once "found" a 22-frame `MAGMAR_ENTER` that belonged to
   another record). Do not reintroduce it.
@@ -71,4 +80,5 @@ else; the linear walker reads `opcode()` too.
 `node tests/memory/sprites.test.js` covers the group counts (783/1752/274/21), id
 resolution (Magmar `$4DD2`, Dog `ACT3_FALL_2` `$449E`), interpreter vs. linear-walk
 parity on idles (≥137/142), the Flowering Death counted loop, the Mosquito
-checkpoint step, and the disassembly notation.
+checkpoint step, the disassembly notation, the `$D9D6` spear projectile (tick 16,
+29 px ahead, 5 px/tick), and the weapon palette slots.

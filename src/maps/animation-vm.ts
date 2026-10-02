@@ -69,6 +69,22 @@ export function animationGroups(rom: Uint8Array): AnimationGroup[] {
     return groups;
 }
 
+/** `$908124`'s four-facing table: facing → byte offset to that facing's record. */
+const FACING_TABLE = 0x90815b;
+
+/**
+ * The script a record plays at a facing — `$908124`: flags bit 7 adds
+ * `2 * facing`, bit 6 adds `$90815B[facing]`, otherwise the record serves all.
+ */
+export function facingScript(rom: Uint8Array, record: number, facing: number): number {
+    if (!record) return 0;
+    const flags = at(rom, ANIMATION_TABLE + record + 3);
+    let r = record;
+    if (flags & DIRECTIONAL_8) r += 2 * facing;
+    else if (flags & DIRECTIONAL_4) r += read16At(rom, FACING_TABLE + facing);
+    return recordScript(rom, r);
+}
+
 /** The record a global animation id selects, or 0 when the id is out of range. */
 export function animationIdRecord(rom: Uint8Array, id: number): number {
     if (id < 0 || id >= ANIMATION_ID_COUNT * 2 || (id & 1)) return 0;
@@ -77,6 +93,18 @@ export function animationIdRecord(rom: Uint8Array, id: number): number {
 
 /** One strike box, centred at (dx, dy) from the feet. */
 export interface VmStrike { dx: number; dy: number; width: number; height: number }
+
+/** A `projectile` command that ran: what it throws and where, relative to the feet. */
+export interface VmSpawn {
+    /** Projectile record id (`$900000 + id`, ./projectiles). */
+    id: number;
+    dx: number;
+    dy: number;
+    /** Height offset, in the same units as dx/dy (the handler stores it ×16). */
+    dz: number;
+    /** Ticks into its frame when it spawned. */
+    at: number;
+}
 
 /** One displayed frame: consecutive ticks that look the same. */
 export interface VmFrame {
@@ -92,6 +120,8 @@ export interface VmFrame {
     step: number;
     /** Set when a `hold_random` chose the timer: the range of ticks it can take. */
     random?: [number, number];
+    /** Projectiles thrown during this frame. */
+    spawns: VmSpawn[];
 }
 
 export interface VmResult {
@@ -144,6 +174,7 @@ export function runAnimation(rom: Uint8Array, script: number): VmResult {
         let step = 0;
         let random: [number, number] | undefined;
         const ran: number[] = [];
+        const spawns: VmSpawn[] = [];
         for (let n = 0; n < MAX_COMMANDS_PER_TICK; n++) {
             const raw = at(rom, q);
             const o = opcode(raw);
@@ -191,21 +222,26 @@ export function runAnimation(rom: Uint8Array, script: number): VmResult {
                 case 'jump': next = jumpTarget(rom, q, o.kind); break;
                 case 'strike': strike = { dx: signed8(b(1)), dy: signed8(b(2)), width: b(3), height: b(4) }; break;
                 case 'step': step += signed8(b(1)); break;
+                case 'projectile':
+                    spawns.push({ id: b(1) | (b(2) << 8), dx: signed8(b(3)), dy: signed8(b(4)), dz: signed8(b(5)), at: 0 });
+                    break;
                 default: break;           // loop restarts are where the run stops; jump_if_linked is not taken
             }
             if (raw & END_FRAME) {
                 timer -= 1;
                 if (timer <= 0) { timer = 1; resume = next; }
-                totalTicks += 1;
                 const last = frames[frames.length - 1];
                 if (last && last.sprite === sprite && last.sprite2 === sprite2 && sameStrike(last.strikeBox, strike)) {
+                    for (const sp of spawns) sp.at = last.ticks;
                     last.ticks += 1;
                     last.step += step;
+                    last.spawns.push(...spawns);
                     for (const a of ran) if (!last.lines.includes(a)) last.lines.push(a);
                     if (random) last.random = random;
                 } else {
-                    frames.push({ sprite, sprite2, ticks: 1, strikeBox: strike, lines: ran, step, random });
+                    frames.push({ sprite, sprite2, ticks: 1, strikeBox: strike, lines: ran, step, random, spawns });
                 }
+                totalTicks += 1;
                 continue ticks;
             }
             q = next;
@@ -218,6 +254,9 @@ export function runAnimation(rom: Uint8Array, script: number): VmResult {
     if (complete && frames.length > 1 && first.sprite === last.sprite && first.sprite2 === last.sprite2
         && !first.strikeBox && !last.strikeBox) {
         frames.pop();
+        // The tail plays first now: the old first frame's spawns move later by its length.
+        for (const sp of first.spawns) sp.at += last.ticks;
+        first.spawns = [...last.spawns, ...first.spawns];
         first.ticks += last.ticks;
         first.step += last.step;
         for (const a of last.lines) if (!first.lines.includes(a)) first.lines.push(a);

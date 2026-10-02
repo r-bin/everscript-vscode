@@ -40,6 +40,12 @@
       if (anim.stoppedAtHex) parts.push('stops at ' + anim.stoppedAtHex + ' (command of unknown width)');
       else if (anim.complete) parts.push('complete cycle');
       if (anim.frames && !anim.frames.length) parts.push('draws nothing');
+      var thrown = anim.projectiles && anim.projectiles.spawns ? anim.projectiles.spawns : [];
+      if (thrown.length) {
+        var kinds = {};
+        thrown.forEach(function(sp) { kinds[sp.idHex] = sp.flying ? 'flies' : 'routine ' + sp.routine + ', drawn in place'; });
+        parts.push('throws ' + Object.keys(kinds).map(function(k) { return k + ' (' + kinds[k] + ')'; }).join(', '));
+      }
       statusEl.textContent = parts.join(' · ');
     }
   }
@@ -69,6 +75,10 @@
   function ownerText(o) {
     if (o.kind === 'character') return o.name + ' · ' + o.label;
     if (o.kind === 'weapon') return 'Boy · ' + o.name + ' · ' + o.label;
+    if (o.kind === 'projectile') {
+      var by = findRecord(parseInt(String(o.thrower).slice(1), 16));
+      return 'projectile ' + o.idHex + ' thrown by ' + (by ? by.label + ' (' + by.recHex + ')' : o.thrower);
+    }
     return 'animate id ' + o.idHex + (o.names.length ? ' (' + o.names.join(', ') + ')' : '');
   }
 

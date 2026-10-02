@@ -233,7 +233,7 @@ animation uses them. They are presumably for effects and menu scripts.
 | Op | Bytes | Mnemonic | Meaning | Handler | Census |
 |---|---|---|---|---|---|
 | `47` | 5 | `strike dx, dy, w, h` | Strike box centred at `(dx, dy)` from the feet, this frame only. See [attack_boxes.md](attack_boxes.md) | `$9087BA` | 303 |
-| `4C` | 6 | `projectile $id, dx, dy, dz` | Spawn a projectile at an offset | `$908725` | 58 |
+| `4C` | 6 | `projectile $id, dx, dy, dz` | Throws projectile record `$90:id` from `(x+dx, y+dy, height+dz·16)`. See [Projectiles](#projectiles) | `$908725` | 58 |
 | `50` | 5 | `hurtbox x, y` | Move the hurt box (`+0x42`, `+0x44`) | `$9085A8` | 21 |
 | `48` | 1 | — | Weapon counter reset/tick (bone-slash trace) | `$908810` | 108 |
 | `49`, `4A` | 3 | — | A word; weapon sound / projectile trigger (bone-slash trace) | `$90882D`/`$908843` | 6 / — |
@@ -389,6 +389,61 @@ c70083  d3              end_check!
 c70084  2d              loop
 ```
 
+## Projectiles
+
+`projectile $id, dx, dy, dz` (`0x4C`, `$908725`) puts the spawn point at
+`(x + dx, y + dy, height + dz × 16)` relative to the thrower, then calls
+`$90DCA4` with `$06 = id`. Everything after that reads one **24-byte record
+at `$900000 + id`**:
+
+| Field | Read at | Meaning |
+|---|---|---|
+| `+0x00` | `$90DC83` → `$90819A` | **Animation record**, started with the thrower's facing (`$90DC51` copies `+0x22`). Every id in use points at a group head |
+| `+0x02` | `$90DC93` → `$90CD80` | **Palette** in bank `$90`. `0` keeps the thrower's palette (`$90DC57`) |
+| `+0x08` | `$90DCB7` | Movement routine, an index into `$90D967` |
+| `+0x0C` | `$90DCB0` | → entity `+0x26` |
+| `+0x0E` | routines 2 and 4 | **Speed**, in 1/16 px per tick (positions are kept ×16, `$90DD61`) |
+| `+0x10` | `$90DCA9` | → entity `+0x1E` |
+| `+0x12` | routines 2 and 4 | → entity `+0x24` |
+| `+0x14` | `$90DC7C` | → entity `+0x2A` |
+| `+0x16` | `$90DC6B` | **Power**. `0` means derived from the thrower (`$8FC02B`) |
+
+Records run every 24 bytes from `$90D9A6` to `$90DB86` (21 slots). 13 are
+thrown by animation scripts; two slots have no animation and are used
+elsewhere, if at all.
+
+**Routines 2 and 4 fly straight.** Routine 4 (`$90DD61`) puts the speed into
+x and y velocity by facing, from its table at `$90DD88`. Routine 2 sets the
+power from `$0A3F` and jumps into routine 4.
+
+| Facing | 0 | 2 | 4 | 6 | 8 | 10 | 12 | 14 |
+|---|---|---|---|---|---|---|---|---|
+| (vx, vy) | (0, −s) | (+s, −s) | (+s, 0) | (+s, +s) | (0, +s) | (−s, +s) | (−s, 0) | (−s, −s) |
+
+Diagonals are not normalised. The other routines (`6`, `0x16`, `0x18`) aim at
+a target or arc, and are not modelled. The Sprites tab draws those at their
+spawn point.
+
+That table also says which way facings point on screen: **facing 8 moves +y,
+down the screen**. Throw offsets agree. The four facing records of the spear
+throw `$411E` spawn at `dy −4`, `dx +29`, `dy +11` and `dx −31` for facings
+0, 4, 8 and 12. This bears on the open question of whether facing 0 or 8 is
+south.
+
+**Example: the spears' level-2 attack** (`$411E`, shared by all four spears)
+throws `$D9D6` on tick 16, 29 px ahead and 19 px up. It is animation `$5772`, a
+40×8 energy streak, flying at 5 px per tick (speed `0x50`). Its palette is `0`,
+so it takes the Boy's, and for the spears that is the weapon palette below.
+
+**The Boy's weapon palette.** Weapon record `+0x04` (`$AD6B`, `$AD8B`, …) is a
+full 16-colour Boy palette in bank `$90`. Across all 15 weapons it keeps his
+skin and outline (slots 1, 2, 4, 5, 15) and always replaces slots 12–13, which
+his own palette (`+0x09`) leaves as placeholder green. The replacements are
+the weapon's colours: bone for Bone Crusher, lavender for the spears, gold for
+Crusader Sword. *The code that loads it is not traced*; this rests on the data
+alone. The Sprites tab draws the Boy, and what he throws, in the equipped
+weapon's palette.
+
 ## Running a script
 
 `runAnimation()` in `src/maps/animation-vm.ts` is the machine above, tick by
@@ -401,6 +456,8 @@ tab:
   the strike box**, then 6 without, and so on.
 - **`step` counts every tick** of its hold. The Mosquito's first pose steps
   `2 + 2`.
+- **Each `projectile` spawn is recorded** with its tick in the frame, so a
+  viewer can launch it at the right moment.
 
 **One-shots end on `end_check!`.** A death or vanish script ends with
 `end_check!`, and the engine retires the entity there. The bytes after it are

@@ -271,6 +271,56 @@ if (rom) {
         assert(stand.owners.some(o => o.kind === 'character' && o.id === 140));
     });
 
+    test('projectile records: 24 bytes at $900000 + id, +0x00 an animation head', () => {
+        const { projectileRecord, projectileVelocity } = require('../../src/maps/dist/projectiles');
+        const heads = new Set(animationGroups(rom).map(g => g.record));
+        const p = projectileRecord(rom, 0xd9d6);
+        assert.strictEqual(p.animRecord, 0x5772);
+        assert(heads.has(p.animRecord));
+        assert.strictEqual(p.routine, 4);
+        assert.strictEqual(p.palette, 0);                 // keeps the thrower's palette
+        // $90DD88: facing 4 is +x, facing 8 is +y; speed is in 1/16 px.
+        assert.deepStrictEqual(projectileVelocity(p, 4), { vx: 5, vy: 0 });
+        assert.deepStrictEqual(projectileVelocity(p, 8), { vx: 0, vy: 5 });
+        assert.strictEqual(projectileVelocity({ ...p, routine: 6 }, 4), null);
+    });
+
+    test('Horn Spear attack 2 throws $D9D6 on tick 16, 29 px ahead, flying', () => {
+        const boy = readCharacter(rom, 0);
+        const atk2 = boy.weapons[8].anims.find(a => a.key === 'w_atk2');
+        assert.strictEqual(atk2.animRec, 0x411e);
+        const anim = renderAnimation(rom, 0, atk2, 4);
+        assert.strictEqual(anim.projectiles.spawns.length, 1);
+        const sp = anim.projectiles.spawns[0];
+        assert.strictEqual(sp.idHex, '$d9d6');
+        assert.strictEqual(sp.tick, 16);
+        assert.deepStrictEqual([sp.dx, sp.dy, sp.dz], [29, 0, 19]);
+        assert.strictEqual(sp.flying, true);
+        const a = anim.projectiles.anims['$d9d6'];
+        assert.deepStrictEqual([a.width, a.height], [40, 8]);
+        assert(anim.frames.some(f => f.spawns.length), 'the throwing frame lists the spawn');
+    });
+
+    test('weapon palette (+0x04) fills the Boy palette slots left green', () => {
+        const { paletteAt, characterPalette } = require('../../src/maps/dist/character-record');
+        const boy = readCharacter(rom, 0);
+        const spear = boy.weapons[8];
+        assert.strictEqual(spear.paletteAddr, 0xad8b);
+        assert(spear.anims.every(a => a.paletteAddr === 0xad8b));
+        const own = characterPalette(rom, 0);
+        const held = paletteAt(rom, spear.paletteAddr);
+        assert.deepStrictEqual(own[12], [8, 248, 8]);
+        assert.notDeepStrictEqual(held[12], [8, 248, 8]);
+        for (const i of [1, 2, 4, 5, 15]) assert.deepStrictEqual(held[i], own[i], `skin/outline slot ${i}`);
+    });
+
+    test('catalogue names projectile animations by what throws them', () => {
+        const cat = buildAnimationCatalog(rom, readAllCharacters(rom));
+        const wave = cat.find(a => a.record === 0x5772);
+        assert(wave.owners.some(o => o.kind === 'projectile' && o.idHex === '$d9d6'));
+        assert.strictEqual(wave.paletteAddr, 0xad8b, 'drawn in the throwing weapon\'s palette');
+    });
+
     test('renderAnimation returns a script listing with frame line addresses', () => {
         const anim = renderAnimation(rom, 140, { category: 'external', animRec: 0x4dd2 }, 0);
         assert(anim.script.length > 10);

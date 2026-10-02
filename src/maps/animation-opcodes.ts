@@ -23,7 +23,7 @@ export type OpKind =
     | 'plain' | 'hold' | 'hold_operand' | 'hold_random' | 'sprite' | 'sprite2' | 'reset'
     | 'loop' | 'restart_here' | 'jump' | 'dec_jnz' | 'jump_pos' | 'jump_if_linked'
     | 'set8' | 'set16' | 'set24' | 'add8' | 'add16' | 'clear'
-    | 'strike' | 'step' | 'sprite_long' | 'sprite_aim';
+    | 'strike' | 'step' | 'sprite_long' | 'sprite_aim' | 'projectile';
 
 export interface Opcode {
     /** Total bytes, opcode included. */
@@ -72,7 +72,7 @@ const OPCODES: Record<number, Opcode> = {
     0x49: op(3, 'op_49'),
     0x4a: op(3, 'op_4a'),
     0x4b: op(3, 'op_4b'),
-    0x4c: op(6, 'projectile'),
+    0x4c: op(6, 'projectile', 'projectile'),
     0x4d: op(3, 'mode'),
     0x4e: op(1, 'op_4e'),
     0x4f: op(1, 'op_4f'),
@@ -167,7 +167,7 @@ function operands(rom: Uint8Array, p: number, o: Opcode): string {
     if (o.mnemonic === 'mode') return '$' + hex(w(1), 4);
     if (o.mnemonic === 'sound' || o.mnemonic === 'sound_maybe') return '$' + hex(b(1), 2);
     if (o.mnemonic === 'hurtbox') return `${signed16(w(1))}, ${signed16(w(3))}`;
-    if (o.mnemonic === 'projectile') return `$${hex(w(1), 4)}, ${signed8(b(3))}, ${signed8(b(4))}, ${signed8(b(5))}`;
+    if (o.kind === 'projectile') return `$${hex(w(1), 4)}, ${signed8(b(3))}, ${signed8(b(4))}, ${signed8(b(5))}`;
     const rest: string[] = [];
     for (let i = 1; i < o.length; i++) rest.push(hex(b(i), 2));
     return rest.join(' ');

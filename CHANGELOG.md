@@ -1,3 +1,13 @@
+## [0.121.0] — 2026-10-03
+
+### Feature: [Sprites] projectiles
+
+- **Projectiles fly in the player:** when an animation runs `projectile` (`0x4C`), the Sprites tab launches the projectile's own animation on the right tick, from its spawn offset and height. It flies along the facing at its real speed for the straight-line routines (2 and 4) and is drawn in place, labelled, for the others. A new **Projectiles** overlay toggles them. The canvas grows to hold the flight, capped at 160 px from the feet.
+- **Projectile records decoded:** `$900000 + id`, 24 bytes (`src/maps/projectiles.ts`): animation record, palette (`0` = thrower's), movement routine, speed (1/16 px per tick), power. The routine 4 direction table at `$90DD88` gives the velocity per facing.
+- **Weapon palettes:** the Boy, and what he throws, are now drawn in the equipped weapon's palette (weapon record `+0x04`). His own palette leaves slots 12–13 as placeholder green, which showed on the spears' energy wave and on weapon sprites. *Read from the data; the loader is not traced.*
+- **Catalogue:** projectile animations are listed as thrown by their animation and drawn in the thrower's palette (11 records; 284 now have no known owner). The script status line names what an animation throws, and the frame info names the throw on its frame.
+- Docs: a Projectiles section in `animation_script.md`. It includes the `$90DD88` evidence that facing 8 moves down the screen.
+
 ## [0.120.0] — 2026-10-03
 
 ### Feature: [Sprites] every animation in the ROM, run like the engine runs it

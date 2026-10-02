@@ -2,12 +2,17 @@
 // Ownership: the catalogue of every animation in the ROM for the Sprites tab — each
 // record of the table at $C43E3A, who uses it, and which palette to draw it in. Pure.
 //
-// Three things point at records, and nothing else does (docs/script-format/animation_script.md):
-//   a character's fields +0x32..+0x46, the Boy's weapon table, and the global id table
-//   at $C43C92 that `animate(entity, mode, id)` reads for ids below 0x8000.
+// Four things point at records (docs/script-format/animation_script.md): a character's
+//   fields +0x32..+0x46, the Boy's weapon table, the global id table at $C43C92 that
+//   `animate(entity, mode, id)` reads for ids below 0x8000, and the projectile records
+//   ($900000 + id) that animation command 0x4c throws.
 
 const indexJson = require('../language/data/index.json');
 const { animationGroups, animationIdRecord, ANIMATION_ID_COUNT } = require('../maps/dist/animation-vm');
+const { disassembleScript } = require('../maps/dist/animation-opcodes');
+const { projectileRecord } = require('../maps/dist/projectiles');
+
+const PROJECTILE_OP = 0x4c;
 
 /** Enum groups whose values are global animation ids, and who they belong to. */
 const ID_ENUMS = ['ANIMATION_BOY', 'ANIMATION_DOG', 'ANIMATION_ENEMY', 'ANIMATION_PLACEHOLDER', 'ANIMATION_ALL'];
@@ -64,7 +69,7 @@ function buildAnimationCatalog(rom, characters) {
             if (a.category === 'standard') add(a.animRec, { kind: 'character', id: c.id, name: c.name, label: a.label });
         }
         for (const w of c.weapons || []) {
-            for (const a of w.anims || []) add(a.animRec, { kind: 'weapon', id: c.id, name: w.name, label: a.label });
+            for (const a of w.anims || []) add(a.animRec, { kind: 'weapon', id: c.id, name: w.name, label: a.label, paletteAddr: w.paletteAddr || 0 });
         }
     }
 
@@ -80,11 +85,46 @@ function buildAnimationCatalog(rom, characters) {
         });
     }
 
-    return animationGroups(rom).map((g) => {
-        const list = owners.get(g.record) || [];
+    const groups = animationGroups(rom);
+    // A weapon animation is drawn in that weapon's palette, unless a character owns it outright.
+    const weaponPaletteOf = (record) => {
+        const list = owners.get(record) || [];
+        if (list.some((o) => o.kind === 'character')) return 0;
+        const w = list.find((o) => o.kind === 'weapon');
+        return w ? w.paletteAddr : 0;
+    };
+    const paletteOf = (record) => {
+        const list = owners.get(record) || [];
         const firstChar = list.find((o) => o.kind === 'character' || o.kind === 'weapon');
         const named = list.find((o) => o.kind === 'id' && o.paletteCharacter !== null);
-        const paletteCharacter = firstChar ? firstChar.id : named ? named.paletteCharacter : BOY;
+        return firstChar ? firstChar.id : named ? named.paletteCharacter : null;
+    };
+
+    // Projectiles: a record thrown by another animation belongs to its thrower,
+    // and takes the projectile's own palette or, when that is 0, the thrower's.
+    const thrown = new Map();
+    for (const g of groups) {
+        const ids = new Set();
+        for (const script of g.scripts) {
+            for (const l of disassembleScript(rom, script)) {
+                if ((l.bytes[0] & 0x7f) === PROJECTILE_OP && l.known) ids.add(l.bytes[1] | (l.bytes[2] << 8));
+            }
+        }
+        for (const id of ids) {
+            const p = projectileRecord(rom, id);
+            if (!p.animRecord) continue;
+            add(p.animRecord, { kind: 'projectile', id, idHex: '$' + hex(id, 4), thrower: '$' + hex(g.record, 4) });
+            if (!thrown.has(p.animRecord)) {
+                thrown.set(p.animRecord, { paletteAddr: p.palette || weaponPaletteOf(g.record), paletteCharacter: paletteOf(g.record) });
+            }
+        }
+    }
+
+    return groups.map((g) => {
+        const list = owners.get(g.record) || [];
+        const t = thrown.get(g.record);
+        const own = paletteOf(g.record);
+        const paletteCharacter = own !== null ? own : t && t.paletteCharacter !== null ? t.paletteCharacter : BOY;
         return {
             record: g.record,
             recHex: '$' + hex(g.record, 4),
@@ -94,6 +134,7 @@ function buildAnimationCatalog(rom, characters) {
             owners: list,
             label: catalogLabel(list),
             paletteCharacter,
+            paletteAddr: own === null && t ? t.paletteAddr : weaponPaletteOf(g.record),
         };
     });
 }
@@ -107,6 +148,8 @@ function catalogLabel(list) {
     for (const o of list) {
         if (o.kind === 'id' && o.names.length) return o.names[0];
     }
+    const thrown = list.find((o) => o.kind === 'projectile');
+    if (thrown) return `projectile ${thrown.idHex}`;
     const id = list.find((o) => o.kind === 'id');
     return id ? `id ${id.idHex}` : 'no known owner';
 }

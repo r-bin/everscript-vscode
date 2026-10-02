@@ -1,33 +1,15 @@
 'use strict';
 // Ownership: running an animation script, aligning and rendering its frames, and its script listing for the Sprites tab. Pure.
 
-const { animationScript, characterPalette, FACING_SOUTH, ANIMATION_TABLE } = require('../maps/dist/character-record');
-const { runAnimation } = require('../maps/dist/animation-vm');
+const { animationScript, characterPalette, paletteAt, FACING_SOUTH } = require('../maps/dist/character-record');
+const { runAnimation, facingScript } = require('../maps/dist/animation-vm');
 const { disassembleScript } = require('../maps/dist/animation-opcodes');
-const { readSpriteInfo, composeSprite } = require('../maps/dist/sprites');
-const { encodePng } = require('../maps/dist/png');
-const { snesToRom } = require('../maps/dist/rom');
+const { composeAligned } = require('./frame-compose');
+const { renderProjectiles } = require('./projectile-render');
 
-const DIRECTIONAL_FLAG = 0x80;
-const TABLE_FLAG = 0x40;
-const FACING_TABLE = 0x90815b;
-
-/** Read 16-bit word at SNES address. */
-function read16(rom, snes) {
-    const o = snesToRom(snes);
-    return rom[o] | (rom[o + 1] << 8);
-}
-
-/** Resolve script address for an external animation, taking facing into account if directional. */
+/** Resolve script address for a record, taking facing into account if directional. */
 function resolveExternalScript(rom, animRec, facing) {
-    if (!animRec) return 0;
-    let rec = animRec;
-    const flags = rom[snesToRom(ANIMATION_TABLE + rec + 3)];
-    if (flags & DIRECTIONAL_FLAG) rec += 2 * facing;
-    else if (flags & TABLE_FLAG) rec += read16(rom, FACING_TABLE + facing);
-    const low = read16(rom, ANIMATION_TABLE + rec);
-    const bank = rom[snesToRom(ANIMATION_TABLE + rec + 2)];
-    return ((low | (bank << 16)) >>> 0);
+    return facingScript(rom, animRec, facing);
 }
 
 /**
@@ -56,55 +38,19 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
     const run = runAnimation(rom, scriptAddr);
     const script = scriptListing(rom, scriptAddr);
     if (!run.frames.length) {
-        return { width: 0, height: 0, originX: 0, originY: 0, complete: run.complete, scriptAddr,
+        return { projectiles: [], width: 0, height: 0, originX: 0, originY: 0, complete: run.complete, scriptAddr,
             scriptHex: hex6(scriptAddr), frames: [], strikeBoxes: [], script, totalTicks: run.totalTicks,
             stoppedAtHex: run.stoppedAt ? hex6(run.stoppedAt) : null };
     }
 
     const strikes = distinctStrikes(run.frames);
-    const spriteInfos = run.frames.map((f) => (f.sprite ? readSpriteInfo(rom, f.sprite) : null));
-    const composed = spriteInfos.map((info) => (info ? composeSprite(rom, info) : EMPTY));
-
-    // Align all frames on the shared feet origin (originX, originY)
-    let originX = 0;
-    let originY = 0;
-    let right = 0;
-    let below = 0;
-    for (const c of composed) {
-        originX = Math.max(originX, c.originX);
-        originY = Math.max(originY, c.originY);
-        right = Math.max(right, c.width - c.originX);
-        below = Math.max(below, c.height - c.originY);
-    }
-
-    const width = Math.max(1, originX + right);
-    const height = Math.max(1, originY + below);
-
-    const colours = characterPalette(rom, characterId);
+    const colours = animOpt.paletteAddr ? paletteAt(rom, animOpt.paletteAddr) : characterPalette(rom, characterId);
+    const { width, height, originX, originY, images, infos } = composeAligned(rom, run.frames, colours);
     const frames = [];
 
-    for (let i = 0; i < composed.length; i++) {
-        const c = composed[i];
-        const info = spriteInfos[i];
-        const data = new Uint8Array(width * height * 4);
-        const dx = originX - c.originX;
-        const dy = originY - c.originY;
-
-        for (let y = 0; y < c.height; y++) {
-            for (let x = 0; x < c.width; x++) {
-                const v = c.pixels[y * c.width + x];
-                if (v <= 0) continue; // transparent or unset
-                const o = ((y + dy) * width + (x + dx)) * 4;
-                const [r, g, b] = colours[v];
-                data[o] = r;
-                data[o + 1] = g;
-                data[o + 2] = b;
-                data[o + 3] = 255;
-            }
-        }
-
-        const pngBuf = encodePng({ width, height, data });
-        const pngDataUri = 'data:image/png;base64,' + pngBuf.toString('base64');
+    for (let i = 0; i < images.length; i++) {
+        const info = infos[i];
+        const pngDataUri = images[i];
 
         // Format chunks list for inspection (matching SoETilesViewer style: 0x0000 @ -12, -31, flags 10)
         const chunkList = (info ? info.chunks : []).map((ch) => ({
@@ -132,9 +78,12 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
             lines: f.lines,
             step: f.step,
             random: f.random || null,
+            spawns: f.spawns,
             chunks: chunkList,
         });
     }
+
+    const projectiles = renderProjectiles(rom, run.frames, facing, colours);
 
     return {
         width,
@@ -149,10 +98,10 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
         script,
         totalTicks: run.totalTicks,
         stoppedAtHex: run.stoppedAt ? hex6(run.stoppedAt) : null,
+        projectiles,
     };
 }
 
-const EMPTY = { width: 0, height: 0, originX: 0, originY: 0, pixels: [] };
 const hex6 = (v) => '$' + v.toString(16).padStart(6, '0');
 
 /** The script's reachable commands, as the webview lists them. */

@@ -701,3 +701,5 @@
 .sp-script-hot {
   background: var(--vscode-editor-selectionBackground, rgba(38, 79, 120, 0.6));
 }
+
+.tag-proj { color: #33ccff; }

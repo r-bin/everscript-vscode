@@ -59,6 +59,8 @@
   var chkHurt = document.getElementById('sp-chk-hurt');
   var chkStrike = document.getElementById('sp-chk-strike');
   var chkOrigin = document.getElementById('sp-chk-origin');
+  var chkProj = document.getElementById('sp-chk-proj');
+  var frameStartTicks = [];  // playback tick each frame starts on, for projectile flight
 
   var statsGrid = document.getElementById('sp-stats-grid');
   var chunksBody = document.getElementById('sp-chunks-body');
@@ -372,7 +374,7 @@
 
     var animOpt = null;
     if (currentMode === 'anims' && pinnedRecord) {
-      animOpt = { key: 'record', category: 'external', animRec: pinnedRecord.record };
+      animOpt = { key: 'record', category: 'external', animRec: pinnedRecord.record, paletteAddr: pinnedRecord.paletteAddr || 0 };
     }
     if (!animOpt && c.id === 0 && c.weapons && c.weapons[selectedWeaponId]) {
       animOpt = (c.weapons[selectedWeaponId].anims || []).find(function(a) { return a.key === selectedAnimKey; });
@@ -381,6 +383,10 @@
       animOpt = (c.anims || []).find(function(a) { return a.key === selectedAnimKey; });
     }
     if (!animOpt) animOpt = { key: 'stand', offset: 0x32 };
+    // The Boy is drawn in the equipped weapon's palette (weapon +0x04), whatever he is doing.
+    if (currentMode === 'chars' && c.id === 0 && c.weapons && c.weapons[selectedWeaponId] && !animOpt.paletteAddr) {
+      animOpt = Object.assign({}, animOpt, { paletteAddr: c.weapons[selectedWeaponId].paletteAddr });
+    }
     requestedRecord = animOpt.animRec || 0;
 
     if (vsApi) {
@@ -430,7 +436,7 @@
     });
   });
 
-  [chkBody, chkHurt, chkStrike, chkOrigin].forEach(function(chk) {
+  [chkBody, chkHurt, chkStrike, chkOrigin, chkProj].forEach(function(chk) {
     if (chk) chk.addEventListener('change', drawFrame);
   });
 
@@ -515,11 +521,15 @@
       if (currentFrameIdx + 1 < currentAnimData.frames.length) {
         currentFrameIdx++;
         updateFrameUI();
+        return;
       } else if (isLooping) {
         currentFrameIdx = 0;
         updateFrameUI();
+        return;
       }
     }
+    // Projectiles move between frame changes, so redraw on every tick they exist.
+    if (hasProjectiles()) drawFrame();
   }
   raf(animationLoop);
 
@@ -544,7 +554,8 @@
 
     if (frameInfo) {
       frameInfo.textContent = 'Frame ' + (currentFrameIdx + 1) + '/' + currentAnimData.frames.length + ' (' + cur.ticks + ' ticks' +
-        (cur.random ? ', random ' + cur.random[0] + '–' + cur.random[1] : '') + ')';
+        (cur.random ? ', random ' + cur.random[0] + '–' + cur.random[1] : '') + ')' +
+        (cur.spawns && cur.spawns.length ? ' · throws ' + cur.spawns.map(function(sp) { return '$' + sp.id.toString(16); }).join(', ') : '');
     }
 
     if (spriteAddrLink) {
@@ -602,8 +613,9 @@
     var w = currentAnimData.width * scale;
     var h = currentAnimData.height * scale;
 
-    canvas.width = Math.max(w + 120, 320);
-    canvas.height = Math.max(h + 120, 320);
+    var reach = projectileReach();
+    canvas.width = Math.max(w + 120, 320, reach.x * 2 * scale + 40);
+    canvas.height = Math.max(h + 120, 320, reach.y * 2 * scale + 40);
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.imageSmoothingEnabled = false;
@@ -659,7 +671,10 @@
       ctx.fillRect(sx, sy, sw, sh);
     }
 
-    // Overlay 4: Origin Crosshair (+)
+    // Overlay 4: Projectiles in flight
+    drawProjectiles(cx, cy, scale);
+
+    // Overlay 5: Origin Crosshair (+)
     if (chkOrigin && chkOrigin.checked) {
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 1;
@@ -668,6 +683,91 @@
       ctx.moveTo(cx, cy - 8); ctx.lineTo(cx, cy + 8);
       ctx.stroke();
     }
+  }
+
+  function hasProjectiles() {
+    var pr = currentAnimData && currentAnimData.projectiles;
+    return !!(pr && pr.spawns && pr.spawns.length && chkProj && chkProj.checked);
+  }
+
+  var MAX_FLIGHT_PX = 160;
+
+  /**
+   * How far from the feet any projectile gets before the cycle restarts, in sprite
+   * pixels, so the canvas can hold the whole flight. Capped: a fast bolt would
+   * otherwise ask for a canvas the width of a room.
+   */
+  function projectileReach() {
+    var out = { x: 0, y: 0 };
+    if (!hasProjectiles()) return out;
+    var pr = currentAnimData.projectiles;
+    var cycle = currentAnimData.totalTicks || 0;
+    pr.spawns.forEach(function(sp) {
+      var anim = pr.anims[sp.idHex];
+      var half = anim ? Math.max(anim.width, anim.height) : 8;
+      var age = Math.max(0, cycle - sp.tick);
+      out.x = Math.max(out.x, Math.min(MAX_FLIGHT_PX, Math.abs(sp.dx) + Math.abs(sp.vx) * age + half));
+      out.y = Math.max(out.y, Math.min(MAX_FLIGHT_PX, Math.abs(sp.dy) + Math.abs(sp.dz) + Math.abs(sp.vy) * age + half));
+    });
+    return out;
+  }
+
+  /** A cached Image for a PNG data URI, or null while it loads (then redraws). */
+  function imageFor(png) {
+    var img = loadedImages[png];
+    if (img) return img;
+    if (typeof Image !== 'function') return null;
+    img = new Image();
+    img.onload = function() { loadedImages[png] = img; drawFrame(); };
+    img.src = png;
+    return null;
+  }
+
+  /** The projectile animation's frame `age` ticks after it spawned (it loops). */
+  function projectileFrame(anim, age) {
+    var total = 0;
+    anim.frames.forEach(function(f) { total += f.ticks; });
+    var t = total > 0 ? age % total : 0;
+    for (var i = 0; i < anim.frames.length; i++) {
+      if (t < anim.frames[i].ticks) return anim.frames[i];
+      t -= anim.frames[i].ticks;
+    }
+    return anim.frames[0];
+  }
+
+  /**
+   * Every spawn whose tick has passed, at spawn + velocity × age. Straight-flying
+   * routines move; others are drawn where they spawned. Height (dz) lifts it.
+   */
+  function drawProjectiles(cx, cy, scale) {
+    if (!hasProjectiles()) return;
+    var pr = currentAnimData.projectiles;
+    var now = (frameStartTicks[currentFrameIdx] || 0) + tickCounter;
+    pr.spawns.forEach(function(sp) {
+      if (now < sp.tick) return;
+      var age = now - sp.tick;
+      var x = cx + (sp.dx + sp.vx * age) * scale;
+      var y = cy + (sp.dy + sp.vy * age - sp.dz) * scale;
+      if (x < -64 || y < -64 || x > canvas.width + 64 || y > canvas.height + 64) return;
+      var anim = pr.anims[sp.idHex];
+      var img = anim ? imageFor(projectileFrame(anim, Math.floor(age)).png) : null;
+      if (img) {
+        ctx.drawImage(img, x - anim.originX * scale, y - anim.originY * scale, anim.width * scale, anim.height * scale);
+      }
+      // Spawn point, and the projectile's own origin.
+      var sx = cx + sp.dx * scale;
+      var sy = cy + (sp.dy - sp.dz) * scale;
+      ctx.strokeStyle = '#33ccff';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy - 4); ctx.lineTo(sx + 4, sy); ctx.lineTo(sx, sy + 4); ctx.lineTo(sx - 4, sy); ctx.closePath();
+      ctx.stroke();
+      if (!img) {
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    });
   }
 
   // ── Raw Sprites Mode Handling ───────────────────────────────────────────────
@@ -736,6 +836,9 @@
         currentAnimData = data.animation;
         currentFrameIdx = 0;
         tickCounter = 0;
+        frameStartTicks = [];
+        var acc = 0;
+        ((currentAnimData && currentAnimData.frames) || []).forEach(function(f) { frameStartTicks.push(acc); acc += f.ticks; });
         if (script) {
           script.renderScript(currentAnimData);
           script.renderOwners(currentMode === 'anims' ? pinnedRecord : script.findRecord(requestedRecord));

@@ -59,8 +59,23 @@ function isValidAnimationScript(rom, scriptAddr) {
     return runAnimation(rom, scriptAddr).frames.some((f) => f.sprite);
 }
 
+/**
+ * Weapon record +0x04: the Boy's palette while holding this weapon. Read from the data,
+ * not a traced reader: across all 15 weapons it keeps the Boy's skin and outline
+ * (slots 1, 2, 4, 5, 15 equal his own +0x09 palette) and always replaces slots 12-13,
+ * which his own palette leaves as placeholder green, with the weapon's colours (bone
+ * for Bone Crusher, lavender for the spears, gold for Crusader Sword).
+ */
+const WEAPON_PALETTE = 0x04;
+
+function weaponPalette(rom, weaponIdx) {
+    const o = snesToRom(WEAPONS_BASE + weaponIdx * WEAPON_STRIDE + WEAPON_PALETTE);
+    return rom[o] | (rom[o + 1] << 8);
+}
+
 function readWeaponAnimations(rom, weaponIdx) {
     const o = snesToRom(WEAPONS_BASE + weaponIdx * WEAPON_STRIDE);
+    const paletteAddr = weaponPalette(rom, weaponIdx);
     const anims = [];
     for (const f of WEAPON_ANIM_OFFSETS) {
         const animRec = rom[o + f.offset] | (rom[o + f.offset + 1] << 8);
@@ -76,6 +91,7 @@ function readWeaponAnimations(rom, weaponIdx) {
                 scriptAddr,
                 flags: animFlags,
                 category: 'weapon',
+                paletteAddr,
             });
         }
     }
@@ -301,6 +317,7 @@ function readCharacter(rom, id) {
         weapons = WEAPON_NAMES.map((wName, idx) => ({
             id: idx,
             name: wName,
+            paletteAddr: weaponPalette(rom, idx),
             anims: readWeaponAnimations(rom, idx),
         }));
         if (weapons[0]) {
