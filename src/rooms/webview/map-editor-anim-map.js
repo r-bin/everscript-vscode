@@ -91,12 +91,15 @@ function editAnimSvg(origin) {
  */
 function editAnimTileStroke(d, cell, phase) {
   if (phase === 'down') _animTileTouch = {};
+  // A stroke begun on an animated tile is its own to the end: it never runs on into the map beneath.
+  var owned = phase !== 'down' && _animTileTouch.owned;
   var e = animAt(cell);
-  if (!e || editAnimComplete(e) || e.vanilla) return false;
+  if (!e || editAnimComplete(e) || e.vanilla) return !!owned;
   var k = _animTileTouch[e.uid];
   if (k == null) k = e.uid === _animSel && _animFrame < e.frames.length ? _animFrame : e.frames.indexOf(null);
-  if (k < 0) return false;
+  if (k < 0) return !!owned;
   _animTileTouch[e.uid] = k;
+  _animTileTouch.owned = true;
   animTile(e, k);
   if (phase === 'down') editNote('frame ' + k + ' of the animated tile tiled — ' + e.frames.filter(function (f) { return f != null; }).length + '/' + e.frames.length);
   requestComposedPreview();
@@ -124,4 +127,29 @@ function animStampFrameSvg(cells, k, size) {
   if (!src || !src.imageUri) return '';
   return '<svg class="rg-anim-sw" width="' + size + '" height="' + size + '" viewBox="0 0 ' + EDIT_UNITS + ' ' + EDIT_UNITS + '">'
     + editCropSvg('rg-anim-prev-cell', 0, 0, k === 0 ? sheet : sheet.anim, src.imageUri, src.imageWidth, src.imageHeight, k === 0 ? i : hit.row, '') + '</svg>';
+}
+
+/** A graphic's swatch from its family's sheet (map-editor-families.js), or a purple empty frame. */
+function animSwatchHtml(graphic, family, size) {
+  var box = '<i class="rg-anim-sw' + (graphic == null ? ' empty' : '') + '" style="width:' + size + 'px;height:' + size + 'px"';
+  if (graphic == null) return box + ' title="no tile yet — tile it with the pencil"></i>';
+  var at = animSheetAt(graphic, family);
+  if (!at) return box + ' title="graphic ' + graphic + '"></i>';
+  var s = at.s, k = size / s.cell;
+  return '<i class="rg-anim-sw" title="graphic ' + graphic + '" style="width:' + size + 'px;height:' + size + 'px;background-image:url('
+    + s.imageUri + ');background-size:' + (s.imageWidth * k) + 'px ' + (s.imageHeight * k) + 'px;background-position:-'
+    + (at.x * k) + 'px -' + (at.y * k) + 'px"></i>';
+}
+
+/** Where a graphic sits in its family's sheet, fetching the sheet when it is not here yet. */
+function animSheetAt(graphic, family) {
+  var s = typeof _famSheets !== 'undefined' ? _famSheets[family] : null;
+  if (!s || s === 'pending' || !s.slots) {
+    if (typeof ensureFamilySheet === 'function' && family != null) ensureFamilySheet(family);
+    return null;
+  }
+  for (var i = 0; i < s.slots.length; i++) {
+    if (s.slots[i][2] === graphic) return { s: s, x: (i % s.columns) * s.cell, y: Math.floor(i / s.columns) * s.cell };
+  }
+  return null;
 }

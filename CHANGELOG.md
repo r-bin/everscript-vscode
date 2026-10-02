@@ -1,3 +1,10 @@
+## [0.113.2] — 2026-10-02
+
+### Fix: drawing into a new animated tile on a custom map; one row per placement
+
+- **Tiling a new animated tile on a custom map works.** An untouched cell has no stamp, and the tile was dropped from it the moment frame 0 got a tile (0.113.1 looked for a floor stamp that custom maps never have). The rest of the stroke then painted the map beneath, which is why the tile went under the purple box, survived deleting the animation, and frame 1 drew beneath again. The cell now takes the tile as the empty stamp, blank on both layers, and a stroke begun on an animated tile never runs on into the map. Erasing it leaves the cell empty again.
+- **The Animation tab lists every placement**, not every channel: each run of touching cells showing an animated tile is its own row (`2 of 6`), with its own position and cell count. Copies share frames and ticks.
+
 ## [0.113.1] — 2026-10-02
 
 ### Fix: new animated tiles on a custom map's empty cells, frame swatches, tick fields

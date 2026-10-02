@@ -200,12 +200,41 @@ function editAnimCellMap(palette) {
   return out;
 }
 
-/** The animated tiles the tab lists: on the map (placed or pending), or open. */
+/**
+ * What the tab lists: every placement of every animated tile — each run of
+ * touching cells showing it — so a tile used ten times is ten rows (each
+ * `{g, cells, part, parts}`; the copies share their frames and ticks). An
+ * open tile with no cells yet is one row.
+ */
 function editAnimsListed(palette) {
-  var cells = editAnimCellMap(palette);
-  return editAnims().filter(function (e) {
-    return (cells[e.uid] || []).length || e.uid === _animSel;
-  }).map(function (e) { return { g: e, cells: cells[e.uid] || [] }; });
+  var cells = editAnimCellMap(palette), out = [];
+  editAnims().forEach(function (e) {
+    var parts = animClusters(cells[e.uid] || []);
+    if (!parts.length && e.uid === _animSel) parts = [[]];
+    parts.forEach(function (c, i) { out.push({ g: e, cells: c, part: i, parts: parts.length }); });
+  });
+  return out;
+}
+
+/** Cell keys split into runs of side-by-side cells, in reading order. */
+function animClusters(keys) {
+  var left = {}, out = [];
+  keys.forEach(function (k) { left[k] = true; });
+  keys.forEach(function (k) {
+    if (!left[k]) return;
+    var part = [], todo = [k];
+    delete left[k];
+    while (todo.length) {
+      var c = todo.pop(), xy = c.split(',').map(Number);
+      part.push(c);
+      [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(function (d) {
+        var n = (xy[0] + d[0]) + ',' + (xy[1] + d[1]);
+        if (left[n]) { delete left[n]; todo.push(n); }
+      });
+    }
+    out.push(part);
+  });
+  return out;
 }
 
 /** A cycle with its rotation taken out, so two phases of one animation read the same. */

@@ -56,6 +56,14 @@ frames as layers over it (frame 0 is what the map shows), plus
   the phases (start frames) and the delay patterns vanilla attests for that
   cycle.
 
+## v0.113.2
+
+- One row per placement (touching cells), not per channel: a vanilla room's
+  lava channel on 60 cells in 6 pools is 6 rows, `n of 6`, sharing ticks.
+- A custom map's untouched cell takes an animated tile (it has no stamp; the
+  tile was silently dropped). A Tile-tab stroke begun on an animated tile
+  never falls through to the map.
+
 ## v0.113.0
 
 - A frame is one graphic: the Tile tab's pencil on an unfinished animated tile

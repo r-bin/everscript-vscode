@@ -347,7 +347,10 @@ disbanded. Animation on/off is map-wide and saved. Animation marks are `--rg-ani
 (violet). The canvas and the ROM export both read `editAnimChannels`. Budget: 42
 channels, vanilla's most. A frame holds at most **127 ticks** (vanilla's maximum, 40
 frames at exactly 127): a longer hold is one graphic over several frames, and the tab
-shows frames holding one graphic in a row as one (`editAnimRuns`). A frame is one
+shows frames holding one graphic in a row as one (`editAnimRuns`). The tab lists every
+**placement** (a run of touching cells showing a tile, `editAnimsListed`): a tile used
+ten times is ten rows sharing one channel. A cell with no stamp (a custom map's
+untouched cell) takes an animated tile as the empty stamp, blank on both layers. A frame is one
 graphic, not a stamp: the Tile tab's pencil on an unfinished tile's cell tiles a frame,
 never the map beneath, and the frame being looked at is drawn over the cell
 (map-editor-anim-map.js). Every animated cell carries a violet border and its pattern

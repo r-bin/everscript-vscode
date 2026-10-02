@@ -17,36 +17,22 @@
 // Vanilla's animated tiles are locked to their frames until disbanded, as a
 // placed widget is. The eraser takes an animated tile off a cell.
 //
-// Owns: _animStroke, _animPlace.
+// Owns: _animStroke, _animPlace, _animSelPart.
 
 /** `{mode: 'place'|'tile'|'erase', uid}` while a pencil or eraser gesture is down. */
 var _animStroke = null;
 /** The animated tile a row's `place` armed for the pencil, or null. */
 var _animPlace = null;
+/** A cell of the open row's placement: which of an animated tile's rows is open. */
+var _animSelPart = null;
 
-/** A graphic's swatch from its family's sheet (map-editor-families.js), or a purple empty frame. */
-function animSwatchHtml(graphic, family, size) {
-  var box = '<i class="rg-anim-sw' + (graphic == null ? ' empty' : '') + '" style="width:' + size + 'px;height:' + size + 'px"';
-  if (graphic == null) return box + ' title="no tile yet — tile it with the pencil"></i>';
-  var at = animSheetAt(graphic, family);
-  if (!at) return box + ' title="graphic ' + graphic + '"></i>';
-  var s = at.s, k = size / s.cell;
-  return '<i class="rg-anim-sw" title="graphic ' + graphic + '" style="width:' + size + 'px;height:' + size + 'px;background-image:url('
-    + s.imageUri + ');background-size:' + (s.imageWidth * k) + 'px ' + (s.imageHeight * k) + 'px;background-position:-'
-    + (at.x * k) + 'px -' + (at.y * k) + 'px"></i>';
-}
-
-/** Where a graphic sits in its family's sheet, fetching the sheet when it is not here yet. */
-function animSheetAt(graphic, family) {
-  var s = typeof _famSheets !== 'undefined' ? _famSheets[family] : null;
-  if (!s || s === 'pending' || !s.slots) {
-    if (typeof ensureFamilySheet === 'function' && family != null) ensureFamilySheet(family);
-    return null;
-  }
-  for (var i = 0; i < s.slots.length; i++) {
-    if (s.slots[i][2] === graphic) return { s: s, x: (i % s.columns) * s.cell, y: Math.floor(i / s.columns) * s.cell };
-  }
-  return null;
+/** This row is the open one: its tile, and the placement the open cell is in (else its first). */
+function animRowOpen(entry) {
+  if (entry.g.uid !== _animSel) return false;
+  var inAny = _animSelPart != null && editAnimsListed(_mtPalette).some(function (x) {
+    return x.g.uid === _animSel && x.cells.indexOf(_animSelPart) >= 0;
+  });
+  return inAny ? entry.cells.indexOf(_animSelPart) >= 0 : entry.part === 0;
 }
 
 /**
@@ -117,15 +103,16 @@ function animBadgeHtml(e, presets) {
 }
 
 function animRowHtml(entry, locked) {
-  var e = entry.g, open = e.uid === _animSel, fam = animFamilyOf(e, entry.cells);
+  var e = entry.g, open = animRowOpen(entry), fam = animFamilyOf(e, entry.cells);
   var presets = editAnimPresets(e);
   var html = '<div class="rg-object-card rg-anim-card' + (open ? ' on' : '') + '">'
-    + '<div class="rg-trigger-row rg-anim-row' + (open ? ' on' : '') + '" data-anim-sel="' + e.uid + '" title="'
+    + '<div class="rg-trigger-row rg-anim-row' + (open ? ' on' : '') + '" data-anim-sel="' + e.uid + '" data-anim-part="' + (entry.cells[0] || '') + '" title="'
     + escH((e.rom ? 'the room’s own' : e.vanilla ? 'vanilla’s frames' : 'drawn here') + (e.vanilla ? ' · locked until disbanded' : '')
       + '\nclick to ' + (open ? 'close' : 'open it')) + '">'
     + animWhereSvg(entry.cells) + animPreviewHtml(e, fam, 30, entry.cells)
     + '<span class="rg-trigger-label">' + (e.frames[0] != null ? e.frames[0] : 'new animated tile') + (e.vanilla ? ' <span class="rg-anim-lock" aria-label="locked">🔒</span>' : '')
-    + '<span class="rg-trigger-what">' + animPlural(editAnimRuns(e).length, 'frame') + ' · ' + animPlural(entry.cells.length, 'cell') + '</span></span>'
+    + '<span class="rg-trigger-what">' + animPlural(editAnimRuns(e).length, 'frame') + ' · ' + animPlural(entry.cells.length, 'cell')
+      + (entry.parts > 1 ? ' · <span title="every copy changes together: frames and ticks are shared">' + (entry.part + 1) + ' of ' + entry.parts + '</span>' : '') + '</span></span>'
     + animBadgeHtml(e, presets)
     + (locked || !editAnimComplete(e) ? '' : '<button class="rdf rdf-xs' + (_animPlace === e.uid ? ' on' : '') + '" data-anim-act="place" data-anim-uid="' + e.uid
       + '" title="' + (_animPlace === e.uid ? 'Stop placing it' : 'Place it with the pencil, like a tile — every copy changes together') + '">place</button>')
@@ -214,8 +201,10 @@ function animClick(t) {
     animRedraw(); return true;
   }
   if (ds.animSel) {
-    var uid = Number(ds.animSel);
-    _animSel = _animSel === uid ? null : uid;
+    var uid = Number(ds.animSel), part = ds.animPart || null;
+    var wasOpen = _animSel === uid && editAnimsListed(_mtPalette).some(function (x) { return x.g.uid === uid && animRowOpen(x) && x.cells[0] === (part || undefined); });
+    _animSel = wasOpen ? null : uid;
+    _animSelPart = wasOpen ? null : part;
     if (_animPlace !== _animSel) _animPlace = null;
     _animFrame = 0; _animPlaying = false;
     animRedraw(); return true;
@@ -282,11 +271,8 @@ function animAt(cell) {
   return null;
 }
 
-/** The stamp a cell shows; a custom map's untouched cell (none) reads as its floor. */
-function animCellIndex(cell) {
-  var idx = editCellAt(_mtPalette, cell.x, cell.y), d = editDraft();
-  return idx >= 0 ? idx : d && d.blank && d.blank.floor != null ? d.blank.floor : -1;
-}
+/** The stamp a cell shows, or -1 (a custom map's untouched cell). */
+function animCellIndex(cell) { return editCellAt(_mtPalette, cell.x, cell.y); }
 
 /** Put animated tile `e` on `cell`: its word on its layer, or (no tile for frame 0 yet) pending. */
 function animPlace(e, cell) {
@@ -297,7 +283,8 @@ function animPlace(e, cell) {
     return;
   }
   var w = editStampWords(p, animCellIndex(cell));
-  if (!w) return;
+  // A custom map's untouched cell has no stamp: it is the empty one, blank on both layers.
+  if (!w) w = { layer1: editBlankCanopy(p), layer2: editBlankCanopy(p), collision: 0 };
   var word = animWordFor(e, e.slot);
   var canopy = e.layer === 'canopy';
   if ((canopy ? w.layer1 : w.layer2) === word) return;
@@ -312,8 +299,8 @@ function animUnplace(e, cell) {
   var w = editStampWords(p, editCellAt(p, cell.x, cell.y));
   if (!w || e.slot == null) return;
   var canopy = animWordSlot(w.layer1) === e.slot && w.layer1 !== editBlankCanopy(p);
-  var floor = d.blank && d.blank.floor != null ? editStampWords(p, d.blank.floor) : null;
-  var still = floor ? floor.layer2
+  // A custom map's ground goes back to empty; a ROM room's to frame 0, still.
+  var still = d.blank ? editBlankCanopy(p)
     : (editSlotChr(editAdoptGraphic(p, e.frames[0], null)) | ((e.pal || 0) & 0xfc00)) & 0xffff;
   editApply([{ x: cell.x, y: cell.y, index: editAddStamp(p, {
     layer1: canopy ? editBlankCanopy(p) : w.layer1, layer2: canopy ? w.layer2 : still, collision: w.collision }) }]);
@@ -354,7 +341,7 @@ function editAnimGesture(d, cell, phase) {
     if (phase !== 'down') return false;
     var at = animAt(cell);
     if (!at) return false;
-    _animSel = at.uid; _animFrame = 0; _animPlaying = false; renderEditChrome(); return true;
+    _animSel = at.uid; _animSelPart = editKey(cell.x, cell.y); _animFrame = 0; _animPlaying = false; renderEditChrome(); return true;
   }
   if (d.tool !== 'paint' && d.tool !== 'erase') return false;
   if (phase === 'down') {
@@ -370,7 +357,7 @@ function editAnimGesture(d, cell, phase) {
     } else {
       var armed = _animPlace != null ? editAnimFind(_animPlace) : null;
       var e = armed || editAnimNew({});
-      if (!armed) { _animSel = e.uid; _animFrame = 0; }
+      if (!armed) { _animSel = e.uid; _animSelPart = editKey(cell.x, cell.y); _animFrame = 0; }
       _animStroke = { mode: 'place', uid: e.uid };
       animPlace(e, cell);
     }

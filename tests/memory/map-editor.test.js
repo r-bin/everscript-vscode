@@ -3188,7 +3188,7 @@ test('a custom map’s untouched cell takes an animated tile: tiling frame 0 kee
     ui.setPalette(p);
     ui.editReset(1).on = true;
     const d = ui.editDraft();
-    d.blank = { floor: 0 };
+    d.blank = {};
     d.tool = 'paint';
     ui.setTab('anim');
     ui.editBegin(); ui.editStroke({ x: 2, y: 1 }, 'down'); ui.editStroke({ x: 2, y: 1 }, 'up'); ui.editEnd();
@@ -3202,7 +3202,27 @@ test('a custom map’s untouched cell takes an animated tile: tiling frame 0 kee
     d.brush = ui.editAddStamp(p, { layer1: 0x0400, layer2: 0xa800, collision: 0 });
     ui.editBegin(); ui.editStroke({ x: 2, y: 1 }, 'down'); ui.editStroke({ x: 2, y: 1 }, 'up'); ui.editEnd();
     assert.deepStrictEqual(ui.editAnims()[0].frames, [0x423, 0x422]);
+    assert.ok(ui.editAnimsListed(p)[0].cells.length === 1);
+    // Erased off the empty cell: empty again, nothing left beneath.
+    ui.setTab('anim'); d.tool = 'erase';
+    ui.editBegin(); ui.editStroke({ x: 2, y: 1 }, 'down'); ui.editStroke({ x: 2, y: 1 }, 'up'); ui.editEnd();
+    const w = ui.editStampWords(p, ui.editCellAt(p, 2, 1));
+    assert.ok(w.layer1 === 0xa800 && w.layer2 === 0xa800, 'blank on both layers');
+    d.tool = 'paint';
     ui.setTab('tile');
+});
+
+test('the tab lists every placement: one animated tile in two places is two rows', () => {
+    const p = animPalette();
+    ui.setPalette(p);
+    ui.editReset(1).on = true;
+    const d = ui.editDraft();
+    const slot = ui.editAdoptAnimated(p, 2742, TORCH, null);
+    const idx = ui.editAddStamp(p, { layer1: chrOf(slot) | (1 << 10), layer2: 0x0400, collision: 0 });
+    ui.editApply([{ x: 0, y: 0, index: idx }, { x: 1, y: 0, index: idx }, { x: 2, y: 1, index: idx }]);
+    const rows = ui.editAnimsListed(p);
+    assert.deepStrictEqual(rows.map((r) => r.cells.length), [2, 1]);
+    assert.ok(ui.animTabHtml().includes('2 of 2'));
 });
 
 test('frames holding one graphic in a row read as one; a hold past 127 ticks is split as the ROM stores it', () => {
