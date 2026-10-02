@@ -52,6 +52,8 @@
   /* Trigger accents: step ~ pink, B ~ yellow. Not consumed until the
      trigger tools land (see docs/map-editor-redesign-plan.md Phase 1/4). */
   --rg-trigger-step: oklch(72% 0.19 350);
+  /* Animated tiles (map-editor-anim-tab.js): one colour for every animation mark. */
+  --rg-anim: oklch(70% 0.19 295);
   --rg-trigger-b: oklch(80% 0.17 95);
   --rg-shadow-float: 0 8px 24px rgba(0,0,0,.45);
   --rg-shadow-subtle: 0 2px 6px rgba(0,0,0,.3);
@@ -377,23 +379,32 @@
   background:var(--rg-bg-hover);color:var(--rg-text-primary);border:1px solid var(--rg-border);border-radius:4px;padding:2px 6px}
 .rg-theme .rg-hdr-in{width:72px;font-family:var(--rg-font-mono)}
 .rg-theme .rg-hdr-row.edited .rg-cap-l{color:var(--rg-warning)}
-/* The Animation tab (map-editor-anim-tab.js) and the Placed list's timing chips. */
+
+/* The Animation tab (map-editor-anim-tab.js) and the Placed list's pattern chips — all in --rg-anim. */
 .rg-theme .rg-anim-sw{display:inline-block;flex:none;border-radius:4px;background-color:var(--rg-bg-app);background-repeat:no-repeat;image-rendering:pixelated}
+.rg-theme .rg-anim-sw.empty{background:color-mix(in srgb,var(--rg-anim) 18%,transparent);border:1px dashed var(--rg-anim)}
 .rg-theme .rg-anim-row{gap:8px}
-.rg-theme .rg-anim-letter{color:var(--rg-warning);font-family:var(--rg-font-mono)}
+.rg-theme .rg-anim-lock{font-size:10px;opacity:.7}
+.rg-theme .rg-anim-badge{flex:none;font:600 11px var(--rg-font-mono);color:var(--rg-anim);border:1px solid color-mix(in srgb,var(--rg-anim) 55%,transparent);border-radius:var(--rg-radius-control);padding:2px 7px}
+.rg-theme .rg-anim-badge.custom{font-weight:400;color:var(--rg-text-secondary);border-color:var(--rg-border)}
+.rg-theme .rg-anim-badge.empty{font-weight:400;border-style:dashed;background:color-mix(in srgb,var(--rg-anim) 12%,transparent)}
+.rg-theme .rg-anim-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 8px}
+.rg-theme .rg-anim-head .rdf.on{border-color:var(--rg-anim);color:var(--rg-anim)}
+.rg-theme .rg-anim-budget{margin-left:auto;font:11px var(--rg-font-mono);color:var(--rg-text-muted)}
+.rg-theme .rg-anim-budget.over{color:var(--rg-error)}
 .rg-theme .rg-anim-timing .ro-chips{display:flex;flex-wrap:wrap;gap:8px}
+.rg-theme .rg-anim-timing .ro-chip.sel{border-color:var(--rg-anim)}
+.rg-theme .rg-anim-empty{border-style:dashed;border-color:var(--rg-anim)}
 .rg-theme .rg-anim-frame-col{display:flex;flex-direction:column;align-items:center;gap:4px}
 .rg-theme .rg-anim-ticks{width:46px;padding:2px 4px;border:1px solid var(--rg-border);border-radius:var(--rg-radius-control);background:var(--rg-bg-app);color:var(--rg-text-primary);font:11px var(--rg-font-mono);text-align:center}
 .rg-theme .rg-anim-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:var(--rg-text-secondary)}
-.rg-theme .rg-anim-budget{font-family:var(--rg-font-mono);font-size:11px}
-.rg-theme .rg-anim-budget.over{color:var(--rg-error)}
-.rg-theme .rg-anim-timing-chips{display:flex;align-items:center;gap:6px;padding:4px 8px 8px 30px}
-.rg-theme .rg-anim-timing-lbl{font:10px var(--rg-font-mono);color:var(--rg-text-muted);text-transform:uppercase;letter-spacing:.06em}
-.rg-theme .rg-anim-letter-chip{min-width:28px;justify-content:center;font-family:var(--rg-font-mono)}
-.rg-theme .rg-anim-timings,.rg-theme .rg-anim-presets{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:4px 8px 8px 30px}
+.rg-theme .rg-anim-bar .rdf.on{border-color:var(--rg-anim);color:var(--rg-anim)}
+.rg-theme .rg-anim-presets,.rg-theme .rg-anim-timing-chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .rg-theme .rg-anim-presets{padding:0 0 8px}
-.rg-theme .rg-anim-letter-chip.vanilla,.rg-theme .rg-anim-preset.vanilla{border-color:color-mix(in srgb,var(--rg-warning) 55%,transparent);color:var(--rg-warning)}
-.rg-theme .rg-anim-preset{font:11px var(--rg-font-mono);padding:3px 8px}
-.rg-theme .rg-anim-preset b{font-weight:600;opacity:.8}
-.rg-theme .rg-anim-add{border-style:dashed;color:var(--rg-text-muted)}
-.rg-theme .rg-anim-sw-new{display:inline-grid;place-items:center;color:var(--rg-text-muted);font-size:12px;border:1px dashed var(--rg-border)}
+.rg-theme .rg-anim-timing-chips{padding:4px 8px 8px 30px}
+.rg-theme .rg-anim-timing-lbl{font:10px var(--rg-font-mono);color:var(--rg-text-muted);text-transform:uppercase;letter-spacing:.06em}
+.rg-theme .rg-anim-preset{font:11px var(--rg-font-mono);padding:3px 8px;color:var(--rg-text-secondary)}
+.rg-theme .rg-anim-preset b{color:var(--rg-anim);font-weight:700}
+.rg-theme .rg-anim-preset.sel,.rg-theme .rg-anim-letter-chip.sel{border-color:var(--rg-anim);color:var(--rg-text-primary);background:color-mix(in srgb,var(--rg-anim) 16%,transparent)}
+.rg-theme .rg-anim-preset.custom{cursor:default}
+.rg-theme .rg-anim-letter-chip{min-width:28px;justify-content:center;font-family:var(--rg-font-mono);color:var(--rg-anim)}

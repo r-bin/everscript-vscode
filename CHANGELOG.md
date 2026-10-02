@@ -1,3 +1,16 @@
+## [0.112.0] — 2026-10-02
+
+### Changed: an animated tile is a channel — one row each, painted as empty purple frames, vanilla patterns lettered
+
+- **An animated tile is one channel.** The Animation tab lists every animated tile on the map, one row each. Closed, a row shows where the tile is in the room, a live preview, and its pattern: A, B, C… for vanilla's patterns, `custom` otherwise, or how many of its frames are tiled yet. Open, it shows the patterns, then each frame with its ticks. The groups of channels from 0.110–0.111 are gone. A ROM room's channels are each their own row, locked, with their own timing.
+- **Painting animated tiles.** The pencil places a new animated tile as empty purple frames, wherever you drag. Pick a tile on the Tile tab and click one of its cells to tile the open frame. It animates (and gets a channel) only once every frame has a tile. With a tile open, the pencil places it elsewhere, like a tile. The eraser takes it off a cell. `+ New animated tile` closes the open one.
+- **▶ swatches are the same thing, ready-made**, at the pattern their family runs most. Vents in family 291 get B (`6 6 6`), in 220 A (`1 1 1`). `vanilla-animation.ts` now tallies every pattern per family; family sheets carry the pick.
+- **Vanilla's patterns are lettered** in one global order, most-used first. A tile shows the letter its ticks match. Patterns are offered only for frames vanilla runs.
+- **Vanilla animated tiles are locked** to their frames until disbanded, like a placed widget. Ticks stay editable.
+- **Animation: on / off**, map-wide and saved. Off shows every animated tile on frame 0.
+- **Violet** (`--rg-anim`) marks everything animated: rows, letters, the tile list's ▶ mark, unfinished cells on the map.
+- Placed widgets switch pattern on their own (A/B/C chips); other copies keep their ticks.
+
 ## [0.111.0] — 2026-10-02
 
 ### Changed: Animation tab — one row per animation, timings as chips, vanilla presets, drawn animations are objects

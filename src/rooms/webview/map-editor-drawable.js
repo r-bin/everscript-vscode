@@ -73,8 +73,8 @@ function editDrawable() {
   }
   if (kind === 'anim') {
     var ag = typeof editAnimFind === 'function' ? editAnimFind(_animSel) : null;
-    return ag && ag.area ? { kind: kind, glyph: '▶', label: 'frame ' + _animFrame + ' of the open animation, inside its rectangle — with the Tile tab’s brush', ready: d && d.brush >= 0 }
-      : { kind: kind, glyph: '▶', label: 'an animation — drag out the tiles that move together', ready: true };
+    return ag ? { kind: kind, glyph: '▶', label: 'the open animated tile — places it; on its own cells, tiles frame ' + _animFrame + ' with the Tile tab’s brush', ready: true }
+      : { kind: kind, glyph: '▶', label: 'a new animated tile — empty purple frames to tile', ready: true };
   }
   if (kind === 'widgets') {
     var c = d && typeof _editConstruct !== 'undefined' && _editConstruct >= 0 ? d.constructs[_editConstruct] : null;

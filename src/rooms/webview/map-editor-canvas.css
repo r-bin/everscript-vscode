@@ -505,8 +505,9 @@
 .rg-theme .rg-obj-drag{stroke-dasharray:none;fill:var(--rg-object);fill-opacity:.18}
 .rg-theme .rg-object-where-box{fill:var(--rg-object);fill-opacity:.7;stroke:var(--rg-object);stroke-width:.6}
 .rg-theme #rg-edit-bar .rg-draw-object{color:var(--rg-object)}
-/* The Animation tab's outlines (map-editor-anim-tab.js editAnimSvg). */
-.rg-theme .rg-anim-cell{fill:var(--rg-warning);fill-opacity:.06;stroke:var(--rg-warning);stroke-opacity:.5;stroke-width:.08;pointer-events:none}
-.rg-theme .rg-anim-cell.sel{fill-opacity:.16;stroke-opacity:1;stroke-width:.14}
-.rg-theme .rg-anim-area{stroke:var(--rg-warning)}
-.rg-theme .rg-anim-area.sel{fill:var(--rg-warning);fill-opacity:.06;stroke-dasharray:none;stroke-width:.16}
+
+/* Animated tiles on the map (map-editor-anim-tab.js editAnimSvg): unfinished ones always, all on the Animation tab. */
+.rg-theme .rg-anim-cell{fill:var(--rg-anim);fill-opacity:.08;stroke:var(--rg-anim);stroke-opacity:.6;stroke-width:.08;pointer-events:none}
+.rg-theme .rg-anim-cell.sel{fill-opacity:.2;stroke-opacity:1;stroke-width:.14}
+.rg-theme .rg-anim-cell.empty{fill-opacity:.35;stroke-dasharray:.3 .2;stroke-opacity:1}
+.rg-theme .rg-anim-where{fill:var(--rg-anim);fill-opacity:.9}

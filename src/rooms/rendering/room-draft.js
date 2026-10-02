@@ -44,12 +44,24 @@ function animationOf(index, graphic) {
     return f ? [2, f.first, f.index] : [0, 0, 0];
 }
 
-/** The animations that start among these graphics. */
-function sheetAnimations(index, ids) {
+/**
+ * The animations that start among these graphics. `timings` are vanilla's
+ * patterns for the cycle in one global order (the Animation tab letters
+ * them A, B, C…); `pick` is the one this family's cells run most, else the
+ * most-used overall, and `delays` is that pick — what a ▶ swatch places.
+ */
+function sheetAnimations(index, ids, family) {
     const out = {};
     for (const g of ids) {
         const a = index.animations.byFirst.get(g);
-        if (a) out[g] = { frames: a.frames, delays: a.delays, timings: a.timings || [] };
+        if (!a) continue;
+        const timings = (a.timings || []).map((t) => ({ delays: t.delays, channels: t.channels }));
+        let pick = 0, best = 0;
+        (a.timings || []).forEach((t, i) => {
+            const n = (t.families && t.families[family]) || 0;
+            if (n > best) { best = n; pick = i; }
+        });
+        out[g] = { frames: a.frames, delays: timings.length ? timings[pick].delays : a.delays, timings, pick };
     }
     return out;
 }
@@ -249,7 +261,7 @@ function buildFamilySheet(rom, familyId, borrowFrom) {
         }),
         // Frame-0 graphic -> {frames, delays} for each animation that starts
         // in this family, so the Tile tab can show it moving.
-        animations: sheetAnimations(index, ids),
+        animations: sheetAnimations(index, ids, family),
         imageUri: null,
         imageWidth: 0,
         imageHeight: 0,

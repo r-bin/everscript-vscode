@@ -378,7 +378,7 @@
    swatch, `k/n` on a frame shown on its own. Bottom-left, clear of the
    collision score (bottom-right) and the stairs mark (top-right). */
 .rg-anim-mark{position:absolute;left:1px;bottom:1px;font:700 5px/1 var(--rg-font-mono,monospace);
-  color:#fff;background:rgba(0,0,0,.6);padding:0 1px;border-radius:1px;pointer-events:none}
+  color:#fff;background:var(--rg-anim,#9b6cf0);padding:0 1px;border-radius:1px;pointer-events:none}
 .rg-anim-mark.later{color:#ccc;background:rgba(0,0,0,.45)}
 
 /* Unused tiles: dimmed in the catalogue, restored when hovered or armed */

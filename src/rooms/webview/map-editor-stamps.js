@@ -78,8 +78,7 @@ function editSlotChr(slot) {
 function editAdoptGraphic(palette, graphicId, animUid, fresh) {
   if (!_edit || !palette || !palette.tiles) return -1;
   var want = animUid == null ? null : animUid;
-  // `fresh`: a slot of its own even when one already fits — a drawn
-  // animation's cell whose frames differ from its neighbours'.
+  // `fresh`: a slot of its own even when one already fits — a new animated tile.
   if (fresh) return editAdoptFresh(palette, graphicId, want);
   var moves = function (slot) {
     var g = typeof editAnimOfSlot === 'function' ? editAnimOfSlot(palette, slot) : null;
@@ -98,11 +97,11 @@ function editAdoptGraphic(palette, graphicId, animUid, fresh) {
 function editAdoptFresh(palette, graphicId, want) {
   _edit.addedGraphics.push(graphicId);
   var slot = palette.tiles.count + _edit.addedGraphics.length - 1;
-  // A slot pruned and taken again keeps no binding from before; an animated one is bound
-  // now (frame 0 held throughout until its frames are set), so the next cell finds it.
-  (_edit.anims || []).forEach(function (g) {
-    if (g.uid !== want) delete g.channels[slot];
-    else g.channels[slot] = g.delays.map(function () { return graphicId; });
+  // A slot pruned and taken again keeps no binding from before; the animated tile
+  // asked for is bound now, so the next cell finds it.
+  (_edit.anims || []).forEach(function (e) {
+    if (e.uid === want) e.slot = slot;
+    else if (e.slot === slot) e.slot = null;
   });
   return slot;
 }

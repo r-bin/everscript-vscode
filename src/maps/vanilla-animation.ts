@@ -24,7 +24,7 @@ export interface Animation {
      * `frames`, most-used first: `delays` per frame and how many channels
      * use them. The Animation tab offers these as presets for this cycle.
      */
-    timings?: Array<{ delays: number[]; channels: number }>;
+    timings?: Array<{ delays: number[]; channels: number; families?: Record<number, number> }>;
 }
 
 export interface AnimationIndex {
@@ -34,26 +34,49 @@ export interface AnimationIndex {
     frameOf: Map<number, { first: number; index: number }>;
 }
 
+/**
+ * Per channel, the families its cells draw it in (`{family: cells}`), read
+ * off the loaded grid. A channel only an object state shows has none here.
+ */
+function channelFamilies(room: RoomData): Array<Record<number, number>> {
+    const base = room.tilePalette.length;
+    const out: Array<Record<number, number>> = (room.animation || []).map(() => ({}));
+    for (const grid of [room.layer1VramWords, room.layer2VramWords]) {
+        for (const row of grid || []) {
+            for (const w of row) {
+                const chr = w & 0x3ff;
+                const ch = (chr >> 5) * 8 + ((chr & 0x1f) >> 1) - base;
+                const fam = room.tileFamilies[((w >> 10) & 7) - 1];
+                if (ch >= 0 && ch < out.length && fam !== undefined) out[ch][fam] = (out[ch][fam] || 0) + 1;
+            }
+        }
+    }
+    return out;
+}
+
 /** Tally one room's channels into `seen` (frame-0 graphic -> sequence key -> animation). */
 export function noteAnimations(room: RoomData, seen: Map<number, Map<string, Animation>>): void {
-    for (const ch of room.animation || []) {
-        if (ch.frames.length < 2) continue;
+    const fams = channelFamilies(room);
+    (room.animation || []).forEach((ch, i) => {
+        if (ch.frames.length < 2) return;
         const frames = ch.frames.map((f) => f.tileId);
         const key = frames.join(',');
         let byKey = seen.get(frames[0]);
         if (!byKey) { byKey = new Map(); seen.set(frames[0], byKey); }
         const delays = ch.frames.map((f) => f.delay);
         const had = byKey.get(key);
-        if (had) { had.rooms += 1; noteTiming(had, delays, 1); }
-        else byKey.set(key, { frames, delays, rooms: 1, timings: [{ delays, channels: 1 }] });
-    }
+        if (had) { had.rooms += 1; noteTiming(had, delays, 1, fams[i]); }
+        else byKey.set(key, { frames, delays, rooms: 1, timings: [{ delays, channels: 1, families: { ...fams[i] } }] });
+    });
 }
 
-function noteTiming(a: Animation, delays: number[], channels: number): void {
+function noteTiming(a: Animation, delays: number[], channels: number, families?: Record<number, number>): void {
     const key = delays.join(',');
-    const t = (a.timings || (a.timings = [])).find((x) => x.delays.join(',') === key);
+    let t = (a.timings || (a.timings = [])).find((x) => x.delays.join(',') === key);
     if (t) t.channels += channels;
-    else a.timings.push({ delays: delays.slice(), channels });
+    else { t = { delays: delays.slice(), channels, families: {} }; a.timings.push(t); }
+    const into = t.families || (t.families = {});
+    for (const f of Object.keys(families || {})) into[Number(f)] = (into[Number(f)] || 0) + (families as Record<number, number>)[Number(f)];
 }
 
 /** A sequence turned so its lowest graphic comes first: every phase of one cycle gives the same answer. */
@@ -63,7 +86,7 @@ function canonical(a: Animation): Animation {
     const turn = <T>(xs: T[]): T[] => xs.slice(at).concat(xs.slice(0, at));
     return {
         frames: turn(a.frames), delays: turn(a.delays), rooms: a.rooms,
-        timings: (a.timings || []).map((t) => ({ delays: turn(t.delays), channels: t.channels })),
+        timings: (a.timings || []).map((t) => ({ delays: turn(t.delays), channels: t.channels, families: t.families })),
     };
 }
 
@@ -86,7 +109,7 @@ export function compactAnimations(seen: Map<number, Map<string, Animation>>): An
             const had = cycles.get(key);
             if (had) {
                 had.rooms += c.rooms;
-                (c.timings || []).forEach((t) => noteTiming(had, t.delays, t.channels));
+                (c.timings || []).forEach((t) => noteTiming(had, t.delays, t.channels, t.families));
             } else cycles.set(key, c);
         }
     }

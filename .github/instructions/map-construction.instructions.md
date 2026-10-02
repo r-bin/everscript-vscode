@@ -84,8 +84,9 @@ that belong together.
 
 - **Lockstep is exact.** Every channel starts at room load, so channels with identical
   `(init, delays)` show the same frame index at every tick.
-- **"One thing" is a judgement.** Seeding (`editSeedRoomAnims`) joins channels whose
-  cells touch *and* whose timing is identical.
+- **"One thing" is a judgement.** Since v0.112.0 the editor does not make it: seeding
+  (`editSeedRoomAnims`) lists **every channel as its own animated tile**, locked to its
+  frames and keeping its own timing, and the Animation tab shows one row per channel.
 
 The census, over every object state of all 127 rooms (1020 channels, 2761 touching
 channel pairs, stacked layers included):
@@ -113,7 +114,8 @@ data.
 - `buildVanillaIndex` treats **every** `uses === 0` entry as object-placed. Only
   entries an object state reaches are (§4). The rest are leftovers voting on families,
   layers and collision.
-- `editSeedRoomAnims` reads `palette.grid` (state 0). The 92 channels that appear only
-  in a later object state are seeded as lone groups, not joined to their neighbours.
+- `editSeedRoomAnims` reads `palette.grid` (state 0) for each channel's layer and word
+  bits. The 92 channels that appear only in a later object state are seeded with none,
+  and list no cells until that state is drawn.
 
 Fix these with the §3/§4 rule. Do not loosen the rule to fit the code.

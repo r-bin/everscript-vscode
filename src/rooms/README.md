@@ -231,14 +231,14 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   the widget's app bar (back, name, size, Delete); owns `_widgetEdit` / `_widgetBack`
 - `map-editor-widget-colours.js` — a widget's stored shape (cells, each part with its
   `anim`) and its colourings, derived from the families the host sends; owns `_widgetFamilies`
-- `map-editor-animations.js` — which tile slots a Section 2 channel drives, and the
-  animation groups (`_edit.anims`): still vs animated adoption, a ROM room's channels
-  grouped, timing letters, the channels the preview and export get; owns `_animSel` / `_animFrame`
-- `map-editor-anim-tab.js` — the Animation tab: rows, the timing editor (ticks per
-  frame, initial countdown), its pencil (a rectangle becomes a group; frame painting),
-  the map outlines; owns `_animDraw` / `_animPainting`
-- `map-editor-anim-placed.js` — a placed widget's timing chips (A/B/C) on the Placed
-  list, and moving its tiles onto another timing; stateless
+- `map-editor-animations.js` — animated tiles, one per Section 2 channel (`_edit.anims`):
+  still vs animated adoption, a ROM room's channels, vanilla's patterns (A, B, C…), the
+  channels the preview and export get; owns `_animSel` / `_animFrame` / `_animPlaying` / `_animOff`
+- `map-editor-anim-tab.js` — the Animation tab: a row per animated tile (where, preview,
+  pattern), patterns/frames/ticks when open, the pencil (place; a new one starts as empty
+  purple frames; tile a frame), the eraser, the purple marks; owns `_animStroke`
+- `map-editor-anim-placed.js` — a placed widget's pattern chips (A/B/C) on the Placed
+  list, and moving one widget onto another pattern; stateless
 - `map-editor-collision-tab.js` — the Collision tab: a cell's geometry set by hand on
   its own layer (`_edit.coll`), over the tile's estimate, applied only where a word
   leaves the editor (romExportPayload, editExport); owns `_collPick`

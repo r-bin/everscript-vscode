@@ -56,6 +56,20 @@ frames as layers over it (frame 0 is what the map shows), plus
   the phases (start frames) and the delay patterns vanilla attests for that
   cycle.
 
+## v0.112.0 — an animated tile is a channel
+
+The user's rules (2026-10-02): an animated tile is a tile that changes over time —
+one channel. The tab lists every animated tile on the map, one row each (where,
+a live preview, its pattern). A new one is painted with the pencil as empty
+purple frames and works once every frame has a tile. A ▶ swatch is the same
+thing, ready-made, at its family's most-used vanilla pattern (`pick` on the
+family sheet, from per-family tallies in `vanilla-animation.ts`). Vanilla's
+patterns for a cycle are lettered A, B, C… in one global order; a tile shows
+its letter, or `custom`. Vanilla animated tiles are locked until disbanded.
+Animation can be turned off map-wide (saved). Animation marks are violet
+(`--rg-anim`). Groups of channels (v0.110–0.111) are gone, and with them the
+drawn rectangle.
+
 ## v0.111.0
 
 - A ROM room's animations are listed again (seeding keyed on a flag, not on

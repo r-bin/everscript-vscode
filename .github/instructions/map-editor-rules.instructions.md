@@ -330,22 +330,22 @@ Its colourings are **derived** (map-editor-widget-colours.js) from every family 
 draws any of its graphics in (`graphicFamilies`, sent by the host), never stored, and
 a colouring recolours its object states too.
 
-**Animation is per slot, and only where a group says so** (map-editor-animations.js,
-the Animation tab). A Section 2 channel swaps the graphic in one tile slot, so every
-cell naming that slot moves together and a tile has no clock of its own. A slot moves
-exactly while an animation group (`_edit.anims`) lists it with frame 0 equal to the
-slot's graphic. Never decide "it animates" from the graphic: a frame picked on its own
-(`frames` view) is a **still** tile, in a slot no group lists; a ▶ swatch adopts the
-graphic into a slot bound to a group at vanilla's timing. One graphic may sit in
-several slots (still, timing A, timing B) — vanilla does this too. Out of step is a
-second group (another timing letter), never a per-cell clock. The tab lists one row
-per animation with its timings as A/B/C chips; vanilla's own timings for exactly those
-frames (`timings` on the family sheets' `animations`) are offered as presets and marked
-— never for frames vanilla does not run. A rectangle dragged out with the pencil is an
-empty animation (`area`); painting a frame gives a cell a slot of its own only where its
-frames differ, and a slot whose frames never change costs no channel. The canvas and the ROM
-export both read `editAnimChannels`; a draft from before this sends none and gets
-vanilla's cycles (rom-export.js). Budget: 42 channels, vanilla's most.
+**An animated tile is one channel** (map-editor-animations.js, the Animation tab). A
+Section 2 channel swaps the graphic in one tile slot, so every cell naming that slot
+changes together and a cell has no clock of its own. A slot moves exactly while an
+animated tile (`_edit.anims`, one entry per channel) names it with frame 0 equal to
+the slot's graphic. Never decide "it animates" from the graphic: a frame picked on its
+own (`frames` view) is a **still** tile; a ▶ swatch is the same as placing an animated
+tile from the Animation tab, at its family's most-used vanilla pattern. One graphic may
+sit in several slots (still, and one per animated tile). Two copies on different ticks
+are two animated tiles. A new animated tile starts as empty purple frames and works —
+gets a channel — only once every frame has a tile. Vanilla's patterns for a cycle are
+lettered A, B, C… in one global order (most-used first); a tile's letter is the pattern
+its ticks match, else `custom`; patterns are offered only for frames vanilla runs.
+Vanilla animated tiles (a ROM room's, a ▶ pick's) are locked to their frames until
+disbanded. Animation on/off is map-wide and saved. Animation marks are `--rg-anim`
+(violet). The canvas and the ROM export both read `editAnimChannels`. Budget: 42
+channels, vanilla's most.
 
  Cell writes, special-glyph writes, trigger
 operations and start moves all go through `editApply`/`editApplyTriggerOp`/
