@@ -1,3 +1,12 @@
+## [0.112.1] — 2026-10-02
+
+### Fix: Animation tab previews, letters, and drawing a new animated tile
+
+- **Previews draw again.** An animated tile placed from a ▶ swatch never recorded its palette, so its row (preview, frame chips) had no family sheet to draw from. The family is now read off the first cell showing it.
+- **Patterns are letters.** The pattern chips show A…M only; the ticks are in each chip's tooltip.
+- **The tile list shows the pattern a pick places**, as a violet letter (B for a beam whose family runs B most) instead of `▶4`.
+- **The pencil starts a new animated tile** anywhere but the open tile's own cells, and opens it. Before, with a row open, it placed another copy of the open tile (a torch) where you meant a new one. To place more copies of a tile, arm its row's `place` button. The hover ghost on this tab is a violet box, not the Tile tab's brush.
+
 ## [0.112.0] — 2026-10-02
 
 ### Changed: an animated tile is a channel — one row each, painted as empty purple frames, vanilla patterns lettered

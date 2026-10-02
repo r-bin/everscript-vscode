@@ -511,3 +511,4 @@
 .rg-theme .rg-anim-cell.sel{fill-opacity:.2;stroke-opacity:1;stroke-width:.14}
 .rg-theme .rg-anim-cell.empty{fill-opacity:.35;stroke-dasharray:.3 .2;stroke-opacity:1}
 .rg-theme .rg-anim-where{fill:var(--rg-anim);fill-opacity:.9}
+.rg-theme .rg-preview-anim{stroke:var(--rg-anim);fill:var(--rg-anim);fill-opacity:.25;stroke-dasharray:.3 .2}

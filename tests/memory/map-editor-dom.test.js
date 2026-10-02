@@ -1396,8 +1396,8 @@ async function main() {
         && anim.keyTimes === '0.0000;0.4000;0.6000' && anim.dur === '0.333s', JSON.stringify(anim));
     check('a stamp that does not animate, and the paste ghost, stay one still picture',
         anim.still === 'STILL' && anim.ghost === 'STILL', JSON.stringify(anim));
-    check('frames mode marks the first frame 1/n; combined it is ▶n',
-        anim.split.indexOf('>1/3<') > 0 && anim.combined.indexOf('>▶3<') > 0, anim.split + ' ' + anim.combined);
+    check('frames mode marks the first frame 1/n; combined it is the pattern letter a pick places',
+        anim.split.indexOf('>1/3<') > 0 && anim.combined.indexOf('>A<') > 0, anim.split + ' ' + anim.combined);
 
     // ── the cuttable filter ────────────────────────────────────────────────
     // "shows only tiles that are involved in cuttable tiles when turned on

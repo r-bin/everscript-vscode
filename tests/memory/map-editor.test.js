@@ -3001,7 +3001,9 @@ test('switching a placed widget variation replaces its family slot, and deleting
 const TORCH = { frames: [2742, 2743, 2744, 2745, 2746, 2744], delays: [5, 5, 5, 5, 3, 3] };
 const chrOf = (slot) => (slot >> 3) * 0x20 + (slot & 7) * 2;
 const slotOfWord = (w) => { const c = w & 0x3ff; return (c >> 5) * 8 + ((c & 0x1f) >> 1); };
-const VENT_SHEET = { family: 115, count: 1, columns: 16, cell: 16, imageUri: 'data:,', slots: [[0, 0, 2742, 10, 0, 0]],
+const VENT_SHEET = { family: 115, count: 1, columns: 16, cell: 16, imageUri: 'data:,',
+    // [13] 1: an animation's frame 0, [14] its first graphic (room-draft.js)
+    slots: [[0, 0, 2742, 10, 0, 0, -1, 0, -1, 0, 0, 0, 0, 1, 2742, 0]],
     animations: { 2742: { frames: TORCH.frames, delays: [7, 7, 7, 7, 7, 4], pick: 1,
         timings: [{ delays: [5, 5, 5, 5, 3, 3], channels: 17 }, { delays: [7, 7, 7, 7, 7, 4], channels: 2 }] } } };
 
@@ -3055,6 +3057,7 @@ test('the Tile tab: an animation’s swatch places it at its family’s usual pa
     assert.ok(e, 'anim view: animated');
     assert.deepStrictEqual(e.delays, [7, 7, 7, 7, 7, 4], 'this family runs pattern B most');
     assert.strictEqual(ui.editAnimLetter(e), 'B');
+    assert.ok(ui.tileGroup(115).includes('rg-anim-mark" aria-hidden="true">B</b>'), 'the tile list says which pattern a pick places');
     ui.setFramesSplit(true);
     ui.editUseFamilyTile(2742, 115);
     assert.strictEqual(ui.editAnimOfSlot(p, slotOfWord(top(d.brush))), null, 'frames view: still');
@@ -3122,11 +3125,21 @@ test('the pencil places a new animated tile as empty purple frames; it works onc
     assert.strictEqual(ui.editAnimChannels(p).length, 0);
     ui.editUndo(p);
     assert.strictEqual(ui.editAnimChannels(p).length, 1, '+ Frame was one step');
-    // Placing it elsewhere, like a tile.
+    // Away from its cells the pencil starts a new one — not another copy of the open tile.
     ui.setAnimSel(e2.uid, 0);
+    ui.editAnimGesture(d, { x: 2, y: 1 }, 'down');
+    ui.editAnimGesture(d, { x: 2, y: 1 }, 'up');
+    assert.strictEqual(ui.editAnims().length, 2);
+    assert.deepStrictEqual(ui.editAnims()[1].pending, ['2,1']);
+    assert.strictEqual(ui.animSel(), ui.editAnims()[1].uid, 'and opens it');
+    ui.editUndo(p);
+    // Its row's `place` arms the pencil to place it, like a tile.
+    ui.animClick({ dataset: { animAct: 'place', animUid: String(e2.uid) } });
     ui.editAnimGesture(d, { x: 2, y: 0 }, 'down');
     ui.editAnimGesture(d, { x: 2, y: 0 }, 'up');
     assert.strictEqual(slotOfWord(ui.editStampWords(p, ui.editCellAt(p, 2, 0)).layer1), ui.editAnims()[0].slot);
+    assert.strictEqual(ui.editAnims().length, 1);
+    ui.animClick({ dataset: { animAct: 'place', animUid: String(e2.uid) } });
     // The eraser takes it off a cell.
     d.tool = 'erase';
     ui.editAnimGesture(d, { x: 2, y: 0 }, 'down');
@@ -3140,6 +3153,7 @@ test('vanilla’s patterns are lettered A, B…; the open row lists them, a lock
     ui.editReset(1).on = true;
     ui.setSheet(115, VENT_SHEET);
     // Started at the second showing of 2744 (frame 5): the patterns turn with it.
+    ui.editDraft().families = [115];
     const spec = { frames: [2744, 2742, 2743, 2744, 2745, 2746], delays: [3, 5, 5, 5, 5, 3] };
     const s = ui.editAdoptAnimated(p, 2744, spec, null);
     const e = ui.editAnimOfSlot(p, s);
@@ -3149,7 +3163,9 @@ test('vanilla’s patterns are lettered A, B…; the open row lists them, a lock
     ui.setAnimSel(e.uid, 0);
     let html = ui.animTabHtml();
     assert.ok(html.includes('class="rg-anim-badge"') && html.includes('>A</span>'), 'closed row: its letter');
-    assert.ok(html.includes('<b>A</b> 3 5 5 5 5 3') && html.includes('<b>B</b> 4 7 7 7 7 7'));
+    assert.ok(/data-anim-preset="0"[^>]*title="[^"]*3 5 5 5 5 3[^"]*">A<\/button>/.test(html), 'chips are letters; the ticks are in the title');
+    assert.ok(/data-anim-preset="1"[^>]*>B<\/button>/.test(html));
+    assert.ok(html.includes('background-image:url(data:,)'), 'the preview draws from its family’s sheet, found off its cell');
     ui.animClick({ dataset: { animPreset: '1' } });
     assert.strictEqual(ui.editAnimLetter(e), 'B');
     e.delays = [1, 1, 1, 1, 1, 1];

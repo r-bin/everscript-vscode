@@ -64,6 +64,7 @@ function editPreviewSvg() {
     return previewBoxSvg(c.x, c.y, 1, 1, 'rg-preview-box rg-preview-trigger-' + (typeof _editTriggerKind !== 'undefined' ? _editTriggerKind : 'b'));
   }
   if (kind === 'object') return previewBoxSvg(c.x, c.y, 1, 1, 'rg-preview-box');
+  if (kind === 'anim') return previewBoxSvg(c.x, c.y, 1, 1, 'rg-preview-box rg-preview-anim');
   if (kind === 'collision') {
     if (_collPick < 0) return '';
     return '<path class="rg-preview-ghost" d="' + collMaskPath(_collPick, pos.x, pos.y, EDIT_UNITS / 16) + '" fill="'

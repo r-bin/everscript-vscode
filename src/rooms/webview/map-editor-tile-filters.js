@@ -93,14 +93,19 @@ function tileSlotPasses(slot) {
   return true;
 }
 
-/** The swatch's animation mark: `▶n` on an animation, `k/n` on a frame listed on its own. */
+/**
+ * The swatch's animation mark: on an animation, the letter of the pattern a
+ * pick places (this family's most-used, map-editor-animations.js); `k/n` on
+ * a frame listed on its own.
+ */
 function tileAnimMarkHtml(sheet, slot) {
   var kind = slot[13];
   if (!kind) return '';
   var a = sheet && sheet.animations && sheet.animations[slot[14]];
   var n = a ? a.frames.length : 0;
   // Listed frame by frame, the first frame is frame 1 of n like the others.
-  var text = kind === 1 && !_tileFramesSplit ? '▶' + (n || '') : (kind === 1 ? 1 : slot[15] + 1) + (n ? '/' + n : '');
+  var text = kind === 1 && !_tileFramesSplit ? (a && typeof ANIM_LETTERS !== 'undefined' ? ANIM_LETTERS[a.pick || 0] : '▶')
+    : (kind === 1 ? 1 : slot[15] + 1) + (n ? '/' + n : '');
   return '<b class="rg-anim-mark' + (kind === 2 ? ' later' : '') + '" aria-hidden="true">' + text + '</b>';
 }
 

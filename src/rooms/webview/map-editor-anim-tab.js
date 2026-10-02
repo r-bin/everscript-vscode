@@ -9,18 +9,20 @@
 // for vanilla's frames), then each frame with its hold in 60 Hz ticks.
 //
 // The pencil:
-//   - nothing open: a new animated tile, two empty (purple) frames, placed
-//     where you drag; it is opened on frame 0;
-//   - a tile open, on a cell of its own: that cell's frame (the open one)
-//     gets the Tile tab's brush — every frame needs a tile before it works;
-//   - a tile open, elsewhere: places it there, like a tile.
+//   - on a cell of the open tile: its open frame gets the Tile tab's brush —
+//     every frame needs a tile before it works;
+//   - with a row's `place` armed: places that animated tile, like a tile;
+//   - anywhere else: a new animated tile, two empty (purple) frames, placed
+//     where you drag, and opened on frame 0.
 // Vanilla's animated tiles are locked to their frames until disbanded, as a
 // placed widget is. The eraser takes an animated tile off a cell.
 //
-// Owns: _animStroke.
+// Owns: _animStroke, _animPlace.
 
 /** `{mode: 'place'|'tile'|'erase', uid}` while a pencil or eraser gesture is down. */
 var _animStroke = null;
+/** The animated tile a row's `place` armed for the pencil, or null. */
+var _animPlace = null;
 
 /** A graphic's swatch from its family's sheet (map-editor-families.js), or a purple empty frame. */
 function animSwatchHtml(graphic, family, size) {
@@ -78,9 +80,17 @@ function animWhereSvg(cells) {
     }).join('') + '</svg>';
 }
 
-/** The family an animated tile is drawn in: its word's palette slot. */
-function animFamilyOf(e) {
-  var pal = ((e.pal || 0) >> 10) & 7;
+/** The family an animated tile is drawn in: off the first cell showing it, else its own word bits. */
+function animFamilyOf(e, cells) {
+  var p = _mtPalette, pal = 0;
+  (cells || []).some(function (k) {
+    var c = k.split(',').map(Number), w = editStampWords(p, editCellAt(p, c[0], c[1]));
+    if (!w || e.slot == null) return false;
+    var word = animWordSlot(w.layer1) === e.slot && w.layer1 !== editBlankCanopy(p) ? w.layer1 : animWordSlot(w.layer2) === e.slot ? w.layer2 : null;
+    if (word != null) pal = (word >> 10) & 7;
+    return !!pal;
+  });
+  if (!pal) pal = ((e.pal || 0) >> 10) & 7;
   return pal >= 1 ? editFamilies()[pal - 1] : undefined;
 }
 
@@ -98,7 +108,7 @@ function animBadgeHtml(e, presets) {
 }
 
 function animRowHtml(entry, locked) {
-  var e = entry.g, open = e.uid === _animSel, fam = animFamilyOf(e);
+  var e = entry.g, open = e.uid === _animSel, fam = animFamilyOf(e, entry.cells);
   var presets = editAnimPresets(e);
   var html = '<div class="rg-object-card rg-anim-card' + (open ? ' on' : '') + '">'
     + '<div class="rg-trigger-row rg-anim-row' + (open ? ' on' : '') + '" data-anim-sel="' + e.uid + '" title="'
@@ -108,6 +118,8 @@ function animRowHtml(entry, locked) {
     + '<span class="rg-trigger-label">' + (e.frames[0] != null ? e.frames[0] : 'new animated tile') + (e.vanilla ? ' <span class="rg-anim-lock" aria-label="locked">🔒</span>' : '')
     + '<span class="rg-trigger-what">' + animPlural(e.frames.length, 'frame') + ' · ' + animPlural(entry.cells.length, 'cell') + '</span></span>'
     + animBadgeHtml(e, presets)
+    + (locked || !editAnimComplete(e) ? '' : '<button class="rdf rdf-xs' + (_animPlace === e.uid ? ' on' : '') + '" data-anim-act="place" data-anim-uid="' + e.uid
+      + '" title="' + (_animPlace === e.uid ? 'Stop placing it' : 'Place it with the pencil, like a tile — every copy changes together') + '">place</button>')
     + '<span class="rg-object-caret">' + (open ? '▾' : '▸') + '</span>'
     + (locked ? '' : '<button class="rdf rg-trigger-remove" data-anim-act="delete" data-anim-uid="' + e.uid
       + '" title="Stop it: its tiles stay, still on frame 0">×</button>')
@@ -126,7 +138,7 @@ function animOpenHtml(e, fam, presets, locked) {
     presets.forEach(function (t, i) {
       html += '<button class="ro-chip rg-anim-preset' + (t.letter === letter ? ' sel' : '') + '" data-anim-preset="' + i + '"' + dis
         + ' title="' + escH('vanilla’s pattern ' + t.letter + ': ' + t.delays.join(' ') + ' ticks, on ' + animPlural(t.channels, 'channel')) + '">'
-        + '<b>' + t.letter + '</b> ' + t.delays.join(' ') + '</button>';
+        + t.letter + '</button>';
     });
     html += '<span class="ro-chip rg-anim-preset custom' + (letter ? '' : ' sel') + '" title="your own ticks — set them below">custom</span></div>';
   }
@@ -182,16 +194,23 @@ function animRedraw() {
 function animClick(t) {
   var ds = t.dataset;
   if (ds.animTiming) { placedSetTiming(Number(ds.animGroup), Number(ds.animTiming)); animRedraw(); return true; }
+  if (ds.animAct === 'place') {
+    var pu = Number(ds.animUid);
+    _animPlace = _animPlace === pu ? null : pu;
+    if (_animPlace != null) { _animSel = pu; editNote('the pencil places it — every copy changes together'); }
+    animRedraw(); return true;
+  }
   if (ds.animSel) {
     var uid = Number(ds.animSel);
     _animSel = _animSel === uid ? null : uid;
+    if (_animPlace !== _animSel) _animPlace = null;
     _animFrame = 0; _animPlaying = false;
     animRedraw(); return true;
   }
   if (ds.animFrame != null) { _animFrame = Number(ds.animFrame); _animPlaying = false; animRedraw(); return true; }
   if (ds.animAct === 'play') { _animPlaying = !_animPlaying; animRedraw(); return true; }
   if (ds.animAct === 'toggle-off') { editAnimToggleOff(); animRedraw(); return true; }
-  if (ds.animAct === 'new') { _animSel = null; _animFrame = 0; editNote('the pencil places a new animated tile'); animRedraw(); return true; }
+  if (ds.animAct === 'new') { _animSel = null; _animPlace = null; _animFrame = 0; editNote('the pencil places a new animated tile'); animRedraw(); return true; }
   if (!ds.animAct && ds.animPreset == null) return false;
   if (editLocked()) { editNote('this map is locked — unlock it to change its animations'); renderEditChrome(); return true; }
   var e = editAnimFind(ds.animUid ? Number(ds.animUid) : _animSel);
@@ -320,12 +339,13 @@ function editAnimGesture(d, cell, phase) {
       var hit = open && animAt(cell) === open ? open : animAt(cell);
       _animStroke = { mode: 'erase', uid: hit ? hit.uid : (open ? open.uid : null) };
       if (hit) animUnplace(hit, cell);
-    } else if (open && animAt(cell) === open) {
+    } else if (open && animAt(cell) === open && _animPlace !== open.uid) {
       _animStroke = { mode: 'tile', uid: open.uid };
       animTile(open, _animFrame);
     } else {
-      var e = open || editAnimNew({});
-      if (!open) { _animSel = e.uid; _animFrame = 0; }
+      var armed = _animPlace != null ? editAnimFind(_animPlace) : null;
+      var e = armed || editAnimNew({});
+      if (!armed) { _animSel = e.uid; _animFrame = 0; }
       _animStroke = { mode: 'place', uid: e.uid };
       animPlace(e, cell);
     }
@@ -343,7 +363,7 @@ function editAnimGesture(d, cell, phase) {
   var placedNew = _animStroke.mode === 'place' && s && s.slot == null && s.frames.every(function (g) { return g == null; });
   _animStroke = null;
   editEnd();
-  if (placedNew) editNote('a new animated tile — open frame 0, pick a tile on the Tile tab, and click one of its purple cells');
+  if (placedNew) editNote('a new animated tile, opened — pick a tile on the Tile tab, then click one of its purple cells to tile frame ' + _animFrame);
   animRedraw();
   return true;
 }
