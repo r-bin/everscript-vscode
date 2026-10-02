@@ -126,6 +126,7 @@ function widgetSeekTo(val) {
 function widgetEditTimelineHtml() {
   if (!_widgetEdit) return '';
   var w = widgetFind(_widgetEdit.widget);
+  if (!w || !w.animated) return '';
   var v = widgetCurrentVar(w);
   var frames = (v && v.frames) || [{ delay: 8 }];
   var count = frames.length;
@@ -218,6 +219,8 @@ function widgetInputHandler(e) {
 
 function widgetAnimKey(e) {
   if (typeof widgetEditing !== 'function' || !widgetEditing() || !e) return false;
+  var aw = widgetFind(_widgetEdit.widget);
+  if (!aw || !aw.animated) return false;
   if (e.key === ' ') {
     widgetTogglePlay();
     return true;

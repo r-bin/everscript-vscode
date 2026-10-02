@@ -112,11 +112,11 @@ if (!fs.existsSync(ROM_PATH)) {
     test('the widget library carries every family vanilla draws its graphics in', () => {
         const { widgetGraphicFamilies } = require('../../src/rooms/custom-host');
         const urn = { cells: [{ dx: 0, dy: 0, canopy: { graphic: 643, family: 115 } }],
-            variations: [{ frames: [{ cells: [{ dx: 0, dy: 0, terrain: { graphic: 4739, family: 220 } }] }] }] };
+            frames: [{ cells: [] }, { cells: [{ dx: 0, dy: 0, terrain: { graphic: 4739, family: 220 } }] }] };
         const got = widgetGraphicFamilies([urn], { loadRom: () => ({ romBuf: rom }) });
         assert.deepStrictEqual(got[643], index.families.get(643).map((a) => [a.value, a.uses]));
         assert.deepStrictEqual(got[643].map((f) => f[0]), [115, 35, 127, 139, 159, 188, 158], 'no #128/#111/#141');
-        assert.deepStrictEqual(got[4739].map((f) => f[0]), [220, 291, 231], 'a frame of a variation counts too');
+        assert.deepStrictEqual(got[4739].map((f) => f[0]), [220, 291, 231], 'an animation frame counts too');
         assert.deepStrictEqual(widgetGraphicFamilies([urn], { loadRom: () => ({ romBuf: null }) }), {});
     });
 

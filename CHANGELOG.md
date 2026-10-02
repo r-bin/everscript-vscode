@@ -1,3 +1,12 @@
+## [0.109.0] — 2026-10-02
+
+### Changed: widgets lose hand-made variations; animation is opt-in; colourings recolour every state and frame
+
+- **No more `+ Var` / Duplicate / Swap Family / ✕ Var.** A widget is its own frames (`frames`, `animated` in `widgets.json`); its colourings are derived from its art and never stored (`map-editor-widget-colours.js`). A library saved with variations keeps the first one with art; empty and generated ones are dropped on load.
+- **Animation: off / on.** A new widget has no frame timeline. The switch in the widget's app bar shows it; switched off, the widget stamps its first frame and its other frames are kept for later.
+- **A colouring recolours everything.** Switching a placed widget's colouring now recolours every object state (the gourd's lit state too) and every animation frame, not only the stamped tiles.
+- **Plan for the Animation tab** written down in `docs/animation-tab-plan.md`, with the ROM census behind it and four open questions.
+
 ## [0.108.4] — 2026-10-02
 
 ### Fix: widget colourings are every family vanilla draws their art in, read from the ROM

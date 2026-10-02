@@ -97,6 +97,7 @@ const ROOMS_JS_FILES = [
   'map-editor-neighbours.js',// the LIKELY NEIGHBORS plus-shape: the brush and its four sides
   'map-editor-deco.js',  // the deco library: vanilla's own objects, to stamp
   'map-editor-widgets.js', // the user's own widgets and the Widgets tab (_widgets/_widgetArt/_widgetsVanilla)
+  'map-editor-widget-colours.js', // a widget's stored shape and derived colourings (_widgetFamilies)
   'map-editor-widget-edit.js', // editing a widget on its own canvas (_widgetEdit/_widgetBack)
   'map-editor-widget-anim.js', // widget animation timeline and playback (_widgetPlaying)
   'map-editor-preview.js', // hover ghosts of what a stroke/stamp/erase would do, and the resize outline

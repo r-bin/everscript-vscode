@@ -40,51 +40,57 @@ function writeDoc(file, doc) {
     fs.renameSync(tmp, file);
 }
 
-/** Every widget, oldest first. */
+/** Every widget, oldest first, in the current shape (see `ownFrames`). */
 function listWidgets(file) {
-    return readDoc(file).widgets;
+    return readDoc(file).widgets.map(currentShape);
 }
 
-function cleanVariation(v) {
-    const num = (n, lo, hi) => Math.max(lo, Math.min(hi, Number(n) | 0));
-    const name = String(v && v.name || 'A').slice(0, 32);
-    let frames = Array.isArray(v && v.frames) ? v.frames : [];
-    if (!frames.length && Array.isArray(v && v.cells)) {
-        frames = [{ cells: v.cells, delay: num(v.delay != null ? v.delay : 8, 1, 255) }];
-    }
-    const cleanFrames = frames.map((f) => ({
+const num = (n, lo, hi) => Math.max(lo, Math.min(hi, Number(n) | 0));
+
+function cleanFrames(frames) {
+    return (Array.isArray(frames) ? frames : []).map((f) => ({
         cells: Array.isArray(f && f.cells) ? f.cells : [],
         delay: num(f && f.delay != null ? f.delay : 8, 1, 255),
     }));
-    return {
-        id: String(v && v.id || ('var-' + Math.random().toString(36).slice(2, 8))),
-        name,
-        frames: cleanFrames.length ? cleanFrames : [{ cells: [], delay: 8 }],
-    };
+}
+
+/**
+ * A widget's own frames. Colourings are derived in the webview from the art
+ * (map-editor-widgets.js), so they are not stored; a widget saved while
+ * variations were hand-made keeps the first one with art, a hand-made one
+ * before a generated `fam-<id>` colouring.
+ */
+function ownFrames(w) {
+    const frames = cleanFrames(w.frames);
+    if (frames.length) return frames;
+    const hasArt = (v) => (v && v.frames || []).some((f) => f && Array.isArray(f.cells) && f.cells.length);
+    const vars = (Array.isArray(w.variations) ? w.variations : []).filter(hasArt);
+    const own = vars.find((v) => !/^fam-\d+$/.test(String(v.id))) || vars[0];
+    const fromVar = own ? cleanFrames(own.frames) : [];
+    return fromVar.length ? fromVar : [{ cells: Array.isArray(w.cells) ? w.cells : [], delay: 8 }];
+}
+
+/** A stored widget, older shapes included, as `{..., cells, frames, animated}` with no `variations`. */
+function currentShape(w) {
+    if (!w.variations && Array.isArray(w.frames)) return w;
+    const frames = ownFrames(w);
+    const out = { ...w, cells: frames[0].cells, frames, animated: w.animated != null ? !!w.animated : frames.length > 1 };
+    delete out.variations;
+    delete out.activeVariation;
+    return out;
 }
 
 /** Only the fields a widget has, so a webview slip cannot bloat the file. */
 function cleanWidget(w) {
-    const num = (n, lo, hi) => Math.max(lo, Math.min(hi, Number(n) | 0));
-    let variations = Array.isArray(w.variations) ? w.variations.map(cleanVariation) : [];
-    if (!variations.length) {
-        variations = [{
-            id: 'var-a',
-            name: 'A',
-            frames: [{ cells: Array.isArray(w.cells) ? w.cells : [], delay: 8 }],
-        }];
-    }
-    const activeVar = num(w.activeVariation || 0, 0, Math.max(0, variations.length - 1));
-    const primaryCells = (variations[activeVar] && variations[activeVar].frames[0] && variations[activeVar].frames[0].cells)
-        || variations[0].frames[0].cells;
+    const frames = ownFrames(w);
     return {
         id: safeId(w.id),
         name: String(w.name || 'widget').slice(0, 80),
         w: num(w.w, 1, 32),
         h: num(w.h, 1, 32),
-        cells: primaryCells,
-        variations,
-        activeVariation: activeVar,
+        cells: frames[0].cells,
+        frames,
+        animated: w.animated != null ? !!w.animated : frames.length > 1,
         attachments: w.attachments && typeof w.attachments === 'object'
             ? w.attachments : { bTrigger: [], stepOn: [], objects: [] },
         source: w.source || null,
@@ -100,7 +106,7 @@ function saveWidget(file, widget) {
     const at = doc.widgets.findIndex((x) => x.id === w.id);
     if (at >= 0) { w.created = doc.widgets[at].created || w.created; doc.widgets[at] = w; } else doc.widgets.push(w);
     writeDoc(file, doc);
-    return doc.widgets;
+    return doc.widgets.map(currentShape);
 }
 
 /** Remove one widget. Returns the list. */
@@ -109,7 +115,7 @@ function deleteWidget(file, id) {
     const doc = readDoc(file);
     doc.widgets = doc.widgets.filter((x) => x.id !== id);
     writeDoc(file, doc);
-    return doc.widgets;
+    return doc.widgets.map(currentShape);
 }
 
 module.exports = { listWidgets, saveWidget, deleteWidget, FORMAT, VERSION };

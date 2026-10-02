@@ -163,7 +163,7 @@ function widgetGraphicFamilies(widgets, deps) {
     }));
     (widgets || []).forEach((w) => {
         note(w.cells);
-        (w.variations || []).forEach((v) => (v.frames || []).forEach((f) => note(f.cells)));
+        (w.frames || []).forEach((f) => note(f.cells));
     });
     try {
         const rom = deps.loadRom && deps.loadRom();

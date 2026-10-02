@@ -12,14 +12,17 @@
 //
 // A widget is portable (map-editor-constructs.js): cells as `{graphic,
 // family, flags}` per layer, `null` for "keep the floor", with the
-// collision, triggers and objects that come with it. Clicking one arms the
+// collision, triggers and objects that come with it. Stored: `cells` (frame
+// 0), `frames` and `animated` (the editor's timeline is opt-in). Its
+// colourings (`variations`) are derived, never stored: one per family
+// vanilla draws its art in (map-editor-widget-colours.js). Clicking one arms the
 // Widgets pencil; each stamp is one object on the map (map-editor-groups.js)
 // on the level of the floor it lands on.
 //
 // Two views, a tab each: Library (the above) and Placed — the widgets
 // stamped on this map, in draw order (map-editor-placed-list.js).
 //
-// Owns: _widgets (null until loaded), _widgetArt, _widgetsVanilla, _widgetsView, _widgetFamilies.
+// Owns: _widgets (null until loaded), _widgetArt, _widgetsVanilla, _widgetsView.
 
 var _widgets = null;
 var _widgetsAsked = false;
@@ -29,8 +32,6 @@ var _widgetArt = {};
 var _widgetsVanilla = false;
 /** Which half of the tab is showing: 'library' (what you can stamp) or 'placed' (what you stamped). */
 var _widgetsView = 'library';
-/** graphic -> [[family, uses], ...] vanilla attests, sent with the library (custom-host.js). */
-var _widgetFamilies = {};
 
 function requestWidgets() {
   if (_widgetsAsked || typeof vs === 'undefined' || !vs) return;
@@ -40,7 +41,7 @@ function requestWidgets() {
 
 function applyWidgets(msg) {
   if (!msg) return;
-  _widgets = msg.widgets || [];
+  _widgets = (msg.widgets || []).map(widgetNormalize);
   if (msg.graphicFamilies) Object.assign(_widgetFamilies, msg.graphicFamilies);
   if (msg.saved) delete _widgetArt[msg.saved];
   if (msg.deleted && widgetEditing(msg.deleted)) { _widgetEdit.pending = null; widgetEditClose(); }
@@ -72,7 +73,11 @@ function widgetStore(w) {
   _widgets.forEach(function (x, i) { if (x.id === w.id) at = i; });
   if (at >= 0) _widgets[at] = w; else _widgets.push(w);
   delete _widgetArt[w.id];
-  if (typeof vs !== 'undefined' && vs) vs.postMessage({ command: 'saveWidget', widget: w });
+  // Colourings follow the art: derived again from what was just saved.
+  delete w.variations;
+  var saved = Object.assign({}, w);
+  delete saved.activeVariation;
+  if (typeof vs !== 'undefined' && vs) vs.postMessage({ command: 'saveWidget', widget: saved });
 }
 
 /** A widget as the stamp machinery's construct. */
@@ -80,9 +85,10 @@ function widgetConstruct(w, varIdx) {
   var v = (w.variations && w.variations.length)
     ? (w.variations[varIdx != null ? varIdx : (w.activeVariation || 0)] || w.variations[0])
     : null;
-  var frames = (v && v.frames) || [{ cells: w.cells || [], delay: 8 }];
+  var frames = (v && v.frames) || widgetBaseFrames(w);
+  if (!w.animated) frames = frames.slice(0, 1);
   var baseCells = (frames[0] && frames[0].cells) || w.cells || [];
-  var attach = Object.assign({}, w.attachments || { bTrigger: [], stepOn: [], objects: [] });
+  var attach = Object.assign({}, (v && v.attachments) || w.attachments || { bTrigger: [], stepOn: [], objects: [] });
   if (frames.length > 1) {
     attach.objects = (attach.objects || []).slice();
     var objFrames = frames.slice(1).map(function (f) { return f.cells; });
@@ -118,7 +124,7 @@ function widgetArm(id, varIdx) {
   d.tool = 'paint';
   var v = (w.variations && w.variations[w.activeVariation || 0]);
   var vName = (v && v.name && v.name !== 'A') ? ' (' + v.name + ')' : '';
-  var frames = (v && v.frames) || [];
+  var frames = !w.animated ? [] : (v && v.frames) || widgetBaseFrames(w);
   var cells = (frames[0] && frames[0].cells) || w.cells || [];
   var animText = frames.length > 1 ? ' (' + frames.length + ' animation frames)' : '';
   var a = w.attachments || {};
@@ -132,81 +138,6 @@ function widgetArm(id, varIdx) {
   renderEditChrome();
 }
 
-/**
- * The colourings vanilla attests for these cells: every family any of their
- * graphics is drawn in, most-placed (summed over the graphics) first. A
- * union, not an intersection — the urn's top half in #127 is a colouring
- * worth having. Read off what the host sends with the library
- * (`_widgetFamilies`, custom-host.js), never a hand-kept list: one of those
- * offered three urn colours no room ever used. null until it is known.
- */
-function widgetAttestedFamilies(cells) {
-  var uses = {}, order = [], known = false;
-  (cells || []).forEach(function (c) {
-    [c.canopy, c.terrain].forEach(function (part) {
-      var fams = part && _widgetFamilies[part.graphic];
-      if (!fams) return;
-      known = true;
-      fams.forEach(function (fu) {
-        if (!(fu[0] in uses)) { uses[fu[0]] = 0; order.push(fu[0]); }
-        uses[fu[0]] += fu[1];
-      });
-    });
-  });
-  if (!known) return null;
-  return order.sort(function (x, y) { return uses[y] - uses[x]; });
-}
-
-/** The cells of `cells` recoloured into `fam`. */
-function widgetCellsInFamily(cells, fam) {
-  return (cells || []).map(function (c) {
-    return {
-      dx: c.dx, dy: c.dy,
-      canopy: c.canopy ? { graphic: c.canopy.graphic, family: fam, flags: c.canopy.flags || 0 } : null,
-      terrain: c.terrain ? { graphic: c.terrain.graphic, family: fam, flags: c.terrain.flags || 0 } : null,
-      collision: c.collision,
-    };
-  });
-}
-
-/** A variation with no cell in any frame: an unpainted "+ variation", which stamps nothing. */
-function widgetVarEmpty(v) {
-  return !(v.frames || []).some(function (f) { return (f.cells || []).length; });
-}
-
-/**
- * A widget's colourings, one per attested family (`fam-<id>`), each frame of
- * its one variation recoloured — an animated widget keeps its frames. Made
- * when it has a single variation, trimmed to what vanilla attests when it
- * has only made ones. Empty variations are left out except on the widget's
- * own canvas, where one is about to be painted.
- */
-function widgetEnsureVariations(w) {
-  if (!w) return;
-  var vars = w.variations || [];
-  if (!(typeof widgetEditing === 'function' && widgetEditing(w.id)) && vars.some(widgetVarEmpty) && !vars.every(widgetVarEmpty)) {
-    vars = w.variations = vars.filter(function (v) { return !widgetVarEmpty(v); });
-    if (w.activeVariation >= vars.length) w.activeVariation = 0;
-  }
-  var made = vars.length > 0 && vars.every(function (v) { return /^fam-\d+$/.test(v.id); });
-  if (vars.length > 1 && !made) return;
-  var fams = widgetAttestedFamilies(w.cells);
-  if (!fams) return;
-  if (made) {
-    var kept = vars.filter(function (v) { return fams.indexOf(Number(v.id.slice(4))) >= 0; });
-    if (kept.length !== vars.length) w.variations = kept.length > 1 ? kept : undefined;
-    return;
-  }
-  if (fams.length < 2) return;
-  var base = vars[0] && vars[0].frames && vars[0].frames.length ? vars[0].frames : [{ cells: w.cells, delay: 8 }];
-  w.variations = fams.map(function (fam) {
-    return { id: 'fam-' + fam, name: '#' + fam, frames: base.map(function (f) {
-      return { cells: widgetCellsInFamily(f.cells, fam), delay: f.delay != null ? f.delay : 8 };
-    }) };
-  });
-  w.activeVariation = 0;
-}
-
 /** ☆ on a vanilla card, once its cells arrived (map-editor-deco.js applyDecoCells). */
 function widgetSaveFromDeco(entry, name) {
   var w = {
@@ -217,8 +148,7 @@ function widgetSaveFromDeco(entry, name) {
     },
     source: { deco: entry.id, room: entry.room },
   };
-  widgetEnsureVariations(w);
-  widgetStore(w);
+  widgetStore(widgetNormalize(w));
   editNote('kept as your widget “' + name + '” — ✎ edits it');
   renderEditChrome();
 }
@@ -239,7 +169,7 @@ function widgetSaveFromSelection() {
     var placed = widgetPlacedIn(d, sel);
     ['bTrigger', 'stepOn', 'objects'].forEach(function (k) { c.attachments[k] = (c.attachments[k] || []).concat(placed[k]); });
   }
-  widgetStore({ id: widgetNewId(), name: name, w: c.w, h: c.h, cells: c.cells, attachments: c.attachments });
+  widgetStore(widgetNormalize({ id: widgetNewId(), name: name, w: c.w, h: c.h, cells: c.cells, attachments: c.attachments }));
   editNote('kept ' + c.w + '×' + c.h + ' as your widget “' + name + '” — ✎ edits it');
   renderEditChrome();
   renderEditPanels();
@@ -272,15 +202,7 @@ function widgetClick(t) {
     vs.postMessage({ command: 'deleteWidget', id: _widgetEdit.widget, name: _widgetEdit.name });
     return true;
   }
-  if (t.dataset.widgetVar !== undefined) {
-    if (typeof widgetSelectVar === 'function') widgetSelectVar(Number(t.dataset.widgetVar));
-    return true;
-  }
-  var varAct = t.dataset.widgetVarAct;
-  if (varAct === 'add') { if (typeof widgetAddVar === 'function') widgetAddVar(); return true; }
-  if (varAct === 'dup') { if (typeof widgetDuplicateVar === 'function') widgetDuplicateVar(); return true; }
-  if (varAct === 'del') { if (typeof widgetRemoveVar === 'function') widgetRemoveVar(_widgetVarIdx); return true; }
-  if (varAct === 'recolor') { if (typeof widgetSwapFamily === 'function') widgetSwapFamily(); return true; }
+  if (act === 'anim') { if (typeof widgetToggleAnim === 'function') widgetToggleAnim(); return true; }
   var seek = t.dataset.widgetSeek;
   if (seek === 'play') { if (typeof widgetTogglePlay === 'function') widgetTogglePlay(); return true; }
   if (seek === 'prev') { if (typeof widgetSelectFrame === 'function') widgetSelectFrame(_widgetFrameIdx - 1); return true; }
@@ -324,7 +246,7 @@ function widgetCardHtml(w) {
   var vars = w.variations || [];
   var hasVars = vars.length > 1;
   var curV = vars[w.activeVariation || 0] || vars[0];
-  var frames = (curV && curV.frames) || [];
+  var frames = w.animated ? widgetBaseFrames(w) : [];
   var isAnim = frames.length > 1;
 
   var animBadge = isAnim ? ' · ▶ ' + frames.length + 'f' : '';

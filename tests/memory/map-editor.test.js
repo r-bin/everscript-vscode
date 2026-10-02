@@ -740,6 +740,7 @@ const ui = new Function(`
   ${read('map-editor-object-list.js')}
   ${read('map-editor-placed-list.js')}
   ${read('map-editor-widgets.js')}
+  ${read('map-editor-widget-colours.js')}
   ${read('map-editor-widget-edit.js')}
   ${read('map-editor-widget-anim.js')}
   ${read('map-editor-preview.js')}
@@ -811,8 +812,7 @@ const ui = new Function(`
     clampRoomSide: clampRoomSide, widgetEditHeadHtml: widgetEditHeadHtml,
     setWidgetEdit: function (w) { _widgetEdit = w; },
     widgetEditTimelineHtml: widgetEditTimelineHtml,
-    widgetSelectVar: widgetSelectVar, widgetAddVar: widgetAddVar, widgetDuplicateVar: widgetDuplicateVar,
-    widgetRemoveVar: widgetRemoveVar, widgetSwapFamily: widgetSwapFamily,
+    widgetToggleAnim: widgetToggleAnim, widgetNormalize: widgetNormalize,
     widgetSelectFrame: widgetSelectFrame, widgetAddFrame: widgetAddFrame, widgetRemoveFrame: widgetRemoveFrame,
     widgetSetDelay: widgetSetDelay, widgetTogglePlay: widgetTogglePlay,
     widgetConstruct: widgetConstruct, widgetArm: widgetArm,
@@ -2803,117 +2803,103 @@ test('prediction card supports relationship +, vanilla examples, and procedural 
     ui.setNbMode('cross');
 });
 
-test('widgets support tile variations (e.g. gourd A/B/C/D) and animations (e.g. torch delays)', () => {
+// What custom-host.js sends with the library for the urn's and the fan's art (ROM counts).
+const URN_FAMILIES = {
+    643: [[115, 49], [35, 11], [127, 8], [139, 7], [159, 6], [188, 2], [158, 1]],
+    644: [[115, 49], [35, 11], [127, 7], [139, 7], [159, 6], [188, 2], [158, 1]],
+    647: [[115, 49], [35, 22], [139, 14], [159, 6], [188, 4], [158, 2]],
+    648: [[115, 49], [35, 23], [139, 14], [159, 6], [188, 4], [158, 2]],
+    4739: [[220, 40], [291, 9], [231, 4]], 4740: [[220, 40], [291, 9], [231, 4]],
+};
+
+test('a widget stores its own frames; colourings are derived, and the timeline is opt-in', () => {
     const ws = require('../../src/rooms/data/widget-store');
     const os = require('os');
     const tempFile = path.join(os.tmpdir(), 'widgets-test-' + Date.now() + '.json');
 
-    // 1. Legacy widget without variations gets upgraded to 1 variation 'A', 1 frame, delay 8
+    // A legacy widget (cells only) is one still frame, animation off.
     const legacy = ws.saveWidget(tempFile, {
         id: 'w-legacy', name: 'Legacy Pot', w: 2, h: 2,
         cells: [{ dx: 0, dy: 0, canopy: { graphic: 10, family: 35, flags: 0 }, collision: 0 }],
-    });
-    const foundLegacy = legacy.find((w) => w.id === 'w-legacy');
-    assert.ok(foundLegacy, 'saved legacy widget');
-    assert.strictEqual(foundLegacy.variations.length, 1, 'legacy widget gets 1 variation');
-    assert.strictEqual(foundLegacy.variations[0].name, 'A', 'default variation is A');
-    assert.strictEqual(foundLegacy.variations[0].frames.length, 1, '1 frame');
-    assert.strictEqual(foundLegacy.variations[0].frames[0].delay, 8, 'default delay 8 ticks');
-    assert.strictEqual(foundLegacy.cells.length, 1, 'legacy cells property maintained');
+    }).find((w) => w.id === 'w-legacy');
+    assert.strictEqual(legacy.variations, undefined, 'no variations are stored');
+    assert.strictEqual(legacy.frames.length, 1);
+    assert.strictEqual(legacy.frames[0].delay, 8);
+    assert.strictEqual(legacy.animated, false);
+    assert.strictEqual(legacy.cells.length, 1);
 
-    // 2. Gourd widget with 4 tile family variations (gourd A/B/C/D)
-    const gourd = ws.saveWidget(tempFile, {
-        id: 'w-gourd', name: 'Gourd', w: 1, h: 1,
+    // Hand-made variations from before keep the first one with art; empty ones go.
+    const fan = ws.saveWidget(tempFile, {
+        id: 'w-fan', name: 'Fan', w: 1, h: 1,
         variations: [
-            { id: 'v-a', name: 'A', frames: [{ cells: [{ dx: 0, dy: 0, terrain: { graphic: 50, family: 35 } }], delay: 8 }] },
-            { id: 'v-b', name: 'B', frames: [{ cells: [{ dx: 0, dy: 0, terrain: { graphic: 50, family: 187 } }], delay: 8 }] },
-            { id: 'v-c', name: 'C', frames: [{ cells: [{ dx: 0, dy: 0, terrain: { graphic: 50, family: 58 } }], delay: 8 }] },
-            { id: 'v-d', name: 'D', frames: [{ cells: [{ dx: 0, dy: 0, terrain: { graphic: 50, family: 165 } }], delay: 8 }] },
+            { id: 'var-a', name: 'A', frames: [0, 1].map((k) => ({ cells: [{ dx: 0, dy: 0, terrain: { graphic: 4739, family: 220 } }], delay: 6 + k })) },
+            { id: 'var-b', name: 'B', frames: [{ cells: [], delay: 8 }] },
         ],
-    });
-    const foundGourd = gourd.find((w) => w.id === 'w-gourd');
-    assert.strictEqual(foundGourd.variations.length, 4, 'gourd has 4 variations');
-    assert.deepStrictEqual(foundGourd.variations.map((v) => v.name), ['A', 'B', 'C', 'D'], 'variations A/B/C/D');
-    assert.strictEqual(foundGourd.variations[1].frames[0].cells[0].terrain.family, 187, 'variation B uses family 187');
+    }).find((w) => w.id === 'w-fan');
+    assert.strictEqual(fan.frames.length, 2);
+    assert.deepStrictEqual(fan.frames.map((f) => f.delay), [6, 7]);
+    assert.strictEqual(fan.animated, true, 'a multi-frame widget from before stays animated');
+    // A stored file in the old shape reads back in the new one.
+    const raw = JSON.parse(fs.readFileSync(tempFile, 'utf8'));
+    raw.widgets.push({ id: 'w-old', name: 'Old', w: 1, h: 1, cells: [], variations: [
+        { id: 'fam-115', name: '#115', frames: [{ cells: [{ dx: 0, dy: 0, canopy: { graphic: 643, family: 115 } }], delay: 8 }] }] });
+    fs.writeFileSync(tempFile, JSON.stringify(raw));
+    const old = ws.listWidgets(tempFile).find((w) => w.id === 'w-old');
+    assert.strictEqual(old.variations, undefined);
+    assert.strictEqual(old.frames[0].cells[0].canopy.graphic, 643);
 
-    // 3. Torch widget with animations and different delays (torch A/B/C/D)
-    const torch = ws.saveWidget(tempFile, {
-        id: 'w-torch', name: 'Torch', w: 1, h: 2,
-        variations: [
-            {
-                id: 'v-a', name: 'A',
-                frames: [
-                    { cells: [{ dx: 0, dy: 0, canopy: { graphic: 200, family: 35 } }], delay: 6 },
-                    { cells: [{ dx: 0, dy: 0, canopy: { graphic: 201, family: 35 } }], delay: 6 },
-                    { cells: [{ dx: 0, dy: 0, canopy: { graphic: 202, family: 35 } }], delay: 6 },
-                ],
-            },
-            {
-                id: 'v-b', name: 'B',
-                frames: [
-                    { cells: [{ dx: 0, dy: 0, canopy: { graphic: 200, family: 35 } }], delay: 10 },
-                    { cells: [{ dx: 0, dy: 0, canopy: { graphic: 201, family: 35 } }], delay: 10 },
-                    { cells: [{ dx: 0, dy: 0, canopy: { graphic: 202, family: 35 } }], delay: 10 },
-                ],
-            },
-        ],
-    });
-    const foundTorch = torch.find((w) => w.id === 'w-torch');
-    assert.strictEqual(foundTorch.variations[0].frames[0].delay, 6, 'torch A has delay 6');
-    assert.strictEqual(foundTorch.variations[1].frames[0].delay, 10, 'torch B has delay 10');
-
-    // 4. Widget editor UI: header variations & timeline seek bar
-    ui.setWidgets([foundTorch]);
+    // The editor: no variation row, an Animation switch, the timeline only when on.
+    const torch = ui.widgetNormalize({ id: 'w-torch', name: 'Torch', w: 1, h: 2,
+        frames: [200, 201, 202].map((g) => ({ cells: [{ dx: 0, dy: 0, canopy: { graphic: g, family: 35 } }], delay: 6 })) });
+    ui.setWidgets([torch]);
     ui.setWidgetEdit({ key: 'widget-torch', widget: 'w-torch', name: 'Torch', w: 1, h: 2, borrow: 0x34 });
     const head = ui.widgetEditHeadHtml();
-    assert.ok(head.includes('class="rg-widget-vars"'), 'app bar renders variations row');
-    assert.ok(head.includes('data-widget-var="0"') && head.includes('data-widget-var="1"'), 'renders variation chips');
-    assert.ok(head.includes('data-widget-var-act="add"'), 'renders + Var button');
-    assert.ok(head.includes('data-widget-var-act="dup"'), 'renders Duplicate variation button');
-    assert.ok(head.includes('data-widget-var-act="recolor"'), 'renders Swap Family button');
-
+    assert.ok(!head.includes('data-widget-var'), 'no variation chips or buttons');
+    assert.ok(head.includes('data-widget-act="anim"') && head.includes('Animation: on'));
     const timeline = ui.widgetEditTimelineHtml();
-    assert.ok(timeline.includes('id="rg-widget-timeline"'), 'timeline rendered');
-    assert.ok(timeline.includes('data-widget-seek="play"'), 'play/pause button');
-    assert.ok(timeline.includes('id="rg-seek-slider"'), 'scrubber seek slider');
-    assert.ok(timeline.includes('id="rg-seek-delay"'), 'frame delay input');
-    assert.ok(timeline.includes('data-widget-seek="add"'), '+ Frame button');
-    assert.ok(timeline.includes('data-widget-seek="clone"'), 'Clone frame button');
+    assert.ok(timeline.includes('id="rg-widget-timeline"') && timeline.includes('data-widget-seek="play"'));
+    assert.ok(timeline.includes('id="rg-seek-delay"') && timeline.includes('data-widget-seek="clone"'));
 
-    // 5. Timeline scrubbing & frame selection
-    assert.strictEqual(ui.getWidgetFrameIdx(), 0, 'starts at frame 0');
-    ui.widgetSelectFrame(1);
-    assert.strictEqual(ui.getWidgetFrameIdx(), 1, 'switched to frame 1');
     ui.widgetSelectFrame(2);
-    assert.strictEqual(ui.getWidgetFrameIdx(), 2, 'switched to frame 2');
-
-    // Delay adjustment
+    assert.strictEqual(ui.getWidgetFrameIdx(), 2);
     ui.widgetSetDelay(12);
-    assert.strictEqual(foundTorch.variations[0].frames[2].delay, 12, 'frame delay updated to 12 ticks');
-
-    // Play / pause
-    assert.strictEqual(ui.getWidgetPlaying(), false, 'initially stopped');
+    assert.strictEqual(torch.frames[2].delay, 12, 'the delay lands on the widget’s own frame');
     ui.widgetTogglePlay();
-    assert.strictEqual(ui.getWidgetPlaying(), true, 'playing started');
+    assert.strictEqual(ui.getWidgetPlaying(), true);
     ui.widgetTogglePlay();
-    assert.strictEqual(ui.getWidgetPlaying(), false, 'playing stopped');
+    assert.strictEqual(ui.getWidgetPlaying(), false);
+    const construct = ui.widgetConstruct(torch, 0);
+    assert.deepStrictEqual(construct.delays, [6, 6, 12]);
+    assert.ok(construct.attachments.objects.length > 0, 'an animated widget stamps its frames as an object');
 
-    // Variations switching & duplication
-    ui.widgetSelectVar(1);
-    assert.strictEqual(ui.getWidgetVarIdx(), 1, 'active variation is B');
-    assert.strictEqual(ui.getWidgetFrameIdx(), 0, 'frame index resets on variation switch');
-
-    ui.widgetDuplicateVar();
-    assert.strictEqual(foundTorch.variations.length, 3, 'duplicated variation adds variation C');
-    assert.strictEqual(ui.getWidgetVarIdx(), 2, 'switched to new variation C');
-
-    // Construct generation carries variation and animation frames
-    const construct = ui.widgetConstruct(foundTorch, 0);
-    assert.ok(construct.delays.length >= 3, 'construct carries animation frame delays');
-    assert.ok(construct.attachments.objects.length > 0, 'multi-frame widget produces object attachments');
-
-    // Clean up
+    // A new widget starts still: no timeline until switched on.
+    const still = ui.widgetNormalize({ id: 'w-still', name: 'Still', w: 1, h: 1, frames: [{ cells: [], delay: 8 }], animated: false });
+    ui.setWidgets([still]);
+    ui.setWidgetEdit({ key: 'widget-still', widget: 'w-still', name: 'Still', w: 1, h: 1, borrow: 0x34 });
+    assert.strictEqual(ui.widgetEditTimelineHtml(), '');
+    assert.ok(ui.widgetEditHeadHtml().includes('Animation: off'));
+    assert.strictEqual(ui.widgetConstruct(torch, 0).delays.length, 3);
+    torch.animated = false;
+    assert.strictEqual(ui.widgetConstruct(torch, 0).delays.length, 1, 'switched off, it stamps its first frame only');
     ui.setWidgetEdit(null);
+});
+
+test('a colouring recolours every object state and animation frame, not only the stamped tiles', () => {
+    ui.applyWidgets({ widgets: [], graphicFamilies: URN_FAMILIES });
+    const cell = (g) => ({ dx: 0, dy: 0, canopy: { graphic: g, family: 115, flags: 0 }, terrain: null });
+    const urn = ui.widgetNormalize({ id: 'w-urn2', name: 'Urn', w: 1, h: 1, animated: true,
+        frames: [{ cells: [cell(643)], delay: 8 }, { cells: [cell(644)], delay: 8 }],
+        attachments: { bTrigger: [], stepOn: [], objects: [{ dx: 0, dy: 0, w: 1, h: 1, states: 3, cells: [cell(643)], frames: [[cell(644)], [cell(647)]] }] } });
+    ui.widgetEnsureVariations(urn);
+    const at = urn.variations.findIndex((v) => v.id === 'fam-35');
+    const c = ui.widgetConstruct(urn, at);
+    const fams = [];
+    const note = (cells) => (cells || []).forEach((x) => x.canopy && fams.push(x.canopy.family));
+    note(c.cells);
+    c.attachments.objects.forEach((o) => { note(o.cells); (o.frames || []).forEach(note); });
+    assert.ok(fams.length >= 6, 'cells, both animation frames and both object states are there');
+    assert.ok(fams.every((f) => f === 35), 'every one in #35: ' + fams.join(','));
+    assert.strictEqual(urn.attachments.objects[0].cells[0].canopy.family, 115, 'the widget itself is untouched');
 });
 
 test('placed widgets render object-like cards with clickable variant preview chips and clean library cards', () => {
@@ -2921,15 +2907,12 @@ test('placed widgets render object-like cards with clickable variant preview chi
     const os = require('os');
     const tempFile = path.join(os.tmpdir(), 'widgets-placed-test-' + Date.now() + '.json');
 
+    ui.applyWidgets({ widgets: [], graphicFamilies: { 3736: [[166, 67], [184, 10], [35, 4]] } });
     const multiVarGourd = ws.saveWidget(tempFile, {
         id: 'w-gourd-variants', name: 'Prehistoric Gourd', w: 2, h: 2,
-        variations: [
-            { id: 'v-166', name: '#166', frames: [{ cells: [{ dx: 0, dy: 0, canopy: { graphic: 3736, family: 166 } }], delay: 8 }] },
-            { id: 'v-184', name: '#184', frames: [{ cells: [{ dx: 0, dy: 0, canopy: { graphic: 3736, family: 184 } }], delay: 8 }] },
-            { id: 'v-35',  name: '#35',  frames: [{ cells: [{ dx: 0, dy: 0, canopy: { graphic: 3736, family: 35 } }], delay: 8 }] },
-        ],
+        cells: [{ dx: 0, dy: 0, canopy: { graphic: 3736, family: 166 } }],
     });
-    const found = multiVarGourd.find((w) => w.id === 'w-gourd-variants');
+    const found = ui.widgetNormalize(multiVarGourd.find((w) => w.id === 'w-gourd-variants'));
     assert.ok(found);
 
     ui.setWidgets([found]);
@@ -2980,20 +2963,12 @@ test('placed widgets render object-like cards with clickable variant preview chi
     d.groups = [placedGroup];
     ui.placedSetVariation(p, 1, 1);
     assert.strictEqual(placedGroup.variationIdx, 1, 'placed widget switched to variation index 1');
-    assert.strictEqual(placedGroup.variation, 'v-184', 'placed widget has variation v-184');
+    assert.strictEqual(placedGroup.variation, 'fam-184', 'placed widget has colouring #184');
 
     const updatedRowHtml = ui.placedRowHtml(placedGroup, 0);
     assert.ok(updatedRowHtml.includes('data-placed-var-idx="1" title="Variation #184"><i class="ro-img rg-widget-var-thumb"'), 'variant 1 rendered as active');
 });
 
-// What custom-host.js sends with the library for the urn's and the fan's art (ROM counts).
-const URN_FAMILIES = {
-    643: [[115, 49], [35, 11], [127, 8], [139, 7], [159, 6], [188, 2], [158, 1]],
-    644: [[115, 49], [35, 11], [127, 7], [139, 7], [159, 6], [188, 2], [158, 1]],
-    647: [[115, 49], [35, 22], [139, 14], [159, 6], [188, 4], [158, 2]],
-    648: [[115, 49], [35, 23], [139, 14], [159, 6], [188, 4], [158, 2]],
-    4739: [[220, 40], [291, 9], [231, 4]], 4740: [[220, 40], [291, 9], [231, 4]],
-};
 
 test('a widget offers every colouring vanilla attests for any of its pieces, and no other', () => {
     const urnCells = [
@@ -3007,16 +2982,12 @@ test('a widget offers every colouring vanilla attests for any of its pieces, and
     assert.deepStrictEqual(ui.widgetAttestedFamilies(urnCells), [115, 35, 139, 159, 127, 188, 158]);
     assert.strictEqual(ui.widgetAttestedFamilies([{ dx: 0, dy: 0, canopy: { graphic: 1, family: 2 } }]), null);
 
-    // A library widget saved with invented colourings loses them.
-    const old = [115, 35, 127, 139, 159, 188, 158, 128, 111, 141].map((f) => ({ id: 'fam-' + f, name: '#' + f, frames: [] }));
-    const saved = { id: 'w-old', cells: urnCells, variations: old };
+    // Colourings are derived, never kept: a widget saved with invented ones loses them on load.
+    const old = [115, 35, 127, 139, 159, 188, 158, 128, 111, 141].map((f) => ({ id: 'fam-' + f, name: '#' + f,
+        frames: [{ cells: urnCells.map((c) => ({ ...c, canopy: { ...c.canopy, family: f } })) }] }));
+    const saved = ui.widgetNormalize({ id: 'w-old', cells: urnCells, variations: old });
     ui.widgetEnsureVariations(saved);
-    assert.deepStrictEqual(saved.variations.map((v) => v.id), ['fam-115', 'fam-35', 'fam-127', 'fam-139', 'fam-159', 'fam-188', 'fam-158']);
-    // Hand-made variations with art are the user's, never trimmed.
-    const painted = { frames: [{ cells: urnCells }] };
-    const mine = { id: 'w-mine', cells: urnCells, variations: [{ id: 'v-a', ...painted }, { id: 'v-b', ...painted }] };
-    ui.widgetEnsureVariations(mine);
-    assert.strictEqual(mine.variations.length, 2);
+    assert.deepStrictEqual(saved.variations.map((v) => v.id), ['fam-115', 'fam-35', 'fam-139', 'fam-159', 'fam-127', 'fam-188', 'fam-158']);
 });
 
 test('empty variations are not variations, and an animated widget keeps its frames in every colouring', () => {
@@ -3025,8 +2996,8 @@ test('empty variations are not variations, and an animated widget keeps its fram
         { dx: 1, dy: 0, canopy: null, terrain: { graphic: 4740, family: 220 } }];
     const frame = { cells: fanCells, delay: 8 };
     const empty = (id) => ({ id, name: id, frames: [{ cells: [], delay: 8 }] });
-    const fan = { id: 'w-fan', cells: fanCells,
-        variations: [{ id: 'var-a', name: 'A', frames: [frame, frame, frame, frame] }, empty('var-b'), empty('var-c')] };
+    const fan = ui.widgetNormalize({ id: 'w-fan', cells: fanCells,
+        variations: [{ id: 'var-a', name: 'A', frames: [frame, frame, frame, frame] }, empty('var-b'), empty('var-c')] });
     ui.widgetEnsureVariations(fan);
     assert.deepStrictEqual(fan.variations.map((v) => v.id), ['fam-220', 'fam-291', 'fam-231']);
     assert.ok(fan.variations.every((v) => v.frames.length === 4), 'each colouring keeps the 4 frames');
@@ -3047,6 +3018,7 @@ test('switching a placed widget variation replaces its family slot, and deleting
     const d = ui.editDraft();
     d.families = [206];
     ui.applyWidgets({ widgets: [urnWidget] });
+    ui.widgetEnsureVariations(urnWidget);
     const c = ui.widgetConstruct(urnWidget, 0);
     c.widget = 'w-urn'; c.variation = 'fam-115';
     ui.editStampGroup(p, c, 2, 2);
