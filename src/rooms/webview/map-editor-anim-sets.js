@@ -115,6 +115,28 @@ function editAnimNewSet(x1, y1, x2, y2) {
  * cells yet is one row.
  */
 function editAnimsListed(palette) {
+  // Asked by the tab, every map redraw on every tab (the marks) and every edit: kept until the draft changes.
+  var sig = animListSig(palette);
+  if (_animListMemo.sig === sig) return _animListMemo.out;
+  var out = animListBuild(palette);
+  _animListMemo = { sig: sig, out: out };
+  return out;
+}
+var _animListMemo = { sig: null, out: [] };
+
+/** What the list depends on, cheaply: the tiles, the open one, and how far the history and the open gesture have got. */
+function animListSig(palette) {
+  var d = editDraft();
+  if (!d) return null;
+  var step = d.txn && d.txn.step;
+  return [palette && palette.roomId, palette && palette.count, _animSel, d.undo.length, d.redo.length,
+    step ? step.cells.length : -1, (d.groups || []).length, Object.keys(d.cells).length].join(',') + '|'
+    + editAnims().map(function (e) {
+      return e.uid + ':' + e.slot + ':' + e.set + ':' + e.frames.join('.') + ':' + e.delays.join('.') + ':' + (e.init || 0) + ':' + (e.pending || []).join(';');
+    }).join('|');
+}
+
+function animListBuild(palette) {
   var cells = editAnimCellMap(palette), of = {}, keys = [];
   editAnims().forEach(function (e) {
     (cells[e.uid] || []).forEach(function (k) { if (!of[k]) { of[k] = e; keys.push(k); } });

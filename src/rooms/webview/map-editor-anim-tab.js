@@ -42,7 +42,6 @@ function animBadgeHtml(e, presets, members) {
 
 function animRowHtml(entry, locked, open, many) {
   var e = entry.g, fam = animFamilyOf(e, entry.cells), set = entry.members.length > 1;
-  if (fam != null && typeof ensureFamilySheet === 'function') ensureFamilySheet(fam); // its patterns need its sheet
   var presets = editAnimPresets(e);
   var html = '<div class="rg-object-card rg-anim-card' + (open ? ' on' : '') + '">'
     + '<div class="rg-trigger-row rg-anim-row' + (open ? ' on' : '') + '" data-anim-sel="' + e.uid + '" data-anim-part="' + (entry.cells[0] || '') + '" title="'
@@ -86,7 +85,7 @@ function animOpenHtml(entry, fam, presets, locked) {
       + (r.count > 1 ? ' — ' + r.count + ' frames of at most ' + ANIM_MAX_TICKS + ' ticks in the ROM' : '')
       + (e.vanilla ? ' — locked: disband to change its tiles' : ' — the pencil on one of its cells tiles it') + '">'
       // Several tiles: each frame as the group looks then, laid out as on the map (the Object tab's frames).
-      + (entry.members.length > 1 ? animGroupSvg(entry, r.start, 44) : animFrameSwatchHtml(r.graphic, fam, cells, r.start)) + '<span class="ro-lbl">' + k + '</span></button>'
+      + (entry.members.length > 1 ? animGroupSvg(entry, r.start, 44) : animFrameSwatchHtml(r.graphic, fam, cells, r.start, e)) + '<span class="ro-lbl">' + k + '</span></button>'
       + '<input type="number" class="rg-anim-ticks" min="1" value="' + t + '" data-anim-delay="' + k
       + '" aria-label="Frame ' + k + ' hold in ticks" title="Hold in 60 Hz ticks (' + Math.round(t * 1000 / 60) + ' ms)'
       + (t > ANIM_MAX_TICKS ? ' — stored as ' + Math.ceil(t / ANIM_MAX_TICKS) + ' frames of at most ' + ANIM_MAX_TICKS : '') + '"' + dis + '/>'

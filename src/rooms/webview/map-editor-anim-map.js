@@ -152,9 +152,10 @@ function editAnimTileStroke(d, cell, phase) {
  * `k` on the first cell showing the tile (the host's frame sheets) — a frame
  * vanilla draws in another family than its cell's is not on that sheet.
  */
-function animFrameSwatchHtml(graphic, family, cells, k) {
-  if (graphic == null || animSheetAt(graphic, family)) return animSwatchHtml(graphic, family, 30);
-  return animStampFrameSvg(cells, k, 30) || animSwatchHtml(graphic, family, 30);
+function animFrameSwatchHtml(graphic, family, cells, k, e) {
+  // The map's own render of the frame first, as every frame chip and preview draws (animFrameCellSvg).
+  var drawn = graphic != null && (!e || editAnimComplete(e)) ? animStampFrameSvg(cells, k, 30) : '';
+  return drawn || animSwatchHtml(graphic, family, 30);
 }
 
 function animStampFrameSvg(cells, k, size) {
@@ -252,8 +253,9 @@ function animPlaySvg(e, key, c, a) {
   var fam = animFamilyOf(e, [key]), total = 0, times = [];
   e.delays.forEach(function (t) { times.push(total); total += Math.max(1, t); });
   var keyTimes = times.map(function (t) { return (t / total).toFixed(4); }).join(';'), dur = (total / 60).toFixed(3) + 's';
-  var html = animUnderSvg(e, c, a);
+  var html = '';
   e.frames.forEach(function (g, k) {
+    // Unfinished: no host frames, so each frame is its graphic over the ground (animFrameCellSvg's fallback).
     var values = times.map(function (_, j) { return j === k ? 1 : 0; }).join(';');
     html += '<g opacity="' + (k ? 0 : 1) + '"><animate attributeName="opacity" calcMode="discrete" begin="0s" dur="' + dur
       + '" repeatCount="indefinite" keyTimes="' + keyTimes + '" values="' + values + '"/>' + animFrameCellSvg(e, g, fam, key, k, a) + '</g>';
@@ -261,11 +263,17 @@ function animPlaySvg(e, key, c, a) {
   return '<g pointer-events="none">' + html + '</g>';
 }
 
-/** One frame of `e` at map units `a`: its graphic, the map's own render of it, or a purple box when empty. */
+/**
+ * One frame of `e` at map units `a`, as the map draws that cell then: the
+ * host's render of the cell's stamp at frame `k` (both layers, its flips).
+ * Only a tile the host has no frames for yet (unfinished) is put together
+ * here — its graphic over the cell's ground — and an empty frame is a purple box.
+ */
 function animFrameCellSvg(e, g, fam, key, k, a) {
   var u = EDIT_UNITS;
   if (g == null) return '<rect class="rg-anim-cell empty" x="' + a.x + '" y="' + a.y + '" width="' + u + '" height="' + u + '"/>';
-  return animGraphicSvg(g, fam, e.pal || 0, a.x, a.y) || animStampFrameCell(key, k, a);
+  var drawn = editAnimComplete(e) ? animStampFrameCell(key, k, a) : '';
+  return drawn || animUnderSvg(e, key.split(',').map(Number), a) + animGraphicSvg(g, fam, e.pal || 0, a.x, a.y);
 }
 
 /** Frame `k` as the host rendered it for the stamp on `key`, at map units `a`; '' when it has none. */
@@ -294,7 +302,7 @@ function animGroupSvg(entry, k, size) {
       html += idx >= 0 ? editStampSvg(_mtPalette, _editComposed, idx, a.x, a.y, 'rg-anim-prev-cell') : '';
       return;
     }
-    html += animUnderSvg(m, c, a) + animFrameCellSvg(m, k < m.frames.length ? m.frames[k] : null, animFamilyOf(m, [key]), key, k, a);
+    html += animFrameCellSvg(m, k < m.frames.length ? m.frames[k] : null, animFamilyOf(m, [key]), key, k, a);
   });
   return '<svg class="rg-anim-sw" width="' + Math.round(W * k1) + '" height="' + Math.round(H * k1) + '" viewBox="0 0 ' + W * u + ' ' + H * u + '">' + html + '</svg>';
 }

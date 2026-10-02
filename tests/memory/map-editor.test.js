@@ -3229,6 +3229,9 @@ test('the tab lists every placement: one animated tile in two places is two rows
     const rows = ui.editAnimsListed(p);
     assert.deepStrictEqual(rows.map((r) => r.cells.length), [2, 1]);
     assert.ok(ui.animTabHtml().includes('2 of 2'));
+    assert.strictEqual(ui.editAnimsListed(p), rows, 'asked again unchanged: the same list, not a new walk of the map');
+    ui.editApply([{ x: 2, y: 0, index: idx }]);
+    assert.deepStrictEqual(ui.editAnimsListed(p).map((r) => r.cells.length), [4], 'an edit walks it again: (2,0) joins both');
 });
 
 test('a dragged rectangle is a set: one animated tile per cell on one timing, listed as one row', () => {

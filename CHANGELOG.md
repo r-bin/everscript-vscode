@@ -1,3 +1,10 @@
+## [0.115.2] — 2026-10-02
+
+### Fix: animation previews drawn one way, vanilla maps fast again
+
+- **Every frame preview is the map's own render of that frame**, with both layers and the cell's flips, whether it is frame 0 or a later one, in a row, a frame chip or a group. Before, frame 0 came from the map while later frames were put together from the family sheet, sometimes over the wrong layer. Only a tile still missing frames, which the map cannot render yet, is put together from its graphics.
+- **Vanilla maps are fast again.** With the `Animation` marks on, the default, every redraw of the map on every tab walked the whole room to find the animated tiles and group them. The result is now kept until the map or its animated tiles change. Each row also asked for its family's tile sheet, and each sheet that arrived redrew the whole tab; patterns come with the palette now, so those requests are gone.
+
 ## [0.115.1] — 2026-10-02
 
 ### Fix: groups pause together, frames shown as the group looks, Play with empty frames
