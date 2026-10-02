@@ -25,7 +25,7 @@ draft is one object, `_edit` (`map-editor.js`).
 | **Family slot** | one of the **7** palettes loaded at once. Picking a tile from an unloaded family adopts it into a free slot; freeing a slot strands every cell that names it | the family list; the word's palette field | `map-editor-families.js`, `-chips.js`, `-stranded.js` |
 | **Adopted graphic** | a graphic the room did not load, pulled into Block 1 so a word can name it (264-slot ceiling) | Block 1 | `map-editor-stamps.js` |
 | **Level** | the elevation plane new tiles are drawn on (left bar, default 1). A stamped widget takes the level of the floor it lands on | collision bits 5..4 | `map-editor-levels.js` |
-| **Special** | a collision-word property painted per cell from the Special tab: Stairs & Drift (bit 13 + nibble), See-through (bit 6), Gate & Deflect (bits 11..8), Interact (bit 15). Shown as glyphs | bits of the cell's collision word | `map-editor-special.js` |
+| **Special** | a collision-word property painted per cell from the Special tab: Stairs & Drift (bit 13 + nibble), See-through (bit 6), Gate & Deflect (bits 11..8), Interact (bit 15), Step-on (bit 14). Shown as glyphs; Interact and Step-on also as overlays (Special menu) | bits of the cell's collision word | `map-editor-special.js`, `-flag-overlays.js` |
 | **Collision shape** | a geometry code set by hand over the tile's suggested one (`_edit.coll`), drawn with the 8px pen or picked whole. Never baked into the stamp; erasing it brings the estimate back | bits 3..0 at export (`collisionOverrides`) | `map-editor-collision-tab.js`, `-collision.js` |
 | **Cuttable layer** | stamps drawn over the map that a slash removes, revealing the cell beneath (`_edit.cut`) | Section 4 sources + records | `map-editor-cutlayer.js` |
 | **Animated tile** | one Section 2 channel: a graphic slot whose graphic changes over time. Pattern letters (A, B, C…) name vanilla's timings; a rectangle drawn at once is a *set* sharing one timing | Section 2 | `map-editor-animations.js`, `-anim-*.js` |
@@ -45,6 +45,7 @@ draft is one object, `_edit` (`map-editor.js`).
 | **Boy start** | a custom map's one start marker (`_edit.start`), always inside the map. Export ROM turns it into the intro's `load_map(0x15, x, y)` | becomes a script operand, not room data | `map-editor-start.js`; `rom-export.md` |
 | **Donor room** | a custom map borrows room `0x34`'s graphics list and families (a room with no Block 1 renders black) and nothing else | its Block 1 and families are copied | `map-editor-custom.js`, `custom-room.ts` |
 | **Locked** | a vanilla room opens read-only; unlocking lets its draft change | view state | `editLocked` |
+| **Palette set preview** | the Info tab's Header sub-tab shows the map with another MAP_PALETTE value (rooms with 8–14 families) | a view: the host renders with `mapPalette` in the header overrides | `map-editor-family-sets.js`, host `family-sets.js`, `header-overrides.js` |
 | **Undo history** | one stack for everything, one step per gesture, saved with the map (`history.json`) | — | `map-editor.js`, `-history.js` |
 | **Vanilla index** | adjacency, layer preference, suggested collision, animation patterns, stairs, measured over all 127 rooms and every object state and animation frame | advice, never data (map-construction skill) | `src/maps/vanilla-*.ts`, host `vanilla-index.js` |
 
@@ -69,7 +70,17 @@ repo's encoder.
 
 ---
 
-## 4. Budgets the editor shows (Info tab)
+## 4. The Info tab
+
+Three sub-tabs (`_editInfoSub`, map-editor-tabs.js):
+
+| Sub-tab | Shows |
+|---|---|
+| **Header** | the header bytes in words, each with its controls beneath it (unlocked), and the palette sets |
+| **Budget** | the ceilings and counts below |
+| **Map** | shares measured off the map (walkable, solid, canopy, levels, cuttable, drift, stairs, gated, interact, step-on) and the checks: what would stop the draft encoding, and step-on boxes that can never fire |
+
+### Budgets
 
 Only attested ceilings get a bar: **7 families, 264 graphics, the 32 KB WRAM
 window** (`src/maps/budget.ts`). Stamps, triggers, objects and channels are
@@ -79,12 +90,12 @@ palettes (4 safe slots per room) are a separate budget on the Rooms tab
 
 ---
 
-## 5. Known gaps (as of v0.117.2)
+## 5. Known gaps (as of v0.118.0)
 
 - **Alternate family sets** (families past the 7th, switched by `MAP_PALETTE`)
-  are dropped from a vanilla room's draft (`map-editor-families.js` keeps 7).
-- **Collision bit 14** has no control. Painting keeps it on existing stamps, but
-  nothing sets it under a new or moved step-on trigger.
+  can be previewed but not edited; a vanilla room's draft keeps the first 7.
+- **Collision bit 14** is set by hand (Special tab → Step-on). Nothing sets it
+  automatically under a new or moved step-on trigger; the Map checks warn instead.
 - **CHR descriptors** are not shown; custom maps copy the donor's.
 - **Widgets** made from vanilla objects carry no holds: their states take the
   default of 1 tick.

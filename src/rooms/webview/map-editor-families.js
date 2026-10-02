@@ -209,7 +209,8 @@ function editPreviewFamilies() {
     out.push(f === undefined ? null : f);
   }
   while (out.length && out[out.length - 1] === null) out.pop();
-  return out;
+  // A palette set being previewed on the Header sub-tab (map-editor-family-sets.js).
+  return typeof familySetPreview === 'function' ? familySetPreview(out) : out;
 }
 
 /**

@@ -294,8 +294,10 @@ back.
 **Measured over all 127 rooms:** 4878 of the 4895 bit-14 cells lie inside a
 step-on box, and 1095 of the 1205 boxes contain at least one. A box with no
 bit-14 cell under it never fires by walking onto it. **Anything that writes or
-moves a step-on trigger must set bit 14 on the cells under it.** The editor has
-no control for it yet (`docs/map-format/editor-concepts.md` §5).
+moves a step-on trigger must set bit 14 on the cells under it.** In the editor
+it is a special like Interact: Special tab → Step-on (Force 1 / Force 0), the
+Special menu's Step-on overlay, and an Info → Map check for boxes with no
+bit-14 cell (`src/rooms/webview/map-editor-flag-overlays.js`).
 
 ---
 

@@ -101,6 +101,7 @@ const ROOMS_JS_FILES = [
   'map-editor-widget-edit.js', // editing a widget on its own canvas (_widgetEdit/_widgetBack)
   'map-editor-preview.js', // hover ghosts of what a stroke/stamp/erase would do, and the resize outline
   'map-editor-special.js',// the Special tab: stairs/drift, gate, entrance + their filter chip
+  'map-editor-flag-overlays.js', // bits 15 and 14 (Interact, Step-on): overlays, per-cell state (_interactOverlayOn/_stepOnOverlayOn)
   'map-editor-trigger-select.js',// unifies base + placed triggers: select/move/delete/copy-paste
   'map-editor-trigger-panel.js',// the Trigger tab's list UI
   'map-editor-trigger-scripts.js', // the scripts in the Trigger tab's rows, and its Enter tab (_triggerOpen/_triggerEnterView)
@@ -112,6 +113,7 @@ const ROOMS_JS_FILES = [
   'map-editor-anim-placed.js', // a placed widget's timing chips (A/B/C) and switching them
   'map-editor-objects.js', // the Object tab: areas and their tiles (_objectSel/_objectDraw)
   'map-editor-object-list.js', // the Object tab's rows: open/closed, drag to reorder (_objectOpen/_objectDragRow)
+  'map-editor-family-sets.js', // the Header sub-tab's palette sets: previewing MAP_PALETTE (_familySetView)
   'map-editor-object-holds.js', // the Object tab's timing: how long each state is held, and Play (_objectPlay)
   'map-editor-placed-list.js', // the Widgets tab's Placed rows: draw order, disband, remove (_placedDragRow)
   'map-editor-toolbar.js',// the floating tool pill: tools, phases, icons, the ⋯ overflow

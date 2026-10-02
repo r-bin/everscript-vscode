@@ -96,7 +96,8 @@ function stairsOf(index, graphic, layer) {
 }
 
 /**
- * Special collision flags: 1=drift, 2=deflect, 4=interact (bit 15), with the
+ * Special collision flags: 1=drift, 2=deflect, 4=interact (bit 15), 8=step-on
+ * (bit 14, the cells a step-on trigger fires on), with the
  * drift nibble in the high nibble.
  *
  * A flag needs **most** of the graphic's placements on one layer to carry it.
@@ -110,7 +111,7 @@ function stairsOf(index, graphic, layer) {
 function specialFlagsOf(index, graphicId) {
     let flags = 0, driftDir = 0;
     for (const list of [index.collisions.get(graphicId) || [], index.canopyCollisions.get(graphicId) || []]) {
-        let total = 0, drift = 0, deflect = 0, interact = 0;
+        let total = 0, drift = 0, deflect = 0, interact = 0, stepOn = 0;
         const dirs = {};
         for (const a of list) {
             total += a.uses;
@@ -120,6 +121,7 @@ function specialFlagsOf(index, graphicId) {
             }
             if ((a.value & 0x0100) && ((a.value >> 8) & 0x0f) === 1) deflect += a.uses;
             if (a.value & 0x8000) interact += a.uses;
+            if (a.value & 0x4000) stepOn += a.uses;
         }
         if (!total) continue;
         if (drift * 2 >= total) {
@@ -128,6 +130,7 @@ function specialFlagsOf(index, graphicId) {
         }
         if (deflect * 2 >= total) flags |= 2;
         if (interact * 2 >= total) flags |= 4;
+        if (stepOn * 2 >= total) flags |= 8;
     }
     return ((driftDir & 0x0f) << 4) | (flags & 0x0f);
 }
@@ -362,6 +365,7 @@ function buildFamilyCatalogue(rom) {
             drift: list.filter((a) => (specialFlagsOf(index, a.value) & 1) !== 0).length,
             deflect: list.filter((a) => (specialFlagsOf(index, a.value) & 2) !== 0).length,
             interact: list.filter((a) => (specialFlagsOf(index, a.value) & 4) !== 0).length,
+            stepOn: list.filter((a) => (specialFlagsOf(index, a.value) & 8) !== 0).length,
             unused: list.filter((a) => maps.isUnusedGraphic(index, a.value)).length,
             canopy: list.filter((a) => maps.isCanopyGraphic(index, a.value)).length,
             dual: list.filter((a) => maps.isDualLayerGraphic(index, a.value)).length,

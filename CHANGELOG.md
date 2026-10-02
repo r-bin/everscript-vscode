@@ -1,3 +1,13 @@
+## [0.118.0] — 2026-10-02
+
+### Added: Step-on as a special, palette sets, and the Info tab in three parts
+
+- **Step-on (collision bit 14) works like Interact.** The game only checks a step-on trigger while the player stands on a bit-14 tile. The Special tab has a **Step-on** group (Force 1 / Force 0), the Special menu a **Step-on** overlay that marks those tiles with `S`, the status bar shows each cell's step-on state, and the Tile tab can filter to step-on tiles. The special eraser clears it like the other specials.
+- **A step-on trigger that can never fire is flagged.** Info → Map lists every step-on box with no bit-14 tile under it, and says how to fix it.
+- **Palette sets.** 22 vanilla rooms carry more than seven tile families: extra sets a script switches to, such as Thraxx going from orange to white. Info → Header shows each set as a strip of its colours, marks the one the room loads with and the ones its own scripts set, and clicking a set redraws the map in it. This is only a preview: nothing is written to the room.
+- **The Info tab has three sub-tabs:** **Header** (the header and palette sets), **Budget** (the ceilings and counts) and **Map** (what the map holds, and the checks).
+- **Header rows are easier to read.** Each field shows its name and value in words on one line, with its controls on the line beneath.
+
 ## [0.117.2] — 2026-10-02
 
 ### Changed: state 0's step shows as a fixed 1

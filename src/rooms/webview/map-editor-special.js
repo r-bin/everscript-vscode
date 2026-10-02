@@ -69,6 +69,15 @@ var EDIT_SPECIAL_GROUPS = [
     ],
   },
   {
+    // Bit 14 (map_collision_mechanics.md §7.2): the step-on table is only walked
+    // while the player stands on one of these. The same shape as Interact.
+    id: 'stepon', label: 'Step-on', note: 'Step-on trigger cells (Bit 14): a step-on trigger only fires on these.',
+    items: [
+      { id: 'stepon-force-1', label: 'Force 1', glyph: 'S1', stepon: 1 },
+      { id: 'stepon-force-0', label: 'Force 0', glyph: 'S0', stepon: 0 },
+    ],
+  },
+  {
     id: 'entrance', label: 'Entrance', note: 'Visual entrance markers (non-exported).',
     items: [
       { id: 'entrance-default', label: 'Default', glyph: '◆' },
@@ -142,15 +151,17 @@ function editSpecialAt(x, y) {
 var SPECIAL_GATE_MASK = 0x0f00;   // entity gate, bits 11..8
 var SPECIAL_DRIFT_MASK = 0x200f;  // AW (bit 13) + the low nibble it repurposes
 var SPECIAL_INTERACT_MASK = 0x8000; // Bit 15 (Interact)
+var SPECIAL_STEPON_MASK = 0x4000; // Bit 14 (Step-on)
 var SPECIAL_TRANSPARENT = 0x0040; // Bit 6 (plane-transparent)
 
 function editSpecialGateWord(word, nibble) { return (word & ~SPECIAL_GATE_MASK) | ((nibble & 0xf) << 8); }
 function editSpecialDriftWord(word, nibble) { return (word & ~SPECIAL_DRIFT_MASK) | 0x2000 | (nibble & 0xf); }
 function editSpecialInteractWord(word, bit) { return bit ? (word | SPECIAL_INTERACT_MASK) : (word & ~SPECIAL_INTERACT_MASK); }
+function editSpecialStepOnWord(word, bit) { return bit ? (word | SPECIAL_STEPON_MASK) : (word & ~SPECIAL_STEPON_MASK); }
 function editSpecialClearWord(word) {
   var cleared = word & ~SPECIAL_GATE_MASK;
   if (cleared & 0x2000) cleared &= ~SPECIAL_DRIFT_MASK;
-  return cleared & ~SPECIAL_INTERACT_MASK & ~SPECIAL_TRANSPARENT;
+  return cleared & ~SPECIAL_INTERACT_MASK & ~SPECIAL_STEPON_MASK & ~SPECIAL_TRANSPARENT;
 }
 
 /**
@@ -158,9 +169,9 @@ function editSpecialClearWord(word) {
  * `baseIndex` — the tile-paint result when a brush is also armed, or just
  * the cell's existing stamp when only a special is being painted.
  *
- * `erasing` clears whatever gate/drift/interact bits are present regardless of which
+ * `erasing` clears whatever gate/drift/interact/step-on bits are present regardless of which
  * catalog item put them there: there is exactly one gate field, one
- * AW+direction field, and one interact bit per collision word, so "clear the special here" is
+ * AW+direction field, one interact and one step-on bit per collision word, so "clear the special here" is
  * unambiguous without knowing which pick it was.
  */
 function editSpecialAppliedIndex(palette, baseIndex, specialId, erasing) {
@@ -173,9 +184,10 @@ function editSpecialAppliedIndex(palette, baseIndex, specialId, erasing) {
     return editAddStamp(palette, { layer1: words.layer1, layer2: words.layer2, collision: cleared });
   }
   var def = editSpecialById(specialId);
-  if (!def || (def.gate == null && def.drift == null && def.interact == null && !def.transparent)) return baseIndex;
+  if (!def || (def.gate == null && def.drift == null && def.interact == null && def.stepon == null && !def.transparent)) return baseIndex;
   var next = def.transparent ? words.collision | SPECIAL_TRANSPARENT : def.interact != null
     ? editSpecialInteractWord(words.collision, def.interact)
+    : def.stepon != null ? editSpecialStepOnWord(words.collision, def.stepon)
     : (def.gate != null
       ? editSpecialGateWord(words.collision, def.gate)
       : editSpecialDriftWord(words.collision, def.drift));
@@ -246,6 +258,9 @@ function editCellSymbols(palette, x, y, specials) {
       if (sw && (sw.collision & 0x8000)) syms.push('1');
     }
   }
+  // Bit 14, the same way, on its own overlay (map-editor-flag-overlays.js).
+  if (list.indexOf('stepon-force-0') < 0 && list.indexOf('stepon-force-1') < 0
+    && typeof stepOnOverlayOn === 'function' && stepOnOverlayOn() && editCellStepOnState(palette, x, y) === '1') syms.push('S');
   return syms;
 }
 
@@ -321,80 +336,9 @@ function buildSpecialFilterChipHtml() {
     + '<button class="rdf on" data-hide="hide-special-plane">Level (see-through)</button><button class="rdf on" data-hide="hide-special-gate">Gate &amp; Deflect</button>'
     + '<button class="rdf on" data-hide="hide-special-entrance">Entrance</button>'
     + (typeof interactChipHtml === 'function' ? interactChipHtml() : '')
+    + (typeof stepOnChipHtml === 'function' ? stepOnChipHtml() : '')
     + '</div></span>';
 }
 
-// ---------------------------------------------------------------------------
-// Bit 15 (Interact) overlay & state reporting.
-// ---------------------------------------------------------------------------
-
-var _interactOverlayOn = false;
-function interactOverlayOn() { return _interactOverlayOn; }
-
-function editInteractToggle() {
-  _interactOverlayOn = !_interactOverlayOn;
-  var btns = document.querySelectorAll('.rdf-interact');
-  for (var i = 0; i < btns.length; i++) btns[i].classList.toggle('on', _interactOverlayOn);
-  if (typeof editNote === 'function') {
-    editNote(_interactOverlayOn ? 'Interact overlay ON — showing Bit 15 states (forced 0, forced 1, 1)' : 'Interact overlay OFF');
-  }
-  if (typeof renderEditChrome === 'function') renderEditChrome();
-  var p = typeof _mtPalette !== 'undefined' ? _mtPalette : null;
-  if (typeof renderEditLayer === 'function' && p) renderEditLayer(p, typeof _editComposed !== 'undefined' ? _editComposed : null, typeof _editOrigin !== 'undefined' ? _editOrigin : { x: 0, y: 0 });
-}
-
-/**
- * State of Bit 15 for cell (x, y):
- * - 'forced 1': explicitly set to 1 via Special tab
- * - 'forced 0': explicitly set to 0 via Special tab
- * - '1': Bit 15 is 1 in the stamp collision word
- * - '0': Bit 15 is 0 in the stamp collision word (default)
- */
-function editHasBTriggerAt(x, y) {
-  if (typeof editTriggerList !== 'function') return false;
-  var bList = editTriggerList('b');
-  if (!bList || !bList.length) return false;
-  for (var i = 0; i < bList.length; i++) {
-    var t = bList[i];
-    if (x >= t.x1 && x <= t.x2 && y >= t.y1 && y <= t.y2) return true;
-  }
-  return false;
-}
-
-/**
- * State of Bit 15 for cell (x, y):
- * - 'forced 1': explicitly set to 1 via Special tab
- * - 'forced 0': explicitly set to 0 via Special tab
- * - '1': Bit 15 is 1 in the stamp collision word, or cell is covered by an active B trigger
- * - '0': Bit 15 is 0 (default)
- */
-function editCellInteractState(palette, x, y) {
-  var list = editSpecialsAt(x, y);
-  if (list.indexOf('interact-force-1') >= 0) return 'forced 1';
-  if (list.indexOf('interact-force-0') >= 0) return 'forced 0';
-  if (editHasBTriggerAt(x, y)) return '1';
-  var p = palette || (typeof _mtPalette !== 'undefined' ? _mtPalette : null);
-  var idx = typeof editCellAt === 'function' && p ? editCellAt(p, x, y) : -1;
-  if (idx >= 0 && typeof editStampWords === 'function') {
-    var w = editStampWords(p, idx);
-    if (w && (w.collision & 0x8000)) return '1';
-  }
-  return '0';
-}
-
-function interactOverlaySvg(palette, origin, drawnKeys) {
-  var p = palette || (typeof _mtPalette !== 'undefined' ? _mtPalette : null);
-  if (!p || !p.widthTiles || !p.heightTiles) return '';
-  var w = p.widthTiles, h = p.heightTiles;
-  var html = '<g id="rg-interact-overlay" pointer-events="none">';
-  for (var y = 0; y < h; y++) {
-    for (var x = 0; x < w; x++) {
-      if (drawnKeys && drawnKeys[x + ',' + y]) continue;
-      var syms = editCellSymbols(p, x, y, []);
-      if (!syms.length) continue;
-      var pos = typeof editCellPos === 'function' ? editCellPos(origin, x, y) : { x: x * EDIT_UNITS, y: y * EDIT_UNITS };
-      html += editRenderSpecialBoxSvg(syms, pos, 'rg-interact-cell', true);
-    }
-  }
-  return html + '</g>';
-}
+// Bit 15 (Interact) and bit 14 (Step-on): their overlays and per-cell state are
+// map-editor-flag-overlays.js.

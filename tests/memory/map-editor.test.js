@@ -41,13 +41,15 @@ const api = new Function(`
   ${read('map-editor-paint.js')}
   ${read('map-editor-phases.js')}
   ${read('map-editor-special.js')}
+  ${read('map-editor-flag-overlays.js')}
   ${read('map-editor-trigger-select.js')}
 return { editReset, editActive, editDraft, editKey, editApply, editUndo, editRedo,
          editAddStamp, editStampWords, editExport, editStampCount,
          editCellAt, editRectWrites, editPasteWrites, editTakeSelection,
          editStampSvg, editCellPos,
          editSpecialById, editSpecialAppliedIndex, editSpecialAt, editSpecialGroupOf,
-         editSpecialsAt, editCellSymbols, editSpecialGlyphSvg, interactOverlaySvg,
+         editSpecialsAt, editCellSymbols, editSpecialGlyphSvg, flagOverlaySvg,
+         editCellStepOnState, stepOnOverlayOn, editStepOnToggle, editDeadStepTriggers,
          editCellInteractState, interactOverlayOn, editInteractToggle,
          groups: EDIT_SPECIAL_GROUPS,
          setSel: (s) => { _editSel = s; }, clip: () => _editClip,
@@ -392,6 +394,49 @@ test('editCellInteractState reports forced 1, forced 0, natural 1, and 0', () =>
     assert.strictEqual(api.editCellInteractState(p, 3, 3), '1');
 });
 
+test('step-on picks force Bit 14 like Interact does Bit 15; the eraser takes it off', () => {
+    const p = palette();
+    api.setPalette(p);
+    api.editReset(0x76);
+    const f1 = api.editSpecialAppliedIndex(p, 0, 'stepon-force-1', false);
+    assert.strictEqual(api.editStampWords(p, f1).collision, 0x501f, '0x101f | 0x4000');
+    const f0 = api.editSpecialAppliedIndex(p, f1, 'stepon-force-0', false);
+    assert.strictEqual(api.editStampWords(p, f0).collision, 0x101f, 'Bit 14 cleared');
+    const erased = api.editSpecialAppliedIndex(p, f1, null, true);
+    assert.strictEqual(api.editStampWords(p, erased).collision & 0x4000, 0, 'the eraser clears it with the other specials');
+    assert.ok(api.groups.some((g) => g.id === 'stepon'), 'a Step-on group on the Special tab');
+
+    api.editApply([], [{ x: 1, y: 1, id: 'stepon-force-1' }]);
+    assert.strictEqual(api.editCellStepOnState(p, 1, 1), 'forced 1');
+    const s14 = api.editAddStamp(p, { layer1: 0, layer2: 0, collision: 0x4010 });
+    api.editApply([{ x: 2, y: 0, index: s14 }], []);
+    assert.strictEqual(api.editCellStepOnState(p, 2, 0), '1');
+    assert.strictEqual(api.editCellStepOnState(p, 0, 0), '0');
+    // With its overlay on, a bit-14 cell carries an S.
+    const real = global.document;
+    global.document = { querySelectorAll: () => [], getElementById: () => null };
+    try {
+        api.editStepOnToggle();
+        assert.ok(api.editCellSymbols(p, 2, 0, []).includes('S'));
+        api.editStepOnToggle();
+        assert.ok(!api.editCellSymbols(p, 2, 0, []).includes('S'), 'off: no S');
+    } finally {
+        global.document = real;
+    }
+});
+
+test('a step-on box with no Bit 14 cell under it is reported: it can never fire', () => {
+    const p = palette();
+    p.attachments = { bTrigger: [], objects: [], stepOn: [[0, 0, 0, 0, 9], [2, 0, 2, 0, 12]] };
+    api.setPalette(p);
+    api.editReset(0x76);
+    const s14 = api.editAddStamp(p, { layer1: 0, layer2: 0, collision: 0x4010 });
+    api.editApply([{ x: 2, y: 0, index: s14 }], []);
+    const dead = api.editDeadStepTriggers(p);
+    assert.strictEqual(dead.length, 1, 'the box over the bit-14 cell is fine');
+    assert.strictEqual(dead[0].x1, 0);
+});
+
 test('multiple special flags can be added to a tile and render in grid', () => {
     const p = palette();
     api.setPalette(p);
@@ -716,6 +761,7 @@ const ui = new Function(`
   ${read('map-editor-collision-tab.js')}
   ${read('map-editor-neighbours.js') /* the plus-shaped LIKELY NEIGHBORS card, §8b */}
   ${read('map-editor-special.js')}
+  ${read('map-editor-flag-overlays.js')}
   ${read('map-editor-trigger-select.js')}
   ${read('map-editor-trigger-panel.js')}
   ${read('map-editor-toolbar.js') /* the floating tool pill, split out of map-editor-ui.js in Phase 7a */}
@@ -744,6 +790,7 @@ const ui = new Function(`
   ${read('map-editor-objects.js')}
   ${read('map-editor-object-list.js')}
   ${read('map-editor-object-holds.js')}
+  ${read('map-editor-family-sets.js')}
   ${read('map-editor-placed-list.js')}
   ${read('map-editor-widgets.js')}
   ${read('map-editor-widget-colours.js')}
@@ -802,6 +849,9 @@ const ui = new Function(`
     objectHolds: objectHolds, objectSetHold: objectSetHold, objectAddFrame: objectAddFrame, objectRemoveFrame: objectRemoveFrame,
     objectMoveFrame: objectMoveFrame, objectStatesHtml: objectStatesHtml, objectRunTicks: objectRunTicks, objectPlay: objectPlay,
     objectPlaying: function () { return _objectPlay; },
+    setInfoSub: function (v) { _editInfoSub = v; }, editInfoSubtabsHtml: editInfoSubtabsHtml,
+    familySetsHtml: familySetsHtml, familySetPick: familySetPick, familySetStart: familySetStart, infoRenderHeader: infoRenderHeader,
+    editPreviewFamilies: editPreviewFamilies,
     mtPaletteFits: mtPaletteFits, editSeedRoomObjects: editSeedRoomObjects, editObjects: editObjects,
     editWordSpecialIds: editWordSpecialIds, editOnRomRoom: editOnRomRoom, editTriggerSvg: editTriggerSvg,
     editRoomSpecialsSvg: editRoomSpecialsSvg, editExport: editExport, infoTabHtml: infoTabHtml, infoMeasure: infoMeasure,
@@ -916,13 +966,17 @@ test('the Info tab bars only real ceilings, and counts the draft\'s own families
     ui.setPalette(p);
     const d = ui.editReset(0x34);
     d.families = [35, 187, 58, 165, 149, 59];       // six, like room 0x33
+    ui.setInfoSub('budget');
     const html = ui.infoTabHtml(p);
     assert.ok(html.includes('6/7 · 86%'), 'families are the draft\'s, as on the Tile tab');
     assert.ok(html.includes('92/264'));
     assert.strictEqual((html.match(/rg-cap-fill( full| over)?"/g) || []).length, 3, 'ceiling bars for families, graphics and WRAM only');
     assert.ok(!/\/128|\/16\b/.test(html), 'no placeholder ceilings from the mock');
-    assert.ok(html.includes('Nothing blocking'), 'an empty check list says so');
-    assert.ok(!html.includes('no brush selected'), 'the brush hint is not a check');
+    ui.setInfoSub('map');
+    const map = ui.infoTabHtml(p);
+    assert.ok(map.includes('Nothing blocking'), 'an empty check list says so, on the Map sub-tab');
+    assert.ok(!map.includes('no brush selected'), 'the brush hint is not a check');
+    ui.setInfoSub('header');
 });
 
 test('the Info tab measures the map: walkable, solid, canopy, levels', () => {
@@ -935,10 +989,48 @@ test('the Info tab measures the map: walkable, solid, canopy, levels', () => {
     assert.strictEqual(f.open, 1, 'geometry 0');
     assert.strictEqual(f.canopy, 1, 'one cell has front art');
     assert.deepStrictEqual(f.levels, [0, 6, 0, 0], 'all on level 1');
+    ui.setInfoSub('map');
     const html = ui.infoTabHtml(p);
+    ui.setInfoSub('header');
     assert.ok(html.includes('rg-cap-fill measured'), 'measured shares are bars in their own colour');
     assert.ok(html.includes('5/6 · 83%'), 'solid: five of six drawn cells');
     d.on = true;
+});
+
+test('palette sets: a room with more than seven families previews another set, and writes nothing', () => {
+    const fams = [10, 11, 12, 13, 14, 15, 16, 20, 21, 22, 23, 24, 25, 26];
+    const colors = fams.map((f) => ['#' + String(f).padStart(6, '0')]);
+    const p = Object.assign(palette(), { roomId: 0x18, tileFamilies: fams, familySets: { colors, scriptValues: [7] } });
+    ui.setPalette(p);
+    const d = ui.editReset(0x18);
+    d.families = fams.slice(0, 7);
+    const html = ui.familySetsHtml(p);
+    assert.match(html, /data-family-set="0"[^]*loads with[^]*data-family-set="7"[^]*a script here sets it/, 'the set it loads with, then the script\'s');
+    assert.ok(/other values:[^]*data-family-set="1"/.test(html), 'the rest offered as plain values');
+    ui.familySetPick(7);
+    assert.strictEqual(ui.familySetStart(0x18), 7);
+    assert.deepStrictEqual(ui.infoRenderHeader(0x18), { mapPalette: 7 }, 'the host renders it through the overrides');
+    assert.deepStrictEqual(ui.editPreviewFamilies(), [20, 21, 22, 23, 24, 25, 26]);
+    assert.strictEqual(d.header, null, 'a view: no header written');
+    assert.strictEqual(d.undo.length, 0, 'and nothing on the history');
+    assert.strictEqual(ui.familySetStart(0x34), 0, 'only for its own room');
+    ui.familySetPick(0);
+    assert.strictEqual(ui.infoRenderHeader(0x18), null);
+
+    // A short set (8 entries, MAP_PALETTE 4) reaches slots 1..4; 5..7 keep the colours the room loaded with.
+    const short = Object.assign(palette(), { roomId: 0x5e, tileFamilies: [1, 2, 3, 4, 5, 6, 7, 8],
+        familySets: { colors: [1, 2, 3, 4, 5, 6, 7, 8].map(() => ['#000']), scriptValues: [4] } });
+    ui.setPalette(short);
+    const d2 = ui.editReset(0x5e);
+    d2.families = [1, 2, 3, 4, 5, 6, 7];
+    ui.familySetPick(4);
+    assert.deepStrictEqual(ui.editPreviewFamilies(), [5, 6, 7, 8, 5, 6, 7]);
+    assert.strictEqual((ui.familySetsHtml(short).match(/rg-fset-strip kept/g) || []).length, 3, 'the set at 4 leaves three slots kept, drawn dim');
+    ui.familySetPick(0);
+
+    // Seven or fewer: one set, said so.
+    const one = Object.assign(palette(), { roomId: 0x34, tileFamilies: [1, 2, 3], familySets: null });
+    assert.match(ui.familySetsHtml(one), /One set/);
 });
 
 test('header fields are editable when unlocked, one undo step each, and ride the exports', () => {
@@ -963,9 +1055,14 @@ test('header fields are editable when unlocked, one undo step each, and ride the
     assert.strictEqual(d.header, null, 'the room\'s own value is no override');
     const html = ui.infoTabHtml(p);
     assert.ok(html.includes('$212C'), 'the register is named');
-    assert.ok(html.indexOf('rg-info-header') < html.indexOf('Capacity'), 'the header comes first');
-    assert.ok(html.includes('data-header-bit') && !html.includes('rg-hdr-v'), 'unlocked: the controls are the value');
-    assert.ok(html.includes('title="Front · Ground · HUD · Sprites'), 'its words in the tooltip');
+    assert.ok(html.includes('rg-info-header') && !html.includes('Capacity'), 'the Header sub-tab is the header alone');
+    const tabWas = ui.tab();
+    ui.setTab('info');
+    assert.match(ui.editInfoSubtabsHtml(), /data-edit-info-sub="header"[\s\S]*data-edit-info-sub="budget"[\s\S]*data-edit-info-sub="map"/);
+    ui.setTab(tabWas);
+    // Name and value on one line, the controls on their own line beneath.
+    assert.match(html, /rg-hdr-top"><span class="rg-cap-l">Main screen<\/span><span class="rg-hdr-v">Front · Ground · HUD · Sprites<\/span><\/div><div class="rg-hdr-ctl">[^]*?data-header-bit/,
+        'unlocked: the value in words, the controls beneath');
     d.locked = true;
     const locked = ui.infoTabHtml(p);
     assert.ok(!locked.includes('data-header-bit'), 'locked: no controls');

@@ -90,6 +90,7 @@ function tileCollisionTitle(slot) {
     if (f & 1) title += '\nspecial: drift conveyor';
     if (f & 2) title += '\nspecial: deflect slashes (bit 8)';
     if (f & 4) title += '\nspecial: interact target (bit 15)';
+    if (f & 8) title += '\nspecial: step-on trigger cell (bit 14)';
   }
   return title;
 }

@@ -261,7 +261,8 @@ One 16-bit word per stamp, so per cell. **Never read it by hand**: use
 **Bit 14, measured:** 4878 of the 4895 bit-14 cells in vanilla lie inside a
 step-on box, and 1095 of 1205 boxes contain one. A step-on box with no bit-14
 cell never fires by walking onto it. Anything that writes or moves step-on
-triggers must set bit 14 under them.
+triggers must set bit 14 under them. The editor treats it like Interact: the
+Special tab's Step-on group, a Step-on overlay, and a check on the Info tab.
 
 Entities collide with each other by a separate rule (`docs/script-format/hitboxes.md`).
 
@@ -301,7 +302,7 @@ The editor converts records to inclusive map cells (`collision-overlay.ts`,
 | Field | What is known | What is not |
 |---|---|---|
 | CHR descriptors | slot group, entry, graphic id; reserved by `$90D50F` | what draws with them; the editor shows nothing and custom maps copy the donor's |
-| Families past the 7th | alternate sets switched by `MAP_PALETTE` | the editor keeps only the first 7 (`map-editor-families.js`) |
+| Families past the 7th | alternate sets switched by `MAP_PALETTE`; previewed on the Info tab's Header sub-tab | the draft keeps only the first 7; sets cannot be edited |
 | cuttable `steps` byte | always 1 | meaning |
 | duplicate cuttable sources | exist in 4 rooms | which record the engine uses |
 | gate nibble 1/9, Deflect | no passability effect (`map_collision_mechanics.md` §4) | the editor's "Deflect" reading is unconfirmed in game |

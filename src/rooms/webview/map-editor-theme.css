@@ -370,10 +370,12 @@
 /* MAP: readings of the map, not budgets — the capacity rows, their bars in another colour. */
 .rg-theme .rg-cap-fill.measured{background:var(--rg-success)}
 /* HEADER: every value in words; the controls sit under it, like a capacity row's bar. */
-.rg-theme .rg-hdr-row{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:24px;margin-bottom:6px}
-.rg-theme .rg-hdr-row .rg-cap-l{flex-shrink:0}
-.rg-theme .rg-hdr-v{font-size:12px;color:var(--rg-text-primary);text-align:right}
-.rg-theme .rg-hdr-ctl{display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-end}
+/* A header field: name and value on one line, its controls on their own line beneath. */
+.rg-theme .rg-hdr-row{margin-bottom:12px}
+.rg-theme .rg-hdr-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.rg-theme .rg-hdr-top .rg-cap-l{flex-shrink:0}
+.rg-theme .rg-hdr-v{font-size:12px;color:var(--rg-text-primary);text-align:right;min-width:0}
+.rg-theme .rg-hdr-ctl{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}
 .rg-theme .rg-hdr-bit{padding:1px 6px;font-size:11px;line-height:16px}
 .rg-theme .rg-hdr-in,.rg-theme .rg-hdr-sel{font-family:var(--rg-font-ui);font-size:11px;
   background:var(--rg-bg-hover);color:var(--rg-text-primary);border:1px solid var(--rg-border);border-radius:4px;padding:2px 6px}
@@ -421,3 +423,13 @@
 .rg-theme .rg-anim-preset.sel,.rg-theme .rg-anim-letter-chip.sel{border-color:var(--rg-anim);color:var(--rg-text-primary);background:color-mix(in srgb,var(--rg-anim) 16%,transparent)}
 .rg-theme .rg-anim-preset.custom{cursor:default}
 .rg-theme .rg-anim-letter-chip{min-width:28px;justify-content:center;font-family:var(--rg-font-mono);color:var(--rg-anim)}
+/* Palette sets (map-editor-family-sets.js): one row per set, its seven slots as colour strips. */
+.rg-theme .rg-fset{display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;margin-bottom:6px;border:1px solid var(--rg-border);border-radius:var(--rg-radius-control);background:transparent;color:var(--rg-text-secondary);font:11px var(--rg-font-ui);cursor:pointer;text-align:left}
+.rg-theme .rg-fset:hover{border-color:var(--rg-text-muted)}
+.rg-theme .rg-fset.on{border-color:var(--rg-accent);color:var(--rg-text-primary)}
+.rg-theme .rg-fset-n{flex:0 0 auto;min-width:3.5em;font-family:var(--rg-font-mono)}
+.rg-theme .rg-fset-strips{display:flex;gap:2px;flex:1;min-width:0}
+.rg-theme .rg-fset-strip{flex:1;height:14px;border-radius:2px;min-width:0}
+.rg-theme .rg-fset-strip.kept{opacity:.35}
+.rg-theme .rg-fset-why{flex:0 0 auto;color:var(--rg-text-muted)}
+.rg-theme .rg-fset-more{display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:11px;color:var(--rg-text-muted)}

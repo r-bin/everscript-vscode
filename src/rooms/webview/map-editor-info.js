@@ -1,15 +1,20 @@
-// Ownership: the Info tab — four sections, top to bottom:
-//   HEADER    the room header's 13 bytes, in words; the fields the map does
-//             not decide are editable (`_edit.header`, one undo step each)
-//   CAPACITY  the attested ceilings, as the design mock draws them
-//   MAP       facts measured off the map as it is now — the same rows, in
-//             another colour: these are readings, not budgets
-//   CHECKS    what would stop the draft encoding
+// Ownership: the Info tab, as three sub-tabs (map-editor-tabs.js `_editInfoSub`):
+//   Header  the room header's 13 bytes, in words; the fields the map does
+//           not decide are editable (`_edit.header`, one undo step each).
+//           Below it, the palette sets a script can switch to
+//           (map-editor-family-sets.js)
+//   Budget  the attested ceilings, as the design mock draws them, and the counts
+//   Map     facts measured off the map as it is now — the same rows, in
+//           another colour: these are readings, not budgets — and the checks:
+//           what would stop the draft encoding, or a trigger working
 // Split out of map-editor-panels.js, which keeps the other tabs.
 
-/** Info tab body. */
+/** Info tab body: the open sub-tab. */
 function infoTabHtml(p) {
-  return infoHeaderHtml(p) + infoCapacityHtml(p) + infoFactsHtml(p) + infoChecksHtml(p);
+  var sub = typeof _editInfoSub === 'string' ? _editInfoSub : 'header';
+  if (sub === 'budget') return infoCapacityHtml(p);
+  if (sub === 'map') return infoFactsHtml(p) + infoChecksHtml(p);
+  return infoHeaderHtml(p) + (typeof familySetsHtml === 'function' ? familySetsHtml(p) : '');
 }
 
 // ── CAPACITY ────────────────────────────────────────────────────────────────
@@ -80,7 +85,7 @@ function infoCountRow(label, value, note, title) {
  */
 function infoMeasure(p) {
   var f = { area: p.widthTiles * p.heightTiles, cells: 0, open: 0, partial: 0, solid: 0, canopy: 0,
-    drift: 0, stairs: 0, gated: 0, interact: 0, levels: [0, 0, 0, 0] };
+    drift: 0, stairs: 0, gated: 0, interact: 0, stepOn: 0, levels: [0, 0, 0, 0] };
   var blank = editBlankCanopy(p), memo = {};
   for (var y = 0; y < p.heightTiles; y++) {
     for (var x = 0; x < p.widthTiles; x++) {
@@ -96,6 +101,7 @@ function infoMeasure(p) {
       if (typeof stairsOfCollision === 'function' && stairsOfCollision(c)) f.stairs++;
       if ((c & 0x0100) && [3, 5, 7].indexOf((c >> 8) & 0x0f) >= 0) f.gated++;
       if (c & 0x8000) f.interact++;
+      if (c & 0x4000) f.stepOn++;
       f.levels[(c >> 4) & 3]++;
     }
   }
@@ -125,6 +131,7 @@ function infoFactsHtml(p) {
     + (f.stairs ? infoShareRow('Stairs', f.stairs, f.cells, 'Bit 13 with nibble 0, 1 or 2') : '')
     + (f.gated ? infoShareRow('Gated', f.gated, f.cells, 'Entity gate 3, 5 or 7 — solid for some of the party') : '')
     + (f.interact ? infoShareRow('Interactive', f.interact, f.cells, 'Bit 15 — pressing B facing it runs the B-trigger') : '')
+    + (f.stepOn ? infoShareRow('Step-on', f.stepOn, f.cells, 'Bit 14 — a step-on trigger fires only on these cells') : '')
     + infoCountRow('Objects', (typeof editObjects === 'function' ? editObjects().length : 0), '',
       'Areas that change look when a script sets their state');
   return html + '</div>';
@@ -257,11 +264,11 @@ function infoHeaderHtml(p) {
     var base = Number((p.header || {})[fd.key]) || 0;
     var title = fd.title + (e ? ' — ' + e.rooms : '') + '\n' + fd.reg + ' = ' + infoHex(v, fd.hex || 2)
       + (edited ? '\nthe room’s own: ' + infoHeaderText(fd, base) : '');
-    // Unlocked, the controls are the value: a lit chip, a select's choice. The words go to the tooltip.
-    html += '<div class="rg-hdr-row' + (edited ? ' edited' : '') + '" title="' + escH(infoHeaderText(fd, v) + '\n' + title) + '">'
-      + '<span class="rg-cap-l">' + escH(fd.label) + '</span>'
-      + (locked ? '<span class="rg-hdr-v">' + escH(infoHeaderText(fd, v)) + '</span>'
-        : '<span class="rg-hdr-ctl">' + infoHeaderControls(fd, v) + '</span>') + '</div>';
+    // Name and value on one line, the controls on their own line beneath (unlocked only).
+    html += '<div class="rg-hdr-row' + (edited ? ' edited' : '') + '" title="' + escH(title) + '">'
+      + '<div class="rg-hdr-top"><span class="rg-cap-l">' + escH(fd.label) + '</span>'
+      + '<span class="rg-hdr-v">' + escH(infoHeaderText(fd, v)) + '</span></div>'
+      + (locked ? '' : '<div class="rg-hdr-ctl">' + infoHeaderControls(fd, v) + '</div>') + '</div>';
   });
   return html + '</div>';
 }
@@ -294,7 +301,10 @@ function editRestoreHeader(h) {
 /** The draft's header overrides when the draft is for room `id` — for the host's renders. */
 function infoRenderHeader(id) {
   var d = typeof editDraft === 'function' ? editDraft() : null;
-  return d && d.header && d.roomId === id ? d.header : null;
+  var h = d && d.header && d.roomId === id ? d.header : null;
+  // The palette set being previewed (map-editor-family-sets.js): a view, not a header byte.
+  var set = typeof familySetStart === 'function' ? familySetStart(id) : 0;
+  return set ? Object.assign({}, h || {}, { mapPalette: set }) : h;
 }
 
 /**
@@ -308,7 +318,7 @@ function infoApplyHeader() {
   if (!d.customKey && !d.blank && typeof _romRerender === 'function' && _romRerender) _romRerender();
   if (typeof requestComposedPreview === 'function') requestComposedPreview();
   vs.postMessage({ command: 'requestRoomMetatiles', roomId: d.roomId, mapName: _mtRoomName, layer: _mtLayer,
-    bgPalette: _mtBgPalette, header: d.header, atlasOnly: true });
+    bgPalette: _mtBgPalette, header: infoRenderHeader(d.roomId), atlasOnly: true });
 }
 
 /** A layer chip: flip that bit of the field. */
@@ -335,6 +345,13 @@ function infoChecksHtml(p) {
   var html = '<div class="rg-info-sec"><div class="rg-info-h">Checks</div>';
   if (!errs.length) html += infoCheckRow('ok', 'Nothing blocking — this draft would encode');
   errs.forEach(function (e) { html += infoCheckRow(e[0] === 'hard' ? 'error' : 'warning', e[1]); });
+  // Not an encoding error: the box encodes fine and simply never fires (map_collision_mechanics.md §7.2).
+  var dead = typeof editDeadStepTriggers === 'function' ? editDeadStepTriggers(p) : [];
+  if (dead.length) {
+    html += infoCheckRow('warning', dead.length + ' step-on trigger' + (dead.length === 1 ? ' has' : 's have')
+      + ' no Bit 14 cell under ' + (dead.length === 1 ? 'it' : 'them') + ' — walking onto '
+      + (dead.length === 1 ? 'it' : 'them') + ' never fires. Special tab → Step-on → Force 1 to fix');
+  }
   return html + '</div>';
 }
 

@@ -84,6 +84,13 @@ function interactChipHtml() {
     + ' title="' + escH('Toggle Bit 15 (Interact) overlay: shows forced 0, forced 1, 1, or 0. Off by default.') + '">Interact</button>';
 }
 
+/** Toggle button for Bit 14 (Step-on) overlay — beside Interact, in the Special menu. */
+function stepOnChipHtml() {
+  var on = typeof stepOnOverlayOn === 'function' && stepOnOverlayOn();
+  return '<button class="rdf rdf-stepon' + (on ? ' on' : '') + '" data-edit-act="stepon-overlay"'
+    + ' title="' + escH('Toggle Bit 14 (Step-on) overlay: S marks the cells a step-on trigger fires on; S1/S0 are forced. Off by default.') + '">Step-on</button>';
+}
+
 /**
  * Collision, and behind its caret how it is drawn: the smart outline (the
  * per-plane contours, default) or tile by tile — every solid pixel in its
@@ -282,6 +289,7 @@ function setupStatusBar() {
     if (cell && typeof editCellInteractState === 'function') {
       var st = editCellInteractState(typeof _mtPalette !== 'undefined' ? _mtPalette : null, cell.x, cell.y);
       interactInfo = ' · interact: ' + st;
+      if (typeof editCellStepOnState === 'function') interactInfo += ' · step-on: ' + editCellStepOnState(typeof _mtPalette !== 'undefined' ? _mtPalette : null, cell.x, cell.y);
     }
     write(cell ? 'x: ' + statusPad2(cell.x) + ' y: ' + statusPad2(cell.y) + interactInfo : STATUS_NO_XY);
   }, true);

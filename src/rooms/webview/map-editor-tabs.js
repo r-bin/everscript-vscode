@@ -17,11 +17,23 @@
 // sub-tabs: each is still its own `_editActiveTab` value, so everything that
 // asks which tab is open keeps working; the strip only files them together.
 //
-// Owns: _editActiveTab, _editTileSub.
+// Info has sub-tabs too — Header, Budget, Map — but they are views of one tab,
+// not separate `_editActiveTab` values: nothing else asks which one is open.
+//
+// Owns: _editActiveTab, _editTileSub, _editInfoSub.
 
 var _editActiveTab = 'tile';
 /** The Tile tab's sub-tab last open, which its top tab goes back to. */
 var _editTileSub = 'tile';
+/** The Info tab's sub-tab: 'header', 'budget' or 'map'. */
+var _editInfoSub = 'header';
+
+/** The Info tab's sub-tabs (map-editor-info.js draws each). */
+var EDIT_INFO_SUBTABS = [
+  ['header', 'Header', 'The room header: screen layers, colour math, effect — and the palette sets a script can switch to'],
+  ['budget', 'Budget', 'What the map spends against the format’s ceilings'],
+  ['map', 'Map', 'What the map holds now, measured — and what would stop it encoding'],
+];
 
 /** The Tile tab's sub-tabs. */
 var EDIT_TILE_SUBTABS = [
@@ -64,6 +76,23 @@ function buildEditTabStripHtml() {
       + (t[0] === 'tile' ? _editTileSub : t[0]) + '">' + t[1] + '</button>';
   });
   return html + '</div>';
+}
+
+/** Header | Budget | Map, over the Info tab's body; '' on the other tabs. */
+function editInfoSubtabsHtml() {
+  if (_editActiveTab !== 'info') return '';
+  return '<div class="rg-subtabs rg-info-subtabs" role="tablist">' + EDIT_INFO_SUBTABS.map(function (t) {
+    var on = _editInfoSub === t[0];
+    return '<button class="rg-subtab' + (on ? ' on' : '') + '" role="tab" aria-selected="' + on + '" data-edit-info-sub="' + t[0]
+      + '" title="' + escH(t[2]) + '">' + t[1] + '</button>';
+  }).join('') + '</div>';
+}
+
+/** Pick an Info sub-tab. */
+function editInfoSubPick(sub) {
+  if (!EDIT_INFO_SUBTABS.some(function (t) { return t[0] === sub; })) return;
+  _editInfoSub = sub;
+  renderEditChrome();
 }
 
 /** Tile | Collision | Animation, over the Tile tab's body; '' on the other tabs. */

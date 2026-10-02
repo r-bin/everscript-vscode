@@ -184,8 +184,8 @@ function renderEditLayer(palette, composed, origin) {
       + '" width="' + ((_editSel.x2 - _editSel.x1 + 1) * EDIT_UNITS)
       + '" height="' + ((_editSel.y2 - _editSel.y1 + 1) * EDIT_UNITS) + '" pointer-events="none"/>';
   }
-  if (typeof interactOverlaySvg === 'function' && typeof interactOverlayOn === 'function' && interactOverlayOn()) {
-    ovHtml += interactOverlaySvg(palette, origin, drawnKeys);
+  if (typeof flagOverlaySvg === 'function' && flagOverlaysOn()) {
+    ovHtml += flagOverlaySvg(palette, origin, drawnKeys);
   }
   overlay.innerHTML = ovHtml;
   // The hover ghost, over all of it: the tool or the map just changed under it.

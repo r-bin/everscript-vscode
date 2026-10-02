@@ -173,6 +173,21 @@ if (!fs.existsSync(ROM_PATH)) {
         assert.deepStrictEqual(room.objects[2].states.map((s) => s.hold), [0, 1, 1]);
     });
 
+    test('palette sets: room 0x18 stores two, its script switches to 7, and the render follows MAP_PALETTE', () => {
+        const { buildRoomMetatilePalette } = require('../../src/rooms/rendering/metatile-palette');
+        const { withHeader } = require('../../src/rooms/rendering/header-overrides');
+        const pal = buildRoomMetatilePalette(rom, 0x18, 'composite', 1, null);
+        assert.strictEqual(pal.tileFamilies.length, 14);
+        assert.deepStrictEqual(pal.familySets.scriptValues, [7], 'Thraxx\'s room writes MAP_PALETTE = 7');
+        assert.strictEqual(pal.familySets.colors.length, 14);
+        assert.strictEqual(buildRoomMetatilePalette(rom, 0x34, 'composite', 1, null).familySets, null, 'seven or fewer: no sets');
+        const room = maps.decodeRoom(rom, 0x18);
+        const white = withHeader(room, { mapPalette: 7 });
+        assert.deepStrictEqual(white.tileFamilies, room.tileFamilies.slice(7));
+        const px = (r) => Buffer.from(maps.renderRoomComposite(rom, r).data);
+        assert.ok(!px(room).equals(px(white)), 'the map is drawn in other colours');
+    });
+
     test('re-encoded Blocks 1-3 decode back for all 127 rooms (upstream --verify-rebuild)', () => {
         for (let id = 0; id < maps.MAX_ROOMS; id++) {
             const model = maps.modelFromRom(rom, id);

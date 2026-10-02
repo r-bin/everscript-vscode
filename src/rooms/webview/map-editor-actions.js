@@ -63,6 +63,7 @@ function editAction(act) {
   if (act === 'cut-layer') { editCutToggle(); return; }
   if (act === 'anim-marks') { editAnimMarksToggle(); return; }
   if (act === 'interact-overlay') { editInteractToggle(); return; }
+  if (act === 'stepon-overlay') { editStepOnToggle(); return; }
   if (act === 'play-rom') editPlayRom();
   if (act === 'export-map') customExportMap();
   if (act === 'delete-map') customDeleteMap();

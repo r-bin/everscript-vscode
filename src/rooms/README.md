@@ -21,6 +21,8 @@ rooms/
     tree-renderer.js          — renderVanillaTree(rooms), renderRoomsTree(nodes), buildRoomRailHtml(live, vanilla), buildRoomsJson(tree)
     tile-overlay.js           — buildRoomTileOverlay: the map raster, the canopy, and the canopy overlay
     object-previews.js        — Section 3 objects: states, thumbnails, the selection wire form
+    family-sets.js            — alternate family sets: each family's colours and the MAP_PALETTE values the room's scripts write
+    header-overrides.js       — the Info tab's header fields (and a previewed palette set) applied before a render
     rom-fingerprint.js        — romFingerprint(rom): the cache key every render cache shares
     metatile-palette.js       — buildRoomMetatilePalette: the dictionary atlas + one packed row per stamp
     stamp-animation.js        — animated stamps' later frames (`anim`), so a placed torch flickers on the canvas
@@ -222,6 +224,8 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   (`_edit.triggerOrder`) and changing a trigger's kind; owns `_triggerDragRow`
 - `map-editor-objects.js` — the Object tab: object areas and the tiles drawn over them
 - `map-editor-object-list.js` — the Object tab's rows (drawn like the trigger rows), open/closed, drag to reorder
+- `map-editor-flag-overlays.js` — collision bits 15 (Interact) and 14 (Step-on): their overlays, per-cell state, and step-on boxes with no bit-14 cell
+- `map-editor-family-sets.js` — the Info tab's Header sub-tab palette sets: previewing another MAP_PALETTE value
 - `map-editor-object-holds.js` — the Object tab's timing: how many ticks each state is held while a script steps through it, and Play
 - `map-editor-placed-list.js` — the Widgets tab's Placed rows: stamped widgets in draw order, drag to reorder, disband, remove
   (their changed look); owns `_objectSel` / `_objectDraw`

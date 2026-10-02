@@ -27,8 +27,8 @@ const read = (f) => fs.readFileSync(path.join(WEBVIEW, f), 'utf8');
 const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-history.js', 'map-editor-stamps.js', 'map-editor-paint.js',
     'map-editor-anim.js', 'map-editor-ui.js', 'map-editor-phases.js', 'map-editor-constructs.js', 'map-editor-families.js',
     'map-editor-relations.js', 'map-editor-chips.js', 'map-editor-stranded.js',
-    'map-editor-tiles.js', 'map-editor-tile-lazy.js', 'map-editor-tile-filters.js', 'map-editor-neighbours.js', 'map-editor-deco.js', 'map-editor-widgets.js', 'map-editor-widget-colours.js', 'map-editor-widget-edit.js', 'map-editor-preview.js', 'map-editor-special.js',
-    'map-editor-trigger-select.js', 'map-editor-trigger-panel.js', 'map-editor-trigger-order.js', 'map-editor-animations.js', 'map-editor-anim-tab.js', 'map-editor-anim-sets.js', 'map-editor-anim-map.js', 'map-editor-anim-placed.js', 'map-editor-objects.js', 'map-editor-object-list.js', 'map-editor-object-holds.js', 'map-editor-placed-list.js',
+    'map-editor-tiles.js', 'map-editor-tile-lazy.js', 'map-editor-tile-filters.js', 'map-editor-neighbours.js', 'map-editor-deco.js', 'map-editor-widgets.js', 'map-editor-widget-colours.js', 'map-editor-widget-edit.js', 'map-editor-preview.js', 'map-editor-special.js', 'map-editor-flag-overlays.js',
+    'map-editor-trigger-select.js', 'map-editor-trigger-panel.js', 'map-editor-trigger-order.js', 'map-editor-animations.js', 'map-editor-anim-tab.js', 'map-editor-anim-sets.js', 'map-editor-anim-map.js', 'map-editor-anim-placed.js', 'map-editor-objects.js', 'map-editor-object-list.js', 'map-editor-object-holds.js', 'map-editor-family-sets.js', 'map-editor-placed-list.js',
     'map-editor-toolbar.js', 'map-editor-filterbar.js', 'rom-overlay.js',
     'map-editor-trigger-scripts.js', 'map-editor-tabs.js', 'map-editor-panels.js', 'map-editor-gestures.js',
     'map-editor-input.js', 'map-editor-actions.js', 'map-editor-newroom.js', 'map-editor-start.js', 'map-editor-custom.js',
@@ -261,7 +261,9 @@ async function main() {
         !(await page.$('.rg-cap')));
 
     await page.click('[data-edit-active-tab="info"]');
-    check('switching to Info shows the capacity bars',
+    check('switching to Info opens its Header sub-tab', !!(await page.$('[data-edit-info-sub="header"].on')));
+    await page.click('[data-edit-info-sub="budget"]');
+    check('and its Budget sub-tab shows the capacity bars',
         !!(await page.$('.rg-cap-track')));
     check("and the Tile tab's panels are gone, not just hidden",
         !(await page.$('[data-panel="families"]')));
@@ -585,6 +587,7 @@ async function main() {
     // point step has the two placed triggers (uid 1 at (6,6), uid 2 at
     // (5,5)) and the base one is hidden; B has none (deleted just above).
     await page.click('[data-edit-active-tab="info"]');
+    await page.click('[data-edit-info-sub="budget"]');
     const infoText = await page.evaluate(() => document.getElementById('rg-panels').textContent);
     check('the Info tab shows the trigger counts with no fabricated ceiling',
         /Step-on triggers\D*2/.test(infoText) && /B-triggers\D*0/.test(infoText) && /16-bit table/.test(infoText)
@@ -1363,7 +1366,7 @@ async function main() {
         // v0.74.0: all|floor|edge|wall — what to build floors, walls and the filler with.
         // v0.75.0: anim|frames — an animation as one playing swatch, or each frame.
         segs.length === 5 && segs[0] === 'auto|front|ground' && segs[1] === 'H|V' && segs[2] === 'all|floor|edge|wall'
-        && segs[3] === 'anim|frames' && segs[4] === 'cuttable|stairs|drift|deflect|interaction|unused|canopy|2-layer',
+        && segs[3] === 'anim|frames' && segs[4] === 'cuttable|stairs|drift|deflect|interaction|step-on|unused|canopy|2-layer',
         JSON.stringify(segs));
 
     // v0.76.0: a placed animated stamp plays on the map — its frames stacked,
@@ -2447,9 +2450,29 @@ async function main() {
             probe.remove();
         }
 
+        // The Info tab: three sub-tabs, and a header row's controls beneath its name and value.
+        const tabWas = _editActiveTab, hadHeader = _mtPalette.header;
+        _mtPalette.header = { originX: 0, originY: 0, widthTiles: 2, heightTiles: 2, displayTm: 0x17, subscreenTs: 0,
+            colorMath: 0, colorWindow: 2, effectVariant: 0, param: 0 };
+        _editActiveTab = 'info'; _editInfoSub = 'header';
+        renderEditChrome();
+        const top = document.querySelector('.rg-hdr-top'), ctl = document.querySelector('.rg-hdr-ctl');
+        if (top && ctl) {
+            const a = top.getBoundingClientRect(), b = ctl.getBoundingClientRect();
+            r.hdrBeneath = b.top >= a.bottom - 1 && Math.abs(b.left - a.left) < 2;
+        }
+        const budgetTab = document.querySelector('[data-edit-info-sub="budget"]');
+        if (budgetTab) budgetTab.click();
+        r.infoBudget = _editInfoSub === 'budget' && /Capacity/i.test(document.getElementById('rg-tab-body').textContent)
+            && !document.querySelector('.rg-hdr-row');
+        _editInfoSub = 'header'; _editActiveTab = tabWas; _mtPalette.header = hadHeader;
+        renderEditChrome();
+
         _editComposed = composed;
         return r;
     });
+    check('Info has Header, Budget and Map sub-tabs; clicking one shows it', v80.infoBudget, JSON.stringify({ infoBudget: v80.infoBudget }));
+    check('a header row: name and value on one line, its controls on the line beneath', v80.hdrBeneath, JSON.stringify({ hdrBeneath: v80.hdrBeneath }));
     check('a family picked but never painted leaves its slot to the next one (slot 1 is used first)',
         v80.first === 0 && v80.second === 0, JSON.stringify(v80));
     check('the bottom bar has Triggers with B and step-on apart, on a custom map too', v80.triggers, JSON.stringify(v80));
