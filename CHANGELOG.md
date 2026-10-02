@@ -1,3 +1,13 @@
+## [0.119.2] — 2026-10-03
+
+### Fix: [Sprites] Boy weapon animations, missing opcodes, facing directions & hitbox alignment
+
+- **Weapon selector for the Boy:** Added full weapon selection (Bone Crusher, Gladiator Sword, Crusader Sword, Neutron Blade, Spider's Claw, Bronze Axe, Knight Basher, Atom Smasher, Horn Spear, Bronze Spear, Lance, Laser Lance, Bazooka, Bazooka Thunder Ball, Bazooka Particle Bomb) reading from ROM weapon table `$0438E6`. Choosing a weapon loads its full animation set (Stand, Walk, Run, Attack Lvl 0–3, Charge Attack, Damage) alongside the Boy's general actions.
+- **Decoded missing animation opcodes:** Added widths for attack opcodes `0x48` (1 byte), `0x49` (3 bytes), `0x4a` (3 bytes), `0x58` (1 byte), and `0x59` (1 byte) in `character-animation.ts`, allowing multi-frame attacks like the bone slash to play through all frames rather than halting on frame 0.
+- **Fixed facing directions:** Corrected facing constants and UI buttons (South=0 front-facing, East=4, North=8 back-facing, West=12) so clicking South shows the front of the character and clicking North shows the back.
+- **Aligned hurt box and strike box:** Positioned the hurt box ($2r \times 2r$) upward from the character's feet origin `cy` so it wraps the standing character body rather than extending below ground. Correctly centered strike boxes around attacker offset $(dx, dy)$ and only rendered them on frames that declare active strikes. Expanded canvas viewport to prevent clipping wide weapon sweeps.
+- **Filtered external animation scripts:** Validated external animation scripts against legitimate ROM script banks (`$C4..$CE`) and valid starting opcodes, purging font tile bitplane references (such as Dog `ACT3_FALL_2` rendering letter "B") while preserving real script triggers like Magmar's lava entry.
+
 ## [0.119.1] — 2026-10-02
 
 ### Fix: [Sprites] acquireVsCodeApi collision and empty list handling

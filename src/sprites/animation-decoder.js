@@ -38,7 +38,7 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
     if (typeof animOpt === 'string' || typeof animOpt === 'number') {
         const field = typeof animOpt === 'number' ? animOpt : 0x32;
         scriptAddr = animationScript(rom, characterId, facing, field);
-    } else if (animOpt.category === 'external') {
+    } else if (animOpt.category === 'external' || animOpt.category === 'weapon') {
         scriptAddr = resolveExternalScript(rom, animOpt.animRec, facing) || animOpt.scriptAddr;
     } else if (animOpt.offset) {
         scriptAddr = animationScript(rom, characterId, facing, animOpt.offset);
@@ -124,6 +124,7 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
             ticks: walk.frames[i].ticks,
             spriteAddr: walk.frames[i].sprite,
             spriteHex: '$' + walk.frames[i].sprite.toString(16),
+            strikeBox: walk.frames[i].strikeBox || null,
             chunks: chunkList,
         });
     }

@@ -53,6 +53,11 @@ function buildSpritesTabHtml() {
 
         <!-- Animation Controls Row -->
         <div class="sp-anim-toolbar">
+          <div class="sp-tool-group" id="sp-weapon-group" style="display:none">
+            <label class="sp-label" for="sp-weapon-sel">Weapon:</label>
+            <select class="sp-select" id="sp-weapon-sel"></select>
+          </div>
+
           <div class="sp-tool-group">
             <label class="sp-label" for="sp-anim-sel">Animation:</label>
             <select class="sp-select" id="sp-anim-sel"></select>
@@ -61,10 +66,10 @@ function buildSpritesTabHtml() {
           <div class="sp-tool-group">
             <span class="sp-label">Facing:</span>
             <div class="sp-facing-group">
-              <button class="sp-facing-btn sp-active" data-facing="8" title="South (Faces front)">S</button>
-              <button class="sp-facing-btn" data-facing="12" title="West">W</button>
-              <button class="sp-facing-btn" data-facing="0" title="North">N</button>
+              <button class="sp-facing-btn sp-active" data-facing="0" title="South (Faces front)">S</button>
               <button class="sp-facing-btn" data-facing="4" title="East">E</button>
+              <button class="sp-facing-btn" data-facing="8" title="North (Faces back)">N</button>
+              <button class="sp-facing-btn" data-facing="12" title="West">W</button>
             </div>
           </div>
 
@@ -88,7 +93,7 @@ function buildSpritesTabHtml() {
         <!-- Canvas Viewport with Animation Stage -->
         <div class="sp-stage-wrap">
           <div class="sp-stage" id="sp-stage">
-            <canvas id="sp-canvas" width="256" height="256"></canvas>
+            <canvas id="sp-canvas" width="320" height="320"></canvas>
           </div>
 
           <!-- Playback Bar -->

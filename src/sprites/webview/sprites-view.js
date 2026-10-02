@@ -7,9 +7,12 @@
   var currentMode = 'chars'; // 'chars' or 'raw'
   var charFilter = 'all';
   var selectedCharId = 0;
-  var selectedAnimKey = 'stand';
-  var selectedFacing = 8; // South
+  var selectedAnimKey = 'w_atk0';
+  var selectedFacing = 0; // South
   var animScale = 3;
+  var selectedWeaponId = 0;
+  var weaponGroup = document.getElementById('sp-weapon-group');
+  var weaponSel = document.getElementById('sp-weapon-sel');
 
   var currentAnimData = null;
   var currentFrameIdx = 0;
@@ -211,36 +214,79 @@
       }).join('');
     }
 
-    // Populate Animations dropdown
-    if (animSel) {
-      animSel.innerHTML = '';
-      var stdGroup = document.createElement('optgroup');
-      stdGroup.label = 'Standard Animations';
-      var extGroup = document.createElement('optgroup');
-      extGroup.label = 'Special / Opcode Triggers';
-
-      var defaultKey = 'stand';
-      (c.anims || []).forEach(function(a) {
-        var opt = document.createElement('option');
-        opt.value = a.key;
-        opt.textContent = a.label + (a.valueHex ? ' (' + a.valueHex + ')' : '');
-        opt.dataset.category = a.category;
-        if (a.category === 'external') extGroup.appendChild(opt);
-        else stdGroup.appendChild(opt);
-      });
-
-      if (stdGroup.children.length) animSel.appendChild(stdGroup);
-      if (extGroup.children.length) animSel.appendChild(extGroup);
-
-      selectedAnimKey = defaultKey;
-      animSel.value = defaultKey;
+    // Weapon selection for the Boy
+    if (weaponGroup && weaponSel) {
+      if (c.id === 0 && c.weapons && c.weapons.length) {
+        weaponGroup.style.display = '';
+        weaponSel.innerHTML = '';
+        c.weapons.forEach(function(w) {
+          var opt = document.createElement('option');
+          opt.value = String(w.id);
+          opt.textContent = w.name;
+          weaponSel.appendChild(opt);
+        });
+        weaponSel.value = String(selectedWeaponId);
+      } else {
+        weaponGroup.style.display = 'none';
+      }
     }
+
+    // Populate Animations dropdown
+    populateAnimationDropdown(c);
 
     // Render Stats Cards with meanings
     renderStats(c);
 
     // Request animation data from backend
     loadCurrentAnimation();
+  }
+
+  function populateAnimationDropdown(c) {
+    if (!animSel) return;
+    animSel.innerHTML = '';
+
+    var defaultKey = 'stand';
+
+    // If Boy with weapons:
+    if (c.id === 0 && c.weapons && c.weapons[selectedWeaponId]) {
+      var w = c.weapons[selectedWeaponId];
+      var wGroup = document.createElement('optgroup');
+      wGroup.label = 'Weapon: ' + w.name;
+      (w.anims || []).forEach(function(a) {
+        var opt = document.createElement('option');
+        opt.value = a.key;
+        opt.textContent = a.label;
+        opt.dataset.category = 'weapon';
+        wGroup.appendChild(opt);
+      });
+      if (wGroup.children.length) animSel.appendChild(wGroup);
+      defaultKey = 'w_atk0';
+    }
+
+    var stdGroup = document.createElement('optgroup');
+    stdGroup.label = c.id === 0 ? 'General Actions' : 'Standard Animations';
+    var extGroup = document.createElement('optgroup');
+    extGroup.label = 'Special / Opcode Triggers';
+
+    (c.anims || []).forEach(function(a) {
+      if (a.category === 'weapon') return;
+      var opt = document.createElement('option');
+      opt.value = a.key;
+      opt.textContent = a.label + (a.valueHex ? ' (' + a.valueHex + ')' : '');
+      opt.dataset.category = a.category;
+      if (a.category === 'external') extGroup.appendChild(opt);
+      else stdGroup.appendChild(opt);
+    });
+
+    if (stdGroup.children.length) animSel.appendChild(stdGroup);
+    if (extGroup.children.length) animSel.appendChild(extGroup);
+
+    var hasCur = false;
+    for (var i = 0; i < animSel.options.length; i++) {
+      if (animSel.options[i].value === selectedAnimKey) { hasCur = true; break; }
+    }
+    if (!hasCur) selectedAnimKey = defaultKey;
+    animSel.value = selectedAnimKey;
   }
 
   // ── Stats Cards ─────────────────────────────────────────────────────────────
@@ -288,7 +334,13 @@
     var c = chars.find(function(x) { return x.id === selectedCharId; });
     if (!c) return;
 
-    var animOpt = (c.anims || []).find(function(a) { return a.key === selectedAnimKey; });
+    var animOpt = null;
+    if (c.id === 0 && c.weapons && c.weapons[selectedWeaponId]) {
+      animOpt = (c.weapons[selectedWeaponId].anims || []).find(function(a) { return a.key === selectedAnimKey; });
+    }
+    if (!animOpt) {
+      animOpt = (c.anims || []).find(function(a) { return a.key === selectedAnimKey; });
+    }
     if (!animOpt) animOpt = { key: 'stand', offset: 0x32 };
 
     if (vsApi) {
@@ -303,6 +355,16 @@
   }
 
   // ── Animation Playback Controls ─────────────────────────────────────────────
+  if (weaponSel) {
+    weaponSel.addEventListener('change', function() {
+      selectedWeaponId = parseInt(weaponSel.value) || 0;
+      var chars = getCharacters();
+      var c = chars.find(function(x) { return x.id === selectedCharId; });
+      if (c) populateAnimationDropdown(c);
+      loadCurrentAnimation();
+    });
+  }
+
   if (animSel) {
     animSel.addEventListener('change', function() {
       selectedAnimKey = animSel.value;
@@ -490,8 +552,8 @@
     var w = currentAnimData.width * scale;
     var h = currentAnimData.height * scale;
 
-    canvas.width = Math.max(w + 40, 256);
-    canvas.height = Math.max(h + 40, 256);
+    canvas.width = Math.max(w + 120, 320);
+    canvas.height = Math.max(h + 120, 320);
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.imageSmoothingEnabled = false;
@@ -511,7 +573,7 @@
     var c = chars.find(function(x) { return x.id === selectedCharId; });
     var r = c && c.hitbox ? c.hitbox.radius : 0;
 
-    // Overlay 1: Body Hitbox (2r wide, r tall, centered on origin cx, cy)
+    // Overlay 1: Body Hitbox (2r wide, r tall, centered on feet contact cx, cy)
     if (chkBody && chkBody.checked && r > 0) {
       var bw = r * 2 * scale;
       var bh = r * scale;
@@ -522,30 +584,29 @@
       ctx.fillRect(cx - bw / 2, cy - bh / 2, bw, bh);
     }
 
-    // Overlay 2: Hurt Box (2r wide, 2r tall, centered on origin cx, cy)
+    // Overlay 2: Hurt Box (2r wide, 2r tall, standing UPWARD from feet origin cy)
     if (chkHurt && chkHurt.checked && r > 0) {
       var hw = r * 2 * scale;
       var hh = r * 2 * scale;
       ctx.strokeStyle = '#ffaa00';
       ctx.lineWidth = 1.5;
-      ctx.strokeRect(cx - hw / 2, cy - hh / 2, hw, hh);
+      ctx.strokeRect(cx - hw / 2, cy - hh, hw, hh);
       ctx.fillStyle = 'rgba(255, 170, 0, 0.10)';
-      ctx.fillRect(cx - hw / 2, cy - hh / 2, hw, hh);
+      ctx.fillRect(cx - hw / 2, cy - hh, hw, hh);
     }
 
-    // Overlay 3: Strike Box (if any active for this animation)
-    if (chkStrike && chkStrike.checked && currentAnimData.strikeBoxes) {
-      currentAnimData.strikeBoxes.forEach(function(sb) {
-        var sx = cx + sb.dx * scale;
-        var sy = cy + sb.dy * scale;
-        var sw = sb.width * scale;
-        var sh = sb.height * scale;
-        ctx.strokeStyle = '#ff3355';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(sx, sy, sw, sh);
-        ctx.fillStyle = 'rgba(255, 51, 85, 0.25)';
-        ctx.fillRect(sx, sy, sw, sh);
-      });
+    // Overlay 3: Strike Box (active on current frame, centered at dx, dy)
+    var activeStrike = cur.strikeBox || (currentAnimData.strikeBoxes && currentAnimData.strikeBoxes.length === 1 ? currentAnimData.strikeBoxes[0] : null);
+    if (chkStrike && chkStrike.checked && activeStrike) {
+      var sw = activeStrike.width * scale;
+      var sh = activeStrike.height * scale;
+      var sx = cx + activeStrike.dx * scale - sw / 2;
+      var sy = cy + activeStrike.dy * scale - sh / 2;
+      ctx.strokeStyle = '#ff3355';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(sx, sy, sw, sh);
+      ctx.fillStyle = 'rgba(255, 51, 85, 0.25)';
+      ctx.fillRect(sx, sy, sw, sh);
     }
 
     // Overlay 4: Origin Crosshair (+)

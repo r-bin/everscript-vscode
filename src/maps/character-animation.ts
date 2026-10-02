@@ -113,22 +113,26 @@ const END_FRAME = 0x80;
 const COMMAND_LENGTH: Record<number, number> = {
     0x00: 1, 0x1f: 3, 0x21: 1, 0x2c: 4, 0x2e: 2, 0x32: 4,   // 0x2c: the shadow slot
     0x38: 2, 0x40: 3, 0x41: 1, 0x42: 2, 0x43: 1, 0x44: 1,
-    0x45: 3, 0x46: 3, 0x47: 5, 0x4b: 3, 0x4c: 6, 0x4d: 3,
-    0x4e: 1, 0x4f: 1, 0x50: 5, 0x52: 1, 0x53: 1, 0x54: 3,
+    0x45: 3, 0x46: 3, 0x47: 5, 0x48: 1, 0x49: 3, 0x4a: 3,   // 0x48-0x4a: attack / weapon commands
+    0x4b: 3, 0x4c: 6, 0x4d: 3, 0x4e: 1, 0x4f: 1, 0x50: 5,
+    0x52: 1, 0x53: 1, 0x54: 3, 0x58: 1, 0x59: 1,            // 0x58-0x59: attack commands
     0x5a: 2, 0x5b: 1, 0x5d: 1,
     0x30: 1, 0x3f: 3, 0x56: 3,                               // 0x30/0x56 ring-menu icons; 0x3f sound fx; 0x5d flags
 };
 
-// 0x30 (sets the restart point) and 0x56 (greys a formula's icon out) open
-// the alchemy icons (./item-icons); widths read off $908AE0 and $90878C, as in
-// docs/script-format/animation_format.md. No character walk changes with them.
+const STRIKE = 0x47;
+const STRIKE_LENGTH = 5;
+const signed8 = (v: number): number => (v << 24) >> 24;
 
-// Seven more come from the attack animations, which idle scripts never reach:
-// 0x32 (4), 0x38 (2), 0x40 (3), 0x43 (1), 0x4b (3), 0x4c (6), 0x5b (1), each
-// read off its handler the same way. The table in
-// docs/script-format/animation_format.md lists them with their addresses, and
-// notes 0x40's early-out at $908920, which skips the advance without changing
-// the encoding. Adding all seven changed no idle walk.
+/** One strike an animation declares — command `0x47`. */
+export interface StrikeBox {
+    /** Offset from the attacker's position, in pixels. */
+    dx: number;
+    dy: number;
+    /** Full extent in pixels. */
+    width: number;
+    height: number;
+}
 
 /**
  * `0x2d` restarts the script — it is where an animation loops.
@@ -201,6 +205,8 @@ export interface AnimationFrame {
     sprite: number;
     /** How long to hold it, in 60Hz ticks. */
     ticks: number;
+    /** Active strike box declared on this frame, if any. */
+    strikeBox?: StrikeBox | null;
 }
 
 const MAX_FRAMES = 32;
@@ -261,13 +267,18 @@ export function walkAnimationScript(
     const seen = new Set<number>();
     let sprite: number | null = null;
     let ticks = ONE_FRAME;
+    let currentStrike: StrikeBox | null = null;
 
     const emit = () => {
         if (sprite === null) return;
         const last = frames[frames.length - 1];
-        if (last && last.sprite === sprite) last.ticks += ticks;
-        else frames.push({ sprite, ticks });
+        if (last && last.sprite === sprite && !last.strikeBox && !currentStrike) {
+            last.ticks += ticks;
+        } else {
+            frames.push({ sprite, ticks, strikeBox: currentStrike });
+        }
         ticks = ONE_FRAME;                   // the timer resets as it expires
+        currentStrike = null;
     };
 
     let complete = false;
@@ -290,6 +301,13 @@ export function walkAnimationScript(
             ticks = cmd;
         } else if (cmd === HOLD_OPERAND) {
             ticks = at(rom, p + 1);
+        } else if (cmd === STRIKE) {
+            currentStrike = {
+                dx: signed8(at(rom, p + 1)),
+                dy: signed8(at(rom, p + 2)),
+                width: at(rom, p + 3),
+                height: at(rom, p + 4),
+            };
         }
         const length = commandLength(cmd);
         if (length === 0) break;             // unknown width: stop, keep what we have
@@ -300,40 +318,12 @@ export function walkAnimationScript(
         }
     }
     // A cycle's last frame runs straight into its first.
-    if (complete && frames.length > 1 && frames[0].sprite === frames[frames.length - 1].sprite) {
+    if (complete && frames.length > 1 && frames[0].sprite === frames[frames.length - 1].sprite && !frames[0].strikeBox && !frames[frames.length - 1].strikeBox) {
         frames[0].ticks += (frames.pop() as AnimationFrame).ticks;
     }
     return { frames, complete };
 }
 
-/**
- * One strike an animation declares — command `0x47`.
- *
- * The handler at `$9087BA` reads four operand bytes and builds a box:
- *
- *     9087BC  LDA [$5D]        ; two signed bytes: x then y offset
- *     9087CB  ADC $001C,Y      ; + the attacker's position -> $48
- *     9087E0  ADC $001A,Y      ; ...and $46
- *     9087F5  LDA [$5D],Y      ; the third byte -> $3E, the width
- *     9087FD  LDA [$5D],Y      ; the fourth    -> $40, the height
- *     908807  JSL $8FB5E6      ; and swing it
- *
- * So it is a box of `width` x `height` pixels, centred `dx`,`dy` from the
- * attacker. Offsets are per facing, because the animation itself is.
- */
-export interface StrikeBox {
-    /** Offset from the attacker's position, in pixels. */
-    dx: number;
-    dy: number;
-    /** Full extent in pixels. */
-    width: number;
-    height: number;
-}
-
-const STRIKE = 0x47;
-const STRIKE_LENGTH = 5;
-
-const signed8 = (v: number): number => (v << 24) >> 24;
 
 /**
  * Every strike command in one animation script, in script order.

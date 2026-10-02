@@ -6,6 +6,7 @@
 const indexJson = require('../language/data/index.json');
 const { snesToRom } = require('../maps/dist/rom');
 const { paletteAt } = require('../maps/dist/character-record');
+const { walkAnimationScript } = require('../maps/dist/character-animation');
 
 const CHARACTER_TABLE = 0x8eb678;
 const CHARACTER_STRIDE = 74;
@@ -16,6 +17,73 @@ const DOG_NAME_PTR = 0x7e2234;
 
 const EXTERNAL_ANIM_TABLE = 0x910000;
 const ANIMATION_RECORD_TABLE = 0xc40000;
+
+const WEAPONS_BASE = 0x0438e6;
+const WEAPON_STRIDE = 36;
+const WEAPON_COUNT = 15;
+
+const WEAPON_NAMES = [
+    'Bone Crusher',
+    'Gladiator Sword',
+    'Crusader Sword',
+    'Neutron Blade',
+    "Spider's Claw",
+    'Bronze Axe',
+    'Knight Basher',
+    'Atom Smasher',
+    'Horn Spear',
+    'Bronze Spear',
+    'Lance',
+    'Laser Lance',
+    'Bazooka',
+    'Bazooka (Thunder Ball)',
+    'Bazooka (Particle Bomb)',
+];
+
+const WEAPON_ANIM_OFFSETS = [
+    { key: 'w_stand', label: 'Stand (Weapon)', offset: 0x08 },
+    { key: 'w_walk', label: 'Walk (Weapon)', offset: 0x0a },
+    { key: 'w_run', label: 'Run (Weapon)', offset: 0x0c },
+    { key: 'w_atk0', label: 'Attack Lvl 0', offset: 0x0e },
+    { key: 'w_atk1', label: 'Attack Lvl 1', offset: 0x10 },
+    { key: 'w_atk2', label: 'Attack Lvl 2', offset: 0x12 },
+    { key: 'w_atk3', label: 'Attack Lvl 3', offset: 0x14 },
+    { key: 'w_charge', label: 'Charge Attack', offset: 0x16 },
+    { key: 'w_damage', label: 'Damage', offset: 0x18 },
+];
+
+function isValidAnimationScript(rom, scriptAddr) {
+    if (!scriptAddr) return false;
+    const bank = (scriptAddr >> 16) & 0xff;
+    if (bank < 0xc4 || bank > 0xce) return false;
+    const o = snesToRom(scriptAddr);
+    if (o < 0 || o >= rom.length) return false;
+    const walk = walkAnimationScript(rom, scriptAddr);
+    return Boolean(walk.frames && walk.frames.length > 0);
+}
+
+function readWeaponAnimations(rom, weaponIdx) {
+    const o = snesToRom(WEAPONS_BASE + weaponIdx * WEAPON_STRIDE);
+    const anims = [];
+    for (const f of WEAPON_ANIM_OFFSETS) {
+        const animRec = rom[o + f.offset] | (rom[o + f.offset + 1] << 8);
+        if (animRec) {
+            const scriptAddr = (read16At(rom, ANIMATION_RECORD_TABLE + animRec) |
+                (rom[snesToRom(ANIMATION_RECORD_TABLE + animRec + 2)] << 16)) >>> 0;
+            const animFlags = rom[snesToRom(ANIMATION_RECORD_TABLE + animRec + 3)];
+            anims.push({
+                key: f.key,
+                label: f.label,
+                offset: f.offset,
+                animRec,
+                scriptAddr,
+                flags: animFlags,
+                category: 'weapon',
+            });
+        }
+    }
+    return anims;
+}
 
 /** Stat field descriptions explaining what each stat does in the Evermore engine. */
 const STAT_MEANINGS = {
@@ -150,7 +218,7 @@ function getExternalAnimations(rom, characterId, characterName) {
                 }
             }
 
-            if (scriptAddr) {
+            if (scriptAddr && isValidAnimationScript(rom, scriptAddr)) {
                 out.push({
                     key: item.name,
                     label: item.name.replace(/_/g, ' '),
@@ -231,6 +299,17 @@ function readCharacter(rom, id) {
     // External animations from script triggers / enums
     const externalAnims = getExternalAnimations(rom, id, name);
     anims.push(...externalAnims);
+    let weapons = null;
+    if (id === 0) {
+        weapons = WEAPON_NAMES.map((wName, idx) => ({
+            id: idx,
+            name: wName,
+            anims: readWeaponAnimations(rom, idx),
+        }));
+        if (weapons[0]) {
+            anims.unshift(...weapons[0].anims);
+        }
+    }
 
     return {
         id,
@@ -265,6 +344,7 @@ function readCharacter(rom, id) {
         },
         paletteAddrHex: '0x' + palette.toString(16),
         paletteColors: paletteHex,
+        weapons,
         anims,
         statMeanings: STAT_MEANINGS,
     };
@@ -285,6 +365,8 @@ module.exports = {
     CHARACTER_COUNT,
     STAT_MEANINGS,
     STANDARD_ANIM_FIELDS,
+    WEAPON_NAMES,
+    readWeaponAnimations,
     readCharacter,
     readAllCharacters,
 };

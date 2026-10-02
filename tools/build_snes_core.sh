@@ -3,6 +3,7 @@
 set -eu
 
 ROOT_DIR=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+export EM_CACHE="${EM_CACHE:-$ROOT_DIR/.emscripten_cache}"
 VARIANT=${1:-}
 
 if [ -z "$VARIANT" ]; then

@@ -144,6 +144,42 @@ if (!rom) {
         assert(sprite.width > 0);
         assert(sprite.height > 0);
     });
+
+    test('readCharacter Boy has 15 weapons with full animation sets', () => {
+        const boy = readCharacter(rom, 0);
+        assert(Array.isArray(boy.weapons), 'Boy should have weapons array');
+        assert.strictEqual(boy.weapons.length, 15);
+        assert.strictEqual(boy.weapons[0].name, 'Bone Crusher');
+        assert.strictEqual(boy.weapons[1].name, 'Gladiator Sword');
+        assert.strictEqual(boy.weapons[12].name, 'Bazooka');
+
+        // Bone Crusher animations
+        const boneAnims = boy.weapons[0].anims;
+        assert(boneAnims.length >= 8);
+        const atk0 = boneAnims.find(a => a.key === 'w_atk0');
+        assert(atk0, 'Bone Crusher should have w_atk0');
+
+        // Render Bone Crusher atk0 with opcode 0x48 support and strikeBox extraction
+        const rendered = renderAnimation(rom, 0, atk0, 0);
+        assert(rendered, 'Bone Crusher atk0 should decode successfully');
+        assert.strictEqual(rendered.frames.length, 4);
+        assert.strictEqual(rendered.frames[0].strikeBox, null);
+        assert(rendered.frames[1].strikeBox, 'Frame 1 should declare active strike box');
+        assert.strictEqual(rendered.frames[1].strikeBox.dx, -2);
+        assert.strictEqual(rendered.frames[1].strikeBox.dy, -9);
+        assert.strictEqual(rendered.frames[1].strikeBox.width, 26);
+        assert.strictEqual(rendered.frames[1].strikeBox.height, 11);
+    });
+
+    test('external animations filter purges font tile bitplanes (e.g. Dog ACT3_FALL_2)', () => {
+        const dog = readCharacter(rom, 1);
+        const fontGarbage = dog.anims.find(a => a.key === 'ACT3_FALL_2');
+        assert.strictEqual(fontGarbage, undefined, 'Dog should not have font tile garbage animation');
+
+        const magmar = readCharacter(rom, 140);
+        const magmarEnter = magmar.anims.find(a => a.key === 'MAGMAR_ENTER');
+        assert(magmarEnter, 'Magmar should retain valid MAGMAR_ENTER external animation');
+    });
 }
 
 if (failed > 0) {
