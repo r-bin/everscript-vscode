@@ -396,7 +396,9 @@
 .rg-theme .rg-anim-timing .ro-chip.sel{border-color:var(--rg-anim)}
 .rg-theme .rg-anim-empty{border-style:dashed;border-color:var(--rg-anim)}
 .rg-theme .rg-anim-frame-col{display:flex;flex-direction:column;align-items:center;gap:4px}
-.rg-theme .rg-anim-ticks{width:46px;padding:2px 4px;border:1px solid var(--rg-border);border-radius:var(--rg-radius-control);background:var(--rg-bg-app);color:var(--rg-text-primary);font:11px var(--rg-font-mono);text-align:center}
+.rg-theme input.rg-anim-ticks{-moz-appearance:textfield;appearance:textfield;min-width:0}
+.rg-theme input.rg-anim-ticks::-webkit-inner-spin-button,.rg-theme input.rg-anim-ticks::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.rg-theme .rg-anim-ticks{width:52px;box-sizing:border-box;padding:2px 2px;border:1px solid var(--rg-border);border-radius:var(--rg-radius-control);background:var(--rg-bg-app);color:var(--rg-text-primary);font:11px var(--rg-font-mono);text-align:center}
 .rg-theme .rg-anim-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:var(--rg-text-secondary)}
 .rg-theme .rg-anim-bar .rdf.on{border-color:var(--rg-anim);color:var(--rg-anim)}
 .rg-theme .rg-anim-presets,.rg-theme .rg-anim-timing-chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px}

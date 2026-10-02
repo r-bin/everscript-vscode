@@ -133,12 +133,12 @@ function animRowHtml(entry, locked) {
     + (locked ? '' : '<button class="rdf rg-trigger-remove" data-anim-act="delete" data-anim-uid="' + e.uid
       + '" title="Stop it: its tiles stay, still on frame 0">×</button>')
     + '</div>';
-  if (open) html += animOpenHtml(e, fam, presets, locked);
+  if (open) html += animOpenHtml(e, fam, presets, locked, entry.cells);
   return html + '</div>';
 }
 
 /** The open row: patterns, then each frame with its ticks, the countdown, and what can be done. */
-function animOpenHtml(e, fam, presets, locked) {
+function animOpenHtml(e, fam, presets, locked, cells) {
   var dis = locked ? ' disabled' : '';
   var letter = editAnimComplete(e) ? editAnimLetter(e, presets) : null;
   var html = '<div class="rg-object-expanded rg-anim-timing">';
@@ -159,7 +159,7 @@ function animOpenHtml(e, fam, presets, locked) {
       + '<button class="ro-chip' + (on ? ' sel' : '') + (r.graphic == null ? ' rg-anim-empty' : '') + '" data-anim-frame="' + r.start + '" title="Frame ' + k
       + (r.count > 1 ? ' — ' + r.count + ' frames of at most ' + ANIM_MAX_TICKS + ' ticks in the ROM' : '')
       + (e.vanilla ? ' — locked: disband to change its tiles' : ' — the pencil on one of its cells tiles it') + '">'
-      + animSwatchHtml(r.graphic, fam, 30) + '<span class="ro-lbl">' + k + '</span></button>'
+      + animFrameSwatchHtml(r.graphic, fam, cells, r.start) + '<span class="ro-lbl">' + k + '</span></button>'
       + '<input type="number" class="rg-anim-ticks" min="1" value="' + t + '" data-anim-delay="' + k
       + '" aria-label="Frame ' + k + ' hold in ticks" title="Hold in 60 Hz ticks (' + Math.round(t * 1000 / 60) + ' ms)'
       + (t > ANIM_MAX_TICKS ? ' — stored as ' + Math.ceil(t / ANIM_MAX_TICKS) + ' frames of at most ' + ANIM_MAX_TICKS : '') + '"' + dis + '/>'
@@ -282,6 +282,12 @@ function animAt(cell) {
   return null;
 }
 
+/** The stamp a cell shows; a custom map's untouched cell (none) reads as its floor. */
+function animCellIndex(cell) {
+  var idx = editCellAt(_mtPalette, cell.x, cell.y), d = editDraft();
+  return idx >= 0 ? idx : d && d.blank && d.blank.floor != null ? d.blank.floor : -1;
+}
+
 /** Put animated tile `e` on `cell`: its word on its layer, or (no tile for frame 0 yet) pending. */
 function animPlace(e, cell) {
   var p = _mtPalette, k = editKey(cell.x, cell.y);
@@ -290,7 +296,7 @@ function animPlace(e, cell) {
     if (e.pending.indexOf(k) < 0) e.pending.push(k);
     return;
   }
-  var w = editStampWords(p, editCellAt(p, cell.x, cell.y));
+  var w = editStampWords(p, animCellIndex(cell));
   if (!w) return;
   var word = animWordFor(e, e.slot);
   var canopy = e.layer === 'canopy';
@@ -306,7 +312,8 @@ function animUnplace(e, cell) {
   var w = editStampWords(p, editCellAt(p, cell.x, cell.y));
   if (!w || e.slot == null) return;
   var canopy = animWordSlot(w.layer1) === e.slot && w.layer1 !== editBlankCanopy(p);
-  var still = d.blank && d.blank.floor ? d.blank.floor.layer2
+  var floor = d.blank && d.blank.floor != null ? editStampWords(p, d.blank.floor) : null;
+  var still = floor ? floor.layer2
     : (editSlotChr(editAdoptGraphic(p, e.frames[0], null)) | ((e.pal || 0) & 0xfc00)) & 0xffff;
   editApply([{ x: cell.x, y: cell.y, index: editAddStamp(p, {
     layer1: canopy ? editBlankCanopy(p) : w.layer1, layer2: canopy ? w.layer2 : still, collision: w.collision }) }]);

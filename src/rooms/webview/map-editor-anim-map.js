@@ -103,3 +103,25 @@ function editAnimTileStroke(d, cell, phase) {
   renderEditLayer(_mtPalette, _editComposed, _editOrigin);
   return true;
 }
+
+/**
+ * A frame's swatch: from its family's sheet, else as the map renders frame
+ * `k` on the first cell showing the tile (the host's frame sheets) — a frame
+ * vanilla draws in another family than its cell's is not on that sheet.
+ */
+function animFrameSwatchHtml(graphic, family, cells, k) {
+  if (graphic == null || animSheetAt(graphic, family)) return animSwatchHtml(graphic, family, 30);
+  return animStampFrameSvg(cells, k, 30) || animSwatchHtml(graphic, family, 30);
+}
+
+function animStampFrameSvg(cells, k, size) {
+  var p = _mtPalette, c = cells && cells[0] ? cells[0].split(',').map(Number) : null;
+  var idx = c ? editCellAt(p, c[0], c[1]) : -1;
+  if (idx < 0) return '';
+  var sheet = idx >= p.count ? _editComposed : p, i = idx >= p.count ? idx - p.count : idx;
+  var hit = sheet ? editStampAnimOf(sheet, i) : null;
+  var src = k === 0 ? sheet : hit && sheet.anim.sheets[k - 1];
+  if (!src || !src.imageUri) return '';
+  return '<svg class="rg-anim-sw" width="' + size + '" height="' + size + '" viewBox="0 0 ' + EDIT_UNITS + ' ' + EDIT_UNITS + '">'
+    + editCropSvg('rg-anim-prev-cell', 0, 0, k === 0 ? sheet : sheet.anim, src.imageUri, src.imageWidth, src.imageHeight, k === 0 ? i : hit.row, '') + '</svg>';
+}

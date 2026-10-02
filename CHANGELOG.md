@@ -1,3 +1,12 @@
+## [0.113.1] — 2026-10-02
+
+### Fix: new animated tiles on a custom map's empty cells, frame swatches, tick fields
+
+- **A new animated tile stays on the map once its first frame is tiled.** On a custom map an untouched cell has no stamp, and placing the tile there wrote nothing: tiling frame 0 cleared the purple cell and left the tile with 0 cells, so its border went and frame 1 could not be drawn. Such a cell now reads as the map's floor. Taking an animated tile off a custom map's cell also put back the wrong word.
+- **Custom maps save their animated tiles** (`anims` in map.json); they were lost on reload.
+- **A frame not on its family's sheet** (the beam's last frame) is drawn as the map renders it, instead of an empty box.
+- **Tick fields fit four digits**: no spinner, a little wider.
+
 ## [0.113.0] — 2026-10-02
 
 ### Changed: drawing into animated tiles, merged frames, previews from the map, Animation marks

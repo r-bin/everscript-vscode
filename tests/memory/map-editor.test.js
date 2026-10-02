@@ -3182,6 +3182,29 @@ test('the Tile tab’s pencil on an unfinished animated tile tiles its frames, n
     ui.setAnimMarks(true);
 });
 
+test('a custom map’s untouched cell takes an animated tile: tiling frame 0 keeps it on the map, frame 1 follows', () => {
+    const p = animPalette();
+    p.grid = [[0, 1, 0], [0, 0, null]];
+    ui.setPalette(p);
+    ui.editReset(1).on = true;
+    const d = ui.editDraft();
+    d.blank = { floor: 0 };
+    d.tool = 'paint';
+    ui.setTab('anim');
+    ui.editBegin(); ui.editStroke({ x: 2, y: 1 }, 'down'); ui.editStroke({ x: 2, y: 1 }, 'up'); ui.editEnd();
+    const e = ui.editAnims()[0];
+    ui.setTab('tile');
+    ui.setAnimSel(e.uid, 0);
+    d.brush = ui.editAddStamp(p, { layer1: 0x0402, layer2: 0xa800, collision: 0 });
+    ui.editBegin(); ui.editStroke({ x: 2, y: 1 }, 'down'); ui.editStroke({ x: 2, y: 1 }, 'up'); ui.editEnd();
+    assert.deepStrictEqual(ui.editAnimsListed(p).map((x) => x.cells), [['2,1']], 'still on the map after frame 0');
+    ui.setAnimSel(e.uid, 1);
+    d.brush = ui.editAddStamp(p, { layer1: 0x0400, layer2: 0xa800, collision: 0 });
+    ui.editBegin(); ui.editStroke({ x: 2, y: 1 }, 'down'); ui.editStroke({ x: 2, y: 1 }, 'up'); ui.editEnd();
+    assert.deepStrictEqual(ui.editAnims()[0].frames, [0x423, 0x422]);
+    ui.setTab('tile');
+});
+
 test('frames holding one graphic in a row read as one; a hold past 127 ticks is split as the ROM stores it', () => {
     const e = { frames: [5, 6, 6, 6, 7, null, null], delays: [10, 127, 127, 101, 10, 8, 8] };
     assert.deepStrictEqual(ui.editAnimRuns(e).map((r) => [r.start, r.count, r.graphic, r.ticks]),

@@ -371,7 +371,7 @@ function customCapture(m, d) {
  */
 var CUSTOM_DRAFT_FIELDS = ['cells', 'added', 'specialCells', 'addedGraphics', 'placed',
   'families', 'autoFamilies', 'start', 'placedSeq', 'constructs', 'cut', 'coll', 'collDraw', 'groups', 'groupSeq', 'plane',
-  'removedTriggers', 'triggerOrder', 'plannedOnly', 'header'];
+  'removedTriggers', 'triggerOrder', 'plannedOnly', 'header', 'anims', 'animSeq'];
 
 function customSerialize(d) {
   var out = {};
