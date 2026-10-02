@@ -102,6 +102,12 @@ function buildRoomMetatilePalette(rom, roomId, layer, bgPalette, header) {
         entries: packEntries(table),
         /** Animated stamps' later frames, for the editor's map canvas (stamp-animation.js). */
         anim: buildStampAnimations(buf, room, table, { columns: COLUMNS, layer: which }),
+        /**
+         * The room's Section 2 channels, for the Animation tab
+         * (map-editor-animations.js): `[slot, init, [[graphic, delay], ...]]`.
+         */
+        channels: room.animation.map((ch, i) => [room.tilePalette.length + i, ch.delay,
+            ch.frames.map((f) => [f.tileId, f.delay])]),
         // The room's own grid, as dictionary indices rather than WRAM ids.
         // The editor needs it to pick a stamp off the map, to fill, and to
         // copy a region — 42 KB on the largest room (0x4b, 106x125), which
@@ -238,8 +244,13 @@ function buildComposedPreview(rom, roomId, drafts, layer, extra) {
     if (extra && (extra.graphics || extra.families)) {
         room = {
             ...room,
-            tilePalette: room.tilePalette.concat(
+            // The editor's slots run over Block 1, then the animated tiles,
+            // then its adoptions (custom-room.ts): one flat list, so a slot
+            // past Block 1 is the same graphic here as in the export.
+            tilePalette: room.tilePalette.concat(room.animatedTiles).concat(
                 (extra.graphics || []).map(Number).filter((n) => !isNaN(n))),
+            animatedTiles: [],
+            animation: [],
             // Positional: a hole (null) stays a hole, as family 0, so the
             // families after it keep the slots their words name.
             tileFamilies: Array.isArray(extra.families) && extra.families.length
@@ -250,7 +261,10 @@ function buildComposedPreview(rom, roomId, drafts, layer, extra) {
     const atlas = maps.renderMetatileAtlas(buf, maps.withMetatiles(withHeader(room, extra && extra.header), entries), {
         columns: COLUMNS, layer: which,
     });
-    const anim = buildStampAnimations(buf, room, entries, { columns: COLUMNS, layer: which });
+    // The draft's own channels (the Animation tab); none means nothing animates.
+    const anim = buildStampAnimations(buf, room, entries, {
+        columns: COLUMNS, layer: which, channels: (extra && Array.isArray(extra.channels)) ? extra.channels : [],
+    });
     return {
         roomId,
         layer: which,

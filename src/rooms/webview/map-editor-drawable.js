@@ -5,6 +5,7 @@
 //   Collision  the armed collision shape, over the cell's own (map-editor-collision-tab.js)
 //   Special  the armed special: stairs, drift, gate, entrance, the Boy
 //   Trigger  a new trigger: drag out its box (B-trigger or step, B first)
+//   Animation  a new animation's tiles, or the open one's frame (map-editor-anim-tab.js)
 //   Object   a new object's area, or the selected object's tiles (map-editor-objects.js)
 //   Widgets  the armed construct or vanilla object
 //
@@ -27,7 +28,7 @@ var _editTriggerKind = 'b';
 /** `{x1, y1, x2, y2}` while a trigger box is being dragged out, else null. */
 var _triggerDraw = null;
 
-var EDIT_DRAW_TABS = { tile: true, collision: true, special: true, trigger: true, object: true, widgets: true };
+var EDIT_DRAW_TABS = { tile: true, collision: true, anim: true, special: true, trigger: true, object: true, widgets: true };
 
 /** The Trigger tab's pencil choices, in order — the first is the default. */
 var EDIT_TRIGGER_KINDS = [
@@ -69,6 +70,11 @@ function editDrawable() {
     var o = typeof editObjectFind === 'function' ? editObjectFind(_objectSel) : null;
     return o ? { kind: kind, glyph: '◆', label: 'the selected object’s tiles — with the Tile tab’s brush', ready: d && d.brush >= 0 }
       : { kind: kind, glyph: '◆', label: 'an object — drag out its area', ready: true };
+  }
+  if (kind === 'anim') {
+    var ag = typeof editAnimFind === 'function' ? editAnimFind(_animSel) : null;
+    return ag && _animFrame >= 1 ? { kind: kind, glyph: '▶', label: 'frame ' + _animFrame + ' of the open animation — with the Tile tab’s brush', ready: d && d.brush >= 0 }
+      : { kind: kind, glyph: '▶', label: 'an animation — drag out the tiles that move together', ready: true };
   }
   if (kind === 'widgets') {
     var c = d && typeof _editConstruct !== 'undefined' && _editConstruct >= 0 ? d.constructs[_editConstruct] : null;

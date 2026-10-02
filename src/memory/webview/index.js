@@ -99,13 +99,14 @@ const ROOMS_JS_FILES = [
   'map-editor-widgets.js', // the user's own widgets and the Widgets tab (_widgets/_widgetArt/_widgetsVanilla)
   'map-editor-widget-colours.js', // a widget's stored shape and derived colourings (_widgetFamilies)
   'map-editor-widget-edit.js', // editing a widget on its own canvas (_widgetEdit/_widgetBack)
-  'map-editor-widget-anim.js', // widget animation timeline and playback (_widgetPlaying)
   'map-editor-preview.js', // hover ghosts of what a stroke/stamp/erase would do, and the resize outline
   'map-editor-special.js',// the Special tab: stairs/drift, gate, entrance + their filter chip
   'map-editor-trigger-select.js',// unifies base + placed triggers: select/move/delete/copy-paste
   'map-editor-trigger-panel.js',// the Trigger tab's list UI
   'map-editor-trigger-scripts.js', // the scripts in the Trigger tab's rows, and its Enter tab (_triggerOpen/_triggerEnterView)
   'map-editor-trigger-order.js', // dragging trigger rows: order and kind (_triggerDragRow)
+  'map-editor-animations.js', // which slots animate, and the groups the Animation tab lists (_animSel/_animFrame)
+  'map-editor-anim-tab.js', // the Animation tab: rows, timing editor, its pencil (_animDraw/_animPainting)
   'map-editor-objects.js', // the Object tab: areas and their tiles (_objectSel/_objectDraw)
   'map-editor-object-list.js', // the Object tab's rows: open/closed, drag to reorder (_objectOpen/_objectDragRow)
   'map-editor-placed-list.js', // the Widgets tab's Placed rows: draw order, disband, remove (_placedDragRow)

@@ -40,57 +40,48 @@ function writeDoc(file, doc) {
     fs.renameSync(tmp, file);
 }
 
-/** Every widget, oldest first, in the current shape (see `ownFrames`). */
+/** Every widget, oldest first, in the current shape (see `ownCells`). */
 function listWidgets(file) {
     return readDoc(file).widgets.map(currentShape);
 }
 
 const num = (n, lo, hi) => Math.max(lo, Math.min(hi, Number(n) | 0));
 
-function cleanFrames(frames) {
-    return (Array.isArray(frames) ? frames : []).map((f) => ({
-        cells: Array.isArray(f && f.cells) ? f.cells : [],
-        delay: num(f && f.delay != null ? f.delay : 8, 1, 255),
-    }));
-}
-
 /**
- * A widget's own frames. Colourings are derived in the webview from the art
- * (map-editor-widgets.js), so they are not stored; a widget saved while
- * variations were hand-made keeps the first one with art, a hand-made one
- * before a generated `fam-<id>` colouring.
+ * The cells a widget stamps. Animation is per cell part now (`anim`, the
+ * map's Animation tab), so frames and hand-made variations are not stored;
+ * a widget saved with them keeps frame 0 of its first variation with art, a
+ * hand-made one before a generated `fam-<id>` colouring.
  */
-function ownFrames(w) {
-    const frames = cleanFrames(w.frames);
-    if (frames.length) return frames;
-    const hasArt = (v) => (v && v.frames || []).some((f) => f && Array.isArray(f.cells) && f.cells.length);
-    const vars = (Array.isArray(w.variations) ? w.variations : []).filter(hasArt);
+function ownCells(w) {
+    const hasArt = (f) => f && Array.isArray(f.cells) && f.cells.length;
+    if (Array.isArray(w.cells) && w.cells.length) return w.cells;
+    const fr = (Array.isArray(w.frames) ? w.frames : []).find(hasArt);
+    if (fr) return fr.cells;
+    const vars = (Array.isArray(w.variations) ? w.variations : []).filter((v) => (v && v.frames || []).some(hasArt));
     const own = vars.find((v) => !/^fam-\d+$/.test(String(v.id))) || vars[0];
-    const fromVar = own ? cleanFrames(own.frames) : [];
-    return fromVar.length ? fromVar : [{ cells: Array.isArray(w.cells) ? w.cells : [], delay: 8 }];
+    return own ? own.frames.find(hasArt).cells : [];
 }
 
-/** A stored widget, older shapes included, as `{..., cells, frames, animated}` with no `variations`. */
+/** A stored widget, older shapes included, as `{..., cells}` with no frames or variations. */
 function currentShape(w) {
-    if (!w.variations && Array.isArray(w.frames)) return w;
-    const frames = ownFrames(w);
-    const out = { ...w, cells: frames[0].cells, frames, animated: w.animated != null ? !!w.animated : frames.length > 1 };
+    if (!w.variations && !w.frames && !('animated' in w)) return w;
+    const out = { ...w, cells: ownCells(w) };
     delete out.variations;
     delete out.activeVariation;
+    delete out.frames;
+    delete out.animated;
     return out;
 }
 
 /** Only the fields a widget has, so a webview slip cannot bloat the file. */
 function cleanWidget(w) {
-    const frames = ownFrames(w);
     return {
         id: safeId(w.id),
         name: String(w.name || 'widget').slice(0, 80),
         w: num(w.w, 1, 32),
         h: num(w.h, 1, 32),
-        cells: frames[0].cells,
-        frames,
-        animated: w.animated != null ? !!w.animated : frames.length > 1,
+        cells: ownCells(w),
         attachments: w.attachments && typeof w.attachments === 'object'
             ? w.attachments : { bTrigger: [], stepOn: [], objects: [] },
         source: w.source || null,

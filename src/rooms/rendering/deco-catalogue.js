@@ -91,7 +91,15 @@ function portable(room, tileIds, word) {
     if (family === undefined) return undefined;
     // Priority and the two flips are geometry, not identity: they mean the
     // same thing in any room, so they ride along untouched.
-    return { graphic, family, flags: word & 0xe000 };
+    const part = { graphic, family, flags: word & 0xe000 };
+    // A slot past Block 1 is one of the room's Section 2 channels: the part
+    // keeps moving as it did there (the editor's Animation tab takes it up,
+    // map-editor-animations.js), and nothing else moves.
+    const ch = room.animation && room.animation[charIndexToSlot(word & 0x3ff) - room.tilePalette.length];
+    if (ch && ch.frames.length > 1) {
+        part.anim = { frames: ch.frames.map((f) => f.tileId), delays: ch.frames.map((f) => f.delay), init: ch.delay };
+    }
+    return part;
 }
 
 /** The object rectangles of a room, and which grid cells they cover. */

@@ -14,7 +14,7 @@ import { RoomModel, buildBlob, encodeBlock1, encodeBlock2, encodeBlock3, modelFr
 import { MAX_WRAM } from './budget';
 import { MIN_TILES, MAX_TILES } from './blank-room';
 import { AnimationIndex } from './vanilla-animation';
-import { CustomAnimationPlan, planCustomAnimation, remapWord } from './custom-animation';
+import { ChannelSpec, CustomAnimationPlan, planCustomAnimation, remapWord } from './custom-animation';
 
 export interface CustomObjectInput {
     x: number;
@@ -47,6 +47,11 @@ export interface CustomRoomInput {
      * the game (custom-animation.ts); without it every graphic is still.
      */
     animations?: AnimationIndex;
+    /**
+     * The channels the editor's Animation tab defines (custom-animation.ts
+     * ChannelSpec). When given, only these animate; `animations` is ignored.
+     */
+    channels?: ChannelSpec[];
     /** Placed objects with state transition frames. */
     objects?: CustomObjectInput[];
     /**
@@ -167,7 +172,7 @@ export function buildCustomRoomBlob(rom: Uint8Array, input: CustomRoomInput): Cu
     while (slots.length && slots[slots.length - 1] === 0) slots.pop();
     const families = slots.length ? slots : donor.tileFamilies;
 
-    const animation = planCustomAnimation(graphics, l1.concat(l2), input.animations);
+    const animation = planCustomAnimation(graphics, l1.concat(l2), input.animations, undefined, input.channels);
     const remap = (word: number): number => remapWord(animation, word & 0xffff);
 
     const objectOffsets: number[] = [];

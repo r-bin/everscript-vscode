@@ -243,10 +243,24 @@ step, as one channel keeps them in the game. Only one frame is visible at a
 time, because a later frame drawn over frame 0 would let frame 0 show through
 its transparent pixels.
 
+## The Animation tab (v0.110.0)
+
+The editor now keeps animation the way the format does: per slot. A slot
+animates exactly while an animation group lists it
+(`src/rooms/webview/map-editor-animations.js`), and the canvas
+(`stamp-animation.js`, told the channels by the composed-preview request)
+and the export (`channels` in the draft) both read those groups. A ROM
+room's own channels are its groups, grouped by touching cells of one timing.
+A frame picked on its own in the Tile tab's `frames` view is still. See
+`docs/animation-tab-plan.md` for the census behind the design.
+
 ## In an exported custom map
 
 Export ROM writes Section 2 for a custom map (`maps/custom-animation.ts`,
 called from `maps/custom-room.ts`):
+- With `channels` in the draft (the Animation tab), exactly those slots get a
+  channel, with their delays and initial countdown. A draft without them
+  falls back to the rules below.
 - Every placed graphic that vanilla animates gets a channel.
 - Block 1 is the other graphics. The animated graphics follow in channel
   order, so the engine's frame-0 append (§4) puts each in the slot its

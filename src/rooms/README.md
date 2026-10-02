@@ -229,11 +229,19 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
 - `map-editor-widget-edit.js` — Widget Editor Mode: a widget on its own canvas, a
   custom map the rail never lists, down to 1×1; while open, the room's name line is
   the widget's app bar (back, name, size, Delete); owns `_widgetEdit` / `_widgetBack`
+- `map-editor-widget-colours.js` — a widget's stored shape (cells, each part with its
+  `anim`) and its colourings, derived from the families the host sends; owns `_widgetFamilies`
+- `map-editor-animations.js` — which tile slots a Section 2 channel drives, and the
+  animation groups (`_edit.anims`): still vs animated adoption, a ROM room's channels
+  grouped, timing letters, the channels the preview and export get; owns `_animSel` / `_animFrame`
+- `map-editor-anim-tab.js` — the Animation tab: rows, the timing editor (ticks per
+  frame, initial countdown), its pencil (a rectangle becomes a group; frame painting),
+  the map outlines; owns `_animDraw` / `_animPainting`
 - `map-editor-collision-tab.js` — the Collision tab: a cell's geometry set by hand on
   its own layer (`_edit.coll`), over the tile's estimate, applied only where a word
   leaves the editor (romExportPayload, editExport); owns `_collPick`
 - `map-editor-history.js` — the undo-step parts beyond cells/triggers/groups/header:
-  the seven family slots and a resize's size; stateless
+  the seven family slots with the animations on the same snapshot, and a resize's size; stateless
 - `map-editor-preview.js` — hover ghosts of what a pencil/stamp/eraser click would
   do, and the outline of a resize drag's new size; never writes (no stamp, no
   adoption — a widget's ghost is host-rendered, `requestDeco {ghost}`); owns

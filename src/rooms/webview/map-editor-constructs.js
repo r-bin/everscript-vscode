@@ -41,7 +41,11 @@ function editPartFromWord(palette, word) {
   var pal = (word >> 10) & 0x07;
   var family = pal >= 1 ? editFamilies()[pal - 1] : undefined;
   if (graphic === undefined || family === undefined) return { word: word };
-  return { graphic: graphic, family: family, flags: word & 0xe000 };
+  var part = { graphic: graphic, family: family, flags: word & 0xe000 };
+  // The channel its slot is on travels with it (map-editor-animations.js);
+  // `anim: null` says still, so a frame picked on its own stays one.
+  if (typeof editWordAnimSpec === 'function') part.anim = editWordAnimSpec(palette, word);
+  return part;
 }
 
 /**
@@ -52,12 +56,17 @@ function editPartFromWord(palette, word) {
  * error rather than a wrong word is the point — a silently reinterpreted
  * word is exactly the bug this replaces.
  */
+/** The animation group a part's channel should join when it has that timing (placed-list timing chips). */
+var _animPrefer = null;
+
 function editWordFromPart(palette, part) {
   if (!part) return null;
   if (part.word !== undefined) return { word: part.word };
   var got = editAdoptPaintedFamily(part.family);
   if (!got.ok) return { error: got.why };
-  var slot = editAdoptGraphic(palette, part.graphic);
+  var slot = part.anim && typeof editAdoptAnimated === 'function'
+    ? editAdoptAnimated(palette, part.graphic, part.anim, _animPrefer)
+    : editAdoptGraphic(palette, part.graphic, null);
   if (slot < 0) return { error: 'no tile sheet loaded yet' };
   return { word: (editSlotChr(slot) | ((got.slot + 1) << 10) | (part.flags || 0)) & 0xffff };
 }

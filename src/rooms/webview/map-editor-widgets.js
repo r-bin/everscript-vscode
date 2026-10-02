@@ -12,10 +12,10 @@
 //
 // A widget is portable (map-editor-constructs.js): cells as `{graphic,
 // family, flags}` per layer, `null` for "keep the floor", with the
-// collision, triggers and objects that come with it. Stored: `cells` (frame
-// 0), `frames` and `animated` (the editor's timeline is opt-in). Its
-// colourings (`variations`) are derived, never stored: one per family
-// vanilla draws its art in (map-editor-widget-colours.js). Clicking one arms the
+// collision, triggers and objects that come with it, and per cell the
+// channel its art moves on (`anim`, the Animation tab's). Its colourings
+// (`variations`) are derived, never stored: one per family vanilla draws its
+// art in (map-editor-widget-colours.js). Clicking one arms the
 // Widgets pencil; each stamp is one object on the map (map-editor-groups.js)
 // on the level of the floor it lands on.
 //
@@ -85,21 +85,8 @@ function widgetConstruct(w, varIdx) {
   var v = (w.variations && w.variations.length)
     ? (w.variations[varIdx != null ? varIdx : (w.activeVariation || 0)] || w.variations[0])
     : null;
-  var frames = (v && v.frames) || widgetBaseFrames(w);
-  if (!w.animated) frames = frames.slice(0, 1);
-  var baseCells = (frames[0] && frames[0].cells) || w.cells || [];
+  var baseCells = (v && v.cells) || w.cells || [];
   var attach = Object.assign({}, (v && v.attachments) || w.attachments || { bTrigger: [], stepOn: [], objects: [] });
-  if (frames.length > 1) {
-    attach.objects = (attach.objects || []).slice();
-    var objFrames = frames.slice(1).map(function (f) { return f.cells; });
-    attach.objects.push({
-      dx: 0, dy: 0, w: w.w, h: w.h,
-      states: frames.length,
-      cells: frames[0].cells,
-      frames: objFrames,
-      delays: frames.map(function (f) { return f.delay || 8; }),
-    });
-  }
   var varName = (v && v.name && v.name !== 'A') ? ' (' + v.name + ')' : '';
   return {
     name: w.name + varName,
@@ -108,7 +95,6 @@ function widgetConstruct(w, varIdx) {
     attachments: attach,
     widget: w.id,
     variation: v ? v.id : null,
-    delays: frames.map(function (f) { return f.delay || 8; }),
   };
 }
 
@@ -124,9 +110,8 @@ function widgetArm(id, varIdx) {
   d.tool = 'paint';
   var v = (w.variations && w.variations[w.activeVariation || 0]);
   var vName = (v && v.name && v.name !== 'A') ? ' (' + v.name + ')' : '';
-  var frames = !w.animated ? [] : (v && v.frames) || widgetBaseFrames(w);
-  var cells = (frames[0] && frames[0].cells) || w.cells || [];
-  var animText = frames.length > 1 ? ' (' + frames.length + ' animation frames)' : '';
+  var cells = w.cells || [];
+  var animText = widgetAnimated(w) ? ', animated' : '';
   var a = w.attachments || {};
   var extras = [];
   if ((a.bTrigger || []).length) extras.push((a.bTrigger.length === 1 ? 'a B-trigger' : a.bTrigger.length + ' B-triggers'));
@@ -202,14 +187,6 @@ function widgetClick(t) {
     vs.postMessage({ command: 'deleteWidget', id: _widgetEdit.widget, name: _widgetEdit.name });
     return true;
   }
-  if (act === 'anim') { if (typeof widgetToggleAnim === 'function') widgetToggleAnim(); return true; }
-  var seek = t.dataset.widgetSeek;
-  if (seek === 'play') { if (typeof widgetTogglePlay === 'function') widgetTogglePlay(); return true; }
-  if (seek === 'prev') { if (typeof widgetSelectFrame === 'function') widgetSelectFrame(_widgetFrameIdx - 1); return true; }
-  if (seek === 'next') { if (typeof widgetSelectFrame === 'function') widgetSelectFrame(_widgetFrameIdx + 1); return true; }
-  if (seek === 'add') { if (typeof widgetAddFrame === 'function') widgetAddFrame(false); return true; }
-  if (seek === 'clone') { if (typeof widgetAddFrame === 'function') widgetAddFrame(true); return true; }
-  if (seek === 'del') { if (typeof widgetRemoveFrame === 'function') widgetRemoveFrame(_widgetFrameIdx); return true; }
   return false;
 }
 
@@ -225,7 +202,7 @@ function ensureWidgetPreviews() {
     (w.variations || []).forEach(function (v) {
       var vKey = w.id + ':' + v.id;
       if (!_widgetArt[vKey] && !_decoAsked['w:' + vKey]) {
-        var vCells = (v.frames && v.frames[0] && v.frames[0].cells) || w.cells || [];
+        var vCells = v.cells || w.cells || [];
         want.push({ id: vKey, w: w.w, h: w.h, cells: vCells });
       }
     });
@@ -246,16 +223,15 @@ function widgetCardHtml(w) {
   var vars = w.variations || [];
   var hasVars = vars.length > 1;
   var curV = vars[w.activeVariation || 0] || vars[0];
-  var frames = w.animated ? widgetBaseFrames(w) : [];
-  var isAnim = frames.length > 1;
+  var isAnim = widgetAnimated(w);
 
-  var animBadge = isAnim ? ' · ▶ ' + frames.length + 'f' : '';
+  var animBadge = isAnim ? ' · ▶' : '';
   var varBadge = hasVars ? ' · ' + vars.length + 'v' : '';
   var activeArt = (curV && _widgetArt[w.id + ':' + curV.id]) || _widgetArt[w.id];
 
   return '<button class="rg-deco rg-widget-card' + (armed ? ' on rg-armed' : '') + (trig ? ' rg-deco-live' : '')
     + '" data-widget="' + escH(w.id) + '" title="' + escH(w.name + ' — ' + w.w + '×' + w.h + ', ' + w.cells.length
-      + ' cells' + (hasVars ? '\n' + vars.length + ' variations' : '') + (isAnim ? '\n' + frames.length + ' animation frames' : '')
+      + ' cells' + (hasVars ? '\n' + vars.length + ' variations' : '') + (isAnim ? '\nanimated: its tiles join the map’s Animation tab' : '')
       + (trig ? '\n' + trig + ' trigger' + (trig === 1 ? '' : 's') : '') + (objs ? '\n' + objs + ' object' + (objs === 1 ? '' : 's') : '')
       + '\nclick to arm the pencil · ✎ to edit') + '">'
     + '<i class="rg-deco-art" data-widget-art="' + escH(w.id) + '" style="' + (typeof decoArtStyle === 'function' ? decoArtStyle(activeArt) : '') + '"></i>'

@@ -505,3 +505,6 @@
 .rg-theme .rg-obj-drag{stroke-dasharray:none;fill:var(--rg-object);fill-opacity:.18}
 .rg-theme .rg-object-where-box{fill:var(--rg-object);fill-opacity:.7;stroke:var(--rg-object);stroke-width:.6}
 .rg-theme #rg-edit-bar .rg-draw-object{color:var(--rg-object)}
+/* The Animation tab's outlines (map-editor-anim-tab.js editAnimSvg). */
+.rg-theme .rg-anim-cell{fill:var(--rg-warning);fill-opacity:.06;stroke:var(--rg-warning);stroke-opacity:.5;stroke-width:.08;pointer-events:none}
+.rg-theme .rg-anim-cell.sel{fill-opacity:.16;stroke-opacity:1;stroke-width:.14}

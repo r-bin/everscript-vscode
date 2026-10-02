@@ -125,5 +125,6 @@ export {
 export type { Block, RoomModel, TriggerRecord as EncodedTrigger } from './encode';
 export { buildCustomRoomBlob, draftTopCells, applyHeaderOverrides } from './custom-room';
 export { planCustomAnimation, remapWord, cycleFrom, wordSlot, MAX_CHANNELS } from './custom-animation';
+export type { ChannelSpec } from './custom-animation';
 export type { CustomAnimationPlan } from './custom-animation';
 export type { CustomRoomInput, CustomRoomBlob, HeaderOverrides } from './custom-room';

@@ -275,7 +275,7 @@ function placedRowHtml(g, n) {
       + 'let its triggers and objects go — each is then edited on its own">disband</button>'
       + '<button class="rdf rg-trigger-remove" data-placed-remove="' + g.uid + '" title="Remove it, with its triggers and objects">×</button>')
     + '</div>'
-    + chipsHtml
+    + chipsHtml + (typeof placedTimingHtml === 'function' ? placedTimingHtml(g) : '')
     + '</div>';
 }
 

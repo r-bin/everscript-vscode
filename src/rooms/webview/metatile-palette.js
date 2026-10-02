@@ -69,6 +69,7 @@ function applyMetatilePalette(msg) {
   var d = typeof editDraft === 'function' ? editDraft() : null;
   if (d && !d.customKey && typeof editSeedRoomObjects === 'function') {
     editSeedRoomObjects();
+    if (typeof editSeedRoomAnims === 'function') editSeedRoomAnims(_mtPalette);
     if (d.on && typeof renderEditChrome === 'function') renderEditChrome();
   }
   // `new map` cannot draft anything until the dictionary it borrows from is

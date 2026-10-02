@@ -69,17 +69,35 @@ function editSlotChr(slot) {
  * A graphic the room never loaded cannot be named by any word, so picking
  * one out of a family's art has to add it to Block 1 first. Already-loaded
  * graphics cost nothing and keep their slot.
+ *
+ * `animUid` is the animation group the slot must move with, or null/absent
+ * for a still slot (map-editor-animations.js): a slot animates for every
+ * cell naming it, so a still frame and an animated copy of the same graphic
+ * need a slot each.
  */
-function editAdoptGraphic(palette, graphicId) {
+function editAdoptGraphic(palette, graphicId, animUid) {
   if (!_edit || !palette || !palette.tiles) return -1;
+  var want = animUid == null ? null : animUid;
+  var moves = function (slot) {
+    var g = typeof editAnimOfSlot === 'function' ? editAnimOfSlot(palette, slot) : null;
+    return g ? g.uid : null;
+  };
   var slots = palette.tiles.slots;
   for (var i = 0; i < palette.tiles.count; i++) {
-    if (slots[i][2] === graphicId) return i;
+    if (slots[i][2] === graphicId && moves(i) === want) return i;
   }
-  var already = _edit.addedGraphics.indexOf(graphicId);
-  if (already >= 0) return palette.tiles.count + already;
+  for (var j = 0; j < _edit.addedGraphics.length; j++) {
+    if (_edit.addedGraphics[j] === graphicId && moves(palette.tiles.count + j) === want) return palette.tiles.count + j;
+  }
   _edit.addedGraphics.push(graphicId);
-  return palette.tiles.count + _edit.addedGraphics.length - 1;
+  var slot = palette.tiles.count + _edit.addedGraphics.length - 1;
+  // A slot pruned and taken again keeps no binding from before; an animated one is bound
+  // now (frame 0 held throughout until its frames are set), so the next cell finds it.
+  (_edit.anims || []).forEach(function (g) {
+    if (g.uid !== want) delete g.channels[slot];
+    else g.channels[slot] = g.delays.map(function () { return graphicId; });
+  });
+  return slot;
 }
 
 /**

@@ -213,6 +213,8 @@ function renderEditPanels() {
     body = collisionTabHtml();
   } else if (_editActiveTab === 'object') {
     body = objectTabHtml();
+  } else if (_editActiveTab === 'anim') {
+    body = animTabHtml();
   } else if (_editActiveTab === 'widgets') {
     body = widgetsTabHtml();
   } else if (!p) {

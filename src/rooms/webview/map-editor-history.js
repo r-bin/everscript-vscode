@@ -1,6 +1,8 @@
 // Ownership: the parts of an undo step that are not cells, specials,
 // triggers, groups, the header or the Boy (those are map-editor.js's) —
-// the seven family slots, and the canvas size a resize sets.
+// the seven family slots with the animations riding on the same snapshot
+// (map-editor-animations.js: which slots move, at what timing), and the
+// canvas size a resize sets.
 //
 // Both are on the one history (map-editor-rules §6): pressing undo means
 // "the last thing I did", and freeing a family slot or dragging the resize
@@ -22,6 +24,8 @@ function editFamiliesSnapshot() {
     slots: (d.families || []).map(function (f) { return f === undefined ? null : f; }),
     dropped: Object.assign({}, d.droppedFamilies || {}),
     auto: Object.assign({}, d.autoFamilies || {}),
+    anims: d.anims ? JSON.parse(JSON.stringify(d.anims)) : null,
+    animSeq: d.animSeq || 0,
   };
 }
 
@@ -32,6 +36,7 @@ function editFamiliesRestore(snap) {
   d.families = snap.slots.map(function (f) { return f === null ? undefined : f; });
   d.droppedFamilies = Object.assign({}, snap.dropped);
   d.autoFamilies = Object.assign({}, snap.auto);
+  if ('anims' in snap) { d.anims = snap.anims ? JSON.parse(JSON.stringify(snap.anims)) : undefined; d.animSeq = snap.animSeq || 0; }
   d.families.forEach(function (f) { if (f !== undefined && typeof ensureFamilySheet === 'function') ensureFamilySheet(f); });
 }
 

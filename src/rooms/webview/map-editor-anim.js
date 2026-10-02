@@ -12,6 +12,10 @@
 // the edit layer (every stroke does) would restart a CSS animation, and the
 // torches would stutter and fall out of step with each other. On the
 // document clock a redrawn cell carries on where it was.
+//
+// The frames are the host's; the timing is the stamp's animation group's
+// (map-editor-animations.js), so editing ticks on the Animation tab shows at
+// once. The initial countdown shifts its phase (`begin`).
 
 /** `{row, delays}` of stamp `i` in `sheet.anim`, or null when it does not animate. */
 function editStampAnimOf(sheet, i) {
@@ -28,22 +32,27 @@ function editStampAnimOf(sheet, i) {
  * The stamp as its frames, or `still` (its frame-0 swatch) when it does not
  * animate or a frame is missing.
  */
-function editStampAnimSvg(sheet, i, still, cls, x, y) {
+function editStampAnimSvg(sheet, i, still, cls, x, y, palette, index) {
   // The paste ghost is see-through by its own opacity, which the frames' would override.
   var hit = cls.indexOf('rg-paste-ghost') < 0 ? editStampAnimOf(sheet, i) : null;
   if (!hit) return still;
   var a = sheet.anim;
   var n = hit.delays.length;
   if (n < 2 || a.sheets.length < n - 1) return still;
+  var timing = palette && typeof editAnimTimingOf === 'function' ? editAnimTimingOf(palette, index) : null;
+  var delays = timing && timing.delays.length === n ? timing.delays : hit.delays;
   var times = [];
   var total = 0;
-  hit.delays.forEach(function (t) { times.push(total); total += Math.max(1, t); });
+  delays.forEach(function (t) { times.push(total); total += Math.max(1, t); });
+  // The countdown is a phase: begun that far *back* in the cycle, so no frame shows before its turn.
+  var lag = timing ? timing.init % total : 0;
+  var begin = lag ? (-(total - lag) / 60).toFixed(3) + 's' : '0s';
   var keyTimes = times.map(function (t) { return (t / total).toFixed(4); }).join(';');
   var dur = (total / 60).toFixed(3) + 's';
   var html = '';
   for (var k = 0; k < n; k++) {
     var values = times.map(function (_, j) { return j === k ? 1 : 0; }).join(';');
-    var inner = '<animate attributeName="opacity" calcMode="discrete" begin="0s" dur="' + dur
+    var inner = '<animate attributeName="opacity" calcMode="discrete" begin="' + begin + '" dur="' + dur
       + '" repeatCount="indefinite" keyTimes="' + keyTimes + '" values="' + values + '"/>';
     html += k === 0
       ? editCropSvg(cls, x, y, sheet, sheet.imageUri, sheet.imageWidth, sheet.imageHeight, i, inner)

@@ -37,7 +37,7 @@ function editStampSvg(palette, composed, index, x, y, cls) {
   }
   if (!sheet || !sheet.imageUri || i < 0 || i >= sheet.count) return '';
   var still = editCropSvg(cls, x, y, sheet, sheet.imageUri, sheet.imageWidth, sheet.imageHeight, i, '');
-  return typeof editStampAnimSvg === 'function' ? editStampAnimSvg(sheet, i, still, cls, x, y) : still;
+  return typeof editStampAnimSvg === 'function' ? editStampAnimSvg(sheet, i, still, cls, x, y, palette, index) : still;
 }
 
 /** Cell `i` of an atlas image as a nested <svg>, optionally with an <animate> inside. */
@@ -111,6 +111,7 @@ function renderEditLayer(palette, composed, origin) {
   if (typeof editRoomCutBeneathSvg === 'function') marks = editRoomCutBeneathSvg(palette, composed, origin) + marks;
   // Objects: their areas, and with the Object tab open their tiles on top (map-editor-objects.js).
   if (typeof editObjectSvg === 'function') marks += editObjectSvg(palette, composed, origin);
+  if (typeof editAnimSvg === 'function') marks += editAnimSvg(origin);
   // Collision shapes set by hand (map-editor-collision-tab.js).
   if (typeof editCollisionOverlaySvg === 'function') marks += editCollisionOverlaySvg(origin);
   // Special glyphs (stairs/drift, gate, entrance) sit on their own key

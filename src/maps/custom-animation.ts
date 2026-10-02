@@ -28,8 +28,8 @@ export const MAX_CHANNELS = 42;
 export interface CustomAnimationPlan {
     /** Block 1's graphics, in slot order. */
     block1: number[];
-    /** Per channel, frame 0 first: `{frames, delays}`. */
-    channels: Array<{ graphic: number; frames: number[]; delays: number[] }>;
+    /** Per channel, frame 0 first: `{frames, delays}`, and its initial countdown. */
+    channels: Array<{ graphic: number; frames: number[]; delays: number[]; init?: number }>;
     section2Count: number;
     /** The descriptor table, its 0xFF, then the frame data (Section 2 minus its 3-byte header). */
     section2Data: Uint8Array;
@@ -62,13 +62,31 @@ export function cycleFrom(index: AnimationIndex, graphic: number): { frames: num
 }
 
 /**
+ * One channel the editor asks for (the Animation tab, map-editor-animations.js):
+ * the slot it drives, the graphics it swaps in (frame 0 is the slot's own),
+ * the hold of each in 60 Hz ticks, and the initial countdown.
+ */
+export interface ChannelSpec {
+    slot: number;
+    frames: number[];
+    delays: number[];
+    init?: number;
+}
+
+/**
  * Plan Section 2.
+ *
+ * With `explicit`, exactly those channels are written, for the slots a word
+ * names: a slot no channel drives stays still, even when its graphic is one
+ * vanilla animates — a single frame picked on its own is a still tile. Without
+ * it (older callers), every placed graphic vanilla animates gets its cycle.
  *
  * @param graphics the editor's flat slot list
  * @param words    every tilemap word the room will hold (both layers, all entries)
  */
 export function planCustomAnimation(
     graphics: number[], words: number[], index: AnimationIndex | undefined, max = MAX_CHANNELS,
+    explicit?: ChannelSpec[],
 ): CustomAnimationPlan {
     const used = new Set<number>();
     for (const w of words) {
@@ -78,7 +96,20 @@ export function planCustomAnimation(
     const animated: number[] = [];
     const channels: CustomAnimationPlan['channels'] = [];
     let skipped = 0;
-    if (index) {
+    if (explicit) {
+        const bySlot = new Map<number, ChannelSpec>();
+        for (const c of explicit) if (c && c.frames && c.frames.length > 1) bySlot.set(c.slot, c);
+        for (const s of [...used].sort((a, b) => a - b)) {
+            const c = bySlot.get(s);
+            if (!c) continue;
+            if (channels.length >= max) { skipped += 1; continue; }
+            animated.push(s);
+            // Frame 0 is what the slot holds: the invariant every vanilla channel keeps.
+            const frames = [graphics[s]].concat(c.frames.slice(1).map(Number));
+            const delays = frames.map((_, i) => Math.max(1, Math.min(255, Number(c.delays[i]) || 1)));
+            channels.push({ graphic: graphics[s], frames, delays, init: Math.max(0, Math.min(255, Number(c.init) || 0)) });
+        }
+    } else if (index) {
         for (const s of [...used].sort((a, b) => a - b)) {
             const c = cycleFrom(index, graphics[s]);
             if (!c) continue;
@@ -118,7 +149,7 @@ function section2Bytes(channels: CustomAnimationPlan['channels']): Uint8Array {
     const out: number[] = [];
     let offset = channels.length * 4 + 1;
     for (const c of channels) {
-        out.push(0, c.frames.length, offset & 0xff, offset >> 8);
+        out.push(c.init || 0, c.frames.length, offset & 0xff, offset >> 8);
         offset += c.frames.length * 3;
     }
     out.push(0xff);

@@ -254,6 +254,31 @@ if (!fs.existsSync(ROM_PATH)) {
         assert.ok(maps.wordSlot(room.layer1VramWords[1][1]) >= room.tilePalette.length, 'past Block 1: animated');
     });
 
+    // The Animation tab's channels (map-editor-animations.js): exactly those
+    // slots animate, at the tab's timing; the same graphic in another slot,
+    // a frame picked on its own, stays still.
+    test('explicit channels animate their slots at their timing; a still copy of the graphic stays still', () => {
+        const base = donor.tilePalette.length + donor.animatedTiles.length;
+        const word = (slot) => maps.tileSlotChr(slot) | (1 << 10);
+        const cells4 = cells.slice();
+        const set = (x, y, l1) => { const i = (y * W + x) * 3; cells4[i] = l1; };
+        set(1, 1, word(base)); set(2, 1, word(base + 1));
+        const channels = [{ slot: base, frames: [2742, 2743, 2744], delays: [4, 9, 2], init: 7 }];
+        const { rom: out, report } = buildExportRom(rom, { ...draft, cells: cells4, graphics: [2742, 2742], channels });
+        assert.strictEqual(report.animated, 1, 'one channel, not one per animated-looking graphic');
+        const room = maps.decodeRoom(out, BRIAN_ROOM);
+        assert.strictEqual(room.animation.length, 1);
+        assert.deepStrictEqual(room.animation[0].frames.map((f) => [f.tileId, f.delay]), [[2742, 4], [2743, 9], [2744, 2]]);
+        assert.strictEqual(room.animation[0].delay, 7, 'the initial countdown');
+        const ids = room.tilePalette.concat(room.animatedTiles);
+        assert.ok(maps.wordSlot(room.layer1VramWords[1][1]) >= room.tilePalette.length, 'the animated copy is past Block 1');
+        assert.ok(maps.wordSlot(room.layer1VramWords[1][2]) < room.tilePalette.length, 'the still copy is in Block 1');
+        assert.strictEqual(ids[maps.wordSlot(room.layer1VramWords[1][2])], 2742);
+        // No channels at all: nothing moves, even graphics vanilla animates.
+        const { report: none } = buildExportRom(rom, { ...draft, cells: cells4, graphics: [2742, 2742], channels: [] });
+        assert.strictEqual(none.animated, 0);
+    });
+
     test('the intro loads room 0x15 at the start marker; the Boy gets a spear, and the room fades in', () => {
         const { rom: out } = buildExportRom(rom, draft);
         const intro = script.decodeScript(out, INTRO_FIRST_CODE).instructions;

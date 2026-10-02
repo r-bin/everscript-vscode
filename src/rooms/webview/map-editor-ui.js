@@ -208,7 +208,8 @@ function requestComposedPreview() {
   if (typeof editBakedCells === 'function') editBakedCells(_mtPalette);
   if (typeof editObjectStamps === 'function') editObjectStamps();
   if (!d.added.length) { _editComposed = null; renderComposerPreview(); return; }
-  _composedSig = JSON.stringify(d.added);
+  var channels = typeof editAnimChannels === 'function' ? editAnimChannels(_mtPalette) : [];
+  _composedSig = JSON.stringify(d.added) + JSON.stringify(channels);
   vs.postMessage({
     command: 'requestComposedPreview', roomId: d.roomId, mapName: _mtRoomName,
     layer: _mtLayer, drafts: d.added,
@@ -223,6 +224,8 @@ function requestComposedPreview() {
       families: editPreviewFamilies(),
       // Main/sub screen and colour math, as the Info tab has them.
       header: d.header,
+      // The slots that animate, and as what (map-editor-animations.js); none, nothing moves.
+      channels: channels,
     },
   });
 }
@@ -234,7 +237,8 @@ function requestComposedPreview() {
  */
 function ensureComposedPreview() {
   var d = editDraft();
-  if (d && d.added.length && JSON.stringify(d.added) !== _composedSig) requestComposedPreview();
+  if (d && d.added.length && JSON.stringify(d.added)
+    + JSON.stringify(typeof editAnimChannels === 'function' ? editAnimChannels(_mtPalette) : []) !== _composedSig) requestComposedPreview();
 }
 
 function applyComposedPreview(msg) {
@@ -255,6 +259,7 @@ function renderEditChrome() {
   if (d && d.customKey && typeof customSaveSoon === 'function') customSaveSoon();
   // A ROM room's draft made after its palette arrived still gets its objects.
   if (typeof editSeedRoomObjects === 'function') editSeedRoomObjects();
+  if (typeof editSeedRoomAnims === 'function') editSeedRoomAnims(_mtPalette);
   // The pill and the level bar share one wrapper, replaced in one write.
   var chrome = document.getElementById('rg-edit-chrome');
   if (chrome) chrome.outerHTML = buildEditToolbarHtml();

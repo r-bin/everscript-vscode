@@ -321,9 +321,24 @@ control is on: the Cuttable chip, or the Object tab. Every stamp either one uses
 must count as in use for pruning and for the family sync.
 
 **Widgets** (map-editor-widgets.js) are portable constructs in one library file every
-map shares. Their cells are `{graphic, family, flags}` per layer, or `null` for "keep
+map shares. Their cells are `{graphic, family, flags, anim}` per layer, or `null` for "keep
 the floor". Never store a raw word in a widget unless no room could explain it: a
-word is room-relative.
+word is room-relative. A widget is its cells: no frames and no hand-made variations.
+Its colourings are **derived** (map-editor-widget-colours.js) from every family vanilla
+draws any of its graphics in (`graphicFamilies`, sent by the host), never stored, and
+a colouring recolours its object states too.
+
+**Animation is per slot, and only where a group says so** (map-editor-animations.js,
+the Animation tab). A Section 2 channel swaps the graphic in one tile slot, so every
+cell naming that slot moves together and a tile has no clock of its own. A slot moves
+exactly while an animation group (`_edit.anims`) lists it with frame 0 equal to the
+slot's graphic. Never decide "it animates" from the graphic: a frame picked on its own
+(`frames` view) is a **still** tile, in a slot no group lists; a ▶ swatch adopts the
+graphic into a slot bound to a group at vanilla's timing. One graphic may sit in
+several slots (still, timing A, timing B) — vanilla does this too. Out of step is a
+second group (another timing letter), never a per-cell clock. The canvas and the ROM
+export both read `editAnimChannels`; a draft from before this sends none and gets
+vanilla's cycles (rom-export.js). Budget: 42 channels, vanilla's most.
 
  Cell writes, special-glyph writes, trigger
 operations and start moves all go through `editApply`/`editApplyTriggerOp`/

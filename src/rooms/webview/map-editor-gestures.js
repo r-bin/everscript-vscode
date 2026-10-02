@@ -55,7 +55,7 @@ function editStroke(cell, phase) {
   }
   // The Object tab: areas, and the tiles drawn over them (map-editor-objects.js).
   var objActive = drawKind() === 'object' || (drawKind() === 'tile' && typeof _objectActiveFrame !== 'undefined' && _objectActiveFrame >= 1 && typeof _objectSel !== 'undefined' && _objectSel != null);
-  if (objActive && typeof editObjectGesture === 'function' && editObjectGesture(d, cell, phase)) return;
+  if ((drawKind() === 'anim' && editAnimGesture(d, cell, phase)) || (objActive && typeof editObjectGesture === 'function' && editObjectGesture(d, cell, phase))) return;
 
   if (d.tool === 'select') {
     // The only tool that reads a click as "pick a trigger" rather than
@@ -368,7 +368,6 @@ function setupEditKeys() {
       renderEditChrome();
       return;
     }
-    if (typeof widgetAnimKey === 'function' && widgetAnimKey(e)) { e.preventDefault(); return; }
     var mod = e.metaKey || e.ctrlKey;
     // Locked: copying is the only key that does anything (no undo, paste or delete).
     if (editLocked() && !(mod && /^[cCaA]$/.test(e.key))) return; // copying and selecting all

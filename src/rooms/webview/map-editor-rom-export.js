@@ -53,6 +53,8 @@ function romExportPayload(why) {
     header: d.header ? JSON.parse(JSON.stringify(d.header)) : null,
     // Tiles the player can cut; `cells` above is what cutting reveals.
     cut: typeof editCutPayload === 'function' ? editCutPayload() : [],
+    // The Animation tab's channels; a slot none drives stays still (maps/custom-animation.ts).
+    channels: typeof editAnimChannels === 'function' ? editAnimChannels(_mtPalette) : [],
     objects: (typeof editObjects === 'function' ? editObjects() : []).map(function (o) {
       var frames = typeof editObjectFrames === 'function' ? editObjectFrames(o) : [];
       return {

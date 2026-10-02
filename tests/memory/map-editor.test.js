@@ -736,13 +736,14 @@ const ui = new Function(`
   ${read('map-editor-custom-store.js')}
   ${read('map-editor-clipboard.js')}
   ${read('map-editor-pick.js')}
+  ${read('map-editor-animations.js')}
+  ${read('map-editor-anim-tab.js')}
   ${read('map-editor-objects.js')}
   ${read('map-editor-object-list.js')}
   ${read('map-editor-placed-list.js')}
   ${read('map-editor-widgets.js')}
   ${read('map-editor-widget-colours.js')}
   ${read('map-editor-widget-edit.js')}
-  ${read('map-editor-widget-anim.js')}
   ${read('map-editor-preview.js')}
   ${read('map-editor-special-select.js')}
   ${read('map-editor-romroom.js') /* a vanilla room in the editor (map-editor-rules §7) */}
@@ -811,15 +812,16 @@ const ui = new Function(`
     customRename: customRename, editPutDown: editPutDown, construct: function () { return _editConstruct; },
     clampRoomSide: clampRoomSide, widgetEditHeadHtml: widgetEditHeadHtml,
     setWidgetEdit: function (w) { _widgetEdit = w; },
-    widgetEditTimelineHtml: widgetEditTimelineHtml,
-    widgetToggleAnim: widgetToggleAnim, widgetNormalize: widgetNormalize,
-    widgetSelectFrame: widgetSelectFrame, widgetAddFrame: widgetAddFrame, widgetRemoveFrame: widgetRemoveFrame,
-    widgetSetDelay: widgetSetDelay, widgetTogglePlay: widgetTogglePlay,
+    widgetNormalize: widgetNormalize, widgetAnimated: widgetAnimated,
     widgetConstruct: widgetConstruct, widgetArm: widgetArm,
     setWidgets: function (ws) { _widgets = ws; },
-    getWidgetVarIdx: function () { return _widgetVarIdx; },
-    getWidgetFrameIdx: function () { return _widgetFrameIdx; },
-    getWidgetPlaying: function () { return _widgetPlaying; },
+    editAnims: editAnims, editAnimChannels: editAnimChannels, editAnimsListed: editAnimsListed, editAnimLetters: editAnimLetters,
+    editAdoptAnimated: editAdoptAnimated, editAdoptGraphic: editAdoptGraphic, editAnimOfSlot: editAnimOfSlot,
+    editSeedRoomAnims: editSeedRoomAnims, editAnimFromRect: editAnimFromRect, animTabHtml: animTabHtml, animClick: animClick,
+    editAnimGesture: editAnimGesture, editWordAnimSpec: editWordAnimSpec, editPartFromWord: editPartFromWord,
+    editWordFromPart: editWordFromPart, placedTimingHtml: placedTimingHtml, placedSetTiming: placedSetTiming,
+    editUseFamilyTile: editUseFamilyTile, setFramesSplit: function (v) { _tileFramesSplit = v; },
+    setAnimSel: function (u, f) { _animSel = u; _animFrame = f || 0; }, animSel: function () { return _animSel; },
     objectLooksStatic: objectLooksStatic, objectIsOpen: objectIsOpen, setObjectOpen: function (k, v) { _objectOpen[k] = v; }, objectReorder: objectReorder, objectTabHtml: objectTabHtml,
     neighbourCardHtml: neighbourCardHtml, setNbMode: setNbMode, getNbMode: getNbMode,
     applyNeighbourTiles: applyNeighbourTiles,
@@ -2812,94 +2814,56 @@ const URN_FAMILIES = {
     4739: [[220, 40], [291, 9], [231, 4]], 4740: [[220, 40], [291, 9], [231, 4]],
 };
 
-test('a widget stores its own frames; colourings are derived, and the timeline is opt-in', () => {
+test('a widget is its cells: no frames, no variations; older libraries keep their first frame with art', () => {
     const ws = require('../../src/rooms/data/widget-store');
     const os = require('os');
     const tempFile = path.join(os.tmpdir(), 'widgets-test-' + Date.now() + '.json');
-
-    // A legacy widget (cells only) is one still frame, animation off.
     const legacy = ws.saveWidget(tempFile, {
         id: 'w-legacy', name: 'Legacy Pot', w: 2, h: 2,
         cells: [{ dx: 0, dy: 0, canopy: { graphic: 10, family: 35, flags: 0 }, collision: 0 }],
     }).find((w) => w.id === 'w-legacy');
-    assert.strictEqual(legacy.variations, undefined, 'no variations are stored');
-    assert.strictEqual(legacy.frames.length, 1);
-    assert.strictEqual(legacy.frames[0].delay, 8);
-    assert.strictEqual(legacy.animated, false);
     assert.strictEqual(legacy.cells.length, 1);
-
-    // Hand-made variations from before keep the first one with art; empty ones go.
+    assert.ok(!('frames' in legacy) && !('variations' in legacy) && !('animated' in legacy));
     const fan = ws.saveWidget(tempFile, {
-        id: 'w-fan', name: 'Fan', w: 1, h: 1,
-        variations: [
-            { id: 'var-a', name: 'A', frames: [0, 1].map((k) => ({ cells: [{ dx: 0, dy: 0, terrain: { graphic: 4739, family: 220 } }], delay: 6 + k })) },
-            { id: 'var-b', name: 'B', frames: [{ cells: [], delay: 8 }] },
-        ],
+        id: 'w-fan', name: 'Fan', w: 1, h: 1, animated: true,
+        frames: [{ cells: [{ dx: 0, dy: 0, terrain: { graphic: 4739, family: 220 } }], delay: 6 }, { cells: [], delay: 6 }],
     }).find((w) => w.id === 'w-fan');
-    assert.strictEqual(fan.frames.length, 2);
-    assert.deepStrictEqual(fan.frames.map((f) => f.delay), [6, 7]);
-    assert.strictEqual(fan.animated, true, 'a multi-frame widget from before stays animated');
-    // A stored file in the old shape reads back in the new one.
+    assert.strictEqual(fan.cells[0].terrain.graphic, 4739, 'frame 0 is what it stamps');
+    assert.ok(!('frames' in fan));
     const raw = JSON.parse(fs.readFileSync(tempFile, 'utf8'));
     raw.widgets.push({ id: 'w-old', name: 'Old', w: 1, h: 1, cells: [], variations: [
-        { id: 'fam-115', name: '#115', frames: [{ cells: [{ dx: 0, dy: 0, canopy: { graphic: 643, family: 115 } }], delay: 8 }] }] });
+        { id: 'fam-115', name: '#115', frames: [{ cells: [{ dx: 0, dy: 0, canopy: { graphic: 643, family: 115 } }], delay: 8 }] },
+        { id: 'var-b', name: 'B', frames: [{ cells: [], delay: 8 }] }] });
     fs.writeFileSync(tempFile, JSON.stringify(raw));
     const old = ws.listWidgets(tempFile).find((w) => w.id === 'w-old');
-    assert.strictEqual(old.variations, undefined);
-    assert.strictEqual(old.frames[0].cells[0].canopy.graphic, 643);
+    assert.strictEqual(old.cells[0].canopy.graphic, 643);
+    assert.ok(!('variations' in old));
 
-    // The editor: no variation row, an Animation switch, the timeline only when on.
-    const torch = ui.widgetNormalize({ id: 'w-torch', name: 'Torch', w: 1, h: 2,
-        frames: [200, 201, 202].map((g) => ({ cells: [{ dx: 0, dy: 0, canopy: { graphic: g, family: 35 } }], delay: 6 })) });
-    ui.setWidgets([torch]);
-    ui.setWidgetEdit({ key: 'widget-torch', widget: 'w-torch', name: 'Torch', w: 1, h: 2, borrow: 0x34 });
+    // The editor has no variation row and no timeline: animation is the Animation tab's.
+    ui.setWidgets([ui.widgetNormalize({ id: 'w-x', name: 'X', w: 1, h: 1, cells: [] })]);
+    ui.setWidgetEdit({ key: 'widget-x', widget: 'w-x', name: 'X', w: 1, h: 1, borrow: 0x34 });
     const head = ui.widgetEditHeadHtml();
-    assert.ok(!head.includes('data-widget-var'), 'no variation chips or buttons');
-    assert.ok(head.includes('data-widget-act="anim"') && head.includes('Animation: on'));
-    const timeline = ui.widgetEditTimelineHtml();
-    assert.ok(timeline.includes('id="rg-widget-timeline"') && timeline.includes('data-widget-seek="play"'));
-    assert.ok(timeline.includes('id="rg-seek-delay"') && timeline.includes('data-widget-seek="clone"'));
-
-    ui.widgetSelectFrame(2);
-    assert.strictEqual(ui.getWidgetFrameIdx(), 2);
-    ui.widgetSetDelay(12);
-    assert.strictEqual(torch.frames[2].delay, 12, 'the delay lands on the widget’s own frame');
-    ui.widgetTogglePlay();
-    assert.strictEqual(ui.getWidgetPlaying(), true);
-    ui.widgetTogglePlay();
-    assert.strictEqual(ui.getWidgetPlaying(), false);
-    const construct = ui.widgetConstruct(torch, 0);
-    assert.deepStrictEqual(construct.delays, [6, 6, 12]);
-    assert.ok(construct.attachments.objects.length > 0, 'an animated widget stamps its frames as an object');
-
-    // A new widget starts still: no timeline until switched on.
-    const still = ui.widgetNormalize({ id: 'w-still', name: 'Still', w: 1, h: 1, frames: [{ cells: [], delay: 8 }], animated: false });
-    ui.setWidgets([still]);
-    ui.setWidgetEdit({ key: 'widget-still', widget: 'w-still', name: 'Still', w: 1, h: 1, borrow: 0x34 });
-    assert.strictEqual(ui.widgetEditTimelineHtml(), '');
-    assert.ok(ui.widgetEditHeadHtml().includes('Animation: off'));
-    assert.strictEqual(ui.widgetConstruct(torch, 0).delays.length, 3);
-    torch.animated = false;
-    assert.strictEqual(ui.widgetConstruct(torch, 0).delays.length, 1, 'switched off, it stamps its first frame only');
+    assert.ok(!head.includes('data-widget-var') && !head.includes('Animation:'));
     ui.setWidgetEdit(null);
 });
 
-test('a colouring recolours every object state and animation frame, not only the stamped tiles', () => {
+test('a colouring recolours every object state, and keeps each part’s animation', () => {
     ui.applyWidgets({ widgets: [], graphicFamilies: URN_FAMILIES });
-    const cell = (g) => ({ dx: 0, dy: 0, canopy: { graphic: g, family: 115, flags: 0 }, terrain: null });
-    const urn = ui.widgetNormalize({ id: 'w-urn2', name: 'Urn', w: 1, h: 1, animated: true,
-        frames: [{ cells: [cell(643)], delay: 8 }, { cells: [cell(644)], delay: 8 }],
+    const anim = { frames: [643, 644], delays: [8, 8], init: 0 };
+    const cell = (g, a) => ({ dx: 0, dy: 0, canopy: { graphic: g, family: 115, flags: 0, anim: a || null }, terrain: null });
+    const urn = ui.widgetNormalize({ id: 'w-urn2', name: 'Urn', w: 1, h: 1, cells: [cell(643, anim)],
         attachments: { bTrigger: [], stepOn: [], objects: [{ dx: 0, dy: 0, w: 1, h: 1, states: 3, cells: [cell(643)], frames: [[cell(644)], [cell(647)]] }] } });
     ui.widgetEnsureVariations(urn);
-    const at = urn.variations.findIndex((v) => v.id === 'fam-35');
-    const c = ui.widgetConstruct(urn, at);
+    const c = ui.widgetConstruct(urn, urn.variations.findIndex((v) => v.id === 'fam-35'));
     const fams = [];
     const note = (cells) => (cells || []).forEach((x) => x.canopy && fams.push(x.canopy.family));
     note(c.cells);
     c.attachments.objects.forEach((o) => { note(o.cells); (o.frames || []).forEach(note); });
-    assert.ok(fams.length >= 6, 'cells, both animation frames and both object states are there');
+    assert.strictEqual(fams.length, 4);
     assert.ok(fams.every((f) => f === 35), 'every one in #35: ' + fams.join(','));
+    assert.deepStrictEqual(c.cells[0].canopy.anim, anim, 'the part still moves');
     assert.strictEqual(urn.attachments.objects[0].cells[0].canopy.family, 115, 'the widget itself is untouched');
+    assert.ok(ui.widgetAnimated(urn));
 });
 
 test('placed widgets render object-like cards with clickable variant preview chips and clean library cards', () => {
@@ -2990,20 +2954,6 @@ test('a widget offers every colouring vanilla attests for any of its pieces, and
     assert.deepStrictEqual(saved.variations.map((v) => v.id), ['fam-115', 'fam-35', 'fam-139', 'fam-159', 'fam-127', 'fam-188', 'fam-158']);
 });
 
-test('empty variations are not variations, and an animated widget keeps its frames in every colouring', () => {
-    ui.applyWidgets({ widgets: [], graphicFamilies: URN_FAMILIES });
-    const fanCells = [{ dx: 0, dy: 0, canopy: null, terrain: { graphic: 4739, family: 220 } },
-        { dx: 1, dy: 0, canopy: null, terrain: { graphic: 4740, family: 220 } }];
-    const frame = { cells: fanCells, delay: 8 };
-    const empty = (id) => ({ id, name: id, frames: [{ cells: [], delay: 8 }] });
-    const fan = ui.widgetNormalize({ id: 'w-fan', cells: fanCells,
-        variations: [{ id: 'var-a', name: 'A', frames: [frame, frame, frame, frame] }, empty('var-b'), empty('var-c')] });
-    ui.widgetEnsureVariations(fan);
-    assert.deepStrictEqual(fan.variations.map((v) => v.id), ['fam-220', 'fam-291', 'fam-231']);
-    assert.ok(fan.variations.every((v) => v.frames.length === 4), 'each colouring keeps the 4 frames');
-    assert.strictEqual(fan.variations[1].frames[2].cells[0].terrain.family, 291);
-});
-
 test('switching a placed widget variation replaces its family slot, and deleting it frees the slot', () => {
     const urnCells = [{ dx: 0, dy: 0, canopy: { graphic: 643, family: 115, flags: 0 }, terrain: null }];
     const urnWidget = { id: 'w-urn', name: 'Antiqua Urn', w: 1, h: 1, cells: urnCells };
@@ -3040,6 +2990,156 @@ test('switching a placed widget variation replaces its family slot, and deleting
     assert.deepStrictEqual(ui.editFamilies().filter((f) => f !== undefined), [206], 'the widget took its family with it');
     ui.editUndo(p);
     assert.strictEqual(ui.editFamilies().filter((f) => f !== undefined).length, 2, 'undoing the delete brings it back');
+});
+
+
+// ── animations (map-editor-animations.js, map-editor-anim-tab.js) ──────────
+
+const TORCH = { frames: [2742, 2743, 2744, 2745, 2746, 2744], delays: [5, 5, 5, 5, 3, 3] };
+const TORCH_BASE = { frames: [2747, 2748, 2749, 2750, 2751, 2749], delays: [5, 5, 5, 5, 3, 3] };
+const chrOf = (slot) => (slot >> 3) * 0x20 + (slot & 7) * 2;
+
+/** A room with two still graphics in slots 0 and 1, a canopy at (1,0) and (2,1) on slot 1. */
+function animPalette() {
+    const p = tilePalette();
+    p.entries = [[0, 0xa800, 0x0400, 0, 4], [1, 0x0402, 0x0400, 0, 2]];
+    p.count = 2;
+    p.grid = [[0, 1, 0], [0, 0, 1]];
+    p.widthTiles = 3; p.heightTiles = 2;
+    return p;
+}
+
+test('a ▶ tile animates in a slot of its own; the same graphic as a still frame keeps another', () => {
+    const p = animPalette();
+    ui.setPalette(p);
+    ui.editReset(1).on = true;
+    const still = ui.editAdoptGraphic(p, 2742, null);
+    const moving = ui.editAdoptAnimated(p, 2742, TORCH, null);
+    assert.notStrictEqual(still, moving, 'one graphic, two slots');
+    assert.strictEqual(ui.editAnimOfSlot(p, still), null);
+    const g = ui.editAnimOfSlot(p, moving);
+    assert.ok(g && g.auto);
+    assert.strictEqual(ui.editAdoptAnimated(p, 2742, TORCH, null), moving, 'reused, not adopted again');
+    assert.strictEqual(ui.editAdoptGraphic(p, 2742, null), still);
+    // The base of the torch has the same timing: the same group, as vanilla runs both halves.
+    const base = ui.editAdoptAnimated(p, 2747, TORCH_BASE, null);
+    assert.strictEqual(ui.editAnimOfSlot(p, base), g);
+    const ch = ui.editAnimChannels(p);
+    assert.deepStrictEqual(ch.map((c) => c.frames[0]), [2742, 2747]);
+    assert.deepStrictEqual(ch[0].delays, TORCH.delays);
+    // Listed while a cell shows it.
+    assert.strictEqual(ui.editAnimsListed(p).length, 0);
+    ui.editApply([{ x: 0, y: 0, index: ui.editAddStamp(p, { layer1: chrOf(moving) | (1 << 10), layer2: 0x0400, collision: 0 }) }]);
+    assert.strictEqual(ui.editAnimsListed(p).length, 1);
+    assert.ok(ui.animTabHtml().includes('2742 · <b class="rg-anim-letter">A</b>'));
+});
+
+test('picking in the Tile tab: an animation’s swatch places it moving, `frames` places it still', () => {
+    const p = animPalette();
+    ui.setPalette(p);
+    ui.editReset(1).on = true;
+    ui.setSheet(115, { family: 115, count: 1, columns: 16, cell: 16, imageUri: 'data:,',
+        slots: [[0, 0, 2742, 10, 0, 0]], animations: { 2742: TORCH } });
+    ui.editDraft().families = [];   // a free slot for #115
+    ui.setFramesSplit(false);
+    ui.editUseFamilyTile(2742, 115);
+    const d = ui.editDraft();
+    const slotOf = (i) => { const w = ui.editStampWords(p, i); const c = (w.layer1 === 0xa800 ? w.layer2 : w.layer1) & 0x3ff; return (c >> 5) * 8 + ((c & 0x1f) >> 1); };
+    assert.ok(ui.editAnimOfSlot(p, slotOf(d.brush)), 'anim view: moving');
+    ui.setFramesSplit(true);
+    ui.editUseFamilyTile(2742, 115);
+    assert.strictEqual(ui.editAnimOfSlot(p, slotOf(d.brush)), null, 'frames view: frame 2742 on its own, still');
+    ui.setFramesSplit(false);
+});
+
+test('a ROM room lists its own channels, touching ones of one timing as one animation', () => {
+    const p = tilePalette();
+    p.tiles.count = 5;
+    p.tiles.slots = [[0, 0, 0x422, 0], [1, 2, 0x423, 0], [2, 4, 2742, 1], [3, 6, 2747, 1], [4, 8, 2742, 1]];
+    p.entries = [[0, 0xa800, 0x0400, 0, 3], [1, 0x0404, 0x0400, 0, 1], [2, 0x0406, 0x0400, 0, 1], [3, 0x0408, 0x0400, 0, 1]];
+    p.count = 4;
+    p.grid = [[1, 0, 3], [2, 0, 0]];
+    p.channels = [[2, 0, [[2742, 5], [2743, 5]]], [3, 0, [[2747, 5], [2748, 5]]], [4, 0, [[2742, 3], [2743, 3]]]];
+    ui.setPalette(p);
+    ui.editReset(0x29).on = true;
+    ui.editSeedRoomAnims(p);
+    const anims = ui.editAnims();
+    assert.strictEqual(anims.length, 2, 'the torch (two slots, touching) and the third channel, at another timing');
+    assert.deepStrictEqual(Object.keys(anims[0].channels).map(Number), [2, 3]);
+    assert.ok(anims.every((g) => g.rom));
+    assert.deepStrictEqual(anims[1].delays, [3, 3]);
+    const listed = ui.editAnimsListed(p);
+    assert.strictEqual(listed.length, 2);
+    ui.editSeedRoomAnims(p);
+    assert.strictEqual(ui.editAnims().length, 2, 'seeded once');
+});
+
+test('the Animation tab’s pencil: a rectangle becomes an animation, + Frame and painting set its frames, undo takes it back', () => {
+    const p = animPalette();
+    ui.setPalette(p);
+    ui.editReset(1).on = true;
+    const d = ui.editDraft();
+    ui.editBegin(); ui.editAnimFromRect({ x1: 1, y1: 0, x2: 1, y2: 0 }); ui.editEnd();
+    const g = ui.editAnims()[0];
+    const slots = Object.keys(g.channels).map(Number);
+    assert.strictEqual(slots.length, 1, 'only the canopy moves, not the floor under it');
+    assert.ok(slots[0] >= 2, 'a slot of its own: the canopy at (2,1) on slot 1 stays still');
+    assert.strictEqual(ui.editAnimOfSlot(p, 1), null);
+    assert.strictEqual(ui.animSel(), g.uid);
+    ui.animClick({ dataset: { animAct: 'add-frame' } });
+    assert.deepStrictEqual(g.delays, [8, 8]);
+    d.brush = ui.editAddStamp(p, { layer1: 0x0400, layer2: 0x0400, collision: 0 }); // graphic 0x422 as canopy
+    d.tool = 'paint';
+    ui.setAnimSel(g.uid, 1);
+    ui.editAnimGesture(d, { x: 1, y: 0 }, 'down');
+    ui.editAnimGesture(d, { x: 1, y: 0 }, 'up');
+    assert.deepStrictEqual(ui.editAnims()[0].channels[slots[0]], [0x423, 0x422]);
+    assert.deepStrictEqual(ui.editAnimChannels(p).map((c) => c.frames), [[0x423, 0x422]]);
+    ui.editUndo(p);
+    assert.deepStrictEqual(ui.editAnims()[0].channels[slots[0]], [0x423, 0x423], 'the frame paint was one step');
+    ui.editUndo(p);
+    assert.deepStrictEqual(ui.editAnims()[0].delays, [8], '+ Frame was one step');
+});
+
+test('a placed widget switches timing: its words move to the other timing’s slots', () => {
+    const p = animPalette();
+    ui.setPalette(p);
+    ui.editReset(1).on = true;
+    const d = ui.editDraft();
+    const a = ui.editAdoptAnimated(p, 2742, TORCH, null);
+    const A = ui.editAnimOfSlot(p, a);
+    ui.setAnimSel(A.uid, 0);
+    ui.animClick({ dataset: { animAct: 'new-timing' } });
+    const B = ui.editAnims()[1];
+    B.delays = [7, 7, 7, 7, 7, 4];
+    const word = chrOf(a) | (1 << 10);
+    d.groups = [{ uid: 9, name: 'torch', x: 0, y: 0, w: 1, h: 1, level: 1, placed: [], cells: [{ dx: 0, dy: 0, layer1: word, layer2: null, collision: null }] },
+        { uid: 10, name: 'torch', x: 2, y: 1, w: 1, h: 1, level: 1, placed: [], cells: [{ dx: 0, dy: 0, layer1: word, layer2: null, collision: null }] }];
+    const html = ui.placedTimingHtml(d.groups[0]);
+    assert.ok(html.includes('data-anim-timing="' + A.uid + '"') && html.includes('data-anim-timing="' + B.uid + '"'));
+    assert.ok(html.includes('>A</button>') && html.includes('>B</button>'));
+    ui.placedSetTiming(9, B.uid);
+    const moved = d.groups[0].cells[0].layer1;
+    const slotOfWord = (w) => { const c = w & 0x3ff; return (c >> 5) * 8 + ((c & 0x1f) >> 1); };
+    assert.strictEqual(ui.editAnimOfSlot(p, slotOfWord(moved)), B);
+    assert.strictEqual(moved & 0xfc00, word & 0xfc00, 'palette and flips kept');
+    assert.strictEqual(ui.editAnimOfSlot(p, slotOfWord(d.groups[1].cells[0].layer1)), A, 'the other torch keeps its timing');
+});
+
+test('a widget part keeps the channel its slot is on, and stamping it joins the Animation tab', () => {
+    const p = animPalette();
+    ui.setPalette(p);
+    ui.editReset(1).on = true;
+    ui.editDraft().families = [115];
+    const s = ui.editAdoptAnimated(p, 2742, TORCH, null);
+    const part = ui.editPartFromWord(p, chrOf(s) | (1 << 10));
+    assert.deepStrictEqual(part.anim, { frames: TORCH.frames, delays: TORCH.delays, init: 0 });
+    assert.strictEqual(ui.editPartFromWord(p, chrOf(ui.editAdoptGraphic(p, 2742, null)) | (1 << 10)).anim, null, 'a still part says so');
+    ui.editReset(1).on = true;
+    ui.editDraft().families = [115];
+    const back = ui.editWordFromPart(p, part);
+    const slot = ((back.word & 0x3ff) >> 5) * 8 + (((back.word & 0x3ff) & 0x1f) >> 1);
+    assert.deepStrictEqual(ui.editAnimOfSlot(p, slot).channels[slot], TORCH.frames);
 });
 
 console.log(`\n  ${passed} passed, ${failed} failed`);

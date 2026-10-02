@@ -120,6 +120,34 @@ if (!fs.existsSync(ROM_PATH)) {
         assert.deepStrictEqual(widgetGraphicFamilies([urn], { loadRom: () => ({ romBuf: null }) }), {});
     });
 
+    test('the canvas animates the slots it is told about, and a ROM room its own channels only', () => {
+        const { buildStampAnimations } = require('../../src/rooms/rendering/stamp-animation');
+        const room = maps.decodeRoom(rom, 0x2d);
+        const base = room.tilePalette.length;
+        const torch = room.animation.findIndex((c) => c.frames[0].tileId === 2742);
+        const word = maps.tileSlotChr(base + torch) | (1 << 10);
+        const entries = [{ layer1: word, layer2: 0, collision: 0 }];
+        const own = buildStampAnimations(rom, room, entries, { columns: 16, layer: 'composite' });
+        assert.ok(own && own.entries.length === 1, 'a ROM room: its own channel moves');
+        const none = buildStampAnimations(rom, room, entries, { columns: 16, layer: 'composite', channels: [] });
+        assert.strictEqual(none, null, 'told about no channels: still, though vanilla animates the graphic');
+        const told = buildStampAnimations(rom, room, entries, { columns: 16, layer: 'composite',
+            channels: [{ slot: base + torch, frames: [2742, 2745], delays: [9, 3] }] });
+        assert.deepStrictEqual(told.entries[0][1], [9, 3]);
+    });
+
+    test('a vanilla object cut out of a room keeps each part’s channel', () => {
+        const moves = (c) => (c.canopy && c.canopy.anim) || (c.terrain && c.terrain.anim);
+        let moving = [];
+        for (const d of rooms.decoIndex(rom)) {
+            moving = (rooms.decoCells(rom, d.id).cells || []).filter(moves);
+            if (moving.length) break;
+        }
+        assert.ok(moving.length > 0, 'a torch’s parts carry their animation');
+        const a = (moving[0].canopy && moving[0].canopy.anim) || moving[0].terrain.anim;
+        assert.ok(a.frames.length > 1 && a.frames.length === a.delays.length);
+    });
+
     test('the canopy tally leaves out each room’s blank canopy word', () => {
         assert.ok(index.canopyCollisions.size > 0);
         // Graphic 489 is drawn as the blank canopy in many rooms; as *real*
@@ -221,13 +249,16 @@ if (!fs.existsSync(ROM_PATH)) {
 
     test('a placed animated tile carries its other frames, rendered with the stamp', () => {
         const room = maps.decodeRoom(rom, 0x34);
-        const slot = room.tilePalette.length; // where the draft's first added graphic lands
+        // Where the draft's first added graphic lands: after Block 1 and the animated tiles.
+        const slot = room.tilePalette.length + room.animatedTiles.length;
         const torch = maps.tileSlotChr(slot) | (1 << 10);
         const still = maps.tileSlotChr(0) | (1 << 10);
-        const p = rooms.buildComposedPreview(rom, 0x34,
-            [{ layer1: still, layer2: still, collision: 0 }, { layer1: torch, layer2: still, collision: 0 }],
-            'composite', { graphics: [2742] });
         const cycle = index.animations.byFirst.get(2742);
+        const stamps = [{ layer1: still, layer2: still, collision: 0 }, { layer1: torch, layer2: still, collision: 0 }];
+        const quiet = rooms.buildComposedPreview(rom, 0x34, stamps, 'composite', { graphics: [2742] });
+        assert.strictEqual(quiet.anim, null, 'no channel says it moves: a still frame');
+        const p = rooms.buildComposedPreview(rom, 0x34, stamps, 'composite',
+            { graphics: [2742], channels: [{ slot, frames: cycle.frames, delays: cycle.delays }] });
         assert.ok(p.anim, 'the torch stamp animates');
         assert.deepStrictEqual(p.anim.entries.map((e) => e[0]), [1], 'only the torch stamp, by its index');
         assert.deepStrictEqual(p.anim.entries[0][1], cycle.delays);

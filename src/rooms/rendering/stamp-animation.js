@@ -8,15 +8,17 @@
 // This renders them the way the game shows them: the same stamps, with each
 // animated slot holding the frame it would hold at step k.
 //
-// Which graphics animate, and with which frames and delays, is vanilla's
-// (maps/vanilla-animation.ts). A graphic that is a later frame starts the
-// cycle at its own place in it. One stamp is timed by its first animated
-// word; a second animated word on the same stamp (rare) steps along with it.
+// Which *slots* animate is said, never guessed from the graphic: a draft
+// sends its channels (the Animation tab, map-editor-animations.js), and a
+// ROM room's are its own Section 2 channels. A graphic vanilla animates
+// elsewhere but placed here as a still frame stays still — that was the
+// "frame 2/3 still plays" bug. One stamp is timed by its first animated
+// word; a second animated word on the same stamp steps along with it.
 //
 // Pure apart from the vanilla index cache. Consumes src/maps.
 
 const maps = require('../../maps');
-const { vanillaIndex } = require('./vanilla-index');
+const { vanillaIndex } = require('./vanilla-index'); // animationFor, for callers that still ask by graphic
 
 /** A guard against a runaway cycle; vanilla's longest (room 0x25) has 24 frames. */
 const MAX_STEPS = 32;
@@ -51,11 +53,24 @@ function animationFor(index, graphic) {
  * @param {{columns:number, layer:string}} opts
  */
 function buildStampAnimations(rom, room, entries, opts) {
-    const index = vanillaIndex(rom);
-    const ids = room.tilePalette.concat(room.animatedTiles);
     const bySlot = new Map();
+    const given = new Map();
+    if (Array.isArray(opts.channels)) {
+        for (const c of opts.channels) {
+            if (c && Array.isArray(c.frames) && c.frames.length > 1) {
+                given.set(Number(c.slot), { frames: c.frames.map(Number), delays: (c.delays || []).map(Number), at: 0 });
+            }
+        }
+    } else {
+        const base = room.tilePalette.length;
+        (room.animation || []).forEach((ch, i) => {
+            if (ch.frames.length > 1) {
+                given.set(base + i, { frames: ch.frames.map((f) => f.tileId), delays: ch.frames.map((f) => f.delay), at: 0 });
+            }
+        });
+    }
     const slotAnim = (slot) => {
-        if (!bySlot.has(slot)) bySlot.set(slot, ids[slot] === undefined ? null : animationFor(index, ids[slot]));
+        if (!bySlot.has(slot)) bySlot.set(slot, given.get(slot) || null);
         return bySlot.get(slot);
     };
 

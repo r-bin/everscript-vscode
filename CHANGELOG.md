@@ -1,3 +1,15 @@
+## [0.110.0] — 2026-10-02
+
+### Added: the Animation tab; a frame picked on its own stays still
+
+- **Animation is per slot, and only where an animation says so.** In the game a Section 2 channel swaps the graphic in one tile slot, so every tile on that slot moves together. The editor now keeps it that way (`map-editor-animations.js`): a slot animates exactly while an animation group lists it. Before, any graphic vanilla animates played wherever it was placed. That was the "frame 2/3 still animates" bug: a frame picked in the Tile tab's `frames` view now lands in a still slot, and a ▶ swatch in the `anim` view in a slot of its own that moves at vanilla's timing. One graphic can sit in several slots (still, timing A, timing B), as vanilla does.
+- **The Animation tab**, after Collision. One row per animation on the map, named by its lowest graphic and its timing letter (A, B, C…). The open row is the timing editor: each frame's hold in 60 Hz ticks, the initial countdown, + Frame / − Frame, and **New timing** (the same animation on slots of its own). The pencil drags out a rectangle that becomes a new animation (the top art of each cell moves to slots of its own, so the rest of the map stays still), and with a row open on frame 1 or later it paints that frame. ▶ tiles from the Tile tab appear here while they are on the map. The tab shows the channel count against 42, vanilla's most.
+- **Vanilla rooms list their own animations**: the room's channels, grouped where their cells touch and their timing matches (a torch's two halves, a pool of water), with the same animation at another timing as another letter.
+- **Placed widgets get timing chips** (A/B/C) beside their colourings, to move a placed torch onto another timing.
+- **The widget timeline is gone.** A widget is its cells. Each part keeps the channel its art moved on (`anim`), and stamping it brings that animation into the map's Animation tab. Vanilla objects cut from rooms keep their parts' channels too.
+- **Host:** the canvas renders the channels it is told (`channels` on the composed preview; a ROM room's own channels by default), and Export ROM writes exactly the draft's channels, with their delays and initial countdown (`planCustomAnimation` explicit channels). A draft from before falls back to vanilla's cycles.
+- The tab strip spreads its eight tabs across the dock instead of overflowing it.
+
 ## [0.109.0] — 2026-10-02
 
 ### Changed: widgets lose hand-made variations; animation is opt-in; colourings recolour every state and frame

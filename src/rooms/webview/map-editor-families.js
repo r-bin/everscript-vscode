@@ -294,7 +294,10 @@ function editUseFamilyTile(graphicId, family) {
   var got = editPlanFamilyFor(family);
   if (!got.ok) { editNote(got.why); renderEditPanels(); return; }
 
-  var slot = editAdoptGraphic(_mtPalette, graphicId);
+  // `anim` view: animated, on the Animation tab (map-editor-animations.js); `frames`: a still tile.
+  var cyc = !_tileFramesSplit && _famSheets[family] && (_famSheets[family].animations || {})[graphicId];
+  var slot = cyc ? editAdoptAnimated(_mtPalette, graphicId, { frames: cyc.frames, delays: cyc.delays }, _animSel)
+    : editAdoptGraphic(_mtPalette, graphicId, null);
   if (slot < 0) { editNote('no tile sheet loaded yet'); return; }
   // The palette field is 1..7 and matches the slot the family sits in; the
   // two mirror bits ride along on top of it (map-editor-tiles.js's
@@ -302,9 +305,7 @@ function editUseFamilyTile(graphicId, family) {
   // graphic in this family).
   var word = (editSlotChr(slot) | ((got.slot + 1) << 10) | editBrushFlipBits()) & 0xffff;
   var prefer = _layerForce || editLayerPreference(graphicId);
-  // The collision vanilla gives this graphic on that layer — its shape,
-  // on plane 0, or the stairs flag for stair art (map-editor-collision.js).
-  // Open when vanilla never drew it.
+  // Vanilla's collision for this graphic on that layer, open if never drawn (map-editor-collision.js).
   var sheet = _famSheets[family];
   var row = null;
   if (sheet && sheet.slots) for (var r = 0; r < sheet.slots.length; r++) if (sheet.slots[r][2] === graphicId) { row = sheet.slots[r]; break; }

@@ -1,6 +1,6 @@
-// Ownership: a widget's stored shape and its colourings. Stored: `cells`
-// (frame 0), `frames`, `animated`. Colourings (`variations`) are derived from
-// the art, never stored or painted: one per family vanilla draws any of its
+// Ownership: a widget's stored shape and its colourings. Stored: `cells`,
+// each part with the channel it moves on (`anim`) or none. Colourings
+// (`variations`) are derived from the art, never stored or painted: one per family vanilla draws any of its
 // graphics in, read off what the host sends with the library
 // (`graphicFamilies`, rooms/custom-host.js). Split out of
 // map-editor-widgets.js.
@@ -40,42 +40,43 @@ function widgetCellsInFamily(cells, fam) {
   return (cells || []).map(function (c) {
     return {
       dx: c.dx, dy: c.dy,
-      canopy: c.canopy ? { graphic: c.canopy.graphic, family: fam, flags: c.canopy.flags || 0 } : null,
-      terrain: c.terrain ? { graphic: c.terrain.graphic, family: fam, flags: c.terrain.flags || 0 } : null,
+      canopy: c.canopy ? Object.assign({}, c.canopy, { family: fam, flags: c.canopy.flags || 0 }) : null,
+      terrain: c.terrain ? Object.assign({}, c.terrain, { family: fam, flags: c.terrain.flags || 0 }) : null,
       collision: c.collision,
+      special: c.special,
     };
   });
 }
 
-/** A variation with no cell in any frame: an unpainted "+ Var" from before they went. */
-function widgetVarEmpty(v) {
-  return !(v.frames || []).some(function (f) { return (f.cells || []).length; });
-}
-
 /**
- * The widget's own frames — what its canvas edits. A library saved while
- * variations were hand-made keeps the first one with art (a hand-made one
- * before a generated colouring); their other variations were colourings or
- * empty, and colourings are derived now.
+ * The cells a widget stamps. A library from before keeps frame 0 of its
+ * first variation with art (a hand-made one before a generated colouring);
+ * its other frames are gone — animation is the Animation tab's now.
  */
-function widgetBaseFrames(w) {
-  if (Array.isArray(w.frames) && w.frames.length) return w.frames;
-  var vars = (w.variations || []).filter(function (v) { return !widgetVarEmpty(v); });
+function widgetBaseCells(w) {
+  var hasArt = function (f) { return f && (f.cells || []).length; };
+  if ((w.cells || []).length) return w.cells;
+  var fr = (w.frames || []).filter(hasArt)[0];
+  if (fr) return fr.cells;
+  var vars = (w.variations || []).filter(function (v) { return (v.frames || []).some(hasArt); });
   var own = vars.filter(function (v) { return !/^fam-\d+$/.test(v.id); })[0] || vars[0];
-  if (own && own.frames && own.frames.length) return own.frames;
-  return [{ cells: w.cells || [], delay: 8 }];
+  return own ? own.frames.filter(hasArt)[0].cells : [];
 }
 
-/** A widget as it arrives from the host, in the stored shape (`frames`, `animated`, no `variations`). */
+/** A widget as it arrives from the host, in the stored shape: cells, no frames or variations. */
 function widgetNormalize(w) {
   if (!w) return w;
-  var frames = widgetBaseFrames(w);
-  w.frames = frames;
-  w.cells = frames[0].cells || [];
-  if (w.animated == null) w.animated = frames.length > 1;
+  w.cells = widgetBaseCells(w);
+  delete w.frames;
+  delete w.animated;
   delete w.variations;
   delete w.activeVariation;
   return w;
+}
+
+/** Whether any of a widget's tiles moves (`anim` on a cell part). */
+function widgetAnimated(w) {
+  return (w.cells || []).some(function (c) { return (c.canopy && c.canopy.anim) || (c.terrain && c.terrain.anim); });
 }
 
 /** A widget's triggers and objects with every object state recoloured into `fam`. */
@@ -91,18 +92,16 @@ function widgetAttachmentsInFamily(a, fam) {
 
 /**
  * A widget's colourings, derived: one per family vanilla draws its art in
- * (`fam-<id>`), with every animation frame and every object state recoloured
- * — not only the tiles it stamps. None when its art has one family, or the
- * families are not known yet.
+ * (`fam-<id>`), with every object state recoloured too — not only the tiles
+ * it stamps. None when its art has one family, or the families are not
+ * known yet.
  */
 function widgetEnsureVariations(w) {
   if (!w || w.variations) return;
-  var base = widgetBaseFrames(w);
-  var fams = widgetAttestedFamilies(base[0].cells || w.cells);
+  var fams = widgetAttestedFamilies(w.cells);
   if (!fams || fams.length < 2) return;
   w.variations = fams.map(function (fam) {
-    return { id: 'fam-' + fam, name: '#' + fam,
-      frames: base.map(function (f) { return { cells: widgetCellsInFamily(f.cells, fam), delay: f.delay != null ? f.delay : 8 }; }),
+    return { id: 'fam-' + fam, name: '#' + fam, cells: widgetCellsInFamily(w.cells, fam),
       attachments: widgetAttachmentsInFamily(w.attachments, fam) };
   });
 }

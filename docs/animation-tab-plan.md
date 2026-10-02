@@ -1,7 +1,10 @@
 # Animation tab — plan
 
 Requested 2026-10-02. Phase 1 (widget clean-up) shipped in v0.109.0; Phase 2
-is this document. Evidence: a census of all 1020 Section 2 channels
+shipped in v0.110.0 as described below, with the user's answers (2026-10-02):
+the frame controller lives only in the Animation tab (the widget timeline is
+gone); ▶ tiles land in the tab while on the map; outside the timing editor a
+timing is only its letter A/B/C; colouring limits stay as they are. Evidence: a census of all 1020 Section 2 channels
 (docs/map-format/map_animated_tiles.md for the format).
 
 ## What the ROM allows, and what vanilla does with it
@@ -53,7 +56,16 @@ frames as layers over it (frame 0 is what the map shows), plus
   the phases (start frames) and the delay patterns vanilla attests for that
   cycle.
 
-## Open questions
+## Known gaps (v0.110.0)
+
+- A ROM room's own stamps draw their later frames from the host's render of
+  the room's channels. Painting a new frame into one of the room's own groups
+  changes the data and the export, but the canvas shows it only on stamps the
+  draft made (the composed preview). Timing edits show everywhere.
+- The initial countdown is drawn as a phase shift; the first loop's longer
+  frame 0 is not.
+
+## Questions asked on 2026-10-02 (answered above)
 
 1. The widget timeline: removed entirely in favour of an animation group on
    the widget's canvas (as above)?
