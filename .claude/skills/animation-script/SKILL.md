@@ -1,0 +1,1 @@
+../../../.github/instructions/animation-script.instructions.md

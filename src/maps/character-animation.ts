@@ -17,6 +17,7 @@
 
 import { snesToRom, readByte } from './rom';
 import { animationScript, read16At, FACING_SOUTH, ATTACK_FIELDS } from './character-record';
+import { opcode } from './animation-opcodes';
 
 /** Byte at a SNES address. */
 const at = (rom: Uint8Array, snes: number): number => readByte(rom, snesToRom(snes));
@@ -64,7 +65,8 @@ const COMMAND_MASK = 0x7f;
 const END_FRAME = 0x80;
 
 /**
- * Total length of each command, keyed by its masked opcode.
+ * Total length of each command. The widths now live in ./animation-opcodes,
+ * the one table every walker shares; how they were established:
  *
  * Measured from the traces, but no longer by pairing consecutive reads —
  * that method has to throw away every pair that crosses a frame boundary,
@@ -112,17 +114,6 @@ const END_FRAME = 0x80;
  * jump and is left out for the same reason: stepping over it reads the wrong
  * bytes. Every opcode is listed in docs/script-format/animation_script.md.
  */
-const COMMAND_LENGTH: Record<number, number> = {
-    0x00: 1, 0x1f: 3, 0x21: 1, 0x2c: 4, 0x2e: 2, 0x32: 4,   // 0x2c: the shadow slot
-    0x38: 2, 0x40: 3, 0x41: 1, 0x42: 2, 0x43: 1, 0x44: 1,
-    0x45: 3, 0x46: 3, 0x47: 5, 0x48: 1, 0x49: 3, 0x4a: 3,   // 0x48-0x4a: attack / weapon commands
-    0x4b: 3, 0x4c: 6, 0x4d: 3, 0x4e: 1, 0x4f: 1, 0x50: 5,
-    0x52: 1, 0x53: 1, 0x54: 3, 0x58: 1, 0x59: 1,            // 0x58-0x59: attack commands
-    0x5a: 2, 0x5b: 1, 0x5d: 1,
-    0x30: 1, 0x3f: 3, 0x56: 3,                               // 0x30/0x56 ring-menu icons; 0x3f sound fx; 0x5d flags
-    0x31: 3, 0x33: 5, 0x34: 6, 0x35: 3, 0x36: 4, 0x37: 2,   // entity-variable stores and adds
-    0x39: 4, 0x3a: 4,                                        // dec-and-jump / jump-if-positive: fall through when walked
-};
 
 const STRIKE = 0x47;
 const STRIKE_LENGTH = 5;
@@ -167,7 +158,6 @@ const LOOP = 0x2d;
 const HOLD_FIRST = 0x01;          // $90836C: hold for `cmd` ticks
 const HOLD_LAST = 0x1e;
 const HOLD_OPERAND = 0x20;        // $90835A: hold for the next byte's ticks
-const HOLD_OPERAND_LENGTH = 2;
 
 const MAX_COMMANDS = 64;
 
@@ -195,12 +185,13 @@ export function resolveCharacterSprite(
     return secondary;
 }
 
-/** Bytes this command occupies, or 0 when its width is not known. */
+/**
+ * Bytes this command occupies, or 0 to stop a linear walk: an unknown width,
+ * or an unconditional jump, which a linear walk must not step over.
+ */
 function commandLength(cmd: number): number {
-    if (cmd >= HOLD_FIRST && cmd <= HOLD_LAST) return 1;
-    if (cmd === HOLD_OPERAND) return HOLD_OPERAND_LENGTH;
-    if (cmd >= SET_SPRITE_FIRST && cmd <= SET_SPRITE_LAST) return 3;
-    return COMMAND_LENGTH[cmd] ?? 0;
+    const o = opcode(cmd);
+    return !o || o.kind === 'jump' ? 0 : o.length;
 }
 
 /** One frame of an idle animation. */

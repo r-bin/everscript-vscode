@@ -653,3 +653,51 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Animation Script panel ── */
+.sp-script-panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--vscode-sideBar-background, #1e1e1e);
+  border: 1px solid var(--vscode-panel-border, #333);
+  border-radius: 4px;
+  padding: 12px;
+  margin: 16px 16px 0;
+  min-width: 0;
+}
+
+.sp-script-owners {
+  font-size: 11px;
+  opacity: 0.85;
+  margin-bottom: 8px;
+  overflow-wrap: anywhere;
+}
+
+.sp-script-wrap {
+  max-height: 260px;
+  overflow: auto;
+  position: relative;
+  border: 1px solid var(--vscode-panel-border, #333);
+  border-radius: 3px;
+}
+
+.sp-script-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 12px;
+}
+
+.sp-script-table td {
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+
+.sp-script-addr { opacity: 0.55; }
+.sp-script-bytes { opacity: 0.7; }
+.sp-script-end td { border-bottom: 1px dashed var(--vscode-panel-border, #444); }
+.sp-script-unknown .sp-script-text { color: var(--vscode-errorForeground, #f48771); }
+
+.sp-script-hot {
+  background: var(--vscode-editor-selectionBackground, rgba(38, 79, 120, 0.6));
+}

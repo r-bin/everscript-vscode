@@ -6,7 +6,7 @@
 const indexJson = require('../language/data/index.json');
 const { snesToRom } = require('../maps/dist/rom');
 const { paletteAt } = require('../maps/dist/character-record');
-const { walkAnimationScript } = require('../maps/dist/character-animation');
+const { runAnimation, animationIdRecord } = require('../maps/dist/animation-vm');
 
 const CHARACTER_TABLE = 0x8eb678;
 const CHARACTER_STRIDE = 74;
@@ -15,7 +15,6 @@ const CHARACTER_COUNT = 142;
 const BOY_NAME_PTR = 0x7e2210;
 const DOG_NAME_PTR = 0x7e2234;
 
-const EXTERNAL_ANIM_TABLE = 0x910000;
 const ANIMATION_RECORD_TABLE = 0xc40000;
 
 const WEAPONS_BASE = 0x0438e6;
@@ -52,14 +51,12 @@ const WEAPON_ANIM_OFFSETS = [
     { key: 'w_damage', label: 'Damage', offset: 0x18 },
 ];
 
+/** A script in the animation banks that draws at least one sprite when run. */
 function isValidAnimationScript(rom, scriptAddr) {
     if (!scriptAddr) return false;
     const bank = (scriptAddr >> 16) & 0xff;
     if (bank < 0xc4 || bank > 0xce) return false;
-    const o = snesToRom(scriptAddr);
-    if (o < 0 || o >= rom.length) return false;
-    const walk = walkAnimationScript(rom, scriptAddr);
-    return Boolean(walk.frames && walk.frames.length > 0);
+    return runAnimation(rom, scriptAddr).frames.some((f) => f.sprite);
 }
 
 function readWeaponAnimations(rom, weaponIdx) {
@@ -209,8 +206,8 @@ function getExternalAnimations(rom, characterId, characterName) {
                     flags = rom[snesToRom(ANIMATION_RECORD_TABLE + animRec + 3)];
                 }
             } else {
-                // External opcode table lookup at $910000 + num
-                animRec = read16At(rom, EXTERNAL_ANIM_TABLE + num);
+                // Global id: $8CE13C reads the record from $C43C92 + id
+                animRec = animationIdRecord(rom, num);
                 if (animRec) {
                     scriptAddr = (read16At(rom, ANIMATION_RECORD_TABLE + animRec) |
                         (rom[snesToRom(ANIMATION_RECORD_TABLE + animRec + 2)] << 16)) >>> 0;

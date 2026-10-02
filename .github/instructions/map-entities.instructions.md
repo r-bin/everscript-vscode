@@ -57,6 +57,8 @@ separate questions.
 - Command lengths come from a trace or the handler's disassembly, **never a
   guess**. `0x57` is still unknown; a walk that meets it stops and says so.
 - `0x2D` loops: a walk that reaches it has seen the whole cycle.
+- The full language, the record and id tables, and the interpreter are the
+  `animation-script` skill.
 
 ## 5. Damage
 

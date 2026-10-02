@@ -113,13 +113,17 @@ if (!rom) {
         assert(anim.frames[0].chunks.length > 0);
     });
 
-    test('renderAnimation renders external Magmar enter animation (22 frames, opcode 0x78)', () => {
+    test('renderAnimation renders Magmar enter through the $C43C92 id table (opcode 0x78)', () => {
         const magmar = readCharacter(rom, 140);
         const ext = magmar.anims.find(a => a.key === 'MAGMAR_ENTER');
         assert(ext);
+        // Record $4DD2 sits among Magmar's own records ($4DCA..$4DE6). The old
+        // $910000 lookup read font graphics and landed on an unrelated record.
+        assert.strictEqual(ext.animRec, 0x4dd2);
         const anim = renderAnimation(rom, 140, ext, 8);
         assert(anim, 'Magmar enter animation failed to decode');
-        assert.strictEqual(anim.frames.length, 22, 'Magmar enter should decode 22 frames');
+        assert.strictEqual(anim.frames.length, 15, 'Magmar enter should decode 15 frames');
+        assert.strictEqual(anim.complete, true);
         assert(anim.width > 0);
         assert(anim.height > 0);
         assert(anim.frames[0].png.startsWith('data:image/png;base64,'));
@@ -162,23 +166,116 @@ if (!rom) {
         // Render Bone Crusher atk0 with opcode 0x48 support and strikeBox extraction
         const rendered = renderAnimation(rom, 0, atk0, 0);
         assert(rendered, 'Bone Crusher atk0 should decode successfully');
-        assert.strictEqual(rendered.frames.length, 4);
+        // The strike runs before the hold, so the game tests it on one tick only:
+        // the pose is a 1-tick striking frame followed by 6 ticks without.
+        assert.strictEqual(rendered.frames.length, 5);
         assert.strictEqual(rendered.frames[0].strikeBox, null);
         assert(rendered.frames[1].strikeBox, 'Frame 1 should declare active strike box');
+        assert.strictEqual(rendered.frames[1].ticks, 1);
+        assert.strictEqual(rendered.frames[2].strikeBox, null);
+        assert.strictEqual(rendered.frames[2].spriteAddr, rendered.frames[1].spriteAddr);
         assert.strictEqual(rendered.frames[1].strikeBox.dx, -2);
         assert.strictEqual(rendered.frames[1].strikeBox.dy, -9);
         assert.strictEqual(rendered.frames[1].strikeBox.width, 26);
         assert.strictEqual(rendered.frames[1].strikeBox.height, 11);
     });
 
-    test('external animations filter purges font tile bitplanes (e.g. Dog ACT3_FALL_2)', () => {
+    test('global animation ids resolve through $C43C92, not the font bank', () => {
+        // Dog ACT3_FALL_2 (0x66) read font bitplanes through $910000; the real
+        // id table gives it record $449E, a two-frame animation.
         const dog = readCharacter(rom, 1);
-        const fontGarbage = dog.anims.find(a => a.key === 'ACT3_FALL_2');
-        assert.strictEqual(fontGarbage, undefined, 'Dog should not have font tile garbage animation');
+        const fall = dog.anims.find(a => a.key === 'ACT3_FALL_2');
+        assert(fall, 'Dog ACT3_FALL_2 should resolve to a real record');
+        assert.strictEqual(fall.animRec, 0x449e);
 
         const magmar = readCharacter(rom, 140);
         const magmarEnter = magmar.anims.find(a => a.key === 'MAGMAR_ENTER');
         assert(magmarEnter, 'Magmar should retain valid MAGMAR_ENTER external animation');
+    });
+}
+
+if (rom) {
+    const { runAnimation, animationGroups, animationIdRecord, ANIMATION_ID_COUNT } = require('../../src/maps/dist/animation-vm');
+    const { disassembleScript } = require('../../src/maps/dist/animation-opcodes');
+    const { walkAnimationScript } = require('../../src/maps/dist/character-animation');
+    const { animationScript } = require('../../src/maps/dist/character-record');
+    const { buildAnimationCatalog } = require('../../src/sprites');
+
+    test('record table splits into 783 animations over 1752 records', () => {
+        const groups = animationGroups(rom);
+        assert.strictEqual(groups.length, 783);
+        assert.strictEqual(groups.reduce((n, g) => n + g.scripts.length, 0), 1752);
+        assert.strictEqual(groups.filter(g => g.facings.length === 4).length, 274);
+        assert.strictEqual(groups.filter(g => g.facings.length === 8).length, 21);
+    });
+
+    test('every character field and global id points at a group head', () => {
+        const heads = new Set(animationGroups(rom).map(g => g.record));
+        for (let c = 0; c < CHARACTER_COUNT; c++) {
+            for (const a of readCharacter(rom, c).anims) {
+                if (a.category === 'standard') assert(heads.has(a.animRec), `char ${c} ${a.key}`);
+            }
+        }
+        assert.strictEqual(ANIMATION_ID_COUNT, 212);
+        let onHead = 0;
+        for (let id = 0; id < ANIMATION_ID_COUNT * 2; id += 2) if (heads.has(animationIdRecord(rom, id))) onHead++;
+        assert(onHead >= 210, `only ${onHead} ids land on a head`);
+    });
+
+    test('the interpreter agrees with the linear walk on idles without strikes', () => {
+        let agree = 0;
+        for (let c = 0; c < CHARACTER_COUNT; c++) {
+            const s = animationScript(rom, c, 8, 0x32);
+            if (!s) continue;
+            const walk = walkAnimationScript(rom, s).frames.map(f => f.sprite + ':' + f.ticks).join(' ');
+            const run = runAnimation(rom, s).frames.filter(f => f.sprite !== null).map(f => f.sprite + ':' + f.ticks).join(' ');
+            if (walk === run) agree++;
+        }
+        assert(agree >= 137, `only ${agree} idles agree`);
+    });
+
+    test('a counted loop repeats: Flowering Death attack strikes twice per loop', () => {
+        const run = runAnimation(rom, 0xc701dc);
+        assert.strictEqual(run.complete, true);
+        const deep = run.frames.filter(f => f.strikeBox && f.strikeBox.dy === 34);
+        assert.strictEqual(deep.length, 2, 'the dec_jnz body should run twice');
+    });
+
+    test('a hold is a checkpoint: Mosquito steps on every tick of its hold', () => {
+        const run = runAnimation(rom, 0xc80d24);
+        assert.strictEqual(run.frames[0].sprite, 0xcc5b38);
+        assert.strictEqual(run.frames[0].step, 4);   // hold 2, step 2 each tick
+    });
+
+    test('the invisible helper script runs but draws nothing', () => {
+        const run = runAnimation(rom, 0xc70080);
+        assert.strictEqual(run.complete, true);
+        assert(run.frames.every(f => f.sprite === null));
+    });
+
+    test('disassembler lists the Flowering Death loop in the doc notation', () => {
+        const text = disassembleScript(rom, 0xc701dc).map(l => l.text);
+        assert(text.includes('set var[$7e], 2'));
+        assert(text.includes('dec_jnz var[$7e], $c701f5'));
+        assert(text.includes('end_check!'));
+        assert.strictEqual(text[text.length - 1], 'loop');
+    });
+
+    test('animation catalogue covers every record with owners and a palette', () => {
+        const cat = buildAnimationCatalog(rom, readAllCharacters(rom));
+        assert.strictEqual(cat.length, 783);
+        const magmar = cat.find(a => a.record === 0x4dd2);
+        assert(magmar.owners.some(o => o.kind === 'id' && o.names.includes('MAGMAR_ENTER')));
+        assert.strictEqual(readCharacter(rom, magmar.paletteCharacter).name, 'Magmar');  // 87 and 140 are both Magmar
+        const stand = cat.find(a => a.record === readCharacter(rom, 140).anims.find(x => x.key === 'stand').animRec);
+        assert(stand.owners.some(o => o.kind === 'character' && o.id === 140));
+    });
+
+    test('renderAnimation returns a script listing with frame line addresses', () => {
+        const anim = renderAnimation(rom, 140, { category: 'external', animRec: 0x4dd2 }, 0);
+        assert(anim.script.length > 10);
+        const addrs = new Set(anim.script.map(l => l.address));
+        assert(anim.frames.every(f => f.lines.every(a => addrs.has(a))));
     });
 }
 

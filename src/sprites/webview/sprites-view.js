@@ -4,7 +4,9 @@
   var vsApi = (typeof vs !== 'undefined' && vs) ? vs : (typeof acquireVsCodeApi === 'function' ? (function() { try { return acquireVsCodeApi(); } catch(e) { return null; } })() : null);
 
   // State variables
-  var currentMode = 'chars'; // 'chars' or 'raw'
+  var currentMode = 'chars'; // 'chars', 'anims' or 'raw'
+  var pinnedRecord = null;   // Animations mode: the catalogue entry being played
+  var requestedRecord = 0;   // the record behind the last animation request
   var charFilter = 'all';
   var selectedCharId = 0;
   var selectedAnimKey = 'w_atk0';
@@ -30,6 +32,8 @@
   // DOM Elements
   var btnChars = document.getElementById('sp-btn-mode-chars');
   var btnRaw = document.getElementById('sp-btn-mode-raw');
+  var btnAnims = document.getElementById('sp-btn-mode-anims');
+  var script = (typeof window !== 'undefined' && window.SpritesScript) || null;
   var charView = document.getElementById('sp-char-view');
   var rawView = document.getElementById('sp-raw-view');
   var charFilters = document.getElementById('sp-char-filters');
@@ -79,15 +83,42 @@
     currentMode = mode;
     if (btnChars) btnChars.classList.toggle('sp-active', mode === 'chars');
     if (btnRaw) btnRaw.classList.toggle('sp-active', mode === 'raw');
-    if (charView) charView.style.display = mode === 'chars' ? 'flex' : 'none';
+    if (btnAnims) btnAnims.classList.toggle('sp-active', mode === 'anims');
+    if (charView) charView.style.display = mode === 'chars' || mode === 'anims' ? 'flex' : 'none';
     if (rawView) rawView.style.display = mode === 'raw' ? 'flex' : 'none';
     if (charFilters) charFilters.style.display = mode === 'chars' ? 'flex' : 'none';
+    if (animSel) animSel.disabled = mode === 'anims';
     renderList();
     if (mode === 'raw') loadRawSprite(selectedRawAddr);
+    if (mode === 'chars' && pinnedRecord) { pinnedRecord = null; selectCharacter(selectedCharId); }
+    if (mode === 'anims' && !pinnedRecord && script && script.count()) {
+      selectAnimationRecord(script.findRecord(getAnimationsFirst()));
+    }
+  }
+
+  function getAnimationsFirst() {
+    var all = (typeof SPRITES_ANIMATIONS !== 'undefined' ? SPRITES_ANIMATIONS : []) || [];
+    return all.length ? all[0].record : null;
+  }
+
+  /** Animations mode: play one catalogue record, drawn in its owner's palette. */
+  function selectAnimationRecord(entry) {
+    if (!entry) return;
+    pinnedRecord = entry;
+    selectCharacter(entry.paletteCharacter);
+    var nameEl = document.getElementById('sp-char-name');
+    if (nameEl) nameEl.textContent = entry.label + ' (' + entry.recHex + ')';
+    if (weaponGroup) weaponGroup.style.display = 'none';
+    if (listEl) {
+      listEl.querySelectorAll('.sp-list-item').forEach(function(el) {
+        el.classList.toggle('sp-selected', parseInt(el.dataset.record) === entry.record);
+      });
+    }
   }
 
   if (btnChars) btnChars.addEventListener('click', function() { setMode('chars'); });
   if (btnRaw) btnRaw.addEventListener('click', function() { setMode('raw'); });
+  if (btnAnims) btnAnims.addEventListener('click', function() { setMode('anims'); });
 
   // ── Search & Filters ────────────────────────────────────────────────────────
   if (searchInput) {
@@ -115,6 +146,11 @@
     var chars = getCharacters();
     if (chipAll && chars && chars.length) {
       chipAll.textContent = 'All (' + chars.length + ')';
+    }
+
+    if (currentMode === 'anims') {
+      if (script) script.renderCatalogList(listEl, q, pinnedRecord ? pinnedRecord.record : null, selectAnimationRecord);
+      return;
     }
 
     if (currentMode === 'chars') {
@@ -187,7 +223,7 @@
     selectedCharId = c.id;
 
     // Update list selection highlight
-    if (listEl) {
+    if (listEl && currentMode === 'chars') {
       listEl.querySelectorAll('.sp-list-item').forEach(function(el) {
         el.classList.toggle('sp-selected', parseInt(el.dataset.id) === selectedCharId);
       });
@@ -335,13 +371,17 @@
     if (!c) return;
 
     var animOpt = null;
-    if (c.id === 0 && c.weapons && c.weapons[selectedWeaponId]) {
+    if (currentMode === 'anims' && pinnedRecord) {
+      animOpt = { key: 'record', category: 'external', animRec: pinnedRecord.record };
+    }
+    if (!animOpt && c.id === 0 && c.weapons && c.weapons[selectedWeaponId]) {
       animOpt = (c.weapons[selectedWeaponId].anims || []).find(function(a) { return a.key === selectedAnimKey; });
     }
     if (!animOpt) {
       animOpt = (c.anims || []).find(function(a) { return a.key === selectedAnimKey; });
     }
     if (!animOpt) animOpt = { key: 'stand', offset: 0x32 };
+    requestedRecord = animOpt.animRec || 0;
 
     if (vsApi) {
       vsApi.postMessage({
@@ -485,7 +525,15 @@
 
   // ── Update Frame & Canvas Drawing ───────────────────────────────────────────
   function updateFrameUI() {
-    if (!currentAnimData || !currentAnimData.frames.length) return;
+    if (!currentAnimData || !currentAnimData.frames.length) {
+      // No script, or a script that draws nothing: clear what the last one left.
+      if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (frameInfo) frameInfo.textContent = currentAnimData ? 'Draws nothing' : 'No animation';
+      if (spriteAddrLink) spriteAddrLink.textContent = '—';
+      renderChunks([]);
+      if (script) script.highlight(null);
+      return;
+    }
     var cur = currentAnimData.frames[currentFrameIdx];
     if (!cur) return;
 
@@ -495,15 +543,17 @@
     }
 
     if (frameInfo) {
-      frameInfo.textContent = 'Frame ' + (currentFrameIdx + 1) + '/' + currentAnimData.frames.length + ' (' + cur.ticks + ' ticks)';
+      frameInfo.textContent = 'Frame ' + (currentFrameIdx + 1) + '/' + currentAnimData.frames.length + ' (' + cur.ticks + ' ticks' +
+        (cur.random ? ', random ' + cur.random[0] + '–' + cur.random[1] : '') + ')';
     }
 
     if (spriteAddrLink) {
       spriteAddrLink.textContent = cur.spriteHex;
     }
 
-    // Update Chunks table for current frame
+    // Update Chunks table and the script lines behind this frame
     renderChunks(cur.chunks || []);
+    if (script) script.highlight(cur);
 
     // Draw canvas
     drawFrame();
@@ -686,6 +736,10 @@
         currentAnimData = data.animation;
         currentFrameIdx = 0;
         tickCounter = 0;
+        if (script) {
+          script.renderScript(currentAnimData);
+          script.renderOwners(currentMode === 'anims' ? pinnedRecord : script.findRecord(requestedRecord));
+        }
         updateFrameUI();
       } else if (data.command === 'rawSpriteData') {
         var s = data.sprite;

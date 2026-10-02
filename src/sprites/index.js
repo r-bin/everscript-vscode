@@ -5,6 +5,7 @@ const { readCharacter, readAllCharacters, CHARACTER_TABLE, CHARACTER_COUNT } = r
 const { renderAnimation, resolveExternalScript } = require('./animation-decoder');
 const { getRawSpriteIndex, renderRawSprite, SPRITE_LIST_START } = require('./raw-sprites');
 const { buildSpritesTabHtml } = require('./sprites-tab');
+const { buildAnimationCatalog } = require('./animation-catalog');
 
 module.exports = {
     readCharacter,
@@ -17,4 +18,5 @@ module.exports = {
     renderRawSprite,
     SPRITE_LIST_START,
     buildSpritesTabHtml,
+    buildAnimationCatalog,
 };

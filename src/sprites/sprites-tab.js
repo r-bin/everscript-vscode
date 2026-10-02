@@ -13,6 +13,7 @@ function buildSpritesTabHtml() {
     <div class="sp-rail">
       <div class="sp-mode-bar">
         <button class="sp-mode-btn sp-active" data-mode="chars" id="sp-btn-mode-chars">Characters</button>
+        <button class="sp-mode-btn" data-mode="anims" id="sp-btn-mode-anims" title="Every animation in the ROM's record table">Animations</button>
         <button class="sp-mode-btn" data-mode="raw" id="sp-btn-mode-raw">Sprites</button>
       </div>
 
@@ -132,6 +133,20 @@ function buildSpritesTabHtml() {
               <span class="sp-label">Sprite:</span>
               <span class="sp-sprite-link" id="sp-cur-sprite-addr" title="Click to view in Raw Sprites tab">$000000</span>
             </div>
+          </div>
+        </div>
+
+        <!-- Animation script: the bytecode behind the playing animation -->
+        <div class="sp-script-panel">
+          <div class="sp-col-title">
+            <span>Animation Script</span>
+            <span class="sp-col-sub" id="sp-script-status"></span>
+          </div>
+          <div class="sp-script-owners" id="sp-script-owners"></div>
+          <div class="sp-script-wrap" id="sp-script-wrap">
+            <table class="sp-script-table" id="sp-script-table">
+              <tbody id="sp-script-body"></tbody>
+            </table>
           </div>
         </div>
 

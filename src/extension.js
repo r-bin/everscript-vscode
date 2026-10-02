@@ -101,10 +101,12 @@ function invalidateRoomCaches() {
 
 function getSpritesBundle(rom) {
     if (_spritesBundle) return _spritesBundle;
-    if (!rom) return { characters: [], rawIndex: [] };
+    if (!rom) return { characters: [], rawIndex: [], animations: [] };
+    const characters = readAllCharacters(rom);
     _spritesBundle = {
-        characters: readAllCharacters(rom),
+        characters,
         rawIndex: getRawSpriteIndex(rom),
+        animations: buildAnimationCatalog(rom, characters),
     };
     return _spritesBundle;
 }
@@ -152,7 +154,7 @@ const romReaders = require('./shared/rom-readers');
 const { readPngDimensions, readRomTriggerOffsets, readRomMapHeader, readRomCharacters, readRomHitLookup, detectScaleEnemies } = romReaders;
 
 const { renderRadarHtml } = require('./memory/render-radar');
-const { readAllCharacters, getRawSpriteIndex, renderAnimation, renderRawSprite } = require('./sprites');
+const { readAllCharacters, getRawSpriteIndex, renderAnimation, renderRawSprite, buildAnimationCatalog } = require('./sprites');
 
 // ── Activation ────────────────────────────────────────────────────────────────
 

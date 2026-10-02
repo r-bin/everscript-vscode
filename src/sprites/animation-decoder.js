@@ -1,8 +1,9 @@
 'use strict';
-// Ownership: animation script execution, frame alignment, and strike box extraction for the Sprites tab. Pure.
+// Ownership: running an animation script, aligning and rendering its frames, and its script listing for the Sprites tab. Pure.
 
 const { animationScript, characterPalette, FACING_SOUTH, ANIMATION_TABLE } = require('../maps/dist/character-record');
-const { walkAnimationScript, strikeBoxes } = require('../maps/dist/character-animation');
+const { runAnimation } = require('../maps/dist/animation-vm');
+const { disassembleScript } = require('../maps/dist/animation-opcodes');
 const { readSpriteInfo, composeSprite } = require('../maps/dist/sprites');
 const { encodePng } = require('../maps/dist/png');
 const { snesToRom } = require('../maps/dist/rom');
@@ -50,16 +51,19 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
 
     if (!scriptAddr) return null;
 
-    const walk = walkAnimationScript(rom, scriptAddr);
-    if (!walk.frames || !walk.frames.length) return null;
+    // Run the script the way the engine does: holds are checkpoints, counted
+    // loops repeat, and a strike lasts exactly the ticks that run it.
+    const run = runAnimation(rom, scriptAddr);
+    const script = scriptListing(rom, scriptAddr);
+    if (!run.frames.length) {
+        return { width: 0, height: 0, originX: 0, originY: 0, complete: run.complete, scriptAddr,
+            scriptHex: hex6(scriptAddr), frames: [], strikeBoxes: [], script, totalTicks: run.totalTicks,
+            stoppedAtHex: run.stoppedAt ? hex6(run.stoppedAt) : null };
+    }
 
-    // Strike boxes declared in this script
-    const strikesWalk = strikeBoxes(rom, scriptAddr);
-    const strikes = strikesWalk.boxes || [];
-
-    // Compose sprite info and pixels for each frame
-    const spriteInfos = walk.frames.map((f) => readSpriteInfo(rom, f.sprite));
-    const composed = spriteInfos.map((info) => composeSprite(rom, info));
+    const strikes = distinctStrikes(run.frames);
+    const spriteInfos = run.frames.map((f) => (f.sprite ? readSpriteInfo(rom, f.sprite) : null));
+    const composed = spriteInfos.map((info) => (info ? composeSprite(rom, info) : EMPTY));
 
     // Align all frames on the shared feet origin (originX, originY)
     let originX = 0;
@@ -73,9 +77,8 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
         below = Math.max(below, c.height - c.originY);
     }
 
-    const width = originX + right;
-    const height = originY + below;
-    if (width <= 0 || height <= 0) return null;
+    const width = Math.max(1, originX + right);
+    const height = Math.max(1, originY + below);
 
     const colours = characterPalette(rom, characterId);
     const frames = [];
@@ -104,7 +107,7 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
         const pngDataUri = 'data:image/png;base64,' + pngBuf.toString('base64');
 
         // Format chunks list for inspection (matching SoETilesViewer style: 0x0000 @ -12, -31, flags 10)
-        const chunkList = info.chunks.map((ch) => ({
+        const chunkList = (info ? info.chunks : []).map((ch) => ({
             blockHex: '0x' + ch.block.toString(16).padStart(4, '0'),
             block: ch.block,
             x: ch.x,
@@ -118,13 +121,17 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
             summary: `0x${ch.block.toString(16).padStart(4, '0')} @ ${ch.x}, ${ch.y}, flags ${ch.flags.toString(16).padStart(2, '0')}${ch.flipX ? ' [flipX]' : ''}${ch.flipY ? ' [flipY]' : ''}`,
         }));
 
+        const f = run.frames[i];
         frames.push({
             frameIndex: i,
             png: pngDataUri,
-            ticks: walk.frames[i].ticks,
-            spriteAddr: walk.frames[i].sprite,
-            spriteHex: '$' + walk.frames[i].sprite.toString(16),
-            strikeBox: walk.frames[i].strikeBox || null,
+            ticks: f.ticks,
+            spriteAddr: f.sprite || 0,
+            spriteHex: f.sprite ? hex6(f.sprite) : '—',
+            strikeBox: f.strikeBox || null,
+            lines: f.lines,
+            step: f.step,
+            random: f.random || null,
             chunks: chunkList,
         });
     }
@@ -134,12 +141,45 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
         height,
         originX,
         originY,
-        complete: walk.complete,
+        complete: run.complete,
         scriptAddr,
-        scriptHex: '$' + scriptAddr.toString(16),
+        scriptHex: hex6(scriptAddr),
         frames,
         strikeBoxes: strikes,
+        script,
+        totalTicks: run.totalTicks,
+        stoppedAtHex: run.stoppedAt ? hex6(run.stoppedAt) : null,
     };
+}
+
+const EMPTY = { width: 0, height: 0, originX: 0, originY: 0, pixels: [] };
+const hex6 = (v) => '$' + v.toString(16).padStart(6, '0');
+
+/** The script's reachable commands, as the webview lists them. */
+function scriptListing(rom, scriptAddr) {
+    return disassembleScript(rom, scriptAddr).map((l) => ({
+        address: l.address,
+        addrHex: l.address.toString(16).padStart(6, '0'),
+        bytesHex: l.bytes.map((b) => b.toString(16).padStart(2, '0')).join(' '),
+        text: l.text,
+        endFrame: l.endFrame,
+        known: l.known,
+    }));
+}
+
+/** Each distinct strike box the run produced, in order. */
+function distinctStrikes(frames) {
+    const out = [];
+    const seen = new Set();
+    for (const f of frames) {
+        const b = f.strikeBox;
+        if (!b) continue;
+        const k = `${b.dx},${b.dy},${b.width},${b.height}`;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        out.push(b);
+    }
+    return out;
 }
 
 module.exports = {

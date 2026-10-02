@@ -1,0 +1,218 @@
+// Ownership: the animation bytecode's instruction set — every opcode's width,
+// mnemonic and operand layout — and a disassembler over it. Pure.
+//
+// The table is read out of the interpreter's dispatch table at $908000 and the
+// handlers it points to; docs/script-format/animation_script.md gives the
+// handler and the evidence for every row. This is the one place widths live:
+// ./character-animation and ./animation-vm both ask `opcode()`.
+
+import { snesToRom, readByte } from './rom';
+
+const at = (rom: Uint8Array, snes: number): number => readByte(rom, snesToRom(snes));
+const word = (rom: Uint8Array, snes: number): number => at(rom, snes) | (at(rom, snes + 1) << 8);
+const signed8 = (v: number): number => (v << 24) >> 24;
+const signed16 = (v: number): number => (v << 16) >> 16;
+const hex = (v: number, digits: number): string => v.toString(16).padStart(digits, '0');
+
+/** Bit 7 of a command byte: the frame ends after this command. */
+export const END_FRAME = 0x80;
+export const COMMAND_MASK = 0x7f;
+
+/** What a command does to control flow — the interpreter and disassembler branch on it. */
+export type OpKind =
+    | 'plain' | 'hold' | 'hold_operand' | 'hold_random' | 'sprite' | 'sprite2' | 'reset'
+    | 'loop' | 'restart_here' | 'jump' | 'dec_jnz' | 'jump_pos' | 'jump_if_linked'
+    | 'set8' | 'set16' | 'set24' | 'add8' | 'add16' | 'clear'
+    | 'strike' | 'step' | 'sprite_long' | 'sprite_aim';
+
+export interface Opcode {
+    /** Total bytes, opcode included. */
+    length: number;
+    mnemonic: string;
+    kind: OpKind;
+}
+
+const op = (length: number, mnemonic: string, kind: OpKind = 'plain'): Opcode => ({ length, mnemonic, kind });
+
+/**
+ * Every opcode whose width is known. `0x57` is absent on purpose: its width is
+ * whatever `$8FCA02` decides at run time.
+ */
+const OPCODES: Record<number, Opcode> = {
+    0x00: op(1, 'nop'), 0x21: op(1, 'nop'),
+    0x1f: op(3, 'hold_random', 'hold_random'),
+    0x20: op(2, 'hold', 'hold_operand'),
+    0x2c: op(4, 'sprite2', 'sprite2'),
+    0x2d: op(1, 'loop', 'loop'),
+    0x2e: op(2, 'sound'),
+    0x2f: op(2, 'sound_maybe'),
+    0x30: op(1, 'restart_here', 'restart_here'),
+    0x31: op(3, 'set8', 'set8'),
+    0x32: op(4, 'set', 'set16'),
+    0x33: op(5, 'set24', 'set24'),
+    0x34: op(6, 'poke'),
+    0x35: op(3, 'add8', 'add8'),
+    0x36: op(4, 'add', 'add16'),
+    0x37: op(2, 'clear', 'clear'), 0x38: op(2, 'clear', 'clear'),
+    0x39: op(4, 'dec_jnz', 'dec_jnz'),
+    0x3a: op(4, 'jump_pos', 'jump_pos'),
+    0x3b: op(3, 'jump', 'jump'),
+    0x3d: op(5, 'op_3d'),              // two words, then $90CFB8
+    0x3e: op(9, 'op_3e'),              // four words, then $90D408
+    0x3f: op(3, 'op_3f'),
+    0x40: op(3, 'op_40'),
+    0x41: op(1, 'step0'),
+    0x42: op(2, 'step', 'step'),
+    0x43: op(1, 'wait_landed'),
+    0x44: op(1, 'op_44'),
+    0x45: op(3, 'hop'),
+    0x46: op(3, 'op_46'),
+    0x47: op(5, 'strike', 'strike'),
+    0x48: op(1, 'op_48'),
+    0x49: op(3, 'op_49'),
+    0x4a: op(3, 'op_4a'),
+    0x4b: op(3, 'op_4b'),
+    0x4c: op(6, 'projectile'),
+    0x4d: op(3, 'mode'),
+    0x4e: op(1, 'op_4e'),
+    0x4f: op(1, 'op_4f'),
+    0x50: op(5, 'hurtbox'),
+    0x51: op(1, 'op_51'),              // player slot only: $8FB28D
+    0x52: op(1, 'reset', 'reset'),
+    0x53: op(1, 'end_check'),
+    0x54: op(3, 'jump_if_linked', 'jump_if_linked'),
+    0x55: op(1, 'op_55'),
+    0x56: op(3, 'op_56'),
+    0x58: op(1, 'op_58'),
+    0x59: op(1, 'op_59'),
+    0x5a: op(2, 'op_5a'),
+    0x5b: op(1, 'mark_position'),
+    0x5c: op(1, 'op_5c'),
+    0x5d: op(1, 'op_5d'),
+    0x5e: op(25, 'sprite_aim', 'sprite_aim'),  // eight 24-bit sprites; $919932 picks one by angle
+    0x5f: op(4, 'sprite_long', 'sprite_long'), // one 24-bit sprite, drawn at once via $809033
+};
+
+const HOLD_FIRST = 0x01;          // $90836C: hold for `cmd` ticks
+const HOLD_LAST = 0x1e;
+const SPRITE_FIRST = 0x22;        // $908418: bank = cmd + 0xA8
+const SPRITE_LAST = 0x2b;
+const SPRITE_BANK_BIAS = 0xa8;
+
+/** The opcode for a command byte (bit 7 ignored), or null when its width is unknown. */
+export function opcode(cmd: number): Opcode | null {
+    const c = cmd & COMMAND_MASK;
+    if (c >= HOLD_FIRST && c <= HOLD_LAST) return { length: 1, mnemonic: 'hold', kind: 'hold' };
+    if (c >= SPRITE_FIRST && c <= SPRITE_LAST) return { length: 3, mnemonic: 'sprite', kind: 'sprite' };
+    return OPCODES[c] ?? null;
+}
+
+/** The SNES address a `sprite` command at `p` selects. */
+export function spriteOperand(rom: Uint8Array, p: number): number {
+    return ((((at(rom, p) & COMMAND_MASK) + SPRITE_BANK_BIAS) << 16) | word(rom, p + 1)) >>> 0;
+}
+
+/** The SNES address a `sprite2` command at `p` selects (24-bit operand). */
+export function sprite2Operand(rom: Uint8Array, p: number): number {
+    return (word(rom, p + 1) | (at(rom, p + 3) << 16)) >>> 0;
+}
+
+/** The 24-bit sprite address at `p` (`sprite_long`, and each `sprite_aim` entry). */
+export function sprite24At(rom: Uint8Array, p: number): number {
+    return (word(rom, p) | (at(rom, p + 2) << 16)) >>> 0;
+}
+
+/** The target of a jump-family command at `p`: a u16 in the script's own bank. */
+export function jumpTarget(rom: Uint8Array, p: number, kind: OpKind): number {
+    const operand = kind === 'jump' || kind === 'jump_if_linked' ? p + 1 : p + 2;
+    return ((p & 0xff0000) | word(rom, operand)) >>> 0;
+}
+
+/** One disassembled command. */
+export interface ScriptLine {
+    address: number;
+    bytes: number[];
+    /** The notation of docs/script-format/animation_script.md, `!` marking a frame end. */
+    text: string;
+    endFrame: boolean;
+    /** False for a command whose width is unknown — the listing stops there. */
+    known: boolean;
+}
+
+function operands(rom: Uint8Array, p: number, o: Opcode): string {
+    const b = (i: number) => at(rom, p + i);
+    const w = (i: number) => word(rom, p + i);
+    switch (o.kind) {
+        case 'hold': return String(at(rom, p) & COMMAND_MASK);
+        case 'hold_operand': return String(b(1));
+        case 'hold_random': return `${b(1)}, ${b(2)}`;
+        case 'sprite': return '$' + hex(spriteOperand(rom, p), 6);
+        case 'sprite2': return '$' + hex(sprite2Operand(rom, p), 6);
+        case 'set8': case 'add8': return `var[$${hex(b(1), 2)}], ${b(2)}`;
+        case 'set16': case 'add16': return `var[$${hex(b(1), 2)}], ${signed16(w(2))}`;
+        case 'set24': return `var[$${hex(b(1), 2)}], $${hex(b(2) | (w(3) << 8), 6)}`;
+        case 'clear': return `var[$${hex(b(1), 2)}]`;
+        case 'dec_jnz': case 'jump_pos': return `var[$${hex(b(1), 2)}], $${hex(jumpTarget(rom, p, o.kind), 6)}`;
+        case 'jump': case 'jump_if_linked': return '$' + hex(jumpTarget(rom, p, o.kind), 6);
+        case 'strike': return `${signed8(b(1))}, ${signed8(b(2))}, ${b(3)}, ${b(4)}`;
+        case 'step': return String(signed8(b(1)));
+        case 'sprite_long': return '$' + hex(sprite24At(rom, p + 1), 6);
+        case 'sprite_aim': {
+            const all: string[] = [];
+            for (let i = 0; i < 8; i++) all.push('$' + hex(sprite24At(rom, p + 1 + i * 3), 6));
+            return all.join(', ');
+        }
+        default: break;
+    }
+    if (o.mnemonic === 'mode') return '$' + hex(w(1), 4);
+    if (o.mnemonic === 'sound' || o.mnemonic === 'sound_maybe') return '$' + hex(b(1), 2);
+    if (o.mnemonic === 'hurtbox') return `${signed16(w(1))}, ${signed16(w(3))}`;
+    if (o.mnemonic === 'projectile') return `$${hex(w(1), 4)}, ${signed8(b(3))}, ${signed8(b(4))}, ${signed8(b(5))}`;
+    const rest: string[] = [];
+    for (let i = 1; i < o.length; i++) rest.push(hex(b(i), 2));
+    return rest.join(' ');
+}
+
+/** Disassemble the single command at `p`. */
+export function disassembleAt(rom: Uint8Array, p: number): ScriptLine {
+    const raw = at(rom, p);
+    const o = opcode(raw);
+    const endFrame = (raw & END_FRAME) !== 0;
+    if (!o) {
+        return { address: p, bytes: [raw], text: `op_${hex(raw & COMMAND_MASK, 2)} ??`, endFrame, known: false };
+    }
+    const bytes: number[] = [];
+    for (let i = 0; i < o.length; i++) bytes.push(at(rom, p + i));
+    const args = operands(rom, p, o);
+    const text = o.mnemonic + (args ? ' ' + args : '') + (endFrame ? '!' : '');
+    return { address: p, bytes, text, endFrame, known: true };
+}
+
+const MAX_LINES = 512;
+
+/**
+ * Every command reachable from `script`, in address order.
+ *
+ * Follows fall-through and both sides of every branch; a path ends at `loop`,
+ * an unconditional `jump`, or a command of unknown width. Nothing past those
+ * is listed, because nothing past them is this script.
+ */
+export function disassembleScript(rom: Uint8Array, script: number): ScriptLine[] {
+    const lines = new Map<number, ScriptLine>();
+    const work = [script];
+    while (work.length && lines.size < MAX_LINES) {
+        let p = work.pop() as number;
+        while (!lines.has(p) && lines.size < MAX_LINES) {
+            const line = disassembleAt(rom, p);
+            lines.set(p, line);
+            const o = opcode(line.bytes[0]);
+            if (!o || o.kind === 'loop') break;
+            if (o.kind === 'jump') { p = jumpTarget(rom, p, o.kind); continue; }
+            if (o.kind === 'dec_jnz' || o.kind === 'jump_pos' || o.kind === 'jump_if_linked') {
+                work.push(jumpTarget(rom, p, o.kind));
+            }
+            p += o.length;
+        }
+    }
+    return [...lines.values()].sort((a, b) => a.address - b.address);
+}

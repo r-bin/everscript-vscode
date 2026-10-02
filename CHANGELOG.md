@@ -1,3 +1,14 @@
+## [0.120.0] — 2026-10-03
+
+### Feature: [Sprites] every animation in the ROM, run like the engine runs it
+
+- **Animations mode:** a third rail mode lists all **783 animations** in the ROM's record table (`$C43E3A`–`$C45999`, 1,752 records across 1, 4 or 8 facings). Each one shows what uses it (character fields, Boy weapons, `animate()` ids with their `index.json` names) and plays in its owner's palette. The 295 with no known owner use the Boy's palette as a guess.
+- **Animation Script panel:** every animation (in Characters mode too) shows its disassembled bytecode in the notation of `animation_script.md`, and highlights the commands behind the frame on screen.
+- **Tick-accurate playback:** frames now come from an interpreter (`src/maps/animation-vm.ts`) that models holds as checkpoints, so counted loops repeat (Flowering Death strikes twice), jumps land, and a strike before a hold lasts its one real tick instead of the whole pose.
+- **Fixed special animations:** `animate()` ids now resolve through the real id table at `$C43C92` (read at `$8CE13C`) instead of `$910000`, which is font graphics. `MAGMAR_ENTER` is now Magmar's own record `$4DD2` (15 frames, not 22 frames of an unrelated record). Boy and Dog script animations such as `SLEEP_UP` and `ACT3_FALL_2` now appear instead of being filtered out as garbage.
+- **Decoded more opcodes:** `0x3D`, `0x3E`, `0x51`, `0x55`, `0x5C`, `sprite_aim` (`0x5E`) and `sprite_long` (`0x5F`). All widths now live in one table (`src/maps/animation-opcodes.ts`) that the room view's walker reads too. 1,713 of 1,752 scripts run to completion.
+- **New `animation-script` skill** (Claude, Copilot, Gemini) with the rules for touching any of this.
+
 ## [0.119.3] — 2026-10-03
 
 ### Docs: [Sprites] the animation script language

@@ -1,9 +1,14 @@
 # The animation script language
 
-> Status: **mostly decoded.** Every opcode a character animation uses has a
-> known width, and **823 of 845** distinct character scripts disassemble
-> cleanly to their own loop command. The other 22 all stop on `0x57`, which
-> is variable-length by design (two bosses only).
+> Status: **mostly decoded.** The ROM's own catalogue is known: **783
+> animations** (1,752 records) in one table, plus the 212-entry id table
+> `animate()` reads. Run tick by tick, **1,713 of the 1,752** record scripts
+> come back round or end cleanly. The rest stop on `0x57`, which is
+> variable-length by design, or on `0x3C`.
+>
+> Code: `src/maps/animation-opcodes.ts` (the one width table, disassembler),
+> `src/maps/animation-vm.ts` (interpreter, record and id tables). The Sprites
+> tab's **Animations** mode lists every record and shows each script.
 >
 > How the decoder uses this — idle frames, holds, strike boxes — is in
 > [animation_format.md](animation_format.md). This page is the language
@@ -21,10 +26,53 @@ page defines one (see [Notation](#notation)).
 | What | Where |
 |---|---|
 | Opcode dispatch table | `$908000`, 2-byte handler pointers indexed by `(cmd & 0x7f) * 2` |
-| Real opcodes | `0x00`–`0x66`. Past that the table's "handlers" point all over bank `$90` and `$8F`. That is the next block of data, not code |
-| Animation records | `$C40000 + id`, 4 bytes each: `[scriptLow:u16][bank:u8][flags:u8]` |
+| Real opcodes | `0x00` up to about `0x65`. The entry for `0x66` already points into data, and every entry after it scatters across banks `$90`/`$8F` |
+| Animation records | `$C40000 + record`, 4 bytes each: `[scriptLow:u16][bank:u8][flags:u8]`, from **`$C43E3A` to `$C45999`** |
+| Global animation ids | `$C43C92 + id`, 212 words, ending where the record table starts |
 | A character's animations | record `+0x32` stand, `+0x34` walk, `+0x36` run, `+0x38..+0x3E` attack 0–3, `+0x40` damage, `+0x42` death |
 | Script banks | `$C4`–`$CE` |
+
+## The catalogue
+
+**The record table** is one unbroken run of valid records from `$C43E3A` to
+`$C45999`. Read it in order, taking 8 records for a head with flags bit 7, 4 for
+bit 6, and 1 otherwise. It splits into **783 animations** and lands exactly on
+the table's end:
+
+| Facings | Animations |
+|---|---|
+| 1 | 488 |
+| 4 | 274 |
+| 8 | 21 |
+
+The sibling records of every group have flags `0`. All 314 distinct character
+and weapon references land on a group head, never on a sibling.
+
+**The id table.** `animate(entity, mode, id)` resolves its id here:
+
+```
+8CE139  PLX              ; the id
+8CE13A  BMI $8CE142      ; bit 15 set: a field of the character's own record
+8CE13C  LDA $C43C92,X    ; otherwise: the global id table
+8CE142  TXA / AND #$7FFF / ADC $0060,Y / LDA $8E0032,X   ; record + 0x32 + (id & 0x7fff)
+8CE150  JSL $908124      ; then pick the facing, as for any record
+```
+
+Of the 207 global ids named in `index.json`, 206 land on a group head. The
+other one, Dog `ACT1_STICK_RUNNING` (`0x30`), lands on `$42DA`. That is the
+west record of the 4-facing group at `$42CE`, used as a one-pose animation.
+
+**`$910000` is not this table.** It is font glyph bitplanes, and an earlier
+decoder read ids through it. Not one of the 140 ids tried there landed on a
+record head. The one that seemed to work, `MAGMAR_ENTER`, was a coincidence.
+The real record is `$4DD2`, among Magmar's own records (`$4DCA`–`$4DE6`).
+
+295 of the 783 animations are referenced by no character field, weapon field
+or global id. Something else may still reach them (alchemy and object
+scripts are unexamined), so the Sprites tab lists them as "no known owner"
+and draws them in the Boy's palette as a guess.
+
+## Facing
 
 The record's flags pick the facing. Bit 7 means 8 directional records, bit 6
 means 4 through the table at `$90815B`. See
@@ -147,6 +195,8 @@ characters, all animation fields, all facings) use it.
 | `3B` | 3 | `jump $target` | Unconditional jump, same bank | `$908BB5` | 4 |
 | `53` | 1 | `end_check` | End-of-cycle hook, just before `loop` in almost every script. State `$0100` in `+0x12` restarts the script here. Otherwise it updates the entity's AI flags (`+0x10`) | `$9083AC` | 825 |
 | `54` | 3 | `jump_if_linked $target` | If the linked entity (`+0x80`) has `$0010&0x100` and `$0016&0x40`, jump; else skip | `$908C09` | 91 |
+| `5E` | 25 | `sprite_aim $a, … $h` | Eight 24-bit sprite addresses. `$919932` picks one by angle, so it shows where the entity aims | `$9089C8` | 5 |
+| `5F` | 4 | `sprite_long $bbaaaa` | A sprite by full 24-bit address, drawn at once through `$809033` | `$908984` | 3 |
 | `57` | var | `?` | Calls `$8FCA02` with `X = +0x86`. That walks a list of its own and leaves `$5D` wherever it stopped. **Width is a runtime value** | `$90886D` | 22 |
 
 All jump targets are a u16. The bank stays whatever the script is in.
@@ -204,10 +254,18 @@ animation uses them. They are presumably for effects and menu scripts.
 | `56` | 3 | — | A formula index; greys out a ring-menu icon via `$91CE38` | `$90878C` | — |
 | `5A` | 2 | — | Byte into `+0x82` | `$908447` | 22 |
 | `5D` | 1 | — | Sets bit 1 of `+0x26` | `$908C75` | — |
+| `3D` | 5 | — | Two words, then `$90CFB8` | `$908A8A` | — |
+| `3E` | 9 | — | Four words, then `$90D408` | `$908AA7` | 3 |
+| `51` | 1 | — | Player slot only (`Y = $4E89`): `$8FB28D` | `$908C67` | 16 |
+| `55` | 1 | — | Every 64 frames, `$8FC143` with a random 3–6 | `$908C4D` | — |
+| `5C` | 1 | — | Copies the linked entity's position to `$44..$48`, then `$8FC2E4` | `$908C30` | — |
 
-**Not decoded**: `3C`–`3E`, `51`, `55`, `5C`, `5E`–`66`. They have handlers,
-but no character script uses them. `3C` reads at least four words and sets up
-a DMA-like transfer, so it is not a small command.
+**Not decoded**: `3C`, and `60`–`65`. `3C` reads at least four words and sets
+up a DMA-like transfer, so it is not a small command. The `60`s show up only
+where a static run reads past the end of a script.
+
+Census counts in the sprite and control-flow tables cover the 845 character
+scripts. Counts for `3E`, `51`, `5E` and `5F` cover all 1,752 record scripts.
 
 ## Decoded scripts
 
@@ -331,6 +389,32 @@ c70083  d3              end_check!
 c70084  2d              loop
 ```
 
+## Running a script
+
+`runAnimation()` in `src/maps/animation-vm.ts` is the machine above, tick by
+tick. It differs from a linear read in three ways, all visible in the Sprites
+tab:
+
+- **Counted loops repeat.** Flowering Death's attack strikes twice.
+- **A strike before a hold lasts one tick.** A linear read painted it across
+  the whole hold. The Boy's Bone Crusher swing is 4 ticks, then **1 tick with
+  the strike box**, then 6 without, and so on.
+- **`step` counts every tick** of its hold. The Mosquito's first pose steps
+  `2 + 2`.
+
+**One-shots end on `end_check!`.** A death or vanish script ends with
+`end_check!`, and the engine retires the entity there. The bytes after it are
+whatever was assembled next. For example, `$C70099` is `d3`, then `6b`, which
+is not an opcode. A run that meets an unknown byte right after `end_check!`
+counts as finished.
+
+It assumes the idle case throughout: the entity is on screen and not in state
+`$0100`, there is no linked entity, unset variables read 0, and `hold_random`
+takes the middle of its range. The frame reports the full range.
+
+On the 142 character idles it agrees with the linear walk frame for frame on
+137. The other 5 differ only because their strikes come before the hold.
+
 ## Census
 
 Over every character, every animation field `+0x32..+0x42`, every facing:
@@ -342,15 +426,24 @@ Over every character, every animation field `+0x32..+0x42`, every facing:
 | Stop on `0x57` (Tar Skull, Salabog) | 22 |
 | Most-used commands | `42 step` 1930, `41 step0` 1599, `21 nop` 803 |
 
+Over all 1,752 record scripts, run tick by tick:
+
+| | |
+|---|---|
+| Come back round, or end on `end_check!` | **1,713** |
+| Stop on `0x57` | 24 |
+| Stop on `0x3C` | 2 |
+| Stop on bytes past a script's real end (`0x60`–`0x6B`) | 13 |
+| Draw nothing at all (invisible helpers) | 39 |
+
 ## Gaps
 
 - **`0x57`** needs an emulation of `$8FCA02` or a trace of one of its two
   bosses animating.
-- **`0x3B`** is an unconditional jump. A linear walk must follow it, not step
-  over it. The decoder in `src/maps/character-animation.ts` deliberately has
-  no width for it, so a walk stops there rather than reading the wrong bytes.
-- **`0x39`/`0x3A`** fall through once a static walk reaches them, so a viewer
-  plays a counted loop's body once, not `n` times.
+- **The linear walker** (`src/maps/character-animation.ts`, used for room
+  idles) stops at `0x3B` rather than follow it, and plays a counted loop's body
+  once. The interpreter does both properly; the room view has not moved to it
+  yet.
 - **Names marked unverified** (`sound`, `0x3F`, `0x40`, the `0x48`–`0x4A` and
   `0x58`/`0x59` weapon commands) describe what the handler calls, not a
   confirmed effect on screen.

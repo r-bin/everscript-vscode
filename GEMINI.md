@@ -122,6 +122,10 @@ to what you're touching.
 
 @.github/instructions/map-entities.instructions.md
 
+### Animation scripts
+
+@.github/instructions/animation-script.instructions.md
+
 ---
 
 ## 4. Architectural cognitive stabilization

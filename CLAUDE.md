@@ -68,6 +68,7 @@ imports — Gemini). Edit the target in `.github/instructions/`, not the symlink
 | `map-editor-rules` | the editor's hard rules: the **7 tile-family slots** and other ROM budgets, tilemap- vs collision-word bit layouts, what a paint/erase stroke writes, and never inventing data the ROM does not attest — read before changing any `map-editor*` file |
 | `map-construction` | how a map is built from cell to graphic, what "tile", "used" and "next to each other" mean (every object state and animation frame counts), and what animation groups and their timings really are in vanilla — read before counting, ranking or grouping vanilla tiles |
 | `map-entities` | characters, enemies and NPCs on a map: the character record, spawns (8px units, candidates), sprites, the 4-palette budget, depth, body/hurt/strike boxes, damage, animation scripts — read before placing, drawing, sizing or fighting an entity |
+| `animation-script` | the animation bytecode: interpreter, frame-end bit, holds as checkpoints, every opcode width (one table in `animation-opcodes.ts`), the 783-animation record table at `$C43E3A` and the `animate()` id table at `$C43C92` (never `$910000`) — read before walking, running, listing or rendering an animation |
 
 The same content is also available to Copilot as path-scoped instructions
 (`.github/instructions/*.instructions.md`) and to Gemini via `GEMINI.md` imports —
