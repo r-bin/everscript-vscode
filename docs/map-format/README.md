@@ -10,6 +10,8 @@ copy first, since that's the upstream.
 
 | Document | Answers |
 |---|---|
+| **`room-reference.md`** | **Start here.** The blob segment by segment: byte layout, hard limits and vanilla maxima, decoder/encoder, engine routine, what is not in the blob, what is still not understood |
+| **`editor-concepts.md`** | What the editor adds on top of the data (stamps, layers, levels, specials, widgets, groups, entrances, the Boy, custom maps), which bytes each becomes, known gaps |
 | `rom-map.md` | Where each of the 127 room blobs lives in ROM — offsets, sizes, compression flags, elevation planes, cuttable-grass counts |
 | `map_decompression_trace_analysis.md` | How the decompression pipeline was reverse-engineered; the deterministic block layout |
 | `map_encoding.md` | Container layout, LZSS + Markov encoders, the never-grows guarantee (the write path) |
@@ -47,4 +49,6 @@ the independent re-derivations that failed here before.
 ## Related
 
 Script, entity and sprite formats are documented in
-[../script-format/](../script-format/README.md).
+[../script-format/](../script-format/README.md); its index across sprites, bodies,
+attacks, damage and animation is
+[entities-reference.md](../script-format/entities-reference.md).

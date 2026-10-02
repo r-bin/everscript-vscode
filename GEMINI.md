@@ -118,6 +118,10 @@ to what you're touching.
 
 @.github/instructions/map-construction.instructions.md
 
+### Map entities
+
+@.github/instructions/map-entities.instructions.md
+
 ---
 
 ## 4. Architectural cognitive stabilization

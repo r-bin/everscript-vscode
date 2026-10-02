@@ -20,7 +20,7 @@ Format detail lives in `rom-map-data` and `docs/map-format/`. This skill is what
 
 | Budget | Limit | What spends it |
 |---|---|---|
-| **Tile families** | **7** | A palette slot. The loader clamps to seven; an eighth never loads |
+| **Tile families** | **7** | A palette slot. The loader takes seven at a time, from entry `MAP_PALETTE` (`$7E2437`, 0 on load): entries past the seventh are **alternate sets** a script switches to (22 vanilla rooms; the draft keeps only the first set, `room-reference.md` §5) |
 | Graphics (Block 1) | 264 slots | Adopting a graphic the room did not already load |
 | Stamp dictionary | 8 bytes per stamp | Every *distinct* `{canopy, terrain, collision}` combination |
 | Grid + dictionary | 32768-byte WRAM window | Both together — a big grid leaves less dictionary |
@@ -399,6 +399,12 @@ took, so none of it comes undone:
   `customBlank`, and `mtPaletteFits` refuses it for the donor opened as a ROM
   room. Without that, the ROM room drew with the custom map's grid, size and
   families.
+- **A step-on trigger needs collision bit 14 under it.** The engine only searches
+  the step-on table while the player stands on a bit-14 cell (`$8FB07B`,
+  `map_collision_mechanics.md` §7.2); a box with none never fires by walking. So
+  adding or moving a step-on box must set bit 14 on its cells (and moving one
+  must clear the old ones), and erasing must not strip it. There is no control
+  for it yet: say so rather than shipping a step-on trigger that cannot fire.
 - **Trigger records are not grid cells.** They count from the header's origin
   and their far edge is exclusive (`collision-overlay.ts`). The palette hands
   the editor inclusive map cells (`mapCellBox`); anything else reading

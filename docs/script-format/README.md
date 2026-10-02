@@ -11,6 +11,7 @@ ruled out, so the next attempt starts further along.
 
 | Page | Topic | Status |
 |---|---|---|
+| **[entities-reference.md](entities-reference.md)** | **Start here** for anything on a map that moves: the character record, placement, sprites, palettes and depth, bodies, attacks, damage, animation, entity WRAM fields | Index |
 | [operand_grammar.md](operand_grammar.md) | The postfix expression grammar operands are written in | Solved |
 | [instruction_set.md](instruction_set.md) | Opcodes, sizes, summaries, and what stops a walk | Solved |
 | [loot.md](loot.md) | What a pickup gives, and writing it back as Everscript | Solved |

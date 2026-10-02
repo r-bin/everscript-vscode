@@ -51,7 +51,7 @@ The same structure is used by all 127 rooms.
 | **entity gate** | 11..8 | Active when bit 8 is set, see §4 |
 | **P (Priority)** | 12 | Sprite priority / depth flag (`$8FC773` / `$8FC780`). 1 = character drawn in front of canopy (OAM pri 3); 0 = drawn behind canopy (OAM pri 2) |
 | **AW** | 13 | Always-walkable override — geometry forced to 0, and bits 3..0 become a **drift direction** instead (§6) |
-| **T (Tracking)** | 14 | Interactive target tracking (`$8FB07B` / `$90812A`) — updates interactable target pointer `$2429` |
+| **S (Step-on)** | 14 | **Step-on trigger cell**: the step-on table is searched only while the player stands on a bit-14 tile (`$8FB07B`); elsewhere the current trigger `$2429` resets. See §7.2 |
 | **I (Interact)** | 15 | **Interactive Target Gate** (`$8FCE43`). 1 = B-button checks B-trigger bounding boxes (`$8FAC84`); 0 = B-button swings weapon (`$8FCE9C`). Default is 0. See §7.1. |
 
 ---
@@ -263,6 +263,39 @@ When the player presses the **B** button, before any B-trigger bounding boxes ar
    The Map Editor provides:
    - **Special tab -> Interact group:** Allows painting **Force 1** (sets Bit 15) or **Force 0** (clears Bit 15) overrides on any tile.
    - **Bottom bar -> Interact toggle:** Visual overlay (default off) displaying the state of each cell: `forced 1` (green F1), `forced 0` (red F0), natural `1` (amber 1), or default `0` (faint 0).
+
+---
+
+## 7.2 The Step-On Gate: Bit 14 (`0x4000`)
+
+> Read off the ROM's code (v0.117.2 audit). An earlier line here called bit 14
+> "target tracking" and cited `$90812A`. That address is the *animation* record's
+> facing test (`BIT #$4000` on a different word, `src/maps/character-record.ts`),
+> so it has nothing to do with collision.
+
+Every frame, the player's tile is checked before the step-on table is walked:
+
+```
+8FB070  LDA $0010,Y      ; entity flags
+8FB073  BIT #$0021       ; inactive / invincible: skip
+8FB078  LDA $003C,Y      ; the collision word under the entity
+8FB07B  BIT #$4000       ; bit 14
+8FB07E  BNE $8FB088      ; set: walk the step-on table
+8FB080  LDA #$FFFF
+8FB083  STA $2429        ; clear: no current trigger
+8FB088  JSL $8FACB1      ; $1064/$1062: the step-on records, origin-relative
+```
+
+`$8FACB1` tests each box (`y1 ≤ Y < y2`, `x1 ≤ X < x2`, cells plus the header
+origin) and runs a script only when its id differs from `$2429`. Leaving the
+bit-14 cells resets `$2429`, which is what lets a door fire again on the way
+back.
+
+**Measured over all 127 rooms:** 4878 of the 4895 bit-14 cells lie inside a
+step-on box, and 1095 of the 1205 boxes contain at least one. A box with no
+bit-14 cell under it never fires by walking onto it. **Anything that writes or
+moves a step-on trigger must set bit 14 on the cells under it.** The editor has
+no control for it yet (`docs/map-format/editor-concepts.md` §5).
 
 ---
 

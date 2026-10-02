@@ -23,6 +23,9 @@ This skill is the map-data index. The detail lives in `docs/`:
 
 | Question | Document |
 |---|---|
+| **Everything at once: every segment, its limits, its decoder and engine routine, what is not in the blob** | **[docs/map-format/room-reference.md](docs/map-format/room-reference.md)**: start here |
+| What does the editor add on top (stamps, widgets, groups, levels, entrances)? | [docs/map-format/editor-concepts.md](docs/map-format/editor-concepts.md) |
+| Characters, sprites, bodies, attacks, damage, animation | [docs/script-format/entities-reference.md](docs/script-format/entities-reference.md) |
 | Where is each room in ROM? How big? Which rooms use elevation planes? | [docs/map-format/rom-map.md](docs/map-format/rom-map.md) -- all 127 blobs, offsets, sizes, compression flags |
 | How was the decompression pipeline reverse-engineered? | [docs/map-format/map_decompression_trace_analysis.md](docs/map-format/map_decompression_trace_analysis.md) |
 | How do I write a room *back* to the ROM? | [docs/map-format/map_encoding.md](docs/map-format/map_encoding.md) -- container layout, LZSS + Markov encoders, the never-grows guarantee |
@@ -216,7 +219,24 @@ The SNES engine loader (`$908F60..$909180`) resolves all payload sub-blocks **10
    - **Payload block discovery is deterministic**, as §3 already described -- `dump_room.py` now
      uses `parse_blob_layout()` rather than the old signature scan, which mis-parsed room `0x15`.
 
-6. **Still open**:
-   - Collision word bits 12 and 15..14 (read by the sprite-priority routine `$8FC780`).
-   - Dynamic tile animation triggers (e.g. scrolling waterfall or bubbling swamp tiles).
+   Found in this repo after the import (not yet upstream), all read off the ROM's code:
+   - **Every byte is accounted for.** Each blob's bytes belong to a field in
+     `room-reference.md`, and a blob ends where its furthest object record or
+     stamping block ends. `objectAreaEnd` measures stamping blocks by their mask
+     stream; the old `2 + tw*th*2` guess was wrong in 109 rooms.
+   - **Object descriptor byte 0 is `hold`**, the ticks a state is held while a
+     script steps through it (`$90A429`, `$111E,X`). It is not a width.
+     `map_objects.md` §4c.
+   - **Collision bit 12** = the character is drawn in front of the canopy (`$8FC773`).
+     **Bit 14** = step-on trigger cell (`$8FB07B`): step-on boxes only fire over
+     bit-14 tiles. **Bit 15** = B searches the B-triggers (`$8FCE43`).
+     `map_collision_mechanics.md` §7.1–§7.2.
+   - **Section 2 is the tile animation**: per-channel graphic swaps
+     (`map_animated_tiles.md`).
+   - **Families past the 7th are alternate sets**: `$90D020` loads 7 starting at
+     `MAP_PALETTE` (`$7E2437`), which scripts change; 22 rooms store 8–14.
+
+6. **Still open** (`room-reference.md` §12): what the CHR descriptors draw; the
+   cuttable `steps` byte; which duplicate cuttable source wins; which scripts take
+   the no-hold object path `$90A3AC`.
 

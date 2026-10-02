@@ -56,7 +56,7 @@ imports — Gemini). Edit the target in `.github/instructions/`, not the symlink
 | `release-ritual` | version bump, validation, commit format, `npm run deploy` |
 | `memory-radar` | WRAM grid tab, rooms/map-browser tab, tab ownership |
 | `map-format` | ROM map decoding is migrating to the sibling `everscript` repo's verified implementation — read before touching `src/maps/` |
-| `rom-map-data` | room blob layout, the three compressed payload blocks, the collision bitfield |
+| `rom-map-data` | room blob layout, the three compressed payload blocks, the collision bitfield; indexes `docs/map-format/room-reference.md` (every segment, limits, sources) |
 | `grammar-rules` | TextMate pattern rules, test assertion format |
 | `colour-theme` | P1–P9 priority palette |
 | `code-quality` | TS migration policy, dead code policy, guarding scripted edits |
@@ -67,6 +67,7 @@ imports — Gemini). Edit the target in `.github/instructions/`, not the symlink
 | `webview-dom-safety` | idempotent event binding, `e.target` walk-up, VS Code webview API gaps, SVG coordinate systems — read before writing click/pointer handling in any `webview/` file |
 | `map-editor-rules` | the editor's hard rules: the **7 tile-family slots** and other ROM budgets, tilemap- vs collision-word bit layouts, what a paint/erase stroke writes, and never inventing data the ROM does not attest — read before changing any `map-editor*` file |
 | `map-construction` | how a map is built from cell to graphic, what "tile", "used" and "next to each other" mean (every object state and animation frame counts), and what animation groups and their timings really are in vanilla — read before counting, ranking or grouping vanilla tiles |
+| `map-entities` | characters, enemies and NPCs on a map: the character record, spawns (8px units, candidates), sprites, the 4-palette budget, depth, body/hurt/strike boxes, damage, animation scripts — read before placing, drawing, sizing or fighting an entity |
 
 The same content is also available to Copilot as path-scoped instructions
 (`.github/instructions/*.instructions.md`) and to Gemini via `GEMINI.md` imports —

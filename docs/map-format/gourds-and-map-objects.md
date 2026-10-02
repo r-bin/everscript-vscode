@@ -271,7 +271,7 @@ Each 16×16 metatile has a 16-bit collision word stored at `$7F0004,X` in Block 
 | Bit / Field | Mask | Meaning & SNES Engine Routine |
 |---|---|---|
 | **Bit 15 (`I`)** | `0x8000` | **Interactive Target Gate** (`$8FCE43`). 1 = B-button evaluates B-triggers (`$8FAC84`); 0 = B-button swings weapon (`$8FCE9C`). |
-| **Bit 14 (`T`)** | `0x4000` | **Target Tracking Flag** (`$8FB07B` / `$90812A`). Sets `$2429` interactable target pointer for entity focus. |
+| **Bit 14 (`S`)** | `0x4000` | **Step-on trigger cell** (`$8FB07B`): the step-on table is only searched while the player stands on a bit-14 tile; elsewhere `$2429`, the current step-on script, resets to `$FFFF`. See `map_collision_mechanics.md` §7.2. |
 | **Bit 13 (`AW`)** | `0x2000` | **Always-Walkable / Drift Override** (`$909E31` / `$8FAD9F`). Overrides passability to open; bits 3..0 become drift/conveyor direction. |
 | **Bit 12 (`P`)** | `0x1000` | **Sprite Priority / Depth** (`$8FC773` / `$8FC780`). 1 = Character drawn in front of canopy (OAM priority 3); 0 = drawn behind canopy (OAM priority 2). |
 | **Bits 11..8** | `0x0F00` | **Entity Passability Gates** (`$909DEF`). Active when bit 8 is set (filters Boy only, Dog only, Enemies/NPCs pass, etc.). |
