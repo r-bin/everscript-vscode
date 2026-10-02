@@ -2434,6 +2434,7 @@ async function main() {
     check('the bottom bar has Triggers with B and step-on apart, on a custom map too', v80.triggers, JSON.stringify(v80));
     check('with Cuttable off the map shows the tile beneath; on, the cuttable one', v80.cutOff && v80.cutOn, JSON.stringify(v80));
     check('there is an Object tab, after Trigger', /trigger,object,widgets/.test(v80.tabs), v80.tabs);
+    check('Collision and Animation are sub-tabs of Tile, not top tabs', /^(tile|collision|anim),special,trigger/.test(v80.tabs) && !/collision,|anim,/.test(v80.tabs.replace(/^[a-z]+,/, '')), v80.tabs);
     check('on the Object tab the pencil drags out an area, selected', v80.area === '0,0,2,2' && v80.sel, JSON.stringify(v80));
     check('and draws its tiles over the map, not into it — previewed on tile tab as well',
         v80.layer === '1,0 1,1' && v80.drawnOpen === 2 && v80.drawnClosed === 2 && v80.mapUntouched, JSON.stringify(v80));

@@ -61,8 +61,9 @@ collision) from the editor:
     delays and an initial countdown of 0.
   - Vanilla runs some cycles at several phases. A custom map doesn't: one
     channel per placed graphic.
-  - At most 42 channels, the most any vanilla room runs. More animated
-    graphics than that stay still, and the export says so.
+  - At most 255 channels, Section 2's one-byte count (vanilla runs at most
+    42; more is untested in game). More than that stay still, and the export
+    says so.
   - The export check compares the renumbered words and each channel's frames.
 - **Families:** the draft's own, or the donor's when the draft has none.
 - **Header:** the donor's display registers, the map's size, and trigger

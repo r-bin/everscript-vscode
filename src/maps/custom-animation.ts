@@ -22,8 +22,12 @@
 import { AnimationIndex } from './vanilla-animation';
 import { tileSlotChr } from './metatiles';
 
-/** The most channels one vanilla room runs (room census); more is unattested V-Blank DMA load. */
-export const MAX_CHANNELS = 42;
+/**
+ * The most channels Section 2 can name: its count is one byte. Vanilla runs
+ * at most 42 in a room (room census); more is untested in game (each channel
+ * is V-Blank DMA when it swaps).
+ */
+export const MAX_CHANNELS = 255;
 
 export interface CustomAnimationPlan {
     /** Block 1's graphics, in slot order. */

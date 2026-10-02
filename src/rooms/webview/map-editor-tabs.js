@@ -13,9 +13,26 @@
 // delegated, bind-once handler that already drives every other control in
 // the dock (see the webview-dom-safety skill) covers it too.
 //
-// Owns: _editActiveTab.
+// Tile, Collision and Animation are one top tab, `Tile`, with those three as
+// sub-tabs: each is still its own `_editActiveTab` value, so everything that
+// asks which tab is open keeps working; the strip only files them together.
+//
+// Owns: _editActiveTab, _editTileSub.
 
 var _editActiveTab = 'tile';
+/** The Tile tab's sub-tab last open, which its top tab goes back to. */
+var _editTileSub = 'tile';
+
+/** The Tile tab's sub-tabs. */
+var EDIT_TILE_SUBTABS = [
+  ['tile', 'Tile', 'Pick and paint tiles'],
+  ['collision', 'Collision', 'Collision shapes, drawn by hand over the estimate'],
+  ['anim', 'Animation', 'Animated tiles: frames, patterns, timing'],
+];
+
+function editInTileGroup(tab) {
+  return EDIT_TILE_SUBTABS.some(function (t) { return t[0] === tab; });
+}
 
 /**
  * Tab order is the design mock's own (`tabDefs`, `Map Editor UI.dc.html`):
@@ -29,8 +46,6 @@ var _editActiveTab = 'tile';
  */
 var EDIT_TABS = [
   ['tile', 'Tile'],
-  ['collision', 'Collision'],
-  ['anim', 'Animation'],
   ['special', 'Special'],
   ['trigger', 'Trigger'],
   ['object', 'Object'],
@@ -41,9 +56,22 @@ var EDIT_TABS = [
 /** The horizontal strip at the top of the docked panel column. */
 function buildEditTabStripHtml() {
   var html = '<div class="rg-tabstrip" id="rg-tabstrip">';
+  if (editInTileGroup(_editActiveTab)) _editTileSub = _editActiveTab;
   EDIT_TABS.forEach(function (t) {
-    html += '<button class="rg-tab' + (_editActiveTab === t[0] ? ' on' : '') + '" data-edit-active-tab="'
-      + t[0] + '">' + t[1] + '</button>';
+    // `Tile` opens the sub-tab last open in it.
+    var on = t[0] === 'tile' ? editInTileGroup(_editActiveTab) : _editActiveTab === t[0];
+    html += '<button class="rg-tab' + (on ? ' on' : '') + '" data-edit-active-tab="'
+      + (t[0] === 'tile' ? _editTileSub : t[0]) + '">' + t[1] + '</button>';
   });
   return html + '</div>';
+}
+
+/** Tile | Collision | Animation, over the Tile tab's body; '' on the other tabs. */
+function editTileSubtabsHtml() {
+  if (!editInTileGroup(_editActiveTab)) return '';
+  return '<div class="rg-subtabs rg-tile-subtabs" role="tablist">' + EDIT_TILE_SUBTABS.map(function (t) {
+    var on = _editActiveTab === t[0];
+    return '<button class="rg-subtab' + (on ? ' on' : '') + '" role="tab" aria-selected="' + on + '" data-edit-active-tab="' + t[0]
+      + '" title="' + escH(t[2]) + '">' + t[1] + '</button>';
+  }).join('') + '</div>';
 }

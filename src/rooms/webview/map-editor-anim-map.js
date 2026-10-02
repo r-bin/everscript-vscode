@@ -86,6 +86,9 @@ function editAnimSvg(origin) {
       }
     });
   });
+  // A placement being dragged to a new place (map-editor-anim-tab.js animSelectGesture).
+  var mv = typeof _animStroke !== 'undefined' && _animStroke && _animStroke.mode === 'move' && (_animStroke.dx || _animStroke.dy) ? _animStroke : null;
+  if (mv) html += animShapeSvg(origin, mv.cells.map(function (k) { var c = k.split(',').map(Number); return (c[0] + mv.dx) + ',' + (c[1] + mv.dy); }), true, '');
   // A new rectangle being dragged out (map-editor-anim-tab.js).
   var r = typeof _animStroke !== 'undefined' && _animStroke && _animStroke.mode === 'rect' ? _animStroke : null;
   if (r) {

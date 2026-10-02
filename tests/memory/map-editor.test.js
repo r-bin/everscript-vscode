@@ -3286,6 +3286,25 @@ test('Cmd/Ctrl+C copies the open animated tile, Cmd/Ctrl+V puts a copy at the po
     ui.setTab('tile');
 });
 
+test('the select tool drags an animated tile to a new place, in one step', () => {
+    const p = animPalette();
+    ui.setPalette(p);
+    ui.editReset(1).on = true;
+    const d = ui.editDraft();
+    const slot = ui.editAdoptAnimated(p, 2742, TORCH, null);
+    const idx = ui.editAddStamp(p, { layer1: chrOf(slot) | (1 << 10), layer2: 0x0400, collision: 0 });
+    ui.editApply([{ x: 0, y: 0, index: idx }, { x: 1, y: 0, index: idx }]);
+    d.tool = 'select';
+    ui.editAnimGesture(d, { x: 0, y: 0 }, 'down');
+    ui.editAnimGesture(d, { x: 0, y: 1 }, 'move');
+    ui.editAnimGesture(d, { x: 0, y: 1 }, 'up');
+    assert.deepStrictEqual(ui.editAnimsListed(p).map((r) => r.cells.slice().sort()), [['0,1', '1,1']]);
+    assert.strictEqual(ui.editStampWords(p, ui.editCellAt(p, 0, 0)).layer1, 0xa800, 'the old cells are clear');
+    ui.editUndo(p);
+    assert.deepStrictEqual(ui.editAnimsListed(p).map((r) => r.cells.slice().sort()), [['0,0', '1,0']], 'one undo puts it back');
+    d.tool = 'paint';
+});
+
 test('frames holding one graphic in a row read as one; a hold past 127 ticks is split as the ROM stores it', () => {
     const e = { frames: [5, 6, 6, 6, 7, null, null], delays: [10, 127, 127, 101, 10, 8, 8] };
     assert.deepStrictEqual(ui.editAnimRuns(e).map((r) => [r.start, r.count, r.graphic, r.ticks]),

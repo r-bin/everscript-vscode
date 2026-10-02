@@ -344,8 +344,9 @@ lettered A, B, C… in one global order (most-used first); a tile's letter is th
 its ticks match, else `custom`; patterns are offered only for frames vanilla runs.
 Vanilla animated tiles (a ROM room's, a ▶ pick's) are locked to their frames until
 disbanded. Animation on/off is map-wide and saved. Animation marks are `--rg-anim`
-(violet). The canvas and the ROM export both read `editAnimChannels`. Budget: 42
-channels, vanilla's most. A frame holds at most **127 ticks** (vanilla's maximum, 40
+(violet). The canvas and the ROM export both read `editAnimChannels`. No channel cap in
+the UI: Section 2's count is one byte (255); vanilla runs at most 42, more is untested
+in game. A frame holds at most **127 ticks** (vanilla's maximum, 40
 frames at exactly 127): a longer hold is one graphic over several frames, and the tab
 shows frames holding one graphic in a row as one (`editAnimRuns`). The tab lists every
 **placement** (a run of touching cells showing a tile, `editAnimsListed`): a tile used
@@ -355,7 +356,9 @@ A pencil rectangle on the Animation tab is a **set** (`set` on each entry,
 map-editor-anim-sets.js): one animated tile — one channel — per cell, sharing ticks,
 countdown and frame count, listed as one row. Vanilla's patterns come from *every*
 cycle a graphic runs in (`animations.cycles`, not only `byFirst`), so a ROM room's
-own channel always has its letter. The table travels with the palette (`cycles`,
+own channel always has its letter. The select tool drags a placement to new cells
+(one undo step). Tile, Collision and Animation are sub-tabs of the `Tile` tab
+(map-editor-tabs.js `EDIT_TILE_SUBTABS`); each is still its own `_editActiveTab`. The table travels with the palette (`cycles`,
 vanilla-index.js `vanillaCycleTimings`), so letters never depend on which family sheets
 are loaded: a vanilla channel is never `custom`. Touching animated cells running the
 same pattern (same ticks, same countdown) are one row and one outline on the map,

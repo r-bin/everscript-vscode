@@ -114,8 +114,7 @@ function animTabHtml() {
     + 'The pencil places one — a new one starts as empty purple frames, each needing a tile; drag a rectangle for several tiles on one timing (a 2×2 fan). ▶ tiles from the Tile tab are the same thing, ready-made. Cmd/Ctrl+C copies the open one, Cmd/Ctrl+V pastes it at the pointer.</div>'
     + '<div class="rg-anim-head"><button class="rdf rdf-xs' + (_animOff ? '' : ' on') + '" data-anim-act="toggle-off" aria-pressed="' + !_animOff + '"'
     + ' title="Animation on the whole map: off shows every animated tile on its first frame">Animation: ' + (_animOff ? 'off' : 'on') + '</button>'
-    + (locked ? '' : '<button class="rdf rdf-xs" data-anim-act="new" title="Close the open one: the pencil then places a new, empty animated tile">+ New animated tile</button>')
-    + '<span class="rg-anim-budget' + (used > 42 ? ' over' : '') + '">' + animPlural(used, 'channel') + ' of 42</span></div>'
+    + '<span class="rg-anim-budget" title="One channel per animated tile; vanilla runs at most 42 in a room">' + animPlural(used, 'channel') + '</span></div>'
     + '<div class="rg-trigger-list rg-anim-list">';
   if (!listed.length) html += '<div class="rs-note">no animated tiles on this map yet</div>';
   listed.forEach(function (x) { html += animRowHtml(x, locked, x === open, listed.length > 12); });
@@ -151,7 +150,6 @@ function animClick(t) {
   if (ds.animFrame != null) { _animFrame = Number(ds.animFrame); _animPlaying = false; animRedraw(); return true; }
   if (ds.animAct === 'play') { _animPlaying = !_animPlaying; animRedraw(); return true; }
   if (ds.animAct === 'toggle-off') { editAnimToggleOff(); animRedraw(); return true; }
-  if (ds.animAct === 'new') { _animSel = null; _animPlace = null; _animFrame = 0; editNote('the pencil places a new animated tile'); animRedraw(); return true; }
   if (!ds.animAct && ds.animPreset == null) return false;
   if (editLocked()) { editNote('this map is locked — unlock it to change its animations'); renderEditChrome(); return true; }
   var e = editAnimFind(ds.animUid ? Number(ds.animUid) : _animSel);
@@ -281,16 +279,7 @@ function animTile(e, k) {
 /** A gesture on the Animation tab. Returns true when it was this tab's. */
 function editAnimGesture(d, cell, phase) {
   var open = editAnimFind(_animSel);
-  if (d.tool === 'select') {
-    if (phase !== 'down') return false;
-    var at = animAt(cell);
-    if (!at) return false;
-    _animSel = at.uid; _animSelPart = editKey(cell.x, cell.y); _animFrame = 0; _animPlaying = false; renderEditChrome();
-    // A long list: bring its row into view.
-    var row = typeof document !== 'undefined' && document.querySelector ? document.querySelector('.rg-anim-card.on') : null;
-    if (row && row.scrollIntoView) row.scrollIntoView({ block: 'nearest' });
-    return true;
-  }
+  if (d.tool === 'select') return animSelectGesture(cell, phase);
   if (d.tool !== 'paint' && d.tool !== 'erase') return false;
   if (phase === 'down') {
     editBegin();
@@ -330,6 +319,44 @@ function editAnimGesture(d, cell, phase) {
   _animStroke = null;
   editEnd();
   if (placedNew) editNote('a new animated tile, opened — pick a tile on the Tile tab, then click one of its purple cells to tile frame ' + _animFrame);
+  animRedraw();
+  return true;
+}
+
+/**
+ * The select tool on this tab: a click opens the animated tile's row; a drag
+ * moves the whole placement (every cell of the row) — one undo step, taken
+ * off its cells and put on the new ones.
+ */
+function animSelectGesture(cell, phase) {
+  if (phase === 'down') {
+    var at = animAt(cell);
+    if (!at) return false;
+    _animSel = at.uid; _animSelPart = editKey(cell.x, cell.y); _animFrame = 0; _animPlaying = false;
+    var entry = animOpenEntry(editAnimsListed(_mtPalette)), of = {};
+    (entry ? entry.cells : []).forEach(function (k) { of[k] = (entry.of[k] || entry.g).uid; });
+    _animStroke = entry && entry.cells.length && !editLocked() ? { mode: 'move', from: cell, dx: 0, dy: 0, cells: entry.cells.slice(), of: of } : null;
+    renderEditChrome();
+    // A long list: bring its row into view.
+    var row = typeof document !== 'undefined' && document.querySelector ? document.querySelector('.rg-anim-card.on') : null;
+    if (row && row.scrollIntoView) row.scrollIntoView({ block: 'nearest' });
+    return true;
+  }
+  var s = _animStroke;
+  if (!s || s.mode !== 'move') return false;
+  s.dx = cell.x - s.from.x; s.dy = cell.y - s.from.y;
+  if (phase !== 'up') { renderEditLayer(_mtPalette, _editComposed, _editOrigin); return true; }
+  _animStroke = null;
+  var to = s.cells.map(function (k) { var c = k.split(',').map(Number); return { x: c[0] + s.dx, y: c[1] + s.dy }; });
+  if (!s.dx && !s.dy) { animRedraw(); return true; }
+  if (to.some(function (c) { return !editInBounds(_mtPalette, c.x, c.y); })) { editNote('it does not fit there'); animRedraw(); return true; }
+  editBegin();
+  // All off first, then all on: the old and new cells may overlap.
+  s.cells.forEach(function (k) { var c = k.split(',').map(Number), m = editAnimFind(s.of[k]); if (m) animUnplace(m, { x: c[0], y: c[1] }); });
+  s.cells.forEach(function (k, i) { var m = editAnimFind(s.of[k]); if (m) animPlace(m, to[i]); });
+  editEnd();
+  _animSelPart = editKey(to[0].x, to[0].y);
+  editNote('moved');
   animRedraw();
   return true;
 }

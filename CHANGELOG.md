@@ -1,3 +1,12 @@
+## [0.116.0] — 2026-10-02
+
+### Changed: Tile / Collision / Animation as sub-tabs, animated tiles move by drag, no channel cap
+
+- **One `Tile` tab, with Tile, Collision and Animation as sub-tabs.** The top strip is Tile, Special, Trigger, Object, Widgets, Info. The `Tile` tab opens the sub-tab you last used.
+- **Animated tiles move by drag and drop.** With the select tool on the Animation sub-tab, drag an animated tile (or a group) to new cells. Its outline follows the pointer, and the move is one undo step.
+- **`+ New animated tile` is gone.** The pencil away from the open tile already starts a new one.
+- **No 42-channel limit.** The tab shows how many channels the map uses, without a ceiling. The export now allows 255 channels, Section 2's one-byte count. Vanilla never runs more than 42 in a room, so more is untested in game.
+
 ## [0.115.2] — 2026-10-02
 
 ### Fix: animation previews drawn one way, vanilla maps fast again

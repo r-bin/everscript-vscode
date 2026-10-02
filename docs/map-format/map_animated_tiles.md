@@ -268,7 +268,8 @@ called from `maps/custom-room.ts`):
 - The channel plays the cycle from the frame placed, at vanilla's delays.
 - Phase variants are not reproduced: two placed torches on one cycle share
   one channel and flicker in step.
-- The cap is 42 channels, vanilla's most in one room.
+- The cap is 255 channels, Section 2's one-byte count. Vanilla runs at most 42
+  in a room; more is untested in game.
 
 Verified by the export test (`tests/memory/rom-export.test.js`), and by
 booting an exported ROM in the bundled snes9x core: the flames change
