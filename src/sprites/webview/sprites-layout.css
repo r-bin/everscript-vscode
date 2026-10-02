@@ -1,0 +1,647 @@
+/* Ownership: layout, controls, stage canvas, stat cards, and chunk table for the Sprites tab. */
+
+.sp-panels {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--vscode-editor-background);
+  color: var(--vscode-editor-foreground);
+}
+
+/* ── Left Rail ── */
+.sp-rail {
+  width: 280px;
+  min-width: 220px;
+  max-width: 450px;
+  display: flex;
+  flex-direction: column;
+  background: var(--vscode-sideBar-background, #1e1e1e);
+  border-right: 1px solid var(--vscode-panel-border, #333);
+  overflow: hidden;
+}
+
+.sp-mode-bar {
+  display: flex;
+  background: var(--vscode-editorGroupHeader-tabsBackground, #252526);
+  border-bottom: 1px solid var(--vscode-panel-border, #333);
+  padding: 4px;
+  gap: 4px;
+}
+
+.sp-mode-btn {
+  flex: 1;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: transparent;
+  color: var(--vscode-foreground, #ccc);
+  border: 1px solid transparent;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sp-mode-btn:hover {
+  background: var(--vscode-list-hoverBackground, rgba(255,255,255,0.08));
+}
+
+.sp-mode-btn.sp-active {
+  background: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #fff);
+}
+
+.sp-search-wrap {
+  padding: 8px;
+  border-bottom: 1px solid var(--vscode-panel-border, #333);
+}
+
+.sp-input {
+  width: 100%;
+  padding: 5px 8px;
+  background: var(--vscode-input-background, #2d2d2d);
+  color: var(--vscode-input-foreground, #eee);
+  border: 1px solid var(--vscode-input-border, #444);
+  border-radius: 3px;
+  font-size: 12px;
+  box-sizing: border-box;
+}
+
+.sp-input:focus {
+  border-color: var(--vscode-focusBorder, #007acc);
+  outline: none;
+}
+
+.sp-filter-bar {
+  display: flex;
+  gap: 4px;
+  padding: 6px 8px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--vscode-panel-border, #333);
+}
+
+.sp-filter-chip {
+  padding: 2px 7px;
+  font-size: 11px;
+  background: var(--vscode-badge-background, #333);
+  color: var(--vscode-badge-foreground, #ccc);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sp-filter-chip:hover {
+  filter: brightness(1.2);
+}
+
+.sp-filter-chip.sp-active {
+  background: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #fff);
+  border-color: rgba(255,255,255,0.2);
+}
+
+.sp-list {
+  flex: 1;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sp-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--vscode-editor-font-family, monospace);
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+
+.sp-list-item:hover {
+  background: var(--vscode-list-hoverBackground, rgba(255,255,255,0.06));
+}
+
+.sp-list-item.sp-selected {
+  background: var(--vscode-list-activeSelectionBackground, #094771);
+  color: var(--vscode-list-activeSelectionForeground, #fff);
+}
+
+.sp-li-name {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sp-li-addr {
+  font-size: 10px;
+  opacity: 0.65;
+  margin-left: 6px;
+}
+
+/* ── Splitter ── */
+.sp-split {
+  width: 4px;
+  background: var(--vscode-panel-border, #333);
+  cursor: col-resize;
+  transition: background 0.15s;
+}
+
+.sp-split:hover {
+  background: var(--vscode-focusBorder, #007acc);
+}
+
+/* ── Main Panel ── */
+.sp-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  background: var(--vscode-editor-background, #1e1e1e);
+}
+
+.sp-view-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.sp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background: var(--vscode-editorGroupHeader-tabsBackground, #252526);
+  border-bottom: 1px solid var(--vscode-panel-border, #333);
+}
+
+.sp-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sp-char-id {
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--vscode-textPreformat-foreground, #dcdcaa);
+}
+
+.sp-char-name {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.sp-badge {
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 10px;
+  text-transform: uppercase;
+  background: #333;
+  color: #ccc;
+}
+
+.sp-badge-enemy {
+  background: #802020;
+  color: #ffcccc;
+}
+
+.sp-badge-npc {
+  background: #205080;
+  color: #cce0ff;
+}
+
+.sp-badge-hero {
+  background: #207040;
+  color: #ccffdd;
+}
+
+.sp-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sp-palette-label {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.sp-palette-hex {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 11px;
+  color: var(--vscode-textPreformat-foreground, #dcdcaa);
+}
+
+.sp-palette-swatch {
+  display: flex;
+  height: 14px;
+  border: 1px solid #444;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.sp-palette-swatch span {
+  width: 8px;
+  height: 100%;
+}
+
+/* ── Animation Toolbar ── */
+.sp-anim-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 8px 16px;
+  background: var(--vscode-sideBar-background, #1e1e1e);
+  border-bottom: 1px solid var(--vscode-panel-border, #333);
+}
+
+.sp-tool-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sp-label {
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.sp-select {
+  padding: 4px 8px;
+  background: var(--vscode-dropdown-background, #252526);
+  color: var(--vscode-dropdown-foreground, #fff);
+  border: 1px solid var(--vscode-dropdown-border, #3c3c3c);
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+.sp-sel-sm {
+  padding: 2px 6px;
+  font-size: 11px;
+}
+
+.sp-facing-group {
+  display: flex;
+  gap: 2px;
+}
+
+.sp-facing-btn {
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  font-size: 11px;
+  font-weight: bold;
+  background: var(--vscode-button-secondaryBackground, #3a3d41);
+  color: var(--vscode-button-secondaryForeground, #fff);
+  border: 1px solid transparent;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.sp-facing-btn.sp-active {
+  background: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #fff);
+}
+
+.sp-check-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.sp-tag {
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.tag-body {
+  background: rgba(0, 240, 160, 0.2);
+  color: #00f0a0;
+  border: 1px solid #00f0a0;
+}
+
+.tag-hurt {
+  background: rgba(255, 170, 0, 0.2);
+  color: #ffaa00;
+  border: 1px solid #ffaa00;
+}
+
+.tag-strike {
+  background: rgba(255, 51, 85, 0.2);
+  color: #ff3355;
+  border: 1px solid #ff3355;
+}
+
+.tag-origin {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  border: 1px solid #ffffff;
+}
+
+/* ── Canvas Stage ── */
+.sp-stage-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #181818;
+  border-bottom: 1px solid var(--vscode-panel-border, #333);
+  padding: 12px 16px;
+}
+
+.sp-stage {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 270px;
+  background-color: #121212;
+  background-image: 
+    linear-gradient(45deg, #181818 25%, transparent 25%), 
+    linear-gradient(-45deg, #181818 25%, transparent 25%), 
+    linear-gradient(45deg, transparent 75%, #181818 75%), 
+    linear-gradient(-45deg, transparent 75%, #181818 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+  border: 1px solid #2a2a2a;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+#sp-canvas {
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* ── Player Bar ── */
+.sp-player-bar {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.sp-player-btns {
+  display: flex;
+  gap: 4px;
+}
+
+.sp-ctrl-btn {
+  padding: 4px 8px;
+  font-size: 12px;
+  background: var(--vscode-button-secondaryBackground, #3a3d41);
+  color: var(--vscode-button-secondaryForeground, #fff);
+  border: 1px solid transparent;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.sp-ctrl-btn:hover {
+  background: var(--vscode-button-secondaryHoverBackground, #45494e);
+}
+
+.sp-ctrl-btn.sp-active {
+  background: var(--vscode-button-background, #0e639c);
+}
+
+.sp-btn-play {
+  font-weight: bold;
+  min-width: 32px;
+}
+
+.sp-scrubber-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sp-scrubber {
+  flex: 1;
+  accent-color: var(--vscode-button-background, #0e639c);
+  cursor: pointer;
+}
+
+.sp-frame-info {
+  font-size: 11px;
+  font-family: var(--vscode-editor-font-family, monospace);
+  min-width: 120px;
+}
+
+.sp-scale-btn {
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: bold;
+  background: #333;
+  color: #ccc;
+  border: 1px solid #444;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.sp-scale-btn.sp-active {
+  background: var(--vscode-button-background, #0e639c);
+  color: #fff;
+  border-color: #0e639c;
+}
+
+.sp-current-sprite {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.sp-sprite-link {
+  font-family: var(--vscode-editor-font-family, monospace);
+  color: var(--vscode-textLink-foreground, #3794ff);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ── Details Grid (Stats & Chunks) ── */
+.sp-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 16px;
+  flex: 1;
+}
+
+.sp-details-col {
+  display: flex;
+  flex-direction: column;
+  background: var(--vscode-sideBar-background, #1e1e1e);
+  border: 1px solid var(--vscode-panel-border, #333);
+  border-radius: 4px;
+  padding: 12px;
+}
+
+.sp-col-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--vscode-panel-border, #333);
+}
+
+.sp-col-sub {
+  font-size: 11px;
+  font-weight: normal;
+  opacity: 0.7;
+}
+
+/* ── Stats Grid ── */
+.sp-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.sp-stat-card {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 8px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 3px;
+  position: relative;
+  cursor: help;
+  transition: all 0.1s;
+}
+
+.sp-stat-card:hover {
+  background: rgba(255,255,255,0.05);
+  border-color: var(--vscode-focusBorder, #007acc);
+}
+
+.sp-stat-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  opacity: 0.7;
+}
+
+.sp-stat-val {
+  font-size: 14px;
+  font-weight: bold;
+  font-family: var(--vscode-editor-font-family, monospace);
+  margin-top: 2px;
+}
+
+.sp-stat-sub {
+  font-size: 9px;
+  opacity: 0.5;
+  margin-top: 1px;
+}
+
+.sp-stat-tooltip {
+  display: none;
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  width: 220px;
+  background: #252526;
+  border: 1px solid #454545;
+  border-radius: 4px;
+  padding: 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #eee;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  z-index: 100;
+  pointer-events: none;
+}
+
+.sp-stat-card:hover .sp-stat-tooltip {
+  display: block;
+}
+
+/* ── Chunks Table ── */
+.sp-chunks-table-wrap {
+  flex: 1;
+  max-height: 380px;
+  overflow-y: auto;
+  border: 1px solid var(--vscode-panel-border, #333);
+  border-radius: 3px;
+}
+
+.sp-chunks-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  font-family: var(--vscode-editor-font-family, monospace);
+}
+
+.sp-chunks-table th {
+  position: sticky;
+  top: 0;
+  background: var(--vscode-editorGroupHeader-tabsBackground, #252526);
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--vscode-panel-border, #333);
+  font-weight: 600;
+}
+
+.sp-chunks-table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+
+.sp-chunks-table tr:hover {
+  background: var(--vscode-list-hoverBackground, rgba(255,255,255,0.05));
+}
+
+.sp-chunks-table tr.sp-chunk-sel {
+  background: var(--vscode-list-activeSelectionBackground, #094771);
+}
+
+/* ── Raw Sprites View ── */
+.sp-raw-stage-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 16px;
+  flex: 1;
+}
+
+.sp-raw-stage {
+  height: 400px;
+}
+
+.sp-raw-chunks-panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--vscode-sideBar-background, #1e1e1e);
+  border: 1px solid var(--vscode-panel-border, #333);
+  border-radius: 4px;
+  padding: 12px;
+  max-height: 400px;
+}
+
+@media (max-width: 900px) {
+  .sp-details-grid, .sp-raw-stage-layout {
+    grid-template-columns: 1fr;
+  }
+}

@@ -259,8 +259,10 @@ bindLinks(document.querySelector('.dt-wrap'));
 recomputeRows();
 __ROOMS_DATA__
 __SCALING_DATA__
+__SPRITES_DATA__
 __ROOMS_JS__
 __SCALING_JS__
+__SPRITES_JS__
 __DOCS_JS__
 __ROUTE_JS__
 __RNG_JS__

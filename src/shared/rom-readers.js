@@ -12,6 +12,7 @@ function romCandidates(wsRoot, romPathOverride = '') {
     if (wsRoot) {
         out.push(path.join(wsRoot, 'Secret of Evermore (U) [!].smc'));
         out.push(path.join(wsRoot, 'Secret of Evermore.smc'));
+        out.push(path.join(wsRoot, 'script_parser', 'dependencies', 'Secret of Evermore (U) [!].smc'));
     }
     return out;
 }

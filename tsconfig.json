@@ -28,6 +28,7 @@
         "src/docs",
         "src/routes",
         "src/emulator/webview",
+        "src/sprites/webview",
         "sandbox",
         "tests"
     ]

@@ -8,11 +8,12 @@ const { buildMemoryTabHtml }     = require('./render-memory-tab');
 const { buildDocsTabHtml, buildRngTabHtml } = require('../docs/render-docs-tab');
 const { renderRoomsTree, renderVanillaTree, buildRoomRailHtml,
         buildRoomsJson, VANILLA_ROOMS } = require('../rooms');
+const { buildSpritesTabHtml }    = require('../sprites');
 const radarWebview               = require('./webview');
 
 /**
  * Build the complete radar webview HTML.
- * The last three parameters (enumByAddr, vanillaRoomDetails, byteScriptFocus)
+ * The last parameters (enumByAddr, vanillaRoomDetails, byteScriptFocus, spritesBundle)
  * are provided by the call site in extension.js; tests call with 8 args and
  * rely on the defaults.
  */
@@ -20,7 +21,8 @@ function renderRadarHtml(
     scope, refs, pools, argRefs, mapByAddr,
     roomTree = [], activeTab = 'radar', selectedMap = null,
     chars = [], scaleActive = false, itemIcons = null, hitLookup = null,
-    enumByAddr = new Map(), vanillaRoomDetails = {}, byteScriptFocus = ''
+    enumByAddr = new Map(), vanillaRoomDetails = {}, byteScriptFocus = '',
+    spritesBundle = null
 ) {
     // ── Memory tab (grid + detail table) ───────────────────────────────────
     const { html: memoryTabHtml, cellData } = buildMemoryTabHtml(
@@ -89,10 +91,18 @@ function renderRadarHtml(
     // ── JS bundle ───────────────────────────────────────────────────────────
     const scalingJs = radarWebview.scalingJs;
     const roomsJs   = radarWebview.roomsJs;
+    const spritesJs = radarWebview.spritesJs;
     const docsJs    = radarWebview.docsJs;
     const routeJs   = radarWebview.routeJs;
     const rngJs     = radarWebview.rngJs;
-    const js = radarWebview.buildMainJs({ jsData, roomsData, scalingData, roomsJs, scalingJs, docsJs, routeJs, rngJs });
+
+    // ── Sprites tab data & HTML ─────────────────────────────────────────────
+    const spritesTabHtml = buildSpritesTabHtml();
+    const spritesData =
+        'var SPRITES_CHARACTERS_DATA=' + JSON.stringify(spritesBundle?.characters || []).replace(/<\/script>/gi, '<\\/script>') + ';' +
+        '\nvar SPRITES_RAW_INDEX=' + JSON.stringify(spritesBundle?.rawIndex || []).replace(/<\/script>/gi, '<\\/script>') + ';';
+
+    const js = radarWebview.buildMainJs({ jsData, roomsData, scalingData, spritesData, roomsJs, scalingJs, spritesJs, docsJs, routeJs, rngJs });
 
     // ── Rooms tab HTML ──────────────────────────────────────────────────────
     const roomsTabHtml =
@@ -161,6 +171,7 @@ function renderRadarHtml(
         '<div class="tabs">' +
         '<button class="tab tab-active" data-tab="radar">\u26a1 Memory</button>' +
         '<button class="tab" data-tab="rooms">\ud83d\uddfa Rooms</button>' +
+        '<button class="tab" data-tab="sprites">\ud83d\udc7e Sprites</button>' +
         '<button class="tab" data-tab="scaling">\u2694\ufe0f Scaling</button>' +
         '<button class="tab" data-tab="route">\ud83e\udded Route</button>' +
         '<button class="tab" data-tab="docs">\ud83d\udcda Docs</button>' +
@@ -168,6 +179,7 @@ function renderRadarHtml(
         '</div>' +
         memoryTabHtml +
         roomsTabHtml +
+        spritesTabHtml +
         scalingTabHtml +
         buildDocsTabHtml() +
         routeTabHtml +

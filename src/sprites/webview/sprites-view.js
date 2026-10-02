@@ -1,0 +1,646 @@
+// Ownership: client-side interaction, animation playback loop, canvas drawing, stat cards, and chunk inspector for the Sprites tab.
+(function() {
+  var vs = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null;
+
+  // State variables
+  var currentMode = 'chars'; // 'chars' or 'raw'
+  var charFilter = 'all';
+  var selectedCharId = 0;
+  var selectedAnimKey = 'stand';
+  var selectedFacing = 8; // South
+  var animScale = 3;
+
+  var currentAnimData = null;
+  var currentFrameIdx = 0;
+  var tickCounter = 0;
+  var isPlaying = true;
+  var isLooping = true;
+  var playbackSpeed = 1;
+  var lastRafTime = 0;
+  var loadedImages = {}; // cache of Image objects for PNGs
+
+  var selectedRawAddr = 0xca0003;
+  var rawBg = 'dark';
+  var rawPalette = 0x90b00b;
+
+  // DOM Elements
+  var btnChars = document.getElementById('sp-btn-mode-chars');
+  var btnRaw = document.getElementById('sp-btn-mode-raw');
+  var charView = document.getElementById('sp-char-view');
+  var rawView = document.getElementById('sp-raw-view');
+  var charFilters = document.getElementById('sp-char-filters');
+  var searchInput = document.getElementById('sp-search');
+  var listEl = document.getElementById('sp-list');
+
+  var canvas = document.getElementById('sp-canvas');
+  var ctx = (canvas && typeof canvas.getContext === 'function') ? canvas.getContext('2d') : null;
+  var rawCanvas = document.getElementById('sp-raw-canvas');
+  var rawCtx = (rawCanvas && typeof rawCanvas.getContext === 'function') ? rawCanvas.getContext('2d') : null;
+
+  var animSel = document.getElementById('sp-anim-sel');
+  var scrubber = document.getElementById('sp-scrubber');
+  var frameInfo = document.getElementById('sp-frame-info');
+  var btnPlay = document.getElementById('sp-btn-play');
+  var btnPrev = document.getElementById('sp-btn-step-prev');
+  var btnNext = document.getElementById('sp-btn-step-next');
+  var btnLoop = document.getElementById('sp-btn-loop');
+  var speedSel = document.getElementById('sp-speed-sel');
+  var spriteAddrLink = document.getElementById('sp-cur-sprite-addr');
+
+  var chkBody = document.getElementById('sp-chk-body');
+  var chkHurt = document.getElementById('sp-chk-hurt');
+  var chkStrike = document.getElementById('sp-chk-strike');
+  var chkOrigin = document.getElementById('sp-chk-origin');
+
+  var statsGrid = document.getElementById('sp-stats-grid');
+  var chunksBody = document.getElementById('sp-chunks-body');
+  var chunksCount = document.getElementById('sp-chunks-count');
+
+  var rawPaletteSel = document.getElementById('sp-raw-palette-sel');
+  var rawBgSel = document.getElementById('sp-raw-bg-sel');
+  var rawChunksBody = document.getElementById('sp-raw-chunks-body');
+  var rawName = document.getElementById('sp-raw-name');
+  var rawBadge = document.getElementById('sp-raw-badge');
+
+  function getCharacters() {
+    return (typeof SPRITES_CHARACTERS_DATA !== 'undefined' ? SPRITES_CHARACTERS_DATA : (typeof window !== 'undefined' ? window.SPRITES_CHARACTERS_DATA : [])) || [];
+  }
+
+  function getRawIndex() {
+    return (typeof SPRITES_RAW_INDEX !== 'undefined' ? SPRITES_RAW_INDEX : (typeof window !== 'undefined' ? window.SPRITES_RAW_INDEX : [])) || [];
+  }
+
+  // ── Mode Switching ──────────────────────────────────────────────────────────
+  function setMode(mode) {
+    currentMode = mode;
+    if (btnChars) btnChars.classList.toggle('sp-active', mode === 'chars');
+    if (btnRaw) btnRaw.classList.toggle('sp-active', mode === 'raw');
+    if (charView) charView.style.display = mode === 'chars' ? 'flex' : 'none';
+    if (rawView) rawView.style.display = mode === 'raw' ? 'flex' : 'none';
+    if (charFilters) charFilters.style.display = mode === 'chars' ? 'flex' : 'none';
+    renderList();
+    if (mode === 'raw') loadRawSprite(selectedRawAddr);
+  }
+
+  if (btnChars) btnChars.addEventListener('click', function() { setMode('chars'); });
+  if (btnRaw) btnRaw.addEventListener('click', function() { setMode('raw'); });
+
+  // ── Search & Filters ────────────────────────────────────────────────────────
+  if (searchInput) {
+    searchInput.addEventListener('input', function() { renderList(); });
+  }
+
+  if (charFilters) {
+    charFilters.querySelectorAll('.sp-filter-chip').forEach(function(chip) {
+      chip.addEventListener('click', function() {
+        charFilters.querySelectorAll('.sp-filter-chip').forEach(function(c) { c.classList.remove('sp-active'); });
+        chip.classList.add('sp-active');
+        charFilter = chip.dataset.filter || 'all';
+        renderList();
+      });
+    });
+  }
+
+  // ── Render List ─────────────────────────────────────────────────────────────
+  function renderList() {
+    if (!listEl) return;
+    listEl.innerHTML = '';
+    var q = (searchInput && searchInput.value ? searchInput.value.toLowerCase().trim() : '');
+
+    if (currentMode === 'chars') {
+      var chars = getCharacters();
+      chars.forEach(function(c) {
+        if (charFilter === 'enemies' && !c.disposition.hostile) return;
+        if (charFilter === 'npcs' && c.disposition.hostile) return;
+        if (charFilter === 'heroes' && c.id !== 0 && c.id !== 1) return;
+
+        var nameStr = (c.name || '').toLowerCase();
+        var idStr = String(c.id);
+        var snesStr = (c.snesHex || '').toLowerCase();
+
+        if (q && !nameStr.includes(q) && !idStr.includes(q) && !snesStr.includes(q)) return;
+
+        var li = document.createElement('li');
+        li.className = 'sp-list-item' + (c.id === selectedCharId ? ' sp-selected' : '');
+        li.dataset.id = c.id;
+        li.innerHTML = '<span class="sp-li-name">' + (c.name || '#' + c.id) + '</span>' +
+          '<span class="sp-li-addr">' + c.snesHex + '</span>';
+
+        li.addEventListener('click', function() { selectCharacter(c.id); });
+        listEl.appendChild(li);
+      });
+    } else {
+      var rawList = getRawIndex();
+      rawList.forEach(function(s) {
+        var addrStr = (s.addrHex || '').toLowerCase();
+        var idxStr = String(s.index);
+        if (q && !addrStr.includes(q) && !idxStr.includes(q)) return;
+
+        var li = document.createElement('li');
+        li.className = 'sp-list-item' + (s.address === selectedRawAddr ? ' sp-selected' : '');
+        li.dataset.addr = s.address;
+        li.innerHTML = '<span class="sp-li-name">' + s.addrHex + '</span>' +
+          '<span class="sp-li-addr">' + s.width + '×' + s.height + ' (' + s.chunkCount + ')</span>';
+
+        li.addEventListener('click', function() { selectRawSprite(s.address); });
+        listEl.appendChild(li);
+      });
+    }
+  }
+
+  // ── Character Selection ─────────────────────────────────────────────────────
+  function selectCharacter(id) {
+    selectedCharId = id;
+    var chars = getCharacters();
+    var c = chars.find(function(x) { return x.id === id; });
+    if (!c) return;
+
+    // Update list selection highlight
+    if (listEl) {
+      listEl.querySelectorAll('.sp-list-item').forEach(function(el) {
+        el.classList.toggle('sp-selected', parseInt(el.dataset.id) === id);
+      });
+    }
+
+    // Header info
+    var idEl = document.getElementById('sp-char-id');
+    var nameEl = document.getElementById('sp-char-name');
+    var badgeEl = document.getElementById('sp-char-badge');
+    var palHex = document.getElementById('sp-palette-hex');
+    var swatch = document.getElementById('sp-palette-swatch');
+
+    if (idEl) idEl.textContent = '#' + c.id;
+    if (nameEl) nameEl.textContent = c.name + ' (' + c.snesHex + ')';
+    if (badgeEl) {
+      badgeEl.textContent = c.disposition.label;
+      badgeEl.className = 'sp-badge ' + (c.id === 0 || c.id === 1 ? 'sp-badge-hero' : c.disposition.hostile ? 'sp-badge-enemy' : 'sp-badge-npc');
+    }
+    if (palHex) palHex.textContent = c.paletteAddrHex;
+    if (swatch && c.paletteColors) {
+      swatch.innerHTML = c.paletteColors.map(function(hex) {
+        return '<span style="background-color:' + hex + '" title="' + hex + '"></span>';
+      }).join('');
+    }
+
+    // Populate Animations dropdown
+    if (animSel) {
+      animSel.innerHTML = '';
+      var stdGroup = document.createElement('optgroup');
+      stdGroup.label = 'Standard Animations';
+      var extGroup = document.createElement('optgroup');
+      extGroup.label = 'Special / Opcode Triggers';
+
+      var defaultKey = 'stand';
+      (c.anims || []).forEach(function(a) {
+        var opt = document.createElement('option');
+        opt.value = a.key;
+        opt.textContent = a.label + (a.valueHex ? ' (' + a.valueHex + ')' : '');
+        opt.dataset.category = a.category;
+        if (a.category === 'external') extGroup.appendChild(opt);
+        else stdGroup.appendChild(opt);
+      });
+
+      if (stdGroup.children.length) animSel.appendChild(stdGroup);
+      if (extGroup.children.length) animSel.appendChild(extGroup);
+
+      selectedAnimKey = defaultKey;
+      animSel.value = defaultKey;
+    }
+
+    // Render Stats Cards with meanings
+    renderStats(c);
+
+    // Request animation data from backend
+    loadCurrentAnimation();
+  }
+
+  // ── Stats Cards ─────────────────────────────────────────────────────────────
+  function renderStats(c) {
+    if (!statsGrid) return;
+    statsGrid.innerHTML = '';
+    var s = c.stats || {};
+    var m = c.statMeanings || {};
+
+    var fields = [
+      { key: 'hp', label: 'HP', val: s.hp, hex: '$' + s.hp.toString(16), desc: m.hp },
+      { key: 'attack', label: 'Attack', val: s.attack, hex: '$' + s.attack.toString(16), desc: m.attack },
+      { key: 'defense', label: 'Defense', val: s.defense, hex: '$' + s.defense.toString(16), desc: m.defense },
+      { key: 'magic_defense', label: 'M. Defense', val: s.magic_defense, hex: '$' + s.magic_defense.toString(16), desc: m.magic_defense },
+      { key: 'evade', label: 'Evade', val: s.evade, hex: '$' + s.evade.toString(16), desc: m.evade },
+      { key: 'hit_rate', label: 'Hit Rate', val: s.hit_rate, hex: '$' + s.hit_rate.toString(16), desc: m.hit_rate },
+      { key: 'aggro_range', label: 'Aggro Range', val: s.aggro_range + ' px', hex: '$' + s.aggro_range.toString(16), desc: m.aggro_range },
+      { key: 'aggro_chance', label: 'Aggro Chance', val: Math.round(s.aggro_chance / 256 * 100) + '%', hex: '$' + s.aggro_chance.toString(16), desc: m.aggro_chance },
+      { key: 'exp', label: 'EXP', val: s.exp, hex: '$' + s.exp.toString(16), desc: m.exp },
+      { key: 'money', label: 'Money (Talons)', val: s.money, hex: '$' + s.money.toString(16), desc: m.money },
+      { key: 'prize_chance', label: 'Prize Chance', val: s.prize_chance, hex: '$' + s.prize_chance.toString(16), desc: m.prize_chance },
+      { key: 'radius', label: 'Collision Radius', val: s.radius + ' px (' + (s.radius*2) + '×' + s.radius + ')', hex: '$' + s.radius.toString(16), desc: m.radius },
+      { key: 'flags', label: 'Flags', val: '$' + s.flags.toString(16).padStart(4, '0'), hex: '$' + s.flags.toString(16), desc: m.flags },
+      { key: 'palette', label: 'Palette', val: '$' + s.palette.toString(16), hex: '$' + s.palette.toString(16), desc: m.palette },
+      { key: 'charge_limit', label: 'Charge Limit', val: s.charge_limit, hex: '$' + s.charge_limit.toString(16), desc: m.charge_limit },
+      { key: 'charge_speed', label: 'Charge Speed', val: s.charge_speed, hex: '$' + s.charge_speed.toString(16), desc: m.charge_speed },
+      { key: 'attack_proc', label: 'Attack Proc', val: '$' + s.attack_proc.toString(16), hex: '$' + s.attack_proc.toString(16), desc: m.attack_proc },
+      { key: 'ai_script', label: 'AI Script', val: '$' + s.ai_script.toString(16), hex: '$' + s.ai_script.toString(16), desc: m.ai_script },
+    ];
+
+    fields.forEach(function(f) {
+      var card = document.createElement('div');
+      card.className = 'sp-stat-card';
+      card.innerHTML = 
+        '<div class="sp-stat-header"><span>' + f.label + '</span><span>' + f.hex + '</span></div>' +
+        '<div class="sp-stat-val">' + f.val + '</div>' +
+        '<div class="sp-stat-tooltip"><strong>' + f.label + ':</strong> ' + f.desc + '</div>';
+      statsGrid.appendChild(card);
+    });
+  }
+
+  // ── Load Animation Data ─────────────────────────────────────────────────────
+  function loadCurrentAnimation() {
+    var chars = getCharacters();
+    var c = chars.find(function(x) { return x.id === selectedCharId; });
+    if (!c) return;
+
+    var animOpt = (c.anims || []).find(function(a) { return a.key === selectedAnimKey; });
+    if (!animOpt) animOpt = { key: 'stand', offset: 0x32 };
+
+    if (vs) {
+      vs.postMessage({
+        command: 'getSpriteAnimation',
+        characterId: selectedCharId,
+        animKey: selectedAnimKey,
+        animOpt: animOpt,
+        facing: selectedFacing,
+      });
+    }
+  }
+
+  // ── Animation Playback Controls ─────────────────────────────────────────────
+  if (animSel) {
+    animSel.addEventListener('change', function() {
+      selectedAnimKey = animSel.value;
+      loadCurrentAnimation();
+    });
+  }
+
+  document.querySelectorAll('.sp-facing-btn').forEach(function(b) {
+    b.addEventListener('click', function() {
+      document.querySelectorAll('.sp-facing-btn').forEach(function(x) { x.classList.remove('sp-active'); });
+      b.classList.add('sp-active');
+      selectedFacing = parseInt(b.dataset.facing);
+      loadCurrentAnimation();
+    });
+  });
+
+  document.querySelectorAll('.sp-scale-btn').forEach(function(b) {
+    b.addEventListener('click', function() {
+      document.querySelectorAll('.sp-scale-btn').forEach(function(x) { x.classList.remove('sp-active'); });
+      b.classList.add('sp-active');
+      animScale = parseInt(b.dataset.scale);
+      drawFrame();
+    });
+  });
+
+  [chkBody, chkHurt, chkStrike, chkOrigin].forEach(function(chk) {
+    if (chk) chk.addEventListener('change', drawFrame);
+  });
+
+  if (btnPlay) {
+    btnPlay.addEventListener('click', function() {
+      isPlaying = !isPlaying;
+      btnPlay.textContent = isPlaying ? '⏸' : '▶';
+    });
+  }
+
+  if (btnLoop) {
+    btnLoop.addEventListener('click', function() {
+      isLooping = !isLooping;
+      btnLoop.classList.toggle('sp-active', isLooping);
+    });
+  }
+
+  if (btnPrev) {
+    btnPrev.addEventListener('click', function() {
+      if (!currentAnimData || !currentAnimData.frames.length) return;
+      currentFrameIdx = (currentFrameIdx - 1 + currentAnimData.frames.length) % currentAnimData.frames.length;
+      tickCounter = 0;
+      updateFrameUI();
+    });
+  }
+
+  if (btnNext) {
+    btnNext.addEventListener('click', function() {
+      if (!currentAnimData || !currentAnimData.frames.length) return;
+      currentFrameIdx = (currentFrameIdx + 1) % currentAnimData.frames.length;
+      tickCounter = 0;
+      updateFrameUI();
+    });
+  }
+
+  if (scrubber) {
+    scrubber.addEventListener('input', function() {
+      currentFrameIdx = parseInt(scrubber.value);
+      tickCounter = 0;
+      updateFrameUI();
+    });
+  }
+
+  if (speedSel) {
+    speedSel.addEventListener('change', function() {
+      playbackSpeed = parseFloat(speedSel.value) || 1;
+    });
+  }
+
+  if (spriteAddrLink) {
+    spriteAddrLink.addEventListener('click', function() {
+      if (!currentAnimData || !currentAnimData.frames[currentFrameIdx]) return;
+      var f = currentAnimData.frames[currentFrameIdx];
+      setMode('raw');
+      selectRawSprite(f.spriteAddr);
+    });
+  }
+
+  // ── Animation Loop ──────────────────────────────────────────────────────────
+  var raf = typeof requestAnimationFrame === 'function'
+    ? requestAnimationFrame
+    : (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function'
+      ? window.requestAnimationFrame.bind(window)
+      : function(cb) { return setTimeout(cb, 16); });
+
+  function animationLoop(timestamp) {
+    raf(animationLoop);
+    if (!lastRafTime) lastRafTime = timestamp;
+    var delta = timestamp - lastRafTime;
+    lastRafTime = timestamp;
+
+    if (!isPlaying || !currentAnimData || !currentAnimData.frames.length) return;
+
+    var snesTickMs = (1000 / 60) / playbackSpeed;
+    tickCounter += delta / snesTickMs;
+
+    var curFrame = currentAnimData.frames[currentFrameIdx];
+    var holdTicks = curFrame && curFrame.ticks > 0 ? curFrame.ticks : 1;
+
+    if (tickCounter >= holdTicks) {
+      tickCounter -= holdTicks;
+      if (currentFrameIdx + 1 < currentAnimData.frames.length) {
+        currentFrameIdx++;
+        updateFrameUI();
+      } else if (isLooping) {
+        currentFrameIdx = 0;
+        updateFrameUI();
+      }
+    }
+  }
+  raf(animationLoop);
+
+  // ── Update Frame & Canvas Drawing ───────────────────────────────────────────
+  function updateFrameUI() {
+    if (!currentAnimData || !currentAnimData.frames.length) return;
+    var cur = currentAnimData.frames[currentFrameIdx];
+    if (!cur) return;
+
+    if (scrubber) {
+      scrubber.max = currentAnimData.frames.length - 1;
+      scrubber.value = currentFrameIdx;
+    }
+
+    if (frameInfo) {
+      frameInfo.textContent = 'Frame ' + (currentFrameIdx + 1) + '/' + currentAnimData.frames.length + ' (' + cur.ticks + ' ticks)';
+    }
+
+    if (spriteAddrLink) {
+      spriteAddrLink.textContent = cur.spriteHex;
+    }
+
+    // Update Chunks table for current frame
+    renderChunks(cur.chunks || []);
+
+    // Draw canvas
+    drawFrame();
+  }
+
+  function renderChunks(chunks) {
+    if (!chunksBody) return;
+    chunksBody.innerHTML = '';
+    if (chunksCount) chunksCount.textContent = '(' + chunks.length + ' chunks)';
+
+    chunks.forEach(function(ch) {
+      var tr = document.createElement('tr');
+      var props = [];
+      if (ch.large) props.push('16×16'); else props.push('8×8');
+      if (ch.flipX) props.push('FlipX');
+      if (ch.flipY) props.push('FlipY');
+      props.push('Prio ' + ch.priority);
+
+      tr.innerHTML = 
+        '<td>' + ch.blockHex + '</td>' +
+        '<td>' + ch.x + ', ' + ch.y + '</td>' +
+        '<td>' + ch.flagsHex + '</td>' +
+        '<td>' + props.join(', ') + '</td>';
+      chunksBody.appendChild(tr);
+    });
+  }
+
+  function drawFrame() {
+    if (!ctx || !currentAnimData || !currentAnimData.frames.length) return;
+    var cur = currentAnimData.frames[currentFrameIdx];
+    if (!cur) return;
+
+    var img = loadedImages[cur.png];
+    if (!img) {
+      if (typeof Image !== 'function') return;
+      img = new Image();
+      img.src = cur.png;
+      img.onload = function() {
+        loadedImages[cur.png] = img;
+        drawFrame();
+      };
+      return;
+    }
+
+    var scale = animScale;
+    var w = currentAnimData.width * scale;
+    var h = currentAnimData.height * scale;
+
+    canvas.width = Math.max(w + 40, 256);
+    canvas.height = Math.max(h + 40, 256);
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.imageSmoothingEnabled = false;
+
+    // Center sprite canvas
+    var cx = Math.floor(canvas.width / 2);
+    var cy = Math.floor(canvas.height / 2);
+
+    // Sprite feet origin sits at cx, cy
+    var sprX = cx - currentAnimData.originX * scale;
+    var sprY = cy - currentAnimData.originY * scale;
+
+    ctx.drawImage(img, sprX, sprY, w, h);
+
+    // Get current character hitbox info
+    var chars = getCharacters();
+    var c = chars.find(function(x) { return x.id === selectedCharId; });
+    var r = c && c.hitbox ? c.hitbox.radius : 0;
+
+    // Overlay 1: Body Hitbox (2r wide, r tall, centered on origin cx, cy)
+    if (chkBody && chkBody.checked && r > 0) {
+      var bw = r * 2 * scale;
+      var bh = r * scale;
+      ctx.strokeStyle = '#00f0a0';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(cx - bw / 2, cy - bh / 2, bw, bh);
+      ctx.fillStyle = 'rgba(0, 240, 160, 0.15)';
+      ctx.fillRect(cx - bw / 2, cy - bh / 2, bw, bh);
+    }
+
+    // Overlay 2: Hurt Box (2r wide, 2r tall, centered on origin cx, cy)
+    if (chkHurt && chkHurt.checked && r > 0) {
+      var hw = r * 2 * scale;
+      var hh = r * 2 * scale;
+      ctx.strokeStyle = '#ffaa00';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(cx - hw / 2, cy - hh / 2, hw, hh);
+      ctx.fillStyle = 'rgba(255, 170, 0, 0.10)';
+      ctx.fillRect(cx - hw / 2, cy - hh / 2, hw, hh);
+    }
+
+    // Overlay 3: Strike Box (if any active for this animation)
+    if (chkStrike && chkStrike.checked && currentAnimData.strikeBoxes) {
+      currentAnimData.strikeBoxes.forEach(function(sb) {
+        var sx = cx + sb.dx * scale;
+        var sy = cy + sb.dy * scale;
+        var sw = sb.width * scale;
+        var sh = sb.height * scale;
+        ctx.strokeStyle = '#ff3355';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(sx, sy, sw, sh);
+        ctx.fillStyle = 'rgba(255, 51, 85, 0.25)';
+        ctx.fillRect(sx, sy, sw, sh);
+      });
+    }
+
+    // Overlay 4: Origin Crosshair (+)
+    if (chkOrigin && chkOrigin.checked) {
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(cx - 8, cy); ctx.lineTo(cx + 8, cy);
+      ctx.moveTo(cx, cy - 8); ctx.lineTo(cx, cy + 8);
+      ctx.stroke();
+    }
+  }
+
+  // ── Raw Sprites Mode Handling ───────────────────────────────────────────────
+  function selectRawSprite(addr) {
+    selectedRawAddr = addr;
+    if (listEl) {
+      listEl.querySelectorAll('.sp-list-item').forEach(function(el) {
+        el.classList.toggle('sp-selected', parseInt(el.dataset.addr) === addr);
+      });
+    }
+    loadRawSprite(addr);
+  }
+
+  function loadRawSprite(addr) {
+    if (vs) {
+      vs.postMessage({
+        command: 'getRawSprite',
+        address: addr,
+        paletteAddr: rawPalette,
+      });
+    }
+  }
+
+  if (rawBgSel) {
+    rawBgSel.addEventListener('change', function() {
+      rawBg = rawBgSel.value;
+      var stage = document.getElementById('sp-raw-stage');
+      if (!stage) return;
+      if (rawBg === 'green') stage.style.background = '#00ff00';
+      else if (rawBg === 'light') stage.style.background = '#e0e0e0';
+      else if (rawBg === 'none') stage.style.background = 'transparent';
+      else stage.style.background = '#121212';
+    });
+  }
+
+  if (rawPaletteSel) {
+    rawPaletteSel.addEventListener('change', function() {
+      rawPalette = parseInt(rawPaletteSel.value, 16);
+      loadRawSprite(selectedRawAddr);
+    });
+  }
+
+  function populateRawPalettes() {
+    if (!rawPaletteSel) return;
+    rawPaletteSel.innerHTML = '';
+    var chars = getCharacters();
+    chars.forEach(function(c) {
+      var opt = document.createElement('option');
+      opt.value = c.stats.palette.toString(16);
+      opt.textContent = c.name + ' (' + c.paletteAddrHex + ')';
+      if (c.id === 0) opt.selected = true;
+      rawPaletteSel.appendChild(opt);
+    });
+  }
+
+  // ── Backend Message Listener ────────────────────────────────────────────────
+  if (typeof window !== 'undefined' && window.addEventListener) {
+    window.addEventListener('message', function(event) {
+      var data = event.data;
+      if (!data) return;
+
+      if (data.command === 'spriteAnimationData') {
+        currentAnimData = data.animation;
+        currentFrameIdx = 0;
+        tickCounter = 0;
+        updateFrameUI();
+      } else if (data.command === 'rawSpriteData') {
+        var s = data.sprite;
+        if (!s) return;
+        if (rawName) rawName.textContent = 'Raw Sprite ' + s.addrHex + ' (' + s.width + '×' + s.height + ')';
+        if (rawBadge) rawBadge.textContent = s.chunkCount + ' chunks';
+
+        // Render raw chunks
+        if (rawChunksBody) {
+          rawChunksBody.innerHTML = '';
+          (s.chunks || []).forEach(function(ch) {
+            var tr = document.createElement('tr');
+            var props = [];
+            if (ch.large) props.push('16×16'); else props.push('8×8');
+            if (ch.flipX) props.push('FlipX');
+            if (ch.flipY) props.push('FlipY');
+            props.push('Prio ' + ch.priority);
+
+            tr.innerHTML = 
+              '<td>' + ch.blockHex + '</td>' +
+              '<td>' + ch.x + ', ' + ch.y + '</td>' +
+              '<td>' + ch.flagsHex + '</td>' +
+              '<td>' + props.join(', ') + '</td>';
+            rawChunksBody.appendChild(tr);
+          });
+        }
+
+        // Draw raw canvas
+        if (rawCtx && typeof Image === 'function') {
+          var img = new Image();
+          img.src = s.png;
+          img.onload = function() {
+            var sc = 3;
+            rawCanvas.width = Math.max(s.width * sc + 40, 256);
+            rawCanvas.height = Math.max(s.height * sc + 40, 256);
+            rawCtx.clearRect(0, 0, rawCanvas.width, rawCanvas.height);
+            rawCtx.imageSmoothingEnabled = false;
+            var x = Math.floor((rawCanvas.width - s.width * sc) / 2);
+            var y = Math.floor((rawCanvas.height - s.height * sc) / 2);
+            rawCtx.drawImage(img, x, y, s.width * sc, s.height * sc);
+          };
+        }
+      }
+    });
+  }
+
+  // ── Init on page load ───────────────────────────────────────────────────────
+  populateRawPalettes();
+  renderList();
+  selectCharacter(0); // Boy by default
+})();

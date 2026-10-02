@@ -1,3 +1,14 @@
+## [0.119.0] — 2026-10-02
+
+### Added: Sprites tab (characters, raw sprites, animations, hitboxes & stats)
+
+- **New Sprites tab in Memory Radar.** Placed right next to Rooms, combining the capabilities of the Characters and Sprites viewers from SoETilesViewer.
+- **Lists all 142 characters and 5,128 raw sprites.** Browse heroes, enemies, bosses and NPCs from ROM table `$8EB678`, or switch to Raw Sprites mode to inspect every OAM chunk sequence starting at `$CA0003`.
+- **Plays all animations.** Supports standard animations (Stand, Walk, Run, Attack 0–3, Damage, Death, Spoils, Block) across 8 facings, as well as externally triggered animations (such as Magmar landing in magma via opcode `0x78` / `animate(entity, mode, id)`). Includes full playback controls (Play/Pause, Step Prev/Next, Loop toggle, Speed, Scrubber).
+- **Hitbox and Hurtbox overlays.** Inspect the entity's Body bump box ($2r \times r$), Hurt box ($2r \times 2r$), Origin crosshair (+), and dynamically extracted attack strike boxes.
+- **In-depth stat cards with engine meanings.** Every character record field (HP, Attack, Defense, Magic Defense, Evade, Hit Rate, Aggro Range, Aggro Chance, EXP, Money, Prize Chance, Radius, Flags, Palette, Charge Limit/Speed, Attack Proc, AI Script) is displayed alongside mechanical descriptions and formulas explaining its role in the game engine.
+- **Per-frame chunk inspector.** Inspect every $8\times 8$ and $16\times 16$ tile chunk, its relative coordinate offset, VRAM block address, and flip/priority flags for each frame.
+
 ## [0.118.1] — 2026-10-02
 
 ### Fix: animated tiles no longer covered by their still frame

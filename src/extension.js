@@ -42,6 +42,7 @@ let _scalingChars      = null;   // cached character stat array (142 entries fro
 let _hitLookup         = null;   // precomputed hit% table {hit_rate:{evade:pct}} from ROM
 let _scaleActive       = false;  // whether scale_enemies is active in workspace
 let _radarByteScriptFocus = '';  // currently focused byte-script address from emulator panel
+let _spritesBundle     = null;   // cached sprites bundle {characters, rawIndex}
 
 function getRadarMap() {
     if (_radarMapCache) return _radarMapCache;
@@ -94,7 +95,18 @@ function invalidateRadarEnums() { _radarEnumCache = null; }
 function invalidateRoomCaches() {
     _radarRoomTree = null;
     _radarRoomDocPath = null;
+    _spritesBundle = null;
     invalidateRoomDataCaches();
+}
+
+function getSpritesBundle(rom) {
+    if (_spritesBundle) return _spritesBundle;
+    if (!rom) return { characters: [], rawIndex: [] };
+    _spritesBundle = {
+        characters: readAllCharacters(rom),
+        rawIndex: getRawSpriteIndex(rom),
+    };
+    return _spritesBundle;
 }
 
 /**
@@ -140,6 +152,7 @@ const romReaders = require('./shared/rom-readers');
 const { readPngDimensions, readRomTriggerOffsets, readRomMapHeader, readRomCharacters, readRomHitLookup, detectScaleEnemies } = romReaders;
 
 const { renderRadarHtml } = require('./memory/render-radar');
+const { readAllCharacters, getRawSpriteIndex, renderAnimation, renderRawSprite } = require('./sprites');
 
 // ── Activation ────────────────────────────────────────────────────────────────
 
@@ -468,7 +481,9 @@ function refreshRadar(editor) {
     const _extCfg1 = getExtConfig();
     const _wsRoot1 = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
     const _vrd1 = buildVanillaRoomDetails(_wsRoot1, _extCfg1.romPath || '');
-    _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree || [], _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, radarItemIcons(), _hitLookup, getRadarEnums(), _vrd1, _radarByteScriptFocus);
+    const _romBuf1 = romReaders.loadRomBuffer(_wsRoot1, _extCfg1.romPath || '');
+    const _spBundle1 = getSpritesBundle(_romBuf1);
+    _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree || [], _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, radarItemIcons(), _hitLookup, getRadarEnums(), _vrd1, _radarByteScriptFocus, _spBundle1);
     _radarPanel.title = 'Radar: ' + scope.name;
 }
 
@@ -619,7 +634,9 @@ function activate(context) {
             const _extCfg2 = getExtConfig();
             const _wsRoot2b = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
             const _vrd2 = buildVanillaRoomDetails(_wsRoot2b, _extCfg2.romPath || '');
-            _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree, _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, radarItemIcons(), _hitLookup, getRadarEnums(), _vrd2, _radarByteScriptFocus);
+            const _romBuf2 = romReaders.loadRomBuffer(_wsRoot2b, _extCfg2.romPath || '');
+            const _spBundle2 = getSpritesBundle(_romBuf2);
+            _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree, _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, radarItemIcons(), _hitLookup, getRadarEnums(), _vrd2, _radarByteScriptFocus, _spBundle2);
 
             // `everscript.newMap` asked for a blank room. The webview has just
             // been rebuilt, so this is the first moment it can be told.
@@ -1038,7 +1055,9 @@ function activate(context) {
                         const _extCfg3 = getExtConfig();
                         const _wsRoot3 = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
                         const _vrd3 = buildVanillaRoomDetails(_wsRoot3, _extCfg3.romPath || '');
-                        _radarPanel.webview.html = renderRadarHtml(gscope, refs, pools, argRefs, getRadarMap(), _radarRoomTree || [], _radarActiveTab, null, _scalingChars || [], _scaleActive, radarItemIcons(), _hitLookup, getRadarEnums(), _vrd3, _radarByteScriptFocus);
+                        const _romBuf3 = romReaders.loadRomBuffer(_wsRoot3, _extCfg3.romPath || '');
+                        const _spBundle3 = getSpritesBundle(_romBuf3);
+                        _radarPanel.webview.html = renderRadarHtml(gscope, refs, pools, argRefs, getRadarMap(), _radarRoomTree || [], _radarActiveTab, null, _scalingChars || [], _scaleActive, radarItemIcons(), _hitLookup, getRadarEnums(), _vrd3, _radarByteScriptFocus, _spBundle3);
                         _radarPanel.title = 'Radar: (global)';
                     }
                 } else if (msg.command === 'autoScope') {
@@ -1083,6 +1102,34 @@ function activate(context) {
                         if (_radarPanel) setRoomImageUris(_radarRoomTree, p => _radarPanel.webview.asWebviewUri(vscode.Uri.file(p)).toString());
                         refreshRadar(vscode.window.activeTextEditor);
                     });
+                } else if (msg.command === 'getSpriteAnimation') {
+                    try {
+                        const _cfg = getExtConfig();
+                        const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
+                        if (!romBuf) {
+                            _radarPanel.webview.postMessage({ command: 'spriteAnimationData', animation: null, error: 'ROM not found' });
+                            return;
+                        }
+                        const anim = renderAnimation(romBuf, msg.characterId, msg.animOpt, msg.facing);
+                        _radarPanel.webview.postMessage({ command: 'spriteAnimationData', animation: anim });
+                    } catch (err) {
+                        _radarPanel.webview.postMessage({ command: 'spriteAnimationData', animation: null, error: String(err && err.message || err) });
+                    }
+                } else if (msg.command === 'getRawSprite') {
+                    try {
+                        const _cfg = getExtConfig();
+                        const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
+                        if (!romBuf) {
+                            _radarPanel.webview.postMessage({ command: 'rawSpriteData', sprite: null, error: 'ROM not found' });
+                            return;
+                        }
+                        const sprite = renderRawSprite(romBuf, msg.address, msg.paletteAddr);
+                        _radarPanel.webview.postMessage({ command: 'rawSpriteData', sprite });
+                    } catch (err) {
+                        _radarPanel.webview.postMessage({ command: 'rawSpriteData', sprite: null, error: String(err && err.message || err) });
+                    }
                 }
             }, undefined, context.subscriptions);
         }),
