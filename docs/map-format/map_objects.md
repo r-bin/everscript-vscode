@@ -119,8 +119,8 @@ Each object record starts at `$AA + table[object_index]`:
 
 ```
 [max_state: 1 byte]
-  State 0: [width: 1 byte][x: 1 byte][y: 1 byte][metatile_id: 2 bytes]  (5 bytes)
-  State 1: [width: 1 byte][x: 1 byte][y: 1 byte][metatile_id: 2 bytes]  (5 bytes)
+  State 0: [hold: 1 byte][x: 1 byte][y: 1 byte][metatile_id: 2 bytes]  (5 bytes)
+  State 1: [hold: 1 byte][x: 1 byte][y: 1 byte][metatile_id: 2 bytes]  (5 bytes)
   State 2: ...                                                          (5 bytes)
   ...
 ```
@@ -134,7 +134,7 @@ Each object record starts at `$AA + table[object_index]`:
 
 | Byte Offset | Field | Description |
 |:---:|---|---|
-| `+$00` | `width` | Width of the object footprint in 16×16 metatiles. (Usually `0x01` for gourds, `0x02..0x06` for bridges/bosses). |
+| `+$00` | `hold` | Ticks the object holds state *s* while stepping through it — see §4c. **Not a width** (it equals the stamp's `tw` in only 698 of 2836 descriptors); upstream calls it `stride`, also wrong. |
 | `+$01` | `tile_x` | X position on the map in metatiles ($X_{pix} \gg 4$). |
 | `+$02` | `tile_y` | Y position on the map in metatiles ($Y_{pix} \gg 4$). |
 | `+$03..+$04` | `metatile_id` | 16-bit little-endian metatile ID/offset to write into WRAM `$7F0000`. |
@@ -216,6 +216,48 @@ asserts the literal values the trace wrote.
 **`dump_room.py` is wrong here**: it reads `tw*th` 16-bit words starting at
 `+2`, missing the mask entirely, and treats them as metatile IDs. Neither
 holds, which is why none of its `metatiles` values ever resolve.
+
+---
+
+## 4c. Byte 0 is how long a state is held — SOLVED
+
+> Read off the ROM's own code, `$90A36D..$90A4A6`, disassembled from the
+> vanilla image. Diverges from upstream, which calls the byte `stride`.
+
+A script setting a state (`object[5] = 0x7e`) does not jump there.
+`$90A385` clamps the value to `max_state` (a value with bit 7 set becomes 0,
+so `0x7E`/`0x7F` mean "the last state"), stores the target in `$107E,X`, and
+`$90A395` zeroes the object's countdown `$111E,X`. From then on the per-frame
+tick at `$90A429` does the stepping:
+
+```
+90A432  LDA $111E,X     ; negative ($FF) -> idle
+90A43D  BEQ $A448       ; 0 -> step now
+90A442  DEC             ; else count down; reaching 0 also steps
+90A455  JSR $A5D0       ; apply descriptor s (Y left on its byte 0)
+90A45D  INC             ; $10CE,X: now in state s+1
+90A466  INY x5          ; -> byte 0 of descriptor s+1
+90A46B  LDA [$AA],Y
+90A46D  STA $111E,X     ; hold state s+1 that many ticks
+90A473  LDA #$FF        ; reached the target: idle
+```
+
+Going down (`$90A47B`) applies descriptor s-1 and loads *its* byte 0
+(`$90A48E`) — the same byte holds state s-1. So **byte 0 of descriptor s is
+how many ticks state s stays up while the object passes through it**, in
+either direction. 0 and 1 both mean "the next tick". The first step lands on
+the next tick; state 0 and the last state are never held, so descriptor 0's
+byte is never read (it is 0 in 229 of the 330 objects with more than two
+states). Vanilla values: 1 for most, 4–8 for doors and bridges, up to 20 and
+55 for boss segments.
+
+A value with bit 15 set (or `$0106` bit 7) takes `$90A3AC` instead: it steps
+straight through, waiting only for each stamp to reach VRAM (`$90A5BA`), and
+ignores the holds.
+
+Implemented as `ObjectState.hold` in `src/maps/room.ts`; the Object tab edits
+and plays it (`src/rooms/webview/map-editor-object-holds.js`), and Export ROM
+writes it (`src/maps/custom-room.ts`).
 
 ---
 

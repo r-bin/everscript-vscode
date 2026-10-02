@@ -185,6 +185,7 @@ function bindEditControls(panel, room) {
   panel.addEventListener('change', function (e) {
     if (e.target && e.target.dataset && e.target.dataset.headerField) infoHeaderInput(e.target);
     if (typeof animInputHandler === 'function' && animInputHandler(e)) return;
+    if (typeof objectHoldInputHandler === 'function' && objectHoldInputHandler(e)) return;
   });
   // The map's or widget's name on the name line (map-editor-custom-store.js).
   bindNameFields(panel);

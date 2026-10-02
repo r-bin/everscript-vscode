@@ -51,7 +51,14 @@ export interface TriggerRecord {
 
 export interface ObjectState {
     state: number;
-    width: number;
+    /**
+     * Byte 0 of the descriptor: how many ticks the object holds this state
+     * while stepping through it. Not a width — `$90A46B`/`$90A48E` load it
+     * into the per-object countdown `$111E,X` after applying a step, and the
+     * tick at `$90A429` takes the next step when it runs out. Descriptor 0's
+     * is never read: state 0 is only ever a start or an end.
+     */
+    hold: number;
     tileX: number;
     tileY: number;
     targetWidth: number;
@@ -182,7 +189,7 @@ function readObjects(rom: Uint8Array, layout: BlobLayout): RoomObject[] {
             }
             states.push({
                 state: s,
-                width: rom[sPtr],
+                hold: rom[sPtr],
                 tileX: rom[sPtr + 1],
                 tileY: rom[sPtr + 2],
                 targetWidth: tw,

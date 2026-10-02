@@ -60,6 +60,8 @@ function romExportPayload(why) {
       return {
         x: o.x, y: o.y, w: o.w, h: o.h,
         states: frames.length + 1,
+        // Ticks each state is held on the way through (map-editor-object-holds.js).
+        holds: typeof objectHolds === 'function' ? objectHolds(o).slice() : [],
         frames: frames.map(function (f) {
           var delta = {};
           Object.keys(f || {}).forEach(function (k) {

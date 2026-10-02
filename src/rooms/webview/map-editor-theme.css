@@ -404,6 +404,8 @@
 .rg-theme .rg-anim-ticks{width:52px;box-sizing:border-box;padding:2px 2px;border:1px solid var(--rg-border);border-radius:var(--rg-radius-control);background:var(--rg-bg-app);color:var(--rg-text-primary);font:11px var(--rg-font-mono);text-align:center}
 .rg-theme .rg-anim-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:var(--rg-text-secondary)}
 .rg-theme .rg-anim-bar .rdf.on{border-color:var(--rg-anim);color:var(--rg-anim)}
+/* A state the engine never holds (state 0, the last): keeps its chip in line with the held ones' tick boxes. */
+.rg-theme .rg-object-hold-none{display:block;height:20px}
 .rg-theme .rg-anim-presets,.rg-theme .rg-anim-timing-chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .rg-theme .rg-anim-presets{padding:0 0 8px}
 .rg-theme .rg-anim-timing-chips{padding:4px 8px 8px 30px}

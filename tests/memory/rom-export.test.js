@@ -146,6 +146,33 @@ if (!fs.existsSync(ROM_PATH)) {
         }
     });
 
+    test('modelFromRom keeps the whole object area: every stamping block, and nothing past it', () => {
+        // Comparing a rebuilt blob with the ROM from its start cannot see a
+        // short or a long object area; measure the blob's own records instead.
+        for (let id = 0; id < maps.MAX_ROOMS; id++) {
+            const blob = maps.buildBlob(maps.modelFromRom(rom, id));
+            const L = maps.parseBlobLayout(blob, 0);
+            let end = L.objectArea;
+            for (let i = 0; i < L.objectCount; i++) {
+                const rec = L.objectArea + maps.read16(blob, L.section3 + 1 + i * 2);
+                end = Math.max(end, rec + 1 + blob[rec] * 5);
+                for (let s = 0; s < blob[rec]; s++) {
+                    const ptr = maps.read16(blob, rec + 1 + s * 5 + 3);
+                    const stamp = maps.parseObjectStamp(blob, L.objectArea, ptr);
+                    assert.ok(stamp.valid, `room 0x${id.toString(16)} object ${i} state ${s}`);
+                    end = Math.max(end, L.objectArea + ptr + stamp.byteLength);
+                }
+            }
+            assert.strictEqual(blob.length, end, `room 0x${id.toString(16)}`);
+        }
+    });
+
+    test('an object state descriptor\'s byte 0 is how long that state is held', () => {
+        const room = maps.decodeRoom(rom, 0x00);
+        assert.deepStrictEqual(room.objects[0].states.map((s) => s.hold), [4, 4, 4, 4, 4, 4]);
+        assert.deepStrictEqual(room.objects[2].states.map((s) => s.hold), [0, 1, 1]);
+    });
+
     test('re-encoded Blocks 1-3 decode back for all 127 rooms (upstream --verify-rebuild)', () => {
         for (let id = 0; id < maps.MAX_ROOMS; id++) {
             const model = maps.modelFromRom(rom, id);
@@ -354,6 +381,33 @@ if (!fs.existsSync(ROM_PATH)) {
         // Applying state 1 transforms the metatile at (2, 2)
         const morphed = maps.applyObjectStates(out, room, { 0: 1 });
         assert.notStrictEqual(morphed.layer1MetatileIds[2][2], room.layer1MetatileIds[2][2]);
+    });
+
+    test('every state of a custom object is reached in turn, with its holds', () => {
+        // Frames are how the area looks in each state; the engine XORs each
+        // descriptor into the state before it, so state 2 must not come out
+        // as state 1's delta on top of state 2's.
+        const at = (k) => ({ layer1: donor.metatileSlices.layer1[k], layer2: donor.metatileSlices.layer2[k],
+            collision: donor.metatileSlices.collision[k] });
+        const objDraft = {
+            ...draft,
+            objects: [{
+                x: 5, y: 5, w: 2, h: 1, states: 3, holds: [0, 9],
+                frames: [{ '0,0': at(3), '1,0': at(4) }, { '0,0': at(5) }],
+            }],
+        };
+        const { rom: out } = buildExportRom(rom, objDraft);
+        const room = maps.decodeRoom(out, BRIAN_ROOM);
+        assert.deepStrictEqual(room.objects[0].states.map((s) => s.hold), [0, 9]);
+        const words = (r, x, y) => [r.layer1VramWords[y][x], r.layer2VramWords[y][x], r.collisionWords[y][x]];
+        const want = (w) => [w.layer1, w.layer2, w.collision];
+        const s1 = maps.applyObjectStates(out, room, { 0: 1 });
+        assert.deepStrictEqual(words(s1, 5, 5), want(at(3)));
+        assert.deepStrictEqual(words(s1, 6, 5), want(at(4)));
+        const s2 = maps.applyObjectStates(out, room, { 0: 2 });
+        assert.deepStrictEqual(words(s2, 5, 5), want(at(5)));
+        // Not in state 2's frame: back to the map's own.
+        assert.deepStrictEqual(words(s2, 6, 5), words(room, 6, 5));
     });
 }
 

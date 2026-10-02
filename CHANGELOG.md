@@ -1,3 +1,16 @@
+## [0.117.0] — 2026-10-02
+
+### Added: objects step through their states, holding each one for its ticks
+
+- **Each object state now shows a tick box, and the row has ▶ Play.** When a script sets an object's state, the game walks it there one state at a time and holds each state in between for a set number of 60 Hz ticks. That is how a bridge extends or a boss segment moves. The ticks sit under each state chip, as on the Animation tab, and Play steps the object on the map the way the game would, from state 0 to the last state or back. State 0 and the last state are never held, so they have no box.
+- **Vanilla objects bring their own timing.** The ROM stores it in byte 0 of each state record. The docs called that byte the footprint width, but it is the hold time. The game's code reads it into a per-object countdown, so this is read off the code, not guessed (docs/map-format/map_objects.md §4c).
+- **Export ROM writes each object's holds.** It used to write the object's width there, which the game then used as a hold time.
+
+### Fix: objects with more than two states export correctly; whole object areas when reading a room
+
+- **States after the first export correctly.** Each state was encoded as a change from state 0, but the game applies the changes one after another, so state 2 and later came out wrong in game. Each state is now encoded as a change from the state before it.
+- **Reading a room for re-encoding keeps its whole object area.** It measured each stamping block with an old guess at its size. In 86 rooms that dropped the last bytes of the final block, and in 23 it ran past the room's data. A new test checks that a rebuilt room ends exactly where its last block does; the old test could not see either error.
+
 ## [0.116.0] — 2026-10-02
 
 ### Changed: Tile / Collision / Animation as sub-tabs, animated tiles move by drag, no channel cap

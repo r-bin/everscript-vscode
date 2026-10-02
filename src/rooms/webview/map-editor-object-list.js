@@ -71,16 +71,19 @@ function objectWhereSvg(o) {
 function objectStatesHtml(o, n) {
   var org = _editOrigin, frames = editObjectFrames(o), sel = o.uid === _objectSel;
   var active = sel ? _objectActiveFrame : (o.activeFrame || 0);
+  // Each state with its hold under it, as the Animation tab's frames (map-editor-object-holds.js).
+  var hold = function (s) { return typeof objectHoldCellHtml === 'function' ? objectHoldCellHtml(o, s) : ''; };
   var h = '<div class="rg-object-expanded"><div class="ro-chips">'
-    + '<button class="ro-chip' + (active === 0 ? ' sel' : '') + '" data-object-uid="' + o.uid + '" data-object-frame="0"'
-    + ' title="State 0 — the look the room loads with">' + objectFrameThumb(o, 0, org) + '<span class="ro-lbl">0</span></button>';
+    + '<div class="rg-anim-frame-col"><button class="ro-chip' + (active === 0 ? ' sel' : '') + '" data-object-uid="' + o.uid + '" data-object-frame="0"'
+    + ' title="State 0 — the look the room loads with">' + objectFrameThumb(o, 0, org) + '<span class="ro-lbl">0</span></button>' + hold(0) + '</div>';
   for (var f = 1; f <= frames.length; f++) {
     var b = objectFrameBounds(frames[f - 1]);
     var tip = 'Frame ' + f + (b ? ' — ' + b.w + '×' + b.h + ' (' + b.count + ' delta tiles)' : ' — same as base');
-    h += '<button class="ro-chip' + (active === f ? ' sel' : '') + '" data-object-uid="' + o.uid + '" data-object-frame="' + f
-      + '" title="' + escH(tip) + '">' + objectFrameThumb(o, f, org) + '<span class="ro-lbl">' + f + '</span></button>';
+    h += '<div class="rg-anim-frame-col"><button class="ro-chip' + (active === f ? ' sel' : '') + '" data-object-uid="' + o.uid + '" data-object-frame="' + f
+      + '" title="' + escH(tip) + '">' + objectFrameThumb(o, f, org) + '<span class="ro-lbl">' + f + '</span></button>' + hold(f) + '</div>';
   }
   h += '<button class="ro-chip ro-chip-add" data-object-add-frame="' + o.uid + '" title="Add new frame to obj #' + n + '">+</button></div>';
+  if (typeof objectTimingHtml === 'function') h += objectTimingHtml(o);
   if (sel && _objectActiveFrame >= 1) {
     var cur = objectFrameBounds(frames[_objectActiveFrame - 1]), prevF = _objectActiveFrame - 1, nextF = _objectActiveFrame + 1;
     h += '<div class="rg-object-frame-bar"><span class="rg-obj-frame-info">Frame ' + _objectActiveFrame + ': '
@@ -169,6 +172,7 @@ function objectClick(t) {
     && editLocked()) {
     editNote('this map is locked — unlock it to change its objects'); renderEditChrome(); return true;
   }
+  if (t.dataset.objectPlay) { objectPlay(Number(t.dataset.objectPlay)); return true; }
   if (t.dataset.objectRemove) { editRemoveObject(Number(t.dataset.objectRemove)); return true; }
   if (t.dataset.objectToggle) {
     var o = editObjectFind(Number(t.dataset.objectToggle));

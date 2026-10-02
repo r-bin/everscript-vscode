@@ -12,6 +12,7 @@
 
 import { parseBlobLayout, BlobLayout } from './blob-layout';
 import { decompressLzss } from './lzss';
+import { parseObjectStamp } from './object-stamps';
 import { lzssCompress, encodeMarkovGrid } from './encode-streams';
 
 export { lzssCompress, encodeMarkovGrid };
@@ -167,6 +168,10 @@ export function modelFromRom(rom: Uint8Array, roomId: number): RoomModel {
  * The furthest byte any object record or stamping block reaches. Vanilla
  * rooms share stamping blocks between states, so the end is measured, not
  * summed.
+ *
+ * A stamping block's length is its mask stream's (object-stamps.ts), not
+ * upstream's `2 + tw*th*2`: that guess cut the last block short in 86 rooms
+ * and ran past the blob in 23.
  */
 export function objectAreaEnd(rom: Uint8Array, L: BlobLayout): number {
     const aa = L.objectArea;
@@ -176,8 +181,10 @@ export function objectAreaEnd(rom: Uint8Array, L: BlobLayout): number {
         const maxState = rom[rec];
         end = Math.max(end, rec + 1 + maxState * 5);
         for (let s = 0; s < maxState; s++) {
-            const tp = aa + read16(rom, rec + 1 + s * 5 + 3);
-            end = Math.max(end, tp + 2 + rom[tp] * rom[tp + 1] * 2);
+            const pointer = read16(rom, rec + 1 + s * 5 + 3);
+            const stamp = parseObjectStamp(rom, aa, pointer);
+            if (!stamp.valid) throw new Error(`object ${i} state ${s}: no stamping block at +0x${pointer.toString(16)}`);
+            end = Math.max(end, aa + pointer + stamp.byteLength);
         }
     }
     return end;

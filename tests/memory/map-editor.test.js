@@ -743,6 +743,7 @@ const ui = new Function(`
   ${read('map-editor-anim-placed.js')}
   ${read('map-editor-objects.js')}
   ${read('map-editor-object-list.js')}
+  ${read('map-editor-object-holds.js')}
   ${read('map-editor-placed-list.js')}
   ${read('map-editor-widgets.js')}
   ${read('map-editor-widget-colours.js')}
@@ -798,6 +799,9 @@ const ui = new Function(`
     getEditSel: function () { return _editSel; }, customCopyMapReady: customCopyMapReady,
     setLayerForce: function (f) { _layerForce = f; },
     objectSelect: objectSelect, objectSelectFrame: objectSelectFrame,
+    objectHolds: objectHolds, objectSetHold: objectSetHold, objectAddFrame: objectAddFrame, objectRemoveFrame: objectRemoveFrame,
+    objectMoveFrame: objectMoveFrame, objectStatesHtml: objectStatesHtml, objectRunTicks: objectRunTicks, objectPlay: objectPlay,
+    objectPlaying: function () { return _objectPlay; },
     mtPaletteFits: mtPaletteFits, editSeedRoomObjects: editSeedRoomObjects, editObjects: editObjects,
     editWordSpecialIds: editWordSpecialIds, editOnRomRoom: editOnRomRoom, editTriggerSvg: editTriggerSvg,
     editRoomSpecialsSvg: editRoomSpecialsSvg, editExport: editExport, infoTabHtml: infoTabHtml, infoMeasure: infoMeasure,
@@ -2246,6 +2250,77 @@ test('a vanilla room\'s objects join its draft once, with their frames, at the l
     assert.strictEqual(ex.attachments.length, 0);
     assert.strictEqual(ex.roomObjects.length, 1);
     assert.ok(d.roomObjectsSeeded);
+});
+
+test('a vanilla object brings how long it holds each state; frames keep their holds when added, moved, removed', () => {
+    const p = Object.assign(tilePalette(), { roomId: 0x34,
+        roomObjects: [{ index: 0, x: 0, y: 0, w: 1, h: 1, frames: [{ '0,0': 1 }, { '0,0': 2 }, { '0,0': 1 }], holds: [0, 7, 9] }] });
+    ui.setPalette(p);
+    ui.editReset(0x34);
+    ui.editSeedRoomObjects();
+    const tabBefore = ui.tab();
+    let o = ui.editObjects()[0];
+    assert.deepStrictEqual(o.holds, [0, 7, 9]);
+    // State 0 and the last state are never held: no tick box under them.
+    ui.objectSelect(o.uid);
+    const html = ui.objectStatesHtml(o, 0);
+    assert.deepStrictEqual((html.match(/data-object-hold="(\d+)"/g) || []).map((m) => m.match(/\d+/)[0]), ['1', '2']);
+    assert.match(html, /data-object-play=/);
+    // 1 for the first step, then 7 and 9.
+    assert.strictEqual(ui.objectRunTicks(o), 17);
+
+    ui.objectSetHold(o.uid, 1, 12);
+    assert.deepStrictEqual(o.holds, [0, 12, 9]);
+    ui.objectSetHold(o.uid, 3, 5);
+    assert.deepStrictEqual(o.holds, [0, 12, 9], 'the last state has no hold to set');
+    ui.editUndo();
+    // Undo puts the objects back wholesale: ask for it again.
+    o = ui.editObjects()[0];
+    assert.deepStrictEqual(o.holds, [0, 7, 9], 'one undo step');
+
+    ui.objectSelectFrame(1, o.uid);
+    ui.objectMoveFrame(o.uid, 1);
+    assert.deepStrictEqual(o.holds, [0, 9, 7], 'a state takes its hold where it goes');
+    ui.objectRemoveFrame(o.uid, 1);
+    assert.deepStrictEqual(o.holds, [0, 7]);
+    ui.objectAddFrame(o.uid);
+    assert.deepStrictEqual(o.holds, [0, 7, 1], 'the state that stopped being last is held for the usual 1');
+    // Module state: selecting an object picked it and the Object tab for every later test.
+    ui.objectSelect(null);
+    ui.setTab(tabBefore);
+});
+
+test('Play steps an object one state at a time, holding each for its ticks', () => {
+    const p = Object.assign(tilePalette(), { roomId: 0x34,
+        roomObjects: [{ index: 0, x: 0, y: 0, w: 1, h: 1, frames: [{ '0,0': 1 }, { '0,0': 2 }], holds: [0, 6] }] });
+    ui.setPalette(p);
+    ui.editReset(0x34);
+    ui.editSeedRoomObjects();
+    const o = ui.editObjects()[0];
+    const tabBefore = ui.tab();
+    const timers = [], real = global.setTimeout;
+    global.setTimeout = (fn, ms) => { timers.push({ fn, ms }); return timers.length; };
+    try {
+        ui.objectSelect(o.uid);
+        ui.objectPlay(o.uid);
+        assert.ok(ui.objectPlaying());
+        assert.ok(timers[0].ms < 17, 'the first step is the next tick');
+        timers[0].fn();
+        assert.strictEqual(o.activeFrame, 1);
+        assert.ok(Math.abs(timers[1].ms - 6 * 1000 / 60.0988) < 0.01, 'state 1 held 6 ticks');
+        timers[1].fn();
+        assert.strictEqual(o.activeFrame, 2);
+        assert.strictEqual(ui.objectPlaying(), null, 'stops at the last state');
+        assert.strictEqual(timers.length, 2);
+        // From the last state it plays back down.
+        ui.objectPlay(o.uid);
+        timers[2].fn();
+        assert.strictEqual(o.activeFrame, 1);
+    } finally {
+        global.setTimeout = real;
+        ui.objectSelect(null);
+        ui.setTab(tabBefore);
+    }
 });
 
 test('seeding waits outside an open undo step, and never touches a custom map', () => {

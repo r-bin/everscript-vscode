@@ -241,8 +241,9 @@ rebuilt whenever the active document changes, and a map lost with it was never a
 
 **A custom map has one ROM write path: Export ROM** (docs/map-format/rom-export.md,
 `maps/custom-room.ts`). It writes the grid, the dictionary, Block 1, the cuttable
-table (Section 4), and animated tiles (Section 2, `maps/custom-animation.ts`). It
-writes **no triggers, objects or scripts** yet. Its check decodes the result again
+table (Section 4), animated tiles (Section 2, `maps/custom-animation.ts`) and objects
+(Section 3: each descriptor is state s+1 XOR state s, never XOR state 0, since the
+engine applies them one after another). It writes **no triggers or scripts** yet. Its check decodes the result again
 and compares, so anything added to it must be added to the check as well. A vanilla
 room's draft still only has `editExport()`, a handoff shape for the sibling repo's
 encoder. Before wiring a new kind of edit into either, confirm what the format
@@ -321,6 +322,15 @@ The Special tab's flags stay there: they sit on top of a shape.
 cells. They are never written into `_edit.cells`. Each is shown only while its
 control is on: the Cuttable chip, or the Object tab. Every stamp either one uses
 must count as in use for pruning and for the family sync.
+
+**An object steps, it does not jump** (map-editor-object-holds.js). A script setting
+a state walks the object there one state at a time, and byte 0 of each descriptor —
+once read as a width, it is not one — is how many 60 Hz ticks that state is held on
+the way through (`o.holds[s]`, map_objects.md §4c). State 0 and the last state are
+never held, so they get no tick box. Holds travel with their state when frames are
+added, moved or removed; a vanilla object's come from the ROM, a new state's is 1.
+Play on the tab steps it as the engine would: first step on the next tick, then each
+hold.
 
 **Widgets** (map-editor-widgets.js) are portable constructs in one library file every
 map shares. Their cells are `{graphic, family, flags, anim}` per layer, or `null` for "keep

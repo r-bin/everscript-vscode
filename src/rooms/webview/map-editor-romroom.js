@@ -41,7 +41,8 @@ function editSeedRoomObjects() {
   p.roomObjects.forEach(function (ro) {
     var frames = ro.frames.map(function (f) { return Object.assign({}, f); });
     d.placed.push({ kind: 'object', uid: editNextPlacedUid(), roomObject: ro.index, x: ro.x, y: ro.y,
-      w: ro.w, h: ro.h, states: frames.length + 1, frames: frames, layer: {}, activeFrame: 0 });
+      w: ro.w, h: ro.h, states: frames.length + 1, frames: frames, layer: {}, activeFrame: 0,
+      holds: (ro.holds || []).slice() });
   });
 }
 

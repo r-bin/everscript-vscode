@@ -4,7 +4,8 @@
 //   - State 0: base room appearance (what the map loads with)
 //   - Frame 1..N: changed states with delta tiles; size and delta bounds calculated automatically (solid blue frame).
 // Objects and frames are order sensitive (0..x). Frames can be added, removed (with confirmation), and reordered.
-// The tab's list (rows, state chips, drag to reorder) is map-editor-object-list.js.
+// The tab's list (rows, state chips, drag to reorder) is map-editor-object-list.js;
+// how long each state is held, and playing it, is map-editor-object-holds.js.
 
 var _objectSel = null, _objectActiveFrame = 1;
 var _confirmRemoveFrame = null, _objectDraw = null, _objectPainting = false;
@@ -86,6 +87,7 @@ function objectSelect(uid) {
 }
 
 function objectSelectFrame(f, uid) {
+  if (typeof objectStopPlay === 'function') objectStopPlay();
   if (uid != null) _objectSel = uid;
   _objectActiveFrame = f; _confirmRemoveFrame = null;
   var o = editObjectFind(_objectSel);
@@ -109,6 +111,7 @@ function objectAddFrame(uid) {
   var curFrame = _objectActiveFrame >= 1 ? (frames[_objectActiveFrame - 1] || {}) : {};
   var newFrame = Object.assign({}, curFrame);
   frames.push(newFrame);
+  if (typeof objectHolds === 'function') objectHolds(o);
   o.frameSpecials = o.frameSpecials || [];
   var curSpecials = _objectActiveFrame >= 1 ? (o.frameSpecials[_objectActiveFrame - 1] || {}) : {};
   o.frameSpecials.push(Object.assign({}, curSpecials));
@@ -128,6 +131,7 @@ function objectRemoveFrame(uid, f) {
   editBegin();
   var frames = editObjectFrames(o);
   frames.splice(f - 1, 1);
+  if (typeof objectHoldsRemoved === 'function') objectHoldsRemoved(o, f);
   if (o.frameSpecials) o.frameSpecials.splice(f - 1, 1);
   o.states = frames.length + 1;
   _objectActiveFrame = Math.max(0, Math.min(_objectActiveFrame, frames.length));
@@ -147,6 +151,7 @@ function objectMoveFrame(uid, dir) {
   if (from < 0 || to < 0 || to >= frames.length) return;
   editBegin();
   var tmp = frames[from]; frames[from] = frames[to]; frames[to] = tmp;
+  if (typeof objectHoldsSwapped === 'function') objectHoldsSwapped(o, from + 1, to + 1);
   if (o.frameSpecials) {
     var tmps = o.frameSpecials[from]; o.frameSpecials[from] = o.frameSpecials[to]; o.frameSpecials[to] = tmps;
   }

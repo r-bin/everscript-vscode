@@ -97,7 +97,10 @@ function editorObjects(rom, room) {
             });
             return frame;
         });
-        return { index, x: box.x, y: box.y, w: box.w, h: box.h, frames };
+        // Ticks each state is held while the object steps through it (byte 0
+        // of its descriptor; maps/room.ts ObjectState.hold), by state.
+        const holds = obj.states.map((st) => st.hold);
+        return { index, x: box.x, y: box.y, w: box.w, h: box.h, frames, holds };
     }).filter(Boolean);
 }
 
