@@ -1,3 +1,13 @@
+## [0.114.0] — 2026-10-02
+
+### Added: sets of animated tiles on one timing, copy and paste; vanilla patterns for every ROM channel
+
+- **Sets.** Dragging a rectangle with the pencil on the Animation tab makes one animated tile per cell, all on one timing, a 2×2 fan for instance. The open row shows each cell's frames on its own line; tile each one with the pencil. A pattern, a tick, the countdown, `+ Frame` or `− Frame` changes every tile in the set. A set is one row.
+- **Copy and paste.** On the Animation tab, Cmd/Ctrl+C copies the open animated tile (or set) and Cmd/Ctrl+V puts a copy where the pointer is. Copies change together with the original.
+- **Vanilla animations are never `custom`.** The vanilla index kept one cycle per graphic, so a room running a second cycle through the same graphics (lava's 4410 runs in five) had no patterns for it. 167 of the 1020 channels in the ROM read as `custom`. Every cycle is kept now, and a new ROM test checks that every channel finds its own pattern.
+- **Long lists are fast.** Each row drew a full copy of the map as its thumbnail, and each row re-scanned the map to find out whether it was open. With more than 12 rows the thumbnail is the room's outline, and the open row is found once.
+- **Clicking an animated tile on the map selects its row**, on a locked (vanilla) map too, and scrolls the row into view.
+
 ## [0.113.2] — 2026-10-02
 
 ### Fix: drawing into a new animated tile on a custom map; one row per placement

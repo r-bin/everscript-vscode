@@ -247,6 +247,25 @@ if (!fs.existsSync(ROM_PATH)) {
         assert.ok(cat.frames > 0 && cat.frames < cat.tiles);
     });
 
+    test('every ROM channel finds its own cycle and its own ticks among vanilla’s patterns (none reads as custom)', () => {
+        const canon = (fr) => { let at = 0; fr.forEach((g, i) => { if (g < fr[at]) at = i; }); return fr.slice(at).concat(fr.slice(0, at)).join(','); };
+        const turn = (xs, r) => xs.slice(r).concat(xs.slice(0, r));
+        let n = 0;
+        for (let id = 0; id < 127; id++) {
+            let room;
+            try { room = maps.decodeRoom(rom, id); } catch (e) { continue; }
+            for (const ch of room.animation || []) {
+                if (ch.frames.length < 2) continue;
+                const fr = ch.frames.map((f) => f.tileId), de = ch.frames.map((f) => f.delay).join(',');
+                const c = (index.animations.cycles.get(Math.min(...fr)) || []).find((x) => canon(x.frames) === canon(fr));
+                assert.ok(c, 'room ' + id + ': ' + fr.join(' '));
+                assert.ok(fr.some((_, r) => turn(c.frames, r).join() === fr.join() && c.timings.some((t) => turn(t.delays, r).join(',') === de)), 'room ' + id + ' ticks');
+                n += 1;
+            }
+        }
+        assert.ok(n > 1000);
+    });
+
     test('a placed animated tile carries its other frames, rendered with the stamp', () => {
         const room = maps.decodeRoom(rom, 0x34);
         // Where the draft's first added graphic lands: after Block 1 and the animated tiles.

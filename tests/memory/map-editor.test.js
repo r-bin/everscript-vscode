@@ -738,6 +738,7 @@ const ui = new Function(`
   ${read('map-editor-pick.js')}
   ${read('map-editor-animations.js')}
   ${read('map-editor-anim-tab.js')}
+  ${read('map-editor-anim-sets.js')}
   ${read('map-editor-anim-map.js')}
   ${read('map-editor-anim-placed.js')}
   ${read('map-editor-objects.js')}
@@ -823,7 +824,7 @@ const ui = new Function(`
     editAnimPresets: editAnimPresets, editAnimLetter: editAnimLetter, editAnimComplete: editAnimComplete, animTile: animTile,
     setAnimOff: function (v) { _animOff = v; },
     editAnimTileStroke: editAnimTileStroke, editAnimRuns: editAnimRuns, editAnimSetRunTicks: editAnimSetRunTicks,
-    animInputHandler: animInputHandler, editAnimSvg: editAnimSvg, setAnimMarks: function (v) { _animMarks = v; },
+    animInputHandler: animInputHandler, animClipboardKey: animClipboardKey, setHover: function (c) { _editHover = c; }, editAnimSvg: editAnimSvg, setAnimMarks: function (v) { _animMarks = v; },
     editAnimGesture: editAnimGesture, editWordAnimSpec: editWordAnimSpec, editPartFromWord: editPartFromWord,
     editWordFromPart: editWordFromPart, placedTimingHtml: placedTimingHtml, placedSetTiming: placedSetTiming,
     editUseFamilyTile: editUseFamilyTile, setFramesSplit: function (v) { _tileFramesSplit = v; },
@@ -3096,9 +3097,9 @@ test('the pencil places a new animated tile as empty purple frames; it works onc
     const d = ui.editDraft();
     d.tool = 'paint';
     ui.editAnimGesture(d, { x: 0, y: 0 }, 'down');
-    ui.editAnimGesture(d, { x: 0, y: 1 }, 'move');
-    ui.editAnimGesture(d, { x: 0, y: 1 }, 'up');
+    ui.editAnimGesture(d, { x: 0, y: 0 }, 'up');
     const e = ui.editAnims()[0];
+    e.pending.push('0,1'); // a copy of it, as Cmd/Ctrl+V puts one
     assert.deepStrictEqual(e.frames, [null, null]);
     assert.deepStrictEqual(e.pending, ['0,0', '0,1']);
     assert.strictEqual(ui.animSel(), e.uid);
@@ -3223,6 +3224,45 @@ test('the tab lists every placement: one animated tile in two places is two rows
     const rows = ui.editAnimsListed(p);
     assert.deepStrictEqual(rows.map((r) => r.cells.length), [2, 1]);
     assert.ok(ui.animTabHtml().includes('2 of 2'));
+});
+
+test('a dragged rectangle is a set: one animated tile per cell on one timing, listed as one row', () => {
+    const p = animPalette();
+    ui.setPalette(p);
+    ui.editReset(1).on = true;
+    const d = ui.editDraft();
+    d.tool = 'paint';
+    ui.editAnimGesture(d, { x: 0, y: 0 }, 'down');
+    ui.editAnimGesture(d, { x: 1, y: 0 }, 'move');
+    ui.editAnimGesture(d, { x: 1, y: 0 }, 'up');
+    const [a, b] = ui.editAnims();
+    assert.ok(a.set != null && a.set === b.set, 'one set');
+    assert.deepStrictEqual([a.pending, b.pending], [['0,0'], ['1,0']]);
+    assert.strictEqual(ui.editAnimsListed(p).length, 1, 'one row');
+    // Each cell takes its own tile into the open frame.
+    d.brush = ui.editAddStamp(p, { layer1: 0x0402, layer2: 0xa800, collision: 0 });
+    ui.editAnimGesture(d, { x: 1, y: 0 }, 'down'); ui.editAnimGesture(d, { x: 1, y: 0 }, 'up');
+    assert.deepStrictEqual([a.frames[0], ui.editAnims()[1].frames[0]], [null, 0x423]);
+    // Ticks, a frame, the countdown: all of theirs.
+    ui.animInputHandler({ type: 'change', target: { value: '20', dataset: { animDelay: '0' } } });
+    ui.animClick({ dataset: { animAct: 'add-frame' } });
+    assert.deepStrictEqual(ui.editAnims().map((m) => m.delays), [[20, 8, 8], [20, 8, 8]]);
+});
+
+test('Cmd/Ctrl+C copies the open animated tile, Cmd/Ctrl+V puts a copy at the pointer', () => {
+    const p = animPalette();
+    ui.setPalette(p);
+    ui.editReset(1).on = true;
+    const d = ui.editDraft();
+    d.tool = 'paint';
+    ui.setTab('anim');
+    ui.editAnimGesture(d, { x: 0, y: 0 }, 'down'); ui.editAnimGesture(d, { x: 0, y: 0 }, 'up');
+    assert.ok(ui.animClipboardKey({ key: 'c' }, true));
+    ui.setHover({ x: 2, y: 1 });
+    assert.ok(ui.animClipboardKey({ key: 'v' }, true));
+    assert.deepStrictEqual(ui.editAnims()[0].pending, ['0,0', '2,1']);
+    assert.strictEqual(ui.editAnimsListed(p).length, 2, 'two placements, two rows');
+    ui.setTab('tile');
 });
 
 test('frames holding one graphic in a row read as one; a hold past 127 ticks is split as the ROM stores it', () => {

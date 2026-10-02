@@ -42,7 +42,7 @@ function editStroke(cell, phase) {
   // Locked: the eyedropper, a copy box and selecting a trigger — nothing that writes.
   if (editLocked() && d.tool !== 'pick' && d.tool !== 'copy') {
     if (phase !== 'down') return;
-    if (d.tool === 'select') { triggerSelect(editTriggerAt(cell.x, cell.y)); return; }
+    if (d.tool === 'select') { if (!(drawKind() === 'anim' && editAnimGesture(d, cell, phase))) triggerSelect(editTriggerAt(cell.x, cell.y)); return; }
     editNote('this map is locked — unlock it in the bar below the map to change it');
     renderEditChrome();
     return;

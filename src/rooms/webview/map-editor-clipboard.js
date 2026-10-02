@@ -25,6 +25,8 @@ function editClipboardKey(e, mod) {
   var d = editDraft();
   if (!d) return false;
   var key = e.key && e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  // The Animation tab copies the open animated tile (map-editor-anim-sets.js).
+  if (typeof animClipboardKey === 'function' && animClipboardKey(e, mod)) return true;
   if (mod && key === 'a') return editSelectAll(d);
   if (mod && key === 'c') return editCopy(d);
   if (mod && key === 'v') return editPaste(d);

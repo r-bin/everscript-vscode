@@ -512,5 +512,6 @@
 .rg-theme text.rg-anim-lbl{fill:var(--rg-anim)}
 .rg-theme .rg-anim-backing{fill:#000}
 .rg-theme .rg-anim-cell.empty{fill-opacity:.35;stroke-dasharray:.3 .2;stroke-opacity:1}
+.rg-theme .rg-anim-where-room{fill:var(--rg-bg-app);stroke:var(--rg-border);stroke-width:.3}
 .rg-theme .rg-anim-where{fill:var(--rg-anim);fill-opacity:.9}
 .rg-theme .rg-preview-anim{stroke:var(--rg-anim);fill:var(--rg-anim);fill-opacity:.25;stroke-dasharray:.3 .2}

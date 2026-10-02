@@ -350,7 +350,12 @@ frames at exactly 127): a longer hold is one graphic over several frames, and th
 shows frames holding one graphic in a row as one (`editAnimRuns`). The tab lists every
 **placement** (a run of touching cells showing a tile, `editAnimsListed`): a tile used
 ten times is ten rows sharing one channel. A cell with no stamp (a custom map's
-untouched cell) takes an animated tile as the empty stamp, blank on both layers. A frame is one
+untouched cell) takes an animated tile as the empty stamp, blank on both layers.
+A pencil rectangle on the Animation tab is a **set** (`set` on each entry,
+map-editor-anim-sets.js): one animated tile — one channel — per cell, sharing ticks,
+countdown and frame count, listed as one row. Vanilla's patterns come from *every*
+cycle a graphic runs in (`animations.cycles`, not only `byFirst`), so a ROM room's
+own channel always has its letter. A frame is one
 graphic, not a stamp: the Tile tab's pencil on an unfinished tile's cell tiles a frame,
 never the map beneath, and the frame being looked at is drawn over the cell
 (map-editor-anim-map.js). Every animated cell carries a violet border and its pattern

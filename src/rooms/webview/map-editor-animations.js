@@ -97,36 +97,6 @@ function editAnimNew(props) {
   return e;
 }
 
-/**
- * Frames that hold one graphic in a row, as one: `[{start, count, graphic,
- * ticks}]`. Vanilla holds a graphic past 127 ticks by repeating it (892:
- * ten frames of 127); the tab shows that as one frame. Empty frames never merge.
- */
-function editAnimRuns(e) {
-  var out = [];
-  e.frames.forEach(function (g, i) {
-    var last = out[out.length - 1];
-    if (last && g != null && last.graphic === g) { last.count++; last.ticks += e.delays[i]; }
-    else out.push({ start: i, count: 1, graphic: g, ticks: e.delays[i] });
-  });
-  return out;
-}
-
-/** The run frame `k` is part of. */
-function editAnimRunAt(e, k) {
-  return editAnimRuns(e).filter(function (r) { return k >= r.start && k < r.start + r.count; })[0] || null;
-}
-
-/** Hold run `r` for `ticks`: as many frames of at most 127 ticks as that takes. */
-function editAnimSetRunTicks(e, r, ticks) {
-  var run = editAnimRuns(e)[r];
-  if (!run) return;
-  var parts = [];
-  for (var left = Math.max(1, ticks); left > 0; left -= ANIM_MAX_TICKS) parts.push(Math.min(ANIM_MAX_TICKS, left));
-  e.frames.splice.apply(e.frames, [run.start, run.count].concat(parts.map(function () { return run.graphic; })));
-  e.delays.splice.apply(e.delays, [run.start, run.count].concat(parts));
-}
-
 /** A word naming `slot` with an animated tile's palette and mirror bits. */
 function animWordFor(e, slot) {
   return (editSlotChr(slot) | ((e.pal || 0) & 0xfc00)) & 0xffff;
@@ -200,43 +170,6 @@ function editAnimCellMap(palette) {
   return out;
 }
 
-/**
- * What the tab lists: every placement of every animated tile — each run of
- * touching cells showing it — so a tile used ten times is ten rows (each
- * `{g, cells, part, parts}`; the copies share their frames and ticks). An
- * open tile with no cells yet is one row.
- */
-function editAnimsListed(palette) {
-  var cells = editAnimCellMap(palette), out = [];
-  editAnims().forEach(function (e) {
-    var parts = animClusters(cells[e.uid] || []);
-    if (!parts.length && e.uid === _animSel) parts = [[]];
-    parts.forEach(function (c, i) { out.push({ g: e, cells: c, part: i, parts: parts.length }); });
-  });
-  return out;
-}
-
-/** Cell keys split into runs of side-by-side cells, in reading order. */
-function animClusters(keys) {
-  var left = {}, out = [];
-  keys.forEach(function (k) { left[k] = true; });
-  keys.forEach(function (k) {
-    if (!left[k]) return;
-    var part = [], todo = [k];
-    delete left[k];
-    while (todo.length) {
-      var c = todo.pop(), xy = c.split(',').map(Number);
-      part.push(c);
-      [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(function (d) {
-        var n = (xy[0] + d[0]) + ',' + (xy[1] + d[1]);
-        if (left[n]) { delete left[n]; todo.push(n); }
-      });
-    }
-    out.push(part);
-  });
-  return out;
-}
-
 /** A cycle with its rotation taken out, so two phases of one animation read the same. */
 function animCycleKey(seq) {
   var at = 0;
@@ -255,15 +188,29 @@ function animTurn(xs, r) { return xs.slice(r).concat(xs.slice(0, r)); }
  */
 function editAnimPresets(e) {
   if (!editAnimComplete(e) || typeof _famSheets === 'undefined') return [];
-  var seq = e.frames, lo = Math.min.apply(null, seq), key = animCycleKey(seq);
+  // Asked for every row and every mark: kept per frame list until another sheet arrives.
+  var seq = e.frames, memo = seq.join(','), n = Object.keys(_famSheets).length;
+  if (_animPresetMemo.n !== n) _animPresetMemo = { n: n, by: {} };
+  if (!_animPresetMemo.by[memo]) _animPresetMemo.by[memo] = animPresetsFor(seq);
+  return _animPresetMemo.by[memo];
+}
+var _animPresetMemo = { n: -1, by: {} };
+
+function animPresetsFor(seq) {
+  var lo = Math.min.apply(null, seq), key = animCycleKey(seq);
   for (var f in _famSheets) {
-    var a = _famSheets[f] && _famSheets[f].animations && _famSheets[f].animations[lo];
-    if (!a || a.frames.length !== seq.length || animCycleKey(a.frames) !== key) continue;
-    for (var r = 0; r < seq.length; r++) {
-      if (animTurn(a.frames, r).join(',') !== seq.join(',')) continue;
-      return (a.timings && a.timings.length ? a.timings : [{ delays: a.delays, channels: 0 }]).map(function (t, i) {
-        return { delays: animTurn(t.delays, r), channels: t.channels, letter: ANIM_LETTERS[i] || '?' };
-      });
+    var anims = _famSheets[f] && _famSheets[f].animations;
+    // The cycle the Tile tab lists for `lo`, then every other cycle vanilla names by it (room-draft.js).
+    var cands = anims ? [anims[lo]].concat((anims._others && anims._others[lo]) || []) : [];
+    for (var c = 0; c < cands.length; c++) {
+      var a = cands[c];
+      if (!a || !a.frames || a.frames.length !== seq.length || animCycleKey(a.frames) !== key) continue;
+      for (var r = 0; r < seq.length; r++) {
+        if (animTurn(a.frames, r).join(',') !== seq.join(',')) continue;
+        return (a.timings && a.timings.length ? a.timings : [{ delays: a.delays, channels: 0 }]).map(function (t, i) {
+          return { delays: animTurn(t.delays, r), channels: t.channels, letter: ANIM_LETTERS[i] || '?' };
+        });
+      }
     }
   }
   return [];

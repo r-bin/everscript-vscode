@@ -395,6 +395,9 @@
 .rg-theme .rg-anim-timing .ro-chips{display:flex;flex-wrap:wrap;gap:8px}
 .rg-theme .rg-anim-timing .ro-chip.sel{border-color:var(--rg-anim)}
 .rg-theme .rg-anim-empty{border-style:dashed;border-color:var(--rg-anim)}
+.rg-theme .rg-anim-set{display:flex;flex-direction:column;gap:4px;margin-bottom:6px}
+.rg-theme .rg-anim-set-line{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.rg-theme .rg-anim-set-line .rg-anim-timing-lbl{min-width:44px}
 .rg-theme .rg-anim-frame-col{display:flex;flex-direction:column;align-items:center;gap:4px}
 .rg-theme input.rg-anim-ticks{-moz-appearance:textfield;appearance:textfield;min-width:0}
 .rg-theme input.rg-anim-ticks::-webkit-inner-spin-button,.rg-theme input.rg-anim-ticks::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}

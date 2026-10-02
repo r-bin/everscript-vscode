@@ -52,16 +52,21 @@ function animationOf(index, graphic) {
  */
 function sheetAnimations(index, ids, family) {
     const out = {};
-    for (const g of ids) {
-        const a = index.animations.byFirst.get(g);
-        if (!a) continue;
+    const one = (a) => {
         const timings = (a.timings || []).map((t) => ({ delays: t.delays, channels: t.channels }));
         let pick = 0, best = 0;
         (a.timings || []).forEach((t, i) => {
             const n = (t.families && t.families[family]) || 0;
             if (n > best) { best = n; pick = i; }
         });
-        out[g] = { frames: a.frames, delays: timings.length ? timings[pick].delays : a.delays, timings, pick };
+        return { frames: a.frames, delays: timings.length ? timings[pick].delays : a.delays, timings, pick };
+    };
+    for (const g of ids) {
+        const a = index.animations.byFirst.get(g);
+        // Every other cycle named by this graphic: its timings letter a tile running it (`others`).
+        const rest = ((index.animations.cycles && index.animations.cycles.get(g)) || []).filter((c) => c !== a).map(one);
+        if (a) out[g] = one(a);
+        if (rest.length) (out._others || (out._others = {}))[g] = rest;
     }
     return out;
 }

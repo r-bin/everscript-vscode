@@ -62,16 +62,18 @@ function animUnderSvg(e, c, a) {
  */
 function editAnimSvg(origin) {
   var p = _mtPalette;
-  if (!p || !editAnims().length) return '';
+  if (!p || (!editAnims().length && !(typeof _animStroke !== 'undefined' && _animStroke))) return '';
   var onTab = typeof _editActiveTab !== 'undefined' && _editActiveTab === 'anim';
   var marks = _animMarks || onTab, html = '';
   editAnimsListed(p).forEach(function (entry) {
-    var e = entry.g, done = editAnimComplete(e);
-    var k = done ? -1 : animUnfinishedFrame(e), g = k >= 0 ? e.frames[k] : null;
-    var fam = !done && g != null && k > 0 ? animFamilyOf(e, entry.cells) : null;
-    var letter = done && marks ? (editAnimLetter(e) || '*') : '';
-    var cls = 'rg-anim-cell' + (!done && g == null ? ' empty' : '') + (e.uid === _animSel ? ' sel' : '');
+    var sel = entry.members.some(function (m) { return m.uid === _animSel; });
+    var letter = marks && editAnimSetComplete(entry.g) ? (editAnimLetter(entry.g) || '*') : '';
     entry.cells.forEach(function (key) {
+      // Each cell's own tile: a set's cells are each their own.
+      var e = entry.of[key] || entry.g, done = editAnimComplete(e);
+      var k = done ? -1 : animUnfinishedFrame(e), g = k >= 0 ? e.frames[k] : null;
+      var fam = !done && g != null && k > 0 ? animFamilyOf(e, [key]) : null;
+      var cls = 'rg-anim-cell' + (!done && g == null ? ' empty' : '') + (sel ? ' sel' : '');
       var c = key.split(',').map(Number), a = editCellPos(origin, c[0], c[1]);
       if (fam != null) html += animUnderSvg(e, c, a) + animGraphicSvg(g, fam, e.pal || 0, a.x, a.y);
       if (!marks && done) return;
@@ -81,6 +83,13 @@ function editAnimSvg(origin) {
       if (letter) html += editCornerLabelSvg(a, [[letter, 'rg-anim-lbl']]);
     });
   });
+  // A new rectangle being dragged out (map-editor-anim-tab.js).
+  var r = typeof _animStroke !== 'undefined' && _animStroke && _animStroke.mode === 'rect' ? _animStroke : null;
+  if (r) {
+    var b = editCellPos(origin, Math.min(r.x0, r.x1), Math.min(r.y0, r.y1));
+    html += '<rect class="rg-anim-cell empty" x="' + b.x + '" y="' + b.y + '" width="' + (Math.abs(r.x1 - r.x0) + 1) * EDIT_UNITS
+      + '" height="' + (Math.abs(r.y1 - r.y0) + 1) * EDIT_UNITS + '" pointer-events="none"/>';
+  }
   return html;
 }
 
@@ -96,7 +105,8 @@ function editAnimTileStroke(d, cell, phase) {
   var e = animAt(cell);
   if (!e || editAnimComplete(e) || e.vanilla) return !!owned;
   var k = _animTileTouch[e.uid];
-  if (k == null) k = e.uid === _animSel && _animFrame < e.frames.length ? _animFrame : e.frames.indexOf(null);
+  var inOpen = editAnimMembers(editAnimFind(_animSel)).indexOf(e) >= 0;
+  if (k == null) k = inOpen && _animFrame < e.frames.length ? _animFrame : e.frames.indexOf(null);
   if (k < 0) return !!owned;
   _animTileTouch[e.uid] = k;
   _animTileTouch.owned = true;
@@ -152,4 +162,64 @@ function animSheetAt(graphic, family) {
     if (s.slots[i][2] === graphic) return { s: s, x: (i % s.columns) * s.cell, y: Math.floor(i / s.columns) * s.cell };
   }
   return null;
+}
+
+/**
+ * How it looks now: the first cell showing it, drawn as the map draws it
+ * (both layers, its flip, the same frames and ticks, off or paused as the map
+ * is). Without that stamp's art yet: its frames played from the family sheet.
+ */
+function animPreviewHtml(e, family, size, cells) {
+  if (!editAnimComplete(e)) return animSwatchHtml(e.frames[0], family, size);
+  var c = cells && cells[0] ? cells[0].split(',').map(Number) : null;
+  var idx = c ? editCellAt(_mtPalette, c[0], c[1]) : -1;
+  var cell = idx >= 0 ? editStampSvg(_mtPalette, _editComposed, idx, 0, 0, 'rg-anim-prev-cell') : '';
+  if (cell) return '<svg class="rg-anim-sw" width="' + size + '" height="' + size + '" viewBox="0 0 ' + EDIT_UNITS + ' ' + EDIT_UNITS + '">' + cell + '</svg>';
+  if (_animOff) return animSwatchHtml(e.frames[0], family, size);
+  var at = e.frames.map(function (g) { return animSheetAt(g, family); });
+  if (at.some(function (a) { return !a; })) return animSwatchHtml(e.frames[0], family, size);
+  var s = at[0].s, k = size / s.cell, total = 0, name = 'rg-ap-' + e.uid + '-' + e.delays.join('-');
+  e.delays.forEach(function (t) { total += Math.max(1, t); });
+  var css = '@keyframes ' + name + '{', acc = 0;
+  at.forEach(function (a, i) {
+    css += (acc / total * 100).toFixed(2) + '%{background-position:-' + (a.x * k) + 'px -' + (a.y * k) + 'px}';
+    acc += Math.max(1, e.delays[i]);
+  });
+  css += '}';
+  return '<style>' + css + '</style><i class="rg-anim-sw" title="playing at ' + escH(e.delays.join(' ')) + ' ticks" style="width:' + size + 'px;height:'
+    + size + 'px;background-image:url(' + s.imageUri + ');background-size:' + (s.imageWidth * k) + 'px ' + (s.imageHeight * k)
+    + 'px;animation:' + name + ' ' + (total / 60).toFixed(3) + 's steps(1,end) infinite"></i>';
+}
+
+/**
+ * Where its cells are, on a thumbnail of the room (the Object rows' look).
+ * A long list (`plain`) draws the room's outline only: a copy of the whole
+ * map per row made a room with many animated tiles crawl.
+ */
+function animWhereSvg(cells, plain) {
+  var W = _mtPalette && _mtPalette.widthTiles, H = _mtPalette && _mtPalette.heightTiles;
+  if (!W || !H) return '';
+  var org = _editOrigin;
+  return '<svg class="rg-trigger-where" viewBox="' + org.x + ' ' + org.y + ' ' + (W * EDIT_UNITS) + ' ' + (H * EDIT_UNITS)
+    + '" preserveAspectRatio="xMidYMid meet" aria-hidden="true">' + (plain
+      ? '<rect class="rg-anim-where-room" x="' + org.x + '" y="' + org.y + '" width="' + (W * EDIT_UNITS) + '" height="' + (H * EDIT_UNITS) + '"/>'
+      : '<g class="rg-trigger-where-map"><use href="#rg-img"/><use href="#rg-edit-tiles"/></g>')
+    + cells.slice(0, 400).map(function (k) {
+      var c = k.split(',').map(Number), b = editCellPos(org, c[0], c[1]);
+      return '<rect class="rg-anim-where" x="' + b.x + '" y="' + b.y + '" width="' + EDIT_UNITS + '" height="' + EDIT_UNITS + '"/>';
+    }).join('') + '</svg>';
+}
+
+/** The family an animated tile is drawn in: off the first cell showing it, else its own word bits. */
+function animFamilyOf(e, cells) {
+  var p = _mtPalette, pal = 0;
+  (cells || []).some(function (k) {
+    var c = k.split(',').map(Number), w = editStampWords(p, editCellAt(p, c[0], c[1]));
+    if (!w || e.slot == null) return false;
+    var word = animWordSlot(w.layer1) === e.slot && w.layer1 !== editBlankCanopy(p) ? w.layer1 : animWordSlot(w.layer2) === e.slot ? w.layer2 : null;
+    if (word != null) pal = (word >> 10) & 7;
+    return !!pal;
+  });
+  if (!pal) pal = ((e.pal || 0) >> 10) & 7;
+  return pal >= 1 ? editFamilies()[pal - 1] : undefined;
 }

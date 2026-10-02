@@ -107,6 +107,7 @@ const ROOMS_JS_FILES = [
   'map-editor-trigger-order.js', // dragging trigger rows: order and kind (_triggerDragRow)
   'map-editor-animations.js', // which slots animate, and the groups the Animation tab lists (_animSel/_animFrame)
   'map-editor-anim-tab.js', // the Animation tab: rows, timing editor, its pencil (_animDraw/_animPainting)
+  'map-editor-anim-sets.js', // sets of animated tiles on one timing, runs, the tab's placements, copy/paste (_animClip)
   'map-editor-anim-map.js', // animated tiles on the map: purple marks, unfinished frames, the Animation chip (_animMarks)
   'map-editor-anim-placed.js', // a placed widget's timing chips (A/B/C) and switching them
   'map-editor-objects.js', // the Object tab: areas and their tiles (_objectSel/_objectDraw)

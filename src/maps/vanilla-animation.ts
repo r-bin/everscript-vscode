@@ -32,6 +32,13 @@ export interface AnimationIndex {
     byFirst: Map<number, Animation>;
     /** Later-frame graphic -> `{first, index}`: whose frame it is, and which. */
     frameOf: Map<number, { first: number; index: number }>;
+    /**
+     * Lowest graphic -> every cycle named by it, `byFirst`'s first. A graphic
+     * in two cycles (lava's 4410 runs in five) is listed in `byFirst` once,
+     * but every cycle's timings are vanilla's and an animated tile running
+     * one is lettered from them, never `custom`.
+     */
+    cycles: Map<number, Animation[]>;
 }
 
 /**
@@ -118,7 +125,10 @@ export function compactAnimations(seen: Map<number, Map<string, Animation>>): An
     const owned = new Set<number>();
     for (const c of cycles.values()) (c.timings || []).sort((a, b) => b.channels - a.channels);
     const list = [...cycles.values()].sort((a, b) => b.rooms - a.rooms || a.frames[0] - b.frames[0]);
+    const all = new Map<number, Animation[]>();
     for (const c of list) {
+        const at = all.get(c.frames[0]);
+        if (at) at.push(c); else all.set(c.frames[0], [c]);
         if (c.frames.some((g) => owned.has(g))) continue;
         c.frames.forEach((g) => owned.add(g));
         byFirst.set(c.frames[0], c);
@@ -126,5 +136,10 @@ export function compactAnimations(seen: Map<number, Map<string, Animation>>): An
             if (g !== c.frames[0] && !frameOf.has(g)) frameOf.set(g, { first: c.frames[0], index: i });
         });
     }
-    return { byFirst, frameOf };
+    // `byFirst`'s cycle first in each list.
+    for (const [g, cs] of all) {
+        const main = byFirst.get(g);
+        if (main) all.set(g, [main].concat(cs.filter((c) => c !== main)));
+    }
+    return { byFirst, frameOf, cycles: all };
 }

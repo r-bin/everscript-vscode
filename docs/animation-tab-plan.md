@@ -56,6 +56,17 @@ frames as layers over it (frame 0 is what the map shows), plus
   the phases (start frames) and the delay patterns vanilla attests for that
   cycle.
 
+## v0.114.0
+
+- Sets: a pencil rectangle is one animated tile per cell on one timing (a 2×2
+  fan); patterns, ticks, countdown, frames apply to every member; one row.
+- `animations.cycles`: every cycle per lowest graphic. 167 of 1020 ROM
+  channels ran a cycle `byFirst` had dropped (lava's 4410 runs in five) and
+  read as `custom`; now every one finds its own pattern (ROM test).
+- Cmd/Ctrl+C/V on the tab copy the open placement and paste it at the pointer.
+- Long lists: no map copy per row thumbnail, the open row found once; a click
+  on a locked map selects the animated tile and scrolls its row into view.
+
 ## v0.113.2
 
 - One row per placement (touching cells), not per channel: a vanilla room's
