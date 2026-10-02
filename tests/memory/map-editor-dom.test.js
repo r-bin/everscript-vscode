@@ -2468,9 +2468,27 @@ async function main() {
         _editInfoSub = 'header'; _editActiveTab = tabWas; _mtPalette.header = hadHeader;
         renderEditChrome();
 
+        // A ROM room's canopy picture is masked off the cells the draft paints, so it cannot cover them.
+        const svgEl = document.getElementById('rg-svg');
+        let fgEl = document.getElementById('rg-fg'), madeFg = false;
+        if (!fgEl) {
+            fgEl = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+            fgEl.setAttribute('id', 'rg-fg'); svgEl.appendChild(fgEl); madeFg = true;
+        }
+        editCanopyMask(svgEl, ['1,1'], _editOrigin);
+        const m = document.getElementById('rg-fg-mask');
+        const c11 = editCellPos(_editOrigin, 1, 1);
+        r.fgMasked = fgEl.getAttribute('mask') === 'url(#rg-fg-mask)' && !!m
+            && m.querySelector('path').getAttribute('d').indexOf('M' + c11.x + ' ' + c11.y) === 0;
+        editCanopyMask(svgEl, [], _editOrigin);
+        r.fgUnmasked = !fgEl.getAttribute('mask') && !document.getElementById('rg-fg-mask');
+        if (madeFg) fgEl.remove();
+
         _editComposed = composed;
         return r;
     });
+    check('the canopy picture is masked off painted cells, and the mask goes when none are', v80.fgMasked && v80.fgUnmasked,
+        JSON.stringify({ fgMasked: v80.fgMasked, fgUnmasked: v80.fgUnmasked }));
     check('Info has Header, Budget and Map sub-tabs; clicking one shows it', v80.infoBudget, JSON.stringify({ infoBudget: v80.infoBudget }));
     check('a header row: name and value on one line, its controls on the line beneath', v80.hdrBeneath, JSON.stringify({ hdrBeneath: v80.hdrBeneath }));
     check('a family picked but never painted leaves its slot to the next one (slot 1 is used first)',

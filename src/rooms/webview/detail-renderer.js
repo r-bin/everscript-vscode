@@ -233,7 +233,7 @@ var _OVERLAY_CACHE_MAX=16;
 
 function overlayCacheKey(id,layer,ov,states){
   var hdr=typeof infoRenderHeader==='function'?infoRenderHeader(id):null;
-  return id+':'+layer+':'+(ov||'')+':'+(states||'')+':'+(_animateOn?'a':'')+(hdr?':'+JSON.stringify(hdr):'');
+  return id+':'+layer+':'+(ov||'')+':'+(states||'')+':'+(roomAnimateOn()?'a':'')+(hdr?':'+JSON.stringify(hdr):'');
 }
 
 function cacheOverlay(id,layer,ov,states,overlay){
@@ -271,7 +271,7 @@ function requestRoomTileOverlay(room,svgResult,layer){
 
   setTileBusy(true);
   vs.postMessage({command:'requestRoomTiles',roomId:id,mapName:room.name,
-                  layer:which,overlay:romOverlayFlags(),objectStates:states,animate:_animateOn,
+                  layer:which,overlay:romOverlayFlags(),objectStates:states,animate:roomAnimateOn(),
                   originX:_pendingTileOrigin.x,originY:_pendingTileOrigin.y,
                   header:typeof infoRenderHeader==='function'?infoRenderHeader(id):null});
 }
@@ -339,7 +339,7 @@ function applyRoomTileOverlay(msg){
   }
 
   // Section 2 tile animation, if the host sent frames for it.
-  if(_animateOn)applyRoomAnimation(ov.animation);
+  if(roomAnimateOn())applyRoomAnimation(ov.animation);
   else stopRoomAnimation();
 
   // The collision / drift / gate / grass / object visualization is baked into

@@ -227,33 +227,20 @@ export function buildAnimationGroups(
     if (!channels.length) return [];
     const layer: AnimationLayer = opts.layer || 'composite';
     const overlay = opts.overlay || null;
-    const nPal = room.tilePalette.length;
     const wTiles = room.header.widthTiles;
     const hTiles = room.header.heightTiles;
     const stride = wTiles * 16;
 
-    // 1. Find animated cells and which channels drive each. Only the words the
-    //    chosen layer actually draws count: on an L1-only view, an animated
-    //    terrain tile is not on screen and must not be animated over.
+    // 1. Find animated cells and which channels drive each (cellChannels).
     const byKey = new Map<string, { chans: number[]; cells: CellRef[] }>();
     for (let y = 0; y < hTiles; y++) {
         for (let x = 0; x < wTiles; x++) {
-            const w1 = room.layer1VramWords[y][x];
-            const w2 = room.layer2VramWords[y][x];
-            const words = layer === 'layer1' ? [w1] : layer === 'layer2' ? [w2] : [w1, w2];
-            const chans: number[] = [];
-            for (const w of words) {
-                const c = paletteSlot(w) - nPal;
-                if (c >= 0 && c < channels.length && channels[c].frames.length > 1 && chans.indexOf(c) < 0) {
-                    chans.push(c);
-                }
-            }
+            const chans = cellChannels(room, x, y, layer);
             if (!chans.length) continue;
-            chans.sort((a, b) => a - b);
             const key = chans.join(',');
             let g = byKey.get(key);
             if (!g) { g = { chans, cells: [] }; byKey.set(key, g); }
-            g.cells.push({ x, y, w1, w2 });
+            g.cells.push({ x, y, w1: room.layer1VramWords[y][x], w2: room.layer2VramWords[y][x] });
         }
     }
     if (!byKey.size) return [];
@@ -341,6 +328,44 @@ export function buildAnimationGroups(
     return groups;
 }
 
+/**
+ * The channels that animate cell (x, y), sorted; [] for a still cell. Only
+ * the words the chosen layer draws count: on an L1-only view, an animated
+ * terrain tile is not on screen and must not be animated over.
+ */
+export function cellChannels(room: RoomData, x: number, y: number, layer: AnimationLayer = 'composite'): number[] {
+    const channels = room.animation;
+    const nPal = room.tilePalette.length;
+    const w1 = room.layer1VramWords[y][x];
+    const w2 = room.layer2VramWords[y][x];
+    const words = layer === 'layer1' ? [w1] : layer === 'layer2' ? [w2] : [w1, w2];
+    const chans: number[] = [];
+    for (const w of words) {
+        const c = paletteSlot(w) - nPal;
+        if (c >= 0 && c < channels.length && channels[c].frames.length > 1 && chans.indexOf(c) < 0) chans.push(c);
+    }
+    return chans.sort((a, b) => a - b);
+}
+
+/**
+ * A copy of `image` (a room-sized render) with every animated cell cleared to
+ * transparent. The canopy picture is laid over the animation to cover the
+ * characters, and a still copy of an animated canopy tile there — 5008 of
+ * the 13338 animated cells ROM-wide have canopy pixels — drew frame 0 over
+ * every later frame: a torch burning through a frozen one.
+ */
+export function clearAnimatedCells(image: PixelBuffer, room: RoomData, layer: AnimationLayer = 'composite'): PixelBuffer {
+    const out = { width: image.width, height: image.height, data: image.data.slice() };
+    if (!room.animation.length) return out;
+    for (let y = 0; y < room.header.heightTiles; y++) {
+        for (let x = 0; x < room.header.widthTiles; x++) {
+            if (!cellChannels(room, x, y, layer).length) continue;
+            for (let py = 0; py < 16; py++) out.data.fill(0, ((y * 16 + py) * image.width + x * 16) * 4, ((y * 16 + py) * image.width + x * 16 + 16) * 4);
+        }
+    }
+    return out;
+}
+
 /** Block side in metatiles: bounds the transparent padding per overlay. */
 const BLOCK = 8;
 
@@ -380,6 +405,8 @@ function renderCell(
     };
     if (layer === 'layer1') return renderVramLayer(rom, mini, mini.layer1VramWords);
     if (layer === 'layer2') return renderVramLayer(rom, mini, mini.layer2VramWords);
+    // The map's own backdrop: a frame with a hole where frame 0 had art showed
+    // frame 0 (in the map image beneath) through it.
     return compositeLayers(mini, renderVramLayer(rom, mini, mini.layer1VramWords),
-        renderVramLayer(rom, mini, mini.layer2VramWords), { backdrop: [0, 0, 0, 0] });
+        renderVramLayer(rom, mini, mini.layer2VramWords));
 }

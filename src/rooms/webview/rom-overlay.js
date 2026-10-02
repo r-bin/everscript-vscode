@@ -12,6 +12,14 @@ var _currentLayer='composite';
 // Play the Section 2 tile animation. On by default — a room with running
 // water or a lit torch reads wrong frozen, and the frames are cheap.
 var _animateOn=true;
+/**
+ * Whether the room's Section 2 animation plays: this bar's switch, and the map
+ * editor's map-wide one (map-editor-animations.js `_animOff`) — the editor's
+ * Animation on/off has to stop a ROM room's frames too, not only its own.
+ */
+function roomAnimateOn(){
+  return _animateOn&&!(typeof _animOff!=='undefined'&&_animOff);
+}
 
 /**
  * Feature toggles, in top-bar order. The flag characters are the contract with

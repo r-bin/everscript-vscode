@@ -296,4 +296,7 @@ function editAnimTimingOf(palette, index) {
 function editAnimToggleOff() {
   _animOff = !_animOff;
   if (typeof vs !== 'undefined' && vs) vs.postMessage({ command: 'saveUiPref', key: 'animateTiles', value: !_animOff });
+  // A ROM room's own frames come with its render (rom-overlay.js roomAnimateOn): ask again, with or without them.
+  if (typeof stopRoomAnimation === 'function' && _animOff) stopRoomAnimation();
+  if (typeof _romRerender !== 'undefined' && typeof _romRerender === 'function') _romRerender();
 }

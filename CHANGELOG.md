@@ -1,3 +1,12 @@
+## [0.118.1] — 2026-10-02
+
+### Fix: animated tiles no longer covered by their still frame
+
+- **Torches, flames and water animate cleanly on vanilla maps.** The map draws the room's canopy as a still picture over the animation, so characters can walk behind it. That picture held each animated tile's first frame, so a torch looked like a moving flame under a frozen one. 38% of all animated tiles in vanilla have canopy art. With animation on, animated tiles are now left out of that picture.
+- **A later frame no longer lets the first frame show through.** Each frame now covers its whole tile.
+- **Tiles you paint on a vanilla map are no longer covered by the room's old canopy.**
+- **Animation on/off on the Animation tab now stops a vanilla room's own animated tiles too**, not only the ones you placed.
+
 ## [0.118.0] — 2026-10-02
 
 ### Added: Step-on as a special, palette sets, and the Info tab in three parts

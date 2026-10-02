@@ -92,7 +92,7 @@ export type { RoomBudget, BudgetLine, MarginalCost, StampTriple } from './budget
 export { applyObjectStates, renderObjectState, objectStateCount, objectBounds, DEFAULT_OBJECT_STATE } from './objects';
 export type { ObjectStateMap } from './objects';
 export type { ObjectStamp } from './object-stamps';
-export { parseAnimationChannels, buildAnimationGroups, buildOverlayTransfer, overlayLayer } from './animation';
+export { parseAnimationChannels, buildAnimationGroups, buildOverlayTransfer, overlayLayer, cellChannels, clearAnimatedCells } from './animation';
 export type {
     AnimationChannel, AnimationFrame, AnimationGroup, AnimationLayer, AnimationOptions,
     OverlayTransfer, Section2Ref,

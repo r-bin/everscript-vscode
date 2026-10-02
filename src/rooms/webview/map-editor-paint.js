@@ -40,6 +40,39 @@ function editStampSvg(palette, composed, index, x, y, cls) {
   return typeof editStampAnimSvg === 'function' ? editStampAnimSvg(sheet, i, still, cls, x, y, palette, index) : still;
 }
 
+/**
+ * Hide a ROM room's canopy picture (#rg-fg, and the overlay redrawn on it)
+ * over every cell the draft paints. The picture is the room's own canopy,
+ * laid above the edit layer to cover the characters; over a painted cell it
+ * is stale and drew the old tile's front art over the new one — or over the
+ * frames of an animated tile the draft placed there.
+ */
+function editCanopyMask(svg, keys, origin) {
+  var ids = ['rg-fg', 'rg-canopy-ov'];
+  var old = document.getElementById('rg-fg-mask');
+  if (!keys.length) {
+    if (old && old.parentNode) old.parentNode.removeChild(old);
+    ids.forEach(function (id) { var el = document.getElementById(id); if (el && el.removeAttribute) el.removeAttribute('mask'); });
+    return;
+  }
+  if (!document.getElementById('rg-fg')) return;
+  // Bounds well past any map, so a re-render that moves the picture never leaves it outside the mask.
+  var x = -4096, y = -4096, w = 8192, h = 8192;
+  var d = '';
+  keys.forEach(function (k) {
+    var c = k.split(','), a = editCellPos(origin, Number(c[0]), Number(c[1]));
+    d += 'M' + a.x + ' ' + a.y + 'h' + EDIT_UNITS + 'v' + EDIT_UNITS + 'h' + -EDIT_UNITS + 'z';
+  });
+  var ns = 'http://www.w3.org/2000/svg';
+  var mask = old || document.createElementNS(ns, 'mask');
+  mask.setAttribute('id', 'rg-fg-mask');
+  mask.setAttribute('maskUnits', 'userSpaceOnUse');
+  mask.setAttribute('x', x); mask.setAttribute('y', y); mask.setAttribute('width', w); mask.setAttribute('height', h);
+  mask.innerHTML = '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" fill="#fff"/><path d="' + d + '" fill="#000"/>';
+  if (!old) svg.insertBefore(mask, svg.firstChild);
+  ids.forEach(function (id) { var el = document.getElementById(id); if (el && el.setAttribute) el.setAttribute('mask', 'url(#rg-fg-mask)'); });
+}
+
 /** Cell `i` of an atlas image as a nested <svg>, optionally with an <animate> inside. */
 function editCropSvg(cls, x, y, grid, uri, w, h, i, inner) {
   var cx = (i % grid.columns) * grid.cell;
@@ -158,6 +191,10 @@ function renderEditLayer(palette, composed, origin) {
   // The Boy's start, over the tiles — map-editor-start.js.
   html += editStartSvg(origin);
   g.innerHTML = html;
+  editCanopyMask(svg, romRoom ? Object.keys(cells).filter(function (k) {
+    var c = k.split(',');
+    return editInBounds(palette, Number(c[0]), Number(c[1]));
+  }) : [], origin);
 
   var ovHtml = marks;
   // The Select tool's own outlines: the selected trigger, and a live preview

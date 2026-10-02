@@ -187,6 +187,8 @@ function cachedRender(rom, roomId, layer, ov, stateSpec, header) {
         features: maps.classifyRoom(room),
         imageUri: maps.encodePngDataUri(image),
         foregroundUri: foreground ? maps.encodePngDataUri(foreground) : null,
+        // Kept so an animated room's canopy can be sent without its animated cells (foregroundFor).
+        foreground,
         canopyOverlayUri: canopyOverlay ? maps.encodePngDataUri(canopyOverlay) : null,
         width: image.width,
         height: image.height,
@@ -257,6 +259,20 @@ function cachedAnimation(rom, key, layer, entry) {
     return out;
 }
 
+/**
+ * The canopy picture to send. With animation on, the animated cells are cut
+ * out of it: it is laid over the animation layer, and a still frame-0 copy
+ * of a torch's canopy there covered every later frame. Measured once per
+ * render and kept with it.
+ */
+function foregroundFor(entry, animate) {
+    if (!animate || !entry.foreground || !entry.room.animation.length) return entry.foregroundUri;
+    if (!entry.foregroundAnimUri) {
+        entry.foregroundAnimUri = maps.encodePngDataUri(maps.clearAnimatedCells(entry.foreground, entry.room));
+    }
+    return entry.foregroundAnimUri;
+}
+
 /** Drop cached renders (call when the ROM changes). */
 function invalidateRoomRenders() { RENDER_CACHE.clear(); PREVIEW_CACHE.clear(); ANIM_CACHE.clear(); }
 
@@ -281,7 +297,8 @@ function buildRoomTileOverlay(rom, roomId, originX, originY, layer, overlay, obj
     const spec = typeof objectStates === 'string' ? objectStates : '';
     const renderKey = romFingerprint(buf) + ':' + roomId + ':' + which + ':' + ov.flags + ':' + spec + ':' + headerSpec(header);
     const entry = cachedRender(buf, roomId, which, ov, spec, header);
-    const { room, features, imageUri, foregroundUri, canopyOverlayUri, width, height } = entry;
+    const { room, features, imageUri, canopyOverlayUri, width, height } = entry;
+    const foregroundUri = foregroundFor(entry, animate);
     const collision = countCollision(room.collisionWords);
 
     return {

@@ -236,6 +236,45 @@ function checkAnimation(rom) {
     // 1 is the rounding of re-applying a blend through the measured transfer.
     check('0x25 animation frames match an annotated render', worst <= 1, true);
     console.log(`map-parity: animation — ${compared} animated pixels, worst channel delta ${worst}`);
+
+    // A frame is a whole picture of its cell: no hole for the map's frame 0 to show through.
+    let holes = 0;
+    for (const g of buildAnimationGroups(rom, room, { layer: 'composite' })) {
+        for (const fr of g.frames) {
+            for (let cy = 0; cy < g.h; cy++) {
+                for (let cx = 0; cx < g.w; cx++) {
+                    if (!maps.cellChannels(room, g.x + cx, g.y + cy).length) continue;
+                    for (let py = 0; py < 16; py++) {
+                        for (let px = 0; px < 16; px++) {
+                            if (fr.data[((cy * 16 + py) * fr.width + cx * 16 + px) * 4 + 3] !== 255) holes += 1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    check('0x25 animation frames are opaque over their cells', holes, 0);
+
+    // The canopy picture goes over the animation: with animation on, it has no
+    // pixels on an animated cell, and every other cell is untouched.
+    const fg = maps.renderRoomForeground(rom, room);
+    const cut = maps.clearAnimatedCells(fg, room);
+    let canopyOnAnimated = 0, leftOnAnimated = 0, changedElsewhere = 0;
+    for (let y = 0; y < room.header.heightTiles; y++) {
+        for (let x = 0; x < room.header.widthTiles; x++) {
+            const animated = maps.cellChannels(room, x, y).length > 0;
+            for (let py = 0; py < 16; py++) {
+                for (let px = 0; px < 16; px++) {
+                    const i = ((y * 16 + py) * fg.width + x * 16 + px) * 4 + 3;
+                    if (animated) { if (fg.data[i]) canopyOnAnimated += 1; if (cut.data[i]) leftOnAnimated += 1; }
+                    else if (fg.data[i] !== cut.data[i]) changedElsewhere += 1;
+                }
+            }
+        }
+    }
+    check('0x25 has canopy art on animated cells to begin with', canopyOnAnimated > 0, true);
+    check('0x25 canopy picture cut out of every animated cell', leftOnAnimated, 0);
+    check('0x25 canopy picture untouched elsewhere', changedElsewhere, 0);
 }
 
 /**
