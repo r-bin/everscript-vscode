@@ -282,7 +282,8 @@ function editAnimShownFrame(palette, index) {
   if (_animOff) return 0;
   if (_animPlaying || _animSel == null) return -1;
   var e = editStampAnim(palette, index);
-  return e && e.uid === _animSel ? _animFrame : -1;
+  // The whole open row pauses on the frame, not only the tile that was clicked (a 2×2 fan).
+  return e && typeof editAnimOpenUids === 'function' && editAnimOpenUids()[e.uid] ? _animFrame : -1;
 }
 
 /** The timing a stamp is drawn with on the canvas: its animated tile's, which the tab edits without a new render. */

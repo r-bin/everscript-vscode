@@ -3252,6 +3252,19 @@ test('a dragged rectangle is a set: one animated tile per cell on one timing, li
     ui.animInputHandler({ type: 'change', target: { value: '20', dataset: { animDelay: '0' } } });
     ui.animClick({ dataset: { animAct: 'add-frame' } });
     assert.deepStrictEqual(ui.editAnims().map((m) => m.delays), [[20, 8, 8], [20, 8, 8]]);
+    // Both cells tiled on frame 0: open and paused, both stop on the open frame — not only the clicked one.
+    ui.setAnimSel(ui.editAnims()[1].uid, 0);
+    ui.editAnimGesture(d, { x: 0, y: 0 }, 'down'); ui.editAnimGesture(d, { x: 0, y: 0 }, 'up');
+    const shown = [[0, 0], [1, 0]].map(([x, y]) => ui.editAnimShownFrame(p, ui.editCellAt(p, x, y)));
+    assert.deepStrictEqual(shown, [0, 0]);
+    // The open row's frame chips show both tiles side by side.
+    const html = ui.animTabHtml();
+    assert.ok(/<svg class="rg-anim-sw" width="44" height="22"/.test(html), 'a 2×1 group frame');
+    // ▶ Play with empty frames: played on the map, the empty ones purple.
+    ui.animClick({ dataset: { animAct: 'play' } });
+    const svg = ui.editAnimSvg({ x: 0, y: 0 });
+    assert.ok(svg.includes('<animate attributeName="opacity"') && svg.includes('rg-anim-cell empty'));
+    ui.animClick({ dataset: { animAct: 'play' } });
 });
 
 test('Cmd/Ctrl+C copies the open animated tile, Cmd/Ctrl+V puts a copy at the pointer', () => {

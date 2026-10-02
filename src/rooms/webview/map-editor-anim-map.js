@@ -31,7 +31,7 @@ function editAnimMarksToggle() {
 
 /** The frame of an unfinished tile the map shows: the open frame while it is open and paused, else 0. */
 function animUnfinishedFrame(e) {
-  return !_animOff && !_animPlaying && e.uid === _animSel ? _animFrame : 0;
+  return !_animOff && !_animPlaying && editAnimOpenUids()[e.uid] ? _animFrame : 0;
 }
 
 /** One graphic from its family's sheet at (x, y), mirrored as its word says. */
@@ -78,6 +78,8 @@ function editAnimSvg(origin) {
       var fam = !done && g != null && k > 0 ? animFamilyOf(e, [key]) : null;
       var cls = 'rg-anim-cell' + (!done && g == null ? ' empty' : '') + (sel ? ' sel' : '');
       var c = key.split(',').map(Number), a = editCellPos(origin, c[0], c[1]);
+      // ▶ Play on a tile still missing frames: played here, its empty frames as purple boxes.
+      if (!done && _animPlaying && !_animOff && editAnimOpenUids()[e.uid]) { html += animPlaySvg(e, key, c, a); return; }
       if (fam != null) html += animUnderSvg(e, c, a) + animGraphicSvg(g, fam, e.pal || 0, a.x, a.y);
       if (g == null && !done) {
         html += '<rect class="' + cls + '" x="' + a.x + '" y="' + a.y + '" width="' + EDIT_UNITS + '" height="' + EDIT_UNITS + '" pointer-events="none"/>';
@@ -156,15 +158,8 @@ function animFrameSwatchHtml(graphic, family, cells, k) {
 }
 
 function animStampFrameSvg(cells, k, size) {
-  var p = _mtPalette, c = cells && cells[0] ? cells[0].split(',').map(Number) : null;
-  var idx = c ? editCellAt(p, c[0], c[1]) : -1;
-  if (idx < 0) return '';
-  var sheet = idx >= p.count ? _editComposed : p, i = idx >= p.count ? idx - p.count : idx;
-  var hit = sheet ? editStampAnimOf(sheet, i) : null;
-  var src = k === 0 ? sheet : hit && sheet.anim.sheets[k - 1];
-  if (!src || !src.imageUri) return '';
-  return '<svg class="rg-anim-sw" width="' + size + '" height="' + size + '" viewBox="0 0 ' + EDIT_UNITS + ' ' + EDIT_UNITS + '">'
-    + editCropSvg('rg-anim-prev-cell', 0, 0, k === 0 ? sheet : sheet.anim, src.imageUri, src.imageWidth, src.imageHeight, k === 0 ? i : hit.row, '') + '</svg>';
+  var cell = cells && cells[0] ? animStampFrameCell(cells[0], k, { x: 0, y: 0 }) : '';
+  return cell ? '<svg class="rg-anim-sw" width="' + size + '" height="' + size + '" viewBox="0 0 ' + EDIT_UNITS + ' ' + EDIT_UNITS + '">' + cell + '</svg>' : '';
 }
 
 /** A graphic's swatch from its family's sheet (map-editor-families.js), or a purple empty frame. */
@@ -250,4 +245,56 @@ function animFamilyOf(e, cells) {
   });
   if (!pal) pal = ((e.pal || 0) >> 10) & 7;
   return pal >= 1 ? editFamilies()[pal - 1] : undefined;
+}
+
+/** Every frame of `e` stacked on one cell, each shown in its turn (SMIL on the document clock, as map-editor-anim.js does). */
+function animPlaySvg(e, key, c, a) {
+  var fam = animFamilyOf(e, [key]), total = 0, times = [];
+  e.delays.forEach(function (t) { times.push(total); total += Math.max(1, t); });
+  var keyTimes = times.map(function (t) { return (t / total).toFixed(4); }).join(';'), dur = (total / 60).toFixed(3) + 's';
+  var html = animUnderSvg(e, c, a);
+  e.frames.forEach(function (g, k) {
+    var values = times.map(function (_, j) { return j === k ? 1 : 0; }).join(';');
+    html += '<g opacity="' + (k ? 0 : 1) + '"><animate attributeName="opacity" calcMode="discrete" begin="0s" dur="' + dur
+      + '" repeatCount="indefinite" keyTimes="' + keyTimes + '" values="' + values + '"/>' + animFrameCellSvg(e, g, fam, key, k, a) + '</g>';
+  });
+  return '<g pointer-events="none">' + html + '</g>';
+}
+
+/** One frame of `e` at map units `a`: its graphic, the map's own render of it, or a purple box when empty. */
+function animFrameCellSvg(e, g, fam, key, k, a) {
+  var u = EDIT_UNITS;
+  if (g == null) return '<rect class="rg-anim-cell empty" x="' + a.x + '" y="' + a.y + '" width="' + u + '" height="' + u + '"/>';
+  return animGraphicSvg(g, fam, e.pal || 0, a.x, a.y) || animStampFrameCell(key, k, a);
+}
+
+/** Frame `k` as the host rendered it for the stamp on `key`, at map units `a`; '' when it has none. */
+function animStampFrameCell(key, k, a) {
+  var p = _mtPalette, c = key.split(',').map(Number), idx = editCellAt(p, c[0], c[1]);
+  if (idx < 0) return '';
+  var sheet = idx >= p.count ? _editComposed : p, i = idx >= p.count ? idx - p.count : idx;
+  var hit = sheet ? editStampAnimOf(sheet, i) : null;
+  var src = k === 0 ? sheet : hit && sheet.anim.sheets[k - 1];
+  if (!src || !src.imageUri) return '';
+  return editCropSvg('rg-anim-prev-cell', a.x, a.y, k === 0 ? sheet : sheet.anim, src.imageUri, src.imageWidth, src.imageHeight, k === 0 ? i : hit.row, '');
+}
+
+/** A row's cells as the map lays them out, in a `size`-px box: frame `k` of each (`k` null: each as the map shows it now). */
+function animGroupSvg(entry, k, size) {
+  var cells = entry.cells.slice(0, 64), u = EDIT_UNITS;
+  if (!cells.length) return '';
+  var xy = cells.map(function (key) { return key.split(',').map(Number); });
+  var x0 = Math.min.apply(null, xy.map(function (c) { return c[0]; })), y0 = Math.min.apply(null, xy.map(function (c) { return c[1]; }));
+  var W = Math.max.apply(null, xy.map(function (c) { return c[0]; })) - x0 + 1, H = Math.max.apply(null, xy.map(function (c) { return c[1]; })) - y0 + 1;
+  var k1 = size / Math.max(W, H), html = '';
+  cells.forEach(function (key, i) {
+    var c = xy[i], a = { x: (c[0] - x0) * u, y: (c[1] - y0) * u }, m = entry.of[key] || entry.g;
+    if (k == null) {
+      var idx = editCellAt(_mtPalette, c[0], c[1]);
+      html += idx >= 0 ? editStampSvg(_mtPalette, _editComposed, idx, a.x, a.y, 'rg-anim-prev-cell') : '';
+      return;
+    }
+    html += animUnderSvg(m, c, a) + animFrameCellSvg(m, k < m.frames.length ? m.frames[k] : null, animFamilyOf(m, [key]), key, k, a);
+  });
+  return '<svg class="rg-anim-sw" width="' + Math.round(W * k1) + '" height="' + Math.round(H * k1) + '" viewBox="0 0 ' + W * u + ' ' + H * u + '">' + html + '</svg>';
 }

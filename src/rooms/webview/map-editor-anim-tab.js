@@ -48,7 +48,7 @@ function animRowHtml(entry, locked, open, many) {
     + '<div class="rg-trigger-row rg-anim-row' + (open ? ' on' : '') + '" data-anim-sel="' + e.uid + '" data-anim-part="' + (entry.cells[0] || '') + '" title="'
     + escH((e.rom ? 'the room’s own' : e.vanilla ? 'vanilla’s frames' : 'drawn here') + (e.vanilla ? ' · locked until disbanded' : '')
       + '\nclick to ' + (open ? 'close' : 'open it')) + '">'
-    + animWhereSvg(entry.cells, many) + animPreviewHtml(e, fam, 30, entry.cells)
+    + animWhereSvg(entry.cells, many) + (entry.cells.length > 1 ? animGroupSvg(entry, null, 30) : animPreviewHtml(e, fam, 30, entry.cells))
     + '<span class="rg-trigger-label">' + (set ? animPlural(entry.members.length, 'tile') + ', one timing' : e.frames[0] != null ? e.frames[0] : 'new animated tile') + (e.vanilla ? ' <span class="rg-anim-lock" aria-label="locked">🔒</span>' : '')
     + '<span class="rg-trigger-what">' + animPlural(editAnimRuns(e, entry.members).length, 'frame') + ' · ' + animPlural(entry.cells.length, 'cell')
       + (entry.parts > 1 ? ' · <span title="every copy changes together: frames and ticks are shared">' + (entry.part + 1) + ' of ' + entry.parts + '</span>' : '') + '</span></span>'
@@ -77,8 +77,6 @@ function animOpenHtml(entry, fam, presets, locked) {
     });
     html += '<span class="ro-chip rg-anim-preset custom' + (letter ? '' : ' sel') + '" title="your own ticks — set them below">custom</span></div>';
   }
-  // A set: one line of frames per tile, at its cell; the ticks below are all of theirs.
-  if (entry.members.length > 1) html += animSetFramesHtml(entry);
   html += '<div class="ro-chips">';
   // One chip per graphic held in a row (editAnimRuns): 10 frames of 127 ticks read as one of 1270.
   editAnimRuns(e, entry.members).forEach(function (r, k) {
@@ -87,7 +85,8 @@ function animOpenHtml(entry, fam, presets, locked) {
       + '<button class="ro-chip' + (on ? ' sel' : '') + (r.graphic == null ? ' rg-anim-empty' : '') + '" data-anim-frame="' + r.start + '" title="Frame ' + k
       + (r.count > 1 ? ' — ' + r.count + ' frames of at most ' + ANIM_MAX_TICKS + ' ticks in the ROM' : '')
       + (e.vanilla ? ' — locked: disband to change its tiles' : ' — the pencil on one of its cells tiles it') + '">'
-      + (entry.members.length > 1 ? '' : animFrameSwatchHtml(r.graphic, fam, cells, r.start)) + '<span class="ro-lbl">' + k + '</span></button>'
+      // Several tiles: each frame as the group looks then, laid out as on the map (the Object tab's frames).
+      + (entry.members.length > 1 ? animGroupSvg(entry, r.start, 44) : animFrameSwatchHtml(r.graphic, fam, cells, r.start)) + '<span class="ro-lbl">' + k + '</span></button>'
       + '<input type="number" class="rg-anim-ticks" min="1" value="' + t + '" data-anim-delay="' + k
       + '" aria-label="Frame ' + k + ' hold in ticks" title="Hold in 60 Hz ticks (' + Math.round(t * 1000 / 60) + ' ms)'
       + (t > ANIM_MAX_TICKS ? ' — stored as ' + Math.ceil(t / ANIM_MAX_TICKS) + ' frames of at most ' + ANIM_MAX_TICKS : '') + '"' + dis + '/>'
@@ -104,22 +103,6 @@ function animOpenHtml(entry, fam, presets, locked) {
   }
   if (!locked && e.vanilla) html += '<button class="rdf rdf-xs" data-anim-act="disband" title="Unlock its frames to change them — it is your own from then on">disband</button>';
   return html + '</div></div>';
-}
-
-/** A group's frames: one line per tile, at its first cell, each frame tiled in its turn. */
-function animSetFramesHtml(entry) {
-  var html = '<div class="rg-anim-set">';
-  entry.members.forEach(function (m) {
-    var k = entry.cells.filter(function (c) { return entry.of[c] === m; })[0] || (m.pending || [])[0] || '';
-    var fam = animFamilyOf(m, k ? [k] : []);
-    html += '<div class="rg-anim-set-line"><span class="rg-anim-timing-lbl">' + escH(k) + '</span>';
-    editAnimRuns(m, entry.members).forEach(function (r, i) {
-      html += '<button class="ro-chip' + (_animFrame >= r.start && _animFrame < r.start + r.count ? ' sel' : '') + (r.graphic == null ? ' rg-anim-empty' : '')
-        + '" data-anim-frame="' + r.start + '" title="Frame ' + i + ' of the tile at ' + escH(k) + '">' + animFrameSwatchHtml(r.graphic, fam, [k], r.start) + '</button>';
-    });
-    html += '</div>';
-  });
-  return html + '</div>';
 }
 
 /** The tab. */

@@ -64,6 +64,22 @@ function editAnimSetComplete(e, members) {
  * The tiles an edit of `e` changes together: the open row's, when `e` is in
  * it (tiles side by side on one pattern), with their sets; else its set.
  */
+/**
+ * `{uid: true}` of the open row's tiles. Asked once per stamp drawn, so kept
+ * until the open tile, the history or the list changes.
+ */
+function editAnimOpenUids() {
+  var d = editDraft();
+  var key = _animSel + '|' + (d ? d.undo.length + ',' + d.redo.length : '') + '|' + editAnims().length;
+  if (_animOpenMemo.key !== key) {
+    var out = {};
+    editAnimGroup(editAnimFind(_animSel)).forEach(function (m) { out[m.uid] = true; });
+    _animOpenMemo = { key: key, uids: out };
+  }
+  return _animOpenMemo.uids;
+}
+var _animOpenMemo = { key: null, uids: {} };
+
 function editAnimGroup(e) {
   if (!e) return [];
   var open = _mtPalette ? animOpenEntry(editAnimsListed(_mtPalette)) : null;

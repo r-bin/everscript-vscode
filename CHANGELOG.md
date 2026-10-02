@@ -1,3 +1,11 @@
+## [0.115.1] — 2026-10-02
+
+### Fix: groups pause together, frames shown as the group looks, Play with empty frames
+
+- **A drawn 2×2 (or any group) pauses as one.** With its row open, only the tile you clicked stopped on the open frame; the others kept playing, so half the group looked dead or out of step. The whole open row now stops on the open frame, and ▶ Play runs all of it.
+- **Frames of a group show the group**, laid out as on the map, like the Object tab's states: one chip per frame, with every tile of the group in it. The closed row's preview is the group as the map shows it now. The per-tile lines are gone.
+- **▶ Play works on a tile with empty frames.** An unfinished tile has no channel yet, so nothing played. It is now played on the map from its frames, with the empty ones as purple boxes.
+
 ## [0.115.0] — 2026-10-02
 
 ### Changed: vanilla patterns always found; touching animated tiles on one pattern are one animation
