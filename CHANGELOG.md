@@ -1,3 +1,11 @@
+## [0.119.3] — 2026-10-03
+
+### Docs: [Sprites] the animation script language
+
+- **New `docs/script-format/animation_script.md`:** the animation bytecode as a language: the per-entity machine, the frame-end bit, holds as checkpoints, a notation for writing scripts down, every opcode from the `$908000` dispatch table, and disassembled scripts (Mosquito, Wimpy Flower, Boy walk, Flowering Death, Stone Cobra).
+- **Decoded the entity-variable family:** widths for `0x31`, `0x33`–`0x37`, `0x39` (decrement-and-jump) and `0x3a` (jump-if-positive), read from their handlers. 823 of 845 character scripts now walk to their own loop, up from 815, so animations such as Flowering Death's attack play past the counted loop instead of stopping.
+- Folded in the pending hurt-box / strike-box centring notes in `attack_boxes.md` and `animation_format.md`.
+
 ## [0.119.2] — 2026-10-03
 
 ### Fix: [Sprites] Boy weapon animations, missing opcodes, facing directions & hitbox alignment

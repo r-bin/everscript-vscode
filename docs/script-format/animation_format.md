@@ -9,6 +9,9 @@ with no compiler counterpart. `animate(entity, mode, id)` emits opcode
 `0x78` with a small animation id, a different space from `anim_stand`. A
 Mesen trace of spawning a Mosquito settled it after five wrong guesses.
 
+The full opcode set, with a notation for writing scripts down, is in
+[animation_script.md](animation_script.md).
+
 ## The chain
 
 ```
@@ -171,16 +174,24 @@ idle scripts never reach:
 | `0x38` | `$908B6C` | one byte, written twice through `($12),Y` | 2 |
 | `0x40` | `$9088F3` | a word, then `JSL $8C81FD` | 3 |
 | `0x43` | `$9086C3` | holds while `$001E`/`$0020,Y` are non-zero | 1 |
+| `0x48` | `$908810` | 1-byte, resets/ticks weapon counter | 1 |
+| `0x49` | `$90882D` | 16-bit operand (`LDX $5D; INX; INX`), sound effect / audio trigger | 3 |
+| `0x4a` | `$908843` | 16-bit operand (`LDX $5D; INX; INX`), weapon projectile / sound trigger | 3 |
 | `0x4b` | `$90885A` | a word, then `JSL $90CD5C` | 3 |
 | `0x4c` | `$908725` | a word and three signed bytes — a projectile | 6 |
+| `0x58` | `$90887B` | 1-byte, clears weapon slash / overlay state | 1 |
+| `0x59` | `$9088AE` | 1-byte, triggers weapon slash swing / flash effect | 1 |
 | `0x5b` | `$9085C1` | stores the entity's position for its facing | 1 |
+
+Opcodes `0x48`, `0x49`, `0x4a`, `0x58`, and `0x59` were confirmed via Mesen trace
+`bone_slash.txt` during the Boy's bone slash sequence.
 
 `0x40` has a caveat: when the entity is outside the live range or
 `$0014,Y & $0020` is set, the handler returns at `$908920` **without**
 advancing `$5D`. That is a runtime abort, not a second encoding — the operand
 is still in the script — so a static walk reads three bytes.
 
-Adding all seven changed **no idle walk**: all 141 characters produce
+Adding these opcodes changed **no idle walk**: all 141 characters produce
 byte-identical frames before and after, which is the check that a wrong width
 would fail loudly.
 
@@ -215,19 +226,31 @@ A record is `[scriptLow:u16][bank:u8][flags:u8]`, and **two** flag bits mean
 
 The table at `$90815B` maps the sixteen facings onto four records —
 `{0:0, 2:4, 4:4, 6:4, 8:8, 10:12, 12:12, 14:12}` — so these characters have
-north, east, south and west and nothing between.
+south, east, north, and west poses:
 
-**Entity `+0x22` holds the facing, and south is 8.** Both the spawn routine
-(`$8FB0CD`) and the FACE SOUTH opcode (`$8CDEFC`) write 8, so an unposed
-enemy already faces the camera.
+| Facing index | Table offset | Direction | Pose / Visual |
+|---|---|---|---|
+| `0` (or `1`) | `+0` | **South** | Front-facing towards camera (eyes, face, chest) |
+| `2..5` | `+4` | **East** | Facing right (often flipped from West) |
+| `6..9` | `+8` | **North** | Back-facing away from camera (back of head) |
+| `10..15` | `+12` | **West** | Facing left |
 
-Confirmed against the game: a Viper (character 92) made to face south draws
-`$CD2C66`, and `anim_stand + 2*8` resolves to exactly that. Reading its
-record without the facing gives `$CD2CF5`, a different pose.
+*(Note on facing conventions: in the animation record tables, offset `+0` is the front-facing
+South pose and `+8` is the North pose. In some script rotation contexts, 8 was previously
+noted as forward spawn facing; in the animation table, index 0 is South and index 8 is North).*
 
 The 49 single-pose characters are bosses, statues, flowers and seated NPCs —
 the ROM holds one drawing of each, and the game shows that one whichever way
 the character is turned.
+
+## Bank validation: `$C4..$CE` vs Font Bitplanes
+
+Animation script pointers must resolve within ROM banks `$C4..$CE`.
+Address `$910000` is the start of font tile graphics bitplanes (dialogue text glyphs
+and window border tiles in bank `$91`). Attempting to decode external animation scripts
+from `$91xxxx` reads glyph bitplanes as opcodes, producing corrupted garbage frames.
+External animation decoders (`resolveExternalScript`) must validate that the target bank
+is within `$C4..$CE` and discard empty or invalid script walks.
 
 ## Placement: sprites anchor at their feet
 

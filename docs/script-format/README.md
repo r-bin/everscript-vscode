@@ -19,6 +19,7 @@ ruled out, so the next attempt starts further along.
 | [enemy_spawns.md](enemy_spawns.md) | Which NPCs a script places, and where | Solved |
 | [character_table.md](character_table.md) | Stats, palette and animation pointers per character | Solved |
 | [animation_format.md](animation_format.md) | Character → idle sprite and its frames | Solved |
+| [animation_script.md](animation_script.md) | The animation bytecode language: machine, every opcode, a notation, decoded scripts | Mostly decoded |
 | [sprite_format.md](sprite_format.md) | Sprite blocks, chunks and their compression | Solved |
 | [sprite_priority.md](sprite_priority.md) | Which characters the scenery is drawn over | Solved |
 | [hitboxes.md](hitboxes.md) | How big a character's body is, and what blocks a move | Solved |

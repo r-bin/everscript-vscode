@@ -36,19 +36,35 @@ reads them and hands the result to the hit test:
 9087BC  LDA [$5D]        ; the two offset bytes at once
 9087BE  STA $46
 9087C0  XBA              ; high byte = dy, sign-extended at $9087C8
-9087CB  ADC $001C,Y      ; + the attacker's Y   -> $48
+9087CB  ADC $001C,Y      ; + the attacker's Y   -> $48 (center Y)
 9087CE  STA $48
-9087E0  ADC $001A,Y      ; + the attacker's X   -> $46
+9087E0  ADC $001A,Y      ; + the attacker's X   -> $46 (center X)
 9087E5  LDA $0018,Y      ; the attacker's plane -> $44
 9087EA  LDA $001E,Y      ; and its height       -> $4A
-9087F5  LDA [$5D],Y      ; third byte  -> $3E, the width
-9087FD  LDA [$5D],Y      ; fourth byte -> $40, the height
+9087F5  LDA [$5D],Y      ; third byte  -> $3E, the width (w)
+9087FD  LDA [$5D],Y      ; fourth byte -> $40, the height (h)
 908807  JSL $8FB5E6      ; swing it
 ```
 
+### Centre coordinates, not top-left
+
+Because `$46` and `$48` are the strike centre, $(dx, dy)$ is the **centre offset**
+from the attacker's foot origin $(cx, cy)$. The top-left corner on screen is:
+
+$$sx = cx + dx - \frac{w}{2}, \quad sy = cy + dy - \frac{h}{2}$$
+
+Treating $(dx, dy)$ as top-left corner $(cx+dx, cy+dy)$ clips the box by half its
+dimensions.
+
 The Boy's east-facing sword swing is `47 1E 00 17 11`: a **23 × 17** box
-centred **30 px east** of him. That is exactly what the trace shows in
+centred **30 px east** of him ($dx = +30, dy = 0$). That is exactly what the trace shows in
 `$46`/`$3E`/`$40` at the moment of the hit.
+
+### Frame-specific lifespan
+
+`0x47` is an animation bytecode opcode, not a persistent entity mode. It executes
+only on the specific impact frame(s) that declare it. On frames that do not run `0x47`,
+no strike box is emitted.
 
 ## The hurt box
 
@@ -80,6 +96,14 @@ which is the strike box grown by the target's radius on every side — the
 Minkowski sum again, as in the movement test, but with no 2:1 squash on the
 target's half of it.
 
+### Upward body anchoring vs ground collision
+
+In top-down projection, an entity's coordinate $(cx, cy)$ is its feet on the ground plane.
+- The **collision box** ($2r \times r$) represents the ground footprint contact:
+  centred at $(cx, cy)$, spanning $[cx - r, cx + r] \times [cy - r/2, cy + r/2]$.
+- The **hurt box** ($2r \times 2r$) represents the standing torso and head:
+  anchored **upwards from the feet**, spanning $[cx - r, cx + r] \times [cy - 2r, cy]$.
+
 **`$0042`/`$0044` move the hurt box.** They are set by animation command
 `0x50`, so a character can lean its hurt box out of place for a few frames.
 Their resting value comes from `0x52`, the reset command that starts nearly
@@ -92,8 +116,7 @@ every animation script:
 ```
 
 which cancels the `+16` above exactly. So by default the hurt box is centred
-on the entity's own position, the same point its sprite is anchored at and
-the same point its collision box is centred on.
+on the entity's standing torso above its feet origin.
 
 ## What else has to be true
 

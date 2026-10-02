@@ -108,7 +108,9 @@ const END_FRAME = 0x80;
  * genuinely variable: it calls `$8FCA02`, which walks a list of its own
  * through `$5D` and writes back wherever it stopped (`$8FCA4D STY $5D`).
  * Only the two segmented bosses use it, and they stop the walk rather than
- * being given a length that does not exist.
+ * being given a length that does not exist. `0x3b` is an unconditional
+ * jump and is left out for the same reason: stepping over it reads the wrong
+ * bytes. Every opcode is listed in docs/script-format/animation_script.md.
  */
 const COMMAND_LENGTH: Record<number, number> = {
     0x00: 1, 0x1f: 3, 0x21: 1, 0x2c: 4, 0x2e: 2, 0x32: 4,   // 0x2c: the shadow slot
@@ -118,6 +120,8 @@ const COMMAND_LENGTH: Record<number, number> = {
     0x52: 1, 0x53: 1, 0x54: 3, 0x58: 1, 0x59: 1,            // 0x58-0x59: attack commands
     0x5a: 2, 0x5b: 1, 0x5d: 1,
     0x30: 1, 0x3f: 3, 0x56: 3,                               // 0x30/0x56 ring-menu icons; 0x3f sound fx; 0x5d flags
+    0x31: 3, 0x33: 5, 0x34: 6, 0x35: 3, 0x36: 4, 0x37: 2,   // entity-variable stores and adds
+    0x39: 4, 0x3a: 4,                                        // dec-and-jump / jump-if-positive: fall through when walked
 };
 
 const STRIKE = 0x47;
