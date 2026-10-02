@@ -109,15 +109,15 @@ if (!fs.existsSync(ROM_PATH)) {
         assert.strictEqual(maps.suggestGeometry(index, 0xfffff, 'terrain'), null);
     });
 
-    test('the widget colourings table is exactly what vanilla attests', () => {
-        // map-editor-widgets.js offers one variation per family in it; a
-        // family the ROM never drew a graphic in renders as wrong colours.
-        const src = fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'rooms', 'webview', 'map-editor-widgets.js'), 'utf8');
-        const table = new Function(src + ';return WIDGET_GRAPHIC_FAMILIES')();
-        Object.keys(table).forEach((g) => {
-            const attested = (index.families.get(Number(g)) || []).map((a) => a.value);
-            assert.deepStrictEqual(table[g], attested, `graphic ${g}`);
-        });
+    test('the widget library carries every family vanilla draws its graphics in', () => {
+        const { widgetGraphicFamilies } = require('../../src/rooms/custom-host');
+        const urn = { cells: [{ dx: 0, dy: 0, canopy: { graphic: 643, family: 115 } }],
+            variations: [{ frames: [{ cells: [{ dx: 0, dy: 0, terrain: { graphic: 4739, family: 220 } }] }] }] };
+        const got = widgetGraphicFamilies([urn], { loadRom: () => ({ romBuf: rom }) });
+        assert.deepStrictEqual(got[643], index.families.get(643).map((a) => [a.value, a.uses]));
+        assert.deepStrictEqual(got[643].map((f) => f[0]), [115, 35, 127, 139, 159, 188, 158], 'no #128/#111/#141');
+        assert.deepStrictEqual(got[4739].map((f) => f[0]), [220, 291, 231], 'a frame of a variation counts too');
+        assert.deepStrictEqual(widgetGraphicFamilies([urn], { loadRom: () => ({ romBuf: null }) }), {});
     });
 
     test('the canopy tally leaves out each room’s blank canopy word', () => {

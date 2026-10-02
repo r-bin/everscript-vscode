@@ -1,3 +1,11 @@
+## [0.108.4] — 2026-10-02
+
+### Fix: widget colourings are every family vanilla draws their art in, read from the ROM
+
+- **Union, from the vanilla index.** The host now sends, with the widget library, every family vanilla draws each widget graphic in, with its placement count (`graphicFamilies`, `custom-host.js` → `rendering/vanilla-index.js`). A widget offers one colouring per family *any* of its pieces is drawn in, most-placed first. The 2×2 Antiqua urn has 7 (#127 coloured only its top half, and still counts). The hand-kept `WIDGET_GRAPHIC_FAMILIES` table from 0.108.3 is gone: it could never cover a widget it did not list. The floor fan, for instance, is attested in #220, #291 and #231.
+- **Empty variations are not variations.** A `+ variation` never painted (no cell in any frame) is left out of the Placed chips and the library count, except on the widget's own canvas. The floor fan's eight empty B–I chips are gone.
+- **Animated widgets keep their frames in every colouring.** Generated colourings recolour each frame of the widget's variation, not only its first.
+
 ## [0.108.3] — 2026-10-01
 
 ### Fix: placed widgets keep collision and family slots in step with the map; urn colourings are the ROM's

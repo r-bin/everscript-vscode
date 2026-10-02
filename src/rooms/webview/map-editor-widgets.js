@@ -19,7 +19,7 @@
 // Two views, a tab each: Library (the above) and Placed — the widgets
 // stamped on this map, in draw order (map-editor-placed-list.js).
 //
-// Owns: _widgets (null until loaded), _widgetArt, _widgetsVanilla, _widgetsView.
+// Owns: _widgets (null until loaded), _widgetArt, _widgetsVanilla, _widgetsView, _widgetFamilies.
 
 var _widgets = null;
 var _widgetsAsked = false;
@@ -29,6 +29,8 @@ var _widgetArt = {};
 var _widgetsVanilla = false;
 /** Which half of the tab is showing: 'library' (what you can stamp) or 'placed' (what you stamped). */
 var _widgetsView = 'library';
+/** graphic -> [[family, uses], ...] vanilla attests, sent with the library (custom-host.js). */
+var _widgetFamilies = {};
 
 function requestWidgets() {
   if (_widgetsAsked || typeof vs === 'undefined' || !vs) return;
@@ -39,6 +41,7 @@ function requestWidgets() {
 function applyWidgets(msg) {
   if (!msg) return;
   _widgets = msg.widgets || [];
+  if (msg.graphicFamilies) Object.assign(_widgetFamilies, msg.graphicFamilies);
   if (msg.saved) delete _widgetArt[msg.saved];
   if (msg.deleted && widgetEditing(msg.deleted)) { _widgetEdit.pending = null; widgetEditClose(); }
   if (typeof editActive === 'function' && editActive()) renderEditPanels();
@@ -130,41 +133,28 @@ function widgetArm(id, varIdx) {
 }
 
 /**
- * Graphic -> every tile family vanilla draws it in, most-placed first —
- * measured over all rooms by maps.buildVanillaIndex, and checked against
- * the ROM by tests/memory/collision-suggest.test.js. Only the decorations
- * vanilla draws in more than one colouring. A family missing here never
- * coloured that graphic; the earlier hand-written lists offered three urn
- * colourings (#128, #111, #141) no room ever used, and they looked it.
- */
-var WIDGET_GRAPHIC_FAMILIES = {
-  // Antiqua urns: the top pair also in #127, the bottom pair never
-  643: [115, 35, 127, 139, 159, 188, 158], 644: [115, 35, 127, 139, 159, 188, 158],
-  647: [115, 35, 139, 159, 188, 158], 648: [115, 35, 139, 159, 188, 158],
-  // Prehistoria gourds, smooth and ribbed
-  3736: [166], 3737: [166], 3738: [167], 3739: [167], 3740: [166], 3741: [166],
-  3867: [35, 184], 3868: [35, 184], 3870: [35, 184, 203], 3871: [35, 184, 203],
-  // Gothica barrels
-  1895: [60], 1897: [60],
-  // Omnitopia canisters
-  17: [220, 0, 227, 231], 20: [220, 0, 227, 231],
-};
-
-/**
- * The tile families every measured graphic of these cells is drawn in — a
- * family that colours only half a widget is not a colouring of it. null
- * when none of the cells is in the table.
+ * The colourings vanilla attests for these cells: every family any of their
+ * graphics is drawn in, most-placed (summed over the graphics) first. A
+ * union, not an intersection — the urn's top half in #127 is a colouring
+ * worth having. Read off what the host sends with the library
+ * (`_widgetFamilies`, custom-host.js), never a hand-kept list: one of those
+ * offered three urn colours no room ever used. null until it is known.
  */
 function widgetAttestedFamilies(cells) {
-  var out = null;
+  var uses = {}, order = [], known = false;
   (cells || []).forEach(function (c) {
     [c.canopy, c.terrain].forEach(function (part) {
-      var fams = part && WIDGET_GRAPHIC_FAMILIES[part.graphic];
+      var fams = part && _widgetFamilies[part.graphic];
       if (!fams) return;
-      out = out ? out.filter(function (f) { return fams.indexOf(f) >= 0; }) : fams.slice();
+      known = true;
+      fams.forEach(function (fu) {
+        if (!(fu[0] in uses)) { uses[fu[0]] = 0; order.push(fu[0]); }
+        uses[fu[0]] += fu[1];
+      });
     });
   });
-  return out;
+  if (!known) return null;
+  return order.sort(function (x, y) { return uses[y] - uses[x]; });
 }
 
 /** The cells of `cells` recoloured into `fam`. */
@@ -179,27 +169,42 @@ function widgetCellsInFamily(cells, fam) {
   });
 }
 
+/** A variation with no cell in any frame: an unpainted "+ variation", which stamps nothing. */
+function widgetVarEmpty(v) {
+  return !(v.frames || []).some(function (f) { return (f.cells || []).length; });
+}
+
 /**
- * A widget's colourings, one per attested family (`fam-<id>`). Made when it
- * has none, and trimmed when it has only made ones: a library saved before
- * the table above still carries colourings the ROM never drew.
+ * A widget's colourings, one per attested family (`fam-<id>`), each frame of
+ * its one variation recoloured — an animated widget keeps its frames. Made
+ * when it has a single variation, trimmed to what vanilla attests when it
+ * has only made ones. Empty variations are left out except on the widget's
+ * own canvas, where one is about to be painted.
  */
 function widgetEnsureVariations(w) {
   if (!w) return;
   var vars = w.variations || [];
+  if (!(typeof widgetEditing === 'function' && widgetEditing(w.id)) && vars.some(widgetVarEmpty) && !vars.every(widgetVarEmpty)) {
+    vars = w.variations = vars.filter(function (v) { return !widgetVarEmpty(v); });
+    if (w.activeVariation >= vars.length) w.activeVariation = 0;
+  }
   var made = vars.length > 0 && vars.every(function (v) { return /^fam-\d+$/.test(v.id); });
   if (vars.length > 1 && !made) return;
   var fams = widgetAttestedFamilies(w.cells);
+  if (!fams) return;
   if (made) {
-    var kept = fams ? vars.filter(function (v) { return fams.indexOf(Number(v.id.slice(4))) >= 0; }) : vars;
+    var kept = vars.filter(function (v) { return fams.indexOf(Number(v.id.slice(4))) >= 0; });
     if (kept.length !== vars.length) w.variations = kept.length > 1 ? kept : undefined;
     return;
   }
-  if (fams && fams.length > 1) {
-    w.variations = fams.map(function (fam) {
-      return { id: 'fam-' + fam, name: '#' + fam, frames: [{ cells: widgetCellsInFamily(w.cells, fam), delay: 8 }] };
-    });
-  }
+  if (fams.length < 2) return;
+  var base = vars[0] && vars[0].frames && vars[0].frames.length ? vars[0].frames : [{ cells: w.cells, delay: 8 }];
+  w.variations = fams.map(function (fam) {
+    return { id: 'fam-' + fam, name: '#' + fam, frames: base.map(function (f) {
+      return { cells: widgetCellsInFamily(f.cells, fam), delay: f.delay != null ? f.delay : 8 };
+    }) };
+  });
+  w.activeVariation = 0;
 }
 
 /** ☆ on a vanilla card, once its cells arrived (map-editor-deco.js applyDecoCells). */

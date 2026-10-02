@@ -308,9 +308,25 @@ function invalidateVanillaIndex() {
     cachedKey = '';
 }
 
+/**
+ * Every family vanilla draws each of these graphics in, with how many grid
+ * cells attest it: `{graphic: [[family, uses], ...]}`, most-placed first. A
+ * widget's colourings are read off this (map-editor-widgets.js), never a
+ * hand-kept list — one of those offered urn colours no room ever used.
+ */
+function graphicFamilies(rom, graphics) {
+    const index = vanillaIndex(rom);
+    const out = {};
+    for (const g of graphics) {
+        const fams = index.families.get(g);
+        if (fams && fams.length) out[g] = fams.map((a) => [a.value, a.uses]);
+    }
+    return out;
+}
+
 module.exports = {
     vanillaGeometry,
     vanillaIndex, annotateGraphics, budgetSummary, relatedTiles, neighbourTiles,
-    vanillaExamples, proceduralFill, invalidateVanillaIndex,
+    vanillaExamples, proceduralFill, invalidateVanillaIndex, graphicFamilies,
 };
 

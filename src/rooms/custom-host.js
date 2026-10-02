@@ -13,9 +13,12 @@
 //   setCustomActive {key}
 //   deleteCustomMap {key, name}     -> customMapDeleted {key} (after a modal confirm)
 //   exportCustomMap {map, draft, stamps} -> customMapExported {path} | {error} | {cancelled}
-//   requestWidgets                  -> widgets {widgets}
-//   saveWidget {widget}             -> widgets {widgets}
-//   deleteWidget {id, name}         -> widgets {widgets, deleted} (after a modal confirm)
+//   requestWidgets                  -> widgets {widgets, graphicFamilies}
+//   saveWidget {widget}             -> widgets {widgets, graphicFamilies}
+//   deleteWidget {id, name}         -> widgets {widgets, graphicFamilies, deleted} (after a modal confirm)
+//
+// `graphicFamilies` is what vanilla attests for every graphic the widgets
+// draw (rendering/vanilla-index.js): their colourings are read off it.
 //
 // Widgets (data/widget-store.js) live beside the maps, in one file every map
 // shares: `deps.widgetsFile`.
@@ -27,6 +30,7 @@ const path = require('path');
 const store = require('./data/custom-store');
 const widgetStore = require('./data/widget-store');
 const { buildCustomMapArchive } = require('./rendering/custom-export');
+const { graphicFamilies } = require('./rendering/vanilla-index');
 
 const COMMANDS = new Set(['requestCustomMaps', 'saveCustomMap', 'setCustomActive', 'deleteCustomMap', 'exportCustomMap',
     'requestWidgets', 'saveWidget', 'deleteWidget']);
@@ -126,7 +130,7 @@ function handleCustomMapMessage(msg, deps) {
 /** The widget library: list, save, delete (with a modal confirm). */
 function handleWidgetMessage(msg, deps) {
     const { vscode, post, widgetsFile } = deps;
-    const reply = (extra) => post({ command: 'widgets', ...extra });
+    const reply = (extra) => post({ command: 'widgets', ...extra, graphicFamilies: widgetGraphicFamilies(extra.widgets, deps) });
     if (msg.command === 'requestWidgets') {
         try { reply({ widgets: widgetStore.listWidgets(widgetsFile) }); } catch (err) {
             reply({ widgets: [], error: String(err && err.message || err) });
@@ -151,4 +155,20 @@ function handleWidgetMessage(msg, deps) {
     })();
 }
 
-module.exports = { handlesCustomMapMessage, handleCustomMapMessage };
+/** `{graphic: [[family, uses], ...]}` for every graphic the widgets draw; `{}` without a ROM. */
+function widgetGraphicFamilies(widgets, deps) {
+    const seen = new Set();
+    const note = (cells) => (cells || []).forEach((c) => [c.canopy, c.terrain].forEach((p) => {
+        if (p && p.graphic != null) seen.add(p.graphic);
+    }));
+    (widgets || []).forEach((w) => {
+        note(w.cells);
+        (w.variations || []).forEach((v) => (v.frames || []).forEach((f) => note(f.cells)));
+    });
+    try {
+        const rom = deps.loadRom && deps.loadRom();
+        return rom && rom.romBuf && seen.size ? graphicFamilies(rom.romBuf, [...seen]) : {};
+    } catch { return {}; }
+}
+
+module.exports = { handlesCustomMapMessage, handleCustomMapMessage, widgetGraphicFamilies };

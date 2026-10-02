@@ -2986,32 +2986,57 @@ test('placed widgets render object-like cards with clickable variant preview chi
     assert.ok(updatedRowHtml.includes('data-placed-var-idx="1" title="Variation #184"><i class="ro-img rg-widget-var-thumb"'), 'variant 1 rendered as active');
 });
 
-test('antiqua urn offers only the colourings vanilla attests for all its pieces', () => {
+// What custom-host.js sends with the library for the urn's and the fan's art (ROM counts).
+const URN_FAMILIES = {
+    643: [[115, 49], [35, 11], [127, 8], [139, 7], [159, 6], [188, 2], [158, 1]],
+    644: [[115, 49], [35, 11], [127, 7], [139, 7], [159, 6], [188, 2], [158, 1]],
+    647: [[115, 49], [35, 22], [139, 14], [159, 6], [188, 4], [158, 2]],
+    648: [[115, 49], [35, 23], [139, 14], [159, 6], [188, 4], [158, 2]],
+    4739: [[220, 40], [291, 9], [231, 4]], 4740: [[220, 40], [291, 9], [231, 4]],
+};
+
+test('a widget offers every colouring vanilla attests for any of its pieces, and no other', () => {
     const urnCells = [
         { dx: 0, dy: 0, canopy: { graphic: 643, family: 115, flags: 0 }, terrain: null },
         { dx: 1, dy: 0, canopy: { graphic: 644, family: 115, flags: 0 }, terrain: null },
         { dx: 0, dy: 1, canopy: { graphic: 647, family: 115, flags: 0 }, terrain: null },
         { dx: 1, dy: 1, canopy: { graphic: 648, family: 115, flags: 0 }, terrain: null },
     ];
-    // #127 colours only the top pair; #128/#111/#141 never coloured any of it.
-    assert.deepStrictEqual(ui.widgetAttestedFamilies(urnCells), [115, 35, 139, 159, 188, 158]);
-    assert.deepStrictEqual(ui.widgetAttestedFamilies(urnCells.slice(0, 2)), [115, 35, 127, 139, 159, 188, 158]);
+    ui.applyWidgets({ widgets: [], graphicFamilies: URN_FAMILIES });
+    // A union, by summed uses: #127 colours only the top half and still counts.
+    assert.deepStrictEqual(ui.widgetAttestedFamilies(urnCells), [115, 35, 139, 159, 127, 188, 158]);
     assert.strictEqual(ui.widgetAttestedFamilies([{ dx: 0, dy: 0, canopy: { graphic: 1, family: 2 } }]), null);
 
-    // A library widget saved with the old invented colourings loses them.
+    // A library widget saved with invented colourings loses them.
     const old = [115, 35, 127, 139, 159, 188, 158, 128, 111, 141].map((f) => ({ id: 'fam-' + f, name: '#' + f, frames: [] }));
     const saved = { id: 'w-old', cells: urnCells, variations: old };
     ui.widgetEnsureVariations(saved);
-    assert.deepStrictEqual(saved.variations.map((v) => v.id), ['fam-115', 'fam-35', 'fam-139', 'fam-159', 'fam-188', 'fam-158']);
-    // Hand-made variations are the user's, never trimmed.
-    const mine = { id: 'w-mine', cells: urnCells, variations: [{ id: 'v-a' }, { id: 'v-b' }] };
+    assert.deepStrictEqual(saved.variations.map((v) => v.id), ['fam-115', 'fam-35', 'fam-127', 'fam-139', 'fam-159', 'fam-188', 'fam-158']);
+    // Hand-made variations with art are the user's, never trimmed.
+    const painted = { frames: [{ cells: urnCells }] };
+    const mine = { id: 'w-mine', cells: urnCells, variations: [{ id: 'v-a', ...painted }, { id: 'v-b', ...painted }] };
     ui.widgetEnsureVariations(mine);
     assert.strictEqual(mine.variations.length, 2);
+});
+
+test('empty variations are not variations, and an animated widget keeps its frames in every colouring', () => {
+    ui.applyWidgets({ widgets: [], graphicFamilies: URN_FAMILIES });
+    const fanCells = [{ dx: 0, dy: 0, canopy: null, terrain: { graphic: 4739, family: 220 } },
+        { dx: 1, dy: 0, canopy: null, terrain: { graphic: 4740, family: 220 } }];
+    const frame = { cells: fanCells, delay: 8 };
+    const empty = (id) => ({ id, name: id, frames: [{ cells: [], delay: 8 }] });
+    const fan = { id: 'w-fan', cells: fanCells,
+        variations: [{ id: 'var-a', name: 'A', frames: [frame, frame, frame, frame] }, empty('var-b'), empty('var-c')] };
+    ui.widgetEnsureVariations(fan);
+    assert.deepStrictEqual(fan.variations.map((v) => v.id), ['fam-220', 'fam-291', 'fam-231']);
+    assert.ok(fan.variations.every((v) => v.frames.length === 4), 'each colouring keeps the 4 frames');
+    assert.strictEqual(fan.variations[1].frames[2].cells[0].terrain.family, 291);
 });
 
 test('switching a placed widget variation replaces its family slot, and deleting it frees the slot', () => {
     const urnCells = [{ dx: 0, dy: 0, canopy: { graphic: 643, family: 115, flags: 0 }, terrain: null }];
     const urnWidget = { id: 'w-urn', name: 'Antiqua Urn', w: 1, h: 1, cells: urnCells };
+    ui.applyWidgets({ widgets: [], graphicFamilies: URN_FAMILIES });
     ui.widgetEnsureVariations(urnWidget);
     const p = tilePalette();
     p.widthTiles = 10;
