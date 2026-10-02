@@ -1,6 +1,7 @@
 // Ownership: client-side interaction, animation playback loop, canvas drawing, stat cards, and chunk inspector for the Sprites tab.
 (function() {
-  var vs = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null;
+  // Reuse the vscode API instance already acquired by shared.js (acquireVsCodeApi can only be called once)
+  var vsApi = (typeof vs !== 'undefined' && vs) ? vs : (typeof acquireVsCodeApi === 'function' ? (function() { try { return acquireVsCodeApi(); } catch(e) { return null; } })() : null);
 
   // State variables
   var currentMode = 'chars'; // 'chars' or 'raw'
@@ -107,11 +108,26 @@
     listEl.innerHTML = '';
     var q = (searchInput && searchInput.value ? searchInput.value.toLowerCase().trim() : '');
 
+    var chipAll = document.querySelector('.sp-filter-chip[data-filter="all"]');
+    var chars = getCharacters();
+    if (chipAll && chars && chars.length) {
+      chipAll.textContent = 'All (' + chars.length + ')';
+    }
+
     if (currentMode === 'chars') {
-      var chars = getCharacters();
+      if (!chars || chars.length === 0) {
+        var emptyEl = document.createElement('div');
+        emptyEl.className = 'sp-empty-notice';
+        emptyEl.innerHTML = '<strong>No characters loaded.</strong><br><span style="opacity:0.75">Ensure a Secret of Evermore ROM is present or configured in Settings (<code>everscript.romPath</code>).</span>';
+        listEl.appendChild(emptyEl);
+        return;
+      }
+
       chars.forEach(function(c) {
-        if (charFilter === 'enemies' && !c.disposition.hostile) return;
-        if (charFilter === 'npcs' && c.disposition.hostile) return;
+        if (!c) return;
+        var disp = c.disposition || {};
+        if (charFilter === 'enemies' && !disp.hostile) return;
+        if (charFilter === 'npcs' && disp.hostile) return;
         if (charFilter === 'heroes' && c.id !== 0 && c.id !== 1) return;
 
         var nameStr = (c.name || '').toLowerCase();
@@ -122,23 +138,32 @@
 
         var li = document.createElement('li');
         li.className = 'sp-list-item' + (c.id === selectedCharId ? ' sp-selected' : '');
-        li.dataset.id = c.id;
+        li.dataset.id = String(c.id);
         li.innerHTML = '<span class="sp-li-name">' + (c.name || '#' + c.id) + '</span>' +
-          '<span class="sp-li-addr">' + c.snesHex + '</span>';
+          '<span class="sp-li-addr">' + (c.snesHex || '') + '</span>';
 
         li.addEventListener('click', function() { selectCharacter(c.id); });
         listEl.appendChild(li);
       });
     } else {
       var rawList = getRawIndex();
+      if (!rawList || rawList.length === 0) {
+        var emptyRawEl = document.createElement('div');
+        emptyRawEl.className = 'sp-empty-notice';
+        emptyRawEl.innerHTML = '<strong>No raw sprites loaded.</strong><br><span style="opacity:0.75">Ensure a Secret of Evermore ROM is present or configured in Settings (<code>everscript.romPath</code>).</span>';
+        listEl.appendChild(emptyRawEl);
+        return;
+      }
+
       rawList.forEach(function(s) {
+        if (!s) return;
         var addrStr = (s.addrHex || '').toLowerCase();
         var idxStr = String(s.index);
         if (q && !addrStr.includes(q) && !idxStr.includes(q)) return;
 
         var li = document.createElement('li');
         li.className = 'sp-list-item' + (s.address === selectedRawAddr ? ' sp-selected' : '');
-        li.dataset.addr = s.address;
+        li.dataset.addr = String(s.address);
         li.innerHTML = '<span class="sp-li-name">' + s.addrHex + '</span>' +
           '<span class="sp-li-addr">' + s.width + '×' + s.height + ' (' + s.chunkCount + ')</span>';
 
@@ -152,13 +177,16 @@
   function selectCharacter(id) {
     selectedCharId = id;
     var chars = getCharacters();
+    if (!chars || !chars.length) return;
     var c = chars.find(function(x) { return x.id === id; });
+    if (!c) c = chars[0];
     if (!c) return;
+    selectedCharId = c.id;
 
     // Update list selection highlight
     if (listEl) {
       listEl.querySelectorAll('.sp-list-item').forEach(function(el) {
-        el.classList.toggle('sp-selected', parseInt(el.dataset.id) === id);
+        el.classList.toggle('sp-selected', parseInt(el.dataset.id) === selectedCharId);
       });
     }
 
@@ -170,12 +198,13 @@
     var swatch = document.getElementById('sp-palette-swatch');
 
     if (idEl) idEl.textContent = '#' + c.id;
-    if (nameEl) nameEl.textContent = c.name + ' (' + c.snesHex + ')';
+    if (nameEl) nameEl.textContent = (c.name || '#' + c.id) + ' (' + (c.snesHex || '') + ')';
     if (badgeEl) {
-      badgeEl.textContent = c.disposition.label;
-      badgeEl.className = 'sp-badge ' + (c.id === 0 || c.id === 1 ? 'sp-badge-hero' : c.disposition.hostile ? 'sp-badge-enemy' : 'sp-badge-npc');
+      var disp = c.disposition || {};
+      badgeEl.textContent = disp.label || '';
+      badgeEl.className = 'sp-badge ' + (c.id === 0 || c.id === 1 ? 'sp-badge-hero' : disp.hostile ? 'sp-badge-enemy' : 'sp-badge-npc');
     }
-    if (palHex) palHex.textContent = c.paletteAddrHex;
+    if (palHex) palHex.textContent = c.paletteAddrHex || '$0000';
     if (swatch && c.paletteColors) {
       swatch.innerHTML = c.paletteColors.map(function(hex) {
         return '<span style="background-color:' + hex + '" title="' + hex + '"></span>';
@@ -262,8 +291,8 @@
     var animOpt = (c.anims || []).find(function(a) { return a.key === selectedAnimKey; });
     if (!animOpt) animOpt = { key: 'stand', offset: 0x32 };
 
-    if (vs) {
-      vs.postMessage({
+    if (vsApi) {
+      vsApi.postMessage({
         command: 'getSpriteAnimation',
         characterId: selectedCharId,
         animKey: selectedAnimKey,
@@ -542,8 +571,8 @@
   }
 
   function loadRawSprite(addr) {
-    if (vs) {
-      vs.postMessage({
+    if (vsApi) {
+      vsApi.postMessage({
         command: 'getRawSprite',
         address: addr,
         paletteAddr: rawPalette,
@@ -574,10 +603,13 @@
     if (!rawPaletteSel) return;
     rawPaletteSel.innerHTML = '';
     var chars = getCharacters();
+    if (!chars || !chars.length) return;
     chars.forEach(function(c) {
+      if (!c) return;
+      var pal = (c.stats && c.stats.palette !== undefined) ? c.stats.palette : 0;
       var opt = document.createElement('option');
-      opt.value = c.stats.palette.toString(16);
-      opt.textContent = c.name + ' (' + c.paletteAddrHex + ')';
+      opt.value = pal.toString(16);
+      opt.textContent = (c.name || '#' + c.id) + ' (' + (c.paletteAddrHex || '$0000') + ')';
       if (c.id === 0) opt.selected = true;
       rawPaletteSel.appendChild(opt);
     });
@@ -640,7 +672,16 @@
   }
 
   // ── Init on page load ───────────────────────────────────────────────────────
-  populateRawPalettes();
-  renderList();
-  selectCharacter(0); // Boy by default
+  try {
+    populateRawPalettes();
+    renderList();
+    var initChars = getCharacters();
+    if (initChars && initChars.length > 0) {
+      selectCharacter(initChars[0].id);
+    }
+  } catch (err) {
+    if (typeof console !== 'undefined' && console.error) {
+      console.error('[Sprites] Init error:', err);
+    }
+  }
 })();

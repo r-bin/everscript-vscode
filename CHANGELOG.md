@@ -1,3 +1,11 @@
+## [0.119.1] — 2026-10-02
+
+### Fix: [Sprites] acquireVsCodeApi collision and empty list handling
+
+- **Fixed acquireVsCodeApi collision in webview bundle.** In VS Code webviews, `acquireVsCodeApi()` can only be invoked once per session. Reusing the global `vs` instance declared by `shared.js` prevents an uncaught exception that halted webview execution and left the character list unpopulated.
+- **Robust empty states and defensive initialization.** Added dynamic "All" chip count updating, fallback character selection, guarded palette selection options, and empty state notice informing the user if ROM assets are missing or loading.
+- **Removed hardcoded character count in Sprites tab filter markup.**
+
 ## [0.119.0] — 2026-10-02
 
 ### Added: Sprites tab (characters, raw sprites, animations, hitboxes & stats)

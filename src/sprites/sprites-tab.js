@@ -21,7 +21,7 @@ function buildSpritesTabHtml() {
       </div>
 
       <div class="sp-filter-bar" id="sp-char-filters">
-        <button class="sp-filter-chip sp-active" data-filter="all">All (142)</button>
+        <button class="sp-filter-chip sp-active" data-filter="all">All</button>
         <button class="sp-filter-chip" data-filter="enemies">Enemies</button>
         <button class="sp-filter-chip" data-filter="npcs">NPCs</button>
         <button class="sp-filter-chip" data-filter="heroes">Heroes</button>
