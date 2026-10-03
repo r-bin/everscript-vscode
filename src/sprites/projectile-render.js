@@ -8,6 +8,15 @@ const { paletteAt } = require('../maps/dist/character-record');
 const { composeAligned } = require('./frame-compose');
 
 const MAX_SPAWNS = 64;
+
+/**
+ * Record +0x14 becomes the projectile's attack proc ($0E9A), dispatched at $8FB6A5
+ * through $8FB6AE. Procs 2 ($B6E0) and 6 ($B73C) damage and then delete the
+ * projectile (`LDX $0E9E / STZ $0010,X`); proc 4 ($B724) damages and skips that.
+ */
+const CONSUMED_PROCS = new Set([2, 6]);
+const PIERCING_PROCS = new Set([4]);
+const onHit = (proc) => (CONSUMED_PROCS.has(proc) ? 'consumed' : PIERCING_PROCS.has(proc) ? 'pierces' : 'unknown');
 const hex = (v, d) => v.toString(16).padStart(d, '0');
 
 /** A projectile type's own animation at this facing, in its palette or the thrower's. */
@@ -59,6 +68,8 @@ function renderProjectiles(rom, vmFrames, facing, throwerColours, target) {
                 routine: record.routine,
                 speed: record.speed,
                 power: record.power,
+                proc: record.field14,
+                onHit: onHit(record.field14),
                 model: flight.model,
                 ends: flight.ends,
                 start: [start.x, start.y, start.z],

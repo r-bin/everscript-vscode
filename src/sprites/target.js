@@ -25,10 +25,18 @@ function placeTarget(facing, distance) {
     return { x: ux * distance, y: uy * distance, z: 0 };
 }
 
+/** The first tick of each run of consecutive ticks. */
+function firstOfRuns(ticks) {
+    return ticks.filter((t, i) => i === 0 || ticks[i - 1] !== t - 1);
+}
+
 /**
- * Every tick a strike box or a projectile reaches the target. Ticks are on the
- * playback clock (from the first displayed frame); strikes move and lift with
- * the attacker, projectiles hit with their 16×16 box at their own height.
+ * Every tick a strike box or a projectile first reaches the target. Ticks are on the
+ * playback clock (from the first displayed frame); strikes move and lift with the
+ * attacker, projectiles hit with their 16×16 box at their own height. Only the first
+ * tick of each contact counts: a target the same attacker just hit is skipped
+ * ($8FB61E, +0x36) until its cooldown runs out. A projectile hits once; one that is
+ * consumed on hit (procs 2 and 6) has its path cut there.
  */
 function hitTicks(vmFrames, spawns, target) {
     const melee = [];
@@ -44,12 +52,13 @@ function hitTicks(vmFrames, spawns, target) {
     }
     const projectile = [];
     for (const sp of spawns) {
-        (sp.path || []).forEach((p, i) => {
-            const s = { x: p[0], y: p[1], width: PROJECTILE_HIT_SIZE, height: PROJECTILE_HIT_SIZE, z: p[2] };
-            if (strikeHits(s, target)) projectile.push({ idHex: sp.idHex, tick: sp.tick + i + 1 });
-        });
+        const path = sp.path || [];
+        const i = path.findIndex((p) => strikeHits({ x: p[0], y: p[1], width: PROJECTILE_HIT_SIZE, height: PROJECTILE_HIT_SIZE, z: p[2] }, target));
+        if (i < 0) continue;
+        projectile.push({ idHex: sp.idHex, tick: sp.tick + i + 1, onHit: sp.onHit });
+        if (sp.onHit === 'consumed') { sp.path = path.slice(0, i + 1); sp.ends = 'hit'; }
     }
-    return { melee, projectile };
+    return { melee: firstOfRuns(melee), projectile };
 }
 
 /** The target, ready to draw: its standing frame, facing back at the viewed character. */

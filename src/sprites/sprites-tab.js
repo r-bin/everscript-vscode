@@ -97,6 +97,9 @@ function buildSpritesTabHtml() {
             <label class="sp-check-label" title="How far ahead the target stands, in pixels">
               <input type="number" id="sp-target-dist" class="sp-input sp-num" value="40" min="0" max="200" step="4" />px
             </label>
+            <label class="sp-check-label" title="Keep each tick's strike and projectile hit boxes on screen for this many ticks, fading out (0 = off)">
+              <span class="sp-tag tag-trail">Trail</span> <input type="number" id="sp-trail" class="sp-input sp-num" value="0" min="0" max="120" step="2" />
+            </label>
             <label class="sp-check-label" title="Sprite feet origin (0,0)">
               <input type="checkbox" id="sp-chk-origin" checked /> <span class="sp-tag tag-origin">Origin</span>
             </label>

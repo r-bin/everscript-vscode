@@ -79,6 +79,15 @@ else; the linear walker reads `opcode()` too.
 - **Dog forms** (`src/sprites/dog-forms.js`): 6 entries via `$CF945F`, palette at
   header +6, 15 slots, named only where an id or the Dog's record names them.
 
+- **Segments**: `0x57` (`2 + 4·groups` bytes, read with `segmentsAt`) lists a body's
+  segment sprites; `0x59` (always 7 bytes) places one. Widths of variable commands come
+  from `lengthAt(rom, p)`, never from `opcode().length` alone.
+- **Mode bit `$20` = invulnerable**. Procs 2 and 6 consume a projectile on hit; 4 pierces.
+- A script with no `sprite` keeps the previous one: pass `initialSprite`. A run still
+  airborne at `loop` continues; play from `loopFrom`.
+- Entries that came from the Gemini pass (`0x48`–`0x4A`, `0x58`, `0x59`) were partly
+  wrong. Re-derive any opcode claim from its handler before trusting it.
+
 ## 4. Never guess
 
 - A width comes from a trace or from reading the handler's `$5D` advances on every

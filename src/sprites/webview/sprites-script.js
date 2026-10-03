@@ -40,10 +40,14 @@
       if (anim.stoppedAtHex) parts.push('stops at ' + anim.stoppedAtHex + ' (command of unknown width)');
       else if (anim.complete) parts.push('complete cycle');
       if (anim.frames && !anim.frames.length) parts.push('draws nothing');
+      if (anim.initialSprite && !anim.script.some(function(l) { return /^sprite/.test(l.text); }) && !anim.script.some(function(l) { return /^segments/.test(l.text); })) {
+        parts.push('sets no sprite: keeps its standing one (' + anim.initialSprite + ')');
+      }
+      if (anim.loopFrom) parts.push('repeats from tick ' + anim.loopFrom + (anim.moves ? ' (still in the air at loop)' : ''));
       var thrown = anim.projectiles && anim.projectiles.spawns ? anim.projectiles.spawns : [];
       if (thrown.length) {
         var kinds = {};
-        thrown.forEach(function(sp) { kinds[sp.idHex] = sp.flying ? 'flies' : 'routine ' + sp.routine + ', drawn in place'; });
+        thrown.forEach(function(sp) { kinds[sp.idHex] = sp.model + (sp.onHit !== 'unknown' ? ', ' + sp.onHit + ' on hit' : ''); });
         parts.push('throws ' + Object.keys(kinds).map(function(k) { return k + ' (' + kinds[k] + ')'; }).join(', '));
       }
       statusEl.textContent = parts.join(' · ');

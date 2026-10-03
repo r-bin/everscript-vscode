@@ -197,7 +197,7 @@ characters, all animation fields, all facings) use it.
 | `54` | 3 | `jump_if_linked $target` | If the linked entity (`+0x80`) has `$0010&0x100` and `$0016&0x40`, jump; else skip | `$908C09` | 91 |
 | `5E` | 25 | `sprite_aim $a, … $h` | Eight 24-bit sprite addresses. `$919932` picks one by angle, so it shows where the entity aims | `$9089C8` | 5 |
 | `5F` | 4 | `sprite_long $bbaaaa` | A sprite by full 24-bit address, drawn at once through `$809033` | `$908984` | 3 |
-| `57` | var | `?` | Calls `$8FCA02` with `X = +0x86`. That walks a list of its own and leaves `$5D` wherever it stopped. **Width is a runtime value** | `$90886D` | 22 |
+| `57` | 2+4g | `segments N: K×$sprite, …` | A segmented body (Tar Skull, Bone Snake): N segments, then groups of `[count K][24-bit sprite]` until all N have one, written into the 14-byte segment list at `+0x86` (`$8FCA02`). The width is read from the operand | `$90886D` | 24 |
 
 All jump targets are a u16. The bank stays whatever the script is in.
 
@@ -223,7 +223,7 @@ animation uses them. They are presumably for effects and menu scripts.
 | `41` | 1 | `step0` | When `+0x3C` has bit `$2000`, calls the mover with distance 0 | `$9086A9` | 1599 |
 | `42` | 2 | `step n` | Moves `(n + f) >> 2` px along the facing, where `f` is a dither (0, 3, 1, 2), so n/4 px per tick on average. Capped by `+0x64`. Negative `n` moves backwards (`facing ^ 8`). See [Movement and height](#movement-and-height) | `$90866C` | 1930 |
 | `43` | 1 | `wait_landed` | Adds a tick to the frame timer while height `+0x1E` or z-speed `+0x20` is non-zero, so the frame lasts until the entity lands | `$9086C3` | 25 |
-| `44` | 1 | — | Compares `+0x1E`, may bump the frame timer | `$9086D4` | 16 |
+| `44` | 1 | `hover_hold` | +1 tick while height ≥ `$0E96`, a hover height `$8FDC46` rolls as `$100 + rand(0..$1F0)` (16–47 px). The interpreter uses the middle, `$1F8` | `$9086D4` | 16 |
 | `45` | 3 | `hop v` | z-speed (`+0x20`) = `v`, unless height is already ≥ `$640` | `$9086E5` | 42 |
 | `46` | 3 | `hop_maybe v` | When on the ground, sets z-speed = `v` on a coin toss (a random bit from `$0E94`) | `$9086FE` | 2 |
 | `5B` | 1 | `mark_position` | Copies position + a facing-table offset to `$0FCA..$0FCE` | `$9085C1` | 16 |
@@ -235,9 +235,10 @@ animation uses them. They are presumably for effects and menu scripts.
 | `47` | 5 | `strike dx, dy, w, h` | Strike box centred at `(dx, dy)` from the feet, this frame only. See [attack_boxes.md](attack_boxes.md) | `$9087BA` | 303 |
 | `4C` | 6 | `projectile $id, dx, dy, dz` | Throws projectile record `$90:id` from `(x+dx, y+dy, height+dz·16)`. See [Projectiles](#projectiles) | `$908725` | 58 |
 | `50` | 5 | `hurtbox x, y` | Move the hurt box (`+0x42`, `+0x44`) | `$9085A8` | 21 |
-| `48` | 1 | — | Weapon counter reset/tick (bone-slash trace) | `$908810` | 108 |
-| `49`, `4A` | 3 | — | A word; weapon sound / projectile trigger (bone-slash trace) | `$90882D`/`$908843` | 6 / — |
-| `58`, `59` | 1 | — | Clear / start the weapon slash overlay (bone-slash trace) | `$90887B`/`$9088AE` | — |
+| `48` | 1 | — | May switch the entity to another animation (`$8FB8F0`, then `$90828E` and a pointer reload) | `$908810` | 108 |
+| `49`, `4A` | 3 | — | A word through `$90CE78` / `$90CE92`. `49` stores the result in `+0x0C`, the palette slot, so this is a palette change, not a sound | `$90882D`/`$908843` | 6 / — |
+| `58` | 1 | — | Advances the segment list (`$8FC905`) and takes the hurt offset `+0x42` from it | `$90887B` | — |
+| `59` | 7 | `segment #k, dx, dy` | Places segment `k`: a byte offset into the list (`4 + 14k`), a byte, a word, then signed x/y into the segment's `+0x0C/+0x0D` (`$8FC8DE`, always 7 bytes). An earlier "1 byte, weapon slash" reading was wrong: no character script uses it | `$9088AE` | — |
 
 ### State and effects
 
@@ -248,7 +249,7 @@ animation uses them. They are presumably for effects and menu scripts.
 | `3F` | 3 | — | If the word is non-zero, calls `$8C81FD` | `$9088BC` | 24 |
 | `40` | 3 | — | A word, then `$8C81FD`. Aborts **without** advancing when off-screen | `$9088F3` | 115 |
 | `4B` | 3 | — | A word, then `$90CD5C` | `$90885A` | 1 |
-| `4D` | 3 | `mode n` | Word into `+0x16` (animation mode flags) | `$908485` | 557 |
+| `4D` | 3 | `mode n` | Word into `+0x16`. **Bit `$20` makes it invulnerable**: the hit test skips a target with `$0016 & $0020` (`$8FB61E`) | `$908485` | 557 |
 | `4E` | 1 | — | Clears `+0x2E` and bit `$0200` of `+0x14` | `$908495` | 135 |
 | `4F` | 1 | — | Clears bits `~$FB87` of `+0x12`, if `+0x2A` set and `+0x76` clear | `$9084A7` | 194 |
 | `56` | 3 | — | A formula index; greys out a ring-menu icon via `$91CE38` | `$90878C` | — |
@@ -260,9 +261,9 @@ animation uses them. They are presumably for effects and menu scripts.
 | `55` | 1 | — | Every 64 frames, `$8FC143` with a random 3–6 | `$908C4D` | — |
 | `5C` | 1 | — | Copies the linked entity's position to `$44..$48`, then `$8FC2E4` | `$908C30` | — |
 
-**Not decoded**: `3C`, and `60`–`65`. `3C` reads at least four words and sets
-up a DMA-like transfer, so it is not a small command. The `60`s show up only
-where a static run reads past the end of a script.
+**Not decoded**: `60`–`65`. They show up only where a static run reads past
+the end of a script. `3C` is now measured: 9 bytes (four words, then a
+colour transfer via `$90D34C`/`$8085FA`).
 
 Census counts in the sprite and control-flow tables cover the 845 character
 scripts. Counts for `3E`, `51`, `5E` and `5F` cover all 1,752 record scripts.
@@ -541,6 +542,22 @@ Crusader Sword. *The code that loads it is not traced*; this rests on the data
 alone. The Sprites tab draws the Boy, and what he throws, in the equipped
 weapon's palette.
 
+### Consumed or piercing
+
+Record `+0x14` becomes the projectile's attack proc (`$0E9A`). On a hit,
+`$8FB6A5` dispatches through `$8FB6AE`:
+
+| Proc | Handler | On a hit |
+|---|---|---|
+| 0 | `$B6CC` | the melee default: to-hit roll, damage |
+| 2 | `$B6E0` | damage, then `LDX $0E9E / STZ $0010,X`: **the projectile is deleted** |
+| 4 | `$B724` | damage, then `SEC; BRA $B6FC`, skipping the delete: **it pierces** |
+| 6 | `$B73C` | damage by `$8FC07E`, then deleted |
+
+Most thrown projectiles are proc 2. The spears' level-3 wave and Tiny's
+juggle are proc 4. A target already hit by the same attacker is skipped
+(`+0x36`) until its cooldown runs out, so a contact counts once.
+
 ## Hitting something
 
 The hit test (`$8FB5F2`; melee strikes enter at `$8FB5E6`) compares a strike
@@ -566,6 +583,23 @@ box (centre `$46`/`$48`, size `$3E`×`$40`, height `$4A`) with each candidate:
   in `+0x42`/`+0x44` exactly as written. But the Boy's walk sets −132/−144,
   which as offsets would move his hurt region 132 px away. Until that is
   explained, the default (`0, −16`) is used.
+
+## Scripts that set no sprite, fliers, invulnerability
+
+- **The shared damage script** (`$3E6A`, used by about 80 characters) has no
+  `reset` and no `sprite`. It knocks the character back (`step −16, −12, −8, −4`)
+  and keeps whatever it was showing. The interpreter takes an initial sprite;
+  the Sprites tab passes the character's standing sprite for the facing.
+- **Fliers** (Skullclaw, Bone Buzzard, Gargon, Dragoil) and the Tumble Weed are
+  still in the air at `loop`. The game simply carries on from there, so the
+  interpreter does too, until the whole state (height included) repeats. It
+  reports `loopFrom`, where the repeating part starts, and playback loops to
+  there. The Skullclaw climbs, then hovers between about 25 and 40 px.
+- **Invulnerable frames** are the ones with mode bit `$20`. Frames split when it
+  changes. The weapon slot once labelled "Charge Attack" (`+0x16`) is a held pose
+  with `mode $0020`: the dodge. The character field once labelled "Block"
+  (`+0x46`, on three characters) is an 11-pose sequence with `mode $0120`. Its
+  real name is open.
 
 ## The Dog's forms
 

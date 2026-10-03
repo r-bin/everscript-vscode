@@ -1,3 +1,16 @@
+## [0.124.0] — 2026-10-03
+
+### Fix: [Sprites] damage, fliers, Tar Skull, invulnerability, consumed projectiles, trail
+
+- **Damage animations no longer empty:** the shared damage script (`$3E6A`) never sets a sprite, so the character keeps showing its standing one through the knock-back. The interpreter now takes that initial sprite.
+- **Fliers keep flying:** the Skullclaw, Bone Buzzard, Gargon and Dragoil are still airborne at `loop`, so the run carries on until the motion repeats, and playback loops into the hover instead of snapping to the ground. `hover_hold` (`0x44`) holds frames above the game's random hover height (`$0E96`, 16–47 px; the middle is used).
+- **Tar Skull is a snake:** `0x57` is decoded (a segment count, then `[count][sprite]` groups), and so is `0x59`, which places each segment (always 7 bytes; the earlier 1-byte "weapon slash" reading was wrong). The Tar Skull draws as a head and seven orbs that curl. `0x3C` (9 bytes) is measured too. 1,748 of 1,752 record scripts now run to completion.
+- **Invulnerable frames:** mode bit `$20` (the hit test's `$0016 & $0020`) shows the hurt region dotted purple and labelled "invulnerable". The weapon slot labelled "Charge Attack" is relabelled **Dodge (invulnerable)**, and "Block" is relabelled **Field +0x46 (invulnerable)**.
+- **Consumed and piercing projectiles:** record `+0x14` is the attack proc. Procs 2 and 6 delete the projectile on a hit, so its path now ends there; proc 4 pierces. Each contact counts once.
+- **Trail:** a new number box keeps each tick's strike and projectile hit boxes on screen for that many ticks, fading out.
+- **No stale sprite:** a frame whose image is still loading no longer leaves the previous animation's sprite on the stage.
+- Corrected `0x48`, `0x49`, `0x4A` and `0x58` from their handlers: the earlier descriptions were wrong.
+
 ## [0.123.0] — 2026-10-03
 
 ### Feature: [Sprites] Dog forms, projectile flight and damage, a target, height reach

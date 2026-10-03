@@ -17,7 +17,7 @@
 
 import { snesToRom, readByte } from './rom';
 import { animationScript, read16At, FACING_SOUTH, ATTACK_FIELDS } from './character-record';
-import { opcode } from './animation-opcodes';
+import { opcode, lengthAt } from './animation-opcodes';
 
 /** Byte at a SNES address. */
 const at = (rom: Uint8Array, snes: number): number => readByte(rom, snesToRom(snes));
@@ -179,8 +179,9 @@ export function resolveCharacterSprite(
             secondary = (read16At(rom, p + 1) | (at(rom, p + 3) << 16)) >>> 0;
         }
         if (cmd === LOOP) return secondary;  // back to the start: the shadow is all there is
-        p += commandLength(cmd);
-        if (commandLength(cmd) === 0) return secondary;  // unknown: stop, never guess
+        const len = commandLength(rom, p);
+        if (len === 0) return secondary;  // unknown: stop, never guess
+        p += len;
     }
     return secondary;
 }
@@ -189,9 +190,9 @@ export function resolveCharacterSprite(
  * Bytes this command occupies, or 0 to stop a linear walk: an unknown width,
  * or an unconditional jump, which a linear walk must not step over.
  */
-function commandLength(cmd: number): number {
-    const o = opcode(cmd);
-    return !o || o.kind === 'jump' ? 0 : o.length;
+function commandLength(rom: Uint8Array, p: number): number {
+    const o = opcode(at(rom, p));
+    return !o || o.kind === 'jump' ? 0 : lengthAt(rom, p);
 }
 
 /** One frame of an idle animation. */
@@ -304,7 +305,7 @@ export function walkAnimationScript(
                 height: at(rom, p + 4),
             };
         }
-        const length = commandLength(cmd);
+        const length = commandLength(rom, p);
         if (length === 0) break;             // unknown width: stop, keep what we have
         p += length;
         if ((raw & END_FRAME) !== 0) {
@@ -346,7 +347,7 @@ export function strikeBoxes(
                 height: at(rom, p + 4),
             });
         }
-        const length = cmd === STRIKE ? STRIKE_LENGTH : commandLength(cmd);
+        const length = cmd === STRIKE ? STRIKE_LENGTH : commandLength(rom, p);
         if (length === 0) return { boxes, complete: false };
         p += length;
     }

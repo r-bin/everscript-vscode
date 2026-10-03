@@ -48,7 +48,8 @@ const WEAPON_ANIM_OFFSETS = [
     { key: 'w_atk1', label: 'Attack Lvl 1', offset: 0x10 },
     { key: 'w_atk2', label: 'Attack Lvl 2', offset: 0x12 },
     { key: 'w_atk3', label: 'Attack Lvl 3', offset: 0x14 },
-    { key: 'w_charge', label: 'Charge Attack', offset: 0x16 },
+    // Was 'Charge Attack': a held pose with mode $0020 (invulnerable) — the dodge.
+    { key: 'w_charge', label: 'Dodge (invulnerable)', offset: 0x16 },
     { key: 'w_damage', label: 'Damage', offset: 0x18 },
 ];
 
@@ -133,7 +134,8 @@ const STANDARD_ANIM_FIELDS = [
     { key: 'damage', label: 'Damage (Hurt)', offset: 0x40 },
     { key: 'death', label: 'Death', offset: 0x42 },
     { key: 'spoils', label: 'Spoils', offset: 0x44 },
-    { key: 'block', label: 'Block', offset: 0x46 },
+    // Was 'Block': on 3 characters, an 11-pose sequence with mode $0120 (invulnerable).
+    { key: 'block', label: 'Field +0x46 (invulnerable)', offset: 0x46 },
 ];
 
 /** Read 16-bit value from ROM at SNES address. */

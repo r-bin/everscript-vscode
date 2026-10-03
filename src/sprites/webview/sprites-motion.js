@@ -71,6 +71,13 @@
         grow(x - anim.originX, y - z - anim.originY, x + anim.width - anim.originX, y + anim.height - anim.originY);
       });
     });
+    var sprites = anim.segmentSprites || {};
+    anim.frames.forEach(function(f) {
+      (f.segments || []).forEach(function(sg) {
+        var spr = sg && sprites[sg.sprite];
+        if (spr) grow(sg.dx - spr.originX, sg.dy - spr.originY, sg.dx + spr.width - spr.originX, sg.dy + spr.height - spr.originY);
+      });
+    });
     var pr = anim.projectiles;
     if (opts.projectiles && pr && pr.spawns) {
       pr.spawns.forEach(function(sp) {
@@ -178,6 +185,72 @@
     ctx.fillRect(x - r, y - r, r * 2, r * 2);
   }
 
+  /**
+   * A segmented body (Tar Skull, Bone Snake): each segment's sprite at the offset
+   * `segment` (0x59) gave it, back to front. `cx, cy` are the feet on canvas.
+   */
+  function drawSegments(ctx, anim, frame, cx, cy, lift, scale, imageFor) {
+    var segs = frame.segments;
+    var sprites = anim.segmentSprites || {};
+    if (!segs) return;
+    segs.map(function(s, k) { return s ? { s: s, k: k } : null; })
+      .filter(Boolean)
+      .sort(function(a, b) { return a.s.dy - b.s.dy || b.k - a.k; })
+      .forEach(function(e) {
+        var spr = sprites[e.s.sprite];
+        var img = spr ? imageFor(spr.png) : null;
+        if (!img) return;
+        ctx.drawImage(img, cx + e.s.dx * scale - spr.originX * scale, cy - lift + e.s.dy * scale - spr.originY * scale, spr.width * scale, spr.height * scale);
+      });
+  }
+
+  /** The strike box (if any) on a given playback tick, with where the attacker stood. */
+  function strikeOnTick(anim, frameStarts, tick, walk) {
+    for (var i = anim.frames.length - 1; i >= 0; i--) {
+      if (frameStarts[i] <= tick) {
+        var f = anim.frames[i];
+        var k = tick - frameStarts[i];
+        if (!f.strikeBox || k >= f.ticks) return null;
+        var m = f.motion && f.motion[k];
+        return { box: f.strikeBox, x: walk && m ? m[0] : 0, y: walk && m ? m[1] : 0 };
+      }
+    }
+    return null;
+  }
+
+  /**
+   * The damage of the last `n` ticks, fading out: each tick's strike box, and each
+   * projectile's 16×16 hit box where it was. `ox, oy` is the starting feet on canvas.
+   */
+  function drawTrail(ctx, anim, frameStarts, now, n, ox, oy, scale, walk) {
+    if (!n) return;
+    var t0 = Math.floor(now);
+    for (var k = n; k >= 1; k--) {
+      var t = t0 - k;
+      if (t < 0) continue;
+      var alpha = 1 - k / (n + 1);
+      var st = strikeOnTick(anim, frameStarts, t, walk);
+      if (st) {
+        var w = st.box.width * scale;
+        var h = st.box.height * scale;
+        ctx.strokeStyle = 'rgba(255, 51, 85, ' + (0.8 * alpha) + ')';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(ox + (st.x + st.box.dx) * scale - w / 2, oy + (st.y + st.box.dy) * scale - h / 2, w, h);
+      }
+      var pr = anim.projectiles;
+      if (pr && pr.spawns) {
+        pr.spawns.forEach(function(sp) {
+          if (t < sp.tick || !sp.path || !sp.path.length) return;
+          var p = projectileAt(sp, t - sp.tick, walk);
+          if (!p) return;
+          var hs = HIT_SIZE * scale;
+          ctx.strokeStyle = 'rgba(51, 204, 255, ' + (0.7 * alpha) + ')';
+          ctx.strokeRect(ox + p.x * scale - hs / 2, oy + p.y * scale - hs / 2, hs, hs);
+        });
+      }
+    }
+  }
+
   var api = {
     HEIGHT_UNITS: HEIGHT_UNITS,
     nowTick: nowTick,
@@ -186,6 +259,8 @@
     sceneBox: sceneBox,
     drawProjectiles: drawProjectiles,
     drawTarget: drawTarget,
+    drawSegments: drawSegments,
+    drawTrail: drawTrail,
   };
   if (typeof window !== 'undefined') window.SpritesMotion = api;
 })();

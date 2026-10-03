@@ -64,6 +64,11 @@
   var chkWalk = document.getElementById('sp-chk-walk');
   var chkTarget = document.getElementById('sp-chk-target');
   var targetDist = document.getElementById('sp-target-dist');
+  var trailInput = document.getElementById('sp-trail');
+  function trailTicks() {
+    var n = trailInput ? parseInt(trailInput.value, 10) : 0;
+    return isFinite(n) && n > 0 ? Math.min(n, 120) : 0;
+  }
   var frameStartTicks = [];  // playback tick each frame starts on, for projectile flight
   var flightTail = 0;        // ticks of projectile flight left when the cycle ends
 
@@ -464,6 +469,7 @@
     });
   });
 
+  if (trailInput) trailInput.addEventListener('change', drawFrame);
   [chkTarget, targetDist].forEach(function(el) {
     if (el) el.addEventListener('change', loadCurrentAnimation);
   });
@@ -557,7 +563,11 @@
         updateFrameUI();
         return;
       } else if (isLooping) {
+        // A flier still in the air loops back to where its motion started repeating.
+        var from = currentAnimData.loopFrom || 0;
         currentFrameIdx = 0;
+        for (var i = 0; i < frameStartTicks.length; i++) if (frameStartTicks[i] <= from) currentFrameIdx = i;
+        tickCounter = from - (frameStartTicks[currentFrameIdx] || 0);
         updateFrameUI();
         return;
       }
@@ -655,8 +665,9 @@
     var cur = currentAnimData.frames[currentFrameIdx];
     if (!cur) return;
 
-    var img = imageFor(cur.png);
-    if (!img) return;                       // redraws when it loads
+    // Draw everything else even while this frame's image loads (it redraws when it
+    // arrives), so a frame never shows the previous animation's sprite.
+    var img = cur.png ? imageFor(cur.png) : null;
 
     var scale = animScale;
     var a = currentAnimData;
@@ -686,7 +697,8 @@
       var sh = imageFor(cur.shadowPng);
       if (sh) ctx.drawImage(sh, cx - a.shadow.originX * scale, cy - a.shadow.originY * scale, a.shadow.width * scale, a.shadow.height * scale);
     }
-    ctx.drawImage(img, cx - a.originX * scale, cy - lift - a.originY * scale, a.width * scale, a.height * scale);
+    if (img) ctx.drawImage(img, cx - a.originX * scale, cy - lift - a.originY * scale, a.width * scale, a.height * scale);
+    if (motion && cur.segments) motion.drawSegments(ctx, a, cur, cx, cy, lift, scale, imageFor);
 
     var chars = getCharacters();
     var c = chars.find(function(x) { return x.id === selectedCharId; });
@@ -708,18 +720,19 @@
     if (chkHurt && chkHurt.checked && r > 0) {
       var hw = r * 2 * scale;
       var outOfReach = a.reach && pos.z16 >= a.reach.above;
-      ctx.setLineDash(outOfReach ? [4, 3] : []);
-      ctx.strokeStyle = outOfReach ? '#888888' : '#ffaa00';
+      var shielded = !!cur.invulnerable;      // mode bit $20: the hit test skips it ($8FB61E)
+      ctx.setLineDash(outOfReach ? [4, 3] : shielded ? [2, 2] : []);
+      ctx.strokeStyle = outOfReach ? '#888888' : shielded ? '#b48cff' : '#ffaa00';
       ctx.lineWidth = 1.5;
       ctx.strokeRect(cx - hw / 2, cy - hw / 2, hw, hw);
       ctx.setLineDash([]);
-      if (!outOfReach) {
+      if (!outOfReach && !shielded) {
         ctx.fillStyle = 'rgba(255, 170, 0, 0.10)';
         ctx.fillRect(cx - hw / 2, cy - hw / 2, hw, hw);
       } else {
-        ctx.fillStyle = '#aaaaaa';
+        ctx.fillStyle = shielded ? '#b48cff' : '#aaaaaa';
         ctx.font = '11px sans-serif';
-        ctx.fillText('out of reach', cx - hw / 2, cy + hw / 2 + 12);
+        ctx.fillText(shielded ? 'invulnerable' : 'out of reach', cx - hw / 2, cy + hw / 2 + 12);
       }
     }
 
@@ -737,6 +750,9 @@
         ? 'rgba(255, 51, 85, 0.55)' : 'rgba(255, 51, 85, 0.25)';
       ctx.fillRect(sx, sy, sw, shh);
     }
+
+    // Fading damage of the last few ticks, when a trail length is set
+    if (motion && trailTicks() > 0) motion.drawTrail(ctx, a, frameStartTicks, motion.nowTick(frameStartTicks, currentFrameIdx, tickCounter), trailTicks(), ox, oy, scale, walk);
 
     // The second character, drawn before projectiles so they fly over it
     if (motion && a.target) motion.drawTarget(ctx, a, motion.nowTick(frameStartTicks, currentFrameIdx, tickCounter), ox, oy, scale, imageFor);
@@ -793,7 +809,7 @@
   }
   /** Something moves between frame changes, so the stage must redraw every tick. */
   function animatesBetweenFrames() {
-    return projectilesOn() || !!(currentAnimData && (currentAnimData.moves || currentAnimData.target));
+    return projectilesOn() || trailTicks() > 0 || !!(currentAnimData && (currentAnimData.moves || currentAnimData.target));
   }
 
   function sceneBoxFor(walk) {

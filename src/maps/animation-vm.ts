@@ -11,7 +11,7 @@
 
 import { snesToRom, readByte } from './rom';
 import { read16At, ANIMATION_TABLE } from './character-record';
-import { opcode, spriteOperand, sprite2Operand, sprite24At, jumpTarget, END_FRAME } from './animation-opcodes';
+import { opcode, lengthAt, segmentsAt, spriteOperand, sprite2Operand, sprite24At, jumpTarget, END_FRAME, SegmentGroup, SEGMENT_FIRST, SEGMENT_STRIDE } from './animation-opcodes';
 
 const at = (rom: Uint8Array, snes: number): number => readByte(rom, snesToRom(snes));
 const signed8 = (v: number): number => (v << 24) >> 24;
@@ -117,6 +117,13 @@ const DIRECTION: Record<number, [number, number]> = {
     8: [0, 1], 10: [-1, 1], 12: [-1, 0], 14: [-1, -1],
 };
 const HOP_CEILING = 0x640;
+/**
+ * `hover_hold` (`0x44`) adds a tick while height >= `$0E96`, which `$8FDC46` rolls
+ * as `$100 + rand(0..$1F0)` (16–47 px). The middle of that range is used.
+ */
+export const HOVER_HEIGHT = 0x100 + 0xf8;
+/** Mode (+0x16) bit the hit test refuses a target for (`$8FB61E`: `$0016 & $0020`). */
+export const MODE_INVULNERABLE = 0x20;
 /** Height is kept in 1/16 px. */
 export const HEIGHT_UNITS = 16;
 
@@ -154,6 +161,10 @@ export interface VmFrame {
     spawns: VmSpawn[];
     /** Position after each tick of the frame: [x px, y px, height in 1/16 px], from the start. */
     motion: Array<[number, number, number]>;
+    /** Mode (+0x16) during the frame; bit `$20` means it cannot be hit. */
+    mode: number;
+    /** The body segments a `segments` command gave it, if any (Tar Skull, Bone Snake). */
+    segments: { total: number; groups: SegmentGroup[]; positions: Array<[number, number] | null> } | null;
 }
 
 export interface VmResult {
@@ -165,6 +176,16 @@ export interface VmResult {
     stoppedAt?: number;
     /** True when the entity moves or leaves the ground at any point. */
     moves: boolean;
+    /**
+     * Playback tick a loop resumes at. 0 normally; later when the entity was still in the
+     * air at `loop` and the run carried on until its motion repeated (a hovering flier).
+     */
+    loopFrom: number;
+}
+
+export interface RunOptions {
+    /** The sprite on screen when the animation starts — what a script that never sets one keeps showing. */
+    initialSprite?: number | null;
 }
 
 const MAX_TICKS = 6000;
@@ -182,8 +203,13 @@ const sameStrike = (a: VmStrike | null, b: VmStrike | null): boolean =>
  * entity (`jump_if_linked` is not taken), and variables the script never set
  * read as zero. `hold_random` takes the middle of its range and says so.
  */
-export function runAnimation(rom: Uint8Array, script: number, facing = 8): VmResult {
+export function runAnimation(rom: Uint8Array, script: number, facing = 8, opts: RunOptions = {}): VmResult {
     let resume = script;
+    let restart = script;
+    let mode = 0;
+    let segments: VmFrame['segments'] = null;
+    const seenAt = new Map<string, number>();
+    let loopFrom = 0;
     let x = 0;
     let y = 0;
     let h = 0;
@@ -197,7 +223,7 @@ export function runAnimation(rom: Uint8Array, script: number, facing = 8): VmRes
         if (d) moves = true;
     };
     let timer = 1;
-    let sprite: number | null = null;
+    let sprite: number | null = opts.initialSprite ?? null;
     let sprite2: number | null = null;
     const vars = new Map<number, number>();
     const frames: VmFrame[] = [];
@@ -212,9 +238,10 @@ export function runAnimation(rom: Uint8Array, script: number, facing = 8): VmRes
 
     ticks: for (let tick = 0; tick < MAX_TICKS && frames.length < MAX_FRAMES; tick++) {
         // Height and speed are part of the state: mid-air, the same pointer is not a repeat.
-        const state = `${resume}:${timer}:${h}:${v}:${[...vars].join(',')}`;
-        if (seen.has(state)) { complete = true; break; }
+        const state = `${resume}:${timer}:${h}:${v}:${mode}:${[...vars].join(',')}`;
+        if (seen.has(state)) { complete = true; loopFrom = seenAt.get(state) ?? 0; break; }
         seen.add(state);
+        seenAt.set(state, totalTicks);
 
         let q = resume;
         let strike: VmStrike | null = null;
@@ -234,7 +261,7 @@ export function runAnimation(rom: Uint8Array, script: number, facing = 8): VmRes
             }
             lastMnemonic = o.mnemonic;
             ran.push(q);
-            let next = q + o.length;
+            let next = q + lengthAt(rom, q);
             const b = (i: number) => at(rom, q + i);
             switch (o.kind) {
                 case 'hold': timer = raw & 0x7f; resume = next; break;
@@ -247,8 +274,31 @@ export function runAnimation(rom: Uint8Array, script: number, facing = 8): VmRes
                 case 'sprite': sprite = spriteOperand(rom, q); break;
                 case 'sprite2': sprite2 = sprite2Operand(rom, q); break;
                 case 'sprite_long': case 'sprite_aim': sprite = sprite24At(rom, q + 1); break;  // aim: the first angle
-                case 'reset': sprite = null; sprite2 = null; break;
-                case 'loop': complete = true; break ticks;
+                case 'reset': sprite = null; sprite2 = null; mode = 0; break;
+                case 'loop':
+                    // Still in the air: the game carries on from here, so the run does too,
+                    // until its whole state (height included) repeats.
+                    if (h !== 0 || v !== 0) { next = restart; break; }
+                    complete = true;
+                    break ticks;
+                case 'restart_here': restart = next; break;
+                case 'mode': mode = b(1) | (b(2) << 8); break;
+                case 'hover_hold': if (h >= HOVER_HEIGHT) timer += 1; break;
+                case 'segments': {
+                    const sg = segmentsAt(rom, q);
+                    segments = { total: sg.total, groups: sg.groups, positions: new Array(sg.total).fill(null) };
+                    break;
+                }
+                case 'segment': {
+                    const k = (b(1) - SEGMENT_FIRST) / SEGMENT_STRIDE;
+                    const cur = segments as VmFrame['segments'];
+                    if (cur && Number.isInteger(k) && k >= 0 && k < cur.total) {
+                        const positions = cur.positions.slice();
+                        positions[k] = [signed8(b(5)), signed8(b(6))];
+                        segments = { total: cur.total, groups: cur.groups, positions };
+                    }
+                    break;
+                }
                 case 'set8': vars.set(b(1), b(2)); break;
                 case 'set16': set16(b(1), b(2) | (b(3) << 8)); break;
                 case 'set24': vars.set(b(1), b(2)); set16(b(1) + 1, b(3) | (b(4) << 8)); break;
@@ -291,7 +341,9 @@ export function runAnimation(rom: Uint8Array, script: number, facing = 8): VmRes
                 phase = (phase + 1) % DITHER.length;
                 const sample: [number, number, number] = [x, y, h];
                 const last = frames[frames.length - 1];
-                if (last && last.sprite === sprite && last.sprite2 === sprite2 && sameStrike(last.strikeBox, strike)) {
+                const invulnerable = (mode & MODE_INVULNERABLE) !== 0;
+                if (last && last.sprite === sprite && last.sprite2 === sprite2 && sameStrike(last.strikeBox, strike)
+                    && ((last.mode & MODE_INVULNERABLE) !== 0) === invulnerable && last.segments === segments) {
                     for (const sp of spawns) sp.at = last.ticks;
                     last.ticks += 1;
                     last.step += step;
@@ -300,7 +352,7 @@ export function runAnimation(rom: Uint8Array, script: number, facing = 8): VmRes
                     for (const a of ran) if (!last.lines.includes(a)) last.lines.push(a);
                     if (random) last.random = random;
                 } else {
-                    frames.push({ sprite, sprite2, ticks: 1, strikeBox: strike, lines: ran, step, random, spawns, motion: [sample] });
+                    frames.push({ sprite, sprite2, ticks: 1, strikeBox: strike, lines: ran, step, random, spawns, motion: [sample], mode, segments });
                 }
                 totalTicks += 1;
                 continue ticks;
@@ -313,8 +365,8 @@ export function runAnimation(rom: Uint8Array, script: number, facing = 8): VmRes
     const first = frames[0];
     const last = frames[frames.length - 1];
     // Not when it moves: the tail stands where the cycle ends, not where it starts.
-    if (complete && !moves && frames.length > 1 && first.sprite === last.sprite && first.sprite2 === last.sprite2
-        && !first.strikeBox && !last.strikeBox) {
+    if (complete && !moves && loopFrom === 0 && frames.length > 1 && first.sprite === last.sprite && first.sprite2 === last.sprite2
+        && !first.strikeBox && !last.strikeBox && first.mode === last.mode) {
         frames.pop();
         // The tail plays first now: the old first frame's spawns move later by its length.
         for (const sp of first.spawns) sp.at += last.ticks;
@@ -324,5 +376,5 @@ export function runAnimation(rom: Uint8Array, script: number, facing = 8): VmRes
         first.motion = [...last.motion, ...first.motion];
         for (const a of last.lines) if (!first.lines.includes(a)) first.lines.push(a);
     }
-    return { frames, complete, totalTicks, stoppedAt, moves };
+    return { frames, complete, totalTicks, stoppedAt, moves, loopFrom };
 }

@@ -231,7 +231,9 @@ if (rom) {
             const run = runAnimation(rom, s).frames.filter(f => f.sprite !== null).map(f => f.sprite + ':' + f.ticks).join(' ');
             if (walk === run) agree++;
         }
-        assert(agree >= 137, `only ${agree} idles agree`);
+        // The 6 that differ are all fliers or bouncers still airborne at `loop` (Skullclaw,
+        // Bone Buzzard, Gargon, Dragoil, Tumble Weed), which the interpreter plays on through.
+        assert(agree >= 136, `only ${agree} idles agree`);
     });
 
     test('a counted loop repeats: Flowering Death attack strikes twice per loop', () => {
@@ -412,6 +414,55 @@ if (rom) {
         const anim = renderAnimation(rom, 98, { offset: 0x38, target: { on: true, character: 0, distance: 40 } }, 8);
         assert.deepStrictEqual(anim.target.hits.melee, [84, 128]);
         assert.strictEqual(anim.reach.above, 0x1e0);
+    });
+
+    test('a script that sets no sprite keeps the standing one (shared damage knock-back)', () => {
+        const fk = readAllCharacters(rom).find(c => c.name === 'FootKnight').id;
+        const anim = renderAnimation(rom, fk, { offset: 0x40 }, 4);
+        assert.strictEqual(anim.frames.length, 1);
+        assert.strictEqual(anim.frames[0].spriteHex, anim.initialSprite);
+        assert.deepStrictEqual(anim.frames[0].motion.slice(-1)[0], [-80, 0, 0], 'knocked back 16+12+8+4 steps');
+    });
+
+    test('a flier still airborne at loop carries on until its motion repeats (Skullclaw)', () => {
+        const run = runAnimation(rom, 0xc905f6, 4);
+        assert.strictEqual(run.complete, true);
+        assert(run.loopFrom > 0, 'loops back into the hover, not to the ground');
+        const tail = run.frames.flatMap(f => f.motion).slice(run.loopFrom).map(m => m[2]);
+        assert(Math.min(...tail) > 0, 'stays in the air once hovering');
+    });
+
+    test('segments (0x57) and segment (0x59): the Tar Skull is a snake of 8 placed orbs', () => {
+        const { lengthAt, segmentsAt } = require('../../src/maps/dist/animation-opcodes');
+        const sg = segmentsAt(rom, 0xc704e5);
+        assert.strictEqual(sg.total, 8);
+        assert.strictEqual(sg.length, 10);
+        assert.strictEqual(lengthAt(rom, 0xc704ef), 7, '0x59 always consumes 6 operand bytes ($8FC8DE)');
+        const anim = renderAnimation(rom, 105, { offset: 0x32 }, 4);
+        assert.strictEqual(anim.complete, true);
+        const placed = anim.frames[anim.frames.length - 1].segments.filter(Boolean);
+        assert.strictEqual(placed.length, 8);
+        assert.deepStrictEqual([placed[0].dx, placed[0].dy], [20, -46], 'the head');
+        assert.deepStrictEqual(Object.keys(anim.segmentSprites), ['$cc7aa2', '$cc7cb5']);
+    });
+
+    test('mode bit $20 marks invulnerable frames (the dodge)', () => {
+        const boy = readCharacter(rom, 0);
+        const dodge = boy.weapons[0].anims.find(a => a.key === 'w_charge');
+        assert.strictEqual(dodge.label, 'Dodge (invulnerable)');
+        const anim = renderAnimation(rom, 0, dodge, 4);
+        assert(anim.frames.every(f => f.invulnerable));
+    });
+
+    test('consumed projectiles stop at their hit; piercing ones fly on', () => {
+        const vigor = readAllCharacters(rom).find(c => c.name === 'Vigor').id;
+        const a = renderAnimation(rom, vigor, { offset: 0x38, target: { on: true, character: 0, distance: 60 } }, 8);
+        const sp = a.projectiles.spawns[0];
+        assert.strictEqual(sp.onHit, 'consumed');           // proc 2
+        assert.strictEqual(sp.ends, 'hit');
+        assert.strictEqual(a.target.hits.projectile.length, 1, 'one hit, not one per overlapping tick');
+        const { projectileRecord } = require('../../src/maps/dist/projectiles');
+        assert.strictEqual(projectileRecord(rom, 0xd9ee).field14, 4, 'the level-3 spear wave uses proc 4, which pierces');
     });
 
     test('renderAnimation returns a script listing with frame line addresses', () => {

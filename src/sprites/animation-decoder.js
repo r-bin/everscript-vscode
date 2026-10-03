@@ -2,7 +2,8 @@
 // Ownership: running an animation script, aligning and rendering its frames, and its script listing for the Sprites tab. Pure.
 
 const { animationScript, characterPalette, paletteAt, FACING_SOUTH } = require('../maps/dist/character-record');
-const { runAnimation, facingScript } = require('../maps/dist/animation-vm');
+const { runAnimation, facingScript, MODE_INVULNERABLE } = require('../maps/dist/animation-vm');
+const { resolveCharacterSprite } = require('../maps/dist/character-animation');
 const { disassembleScript } = require('../maps/dist/animation-opcodes');
 const { composeAligned } = require('./frame-compose');
 const { renderProjectiles } = require('./projectile-render');
@@ -36,7 +37,10 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
 
     // Run the script the way the engine does: holds are checkpoints, counted
     // loops repeat, and a strike lasts exactly the ticks that run it.
-    const run = runAnimation(rom, scriptAddr, facing);
+    // A script that never sets a sprite (the shared damage knock-back) keeps showing
+    // what the character had on: its standing sprite for this facing.
+    const initialSprite = Number.isInteger(characterId) ? resolveCharacterSprite(rom, characterId, facing) : null;
+    const run = runAnimation(rom, scriptAddr, facing, { initialSprite });
     const script = scriptListing(rom, scriptAddr);
     if (!run.frames.length) {
         return { projectiles: [], width: 0, height: 0, originX: 0, originY: 0, complete: run.complete, scriptAddr,
@@ -85,6 +89,9 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
             step: f.step,
             random: f.random || null,
             spawns: f.spawns,
+            mode: f.mode,
+            invulnerable: (f.mode & MODE_INVULNERABLE) !== 0,
+            segments: f.segments ? segmentLayout(f.segments) : null,
             motion: f.motion,
             shadowPng: shadow && f.sprite2 ? shadow.images[i] : null,
             chunks: chunkList,
@@ -103,6 +110,7 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
     }
     const projectiles = renderProjectiles(rom, run.frames, facing, colours, target);
     if (target) target.hits = hitTicks(run.frames, projectiles.spawns, target);
+    const segmentSprites = renderSegmentSprites(rom, run.frames, colours);
 
     return {
         width,
@@ -119,6 +127,9 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
         stoppedAtHex: run.stoppedAt ? hex6(run.stoppedAt) : null,
         projectiles,
         moves: run.moves,
+        loopFrom: run.loopFrom,
+        initialSprite: initialSprite ? hex6(initialSprite) : null,
+        segmentSprites,
         target,
         reach: { above: OUT_OF_REACH_ABOVE, below: OUT_OF_REACH_BELOW },
         shadow: shadow ? { width: shadow.width, height: shadow.height, originX: shadow.originX, originY: shadow.originY } : null,
@@ -126,6 +137,28 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
 }
 
 const hex6 = (v) => '$' + v.toString(16).padStart(6, '0');
+
+/** One entry per segment: its sprite (key into segmentSprites) and offset from the feet, or null if unplaced. */
+function segmentLayout(seg) {
+    const sprites = [];
+    for (const g of seg.groups) for (let i = 0; i < (g.count || seg.total) && sprites.length < seg.total; i++) sprites.push(hex6(g.sprite));
+    return seg.positions.map((p, k) => (p ? { sprite: sprites[k] || sprites[sprites.length - 1], dx: p[0], dy: p[1] } : null));
+}
+
+/** Each distinct segment sprite, composed once, keyed by address. */
+function renderSegmentSprites(rom, frames, colours) {
+    const out = {};
+    for (const f of frames) {
+        if (!f.segments) continue;
+        for (const g of f.segments.groups) {
+            const key = hex6(g.sprite);
+            if (key in out) continue;
+            const c = composeAligned(rom, [{ sprite: g.sprite }], colours);
+            out[key] = { png: c.images[0], width: c.width, height: c.height, originX: c.originX, originY: c.originY };
+        }
+    }
+    return out;
+}
 
 /** The script's reachable commands, as the webview lists them. */
 function scriptListing(rom, scriptAddr) {
