@@ -80,6 +80,28 @@ also used in the temple and town-level-3 bosses and the Rimsala arena.
 - **Arbitrary colours** (not taken from any record) would mean writing CGRAM
   or the slot table `$7E1278`. Nothing here shows a script doing that.
 
+### An animation that loads a palette moves the home slot
+
+Animation command `4B` (`palette $p`, `$90885A` → `$90CD5C`) loads `$p` into a
+free slot (`$90CD80`: 4, 5, 0, 1 — never the Boy's 7 or the Dog's 8). Then it
+writes that slot offset to `+0x0C` (`PALETTE`) **and** to `+0x74`/`+0x75`
+(`PALETTE_COPY_1`/`_2`). `+0x75` is the home slot: `$90CDDC` puts it back into
+`+0x0C` and `+0x74`, and, when it is `$0C`/`$0E`, reloads slot 7 from `$0A2F` (the
+Boy's current palette) or slot 8 for the Dog. That is why
+`animate(BOY, …, ANIMATION_ENEMY.MAGMAR_ENTER)` (which starts with
+`palette $b68b`) leaves the Boy in Magmar's colours for good: his home slot now
+points at Magmar's.
+
+His own colours are still in slot 7, so pointing all three fields back fixes it:
+
+```
+<BOY>[PALETTE] = 0x0c;
+<BOY>[PALETTE_COPY_1] = 0x0c0c;   // +0x74 and +0x75 in one word write
+```
+
+For the Dog, use `0x0e` and `0x0e0e`. Magmar's palette stays loaded in its slot
+until the allocator reuses it.
+
 ## Swapping `TYPE`
 
 `<E>[TYPE] = CHARACTER_TYPE.X` swaps every live-read row above at once,
