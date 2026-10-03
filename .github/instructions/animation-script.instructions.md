@@ -69,6 +69,16 @@ else; the linear walker reads `opcode()` too.
   Height and z-speed belong in loop detection, position does not. Don't wrap-merge a
   run that moves.
 
+- **Projectile flight** (`projectileFlight`): setup `+0x08` (2/4 straight, `0x16`/`0x18`
+  aimed at the target, 6 the boomerang ellipse), per-tick behaviour `+0x0C` (`0x0E` gravity
+  until height < 0, `0x12`/`0x1A` lifetime `+0x10`, `0x10` orbit). Projectile damage is
+  a **16×16 hit test every tick alive**, not a `strike` command.
+- **Hit test** (`src/maps/hit-test.ts`): hurt region = half-size radius **centred on the
+  feet**. Heights must satisfy −40 px ≤ target − attack < 30 px. Don't apply `hurtbox`
+  (`0x50`) offsets until the Boy's −132/−144 is explained.
+- **Dog forms** (`src/sprites/dog-forms.js`): 6 entries via `$CF945F`, palette at
+  header +6, 15 slots, named only where an id or the Dog's record names them.
+
 ## 4. Never guess
 
 - A width comes from a trace or from reading the handler's `$5D` advances on every

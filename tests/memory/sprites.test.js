@@ -295,7 +295,11 @@ if (rom) {
         assert.strictEqual(sp.idHex, '$d9d6');
         assert.strictEqual(sp.tick, 16);
         assert.deepStrictEqual([sp.dx, sp.dy, sp.dz], [29, 0, 19]);
-        assert.strictEqual(sp.flying, true);
+        assert.strictEqual(sp.model, 'straight');
+        // Behaviour 0x0E: from 19 px up, rising at 5 and falling 1/16 px per tick², it lands.
+        assert.strictEqual(sp.ends, 'ground');
+        assert.strictEqual(sp.path.length, 29);
+        assert.strictEqual(sp.path[0][0], 34, '5 px per tick from 29 px ahead');
         const a = anim.projectiles.anims['$d9d6'];
         assert.deepStrictEqual([a.width, a.height], [40, 8]);
         assert(anim.frames.some(f => f.spawns.length), 'the throwing frame lists the spawn');
@@ -357,6 +361,57 @@ if (rom) {
         const spear = renderAnimation(rom, 0, { category: 'external', animRec: 0x411e }, 4);
         const sp = spear.projectiles.spawns[0];
         assert.strictEqual(typeof sp.ex, 'number', 'spawns carry the thrower position');
+    });
+
+    test('the Dog has six forms, each an animation set and palette like a Boy weapon', () => {
+        const dog = readCharacter(rom, 1);
+        assert.strictEqual(dog.weapons.length, 6);
+        assert.deepStrictEqual(dog.weapons.map(f => f.paletteAddr), [0xae0b, 0xae0b, 0xae2b, 0xae4b, 0xb54b, 0xae6b]);
+        const own = dog.anims.find(a => a.key === 'stand').animRec;
+        assert.strictEqual(dog.weapons[0].anims[0].animRec, own, 'act 1 is the record the Dog stands in');
+        // The stick form's walk is the group ACT1_STICK_RUNNING (id 0x30) lands in.
+        assert.strictEqual(dog.weapons[1].anims.find(a => a.key === 'd_slot1').animRec, 0x42ce);
+        assert.strictEqual(dog.weapons[4].anims[0].animRec, animationIdRecord(rom, 0x6a), 'act 0 stand = ACT0_STAND');
+    });
+
+    test('the boomerang (Vigor attack 1, routine 6) laps an ellipse and comes back', () => {
+        const { projectileRecord, projectileFlight } = require('../../src/maps/dist/projectiles');
+        const f = projectileFlight(rom, projectileRecord(rom, 0xda4e), { x: 10, y: 0, z: 300 }, 4, null);
+        assert.strictEqual(f.model, 'orbit');
+        assert.strictEqual(f.path.length, 256);
+        assert.deepStrictEqual(f.path[255].slice(0, 2), [10, 0], 'back where it was thrown');
+        const xs = f.path.map(p => p[0]);
+        const ys = f.path.map(p => p[1]);
+        assert.strictEqual(Math.max(...xs) - Math.min(...xs), 256);   // 128 px radius across
+        assert.strictEqual(Math.max(...ys) - Math.min(...ys), 127);   // half that down
+    });
+
+    test('aimed projectiles fly at the target: Vigor attack 0 hits a Boy 60 px south', () => {
+        const vigor = readAllCharacters(rom).find(c => c.name === 'Vigor').id;
+        const anim = renderAnimation(rom, vigor, { offset: 0x38, target: { on: true, character: 0, distance: 60 } }, 8);
+        const sp = anim.projectiles.spawns[0];
+        assert.strictEqual(sp.model, 'aimed');
+        assert.strictEqual(anim.target.y, 60);
+        assert(anim.target.hits.projectile.length > 0, 'the projectile reaches the target');
+        assert.strictEqual(anim.target.hits.projectile[0].tick, 33);
+    });
+
+    test('hit test height rule: 30 px above an attack is out of reach', () => {
+        const { strikeHits, heightsMeet, OUT_OF_REACH_ABOVE } = require('../../src/maps/dist/hit-test');
+        assert.strictEqual(OUT_OF_REACH_ABOVE, 0x1e0);
+        assert.strictEqual(heightsMeet(0, 0x1df), true);
+        assert.strictEqual(heightsMeet(0, 0x1e0), false);
+        assert.strictEqual(heightsMeet(0x280, 0), true, '40 px below still meets');
+        assert.strictEqual(heightsMeet(0x281, 0), false);
+        const box = { x: 0, y: 0, width: 16, height: 16, z: 0 };
+        assert.strictEqual(strikeHits(box, { x: 15, y: 0, z: 0, radius: 8 }), true);   // |dx| < r + w/2
+        assert.strictEqual(strikeHits(box, { x: 16, y: 0, z: 0, radius: 8 }), false);
+    });
+
+    test('the Skelesnail lunge strikes a Boy 40 px south, twice', () => {
+        const anim = renderAnimation(rom, 98, { offset: 0x38, target: { on: true, character: 0, distance: 40 } }, 8);
+        assert.deepStrictEqual(anim.target.hits.melee, [84, 128]);
+        assert.strictEqual(anim.reach.above, 0x1e0);
     });
 
     test('renderAnimation returns a script listing with frame line addresses', () => {

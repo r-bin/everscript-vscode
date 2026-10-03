@@ -15,6 +15,7 @@
   var selectedWeaponId = 0;
   var weaponGroup = document.getElementById('sp-weapon-group');
   var weaponSel = document.getElementById('sp-weapon-sel');
+  var weaponLabel = document.querySelector('label[for="sp-weapon-sel"]');
 
   var currentAnimData = null;
   var currentFrameIdx = 0;
@@ -61,7 +62,10 @@
   var chkOrigin = document.getElementById('sp-chk-origin');
   var chkProj = document.getElementById('sp-chk-proj');
   var chkWalk = document.getElementById('sp-chk-walk');
+  var chkTarget = document.getElementById('sp-chk-target');
+  var targetDist = document.getElementById('sp-target-dist');
   var frameStartTicks = [];  // playback tick each frame starts on, for projectile flight
+  var flightTail = 0;        // ticks of projectile flight left when the cycle ends
 
   var statsGrid = document.getElementById('sp-stats-grid');
   var chunksBody = document.getElementById('sp-chunks-body');
@@ -253,9 +257,11 @@
       }).join('');
     }
 
-    // Weapon selection for the Boy
+    // Weapon selection for the Boy, form selection for the Dog
     if (weaponGroup && weaponSel) {
-      if (c.id === 0 && c.weapons && c.weapons.length) {
+      if (hasVariants(c)) {
+        if (selectedWeaponId >= c.weapons.length) selectedWeaponId = 0;
+        if (weaponLabel) weaponLabel.textContent = c.id === 1 ? 'Form:' : 'Weapon:';
         weaponGroup.style.display = '';
         weaponSel.innerHTML = '';
         c.weapons.forEach(function(w) {
@@ -280,17 +286,36 @@
     loadCurrentAnimation();
   }
 
+  /**
+   * The second character, when the Target box is on: enemies are shown against the Boy
+   * (in his first weapon's palette), the Boy, the Dog and NPCs against a Wimpy Flower.
+   */
+  function targetRequest(c) {
+    if (!chkTarget || !chkTarget.checked) return null;
+    var chars = getCharacters();
+    var hostile = c.id > 1 && c.disposition && c.disposition.hostile;
+    var t = hostile ? chars[0] : chars.find(function(x) { return x.name === 'Wimpy Flower'; }) || chars[0];
+    var paletteAddr = t.id === 0 && t.weapons && t.weapons[0] ? t.weapons[0].paletteAddr : 0;
+    var d = targetDist ? parseInt(targetDist.value, 10) : 40;
+    return { on: true, character: t.id, name: t.name, paletteAddr: paletteAddr, distance: isFinite(d) ? d : 40 };
+  }
+
+  /** The Boy has weapons and the Dog has forms: each an animation set with its own palette. */
+  function hasVariants(c) {
+    return (c.id === 0 || c.id === 1) && c.weapons && c.weapons.length > 0;
+  }
+
   function populateAnimationDropdown(c) {
     if (!animSel) return;
     animSel.innerHTML = '';
 
     var defaultKey = 'stand';
 
-    // If Boy with weapons:
-    if (c.id === 0 && c.weapons && c.weapons[selectedWeaponId]) {
+    // The Boy's weapon or the Dog's form:
+    if (hasVariants(c) && c.weapons[selectedWeaponId]) {
       var w = c.weapons[selectedWeaponId];
       var wGroup = document.createElement('optgroup');
-      wGroup.label = 'Weapon: ' + w.name;
+      wGroup.label = (c.id === 1 ? 'Form: ' : 'Weapon: ') + w.name;
       (w.anims || []).forEach(function(a) {
         var opt = document.createElement('option');
         opt.value = a.key;
@@ -299,7 +324,7 @@
         wGroup.appendChild(opt);
       });
       if (wGroup.children.length) animSel.appendChild(wGroup);
-      defaultKey = 'w_atk0';
+      defaultKey = c.id === 1 ? 'd_slot0' : 'w_atk0';
     }
 
     var stdGroup = document.createElement('optgroup');
@@ -377,7 +402,7 @@
     if (currentMode === 'anims' && pinnedRecord) {
       animOpt = { key: 'record', category: 'external', animRec: pinnedRecord.record, paletteAddr: pinnedRecord.paletteAddr || 0 };
     }
-    if (!animOpt && c.id === 0 && c.weapons && c.weapons[selectedWeaponId]) {
+    if (!animOpt && hasVariants(c) && c.weapons[selectedWeaponId]) {
       animOpt = (c.weapons[selectedWeaponId].anims || []).find(function(a) { return a.key === selectedAnimKey; });
     }
     if (!animOpt) {
@@ -385,10 +410,12 @@
     }
     if (!animOpt) animOpt = { key: 'stand', offset: 0x32 };
     // The Boy is drawn in the equipped weapon's palette (weapon +0x04), whatever he is doing.
-    if (currentMode === 'chars' && c.id === 0 && c.weapons && c.weapons[selectedWeaponId] && !animOpt.paletteAddr) {
+    if (currentMode === 'chars' && hasVariants(c) && c.weapons[selectedWeaponId] && !animOpt.paletteAddr) {
       animOpt = Object.assign({}, animOpt, { paletteAddr: c.weapons[selectedWeaponId].paletteAddr });
     }
     requestedRecord = animOpt.animRec || 0;
+    var target = targetRequest(c);
+    if (target) animOpt = Object.assign({}, animOpt, { target: target });
 
     if (vsApi) {
       vsApi.postMessage({
@@ -437,6 +464,9 @@
     });
   });
 
+  [chkTarget, targetDist].forEach(function(el) {
+    if (el) el.addEventListener('change', loadCurrentAnimation);
+  });
   [chkBody, chkHurt, chkStrike, chkOrigin, chkProj, chkWalk].forEach(function(chk) {
     if (chk) chk.addEventListener('change', drawFrame);
   });
@@ -516,6 +546,9 @@
 
     var curFrame = currentAnimData.frames[currentFrameIdx];
     var holdTicks = curFrame && curFrame.ticks > 0 ? curFrame.ticks : 1;
+    // Projectiles that outlive the cycle (a boomerang's lap) finish before it loops:
+    // the last frame holds while they fly.
+    if (currentFrameIdx === currentAnimData.frames.length - 1) holdTicks += flightTail;
 
     if (tickCounter >= holdTicks) {
       tickCounter -= holdTicks;
@@ -554,10 +587,12 @@
     }
 
     if (frameInfo) {
+      var isLast = currentFrameIdx === currentAnimData.frames.length - 1;
       frameInfo.textContent = 'Frame ' + (currentFrameIdx + 1) + '/' + currentAnimData.frames.length + ' (' + cur.ticks + ' ticks' +
+        (isLast && flightTail > 0 ? ', then ' + flightTail + ' of flight' : '') +
         (cur.random ? ', random ' + cur.random[0] + '–' + cur.random[1] : '') + ')' +
         (cur.spawns && cur.spawns.length ? ' · throws ' + cur.spawns.map(function(sp) { return '$' + sp.id.toString(16); }).join(', ') : '') +
-        motionText(cur);
+        motionText(cur) + targetText(cur);
     }
 
     if (spriteAddrLink) {
@@ -570,6 +605,17 @@
 
     // Draw canvas
     drawFrame();
+  }
+
+  /** Which ticks of this frame reach the target, if one is on stage. */
+  function targetText(frame) {
+    var t = currentAnimData && currentAnimData.target;
+    if (!t || !t.hits) return '';
+    var start = frameStartTicks[currentFrameIdx] || 0;
+    var end = start + frame.ticks + (currentFrameIdx === currentAnimData.frames.length - 1 ? flightTail : 0);
+    var n = t.hits.melee.filter(function(k) { return k >= start && k < end; }).length +
+      t.hits.projectile.filter(function(p) { return p.tick >= start && p.tick < end; }).length;
+    return n ? ' · hits ' + t.name + ' (' + n + ' tick' + (n === 1 ? '' : 's') + ')' : '';
   }
 
   /** Where the frame ends up: x/y from the start and height, when the animation moves. */
@@ -625,6 +671,7 @@
     canvas.height = Math.max(320, sceneH);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.imageSmoothingEnabled = false;
+    fitToStage();
 
     // Where the feet stood at the start, then where they are now.
     var ox = Math.floor(pad + (canvas.width - sceneW) / 2 - box.minX * scale);
@@ -656,30 +703,43 @@
       ctx.fillRect(cx - bw / 2, cy - bh / 2, bw, bh);
     }
 
-    // Overlay 2: Hurt Box (2r × 2r) standing up from the feet, lifted with the body
+    // Overlay 2: Hurt region — half-size r centred on the feet ($8FB63A), on the ground.
+    // Height is a separate test: 30 px or more up, a ground-level attack cannot reach it.
     if (chkHurt && chkHurt.checked && r > 0) {
       var hw = r * 2 * scale;
-      var hh = r * 2 * scale;
-      ctx.strokeStyle = '#ffaa00';
+      var outOfReach = a.reach && pos.z16 >= a.reach.above;
+      ctx.setLineDash(outOfReach ? [4, 3] : []);
+      ctx.strokeStyle = outOfReach ? '#888888' : '#ffaa00';
       ctx.lineWidth = 1.5;
-      ctx.strokeRect(cx - hw / 2, cy - lift - hh, hw, hh);
-      ctx.fillStyle = 'rgba(255, 170, 0, 0.10)';
-      ctx.fillRect(cx - hw / 2, cy - lift - hh, hw, hh);
+      ctx.strokeRect(cx - hw / 2, cy - hw / 2, hw, hw);
+      ctx.setLineDash([]);
+      if (!outOfReach) {
+        ctx.fillStyle = 'rgba(255, 170, 0, 0.10)';
+        ctx.fillRect(cx - hw / 2, cy - hw / 2, hw, hw);
+      } else {
+        ctx.fillStyle = '#aaaaaa';
+        ctx.font = '11px sans-serif';
+        ctx.fillText('out of reach', cx - hw / 2, cy + hw / 2 + 12);
+      }
     }
 
-    // Overlay 3: Strike Box, centred at (dx, dy) from the feet and at the body's height
+    // Overlay 3: Strike Box, centred at (dx, dy) from the feet; red-filled harder when it lands
     var activeStrike = cur.strikeBox;      // exactly the ticks the script runs it
     if (chkStrike && chkStrike.checked && activeStrike) {
       var sw = activeStrike.width * scale;
       var shh = activeStrike.height * scale;
       var sx = cx + activeStrike.dx * scale - sw / 2;
-      var sy = cy - lift + activeStrike.dy * scale - shh / 2;
+      var sy = cy + activeStrike.dy * scale - shh / 2;   // on the ground; its height is the body's
       ctx.strokeStyle = '#ff3355';
       ctx.lineWidth = 2;
       ctx.strokeRect(sx, sy, sw, shh);
-      ctx.fillStyle = 'rgba(255, 51, 85, 0.25)';
+      ctx.fillStyle = motion && motion.hitAt(a, motion.nowTick(frameStartTicks, currentFrameIdx, tickCounter)) === 'melee'
+        ? 'rgba(255, 51, 85, 0.55)' : 'rgba(255, 51, 85, 0.25)';
       ctx.fillRect(sx, sy, sw, shh);
     }
+
+    // The second character, drawn before projectiles so they fly over it
+    if (motion && a.target) motion.drawTarget(ctx, a, motion.nowTick(frameStartTicks, currentFrameIdx, tickCounter), ox, oy, scale, imageFor);
 
     // Overlay 4: Projectiles in flight, from where the thrower stood
     if (motion && projectilesOn()) {
@@ -705,6 +765,24 @@
     }
   }
 
+  var STAGE_MIN_H = 270;
+  var STAGE_MAX_H = 520;
+
+  /**
+   * Show the whole scene: the stage grows up to STAGE_MAX_H, and a canvas bigger than
+   * that (a boomerang's lap, a long lob) is scaled down to fit — never up.
+   */
+  function fitToStage() {
+    var stage = canvas.parentElement;
+    if (!stage || !stage.clientWidth) return;
+    var k = Math.min(1, (stage.clientWidth - 4) / canvas.width, STAGE_MAX_H / canvas.height);
+    var w = Math.floor(canvas.width * k);
+    var h = Math.floor(canvas.height * k);
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    stage.style.height = Math.max(STAGE_MIN_H, h + 8) + 'px';
+  }
+
   var motion = (typeof window !== 'undefined' && window.SpritesMotion) || null;
   var sceneCache = { data: null, key: '', box: null };
 
@@ -715,16 +793,16 @@
   }
   /** Something moves between frame changes, so the stage must redraw every tick. */
   function animatesBetweenFrames() {
-    return projectilesOn() || !!(currentAnimData && currentAnimData.moves);
+    return projectilesOn() || !!(currentAnimData && (currentAnimData.moves || currentAnimData.target));
   }
 
   function sceneBoxFor(walk) {
-    var key = walk + ':' + projectilesOn();
+    var key = walk + ':' + projectilesOn() + ':' + !!(currentAnimData && currentAnimData.target);
     if (sceneCache.data !== currentAnimData || sceneCache.key !== key) {
       var a = currentAnimData;
       sceneCache = {
         data: a, key: key,
-        box: motion ? motion.sceneBox(a, { walk: walk, projectiles: projectilesOn() })
+        box: motion ? motion.sceneBox(a, { walk: walk, projectiles: projectilesOn(), target: !!a.target })
           : { minX: -a.originX, maxX: a.width - a.originX, minY: -a.originY, maxY: a.height - a.originY },
       };
     }
@@ -811,6 +889,11 @@
         frameStartTicks = [];
         var acc = 0;
         ((currentAnimData && currentAnimData.frames) || []).forEach(function(f) { frameStartTicks.push(acc); acc += f.ticks; });
+        flightTail = 0;
+        var pr = currentAnimData && currentAnimData.projectiles;
+        ((pr && pr.spawns) || []).forEach(function(sp) {
+          flightTail = Math.max(flightTail, sp.tick + (sp.path ? sp.path.length : 0) + 1 - acc);
+        });
         if (script) {
           script.renderScript(currentAnimData);
           script.renderOwners(currentMode === 'anims' ? pinnedRecord : script.findRecord(requestedRecord));

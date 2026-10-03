@@ -7,6 +7,7 @@ const indexJson = require('../language/data/index.json');
 const { snesToRom } = require('../maps/dist/rom');
 const { paletteAt } = require('../maps/dist/character-record');
 const { runAnimation, animationIdRecord } = require('../maps/dist/animation-vm');
+const { readDogForms } = require('./dog-forms');
 
 const CHARACTER_TABLE = 0x8eb678;
 const CHARACTER_STRIDE = 74;
@@ -313,6 +314,10 @@ function readCharacter(rom, id) {
     const externalAnims = getExternalAnimations(rom, id, name);
     anims.push(...externalAnims);
     let weapons = null;
+    if (id === 1) {
+        // The Dog's forms play the part of the Boy's weapons: an animation set and palette each.
+        weapons = readDogForms(rom);
+    }
     if (id === 0) {
         weapons = WEAPON_NAMES.map((wName, idx) => ({
             id: idx,

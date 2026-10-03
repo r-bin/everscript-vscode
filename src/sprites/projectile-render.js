@@ -3,7 +3,7 @@
 // timing, offset and flight, and the projectile's own animation rendered once per type. Pure.
 
 const { runAnimation, facingScript } = require('../maps/dist/animation-vm');
-const { projectileRecord, projectileVelocity } = require('../maps/dist/projectiles');
+const { projectileRecord, projectileFlight } = require('../maps/dist/projectiles');
 const { paletteAt } = require('../maps/dist/character-record');
 const { composeAligned } = require('./frame-compose');
 
@@ -29,10 +29,12 @@ function renderProjectileAnimation(rom, record, facing, throwerColours) {
 
 /**
  * Every projectile a run throws, placed on the playback timeline: `tick` counts
- * from the first displayed frame, the same clock the webview plays on.
- * `vx`/`vy` are pixels per tick for straight-flying routines, null otherwise.
+ * from the first displayed frame, the same clock the webview plays on. `path`
+ * is where it is on each tick it lives ([x, y, height 1/16 px] from the
+ * thrower's start); empty when its routine is not modelled. `target` is where
+ * aimed routines aim, or null to aim straight ahead.
  */
-function renderProjectiles(rom, vmFrames, facing, throwerColours) {
+function renderProjectiles(rom, vmFrames, facing, throwerColours, target) {
     const spawns = [];
     const anims = {};
     let t = 0;
@@ -42,7 +44,8 @@ function renderProjectiles(rom, vmFrames, facing, throwerColours) {
             const record = projectileRecord(rom, sp.id);
             const key = '$' + hex(sp.id, 4);
             if (!(key in anims)) anims[key] = renderProjectileAnimation(rom, record, facing, throwerColours);
-            const v = projectileVelocity(record, facing);
+            const start = { x: sp.ex + sp.dx, y: sp.ey + sp.dy, z: sp.ez + sp.dz * 16 };
+            const flight = projectileFlight(rom, record, start, facing, target || null);
             spawns.push({
                 id: sp.id,
                 idHex: key,
@@ -56,9 +59,10 @@ function renderProjectiles(rom, vmFrames, facing, throwerColours) {
                 routine: record.routine,
                 speed: record.speed,
                 power: record.power,
-                flying: v !== null,
-                vx: v ? v.vx : 0,
-                vy: v ? v.vy : 0,
+                model: flight.model,
+                ends: flight.ends,
+                start: [start.x, start.y, start.z],
+                path: flight.path,
             });
         }
         t += f.ticks;

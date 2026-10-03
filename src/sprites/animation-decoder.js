@@ -6,6 +6,7 @@ const { runAnimation, facingScript } = require('../maps/dist/animation-vm');
 const { disassembleScript } = require('../maps/dist/animation-opcodes');
 const { composeAligned } = require('./frame-compose');
 const { renderProjectiles } = require('./projectile-render');
+const { targetFor, buildTarget, hitTicks, DEFAULT_DISTANCE, OUT_OF_REACH_ABOVE, OUT_OF_REACH_BELOW } = require('./target');
 
 /** Resolve script address for a record, taking facing into account if directional. */
 function resolveExternalScript(rom, animRec, facing) {
@@ -90,7 +91,18 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
         });
     }
 
-    const projectiles = renderProjectiles(rom, run.frames, facing, colours);
+    // The second character: where it stands decides where aimed projectiles go.
+    const targetOpt = animOpt && animOpt.target && animOpt.target.on ? animOpt.target : null;
+    let target = null;
+    if (targetOpt) {
+        const character = targetOpt.character != null ? targetOpt.character : targetFor(rom, characterId, null);
+        const distance = Number.isFinite(targetOpt.distance) ? targetOpt.distance : DEFAULT_DISTANCE;
+        target = buildTarget(rom, (id, f) => renderAnimation(rom, id, { offset: 0x32, paletteAddr: targetOpt.paletteAddr || 0 }, f), {
+            character, distance, facing, name: targetOpt.name || '',
+        });
+    }
+    const projectiles = renderProjectiles(rom, run.frames, facing, colours, target);
+    if (target) target.hits = hitTicks(run.frames, projectiles.spawns, target);
 
     return {
         width,
@@ -107,6 +119,8 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
         stoppedAtHex: run.stoppedAt ? hex6(run.stoppedAt) : null,
         projectiles,
         moves: run.moves,
+        target,
+        reach: { above: OUT_OF_REACH_ABOVE, below: OUT_OF_REACH_BELOW },
         shadow: shadow ? { width: shadow.width, height: shadow.height, originX: shadow.originX, originY: shadow.originY } : null,
     };
 }

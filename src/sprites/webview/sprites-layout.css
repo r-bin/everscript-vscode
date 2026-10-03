@@ -704,3 +704,6 @@
 
 .tag-proj { color: #33ccff; }
 .tag-walk { color: #c8a2ff; }
+.tag-target { color: #ff8866; }
+.sp-num { width: 52px; padding: 1px 4px; margin-right: 2px; }
+#sp-canvas { flex: none; image-rendering: pixelated; }

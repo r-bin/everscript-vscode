@@ -74,7 +74,7 @@
 
   function ownerText(o) {
     if (o.kind === 'character') return o.name + ' · ' + o.label;
-    if (o.kind === 'weapon') return 'Boy · ' + o.name + ' · ' + o.label;
+    if (o.kind === 'weapon') return (o.id === 1 ? 'Dog · ' : 'Boy · ') + o.name + ' · ' + o.label;
     if (o.kind === 'projectile') {
       var by = findRecord(parseInt(String(o.thrower).slice(1), 16));
       return 'projectile ' + o.idHex + ' thrown by ' + (by ? by.label + ' (' + by.recHex + ')' : o.thrower);

@@ -1,3 +1,15 @@
+## [0.123.0] — 2026-10-03
+
+### Feature: [Sprites] Dog forms, projectile flight and damage, a target, height reach
+
+- **Dog forms:** the Dog gets a **Form** selector like the Boy's weapons. There are six entries from bank `$CF` (pointer table `$CF945F`): Act 0–4 and the Act 1 wolf with a stick. Each has its own palette and 15 animation slots, named where an `ANIMATION_DOG` id or the Dog's record names them.
+- **Projectile flight decoded:** setup routines (straight; aimed at the target `0x16`/`0x18`; the boomerang ellipse, routine 6) and per-tick behaviours (gravity until it lands, timed lifetime, orbit) from `$90D967`. Vigor's boomerang laps a 256×128 px ellipse in 256 ticks and comes back. Projectiles that outlive the cycle finish before playback loops.
+- **Projectile damage:** there is no `strike` in projectile animations. A projectile hit-tests a **16×16 box every tick it lives**. Each projectile now shows that box on the ground beneath it, with a line up to its height.
+- **Target:** a new **Target** checkbox and distance put a second character ahead of the viewed one: the Boy for enemies, a Wimpy Flower for the Boy, the Dog and NPCs. Aimed projectiles aim at it, and every tick a strike or projectile reaches it flashes red. Hits use the engine's own test (`src/maps/hit-test.ts`).
+- **Height reach:** a character 30 px or more up cannot be hit by a ground-level attack (`$8FB674`). Its hurt region dashes grey and says "out of reach".
+- **Hurt region centred on the feet**, as the hit test measures it (`$8FB63D`), instead of standing up from them. Strike boxes are drawn on the ground footprint too.
+- The stage grows to 520 px and scales a bigger scene down to fit, instead of clipping it.
+
 ## [0.122.0] — 2026-10-03
 
 ### Feature: [Sprites] movement and jumping

@@ -1,9 +1,10 @@
 // Ownership: where things are on the Sprites stage at a given tick — the entity's walk
-// path and jump height, the projectiles it throws, and the box the canvas must hold
-// to show all of it. Pure geometry plus projectile drawing; exposes window.SpritesMotion.
+// path and jump height, the projectiles it throws and their hit boxes, the target
+// character and its hurt region, and the box the canvas must hold to show all of it.
+// Pure geometry plus drawing those pieces; exposes window.SpritesMotion.
 (function() {
-  var HEIGHT_UNITS = 16;    // entity height (+0x1E) is kept in 1/16 px
-  var MAX_FLIGHT_PX = 160;  // a fast bolt would otherwise want a canvas the width of a room
+  var HEIGHT_UNITS = 16;    // heights (entity +0x1E, projectile +0x18) are kept in 1/16 px
+  var HIT_SIZE = 16;        // the box a projectile hit-tests with every tick ($90DED5)
 
   /** The playback tick: start of the current frame plus the ticks into it. */
   function nowTick(frameStarts, frameIdx, tickCounter) {
@@ -12,33 +13,49 @@
 
   /**
    * The entity's position at this point of playback, in sprite pixels from where it
-   * started: x and y follow its steps (only when `walk` is on), z is its height.
+   * started: x and y follow its steps (only when `walk` is on); z is its height in
+   * pixels and z16 the same in the engine's 1/16 px.
    */
   function positionAt(anim, frameIdx, tickCounter, walk) {
     var f = anim && anim.frames[frameIdx];
     var m = f && f.motion && f.motion.length ? f.motion[Math.min(f.motion.length - 1, Math.max(0, Math.floor(tickCounter)))] : null;
-    if (!m) return { x: 0, y: 0, z: 0 };
-    return { x: walk ? m[0] : 0, y: walk ? m[1] : 0, z: m[2] / HEIGHT_UNITS };
-  }
-
-  /** Where a spawn starts and where it is `age` ticks later, in sprite pixels. */
-  function projectileAt(sp, age, walk) {
-    var ox = (walk ? sp.ex : 0) + sp.dx;
-    var oy = (walk ? sp.ey : 0) + sp.dy - sp.dz - sp.ez / HEIGHT_UNITS;
-    var dist = Math.min(MAX_FLIGHT_PX, Math.hypot(sp.vx, sp.vy) * age);
-    var speed = Math.hypot(sp.vx, sp.vy) || 1;
-    return {
-      sx: ox, sy: oy,
-      x: ox + (sp.vx / speed) * dist,
-      y: oy + (sp.vy / speed) * dist,
-      gone: Math.hypot(sp.vx, sp.vy) * age > MAX_FLIGHT_PX,
-    };
+    if (!m) return { x: 0, y: 0, z: 0, z16: 0 };
+    return { x: walk ? m[0] : 0, y: walk ? m[1] : 0, z: m[2] / HEIGHT_UNITS, z16: m[2] };
   }
 
   /**
-   * Every point the scene reaches over the whole cycle — the sprite along its path
-   * and lifted by its height, plus each projectile from spawn to the end of its
-   * flight — as a box in sprite pixels around the starting feet.
+   * A projectile `age` ticks after it spawned: its ground point and height, or null
+   * once it has landed or run out. Unmodelled routines stay where they spawned.
+   */
+  function projectileAt(sp, age, walk) {
+    var shiftX = walk ? 0 : -sp.ex;
+    var shiftY = walk ? 0 : -sp.ey;
+    var p;
+    if (!sp.path || !sp.path.length) {
+      if (sp.model !== 'unknown') return null;
+      p = sp.start;
+    } else {
+      var i = Math.floor(age) - 1;
+      if (i >= sp.path.length) return null;
+      p = i < 0 ? sp.start : sp.path[i];
+    }
+    return { x: p[0] + shiftX, y: p[1] + shiftY, z: p[2] / HEIGHT_UNITS };
+  }
+
+  /** Is `tick` one the target is hit on? Returns 'melee', the projectile id, or null. */
+  function hitAt(anim, tick) {
+    var h = anim.target && anim.target.hits;
+    if (!h) return null;
+    var t = Math.floor(tick);
+    if (h.melee.indexOf(t) >= 0) return 'melee';
+    for (var i = 0; i < h.projectile.length; i++) if (h.projectile[i].tick === t) return h.projectile[i].idHex;
+    return null;
+  }
+
+  /**
+   * Every point the scene reaches over the whole cycle — the sprite along its path and
+   * lifted by its height, each projectile along its flight, and the target — as a box
+   * in sprite pixels around the starting feet.
    */
   function sceneBox(anim, opts) {
     var box = { minX: -anim.originX, maxX: anim.width - anim.originX, minY: -anim.originY, maxY: anim.height - anim.originY };
@@ -56,14 +73,22 @@
     });
     var pr = anim.projectiles;
     if (opts.projectiles && pr && pr.spawns) {
-      var cycle = anim.totalTicks || 0;
       pr.spawns.forEach(function(sp) {
         var a = pr.anims[sp.idHex];
-        var hw = a ? a.width : 8;
-        var hh = a ? a.height : 8;
-        var p = projectileAt(sp, Math.max(0, cycle - sp.tick), opts.walk);
-        grow(Math.min(p.sx, p.x) - hw, Math.min(p.sy, p.y) - hh, Math.max(p.sx, p.x) + hw, Math.max(p.sy, p.y) + hh);
+        var hw = Math.max(a ? a.width : 8, HIT_SIZE);
+        var hh = Math.max(a ? a.height : 8, HIT_SIZE);
+        var pts = [sp.start].concat(sp.path || []);
+        pts.forEach(function(p) {
+          var x = p[0] - (opts.walk ? 0 : sp.ex);
+          var y = p[1] - (opts.walk ? 0 : sp.ey);
+          grow(x - hw, y - p[2] / HEIGHT_UNITS - hh, x + hw, y + hh);
+        });
       });
+    }
+    var t = anim.target;
+    if (opts.target && t) {
+      var r = Math.max(t.radius, 4);
+      grow(t.x - Math.max(t.originX, r), t.y - Math.max(t.originY, r), t.x + Math.max(t.width - t.originX, r), t.y + Math.max(t.height - t.originY, r));
     }
     return box;
   }
@@ -80,39 +105,87 @@
     return anim.frames[0];
   }
 
+  function diamond(ctx, x, y, r) {
+    ctx.beginPath();
+    ctx.moveTo(x, y - r); ctx.lineTo(x + r, y); ctx.lineTo(x, y + r); ctx.lineTo(x - r, y); ctx.closePath();
+    ctx.stroke();
+  }
+
   /**
-   * Draw every spawn whose tick has passed. Straight-flying routines move; the
-   * others stay where they spawned. `ox, oy` is the canvas point of the starting feet.
+   * Every projectile alive at `now`: its sprite lifted by its height, and on the ground
+   * below it the 16×16 box it hit-tests with on every tick it lives — red on a tick it
+   * reaches the target. `ox, oy` is the canvas point of the starting feet.
    */
   function drawProjectiles(ctx, anim, now, ox, oy, scale, walk, imageFor) {
     var pr = anim.projectiles;
     if (!pr || !pr.spawns) return;
+    var hit = hitAt(anim, now);
     pr.spawns.forEach(function(sp) {
       if (now < sp.tick) return;
-      var p = projectileAt(sp, now - sp.tick, walk);
-      if (p.gone) return;
+      var age = now - sp.tick;
+      var p = projectileAt(sp, age, walk);
+      if (!p) return;
       var x = ox + p.x * scale;
       var y = oy + p.y * scale;
+      var lift = p.z * scale;
+      var hs = HIT_SIZE * scale;
+      var hitting = hit === sp.idHex;
+      if (sp.path && sp.path.length) {
+        ctx.setLineDash([4, 3]);
+        ctx.strokeStyle = hitting ? '#ff3355' : '#33ccff';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x - hs / 2, y - hs / 2, hs, hs);
+        ctx.setLineDash([]);
+        if (hitting) { ctx.fillStyle = 'rgba(255, 51, 85, 0.30)'; ctx.fillRect(x - hs / 2, y - hs / 2, hs, hs); }
+        if (lift > 0) {
+          ctx.strokeStyle = 'rgba(51, 204, 255, 0.45)';
+          ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - lift); ctx.stroke();
+        }
+      }
       var a = pr.anims[sp.idHex];
-      var img = a ? imageFor(projectileFrame(a, Math.floor(now - sp.tick)).png) : null;
-      if (img) ctx.drawImage(img, x - a.originX * scale, y - a.originY * scale, a.width * scale, a.height * scale);
-      // Spawn point; a ring stands in while the image loads.
-      var sx = ox + p.sx * scale;
-      var sy = oy + p.sy * scale;
+      var img = a ? imageFor(projectileFrame(a, Math.floor(age)).png) : null;
+      if (img) ctx.drawImage(img, x - a.originX * scale, y - lift - a.originY * scale, a.width * scale, a.height * scale);
+      else { ctx.strokeStyle = '#33ccff'; ctx.beginPath(); ctx.arc(x, y - lift, 3, 0, Math.PI * 2); ctx.stroke(); }
+      // Where it was thrown from.
+      var s = projectileAt(sp, 0, walk);
       ctx.strokeStyle = '#33ccff';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(sx, sy - 4); ctx.lineTo(sx + 4, sy); ctx.lineTo(sx, sy + 4); ctx.lineTo(sx - 4, sy); ctx.closePath();
-      ctx.stroke();
-      if (!img) { ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.stroke(); }
+      diamond(ctx, ox + s.x * scale, oy + (s.y - s.z) * scale, 4);
     });
   }
 
+  /**
+   * The second character: its standing sprite, and its hurt region — half-size
+   * `radius` centred on its feet, as the hit test at $8FB63A measures it — filled red
+   * on every tick something reaches it.
+   */
+  function drawTarget(ctx, anim, now, ox, oy, scale, imageFor) {
+    var t = anim.target;
+    if (!t) return;
+    var x = ox + t.x * scale;
+    var y = oy + t.y * scale;
+    var img = t.png ? imageFor(t.png) : null;
+    if (img) {
+      ctx.globalAlpha = 0.85;
+      ctx.drawImage(img, x - t.originX * scale, y - t.originY * scale, t.width * scale, t.height * scale);
+      ctx.globalAlpha = 1;
+    }
+    var r = t.radius * scale;
+    var hit = hitAt(anim, now);
+    ctx.strokeStyle = hit ? '#ff3355' : '#ffaa00';
+    ctx.lineWidth = hit ? 2 : 1.5;
+    ctx.strokeRect(x - r, y - r, r * 2, r * 2);
+    ctx.fillStyle = hit ? 'rgba(255, 51, 85, 0.35)' : 'rgba(255, 170, 0, 0.10)';
+    ctx.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+
   var api = {
+    HEIGHT_UNITS: HEIGHT_UNITS,
     nowTick: nowTick,
     positionAt: positionAt,
+    hitAt: hitAt,
     sceneBox: sceneBox,
     drawProjectiles: drawProjectiles,
+    drawTarget: drawTarget,
   };
   if (typeof window !== 'undefined') window.SpritesMotion = api;
 })();

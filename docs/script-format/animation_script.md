@@ -465,6 +465,52 @@ Records run every 24 bytes from `$90D9A6` to `$90DB86` (21 slots). 13 are
 thrown by animation scripts; two slots have no animation and are used
 elsewhere, if at all.
 
+### How a projectile lives
+
+A projectile is an entity of its own. `$90DE5E` walks the pool
+`$6387..$64E7` every tick and dispatches on entity `+0x26` (record `+0x0C`)
+through **the same table at `$90D967`** that record `+0x08` used to set it up.
+So `+0x08` is the setup and `+0x0C` the per-tick behaviour:
+
+| `+0x0C` | Handler | Every tick |
+|---|---|---|
+| `0x0E` | `$90DE9C` | z-speed −1, height += z-speed, **gone below 0**; move by velocity |
+| `0x12` | `$90DE88` | lifetime (`+0x1E`, record `+0x10`) −1, **gone below 0**; height fixed; move |
+| `0x1A` | `$90DE80` | as `0x12`, on the thrower's plane |
+| `0x10` | `$90DF44` | lifetime −1; angle +1; on an ellipse (the boomerang, below) |
+
+All four end the same way, and this is **where projectile damage comes from**.
+No projectile animation contains a `strike`. Instead, every tick the projectile
+lives, it hands the hit test a **16×16 box** centred on itself at its own
+height (`$90DED5`: `$3E = $40 = $10`, then `JSL $8FB5F2`), with power `+0x28`.
+So a projectile can damage on every tick it is alive.
+
+| `+0x08` setup | Handler | Velocity |
+|---|---|---|
+| 2, 4 | `$90DD58`, `$90DD61` | speed along the facing (table below) |
+| `0x16` | `$90DDCA` | toward the target (`$0F42`): `4 × distance / (speed / 4)` (`$90DFDF`), so it arrives after about `speed` ticks |
+| `0x18` | `$90DE11` | toward the target, at `speed` (`$80AEAC`/`$80B01D`, whose angle quantisation is not modelled) |
+| 6 | `$90DEF7` | the ellipse: start angle `(facing ^ 8) × 16` of 256, lifetime `$100` |
+
+Routines 2, 4, `0x16` and `0x18` also copy record `+0x12` into the z-speed.
+
+**The boomerang** (Vigor's attack 1, `$DA4E`: setup 6, behaviour `0x10`).
+Setup puts the centre of an ellipse so that the thrower's spawn point lies on
+it. Every tick the angle advances by one step of 256:
+
+```
+x = cx + $808923[angle] × 8      ; ×16 positions, so ±128 px
+y = cy + $8088A3[angle] × 4      ; half: ±64 px, the top-down squash
+```
+
+Its lifetime is exactly one lap (256 ticks), so it returns to where it was
+thrown. Thrown east, it runs along the top of the ellipse, curves down and
+back, and passes 128 px behind the thrower on the way.
+
+**Aimed** (`0x16`, `0x18`). Vigor's attack 0 (`$DA36`) and Magmar's lobs
+aim at the controlled character. In the Sprites tab, they aim at the target
+character.
+
 **Routines 2 and 4 fly straight.** Routine 4 (`$90DD61`) puts the speed into
 x and y velocity by facing, from its table at `$90DD88`. Routine 2 sets the
 power from `$0A3F` and jumps into routine 4.
@@ -473,9 +519,7 @@ power from `$0A3F` and jumps into routine 4.
 |---|---|---|---|---|---|---|---|---|
 | (vx, vy) | (0, −s) | (+s, −s) | (+s, 0) | (+s, +s) | (0, +s) | (−s, +s) | (−s, 0) | (−s, −s) |
 
-Diagonals are not normalised. The other routines (`6`, `0x16`, `0x18`) aim at
-a target or arc, and are not modelled. The Sprites tab draws those at their
-spawn point.
+Diagonals are not normalised.
 
 That table also says which way facings point on screen: **facing 8 moves +y,
 down the screen**. Throw offsets agree. The four facing records of the spear
@@ -496,6 +540,60 @@ the weapon's colours: bone for Bone Crusher, lavender for the spears, gold for
 Crusader Sword. *The code that loads it is not traced*; this rests on the data
 alone. The Sprites tab draws the Boy, and what he throws, in the equipped
 weapon's palette.
+
+## Hitting something
+
+The hit test (`$8FB5F2`; melee strikes enter at `$8FB5E6`) compares a strike
+box (centre `$46`/`$48`, size `$3E`×`$40`, height `$4A`) with each candidate:
+
+```
+8FB5F4  LDA #$0280 / SBC $4A / STA $4A            ; $4A = $280 − attack height
+8FB63D  target y + 16 + (+0x44) − $48, |..| − radius (+0x0D), ×2  <  $40
+8FB65A  target x + (+0x42) − $46,      |..| − radius,          ×2  <  $3E
+8FB674  target height + $4A  <  $0460  (unsigned)
+```
+
+- **The hurt region is centred on the feet.** `+0x44` rests at −16
+  (`reset`), cancelling the +16, so the target's region is a box of
+  half-size `radius` around its feet. The strike reaches it when the boxes
+  overlap. The Sprites tab draws it that way, not standing up from the feet.
+- **Height is its own axis.** The target must be no more than 40 px below
+  the attack, and **less than 30 px above it**. A character whose height is
+  30 px or more cannot be hit by a ground-level attack. The tab dashes its
+  hurt region grey and says "out of reach". A melee strike's height is the
+  attacker's own height; a projectile's is the projectile's.
+- **`hurtbox` (`0x50`) is not applied.** The handler stores its two words
+  in `+0x42`/`+0x44` exactly as written. But the Boy's walk sets −132/−144,
+  which as offsets would move his hurt region 132 px away. Until that is
+  explained, the default (`0, −16`) is used.
+
+## The Dog's forms
+
+The Dog changes with each act, as the Boy changes with his weapon. Six
+40-byte entries in bank `$CF`, listed by the pointer table at `$CF945F`, each
+hold a 10-byte header followed by 15 animation records. The header is a
+24-bit pointer, a byte, `$CC3C`, **the palette** (`+6`, bank `$90`), and a
+word.
+
+| # | Entry | Form | Palette |
+|---|---|---|---|
+| 0 | `$CF9395` | Act 1 (Prehistoria) — the record the Dog's character entry stands in | `$AE0B` |
+| 1 | `$CF93BD` | Act 1 with stick — walk and run become `$42CE`, the group `ACT1_STICK_RUNNING` lands in | `$AE0B` |
+| 2 | `$CF93E5` | Act 2 (Antiqua) | `$AE2B` |
+| 3 | `$CF940D` | Act 3 (Gothica) | `$AE4B` |
+| 4 | `$CF936D` | Act 0 (Podunk); only stand/walk/run are its own | `$B54B` |
+| 5 | `$CF9435` | Act 4 (Omnitopia), named by elimination and its metal palette | `$AE6B` |
+
+Slots are named only where the record is one the Dog's character entry or
+an `ANIMATION_DOG` id already names:
+
+| Slot | 0 | 1 | 2 | 3 | 4 | 5–8 | 9 | 10 | 11 | 12 | 13 | 14 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| | stand | walk | run | ? | damage | attack 0–3 | ? | ? | sleep | sit | ? | bark |
+
+*The loader is not traced.* The Boy's weapon loader at `$CF81C9` copies its
+records into `$0A58..`, and the Dog's is presumably similar, but it was not
+found.
 
 ## Running a script
 

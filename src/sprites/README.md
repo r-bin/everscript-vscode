@@ -19,6 +19,8 @@ Unify and modernize the first two tabs of SoETilesViewer into an interactive, re
 | `animation-catalog.js` | Every animation in the ROM's record table ($C43E3A), who uses it (character fields, weapons, `animate()` ids via $C43C92), and its palette | < 150 |
 | `frame-compose.js` | Composes a run's frames into PNGs aligned on one feet origin | < 80 |
 | `projectile-render.js` | Projectile spawns on the playback timeline, their flight and their own animation | < 100 |
+| `target.js` | The second character on stage: who, where, its standing frame, and which ticks hit it | < 120 |
+| `dog-forms.js` | The Dog's six forms (bank `$CF`), shaped like Boy weapons | < 90 |
 | `raw-sprites.js` | Walks and indexes all raw sprites from `$CA0003`, renders chunk tables | < 150 |
 | `sprites-tab.js` | Server-side tab pane HTML scaffold | < 200 |
 | `webview/sprites-view.js` | Client-side webview controller, rAF animation loop, canvas drawing | < 350 |

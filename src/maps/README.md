@@ -38,7 +38,8 @@ it. See the `map-format` and `rom-map-data` skills.
 | `budget.ts` | The four ceilings (graphics, families, stamps, WRAM) and what an edit adds to them |
 | `animation-opcodes.ts` | The animation bytecode's instruction set — the one width table — and a disassembler ([animation_script.md](../../docs/script-format/animation_script.md)) |
 | `animation-vm.ts` | Runs an animation script tick by tick like the engine; the record table (783 animations) and the `animate()` id table |
-| `projectiles.ts` | Projectile records (`$900000 + id`) that animation command `0x4C` throws, and straight-line flight velocity |
+| `projectiles.ts` | Projectile records (`$900000 + id`), their setup and per-tick behaviours, and the flight path tick by tick (straight, aimed, the boomerang ellipse) |
+| `hit-test.ts` | Whether a strike box reaches a target: the feet-centred hurt region and the height rule of `$8FB5F2` |
 | `overlay-features.ts` | Classifies a room into feature sets; builds the legend and summary |
 | `overlay-shapes.ts` | The raster primitives the overlay paints with (contours, grass, arrows) |
 | `collision-overlay.ts` | Draw-order orchestration for the feature overlay — a port of `render_full_composition` |

@@ -143,7 +143,7 @@ function buildAnimationCatalog(rom, characters) {
 function catalogLabel(list) {
     for (const o of list) {
         if (o.kind === 'character') return `${o.name} · ${o.label}`;
-        if (o.kind === 'weapon') return `${o.name} · ${o.label}`;
+        if (o.kind === 'weapon') return `${o.id === 1 ? 'Dog · ' : ''}${o.name} · ${o.label}`;
     }
     for (const o of list) {
         if (o.kind === 'id' && o.names.length) return o.names[0];

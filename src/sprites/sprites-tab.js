@@ -79,7 +79,7 @@ function buildSpritesTabHtml() {
             <label class="sp-check-label" title="Body collision box (2r × r) — what entities bump into">
               <input type="checkbox" id="sp-chk-body" checked /> <span class="sp-tag tag-body">Body Hitbox</span>
             </label>
-            <label class="sp-check-label" title="Hurt box (2r × 2r) — area susceptible to attacks">
+            <label class="sp-check-label" title="Hurt region (2r × 2r) centred on the feet, as the hit test measures it. Dashed grey when the character is 30 px or more up: out of reach of a ground-level attack">
               <input type="checkbox" id="sp-chk-hurt" checked /> <span class="sp-tag tag-hurt">Hurt Box</span>
             </label>
             <label class="sp-check-label" title="Strike box (w × h) declared by attack animations">
@@ -90,6 +90,12 @@ function buildSpritesTabHtml() {
             </label>
             <label class="sp-check-label" title="Move the sprite along its steps (x/y). Off keeps it in place; jump height always shows">
               <input type="checkbox" id="sp-chk-walk" checked /> <span class="sp-tag tag-walk">Walk path</span>
+            </label>
+            <label class="sp-check-label" title="A second character to aim at: the Boy for enemies, a Wimpy Flower for the Boy, the Dog and NPCs. Hits flash red">
+              <input type="checkbox" id="sp-chk-target" /> <span class="sp-tag tag-target">Target</span>
+            </label>
+            <label class="sp-check-label" title="How far ahead the target stands, in pixels">
+              <input type="number" id="sp-target-dist" class="sp-input sp-num" value="40" min="0" max="200" step="4" />px
             </label>
             <label class="sp-check-label" title="Sprite feet origin (0,0)">
               <input type="checkbox" id="sp-chk-origin" checked /> <span class="sp-tag tag-origin">Origin</span>
