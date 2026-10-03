@@ -1,3 +1,13 @@
+## [0.122.0] — 2026-10-03
+
+### Feature: [Sprites] movement and jumping
+
+- **Walking moves the sprite:** the interpreter tracks x/y per tick for the selected facing. `step n` moves `(n + f) >> 2` px with the engine's 0, 3, 1, 2 dither (`$0F36`), along the mover's direction table (`$8FAF18`). The Boy's walk carries him 60 px per cycle. A new **Walk path** overlay turns it off to animate in place, and a faint marker shows where the walk began.
+- **Jumps lift the sprite:** height and z-speed follow the engine's gravity (`$8FAFF5`: `h += v − 1`, `v −= 1`, land at ≤ 0). `hop`, `hop_maybe` and `wait_landed` are modelled, so the Skelesnail's attack hops 31 px and the hop frame lasts exactly its 64-tick airtime. The shadow (second sprite slot), body box and origin stay on the ground. The sprite, hurt box and strike box lift.
+- **Projectiles launch from where the thrower is**, including its height. The canvas sizes itself to the whole scene: path, jump and flights.
+- **Strike boxes show only on the ticks that run them:** removed the fallback that drew an animation's single strike box on every frame.
+- The frame info shows where each frame ends up and how high it gets. Docs: *Movement and height* in `animation_script.md`.
+
 ## [0.121.0] — 2026-10-03
 
 ### Feature: [Sprites] projectiles

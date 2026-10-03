@@ -88,6 +88,9 @@ function buildSpritesTabHtml() {
             <label class="sp-check-label" title="Projectiles thrown by command 0x4C, flying from their spawn point">
               <input type="checkbox" id="sp-chk-proj" checked /> <span class="sp-tag tag-proj">Projectiles</span>
             </label>
+            <label class="sp-check-label" title="Move the sprite along its steps (x/y). Off keeps it in place; jump height always shows">
+              <input type="checkbox" id="sp-chk-walk" checked /> <span class="sp-tag tag-walk">Walk path</span>
+            </label>
             <label class="sp-check-label" title="Sprite feet origin (0,0)">
               <input type="checkbox" id="sp-chk-origin" checked /> <span class="sp-tag tag-origin">Origin</span>
             </label>

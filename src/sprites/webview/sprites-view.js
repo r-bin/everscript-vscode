@@ -60,6 +60,7 @@
   var chkStrike = document.getElementById('sp-chk-strike');
   var chkOrigin = document.getElementById('sp-chk-origin');
   var chkProj = document.getElementById('sp-chk-proj');
+  var chkWalk = document.getElementById('sp-chk-walk');
   var frameStartTicks = [];  // playback tick each frame starts on, for projectile flight
 
   var statsGrid = document.getElementById('sp-stats-grid');
@@ -436,7 +437,7 @@
     });
   });
 
-  [chkBody, chkHurt, chkStrike, chkOrigin, chkProj].forEach(function(chk) {
+  [chkBody, chkHurt, chkStrike, chkOrigin, chkProj, chkWalk].forEach(function(chk) {
     if (chk) chk.addEventListener('change', drawFrame);
   });
 
@@ -528,8 +529,8 @@
         return;
       }
     }
-    // Projectiles move between frame changes, so redraw on every tick they exist.
-    if (hasProjectiles()) drawFrame();
+    // Walking, jumping and projectiles change between frame changes: redraw every tick.
+    if (animatesBetweenFrames()) drawFrame();
   }
   raf(animationLoop);
 
@@ -555,7 +556,8 @@
     if (frameInfo) {
       frameInfo.textContent = 'Frame ' + (currentFrameIdx + 1) + '/' + currentAnimData.frames.length + ' (' + cur.ticks + ' ticks' +
         (cur.random ? ', random ' + cur.random[0] + '–' + cur.random[1] : '') + ')' +
-        (cur.spawns && cur.spawns.length ? ' · throws ' + cur.spawns.map(function(sp) { return '$' + sp.id.toString(16); }).join(', ') : '');
+        (cur.spawns && cur.spawns.length ? ' · throws ' + cur.spawns.map(function(sp) { return '$' + sp.id.toString(16); }).join(', ') : '') +
+        motionText(cur);
     }
 
     if (spriteAddrLink) {
@@ -568,6 +570,16 @@
 
     // Draw canvas
     drawFrame();
+  }
+
+  /** Where the frame ends up: x/y from the start and height, when the animation moves. */
+  function motionText(frame) {
+    if (!currentAnimData || !currentAnimData.moves || !frame.motion || !frame.motion.length) return '';
+    var m = frame.motion[frame.motion.length - 1];
+    var sign = function(v) { return (v > 0 ? '+' : '') + v; };
+    var peak = 0;
+    frame.motion.forEach(function(p) { peak = Math.max(peak, p[2]); });
+    return ' · x ' + sign(m[0]) + ' y ' + sign(m[1]) + (peak ? ' · up to ' + (peak / 16).toFixed(1) + ' px high' : '');
   }
 
   function renderChunks(chunks) {
@@ -597,45 +609,43 @@
     var cur = currentAnimData.frames[currentFrameIdx];
     if (!cur) return;
 
-    var img = loadedImages[cur.png];
-    if (!img) {
-      if (typeof Image !== 'function') return;
-      img = new Image();
-      img.src = cur.png;
-      img.onload = function() {
-        loadedImages[cur.png] = img;
-        drawFrame();
-      };
-      return;
-    }
+    var img = imageFor(cur.png);
+    if (!img) return;                       // redraws when it loads
 
     var scale = animScale;
-    var w = currentAnimData.width * scale;
-    var h = currentAnimData.height * scale;
+    var a = currentAnimData;
+    var walk = walkOn();
+    var box = sceneBoxFor(walk);
 
-    var reach = projectileReach();
-    canvas.width = Math.max(w + 120, 320, reach.x * 2 * scale + 40);
-    canvas.height = Math.max(h + 120, 320, reach.y * 2 * scale + 40);
-
+    // The canvas holds the whole scene: path, jump height, projectile flights.
+    var pad = 40;
+    var sceneW = (box.maxX - box.minX) * scale + pad * 2;
+    var sceneH = (box.maxY - box.minY) * scale + pad * 2;
+    canvas.width = Math.max(320, sceneW);
+    canvas.height = Math.max(320, sceneH);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.imageSmoothingEnabled = false;
 
-    // Center sprite canvas
-    var cx = Math.floor(canvas.width / 2);
-    var cy = Math.floor(canvas.height / 2);
+    // Where the feet stood at the start, then where they are now.
+    var ox = Math.floor(pad + (canvas.width - sceneW) / 2 - box.minX * scale);
+    var oy = Math.floor(pad + (canvas.height - sceneH) / 2 - box.minY * scale);
+    var pos = motion ? motion.positionAt(a, currentFrameIdx, tickCounter, walk) : { x: 0, y: 0, z: 0 };
+    var cx = ox + pos.x * scale;
+    var cy = oy + pos.y * scale;
+    var lift = pos.z * scale;
 
-    // Sprite feet origin sits at cx, cy
-    var sprX = cx - currentAnimData.originX * scale;
-    var sprY = cy - currentAnimData.originY * scale;
+    // The second sprite slot (the shadow) stays on the ground; height lifts the sprite.
+    if (cur.shadowPng && a.shadow) {
+      var sh = imageFor(cur.shadowPng);
+      if (sh) ctx.drawImage(sh, cx - a.shadow.originX * scale, cy - a.shadow.originY * scale, a.shadow.width * scale, a.shadow.height * scale);
+    }
+    ctx.drawImage(img, cx - a.originX * scale, cy - lift - a.originY * scale, a.width * scale, a.height * scale);
 
-    ctx.drawImage(img, sprX, sprY, w, h);
-
-    // Get current character hitbox info
     var chars = getCharacters();
     var c = chars.find(function(x) { return x.id === selectedCharId; });
     var r = c && c.hitbox ? c.hitbox.radius : 0;
 
-    // Overlay 1: Body Hitbox (2r wide, r tall, centered on feet contact cx, cy)
+    // Overlay 1: Body Hitbox (2r × r) — the ground footprint, so it stays on the ground
     if (chkBody && chkBody.checked && r > 0) {
       var bw = r * 2 * scale;
       var bh = r * scale;
@@ -646,70 +656,79 @@
       ctx.fillRect(cx - bw / 2, cy - bh / 2, bw, bh);
     }
 
-    // Overlay 2: Hurt Box (2r wide, 2r tall, standing UPWARD from feet origin cy)
+    // Overlay 2: Hurt Box (2r × 2r) standing up from the feet, lifted with the body
     if (chkHurt && chkHurt.checked && r > 0) {
       var hw = r * 2 * scale;
       var hh = r * 2 * scale;
       ctx.strokeStyle = '#ffaa00';
       ctx.lineWidth = 1.5;
-      ctx.strokeRect(cx - hw / 2, cy - hh, hw, hh);
+      ctx.strokeRect(cx - hw / 2, cy - lift - hh, hw, hh);
       ctx.fillStyle = 'rgba(255, 170, 0, 0.10)';
-      ctx.fillRect(cx - hw / 2, cy - hh, hw, hh);
+      ctx.fillRect(cx - hw / 2, cy - lift - hh, hw, hh);
     }
 
-    // Overlay 3: Strike Box (active on current frame, centered at dx, dy)
-    var activeStrike = cur.strikeBox || (currentAnimData.strikeBoxes && currentAnimData.strikeBoxes.length === 1 ? currentAnimData.strikeBoxes[0] : null);
+    // Overlay 3: Strike Box, centred at (dx, dy) from the feet and at the body's height
+    var activeStrike = cur.strikeBox;      // exactly the ticks the script runs it
     if (chkStrike && chkStrike.checked && activeStrike) {
       var sw = activeStrike.width * scale;
-      var sh = activeStrike.height * scale;
+      var shh = activeStrike.height * scale;
       var sx = cx + activeStrike.dx * scale - sw / 2;
-      var sy = cy + activeStrike.dy * scale - sh / 2;
+      var sy = cy - lift + activeStrike.dy * scale - shh / 2;
       ctx.strokeStyle = '#ff3355';
       ctx.lineWidth = 2;
-      ctx.strokeRect(sx, sy, sw, sh);
+      ctx.strokeRect(sx, sy, sw, shh);
       ctx.fillStyle = 'rgba(255, 51, 85, 0.25)';
-      ctx.fillRect(sx, sy, sw, sh);
+      ctx.fillRect(sx, sy, sw, shh);
     }
 
-    // Overlay 4: Projectiles in flight
-    drawProjectiles(cx, cy, scale);
+    // Overlay 4: Projectiles in flight, from where the thrower stood
+    if (motion && projectilesOn()) {
+      motion.drawProjectiles(ctx, a, motion.nowTick(frameStartTicks, currentFrameIdx, tickCounter), ox, oy, scale, walk, imageFor);
+    }
 
-    // Overlay 5: Origin Crosshair (+)
+    // Overlay 5: Origin Crosshair (+) on the ground, and a line up to the body when airborne
     if (chkOrigin && chkOrigin.checked) {
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(cx - 8, cy); ctx.lineTo(cx + 8, cy);
       ctx.moveTo(cx, cy - 8); ctx.lineTo(cx, cy + 8);
+      if (lift > 0) { ctx.moveTo(cx, cy); ctx.lineTo(cx, cy - lift); }
       ctx.stroke();
+      if (walk && (pos.x || pos.y)) {
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+        ctx.beginPath();
+        ctx.moveTo(ox - 4, oy); ctx.lineTo(ox + 4, oy);
+        ctx.moveTo(ox, oy - 4); ctx.lineTo(ox, oy + 4);
+        ctx.stroke();
+      }
     }
   }
 
-  function hasProjectiles() {
+  var motion = (typeof window !== 'undefined' && window.SpritesMotion) || null;
+  var sceneCache = { data: null, key: '', box: null };
+
+  function walkOn() { return !chkWalk || chkWalk.checked; }
+  function projectilesOn() {
     var pr = currentAnimData && currentAnimData.projectiles;
     return !!(pr && pr.spawns && pr.spawns.length && chkProj && chkProj.checked);
   }
+  /** Something moves between frame changes, so the stage must redraw every tick. */
+  function animatesBetweenFrames() {
+    return projectilesOn() || !!(currentAnimData && currentAnimData.moves);
+  }
 
-  var MAX_FLIGHT_PX = 160;
-
-  /**
-   * How far from the feet any projectile gets before the cycle restarts, in sprite
-   * pixels, so the canvas can hold the whole flight. Capped: a fast bolt would
-   * otherwise ask for a canvas the width of a room.
-   */
-  function projectileReach() {
-    var out = { x: 0, y: 0 };
-    if (!hasProjectiles()) return out;
-    var pr = currentAnimData.projectiles;
-    var cycle = currentAnimData.totalTicks || 0;
-    pr.spawns.forEach(function(sp) {
-      var anim = pr.anims[sp.idHex];
-      var half = anim ? Math.max(anim.width, anim.height) : 8;
-      var age = Math.max(0, cycle - sp.tick);
-      out.x = Math.max(out.x, Math.min(MAX_FLIGHT_PX, Math.abs(sp.dx) + Math.abs(sp.vx) * age + half));
-      out.y = Math.max(out.y, Math.min(MAX_FLIGHT_PX, Math.abs(sp.dy) + Math.abs(sp.dz) + Math.abs(sp.vy) * age + half));
-    });
-    return out;
+  function sceneBoxFor(walk) {
+    var key = walk + ':' + projectilesOn();
+    if (sceneCache.data !== currentAnimData || sceneCache.key !== key) {
+      var a = currentAnimData;
+      sceneCache = {
+        data: a, key: key,
+        box: motion ? motion.sceneBox(a, { walk: walk, projectiles: projectilesOn() })
+          : { minX: -a.originX, maxX: a.width - a.originX, minY: -a.originY, maxY: a.height - a.originY },
+      };
+    }
+    return sceneCache.box;
   }
 
   /** A cached Image for a PNG data URI, or null while it loads (then redraws). */
@@ -721,53 +740,6 @@
     img.onload = function() { loadedImages[png] = img; drawFrame(); };
     img.src = png;
     return null;
-  }
-
-  /** The projectile animation's frame `age` ticks after it spawned (it loops). */
-  function projectileFrame(anim, age) {
-    var total = 0;
-    anim.frames.forEach(function(f) { total += f.ticks; });
-    var t = total > 0 ? age % total : 0;
-    for (var i = 0; i < anim.frames.length; i++) {
-      if (t < anim.frames[i].ticks) return anim.frames[i];
-      t -= anim.frames[i].ticks;
-    }
-    return anim.frames[0];
-  }
-
-  /**
-   * Every spawn whose tick has passed, at spawn + velocity × age. Straight-flying
-   * routines move; others are drawn where they spawned. Height (dz) lifts it.
-   */
-  function drawProjectiles(cx, cy, scale) {
-    if (!hasProjectiles()) return;
-    var pr = currentAnimData.projectiles;
-    var now = (frameStartTicks[currentFrameIdx] || 0) + tickCounter;
-    pr.spawns.forEach(function(sp) {
-      if (now < sp.tick) return;
-      var age = now - sp.tick;
-      var x = cx + (sp.dx + sp.vx * age) * scale;
-      var y = cy + (sp.dy + sp.vy * age - sp.dz) * scale;
-      if (x < -64 || y < -64 || x > canvas.width + 64 || y > canvas.height + 64) return;
-      var anim = pr.anims[sp.idHex];
-      var img = anim ? imageFor(projectileFrame(anim, Math.floor(age)).png) : null;
-      if (img) {
-        ctx.drawImage(img, x - anim.originX * scale, y - anim.originY * scale, anim.width * scale, anim.height * scale);
-      }
-      // Spawn point, and the projectile's own origin.
-      var sx = cx + sp.dx * scale;
-      var sy = cy + (sp.dy - sp.dz) * scale;
-      ctx.strokeStyle = '#33ccff';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(sx, sy - 4); ctx.lineTo(sx + 4, sy); ctx.lineTo(sx, sy + 4); ctx.lineTo(sx - 4, sy); ctx.closePath();
-      ctx.stroke();
-      if (!img) {
-        ctx.beginPath();
-        ctx.arc(x, y, 3, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-    });
   }
 
   // ── Raw Sprites Mode Handling ───────────────────────────────────────────────

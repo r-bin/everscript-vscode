@@ -62,6 +62,13 @@ else; the linear walker reads `opcode()` too.
   scratch). `dec_jnz` (`0x39`) / `jump_pos` (`0x3A`) / `jump` (`0x3B`) /
   `jump_if_linked` (`0x54`) all jump to a u16 in the script's own bank.
 
+- **Motion** (`runAnimation(rom, script, facing)`): `step n` moves `(n + f) >> 2` px
+  with `f` dithering 0, 3, 1, 2 (`$0F36`), so n/4 px per tick on average, along
+  `$8FAF18`. Height `+0x1E` is in **1/16 px**; gravity at `$8FAFF5` is
+  `h += v - 1; v -= 1`, landing at ≤ 0. `wait_landed` holds a frame while airborne.
+  Height and z-speed belong in loop detection, position does not. Don't wrap-merge a
+  run that moves.
+
 ## 4. Never guess
 
 - A width comes from a trace or from reading the handler's `$5D` advances on every

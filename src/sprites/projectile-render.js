@@ -14,7 +14,7 @@ const hex = (v, d) => v.toString(16).padStart(d, '0');
 function renderProjectileAnimation(rom, record, facing, throwerColours) {
     const script = facingScript(rom, record.animRecord, facing);
     if (!script) return null;
-    const run = runAnimation(rom, script);
+    const run = runAnimation(rom, script, facing);
     if (!run.frames.some((f) => f.sprite)) return null;
     const colours = record.palette ? paletteAt(rom, record.palette) : throwerColours;
     const { width, height, originX, originY, images } = composeAligned(rom, run.frames, colours);
@@ -47,6 +47,9 @@ function renderProjectiles(rom, vmFrames, facing, throwerColours) {
                 id: sp.id,
                 idHex: key,
                 tick: t + sp.at,
+                ex: sp.ex,
+                ey: sp.ey,
+                ez: sp.ez,
                 dx: sp.dx,
                 dy: sp.dy,
                 dz: sp.dz,

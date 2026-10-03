@@ -23,6 +23,7 @@ Unify and modernize the first two tabs of SoETilesViewer into an interactive, re
 | `sprites-tab.js` | Server-side tab pane HTML scaffold | < 200 |
 | `webview/sprites-view.js` | Client-side webview controller, rAF animation loop, canvas drawing | < 350 |
 | `webview/sprites-script.js` | Script listing panel (current-frame highlight, owners) and the Animations rail list; loaded before `sprites-view.js` | < 200 |
+| `webview/sprites-motion.js` | Stage geometry: walk path, jump height, projectile flight, and the scene box the canvas must hold | < 160 |
 | `webview/sprites-layout.css` | Styling adhering to VS Code theme tokens | < 300 |
 | `index.js` | Public API exports | < 50 |
 

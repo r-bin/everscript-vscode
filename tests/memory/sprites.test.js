@@ -321,6 +321,44 @@ if (rom) {
         assert.strictEqual(wave.paletteAddr, 0xad8b, 'drawn in the throwing weapon\'s palette');
     });
 
+    test('walking moves the Boy: step 5 per tick is 1.25 px, 60 px east per cycle', () => {
+        const run = runAnimation(rom, 0xc80efa, 4);           // Boy walk, facing east
+        assert.strictEqual(run.moves, true);
+        const end = run.frames[run.frames.length - 1].motion.slice(-1)[0];
+        assert.deepStrictEqual(end, [60, 0, 0]);
+        assert.strictEqual(run.totalTicks, 48);
+        const south = runAnimation(rom, 0xc80efa, 8).frames.slice(-1)[0].motion.slice(-1)[0];
+        assert.deepStrictEqual(south, [0, 60, 0], 'facing 8 walks +y ($8FAF18)');
+    });
+
+    test('Skelesnail attack jumps: hop 32 peaks at 31 px and wait_landed holds until it lands', () => {
+        const run = runAnimation(rom, 0xc9113b, 8);
+        assert.strictEqual(run.complete, true);
+        const jump = run.frames[2];
+        assert.strictEqual(jump.ticks, 64, 'the hop frame lasts exactly the airtime');
+        const peak = Math.max(...jump.motion.map(m => m[2]));
+        assert.strictEqual(peak, 496);                          // 1/16 px: 31 px
+        assert.strictEqual(jump.motion.slice(-1)[0][2], 0, 'lands at the end of the frame');
+        assert.deepStrictEqual(run.frames.slice(-1)[0].motion.slice(-1)[0], [0, 54, 0]);
+    });
+
+    test('a standing idle does not move, and still wraps its cycle', () => {
+        const run = runAnimation(rom, 0xc70168, 8);             // Wimpy Flower
+        assert.strictEqual(run.moves, false);
+        assert.strictEqual(run.frames.length, 1);
+    });
+
+    test('renderAnimation sends motion and a ground shadow layer', () => {
+        const anim = renderAnimation(rom, 98, { key: 'atk0', offset: 0x38 }, 8);
+        assert.strictEqual(anim.moves, true);
+        assert(anim.frames.every(f => f.motion.length === f.ticks));
+        assert(anim.shadow, 'Skelesnail sets a second sprite slot');
+        assert(anim.frames.some(f => f.shadowPng));
+        const spear = renderAnimation(rom, 0, { category: 'external', animRec: 0x411e }, 4);
+        const sp = spear.projectiles.spawns[0];
+        assert.strictEqual(typeof sp.ex, 'number', 'spawns carry the thrower position');
+    });
+
     test('renderAnimation returns a script listing with frame line addresses', () => {
         const anim = renderAnimation(rom, 140, { category: 'external', animRec: 0x4dd2 }, 0);
         assert(anim.script.length > 10);

@@ -35,7 +35,7 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
 
     // Run the script the way the engine does: holds are checkpoints, counted
     // loops repeat, and a strike lasts exactly the ticks that run it.
-    const run = runAnimation(rom, scriptAddr);
+    const run = runAnimation(rom, scriptAddr, facing);
     const script = scriptListing(rom, scriptAddr);
     if (!run.frames.length) {
         return { projectiles: [], width: 0, height: 0, originX: 0, originY: 0, complete: run.complete, scriptAddr,
@@ -46,6 +46,11 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
     const strikes = distinctStrikes(run.frames);
     const colours = animOpt.paletteAddr ? paletteAt(rom, animOpt.paletteAddr) : characterPalette(rom, characterId);
     const { width, height, originX, originY, images, infos } = composeAligned(rom, run.frames, colours);
+    // The second sprite slot (usually the shadow) as its own layer: it stays on the
+    // ground while height lifts the main sprite.
+    const shadow = run.frames.some((f) => f.sprite2 && f.sprite2 !== f.sprite)
+        ? composeAligned(rom, run.frames.map((f) => ({ sprite: f.sprite2 })), colours)
+        : null;
     const frames = [];
 
     for (let i = 0; i < images.length; i++) {
@@ -79,6 +84,8 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
             step: f.step,
             random: f.random || null,
             spawns: f.spawns,
+            motion: f.motion,
+            shadowPng: shadow && f.sprite2 ? shadow.images[i] : null,
             chunks: chunkList,
         });
     }
@@ -99,6 +106,8 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
         totalTicks: run.totalTicks,
         stoppedAtHex: run.stoppedAt ? hex6(run.stoppedAt) : null,
         projectiles,
+        moves: run.moves,
+        shadow: shadow ? { width: shadow.width, height: shadow.height, originX: shadow.originX, originY: shadow.originY } : null,
     };
 }
 

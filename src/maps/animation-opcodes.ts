@@ -23,7 +23,8 @@ export type OpKind =
     | 'plain' | 'hold' | 'hold_operand' | 'hold_random' | 'sprite' | 'sprite2' | 'reset'
     | 'loop' | 'restart_here' | 'jump' | 'dec_jnz' | 'jump_pos' | 'jump_if_linked'
     | 'set8' | 'set16' | 'set24' | 'add8' | 'add16' | 'clear'
-    | 'strike' | 'step' | 'sprite_long' | 'sprite_aim' | 'projectile';
+    | 'strike' | 'step' | 'sprite_long' | 'sprite_aim' | 'projectile'
+    | 'hop' | 'hop_maybe' | 'wait_landed';
 
 export interface Opcode {
     /** Total bytes, opcode included. */
@@ -63,10 +64,10 @@ const OPCODES: Record<number, Opcode> = {
     0x40: op(3, 'op_40'),
     0x41: op(1, 'step0'),
     0x42: op(2, 'step', 'step'),
-    0x43: op(1, 'wait_landed'),
+    0x43: op(1, 'wait_landed', 'wait_landed'),
     0x44: op(1, 'op_44'),
-    0x45: op(3, 'hop'),
-    0x46: op(3, 'op_46'),
+    0x45: op(3, 'hop', 'hop'),
+    0x46: op(3, 'hop_maybe', 'hop_maybe'),
     0x47: op(5, 'strike', 'strike'),
     0x48: op(1, 'op_48'),
     0x49: op(3, 'op_49'),
@@ -164,6 +165,7 @@ function operands(rom: Uint8Array, p: number, o: Opcode): string {
         }
         default: break;
     }
+    if (o.kind === 'hop' || o.kind === 'hop_maybe') return String(signed16(w(1)));
     if (o.mnemonic === 'mode') return '$' + hex(w(1), 4);
     if (o.mnemonic === 'sound' || o.mnemonic === 'sound_maybe') return '$' + hex(b(1), 2);
     if (o.mnemonic === 'hurtbox') return `${signed16(w(1))}, ${signed16(w(3))}`;

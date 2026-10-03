@@ -221,11 +221,11 @@ animation uses them. They are presumably for effects and menu scripts.
 | Op | Bytes | Mnemonic | Meaning | Handler | Census |
 |---|---|---|---|---|---|
 | `41` | 1 | `step0` | When `+0x3C` has bit `$2000`, calls the mover with distance 0 | `$9086A9` | 1599 |
-| `42` | 2 | `step n` | Moves `(n + $0F36) / 4` px along the facing, capped by `+0x64`. Negative `n` moves backwards (`facing ^ 8`). Usually placed after a hold, so it runs every tick | `$90866C` | 1930 |
-| `43` | 1 | `wait_landed` | Holds while height `+0x1E` / z-speed `+0x20` are non-zero | `$9086C3` | 25 |
+| `42` | 2 | `step n` | Moves `(n + f) >> 2` px along the facing, where `f` is a dither (0, 3, 1, 2), so n/4 px per tick on average. Capped by `+0x64`. Negative `n` moves backwards (`facing ^ 8`). See [Movement and height](#movement-and-height) | `$90866C` | 1930 |
+| `43` | 1 | `wait_landed` | Adds a tick to the frame timer while height `+0x1E` or z-speed `+0x20` is non-zero, so the frame lasts until the entity lands | `$9086C3` | 25 |
 | `44` | 1 | — | Compares `+0x1E`, may bump the frame timer | `$9086D4` | 16 |
-| `45` | 3 | `hop v` | Word into `+0x20` (vertical speed) | `$9086E5` | 42 |
-| `46` | 3 | — | Two paths, both consume a word | `$9086FE` | 2 |
+| `45` | 3 | `hop v` | z-speed (`+0x20`) = `v`, unless height is already ≥ `$640` | `$9086E5` | 42 |
+| `46` | 3 | `hop_maybe v` | When on the ground, sets z-speed = `v` on a coin toss (a random bit from `$0E94`) | `$9086FE` | 2 |
 | `5B` | 1 | `mark_position` | Copies position + a facing-table offset to `$0FCA..$0FCE` | `$9085C1` | 16 |
 
 ### Combat
@@ -389,6 +389,59 @@ c70083  d3              end_check!
 c70084  2d              loop
 ```
 
+## Movement and height
+
+**x and y.** `step n` (`$90866C`) calls the mover `$8FAD51` with a distance of
+`(n + f) >> 2` px, computed in 8 bits. `f` is `$0F36`, which the per-frame
+entity update sets to `$8FB090[f]` (`$8FAFCA`). That table is `3, 2, 0, 1`, so
+`f` cycles 0, 3, 1, 2: a dither, which makes `step n` move exactly n/4 px per
+tick on average. A negative `n` moves `-n` the other way (`facing ^ 8`). The
+mover's direction table at `$8FAF18` is the same as the projectiles':
+
+| Facing | 0 | 2 | 4 | 6 | 8 | 10 | 12 | 14 |
+|---|---|---|---|---|---|---|---|---|
+| (dx, dy) | (0, −d) | (+d, −d) | (+d, 0) | (+d, +d) | (0, +d) | (−d, +d) | (−d, 0) | (−d, −d) |
+
+The mover caps `d` at entity `+0x64` and then runs collision. Neither is
+modelled. The Boy's walk is `step 5` on every tick: 1.25 px per tick, 60 px
+per 48-tick cycle.
+
+**Height.** Height is entity `+0x1E` in 1/16 px; projectile spawn heights add
+`dz × 16` to it. z-speed is `+0x20`. The per-frame update integrates them at
+`$8FAFF5`:
+
+```
+8FAFF5  LDA $0020,X      ; v
+8FAFF8  DEC              ; v - 1   (gravity: 1 per tick)
+8FAFFA  ADC $001E,X      ; + h
+8FAFFD  BEQ / BPL        ; at or below 0: landed
+8FB001  STZ $0020,X / STZ $001E,X
+8FB009  STA $001E,X      ; otherwise h = h + v - 1
+8FB00C  DEC $0020,X      ;           v = v - 1
+```
+
+`hop v` sets `v`. `wait_landed` keeps a hold going while `h` or `v` is
+non-zero. Together they make a jump frame last exactly its airtime:
+
+```
+c91152  sprite $cd2aa0
+c91155  hop 32           ; Skelesnail attack
+c91158  hold 1
+c91159  wait_landed      ; +1 tick while airborne
+c9115a  step 2!          ; and it keeps lunging forward every tick
+```
+
+That frame lasts 64 ticks and peaks at 496/16 = **31 px**. The attack lunges
+54 px in all.
+
+**What the interpreter assumes:** physics runs once per tick, after the
+script (the order inside a tick is not traced, and it moves results by at
+most one tick); the dither starts at 0; `hop_maybe` is taken; and `0x44`,
+which compares height with the global `$0E96`, never adds a tick. The second
+sprite slot is drawn on the ground as a shadow while height lifts the main
+sprite. That fits the Skelesnail, whose second slot is set before its hop, but
+the engine's draw order for it is not traced.
+
 ## Projectiles
 
 `projectile $id, dx, dy, dz` (`0x4C`, `$908725`) puts the spawn point at
@@ -458,6 +511,10 @@ tab:
   `2 + 2`.
 - **Each `projectile` spawn is recorded** with its tick in the frame, so a
   viewer can launch it at the right moment.
+- **x, y and height are tracked per tick** for the facing being played, so a
+  walk carries the sprite and a jump lifts it (above). Height and z-speed are
+  part of the loop-detection state; position is not, because a walk never
+  repeats one.
 
 **One-shots end on `end_check!`.** A death or vanish script ends with
 `end_check!`, and the engine retires the entity there. The bytes after it are

@@ -15,6 +15,7 @@ import { opcode, spriteOperand, sprite2Operand, sprite24At, jumpTarget, END_FRAM
 
 const at = (rom: Uint8Array, snes: number): number => readByte(rom, snesToRom(snes));
 const signed8 = (v: number): number => (v << 24) >> 24;
+const signed16 = (v: number): number => (v << 16) >> 16;
 
 /**
  * The animation records: `$C40000 + record`, 4 bytes each, from `$C43E3A` to
@@ -94,6 +95,31 @@ export function animationIdRecord(rom: Uint8Array, id: number): number {
 /** One strike box, centred at (dx, dy) from the feet. */
 export interface VmStrike { dx: number; dy: number; width: number; height: number }
 
+/**
+ * How the entity moves, all from the code:
+ *
+ * - `step n` (`$90866C`) moves `(n + f) >> 2` px along the facing, where `f` is
+ *   `$0F36`, which steps 0, 3, 1, 2 every tick (`$8FAFCA`, table `$8FB090`): a
+ *   dither, so `step n` averages exactly n/4 px per tick. Negative n moves
+ *   backwards (facing ^ 8). Direction per facing is `$8FAF18`.
+ * - Height (+0x1E, 1/16 px) and vertical speed (+0x20) integrate once per tick
+ *   at `$8FAFF5`: h' = h + v - 1; at or below 0 the entity lands (both 0),
+ *   otherwise h = h' and v -= 1. `hop v` (`$9086E5`) sets the speed unless h is
+ *   already `$640` or more; `wait_landed` (`$9086C3`) adds a tick to the frame
+ *   timer while h or v is non-zero, holding the frame until it lands.
+ *
+ * Not modelled: the mover's per-entity cap (+0x64) and collision, `0x44`'s
+ * comparison against the global `$0E96`, and `hop_maybe`'s coin toss (taken).
+ */
+const DITHER = [0, 3, 1, 2];
+const DIRECTION: Record<number, [number, number]> = {
+    0: [0, -1], 2: [1, -1], 4: [1, 0], 6: [1, 1],
+    8: [0, 1], 10: [-1, 1], 12: [-1, 0], 14: [-1, -1],
+};
+const HOP_CEILING = 0x640;
+/** Height is kept in 1/16 px. */
+export const HEIGHT_UNITS = 16;
+
 /** A `projectile` command that ran: what it throws and where, relative to the feet. */
 export interface VmSpawn {
     /** Projectile record id (`$900000 + id`, ./projectiles). */
@@ -104,6 +130,10 @@ export interface VmSpawn {
     dz: number;
     /** Ticks into its frame when it spawned. */
     at: number;
+    /** Where the thrower stood (px from its start) and its height (1/16 px) at that moment. */
+    ex: number;
+    ey: number;
+    ez: number;
 }
 
 /** One displayed frame: consecutive ticks that look the same. */
@@ -122,6 +152,8 @@ export interface VmFrame {
     random?: [number, number];
     /** Projectiles thrown during this frame. */
     spawns: VmSpawn[];
+    /** Position after each tick of the frame: [x px, y px, height in 1/16 px], from the start. */
+    motion: Array<[number, number, number]>;
 }
 
 export interface VmResult {
@@ -131,6 +163,8 @@ export interface VmResult {
     totalTicks: number;
     /** Where it stopped on a command of unknown width. */
     stoppedAt?: number;
+    /** True when the entity moves or leaves the ground at any point. */
+    moves: boolean;
 }
 
 const MAX_TICKS = 6000;
@@ -148,8 +182,20 @@ const sameStrike = (a: VmStrike | null, b: VmStrike | null): boolean =>
  * entity (`jump_if_linked` is not taken), and variables the script never set
  * read as zero. `hold_random` takes the middle of its range and says so.
  */
-export function runAnimation(rom: Uint8Array, script: number): VmResult {
+export function runAnimation(rom: Uint8Array, script: number, facing = 8): VmResult {
     let resume = script;
+    let x = 0;
+    let y = 0;
+    let h = 0;
+    let v = 0;
+    let phase = 0;
+    let moves = false;
+    const move = (dir: number, d: number) => {
+        const [ux, uy] = DIRECTION[dir & 0x0e];
+        x += ux * d;
+        y += uy * d;
+        if (d) moves = true;
+    };
     let timer = 1;
     let sprite: number | null = null;
     let sprite2: number | null = null;
@@ -165,7 +211,8 @@ export function runAnimation(rom: Uint8Array, script: number): VmResult {
     const set16 = (f: number, v: number) => { vars.set(f, v & 0xff); vars.set(f + 1, (v >> 8) & 0xff); };
 
     ticks: for (let tick = 0; tick < MAX_TICKS && frames.length < MAX_FRAMES; tick++) {
-        const state = `${resume}:${timer}:${[...vars].join(',')}`;
+        // Height and speed are part of the state: mid-air, the same pointer is not a repeat.
+        const state = `${resume}:${timer}:${h}:${v}:${[...vars].join(',')}`;
         if (seen.has(state)) { complete = true; break; }
         seen.add(state);
 
@@ -221,25 +268,39 @@ export function runAnimation(rom: Uint8Array, script: number): VmResult {
                 }
                 case 'jump': next = jumpTarget(rom, q, o.kind); break;
                 case 'strike': strike = { dx: signed8(b(1)), dy: signed8(b(2)), width: b(3), height: b(4) }; break;
-                case 'step': step += signed8(b(1)); break;
+                case 'step': {
+                    const n = signed8(b(1));
+                    step += n;
+                    move(n >= 0 ? facing : facing ^ 8, ((Math.abs(n) + DITHER[phase]) & 0xff) >> 2);
+                    break;
+                }
+                case 'hop': v = h < HOP_CEILING ? signed16(b(1) | (b(2) << 8)) : 0; break;
+                case 'hop_maybe': if (h === 0) v = signed16(b(1) | (b(2) << 8)); break;
+                case 'wait_landed': if (h !== 0 || v !== 0) timer += 1; break;
                 case 'projectile':
-                    spawns.push({ id: b(1) | (b(2) << 8), dx: signed8(b(3)), dy: signed8(b(4)), dz: signed8(b(5)), at: 0 });
+                    spawns.push({ id: b(1) | (b(2) << 8), dx: signed8(b(3)), dy: signed8(b(4)), dz: signed8(b(5)), at: 0, ex: x, ey: y, ez: h });
                     break;
                 default: break;           // loop restarts are where the run stops; jump_if_linked is not taken
             }
             if (raw & END_FRAME) {
                 timer -= 1;
                 if (timer <= 0) { timer = 1; resume = next; }
+                // The tick's physics: gravity, then the dither moves on.
+                const h2 = h + v - 1;
+                if (h2 <= 0) { h = 0; v = 0; } else { h = h2; v -= 1; moves = true; }
+                phase = (phase + 1) % DITHER.length;
+                const sample: [number, number, number] = [x, y, h];
                 const last = frames[frames.length - 1];
                 if (last && last.sprite === sprite && last.sprite2 === sprite2 && sameStrike(last.strikeBox, strike)) {
                     for (const sp of spawns) sp.at = last.ticks;
                     last.ticks += 1;
                     last.step += step;
                     last.spawns.push(...spawns);
+                    last.motion.push(sample);
                     for (const a of ran) if (!last.lines.includes(a)) last.lines.push(a);
                     if (random) last.random = random;
                 } else {
-                    frames.push({ sprite, sprite2, ticks: 1, strikeBox: strike, lines: ran, step, random, spawns });
+                    frames.push({ sprite, sprite2, ticks: 1, strikeBox: strike, lines: ran, step, random, spawns, motion: [sample] });
                 }
                 totalTicks += 1;
                 continue ticks;
@@ -251,7 +312,8 @@ export function runAnimation(rom: Uint8Array, script: number): VmResult {
     // A cycle's last frame runs straight into its first.
     const first = frames[0];
     const last = frames[frames.length - 1];
-    if (complete && frames.length > 1 && first.sprite === last.sprite && first.sprite2 === last.sprite2
+    // Not when it moves: the tail stands where the cycle ends, not where it starts.
+    if (complete && !moves && frames.length > 1 && first.sprite === last.sprite && first.sprite2 === last.sprite2
         && !first.strikeBox && !last.strikeBox) {
         frames.pop();
         // The tail plays first now: the old first frame's spawns move later by its length.
@@ -259,7 +321,8 @@ export function runAnimation(rom: Uint8Array, script: number): VmResult {
         first.spawns = [...last.spawns, ...first.spawns];
         first.ticks += last.ticks;
         first.step += last.step;
+        first.motion = [...last.motion, ...first.motion];
         for (const a of last.lines) if (!first.lines.includes(a)) first.lines.push(a);
     }
-    return { frames, complete, totalTicks, stoppedAt };
+    return { frames, complete, totalTicks, stoppedAt, moves };
 }
