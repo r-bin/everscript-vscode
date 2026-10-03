@@ -80,7 +80,7 @@ export {
 export type {
     Direction, GridLayer, DirectionalAdjacency, DirectionalRelated, DirectionalTally, ResolvedCell,
 } from './vanilla-adjacency';
-export { blankRoom, emptyStamp, roomProblems, MIN_TILES, MAX_TILES } from './blank-room';
+export { blankRoom, emptyStamp, roomProblems, MIN_WIDTH, MIN_HEIGHT, MAX_TILES } from './blank-room';
 export type { BlankRoomOptions } from './blank-room';
 export { proceduralPatch } from './vanilla-procedural';
 export type { ProceduralTile } from './vanilla-procedural';

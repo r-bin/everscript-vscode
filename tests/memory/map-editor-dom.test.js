@@ -1857,21 +1857,22 @@ async function main() {
         editReset(0x34);
         const d = editDraft();
         d.on = true;
-        d.blank = { widthTiles: 4, heightTiles: 4, borrowedFrom: 0x34, problems: [] };
-        _mtPalette = Object.assign({}, _mtPalette, { widthTiles: 4, heightTiles: 4 });
-        d.cells['3,3'] = 0;
+        // One screen is the smallest room (rom-export.md), so the map starts above it.
+        d.blank = { widthTiles: 20, heightTiles: 18, borrowedFrom: 0x34, problems: [] };
+        _mtPalette = Object.assign({}, _mtPalette, { widthTiles: 20, heightTiles: 18 });
+        d.cells['19,17'] = 0;
         d.cells['0,0'] = 0;
         const wrap = document.getElementById('rg-wrap');
         if (!document.getElementById('rg-resize')) {
             wrap.insertAdjacentHTML('beforeend', buildResizeHandleHtml());
         }
         const svg = document.getElementById('rg-svg');
-        svg.setAttribute('width', 400); svg.setAttribute('height', 400);
-        svg.style.width = '400px'; svg.style.height = '400px';
-        wrap.style.width = '400px'; wrap.style.height = '400px';
-        svg.setAttribute('viewBox', '0 0 8 8');
+        svg.setAttribute('width', 400); svg.setAttribute('height', 360);
+        svg.style.width = '400px'; svg.style.height = '360px';
+        wrap.style.width = '400px'; wrap.style.height = '360px';
+        svg.setAttribute('viewBox', '0 0 40 36');
         const img = document.getElementById('rg-img');
-        ['x', 'y'].forEach((a) => img.setAttribute(a, 0)); img.setAttribute('width', 8); img.setAttribute('height', 8);
+        ['x', 'y'].forEach((a) => img.setAttribute(a, 0)); img.setAttribute('width', 40); img.setAttribute('height', 36);
         setupEditGestures();
         // v0.94.0: the grip sits on the map's own corner, shown only on a drafted map.
         editPlaceResizeGrip();
@@ -1880,8 +1881,8 @@ async function main() {
     const gb = await grip.boundingBox();
     await page.mouse.move(gb.x + 6, gb.y + 6);
     await page.mouse.down();
-    // 400px over four tiles is 100px each; two tiles smaller each way.
-    await page.mouse.move(gb.x + 6 - 200, gb.y + 6 - 200, { steps: 4 });
+    // 400px over 20 tiles is 20px each; two tiles smaller each way.
+    await page.mouse.move(gb.x + 6 - 40, gb.y + 6 - 40, { steps: 4 });
     const live = await page.evaluate(() => ({
         size: _resizing && [_resizing.w, _resizing.h],
         label: document.getElementById('rg-resize-label').textContent,
@@ -1889,35 +1890,43 @@ async function main() {
         painted: Object.keys(editDraft().cells).length,
     }));
     check('dragging the grip tracks a size in tiles',
-        live.size && live.size[0] === 2 && live.size[1] === 2, JSON.stringify(live));
+        live.size && live.size[0] === 18 && live.size[1] === 16, JSON.stringify(live));
     check('and says what it costs before the mouse comes up',
-        /2×2/.test(live.label) && /bytes/.test(live.label) && live.shown === 'block', live.label);
-    // The grid and the dictionary share one 32768-byte window: 2*2*2 for the
+        /18×16/.test(live.label) && /bytes/.test(live.label) && live.shown === 'block', live.label);
+    // The grid and the dictionary share one 32768-byte window: 18*16*2 for the
     // grid, plus 8 for the room's one stamp.
-    check('the cost is the grid plus the dictionary', /16\/32768 bytes/.test(live.label), live.label);
+    check('the cost is the grid plus the dictionary', /584\/32768 bytes/.test(live.label), live.label);
     check('and it says which cells the shrink would hide — kept, not dropped',
         /hides 1 cell \(kept\)/.test(live.label), live.label);
     check('the drag is not also a paint stroke', live.painted === 2, String(live.painted));
 
+    // Further than one screen and the grip holds at 16×14: the game draws a
+    // smaller room scrambled (rom-export.md).
+    await page.mouse.move(gb.x + 6 - 300, gb.y + 6 - 300, { steps: 4 });
+    const floor = await page.evaluate(() => ({ size: [_resizing.w, _resizing.h],
+        label: document.getElementById('rg-resize-label').textContent }));
+    check('the grip stops at one screen, 16×14, and says so',
+        floor.size.join() === '16,14' && /one screen \(16×14\) is the smallest/.test(floor.label), JSON.stringify(floor));
+    await page.mouse.move(gb.x + 6 - 40, gb.y + 6 - 40, { steps: 4 });
     await page.mouse.up();
     const resized = await page.evaluate(
         () => window.__sent.filter((m) => m.command === 'requestBlankRoom').pop());
     check('releasing asks the host for a map that size',
-        resized && resized.widthTiles === 2 && resized.heightTiles === 2, JSON.stringify(resized));
+        resized && resized.widthTiles === 18 && resized.heightTiles === 16, JSON.stringify(resized));
 
     // A resize keeps every cell — past the new edge they are hidden, not
     // encoded, and back if the map grows (v0.94.0); a new room keeps none.
     await page.evaluate(() => applyBlankRoom({ room: {
-        widthTiles: 2, heightTiles: 2, borrowedFrom: 0x34, baseMetatile: 8,
+        widthTiles: 18, heightTiles: 16, borrowedFrom: 0x34, baseMetatile: 576,
         imageUri: 'data:image/png;base64,cg==', tileFamilies: [35], problems: [],
         budget: _mtPalette.budget } }));
     const kept = await page.evaluate(() => ({ cells: Object.keys(editDraft().cells).sort(),
         exported: editExport(_mtPalette).cells.map((c) => c.x + ',' + c.y) }));
-    check('a shrink keeps every cell in the draft', kept.cells.join() === '0,0,3,3', JSON.stringify(kept));
+    check('a shrink keeps every cell in the draft', kept.cells.join() === '0,0,19,17', JSON.stringify(kept));
     check('but only the ones inside the map are exported', kept.exported.join() === '0,0', JSON.stringify(kept));
     const pulledIn = await page.evaluate(() => editDraft().start);
     check('and the Boy is pulled back inside, never off the map',
-        pulledIn && pulledIn.x <= 1 && pulledIn.y <= 1, JSON.stringify(pulledIn));
+        pulledIn && pulledIn.x <= 17 && pulledIn.y <= 15, JSON.stringify(pulledIn));
 
     // A ROM room cannot resize: baseMetatile is w*h*2, so it would renumber
     // every metatile id in the room.

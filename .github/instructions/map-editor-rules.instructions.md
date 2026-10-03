@@ -226,7 +226,7 @@ room with no Block 1 renders black), and **nothing else**:
   undo step). It is never a `specialCells` entry, and erase must never reach
   it. ROM rooms have no start marker; their entrances are their doors.
 
-**The game needs a room of at least one screen (16×14).** A smaller custom map is fine in the editor; Export ROM grows it with solid empty cells right and below (`padToScreen`, rom-export.md). Below that, the engine's first tilemap upload reads outside the grid and the screen comes out scrambled, while every check on the blob still passes.
+**A room is never smaller than one screen (16×14).** Below that the game draws it scrambled: the engine's first tilemap upload reads outside the grid, while every check on the blob still passes (rom-export.md). So the resize grip stops at 16×14, the host drafts nothing smaller (`MIN_WIDTH`/`MIN_HEIGHT`, blank-room.ts; an older smaller map opens grown, cells kept), and the encoder refuses one. **A widget's canvas is exempt**: it is never a room, so it still goes down to 1×1 (`minTiles: 1`).
 
 **Resizing a custom map never deletes cells.** Past a smaller map's edge they stay in `_edit.cells`, undrawn and not encoded (the ROM export reads the grid; `editExport` skips them), so growing it again brings them back. A ROM room does not resize at all: its dictionary starts right after the grid.
 

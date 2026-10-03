@@ -2650,12 +2650,13 @@ test('a hover shows what a click would do, and looking adds nothing to the dicti
     d.tool = 'paint';
 });
 
-test('a widget canvas goes down to 1×1, a room stays at 2×2; its name line becomes an app bar', () => {
-    assert.strictEqual(ui.clampRoomSide(0, 5), 2, 'a room: 2 is the smallest grid that encodes');
-    assert.strictEqual(ui.clampRoomSide(1, 5), 2);
+test('a widget canvas goes down to 1×1, a room stays at one screen (16×14); its name line becomes an app bar', () => {
+    assert.strictEqual(ui.clampRoomSide(0, 20, 'w'), 16, 'a room: one screen wide, or the game draws it scrambled');
+    assert.strictEqual(ui.clampRoomSide(2, 20, 'h'), 14, 'and one screen high');
+    assert.strictEqual(ui.clampRoomSide(17, 20, 'w'), 17, 'bigger is fine');
     ui.setWidgetEdit({ key: 'widget-t', widget: 'w-t', name: 'Pot', w: 1, h: 1, borrow: 0x34 });
-    assert.strictEqual(ui.clampRoomSide(1, 5), 1, 'a widget: one cell is fine');
-    assert.strictEqual(ui.clampRoomSide(0, 5), 1, 'and a drag past it stops there, not back at the start');
+    assert.strictEqual(ui.clampRoomSide(1, 5, 'w'), 1, 'a widget: one cell is fine');
+    assert.strictEqual(ui.clampRoomSide(0, 5, 'h'), 1, 'and a drag past it stops there, not back at the start');
     const head = ui.widgetEditHeadHtml();
     assert.ok(/rg-appbar-back[^>]*data-widget-act="done"/.test(head), 'back on the left saves and returns');
     assert.ok(head.includes('id="rg-widget-name"') && head.includes('value="Pot"'), 'the name is the title');

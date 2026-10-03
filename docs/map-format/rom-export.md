@@ -70,26 +70,37 @@ collision) from the editor:
   origin 0.
 - **Empty:** triggers, objects, and cuttable grass (Section 4 = `[0x00]`).
 
-## Smaller than a screen
+## At least one screen: 16×14
 
-The engine draws a room correctly only when it is at least one screen,
-**16×14 tiles**. Every vanilla room is bigger (the smallest is 17×15,
-`0x50`). A smaller room loads, but its first full-screen tilemap upload reads
-outside the grid whenever the Boy starts away from the top-left corner: BG2
-keeps a stale tile everywhere and BG1 gets bytes from the dictionary. The
-grid and dictionary in WRAM and the graphics in VRAM are all correct; only
-the BG tilemaps are wrong, so the read-back check cannot see it.
+A room must be at least one screen, **16×14 tiles** (256×224 pixels). Every
+vanilla room is bigger: the smallest is 17×15 (`0x50`). The format itself
+would encode down to 2×2, so this limit comes from the engine, not the format.
 
-Measured in the bundled snes9x core, booting exports headlessly and comparing
-the VRAM tilemaps with the draft. 4×4..15×14 and 16×13 broke at some start
-positions; every size from 16×14 up drew correctly at every start tried.
+**What goes wrong below it.** A smaller room loads. Its grid and dictionary in
+WRAM and its graphics in VRAM are all correct. But the first full-screen
+tilemap upload reads outside the grid whenever the Boy starts away from the
+top-left corner. BG2 keeps one stale tile everywhere, and BG1 gets bytes from
+the dictionary, so the screen comes out scrambled. The export's read-back
+check decodes the blob, not the screen, so it cannot see this.
 
-So `padToScreen` (`rom-export.js`) grows a smaller map to 16×14 before it is
-encoded. The new cells are right and below, so nothing placed moves. They
-draw the donor's empty word on both layers (what an untouched cell shows)
-and have collision `0x000F`, fully solid, so the Boy cannot walk off the
-drawn map. The report's `paddedFrom` gives the map's own size, and the
-export message says it was grown.
+**How it was measured.** Exports were booted headlessly in the bundled snes9x
+core, and the VRAM tilemaps were compared with the draft. Every size from
+4×4 to 15×14, and 16×13, broke at some start position. Every size from 16×14
+up drew correctly at every start tried.
+
+**What enforces it:**
+
+- **The editor.** A custom map never gets smaller than 16×14. The resize grip
+  stops there, and its label says one screen is the smallest
+  (`map-editor-newroom.js`).
+- **The host.** It drafts every room at 16×14 or larger (`blank-room.ts`
+  `MIN_WIDTH`/`MIN_HEIGHT`). A map saved smaller by an older version opens
+  grown to 16×14: its cells are kept, and the new cells right and below are
+  empty.
+- **The encoder.** `buildCustomRoomBlob` refuses a smaller grid, so Export ROM
+  and Play in emulator fail with a message instead of writing a scrambled ROM.
+- **Widgets are exempt.** A widget's canvas is never encoded as a room, so it
+  still goes down to 1×1 (`minTiles: 1`).
 
 ## The cuttable layer
 

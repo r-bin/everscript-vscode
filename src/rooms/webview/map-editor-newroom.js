@@ -7,19 +7,30 @@
 //
 // See docs/map-format/building-a-room-from-a-picture.md §7.
 
-/** The format's own bounds: 2 is the smallest grid that encodes, 128 is past
- *  the widest vanilla room (`0x3c`, at 127). */
-var NEW_ROOM_MIN = 2;
+/**
+ * A room is at least one screen, 16×14 tiles: the game draws anything
+ * smaller scrambled (maps/blank-room.ts MIN_WIDTH, rom-export.md). 128 is
+ * past the widest vanilla room (`0x3c`, at 127).
+ */
+var NEW_ROOM_MIN_W = 16;
+var NEW_ROOM_MIN_H = 14;
 var NEW_ROOM_MAX = 128;
 
-function clampRoomSide(n, fallback) {
+/** A side clamped to its bounds; `axis` is 'w' or 'h'. */
+function clampRoomSide(n, fallback, axis) {
   var v = Number(n);
-  return Math.max(editMinSide(), Math.min(NEW_ROOM_MAX, isFinite(v) && n !== '' && n != null ? v : fallback));
+  return Math.max(editMinSide(axis), Math.min(NEW_ROOM_MAX, isFinite(v) && n !== '' && n != null ? v : fallback));
 }
 
 /** A widget's canvas is never encoded as a room, so it goes down to 1×1. */
-function editMinSide() {
-  return typeof widgetEditing === 'function' && widgetEditing() ? 1 : NEW_ROOM_MIN;
+function editMinSide(axis) {
+  if (typeof widgetEditing === 'function' && widgetEditing()) return 1;
+  return axis === 'h' ? NEW_ROOM_MIN_H : NEW_ROOM_MIN_W;
+}
+
+/** Whether a room (not a widget) is held at one screen on either side. */
+function roomAtMinimum(w, h) {
+  return editMinSide('w') > 1 && (w <= NEW_ROOM_MIN_W || h <= NEW_ROOM_MIN_H);
 }
 
 /** Ask the host to draw a blank grid, borrowing this room's graphics. */
@@ -27,7 +38,7 @@ function requestBlankRoom(w, h) {
   if (typeof vs === 'undefined' || !vs) return;
   vs.postMessage({
     command: 'requestBlankRoom', mapName: _mtRoomName,
-    widthTiles: w, heightTiles: h, borrowFrom: _mtRoomId, minTiles: editMinSide(),
+    widthTiles: w, heightTiles: h, borrowFrom: _mtRoomId, minTiles: editMinSide('w'),
   });
 }
 
@@ -170,8 +181,8 @@ function resizeMove(e) {
   var box = svg.getBoundingClientRect();
   var perX = box.width / _resizing.w0;
   var perY = box.height / _resizing.h0;
-  _resizing.w = clampRoomSide(Math.round(_resizing.w0 + (e.clientX - _resizing.x) / perX), _resizing.w0);
-  _resizing.h = clampRoomSide(Math.round(_resizing.h0 + (e.clientY - _resizing.y) / perY), _resizing.h0);
+  _resizing.w = clampRoomSide(Math.round(_resizing.w0 + (e.clientX - _resizing.x) / perX), _resizing.w0, 'w');
+  _resizing.h = clampRoomSide(Math.round(_resizing.h0 + (e.clientY - _resizing.y) / perY), _resizing.h0, 'h');
   resizeLabel();
 }
 
@@ -190,7 +201,9 @@ function resizeLabel() {
   var max = (_mtPalette.budget && _mtPalette.budget.wram.max) || 32768;
   var lost = resizeLostCells(_resizing.w, _resizing.h);
   el.textContent = _resizing.w + '×' + _resizing.h + ' · ' + wram + '/' + max + ' bytes'
-    + (lost ? ' · hides ' + lost + ' cell' + (lost === 1 ? '' : 's') + ' (kept)' : '');
+    + (lost ? ' · hides ' + lost + ' cell' + (lost === 1 ? '' : 's') + ' (kept)' : '')
+    // Held at one screen: the game draws a smaller room scrambled.
+    + (roomAtMinimum(_resizing.w, _resizing.h) ? ' · one screen (16×14) is the smallest' : '');
   el.className = 'rg-resize-label' + (wram > max ? ' over' : '');
   el.style.display = 'block';
   // The new size itself, outlined over the map (map-editor-preview.js).

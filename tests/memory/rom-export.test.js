@@ -376,25 +376,19 @@ if (!fs.existsSync(ROM_PATH)) {
     });
 
     // A map smaller than one screen loads, but the engine's first tilemap
-    // upload reads outside the grid unless the Boy starts top-left — the
-    // scrambled screen of a 14x14 export (rom-export.js padToScreen).
-    test('a map smaller than a screen is grown to 16x14 with solid empty cells, and keeps its own', () => {
-        const w = 14, h = 12;
-        const small = [];
-        for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) small.push(...cells.slice((y * W + x) * 3, (y * W + x) * 3 + 3));
-        const { rom: out, report } = buildExportRom(rom, { ...draft, widthTiles: w, heightTiles: h, cells: small, start: { x: 13, y: 11 } });
-        assert.deepStrictEqual(report.paddedFrom, { widthTiles: w, heightTiles: h });
-        assert.strictEqual(report.widthTiles, 16);
-        assert.strictEqual(report.heightTiles, 14);
-        const room = maps.decodeRoom(out, BRIAN_ROOM);
-        assert.strictEqual(room.header.widthTiles, 16);
-        assert.strictEqual(room.header.heightTiles, 14);
-        const at = (x, y) => [room.layer1VramWords[y][x], room.layer2VramWords[y][x], room.collisionWords[y][x]];
-        assert.deepStrictEqual(at(5, 5), small.slice((5 * w + 5) * 3, (5 * w + 5) * 3 + 3));
-        assert.deepStrictEqual(at(15, 0), [empty.layer1, empty.layer1, 0x000f]);
-        assert.deepStrictEqual(at(0, 13), [empty.layer1, empty.layer1, 0x000f]);
-        assert.deepStrictEqual(report.start, { x: 27, y: 23 }, 'the Boy stays where he was put');
-        assert.strictEqual(buildExportRom(rom, draft).report.paddedFrom, null, 'a full screen is left alone');
+    // upload reads outside the grid unless the Boy starts top-left: the
+    // scrambled screen of a 14x14 export (blank-room.ts MIN_WIDTH).
+    test('a room smaller than one screen (16x14) is never drafted and never exported', () => {
+        const small = (w, h) => ({ ...draft, widthTiles: w, heightTiles: h, cells: new Array(w * h * 3).fill(0), start: { x: 0, y: 0 } });
+        assert.throws(() => buildExportRom(rom, small(14, 14)), /smaller than one screen/);
+        assert.throws(() => buildExportRom(rom, small(16, 13)), /smaller than one screen/);
+        assert.throws(() => buildExportRom(rom, small(15, 14)), /smaller than one screen/);
+        const room = maps.blankRoom(rom, { widthTiles: 14, heightTiles: 2, borrowFrom: 0x34 });
+        assert.deepStrictEqual([room.header.widthTiles, room.header.heightTiles], [16, 14], 'a smaller map opens at one screen');
+        assert.deepStrictEqual(maps.roomProblems(room), []);
+        const widget = maps.blankRoom(rom, { widthTiles: 1, heightTiles: 1, borrowFrom: 0x34, minTiles: 1 });
+        assert.deepStrictEqual([widget.header.widthTiles, widget.header.heightTiles], [1, 1], 'a widget canvas may be 1x1');
+        assert.deepStrictEqual(maps.roomProblems(widget, 1), []);
     });
 
     test('objects are encoded into Section 3 and transition in state 1', () => {

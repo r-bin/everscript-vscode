@@ -375,6 +375,11 @@ passability(0x001F, 1) // -> 15  SOLID
 
 2×2 tiles, one stamp, walkable everywhere.
 
+> This is the smallest grid the **format** encodes. The **game** needs at least
+> one screen, 16×14, or it draws the room scrambled (`rom-export.md`), so the
+> editor and Export ROM never make a room smaller than that. The 2×2 here
+> explains the encoding; the same room at 16×14 is the one to play.
+
 ```
 ┌───┬───┐      stamps: [ {over: blank, under: grass, collision: walk} ]
 │ 0 │ 0 │      grid:   [[0,0],[0,0]]

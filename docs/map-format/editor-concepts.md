@@ -56,7 +56,7 @@ draft is one object, `_edit` (`map-editor.js`).
 A custom map is its own room under **Custom rooms**, saved as
 `<globalStorage>/custom-maps/<key>/map.json` + `history.json`
 (`custom-map-files.md`). It starts as one SNES screen (16×14 cells), resizes from
-2 to 128 cells a side without deleting cells, and has exactly one Boy.
+one screen (16×14, the smallest the game draws, `rom-export.md`) up to 128 cells a side without deleting cells, and has exactly one Boy.
 
 Two write paths:
 

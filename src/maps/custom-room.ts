@@ -12,7 +12,7 @@
 import { decodeRoom } from './room';
 import { RoomModel, buildBlob, encodeBlock1, encodeBlock2, encodeBlock3, modelFromRom } from './encode';
 import { MAX_WRAM } from './budget';
-import { MIN_TILES, MAX_TILES } from './blank-room';
+import { MIN_WIDTH, MIN_HEIGHT, MAX_TILES } from './blank-room';
 import { AnimationIndex } from './vanilla-animation';
 import { ChannelSpec, CustomAnimationPlan, planCustomAnimation, remapWord } from './custom-animation';
 
@@ -151,9 +151,11 @@ const EMPTY_SECTION4 = Uint8Array.from([0x00]);
 export function buildCustomRoomBlob(rom: Uint8Array, input: CustomRoomInput): CustomRoomBlob {
     const w = input.widthTiles | 0;
     const h = input.heightTiles | 0;
-    if (w < MIN_TILES || h < MIN_TILES || w > MAX_TILES || h > MAX_TILES) {
-        throw new Error(`a ${w}x${h} room is outside ${MIN_TILES}..${MAX_TILES} tiles a side`);
+    // One screen at least (blank-room.ts MIN_WIDTH): smaller encodes, but the game draws it scrambled.
+    if (w < MIN_WIDTH || h < MIN_HEIGHT) {
+        throw new Error(`a ${w}x${h} room is smaller than one screen (${MIN_WIDTH}x${MIN_HEIGHT}) — the game draws it scrambled`);
     }
+    if (w > MAX_TILES || h > MAX_TILES) throw new Error(`a ${w}x${h} room is past ${MAX_TILES} tiles a side`);
     if (!Array.isArray(input.cells) || input.cells.length !== w * h * 3) {
         throw new Error(`expected ${w * h * 3} words for a ${w}x${h} grid, got ${input.cells && input.cells.length}`);
     }

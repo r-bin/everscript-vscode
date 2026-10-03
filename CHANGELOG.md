@@ -1,3 +1,14 @@
+## [0.138.0] — 2026-10-03
+
+### Change: [Rooms] a map is never smaller than one screen (16×14)
+
+- The game draws a room smaller than 16×14 scrambled (found in 0.137.1). Instead of padding such a map at export, the editor no longer makes one.
+  - The resize grip stops at 16×14, and its label says one screen is the smallest.
+  - A map saved smaller by an older version opens at 16×14, with its cells kept.
+  - Export ROM and Play in emulator refuse a smaller grid with a message instead of writing a broken ROM.
+- Widget canvases still go down to 1×1: a widget is never exported as a room.
+- The rule and how it was measured are in `docs/map-format/rom-export.md` (*At least one screen*), the room reference, the editor concepts and the map-editor-rules skill.
+
 ## [0.137.1] — 2026-10-03
 
 ### Fix: [Rooms] Export ROM — a map smaller than one screen came out scrambled

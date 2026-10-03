@@ -34,13 +34,25 @@ export interface BlankRoomOptions {
     stamps?: MetatileDraft[];
     /**
      * The smallest side to allow. A widget's canvas is never encoded as a
-     * room, so it may be 1; a room is at least `MIN_TILES`.
+     * room, so it may be 1; a room is at least `MIN_WIDTH`×`MIN_HEIGHT`.
      */
     minTiles?: number;
 }
 
-/** Smallest room the format allows: one stamp, a grid that points at it. */
-export const MIN_TILES = 2;
+/**
+ * The smallest room: one screen, 16×14 tiles (256×224 pixels).
+ *
+ * The format would encode down to 2×2, but the engine does not draw a room
+ * smaller than the screen. It loads, and the grid and dictionary in WRAM and
+ * the graphics in VRAM are all correct, but the first full-screen tilemap
+ * upload reads outside the grid whenever the Boy starts away from the
+ * top-left corner: BG2 keeps one stale tile everywhere and BG1 gets bytes
+ * from the dictionary. Every vanilla room is bigger (the smallest is 17×15,
+ * `0x50`). Measured in the bundled snes9x core over 4×4..20×20 and several
+ * start positions; every map from 16×14 up drew right (rom-export.md).
+ */
+export const MIN_WIDTH = 16;
+export const MIN_HEIGHT = 14;
 
 /** Bigger than any vanilla room (0x3c is 127 wide, 0x65 is 99 tall). */
 export const MAX_TILES = 128;
@@ -104,9 +116,9 @@ export function emptyStamp(room: StampDonor): MetatileDraft {
  * the ids the grid holds are the ids an encoder would write.
  */
 export function blankRoom(rom: Uint8Array, opts: BlankRoomOptions): RoomData {
-    const min = opts.minTiles === 1 ? 1 : MIN_TILES;
-    const widthTiles = clamp(opts.widthTiles, min);
-    const heightTiles = clamp(opts.heightTiles, min);
+    const widget = opts.minTiles === 1;
+    const widthTiles = clamp(opts.widthTiles, widget ? 1 : MIN_WIDTH);
+    const heightTiles = clamp(opts.heightTiles, widget ? 1 : MIN_HEIGHT);
     const base = decodeRoom(rom, opts.borrowFrom);
 
     const stamps = opts.stamps && opts.stamps.length ? opts.stamps : [emptyStamp(base)];
@@ -170,7 +182,7 @@ export function blankRoom(rom: Uint8Array, opts: BlankRoomOptions): RoomData {
     };
 }
 
-function clamp(n: number, min: number = MIN_TILES): number {
+function clamp(n: number, min: number): number {
     const v = Math.round(Number(n) || 0);
     return Math.max(min, Math.min(MAX_TILES, v));
 }
@@ -181,11 +193,13 @@ function clamp(n: number, min: number = MIN_TILES): number {
  * Returned as a list rather than thrown, because the editor wants to show
  * every problem at once and keep working, not stop at the first.
  */
-export function roomProblems(room: RoomData, minTiles: number = MIN_TILES): string[] {
+export function roomProblems(room: RoomData, minTiles?: number): string[] {
     const out: string[] = [];
     const { widthTiles, heightTiles } = room.header;
-    if (widthTiles < minTiles || heightTiles < minTiles) {
-        out.push(`a room smaller than ${MIN_TILES}x${MIN_TILES} has no grid to encode`);
+    const widget = minTiles === 1;
+    if (widget ? widthTiles < 1 || heightTiles < 1 : widthTiles < MIN_WIDTH || heightTiles < MIN_HEIGHT) {
+        out.push(widget ? 'a canvas needs at least one cell'
+            : `a room smaller than one screen (${MIN_WIDTH}x${MIN_HEIGHT}) does not draw in the game`);
     }
     if (room.metatileCount < 1) out.push('a room needs at least one metatile');
     if (room.baseMetatile !== widthTiles * heightTiles * 2) {

@@ -222,7 +222,7 @@ if (!fs.existsSync(ROM_PATH)) {
         const out = rooms.buildDraftCollision(rom, { borrowFrom: 0x34, widthTiles: w, heightTiles: h, cells, mode: 'tiles' });
         assert.ok(out.imageUri.length > 50);
         const buf = { width: 32, height: 32, data: new Uint8ClampedArray(32 * 32 * 4) };
-        const room = maps.blankRoom(rom, { widthTiles: w, heightTiles: h, borrowFrom: 0x34 });
+        const room = maps.blankRoom(rom, { widthTiles: w, heightTiles: h, borrowFrom: 0x34, minTiles: 1 });
         const drafted = { ...room, collisionWords: words, elevationPlanes: maps.planesUsed(words) };
         maps.drawCollisionOverlay(buf, drafted, { contours: true, tiles: true, drift: false, grass: false, gates: false,
             transparent: false, elevation: false, objects: false, triggers: false, labels: false });
