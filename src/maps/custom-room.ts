@@ -10,7 +10,7 @@
 // See docs/map-format/map_encoding.md and rom-export.md.
 
 import { decodeRoom } from './room';
-import { RoomModel, buildBlob, encodeBlock1, encodeBlock2, encodeBlock3, modelFromRom } from './encode';
+import { RoomModel, TriggerRecord, buildBlob, encodeBlock1, encodeBlock2, encodeBlock3, modelFromRom } from './encode';
 import { MAX_WRAM } from './budget';
 import { MIN_WIDTH, MIN_HEIGHT, MAX_TILES } from './blank-room';
 import { AnimationIndex } from './vanilla-animation';
@@ -68,6 +68,10 @@ export interface CustomRoomInput {
     channels?: ChannelSpec[];
     /** Placed objects with state transition frames. */
     objects?: CustomObjectInput[];
+    /** Step-on triggers: walk into the rectangle. */
+    stepOn?: TriggerRecord[];
+    /** B-triggers: press B inside the rectangle. */
+    bTrigger?: TriggerRecord[];
     /**
      * Header bytes the map sets itself rather than taking the donor's: the
      * PPU layer designations and colour math, the effect variant and its
@@ -260,8 +264,20 @@ export function buildCustomRoomBlob(rom: Uint8Array, input: CustomRoomInput): Cu
 
     const model: RoomModel = {
         header,
-        stepOn: [],
-        bTrigger: [],
+        stepOn: (input.stepOn || []).map((t) => ({
+            y1: Math.min(t.y1, t.y2),
+            x1: Math.min(t.x1, t.x2),
+            y2: Math.max(t.y1, t.y2),
+            x2: Math.max(t.x1, t.x2),
+            scriptId: t.scriptId & 0xffff,
+        })),
+        bTrigger: (input.bTrigger || []).map((t) => ({
+            y1: Math.min(t.y1, t.y2),
+            x1: Math.min(t.x1, t.x2),
+            y2: Math.max(t.y1, t.y2),
+            x2: Math.max(t.x1, t.x2),
+            scriptId: t.scriptId & 0xffff,
+        })),
         tileFamilies: families,
         extras: donor.extras,
         block1: encodeBlock1(animation.block1, true),

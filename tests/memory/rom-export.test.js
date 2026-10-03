@@ -440,6 +440,33 @@ if (!fs.existsSync(ROM_PATH)) {
         // Not in state 2's frame: back to the map's own.
         assert.deepStrictEqual(words(s2, 6, 5), words(room, 6, 5));
     });
+
+    test('stepOn and bTrigger triggers (e.g. gourd B-trigger) export and decode', () => {
+        const triggerDraft = {
+            ...draft,
+            bTrigger: [
+                { x1: 5, y1: 5, x2: 6, y2: 6, scriptId: 1854 },
+            ],
+            stepOn: [
+                { x1: 2, y1: 2, x2: 3, y2: 3, scriptId: 477 },
+            ],
+        };
+        const { rom: out } = buildExportRom(rom, triggerDraft);
+        const room = maps.decodeRoom(out, BRIAN_ROOM);
+        assert.strictEqual(room.triggers.bTrigger.length, 1);
+        assert.strictEqual(room.triggers.bTrigger[0].x1, 5);
+        assert.strictEqual(room.triggers.bTrigger[0].y1, 5);
+        assert.strictEqual(room.triggers.bTrigger[0].x2, 7);
+        assert.strictEqual(room.triggers.bTrigger[0].y2, 7);
+        assert.strictEqual(room.triggers.bTrigger[0].scriptId, 1854);
+
+        assert.strictEqual(room.triggers.stepOn.length, 1);
+        assert.strictEqual(room.triggers.stepOn[0].x1, 2);
+        assert.strictEqual(room.triggers.stepOn[0].y1, 2);
+        assert.strictEqual(room.triggers.stepOn[0].x2, 4);
+        assert.strictEqual(room.triggers.stepOn[0].y2, 4);
+        assert.strictEqual(room.triggers.stepOn[0].scriptId, 477);
+    });
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

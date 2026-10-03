@@ -72,6 +72,26 @@ function romExportPayload(why) {
         }),
       };
     }),
+    bTrigger: typeof editTriggerList === 'function' ? editTriggerList('b').map(function (t) {
+      var sId = (typeof t.scriptId === 'number' && !isNaN(t.scriptId) && t.scriptId !== 0) ? Number(t.scriptId) : 477;
+      return {
+        x1: t.x1,
+        y1: t.y1,
+        x2: Math.max(t.x1, t.x2),
+        y2: Math.max(t.y1, t.y2),
+        scriptId: sId,
+      };
+    }) : [],
+    stepOn: typeof editTriggerList === 'function' ? editTriggerList('step').map(function (t) {
+      var sId = (typeof t.scriptId === 'number' && !isNaN(t.scriptId) && t.scriptId !== 0) ? Number(t.scriptId) : 477;
+      return {
+        x1: t.x1,
+        y1: t.y1,
+        x2: Math.max(t.x1, t.x2),
+        y2: Math.max(t.y1, t.y2),
+        scriptId: sId,
+      };
+    }) : [],
   };
 }
 

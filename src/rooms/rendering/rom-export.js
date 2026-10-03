@@ -121,6 +121,20 @@ function buildExportRom(vanilla, draft) {
         families: draft.families || [],
         cut: draft.cut || [],
         objects: draft.objects || [],
+        stepOn: (draft.stepOn || []).map((t) => ({
+            x1: Number(t.x1) || 0,
+            y1: Number(t.y1) || 0,
+            x2: Math.max(Number(t.x1) || 0, Number(t.x2) || 0) + 1,
+            y2: Math.max(Number(t.y1) || 0, Number(t.y2) || 0) + 1,
+            scriptId: Number(t.scriptId) || 0,
+        })),
+        bTrigger: (draft.bTrigger || []).map((t) => ({
+            x1: Number(t.x1) || 0,
+            y1: Number(t.y1) || 0,
+            x2: Math.max(Number(t.x1) || 0, Number(t.x2) || 0) + 1,
+            y2: Math.max(Number(t.y1) || 0, Number(t.y2) || 0) + 1,
+            scriptId: Number(t.scriptId) || 0,
+        })),
         // The map's own header settings (the Info tab), over the donor's.
         header: draft.header || undefined,
         // The Animation tab's channels; a draft from before it gets vanilla's
@@ -225,6 +239,15 @@ function verifyExport(rom, built, draft, at) {
             throw new Error(`export check: animation channel ${k} does not play graphic ${c.graphic}'s cycle`);
         }
     });
+
+    const expStep = (draft.stepOn || []).length;
+    if (room.triggers.stepOn.length !== expStep) {
+        throw new Error(`export check: ${room.triggers.stepOn.length} step triggers decoded, ${expStep} expected`);
+    }
+    const expB = (draft.bTrigger || []).length;
+    if (room.triggers.bTrigger.length !== expB) {
+        throw new Error(`export check: ${room.triggers.bTrigger.length} B-triggers decoded, ${expB} expected`);
+    }
 
     const enter = script.buildRoomScriptModel(rom, BRIAN_ROOM).enter;
     const ops = enter ? enter.instructions.map((r) => r.opcode) : [];

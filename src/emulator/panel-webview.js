@@ -461,6 +461,14 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       const wrap      = document.getElementById('screen-wrap');
       const ctx       = canvas.getContext('2d');
       const imageData = ctx.createImageData(512, 448);
+      canvas.setAttribute('tabindex', '0');
+      canvas.addEventListener('click', () => {
+        canvas.focus();
+        keyInput |= (1 << 15);
+        setTimeout(() => {
+          keyInput &= ~(1 << 15);
+        }, 120);
+      });
       let lastWrapWidth = -1;
       let lastWrapHeight = -1;
 
@@ -1074,7 +1082,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         .replace(/"/g, '&quot;');
     }
 
-    const SCRIPT_TOKEN = /("[^"]*")|(\([^()]*\))|(\$[0-9a-fA-F]+|0x[0-9a-fA-F]+|\b0d\d+\b|\b\d+\b)|(^[A-Z][A-Z_?]+(?: [A-Z][A-Z_?]+)?\b|\b_[a-z_]+(?=\())/g;
+    const SCRIPT_TOKEN = /("[^"]*")|(\\([^()]*\\))|(\\$[0-9a-fA-F]+|0x[0-9a-fA-F]+|\\b0d\\d+\\b|\\b\\d+\\b)|(^[A-Z][A-Z_?]+(?: [A-Z][A-Z_?]+)?\\b|\\b_[a-z_]+(?=\\())/g;
 
     function scriptHighlight(text) {
       let out = '';

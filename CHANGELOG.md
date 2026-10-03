@@ -1,12 +1,20 @@
+## [0.141.0] — 2026-10-04
+
+### Fix: [Emulator/Rooms] "Play in emulator" webview crash fix, trigger export & execution trace
+
+- **"Play in emulator" launch fix**: Escaped regular expression literal in `panel-webview.js` so generated webview HTML no longer throws an unterminated group `SyntaxError`, allowing the webview script to complete initialization, emit `ready`, and receive and boot custom ROMs.
+- **B-trigger & Step-on trigger export**: Exported custom rooms now forward `bTrigger` and `stepOn` from `map-editor-rom-export.js` into `CustomRoomInput` and serialize them into the custom room blob (`src/maps/custom-room.ts` and `src/rooms/rendering/rom-export.js`).
+- **Gourd & placed object interaction**: Placed objects retain their B-triggers and vanilla script IDs, while unscripted triggers default to a safe empty return script (`0x92A42F`, `00 END`), making placed gourds and objects interactive in the custom test room.
+- **Enter script & B-trigger execution trace**: Updated WRAM script slot tracker in `panel-webview.js` to immediately detect and log scripts running on frame 1, capturing the room enter script at boot (`0xBC8000: WRITE $2441 = Laser Lance; CALL Fade in; END`) and subsequent B-trigger executions.
+- **Canvas click interaction**: Added focus and B-button pulse handler to the emulator canvas on click, allowing clicking directly on interactive objects (like gourds) to trigger them.
+
 ## [0.140.0] — 2026-10-03
 
-### Feature: [Emulator] real-time Everscript bytecode execution logging & disassembly
+### Feat: [Emulator] real-time bytecode execution logging & disassembly
 
-- **Interwoven script execution logging**: Tracks all 20 WRAM script slots (`$7E28FC`) every emulation frame; logs script lifecycle events whenever the interpreter begins processing a script (`start`, `resume` after sleep/yield, `step`, and `end`).
-- **Human-readable script disassembly**: Decodes executing bytecode using `src/script/`'s instruction disassembler (`decodeInstruction`); outputs the raw to-be-executed hex bytes alongside human-readable instruction syntax matching the map editor / Rooms trigger script snippets (e.g. `IF $2834&0x01 THEN SKIP 11 (to 0x93875e)`, `CALL 0x92cc2b ...`, `SLEEP 30`).
-- **Live webview script trace log**: Added an in-panel scrolling `SCRIPT TRACE LOG` under the script stack with color-coded token highlighting matching map-editor trigger scripts (`sx-kw`, `sx-num`, `sx-str`, `sx-aside`), slot/entity badges, auto-scroll toggle, copy to clipboard, and clear controls.
-- **Dedicated Output Channel**: Created `Everscript Script Trace` output channel in VS Code for full persistent execution history across interwoven script routines.
-- **ASCII-only architecture**: Preserved strict ASCII-only invariant across `script-trace.js`, `panel.js`, and `panel-webview.js` to eliminate webview parser/encoding edge cases.
+- **Interwoven script execution tracking**: Monitored all 20 WRAM script slots each frame to detect start, step, resume (after wait/sleep), and termination transitions.
+- **Disassembly & snippet generation**: Real-time disassembly of executed bytecode matching map editor script snippets with hex byte dumps and syntax highlighting.
+- **Script Trace Log UI**: Added color-coded execution trace panel to emulator webview with auto-scrolling, clear, and clipboard copy controls, as well as an Everscript Script Trace VS Code output channel.
 
 ## [0.139.0] — 2026-10-03
 
