@@ -18,6 +18,7 @@ ruled out, so the next attempt starts further along.
 | [map_transitions.md](map_transitions.md) | Doors: where a trigger sends the player | Solved |
 | [enemy_spawns.md](enemy_spawns.md) | Which NPCs a script places, and where | Solved |
 | [character_table.md](character_table.md) | Stats, palette and animation pointers per character | Solved |
+| [runtime_stats.md](runtime_stats.md) | Which record stats a script can change at runtime, and how | Mostly derived |
 | [animation_format.md](animation_format.md) | Character → idle sprite and its frames | Solved |
 | [animation_script.md](animation_script.md) | The animation bytecode language: machine, every opcode, a notation, decoded scripts | Mostly decoded |
 | [sprite_format.md](sprite_format.md) | Sprite blocks, chunks and their compression | Solved |
