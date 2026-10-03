@@ -1,3 +1,13 @@
+## [0.140.0] — 2026-10-03
+
+### Feature: [Emulator] real-time Everscript bytecode execution logging & disassembly
+
+- **Interwoven script execution logging**: Tracks all 20 WRAM script slots (`$7E28FC`) every emulation frame; logs script lifecycle events whenever the interpreter begins processing a script (`start`, `resume` after sleep/yield, `step`, and `end`).
+- **Human-readable script disassembly**: Decodes executing bytecode using `src/script/`'s instruction disassembler (`decodeInstruction`); outputs the raw to-be-executed hex bytes alongside human-readable instruction syntax matching the map editor / Rooms trigger script snippets (e.g. `IF $2834&0x01 THEN SKIP 11 (to 0x93875e)`, `CALL 0x92cc2b ...`, `SLEEP 30`).
+- **Live webview script trace log**: Added an in-panel scrolling `SCRIPT TRACE LOG` under the script stack with color-coded token highlighting matching map-editor trigger scripts (`sx-kw`, `sx-num`, `sx-str`, `sx-aside`), slot/entity badges, auto-scroll toggle, copy to clipboard, and clear controls.
+- **Dedicated Output Channel**: Created `Everscript Script Trace` output channel in VS Code for full persistent execution history across interwoven script routines.
+- **ASCII-only architecture**: Preserved strict ASCII-only invariant across `script-trace.js`, `panel.js`, and `panel-webview.js` to eliminate webview parser/encoding edge cases.
+
 ## [0.139.0] — 2026-10-03
 
 ### Fix: [Emulator] audio distortion, display fill, keybindings, and debugger core auto-selection

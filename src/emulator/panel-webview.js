@@ -119,6 +119,22 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     #ss-table tr.wait td   { color: #ff6; }
     #ss-table tr.dead td   { color: #633; }
     #ss-table tr.focus td  { background: rgba(122, 214, 122, 0.08); }
+    #ss-trace-header       { background: #121212; border-top: 1px solid #222; border-bottom: 1px solid #1d1d1d; padding: 4px 8px; display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #888; flex-shrink: 0; }
+    #ss-trace-controls     { display: flex; gap: 6px; align-items: center; }
+    #ss-trace-log          { background: #0c0c0c; padding: 4px 8px; font-family: monospace; font-size: 11px; line-height: 1.4; max-height: 160px; overflow-y: auto; overflow-x: hidden; }
+    .ss-trace-row          { display: flex; gap: 8px; white-space: nowrap; padding: 1px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+    .ss-trace-tag          { color: #6f9; font-weight: bold; min-width: 140px; }
+    .ss-trace-tag.resume   { color: #ff6; }
+    .ss-trace-tag.step     { color: #69f; }
+    .ss-trace-tag.end      { color: #f66; }
+    .ss-trace-addr         { color: #4ec9b0; }
+    .ss-trace-bytes        { color: #888; font-size: 10px; font-family: monospace; }
+    .ss-trace-text         { color: #d4d4d4; overflow: hidden; text-overflow: ellipsis; }
+    .ss-trace-sub          { padding-left: 20px; color: #777; font-size: 10px; white-space: nowrap; }
+    .sx-kw                 { color: #569cd6; font-weight: bold; }
+    .sx-num                { color: #b5cea8; }
+    .sx-str                { color: #ce9178; }
+    .sx-aside              { color: #777; }
   </style>
 </head>
 <body>
@@ -175,6 +191,16 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       <thead><tr><th>#</th><th>PC</th><th>state</th><th>next</th><th>entity</th><th>timer</th></tr></thead>
       <tbody id="ss-tbody"></tbody>
     </table>
+    <div id="ss-trace-header">
+      <span class="ss-section-title"><b>SCRIPT TRACE LOG</b></span>
+      <div id="ss-trace-controls">
+        <button id="ss-trace-clear-btn" class="ss-btn" type="button">clear</button>
+        <button id="ss-trace-copy-btn" class="ss-btn" type="button">copy</button>
+        <label id="ss-trace-scroll-label"><input type="checkbox" id="ss-trace-scroll" checked /> auto-scroll</label>
+        <span id="ss-trace-count">0 lines</span>
+      </div>
+    </div>
+    <div id="ss-trace-log"></div>
   </div>
 
   <!-- Module object must be declared before the core script loads. -->
@@ -475,6 +501,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
             imageData.data.set(new Uint8ClampedArray(HEAPU8.buffer, fbPtr, 512 * 448 * 4));
             ctx.putImageData(imageData, 0, 0);
           }
+          checkScriptExecutionTrace();
         }
       }
       requestAnimationFrame(frame);
@@ -961,6 +988,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
             updateScriptStack(snapshot);
             reportScriptFocus(snapshot);
             checkManualScriptBreakpoints(snapshot, m);
+            checkScriptExecutionTrace();
             vscodeApi.postMessage({ command: 'wramDelta', offset: SCRIPT_BASE, data: Array.from(src.bytes) });
           } else {
             document.getElementById('ss-count').textContent =
@@ -1038,10 +1066,199 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       removeManualExecBreakpoint(addr >>> 0);
     });
 
+    function escH(s) {
+      return String(s || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    const SCRIPT_TOKEN = /("[^"]*")|(\([^()]*\))|(\$[0-9a-fA-F]+|0x[0-9a-fA-F]+|\b0d\d+\b|\b\d+\b)|(^[A-Z][A-Z_?]+(?: [A-Z][A-Z_?]+)?\b|\b_[a-z_]+(?=\())/g;
+
+    function scriptHighlight(text) {
+      let out = '';
+      let last = 0;
+      let m;
+      const src = String(text || '');
+      const re = new RegExp(SCRIPT_TOKEN.source, 'g');
+      while ((m = re.exec(src))) {
+        out += escH(src.slice(last, m.index));
+        if (m[2]) {
+          const aside = !src.slice(m.index + m[0].length).trim();
+          const inner = '(' + scriptHighlight(m[2].slice(1, -1)) + ')';
+          out += aside ? '<span class="sx-aside">' + inner + '</span>' : inner;
+        } else {
+          out += '<span class="' + (m[1] ? 'sx-str' : m[3] ? 'sx-num' : 'sx-kw') + '">' + escH(m[0]) + '</span>';
+        }
+        last = m.index + m[0].length;
+        if (m[0].length === 0) re.lastIndex++;
+      }
+      return out + escH(src.slice(last));
+    }
+
+    const scriptSlotTrackers = Array.from({ length: SLOT_COUNT }, () => ({
+      loc: 0,
+      state: 0,
+      timer1: 0,
+      entity: 0,
+      initialized: false,
+    }));
+
+    let totalTraceCount = 0;
+
+    function checkScriptExecutionTrace() {
+      const m = getModule();
+      if (!m || !hasDebuggerApi(m)) return;
+      const region = m.readMemoryRange(SCRIPT_STACK_BUS_ADDR, SCRIPT_REGION_SIZE);
+      if (!region || region.length < SCRIPT_REGION_SIZE) return;
+
+      const batch = [];
+
+      for (let s = 0; s < SLOT_COUNT; s++) {
+        const base = s * SLOT_SIZE;
+        const loc = readU24(region, base + 0x00);
+        const state = readU16(region, base + 0x03);
+        const timer1 = readU16(region, base + 0x05);
+        const entity = readU16(region, base + 0x0D);
+        const tracker = scriptSlotTrackers[s];
+
+        if (!tracker.initialized) {
+          tracker.loc = loc;
+          tracker.state = state;
+          tracker.timer1 = timer1;
+          tracker.entity = entity;
+          tracker.initialized = true;
+          continue;
+        }
+
+        let event = null;
+        let targetLoc = 0;
+
+        // Condition 1: New script started
+        if ((tracker.state === 0 || tracker.loc === 0) && (state !== 0 && loc !== 0)) {
+          event = 'start';
+          targetLoc = loc;
+        }
+        // Condition 2: Slot was waiting (state 4) and resumed to executing (state 2)
+        else if (tracker.state === 4 && state === 2) {
+          event = 'resume';
+          targetLoc = loc;
+        }
+        // Condition 3: Slot was waiting, still waiting, but loc advanced (ran & slept within this frame)
+        else if (tracker.state === 4 && state === 4 && loc !== tracker.loc && tracker.loc !== 0) {
+          event = 'resume';
+          targetLoc = tracker.loc;
+        }
+        // Condition 4: Slot executing and stepped loc
+        else if (tracker.state === 2 && state === 2 && loc !== tracker.loc && loc !== 0) {
+          event = 'step';
+          targetLoc = loc;
+        }
+        // Condition 5: Slot ended
+        else if (tracker.state !== 0 && state === 0 && tracker.loc !== 0) {
+          event = 'end';
+          targetLoc = tracker.loc;
+        }
+
+        if (event && targetLoc > 0) {
+          let rawBytes = [];
+          try {
+            const buf = m.readMemoryRange(targetLoc, 32);
+            if (buf && buf.length) rawBytes = Array.from(buf);
+          } catch (_) {}
+          batch.push({
+            slot: s,
+            entity,
+            event,
+            loc: targetLoc,
+            nextLoc: loc,
+            state,
+            timer1,
+            bytes: rawBytes,
+          });
+        }
+
+        tracker.loc = loc;
+        tracker.state = state;
+        tracker.timer1 = timer1;
+        tracker.entity = entity;
+      }
+
+      if (batch.length > 0 && vscodeApi) {
+        vscodeApi.postMessage({ command: 'scriptTraceBatch', items: batch });
+      }
+    }
+
+    function appendTraceEntries(entries) {
+      const container = document.getElementById('ss-trace-log');
+      if (!container || !entries || !entries.length) return;
+      const frag = document.createDocumentFragment();
+      for (const entry of entries) {
+        const row = document.createElement('div');
+        row.className = 'ss-trace-row';
+        const tagClass = 'ss-trace-tag ' + (entry.event || '');
+        row.innerHTML =
+          '<span class="' + tagClass + '">' + escH('[s' + entry.slot + ' | ' + entry.entity + ' | ' + entry.event + ']') + '</span> ' +
+          '<span class="ss-trace-addr">' + escH(entry.locHex) + '</span> ' +
+          '<span class="ss-trace-bytes">[' + escH(entry.bytesHex) + ']</span> ' +
+          '<span class="ss-trace-text">' + scriptHighlight(entry.summary) + '</span>';
+        frag.appendChild(row);
+        if (entry.subLines && entry.subLines.length) {
+          for (const sub of entry.subLines) {
+            const subRow = document.createElement('div');
+            subRow.className = 'ss-trace-sub';
+            subRow.textContent = sub;
+            frag.appendChild(subRow);
+          }
+        }
+      }
+      container.appendChild(frag);
+      while (container.childNodes.length > 250) {
+        container.removeChild(container.firstChild);
+      }
+      const countEl = document.getElementById('ss-trace-count');
+      if (countEl) {
+        totalTraceCount += entries.length;
+        countEl.textContent = totalTraceCount + ' lines';
+      }
+      const autoScroll = document.getElementById('ss-trace-scroll');
+      if (autoScroll && autoScroll.checked) {
+        container.scrollTop = container.scrollHeight;
+      }
+    }
+
     window.addEventListener('message', evt => {
-      if (!evt.data || evt.data.command !== 'debuggerConnectionStatus') return;
-      setText('ss-debug-link-status', 'dbg: ' + evt.data.text, evt.data.ok ? 'ss-ok' : 'ss-warn');
+      if (!evt.data) return;
+      if (evt.data.command === 'debuggerConnectionStatus') {
+        setText('ss-debug-link-status', 'dbg: ' + evt.data.text, evt.data.ok ? 'ss-ok' : 'ss-warn');
+      } else if (evt.data.command === 'scriptTraceLogged') {
+        appendTraceEntries(evt.data.entries);
+      }
     });
+
+    const clearBtn = document.getElementById('ss-trace-clear-btn');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        const log = document.getElementById('ss-trace-log');
+        if (log) log.innerHTML = '';
+        totalTraceCount = 0;
+        const count = document.getElementById('ss-trace-count');
+        if (count) count.textContent = '0 lines';
+      });
+    }
+
+    const copyBtn = document.getElementById('ss-trace-copy-btn');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', () => {
+        const log = document.getElementById('ss-trace-log');
+        if (!log) return;
+        const text = log.innerText || log.textContent || '';
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text);
+        }
+      });
+    }
 
     renderManualExecBreakpoints();
 

@@ -30,6 +30,7 @@ const vscode = require('vscode');
 const path   = require('path');
 const fs     = require('fs');
 const { buildHtml } = require('./panel-webview');
+const { processScriptTraceBatch } = require('./script-trace');
 
 const CORE_SUBDIR        = path.join('src', 'emulator', 'core', 'snes9x2005-wasm-vanilla');
 const CUSTOM_CORE_SUBDIR = path.join('src', 'emulator', 'core', 'snes9x2005-wasm');
@@ -44,6 +45,7 @@ const LEGACY_CUSTOM_CORE_DIRS = [
 
 let _panel         = null;   // active WebviewPanel
 let _pending       = null;   // { dataUrl, name } waiting to load
+let _currentRomBuffer = null; // raw ROM buffer for bytecode disassembly
 let _extensionPath = '';
 let _buildChannel  = null;   // output channel for build log
 let _readyTimeout  = null;
@@ -302,6 +304,13 @@ function openEmulatorPanel(context, rom, channel) {
   if (_pending) {
     const size = _estimateDataUrlBytes(_pending.dataUrl);
     _log(`ROM staged: ${_pending.name || 'game'} (${size} bytes)`);
+    if (_pending.dataUrl) {
+      try {
+        const comma = _pending.dataUrl.indexOf(',');
+        const b64 = comma >= 0 ? _pending.dataUrl.slice(comma + 1) : _pending.dataUrl;
+        _currentRomBuffer = new Uint8Array(Buffer.from(b64, 'base64'));
+      } catch (_) {}
+    }
   }
 
     if (_panel) {
@@ -444,6 +453,17 @@ function openEmulatorPanel(context, rom, channel) {
                 if (_panel) _panel.webview.postMessage({ command: 'debuggerConnectionStatus', ok, text });
               });
               break;
+
+            case 'scriptTraceBatch': {
+              const wsRoot = vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0]
+                ? vscode.workspace.workspaceFolders[0].uri.fsPath
+                : null;
+              const formatted = processScriptTraceBatch(msg.items, _currentRomBuffer, wsRoot);
+              if (_panel && formatted.length) {
+                _panel.webview.postMessage({ command: 'scriptTraceLogged', entries: formatted });
+              }
+              break;
+            }
         }
     }, undefined, context.subscriptions);
 
@@ -456,6 +476,7 @@ function openEmulatorPanel(context, rom, channel) {
       _webviewReady = false;
       _panel = null;
       _pending = null;
+      _currentRomBuffer = null;
     }, null, context.subscriptions);
 }
 
@@ -464,6 +485,7 @@ function _sendRomFile(romPath) {
     const romName = path.basename(romPath);
     try {
         const romData = fs.readFileSync(romPath);
+        _currentRomBuffer = new Uint8Array(romData);
         const dataUrl = 'data:application/octet-stream;base64,' + romData.toString('base64');
         _pending = { dataUrl, name: romName };
     _log(`Manual ROM selected: ${romName} (${romData.length} bytes)`);
