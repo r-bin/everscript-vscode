@@ -558,6 +558,32 @@ if (rom) {
         assert(thumbFor(rom, { record: 0x3e6a, facing: 0, character: 0 }), 'the knock-back keeps the standing sprite');
     });
 
+    test('a one-shot ends at end_check: a death is its own, not every death back to back', () => {
+        const og = readAllCharacters(rom).find(c => c.name === 'Oglin');
+        const d = renderAnimation(rom, og.id, og.anims.find(a => a.key === 'death'), 8);
+        assert.strictEqual(d.frames.length, 5);
+        assert.strictEqual(d.totalTicks, 31);
+    });
+
+    test('OAM palette bits pick the second palette: only Harry and Vigor set them', () => {
+        const { readSpriteInfo, composeSprite } = require('../../src/maps/dist/sprites');
+        const { resolveCharacterSprite } = require('../../src/maps/dist/character-animation');
+        const users = [];
+        for (let c = 0; c < CHARACTER_COUNT; c++) {
+            const spr = resolveCharacterSprite(rom, c, 8);
+            if (!spr) continue;
+            if (readSpriteInfo(rom, spr).chunks.some(k => k.palette)) users.push(readCharacter(rom, c).name);
+        }
+        assert.deepStrictEqual(users.sort(), ['Harry', 'Vigor']);
+        const harry = composeSprite(rom, readSpriteInfo(rom, resolveCharacterSprite(rom, 46, 8)));
+        assert(harry.palettes.some(p => p === 1), 'per-pixel palette bits are reported');
+    });
+
+    test('facing 8 is south: list previews show the front (8) and east (4)', () => {
+        const { THUMB_FACINGS } = require('../../src/sprites/thumbnails');
+        assert.deepStrictEqual(THUMB_FACINGS, { s: 8, e: 4 });
+    });
+
     test('renderAnimation returns a script listing with frame line addresses', () => {
         const anim = renderAnimation(rom, 140, { category: 'external', animRec: 0x4dd2 }, 0);
         assert(anim.script.length > 10);

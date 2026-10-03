@@ -74,6 +74,14 @@ and draws them in the Boy's palette as a guess.
 
 ## Facing
 
+**Facing 0 is north and 8 is south.** The mover's and the projectiles' direction
+tables (`$8FAF18`, `$90DD88`) move facing 0 up the screen and 8 down. The art
+agrees: the Boy's idle at facing 0 shows his back, and at 8 his front. Facing 4 is
+east and 12 west; the odd steps are the diagonals (2 NE, 6 SE, 10 SW, 14 NW).
+Characters with four poses round the diagonals to a neighbour through
+`$90815B`. The Sprites tab's compass uses these labels; until v0.130.0 its "S"
+button showed facing 0.
+
 The record's flags pick the facing. Bit 7 means 8 directional records, bit 6
 means 4 through the table at `$90815B`. See
 [animation_format.md § Facing](animation_format.md#facing).
@@ -649,6 +657,9 @@ is in front.
   while anyone else still can. The to-hit check for projectiles (`$8FB9F8`) uses
   the same cooldown, after refusing outright a target whose record `+0x07` has
   bit `$10`.
+- **One-shots end at `end_check!`.** It hands the entity back to its AI, or
+  retires it after a death. Death scripts are stored back to back, so running on
+  plays every death in a row.
 - **One-shots land.** Attacks, damage, death, spoils and casting end on
   `end_check!`, which hands the entity back to its AI. One still in the air at
   `loop` (the Widowmaker's leap) holds its last frame until it lands, and the

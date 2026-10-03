@@ -121,6 +121,8 @@ export interface SpriteChunk {
     flipY: boolean;
     /** Bits 4-5: the OAM priority, which decides what covers what. */
     priority: number;
+    /** Bits 1-3: which of the character's palettes (0 own, 1 second). */
+    palette: number;
 }
 
 /**
@@ -141,9 +143,13 @@ export interface SpriteChunk {
  * decoder that ignores bit 6 draws the mirrored half twice — Strongheart's
  * face comes out with one side duplicated.
  *
- * The palette bits are not applied: the character's own palette already
- * selects the 16 colours, and the 0.7% that set bit 1 are not characters.
+ * The palette bits pick which of the character's palettes a chunk uses: 0 is
+ * its own (record +0x09), 1 its second (+0x0B). Exactly the two characters with
+ * a second palette, Harry and Vigor, set them. `composeSprite` reports them per
+ * pixel; the caller colours with the matching palette.
  */
+const CHUNK_PALETTE = 0x0e;
+const CHUNK_PALETTE_SHIFT = 1;
 const CHUNK_LARGE = 0x01;
 const CHUNK_PRIORITY = 0x30;
 const CHUNK_PRIORITY_SHIFT = 4;
@@ -179,6 +185,7 @@ export function readSpriteInfo(rom: Uint8Array, address: number): SpriteInfo {
             flipX: (flags & CHUNK_FLIP_X) !== 0,
             flipY: (flags & CHUNK_FLIP_Y) !== 0,
             priority: (flags & CHUNK_PRIORITY) >> CHUNK_PRIORITY_SHIFT,
+            palette: (flags & CHUNK_PALETTE) >> CHUNK_PALETTE_SHIFT,
         });
         cursor += CHUNK_BYTES;
     }
@@ -215,6 +222,8 @@ export interface SpritePixels {
     height: number;
     /** Palette index per pixel; -1 where nothing was drawn. */
     pixels: Int16Array;
+    /** The chunk's OAM palette bits per pixel (0 = own palette, 1 = second). */
+    palettes: Uint8Array;
     /** Where the sprite's origin sits inside the buffer. */
     originX: number;
     originY: number;
@@ -245,6 +254,7 @@ export function composeSprite(rom: Uint8Array, info: SpriteInfo): SpritePixels {
     const width = maxX - minX;
     const height = maxY - minY;
     const pixels = new Int16Array(width * height).fill(-1);
+    const palettes = new Uint8Array(width * height);
     for (let priority = 0; priority < PRIORITY_LEVELS; priority++) {
         for (let i = info.chunks.length - 1; i >= 0; i--) {
             const c = info.chunks[i];
@@ -260,9 +270,10 @@ export function composeSprite(rom: Uint8Array, info: SpriteInfo): SpritePixels {
                     const py = c.y - minY + y;
                     if (px < 0 || py < 0 || px >= width || py >= height) continue;
                     pixels[py * width + px] = v;
+                    palettes[py * width + px] = c.palette;
                 }
             }
         }
     }
-    return { width, height, pixels, originX: -minX, originY: -minY };
+    return { width, height, pixels, palettes, originX: -minX, originY: -minY };
 }

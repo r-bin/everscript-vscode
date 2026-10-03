@@ -54,27 +54,28 @@ function buildSpritesTabHtml() {
           </div>
         </div>
 
-        <!-- Animation Controls Row -->
-        <div class="sp-anim-toolbar">
+        <div class="sp-tool-group" style="display:none">
+          <label class="sp-label" for="sp-anim-sel">Animation:</label>
+          <select class="sp-select" id="sp-anim-sel"></select>
+        </div>
 
-
-          <div class="sp-tool-group" style="display:none">
-            <label class="sp-label" for="sp-anim-sel">Animation:</label>
-            <select class="sp-select" id="sp-anim-sel"></select>
-          </div>
-
-          <div class="sp-tool-group">
-            <span class="sp-label">Facing:</span>
-            <div class="sp-facing-group">
-              <button class="sp-facing-btn sp-active" data-facing="0" title="South (Faces front)">S</button>
-              <button class="sp-facing-btn" data-facing="4" title="East">E</button>
-              <button class="sp-facing-btn" data-facing="8" title="North (Faces back)">N</button>
-              <button class="sp-facing-btn" data-facing="12" title="West">W</button>
+        <!-- Controls on the left, the stage filling the rest, the seek bar along the bottom -->
+        <div class="sp-stage-row">
+          <div class="sp-controls">
+            <div class="sp-controls-title">Facing</div>
+            <div class="sp-compass" title="Facing. The game's direction tables move facing 0 up the screen and 8 down; characters with four poses round the diagonals to the nearest">
+              <button class="sp-facing-btn" data-facing="14" title="NW (14)">NW</button>
+              <button class="sp-facing-btn" data-facing="0" title="N (0)">N</button>
+              <button class="sp-facing-btn" data-facing="2" title="NE (2)">NE</button>
+              <button class="sp-facing-btn" data-facing="12" title="W (12)">W</button>
+              <span class="sp-compass-mid"></span>
+              <button class="sp-facing-btn" data-facing="4" title="E (4)">E</button>
+              <button class="sp-facing-btn" data-facing="10" title="SW (10)">SW</button>
+              <button class="sp-facing-btn sp-active" data-facing="8" title="S (8)">S</button>
+              <button class="sp-facing-btn" data-facing="6" title="SE (6)">SE</button>
             </div>
-          </div>
-
-          <div class="sp-tool-group">
-            <span class="sp-label">Overlays:</span>
+            <div class="sp-controls-title">Overlays</div>
+            <div class="sp-overlay-list">
             <label class="sp-check-label" title="Body collision box (2r × r) — what entities bump into">
               <input type="checkbox" id="sp-chk-body" checked /> <span class="sp-tag tag-body">Body Hitbox</span>
             </label>
@@ -105,14 +106,14 @@ function buildSpritesTabHtml() {
             <label class="sp-check-label" title="Sprite feet origin (0,0)">
               <input type="checkbox" id="sp-chk-origin" checked /> <span class="sp-tag tag-origin">Origin</span>
             </label>
+            </div>
+          </div>
+          <div class="sp-stage-col">
+            <div class="sp-stage" id="sp-stage">
+              <canvas id="sp-canvas" width="320" height="320"></canvas>
+            </div>
           </div>
         </div>
-
-        <!-- Canvas Viewport with Animation Stage -->
-        <div class="sp-stage-wrap">
-          <div class="sp-stage" id="sp-stage">
-            <canvas id="sp-canvas" width="320" height="320"></canvas>
-          </div>
 
           <!-- Playback Bar -->
           <div class="sp-player-bar">
@@ -151,7 +152,6 @@ function buildSpritesTabHtml() {
               <span class="sp-sprite-link" id="sp-cur-sprite-addr" title="Click to view in Raw Sprites tab">$000000</span>
             </div>
           </div>
-        </div>
 
         </div>
 
@@ -190,6 +190,7 @@ function buildSpritesTabHtml() {
           <div class="sp-col-title">
             <span>Animation Script</span>
             <span class="sp-col-sub" id="sp-script-status"></span>
+            <label class="sp-check-label" title="Show the sprite each sprite command loads"><input type="checkbox" id="sp-chk-script-spr" /> sprites</label>
           </div>
           <div class="sp-script-owners" id="sp-script-owners"></div>
           <div class="sp-script-wrap" id="sp-script-wrap">
@@ -201,7 +202,7 @@ function buildSpritesTabHtml() {
 
         <!-- Stats & engine meanings -->
         <div class="sp-details-col sp-side-pane" data-side="stats" style="display:none">
-          <div class="sp-col-title">Character Stats & Engine Meanings</div>
+          <div class="sp-col-title sp-col-only-title">Character Stats & Engine Meanings</div>
           <div class="sp-stats-grid" id="sp-stats-grid"></div>
         </div>
 
@@ -215,6 +216,7 @@ function buildSpritesTabHtml() {
             <table class="sp-chunks-table" id="sp-chunks-table">
               <thead>
                 <tr>
+                  <th>Tile</th>
                   <th>Block</th>
                   <th>Offset (X, Y)</th>
                   <th>Flags</th>
@@ -271,11 +273,12 @@ function buildSpritesTabHtml() {
             <button class="sp-side-tab" data-rawside="palettes">Palettes</button>
           </div>
           <div class="sp-details-col sp-side-pane" data-rawside="chunks">
-            <div class="sp-col-title">Chunks in this sprite</div>
+            <div class="sp-col-title sp-col-only-title">Chunks in this sprite</div>
             <div class="sp-chunks-table-wrap">
               <table class="sp-chunks-table" id="sp-raw-chunks-table">
                 <thead>
                   <tr>
+                    <th>Tile</th>
                     <th>Block</th>
                     <th>Offset (X, Y)</th>
                     <th>Flags</th>

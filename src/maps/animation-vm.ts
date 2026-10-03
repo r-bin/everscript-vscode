@@ -401,6 +401,10 @@ export function runAnimation(rom: Uint8Array, script: number, facing = 8, opts: 
                     break;
                 default: break;           // loop restarts are where the run stops; jump_if_linked is not taken
             }
+            // A one-shot (attack, knockback, death, cast) is over at `end_check`: it hands the
+            // entity back to its AI — or, for a death, retires it. Running on reads the next
+            // character's script (deaths are stored back to back).
+            const oneShotEnds = !!opts.oneShot && o.mnemonic === 'end_check';
             if (raw & END_FRAME) {
                 timer -= 1;
                 if (timer <= 0) { timer = 1; resume = next; }
@@ -428,7 +432,17 @@ export function runAnimation(rom: Uint8Array, script: number, facing = 8, opts: 
                         segments: segList && segSample ? { sprites: segList.map((sg) => sg.sprite), ticks: [segSample] } : null });
                 }
                 totalTicks += 1;
+                if (oneShotEnds && timer === 1) {
+                    if (h !== 0 || v !== 0) { landing = true; continue ticks; }
+                    complete = true;
+                    break ticks;
+                }
                 continue ticks;
+            }
+            if (oneShotEnds) {
+                if (h !== 0 || v !== 0) { landing = true; continue ticks; }
+                complete = true;
+                break ticks;
             }
             q = next;
         }

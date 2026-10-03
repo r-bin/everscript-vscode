@@ -10,7 +10,7 @@
   var charFilter = 'all';
   var selectedCharId = 0;
   var selectedAnimKey = 'w_atk0';
-  var selectedFacing = 0; // South
+  var selectedFacing = 8; // South: the direction tables move facing 8 down the screen
   var animScale = 3;
   var selectedWeaponId = 0;
   var weaponGroup = document.getElementById('sp-weapon-group');
@@ -402,11 +402,14 @@
     (c.anims || []).forEach(function(a) { byKey[a.key] = a; });
     if (hasVariants(c) && c.weapons[selectedWeaponId]) (c.weapons[selectedWeaponId].anims || []).forEach(function(a) { byKey[a.key] = a; });
     var variantPal = hasVariants(c) && c.weapons[selectedWeaponId] ? c.weapons[selectedWeaponId].paletteAddr : 0;
-    Array.prototype.forEach.call(animSel.children, function(group) {
-      var head = document.createElement('div');
-      head.className = 'sp-anim-group';
-      head.textContent = group.label || '';
-      animGrid.appendChild(head);
+    Array.prototype.forEach.call(animSel.children, function(group, gi) {
+      var isVariant = gi === 0 && variantPal !== undefined && hasVariants(c) && /^(Weapon|Form): /.test(group.label || '');
+      if (!isVariant) {
+        var head = document.createElement('div');
+        head.className = 'sp-anim-group';
+        head.textContent = group.label || '';
+        animGrid.appendChild(head);
+      }
       Array.prototype.forEach.call(group.children, function(opt) {
         var a = byKey[opt.value] || {};
         var pal = paletteOverride || a.paletteAddr || variantPal || 0;
@@ -764,7 +767,7 @@
     if (!chunksBody) return;
     chunksBody.innerHTML = '';
     if (chunksCount) chunksCount.textContent = '(' + chunks.length + ' chunks)';
-
+    var pal = currentPaletteAddr();
     chunks.forEach(function(ch) {
       var tr = document.createElement('tr');
       var props = [];
@@ -772,12 +775,18 @@
       if (ch.flipX) props.push('FlipX');
       if (ch.flipY) props.push('FlipY');
       props.push('Prio ' + ch.priority);
-
-      tr.innerHTML = 
+      var palBits = (ch.flags >> 1) & 7;
+      if (palBits) props.push('Palette 2');
+      tr.innerHTML =
+        '<td></td>' +
         '<td>' + ch.blockHex + '</td>' +
         '<td>' + ch.x + ', ' + ch.y + '</td>' +
         '<td>' + ch.flagsHex + '</td>' +
         '<td>' + props.join(', ') + '</td>';
+      if (window.SpritesThumbs) tr.firstChild.appendChild(window.SpritesThumbs.box({
+        key: 'blk:' + ch.block + ':' + (ch.large ? 1 : 0) + ':' + (ch.flipX ? 1 : 0) + (ch.flipY ? 1 : 0) + ':' + palBits + ':' + selectedCharId + ':' + pal,
+        block: ch.block, large: ch.large, flipX: ch.flipX, flipY: ch.flipY, pal: palBits, character: selectedCharId, paletteAddr: pal,
+      }));
       chunksBody.appendChild(tr);
     });
   }
@@ -1059,12 +1068,19 @@
   function fitToStage() {
     var stage = canvas.parentElement;
     if (!stage || !stage.clientWidth) return;
-    var k = Math.min(1, (stage.clientWidth - 4) / canvas.width, STAGE_MAX_H / canvas.height);
-    var w = Math.floor(canvas.width * k);
-    var h = Math.floor(canvas.height * k);
-    canvas.style.width = w + 'px';
-    canvas.style.height = h + 'px';
-    stage.style.height = Math.max(STAGE_MIN_H, h + 8) + 'px';
+    // The stage fills the space between the controls and the seek bar; scale down to fit it.
+    var availH = stage.clientHeight > 40 ? stage.clientHeight - 4 : STAGE_MAX_H;
+    var k = Math.min(1, (stage.clientWidth - 4) / canvas.width, availH / canvas.height);
+    canvas.style.width = Math.floor(canvas.width * k) + 'px';
+    canvas.style.height = Math.floor(canvas.height * k) + 'px';
+  }
+
+  /** The palette the stage is drawn in right now: a chosen one, the weapon/form's, or 0 (own). */
+  function currentPaletteAddr() {
+    if (paletteOverride) return paletteOverride;
+    var c = getCharacters().find(function(x) { return x.id === selectedCharId; });
+    if (c && hasVariants(c) && c.weapons[selectedWeaponId]) return c.weapons[selectedWeaponId].paletteAddr || 0;
+    return 0;
   }
 
   var motion = (typeof window !== 'undefined' && window.SpritesMotion) || null;
@@ -1201,7 +1217,7 @@
           flightTail = Math.max(flightTail, sp.tick + (sp.path ? sp.path.length : 0) + 1 - acc);
         });
         if (script) {
-          script.renderScript(currentAnimData);
+          script.renderScript(currentAnimData, { character: selectedCharId, paletteAddr: currentPaletteAddr() });
           script.renderOwners(currentMode === 'anims' ? pinnedRecord : script.findRecord(requestedRecord));
         }
         // A new character or animation: the palette grid shows its frame, nothing selected.
@@ -1229,11 +1245,16 @@
             if (ch.flipY) props.push('FlipY');
             props.push('Prio ' + ch.priority);
 
-            tr.innerHTML = 
+            tr.innerHTML =
+              '<td></td>' +
               '<td>' + ch.blockHex + '</td>' +
               '<td>' + ch.x + ', ' + ch.y + '</td>' +
               '<td>' + ch.flagsHex + '</td>' +
               '<td>' + props.join(', ') + '</td>';
+            if (window.SpritesThumbs) tr.firstChild.appendChild(window.SpritesThumbs.box({
+              key: 'blk:' + ch.block + ':' + (ch.large ? 1 : 0) + ':' + (ch.flipX ? 1 : 0) + (ch.flipY ? 1 : 0) + ':raw:' + rawPalette,
+              block: ch.block, large: ch.large, flipX: ch.flipX, flipY: ch.flipY, paletteAddr: rawPalette,
+            }));
             rawChunksBody.appendChild(tr);
           });
         }

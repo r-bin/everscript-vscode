@@ -7,6 +7,7 @@ const { resolveCharacterSprite } = require('../maps/dist/character-animation');
 const { MODE_CONTACT } = require('../maps/dist/hit-test');
 const { disassembleScript } = require('../maps/dist/animation-opcodes');
 const { composeAligned } = require('./frame-compose');
+const { snesToRom } = require('../maps/dist/rom');
 const { renderProjectiles } = require('./projectile-render');
 const { targetFor, buildTarget, hitTicks, DEFAULT_DISTANCE, OUT_OF_REACH_ABOVE, OUT_OF_REACH_BELOW } = require('./target');
 
@@ -54,7 +55,9 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
 
     const strikes = distinctStrikes(run.frames);
     const colours = animOpt.paletteAddr ? paletteAt(rom, animOpt.paletteAddr) : characterPalette(rom, characterId);
-    const { width, height, originX, originY, images, infos } = composeAligned(rom, run.frames, colours);
+    // Harry and Vigor draw some chunks with their second palette (+0x0B).
+    const colours2 = secondPalette(rom, characterId);
+    const { width, height, originX, originY, images, infos } = composeAligned(rom, run.frames, colours, colours2);
     // The second sprite slot (usually the shadow) as its own layer: it stays on the
     // ground while height lifts the main sprite.
     const shadow = run.frames.some((f) => f.sprite2 && f.sprite2 !== f.sprite)
@@ -125,7 +128,7 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
             if (k in target.hitsStill.cut) sp.cutStill = target.hitsStill.cut[k];
         });
     }
-    const segmentSprites = renderSegmentSprites(rom, run.frames, colours);
+    const segmentSprites = renderSegmentSprites(rom, run.frames, colours, colours2);
 
     return {
         width,
@@ -153,6 +156,15 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
 
 const hex6 = (v) => '$' + v.toString(16).padStart(6, '0');
 
+/** A character's second palette (+0x0B), or null when it has none. */
+function secondPalette(rom, characterId) {
+    if (!Number.isInteger(characterId)) return null;
+    const rec = 0x8eb678 + characterId * 74 + 0x0b;
+    const o = snesToRom(rec);
+    const addr = rom[o] | (rom[o + 1] << 8);
+    return addr ? paletteAt(rom, addr) : null;
+}
+
 /**
  * Attacks, damage, death, spoils and casting end on `end_check`, which hands the entity
  * back to its AI; idles, walks and runs loop. Record fields from +0x38 on are the former.
@@ -167,14 +179,14 @@ function isOneShot(opt) {
 }
 
 /** Each distinct segment sprite, composed once, keyed by address. */
-function renderSegmentSprites(rom, frames, colours) {
+function renderSegmentSprites(rom, frames, colours, secondPaletteFor) {
     const out = {};
     for (const f of frames) {
         if (!f.segments) continue;
         for (const sprite of f.segments.sprites) {
             const key = hex6(sprite);
             if (key in out) continue;
-            const c = composeAligned(rom, [{ sprite }], colours);
+            const c = composeAligned(rom, [{ sprite }], colours, secondPaletteFor);
             out[key] = { png: c.images[0], width: c.width, height: c.height, originX: c.originX, originY: c.originY };
         }
     }

@@ -763,3 +763,27 @@
 .sp-anim-tile span.sp-anim-label { font-size: 11px; margin-top: 4px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .sp-anim-tile span.sp-anim-sub { font-size: 10px; opacity: 0.6; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .sp-raw-stage { flex: 1; }
+
+/* ── Stage row: controls column, stage, bottom seek bar ── */
+.sp-char-main { min-height: 0; }
+.sp-stage-row { display: flex; flex: 1; min-height: 0; }
+.sp-controls { width: 150px; flex: none; padding: 12px 10px; border-right: 1px solid var(--vscode-panel-border, #333); overflow: auto; display: flex; flex-direction: column; gap: 6px; }
+.sp-controls-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.65; margin-top: 6px; }
+.sp-compass { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; }
+.sp-compass .sp-facing-btn { padding: 6px 0; font-size: 11px; min-width: 0; }
+.sp-compass-mid { display: block; }
+.sp-overlay-list { display: flex; flex-direction: column; gap: 5px; }
+.sp-overlay-list .sp-check-label { display: flex; align-items: center; gap: 6px; }
+.sp-stage-col { flex: 1; min-width: 0; display: flex; padding: 12px 16px; background: #181818; }
+.sp-stage-col .sp-stage { flex: 1; height: auto; min-height: 240px; overflow: hidden; }
+.sp-char-main > .sp-player-bar { flex: none; border-top: 1px solid var(--vscode-panel-border, #333); padding: 8px 16px; background: var(--vscode-sideBar-background, #1e1e1e); }
+/* sidebar panes: the tab names the pane, so no repeated headline */
+.sp-side-pane > .sp-col-title > span:first-child { display: none; }
+.sp-side-pane > .sp-col-title { justify-content: flex-start; gap: 10px; border-bottom: none; margin-bottom: 6px; padding-bottom: 0; }
+.sp-side-pane > .sp-col-title:empty, .sp-side-pane > .sp-col-title.sp-col-only-title { display: none; }
+/* script rows: address, command, then the bytes; optional sprite previews */
+.sp-script-table td.sp-script-spr { width: 30px; padding: 1px 4px; }
+.sp-script-table .sp-li-thumb { width: 26px; height: 26px; }
+.sp-script-table .sp-li-thumb img { max-width: 24px; max-height: 24px; }
+.sp-chunks-table .sp-li-thumb { width: 26px; height: 26px; }
+.sp-chunks-table .sp-li-thumb img { max-width: 24px; max-height: 24px; }

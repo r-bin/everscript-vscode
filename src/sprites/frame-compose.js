@@ -4,14 +4,15 @@
 const { readSpriteInfo, composeSprite } = require('../maps/dist/sprites');
 const { encodePng } = require('../maps/dist/png');
 
-const EMPTY = { width: 0, height: 0, originX: 0, originY: 0, pixels: [] };
+const EMPTY = { width: 0, height: 0, originX: 0, originY: 0, pixels: [], palettes: [] };
 
 /**
  * Compose every frame's sprite and blit them into one box large enough for all,
  * aligned on the shared origin, so a caller positions by the origin alone.
- * A frame with no sprite becomes a transparent image.
+ * A frame with no sprite becomes a transparent image. Chunks whose OAM palette bits
+ * are 1 use `colours2`, the character's second palette (Harry, Vigor), when given.
  */
-function composeAligned(rom, vmFrames, colours) {
+function composeAligned(rom, vmFrames, colours, colours2) {
     const infos = vmFrames.map((f) => (f.sprite ? readSpriteInfo(rom, f.sprite) : null));
     const composed = infos.map((info) => (info ? composeSprite(rom, info) : EMPTY));
 
@@ -37,7 +38,8 @@ function composeAligned(rom, vmFrames, colours) {
                 const v = c.pixels[y * c.width + x];
                 if (v <= 0) continue; // transparent or unset
                 const o = ((y + dy) * width + (x + dx)) * 4;
-                const [r, g, b] = colours[v];
+                const pal = colours2 && c.palettes[y * c.width + x] ? colours2 : colours;
+                const [r, g, b] = pal[v];
                 data[o] = r;
                 data[o + 1] = g;
                 data[o + 2] = b;

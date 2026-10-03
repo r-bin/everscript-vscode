@@ -1,3 +1,15 @@
+## [0.130.0] — 2026-10-03
+
+### Feature: [Sprites] compass + vertical overlays, bottom seek bar, tile previews; fixes
+
+- **Layout:** a control column on the left has an 8-way compass (N, NE, E, SE, S, SW, W, NW) and every overlay listed vertically. The stage fills the middle, and the seek bar runs along the bottom.
+- **Facing labels corrected:** the game's direction tables and the art agree that facing 0 is **north** (the Boy's back) and 8 is **south**. The old "S" button showed facing 0; list previews now show the front.
+- **Chunks show their tiles:** each chunk row in both views has a preview of its 8×8 or 16×16 tile, flipped and coloured as drawn.
+- **Script tab:** columns are address, command, then bytes. A **sprites** toggle previews the sprite each sprite command loads.
+- **Less repetition:** sidebar panes no longer repeat the tab's name, and the Animations tab drops the "Weapon: …" heading the selector already shows.
+- **Harry's palette:** chunks whose OAM palette bits are 1 use the character's second palette (`+0x0B`). Only Harry and Vigor do this, and Harry's cauldron now has the right colours.
+- **Deaths:** a one-shot now ends at `end_check!`. Before, a death ran on through every death script after it.
+
 ## [0.129.0] — 2026-10-03
 
 ### Feature: [Sprites] resizable sidebars, previews everywhere, Animations tab, HUD opcodes

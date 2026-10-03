@@ -17,8 +17,27 @@
     return (typeof SPRITES_ANIMATIONS !== 'undefined' ? SPRITES_ANIMATIONS : (typeof window !== 'undefined' ? window.SPRITES_ANIMATIONS : [])) || [];
   }
 
-  /** Fill the listing from a spriteAnimationData payload. */
-  function renderScript(anim) {
+  var chkSpr = document.getElementById('sp-chk-script-spr');
+  var lastAnim = null;
+  var lastCtx = {};
+  if (chkSpr) chkSpr.addEventListener('change', function() { renderScript(lastAnim, lastCtx); });
+
+  /** The sprite a listing line loads, if it is a sprite command: the first $xxxxxx operand. */
+  function spriteOf(text) {
+    if (!/^(sprite|hud_|segments)/.test(text)) return 0;
+    var m = /\$([0-9a-f]{6})/.exec(text);
+    return m ? parseInt(m[1], 16) : 0;
+  }
+
+  /**
+   * Fill the listing from a spriteAnimationData payload: address, command, bytes — and,
+   * with "sprites" ticked, a preview of the sprite each sprite command loads, in `ctx`'s
+   * palette ({ character, paletteAddr }).
+   */
+  function renderScript(anim, ctx) {
+    lastAnim = anim;
+    lastCtx = ctx || {};
+    var showSpr = !!(chkSpr && chkSpr.checked && window.SpritesThumbs);
     rowsByAddr = {};
     if (!bodyEl) return;
     bodyEl.innerHTML = '';
@@ -30,8 +49,16 @@
       var tr = document.createElement('tr');
       tr.className = 'sp-script-row' + (l.endFrame ? ' sp-script-end' : '') + (l.known ? '' : ' sp-script-unknown');
       tr.innerHTML = '<td class="sp-script-addr">' + l.addrHex + '</td>' +
-        '<td class="sp-script-bytes">' + l.bytesHex + '</td>' +
-        '<td class="sp-script-text">' + esc(l.text) + '</td>';
+        (showSpr ? '<td class="sp-script-spr"></td>' : '') +
+        '<td class="sp-script-text">' + esc(l.text) + '</td>' +
+        '<td class="sp-script-bytes">' + l.bytesHex + '</td>';
+      if (showSpr) {
+        var spr = spriteOf(l.text);
+        if (spr) tr.children[1].appendChild(window.SpritesThumbs.box({
+          key: 'spr:' + spr + ':' + (lastCtx.paletteAddr || 'c' + lastCtx.character), sprite: spr,
+          character: lastCtx.character, paletteAddr: lastCtx.paletteAddr || 0,
+        }));
+      }
       bodyEl.appendChild(tr);
       rowsByAddr[l.address] = tr;
     });

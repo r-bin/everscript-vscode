@@ -107,6 +107,11 @@ else; the linear walker reads `opcode()` too.
   `2|dy| < r₁+r₂`, `|dx| < r₁+r₂`, |Δh| < `$230`), full stamina, once per charge.
   Knock-back (`$01`) and casting (`$20`) targets are skipped.
 
+- **Facing**: 0 = N, 4 = E, 8 = S, 12 = W, odd steps the diagonals. Not S = 0.
+- **Second palette**: chunk OAM palette bits = 1 use record `+0x0B` (Harry, Vigor);
+  `composeSprite` reports them per pixel in `palettes`.
+- One-shots end at `end_check!`.
+
 ## 4. Never guess
 
 - A width comes from a trace or from reading the handler's `$5D` advances on every
