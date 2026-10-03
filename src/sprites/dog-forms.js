@@ -27,7 +27,7 @@ const FORM_NAMES = [
 
 /** Slot labels; null where nothing names the record yet. */
 const SLOT_LABELS = [
-    'Stand', 'Walk', 'Run', null, 'Damage',
+    'Idle', 'Walk', 'Run', null, 'Knockback',
     'Attack Lvl 0', 'Attack Lvl 1', 'Attack Lvl 2', 'Attack Lvl 3',
     null, null, 'Sleep', 'Sit', null, 'Bark',
 ];

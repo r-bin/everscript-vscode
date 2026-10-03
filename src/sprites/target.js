@@ -40,53 +40,52 @@ function withCooldown(ticks) {
 }
 
 /**
- * Every tick a strike box or a projectile first reaches the target. Ticks are on the
- * playback clock (from the first displayed frame); strikes move and lift with the
- * attacker, projectiles hit with their 16×16 box at their own height. After a hit the
- * same attacker cannot hit again for 21 ticks (+0x36/+0x38). A projectile consumed on
- * hit (procs 2 and 6) hits once and its path is cut there.
+ * Every tick a strike, a projectile or a charging body reaches the target, on the playback
+ * clock. `still` answers the same for the entity drawn in place (Walk path off): strikes and
+ * contact are tested from its starting spot, projectiles shifted by where it stood. After a
+ * hit the same attacker cannot hit again for 21 ticks (+0x36/+0x38); a projectile consumed on
+ * hit (procs 2 and 6) hits once, and `cut` says where its flight ends. Contact damage needs a
+ * tick on which the entity tries to step, and lands once per charge.
  */
-function hitTicks(vmFrames, spawns, target, attackerRadius = 0) {
+function hitTicks(vmFrames, spawns, target, attackerRadius = 0, still = false) {
     const melee = [];
-    // Contact damage: a charging body that runs into the target, once per charge.
     let contact = null;
     let prev = [0, 0];
     let t = 0;
     for (const f of vmFrames) {
         f.motion.forEach((m, i) => {
-            const moved = m[0] !== prev[0] || m[1] !== prev[1];
+            const stepped = m[0] !== prev[0] || m[1] !== prev[1];
             prev = m;
-            if (contact !== null || !moved || !(f.mode & MODE_CONTACT)) return;
-            if (bodiesTouch({ x: m[0], y: m[1], z: m[2], radius: attackerRadius }, target)) contact = t + i;
+            const x = still ? 0 : m[0];
+            const y = still ? 0 : m[1];
+            if (f.strikeBox) {
+                const s = { x: x + f.strikeBox.dx, y: y + f.strikeBox.dy, width: f.strikeBox.width, height: f.strikeBox.height, z: m[2] };
+                if (strikeHits(s, target)) melee.push(t + i);
+            }
+            if (contact === null && stepped && (f.mode & MODE_CONTACT)
+                && bodiesTouch({ x, y, z: m[2], radius: attackerRadius }, target)) contact = t + i;
         });
         t += f.ticks;
     }
-    t = 0;
-    for (const f of vmFrames) {
-        if (f.strikeBox) {
-            f.motion.forEach((m, i) => {
-                const s = { x: m[0] + f.strikeBox.dx, y: m[1] + f.strikeBox.dy, width: f.strikeBox.width, height: f.strikeBox.height, z: m[2] };
-                if (strikeHits(s, target)) melee.push(t + i);
-            });
-        }
-        t += f.ticks;
-    }
     const projectile = [];
-    for (const sp of spawns) {
+    const cut = {};
+    spawns.forEach((sp, k) => {
         const path = sp.path || [];
-        const contact = [];
-        path.forEach((p, i) => { if (strikeHits({ x: p[0], y: p[1], width: PROJECTILE_HIT_SIZE, height: PROJECTILE_HIT_SIZE, z: p[2] }, target)) contact.push(i); });
-        if (!contact.length) continue;
+        const sx = still ? sp.ex : 0;
+        const sy = still ? sp.ey : 0;
+        const contactAt = [];
+        path.forEach((p, i) => {
+            if (strikeHits({ x: p[0] - sx, y: p[1] - sy, width: PROJECTILE_HIT_SIZE, height: PROJECTILE_HIT_SIZE, z: p[2] }, target)) contactAt.push(i);
+        });
+        if (!contactAt.length) return;
         if (sp.onHit === 'consumed') {
-            const i = contact[0];
-            projectile.push({ idHex: sp.idHex, tick: sp.tick + i + 1, onHit: sp.onHit });
-            sp.path = path.slice(0, i + 1);
-            sp.ends = 'hit';
+            projectile.push({ idHex: sp.idHex, tick: sp.tick + contactAt[0] + 1, onHit: sp.onHit });
+            cut[k] = contactAt[0] + 1;
         } else {
-            for (const i of withCooldown(contact)) projectile.push({ idHex: sp.idHex, tick: sp.tick + i + 1, onHit: sp.onHit });
+            for (const i of withCooldown(contactAt)) projectile.push({ idHex: sp.idHex, tick: sp.tick + i + 1, onHit: sp.onHit });
         }
-    }
-    return { melee: withCooldown(melee), projectile, contact: contact === null ? [] : [contact] };
+    });
+    return { melee: withCooldown(melee), projectile, contact: contact === null ? [] : [contact], cut };
 }
 
 /** The target, ready to draw: its standing frame, facing back at the viewed character. */

@@ -36,15 +36,17 @@
       p = sp.start;
     } else {
       var i = Math.floor(age) - 1;
-      if (i >= sp.path.length) return null;
+      // A projectile consumed on hit ends there — where depends on whether the thrower walks.
+      var end = walk ? (sp.cutWalk || sp.path.length) : (sp.cutStill || sp.path.length);
+      if (i >= end) return null;
       p = i < 0 ? sp.start : sp.path[i];
     }
     return { x: p[0] + shiftX, y: p[1] + shiftY, z: p[2] / HEIGHT_UNITS };
   }
 
   /** Is `tick` one the target is hit on? Returns 'melee', the projectile id, or null. */
-  function hitAt(anim, tick) {
-    var h = anim.target && anim.target.hits;
+  function hitAt(anim, tick, walk) {
+    var h = anim.target && (walk === false ? anim.target.hitsStill : anim.target.hits);
     if (!h) return null;
     var t = Math.floor(tick);
     if (h.melee.indexOf(t) >= 0) return 'melee';
@@ -130,7 +132,7 @@
   function drawProjectiles(ctx, anim, now, ox, oy, scale, walk, imageFor) {
     var pr = anim.projectiles;
     if (!pr || !pr.spawns) return;
-    var hit = hitAt(anim, now);
+    var hit = hitAt(anim, now, walk);
     pr.spawns.forEach(function(sp) {
       if (now < sp.tick) return;
       var age = now - sp.tick;
@@ -169,7 +171,7 @@
    * `radius` centred on its feet, as the hit test at $8FB63A measures it — filled red
    * on every tick something reaches it.
    */
-  function drawTarget(ctx, anim, now, ox, oy, scale, imageFor) {
+  function drawTarget(ctx, anim, now, ox, oy, scale, imageFor, walk) {
     var t = anim.target;
     if (!t) return;
     var x = ox + t.x * scale;
@@ -181,7 +183,7 @@
       ctx.globalAlpha = 1;
     }
     var r = t.radius * scale;
-    var hit = hitAt(anim, now);
+    var hit = hitAt(anim, now, walk);
     ctx.strokeStyle = hit ? '#ff3355' : '#ffaa00';
     ctx.lineWidth = hit ? 2 : 1.5;
     ctx.strokeRect(x - r, y - r, r * 2, r * 2);

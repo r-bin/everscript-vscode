@@ -527,6 +527,20 @@ if (rom) {
         assert.strictEqual(grid.length, 5);
     });
 
+    test('hits depend on movement: the roll reaches a Boy 40 px away only by rolling', () => {
+        const magmar = readAllCharacters(rom).find(c => c.name === 'Magmar');
+        const anim = renderAnimation(rom, magmar.id, Object.assign({}, magmar.anims.find(a => a.key === 'atk3'), { target: { on: true, character: 0, distance: 40 } }), 4);
+        assert.deepStrictEqual(anim.target.hits.contact, [4], 'walking: it rolls into him');
+        assert.deepStrictEqual(anim.target.hitsStill.contact, [], 'held in place: radii 20 + 8 never touch at 40 px');
+    });
+
+    test('labels: Idle, Knockback, Death with spoils', () => {
+        const fk = readAllCharacters(rom).find(c => c.name === 'FootKnight');
+        const labels = fk.anims.filter(a => a.category === 'standard').map(a => a.label);
+        assert(labels.includes('Idle') && labels.includes('Knockback'));
+        assert(!labels.some(l => /Stand \(Idle\)|Damage \(Hurt\)/.test(l)));
+    });
+
     test('renderAnimation returns a script listing with frame line addresses', () => {
         const anim = renderAnimation(rom, 140, { category: 'external', animRec: 0x4dd2 }, 0);
         assert(anim.script.length > 10);

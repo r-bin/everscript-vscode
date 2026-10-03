@@ -726,3 +726,26 @@
 .sp-pal-tile.sp-active { border-color: #4d9fff; }
 .sp-pal-tile img { image-rendering: pixelated; max-width: 72px; max-height: 72px; }
 .sp-pal-tile span { font-size: 10px; opacity: 0.75; margin-top: 2px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 80px; }
+
+/* ── Characters view: main column + tabbed sidebar ── */
+.sp-char-layout { display: flex; flex: 1; min-height: 0; width: 100%; }
+.sp-char-main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: auto; }
+.sp-side { width: 400px; flex: none; display: flex; flex-direction: column; border-left: 1px solid var(--vscode-panel-border, #333); min-height: 0; }
+.sp-side-tabs { display: flex; border-bottom: 1px solid var(--vscode-panel-border, #333); }
+.sp-side-tab { flex: 1; padding: 8px 4px; background: transparent; border: none; border-bottom: 2px solid transparent; color: inherit; opacity: 0.7; cursor: pointer; font-size: 12px; }
+.sp-side-tab.sp-active { opacity: 1; border-bottom-color: #4d9fff; }
+.sp-side-pane { margin: 0 !important; border: none !important; border-radius: 0 !important; flex: 1; min-height: 0; overflow: auto; }
+.sp-side .sp-stats-grid { grid-template-columns: 1fr 1fr; }
+.sp-side .sp-script-wrap { max-height: none; flex: 1; }
+.sp-side .sp-palette-grid { max-height: none; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); }
+.sp-side .sp-chunks-table-wrap { max-height: none; }
+@media (max-width: 900px) {
+  .sp-char-layout { flex-direction: column; }
+  .sp-side { width: auto; border-left: none; border-top: 1px solid var(--vscode-panel-border, #333); }
+}
+
+/* square list thumbnails, so names line up */
+.sp-li-thumbs { gap: 4px; min-width: 0; height: auto; margin-right: 10px; }
+.sp-li-thumb { width: 36px; height: 36px; display: inline-flex; align-items: flex-end; justify-content: center; background: rgba(255,255,255,0.03); border-radius: 3px; overflow: hidden; }
+.sp-li-thumb img { max-width: 34px; max-height: 34px; }
+.sp-tag, .sp-check-label { white-space: nowrap; }

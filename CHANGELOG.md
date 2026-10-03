@@ -1,3 +1,14 @@
+## [0.128.0] — 2026-10-03
+
+### Feature: [Sprites] sidebar layout, movement-aware hits, palette fixes, clearer labels
+
+- **Sidebar:** Stats, Script, Chunks and Palettes moved into a tabbed sidebar on the right, so the stage stays in view. The Palettes tab renders when opened.
+- **Hits follow movement:** hits are computed both for the walk path and for the entity held in place, and the tab uses whichever matches **Walk path**. With it off, a charging body only deals contact damage if it already overlaps the target. Magmar's roll reaches a Boy 40 px away only by rolling.
+- **List previews in square boxes:** two equal boxes per row, so every name lines up.
+- **Palettes:** Salabog (or any frame without a main sprite) shows its head segment instead of leaving the previous grid. Changing character resets the palette choice and re-renders the grid. Choosing a palette no longer restarts the animation.
+- **Labels:** "Stand (Idle)" → **Idle**, "Damage (Hurt)" → **Knockback**, "Spoils" → **Death with spoils**, and the weapon set loses its "(Weapon)" suffixes. An animation that reuses an earlier one's record says so, e.g. **Run (→ Walk)**.
+- The Boy and Dog are badged **Hero**, not Enemy.
+
 ## [0.127.0] — 2026-10-03
 
 ### Feature: [Sprites] contact damage, list previews, every palette

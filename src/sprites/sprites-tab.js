@@ -38,6 +38,8 @@ function buildSpritesTabHtml() {
     <div class="sp-main">
       <!-- ── Characters View ── -->
       <div class="sp-view-content" id="sp-char-view">
+       <div class="sp-char-layout">
+        <div class="sp-char-main">
         <!-- Top Title & Badge bar -->
         <div class="sp-header">
           <div class="sp-header-left">
@@ -49,7 +51,6 @@ function buildSpritesTabHtml() {
             <span class="sp-palette-label">Palette:</span>
             <span class="sp-palette-hex" id="sp-palette-hex">$0000</span>
             <div class="sp-palette-swatch" id="sp-palette-swatch"></div>
-            <button class="sp-chip-btn" id="sp-btn-palettes" title="Show the current frame in every palette the game's characters use; click one to play in it">All palettes</button>
           </div>
         </div>
 
@@ -155,8 +156,18 @@ function buildSpritesTabHtml() {
           </div>
         </div>
 
+        </div>
+
+        <!-- Right sidebar: stats, script, chunks, palettes -->
+        <div class="sp-side">
+          <div class="sp-side-tabs">
+            <button class="sp-side-tab sp-active" data-side="stats">Stats</button>
+            <button class="sp-side-tab" data-side="script">Script</button>
+            <button class="sp-side-tab" data-side="chunks">Chunks</button>
+            <button class="sp-side-tab" data-side="palettes" id="sp-btn-palettes">Palettes</button>
+          </div>
         <!-- Every palette: the current frame recoloured, click to apply -->
-        <div class="sp-palette-panel" id="sp-palette-panel" style="display:none">
+        <div class="sp-palette-panel sp-side-pane" data-side="palettes" id="sp-palette-panel" style="display:none">
           <div class="sp-col-title">
             <span>All palettes</span>
             <span class="sp-col-sub" id="sp-palette-status"></span>
@@ -166,7 +177,7 @@ function buildSpritesTabHtml() {
         </div>
 
         <!-- Animation script: the bytecode behind the playing animation -->
-        <div class="sp-script-panel">
+        <div class="sp-script-panel sp-side-pane" data-side="script" style="display:none">
           <div class="sp-col-title">
             <span>Animation Script</span>
             <span class="sp-col-sub" id="sp-script-status"></span>
@@ -179,35 +190,34 @@ function buildSpritesTabHtml() {
           </div>
         </div>
 
-        <!-- 2-Column Info Grid: Stats on Left, Chunks on Right -->
-        <div class="sp-details-grid">
-          <!-- Column 1: Stats & Game Mechanics Explanations -->
-          <div class="sp-details-col">
-            <div class="sp-col-title">Character Stats & Engine Meanings</div>
-            <div class="sp-stats-grid" id="sp-stats-grid"></div>
-          </div>
+        <!-- Stats & engine meanings -->
+        <div class="sp-details-col sp-side-pane" data-side="stats">
+          <div class="sp-col-title">Character Stats & Engine Meanings</div>
+          <div class="sp-stats-grid" id="sp-stats-grid"></div>
+        </div>
 
-          <!-- Column 2: Sprite Chunks List (Matching TilesViewer Tab 2) -->
-          <div class="sp-details-col">
-            <div class="sp-col-title">
-              <span>Frame Chunks</span>
-              <span class="sp-col-sub" id="sp-chunks-count">(0 chunks)</span>
-            </div>
-            <div class="sp-chunks-table-wrap">
-              <table class="sp-chunks-table" id="sp-chunks-table">
-                <thead>
-                  <tr>
-                    <th>Block</th>
-                    <th>Offset (X, Y)</th>
-                    <th>Flags</th>
-                    <th>Properties</th>
-                  </tr>
-                </thead>
-                <tbody id="sp-chunks-body"></tbody>
-              </table>
-            </div>
+        <!-- Sprite chunks of the current frame -->
+        <div class="sp-details-col sp-side-pane" data-side="chunks" style="display:none">
+          <div class="sp-col-title">
+            <span>Frame Chunks</span>
+            <span class="sp-col-sub" id="sp-chunks-count">(0 chunks)</span>
+          </div>
+          <div class="sp-chunks-table-wrap">
+            <table class="sp-chunks-table" id="sp-chunks-table">
+              <thead>
+                <tr>
+                  <th>Block</th>
+                  <th>Offset (X, Y)</th>
+                  <th>Flags</th>
+                  <th>Properties</th>
+                </tr>
+              </thead>
+              <tbody id="sp-chunks-body"></tbody>
+            </table>
           </div>
         </div>
+        </div>
+       </div>
       </div>
 
       <!-- ── Raw Sprites View ── -->

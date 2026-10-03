@@ -41,16 +41,16 @@ const WEAPON_NAMES = [
 ];
 
 const WEAPON_ANIM_OFFSETS = [
-    { key: 'w_stand', label: 'Stand (Weapon)', offset: 0x08 },
-    { key: 'w_walk', label: 'Walk (Weapon)', offset: 0x0a },
-    { key: 'w_run', label: 'Run (Weapon)', offset: 0x0c },
+    { key: 'w_stand', label: 'Idle', offset: 0x08 },
+    { key: 'w_walk', label: 'Walk', offset: 0x0a },
+    { key: 'w_run', label: 'Run', offset: 0x0c },
     { key: 'w_atk0', label: 'Attack Lvl 0', offset: 0x0e },
     { key: 'w_atk1', label: 'Attack Lvl 1', offset: 0x10 },
     { key: 'w_atk2', label: 'Attack Lvl 2', offset: 0x12 },
     { key: 'w_atk3', label: 'Attack Lvl 3', offset: 0x14 },
     // Was 'Charge Attack': a held pose with mode $0020 (invulnerable) — the dodge.
     { key: 'w_charge', label: 'Dodge (invulnerable)', offset: 0x16 },
-    { key: 'w_damage', label: 'Damage', offset: 0x18 },
+    { key: 'w_damage', label: 'Knockback', offset: 0x18 },
 ];
 
 /** A script in the animation banks that draws at least one sprite when run. */
@@ -129,16 +129,16 @@ const STAT_MEANINGS = {
 
 /** Character animation field offsets in the 74-byte struct. */
 const STANDARD_ANIM_FIELDS = [
-    { key: 'stand', label: 'Stand (Idle)', offset: 0x32 },
+    { key: 'stand', label: 'Idle', offset: 0x32 },
     { key: 'walk', label: 'Walk', offset: 0x34 },
     { key: 'run', label: 'Run', offset: 0x36 },
     { key: 'atk0', label: 'Attack Lvl 0', offset: 0x38 },
     { key: 'atk1', label: 'Attack Lvl 1', offset: 0x3a },
     { key: 'atk2', label: 'Attack Lvl 2', offset: 0x3c },
     { key: 'atk3', label: 'Attack Lvl 3', offset: 0x3e },
-    { key: 'damage', label: 'Damage (Hurt)', offset: 0x40 },
+    { key: 'damage', label: 'Knockback', offset: 0x40 },
     { key: 'death', label: 'Death', offset: 0x42 },
-    { key: 'spoils', label: 'Spoils', offset: 0x44 },
+    { key: 'spoils', label: 'Death with spoils', offset: 0x44 },
     // Was 'Block': casting alchemy or using an item (Boy, Bad Boy, Verminator); mode $0120,
     // invulnerable while it plays. Started by its own routine at $90829B.
     { key: 'block', label: 'Cast (alchemy / item)', offset: 0x46 },

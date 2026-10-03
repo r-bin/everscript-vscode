@@ -197,9 +197,9 @@
         li.className = 'sp-list-item' + (c.id === selectedCharId ? ' sp-selected' : '') + (c.noVisuals ? ' sp-li-novis' : '');
         li.dataset.id = String(c.id);
         li.title = c.noVisuals ? 'No visuals: none of its own animations shows a sprite (death is the shared dust puff)' : '';
-        var thumbs = c.thumbs ? '<span class="sp-li-thumbs">' +
-          (c.thumbs.s ? '<img src="' + c.thumbs.s + '" alt="" title="south">' : '') +
-          (c.thumbs.e ? '<img src="' + c.thumbs.e + '" alt="" title="east">' : '') + '</span>' : '<span class="sp-li-thumbs"></span>';
+        // Two square boxes per row, filled or empty, so every name starts at the same x.
+        var box = function(src, title) { return '<span class="sp-li-thumb" title="' + title + '">' + (src ? '<img src="' + src + '" alt="">' : '') + '</span>'; };
+        var thumbs = '<span class="sp-li-thumbs">' + box(c.thumbs && c.thumbs.s, 'south') + box(c.thumbs && c.thumbs.e, 'east') + '</span>';
         li.innerHTML = thumbs + '<span class="sp-li-name">' + escHtml(c.name || '#' + c.id) + (c.noVisuals ? '<span class="sp-li-tag">no visuals</span>' : '') + '</span>' +
           '<span class="sp-li-addr">' + (c.snesHex || '') + '</span>';
 
@@ -263,7 +263,7 @@
     if (c.id !== paletteOverrideChar) { paletteOverride = 0; paletteOverrideChar = c.id; }
     if (badgeEl) {
       var disp = c.disposition || {};
-      badgeEl.textContent = disp.label || '';
+      badgeEl.textContent = c.id === 0 || c.id === 1 ? 'Hero' : (disp.label || '');
       badgeEl.className = 'sp-badge ' + (c.id === 0 || c.id === 1 ? 'sp-badge-hero' : disp.hostile ? 'sp-badge-enemy' : 'sp-badge-npc');
     }
     if (palHex) palHex.textContent = c.paletteAddrHex || '$0000';
@@ -324,6 +324,15 @@
   function populateAnimationDropdown(c) {
     if (!animSel) return;
     animSel.innerHTML = '';
+    // An animation that reuses an earlier one's record says which: "Walk (→ Idle)".
+    var firstByRecord = {};
+    var labelFor = function(a) {
+      var base = a.label + (a.valueHex ? ' (' + a.valueHex + ')' : '');
+      if (!a.animRec) return base;
+      if (firstByRecord[a.animRec]) return a.label + ' (→ ' + firstByRecord[a.animRec] + ')';
+      firstByRecord[a.animRec] = a.label;
+      return base;
+    };
 
     var defaultKey = 'stand';
 
@@ -335,7 +344,7 @@
       (w.anims || []).forEach(function(a) {
         var opt = document.createElement('option');
         opt.value = a.key;
-        opt.textContent = a.label;
+        opt.textContent = labelFor(a);
         opt.dataset.category = 'weapon';
         wGroup.appendChild(opt);
       });
@@ -352,7 +361,7 @@
       if (a.category === 'weapon') return;
       var opt = document.createElement('option');
       opt.value = a.key;
-      opt.textContent = a.label + (a.valueHex ? ' (' + a.valueHex + ')' : '');
+      opt.textContent = labelFor(a);
       opt.dataset.category = a.category;
       if (a.category === 'external') extGroup.appendChild(opt);
       else stdGroup.appendChild(opt);
@@ -500,6 +509,7 @@
   [chkTarget, targetDist].forEach(function(el) {
     if (el) el.addEventListener('change', loadCurrentAnimation);
   });
+  if (chkWalk) chkWalk.addEventListener('change', updateFrameUI);
   [chkBody, chkHurt, chkStrike, chkOrigin, chkProj, chkWalk, chkAggro].forEach(function(chk) {
     if (chk) chk.addEventListener('change', drawFrame);
   });
@@ -670,11 +680,12 @@
   function targetText(frame) {
     var t = currentAnimData && currentAnimData.target;
     if (!t || !t.hits) return '';
+    var hits = walkOn() ? t.hits : (t.hitsStill || t.hits);
     var start = frameStartTicks[currentFrameIdx] || 0;
     var end = start + frame.ticks + (currentFrameIdx === currentAnimData.frames.length - 1 ? flightTail : 0);
-    var n = t.hits.melee.filter(function(k) { return k >= start && k < end; }).length +
-      (t.hits.contact || []).filter(function(k) { return k >= start && k < end; }).length +
-      t.hits.projectile.filter(function(p) { return p.tick >= start && p.tick < end; }).length;
+    var n = hits.melee.filter(function(k) { return k >= start && k < end; }).length +
+      (hits.contact || []).filter(function(k) { return k >= start && k < end; }).length +
+      hits.projectile.filter(function(p) { return p.tick >= start && p.tick < end; }).length;
     return n ? ' · hits ' + t.name + ' (' + n + ' tick' + (n === 1 ? '' : 's') + ')' : '';
   }
 
@@ -760,7 +771,7 @@
       var bh = r * scale;
       // Charging (mode & $C000): running into another body deals contact damage ($8FB52C).
       var charging = !!cur.contact;
-      var contactHit = charging && motion && motion.hitAt(a, motion.nowTick(frameStartTicks, currentFrameIdx, tickCounter)) === 'contact';
+      var contactHit = charging && motion && motion.hitAt(a, motion.nowTick(frameStartTicks, currentFrameIdx, tickCounter), walkOn()) === 'contact';
       ctx.setLineDash(charging ? [5, 2] : []);
       ctx.strokeStyle = charging ? '#ff5577' : '#00f0a0';
       ctx.lineWidth = charging ? 2 : 1.5;
@@ -810,7 +821,7 @@
       ctx.strokeStyle = '#ff3355';
       ctx.lineWidth = 2;
       ctx.strokeRect(sx, sy, sw, shh);
-      ctx.fillStyle = motion && motion.hitAt(a, motion.nowTick(frameStartTicks, currentFrameIdx, tickCounter)) === 'melee'
+      ctx.fillStyle = motion && motion.hitAt(a, motion.nowTick(frameStartTicks, currentFrameIdx, tickCounter), walkOn()) === 'melee'
         ? 'rgba(255, 51, 85, 0.55)' : 'rgba(255, 51, 85, 0.25)';
       ctx.fillRect(sx, sy, sw, shh);
     }
@@ -835,7 +846,7 @@
     if (motion && trailTicks() > 0) motion.drawTrail(ctx, a, frameStartTicks, motion.nowTick(frameStartTicks, currentFrameIdx, tickCounter), trailTicks(), ox, oy, scale, walk);
 
     // The second character, drawn before projectiles so they fly over it
-    if (motion && a.target) motion.drawTarget(ctx, a, motion.nowTick(frameStartTicks, currentFrameIdx, tickCounter), ox, oy, scale, imageFor);
+    if (motion && a.target) motion.drawTarget(ctx, a, motion.nowTick(frameStartTicks, currentFrameIdx, tickCounter), ox, oy, scale, imageFor, walk);
 
     // Overlay 4: Projectiles in flight, from where the thrower stood
     if (motion && projectilesOn()) {
@@ -873,6 +884,7 @@
 
   // ── All palettes ────────────────────────────────────────────────────────────
   var paletteOverride = 0;        // a palette chosen from the grid, until the character changes
+  var keepPlayback = false;       // the next reply only recolours: keep frame and tick
   var paletteOverrideChar = -1;
   var palettePanel = document.getElementById('sp-palette-panel');
   var paletteGrid = document.getElementById('sp-palette-grid');
@@ -882,8 +894,14 @@
 
   function requestPaletteGrid() {
     var cur = currentAnimData && currentAnimData.frames[currentFrameIdx];
-    var sprite = cur && cur.spriteAddr;
-    if (!sprite) { if (paletteStatus) paletteStatus.textContent = 'this frame draws no sprite'; return; }
+    // A segmented body has no main sprite: show its head instead.
+    var sprite = (cur && cur.spriteAddr) || (cur && cur.segments && parseInt(String(cur.segments.sprites[0]).replace('$', ''), 16)) || 0;
+    if (!sprite) {
+      if (paletteGrid) paletteGrid.innerHTML = '';
+      if (paletteStatus) paletteStatus.textContent = 'this frame draws no sprite';
+      return;
+    }
+    paletteGridFor = selectedCharId;
     if (paletteStatus) paletteStatus.textContent = 'rendering…';
     if (vsApi) vsApi.postMessage({ command: 'getPaletteGrid', sprite: sprite });
   }
@@ -901,21 +919,30 @@
         paletteOverride = p.addr;
         paletteGrid.querySelectorAll('.sp-pal-tile').forEach(function(t) { t.classList.remove('sp-active'); });
         tile.classList.add('sp-active');
+        keepPlayback = true;            // a recolour, not a new animation: stay on this frame
         loadCurrentAnimation();
       });
       paletteGrid.appendChild(tile);
     });
   }
 
-  if (btnPalettes) btnPalettes.addEventListener('click', function() {
-    if (!palettePanel) return;
-    var open = palettePanel.style.display === 'none';
-    palettePanel.style.display = open ? '' : 'none';
-    if (open) requestPaletteGrid();
+  // ── Sidebar tabs: Stats, Script, Chunks, Palettes ─────────────────────────
+  var sideTab = 'stats';
+  function setSideTab(name) {
+    sideTab = name;
+    document.querySelectorAll('.sp-side-tab').forEach(function(b) { b.classList.toggle('sp-active', b.dataset.side === name); });
+    document.querySelectorAll('.sp-side-pane').forEach(function(p) { p.style.display = p.dataset.side === name ? '' : 'none'; });
+    if (name === 'palettes') requestPaletteGrid();
+  }
+  document.querySelectorAll('.sp-side-tab').forEach(function(b) {
+    b.addEventListener('click', function() { setSideTab(b.dataset.side); });
   });
+  var paletteGridFor = -1;          // the character the grid was last drawn for
+
   if (btnPaletteOwn) btnPaletteOwn.addEventListener('click', function() {
     paletteOverride = 0;
     if (paletteGrid) paletteGrid.querySelectorAll('.sp-pal-tile').forEach(function(t) { t.classList.remove('sp-active'); });
+    keepPlayback = true;
     loadCurrentAnimation();
   });
 
@@ -1050,9 +1077,17 @@
       if (!data) return;
 
       if (data.command === 'spriteAnimationData') {
+        var prevFrame = currentFrameIdx;
+        var prevTick = tickCounter;
         currentAnimData = data.animation;
         currentFrameIdx = 0;
         tickCounter = 0;
+        if (keepPlayback && currentAnimData && currentAnimData.frames.length) {
+          currentFrameIdx = Math.min(prevFrame, currentAnimData.frames.length - 1);
+          tickCounter = prevTick;
+        }
+        var recolourOnly = keepPlayback;
+        keepPlayback = false;
         frameStartTicks = [];
         var acc = 0;
         ((currentAnimData && currentAnimData.frames) || []).forEach(function(f) { frameStartTicks.push(acc); acc += f.ticks; });
@@ -1065,6 +1100,8 @@
           script.renderScript(currentAnimData);
           script.renderOwners(currentMode === 'anims' ? pinnedRecord : script.findRecord(requestedRecord));
         }
+        // A new character or animation: the palette grid shows its frame, nothing selected.
+        if (sideTab === 'palettes' && !recolourOnly) requestPaletteGrid();
         updateFrameUI();
       } else if (data.command === 'paletteGridData') {
         renderPaletteGrid(data.grid || []);

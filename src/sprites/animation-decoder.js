@@ -115,7 +115,16 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
         });
     }
     const projectiles = renderProjectiles(rom, run.frames, facing, colours, target);
-    if (target) target.hits = hitTicks(run.frames, projectiles.spawns, target, Number.isInteger(characterId) ? characterHitbox(rom, characterId).radius : 0);
+    if (target) {
+        // Hits as drawn with the walk path, and with the entity kept in place (Walk path off).
+        const radius = Number.isInteger(characterId) ? characterHitbox(rom, characterId).radius : 0;
+        target.hits = hitTicks(run.frames, projectiles.spawns, target, radius, false);
+        target.hitsStill = hitTicks(run.frames, projectiles.spawns, target, radius, true);
+        projectiles.spawns.forEach((sp, k) => {
+            if (k in target.hits.cut) { sp.cutWalk = target.hits.cut[k]; sp.ends = 'hit'; }
+            if (k in target.hitsStill.cut) sp.cutStill = target.hitsStill.cut[k];
+        });
+    }
     const segmentSprites = renderSegmentSprites(rom, run.frames, colours);
 
     return {
@@ -148,7 +157,7 @@ const hex6 = (v) => '$' + v.toString(16).padStart(6, '0');
  * Attacks, damage, death, spoils and casting end on `end_check`, which hands the entity
  * back to its AI; idles, walks and runs loop. Record fields from +0x38 on are the former.
  */
-const ONE_SHOT_LABEL = /attack|damage|death|spoils|cast|dodge|hurt/i;
+const ONE_SHOT_LABEL = /attack|damage|knockback|death|spoils|cast|dodge|hurt/i;
 function isOneShot(opt) {
     if (!opt || typeof opt !== 'object') return typeof opt === 'number' && opt >= 0x38;
     if (typeof opt.oneShot === 'boolean') return opt.oneShot;
