@@ -205,7 +205,7 @@ function buildSpritesTabHtml() {
           <div class="sp-col-title">
             <span>Animation Script</span>
             <span class="sp-col-sub" id="sp-script-status"></span>
-            <label class="sp-check-label" title="Show the sprite each sprite command loads"><input type="checkbox" id="sp-chk-script-spr" /> sprites</label>
+            <label class="sp-check-label" title="Show what each command loads beneath it: sprites, palettes, projectiles"><input type="checkbox" id="sp-chk-script-spr" checked /> previews</label>
           </div>
           <div class="sp-script-owners" id="sp-script-owners"></div>
           <div class="sp-script-wrap" id="sp-script-wrap">

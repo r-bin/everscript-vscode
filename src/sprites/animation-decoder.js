@@ -9,6 +9,7 @@ const { disassembleScript } = require('../maps/dist/animation-opcodes');
 const { composeAligned } = require('./frame-compose');
 const { snesToRom } = require('../maps/dist/rom');
 const { renderProjectiles } = require('./projectile-render');
+const { projectileRecord } = require('../maps/dist/projectiles');
 const { targetFor, buildTarget, hitTicks, DEFAULT_DISTANCE, OUT_OF_REACH_ABOVE, OUT_OF_REACH_BELOW } = require('./target');
 
 /** Resolve script address for a record, taking facing into account if directional. */
@@ -267,15 +268,35 @@ function renderSegmentSprites(rom, frames, colours, secondPaletteFor) {
 }
 
 /** The script's reachable commands, as the webview lists them. */
+const PALETTE_OP = 0x4b;
+const PROJECTILE_OP = 0x4c;
+const colourHex = ([r, g, b]) => '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('');
+
+/**
+ * The script as listed in the Script tab. Lines that load something carry what the tab
+ * previews under them: `palette` (address and its 16 colours), `projectile` (the record's
+ * own animation and palette, 0 = the thrower's).
+ */
 function scriptListing(rom, scriptAddr) {
-    return disassembleScript(rom, scriptAddr).map((l) => ({
-        address: l.address,
-        addrHex: l.address.toString(16).padStart(6, '0'),
-        bytesHex: l.bytes.map((b) => b.toString(16).padStart(2, '0')).join(' '),
-        text: l.text,
-        endFrame: l.endFrame,
-        known: l.known,
-    }));
+    return disassembleScript(rom, scriptAddr).map((l) => {
+        const line = {
+            address: l.address,
+            addrHex: l.address.toString(16).padStart(6, '0'),
+            bytesHex: l.bytes.map((b) => b.toString(16).padStart(2, '0')).join(' '),
+            text: l.text,
+            endFrame: l.endFrame,
+            known: l.known,
+        };
+        const op = l.bytes[0] & 0x7f;
+        if (l.known && op === PALETTE_OP) {
+            const addr = l.bytes[1] | (l.bytes[2] << 8);
+            line.palette = { addr, colors: paletteAt(rom, addr).map(colourHex) };
+        } else if (l.known && op === PROJECTILE_OP) {
+            const p = projectileRecord(rom, l.bytes[1] | (l.bytes[2] << 8));
+            line.projectile = { id: p.id, animRec: p.animRecord, paletteAddr: p.palette };
+        }
+        return line;
+    });
 }
 
 /** Each distinct strike box the run produced, in order. */

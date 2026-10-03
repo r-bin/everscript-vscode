@@ -1,3 +1,11 @@
+## [0.137.0] — 2026-10-03
+
+### Feature: [Characters] richer script listing
+
+- What a command loads now shows **beneath it** instead of in its own column: the sprite a `sprite` command sets, the 16 colours a `palette` command loads, and the animation of the projectile a `projectile` command throws (in its own palette, else the thrower's). The toggle is now called **previews** and is on by default.
+- `mode` lines list their bits, e.g. `mode $0014` → `$0004 walking`, `$0010 attacking` (everscript's FLAGS_7 names, checked against the code).
+- Sprite addresses link to the Sprites view, and projectile ids link to the projectile's animation in Animations.
+
 ## [0.136.0] — 2026-10-03
 
 ### Feature: [Docs] Cheats section: the diagonal speed boost

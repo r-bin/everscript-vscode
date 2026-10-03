@@ -779,7 +779,6 @@
 .sp-side-pane > .sp-col-title { justify-content: flex-start; gap: 10px; border-bottom: none; margin-bottom: 6px; padding-bottom: 0; }
 .sp-side-pane > .sp-col-title:empty, .sp-side-pane > .sp-col-title.sp-col-only-title { display: none; }
 /* script rows: address, command, then the bytes; optional sprite previews */
-.sp-script-table td.sp-script-spr { width: 30px; padding: 1px 4px; }
 .sp-script-table .sp-li-thumb { width: 26px; height: 26px; }
 .sp-script-table .sp-li-thumb img { max-width: 24px; max-height: 24px; }
 .sp-chunks-table .sp-li-thumb { width: 26px; height: 26px; }
@@ -800,3 +799,11 @@
 .sp-char-main > .sp-player-bar .sp-frame-info { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%; }
 .sp-char-main > .sp-player-bar .sp-scrubber-wrap { flex: 1; min-width: 0; }
 .sp-hud-speeds .sp-hud-note { color: #ffd479; text-transform: none; letter-spacing: 0; font-size: 11px; opacity: 1; }
+/* script listing: what a command loads, beneath it */
+.sp-script-table .sp-script-detail { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; margin: 3px 0 2px; font-size: 10px; opacity: 0.8; }
+.sp-script-table .sp-script-detail .sp-li-thumb { width: 40px; height: 40px; }
+.sp-script-table .sp-script-detail .sp-li-thumb img { max-width: 38px; max-height: 38px; }
+.sp-script-swatch { display: flex; border: 1px solid rgba(255,255,255,0.12); }
+.sp-script-swatch span { width: 10px; height: 10px; }
+.sp-script-link { color: #6cb6ff; text-decoration: none; }
+.sp-script-link:hover { text-decoration: underline; }

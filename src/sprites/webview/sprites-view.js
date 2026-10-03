@@ -1322,7 +1322,17 @@
         });
         renderSpeedReadout();
         if (script) {
-          script.renderScript(currentAnimData, { character: selectedCharId, paletteAddr: currentPaletteAddr() });
+          script.renderScript(currentAnimData, {
+            character: selectedCharId, paletteAddr: currentPaletteAddr(), facing: currentAnimData ? currentAnimData.facing : selectedFacing,
+            // Links in the listing: a sprite opens in the Sprites view, a projectile's animation in Animations.
+            onSprite: function(addr) { setMode('raw'); selectRawSprite(addr); },
+            onRecord: function(record) {
+              var entry = script.findRecord(record);
+              if (!entry) return;
+              setMode('anims');
+              selectAnimationRecord(entry);
+            },
+          });
           script.renderOwners(currentMode === 'anims' ? pinnedRecord : script.findRecord(requestedRecord));
         }
         // A new character or animation: the palette grid shows its frame, nothing selected.

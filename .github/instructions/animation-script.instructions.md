@@ -150,6 +150,9 @@ else; the linear walker reads `opcode()` too.
   of the first owner > character > inferred (shared sprites, neighbouring sprites,
   nearest record). The Dog's own fields keep its Act 1 palette; `ACTn_` ids use form n.
 - List previews face south (8) and fall back to the fullest frame when the last is a wisp.
+- The script listing (`scriptListing`) attaches `palette` (address + colours) and `projectile`
+  (its animation record and palette) to those lines; the Script tab previews them beneath the
+  command and explains `mode` bits. Keep that data server-side: the webview has no ROM.
 
 ## 6. Check after any change
 
