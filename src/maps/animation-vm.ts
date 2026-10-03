@@ -219,6 +219,12 @@ function easeAxis(rom: Uint8Array, s: Segment, axis: 0 | 1): void {
 export interface RunOptions {
     /** The sprite on screen when the animation starts — what a script that never sets one keeps showing. */
     initialSprite?: number | null;
+    /**
+     * An attack, damage, death or cast: `end_check` hands the entity back to its AI, so a
+     * run still in the air at `loop` holds its last frame until it lands, then ends —
+     * rather than starting the attack again mid-air. Idles and walks loop on.
+     */
+    oneShot?: boolean;
 }
 
 const MAX_TICKS = 6000;
@@ -244,6 +250,7 @@ export function runAnimation(rom: Uint8Array, script: number, facing = 8, opts: 
     let hurt: [number, number] = [0, -16];
     const seenAt = new Map<string, number>();
     let loopFrom = 0;
+    let landing = false;
     let x = 0;
     let y = 0;
     let h = 0;
@@ -271,6 +278,16 @@ export function runAnimation(rom: Uint8Array, script: number, facing = 8, opts: 
     const set16 = (f: number, v: number) => { vars.set(f, v & 0xff); vars.set(f + 1, (v >> 8) & 0xff); };
 
     ticks: for (let tick = 0; tick < MAX_TICKS && frames.length < MAX_FRAMES; tick++) {
+        if (landing) {
+            // A one-shot falling after its script ended: physics only, last frame held.
+            const h2 = h + v - 1;
+            if (h2 <= 0) { h = 0; v = 0; } else { h = h2; v -= 1; }
+            const last = frames[frames.length - 1];
+            if (last) { last.ticks += 1; last.motion.push([x, y, h]); if (last.segments) last.segments.ticks.push(last.segments.ticks[last.segments.ticks.length - 1]); }
+            totalTicks += 1;
+            if (h === 0 && v === 0) { complete = true; break; }
+            continue;
+        }
         // Height and speed are part of the state: mid-air, the same pointer is not a repeat.
         const segState = segList ? segList.map((g) => `${g.count}|${g.pos}|${g.vel}|${g.target}`).join(';') : '';
         const state = `${resume}:${timer}:${h}:${v}:${mode}:${[...vars].join(',')}:${segState}`;
@@ -312,9 +329,13 @@ export function runAnimation(rom: Uint8Array, script: number, facing = 8, opts: 
                 case 'reset': sprite = null; sprite2 = null; mode = 0; hurt = [0, -16]; break;
                 case 'hurtbox': hurt = [signed16(b(1) | (b(2) << 8)), signed16(b(3) | (b(4) << 8))]; break;
                 case 'loop':
-                    // Still in the air: the game carries on from here, so the run does too,
-                    // until its whole state (height included) repeats.
-                    if (h !== 0 || v !== 0) { next = restart; break; }
+                    if (h !== 0 || v !== 0) {
+                        if (opts.oneShot) { landing = true; continue ticks; }
+                        // Still in the air: the game carries on from here, so the run does
+                        // too, until its whole state (height included) repeats.
+                        next = restart;
+                        break;
+                    }
                     complete = true;
                     break ticks;
                 case 'restart_here': restart = next; break;

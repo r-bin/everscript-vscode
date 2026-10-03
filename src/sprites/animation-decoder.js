@@ -43,7 +43,7 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
     // The Boy's and Dog's scripts set +0x42/+0x44 to values (e.g. −132/−144) that cannot be
     // hurt offsets; until that is explained their hurt region stays at the default.
     const playerSlot = characterId === 0 || characterId === 1;
-    const run = runAnimation(rom, scriptAddr, facing, { initialSprite });
+    const run = runAnimation(rom, scriptAddr, facing, { initialSprite, oneShot: isOneShot(animOpt) });
     const script = scriptListing(rom, scriptAddr);
     if (!run.frames.length) {
         return { projectiles: [], width: 0, height: 0, originX: 0, originY: 0, complete: run.complete, scriptAddr,
@@ -141,6 +141,19 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
 }
 
 const hex6 = (v) => '$' + v.toString(16).padStart(6, '0');
+
+/**
+ * Attacks, damage, death, spoils and casting end on `end_check`, which hands the entity
+ * back to its AI; idles, walks and runs loop. Record fields from +0x38 on are the former.
+ */
+const ONE_SHOT_LABEL = /attack|damage|death|spoils|cast|dodge|hurt/i;
+function isOneShot(opt) {
+    if (!opt || typeof opt !== 'object') return typeof opt === 'number' && opt >= 0x38;
+    if (typeof opt.oneShot === 'boolean') return opt.oneShot;
+    if (typeof opt.offset === 'number') return opt.offset >= 0x38;
+    if (/^w_(atk|charge|damage)/.test(opt.key || '') || /^d_slot[4-8]$/.test(opt.key || '')) return true;
+    return ONE_SHOT_LABEL.test(String(opt.label || opt.key || ''));
+}
 
 /** Each distinct segment sprite, composed once, keyed by address. */
 function renderSegmentSprites(rom, frames, colours) {

@@ -140,12 +140,37 @@ entities.
 |---|---|---|---|
 | From | `+0x0D` | `+0x0D` | animation command `0x47 dx dy w h` |
 | Size | `2r × r` | `2r × 2r` | per animation frame, per facing |
-| Centre | position | position + `$0042`/`$0044` (command `0x50`; reset by `0x52`) | attacker + `(dx, dy)` |
+| Centre | position | feet + (`+0x42`, 16 + `+0x44`); at rest `+0x44` = −16, so the feet. Set by `hurtbox` (`0x50`), reset by `0x52`, follows the head for segmented bodies (`0x58`) | attacker + `(dx, dy)` |
 
 A strike lands when `2(|dx| − r) < w` and `2(|dy| − r) < h` (`$8FB63D..$8FB672`),
 after filters: not the attacker's side, HP left, not invulnerable, not already hit
 by this attacker, not dying (`$8FB61E..$8FB638`); then heights within `$460` and
 the plane rule. The Boy's east sword swing is 23×17 centred 30 px east.
+
+**Height** is a separate test (`$8FB674`): the target may be at most 40 px below
+the attack and less than 30 px above it. A character 30 px or more up cannot be
+hit by a ground-level attack.
+
+### The hit cooldown: once per attacker per 21 ticks
+
+After a hit, **the same attacker cannot hit that target again for 21 ticks**, while
+anyone else still can:
+
+```
+8FBA1A  TXA / STA $0036,Y      ; target +0x36 = the attacker (everscript: DAMAGE_SOURCE)
+8FBA1E  LDA #$0014 / STA $0038,Y   ;      +0x38 = 20        (DAMAGE_SOURCE_TIMER)
+8FB00F  LDA $0036,X / BEQ …    ; every tick: while +0x36 is set,
+8FB014  DEC $0038,X / BPL …    ;   count +0x38 down, and once it goes negative
+8FB019  STZ $0036,X / STZ $0038,X  ;   forget the attacker
+8FB62B  LDA $0036,Y / CMP $4C / BEQ miss   ; the hit test skips the remembered attacker
+```
+
+So a strike box that stays on a target, or a piercing projectile flying through
+one, lands on the first tick of contact and then every 21 ticks after that.
+Melee strikes (`$8FBA06`) and projectiles (`$8FB9F8`) share it. A projectile is
+its own attacker, so two projectiles from the same thrower can both hit. Being
+knocked back does not protect against anyone else: the damage animation's
+`mode $0005` (knockback + walking) does not set the invulnerable bit `$20`.
 
 **Contact damage** needs no strike box: a charging entity that is blocked by
 another's body deals damage through `$8FB52C`. 45 of 141 characters declare a
@@ -185,8 +210,9 @@ dealt are separate questions: the traced sword hit on a Wimpy Flower did 0.
   sprite (bank `cmd + 0xA8`, 3 bytes), `0x2D` restart (loop), `0x47` strike box,
   `0x4C` projectile, `0x50` move hurt box, `0x52` reset. The frame timer is entity
   `+0x05`. Lengths for every command but `0x57` are known.
-- Coverage: 139 of 141 idle walks end on their own loop; 126 resolve to a
-  sprite; `0x57` (Bone Snake, Salabog) is unknown.
+- Coverage: every opcode width is now known, `0x57` included (segmented bodies).
+  1,748 of the 1,752 record scripts run to completion; the language and the
+  interpreter are [animation_script.md](animation_script.md).
 
 ---
 
@@ -196,18 +222,26 @@ The entity struct, as far as the traces and handlers read it:
 
 | Offset | Meaning | Source |
 |---|---|---|
-| `+0x05` | animation frame timer | animation_format.md |
-| `+0x10` | flags (side, INVINCIBLE, INACTIVE…) | attack_boxes.md |
-| `+0x14`, `+0x16` | state (dying/closed `& 0x070D`; invulnerable `& 0x0020`; charging `& 0xC000`) | attack_boxes.md |
+| `+0x00`..`+0x04` | animation resume pointer, bank, restart point | animation_script.md |
+| `+0x05` | animation frame timer | animation_script.md |
+| `+0x06`..`+0x0A` | current sprite, second sprite slot | animation_script.md |
+| `+0x0C` | palette slot | palettes.md |
+| `+0x10` | flags from the record's `+0x05` (everscript `FLAG_ENEMY`: invincible `$0002`, party `$0004`, inactive `$0020`, phasing `$0400`…) | character_table.md |
+| `+0x12` | state (`|= $0438` when damaged, `$8FC0F9`) | animation_script.md |
+| `+0x14` | closed states: the hit test skips `& $070D` (aura, barrier, atlas, dead…) | `$8FB632` |
+| `+0x16` | mode, set by `mode` (everscript `FLAGS_7`): `$01` knockback, `$04` walking, `$08` running, `$10` attacking, **`$20` casting/dodging = invulnerable** | animation_script.md |
 | `+0x18` | elevation plane (`& 0x0030`), bit 6 transparent | hitboxes.md |
 | `+0x1A`, `+0x1C` | X, Y in pixels | hitboxes.md |
-| `+0x1E`, `+0x20` | probably height and its velocity (unconfirmed) | hitboxes.md |
-| `+0x22` | facing (8 = south) | animation_format.md |
-| `+0x2A` | HP | attack_boxes.md |
-| `+0x36` | who hit it last | attack_boxes.md |
+| `+0x1E`, `+0x20` | **height in 1/16 px** and vertical speed; gravity at `$8FAFF5` | animation_script.md |
+| `+0x22` | facing (8 = south; the direction tables move 8 down the screen) | animation_script.md |
+| `+0x2A` | HP | character_table.md |
+| `+0x2E` | stamina / charge meter, full at `$400` (everscript `STAMINA`) | character_table.md |
+| `+0x36`, `+0x38` | last attacker and its cooldown ([above](#the-hit-cooldown-once-per-attacker-per-21-ticks)) | `$8FBA1A` |
 | `+0x3A`, `+0x3C` | the tile under it, and that tile's collision word | sprite_priority.md |
-| `+0x42`, `+0x44` | hurt box offset | attack_boxes.md |
+| `+0x42`, `+0x44` | hurt region offset | animation_script.md |
+| `+0x60` | character record pointer | character_table.md |
 | `+0x76` | pending damage | attack_boxes.md |
+| `+0x86` | segment list pointer (segmented bodies) | animation_script.md |
 
 ---
 

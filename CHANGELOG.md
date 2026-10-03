@@ -1,3 +1,13 @@
+## [0.126.0] — 2026-10-03
+
+### Feature: [Sprites] aggro, no-visuals tags, everscript names, spider leap fixed
+
+- **Spider attacks fixed:** an attack that is still in the air at `loop` (the Widowmaker's leap) used to start again mid-air. One-shots (attack, damage, death, cast) now hold their last frame until they land and end there. Idles still carry on into a hover.
+- **Aggro overlay:** a new **Aggro** checkbox draws the engage area. It's a square, not a circle: the game engages when the target is within `+0x13` px in x **and** in y (`$8FD72D`), checked only once stamina is full and then with the aggro chance. With the target on, the square lights when the target is inside.
+- **No visuals:** 10 characters whose own animations show nothing (Statue, Bridge, Fan, Speaker, Aegis, Aquagoth, Mungola, Face, #25, #26) are dimmed and tagged in the list. Death is excluded, since it is the shared dust puff.
+- **everscript names:** spawn flags read as everscript's `FLAG_ENEMY` names; the frame info shows mode bits by `FLAGS_7` names (knockback, walking, running, attacking, casting/dodging); `+0x2A` is **Level**. The cross-reference table in `character_table.md` notes where everscript is off: `CHARGE_RATE` (a byte off) and `+0x46` (casting, not running).
+- **Hit cooldown documented:** after a hit, the same attacker can't hit again for 21 ticks (`+0x36/+0x38`), while others can. See `entities-reference.md` § 6, which also gets a refreshed entity-field table.
+
 ## [0.125.0] — 2026-10-03
 
 ### Fix: [Sprites] smooth snakes, hurt offsets, hit cooldown, every character field

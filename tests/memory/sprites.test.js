@@ -482,6 +482,25 @@ if (rom) {
         assert(/immune to projectiles/.test(boy.statMeanings.flags2));
     });
 
+    test('a one-shot still airborne at loop lands instead of replaying (Widowmaker leap)', () => {
+        const w = readAllCharacters(rom).find(c => c.name === 'Widowmaker');
+        const anim = renderAnimation(rom, w.id, w.anims.find(a => a.key === 'atk0'), 4);
+        assert.strictEqual(anim.loopFrom, 0);
+        const last = anim.frames[anim.frames.length - 1];
+        assert.deepStrictEqual(last.motion.slice(-1)[0], [41, 0, 0], 'lunged 41 px and back on the ground');
+        assert.strictEqual(anim.totalTicks, 97);
+        const idle = runAnimation(rom, 0xc905f6, 4);              // Skullclaw idle: not a one-shot
+        assert(idle.loopFrom > 0, 'idles still carry on into the hover');
+    });
+
+    test('characters with no visuals: none of their own animations shows anything', () => {
+        const names = readAllCharacters(rom).filter(c => c.noVisuals).map(c => c.name);
+        for (const n of ['Statue', 'Bridge', 'Fan', 'Speaker', 'Aquagoth', 'Mungola']) assert(names.includes(n), n);
+        assert(!names.includes('Tar Skull'), 'segments count as visuals');
+        assert(!names.includes('Tentacle'), 'visible when it attacks');
+        assert.strictEqual(names.length, 10);
+    });
+
     test('renderAnimation returns a script listing with frame line addresses', () => {
         const anim = renderAnimation(rom, 140, { category: 'external', animRec: 0x4dd2 }, 0);
         assert(anim.script.length > 10);

@@ -91,6 +91,9 @@ function buildSpritesTabHtml() {
             <label class="sp-check-label" title="Move the sprite along its steps (x/y). Off keeps it in place; jump height always shows">
               <input type="checkbox" id="sp-chk-walk" checked /> <span class="sp-tag tag-walk">Walk path</span>
             </label>
+            <label class="sp-check-label" title="Aggro square: the character engages when the target is within this many pixels in both x and y ($8FD72D), checked only once its stamina is full and then with the aggro chance">
+              <input type="checkbox" id="sp-chk-aggro" /> <span class="sp-tag tag-aggro">Aggro</span>
+            </label>
             <label class="sp-check-label" title="A second character to aim at: the Boy for enemies, a Wimpy Flower for the Boy, the Dog and NPCs. Hits flash red">
               <input type="checkbox" id="sp-chk-target" /> <span class="sp-tag tag-target">Target</span>
             </label>

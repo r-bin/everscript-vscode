@@ -54,6 +54,25 @@ character pointer (`LDX $0060,Y`). The address is where to look.
 
 The struct is 74 bytes; `+0x4A` is the next record.
 
+### Against everscript's enums
+
+`everscript/in/core/[group] 00_general_enums/[group] 05_everscript/03_sprites.evs`
+names many of the same things. Where the two meet:
+
+| everscript | Here | Agrees? |
+|---|---|---|
+| `ATTRIBUTE_GENERAL.LEVEL = 0x2a` | `+0x2A` | yes — names the field this page could only guess at |
+| `XP = 0x23`, `CHARGE_MAX = 0x2c` | `+0x23`, `+0x2C` | yes |
+| `CHARGE_RATE = 0x2f` | `+0x2E` | **no** — `$8FCC5D` adds the word at `+0x2E`; `0x2f` looks one byte off |
+| `POINTER_SPRITE_RUNNIN = 0x46` | `+0x46` | **no** — `+0x46` is casting (Boy, Bad Boy, Verminator, `mode $0120`); run is `+0x36` (`$908286`) |
+| `POINTER_SPRITE_ATTACK_DEFAULT/LEVEL_1..3 = 0x38..0x3e` | attack 0–3 | yes; level 0 is "charged below 100%", level 1 "charged ≥ 100%" |
+| `FLAG_ENEMY` | spawn flags `+0x05` | yes: `$0001` inactive+invisible, `$0002` invincible, `$0004` party/bombable, `$0020` inactive, `$0040` mosquito, `$0400` phasing, `$1000` invisible+invincible+inactive. The hit test's side mask `$5006` is exactly `$0002 | $0004 | $1000 | $4000` |
+| `ATTRIBUTE.DAMAGE_SOURCE = 0x36`, `DAMAGE_SOURCE_TIMER = 0x38` | entity `+0x36/+0x38` | yes — the 21-tick hit cooldown |
+| `ATTRIBUTE.STAMINA = 0x2e` | entity `+0x2E` | yes — the charge meter the aggro check waits on |
+| `ATTRIBUTE_FLAGS.FLAGS_7` (entity `+0x16`) | `mode` | yes: `$01` knockback, `$04` walking, `$08` running, `$10` attacking, `$20` casting / dodging — the bit the hit test refuses |
+
+Record `+0x07`, `+0x0B`, `+0x11` and `+0x17` have no everscript name yet.
+
 ## The palette
 
 `+0x09` is a 16-bit value that is an address inside **bank `$90`**: 16

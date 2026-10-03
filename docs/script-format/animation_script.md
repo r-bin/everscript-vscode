@@ -629,6 +629,10 @@ is in front.
   while anyone else still can. The to-hit check for projectiles (`$8FB9F8`) uses
   the same cooldown, after refusing outright a target whose record `+0x07` has
   bit `$10`.
+- **One-shots land.** Attacks, damage, death, spoils and casting end on
+  `end_check!`, which hands the entity back to its AI. One still in the air at
+  `loop` (the Widowmaker's leap) holds its last frame until it lands, and the
+  run ends there. Only idles, walks and runs carry on through `loop`.
 - **Invulnerable frames** are the ones with mode bit `$20`. Frames split when it
   changes. The weapon slot once labelled "Charge Attack" (`+0x16`) is a held pose
   with `mode $0020`: the dodge. The character field once labelled "Block"

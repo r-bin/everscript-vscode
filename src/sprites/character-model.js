@@ -108,23 +108,23 @@ const STAT_MEANINGS = {
     magic_defense: 'Magic defence (+0x1D). Alchemy damage scales by ($40 − m.def) / $40 ($919CB3).',
     evade: 'Evade (+0x1F). Indexes the to-hit table at $8FBAAF when this character is the target ($8FBA27).',
     hit_rate: 'Hit rate (+0x21). The attacker\'s side of the to-hit roll ($8FBA53); −30 when flags2 bit 1 is set.',
-    aggro_range: 'Aggro range in pixels (+0x13). Compared with the distance to the controlled character ($8FD72D).',
-    aggro_chance: 'Aggro chance (+0x15). Compared before pursuing ($8FD6AD).',
+    aggro_range: 'Aggro range (+0x13): engages when the target is within this many pixels in x AND in y — a square, not a circle ($8FD72D) — then turns to face it.',
+    aggro_chance: 'Aggro chance (+0x15): once stamina (entity +0x2E) is full, engages when rand(0..255) < this ($8FD69B); the check covers both party members.',
     exp: 'EXP (+0x23, 32-bit). Added to both the Boy\'s ($0A49) and the Dog\'s ($0A93) totals ($8F8292).',
     money: 'Talons (+0x27).',
     prize_chance: 'Prize chance (+0x29, byte). On death a drop happens when rand & $7F < this: value / 128 ($908567). With a drop the death animation is +0x44 (spoils), otherwise +0x42.',
     radius: 'Collision radius (+0x0D). Body box 2r × r; the hit test\'s hurt region is half-size r around the feet ($8FB651). 0 = walk-through.',
-    flags: 'Spawn flags (+0x05), OR\'d into entity +0x10 ($8FB0C3). Bit 1 ($0002) marks a non-hostile (invincible) character; the hit test also compares the party bits ($5006).',
+    flags: 'Spawn flags (+0x05), OR\'d into entity +0x10 at spawn ($8FB0C3). Names from everscript FLAG_ENEMY: $0001 inactive+invisible, $0002 invincible (most NPCs), $0004 party/bombable, $0020 inactive, $0040 mosquito, $0400 phasing, $1000 invisible+invincible+inactive. The hit test compares the side bits $5006 ($8FB606), and $4000 on the target blocks damage ($8FC0D9).',
     palette: 'Palette (+0x09), a 16-colour address in bank $90; the palette-slot allocator $90CD80 reuses a slot for an equal value.',
     charge_limit: 'Charge limit (+0x2C): the cap on the charge meter (entity +0x2E, $91AEDE). 1024 ($400) is a full charge.',
-    charge_speed: 'Charge speed (+0x2E): added to the charge meter every tick until it reaches $400 ($8FCC5D).',
+    charge_speed: 'Charge speed (+0x2E): added to the stamina/charge meter (entity +0x2E, everscript STAMINA) every tick until it reaches $400 ($8FCC5D). everscript lists CHARGE_RATE at +0x2F; the code reads the word at +0x2E.',
     attack_proc: 'Attack proc (+0x30): what a hit by this character does, dispatched at $8FB6A5 through $8FB6AE (0 = to-hit roll and damage).',
     ai_script: 'Behaviour (+0x03): selects the entity\'s AI script ($8FCD1A).',
     flags2: 'Flags (+0x07). Bit 0: registered in the list at $58AF ($8FC4BA). Bit 1: −30 hit rate ($8FBA46). Bits 2–3: tested by the script engine ($8C86A6, $8C86DA). Bit 4: immune to projectiles — an automatic miss ($8FB9FB).',
     palette2: 'Second palette (+0x0B): when non-zero, loaded into palette slot 2 ($90CD01, $90CF3A).',
     unknown11: '+0x11: copied into entity +0x2C at spawn ($8FB162). Meaning open (0–100; 20 on 52 characters).',
     unknown17: '+0x17: copied into entity +0x40 at spawn unless $23DD overrides it ($8FB169). Meaning open (0–1000).',
-    unknown2a: '+0x2A: no code reads it directly. 1 on 115 characters, 2–50 on the rest — possibly a base level; unverified.',
+    unknown2a: 'Level (+0x2A): everscript ATTRIBUTE_GENERAL.LEVEL. No code reads it directly from the record; 1 on 115 characters, 2–50 on the rest.',
 };
 
 /** Character animation field offsets in the 74-byte struct. */
@@ -261,6 +261,21 @@ function getExternalAnimations(rom, characterId, characterName) {
     return out;
 }
 
+/**
+ * True when none of a character's own animations ever shows a sprite or a segment — the
+ * invisible helpers (fans, speakers, statues, stand-ins) and bosses drawn as background.
+ * Death and spoils are left out: they are the shared dust puff ($CB7343) for everyone.
+ */
+const SHARED_EFFECT_FIELDS = new Set([0x42, 0x44]);
+function drawsNothing(rom, anims) {
+    const own = anims.filter((a) => a.category === 'standard' && a.scriptAddr && !SHARED_EFFECT_FIELDS.has(a.offset));
+    if (!own.length) return true;
+    return own.every((a) => {
+        const run = runAnimation(rom, a.scriptAddr);
+        return !run.frames.some((f) => f.sprite || f.sprite2 || (f.segments && f.segments.sprites.length));
+    });
+}
+
 /** Read one full character record and format all fields with meanings. */
 function readCharacter(rom, id) {
     const snes = CHARACTER_TABLE + id * CHARACTER_STRIDE;
@@ -344,6 +359,7 @@ function readCharacter(rom, id) {
     return {
         id,
         name,
+        noVisuals: drawsNothing(rom, anims),
         snes,
         snesHex: '$' + snes.toString(16),
         namePtr,

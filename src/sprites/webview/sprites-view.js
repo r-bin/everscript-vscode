@@ -63,6 +63,7 @@
   var chkProj = document.getElementById('sp-chk-proj');
   var chkWalk = document.getElementById('sp-chk-walk');
   var chkTarget = document.getElementById('sp-chk-target');
+  var chkAggro = document.getElementById('sp-chk-aggro');
   var targetDist = document.getElementById('sp-target-dist');
   var trailInput = document.getElementById('sp-trail');
   function trailTicks() {
@@ -188,9 +189,10 @@
         if (q && !nameStr.includes(q) && !idStr.includes(q) && !snesStr.includes(q)) return;
 
         var li = document.createElement('li');
-        li.className = 'sp-list-item' + (c.id === selectedCharId ? ' sp-selected' : '');
+        li.className = 'sp-list-item' + (c.id === selectedCharId ? ' sp-selected' : '') + (c.noVisuals ? ' sp-li-novis' : '');
         li.dataset.id = String(c.id);
-        li.innerHTML = '<span class="sp-li-name">' + (c.name || '#' + c.id) + '</span>' +
+        li.title = c.noVisuals ? 'No visuals: none of its own animations shows a sprite (death is the shared dust puff)' : '';
+        li.innerHTML = '<span class="sp-li-name">' + (c.name || '#' + c.id) + (c.noVisuals ? '<span class="sp-li-tag">no visuals</span>' : '') + '</span>' +
           '<span class="sp-li-addr">' + (c.snesHex || '') + '</span>';
 
         li.addEventListener('click', function() { selectCharacter(c.id); });
@@ -378,7 +380,7 @@
       { key: 'money', label: 'Money (Talons)', val: s.money, hex: '$' + s.money.toString(16), desc: m.money },
       { key: 'prize_chance', label: 'Prize Chance', val: Math.round(s.prize_chance / 128 * 100) + '%', hex: '$' + s.prize_chance.toString(16), desc: m.prize_chance },
       { key: 'radius', label: 'Collision Radius', val: s.radius + ' px (' + (s.radius*2) + '×' + s.radius + ')', hex: '$' + s.radius.toString(16), desc: m.radius },
-      { key: 'flags', label: 'Flags', val: '$' + s.flags.toString(16).padStart(4, '0'), hex: '$' + s.flags.toString(16), desc: m.flags },
+      { key: 'flags', label: 'Spawn Flags', val: spawnFlagsText(s.flags), hex: '$' + s.flags.toString(16), desc: m.flags },
       { key: 'palette', label: 'Palette', val: '$' + s.palette.toString(16), hex: '$' + s.palette.toString(16), desc: m.palette },
       { key: 'charge_limit', label: 'Charge Limit', val: s.charge_limit, hex: '$' + s.charge_limit.toString(16), desc: m.charge_limit },
       { key: 'charge_speed', label: 'Charge Speed', val: s.charge_speed, hex: '$' + s.charge_speed.toString(16), desc: m.charge_speed },
@@ -388,7 +390,7 @@
       { key: 'palette2', label: 'Palette 2', val: s.unknown0b ? '$' + s.unknown0b.toString(16) : '—', hex: '$' + s.unknown0b.toString(16), desc: m.palette2 },
       { key: 'unknown11', label: '+0x11', val: s.unknown11, hex: '$' + s.unknown11.toString(16), desc: m.unknown11 },
       { key: 'unknown17', label: '+0x17', val: s.unknown17, hex: '$' + s.unknown17.toString(16), desc: m.unknown17 },
-      { key: 'unknown2a', label: '+0x2A (level?)', val: s.unknown2a, hex: '$' + s.unknown2a.toString(16), desc: m.unknown2a },
+      { key: 'unknown2a', label: 'Level (+0x2A)', val: s.unknown2a, hex: '$' + s.unknown2a.toString(16), desc: m.unknown2a },
     ];
 
     fields.forEach(function(f) {
@@ -488,7 +490,7 @@
   [chkTarget, targetDist].forEach(function(el) {
     if (el) el.addEventListener('change', loadCurrentAnimation);
   });
-  [chkBody, chkHurt, chkStrike, chkOrigin, chkProj, chkWalk].forEach(function(chk) {
+  [chkBody, chkHurt, chkStrike, chkOrigin, chkProj, chkWalk, chkAggro].forEach(function(chk) {
     if (chk) chk.addEventListener('change', drawFrame);
   });
 
@@ -617,7 +619,7 @@
         (isLast && flightTail > 0 ? ', then ' + flightTail + ' of flight' : '') +
         (cur.random ? ', random ' + cur.random[0] + '–' + cur.random[1] : '') + ')' +
         (cur.spawns && cur.spawns.length ? ' · throws ' + cur.spawns.map(function(sp) { return '$' + sp.id.toString(16); }).join(', ') : '') +
-        motionText(cur) + targetText(cur);
+        motionText(cur) + targetText(cur) + modeText(cur.mode);
     }
 
     if (spriteAddrLink) {
@@ -630,6 +632,27 @@
 
     // Draw canvas
     drawFrame();
+  }
+
+  /**
+   * Mode (+0x16) bits by everscript's ATTRIBUTE_FLAGS.FLAGS_7 names; bit $20 is also the
+   * one the hit test refuses a target for.
+   */
+  var MODE_BITS = [[0x01, 'knockback'], [0x02, '$02'], [0x04, 'walking'], [0x08, 'running'], [0x10, 'attacking'], [0x20, 'casting/dodging (invulnerable)']];
+  function modeText(mode) {
+    if (!mode) return '';
+    var names = MODE_BITS.filter(function(b) { return mode & b[0]; }).map(function(b) { return b[1]; });
+    if (mode & 0xffc0) names.push('$' + (mode & 0xffc0).toString(16));
+    return ' · mode ' + names.join(', ');
+  }
+
+  /** Spawn flags (+0x05 → entity +0x10) by everscript's FLAG_ENEMY names. */
+  var SPAWN_FLAG_BITS = [[0x0001, 'inactive+invisible'], [0x0002, 'invincible'], [0x0004, 'party/bombable'], [0x0020, 'inactive'], [0x0040, 'mosquito'], [0x0400, 'phasing'], [0x1000, 'invisible+invincible+inactive']];
+  function spawnFlagsText(v) {
+    var names = SPAWN_FLAG_BITS.filter(function(b) { return v & b[0]; }).map(function(b) { return b[1]; });
+    var rest = v & ~SPAWN_FLAG_BITS.reduce(function(m, b) { return m | b[0]; }, 0);
+    if (rest) names.push('$' + rest.toString(16));
+    return names.length ? names.join(', ') : 'none';
   }
 
   /** Which ticks of this frame reach the target, if one is on stage. */
@@ -770,6 +793,22 @@
       ctx.fillRect(sx, sy, sw, shh);
     }
 
+    // Aggro: |dx| < range and |dy| < range from the feet ($8FD72D) — a square, not a circle
+    var range = aggroRange();
+    if (range > 0) {
+      var rs = range * scale;
+      var inside = a.target && Math.abs(a.target.x - pos.x) < range && Math.abs(a.target.y - pos.y) < range;
+      ctx.setLineDash([6, 4]);
+      ctx.strokeStyle = inside ? '#c6ff8a' : 'rgba(155, 227, 143, 0.7)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(cx - rs, cy - rs, rs * 2, rs * 2);
+      ctx.setLineDash([]);
+      if (inside) { ctx.fillStyle = 'rgba(155, 227, 143, 0.08)'; ctx.fillRect(cx - rs, cy - rs, rs * 2, rs * 2); }
+      ctx.fillStyle = 'rgba(155, 227, 143, 0.9)';
+      ctx.font = '11px sans-serif';
+      ctx.fillText('aggro ' + range + ' px' + (inside ? ' · target inside' : ''), cx - rs + 4, cy - rs + 13);
+    }
+
     // Fading damage of the last few ticks, when a trail length is set
     if (motion && trailTicks() > 0) motion.drawTrail(ctx, a, frameStartTicks, motion.nowTick(frameStartTicks, currentFrameIdx, tickCounter), trailTicks(), ox, oy, scale, walk);
 
@@ -842,8 +881,15 @@
       || currentAnimData.frames.some(function(f) { return f.segments; })));
   }
 
+  /** The viewed character's aggro range (+0x13), when the Aggro overlay is on. */
+  function aggroRange() {
+    if (!chkAggro || !chkAggro.checked) return 0;
+    var c = getCharacters().find(function(x) { return x.id === selectedCharId; });
+    return c && c.stats ? c.stats.aggro_range : 0;
+  }
+
   function sceneBoxFor(walk) {
-    var key = walk + ':' + projectilesOn() + ':' + !!(currentAnimData && currentAnimData.target);
+    var key = walk + ':' + projectilesOn() + ':' + !!(currentAnimData && currentAnimData.target) + ':' + aggroRange();
     if (sceneCache.data !== currentAnimData || sceneCache.key !== key) {
       var a = currentAnimData;
       sceneCache = {
@@ -851,6 +897,11 @@
         box: motion ? motion.sceneBox(a, { walk: walk, projectiles: projectilesOn(), target: !!a.target })
           : { minX: -a.originX, maxX: a.width - a.originX, minY: -a.originY, maxY: a.height - a.originY },
       };
+      var r = aggroRange();
+      if (r) {
+        var b = sceneCache.box;
+        sceneCache.box = { minX: Math.min(b.minX, -r), maxX: Math.max(b.maxX, r), minY: Math.min(b.minY, -r), maxY: Math.max(b.maxY, r) };
+      }
     }
     return sceneCache.box;
   }

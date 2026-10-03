@@ -97,6 +97,12 @@ else; the linear walker reads `opcode()` too.
   Knock-back is not invulnerable.
 - Character record fields and their readers: `docs/script-format/character_table.md`.
 
+- **One-shots** (attack, damage, death, cast — record fields from `+0x38` on) pass
+  `oneShot`: still airborne at `loop`, they hold their last frame until they land.
+- everscript's `03_sprites.evs` names entity and record fields; it agrees on most and is
+  one byte off on `CHARGE_RATE`, and wrong on `+0x46` (casting, not running). Check
+  the code before trusting either.
+
 ## 4. Never guess
 
 - A width comes from a trace or from reading the handler's `$5D` advances on every
