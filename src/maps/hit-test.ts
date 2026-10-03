@@ -59,3 +59,27 @@ export function strikeHits(s: StrikeArea, t: HurtTarget): boolean {
 
 /** Pixels, for labels. */
 export const heightPx = (z: number): number => z / HEIGHT_UNITS;
+
+// ── Contact damage ──────────────────────────────────────────────────────────
+//
+// A mover whose step is blocked by another body (`$8FB4AB`: both radii summed,
+// `2|dy| < r1 + r2`, `|dx| < r1 + r2`, heights within `$230`) calls `$8FB52C`, which
+// deals damage through the mover's attack proc when the mover is charging (mode
+// +0x16 & `$C000`) with full stamina (+0x2E ≥ `$400`) — then empties its stamina
+// (`STZ $002E,X`), so one contact hit per charge. A target in knockback or casting
+// (mode & `$21`) is skipped, unlike for strikes.
+
+/** Mode bits that make a moving body deal contact damage. */
+export const MODE_CONTACT = 0xc000;
+const BODY_HEIGHT_SPAN = 0x230;
+
+export interface Body { x: number; y: number; z: number; radius: number }
+
+/** Do two bodies block each other ($8FB4AB)? */
+export function bodiesTouch(a: Body, b: Body): boolean {
+    const s = a.radius + b.radius;
+    if (!a.radius || !b.radius) return false;
+    if (2 * Math.abs(a.y - b.y) >= s) return false;
+    if (Math.abs(a.x - b.x) >= s) return false;
+    return Math.abs(a.z - b.z) < BODY_HEIGHT_SPAN;
+}

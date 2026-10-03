@@ -501,6 +501,32 @@ if (rom) {
         assert.strictEqual(names.length, 10);
     });
 
+    test('contact damage: a charging body (mode $C000) that runs into the target', () => {
+        const { bodiesTouch, MODE_CONTACT } = require('../../src/maps/dist/hit-test');
+        assert.strictEqual(MODE_CONTACT, 0xc000);
+        assert.strictEqual(bodiesTouch({ x: 0, y: 0, z: 0, radius: 10 }, { x: 17, y: 0, z: 0, radius: 8 }), true);
+        assert.strictEqual(bodiesTouch({ x: 0, y: 0, z: 0, radius: 10 }, { x: 0, y: 9, z: 0, radius: 8 }), false, '2|dy| < r1 + r2');
+        assert.strictEqual(bodiesTouch({ x: 0, y: 0, z: 0x230, radius: 10 }, { x: 0, y: 0, z: 0, radius: 8 }), false, 'heights within $230');
+        const chars = readAllCharacters(rom);
+        const magmar = chars.find(c => c.name === 'Magmar');
+        const roll = renderAnimation(rom, magmar.id, Object.assign({}, magmar.anims.find(a => a.key === 'atk3'), { target: { on: true, character: 0, distance: 30 } }), 4);
+        assert(roll.frames.every(f => f.contact), 'the roll charges throughout');
+        assert.strictEqual(roll.target.hits.contact.length, 1, 'one contact hit per charge');
+    });
+
+    test('character list thumbnails: resting pose south and east; palettes listed', () => {
+        const { characterThumbs, listPalettes, renderInPalettes } = require('../../src/sprites');
+        const chars = readAllCharacters(rom);
+        const boy = characterThumbs(rom, chars[0]);
+        assert(boy && boy.s && boy.e && boy.s.startsWith('data:image/png;base64,'));
+        assert.strictEqual(characterThumbs(rom, chars.find(c => c.name === 'Fan')), null, 'no visuals, no thumbnail');
+        const pals = listPalettes(chars);
+        assert(pals.length > 80);
+        assert(pals.some(p => p.addr === 0xad8b && p.owners.some(o => /Horn Spear/.test(o))));
+        const grid = renderInPalettes(rom, 0xcc5b38, pals.slice(0, 5));
+        assert.strictEqual(grid.length, 5);
+    });
+
     test('renderAnimation returns a script listing with frame line addresses', () => {
         const anim = renderAnimation(rom, 140, { category: 'external', animRec: 0x4dd2 }, 0);
         assert(anim.script.length > 10);

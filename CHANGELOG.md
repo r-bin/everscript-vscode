@@ -1,3 +1,12 @@
+## [0.127.0] — 2026-10-03
+
+### Feature: [Sprites] contact damage, list previews, every palette
+
+- **Contact damage:** yes, Rimsala, Magmar's roll and the slimes hurt through their body. Mode bits `$4000`/`$8000` mark a charging body, and when it runs into another body (`$8FB4AB`: radii summed, the 2:1 squash, heights within `$230`) with full stamina, `$8FB52C` deals damage through its attack proc, once per charge. The body box turns red and dashed with "contact damage", and the target flashes on the contact tick. Correction: knock-back (and casting) **does** protect against contact damage, though not against strikes.
+- **List previews:** every character in the list shows its resting pose (the idle's last drawn frame) facing south and east, in its own palette, the Boy's first weapon or the Dog's first form.
+- **Names fixed:** `<Boy Name>` and `<Dog Name>` showed blank in the list because they were inserted as HTML. They're escaped now.
+- **All palettes:** a new **All palettes** button shows the current frame in each of the 104 palettes the characters use, labelled by who uses it. Click one to play the animation in it; **Own palette** goes back.
+
 ## [0.126.0] — 2026-10-03
 
 ### Feature: [Sprites] aggro, no-visuals tags, everscript names, spider leap fixed

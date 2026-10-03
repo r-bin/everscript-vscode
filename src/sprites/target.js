@@ -2,7 +2,7 @@
 // Ownership: the second character on the Sprites stage — who it is, where it stands, how it
 // is drawn — and which ticks of the viewed animation hit it, by strike or projectile. Pure.
 
-const { strikeHits, OUT_OF_REACH_ABOVE, OUT_OF_REACH_BELOW } = require('../maps/dist/hit-test');
+const { strikeHits, bodiesTouch, MODE_CONTACT, OUT_OF_REACH_ABOVE, OUT_OF_REACH_BELOW } = require('../maps/dist/hit-test');
 const { facingVector, PROJECTILE_HIT_SIZE } = require('../maps/dist/projectiles');
 const { characterHitbox, characterDisposition } = require('../maps/dist/character-record');
 
@@ -46,9 +46,22 @@ function withCooldown(ticks) {
  * same attacker cannot hit again for 21 ticks (+0x36/+0x38). A projectile consumed on
  * hit (procs 2 and 6) hits once and its path is cut there.
  */
-function hitTicks(vmFrames, spawns, target) {
+function hitTicks(vmFrames, spawns, target, attackerRadius = 0) {
     const melee = [];
+    // Contact damage: a charging body that runs into the target, once per charge.
+    let contact = null;
+    let prev = [0, 0];
     let t = 0;
+    for (const f of vmFrames) {
+        f.motion.forEach((m, i) => {
+            const moved = m[0] !== prev[0] || m[1] !== prev[1];
+            prev = m;
+            if (contact !== null || !moved || !(f.mode & MODE_CONTACT)) return;
+            if (bodiesTouch({ x: m[0], y: m[1], z: m[2], radius: attackerRadius }, target)) contact = t + i;
+        });
+        t += f.ticks;
+    }
+    t = 0;
     for (const f of vmFrames) {
         if (f.strikeBox) {
             f.motion.forEach((m, i) => {
@@ -73,7 +86,7 @@ function hitTicks(vmFrames, spawns, target) {
             for (const i of withCooldown(contact)) projectile.push({ idHex: sp.idHex, tick: sp.tick + i + 1, onHit: sp.onHit });
         }
     }
-    return { melee: withCooldown(melee), projectile };
+    return { melee: withCooldown(melee), projectile, contact: contact === null ? [] : [contact] };
 }
 
 /** The target, ready to draw: its standing frame, facing back at the viewed character. */

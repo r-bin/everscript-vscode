@@ -621,6 +621,10 @@ is in front.
   interpreter does too, until the whole state (height included) repeats. It
   reports `loopFrom`, where the repeating part starts, and playback loops to
   there. The Skullclaw climbs, then hovers between about 25 and 40 px.
+- **Charging = contact damage.** Mode bits `$4000`/`$8000` make a moving body
+  deal damage when it runs into another (`$8FB52C`), with full stamina, once per
+  charge. That is how Rimsala, Magmar's roll and the slimes hurt you without a
+  `strike`. Details: [entities-reference.md § 6](entities-reference.md).
 - **Knock-backs are not invulnerable.** The damage script's `mode $0005` does not
   set bit `$20`, and applying damage (`$8FC0D3`) only raises the hurt state
   (`+0x12 |= $0438`). The one protection is per attacker: a hit writes the

@@ -49,6 +49,7 @@ function buildSpritesTabHtml() {
             <span class="sp-palette-label">Palette:</span>
             <span class="sp-palette-hex" id="sp-palette-hex">$0000</span>
             <div class="sp-palette-swatch" id="sp-palette-swatch"></div>
+            <button class="sp-chip-btn" id="sp-btn-palettes" title="Show the current frame in every palette the game's characters use; click one to play in it">All palettes</button>
           </div>
         </div>
 
@@ -152,6 +153,16 @@ function buildSpritesTabHtml() {
               <span class="sp-sprite-link" id="sp-cur-sprite-addr" title="Click to view in Raw Sprites tab">$000000</span>
             </div>
           </div>
+        </div>
+
+        <!-- Every palette: the current frame recoloured, click to apply -->
+        <div class="sp-palette-panel" id="sp-palette-panel" style="display:none">
+          <div class="sp-col-title">
+            <span>All palettes</span>
+            <span class="sp-col-sub" id="sp-palette-status"></span>
+            <button class="sp-chip-btn" id="sp-btn-palette-own" title="Back to the character's own palette">Own palette</button>
+          </div>
+          <div class="sp-palette-grid" id="sp-palette-grid"></div>
         </div>
 
         <!-- Animation script: the bytecode behind the playing animation -->

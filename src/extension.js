@@ -103,6 +103,7 @@ function getSpritesBundle(rom) {
     if (_spritesBundle) return _spritesBundle;
     if (!rom) return { characters: [], rawIndex: [], animations: [] };
     const characters = readAllCharacters(rom);
+    for (const c of characters) c.thumbs = characterThumbs(rom, c);
     _spritesBundle = {
         characters,
         rawIndex: getRawSpriteIndex(rom),
@@ -154,7 +155,7 @@ const romReaders = require('./shared/rom-readers');
 const { readPngDimensions, readRomTriggerOffsets, readRomMapHeader, readRomCharacters, readRomHitLookup, detectScaleEnemies } = romReaders;
 
 const { renderRadarHtml } = require('./memory/render-radar');
-const { readAllCharacters, getRawSpriteIndex, renderAnimation, renderRawSprite, buildAnimationCatalog } = require('./sprites');
+const { readAllCharacters, getRawSpriteIndex, renderAnimation, renderRawSprite, buildAnimationCatalog, characterThumbs, listPalettes, renderInPalettes } = require('./sprites');
 
 // ── Activation ────────────────────────────────────────────────────────────────
 
@@ -1117,6 +1118,17 @@ function activate(context) {
                         _radarPanel.webview.postMessage({ command: 'spriteAnimationData', animation: anim });
                     } catch (err) {
                         _radarPanel.webview.postMessage({ command: 'spriteAnimationData', animation: null, error: String(err && err.message || err) });
+                    }
+                } else if (msg.command === 'getPaletteGrid') {
+                    try {
+                        const _cfg = getExtConfig();
+                        const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
+                        const bundle = getSpritesBundle(romBuf);
+                        const grid = romBuf ? renderInPalettes(romBuf, msg.sprite, listPalettes(bundle.characters)) : [];
+                        _radarPanel.webview.postMessage({ command: 'paletteGridData', sprite: msg.sprite, grid });
+                    } catch (err) {
+                        _radarPanel.webview.postMessage({ command: 'paletteGridData', sprite: msg.sprite, grid: [], error: String(err && err.message || err) });
                     }
                 } else if (msg.command === 'getRawSprite') {
                     try {

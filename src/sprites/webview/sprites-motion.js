@@ -48,6 +48,7 @@
     if (!h) return null;
     var t = Math.floor(tick);
     if (h.melee.indexOf(t) >= 0) return 'melee';
+    if (h.contact && h.contact.indexOf(t) >= 0) return 'contact';
     for (var i = 0; i < h.projectile.length; i++) if (h.projectile[i].tick === t) return h.projectile[i].idHex;
     return null;
   }

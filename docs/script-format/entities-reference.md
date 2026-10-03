@@ -169,11 +169,20 @@ So a strike box that stays on a target, or a piercing projectile flying through
 one, lands on the first tick of contact and then every 21 ticks after that.
 Melee strikes (`$8FBA06`) and projectiles (`$8FB9F8`) share it. A projectile is
 its own attacker, so two projectiles from the same thrower can both hit. Being
-knocked back does not protect against anyone else: the damage animation's
-`mode $0005` (knockback + walking) does not set the invulnerable bit `$20`.
+knocked back does not protect against other strikes or projectiles: the damage
+animation's `mode $0005` (knockback + walking) does not set the invulnerable bit
+`$20`. It does protect against contact damage (below).
 
-**Contact damage** needs no strike box: a charging entity that is blocked by
-another's body deals damage through `$8FB52C`. 45 of 141 characters declare a
+**Contact damage** needs no strike box. When a mover's step is blocked by another
+body (`$8FB4AB`: `2|dy| < r₁ + r₂`, `|dx| < r₁ + r₂`, heights within `$230`), `$8FB52C`
+deals damage through the mover's attack proc if the mover is **charging** — mode
+`+0x16 & $C000`, set by `mode $4000`/`$8000` in its animation (Rimsala's charge,
+Magmar's roll, the Lime Slime, the Widowmaker's leap) — and its stamina is full
+(`+0x2E ≥ $400`). The hit then empties the mover's stamina (`STZ $002E,X`), so it
+is one contact hit per charge. It skips a target whose mode has `$01` (knockback)
+or `$20` (casting/dodging): **knock-back protects against contact damage**, though
+not against strikes or projectiles. The Sprites tab draws a charging body box red
+and flashes the target on the contact tick. 45 of 141 characters declare a
 strike box; 54 have no attack animation; 42 attack without `0x47` (shooters use
 `0x4C`, a projectile).
 

@@ -1,9 +1,10 @@
 'use strict';
 // Ownership: running an animation script, aligning and rendering its frames, and its script listing for the Sprites tab. Pure.
 
-const { animationScript, characterPalette, paletteAt, FACING_SOUTH } = require('../maps/dist/character-record');
+const { animationScript, characterPalette, characterHitbox, paletteAt, FACING_SOUTH } = require('../maps/dist/character-record');
 const { runAnimation, facingScript, MODE_INVULNERABLE } = require('../maps/dist/animation-vm');
 const { resolveCharacterSprite } = require('../maps/dist/character-animation');
+const { MODE_CONTACT } = require('../maps/dist/hit-test');
 const { disassembleScript } = require('../maps/dist/animation-opcodes');
 const { composeAligned } = require('./frame-compose');
 const { renderProjectiles } = require('./projectile-render');
@@ -94,6 +95,7 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
             spawns: f.spawns,
             mode: f.mode,
             invulnerable: (f.mode & MODE_INVULNERABLE) !== 0,
+            contact: (f.mode & MODE_CONTACT) !== 0,
             segments: f.segments ? { sprites: f.segments.sprites.map(hex6), ticks: f.segments.ticks } : null,
             hurt: playerSlot ? [0, -16] : f.hurt,
             motion: f.motion,
@@ -113,7 +115,7 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
         });
     }
     const projectiles = renderProjectiles(rom, run.frames, facing, colours, target);
-    if (target) target.hits = hitTicks(run.frames, projectiles.spawns, target);
+    if (target) target.hits = hitTicks(run.frames, projectiles.spawns, target, Number.isInteger(characterId) ? characterHitbox(rom, characterId).radius : 0);
     const segmentSprites = renderSegmentSprites(rom, run.frames, colours);
 
     return {

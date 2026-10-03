@@ -83,6 +83,11 @@
   var rawName = document.getElementById('sp-raw-name');
   var rawBadge = document.getElementById('sp-raw-badge');
 
+  /** Names like "<Boy Name>" must not be parsed as tags. */
+  function escHtml(v) {
+    return String(v).replace(/[&<>"]/g, function(ch) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]; });
+  }
+
   function getCharacters() {
     return (typeof SPRITES_CHARACTERS_DATA !== 'undefined' ? SPRITES_CHARACTERS_DATA : (typeof window !== 'undefined' ? window.SPRITES_CHARACTERS_DATA : [])) || [];
   }
@@ -192,7 +197,10 @@
         li.className = 'sp-list-item' + (c.id === selectedCharId ? ' sp-selected' : '') + (c.noVisuals ? ' sp-li-novis' : '');
         li.dataset.id = String(c.id);
         li.title = c.noVisuals ? 'No visuals: none of its own animations shows a sprite (death is the shared dust puff)' : '';
-        li.innerHTML = '<span class="sp-li-name">' + (c.name || '#' + c.id) + (c.noVisuals ? '<span class="sp-li-tag">no visuals</span>' : '') + '</span>' +
+        var thumbs = c.thumbs ? '<span class="sp-li-thumbs">' +
+          (c.thumbs.s ? '<img src="' + c.thumbs.s + '" alt="" title="south">' : '') +
+          (c.thumbs.e ? '<img src="' + c.thumbs.e + '" alt="" title="east">' : '') + '</span>' : '<span class="sp-li-thumbs"></span>';
+        li.innerHTML = thumbs + '<span class="sp-li-name">' + escHtml(c.name || '#' + c.id) + (c.noVisuals ? '<span class="sp-li-tag">no visuals</span>' : '') + '</span>' +
           '<span class="sp-li-addr">' + (c.snesHex || '') + '</span>';
 
         li.addEventListener('click', function() { selectCharacter(c.id); });
@@ -252,6 +260,7 @@
 
     if (idEl) idEl.textContent = '#' + c.id;
     if (nameEl) nameEl.textContent = (c.name || '#' + c.id) + ' (' + (c.snesHex || '') + ')';
+    if (c.id !== paletteOverrideChar) { paletteOverride = 0; paletteOverrideChar = c.id; }
     if (badgeEl) {
       var disp = c.disposition || {};
       badgeEl.textContent = disp.label || '';
@@ -435,6 +444,7 @@
     if (currentMode === 'chars' && hasVariants(c) && c.weapons[selectedWeaponId] && !animOpt.paletteAddr) {
       animOpt = Object.assign({}, animOpt, { paletteAddr: c.weapons[selectedWeaponId].paletteAddr });
     }
+    if (paletteOverride) animOpt = Object.assign({}, animOpt, { paletteAddr: paletteOverride });
     requestedRecord = animOpt.animRec || 0;
     var target = targetRequest(c);
     if (target) animOpt = Object.assign({}, animOpt, { target: target });
@@ -638,11 +648,12 @@
    * Mode (+0x16) bits by everscript's ATTRIBUTE_FLAGS.FLAGS_7 names; bit $20 is also the
    * one the hit test refuses a target for.
    */
-  var MODE_BITS = [[0x01, 'knockback'], [0x02, '$02'], [0x04, 'walking'], [0x08, 'running'], [0x10, 'attacking'], [0x20, 'casting/dodging (invulnerable)']];
+  var MODE_BITS = [[0x01, 'knockback'], [0x02, '$02'], [0x04, 'walking'], [0x08, 'running'], [0x10, 'attacking'], [0x20, 'casting/dodging (invulnerable)'],
+    [0x4000, 'charging: contact damage'], [0x8000, 'charging: contact damage']];
   function modeText(mode) {
     if (!mode) return '';
     var names = MODE_BITS.filter(function(b) { return mode & b[0]; }).map(function(b) { return b[1]; });
-    if (mode & 0xffc0) names.push('$' + (mode & 0xffc0).toString(16));
+    if (mode & 0x3fc0) names.push('$' + (mode & 0x3fc0).toString(16));
     return ' · mode ' + names.join(', ');
   }
 
@@ -662,6 +673,7 @@
     var start = frameStartTicks[currentFrameIdx] || 0;
     var end = start + frame.ticks + (currentFrameIdx === currentAnimData.frames.length - 1 ? flightTail : 0);
     var n = t.hits.melee.filter(function(k) { return k >= start && k < end; }).length +
+      (t.hits.contact || []).filter(function(k) { return k >= start && k < end; }).length +
       t.hits.projectile.filter(function(p) { return p.tick >= start && p.tick < end; }).length;
     return n ? ' · hits ' + t.name + ' (' + n + ' tick' + (n === 1 ? '' : 's') + ')' : '';
   }
@@ -746,11 +758,21 @@
     if (chkBody && chkBody.checked && r > 0) {
       var bw = r * 2 * scale;
       var bh = r * scale;
-      ctx.strokeStyle = '#00f0a0';
-      ctx.lineWidth = 1.5;
+      // Charging (mode & $C000): running into another body deals contact damage ($8FB52C).
+      var charging = !!cur.contact;
+      var contactHit = charging && motion && motion.hitAt(a, motion.nowTick(frameStartTicks, currentFrameIdx, tickCounter)) === 'contact';
+      ctx.setLineDash(charging ? [5, 2] : []);
+      ctx.strokeStyle = charging ? '#ff5577' : '#00f0a0';
+      ctx.lineWidth = charging ? 2 : 1.5;
       ctx.strokeRect(cx - bw / 2, cy - bh / 2, bw, bh);
-      ctx.fillStyle = 'rgba(0, 240, 160, 0.15)';
+      ctx.setLineDash([]);
+      ctx.fillStyle = contactHit ? 'rgba(255, 51, 85, 0.5)' : charging ? 'rgba(255, 85, 119, 0.18)' : 'rgba(0, 240, 160, 0.15)';
       ctx.fillRect(cx - bw / 2, cy - bh / 2, bw, bh);
+      if (charging) {
+        ctx.fillStyle = '#ff8fa3';
+        ctx.font = '11px sans-serif';
+        ctx.fillText('contact damage', cx - bw / 2, cy - bh / 2 - 4);
+      }
     }
 
     // Overlay 2: Hurt region — half-size r centred on the feet ($8FB63A), on the ground.
@@ -848,6 +870,54 @@
     }
     return frame.hurt || [0, -16];
   }
+
+  // ── All palettes ────────────────────────────────────────────────────────────
+  var paletteOverride = 0;        // a palette chosen from the grid, until the character changes
+  var paletteOverrideChar = -1;
+  var palettePanel = document.getElementById('sp-palette-panel');
+  var paletteGrid = document.getElementById('sp-palette-grid');
+  var paletteStatus = document.getElementById('sp-palette-status');
+  var btnPalettes = document.getElementById('sp-btn-palettes');
+  var btnPaletteOwn = document.getElementById('sp-btn-palette-own');
+
+  function requestPaletteGrid() {
+    var cur = currentAnimData && currentAnimData.frames[currentFrameIdx];
+    var sprite = cur && cur.spriteAddr;
+    if (!sprite) { if (paletteStatus) paletteStatus.textContent = 'this frame draws no sprite'; return; }
+    if (paletteStatus) paletteStatus.textContent = 'rendering…';
+    if (vsApi) vsApi.postMessage({ command: 'getPaletteGrid', sprite: sprite });
+  }
+
+  function renderPaletteGrid(grid) {
+    if (!paletteGrid) return;
+    paletteGrid.innerHTML = '';
+    if (paletteStatus) paletteStatus.textContent = grid.length + ' palettes · click to play in one';
+    grid.forEach(function(p) {
+      var tile = document.createElement('div');
+      tile.className = 'sp-pal-tile' + (p.addr === paletteOverride ? ' sp-active' : '');
+      tile.title = p.addrHex + ' — ' + p.owners.join(', ');
+      tile.innerHTML = '<img src="' + p.png + '" alt=""><span>' + p.addrHex + '</span><span>' + escHtml(p.owners[0] || '') + '</span>';
+      tile.addEventListener('click', function() {
+        paletteOverride = p.addr;
+        paletteGrid.querySelectorAll('.sp-pal-tile').forEach(function(t) { t.classList.remove('sp-active'); });
+        tile.classList.add('sp-active');
+        loadCurrentAnimation();
+      });
+      paletteGrid.appendChild(tile);
+    });
+  }
+
+  if (btnPalettes) btnPalettes.addEventListener('click', function() {
+    if (!palettePanel) return;
+    var open = palettePanel.style.display === 'none';
+    palettePanel.style.display = open ? '' : 'none';
+    if (open) requestPaletteGrid();
+  });
+  if (btnPaletteOwn) btnPaletteOwn.addEventListener('click', function() {
+    paletteOverride = 0;
+    if (paletteGrid) paletteGrid.querySelectorAll('.sp-pal-tile').forEach(function(t) { t.classList.remove('sp-active'); });
+    loadCurrentAnimation();
+  });
 
   var STAGE_MIN_H = 270;
   var STAGE_MAX_H = 520;
@@ -996,6 +1066,8 @@
           script.renderOwners(currentMode === 'anims' ? pinnedRecord : script.findRecord(requestedRecord));
         }
         updateFrameUI();
+      } else if (data.command === 'paletteGridData') {
+        renderPaletteGrid(data.grid || []);
       } else if (data.command === 'rawSpriteData') {
         var s = data.sprite;
         if (!s) return;

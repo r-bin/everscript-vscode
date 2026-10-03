@@ -103,6 +103,10 @@ else; the linear walker reads `opcode()` too.
   one byte off on `CHARGE_RATE`, and wrong on `+0x46` (casting, not running). Check
   the code before trusting either.
 
+- **Contact damage**: mode `& $C000` + a body blocked by another (`bodiesTouch`:
+  `2|dy| < r₁+r₂`, `|dx| < r₁+r₂`, |Δh| < `$230`), full stamina, once per charge.
+  Knock-back (`$01`) and casting (`$20`) targets are skipped.
+
 ## 4. Never guess
 
 - A width comes from a trace or from reading the handler's `$5D` advances on every

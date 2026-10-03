@@ -711,3 +711,18 @@
 .tag-aggro { color: #9be38f; }
 .sp-li-novis .sp-li-name { opacity: 0.55; }
 .sp-li-tag { font-size: 10px; margin-left: 6px; padding: 0 4px; border-radius: 3px; border: 1px solid #555; opacity: 0.8; }
+
+/* ── List thumbnails, palette panel ── */
+.sp-li-thumbs { display: inline-flex; gap: 4px; align-items: flex-end; margin-right: 8px; min-width: 52px; height: 32px; }
+.sp-li-thumbs img { max-height: 32px; max-width: 32px; image-rendering: pixelated; }
+.sp-list-item { display: flex; align-items: center; }
+.sp-list-item .sp-li-name { flex: 1; }
+.sp-chip-btn { margin-left: 10px; font-size: 11px; padding: 2px 8px; border-radius: 3px; border: 1px solid var(--vscode-panel-border, #444); background: transparent; color: inherit; cursor: pointer; }
+.sp-chip-btn:hover { background: rgba(255,255,255,0.06); }
+.sp-palette-panel { background: var(--vscode-sideBar-background, #1e1e1e); border: 1px solid var(--vscode-panel-border, #333); border-radius: 4px; padding: 12px; margin: 16px 16px 0; }
+.sp-palette-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; max-height: 320px; overflow: auto; }
+.sp-pal-tile { display: flex; flex-direction: column; align-items: center; padding: 4px; border: 1px solid transparent; border-radius: 3px; cursor: pointer; background: #141414; }
+.sp-pal-tile:hover { border-color: #555; }
+.sp-pal-tile.sp-active { border-color: #4d9fff; }
+.sp-pal-tile img { image-rendering: pixelated; max-width: 72px; max-height: 72px; }
+.sp-pal-tile span { font-size: 10px; opacity: 0.75; margin-top: 2px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 80px; }
