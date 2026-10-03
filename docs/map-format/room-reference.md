@@ -69,7 +69,7 @@ LZSS streams end on 1–3 zero padding bytes inside their declared length.
 
 | Segment | Hard limit | Vanilla max (room) | Decoder | Encoder |
 |---|---|---|---|---|
-| width × height | 1 byte each; custom maps 2..128 (`blank-room.ts`) | 128 wide (`0x73`), 125 high (`0x37`), 13 250 cells (`0x4B`) | `room.ts` | `custom-room.ts` |
+| width × height | 1 byte each; custom maps 2..128 (`blank-room.ts`); **the engine needs ≥16×14** (one screen), so Export ROM grows a smaller map (`rom-export.js padToScreen`) | 128 wide (`0x73`), 125 high (`0x37`), 13 250 cells (`0x4B`); smallest 17×15 (`0x50`) | `room.ts` | `custom-room.ts` |
 | step-on triggers | 16-bit byte length | 65 (`0x59`); 1205 in all | `room.ts readTriggers` | `encode.ts buildBlob` |
 | B-triggers | 16-bit byte length | 58 (`0x0A`); 1065 in all | same | same |
 | family entries | 1-byte count; **7 loaded at once** | 14 (`0x0D` and 17 more) | `room.ts` | `custom-room.ts` |

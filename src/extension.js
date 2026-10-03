@@ -803,6 +803,7 @@ function activate(context) {
                             _radarPanel?.webview.postMessage({ ...reply, path: target.fsPath, report });
                             const pick = await vscode.window.showInformationMessage(
                                 `Exported ${report.widthTiles}×${report.heightTiles} map into Brian's room (0x15) — `
+                                + (report.paddedFrom ? `grown from ${report.paddedFrom.widthTiles}×${report.paddedFrom.heightTiles} with solid empty cells, since the game needs at least one screen (16×14). ` : '')
                                 + `${report.blobBytes} bytes at $${report.blobAddress.toString(16).toUpperCase()}. `
                                 + (report.animated ? `${report.animated} animated tile${report.animated === 1 ? '' : 's'}. ` : '')
                                 + (report.stillAnimated ? `${report.stillAnimated} more stay still (42 animations is the most a vanilla room runs). ` : '')

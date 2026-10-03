@@ -1,3 +1,11 @@
+## [0.137.1] — 2026-10-03
+
+### Fix: [Rooms] Export ROM — a map smaller than one screen came out scrambled
+
+- The game only draws a room correctly when it is at least one screen, 16×14 tiles. Every vanilla room is bigger. In a smaller map, unless the Boy started in the top-left corner, the first screen of the tilemap was read from outside the map: one stale tile everywhere, and garbage along the top rows.
+- Export ROM and Play in emulator now grow a smaller map to 16×14. The new cells go right and below, are empty and solid, and nothing you placed moves. The export message says when this happened.
+- Found by booting exports in the bundled snes9x core and comparing VRAM with the draft. The graphics and the WRAM grid were always right. Only the BG tilemaps were wrong, which is why the export's own read-back check never caught it.
+
 ## [0.137.0] — 2026-10-03
 
 ### Feature: [Characters] richer script listing

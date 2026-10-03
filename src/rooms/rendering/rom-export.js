@@ -64,6 +64,49 @@ const OP_CALL_GLOBAL = 0xa3;
 const GLOBAL_FADE_IN = 0x36;
 const OP_END = 0x00;
 
+/**
+ * The smallest room the engine draws correctly: one screen, 16×14 tiles.
+ * Every vanilla room is bigger (the smallest is 17×15, `0x50`). A smaller
+ * one loads, but the first full-screen tilemap upload reads rows and columns
+ * outside the grid whenever the Boy starts away from the top-left corner:
+ * BG2 is left filled with a stale tile and BG1 gets bytes from the
+ * dictionary — the scrambled screen. Measured in the bundled snes9x core
+ * over sizes 4×4..20×20 and start positions; every map ≥16×14 drew right.
+ */
+const SCREEN_W = 16;
+const SCREEN_H = 14;
+
+/** Collision geometry `0xF`: fully solid (map_collision_mechanics.md §3). */
+const SOLID = 0x000f;
+
+/**
+ * Grow a map smaller than a screen to 16×14. The added cells, right and
+ * below, draw the donor's empty word on both layers (blank-room.ts
+ * `emptyStamp`, what an untouched cell of the map shows) and are solid, so
+ * the Boy cannot walk off what was drawn. Everything placed keeps its
+ * coordinates: they count from the top-left, which does not move.
+ */
+function padToScreen(src, draft) {
+    const w = Number(draft.widthTiles);
+    const h = Number(draft.heightTiles);
+    if (w >= SCREEN_W && h >= SCREEN_H) return draft;
+    const W = Math.max(w, SCREEN_W);
+    const H = Math.max(h, SCREEN_H);
+    const blank = maps.emptyStamp(maps.decodeRoom(src, Number(draft.borrowFrom))).layer1;
+    const cells = [];
+    for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+            if (x < w && y < h) {
+                const i = (y * w + x) * 3;
+                cells.push(draft.cells[i], draft.cells[i + 1], draft.cells[i + 2]);
+            } else {
+                cells.push(blank, blank, SOLID);
+            }
+        }
+    }
+    return { ...draft, widthTiles: W, heightTiles: H, cells, paddedFrom: { widthTiles: w, heightTiles: h } };
+}
+
 /** SNES header (HiROM, `$FFC0`): checksum complement, then checksum. */
 const HEADER_COMPLEMENT = 0xffdc;
 const HEADER_CHECKSUM = 0xffde;
@@ -110,6 +153,11 @@ function buildExportRom(vanilla, draft) {
         throw new Error(`expected the 3 MB vanilla ROM, got ${src.length} bytes — `
             + 'export starts from an unmodified Secret of Evermore (U)');
     }
+    if (!Array.isArray(draft.cells) || draft.cells.length !== Number(draft.widthTiles) * Number(draft.heightTiles) * 3) {
+        throw new Error(`expected ${Number(draft.widthTiles) * Number(draft.heightTiles) * 3} words for a `
+            + `${draft.widthTiles}x${draft.heightTiles} grid, got ${draft.cells && draft.cells.length}`);
+    }
+    draft = padToScreen(src, draft);
     const w = Number(draft.widthTiles);
     const h = Number(draft.heightTiles);
     const built = maps.buildCustomRoomBlob(src, {
@@ -159,6 +207,8 @@ function buildExportRom(vanilla, draft) {
             room: BRIAN_ROOM,
             widthTiles: w,
             heightTiles: h,
+            /** The map's own size when it was grown to one screen (padToScreen), else null. */
+            paddedFrom: draft.paddedFrom || null,
             blobBytes: built.blob.length,
             blobAddress: 0x800000 | BLOB_OFFSET,
             metatiles: built.metatileCount,

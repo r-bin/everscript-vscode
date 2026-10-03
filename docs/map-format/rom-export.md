@@ -70,6 +70,27 @@ collision) from the editor:
   origin 0.
 - **Empty:** triggers, objects, and cuttable grass (Section 4 = `[0x00]`).
 
+## Smaller than a screen
+
+The engine draws a room correctly only when it is at least one screen,
+**16×14 tiles**. Every vanilla room is bigger (the smallest is 17×15,
+`0x50`). A smaller room loads, but its first full-screen tilemap upload reads
+outside the grid whenever the Boy starts away from the top-left corner: BG2
+keeps a stale tile everywhere and BG1 gets bytes from the dictionary. The
+grid and dictionary in WRAM and the graphics in VRAM are all correct; only
+the BG tilemaps are wrong, so the read-back check cannot see it.
+
+Measured in the bundled snes9x core, booting exports headlessly and comparing
+the VRAM tilemaps with the draft. 4×4..15×14 and 16×13 broke at some start
+positions; every size from 16×14 up drew correctly at every start tried.
+
+So `padToScreen` (`rom-export.js`) grows a smaller map to 16×14 before it is
+encoded. The new cells are right and below, so nothing placed moves. They
+draw the donor's empty word on both layers (what an untouched cell shows)
+and have collision `0x000F`, fully solid, so the Boy cannot walk off the
+drawn map. The report's `paddedFrom` gives the map's own size, and the
+export message says it was grown.
+
 ## The cuttable layer
 
 The editor's **Cuttable** toggle, next to Collision, draws on a second layer
