@@ -36,7 +36,7 @@ own RAM copy of it.
 | prize chance | `+0x29` | — | `TYPE` swap before it dies | `$908567` |
 | collision radius | `+0x0D` | — | `TYPE` swap | `$8FB472`, `$8FB651` |
 | spawn flags | `+0x05` | `+0x10` `FLAGS_1` (OR'd) | Per spawn: the `flags` argument of `add_enemy` (`3c`/`a2`). Afterwards: `attribute(E, BIT, on)` (`a9`), or a direct write to `FLAGS_1`…`FLAGS_7` (`+0x10`…`+0x16`) | `$8FB0C3` |
-| palette | `+0x09` | `+0x0C` `PALETTE` (slot offset) | At spawn: `add_colored_enemy(type, palette_of, …)` spawns one record for its colours, then sets `TYPE`. Afterwards it is unknown whether writing `+0x0C` or swapping `TYPE` reloads the colours | `$90CD1B`; `add_colored_enemy` |
+| palette | `+0x09` | `+0x0C` `PALETTE` (slot offset) | `<E>[PALETTE] = <DONOR>[PALETTE]`: point it at a slot that already holds the colours. See [Changing the palette](#changing-the-palette) | `$90CD1B`; kaizo `add_palette_donor` |
 | palette 2 | `+0x0B` | — | Loaded into slot 2 at spawn. *Not known* whether a later swap reloads it | `$90CD01` |
 | charge limit | `+0x2C` | — | `TYPE` swap | `$91AEDE` |
 | charge speed | `+0x2E` | — | `TYPE` swap. To change the meter itself, write `<E>[STAMINA]` (`+0x2E`, 0…`$400`) | `$8FCC5D` |
@@ -52,6 +52,33 @@ The entity also has state that is not on the record: position `X`/`Y`/`Z`
 (`teleport`), `FACE_DIRECTION` (`face`), `VELOCITY`, four status slots
 (`STATUS_ID/TIMER/BONUS_1…4`, `+0x46…+0x5C`) and `GENERAL_PURPOSE` `+0x30`,
 which is free for scripts to use.
+
+## Changing the palette
+
+Entity `+0x0C` holds no colours. It holds a **slot offset** (0, 2 … 14) into
+the eight sprite palettes ([palettes.md](palettes.md)). Writing it re-colours
+the entity straight away, but only to colours that some slot already holds.
+To get colours that aren't loaded yet, spawn a **donor**: an invisible,
+inactive entity of the record you want. Spawning it makes the allocator load
+its palette. Then copy the donor's slot:
+
+```
+add_enemy(BOY_BLACK, 0d0, 0d0, INVISBLE_INVINCIBLE_INACTIVE);   // donor
+<E>[PALETTE] = <LAST_ENTITY>[PALETTE];
+```
+
+That is everscript kaizo's `add_palette_donor` (`10_general_helper/08.evs`),
+also used in the temple and town-level-3 bosses and the Rimsala arena.
+
+- **The write doesn't stick for long.** `add_palette_donor` writes the slot
+  again every 5 frames for as long as the entity is `DISABLED`, and puts the
+  old slot back at the end. So something in the engine resets `+0x0C`. The
+  likeliest candidates are the damage flash and the grey-out during the ring
+  menu or stop. *Inferred, not traced.*
+- **A donor costs a slot** from the budget of 4. If it is the fifth distinct
+  palette, it lands in the slot that alchemy steals.
+- **Arbitrary colours** (not taken from any record) would mean writing CGRAM
+  or the slot table `$7E1278`. Nothing here shows a script doing that.
 
 ## Swapping `TYPE`
 
