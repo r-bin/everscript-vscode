@@ -1,3 +1,10 @@
+## [0.134.0] — 2026-10-03
+
+### Feature: [Characters] stamina selector, character centred on the stage
+
+- **Stamina selector** in the overlay panel: < 50%, 50–99%, 100%, 200%, 300%. On an attack it switches to the level that stamina plays (under 100% → Attack Lvl 0, 100% → Lvl 1, 200% → Lvl 2, 300% → Lvl 3, `$9082D8`), and the stage overlay shows the power factor from `$8FC02B`: ×¼ under 50%, ×½ under 100%, ×1, ×2, ×4. Picking an attack tile moves the selector to match. Works for the Boy, the Dog's forms and every character.
+- **Centred character:** the character's sprite sits in the middle of the stage whatever floats over it. The scale shrinks until projectiles and the target fit on both sides.
+
 ## [0.133.0] — 2026-10-03
 
 ### Feature: [Characters] effect previews, south-facing lists, matching tabs, attack levels documented

@@ -438,6 +438,7 @@
         tile.addEventListener('click', function() {
           animSel.value = opt.value;
           selectedAnimKey = opt.value;
+          syncStaminaTo(opt.value);
           animGrid.querySelectorAll('.sp-anim-tile').forEach(function(t) { t.classList.toggle('sp-active', t === tile); });
           loadCurrentAnimation();
         });
@@ -502,6 +503,7 @@
 
   // ── Load Animation Data ─────────────────────────────────────────────────────
   function loadCurrentAnimation() {
+    syncStaminaTo(selectedAnimKey);
     var chars = getCharacters();
     var c = chars.find(function(x) { return x.id === selectedCharId; });
     if (!c) return;
@@ -812,8 +814,7 @@
     var box = sceneBoxFor(walk);
 
     // The canvas is the stage: a fixed surface centred on the character, its walk path, its
-    // projectiles and the target. Aggro and trails draw over it and never rescale it; the
-    // scale drops when the scene would not fit beside the floating controls.
+    // projectiles and the target. Aggro and trails draw over it and never rescale it.
     var stage = canvas.parentElement;
     var W = Math.max(200, stage ? stage.clientWidth : 320);
     var H = Math.max(200, stage ? stage.clientHeight : 320);
@@ -821,17 +822,19 @@
     if (canvas.height !== H) canvas.height = H;
     ctx.clearRect(0, 0, W, H);
     ctx.imageSmoothingEnabled = false;
+    // The character's own sprite box sits in the middle of the stage, whatever floats over it;
+    // the scale shrinks until the rest of the scene fits on both sides of it.
     var pad = 24;
-    var panel = stage ? stage.querySelector('.sp-stage-overlay') : null;
-    var left = panel && panel.offsetWidth ? Math.min(W / 2, panel.offsetLeft + panel.offsetWidth) : 0;
-    var bw = Math.max(1, box.maxX - box.minX);
-    var bh = Math.max(1, box.maxY - box.minY);
-    var scale = Math.min(animScale, (W - left - pad * 2) / bw, (H - pad * 2) / bh);
+    var midX = a.width / 2 - a.originX;
+    var midY = a.height / 2 - a.originY;
+    var halfW = Math.max(1, midX - box.minX, box.maxX - midX);
+    var halfH = Math.max(1, midY - box.minY, box.maxY - midY);
+    var scale = Math.min(animScale, (W / 2 - pad) / halfW, (H / 2 - pad) / halfH);
     if (scale >= 1) scale = Math.floor(scale * 2) / 2;   // half steps: whole steps waste most of the stage
 
     // Where the feet stood at the start, then where they are now.
-    var ox = Math.floor(left + (W - left) / 2 - (box.minX + bw / 2) * scale);
-    var oy = Math.floor(H / 2 - (box.minY + bh / 2) * scale);
+    var ox = Math.floor(W / 2 - midX * scale);
+    var oy = Math.floor(H / 2 - midY * scale);
     var pos = motion ? motion.positionAt(a, currentFrameIdx, tickCounter, walk) : { x: 0, y: 0, z: 0 };
     var cx = ox + pos.x * scale;
     var cy = oy + pos.y * scale;
@@ -1104,6 +1107,7 @@
     var note = a && a.facingRounded
       ? '<span class="sp-hud-head sp-hud-note" title="Starting an attack whose record has four poses rounds the facing through $90815B ($908343): steps and projectiles go this way">Attack faces ' + (FACING_NAME[a.facing] || a.facing) + '</span>'
       : '';
+    note = staminaNote() + note;
     if (!sp) { speedReadout.innerHTML = note; return; }
     var cur = FACING_NAME[selectedFacing & 0x0c];
     var html = note + '<span class="sp-hud-head">Moves (per cycle)</span>';
@@ -1114,6 +1118,55 @@
       html += '<span' + cls + '>' + k + '</span><span' + cls + '>' + v.perTick.toFixed(2) + ' px/tick</span><span' + cls + '>' + Math.round(v.perSecond) + ' px/s</span>';
     });
     speedReadout.innerHTML = html;
+  }
+
+  // ── Stamina: which attack level plays, and how hard it hits ──────────────
+  // $9082D8: under $400 (100%) +0x38, under $800 +0x3A, under $C00 +0x3C, else +0x3E.
+  // $8FC02B: power (record +0x19) /4 under $200, /2 under $400, ×1, ×2 from $800, ×4 from $C00.
+  var STAMINA = {
+    q: { level: 0, power: '¼', text: '< 50%' },
+    h: { level: 0, power: '½', text: '50–99%' },
+    1: { level: 1, power: '1', text: '100%' },
+    2: { level: 2, power: '2', text: '200%' },
+    3: { level: 3, power: '4', text: '300%' },
+  };
+  var staminaSel = document.getElementById('sp-stamina');
+  /** 0–3 for an attack field (character, Boy weapon, Dog form slots 5–8), else -1. */
+  function attackLevelOf(key) {
+    var m = /^(?:w_)?atk([0-3])$/.exec(key || '');
+    if (m) return +m[1];
+    m = /^d_slot([5-8])$/.exec(key || '');
+    return m ? +m[1] - 5 : -1;
+  }
+  function attackKeyAt(key, level) {
+    if (/^d_slot/.test(key)) return 'd_slot' + (5 + level);
+    return key.replace(/[0-3]$/, String(level));
+  }
+  /** Picking an attack tile moves the stamina to match (Lvl 0 keeps < 50% if it was chosen). */
+  function syncStaminaTo(key) {
+    var lvl = attackLevelOf(key);
+    if (!staminaSel || lvl < 0) return;
+    if (lvl === 0) { if (staminaSel.value !== 'q') staminaSel.value = 'h'; }
+    else staminaSel.value = String(lvl);
+  }
+  if (staminaSel) staminaSel.addEventListener('change', function() {
+    var lvl = STAMINA[staminaSel.value].level;
+    if (attackLevelOf(selectedAnimKey) >= 0) {
+      var key = attackKeyAt(selectedAnimKey, lvl);
+      if (key !== selectedAnimKey && animSel && animSel.querySelector('option[value="' + key + '"]')) {
+        selectedAnimKey = key;
+        animSel.value = key;
+        if (animGrid) animGrid.querySelectorAll('.sp-anim-tile').forEach(function(t) { t.classList.toggle('sp-active', t.dataset.key === key); });
+        loadCurrentAnimation();
+        return;
+      }
+    }
+    renderSpeedReadout();
+  });
+  function staminaNote() {
+    if (!staminaSel || attackLevelOf(selectedAnimKey) < 0) return '';
+    var st = STAMINA[staminaSel.value];
+    return '<span class="sp-hud-head sp-hud-note" title="$9082D8 picks the attack by stamina; $8FC02B scales its power">Stamina ' + st.text + ': power ×' + st.power + '</span>';
   }
 
   /** The header swatch follows the palette the stage is drawn in (weapon, form, script or chosen). */

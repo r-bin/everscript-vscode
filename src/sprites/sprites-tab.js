@@ -104,6 +104,16 @@ function buildSpritesTabHtml() {
             <label class="sp-check-label" title="How far ahead the target stands, in pixels">
               <input type="number" id="sp-target-dist" class="sp-input sp-num" value="40" min="0" max="200" step="4" />px
             </label>
+            <label class="sp-check-label" title="Stamina when the attack starts ($9082D8 picks the attack: under 100% Lvl 0, 100% Lvl 1, 200% Lvl 2, 300% Lvl 3). It also scales the attack's power ($8FC02B): under 50% ×¼, under 100% ×½, 100% ×1, 200% ×2, 300% ×4">
+              <span class="sp-tag tag-stamina">Stamina</span>
+              <select id="sp-stamina" class="sp-select sp-sel-sm">
+                <option value="q">&lt; 50%</option>
+                <option value="h">50–99%</option>
+                <option value="1" selected>100%</option>
+                <option value="2">200%</option>
+                <option value="3">300%</option>
+              </select>
+            </label>
             <label class="sp-check-label" title="Keep each tick's strike and projectile hit boxes on screen for this many ticks, fading out (0 = off)">
               <span class="sp-tag tag-trail">Trail</span> <input type="number" id="sp-trail" class="sp-input sp-num" value="0" min="0" max="120" step="2" />
             </label>

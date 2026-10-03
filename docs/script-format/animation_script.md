@@ -610,8 +610,22 @@ farthest edge of the strike box (dx + w/2) is:
 | Spears | 33 px (24 × 24) | 29 px (36 × 22) |
 
 Axes and the Bone Crusher reach clearly less below 100%, swords about the same,
-and spears slightly further. Damage scaling by stamina is a separate question,
-not traced here.
+and spears slightly further.
+
+**Power scales with stamina too** (`$8FC02B`, which every attack proc calls for
+the attacker's power, record `+0x19`): under `$200` (50%) ÷4, under `$400`
+(100%) ÷2, under `$800` ×1, under `$C00` ×2, else ×4. So 50% is a second step for
+damage, though not for the animation. (The player entity `$4E89` swaps in `$1468`
+when `$0ABA` = `$1A`.)
+
+**The Dog.** Its forms list four attack slots too (5–8), but Acts 0–3 put the
+same record in all four, so stamina changes only the power. The Act 4 toaster
+shares Lvl 0 and 1 and has its own Lvl 2 and Lvl 3. That the Dog's attacks go
+through `$9082D8` too is assumed, not traced.
+
+The Sprites tab's **Stamina** selector (< 50%, 50–99%, 100%, 200%, 300%) switches
+an attack to the level that stamina plays, and the stage overlay shows the power
+factor.
 
 ## Hitting something
 

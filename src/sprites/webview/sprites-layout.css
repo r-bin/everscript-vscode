@@ -701,6 +701,7 @@
 .sp-num { width: 52px; padding: 1px 4px; margin-right: 2px; }
 #sp-canvas { flex: none; image-rendering: pixelated; }
 .tag-trail { color: #ff8fa3; }
+.tag-stamina { color: #ffd479; }
 .tag-aggro { color: #9be38f; }
 .sp-li-novis .sp-li-name { opacity: 0.55; }
 .sp-li-tag { font-size: 10px; margin-left: 6px; padding: 0 4px; border-radius: 3px; border: 1px solid #555; opacity: 0.8; }

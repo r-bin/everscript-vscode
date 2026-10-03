@@ -85,6 +85,7 @@ else; the linear walker reads `opcode()` too.
 - **`0x5D` = `effect_done`**: alchemy effects signal their spell; when the next byte is
   another record's script the VM stops there (otherwise it plays that record, e.g. a rocket).
 - **Attack level = stamina**: < 100% → `+0x38`, 100% → `+0x3A`, 200% → `+0x3C`, 300% → `+0x3E` (`$9082D8`).
+  Power (`$8FC02B`): < 50% ÷4, < 100% ÷2, ×1, 200% ×2, 300% ×4.
 - **Attacks round the facing** (`$908343`): a four-pose attack record writes
   `$90815B[facing]` back to `+0x22`, so steps and projectiles go E/W, never diagonal.
   Other animation starts keep the diagonal.
