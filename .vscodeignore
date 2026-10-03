@@ -35,7 +35,7 @@ src/emulator/core/**/*.c
 src/emulator/core/**/*.h
 src/emulator/core/**/Makefile*
 src/emulator/core/**/gitignore.txt
-src/emulator/core/**/copyright
+# NOTE: copyright notices must be bundled alongside built .wasm/.js artifacts
 
 # build artifacts that should not be included
 out/**

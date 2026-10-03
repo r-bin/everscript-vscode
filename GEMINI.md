@@ -65,6 +65,7 @@ to what you're touching.
 | `stabilize-state-flow` | consolidating state to a single owner |
 | `split-orchestration` | decomposing god files (`src/extension.js`, panel files) |
 | `webview-dom-safety` | idempotent event binding, `e.target` walk-up, VS Code webview API gaps, SVG coordinate systems |
+| `emulator-subsystem` | snes9x2005-wasm core build, non-commercial/GPL licensing, audio sync, display scaling, keybinds |
 
 ### Release ritual
 
@@ -125,6 +126,10 @@ to what you're touching.
 ### Animation scripts
 
 @.github/instructions/animation-script.instructions.md
+
+### Emulator subsystem
+
+@.github/instructions/emulator-subsystem.instructions.md
 
 ---
 

@@ -31,7 +31,8 @@ const path   = require('path');
 const fs     = require('fs');
 const { buildHtml } = require('./panel-webview');
 
-const CORE_SUBDIR = path.join('src', 'emulator', 'core', 'snes9x2005-wasm-vanilla');
+const CORE_SUBDIR        = path.join('src', 'emulator', 'core', 'snes9x2005-wasm-vanilla');
+const CUSTOM_CORE_SUBDIR = path.join('src', 'emulator', 'core', 'snes9x2005-wasm');
 const CORE_JS     = 'snes9x_2005.js';
 const CORE_WASM   = 'snes9x_2005.wasm';
 const LEGACY_CUSTOM_CORE_DIRS = [
@@ -250,6 +251,11 @@ function _customCore(raw) {
 }
 
 function _bundledCore() {
+    const customJs   = path.join(_extensionPath, CUSTOM_CORE_SUBDIR, CORE_JS);
+    const customWasm = path.join(_extensionPath, CUSTOM_CORE_SUBDIR, CORE_WASM);
+    if (fs.existsSync(customJs) && fs.existsSync(customWasm)) {
+      return { path: customJs, wasmPath: customWasm, label: CORE_JS + ' (debugger core)', source: 'custom-bundled' };
+    }
     const jsPath   = path.join(_extensionPath, CORE_SUBDIR, CORE_JS);
     const wasmPath = path.join(_extensionPath, CORE_SUBDIR, CORE_WASM);
     if (!fs.existsSync(jsPath)) {

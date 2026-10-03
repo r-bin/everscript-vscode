@@ -32,15 +32,4 @@ case "$VARIANT" in
     exit 1
     ;;
 esac
-      -o snes9x_2005.js
-    ;;
-  custom)
-    CORE_DIR="$ROOT_DIR/src/emulator/core/snes9x2005-wasm"
-    cd "$CORE_DIR"
-    sh ./build.sh
-    ;;
-  *)
-    echo "unknown core variant: $VARIANT" >&2
-    exit 1
-    ;;
- esac
+

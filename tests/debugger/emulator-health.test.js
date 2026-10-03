@@ -523,7 +523,7 @@ test('a missing snesCorePath falls back to the bundled core, with a warning', ()
         Mod._load = load;
         delete require.cache[require.resolve(PANEL_JS)];
     }
-    assert.ok(html.includes(CORE_JS), 'panel HTML does not load the bundled core');
+    assert.ok(html.includes('snes9x_2005.js'), 'panel HTML does not load the bundled core');
     assert.ok(warnings.some((w) => /using the bundled core/.test(w)), 'no warning about the bad setting: ' + warnings);
 });
 

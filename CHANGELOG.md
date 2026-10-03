@@ -1,3 +1,14 @@
+## [0.139.0] — 2026-10-03
+
+### Fix: [Emulator] audio distortion, display fill, keybindings, and debugger core auto-selection
+
+- **Audio distortion resolved**: Fixed APU playback sample rate mismatch in `exports.c` (matched to 44.1 kHz), dynamically scaled sample block generation to 735 samples/frame, expanded ring buffer to 16k samples with silence padding on underrun (eliminating buzzing loops), and throttled render loop to 60 fps to prevent 2x fast-forward on 120 Hz displays.
+- **Display fill**: Fixed 256x224 low-res SNES screen buffer extraction by scaling pixels 2x cleanly across the 512x448 canvas; added collapsible `#script-stack` (`hide stack` / `show stack`) allowing the game canvas to fill the entire panel.
+- **Keybindings**: Updated controls to standard keyboard layout (A=V, B=C, X=D, Y=X, L=A, R=S, Start=Enter, Select=Space, Pause/Resume=Escape) and added TODO for configurable bindings UI.
+- **Core selection**: Automatically selects the modified debugger-enabled core (`src/emulator/core/snes9x2005-wasm`) by default if present, and stopped repeated `Script hook disarmed` log spam.
+- **Legal packaging**: Removed `copyright` exclusion from `.vscodeignore` so mandatory Snes9x and GPLv2 attribution files are always included in the `.vsix` distribution.
+- **Skills & Documentation**: Added `emulator-subsystem` skill in `.github/instructions/emulator-subsystem.instructions.md` and created `docs/emulator-status-and-roadmap.md`.
+
 ## [0.138.0] — 2026-10-03
 
 ### Change: [Rooms] a map is never smaller than one screen (16×14)

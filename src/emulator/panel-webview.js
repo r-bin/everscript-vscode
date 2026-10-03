@@ -70,12 +70,18 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     #load-status   { font-size: 12px; color: #888; max-width: 400px; text-align: center; }
     /* -- Script stack panel --------------------------------------------- */
     #script-stack {
-      height: 220px; min-height: 180px; max-height: 320px;
+      height: 200px; min-height: 26px; max-height: 400px;
       background: #0d0d0d; border-top: 1px solid #333;
       overflow-y: auto; font-size: 11px;
       display: none; flex-direction: column;
     }
     #script-stack.visible { display: flex; }
+    #script-stack.collapsed {
+      height: 26px !important; min-height: 26px !important; overflow: hidden !important;
+    }
+    #script-stack.collapsed > :not(#ss-header) {
+      display: none !important;
+    }
     #ss-header {
       position: sticky; top: 0;
       background: #1a1a1a; padding: 3px 8px;
@@ -139,6 +145,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         <button id="ss-hook-btn"   class="ss-btn" disabled>arm stack hook</button>
         <button id="ss-hook-all-btn" class="ss-btn" disabled>break all hooks</button>
         <button id="ss-debug-link-btn" class="ss-btn">connect dbg</button>
+        <button id="ss-toggle-btn" class="ss-btn">hide stack</button>
       </div>
     </div>
     <div id="ss-core-row" title="${corePathDisplay}">
@@ -345,19 +352,39 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     // Button bitmask positions:
     //   R=4, L=5, X=6, A=7, RIGHT=8, LEFT=9, DOWN=10, UP=11,
     //   START=12, SELECT=13, Y=14, B=15
+    // TODO: Make keybindings configurable via VS Code settings (\`everscript.emulatorKeybindings\`)
+    // and provide an in-webview interactive controller remapping dialog.
     const KEY_MAP = {
       'ArrowRight': 1 << 8,  'ArrowLeft': 1 << 9,
       'ArrowDown':  1 << 10, 'ArrowUp':   1 << 11,
-      'Enter':      1 << 12, 'Shift':     1 << 13,
-      'z': 1 << 15, 'Z': 1 << 15,
-      'a': 1 << 7,  'A': 1 << 7,
-      'x': 1 << 6,  'X': 1 << 6,
-      's': 1 << 14, 'S': 1 << 14,
-      'd': 1 << 5,  'D': 1 << 5,
-      'c': 1 << 4,  'C': 1 << 4,
+      'Enter':      1 << 12, ' ':         1 << 13,
+      'v': 1 << 7,  'V': 1 << 7,   // A
+      'c': 1 << 15, 'C': 1 << 15,  // B
+      'd': 1 << 6,  'D': 1 << 6,   // X
+      'x': 1 << 14, 'X': 1 << 14,  // Y
+      'a': 1 << 5,  'A': 1 << 5,   // L
+      's': 1 << 4,  'S': 1 << 4,   // R
     };
     let keyInput = 0;
     document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        const m = getModule();
+        if (m && hasDebuggerApi(m)) {
+          const pauseEl = document.getElementById('ss-pause-state');
+          const isPaused = pauseEl && pauseEl.textContent.trim() === 'paused';
+          if (isPaused) {
+            m.resumeEmulation();
+            setText('ss-pause-state', 'running', 'ss-ok');
+            setText('ss-last-hit', 'last: resumed via Escape', 'ss-ok');
+          } else {
+            m.pauseEmulation();
+            setText('ss-pause-state', 'paused', 'ss-bad');
+            setText('ss-last-hit', 'last: paused via Escape', 'ss-warn');
+          }
+          e.preventDefault();
+          return;
+        }
+      }
       if (e.repeat) return;
       const bit = KEY_MAP[e.key];
       if (bit) { keyInput |= bit; e.preventDefault(); }
@@ -429,7 +456,16 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       });
       resizeCanvas(true);
 
-      function frame() {
+      let lastFrameTimestamp = performance.now();
+      const FRAME_INTERVAL_MS = 1000 / 60; // 16.666 ms
+
+      function frame(timestamp) {
+        requestAnimationFrame(frame);
+        if (!timestamp) timestamp = performance.now();
+        const elapsed = timestamp - lastFrameTimestamp;
+        if (elapsed < FRAME_INTERVAL_MS - 2.0) return;
+        lastFrameTimestamp = timestamp - (elapsed % FRAME_INTERVAL_MS);
+
         resizeCanvas(false);
         if (romLoaded) {
           Module._setJoypadInput(keyInput);
@@ -440,7 +476,6 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
             ctx.putImageData(imageData, 0, 0);
           }
         }
-        requestAnimationFrame(frame);
       }
       requestAnimationFrame(frame);
     }
@@ -784,6 +819,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     }
 
     function disarmScriptStackHook(m) {
+      const wasArmed = scriptHookArmed || breakOnObservedHookWrites;
       if (m && typeof m.removeWriteBreakpoint === 'function')
         for (const addr of activeScriptWatchpoints) m.removeWriteBreakpoint(addr);
       activeScriptWatchpoints = [];
@@ -795,7 +831,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       if (btn) btn.textContent = 'arm stack hook';
       const allBtn = document.getElementById('ss-hook-all-btn');
       if (allBtn) allBtn.textContent = 'break all hooks';
-      reportHookStatus('Script hook disarmed');
+      if (wasArmed) reportHookStatus('Script hook disarmed');
     }
 
     function armScriptStackHook(m) {
@@ -969,6 +1005,17 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     document.getElementById('ss-debug-link-btn').addEventListener('click', () => {
       vscodeApi.postMessage({ command: 'connectDebugger' });
     });
+
+    const toggleStackBtn = document.getElementById('ss-toggle-btn');
+    if (toggleStackBtn) {
+      toggleStackBtn.addEventListener('click', () => {
+        const stack = document.getElementById('script-stack');
+        stack.classList.toggle('collapsed');
+        const isCollapsed = stack.classList.contains('collapsed');
+        toggleStackBtn.textContent = isCollapsed ? 'show stack' : 'hide stack';
+        window.dispatchEvent(new Event('resize'));
+      });
+    }
 
     document.getElementById('ss-bp-add-btn').addEventListener('click', () => {
       const input = document.getElementById('ss-bp-input');
