@@ -767,7 +767,10 @@
 /* ── Stage row: controls column, stage, bottom seek bar ── */
 .sp-char-main { min-height: 0; }
 .sp-stage-row { display: flex; flex: 1; min-height: 0; }
-.sp-controls { width: 150px; flex: none; padding: 12px 10px; border-right: 1px solid var(--vscode-panel-border, #333); overflow: auto; display: flex; flex-direction: column; gap: 6px; }
+.sp-controls { width: 150px; padding: 6px 10px 10px; overflow: auto; display: flex; flex-direction: column; gap: 6px; }
+.sp-stage-overlay { position: absolute; top: 8px; left: 8px; max-height: calc(100% - 16px); box-sizing: border-box; z-index: 1;
+  background: rgba(20, 20, 20, 0.78); border: 1px solid rgba(255,255,255,0.08); border-radius: 4px; }
+.sp-stage-hud { z-index: 1; }
 .sp-controls-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.65; margin-top: 6px; }
 .sp-compass { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; }
 .sp-compass .sp-facing-btn { padding: 6px 0; font-size: 11px; min-width: 0; }
@@ -801,3 +804,4 @@
 .sp-char-main > .sp-player-bar { height: 52px; flex: none; overflow: hidden; }
 .sp-char-main > .sp-player-bar .sp-frame-info { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%; }
 .sp-char-main > .sp-player-bar .sp-scrubber-wrap { flex: 1; min-width: 0; }
+.sp-hud-speeds .sp-hud-note { color: #ffd479; text-transform: none; letter-spacing: 0; font-size: 11px; opacity: 1; }

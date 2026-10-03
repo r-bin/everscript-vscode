@@ -121,7 +121,8 @@
     ownersEl.innerHTML = '<strong>Record ' + esc(entry.recHex) + '</strong> · ' + entry.facingCount +
       (entry.facingCount === 1 ? ' facing' : ' facings') + ' · used by: ' +
       (list.length ? list.map(function(o) { return esc(ownerText(o)); }).join('; ') : 'no character, weapon or animate id') +
-      (entry.paletteInferred ? ' · palette inferred: ' + esc(entry.paletteInferred) : '');
+      (entry.paletteFromScript ? ' · palette $' + (entry.paletteAddr || 0).toString(16) + ' loaded by the script'
+        : entry.paletteInferred ? ' · palette inferred: ' + esc(entry.paletteInferred) : '');
   }
 
   /** The Animations rail: every record, filtered by the search box. */

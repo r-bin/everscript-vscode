@@ -595,10 +595,35 @@ if (rom) {
 
     test('unowned animations get an inferred palette, and say how', () => {
         const cat = buildAnimationCatalog(rom, readAllCharacters(rom));
+        const near = cat.find(a => a.record === 0x3eae);
+        assert(/sprites stored next to/.test(near.paletteInferred));
+        assert.strictEqual(near.paletteCharacter, 0);
+        // The Pigoodle loads its own palette (0x4b), which beats any guess.
         const pig = cat.find(a => a.record === 0x4f92);
-        assert(/sprites stored next to/.test(pig.paletteInferred));
-        assert.strictEqual(readCharacter(rom, pig.paletteCharacter).name, "Horace's Twin");
+        assert(pig.paletteFromScript && !pig.paletteInferred && pig.paletteAddr === 0xaf2b);
         assert(cat.filter(a => a.owners.some(o => o.kind === 'character')).every(a => !a.paletteInferred), 'owned ones are not guessed');
+    });
+
+    test('a four-pose attack rounds a diagonal facing ($908343): the spear flies east from NE', () => {
+        const boy = readCharacter(rom, 0);
+        const spear = boy.weapons.find(w => /Bronze Spear/.test(w.name));
+        const r = renderAnimation(rom, 0, spear.anims.find(a => a.key === 'w_atk3'), 2);
+        assert.strictEqual(r.facing, 4);
+        assert(r.facingRounded);
+        assert(r.projectiles.spawns[0].path.every(p => p[1] === 0), 'no diagonal drift');
+        assert.strictEqual(renderAnimation(rom, 0, spear.anims.find(a => a.key === 'w_walk'), 2).facing, 2, 'walks keep the diagonal');
+    });
+
+    test('command 0x4b loads the script\'s own palette; placeholder ids and Dog forms get theirs', () => {
+        const { runAnimation, animationIdRecord, facingScript } = require('../../src/maps/dist/animation-vm');
+        const explosion = animationIdRecord(rom, 0x02);
+        assert.strictEqual(runAnimation(rom, facingScript(rom, explosion, 8), 8).palette, 0xc08b);
+        const cat = buildAnimationCatalog(rom, readAllCharacters(rom));
+        const e = cat.find(a => a.record === explosion);
+        assert(e.paletteFromScript && e.paletteAddr === 0xc08b);
+        assert.strictEqual(cat.find(a => a.record === 0x543a).paletteCharacter, 25, 'SPACESHIP_TOP: the placeholder entity');
+        assert.strictEqual(cat.find(a => a.record === 0x4546).paletteAddr, 0xae6b, 'Act 4 toaster, shared with the Dark Toaster');
+        assert.strictEqual(cat.find(a => a.record === 0x4526).paletteAddr, 0xb54b, 'ACT0_BARK in the Act 0 palette');
     });
 
     test('renderAnimation returns a script listing with frame line addresses', () => {

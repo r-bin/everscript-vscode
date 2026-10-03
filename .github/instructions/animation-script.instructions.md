@@ -77,7 +77,14 @@ else; the linear walker reads `opcode()` too.
   feet**. Heights must satisfy −40 px ≤ target − attack < 30 px. Don't apply `hurtbox`
   (`0x50`) offsets until the Boy's −132/−144 is explained.
 - **Dog forms** (`src/sprites/dog-forms.js`): 6 entries via `$CF945F`, palette at
-  header +6, 15 slots, named only where an id or the Dog's record names them.
+  header +6, 15 slots, named only where an id or the Dog's record names them. The
+  Dog's own fields are the Act 1 wolf: draw them in its own palette, not the form's.
+- **`0x4B` = `palette $p`** (`$90CD80`, the projectile palette loader): a script that
+  loads one is drawn in it (`VmResult.palette`), ahead of any owner or inference.
+  `ANIMATION_PLACEHOLDER` ids belong to character #25 (`$BDB2`).
+- **Attacks round the facing** (`$908343`): a four-pose attack record writes
+  `$90815B[facing]` back to `+0x22`, so steps and projectiles go E/W, never diagonal.
+  Other animation starts keep the diagonal.
 
 - **Segments**: `0x57` (`2 + 4·groups` bytes, read with `segmentsAt`) lists a body's
   segment sprites; `0x59` (always 7 bytes) places one. Widths of variable commands come

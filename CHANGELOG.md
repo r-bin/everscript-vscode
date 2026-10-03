@@ -1,3 +1,13 @@
+## [0.132.0] — 2026-10-03
+
+### Feature: [Sprites] floating controls, attack facing, script and placeholder palettes, Dog palette fixes
+
+- **Controls float over the stage:** the Facing and Overlays panel sits on top of the map at the top left, like the speed overlay on the right, instead of taking its own column. The scene centres in the space beside it.
+- **Zooms out for projectiles:** the scene box includes projectiles and the target again, so a thrown spear stays on screen. The scale steps in halves (1.5×, 2.5×) so it uses the stage.
+- **Attacks round the facing:** the attack starter rounds a diagonal facing to east or west when the attack record has four poses (`$908343`), and steps and projectiles follow it. A spear thrown facing NE now flies east (and falls). The stage overlay says "Attack faces E".
+- **Command `0x4B` is `palette`:** a script can load its own palette (75 records, e.g. explosions, the Windwalker, the Pigoodle). Those animations are drawn in it, and the Script tab says so. Placeholder ids (`ANIMATION_PLACEHOLDER`) otherwise use the `PLACEHOLDER` entity's palette (#25).
+- **Dog palettes:** the Dog's standard animations (its Act 1 wolf) no longer take the selected form's palette, which drew a red wolf with Act 4 selected. Records the Act 4 toaster shares with the Dark Toaster no longer fall back to the Act 1 palette. `ACTn_…` ids use that act's form palette, and the header swatch shows the palette the stage is drawn in.
+
 ## [0.131.0] — 2026-10-03
 
 ### Feature: [Sprites] movement speed, stage overlays, inferred palettes

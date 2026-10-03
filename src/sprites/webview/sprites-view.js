@@ -324,6 +324,7 @@
   }
 
   /** The Boy has weapons and the Dog has forms: each an animation set with its own palette. */
+  var DOG = 1;
   function hasVariants(c) {
     return (c.id === 0 || c.id === 1) && c.weapons && c.weapons.length > 0;
   }
@@ -412,7 +413,7 @@
       }
       Array.prototype.forEach.call(group.children, function(opt) {
         var a = byKey[opt.value] || {};
-        var pal = paletteOverride || a.paletteAddr || variantPal || 0;
+        var pal = paletteOverride || a.paletteAddr || (c.id === DOG ? 0 : variantPal) || 0;
         var tile = document.createElement('div');
         tile.className = 'sp-anim-tile' + (opt.value === selectedAnimKey ? ' sp-active' : '');
         tile.dataset.key = opt.value;
@@ -512,10 +513,11 @@
     }
     if (!animOpt) animOpt = { key: 'stand', offset: 0x32 };
     // The Boy is drawn in the equipped weapon's palette (weapon +0x04), whatever he is doing.
-    if (currentMode === 'chars' && hasVariants(c) && c.weapons[selectedWeaponId] && !animOpt.paletteAddr) {
+    // The Dog's own fields are its Act 1 wolf, so only its form animations take the form's.
+    if (currentMode === 'chars' && hasVariants(c) && c.id !== DOG && c.weapons[selectedWeaponId] && !animOpt.paletteAddr) {
       animOpt = Object.assign({}, animOpt, { paletteAddr: c.weapons[selectedWeaponId].paletteAddr });
     }
-    if (paletteOverride) animOpt = Object.assign({}, animOpt, { paletteAddr: paletteOverride });
+    if (paletteOverride) animOpt = Object.assign({}, animOpt, { paletteAddr: paletteOverride, paletteForced: true });
     requestedRecord = animOpt.animRec || 0;
     var target = targetRequest(c);
     if (target) animOpt = Object.assign({}, animOpt, { target: target });
@@ -804,9 +806,9 @@
     var walk = walkOn();
     var box = sceneBoxFor(walk);
 
-    // The canvas is the stage: a fixed surface centred on the character and its walk path.
-    // Overlays (aggro, target, projectiles, trails) draw over it and never rescale it; the
-    // scale only drops when the character itself would not fit.
+    // The canvas is the stage: a fixed surface centred on the character, its walk path, its
+    // projectiles and the target. Aggro and trails draw over it and never rescale it; the
+    // scale drops when the scene would not fit beside the floating controls.
     var stage = canvas.parentElement;
     var W = Math.max(200, stage ? stage.clientWidth : 320);
     var H = Math.max(200, stage ? stage.clientHeight : 320);
@@ -815,13 +817,15 @@
     ctx.clearRect(0, 0, W, H);
     ctx.imageSmoothingEnabled = false;
     var pad = 24;
+    var panel = stage ? stage.querySelector('.sp-stage-overlay') : null;
+    var left = panel && panel.offsetWidth ? Math.min(W / 2, panel.offsetLeft + panel.offsetWidth) : 0;
     var bw = Math.max(1, box.maxX - box.minX);
     var bh = Math.max(1, box.maxY - box.minY);
-    var scale = Math.min(animScale, (W - pad * 2) / bw, (H - pad * 2) / bh);
-    if (scale >= 1) scale = Math.floor(scale);
+    var scale = Math.min(animScale, (W - left - pad * 2) / bw, (H - pad * 2) / bh);
+    if (scale >= 1) scale = Math.floor(scale * 2) / 2;   // half steps: whole steps waste most of the stage
 
     // Where the feet stood at the start, then where they are now.
-    var ox = Math.floor(W / 2 - (box.minX + bw / 2) * scale);
+    var ox = Math.floor(left + (W - left) / 2 - (box.minX + bw / 2) * scale);
     var oy = Math.floor(H / 2 - (box.minY + bh / 2) * scale);
     var pos = motion ? motion.positionAt(a, currentFrameIdx, tickCounter, walk) : { x: 0, y: 0, z: 0 };
     var cx = ox + pos.x * scale;
@@ -1089,10 +1093,15 @@
   var FACING_NAME = { 0: 'N', 4: 'E', 8: 'S', 12: 'W' };
   function renderSpeedReadout() {
     if (!speedReadout) return;
-    var sp = currentAnimData && currentAnimData.speeds;
-    if (!sp) { speedReadout.innerHTML = ''; return; }
+    var a = currentAnimData;
+    var sp = a && a.speeds;
+    // Attacks with four poses round a diagonal facing to east or west ($908343).
+    var note = a && a.facingRounded
+      ? '<span class="sp-hud-head sp-hud-note" title="Starting an attack whose record has four poses rounds the facing through $90815B ($908343): steps and projectiles go this way">Attack faces ' + (FACING_NAME[a.facing] || a.facing) + '</span>'
+      : '';
+    if (!sp) { speedReadout.innerHTML = note; return; }
     var cur = FACING_NAME[selectedFacing & 0x0c];
-    var html = '<span class="sp-hud-head">Moves (per cycle)</span>';
+    var html = note + '<span class="sp-hud-head">Moves (per cycle)</span>';
     ['N', 'E', 'S', 'W'].forEach(function(k) {
       var v = sp[k];
       if (!v) return;
@@ -1102,9 +1111,19 @@
     speedReadout.innerHTML = html;
   }
 
+  /** The header swatch follows the palette the stage is drawn in (weapon, form, script or chosen). */
+  function showStagePalette(a) {
+    if (!a || !a.paletteColors) return;
+    var palHex = document.getElementById('sp-palette-hex');
+    var swatch = document.getElementById('sp-palette-swatch');
+    if (palHex) palHex.textContent = '$' + (a.paletteAddr || 0).toString(16).padStart(4, '0');
+    if (swatch) swatch.innerHTML = a.paletteColors.map(function(hex) { return '<span style="background-color:' + hex + '" title="' + hex + '"></span>'; }).join('');
+  }
+
   /** The palette the stage is drawn in right now: a chosen one, the weapon/form's, or 0 (own). */
   function currentPaletteAddr() {
     if (paletteOverride) return paletteOverride;
+    if (currentAnimData && currentAnimData.paletteAddr) return currentAnimData.paletteAddr;
     var c = getCharacters().find(function(x) { return x.id === selectedCharId; });
     if (c && hasVariants(c) && c.weapons[selectedWeaponId]) return c.weapons[selectedWeaponId].paletteAddr || 0;
     return 0;
@@ -1137,7 +1156,7 @@
       var a = currentAnimData;
       sceneCache = {
         data: a, key: key,
-        box: motion ? motion.sceneBox(a, { walk: walk, projectiles: false, target: false })
+        box: motion ? motion.sceneBox(a, { walk: walk, projectiles: projectilesOn(), target: !!a.target })
           : { minX: -a.originX, maxX: a.width - a.originX, minY: -a.originY, maxY: a.height - a.originY },
       };
 
@@ -1223,6 +1242,7 @@
         var prevFrame = currentFrameIdx;
         var prevTick = tickCounter;
         currentAnimData = data.animation;
+        showStagePalette(currentAnimData);
         currentFrameIdx = 0;
         tickCounter = 0;
         if (keepPlayback && currentAnimData && currentAnimData.frames.length) {

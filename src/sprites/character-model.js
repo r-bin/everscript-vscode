@@ -343,6 +343,12 @@ function readCharacter(rom, id) {
     if (id === 1) {
         // The Dog's forms play the part of the Boy's weapons: an animation set and palette each.
         weapons = readDogForms(rom);
+        // ANIMATION_DOG ids name their act (ACT0_RUN, ACT2_SNIFF): draw each in that form's palette.
+        for (const a of externalAnims) {
+            const act = /^ACT(\d)_/.exec(a.key || '');
+            const form = act && weapons.find((w) => w.name.startsWith('Act ' + act[1]));
+            if (form && form.paletteAddr) a.paletteAddr = form.paletteAddr;
+        }
     }
     if (id === 0) {
         weapons = WEAPON_NAMES.map((wName, idx) => ({

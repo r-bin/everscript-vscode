@@ -25,7 +25,7 @@ export type OpKind =
     | 'set8' | 'set16' | 'set24' | 'add8' | 'add16' | 'clear'
     | 'strike' | 'step' | 'sprite_long' | 'sprite_aim' | 'projectile'
     | 'hop' | 'hop_maybe' | 'wait_landed' | 'hover_hold' | 'mode' | 'segments' | 'segment' | 'segment_step' | 'hurtbox'
-    | 'hud';
+    | 'hud' | 'palette';
 
 export interface Opcode {
     /** Total bytes, opcode included. */
@@ -74,7 +74,7 @@ const OPCODES: Record<number, Opcode> = {
     0x48: op(1, 'op_48'),
     0x49: op(3, 'op_49'),
     0x4a: op(3, 'op_4a'),
-    0x4b: op(3, 'op_4b'),
+    0x4b: op(3, 'palette', 'palette'),   // $90885A → $90CD5C: load this palette (the loader at $90CD80) into +0x0C
     0x4c: op(6, 'projectile', 'projectile'),
     0x4d: op(3, 'mode', 'mode'),
     0x4e: op(1, 'op_4e'),
@@ -225,6 +225,7 @@ function operands(rom: Uint8Array, p: number, o: Opcode): string {
     }
     if (o.kind === 'hop' || o.kind === 'hop_maybe') return String(signed16(w(1)));
     if (o.mnemonic === 'mode') return '$' + hex(w(1), 4);
+    if (o.kind === 'palette') return '$' + hex(w(1), 4);
     if (o.mnemonic === 'sound' || o.mnemonic === 'sound_maybe') return '$' + hex(b(1), 2);
     if (o.mnemonic === 'hurtbox') return `${signed16(w(1))}, ${signed16(w(3))}`;
     if (o.kind === 'projectile') return `$${hex(w(1), 4)}, ${signed8(b(3))}, ${signed8(b(4))}, ${signed8(b(5))}`;

@@ -1,7 +1,7 @@
 'use strict';
 // Ownership: running an animation script, aligning and rendering its frames, and its script listing for the Sprites tab. Pure.
 
-const { animationScript, characterPalette, characterHitbox, paletteAt, FACING_SOUTH } = require('../maps/dist/character-record');
+const { animationScript, characterPalette, characterPaletteAddress, characterHitbox, paletteAt, FACING_SOUTH } = require('../maps/dist/character-record');
 const { runAnimation, facingScript, MODE_INVULNERABLE } = require('../maps/dist/animation-vm');
 const { resolveCharacterSprite } = require('../maps/dist/character-animation');
 const { MODE_CONTACT } = require('../maps/dist/hit-test');
@@ -60,7 +60,8 @@ function movementSpeeds(rom, characterId, animOpt) {
  * Decode and render all frames for a character's animation.
  * Returns aligned PNG frames, hold durations in 60Hz ticks, sprite addresses, chunks, and strike boxes.
  */
-function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) {
+function renderAnimation(rom, characterId, animOpt = {}, requestedFacing = FACING_SOUTH) {
+    const facing = attackFacing(rom, characterId, animOpt, requestedFacing);
     const scriptAddr = resolveScript(rom, characterId, animOpt, facing);
     if (!scriptAddr) return null;
 
@@ -81,7 +82,9 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
     }
 
     const strikes = distinctStrikes(run.frames);
-    const colours = animOpt.paletteAddr ? paletteAt(rom, animOpt.paletteAddr) : characterPalette(rom, characterId);
+    // A palette the viewer picked wins; then one the script loads itself (command 0x4b).
+    const paletteAddr = animOpt.paletteForced ? animOpt.paletteAddr : run.palette || animOpt.paletteAddr;
+    const colours = paletteAddr ? paletteAt(rom, paletteAddr) : characterPalette(rom, characterId);
     // Harry and Vigor draw some chunks with their second palette (+0x0B).
     const colours2 = secondPalette(rom, characterId);
     const { width, height, originX, originY, images, infos } = composeAligned(rom, run.frames, colours, colours2);
@@ -178,8 +181,41 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
         segmentSprites,
         target,
         reach: { above: OUT_OF_REACH_ABOVE, below: OUT_OF_REACH_BELOW },
+        scriptPalette: run.palette ? '$' + run.palette.toString(16) : null,
+        // The palette the frames are drawn in, for the header swatch.
+        paletteAddr: paletteAddr || characterPaletteAddress(rom, characterId),
+        paletteColors: colours.map(([r, g, b]) => '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')),
+        facing,
+        facingRounded: facing !== requestedFacing,
         shadow: shadow ? { width: shadow.width, height: shadow.height, originX: shadow.originX, originY: shadow.originY } : null,
     };
+}
+
+/**
+ * Starting an attack ($9082D8) rounds the facing (+0x22) to four directions through `$90815B`
+ * when the attack record has only four poses (record +2 bit 14, `$908343`): diagonals become
+ * east or west. Everything the attack does — steps, projectiles — then goes that way, so a
+ * spear thrown facing NE flies east. No other animation start writes the facing back.
+ */
+const FOUR_POSES = 0x40;
+const ROUND_TO_FOUR = [0, 4, 4, 4, 8, 12, 12, 12];
+const ATTACK_FIELDS = new Set([0x38, 0x3a, 0x3c, 0x3e]);
+function isAttackStart(opt) {
+    if (!opt || typeof opt !== 'object') return typeof opt === 'number' && ATTACK_FIELDS.has(opt);
+    if (opt.category === 'external') return false;
+    if (/^w_atk/.test(opt.key || '')) return true;
+    return typeof opt.offset === 'number' && ATTACK_FIELDS.has(opt.offset) && !/^w_|^d_/.test(opt.key || '');
+}
+function attackFacing(rom, characterId, opt, facing) {
+    if (!isAttackStart(opt)) return facing;
+    let rec = opt && typeof opt === 'object' ? opt.animRec : 0;
+    if (!rec && Number.isInteger(characterId)) {
+        const field = typeof opt === 'number' ? opt : opt.offset;
+        rec = rom[snesToRom(0x8eb678 + characterId * 74 + field)] | (rom[snesToRom(0x8eb678 + characterId * 74 + field + 1)] << 8);
+    }
+    if (!rec) return facing;
+    const flags = rom[snesToRom(0xc40003 + rec)];
+    return flags & FOUR_POSES ? ROUND_TO_FOUR[(facing & 0x0e) >> 1] : facing;
 }
 
 const hex6 = (v) => '$' + v.toString(16).padStart(6, '0');

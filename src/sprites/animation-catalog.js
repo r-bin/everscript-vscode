@@ -18,6 +18,9 @@ const PROJECTILE_OP = 0x4c;
 const ID_ENUMS = ['ANIMATION_BOY', 'ANIMATION_DOG', 'ANIMATION_ENEMY', 'ANIMATION_PLACEHOLDER', 'ANIMATION_ALL'];
 const BOY = 0;
 const DOG = 1;
+/** everscript's PLACEHOLDER entity ($BDB2, character #25): what shows ANIMATION_PLACEHOLDER ids. */
+const PLACEHOLDER = 25;
+const PALETTE_OP = 0x4b;
 
 const hex = (v, d) => v.toString(16).padStart(d, '0');
 
@@ -43,6 +46,7 @@ function paletteOwnerForNames(names, characters) {
     for (const n of names) {
         if (n.group === 'ANIMATION_BOY') return BOY;
         if (n.group === 'ANIMATION_DOG') return DOG;
+        if (n.group === 'ANIMATION_PLACEHOLDER') return PLACEHOLDER;
         const match = characters.find((c) => {
             const upper = String(c.name || '').toUpperCase().replace(/[^A-Z0-9]/g, '_');
             return upper.length > 2 && (n.name === upper || n.name.startsWith(upper + '_'));
@@ -50,6 +54,17 @@ function paletteOwnerForNames(names, characters) {
         if (match) return match.id;
     }
     return null;
+}
+
+/** ANIMATION_DOG ids name their act (ACT0_RUN): that Dog form's palette, else 0. */
+function dogActPalette(names, characters) {
+    const dog = characters.find((c) => c.id === DOG);
+    for (const n of names) {
+        const act = n.group === 'ANIMATION_DOG' && /^ACT(\d)_/.exec(n.name);
+        const form = act && dog && (dog.weapons || []).find((w) => w.name.startsWith('Act ' + act[1]));
+        if (form) return form.paletteAddr || 0;
+    }
+    return 0;
 }
 
 /**
@@ -82,22 +97,26 @@ function buildAnimationCatalog(rom, characters) {
             idHex: '0x' + hex(id, 4),
             names: idLabels.map((n) => n.name),
             paletteCharacter: paletteOwnerForNames(idLabels, characters),
+            paletteAddr: dogActPalette(idLabels, characters),
         });
     }
 
     const groups = animationGroups(rom);
-    // A weapon animation is drawn in that weapon's palette, unless a character owns it outright.
+    // The first character or weapon (Boy weapon, Dog form) that uses a record decides both
+    // whose palette it is and which: a weapon's or form's own, else the character's. Taking
+    // the two from different owners drew the Act 4 toaster, which the Dark Toaster shares,
+    // in the Dog's Act 1 colours.
+    const firstOwner = (record) => (owners.get(record) || []).find((o) => o.kind === 'character' || o.kind === 'weapon');
     const weaponPaletteOf = (record) => {
-        const list = owners.get(record) || [];
-        if (list.some((o) => o.kind === 'character')) return 0;
-        const w = list.find((o) => o.kind === 'weapon');
-        return w ? w.paletteAddr : 0;
+        const o = firstOwner(record);
+        if (o) return o.kind === 'weapon' ? o.paletteAddr : 0;
+        const named = (owners.get(record) || []).find((n) => n.kind === 'id' && n.paletteAddr);
+        return named ? named.paletteAddr : 0;
     };
     const paletteOf = (record) => {
-        const list = owners.get(record) || [];
-        const firstChar = list.find((o) => o.kind === 'character' || o.kind === 'weapon');
-        const named = list.find((o) => o.kind === 'id' && o.paletteCharacter !== null);
-        return firstChar ? firstChar.id : named ? named.paletteCharacter : null;
+        const o = firstOwner(record);
+        const named = (owners.get(record) || []).find((n) => n.kind === 'id' && n.paletteCharacter !== null);
+        return o ? o.id : named ? named.paletteCharacter : null;
     };
 
     // Projectiles: a record thrown by another animation belongs to its thrower,
@@ -170,8 +189,19 @@ function buildAnimationCatalog(rom, characters) {
         return near === null ? null : { paletteCharacter: paletteOf(near), paletteAddr: 0, inferredBy: 'nearest owned record $' + hex(near, 4) };
     };
 
+    // A script that loads its own palette (command 0x4b) is drawn in it, whoever shows it.
+    const scriptPalette = (g) => {
+        for (const script of g.scripts) {
+            for (const l of disassembleScript(rom, script)) {
+                if (l.known && (l.bytes[0] & 0x7f) === PALETTE_OP) return l.bytes[1] | (l.bytes[2] << 8);
+            }
+        }
+        return 0;
+    };
+
     return groups.map((g) => {
         const list = owners.get(g.record) || [];
+        const ownPalette = scriptPalette(g);
         const t = thrown.get(g.record);
         const own = paletteOf(g.record);
         const inferred = own === null && !t ? inferPalette(g) : null;
@@ -185,8 +215,9 @@ function buildAnimationCatalog(rom, characters) {
             owners: list,
             label: catalogLabel(list),
             paletteCharacter,
-            paletteAddr: own === null && t ? t.paletteAddr : inferred ? inferred.paletteAddr : weaponPaletteOf(g.record),
-            paletteInferred: inferred ? inferred.inferredBy : null,
+            paletteAddr: ownPalette || (own === null && t ? t.paletteAddr : inferred ? inferred.paletteAddr : weaponPaletteOf(g.record)),
+            paletteInferred: ownPalette ? null : inferred ? inferred.inferredBy : null,
+            paletteFromScript: ownPalette !== 0,
         };
     });
 }

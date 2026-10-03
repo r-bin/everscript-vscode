@@ -186,6 +186,11 @@ export interface VmResult {
      * air at `loop` and the run carried on until its motion repeated (a hovering flier).
      */
     loopFrom: number;
+    /**
+     * The palette the script loads itself (`palette`, command 0x4b), or 0 when it keeps the
+     * entity's. Placeholder effects (explosions, the Windwalker) bring their own this way.
+     */
+    palette: number;
 }
 
 /**
@@ -246,6 +251,7 @@ export function runAnimation(rom: Uint8Array, script: number, facing = 8, opts: 
     let resume = script;
     let restart = script;
     let mode = 0;
+    let palette = 0;
     let segList: Segment[] | null = null;
     let hurt: [number, number] = [0, -16];
     const seenAt = new Map<string, number>();
@@ -342,6 +348,7 @@ export function runAnimation(rom: Uint8Array, script: number, facing = 8, opts: 
                     break ticks;
                 case 'restart_here': restart = next; break;
                 case 'mode': mode = b(1) | (b(2) << 8); break;
+                case 'palette': if (!palette) palette = b(1) | (b(2) << 8); break;
                 case 'hover_hold': if (h >= HOVER_HEIGHT) timer += 1; break;
                 case 'segments': {
                     const sg = segmentsAt(rom, q);
@@ -464,5 +471,5 @@ export function runAnimation(rom: Uint8Array, script: number, facing = 8, opts: 
         if (first.segments && last.segments) first.segments.ticks = [...last.segments.ticks, ...first.segments.ticks];
         for (const a of last.lines) if (!first.lines.includes(a)) first.lines.push(a);
     }
-    return { frames, complete, totalTicks, stoppedAt, moves, loopFrom };
+    return { frames, complete, totalTicks, stoppedAt, moves, loopFrom, palette };
 }

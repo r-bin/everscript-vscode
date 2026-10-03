@@ -59,9 +59,13 @@ function buildSpritesTabHtml() {
           <select class="sp-select" id="sp-anim-sel"></select>
         </div>
 
-        <!-- Controls on the left, the stage filling the rest, the seek bar along the bottom -->
+        <!-- The stage fills the row, controls float over it, the seek bar runs along the bottom -->
         <div class="sp-stage-row">
-          <div class="sp-controls">
+          <div class="sp-stage-col">
+            <div class="sp-stage" id="sp-stage">
+              <canvas id="sp-canvas" width="320" height="320"></canvas>
+              <!-- Stage overlay: facing and overlay toggles, floating over the map -->
+          <div class="sp-controls sp-stage-overlay">
             <div class="sp-controls-title">Facing</div>
             <div class="sp-compass" title="Facing. The game's direction tables move facing 0 up the screen and 8 down; characters with four poses round the diagonals to the nearest">
               <button class="sp-facing-btn" data-facing="14" title="NW (14)">NW</button>
@@ -108,9 +112,6 @@ function buildSpritesTabHtml() {
             </label>
             </div>
           </div>
-          <div class="sp-stage-col">
-            <div class="sp-stage" id="sp-stage">
-              <canvas id="sp-canvas" width="320" height="320"></canvas>
               <!-- Stage overlay: playback speed, scale, and how fast the animation moves the character -->
               <div class="sp-stage-hud">
             <div class="sp-speed-group sp-hud-row">

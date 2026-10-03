@@ -86,6 +86,17 @@ The record's flags pick the facing. Bit 7 means 8 directional records, bit 6
 means 4 through the table at `$90815B`. See
 [animation_format.md § Facing](animation_format.md#facing).
 
+**Attacks round the facing itself.** Picking a script through `$90815B` leaves the
+entity's facing (`+0x22`) alone, so a walk with four poses still moves diagonally.
+The attack starter (`$9082D8`, which picks `+0x38`..`+0x3E` by stamina) is
+different: when the attack record has four poses (record `+2` bit 14), it writes
+the rounded value back (`$908343`: `LDX $0022,Y / LDA $90815B,X / STA $0022,Y`).
+NE and SE become E, NW and SW become W. Everything the attack then does uses it:
+`step`s, and projectiles, which copy the thrower's `+0x22` (`$90DC4E`). So a spear
+thrown while facing NE flies east. No other animation start writes the facing back;
+the only other writer of `$90815B` results is a random facing at `$8FD183`. The
+Sprites tab plays attacks with the rounded facing and says so in the stage overlay.
+
 ## The machine
 
 Each animating entity carries its own interpreter state in its WRAM slot:
@@ -256,7 +267,7 @@ animation uses them. They are presumably for effects and menu scripts.
 | `2F` | 2 | `sound_maybe n` | Same as `2E`, but only when a random word has `$C000` set (≈75%) | `$90894E` | — |
 | `3F` | 3 | — | If the word is non-zero, calls `$8C81FD` | `$9088BC` | 24 |
 | `40` | 3 | — | A word, then `$8C81FD`. Aborts **without** advancing when off-screen | `$9088F3` | 115 |
-| `4B` | 3 | — | A word, then `$90CD5C` | `$90885A` | 1 |
+| `4B` | 3 | `palette $p` | Loads palette `$p` into the entity (`$90CD5C` → the loader `$90CD80`, the same one projectile records use) and stores its slot in `+0x0C`. Placeholder effects bring their colours this way; `SPACESHIP_TOP`, which lacks it, "does not load the palette" | `$90885A` | 75 records |
 | `4D` | 3 | `mode n` | Word into `+0x16`. **Bit `$20` makes it invulnerable**: the hit test skips a target with `$0016 & $0020` (`$8FB61E`) | `$908485` | 557 |
 | `4E` | 1 | — | Clears `+0x2E` and bit `$0200` of `+0x14` | `$908495` | 135 |
 | `4F` | 1 | — | Clears bits `~$FB87` of `+0x12`, if `+0x2A` set and `+0x76` clear | `$9084A7` | 194 |
@@ -618,6 +629,15 @@ which looks like perspective compensation.
 
 ## Palettes of animations nobody owns
 
+A script that runs `palette` (command `4B`) is drawn in that palette, whoever shows
+it: 75 records do, the placeholder effects and the Pigoodle among them. Otherwise
+the first character or weapon (Boy weapon, Dog form) that uses a record decides both
+whose palette it is and which one. Taking the two from different owners used to
+draw the Act 4 toaster, which the Dark Toaster shares, in the Dog's Act 1 colours.
+`ANIMATION_PLACEHOLDER` ids are shown by everscript's `PLACEHOLDER` entity
+(character #25, `$BDB2`), so they take its palette. `ANIMATION_DOG` ids take the
+palette of the form their name gives (`ACT0_…` → Act 0).
+
 An animation with no character, weapon or id owner borrows a palette, in this
 order of evidence:
 
@@ -626,9 +646,9 @@ order of evidence:
    sprite graphics are stored character by character;
 3. the owner of the nearest owned record in the table.
 
-Of the 355 inferred, 27 come from shared sprites, 299 from neighbouring sprites
-and 29 from the nearest record. The Script tab says which applied. The
-Pigoodle animations sit right after Horace's Twin's graphics.
+Of the 280 still inferred, 25 come from shared sprites, 234 from neighbouring
+sprites and 21 from the nearest record. The Script tab says which applied, or that
+the script loads its own.
 
 ## Segmented bodies
 
