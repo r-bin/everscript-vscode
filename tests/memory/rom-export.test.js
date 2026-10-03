@@ -467,6 +467,32 @@ if (!fs.existsSync(ROM_PATH)) {
         assert.strictEqual(room.triggers.stepOn[0].y2, 4);
         assert.strictEqual(room.triggers.stepOn[0].scriptId, 477);
     });
+
+    test('trigger cells get the collision bit that lets them fire (B: 15, step-on: 14)', () => {
+        // Without bit 15 on the faced tile a B press swings the weapon and
+        // never reads the B-trigger table ($8FCE43) — a drawn gourd trigger
+        // did nothing in the game. Booted: with the bit, B opens the gourd.
+        const gourd = { layer1: donor.metatileSlices.layer1[3], layer2: donor.metatileSlices.layer2[3], collision: 0x001f };
+        const gated = {
+            ...draft,
+            objects: [{ x: 5, y: 5, w: 2, h: 1, states: 2, frames: [{ '0,0': gourd, '1,0': gourd }] }],
+            bTrigger: [{ x1: 5, y1: 5, x2: 6, y2: 6, scriptId: 1854 }],
+            stepOn: [{ x1: 2, y1: 2, x2: 2, y2: 2, scriptId: 477 }],
+        };
+        const { rom: out } = buildExportRom(rom, gated);
+        const room = maps.decodeRoom(out, BRIAN_ROOM);
+        const asDrawn = (x, y) => cells[(y * W + x) * 3 + 2];
+        for (const [x, y] of [[5, 5], [6, 5], [5, 6], [6, 6]]) {
+            assert.strictEqual(room.collisionWords[y][x], asDrawn(x, y) | 0x8000, `B-trigger cell ${x},${y}`);
+        }
+        assert.strictEqual(room.collisionWords[2][2], asDrawn(2, 2) | 0x4000, 'step-on cell');
+        assert.strictEqual(room.collisionWords[7][5], asDrawn(5, 7), 'a cell outside every trigger keeps its word');
+        // The opened state keeps its own collision, so it stops answering B — as vanilla's does.
+        const opened = maps.applyObjectStates(out, room, { 0: 1 });
+        assert.strictEqual(opened.collisionWords[5][5], 0x001f);
+        // The caller's draft is not touched.
+        assert.strictEqual(gated.cells[(5 * W + 5) * 3 + 2], asDrawn(5, 5));
+    });
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

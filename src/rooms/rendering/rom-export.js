@@ -95,6 +95,51 @@ function fixChecksum(rom) {
 }
 
 /**
+ * The collision bits that let a trigger fire at all. A B press checks the
+ * B-trigger table only when the tile the Boy faces has bit 15 (`$8FCE43
+ * BIT #$8000`) — without it he swings his weapon. The step-on table is
+ * searched only while he stands on a bit-14 tile (`$8FB07B`). Vanilla
+ * gourds carry bit 15 (`$9019`/`$901F`) and lose it when opened (`$1019`).
+ * See docs/map-format/gourds-and-map-objects.md §6 and
+ * map_collision_mechanics.md §7.2.
+ */
+const TRIGGER_GATE = { bTrigger: 0x8000, stepOn: 0x4000 };
+
+/**
+ * The draft with each trigger's gate bit on every cell it covers, so every
+ * trigger the editor drew can fire. Only the map shown on load changes: an
+ * object's later states keep their own words, so an opened gourd stops
+ * answering B, as vanilla's does. `x2`/`y2` are inclusive here.
+ */
+function withTriggerGates(draft) {
+    const w = Number(draft.widthTiles);
+    const h = Number(draft.heightTiles);
+    const rects = [];
+    for (const kind of Object.keys(TRIGGER_GATE)) {
+        for (const t of draft[kind] || []) {
+            const x1 = Number(t.x1) || 0, y1 = Number(t.y1) || 0;
+            rects.push({
+                bit: TRIGGER_GATE[kind], x1, y1,
+                x2: Math.max(x1, Number(t.x2) || 0), y2: Math.max(y1, Number(t.y2) || 0),
+            });
+        }
+    }
+    if (!rects.length || !Array.isArray(draft.cells)) return draft;
+    const gate = (x, y) => rects.reduce((bits, r) =>
+        (x >= r.x1 && x <= r.x2 && y >= r.y1 && y <= r.y2 ? bits | r.bit : bits), 0);
+    const cells = draft.cells.slice();
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) cells[(y * w + x) * 3 + 2] |= gate(x, y);
+    }
+    // A cuttable cell shows its own words on load, so those need the bits too.
+    const cut = (draft.cut || []).map((c) => {
+        const bits = gate(c[0] | 0, c[1] | 0);
+        return bits ? [c[0], c[1], c[2], c[3], c[4] | bits] : c;
+    });
+    return { ...draft, cells, cut };
+}
+
+/**
  * Build the patched ROM.
  *
  * `draft` is what the editor sends: `{ borrowFrom, widthTiles, heightTiles,
@@ -102,10 +147,13 @@ function fixChecksum(rom) {
  * Returns `{ rom, report }`; throws with a readable message when the map
  * cannot be encoded or the result does not decode back to it.
  */
-function buildExportRom(vanilla, draft) {
+function buildExportRom(vanilla, asDrawn) {
     // A private copy: the caller's buffer is the extension's cached ROM, and
     // nothing an export does may ever reach it.
     const src = Uint8Array.from(vanilla);
+    // What gets written — and checked against below — is the draft with its
+    // triggers made reachable.
+    const draft = withTriggerGates(asDrawn);
     if (src.length !== VANILLA_SIZE) {
         throw new Error(`expected the 3 MB vanilla ROM, got ${src.length} bytes — `
             + 'export starts from an unmodified Secret of Evermore (U)');
@@ -264,5 +312,5 @@ function verifyExport(rom, built, draft, at) {
 }
 
 module.exports = {
-    buildExportRom, BRIAN_ROOM, INTRO_FIRST_CODE, BLOB_OFFSET, SCRIPT_OFFSET, EXPANDED_SIZE,
+    buildExportRom, withTriggerGates, BRIAN_ROOM, INTRO_FIRST_CODE, BLOB_OFFSET, SCRIPT_OFFSET, EXPANDED_SIZE,
 };

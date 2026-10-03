@@ -1,3 +1,12 @@
+## [0.142.1] — 2026-10-04
+
+### Fix: [Rooms] B-triggers (and step-on triggers) in an exported map never fired
+
+- **Cause**: on a B press, the engine reads the B-trigger table only when the tile the Boy faces has collision bit 15 (`0x8000`, `$8FCE43`). Otherwise he swings his weapon. A gourd drawn in the editor kept collision `0x1F`/`0x19` without that bit, so its trigger was never even checked. Step-on triggers have the same gate on bit 14 (`0x4000`, `$8FB07B`).
+- **Fix**: Export ROM and Play in emulator now set the gate bit on every cell a trigger covers, in the map as it loads (`withTriggerGates`, `rooms/rendering/rom-export.js`). An object's later states keep their own words, so an opened gourd stops answering B, as vanilla's does.
+- **Verified in the game**: a headless boot of a room-0x34 gourd. Before the fix, B did nothing. After it, the same press ran the gourd's script, the gourd opened, and the prize and flag were written.
+- A trigger with no script still gets id 477, a bare `END`. It fires but does nothing visible, and it is too short for the script trace to show. See `docs/map-format/rom-export.md`.
+
 ## [0.142.0] — 2026-10-04
 
 ### Feat: [Emulator/Rooms] Map export logging, UI tabs & resizer, enter script trace, and boot garbage filter

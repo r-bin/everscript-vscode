@@ -68,7 +68,8 @@ collision) from the editor:
 - **Families:** the draft's own, or the donor's when the draft has none.
 - **Header:** the donor's display registers, the map's size, and trigger
   origin 0.
-- **Empty:** triggers, objects, and cuttable grass (Section 4 = `[0x00]`).
+- **Triggers:** the editor's B-triggers and step-on triggers, as drawn. See
+  below for the collision bit each one needs.
 
 ## At least one screen: 16×14
 
@@ -150,9 +151,37 @@ Also checked by hand for v0.65.0:
 - The bundled snes9x core boots the export straight into the custom map,
   with the Boy on his marker.
 
+## Triggers need their collision bit
+
+A trigger rectangle alone never fires. The engine gates each trigger kind on
+a bit in the collision word:
+
+- **B-triggers: bit 15 (`0x8000`).** On a B press, the engine reads the tile
+  the Boy faces. Without bit 15 he swings his weapon, and the B-trigger table
+  is never read (`$8FCE43`, `gourds-and-map-objects.md` §6).
+- **Step-on triggers: bit 14 (`0x4000`).** The step-on table is only searched
+  while the Boy stands on a bit-14 tile (`$8FB07B`,
+  `map_collision_mechanics.md` §7.2).
+
+So the export sets the bit on every cell a trigger covers, in the map as it
+loads (`withTriggerGates`). An object's later states keep their own words. An
+opened gourd, whose open frame has no bit 15, stops answering B, like
+vanilla's (`$9019` → `$1019`).
+
+**Seen working in the game** (v0.142.1). A headless boot of a gourd copied
+from room 0x34 behaved like this. With collision `0x1F`/`0x19` as drawn,
+facing it and pressing B did nothing. With the export's bit 15 (`$901F`/
+`$9019`), the same press ran script `0x73E` (1854): the gourd opened
+(`$7E107E = 1`), and the prize and flag were written.
+
+**A trigger with no script** gets mapscript id `477` (`0x1DD`), which is a
+bare `END` at `$92A42F` (`map-editor-rom-export.js`). It fires but does
+nothing visible. It also starts and ends inside one frame, so the emulator's
+script trace, which compares slots once per frame, never shows it.
+
 ## Not exported (yet)
 
-- Triggers, objects, and the placed constructs' attachments.
+- Script bodies: a trigger can only name an existing vanilla mapscript id.
 - Entrances other than the start marker.
 - Drafts over a vanilla room. That room's slot is its own, and writing one
   into Brian's slot raises different questions.
