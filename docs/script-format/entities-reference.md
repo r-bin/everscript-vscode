@@ -210,15 +210,19 @@ dealt are separate questions: the traced sword hit on a Wimpy Flower did 0.
 `character-animation.ts`.
 
 - **Chain:** record animation field (e.g. `+0x32` stand) → 24-bit script pointer
-  at `$C40000 + field` → a command stream.
+  at `$C40000 + field` → a command stream. Record 0 (the Boy) has `$0000` for attacks,
+  drawing instead from the **weapon data table** at `$0438E6` (SNES `$8838E6`, 15 weapons,
+  stride 36 bytes).
 - **Facing:** the animation record's flags pick a pose per facing. Bit 7: eight
   poses, `+2·facing` (7 characters). Bit 6: four poses through the table at
-  `$90815B` (85). Neither: one pose (49). Entity `+0x22` is the facing.
+  `$90815B` (85): index 0 South, 4 East, 8 North, 12 West. Neither: one pose (49).
 - **Commands** (dispatch `(cmd & 0x7F)·2`; **bit 7 set = end of frame**):
   `0x01–0x1E` hold for that many ticks, `0x20 n` hold n ticks, `0x22–0x2B` set
   sprite (bank `cmd + 0xA8`, 3 bytes), `0x2D` restart (loop), `0x47` strike box,
-  `0x4C` projectile, `0x50` move hurt box, `0x52` reset. The frame timer is entity
-  `+0x05`. Lengths for every command but `0x57` are known.
+  `0x48/0x49/0x4A/0x58/0x59` weapon attack/sound/slash triggers, `0x4C` projectile,
+  `0x50` move hurt box, `0x52` reset. The frame timer is entity `+0x05`.
+- **Validation**: external scripts must reside in banks `$C4..$CE`. Bank `$910000`
+  contains font tile bitplanes and window borders, not animation bytecode.
 - Coverage: every opcode width is now known, `0x57` included (segmented bodies).
   1,748 of the 1,752 record scripts run to completion; the language and the
   interpreter are [animation_script.md](animation_script.md).
@@ -264,4 +268,5 @@ The entity struct, as far as the traces and handlers read it:
 | depth against the canopy | `src/maps/collision.ts` (`spriteDepth`, `spawnDepth`) | |
 | spawns, transitions, arrivals, loot | `src/script/entities.ts`, `transition.ts`, `arrivals.ts`, `loot.ts` | `tests/memory/script-parity.test.js`, `script-units.test.js`, `script-loot.test.js` |
 | damage | `src/maps/alchemy-model.js`; physical in `tests/memory/damage.test.js` | `damage.test.js` |
+| Sprites tab (viewer, animations, stats) | `src/sprites/` (`character-model.js`, `animation-decoder.js`, `sprites-tab.js`) | `tests/memory/sprites-tab.test.js` |
 | drawing enemies over a map | `docs/map-format/enemy-sprites-on-maps.md` | |

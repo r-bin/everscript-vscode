@@ -26,10 +26,12 @@ holds the evidence. This skill is what a change must not get wrong.
 
 ## 2. Three boxes, never one
 
-| | Body | Hurt box | Strike box |
+| | Body (Footprint) | Hurt box (Torso/Head) | Strike box |
 |---|---|---|---|
-| from | radius | radius | animation command `0x47` |
-| test | `\|dx\| < r1+r2`, `2\|dy\| < r1+r2` | `2(\|d\| − r) < w/h`, no squash | per frame, per facing |
+| from | radius (`+0x0D`) | radius (`+0x0D`) | animation command `0x47` |
+| bounds | $[cx - r, cx + r] \times [cy - r/2, cy + r/2]$ | $[cx - r, cx + r] \times [cy - 2r, cy]$ | $[cx + dx - w/2, ..] \times [cy + dy - h/2, ..]$ |
+| anchoring | Centred at feet | **Anchored upward** from feet | $(dx, dy)$ is **centre offset** from feet |
+| test | `\|dx\| < r1+r2`, `2\|dy\| < r1+r2` | `2(\|d\| − r) < w/h`, no squash | Active **per frame** only |
 
 A character with radius 0 has no body. Contact damage goes through the body test
 (`$8FB52C`), so "has no `0x47`" does not mean "harmless". Planes must match unless
@@ -55,7 +57,13 @@ separate questions.
 - Bit 7 of a command means **end of frame**, not a different opcode: dispatch is
   `(cmd & 0x7F)`.
 - Command lengths come from a trace or the handler's disassembly, **never a
-  guess**. `0x57` is still unknown; a walk that meets it stops and says so.
+  guess**.
+- Boy (record 0) has `$0000` for attacks; weapon animations resolve via the
+  **weapon data table** at `$0438E6` / `$8838E6` (15 weapons, stride 36 bytes).
+- Opcodes `0x48`, `0x49`, `0x4a`, `0x58`, `0x59` handle weapon counters, audio
+  cues, and slash swing overlays (`bone_slash.txt`).
+- **Bank validation**: animation scripts live in `$C4..$CE`. Bank `$910000` is font
+  graphics; script decoders must reject `$91xxxx` addresses.
 - `0x2D` loops: a walk that reaches it has seen the whole cycle.
 - The full language, the record and id tables, and the interpreter are the
   `animation-script` skill.

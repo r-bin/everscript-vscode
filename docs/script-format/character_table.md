@@ -54,6 +54,27 @@ character pointer (`LDX $0060,Y`). The address is where to look.
 
 The struct is 74 bytes; `+0x4A` is the next record.
 
+### Weapon-dependent animations: `WEAPON_DATA` (`$0438E6`)
+
+Record 0 (the Boy) has `$0000` for `anim_atk0..3`, `anim_walk`, `anim_run`, and `anim_damage`.
+His animations depend dynamically on the equipped weapon, loaded from the **weapon data table**
+at `$0438E6` (SNES `$8838E6`).
+
+- **Count & stride**: 15 weapon classes, **36 bytes** (`0x24`) per weapon entry.
+- **Offsets within weapon entry**:
+  - `+0x08`: `anim_stand` (idle pose holding weapon)
+  - `+0x0a`: `anim_walk`
+  - `+0x0c`: `anim_run`
+  - `+0x0e`: `anim_atk0` (attack level 0 / uncharged)
+  - `+0x10`: `anim_atk1` (attack level 1)
+  - `+0x12`: `anim_atk2` (attack level 2)
+  - `+0x14`: `anim_atk3` (attack level 3)
+  - `+0x16`: `anim_charge` (charging stance)
+  - `+0x18`: `anim_damage` (weapon recoil / damage reaction)
+
+The Sprites tab animation viewer reads this table to animate the Boy wielding Bone,
+Crude Sword, Bronze Axe, Lance, etc.
+
 ### Against everscript's enums
 
 `everscript/in/core/[group] 00_general_enums/[group] 05_everscript/03_sprites.evs`

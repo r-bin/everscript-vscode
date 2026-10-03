@@ -13,6 +13,7 @@ Current source locations (post v0.6.0 `src/` refactor):
 - `src/memory/render-radar.js`, `src/memory/render-memory-tab.js`, `src/memory/webview/`
 - `src/rooms/index.js`, `src/rooms/parsing/`, `src/rooms/rendering/`, `src/rooms/data/`,
   `src/rooms/webview/`
+- `src/sprites/` (`character-model.js`, `animation-decoder.js`, `raw-sprites.js`, `sprites-tab.js`, `webview/sprites-view.js`)
 - `src/docs/render-docs-tab.js` (docs/RNG tab, rendered in the same panel)
 - `src/shared/radar-utils.js` (pure functions shared by memory/rooms)
 - Panel lifecycle and command registration: `src/extension.js`
@@ -269,6 +270,7 @@ Radar tabs are first-class ownership domains — each tab increasingly owns its 
 rendering, state, IPC, parsing, interactions, and tests:
 - `src/scaling/webview/` — scaling tab
 - `src/rooms/webview/`, `src/rooms/rendering/`, `src/rooms/parsing/`, `src/rooms/data/` — rooms tab
+- `src/sprites/` (`character-model.js`, `animation-decoder.js`, `raw-sprites.js`, `sprites-tab.js`, `webview/`) — sprites tab
 - `src/memory/render-memory-tab.js` — memory tab rendering
 - `src/docs/render-docs-tab.js` — docs/RNG tab rendering
 
