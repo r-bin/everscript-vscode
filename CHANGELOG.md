@@ -1,3 +1,9 @@
+## [0.135.0] — 2026-10-03
+
+### Fix: [Characters] diagonal movement speeds
+
+- The speed overlay lists all eight facings with x and y per tick. The game's mover (`$8FAD51`) moves a diagonal by the full step on both axes, and a four-pose walk plays the E/W script on diagonals. So walking NE with the spear climbs at 2.0 px/tick against 1.5 walking N, and running at 3.0 against 2.75. That is the "vertically faster" spear: it only happens on diagonals. The old N/E/S/W table hid it, and the earlier "¾ perspective" explanation was wrong.
+
 ## [0.134.0] — 2026-10-03
 
 ### Feature: [Characters] stamina selector, character centred on the stage

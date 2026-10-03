@@ -590,6 +590,10 @@ if (rom) {
         assert.strictEqual(r.speeds.N.perTick, 1.5);
         assert.strictEqual(r.speeds.E.perTick, 2);
         assert.strictEqual(r.speeds.S.perSecond, 90);
+        // A diagonal moves E's full step on both axes ($8FAD51): walking NE climbs faster than N.
+        assert.strictEqual(r.speeds.NE.yPerTick, -2);
+        assert.strictEqual(r.speeds.NE.xPerTick, 2);
+        assert(Math.abs(r.speeds.NE.yPerTick) > Math.abs(r.speeds.N.yPerTick));
         assert.strictEqual(renderAnimation(rom, 109, { offset: 0x32 }, 8).speeds, null, 'a standing idle has no speed');
     });
 

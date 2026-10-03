@@ -1109,13 +1109,16 @@
       : '';
     note = staminaNote() + note;
     if (!sp) { speedReadout.innerHTML = note; return; }
-    var cur = FACING_NAME[selectedFacing & 0x0c];
-    var html = note + '<span class="sp-hud-head">Moves (per cycle)</span>';
-    ['N', 'E', 'S', 'W'].forEach(function(k) {
+    // Diagonals move the full step on both axes, with the E or W script when the record has
+    // four poses, so NE climbs faster than N whenever E's step is longer.
+    var html = note + '<span class="sp-hud-head" title="px per tick over the repeating part of the cycle. A diagonal moves the full step on x and y ($8FAD51)">Moves (px/tick)</span>' +
+      '<span class="sp-hud-sub"></span><span class="sp-hud-sub">x</span><span class="sp-hud-sub">y</span><span class="sp-hud-sub">px/s</span>';
+    ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'].forEach(function(k) {
       var v = sp[k];
       if (!v) return;
-      var cls = k === cur ? ' class="sp-hud-cur"' : '';
-      html += '<span' + cls + '>' + k + '</span><span' + cls + '>' + v.perTick.toFixed(2) + ' px/tick</span><span' + cls + '>' + Math.round(v.perSecond) + ' px/s</span>';
+      var cls = v.facing === selectedFacing ? ' class="sp-hud-cur"' : '';
+      var n = function(x) { return Math.abs(x) < 0.005 ? '·' : Math.abs(x).toFixed(2); };
+      html += '<span' + cls + '>' + k + '</span><span' + cls + '>' + n(v.xPerTick) + '</span><span' + cls + '>' + n(v.yPerTick) + '</span><span' + cls + '>' + Math.round(v.perSecond) + '</span>';
     });
     speedReadout.innerHTML = html;
   }

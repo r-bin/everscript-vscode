@@ -655,11 +655,26 @@ box (centre `$46`/`$48`, size `$3E`×`$40`, height `$4A`) with each candidate:
 
 ## Movement speed
 
-Each facing has its own script, so speed differs by direction. The Sprites
-tab measures the distance over the repeating part of the cycle for N/E/S/W. The
-spear walk steps 6 per tick north/south but 8 east/west: 1.5 vs 2.0 px per tick
-(90 vs 120 px/s). The run is 11 vs 12. Vertical movement is scaled to about ¾,
-which looks like perspective compensation.
+Each facing has its own script, so speed differs by direction. The spear walk
+steps 6 per tick north/south but 8 east/west: 1.5 vs 2.0 px per tick (90 vs
+120 px/s). The run is 11 vs 12 (2.75 vs 3.0).
+
+**Diagonals are faster than both.** `step` hands its distance to the mover
+`$8FAD51`, which caps it at `+0x64` and branches through `$8FAF18` on the facing:
+
+| Facing | x | y |
+|---|---|---|
+| N / S | 0 | ∓d |
+| E / W | ±d | 0 |
+| NE, SE, SW, NW | ±d | ±d |
+
+A diagonal gets the full step on both axes, with no √2 or perspective
+correction. Walk and run records have four poses, so NE and SE play the **E**
+script and NW and SW the **W** script (`$90815B`), and walks don't round `+0x22`.
+Walking NE with the spear therefore climbs 2.0 px per tick, a third faster than
+walking N (1.5), and covers 2.83 px per tick overall. Running NE climbs 3.0
+against 2.75 running N. The Characters tab lists all eight facings with their
+x and y per tick.
 
 ## Palettes of animations nobody owns
 

@@ -29,13 +29,15 @@ function resolveScript(rom, characterId, animOpt, facing) {
     return animationScript(rom, characterId, facing, 0x32);
 }
 
-const SPEED_FACINGS = [['N', 0], ['E', 4], ['S', 8], ['W', 12]];
+const SPEED_FACINGS = [['N', 0], ['NE', 2], ['E', 4], ['SE', 6], ['S', 8], ['SW', 10], ['W', 12], ['NW', 14]];
 const TICKS_PER_SECOND = 60;
 
 /**
- * How fast an animation carries the character, per cardinal facing: distance over the
- * repeating part of the cycle. Each facing has its own script, so they differ (the spear
- * walk steps 6 north/south but 8 east/west). Null when it does not move.
+ * How fast an animation carries the character at each of the 8 facings: distance over the
+ * repeating part of the cycle, split into x and y. The mover ($8FAD51, table $8FAF18) moves
+ * a diagonal by the full step on both axes, and a four-pose record plays E's script for NE/SE
+ * and W's for NW/SW, so walking NE climbs at E's speed: faster than walking N (the spear walk
+ * steps 6 north/south, 8 east/west). Null when it does not move.
  */
 function movementSpeeds(rom, characterId, animOpt) {
     const out = {};
@@ -49,9 +51,16 @@ function movementSpeeds(rom, characterId, animOpt) {
         const from = run.loopFrom > 0 ? samples[run.loopFrom - 1] : [0, 0];
         const to = samples[samples.length - 1];
         const ticks = samples.length - (run.loopFrom > 0 ? run.loopFrom : 0);
-        const dist = Math.hypot(to[0] - from[0], to[1] - from[1]);
+        const dx = to[0] - from[0];
+        const dy = to[1] - from[1];
+        const dist = Math.hypot(dx, dy);
         if (dist) any = true;
-        out[name] = { px: Math.round(dist), ticks, perTick: ticks ? dist / ticks : 0, perSecond: ticks ? (dist / ticks) * TICKS_PER_SECOND : 0 };
+        const per = (v) => (ticks ? v / ticks : 0);
+        out[name] = {
+            facing: f, px: Math.round(dist), ticks,
+            perTick: per(dist), perSecond: per(dist) * TICKS_PER_SECOND,
+            xPerTick: per(dx), yPerTick: per(dy),
+        };
     }
     return any ? out : null;
 }

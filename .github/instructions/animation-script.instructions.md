@@ -88,6 +88,9 @@ else; the linear walker reads `opcode()` too.
   another record's script the VM stops there (otherwise it plays that record, e.g. a rocket).
 - **Attack level = stamina**: < 100% → `+0x38`, 100% → `+0x3A`, 200% → `+0x3C`, 300% → `+0x3E` (`$9082D8`).
   Power (`$8FC02B`): < 50% ÷4, < 100% ÷2, ×1, 200% ×2, 300% ×4.
+- **Diagonal movement** (`$8FAD51` via `$8FAF18`): the full step on x **and** y, no √2.
+  Four-pose walks play E's/W's script on diagonals, so NE climbs at E's speed, faster
+  than N. Measure speed per facing (all 8), never assume diagonals are cardinals scaled.
 - **Attacks round the facing** (`$908343`): a four-pose attack record writes
   `$90815B[facing]` back to `+0x22`, so steps and projectiles go E/W, never diagonal.
   Other animation starts keep the diagonal.
