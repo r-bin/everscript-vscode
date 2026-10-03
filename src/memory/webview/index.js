@@ -169,7 +169,7 @@ module.exports = {
     + loadFile(path.join(spritesDir, 'sprites-layout.css')),
   get scalingJs() { return loadScalingJs(); },
   get roomsJs() { return loadRoomsJs(); },
-  get spritesJs() { return loadFile(path.join(spritesDir, 'sprites-script.js')) + '\n' + loadFile(path.join(spritesDir, 'sprites-motion.js')) + '\n' + loadFile(path.join(spritesDir, 'sprites-view.js')); },
+  get spritesJs() { return loadFile(path.join(spritesDir, 'sprites-lazy.js')) + '\n' + loadFile(path.join(spritesDir, 'sprites-script.js')) + '\n' + loadFile(path.join(spritesDir, 'sprites-motion.js')) + '\n' + loadFile(path.join(spritesDir, 'sprites-view.js')); },
   docsJs: loadFile(path.join(docsDir, 'docs-tab.js')),
   routeJs: loadFile(path.join(routesDir, 'route-tab.js')),
   rngJs: loadFile(path.join(docsDir, 'rng-tab.js')),

@@ -35,3 +35,17 @@ Unify and modernize the first two tabs of SoETilesViewer into an interactive, re
 - `src/shared/` (`rom-readers.js`)
 - `src/language/data/index.json` (enum definitions for external animations)
 - No dependency on `src/rooms/`, `src/debugger/`, `src/scaling/`, or `vscode`.
+
+## 4. Key engine invariants & learnings
+
+- **Boy Weapon Table (`$0438E6` / `$8838E6`)**: Character 0 in `$8EB678` has `$0000` for attacks. All attacks, runs, walks, and charges are dispatched via the 15-entry weapon table (stride 36 bytes, `+0x08` stand, `+0x0a` walk, `+0x0c` run, `+0x0e..+0x14` atk0..3, `+0x16` charge, `+0x18` damage).
+- **Strike Boxes (`0x47`)**: Handler `$9087BA` uses $(dx, dy)$ as center offset from attacker feet origin $(cx, cy)$. Top-left bounding box is $(cx + dx - w/2, cy + dy - h/2)$. The box is frame-specific (active only on frames that execute `0x47`).
+- **Hurt Boxes vs Body Footprint**:
+  - Hurt box ($2r \times 2r$) encloses standing body: anchored **upward** from feet $[cx - r, cx + r] \times [cy - 2r, cy]$.
+  - Body collision ($2r \times r$) is the ground footprint: centered at feet $[cx - r, cx + r] \times [cy - r/2, cy + r/2]$.
+- **Facings (`FACING_TABLE` at `$90815B`)**:
+  - Offset `+0`: South (faces front towards camera).
+  - Offset `+4`: East.
+  - Offset `+8`: North (faces back away from camera).
+  - Offset `+12`: West.
+- **External Animation Validation**: Script pointers must resolve within `$C4..$CE`. Bank `$910000` contains dialogue font bitplanes and window borders; script walkers must reject bank `$91` addresses.

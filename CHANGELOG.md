@@ -1,3 +1,13 @@
+## [0.129.0] — 2026-10-03
+
+### Feature: [Sprites] resizable sidebars, previews everywhere, Animations tab, HUD opcodes
+
+- **Resizable:** drag the splitter next to the list or next to the sidebar; the widths are remembered. The list's splitter was drawn before but did nothing.
+- **Previews in every list:** the Animations and Sprites lists show a square thumbnail per row. They render lazily, only for rows scrolled into view, so the 5,128-sprite list stays fast. Raw sprite thumbnails follow the chosen palette.
+- **Animations tab:** the character's animations moved into the first sidebar tab, as preview tiles grouped like before (weapon / form, general, special), with the weapon / form selector on top. Tiles follow the facing and palette, and a reused animation shows "→ Idle" under its name. An animation that sets no sprite previews with the character's standing sprite.
+- **Sprites view gets the same sidebar:** Chunks and Palettes tabs. Pick a palette from the grid instead of a dropdown.
+- **Opcodes `0x60`–`0x64` decoded:** HUD commands that draw sprites at fixed screen positions from an inline table (49, 13, 28, 13 and 52 bytes). Record `$56DE` is a HUD bar. **All 1,752 record scripts now run to completion.**
+
 ## [0.128.0] — 2026-10-03
 
 ### Feature: [Sprites] sidebar layout, movement-aware hits, palette fixes, clearer labels

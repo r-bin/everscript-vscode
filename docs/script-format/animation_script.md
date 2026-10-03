@@ -261,9 +261,25 @@ animation uses them. They are presumably for effects and menu scripts.
 | `55` | 1 | — | Every 64 frames, `$8FC143` with a random 3–6 | `$908C4D` | — |
 | `5C` | 1 | — | Copies the linked entity's position to `$44..$48`, then `$8FC2E4` | `$908C30` | — |
 
-**Not decoded**: `60`–`65`. They show up only where a static run reads past
-the end of a script. `3C` is now measured: 9 bytes (four words, then a
-colour transfer via `$90D34C`/`$8085FA`).
+### HUD commands
+
+`60`–`64` draw sprites straight to fixed **screen** positions through `$809033`,
+picking one from an inline table of 24-bit sprites by some game state. They are
+not part of the entity. Record `$56DE`, which no character owns, is one: a
+`hud_bar`. A preview shows the first table entry.
+
+| Op | Bytes | Mnemonic | What it draws | Handler |
+|---|---|---|---|---|
+| `60` | 49 | `hud_bar` | full segments (entry 0), then one of 16 partials, from an entity ratio | `$908D79` |
+| `61` | 13 | `hud_column` | four sprites stacked at x 22, y 92 / 103 / 114 / 125 | `$908C7E` |
+| `62` | 28 | `hud_gauge` | one of 9, by `$0B15`, at (224, 16) | `$908CEE` |
+| `63` | 13 | `hud_icon` | one of 4, by `$7E2348`, at (232, 20) and (96, 162) | `$908D2D` |
+| `64` | 52 | `hud_meter` | one of 17, by `$0E45`, at (128, 202) | `$908E09` |
+
+The handler for `65` is data, so the opcode range ends at `64`. `3C` is 9 bytes:
+four words, then a colour transfer via `$90D34C`/`$8085FA`.
+
+**With these, all 1,752 record scripts run to completion.**
 
 Census counts in the sprite and control-flow tables cover the 845 character
 scripts. Counts for `3E`, `51`, `5E` and `5F` cover all 1,752 record scripts.

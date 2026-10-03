@@ -32,7 +32,7 @@ function buildSpritesTabHtml() {
     </div>
 
     <!-- Resizable Splitter -->
-    <div class="sp-split" title="Drag to resize"></div>
+    <div class="sp-split" data-resize="rail" title="Drag to resize"></div>
 
     <!-- Right Main Area -->
     <div class="sp-main">
@@ -56,12 +56,9 @@ function buildSpritesTabHtml() {
 
         <!-- Animation Controls Row -->
         <div class="sp-anim-toolbar">
-          <div class="sp-tool-group" id="sp-weapon-group" style="display:none">
-            <label class="sp-label" for="sp-weapon-sel">Weapon:</label>
-            <select class="sp-select" id="sp-weapon-sel"></select>
-          </div>
 
-          <div class="sp-tool-group">
+
+          <div class="sp-tool-group" style="display:none">
             <label class="sp-label" for="sp-anim-sel">Animation:</label>
             <select class="sp-select" id="sp-anim-sel"></select>
           </div>
@@ -158,14 +155,26 @@ function buildSpritesTabHtml() {
 
         </div>
 
-        <!-- Right sidebar: stats, script, chunks, palettes -->
+        <div class="sp-split sp-split-right" data-resize="side" title="Drag to resize"></div>
+
+        <!-- Right sidebar: animations, stats, script, chunks, palettes -->
         <div class="sp-side">
           <div class="sp-side-tabs">
-            <button class="sp-side-tab sp-active" data-side="stats">Stats</button>
+            <button class="sp-side-tab sp-active" data-side="anims">Animations</button>
+            <button class="sp-side-tab" data-side="stats">Stats</button>
             <button class="sp-side-tab" data-side="script">Script</button>
             <button class="sp-side-tab" data-side="chunks">Chunks</button>
             <button class="sp-side-tab" data-side="palettes" id="sp-btn-palettes">Palettes</button>
           </div>
+        <!-- The character's animations, as tiles -->
+        <div class="sp-details-col sp-side-pane" data-side="anims">
+          <div class="sp-tool-group sp-side-tool" id="sp-weapon-group" style="display:none">
+            <label class="sp-label" for="sp-weapon-sel">Weapon:</label>
+            <select class="sp-select" id="sp-weapon-sel"></select>
+          </div>
+          <div class="sp-anim-grid" id="sp-anim-grid"></div>
+        </div>
+
         <!-- Every palette: the current frame recoloured, click to apply -->
         <div class="sp-palette-panel sp-side-pane" data-side="palettes" id="sp-palette-panel" style="display:none">
           <div class="sp-col-title">
@@ -191,7 +200,7 @@ function buildSpritesTabHtml() {
         </div>
 
         <!-- Stats & engine meanings -->
-        <div class="sp-details-col sp-side-pane" data-side="stats">
+        <div class="sp-details-col sp-side-pane" data-side="stats" style="display:none">
           <div class="sp-col-title">Character Stats & Engine Meanings</div>
           <div class="sp-stats-grid" id="sp-stats-grid"></div>
         </div>
@@ -222,13 +231,15 @@ function buildSpritesTabHtml() {
 
       <!-- ── Raw Sprites View ── -->
       <div class="sp-view-content" id="sp-raw-view" style="display:none">
+       <div class="sp-char-layout">
+        <div class="sp-char-main">
         <div class="sp-header">
           <div class="sp-header-left">
             <span class="sp-char-name" id="sp-raw-name">Raw Sprite $ca0003</span>
             <span class="sp-badge" id="sp-raw-badge">9 chunks</span>
           </div>
           <div class="sp-header-right">
-            <div class="sp-tool-group">
+            <div class="sp-tool-group" style="display:none">
               <label class="sp-label" for="sp-raw-palette-sel">Palette:</label>
               <select class="sp-select" id="sp-raw-palette-sel"></select>
             </div>
@@ -244,12 +255,22 @@ function buildSpritesTabHtml() {
             </div>
           </div>
         </div>
-
-        <div class="sp-raw-stage-layout">
+        <div class="sp-stage-wrap">
           <div class="sp-stage sp-raw-stage" id="sp-raw-stage">
             <canvas id="sp-raw-canvas" width="256" height="256"></canvas>
           </div>
-          <div class="sp-raw-chunks-panel">
+        </div>
+        </div>
+
+        <div class="sp-split sp-split-right" data-resize="side" title="Drag to resize"></div>
+
+        <!-- Same sidebar as the Characters view: chunks, palettes -->
+        <div class="sp-side">
+          <div class="sp-side-tabs">
+            <button class="sp-side-tab sp-active" data-rawside="chunks">Chunks</button>
+            <button class="sp-side-tab" data-rawside="palettes">Palettes</button>
+          </div>
+          <div class="sp-details-col sp-side-pane" data-rawside="chunks">
             <div class="sp-col-title">Chunks in this sprite</div>
             <div class="sp-chunks-table-wrap">
               <table class="sp-chunks-table" id="sp-raw-chunks-table">
@@ -265,7 +286,12 @@ function buildSpritesTabHtml() {
               </table>
             </div>
           </div>
+          <div class="sp-palette-panel sp-side-pane" data-rawside="palettes" style="display:none">
+            <div class="sp-col-title"><span>All palettes</span><span class="sp-col-sub" id="sp-raw-palette-status"></span></div>
+            <div class="sp-palette-grid" id="sp-raw-palette-grid"></div>
+          </div>
         </div>
+       </div>
       </div>
     </div>
   </div>

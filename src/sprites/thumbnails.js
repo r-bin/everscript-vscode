@@ -3,10 +3,11 @@
 // facing, and one sprite shown in every palette the game's characters use. Pure.
 
 const { animationScript, characterPalette, paletteAt } = require('../maps/dist/character-record');
-const { runAnimation } = require('../maps/dist/animation-vm');
+const { runAnimation, facingScript } = require('../maps/dist/animation-vm');
 const { readSpriteInfo, composeSprite } = require('../maps/dist/sprites');
 const { encodePng } = require('../maps/dist/png');
 const { composeAligned } = require('./frame-compose');
+const { resolveCharacterSprite } = require('../maps/dist/character-animation');
 
 /** The facings the tab's S and E buttons use. */
 const THUMB_FACINGS = { s: 0, e: 4 };
@@ -86,4 +87,32 @@ function renderInPalettes(rom, sprite, palettes) {
     });
 }
 
-module.exports = { characterThumbs, listPalettes, renderInPalettes, THUMB_FACINGS };
+/** The resting sprite of whatever a record plays at a facing (last drawn frame, else a head segment). */
+function recordRestingSprite(rom, record, facing) {
+    const script = facingScript(rom, record, facing);
+    if (!script) return 0;
+    const run = runAnimation(rom, script, facing);
+    for (let i = run.frames.length - 1; i >= 0; i--) {
+        const f = run.frames[i];
+        if (f.sprite) return f.sprite;
+        if (f.segments && f.segments.sprites.length) return f.segments.sprites[0];
+    }
+    return 0;
+}
+
+/**
+ * One list thumbnail, rendered on demand: `{ sprite }` a raw sprite, or `{ record, facing }`
+ * an animation's resting pose; coloured by `paletteAddr`, else `character`'s own palette.
+ * Returns a data URI, or null when there is nothing to draw.
+ */
+function thumbFor(rom, item) {
+    let sprite = item.sprite || (item.record ? recordRestingSprite(rom, item.record, item.facing || 0) : 0);
+    // An animation that sets no sprite (the shared knock-back) keeps the character's standing one.
+    if (!sprite && item.record && Number.isInteger(item.character)) sprite = resolveCharacterSprite(rom, item.character, item.facing || 0) || 0;
+    if (!sprite) return null;
+    const colours = item.paletteAddr ? paletteAt(rom, item.paletteAddr) : characterPalette(rom, item.character || 0);
+    const c = composeAligned(rom, [{ sprite }], colours);
+    return c.width > 1 || c.height > 1 ? c.images[0] : null;
+}
+
+module.exports = { characterThumbs, listPalettes, renderInPalettes, thumbFor, THUMB_FACINGS };

@@ -749,3 +749,17 @@
 .sp-li-thumb { width: 36px; height: 36px; display: inline-flex; align-items: flex-end; justify-content: center; background: rgba(255,255,255,0.03); border-radius: 3px; overflow: hidden; }
 .sp-li-thumb img { max-width: 34px; max-height: 34px; }
 .sp-tag, .sp-check-label { white-space: nowrap; }
+
+/* ── Resizable sidebars, animation tiles, list thumbnails everywhere ── */
+.sp-split-right { flex: none; }
+.sp-side-tool { margin-bottom: 10px; }
+.sp-anim-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.sp-anim-group { grid-column: 1 / -1; font-size: 11px; opacity: 0.7; margin-top: 6px; text-transform: uppercase; letter-spacing: 0.04em; }
+.sp-anim-tile { display: flex; flex-direction: column; align-items: center; padding: 6px 4px; border: 1px solid transparent; border-radius: 3px; cursor: pointer; background: #141414; min-width: 0; }
+.sp-anim-tile:hover { border-color: #555; }
+.sp-anim-tile.sp-active { border-color: #4d9fff; }
+.sp-anim-tile .sp-li-thumb { width: 48px; height: 48px; }
+.sp-anim-tile .sp-li-thumb img { max-width: 46px; max-height: 46px; }
+.sp-anim-tile span.sp-anim-label { font-size: 11px; margin-top: 4px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.sp-anim-tile span.sp-anim-sub { font-size: 10px; opacity: 0.6; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.sp-raw-stage { flex: 1; }

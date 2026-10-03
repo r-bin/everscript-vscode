@@ -118,6 +118,15 @@
       li.dataset.record = String(a.record);
       li.innerHTML = '<span class="sp-li-name">' + esc(a.label) + '</span>' +
         '<span class="sp-li-addr">' + a.recHex + (a.facingCount > 1 ? ' ×' + a.facingCount : '') + '</span>';
+      if (window.SpritesThumbs) {
+        var tw = document.createElement('span');
+        tw.className = 'sp-li-thumbs';
+        tw.appendChild(window.SpritesThumbs.box({
+          key: 'rec:' + a.record + ':' + (a.paletteAddr || 'c' + a.paletteCharacter),
+          record: a.record, facing: 0, character: a.paletteCharacter, paletteAddr: a.paletteAddr || 0,
+        }));
+        li.insertBefore(tw, li.firstChild);
+      }
       li.addEventListener('click', function() { onSelect(a); });
       frag.appendChild(li);
     });

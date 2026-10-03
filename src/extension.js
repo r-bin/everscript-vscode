@@ -155,7 +155,7 @@ const romReaders = require('./shared/rom-readers');
 const { readPngDimensions, readRomTriggerOffsets, readRomMapHeader, readRomCharacters, readRomHitLookup, detectScaleEnemies } = romReaders;
 
 const { renderRadarHtml } = require('./memory/render-radar');
-const { readAllCharacters, getRawSpriteIndex, renderAnimation, renderRawSprite, buildAnimationCatalog, characterThumbs, listPalettes, renderInPalettes } = require('./sprites');
+const { readAllCharacters, getRawSpriteIndex, renderAnimation, renderRawSprite, buildAnimationCatalog, characterThumbs, listPalettes, renderInPalettes, thumbFor } = require('./sprites');
 
 // ── Activation ────────────────────────────────────────────────────────────────
 
@@ -1126,9 +1126,21 @@ function activate(context) {
                         const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
                         const bundle = getSpritesBundle(romBuf);
                         const grid = romBuf ? renderInPalettes(romBuf, msg.sprite, listPalettes(bundle.characters)) : [];
-                        _radarPanel.webview.postMessage({ command: 'paletteGridData', sprite: msg.sprite, grid });
+                        _radarPanel.webview.postMessage({ command: 'paletteGridData', sprite: msg.sprite, grid, target: msg.target || 'char' });
                     } catch (err) {
                         _radarPanel.webview.postMessage({ command: 'paletteGridData', sprite: msg.sprite, grid: [], error: String(err && err.message || err) });
+                    }
+                } else if (msg.command === 'getThumbs') {
+                    // Lazy list thumbnails: the webview asks only for rows scrolled into view.
+                    try {
+                        const _cfg = getExtConfig();
+                        const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
+                        const thumbs = {};
+                        if (romBuf) for (const item of (msg.items || []).slice(0, 200)) thumbs[item.key] = thumbFor(romBuf, item);
+                        _radarPanel.webview.postMessage({ command: 'thumbsData', thumbs });
+                    } catch (err) {
+                        _radarPanel.webview.postMessage({ command: 'thumbsData', thumbs: {}, error: String(err && err.message || err) });
                     }
                 } else if (msg.command === 'getRawSprite') {
                     try {

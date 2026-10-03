@@ -326,6 +326,8 @@ export function runAnimation(rom: Uint8Array, script: number, facing = 8, opts: 
                 case 'sprite': sprite = spriteOperand(rom, q); break;
                 case 'sprite2': sprite2 = sprite2Operand(rom, q); break;
                 case 'sprite_long': case 'sprite_aim': sprite = sprite24At(rom, q + 1); break;  // aim: the first angle
+                // HUD: drawn at fixed screen spots, not on the entity; a preview shows entry 0.
+                case 'hud': if (sprite === null) sprite = sprite24At(rom, q + 1); break;
                 case 'reset': sprite = null; sprite2 = null; mode = 0; hurt = [0, -16]; break;
                 case 'hurtbox': hurt = [signed16(b(1) | (b(2) << 8)), signed16(b(3) | (b(4) << 8))]; break;
                 case 'loop':

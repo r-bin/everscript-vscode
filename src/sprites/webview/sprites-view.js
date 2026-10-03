@@ -109,6 +109,7 @@
     renderList();
     if (mode === 'raw') loadRawSprite(selectedRawAddr);
     if (mode === 'chars' && pinnedRecord) { pinnedRecord = null; selectCharacter(selectedCharId); }
+    if (mode === 'chars') { var mc = getCharacters().find(function(x) { return x.id === selectedCharId; }); if (mc) renderAnimGrid(mc); }
     if (mode === 'anims' && !pinnedRecord && script && script.count()) {
       selectAnimationRecord(script.findRecord(getAnimationsFirst()));
     }
@@ -227,6 +228,12 @@
         li.dataset.addr = String(s.address);
         li.innerHTML = '<span class="sp-li-name">' + s.addrHex + '</span>' +
           '<span class="sp-li-addr">' + s.width + '×' + s.height + ' (' + s.chunkCount + ')</span>';
+        if (window.SpritesThumbs) {
+          var tw = document.createElement('span');
+          tw.className = 'sp-li-thumbs';
+          tw.appendChild(window.SpritesThumbs.box({ key: 'spr:' + s.address + ':' + rawPalette, sprite: s.address, paletteAddr: rawPalette }));
+          li.insertBefore(tw, li.firstChild);
+        }
 
         li.addEventListener('click', function() { selectRawSprite(s.address); });
         listEl.appendChild(li);
@@ -376,6 +383,58 @@
     }
     if (!hasCur) selectedAnimKey = defaultKey;
     animSel.value = selectedAnimKey;
+    renderAnimGrid(c);
+  }
+
+  /**
+   * The Animations tab: the dropdown's entries as tiles, grouped the same way, each with a
+   * lazily rendered preview of its resting pose at the current facing and palette.
+   */
+  var animGrid = document.getElementById('sp-anim-grid');
+  function renderAnimGrid(c) {
+    if (!animGrid || !animSel) return;
+    animGrid.innerHTML = '';
+    if (currentMode === 'anims') {
+      animGrid.innerHTML = '<div class="sp-anim-group">The list on the left picks the animation in this mode.</div>';
+      return;
+    }
+    var byKey = {};
+    (c.anims || []).forEach(function(a) { byKey[a.key] = a; });
+    if (hasVariants(c) && c.weapons[selectedWeaponId]) (c.weapons[selectedWeaponId].anims || []).forEach(function(a) { byKey[a.key] = a; });
+    var variantPal = hasVariants(c) && c.weapons[selectedWeaponId] ? c.weapons[selectedWeaponId].paletteAddr : 0;
+    Array.prototype.forEach.call(animSel.children, function(group) {
+      var head = document.createElement('div');
+      head.className = 'sp-anim-group';
+      head.textContent = group.label || '';
+      animGrid.appendChild(head);
+      Array.prototype.forEach.call(group.children, function(opt) {
+        var a = byKey[opt.value] || {};
+        var pal = paletteOverride || a.paletteAddr || variantPal || 0;
+        var tile = document.createElement('div');
+        tile.className = 'sp-anim-tile' + (opt.value === selectedAnimKey ? ' sp-active' : '');
+        tile.dataset.key = opt.value;
+        tile.title = opt.textContent + (a.animRec ? ' — record $' + a.animRec.toString(16) : '');
+        if (a.animRec && window.SpritesThumbs) {
+          tile.appendChild(window.SpritesThumbs.box({
+            key: 'anim:' + c.id + ':' + a.animRec + ':' + selectedFacing + ':' + pal,
+            record: a.animRec, facing: selectedFacing, character: c.id, paletteAddr: pal,
+          }));
+        } else {
+          var empty = document.createElement('span'); empty.className = 'sp-li-thumb'; tile.appendChild(empty);
+        }
+        var m = /^(.*?)(\s\(→ .*\))$/.exec(opt.textContent);
+        var label = document.createElement('span'); label.className = 'sp-anim-label'; label.textContent = m ? m[1] : opt.textContent;
+        tile.appendChild(label);
+        if (m) { var sub = document.createElement('span'); sub.className = 'sp-anim-sub'; sub.textContent = m[2].trim(); tile.appendChild(sub); }
+        tile.addEventListener('click', function() {
+          animSel.value = opt.value;
+          selectedAnimKey = opt.value;
+          animGrid.querySelectorAll('.sp-anim-tile').forEach(function(t) { t.classList.toggle('sp-active', t === tile); });
+          loadCurrentAnimation();
+        });
+        animGrid.appendChild(tile);
+      });
+    });
   }
 
   // ── Stats Cards ─────────────────────────────────────────────────────────────
@@ -492,6 +551,8 @@
       document.querySelectorAll('.sp-facing-btn').forEach(function(x) { x.classList.remove('sp-active'); });
       b.classList.add('sp-active');
       selectedFacing = parseInt(b.dataset.facing);
+      var fc = getCharacters().find(function(x) { return x.id === selectedCharId; });
+      if (fc) renderAnimGrid(fc);
       loadCurrentAnimation();
     });
   });
@@ -921,13 +982,15 @@
         tile.classList.add('sp-active');
         keepPlayback = true;            // a recolour, not a new animation: stay on this frame
         loadCurrentAnimation();
+        var pc = getCharacters().find(function(x) { return x.id === selectedCharId; });
+        if (pc) renderAnimGrid(pc);
       });
       paletteGrid.appendChild(tile);
     });
   }
 
   // ── Sidebar tabs: Stats, Script, Chunks, Palettes ─────────────────────────
-  var sideTab = 'stats';
+  var sideTab = 'anims';
   function setSideTab(name) {
     sideTab = name;
     document.querySelectorAll('.sp-side-tab').forEach(function(b) { b.classList.toggle('sp-active', b.dataset.side === name); });
@@ -945,6 +1008,46 @@
     keepPlayback = true;
     loadCurrentAnimation();
   });
+
+  // ── Sprites view sidebar: Chunks, Palettes ─────────────────────────────────
+  var rawSideTab = 'chunks';
+  var rawPaletteGrid = document.getElementById('sp-raw-palette-grid');
+  var rawPaletteStatus = document.getElementById('sp-raw-palette-status');
+  function setRawSideTab(name) {
+    rawSideTab = name;
+    document.querySelectorAll('[data-rawside]').forEach(function(el) {
+      if (el.classList.contains('sp-side-tab')) el.classList.toggle('sp-active', el.dataset.rawside === name);
+      else el.style.display = el.dataset.rawside === name ? '' : 'none';
+    });
+    if (name === 'palettes') requestRawPaletteGrid();
+  }
+  document.querySelectorAll('.sp-side-tab[data-rawside]').forEach(function(b) {
+    b.addEventListener('click', function() { setRawSideTab(b.dataset.rawside); });
+  });
+  function requestRawPaletteGrid() {
+    if (rawPaletteStatus) rawPaletteStatus.textContent = 'rendering…';
+    if (vsApi) vsApi.postMessage({ command: 'getPaletteGrid', sprite: selectedRawAddr, target: 'raw' });
+  }
+  function renderRawPaletteGrid(grid) {
+    if (!rawPaletteGrid) return;
+    rawPaletteGrid.innerHTML = '';
+    if (rawPaletteStatus) rawPaletteStatus.textContent = grid.length + ' palettes · click to use one';
+    grid.forEach(function(p) {
+      var tile = document.createElement('div');
+      tile.className = 'sp-pal-tile' + ((0x900000 | p.addr) === rawPalette ? ' sp-active' : '');
+      tile.title = p.addrHex + ' — ' + p.owners.join(', ');
+      tile.innerHTML = '<img src="' + p.png + '" alt=""><span>' + p.addrHex + '</span><span>' + escHtml(p.owners[0] || '') + '</span>';
+      tile.addEventListener('click', function() {
+        rawPalette = 0x900000 | p.addr;
+        rawPaletteGrid.querySelectorAll('.sp-pal-tile').forEach(function(t) { t.classList.remove('sp-active'); });
+        tile.classList.add('sp-active');
+        if (rawPaletteSel) rawPaletteSel.value = String(rawPalette);
+        loadRawSprite(selectedRawAddr);
+        renderList();                    // list thumbnails follow the palette
+      });
+      rawPaletteGrid.appendChild(tile);
+    });
+  }
 
   var STAGE_MIN_H = 270;
   var STAGE_MAX_H = 520;
@@ -1023,6 +1126,7 @@
       });
     }
     loadRawSprite(addr);
+    if (rawSideTab === 'palettes') requestRawPaletteGrid();
   }
 
   function loadRawSprite(addr) {
@@ -1104,7 +1208,10 @@
         if (sideTab === 'palettes' && !recolourOnly) requestPaletteGrid();
         updateFrameUI();
       } else if (data.command === 'paletteGridData') {
-        renderPaletteGrid(data.grid || []);
+        if (data.target === 'raw') renderRawPaletteGrid(data.grid || []);
+        else renderPaletteGrid(data.grid || []);
+      } else if (data.command === 'thumbsData') {
+        if (window.SpritesThumbs) window.SpritesThumbs.onData(data.thumbs);
       } else if (data.command === 'rawSpriteData') {
         var s = data.sprite;
         if (!s) return;

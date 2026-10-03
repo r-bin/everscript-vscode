@@ -24,7 +24,8 @@ export type OpKind =
     | 'loop' | 'restart_here' | 'jump' | 'dec_jnz' | 'jump_pos' | 'jump_if_linked'
     | 'set8' | 'set16' | 'set24' | 'add8' | 'add16' | 'clear'
     | 'strike' | 'step' | 'sprite_long' | 'sprite_aim' | 'projectile'
-    | 'hop' | 'hop_maybe' | 'wait_landed' | 'hover_hold' | 'mode' | 'segments' | 'segment' | 'segment_step' | 'hurtbox';
+    | 'hop' | 'hop_maybe' | 'wait_landed' | 'hover_hold' | 'mode' | 'segments' | 'segment' | 'segment_step' | 'hurtbox'
+    | 'hud';
 
 export interface Opcode {
     /** Total bytes, opcode included. */
@@ -92,6 +93,14 @@ const OPCODES: Record<number, Opcode> = {
     0x5a: op(2, 'op_5a'),
     0x5b: op(1, 'mark_position'),
     0x5c: op(1, 'op_5c'),
+    // HUD commands: sprites drawn straight to fixed screen positions via $809033, picked
+    // from an inline table by game state. Not part of the entity; the first entry is what
+    // a preview shows.
+    0x60: op(49, 'hud_bar', 'hud'),      // $908D79: full segments (entry 0) + one of 16 partials, by an entity ratio
+    0x61: op(13, 'hud_column', 'hud'),   // $908C7E: four sprites stacked at x 22, y 92/103/114/125
+    0x62: op(28, 'hud_gauge', 'hud'),    // $908CEE: one of 9, by $0B15, at (224, 16)
+    0x63: op(13, 'hud_icon', 'hud'),     // $908D2D: one of 4, by $7E2348, at (232, 20) / (96, 162)
+    0x64: op(52, 'hud_meter', 'hud'),    // $908E09: one of 17, by $0E45, at (128, 202)
     0x5d: op(1, 'op_5d'),
     0x5e: op(25, 'sprite_aim', 'sprite_aim'),  // eight 24-bit sprites; $919932 picks one by angle
     0x5f: op(4, 'sprite_long', 'sprite_long'), // one 24-bit sprite, drawn at once via $809033
@@ -197,6 +206,10 @@ function operands(rom: Uint8Array, p: number, o: Opcode): string {
         case 'jump': case 'jump_if_linked': return '$' + hex(jumpTarget(rom, p, o.kind), 6);
         case 'strike': return `${signed8(b(1))}, ${signed8(b(2))}, ${b(3)}, ${b(4)}`;
         case 'step': return String(signed8(b(1)));
+        case 'hud': {
+            const n = (o.length - 1) / 3;
+            return `${n} sprite${n === 1 ? '' : 's'}, first $${hex(sprite24At(rom, p + 1), 6)}`;
+        }
         case 'segment': return `#${(b(1) - SEGMENT_FIRST) / SEGMENT_STRIDE}, ${signed8(b(5))}, ${signed8(b(6))}`;
         case 'segments': {
             const sg = segmentsAt(rom, p);

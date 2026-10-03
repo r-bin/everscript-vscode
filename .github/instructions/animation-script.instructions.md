@@ -112,7 +112,7 @@ else; the linear walker reads `opcode()` too.
 - A width comes from a trace or from reading the handler's `$5D` advances on every
   path. If neither exists, the opcode stays out of the table and walks stop there
   with `stoppedAt`. `0x57` is genuinely variable-length and stays unknown.
-- The real opcode range ends before `0x66`. Table entries past it point into data.
+- The real opcode range ends at `0x64` (`0x60`–`0x64` are HUD commands). Table entries past it point into data. All 1,752 record scripts complete; a script that stops now is a regression.
 - Names marked unverified in the doc (`sound`, `op_3f`, `op_40`, weapon
   `op_48`–`op_4a`, `op_58`/`op_59`) describe the handler, not a confirmed on-screen
   effect. Don't promote them without a trace.

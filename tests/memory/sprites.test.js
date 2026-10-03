@@ -541,6 +541,23 @@ if (rom) {
         assert(!labels.some(l => /Stand \(Idle\)|Damage \(Hurt\)/.test(l)));
     });
 
+    test('HUD opcodes 0x60-0x64 have measured widths; every record script completes', () => {
+        const { lengthAt, disassembleScript } = require('../../src/maps/dist/animation-opcodes');
+        assert.strictEqual(lengthAt(rom, 0xc8008d), 49, '0x60 hud_bar: 16 sprites of 3 bytes');
+        assert.strictEqual(disassembleScript(rom, 0xc8008d)[0].text, 'hud_bar 16 sprites, first $cc3be6');
+        let all = 0, complete = 0;
+        for (const g of animationGroups(rom)) for (const sc of g.scripts) { all++; if (runAnimation(rom, sc, 8).complete) complete++; }
+        assert.strictEqual(all, 1752);
+        assert.strictEqual(complete, 1752);
+    });
+
+    test('thumbFor renders a record, a raw sprite, and falls back to the standing sprite', () => {
+        const { thumbFor } = require('../../src/sprites');
+        assert(thumbFor(rom, { record: 0x411e, facing: 4, character: 0, paletteAddr: 0xad8b }).startsWith('data:image/png;base64,'));
+        assert(thumbFor(rom, { sprite: 0xca0003, paletteAddr: 0x90b00b }));
+        assert(thumbFor(rom, { record: 0x3e6a, facing: 0, character: 0 }), 'the knock-back keeps the standing sprite');
+    });
+
     test('renderAnimation returns a script listing with frame line addresses', () => {
         const anim = renderAnimation(rom, 140, { category: 'external', animRec: 0x4dd2 }, 0);
         assert(anim.script.length > 10);
