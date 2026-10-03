@@ -2,7 +2,7 @@
 // Ownership: small preview images for the Sprites tab — a character's resting pose per
 // facing, and one sprite shown in every palette the game's characters use. Pure.
 
-const { animationScript, characterPalette, paletteAt } = require('../maps/dist/character-record');
+const { animationScript, characterPalette, paletteAt, FACING_SOUTH } = require('../maps/dist/character-record');
 const { runAnimation, facingScript } = require('../maps/dist/animation-vm');
 const { readSpriteInfo, composeSprite, decodeSpriteBlock } = require('../maps/dist/sprites');
 const { encodePng } = require('../maps/dist/png');
@@ -95,17 +95,38 @@ function renderInPalettes(rom, sprite, palettes) {
     });
 }
 
-/** The resting sprite of whatever a record plays at a facing (last drawn frame, else a head segment). */
+/** Roughly how much a sprite covers: its chunks, 16×16 ones counting four times. */
+function spriteArea(rom, sprite) {
+    try {
+        return readSpriteInfo(rom, sprite).chunks.reduce((n, ch) => n + (ch.large ? 4 : 1), 0);
+    } catch (e) { return 0; }
+}
+
+/**
+ * The resting sprite of whatever a record plays at a facing: the last drawn frame (else a
+ * head segment), unless that is a fading wisp — under half the fullest frame, as when a
+ * spell effect dissipates — then the fullest frame.
+ */
 function recordRestingSprite(rom, record, facing) {
     const script = facingScript(rom, record, facing);
     if (!script) return 0;
     const run = runAnimation(rom, script, facing);
-    for (let i = run.frames.length - 1; i >= 0; i--) {
+    let last = 0;
+    for (let i = run.frames.length - 1; i >= 0 && !last; i--) {
         const f = run.frames[i];
-        if (f.sprite) return f.sprite;
-        if (f.segments && f.segments.sprites.length) return f.segments.sprites[0];
+        if (f.sprite) last = f.sprite;
+        else if (f.segments && f.segments.sprites.length) return f.segments.sprites[0];
     }
-    return 0;
+    if (!last) return 0;
+    let best = last;
+    let bestArea = spriteArea(rom, last);
+    const lastArea = bestArea;
+    for (const f of run.frames) {
+        if (!f.sprite) continue;
+        const a = spriteArea(rom, f.sprite);
+        if (a > bestArea) { best = f.sprite; bestArea = a; }
+    }
+    return lastArea * 2 < bestArea ? best : last;
 }
 
 /**
@@ -115,9 +136,9 @@ function recordRestingSprite(rom, record, facing) {
  */
 function thumbFor(rom, item) {
     if (Number.isInteger(item.block)) return blockThumb(rom, item);
-    let sprite = item.sprite || (item.record ? recordRestingSprite(rom, item.record, item.facing || 0) : 0);
+    let sprite = item.sprite || (item.record ? recordRestingSprite(rom, item.record, item.facing ?? FACING_SOUTH) : 0);
     // An animation that sets no sprite (the shared knock-back) keeps the character's standing one.
-    if (!sprite && item.record && Number.isInteger(item.character)) sprite = resolveCharacterSprite(rom, item.character, item.facing || 0) || 0;
+    if (!sprite && item.record && Number.isInteger(item.character)) sprite = resolveCharacterSprite(rom, item.character, item.facing ?? FACING_SOUTH) || 0;
     if (!sprite) return null;
     const colours = item.paletteAddr ? paletteAt(rom, item.paletteAddr) : characterPalette(rom, item.character || 0);
     const pal2 = Number.isInteger(item.character) ? read16(rom, 0x8eb678 + item.character * 74 + 0x0b) : 0;

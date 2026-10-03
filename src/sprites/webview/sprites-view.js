@@ -106,6 +106,11 @@
     if (rawView) rawView.style.display = mode === 'raw' ? 'flex' : 'none';
     if (charFilters) charFilters.style.display = mode === 'chars' ? 'flex' : 'none';
     if (animSel) animSel.disabled = mode === 'anims';
+    // A catalogue record has no character to list animations or stats for.
+    document.querySelectorAll('.sp-side-tab[data-side="anims"], .sp-side-tab[data-side="stats"]').forEach(function(b) {
+      b.style.display = mode === 'anims' ? 'none' : '';
+    });
+    if (mode === 'anims' && (sideTab === 'anims' || sideTab === 'stats')) setSideTab('script');
     renderList();
     if (mode === 'raw') loadRawSprite(selectedRawAddr);
     if (mode === 'chars' && pinnedRecord) { pinnedRecord = null; selectCharacter(selectedCharId); }

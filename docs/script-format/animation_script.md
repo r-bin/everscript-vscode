@@ -273,7 +273,7 @@ animation uses them. They are presumably for effects and menu scripts.
 | `4F` | 1 | — | Clears bits `~$FB87` of `+0x12`, if `+0x2A` set and `+0x76` clear | `$9084A7` | 194 |
 | `56` | 3 | — | A formula index; greys out a ring-menu icon via `$91CE38` | `$90878C` | — |
 | `5A` | 2 | — | Byte into `+0x82` | `$908447` | 22 |
-| `5D` | 1 | — | Sets bit 1 of `+0x26` | `$908C75` | — |
+| `5D` | 1 | `effect_done` | Sets bit 1 of `+0x26`, which only the alchemy code in bank `$91` reads (`$919BCC`, `$919D2E`, `$91A53A`): the effect tells its spell it is done. In 106 of 114 uses the next byte is another record's script, so the effect ends there (the VM stops); the other 8 signal mid-effect and carry on | `$908C75` | 114 |
 | `3D` | 5 | — | Two words, then `$90CFB8` | `$908A8A` | — |
 | `3E` | 9 | — | Four words, then `$90D408` | `$908AA7` | 3 |
 | `51` | 1 | — | Player slot only (`Y = $4E89`): `$8FB28D` | `$908C67` | 16 |
@@ -593,6 +593,26 @@ Most thrown projectiles are proc 2. The spears' level-3 wave and Tiny's
 juggle are proc 4. A target already hit by the same attacker is skipped
 (`+0x36`) until its cooldown runs out, so a contact counts once.
 
+## Attack level by stamina
+
+The attack starter `$9082D8` picks the attack field from the stamina (`+0x2E`, where
+`$400` is 100%): under 100% plays `+0x38` (Attack Lvl 0), 100–199% `+0x3A`
+(Lvl 1), 200–299% `+0x3C` (Lvl 2) and 300% or more `+0x3E` (Lvl 3). Levels 2 and 3
+also set `$0200` in `+0x14`. So an attack started below 100% stamina is a
+different animation with its own strike boxes. For the Boy, facing east, the
+farthest edge of the strike box (dx + w/2) is:
+
+| Weapon | Lvl 0 (< 100%) | Lvl 1 (100%) |
+|---|---|---|
+| Swords | 39 px (46 × 16 box) | 40 px (38 × 20) |
+| Axes | 36.5 px (two small boxes) | 52 px (34 × 14) |
+| Bone Crusher | 32.5 px (19 × 12) | 41.5 px (23 × 17) |
+| Spears | 33 px (24 × 24) | 29 px (36 × 22) |
+
+Axes and the Bone Crusher reach clearly less below 100%, swords about the same,
+and spears slightly further. Damage scaling by stamina is a separate question,
+not traced here.
+
 ## Hitting something
 
 The hit test (`$8FB5F2`; melee strikes enter at `$8FB5E6`) compares a strike
@@ -646,8 +666,8 @@ order of evidence:
    sprite graphics are stored character by character;
 3. the owner of the nearest owned record in the table.
 
-Of the 280 still inferred, 25 come from shared sprites, 234 from neighbouring
-sprites and 21 from the nearest record. The Script tab says which applied, or that
+Of the 280 still inferred, 21 come from shared sprites, 235 from neighbouring
+sprites and 24 from the nearest record. The Script tab says which applied, or that
 the script loads its own.
 
 ## Segmented bodies

@@ -57,6 +57,18 @@ function recordScript(rom: Uint8Array, record: number): number {
 }
 
 /** Every animation in the record table, in record order. */
+const startsCache = new WeakMap<Uint8Array, Set<number>>();
+/** Every script address some record starts at. */
+function recordStarts(rom: Uint8Array): Set<number> {
+    let set = startsCache.get(rom);
+    if (!set) {
+        set = new Set();
+        for (const g of animationGroups(rom)) for (const sc of g.scripts) set.add(sc);
+        startsCache.set(rom, set);
+    }
+    return set;
+}
+
 export function animationGroups(rom: Uint8Array): AnimationGroup[] {
     const groups: AnimationGroup[] = [];
     let r = RECORD_FIRST;
@@ -411,7 +423,11 @@ export function runAnimation(rom: Uint8Array, script: number, facing = 8, opts: 
             // A one-shot (attack, knockback, death, cast) is over at `end_check`: it hands the
             // entity back to its AI — or, for a death, retires it. Running on reads the next
             // character's script (deaths are stored back to back).
-            const oneShotEnds = !!opts.oneShot && o.mnemonic === 'end_check';
+            // An alchemy effect that signals `effect_done` right before another record's script
+            // is over too: the spell removes it, and running on would play that record (106 of
+            // the 114 uses; the other 8 signal mid-effect and carry on).
+            const oneShotEnds = (!!opts.oneShot && o.mnemonic === 'end_check')
+                || (o.kind === 'effect_done' && recordStarts(rom).has(next));
             if (raw & END_FRAME) {
                 timer -= 1;
                 if (timer <= 0) { timer = 1; resume = next; }

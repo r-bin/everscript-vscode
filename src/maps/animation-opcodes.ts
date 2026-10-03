@@ -25,7 +25,7 @@ export type OpKind =
     | 'set8' | 'set16' | 'set24' | 'add8' | 'add16' | 'clear'
     | 'strike' | 'step' | 'sprite_long' | 'sprite_aim' | 'projectile'
     | 'hop' | 'hop_maybe' | 'wait_landed' | 'hover_hold' | 'mode' | 'segments' | 'segment' | 'segment_step' | 'hurtbox'
-    | 'hud' | 'palette';
+    | 'hud' | 'palette' | 'effect_done';
 
 export interface Opcode {
     /** Total bytes, opcode included. */
@@ -101,7 +101,9 @@ const OPCODES: Record<number, Opcode> = {
     0x62: op(28, 'hud_gauge', 'hud'),    // $908CEE: one of 9, by $0B15, at (224, 16)
     0x63: op(13, 'hud_icon', 'hud'),     // $908D2D: one of 4, by $7E2348, at (232, 20) / (96, 162)
     0x64: op(52, 'hud_meter', 'hud'),    // $908E09: one of 17, by $0E45, at (128, 202)
-    0x5d: op(1, 'op_5d'),
+    // $908C75: sets bit 1 of +0x26, which only the alchemy code in bank $91 reads ($919BCC,
+    // $919D2E, $91A53A): the effect tells the spell it is done.
+    0x5d: op(1, 'effect_done', 'effect_done'),
     0x5e: op(25, 'sprite_aim', 'sprite_aim'),  // eight 24-bit sprites; $919932 picks one by angle
     0x5f: op(4, 'sprite_long', 'sprite_long'), // one 24-bit sprite, drawn at once via $809033
 };

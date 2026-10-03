@@ -626,6 +626,13 @@ if (rom) {
         assert.strictEqual(cat.find(a => a.record === 0x4526).paletteAddr, 0xb54b, 'ACT0_BARK in the Act 0 palette');
     });
 
+    test('an alchemy effect ends at effect_done (0x5d) when the next byte starts another record', () => {
+        const { runAnimation, facingScript } = require('../../src/maps/dist/animation-vm');
+        const run = runAnimation(rom, facingScript(rom, 0x586a, 8), 8);
+        assert(run.complete);
+        assert(run.frames.every(f => f.sprite !== 0xd01d08), 'the rocket record after it does not play');
+    });
+
     test('renderAnimation returns a script listing with frame line addresses', () => {
         const anim = renderAnimation(rom, 140, { category: 'external', animRec: 0x4dd2 }, 0);
         assert(anim.script.length > 10);

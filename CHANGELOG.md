@@ -1,3 +1,14 @@
+## [0.133.0] — 2026-10-03
+
+### Feature: [Characters] effect previews, south-facing lists, matching tabs, attack levels documented
+
+- **Tab renamed:** the radar tab is now **Characters** instead of Sprites.
+- **Matching tabs:** the Characters / Animations / Sprites switch on the left looks like the sidebar tabs on the right (labels with a blue underline).
+- **Animations mode** hides the Animations and Stats sidebar tabs, which only apply to a character.
+- **Previews face south:** the Animations list asked for facing 0 (north).
+- **No more rockets:** command `0x5D` is `effect_done`, an alchemy effect telling its spell it is done. When the next byte starts another record (106 of 114 uses), the effect ends there; before, it ran on into the rocket record and every such effect showed a rocket. Effect previews use the fullest frame when the last one is a fading wisp.
+- **Attack level by stamina documented:** below 100% the Boy plays Attack Lvl 0, a different animation. Axes and the Bone Crusher reach clearly less, swords about the same, spears slightly further.
+
 ## [0.132.0] — 2026-10-03
 
 ### Feature: [Sprites] floating controls, attack facing, script and placeholder palettes, Dog palette fixes

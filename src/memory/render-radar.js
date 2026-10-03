@@ -172,7 +172,7 @@ function renderRadarHtml(
         '<div class="tabs">' +
         '<button class="tab tab-active" data-tab="radar">\u26a1 Memory</button>' +
         '<button class="tab" data-tab="rooms">\ud83d\uddfa Rooms</button>' +
-        '<button class="tab" data-tab="sprites">\ud83d\udc7e Sprites</button>' +
+        '<button class="tab" data-tab="sprites">\ud83d\udc7e Characters</button>' +
         '<button class="tab" data-tab="scaling">\u2694\ufe0f Scaling</button>' +
         '<button class="tab" data-tab="route">\ud83e\udded Route</button>' +
         '<button class="tab" data-tab="docs">\ud83d\udcda Docs</button>' +

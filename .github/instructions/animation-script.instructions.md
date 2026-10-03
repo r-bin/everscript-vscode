@@ -82,6 +82,9 @@ else; the linear walker reads `opcode()` too.
 - **`0x4B` = `palette $p`** (`$90CD80`, the projectile palette loader): a script that
   loads one is drawn in it (`VmResult.palette`), ahead of any owner or inference.
   `ANIMATION_PLACEHOLDER` ids belong to character #25 (`$BDB2`).
+- **`0x5D` = `effect_done`**: alchemy effects signal their spell; when the next byte is
+  another record's script the VM stops there (otherwise it plays that record, e.g. a rocket).
+- **Attack level = stamina**: < 100% → `+0x38`, 100% → `+0x3A`, 200% → `+0x3C`, 300% → `+0x3E` (`$9082D8`).
 - **Attacks round the facing** (`$908343`): a four-pose attack record writes
   `$90815B[facing]` back to `+0x22`, so steps and projectiles go E/W, never diagonal.
   Other animation starts keep the diagonal.

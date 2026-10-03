@@ -152,7 +152,7 @@
         tw.className = 'sp-li-thumbs';
         tw.appendChild(window.SpritesThumbs.box({
           key: 'rec:' + a.record + ':' + (a.paletteAddr || 'c' + a.paletteCharacter),
-          record: a.record, facing: 0, character: a.paletteCharacter, paletteAddr: a.paletteAddr || 0,
+          record: a.record, facing: 8, character: a.paletteCharacter, paletteAddr: a.paletteAddr || 0,
         }));
         li.insertBefore(tw, li.firstChild);
       }
