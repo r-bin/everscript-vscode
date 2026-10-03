@@ -540,3 +540,4 @@ console.log(`  ${passed} passed, ${failed} failed, ${xfails.length} xfail`);
 console.log('');
 
 if (failed > 0) process.exit(1);
+process.exit(0);

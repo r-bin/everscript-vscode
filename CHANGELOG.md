@@ -1,3 +1,13 @@
+## [0.142.0] — 2026-10-04
+
+### Feat: [Emulator/Rooms] Map export logging, UI tabs & resizer, enter script trace, and boot garbage filter
+
+- **Map Editor compilation & export logging**: Added dedicated `Everscript ROM Builder` output channel logging the full compilation pipeline for "Export ROM" and "Play in emulator": map dimensions, trigger counts, object counts, base vanilla ROM verification, custom room 0x15 blob construction (size, SNES address, metatiles, animation channels), temporary staged ROM path (`*_emulator.sfc`), and emulator connection status.
+- **Emulator UI tabs & resizer**: Replaced the cramped bottom stack layout with tabbed navigation (`SCRIPT TRACE` active by default with count badge, `SCRIPT STACK`, and `DEBUGGER & HOOKS`) and a draggable resizer (`#ss-resizer`) so the trace log fills the panel without being obscured by the slot table.
+- **Cold RAM garbage filter**: Added `isValidScriptAddr()` to reject cold-WRAM fill pattern (`0x555555`) and uninitialized/non-ROM memory writes across all 20 slots during reset.
+- **Room 0x15 enter script lifecycle trace**: Detected slot 0 enter script initialization at `0xBC8000`, capturing the full multi-instruction sequence completed within frame 1: `WRITE $2441 = Laser Lance (0x18)`, `CALL Global 0x36 (Fade in)`, and `END (return)`.
+- **Timestamps & frame counters**: Added relative seconds (`+X.XXs`) and frame counters (`f<N>`) since ROM launch to all execution trace entries in both the webview UI and output channel.
+
 ## [0.141.0] — 2026-10-04
 
 ### Fix: [Emulator/Rooms] "Play in emulator" webview crash fix, trigger export & execution trace

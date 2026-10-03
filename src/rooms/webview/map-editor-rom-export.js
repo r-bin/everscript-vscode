@@ -120,7 +120,7 @@ function applyRomExportDone(msg) {
   if (!msg) return;
   if (msg.error) editNote('export failed: ' + msg.error);
   else if (msg.cancelled) editNote('export cancelled');
-  else if (msg.played) editNote('running ' + msg.played + ' in the emulator — the game starts in this map');
+  else if (msg.played) editNote('running ' + msg.played + (msg.tempPath ? ' [' + msg.tempPath + ']' : '') + ' in the emulator — the game starts in this map');
   else editNote('exported to ' + msg.path + ' — the game starts in this map');
   renderEditChrome();
 }

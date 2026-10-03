@@ -3,6 +3,7 @@
 const vscode = require('vscode');
 const path   = require('path');
 const fs     = require('fs');
+const os     = require('os');
 const { radarLifecycle, radarH, radarEsc, radarExtractEmoji, radarParseName, radarParseNotes, parseEvsNum, parseEnumsFromContent, parseEvsEnumValues } = require('./shared/radar-utils');
 const radarWebview = require('./memory/webview');
 const { readRoomScriptModel } = require('./rooms/data/room-scripts');
@@ -43,6 +44,14 @@ let _hitLookup         = null;   // precomputed hit% table {hit_rate:{evade:pct}
 let _scaleActive       = false;  // whether scale_enemies is active in workspace
 let _radarByteScriptFocus = '';  // currently focused byte-script address from emulator panel
 let _spritesBundle     = null;   // cached sprites bundle {characters, rawIndex}
+let _mapExportChannel  = null;   // output channel for ROM build and compilation logs
+
+function getMapExportChannel() {
+    if (!_mapExportChannel) {
+        _mapExportChannel = vscode.window.createOutputChannel('Everscript ROM Builder');
+    }
+    return _mapExportChannel;
+}
 
 function getRadarMap() {
     if (_radarMapCache) return _radarMapCache;
@@ -782,24 +791,44 @@ function activate(context) {
                     // vanilla ROM. See docs/map-format/rom-export.md.
                     (async () => {
                         const reply = { command: 'mapExportRomDone' };
+                        const ch = getMapExportChannel();
+                        ch.show(true);
+                        const draft = msg.draft || {};
+                        const mapName = msg.name || 'custom map';
+                        const timeStr = new Date().toLocaleTimeString();
+                        ch.appendLine(`[${timeStr}] [Export ROM] Starting compilation of "${mapName}"...`);
+                        ch.appendLine(`  Dimensions: ${draft.widthTiles || '?'}x${draft.heightTiles || '?'} tiles`);
+                        ch.appendLine(`  Triggers: stepOn: ${(draft.stepOn || []).length}, bTrigger: ${(draft.bTrigger || []).length}`);
+                        ch.appendLine(`  Objects: ${(draft.objects || []).length}, Cuttable: ${(draft.cut || []).length}`);
                         try {
                             const _cfg = getExtConfig();
                             const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
                             const romPath = romReaders.resolveRomPath(_ws, _cfg.romPath || '');
-                            const romBuf = romPath && romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
-                            if (!romBuf) throw new Error('ROM not found — set everscript.romPath');
-                            const { rom, report } = buildExportRom(romBuf, msg.draft || {});
-                            const stem = String(msg.name || 'custom map').replace(/[^\w.-]+/g, '_');
+                            if (!romPath) throw new Error('ROM not found — set everscript.romPath');
+                            ch.appendLine(`  Using vanilla ROM: ${romPath}`);
+                            const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
+                            if (!romBuf) throw new Error('Failed to load ROM buffer from ' + romPath);
+                            ch.appendLine('  Building custom room 0x15 blob and patching intro jump...');
+                            const { rom, report } = buildExportRom(romBuf, draft);
+                            ch.appendLine(`  Compiled successfully: ${report.blobBytes} bytes at $${report.blobAddress.toString(16).toUpperCase()}`);
+                            ch.appendLine(`  Metatiles: ${report.metatileCount}, animated channels: ${report.animated}`);
+
+                            const stem = String(mapName).replace(/[^\w.-]+/g, '_');
                             const target = await vscode.window.showSaveDialog({
                                 defaultUri: vscode.Uri.file(path.join(path.dirname(romPath), stem + '.sfc')),
                                 filters: { 'SNES ROM': ['sfc', 'smc'] },
                                 saveLabel: 'Export ROM',
                             });
-                            if (!target) { _radarPanel?.webview.postMessage({ ...reply, cancelled: true }); return; }
+                            if (!target) {
+                                ch.appendLine('  Export cancelled by user.');
+                                _radarPanel?.webview.postMessage({ ...reply, cancelled: true });
+                                return;
+                            }
                             if (path.resolve(target.fsPath) === path.resolve(romPath)) {
                                 throw new Error('refusing to overwrite the vanilla ROM the export is built from');
                             }
                             fs.writeFileSync(target.fsPath, rom);
+                            ch.appendLine(`  [SUCCESS] ROM saved to: ${target.fsPath}`);
                             _radarPanel?.webview.postMessage({ ...reply, path: target.fsPath, report });
                             const pick = await vscode.window.showInformationMessage(
                                 `Exported ${report.widthTiles}×${report.heightTiles} map into Brian's room (0x15) — `
@@ -810,6 +839,7 @@ function activate(context) {
                             if (pick === 'Reveal') vscode.commands.executeCommand('revealFileInOS', target);
                         } catch (err) {
                             const error = String(err && err.message || err);
+                            ch.appendLine(`  [ERROR] ROM export failed: ${error}`);
                             _radarPanel?.webview.postMessage({ ...reply, error });
                             vscode.window.showErrorMessage('ROM export failed: ' + error);
                         }
@@ -831,18 +861,49 @@ function activate(context) {
                     // Export ROM without the file: the same ROM, straight into
                     // the embedded emulator, the way a build's output is loaded.
                     const reply = { command: 'mapExportRomDone' };
+                    const ch = getMapExportChannel();
+                    ch.show(true);
+                    const draft = msg.draft || {};
+                    const mapName = msg.name || 'custom map';
+                    const timeStr = new Date().toLocaleTimeString();
+                    ch.appendLine(`[${timeStr}] [Play in Emulator] Starting compilation of "${mapName}"...`);
+                    ch.appendLine(`  Dimensions: ${draft.widthTiles || '?'}x${draft.heightTiles || '?'} tiles`);
+                    ch.appendLine(`  Triggers: stepOn: ${(draft.stepOn || []).length}, bTrigger: ${(draft.bTrigger || []).length}`);
+                    ch.appendLine(`  Objects: ${(draft.objects || []).length}, Cuttable: ${(draft.cut || []).length}`);
                     try {
                         const _cfg = getExtConfig();
                         const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+                        const romPath = romReaders.resolveRomPath(_ws, _cfg.romPath || '');
+                        if (!romPath) throw new Error('ROM not found — set everscript.romPath');
+                        ch.appendLine(`  Using vanilla ROM: ${romPath}`);
                         const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
-                        if (!romBuf) throw new Error('ROM not found — set everscript.romPath');
-                        const { rom } = buildExportRom(romBuf, msg.draft || {});
-                        const name = String(msg.name || 'custom map') + '.sfc';
+                        if (!romBuf) throw new Error('Failed to load ROM buffer from ' + romPath);
+                        ch.appendLine('  Building custom room 0x15 blob and patching intro jump...');
+                        const { rom, report } = buildExportRom(romBuf, draft);
+                        ch.appendLine(`  Compiled successfully: ${report.blobBytes} bytes at $${report.blobAddress.toString(16).toUpperCase()}`);
+                        ch.appendLine(`  Metatiles: ${report.metatileCount}, animated channels: ${report.animated}`);
+
+                        // Stage temporary ROM file
+                        const stem = String(mapName).replace(/[^\w.-]+/g, '_');
+                        let tempDir = context.globalStorageUri ? context.globalStorageUri.fsPath : os.tmpdir();
+                        try {
+                            if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+                        } catch (_) {
+                            tempDir = os.tmpdir();
+                        }
+                        const tempPath = path.join(tempDir, stem + '_emulator.sfc');
+                        fs.writeFileSync(tempPath, rom);
+                        ch.appendLine(`  Staged temporary ROM: ${tempPath}`);
+
+                        const name = stem + '.sfc';
                         const dataUrl = 'data:application/octet-stream;base64,' + Buffer.from(rom).toString('base64');
-                        require('./emulator/panel').openEmulatorPanel(context, { dataUrl, name });
-                        _radarPanel?.webview.postMessage({ ...reply, played: name });
+                        ch.appendLine('  Launching emulator panel...');
+                        require('./emulator/panel').openEmulatorPanel(context, { dataUrl, name, romBuffer: rom });
+                        ch.appendLine(`  [SUCCESS] Emulator launched with "${name}". Room 0x15 enter script will execute.`);
+                        _radarPanel?.webview.postMessage({ ...reply, played: name, tempPath, report });
                     } catch (err) {
                         const error = String(err && err.message || err);
+                        ch.appendLine(`  [ERROR] Play in emulator failed: ${error}`);
                         _radarPanel?.webview.postMessage({ ...reply, error });
                         vscode.window.showErrorMessage('Play in emulator failed: ' + error);
                     }

@@ -16,6 +16,7 @@ const {
   decodeScriptSnippet,
   processScriptTraceBatch,
   loadFallbackRom,
+  isValidScriptAddr,
 } = require('../../src/emulator/script-trace');
 
 let passed = 0;
@@ -120,5 +121,61 @@ test('script-trace.js, panel.js, and panel-webview.js are strictly ASCII-only', 
   }
 });
 
+// Test 5: isValidScriptAddr rejects cold-RAM fill and invalid addresses
+test('isValidScriptAddr rejects 0x555555 cold RAM fill and non-ROM addresses', () => {
+  assert.strictEqual(isValidScriptAddr(0x555555), false, '0x555555 should be rejected');
+  assert.strictEqual(isValidScriptAddr(0), false, '0 should be rejected');
+  assert.strictEqual(isValidScriptAddr(0xFFFFFF), false, '0xFFFFFF should be rejected');
+  assert.strictEqual(isValidScriptAddr(0x7E28FC), false, 'WRAM address 0x7E28FC should be rejected');
+  assert.strictEqual(isValidScriptAddr(0x008000), false, 'Low bank 0x00 should be rejected');
+  assert.strictEqual(isValidScriptAddr(0x928000), true, 'Valid ROM address 0x928000 should be accepted');
+  assert.strictEqual(isValidScriptAddr(0xBC8000), true, 'Room enter script address 0xBC8000 should be accepted');
+});
+
+// Test 6: processScriptTraceBatch rejects cold-RAM 0x555555 garbage
+test('processScriptTraceBatch filters out 0x555555 cold RAM boot events', () => {
+  const batch = [
+    { slot: 0, entity: 0x0000, event: 'end', loc: 0x555555 },
+    { slot: 1, entity: 0x0000, event: 'end', loc: 0x555555 },
+    { slot: 2, entity: 0x0000, event: 'start', loc: 0x928000, bytes: [0x00] },
+  ];
+  const results = processScriptTraceBatch(batch, null, null);
+  assert.strictEqual(results.length, 1, 'Should filter out both 0x555555 events');
+  assert.strictEqual(results[0].slot, 2);
+  assert.strictEqual(results[0].locHex, '0x928000');
+});
+
+// Test 7: Enter script start normalization and timestamp preservation
+test('processScriptTraceBatch preserves timestamps and decodes Room 0x15 enter script', () => {
+  const snesAddr = 0xBC8000;
+  const offset = (snesAddr & ~0xc00000) >>> 0;
+  const syntheticRom = new Uint8Array(offset + 32);
+  // Gain Spear 4 (14 E9 01 E8), Call Fade In (A3 36), End (00)
+  syntheticRom.set([0x14, 0xe9, 0x01, 0xe8, 0xa3, 0x36, 0x00], offset);
+
+  // Even if reported at 0xBC8006 due to single-frame execution:
+  const batch = [
+    {
+      slot: 0,
+      entity: 0x4E89,
+      event: 'start',
+      loc: 0xBC8006,
+      timeStr: '+0.12s, f7',
+      frame: 7,
+    },
+  ];
+
+  const results = processScriptTraceBatch(batch, syntheticRom, null);
+  assert.strictEqual(results.length, 1);
+  assert.strictEqual(results[0].locHex, '0xBC8000', 'Should normalize to enter script entry point 0xBC8000');
+  assert.strictEqual(results[0].timeStr, '+0.12s, f7');
+  assert.strictEqual(results[0].frame, 7);
+  assert.ok(results[0].summary.includes('Laser Lance'), `Expected Laser Lance summary, got: ${results[0].summary}`);
+  assert.ok(results[0].subLines.length >= 2, 'Should have subLines for Fade in and End');
+  assert.ok(results[0].subLines[0].includes('CALL'), `Expected CALL in subLines[0]: ${results[0].subLines[0]}`);
+  assert.ok(results[0].subLines[1].includes('END'), `Expected END in subLines[1]: ${results[0].subLines[1]}`);
+});
+
 console.log(`\nResults: ${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);
+

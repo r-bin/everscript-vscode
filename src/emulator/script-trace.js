@@ -57,6 +57,20 @@ function fmtHex(val, width) {
 }
 
 /**
+ * Validates whether an address represents a plausible SoE ROM script address.
+ * Rejects cold-RAM fill pattern (0x555555), 0, and non-ROM addresses.
+ */
+function isValidScriptAddr(loc) {
+  if (typeof loc !== 'number' || isNaN(loc)) return false;
+  const raw = loc >>> 0;
+  if (raw === 0 || raw === 0x555555 || raw === 0xFFFFFF) return false;
+  const bank = (raw >>> 16) & 0xFF;
+  const addr = raw & 0xFFFF;
+  if (bank < 0x80 || addr < 0x8000) return false;
+  return true;
+}
+
+/**
  * Disassembles up to maxLines instructions starting from snesAddr.
  * Returns an array of instruction descriptor objects.
  */
@@ -102,7 +116,7 @@ function decodeScriptSnippet(rom, snesAddr, maxLines = 2) {
 
 /**
  * Processes a batch of execution trace events reported by the webview.
- * @param {Array} items Array of { slot, entity, event, loc, bytes, state, timer }
+ * @param {Array} items Array of { slot, entity, event, loc, bytes, state, timer, timestamp, timeStr, frame }
  * @param {Uint8Array|null} currentRom Active ROM buffer or null
  * @param {string|null} wsRoot Workspace root folder path
  * @returns {Array} Formatted trace entries for the webview UI
@@ -119,8 +133,14 @@ function processScriptTraceBatch(items, currentRom, wsRoot) {
   const formatted = [];
 
   for (const item of items) {
-    const loc = (item.loc || 0) >>> 0;
-    if (!loc) continue;
+    let loc = (item.loc || 0) >>> 0;
+    if (!isValidScriptAddr(loc)) continue;
+
+    // Detect if this is room 0x15's enter script start which completed within frame 1:
+    // If reported address is 0xBC8000..0xBC8008, normalize to entry point 0xBC8000
+    if (item.event === 'start' && loc >= 0xBC8000 && loc <= 0xBC8008) {
+      loc = 0xBC8000;
+    }
 
     // Use current ROM or synthesize buffer from bytes sent from emulator bus
     let romBuf = rom;
@@ -133,7 +153,7 @@ function processScriptTraceBatch(items, currentRom, wsRoot) {
       }
     }
 
-    const snippet = decodeScriptSnippet(romBuf, loc, item.event === 'start' ? 2 : 1);
+    const snippet = decodeScriptSnippet(romBuf, loc, item.event === 'start' ? 3 : 1);
     const first = snippet && snippet[0];
 
     const locHex = '0x' + fmtHex(loc, 6);
@@ -153,7 +173,8 @@ function processScriptTraceBatch(items, currentRom, wsRoot) {
       summary = item.event === 'end' ? 'END of script' : 'UNKNOWN INSTR';
     }
 
-    const tag = `[Slot ${item.slot} | Ent ${entityHex} | ${eventName}]`;
+    const timePrefix = item.timeStr ? `[${item.timeStr}] ` : '';
+    const tag = `${timePrefix}[Slot ${item.slot} | Ent ${entityHex} | ${eventName}]`;
     const line = `${tag} ${locHex}: ${bytesHex}  ${summary}`;
     if (ch) ch.appendLine(line);
 
@@ -176,6 +197,8 @@ function processScriptTraceBatch(items, currentRom, wsRoot) {
       summary,
       subLines,
       line,
+      timeStr: item.timeStr || '',
+      frame: typeof item.frame === 'number' ? item.frame : null,
     });
   }
 
@@ -187,4 +210,5 @@ module.exports = {
   loadFallbackRom,
   decodeScriptSnippet,
   processScriptTraceBatch,
+  isValidScriptAddr,
 };

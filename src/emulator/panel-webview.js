@@ -68,16 +68,22 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     #pickBtn       { padding: 10px 24px; background: #1a6; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
     #pickBtn:hover { background: #0c5; }
     #load-status   { font-size: 12px; color: #888; max-width: 400px; text-align: center; }
-    /* -- Script stack panel --------------------------------------------- */
+    /* -- Resizer & Script stack panel ----------------------------------- */
+    #ss-resizer {
+      height: 5px; background: #222; cursor: row-resize; flex-shrink: 0;
+      border-top: 1px solid #333; border-bottom: 1px solid #111;
+      transition: background 0.15s;
+    }
+    #ss-resizer:hover, #ss-resizer.dragging { background: #007acc; }
+
     #script-stack {
-      height: 200px; min-height: 26px; max-height: 400px;
+      height: 240px; min-height: 28px; max-height: 80vh;
       background: #0d0d0d; border-top: 1px solid #333;
-      overflow-y: auto; font-size: 11px;
-      display: none; flex-direction: column;
+      font-size: 11px; display: none; flex-direction: column; overflow: hidden;
     }
     #script-stack.visible { display: flex; }
     #script-stack.collapsed {
-      height: 26px !important; min-height: 26px !important; overflow: hidden !important;
+      height: 28px !important; min-height: 28px !important; overflow: hidden !important;
     }
     #script-stack.collapsed > :not(#ss-header) {
       display: none !important;
@@ -89,8 +95,44 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       display: flex; justify-content: space-between; align-items: center;
       border-bottom: 1px solid #333; flex-shrink: 0;
     }
-    #ss-title    { display: flex; gap: 10px; align-items: center; }
+    #ss-tabs { display: flex; gap: 4px; align-items: center; }
+    .ss-tab {
+      border: 1px solid #333; background: #141414; color: #888;
+      padding: 3px 8px; border-radius: 3px; font-size: 10px; cursor: pointer;
+      font-family: inherit; font-weight: bold;
+    }
+    .ss-tab:hover { background: #222; color: #ccc; }
+    .ss-tab.active { background: #007acc; color: #fff; border-color: #007acc; }
     #ss-controls { display: flex; gap: 6px; align-items: center; }
+
+    .ss-tab-view { display: none; flex: 1; min-height: 0; flex-direction: column; overflow: hidden; }
+    .ss-tab-view.active { display: flex; }
+
+    #ss-trace-header {
+      background: #121212; border-bottom: 1px solid #1d1d1d;
+      padding: 4px 8px; display: flex; justify-content: space-between; align-items: center;
+      font-size: 10px; color: #888; flex-shrink: 0;
+    }
+    #ss-trace-controls { display: flex; gap: 6px; align-items: center; }
+    #ss-trace-log {
+      flex: 1; min-height: 0; background: #0c0c0c; padding: 4px 8px;
+      font-family: monospace; font-size: 11px; line-height: 1.45;
+      overflow-y: auto; overflow-x: hidden;
+    }
+    .ss-trace-row { display: flex; gap: 8px; white-space: nowrap; padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+    .ss-trace-time { color: #569cd6; font-size: 10px; min-width: 95px; }
+    .ss-trace-tag { font-weight: bold; min-width: 130px; }
+    .ss-trace-tag.start  { color: #6f9; }
+    .ss-trace-tag.resume { color: #ff6; }
+    .ss-trace-tag.step   { color: #69f; }
+    .ss-trace-tag.end    { color: #f66; }
+    .ss-trace-addr       { color: #4ec9b0; }
+    .ss-trace-bytes      { color: #888; font-size: 10px; font-family: monospace; }
+    .ss-trace-text       { color: #d4d4d4; overflow: hidden; text-overflow: ellipsis; }
+    .ss-trace-sub        { padding-left: 20px; color: #888; font-size: 10px; white-space: nowrap; line-height: 1.4; }
+
+    #ss-view-stack { overflow-y: auto; }
+    #ss-view-debug { overflow-y: auto; }
     .ss-btn            { border: 1px solid #444; background: #181818; color: #ccc; padding: 2px 6px; border-radius: 3px; font-size: 10px; cursor: pointer; }
     .ss-btn:hover      { background: #222; }
     .ss-btn:disabled   { opacity: 0.45; cursor: default; }
@@ -119,18 +161,6 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     #ss-table tr.wait td   { color: #ff6; }
     #ss-table tr.dead td   { color: #633; }
     #ss-table tr.focus td  { background: rgba(122, 214, 122, 0.08); }
-    #ss-trace-header       { background: #121212; border-top: 1px solid #222; border-bottom: 1px solid #1d1d1d; padding: 4px 8px; display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #888; flex-shrink: 0; }
-    #ss-trace-controls     { display: flex; gap: 6px; align-items: center; }
-    #ss-trace-log          { background: #0c0c0c; padding: 4px 8px; font-family: monospace; font-size: 11px; line-height: 1.4; max-height: 160px; overflow-y: auto; overflow-x: hidden; }
-    .ss-trace-row          { display: flex; gap: 8px; white-space: nowrap; padding: 1px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
-    .ss-trace-tag          { color: #6f9; font-weight: bold; min-width: 140px; }
-    .ss-trace-tag.resume   { color: #ff6; }
-    .ss-trace-tag.step     { color: #69f; }
-    .ss-trace-tag.end      { color: #f66; }
-    .ss-trace-addr         { color: #4ec9b0; }
-    .ss-trace-bytes        { color: #888; font-size: 10px; font-family: monospace; }
-    .ss-trace-text         { color: #d4d4d4; overflow: hidden; text-overflow: ellipsis; }
-    .ss-trace-sub          { padding-left: 20px; color: #777; font-size: 10px; white-space: nowrap; }
     .sx-kw                 { color: #569cd6; font-weight: bold; }
     .sx-num                { color: #b5cea8; }
     .sx-str                { color: #ce9178; }
@@ -149,58 +179,74 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     <canvas id="screen" width="512" height="448"></canvas>
   </div>
 
+  <div id="ss-resizer" title="Drag to resize panel"></div>
+
   <div id="script-stack">
     <div id="ss-header">
-      <div id="ss-title">
-        <b>SCRIPT STACK</b>
-        <span id="ss-count">waiting...</span>
+      <div id="ss-tabs">
+        <button id="ss-tab-trace" class="ss-tab active" type="button">SCRIPT TRACE (<span id="ss-tab-trace-count">0</span>)</button>
+        <button id="ss-tab-stack" class="ss-tab" type="button">SCRIPT STACK (<span id="ss-count">waiting...</span>)</button>
+        <button id="ss-tab-debug" class="ss-tab" type="button">DEBUGGER &amp; HOOKS</button>
       </div>
       <div id="ss-controls">
         <button id="ss-pause-btn"  class="ss-btn" disabled>pause</button>
         <button id="ss-resume-btn" class="ss-btn" disabled>resume</button>
-        <button id="ss-hook-btn"   class="ss-btn" disabled>arm stack hook</button>
-        <button id="ss-hook-all-btn" class="ss-btn" disabled>break all hooks</button>
-        <button id="ss-debug-link-btn" class="ss-btn">connect dbg</button>
-        <button id="ss-toggle-btn" class="ss-btn">hide stack</button>
+        <button id="ss-toggle-btn" class="ss-btn">hide panel</button>
       </div>
     </div>
-    <div id="ss-core-row" title="${corePathDisplay}">
-      <span id="ss-core-label">core:</span>
-      <span id="ss-core-name">${coreLabel}</span>
-      <span id="ss-core-path">${corePathDisplay}</span>
-    </div>
-    <div id="ss-meta">
-      <span id="ss-api-status">api: not ready</span>
-      <span id="ss-cpu-status">pc: ------</span>
-      <span id="ss-pause-state">running</span>
-      <span id="ss-break-status">hook: unavailable</span>
-      <span id="ss-exec-break-status">script bp: unavailable</span>
-      <span id="ss-debug-link-status">dbg: disconnected</span>
-      <span id="ss-last-hit">last: -</span>
-    </div>
-    <div id="ss-breakpoints">
-      <div id="ss-bp-controls">
-        <span>manual script breakpoints</span>
-        <input id="ss-bp-input" type="text" placeholder="94E5FB / 0x94E5FB" spellcheck="false" />
-        <button id="ss-bp-add-btn" class="ss-btn" disabled>add</button>
-      </div>
-      <div id="ss-bp-list"><span class="ss-bp-empty">no manual script breakpoints</span></div>
-    </div>
-    <div id="ss-detail">waiting for script stack detail...</div>
-    <table id="ss-table">
-      <thead><tr><th>#</th><th>PC</th><th>state</th><th>next</th><th>entity</th><th>timer</th></tr></thead>
-      <tbody id="ss-tbody"></tbody>
-    </table>
-    <div id="ss-trace-header">
-      <span class="ss-section-title"><b>SCRIPT TRACE LOG</b></span>
-      <div id="ss-trace-controls">
-        <button id="ss-trace-clear-btn" class="ss-btn" type="button">clear</button>
-        <button id="ss-trace-copy-btn" class="ss-btn" type="button">copy</button>
-        <label id="ss-trace-scroll-label"><input type="checkbox" id="ss-trace-scroll" checked /> auto-scroll</label>
+
+    <!-- Tab 1: Script Trace Log (Active by default) -->
+    <div id="ss-view-trace" class="ss-tab-view active">
+      <div id="ss-trace-header">
+        <div id="ss-trace-controls">
+          <button id="ss-trace-clear-btn" class="ss-btn" type="button">clear</button>
+          <button id="ss-trace-copy-btn" class="ss-btn" type="button">copy</button>
+          <label id="ss-trace-scroll-label"><input type="checkbox" id="ss-trace-scroll" checked /> auto-scroll</label>
+        </div>
         <span id="ss-trace-count">0 lines</span>
       </div>
+      <div id="ss-trace-log"></div>
     </div>
-    <div id="ss-trace-log"></div>
+
+    <!-- Tab 2: Script Stack live slot table -->
+    <div id="ss-view-stack" class="ss-tab-view">
+      <div id="ss-detail">waiting for script stack detail...</div>
+      <table id="ss-table">
+        <thead><tr><th>#</th><th>PC</th><th>state</th><th>next</th><th>entity</th><th>timer</th></tr></thead>
+        <tbody id="ss-tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- Tab 3: Debugger & Breakpoints -->
+    <div id="ss-view-debug" class="ss-tab-view">
+      <div id="ss-core-row" title="${corePathDisplay}">
+        <span id="ss-core-label">core:</span>
+        <span id="ss-core-name">${coreLabel}</span>
+        <span id="ss-core-path">${corePathDisplay}</span>
+      </div>
+      <div id="ss-meta">
+        <span id="ss-api-status">api: not ready</span>
+        <span id="ss-cpu-status">pc: ------</span>
+        <span id="ss-pause-state">running</span>
+        <span id="ss-break-status">hook: unavailable</span>
+        <span id="ss-exec-break-status">script bp: unavailable</span>
+        <span id="ss-debug-link-status">dbg: disconnected</span>
+        <span id="ss-last-hit">last: -</span>
+      </div>
+      <div style="background:#141414;padding:4px 8px;display:flex;gap:6px;border-bottom:1px solid #222;">
+        <button id="ss-hook-btn" class="ss-btn" disabled>arm stack hook</button>
+        <button id="ss-hook-all-btn" class="ss-btn" disabled>break all hooks</button>
+        <button id="ss-debug-link-btn" class="ss-btn">connect dbg</button>
+      </div>
+      <div id="ss-breakpoints">
+        <div id="ss-bp-controls">
+          <span>manual script breakpoints</span>
+          <input id="ss-bp-input" type="text" placeholder="94E5FB / 0x94E5FB" spellcheck="false" />
+          <button id="ss-bp-add-btn" class="ss-btn" disabled>add</button>
+        </div>
+        <div id="ss-bp-list"><span class="ss-bp-empty">no manual script breakpoints</span></div>
+      </div>
+    </div>
   </div>
 
   <!-- Module object must be declared before the core script loads. -->
@@ -422,6 +468,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
 
     // -- ROM loading -----------------------------------------------------------
     let romLoaded = false;
+    let romLaunchTimestamp = 0;
+    let romFrameCount = 0;
 
     function startWithRom(dataUrl, name) {
       try {
@@ -440,6 +488,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         romStage('core start complete');
 
         romLoaded = true;
+        romLaunchTimestamp = performance.now();
+        romFrameCount = 0;
         initAudio();
         ensureAudioRunning();
         document.getElementById('overlay').style.display = 'none';
@@ -502,6 +552,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
 
         resizeCanvas(false);
         if (romLoaded) {
+          romFrameCount++;
           Module._setJoypadInput(keyInput);
           Module._mainLoop();
           const fbPtr = Module._getScreenBuffer();
@@ -1048,8 +1099,55 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         const stack = document.getElementById('script-stack');
         stack.classList.toggle('collapsed');
         const isCollapsed = stack.classList.contains('collapsed');
-        toggleStackBtn.textContent = isCollapsed ? 'show stack' : 'hide stack';
+        toggleStackBtn.textContent = isCollapsed ? 'show panel' : 'hide panel';
         window.dispatchEvent(new Event('resize'));
+      });
+    }
+
+    function selectTab(tabName) {
+      const tabs = ['trace', 'stack', 'debug'];
+      for (const t of tabs) {
+        const btn = document.getElementById('ss-tab-' + t);
+        const view = document.getElementById('ss-view-' + t);
+        if (btn) btn.classList.toggle('active', t === tabName);
+        if (view) view.classList.toggle('active', t === tabName);
+      }
+    }
+    const tabTraceBtn = document.getElementById('ss-tab-trace');
+    if (tabTraceBtn) tabTraceBtn.addEventListener('click', () => selectTab('trace'));
+    const tabStackBtn = document.getElementById('ss-tab-stack');
+    if (tabStackBtn) tabStackBtn.addEventListener('click', () => selectTab('stack'));
+    const tabDebugBtn = document.getElementById('ss-tab-debug');
+    if (tabDebugBtn) tabDebugBtn.addEventListener('click', () => selectTab('debug'));
+
+    const resizer = document.getElementById('ss-resizer');
+    if (resizer) {
+      let isDragging = false;
+      let startY = 0;
+      let startH = 0;
+      resizer.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        startY = e.clientY;
+        const stackEl = document.getElementById('script-stack');
+        startH = stackEl ? stackEl.getBoundingClientRect().height : 260;
+        document.body.style.cursor = 'ns-resize';
+        document.body.style.userSelect = 'none';
+        e.preventDefault();
+      });
+      window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const delta = startY - e.clientY;
+        const newH = Math.max(80, Math.min(window.innerHeight - 100, startH + delta));
+        const stackEl = document.getElementById('script-stack');
+        if (stackEl) stackEl.style.height = newH + 'px';
+        window.dispatchEvent(new Event('resize'));
+      });
+      window.addEventListener('mouseup', () => {
+        if (isDragging) {
+          isDragging = false;
+          document.body.style.cursor = '';
+          document.body.style.userSelect = '';
+        }
       });
     }
 
@@ -1115,6 +1213,16 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
 
     let totalTraceCount = 0;
 
+    function isValidScriptAddr(loc) {
+      if (typeof loc !== 'number' || isNaN(loc)) return false;
+      const raw = loc >>> 0;
+      if (raw === 0 || raw === 0x555555 || raw === 0xFFFFFF) return false;
+      const bank = (raw >>> 16) & 0xFF;
+      const addr = raw & 0xFFFF;
+      if (bank < 0x80 || addr < 0x8000) return false;
+      return true;
+    }
+
     function checkScriptExecutionTrace() {
       const m = getModule();
       if (!m || !hasDebuggerApi(m)) return;
@@ -1169,12 +1277,25 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           targetLoc = tracker.loc;
         }
 
+        // Filter cold-RAM garbage or uninitialized addresses
+        if (event && !isValidScriptAddr(targetLoc)) {
+          event = null;
+        }
+
+        // Room 0x15 enter script executes in frame 1 and reaches 0xBC8006 before frame poll.
+        // Catch when slot 0 starts and points to 0xBC8000..0xBC8008, resetting targetLoc to 0xBC8000
+        if (s === 0 && event === 'start' && targetLoc >= 0xBC8000 && targetLoc <= 0xBC8008) {
+          targetLoc = 0xBC8000;
+        }
+
         if (event && targetLoc > 0) {
           let rawBytes = [];
           try {
             const buf = m.readMemoryRange(targetLoc, 32);
             if (buf && buf.length) rawBytes = Array.from(buf);
           } catch (_) {}
+          const elapsedSec = romLaunchTimestamp > 0 ? ((performance.now() - romLaunchTimestamp) / 1000) : 0;
+          const timeStr = '+' + elapsedSec.toFixed(2) + 's, f' + romFrameCount;
           batch.push({
             slot: s,
             entity,
@@ -1184,6 +1305,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
             state,
             timer1,
             bytes: rawBytes,
+            timeStr,
+            frame: romFrameCount,
           });
         }
 
@@ -1206,7 +1329,9 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         const row = document.createElement('div');
         row.className = 'ss-trace-row';
         const tagClass = 'ss-trace-tag ' + (entry.event || '');
+        const timeHtml = entry.timeStr ? '<span class="ss-trace-time">' + escH(entry.timeStr) + '</span> ' : '';
         row.innerHTML =
+          timeHtml +
           '<span class="' + tagClass + '">' + escH('[s' + entry.slot + ' | ' + entry.entity + ' | ' + entry.event + ']') + '</span> ' +
           '<span class="ss-trace-addr">' + escH(entry.locHex) + '</span> ' +
           '<span class="ss-trace-bytes">[' + escH(entry.bytesHex) + ']</span> ' +
@@ -1225,10 +1350,14 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       while (container.childNodes.length > 250) {
         container.removeChild(container.firstChild);
       }
+      totalTraceCount += entries.length;
       const countEl = document.getElementById('ss-trace-count');
       if (countEl) {
-        totalTraceCount += entries.length;
         countEl.textContent = totalTraceCount + ' lines';
+      }
+      const tabCountEl = document.getElementById('ss-tab-trace-count');
+      if (tabCountEl) {
+        tabCountEl.textContent = totalTraceCount;
       }
       const autoScroll = document.getElementById('ss-trace-scroll');
       if (autoScroll && autoScroll.checked) {
@@ -1253,6 +1382,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         totalTraceCount = 0;
         const count = document.getElementById('ss-trace-count');
         if (count) count.textContent = '0 lines';
+        const tabCount = document.getElementById('ss-tab-trace-count');
+        if (tabCount) tabCount.textContent = '0';
       });
     }
 
