@@ -80,27 +80,56 @@ also used in the temple and town-level-3 bosses and the Rimsala arena.
 - **Arbitrary colours** (not taken from any record) would mean writing CGRAM
   or the slot table `$7E1278`. Nothing here shows a script doing that.
 
-### An animation that loads a palette moves the home slot
+### Three palette fields, and the home slot
 
-Animation command `4B` (`palette $p`, `$90885A` → `$90CD5C`) loads `$p` into a
-free slot (`$90CD80`: 4, 5, 0, 1 — never the Boy's 7 or the Dog's 8). Then it
-writes that slot offset to `+0x0C` (`PALETTE`) **and** to `+0x74`/`+0x75`
-(`PALETTE_COPY_1`/`_2`). `+0x75` is the home slot: `$90CDDC` puts it back into
-`+0x0C` and `+0x74`, and, when it is `$0C`/`$0E`, reloads slot 7 from `$0A2F` (the
-Boy's current palette) or slot 8 for the Dog. That is why
-`animate(BOY, …, ANIMATION_ENEMY.MAGMAR_ENTER)` (which starts with
-`palette $b68b`) leaves the Boy in Magmar's colours for good: his home slot now
-points at Magmar's.
+An entity names its palette by **slot offset** (0, 2 … 14 into `$7E1278`, the
+`PALETTE_SLOT_*` table) in three bytes:
 
-His own colours are still in slot 7, so pointing all three fields back fixes it:
+| Field | everscript | What it is |
+|---|---|---|
+| `+0x0C` | `PALETTE` | The slot it is drawn with now. |
+| `+0x74` | `PALETTE_COPY_1` | A copy of the current slot, written together with `+0x0C`. |
+| `+0x75` | `PALETTE_COPY_2` | The **home slot**: what the game restores `+0x0C` to. |
+
+everscript's `[Byte]` sizes are right: every writer below is in 8-bit mode. Its
+comment ("copy palette slot offset") is right too, but it misses the one fact
+that matters: `+0x75` is the value the game goes back to.
+
+**Restoring** (`$90CDDC`): reads `+0x75` and writes it to `+0x0C` and `+0x74`.
+When that slot is `$0C` (`PALETTE_SLOT_BOY`), it also reloads the slot from
+`$0A2F`, the Boy's current colours (his weapon's palette). `$0E`
+(`PALETTE_SLOT_DOG`) does the same for the Dog. This is why writing `PALETTE`
+alone does not stick, and why kaizo's `add_palette_donor` rewrites it every 5
+frames.
+
+**Loading** (animation command `4B`, `palette $p`: `$90885A` → `$90CD5C`):
+1. sets `+0x74` to `$0404`;
+2. finds `$p` in a slot, or claims the first free one (`$90CD80`/`$90CDA9`).
+   It looks at offsets `$08`, `$0A`, `$00`, `$02`, `$04` (`PALETTE_SLOT_5`, `_6`,
+   `_1`, `_2`, `_3`), never `$0C` or `$0E`. When none is free it goes on to
+   `$90CE92`, which is not traced;
+3. writes the slot offset to `+0x0C`, `+0x74` **and `+0x75`**.
+
+Step 3 moves the home slot. So `animate(BOY, …, ANIMATION_ENEMY.MAGMAR_ENTER)`,
+whose script starts with `palette $b68b`, leaves the Boy in Magmar's colours for
+good: every later restore puts Magmar's slot back. 75 animation records load a
+palette this way (the placeholder effects, the Windwalker, the Pigoodle,
+`MAGMAR_ENTER`); the Characters tab marks them "palette loaded by the script".
+
+**Resetting.** Write the old slot offset (not a palette address like `$ad0b`)
+back into all three fields:
 
 ```
 <BOY>[PALETTE] = 0x0c;
-<BOY>[PALETTE_COPY_1] = 0x0c0c;   // +0x74 and +0x75 in one word write
+<BOY>[PALETTE_COPY_1] = 0x0c;
+<BOY>[PALETTE_COPY_2] = 0x0c;
 ```
 
-For the Dog, use `0x0e` and `0x0e0e`. Magmar's palette stays loaded in its slot
-until the allocator reuses it.
+For the Dog, use `0x0e`. For the Boy and the Dog this is safe: `4B` never loads
+into their slots, and the next restore reloads their colours anyway. For any
+other entity, its old slot may meanwhile hold another palette; then get the
+colours loaded again with a donor (above) and point all three fields at the
+donor's slot. Derived from the code above, not yet tried in game.
 
 ## Swapping `TYPE`
 

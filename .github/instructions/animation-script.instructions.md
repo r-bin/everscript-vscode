@@ -19,7 +19,7 @@ wrong.
 | Tick-accurate interpreter, record table, id table | | `src/maps/animation-vm.ts` |
 | Linear idle walk (room view) | | `src/maps/character-animation.ts` |
 | Catalogue of every animation + owners | | `src/sprites/animation-catalog.js` |
-| Render + script listing for the Sprites tab | | `src/sprites/animation-decoder.js` |
+| Render + script listing for the Characters tab (formerly Sprites) | | `src/sprites/animation-decoder.js` |
 | Projectile records, straight-line velocity | `$900000 + id` | `src/maps/projectiles.ts` |
 | Projectile spawns + their animations for the tab | | `src/sprites/projectile-render.js` |
 
@@ -80,7 +80,9 @@ else; the linear walker reads `opcode()` too.
   header +6, 15 slots, named only where an id or the Dog's record names them. The
   Dog's own fields are the Act 1 wolf: draw them in its own palette, not the form's.
 - **`0x4B` = `palette $p`** (`$90CD80`, the projectile palette loader): a script that
-  loads one is drawn in it (`VmResult.palette`), ahead of any owner or inference.
+  loads one is drawn in it (`VmResult.palette`), ahead of any owner or inference. In the
+  game it also writes the slot to `+0x75`, the entity's **home** palette slot, so the
+  entity keeps those colours after the animation (`runtime_stats.md` § Three palette fields).
   `ANIMATION_PLACEHOLDER` ids belong to character #25 (`$BDB2`).
 - **`0x5D` = `effect_done`**: alchemy effects signal their spell; when the next byte is
   another record's script the VM stops there (otherwise it plays that record, e.g. a rocket).
@@ -96,8 +98,9 @@ else; the linear walker reads `opcode()` too.
 - **Mode bit `$20` = invulnerable**. Procs 2 and 6 consume a projectile on hit; 4 pierces.
 - A script with no `sprite` keeps the previous one: pass `initialSprite`. A run still
   airborne at `loop` continues; play from `loopFrom`.
-- Entries that came from the Gemini pass (`0x48`–`0x4A`, `0x58`, `0x59`) were partly
-  wrong. Re-derive any opcode claim from its handler before trusting it.
+- Entries that came from the Gemini pass (`0x48`–`0x4A`, `0x58`, `0x59`, the weapon
+  table's "charging stance", the "upward-anchored" hurt box) were wrong. Re-derive any
+  opcode or field claim from its handler before trusting it.
 
 - **Segment easing**: `0x59` sets a target; `0x58` (`$8FC905`) eases current toward it
   each tick it runs; draw at current. Head = segment 0, drawn in front. Hurt offset
@@ -127,19 +130,29 @@ else; the linear walker reads `opcode()` too.
 
 - A width comes from a trace or from reading the handler's `$5D` advances on every
   path. If neither exists, the opcode stays out of the table and walks stop there
-  with `stoppedAt`. `0x57` is genuinely variable-length and stays unknown.
+  with `stoppedAt`. Variable widths (`0x57`) come from `lengthAt`.
 - The real opcode range ends at `0x64` (`0x60`–`0x64` are HUD commands). Table entries past it point into data. All 1,752 record scripts complete; a script that stops now is a regression.
-- Names marked unverified in the doc (`sound`, `op_3f`, `op_40`, weapon
-  `op_48`–`op_4a`, `op_58`/`op_59`) describe the handler, not a confirmed on-screen
-  effect. Don't promote them without a trace.
+- Names marked unverified in the doc (`sound`, `op_3f`, `op_40`, `op_48`–`op_4a`)
+  describe the handler, not a confirmed on-screen effect. Don't promote them without
+  a trace.
 - Static runs assume the idle case: on screen, not in state `$0100`, no linked
   entity, unset variables read 0, `hold_random` takes the middle of its range.
   Say so wherever a result depends on it.
 
-## 5. Check after any change
+## 5. Characters tab behaviour that encodes these rules
+
+- Attacks play at the rounded facing (`facing`, `facingRounded`); the stage overlay says so.
+- The Stamina selector maps to attack levels and shows the power factor.
+- Palette precedence: viewer's choice (`paletteForced`) > script `palette` > weapon/form
+  of the first owner > character > inferred (shared sprites, neighbouring sprites,
+  nearest record). The Dog's own fields keep its Act 1 palette; `ACTn_` ids use form n.
+- List previews face south (8) and fall back to the fullest frame when the last is a wisp.
+
+## 6. Check after any change
 
 `node tests/memory/sprites.test.js` covers the group counts (783/1752/274/21), id
 resolution (Magmar `$4DD2`, Dog `ACT3_FALL_2` `$449E`), interpreter vs. linear-walk
 parity on idles (≥137/142), the Flowering Death counted loop, the Mosquito
 checkpoint step, the disassembly notation, the `$D9D6` spear projectile (tick 16,
-29 px ahead, 5 px/tick), and the weapon palette slots.
+29 px ahead, 5 px/tick), the weapon palette slots, attack facing rounding, script and
+placeholder palettes, Dog form palettes, and `effect_done` endings.

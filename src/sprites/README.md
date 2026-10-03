@@ -5,6 +5,7 @@
 ## 1. Goal
 
 Unify and modernize the first two tabs of SoETilesViewer into an interactive, readable tool within the VS Code Extension:
+The radar tab is called **Characters** (it was "Sprites"); inside it, three modes:
 - **Characters [Ctrl+1]**: Lists all 142 characters/enemies/NPCs from the ROM table at `$8EB678`, with their stats, engine mechanics explanations, and hitboxes.
 - **Sprites [2]**: Lists all 5,128 raw sprites walked from `$CA0003`, with chunk breakdown (`0x0000 @ -12, -31, flags 10`), selectable palettes and backgrounds.
 - **Animations**: every one of the 783 animations in the ROM's record table, with its owners and its script.
@@ -26,6 +27,8 @@ Unify and modernize the first two tabs of SoETilesViewer into an interactive, re
 | `webview/sprites-view.js` | Client-side webview controller, rAF animation loop, canvas drawing | < 350 |
 | `webview/sprites-script.js` | Script listing panel (current-frame highlight, owners) and the Animations rail list; loaded before `sprites-view.js` | < 200 |
 | `webview/sprites-motion.js` | Stage geometry: walk path, jump height, projectile flight, and the scene box the canvas must hold | < 160 |
+| `webview/sprites-lazy.js` | Resizable splitters and lazy list thumbnails (`window.SpritesThumbs`) | < 120 |
+| `thumbnails.js` | List previews (south/east), sprites in every palette, chunk tiles | < 200 |
 | `webview/sprites-layout.css` | Styling adhering to VS Code theme tokens | < 300 |
 | `index.js` | Public API exports | < 50 |
 
@@ -35,3 +38,9 @@ Unify and modernize the first two tabs of SoETilesViewer into an interactive, re
 - `src/shared/` (`rom-readers.js`)
 - `src/language/data/index.json` (enum definitions for external animations)
 - No dependency on `src/rooms/`, `src/debugger/`, `src/scaling/`, or `vscode`.
+
+## 4. Rules
+
+The animation and entity rules this tab encodes (attack facing rounding, stamina →
+attack level, palette precedence, the home palette slot, Dog forms) are in the
+`animation-script` and `map-entities` skills (`.github/instructions/`).

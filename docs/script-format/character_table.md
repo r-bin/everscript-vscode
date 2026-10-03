@@ -54,26 +54,28 @@ character pointer (`LDX $0060,Y`). The address is where to look.
 
 The struct is 74 bytes; `+0x4A` is the next record.
 
-### Weapon-dependent animations: `WEAPON_DATA` (`$0438E6`)
+### The Boy's weapons and the Dog's forms
 
-Record 0 (the Boy) has `$0000` for `anim_atk0..3`, `anim_walk`, `anim_run`, and `anim_damage`.
-His animations depend dynamically on the equipped weapon, loaded from the **weapon data table**
-at `$0438E6` (SNES `$8838E6`).
+The Boy's record leaves his walk, run, attack and knockback fields empty; his
+animations come from the equipped weapon. The weapon table is at ROM offset
+`$0438E6` (bank `$C4`; not `$8838E6`): 15 entries of 36 bytes.
 
-- **Count & stride**: 15 weapon classes, **36 bytes** (`0x24`) per weapon entry.
-- **Offsets within weapon entry**:
-  - `+0x08`: `anim_stand` (idle pose holding weapon)
-  - `+0x0a`: `anim_walk`
-  - `+0x0c`: `anim_run`
-  - `+0x0e`: `anim_atk0` (attack level 0 / uncharged)
-  - `+0x10`: `anim_atk1` (attack level 1)
-  - `+0x12`: `anim_atk2` (attack level 2)
-  - `+0x14`: `anim_atk3` (attack level 3)
-  - `+0x16`: `anim_charge` (charging stance)
-  - `+0x18`: `anim_damage` (weapon recoil / damage reaction)
+| Offset | Field | Notes |
+|---|---|---|
+| `+0x04` | palette | The Boy is drawn in it, whatever he is doing. Not traced to a reader; matches the art |
+| `+0x08` | idle | |
+| `+0x0A` | walk | |
+| `+0x0C` | run | |
+| `+0x0E`..`+0x14` | attack Lvl 0–3 | Picked by stamina at `$9082D8`: < 100%, 100%, 200%, 300% |
+| `+0x16` | dodge | Sets mode `$20` (invulnerable). Not a charging stance: the record's script is the dodge |
+| `+0x18` | knockback | |
 
-The Sprites tab animation viewer reads this table to animate the Boy wielding Bone,
-Crude Sword, Bronze Axe, Lance, etc.
+The Dog's counterpart is its forms: 6 entries via the pointer table at `$CF945F`,
+a 10-byte header (palette at `+6`) and 15 animation slots
+(`src/sprites/dog-forms.js`). Acts 0–3 put one record in all four attack slots.
+
+Attack power scales with the attacker's stamina too (`$8FC02B`): ÷4 under 50%,
+÷2 under 100%, ×1, ×2 from 200%, ×4 from 300%.
 
 ### Against everscript's enums
 
