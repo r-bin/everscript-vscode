@@ -2,8 +2,53 @@
 // Owner: memory_radar/render-docs-tab.js
 // Renders the static Docs and RNG tab HTML.
 // Pure functions — no state, no imports, no VS Code dependency.
-// Content: physical damage, alchemy, hit%, atlas, map loading, script, evs, plugin docs.
+// Content: physical damage, alchemy, hit%, atlas, cheats, map loading, script, evs, plugin docs.
 // RNG content: Naris, Prophet, Egg mechanics.
+
+/** A small static table for the docs tab: a header row, then rows of cells. */
+function docTable(head, rows) {
+    const cell = (tag) => (c) => '<' + tag + '>' + c + '</' + tag + '>';
+    return '<table class="doc-htable"><thead><tr>' + head.map(cell('th')).join('') + '</tr></thead><tbody>' +
+        rows.map((r) => '<tr>' + r.map(cell('td')).join('') + '</tr>').join('') + '</tbody></table>';
+}
+
+/** Cheats: the diagonal speed boost (docs/cheats.md). */
+function cheatsSection() {
+    return '<div class="doc-sec" data-doc="cheats" style="display:none">' +
+        '<h3 class="doc-h">Diagonal Speed Boost</h3>' +
+        '<div class="doc-fact">Holding a diagonal moves at the full E/W speed on <b>both</b> axes. With most weapons that is faster upward than going straight N. Full write-up: <code>docs/cheats.md</code>.</div>' +
+        '<ul class="doc-bullets">' +
+        '<li>A walk or run is an animation: its <code>step n</code> commands move n/4 px per tick, and each facing has its own script. The spear steps 6 N/S but 8 E/W.</li>' +
+        '<li>Walk and run records have only four poses: NE/SE play the <b>E</b> script and NW/SW the <b>W</b> script (<code>$90815B</code>). The facing itself stays diagonal; only attacks round it (<code>$908343</code>).</li>' +
+        '<li>The mover <code>$8FAD51</code> (table <code>$8FAF18</code>) gives a diagonal the full step on x <b>and</b> y, with no \u221a2. So NE moves up at E\u2019s speed and covers about 1.41\u00d7 overall.</li>' +
+        '</ul>' +
+        '<div class="doc-fact">px per tick (60/s). Diagonal = speed on each axis.</div>' +
+        docTable(['Boy weapon', 'Walk N/S', 'Walk E/W = diag', 'Run N/S', 'Run E/W = diag'], [
+            ['Bone Crusher, swords, axes', '1.50', '1.74', '2.50', '2.75'],
+            ['Spears, Bazooka', '1.50', '2.00', '2.75', '3.00'],
+        ]) +
+        docTable(['Dog form', 'Walk N / S', 'Walk E/W', 'Run N / S', 'Run E/W'], [
+            ['Act 0 (Podunk)', '1.00 / 1.00', '1.00', '3.75 / 5.25', '5.25'],
+            ['Act 1 (Prehistoria)', '0.75 / 1.00', '0.75', '4.00 / 4.00', '3.25'],
+            ['Act 1 with stick', '4.00 / 4.00', '3.25', '4.00 / 4.00', '3.25'],
+            ['Act 2 (Antiqua)', '1.25 / 1.00', '1.26', '2.73 / 3.25', '2.73'],
+            ['Act 3 (Gothica)', '1.50 / 1.50', '1.75', '2.50 / 3.25', '2.50'],
+            ['Act 4 (Omnitopia)', '2.00 / 1.75', '2.00', '6.75 / 8.00', '6.25'],
+        ]) +
+        '<h3 class="doc-h">Which weapon and direction</h3>' +
+        '<div class="doc-fact"><b>Horizontally</b> the direction doesn\u2019t matter (a diagonal keeps the full E/W speed sideways); only the weapon does. <b>Vertically</b>, zig-zag NE/NW (or SE/SW) whenever E/W is faster than N/S: the sideways parts cancel.</div>' +
+        docTable(['Who', 'Horizontal', 'Vertical up', 'Vertical down'], [
+            ['Boy, spear/Bazooka', 'any of E, NE, SE: 2.00 walk, 3.00 run', 'zig-zag: 2.00 / 3.00 (vs 1.50 / 2.75)', 'zig-zag'],
+            ['Boy, crusher/sword/axe', '1.74 walk, 2.75 run', 'zig-zag: 1.74 / 2.75 (vs 1.50 / 2.50)', 'zig-zag'],
+            ['Dog Act 0', '5.25 run', 'run zig-zag: 5.25 vs 3.75', 'either'],
+            ['Dog Act 1 (+stick)', '3.25 run', 'straight (4.00 vs 3.25)', 'straight'],
+            ['Dog Act 2', '2.73 run', 'either', 'straight (3.25 vs 2.73)'],
+            ['Dog Act 3', '2.50 run', 'walk zig-zag; run either', 'run straight (3.25 vs 2.50)'],
+            ['Dog Act 4', '6.25 run', 'straight (6.75 vs 6.25)', 'straight (8.00 vs 6.25)'],
+        ]) +
+        '<div class="doc-fact">From the scripts, averaged over a cycle; not timed on hardware. Steps are capped at entity <code>+0x64</code>, which is not modelled, so the fastest Dog runs may be slower in game. Wall sliding (<code>$8FAF48</code>) can turn a diagonal straight.</div>' +
+        '</div>';
+}
 
 function buildDocsTabHtml() {
     return (
@@ -14,6 +59,7 @@ function buildDocsTabHtml() {
         '<button class="doc-btn" data-doc="alchemy">Offensive Alchemy</button>' +
         '<button class="doc-btn" data-doc="hit">Hit%</button>' +
         '<button class="doc-btn" data-doc="atlas">Atlas Glitch</button>' +
+        '<button class="doc-btn" data-doc="cheats">Cheats</button>' +
         '<button class="doc-btn" data-doc="mapload">Map Loading</button>' +
         '<button class="doc-btn" data-doc="script">Script</button>' +
         '<button class="doc-btn" data-doc="evs">Everscript</button>' +
@@ -60,6 +106,7 @@ function buildDocsTabHtml() {
         '<label>rng16 <input id="doc-at-rng" type="range" min="0" max="65535" value="0"><span id="doc-at-rng-num">0</span></label></div>' +
         '<div id="doc-at-chart"></div>' +
         '</div>' +
+        cheatsSection() +
         '<div class="doc-sec" data-doc="mapload" style="display:none">' +
         '<h3 class="doc-h">Map Loading</h3>' +
         '<div class="doc-fact">Current status: the exact room-payload codec is still not fully decoded. This section records the grounded loader model from room metadata, trigger-table parsing, breakpoint tracing, and truncation tests.</div>' +

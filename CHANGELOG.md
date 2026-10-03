@@ -1,3 +1,10 @@
+## [0.136.0] — 2026-10-03
+
+### Feature: [Docs] Cheats section: the diagonal speed boost
+
+- New `docs/cheats.md`, and a **Cheats** section in the radar's Docs tab. Holding a diagonal moves at the full E/W speed on both axes, because walk/run animations have four poses (NE/SE play the E script) and the mover `$8FAD51` doesn't scale diagonals.
+- Speed tables for every Boy weapon group and every Dog form, plus which weapon and direction to pick for horizontal and vertical travel. The Boy goes fastest vertically with a spear or the Bazooka, zig-zagging diagonals (walk 2.00 vs 1.50, run 3.00 vs 2.75). For some Dog forms straight is faster.
+
 ## [0.135.0] — 2026-10-03
 
 ### Fix: [Characters] diagonal movement speeds

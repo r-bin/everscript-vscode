@@ -676,6 +676,9 @@ walking N (1.5), and covers 2.83 px per tick overall. Running NE climbs 3.0
 against 2.75 running N. The Characters tab lists all eight facings with their
 x and y per tick.
 
+Which weapon and direction to pick for fast travel, for the Boy and every Dog
+form: [cheats.md § Diagonal speed boost](../cheats.md#diagonal-speed-boost).
+
 ## Palettes of animations nobody owns
 
 A script that runs `palette` (command `4B`) is drawn in that palette, whoever shows
