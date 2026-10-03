@@ -40,6 +40,9 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
     // A script that never sets a sprite (the shared damage knock-back) keeps showing
     // what the character had on: its standing sprite for this facing.
     const initialSprite = Number.isInteger(characterId) ? resolveCharacterSprite(rom, characterId, facing) : null;
+    // The Boy's and Dog's scripts set +0x42/+0x44 to values (e.g. −132/−144) that cannot be
+    // hurt offsets; until that is explained their hurt region stays at the default.
+    const playerSlot = characterId === 0 || characterId === 1;
     const run = runAnimation(rom, scriptAddr, facing, { initialSprite });
     const script = scriptListing(rom, scriptAddr);
     if (!run.frames.length) {
@@ -91,7 +94,8 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
             spawns: f.spawns,
             mode: f.mode,
             invulnerable: (f.mode & MODE_INVULNERABLE) !== 0,
-            segments: f.segments ? segmentLayout(f.segments) : null,
+            segments: f.segments ? { sprites: f.segments.sprites.map(hex6), ticks: f.segments.ticks } : null,
+            hurt: playerSlot ? [0, -16] : f.hurt,
             motion: f.motion,
             shadowPng: shadow && f.sprite2 ? shadow.images[i] : null,
             chunks: chunkList,
@@ -138,22 +142,15 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
 
 const hex6 = (v) => '$' + v.toString(16).padStart(6, '0');
 
-/** One entry per segment: its sprite (key into segmentSprites) and offset from the feet, or null if unplaced. */
-function segmentLayout(seg) {
-    const sprites = [];
-    for (const g of seg.groups) for (let i = 0; i < (g.count || seg.total) && sprites.length < seg.total; i++) sprites.push(hex6(g.sprite));
-    return seg.positions.map((p, k) => (p ? { sprite: sprites[k] || sprites[sprites.length - 1], dx: p[0], dy: p[1] } : null));
-}
-
 /** Each distinct segment sprite, composed once, keyed by address. */
 function renderSegmentSprites(rom, frames, colours) {
     const out = {};
     for (const f of frames) {
         if (!f.segments) continue;
-        for (const g of f.segments.groups) {
-            const key = hex6(g.sprite);
+        for (const sprite of f.segments.sprites) {
+            const key = hex6(sprite);
             if (key in out) continue;
-            const c = composeAligned(rom, [{ sprite: g.sprite }], colours);
+            const c = composeAligned(rom, [{ sprite }], colours);
             out[key] = { png: c.images[0], width: c.width, height: c.height, originX: c.originX, originY: c.originY };
         }
     }

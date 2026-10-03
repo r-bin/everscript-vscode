@@ -25,18 +25,26 @@ function placeTarget(facing, distance) {
     return { x: ux * distance, y: uy * distance, z: 0 };
 }
 
-/** The first tick of each run of consecutive ticks. */
-function firstOfRuns(ticks) {
-    return ticks.filter((t, i) => i === 0 || ticks[i - 1] !== t - 1);
+/**
+ * A hit leaves the target immune to that attacker for a while: $8FBA1B writes the
+ * attacker into the target's +0x36 and $14 into +0x38, which counts down every tick
+ * ($8FB014) and clears +0x36 once it goes negative — 21 ticks. Others can still hit.
+ */
+const HIT_COOLDOWN = 0x14 + 1;
+
+/** The ticks that land, given every tick of contact and the per-attacker cooldown. */
+function withCooldown(ticks) {
+    const out = [];
+    for (const t of ticks) if (!out.length || t >= out[out.length - 1] + HIT_COOLDOWN) out.push(t);
+    return out;
 }
 
 /**
  * Every tick a strike box or a projectile first reaches the target. Ticks are on the
  * playback clock (from the first displayed frame); strikes move and lift with the
- * attacker, projectiles hit with their 16×16 box at their own height. Only the first
- * tick of each contact counts: a target the same attacker just hit is skipped
- * ($8FB61E, +0x36) until its cooldown runs out. A projectile hits once; one that is
- * consumed on hit (procs 2 and 6) has its path cut there.
+ * attacker, projectiles hit with their 16×16 box at their own height. After a hit the
+ * same attacker cannot hit again for 21 ticks (+0x36/+0x38). A projectile consumed on
+ * hit (procs 2 and 6) hits once and its path is cut there.
  */
 function hitTicks(vmFrames, spawns, target) {
     const melee = [];
@@ -53,12 +61,19 @@ function hitTicks(vmFrames, spawns, target) {
     const projectile = [];
     for (const sp of spawns) {
         const path = sp.path || [];
-        const i = path.findIndex((p) => strikeHits({ x: p[0], y: p[1], width: PROJECTILE_HIT_SIZE, height: PROJECTILE_HIT_SIZE, z: p[2] }, target));
-        if (i < 0) continue;
-        projectile.push({ idHex: sp.idHex, tick: sp.tick + i + 1, onHit: sp.onHit });
-        if (sp.onHit === 'consumed') { sp.path = path.slice(0, i + 1); sp.ends = 'hit'; }
+        const contact = [];
+        path.forEach((p, i) => { if (strikeHits({ x: p[0], y: p[1], width: PROJECTILE_HIT_SIZE, height: PROJECTILE_HIT_SIZE, z: p[2] }, target)) contact.push(i); });
+        if (!contact.length) continue;
+        if (sp.onHit === 'consumed') {
+            const i = contact[0];
+            projectile.push({ idHex: sp.idHex, tick: sp.tick + i + 1, onHit: sp.onHit });
+            sp.path = path.slice(0, i + 1);
+            sp.ends = 'hit';
+        } else {
+            for (const i of withCooldown(contact)) projectile.push({ idHex: sp.idHex, tick: sp.tick + i + 1, onHit: sp.onHit });
+        }
     }
-    return { melee: firstOfRuns(melee), projectile };
+    return { melee: withCooldown(melee), projectile };
 }
 
 /** The target, ready to draw: its standing frame, facing back at the viewed character. */

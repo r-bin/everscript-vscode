@@ -1,3 +1,13 @@
+## [0.125.0] — 2026-10-03
+
+### Fix: [Sprites] smooth snakes, hurt offsets, hit cooldown, every character field
+
+- **Tar Skull and Salabog move smoothly:** `segment` (`0x59`) only sets a target, and `segment_step` (`0x58`, run every tick) eases each segment toward it (`$8FC905`, a velocity-damped ease using the Mode 7 multiplier). This is now modelled exactly, with a position for every segment on every tick. The head (segment 0) is drawn in front, so the order is no longer inverted, and the hurt region follows the head.
+- **Hurt offsets applied:** `+0x42/+0x44` (from `hurtbox` and `segment_step`) are what the hit test uses, so the hurt region moves with them. The Skullclaw's rises while flying. The Boy and Dog keep the default because their scripts set values that cannot be offsets.
+- **Hit cooldown:** the same attacker can hit again after 21 ticks (`+0x36/+0x38`), so a lingering strike or a piercing projectile counts every 21 ticks of contact, not once. Knock-back itself is **not** invulnerable.
+- **Cast:** character field `+0x46` (the Boy, Bad Boy, Verminator) is relabelled **Cast (alchemy / item)**, and `+0x48` (the evil copies) is listed.
+- **Character fields decoded from the code that reads them:** flags `+0x07` (bit 4 = immune to projectiles, bit 1 = −30 hit rate, and more), second palette `+0x0B`, prize chance as a percentage (value / 128), and code-backed descriptions for every stat. Fields still open (`+0x11`, `+0x17`, `+0x2A`, `+0x48`) are shown and marked as open. The full table is in `docs/script-format/character_table.md`.
+
 ## [0.124.0] — 2026-10-03
 
 ### Fix: [Sprites] damage, fliers, Tar Skull, invulnerability, consumed projectiles, trail

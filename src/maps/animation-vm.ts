@@ -11,7 +11,7 @@
 
 import { snesToRom, readByte } from './rom';
 import { read16At, ANIMATION_TABLE } from './character-record';
-import { opcode, lengthAt, segmentsAt, spriteOperand, sprite2Operand, sprite24At, jumpTarget, END_FRAME, SegmentGroup, SEGMENT_FIRST, SEGMENT_STRIDE } from './animation-opcodes';
+import { opcode, lengthAt, segmentsAt, spriteOperand, sprite2Operand, sprite24At, jumpTarget, END_FRAME, SEGMENT_FIRST, SEGMENT_STRIDE } from './animation-opcodes';
 
 const at = (rom: Uint8Array, snes: number): number => readByte(rom, snesToRom(snes));
 const signed8 = (v: number): number => (v << 24) >> 24;
@@ -163,8 +163,13 @@ export interface VmFrame {
     motion: Array<[number, number, number]>;
     /** Mode (+0x16) during the frame; bit `$20` means it cannot be hit. */
     mode: number;
-    /** The body segments a `segments` command gave it, if any (Tar Skull, Bone Snake). */
-    segments: { total: number; groups: SegmentGroup[]; positions: Array<[number, number] | null> } | null;
+    /**
+     * A segmented body (Tar Skull, Salabog): each segment's sprite, and where every segment
+     * is drawn after each tick of the frame — `ticks[t][k] = [x, y]` from the feet.
+     */
+    segments: { sprites: number[]; ticks: Array<Array<[number, number]>> } | null;
+    /** Hurt-region offset (+0x42, +0x44) at the end of the frame. */
+    hurt: [number, number];
 }
 
 export interface VmResult {
@@ -181,6 +186,34 @@ export interface VmResult {
      * air at `loop` and the run carried on until its motion repeated (a hovering flier).
      */
     loopFrom: number;
+}
+
+/**
+ * One entry of the segment list at +0x86 (`$8FCA02`): 14 bytes — sprite (+0..2),
+ * depth (+3), x/y countdowns (+4, +5), x/y positions as 8.8 (+6/+7, +8/+9),
+ * x/y velocities (+0x0A, +0x0B), x/y targets (+0x0C, +0x0D).
+ */
+interface Segment { sprite: number; depth: number; count: [number, number]; pos: [number, number]; vel: [number, number]; target: [number, number] }
+
+const EASE_DISTANCE = 0x8fcb18;   // share of the remaining distance per countdown step
+const EASE_VELOCITY = 0x8fca50;   // share of the last step's velocity carried on
+
+/** The Mode 7 multiplier as `$8FC905` uses it: signed 16 × signed 8, middle 16 bits ($2135). */
+const m7 = (a: number, b: number): number => ((((a << 16) >> 16) * signed8(b)) >> 8) & 0xffff;
+
+/** `$8FC905` for one axis of one segment. */
+function easeAxis(rom: Uint8Array, s: Segment, axis: 0 | 1): void {
+    if (s.count[axis] < 3) {
+        s.pos[axis] = (s.target[axis] & 0xff) << 8;
+        s.vel[axis] = 0;
+        return;
+    }
+    s.count[axis] -= 1;
+    const c = s.count[axis];
+    const delta = (s.target[axis] - (s.pos[axis] >> 8)) & 0xff;
+    const step = (m7(read16At(rom, EASE_DISTANCE + c * 2), delta) + m7(read16At(rom, EASE_VELOCITY + c * 2), s.vel[axis])) & 0xffff;
+    s.pos[axis] = (s.pos[axis] + step) & 0xffff;
+    s.vel[axis] = (((step >>> 3) + 1) >>> 1) & 0xff;
 }
 
 export interface RunOptions {
@@ -207,7 +240,8 @@ export function runAnimation(rom: Uint8Array, script: number, facing = 8, opts: 
     let resume = script;
     let restart = script;
     let mode = 0;
-    let segments: VmFrame['segments'] = null;
+    let segList: Segment[] | null = null;
+    let hurt: [number, number] = [0, -16];
     const seenAt = new Map<string, number>();
     let loopFrom = 0;
     let x = 0;
@@ -238,7 +272,8 @@ export function runAnimation(rom: Uint8Array, script: number, facing = 8, opts: 
 
     ticks: for (let tick = 0; tick < MAX_TICKS && frames.length < MAX_FRAMES; tick++) {
         // Height and speed are part of the state: mid-air, the same pointer is not a repeat.
-        const state = `${resume}:${timer}:${h}:${v}:${mode}:${[...vars].join(',')}`;
+        const segState = segList ? segList.map((g) => `${g.count}|${g.pos}|${g.vel}|${g.target}`).join(';') : '';
+        const state = `${resume}:${timer}:${h}:${v}:${mode}:${[...vars].join(',')}:${segState}`;
         if (seen.has(state)) { complete = true; loopFrom = seenAt.get(state) ?? 0; break; }
         seen.add(state);
         seenAt.set(state, totalTicks);
@@ -274,7 +309,8 @@ export function runAnimation(rom: Uint8Array, script: number, facing = 8, opts: 
                 case 'sprite': sprite = spriteOperand(rom, q); break;
                 case 'sprite2': sprite2 = sprite2Operand(rom, q); break;
                 case 'sprite_long': case 'sprite_aim': sprite = sprite24At(rom, q + 1); break;  // aim: the first angle
-                case 'reset': sprite = null; sprite2 = null; mode = 0; break;
+                case 'reset': sprite = null; sprite2 = null; mode = 0; hurt = [0, -16]; break;
+                case 'hurtbox': hurt = [signed16(b(1) | (b(2) << 8)), signed16(b(3) | (b(4) << 8))]; break;
                 case 'loop':
                     // Still in the air: the game carries on from here, so the run does too,
                     // until its whole state (height included) repeats.
@@ -286,19 +322,29 @@ export function runAnimation(rom: Uint8Array, script: number, facing = 8, opts: 
                 case 'hover_hold': if (h >= HOVER_HEIGHT) timer += 1; break;
                 case 'segments': {
                     const sg = segmentsAt(rom, q);
-                    segments = { total: sg.total, groups: sg.groups, positions: new Array(sg.total).fill(null) };
+                    const sprites: number[] = [];
+                    for (const g of sg.groups) for (let i = 0; i < (g.count || sg.total) && sprites.length < sg.total; i++) sprites.push(g.sprite);
+                    segList = sprites.map((sp) => ({ sprite: sp, depth: 0, count: [0, 0], pos: [0, 0], vel: [0, 0], target: [0, 0] }));
                     break;
                 }
                 case 'segment': {
+                    // $8FC8DE: depth, both countdowns and both targets; positions ease there.
                     const k = (b(1) - SEGMENT_FIRST) / SEGMENT_STRIDE;
-                    const cur = segments as VmFrame['segments'];
-                    if (cur && Number.isInteger(k) && k >= 0 && k < cur.total) {
-                        const positions = cur.positions.slice();
-                        positions[k] = [signed8(b(5)), signed8(b(6))];
-                        segments = { total: cur.total, groups: cur.groups, positions };
+                    const sg = segList ? segList[k] : undefined;
+                    if (sg) {
+                        sg.depth = signed8(b(2));
+                        sg.count = [b(3), b(4)];
+                        sg.target = [signed8(b(5)), signed8(b(6))];
                     }
                     break;
                 }
+                case 'segment_step':
+                    if (segList && segList.length) {
+                        for (const sg of segList) { easeAxis(rom, sg, 0); easeAxis(rom, sg, 1); }
+                        // $908886: the hurt region follows the head.
+                        hurt = [signed8(segList[0].pos[0] >> 8), signed8(segList[0].pos[1] >> 8)];
+                    }
+                    break;
                 case 'set8': vars.set(b(1), b(2)); break;
                 case 'set16': set16(b(1), b(2) | (b(3) << 8)); break;
                 case 'set24': vars.set(b(1), b(2)); set16(b(1) + 1, b(3) | (b(4) << 8)); break;
@@ -340,19 +386,23 @@ export function runAnimation(rom: Uint8Array, script: number, facing = 8, opts: 
                 if (h2 <= 0) { h = 0; v = 0; } else { h = h2; v -= 1; moves = true; }
                 phase = (phase + 1) % DITHER.length;
                 const sample: [number, number, number] = [x, y, h];
+                const segSample = segList ? segList.map((sg) => [signed8(sg.pos[0] >> 8), signed8(sg.pos[1] >> 8)] as [number, number]) : null;
                 const last = frames[frames.length - 1];
                 const invulnerable = (mode & MODE_INVULNERABLE) !== 0;
                 if (last && last.sprite === sprite && last.sprite2 === sprite2 && sameStrike(last.strikeBox, strike)
-                    && ((last.mode & MODE_INVULNERABLE) !== 0) === invulnerable && last.segments === segments) {
+                    && ((last.mode & MODE_INVULNERABLE) !== 0) === invulnerable) {
                     for (const sp of spawns) sp.at = last.ticks;
                     last.ticks += 1;
                     last.step += step;
                     last.spawns.push(...spawns);
                     last.motion.push(sample);
+                    if (last.segments && segSample) last.segments.ticks.push(segSample);
+                    last.hurt = hurt;
                     for (const a of ran) if (!last.lines.includes(a)) last.lines.push(a);
                     if (random) last.random = random;
                 } else {
-                    frames.push({ sprite, sprite2, ticks: 1, strikeBox: strike, lines: ran, step, random, spawns, motion: [sample], mode, segments });
+                    frames.push({ sprite, sprite2, ticks: 1, strikeBox: strike, lines: ran, step, random, spawns, motion: [sample], mode, hurt,
+                        segments: segList && segSample ? { sprites: segList.map((sg) => sg.sprite), ticks: [segSample] } : null });
                 }
                 totalTicks += 1;
                 continue ticks;
@@ -374,6 +424,7 @@ export function runAnimation(rom: Uint8Array, script: number, facing = 8, opts: 
         first.ticks += last.ticks;
         first.step += last.step;
         first.motion = [...last.motion, ...first.motion];
+        if (first.segments && last.segments) first.segments.ticks = [...last.segments.ticks, ...first.segments.ticks];
         for (const a of last.lines) if (!first.lines.includes(a)) first.lines.push(a);
     }
     return { frames, complete, totalTicks, stoppedAt, moves, loopFrom };

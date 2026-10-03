@@ -376,14 +376,19 @@
       { key: 'aggro_chance', label: 'Aggro Chance', val: Math.round(s.aggro_chance / 256 * 100) + '%', hex: '$' + s.aggro_chance.toString(16), desc: m.aggro_chance },
       { key: 'exp', label: 'EXP', val: s.exp, hex: '$' + s.exp.toString(16), desc: m.exp },
       { key: 'money', label: 'Money (Talons)', val: s.money, hex: '$' + s.money.toString(16), desc: m.money },
-      { key: 'prize_chance', label: 'Prize Chance', val: s.prize_chance, hex: '$' + s.prize_chance.toString(16), desc: m.prize_chance },
+      { key: 'prize_chance', label: 'Prize Chance', val: Math.round(s.prize_chance / 128 * 100) + '%', hex: '$' + s.prize_chance.toString(16), desc: m.prize_chance },
       { key: 'radius', label: 'Collision Radius', val: s.radius + ' px (' + (s.radius*2) + '×' + s.radius + ')', hex: '$' + s.radius.toString(16), desc: m.radius },
       { key: 'flags', label: 'Flags', val: '$' + s.flags.toString(16).padStart(4, '0'), hex: '$' + s.flags.toString(16), desc: m.flags },
       { key: 'palette', label: 'Palette', val: '$' + s.palette.toString(16), hex: '$' + s.palette.toString(16), desc: m.palette },
       { key: 'charge_limit', label: 'Charge Limit', val: s.charge_limit, hex: '$' + s.charge_limit.toString(16), desc: m.charge_limit },
       { key: 'charge_speed', label: 'Charge Speed', val: s.charge_speed, hex: '$' + s.charge_speed.toString(16), desc: m.charge_speed },
       { key: 'attack_proc', label: 'Attack Proc', val: '$' + s.attack_proc.toString(16), hex: '$' + s.attack_proc.toString(16), desc: m.attack_proc },
-      { key: 'ai_script', label: 'AI Script', val: '$' + s.ai_script.toString(16), hex: '$' + s.ai_script.toString(16), desc: m.ai_script },
+      { key: 'ai_script', label: 'Behaviour', val: '$' + s.ai_script.toString(16), hex: '$' + s.ai_script.toString(16), desc: m.ai_script },
+      { key: 'flags2', label: 'Flags (+0x07)', val: flags2Text(s.unknown07), hex: '$' + s.unknown07.toString(16), desc: m.flags2 },
+      { key: 'palette2', label: 'Palette 2', val: s.unknown0b ? '$' + s.unknown0b.toString(16) : '—', hex: '$' + s.unknown0b.toString(16), desc: m.palette2 },
+      { key: 'unknown11', label: '+0x11', val: s.unknown11, hex: '$' + s.unknown11.toString(16), desc: m.unknown11 },
+      { key: 'unknown17', label: '+0x17', val: s.unknown17, hex: '$' + s.unknown17.toString(16), desc: m.unknown17 },
+      { key: 'unknown2a', label: '+0x2A (level?)', val: s.unknown2a, hex: '$' + s.unknown2a.toString(16), desc: m.unknown2a },
     ];
 
     fields.forEach(function(f) {
@@ -395,6 +400,16 @@
         '<div class="sp-stat-tooltip"><strong>' + f.label + ':</strong> ' + f.desc + '</div>';
       statsGrid.appendChild(card);
     });
+  }
+
+  /** Flags +0x07, as the code tests them. */
+  function flags2Text(v) {
+    var bits = [];
+    if (v & 0x01) bits.push('listed');
+    if (v & 0x02) bits.push('−30 hit');
+    if (v & 0x0c) bits.push('script ' + ((v >> 2) & 3));
+    if (v & 0x10) bits.push('projectile-proof');
+    return bits.length ? bits.join(', ') : 'none';
   }
 
   // ── Load Animation Data ─────────────────────────────────────────────────────
@@ -698,7 +713,7 @@
       if (sh) ctx.drawImage(sh, cx - a.shadow.originX * scale, cy - a.shadow.originY * scale, a.shadow.width * scale, a.shadow.height * scale);
     }
     if (img) ctx.drawImage(img, cx - a.originX * scale, cy - lift - a.originY * scale, a.width * scale, a.height * scale);
-    if (motion && cur.segments) motion.drawSegments(ctx, a, cur, cx, cy, lift, scale, imageFor);
+    if (motion && cur.segments) motion.drawSegments(ctx, a, cur, tickCounter, cx, cy, lift, scale, imageFor);
 
     var chars = getCharacters();
     var c = chars.find(function(x) { return x.id === selectedCharId; });
@@ -720,19 +735,23 @@
     if (chkHurt && chkHurt.checked && r > 0) {
       var hw = r * 2 * scale;
       var outOfReach = a.reach && pos.z16 >= a.reach.above;
+      // Centred on feet + (+0x42, 16 + +0x44): the hit test's own offsets ($8FB63D).
+      var off = hurtOffsetNow(cur);
+      var hx = cx + off[0] * scale;
+      var hy = cy + (16 + off[1]) * scale;
       var shielded = !!cur.invulnerable;      // mode bit $20: the hit test skips it ($8FB61E)
       ctx.setLineDash(outOfReach ? [4, 3] : shielded ? [2, 2] : []);
       ctx.strokeStyle = outOfReach ? '#888888' : shielded ? '#b48cff' : '#ffaa00';
       ctx.lineWidth = 1.5;
-      ctx.strokeRect(cx - hw / 2, cy - hw / 2, hw, hw);
+      ctx.strokeRect(hx - hw / 2, hy - hw / 2, hw, hw);
       ctx.setLineDash([]);
       if (!outOfReach && !shielded) {
         ctx.fillStyle = 'rgba(255, 170, 0, 0.10)';
-        ctx.fillRect(cx - hw / 2, cy - hw / 2, hw, hw);
+        ctx.fillRect(hx - hw / 2, hy - hw / 2, hw, hw);
       } else {
         ctx.fillStyle = shielded ? '#b48cff' : '#aaaaaa';
         ctx.font = '11px sans-serif';
-        ctx.fillText(shielded ? 'invulnerable' : 'out of reach', cx - hw / 2, cy + hw / 2 + 12);
+        ctx.fillText(shielded ? 'invulnerable' : 'out of reach', hx - hw / 2, hy + hw / 2 + 12);
       }
     }
 
@@ -781,6 +800,16 @@
     }
   }
 
+  /** The hurt offset on this tick: a segmented body's follows its head, others the frame's. */
+  function hurtOffsetNow(frame) {
+    var segs = frame.segments;
+    if (segs && segs.ticks.length) {
+      var t = segs.ticks[Math.min(segs.ticks.length - 1, Math.max(0, Math.floor(tickCounter)))];
+      if (t && t[0]) return t[0];                 // $908886: segment_step copies the head here
+    }
+    return frame.hurt || [0, -16];
+  }
+
   var STAGE_MIN_H = 270;
   var STAGE_MAX_H = 520;
 
@@ -809,7 +838,8 @@
   }
   /** Something moves between frame changes, so the stage must redraw every tick. */
   function animatesBetweenFrames() {
-    return projectilesOn() || trailTicks() > 0 || !!(currentAnimData && (currentAnimData.moves || currentAnimData.target));
+    return projectilesOn() || trailTicks() > 0 || !!(currentAnimData && (currentAnimData.moves || currentAnimData.target
+      || currentAnimData.frames.some(function(f) { return f.segments; })));
   }
 
   function sceneBoxFor(walk) {

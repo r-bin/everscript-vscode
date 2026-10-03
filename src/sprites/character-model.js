@@ -102,24 +102,29 @@ function readWeaponAnimations(rom, weaponIdx) {
 
 /** Stat field descriptions explaining what each stat does in the Evermore engine. */
 const STAT_MEANINGS = {
-    hp: 'Maximum / base health points of the entity.',
-    attack: 'Base physical attack strength (+0x19). Scaled with level and used in damage routine $8FC067.',
-    defense: 'Physical defense rating (+0x1B). Directly mitigates physical damage received from weapon strikes.',
-    magic_defense: 'Magic defense rating (+0x1D). Formula (0x40 - m.def) / 0x40 scales down incoming alchemy spell damage.',
-    evade: 'Evasion rating (+0x1F). Opposed against attacker hit rate in $8FB75A to determine hit / miss probability.',
-    hit_rate: 'Accuracy rating (+0x21). Checked against target evade rating in $8FB75A to decide if a physical attack connects.',
-    aggro_range: 'Aggro detection range in pixels (+0x13). Distance within which enemy notices the player and initiates pursuit.',
-    aggro_chance: 'Aggro check probability (+0x15). Probability value tested each tick to decide whether to attack or pursue.',
-    exp: 'Experience points awarded to the party upon defeating this enemy (+0x23, 32-bit).',
-    money: 'Talons / currency dropped upon defeat (+0x27, 16-bit).',
-    prize_chance: 'Drop rate threshold (+0x29, 8-bit). Threshold used in RNG roll to drop an alchemy ingredient or gourd.',
-    radius: 'Collision radius in pixels (+0x0D). Defines body bump box (2r × r) and hurt box (2r × 2r). 0 = non-solid / walk-through.',
-    flags: 'Default entity spawn flags (+0x05). Bit 1 (0x0002) = Invincible (NPCs); Bit 5 (0x0020) = Inactive; Bit 10 (0x0400) = Phasing.',
-    palette: 'CGRAM palette address in Bank $90 (+0x09). Reused across characters with identical palette to fit 4-palette room budget.',
-    charge_limit: 'Weapon / attack charge limit (+0x2C, 16-bit). 1024 represents 100% full charge gauge.',
-    charge_speed: 'Weapon charge build-up speed (+0x2E, 16-bit). Rate at which charge builds up per tick.',
-    attack_proc: 'Secondary hit effect routine index (+0x30, 16-bit). Routine executed upon landing an attack ($8FB6A5).',
-    ai_script: 'Combat AI behavior index (+0x03, 16-bit). Jump table index in $CBE0.',
+    hp: 'HP (+0x0F). Copied into the entity\'s HP (+0x2A) when it spawns ($8FB15B).',
+    attack: 'Attack (+0x19). Used by the damage routine $8FC067.',
+    defense: 'Defence (+0x1B). Subtracted in the damage routine $8FC067.',
+    magic_defense: 'Magic defence (+0x1D). Alchemy damage scales by ($40 − m.def) / $40 ($919CB3).',
+    evade: 'Evade (+0x1F). Indexes the to-hit table at $8FBAAF when this character is the target ($8FBA27).',
+    hit_rate: 'Hit rate (+0x21). The attacker\'s side of the to-hit roll ($8FBA53); −30 when flags2 bit 1 is set.',
+    aggro_range: 'Aggro range in pixels (+0x13). Compared with the distance to the controlled character ($8FD72D).',
+    aggro_chance: 'Aggro chance (+0x15). Compared before pursuing ($8FD6AD).',
+    exp: 'EXP (+0x23, 32-bit). Added to both the Boy\'s ($0A49) and the Dog\'s ($0A93) totals ($8F8292).',
+    money: 'Talons (+0x27).',
+    prize_chance: 'Prize chance (+0x29, byte). On death a drop happens when rand & $7F < this: value / 128 ($908567). With a drop the death animation is +0x44 (spoils), otherwise +0x42.',
+    radius: 'Collision radius (+0x0D). Body box 2r × r; the hit test\'s hurt region is half-size r around the feet ($8FB651). 0 = walk-through.',
+    flags: 'Spawn flags (+0x05), OR\'d into entity +0x10 ($8FB0C3). Bit 1 ($0002) marks a non-hostile (invincible) character; the hit test also compares the party bits ($5006).',
+    palette: 'Palette (+0x09), a 16-colour address in bank $90; the palette-slot allocator $90CD80 reuses a slot for an equal value.',
+    charge_limit: 'Charge limit (+0x2C): the cap on the charge meter (entity +0x2E, $91AEDE). 1024 ($400) is a full charge.',
+    charge_speed: 'Charge speed (+0x2E): added to the charge meter every tick until it reaches $400 ($8FCC5D).',
+    attack_proc: 'Attack proc (+0x30): what a hit by this character does, dispatched at $8FB6A5 through $8FB6AE (0 = to-hit roll and damage).',
+    ai_script: 'Behaviour (+0x03): selects the entity\'s AI script ($8FCD1A).',
+    flags2: 'Flags (+0x07). Bit 0: registered in the list at $58AF ($8FC4BA). Bit 1: −30 hit rate ($8FBA46). Bits 2–3: tested by the script engine ($8C86A6, $8C86DA). Bit 4: immune to projectiles — an automatic miss ($8FB9FB).',
+    palette2: 'Second palette (+0x0B): when non-zero, loaded into palette slot 2 ($90CD01, $90CF3A).',
+    unknown11: '+0x11: copied into entity +0x2C at spawn ($8FB162). Meaning open (0–100; 20 on 52 characters).',
+    unknown17: '+0x17: copied into entity +0x40 at spawn unless $23DD overrides it ($8FB169). Meaning open (0–1000).',
+    unknown2a: '+0x2A: no code reads it directly. 1 on 115 characters, 2–50 on the rest — possibly a base level; unverified.',
 };
 
 /** Character animation field offsets in the 74-byte struct. */
@@ -134,8 +139,12 @@ const STANDARD_ANIM_FIELDS = [
     { key: 'damage', label: 'Damage (Hurt)', offset: 0x40 },
     { key: 'death', label: 'Death', offset: 0x42 },
     { key: 'spoils', label: 'Spoils', offset: 0x44 },
-    // Was 'Block': on 3 characters, an 11-pose sequence with mode $0120 (invulnerable).
-    { key: 'block', label: 'Field +0x46 (invulnerable)', offset: 0x46 },
+    // Was 'Block': casting alchemy or using an item (Boy, Bad Boy, Verminator); mode $0120,
+    // invulnerable while it plays. Started by its own routine at $90829B.
+    { key: 'block', label: 'Cast (alchemy / item)', offset: 0x46 },
+    // Only on the evil copies (Bad Dawg, Bad Boy, Dark Toaster): started at $8FC1D6 when
+    // state +0x12 bit $40 is raised while alive.
+    { key: 'x48', label: 'Field +0x48 (evil copies)', offset: 0x48 },
 ];
 
 /** Read 16-bit value from ROM at SNES address. */

@@ -73,9 +73,12 @@
     });
     var sprites = anim.segmentSprites || {};
     anim.frames.forEach(function(f) {
-      (f.segments || []).forEach(function(sg) {
-        var spr = sg && sprites[sg.sprite];
-        if (spr) grow(sg.dx - spr.originX, sg.dy - spr.originY, sg.dx + spr.width - spr.originX, sg.dy + spr.height - spr.originY);
+      if (!f.segments) return;
+      f.segments.ticks.forEach(function(tick) {
+        tick.forEach(function(p, k) {
+          var spr = sprites[f.segments.sprites[k]];
+          if (spr) grow(p[0] - spr.originX, p[1] - spr.originY, p[0] + spr.width - spr.originX, p[1] + spr.height - spr.originY);
+        });
       });
     });
     var pr = anim.projectiles;
@@ -186,22 +189,21 @@
   }
 
   /**
-   * A segmented body (Tar Skull, Bone Snake): each segment's sprite at the offset
-   * `segment` (0x59) gave it, back to front. `cx, cy` are the feet on canvas.
+   * A segmented body (Tar Skull, Salabog): every segment where the easing put it on this
+   * tick. Drawn last-to-first so segment 0, the head, is on top — the list order the
+   * game's draw routine ($8FC86C) walks, and OAM puts earlier sprites in front.
    */
-  function drawSegments(ctx, anim, frame, cx, cy, lift, scale, imageFor) {
+  function drawSegments(ctx, anim, frame, tickCounter, cx, cy, lift, scale, imageFor) {
     var segs = frame.segments;
     var sprites = anim.segmentSprites || {};
-    if (!segs) return;
-    segs.map(function(s, k) { return s ? { s: s, k: k } : null; })
-      .filter(Boolean)
-      .sort(function(a, b) { return a.s.dy - b.s.dy || b.k - a.k; })
-      .forEach(function(e) {
-        var spr = sprites[e.s.sprite];
-        var img = spr ? imageFor(spr.png) : null;
-        if (!img) return;
-        ctx.drawImage(img, cx + e.s.dx * scale - spr.originX * scale, cy - lift + e.s.dy * scale - spr.originY * scale, spr.width * scale, spr.height * scale);
-      });
+    if (!segs || !segs.ticks.length) return;
+    var pos = segs.ticks[Math.min(segs.ticks.length - 1, Math.max(0, Math.floor(tickCounter)))];
+    for (var k = pos.length - 1; k >= 0; k--) {
+      var spr = sprites[segs.sprites[k]];
+      var img = spr ? imageFor(spr.png) : null;
+      if (!img) continue;
+      ctx.drawImage(img, cx + pos[k][0] * scale - spr.originX * scale, cy - lift + pos[k][1] * scale - spr.originY * scale, spr.width * scale, spr.height * scale);
+    }
   }
 
   /** The strike box (if any) on a given playback tick, with where the attacker stood. */

@@ -24,7 +24,7 @@ export type OpKind =
     | 'loop' | 'restart_here' | 'jump' | 'dec_jnz' | 'jump_pos' | 'jump_if_linked'
     | 'set8' | 'set16' | 'set24' | 'add8' | 'add16' | 'clear'
     | 'strike' | 'step' | 'sprite_long' | 'sprite_aim' | 'projectile'
-    | 'hop' | 'hop_maybe' | 'wait_landed' | 'hover_hold' | 'mode' | 'segments' | 'segment';
+    | 'hop' | 'hop_maybe' | 'wait_landed' | 'hover_hold' | 'mode' | 'segments' | 'segment' | 'segment_step' | 'hurtbox';
 
 export interface Opcode {
     /** Total bytes, opcode included. */
@@ -78,14 +78,14 @@ const OPCODES: Record<number, Opcode> = {
     0x4d: op(3, 'mode', 'mode'),
     0x4e: op(1, 'op_4e'),
     0x4f: op(1, 'op_4f'),
-    0x50: op(5, 'hurtbox'),
+    0x50: op(5, 'hurtbox', 'hurtbox'),
     0x51: op(1, 'op_51'),              // player slot only: $8FB28D
     0x52: op(1, 'reset', 'reset'),
     0x53: op(1, 'end_check'),
     0x54: op(3, 'jump_if_linked', 'jump_if_linked'),
     0x55: op(1, 'op_55'),
     0x56: op(3, 'op_56'),
-    0x58: op(1, 'op_58'),
+    0x58: op(1, 'segment_step', 'segment_step'),   // $8FC905: ease every segment one tick; hurt offset = head
     // $8FC8DE: a byte offset into the segment list (+0x86), a byte, a word, and a
     // signed x/y byte pair into that segment's +0x0C/+0x0D — where it sits.
     0x59: op(7, 'segment', 'segment'),

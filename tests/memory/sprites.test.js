@@ -440,9 +440,13 @@ if (rom) {
         assert.strictEqual(lengthAt(rom, 0xc704ef), 7, '0x59 always consumes 6 operand bytes ($8FC8DE)');
         const anim = renderAnimation(rom, 105, { offset: 0x32 }, 4);
         assert.strictEqual(anim.complete, true);
-        const placed = anim.frames[anim.frames.length - 1].segments.filter(Boolean);
-        assert.strictEqual(placed.length, 8);
-        assert.deepStrictEqual([placed[0].dx, placed[0].dy], [20, -46], 'the head');
+        const seg = anim.frames[0].segments;
+        assert.strictEqual(seg.sprites.length, 8);
+        assert.strictEqual(seg.sprites[0], '$cc7aa2', 'segment 0 is the head');
+        assert.strictEqual(seg.ticks.length, anim.frames[0].ticks, 'a position for every segment on every tick');
+        // $8FC905 eases each segment toward its target: by tick 60 the head reaches (20, -46).
+        assert.deepStrictEqual(seg.ticks[60][0], [20, -46]);
+        assert(anim.loopFrom > 0, 'rises out of a pile once, then sways in a repeating cycle');
         assert.deepStrictEqual(Object.keys(anim.segmentSprites), ['$cc7aa2', '$cc7cb5']);
     });
 
@@ -463,6 +467,19 @@ if (rom) {
         assert.strictEqual(a.target.hits.projectile.length, 1, 'one hit, not one per overlapping tick');
         const { projectileRecord } = require('../../src/maps/dist/projectiles');
         assert.strictEqual(projectileRecord(rom, 0xd9ee).field14, 4, 'the level-3 spear wave uses proc 4, which pierces');
+    });
+
+    test('the same attacker re-hits only after a 21-tick cooldown (+0x36/+0x38)', () => {
+        const target = require('../../src/sprites/target');
+        const frames = [{ ticks: 60, strikeBox: { dx: 0, dy: 0, width: 40, height: 40 }, motion: Array.from({ length: 60 }, () => [0, 0, 0]) }];
+        const hits = target.hitTicks(frames, [], { x: 0, y: 0, z: 0, radius: 8 });
+        assert.deepStrictEqual(hits.melee, [0, 21, 42]);
+    });
+
+    test('field labels follow the code: +0x46 is casting, +0x07 bit 4 is projectile-proof', () => {
+        const boy = readCharacter(rom, 0);
+        assert.strictEqual(boy.anims.find(a => a.key === 'block').label, 'Cast (alchemy / item)');
+        assert(/immune to projectiles/.test(boy.statMeanings.flags2));
     });
 
     test('renderAnimation returns a script listing with frame line addresses', () => {

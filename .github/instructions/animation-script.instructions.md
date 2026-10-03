@@ -88,6 +88,15 @@ else; the linear walker reads `opcode()` too.
 - Entries that came from the Gemini pass (`0x48`–`0x4A`, `0x58`, `0x59`) were partly
   wrong. Re-derive any opcode claim from its handler before trusting it.
 
+- **Segment easing**: `0x59` sets a target; `0x58` (`$8FC905`) eases current toward it
+  each tick it runs; draw at current. Head = segment 0, drawn in front. Hurt offset
+  follows the head. Segment state belongs in loop detection.
+- **Hurt offsets** (`+0x42/+0x44`, set by `hurtbox` and `segment_step`) are applied, except
+  for the Boy and Dog.
+- **Hit cooldown**: the same attacker re-hits only after 21 ticks (`+0x36/+0x38`).
+  Knock-back is not invulnerable.
+- Character record fields and their readers: `docs/script-format/character_table.md`.
+
 ## 4. Never guess
 
 - A width comes from a trace or from reading the handler's `$5D` advances on every

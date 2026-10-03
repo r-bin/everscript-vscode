@@ -234,11 +234,11 @@ animation uses them. They are presumably for effects and menu scripts.
 |---|---|---|---|---|---|
 | `47` | 5 | `strike dx, dy, w, h` | Strike box centred at `(dx, dy)` from the feet, this frame only. See [attack_boxes.md](attack_boxes.md) | `$9087BA` | 303 |
 | `4C` | 6 | `projectile $id, dx, dy, dz` | Throws projectile record `$90:id` from `(x+dx, y+dy, height+dz·16)`. See [Projectiles](#projectiles) | `$908725` | 58 |
-| `50` | 5 | `hurtbox x, y` | Move the hurt box (`+0x42`, `+0x44`) | `$9085A8` | 21 |
+| `50` | 5 | `hurtbox x, y` | Sets the hurt offset `+0x42/+0x44`, which the hit test does use (`$8FB63D`). The Skullclaw's `0, −22` raises its region while flying. The Boy's and Dog's scripts set values like −132/−144 that cannot be offsets, so the tab keeps their default | `$9085A8` | 21 |
 | `48` | 1 | — | May switch the entity to another animation (`$8FB8F0`, then `$90828E` and a pointer reload) | `$908810` | 108 |
 | `49`, `4A` | 3 | — | A word through `$90CE78` / `$90CE92`. `49` stores the result in `+0x0C`, the palette slot, so this is a palette change, not a sound | `$90882D`/`$908843` | 6 / — |
-| `58` | 1 | — | Advances the segment list (`$8FC905`) and takes the hurt offset `+0x42` from it | `$90887B` | — |
-| `59` | 7 | `segment #k, dx, dy` | Places segment `k`: a byte offset into the list (`4 + 14k`), a byte, a word, then signed x/y into the segment's `+0x0C/+0x0D` (`$8FC8DE`, always 7 bytes). An earlier "1 byte, weapon slash" reading was wrong: no character script uses it | `$9088AE` | — |
+| `58` | 1 | `segment_step` | Eases every segment one tick (`$8FC905`), then copies the head's position into the hurt offset `+0x42/+0x44` (`$908886`). Scripts run it after a hold, so it runs every tick | `$90887B` | — |
+| `59` | 7 | `segment #k, dx, dy` | Retargets segment `k`: a byte offset into the list (`4 + 14k`), its depth (`+3`), x/y countdowns (`+4`, `+5`), then the signed x/y target (`+0x0C/+0x0D`). The segment eases there (see below). Always 7 bytes (`$8FC8DE`) | `$9088AE` | — |
 
 ### State and effects
 
@@ -584,6 +584,32 @@ box (centre `$46`/`$48`, size `$3E`×`$40`, height `$4A`) with each candidate:
   which as offsets would move his hurt region 132 px away. Until that is
   explained, the default (`0, −16`) is used.
 
+## Segmented bodies
+
+The Tar Skull and Salabog are lists of segments (`0x57`), each 14 bytes at
+`+0x86 + 4 + 14k`: sprite, depth, x/y countdown, x/y position in 8.8, x/y
+velocity, x/y target. `segment` (`0x59`) only sets a **target**; the draw
+routine `$8FC86C` puts the sprite at the **current** position, and
+`segment_step` (`0x58`, `$8FC905`) moves current toward target, per axis,
+every time it runs:
+
+```
+count < 3:  position = target, velocity = 0
+otherwise:  count −= 1
+            step = (CB18[count] · (target − position)) >> 8
+                 + (CA50[count] · velocity) >> 8          ; Mode 7 multiplier, middle 16 bits
+            position += step                              ; 8.8 fixed point
+            velocity = ((step >> 3) + 1) >> 1             ; ≈ step / 16
+```
+
+`$8FCB18` is the share of the remaining distance to cover at each countdown,
+and `$8FCA50` the share of last tick's velocity to keep: an ease with
+follow-through. The Tar Skull's script retargets one segment every 4 ticks
+with a countdown of 60 and runs `segment_step` every tick, so a wave travels
+down the body. It rises out of a pile over its first 60 ticks, then sways in a
+120-tick cycle. Segment 0 is the head; the list is drawn in order, so the head
+is in front.
+
 ## Scripts that set no sprite, fliers, invulnerability
 
 - **The shared damage script** (`$3E6A`, used by about 80 characters) has no
@@ -595,11 +621,19 @@ box (centre `$46`/`$48`, size `$3E`×`$40`, height `$4A`) with each candidate:
   interpreter does too, until the whole state (height included) repeats. It
   reports `loopFrom`, where the repeating part starts, and playback loops to
   there. The Skullclaw climbs, then hovers between about 25 and 40 px.
+- **Knock-backs are not invulnerable.** The damage script's `mode $0005` does not
+  set bit `$20`, and applying damage (`$8FC0D3`) only raises the hurt state
+  (`+0x12 |= $0438`). The one protection is per attacker: a hit writes the
+  attacker into the target's `+0x36` and `$14` into `+0x38` (`$8FBA1B`), which
+  counts down every tick, so **the same attacker cannot hit again for 21 ticks**
+  while anyone else still can. The to-hit check for projectiles (`$8FB9F8`) uses
+  the same cooldown, after refusing outright a target whose record `+0x07` has
+  bit `$10`.
 - **Invulnerable frames** are the ones with mode bit `$20`. Frames split when it
   changes. The weapon slot once labelled "Charge Attack" (`+0x16`) is a held pose
   with `mode $0020`: the dodge. The character field once labelled "Block"
-  (`+0x46`, on three characters) is an 11-pose sequence with `mode $0120`. Its
-  real name is open.
+  (`+0x46`, on the Boy, Bad Boy and Verminator) is **casting** an alchemy formula
+  or using an item, invulnerable while it plays (`mode $0120`).
 
 ## The Dog's forms
 
