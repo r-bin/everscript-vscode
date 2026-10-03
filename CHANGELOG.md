@@ -1,3 +1,13 @@
+## [0.131.0] — 2026-10-03
+
+### Feature: [Sprites] movement speed, stage overlays, inferred palettes
+
+- **Movement speed:** animations that move show their speed for N, E, S and W in an overlay at the top right of the stage, in px/tick and px/s, with the current facing highlighted. Each facing has its own script: the spear walk is 1.5 px/tick north/south and 2.0 east/west, so it is faster *horizontally*.
+- **Stage overlay:** the playback speed and scale controls moved into that overlay.
+- **Overlays are overlays:** the canvas now fills the stage at a fixed scale, centred on the character and its walk path. Aggro, target, projectiles and trails draw over it and no longer shrink the scene.
+- **No more oscillation:** frames with no sprite (Vigor's empty death is `nop! nop! reset!`) used to resize the canvas and make the stage and bottom bar jump. The canvas keeps its size now, and the frame info no longer wraps.
+- **Inferred palettes:** an animation nobody owns takes the palette of whoever shares its sprites, else of the nearest owned sprites in the same bank, else of the nearest owned record. The Script tab says which, e.g. the Pigoodle uses Horace's Twin's palette, because its sprites are stored next to his.
+
 ## [0.130.0] — 2026-10-03
 
 ### Feature: [Sprites] compass + vertical overlays, bottom seek bar, tile previews; fixes

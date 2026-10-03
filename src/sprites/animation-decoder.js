@@ -16,25 +16,52 @@ function resolveExternalScript(rom, animRec, facing) {
     return facingScript(rom, animRec, facing);
 }
 
+/** The script an animation option plays at a facing. */
+function resolveScript(rom, characterId, animOpt, facing) {
+    if (typeof animOpt === 'string' || typeof animOpt === 'number') {
+        return animationScript(rom, characterId, facing, typeof animOpt === 'number' ? animOpt : 0x32);
+    }
+    if (animOpt.category === 'external' || animOpt.category === 'weapon') {
+        return resolveExternalScript(rom, animOpt.animRec, facing) || animOpt.scriptAddr;
+    }
+    if (animOpt.offset) return animationScript(rom, characterId, facing, animOpt.offset);
+    if (animOpt.scriptAddr) return animOpt.scriptAddr;
+    return animationScript(rom, characterId, facing, 0x32);
+}
+
+const SPEED_FACINGS = [['N', 0], ['E', 4], ['S', 8], ['W', 12]];
+const TICKS_PER_SECOND = 60;
+
+/**
+ * How fast an animation carries the character, per cardinal facing: distance over the
+ * repeating part of the cycle. Each facing has its own script, so they differ (the spear
+ * walk steps 6 north/south but 8 east/west). Null when it does not move.
+ */
+function movementSpeeds(rom, characterId, animOpt) {
+    const out = {};
+    let any = false;
+    for (const [name, f] of SPEED_FACINGS) {
+        const script = resolveScript(rom, characterId, animOpt, f);
+        if (!script) continue;
+        const run = runAnimation(rom, script, f, { oneShot: isOneShot(animOpt) });
+        const samples = run.frames.flatMap((fr) => fr.motion);
+        if (!samples.length) continue;
+        const from = run.loopFrom > 0 ? samples[run.loopFrom - 1] : [0, 0];
+        const to = samples[samples.length - 1];
+        const ticks = samples.length - (run.loopFrom > 0 ? run.loopFrom : 0);
+        const dist = Math.hypot(to[0] - from[0], to[1] - from[1]);
+        if (dist) any = true;
+        out[name] = { px: Math.round(dist), ticks, perTick: ticks ? dist / ticks : 0, perSecond: ticks ? (dist / ticks) * TICKS_PER_SECOND : 0 };
+    }
+    return any ? out : null;
+}
+
 /**
  * Decode and render all frames for a character's animation.
  * Returns aligned PNG frames, hold durations in 60Hz ticks, sprite addresses, chunks, and strike boxes.
  */
 function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) {
-    let scriptAddr = 0;
-    if (typeof animOpt === 'string' || typeof animOpt === 'number') {
-        const field = typeof animOpt === 'number' ? animOpt : 0x32;
-        scriptAddr = animationScript(rom, characterId, facing, field);
-    } else if (animOpt.category === 'external' || animOpt.category === 'weapon') {
-        scriptAddr = resolveExternalScript(rom, animOpt.animRec, facing) || animOpt.scriptAddr;
-    } else if (animOpt.offset) {
-        scriptAddr = animationScript(rom, characterId, facing, animOpt.offset);
-    } else if (animOpt.scriptAddr) {
-        scriptAddr = animOpt.scriptAddr;
-    } else {
-        scriptAddr = animationScript(rom, characterId, facing, 0x32);
-    }
-
+    const scriptAddr = resolveScript(rom, characterId, animOpt, facing);
     if (!scriptAddr) return null;
 
     // Run the script the way the engine does: holds are checkpoints, counted
@@ -145,6 +172,7 @@ function renderAnimation(rom, characterId, animOpt = {}, facing = FACING_SOUTH) 
         stoppedAtHex: run.stoppedAt ? hex6(run.stoppedAt) : null,
         projectiles,
         moves: run.moves,
+        speeds: run.moves ? movementSpeeds(rom, characterId, animOpt) : null,
         loopFrom: run.loopFrom,
         initialSprite: initialSprite ? hex6(initialSprite) : null,
         segmentSprites,

@@ -800,24 +800,29 @@
     // arrives), so a frame never shows the previous animation's sprite.
     var img = cur.png ? imageFor(cur.png) : null;
 
-    var scale = animScale;
     var a = currentAnimData;
     var walk = walkOn();
     var box = sceneBoxFor(walk);
 
-    // The canvas holds the whole scene: path, jump height, projectile flights.
-    var pad = 40;
-    var sceneW = (box.maxX - box.minX) * scale + pad * 2;
-    var sceneH = (box.maxY - box.minY) * scale + pad * 2;
-    canvas.width = Math.max(320, sceneW);
-    canvas.height = Math.max(320, sceneH);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // The canvas is the stage: a fixed surface centred on the character and its walk path.
+    // Overlays (aggro, target, projectiles, trails) draw over it and never rescale it; the
+    // scale only drops when the character itself would not fit.
+    var stage = canvas.parentElement;
+    var W = Math.max(200, stage ? stage.clientWidth : 320);
+    var H = Math.max(200, stage ? stage.clientHeight : 320);
+    if (canvas.width !== W) canvas.width = W;
+    if (canvas.height !== H) canvas.height = H;
+    ctx.clearRect(0, 0, W, H);
     ctx.imageSmoothingEnabled = false;
-    fitToStage();
+    var pad = 24;
+    var bw = Math.max(1, box.maxX - box.minX);
+    var bh = Math.max(1, box.maxY - box.minY);
+    var scale = Math.min(animScale, (W - pad * 2) / bw, (H - pad * 2) / bh);
+    if (scale >= 1) scale = Math.floor(scale);
 
     // Where the feet stood at the start, then where they are now.
-    var ox = Math.floor(pad + (canvas.width - sceneW) / 2 - box.minX * scale);
-    var oy = Math.floor(pad + (canvas.height - sceneH) / 2 - box.minY * scale);
+    var ox = Math.floor(W / 2 - (box.minX + bw / 2) * scale);
+    var oy = Math.floor(H / 2 - (box.minY + bh / 2) * scale);
     var pos = motion ? motion.positionAt(a, currentFrameIdx, tickCounter, walk) : { x: 0, y: 0, z: 0 };
     var cx = ox + pos.x * scale;
     var cy = oy + pos.y * scale;
@@ -1058,6 +1063,10 @@
     });
   }
 
+  if (typeof ResizeObserver === 'function' && canvas && canvas.parentElement) {
+    new ResizeObserver(function() { drawFrame(); }).observe(canvas.parentElement);
+  }
+
   var STAGE_MIN_H = 270;
   var STAGE_MAX_H = 520;
 
@@ -1073,6 +1082,24 @@
     var k = Math.min(1, (stage.clientWidth - 4) / canvas.width, availH / canvas.height);
     canvas.style.width = Math.floor(canvas.width * k) + 'px';
     canvas.style.height = Math.floor(canvas.height * k) + 'px';
+  }
+
+  /** Movement speed per cardinal facing, in the stage overlay, for animations that move. */
+  var speedReadout = document.getElementById('sp-speed-readout');
+  var FACING_NAME = { 0: 'N', 4: 'E', 8: 'S', 12: 'W' };
+  function renderSpeedReadout() {
+    if (!speedReadout) return;
+    var sp = currentAnimData && currentAnimData.speeds;
+    if (!sp) { speedReadout.innerHTML = ''; return; }
+    var cur = FACING_NAME[selectedFacing & 0x0c];
+    var html = '<span class="sp-hud-head">Moves (per cycle)</span>';
+    ['N', 'E', 'S', 'W'].forEach(function(k) {
+      var v = sp[k];
+      if (!v) return;
+      var cls = k === cur ? ' class="sp-hud-cur"' : '';
+      html += '<span' + cls + '>' + k + '</span><span' + cls + '>' + v.perTick.toFixed(2) + ' px/tick</span><span' + cls + '>' + Math.round(v.perSecond) + ' px/s</span>';
+    });
+    speedReadout.innerHTML = html;
   }
 
   /** The palette the stage is drawn in right now: a chosen one, the weapon/form's, or 0 (own). */
@@ -1110,14 +1137,10 @@
       var a = currentAnimData;
       sceneCache = {
         data: a, key: key,
-        box: motion ? motion.sceneBox(a, { walk: walk, projectiles: projectilesOn(), target: !!a.target })
+        box: motion ? motion.sceneBox(a, { walk: walk, projectiles: false, target: false })
           : { minX: -a.originX, maxX: a.width - a.originX, minY: -a.originY, maxY: a.height - a.originY },
       };
-      var r = aggroRange();
-      if (r) {
-        var b = sceneCache.box;
-        sceneCache.box = { minX: Math.min(b.minX, -r), maxX: Math.max(b.maxX, r), minY: Math.min(b.minY, -r), maxY: Math.max(b.maxY, r) };
-      }
+
     }
     return sceneCache.box;
   }
@@ -1216,6 +1239,7 @@
         ((pr && pr.spawns) || []).forEach(function(sp) {
           flightTail = Math.max(flightTail, sp.tick + (sp.path ? sp.path.length : 0) + 1 - acc);
         });
+        renderSpeedReadout();
         if (script) {
           script.renderScript(currentAnimData, { character: selectedCharId, paletteAddr: currentPaletteAddr() });
           script.renderOwners(currentMode === 'anims' ? pinnedRecord : script.findRecord(requestedRecord));

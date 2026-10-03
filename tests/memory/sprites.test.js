@@ -584,6 +584,23 @@ if (rom) {
         assert.deepStrictEqual(THUMB_FACINGS, { s: 8, e: 4 });
     });
 
+    test('movement speed per facing: the spear walk steps 6 north/south, 8 east/west', () => {
+        const boy = readCharacter(rom, 0);
+        const r = renderAnimation(rom, 0, boy.weapons[8].anims.find(a => a.key === 'w_walk'), 8);
+        assert.strictEqual(r.speeds.N.perTick, 1.5);
+        assert.strictEqual(r.speeds.E.perTick, 2);
+        assert.strictEqual(r.speeds.S.perSecond, 90);
+        assert.strictEqual(renderAnimation(rom, 109, { offset: 0x32 }, 8).speeds, null, 'a standing idle has no speed');
+    });
+
+    test('unowned animations get an inferred palette, and say how', () => {
+        const cat = buildAnimationCatalog(rom, readAllCharacters(rom));
+        const pig = cat.find(a => a.record === 0x4f92);
+        assert(/sprites stored next to/.test(pig.paletteInferred));
+        assert.strictEqual(readCharacter(rom, pig.paletteCharacter).name, "Horace's Twin");
+        assert(cat.filter(a => a.owners.some(o => o.kind === 'character')).every(a => !a.paletteInferred), 'owned ones are not guessed');
+    });
+
     test('renderAnimation returns a script listing with frame line addresses', () => {
         const anim = renderAnimation(rom, 140, { category: 'external', animRec: 0x4dd2 }, 0);
         assert(anim.script.length > 10);

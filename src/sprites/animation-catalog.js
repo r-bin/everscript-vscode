@@ -8,7 +8,7 @@
 //   ($900000 + id) that animation command 0x4c throws.
 
 const indexJson = require('../language/data/index.json');
-const { animationGroups, animationIdRecord, ANIMATION_ID_COUNT } = require('../maps/dist/animation-vm');
+const { animationGroups, animationIdRecord, ANIMATION_ID_COUNT, runAnimation } = require('../maps/dist/animation-vm');
 const { disassembleScript } = require('../maps/dist/animation-opcodes');
 const { projectileRecord } = require('../maps/dist/projectiles');
 
@@ -120,11 +120,62 @@ function buildAnimationCatalog(rom, characters) {
         }
     }
 
+    // Who draws which sprite: every sprite a character's own animations show. An animation
+    // nobody owns borrows the palette of whoever shares its sprites, else of the nearest
+    // owned record in the table (records are laid out character by character).
+    const spritesOf = (g) => {
+        const out = new Set();
+        for (const script of g.scripts) {
+            for (const f of runAnimation(rom, script, 8).frames) if (f.sprite) out.add(f.sprite);
+        }
+        return out;
+    };
+    const spriteUsers = new Map();
+    for (const g of groups) {
+        const own = (owners.get(g.record) || []).find((o) => o.kind === 'character' || o.kind === 'weapon');
+        if (!own) continue;
+        for (const spr of spritesOf(g)) {
+            if (!spriteUsers.has(spr)) spriteUsers.set(spr, new Map());
+            const m = spriteUsers.get(spr);
+            const key = own.kind === 'weapon' ? own.id + ':' + (own.paletteAddr || 0) : own.id + ':0';
+            m.set(key, (m.get(key) || 0) + 1);
+        }
+    }
+    const ownedRecords = groups.filter((g) => paletteOf(g.record) !== null).map((g) => g.record);
+    const inferPalette = (g) => {
+        const votes = new Map();
+        for (const spr of spritesOf(g)) for (const [k, n] of spriteUsers.get(spr) || []) votes.set(k, (votes.get(k) || 0) + n);
+        if (votes.size) {
+            const [best] = [...votes.entries()].sort((a, b) => b[1] - a[1])[0];
+            const [id, addr] = best.split(':').map(Number);
+            return { paletteCharacter: id, paletteAddr: addr, inferredBy: 'shares its sprites' };
+        }
+        // Sprite graphics are stored character by character too: the nearest owned sprite in
+        // the same bank (within 4 KB) says whose graphics these sit among.
+        let best = null;
+        for (const spr of spritesOf(g)) {
+            for (const [owned, users] of spriteUsers) {
+                if ((owned >> 16) !== (spr >> 16)) continue;
+                const d = Math.abs(owned - spr);
+                if (d < 0x1000 && (!best || d < best.d)) best = { d, users, owned };
+            }
+        }
+        if (best) {
+            const [key] = [...best.users.entries()].sort((a, b) => b[1] - a[1])[0];
+            const [id, addr] = key.split(':').map(Number);
+            return { paletteCharacter: id, paletteAddr: addr, inferredBy: 'sprites stored next to $' + best.owned.toString(16) };
+        }
+        let near = null;
+        for (const r of ownedRecords) if (near === null || Math.abs(r - g.record) < Math.abs(near - g.record)) near = r;
+        return near === null ? null : { paletteCharacter: paletteOf(near), paletteAddr: 0, inferredBy: 'nearest owned record $' + hex(near, 4) };
+    };
+
     return groups.map((g) => {
         const list = owners.get(g.record) || [];
         const t = thrown.get(g.record);
         const own = paletteOf(g.record);
-        const paletteCharacter = own !== null ? own : t && t.paletteCharacter !== null ? t.paletteCharacter : BOY;
+        const inferred = own === null && !t ? inferPalette(g) : null;
+        const paletteCharacter = own !== null ? own : t && t.paletteCharacter !== null ? t.paletteCharacter : inferred ? inferred.paletteCharacter : BOY;
         return {
             record: g.record,
             recHex: '$' + hex(g.record, 4),
@@ -134,7 +185,8 @@ function buildAnimationCatalog(rom, characters) {
             owners: list,
             label: catalogLabel(list),
             paletteCharacter,
-            paletteAddr: own === null && t ? t.paletteAddr : weaponPaletteOf(g.record),
+            paletteAddr: own === null && t ? t.paletteAddr : inferred ? inferred.paletteAddr : weaponPaletteOf(g.record),
+            paletteInferred: inferred ? inferred.inferredBy : null,
         };
     });
 }

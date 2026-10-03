@@ -608,6 +608,28 @@ box (centre `$46`/`$48`, size `$3E`×`$40`, height `$4A`) with each candidate:
   which as offsets would move his hurt region 132 px away. Until that is
   explained, the default (`0, −16`) is used.
 
+## Movement speed
+
+Each facing has its own script, so speed differs by direction. The Sprites
+tab measures the distance over the repeating part of the cycle for N/E/S/W. The
+spear walk steps 6 per tick north/south but 8 east/west: 1.5 vs 2.0 px per tick
+(90 vs 120 px/s). The run is 11 vs 12. Vertical movement is scaled to about ¾,
+which looks like perspective compensation.
+
+## Palettes of animations nobody owns
+
+An animation with no character, weapon or id owner borrows a palette, in this
+order of evidence:
+
+1. a character whose own animations show the same sprites;
+2. the owner of the nearest owned sprite in the same bank (within 4 KB), since
+   sprite graphics are stored character by character;
+3. the owner of the nearest owned record in the table.
+
+Of the 355 inferred, 27 come from shared sprites, 299 from neighbouring sprites
+and 29 from the nearest record. The Script tab says which applied. The
+Pigoodle animations sit right after Horace's Twin's graphics.
+
 ## Segmented bodies
 
 The Tar Skull and Salabog are lists of segments (`0x57`), each 14 bytes at

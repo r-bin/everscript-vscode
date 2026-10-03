@@ -120,7 +120,8 @@
     var list = entry.owners || [];
     ownersEl.innerHTML = '<strong>Record ' + esc(entry.recHex) + '</strong> · ' + entry.facingCount +
       (entry.facingCount === 1 ? ' facing' : ' facings') + ' · used by: ' +
-      (list.length ? list.map(function(o) { return esc(ownerText(o)); }).join('; ') : 'no character, weapon or animate id (palette is a guess)');
+      (list.length ? list.map(function(o) { return esc(ownerText(o)); }).join('; ') : 'no character, weapon or animate id') +
+      (entry.paletteInferred ? ' · palette inferred: ' + esc(entry.paletteInferred) : '');
   }
 
   /** The Animations rail: every record, filtered by the search box. */

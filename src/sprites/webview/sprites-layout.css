@@ -787,3 +787,17 @@
 .sp-script-table .sp-li-thumb img { max-width: 24px; max-height: 24px; }
 .sp-chunks-table .sp-li-thumb { width: 26px; height: 26px; }
 .sp-chunks-table .sp-li-thumb img { max-width: 24px; max-height: 24px; }
+
+/* ── Stage as a fixed surface: canvas fills it, overlays never rescale it ── */
+.sp-stage-col .sp-stage { position: relative; overflow: hidden; display: block; }
+.sp-stage-col #sp-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.sp-stage-hud { position: absolute; top: 8px; right: 8px; display: flex; flex-direction: column; gap: 6px; align-items: flex-end;
+  background: rgba(20, 20, 20, 0.78); border: 1px solid rgba(255,255,255,0.08); border-radius: 4px; padding: 6px 8px; font-size: 11px; }
+.sp-hud-row { display: flex; align-items: center; gap: 4px; }
+.sp-hud-speeds { display: grid; grid-template-columns: auto auto auto; gap: 1px 8px; font-size: 11px; }
+.sp-hud-speeds:empty { display: none; }
+.sp-hud-speeds .sp-hud-head { grid-column: 1 / -1; opacity: 0.65; text-transform: uppercase; letter-spacing: 0.05em; font-size: 10px; }
+.sp-hud-speeds .sp-hud-cur { color: #9fd1ff; }
+.sp-char-main > .sp-player-bar { height: 52px; flex: none; overflow: hidden; }
+.sp-char-main > .sp-player-bar .sp-frame-info { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%; }
+.sp-char-main > .sp-player-bar .sp-scrubber-wrap { flex: 1; min-width: 0; }

@@ -111,6 +111,28 @@ function buildSpritesTabHtml() {
           <div class="sp-stage-col">
             <div class="sp-stage" id="sp-stage">
               <canvas id="sp-canvas" width="320" height="320"></canvas>
+              <!-- Stage overlay: playback speed, scale, and how fast the animation moves the character -->
+              <div class="sp-stage-hud">
+            <div class="sp-speed-group sp-hud-row">
+              <span class="sp-label">Speed:</span>
+              <select class="sp-select sp-sel-sm" id="sp-speed-sel">
+                <option value="0.25">0.25×</option>
+                <option value="0.5">0.5×</option>
+                <option value="1" selected>1×</option>
+                <option value="2">2×</option>
+                <option value="4">4×</option>
+              </select>
+            </div>
+
+            <div class="sp-zoom-group sp-hud-row">
+              <span class="sp-label">Scale:</span>
+              <button class="sp-scale-btn" data-scale="2">2×</button>
+              <button class="sp-scale-btn sp-active" data-scale="3">3×</button>
+              <button class="sp-scale-btn" data-scale="4">4×</button>
+            </div>
+
+                <div class="sp-hud-speeds" id="sp-speed-readout"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -127,24 +149,6 @@ function buildSpritesTabHtml() {
             <div class="sp-scrubber-wrap">
               <input type="range" class="sp-scrubber" id="sp-scrubber" min="0" max="0" value="0" />
               <span class="sp-frame-info" id="sp-frame-info">Frame 1/1 (0 ticks)</span>
-            </div>
-
-            <div class="sp-speed-group">
-              <span class="sp-label">Speed:</span>
-              <select class="sp-select sp-sel-sm" id="sp-speed-sel">
-                <option value="0.25">0.25×</option>
-                <option value="0.5">0.5×</option>
-                <option value="1" selected>1×</option>
-                <option value="2">2×</option>
-                <option value="4">4×</option>
-              </select>
-            </div>
-
-            <div class="sp-zoom-group">
-              <span class="sp-label">Scale:</span>
-              <button class="sp-scale-btn" data-scale="2">2×</button>
-              <button class="sp-scale-btn sp-active" data-scale="3">3×</button>
-              <button class="sp-scale-btn" data-scale="4">4×</button>
             </div>
 
             <div class="sp-current-sprite">
