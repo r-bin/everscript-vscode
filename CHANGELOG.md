@@ -1,3 +1,13 @@
+## [0.154.1] — 2026-10-04
+
+### Fix: [Emulator] right-click walk now runs, Boy/Dog render in the extended view, sprites keep their depth against the canopy
+
+- **Right-click walk executes**: an injected script was marked live in a free slot but never added to the engine's run list, so `$8CCFFD` never ran it. Injection now follows the engine's own start path (`$8CCE5C` → `$8CCF18`): first free slot, pointer at `+0`, state 2, then the slot is appended to the zero-terminated run list at `$7E2F28` indexed by `$86`. Verified headlessly: the Boy walks to the clicked point.
+- **No ROM writes**: the interpreter fetches with `LDA [$82]`, so the bytecode now lives in WRAM at `$7FFF00` (untouched during play). The old `$C409E4` target was in the lower half of a bank, where engine script pointers can't reach, and `$7EFE00` is written by the game.
+- **Boy and Dog render**: `readMemoryRange` caps a read at 4096 bytes, so the `0x1220`-byte entity read stopped at `$4DDF`, before the Boy (`$4E89`) and the Dog (`$4F37`). It is now read in chunks.
+- **Sprite depth**: every entity is now drawn under the foreground. Its priority comes from its own `+0x3C` collision word and `+0x18` plane, the same inputs `$8FC773` uses for OAM. Priority-3 entities draw over the canopy; gate nibble 8 hides them.
+- **Animated tiles no longer cover sprites**: the foreground layer drew each animated group's full composite frame over the entities. It now gets foreground-only frames (new `foreground` animation layer in `src/maps/animation.ts`).
+
 ## [0.154.0] — 2026-10-04
 
 ### Feat: [Emulator] Boy/Dog party member boundary rendering, act-specific dog palettes, projectile elevation, and runtime Everscript injection (right-click walk)

@@ -978,60 +978,55 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         return false;
       }
 
-      // Write bytecode to ROM at 0x409E4 (SNES address 0xC409E4) and WRAM scratch 0x7EFE00
-      const ROM_OFFSET = 0x409E4;
-      const SNES_ADDR = 0xC409E4;
-      for (let i = 0; i < bytecode.length; i++) {
-        if (typeof m.writeRomByte === 'function') {
-          m.writeRomByte(ROM_OFFSET + i, bytecode[i]);
-        }
-        if (typeof m.writeMemory === 'function') {
-          m.writeMemory(0x7EFE00 + i, bytecode[i]);
-        }
+      // Start the script the way the engine does (JSL $8CCE5C -> $8CCF18):
+      //  * $8CCF18 takes the first slot in $7E28FC with state 0, stores the
+      //    24-bit code pointer at +0, state 2 at +3, clears +5/+9/+B/+D and
+      //    the argument block;
+      //  * the caller then appends the slot to the run list at $7E2F28,
+      //    indexed by $86, zero-terminated. $8CCFFD runs only what is on that
+      //    list, so a slot that is merely marked live never executes.
+      // Bytecode is fetched with LDA [$82] (a long pointer), so it can live in
+      // WRAM: $7FFF00 is never written during play (headless survey), and a
+      // walk without a wait runs to its END within the frame anyway.
+      const CODE_ADDR = 0x7FFF00;
+      if (bytecode.length > 0x100) {
+        console.warn('Injected everscript too long:', bytecode.length);
+        return false;
       }
+      for (let i = 0; i < bytecode.length; i++) m.writeMemory(CODE_ADDR + i, bytecode[i]);
 
-      // Find an available script slot in 0x7E28FC (SLOT_COUNT = 20, SLOT_SIZE = 0x4F)
+      const writeWord = (addr, v) => {
+        m.writeMemory(addr, v & 0xFF);
+        m.writeMemory(addr + 1, (v >> 8) & 0xFF);
+      };
+      const readWord = (addr) => m.readMemory(addr) | (m.readMemory(addr + 1) << 8);
+
       let targetSlot = -1;
-      for (let s = SLOT_COUNT - 1; s >= 0; s--) {
-        const slotBase = SCRIPT_STACK_BUS_ADDR + s * SLOT_SIZE;
-        const stLo = m.readMemory(slotBase + 0x03);
-        const stHi = m.readMemory(slotBase + 0x04);
-        const state = stLo | (stHi << 8);
-        if (state === 0) {
-          targetSlot = s;
-          break;
-        }
+      for (let s = 0; s < SLOT_COUNT; s++) {
+        if (readWord(SCRIPT_STACK_BUS_ADDR + s * SLOT_SIZE + 0x03) === 0) { targetSlot = s; break; }
       }
-      if (targetSlot < 0) targetSlot = SLOT_COUNT - 1;
+      const RUN_LIST = 0x7E2F28;
+      const RUN_INDEX = 0x7E0086;
+      const runIdx = readWord(RUN_INDEX);
+      if (targetSlot < 0 || runIdx >= SLOT_COUNT * 2) {
+        console.warn('Cannot inject everscript: no free script slot');
+        setText('ss-last-hit', 'inject failed: no free script slot', 'ss-warn');
+        return false;
+      }
 
       const targetBus = SCRIPT_STACK_BUS_ADDR + targetSlot * SLOT_SIZE;
+      for (let i = 0; i < SLOT_SIZE; i++) m.writeMemory(targetBus + i, 0);
+      m.writeMemory(targetBus + 0x00, CODE_ADDR & 0xFF);
+      m.writeMemory(targetBus + 0x01, (CODE_ADDR >> 8) & 0xFF);
+      m.writeMemory(targetBus + 0x02, (CODE_ADDR >> 16) & 0xFF);
+      writeWord(targetBus + 0x03, 0x0002);
+      // +0x0D (owner) stays 0: an owner would need its +0x3E refcount bumped.
 
-      // Determine active character entity address
-      const boyAddr = 0x4E89;
-      const dogAddr = 0x4F37;
-      let charAddr = boyAddr;
-      try {
-        const ctrlBuf = m.readMemoryRange(0x7E0AF7, 1);
-        if (ctrlBuf && ctrlBuf[0] === 1) charAddr = dogAddr;
-      } catch (_) {}
+      writeWord(RUN_LIST + runIdx, targetBus & 0xFFFF);
+      writeWord(RUN_LIST + runIdx + 2, 0);
+      writeWord(RUN_INDEX, runIdx + 2);
 
-      // Write slot: location (24-bit pointer)
-      m.writeMemory(targetBus + 0x00, SNES_ADDR & 0xFF);
-      m.writeMemory(targetBus + 0x01, (SNES_ADDR >> 8) & 0xFF);
-      m.writeMemory(targetBus + 0x02, (SNES_ADDR >> 16) & 0xFF);
-
-      for (let t = 0x05; t <= 0x0A; t++) m.writeMemory(targetBus + t, 0);
-      m.writeMemory(targetBus + 0x0B, 0);
-      m.writeMemory(targetBus + 0x0C, 0);
-      m.writeMemory(targetBus + 0x0D, charAddr & 0xFF);
-      m.writeMemory(targetBus + 0x0E, (charAddr >> 8) & 0xFF);
-      for (let a = 0x0F; a < 0x30; a++) m.writeMemory(targetBus + a, 0);
-
-      // State = 2 (Executing!)
-      m.writeMemory(targetBus + 0x03, 0x02);
-      m.writeMemory(targetBus + 0x04, 0x00);
-
-      console.log('Injected everscript:', str, 'into slot', targetSlot, 'addr', fmtHex(SNES_ADDR, 6));
+      console.log('Injected everscript:', str, 'into slot', targetSlot, 'addr', fmtHex(CODE_ADDR, 6));
       setText('ss-last-hit', 'injected: ' + str + ' -> slot ' + targetSlot, 'ss-ok');
       return true;
     }
@@ -1376,10 +1371,46 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       }
     }
 
+    // Port of $8FC773 (src/maps/collision.ts spriteDepth): an entity's OAM
+    // priority comes from the collision word of the tile under its feet, which
+    // $8FAFE5 caches at +0x3C, against its own plane at +0x18. Priority 3
+    // draws over the canopy, priority 2 under it, gate nibble 8 not at all.
+    function entityDepth(buf, rel) {
+      const cw = buf[rel + 0x3C] | (buf[rel + 0x3D] << 8);
+      if (((cw ^ 0x0800) & 0x0F00) === 0) return 'hidden';
+      const tilePlane = cw & 0x30;
+      const ownPlane = buf[rel + 0x18] & 0x30;
+      if (ownPlane !== tilePlane) return ownPlane < tilePlane ? 'front' : 'behind';
+      return (cw & 0x1000) ? 'front' : 'behind';
+    }
+
+    function drawEntityItems(ctx, items) {
+      ctx.imageSmoothingEnabled = false;
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.isOrb) {
+          ctx.save();
+          const grad = ctx.createRadialGradient(item.x, item.y, 1, item.x, item.y, item.rad);
+          grad.addColorStop(0, '#ffffff');
+          grad.addColorStop(0.4, '#ffea75');
+          grad.addColorStop(1, 'rgba(255, 120, 0, 0)');
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(item.x, item.y, item.rad, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        } else {
+          ctx.drawImage(item.canvas, item.x, item.y, item.w, item.h);
+        }
+      }
+    }
+
+    // Draws the priority-2 entities on Layer 1 and returns the priority-3 ones,
+    // which the caller draws over the foreground (Layer 2).
     function renderExtendedEntities(preState, layout, extEntCanvas, extEntCtx) {
-      if (!extEntCtx || !extEntCanvas) return;
+      if (!extEntCtx || !extEntCanvas) return [];
       extEntCtx.clearRect(0, 0, layout.wrapW, layout.wrapH);
-      if (!extendMapEnabled || !preState || !loadedRomData) return;
+      if (!extendMapEnabled || !preState || !loadedRomData) return [];
 
       const rom = (loadedRomData.length % 1024 === 512) ? loadedRomData.subarray(512) : loadedRomData;
       const drawList = [];
@@ -1418,6 +1449,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
 
           const flags = buf[rel + 0x10] | (buf[rel + 0x11] << 8);
           if (!isParty && (flags & 0x0020)) continue;
+          const depth = entityDepth(buf, rel);
+          if (depth === 'hidden') continue;
 
           const rawX = buf[rel + 0x1A] | (buf[rel + 0x1B] << 8);
           const posX = rawX >= 0x8000 ? rawX - 0x10000 : rawX;
@@ -1466,6 +1499,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
             w: screenW,
             h: screenH,
             sortY: posY,
+            front: depth === 'front',
           });
         }
       }
@@ -1513,6 +1547,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
                 w: screenW,
                 h: screenH,
                 sortY: posY,
+                front: true,
               });
             }
           } else {
@@ -1526,6 +1561,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
                 y: screenY,
                 rad: rad,
                 sortY: posY,
+                front: true,
               });
             }
           }
@@ -1533,25 +1569,20 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       }
 
       drawList.sort((a, b) => a.sortY - b.sortY);
+      drawEntityItems(extEntCtx, drawList.filter(item => !item.front));
+      return drawList.filter(item => item.front);
+    }
 
-      extEntCtx.imageSmoothingEnabled = false;
-      for (let i = 0; i < drawList.length; i++) {
-        const item = drawList[i];
-        if (item.isOrb) {
-          extEntCtx.save();
-          const grad = extEntCtx.createRadialGradient(item.x, item.y, 1, item.x, item.y, item.rad);
-          grad.addColorStop(0, '#ffffff');
-          grad.addColorStop(0.4, '#ffea75');
-          grad.addColorStop(1, 'rgba(255, 120, 0, 0)');
-          extEntCtx.fillStyle = grad;
-          extEntCtx.beginPath();
-          extEntCtx.arc(item.x, item.y, item.rad, 0, Math.PI * 2);
-          extEntCtx.fill();
-          extEntCtx.restore();
-        } else {
-          extEntCtx.drawImage(item.canvas, item.x, item.y, item.w, item.h);
-        }
+    // readMemoryRange caps a call at 4096 bytes (the core's static buffer) and
+    // returns a short array past that, which silently cut the Boy ($4E89) and
+    // Dog ($4F37) off the end of the entity table.
+    function readMemoryChunked(m, addr, size) {
+      const out = new Uint8Array(size);
+      for (let off = 0; off < size; off += 4096) {
+        const n = Math.min(4096, size - off);
+        out.set(m.readMemoryRange(addr + off, n).subarray(0, n), off);
       }
+      return out;
     }
 
     function samplePreLoopState() {
@@ -1579,7 +1610,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           trigOffY = rawOY >= 0x8000 ? rawOY - 0x10000 : rawOY;
         }
 
-        entBuf = m.readMemoryRange(0x7E3DDF, 0x1220);
+        entBuf = readMemoryChunked(m, 0x7E3DDF, 0x1220);
         palSlotBuf = m.readMemoryRange(0x7E1278, 16);
         projBuf = m.readMemoryRange(0x7E6387, 352);
         objStateBuf = m.readMemoryRange(0x7E10CE, 64);
@@ -1743,9 +1774,10 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         }
       }
 
-      // 2. Extended entities (Layer 1)
+      // 2. Extended entities (Layer 1); priority-3 ones come back for Layer 2
+      let frontEntities = [];
       if (extEntCtx && extEntCanvas) {
-        renderExtendedEntities(preState, layout, extEntCanvas, extEntCtx);
+        frontEntities = renderExtendedEntities(preState, layout, extEntCanvas, extEntCtx);
       }
 
       // 3. Extended foreground priority tiles (Layer 2)
@@ -1763,7 +1795,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           if (activeRoomMap.animGroups && activeRoomMap.animGroups.length) {
             for (let g = 0; g < activeRoomMap.animGroups.length; g++) {
               const grp = activeRoomMap.animGroups[g];
-              const curFrame = grp.frames ? grp.frames[grp.frameIdx || 0] : null;
+              // Priority half only; null when the group has none.
+              const curFrame = grp.fgFrames ? grp.fgFrames[grp.frameIdx || 0] : null;
               if (curFrame && curFrame.complete && curFrame.naturalWidth > 0) {
                 const gx = mapX + grp.x * scaleSnes;
                 const gy = mapY + grp.y * scaleSnes;
@@ -1774,6 +1807,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
             }
           }
         }
+        drawEntityItems(extFgCtx, frontEntities);
       }
 
       // 4. Extended triggers overlay (Layer 4)
@@ -2727,11 +2761,13 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           if (Array.isArray(evt.data.animGroups)) {
             for (let i = 0; i < evt.data.animGroups.length; i++) {
               const g = evt.data.animGroups[i];
-              const frameImgs = (g.frames || []).map(fUri => {
+              const toImg = fUri => {
                 const fImg = new Image();
                 fImg.src = fUri;
                 return fImg;
-              });
+              };
+              const frameImgs = (g.frames || []).map(toImg);
+              const fgFrameImgs = Array.isArray(g.fgFrames) ? g.fgFrames.map(toImg) : null;
               loadedGroups.push({
                 x: g.x,
                 y: g.y,
@@ -2739,6 +2775,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
                 h: g.h,
                 delays: g.delays || [],
                 frames: frameImgs,
+                fgFrames: fgFrameImgs,
                 frameIdx: 0,
                 nextTick: 0,
               });

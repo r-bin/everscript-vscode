@@ -622,6 +622,12 @@ function _alignPixelsToSnes(pb) {
     return pb;
 }
 
+function _hasOpaquePixel(pb) {
+    const d = pb.data;
+    for (let i = 3; i < d.length; i += 4) if (d[i]) return true;
+    return false;
+}
+
 function _handleRoomMapRequest(mapId, objectStates, cutGrassTiles) {
     if (!_panel || typeof mapId !== 'number') return;
     const objKey = objectStates ? JSON.stringify(objectStates) : '';
@@ -674,21 +680,31 @@ function _handleRoomMapRequest(mapId, objectStates, cutGrassTiles) {
 
         let animGroups = [];
         try {
+            const encodeFrame = f => {
+                _alignPixelsToSnes(f);
+                return maps.encodePngDataUri(_scale2x(f));
+            };
             const rawGroups = maps.buildAnimationGroups(rom, staged);
-            if (rawGroups && rawGroups.length) {
-                animGroups = rawGroups.map(g => ({
+            // The same cells, priority half only: the webview lays these over
+            // the characters, so a full composite frame there would paint the
+            // terrain over every sprite standing on an animated tile.
+            // Grouping walks the same cells in the same order, so group i of
+            // one list is group i of the other.
+            const fgGroups = maps.buildAnimationGroups(rom, staged, { layer: 'foreground' });
+            const fgAligned = fgGroups.length === rawGroups.length;
+            animGroups = rawGroups.map((g, i) => {
+                const fg = fgAligned ? fgGroups[i] : null;
+                const fgUsed = fg && fg.frames.some(f => _hasOpaquePixel(f));
+                return {
                     x: g.x * 16,
                     y: g.y * 16,
                     w: g.w * 16,
                     h: g.h * 16,
                     delays: g.delaysMs,
-                    frames: g.frames.map(f => {
-                        _alignPixelsToSnes(f);
-                        const f2x = _scale2x(f);
-                        return maps.encodePngDataUri(f2x);
-                    }),
-                }));
-            }
+                    frames: g.frames.map(encodeFrame),
+                    fgFrames: fgUsed ? fg.frames.map(encodeFrame) : null,
+                };
+            });
         } catch (_) {}
 
         const data = {

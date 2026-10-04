@@ -135,21 +135,22 @@ The emulator panel can extend the visible world beyond the SNES 256×224 screen 
 
 ## 8. Runtime Everscript Injection & Right-Click Walk
 
-1. **Core Debugger Exports**:
-   - `writeRomByte(offset, val)` and `readRomByte(offset)` are exposed by `snes9x2005-wasm` debugger exports.
-2. **Bytecode Layout**:
-   - `walk(ACTIVE, COORDINATE_ABSOLUTE, X, Y)`:
-     `[0x9D, 0xD2, 0x84, xLo, xHi, 0x84, yLo, yHi, 0x00]`
-3. **Memory Targets**:
-   - ROM Free Space: `$C409E4` (file offset `0x409E4`, empty zero-padding in bank `$C4`).
-   - WRAM Scratch: `$7EFE00`.
-4. **Script Stack Scheduling**:
-   - Engine script stack is at `$7E28FC` (20 slots, 79 bytes each).
-   - Locate an idle slot (`state === 0`), write the 24-bit pointer to `$C409E4`, and set `state = 0x0002` (executing).
-5. **Right-Click Interaction**:
-   - Webview intercepts `contextmenu` on `#screen-wrap`, maps mouse client coordinates via `lastLayout` to room coordinates, and fires `injectEverscript('walk(ACTIVE, COORDINATE_ABSOLUTE, X, Y)')`.
-
----
+1. **Bytecode**: `walk(ACTIVE, COORDINATE_ABSOLUTE, X, Y)` is
+   `[0x9D, 0xD2, 0x84, xLo, xHi, 0x84, yLo, yHi, 0x00]` (pixels). This matches the SoETilesViewer
+   dumper: `9d` takes three sub-instructions, `d2` = ACTIVE (`0x52 | 0x80`), and `84` = a const word plus the end bit.
+2. **Code lives in WRAM `$7FFF00`**: the interpreter fetches with `LDA [$82]` (`$8CD0A6`), a long pointer.
+   Do not write ROM: engine script pointers only reach the upper half of banks `$92+`
+   (`script2romaddr`), and `$7EFE00` is written by the game.
+3. **Starting a script must follow `$8CCE5C` → `$8CCF18`**:
+   - take the first slot in `$7E28FC` (20 × `0x4F`) with state 0, zero it, put the pointer at `+0` and state `2` at `+3`;
+   - **append the slot to the run list** `$7E2F28[$86]`, write a 0 terminator, and add 2 to `$86`.
+     `$8CCFFD` only runs slots on that list; a slot that is merely marked live never runs.
+   - Leave the owner `+0x0D` at 0 (an owner needs its `+0x3E` refcount bumped).
+4. **Right-click**: `contextmenu` on `#screen-wrap` maps to room pixels via `lastLayout` and injects the walk.
+5. `readMemoryRange` caps at **4096 bytes**. Read larger regions (the entity table) in chunks.
+6. **Entity depth** in the extended view is `$8FC773` applied to entity `+0x3C` (collision word under the feet) and
+   `+0x18` (plane). Priority-3 entities draw over the foreground layer. Foreground animation frames are
+   `buildAnimationGroups(..., { layer: 'foreground' })`, never the composite frames.
 
 ## 9. Verification Checklist
 

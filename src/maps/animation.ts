@@ -97,8 +97,12 @@ function paletteSlot(word: number): number {
     return Math.floor(charIdx / 0x20) * 8 + Math.floor((charIdx % 0x20) / 2);
 }
 
-/** Which render the animation has to match; mirrors the Rooms tab's layer pick. */
-export type AnimationLayer = 'composite' | 'layer1' | 'layer2';
+/**
+ * Which render the animation has to match; mirrors the Rooms tab's layer pick.
+ * `foreground` is the priority half only (`renderRoomForeground`), for a view
+ * that draws characters between the two halves.
+ */
+export type AnimationLayer = 'composite' | 'layer1' | 'layer2' | 'foreground';
 
 export interface AnimationOptions {
     /** Which layer the map image is showing. Default 'composite'. */
@@ -405,6 +409,10 @@ function renderCell(
     };
     if (layer === 'layer1') return renderVramLayer(rom, mini, mini.layer1VramWords);
     if (layer === 'layer2') return renderVramLayer(rom, mini, mini.layer2VramWords);
+    if (layer === 'foreground') {
+        return compositeLayers(mini, renderVramLayer(rom, mini, mini.layer1VramWords),
+            renderVramLayer(rom, mini, mini.layer2VramWords), { foregroundOnly: true });
+    }
     // The map's own backdrop: a frame with a hole where frame 0 had art showed
     // frame 0 (in the map image beneath) through it.
     return compositeLayers(mini, renderVramLayer(rom, mini, mini.layer1VramWords),
