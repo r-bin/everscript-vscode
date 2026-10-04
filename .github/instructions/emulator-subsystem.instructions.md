@@ -83,10 +83,80 @@ Standard keyboard layout:
 
 ---
 
-## 5. Verification Checklist
+---
+
+## 5. Map Extension Subsystem
+
+The emulator panel can extend the visible world beyond the SNES 256×224 screen boundaries, seamlessly rendering the active room around the active emulator display.
+
+### Multi-Layer Compositing
+
+| Layer | Element ID | Z-Index | Role |
+|---|---|---|---|
+| 0 | `#extended-map` | 0 | Static Mode 1 background tiles + Section 2 animated tile cycles |
+| 1 | `#extended-entities` | 1 | Live WRAM entities (Boy, Dog, enemies, NPCs, projectiles) |
+| 2 | `#extended-foreground` | 2 | Priority Mode 1 canopy tiles + animated foreground (occludes Layer 1 entities) |
+| 3 | `#screen` | 3 | Core SNES emulator canvas (512×448 RGBA) |
+| 4 | `#extended-overlay` | 4 | Step-on triggers (yellow), B-triggers (pink), right-click destination reticles |
+| 5 | `#extended-fog` | 5 | Atmospheric darkness / fog-of-war outside the viewport |
+
+### 2× Pixel Grid & Color Quantization
+
+1. **2× Source Map Resolution**: Extended composite and foreground images are rendered at 2× scale (`_scale2x`), matching the core's 512×448 buffer grid (2 buffer pixels per SNES pixel) to prevent pixel jitter at any zoom level.
+2. **Green Channel Quantization**: Green channels in rendered map bitmaps are quantized to 6 bits with `&= 0xfc`, matching Snes9x's `((col >> 5) & 0x3F) << 2` DAC conversion and eliminating visible boundary seams.
+
+---
+
+## 6. Live WRAM Entity Tracking & Party Invariants
+
+1. **Entity Stride**: Entity table starts at `$7E4E89` with a **174-byte stride (`$AE`)**.
+2. **Boy & Dog Party Slots**:
+   - Boy: Slot 0 at `$7E4E89` (OBJ palette 0 `$AD0B`).
+   - Dog: Slot 1 at `$7E4F37` (`+0xAE` stride from Boy).
+   - **CRITICAL**: Dog is **never** at `$7E4F17` (which overlaps Boy's internal status struct).
+   - Active party members MUST bypass the live combat/inactive check (`flags & 0x0020`), which is used by standard NPC/enemy spawns but would improperly clip Boy and Dog when crossing viewport borders.
+3. **Act-Specific Dog Palettes**:
+   - Act 0 (Podunk Pup): `$B54B`
+   - Act 1 (Prehistoria Wolf): `$AE0B`
+   - Act 2 (Antiqua Greyhound): `$AE2B`
+   - Act 3 (Gothica Poodle): `$AE4B`
+   - Act 4 (Omnitopia Toaster): `$AE6B` (sprite bank `$D2`)
+4. **Sprite Banks**: Accepted entity sprite banks are `$C0..$DF`.
+
+---
+
+## 7. Projectile Tracking & 3D Elevation
+
+1. **Active Check**: Projectile slots in WRAM `$7E6387` are active when `type !== 0` and sprite bank is in `$C0..$DF`.
+2. **Subpixel Scaling**: Coordinate values are divided by 16 (`Math.floor(raw / 16)`), matching SNES engine routine `$90DE88`.
+3. **3D Elevation Z-Offset**: Render at `posY - sprite.originY - posZ` (single division). Do not divide `posZ` twice.
+
+---
+
+## 8. Runtime Everscript Injection & Right-Click Walk
+
+1. **Core Debugger Exports**:
+   - `writeRomByte(offset, val)` and `readRomByte(offset)` are exposed by `snes9x2005-wasm` debugger exports.
+2. **Bytecode Layout**:
+   - `walk(ACTIVE, COORDINATE_ABSOLUTE, X, Y)`:
+     `[0x9D, 0xD2, 0x84, xLo, xHi, 0x84, yLo, yHi, 0x00]`
+3. **Memory Targets**:
+   - ROM Free Space: `$C409E4` (file offset `0x409E4`, empty zero-padding in bank `$C4`).
+   - WRAM Scratch: `$7EFE00`.
+4. **Script Stack Scheduling**:
+   - Engine script stack is at `$7E28FC` (20 slots, 79 bytes each).
+   - Locate an idle slot (`state === 0`), write the 24-bit pointer to `$C409E4`, and set `state = 0x0002` (executing).
+5. **Right-Click Interaction**:
+   - Webview intercepts `contextmenu` on `#screen-wrap`, maps mouse client coordinates via `lastLayout` to room coordinates, and fires `injectEverscript('walk(ACTIVE, COORDINATE_ABSOLUTE, X, Y)')`.
+
+---
+
+## 9. Verification Checklist
 
 Before releasing any changes to `src/emulator/`:
 - [ ] Run `npm run test:emulator-runtime` to verify core file integrity and exports.
 - [ ] Run `node tests/debugger/emulator-health.test.js`.
 - [ ] Verify that `snes9x2005-wasm` builds cleanly without warnings or errors.
 - [ ] Check that `.vscodeignore` preserves `copyright` files in the package.
+- [ ] Verify ASCII-only encoding in `src/emulator/panel.js` and `src/emulator/panel-webview.js`.
+

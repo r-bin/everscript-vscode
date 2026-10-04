@@ -7,10 +7,20 @@ Items are grouped by VS Code extension API surface and rough complexity.
 
 ## Currently Working
 
-- TextMate grammar (syntax highlighting)
-- Language configuration (bracket matching, comment toggle)
-- Bundled Everscript Dark theme
-- Grammar unit tests via `vscode-tmgrammar-test`
+- **Language Support**:
+  - TextMate grammar (syntax highlighting)
+  - Language configuration (bracket matching, comment toggle)
+  - Bundled Everscript Dark theme
+  - Grammar unit tests via `vscode-tmgrammar-test`
+- **Memory Radar & Rooms Panel**:
+  - Live WRAM grid visualization, lifecycle analysis, and memory pool tracking
+  - Room tree browser, map collision/trigger layers, and candidate entity spawner preview
+  - Characters tab: animation catalog, raw sprite viewer, hit/hurt/strike boxes, and dog form catalogs
+- **Embedded SNES Emulator Subsystem**:
+  - Direct `snes9x2005-wasm` integration with planar 44.1kHz audio streaming and aspect-fit video
+  - Live script execution hooks, WRAM inspection, and breakpoint support
+  - **Map Extension**: Multi-layer room rendering outside emulator boundaries (2x pixel-grid canvas, Section 2 dynamic animated tiles, foreground Mode 1 canopy occlusions, live WRAM party/entity sync, dog act palettes, projectiles with 3D elevation, trigger overlays)
+  - **Runtime Everscript Injection**: Compile and execute Everscript statements at runtime (e.g. right-click to walk character to target world coordinate)
 
 ---
 
