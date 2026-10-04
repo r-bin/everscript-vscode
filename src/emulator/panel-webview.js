@@ -123,10 +123,38 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       overflow: hidden;
       position: relative;
     }
+    #extended-map {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
     #screen {
+      position: relative;
+      z-index: 1;
       display: block;
       width: 512px; height: 448px;
       image-rendering: pixelated; image-rendering: crisp-edges;
+      outline: none;
+      box-shadow: none;
+    }
+    #screen:focus, #screen:focus-visible {
+      outline: none;
+      box-shadow: none;
+    }
+    #extended-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 2;
     }
     #screen-overlay-bar {
       position: absolute;
@@ -159,7 +187,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       color: #6f9;
       border-color: #2e7d32;
     }
-    #ss-overlay-label {
+    #ss-extend-label, #ss-overlay-label {
       display: inline-flex;
       align-items: center;
       gap: 4px;
@@ -168,7 +196,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       cursor: pointer;
       user-select: none;
     }
-    #ss-overlay-label input {
+    #ss-extend-label input, #ss-overlay-label input {
       cursor: pointer;
     }
     /* -- ROM picker overlay --------------------------------------------- */
@@ -295,8 +323,11 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
   </div>
 
   <div id="screen-wrap">
+    <canvas id="extended-map"></canvas>
     <canvas id="screen" width="512" height="448"></canvas>
+    <canvas id="extended-overlay"></canvas>
     <div id="screen-overlay-bar">
+      <button id="screen-extend-toggle" class="screen-chip active" type="button" title="Toggle Extended Map">MAP EXT ON</button>
       <button id="screen-trigger-toggle" class="screen-chip active" type="button" title="Toggle Trigger Overlay (B &amp; Step-on)">TRIGGERS ON</button>
     </div>
   </div>
@@ -311,6 +342,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         <button id="ss-tab-debug" class="ss-tab" type="button">DEBUGGER &amp; HOOKS</button>
       </div>
       <div id="ss-controls">
+        <label id="ss-extend-label" title="Toggle extended map background"><input type="checkbox" id="ss-extend-toggle" checked /> extend map</label>
         <label id="ss-overlay-label" title="Toggle trigger overlay"><input type="checkbox" id="ss-overlay-toggle" checked /> triggers</label>
         <button id="ss-pause-btn"  class="ss-btn" disabled>pause</button>
         <button id="ss-resume-btn" class="ss-btn" disabled>resume</button>
@@ -616,6 +648,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         loadedRomData = romData;
         cachedMapId = -1;
         cachedTriggers = null;
+        lastRequestedMapId = -1;
+        activeRoomMap = null;
         romLaunchTimestamp = performance.now();
         romFrameCount = 0;
         initAudio();
@@ -635,10 +669,14 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
 
     // -- Render loop -----------------------------------------------------------
     function startRenderLoop() {
-      const canvas    = document.getElementById('screen');
-      const wrap      = document.getElementById('screen-wrap');
-      const ctx       = canvas.getContext('2d');
-      const imageData = ctx.createImageData(512, 448);
+      const canvas        = document.getElementById('screen');
+      const extMapCanvas  = document.getElementById('extended-map');
+      const extOverCanvas = document.getElementById('extended-overlay');
+      const wrap          = document.getElementById('screen-wrap');
+      const ctx           = canvas.getContext('2d');
+      const extMapCtx     = extMapCanvas ? extMapCanvas.getContext('2d') : null;
+      const extOverCtx    = extOverCanvas ? extOverCanvas.getContext('2d') : null;
+      const imageData     = ctx.createImageData(512, 448);
       canvas.setAttribute('tabindex', '0');
       canvas.addEventListener('click', () => {
         canvas.focus();
@@ -660,6 +698,14 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         const scale = Math.max(Math.min(W / 512, H / 448), 0.01);
         canvas.style.width = (512 * scale) + 'px';
         canvas.style.height = (448 * scale) + 'px';
+        if (extMapCanvas && (extMapCanvas.width !== W || extMapCanvas.height !== H)) {
+          extMapCanvas.width = W;
+          extMapCanvas.height = H;
+        }
+        if (extOverCanvas && (extOverCanvas.width !== W || extOverCanvas.height !== H)) {
+          extOverCanvas.width = W;
+          extOverCanvas.height = H;
+        }
       }
       if (window.ResizeObserver) new ResizeObserver(() => resizeCanvas(true)).observe(wrap);
       window.addEventListener('resize', () => resizeCanvas(true));
@@ -688,27 +734,126 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
             imageData.data.set(new Uint8ClampedArray(HEAPU8.buffer, fbPtr, 512 * 448 * 4));
             ctx.putImageData(imageData, 0, 0);
           }
-          if (triggersOverlayEnabled) {
-            renderTriggersOverlay(ctx);
-          }
+          renderExtendedMapAndOverlays(canvas, extMapCanvas, extMapCtx, extOverCanvas, extOverCtx);
           checkScriptExecutionTrace();
         }
       }
       requestAnimationFrame(frame);
     }
 
-    // -- Trigger overlay -------------------------------------------------------
+    // -- Extended map and triggers overlay -------------------------------------
+    let extendMapEnabled = true;
     let triggersOverlayEnabled = true;
     let cachedMapId = -1;
     let cachedTriggers = null;
+    let lastRequestedMapId = -1;
+    let activeRoomMap = null;
 
     ${parseRoomTriggers.toString()}
 
     ${calculateTriggerBox.toString()}
 
-    function renderTriggersOverlay(ctx) {
+    function renderTriggersOverlay(overlayCtx, layout) {
+      if (!overlayCtx) return;
+      if (!layout) {
+        const wrap = document.getElementById('screen-wrap');
+        const canvas = document.getElementById('screen');
+        const wrapW = wrap ? wrap.clientWidth : 512;
+        const wrapH = wrap ? wrap.clientHeight : 448;
+        const emuW = canvas ? (parseFloat(canvas.style.width) || 512) : 512;
+        const emuH = canvas ? (parseFloat(canvas.style.height) || 448) : 448;
+        layout = {
+          wrapW: wrapW,
+          wrapH: wrapH,
+          emuX: (wrapW - emuW) / 2,
+          emuY: (wrapH - emuH) / 2,
+          emuW: emuW,
+          emuH: emuH,
+          scaleSnes: emuW / 256,
+          camX: 0,
+          camY: 0,
+          trigOffX: 0,
+          trigOffY: 0,
+        };
+      }
+      overlayCtx.clearRect(0, 0, layout.wrapW, layout.wrapH);
+      if (!triggersOverlayEnabled || !cachedTriggers) return;
+
+      const stepOn = cachedTriggers.stepOn || [];
+      const bTrigger = cachedTriggers.bTrigger || [];
+      if (!stepOn.length && !bTrigger.length) return;
+
+      overlayCtx.save();
+
+      if (!extendMapEnabled) {
+        overlayCtx.beginPath();
+        overlayCtx.rect(layout.emuX, layout.emuY, layout.emuW, layout.emuH);
+        overlayCtx.clip();
+      }
+
+      // Step-on triggers: Pink (#ff69b4, rgba(255, 100, 180, 0.22))
+      overlayCtx.lineWidth = 1;
+      for (let i = 0; i < stepOn.length; i++) {
+        const box = calculateTriggerBox(stepOn[i], layout.trigOffX, layout.trigOffY, layout.camX, layout.camY);
+        const tx = layout.emuX + (box.posX - layout.camX) * layout.scaleSnes;
+        const ty = layout.emuY + (box.posY - layout.camY) * layout.scaleSnes;
+        const tw = box.boxW * layout.scaleSnes;
+        const th = box.boxH * layout.scaleSnes;
+
+        if (tx + tw <= 0 || tx >= layout.wrapW || ty + th <= 0 || ty >= layout.wrapH) continue;
+
+        overlayCtx.fillStyle = 'rgba(255, 100, 180, 0.22)';
+        overlayCtx.fillRect(tx, ty, tw, th);
+        overlayCtx.strokeStyle = '#ff69b4';
+        overlayCtx.strokeRect(tx + 0.5, ty + 0.5, tw - 1, th - 1);
+
+        const label = (stepOn[i].scriptId >>> 0).toString(16).toUpperCase();
+        overlayCtx.font = '10px monospace';
+        const textW = overlayCtx.measureText(label).width;
+        const labelX = tx + 2;
+        const labelY = ty + 10;
+        overlayCtx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+        overlayCtx.fillRect(labelX - 1, labelY - 9, textW + 2, 11);
+        overlayCtx.fillStyle = '#ff69b4';
+        overlayCtx.fillText(label, labelX, labelY);
+      }
+
+      // B-triggers: Yellow (#ffcc00, rgba(255, 210, 0, 0.22))
+      for (let i = 0; i < bTrigger.length; i++) {
+        const box = calculateTriggerBox(bTrigger[i], layout.trigOffX, layout.trigOffY, layout.camX, layout.camY);
+        const tx = layout.emuX + (box.posX - layout.camX) * layout.scaleSnes;
+        const ty = layout.emuY + (box.posY - layout.camY) * layout.scaleSnes;
+        const tw = box.boxW * layout.scaleSnes;
+        const th = box.boxH * layout.scaleSnes;
+
+        if (tx + tw <= 0 || tx >= layout.wrapW || ty + th <= 0 || ty >= layout.wrapH) continue;
+
+        overlayCtx.fillStyle = 'rgba(255, 210, 0, 0.22)';
+        overlayCtx.fillRect(tx, ty, tw, th);
+        overlayCtx.strokeStyle = '#ffcc00';
+        overlayCtx.strokeRect(tx + 0.5, ty + 0.5, tw - 1, th - 1);
+
+        const label = (bTrigger[i].scriptId >>> 0).toString(16).toUpperCase();
+        overlayCtx.font = '10px monospace';
+        const textW = overlayCtx.measureText(label).width;
+        const labelX = tx + 2;
+        const labelY = ty + 10;
+        overlayCtx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+        overlayCtx.fillRect(labelX - 1, labelY - 9, textW + 2, 11);
+        overlayCtx.fillStyle = '#ffcc00';
+        overlayCtx.fillText(label, labelX, labelY);
+      }
+
+      overlayCtx.restore();
+    }
+
+    function renderExtendedMapAndOverlays(canvas, extMapCanvas, extMapCtx, extOverCanvas, extOverCtx) {
       const m = getModule();
-      if (!m || !hasDebuggerApi(m) || !loadedRomData) return;
+      if (!m || !hasDebuggerApi(m) || !loadedRomData) {
+        if (extOverCtx && extOverCanvas) extOverCtx.clearRect(0, 0, extOverCanvas.width, extOverCanvas.height);
+        if (extMapCtx && extMapCanvas) extMapCtx.clearRect(0, 0, extMapCanvas.width, extMapCanvas.height);
+        return;
+      }
 
       let camX = 0;
       let camY = 0;
@@ -738,70 +883,62 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         return;
       }
 
-      if (mapId < 0 || mapId > 0x90) return;
+      if (mapId < 0 || mapId > 0x90) {
+        if (extOverCtx && extOverCanvas) extOverCtx.clearRect(0, 0, extOverCanvas.width, extOverCanvas.height);
+        if (extMapCtx && extMapCanvas) extMapCtx.clearRect(0, 0, extMapCanvas.width, extMapCanvas.height);
+        return;
+      }
+
+      if (mapId !== lastRequestedMapId) {
+        lastRequestedMapId = mapId;
+        if (vscodeApi) vscodeApi.postMessage({ command: 'requestRoomMap', mapId: mapId });
+      }
 
       if (mapId !== cachedMapId) {
         cachedMapId = mapId;
         cachedTriggers = parseRoomTriggers(loadedRomData, mapId);
       }
 
-      if (!cachedTriggers) return;
-
-      if (trigOffX === 0 && trigOffY === 0 && (cachedTriggers.offX || cachedTriggers.offY)) {
+      if (cachedTriggers && trigOffX === 0 && trigOffY === 0 && (cachedTriggers.offX || cachedTriggers.offY)) {
         trigOffX = cachedTriggers.offX;
         trigOffY = cachedTriggers.offY;
       }
 
-      const stepOn = cachedTriggers.stepOn || [];
-      const bTrigger = cachedTriggers.bTrigger || [];
-      if (!stepOn.length && !bTrigger.length) return;
+      const wrapW = extMapCanvas ? extMapCanvas.width : (canvas.parentElement ? canvas.parentElement.clientWidth : 512);
+      const wrapH = extMapCanvas ? extMapCanvas.height : (canvas.parentElement ? canvas.parentElement.clientHeight : 448);
+      const emuW = parseFloat(canvas.style.width) || 512;
+      const emuH = parseFloat(canvas.style.height) || 448;
+      const emuX = (wrapW - emuW) / 2;
+      const emuY = (wrapH - emuH) / 2;
+      const scaleSnes = emuW / 256;
 
-      ctx.save();
-
-      // Step-on triggers: Pink (#ff69b4, rgba(255, 100, 180, 0.22))
-      ctx.lineWidth = 1;
-      for (let i = 0; i < stepOn.length; i++) {
-        const box = calculateTriggerBox(stepOn[i], trigOffX, trigOffY, camX, camY);
-        if (box.sx + box.sw <= 0 || box.sx >= 512 || box.sy + box.sh <= 0 || box.sy >= 448) continue;
-
-        ctx.fillStyle = 'rgba(255, 100, 180, 0.22)';
-        ctx.fillRect(box.sx, box.sy, box.sw, box.sh);
-        ctx.strokeStyle = '#ff69b4';
-        ctx.strokeRect(box.sx + 0.5, box.sy + 0.5, box.sw - 1, box.sh - 1);
-
-        const label = (stepOn[i].scriptId >>> 0).toString(16).toUpperCase();
-        ctx.font = '9px monospace';
-        const tw = ctx.measureText(label).width;
-        const labelX = Math.max(0, box.sx);
-        const labelY = Math.max(0, box.sy);
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
-        ctx.fillRect(labelX, labelY, tw + 4, 11);
-        ctx.fillStyle = '#ff69b4';
-        ctx.fillText(label, labelX + 2, labelY + 9);
+      if (extMapCtx && extMapCanvas) {
+        extMapCtx.clearRect(0, 0, wrapW, wrapH);
+        if (extendMapEnabled && activeRoomMap && activeRoomMap.mapId === mapId && activeRoomMap.img) {
+          const mapX = emuX - camX * scaleSnes;
+          const mapY = emuY - camY * scaleSnes;
+          const mapW = activeRoomMap.width * scaleSnes;
+          const mapH = activeRoomMap.height * scaleSnes;
+          extMapCtx.imageSmoothingEnabled = false;
+          extMapCtx.drawImage(activeRoomMap.img, mapX, mapY, mapW, mapH);
+        }
       }
 
-      // B-triggers: Yellow (#ffcc00, rgba(255, 210, 0, 0.22))
-      for (let i = 0; i < bTrigger.length; i++) {
-        const box = calculateTriggerBox(bTrigger[i], trigOffX, trigOffY, camX, camY);
-        if (box.sx + box.sw <= 0 || box.sx >= 512 || box.sy + box.sh <= 0 || box.sy >= 448) continue;
-
-        ctx.fillStyle = 'rgba(255, 210, 0, 0.22)';
-        ctx.fillRect(box.sx, box.sy, box.sw, box.sh);
-        ctx.strokeStyle = '#ffcc00';
-        ctx.strokeRect(box.sx + 0.5, box.sy + 0.5, box.sw - 1, box.sh - 1);
-
-        const label = (bTrigger[i].scriptId >>> 0).toString(16).toUpperCase();
-        ctx.font = '9px monospace';
-        const tw = ctx.measureText(label).width;
-        const labelX = Math.max(0, box.sx);
-        const labelY = Math.max(0, box.sy);
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
-        ctx.fillRect(labelX, labelY, tw + 4, 11);
-        ctx.fillStyle = '#ffcc00';
-        ctx.fillText(label, labelX + 2, labelY + 9);
+      if (extOverCtx && extOverCanvas) {
+        renderTriggersOverlay(extOverCtx, {
+          wrapW: wrapW,
+          wrapH: wrapH,
+          emuX: emuX,
+          emuY: emuY,
+          emuW: emuW,
+          emuH: emuH,
+          scaleSnes: scaleSnes,
+          camX: camX,
+          camY: camY,
+          trigOffX: trigOffX,
+          trigOffY: trigOffY,
+        });
       }
-
-      ctx.restore();
     }
 
     // -- WRAM / Script stack ---------------------------------------------------
@@ -1363,6 +1500,44 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       });
     }
 
+    function setExtendMap(enabled) {
+      extendMapEnabled = !!enabled;
+      const chip = document.getElementById('screen-extend-toggle');
+      if (chip) {
+        if (extendMapEnabled) {
+          chip.classList.add('active');
+          chip.textContent = 'MAP EXT ON';
+        } else {
+          chip.classList.remove('active');
+          chip.textContent = 'MAP EXT OFF';
+        }
+      }
+      const cb = document.getElementById('ss-extend-toggle');
+      if (cb) cb.checked = extendMapEnabled;
+      const extMapCanvas = document.getElementById('extended-map');
+      if (!extendMapEnabled && extMapCanvas) {
+        const extCtx = extMapCanvas.getContext('2d');
+        if (extCtx) extCtx.clearRect(0, 0, extMapCanvas.width, extMapCanvas.height);
+      }
+    }
+
+    const extendChip = document.getElementById('screen-extend-toggle');
+    if (extendChip) {
+      extendChip.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setExtendMap(!extendMapEnabled);
+        const screenCanvas = document.getElementById('screen');
+        if (screenCanvas) screenCanvas.focus();
+      });
+    }
+
+    const extendCb = document.getElementById('ss-extend-toggle');
+    if (extendCb) {
+      extendCb.addEventListener('change', () => {
+        setExtendMap(extendCb.checked);
+      });
+    }
+
     function setTriggersOverlay(enabled) {
       triggersOverlayEnabled = !!enabled;
       const chip = document.getElementById('screen-trigger-toggle');
@@ -1377,6 +1552,11 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       }
       const cb = document.getElementById('ss-overlay-toggle');
       if (cb) cb.checked = triggersOverlayEnabled;
+      const extOverCanvas = document.getElementById('extended-overlay');
+      if (!triggersOverlayEnabled && extOverCanvas) {
+        const extCtx = extOverCanvas.getContext('2d');
+        if (extCtx) extCtx.clearRect(0, 0, extOverCanvas.width, extOverCanvas.height);
+      }
     }
 
     const triggerChip = document.getElementById('screen-trigger-toggle');
@@ -1652,6 +1832,21 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         setText('ss-debug-link-status', 'dbg: ' + evt.data.text, evt.data.ok ? 'ss-ok' : 'ss-warn');
       } else if (evt.data.command === 'scriptTraceLogged') {
         appendTraceEntries(evt.data.entries);
+      } else if (evt.data.command === 'roomMapRendered') {
+        if (evt.data.imageUri) {
+          const img = new Image();
+          img.onload = function() {
+            activeRoomMap = {
+              mapId: evt.data.mapId,
+              img: img,
+              width: evt.data.width,
+              height: evt.data.height,
+              offX: evt.data.offX,
+              offY: evt.data.offY,
+            };
+          };
+          img.src = evt.data.imageUri;
+        }
       }
     });
 

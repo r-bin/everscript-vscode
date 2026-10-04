@@ -1,3 +1,20 @@
+## [0.149.0] — 2026-10-04
+
+### Feat: [Emulator] Extended room map background, full-viewport trigger overlay, and focus ring removal
+
+- **Extended Map Beyond Emulator**:
+  - Dynamically renders the full decoded room map background into available pillarbox and letterbox space behind the emulator viewport in `#screen-wrap`.
+  - Coordinates tracking: synchronizes room composite position (`mapX = emuX - camX * scaleSnes`, `mapY = emuY - camY * scaleSnes`) based on current WRAM camera scroll (`$7E0112`/`$7E0114`) and room map ID (`$7E0ADB`).
+  - Seamless extension: the SNES display aligns to the pixel with the extended map behind it, extending the visible play area across the entire window.
+  - Extended map toggle with persistent state via floating screen chip button (`#screen-extend-toggle`, `MAP EXT ON` / `MAP EXT OFF`) and panel control checkbox (`#ss-extend-toggle`).
+- **Full-Viewport Trigger Overlay**:
+  - Moved trigger rendering to a dedicated full-viewport canvas layer (`#extended-overlay`, z-index: 2) above both the emulator screen and extended map.
+  - Step-on and B-triggers are rendered across the entire window over the extended map background, and clip to the emulator bounds when map extension is toggled off.
+- **Removed Emulator Focus Border**:
+  - Removed default yellow/orange focus outline and box-shadow on the emulator screen canvas (`#screen:focus, #screen:focus-visible { outline: none; box-shadow: none; }`), eliminating distracting border flashes during gameplay and arrow-key presses.
+- **Fixed Trigger Label Positioning**:
+  - Eliminated screen-edge clamping (`Math.max(0, ...)`) on trigger script ID labels. Trigger labels now remain locked in constant position relative to their trigger rectangles rather than sticking to the viewport edge and following the player.
+
 ## [0.148.0] — 2026-10-04
 
 ### Feat: [Emulator] Live in-game trigger overlay for step-on and B-triggers

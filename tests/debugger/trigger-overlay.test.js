@@ -166,5 +166,41 @@ test('buildHtml renders trigger overlay UI elements and event bindings', () => {
     assert.ok(html.includes('#ffcc00'), 'yellow b-trigger styling missing');
 });
 
+// 6. Extended map and full screen overlay checks
+test('buildHtml includes extended map background and full-viewport overlay canvases', () => {
+    const mockWebview = { asWebviewUri: (uri) => uri };
+    const html = buildHtml(mockWebview, 'core.js', 'core.wasm', 'core', '/path/to/core');
+
+    assert.ok(html.includes('id="extended-map"'), 'extended-map canvas missing');
+    assert.ok(html.includes('id="extended-overlay"'), 'extended-overlay canvas missing');
+    assert.ok(html.includes('id="screen-extend-toggle"'), 'screen-extend-toggle missing');
+    assert.ok(html.includes('id="ss-extend-toggle"'), 'ss-extend-toggle missing');
+    assert.ok(html.includes('extendMapEnabled'), 'extendMapEnabled missing');
+    assert.ok(html.includes('setExtendMap'), 'setExtendMap missing');
+    assert.ok(html.includes('requestRoomMap'), 'requestRoomMap postMessage missing');
+    assert.ok(html.includes('roomMapRendered'), 'roomMapRendered message listener missing');
+});
+
+// 7. Focus border removal
+test('buildHtml removes yellow/default focus outline and box-shadow on screen canvas', () => {
+    const mockWebview = { asWebviewUri: (uri) => uri };
+    const html = buildHtml(mockWebview, 'core.js', 'core.wasm', 'core', '/path/to/core');
+
+    assert.ok(html.includes('#screen:focus, #screen:focus-visible'), 'focus selector missing');
+    assert.ok(html.includes('outline: none;'), 'outline: none missing');
+    assert.ok(html.includes('box-shadow: none;'), 'box-shadow: none missing');
+});
+
+// 8. Trigger label constant positioning (no screen-edge clamping)
+test('trigger overlay positions labels constantly relative to trigger box without edge clamping', () => {
+    const mockWebview = { asWebviewUri: (uri) => uri };
+    const html = buildHtml(mockWebview, 'core.js', 'core.wasm', 'core', '/path/to/core');
+
+    assert.ok(!html.includes('Math.max(0, box.sx)'), 'Math.max clamping on box.sx should be removed');
+    assert.ok(!html.includes('Math.max(0, box.sy)'), 'Math.max clamping on box.sy should be removed');
+    assert.ok(html.includes('const labelX = tx + 2;'), 'labelX should be positioned relative to tx');
+    assert.ok(html.includes('const labelY = ty + 10;'), 'labelY should be positioned relative to ty');
+});
+
 console.log(`\nResults: ${passed} passed, ${failed} failed\n`);
 if (failed > 0) process.exit(1);

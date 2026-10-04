@@ -53,6 +53,7 @@ let _buildChannel  = null;   // output channel for build log
 let _readyTimeout  = null;
 let _romTimeout    = null;
 let _webviewReady  = false;
+const _roomMapCache = new Map();
 
 function _describeFile(filePath) {
   try {
@@ -463,6 +464,10 @@ function openEmulatorPanel(context, rom, channel) {
               _hideInactiveTrace = !!msg.hideInactive;
               break;
 
+            case 'requestRoomMap':
+              _handleRoomMapRequest(msg.mapId);
+              break;
+
             case 'scriptTraceBatch': {
               const wsRoot = vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0]
                 ? vscode.workspace.workspaceFolders[0].uri.fsPath
@@ -494,6 +499,7 @@ function openEmulatorPanel(context, rom, channel) {
       _pending = null;
       _currentRomBuffer = null;
       _activeDraft = null;
+      _roomMapCache.clear();
     }, null, context.subscriptions);
 }
 
@@ -513,5 +519,40 @@ function _sendRomFile(romPath) {
     }
 }
 
+function _handleRoomMapRequest(mapId) {
+    if (!_panel || typeof mapId !== 'number') return;
+    if (_roomMapCache.has(mapId)) {
+        const cached = _roomMapCache.get(mapId);
+        _panel.webview.postMessage({ command: 'roomMapRendered', ...cached });
+        return;
+    }
+    if (!_currentRomBuffer && _pending && typeof _pending.dataUrl === 'string') {
+        const comma = _pending.dataUrl.indexOf(',');
+        const b64 = comma >= 0 ? _pending.dataUrl.slice(comma + 1) : _pending.dataUrl;
+        _currentRomBuffer = new Uint8Array(Buffer.from(b64, 'base64'));
+    }
+    if (!_currentRomBuffer) return;
+    try {
+        const maps = require('../maps');
+        const rom = (_currentRomBuffer.length % 1024 === 512) ? _currentRomBuffer.subarray(512) : _currentRomBuffer;
+        const room = maps.decodeRoom(rom, mapId);
+        if (!room) return;
+        const composite = maps.renderRoomComposite(rom, room);
+        if (!composite) return;
+        const imageUri = maps.encodePngDataUri(composite);
+        const data = {
+            mapId,
+            imageUri,
+            width: composite.width,
+            height: composite.height,
+            offX: room.header.originX,
+            offY: room.header.originY,
+        };
+        _roomMapCache.set(mapId, data);
+        _panel.webview.postMessage({ command: 'roomMapRendered', ...data });
+    } catch (err) {
+        _log('Room map render unavailable for map ' + mapId + ': ' + (err.message || err));
+    }
+}
 
 module.exports = { openEmulatorPanel, sendRomFile: _sendRomFile };
