@@ -115,6 +115,7 @@ test('script-trace.js, panel.js, panel-webview.js, and grammar files are strictl
     path.join(__dirname, '..', '..', 'src', 'emulator', 'script-trace.js'),
     path.join(__dirname, '..', '..', 'src', 'emulator', 'panel.js'),
     path.join(__dirname, '..', '..', 'src', 'emulator', 'panel-webview.js'),
+    path.join(__dirname, '..', '..', 'src', 'emulator', 'bottom-bar-views.js'),
     path.join(__dirname, '..', '..', 'src', 'language', 'syntaxes', 'everscript-trace.tmLanguage.json'),
     path.join(__dirname, '..', '..', 'src', 'language', 'trace-language-configuration.json'),
   ];

@@ -129,10 +129,19 @@ function _dispatchPendingRom() {
   const romName = _pending.name || 'game';
   _log(`Sending ROM to webview: ${romName}`);
   _armRomTimeout(romName);
+  let alchemyIcons = null;
+  if (_currentRomBuffer) {
+    try {
+      const { buildItemIcons } = require('../rooms/data/item-icons');
+      const icons = buildItemIcons(_currentRomBuffer);
+      alchemyIcons = icons ? icons.alchemy : null;
+    } catch (_) {}
+  }
   _panel.webview.postMessage({
     command: 'loadRom',
     dataUrl: _pending.dataUrl,
     name: _pending.name,
+    alchemyIcons: alchemyIcons,
   });
   return true;
 }
@@ -467,6 +476,17 @@ function openEmulatorPanel(context, rom, channel) {
             case 'requestRoomMap':
               _handleRoomMapRequest(msg.mapId, msg.objectStates, msg.cutGrassTiles);
               break;
+
+            case 'requestAlchemyIcons': {
+              if (_currentRomBuffer && _panel) {
+                try {
+                  const { buildItemIcons } = require('../rooms/data/item-icons');
+                  const icons = buildItemIcons(_currentRomBuffer);
+                  _panel.webview.postMessage({ command: 'alchemyIconsLoaded', alchemy: icons ? icons.alchemy : {} });
+                } catch (_) {}
+              }
+              break;
+            }
 
             case 'scriptTraceBatch': {
               const wsRoot = vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0]

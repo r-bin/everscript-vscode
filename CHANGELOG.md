@@ -1,3 +1,27 @@
+## [0.155.0] — 2026-10-04
+
+### Feat: [Emulator] bottom bar pages for entities/enemies, alchemy & projectiles, palettes, and cheats
+
+- **Entities & Enemies Tab**:
+  - Live table inspecting active entities: Boy (`$4E89`), Dog (`$4F37`), linked-list NPCs and enemies (`$7E3DDF`).
+  - Real-time rendering of 22×22 sprite thumbnail canvas icons for each entity, sampling current animation frames and OBJ palettes directly from WRAM/ROM.
+  - Category filtering (`ALL`, `PARTY`, `ENEMIES`, `NPCS`) and dynamic search by address, entity name, or type ID.
+  - Live telemetry display for map coords `(X, Y, Z)`, current and max HP with progress bar, active status effects, and flags.
+- **Alchemy & Projectiles Tab**:
+  - Displays all 24 concurrent active combat spell/projectile slots organized into 3 dedicated pools (8 slots each):
+    - **Projectile Alchemy** (`$7E3564`, stride 118 bytes / `0x76`): live spell name mapping, power, target/source entity pointers, and formula ingredient icons.
+    - **Animation Alchemy** (`$7E3364`, stride 64 bytes / `0x40`): spell name mapping, animation script pointer, frame timer, and active caster.
+    - **Projectiles** (`$7E6387`, stride 44 bytes): projectile type, coordinates `(X, Y, Z)`, velocities `(DX, DY, DZ)`, damage calculation, and sprite icons.
+- **Sprite & Map Palettes Tab**:
+  - **Sprite Palettes**: Inspects the 8 live OBJ palette slots loaded from `$7E1278`, rendering 16-color swatches with hex RGB tooltips, with role indicators for Boy (Slot 6), Dog (Slot 7), and Slot 2 (highlighted as transiently stolen/overwritten by active alchemy effects).
+  - **Map Palettes**: Decodes the 256-byte background CGRAM palette table loaded at `$7E61A7` (or master ROM table `$9CC322`) across 8 sub-palettes of 16 colors each.
+- **Cheats & Controls Tab**:
+  - **Atlas 999 Glitch Toggle**: Injects Atlas status (`$0000`) with timer `$7FFF` and `+480` boost (`$01E0`) into Slot 1 (`$7E4ECF` / `$7E4F7D`), replicating the glitch to yield 999 attack damage.
+  - **Invincibility Flag Toggle**: Sets bit 1 (`0x0002`) on Boy and Dog entity flags (`$7E4E99` and `$7E4F47`), making them impervious to damage.
+  - **No Clip / Phasing Toggle**: Sets bit 10 (`0x0400`) on entity flags (`$7E4E9A` and `$7E4F48`), allowing characters to walk through solid walls and geometry.
+  - **Party Monitor & Heal**: Real-time Party HP gauge with an instant full restore button (999 HP).
+  - Auto-maintaining cheat loop synced to emulator frame updates and 250ms WRAM polling intervals with clean restoration on toggle-off.
+
 ## [0.154.2] — 2026-10-04
 
 ### Fix: [Emulator] right-click walk really runs, animated tiles follow the engine, Boy/Dog use their loaded palettes

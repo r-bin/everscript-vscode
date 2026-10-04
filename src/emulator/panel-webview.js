@@ -7,6 +7,13 @@
  * Single export: buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay) -> string
  */
 
+const {
+    getBottomBarCss,
+    getBottomBarTabButtonsHtml,
+    getBottomBarViewsHtml,
+    getBottomBarClientScript,
+} = require('./bottom-bar-views');
+
 function _nonce() {
     let n = '';
     const ch = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -338,6 +345,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     .sx-num                { color: #b5cea8; }
     .sx-str                { color: #ce9178; }
     .sx-aside              { color: #777; }
+    ${getBottomBarCss()}
   </style>
 </head>
 <body>
@@ -374,6 +382,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       <div id="ss-tabs">
         <button id="ss-tab-trace" class="ss-tab active" type="button">SCRIPT TRACE (<span id="ss-tab-trace-count">0</span>)</button>
         <button id="ss-tab-stack" class="ss-tab" type="button">SCRIPT STACK (<span id="ss-count">waiting...</span>)</button>
+        ${getBottomBarTabButtonsHtml()}
         <button id="ss-tab-debug" class="ss-tab" type="button">DEBUGGER &amp; HOOKS</button>
       </div>
       <div id="ss-controls">
@@ -407,6 +416,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         <tbody id="ss-tbody"></tbody>
       </table>
     </div>
+
+    ${getBottomBarViewsHtml()}
 
     <!-- Tab 3: Debugger & Breakpoints -->
     <div id="ss-view-debug" class="ss-tab-view">
@@ -534,6 +545,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         return;
       }
       if (evt.data.command === 'loadRom') {
+        if (evt.data.alchemyIcons) loadedAlchemyIcons = evt.data.alchemyIcons;
         romStage('loadRom received: ' + (evt.data.name || 'game'));
         startWithRom(evt.data.dataUrl, evt.data.name);
       }
@@ -694,6 +706,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         document.getElementById('script-stack').classList.add('visible');
         window.dispatchEvent(new Event('resize'));
         startWramPolling();
+        initBottomBarEventListeners();
+        vscodeApi.postMessage({ command: 'requestAlchemyIcons' });
         vscodeApi.postMessage({ command: 'gameStarted', name: name || 'game' });
         romStage('launch success: ' + (name || 'game'));
       } catch (e) {
@@ -894,6 +908,9 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           romFrameCount++;
           // Sample camera and entity state BEFORE _mainLoop() to match rendered frame
           const preState = samplePreLoopState();
+          lastSampledPreState = preState;
+          const m = getModule();
+          if (m) maintainCheats(m);
           Module._setJoypadInput(keyInput);
           Module._mainLoop();
           const fbPtr = Module._getScreenBuffer();
@@ -2341,6 +2358,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
             reportScriptFocus(snapshot);
             checkManualScriptBreakpoints(snapshot, m);
             checkScriptExecutionTrace();
+            maintainCheats(m);
+            refreshActiveBottomTab();
             vscodeApi.postMessage({ command: 'wramDelta', offset: SCRIPT_BASE, data: Array.from(src.bytes) });
           } else {
             document.getElementById('ss-count').textContent =
@@ -2514,19 +2533,31 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       });
     }
 
+    ${getBottomBarClientScript()}
+
     function selectTab(tabName) {
-      const tabs = ['trace', 'stack', 'debug'];
+      currentBottomTab = tabName;
+      const tabs = ['trace', 'stack', 'entities', 'alchemy', 'palettes', 'cheats', 'debug'];
       for (const t of tabs) {
         const btn = document.getElementById('ss-tab-' + t);
         const view = document.getElementById('ss-view-' + t);
         if (btn) btn.classList.toggle('active', t === tabName);
         if (view) view.classList.toggle('active', t === tabName);
       }
+      refreshActiveBottomTab();
     }
     const tabTraceBtn = document.getElementById('ss-tab-trace');
     if (tabTraceBtn) tabTraceBtn.addEventListener('click', () => selectTab('trace'));
     const tabStackBtn = document.getElementById('ss-tab-stack');
     if (tabStackBtn) tabStackBtn.addEventListener('click', () => selectTab('stack'));
+    const tabEntitiesBtn = document.getElementById('ss-tab-entities');
+    if (tabEntitiesBtn) tabEntitiesBtn.addEventListener('click', () => selectTab('entities'));
+    const tabAlchemyBtn = document.getElementById('ss-tab-alchemy');
+    if (tabAlchemyBtn) tabAlchemyBtn.addEventListener('click', () => selectTab('alchemy'));
+    const tabPalettesBtn = document.getElementById('ss-tab-palettes');
+    if (tabPalettesBtn) tabPalettesBtn.addEventListener('click', () => selectTab('palettes'));
+    const tabCheatsBtn = document.getElementById('ss-tab-cheats');
+    if (tabCheatsBtn) tabCheatsBtn.addEventListener('click', () => selectTab('cheats'));
     const tabDebugBtn = document.getElementById('ss-tab-debug');
     if (tabDebugBtn) tabDebugBtn.addEventListener('click', () => selectTab('debug'));
 
@@ -2819,6 +2850,14 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         }
       } else if (evt.data.command === 'injectEverscript') {
         injectEverscript(evt.data.code);
+      } else if (evt.data.command === 'alchemyIconsLoaded') {
+        if (evt.data.alchemy) {
+          loadedAlchemyIcons = evt.data.alchemy;
+          if (currentBottomTab === 'alchemy') {
+            const rom = loadedRomData ? ((loadedRomData.length % 1024 === 512) ? loadedRomData.subarray(512) : loadedRomData) : null;
+            updateAlchemyTab(lastSampledPreState, rom);
+          }
+        }
       }
     });
 
