@@ -1,3 +1,20 @@
+## [0.154.0] — 2026-10-04
+
+### Feat: [Emulator] Boy/Dog party member boundary rendering, act-specific dog palettes, projectile elevation, and runtime Everscript injection (right-click walk)
+
+- **Boy & Dog Party Member Boundary Rendering**:
+  - Excluded party member slots (`$4E89` Boy and `$4F37` Dog) from the live combat/inactive flag check (`flags & 0x0020`), which previously prevented Boy and Dog from rendering into the extended view when crossing the emulator frame edges.
+  - Removed incorrect phantom dog slot `$4F17` (which overlapped the boy's status structure). Dog is definitively located at `$4F37`.
+- **Act-Specific Dog Palettes**:
+  - Added dedicated dog palette lookup table (`getDogPalette`) resolving exact OBJ palette addresses for Podunk Pup (`$B54B`), Prehistoria Wolf (`$AE0B`), Antiqua Greyhound (`$AE2B`), Gothica Poodle (`$AE4B`), and Omnitopia Toaster (`$AE6B`).
+- **Projectile 3D Elevation Height Fix**:
+  - Corrected projectile rendering calculation `posY - sprite.originY - posZ`, eliminating the double-division bug on Z elevation (`Math.floor(posZ / 16)` was being called on already normalized coordinate values).
+- **Runtime Everscript Injection & Right-Click Walk**:
+  - Exposed `writeRomByte` and `readRomByte` in the custom WASM debugger core, enabling dynamic code injection into ROM and WRAM at runtime.
+  - Added Everscript command compiler supporting `walk(ACTIVE, COORDINATE_ABSOLUTE, X, Y)`.
+  - Injects compiled bytecode into ROM free space (`$C409E4`) and spins up an active execution thread on the engine script stack at `$7E28FC`.
+  - Right-clicking anywhere on the emulator screen or extended map now computes world coordinates, initiates character movement, and renders an animated destination reticle.
+
 ## [0.153.0] — 2026-10-04
 
 ### Feat: [Emulator] 2x map canvas resolution matching emulator pixel grid, animated priority tiles, dog entity banks, and projectile subpixel scaling

@@ -798,6 +798,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       let panBaseX = 0;
       let panBaseY = 0;
       wrap.addEventListener('mousedown', (e) => {
+        if (e.button === 2) return; // Right-click handled by contextmenu
         if (e.button === 1 || e.altKey || (e.target !== canvas && !e.target.closest('.screen-chip'))) {
           isPanning = true;
           panStartX = e.clientX;
@@ -806,6 +807,18 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           panBaseY = panY;
           e.preventDefault();
         }
+      });
+      wrap.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        if (!romLoaded || !lastLayout) return;
+        const rect = wrap.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        const targetX = Math.max(0, Math.round(lastLayout.camX + (mouseX - lastLayout.emuX) / lastLayout.scaleSnes));
+        const targetY = Math.max(0, Math.round(lastLayout.camY + (mouseY - lastLayout.emuY) / lastLayout.scaleSnes));
+        activeTargetPings.push({ x: targetX, y: targetY, birth: performance.now(), duration: 1200 });
+        const scriptStr = 'walk(ACTIVE, COORDINATE_ABSOLUTE, ' + targetX + ', ' + targetY + ')';
+        injectEverscript(scriptStr);
       });
       window.addEventListener('mousemove', (e) => {
         if (!isPanning) return;
@@ -906,6 +919,122 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     let lastRequestedGrassKey = '';
     let cutGrassTileSet = new Set();
     let activeRoomMap = null;
+    let lastLayout = null;
+    let activeTargetPings = [];
+
+    function getDogPalette(mapId, spriteBank) {
+      if (spriteBank === 0xD2) return 0xAE6B; // Act 4 Toaster
+      if (mapId >= 69) return 0xAE6B; // Act 4 Omnitopia
+      if (mapId >= 49) return 0xAE4B; // Act 3 Gothica (Poodle)
+      if (mapId >= 27) return 0xAE2B; // Act 2 Antiqua (Greyhound)
+      if (mapId === 0) return 0xB54B;  // Act 0 Podunk
+      return 0xAE0B; // Act 1 Prehistoria (Wolf)
+    }
+
+    function injectEverscript(codeString) {
+      const m = getModule();
+      if (!m || !hasDebuggerApi(m)) {
+        console.warn('Cannot inject everscript: emulator debugger API not available');
+        return false;
+      }
+      const str = String(codeString || '').trim();
+      if (!str) return false;
+
+      let bytecode = null;
+      const walkMatch = str.match(/^walk\s*\(\s*(\w+)\s*,\s*(\w+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*\)/i);
+      if (walkMatch) {
+        const charName = walkMatch[1].toUpperCase();
+        const typeName = walkMatch[2].toUpperCase();
+        const targetX = parseInt(walkMatch[3], 10);
+        const targetY = parseInt(walkMatch[4], 10);
+
+        let opcode = 0x9D; // COORDINATE_ABSOLUTE
+        if (typeName.includes('DIRECT')) opcode = 0x73; // COORDINATE_ABSOLUTE_DIRECT
+        else if (typeName.includes('TILE')) opcode = 0x6E;
+
+        let charToken = 0xD2; // ACTIVE (0x52 | 0x80)
+        if (charName === 'BOY') charToken = 0xD0;
+        else if (charName === 'DOG') charToken = 0xD1;
+        else if (charName === 'INACTIVE') charToken = 0xD3;
+
+        bytecode = [
+          opcode,
+          charToken,
+          0x84, targetX & 0xFF, (targetX >> 8) & 0xFF,
+          0x84, targetY & 0xFF, (targetY >> 8) & 0xFF,
+          0x00 // END
+        ];
+      } else {
+        const hexMatch = str.match(/^(?:0x)?([0-9a-fA-F\s,]+)$/);
+        if (hexMatch) {
+          const parts = str.split(/[\s,]+/).filter(Boolean);
+          bytecode = parts.map(p => parseInt(p, 16) & 0xFF);
+          if (bytecode.length && bytecode[bytecode.length - 1] !== 0x00) bytecode.push(0x00);
+        }
+      }
+
+      if (!bytecode || !bytecode.length) {
+        console.warn('Unknown or unparseable everscript:', str);
+        return false;
+      }
+
+      // Write bytecode to ROM at 0x409E4 (SNES address 0xC409E4) and WRAM scratch 0x7EFE00
+      const ROM_OFFSET = 0x409E4;
+      const SNES_ADDR = 0xC409E4;
+      for (let i = 0; i < bytecode.length; i++) {
+        if (typeof m.writeRomByte === 'function') {
+          m.writeRomByte(ROM_OFFSET + i, bytecode[i]);
+        }
+        if (typeof m.writeMemory === 'function') {
+          m.writeMemory(0x7EFE00 + i, bytecode[i]);
+        }
+      }
+
+      // Find an available script slot in 0x7E28FC (SLOT_COUNT = 20, SLOT_SIZE = 0x4F)
+      let targetSlot = -1;
+      for (let s = SLOT_COUNT - 1; s >= 0; s--) {
+        const slotBase = SCRIPT_STACK_BUS_ADDR + s * SLOT_SIZE;
+        const stLo = m.readMemory(slotBase + 0x03);
+        const stHi = m.readMemory(slotBase + 0x04);
+        const state = stLo | (stHi << 8);
+        if (state === 0) {
+          targetSlot = s;
+          break;
+        }
+      }
+      if (targetSlot < 0) targetSlot = SLOT_COUNT - 1;
+
+      const targetBus = SCRIPT_STACK_BUS_ADDR + targetSlot * SLOT_SIZE;
+
+      // Determine active character entity address
+      const boyAddr = 0x4E89;
+      const dogAddr = 0x4F37;
+      let charAddr = boyAddr;
+      try {
+        const ctrlBuf = m.readMemoryRange(0x7E0AF7, 1);
+        if (ctrlBuf && ctrlBuf[0] === 1) charAddr = dogAddr;
+      } catch (_) {}
+
+      // Write slot: location (24-bit pointer)
+      m.writeMemory(targetBus + 0x00, SNES_ADDR & 0xFF);
+      m.writeMemory(targetBus + 0x01, (SNES_ADDR >> 8) & 0xFF);
+      m.writeMemory(targetBus + 0x02, (SNES_ADDR >> 16) & 0xFF);
+
+      for (let t = 0x05; t <= 0x0A; t++) m.writeMemory(targetBus + t, 0);
+      m.writeMemory(targetBus + 0x0B, 0);
+      m.writeMemory(targetBus + 0x0C, 0);
+      m.writeMemory(targetBus + 0x0D, charAddr & 0xFF);
+      m.writeMemory(targetBus + 0x0E, (charAddr >> 8) & 0xFF);
+      for (let a = 0x0F; a < 0x30; a++) m.writeMemory(targetBus + a, 0);
+
+      // State = 2 (Executing!)
+      m.writeMemory(targetBus + 0x03, 0x02);
+      m.writeMemory(targetBus + 0x04, 0x00);
+
+      console.log('Injected everscript:', str, 'into slot', targetSlot, 'addr', fmtHex(SNES_ADDR, 6));
+      setText('ss-last-hit', 'injected: ' + str + ' -> slot ' + targetSlot, 'ss-ok');
+      return true;
+    }
 
     ${parseRoomTriggers.toString()}
 
@@ -944,6 +1073,33 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         overlayCtx.rect(layout.emuX, layout.emuY, layout.emuW, layout.emuH);
         overlayCtx.fill('evenodd');
         overlayCtx.restore();
+      }
+
+      if (activeTargetPings.length) {
+        const now = performance.now();
+        activeTargetPings = activeTargetPings.filter(p => (now - p.birth) < p.duration);
+        for (let i = 0; i < activeTargetPings.length; i++) {
+          const p = activeTargetPings[i];
+          const progress = (now - p.birth) / p.duration;
+          const px = layout.emuX + (p.x - layout.camX) * layout.scaleSnes;
+          const py = layout.emuY + (p.y - layout.camY) * layout.scaleSnes;
+          const radius = (6 + progress * 24) * layout.scaleSnes;
+          const alpha = 1.0 - progress;
+
+          overlayCtx.save();
+          overlayCtx.strokeStyle = 'rgba(0, 230, 255, ' + alpha.toFixed(2) + ')';
+          overlayCtx.lineWidth = Math.max(1, Math.round(2 * layout.scaleSnes));
+          overlayCtx.beginPath();
+          overlayCtx.arc(px, py, radius, 0, Math.PI * 2);
+          overlayCtx.stroke();
+
+          const cs = 4 * layout.scaleSnes;
+          overlayCtx.beginPath();
+          overlayCtx.moveTo(px - cs, py); overlayCtx.lineTo(px + cs, py);
+          overlayCtx.moveTo(px, py - cs); overlayCtx.lineTo(px, py + cs);
+          overlayCtx.stroke();
+          overlayCtx.restore();
+        }
       }
 
       if (!triggersOverlayEnabled || !cachedTriggers) return;
@@ -1245,7 +1401,6 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           curAddr = ptrNext;
         }
         if (!visited.has(0x4E89)) entities.push(0x4E89);
-        if (!visited.has(0x4F17)) entities.push(0x4F17);
         if (!visited.has(0x4F37)) entities.push(0x4F37);
 
         for (let i = 0; i < entities.length; i++) {
@@ -1257,8 +1412,12 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           const spriteAddr = buf[rel + 0x06] | (buf[rel + 0x07] << 8);
           if (spriteBank < 0xC0 || spriteBank > 0xDF || spriteAddr < 3) continue;
 
+          const isBoy = (addr === 0x4E89);
+          const isDog = (addr === 0x4F37);
+          const isParty = isBoy || isDog;
+
           const flags = buf[rel + 0x10] | (buf[rel + 0x11] << 8);
-          if (flags & 0x0020) continue;
+          if (!isParty && (flags & 0x0020)) continue;
 
           const rawX = buf[rel + 0x1A] | (buf[rel + 0x1B] << 8);
           const posX = rawX >= 0x8000 ? rawX - 0x10000 : rawX;
@@ -1267,12 +1426,15 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           const rawZ = buf[rel + 0x1E] | (buf[rel + 0x1F] << 8);
           const posZ = rawZ >= 0x8000 ? rawZ - 0x10000 : rawZ;
 
-          const slotOffset = buf[rel + 0x0C] & 0x0E;
-          let palAddr = preState.palSlotBuf ? (preState.palSlotBuf[slotOffset] | (preState.palSlotBuf[slotOffset + 1] << 8)) : 0;
-          if (!palAddr) {
-            if (addr === 0x4E89) palAddr = 0xAD0B;
-            else if (addr === 0x4F17 || addr === 0x4F37) palAddr = 0xAE0B;
-            else {
+          let palAddr;
+          if (isBoy) {
+            palAddr = 0xAD0B;
+          } else if (isDog) {
+            palAddr = getDogPalette(preState.mapId, spriteBank);
+          } else {
+            const slotOffset = buf[rel + 0x0C] & 0x0E;
+            palAddr = preState.palSlotBuf ? (preState.palSlotBuf[slotOffset] | (preState.palSlotBuf[slotOffset + 1] << 8)) : 0;
+            if (!palAddr) {
               const stype = buf[rel + 0x60] | (buf[rel + 0x61] << 8);
               if (stype >= 0x8000) {
                 const recOffset = snesToRom(0x8E0000 | (stype + 0x09));
@@ -1337,7 +1499,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
 
           if (sprite) {
             const roomSpriteX = posX - sprite.originX;
-            const roomSpriteY = posY - sprite.originY - Math.floor(posZ / 16);
+            const roomSpriteY = posY - sprite.originY - posZ;
             const screenX = layout.emuX + (roomSpriteX - layout.camX) * layout.scaleSnes;
             const screenY = layout.emuY + (roomSpriteY - layout.camY) * layout.scaleSnes;
             const screenW = sprite.width * layout.scaleSnes;
@@ -1355,7 +1517,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
             }
           } else {
             const screenX = layout.emuX + (posX - layout.camX) * layout.scaleSnes;
-            const screenY = layout.emuY + (posY - Math.floor(posZ / 16) - layout.camY) * layout.scaleSnes;
+            const screenY = layout.emuY + (posY - posZ - layout.camY) * layout.scaleSnes;
             const rad = Math.max(3, Math.round(5 * layout.scaleSnes));
             if (screenX + rad > 0 && screenX - rad < layout.wrapW && screenY + rad > 0 && screenY - rad < layout.wrapH) {
               drawList.push({
@@ -1544,6 +1706,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         trigOffX: trigOffX,
         trigOffY: trigOffY,
       };
+      lastLayout = layout;
 
       // 1. Extended map background (Layer 0) - shifted 1 SNES pixel up to fix vertical seam
       if (extMapCtx && extMapCanvas) {
@@ -2595,6 +2758,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           };
           img.src = evt.data.imageUri;
         }
+      } else if (evt.data.command === 'injectEverscript') {
+        injectEverscript(evt.data.code);
       }
     });
 

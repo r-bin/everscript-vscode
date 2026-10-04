@@ -708,4 +708,12 @@ function _handleRoomMapRequest(mapId, objectStates, cutGrassTiles) {
     }
 }
 
-module.exports = { openEmulatorPanel, sendRomFile: _sendRomFile };
+function injectEverscript(code) {
+  if (_panel && _panel.webview) {
+    _panel.webview.postMessage({ command: 'injectEverscript', code: code });
+    return true;
+  }
+  return false;
+}
+
+module.exports = { openEmulatorPanel, sendRomFile: _sendRomFile, injectEverscript };
