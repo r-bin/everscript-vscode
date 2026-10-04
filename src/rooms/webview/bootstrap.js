@@ -98,6 +98,8 @@ if(typeof window!=='undefined'&&window.addEventListener){
       // A room that is not in the ROM, to try things in.
       if(typeof applyBlankRoom==='function')applyBlankRoom(data);
       if(data.error)console.warn('[RoomsRender] blankRoom:',data.error);
+    }else if(data.command==='highlightExecutedTrigger'){
+      if(typeof highlightExecutedTrigger==='function')highlightExecutedTrigger(data.lookup);
     }
   });
 }

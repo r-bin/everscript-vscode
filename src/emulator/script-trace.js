@@ -20,6 +20,8 @@ try {
 const path   = require('path');
 const fs     = require('fs');
 const { decodeInstruction, OperandStack } = require('../script');
+const { getActiveAddressLookup } = require('./address-lookup');
+const { ScriptTraceFormatter } = require('./trace-formatter');
 
 const ROM_NAMES = [
   'Secret of Evermore (U) [!].smc',
@@ -119,9 +121,11 @@ function decodeScriptSnippet(rom, snesAddr, maxLines = 2) {
  * @param {Array} items Array of { slot, entity, event, loc, bytes, state, timer, timestamp, timeStr, frame }
  * @param {Uint8Array|null} currentRom Active ROM buffer or null
  * @param {string|null} wsRoot Workspace root folder path
+ * @param {object|null} [customDraft] Custom draft containing triggers for active room
+ * @param {object} [options] Formatter options, e.g. { hideInactive: boolean }
  * @returns {Array} Formatted trace entries for the webview UI
  */
-function processScriptTraceBatch(items, currentRom, wsRoot) {
+function processScriptTraceBatch(items, currentRom, wsRoot, customDraft = null, options = {}) {
   if (!Array.isArray(items) || !items.length) return [];
   const ch = ensureScriptTraceChannel();
 
@@ -130,6 +134,8 @@ function processScriptTraceBatch(items, currentRom, wsRoot) {
     rom = loadFallbackRom(wsRoot);
   }
 
+  const formatter = new ScriptTraceFormatter(options);
+  const lookupTable = getActiveAddressLookup(rom, customDraft);
   const formatted = [];
 
   for (const item of items) {
@@ -141,6 +147,9 @@ function processScriptTraceBatch(items, currentRom, wsRoot) {
     if (item.event === 'start' && loc >= 0xBC8000 && loc <= 0xBC8008) {
       loc = 0xBC8000;
     }
+
+    // Resolve human-readable ROM address information
+    const lookup = lookupTable ? lookupTable.lookup(loc) : null;
 
     // Use current ROM or synthesize buffer from bytes sent from emulator bus
     let romBuf = rom;
@@ -173,17 +182,32 @@ function processScriptTraceBatch(items, currentRom, wsRoot) {
       summary = item.event === 'end' ? 'END of script' : 'UNKNOWN INSTR';
     }
 
-    const timePrefix = item.timeStr ? `[${item.timeStr}] ` : '';
-    const tag = `${timePrefix}[Slot ${item.slot} | Ent ${entityHex} | ${eventName}]`;
-    const line = `${tag} ${locHex}: ${bytesHex}  ${summary}`;
-    if (ch) ch.appendLine(line);
+    const itemData = {
+      slot: item.slot,
+      entity: item.entity || 0,
+      event: eventName,
+      locHex,
+      loc,
+      bytesHex,
+      summary,
+      timeStr: item.timeStr || '',
+    };
+
+    const line = formatter.formatText(itemData, lookup);
+    const isInactive = formatter.isInactiveStatus(eventName);
+
+    if (ch && (!options.hideInactive || !isInactive)) {
+      ch.appendLine(line);
+    }
 
     const subLines = [];
     if (snippet && snippet.length > 1) {
       for (let s = 1; s < snippet.length; s++) {
         const sub = snippet[s];
         const subLine = `   -> ${sub.addrHex}: ${sub.bytesHex}  ${sub.summary}`;
-        if (ch) ch.appendLine(subLine);
+        if (ch && (!options.hideInactive || !isInactive)) {
+          ch.appendLine(subLine);
+        }
         subLines.push(subLine);
       }
     }
@@ -199,6 +223,14 @@ function processScriptTraceBatch(items, currentRom, wsRoot) {
       line,
       timeStr: item.timeStr || '',
       frame: typeof item.frame === 'number' ? item.frame : null,
+      lookup: lookup ? {
+        addr: lookup.addr,
+        name: lookup.name,
+        shortTag: lookup.shortTag,
+        kind: lookup.kind,
+        room: lookup.room,
+        index: lookup.index,
+      } : null,
     });
   }
 
@@ -211,4 +243,6 @@ module.exports = {
   decodeScriptSnippet,
   processScriptTraceBatch,
   isValidScriptAddr,
+  ScriptTraceFormatter,
+  getActiveAddressLookup,
 };

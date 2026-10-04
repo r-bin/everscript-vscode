@@ -110,6 +110,8 @@ test('processScriptTraceBatch handles interwoven slots and state transitions', (
 // Test 4: ASCII-only invariant across emulator sources and grammar files
 test('script-trace.js, panel.js, panel-webview.js, and grammar files are strictly ASCII-only', () => {
   const files = [
+    path.join(__dirname, '..', '..', 'src', 'emulator', 'address-lookup.js'),
+    path.join(__dirname, '..', '..', 'src', 'emulator', 'trace-formatter.js'),
     path.join(__dirname, '..', '..', 'src', 'emulator', 'script-trace.js'),
     path.join(__dirname, '..', '..', 'src', 'emulator', 'panel.js'),
     path.join(__dirname, '..', '..', 'src', 'emulator', 'panel-webview.js'),
@@ -206,6 +208,95 @@ test('everscript-trace.tmLanguage.json parses and defines valid regex patterns',
     }
   }
   checkPatterns(grammar);
+});
+
+// Test 9: RomAddressLookup resolves enter script, empty trigger, and draft triggers
+test('RomAddressLookup resolves Room 0x15 enter script, empty trigger, and custom draft triggers', () => {
+  const { RomAddressLookup } = require('../../src/emulator/address-lookup');
+  const draft = {
+    bTrigger: [
+      { x1: 5, y1: 10, x2: 6, y2: 11, scriptId: 477 },
+      { x1: 8, y1: 12, x2: 9, y2: 13, scriptId: 1854 },
+    ],
+    stepOn: [
+      { x1: 2, y1: 3, x2: 2, y2: 3, scriptId: 477 },
+    ],
+  };
+
+  const lookupTable = new RomAddressLookup(null, draft, 0x15);
+
+  // 1. Enter script
+  const enterLookup = lookupTable.lookup(0xBC8000);
+  assert.ok(enterLookup, '0xBC8000 should be resolved');
+  assert.strictEqual(enterLookup.room, 0x15);
+  assert.strictEqual(enterLookup.kind, 'enter');
+  assert.strictEqual(enterLookup.shortTag, 'Rm 0x15 Enter');
+
+  // 2. Bare empty trigger (0x92A42F) attributed to room 0x15
+  const emptyLookup = lookupTable.lookup(0x92A42F);
+  assert.ok(emptyLookup, '0x92A42F should be resolved');
+  assert.strictEqual(emptyLookup.room, 0x15);
+  assert.strictEqual(emptyLookup.kind, 'bTrigger');
+  assert.strictEqual(emptyLookup.shortTag, 'Rm 0x15 B-trig');
+
+  // 3. Fallback for unmapped address
+  const unmapped = lookupTable.lookup(0x999999);
+  assert.strictEqual(unmapped, null);
+});
+
+// Test 10: ScriptTraceFormatter formats text and html consistently
+test('ScriptTraceFormatter generates consistent TextMate line and HTML row', () => {
+  const { ScriptTraceFormatter } = require('../../src/emulator/trace-formatter');
+  const formatter = new ScriptTraceFormatter();
+
+  const item = {
+    slot: 1,
+    entity: 0x4E89,
+    event: 'start',
+    locHex: '0xBC8000',
+    bytesHex: '14 E9 01 E8',
+    summary: 'GAIN WEAPON 0x01e9 (Laser Lance)',
+    timeStr: '+0.05s, f3',
+  };
+
+  const lookup = {
+    room: 0x15,
+    kind: 'enter',
+    name: 'Room 0x15 Enter Script',
+    shortTag: 'Rm 0x15 Enter',
+  };
+
+  const text = formatter.formatText(item, lookup);
+  assert.ok(text.includes('[+0.05s, f3]'), `Missing time in text: ${text}`);
+  assert.ok(text.includes('[Slot 1 | Ent 4E89 | start]'), `Missing slot tag: ${text}`);
+  assert.ok(text.includes('[Rm 0x15 Enter]'), `Missing lookup tag: ${text}`);
+  assert.ok(text.includes('0xBC8000: 14 E9 01 E8'), `Missing addr and bytes: ${text}`);
+  assert.ok(text.includes('Laser Lance'), `Missing summary: ${text}`);
+
+  const html = formatter.formatHtml(item, lookup);
+  assert.ok(html.includes('class="ss-trace-row start"'), `Missing row class: ${html}`);
+  assert.ok(html.includes('class="ss-trace-lookup"'), `Missing lookup class: ${html}`);
+  assert.ok(html.includes('[Rm 0x15 Enter]'), `Missing lookup tag in html: ${html}`);
+  assert.ok(html.includes('title="Room 0x15 Enter Script"'), `Missing lookup title: ${html}`);
+});
+
+// Test 11: processScriptTraceBatch with hideInactive option
+test('processScriptTraceBatch handles hideInactive option and attaches lookup', () => {
+  const draft = {
+    bTrigger: [{ x1: 4, y1: 4, x2: 5, y2: 5, scriptId: 477 }],
+  };
+
+  const batch = [
+    { slot: 0, entity: 0x0000, event: 'start', loc: 0xBC8000, bytes: [0x00] },
+    { slot: 0, entity: 0x0000, event: 'end', loc: 0x92A42F, bytes: [0x00] },
+  ];
+
+  const results = processScriptTraceBatch(batch, null, null, draft, { hideInactive: true });
+  assert.strictEqual(results.length, 2, 'Batch returns all processed items for webview');
+  assert.ok(results[0].lookup, 'Results[0] should have lookup attached');
+  assert.strictEqual(results[0].lookup.shortTag, 'Rm 0x15 Enter');
+  assert.ok(results[1].lookup, 'Results[1] should have lookup attached');
+  assert.strictEqual(results[1].lookup.shortTag, 'Rm 0x15 B-trig');
 });
 
 console.log(`\nResults: ${passed} passed, ${failed} failed`);

@@ -898,7 +898,7 @@ function activate(context) {
                         const name = stem + '.sfc';
                         const dataUrl = 'data:application/octet-stream;base64,' + Buffer.from(rom).toString('base64');
                         ch.appendLine('  Launching emulator panel...');
-                        require('./emulator/panel').openEmulatorPanel(context, { dataUrl, name, romBuffer: rom });
+                        require('./emulator/panel').openEmulatorPanel(context, { dataUrl, name, romBuffer: rom, draft });
                         ch.appendLine(`  [SUCCESS] Emulator launched with "${name}". Room 0x15 enter script will execute.`);
                         _radarPanel?.webview.postMessage({ ...reply, played: name, tempPath, report });
                     } catch (err) {
@@ -1291,6 +1291,14 @@ function activate(context) {
                     address: _radarByteScriptFocus,
                     slot: typeof payload?.slot === 'number' ? payload.slot : null,
                     state: payload?.state || '',
+                });
+            }
+        }),
+        vscode.commands.registerCommand('everscript._triggerExecuted', (lookup) => {
+            if (_radarPanel && lookup) {
+                _radarPanel.webview.postMessage({
+                    command: 'highlightExecutedTrigger',
+                    lookup,
                 });
             }
         }),

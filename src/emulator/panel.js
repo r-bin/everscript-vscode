@@ -46,6 +46,8 @@ const LEGACY_CUSTOM_CORE_DIRS = [
 let _panel         = null;   // active WebviewPanel
 let _pending       = null;   // { dataUrl, name } waiting to load
 let _currentRomBuffer = null; // raw ROM buffer for bytecode disassembly
+let _activeDraft   = null;   // custom draft object for trigger/address lookup
+let _hideInactiveTrace = false; // filter inactive/end script events
 let _extensionPath = '';
 let _buildChannel  = null;   // output channel for build log
 let _readyTimeout  = null;
@@ -296,7 +298,10 @@ function _resetPanelHtml() {
  * @param {object} [channel] Optional OutputChannel for build log.
  */
 function openEmulatorPanel(context, rom, channel) {
-    if (rom)     _pending      = rom;
+    if (rom) {
+      _pending = rom;
+      if (rom.draft) _activeDraft = rom.draft;
+    }
     if (channel) _buildChannel = channel;
   _ensureBuildChannel();
     _extensionPath = context.extensionPath;
@@ -454,13 +459,22 @@ function openEmulatorPanel(context, rom, channel) {
               });
               break;
 
+            case 'setHideInactiveTrace':
+              _hideInactiveTrace = !!msg.hideInactive;
+              break;
+
             case 'scriptTraceBatch': {
               const wsRoot = vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0]
                 ? vscode.workspace.workspaceFolders[0].uri.fsPath
                 : null;
-              const formatted = processScriptTraceBatch(msg.items, _currentRomBuffer, wsRoot);
+              const formatted = processScriptTraceBatch(msg.items, _currentRomBuffer, wsRoot, _activeDraft, { hideInactive: _hideInactiveTrace });
               if (_panel && formatted.length) {
                 _panel.webview.postMessage({ command: 'scriptTraceLogged', entries: formatted });
+              }
+              for (const entry of formatted) {
+                if (entry.lookup && entry.lookup.room !== undefined && entry.lookup.kind && (entry.event === 'start' || entry.event === 'exec')) {
+                  vscode.commands.executeCommand('everscript._triggerExecuted', entry.lookup);
+                }
               }
               break;
             }
@@ -477,6 +491,7 @@ function openEmulatorPanel(context, rom, channel) {
       _panel = null;
       _pending = null;
       _currentRomBuffer = null;
+      _activeDraft = null;
     }, null, context.subscriptions);
 }
 

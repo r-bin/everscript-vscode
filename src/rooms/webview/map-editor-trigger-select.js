@@ -286,3 +286,21 @@ function editDropStaleTriggerSelection() {
     _edit.selectedTriggerRef = null;
   }
 }
+
+/**
+ * Visual feedback when an in-game trigger executes: highlights the trigger
+ * in the map editor canvas and displays an editNote notification.
+ */
+function highlightExecutedTrigger(lookup) {
+  if (!lookup) return;
+  var kind = lookup.kind === 'bTrigger' ? 'b' : (lookup.kind === 'stepOn' ? 'step' : null);
+  if (kind) {
+    var index = typeof lookup.index === 'number' ? lookup.index : 0;
+    if (typeof triggerSelect === 'function') {
+      triggerSelect({ kind: kind, id: 'base:' + index });
+    }
+  }
+  if (typeof editNote === 'function' && lookup.name) {
+    editNote('Trigger executed: ' + lookup.name);
+  }
+}

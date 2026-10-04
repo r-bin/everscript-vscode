@@ -267,6 +267,11 @@
       "name": "Trace parenthetical aside",
       "scope": "comment.line.aside.trace",
       "settings": { "foreground": "#808080", "fontStyle": "italic" }
+    },
+    {
+      "name": "Trace lookup tag",
+      "scope": "entity.name.tag.lookup.trace",
+      "settings": { "foreground": "#4EC9B0", "fontStyle": "bold" }
     }
   ]
 }

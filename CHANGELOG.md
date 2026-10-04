@@ -1,3 +1,20 @@
+## [0.144.0] — 2026-10-04
+
+### Feat: [Emulator/Rooms] ROM address lookup, trigger canvas highlight, hide inactive updates & unified trace formatter
+
+- **ROM Address Lookup Table (`RomAddressLookup`)**: Fast address resolution mapping ROM execution addresses to human-readable sources:
+  - Custom Room 0x15 enter script (`0xBC8000 -> Room 0x15 Enter Script (Laser Lance + Fade)`).
+  - Draft B-triggers and step-on triggers (`0x92A42F -> Room 0x15 B-trigger (bare END)` / `0x94E644 -> Room 0x34 B-trigger #0 (Gourd Prize)`).
+  - Vanilla enter script pointer table (`$92801B + 5*r`) across all 127 rooms and named global scripts (`names.json`).
+  - Lookup tags (e.g. `[Rm 0x15 Enter]`, `[Rm 0x15 B-trig]`, `[Empty Trig]`) displayed in both the output channel and webview UI.
+- **Trigger Execution Highlighting on Map Editor Canvas**: Trigger execution notifications dispatch from emulator panel to Map Editor, automatically selecting the trigger (`triggerSelect`) and pulsing feedback in the editor note banner (`Trigger executed: Room 0x15 B-trigger (bare END)`).
+- **Hide Inactive Script Events Filter**:
+  - Added `#ss-trace-hide-inactive` checkbox to SCRIPT TRACE controls in the emulator UI.
+  - Toggling immediately filters inactive `.end` rows via CSS in the webview.
+  - Notifies host so OutputChannel filters out redundant status completion lines when enabled.
+- **Unified Trace Formatter Class (`ScriptTraceFormatter`)**: Standardized formatting class delivering identical token structure, tags, timestamps, frame counters, and colors across both the VS Code OutputChannel and the webview DOM.
+- **TextMate Trace Grammar & Theme Scopes**: Added `#lookup_tag` pattern matching `[Rm 0x15 ...]`, `[Empty Trig]`, and `[Global: ...]` with `entity.name.tag.lookup.trace` styled in cyan/teal bold in `everscript-dark.json`.
+
 ## [0.143.0] — 2026-10-04
 
 ### Feat: [Language/Emulator] Colorized output channels with TextMate trace grammar

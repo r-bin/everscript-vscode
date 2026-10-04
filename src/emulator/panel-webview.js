@@ -114,13 +114,17 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       font-size: 10px; color: #888; flex-shrink: 0;
     }
     #ss-trace-controls { display: flex; gap: 6px; align-items: center; }
+    #ss-trace-controls label { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; color: #888; cursor: pointer; user-select: none; }
     #ss-trace-log {
       flex: 1; min-height: 0; background: #0c0c0c; padding: 4px 8px;
       font-family: monospace; font-size: 11px; line-height: 1.45;
       overflow-y: auto; overflow-x: hidden;
     }
+    #ss-trace-log.hide-inactive .ss-trace-row.end { display: none !important; }
+    #ss-trace-log.hide-inactive .ss-trace-sub.end { display: none !important; }
     .ss-trace-row { display: flex; gap: 8px; white-space: nowrap; padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
     .ss-trace-time { color: #569cd6; font-size: 10px; min-width: 95px; }
+    .ss-trace-lookup { color: #4ec9b0; font-weight: bold; }
     .ss-trace-tag { font-weight: bold; min-width: 130px; }
     .ss-trace-tag.start  { color: #6f9; }
     .ss-trace-tag.resume { color: #ff6; }
@@ -202,6 +206,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           <button id="ss-trace-clear-btn" class="ss-btn" type="button">clear</button>
           <button id="ss-trace-copy-btn" class="ss-btn" type="button">copy</button>
           <label id="ss-trace-scroll-label"><input type="checkbox" id="ss-trace-scroll" checked /> auto-scroll</label>
+          <label id="ss-trace-hide-inactive-label"><input type="checkbox" id="ss-trace-hide-inactive" /> hide inactive</label>
         </div>
         <span id="ss-trace-count">0 lines</span>
       </div>
@@ -1327,12 +1332,17 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       const frag = document.createDocumentFragment();
       for (const entry of entries) {
         const row = document.createElement('div');
-        row.className = 'ss-trace-row';
+        row.className = 'ss-trace-row' + (entry.event ? ' ' + entry.event : '');
         const tagClass = 'ss-trace-tag ' + (entry.event || '');
         const timeHtml = entry.timeStr ? '<span class="ss-trace-time">' + escH(entry.timeStr) + '</span> ' : '';
+        const lookupTitle = entry.lookup && entry.lookup.name ? escH(entry.lookup.name) : '';
+        const lookupHtml = entry.lookup && entry.lookup.shortTag
+          ? '<span class="ss-trace-lookup" title="' + lookupTitle + '">' + escH('[' + entry.lookup.shortTag + ']') + '</span> '
+          : '';
         row.innerHTML =
           timeHtml +
           '<span class="' + tagClass + '">' + escH('[s' + entry.slot + ' | ' + entry.entity + ' | ' + entry.event + ']') + '</span> ' +
+          lookupHtml +
           '<span class="ss-trace-addr">' + escH(entry.locHex) + '</span> ' +
           '<span class="ss-trace-bytes">[' + escH(entry.bytesHex) + ']</span> ' +
           '<span class="ss-trace-text">' + scriptHighlight(entry.summary) + '</span>';
@@ -1340,7 +1350,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         if (entry.subLines && entry.subLines.length) {
           for (const sub of entry.subLines) {
             const subRow = document.createElement('div');
-            subRow.className = 'ss-trace-sub';
+            subRow.className = 'ss-trace-sub' + (entry.event ? ' ' + entry.event : '');
             subRow.textContent = sub;
             frag.appendChild(subRow);
           }
@@ -1395,6 +1405,20 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         const text = log.innerText || log.textContent || '';
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(text);
+        }
+      });
+    }
+
+    const hideInactive = document.getElementById('ss-trace-hide-inactive');
+    if (hideInactive) {
+      hideInactive.addEventListener('change', () => {
+        const log = document.getElementById('ss-trace-log');
+        if (log) {
+          if (hideInactive.checked) log.classList.add('hide-inactive');
+          else log.classList.remove('hide-inactive');
+        }
+        if (vscodeApi) {
+          vscodeApi.postMessage({ command: 'setHideInactiveTrace', hideInactive: hideInactive.checked });
         }
       });
     }

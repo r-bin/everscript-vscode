@@ -7,6 +7,7 @@
     { "include": "#clock_timestamp" },
     { "include": "#status_tags" },
     { "include": "#slot_tag" },
+    { "include": "#lookup_tag" },
     { "include": "#arrow" },
     { "include": "#snes_address" },
     { "include": "#strings" },
@@ -129,6 +130,14 @@
           }
         }
       ]
+    },
+    "lookup_tag": {
+      "match": "(\\[)(Rm\\s+0x[0-9A-Fa-f]+[^\\]]*|Empty Trig[^\\]]*|Global:[^\\]]*)(\\])",
+      "captures": {
+        "1": { "name": "punctuation.definition.bracket.begin.trace" },
+        "2": { "name": "entity.name.tag.lookup.trace" },
+        "3": { "name": "punctuation.definition.bracket.end.trace" }
+      }
     },
     "arrow": {
       "match": "(->)",
