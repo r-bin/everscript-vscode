@@ -107,12 +107,14 @@ test('processScriptTraceBatch handles interwoven slots and state transitions', (
   assert.strictEqual(results[3].event, 'end');
 });
 
-// Test 4: ASCII-only invariant across emulator sources
-test('script-trace.js, panel.js, and panel-webview.js are strictly ASCII-only', () => {
+// Test 4: ASCII-only invariant across emulator sources and grammar files
+test('script-trace.js, panel.js, panel-webview.js, and grammar files are strictly ASCII-only', () => {
   const files = [
     path.join(__dirname, '..', '..', 'src', 'emulator', 'script-trace.js'),
     path.join(__dirname, '..', '..', 'src', 'emulator', 'panel.js'),
     path.join(__dirname, '..', '..', 'src', 'emulator', 'panel-webview.js'),
+    path.join(__dirname, '..', '..', 'src', 'language', 'syntaxes', 'everscript-trace.tmLanguage.json'),
+    path.join(__dirname, '..', '..', 'src', 'language', 'trace-language-configuration.json'),
   ];
   for (const f of files) {
     const content = fs.readFileSync(f, 'utf8');
@@ -174,6 +176,36 @@ test('processScriptTraceBatch preserves timestamps and decodes Room 0x15 enter s
   assert.ok(results[0].subLines.length >= 2, 'Should have subLines for Fade in and End');
   assert.ok(results[0].subLines[0].includes('CALL'), `Expected CALL in subLines[0]: ${results[0].subLines[0]}`);
   assert.ok(results[0].subLines[1].includes('END'), `Expected END in subLines[1]: ${results[0].subLines[1]}`);
+});
+
+// Test 8: everscript-trace.tmLanguage.json structure and regex sanity
+test('everscript-trace.tmLanguage.json parses and defines valid regex patterns', () => {
+  const grammarPath = path.join(__dirname, '..', '..', 'src', 'language', 'syntaxes', 'everscript-trace.tmLanguage.json');
+  const raw = fs.readFileSync(grammarPath, 'utf8');
+  const grammar = JSON.parse(raw);
+  assert.strictEqual(grammar.scopeName, 'source.evs-trace');
+  assert.ok(grammar.repository, 'repository should be defined');
+  assert.ok(grammar.repository.slot_tag, 'slot_tag repository pattern should be defined');
+  assert.ok(grammar.repository.timestamp, 'timestamp repository pattern should be defined');
+  assert.ok(grammar.repository.status_tags, 'status_tags repository pattern should be defined');
+
+  // Verify all patterns compile as valid RegExp
+  function checkPatterns(obj) {
+    if (!obj || typeof obj !== 'object') return;
+    if (typeof obj.match === 'string') {
+      assert.doesNotThrow(() => new RegExp(obj.match), `Invalid match regex: ${obj.match}`);
+    }
+    if (typeof obj.begin === 'string') {
+      assert.doesNotThrow(() => new RegExp(obj.begin), `Invalid begin regex: ${obj.begin}`);
+    }
+    if (typeof obj.end === 'string') {
+      assert.doesNotThrow(() => new RegExp(obj.end), `Invalid end regex: ${obj.end}`);
+    }
+    for (const v of Object.values(obj)) {
+      if (typeof v === 'object') checkPatterns(v);
+    }
+  }
+  checkPatterns(grammar);
 });
 
 console.log(`\nResults: ${passed} passed, ${failed} failed`);

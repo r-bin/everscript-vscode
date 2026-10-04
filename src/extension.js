@@ -48,7 +48,7 @@ let _mapExportChannel  = null;   // output channel for ROM build and compilation
 
 function getMapExportChannel() {
     if (!_mapExportChannel) {
-        _mapExportChannel = vscode.window.createOutputChannel('Everscript ROM Builder');
+        _mapExportChannel = vscode.window.createOutputChannel('Everscript ROM Builder', 'everscript-trace');
     }
     return _mapExportChannel;
 }

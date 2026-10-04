@@ -1,0 +1,203 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Everscript Trace",
+  "scopeName": "source.evs-trace",
+  "patterns": [
+    { "include": "#timestamp" },
+    { "include": "#clock_timestamp" },
+    { "include": "#status_tags" },
+    { "include": "#slot_tag" },
+    { "include": "#arrow" },
+    { "include": "#snes_address" },
+    { "include": "#strings" },
+    { "include": "#hex_bytes" },
+    { "include": "#keywords" },
+    { "include": "#numbers" },
+    { "include": "#parenthetical" }
+  ],
+  "repository": {
+    "timestamp": {
+      "match": "(\\[)(\\+\\d+\\.\\d+s)(?:(,)\\s*(f\\d+))?(\\])",
+      "captures": {
+        "1": { "name": "punctuation.definition.bracket.begin.trace" },
+        "2": { "name": "constant.numeric.timestamp.trace" },
+        "3": { "name": "punctuation.separator.trace" },
+        "4": { "name": "entity.name.tag.frame.trace" },
+        "5": { "name": "punctuation.definition.bracket.end.trace" }
+      }
+    },
+    "clock_timestamp": {
+      "match": "(\\[)(\\d{1,2}:\\d{2}:\\d{2}(?:\\s*[AP]M)?)(\\])",
+      "captures": {
+        "1": { "name": "punctuation.definition.bracket.begin.trace" },
+        "2": { "name": "constant.numeric.time.trace" },
+        "3": { "name": "punctuation.definition.bracket.end.trace" }
+      }
+    },
+    "status_tags": {
+      "patterns": [
+        {
+          "match": "(\\[)(SUCCESS|DONE|OK)(\\])",
+          "captures": {
+            "1": { "name": "punctuation.definition.bracket.begin.trace" },
+            "2": { "name": "markup.inserted.success.trace" },
+            "3": { "name": "punctuation.definition.bracket.end.trace" }
+          }
+        },
+        {
+          "match": "(\\[)(ERROR|FAIL|FAILED)(\\])",
+          "captures": {
+            "1": { "name": "punctuation.definition.bracket.begin.trace" },
+            "2": { "name": "markup.deleted.error.trace" },
+            "3": { "name": "punctuation.definition.bracket.end.trace" }
+          }
+        },
+        {
+          "match": "(\\[)(WARNING|WARN)(\\])",
+          "captures": {
+            "1": { "name": "punctuation.definition.bracket.begin.trace" },
+            "2": { "name": "markup.changed.warning.trace" },
+            "3": { "name": "punctuation.definition.bracket.end.trace" }
+          }
+        },
+        {
+          "match": "(\\[)(INFO)(\\])",
+          "captures": {
+            "1": { "name": "punctuation.definition.bracket.begin.trace" },
+            "2": { "name": "keyword.other.info.trace" },
+            "3": { "name": "punctuation.definition.bracket.end.trace" }
+          }
+        },
+        {
+          "match": "(\\[)(Export ROM|Play in [eE]mulator|Everscript Script Trace|Everscript ROM Builder)(\\])",
+          "captures": {
+            "1": { "name": "punctuation.definition.bracket.begin.trace" },
+            "2": { "name": "entity.name.section.trace" },
+            "3": { "name": "punctuation.definition.bracket.end.trace" }
+          }
+        }
+      ]
+    },
+    "slot_tag": {
+      "patterns": [
+        {
+          "match": "(\\[)(Slot\\s+\\d+|s\\d+)\\s*(\\|)\\s*(Ent\\s+[0-9A-Fa-f]+|[0-9A-Fa-f]{4})\\s*(\\|)\\s*(start)(\\])",
+          "captures": {
+            "1": { "name": "punctuation.definition.bracket.begin.trace" },
+            "2": { "name": "support.class.slot.trace" },
+            "3": { "name": "punctuation.separator.pipe.trace" },
+            "4": { "name": "entity.name.type.entity.trace" },
+            "5": { "name": "punctuation.separator.pipe.trace" },
+            "6": { "name": "markup.inserted.event.start.trace" },
+            "7": { "name": "punctuation.definition.bracket.end.trace" }
+          }
+        },
+        {
+          "match": "(\\[)(Slot\\s+\\d+|s\\d+)\\s*(\\|)\\s*(Ent\\s+[0-9A-Fa-f]+|[0-9A-Fa-f]{4})\\s*(\\|)\\s*(resume)(\\])",
+          "captures": {
+            "1": { "name": "punctuation.definition.bracket.begin.trace" },
+            "2": { "name": "support.class.slot.trace" },
+            "3": { "name": "punctuation.separator.pipe.trace" },
+            "4": { "name": "entity.name.type.entity.trace" },
+            "5": { "name": "punctuation.separator.pipe.trace" },
+            "6": { "name": "markup.changed.event.resume.trace" },
+            "7": { "name": "punctuation.definition.bracket.end.trace" }
+          }
+        },
+        {
+          "match": "(\\[)(Slot\\s+\\d+|s\\d+)\\s*(\\|)\\s*(Ent\\s+[0-9A-Fa-f]+|[0-9A-Fa-f]{4})\\s*(\\|)\\s*(step)(\\])",
+          "captures": {
+            "1": { "name": "punctuation.definition.bracket.begin.trace" },
+            "2": { "name": "support.class.slot.trace" },
+            "3": { "name": "punctuation.separator.pipe.trace" },
+            "4": { "name": "entity.name.type.entity.trace" },
+            "5": { "name": "punctuation.separator.pipe.trace" },
+            "6": { "name": "keyword.control.event.step.trace" },
+            "7": { "name": "punctuation.definition.bracket.end.trace" }
+          }
+        },
+        {
+          "match": "(\\[)(Slot\\s+\\d+|s\\d+)\\s*(\\|)\\s*(Ent\\s+[0-9A-Fa-f]+|[0-9A-Fa-f]{4})\\s*(\\|)\\s*(end)(\\])",
+          "captures": {
+            "1": { "name": "punctuation.definition.bracket.begin.trace" },
+            "2": { "name": "support.class.slot.trace" },
+            "3": { "name": "punctuation.separator.pipe.trace" },
+            "4": { "name": "entity.name.type.entity.trace" },
+            "5": { "name": "punctuation.separator.pipe.trace" },
+            "6": { "name": "markup.deleted.event.end.trace" },
+            "7": { "name": "punctuation.definition.bracket.end.trace" }
+          }
+        }
+      ]
+    },
+    "arrow": {
+      "match": "(->)",
+      "name": "keyword.operator.arrow.trace"
+    },
+    "snes_address": {
+      "match": "(0x[0-9A-Fa-f]{6}|\\$[0-9A-Fa-f]{6})(:)?",
+      "captures": {
+        "1": { "name": "entity.name.function.address.trace" },
+        "2": { "name": "punctuation.separator.colon.trace" }
+      }
+    },
+    "strings": {
+      "match": "\"[^\"]*\"",
+      "name": "string.quoted.double.trace"
+    },
+    "hex_bytes": {
+      "patterns": [
+        {
+          "match": "(\\[)([0-9A-Fa-f]{2}(?:\\s+[0-9A-Fa-f]{2})*)(\\])",
+          "captures": {
+            "1": { "name": "punctuation.definition.bracket.begin.trace" },
+            "2": { "name": "comment.block.hexbytes.trace" },
+            "3": { "name": "punctuation.definition.bracket.end.trace" }
+          }
+        },
+        {
+          "match": "(?<=:\\s{1,3})([0-9A-Fa-f]{2}(?:\\s+[0-9A-Fa-f]{2})*)(?=\\s{2,})",
+          "name": "comment.block.hexbytes.trace"
+        }
+      ]
+    },
+    "keywords": {
+      "match": "\\b(WRITE|CALL|END|IF|THEN|SKIP|ELSE|GOTO|RETURN|WAIT|SLEEP|YIELD|SPAWN|NPC|CHANGE MAP|CHANGE MUSIC|UNHIDE\\?|UNWINDOWED TEXT|SET|UNSET|CLEAR|COPY|READ|CHECK|TRIGGER|GET WEAPON|GAIN WEAPON|FADE IN|FADE OUT)\\b",
+      "name": "keyword.control.opcode.trace"
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "match": "\\b0x[0-9A-Fa-f]+\\b",
+          "name": "constant.numeric.hex.trace"
+        },
+        {
+          "match": "\\$[0-9A-Fa-f]{2,4}\\b",
+          "name": "constant.numeric.ram.trace"
+        },
+        {
+          "match": "\\b\\d+\\b",
+          "name": "constant.numeric.decimal.trace"
+        }
+      ]
+    },
+    "parenthetical": {
+      "begin": "\\(",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.parenthesis.begin.trace" }
+      },
+      "end": "\\)",
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.parenthesis.end.trace" }
+      },
+      "patterns": [
+        { "include": "#strings" },
+        { "include": "#numbers" },
+        {
+          "match": "[a-zA-Z0-9_ -]+",
+          "name": "comment.line.aside.trace"
+        }
+      ]
+    }
+  }
+}

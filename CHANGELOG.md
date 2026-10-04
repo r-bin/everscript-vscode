@@ -1,3 +1,16 @@
+## [0.143.0] — 2026-10-04
+
+### Feat: [Language/Emulator] Colorized output channels with TextMate trace grammar
+
+- **Colorized Output Channels**: Registered `everscript-trace` language and TextMate grammar (`src/language/syntaxes/everscript-trace.tmLanguage.json`) bound to the `Everscript Script Trace` and `Everscript ROM Builder` output channels (`vscode.window.createOutputChannel(name, 'everscript-trace')`).
+- **Syntax Highlighting for Script Trace**: Real-time trace lines in VS Code's Output panel are now highlighted with token colors:
+  - Relative timestamps (`[+20.86s, f1253]`) and frame counters (`fNN`) in blue and teal.
+  - Script lifecycle transitions (`start` in green, `resume` in yellow, `step` in blue, `end` in red).
+  - SNES ROM addresses (`0x92A42F:`, `0xBC8000:`) and RAM locations (`$2441`) in teal/yellow.
+  - Bytecode hex dumps in dimmed gray, instruction opcodes (`WRITE`, `CALL`, `END`, `IF`, etc.) in keyword blue, and string names in orange.
+- **Syntax Highlighting for ROM Builder Logs**: Highlights status tags (`[SUCCESS]`, `[ERROR]`, `[WARNING]`, `[INFO]`) and section titles (`[Export ROM]`, `[Play in Emulator]`).
+- **Theme Support**: Included color rules in `src/language/themes/everscript-dark.json` and standard TextMate scopes (`markup.inserted`, `markup.changed`, `markup.deleted`, `keyword.control`, `constant.numeric`) compatible with all VS Code themes.
+
 ## [0.142.1] — 2026-10-04
 
 ### Fix: [Rooms] B-triggers (and step-on triggers) in an exported map never fired

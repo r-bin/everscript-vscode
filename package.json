@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.142.1",
+  "version": "0.143.0",
   "publisher": "rbin",
   "main": "./src/extension.js",
   "engines": {
@@ -63,6 +63,13 @@
           ".evs"
         ],
         "configuration": "./src/language/language-configuration.json"
+      },
+      {
+        "id": "everscript-trace",
+        "aliases": [
+          "Everscript Trace"
+        ],
+        "configuration": "./src/language/trace-language-configuration.json"
       }
     ],
     "grammars": [
@@ -70,6 +77,11 @@
         "language": "everscript",
         "scopeName": "source.evs",
         "path": "./src/language/syntaxes/everscript.tmLanguage.json"
+      },
+      {
+        "language": "everscript-trace",
+        "scopeName": "source.evs-trace",
+        "path": "./src/language/syntaxes/everscript-trace.tmLanguage.json"
       }
     ],
     "themes": [

@@ -200,6 +200,73 @@
       "name": "Range operator ..",
       "scope": "keyword.operator.range.evs",
       "settings": { "foreground": "#D4D4D4" }
+    },
+
+    // -- Trace Log Output Colors ----------------------------------------------
+    {
+      "name": "Trace event start / success",
+      "scope": "markup.inserted.event.start.trace, markup.inserted.success.trace",
+      "settings": { "foreground": "#66FF99", "fontStyle": "bold" }
+    },
+    {
+      "name": "Trace event resume / warning",
+      "scope": "markup.changed.event.resume.trace, markup.changed.warning.trace",
+      "settings": { "foreground": "#FFFF66", "fontStyle": "bold" }
+    },
+    {
+      "name": "Trace event step",
+      "scope": "keyword.control.event.step.trace",
+      "settings": { "foreground": "#6699FF", "fontStyle": "bold" }
+    },
+    {
+      "name": "Trace event end / error",
+      "scope": "markup.deleted.event.end.trace, markup.deleted.error.trace",
+      "settings": { "foreground": "#FF6666", "fontStyle": "bold" }
+    },
+    {
+      "name": "Trace timestamp",
+      "scope": "constant.numeric.timestamp.trace, constant.numeric.time.trace",
+      "settings": { "foreground": "#569CD6" }
+    },
+    {
+      "name": "Trace frame count",
+      "scope": "entity.name.tag.frame.trace",
+      "settings": { "foreground": "#4EC9B0" }
+    },
+    {
+      "name": "Trace slot",
+      "scope": "support.class.slot.trace",
+      "settings": { "foreground": "#DCDCAA" }
+    },
+    {
+      "name": "Trace entity",
+      "scope": "entity.name.type.entity.trace",
+      "settings": { "foreground": "#C586C0" }
+    },
+    {
+      "name": "Trace hex bytes",
+      "scope": "comment.block.hexbytes.trace",
+      "settings": { "foreground": "#808080" }
+    },
+    {
+      "name": "Trace address",
+      "scope": "entity.name.function.address.trace",
+      "settings": { "foreground": "#4EC9B0" }
+    },
+    {
+      "name": "Trace opcode keyword",
+      "scope": "keyword.control.opcode.trace",
+      "settings": { "foreground": "#569CD6", "fontStyle": "bold" }
+    },
+    {
+      "name": "Trace arrow",
+      "scope": "keyword.operator.arrow.trace",
+      "settings": { "foreground": "#C586C0" }
+    },
+    {
+      "name": "Trace parenthetical aside",
+      "scope": "comment.line.aside.trace",
+      "settings": { "foreground": "#808080", "fontStyle": "italic" }
     }
   ]
 }

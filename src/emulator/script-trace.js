@@ -31,7 +31,7 @@ let _scriptTraceChannel = null;
 
 function ensureScriptTraceChannel() {
   if (!_scriptTraceChannel && vscode && vscode.window && typeof vscode.window.createOutputChannel === 'function') {
-    _scriptTraceChannel = vscode.window.createOutputChannel('Everscript Script Trace');
+    _scriptTraceChannel = vscode.window.createOutputChannel('Everscript Script Trace', 'everscript-trace');
     _scriptTraceChannel.appendLine('[Everscript Script Trace] Initialized. Monitoring script slots at $7E28FC...');
   }
   return _scriptTraceChannel;
