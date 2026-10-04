@@ -345,6 +345,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     <div id="screen-overlay-bar">
       <button id="screen-extend-toggle" class="screen-chip active" type="button" title="Toggle Extended Map">MAP EXT ON</button>
       <button id="screen-trigger-toggle" class="screen-chip active" type="button" title="Toggle Trigger Overlay (B &amp; Step-on)">TRIGGERS ON</button>
+      <button id="screen-fog-toggle" class="screen-chip" type="button" title="Toggle Fog of War outside emulator">FOG OFF</button>
       <div id="screen-zoom-chip" class="screen-chip-group">
         <button id="screen-zout" class="screen-chip" type="button" title="Zoom out">-</button>
         <span id="screen-zlevel" class="screen-chip" style="cursor:default">100%</span>
@@ -879,9 +880,13 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     // -- Extended map and triggers overlay -------------------------------------
     let extendMapEnabled = true;
     let triggersOverlayEnabled = true;
+    let fogOfWarEnabled = false;
     let cachedMapId = -1;
     let cachedTriggers = null;
     let lastRequestedMapId = -1;
+    let lastRequestedObjKey = '';
+    let lastRequestedGrassKey = '';
+    let cutGrassTileSet = new Set();
     let activeRoomMap = null;
 
     ${parseRoomTriggers.toString()}
@@ -912,6 +917,17 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         };
       }
       overlayCtx.clearRect(0, 0, layout.wrapW, layout.wrapH);
+
+      if (fogOfWarEnabled && extendMapEnabled) {
+        overlayCtx.save();
+        overlayCtx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+        overlayCtx.beginPath();
+        overlayCtx.rect(0, 0, layout.wrapW, layout.wrapH);
+        overlayCtx.rect(layout.emuX, layout.emuY, layout.emuW, layout.emuH);
+        overlayCtx.fill('evenodd');
+        overlayCtx.restore();
+      }
+
       if (!triggersOverlayEnabled || !cachedTriggers) return;
 
       const stepOn = cachedTriggers.stepOn || [];
@@ -1097,18 +1113,9 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       return { width: width, height: height, pixels: pixels, originX: -minX, originY: -minY };
     }
 
-    function characterPalette(rom, character) {
-      const CHARACTER_TABLE = 0x8eb678;
-      const CHARACTER_STRIDE = 74;
-      const PALETTE_BANK = 0x900000;
-      let addr = 0xad0b;
-      try {
-        const recOffset = snesToRom(CHARACTER_TABLE + character * CHARACTER_STRIDE + 0x09);
-        if (recOffset >= 0 && recOffset + 2 <= rom.length) {
-          addr = rom[recOffset] | (rom[recOffset + 1] << 8);
-        }
-      } catch (_) {}
-      const base = snesToRom(PALETTE_BANK | addr);
+    function paletteAt(rom, palAddr) {
+      const addr = (palAddr && palAddr > 0) ? palAddr : 0xad0b;
+      const base = snesToRom(0x900000 | addr);
       const out = [];
       for (let i = 0; i < 16; i++) {
         const off = base + i * 2;
@@ -1126,10 +1133,26 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       return out;
     }
 
+    function characterPalette(rom, characterOrPal) {
+      if (typeof characterOrPal === 'number' && characterOrPal > 256) {
+        return paletteAt(rom, characterOrPal);
+      }
+      const CHARACTER_TABLE = 0x8eb678;
+      const CHARACTER_STRIDE = 74;
+      let addr = 0xad0b;
+      try {
+        const recOffset = snesToRom(CHARACTER_TABLE + (characterOrPal || 0) * CHARACTER_STRIDE + 0x09);
+        if (recOffset >= 0 && recOffset + 2 <= rom.length) {
+          addr = rom[recOffset] | (rom[recOffset + 1] << 8);
+        }
+      } catch (_) {}
+      return paletteAt(rom, addr);
+    }
+
     const spriteCache = new Map();
 
-    function getDecodedSprite(rom, spritePtr, characterId) {
-      const key = spritePtr + '_' + characterId;
+    function getDecodedSprite(rom, spritePtr, palAddr) {
+      const key = spritePtr + '_' + (palAddr || 0xad0b);
       if (spriteCache.has(key)) return spriteCache.get(key);
 
       try {
@@ -1143,7 +1166,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           spriteCache.set(key, null);
           return null;
         }
-        const palette = characterPalette(rom, characterId);
+        const palette = paletteAt(rom, palAddr);
         const offCanvas = document.createElement('canvas');
         offCanvas.width = comp.width;
         offCanvas.height = comp.height;
@@ -1182,73 +1205,150 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     function renderExtendedEntities(preState, layout, extEntCanvas, extEntCtx) {
       if (!extEntCtx || !extEntCanvas) return;
       extEntCtx.clearRect(0, 0, layout.wrapW, layout.wrapH);
-      if (!extendMapEnabled || !preState || !preState.entBuf || !loadedRomData) return;
+      if (!extendMapEnabled || !preState || !loadedRomData) return;
 
-      const buf = preState.entBuf;
       const rom = (loadedRomData.length % 1024 === 512) ? loadedRomData.subarray(512) : loadedRomData;
-      const entities = [];
-      const visited = new Set();
-      let curAddr = buf[0] | (buf[1] << 8);
-      let safety = 0;
-      while (curAddr >= 0x3DE5 && curAddr < 0x4FE5 && !visited.has(curAddr) && safety++ < 32) {
-        visited.add(curAddr);
-        entities.push(curAddr);
-        const rel = curAddr - 0x3DDF;
-        if (rel < 0 || rel + 0x60 > buf.length) break;
-        const ptrNext = buf[rel + 0x5E] | (buf[rel + 0x5F] << 8);
-        if (!ptrNext) break;
-        curAddr = ptrNext;
-      }
-      if (!visited.has(0x4E89)) entities.push(0x4E89);
-      if (!visited.has(0x4F17)) entities.push(0x4F17);
-
       const drawList = [];
-      for (let i = 0; i < entities.length; i++) {
-        const addr = entities[i];
-        const rel = addr - 0x3DDF;
-        if (rel < 0 || rel + 0x8E > buf.length) continue;
 
-        const spriteBank = buf[rel + 0x08];
-        const spriteAddr = buf[rel + 0x06] | (buf[rel + 0x07] << 8);
-        if (spriteBank < 0xCA || spriteBank > 0xD0 || spriteAddr < 3) continue;
+      // 1. Entities from WRAM entBuf (0x7E3DDF)
+      if (preState.entBuf) {
+        const buf = preState.entBuf;
+        const entities = [];
+        const visited = new Set();
+        let curAddr = buf[0] | (buf[1] << 8);
+        let safety = 0;
+        while (curAddr >= 0x3DE5 && curAddr < 0x4FE5 && !visited.has(curAddr) && safety++ < 32) {
+          visited.add(curAddr);
+          entities.push(curAddr);
+          const rel = curAddr - 0x3DDF;
+          if (rel < 0 || rel + 0x60 > buf.length) break;
+          const ptrNext = buf[rel + 0x5E] | (buf[rel + 0x5F] << 8);
+          if (!ptrNext) break;
+          curAddr = ptrNext;
+        }
+        if (!visited.has(0x4E89)) entities.push(0x4E89);
+        if (!visited.has(0x4F17)) entities.push(0x4F17);
 
-        const flags = buf[rel + 0x10] | (buf[rel + 0x11] << 8);
-        if (flags & 0x0020) continue;
+        for (let i = 0; i < entities.length; i++) {
+          const addr = entities[i];
+          const rel = addr - 0x3DDF;
+          if (rel < 0 || rel + 0x8E > buf.length) continue;
 
-        const rawX = buf[rel + 0x1A] | (buf[rel + 0x1B] << 8);
-        const posX = rawX >= 0x8000 ? rawX - 0x10000 : rawX;
-        const rawY = buf[rel + 0x1C] | (buf[rel + 0x1D] << 8);
-        const posY = rawY >= 0x8000 ? rawY - 0x10000 : rawY;
-        const rawZ = buf[rel + 0x1E] | (buf[rel + 0x1F] << 8);
-        const posZ = rawZ >= 0x8000 ? rawZ - 0x10000 : rawZ;
+          const spriteBank = buf[rel + 0x08];
+          const spriteAddr = buf[rel + 0x06] | (buf[rel + 0x07] << 8);
+          if (spriteBank < 0xCA || spriteBank > 0xD0 || spriteAddr < 3) continue;
 
-        const stype = buf[rel + 0x60] | (buf[rel + 0x61] << 8);
-        let characterId = 0;
-        if (addr === 0x4F17) characterId = 1;
-        else if (addr === 0x4E89) characterId = 0;
-        else if (stype >= 0x0A26) characterId = Math.max(0, Math.floor((stype - 0x0A26) / 74));
+          const flags = buf[rel + 0x10] | (buf[rel + 0x11] << 8);
+          if (flags & 0x0020) continue;
 
-        const spritePtr = (spriteBank << 16) | spriteAddr;
-        const sprite = getDecodedSprite(rom, spritePtr, characterId);
-        if (!sprite) continue;
+          const rawX = buf[rel + 0x1A] | (buf[rel + 0x1B] << 8);
+          const posX = rawX >= 0x8000 ? rawX - 0x10000 : rawX;
+          const rawY = buf[rel + 0x1C] | (buf[rel + 0x1D] << 8);
+          const posY = rawY >= 0x8000 ? rawY - 0x10000 : rawY;
+          const rawZ = buf[rel + 0x1E] | (buf[rel + 0x1F] << 8);
+          const posZ = rawZ >= 0x8000 ? rawZ - 0x10000 : rawZ;
 
-        const roomSpriteX = posX - sprite.originX;
-        const roomSpriteY = posY - sprite.originY - Math.floor(posZ / 16);
-        const screenX = layout.emuX + (roomSpriteX - layout.camX) * layout.scaleSnes;
-        const screenY = layout.emuY + (roomSpriteY - layout.camY) * layout.scaleSnes;
-        const screenW = sprite.width * layout.scaleSnes;
-        const screenH = sprite.height * layout.scaleSnes;
+          const slotOffset = buf[rel + 0x0C] & 0x0E;
+          let palAddr = preState.palSlotBuf ? (preState.palSlotBuf[slotOffset] | (preState.palSlotBuf[slotOffset + 1] << 8)) : 0;
+          if (!palAddr) {
+            if (addr === 0x4E89) palAddr = 0xAD0B;
+            else if (addr === 0x4F17) palAddr = 0xAE0B;
+            else {
+              const stype = buf[rel + 0x60] | (buf[rel + 0x61] << 8);
+              if (stype >= 0x8000) {
+                const recOffset = snesToRom(0x8E0000 | (stype + 0x09));
+                if (recOffset >= 0 && recOffset + 2 <= rom.length) {
+                  palAddr = rom[recOffset] | (rom[recOffset + 1] << 8);
+                }
+              }
+            }
+          }
+          if (!palAddr) palAddr = 0xAD0B;
 
-        if (screenX + screenW <= 0 || screenX >= layout.wrapW || screenY + screenH <= 0 || screenY >= layout.wrapH) continue;
+          const spritePtr = (spriteBank << 16) | spriteAddr;
+          const sprite = getDecodedSprite(rom, spritePtr, palAddr);
+          if (!sprite) continue;
 
-        drawList.push({
-          canvas: sprite.canvas,
-          x: screenX,
-          y: screenY,
-          w: screenW,
-          h: screenH,
-          sortY: posY,
-        });
+          const roomSpriteX = posX - sprite.originX;
+          const roomSpriteY = posY - sprite.originY - Math.floor(posZ / 16);
+          const screenX = layout.emuX + (roomSpriteX - layout.camX) * layout.scaleSnes;
+          const screenY = layout.emuY + (roomSpriteY - layout.camY) * layout.scaleSnes;
+          const screenW = sprite.width * layout.scaleSnes;
+          const screenH = sprite.height * layout.scaleSnes;
+
+          if (screenX + screenW <= 0 || screenX >= layout.wrapW || screenY + screenH <= 0 || screenY >= layout.wrapH) continue;
+
+          drawList.push({
+            canvas: sprite.canvas,
+            x: screenX,
+            y: screenY,
+            w: screenW,
+            h: screenH,
+            sortY: posY,
+          });
+        }
+      }
+
+      // 2. Projectiles from WRAM projBuf (0x7E6387, 8 slots * 44 bytes)
+      if (preState.projBuf) {
+        const pbuf = preState.projBuf;
+        for (let p = 0; p < 8; p++) {
+          const rel = p * 44;
+          const owner = pbuf[rel + 0x00];
+          const lifespan = pbuf[rel + 0x02] | (pbuf[rel + 0x03] << 8);
+          if (!owner && !lifespan) continue;
+
+          const rawX = pbuf[rel + 0x14] | (pbuf[rel + 0x15] << 8);
+          const posX = rawX >= 0x8000 ? rawX - 0x10000 : rawX;
+          const rawY = pbuf[rel + 0x16] | (pbuf[rel + 0x17] << 8);
+          const posY = rawY >= 0x8000 ? rawY - 0x10000 : rawY;
+          const rawZ = pbuf[rel + 0x18] | (pbuf[rel + 0x19] << 8);
+          const posZ = rawZ >= 0x8000 ? rawZ - 0x10000 : rawZ;
+
+          const spriteBank = pbuf[rel + 0x08];
+          const spriteAddr = pbuf[rel + 0x06] | (pbuf[rel + 0x07] << 8);
+          const slotOffset = pbuf[rel + 0x0C] & 0x0E;
+          const palAddr = preState.palSlotBuf ? (preState.palSlotBuf[slotOffset] | (preState.palSlotBuf[slotOffset + 1] << 8)) : 0;
+
+          let sprite = null;
+          if (spriteBank >= 0xCA && spriteBank <= 0xD0 && spriteAddr >= 3) {
+            const spritePtr = (spriteBank << 16) | spriteAddr;
+            sprite = getDecodedSprite(rom, spritePtr, palAddr || 0xad0b);
+          }
+
+          if (sprite) {
+            const roomSpriteX = posX - sprite.originX;
+            const roomSpriteY = posY - sprite.originY - Math.floor(posZ / 16);
+            const screenX = layout.emuX + (roomSpriteX - layout.camX) * layout.scaleSnes;
+            const screenY = layout.emuY + (roomSpriteY - layout.camY) * layout.scaleSnes;
+            const screenW = sprite.width * layout.scaleSnes;
+            const screenH = sprite.height * layout.scaleSnes;
+
+            if (screenX + screenW > 0 && screenX < layout.wrapW && screenY + screenH > 0 && screenY < layout.wrapH) {
+              drawList.push({
+                canvas: sprite.canvas,
+                x: screenX,
+                y: screenY,
+                w: screenW,
+                h: screenH,
+                sortY: posY,
+              });
+            }
+          } else {
+            const screenX = layout.emuX + (posX - layout.camX) * layout.scaleSnes;
+            const screenY = layout.emuY + (posY - Math.floor(posZ / 16) - layout.camY) * layout.scaleSnes;
+            const rad = Math.max(3, Math.round(5 * layout.scaleSnes));
+            if (screenX + rad > 0 && screenX - rad < layout.wrapW && screenY + rad > 0 && screenY - rad < layout.wrapH) {
+              drawList.push({
+                isOrb: true,
+                x: screenX,
+                y: screenY,
+                rad: rad,
+                sortY: posY,
+              });
+            }
+          }
+        }
       }
 
       drawList.sort((a, b) => a.sortY - b.sortY);
@@ -1256,7 +1356,20 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       extEntCtx.imageSmoothingEnabled = false;
       for (let i = 0; i < drawList.length; i++) {
         const item = drawList[i];
-        extEntCtx.drawImage(item.canvas, item.x, item.y, item.w, item.h);
+        if (item.isOrb) {
+          extEntCtx.save();
+          const grad = extEntCtx.createRadialGradient(item.x, item.y, 1, item.x, item.y, item.rad);
+          grad.addColorStop(0, '#ffffff');
+          grad.addColorStop(0.4, '#ffea75');
+          grad.addColorStop(1, 'rgba(255, 120, 0, 0)');
+          extEntCtx.fillStyle = grad;
+          extEntCtx.beginPath();
+          extEntCtx.arc(item.x, item.y, item.rad, 0, Math.PI * 2);
+          extEntCtx.fill();
+          extEntCtx.restore();
+        } else {
+          extEntCtx.drawImage(item.canvas, item.x, item.y, item.w, item.h);
+        }
       }
     }
 
@@ -1264,7 +1377,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       const m = getModule();
       if (!m || !hasDebuggerApi(m) || !loadedRomData) return null;
       let camX = 0, camY = 0, mapId = -1, trigOffX = 0, trigOffY = 0;
-      let entBuf = null;
+      let entBuf = null, palSlotBuf = null, projBuf = null, objStateBuf = null, grassQueueBuf = null;
 
       try {
         const camBuf = m.readMemoryRange(0x7E0112, 4);
@@ -1286,11 +1399,26 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         }
 
         entBuf = m.readMemoryRange(0x7E3DDF, 0x1220);
+        palSlotBuf = m.readMemoryRange(0x7E1278, 16);
+        projBuf = m.readMemoryRange(0x7E6387, 352);
+        objStateBuf = m.readMemoryRange(0x7E10CE, 64);
+        grassQueueBuf = m.readMemoryRange(0x7E0FD0, 148);
       } catch (_) {
         return null;
       }
 
-      return { camX: camX, camY: camY, mapId: mapId, trigOffX: trigOffX, trigOffY: trigOffY, entBuf: entBuf };
+      return {
+        camX: camX,
+        camY: camY,
+        mapId: mapId,
+        trigOffX: trigOffX,
+        trigOffY: trigOffY,
+        entBuf: entBuf,
+        palSlotBuf: palSlotBuf,
+        projBuf: projBuf,
+        objStateBuf: objStateBuf,
+        grassQueueBuf: grassQueueBuf,
+      };
     }
 
     function renderExtendedMapAndOverlays(preState, canvas, extMapCanvas, extMapCtx, extEntCanvas, extEntCtx, extOverCanvas, extOverCtx) {
@@ -1314,15 +1442,59 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         return;
       }
 
-      if (mapId !== lastRequestedMapId) {
-        lastRequestedMapId = mapId;
-        if (vscodeApi) vscodeApi.postMessage({ command: 'requestRoomMap', mapId: mapId });
-      }
-
       if (mapId !== cachedMapId) {
         cachedMapId = mapId;
         cachedTriggers = parseRoomTriggers(loadedRomData, mapId);
         spriteCache.clear();
+        cutGrassTileSet.clear();
+        lastRequestedObjKey = '';
+        lastRequestedGrassKey = '';
+      }
+
+      let objectStates = null;
+      let objKey = '';
+      if (preState.objStateBuf) {
+        const mapObj = {};
+        let anyObj = false;
+        for (let o = 0; o < preState.objStateBuf.length; o++) {
+          const val = preState.objStateBuf[o];
+          if (val > 0) {
+            mapObj[o] = val;
+            anyObj = true;
+          }
+        }
+        if (anyObj) {
+          objectStates = mapObj;
+          objKey = JSON.stringify(objectStates);
+        }
+      }
+
+      if (preState.grassQueueBuf) {
+        const gbuf = preState.grassQueueBuf;
+        for (let s = 0; s < 24; s++) {
+          const cur = gbuf[2 + s];
+          if (cur > 0) {
+            const tx = gbuf[0x62 + s * 2];
+            const ty = gbuf[0x63 + s * 2];
+            cutGrassTileSet.add(tx + ',' + ty);
+          }
+        }
+      }
+      const cutTiles = cutGrassTileSet.size > 0 ? Array.from(cutGrassTileSet) : null;
+      const grassKey = cutTiles ? cutTiles.sort().join(';') : '';
+
+      if (mapId !== lastRequestedMapId || objKey !== lastRequestedObjKey || grassKey !== lastRequestedGrassKey) {
+        lastRequestedMapId = mapId;
+        lastRequestedObjKey = objKey;
+        lastRequestedGrassKey = grassKey;
+        if (vscodeApi) {
+          vscodeApi.postMessage({
+            command: 'requestRoomMap',
+            mapId: mapId,
+            objectStates: objectStates,
+            cutGrassTiles: cutTiles,
+          });
+        }
       }
 
       if (cachedTriggers && trigOffX === 0 && trigOffY === 0 && (cachedTriggers.offX || cachedTriggers.offY)) {
@@ -1352,12 +1524,12 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         trigOffY: trigOffY,
       };
 
-      // 1. Extended map background (Layer 0)
+      // 1. Extended map background (Layer 0) - shifted 1 SNES pixel up to fix vertical seam
       if (extMapCtx && extMapCanvas) {
         extMapCtx.clearRect(0, 0, wrapW, wrapH);
         if (extendMapEnabled && activeRoomMap && activeRoomMap.mapId === mapId && activeRoomMap.img) {
           const mapX = emuX - camX * scaleSnes;
-          const mapY = emuY - camY * scaleSnes;
+          const mapY = emuY - (camY + 1) * scaleSnes;
           const mapW = activeRoomMap.width * scaleSnes;
           const mapH = activeRoomMap.height * scaleSnes;
           extMapCtx.imageSmoothingEnabled = false;
@@ -1988,7 +2160,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       const cb = document.getElementById('ss-overlay-toggle');
       if (cb) cb.checked = triggersOverlayEnabled;
       const extOverCanvas = document.getElementById('extended-overlay');
-      if (!triggersOverlayEnabled && extOverCanvas) {
+      if (!triggersOverlayEnabled && !fogOfWarEnabled && extOverCanvas) {
         const extCtx = extOverCanvas.getContext('2d');
         if (extCtx) extCtx.clearRect(0, 0, extOverCanvas.width, extOverCanvas.height);
       }
@@ -2008,6 +2180,35 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     if (triggerCb) {
       triggerCb.addEventListener('change', () => {
         setTriggersOverlay(triggerCb.checked);
+      });
+    }
+
+    function setFogOfWar(enabled) {
+      fogOfWarEnabled = !!enabled;
+      const chip = document.getElementById('screen-fog-toggle');
+      if (chip) {
+        if (fogOfWarEnabled) {
+          chip.classList.add('active');
+          chip.textContent = 'FOG ON';
+        } else {
+          chip.classList.remove('active');
+          chip.textContent = 'FOG OFF';
+        }
+      }
+      const extOverCanvas = document.getElementById('extended-overlay');
+      if (!triggersOverlayEnabled && !fogOfWarEnabled && extOverCanvas) {
+        const extCtx = extOverCanvas.getContext('2d');
+        if (extCtx) extCtx.clearRect(0, 0, extOverCanvas.width, extOverCanvas.height);
+      }
+    }
+
+    const fogChip = document.getElementById('screen-fog-toggle');
+    if (fogChip) {
+      fogChip.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setFogOfWar(!fogOfWarEnabled);
+        const screenCanvas = document.getElementById('screen');
+        if (screenCanvas) screenCanvas.focus();
       });
     }
 

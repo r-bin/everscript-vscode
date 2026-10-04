@@ -1,3 +1,24 @@
+## [0.151.0] — 2026-10-04
+
+### Feat: [Emulator] Live object states, cuttable grass sync, projectile rendering, fog of war, enemy palette and vertical seam fixes
+
+- **Live Object States Synchronization**:
+  - Dynamically reads object states from WRAM `$7E10CE..$7E111D` (64 bytes).
+  - Automatically transmits active object states via `requestRoomMap` to `applyObjectStates`, updating chest opening states, lowered bridges, switches, and gates on the extended map in real time.
+- **Cuttable Grass Synchronization**:
+  - Monitors the WRAM cuttable grass queue (`$7E0FD0..$7E1064`) for player weapon strikes.
+  - Automatically swaps cut metatiles via `room.cuttableGrass.table.swaps` on the extended room map so cut grass is seamlessly reflected outside the emulator canvas.
+- **Active Projectile Rendering**:
+  - Reads active projectile pool from WRAM `$7E6387..$7E6507` (8 slots × 44 bytes).
+  - Renders projectile sprites or atmospheric glowing radial energy orbs onto `#extended-entities` sorted by Y depth.
+- **Atmospheric Fog of War Effect**:
+  - Added toggleable Fog of War mode (`#screen-fog-toggle`, `FOG ON` / `FOG OFF`) in the floating screen chip bar.
+  - Darkens the extended room map and entities outside the SNES viewport using an `evenodd` canvas cut-out, leaving the emulator display crisp and vibrant while shading outer surroundings.
+- **Enemy Palette Fix**:
+  - Fixed psychedelic/incorrect palettes on extended enemies by resolving live palette slot addresses from WRAM `$7E1278` (indexed by entity `slotOffset & 0x0E`) with fallback to the ROM bank `$8E` enemy character records (`$8E0000 | (stype + 0x09)`).
+- **1px Vertical Seam Alignment**:
+  - Corrected 1 SNES pixel downward vertical seam offset (`mapY = emuY - (camY + 1) * scaleSnes`) to perfectly compensate for the SNES PPU Mode 1 VOffset decrement.
+
 ## [0.150.0] — 2026-10-04
 
 ### Feat: [Emulator] Extended entity rendering, pre-loop camera sync, seam alignment, and MacBook zoom/pan controls

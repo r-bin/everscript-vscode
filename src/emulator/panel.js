@@ -465,7 +465,7 @@ function openEmulatorPanel(context, rom, channel) {
               break;
 
             case 'requestRoomMap':
-              _handleRoomMapRequest(msg.mapId);
+              _handleRoomMapRequest(msg.mapId, msg.objectStates, msg.cutGrassTiles);
               break;
 
             case 'scriptTraceBatch': {
@@ -519,11 +519,77 @@ function _sendRomFile(romPath) {
     }
 }
 
-function _handleRoomMapRequest(mapId) {
+function _applyCutGrass(room, cutTiles) {
+    if (!room || !room.cuttableGrass || !room.cuttableGrass.table || !room.cuttableGrass.table.swaps) return room;
+    const swaps = room.cuttableGrass.table.swaps;
+    if (!swaps.size || !cutTiles || !cutTiles.length) return room;
+
+    const wTiles = room.header.widthTiles;
+    const hTiles = room.header.heightTiles;
+    const meta = room.layer1MetatileIds.map(r => r.slice());
+    let touched = false;
+
+    for (let i = 0; i < cutTiles.length; i++) {
+        const t = cutTiles[i];
+        let tx = 0, ty = 0;
+        if (typeof t === 'string') {
+            const parts = t.split(',');
+            tx = parseInt(parts[0], 10);
+            ty = parseInt(parts[1], 10);
+        } else if (Array.isArray(t)) {
+            tx = t[0];
+            ty = t[1];
+        } else if (t && typeof t.x === 'number') {
+            tx = t.x;
+            ty = t.y;
+        }
+        if (isNaN(tx) || isNaN(ty) || tx < 0 || tx >= wTiles || ty < 0 || ty >= hTiles) continue;
+        const curMeta = meta[ty][tx];
+        const newMeta = swaps.get(curMeta);
+        if (newMeta !== undefined && newMeta !== curMeta) {
+            meta[ty][tx] = newMeta;
+            touched = true;
+        }
+    }
+    if (!touched) return room;
+
+    const s = room.metatileSlices;
+    function resolve(metaId) {
+        const idx = Math.floor((metaId - room.baseMetatile) / 8);
+        if (idx < 0 || idx >= room.metatileCount) return { l1: 0, l2: 0, coll: 0 };
+        return { l1: s.layer1[idx] != null ? s.layer1[idx] : 0, l2: s.layer2[idx] != null ? s.layer2[idx] : 0, coll: s.collision[idx] != null ? s.collision[idx] : 0 };
+    }
+
+    const l1 = room.layer1VramWords.map(r => r.slice());
+    const l2 = room.layer2VramWords.map(r => r.slice());
+    const coll = room.collisionWords.map(r => r.slice());
+    for (let y = 0; y < hTiles; y++) {
+        for (let x = 0; x < wTiles; x++) {
+            if (meta[y][x] === room.layer1MetatileIds[y][x]) continue;
+            const r = resolve(meta[y][x]);
+            l1[y][x] = r.l1;
+            l2[y][x] = r.l2;
+            coll[y][x] = r.coll;
+        }
+    }
+
+    return Object.assign({}, room, {
+        layer1MetatileIds: meta,
+        layer1VramWords: l1,
+        layer2VramWords: l2,
+        collisionWords: coll,
+    });
+}
+
+function _handleRoomMapRequest(mapId, objectStates, cutGrassTiles) {
     if (!_panel || typeof mapId !== 'number') return;
-    if (_roomMapCache.has(mapId)) {
-        const cached = _roomMapCache.get(mapId);
-        _panel.webview.postMessage({ command: 'roomMapRendered', ...cached });
+    const objKey = objectStates ? JSON.stringify(objectStates) : '';
+    const grassKey = cutGrassTiles && cutGrassTiles.length ? JSON.stringify(cutGrassTiles) : '';
+    const cacheKey = mapId + ':' + objKey + ':' + grassKey;
+
+    if (_roomMapCache.has(cacheKey)) {
+        const cached = _roomMapCache.get(cacheKey);
+        _panel.webview.postMessage(Object.assign({ command: 'roomMapRendered' }, cached));
         return;
     }
     if (!_currentRomBuffer && _pending && typeof _pending.dataUrl === 'string') {
@@ -537,19 +603,28 @@ function _handleRoomMapRequest(mapId) {
         const rom = (_currentRomBuffer.length % 1024 === 512) ? _currentRomBuffer.subarray(512) : _currentRomBuffer;
         const room = maps.decodeRoom(rom, mapId);
         if (!room) return;
-        const composite = maps.renderRoomComposite(rom, room);
+
+        let staged = room;
+        if (objectStates && typeof maps.applyObjectStates === 'function') {
+            staged = maps.applyObjectStates(rom, staged, objectStates);
+        }
+        if (cutGrassTiles && cutGrassTiles.length) {
+            staged = _applyCutGrass(staged, cutGrassTiles);
+        }
+
+        const composite = maps.renderRoomComposite(rom, staged);
         if (!composite) return;
         const imageUri = maps.encodePngDataUri(composite);
         const data = {
-            mapId,
-            imageUri,
+            mapId: mapId,
+            imageUri: imageUri,
             width: composite.width,
             height: composite.height,
             offX: room.header.originX,
             offY: room.header.originY,
         };
-        _roomMapCache.set(mapId, data);
-        _panel.webview.postMessage({ command: 'roomMapRendered', ...data });
+        _roomMapCache.set(cacheKey, data);
+        _panel.webview.postMessage(Object.assign({ command: 'roomMapRendered' }, data));
     } catch (err) {
         _log('Room map render unavailable for map ' + mapId + ': ' + (err.message || err));
     }
