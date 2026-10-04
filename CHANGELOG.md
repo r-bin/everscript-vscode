@@ -1,3 +1,21 @@
+## [0.153.0] — 2026-10-04
+
+### Feat: [Emulator] 2x map canvas resolution matching emulator pixel grid, animated priority tiles, dog entity banks, and projectile subpixel scaling
+
+- **2x Source Map Resolution (Pixel Grid Matching)**:
+  - Generates extended composite and foreground map images at 2x resolution (`_scale2x`), matching `snes9x2005`'s exact 512×448 buffer grid (2 buffer pixels per SNES pixel).
+  - Eliminates the pixel size mismatch between the extension and the emulator at all zoom levels (even 1000%).
+  - Quantized green channel to 6 bits with `&= 0xfc`, perfectly matching `snes9x2005`'s `((col >> 5) & 0x3F) << 2` green channel output.
+- **Animated Tiles & Foreground Priority Synchronization**:
+  - Automatically clears animated cells in the foreground image via `maps.clearAnimatedCells(fg, staged)` so static frame-0 priority tiles no longer occlude active animations.
+  - Draws active animation frames on Layer 2 (`#extended-foreground`) as well as Layer 0 (`#extended-map`), allowing waterfalls, teleporter pillars, and archways to animate on top of Layer 1 entities.
+- **Dog Entity Address & Sprite Bank Expansion**:
+  - Supported both `$4F17` and `$4F37` entity address candidates for the Dog.
+  - Expanded accepted sprite banks to `$C0..$DF`, enabling Act 4 Toaster Dog (`$D2`), Act 3 wolf (`$CF`), and large entities to render outside the screen edge without cutoff.
+- **Projectile 1/16 Subpixel Coordinate Scaling**:
+  - Fixed projectile coordinate scaling by dividing WRAM `$7E6387` coordinates by 16 (`Math.floor(raw / 16)` matching SNES engine `$90DE88` 4-bit right-shift).
+  - Expanded projectile sprite bank support to `$C0..$DF`. Thrown weapons and sparks now render at their exact on-screen and off-screen positions.
+
 ## [0.152.0] — 2026-10-04
 
 ### Feat: [Emulator] Animated tiles in extended map, priority foreground canopy layer, dog address fix, projectile active check, and color alignment

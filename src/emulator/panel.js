@@ -581,12 +581,42 @@ function _applyCutGrass(room, cutTiles) {
     });
 }
 
+function _scale2x(pb) {
+    if (!pb || !pb.data) return pb;
+    const w = pb.width;
+    const h = pb.height;
+    const src = pb.data;
+    const dst = new Uint8Array(w * 2 * h * 2 * 4);
+    const dstStride = w * 2 * 4;
+    for (let y = 0; y < h; y++) {
+        const srcRow = y * w * 4;
+        const dstRow0 = (y * 2) * dstStride;
+        const dstRow1 = (y * 2 + 1) * dstStride;
+        for (let x = 0; x < w; x++) {
+            const si = srcRow + x * 4;
+            const r = src[si];
+            const g = src[si + 1];
+            const b = src[si + 2];
+            const a = src[si + 3];
+
+            const di0 = dstRow0 + (x * 2) * 4;
+            dst[di0] = r; dst[di0 + 1] = g; dst[di0 + 2] = b; dst[di0 + 3] = a;
+            dst[di0 + 4] = r; dst[di0 + 5] = g; dst[di0 + 6] = b; dst[di0 + 7] = a;
+
+            const di1 = dstRow1 + (x * 2) * 4;
+            dst[di1] = r; dst[di1 + 1] = g; dst[di1 + 2] = b; dst[di1 + 3] = a;
+            dst[di1 + 4] = r; dst[di1 + 5] = g; dst[di1 + 6] = b; dst[di1 + 7] = a;
+        }
+    }
+    return { width: w * 2, height: h * 2, data: dst };
+}
+
 function _alignPixelsToSnes(pb) {
     if (!pb || !pb.data) return pb;
     const d = pb.data;
     for (let i = 0; i < d.length; i += 4) {
         d[i]     &= 0xf8;
-        d[i + 1] &= 0xf8;
+        d[i + 1] &= 0xfc;
         d[i + 2] &= 0xf8;
     }
     return pb;
@@ -626,14 +656,19 @@ function _handleRoomMapRequest(mapId, objectStates, cutGrassTiles) {
         const composite = maps.renderRoomComposite(rom, staged);
         if (!composite) return;
         _alignPixelsToSnes(composite);
-        const imageUri = maps.encodePngDataUri(composite);
+        const comp2x = _scale2x(composite);
+        const imageUri = maps.encodePngDataUri(comp2x);
 
         let foregroundUri = null;
         try {
-            const fg = maps.renderRoomForeground(rom, staged);
+            let fg = maps.renderRoomForeground(rom, staged);
             if (fg) {
+                if (room.animation && room.animation.length) {
+                    fg = maps.clearAnimatedCells(fg, staged);
+                }
                 _alignPixelsToSnes(fg);
-                foregroundUri = maps.encodePngDataUri(fg);
+                const fg2x = _scale2x(fg);
+                foregroundUri = maps.encodePngDataUri(fg2x);
             }
         } catch (_) {}
 
@@ -649,7 +684,8 @@ function _handleRoomMapRequest(mapId, objectStates, cutGrassTiles) {
                     delays: g.delaysMs,
                     frames: g.frames.map(f => {
                         _alignPixelsToSnes(f);
-                        return maps.encodePngDataUri(f);
+                        const f2x = _scale2x(f);
+                        return maps.encodePngDataUri(f2x);
                     }),
                 }));
             }

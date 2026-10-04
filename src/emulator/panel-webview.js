@@ -1245,6 +1245,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           curAddr = ptrNext;
         }
         if (!visited.has(0x4E89)) entities.push(0x4E89);
+        if (!visited.has(0x4F17)) entities.push(0x4F17);
         if (!visited.has(0x4F37)) entities.push(0x4F37);
 
         for (let i = 0; i < entities.length; i++) {
@@ -1254,7 +1255,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
 
           const spriteBank = buf[rel + 0x08];
           const spriteAddr = buf[rel + 0x06] | (buf[rel + 0x07] << 8);
-          if (spriteBank < 0xCA || spriteBank > 0xD0 || spriteAddr < 3) continue;
+          if (spriteBank < 0xC0 || spriteBank > 0xDF || spriteAddr < 3) continue;
 
           const flags = buf[rel + 0x10] | (buf[rel + 0x11] << 8);
           if (flags & 0x0020) continue;
@@ -1270,7 +1271,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           let palAddr = preState.palSlotBuf ? (preState.palSlotBuf[slotOffset] | (preState.palSlotBuf[slotOffset + 1] << 8)) : 0;
           if (!palAddr) {
             if (addr === 0x4E89) palAddr = 0xAD0B;
-            else if (addr === 0x4F37) palAddr = 0xAE0B;
+            else if (addr === 0x4F17 || addr === 0x4F37) palAddr = 0xAE0B;
             else {
               const stype = buf[rel + 0x60] | (buf[rel + 0x61] << 8);
               if (stype >= 0x8000) {
@@ -1315,12 +1316,13 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           const active = pbuf[rel + 0x10] | (pbuf[rel + 0x11] << 8);
           if (!active) continue;
 
+          // Coordinates are 1/16 subpixels in WRAM ($90DE88 shifts right 4 bits)
           const rawX = pbuf[rel + 0x14] | (pbuf[rel + 0x15] << 8);
-          const posX = rawX >= 0x8000 ? rawX - 0x10000 : rawX;
+          const posX = Math.floor((rawX >= 0x8000 ? rawX - 0x10000 : rawX) / 16);
           const rawY = pbuf[rel + 0x16] | (pbuf[rel + 0x17] << 8);
-          const posY = rawY >= 0x8000 ? rawY - 0x10000 : rawY;
+          const posY = Math.floor((rawY >= 0x8000 ? rawY - 0x10000 : rawY) / 16);
           const rawZ = pbuf[rel + 0x18] | (pbuf[rel + 0x19] << 8);
-          const posZ = rawZ >= 0x8000 ? rawZ - 0x10000 : rawZ;
+          const posZ = Math.floor((rawZ >= 0x8000 ? rawZ - 0x10000 : rawZ) / 16);
 
           const spriteBank = pbuf[rel + 0x08];
           const spriteAddr = pbuf[rel + 0x06] | (pbuf[rel + 0x07] << 8);
@@ -1328,7 +1330,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           const palAddr = preState.palSlotBuf ? (preState.palSlotBuf[slotOffset] | (preState.palSlotBuf[slotOffset + 1] << 8)) : 0;
 
           let sprite = null;
-          if (spriteBank >= 0xCA && spriteBank <= 0xD3 && spriteAddr >= 3) {
+          if (spriteBank >= 0xC0 && spriteBank <= 0xDF && spriteAddr >= 3) {
             const spritePtr = (spriteBank << 16) | spriteAddr;
             sprite = getDecodedSprite(rom, spritePtr, palAddr || 0xad0b);
           }
@@ -1586,13 +1588,28 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       // 3. Extended foreground priority tiles (Layer 2)
       if (extFgCtx && extFgCanvas) {
         extFgCtx.clearRect(0, 0, wrapW, wrapH);
-        if (extendMapEnabled && activeRoomMap && activeRoomMap.mapId === mapId && activeRoomMap.foregroundImg && activeRoomMap.foregroundImg.complete && activeRoomMap.foregroundImg.naturalWidth > 0) {
+        if (extendMapEnabled && activeRoomMap && activeRoomMap.mapId === mapId) {
           const mapX = emuX - camX * scaleSnes;
           const mapY = emuY - (camY + 1) * scaleSnes;
           const mapW = activeRoomMap.width * scaleSnes;
           const mapH = activeRoomMap.height * scaleSnes;
           extFgCtx.imageSmoothingEnabled = false;
-          extFgCtx.drawImage(activeRoomMap.foregroundImg, mapX, mapY, mapW, mapH);
+          if (activeRoomMap.foregroundImg && activeRoomMap.foregroundImg.complete && activeRoomMap.foregroundImg.naturalWidth > 0) {
+            extFgCtx.drawImage(activeRoomMap.foregroundImg, mapX, mapY, mapW, mapH);
+          }
+          if (activeRoomMap.animGroups && activeRoomMap.animGroups.length) {
+            for (let g = 0; g < activeRoomMap.animGroups.length; g++) {
+              const grp = activeRoomMap.animGroups[g];
+              const curFrame = grp.frames ? grp.frames[grp.frameIdx || 0] : null;
+              if (curFrame && curFrame.complete && curFrame.naturalWidth > 0) {
+                const gx = mapX + grp.x * scaleSnes;
+                const gy = mapY + grp.y * scaleSnes;
+                const gw = grp.w * scaleSnes;
+                const gh = grp.h * scaleSnes;
+                extFgCtx.drawImage(curFrame, gx, gy, gw, gh);
+              }
+            }
+          }
         }
       }
 
