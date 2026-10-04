@@ -581,6 +581,17 @@ function _applyCutGrass(room, cutTiles) {
     });
 }
 
+function _alignPixelsToSnes(pb) {
+    if (!pb || !pb.data) return pb;
+    const d = pb.data;
+    for (let i = 0; i < d.length; i += 4) {
+        d[i]     &= 0xf8;
+        d[i + 1] &= 0xf8;
+        d[i + 2] &= 0xf8;
+    }
+    return pb;
+}
+
 function _handleRoomMapRequest(mapId, objectStates, cutGrassTiles) {
     if (!_panel || typeof mapId !== 'number') return;
     const objKey = objectStates ? JSON.stringify(objectStates) : '';
@@ -614,10 +625,41 @@ function _handleRoomMapRequest(mapId, objectStates, cutGrassTiles) {
 
         const composite = maps.renderRoomComposite(rom, staged);
         if (!composite) return;
+        _alignPixelsToSnes(composite);
         const imageUri = maps.encodePngDataUri(composite);
+
+        let foregroundUri = null;
+        try {
+            const fg = maps.renderRoomForeground(rom, staged);
+            if (fg) {
+                _alignPixelsToSnes(fg);
+                foregroundUri = maps.encodePngDataUri(fg);
+            }
+        } catch (_) {}
+
+        let animGroups = [];
+        try {
+            const rawGroups = maps.buildAnimationGroups(rom, staged);
+            if (rawGroups && rawGroups.length) {
+                animGroups = rawGroups.map(g => ({
+                    x: g.x * 16,
+                    y: g.y * 16,
+                    w: g.w * 16,
+                    h: g.h * 16,
+                    delays: g.delaysMs,
+                    frames: g.frames.map(f => {
+                        _alignPixelsToSnes(f);
+                        return maps.encodePngDataUri(f);
+                    }),
+                }));
+            }
+        } catch (_) {}
+
         const data = {
             mapId: mapId,
             imageUri: imageUri,
+            foregroundUri: foregroundUri,
+            animGroups: animGroups,
             width: composite.width,
             height: composite.height,
             offX: room.header.originX,

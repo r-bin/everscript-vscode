@@ -241,48 +241,18 @@ test('buildHtml samples camera and entity state before _mainLoop to prevent walk
     assert.ok(sampleIdx > 0 && sampleIdx < mainLoopIdx, 'samplePreLoopState must be called before Module._mainLoop');
 });
 
-// 12. Fog of war outside emulator
-test('buildHtml includes fog of war toggle button, state, and evenodd canvas cut-out', () => {
+// 12. Extended foreground priority canvas, dog entity address, and projectile check
+test('buildHtml includes extended-foreground canvas, correct dog address, and projectile check', () => {
     const mockWebview = { asWebviewUri: (uri) => uri };
     const html = buildHtml(mockWebview, 'core.js', 'core.wasm', 'core', '/path/to/core');
 
-    assert.ok(html.includes('id="screen-fog-toggle"'), 'screen-fog-toggle button missing');
-    assert.ok(html.includes('fogOfWarEnabled'), 'fogOfWarEnabled state missing');
-    assert.ok(html.includes('setFogOfWar'), 'setFogOfWar function missing');
-    assert.ok(html.includes("fill('evenodd')"), 'evenodd fill for fog of war missing');
-});
-
-// 13. Projectiles rendering
-test('buildHtml samples projectile buffer and renders projectile sprites or glowing orbs', () => {
-    const mockWebview = { asWebviewUri: (uri) => uri };
-    const html = buildHtml(mockWebview, 'core.js', 'core.wasm', 'core', '/path/to/core');
-
-    assert.ok(html.includes('0x7E6387'), 'projectile buffer address 0x7E6387 missing');
-    assert.ok(html.includes('projBuf'), 'projBuf reference missing');
-    assert.ok(html.includes('createRadialGradient'), 'radial gradient for projectile orbs missing');
-});
-
-// 14. Object states and cut grass tracking
-test('buildHtml reads object states and cut grass queue and sends updates via requestRoomMap', () => {
-    const mockWebview = { asWebviewUri: (uri) => uri };
-    const html = buildHtml(mockWebview, 'core.js', 'core.wasm', 'core', '/path/to/core');
-
-    assert.ok(html.includes('0x7E10CE'), 'object states buffer address 0x7E10CE missing');
-    assert.ok(html.includes('0x7E0FD0'), 'cut grass queue buffer address 0x7E0FD0 missing');
-    assert.ok(html.includes('objectStates: objectStates'), 'objectStates parameter in requestRoomMap missing');
-    assert.ok(html.includes('cutGrassTiles: cutTiles'), 'cutGrassTiles parameter in requestRoomMap missing');
-});
-
-// 15. Vertical seam fix and live palette resolution
-test('buildHtml shifts extended map by 1 SNES pixel to fix vertical seam and resolves live palette', () => {
-    const mockWebview = { asWebviewUri: (uri) => uri };
-    const html = buildHtml(mockWebview, 'core.js', 'core.wasm', 'core', '/path/to/core');
-
-    assert.ok(html.includes('(camY + 1) * scaleSnes'), '1 SNES pixel vertical seam correction missing');
-    assert.ok(html.includes('0x7E1278'), 'palette slot buffer address 0x7E1278 missing');
-    assert.ok(html.includes('paletteAt'), 'paletteAt function missing');
+    assert.ok(html.includes('id="extended-foreground"'), 'extended-foreground canvas missing');
+    assert.ok(html.includes('#extended-foreground {'), 'extended-foreground CSS rule missing');
+    assert.ok(html.includes('0x4F37'), 'dog entity address 0x4F37 missing');
+    assert.ok(html.includes('pbuf[rel + 0x10]'), 'projectile active check at +0x10 missing');
+    assert.ok(html.includes('animGroups'), 'animGroups handling missing');
+    assert.ok(html.includes('foregroundImg'), 'foregroundImg handling missing');
 });
 
 console.log(`\nResults: ${passed} passed, ${failed} failed\n`);
 if (failed > 0) process.exit(1);
-

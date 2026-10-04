@@ -129,10 +129,8 @@ function buildSpawnLayers(romSpawns) {
         + ' stroke-dasharray="0.35,0.3"><title>' + tip + '</title></rect>';
     }
 
-    // Only a spawn the engine really does draw under the foreground goes
-    // under the canopy; everything else, including the ones whose plane the
-    // map cannot say, stays visible.
-    if (v.inFront || v.tileWord == null) out.front += body; else out.behind += body;
+    // Sprites are rendered beneath priority tiles (canopy)
+    out.behind += body;
   });
   return out;
 }

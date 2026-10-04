@@ -1,3 +1,23 @@
+## [0.152.0] — 2026-10-04
+
+### Feat: [Emulator] Animated tiles in extended map, priority foreground canopy layer, dog address fix, projectile active check, and color alignment
+
+- **Animated Tiles in Map Extension**:
+  - Automatically builds and packages Section 2 animation channels (`buildAnimationGroups`) during room map rendering in the host.
+  - Dynamically cycles and draws animated tile groups (teleporter pillars, waterfalls, firepits) on Layer 0 (`#extended-map`) matching each group's timing schedule.
+- **Priority Foreground Layer for Sprites**:
+  - Implemented Layer 2 `#extended-foreground` canvas (z-index: 2) between `#extended-entities` (z-index: 1) and `#screen` (z-index: 3).
+  - Renders Mode 1 priority tiles (`maps.renderRoomForeground`) on top of extended entities so walking behind walls, pillars, archways, and trees properly occludes sprites in the extension.
+  - Updated Rooms map editor SVG spawn layers (`svg-spawns.js`) to place all entity sprites into `out.behind` under priority canopy tiles.
+- **Dog Entity WRAM Address Correction**:
+  - Corrected Dog WRAM address from `$4F17` to `$4F37` (Boy is `$4E89`, Dog is `$4F37`).
+  - Resolves dog disappearing or being cut off when crossing the screen boundary.
+- **Projectile Active Check & Bank Expansion**:
+  - Updated projectile pool traversal to check the active thrower/source word at `+$10` (`LDX $0010,Y` in ROM engine `$90DE5E`) instead of non-zero owner/lifespan.
+  - Expanded recognized projectile sprite bank range to include `$CA..$D3`. Thrown spears, axes, and charging energy orbs now render accurately in the extension.
+- **SNES 5-bit Color Space Alignment**:
+  - Quantized rendered composite and foreground map pixels using `_alignPixelsToSnes` (`&= 0xf8`), matching `snes9x2005`'s exact `(c << 3)` color expansion and eliminating slight brightness/chroma differences at the screen seam.
+
 ## [0.151.0] — 2026-10-04
 
 ### Feat: [Emulator] Live object states, cuttable grass sync, projectile rendering, fog of war, enemy palette and vertical seam fixes

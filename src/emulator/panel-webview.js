@@ -144,9 +144,20 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       image-rendering: pixelated;
       image-rendering: crisp-edges;
     }
+    #extended-foreground {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 2;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
     #screen {
       position: absolute;
-      z-index: 2;
+      z-index: 3;
       display: block;
       width: 512px; height: 448px;
       image-rendering: pixelated; image-rendering: crisp-edges;
@@ -164,7 +175,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       width: 100%;
       height: 100%;
       pointer-events: none;
-      z-index: 3;
+      z-index: 4;
     }
     #screen-overlay-bar {
       position: absolute;
@@ -340,6 +351,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
   <div id="screen-wrap">
     <canvas id="extended-map"></canvas>
     <canvas id="extended-entities"></canvas>
+    <canvas id="extended-foreground"></canvas>
     <canvas id="screen" width="512" height="448"></canvas>
     <canvas id="extended-overlay"></canvas>
     <div id="screen-overlay-bar">
@@ -696,11 +708,13 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       const canvas        = document.getElementById('screen');
       const extMapCanvas  = document.getElementById('extended-map');
       const extEntCanvas  = document.getElementById('extended-entities');
+      const extFgCanvas   = document.getElementById('extended-foreground');
       const extOverCanvas = document.getElementById('extended-overlay');
       const wrap          = document.getElementById('screen-wrap');
       const ctx           = canvas.getContext('2d');
       const extMapCtx     = extMapCanvas ? extMapCanvas.getContext('2d') : null;
       const extEntCtx     = extEntCanvas ? extEntCanvas.getContext('2d') : null;
+      const extFgCtx      = extFgCanvas ? extFgCanvas.getContext('2d') : null;
       const extOverCtx    = extOverCanvas ? extOverCanvas.getContext('2d') : null;
       const imageData     = ctx.createImageData(512, 448);
       canvas.setAttribute('tabindex', '0');
@@ -836,6 +850,10 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           extEntCanvas.width = W;
           extEntCanvas.height = H;
         }
+        if (extFgCanvas && (extFgCanvas.width !== W || extFgCanvas.height !== H)) {
+          extFgCanvas.width = W;
+          extFgCanvas.height = H;
+        }
         if (extOverCanvas && (extOverCanvas.width !== W || extOverCanvas.height !== H)) {
           extOverCanvas.width = W;
           extOverCanvas.height = H;
@@ -870,7 +888,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
             imageData.data.set(new Uint8ClampedArray(HEAPU8.buffer, fbPtr, 512 * 448 * 4));
             ctx.putImageData(imageData, 0, 0);
           }
-          renderExtendedMapAndOverlays(preState, canvas, extMapCanvas, extMapCtx, extEntCanvas, extEntCtx, extOverCanvas, extOverCtx);
+          renderExtendedMapAndOverlays(preState, canvas, extMapCanvas, extMapCtx, extEntCanvas, extEntCtx, extFgCanvas, extFgCtx, extOverCanvas, extOverCtx);
           checkScriptExecutionTrace();
         }
       }
@@ -1227,7 +1245,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           curAddr = ptrNext;
         }
         if (!visited.has(0x4E89)) entities.push(0x4E89);
-        if (!visited.has(0x4F17)) entities.push(0x4F17);
+        if (!visited.has(0x4F37)) entities.push(0x4F37);
 
         for (let i = 0; i < entities.length; i++) {
           const addr = entities[i];
@@ -1252,7 +1270,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           let palAddr = preState.palSlotBuf ? (preState.palSlotBuf[slotOffset] | (preState.palSlotBuf[slotOffset + 1] << 8)) : 0;
           if (!palAddr) {
             if (addr === 0x4E89) palAddr = 0xAD0B;
-            else if (addr === 0x4F17) palAddr = 0xAE0B;
+            else if (addr === 0x4F37) palAddr = 0xAE0B;
             else {
               const stype = buf[rel + 0x60] | (buf[rel + 0x61] << 8);
               if (stype >= 0x8000) {
@@ -1294,9 +1312,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         const pbuf = preState.projBuf;
         for (let p = 0; p < 8; p++) {
           const rel = p * 44;
-          const owner = pbuf[rel + 0x00];
-          const lifespan = pbuf[rel + 0x02] | (pbuf[rel + 0x03] << 8);
-          if (!owner && !lifespan) continue;
+          const active = pbuf[rel + 0x10] | (pbuf[rel + 0x11] << 8);
+          if (!active) continue;
 
           const rawX = pbuf[rel + 0x14] | (pbuf[rel + 0x15] << 8);
           const posX = rawX >= 0x8000 ? rawX - 0x10000 : rawX;
@@ -1311,7 +1328,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           const palAddr = preState.palSlotBuf ? (preState.palSlotBuf[slotOffset] | (preState.palSlotBuf[slotOffset + 1] << 8)) : 0;
 
           let sprite = null;
-          if (spriteBank >= 0xCA && spriteBank <= 0xD0 && spriteAddr >= 3) {
+          if (spriteBank >= 0xCA && spriteBank <= 0xD3 && spriteAddr >= 3) {
             const spritePtr = (spriteBank << 16) | spriteAddr;
             sprite = getDecodedSprite(rom, spritePtr, palAddr || 0xad0b);
           }
@@ -1421,9 +1438,10 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       };
     }
 
-    function renderExtendedMapAndOverlays(preState, canvas, extMapCanvas, extMapCtx, extEntCanvas, extEntCtx, extOverCanvas, extOverCtx) {
+    function renderExtendedMapAndOverlays(preState, canvas, extMapCanvas, extMapCtx, extEntCanvas, extEntCtx, extFgCanvas, extFgCtx, extOverCanvas, extOverCtx) {
       if (!preState || !loadedRomData) {
         if (extOverCtx && extOverCanvas) extOverCtx.clearRect(0, 0, extOverCanvas.width, extOverCanvas.height);
+        if (extFgCtx && extFgCanvas) extFgCtx.clearRect(0, 0, extFgCanvas.width, extFgCanvas.height);
         if (extEntCtx && extEntCanvas) extEntCtx.clearRect(0, 0, extEntCanvas.width, extEntCanvas.height);
         if (extMapCtx && extMapCanvas) extMapCtx.clearRect(0, 0, extMapCanvas.width, extMapCanvas.height);
         return;
@@ -1437,6 +1455,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
 
       if (mapId < 0 || mapId > 0x90) {
         if (extOverCtx && extOverCanvas) extOverCtx.clearRect(0, 0, extOverCanvas.width, extOverCanvas.height);
+        if (extFgCtx && extFgCanvas) extFgCtx.clearRect(0, 0, extFgCanvas.width, extFgCanvas.height);
         if (extEntCtx && extEntCanvas) extEntCtx.clearRect(0, 0, extEntCanvas.width, extEntCanvas.height);
         if (extMapCtx && extMapCanvas) extMapCtx.clearRect(0, 0, extMapCanvas.width, extMapCanvas.height);
         return;
@@ -1534,6 +1553,28 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           const mapH = activeRoomMap.height * scaleSnes;
           extMapCtx.imageSmoothingEnabled = false;
           extMapCtx.drawImage(activeRoomMap.img, mapX, mapY, mapW, mapH);
+
+          if (activeRoomMap.animGroups && activeRoomMap.animGroups.length) {
+            const now = performance.now();
+            for (let g = 0; g < activeRoomMap.animGroups.length; g++) {
+              const grp = activeRoomMap.animGroups[g];
+              if (!grp.frames || grp.frames.length <= 1) continue;
+              if (!grp.nextTick) grp.nextTick = now + (grp.delays[0] || 100);
+              else if (now >= grp.nextTick) {
+                grp.frameIdx = (grp.frameIdx + 1) % grp.frames.length;
+                const d = grp.delays[grp.frameIdx] || 100;
+                grp.nextTick = now + d;
+              }
+              const curFrame = grp.frames[grp.frameIdx];
+              if (curFrame && curFrame.complete && curFrame.naturalWidth > 0) {
+                const gx = mapX + grp.x * scaleSnes;
+                const gy = mapY + grp.y * scaleSnes;
+                const gw = grp.w * scaleSnes;
+                const gh = grp.h * scaleSnes;
+                extMapCtx.drawImage(curFrame, gx, gy, gw, gh);
+              }
+            }
+          }
         }
       }
 
@@ -1542,7 +1583,20 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         renderExtendedEntities(preState, layout, extEntCanvas, extEntCtx);
       }
 
-      // 3. Extended triggers overlay (Layer 3)
+      // 3. Extended foreground priority tiles (Layer 2)
+      if (extFgCtx && extFgCanvas) {
+        extFgCtx.clearRect(0, 0, wrapW, wrapH);
+        if (extendMapEnabled && activeRoomMap && activeRoomMap.mapId === mapId && activeRoomMap.foregroundImg && activeRoomMap.foregroundImg.complete && activeRoomMap.foregroundImg.naturalWidth > 0) {
+          const mapX = emuX - camX * scaleSnes;
+          const mapY = emuY - (camY + 1) * scaleSnes;
+          const mapW = activeRoomMap.width * scaleSnes;
+          const mapH = activeRoomMap.height * scaleSnes;
+          extFgCtx.imageSmoothingEnabled = false;
+          extFgCtx.drawImage(activeRoomMap.foregroundImg, mapX, mapY, mapW, mapH);
+        }
+      }
+
+      // 4. Extended triggers overlay (Layer 4)
       if (extOverCtx && extOverCanvas) {
         renderTriggersOverlay(extOverCtx, layout);
       }
@@ -2121,10 +2175,22 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       }
       const cb = document.getElementById('ss-extend-toggle');
       if (cb) cb.checked = extendMapEnabled;
-      const extMapCanvas = document.getElementById('extended-map');
-      if (!extendMapEnabled && extMapCanvas) {
-        const extCtx = extMapCanvas.getContext('2d');
-        if (extCtx) extCtx.clearRect(0, 0, extMapCanvas.width, extMapCanvas.height);
+      if (!extendMapEnabled) {
+        const extMapCanvas = document.getElementById('extended-map');
+        if (extMapCanvas) {
+          const extCtx = extMapCanvas.getContext('2d');
+          if (extCtx) extCtx.clearRect(0, 0, extMapCanvas.width, extMapCanvas.height);
+        }
+        const extEntCanvas = document.getElementById('extended-entities');
+        if (extEntCanvas) {
+          const entCtx = extEntCanvas.getContext('2d');
+          if (entCtx) entCtx.clearRect(0, 0, extEntCanvas.width, extEntCanvas.height);
+        }
+        const extFgCanvas = document.getElementById('extended-foreground');
+        if (extFgCanvas) {
+          const fgCtx = extFgCanvas.getContext('2d');
+          if (fgCtx) fgCtx.clearRect(0, 0, extFgCanvas.width, extFgCanvas.height);
+        }
       }
     }
 
@@ -2470,11 +2536,40 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         appendTraceEntries(evt.data.entries);
       } else if (evt.data.command === 'roomMapRendered') {
         if (evt.data.imageUri) {
+          const mapId = evt.data.mapId;
           const img = new Image();
+          let fgImg = null;
+          if (evt.data.foregroundUri) {
+            fgImg = new Image();
+            fgImg.src = evt.data.foregroundUri;
+          }
+          const loadedGroups = [];
+          if (Array.isArray(evt.data.animGroups)) {
+            for (let i = 0; i < evt.data.animGroups.length; i++) {
+              const g = evt.data.animGroups[i];
+              const frameImgs = (g.frames || []).map(fUri => {
+                const fImg = new Image();
+                fImg.src = fUri;
+                return fImg;
+              });
+              loadedGroups.push({
+                x: g.x,
+                y: g.y,
+                w: g.w,
+                h: g.h,
+                delays: g.delays || [],
+                frames: frameImgs,
+                frameIdx: 0,
+                nextTick: 0,
+              });
+            }
+          }
           img.onload = function() {
             activeRoomMap = {
-              mapId: evt.data.mapId,
+              mapId: mapId,
               img: img,
+              foregroundImg: fgImg,
+              animGroups: loadedGroups,
               width: evt.data.width,
               height: evt.data.height,
               offX: evt.data.offX,
