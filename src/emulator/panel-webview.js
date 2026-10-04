@@ -941,7 +941,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       if (!str) return false;
 
       let bytecode = null;
-      const walkMatch = str.match(/^walk\s*\(\s*(\w+)\s*,\s*(\w+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*\)/i);
+      const walkMatch = str.match(/^walk\\s*\\(\\s*(\\w+)\\s*,\\s*(\\w+)\\s*,\\s*(-?\\d+)\\s*,\\s*(-?\\d+)\\s*\\)/i);
       if (walkMatch) {
         const charName = walkMatch[1].toUpperCase();
         const typeName = walkMatch[2].toUpperCase();
@@ -965,9 +965,9 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           0x00 // END
         ];
       } else {
-        const hexMatch = str.match(/^(?:0x)?([0-9a-fA-F\s,]+)$/);
+        const hexMatch = str.match(/^(?:0x)?([0-9a-fA-F\\s,]+)$/);
         if (hexMatch) {
-          const parts = str.split(/[\s,]+/).filter(Boolean);
+          const parts = str.split(/[\\s,]+/).filter(Boolean);
           bytecode = parts.map(p => parseInt(p, 16) & 0xFF);
           if (bytecode.length && bytecode[bytecode.length - 1] !== 0x00) bytecode.push(0x00);
         }
@@ -1459,15 +1459,17 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           const rawZ = buf[rel + 0x1E] | (buf[rel + 0x1F] << 8);
           const posZ = rawZ >= 0x8000 ? rawZ - 0x10000 : rawZ;
 
-          let palAddr;
-          if (isBoy) {
-            palAddr = 0xAD0B;
-          } else if (isDog) {
-            palAddr = getDogPalette(preState.mapId, spriteBank);
-          } else {
-            const slotOffset = buf[rel + 0x0C] & 0x0E;
-            palAddr = preState.palSlotBuf ? (preState.palSlotBuf[slotOffset] | (preState.palSlotBuf[slotOffset + 1] << 8)) : 0;
-            if (!palAddr) {
+          // +0x0C is the entity's palette slot; $7E1278 holds the ROM address
+          // of the palette loaded in each slot. That is the engine's own answer
+          // for the Boy and Dog too (the Dog's changes per act and per floor).
+          const slotOffset = buf[rel + 0x0C] & 0x0E;
+          let palAddr = preState.palSlotBuf ? (preState.palSlotBuf[slotOffset] | (preState.palSlotBuf[slotOffset + 1] << 8)) : 0;
+          if (!palAddr) {
+            if (isBoy) {
+              palAddr = 0xAD0B;
+            } else if (isDog) {
+              palAddr = getDogPalette(preState.mapId, spriteBank);
+            } else {
               const stype = buf[rel + 0x60] | (buf[rel + 0x61] << 8);
               if (stype >= 0x8000) {
                 const recOffset = snesToRom(0x8E0000 | (stype + 0x09));
@@ -1589,7 +1591,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       const m = getModule();
       if (!m || !hasDebuggerApi(m) || !loadedRomData) return null;
       let camX = 0, camY = 0, mapId = -1, trigOffX = 0, trigOffY = 0;
-      let entBuf = null, palSlotBuf = null, projBuf = null, objStateBuf = null, grassQueueBuf = null;
+      let entBuf = null, palSlotBuf = null, projBuf = null, objStateBuf = null, grassQueueBuf = null, animIdxBuf = null;
 
       try {
         const camBuf = m.readMemoryRange(0x7E0112, 4);
@@ -1615,6 +1617,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         projBuf = m.readMemoryRange(0x7E6387, 352);
         objStateBuf = m.readMemoryRange(0x7E10CE, 64);
         grassQueueBuf = m.readMemoryRange(0x7E0FD0, 148);
+        animIdxBuf = m.readMemoryRange(ANIM_FRAME_INDEX_ADDR, ANIM_MAX_CHANNELS);
       } catch (_) {
         return null;
       }
@@ -1630,7 +1633,32 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         projBuf: projBuf,
         objStateBuf: objStateBuf,
         grassQueueBuf: grassQueueBuf,
+        animIdxBuf: animIdxBuf,
       };
+    }
+
+    // The engine's per-channel animation state: frame index at $7E4FE6 + ch,
+    // countdown at $7E5018 + ch (found by watching WRAM; the holds match the
+    // decoded delays). Stepping from it keeps the extension in phase with the
+    // screen, and still where the engine has paused a channel.
+    const ANIM_FRAME_INDEX_ADDR = 0x7E4FE6;
+    const ANIM_MAX_CHANNELS     = 0x32;
+
+    // A group's frames step through the lcm of its channels' frame counts, so
+    // the step is the one whose position in every channel matches the engine.
+    function animGroupStep(grp, idxBuf) {
+      const chans = grp.channels;
+      if (!idxBuf || !chans || !chans.length) return 0;
+      const steps = grp.frames.length;
+      for (let s = 0; s < steps; s++) {
+        let ok = true;
+        for (let i = 0; i < chans.length; i++) {
+          if (s % (grp.chanLens[i] || 1) !== idxBuf[chans[i]]) { ok = false; break; }
+        }
+        if (ok) return s;
+      }
+      // Channels out of step with each other (or capped steps): follow the first.
+      return idxBuf[chans[0]] % steps;
     }
 
     function renderExtendedMapAndOverlays(preState, canvas, extMapCanvas, extMapCtx, extEntCanvas, extEntCtx, extFgCanvas, extFgCtx, extOverCanvas, extOverCtx) {
@@ -1751,16 +1779,10 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           extMapCtx.drawImage(activeRoomMap.img, mapX, mapY, mapW, mapH);
 
           if (activeRoomMap.animGroups && activeRoomMap.animGroups.length) {
-            const now = performance.now();
             for (let g = 0; g < activeRoomMap.animGroups.length; g++) {
               const grp = activeRoomMap.animGroups[g];
               if (!grp.frames || grp.frames.length <= 1) continue;
-              if (!grp.nextTick) grp.nextTick = now + (grp.delays[0] || 100);
-              else if (now >= grp.nextTick) {
-                grp.frameIdx = (grp.frameIdx + 1) % grp.frames.length;
-                const d = grp.delays[grp.frameIdx] || 100;
-                grp.nextTick = now + d;
-              }
+              grp.frameIdx = animGroupStep(grp, preState.animIdxBuf);
               const curFrame = grp.frames[grp.frameIdx];
               if (curFrame && curFrame.complete && curFrame.naturalWidth > 0) {
                 const gx = mapX + grp.x * scaleSnes;
@@ -2013,7 +2035,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     }
 
     function parseExecBreakpointInput(raw) {
-      const text = String(raw || '').trim().replace(/^\$/u, '0x');
+      const text = String(raw || '').trim().replace(/^\\$/u, '0x');
       if (!text) return null;
       if (!/^(?:0x)?[0-9a-f]{1,6}$/i.test(text)) return null;
       return parseInt(text, 16) >>> 0;
@@ -2773,11 +2795,11 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
                 y: g.y,
                 w: g.w,
                 h: g.h,
-                delays: g.delays || [],
+                channels: Array.isArray(g.channels) ? g.channels : [],
+                chanLens: Array.isArray(g.chanLens) ? g.chanLens : [],
                 frames: frameImgs,
                 fgFrames: fgFrameImgs,
                 frameIdx: 0,
-                nextTick: 0,
               });
             }
           }

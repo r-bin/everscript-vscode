@@ -701,6 +701,10 @@ function _handleRoomMapRequest(mapId, objectStates, cutGrassTiles) {
                     w: g.w * 16,
                     h: g.h * 16,
                     delays: g.delaysMs,
+                    // The webview steps each group from the engine's own
+                    // per-channel frame index ($7E4FE6 + channel).
+                    channels: g.channels,
+                    chanLens: g.channels.map(c => staged.animation[c].frames.length),
                     frames: g.frames.map(encodeFrame),
                     fgFrames: fgUsed ? fg.frames.map(encodeFrame) : null,
                 };

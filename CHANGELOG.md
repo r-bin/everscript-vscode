@@ -1,3 +1,11 @@
+## [0.154.2] — 2026-10-04
+
+### Fix: [Emulator] right-click walk really runs, animated tiles follow the engine, Boy/Dog use their loaded palettes
+
+- **Right-click walk**: the webview script lives in a template literal, so `\s`/`\w`/`\d` in the walk regex lost their backslashes and nothing ever parsed. The injection gave up before writing anything. The same bug broke the `$`-prefixed breakpoint address parser. The backslashes are now escaped, and a new test (`tests/debugger/everscript-inject.test.js`) runs the injection from the generated HTML. Verified in a headless webview with a real right-click: the Boy walks to the clicked point.
+- **Animated tiles**: the extension ran its own clock, which started whenever the frame images finished loading. On first entry that was late; on re-entry it was instant from cache. It also animated channels the engine leaves paused (33 of 42 in room `$18`, all 40 in `$4A`). Each group now steps from the engine's per-channel frame index at `$7E4FE6 + channel` (countdown at `$7E5018 + channel`; the observed holds match the decoded delays).
+- **Boy/Dog palette**: both now read the palette loaded in their slot (`$7E1278[+0x0C]`), like every other entity, instead of hardcoded/per-act tables. The Dog's colour changes per act and per Omnitopia floor; the Boy's slot changes too (`$AD0B`/`$AD6B`).
+
 ## [0.154.1] — 2026-10-04
 
 ### Fix: [Emulator] right-click walk now runs, Boy/Dog render in the extended view, sprites keep their depth against the canopy
