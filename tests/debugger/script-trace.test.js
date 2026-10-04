@@ -93,7 +93,7 @@ test('processScriptTraceBatch handles interwoven slots and state transitions', (
   assert.strictEqual(results[0].slot, 0);
   assert.strictEqual(results[0].event, 'start');
   assert.strictEqual(results[0].locHex, '0x93874D');
-  assert.ok(results[0].line.includes('[Slot 0 | Ent 0000 | start]'), `Line missing slot tag: ${results[0].line}`);
+  assert.ok(results[0].line.includes('[s0 | 0000 | start]'), `Line missing slot tag: ${results[0].line}`);
 
   assert.strictEqual(results[1].slot, 2);
   assert.strictEqual(results[1].event, 'start');
@@ -230,22 +230,22 @@ test('RomAddressLookup resolves Room 0x15 enter script, empty trigger, and custo
   assert.ok(enterLookup, '0xBC8000 should be resolved');
   assert.strictEqual(enterLookup.room, 0x15);
   assert.strictEqual(enterLookup.kind, 'enter');
-  assert.strictEqual(enterLookup.shortTag, 'Rm 0x15 Enter');
+  assert.strictEqual(enterLookup.shortTag, '0x15.enter');
 
   // 2. Bare empty trigger (0x92A42F) attributed to room 0x15
   const emptyLookup = lookupTable.lookup(0x92A42F);
   assert.ok(emptyLookup, '0x92A42F should be resolved');
   assert.strictEqual(emptyLookup.room, 0x15);
   assert.strictEqual(emptyLookup.kind, 'bTrigger');
-  assert.strictEqual(emptyLookup.shortTag, 'Rm 0x15 B-trig');
+  assert.strictEqual(emptyLookup.shortTag, '0x15.b[0]');
 
   // 3. Fallback for unmapped address
   const unmapped = lookupTable.lookup(0x999999);
   assert.strictEqual(unmapped, null);
 });
 
-// Test 10: ScriptTraceFormatter formats text and html consistently
-test('ScriptTraceFormatter generates consistent TextMate line and HTML row', () => {
+// Test 10: ScriptTraceFormatter formats text and html consistently with opcode at end
+test('ScriptTraceFormatter generates consistent TextMate line and HTML row with opcode at end', () => {
   const { ScriptTraceFormatter } = require('../../src/emulator/trace-formatter');
   const formatter = new ScriptTraceFormatter();
 
@@ -263,21 +263,35 @@ test('ScriptTraceFormatter generates consistent TextMate line and HTML row', () 
     room: 0x15,
     kind: 'enter',
     name: 'Room 0x15 Enter Script',
-    shortTag: 'Rm 0x15 Enter',
+    shortTag: '0x15.enter',
+  };
+
+  const sub = {
+    addrHex: '0xBC8004',
+    summary: 'CALL "Fade In" (0x36)',
+    bytesHex: 'A3 36',
+    opcode: 0xa3,
+    callKind: '8bit',
   };
 
   const text = formatter.formatText(item, lookup);
   assert.ok(text.includes('[+0.05s, f3]'), `Missing time in text: ${text}`);
-  assert.ok(text.includes('[Slot 1 | Ent 4E89 | start]'), `Missing slot tag: ${text}`);
-  assert.ok(text.includes('[Rm 0x15 Enter]'), `Missing lookup tag: ${text}`);
-  assert.ok(text.includes('0xBC8000: 14 E9 01 E8'), `Missing addr and bytes: ${text}`);
-  assert.ok(text.includes('Laser Lance'), `Missing summary: ${text}`);
+  assert.ok(text.includes('[s1 | 4E89 | start]'), `Missing slot tag: ${text}`);
+  assert.ok(text.includes('[0x15.enter]'), `Missing lookup tag: ${text}`);
+  assert.ok(text.includes('0xBC8000: GAIN WEAPON 0x01e9 (Laser Lance) [14 E9 01 E8]'), `Opcode should be at end: ${text}`);
 
-  const html = formatter.formatHtml(item, lookup);
+  const subText = formatter.formatSubText(sub);
+  assert.strictEqual(subText, '  -> 0xBC8004: CALL "Fade In" (0x36) [A3 36]', `Unexpected subText: ${subText}`);
+
+  const html = formatter.formatHtml(item, lookup, [sub]);
   assert.ok(html.includes('class="ss-trace-row start"'), `Missing row class: ${html}`);
   assert.ok(html.includes('class="ss-trace-lookup"'), `Missing lookup class: ${html}`);
-  assert.ok(html.includes('[Rm 0x15 Enter]'), `Missing lookup tag in html: ${html}`);
+  assert.ok(html.includes('[0x15.enter]'), `Missing lookup tag in html: ${html}`);
   assert.ok(html.includes('title="Room 0x15 Enter Script"'), `Missing lookup title: ${html}`);
+  assert.ok(html.includes('<span class="ss-trace-bytes">[14 E9 01 E8]</span>'), `Missing main bytes at end in html: ${html}`);
+  assert.ok(html.includes('class="ss-trace-sub start call-8bit"'), `Missing subline class in html: ${html}`);
+  assert.ok(html.includes('<span class="ss-trace-arrow">  -&gt; </span>'), `Missing arrow in html: ${html}`);
+  assert.ok(html.includes('<span class="ss-trace-bytes">[A3 36]</span>'), `Missing sub bytes at end in html: ${html}`);
 });
 
 // Test 11: processScriptTraceBatch with hideInactive option
@@ -294,9 +308,29 @@ test('processScriptTraceBatch handles hideInactive option and attaches lookup', 
   const results = processScriptTraceBatch(batch, null, null, draft, { hideInactive: true });
   assert.strictEqual(results.length, 2, 'Batch returns all processed items for webview');
   assert.ok(results[0].lookup, 'Results[0] should have lookup attached');
-  assert.strictEqual(results[0].lookup.shortTag, 'Rm 0x15 Enter');
+  assert.strictEqual(results[0].lookup.shortTag, '0x15.enter');
+  assert.ok(results[0].html.includes('[0x15.enter]'), 'Results[0].html should contain lookup tag');
   assert.ok(results[1].lookup, 'Results[1] should have lookup attached');
-  assert.strictEqual(results[1].lookup.shortTag, 'Rm 0x15 B-trig');
+  assert.strictEqual(results[1].lookup.shortTag, '0x15.b[0]');
+});
+
+// Test 12: 8-bit calls optional filtering
+test('processScriptTraceBatch and formatter support optional 8-bit calls while preserving 16-bit and 24-bit calls', () => {
+  const { ScriptTraceFormatter } = require('../../src/emulator/trace-formatter');
+  const fmt = new ScriptTraceFormatter({ show8BitCalls: false });
+  assert.strictEqual(fmt.is8BitCall(0xa3), true, '0xa3 is 8-bit call');
+  assert.strictEqual(fmt.is8BitCall(0xa4), false, '0xa4 is 16-bit call');
+  assert.strictEqual(fmt.is8BitCall(0x29), false, '0x29 is 24-bit call');
+
+  const sub8 = { addrHex: '0xBC8004', summary: 'CALL 0x36', bytesHex: 'A3 36', opcode: 0xa3, callKind: '8bit' };
+  const sub16 = { addrHex: '0x928100', summary: 'CALL 0x1234 -> 0x940000', bytesHex: 'A4 34 12', opcode: 0xa4, callKind: '16bit' };
+
+  const subHtml8 = fmt.formatSubHtml(sub8);
+  assert.ok(subHtml8.includes('call-8bit'), 'Should include call-8bit class for CSS toggle');
+
+  const subHtml16 = fmt.formatSubHtml(sub16);
+  assert.ok(!subHtml16.includes('call-8bit'), '16-bit call should not have call-8bit class');
+  assert.ok(subHtml16.includes('call-16bit'), '16-bit call has call-16bit class');
 });
 
 console.log(`\nResults: ${passed} passed, ${failed} failed`);

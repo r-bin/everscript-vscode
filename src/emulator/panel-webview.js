@@ -120,20 +120,22 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       font-family: monospace; font-size: 11px; line-height: 1.45;
       overflow-y: auto; overflow-x: hidden;
     }
-    #ss-trace-log.hide-inactive .ss-trace-row.end { display: none !important; }
-    #ss-trace-log.hide-inactive .ss-trace-sub.end { display: none !important; }
-    .ss-trace-row { display: flex; gap: 8px; white-space: nowrap; padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+    #ss-trace-log.hide-inactive .ss-trace-entry.end { display: none !important; }
+    #ss-trace-log.hide-8bit-calls .ss-trace-sub.call-8bit { display: none !important; }
+    .ss-trace-entry { display: flex; flex-direction: column; padding: 1px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+    .ss-trace-row { display: flex; gap: 6px; white-space: nowrap; padding: 1px 0; }
+    .ss-trace-sub { display: flex; gap: 4px; white-space: nowrap; padding: 1px 0; font-family: monospace; font-size: 11px; }
+    .ss-trace-arrow { color: #c586c0; font-weight: bold; }
     .ss-trace-time { color: #569cd6; font-size: 10px; min-width: 95px; }
     .ss-trace-lookup { color: #4ec9b0; font-weight: bold; }
-    .ss-trace-tag { font-weight: bold; min-width: 130px; }
+    .ss-trace-tag { font-weight: bold; min-width: 120px; }
     .ss-trace-tag.start  { color: #6f9; }
     .ss-trace-tag.resume { color: #ff6; }
     .ss-trace-tag.step   { color: #69f; }
     .ss-trace-tag.end    { color: #f66; }
     .ss-trace-addr       { color: #4ec9b0; }
     .ss-trace-bytes      { color: #888; font-size: 10px; font-family: monospace; }
-    .ss-trace-text       { color: #d4d4d4; overflow: hidden; text-overflow: ellipsis; }
-    .ss-trace-sub        { padding-left: 20px; color: #888; font-size: 10px; white-space: nowrap; line-height: 1.4; }
+    .ss-trace-text       { color: #d4d4d4; }
 
     #ss-view-stack { overflow-y: auto; }
     #ss-view-debug { overflow-y: auto; }
@@ -207,6 +209,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           <button id="ss-trace-copy-btn" class="ss-btn" type="button">copy</button>
           <label id="ss-trace-scroll-label"><input type="checkbox" id="ss-trace-scroll" checked /> auto-scroll</label>
           <label id="ss-trace-hide-inactive-label"><input type="checkbox" id="ss-trace-hide-inactive" /> hide inactive</label>
+          <label id="ss-trace-8bit-calls-label"><input type="checkbox" id="ss-trace-8bit-calls" checked /> 8-bit calls</label>
         </div>
         <span id="ss-trace-count">0 lines</span>
       </div>
@@ -1331,30 +1334,14 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       if (!container || !entries || !entries.length) return;
       const frag = document.createDocumentFragment();
       for (const entry of entries) {
-        const row = document.createElement('div');
-        row.className = 'ss-trace-row' + (entry.event ? ' ' + entry.event : '');
-        const tagClass = 'ss-trace-tag ' + (entry.event || '');
-        const timeHtml = entry.timeStr ? '<span class="ss-trace-time">' + escH(entry.timeStr) + '</span> ' : '';
-        const lookupTitle = entry.lookup && entry.lookup.name ? escH(entry.lookup.name) : '';
-        const lookupHtml = entry.lookup && entry.lookup.shortTag
-          ? '<span class="ss-trace-lookup" title="' + lookupTitle + '">' + escH('[' + entry.lookup.shortTag + ']') + '</span> '
-          : '';
-        row.innerHTML =
-          timeHtml +
-          '<span class="' + tagClass + '">' + escH('[s' + entry.slot + ' | ' + entry.entity + ' | ' + entry.event + ']') + '</span> ' +
-          lookupHtml +
-          '<span class="ss-trace-addr">' + escH(entry.locHex) + '</span> ' +
-          '<span class="ss-trace-bytes">[' + escH(entry.bytesHex) + ']</span> ' +
-          '<span class="ss-trace-text">' + scriptHighlight(entry.summary) + '</span>';
-        frag.appendChild(row);
-        if (entry.subLines && entry.subLines.length) {
-          for (const sub of entry.subLines) {
-            const subRow = document.createElement('div');
-            subRow.className = 'ss-trace-sub' + (entry.event ? ' ' + entry.event : '');
-            subRow.textContent = sub;
-            frag.appendChild(subRow);
-          }
+        const wrapper = document.createElement('div');
+        wrapper.className = 'ss-trace-entry ' + (entry.event || '');
+        if (entry.html) {
+          wrapper.innerHTML = entry.html;
+        } else {
+          wrapper.textContent = entry.line || '';
         }
+        frag.appendChild(wrapper);
       }
       container.appendChild(frag);
       while (container.childNodes.length > 250) {
@@ -1419,6 +1406,20 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         }
         if (vscodeApi) {
           vscodeApi.postMessage({ command: 'setHideInactiveTrace', hideInactive: hideInactive.checked });
+        }
+      });
+    }
+
+    const show8Bit = document.getElementById('ss-trace-8bit-calls');
+    if (show8Bit) {
+      show8Bit.addEventListener('change', () => {
+        const log = document.getElementById('ss-trace-log');
+        if (log) {
+          if (!show8Bit.checked) log.classList.add('hide-8bit-calls');
+          else log.classList.remove('hide-8bit-calls');
+        }
+        if (vscodeApi) {
+          vscodeApi.postMessage({ command: 'setShow8BitCalls', show8BitCalls: show8Bit.checked });
         }
       });
     }

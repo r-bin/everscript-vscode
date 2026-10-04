@@ -132,7 +132,7 @@
       ]
     },
     "lookup_tag": {
-      "match": "(\\[)(Rm\\s+0x[0-9A-Fa-f]+[^\\]]*|Empty Trig[^\\]]*|Global:[^\\]]*)(\\])",
+      "match": "(\\[)(0x[0-9A-Fa-f]+\\.(?:enter|b\\[\\d+\\]|step\\[\\d+\\]|[a-z0-9_]+)|[0-9A-Fa-f]+<[^>]+>|empty|global\\[[^\\]]+\\]|Rm\\s+0x[0-9A-Fa-f]+[^\\]]*|Empty Trig[^\\]]*|Global:[^\\]]*)(\\])",
       "captures": {
         "1": { "name": "punctuation.definition.bracket.begin.trace" },
         "2": { "name": "entity.name.tag.lookup.trace" },
@@ -171,7 +171,7 @@
       ]
     },
     "keywords": {
-      "match": "\\b(WRITE|CALL|END|IF|THEN|SKIP|ELSE|GOTO|RETURN|WAIT|SLEEP|YIELD|SPAWN|NPC|CHANGE MAP|CHANGE MUSIC|UNHIDE\\?|UNWINDOWED TEXT|SET|UNSET|CLEAR|COPY|READ|CHECK|TRIGGER|GET WEAPON|GAIN WEAPON|FADE IN|FADE OUT)\\b",
+      "match": "\\b(WRITE|CALL|RCALL|END|IF|THEN|SKIP|ELSE|GOTO|RETURN|WAIT|SLEEP|YIELD|SPAWN|NPC|CHANGE MAP|CHANGE MUSIC|UNHIDE\\?|UNWINDOWED TEXT|SET|UNSET|CLEAR|COPY|READ|CHECK|TRIGGER|GET WEAPON|GAIN WEAPON|FADE IN|FADE OUT)\\b",
       "name": "keyword.control.opcode.trace"
     },
     "numbers": {

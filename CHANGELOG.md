@@ -1,3 +1,23 @@
+## [0.145.0] — 2026-10-04
+
+### Feat: [Emulator] Unified trace beautifier, compressed tags, opcode at end, and optional 8-bit calls
+
+- **Single Beautifier Architecture**: All execution trace rendering (VS Code OutputChannel and Emulator Webview DOM) now flows through the exact same `ScriptTraceFormatter` class. The host generates the full tokenized HTML markup (`entry.html`), completely eliminating display discrepancies between the panel and the editor.
+- **Compressed Trigger & Room Tags**: Replaced verbose tags with compact, high-density identifiers:
+  - B-triggers: `[0x15.b[0]]`, `[0x34.b[0]]` (specifying room and exact trigger index).
+  - Step-on triggers: `[0x15.step[0]]`.
+  - Enter scripts: `[0x15.enter]`, `[0x61.enter]`.
+  - Empty triggers & globals: `[empty]`, `[global[0x36]]`.
+- **Opcode at the End**: Formatted bytecode hex dumps (`[00 01 02 …]`) at the very end of both main lines and sublines, allowing the human-readable opcode and operands to be read first:
+  - `[+7.20s, f434] [s0 | 4E89 | start] [0x15.enter] 0xBC8000: WRITE GET WEAPON ($2441) = Laser Lance (0x18) [14 E9 01 E8]`
+  - `  -> 0xBC8004: CALL "Unnamed Global script 0x36" (0x36) [A3 36]`
+  - `  -> 0xBC8006: END (return) [00]`
+- **Full Syntax Highlighting Across All Lines**: Follow-up sub-lines (`-> 0x...`) are now 100% tokenized with arrow styling (`.ss-trace-arrow`), address colors (`.ss-trace-addr`), opcode keywords (`.sx-kw`), strings (`.sx-str`), numbers (`.sx-num`), and asides (`.sx-aside`) in the webview and TextMate scopes in OutputChannel.
+- **Optional 8-Bit Calls & 2-Space Indentation**:
+  - Sublines are cleanly indented with exactly 2 spaces (`  -> `).
+  - Added `#ss-trace-8bit-calls` checkbox to trace controls, allowing users to toggle 8-bit global calls (`0xA3`) on and off via instant CSS (`.call-8bit`) and channel filtering.
+  - 16-bit calls (`0xA4`) and 24-bit calls (`0x29` / CALL ABS) remain visible at all times.
+
 ## [0.144.0] — 2026-10-04
 
 ### Feat: [Emulator/Rooms] ROM address lookup, trigger canvas highlight, hide inactive updates & unified trace formatter

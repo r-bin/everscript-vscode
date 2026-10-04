@@ -99,6 +99,15 @@ function decodeScriptSnippet(rom, snesAddr, maxLines = 2) {
         .join(' ');
     }
 
+    let callKind = null;
+    if (ins.opcode === 0xa3) {
+      callKind = '8bit';
+    } else if (ins.opcode === 0xa4) {
+      callKind = '16bit';
+    } else if (ins.opcode === 0x29) {
+      callKind = '24bit';
+    }
+
     lines.push({
       addr: cur,
       addrHex: '0x' + fmtHex(cur, 6),
@@ -106,6 +115,7 @@ function decodeScriptSnippet(rom, snesAddr, maxLines = 2) {
       summary: ins.summary || ('op 0x' + fmtHex(ins.opcode, 2)),
       terminal: !!ins.terminal,
       opcode: ins.opcode,
+      callKind,
       size: ins.size,
     });
 
@@ -122,7 +132,7 @@ function decodeScriptSnippet(rom, snesAddr, maxLines = 2) {
  * @param {Uint8Array|null} currentRom Active ROM buffer or null
  * @param {string|null} wsRoot Workspace root folder path
  * @param {object|null} [customDraft] Custom draft containing triggers for active room
- * @param {object} [options] Formatter options, e.g. { hideInactive: boolean }
+ * @param {object} [options] Formatter options, e.g. { hideInactive: boolean, show8BitCalls: boolean }
  * @returns {Array} Formatted trace entries for the webview UI
  */
 function processScriptTraceBatch(items, currentRom, wsRoot, customDraft = null, options = {}) {
@@ -200,17 +210,24 @@ function processScriptTraceBatch(items, currentRom, wsRoot, customDraft = null, 
       ch.appendLine(line);
     }
 
+    const subItems = [];
     const subLines = [];
     if (snippet && snippet.length > 1) {
       for (let s = 1; s < snippet.length; s++) {
         const sub = snippet[s];
-        const subLine = `   -> ${sub.addrHex}: ${sub.bytesHex}  ${sub.summary}`;
-        if (ch && (!options.hideInactive || !isInactive)) {
-          ch.appendLine(subLine);
+        const subText = formatter.formatSubText(sub);
+        const is8Bit = sub.callKind === '8bit';
+        const hideInText = is8Bit && options.show8BitCalls === false;
+
+        if (ch && (!options.hideInactive || !isInactive) && !hideInText) {
+          ch.appendLine(subText);
         }
-        subLines.push(subLine);
+        subLines.push(subText);
+        subItems.push(sub);
       }
     }
+
+    const html = formatter.formatHtml(itemData, lookup, subItems);
 
     formatted.push({
       slot: item.slot,
@@ -220,7 +237,9 @@ function processScriptTraceBatch(items, currentRom, wsRoot, customDraft = null, 
       bytesHex,
       summary,
       subLines,
+      subItems,
       line,
+      html,
       timeStr: item.timeStr || '',
       frame: typeof item.frame === 'number' ? item.frame : null,
       lookup: lookup ? {

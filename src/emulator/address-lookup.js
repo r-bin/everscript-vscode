@@ -69,7 +69,7 @@ class RomAddressLookup {
     this.lookupMap.set(0x92A42F, {
       addr: 0x92A42F,
       name: 'Empty Trigger (bare END)',
-      shortTag: 'Empty Trig',
+      shortTag: 'empty',
       kind: 'empty',
     });
 
@@ -81,7 +81,7 @@ class RomAddressLookup {
           this.lookupMap.set(addr, {
             addr,
             name: `Global: ${name}`,
-            shortTag: String(name).slice(0, 16),
+            shortTag: `global[0x${addr.toString(16)}]`,
             kind: 'global',
           });
         }
@@ -106,7 +106,7 @@ class RomAddressLookup {
             room: r,
             kind: 'enter',
             name: `Room ${roomHex} Enter Script${mapName ? ' (' + mapName + ')' : ''}`,
-            shortTag: `Rm ${roomHex} Enter`,
+            shortTag: `${roomHex}.enter`,
           });
         }
       }
@@ -134,7 +134,7 @@ class RomAddressLookup {
       room: roomId,
       kind: 'enter',
       name: `Room ${roomHex} Enter Script (Laser Lance + Fade)`,
-      shortTag: `Rm ${roomHex} Enter`,
+      shortTag: `${roomHex}.enter`,
     });
 
     const roomTrigs = { bTrigger: [], stepOn: [], enter: enterAddr };
@@ -153,7 +153,7 @@ class RomAddressLookup {
           scriptId: sId,
           coords,
           name: `Room ${roomHex} B-trigger #${i} at ${coords}`,
-          shortTag: `Rm ${roomHex} B#${i}`,
+          shortTag: `${roomHex}.b[${i}]`,
         };
         roomTrigs.bTrigger.push(trigInfo);
         if (addr && (!this.lookupMap.has(addr) || addr === 0x92A42F)) {
@@ -177,7 +177,7 @@ class RomAddressLookup {
           scriptId: sId,
           coords,
           name: `Room ${roomHex} Step-on #${i} at ${coords}`,
-          shortTag: `Rm ${roomHex} Step#${i}`,
+          shortTag: `${roomHex}.step[${i}]`,
         };
         roomTrigs.stepOn.push(trigInfo);
         if (addr && (!this.lookupMap.has(addr) || addr === 0x92A42F)) {
@@ -209,10 +209,11 @@ class RomAddressLookup {
       // If address is bare empty return (0x92A42F) and room has B-triggers, attribute to room B-trigger
       if (addr === 0x92A42F && roomTrigs.bTrigger.length > 0) {
         const t0 = roomTrigs.bTrigger[0];
+        const hex = '0x' + roomId.toString(16).toUpperCase().padStart(2, '0');
         return {
           ...t0,
-          name: `Room 0x${roomId.toString(16).toUpperCase()} B-trigger (bare END)`,
-          shortTag: `Rm 0x${roomId.toString(16).toUpperCase()} B-trig`,
+          name: `Room ${hex} B-trigger (bare END)`,
+          shortTag: `${hex}.b[0]`,
         };
       }
     }
