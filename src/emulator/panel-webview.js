@@ -121,7 +121,6 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       overflow-y: auto; overflow-x: hidden;
     }
     #ss-trace-log.hide-inactive .ss-trace-entry.end { display: none !important; }
-    #ss-trace-log.hide-8bit-calls .ss-trace-sub.call-8bit { display: none !important; }
     .ss-trace-entry { display: flex; flex-direction: column; padding: 1px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
     .ss-trace-row { display: flex; gap: 6px; white-space: nowrap; padding: 1px 0; }
     .ss-trace-sub { display: flex; gap: 4px; white-space: nowrap; padding: 1px 0; font-family: monospace; font-size: 11px; }
@@ -209,7 +208,6 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           <button id="ss-trace-copy-btn" class="ss-btn" type="button">copy</button>
           <label id="ss-trace-scroll-label"><input type="checkbox" id="ss-trace-scroll" checked /> auto-scroll</label>
           <label id="ss-trace-hide-inactive-label"><input type="checkbox" id="ss-trace-hide-inactive" /> hide inactive</label>
-          <label id="ss-trace-8bit-calls-label"><input type="checkbox" id="ss-trace-8bit-calls" checked /> 8-bit calls</label>
         </div>
         <span id="ss-trace-count">0 lines</span>
       </div>
@@ -1406,20 +1404,6 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         }
         if (vscodeApi) {
           vscodeApi.postMessage({ command: 'setHideInactiveTrace', hideInactive: hideInactive.checked });
-        }
-      });
-    }
-
-    const show8Bit = document.getElementById('ss-trace-8bit-calls');
-    if (show8Bit) {
-      show8Bit.addEventListener('change', () => {
-        const log = document.getElementById('ss-trace-log');
-        if (log) {
-          if (!show8Bit.checked) log.classList.add('hide-8bit-calls');
-          else log.classList.remove('hide-8bit-calls');
-        }
-        if (vscodeApi) {
-          vscodeApi.postMessage({ command: 'setShow8BitCalls', show8BitCalls: show8Bit.checked });
         }
       });
     }

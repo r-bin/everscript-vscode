@@ -48,7 +48,6 @@ let _pending       = null;   // { dataUrl, name } waiting to load
 let _currentRomBuffer = null; // raw ROM buffer for bytecode disassembly
 let _activeDraft   = null;   // custom draft object for trigger/address lookup
 let _hideInactiveTrace = false; // filter inactive/end script events
-let _show8BitCalls = true;      // show/hide 8-bit global calls in trace
 let _extensionPath = '';
 let _buildChannel  = null;   // output channel for build log
 let _readyTimeout  = null;
@@ -464,17 +463,12 @@ function openEmulatorPanel(context, rom, channel) {
               _hideInactiveTrace = !!msg.hideInactive;
               break;
 
-            case 'setShow8BitCalls':
-              _show8BitCalls = !!msg.show8BitCalls;
-              break;
-
             case 'scriptTraceBatch': {
               const wsRoot = vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0]
                 ? vscode.workspace.workspaceFolders[0].uri.fsPath
                 : null;
               const formatted = processScriptTraceBatch(msg.items, _currentRomBuffer, wsRoot, _activeDraft, {
                 hideInactive: _hideInactiveTrace,
-                show8BitCalls: _show8BitCalls,
               });
               if (_panel && formatted.length) {
                 _panel.webview.postMessage({ command: 'scriptTraceLogged', entries: formatted });

@@ -1,3 +1,12 @@
+## [0.146.0] — 2026-10-04
+
+### Feat: [Emulator] Slot prefixes on all trace lines, clean end events, global script resolution, and removed call toggle
+
+- **Slot & Timestamp Prefix Across All Message Lines**: Every line in the execution trace (including interwoven sub-instructions and yielded calls) now has explicit slot attribution (e.g. `[+6.26s, f377] [s0 | 0000]   -> 0x92DE4D: WRITE $2379 = 0xffff [18 21 01 CF]`), ensuring slot identity is never lost when scripts yield or run concurrently.
+- **Clean End Tag Output**: Script termination events (`[s0 | 0000 | end]`) no longer repeat stale start bytecode or instruction disassembly, cleanly stating `END of script` with no redundant trailing opcode hex.
+- **Vanilla Global Script Address Resolution**: Pre-indexed all 386 known global and NPC scripts (`known-scripts.json`) into `RomAddressLookup`. Slot 1 startup at `0x92A050` now automatically resolves and displays `[global[0x36]]` with tooltip `"Unnamed Global script 0x36"`.
+- **Removed Call Filter Toggle**: Removed the temporary 8-bit/16-bit call toggle checkbox and CSS hiding from the emulator panel to keep the trace interface clean and focused.
+
 ## [0.145.0] — 2026-10-04
 
 ### Feat: [Emulator] Unified trace beautifier, compressed tags, opcode at end, and optional 8-bit calls

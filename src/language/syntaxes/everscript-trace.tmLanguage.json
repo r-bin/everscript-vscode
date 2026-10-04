@@ -128,11 +128,29 @@
             "6": { "name": "markup.deleted.event.end.trace" },
             "7": { "name": "punctuation.definition.bracket.end.trace" }
           }
+        },
+        {
+          "match": "(\\[)(Slot\\s+\\d+|s\\d+)\\s*(\\|)\\s*(Ent\\s+[0-9A-Fa-f]+|[0-9A-Fa-f]{4})(\\])",
+          "captures": {
+            "1": { "name": "punctuation.definition.bracket.begin.trace" },
+            "2": { "name": "support.class.slot.trace" },
+            "3": { "name": "punctuation.separator.pipe.trace" },
+            "4": { "name": "entity.name.type.entity.trace" },
+            "5": { "name": "punctuation.definition.bracket.end.trace" }
+          }
+        },
+        {
+          "match": "(\\[)(Slot\\s+\\d+|s\\d+)(\\])",
+          "captures": {
+            "1": { "name": "punctuation.definition.bracket.begin.trace" },
+            "2": { "name": "support.class.slot.trace" },
+            "3": { "name": "punctuation.definition.bracket.end.trace" }
+          }
         }
       ]
     },
     "lookup_tag": {
-      "match": "(\\[)(0x[0-9A-Fa-f]+\\.(?:enter|b\\[\\d+\\]|step\\[\\d+\\]|[a-z0-9_]+)|[0-9A-Fa-f]+<[^>]+>|empty|global\\[[^\\]]+\\]|Rm\\s+0x[0-9A-Fa-f]+[^\\]]*|Empty Trig[^\\]]*|Global:[^\\]]*)(\\])",
+      "match": "(\\[)(0x[0-9A-Fa-f]+\\.(?:enter|b\\[\\d+\\]|step\\[\\d+\\]|[a-z0-9_]+)|[0-9A-Fa-f]+<[^>]+>|empty|global\\[[^\\]]+\\]|npc\\[[^\\]]+\\]|Rm\\s+0x[0-9A-Fa-f]+[^\\]]*|Empty Trig[^\\]]*|Global:[^\\]]*)(\\])",
       "captures": {
         "1": { "name": "punctuation.definition.bracket.begin.trace" },
         "2": { "name": "entity.name.tag.lookup.trace" },

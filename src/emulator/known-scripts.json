@@ -1,0 +1,1932 @@
+{
+  "9608716": {
+    "id": 0,
+    "name": "Fade-out / stop music",
+    "kind": "global"
+  },
+  "9608722": {
+    "id": 1,
+    "name": "Fade-in / start music",
+    "kind": "global"
+  },
+  "9608728": {
+    "id": 2,
+    "name": "Open message box?",
+    "kind": "global"
+  },
+  "9608735": {
+    "id": 3,
+    "name": "Unnamed Global script 0x03",
+    "kind": "global"
+  },
+  "9608742": {
+    "id": 4,
+    "name": "Unnamed Global script 0x04",
+    "kind": "global"
+  },
+  "9608749": {
+    "id": 5,
+    "name": "Unnamed Global script 0x05",
+    "kind": "global"
+  },
+  "9608756": {
+    "id": 6,
+    "name": "Unnamed Global script 0x06",
+    "kind": "global"
+  },
+  "9608763": {
+    "id": 7,
+    "name": "Open message box?",
+    "kind": "global"
+  },
+  "9608777": {
+    "id": 9,
+    "name": "Unnamed Global script 0x09",
+    "kind": "global"
+  },
+  "9608784": {
+    "id": 10,
+    "name": "Open message box?",
+    "kind": "global"
+  },
+  "9608791": {
+    "id": 11,
+    "name": "Open message box?",
+    "kind": "global"
+  },
+  "9608805": {
+    "id": 13,
+    "name": "Prepare unframed text during Aquagoth defeat",
+    "kind": "global"
+  },
+  "9608812": {
+    "id": 14,
+    "name": "Unnamed Global script 0x0e",
+    "kind": "global"
+  },
+  "9608847": {
+    "id": 19,
+    "name": "Unnamed Global script 0x13",
+    "kind": "global"
+  },
+  "9608882": {
+    "id": 24,
+    "name": "Unnamed Global script 0x18",
+    "kind": "global"
+  },
+  "9608896": {
+    "id": 25,
+    "name": "Prepare room change? West exit/east entrance outdoor-outdoor?",
+    "kind": "global"
+  },
+  "9608912": {
+    "id": 26,
+    "name": "Unnamed Global script 0x1a",
+    "kind": "global"
+  },
+  "9608944": {
+    "id": 28,
+    "name": "Unnamed Global script 0x1c",
+    "kind": "global"
+  },
+  "9608960": {
+    "id": 29,
+    "name": "Prepare room change? East exit/west entrance outdoor-outdoor?",
+    "kind": "global"
+  },
+  "9608976": {
+    "id": 30,
+    "name": "Unnamed Global script 0x1e",
+    "kind": "global"
+  },
+  "9608992": {
+    "id": 31,
+    "name": "Unnamed Global script 0x1f",
+    "kind": "global"
+  },
+  "9609008": {
+    "id": 32,
+    "name": "Prepare room change? East exit/north entrance",
+    "kind": "global"
+  },
+  "9609024": {
+    "id": 33,
+    "name": "Prepare room change? South exit/north entrance outdoor-outdoor?",
+    "kind": "global"
+  },
+  "9609040": {
+    "id": 34,
+    "name": "Prepare room change? South exit/north entrance indoor-outdoor?",
+    "kind": "global"
+  },
+  "9609104": {
+    "id": 38,
+    "name": "Prepare room change? North exit/south entrance outdoor-indoor?",
+    "kind": "global"
+  },
+  "9609120": {
+    "id": 39,
+    "name": "Prepare room change? Falling?",
+    "kind": "global"
+  },
+  "9609136": {
+    "id": 40,
+    "name": "Unnamed Global script 0x28",
+    "kind": "global"
+  },
+  "9609152": {
+    "id": 41,
+    "name": "Unnamed Global script 0x29",
+    "kind": "global"
+  },
+  "9609168": {
+    "id": 42,
+    "name": "Prepare room change? North exit/north entrance",
+    "kind": "global"
+  },
+  "9609216": {
+    "id": 45,
+    "name": "Unnamed Global script 0x2d",
+    "kind": "global"
+  },
+  "9609232": {
+    "id": 46,
+    "name": "Unnamed Global script 0x2e",
+    "kind": "global"
+  },
+  "9609276": {
+    "id": 50,
+    "name": "Market NPC talk (and others?)",
+    "kind": "global"
+  },
+  "9609286": {
+    "id": 51,
+    "name": "Market NPC end (and others?)",
+    "kind": "global"
+  },
+  "9609292": {
+    "id": 52,
+    "name": "Unnamed Global script 0x34",
+    "kind": "global"
+  },
+  "9609294": {
+    "id": 53,
+    "name": "Unnamed Global script 0x35",
+    "kind": "global"
+  },
+  "9609296": {
+    "id": 54,
+    "name": "Unnamed Global script 0x36",
+    "kind": "global"
+  },
+  "9610287": {
+    "id": 477,
+    "name": "Unnamed Short script 0x01dd",
+    "kind": "npc"
+  },
+  "9610316": {
+    "id": 57,
+    "name": "Loot nature?",
+    "kind": "global"
+  },
+  "9610370": {
+    "id": 58,
+    "name": "Loot gourd?",
+    "kind": "global"
+  },
+  "9610419": {
+    "id": 59,
+    "name": "Loot other gourd ?",
+    "kind": "global"
+  },
+  "9610465": {
+    "id": 5931,
+    "name": "Unknown eac+0 script. Prize drops?",
+    "kind": "npc"
+  },
+  "9610572": {
+    "id": 61,
+    "name": "Unnamed Global script 0x3d",
+    "kind": "global"
+  },
+  "9610628": {
+    "id": 62,
+    "name": "Loot part1?",
+    "kind": "global"
+  },
+  "9613588": {
+    "id": 63,
+    "name": "Loot part2?",
+    "kind": "global"
+  },
+  "9615315": {
+    "id": 64,
+    "name": "Unnamed Global script 0x40",
+    "kind": "global"
+  },
+  "9616604": {
+    "id": 65,
+    "name": "Loot part3?",
+    "kind": "global"
+  },
+  "9617145": {
+    "id": 66,
+    "name": "Unnamed Global script 0x42",
+    "kind": "global"
+  },
+  "9617302": {
+    "id": 67,
+    "name": "Unnamed Global script 0x43",
+    "kind": "global"
+  },
+  "9617457": {
+    "id": 68,
+    "name": "Unnamed Global script 0x44",
+    "kind": "global"
+  },
+  "9617604": {
+    "id": 69,
+    "name": "Unnamed Global script 0x45",
+    "kind": "global"
+  },
+  "9617742": {
+    "id": 70,
+    "name": "Unnamed Global script 0x46",
+    "kind": "global"
+  },
+  "9617869": {
+    "id": 71,
+    "name": "Unnamed Global script 0x47",
+    "kind": "global"
+  },
+  "9617966": {
+    "id": 72,
+    "name": "Open shop menu?",
+    "kind": "global"
+  },
+  "9618068": {
+    "id": 73,
+    "name": "Unnamed Global script 0x49",
+    "kind": "global"
+  },
+  "9618119": {
+    "id": 74,
+    "name": "Unnamed Global script 0x4a",
+    "kind": "global"
+  },
+  "9618618": {
+    "id": 75,
+    "name": "Open shop menu Pt2?",
+    "kind": "global"
+  },
+  "9619359": {
+    "id": 76,
+    "name": "Ask to equip spells",
+    "kind": "global"
+  },
+  "9619378": {
+    "id": 77,
+    "name": "Save dialog",
+    "kind": "global"
+  },
+  "9619384": {
+    "id": 78,
+    "name": "Actual save dialog",
+    "kind": "global"
+  },
+  "9619408": {
+    "id": 79,
+    "name": "Actual saving",
+    "kind": "global"
+  },
+  "9619824": {
+    "id": 80,
+    "name": "Unnamed Global script 0x50",
+    "kind": "global"
+  },
+  "9619851": {
+    "id": 81,
+    "name": "Unnamed Global script 0x51",
+    "kind": "global"
+  },
+  "9619944": {
+    "id": 82,
+    "name": "Unnamed Global script 0x52",
+    "kind": "global"
+  },
+  "9620049": {
+    "id": 83,
+    "name": "Unnamed Global script 0x53",
+    "kind": "global"
+  },
+  "9620138": {
+    "id": 84,
+    "name": "Buy ingredients dialog",
+    "kind": "global"
+  },
+  "9620164": {
+    "id": 85,
+    "name": "Unnamed Global script 0x55",
+    "kind": "global"
+  },
+  "9621380": {
+    "id": 86,
+    "name": "Unnamed Global script 0x56",
+    "kind": "global"
+  },
+  "9621423": {
+    "id": 87,
+    "name": "Unnamed Global script 0x57",
+    "kind": "global"
+  },
+  "9621471": {
+    "id": 88,
+    "name": "Unnamed Global script 0x58",
+    "kind": "global"
+  },
+  "9621517": {
+    "id": 89,
+    "name": "Attraction mode, after Thraxx",
+    "kind": "global"
+  },
+  "9621753": {
+    "id": 90,
+    "name": "Credits",
+    "kind": "global"
+  },
+  "9622560": {
+    "id": 91,
+    "name": "Unnamed Global script 0x5b",
+    "kind": "global"
+  },
+  "9622667": {
+    "id": 6027,
+    "name": "Unnamed Short script 0x178b",
+    "kind": "npc"
+  },
+  "9622675": {
+    "id": 6030,
+    "name": "BBM Wings",
+    "kind": "npc"
+  },
+  "9622683": {
+    "id": 6033,
+    "name": "Unnamed Short script 0x1791",
+    "kind": "npc"
+  },
+  "9622691": {
+    "id": 6036,
+    "name": "Halls Wings",
+    "kind": "npc"
+  },
+  "9622699": {
+    "id": 6039,
+    "name": "Tiny Wings",
+    "kind": "npc"
+  },
+  "9622707": {
+    "id": 6042,
+    "name": "Unnamed Short script 0x179a",
+    "kind": "npc"
+  },
+  "9622715": {
+    "id": 6045,
+    "name": "Unnamed Short script 0x179d",
+    "kind": "npc"
+  },
+  "9622723": {
+    "id": 6048,
+    "name": "Unnamed Short script 0x17a0",
+    "kind": "npc"
+  },
+  "9622743": {
+    "id": 6054,
+    "name": "Unnamed Short script 0x17a6",
+    "kind": "npc"
+  },
+  "9622755": {
+    "id": 6057,
+    "name": "Unnamed Short script 0x17a9",
+    "kind": "npc"
+  },
+  "9666592": {
+    "id": 6060,
+    "name": "Unnamed NPC Kill script 0x17ac",
+    "kind": "npc"
+  },
+  "9666603": {
+    "id": 2025,
+    "name": "Unnamed Short script 0x07e9",
+    "kind": "npc"
+  },
+  "9670632": {
+    "id": 6063,
+    "name": "Raptors kill",
+    "kind": "npc"
+  },
+  "9670642": {
+    "id": 6066,
+    "name": "Unnamed NPC Kill script 0x17b2",
+    "kind": "npc"
+  },
+  "9671854": {
+    "id": 6069,
+    "name": "Unnamed Short script 0x17b5",
+    "kind": "npc"
+  },
+  "9678415": {
+    "id": 6072,
+    "name": "Acid Rain Guy",
+    "kind": "npc"
+  },
+  "9684901": {
+    "id": 6075,
+    "name": "Unnamed NPC Kill script 0x17bb",
+    "kind": "npc"
+  },
+  "9684906": {
+    "id": 6078,
+    "name": "Unnamed NPC Kill script 0x17be",
+    "kind": "npc"
+  },
+  "9684911": {
+    "id": 6081,
+    "name": "Unnamed NPC Kill script 0x17c1",
+    "kind": "npc"
+  },
+  "9684929": {
+    "id": 6084,
+    "name": "Unnamed NPC Kill script 0x17c4",
+    "kind": "npc"
+  },
+  "9684947": {
+    "id": 6087,
+    "name": "Unnamed NPC Kill script 0x17c7",
+    "kind": "npc"
+  },
+  "9684965": {
+    "id": 6090,
+    "name": "Unnamed NPC Kill script 0x17ca",
+    "kind": "npc"
+  },
+  "9685153": {
+    "id": 6093,
+    "name": "Thraxx damage/kill",
+    "kind": "npc"
+  },
+  "9685248": {
+    "id": 6096,
+    "name": "Unnamed NPC script 0x17d0",
+    "kind": "npc"
+  },
+  "9688416": {
+    "id": 6099,
+    "name": "Mammoth Viper 1",
+    "kind": "npc"
+  },
+  "9688439": {
+    "id": 6102,
+    "name": "Mammoth Viper 2",
+    "kind": "npc"
+  },
+  "9688462": {
+    "id": 6105,
+    "name": "Mammoth Viper 3",
+    "kind": "npc"
+  },
+  "9688485": {
+    "id": 6108,
+    "name": "Mammoth Viper 4",
+    "kind": "npc"
+  },
+  "9688538": {
+    "id": 6111,
+    "name": "Mammoth Viper Commander",
+    "kind": "npc"
+  },
+  "9732398": {
+    "id": 6114,
+    "name": "Unnamed NPC talk script 0x17e2",
+    "kind": "npc"
+  },
+  "9735645": {
+    "id": 6117,
+    "name": "Unnamed NPC Kill script 0x17e5",
+    "kind": "npc"
+  },
+  "9735748": {
+    "id": 6120,
+    "name": "Unnamed NPC Kill script 0x17e8",
+    "kind": "npc"
+  },
+  "9735851": {
+    "id": 6123,
+    "name": "Unnamed NPC Kill script 0x17eb",
+    "kind": "npc"
+  },
+  "9735959": {
+    "id": 6126,
+    "name": "Unnamed NPC Kill script 0x17ee",
+    "kind": "npc"
+  },
+  "9736067": {
+    "id": 6129,
+    "name": "Unnamed NPC Kill script 0x17f1",
+    "kind": "npc"
+  },
+  "9736976": {
+    "id": 6132,
+    "name": "Viper commander kill",
+    "kind": "npc"
+  },
+  "9737025": {
+    "id": 6135,
+    "name": "Unnamed Short script 0x17f7",
+    "kind": "npc"
+  },
+  "9737252": {
+    "id": 6138,
+    "name": "Unnamed NPC talk script 0x17fa",
+    "kind": "npc"
+  },
+  "9737407": {
+    "id": 6141,
+    "name": "Unnamed NPC talk script 0x17fd",
+    "kind": "npc"
+  },
+  "9737572": {
+    "id": 6144,
+    "name": "Unnamed NPC talk script 0x1800",
+    "kind": "npc"
+  },
+  "9739401": {
+    "id": 6147,
+    "name": "Speed dude",
+    "kind": "npc"
+  },
+  "9739502": {
+    "id": 6150,
+    "name": "Volcano Room1 NPC 1",
+    "kind": "npc"
+  },
+  "9741330": {
+    "id": 6153,
+    "name": "HB Guy",
+    "kind": "npc"
+  },
+  "9741399": {
+    "id": 6156,
+    "name": "Jaguar ring dude",
+    "kind": "npc"
+  },
+  "9741652": {
+    "id": 6159,
+    "name": "Cave NPC 3",
+    "kind": "npc"
+  },
+  "9741683": {
+    "id": 6162,
+    "name": "Cave NPC 4",
+    "kind": "npc"
+  },
+  "9741935": {
+    "id": 6165,
+    "name": "Drain Guy",
+    "kind": "npc"
+  },
+  "9742119": {
+    "id": 6168,
+    "name": "Cave raptors kill",
+    "kind": "npc"
+  },
+  "9743898": {
+    "id": 6171,
+    "name": "Unnamed NPC talk script 0x181b",
+    "kind": "npc"
+  },
+  "9746634": {
+    "id": 6174,
+    "name": "Magmar damage",
+    "kind": "npc"
+  },
+  "9748868": {
+    "id": 6177,
+    "name": "FE Village NPC12",
+    "kind": "npc"
+  },
+  "9749427": {
+    "id": 6180,
+    "name": "FE Village NPC5",
+    "kind": "npc"
+  },
+  "9749497": {
+    "id": 6183,
+    "name": "FE Village NPC2/Bee Boy",
+    "kind": "npc"
+  },
+  "9749610": {
+    "id": 6186,
+    "name": "FE Village NPC4",
+    "kind": "npc"
+  },
+  "9749719": {
+    "id": 6189,
+    "name": "FE Village NPC8",
+    "kind": "npc"
+  },
+  "9749810": {
+    "id": 6192,
+    "name": "FE Village NPC11",
+    "kind": "npc"
+  },
+  "9750176": {
+    "id": 6195,
+    "name": "FE Village NPC7",
+    "kind": "npc"
+  },
+  "9750246": {
+    "id": 6198,
+    "name": "FE Village NPC6",
+    "kind": "npc"
+  },
+  "9750331": {
+    "id": 6201,
+    "name": "FE Village NPC3",
+    "kind": "npc"
+  },
+  "9750457": {
+    "id": 6204,
+    "name": "FE Village NPC10",
+    "kind": "npc"
+  },
+  "9750536": {
+    "id": 6207,
+    "name": "FE Village NPC9",
+    "kind": "npc"
+  },
+  "9750569": {
+    "id": 6210,
+    "name": "FE Village NPC1",
+    "kind": "npc"
+  },
+  "9752733": {
+    "id": 3351,
+    "name": "Unnamed Short script 0x0d17",
+    "kind": "npc"
+  },
+  "9752764": {
+    "id": 6213,
+    "name": "Hut NPC 1",
+    "kind": "npc"
+  },
+  "9752874": {
+    "id": 6216,
+    "name": "Hut NPC 2",
+    "kind": "npc"
+  },
+  "9753170": {
+    "id": 6219,
+    "name": "Hut NPC 3",
+    "kind": "npc"
+  },
+  "9753673": {
+    "id": 6222,
+    "name": "Hut NPC 4",
+    "kind": "npc"
+  },
+  "9753815": {
+    "id": 6225,
+    "name": "Hut NPC 5",
+    "kind": "npc"
+  },
+  "9753902": {
+    "id": 6228,
+    "name": "Hut NPC 6",
+    "kind": "npc"
+  },
+  "9754055": {
+    "id": 6231,
+    "name": "Fire Eyes",
+    "kind": "npc"
+  },
+  "9755766": {
+    "id": 6234,
+    "name": "Hut NPC 7",
+    "kind": "npc"
+  },
+  "9756232": {
+    "id": 6237,
+    "name": "Blimp (in hut)",
+    "kind": "npc"
+  },
+  "9757909": {
+    "id": 6240,
+    "name": "Defend Guy",
+    "kind": "npc"
+  },
+  "9758354": {
+    "id": 6243,
+    "name": "Strong Heart (inside Hut)",
+    "kind": "npc"
+  },
+  "9797812": {
+    "id": 6246,
+    "name": "Unnamed NPC talk script 0x1866",
+    "kind": "npc"
+  },
+  "9797910": {
+    "id": 6249,
+    "name": "Unnamed NPC talk script 0x1869",
+    "kind": "npc"
+  },
+  "9798002": {
+    "id": 6252,
+    "name": "Unnamed NPC talk script 0x186c",
+    "kind": "npc"
+  },
+  "9798055": {
+    "id": 6255,
+    "name": "Unnamed NPC talk script 0x186f",
+    "kind": "npc"
+  },
+  "9799791": {
+    "id": 6258,
+    "name": "'mids [4] (sons?)",
+    "kind": "npc"
+  },
+  "9799969": {
+    "id": 6261,
+    "name": "Unnamed NPC script 0x1875",
+    "kind": "npc"
+  },
+  "9801826": {
+    "id": 6264,
+    "name": "Unnamed Short script 0x1878",
+    "kind": "npc"
+  },
+  "9802435": {
+    "id": 6267,
+    "name": "'mids [1]",
+    "kind": "npc"
+  },
+  "9802562": {
+    "id": 6270,
+    "name": "'mids [2]",
+    "kind": "npc"
+  },
+  "9803931": {
+    "id": 6273,
+    "name": "Unnamed Short script 0x1881",
+    "kind": "npc"
+  },
+  "9804255": {
+    "id": 6276,
+    "name": "Unnamed Short script 0x1884",
+    "kind": "npc"
+  },
+  "9805158": {
+    "id": 6279,
+    "name": "Unnamed Short script 0x1887",
+    "kind": "npc"
+  },
+  "9805208": {
+    "id": 6282,
+    "name": "Unnamed Short script 0x188a",
+    "kind": "npc"
+  },
+  "9808629": {
+    "id": 6309,
+    "name": "Rimsala kill",
+    "kind": "npc"
+  },
+  "9808749": {
+    "id": 187,
+    "name": "Unnamed Global script 0xbb",
+    "kind": "global"
+  },
+  "9808788": {
+    "id": 188,
+    "name": "Unnamed Global script 0xbc",
+    "kind": "global"
+  },
+  "9808827": {
+    "id": 189,
+    "name": "Unnamed Global script 0xbd",
+    "kind": "global"
+  },
+  "9808866": {
+    "id": 190,
+    "name": "Unnamed Global script 0xbe",
+    "kind": "global"
+  },
+  "9808905": {
+    "id": 191,
+    "name": "Unnamed Global script 0xbf",
+    "kind": "global"
+  },
+  "9808944": {
+    "id": 192,
+    "name": "Unnamed Global script 0xc0",
+    "kind": "global"
+  },
+  "9810439": {
+    "id": 6333,
+    "name": "Blimp (in cave)",
+    "kind": "npc"
+  },
+  "9813271": {
+    "id": 6336,
+    "name": "Unnamed NPC talk script 0x18c0",
+    "kind": "npc"
+  },
+  "9813284": {
+    "id": 6339,
+    "name": "Unnamed NPC talk script 0x18c3",
+    "kind": "npc"
+  },
+  "9813300": {
+    "id": 6342,
+    "name": "Unnamed NPC talk script 0x18c6",
+    "kind": "npc"
+  },
+  "9813331": {
+    "id": 6345,
+    "name": "Unnamed NPC talk script 0x18c9",
+    "kind": "npc"
+  },
+  "9813386": {
+    "id": 6351,
+    "name": "Unnamed NPC talk script 0x18cf",
+    "kind": "npc"
+  },
+  "9813428": {
+    "id": 6354,
+    "name": "Unnamed NPC talk script 0x18d2",
+    "kind": "npc"
+  },
+  "9813474": {
+    "id": 6357,
+    "name": "Unnamed NPC talk script 0x18d5",
+    "kind": "npc"
+  },
+  "9813530": {
+    "id": 6360,
+    "name": "Unnamed NPC talk script 0x18d8",
+    "kind": "npc"
+  },
+  "9813648": {
+    "id": 6363,
+    "name": "Unnamed NPC talk script 0x18db",
+    "kind": "npc"
+  },
+  "9813912": {
+    "id": 6366,
+    "name": "Unnamed NPC talk script 0x18de",
+    "kind": "npc"
+  },
+  "9813945": {
+    "id": 6369,
+    "name": "Unnamed NPC talk script 0x18e1",
+    "kind": "npc"
+  },
+  "9815387": {
+    "id": 6372,
+    "name": "Unnamed NPC talk script 0x18e4",
+    "kind": "npc"
+  },
+  "9815426": {
+    "id": 6375,
+    "name": "Unnamed NPC talk script 0x18e7",
+    "kind": "npc"
+  },
+  "9815480": {
+    "id": 6378,
+    "name": "Unnamed NPC talk script 0x18ea",
+    "kind": "npc"
+  },
+  "9815504": {
+    "id": 6381,
+    "name": "Unnamed NPC talk script 0x18ed",
+    "kind": "npc"
+  },
+  "9815561": {
+    "id": 6384,
+    "name": "Unnamed Short script 0x18f0",
+    "kind": "npc"
+  },
+  "9815890": {
+    "id": 212,
+    "name": "Unnamed Global script 0xd4",
+    "kind": "global"
+  },
+  "9820260": {
+    "id": 6390,
+    "name": "Unnamed NPC talk script 0x18f6",
+    "kind": "npc"
+  },
+  "9820299": {
+    "id": 6393,
+    "name": "Unnamed NPC talk script 0x18f9",
+    "kind": "npc"
+  },
+  "9820338": {
+    "id": 6396,
+    "name": "Unnamed NPC talk script 0x18fc",
+    "kind": "npc"
+  },
+  "9820392": {
+    "id": 6399,
+    "name": "Unnamed NPC talk script 0x18ff",
+    "kind": "npc"
+  },
+  "9820431": {
+    "id": 6402,
+    "name": "Unnamed NPC talk script 0x1902",
+    "kind": "npc"
+  },
+  "9820470": {
+    "id": 6405,
+    "name": "Unnamed NPC talk script 0x1905",
+    "kind": "npc"
+  },
+  "9820538": {
+    "id": 6411,
+    "name": "Unnamed NPC talk script 0x190b",
+    "kind": "npc"
+  },
+  "9820577": {
+    "id": 6414,
+    "name": "Unnamed NPC talk script 0x190e",
+    "kind": "npc"
+  },
+  "9820593": {
+    "id": 6417,
+    "name": "Unnamed NPC talk script 0x1911",
+    "kind": "npc"
+  },
+  "9820615": {
+    "id": 6423,
+    "name": "Unnamed NPC talk script 0x1917",
+    "kind": "npc"
+  },
+  "9820626": {
+    "id": 6426,
+    "name": "Unnamed NPC talk script 0x191a",
+    "kind": "npc"
+  },
+  "9824073": {
+    "id": 546,
+    "name": "Unnamed NPC talk script 0x0222",
+    "kind": "npc"
+  },
+  "9875640": {
+    "id": 456,
+    "name": "Unnamed Short script 0x01c8",
+    "kind": "npc"
+  },
+  "9875680": {
+    "id": 360,
+    "name": "Unnamed Short script 0x0168",
+    "kind": "npc"
+  },
+  "9875901": {
+    "id": 6429,
+    "name": "Market NPC 1",
+    "kind": "npc"
+  },
+  "9875960": {
+    "id": 6432,
+    "name": "Market NPC 2",
+    "kind": "npc"
+  },
+  "9876007": {
+    "id": 6435,
+    "name": "Market NPC 4",
+    "kind": "npc"
+  },
+  "9876070": {
+    "id": 6438,
+    "name": "Market NPC 18",
+    "kind": "npc"
+  },
+  "9876126": {
+    "id": 6441,
+    "name": "Market NPC 5",
+    "kind": "npc"
+  },
+  "9876162": {
+    "id": 6444,
+    "name": "Market NPC 6",
+    "kind": "npc"
+  },
+  "9876198": {
+    "id": 6447,
+    "name": "Market NPC 8",
+    "kind": "npc"
+  },
+  "9876246": {
+    "id": 6450,
+    "name": "Market NPC 9",
+    "kind": "npc"
+  },
+  "9876306": {
+    "id": 6453,
+    "name": "Market NPC 11",
+    "kind": "npc"
+  },
+  "9876342": {
+    "id": 6456,
+    "name": "Market NPC 13",
+    "kind": "npc"
+  },
+  "9876378": {
+    "id": 6459,
+    "name": "Market NPC 17",
+    "kind": "npc"
+  },
+  "9876500": {
+    "id": 6462,
+    "name": "Market NPC 16",
+    "kind": "npc"
+  },
+  "9876568": {
+    "id": 6465,
+    "name": "Market NPC 15",
+    "kind": "npc"
+  },
+  "9876609": {
+    "id": 6468,
+    "name": "Market NPC 3",
+    "kind": "npc"
+  },
+  "9876645": {
+    "id": 6471,
+    "name": "Market NPC 10",
+    "kind": "npc"
+  },
+  "9876681": {
+    "id": 6474,
+    "name": "Unnamed NPC talk script 0x194a",
+    "kind": "npc"
+  },
+  "9876756": {
+    "id": 6477,
+    "name": "Market NPC 7",
+    "kind": "npc"
+  },
+  "9876792": {
+    "id": 6480,
+    "name": "Market NPC 12",
+    "kind": "npc"
+  },
+  "9876843": {
+    "id": 6483,
+    "name": "Market NPC 14",
+    "kind": "npc"
+  },
+  "9879570": {
+    "id": 6486,
+    "name": "Unnamed NPC Kill script 0x1956",
+    "kind": "npc"
+  },
+  "9880247": {
+    "id": 6489,
+    "name": "Unnamed Short script 0x1959",
+    "kind": "npc"
+  },
+  "9882812": {
+    "id": 6492,
+    "name": "Unnamed Short script 0x195c",
+    "kind": "npc"
+  },
+  "9883351": {
+    "id": 6495,
+    "name": "Unnamed Short script 0x195f",
+    "kind": "npc"
+  },
+  "9884802": {
+    "id": 6498,
+    "name": "Unnamed NPC talk script 0x1962",
+    "kind": "npc"
+  },
+  "9884873": {
+    "id": 6501,
+    "name": "Unnamed NPC talk script 0x1965",
+    "kind": "npc"
+  },
+  "9885622": {
+    "id": 1731,
+    "name": "Unnamed Short script 0x06c3",
+    "kind": "npc"
+  },
+  "9886348": {
+    "id": 6504,
+    "name": "Horace in Camp?",
+    "kind": "npc"
+  },
+  "9886492": {
+    "id": 6507,
+    "name": "Horace Camp Madronius",
+    "kind": "npc"
+  },
+  "9886743": {
+    "id": 6510,
+    "name": "Act2/Horace camp Inn keeper(s)",
+    "kind": "npc"
+  },
+  "9887911": {
+    "id": 1029,
+    "name": "Unnamed Short script 0x0405",
+    "kind": "npc"
+  },
+  "9888025": {
+    "id": 6513,
+    "name": "Sting Man",
+    "kind": "npc"
+  },
+  "9888614": {
+    "id": 1017,
+    "name": "Desert of Doom - wrap player East",
+    "kind": "npc"
+  },
+  "9888692": {
+    "id": 1038,
+    "name": "Desert of Doom - wrap player West",
+    "kind": "npc"
+  },
+  "9929430": {
+    "id": 1014,
+    "name": "Unnamed Short script 0x03f6",
+    "kind": "npc"
+  },
+  "9930561": {
+    "id": 255,
+    "name": "Salabog dead??",
+    "kind": "global"
+  },
+  "9931788": {
+    "id": 6528,
+    "name": "Salabog damage/kill",
+    "kind": "npc"
+  },
+  "9933977": {
+    "id": 6531,
+    "name": "Unnamed Short script 0x1983",
+    "kind": "npc"
+  },
+  "9934006": {
+    "id": 6534,
+    "name": "Unnamed NPC talk script 0x1986",
+    "kind": "npc"
+  },
+  "9935366": {
+    "id": 6537,
+    "name": "Unnamed Short script 0x1989",
+    "kind": "npc"
+  },
+  "9935970": {
+    "id": 6540,
+    "name": "Unnamed NPC script 0x198c",
+    "kind": "npc"
+  },
+  "9936811": {
+    "id": 6543,
+    "name": "Unknown script in Halls NE",
+    "kind": "npc"
+  },
+  "9937182": {
+    "id": 6546,
+    "name": "Madronius' Brother in Ruins",
+    "kind": "npc"
+  },
+  "9937239": {
+    "id": 6549,
+    "name": "Halls Mad Monk Kill",
+    "kind": "npc"
+  },
+  "9937877": {
+    "id": 6552,
+    "name": "Megataur kill",
+    "kind": "npc"
+  },
+  "9939469": {
+    "id": 6555,
+    "name": "Unnamed NPC Kill script 0x199b",
+    "kind": "npc"
+  },
+  "9942246": {
+    "id": 6558,
+    "name": "Aegis kill",
+    "kind": "npc"
+  },
+  "9943886": {
+    "id": 6561,
+    "name": "Unnamed NPC Kill script 0x19a1",
+    "kind": "npc"
+  },
+  "9943904": {
+    "id": 6564,
+    "name": "Unnamed NPC Kill script 0x19a4",
+    "kind": "npc"
+  },
+  "9943922": {
+    "id": 6567,
+    "name": "Unnamed NPC Kill script 0x19a7",
+    "kind": "npc"
+  },
+  "9953866": {
+    "id": 6573,
+    "name": "Unnamed NPC Kill script 0x19ad",
+    "kind": "npc"
+  },
+  "9953886": {
+    "id": 6576,
+    "name": "Aquagoth",
+    "kind": "npc"
+  },
+  "9955786": {
+    "id": 6579,
+    "name": "Fire Power Dude",
+    "kind": "npc"
+  },
+  "9996073": {
+    "id": 4905,
+    "name": "Unnamed Short script 0x1329",
+    "kind": "npc"
+  },
+  "9996314": {
+    "id": 4944,
+    "name": "Unnamed Short script 0x1350",
+    "kind": "npc"
+  },
+  "9999509": {
+    "id": 6582,
+    "name": "Dog Maze Lady",
+    "kind": "npc"
+  },
+  "10000254": {
+    "id": 6585,
+    "name": "Unnamed NPC talk script 0x19b9",
+    "kind": "npc"
+  },
+  "10000302": {
+    "id": 6588,
+    "name": "Unnamed NPC talk script 0x19bc",
+    "kind": "npc"
+  },
+  "10002566": {
+    "id": 6591,
+    "name": "Unnamed NPC talk script 0x19bf",
+    "kind": "npc"
+  },
+  "10002931": {
+    "id": 6594,
+    "name": "Unnamed NPC talk script 0x19c2",
+    "kind": "npc"
+  },
+  "10004034": {
+    "id": 6597,
+    "name": "Doggo dies in prison?",
+    "kind": "npc"
+  },
+  "10007272": {
+    "id": 6603,
+    "name": "Corrosion Guy",
+    "kind": "npc"
+  },
+  "10007620": {
+    "id": 6606,
+    "name": "Unnamed NPC talk script 0x19ce",
+    "kind": "npc"
+  },
+  "10009713": {
+    "id": 6609,
+    "name": "Unnamed NPC talk script 0x19d1",
+    "kind": "npc"
+  },
+  "10009737": {
+    "id": 6612,
+    "name": "Unnamed NPC talk script 0x19d4",
+    "kind": "npc"
+  },
+  "10009761": {
+    "id": 6615,
+    "name": "Unnamed NPC talk script 0x19d7",
+    "kind": "npc"
+  },
+  "10009809": {
+    "id": 6618,
+    "name": "Unnamed NPC talk script 0x19da",
+    "kind": "npc"
+  },
+  "10009848": {
+    "id": 6621,
+    "name": "Unnamed NPC talk script 0x19dd",
+    "kind": "npc"
+  },
+  "10009920": {
+    "id": 6624,
+    "name": "Unnamed NPC talk script 0x19e0",
+    "kind": "npc"
+  },
+  "10009975": {
+    "id": 6627,
+    "name": "Unnamed NPC talk script 0x19e3",
+    "kind": "npc"
+  },
+  "10010014": {
+    "id": 6630,
+    "name": "Unnamed NPC talk script 0x19e6",
+    "kind": "npc"
+  },
+  "10010050": {
+    "id": 6633,
+    "name": "Unnamed NPC talk script 0x19e9",
+    "kind": "npc"
+  },
+  "10010086": {
+    "id": 6636,
+    "name": "Unnamed NPC talk script 0x19ec",
+    "kind": "npc"
+  },
+  "10010122": {
+    "id": 6639,
+    "name": "Unnamed NPC talk script 0x19ef",
+    "kind": "npc"
+  },
+  "10012147": {
+    "id": 6642,
+    "name": "Unnamed NPC talk script 0x19f2",
+    "kind": "npc"
+  },
+  "10012256": {
+    "id": 6645,
+    "name": "Unnamed NPC talk script 0x19f5",
+    "kind": "npc"
+  },
+  "10012314": {
+    "id": 6648,
+    "name": "Unnamed NPC talk script 0x19f8",
+    "kind": "npc"
+  },
+  "10012381": {
+    "id": 6651,
+    "name": "Unnamed NPC talk script 0x19fb",
+    "kind": "npc"
+  },
+  "10012417": {
+    "id": 6654,
+    "name": "Unnamed NPC talk script 0x19fe",
+    "kind": "npc"
+  },
+  "10012441": {
+    "id": 6657,
+    "name": "Unnamed NPC talk script 0x1a01",
+    "kind": "npc"
+  },
+  "10012489": {
+    "id": 6660,
+    "name": "Unnamed NPC talk script 0x1a04",
+    "kind": "npc"
+  },
+  "10012554": {
+    "id": 5607,
+    "name": "Unnamed Short script 0x15e7",
+    "kind": "npc"
+  },
+  "10015607": {
+    "id": 6663,
+    "name": "Act3 Houses NPC12",
+    "kind": "npc"
+  },
+  "10015638": {
+    "id": 6666,
+    "name": "Act3 Houses NPC3",
+    "kind": "npc"
+  },
+  "10015674": {
+    "id": 6669,
+    "name": "Act3 Houses NPC5",
+    "kind": "npc"
+  },
+  "10015710": {
+    "id": 6672,
+    "name": "Act3 Houses NPC9",
+    "kind": "npc"
+  },
+  "10015756": {
+    "id": 6675,
+    "name": "Act3 Houses NPC6",
+    "kind": "npc"
+  },
+  "10015792": {
+    "id": 6678,
+    "name": "Act3 Houses NPC11",
+    "kind": "npc"
+  },
+  "10015828": {
+    "id": 6681,
+    "name": "Act3 Houses NPC14",
+    "kind": "npc"
+  },
+  "10015852": {
+    "id": 6684,
+    "name": "Act3 Houses NPC4",
+    "kind": "npc"
+  },
+  "10015888": {
+    "id": 6687,
+    "name": "Act3 Houses NPC16",
+    "kind": "npc"
+  },
+  "10015925": {
+    "id": 6690,
+    "name": "Act3 Houses NPC1",
+    "kind": "npc"
+  },
+  "10015958": {
+    "id": 6693,
+    "name": "Act3 Houses NPC20",
+    "kind": "npc"
+  },
+  "10016009": {
+    "id": 6696,
+    "name": "Act3 Houses NPC2",
+    "kind": "npc"
+  },
+  "10016055": {
+    "id": 6699,
+    "name": "Act3 Houses NPC7",
+    "kind": "npc"
+  },
+  "10016120": {
+    "id": 6702,
+    "name": "Act3 Houses NPC19",
+    "kind": "npc"
+  },
+  "10016156": {
+    "id": 6705,
+    "name": "Act3 Houses NPC10",
+    "kind": "npc"
+  },
+  "10016232": {
+    "id": 6708,
+    "name": "Act3 Houses NPC18",
+    "kind": "npc"
+  },
+  "10016271": {
+    "id": 6711,
+    "name": "Act3 Houses NPC8",
+    "kind": "npc"
+  },
+  "10016310": {
+    "id": 6714,
+    "name": "Act3 Houses NPC13",
+    "kind": "npc"
+  },
+  "10016334": {
+    "id": 6717,
+    "name": "Act3 Houses NPC15",
+    "kind": "npc"
+  },
+  "10016358": {
+    "id": 6720,
+    "name": "Act3 Houses NPC17",
+    "kind": "npc"
+  },
+  "10016394": {
+    "id": 6723,
+    "name": "Act3 shop?",
+    "kind": "npc"
+  },
+  "10018304": {
+    "id": 6726,
+    "name": "Regrowth Lady",
+    "kind": "npc"
+  },
+  "10022750": {
+    "id": 6729,
+    "name": "Unnamed NPC talk script 0x1a49",
+    "kind": "npc"
+  },
+  "10059808": {
+    "id": 6732,
+    "name": "Unnamed NPC Kill script 0x1a4c",
+    "kind": "npc"
+  },
+  "10062728": {
+    "id": 6735,
+    "name": "Tinker",
+    "kind": "npc"
+  },
+  "10064946": {
+    "id": 6738,
+    "name": "Sterling",
+    "kind": "npc"
+  },
+  "10069950": {
+    "id": 6741,
+    "name": "Unnamed NPC talk script 0x1a55",
+    "kind": "npc"
+  },
+  "10070640": {
+    "id": 1167,
+    "name": "Unnamed Short script 0x048f",
+    "kind": "npc"
+  },
+  "10070665": {
+    "id": 1164,
+    "name": "Unnamed Short script 0x048c",
+    "kind": "npc"
+  },
+  "10070690": {
+    "id": 1170,
+    "name": "Unnamed Short script 0x0492",
+    "kind": "npc"
+  },
+  "10073915": {
+    "id": 6744,
+    "name": "One Up Guy",
+    "kind": "npc"
+  },
+  "10077751": {
+    "id": 6750,
+    "name": "Doubles kill (first?)",
+    "kind": "npc"
+  },
+  "10077996": {
+    "id": 6753,
+    "name": "Doubles kill (others?)",
+    "kind": "npc"
+  },
+  "10078241": {
+    "id": 6756,
+    "name": "Doubles kill (last?)",
+    "kind": "npc"
+  },
+  "10079393": {
+    "id": 6759,
+    "name": "Unnamed NPC talk script 0x1a67",
+    "kind": "npc"
+  },
+  "10079422": {
+    "id": 6762,
+    "name": "Doubles room save point",
+    "kind": "npc"
+  },
+  "10079800": {
+    "id": 6765,
+    "name": "Timberdrake Kill",
+    "kind": "npc"
+  },
+  "10081390": {
+    "id": 6768,
+    "name": "Footknight kill",
+    "kind": "npc"
+  },
+  "10082788": {
+    "id": 6771,
+    "name": "Dude below chessboard",
+    "kind": "npc"
+  },
+  "10085399": {
+    "id": 6774,
+    "name": "Unnamed Short script 0x1a76",
+    "kind": "npc"
+  },
+  "10086046": {
+    "id": 6777,
+    "name": "Vigor damage",
+    "kind": "npc"
+  },
+  "10125312": {
+    "id": 6780,
+    "name": "Verm kill",
+    "kind": "npc"
+  },
+  "10126737": {
+    "id": 6783,
+    "name": "Unnamed Short script 0x1a7f",
+    "kind": "npc"
+  },
+  "10126964": {
+    "id": 6786,
+    "name": "Puppet damage/kill",
+    "kind": "npc"
+  },
+  "10127249": {
+    "id": 6789,
+    "name": "Mungola? damage/kill",
+    "kind": "npc"
+  },
+  "10127384": {
+    "id": 6792,
+    "name": "Unnamed NPC talk script 0x1a88",
+    "kind": "npc"
+  },
+  "10130160": {
+    "id": 6795,
+    "name": "Unnamed NPC talk script 0x1a8b",
+    "kind": "npc"
+  },
+  "10130184": {
+    "id": 6798,
+    "name": "Unnamed NPC talk script 0x1a8e",
+    "kind": "npc"
+  },
+  "10130223": {
+    "id": 6801,
+    "name": "Unnamed NPC talk script 0x1a91",
+    "kind": "npc"
+  },
+  "10130247": {
+    "id": 6804,
+    "name": "Unnamed NPC talk script 0x1a94",
+    "kind": "npc"
+  },
+  "10130295": {
+    "id": 6807,
+    "name": "Unnamed NPC talk script 0x1a97",
+    "kind": "npc"
+  },
+  "10130334": {
+    "id": 6810,
+    "name": "Unnamed NPC talk script 0x1a9a",
+    "kind": "npc"
+  },
+  "10130358": {
+    "id": 6813,
+    "name": "Unnamed NPC talk script 0x1a9d",
+    "kind": "npc"
+  },
+  "10130382": {
+    "id": 6816,
+    "name": "Unnamed NPC talk script 0x1aa0",
+    "kind": "npc"
+  },
+  "10130406": {
+    "id": 6819,
+    "name": "Unnamed NPC talk script 0x1aa3",
+    "kind": "npc"
+  },
+  "10130430": {
+    "id": 6822,
+    "name": "Unnamed NPC talk script 0x1aa6",
+    "kind": "npc"
+  },
+  "10130454": {
+    "id": 6825,
+    "name": "Unnamed NPC talk script 0x1aa9",
+    "kind": "npc"
+  },
+  "10130478": {
+    "id": 6828,
+    "name": "Unnamed NPC talk script 0x1aac",
+    "kind": "npc"
+  },
+  "10130512": {
+    "id": 6831,
+    "name": "Unnamed NPC talk script 0x1aaf",
+    "kind": "npc"
+  },
+  "10130536": {
+    "id": 6834,
+    "name": "Unnamed NPC talk script 0x1ab2",
+    "kind": "npc"
+  },
+  "10130564": {
+    "id": 6837,
+    "name": "Unnamed NPC talk script 0x1ab5",
+    "kind": "npc"
+  },
+  "10130676": {
+    "id": 6840,
+    "name": "Unnamed NPC talk script 0x1ab8",
+    "kind": "npc"
+  },
+  "10131317": {
+    "id": 6843,
+    "name": "Unnamed NPC talk script 0x1abb",
+    "kind": "npc"
+  },
+  "10131699": {
+    "id": 6846,
+    "name": "Unnamed NPC talk script 0x1abe",
+    "kind": "npc"
+  },
+  "10135018": {
+    "id": 6849,
+    "name": "Unnamed NPC talk script 0x1ac1",
+    "kind": "npc"
+  },
+  "10135057": {
+    "id": 6852,
+    "name": "Unnamed NPC talk script 0x1ac4",
+    "kind": "npc"
+  },
+  "10135096": {
+    "id": 6855,
+    "name": "Unnamed NPC talk script 0x1ac7",
+    "kind": "npc"
+  },
+  "10138034": {
+    "id": 6858,
+    "name": "Unnamed NPC talk script 0x1aca",
+    "kind": "npc"
+  },
+  "10138162": {
+    "id": 6861,
+    "name": "Unnamed NPC talk script 0x1acd",
+    "kind": "npc"
+  },
+  "10139776": {
+    "id": 6864,
+    "name": "Ivor Tower Well Guy",
+    "kind": "npc"
+  },
+  "10140546": {
+    "id": 6867,
+    "name": "Naris",
+    "kind": "npc"
+  },
+  "10191376": {
+    "id": 2691,
+    "name": "Unnamed Short script 0x0a83",
+    "kind": "npc"
+  },
+  "10191883": {
+    "id": 2688,
+    "name": "Unnamed Short script 0x0a80",
+    "kind": "npc"
+  },
+  "10192075": {
+    "id": 6915,
+    "name": "Unnamed NPC Kill script 0x1b03",
+    "kind": "npc"
+  },
+  "10192100": {
+    "id": 6918,
+    "name": "Unnamed NPC Kill script 0x1b06",
+    "kind": "npc"
+  },
+  "10192105": {
+    "id": 6921,
+    "name": "Unnamed NPC Kill script 0x1b09",
+    "kind": "npc"
+  },
+  "10192130": {
+    "id": 6924,
+    "name": "Unnamed NPC Kill script 0x1b0c",
+    "kind": "npc"
+  },
+  "10192765": {
+    "id": 6927,
+    "name": "Unnamed NPC Damage script 0x1b0f",
+    "kind": "npc"
+  },
+  "10192783": {
+    "id": 6930,
+    "name": "Unnamed NPC Damage script 0x1b12",
+    "kind": "npc"
+  },
+  "10192801": {
+    "id": 6933,
+    "name": "Unnamed NPC Damage script 0x1b15",
+    "kind": "npc"
+  },
+  "10192819": {
+    "id": 6936,
+    "name": "Unnamed NPC Damage script 0x1b18",
+    "kind": "npc"
+  },
+  "10193815": {
+    "id": 6939,
+    "name": "Unnamed NPC Kill script 0x1b1b",
+    "kind": "npc"
+  },
+  "10193906": {
+    "id": 6942,
+    "name": "Unnamed NPC Kill script 0x1b1e",
+    "kind": "npc"
+  },
+  "10193997": {
+    "id": 6945,
+    "name": "Unnamed Short script 0x1b21",
+    "kind": "npc"
+  },
+  "10194424": {
+    "id": 6948,
+    "name": "Unnamed NPC Kill script 0x1b24",
+    "kind": "npc"
+  },
+  "10194433": {
+    "id": 6951,
+    "name": "Unnamed NPC Kill script 0x1b27",
+    "kind": "npc"
+  },
+  "10195413": {
+    "id": 6954,
+    "name": "Unnamed NPC Kill script 0x1b2a",
+    "kind": "npc"
+  },
+  "10195418": {
+    "id": 6957,
+    "name": "Unnamed NPC Kill script 0x1b2d",
+    "kind": "npc"
+  },
+  "10195423": {
+    "id": 6960,
+    "name": "Unnamed NPC Kill script 0x1b30",
+    "kind": "npc"
+  },
+  "10195428": {
+    "id": 6963,
+    "name": "Unnamed NPC Kill script 0x1b33",
+    "kind": "npc"
+  },
+  "10195433": {
+    "id": 6966,
+    "name": "Unnamed NPC Kill script 0x1b36",
+    "kind": "npc"
+  },
+  "10195438": {
+    "id": 6969,
+    "name": "Unnamed NPC Kill script 0x1b39",
+    "kind": "npc"
+  },
+  "10195443": {
+    "id": 6972,
+    "name": "Unnamed NPC Kill script 0x1b3c",
+    "kind": "npc"
+  },
+  "10195458": {
+    "id": 6975,
+    "name": "Unnamed NPC Kill script 0x1b3f",
+    "kind": "npc"
+  },
+  "10196093": {
+    "id": 6978,
+    "name": "Unnamed NPC Talk script 0x1b42",
+    "kind": "npc"
+  },
+  "10196233": {
+    "id": 6981,
+    "name": "Unnamed NPC Kill script 0x1b45",
+    "kind": "npc"
+  },
+  "10196238": {
+    "id": 6984,
+    "name": "Unnamed NPC Kill script 0x1b48",
+    "kind": "npc"
+  },
+  "10196257": {
+    "id": 6987,
+    "name": "Unnamed NPC Kill script 0x1b4b",
+    "kind": "npc"
+  },
+  "10196276": {
+    "id": 6990,
+    "name": "Unnamed NPC Kill script 0x1b4e",
+    "kind": "npc"
+  },
+  "10198233": {
+    "id": 6993,
+    "name": "Unnamed NPC Talk script 0x1b51",
+    "kind": "npc"
+  },
+  "10198381": {
+    "id": 6996,
+    "name": "Unnamed NPC Talk script 0x1b54",
+    "kind": "npc"
+  },
+  "10198396": {
+    "id": 6999,
+    "name": "Unnamed NPC Talk script 0x1b57",
+    "kind": "npc"
+  },
+  "10199371": {
+    "id": 7002,
+    "name": "Boss rush loot script",
+    "kind": "npc"
+  },
+  "10199381": {
+    "id": 7005,
+    "name": "Boss rush kill script",
+    "kind": "npc"
+  },
+  "10206421": {
+    "id": 7020,
+    "name": "Unnamed NPC Kill script 0x1b6c",
+    "kind": "npc"
+  },
+  "10211107": {
+    "id": 7026,
+    "name": "Prof. Ruffelburg",
+    "kind": "npc"
+  },
+  "10215414": {
+    "id": 7029,
+    "name": "Junkyard Robot / Reflect",
+    "kind": "npc"
+  }
+}

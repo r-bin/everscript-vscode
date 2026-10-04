@@ -62,6 +62,15 @@ class RomAddressLookup {
     } catch (_) {
       this.namesData = null;
     }
+
+    try {
+      const knownPath = path.join(__dirname, 'known-scripts.json');
+      if (fs.existsSync(knownPath)) {
+        this.knownScripts = JSON.parse(fs.readFileSync(knownPath, 'utf8'));
+      }
+    } catch (_) {
+      this.knownScripts = null;
+    }
   }
 
   _initVanillaTable() {
@@ -73,7 +82,30 @@ class RomAddressLookup {
       kind: 'empty',
     });
 
-    // 2. Global / abs scripts from names.json
+    // 2. Pre-indexed known global and NPC scripts (e.g. 0x92A050 -> global[0x36])
+    if (this.knownScripts) {
+      for (const [addrStr, entry] of Object.entries(this.knownScripts)) {
+        const addr = parseInt(addrStr, 10);
+        if (!isNaN(addr) && addr > 0 && !this.lookupMap.has(addr)) {
+          const hexId = '0x' + entry.id.toString(16).toLowerCase();
+          const shortTag = entry.kind === 'global' ? `global[${hexId}]` : `npc[${hexId}]`;
+          let displayName = entry.name;
+          if (entry.kind === 'global' && this.namesData && this.namesData.globalScripts) {
+            const named = this.namesData.globalScripts[String(entry.id)];
+            if (named) displayName = named;
+          }
+          this.lookupMap.set(addr, {
+            addr,
+            id: entry.id,
+            name: displayName,
+            shortTag,
+            kind: entry.kind,
+          });
+        }
+      }
+    }
+
+    // 3. Global / abs scripts from names.json
     if (this.namesData && this.namesData.absScripts) {
       for (const [addrStr, name] of Object.entries(this.namesData.absScripts)) {
         const addr = parseInt(addrStr, 10);

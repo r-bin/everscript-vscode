@@ -280,8 +280,8 @@ test('ScriptTraceFormatter generates consistent TextMate line and HTML row with 
   assert.ok(text.includes('[0x15.enter]'), `Missing lookup tag: ${text}`);
   assert.ok(text.includes('0xBC8000: GAIN WEAPON 0x01e9 (Laser Lance) [14 E9 01 E8]'), `Opcode should be at end: ${text}`);
 
-  const subText = formatter.formatSubText(sub);
-  assert.strictEqual(subText, '  -> 0xBC8004: CALL "Fade In" (0x36) [A3 36]', `Unexpected subText: ${subText}`);
+  const subText = formatter.formatSubText(sub, item);
+  assert.strictEqual(subText, '[+0.05s, f3] [s1 | 4E89]   -> 0xBC8004: CALL "Fade In" (0x36) [A3 36]', `Unexpected subText: ${subText}`);
 
   const html = formatter.formatHtml(item, lookup, [sub]);
   assert.ok(html.includes('class="ss-trace-row start"'), `Missing row class: ${html}`);
@@ -292,6 +292,7 @@ test('ScriptTraceFormatter generates consistent TextMate line and HTML row with 
   assert.ok(html.includes('class="ss-trace-sub start call-8bit"'), `Missing subline class in html: ${html}`);
   assert.ok(html.includes('<span class="ss-trace-arrow">  -&gt; </span>'), `Missing arrow in html: ${html}`);
   assert.ok(html.includes('<span class="ss-trace-bytes">[A3 36]</span>'), `Missing sub bytes at end in html: ${html}`);
+  assert.ok(html.includes('[s1 | 4E89]'), `Subline HTML should have slot tag: ${html}`);
 });
 
 // Test 11: processScriptTraceBatch with hideInactive option
@@ -314,23 +315,47 @@ test('processScriptTraceBatch handles hideInactive option and attaches lookup', 
   assert.strictEqual(results[1].lookup.shortTag, '0x15.b[0]');
 });
 
-// Test 12: 8-bit calls optional filtering
-test('processScriptTraceBatch and formatter support optional 8-bit calls while preserving 16-bit and 24-bit calls', () => {
-  const { ScriptTraceFormatter } = require('../../src/emulator/trace-formatter');
-  const fmt = new ScriptTraceFormatter({ show8BitCalls: false });
-  assert.strictEqual(fmt.is8BitCall(0xa3), true, '0xa3 is 8-bit call');
-  assert.strictEqual(fmt.is8BitCall(0xa4), false, '0xa4 is 16-bit call');
-  assert.strictEqual(fmt.is8BitCall(0x29), false, '0x29 is 24-bit call');
+// Test 12: RomAddressLookup resolves global scripts (e.g. 0x92A050 -> global[0x36])
+test('RomAddressLookup resolves global script addresses including 0x92A050 (global[0x36])', () => {
+  const { RomAddressLookup } = require('../../src/emulator/address-lookup');
+  const lookup = new RomAddressLookup(null, null);
 
-  const sub8 = { addrHex: '0xBC8004', summary: 'CALL 0x36', bytesHex: 'A3 36', opcode: 0xa3, callKind: '8bit' };
-  const sub16 = { addrHex: '0x928100', summary: 'CALL 0x1234 -> 0x940000', bytesHex: 'A4 34 12', opcode: 0xa4, callKind: '16bit' };
+  const g36 = lookup.lookup(0x92A050);
+  assert.ok(g36, 'Should resolve 0x92A050');
+  assert.strictEqual(g36.kind, 'global');
+  assert.strictEqual(g36.id, 0x36);
+  assert.strictEqual(g36.shortTag, 'global[0x36]');
+  assert.strictEqual(g36.name, 'Unnamed Global script 0x36');
 
-  const subHtml8 = fmt.formatSubHtml(sub8);
-  assert.ok(subHtml8.includes('call-8bit'), 'Should include call-8bit class for CSS toggle');
+  // Also check named global 0 (Fade-out / stop music at 0x929E0C)
+  const g0 = lookup.lookup(0x929E0C);
+  assert.ok(g0, 'Should resolve 0x929E0C');
+  assert.strictEqual(g0.id, 0);
+  assert.strictEqual(g0.shortTag, 'global[0x0]');
+  assert.strictEqual(g0.name, 'Fade-out / stop music');
+});
 
-  const subHtml16 = fmt.formatSubHtml(sub16);
-  assert.ok(!subHtml16.includes('call-8bit'), '16-bit call should not have call-8bit class');
-  assert.ok(subHtml16.includes('call-16bit'), '16-bit call has call-16bit class');
+// Test 13: End events do not repeat bytecode and sublines have slot prefixes
+test('End events omit bytecode repetition and sub-lines carry slot prefixes', () => {
+  const batch = [
+    { slot: 1, entity: 0x4E89, event: 'start', loc: 0x92A050, timeStr: '+7.17s, f432', bytes: [0x80] },
+    { slot: 1, entity: 0x4E89, event: 'end', loc: 0x92A050, timeStr: '+7.25s, f437', bytes: [0x80] },
+  ];
+
+  const results = processScriptTraceBatch(batch, null, null);
+  assert.strictEqual(results.length, 2);
+
+  // Result 0: start of global script 0x36
+  assert.ok(results[0].line.includes('[s1 | 4E89 | start]'), `Missing start slot tag: ${results[0].line}`);
+  assert.ok(results[0].line.includes('[global[0x36]]'), `Missing global tag: ${results[0].line}`);
+  assert.ok(results[0].line.includes('[80]'), `Opcode bytes expected at end: ${results[0].line}`);
+
+  // Result 1: clean end event (no [80] repeated)
+  assert.ok(results[1].line.includes('[s1 | 4E89 | end]'), `Missing end slot tag: ${results[1].line}`);
+  assert.ok(results[1].line.includes('[global[0x36]]'), `Missing lookup on end: ${results[1].line}`);
+  assert.ok(results[1].line.includes('END of script'), `Expected END of script: ${results[1].line}`);
+  assert.ok(!results[1].line.includes('[80]'), `End line must not repeat opcode bytes: ${results[1].line}`);
+  assert.strictEqual(results[1].bytesHex, '', 'bytesHex should be empty for end event');
 });
 
 console.log(`\nResults: ${passed} passed, ${failed} failed`);

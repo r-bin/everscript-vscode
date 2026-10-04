@@ -172,24 +172,37 @@ function processScriptTraceBatch(items, currentRom, wsRoot, customDraft = null, 
       }
     }
 
-    const snippet = decodeScriptSnippet(romBuf, loc, item.event === 'start' ? 3 : 1);
-    const first = snippet && snippet[0];
-
     const locHex = '0x' + fmtHex(loc, 6);
     const entityHex = fmtHex(item.entity || 0, 4);
     const eventName = String(item.event || 'exec');
 
-    let bytesHex = first && first.bytesHex ? first.bytesHex : '';
-    if (!bytesHex && item.bytes && item.bytes.length) {
-      bytesHex = item.bytes.slice(0, 4)
-        .map(b => (b & 0xFF).toString(16).toUpperCase().padStart(2, '0'))
-        .join(' ');
-    }
-    if (!bytesHex) bytesHex = '??';
+    let bytesHex = '';
+    let summary = '';
+    const subItems = [];
+    const subLines = [];
 
-    let summary = first ? first.summary : '';
-    if (!summary) {
-      summary = item.event === 'end' ? 'END of script' : 'UNKNOWN INSTR';
+    if (eventName === 'end') {
+      summary = 'END of script';
+      bytesHex = '';
+    } else {
+      const snippet = decodeScriptSnippet(romBuf, loc, item.event === 'start' ? 3 : 1);
+      const first = snippet && snippet[0];
+
+      bytesHex = first && first.bytesHex ? first.bytesHex : '';
+      if (!bytesHex && item.bytes && item.bytes.length) {
+        bytesHex = item.bytes.slice(0, 4)
+          .map(b => (b & 0xFF).toString(16).toUpperCase().padStart(2, '0'))
+          .join(' ');
+      }
+      if (!bytesHex) bytesHex = '??';
+
+      summary = first ? first.summary : 'UNKNOWN INSTR';
+
+      if (snippet && snippet.length > 1) {
+        for (let s = 1; s < snippet.length; s++) {
+          subItems.push(snippet[s]);
+        }
+      }
     }
 
     const itemData = {
@@ -210,20 +223,13 @@ function processScriptTraceBatch(items, currentRom, wsRoot, customDraft = null, 
       ch.appendLine(line);
     }
 
-    const subItems = [];
-    const subLines = [];
-    if (snippet && snippet.length > 1) {
-      for (let s = 1; s < snippet.length; s++) {
-        const sub = snippet[s];
-        const subText = formatter.formatSubText(sub);
-        const is8Bit = sub.callKind === '8bit';
-        const hideInText = is8Bit && options.show8BitCalls === false;
-
-        if (ch && (!options.hideInactive || !isInactive) && !hideInText) {
+    if (subItems.length > 0) {
+      for (const sub of subItems) {
+        const subText = formatter.formatSubText(sub, itemData);
+        if (ch && (!options.hideInactive || !isInactive)) {
           ch.appendLine(subText);
         }
         subLines.push(subText);
-        subItems.push(sub);
       }
     }
 
