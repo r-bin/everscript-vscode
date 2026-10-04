@@ -122,17 +122,17 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     }
     #ss-trace-log.hide-inactive .ss-trace-entry.end { display: none !important; }
     .ss-trace-entry { display: flex; flex-direction: column; padding: 1px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
-    .ss-trace-row { display: flex; gap: 6px; white-space: nowrap; padding: 1px 0; }
-    .ss-trace-sub { display: flex; gap: 4px; white-space: nowrap; padding: 1px 0; font-family: monospace; font-size: 11px; }
-    .ss-trace-arrow { color: #c586c0; font-weight: bold; }
-    .ss-trace-time { color: #569cd6; font-size: 10px; min-width: 95px; }
-    .ss-trace-lookup { color: #4ec9b0; font-weight: bold; }
-    .ss-trace-tag { font-weight: bold; min-width: 120px; }
+    .ss-trace-row { display: flex; gap: 6px; white-space: nowrap; padding: 1px 0; align-items: baseline; }
+    .ss-trace-sub { display: flex; gap: 6px; white-space: nowrap; padding: 1px 0; font-family: monospace; font-size: 11px; align-items: baseline; }
+    .ss-trace-arrow { color: #c586c0; font-weight: bold; width: 20px; min-width: 20px; flex-shrink: 0; text-align: right; }
+    .ss-trace-time { color: #569cd6; font-size: 10px; width: 95px; min-width: 95px; flex-shrink: 0; }
+    .ss-trace-lookup { color: #4ec9b0; font-weight: bold; width: 110px; min-width: 110px; flex-shrink: 0; display: inline-block; overflow: hidden; text-overflow: ellipsis; }
+    .ss-trace-tag { font-weight: bold; width: 140px; min-width: 140px; flex-shrink: 0; }
     .ss-trace-tag.start  { color: #6f9; }
     .ss-trace-tag.resume { color: #ff6; }
     .ss-trace-tag.step   { color: #69f; }
     .ss-trace-tag.end    { color: #f66; }
-    .ss-trace-addr       { color: #4ec9b0; }
+    .ss-trace-addr       { color: #4ec9b0; width: 68px; min-width: 68px; flex-shrink: 0; }
     .ss-trace-bytes      { color: #888; font-size: 10px; font-family: monospace; }
     .ss-trace-text       { color: #d4d4d4; }
 
@@ -629,15 +629,17 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     }
 
     function formatArgWords(words) {
-      return words.map((value, index) => 'w' + index.toString(16).toUpperCase() + '=' + fmtHex(value, 4)).join(' ');
-    }
-
-    function formatArgBytes(bytes) {
-      return bytes.map(value => fmtHex(value, 2)).join(' ');
+      if (!Array.isArray(words) || !words.length) return 'none';
+      const nonZero = words
+        .map((value, index) => ({ index, value }))
+        .filter(item => item.value !== 0);
+      if (!nonZero.length) return 'none (all 0000)';
+      return nonZero.map(item => 'w' + item.index.toString(16).toUpperCase() + '=' + fmtHex(item.value, 4)).join(' ');
     }
 
     function buildScriptChains(slots) {
-      const liveSlots = slots.filter(slot => slot.live);
+      const liveSlots = slots.filter(slot => slot.state === 2 || slot.state === 4);
+      if (!liveSlots.length) return [];
       const bySlot = new Map(liveSlots.map(slot => [slot.slot, slot]));
       const targeted = new Set();
       for (const slot of liveSlots) if (slot.nextSlot >= 0) targeted.add(slot.nextSlot);
@@ -674,7 +676,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         for (let offset = 0; offset < argsBytes.length; offset += 2) {
           argWords.push(((argsBytes[offset] || 0) | ((argsBytes[offset + 1] || 0) << 8)) >>> 0);
         }
-        const live = loc !== 0 || state !== 0 || entity !== 0 || nextPtr !== 0;
+        const live = state === 2 || state === 4;
         slots.push({
           slot: i,
           loc,
@@ -690,37 +692,40 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       }
       const liveSlots = slots.filter(slot => slot.live);
       const activeSlots = liveSlots.filter(slot => slot.state === 2);
-      return { slots, liveSlots, activeSlots, chains: buildScriptChains(slots) };
+      const waitingSlots = liveSlots.filter(slot => slot.state === 4);
+      return { slots, liveSlots, activeSlots, waitingSlots, chains: buildScriptChains(slots) };
     }
 
     function renderScriptDetail(snapshot) {
       const detail = document.getElementById('ss-detail');
       if (!detail) return;
-      const focus = snapshot.activeSlots[0] || snapshot.liveSlots[0] || null;
-      const execText = snapshot.activeSlots.length
-        ? snapshot.activeSlots.map(slotShort).join(' -> ')
-        : 'none';
-      const currentText = snapshot.activeSlots.length === 1
-        ? slotShort(snapshot.activeSlots[0])
-        : snapshot.activeSlots.length > 1
-          ? 'ambiguous (' + snapshot.activeSlots.map(slot => 's' + slot.slot).join(', ') + ')'
-          : 'none';
-      const chainText = snapshot.chains.length
-        ? snapshot.chains.map(chain => chain.map(slotId => 's' + slotId).join(' -> ')).join(' | ')
-        : 'none';
       const lines = [];
-      lines.push('exec slots: ' + execText);
-      lines.push('current active: ' + currentText + ' (state==2; not always the bottom slot)');
-      lines.push('scheduler chain: ' + chainText);
-      if (focus) {
-        lines.push('focus slot: ' + slotShort(focus) + ' next=' + (focus.nextSlot >= 0 ? ('s' + focus.nextSlot) : '--') + ' entity=' + fmtHex(focus.entity, 4));
-        lines.push('args[0x0F..0x2E] words: ' + formatArgWords(focus.argWords));
-        lines.push('args[0x0F..0x2E] bytes: ' + formatArgBytes(focus.argsBytes));
+
+      if (snapshot.activeSlots.length > 0) {
+        lines.push('active: ' + snapshot.activeSlots.map(slotShort).join(', '));
+      } else if (snapshot.waitingSlots && snapshot.waitingSlots.length > 0) {
+        lines.push('active: none (' + snapshot.waitingSlots.length + ' waiting)');
       } else {
-        lines.push('focus slot: none');
-        lines.push('args[0x0F..0x2E] words: none');
-        lines.push('args[0x0F..0x2E] bytes: none');
+        lines.push('active: none (all slots idle)');
       }
+
+      if (snapshot.chains.length > 0) {
+        lines.push('scheduler chain: ' + snapshot.chains.map(chain => chain.map(slotId => 's' + slotId).join(' -> ')).join(' | '));
+      } else {
+        lines.push('scheduler chain: idle');
+      }
+
+      const focus = snapshot.activeSlots[0] || snapshot.liveSlots[0] || null;
+      if (focus) {
+        lines.push('focus: ' + slotShort(focus) + ' | next=' + (focus.nextSlot >= 0 ? ('s' + focus.nextSlot) : '--') + ' | entity=' + fmtHex(focus.entity, 4) + ' | timer=' + focus.timer1);
+        lines.push('args[0x0F..0x2E] words: ' + formatArgWords(focus.argWords));
+      } else {
+        const lastSlot = snapshot.slots.find(s => s.loc !== 0);
+        if (lastSlot) {
+          lines.push('last slot: ' + slotShort(lastSlot) + ' | entity=' + fmtHex(lastSlot.entity, 4));
+        }
+      }
+
       detail.textContent = lines.join('\\n');
     }
 
@@ -894,9 +899,16 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     function updateScriptStack(snapshot) {
       const tbody = document.getElementById('ss-tbody');
       if (!tbody) return;
-      const focusSlot = snapshot.activeSlots.length ? snapshot.activeSlots[0].slot : -1;
+      const focusSlot = snapshot.activeSlots.length
+        ? snapshot.activeSlots[0].slot
+        : (snapshot.liveSlots.length ? snapshot.liveSlots[0].slot : -1);
+
       let html = '';
-      for (const { slot, loc, state, nextSlot, timer1, entity } of snapshot.liveSlots) {
+      const displaySlots = snapshot.liveSlots.length
+        ? snapshot.liveSlots
+        : snapshot.slots.filter(s => s.loc !== 0 || s.entity !== 0);
+
+      for (const { slot, loc, state, nextSlot, timer1, entity } of displaySlots) {
         const cls   = (state === 2 ? 'exec' : state === 4 ? 'wait' : 'dead') + (slot === focusSlot ? ' focus' : '');
         const sname = stateName(state);
         html += '<tr class="' + cls + '"><td>' + slot + '</td><td>' +
@@ -906,7 +918,16 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       }
       if (!html) html = '<tr><td colspan="6" style="color:#555;text-align:center;padding:6px">no active scripts</td></tr>';
       tbody.innerHTML = html;
-      document.getElementById('ss-count').textContent = snapshot.liveSlots.length + ' active';
+
+      const actLen = snapshot.activeSlots.length;
+      const waitLen = snapshot.waitingSlots ? snapshot.waitingSlots.length : 0;
+      if (actLen > 0 || waitLen > 0) {
+        document.getElementById('ss-count').textContent =
+          actLen + ' exec' + (waitLen ? ', ' + waitLen + ' wait' : '');
+      } else {
+        document.getElementById('ss-count').textContent = '0 active (idle)';
+      }
+
       renderScriptDetail(snapshot);
     }
 

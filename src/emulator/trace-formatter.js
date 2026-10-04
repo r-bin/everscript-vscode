@@ -61,75 +61,86 @@ class ScriptTraceFormatter {
 
   /**
    * Formats a main trace item as a plain-text line matching the everscript-trace
-   * TextMate grammar used by the VS Code OutputChannel.
-   * Opcode hex bytes are placed at the end: [00 01 02 ...]
+   * TextMate grammar used by the VS Code OutputChannel, with column-aligned addresses.
    */
   formatText(item, lookup) {
-    const timePrefix = item.timeStr ? `[${item.timeStr}] ` : '';
+    const timePart = item.timeStr ? `[${item.timeStr}]`.padEnd(16, ' ') : '';
     const entityHex = fmtHex(item.entity || 0, 4);
     const eventName = String(item.event || 'exec');
     const slotTag = `[s${item.slot} | ${entityHex} | ${eventName}]`;
+    const slotPart = slotTag.padEnd(21, ' ');
     const lookupTag = this.formatLookupTag(lookup);
-    const lookupPrefix = lookupTag ? `${lookupTag} ` : '';
+    const tagPart = lookupTag ? lookupTag.padEnd(16, ' ') : ''.padEnd(16, ' ');
+    const arrowPart = '   ';
     const locHex = item.locHex || ('0x' + fmtHex(item.loc || 0, 6));
 
     if (eventName === 'end') {
       const summary = item.summary || 'END of script';
-      return `${timePrefix}${slotTag} ${lookupPrefix}${locHex}: ${summary}`;
+      return `${timePart}${slotPart}${tagPart}${arrowPart}${locHex}: ${summary}`;
     }
 
     const bytesHex = item.bytesHex || '??';
     const summary = item.summary || 'UNKNOWN INSTR';
 
-    return `${timePrefix}${slotTag} ${lookupPrefix}${locHex}: ${summary} [${bytesHex}]`;
+    return `${timePart}${slotPart}${tagPart}${arrowPart}${locHex}: ${summary} [${bytesHex}]`;
   }
 
   /**
-   * Formats a sub-line (e.g. CALL or branch target) indented with 2 spaces
-   * with a slot and optional timestamp prefix so slot attribution is clear.
+   * Formats a sub-line indented so the address begins at the exact same
+   * column as the main script line, with `-> ` pointing to the address.
    */
   formatSubText(sub, item = null) {
-    const timePrefix = item && item.timeStr ? `[${item.timeStr}] ` : '';
+    const timePart = item && item.timeStr ? `[${item.timeStr}]`.padEnd(16, ' ') : '';
     const entityHex = fmtHex(item ? (item.entity || 0) : 0, 4);
     const slotTag = item ? `[s${item.slot} | ${entityHex}]` : '';
-    const prefix = slotTag ? `${timePrefix}${slotTag} ` : '';
+    const slotPart = slotTag ? slotTag.padEnd(21, ' ') : ''.padEnd(21, ' ');
+    const tagPart = ''.padEnd(16, ' ');
+    const arrowPart = '-> ';
     const bytes = sub.bytesHex ? ` [${sub.bytesHex}]` : '';
     const summary = sub.summary || '';
-    return `${prefix}  -> ${sub.addrHex}: ${summary}${bytes}`;
+    return `${timePart}${slotPart}${tagPart}${arrowPart}${sub.addrHex}: ${summary}${bytes}`;
   }
 
   /**
-   * Formats a sub-line as an HTML snippet with full syntax highlighting.
+   * Formats a sub-line as an HTML snippet with fixed column widths.
    */
   formatSubHtml(sub, item = null) {
     const event = item ? (item.event || '') : '';
     const callClass = sub.callKind ? ` call-${sub.callKind}` : '';
     const bytes = sub.bytesHex ? ` <span class="ss-trace-bytes">[${escH(sub.bytesHex)}]</span>` : '';
     const summaryHtml = scriptHighlight(sub.summary || '');
-    const timeHtml = item && item.timeStr ? '<span class="ss-trace-time">' + escH(item.timeStr) + '</span> ' : '';
+    const timeHtml = item && item.timeStr
+      ? '<span class="ss-trace-time">' + escH('[' + item.timeStr + ']') + '</span>'
+      : '<span class="ss-trace-time"></span>';
     const entityHex = fmtHex(item ? (item.entity || 0) : 0, 4);
-    const slotHtml = item ? '<span class="ss-trace-tag">' + escH('[s' + item.slot + ' | ' + entityHex + ']') + '</span> ' : '';
+    const slotHtml = item
+      ? '<span class="ss-trace-tag">' + escH('[s' + item.slot + ' | ' + entityHex + ']') + '</span>'
+      : '<span class="ss-trace-tag"></span>';
     return `<div class="ss-trace-sub ${event}${callClass}">` +
       timeHtml +
       slotHtml +
-      `<span class="ss-trace-arrow">  -&gt; </span>` +
-      `<span class="ss-trace-addr">${escH(sub.addrHex)}:</span> ` +
+      `<span class="ss-trace-lookup"></span>` +
+      `<span class="ss-trace-arrow">-&gt;&nbsp;</span>` +
+      `<span class="ss-trace-addr">${escH(sub.addrHex)}:</span>` +
       `<span class="ss-trace-text">${summaryHtml}</span>` +
       bytes +
       `</div>`;
   }
 
   /**
-   * Formats a trace item and any follow-up sub-items into complete HTML markup.
+   * Formats a trace item and any follow-up sub-items into complete HTML markup
+   * with column-aligned addresses.
    */
   formatHtml(item, lookup, subItems = []) {
     const event = item.event || '';
     const tagClass = 'ss-trace-tag ' + event;
-    const timeHtml = item.timeStr ? '<span class="ss-trace-time">' + escH(item.timeStr) + '</span> ' : '';
+    const timeHtml = item.timeStr
+      ? '<span class="ss-trace-time">' + escH('[' + item.timeStr + ']') + '</span>'
+      : '<span class="ss-trace-time"></span>';
     const lookupTitle = lookup && lookup.name ? escH(lookup.name) : '';
     const lookupHtml = lookup && lookup.shortTag
-      ? '<span class="ss-trace-lookup" title="' + lookupTitle + '">' + escH('[' + lookup.shortTag + ']') + '</span> '
-      : '';
+      ? '<span class="ss-trace-lookup" title="' + lookupTitle + '">' + escH('[' + lookup.shortTag + ']') + '</span>'
+      : '<span class="ss-trace-lookup"></span>';
     const entityHex = fmtHex(item.entity || 0, 4);
     const locHex = item.locHex || ('0x' + fmtHex(item.loc || 0, 6));
     const summary = item.summary || (event === 'end' ? 'END of script' : 'UNKNOWN INSTR');
@@ -141,9 +152,10 @@ class ScriptTraceFormatter {
 
     let html = '<div class="ss-trace-row ' + event + '">' +
       timeHtml +
-      '<span class="' + tagClass + '">' + escH('[s' + item.slot + ' | ' + entityHex + ' | ' + event + ']') + '</span> ' +
+      '<span class="' + tagClass + '">' + escH('[s' + item.slot + ' | ' + entityHex + ' | ' + event + ']') + '</span>' +
       lookupHtml +
-      '<span class="ss-trace-addr">' + escH(locHex) + ':</span> ' +
+      '<span class="ss-trace-arrow"></span>' +
+      '<span class="ss-trace-addr">' + escH(locHex) + ':</span>' +
       '<span class="ss-trace-text">' + summaryHtml + '</span>' +
       bytesSpan +
       '</div>';

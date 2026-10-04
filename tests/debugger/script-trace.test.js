@@ -281,7 +281,8 @@ test('ScriptTraceFormatter generates consistent TextMate line and HTML row with 
   assert.ok(text.includes('0xBC8000: GAIN WEAPON 0x01e9 (Laser Lance) [14 E9 01 E8]'), `Opcode should be at end: ${text}`);
 
   const subText = formatter.formatSubText(sub, item);
-  assert.strictEqual(subText, '[+0.05s, f3] [s1 | 4E89]   -> 0xBC8004: CALL "Fade In" (0x36) [A3 36]', `Unexpected subText: ${subText}`);
+  assert.strictEqual(subText, '[+0.05s, f3]    [s1 | 4E89]                          -> 0xBC8004: CALL "Fade In" (0x36) [A3 36]', `Unexpected subText: ${subText}`);
+  assert.strictEqual(text.indexOf('0xBC8000:'), subText.indexOf('0xBC8004:'), 'Main and sub-line addresses must start at the exact same column');
 
   const html = formatter.formatHtml(item, lookup, [sub]);
   assert.ok(html.includes('class="ss-trace-row start"'), `Missing row class: ${html}`);
@@ -290,7 +291,7 @@ test('ScriptTraceFormatter generates consistent TextMate line and HTML row with 
   assert.ok(html.includes('title="Room 0x15 Enter Script"'), `Missing lookup title: ${html}`);
   assert.ok(html.includes('<span class="ss-trace-bytes">[14 E9 01 E8]</span>'), `Missing main bytes at end in html: ${html}`);
   assert.ok(html.includes('class="ss-trace-sub start call-8bit"'), `Missing subline class in html: ${html}`);
-  assert.ok(html.includes('<span class="ss-trace-arrow">  -&gt; </span>'), `Missing arrow in html: ${html}`);
+  assert.ok(html.includes('<span class="ss-trace-arrow">-&gt;&nbsp;</span>'), `Missing arrow in html: ${html}`);
   assert.ok(html.includes('<span class="ss-trace-bytes">[A3 36]</span>'), `Missing sub bytes at end in html: ${html}`);
   assert.ok(html.includes('[s1 | 4E89]'), `Subline HTML should have slot tag: ${html}`);
 });

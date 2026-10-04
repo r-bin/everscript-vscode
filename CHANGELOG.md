@@ -1,3 +1,18 @@
+## [0.147.0] — 2026-10-04
+
+### Feat: [Emulator] Clean script stack live telemetry and column-aligned trace addresses
+
+- **Script Stack Telemetry Cleanup**:
+  - Removed outdated textbook explanations and commentary (e.g. `(state==2; not always the bottom slot)`).
+  - Fixed tab active counter: only truly active/waiting slots (`state === 2 || state === 4`) are counted; terminated/dead slots (`state === 0`) now report `0 active (idle)` instead of falsely counting dead slots with stale RAM addresses as active.
+  - Scheduler chain resolution only chains live scripts, eliminating ghost chains between dead scripts.
+  - Compacted argument dump: zero words are collapsed into `none (all 0000)` instead of 4 rows of 32 zeroes, only showing non-zero words (`w0=0001, w1=0015`) when populated.
+  - Clean 2-line idle display when scripts are finished: shows active status and last executed slot without boilerplate noise.
+- **Column-Aligned Address Indentation Across All Logs**:
+  - Main lines and follow-up sublines now align their SNES addresses to the exact same column coordinate:
+    - Text OutputChannel: fixed-width padding for timestamp (16ch), slot tag (21ch), lookup tag (16ch), and arrow (3ch), ensuring every address begins at column 56.
+    - Webview DOM: fixed-width flex columns for `.ss-trace-time` (95px), `.ss-trace-tag` (140px), `.ss-trace-lookup` (110px), and `.ss-trace-arrow` (20px), ensuring every address starts at pixel x=389px regardless of whether tags or subline arrows are present.
+
 ## [0.146.0] — 2026-10-04
 
 ### Feat: [Emulator] Slot prefixes on all trace lines, clean end events, global script resolution, and removed call toggle
