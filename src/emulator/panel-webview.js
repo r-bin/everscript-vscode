@@ -119,7 +119,6 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     /* -- Screen -------------------------------------------------------- */
     #screen-wrap {
       flex: 1; min-height: 0; background: #000;
-      display: flex; align-items: center; justify-content: center;
       overflow: hidden;
       position: relative;
     }
@@ -134,9 +133,20 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       image-rendering: pixelated;
       image-rendering: crisp-edges;
     }
-    #screen {
-      position: relative;
+    #extended-entities {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
       z-index: 1;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    #screen {
+      position: absolute;
+      z-index: 2;
       display: block;
       width: 512px; height: 448px;
       image-rendering: pixelated; image-rendering: crisp-edges;
@@ -154,7 +164,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       width: 100%;
       height: 100%;
       pointer-events: none;
-      z-index: 2;
+      z-index: 3;
     }
     #screen-overlay-bar {
       position: absolute;
@@ -164,6 +174,11 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       display: flex;
       gap: 6px;
       pointer-events: none;
+    }
+    .screen-chip-group {
+      display: inline-flex;
+      gap: 2px;
+      pointer-events: auto;
     }
     .screen-chip {
       pointer-events: auto;
@@ -324,11 +339,18 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
 
   <div id="screen-wrap">
     <canvas id="extended-map"></canvas>
+    <canvas id="extended-entities"></canvas>
     <canvas id="screen" width="512" height="448"></canvas>
     <canvas id="extended-overlay"></canvas>
     <div id="screen-overlay-bar">
       <button id="screen-extend-toggle" class="screen-chip active" type="button" title="Toggle Extended Map">MAP EXT ON</button>
       <button id="screen-trigger-toggle" class="screen-chip active" type="button" title="Toggle Trigger Overlay (B &amp; Step-on)">TRIGGERS ON</button>
+      <div id="screen-zoom-chip" class="screen-chip-group">
+        <button id="screen-zout" class="screen-chip" type="button" title="Zoom out">-</button>
+        <span id="screen-zlevel" class="screen-chip" style="cursor:default">100%</span>
+        <button id="screen-zin" class="screen-chip" type="button" title="Zoom in">+</button>
+        <button id="screen-zfit" class="screen-chip" type="button" title="Fit to viewport">fit</button>
+      </div>
     </div>
   </div>
 
@@ -650,6 +672,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         cachedTriggers = null;
         lastRequestedMapId = -1;
         activeRoomMap = null;
+        spriteCache.clear();
         romLaunchTimestamp = performance.now();
         romFrameCount = 0;
         initAudio();
@@ -671,10 +694,12 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     function startRenderLoop() {
       const canvas        = document.getElementById('screen');
       const extMapCanvas  = document.getElementById('extended-map');
+      const extEntCanvas  = document.getElementById('extended-entities');
       const extOverCanvas = document.getElementById('extended-overlay');
       const wrap          = document.getElementById('screen-wrap');
       const ctx           = canvas.getContext('2d');
       const extMapCtx     = extMapCanvas ? extMapCanvas.getContext('2d') : null;
+      const extEntCtx     = extEntCanvas ? extEntCanvas.getContext('2d') : null;
       const extOverCtx    = extOverCanvas ? extOverCanvas.getContext('2d') : null;
       const imageData     = ctx.createImageData(512, 448);
       canvas.setAttribute('tabindex', '0');
@@ -688,19 +713,127 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       let lastWrapWidth = -1;
       let lastWrapHeight = -1;
 
-      // Scale the fixed-size 512x448 canvas to the largest size that fits the panel.
+      // Zoom & Pan state
+      let zoomLevel = 1.0;
+      let panX = 0;
+      let panY = 0;
+
+      function updateScreenLayout() {
+        const W = wrap.clientWidth, H = wrap.clientHeight;
+        if (!W || !H) return;
+        const fitScale = Math.max(Math.min(W / 512, H / 448), 0.01);
+        const scale = fitScale * zoomLevel;
+        canvas.style.width = (512 * scale) + 'px';
+        canvas.style.height = (448 * scale) + 'px';
+        const emuW = 512 * scale;
+        const emuH = 448 * scale;
+        const emuX = Math.round((W - emuW) / 2 + panX);
+        const emuY = Math.round((H - emuH) / 2 + panY);
+        canvas.style.position = 'absolute';
+        canvas.style.left = emuX + 'px';
+        canvas.style.top = emuY + 'px';
+        const zLvlEl = document.getElementById('screen-zlevel');
+        if (zLvlEl) zLvlEl.textContent = Math.round(zoomLevel * 100) + '%';
+      }
+
+      function zoomAt(nextZoom, cx, cy) {
+        const W = wrap.clientWidth, H = wrap.clientHeight;
+        if (!W || !H) return;
+        nextZoom = Math.max(0.25, Math.min(nextZoom, 10.0));
+        if (Math.abs(nextZoom - zoomLevel) < 0.0001) return;
+        const fitScale = Math.max(Math.min(W / 512, H / 448), 0.01);
+        const oldScale = fitScale * zoomLevel;
+        const newScale = fitScale * nextZoom;
+        const oldEmuW = 512 * oldScale;
+        const newEmuW = 512 * newScale;
+        const oldEmuH = 448 * oldScale;
+        const newEmuH = 448 * newScale;
+        const oldEmuX = (W - oldEmuW) / 2 + panX;
+        const oldEmuY = (H - oldEmuH) / 2 + panY;
+        const newEmuX = cx - (cx - oldEmuX) * (newScale / oldScale);
+        const newEmuY = cy - (cy - oldEmuY) * (newScale / oldScale);
+        panX = newEmuX - (W - newEmuW) / 2;
+        panY = newEmuY - (H - newEmuH) / 2;
+        zoomLevel = nextZoom;
+        updateScreenLayout();
+      }
+
+      // Trackpad pinch-to-zoom (wheel with ctrlKey/metaKey) and two-finger pan (wheel)
+      wrap.addEventListener('wheel', (e) => {
+        if (e.ctrlKey || e.metaKey) {
+          e.preventDefault();
+          const r = wrap.getBoundingClientRect();
+          const cx = e.clientX - r.left;
+          const cy = e.clientY - r.top;
+          const factor = Math.exp(-e.deltaY * 0.01);
+          zoomAt(zoomLevel * factor, cx, cy);
+        } else {
+          e.preventDefault();
+          const k = e.deltaMode === 1 ? 16 : 1;
+          panX -= e.deltaX * k;
+          panY -= e.deltaY * k;
+          updateScreenLayout();
+        }
+      }, { passive: false });
+
+      // Mouse drag-to-pan (middle click, alt+click, or dragging outside screen canvas)
+      let isPanning = false;
+      let panStartX = 0;
+      let panStartY = 0;
+      let panBaseX = 0;
+      let panBaseY = 0;
+      wrap.addEventListener('mousedown', (e) => {
+        if (e.button === 1 || e.altKey || (e.target !== canvas && !e.target.closest('.screen-chip'))) {
+          isPanning = true;
+          panStartX = e.clientX;
+          panStartY = e.clientY;
+          panBaseX = panX;
+          panBaseY = panY;
+          e.preventDefault();
+        }
+      });
+      window.addEventListener('mousemove', (e) => {
+        if (!isPanning) return;
+        panX = panBaseX + (e.clientX - panStartX);
+        panY = panBaseY + (e.clientY - panStartY);
+        updateScreenLayout();
+      });
+      window.addEventListener('mouseup', () => {
+        isPanning = false;
+      });
+
+      // Zoom buttons
+      const zinBtn = document.getElementById('screen-zin');
+      const zoutBtn = document.getElementById('screen-zout');
+      const zfitBtn = document.getElementById('screen-zfit');
+      if (zinBtn) zinBtn.addEventListener('click', () => {
+        zoomAt(zoomLevel * 1.25, wrap.clientWidth / 2, wrap.clientHeight / 2);
+      });
+      if (zoutBtn) zoutBtn.addEventListener('click', () => {
+        zoomAt(zoomLevel / 1.25, wrap.clientWidth / 2, wrap.clientHeight / 2);
+      });
+      if (zfitBtn) zfitBtn.addEventListener('click', () => {
+        zoomLevel = 1.0;
+        panX = 0;
+        panY = 0;
+        updateScreenLayout();
+      });
+
+      // Scale the canvases to fit the panel and sync dimensions
       function resizeCanvas(force) {
         const W = wrap.clientWidth, H = wrap.clientHeight;
         if (!force && W === lastWrapWidth && H === lastWrapHeight) return;
         lastWrapWidth = W;
         lastWrapHeight = H;
         if (!W || !H) return;
-        const scale = Math.max(Math.min(W / 512, H / 448), 0.01);
-        canvas.style.width = (512 * scale) + 'px';
-        canvas.style.height = (448 * scale) + 'px';
+        updateScreenLayout();
         if (extMapCanvas && (extMapCanvas.width !== W || extMapCanvas.height !== H)) {
           extMapCanvas.width = W;
           extMapCanvas.height = H;
+        }
+        if (extEntCanvas && (extEntCanvas.width !== W || extEntCanvas.height !== H)) {
+          extEntCanvas.width = W;
+          extEntCanvas.height = H;
         }
         if (extOverCanvas && (extOverCanvas.width !== W || extOverCanvas.height !== H)) {
           extOverCanvas.width = W;
@@ -727,6 +860,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         resizeCanvas(false);
         if (romLoaded) {
           romFrameCount++;
+          // Sample camera and entity state BEFORE _mainLoop() to match rendered frame
+          const preState = samplePreLoopState();
           Module._setJoypadInput(keyInput);
           Module._mainLoop();
           const fbPtr = Module._getScreenBuffer();
@@ -734,7 +869,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
             imageData.data.set(new Uint8ClampedArray(HEAPU8.buffer, fbPtr, 512 * 448 * 4));
             ctx.putImageData(imageData, 0, 0);
           }
-          renderExtendedMapAndOverlays(canvas, extMapCanvas, extMapCtx, extOverCanvas, extOverCtx);
+          renderExtendedMapAndOverlays(preState, canvas, extMapCanvas, extMapCtx, extEntCanvas, extEntCtx, extOverCanvas, extOverCtx);
           checkScriptExecutionTrace();
         }
       }
@@ -847,44 +982,334 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       overlayCtx.restore();
     }
 
-    function renderExtendedMapAndOverlays(canvas, extMapCanvas, extMapCtx, extOverCanvas, extOverCtx) {
-      const m = getModule();
-      if (!m || !hasDebuggerApi(m) || !loadedRomData) {
-        if (extOverCtx && extOverCanvas) extOverCtx.clearRect(0, 0, extOverCanvas.width, extOverCanvas.height);
-        if (extMapCtx && extMapCanvas) extMapCtx.clearRect(0, 0, extMapCanvas.width, extMapCanvas.height);
-        return;
+    // -- Sprite decoding & caching ---------------------------------------------
+    function snesToRom(snes) { return snes & 0x3fffff; }
+    function atRom(rom, snes) { return rom[snesToRom(snes)]; }
+    function readRom24(rom, off) { return rom[off] | (rom[off + 1] << 8) | (rom[off + 2] << 16); }
+
+    const POOL_LARGE = { pointers: 0xec0000, data: 0xd90000, size: 16 };
+    const POOL_SMALL = { pointers: 0xd80000, data: 0xd10000, size: 8 };
+
+    function blockBytes(rom, index, pool) {
+      const raw = readRom24(rom, snesToRom(pool.pointers + index * 3));
+      const compressed = (raw >>> 23) & 1;
+      const addr = ((raw & ~(1 << 23)) >>> 0) + pool.data;
+      const sub = pool.size / 8;
+      const length = (8 * 8 * sub * sub) / 2;
+      const out = new Uint8Array(length);
+      if (!compressed) {
+        for (let i = 0; i < length; i++) out[i] = atRom(rom, addr + i);
+        return out;
+      }
+      let src = addr;
+      let dst = 0;
+      for (let group = 0; group < length / 16; group++) {
+        let bits = atRom(rom, src++);
+        for (let bit = 0; bit < 8; bit++, bits >>= 1) {
+          if (bits & 1) { dst += 2; continue; }
+          out[dst++] = atRom(rom, src++);
+          out[dst++] = atRom(rom, src++);
+        }
+      }
+      return out;
+    }
+
+    function decodeSpriteBlock(rom, index, large) {
+      const pool = large ? POOL_LARGE : POOL_SMALL;
+      const d = blockBytes(rom, index, pool);
+      const sub = pool.size / 8;
+      const pixels = new Uint8Array(pool.size * pool.size);
+      let n = 0;
+      for (let l = 0; l < sub; l++) {
+        for (let row = 0; row < 8; row++) {
+          for (let j = 0; j < sub; j++) {
+            const base = (j + 2 * l) * 32 + row * 2;
+            for (let bit = 7; bit >= 0; bit--) {
+              let p = 0;
+              if (d[base + 0] & (1 << bit)) p |= 1;
+              if (d[base + 1] & (1 << bit)) p |= 2;
+              if (d[base + 16] & (1 << bit)) p |= 4;
+              if (d[base + 17] & (1 << bit)) p |= 8;
+              pixels[n++] = p;
+            }
+          }
+        }
+      }
+      return { size: pool.size, pixels: pixels };
+    }
+
+    function readSpriteInfo(rom, address) {
+      const count = atRom(rom, address);
+      const dataOffset = atRom(rom, address + 1);
+      const chunks = [];
+      let cursor = address;
+      for (let n = 0; n < count; n++) {
+        const c = cursor + dataOffset;
+        const flags = atRom(rom, c);
+        chunks.push({
+          flags: flags,
+          x: (atRom(rom, c + 1) << 24) >> 24,
+          y: (atRom(rom, c + 2) << 24) >> 24,
+          block: atRom(rom, c + 3) | (atRom(rom, c + 4) << 8),
+          large: (flags & 1) !== 0,
+          flipX: (flags & 0x40) !== 0,
+          flipY: (flags & 0x80) !== 0,
+          priority: (flags & 0x30) >> 4,
+          palette: (flags & 0x0e) >> 1,
+        });
+        cursor += 5;
+      }
+      return { address: address, chunks: chunks, size: dataOffset + count * 5 };
+    }
+
+    function composeSprite(rom, info) {
+      let minX = 0, minY = 0, maxX = 1, maxY = 1;
+      for (let i = 0; i < info.chunks.length; i++) {
+        const c = info.chunks[i];
+        const s = c.large ? 16 : 8;
+        if (c.x < minX) minX = c.x;
+        if (c.y < minY) minY = c.y;
+        if (c.x + s > maxX) maxX = c.x + s;
+        if (c.y + s > maxY) maxY = c.y + s;
+      }
+      const width = maxX - minX;
+      const height = maxY - minY;
+      const pixels = new Int16Array(width * height).fill(-1);
+      for (let priority = 0; priority < 4; priority++) {
+        for (let i = info.chunks.length - 1; i >= 0; i--) {
+          const c = info.chunks[i];
+          if (c.priority !== priority) continue;
+          const b = decodeSpriteBlock(rom, c.block, c.large);
+          for (let y = 0; y < b.size; y++) {
+            for (let x = 0; x < b.size; x++) {
+              const sx = c.flipX ? b.size - 1 - x : x;
+              const sy = c.flipY ? b.size - 1 - y : y;
+              const v = b.pixels[sy * b.size + sx];
+              if (!v) continue;
+              const px = c.x - minX + x;
+              const py = c.y - minY + y;
+              if (px < 0 || py < 0 || px >= width || py >= height) continue;
+              pixels[py * width + px] = v;
+            }
+          }
+        }
+      }
+      return { width: width, height: height, pixels: pixels, originX: -minX, originY: -minY };
+    }
+
+    function characterPalette(rom, character) {
+      const CHARACTER_TABLE = 0x8eb678;
+      const CHARACTER_STRIDE = 74;
+      const PALETTE_BANK = 0x900000;
+      let addr = 0xad0b;
+      try {
+        const recOffset = snesToRom(CHARACTER_TABLE + character * CHARACTER_STRIDE + 0x09);
+        if (recOffset >= 0 && recOffset + 2 <= rom.length) {
+          addr = rom[recOffset] | (rom[recOffset + 1] << 8);
+        }
+      } catch (_) {}
+      const base = snesToRom(PALETTE_BANK | addr);
+      const out = [];
+      for (let i = 0; i < 16; i++) {
+        const off = base + i * 2;
+        if (off + 2 <= rom.length) {
+          const c = rom[off] | (rom[off + 1] << 8);
+          out.push([
+            (c & 31) * 8,
+            ((c >> 5) & 31) * 8,
+            ((c >> 10) & 31) * 8,
+          ]);
+        } else {
+          out.push([0, 0, 0]);
+        }
+      }
+      return out;
+    }
+
+    const spriteCache = new Map();
+
+    function getDecodedSprite(rom, spritePtr, characterId) {
+      const key = spritePtr + '_' + characterId;
+      if (spriteCache.has(key)) return spriteCache.get(key);
+
+      try {
+        const info = readSpriteInfo(rom, spritePtr);
+        if (!info || !info.chunks || info.chunks.length === 0) {
+          spriteCache.set(key, null);
+          return null;
+        }
+        const comp = composeSprite(rom, info);
+        if (!comp || comp.width <= 0 || comp.height <= 0) {
+          spriteCache.set(key, null);
+          return null;
+        }
+        const palette = characterPalette(rom, characterId);
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = comp.width;
+        offCanvas.height = comp.height;
+        const offCtx = offCanvas.getContext('2d');
+        const imgData = offCtx.createImageData(comp.width, comp.height);
+        const data = imgData.data;
+        const total = comp.width * comp.height;
+        for (let i = 0; i < total; i++) {
+          const v = comp.pixels[i];
+          if (v > 0) {
+            const col = palette[v] || [255, 255, 255];
+            const dst = i * 4;
+            data[dst] = col[0];
+            data[dst + 1] = col[1];
+            data[dst + 2] = col[2];
+            data[dst + 3] = 255;
+          }
+        }
+        offCtx.putImageData(imgData, 0, 0);
+        const res = {
+          canvas: offCanvas,
+          originX: comp.originX,
+          originY: comp.originY,
+          width: comp.width,
+          height: comp.height,
+        };
+        if (spriteCache.size > 256) spriteCache.clear();
+        spriteCache.set(key, res);
+        return res;
+      } catch (_) {
+        spriteCache.set(key, null);
+        return null;
+      }
+    }
+
+    function renderExtendedEntities(preState, layout, extEntCanvas, extEntCtx) {
+      if (!extEntCtx || !extEntCanvas) return;
+      extEntCtx.clearRect(0, 0, layout.wrapW, layout.wrapH);
+      if (!extendMapEnabled || !preState || !preState.entBuf || !loadedRomData) return;
+
+      const buf = preState.entBuf;
+      const rom = (loadedRomData.length % 1024 === 512) ? loadedRomData.subarray(512) : loadedRomData;
+      const entities = [];
+      const visited = new Set();
+      let curAddr = buf[0] | (buf[1] << 8);
+      let safety = 0;
+      while (curAddr >= 0x3DE5 && curAddr < 0x4FE5 && !visited.has(curAddr) && safety++ < 32) {
+        visited.add(curAddr);
+        entities.push(curAddr);
+        const rel = curAddr - 0x3DDF;
+        if (rel < 0 || rel + 0x60 > buf.length) break;
+        const ptrNext = buf[rel + 0x5E] | (buf[rel + 0x5F] << 8);
+        if (!ptrNext) break;
+        curAddr = ptrNext;
+      }
+      if (!visited.has(0x4E89)) entities.push(0x4E89);
+      if (!visited.has(0x4F17)) entities.push(0x4F17);
+
+      const drawList = [];
+      for (let i = 0; i < entities.length; i++) {
+        const addr = entities[i];
+        const rel = addr - 0x3DDF;
+        if (rel < 0 || rel + 0x8E > buf.length) continue;
+
+        const spriteBank = buf[rel + 0x08];
+        const spriteAddr = buf[rel + 0x06] | (buf[rel + 0x07] << 8);
+        if (spriteBank < 0xCA || spriteBank > 0xD0 || spriteAddr < 3) continue;
+
+        const flags = buf[rel + 0x10] | (buf[rel + 0x11] << 8);
+        if (flags & 0x0020) continue;
+
+        const rawX = buf[rel + 0x1A] | (buf[rel + 0x1B] << 8);
+        const posX = rawX >= 0x8000 ? rawX - 0x10000 : rawX;
+        const rawY = buf[rel + 0x1C] | (buf[rel + 0x1D] << 8);
+        const posY = rawY >= 0x8000 ? rawY - 0x10000 : rawY;
+        const rawZ = buf[rel + 0x1E] | (buf[rel + 0x1F] << 8);
+        const posZ = rawZ >= 0x8000 ? rawZ - 0x10000 : rawZ;
+
+        const stype = buf[rel + 0x60] | (buf[rel + 0x61] << 8);
+        let characterId = 0;
+        if (addr === 0x4F17) characterId = 1;
+        else if (addr === 0x4E89) characterId = 0;
+        else if (stype >= 0x0A26) characterId = Math.max(0, Math.floor((stype - 0x0A26) / 74));
+
+        const spritePtr = (spriteBank << 16) | spriteAddr;
+        const sprite = getDecodedSprite(rom, spritePtr, characterId);
+        if (!sprite) continue;
+
+        const roomSpriteX = posX - sprite.originX;
+        const roomSpriteY = posY - sprite.originY - Math.floor(posZ / 16);
+        const screenX = layout.emuX + (roomSpriteX - layout.camX) * layout.scaleSnes;
+        const screenY = layout.emuY + (roomSpriteY - layout.camY) * layout.scaleSnes;
+        const screenW = sprite.width * layout.scaleSnes;
+        const screenH = sprite.height * layout.scaleSnes;
+
+        if (screenX + screenW <= 0 || screenX >= layout.wrapW || screenY + screenH <= 0 || screenY >= layout.wrapH) continue;
+
+        drawList.push({
+          canvas: sprite.canvas,
+          x: screenX,
+          y: screenY,
+          w: screenW,
+          h: screenH,
+          sortY: posY,
+        });
       }
 
-      let camX = 0;
-      let camY = 0;
-      let mapId = -1;
-      let trigOffX = 0;
-      let trigOffY = 0;
+      drawList.sort((a, b) => a.sortY - b.sortY);
+
+      extEntCtx.imageSmoothingEnabled = false;
+      for (let i = 0; i < drawList.length; i++) {
+        const item = drawList[i];
+        extEntCtx.drawImage(item.canvas, item.x, item.y, item.w, item.h);
+      }
+    }
+
+    function samplePreLoopState() {
+      const m = getModule();
+      if (!m || !hasDebuggerApi(m) || !loadedRomData) return null;
+      let camX = 0, camY = 0, mapId = -1, trigOffX = 0, trigOffY = 0;
+      let entBuf = null;
 
       try {
         const camBuf = m.readMemoryRange(0x7E0112, 4);
-        if (!camBuf || camBuf.length < 4) return;
+        if (!camBuf || camBuf.length < 4) return null;
         const rawX = camBuf[0] | (camBuf[1] << 8);
         camX = rawX >= 0x8000 ? rawX - 0x10000 : rawX;
         const rawY = camBuf[2] | (camBuf[3] << 8);
         camY = rawY >= 0x8000 ? rawY - 0x10000 : rawY;
 
         const mapBuf = m.readMemoryRange(0x7E0ADB, 1);
-        if (!mapBuf || mapBuf.length < 1) return;
-        mapId = mapBuf[0];
+        if (mapBuf && mapBuf.length >= 1) mapId = mapBuf[0];
 
         const offBuf = m.readMemoryRange(0x7E0F86, 4);
-        if (!offBuf || offBuf.length < 4) return;
-        const rawOX = offBuf[0] | (offBuf[1] << 8);
-        trigOffX = rawOX >= 0x8000 ? rawOX - 0x10000 : rawOX;
-        const rawOY = offBuf[2] | (offBuf[3] << 8);
-        trigOffY = rawOY >= 0x8000 ? rawOY - 0x10000 : rawOY;
+        if (offBuf && offBuf.length >= 4) {
+          const rawOX = offBuf[0] | (offBuf[1] << 8);
+          trigOffX = rawOX >= 0x8000 ? rawOX - 0x10000 : rawOX;
+          const rawOY = offBuf[2] | (offBuf[3] << 8);
+          trigOffY = rawOY >= 0x8000 ? rawOY - 0x10000 : rawOY;
+        }
+
+        entBuf = m.readMemoryRange(0x7E3DDF, 0x1220);
       } catch (_) {
+        return null;
+      }
+
+      return { camX: camX, camY: camY, mapId: mapId, trigOffX: trigOffX, trigOffY: trigOffY, entBuf: entBuf };
+    }
+
+    function renderExtendedMapAndOverlays(preState, canvas, extMapCanvas, extMapCtx, extEntCanvas, extEntCtx, extOverCanvas, extOverCtx) {
+      if (!preState || !loadedRomData) {
+        if (extOverCtx && extOverCanvas) extOverCtx.clearRect(0, 0, extOverCanvas.width, extOverCanvas.height);
+        if (extEntCtx && extEntCanvas) extEntCtx.clearRect(0, 0, extEntCanvas.width, extEntCanvas.height);
+        if (extMapCtx && extMapCanvas) extMapCtx.clearRect(0, 0, extMapCanvas.width, extMapCanvas.height);
         return;
       }
 
+      const camX = preState.camX;
+      const camY = preState.camY;
+      const mapId = preState.mapId;
+      let trigOffX = preState.trigOffX;
+      let trigOffY = preState.trigOffY;
+
       if (mapId < 0 || mapId > 0x90) {
         if (extOverCtx && extOverCanvas) extOverCtx.clearRect(0, 0, extOverCanvas.width, extOverCanvas.height);
+        if (extEntCtx && extEntCanvas) extEntCtx.clearRect(0, 0, extEntCanvas.width, extEntCanvas.height);
         if (extMapCtx && extMapCanvas) extMapCtx.clearRect(0, 0, extMapCanvas.width, extMapCanvas.height);
         return;
       }
@@ -897,6 +1322,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       if (mapId !== cachedMapId) {
         cachedMapId = mapId;
         cachedTriggers = parseRoomTriggers(loadedRomData, mapId);
+        spriteCache.clear();
       }
 
       if (cachedTriggers && trigOffX === 0 && trigOffY === 0 && (cachedTriggers.offX || cachedTriggers.offY)) {
@@ -908,10 +1334,25 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       const wrapH = extMapCanvas ? extMapCanvas.height : (canvas.parentElement ? canvas.parentElement.clientHeight : 448);
       const emuW = parseFloat(canvas.style.width) || 512;
       const emuH = parseFloat(canvas.style.height) || 448;
-      const emuX = (wrapW - emuW) / 2;
-      const emuY = (wrapH - emuH) / 2;
+      const emuX = parseFloat(canvas.style.left) || Math.round((wrapW - emuW) / 2);
+      const emuY = parseFloat(canvas.style.top) || Math.round((wrapH - emuH) / 2);
       const scaleSnes = emuW / 256;
 
+      const layout = {
+        wrapW: wrapW,
+        wrapH: wrapH,
+        emuX: emuX,
+        emuY: emuY,
+        emuW: emuW,
+        emuH: emuH,
+        scaleSnes: scaleSnes,
+        camX: camX,
+        camY: camY,
+        trigOffX: trigOffX,
+        trigOffY: trigOffY,
+      };
+
+      // 1. Extended map background (Layer 0)
       if (extMapCtx && extMapCanvas) {
         extMapCtx.clearRect(0, 0, wrapW, wrapH);
         if (extendMapEnabled && activeRoomMap && activeRoomMap.mapId === mapId && activeRoomMap.img) {
@@ -924,20 +1365,14 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         }
       }
 
+      // 2. Extended entities (Layer 1)
+      if (extEntCtx && extEntCanvas) {
+        renderExtendedEntities(preState, layout, extEntCanvas, extEntCtx);
+      }
+
+      // 3. Extended triggers overlay (Layer 3)
       if (extOverCtx && extOverCanvas) {
-        renderTriggersOverlay(extOverCtx, {
-          wrapW: wrapW,
-          wrapH: wrapH,
-          emuX: emuX,
-          emuY: emuY,
-          emuW: emuW,
-          emuH: emuH,
-          scaleSnes: scaleSnes,
-          camX: camX,
-          camY: camY,
-          trigOffX: trigOffX,
-          trigOffY: trigOffY,
-        });
+        renderTriggersOverlay(extOverCtx, layout);
       }
     }
 

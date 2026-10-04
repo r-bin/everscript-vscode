@@ -1,3 +1,24 @@
+## [0.150.0] — 2026-10-04
+
+### Feat: [Emulator] Extended entity rendering, pre-loop camera sync, seam alignment, and MacBook zoom/pan controls
+
+- **Extended Entity Rendering Beyond Viewport**:
+  - Dynamically reads active entities from WRAM linked list (`$7E3DDF` head pointer and `$7E3DE5..$7E4FE5` entity blocks) including Boy (`$7E4E89`) and Dog (`$7E4F17`).
+  - Decodes full multi-chunk 4bpp planar character sprites and ROM animation frames on-the-fly (`readSpriteInfo`, `decodeSpriteBlock`, `composeSprite`) with character palettes (`characterPalette`).
+  - Renders sprites to a dedicated `#extended-entities` canvas layer (z-index: 1) layered between `#extended-map` (z-index: 0) and `#screen` (z-index: 2).
+  - Enemies and the Dog are no longer cut off when moving across the emulator screen edges or wandering off-screen.
+  - Decoded animation frames are cached in memory for instantaneous 60 FPS performance.
+- **Pre-Loop Camera Sync (1px Walking Lag Fix)**:
+  - Synchronizes camera scroll (`$7E0112`/`$7E0114`), map ID, and entity snapshots (`samplePreLoopState`) *before* executing `Module._mainLoop()`.
+  - Captures the exact camera state and coordinates used by the PPU to render the SNES frame buffer, eliminating the 1-pixel walking delay between the emulator screen and the extended map.
+- **Pixel-Perfect Seam Alignment**:
+  - Replaced subpixel flexbox centering with absolute integer pixel positioning (`emuX = Math.round((W - emuW) / 2 + panX)`, `emuY = Math.round((H - emuH) / 2 + panY)`).
+  - `#screen`, `#extended-map`, `#extended-entities`, and `#extended-overlay` share exact coordinate origins, removing all subpixel seam gaps and boundary jumps.
+- **MacBook Trackpad Zoom & Pan Controls**:
+  - Native trackpad pinch-to-zoom (`wheel` with `ctrlKey`/`metaKey`) anchored around cursor position (`zoomAt`).
+  - Native trackpad two-finger scrolling / panning (`wheel` without modifier keys) and mouse drag-to-pan.
+  - Floating zoom chip toolbar (`[-  100%  +  fit]`) in `#screen-overlay-bar` for quick zoom adjustments and viewport resetting.
+
 ## [0.149.0] — 2026-10-04
 
 ### Feat: [Emulator] Extended room map background, full-viewport trigger overlay, and focus ring removal

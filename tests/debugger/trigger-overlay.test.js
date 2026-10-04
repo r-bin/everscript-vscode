@@ -202,5 +202,44 @@ test('trigger overlay positions labels constantly relative to trigger box withou
     assert.ok(html.includes('const labelY = ty + 10;'), 'labelY should be positioned relative to ty');
 });
 
+// 9. Extended entities canvas and sprite rendering
+test('buildHtml includes extended-entities canvas and sprite rendering routines', () => {
+    const mockWebview = { asWebviewUri: (uri) => uri };
+    const html = buildHtml(mockWebview, 'core.js', 'core.wasm', 'core', '/path/to/core');
+
+    assert.ok(html.includes('id="extended-entities"'), 'extended-entities canvas missing');
+    assert.ok(html.includes('renderExtendedEntities'), 'renderExtendedEntities routine missing');
+    assert.ok(html.includes('getDecodedSprite'), 'getDecodedSprite routine missing');
+    assert.ok(html.includes('readSpriteInfo'), 'readSpriteInfo routine missing');
+    assert.ok(html.includes('composeSprite'), 'composeSprite routine missing');
+    assert.ok(html.includes('characterPalette'), 'characterPalette routine missing');
+});
+
+// 10. Zoom and pan controls
+test('buildHtml includes zoom and pan controls and event handlers', () => {
+    const mockWebview = { asWebviewUri: (uri) => uri };
+    const html = buildHtml(mockWebview, 'core.js', 'core.wasm', 'core', '/path/to/core');
+
+    assert.ok(html.includes('id="screen-zoom-chip"'), 'screen-zoom-chip missing');
+    assert.ok(html.includes('id="screen-zout"'), 'screen-zout missing');
+    assert.ok(html.includes('id="screen-zin"'), 'screen-zin missing');
+    assert.ok(html.includes('id="screen-zfit"'), 'screen-zfit missing');
+    assert.ok(html.includes('id="screen-zlevel"'), 'screen-zlevel missing');
+    assert.ok(html.includes('zoomAt'), 'zoomAt function missing');
+    assert.ok(html.includes('updateScreenLayout'), 'updateScreenLayout function missing');
+    assert.ok(html.includes("wrap.addEventListener('wheel'"), 'wheel listener on wrap missing');
+});
+
+// 11. Pre-sampled camera timing to prevent walking desync
+test('buildHtml samples camera and entity state before _mainLoop to prevent walking 1px lag', () => {
+    const mockWebview = { asWebviewUri: (uri) => uri };
+    const html = buildHtml(mockWebview, 'core.js', 'core.wasm', 'core', '/path/to/core');
+
+    assert.ok(html.includes('samplePreLoopState'), 'samplePreLoopState missing');
+    const mainLoopIdx = html.indexOf('Module._mainLoop()');
+    const sampleIdx = html.indexOf('samplePreLoopState()');
+    assert.ok(sampleIdx > 0 && sampleIdx < mainLoopIdx, 'samplePreLoopState must be called before Module._mainLoop');
+});
+
 console.log(`\nResults: ${passed} passed, ${failed} failed\n`);
 if (failed > 0) process.exit(1);
