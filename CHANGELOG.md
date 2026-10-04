@@ -1,3 +1,18 @@
+## [0.148.0] — 2026-10-04
+
+### Feat: [Emulator] Live in-game trigger overlay for step-on and B-triggers
+
+- **Real-Time Trigger HUD Overlay**:
+  - Live in-game rendering of Step-on (pink `#ff69b4`, `rgba(255,100,180,0.22)`) and B-triggers (yellow `#ffcc00`, `rgba(255,210,0,0.22)`) directly on top of the emulator canvas every frame, matching the look and feel of the Rooms map editor.
+  - Dynamically tracks SNES camera scroll (`camera_x`, `camera_y` at `$7E0112`/`$7E0114`), room offsets (`trig_off_x`, `trig_off_y` at `$7E0F86`/`$7E0F88`), and room IDs (`$7E0ADB`) from WRAM with automatic fallback to ROM map headers.
+  - Draws uppercase hex script ID labels at the top-left of each trigger box with a dark background pill for high-contrast legibility.
+  - Zero-latency native HTML5 Canvas 2D rendering without requiring any external Lua interpreter runtime.
+- **Trigger Overlay Controls**:
+  - Defaults to **ON**.
+  - Accessible via floating screen chip button (`#screen-trigger-toggle`, `TRIGGERS ON` / `TRIGGERS OFF`) in the upper-right corner of the emulator viewport.
+  - Accessible via control panel checkbox (`#ss-overlay-toggle`) in `#ss-controls`.
+  - Both toggle controls stay synchronized; clicking the chip refocuses the emulator canvas so keyboard gameplay inputs remain uninterrupted.
+
 ## [0.147.0] — 2026-10-04
 
 ### Feat: [Emulator] Clean script stack live telemetry and column-aligned trace addresses

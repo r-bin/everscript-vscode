@@ -14,6 +14,76 @@ function _nonce() {
     return n;
 }
 
+function parseRoomTriggers(rom, mapId) {
+    if (!rom || typeof mapId !== 'number' || mapId < 0 || mapId > 0x90) return null;
+    const headerOffset = (rom.length % 1024 === 512) ? 512 : 0;
+    const mapTableRom = headerOffset + 0x1ffde7;
+    const ptrAddr = mapTableRom + mapId * 4;
+    if (ptrAddr + 3 >= rom.length) return null;
+    const dataSnes = rom[ptrAddr] | (rom[ptrAddr + 1] << 8) | (rom[ptrAddr + 2] << 16);
+    if (dataSnes === 0 || dataSnes === 0xFFFFFF) return null;
+    const dataRom = headerOffset + (((dataSnes >> 16) & 0x3f) * 0x10000 + (dataSnes & 0xffff));
+    if (dataRom + 20 >= rom.length) return null;
+
+    const offX = rom[dataRom + 0];
+    const offY = rom[dataRom + 1];
+
+    const stepLen = rom[dataRom + 0x0d] | (rom[dataRom + 0x0d + 1] << 8);
+    const stepTableRom = dataRom + 0x0d + 2;
+    const bLenRom = stepTableRom + stepLen;
+    if (bLenRom + 2 >= rom.length) return null;
+    const bLen = rom[bLenRom] | (rom[bLenRom + 1] << 8);
+    const bTableRom = bLenRom + 2;
+
+    const stepOn = [];
+    if (stepLen >= 6 && stepLen % 6 === 0 && stepLen <= 600) {
+        for (let p = 0; p < stepLen; p += 6) {
+            const at = stepTableRom + p;
+            if (at + 5 >= rom.length) break;
+            stepOn.push({
+                y1: rom[at + 0],
+                x1: rom[at + 1],
+                y2: rom[at + 2],
+                x2: rom[at + 3],
+                scriptId: rom[at + 4] | (rom[at + 5] << 8),
+            });
+        }
+    }
+
+    const bTrigger = [];
+    if (bLen >= 6 && bLen % 6 === 0 && bLen <= 600) {
+        for (let p = 0; p < bLen; p += 6) {
+            const at = bTableRom + p;
+            if (at + 5 >= rom.length) break;
+            bTrigger.push({
+                y1: rom[at + 0],
+                x1: rom[at + 1],
+                y2: rom[at + 2],
+                x2: rom[at + 3],
+                scriptId: rom[at + 4] | (rom[at + 5] << 8),
+            });
+        }
+    }
+
+    return { offX, offY, stepOn, bTrigger };
+}
+
+function calculateTriggerBox(trigger, trigOffX, trigOffY, camX, camY) {
+    const posX = (trigger.x1 - trigOffX) * 16;
+    const posY = (trigger.y1 - trigOffY) * 16;
+    const boxW = Math.max(1, (trigger.x2 - trigger.x1) * 16);
+    const boxH = Math.max(1, (trigger.y2 - trigger.y1) * 16);
+    return {
+        posX,
+        posY,
+        boxW,
+        boxH,
+        sx: (posX - camX) * 2,
+        sy: (posY - camY) * 2,
+        sw: boxW * 2,
+        sh: boxH * 2,
+    };
+}
 
 // -----------------------------------------------------------------------------
 //  HTML template
@@ -51,11 +121,55 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       flex: 1; min-height: 0; background: #000;
       display: flex; align-items: center; justify-content: center;
       overflow: hidden;
+      position: relative;
     }
     #screen {
       display: block;
       width: 512px; height: 448px;
       image-rendering: pixelated; image-rendering: crisp-edges;
+    }
+    #screen-overlay-bar {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      z-index: 20;
+      display: flex;
+      gap: 6px;
+      pointer-events: none;
+    }
+    .screen-chip {
+      pointer-events: auto;
+      background: rgba(20, 20, 20, 0.75);
+      color: #888;
+      border: 1px solid #444;
+      border-radius: 3px;
+      padding: 2px 7px;
+      font-size: 10px;
+      font-family: monospace;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .screen-chip:hover {
+      background: rgba(35, 35, 35, 0.9);
+      color: #ccc;
+    }
+    .screen-chip.active {
+      background: rgba(26, 40, 26, 0.85);
+      color: #6f9;
+      border-color: #2e7d32;
+    }
+    #ss-overlay-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      color: #aaa;
+      cursor: pointer;
+      user-select: none;
+    }
+    #ss-overlay-label input {
+      cursor: pointer;
     }
     /* -- ROM picker overlay --------------------------------------------- */
     #overlay {
@@ -182,6 +296,9 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
 
   <div id="screen-wrap">
     <canvas id="screen" width="512" height="448"></canvas>
+    <div id="screen-overlay-bar">
+      <button id="screen-trigger-toggle" class="screen-chip active" type="button" title="Toggle Trigger Overlay (B &amp; Step-on)">TRIGGERS ON</button>
+    </div>
   </div>
 
   <div id="ss-resizer" title="Drag to resize panel"></div>
@@ -194,6 +311,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         <button id="ss-tab-debug" class="ss-tab" type="button">DEBUGGER &amp; HOOKS</button>
       </div>
       <div id="ss-controls">
+        <label id="ss-overlay-label" title="Toggle trigger overlay"><input type="checkbox" id="ss-overlay-toggle" checked /> triggers</label>
         <button id="ss-pause-btn"  class="ss-btn" disabled>pause</button>
         <button id="ss-resume-btn" class="ss-btn" disabled>resume</button>
         <button id="ss-toggle-btn" class="ss-btn">hide panel</button>
@@ -474,6 +592,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
 
     // -- ROM loading -----------------------------------------------------------
     let romLoaded = false;
+    let loadedRomData = null;
     let romLaunchTimestamp = 0;
     let romFrameCount = 0;
 
@@ -494,6 +613,9 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         romStage('core start complete');
 
         romLoaded = true;
+        loadedRomData = romData;
+        cachedMapId = -1;
+        cachedTriggers = null;
         romLaunchTimestamp = performance.now();
         romFrameCount = 0;
         initAudio();
@@ -566,10 +688,120 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
             imageData.data.set(new Uint8ClampedArray(HEAPU8.buffer, fbPtr, 512 * 448 * 4));
             ctx.putImageData(imageData, 0, 0);
           }
+          if (triggersOverlayEnabled) {
+            renderTriggersOverlay(ctx);
+          }
           checkScriptExecutionTrace();
         }
       }
       requestAnimationFrame(frame);
+    }
+
+    // -- Trigger overlay -------------------------------------------------------
+    let triggersOverlayEnabled = true;
+    let cachedMapId = -1;
+    let cachedTriggers = null;
+
+    ${parseRoomTriggers.toString()}
+
+    ${calculateTriggerBox.toString()}
+
+    function renderTriggersOverlay(ctx) {
+      const m = getModule();
+      if (!m || !hasDebuggerApi(m) || !loadedRomData) return;
+
+      let camX = 0;
+      let camY = 0;
+      let mapId = -1;
+      let trigOffX = 0;
+      let trigOffY = 0;
+
+      try {
+        const camBuf = m.readMemoryRange(0x7E0112, 4);
+        if (!camBuf || camBuf.length < 4) return;
+        const rawX = camBuf[0] | (camBuf[1] << 8);
+        camX = rawX >= 0x8000 ? rawX - 0x10000 : rawX;
+        const rawY = camBuf[2] | (camBuf[3] << 8);
+        camY = rawY >= 0x8000 ? rawY - 0x10000 : rawY;
+
+        const mapBuf = m.readMemoryRange(0x7E0ADB, 1);
+        if (!mapBuf || mapBuf.length < 1) return;
+        mapId = mapBuf[0];
+
+        const offBuf = m.readMemoryRange(0x7E0F86, 4);
+        if (!offBuf || offBuf.length < 4) return;
+        const rawOX = offBuf[0] | (offBuf[1] << 8);
+        trigOffX = rawOX >= 0x8000 ? rawOX - 0x10000 : rawOX;
+        const rawOY = offBuf[2] | (offBuf[3] << 8);
+        trigOffY = rawOY >= 0x8000 ? rawOY - 0x10000 : rawOY;
+      } catch (_) {
+        return;
+      }
+
+      if (mapId < 0 || mapId > 0x90) return;
+
+      if (mapId !== cachedMapId) {
+        cachedMapId = mapId;
+        cachedTriggers = parseRoomTriggers(loadedRomData, mapId);
+      }
+
+      if (!cachedTriggers) return;
+
+      if (trigOffX === 0 && trigOffY === 0 && (cachedTriggers.offX || cachedTriggers.offY)) {
+        trigOffX = cachedTriggers.offX;
+        trigOffY = cachedTriggers.offY;
+      }
+
+      const stepOn = cachedTriggers.stepOn || [];
+      const bTrigger = cachedTriggers.bTrigger || [];
+      if (!stepOn.length && !bTrigger.length) return;
+
+      ctx.save();
+
+      // Step-on triggers: Pink (#ff69b4, rgba(255, 100, 180, 0.22))
+      ctx.lineWidth = 1;
+      for (let i = 0; i < stepOn.length; i++) {
+        const box = calculateTriggerBox(stepOn[i], trigOffX, trigOffY, camX, camY);
+        if (box.sx + box.sw <= 0 || box.sx >= 512 || box.sy + box.sh <= 0 || box.sy >= 448) continue;
+
+        ctx.fillStyle = 'rgba(255, 100, 180, 0.22)';
+        ctx.fillRect(box.sx, box.sy, box.sw, box.sh);
+        ctx.strokeStyle = '#ff69b4';
+        ctx.strokeRect(box.sx + 0.5, box.sy + 0.5, box.sw - 1, box.sh - 1);
+
+        const label = (stepOn[i].scriptId >>> 0).toString(16).toUpperCase();
+        ctx.font = '9px monospace';
+        const tw = ctx.measureText(label).width;
+        const labelX = Math.max(0, box.sx);
+        const labelY = Math.max(0, box.sy);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+        ctx.fillRect(labelX, labelY, tw + 4, 11);
+        ctx.fillStyle = '#ff69b4';
+        ctx.fillText(label, labelX + 2, labelY + 9);
+      }
+
+      // B-triggers: Yellow (#ffcc00, rgba(255, 210, 0, 0.22))
+      for (let i = 0; i < bTrigger.length; i++) {
+        const box = calculateTriggerBox(bTrigger[i], trigOffX, trigOffY, camX, camY);
+        if (box.sx + box.sw <= 0 || box.sx >= 512 || box.sy + box.sh <= 0 || box.sy >= 448) continue;
+
+        ctx.fillStyle = 'rgba(255, 210, 0, 0.22)';
+        ctx.fillRect(box.sx, box.sy, box.sw, box.sh);
+        ctx.strokeStyle = '#ffcc00';
+        ctx.strokeRect(box.sx + 0.5, box.sy + 0.5, box.sw - 1, box.sh - 1);
+
+        const label = (bTrigger[i].scriptId >>> 0).toString(16).toUpperCase();
+        ctx.font = '9px monospace';
+        const tw = ctx.measureText(label).width;
+        const labelX = Math.max(0, box.sx);
+        const labelY = Math.max(0, box.sy);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+        ctx.fillRect(labelX, labelY, tw + 4, 11);
+        ctx.fillStyle = '#ffcc00';
+        ctx.fillText(label, labelX + 2, labelY + 9);
+      }
+
+      ctx.restore();
     }
 
     // -- WRAM / Script stack ---------------------------------------------------
@@ -1131,6 +1363,39 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       });
     }
 
+    function setTriggersOverlay(enabled) {
+      triggersOverlayEnabled = !!enabled;
+      const chip = document.getElementById('screen-trigger-toggle');
+      if (chip) {
+        if (triggersOverlayEnabled) {
+          chip.classList.add('active');
+          chip.textContent = 'TRIGGERS ON';
+        } else {
+          chip.classList.remove('active');
+          chip.textContent = 'TRIGGERS OFF';
+        }
+      }
+      const cb = document.getElementById('ss-overlay-toggle');
+      if (cb) cb.checked = triggersOverlayEnabled;
+    }
+
+    const triggerChip = document.getElementById('screen-trigger-toggle');
+    if (triggerChip) {
+      triggerChip.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setTriggersOverlay(!triggersOverlayEnabled);
+        const screenCanvas = document.getElementById('screen');
+        if (screenCanvas) screenCanvas.focus();
+      });
+    }
+
+    const triggerCb = document.getElementById('ss-overlay-toggle');
+    if (triggerCb) {
+      triggerCb.addEventListener('change', () => {
+        setTriggersOverlay(triggerCb.checked);
+      });
+    }
+
     function selectTab(tabName) {
       const tabs = ['trace', 'stack', 'debug'];
       for (const t of tabs) {
@@ -1437,4 +1702,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
 </html>`;
 }
 
-module.exports = { buildHtml: _buildHtml };
+module.exports = {
+  buildHtml: _buildHtml,
+  parseRoomTriggers,
+  calculateTriggerBox,
+};
