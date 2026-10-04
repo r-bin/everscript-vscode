@@ -149,6 +149,10 @@ Key scopes:
 | `entity.name.function.decorator.evs` | `@install`, `@inject`, etc. |
 | `keyword.preprocessor.evs` | `#memory`, `#include`, `#patch` |
 
-## Development Notes
+## License & Legal
 
-See [`docs/vscode-highlighter-spec.md`](../everscript/docs/vscode-highlighter-spec.md) in the main repo for the full design spec.
+This extension is licensed under the [MIT License](file:///Users/v/Documents/GitHub/everscript-vscode/LICENSE).
+
+The embedded SNES emulator WebAssembly core (`snes9x2005-wasm`) is distributed for personal, non-commercial use in accordance with the Snes9x non-commercial license and GNU General Public License v2 (GPL-2.0). Source code repository links and full copyright information are documented in [THIRD_PARTY_LICENSES.md](file:///Users/v/Documents/GitHub/everscript-vscode/THIRD_PARTY_LICENSES.md).
+
+No ROMs, game audio, or proprietary assets from *Secret of Evermore* are included with this extension. Users provide their own legally acquired game ROMs for testing and debugging.

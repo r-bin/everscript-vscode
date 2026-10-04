@@ -45,7 +45,11 @@ function loadRom(romPath) {
         try { return candidate && fs.existsSync(candidate); } catch { return false; }
     });
     if (!finalPath) return null;
-    return fs.readFileSync(finalPath);
+    try {
+        return fs.readFileSync(finalPath);
+    } catch {
+        return null;
+    }
 }
 
 function parseTraceLines(traceText) {

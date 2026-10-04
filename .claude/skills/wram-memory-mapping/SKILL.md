@@ -1,0 +1,1 @@
+../../../.github/instructions/wram-memory-mapping.instructions.md

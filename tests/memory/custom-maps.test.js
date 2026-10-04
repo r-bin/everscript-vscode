@@ -209,10 +209,14 @@ test('the sample .evs enters the map at the start and lists drawn triggers', () 
     assert.match(evs, /B-trigger\s+\[2,3 : 3,3\]/);
 });
 
-if (!fs.existsSync(ROM_PATH)) {
-    console.log(`SKIP archive ROM checks: ${ROM_PATH} not found`);
+let rom = null;
+try {
+    if (fs.existsSync(ROM_PATH)) rom = new Uint8Array(fs.readFileSync(ROM_PATH));
+} catch (_) {}
+
+if (!rom) {
+    console.log(`SKIP archive ROM checks: ${ROM_PATH} not found or unreadable`);
 } else {
-    const rom = new Uint8Array(fs.readFileSync(ROM_PATH));
     const rooms = require('../../src/rooms');
     const maps = require('../../src/maps');
     test('the archive holds the blob, the editor file, the .evs, the stamps and a README', () => {

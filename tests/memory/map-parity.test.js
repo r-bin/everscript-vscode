@@ -59,11 +59,15 @@ function check(label, actual, expected) {
 }
 
 function main() {
-    if (!fs.existsSync(EVERSCRIPT_REPO)) skip(`everscript repo not found at ${EVERSCRIPT_REPO}`);
-    if (!fs.existsSync(ROM_PATH)) skip(`ROM not found at ${ROM_PATH}`);
-    if (!fs.existsSync(PYTHON)) skip(`python not found at ${PYTHON}`);
-
-    const rom = new Uint8Array(fs.readFileSync(ROM_PATH));
+    let rom;
+    try {
+        if (!fs.existsSync(EVERSCRIPT_REPO)) return skip(`everscript repo not found at ${EVERSCRIPT_REPO}`);
+        if (!fs.existsSync(ROM_PATH)) return skip(`ROM not found at ${ROM_PATH}`);
+        if (!fs.existsSync(PYTHON)) return skip(`python not found at ${PYTHON}`);
+        rom = new Uint8Array(fs.readFileSync(ROM_PATH));
+    } catch (err) {
+        return skip(`Cannot read ROM or repo: ${err.message}`);
+    }
     const rooms = process.env.MAP_PARITY_ALL ? Array.from({ length: MAX_ROOMS }, (_, i) => i) : SAMPLE_ROOMS;
 
     console.log(`map-parity: comparing ${rooms.length} rooms against ${PYTHON}`);

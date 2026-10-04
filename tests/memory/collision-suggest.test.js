@@ -92,10 +92,14 @@ test('overlayLayer recovers what a blend drew, as colour and alpha', () => {
 
 // ── against the ROM ─────────────────────────────────────────────────────────
 
-if (!fs.existsSync(ROM_PATH)) {
-    console.log(`SKIP collision ROM checks: ${ROM_PATH} not found`);
+let rom = null;
+try {
+    if (fs.existsSync(ROM_PATH)) rom = new Uint8Array(fs.readFileSync(ROM_PATH));
+} catch (_) {}
+
+if (!rom) {
+    console.log(`SKIP collision ROM checks: ${ROM_PATH} not found or unreadable`);
 } else {
-    const rom = new Uint8Array(fs.readFileSync(ROM_PATH));
     const rooms = require('../../src/rooms');
     const index = maps.buildVanillaIndex(rom);
 

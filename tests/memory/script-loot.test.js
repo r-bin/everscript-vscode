@@ -63,12 +63,16 @@ function flagLine(mapId, facts) {
 }
 
 function main() {
-    if (!fs.existsSync(ROM)) skip(`ROM not found at ${ROM}`);
-    if (!fs.existsSync(FLAGS)) skip(`sniffflags.inc not found at ${FLAGS}`);
-
-    const rom = new Uint8Array(fs.readFileSync(ROM));
-    const want = fs.readFileSync(FLAGS, 'utf8')
-        .split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('//'));
+    let rom, want;
+    try {
+        if (!fs.existsSync(ROM)) return skip(`ROM not found at ${ROM}`);
+        if (!fs.existsSync(FLAGS)) return skip(`sniffflags.inc not found at ${FLAGS}`);
+        rom = new Uint8Array(fs.readFileSync(ROM));
+        want = fs.readFileSync(FLAGS, 'utf8')
+            .split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('//'));
+    } catch (err) {
+        return skip(`Cannot read ROM or sniffflags.inc: ${err.message}`);
+    }
 
     const got = [];
     const seen = new Set();

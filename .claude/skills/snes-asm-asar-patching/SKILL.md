@@ -1,0 +1,1 @@
+../../../.github/instructions/snes-asm-asar-patching.instructions.md

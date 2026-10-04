@@ -32,7 +32,11 @@ workflow.
    All of these except `check:dead` (advisory) and `check:deps` (warn level) must pass
    before proceeding. Fix failures before continuing.
 3. **Commit** to `develop` with the message format below.
-4. **Install** the extension for local use:
+4. **Push** branch commits to remote:
+   ```
+   git push origin develop
+   ```
+5. **Install** the extension for local use:
    ```
    npm run deploy
    ```

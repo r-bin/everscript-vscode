@@ -34,7 +34,6 @@ of:
 | `src/language/tests/highlight.test.evs` | Grammar unit tests (vscode-tmgrammar-test) |
 | `docs/future-features.md` | Roadmap — read before starting new features |
 | `docs/vscode-highlighter-spec.md` | Token category spec |
-| `CHANGELOG.md` | User-facing change history — update on every version bump |
 | `AI_ARCHITECTURE_GUIDE.md` | Architectural laws, file size limits, ownership rules |
 | `STATE_FLOW.md` | Authoritative state ownership table |
 | `docs/architecture/domain-overview.md` | Which `src/` domains to load for a given task |

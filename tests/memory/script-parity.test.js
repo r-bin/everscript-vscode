@@ -119,11 +119,17 @@ function check(label, actual, expected) {
 }
 
 function main() {
-    if (!fs.existsSync(ROM)) skip(`ROM not found at ${ROM}`);
-    if (!fs.existsSync(DUMP)) skip(`script_all not found at ${DUMP}`);
+    let rom, dump;
+    try {
+        if (!fs.existsSync(ROM)) return skip(`ROM not found at ${ROM}`);
+        if (!fs.existsSync(DUMP)) return skip(`script_all not found at ${DUMP}`);
+        rom = new Uint8Array(fs.readFileSync(ROM));
+        dump = fs.readFileSync(DUMP, 'latin1');
+    } catch (err) {
+        return skip(`Cannot read ROM or script_all: ${err.message}`);
+    }
 
-    const rom = new Uint8Array(fs.readFileSync(ROM));
-    const { known, entries, summaries } = readGroundTruth(rom, fs.readFileSync(DUMP, 'latin1'));
+    const { known, entries, summaries } = readGroundTruth(rom, dump);
     console.log(`script-parity: ${known.size} instruction addresses, ${entries.size} entry points`);
 
     let emitted = 0;

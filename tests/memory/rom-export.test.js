@@ -131,10 +131,14 @@ test('a ROM room draft is not exportable', () => {
 
 // ── against the ROM ─────────────────────────────────────────────────────────
 
-if (!fs.existsSync(ROM_PATH)) {
-    console.log(`SKIP rom-export ROM checks: ${ROM_PATH} not found`);
+let rom = null;
+try {
+    if (fs.existsSync(ROM_PATH)) rom = new Uint8Array(fs.readFileSync(ROM_PATH));
+} catch (_) {}
+
+if (!rom) {
+    console.log(`SKIP rom-export ROM checks: ${ROM_PATH} not found or unreadable`);
 } else {
-    const rom = new Uint8Array(fs.readFileSync(ROM_PATH));
     const script = require('../../src/script');
     const { buildExportRom, BRIAN_ROOM, INTRO_FIRST_CODE } = require('../../src/rooms/rendering/rom-export');
 

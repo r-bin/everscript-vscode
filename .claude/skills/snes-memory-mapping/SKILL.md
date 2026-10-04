@@ -1,0 +1,1 @@
+../../../.github/instructions/snes-memory-mapping.instructions.md

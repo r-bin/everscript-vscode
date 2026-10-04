@@ -85,7 +85,7 @@ If room maps cannot be bundled in the extension (item icons no longer need this 
 - [ ] Test suite passes with no ROM present (mock ROM data or skip ROM-dependent tests)
 - [ ] `.github/copilot-instructions.md` sanitized for public view
 - [ ] `dev_notes.md`, `todo.md` archived or removed
-- [ ] `CHANGELOG.md` and `README.md` updated
+- [ ] `README.md` updated
 - [ ] Version bumped in `package.json`
 - [ ] `vsce package` produces a clean `.vsix` with no copyrighted assets
 - [ ] Manual smoke-test: fresh install, no ROM, configure ROM path, verify all tabs
