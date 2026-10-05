@@ -1,1 +1,0 @@
-../../../.github/instructions/rom-map-data.instructions.md

@@ -1,1 +1,0 @@
-../../../.github/instructions/map-editor-rules.instructions.md

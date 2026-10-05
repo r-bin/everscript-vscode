@@ -5,7 +5,7 @@ a richer model so a person can draw: stamps instead of dictionary indices, layer
 instead of words, widgets instead of raw rectangles. This page lists every such
 concept, says which bytes it finally becomes (or that it becomes none), and points
 at the code. The rules the editor must obey are the `map-editor-rules` skill
-(`.github/instructions/map-editor-rules.instructions.md`). This page is the map
+(`.agents/skills/map-editor-rules/SKILL.md`). This page is the map
 of what exists.
 
 Code lives in `src/rooms/webview/map-editor-*.js` (the webview, plain scripts

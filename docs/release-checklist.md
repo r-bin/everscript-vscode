@@ -13,7 +13,7 @@
 | Ingredient images (`/Users/v/Documents/assets/ingredients/*.webp`) | Local assets path baked into extension code | 🔴 CRITICAL if sprites are ripped from ROM; 🟡 MEDIUM if they are original art | Bundle original art in the extension, OR strip ingredient images entirely (fall back to labels/emoji), OR provide a downloadable asset pack |
 | Room images (`docs/rooms/images/*.png`) | `wsRoot/docs/rooms/images/` | 🟡 MEDIUM — these are screenshots/renders from the game | Replace with original art or procedurally-generated minimaps, OR gate behind user-supplied ROM |
 | Memory map data (`.github/memory-map.md`) | Workspace (not extension) | 🟢 LOW — it is documentation, not game assets | Keep as-is; it is community research, not copyrighted game data |
-| Script dump (`SoETilesViewer/SoEScriptDumper/script_all`) | Sibling repo (not bundled in extension) | 🟢 LOW — not bundled | Remove path references from copilot-instructions if repo is open-sourced |
+| Script dump (`SoETilesViewer/SoEScriptDumper/script_all`) | Sibling repo (not bundled in extension) | 🟢 LOW — not bundled | Remove path references from AGENTS.md if repo is open-sourced |
 
 ---
 
@@ -38,7 +38,7 @@ The extension currently assumes a specific workspace layout and local asset path
 | Hardcoded local paths (`/Users/v/Documents/…`) | 🔴 CRITICAL | Replace with settings or extension-bundled paths |
 | `console.log` / debug output in extension host | 🟡 MEDIUM | Strip or gate behind a debug flag |
 | Test fixture files that contain ROM-derived values | 🟡 MEDIUM | Verify test fixtures contain no ROM data; replace with synthetic test data if needed |
-| `.github/copilot-instructions.md` (agent rules, path to sibling repo) | 🟡 MEDIUM | Remove or sanitize before public release |
+| `AGENTS.md` (agent rules, path to sibling repo) | 🟡 MEDIUM | Remove or sanitize before public release |
 | `dev_notes.md`, `todo.md` (internal notes) | 🟢 LOW | Remove or archive |
 | Dependency on `SoETilesViewer` sibling repo (C++ tool) | 🟢 LOW | Extension does not bundle it, but scripts reference its path |
 
@@ -83,7 +83,7 @@ If room maps cannot be bundled in the extension (item icons no longer need this 
 - [ ] Ingredient images confirmed: original art or properly licensed
 - [ ] Room images confirmed: original art or removed
 - [ ] Test suite passes with no ROM present (mock ROM data or skip ROM-dependent tests)
-- [ ] `.github/copilot-instructions.md` sanitized for public view
+- [ ] `AGENTS.md` sanitized for public view
 - [ ] `dev_notes.md`, `todo.md` archived or removed
 - [ ] `README.md` updated
 - [ ] Version bumped in `package.json`

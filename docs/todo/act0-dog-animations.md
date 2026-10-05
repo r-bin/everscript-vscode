@@ -193,7 +193,7 @@ area while the Dog changes pose, and record the result in
 5. **Free-space ledger**: confirm the dead block ids, the `$C4` record space and
    the `$CA`–`$D3` sprite-info space, each with the evidence for why it is free.
    Never write over bytes that are only "probably unused"
-   ([map-editor-rules](../../.github/instructions/map-editor-rules.instructions.md)'s
+   ([map-editor-rules](../../.agents/skills/map-editor-rules/SKILL.md)'s
    "never invent data the ROM does not have" applies in reverse here: never
    claim space the ROM does not give up).
 6. **Art**: pixel the ~85 poses in the Act 0 palette. Start from the wolf's

@@ -1,1 +1,0 @@
-../../../.github/instructions/map-construction.instructions.md

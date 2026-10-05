@@ -1,1 +1,0 @@
-../../../.github/instructions/alchemy-spell-mechanics.instructions.md

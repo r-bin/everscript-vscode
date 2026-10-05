@@ -1,1 +1,0 @@
-../../../.github/instructions/grammar-rules.instructions.md

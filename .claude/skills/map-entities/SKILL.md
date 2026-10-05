@@ -1,1 +1,0 @@
-../../../.github/instructions/map-entities.instructions.md

@@ -97,8 +97,8 @@
 **Forbidden deps:** `rooms`, `scaling`, `debugger`, `emulator`, `vscode` (for pure functions)
 
 **Documentation:** `memory_radar/README.md`
-**Requirements:** `.github/copilot-instructions.md` §9 (Memory Radar section)
-**Future Skill:** `.global/skills/memory-radar.md` (not yet created)
+**Requirements:** `AGENTS.md` (Memory Radar section)
+**Skill:** `.agents/skills/memory-radar/SKILL.md`
 
 ---
 

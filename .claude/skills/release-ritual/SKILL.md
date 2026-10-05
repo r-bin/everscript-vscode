@@ -1,1 +1,0 @@
-../../../.github/instructions/release-ritual.instructions.md

@@ -1,1 +1,0 @@
-../../../.github/instructions/code-quality.instructions.md

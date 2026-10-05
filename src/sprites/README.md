@@ -43,4 +43,4 @@ The radar tab is called **Characters** (it was "Sprites"); inside it, three mode
 
 The animation and entity rules this tab encodes (attack facing rounding, stamina →
 attack level, palette precedence, the home palette slot, Dog forms) are in the
-`animation-script` and `map-entities` skills (`.github/instructions/`).
+`animation-script` and `map-entities` skills (`.agents/skills/`).

@@ -1002,4 +1002,4 @@ The dock has grown past the mock's five tabs. What was added, where it lives:
   (`map-editor-trigger-order.js`).
 - **Levels, groups, copy/paste, the smart pencil and eyedropper,
   collision modes, stairs and animations** (v0.70.0 – v0.77.0): see
-  CHANGELOG.md and `.github/instructions/map-editor-rules.instructions.md`.
+  `.agents/skills/map-editor-rules/SKILL.md`.

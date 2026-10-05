@@ -1,1 +1,0 @@
-../../../.github/instructions/sprites-subsystem.instructions.md

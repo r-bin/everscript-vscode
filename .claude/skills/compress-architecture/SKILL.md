@@ -1,1 +1,0 @@
-../../../.github/instructions/compress-architecture.instructions.md

@@ -164,9 +164,8 @@ Counter-measures:
 - `AI_ARCHITECTURE_GUIDE.md` — laws (this file)
 - `STATE_FLOW.md` — authoritative state flow map
 - Per-domain `src/<domain>/README.md` — local ownership contracts
-- `.github/instructions/`, `.claude/skills/`, and `GEMINI.md` imports — reusable
-  architectural operation skills (`compress-architecture`, `isolate-subsystem`,
-  `stabilize-state-flow`, `split-orchestration`)
+- `.agents/skills/` — reusable architectural operation skills (`compress-architecture`,
+  `isolate-subsystem`, `stabilize-state-flow`, `split-orchestration`)
 - File size limits — enforced by commit review
 
 ---

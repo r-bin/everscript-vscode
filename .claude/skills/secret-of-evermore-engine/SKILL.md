@@ -1,1 +1,0 @@
-../../../.github/instructions/secret-of-evermore-engine.instructions.md

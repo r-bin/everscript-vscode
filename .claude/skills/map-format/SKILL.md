@@ -1,1 +1,0 @@
-../../../.github/instructions/map-format.instructions.md

@@ -1,1 +1,0 @@
-../../../.github/instructions/split-orchestration.instructions.md
