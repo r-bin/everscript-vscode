@@ -165,6 +165,9 @@ snesrecomp's runner, and then the lockstep RAM comparison against the real ROM
 
 ## 6. Getting more out of it
 
+Where this leads, and why the generated C is the runtime and test rig rather than the
+end product: [asm-to-c-port.md §11](../asm-to-c-port.md#11-does-the-current-path-reach-the-goal-assessment-2026-10-06).
+
 - **Play more.** Every new function the recorder sees is a new root. Export again and
   re-run `recomp.sh`.
 - **Resolve the indirect jumps.** The 376 interpreter-only variants mostly sit behind

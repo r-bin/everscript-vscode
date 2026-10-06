@@ -1,7 +1,8 @@
 # From traced ASM to C: the Secret of Evermore port process
 
-> Status: **plan.** Stage 1 (byte-exact Asar export from the CDL recorder) shipped in
-> v0.156.0. Everything after it is design.
+> Status: **in progress.** Stage 1 (byte-exact Asar export) shipped in v0.156.0, room/string
+> relocation in v0.158.0, and the stage 3 lift via snesrecomp in v0.159.x. Where this
+> stands and what comes next: §11.
 > Prerequisite reading: [tracing-disassembler-and-asar-generation.md](tracing-disassembler-and-asar-generation.md).
 > Step-by-step usage: [workflows/cdl-export-build-recomp.md](workflows/cdl-export-build-recomp.md).
 
@@ -39,8 +40,8 @@ source.
  Stage 0  CDL coverage          play / TAS / merge sessions until coverage plateaus
  Stage 1  Byte-exact Asar       ✅ v0.156.0 — export asar, rebuild, hash matches
  Stage 2  Shiftable Asar        every address is a symbol; padding test passes
- Stage 3  Mechanical lift       one C function per asm routine, ugly but compilable
- Stage 4  Lockstep hybrid       C replaces routines one by one; per-frame RAM diff = 0
+ Stage 3  Mechanical lift       ✅ snesrecomp, CDL-seeded — compiles; not booting yet (§11)
+ Stage 4  Lockstep hybrid       hand-written C replaces routines (snesrecomp hle_func); RAM diff = 0
  Stage 5  Cleanup               registers → locals, addresses → struct fields, enums
  Stage 6  Break compatibility   widen ids, data-driven tables, new content
 ```
@@ -160,6 +161,13 @@ Ghidra's 65816 module is useful for reading a routine, but its output is not a s
 lifted code: it gets widths and banks wrong too often.
 
 ## 6. Stage 4 — lockstep hybrid (the core of the method)
+
+> **Update (v0.159.1):** with snesrecomp, machine B is the recompiled game, not snes9x with a
+> hook table. A hand-written routine replaces the generated one via
+> `hle_func <pc16> <c_name>` in the bank cfg (snesrecomp `docs/HLE_FUNC.md`). snesrecomp
+> also has its own diff tooling (`tools/wram_diff.py`, co-simulation design in
+> `SNES_COSIM.md`). Everything below about the diff, bisecting and the timing caveat still
+> applies. It needs the recompiled game to boot first (§11, step 2).
 
 Run two machines from the same input movie:
 
@@ -327,6 +335,66 @@ or ROM bytes.
 | Export folder build: `build.sh` → ROM + `.cdl` (flags follow labels), `STEPS.md` export log | ✅ v0.158.0 |
 | Shiftable export (all pointer forms symbolised) + padding test | partial: room and string pointers only |
 | 65816 → C lifter with M/X specialisation | ✅ via snesrecomp, seeded from the CDL (`recomp.sh`, v0.159.0); SoE run in v0.159.1, see §5.0 |
-| Hook table in snes9x to call C routines at PC | ❌ |
+| Replace a routine with hand-written C | available in snesrecomp (`hle_func`); none written yet |
+| SoE booting in snesrecomp (host / frame driver) | ❌, the next milestone (§11) |
 | Lockstep two-machine frame diff + divergence report | ❌ |
 | Asset extractor (ROM → `assets/`) | partial (rooms) |
+
+---
+
+## 11. Does the current path reach the goal? (assessment, 2026-10-06)
+
+The goal has two parts, and the path reaches them differently.
+
+### 11.1 ROM goal: move content, add rooms. **Yes, first milestone reached.**
+
+The Asar export rebuilds byte-identically. Rooms and strings are named blobs, and the map
+table and string key table are label expressions, so moving a room or adding rooms up to
+256 works now (§8.1.1, verified). Two parts are still open:
+
+- **Moving code or growing WRAM structs:** only room and string pointers are symbolic.
+  Code pointers, bank bytes, jump tables and WRAM addresses are still raw (§4).
+- **More than 256 rooms:** the room id is 8-bit in WRAM (`$0ADB`) and in the loader's
+  index math. That needs readable code at every place the id is used (§8.3), which is the
+  C goal below.
+
+### 11.2 C goal: readable C. **Only half of the way.**
+
+The snesrecomp output is **machine C, not a decomp**:
+
+- functions like `func_C08650_M0X0(CpuState *cpu)`, with registers and flags as state;
+- 346k lines, **regenerated from scratch on every run**.
+
+Editing or refactoring it by hand is a dead end: the next regeneration discards it.
+
+Its real role is **runtime and test rig**. snesrecomp can replace any single generated
+function with hand-written C (`hle_func`) while everything else stays generated. That is
+the zelda3 method of §6, with the recompiled game as machine B. Readable C grows one
+verified function at a time, and the generated C shrinks accordingly.
+
+### 11.3 What blocks progress, in order of impact
+
+1. **Nothing runs yet.** Today the output is a static library. Until SoE boots in
+   snesrecomp, no replaced function can be checked against the original. The host
+   (frame driver, snesrecomp's `game_rtl.c` step) is the next hard milestone, more
+   important than more seeds.
+2. **Coverage.** 94.7 % of the ROM is untouched by the CDL, and only 3 rooms were ever
+   loaded, so most of the Asar export is still `incbin rom.bin`. Coverage limits the
+   disassembly, the seeds and the lockstep check alike.
+3. **Indirect jumps.** 376 of 1084 function variants stay interpreter-only, mostly behind
+   jump tables. The 46 observed sites are in the cfgs as comments (§5.0).
+
+### 11.4 Next steps
+
+1. **Raise coverage:** long sessions, every room, menu, boss and death. Optional: feed
+   snesrecomp's statically found functions (`generated/program_manifest.json`) back into
+   the Asar export as code, so less of it stays `incbin`.
+2. **Boot SoE in snesrecomp:** write the host and frame driver, then set up the per-frame
+   RAM diff against the embedded emulator (or snesrecomp's `wram_diff.py`).
+3. **First `hle_func` replacements where the semantics are already known:** the LZSS and
+   Markov decoders and the room blob layout are ported and verified for the map editor
+   (`src/maps/`). The room loader (`$908F6A`) is also where the room id will be widened.
+4. **Widen the room id:** verify in compat mode first, then extend (§8.4).
+5. **In parallel, on the ROM side:** symbolise more pointer forms (§8.1) with the padding
+   test (§4) as the check. This is what moving code and data beyond rooms and strings needs.
+
