@@ -3,6 +3,7 @@
 Host side of the CDL recorder compiled into the debugger core
 (`core/snes9x2005-wasm/source/cdl.c`, gated by `#if EVS_CDL`, constant on).
 Design: `docs/tracing-disassembler-and-asar-generation.md` section 9.
+Usage (record → export → `build.sh` → `recomp.sh`): `docs/workflows/cdl-export-build-recomp.md`.
 
 | File | Role |
 |---|---|

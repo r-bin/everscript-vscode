@@ -3,6 +3,7 @@
 > Status: **plan.** Stage 1 (byte-exact Asar export from the CDL recorder) shipped in
 > v0.156.0. Everything after it is design.
 > Prerequisite reading: [tracing-disassembler-and-asar-generation.md](tracing-disassembler-and-asar-generation.md).
+> Step-by-step usage: [workflows/cdl-export-build-recomp.md](workflows/cdl-export-build-recomp.md).
 
 ---
 
