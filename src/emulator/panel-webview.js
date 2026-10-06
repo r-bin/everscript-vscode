@@ -13,6 +13,7 @@ const {
     getBottomBarViewsHtml,
     getBottomBarClientScript,
 } = require('./bottom-bar-views');
+const { getCdlCss, getCdlTabButtonHtml, getCdlViewHtml, getCdlClientScript } = require('./cdl-view');
 
 function _nonce() {
     let n = '';
@@ -346,6 +347,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     .sx-str                { color: #ce9178; }
     .sx-aside              { color: #777; }
     ${getBottomBarCss()}
+    ${getCdlCss()}
   </style>
 </head>
 <body>
@@ -383,6 +385,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         <button id="ss-tab-trace" class="ss-tab active" type="button">SCRIPT TRACE (<span id="ss-tab-trace-count">0</span>)</button>
         <button id="ss-tab-stack" class="ss-tab" type="button">SCRIPT STACK (<span id="ss-count">waiting...</span>)</button>
         ${getBottomBarTabButtonsHtml()}
+        ${getCdlTabButtonHtml()}
         <button id="ss-tab-debug" class="ss-tab" type="button">DEBUGGER &amp; HOOKS</button>
       </div>
       <div id="ss-controls">
@@ -418,6 +421,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     </div>
 
     ${getBottomBarViewsHtml()}
+
+    ${getCdlViewHtml()}
 
     <!-- Tab 3: Debugger & Breakpoints -->
     <div id="ss-view-debug" class="ss-tab-view">
@@ -685,6 +690,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         romStage('decode complete: ' + romData.length + ' bytes');
 
         romStage('core start begin');
+        cdlBeforeRomChange();
         const ptr = Module._my_malloc(romData.length);
         HEAPU8.set(romData, ptr);
         Module._startWithRom(ptr, romData.length, AUDIO_FREQ);
@@ -2535,9 +2541,11 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
 
     ${getBottomBarClientScript()}
 
+    ${getCdlClientScript()}
+
     function selectTab(tabName) {
       currentBottomTab = tabName;
-      const tabs = ['trace', 'stack', 'entities', 'alchemy', 'palettes', 'cheats', 'debug'];
+      const tabs = ['trace', 'stack', 'entities', 'alchemy', 'palettes', 'cheats', 'cdl', 'debug'];
       for (const t of tabs) {
         const btn = document.getElementById('ss-tab-' + t);
         const view = document.getElementById('ss-view-' + t);
@@ -2558,6 +2566,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     if (tabPalettesBtn) tabPalettesBtn.addEventListener('click', () => selectTab('palettes'));
     const tabCheatsBtn = document.getElementById('ss-tab-cheats');
     if (tabCheatsBtn) tabCheatsBtn.addEventListener('click', () => selectTab('cheats'));
+    const tabCdlBtn = document.getElementById('ss-tab-cdl');
+    if (tabCdlBtn) tabCdlBtn.addEventListener('click', () => { selectTab('cdl'); cdlPaint(); });
     const tabDebugBtn = document.getElementById('ss-tab-debug');
     if (tabDebugBtn) tabDebugBtn.addEventListener('click', () => selectTab('debug'));
 
@@ -2797,6 +2807,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
 
     window.addEventListener('message', evt => {
       if (!evt.data) return;
+      if (handleCdlMessage(evt.data)) return;
       if (evt.data.command === 'debuggerConnectionStatus') {
         setText('ss-debug-link-status', 'dbg: ' + evt.data.text, evt.data.ok ? 'ss-ok' : 'ss-warn');
       } else if (evt.data.command === 'scriptTraceLogged') {
@@ -2901,6 +2912,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     }
 
     renderManualExecBreakpoints();
+    initCdlTab();
 
     loadCoreScript();
   </script>

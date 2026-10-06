@@ -33,6 +33,18 @@ sh tools/build_snes_core.sh vanilla
 
 Requirements:
 - Emscripten (`emcc`) in PATH (installed via Homebrew or emsdk).
+
+### CDL recorder in the custom core
+
+`source/cdl.c` / `cdl.h` record code/data coverage, call edges, memory xrefs and WRAM
+values seen. Every hook site is wrapped in `#if EVS_CDL` (defined to 1 in `cdl.h`; build
+with `-DEVS_CDL=0` to strip it). Hooks: instruction dispatch (`cpuexec.c`, all four main
+loops), `S9xGetByte/GetWord/SetByte/SetWord` (`getset.c`), DMA start (`dma.c`), NMI/IRQ
+entry (`cpuops.c`). Recording only happens inside `S9xMainLoop` (`cdl.active`), so the
+debugger's own `readMemory` calls are never attributed to the game.
+
+`source/cdl-optable.h` is generated: after changing `src/emulator/cdl/opcodes.js`, run
+`node tools/gen-cdl-optable.js` (a test fails if they drift). Host side: `src/emulator/cdl/`.
 - Output files: `snes9x_2005.js` and `snes9x_2005.wasm` placed directly inside the core folder.
 
 ---

@@ -532,3 +532,26 @@ The WRAM profile is shown as a **type map** over `$7E0000–$7FFFFF`, preferably
 | Same address, same distinct value set, at the same offset in struct copies | enum belongs to the struct member, not one instance |
 
 The output is a list of **enum candidates** (address, value set, comparing sites, confidence). The user can confirm and name them. Confirmed names go into the generated `ram.asm` and back into Everscript hover/completion.
+
+### 9.7 Implementation Status (v0.156.0)
+
+Implemented in the custom core and `src/emulator/cdl/`. Where it deviates from the plan above:
+
+| Plan | As built |
+|---|---|
+| Flush every ~30 s | The webview drains every **15 s**, plus on flush/export/stop, panel hide and ROM change. The host writes after a 2 s debounce. |
+| `EXT_CONFLICT_M/X` bits | `rom.ext` stores **`EXT_SEEN_M16` (0x08) / `EXT_SEEN_X16` (0x10)**. A conflict is derived: `CDL_ACC_8` and `SEEN_M16` both set. "Seen" bits merge with OR; a conflict bit would not. Other ext bits: 0x01 DMA source, 0x02 APU stream, 0x04 opcode head, 0x20 read as an indirect-jump pointer, 0x40 read with a 16-bit access. |
+| WRAM access struct with `instruction_site` | Split into mergeable pieces: `xrefs.bin` (instruction PC × address × R/W/width, OR), `pcstats.bin` (per instruction and address space: count/lo/hi/flags, max/min/max/OR), and `wram-values.bin` (256-bit values-seen bitmap per WRAM byte, OR). Each instruction keeps at most 128 exact addresses per space; beyond that it is a **bulk** range. |
+| Library files | `manifest.json`, `rom.cdl`, `rom.ext`, `wram-values.bin`, `xrefs.bin`, `edges.bin`, `pcstats.bin`. The binary lists carry a 4-byte magic (`EVXR`/`EVED`/`EVPS`), a format version, a count, then little-endian u32 records. |
+| Compile-time switch | Every hook is wrapped in `#if EVS_CDL`, which `cdl.h` defines to 1. Building with `-DEVS_CDL=0` removes the recorder. |
+
+**What the export answers**
+
+- **Asar code** (`export asar` in the CDL tab): `<library>/asar/main.asm`, one `banks/bank_XX.asm` per 64 KB, and `rom.bin`. Unreached and DMA-graphics runs of 32+ bytes are `incbin rom.bin:start-end` slices. It reassembles byte-identical with `asar --fix-checksum=off main.asm out.sfc`. This was verified against the vanilla and the patched ROM.
+- **Who jumps to code**: functions are call targets (JSR/JSL/JSR (abs,X)), interrupt entries and executed vectors. Each function header lists `; called by:` with the caller's function+offset and real bus address. Indirect jumps (`JMP (abs,X)` jump tables) list their observed targets as `; -> ...`.
+- **Who accesses data / WRAM**: every instruction line lists the addresses it actually touched at runtime, e.g. `[$7E4E57, $7E4EC7]`. These resolve the `LDA $12,X`-style entity-field accesses that static analysis cannot. Data labels list `; read by:`. `ram.asm` (`export wram`) lists every WRAM address with its width, readers and writers grouped by function, values seen, enum / bit-flag / jump-table-state guesses, and the bulk accessors.
+- **Lookup box**: type `7E4E57`, `4E57`, `2118` or `C0:8000`, or click a strip. It shows the accessors, the enclosing function and its callers, and what an instruction touches.
+
+**Measured cost**: headless, Secret of Evermore runs at 0.32 ms/frame with recording off and 0.37–0.45 ms/frame with it on, against a 16.7 ms frame budget.
+
+**Not built yet**: importing an external `.cdl` from the UI (`CdlLibrary.mergeImage` exists, but nothing calls it from the UI yet), struct fingerprinting (Section 3) and per-asset file extraction (Section 4). Enum guesses are noisy after a short session and sharpen as sessions merge.

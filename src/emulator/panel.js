@@ -31,6 +31,7 @@ const path   = require('path');
 const fs     = require('fs');
 const { buildHtml } = require('./panel-webview');
 const { processScriptTraceBatch } = require('./script-trace');
+const { CdlHost } = require('./cdl/host');
 
 const CORE_SUBDIR        = path.join('src', 'emulator', 'core', 'snes9x2005-wasm-vanilla');
 const CUSTOM_CORE_SUBDIR = path.join('src', 'emulator', 'core', 'snes9x2005-wasm');
@@ -54,6 +55,7 @@ let _readyTimeout  = null;
 let _romTimeout    = null;
 let _webviewReady  = false;
 const _roomMapCache = new Map();
+let _cdl           = null;   // CdlHost: per-ROM code/data log library
 
 function _describeFile(filePath) {
   try {
@@ -358,7 +360,14 @@ function openEmulatorPanel(context, rom, channel) {
         },
     );
 
+    _cdl = new CdlHost(
+      context.globalStorageUri ? context.globalStorageUri.fsPath : path.join(context.extensionPath, '.storage'),
+      m => { if (_panel) _panel.webview.postMessage(m); },
+      _log,
+    );
+
     _panel.webview.onDidReceiveMessage(msg => {
+        if (_cdl && typeof msg.command === 'string' && msg.command.startsWith('cdl') && _cdl.handle(msg)) return;
         switch (msg.command) {
             case 'ready':
             _webviewReady = true;
@@ -393,6 +402,7 @@ function openEmulatorPanel(context, rom, channel) {
               _log(`Emulator started: ${msg.name}`);
               _notifyWebviewStatus('ok', `ROM started: ${msg.name}`);
                 if (_pending) _pending = null;
+                if (_cdl && _currentRomBuffer) _cdl.romStarted(_currentRomBuffer);
                 vscode.window.setStatusBarMessage(`$(check) Emulator: ${msg.name} running`, 5000);
                 break;
 
@@ -512,6 +522,7 @@ function openEmulatorPanel(context, rom, channel) {
     _log('Emulator panel opened');
 
     _panel.onDidDispose(() => {
+      if (_cdl) { _cdl.dispose(); _cdl = null; }
       _clearReadyTimeout();
       _clearRomTimeout();
       _webviewReady = false;
