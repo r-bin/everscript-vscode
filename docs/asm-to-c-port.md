@@ -384,6 +384,14 @@ are the loader, the enter-script lookup, `CHANGE MAP` (writes) and the new-game 
 block copies (save/load, clears), which copy the 16-bit value as is. Re-check this list
 after more recording.
 
+The per-item engine limits (maps, strings, sprites, palettes, tiles) are tracked in the
+`everscript` repo's `docs/rom-extension-wishlist.md`; its §1 and §6 carry these findings.
+
+**String key table (`$91D000`):** read by `func_CCCCF5` (`8C:CCFF`, `8C:CD07`), which builds the
+address from two immediates, `lda #$0091 : sta $28` and `ldy #$D000`, then `lda [$26],y`.
+Moving the table means patching those two immediates. The export does not make immediates
+symbolic yet, but the table's entries are already `dl strkey(str_XXXX)`.
+
 Still open on the ROM side:
 
 - **Moving code or growing WRAM structs:** only room and string pointers are symbolic.
