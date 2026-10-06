@@ -192,6 +192,29 @@ moving a table means moving the label. The concrete cost of more rooms in the RO
 already documented in [map_editor_architecture_and_limitations.md §7](map-format/map_editor_architecture_and_limitations.md):
 relocate the `$9FFDE7` table and you get up to 256 rooms.
 
+### 8.1.1 Done: moving a room today (v0.158.0)
+
+The export now places the room blobs as `room_XX: incbin rooms/room_XX.bin`, and
+the map table refers to them as `dl room_XX-$400000 : db $00`. To move or grow a room:
+
+1. In its bank file, replace `room_XX:` + `incbin rooms/room_XX.bin` with
+   `incbin rom.bin:<start>-<end>` (the old bytes stay, unlabelled), or reuse the space.
+2. Put `org $F08000` / `room_XX:` / `incbin rooms/room_XX.bin` at the end of `main.asm`.
+3. `./build.sh`: the table entry becomes `$B08000`, and `build/out.cdl` carries the room's
+   CDL flags to the new place.
+
+Verified on the 4 MB SoE image, including a room that has recorded CDL flags.
+
+**Constraint:** the engine reads room pointers through the `$80-$BF` mirror, which only
+maps `$8000-$FFFF` of each bank. A room must start at `$xx8000` or above in its bank
+(for example `$F08000`, not `$F00000`), or `room_XX-$400000` points at a non-ROM address.
+It also must not cross a bank (`writeRoomAt` enforces the same).
+
+Strings work the same way: `str_<index>` labels, and the key table entry is
+`dl strkey(str_XXXX)|$800000` (the `|$800000` marks a compressed string). Each string's end
+is where the next one starts; the last string per 32 KB chunk has no known end until a
+string decompressor exists (`STEPS.md` reports how many).
+
 ### 8.2 In the C port: addresses become IDs
 
 In the port, ROM data stops being addressed by bus addresses:
@@ -258,7 +281,9 @@ or ROM bytes.
 | Byte-exact Asar export + `ram.asm` | ✅ v0.156.0 |
 | Headless snes9x frame stepping, WRAM/VRAM read-out | ✅ (headless boot harness) |
 | Room decompression / encoders in JS/Python | ✅ (map editor), these are the first leaf routines to verify |
-| Shiftable export (all pointer forms symbolised) + padding test | ❌ |
+| Known regions seeded before CDL: header, 127 rooms → `rooms/*.bin`, map table + string key table as label expressions, 3002 strings `str_<index>` | ✅ v0.158.0 |
+| Export folder build: `build.sh` → ROM + `.cdl` (flags follow labels), `STEPS.md` export log | ✅ v0.158.0 |
+| Shiftable export (all pointer forms symbolised) + padding test | partial: room and string pointers only |
 | 65816 → C lifter with M/X specialisation | ❌ |
 | Hook table in snes9x to call C routines at PC | ❌ |
 | Lockstep two-machine frame diff + divergence report | ❌ |

@@ -169,10 +169,19 @@ test('Asar export names functions, callers and accesses; reassembles byte-exact'
     assert.ok(bank.includes('bra seg_C00000+$8008'), 'unlabelled branch target via segment label');
     assert.ok(bank.includes('data_C09000:') && bank.includes('; read by: func_C08010 (80:8010)'));
     assert.strictEqual(r.functions, 2);
+    assert.ok(bank.includes('rom_header:') && bank.includes('rom_vectors:'), 'header seeded as known regions');
+    assert.ok(Buffer.from(lib.cdl).equals(fs.readFileSync(path.join(out, 'rom.cdl'))), 'rom.cdl is the library CDL');
+    const exp = JSON.parse(fs.readFileSync(path.join(out, 'export.json'), 'utf8'));
+    assert.ok(exp.labels.some(([n, o]) => n === 'func_C08010' && o === 0x8010));
+    exportAsar(lib, rom, out);
+    assert.strictEqual((fs.readFileSync(path.join(out, 'STEPS.md'), 'utf8').match(/^## Export /gm) || []).length, 2, 'one log entry per export');
     const asar = process.env.ASAR || path.resolve(ROOT, '..', 'asar', 'asar', 'bin', 'asar');
     if (!fs.existsSync(asar)) { console.log('    (asar not found, round trip skipped)'); return; }
     execFileSync(asar, ['--fix-checksum=off', 'main.asm', 'out.sfc'], { cwd: out, stdio: 'pipe' });
     assert.ok(Buffer.from(rom).equals(fs.readFileSync(path.join(out, 'out.sfc'))), 'reassembled ROM differs');
+    const log = execFileSync('sh', ['build.sh'], { cwd: out, env: { ...process.env, ASAR: asar }, encoding: 'utf8' });
+    assert.ok(log.includes('byte-identical'), log);
+    assert.ok(fs.readFileSync(path.join(out, 'build', 'out.cdl')).equals(Buffer.from(lib.cdl)), 'build.sh reproduces the CDL');
 });
 
 test('WRAM report lists accessors, widths and values', () => {
