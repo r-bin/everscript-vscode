@@ -173,6 +173,10 @@ test('Asar export names functions, callers and accesses; reassembles byte-exact'
     assert.ok(Buffer.from(lib.cdl).equals(fs.readFileSync(path.join(out, 'rom.cdl'))), 'rom.cdl is the library CDL');
     const exp = JSON.parse(fs.readFileSync(path.join(out, 'export.json'), 'utf8'));
     assert.ok(exp.labels.some(([n, o]) => n === 'func_C08010' && o === 0x8010));
+    const cfg = fs.readFileSync(path.join(out, 'recomp', 'cfg', 'bank80.cfg'), 'utf8');
+    assert.ok(cfg.includes('bank = 80') && /^func func_C08010 8010 entry_mx:[01],[01]/m.test(cfg), 'snesrecomp seed for the called function');
+    assert.ok(fs.readFileSync(path.join(out, 'recomp', 'cfg', 'bank00.cfg'), 'utf8').includes('auto_vectors'));
+    assert.ok(fs.existsSync(path.join(out, 'recomp.sh')));
     exportAsar(lib, rom, out);
     assert.strictEqual((fs.readFileSync(path.join(out, 'STEPS.md'), 'utf8').match(/^## Export /gm) || []).length, 2, 'one log entry per export');
     const asar = process.env.ASAR || path.resolve(ROOT, '..', 'asar', 'asar', 'bin', 'asar');

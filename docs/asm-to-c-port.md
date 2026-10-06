@@ -89,6 +89,33 @@ Run it for every bank. When every bank survives padding, the disassembly is shif
 
 Translate each routine into C over an explicit CPU state. Correct first, readable later.
 
+### 5.0 Use snesrecomp for the lift (v0.159.0)
+
+[snesrecomp](https://github.com/RetroPortingToolKit/snesrecomp) already is this lifter: a
+static 65816 → C recompiler with an M/X-tracking analyzer, an interpreter fallback for code
+it cannot resolve, and a runner that models the PPU/APU/DMA (HiROM supported; it is how
+the SMW, ALttP and Mega Man X ports were made). We feed it what only our CDL knows.
+
+Every export writes `recomp/cfg/bankXX.cfg`, one per bank code ran in (the runtime bank,
+`$80`–`$91` for SoE, not `$C0`):
+
+```text
+bank = 8c
+func func_CC9A76 9a76 entry_mx:0,0        # entry widths as recorded
+# indirect at 9951 -> 8C9A76,8C9A7D,...   # observed jump-table targets, to become indirect_dispatch
+```
+
+`bank00.cfg` adds `auto_vectors` and `data_region` lines for the known regions (rooms,
+strings, key tables), so the analyzer never decodes them as code.
+
+`./recomp.sh` (needs `SNESRECOMP=<checkout>`, Python 3.9+, Rust/cargo for the analyzer,
+CMake + Ninja) scaffolds `recomp/project/` once with `snesrecomp build`, copies the seeds
+into `config/`, runs `snesrecomp generate --cfg-roots`, and builds the static library.
+The result is C for the game code, not a playable port: that still needs a host frame
+driver (snesrecomp's `src/game_rtl.c` step), and the lockstep check of §6.
+
+The hand-written lifting rules below stay as the reference for reviewing its output.
+
 ```c
 // lifted from $908F6A — room loader, entry state M=1 X=0
 void f_908F6A(Cpu *c) {
@@ -284,7 +311,7 @@ or ROM bytes.
 | Known regions seeded before CDL: header, 127 rooms → `rooms/*.bin`, map table + string key table as label expressions, 3002 strings `str_<index>` | ✅ v0.158.0 |
 | Export folder build: `build.sh` → ROM + `.cdl` (flags follow labels), `STEPS.md` export log | ✅ v0.158.0 |
 | Shiftable export (all pointer forms symbolised) + padding test | partial: room and string pointers only |
-| 65816 → C lifter with M/X specialisation | ❌ |
+| 65816 → C lifter with M/X specialisation | via snesrecomp, seeded from the CDL (`recomp.sh`, v0.159.0); end-to-end run on SoE not done yet |
 | Hook table in snes9x to call C routines at PC | ❌ |
 | Lockstep two-machine frame diff + divergence report | ❌ |
 | Asset extractor (ROM → `assets/`) | partial (rooms) |

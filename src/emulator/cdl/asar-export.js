@@ -21,6 +21,7 @@ const { buildIndex, SPACE } = require('./xref-index');
 const { decodeAt, formatInstruction, staticTarget } = require('./disasm');
 const { findKnownRegions } = require('./known-regions');
 const { writeBuildFiles } = require('./asar-build');
+const { writeRecompSeeds } = require('./recomp-seeds');
 
 const CDL_CODE = 0x01, CDL_DATA = 0x02;
 const EXT_DMA = 0x01, EXT_APU = 0x02, EXT_HEAD = 0x04, EXT_POINTER = 0x20;
@@ -265,8 +266,10 @@ function exportAsar(lib, romInput, outDir) {
     ].join('\n');
     const mainPath = path.join(outDir, 'main.asm');
     fs.writeFileSync(mainPath, main);
+    const recomp = writeRecompSeeds({ lib, map, index, known, outDir });
+    known.steps.push(recomp.step);
     const build = writeBuildFiles({ lib, rom, map, outDir, known, labels: [...emitted].map(o => [nameOf(o), o]), banks: includes.length, functions: index.entries.length });
-    return { mainPath, build, known, banks: includes.length, functions: index.entries.length, codeLines, index, map };
+    return { mainPath, build, recomp, known, banks: includes.length, functions: index.entries.length, codeLines, index, map };
 }
 
 module.exports = { exportAsar };

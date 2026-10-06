@@ -123,11 +123,11 @@ function writeBuildFiles({ lib, rom, map, outDir, known, labels, banks, function
         '',
         `ROM: ${map.header ? map.header.title : '?'}, ${map.type}, ${rom.length} bytes, sha1 \`${sha1}\``,
         '',
-        '1. Seeded from the ROM, before CDL data:',
+        '1. Seeded from the ROM before CDL data, then derived from it:',
         ...known.steps.map(s => '   - ' + s),
         `2. CDL coverage: code ${c.code} (${pct(c.code)}), data ${c.data} (${pct(c.data)}), DMA ${c.dma}, APU ${c.apu}, never touched ${c.none} (${pct(c.none)}). Known regions cover ${c.known} bytes (${pct(c.known)}) and override the CDL there.`,
         `3. Disassembled: ${banks} bank files, ${functions} functions; untouched runs and DMA graphics outside known regions stay \`incbin rom.bin:...\`.`,
-        `4. Wrote: main.asm, banks/, ${blobs.length ? 'rooms/ (' + blobs.length + '), ' : ''}rom.bin, rom.cdl, export.json, build.sh, build-cdl.js.`,
+        `4. Wrote: main.asm, banks/, ${blobs.length ? 'rooms/ (' + blobs.length + '), ' : ''}rom.bin, rom.cdl, export.json, build.sh, build-cdl.js, recomp/cfg/, recomp.sh.`,
         `5. Build: \`ASAR=/path/to/asar ./build.sh\` -> build/out.sfc (expect sha1 above while unedited) + build/out.cdl.`,
         '',
     ].join('\n');
