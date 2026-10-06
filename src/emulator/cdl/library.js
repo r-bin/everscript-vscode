@@ -14,6 +14,12 @@
  *   xrefs.bin        [pc, space<<24|addr, flags]           OR
  *   edges.bin        [from, to, kind]                     OR
  *   pcstats.bin      [space<<24|pc, count, lo, hi, flags] max / min / max / OR
+ *   wram.flags       1 byte / WRAM byte (R / W / byte / word / exec / script / ptr)  OR
+ *   script-xrefs.bin [script instruction, wram addr, flags]                       OR
+ *
+ * Newer files are optional: a library written before they existed still loads,
+ * keeps all its data, and gains them on the next flush (wram.flags is derived
+ * from the WRAM xrefs until a recording supplies the real map).
  *
  * No VS Code dependency: the host passes the root directory.
  */
@@ -38,6 +44,8 @@ function romHash(rom) {
 
 const xrefKey  = (pc, spaceAddr) => pc * 0x4000000 + spaceAddr;
 const edgeKey  = (from, to) => from * 0x1000000 + to;
+const scriptKey = (script, addr) => script * 0x20000 + addr;
+const WF = { READ: 1, WRITE: 2, BYTE: 4, WORD: 8, EXEC: 0x10, SCRIPT: 0x20, POINTER: 0x40 };
 
 function readRecords(file, magic, words) {
     if (!fs.existsSync(file)) return null;
@@ -83,6 +91,8 @@ class CdlLibrary {
         this.xrefs = new Map();
         this.edges = new Map();
         this.stats = new Map();
+        this.wflags = new Uint8Array(WRAM_SIZE);
+        this.scriptXrefs = new Map();
         this.manifest = null;
         this.dirty = new Set();
         this.changes = 0;
@@ -113,7 +123,43 @@ class CdlLibrary {
             readRecords(this._file('edges.bin'), 'EVED', 3),
             readRecords(this._file('pcstats.bin'), 'EVPS', 5),
         );
+        this.mergeScriptXrefs(readRecords(this._file('script-xrefs.bin'), 'EVSX', 3));
+        if (fs.existsSync(this._file('wram.flags'))) {
+            this.wflags.set(fs.readFileSync(this._file('wram.flags')).subarray(0, WRAM_SIZE));
+        } else {
+            this._deriveWflags();
+        }
         this.dirty.clear();
+    }
+
+    /** WRAM access map from the xrefs, for libraries recorded before wram.flags existed. */
+    _deriveWflags() {
+        for (const [key, flags] of this.xrefs) {
+            const spaceAddr = key % 0x4000000;
+            if ((spaceAddr >>> 24) !== 0) continue;
+            const addr = spaceAddr & 0xFFFFFF;
+            const f = (flags & 1 ? WF.READ : 0) | (flags & 2 ? WF.WRITE : 0) | (flags & 8 ? WF.WORD : WF.BYTE);
+            this.wflags[addr] |= f;
+            if ((flags & 8) && addr + 1 < WRAM_SIZE) this.wflags[addr + 1] |= f;
+        }
+        for (const [key] of this.scriptXrefs) this.wflags[key % 0x20000] |= WF.SCRIPT;
+    }
+
+    mergeWflags(index, data) {
+        const base = index * data.length;
+        for (let i = 0; i < data.length && base + i < WRAM_SIZE; i++) {
+            const v = this.wflags[base + i] | data[i];
+            if (v !== this.wflags[base + i]) { this.wflags[base + i] = v; this._touch('wram.flags'); }
+        }
+    }
+
+    mergeScriptXrefs(list) {
+        if (!list) return;
+        for (let i = 0; i + 2 < list.length; i += 3) {
+            const k = scriptKey(list[i], list[i + 1]);
+            const old = this.scriptXrefs.get(k) || 0;
+            if ((old | list[i + 2]) !== old) { this.scriptXrefs.set(k, old | list[i + 2]); this._touch('script-xrefs.bin'); }
+        }
     }
 
     /** OR-merge a whole CDL/EXT image (e.g. an imported BizHawk / Mesen .cdl). */
@@ -169,7 +215,9 @@ class CdlLibrary {
         const before = this.changes;
         for (const c of delta.chunks || []) this.mergeImage(c.cdl, c.ext, c.index * CHUNK);
         for (const w of delta.wvals || []) this.mergeWvals(w.index, w.data);
+        for (const w of delta.wflags || []) this.mergeWflags(w.index, w.data);
         this.mergeLists(delta.xrefs, delta.edges, delta.stats);
+        this.mergeScriptXrefs(delta.scriptXrefs);
         return this.changes !== before;
     }
 
@@ -188,6 +236,9 @@ class CdlLibrary {
             'xrefs.bin': () => packRecords('EVXR', xr(), 3),
             'edges.bin': () => packRecords('EVED', ed(), 3),
             'pcstats.bin': () => packRecords('EVPS', st(), 5),
+            'wram.flags': () => this.wflags,
+            'script-xrefs.bin': () => packRecords('EVSX',
+                [...this.scriptXrefs].map(([k, f]) => [Math.floor(k / 0x20000), k % 0x20000, f]), 3),
         };
         for (const name of this.dirty) {
             const data = writers[name] && writers[name]();
@@ -201,6 +252,7 @@ class CdlLibrary {
             title: this.info.title || (this.manifest && this.manifest.title) || '',
             mapType: this.info.mapType || (this.manifest && this.manifest.mapType) || '',
             romSize: this.romSize,
+            files: ['rom.cdl', 'rom.ext', 'wram-values.bin', 'xrefs.bin', 'edges.bin', 'pcstats.bin', 'wram.flags', 'script-xrefs.bin'],
             updated: now,
         });
         writeAtomic(this._file('manifest.json'), JSON.stringify(this.manifest, null, 2));
@@ -214,8 +266,10 @@ class CdlLibrary {
             if (this.cdl[i] & 1) code++;
             else if (this.cdl[i] & 2) data++;
         }
-        return { code, data, romSize: this.romSize, xrefs: this.xrefs.size, edges: this.edges.size };
+        let wram = 0;
+        for (let i = 0; i < WRAM_SIZE; i++) if (this.wflags[i] & (WF.READ | WF.WRITE | WF.EXEC)) wram++;
+        return { code, data, romSize: this.romSize, xrefs: this.xrefs.size, edges: this.edges.size, wram, scriptXrefs: this.scriptXrefs.size };
     }
 }
 
-module.exports = { CdlLibrary, romHash, stripCopierHeader, xrefKey, edgeKey, WRAM_SIZE, WVAL_BYTES };
+module.exports = { CdlLibrary, romHash, stripCopierHeader, xrefKey, edgeKey, scriptKey, WF, WRAM_SIZE, WVAL_BYTES };

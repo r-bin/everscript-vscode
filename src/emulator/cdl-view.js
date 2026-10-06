@@ -4,10 +4,16 @@
  * emulator/cdl-view.js
  *
  * The emulator's CDL bottom-bar tab: record toggle (off by default), ROM
- * coverage strips (one per 64 KB of ROM, one pixel per byte), Asar / WRAM
- * export buttons and the xref lookup box. Recording state lives in the core
- * (cdl.c); this script seeds it from the host library, drains deltas every
- * CDL_FLUSH_MS and repaints the chunks the core marks dirty.
+ * coverage strips (one per 64 KB, one pixel per byte), WRAM access strips
+ * ($7E / $7F), Asar / WRAM export buttons and the xref lookup box.
+ *
+ * Recording state lives in the core (cdl.c). While recording and not paused,
+ * one 1 s tick consumes the core's dirty chunks: it recounts their coverage
+ * (feeding the floating gains, cdl-float.js), repaints them when the tab is
+ * visible, and every CDL_DRAIN_TICKS ticks drains a delta to the host. Paused
+ * or off, nothing runs. Not recording, the tab shows the library's last
+ * flushed state (requested once, read-only). Strip painting and hover text:
+ * cdl-strips.js.
  *
  * Invariant: ASCII only, and no backslashes in the client script (it is
  * embedded in a template literal, see panel-webview.js).
@@ -20,8 +26,10 @@ function getCdlCss() {
     #cdl-legend { display: flex; flex-wrap: wrap; gap: 10px; padding: 3px 8px; font-size: 10px; color: #999; background: #101010; border-bottom: 1px solid #1d1d1d; flex-shrink: 0; }
     #cdl-legend span { display: inline-flex; align-items: center; gap: 4px; }
     #cdl-legend i { display: inline-block; width: 10px; height: 10px; border: 1px solid #333; }
+    #cdl-legend b { color: #666; font-weight: normal; }
     #cdl-body { flex: 1; min-height: 0; display: flex; overflow: hidden; }
     #cdl-banks { flex: 3; min-width: 0; overflow-y: auto; padding: 4px 8px; }
+    .cdl-group { color: #777; font-size: 10px; margin: 6px 0 3px; letter-spacing: 0.05em; }
     .cdl-bank { display: flex; align-items: stretch; gap: 6px; margin-bottom: 3px; }
     .cdl-bank-label { width: 54px; flex-shrink: 0; color: #ccc; font-size: 11px; font-weight: bold; display: flex; flex-direction: column; justify-content: center; }
     .cdl-bank-label small { color: #777; font-weight: normal; font-size: 9px; }
@@ -37,18 +45,23 @@ function getCdlTabButtonHtml() {
   return `<button id="ss-tab-cdl" class="ss-tab" type="button">CDL (<span id="ss-cdl-count">off</span>)</button>`;
 }
 
+// index = colour id used by the client script
 const LEGEND = [
   ['unreached', '#101010'], ['empty', '#2f4f4f'], ['opcode', '#ffff00'], ['operand', '#9acd32'],
   ['data', '#ffdead'], ['pointer', '#da70d6'], ['graphics (DMA)', '#ffb6c1'], ['music (APU)', '#add8e6'],
   ['M/X conflict', '#ff4040'],
+  ['read', '#3d7fd9'], ['written', '#e08a2e'], ['read+written', '#b05fd6'], ['by scripts', '#4ec9b0'], ['code', '#ffffff'],
 ];
+const WRAM_LEGEND_START = 9;
 
 function getCdlViewHtml() {
-  const legend = LEGEND.map(([name, color]) => `<span><i style="background:${color}"></i>${name}</span>`).join('');
+  const item = ([name, color]) => `<span><i style="background:${color}"></i>${name}</span>`;
+  const legend = '<b>ROM</b>' + LEGEND.slice(0, WRAM_LEGEND_START).map(item).join('')
+    + '<b>WRAM</b>' + LEGEND.slice(WRAM_LEGEND_START).map(item).join('');
   return `
     <div id="ss-view-cdl" class="ss-tab-view">
       <div class="ss-subbar">
-        <button id="cdl-toggle" class="ss-btn" type="button" title="Record code/data coverage, calls and memory accesses (in memory, flushed every 15 s)">start recording</button>
+        <button id="cdl-toggle" class="ss-btn" type="button" title="Record code/data coverage, calls and memory accesses (in memory; written to disk only when something changed)">start recording</button>
         <button id="cdl-flush" class="ss-btn" type="button" disabled>flush now</button>
         <button id="cdl-export-asm" class="ss-btn" type="button" title="Write an Asar project (byte-exact) and open main.asm">export asar</button>
         <button id="cdl-export-wram" class="ss-btn" type="button" title="Write ram.asm: every WRAM address with its accessors and enum guesses">export wram</button>
@@ -59,9 +72,10 @@ function getCdlViewHtml() {
       <div id="cdl-legend">${legend}</div>
       <div id="cdl-body">
         <div id="cdl-banks"><div id="cdl-empty">Recording is off. Start it to map which ROM bytes run as code, which are read as data,
-who calls each function and who reads or writes each WRAM address. Data is kept per ROM
-in the extension's storage and merges across sessions, so the game does not have to be
-finished in one sitting. Click a strip to look up that address.</div></div>
+who calls each function and who reads or writes each WRAM address (including which script
+instruction did it). Data is kept per ROM in the extension's storage and merges across
+sessions, so the game does not have to be finished in one sitting. Click a strip to look up
+that address.</div></div>
         <div id="cdl-side">
           <div id="cdl-hover">&nbsp;</div>
           <pre id="cdl-lookup-out"></pre>
@@ -75,17 +89,24 @@ function getCdlClientScript() {
   const colors = LEGEND.map(([, c]) => '[' + [1, 3, 5].map(i => parseInt(c.substr(i, 2), 16)).join(',') + ']').join(',');
   return `
     // -- CDL tab ----------------------------------------------------------------
-    const CDL_FLUSH_MS = 15000;
+    const CDL_TICK_MS = 1000;
+    const CDL_DRAIN_TICKS = 15;
     const CDL_CHUNK = 0x10000;
     const CDL_W = 1024;
     const CDL_COLORS = [${colors}];
-    let cdlWanted = false;
-    let cdlOn = false;
+    let cdlWanted = false;       // user asked for recording (survives ROM changes)
+    let cdlOn = false;           // the core is recording
+    let cdlPaused = false;       // emulation paused: no ticks, no drains
     let cdlTimer = null;
-    let cdlPaintTimer = null;
+    let cdlTicks = 0;
     let cdlLabels = [];
-    let cdlCanvases = [];
-    let cdlLastFlush = 0;
+    let cdlRomStrips = [];
+    let cdlWramStrips = [];
+    let cdlHits = [];            // per ROM chunk: bytes with any CDL bit
+    let cdlNeedsPaint = new Set();
+    let cdlSnap = null;          // { cdl, ext, wflags } from the library while not recording
+    let cdlSnapRequested = false;
+    let cdlLastDrain = 0;
     let cdlSummary = null;
 
     function cdlApi() {
@@ -115,23 +136,43 @@ function getCdlClientScript() {
       if (el) el.textContent = text;
     }
 
-    function cdlRefreshUi() {
-      const t = document.getElementById('cdl-toggle');
-      if (t) { t.textContent = cdlOn ? 'stop recording' : 'start recording'; t.classList.toggle('active', cdlOn); }
-      setControlEnabled('cdl-flush', cdlOn);
-      const badge = document.getElementById('ss-cdl-count');
-      if (badge) {
-        if (!cdlOn) badge.textContent = 'off';
-        else if (cdlSummary) badge.textContent = (100 * (cdlSummary.code + cdlSummary.data) / cdlSummary.romSize).toFixed(1) + '%';
-        else badge.textContent = 'rec';
-      }
+    function cdlCoverageText(s) {
+      return s ? (100 * (s.code + s.data) / s.romSize).toFixed(1) + '%' : '';
     }
 
+    function cdlRefreshUi() {
+      const t = document.getElementById('cdl-toggle');
+      if (t) { t.textContent = cdlWanted ? 'stop recording' : 'start recording'; t.classList.toggle('active', cdlWanted); }
+      setControlEnabled('cdl-flush', cdlOn);
+      const badge = document.getElementById('ss-cdl-count');
+      if (badge) badge.textContent = !cdlOn ? 'off' : cdlPaused ? 'paused' : (cdlCoverageText(cdlSummary) || 'rec');
+    }
+
+    // The live core while recording, else the library snapshot.
+    function cdlData() {
+      const m = cdlApi();
+      if (cdlOn && m) return m.cdlView(true);
+      return cdlSnap;
+    }
+
+    function cdlCountHits(cdl, i) {
+      const base = i * CDL_CHUNK, end = Math.min(base + CDL_CHUNK, cdl.length);
+      let hit = 0;
+      for (let j = base; j < end; j++) if (cdl[j]) hit++;
+      return hit;
+    }
+
+    function cdlAllStrips() {
+      return new Set(cdlRomStrips.map((_, i) => i).concat(['w0', 'w1']));
+    }
+
+    // -- recording lifecycle ------------------------------------------------------
     function cdlStart() {
       const m = cdlApi();
       if (!m) { cdlSetStatus('this core has no CDL recorder (custom debugger core required)'); return; }
       cdlWanted = true;
       cdlSetStatus('loading library...');
+      cdlRefreshUi();
       vscodeApi.postMessage({ command: 'cdlEnable' });
     }
 
@@ -139,155 +180,124 @@ function getCdlClientScript() {
       const m = cdlApi();
       if (!m || !cdlWanted || cdlOn) return;
       if (!m.cdlEnable()) { cdlSetStatus('could not start recording (no ROM?)'); return; }
-      m.cdlSeed(cdlB64ToBytes(msg.cdl), cdlB64ToBytes(msg.ext));
+      m.cdlSeed(cdlB64ToBytes(msg.cdl), cdlB64ToBytes(msg.ext), cdlB64ToBytes(msg.wflags));
+      const ctx = msg.scriptContext;
+      if (ctx && typeof m.cdlSetScriptContext === 'function') m.cdlSetScriptContext(ctx.fetchRomOff, ctx.ptr, ctx.excludes);
       cdlOn = true;
+      cdlSnap = null;
       cdlLabels = msg.labels || [];
-      cdlBuildStrips(m.cdlView(true).size);
-      if (!cdlTimer) cdlTimer = setInterval(cdlFlush, CDL_FLUSH_MS);
-      if (!cdlPaintTimer) cdlPaintTimer = setInterval(cdlPaint, 1000);
+      const view = m.cdlView(false);
+      cdlBuildStrips(view.size);
+      cdlHits = cdlRomStrips.map((_, i) => cdlCountHits(view.cdl, i));
+      cdlNeedsPaint = cdlAllStrips();
+      cdlPaused = !!(m.isEmulationPaused && m.isEmulationPaused());
+      cdlArm();
       cdlRefreshUi();
       cdlPaint();
     }
 
-    function cdlFlush() {
+    function cdlArm() {
+      const run = cdlOn && !cdlPaused;
+      if (run && !cdlTimer) cdlTimer = setInterval(cdlTick, CDL_TICK_MS);
+      if (!run && cdlTimer) { clearInterval(cdlTimer); cdlTimer = null; }
+    }
+
+    function cdlDrain() {
       const m = cdlApi();
-      if (!m || !cdlOn) return;
+      if (!m || !cdlOn) return false;
       const d = m.cdlDrain();
-      if (!d.chunks.length && !d.wvals.length && !d.xrefs.length && !d.edges.length && !d.stats.length) return;
+      if (!d.chunks.length && !d.wvals.length && !d.wflags.length && !d.xrefs.length
+          && !d.edges.length && !d.stats.length && !d.scriptXrefs.length) return false;
+      const enc = list => list.map(c => ({ index: c.index, data: cdlBytesToB64(c.data) }));
       vscodeApi.postMessage({ command: 'cdlDelta', delta: {
         chunks: d.chunks.map(c => ({ index: c.index, cdl: cdlBytesToB64(c.cdl), ext: cdlBytesToB64(c.ext) })),
-        wvals: d.wvals.map(w => ({ index: w.index, data: cdlBytesToB64(w.data) })),
+        wvals: enc(d.wvals),
+        wflags: enc(d.wflags),
         xrefs: cdlWordsToB64(d.xrefs),
         edges: cdlWordsToB64(d.edges),
         stats: cdlWordsToB64(d.stats),
+        scriptXrefs: cdlWordsToB64(d.scriptXrefs),
       } });
-      cdlLastFlush = Date.now();
+      cdlLastDrain = Date.now();
+      return true;
+    }
+
+    function cdlTick() {
+      const m = cdlApi();
+      if (!m || !cdlOn || cdlPaused) return;
+      const view = m.cdlView(false);
+      const gains = {};
+      for (let i = 0; i < cdlRomStrips.length; i++) {
+        if (!view.dirty[i]) continue;
+        const hit = cdlCountHits(view.cdl, i);
+        if (hit > cdlHits[i]) gains[cdlLabels[i] || cdlHex(i, 2)] = 100 * (hit - cdlHits[i]) / cdlRomStrips[i].len;
+        cdlHits[i] = hit;
+        cdlNeedsPaint.add(i);
+      }
+      for (let k = 0; k < 32; k++) if (view.wdirty[k]) cdlNeedsPaint.add('w' + (k >> 4));
+      cdlFloatGains(gains);
+      if (++cdlTicks % CDL_DRAIN_TICKS === 0) cdlDrain();
+      cdlPaint();
     }
 
     function cdlHalt() {
       const m = cdlApi();
       if (!cdlOn) return;
-      cdlFlush();
+      cdlDrain();
       if (m) m.cdlDisable();
       cdlOn = false;
-      if (cdlTimer) { clearInterval(cdlTimer); cdlTimer = null; }
-      if (cdlPaintTimer) { clearInterval(cdlPaintTimer); cdlPaintTimer = null; }
+      cdlArm();
     }
 
     function cdlStop() {
       cdlWanted = false;
       cdlHalt();
       vscodeApi.postMessage({ command: 'cdlDisabled' });
+      cdlSnapRequested = false;
       cdlRefreshUi();
       cdlSetStatus('recording off');
+      if (currentBottomTab === 'cdl') cdlRequestSnapshot();
     }
 
     // Called before the core is restarted with another ROM: flush what belongs to the old one.
     function cdlBeforeRomChange() {
       cdlHalt();
+      cdlSnap = null;
+      cdlSnapRequested = false;
       cdlRefreshUi();
     }
 
-    function cdlBuildStrips(size) {
-      const host = document.getElementById('cdl-banks');
-      if (!host) return;
-      host.innerHTML = '';
-      cdlCanvases = [];
-      const chunks = Math.ceil(size / CDL_CHUNK);
-      for (let i = 0; i < chunks; i++) {
-        const len = Math.min(CDL_CHUNK, size - i * CDL_CHUNK);
-        const row = document.createElement('div');
-        row.className = 'cdl-bank';
-        const label = document.createElement('div');
-        label.className = 'cdl-bank-label';
-        label.innerHTML = (cdlLabels[i] || cdlHex(i, 2)) + '<small>-</small>';
-        const canvas = document.createElement('canvas');
-        canvas.width = CDL_W;
-        canvas.height = Math.ceil(len / CDL_W);
-        canvas.setAttribute('data-chunk', String(i));
-        row.appendChild(label);
-        row.appendChild(canvas);
-        host.appendChild(row);
-        cdlCanvases.push({ canvas, label, len });
+    // Called by the frame loop whenever the emulator pauses or resumes.
+    function cdlOnPauseChanged(paused) {
+      cdlPaused = paused;
+      if (!cdlOn) return;
+      if (paused) {
+        cdlDrain();
+        vscodeApi.postMessage({ command: 'cdlPause' });
+        cdlSetStatus('paused - saved');
       }
+      cdlArm();
+      cdlRefreshUi();
     }
 
-    function cdlColor(c, e, b) {
-      if (!c && !e) return (b === 0 || b === 0xFF) ? 1 : 0;
-      if ((e & 0x04) && (((c & 0x20) && (e & 0x08)) || ((c & 0x10) && (e & 0x10)))) return 8;
-      if (e & 0x04) return 2;
-      if (c & 0x01) return 3;
-      if (e & 0x02) return 7;
-      if (e & 0x01) return 6;
-      if (e & 0x20) return 5;
-      return 4;
+    function cdlRequestSnapshot() {
+      if (cdlOn || cdlSnapRequested || !romLoaded) return;
+      cdlSnapRequested = true;
+      vscodeApi.postMessage({ command: 'cdlRequestSnapshot' });
     }
 
-    function cdlPaintChunk(view, i, rom) {
-      const s = cdlCanvases[i];
-      if (!s) return;
-      const ctx = s.canvas.getContext('2d');
-      const img = ctx.createImageData(s.canvas.width, s.canvas.height);
-      const base = i * CDL_CHUNK;
-      let hit = 0;
-      for (let j = 0; j < s.len; j++) {
-        const c = view.cdl[base + j], e = view.ext[base + j];
-        if (c) hit++;
-        const col = CDL_COLORS[cdlColor(c, e, rom ? rom[base + j] : 0)];
-        const p = j * 4;
-        img.data[p] = col[0]; img.data[p + 1] = col[1]; img.data[p + 2] = col[2]; img.data[p + 3] = 255;
-      }
-      ctx.putImageData(img, 0, 0);
-      const small = s.label.querySelector('small');
-      if (small) small.textContent = (100 * hit / s.len).toFixed(1) + '%';
-    }
-
-    function cdlRom() {
-      return loadedRomData ? ((loadedRomData.length % 1024 === 512) ? loadedRomData.subarray(512) : loadedRomData) : null;
-    }
-
-    function cdlPaint() {
-      const m = cdlApi();
-      if (!m || !cdlOn || currentBottomTab !== 'cdl') return;
-      const view = m.cdlView();
-      if (!view) return;
-      const rom = cdlRom();
-      for (let i = 0; i < cdlCanvases.length; i++) if (view.dirty[i]) cdlPaintChunk(view, i, rom);
-      const age = cdlLastFlush ? Math.round((Date.now() - cdlLastFlush) / 1000) + ' s ago' : 'pending';
-      const s = cdlSummary;
-      cdlSetStatus('recording - ' + (s ? s.code + ' code / ' + s.data + ' data bytes, ' + s.edges + ' edges, ' + s.xrefs + ' xrefs' : 'merging') + ' - flushed ' + age);
-    }
-
-    function cdlOffsetAt(evt) {
-      const canvas = evt.target;
-      const i = parseInt(canvas.getAttribute('data-chunk') || '-1', 10);
-      if (i < 0) return -1;
-      const r = canvas.getBoundingClientRect();
-      const x = Math.floor((evt.clientX - r.left) * canvas.width / r.width);
-      const y = Math.floor((evt.clientY - r.top) * canvas.height / r.height);
-      return i * CDL_CHUNK + y * CDL_W + x;
-    }
-
-    function cdlDescribe(off) {
-      const m = cdlApi();
-      const view = m && cdlOn ? m.cdlView(true) : null;
-      const i = Math.floor(off / CDL_CHUNK);
-      const bank = cdlLabels[i] || cdlHex(i, 2);
-      let text = bank + ':' + cdlHex(off % CDL_CHUNK, 4) + '  (ROM $' + cdlHex(off, 6) + ')';
-      if (view) {
-        const c = view.cdl[off], e = view.ext[off];
-        const parts = [];
-        if (e & 0x04) parts.push('opcode ' + ((c & 0x20) ? 'M8' : '') + ((e & 0x08) ? 'M16' : '') + ' ' + ((c & 0x10) ? 'X8' : '') + ((e & 0x10) ? 'X16' : ''));
-        else if (c & 0x01) parts.push('operand');
-        if (c & 0x02) parts.push('data');
-        if (c & 0x08) parts.push('function entry');
-        if (c & 0x04) parts.push('jump target');
-        if (e & 0x01) parts.push('DMA source');
-        if (e & 0x02) parts.push('APU');
-        if (e & 0x20) parts.push('pointer');
-        text += '  ' + (parts.join(', ') || 'unreached');
-      }
-      return text;
+    function cdlOnSnapshot(msg) {
+      if (cdlOn) return;
+      if (msg.empty) { cdlSetStatus('recording off - nothing recorded for this ROM yet'); return; }
+      cdlSnap = { cdl: cdlB64ToBytes(msg.cdl), ext: cdlB64ToBytes(msg.ext), wflags: cdlB64ToBytes(msg.wflags) };
+      cdlSnap.size = cdlSnap.cdl.length;
+      cdlLabels = msg.labels || [];
+      cdlSummary = msg.summary || null;
+      cdlBuildStrips(cdlSnap.size);
+      cdlNeedsPaint = cdlAllStrips();
+      cdlPaint();
+      const when = msg.updated ? new Date(msg.updated).toLocaleString() : 'unknown';
+      cdlSetStatus('not recording - last flush ' + when + ', ' + cdlCoverageText(cdlSummary) + ' covered');
     }
 
     function cdlLookup(query) {
@@ -295,7 +305,7 @@ function getCdlClientScript() {
       if (input && query !== undefined) input.value = query;
       const q = input ? input.value.trim() : '';
       if (!q) return;
-      if (cdlOn) cdlFlush();
+      if (cdlOn) cdlDrain();
       const out = document.getElementById('cdl-lookup-out');
       if (out) out.textContent = 'looking up ' + q + '...';
       vscodeApi.postMessage({ command: 'cdlLookup', query: q });
@@ -305,15 +315,19 @@ function getCdlClientScript() {
       const toggle = document.getElementById('cdl-toggle');
       if (!toggle || toggle.getAttribute('data-bound')) return;
       toggle.setAttribute('data-bound', '1');
-      toggle.addEventListener('click', () => { if (cdlOn || cdlWanted) cdlStop(); else cdlStart(); });
-      document.getElementById('cdl-flush').addEventListener('click', () => { cdlFlush(); cdlSetStatus('flushed'); });
+      toggle.addEventListener('click', () => { if (cdlWanted) cdlStop(); else cdlStart(); });
+      document.getElementById('cdl-flush').addEventListener('click', () => {
+        const sent = cdlDrain();
+        vscodeApi.postMessage({ command: 'cdlPause' });
+        cdlSetStatus(sent ? 'saved' : 'nothing new to save');
+      });
       document.getElementById('cdl-export-asm').addEventListener('click', () => {
-        cdlFlush();
+        cdlDrain();
         cdlSetStatus('exporting Asar...');
         vscodeApi.postMessage({ command: 'cdlExport', kind: 'asm' });
       });
       document.getElementById('cdl-export-wram').addEventListener('click', () => {
-        cdlFlush();
+        cdlDrain();
         cdlSetStatus('exporting WRAM...');
         vscodeApi.postMessage({ command: 'cdlExport', kind: 'wram' });
       });
@@ -325,27 +339,26 @@ function getCdlClientScript() {
       const banks = document.getElementById('cdl-banks');
       banks.addEventListener('mousemove', evt => {
         if (!evt.target || evt.target.tagName !== 'CANVAS') return;
-        const off = cdlOffsetAt(evt);
-        if (off >= 0) document.getElementById('cdl-hover').textContent = cdlDescribe(off);
+        const a = cdlAddressAt(evt);
+        if (a) document.getElementById('cdl-hover').textContent = cdlDescribe(a);
       });
       banks.addEventListener('click', evt => {
         if (!evt.target || evt.target.tagName !== 'CANVAS') return;
-        const off = cdlOffsetAt(evt);
-        if (off < 0) return;
-        const i = Math.floor(off / CDL_CHUNK);
-        cdlLookup((cdlLabels[i] || cdlHex(i, 2)) + ':' + cdlHex(off % CDL_CHUNK, 4));
+        const a = cdlAddressAt(evt);
+        if (a) cdlLookup(a.wram ? cdlWramName(a.off) : a.bank + ':' + cdlHex(a.inner, 4));
       });
-      document.addEventListener('visibilitychange', () => { if (document.hidden) cdlFlush(); });
-      window.addEventListener('beforeunload', cdlFlush);
+      document.addEventListener('visibilitychange', () => { if (document.hidden) cdlDrain(); });
     }
 
     function handleCdlMessage(data) {
       if (data.command === 'cdlConfig') {
         initCdlTab();
         if (data.autoEnable || cdlWanted) cdlStart();
-        else cdlRefreshUi();
+        else { cdlRefreshUi(); if (currentBottomTab === 'cdl') cdlRequestSnapshot(); }
       } else if (data.command === 'cdlSeed') {
         cdlOnSeed(data);
+      } else if (data.command === 'cdlSnapshot') {
+        cdlOnSnapshot(data);
       } else if (data.command === 'cdlStatus') {
         if (data.summary) cdlSummary = data.summary;
         if (data.text) cdlSetStatus(data.text);

@@ -4,23 +4,32 @@
  * emulator/cdl/host.js
  *
  * Extension-host side of the CDL recorder: owns the per-ROM library, merges
- * the deltas the webview drains from the core, flushes to disk in batches
- * (never per instruction or per frame), and runs exports / lookups.
+ * the deltas the webview drains from the core, and writes to disk only when
+ * something changed: IDLE_FLUSH_MS after the last change, at least every
+ * MAX_FLUSH_MS while changes keep coming, and at once on pause / stop / ROM
+ * change / panel close. Also runs exports and lookups.
  *
- * Messages (webview -> host): cdlEnable, cdlDelta, cdlDisabled, cdlExport, cdlLookup
- * Messages (host -> webview): cdlConfig, cdlSeed, cdlStatus, cdlLookupResult
+ * Messages (webview -> host): cdlEnable, cdlDelta, cdlPause, cdlDisabled,
+ *   cdlRequestSnapshot, cdlExport, cdlLookup
+ * Messages (host -> webview): cdlConfig, cdlSeed, cdlSnapshot, cdlStatus, cdlLookupResult
  */
 
 const vscode = require('vscode');
+const fs = require('fs');
 const path = require('path');
-const { CdlLibrary } = require('./library');
-const { createRomMap } = require('./rom-map');
+const { CdlLibrary, romHash, stripCopierHeader } = require('./library');
+const { createRomMap, hex } = require('./rom-map');
 const { buildIndex } = require('./xref-index');
 const { exportAsar } = require('./asar-export');
 const { exportWram } = require('./wram-export');
 const { lookup } = require('./lookup');
+const { getActiveAddressLookup } = require('../address-lookup');
 
-const FLUSH_DELAY_MS = 2000;
+const IDLE_FLUSH_MS = 60 * 1000;
+const MAX_FLUSH_MS = 5 * 60 * 1000;
+// lda [$82] / inc $82 / and #$00FF / asl / tax / jsr ($xxxx,x): the script interpreter's opcode fetch
+const SCRIPT_FETCH_PATTERN = Buffer.from([0xA7, 0x82, 0xE6, 0x82, 0x29, 0xFF, 0x00, 0x0A, 0xAA, 0xFC]);
+const SCRIPT_POINTER_WRAM = 0x82;
 
 const b64ToBytes = s => (s ? new Uint8Array(Buffer.from(s, 'base64')) : null);
 const b64ToWords = s => {
@@ -30,6 +39,24 @@ const b64ToWords = s => {
     for (let i = 0; i < out.length; i++) out[i] = buf.readUInt32LE(i * 4);
     return out;
 };
+
+/** "0000-01FF" -> [0, 0x1FF] (WRAM offsets; a $7E/$7F bank prefix is accepted). */
+function parseRanges(list) {
+    const out = [];
+    for (const item of list || []) {
+        const m = /^\s*\$?([0-9a-f]{1,6})\s*-\s*\$?([0-9a-f]{1,6})\s*$/i.exec(String(item));
+        if (!m) continue;
+        const lo = parseInt(m[1], 16) & 0x1FFFF, hi = parseInt(m[2], 16) & 0x1FFFF;
+        if (lo <= hi) out.push([lo, hi]);
+    }
+    return out;
+}
+
+function findScriptContext(rom) {
+    const body = Buffer.from(stripCopierHeader(rom));
+    const off = body.indexOf(SCRIPT_FETCH_PATTERN);
+    return off >= 0 ? { fetchRomOff: off, ptr: SCRIPT_POINTER_WRAM } : null;
+}
 
 class CdlHost {
     /**
@@ -45,52 +72,85 @@ class CdlHost {
         this.lib = null;
         this.indexCache = null;
         this.flushTimer = null;
+        this.firstUnflushed = 0;
+        this.describeScript = null;
     }
 
-    /** A ROM started in the emulator: forget the old library, tell the webview the default. */
+    _config() { return vscode.workspace.getConfiguration('everscript'); }
+
+    /** A ROM started in the emulator: save the old library, tell the webview the default. */
     romStarted(rom) {
         this.flushNow();
         this.rom = rom;
         this.lib = null;
         this.indexCache = null;
-        const enabled = vscode.workspace.getConfiguration('everscript').get('cdl.enabled', false);
-        this.post({ command: 'cdlConfig', autoEnable: !!enabled });
+        this.describeScript = null;
+        this.post({ command: 'cdlConfig', autoEnable: !!this._config().get('cdl.enabled', false) });
     }
+
+    _body() { return stripCopierHeader(this.rom); }
 
     _library() {
         if (this.lib || !this.rom) return this.lib;
-        const body = this.rom.length % 1024 === 512 ? this.rom.subarray(512) : this.rom;
-        const map = createRomMap(body);
-        this.lib = new CdlLibrary(this.root, this.rom, {
-            title: map.header ? map.header.title : '',
-            mapType: map.type,
-        });
+        const map = createRomMap(this._body());
+        this.lib = new CdlLibrary(this.root, this.rom, { title: map.header ? map.header.title : '', mapType: map.type });
         this.log(`CDL library: ${this.lib.dir}`);
         return this.lib;
     }
 
+    _labels() {
+        const map = createRomMap(this._body());
+        const labels = [];
+        for (let off = 0; off < map.size; off += 0x10000) labels.push(hex(map.canonical(off) >>> 16, 2));
+        return labels;
+    }
+
+    _scriptNamer() {
+        if (this.describeScript) return this.describeScript;
+        let starts = [];
+        let table = null;
+        try {
+            table = getActiveAddressLookup(this._body(), null);
+            starts = [...table.lookupMap.keys()].sort((a, b) => a - b);
+        } catch (_) { /* no names: plain addresses */ }
+        this.describeScript = addr => {
+            let lo = 0, hi = starts.length - 1, best = -1;
+            while (lo <= hi) {
+                const mid = (lo + hi) >> 1;
+                if (starts[mid] <= addr) { best = starts[mid]; lo = mid + 1; } else hi = mid - 1;
+            }
+            const plain = '$' + hex(addr, 6);
+            if (best < 0 || addr - best > 0x800 || (best >>> 16) !== (addr >>> 16)) return plain;
+            const info = table.lookupMap.get(best);
+            return plain + ' (' + info.name + (addr !== best ? ' +$' + hex(addr - best, 2) : '') + ')';
+        };
+        return this.describeScript;
+    }
+
     _status(extra) {
         if (!this.lib) return;
-        const s = this.lib.summary();
-        this.post({ command: 'cdlStatus', summary: s, dir: this.lib.dir, text: extra || '' });
+        this.post({ command: 'cdlStatus', summary: this.lib.summary(), dir: this.lib.dir, text: extra || '' });
     }
 
     _index() {
         if (!this.indexCache) {
-            const body = this.rom.length % 1024 === 512 ? this.rom.subarray(512) : this.rom;
-            const map = createRomMap(body);
+            const map = createRomMap(this._body());
             this.indexCache = { map, index: buildIndex(this.lib, map) };
         }
         return this.indexCache;
     }
 
-    scheduleFlush() {
-        if (this.flushTimer) return;
-        this.flushTimer = setTimeout(() => { this.flushTimer = null; this.flushNow(); }, FLUSH_DELAY_MS);
+    _scheduleFlush() {
+        const now = Date.now();
+        if (!this.firstUnflushed) this.firstUnflushed = now;
+        if (this.flushTimer) clearTimeout(this.flushTimer);
+        const wait = Math.max(0, Math.min(IDLE_FLUSH_MS, this.firstUnflushed + MAX_FLUSH_MS - now));
+        this.flushTimer = setTimeout(() => { this.flushTimer = null; this.flushNow(); }, wait);
     }
 
     flushNow() {
         if (this.flushTimer) { clearTimeout(this.flushTimer); this.flushTimer = null; }
+        this.firstUnflushed = 0;
         if (!this.lib || !this.lib.dirty.size) return;
         try {
             const written = this.lib.flush();
@@ -100,24 +160,52 @@ class CdlHost {
         }
     }
 
+    _seed() {
+        const lib = this._library();
+        if (!lib) { this.post({ command: 'cdlStatus', text: 'no ROM loaded' }); return; }
+        const ctx = findScriptContext(this.rom);
+        const excludes = parseRanges(this._config().get('cdl.scriptExcludes', ['0000-01FF', '2834-2FFF']));
+        this.post({
+            command: 'cdlSeed',
+            labels: this._labels(),
+            cdl: Buffer.from(lib.cdl).toString('base64'),
+            ext: Buffer.from(lib.ext).toString('base64'),
+            wflags: Buffer.from(lib.wflags).toString('base64'),
+            scriptContext: ctx ? { fetchRomOff: ctx.fetchRomOff, ptr: ctx.ptr, excludes } : null,
+        });
+        if (ctx) this.log(`CDL script attribution: interpreter fetch at ROM $${hex(ctx.fetchRomOff, 6)}`);
+        this._status('recording');
+    }
+
+    /** The last flushed state, for the tab while not recording. Never creates files. */
+    _snapshot() {
+        if (!this.rom) return;
+        const dir = path.join(this.root, romHash(this.rom));
+        if (!fs.existsSync(path.join(dir, 'manifest.json'))) {
+            this.post({ command: 'cdlSnapshot', empty: true });
+            return;
+        }
+        const lib = this._library();
+        this.post({
+            command: 'cdlSnapshot',
+            labels: this._labels(),
+            cdl: Buffer.from(lib.cdl).toString('base64'),
+            ext: Buffer.from(lib.ext).toString('base64'),
+            wflags: Buffer.from(lib.wflags).toString('base64'),
+            summary: lib.summary(),
+            updated: lib.manifest ? lib.manifest.updated : '',
+        });
+    }
+
     /** @returns {boolean} whether the message was a CDL message */
     handle(msg) {
         switch (msg.command) {
-            case 'cdlEnable': {
-                const lib = this._library();
-                if (!lib) { this.post({ command: 'cdlStatus', text: 'no ROM loaded' }); return true; }
-                const { map } = this._index();
-                const labels = [];
-                for (let off = 0; off < lib.romSize; off += 0x10000) labels.push((map.canonical(off) >>> 16).toString(16).toUpperCase());
-                this.post({
-                    command: 'cdlSeed',
-                    labels,
-                    cdl: Buffer.from(lib.cdl).toString('base64'),
-                    ext: Buffer.from(lib.ext).toString('base64'),
-                });
-                this._status('recording');
+            case 'cdlEnable':
+                this._seed();
                 return true;
-            }
+            case 'cdlRequestSnapshot':
+                this._snapshot();
+                return true;
             case 'cdlDelta': {
                 const lib = this._library();
                 if (!lib || !msg.delta) return true;
@@ -125,14 +213,22 @@ class CdlHost {
                 const changed = lib.applyDelta({
                     chunks: (d.chunks || []).map(c => ({ index: c.index, cdl: b64ToBytes(c.cdl), ext: b64ToBytes(c.ext) })),
                     wvals: (d.wvals || []).map(w => ({ index: w.index, data: b64ToBytes(w.data) })),
+                    wflags: (d.wflags || []).map(w => ({ index: w.index, data: b64ToBytes(w.data) })),
                     xrefs: b64ToWords(d.xrefs),
                     edges: b64ToWords(d.edges),
                     stats: b64ToWords(d.stats),
+                    scriptXrefs: b64ToWords(d.scriptXrefs),
                 });
-                if (changed) { this.indexCache = null; this.scheduleFlush(); }
-                this._status();
+                if (changed) {
+                    this.indexCache = null;
+                    this._scheduleFlush();
+                    this._status();
+                }
                 return true;
             }
+            case 'cdlPause':
+                this.flushNow();
+                return true;
             case 'cdlDisabled':
                 this.flushNow();
                 this._status('stopped');
@@ -144,7 +240,7 @@ class CdlHost {
                 const lib = this._library();
                 if (!lib) return true;
                 const { index, map } = this._index();
-                this.post({ command: 'cdlLookupResult', lines: lookup(lib, index, map, msg.query) });
+                this.post({ command: 'cdlLookupResult', lines: lookup(lib, index, map, msg.query, { describeScript: this._scriptNamer() }) });
                 return true;
             }
             default:
@@ -161,7 +257,7 @@ class CdlHost {
             const t0 = Date.now();
             let file, text;
             if (kind === 'wram') {
-                const r = exportWram(lib, this.rom, outDir);
+                const r = exportWram(lib, this.rom, outDir, { describeScript: this._scriptNamer() });
                 file = r.file;
                 text = `ram.asm: ${r.addresses} WRAM addresses, ${r.enums} enum candidates`;
             } else {
@@ -185,4 +281,4 @@ class CdlHost {
     dispose() { this.flushNow(); }
 }
 
-module.exports = { CdlHost };
+module.exports = { CdlHost, findScriptContext, parseRanges };

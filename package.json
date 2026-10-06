@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.156.0",
+  "version": "0.157.0",
   "publisher": "rbin",
   "main": "./src/extension.js",
   "engines": {
@@ -274,7 +274,13 @@
         "everscript.cdl.enabled": {
           "type": "boolean",
           "default": false,
-          "markdownDescription": "Start the emulator's CDL recorder automatically for every ROM. It records which ROM bytes run as code or are read as data, who calls each function and who reads or writes each WRAM address, in memory, flushed every 15 s to a per-ROM library in the extension's global storage (merged across sessions). The CDL tab in the emulator's bottom bar can also switch it on for one session."
+          "markdownDescription": "Start the emulator's CDL recorder automatically for every ROM. It records which ROM bytes run as code or are read as data, who calls each function, and who (instruction or script) reads or writes each WRAM address. Everything stays in memory; the per-ROM library in the extension's global storage is written only when something changed (1 minute after the last change, at most every 5 minutes, and at once on pause / stop) and merges across sessions. The CDL tab in the emulator's bottom bar can also switch it on for one session."
+        },
+        "everscript.cdl.scriptExcludes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["0000-01FF", "2834-2FFF"],
+          "markdownDescription": "WRAM ranges (hex offsets into `$7E0000`, `start-end`) never attributed to script instructions by the CDL recorder. Defaults skip direct-page scratch and the stack (`0000-01FF`) and the script temporaries, slot table and run list (`2834-2FFF`), which every script touches."
         },
         "everscript.patchesPath": {
           "type": "string",

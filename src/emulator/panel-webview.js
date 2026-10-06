@@ -14,6 +14,8 @@ const {
     getBottomBarClientScript,
 } = require('./bottom-bar-views');
 const { getCdlCss, getCdlTabButtonHtml, getCdlViewHtml, getCdlClientScript } = require('./cdl-view');
+const { getCdlFloatCss, getCdlFloatHtml, getCdlFloatScript } = require('./cdl-float');
+const { getCdlStripsScript } = require('./cdl-strips');
 
 function _nonce() {
     let n = '';
@@ -348,6 +350,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     .sx-aside              { color: #777; }
     ${getBottomBarCss()}
     ${getCdlCss()}
+    ${getCdlFloatCss()}
   </style>
 </head>
 <body>
@@ -364,6 +367,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     <canvas id="extended-foreground"></canvas>
     <canvas id="screen" width="512" height="448"></canvas>
     <canvas id="extended-overlay"></canvas>
+    ${getCdlFloatHtml()}
     <div id="screen-overlay-bar">
       <button id="screen-extend-toggle" class="screen-chip active" type="button" title="Toggle Extended Map">MAP EXT ON</button>
       <button id="screen-trigger-toggle" class="screen-chip active" type="button" title="Toggle Trigger Overlay (B &amp; Step-on)">TRIGGERS ON</button>
@@ -837,7 +841,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         const targetX = Math.max(0, Math.round(lastLayout.camX + (mouseX - lastLayout.emuX) / lastLayout.scaleSnes));
         const targetY = Math.max(0, Math.round(lastLayout.camY + (mouseY - lastLayout.emuY) / lastLayout.scaleSnes));
         activeTargetPings.push({ x: targetX, y: targetY, birth: performance.now(), duration: 1200 });
-        const scriptStr = 'walk(ACTIVE, COORDINATE_ABSOLUTE, ' + targetX + ', ' + targetY + ')';
+        // wait_for ACTIVE, unlock ACTIVE: the player gets control back on arrival
+        const scriptStr = 'walk(ACTIVE, COORDINATE_ABSOLUTE, ' + targetX + ', ' + targetY + ', ACTIVE, ACTIVE)';
         injectEverscript(scriptStr);
       });
       window.addEventListener('mousemove', (e) => {
@@ -901,6 +906,10 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
 
       let lastFrameTimestamp = performance.now();
       const FRAME_INTERVAL_MS = 1000 / 60; // 16.666 ms
+      // Paused (Esc, pause button, breakpoint): the core is frozen, so only the
+      // extension layers are redrawn - a few times a second, for pan / zoom.
+      const PAUSED_FRAME_MS = 250;
+      let lastPausedFrame = 0;
 
       function frame(timestamp) {
         requestAnimationFrame(frame);
@@ -909,8 +918,20 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         if (elapsed < FRAME_INTERVAL_MS - 2.0) return;
         lastFrameTimestamp = timestamp - (elapsed % FRAME_INTERVAL_MS);
 
+        const paused = isEmulatorPaused();
+        if (paused !== emulatorPausedState) {
+          emulatorPausedState = paused;
+          cdlOnPauseChanged(paused);
+        }
+        if (paused) {
+          if (timestamp - lastPausedFrame < PAUSED_FRAME_MS) return;
+          lastPausedFrame = timestamp;
+        }
+
         resizeCanvas(false);
-        if (romLoaded) {
+        if (romLoaded && paused) {
+          renderExtendedMapAndOverlays(lastSampledPreState, canvas, extMapCanvas, extMapCtx, extEntCanvas, extEntCtx, extFgCanvas, extFgCtx, extOverCanvas, extOverCtx);
+        } else if (romLoaded) {
           romFrameCount++;
           // Sample camera and entity state BEFORE _mainLoop() to match rendered frame
           const preState = samplePreLoopState();
@@ -964,7 +985,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       if (!str) return false;
 
       let bytecode = null;
-      const walkMatch = str.match(/^walk\\s*\\(\\s*(\\w+)\\s*,\\s*(\\w+)\\s*,\\s*(-?\\d+)\\s*,\\s*(-?\\d+)\\s*\\)/i);
+      const walkMatch = str.match(/^walk\\s*\\(\\s*(\\w+)\\s*,\\s*(\\w+)\\s*,\\s*(-?\\d+)\\s*,\\s*(-?\\d+)\\s*(?:,\\s*(\\w+)\\s*)?(?:,\\s*(\\w+)\\s*)?\\)/i);
       if (walkMatch) {
         const charName = walkMatch[1].toUpperCase();
         const typeName = walkMatch[2].toUpperCase();
@@ -975,18 +996,25 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         if (typeName.includes('DIRECT')) opcode = 0x73; // COORDINATE_ABSOLUTE_DIRECT
         else if (typeName.includes('TILE')) opcode = 0x6E;
 
-        let charToken = 0xD2; // ACTIVE (0x52 | 0x80)
-        if (charName === 'BOY') charToken = 0xD0;
-        else if (charName === 'DOG') charToken = 0xD1;
-        else if (charName === 'INACTIVE') charToken = 0xD3;
+        // entity tokens: BOY 0x50, DOG 0x51, ACTIVE 0x52, INACTIVE 0x53 (| 0x80)
+        const token = name => ({ BOY: 0xD0, DOG: 0xD1, ACTIVE: 0xD2, INACTIVE: 0xD3 })[(name || '').toUpperCase()];
+        const charToken = token(charName) || 0xD2;
 
         bytecode = [
           opcode,
           charToken,
           0x84, targetX & 0xFF, (targetX >> 8) & 0xFF,
           0x84, targetY & 0xFF, (targetY >> 8) & 0xFF,
-          0x00 // END
         ];
+        // walk(..., wait_for, unlock) as the compiler emits it: (2e) wait until
+        // the character arrives, (2b) make it player/AI controlled again.
+        const waitFor = token(walkMatch[5]);
+        const unlock = token(walkMatch[6]);
+        if (waitFor) {
+          bytecode.push(0x2E, waitFor);
+          if (unlock) bytecode.push(0x2B, unlock);
+        }
+        bytecode.push(0x00); // END
       } else {
         const hexMatch = str.match(/^(?:0x)?([0-9a-fA-F\\s,]+)$/);
         if (hexMatch) {
@@ -1011,7 +1039,15 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       // Bytecode is fetched with LDA [$82] (a long pointer), so it can live in
       // WRAM: $7FFF00 is never written during play (headless survey), and a
       // walk without a wait runs to its END within the frame anyway.
-      const CODE_ADDR = 0x7FFF00;
+      // A walk that waits keeps running across frames, so each injection gets
+      // its own 0x40-byte buffer: a new right-click must not overwrite the
+      // bytecode of a walk that is still waiting.
+      let CODE_ADDR = 0x7FFF00;
+      if (bytecode.length <= 0x40) {
+        const buffer = injectEverscript.nextBuffer || 0;
+        CODE_ADDR = 0x7FFF00 + buffer * 0x40;
+        injectEverscript.nextBuffer = (buffer + 1) % 4;
+      }
       if (bytecode.length > 0x100) {
         console.warn('Injected everscript too long:', bytecode.length);
         return false;
@@ -2019,6 +2055,12 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     }
 
     // Module is always window.Module (set by the Emscripten core script).
+    let emulatorPausedState = false;
+    function isEmulatorPaused() {
+      const m = window.Module;
+      return !!(m && typeof m.isEmulationPaused === 'function' && m.isEmulationPaused());
+    }
+
     function getModule() {
       return window.Module && typeof Module._mainLoop === 'function' ? window.Module : null;
     }
@@ -2350,11 +2392,19 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     function startWramPolling() {
       document.getElementById('ss-count').textContent = 'connecting...';
 
+      let polledWhilePaused = false;
       function pollOnce() {
         try {
           const m = getModule();
           if (!m) return;
           installDebuggerBridge(m);
+          // Paused: one last refresh shows the frozen state, then nothing changes until resume.
+          if (isEmulatorPaused()) {
+            if (polledWhilePaused) return;
+            polledWhilePaused = true;
+          } else {
+            polledWhilePaused = false;
+          }
           const src = readScriptStackRegion();
           refreshDebuggerUi(m, src.mode);
           if (src.bytes) {
@@ -2366,7 +2416,6 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
             checkScriptExecutionTrace();
             maintainCheats(m);
             refreshActiveBottomTab();
-            vscodeApi.postMessage({ command: 'wramDelta', offset: SCRIPT_BASE, data: Array.from(src.bytes) });
           } else {
             document.getElementById('ss-count').textContent =
               src.mode === 'connecting' ? 'connecting...' : 'unavailable';
@@ -2541,7 +2590,11 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
 
     ${getBottomBarClientScript()}
 
+    ${getCdlFloatScript()}
+
     ${getCdlClientScript()}
+
+    ${getCdlStripsScript()}
 
     function selectTab(tabName) {
       currentBottomTab = tabName;
@@ -2567,7 +2620,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     const tabCheatsBtn = document.getElementById('ss-tab-cheats');
     if (tabCheatsBtn) tabCheatsBtn.addEventListener('click', () => selectTab('cheats'));
     const tabCdlBtn = document.getElementById('ss-tab-cdl');
-    if (tabCdlBtn) tabCdlBtn.addEventListener('click', () => { selectTab('cdl'); cdlPaint(); });
+    if (tabCdlBtn) tabCdlBtn.addEventListener('click', () => { selectTab('cdl'); cdlOnTabShown(); });
     const tabDebugBtn = document.getElementById('ss-tab-debug');
     if (tabDebugBtn) tabDebugBtn.addEventListener('click', () => selectTab('debug'));
 

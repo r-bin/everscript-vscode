@@ -37,7 +37,8 @@ function accessorLines(index, list) {
  * @param map   createRomMap() result
  * @returns {string[]} lines
  */
-function lookup(lib, index, map, text) {
+function lookup(lib, index, map, text, opts) {
+    const describeScript = (opts && opts.describeScript) || (s => '$' + hex(s, 6));
     const q = parseQuery(text);
     if (!q) return ['Enter an address: 7E4E57, 4E57, 2118, C0:8000'];
     if (q.space === SPACE.WRAM || q.space === SPACE.IO) {
@@ -54,6 +55,13 @@ function lookup(lib, index, map, text) {
             if (word.length) lines.push('also the high byte of word $' + hex(0x7E0000 + q.addr - 1, 6) + ' (' + word.length + ' accessors)');
         }
         lines.push('accessed by:', ...accessorLines(index, index.accessorsOf(q.space, q.addr)));
+        if (q.space === SPACE.WRAM) {
+            const scripts = index.scriptAccessorsOf(q.addr);
+            if (scripts.length) {
+                lines.push('script instructions:', ...scripts.map(s => '  ' + flagText(s.flags).padEnd(12) + describeScript(s.script)
+                    + (s.bulk ? '  [bulk: ' + s.count + ' addresses]' : '')));
+            }
+        }
         return lines;
     }
     const off = map.busToRom(q.bus);

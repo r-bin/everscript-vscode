@@ -43,6 +43,12 @@ loops), `S9xGetByte/GetWord/SetByte/SetWord` (`getset.c`), DMA start (`dma.c`), 
 entry (`cpuops.c`). Recording only happens inside `S9xMainLoop` (`cdl.active`), so the
 debugger's own `readMemory` calls are never attributed to the game.
 
+`source/cdl-wram.c` adds the WRAM access map and script attribution (the host names the
+interpreter's opcode fetch; WRAM accesses until that dispatcher frame is left are tied to
+the script instruction in `$82-$84`; interrupts suspend it). `isEmulationPaused()`
+(debugger.c) is what the webview's frame loop and polls use to idle while paused - keep
+anything periodic you add gated on it.
+
 `source/cdl-optable.h` is generated: after changing `src/emulator/cdl/opcodes.js`, run
 `node tools/gen-cdl-optable.js` (a test fails if they drift). Host side: `src/emulator/cdl/`.
 - Output files: `snes9x_2005.js` and `snes9x_2005.wasm` placed directly inside the core folder.

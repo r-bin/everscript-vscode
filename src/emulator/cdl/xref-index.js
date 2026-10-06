@@ -7,6 +7,7 @@
  *   - what is a function (call / interrupt targets, vectors) and who calls it
  *   - which function an instruction belongs to (nearest preceding entry)
  *   - who reads / writes an address (exact xrefs + bulk ranges of capped PCs)
+ *   - which script instructions touched a WRAM address (script-xrefs)
  *   - which ROM offsets deserve a label
  */
 
@@ -19,6 +20,7 @@ const SPACE_NAMES = ['wram', 'rom', 'bus', 'io'];
 const FLOW_CALL = 1, FLOW_INTERRUPT = 0x10;
 const XR = { READ: 1, WRITE: 2, BYTE: 4, WORD: 8, POINTER: 0x10, DMA: 0x20, DMA_VRAM: 0x40, DMA_CGRAM: 0x80 };
 const XREFS_PER_PC = 128;
+const SCRIPT_BULK = 64;   // a script touching more addresses (room loads, decompression) is a range
 
 function push(map, key, value) {
     const list = map.get(key);
@@ -32,6 +34,8 @@ function buildIndex(lib, map) {
     const byAddr = new Map();          // space<<24|addr -> [{ pc, flags }]
     const byPc = new Map();            // pc -> [{ spaceAddr, flags }]
     const bulk = [];                   // { pc, space, lo, hi, flags }
+    const scriptsByAddr = new Map();   // wram addr -> [{ script, flags }]
+    const scriptSpan = new Map();      // script -> { count, lo, hi }
 
     const setLabel = (off, kind) => {
         const rank = { func: 5, loc: 4, gfx: 3, ptrs: 2, data: 1 };
@@ -69,6 +73,14 @@ function buildIndex(lib, map) {
         const spaceAddr = key % 0x4000000;
         push(byAddr, spaceAddr, { pc, flags });
         push(byPc, pc, { spaceAddr, flags });
+    }
+
+    for (const [key, flags] of lib.scriptXrefs || []) {
+        const script = Math.floor(key / 0x20000), addr = key % 0x20000;
+        push(scriptsByAddr, addr, { script, flags });
+        const sp = scriptSpan.get(script);
+        if (sp) { sp.count++; sp.lo = Math.min(sp.lo, addr); sp.hi = Math.max(sp.hi, addr); }
+        else scriptSpan.set(script, { count: 1, lo: addr, hi: addr });
     }
 
     for (const [key, s] of lib.stats) {
@@ -131,7 +143,15 @@ function buildIndex(lib, map) {
         return exact.sort((a, b) => a.pc - b.pc);
     }
 
-    return { labels, callers, byAddr, byPc, bulk, entries, functionOf, labelName, describePc, accessorsOf };
+    /** Script instructions that touched a WRAM address; bulk when the script touched many. */
+    function scriptAccessorsOf(addr) {
+        return (scriptsByAddr.get(addr) || []).map(x => {
+            const sp = scriptSpan.get(x.script);
+            return { script: x.script, flags: x.flags, bulk: sp.count > SCRIPT_BULK, count: sp.count, lo: sp.lo, hi: sp.hi };
+        }).sort((a, b) => a.script - b.script);
+    }
+
+    return { labels, callers, byAddr, byPc, bulk, entries, functionOf, labelName, describePc, accessorsOf, scriptAccessorsOf };
 }
 
 function flagText(flags) {

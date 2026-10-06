@@ -87,6 +87,19 @@ test('hex bytecode parses in the generated script', () => {
     assert.strictEqual(m.readMemory(0x7FFF08), 0x00);
 });
 
+test('right-click walk waits for arrival, hands control back, and does not reuse a live buffer', () => {
+    const m = fakeModule();
+    const fn = makeInject(() => m, () => true, () => {}, v => v.toString(16), 20, 0x4F, 0x7E28FC);
+    assert.strictEqual(fn('walk(ACTIVE, COORDINATE_ABSOLUTE, 120, 280, ACTIVE, ACTIVE)'), true);
+    const code = [];
+    for (let i = 0; i < 13; i++) code.push(m.readMemory(0x7FFF00 + i));
+    // walk, (2e) wait for ACTIVE, (2b) ACTIVE player-controlled again, END
+    assert.deepStrictEqual(code, [0x9D, 0xD2, 0x84, 120, 0, 0x84, 280 & 0xFF, 280 >> 8, 0x2E, 0xD2, 0x2B, 0xD2, 0x00]);
+    assert.strictEqual(fn('walk(ACTIVE, COORDINATE_ABSOLUTE, 8, 8, ACTIVE, ACTIVE)'), true);
+    assert.strictEqual(m.readMemory(0x7FFF40), 0x9D, 'second walk goes to the next buffer');
+    assert.strictEqual(m.readMemory(0x7FFF08), 0x2E, 'first walk is left intact');
+});
+
 test('no free slot refuses instead of overwriting a live script', () => {
     const m = fakeModule();
     for (let s = 0; s < 20; s++) m.writeMemory(0x7E28FC + s * 0x4F + 3, 2);

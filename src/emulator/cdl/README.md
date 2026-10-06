@@ -14,24 +14,32 @@ Design: `docs/tracing-disassembler-and-asar-generation.md` section 9.
 | `asar-export.js` | `main.asm` + `banks/*.asm` + `rom.bin` (incbin for unreached / DMA runs) |
 | `wram-export.js` | `ram.asm`: every WRAM address, accessors, values seen, enum / bit-flag guesses |
 | `lookup.js` | "who calls / who touches" answers for the CDL tab |
-| `host.js` | Panel glue (the only file that needs `vscode`): seed, merge deltas, flush, export, lookup |
+| `host.js` | Panel glue (the only file that needs `vscode`): seed, snapshot, merge deltas, flush policy, export, lookup, script naming |
 
-The webview half (tab, strips, drain timer) is `../cdl-view.js`.
+The webview half is `../cdl-view.js` (tab, tick / drain), `../cdl-strips.js` (ROM + WRAM strips) and `../cdl-float.js` (floating coverage gains over the active character).
 
 ## Invariants
 
 - Recording is **off by default** (`everscript.cdl.enabled`, or the tab's toggle per session).
 - The SSD is never touched per instruction: the core records into WASM memory, the
-  webview drains only changed chunks / new table entries every 15 s, the host merges and
-  writes after a 2 s debounce with tmp-file + rename.
+  webview drains only changed chunks / new table entries every 15 s, and the host writes
+  only files that changed: 60 s after the last change, at most every 5 min while changes
+  keep coming, at once on pause / stop / ROM change / close (tmp-file + rename).
+- Paused (Esc, pause button, breakpoint) or off, nothing runs: no tick, no drain, no write.
 - Every stored field merges with OR / min / max / union — re-importing or merging sessions
   in any order gives the same library. No hit counters.
 - Export must reassemble byte-identical: `asar --fix-checksum=off main.asm out.sfc`.
   Branches always use a label (`seg_XXXXXX+$n` when no better one) because Asar reads a
   bare number in a branch as the displacement.
 - Xrefs are capped at 128 distinct addresses per (instruction, space); beyond that the
-  instruction is reported as a bulk range (clears, copies, table walks).
+  instruction is reported as a bulk range (clears, copies, table walks). Scripts touching
+  more than 64 WRAM addresses (room loads) are reported as bulk in `ram.asm` / lookup.
+- Script attribution: the host finds the interpreter's opcode fetch by byte pattern
+  (`lda [$82] / inc $82 / and #$FF / asl / tax / jsr ($xxxx,x)`, SoE: ROM `$0CD0A6`);
+  `everscript.cdl.scriptExcludes` keeps scratch / slot memory out.
+- New library files are optional: older libraries load unchanged and gain them on the
+  next flush (`wram.flags` is derived from the WRAM xrefs until then).
 
 ## Allowed dependencies
 
-`../snes-rom-header-model.js`, Node built-ins; `host.js` additionally `vscode`.
+`../snes-rom-header-model.js`, Node built-ins; `host.js` additionally `vscode` and `../address-lookup.js` (script names).

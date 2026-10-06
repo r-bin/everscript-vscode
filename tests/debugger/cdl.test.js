@@ -229,11 +229,62 @@ test('host decodes webview deltas (base64 words) into the library', () => {
         const words = Buffer.from(Uint32Array.from([0x808010, 0x4E57, 2]).buffer).toString('base64');
         host.handle({ command: 'cdlDelta', delta: { xrefs: words, chunks: [] } });
         assert.strictEqual(host.lib.xrefs.get(0x808010 * 0x4000000 + 0x4E57), 2);
-        host.flushNow();
-        assert.ok(fs.existsSync(path.join(host.lib.dir, 'xrefs.bin')));
+        const xfile = path.join(host.lib.dir, 'xrefs.bin');
+        assert.ok(!fs.existsSync(xfile), 'a delta alone does not touch the disk');
+        host.handle({ command: 'cdlPause' });
+        assert.ok(fs.existsSync(xfile), 'pausing writes what changed');
+        const stamp = fs.statSync(path.join(host.lib.dir, 'manifest.json')).mtimeMs;
+        host.handle({ command: 'cdlDelta', delta: { xrefs: words, chunks: [] } });
+        host.handle({ command: 'cdlPause' });
+        assert.strictEqual(fs.statSync(path.join(host.lib.dir, 'manifest.json')).mtimeMs, stamp, 'nothing new, nothing written');
         host.handle({ command: 'cdlLookup', query: '7E4E57' });
         assert.ok(posted.some(m => m.command === 'cdlLookupResult'));
         host.dispose();
+    } finally {
+        Module._load = origLoad;
+    }
+});
+
+test('libraries written before wram.flags / script-xrefs still load and gain them', () => {
+    const rom = makeRom();
+    const root = path.join(tmp, 'compat');
+    const lib = new CdlLibrary(root, rom);
+    recordProgram(lib);
+    lib.dirty.add('rom.cdl');
+    lib.flush();
+    fs.rmSync(path.join(lib.dir, 'wram.flags'), { force: true });
+    fs.rmSync(path.join(lib.dir, 'script-xrefs.bin'), { force: true });
+    const old = new CdlLibrary(root, rom);
+    assert.strictEqual(old.xrefs.size, lib.xrefs.size, 'old data kept');
+    assert.strictEqual(old.wflags[0x4E57] & 0x0A, 0x0A, 'WRAM map derived from xrefs (written, 16-bit)');
+    assert.strictEqual(old.wflags[0x4E58] & 0x02, 0x02, 'high byte of the word too');
+    old.applyDelta({ scriptXrefs: Uint32Array.from([0x92A3D2, 0x4E57, 2]), wflags: [{ index: 4, data: new Uint8Array(4096).fill(1) }] });
+    assert.deepStrictEqual(old.flush().sort(), ['script-xrefs.bin', 'wram.flags']);
+    const again = new CdlLibrary(root, rom);
+    assert.strictEqual(again.scriptXrefs.get(0x92A3D2 * 0x20000 + 0x4E57), 2);
+    assert.strictEqual(again.wflags[0x4000] & 1, 1);
+});
+
+test('script accessors show up in ram.asm and lookup; interpreter found by pattern', () => {
+    const rom = makeRom();
+    const lib = new CdlLibrary(path.join(tmp, 'scripts'), rom);
+    recordProgram(lib);
+    lib.mergeScriptXrefs(Uint32Array.from([0x92A3D2, 0x4E57, 2 | 8]));
+    const named = s => '$' + s.toString(16).toUpperCase() + ' (Room 0x15 Enter Script)';
+    const text = fs.readFileSync(exportWram(lib, rom, path.join(tmp, 'scripts-out'), { describeScript: named }).file, 'utf8');
+    assert.ok(text.includes('script W  16     $92A3D2 (Room 0x15 Enter Script)'), text);
+    const map = createRomMap(rom);
+    const out = lookup(lib, buildIndex(lib, map), map, '7E4E57', { describeScript: named }).join('\n');
+    assert.ok(out.includes('script instructions:') && out.includes('$92A3D2'), out);
+    const origLoad = Module._load;
+    Module._load = function (req, ...rest) { return req === 'vscode' ? {} : origLoad.call(this, req, ...rest); };
+    try {
+        const { findScriptContext, parseRanges } = require('../../src/emulator/cdl/host');
+        const withVm = makeRom();
+        withVm.set([0xA7, 0x82, 0xE6, 0x82, 0x29, 0xFF, 0x00, 0x0A, 0xAA, 0xFC, 0xBD, 0xE8], 0xD0A6);
+        assert.deepStrictEqual(findScriptContext(withVm), { fetchRomOff: 0xD0A6, ptr: 0x82 });
+        assert.strictEqual(findScriptContext(rom), null);
+        assert.deepStrictEqual(parseRanges(['0000-01FF', '$7E2834-$7E2FFF', 'junk']), [[0, 0x1FF], [0x2834, 0x2FFF]]);
     } finally {
         Module._load = origLoad;
     }
@@ -246,6 +297,12 @@ test('webview exposes the CDL tab and its script parses', () => {
     const html = buildHtml({ cspSource: '' }, 'core.js', 'core.wasm', 'core', 'core');
     assert.ok(html.includes('id="ss-tab-cdl"') && html.includes('id="ss-view-cdl"'));
     assert.ok(html.includes("'cdl', 'debug'"), 'selectTab knows the cdl tab');
+    assert.ok(html.includes('id="cdl-float-layer"'), 'floating coverage text layer');
+    assert.ok(html.includes('cdlOnPauseChanged(paused)'), 'frame loop reports pause changes');
+    for (const f of ['cdl-float.js', 'cdl-strips.js']) {
+        const text = fs.readFileSync(path.join(ROOT, 'src', 'emulator', f), 'utf8');
+        assert.ok(!/[^\x09\x0A\x0D\x20-\x7E]/.test(text), f + ' must be ASCII');
+    }
     for (const m of html.matchAll(/<script>([\s\S]*?)<\/script>/g)) new Function(m[1]);
 });
 

@@ -555,3 +555,22 @@ Implemented in the custom core and `src/emulator/cdl/`. Where it deviates from t
 **Measured cost**: headless, Secret of Evermore runs at 0.32 ms/frame with recording off and 0.37–0.45 ms/frame with it on, against a 16.7 ms frame budget.
 
 **Not built yet**: importing an external `.cdl` from the UI (`CdlLibrary.mergeImage` exists, but nothing calls it from the UI yet), struct fingerprinting (Section 3) and per-asset file extraction (Section 4). Enum guesses are noisy after a short session and sharpen as sessions merge.
+
+### 9.8 Round 2 (v0.157.0)
+
+- **Snapshot when not recording**: opening the CDL tab without recording shows the library's last flushed state (ROM and WRAM strips, coverage, flush time). It is read only and never creates files.
+- **Pause = idle**: the core exports `isEmulationPaused()`. While paused (Esc, the pause button or a breakpoint):
+  - the frame loop redraws only the extension layers, 4 times a second;
+  - the 250 ms poll refreshes once and then idles;
+  - the CDL tick stops, after one drain and one write.
+  
+  Headless Chromium measured 17–18% of a core running and 1.9% paused. The poll also no longer posts a WRAM region to the host every 250 ms; the host ignored it anyway.
+- **Writes only on change**: the host writes 60 s after the last change, at most every 5 min while changes keep coming, and at once on pause, stop, ROM change or close. A drain with no new data sends nothing, and a write with no dirty file writes nothing.
+- **WRAM map**: `wram.flags`, 1 byte per WRAM byte: read 0x01, written 0x02, 8-bit 0x04, 16-bit 0x08, executed 0x10, by scripts 0x20, jump pointer 0x40. The tab shows it as `7E`/`7F` strips.
+- **Script attribution**: `script-xrefs.bin` holds records of [script instruction address, WRAM address, flags].
+  - The host finds the interpreter's opcode fetch by byte pattern (SoE: ROM `$0CD0A6`, pointer `$82`).
+  - From that fetch until the dispatcher's stack frame is left, WRAM accesses belong to the script instruction in `$82-$84`. Interrupts suspend the attribution.
+  - `everscript.cdl.scriptExcludes` (default `0000-01FF`, `2834-2FFF`) keeps scratch, the stack, script temporaries and the slot table out.
+  - `ram.asm` and the lookup list script accessors by name, e.g. `$92A3D2 (Unnamed Global script 0x36 +$382)`. Scripts touching more than 64 addresses, such as room loads, are listed as bulk.
+- **Format compatibility**: new files are optional. An older library loads unchanged, keeps all its data, and gains the new files on the next flush. Until a recording supplies the real WRAM map, it is derived from the stored WRAM xrefs.
+- **Floating gains**: when a ROM bank's coverage grows, "C4 +0.8%" rises above the active character and fades out. The active character's entity pointer is at `$7E0F42`; when the character is off screen the text starts at the screen centre. Gains in one tick are batched per bank, at most 6 per tick, smaller gains accumulate until they reach 0.01%, and the font grows with the gain.
