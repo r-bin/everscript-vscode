@@ -114,6 +114,20 @@ into `config/`, runs `snesrecomp generate --cfg-roots`, and builds the static li
 The result is C for the game code, not a playable port: that still needs a host frame
 driver (snesrecomp's `src/game_rtl.c` step), and the lockstep check of §6.
 
+**First run on SoE (v0.159.1, 4 MB library ROM, 412 recorded entries):**
+
+| | roots | function variants | native C (AOT) | interpreter only (LLE) | edges |
+|---|---|---|---|---|---|
+| vectors only (`snesrecomp build`) | 9 | 61 | 57 | 4 | 722 |
+| with CDL seeds | 420 | 1084 | 708 | 376 | 9772 |
+
+The seeded run took about 60 s with the analyzer build. It produced 346k lines of C in
+8 banks, with no unresolved stubs, and `libsnesrecomp_game.a` compiled with AppleClang.
+Most of what the CDL adds is code reached through indirect jumps and the script
+interpreter, which static analysis from the vectors cannot find. The 376 LLE variants are
+the next lever: turning the observed `# indirect` sites into `indirect_dispatch` lines
+should move them to native code.
+
 The hand-written lifting rules below stay as the reference for reviewing its output.
 
 ```c
@@ -311,7 +325,7 @@ or ROM bytes.
 | Known regions seeded before CDL: header, 127 rooms → `rooms/*.bin`, map table + string key table as label expressions, 3002 strings `str_<index>` | ✅ v0.158.0 |
 | Export folder build: `build.sh` → ROM + `.cdl` (flags follow labels), `STEPS.md` export log | ✅ v0.158.0 |
 | Shiftable export (all pointer forms symbolised) + padding test | partial: room and string pointers only |
-| 65816 → C lifter with M/X specialisation | via snesrecomp, seeded from the CDL (`recomp.sh`, v0.159.0); end-to-end run on SoE not done yet |
+| 65816 → C lifter with M/X specialisation | ✅ via snesrecomp, seeded from the CDL (`recomp.sh`, v0.159.0); SoE run in v0.159.1, see §5.0 |
 | Hook table in snes9x to call C routines at PC | ❌ |
 | Lockstep two-machine frame diff + divergence report | ❌ |
 | Asset extractor (ROM → `assets/`) | partial (rooms) |

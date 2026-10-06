@@ -31,6 +31,7 @@ const RECOMP_SH = `#!/bin/sh
 # playable port: that still needs a host (frame driver) on top of snesrecomp's runner.
 set -e
 cd "$(dirname "$0")"
+[ -d "$HOME/.cargo/bin" ] && PATH="$HOME/.cargo/bin:$PATH"   # rustup only adds it to new login shells
 : "\${SNESRECOMP:?set SNESRECOMP to a snesrecomp checkout}"
 PY="\${PYTHON:-python3}"
 ROM="\${1:-build/out.sfc}"
