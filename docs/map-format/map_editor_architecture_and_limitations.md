@@ -213,6 +213,11 @@ Can the map table be expanded? **Yes, up to 256 rooms easily.**
    org $908F6E
        LDA !NEW_MAP_TABLE,X
    ```
+> **Correction (v0.160.0):** `$0ADB` and `CHANGE MAP`'s id are 16-bit, and the
+> loader indexes with 16-bit math. The real 256 limit is the room enter script lookup at
+> `$92801B + id*5`, which uses the 8×8-bit hardware multiplier. Both tables can be moved
+> and grown through the Asar export: [asm-to-c-port.md §11.1](../asm-to-c-port.md).
+
 3. **Upper Limit:**
    Because `room_id` in WRAM (`$0ADB`) and in the `CHANGE MAP` bytecode instruction (`0x22 <room_id> <x> <y>`) is an 8-bit byte, the engine natively supports up to **256 maps (`0x00..0xFF`)** without altering bytecode structures.
 

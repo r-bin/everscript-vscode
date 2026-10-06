@@ -122,6 +122,32 @@ Rules: a room must start at `$xx8000` or above in its bank, because the engine r
 through the `$80–$BF` mirror. It must also not cross a bank boundary. Edit `rooms/*.bin`
 to change a room's content; a size change is fine because nothing after it moves.
 
+### Add a room id
+
+Since v0.160.0 both per-room tables are labels, and the loader reads them through those
+labels. Verified headless with id `$7F`.
+
+1. In `banks/bank_DF.asm`, replace `map_table:` and its 127 `dl` lines with
+   `fillbyte $00 : fill 508`, or keep the bytes but drop the label.
+2. In `banks/bank_D2.asm`, do the same for `room_enter_scripts:` and its 127 `db` lines
+   (`fill 633`). The global script table right after it must stay where it is.
+3. Append both tables to `main.asm` at `$xx8000`+ addresses, with the new entries at the end:
+   ```asar
+   org $F18000
+   map_table:
+       ; ... the 127 dl lines ...
+       dl room_7F-$400000 : db $00            ; new room (blob placed elsewhere with org)
+
+   org $F19000
+   room_enter_scripts:
+       ; ... the 127 db lines (pad room 7E's 3 bytes to 5) ...
+       db $..,$..,$..,$00,$00                 ; new room's enter script (packed pointer)
+   ```
+4. Point a door's `CHANGE MAP` (or the boot script) at the new id and `./build.sh`.
+
+Limit: **256 ids** (`$00–$FF`). The enter-script lookup uses the 8×8-bit hardware
+multiplier, so id `$100` aliases to `$00`. See [asm-to-c-port.md §11.1](../asm-to-c-port.md).
+
 ## 5. Generate C with snesrecomp
 
 ```sh

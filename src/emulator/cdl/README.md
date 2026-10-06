@@ -13,7 +13,7 @@ Usage (record → export → `build.sh` → `recomp.sh`): `docs/workflows/cdl-ex
 | `xref-index.js` | Functions, callers, enclosing function, accessors per address, labels |
 | `disasm.js` | Decode one instruction with recorded M/X; format Asar text that reassembles byte-exact |
 | `asar-export.js` | `main.asm` + `banks/*.asm` + `rom.bin` (incbin for unreached / DMA runs) |
-| `known-regions.js` | Seeds the export before any CDL data: header + vectors; for SoE the 127 room blobs (`rooms/*.bin`), the map table as `dl room_XX-$400000`, 3002 strings `str_<index>` and the key table as `dl strkey(str_XXXX)` |
+| `known-regions.js` | Seeds the export before any CDL data: header + vectors; for SoE the 127 room blobs (`rooms/*.bin`), the map table as `dl room_XX-$400000`, 3002 strings `str_<index>` and the key table as `dl strkey(str_XXXX)`, the room enter script table `room_enter_scripts` |
 | `recomp-seeds.js` | `recomp/cfg/bankXX.cfg` seeds for [snesrecomp](https://github.com/RetroPortingToolKit/snesrecomp) (func entries + entry M/X per runtime bank, data regions, indirect sites as comments) and `recomp.sh` |
 | `asar-build.js` | `rom.cdl`, `export.json` (labels + original offsets), `build.sh` + standalone `build-cdl.js` (ROM + CDL, flags follow labels), appends `STEPS.md` once per export |
 | `wram-export.js` | `ram.asm`: every WRAM address, accessors, values seen, enum / bit-flag guesses |
@@ -38,6 +38,8 @@ The webview half is `../cdl-view.js` (tab, tick / drain), `../cdl-strips.js` (RO
   boundary only misplaces a label, never breaks the rebuild. A pointer table entry is a
   label expression (`room_06-$400000`), so moving the target moves the pointer.
 - `STEPS.md` is written on export only, never by recording.
+- A 24-bit operand is labelled even through a mirror or inside a known region
+  (`lda.l map_table+$0001-$400000,x`), so code follows a moved table.
   Branches always use a label (`seg_XXXXXX+$n` when no better one) because Asar reads a
   bare number in a branch as the displacement.
 - Xrefs are capped at 128 distinct addresses per (instruction, space); beyond that the

@@ -87,6 +87,25 @@ function roomRegions(rom, map, steps) {
     return [table, ...regions];
 }
 
+// Room enter scripts: $928000 + 0x1B + 5*id, read by func_CCCE99 through the hardware
+// multiplier (8x8 bit, so at most 256 rooms). Only the first 3 bytes of an entry are read
+// (a packed script pointer); the table ends where the global script pointer table starts,
+// at $928000 + word[$928000], which the last entry overlaps.
+const SCRIPT_BANK = 0x128000;
+const ENTER_TABLE = SCRIPT_BANK + 0x1B;
+
+function enterScriptRegion(rom, map, steps) {
+    const end = SCRIPT_BANK + (rom[SCRIPT_BANK] | (rom[SCRIPT_BANK + 1] << 8));
+    if (end <= ENTER_TABLE || end > SCRIPT_BANK + 0x8000) { steps.push('Room enter scripts: table end not found, not seeded.'); return []; }
+    const lines = [];
+    for (let o = ENTER_TABLE, id = 0; o < end; o += 5, id++) {
+        const n = Math.min(5, end - o);
+        lines.push(dbLines([...rom.subarray(o, o + n)])[0] + `    ; room ${hex(id, 2)}` + (n < 5 ? ` (${n} bytes; overlaps the global script table)` : ''));
+    }
+    steps.push(`Room enter scripts: table at $${hex(map.canonical(ENTER_TABLE), 6)}, ${lines.length} entries (5 bytes, id*5 via the 8x8-bit multiplier: max 256 rooms), labelled room_enter_scripts.`);
+    return [{ start: ENTER_TABLE, end, kind: 'bytes', name: 'room_enter_scripts', note: 'room id -> enter script (3-byte packed pointer + 2 bytes), stride 5', lines }];
+}
+
 function labelExpr(name, delta) {
     if (!delta) return name;
     return name + (delta < 0 ? '-$' + hex(-delta, 6) : '+$' + hex(delta, 6));
@@ -164,7 +183,7 @@ function findKnownRegions(rom, map, cdl) {
     let all = headerRegions(rom, map, steps);
     const defines = [];
     if (isEvermore(map) && rom.length > STRING_KEYS + STRING_COUNT * 3 && rom.length > maps.MAP_LIST_ADDR + maps.MAX_ROOMS * 4) {
-        all = all.concat(roomRegions(rom, map, steps), stringRegions(rom, map, cdl, steps));
+        all = all.concat(roomRegions(rom, map, steps), enterScriptRegion(rom, map, steps), stringRegions(rom, map, cdl, steps));
         defines.push(STRKEY_FN);
     } else {
         steps.push('Content: not a Secret of Evermore HiROM image, only the header is seeded.');

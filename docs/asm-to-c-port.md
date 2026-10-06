@@ -280,6 +280,11 @@ name, per-room flags) merge into one `struct Room`.
 
 ### 8.3 Widening an index: the census
 
+> **Room id census so far (v0.160.0, from the CDL):** `$0ADB` is 16-bit everywhere it was
+> seen: written by `CHANGE MAP` (16-bit operand, unmasked) and the new-game routine, read
+> by the loader (`asl : asl : tax`, 16-bit) and by the enter-script lookup, whose 8×8-bit
+> hardware multiply is the one 8-bit place. Details in §11.1.
+
 The hard limit is not storage but **width**: everywhere the id is stored, passed or
 computed. Before changing it, list every place the id appears:
 
@@ -346,36 +351,45 @@ or ROM bytes.
 
 The goal has two parts, and the path reaches them differently.
 
-### 11.1 ROM goal: move content, add rooms. **Partly: room data moves, the room table does not yet.**
+### 11.1 ROM goal: move content, add rooms. **Yes for rooms, up to 256 ids (v0.160.0, verified headless).**
 
 The Asar export rebuilds byte-identically. Rooms and strings are named blobs, and the
-*entries* of the map table and string key table are label expressions, so moving a room
-blob works now (§8.1.1, verified with rooms 06 and 38).
+tables that index them are labels:
 
-**Moving or growing the map table itself does not work yet.** The loader reads it with
-`lda.l $9FFDE7,x` (ROM `0x108F69`) and `lda.l $9FFDE8,x` (`0x108F6F`). Both stay raw numbers
-in the export, for two reasons:
+| Table | Address | Read by | In the export |
+|---|---|---|---|
+| map table (id → blob) | `$9FFDE7`, 4 bytes/room | loader `90:8F69` / `90:8F6F` | `lda.l map_table-$400000,x`, `lda.l map_table+$0001-$400000,x` |
+| room enter scripts | `$92801B`, 5 bytes/room | `func_CCCE99` (`8C:CECC` / `8C:CED2`) | `lda.l room_enter_scripts-$400000,x`, `…+$0001-$400000,x` |
 
-- they use the `$9F` mirror, while the label is at the canonical `$DFFDE7`, and the
-  exporter only labels exact canonical matches;
-- `$9FFDE8` points inside the region, and in-region offsets (`map_table+1`) are not
-  emitted.
+Since v0.160.0 the exporter labels 24-bit operands that go **through a mirror** (`$9F…` for a
+label at `$DF…`) or point **inside a known region** (`map_table+1`), which is what made both
+tables movable.
 
-Moving `map_table` today would leave the loader reading the old place. Without moving it,
-7 more rooms fit in place (slots `$7F–$85`, before the end of bank `$9F`).
+**Verified headless** (snes9x core, 1200 frames from power-on to room 15, `$0ADB` and
+screen compared). Both tables were moved to the extension (`$F18000`, `$F19000`, old copies
+wiped), a new id `$7F` was pointed at room 15's blob and enter script, and the boot script
+was changed to `CHANGE MAP $7F`. The screen matched the unedited ROM, and WRAM differed in
+one byte: `$0ADB` = `$7F`. Controls: moving the map table alone matched exactly, and wiping
+it without moving broke the boot.
 
-**Fix:** label long operands through mirrors and inside known regions, so the loader
-becomes `lda.l map_table-$400000,x` / `lda.l map_table+1-$400000,x`. Then check that no
-other code reads the table (CDL coverage), and test with a rebuilt ROM that loads a room
-through a moved table. After that, the table can grow to 256 entries.
+**The limit is 256 ids, set by one instruction.** `$0ADB`, `CHANGE MAP`'s operand and the
+loader's index math are all 16-bit, but the enter-script lookup multiplies with the SNES
+hardware multiplier, which is 8×8 bit (`lda $0ADB : ora #$0500 : sta $4202`). Id `$0100`
+loaded room `$00`. Going beyond 256 means changing that routine, for example to `asl`/`adc`
+math. Recipe for adding rooms: [workflows/cdl-export-build-recomp.md](workflows/cdl-export-build-recomp.md#add-a-room-id).
 
-Two more parts are still open:
+**Not covered:** code the recorder has not seen yet. The recorded exact readers of `$0ADB`
+are the loader, the enter-script lookup, `CHANGE MAP` (writes) and the new-game routine
+(`80:B3A8`, writes the start room from `$928006`). The remaining recorded accesses are
+block copies (save/load, clears), which copy the 16-bit value as is. Re-check this list
+after more recording.
+
+Still open on the ROM side:
 
 - **Moving code or growing WRAM structs:** only room and string pointers are symbolic.
   Code pointers, bank bytes, jump tables and WRAM addresses are still raw (§4).
-- **More than 256 rooms:** the room id is 8-bit in WRAM (`$0ADB`) and in the loader's
-  index math. That needs readable code at every place the id is used (§8.3), which is the
-  C goal below.
+- **More than 256 rooms:** needs the enter-script lookup rewritten (see above), and a
+  census of code not recorded yet (§8.3).
 
 ### 11.2 C goal: readable C. **Only half of the way.**
 

@@ -101,9 +101,33 @@ function exportAsar(lib, romInput, outDir) {
         targetsFrom.set(off, list);
     }
 
+    // Known region containing a ROM offset (regions are sorted and disjoint).
+    const regionStarts = known.regions.map(r => r.start);
+    function regionOf(off) {
+        let lo = 0, hi = regionStarts.length - 1, best = -1;
+        while (lo <= hi) { const mid = (lo + hi) >> 1; if (regionStarts[mid] <= off) { best = mid; lo = mid + 1; } else hi = mid - 1; }
+        return best >= 0 && off < known.regions[best].end ? known.regions[best] : null;
+    }
+
+    // A 24-bit operand may name a label through a mirror ($9FFDE7 for map_table at
+    // $DFFDE7) or point inside a known region (map_table+1). The expression keeps
+    // the exact bytes, and the operand follows the label when it moves.
+    function resolveLong(bus, off) {
+        let name = emitted.has(off) ? nameOf(off) : null;
+        if (!name) {
+            const r = regionOf(off);
+            if (!r) return null;
+            name = r.name + (off > r.start ? '+$' + hex(off - r.start, 4) : '');
+        }
+        const delta = bus - map.canonical(off);
+        return delta ? name + (delta < 0 ? '-$' : '+$') + hex(Math.abs(delta), 6) : name;
+    }
+
     function resolve(bus, width) {
         const off = map.busToRom(bus);
-        if (off < 0 || map.canonical(off) !== bus) return null;
+        if (off < 0) return null;
+        if (width === 24) return resolveLong(bus, off);
+        if (map.canonical(off) !== bus) return null;
         if (width === 'rel' && !emitted.has(off)) {
             const segBase = off - (off % map.segment);
             return segBase === off ? segName(off) : segName(segBase) + '+$' + hex(off - segBase, 4);

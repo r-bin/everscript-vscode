@@ -188,6 +188,27 @@ test('Asar export names functions, callers and accesses; reassembles byte-exact'
     assert.ok(fs.readFileSync(path.join(out, 'build', 'out.cdl')).equals(Buffer.from(lib.cdl)), 'build.sh reproduces the CDL');
 });
 
+test('long operands through a mirror or inside a known region become label expressions', () => {
+    const rom = makeRom();
+    rom.set([0xBF, 0x00, 0x90, 0x80, 0xBF, 0xC1, 0xFF, 0x80, 0x60], 0x8020);   // lda.l $809000,x / lda.l $80FFC1,x / rts
+    const lib = new CdlLibrary(path.join(tmp, 'mirror'), rom);
+    recordProgram(lib);
+    for (const [off, len] of [[0x8020, 4], [0x8024, 4], [0x8028, 1]]) {
+        lib.cdl[off] |= 0x01 | (off === 0x8020 ? 0x08 : 0);
+        lib.ext[off] |= 0x04 | 0x08 | 0x10;
+        for (let i = 1; i < len; i++) lib.cdl[off + i] |= 0x01;
+    }
+    const out = path.join(tmp, 'asar-mirror');
+    exportAsar(lib, rom, out);
+    const bank = fs.readFileSync(path.join(out, 'banks', 'bank_C0.asm'), 'utf8');
+    assert.ok(bank.includes('lda.l data_C09000-$400000,x'), 'mirror of a labelled byte');
+    assert.ok(bank.includes('lda.l rom_header+$0011-$400000,x'), 'offset inside a known region');
+    const asar = process.env.ASAR || path.resolve(ROOT, '..', 'asar', 'asar', 'bin', 'asar');
+    if (!fs.existsSync(asar)) return;
+    execFileSync(asar, ['--fix-checksum=off', 'main.asm', 'out.sfc'], { cwd: out, stdio: 'pipe' });
+    assert.ok(Buffer.from(rom).equals(fs.readFileSync(path.join(out, 'out.sfc'))), 'reassembled ROM differs');
+});
+
 test('WRAM report lists accessors, widths and values', () => {
     const rom = makeRom();
     const lib = new CdlLibrary(path.join(tmp, 'wram'), rom);
