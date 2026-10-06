@@ -346,11 +346,30 @@ or ROM bytes.
 
 The goal has two parts, and the path reaches them differently.
 
-### 11.1 ROM goal: move content, add rooms. **Yes, first milestone reached.**
+### 11.1 ROM goal: move content, add rooms. **Partly: room data moves, the room table does not yet.**
 
-The Asar export rebuilds byte-identically. Rooms and strings are named blobs, and the map
-table and string key table are label expressions, so moving a room or adding rooms up to
-256 works now (§8.1.1, verified). Two parts are still open:
+The Asar export rebuilds byte-identically. Rooms and strings are named blobs, and the
+*entries* of the map table and string key table are label expressions, so moving a room
+blob works now (§8.1.1, verified with rooms 06 and 38).
+
+**Moving or growing the map table itself does not work yet.** The loader reads it with
+`lda.l $9FFDE7,x` (ROM `0x108F69`) and `lda.l $9FFDE8,x` (`0x108F6F`). Both stay raw numbers
+in the export, for two reasons:
+
+- they use the `$9F` mirror, while the label is at the canonical `$DFFDE7`, and the
+  exporter only labels exact canonical matches;
+- `$9FFDE8` points inside the region, and in-region offsets (`map_table+1`) are not
+  emitted.
+
+Moving `map_table` today would leave the loader reading the old place. Without moving it,
+7 more rooms fit in place (slots `$7F–$85`, before the end of bank `$9F`).
+
+**Fix:** label long operands through mirrors and inside known regions, so the loader
+becomes `lda.l map_table-$400000,x` / `lda.l map_table+1-$400000,x`. Then check that no
+other code reads the table (CDL coverage), and test with a rebuilt ROM that loads a room
+through a moved table. After that, the table can grow to 256 entries.
+
+Two more parts are still open:
 
 - **Moving code or growing WRAM structs:** only room and string pointers are symbolic.
   Code pointers, bank bytes, jump tables and WRAM addresses are still raw (§4).
