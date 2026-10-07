@@ -13,7 +13,7 @@ Usage (record → export → `build.sh` → `recomp.sh`): `docs/workflows/cdl-ex
 | `xref-index.js` | Functions, callers, enclosing function, accessors per address, labels |
 | `disasm.js` | Decode one instruction with recorded M/X; format Asar text that reassembles byte-exact |
 | `asar-export.js` | `main.asm` + `banks/*.asm` + `rom.bin` (incbin for unreached / DMA runs) |
-| `known-regions.js` | Seeds the export before any CDL data: header + vectors; for SoE the 127 room blobs (`rooms/*.bin`), the map table as `dl room_XX-$400000`, 3002 strings `str_<index>` and the key table as `dl strkey(str_XXXX)`, the room enter script table `room_enter_scripts` |
+| `known-regions.js` | Seeds the export before any CDL data: header + vectors; for SoE the 127 room blobs (`rooms/*.bin`), the map table as `dl room_XX-$400000`, 3002 strings `str_<index>` and the key table as `dl strkey(str_XXXX)`, the room enter script table `room_enter_scripts`, the two string key readers (`string_keys_ref_N`, immediates as expressions) |
 | `recomp-seeds.js` | `recomp/cfg/bankXX.cfg` seeds for [snesrecomp](https://github.com/RetroPortingToolKit/snesrecomp) (func entries + entry M/X per runtime bank, data regions, indirect sites as comments) and `recomp.sh` |
 | `asar-build.js` | `rom.cdl`, `export.json` (labels + original offsets), `build.sh` + standalone `build-cdl.js` (ROM + CDL, flags follow labels), appends `STEPS.md` once per export |
 | `wram-export.js` | `ram.asm`: every WRAM address, accessors, values seen, enum / bit-flag guesses |

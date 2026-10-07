@@ -148,6 +148,23 @@ labels. Verified headless with id `$7F`.
 Limit: **256 ids** (`$00–$FF`). The enter-script lookup uses the 8×8-bit hardware
 multiplier, so id `$100` aliases to `$00`. See [asm-to-c-port.md §11.1](../asm-to-c-port.md).
 
+### Move the string key table
+
+Since v0.161.0 `string_keys` and its two readers (`string_keys_ref_0/1`, immediates written
+as expressions) are labels.
+
+1. In `banks/bank_D1.asm`, replace `string_keys:` and its 3002 `dl` lines with
+   `fillbyte $00 : fill 9006`.
+2. Append them to `main.asm` at a `$xx8000`+ address. The whole table must stay in that
+   32 KB half, and new keys go at the end:
+   ```asar
+   org $F1A000
+   string_keys:
+       ; ... the 3002 dl lines ...
+       dl strkey(str_NEW)|$800000     ; new key $2328 (byte offset = index * 3)
+   ```
+3. `./build.sh`. Verified headless with keys `$0000`, `$0BB7` and `$2148`.
+
 ## 5. Generate C with snesrecomp
 
 ```sh

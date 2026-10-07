@@ -173,6 +173,27 @@ function stringRegions(rom, map, cdl, steps) {
     return [table, ...regions];
 }
 
+// The string key table's readers never hold $91D000 as one operand: they build the
+// pointer at $26-$28 from two immediates (`lda #$0091 : sta $28 : ldy #$D000`, then
+// `lda [$26],y`). Each occurrence becomes a region whose immediates are expressions of
+// string_keys, so a moved table repoints them. The table must then stay inside one
+// $xx8000-$xxFFFF half (read through the $80 mirror, like the original $91D000).
+const KEY_READER = [0xA9, 0x91, 0x00, 0x85, 0x28, 0xA0, 0x00, 0xD0];
+
+function stringKeyReaders(rom, map, steps) {
+    const regions = [];
+    for (let o = 0; o + KEY_READER.length <= Math.min(rom.length, 0x400000); o++) {
+        if (rom[o] !== 0xA9 || KEY_READER.some((b, i) => rom[o + i] !== b)) continue;
+        regions.push({
+            start: o, end: o + KEY_READER.length, kind: 'bytes', name: 'string_keys_ref_' + regions.length,
+            note: 'string key table base, built as bank:$28 + offset:y for `lda [$26],y`',
+            lines: ['    lda.w #(string_keys-$400000)>>16', '    sta.b $28', '    ldy.w #(string_keys-$400000)&$FFFF'],
+        });
+    }
+    steps.push(`String key readers: ${regions.length} (${regions.map(r => '$' + hex(map.canonical(r.start), 6)).join(', ')}), immediates written as expressions of string_keys.`);
+    return regions;
+}
+
 /**
  * Known regions for this ROM, sorted and non-overlapping (a later region that
  * overlaps an earlier one is dropped and reported).
@@ -183,7 +204,7 @@ function findKnownRegions(rom, map, cdl) {
     let all = headerRegions(rom, map, steps);
     const defines = [];
     if (isEvermore(map) && rom.length > STRING_KEYS + STRING_COUNT * 3 && rom.length > maps.MAP_LIST_ADDR + maps.MAX_ROOMS * 4) {
-        all = all.concat(roomRegions(rom, map, steps), enterScriptRegion(rom, map, steps), stringRegions(rom, map, cdl, steps));
+        all = all.concat(roomRegions(rom, map, steps), enterScriptRegion(rom, map, steps), stringRegions(rom, map, cdl, steps), stringKeyReaders(rom, map, steps));
         defines.push(STRKEY_FN);
     } else {
         steps.push('Content: not a Secret of Evermore HiROM image, only the header is seeded.');

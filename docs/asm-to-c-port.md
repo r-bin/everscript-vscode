@@ -387,10 +387,31 @@ after more recording.
 The per-item engine limits (maps, strings, sprites, palettes, tiles) are tracked in the
 `everscript` repo's `docs/rom-extension-wishlist.md`; its §1 and §6 carry these findings.
 
-**String key table (`$91D000`):** read by `func_CCCCF5` (`8C:CCFF`, `8C:CD07`), which builds the
-address from two immediates, `lda #$0091 : sta $28` and `ldy #$D000`, then `lda [$26],y`.
-Moving the table means patching those two immediates. The export does not make immediates
-symbolic yet, but the table's entries are already `dl strkey(str_XXXX)`.
+**String key table (`$91D000`): movable too (v0.161.0, verified headless).** Two routines
+build the table address from immediates instead of one operand: `func_CCCCF5` (`8C:CCF7`)
+and an identical copy at `8C:CD35` that the recorder never saw run. Both do
+`lda #$0091 : sta $28 : ldy #$D000`, then `lda [$26],y`. The export finds them by byte
+pattern and writes:
+
+```asar
+lda.w #(string_keys-$400000)>>16
+sta.b $28
+ldy.w #(string_keys-$400000)&$FFFF
+```
+
+Test: the key table was moved to `$F1A000` (read as `$B1:A000`) and the old one wiped. Opcode
+`51 <key> 00` was then injected headless after the boot, for keys `$2148` ("Armament Sales
+Mode engaged:"), `$0000` ("gain item: unknown misc. item") and `$0BB7`, all compressed. The
+decoded text buffer at `$7FD81E`, WRAM and the screen matched the unedited ROM for all three.
+Wiping the table without moving it left the buffer empty (control).
+
+Constraint: the whole table must fit in one `$xx8000–$xxFFFF` half, because it is read
+through the `$80` mirror. Placed at `$xx8000`, that half holds about 10900 keys
+(32768 / 3) against vanilla's 3002. The key id is a 16-bit byte offset, which would allow
+about 21800, so the 32 KB half is the tighter limit.
+
+Blast radius (everscript compiler): `compiler/ast_everscript.py` uses `0x91d000 + index`
+and `codegen.py` writes the table at `0x11d000`. A moved table needs both changed.
 
 Still open on the ROM side:
 
