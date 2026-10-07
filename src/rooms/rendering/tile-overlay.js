@@ -14,7 +14,7 @@
 const maps = require('../../maps');
 const { romFingerprint } = require('./rom-fingerprint');
 const { headerSpec, withHeader } = require('./header-overrides');
-const { buildObjects, parseObjectStates, cachedObjectPreviews } = require('./object-previews');
+const { buildObjects, parseObjectStates, cachedObjectPreviews, invalidateObjectPreviews } = require('./object-previews');
 
 /** Which render the map image shows. */
 const LAYERS = ['composite', 'layer1', 'layer2'];
@@ -274,7 +274,7 @@ function foregroundFor(entry, animate) {
 }
 
 /** Drop cached renders (call when the ROM changes). */
-function invalidateRoomRenders() { RENDER_CACHE.clear(); PREVIEW_CACHE.clear(); ANIM_CACHE.clear(); }
+function invalidateRoomRenders() { RENDER_CACHE.clear(); invalidateObjectPreviews(); ANIM_CACHE.clear(); }
 
 /**
  * Decode and render a room for the Rooms tab.

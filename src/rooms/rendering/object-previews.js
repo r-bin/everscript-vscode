@@ -135,4 +135,9 @@ function cachedObjectPreviews(rom, roomId, room, selected) {
     return objects.map((o) => ({ ...o, current: Math.min(selected[o.index] || 0, o.states.length - 1) }));
 }
 
-module.exports = { buildObjects, editorObjects, parseObjectStates, cachedObjectPreviews };
+/** The ROM changed (a rebuild): drop the thumbnails. */
+function invalidateObjectPreviews() {
+    PREVIEW_CACHE.clear();
+}
+
+module.exports = { buildObjects, editorObjects, parseObjectStates, cachedObjectPreviews, invalidateObjectPreviews };
