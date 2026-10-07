@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.167.0",
+  "version": "0.167.1",
   "publisher": "rbin",
   "main": "./src/extension.js",
   "engines": {
@@ -18,7 +18,8 @@
     "onDebugAdapterProtocol:everscript",
     "onCommand:everscript.buildAndRun",
     "onCommand:everscript.exportRoomMaps",
-    "onCommand:everscript.attachDebugger"
+    "onCommand:everscript.attachDebugger",
+    "onCommand:everscript.debugInEmulator"
   ],
   "categories": [
     "Programming Languages",
@@ -222,6 +223,11 @@
         "command": "everscript.attachDebugger",
         "title": "Attach Debugger to Emulator",
         "category": "Everscript"
+      },
+      {
+        "command": "everscript.debugInEmulator",
+        "title": "Build and Debug in Emulator",
+        "category": "Everscript"
       }
     ],
     "problemMatchers": [
@@ -337,7 +343,14 @@
           "deprecationMessage": "Use Everscript: Patches Directory instead. This setting is kept only for backward compatibility."
         }
       }
-    }
+    },
+    "keybindings": [
+      {
+        "command": "everscript.debugInEmulator",
+        "key": "f5",
+        "when": "editorLangId == everscript && !inDebugMode"
+      }
+    ]
   },
   "repository": {
     "type": "git",

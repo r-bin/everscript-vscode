@@ -506,7 +506,7 @@ test('a missing snesCorePath falls back to the bundled core, with a warning', ()
         Uri: { file(p) { return { fsPath: p, toString() { return 'file://' + p; } }; } },
         workspace: {
             getConfiguration() {
-                return { get(k, d) { return k === 'snesCorePath' ? '/nowhere/debugger/core/snes9x2005-wasm/snes9x_2005.js' : (d !== undefined ? d : ''); } };
+                return { get(k, d) { return k === 'snesCorePath' ? '/nowhere/my-core/snes9x_2005.js' : (d !== undefined ? d : ''); } };
             },
             workspaceFolders: [],
         },

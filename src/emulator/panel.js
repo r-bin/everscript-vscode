@@ -160,11 +160,13 @@ function _dispatchPendingRom() {
   return true;
 }
 
+/** A missing core under a pre-v0.6.0 folder of any checkout (or of this install) -> the bundled custom core. */
 function _remapLegacyCorePath(rawPath) {
   const normalized = path.normalize(rawPath);
+  if (fs.existsSync(normalized)) return rawPath;
   for (const legacyDir of LEGACY_CUSTOM_CORE_DIRS) {
-    const legacyJs = path.normalize(path.join(_extensionPath, legacyDir, CORE_JS));
-    if (normalized !== legacyJs) continue;
+    const legacySuffix = path.sep + path.normalize(path.join(legacyDir, CORE_JS));
+    if (!normalized.endsWith(legacySuffix)) continue;
     const migrated = path.join(_extensionPath, 'src', 'emulator', 'core', 'snes9x2005-wasm', CORE_JS);
     if (fs.existsSync(migrated)) return migrated;
   }

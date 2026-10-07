@@ -10,6 +10,9 @@
  *   launch  build the .evs (unless "build": false), load the ROM into the
  *           emulator and debug it; Ctrl+F5 (noDebug) only builds and runs
  *   attach  debug whatever ROM the emulator is running (panel: "connect dbg")
+ *
+ * F5 in an .evs editor runs everscript.debugInEmulator, not the launch.json
+ * selection: the everscript repo's launch.json debugs the Python compiler.
  */
 
 const vscode = require('vscode');
@@ -87,6 +90,12 @@ function registerDebugger(context, emulator, repoPath) {
         vscode.commands.registerCommand('everscript.attachDebugger', () => vscode.debug.startDebugging(undefined, {
             type: 'everscript', request: 'attach', name: 'Attach to emulator', program: activeEvsFile(),
         })),
+        // F5 in an .evs editor, regardless of the launch.json selection (e.g. a debugpy entry for the compiler).
+        vscode.commands.registerCommand('everscript.debugInEmulator', () => {
+            const program = activeEvsFile();
+            if (!program) return vscode.window.showWarningMessage('Everscript: no .evs file is active.');
+            return vscode.debug.startDebugging(undefined, { type: 'everscript', request: 'launch', name: 'Build and debug in emulator', program });
+        }),
     );
 }
 

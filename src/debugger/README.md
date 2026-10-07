@@ -50,7 +50,7 @@ VS Code debug UI ── DAP (in-process) ── emulator-session.js
 
 ## Launch
 
-- `launch` (F5 in an `.evs` file, no launch.json needed): build via
+- `launch` (F5 in an `.evs` file: `everscript.debugInEmulator`, independent of launch.json, which in the everscript repo debugs the Python compiler): build via
   `everscript.buildAndRun` with `{ inputPath, run: false }`, load the source map,
   set breakpoints, then load the ROM; the breakpoints travel with the
   `loadRom` message, so they are armed before the first frame. Ctrl+F5 only builds and runs.
