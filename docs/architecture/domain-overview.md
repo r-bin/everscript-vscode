@@ -242,16 +242,17 @@
 
 **Responsibilities:**
 - DAP wire protocol (VS Code ↔ runtime)
-- Script execution orchestration (mock runtime)
+- .evs breakpoints, stepping and call stacks in the emulator (compiler source map)
 - Breakpoint management
 - Debug session lifecycle
 
-**Current folder:** `debugger/adapter.js`, `debugger/mock-runtime.js`
-**Target folder:** `debugger/` (no move needed)
+**Current folder:** `src/debugger/` (see its README)
 
 **Key files:**
-- `debugger/adapter.js` — DAP adapter
-- `debugger/mock-runtime.js` — script execution orchestrator
+- `debugger/inline-adapter.js` — debug type registration (launch / attach)
+- `debugger/emulator-session.js` — DAP session
+- `debugger/script-frames.js`, `debugger/source-map.js` — pure frame / step / map logic
+- `emulator/script-debug-host.js`, `emulator/script-debug-view.js` — the emulator hook
 
 **Public API:** VS Code debugger contribution (package.json). Not called directly.
 

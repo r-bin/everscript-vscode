@@ -73,18 +73,18 @@ module.exports = {
 
     {
       name: 'no-debugger-to-memory',
-      comment: 'DAP adapter must not trigger radar rendering. IPC routes through extension.js.',
+      comment: 'The debugger must not trigger radar rendering. IPC routes through extension.js.',
       severity: 'warn',
-      from: { path: '^src/debugger/(adapter|mock-runtime)\\.js' },
+      from: { path: '^src/debugger/' },
       to: { path: '^src/memory/' },
     },
 
     {
       name: 'no-memory-to-debugger-dap',
-      comment: 'Memory radar has no reason to call DAP adapter functions.',
+      comment: 'Memory radar has no reason to call the debugger.',
       severity: 'warn',
       from: { path: '^src/memory/' },
-      to: { path: '^src/debugger/(adapter|mock-runtime)\\.js' },
+      to: { path: '^src/debugger/' },
     },
 
     {

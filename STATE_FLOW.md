@@ -238,17 +238,15 @@ Client JS: cell clicks, filter buttons (body class toggles), tooltip hover
 ```
 User launches debugger (F5)
   ↓
-debugger/adapter.js (DAP adapter)
+debugger/inline-adapter.js → debugger/emulator-session.js (DAP, in-process)
+  ↓  bridge injected by extension.js
+emulator/script-debug-host.js (one per extension: breakpoints, step, reads)
+  ↓  (postMessage; config also rides on every loadRom)
+emulator/script-debug-view.js (webview: exec breakpoint on $8C:D0A6)
   ↓
-debugger/mock-runtime.js (script execution orchestrator)
-  ↓
-debugger/emulator/panel.js (webview panel lifecycle + IPC bridge)
-  ↓  (postMessage to webview)
-emulator webview JS
-  ↓  (loads WASM)
-snes9x2005-wasm core
-  ↓  (breakpoint hit)
-debugger/adapter.js → DAP stopped event → VS Code UI
+snes9x2005-wasm custom core (onBreakpointHit returns false = keep running)
+  ↓  (stop snapshot of the 20 script slots)
+emulator-session.js → DAP stopped event → VS Code UI
 ```
 
 **State owned by debugger/emulator/panel.js:**
@@ -337,8 +335,8 @@ extension.js
            └── reads: rooms/data/room-scripts.js → script/ (ported decoder)
 
 debugger/
-  ├── adapter.js → mock-runtime.js
-  └── emulator/panel.js → snes-rom-header-model.js
+  ├── inline-adapter.js → emulator-session.js → script-frames.js → source-map.js
+  └── (emulator bridge injected by extension.js from emulator/panel.js)
 
 memory_radar/
   ├── radar-utils.js (pure — no upward deps)

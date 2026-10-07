@@ -14,7 +14,7 @@ All production code lives here. Each subdirectory is an ownership domain.
 | `routes/` | Route planner tab webview assets |
 | `emulator/` | Embedded SNES emulator: panel, webview, SNES ROM header model |
 | `script/` | Everscript bytecode decoder, ported from SoEScriptDumper (TypeScript, pure) |
-| `debugger/` | VS Code debug adapter (DAP): adapter.js + mock-runtime.js |
+| `debugger/` | VS Code debugger for .evs scripts in the emulator: DAP session, compiler source map, step logic |
 
 Entry point: `extension.js` (orchestration root, registered as `main` in package.json).
 
@@ -24,7 +24,7 @@ Entry point: `extension.js` (orchestration root, registered as `main` in package
 - `language/` → no debugger, no emulator, no memory UI
 - `memory/` → may use `shared/`, `docs/`, `rooms/`, `maps/`
 - `emulator/` → may use `shared/`
-- `debugger/` → no memory, no emulator internals
+- `debugger/` → no memory, no emulator internals (the emulator bridge is injected by `extension.js`)
 - No circular dependencies allowed
 
 See `.depcruise.js` for machine-enforced rules.

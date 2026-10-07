@@ -4,12 +4,12 @@
 
 - State: in progress
 - Scope handled: emulator-panel manual byte-script breakpoints, live Rooms-tab script focus, ROM-header-backed room extent sizing
-- Scope still open: `.evs` source-line mapping from live byte-script execution, debugger-session lifecycle tied to the emulator panel, hex breakpoints inside the VS Code debug UI, full opcode coverage from `script_all`
+- Scope handled (v0.166.0): `.evs` source-line debugging in the emulator through VS Code (compiler source map + interpreter hook), see [src/debugger/README.md](../src/debugger/README.md)
+- Scope still open: hex breakpoints inside the VS Code debug UI, full opcode coverage from `script_all`
 
 ## Understanding
 
-- There are currently two different debug surfaces in this extension.
-- The `everscript` debug adapter is a mock `.evs` source debugger for stepping named source functions.
+- The `everscript` debug type debugs `.evs` source in the running emulator (breakpoints, steps, call stacks).
 - The emulator panel exposes the real SNES byte-script scheduler state through the custom core bridge.
 - The Rooms tab can decode ROM-backed room scripts and is the closest reliable UI for showing live byte-script execution today.
 
@@ -17,20 +17,19 @@
 
 - Validated model availability: byte-script execution state comes from the custom SNES core bridge in [debugger/emulator/panel.js](/Users/v/Documents/GitHub/everscript-vscode/debugger/emulator/panel.js).
 - Data sources: active emulator session, configured vanilla ROM, decoded room-script model from [src/script/](/Users/v/Documents/GitHub/everscript-vscode/src/script/README.md), current open `.evs` file for mock-source debugging.
-- Missing dependency for true source stepping: a validated mapping from live byte-script `loc` addresses back to `.evs` source lines. That mapping does not exist yet.
+- Live byte-script addresses map back to `.evs` lines through the compiler's `out/source_map.json`.
 
 ## How To Attach
 
 ### `.evs` source debugging
 
-1. Open an `.evs` file.
-2. Start the `Everscript Debug (Mock)` configuration from Run and Debug.
-3. The adapter in [debugger/adapter.js](/Users/v/Documents/GitHub/everscript-vscode/debugger/adapter.js) launches the mock runtime in [debugger/mock-runtime.js](/Users/v/Documents/GitHub/everscript-vscode/debugger/mock-runtime.js).
-4. This path is source-oriented and does not execute the real ROM byte scripts.
+1. Open the `.evs` file you build (e.g. `in/practice/main.evs`) and set breakpoints in the gutter.
+2. Press F5: it builds, loads the ROM into the emulator and stops on the breakpoints.
+3. Or press "connect dbg" in the emulator panel to attach to the ROM already running.
 
 ### Emulator byte-script inspection
 
-1. Launch the emulator with `F5` or the `Everscript: Open Emulator` command.
+1. Launch the emulator with the `Everscript: Open Emulator` command.
 2. Load a ROM and wait for the script-stack panel to populate.
 3. Read the `loc` values in the stack panel. These are the live byte-script VM addresses.
 4. Add a manual breakpoint in the emulator panel using one of those `loc` values, for example `94E5FB`.

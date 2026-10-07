@@ -1,97 +1,73 @@
-# debugger/ — Subsystem README
+# debugger/ — .evs debugging in the embedded emulator
 
-## Ownership
+Breakpoints, stepping, call stacks and memory reads for `.evs` scripts running
+in the emulator panel, through VS Code's debugger UI (F5).
 
-Owns: DAP adapter, mock runtime, emulator panel lifecycle, SNES ROM header model, room-script decoder.
-
-Does NOT own: radar rendering, memory-map display, language features, token grammar.
-
----
-
-## Directory Map
+## How it works
 
 ```
-debugger/
-  adapter.js              — DAP protocol adapter (VS Code ↔ runtime)
-  mock-runtime.js         — Script execution orchestrator
-  emulator/
-    panel.js              — Webview panel lifecycle + emulator IPC bridge  ← LARGE (1448 LOC)
-    snes-rom-header-model.js — SNES ROM header parser
-  core/
-    snes9x2005-wasm/           — Vanilla SNES core (WASM build, git submodule)
-    snes9x2005-wasm-vanilla/   — Custom SNES core (WASM build, git submodule)
-  tests/
-    debugger.test.js
-    emulator-health.test.js
-    emulator-runtime.test.js
-    snes-rom-header-model.test.js
-    settings-model.test.js
+VS Code debug UI ── DAP (in-process) ── emulator-session.js
+                                            │  bridge (injected by extension.js)
+                                            ▼
+                     emulator/script-debug-host.js ── postMessage ── script-debug-view.js (webview)
+                                                                          │ exec breakpoint $8C:D0A6
+                                                                          ▼
+                                                                  custom snes9x core
 ```
 
----
+1. **Source map.** The everscript compiler writes `out/source_map.json`
+   (`compiler/source_map.py` in that repo): per compiled function its ROM
+   address, per statement its ROM address, `.evs` file and line, and, for
+   functions without `@install` (inlined at every call), the call sites that
+   expanded it. One line is often several script instructions (x:1), and an
+   address can sit several inline levels deep.
+2. **Hook.** The interpreter fetches every opcode at `$8C:D0A6`
+   (`lda [$82]`), with the instruction's address in `$82-$84` and the running
+   slot's pointer in `$7E`. While something is wanted, the webview arms an exec
+   breakpoint there. The custom core asks `Module.onBreakpointHit` first and keeps
+   running when it returns `false`, so the game runs at full speed between stops.
+3. **Stops** land between two script instructions: on a breakpoint address, at
+   the end of a step, or on a pause (next instruction; with no script running,
+   the CPU pauses where it is after 300 ms). The webview sends a snapshot of the
+   20 script slots; `script-frames.js` turns it into threads and frames.
+4. **Steps** are data, because the decision has to be made synchronously inside
+   the core: `{ slot, scope, parent, parentScope, ranges, into, callerOnly }`.
+   Step over runs until the slot leaves the line's address ranges. Step into an
+   inlined call runs nothing; it shows the same address one level deeper. A
+   script call (opcode 0x29 and friends) starts a new slot whose `+0x0B` points
+   at the caller, and the callee's end resumes it, so stepping out of a script
+   stops when the parent slot runs again. A slot running outside its function
+   has been reused by another script: that never ends a step.
 
-## State Owned
+## Files
 
-| State | Location | Notes |
-|---|---|---|
-| Panel webview reference | `panel.js` module-local | Singleton |
-| Current ROM path | `panel.js` local | Set on panel open |
-| Core selection (vanilla/custom) | `panel.js` local | |
-| Script execution cursor | `mock-runtime.js` | Per-debug-session |
+| File | Role |
+|---|---|
+| `inline-adapter.js` | Registers the `everscript` debug type (launch / attach), the only file using the VS Code API |
+| `emulator-session.js` | DAP session: breakpoints, stops, steps, threads, stack, variables, evaluate |
+| `script-frames.js` | Pure: snapshot → threads / frames / variables; step predicates |
+| `source-map.js` | Pure: reads `out/source_map.json`; address ↔ line, inline levels, step ranges |
 
----
+## Launch
 
-## Allowed Dependencies
+- `launch` (F5 in an `.evs` file, no launch.json needed): build via
+  `everscript.buildAndRun` with `{ inputPath, run: false }`, load the source map,
+  set breakpoints, then load the ROM; the breakpoints travel with the
+  `loadRom` message, so they are armed before the first frame. Ctrl+F5 only builds and runs.
+- `attach` (the panel's "connect dbg" button, `Everscript: Attach Debugger to Emulator`):
+  debug the ROM that is already running.
+- Rebuilding during a session re-resolves the breakpoints before the new ROM boots.
 
-```
-adapter.js            → mock-runtime.js, vscode
-mock-runtime.js       → (pure logic)
-panel.js              → snes-rom-header-model.js, vscode
-snes-rom-header-model.js → fs (pure I/O)
-```
+Needs the custom core (`everscript.snesCorePath`): the vanilla core has no debugger API.
 
-**Forbidden:**
-- `debugger/` → `memory_radar/` rendering
-- `debugger/` → `code_highlighter/`
-- Direct radar state mutation — use IPC relay through `extension.js`
+## Allowed dependencies
 
----
+`inline-adapter.js` → `vscode`, `emulator-session.js`, `source-map.js`.
+Everything else is plain Node. No import of `emulator/` or `memory/`: the
+emulator bridge is injected by `extension.js`.
 
-## Key Invariants
+## Not yet
 
-1. `panel.js` sends ROM once from the `ready` handler — no retry protocol.
-2. Script decoding lives in `src/script/` (see its README); nothing here decodes bytecode.
-3. WASM cores live in `debugger/core/` — do not copy them elsewhere.
-4. `adapter.js` speaks raw DAP — no VS Code UI calls directly.
-
----
-
-## Entropy Hotspots
-
-- `panel.js` (1448 LOC) — mixes lifecycle, IPC, webview HTML. Split target: `panel-lifecycle.js` + `panel-ipc.js` + `panel-html.js`.
-
-Clone/update commands:
-
-```bash
-git submodule update --init --recursive
-git submodule update --remote --recursive
-```
-
-Submodule branch workflow for VS Code debugger work:
-
-```bash
-cd debugger/core/snes9x2005-wasm
-git checkout feature/vscode-debugger-integration
-```
-
-Full integration notes (including tmp migration and architecture layout):
-
-- `docs/snes9x_integration.md`
-
-## Future Scope
-
-Potential features to explore:
-- Bytecode step-through and breakpoints
-- Memory watchpoints and conditional halts
-- Script call stack inspection
-- Frame-by-frame execution control
+- Named memory in the debug console (`MEMORY.QUESTION_ANSWER`): the source map has
+  no symbols, so only `<0x22EB>`, `<0x22EB, 0x01>`, `$7E22EB` and `arg[0x02]` evaluate.
+- Vanilla (uncompiled) scripts show as `script $XXXXXX` frames without source; stepping there goes one instruction at a time.

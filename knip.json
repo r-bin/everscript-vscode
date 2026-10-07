@@ -1,9 +1,7 @@
 {
   "entry": [
     "src/extension.js",
-    "src/shared/config.js",
-    "src/debugger/adapter.js",
-    "src/debugger/mock-runtime.js"
+    "src/shared/config.js"
   ],
   "project": [
     "src/**/*.js"

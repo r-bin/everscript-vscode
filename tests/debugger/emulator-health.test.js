@@ -230,10 +230,10 @@ test('panel.js reports current script focus to the host', () => {
         'panel.js does not emit current byte-script focus updates');
 });
 
-test('panel.js can anchor debugger sync from a visible everscript editor', () => {
+test('panel.js sends the script debugger configuration with every ROM load', () => {
     if (!panelContent) { assert.fail('panel.js could not be read'); return; }
-    assert.ok(panelContent.includes('_findDebuggableEditor') && panelContent.includes('visibleTextEditors'),
-        'panel.js still relies only on activeTextEditor for debugger sync anchoring');
+    assert.ok(panelContent.includes('scriptDebug: _scriptDebug.beforeRomLoad()'),
+        'loadRom must carry the debugger breakpoints so they are armed before the first frame');
 });
 
 // ── F. ROM dispatch correctness ───────────────────────────────────────────────
@@ -326,14 +326,11 @@ test('panel.js is ASCII-only to avoid webview parser/encoding issues', () => {
         'panel.js contains non-ASCII characters that may break webview document parsing');
 });
 
-test('debug adapter supports emulator sync request', () => {
-    // Both files moved under src/ in the v0.6.0 refactor; these paths were
-    // missed and the assertions had been failing on ENOENT ever since, which
-    // reads as "the feature is gone" rather than "the test is stale".
-    const adapterPath = path.join(ROOT, 'src', 'debugger', 'adapter.js');
-    const adapterContent = fs.readFileSync(adapterPath, 'utf8');
-    assert.ok(adapterContent.includes('handlers.syncFromEmulator'),
-        'debugger/adapter.js does not handle syncFromEmulator requests');
+test('extension.js registers the emulator debugger with the panel bridge', () => {
+    const extContent = fs.readFileSync(path.join(ROOT, 'src', 'extension.js'), 'utf8');
+    assert.ok(extContent.includes("require('./debugger/inline-adapter').registerDebugger")
+        && extContent.includes('getScriptDebugBridge()'),
+        'extension.js does not connect the debugger to the emulator');
 });
 
 test('extension.js forwards byte-script focus updates to the radar webview', () => {
