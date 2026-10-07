@@ -14,9 +14,9 @@
  * chain a stop is presented: stepping into an inlined call goes one level
  * deeper without running anything.
  *
- * Code written inside a function's own text at a deeper level - the block of
- * conversation({ ... }) is inlined through conversation() - is "lexical": its
- * lines are stepped and shown like the function's other lines.
+ * A block passed to a call (conversation({ ... })) is a lambda: inlined
+ * through the callee, so its lines sit one level below the callee's line that
+ * runs it (callback();), like any inlined function.
  *
  * Addresses are ROM offsets (SNES address & 0x3FFFFF). Pure: no VS Code API.
  */
@@ -58,7 +58,6 @@ class SourceMap {
         this.statements = json.statements.slice().sort((a, b) => a.address - b.address);
         this._chains = this.statements.map(statement => this._chain(statement));
         this._functionOf = this.statements.map(statement => this.functionAt(statement.address));
-        this._lexical = this.statements.map((statement, i) => this._lexicalLevel(i));
         this._lines = this._indexLines();
         // Named memory (MEMORY.X, FLAG.X ...): { name, address (WRAM offset), size, flag? }
         this.symbols = new Map((json.symbols || []).map(symbol => [symbol.name, symbol]));
@@ -98,44 +97,6 @@ class SourceMap {
             }
         }
         return lines;
-    }
-
-    /** Deepest level of statement i whose line is in its compiled function's own text (0 if none). */
-    _lexicalLevel(i) {
-        const fn = this._functionOf[i];
-        if (!fn || fn.file === undefined) return 0;
-        const file = this.files[fn.file];
-        const chain = this._chains[i];
-        for (let level = chain.length - 1; level > 0; level--) {
-            const loc = chain[level];
-            if (loc.file === file && loc.line > fn.line && loc.line <= (fn.endLine || fn.line)) return level;
-        }
-        return 0;
-    }
-
-    /** The level of the innermost line written inside the stopped function's own text. */
-    lexicalLevel(offset) {
-        const i = this.statementIndexAt(offset);
-        return i >= 0 ? this._lexical[i] : 0;
-    }
-
-    /**
-     * Ranges a step over the location at `level` runs through without stopping:
-     * that location, minus lines written deeper in the function's text (a block
-     * inside the call is stepped line by line); from inside such a block, plus
-     * the enclosing statement's own code (conversation_end after the block).
-     */
-    stepRangesAt(offset, level) {
-        const i = this.statementIndexAt(offset);
-        if (i < 0) return [];
-        const chain = this._chains[i];
-        const inBlock = level > 0 && this._lexical[i] === level;
-        return this._ranges(i, j => {
-            const other = this._chains[j];
-            if (inBlock && this._lexical[j] === 0 && sameLocation(other[0], chain[0])) return true;
-            if (this._lexical[j] > level) return false;
-            return other.length > level && chain.slice(0, level + 1).every((loc, k) => sameLocation(loc, other[k]));
-        });
     }
 
     /** Merged [start, end) ranges of the statements of i's function that pass `keep`. */

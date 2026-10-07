@@ -61,6 +61,15 @@ function threadName(map, snapshot, slot) {
     return 'slot ' + slot.index + ': ' + scriptName(map, slotAddress(snapshot, slot)) + state;
 }
 
+/** A block passed to a call (conversation({ ... })) compiles as "anonymous": name it after its function. */
+function frameName(chain, i) {
+    if (chain[i].function !== 'anonymous') return chain[i].function;
+    for (let j = i - 1; j >= 0; j--) {
+        if (chain[j].file === chain[i].file && chain[j].function !== 'anonymous') return chain[j].function + ' › λ';
+    }
+    return 'λ';
+}
+
 /**
  * Stack frames of a thread, innermost first: { name, file, line, address, slot }.
  * `level` is how deep into the inline chain the stopped slot is shown;
@@ -80,7 +89,7 @@ function threadFrames(map, snapshot, leaf, level) {
         if (chain) {
             const depth = first && level != null ? Math.min(level, chain.length - 1) : chain.length - 1;
             for (let i = depth; i >= 0; i--) {
-                frames.push({ name: chain[i].function, file: chain[i].file, line: chain[i].line, address, slot });
+                frames.push({ name: frameName(chain, i), file: chain[i].file, line: chain[i].line, address, slot });
             }
         } else {
             frames.push({ name: 'script $' + hex(address, 6), file: null, line: 0, address, slot });
@@ -116,13 +125,8 @@ function stepPredicate(map, snapshot, slot, level, kind) {
     let ranges = [];
     if (chain) {
         const depth = Math.min(level, chain.length - 1);
-        if (kind === 'out') {
-            // Out of a block written in the function (conversation({ ... })): finish the whole call.
-            const outer = depth > 0 && map.lexicalLevel(address) === depth ? 0 : depth - 1;
-            ranges = depth > 0 ? map.rangesAt(address, outer) : null;
-        } else {
-            ranges = map.stepRangesAt(address, depth);
-        }
+        if (kind === 'out') ranges = depth > 0 ? map.rangesAt(address, depth - 1) : null;
+        else ranges = map.rangesAt(address, depth);
     } else if (kind !== 'out') {
         ranges = [[address, address + 1]];
     }
@@ -149,10 +153,12 @@ function inlineStepInLevel(map, snapshot, slot, level) {
 
 /**
  * The level a stop is shown at:
- *  - a breakpoint: the breakpoint line that starts at this address;
- *  - otherwise the innermost line written in the function's own text, or, when
- *    the previous stop was deeper in the same frames (stepping inside an inlined
- *    function), that depth for as long as the frames are the same.
+ *  - a breakpoint: the breakpoint line that starts at this address (not an
+ *    enclosing call that has a breakpoint too);
+ *  - otherwise where the statement starts (a call that inlines a function shows
+ *    the call), or, when the previous stop was deeper in the same frames
+ *    (stepping inside an inlined function or a lambda), that depth for as long
+ *    as the frames are the same.
  * @param previous { slot, chain, level } of the last stop, or null
  */
 function stopLevel(map, snapshot, breakpointLines, previous) {
@@ -165,7 +171,7 @@ function stopLevel(map, snapshot, breakpointLines, previous) {
             && map.locationsAt(loc.file, loc.line).some(at => at.address === offset && at.level === j));
         if (level >= 0) return level;
     }
-    let level = map.lexicalLevel(offset);
+    let level = map.entryLevel(offset);
     if (previous && previous.slot === snapshot.slot && previous.chain) {
         let same = 0;
         while (same < previous.chain.length && same < chain.length && sameLocation(previous.chain[same], chain[same])) same++;

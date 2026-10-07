@@ -131,28 +131,27 @@ const BLOCK_MAP = new SourceMap({
     ],
 }, '');
 
-test('a block inside a call is stepped line by line', () => {
-    assert.strictEqual(BLOCK_MAP.lexicalLevel(0x3004), 2);
-    assert.strictEqual(BLOCK_MAP.lexicalLevel(0x3000), 0);
-    // over line 41: stop at the block's first line
-    assert.deepStrictEqual(BLOCK_MAP.stepRangesAt(0x3000, 0), [[0x3000, 0x3004], [0x300C, 0x3010]]);
-    // over a block line: the next block line, or through wrap's own end to line 45
-    assert.deepStrictEqual(BLOCK_MAP.stepRangesAt(0x3004, 2), [[0x3000, 0x3008], [0x300C, 0x3010]]);
-    assert.deepStrictEqual(BLOCK_MAP.stepRangesAt(0x3008, 2), [[0x3000, 0x3004], [0x3008, 0x3010]]);
-});
-
-test('stops inside the block show the block line', () => {
+test('a block passed to a call is a lambda: one line, entered through the callee', () => {
+    // line 41 is one line: stepping over it runs wrap and the block
+    assert.deepStrictEqual(BLOCK_MAP.rangesAt(0x3000, 0), [[0x3000, 0x3010]]);
+    // inside wrap (level 1), the line that runs the block is wrap's line 11
     const at = address => ({ reason: 'step', slot: 1, address: 0xC00000 | address });
-    assert.strictEqual(frames.stopLevel(BLOCK_MAP, at(0x3004), null, null), 2);
-    const bp = new Set([MAIN + ':41', MAIN + ':42']);
-    assert.strictEqual(frames.stopLevel(BLOCK_MAP, Object.assign(at(0x3004), { reason: 'breakpoint' }), bp, null), 2,
-        'the breakpoint that starts here, not the enclosing call');
-    assert.strictEqual(frames.stopLevel(BLOCK_MAP, Object.assign(at(0x3000), { reason: 'breakpoint' }), bp, null), 0);
+    const inWrap = { slot: 1, chain: BLOCK_MAP.chainAt(0x3000), level: 1 };
+    assert.strictEqual(frames.stopLevel(BLOCK_MAP, at(0x3004), null, inWrap), 1);
+    assert.strictEqual(BLOCK_MAP.chainAt(0x3004)[1].line, 11);
+    // the lambda frame is named after the function it is written in
+    const snap = { slot: 0x28FC, address: 0xC03004, slots: [slot(0, { state: 2 })] };
+    assert.deepStrictEqual(frames.threadFrames(BLOCK_MAP, snap, snap.slots[0], 2).map(f => f.name + ':' + f.line),
+        ['host › λ:42', 'wrap:11', 'host:41']);
+    // out of the lambda: back in wrap
+    assert.deepStrictEqual(frames.stepPredicate(BLOCK_MAP, snap, snap.slots[0], 2, 'out').ranges, [[0x3004, 0x300C]]);
 });
 
-test('step out of the block finishes the call', () => {
-    const snap = { reason: 'step', slot: 0x28FC, address: 0xC03004, slots: [slot(0, { state: 2 })] };
-    assert.deepStrictEqual(frames.stepPredicate(BLOCK_MAP, snap, snap.slots[0], 2, 'out').ranges, [[0x3000, 0x3010]]);
+test('a breakpoint stop shows the breakpoint that starts there, not the enclosing call', () => {
+    const at = address => ({ reason: 'breakpoint', slot: 1, address: 0xC00000 | address });
+    const bp = new Set([MAIN + ':41', MAIN + ':42']);
+    assert.strictEqual(frames.stopLevel(BLOCK_MAP, at(0x3004), bp, null), 2);
+    assert.strictEqual(frames.stopLevel(BLOCK_MAP, at(0x3000), bp, null), 0);
 });
 
 // ---------------------------------------------------------------------------

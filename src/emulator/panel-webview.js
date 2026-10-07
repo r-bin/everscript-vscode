@@ -537,6 +537,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       <button id="screen-trigger-toggle" class="screen-chip active" type="button" title="Toggle Trigger Overlay (B &amp; Step-on)">TRIGGERS ON</button>
       <button id="screen-fog-toggle" class="screen-chip" type="button" title="Toggle Fog of War outside emulator">FOG OFF</button>
       <button id="screen-speed-chip" class="screen-chip" type="button" title="Speed-up (#)">SPEED x1</button>
+      <button id="screen-focus-chip" class="screen-chip" type="button" title="When the VS Code debugger stops: show the line in the editor (code) or keep the focus on the emulator (stay)">BREAK: code</button>
       ${getTasChipHtml()}
       ${getFpsChipHtml()}
       <div id="screen-zoom-chip" class="screen-chip-group">
@@ -3248,6 +3249,27 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       });
     }
 
+    // Keep the focus on the emulator when the VS Code debugger stops (the host re-reveals the panel).
+    let keepFocusOnBreak = false;
+    function setKeepFocusChip(on) {
+      keepFocusOnBreak = !!on;
+      const chip = document.getElementById('screen-focus-chip');
+      if (chip) {
+        chip.textContent = keepFocusOnBreak ? 'BREAK: stay' : 'BREAK: code';
+        chip.classList.toggle('active', keepFocusOnBreak);
+      }
+    }
+    const focusChip = document.getElementById('screen-focus-chip');
+    if (focusChip) {
+      focusChip.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setKeepFocusChip(!keepFocusOnBreak);
+        vscodeApi.postMessage({ command: 'setKeepFocusOnBreak', on: keepFocusOnBreak });
+        const screenCanvas = document.getElementById('screen');
+        if (screenCanvas) screenCanvas.focus();
+      });
+    }
+
     const speedChip = document.getElementById('screen-speed-chip');
     if (speedChip) {
       speedChip.addEventListener('click', (e) => {
@@ -3541,6 +3563,12 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       if (handleCdlMessage(evt.data)) return;
       if (handleTasMessage(evt.data)) return;
       if (sdbgHandleMessage(evt.data)) return;
+      if (evt.data.command === 'keepFocusOnBreak') { setKeepFocusChip(evt.data.on); return; }
+      if (evt.data.command === 'focusScreen') {
+        const screenCanvas = document.getElementById('screen');
+        if (screenCanvas) screenCanvas.focus();
+        return;
+      }
       if (evt.data.command === 'debuggerConnectionStatus') {
         setText('ss-debug-link-status', 'dbg: ' + evt.data.text, evt.data.ok ? 'ss-ok' : 'ss-warn');
       } else if (evt.data.command === 'scriptTraceLogged') {

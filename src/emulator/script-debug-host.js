@@ -24,10 +24,12 @@ class ScriptDebugHost {
     /**
      * @param post (message) -> void  posts to the emulator webview (no-op when closed)
      * @param log  (text) -> void
+     * @param onStop () -> void  after each stop (the panel's "keep focus on break")
      */
-    constructor(post, log) {
+    constructor(post, log, onStop) {
         this.post = post;
         this.log = log || (() => {});
+        this.onStop = onStop || (() => {});
         this.listener = null;
         this.breakpoints = [];
         this.reads = new Map();
@@ -101,6 +103,7 @@ class ScriptDebugHost {
             case 'scriptDebugStop':
                 this.log(`Script debugger stop (${msg.reason}) @ ${msg.address != null ? msg.address.toString(16) : '-'}`);
                 if (this.listener) this.listener.onStop(msg);
+                this.onStop();
                 return true;
             case 'scriptDebugContinued':
                 if (this.listener) this.listener.onContinued();

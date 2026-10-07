@@ -66,7 +66,32 @@ const _roomMapCache = new Map();
 let _cdl           = null;   // CdlHost: per-ROM code/data log library
 let _tas           = null;   // TasHost: input recordings and replays
 // VS Code script debugger hook: outlives the panel (a session can attach first).
-const _scriptDebug = new ScriptDebugHost(m => { if (_panel) _panel.webview.postMessage(m); }, line => _log(line));
+const _scriptDebug = new ScriptDebugHost(m => { if (_panel) _panel.webview.postMessage(m); }, line => _log(line),
+  () => _keepFocusAfterBreak());
+// "BREAK: stay" chip: a debugger stop leaves the focus on the emulator (globalState).
+const KEEP_FOCUS_KEY = 'everscript.emulator.keepFocusOnBreak';
+const KEEP_FOCUS_MS = 2000;
+
+function _keepFocusSetting() {
+  return !!(_context && _context.globalState && _context.globalState.get(KEEP_FOCUS_KEY, false));
+}
+
+/**
+ * VS Code focuses the stopped line's editor a moment after the stop: take the
+ * focus back then, and whenever the active editor changes shortly after.
+ */
+function _keepFocusAfterBreak() {
+  if (!_panel || !_keepFocusSetting()) return;
+  const until = Date.now() + KEEP_FOCUS_MS;
+  const refocus = () => {
+    if (!_panel || Date.now() > until) return;
+    _panel.reveal(_panel.viewColumn, false);
+    _panel.webview.postMessage({ command: 'focusScreen' });
+  };
+  setTimeout(refocus, 150);
+  const watch = vscode.window.onDidChangeActiveTextEditor(() => setTimeout(refocus, 0));
+  setTimeout(() => watch.dispose(), KEEP_FOCUS_MS);
+}
 
 function _describeFile(filePath) {
   try {
@@ -343,6 +368,7 @@ function openEmulatorPanel(context, rom, channel) {
         switch (msg.command) {
             case 'ready':
             _webviewReady = true;
+            _panel.webview.postMessage({ command: 'keepFocusOnBreak', on: _keepFocusSetting() });
             _clearReadyTimeout();
             _log('Webview runtime ready');
             _notifyWebviewStatus('ok', 'Core runtime ready');
@@ -470,6 +496,10 @@ function openEmulatorPanel(context, rom, channel) {
                 slot: typeof msg.slot === 'number' ? msg.slot : null,
                 state: 'breakpoint',
               });
+              break;
+
+            case 'setKeepFocusOnBreak':
+              if (_context && _context.globalState) _context.globalState.update(KEEP_FOCUS_KEY, !!msg.on);
               break;
 
             case 'connectDebugger':

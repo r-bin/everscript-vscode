@@ -38,13 +38,15 @@ VS Code debug UI ── DAP (in-process) ── emulator-session.js
    at the caller, and the callee's end resumes it, so stepping out of a script
    stops when the parent slot runs again. A slot running outside its function
    has been reused by another script: that never ends a step.
-5. **Blocks inside calls** (`conversation({ ... });`): the block is inlined through
-   `conversation()`, two levels deep, but its lines are written in the function
-   itself. Such "lexical" lines are stepped and shown like the function's own:
-   step over the call stops on the block's first line, the last block line steps
-   through the call's own end to the next line, step out of the block finishes the
-   call. A breakpoint stop shows the breakpoint line that starts at that address,
-   not an enclosing call that also has one.
+5. **Blocks passed to calls are lambdas** (`conversation({ ... });`): line 210 is
+   one line, and step over runs the call with its block (breakpoints inside still
+   stop). Step in enters the callee (`conversation`), whose `callback();` line steps
+   into the block; its frame shows as `portal_act_1 › λ`. Leaving the block returns to
+   the callee. A breakpoint stop shows the breakpoint line that starts at that
+   address, not an enclosing call that has a breakpoint too.
+6. **Focus**: the emulator's `BREAK: code / stay` chip. With `stay`, the panel takes
+   the focus back after VS Code shows the stopped line (globalState
+   `everscript.emulator.keepFocusOnBreak`).
 
 ## Files
 
