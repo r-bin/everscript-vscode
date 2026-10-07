@@ -496,6 +496,10 @@ function openEmulatorPanel(context, rom, channel) {
               _handleRoomMapRequest(msg.mapId, msg.objectStates, msg.cutGrassTiles, msg.layered === true);
               break;
 
+            case 'requestIdleSprites':
+              _handleIdleSprites(msg.keys);
+              break;
+
             case 'requestAlchemyIcons': {
               if (_currentRomBuffer && _panel) {
                 try {
@@ -800,6 +804,33 @@ function _handleRoomMapRequest(mapId, objectStates, cutGrassTiles, layered) {
     } catch (err) {
         _log('Room map render unavailable for map ' + mapId + ': ' + (err.message || err));
     }
+}
+
+// An entity the engine has spawned but not activated yet (it waits in the
+// inactive list, $3DE1, until the camera comes near) has no sprite: its
+// animation has never run. The webview asks for its standing sprite instead,
+// keyed "type:facing" (type = entity +0x60, the character record address).
+const CHARACTER_TABLE = 0x8eb678;
+const CHARACTER_STRIDE = 74;
+function _handleIdleSprites(keys) {
+    if (!_panel || !_currentRomBuffer || !Array.isArray(keys)) return;
+    const maps = require('../maps');
+    const rom = (_currentRomBuffer.length % 1024 === 512) ? _currentRomBuffer.subarray(512) : _currentRomBuffer;
+    const sprites = {};
+    for (const key of keys.slice(0, 64)) {
+        const [type, facing] = String(key).split(':').map(Number);
+        const offset = (0x8e0000 | type) - CHARACTER_TABLE;
+        let entry = null;
+        if (offset >= 0 && offset % CHARACTER_STRIDE === 0) {
+            const character = offset / CHARACTER_STRIDE;
+            try {
+                const sprite = maps.resolveCharacterSprite(rom, character, facing & 0x0e) || maps.resolveCharacterSprite(rom, character);
+                if (sprite) entry = { sprite, palette: maps.characterPaletteAddress(rom, character) };
+            } catch (_) { entry = null; }
+        }
+        sprites[key] = entry;
+    }
+    _panel.webview.postMessage({ command: 'idleSprites', sprites });
 }
 
 function injectEverscript(code) {

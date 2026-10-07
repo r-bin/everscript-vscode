@@ -734,6 +734,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     // (Re)start the core with a ROM: a power-on, also used to start a replay.
     function bootRom(romData, name) {
       try {
+        idleSprites.clear();
+        idleSpritesWanted = new Set();
         romStage('core start begin');
         cdlBeforeRomChange();
         tasFlush();
@@ -1556,6 +1558,20 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       }
     }
 
+    // Standing sprites for entities that have not been activated yet, from
+    // the host (resolveCharacterSprite). undefined = not asked yet, null = none.
+    const idleSprites = new Map();
+    let idleSpritesWanted = new Set();
+    function idleSpriteFor(type, facing) {
+      const key = type + ':' + ((facing || 8) & 0x0e);
+      if (idleSprites.has(key)) return idleSprites.get(key);
+      if (!idleSpritesWanted.has(key)) {
+        idleSpritesWanted.add(key);
+        if (vscodeApi) vscodeApi.postMessage({ command: 'requestIdleSprites', keys: [key] });
+      }
+      return null;
+    }
+
     // Every live entity, from a read of WRAM starting at $7E3DDF. The engine
     // keeps two lists, both linked through +0x5E: $3DDF holds the active
     // entities (near the screen, run and drawn every frame) and $3DE1 the
@@ -1615,7 +1631,15 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           const secBank = buf[rel + 0x0B];
           const secAddr = buf[rel + 0x09] | (buf[rel + 0x0A] << 8);
           const secOk = !(hideFlags & 0x4000) && secBank >= 0xC0 && secBank <= 0xDF && secAddr >= 3;
-          if (!mainOk && !secOk) continue;
+          // Spawned but never activated (waiting in $3DE1 until the camera
+          // comes near): no sprite yet, so stand it in its record's standing
+          // frame rather than let it pop in at the screen edge.
+          let idle = null;
+          if (!mainOk && !secOk && !(hideFlags & 0x8000)) {
+            const type = buf[rel + 0x60] | (buf[rel + 0x61] << 8);
+            if (type >= 0x8000) idle = idleSpriteFor(type, buf[rel + 0x22]);
+          }
+          if (!mainOk && !secOk && !idle) continue;
 
           const isBoy = (addr === 0x4E89);
           const isDog = (addr === 0x4F37);
@@ -1663,8 +1687,12 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           const parts = [];
           if (secOk) parts.push({ ptr: (secBank << 16) | secAddr, lift: 0, sort: posY - 0.5 });
           if (mainOk) parts.push({ ptr: (spriteBank << 16) | spriteAddr, lift: Math.floor(posZ / 16), sort: posY });
+          if (idle) parts.push({ ptr: idle.sprite, lift: 0, sort: posY, pal: idle.palette });
           for (let k = 0; k < parts.length; k++) {
-            const sprite = getDecodedSprite(rom, parts[k].ptr, palAddr, live);
+            // An idle stand-in has no palette slot yet: its record's colours.
+            const sprite = parts[k].pal
+              ? getDecodedSprite(rom, parts[k].ptr, parts[k].pal & 0xFFFF, null)
+              : getDecodedSprite(rom, parts[k].ptr, palAddr, live);
             if (!sprite) continue;
             const screenX = layout.emuX + (posX - sprite.originX - refX) * layout.scaleSnes;
             const screenY = layout.emuY + (posY - sprite.originY - parts[k].lift - refY) * layout.scaleSnes;
@@ -1678,7 +1706,9 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
               w: screenW,
               h: screenH,
               sortY: parts[k].sort,
-              front: depth === 'front',
+              // Never activated means +0x3C (the tile under it) was never
+              // filled; most tiles put a character in front.
+              front: parts[k].pal ? true : depth === 'front',
             });
           }
         }
@@ -3236,6 +3266,9 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           };
           img.src = evt.data.imageUri;
         }
+      } else if (evt.data.command === 'idleSprites') {
+        const got = evt.data.sprites || {};
+        for (const k in got) idleSprites.set(k, got[k]);
       } else if (evt.data.command === 'injectEverscript') {
         injectEverscript(evt.data.code);
       } else if (evt.data.command === 'alchemyIconsLoaded') {
