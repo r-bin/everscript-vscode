@@ -16,6 +16,7 @@ const {
 const { getCdlCss, getCdlTabButtonHtml, getCdlViewHtml, getCdlClientScript } = require('./cdl-view');
 const { getCdlFloatCss, getCdlFloatHtml, getCdlFloatScript } = require('./cdl-float');
 const { getCdlStripsScript } = require('./cdl-strips');
+const { getTasCss, getTasTabButtonHtml, getTasChipHtml, getTasOverlayHtml, getTasViewHtml, getTasClientScript } = require('./tas-view');
 
 function _nonce() {
     let n = '';
@@ -351,6 +352,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     ${getBottomBarCss()}
     ${getCdlCss()}
     ${getCdlFloatCss()}
+    ${getTasCss()}
   </style>
 </head>
 <body>
@@ -368,10 +370,12 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     <canvas id="screen" width="512" height="448"></canvas>
     <canvas id="extended-overlay"></canvas>
     ${getCdlFloatHtml()}
+    ${getTasOverlayHtml()}
     <div id="screen-overlay-bar">
       <button id="screen-extend-toggle" class="screen-chip active" type="button" title="Toggle Extended Map">MAP EXT ON</button>
       <button id="screen-trigger-toggle" class="screen-chip active" type="button" title="Toggle Trigger Overlay (B &amp; Step-on)">TRIGGERS ON</button>
       <button id="screen-fog-toggle" class="screen-chip" type="button" title="Toggle Fog of War outside emulator">FOG OFF</button>
+      ${getTasChipHtml()}
       <div id="screen-zoom-chip" class="screen-chip-group">
         <button id="screen-zout" class="screen-chip" type="button" title="Zoom out">-</button>
         <span id="screen-zlevel" class="screen-chip" style="cursor:default">100%</span>
@@ -390,6 +394,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         <button id="ss-tab-stack" class="ss-tab" type="button">SCRIPT STACK (<span id="ss-count">waiting...</span>)</button>
         ${getBottomBarTabButtonsHtml()}
         ${getCdlTabButtonHtml()}
+        ${getTasTabButtonHtml()}
         <button id="ss-tab-debug" class="ss-tab" type="button">DEBUGGER &amp; HOOKS</button>
       </div>
       <div id="ss-controls">
@@ -427,6 +432,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     ${getBottomBarViewsHtml()}
 
     ${getCdlViewHtml()}
+
+    ${getTasViewHtml()}
 
     <!-- Tab 3: Debugger & Breakpoints -->
     <div id="ss-view-debug" class="ss-tab-view">
@@ -681,6 +688,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     // -- ROM loading -----------------------------------------------------------
     let romLoaded = false;
     let loadedRomData = null;
+    let loadedRomName = 'game';
     let romLaunchTimestamp = 0;
     let romFrameCount = 0;
 
@@ -692,9 +700,20 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         const romData = new Uint8Array(binStr.length);
         for (let i = 0; i < binStr.length; i++) romData[i] = binStr.charCodeAt(i);
         romStage('decode complete: ' + romData.length + ' bytes');
+        bootRom(romData, name);
+      } catch (e) {
+        romStage('launch failed: ' + e.message);
+        vscodeApi.postMessage({ command: 'ejsError', error: 'ROM load failed: ' + e.message });
+        document.getElementById('load-status').textContent = 'Error: ' + e.message;
+      }
+    }
 
+    // (Re)start the core with a ROM: a power-on, also used to start a replay.
+    function bootRom(romData, name) {
+      try {
         romStage('core start begin');
         cdlBeforeRomChange();
+        tasFlush();
         const ptr = Module._my_malloc(romData.length);
         HEAPU8.set(romData, ptr);
         Module._startWithRom(ptr, romData.length, AUDIO_FREQ);
@@ -703,6 +722,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
 
         romLoaded = true;
         loadedRomData = romData;
+        loadedRomName = name || 'game';
         cachedMapId = -1;
         cachedTriggers = null;
         lastRequestedMapId = -1;
@@ -719,6 +739,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         initBottomBarEventListeners();
         vscodeApi.postMessage({ command: 'requestAlchemyIcons' });
         vscodeApi.postMessage({ command: 'gameStarted', name: name || 'game' });
+        tasOnBoot(name);
         romStage('launch success: ' + (name || 'game'));
       } catch (e) {
         romStage('launch failed: ' + e.message);
@@ -922,6 +943,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         if (paused !== emulatorPausedState) {
           emulatorPausedState = paused;
           cdlOnPauseChanged(paused);
+          tasOnPauseChanged(paused);
         }
         if (paused) {
           if (timestamp - lastPausedFrame < PAUSED_FRAME_MS) return;
@@ -937,8 +959,14 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           const preState = samplePreLoopState();
           lastSampledPreState = preState;
           const m = getModule();
-          if (m) maintainCheats(m);
-          Module._setJoypadInput(keyInput);
+          // A replay must see exactly the recorded memory: no cheat writes.
+          if (m && !tasReplaying()) maintainCheats(m);
+          for (let extra = tasExtraFrames(); extra > 0 && !isEmulatorPaused(); extra--) {
+            tasApplyInput(Module, keyInput);
+            Module._mainLoop();
+            romFrameCount++;
+          }
+          tasApplyInput(Module, keyInput);
           Module._mainLoop();
           const fbPtr = Module._getScreenBuffer();
           if (fbPtr) {
@@ -946,6 +974,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
             ctx.putImageData(imageData, 0, 0);
           }
           renderExtendedMapAndOverlays(preState, canvas, extMapCanvas, extMapCtx, extEntCanvas, extEntCtx, extFgCanvas, extFgCtx, extOverCanvas, extOverCtx);
+          tasDrawOverlay();
           checkScriptExecutionTrace();
         }
       }
@@ -2388,9 +2417,11 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       }
     }
 
-    /** Start the WRAM polling cycle (called once ROM loads). */
+    /** Start the WRAM polling cycle (called on every boot; one timer per webview). */
+    let wramPollTimer = null;
     function startWramPolling() {
       document.getElementById('ss-count').textContent = 'connecting...';
+      if (wramPollTimer) return;
 
       let polledWhilePaused = false;
       function pollOnce() {
@@ -2414,7 +2445,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
             reportScriptFocus(snapshot);
             checkManualScriptBreakpoints(snapshot, m);
             checkScriptExecutionTrace();
-            maintainCheats(m);
+            if (!tasReplaying()) maintainCheats(m);
             refreshActiveBottomTab();
           } else {
             document.getElementById('ss-count').textContent =
@@ -2423,7 +2454,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         } catch (_) { /* silently skip on error */ }
       }
 
-      setInterval(pollOnce, 250);
+      wramPollTimer = setInterval(pollOnce, 250);
     }
 
     // -- Script stack controls -------------------------------------------------
@@ -2596,9 +2627,11 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
 
     ${getCdlStripsScript()}
 
+    ${getTasClientScript()}
+
     function selectTab(tabName) {
       currentBottomTab = tabName;
-      const tabs = ['trace', 'stack', 'entities', 'alchemy', 'palettes', 'cheats', 'cdl', 'debug'];
+      const tabs = ['trace', 'stack', 'entities', 'alchemy', 'palettes', 'cheats', 'cdl', 'tas', 'debug'];
       for (const t of tabs) {
         const btn = document.getElementById('ss-tab-' + t);
         const view = document.getElementById('ss-view-' + t);
@@ -2621,6 +2654,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     if (tabCheatsBtn) tabCheatsBtn.addEventListener('click', () => selectTab('cheats'));
     const tabCdlBtn = document.getElementById('ss-tab-cdl');
     if (tabCdlBtn) tabCdlBtn.addEventListener('click', () => { selectTab('cdl'); cdlOnTabShown(); });
+    const tabTasBtn = document.getElementById('ss-tab-tas');
+    if (tabTasBtn) tabTasBtn.addEventListener('click', () => { selectTab('tas'); if (romLoaded) tasRequestList(); });
     const tabDebugBtn = document.getElementById('ss-tab-debug');
     if (tabDebugBtn) tabDebugBtn.addEventListener('click', () => selectTab('debug'));
 
@@ -2861,6 +2896,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     window.addEventListener('message', evt => {
       if (!evt.data) return;
       if (handleCdlMessage(evt.data)) return;
+      if (handleTasMessage(evt.data)) return;
       if (evt.data.command === 'debuggerConnectionStatus') {
         setText('ss-debug-link-status', 'dbg: ' + evt.data.text, evt.data.ok ? 'ss-ok' : 'ss-warn');
       } else if (evt.data.command === 'scriptTraceLogged') {

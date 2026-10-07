@@ -14,6 +14,8 @@ Embedded snes9x2005 WASM emulator panel integrated into VS Code.
 | `cdl-strips.js` | CDL tab strips: per-chunk painting and hover descriptions |
 | `cdl-float.js` | Scrolling-combat-text style floating coverage gains above the active character |
 | `cdl/` | CDL library, xref index, 65816 disassembler, Asar + `ram.asm` export (see `cdl/README.md`) |
+| `tas-view.js` | REPLAYS bottom-bar tab, input overlay, per-frame joypad feed (`tasApplyInput`) and session recording buffer |
+| `tas/` | Input movies: `.lsmv` / `.evsmv` parsing, recording files, replay list and pins (see `tas/README.md`) |
 | `core/snes9x2005-wasm/` | Custom emulator core (git submodule) |
 | `core/snes9x2005-wasm-vanilla/` | Vanilla emulator core (git submodule) |
 

@@ -1266,7 +1266,11 @@ function getBottomBarClientScript() {
       }
     }
 
+    let bottomBarListenersBound = false;
+    // Called on every boot (ROM load, replay start): bind once.
     function initBottomBarEventListeners() {
+      if (bottomBarListenersBound) return;
+      bottomBarListenersBound = true;
       // Entities filter buttons
       const btnAll = document.getElementById('ent-filter-all');
       const btnParty = document.getElementById('ent-filter-party');
