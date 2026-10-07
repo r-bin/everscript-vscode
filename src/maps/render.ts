@@ -251,6 +251,44 @@ export function renderRoomForeground(rom: Uint8Array, room: RoomData): PixelBuff
     return renderRoomComposite(rom, room, { foregroundOnly: true });
 }
 
+/** One BG layer cut into the half under the characters (`low`) and the half over them (`high`). */
+export interface LayerHalves {
+    low: PixelBuffer;
+    high: PixelBuffer;
+}
+
+/**
+ * Each BG layer on its own, split by tile priority, for a room whose layers
+ * scroll apart (parallax: the engine feeds BG1 from its own position instead
+ * of the camera, `$D09B7A`). One composite cannot be right at two scrolls, so
+ * the caller stacks these as the PPU does — `BG2.0, BG1.0, OBJ.2, BG2.1,
+ * BG1.1, OBJ.3` — each at its own scroll. Colour math is not applied; a layer
+ * the main screen (TM) hides comes out transparent.
+ */
+export function renderRoomLayers(rom: Uint8Array, room: RoomData): { bg1: LayerHalves; bg2: LayerHalves } {
+    const split = (words: number[][], shown: boolean): LayerHalves => {
+        const full = renderVramLayer(rom, room, words);
+        const low = { width: full.width, height: full.height, data: new Uint8Array(full.data.length) };
+        const high = { width: full.width, height: full.height, data: new Uint8Array(full.data.length) };
+        if (!shown) return { low, high };
+        for (let ty = 0; ty < room.header.heightTiles; ty++) {
+            for (let tx = 0; tx < room.header.widthTiles; tx++) {
+                const dst = (words[ty][tx] & PRIORITY) ? high.data : low.data;
+                for (let py = 0; py < 16; py++) {
+                    const start = ((ty * 16 + py) * full.width + tx * 16) * 4;
+                    dst.set(full.data.subarray(start, start + 64), start);
+                }
+            }
+        }
+        return { low, high };
+    };
+    const tm = room.header.displayTm;
+    return {
+        bg1: split(room.layer1VramWords, (tm & 0x01) !== 0),
+        bg2: split(room.layer2VramWords, (tm & 0x02) !== 0),
+    };
+}
+
 /**
  * One byte per pixel, 1 where the buffer is not fully transparent.
  *

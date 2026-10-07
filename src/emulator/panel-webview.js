@@ -377,6 +377,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       <button id="screen-extend-toggle" class="screen-chip active" type="button" title="Toggle Extended Map">MAP EXT ON</button>
       <button id="screen-trigger-toggle" class="screen-chip active" type="button" title="Toggle Trigger Overlay (B &amp; Step-on)">TRIGGERS ON</button>
       <button id="screen-fog-toggle" class="screen-chip" type="button" title="Toggle Fog of War outside emulator">FOG OFF</button>
+      <button id="screen-speed-chip" class="screen-chip" type="button" title="Speed-up (#)">SPEED x1</button>
       ${getTasChipHtml()}
       ${getFpsChipHtml()}
       <div id="screen-zoom-chip" class="screen-chip-group">
@@ -660,7 +661,26 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       's': 1 << 4,  'S': 1 << 4,   // R
     };
     let keyInput = 0;
+    // Speed-up: '#' runs SPEEDUP_FACTOR frames per display frame (and again to stop).
+    const SPEEDUP_FACTOR = 4;
+    let speedUp = false;
+    function setSpeedUp(on) {
+      speedUp = !!on;
+      const chip = document.getElementById('screen-speed-chip');
+      if (chip) {
+        chip.textContent = speedUp ? 'SPEED x' + SPEEDUP_FACTOR : 'SPEED x1';
+        chip.classList.toggle('active', speedUp);
+      }
+    }
     document.addEventListener('keydown', e => {
+      if (e.key === '#' && !e.repeat) {
+        const tag = e.target && e.target.tagName;
+        if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
+          setSpeedUp(!speedUp);
+          e.preventDefault();
+          return;
+        }
+      }
       if (e.key === 'Escape') {
         const m = getModule();
         if (m && hasDebuggerApi(m)) {
@@ -965,7 +985,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           const m = getModule();
           // A replay must see exactly the recorded memory: no cheat writes.
           if (m && !tasReplaying()) maintainCheats(m);
-          for (let extra = tasExtraFrames(); extra > 0 && !isEmulatorPaused(); extra--) {
+          for (let extra = tasExtraFrames() + (speedUp ? SPEEDUP_FACTOR - 1 : 0); extra > 0 && !isEmulatorPaused(); extra--) {
             tasApplyInput(Module, keyInput);
             Module._mainLoop();
             fpsCountFrame(Module);
@@ -996,6 +1016,10 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     let lastRequestedMapId = -1;
     let lastRequestedObjKey = '';
     let lastRequestedGrassKey = '';
+    let lastRequestedLayered = false;
+    // Sticky per room: once BG1 has scrolled apart from the camera, the room
+    // is drawn from its separate layers (the composite is right only at one scroll).
+    let roomParallax = false;
     let cutGrassTileSet = new Set();
     let activeRoomMap = null;
     let lastLayout = null;
@@ -1354,6 +1378,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       const width = maxX - minX;
       const height = maxY - minY;
       const pixels = new Int16Array(width * height).fill(-1);
+      // Each pixel's chunk palette bits (OAM palette = entity slot + these).
+      const pals = new Uint8Array(width * height);
       for (let priority = 0; priority < 4; priority++) {
         for (let i = info.chunks.length - 1; i >= 0; i--) {
           const c = info.chunks[i];
@@ -1369,11 +1395,12 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
               const py = c.y - minY + y;
               if (px < 0 || py < 0 || px >= width || py >= height) continue;
               pixels[py * width + px] = v;
+              pals[py * width + px] = c.palette;
             }
           }
         }
       }
-      return { width: width, height: height, pixels: pixels, originX: -minX, originY: -minY };
+      return { width: width, height: height, pixels: pixels, pals: pals, originX: -minX, originY: -minY };
     }
 
     function paletteAt(rom, palAddr) {
@@ -1414,8 +1441,37 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
 
     const spriteCache = new Map();
 
-    function getDecodedSprite(rom, spritePtr, palAddr) {
-      const key = spritePtr + '_' + (palAddr || 0xad0b);
+    // The 16 colours of OBJ palette pal (0..7) in the engine's CGRAM mirror.
+    function liveObjPalette(cg, pal) {
+      const out = [];
+      const base = 256 + (pal & 7) * 32;
+      for (let i = 0; i < 16; i++) {
+        const c = cg[base + i * 2] | (cg[base + i * 2 + 1] << 8);
+        out.push([(c & 31) * 8, ((c >> 5) & 31) * 8, ((c >> 10) & 31) * 8]);
+      }
+      return out;
+    }
+
+    // live: { cg, slot } - draw from the colours the engine has actually
+    // loaded in the entity's OBJ slot (and slot + a chunk's palette bits).
+    // That is right for palettes an animation script loads (placeholder
+    // effects), the ring menu's greyed enemies, flashes; the ROM address in
+    // $7E1278 is only the fallback.
+    function getDecodedSprite(rom, spritePtr, palAddr, live) {
+      let key = spritePtr + '_' + (palAddr || 0xad0b);
+      let livePals = null;
+      if (live && live.cg && live.cg.length >= 512) {
+        const first = (live.slot >> 1) & 7;
+        livePals = [];
+        let sig = '';
+        for (let k = 0; k < 2; k++) {
+          const pal = (first + k) & 7;
+          livePals.push(liveObjPalette(live.cg, pal));
+          const base = 256 + pal * 32;
+          for (let i = 2; i < 32; i++) sig += live.cg[base + i].toString(16);
+        }
+        key = spritePtr + '_L' + first + '_' + sig;
+      }
       if (spriteCache.has(key)) return spriteCache.get(key);
 
       try {
@@ -1440,7 +1496,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         for (let i = 0; i < total; i++) {
           const v = comp.pixels[i];
           if (v > 0) {
-            const col = palette[v] || [255, 255, 255];
+            const pal = livePals ? (livePals[comp.pals[i] ? 1 : 0]) : palette;
+            const col = pal[v] || [255, 255, 255];
             const dst = i * 4;
             data[dst] = col[0];
             data[dst + 1] = col[1];
@@ -1576,7 +1633,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           if (!palAddr) palAddr = 0xAD0B;
 
           const spritePtr = (spriteBank << 16) | spriteAddr;
-          const sprite = getDecodedSprite(rom, spritePtr, palAddr);
+          const sprite = getDecodedSprite(rom, spritePtr, palAddr, { cg: preState.cgramBuf, slot: slotOffset });
           if (!sprite) continue;
 
           const roomSpriteX = posX - sprite.originX;
@@ -1624,7 +1681,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           let sprite = null;
           if (spriteBank >= 0xC0 && spriteBank <= 0xDF && spriteAddr >= 3) {
             const spritePtr = (spriteBank << 16) | spriteAddr;
-            sprite = getDecodedSprite(rom, spritePtr, palAddr || 0xad0b);
+            sprite = getDecodedSprite(rom, spritePtr, palAddr || 0xad0b, { cg: preState.cgramBuf, slot: slotOffset });
           }
 
           if (sprite) {
@@ -1684,7 +1741,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     function samplePreLoopState() {
       const m = getModule();
       if (!m || !hasDebuggerApi(m) || !loadedRomData) return null;
-      let camX = 0, camY = 0, mapId = -1, trigOffX = 0, trigOffY = 0;
+      let camX = 0, camY = 0, mapId = -1, trigOffX = 0, trigOffY = 0, bg1X = 0, bg1Y = 0;
+      let iniDisp = 0x0F, cgramBuf = null;
       let entBuf = null, palSlotBuf = null, projBuf = null, objStateBuf = null, grassQueueBuf = null, animIdxBuf = null;
 
       try {
@@ -1694,6 +1752,19 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         camX = rawX >= 0x8000 ? rawX - 0x10000 : rawX;
         const rawY = camBuf[2] | (camBuf[3] << 8);
         camY = rawY >= 0x8000 ? rawY - 0x10000 : rawY;
+        bg1X = camX;
+        bg1Y = camY;
+
+        // BG1 (the canopy layer) scrolls from its own shadow. Most rooms copy
+        // the camera into it; a parallax room feeds it from elsewhere
+        // ($D09B7A: BG1 from $12/$14, BG2 from the camera $59/$5B).
+        const bg1Buf = m.readMemoryRange(0x7E010E, 4);
+        if (bg1Buf && bg1Buf.length >= 4) {
+          const b1x = bg1Buf[0] | (bg1Buf[1] << 8);
+          const b1y = bg1Buf[2] | (bg1Buf[3] << 8);
+          bg1X = b1x >= 0x8000 ? b1x - 0x10000 : b1x;
+          bg1Y = b1y >= 0x8000 ? b1y - 0x10000 : b1y;
+        }
 
         const mapBuf = m.readMemoryRange(0x7E0ADB, 1);
         if (mapBuf && mapBuf.length >= 1) mapId = mapBuf[0];
@@ -1705,6 +1776,10 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           const rawOY = offBuf[2] | (offBuf[3] << 8);
           trigOffY = rawOY >= 0x8000 ? rawOY - 0x10000 : rawOY;
         }
+
+        const iniBuf = m.readMemoryRange(INIDISP_SHADOW, 1);
+        if (iniBuf && iniBuf.length >= 1) iniDisp = iniBuf[0];
+        cgramBuf = m.readMemoryRange(CGRAM_MIRROR, 512);
 
         entBuf = readMemoryChunked(m, 0x7E3DDF, 0x1220);
         palSlotBuf = m.readMemoryRange(0x7E1278, 16);
@@ -1719,6 +1794,10 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       return {
         camX: camX,
         camY: camY,
+        bg1X: bg1X,
+        bg1Y: bg1Y,
+        iniDisp: iniDisp,
+        cgramBuf: cgramBuf,
         mapId: mapId,
         trigOffX: trigOffX,
         trigOffY: trigOffY,
@@ -1729,6 +1808,79 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         grassQueueBuf: grassQueueBuf,
         animIdxBuf: animIdxBuf,
       };
+    }
+
+    // The engine's INIDISP shadow (NMI copies it to $2100): bit 7 forced
+    // blank, low nibble brightness. Room loads and fade_in()/fade_out() and
+    // dying go through it.
+    const INIDISP_SHADOW = 0x7E0106;
+    // The engine's CGRAM mirror (512 bytes, DMA'd to CGRAM). The ring menu
+    // halves every colour here rather than using colour math.
+    const CGRAM_MIRROR = 0x7E6187;
+
+    function bgr15(v) { return [v & 31, (v >> 5) & 31, (v >> 10) & 31]; }
+    function median(a) {
+      if (!a.length) return 1;
+      a.sort((x, y) => x - y);
+      return a[a.length >> 1];
+    }
+
+    // INIDISP brightness, 0..1 (0 in forced blank). It darkens everything the
+    // PPU outputs, so it goes on every extended canvas.
+    function screenBrightness(preState) {
+      const ini = preState.iniDisp;
+      return (ini & 0x80) ? 0 : (ini & 0x0F) / 15;
+    }
+
+    // How the BG colours are dimmed/greyed relative to the room's own: the
+    // median ratio of the CGRAM mirror against the room palette (colours the
+    // room defines only, so engine-loaded sub-palettes and a few cycling
+    // colours do not count). Sprites need none of this: they are drawn from
+    // the live mirror already.
+    function paletteTint(preState, roomPalette) {
+      let brightness = 1;
+      let saturate = 1;
+      const cg = preState.cgramBuf;
+      if (cg && cg.length >= 256 && roomPalette && roomPalette.length >= 128) {
+        const lum = [];
+        const chroma = [];
+        for (let c = 16; c < 128; c++) {
+          if (!(c & 15)) continue; // colour 0 of a sub-palette is transparent
+          const want = bgr15(roomPalette[c]);
+          const wantSum = want[0] + want[1] + want[2];
+          if (wantSum < 6) continue;
+          const have = bgr15(cg[c * 2] | (cg[c * 2 + 1] << 8));
+          const haveSum = have[0] + have[1] + have[2];
+          const r = haveSum / wantSum;
+          lum.push(r);
+          const wantChroma = Math.max(want[0], want[1], want[2]) - Math.min(want[0], want[1], want[2]);
+          if (wantChroma >= 4 && r > 0.05) {
+            const haveChroma = Math.max(have[0], have[1], have[2]) - Math.min(have[0], have[1], have[2]);
+            chroma.push(haveChroma / (wantChroma * r));
+          }
+        }
+        // Too few comparable colours (a room with no palette yet): no claim.
+        if (lum.length >= 8) {
+          brightness = Math.min(1.5, median(lum));
+          if (chroma.length >= 8) saturate = Math.min(1.5, median(chroma));
+        }
+      }
+      return { brightness: brightness, saturate: saturate };
+    }
+
+    function tintFilter(brightness, saturate) {
+      const b = Math.round(brightness * 100) / 100;
+      const sat = Math.round(saturate * 100) / 100;
+      return (b >= 0.99 && b <= 1.01 && sat >= 0.97 && sat <= 1.03) ? 'none' : 'brightness(' + b + ') saturate(' + sat + ')';
+    }
+
+    let lastBrightnessFilter = '';
+    function applyScreenBrightness(brightness, canvases) {
+      const f = tintFilter(brightness, 1);
+      const filter = f === 'none' ? '' : f;
+      if (filter === lastBrightnessFilter) return;
+      lastBrightnessFilter = filter;
+      for (let i = 0; i < canvases.length; i++) if (canvases[i]) canvases[i].style.filter = filter;
     }
 
     // The engine's per-channel animation state: frame index at $7E4FE6 + ch,
@@ -1785,7 +1937,14 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         cutGrassTileSet.clear();
         lastRequestedObjKey = '';
         lastRequestedGrassKey = '';
+        roomParallax = false;
       }
+
+      // Parallax: BG1 off the camera. A 16-bit wrap or a masked mode would
+      // give a huge offset; that is not a room scrolling, so it is ignored.
+      const bg1DX = (preState.bg1X ?? camX) - camX;
+      const bg1DY = (preState.bg1Y ?? camY) - camY;
+      if ((bg1DX || bg1DY) && Math.abs(bg1DX) < 0x1000 && Math.abs(bg1DY) < 0x1000) roomParallax = true;
 
       let objectStates = null;
       let objKey = '';
@@ -1819,16 +1978,18 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       const cutTiles = cutGrassTileSet.size > 0 ? Array.from(cutGrassTileSet) : null;
       const grassKey = cutTiles ? cutTiles.sort().join(';') : '';
 
-      if (mapId !== lastRequestedMapId || objKey !== lastRequestedObjKey || grassKey !== lastRequestedGrassKey) {
+      if (mapId !== lastRequestedMapId || objKey !== lastRequestedObjKey || grassKey !== lastRequestedGrassKey || roomParallax !== lastRequestedLayered) {
         lastRequestedMapId = mapId;
         lastRequestedObjKey = objKey;
         lastRequestedGrassKey = grassKey;
+        lastRequestedLayered = roomParallax;
         if (vscodeApi) {
           vscodeApi.postMessage({
             command: 'requestRoomMap',
             mapId: mapId,
             objectStates: objectStates,
             cutGrassTiles: cutTiles,
+            layered: roomParallax,
           });
         }
       }
@@ -1861,10 +2022,32 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       };
       lastLayout = layout;
 
+      // Parallax rooms: each layer at its own scroll, under/over the sprites
+      // in the PPU's order. Animated cells keep their first frame here (the
+      // animation overlays are composites of both layers).
+      const roomMap = (extendMapEnabled && activeRoomMap && activeRoomMap.mapId === mapId) ? activeRoomMap : null;
+      const layered = roomParallax && roomMap && roomMap.layers ? roomMap.layers : null;
+      // Palette dimming (ring menu) on the room images only; brightness on
+      // the canvases (below) covers fades and forced blank.
+      const tint = paletteTint(preState, roomMap ? roomMap.bgPalette : null);
+      const mapFilter = tintFilter(tint.brightness, tint.saturate);
+      const drawLayer = (lctx, img, scrollX, scrollY) => {
+        if (!img || !img.complete || !img.naturalWidth) return;
+        lctx.drawImage(img, emuX - scrollX * scaleSnes, emuY - (scrollY + 1) * scaleSnes,
+          roomMap.width * scaleSnes, roomMap.height * scaleSnes);
+      };
+
       // 1. Extended map background (Layer 0) - shifted 1 SNES pixel up to fix vertical seam
       if (extMapCtx && extMapCanvas) {
         extMapCtx.clearRect(0, 0, wrapW, wrapH);
-        if (extendMapEnabled && activeRoomMap && activeRoomMap.mapId === mapId && activeRoomMap.img) {
+        extMapCtx.filter = mapFilter;
+        if (layered) {
+          extMapCtx.imageSmoothingEnabled = false;
+          extMapCtx.fillStyle = '#000';
+          extMapCtx.fillRect(emuX - camX * scaleSnes, emuY - (camY + 1) * scaleSnes, roomMap.width * scaleSnes, roomMap.height * scaleSnes);
+          drawLayer(extMapCtx, layered.bg2Low, camX, camY);
+          drawLayer(extMapCtx, layered.bg1Low, preState.bg1X, preState.bg1Y);
+        } else if (roomMap && roomMap.img) {
           const mapX = emuX - camX * scaleSnes;
           const mapY = emuY - (camY + 1) * scaleSnes;
           const mapW = activeRoomMap.width * scaleSnes;
@@ -1899,7 +2082,12 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       // 3. Extended foreground priority tiles (Layer 2)
       if (extFgCtx && extFgCanvas) {
         extFgCtx.clearRect(0, 0, wrapW, wrapH);
-        if (extendMapEnabled && activeRoomMap && activeRoomMap.mapId === mapId) {
+        extFgCtx.filter = mapFilter;
+        if (layered) {
+          extFgCtx.imageSmoothingEnabled = false;
+          drawLayer(extFgCtx, layered.bg2High, camX, camY);
+          drawLayer(extFgCtx, layered.bg1High, preState.bg1X, preState.bg1Y);
+        } else if (roomMap) {
           const mapX = emuX - camX * scaleSnes;
           const mapY = emuY - (camY + 1) * scaleSnes;
           const mapW = activeRoomMap.width * scaleSnes;
@@ -1923,8 +2111,12 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
             }
           }
         }
+        extFgCtx.filter = 'none';
         drawEntityItems(extFgCtx, frontEntities);
       }
+
+      // Follow the screen's fades (the triggers overlay stays lit).
+      applyScreenBrightness(screenBrightness(preState), [extMapCanvas, extEntCanvas, extFgCanvas]);
 
       // 4. Extended triggers overlay (Layer 4)
       if (extOverCtx && extOverCanvas) {
@@ -2625,6 +2817,16 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       });
     }
 
+    const speedChip = document.getElementById('screen-speed-chip');
+    if (speedChip) {
+      speedChip.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setSpeedUp(!speedUp);
+        const screenCanvas = document.getElementById('screen');
+        if (screenCanvas) screenCanvas.focus();
+      });
+    }
+
     ${getBottomBarClientScript()}
 
     ${getCdlFloatScript()}
@@ -2942,11 +3144,23 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
               });
             }
           }
+          let layerImgs = null;
+          if (evt.data.layers) {
+            layerImgs = {};
+            for (const k of ['bg1Low', 'bg1High', 'bg2Low', 'bg2High']) {
+              const uri = evt.data.layers[k];
+              if (!uri) continue;
+              layerImgs[k] = new Image();
+              layerImgs[k].src = uri;
+            }
+          }
           img.onload = function() {
             activeRoomMap = {
               mapId: mapId,
               img: img,
               foregroundImg: fgImg,
+              layers: layerImgs,
+              bgPalette: Array.isArray(evt.data.bgPalette) ? evt.data.bgPalette : null,
               animGroups: loadedGroups,
               width: evt.data.width,
               height: evt.data.height,

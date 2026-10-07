@@ -493,7 +493,7 @@ function openEmulatorPanel(context, rom, channel) {
               break;
 
             case 'requestRoomMap':
-              _handleRoomMapRequest(msg.mapId, msg.objectStates, msg.cutGrassTiles);
+              _handleRoomMapRequest(msg.mapId, msg.objectStates, msg.cutGrassTiles, msg.layered === true);
               break;
 
             case 'requestAlchemyIcons': {
@@ -669,11 +669,13 @@ function _hasOpaquePixel(pb) {
     return false;
 }
 
-function _handleRoomMapRequest(mapId, objectStates, cutGrassTiles) {
+// `layered`: the webview has seen BG1 scroll apart from the camera in this
+// room (parallax), so it also needs each layer on its own - see renderRoomLayers.
+function _handleRoomMapRequest(mapId, objectStates, cutGrassTiles, layered) {
     if (!_panel || typeof mapId !== 'number') return;
     const objKey = objectStates ? JSON.stringify(objectStates) : '';
     const grassKey = cutGrassTiles && cutGrassTiles.length ? JSON.stringify(cutGrassTiles) : '';
-    const cacheKey = mapId + ':' + objKey + ':' + grassKey;
+    const cacheKey = mapId + ':' + objKey + ':' + grassKey + (layered ? ':layered' : '');
 
     if (_roomMapCache.has(cacheKey)) {
         const cached = _roomMapCache.get(cacheKey);
@@ -752,10 +754,41 @@ function _handleRoomMapRequest(mapId, objectStates, cutGrassTiles) {
             });
         } catch (_) {}
 
+        let layers = null;
+        if (layered) {
+            try {
+                const encodeLayer = img => {
+                    if (!_hasOpaquePixel(img)) return null;
+                    _alignPixelsToSnes(img);
+                    return maps.encodePngDataUri(_scale2x(img));
+                };
+                const split = maps.renderRoomLayers(rom, staged);
+                layers = {
+                    bg1Low: encodeLayer(split.bg1.low),
+                    bg1High: encodeLayer(split.bg1.high),
+                    bg2Low: encodeLayer(split.bg2.low),
+                    bg2High: encodeLayer(split.bg2.high),
+                };
+            } catch (_) {}
+        }
+
+        // The room's own BG colours as 15-bit CGRAM words (0..127). The webview
+        // compares the engine's CGRAM mirror against these to follow palette
+        // dimming (ring menu) on the extended layers.
+        let bgPalette = null;
+        try {
+            bgPalette = [];
+            for (const pal of maps.buildRoomCgramPalettes(rom, staged.tileFamilies)) {
+                for (const c of pal) bgPalette.push((c[0] >> 3) | ((c[1] >> 3) << 5) | ((c[2] >> 3) << 10));
+            }
+        } catch (_) { bgPalette = null; }
+
         const data = {
             mapId: mapId,
             imageUri: imageUri,
             foregroundUri: foregroundUri,
+            layers: layers,
+            bgPalette: bgPalette,
             animGroups: animGroups,
             width: composite.width,
             height: composite.height,
