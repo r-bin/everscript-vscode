@@ -1556,6 +1556,33 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       }
     }
 
+    // Every live entity, from a read of WRAM starting at $7E3DDF. The engine
+    // keeps two lists, both linked through +0x5E: $3DDF holds the active
+    // entities (near the screen, run and drawn every frame) and $3DE1 the
+    // inactive ones, which it moves an entity to as it leaves the screen and
+    // back as it returns ($CFB254). Walking $3DDF alone made enemies blink in
+    // and out of the extension and the Entities tab at that boundary. ($3DE3
+    // is the free list.) The Boy and Dog are always added.
+    function entityAddresses(buf) {
+      const out = [];
+      const visited = new Set();
+      for (const head of [0, 2]) {
+        let cur = buf[head] | (buf[head + 1] << 8);
+        let safety = 0;
+        while (cur >= 0x3DE5 && cur < 0x4FE5 && !visited.has(cur) && safety++ < 40) {
+          visited.add(cur);
+          out.push(cur);
+          const rel = cur - 0x3DDF;
+          if (rel < 0 || rel + 0x60 > buf.length) break;
+          cur = buf[rel + 0x5E] | (buf[rel + 0x5F] << 8);
+          if (!cur) break;
+        }
+      }
+      if (!visited.has(0x4E89)) out.push(0x4E89);
+      if (!visited.has(0x4F37)) out.push(0x4F37);
+      return out;
+    }
+
     // Draws the priority-2 entities on Layer 1 and returns the priority-3 ones,
     // which the caller draws over the foreground (Layer 2).
     function renderExtendedEntities(preState, layout, extEntCanvas, extEntCtx) {
@@ -1569,21 +1596,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       // 1. Entities from WRAM entBuf (0x7E3DDF)
       if (preState.entBuf) {
         const buf = preState.entBuf;
-        const entities = [];
-        const visited = new Set();
-        let curAddr = buf[0] | (buf[1] << 8);
-        let safety = 0;
-        while (curAddr >= 0x3DE5 && curAddr < 0x4FE5 && !visited.has(curAddr) && safety++ < 32) {
-          visited.add(curAddr);
-          entities.push(curAddr);
-          const rel = curAddr - 0x3DDF;
-          if (rel < 0 || rel + 0x60 > buf.length) break;
-          const ptrNext = buf[rel + 0x5E] | (buf[rel + 0x5F] << 8);
-          if (!ptrNext) break;
-          curAddr = ptrNext;
-        }
-        if (!visited.has(0x4E89)) entities.push(0x4E89);
-        if (!visited.has(0x4F37)) entities.push(0x4F37);
+        const entities = entityAddresses(buf);
 
         for (let i = 0; i < entities.length; i++) {
           const addr = entities[i];

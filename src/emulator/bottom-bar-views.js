@@ -740,21 +740,7 @@ function getBottomBarClientScript() {
       const tbody = document.getElementById('ent-tbody');
       if (!tbody) return;
 
-      const entities = [];
-      const visited = new Set();
-      let curAddr = buf[0] | (buf[1] << 8);
-      let safety = 0;
-      while (curAddr >= 0x3DE5 && curAddr < 0x4FE5 && !visited.has(curAddr) && safety++ < 32) {
-        visited.add(curAddr);
-        entities.push(curAddr);
-        const rel = curAddr - 0x3DDF;
-        if (rel < 0 || rel + 0x60 > buf.length) break;
-        const ptrNext = buf[rel + 0x5E] | (buf[rel + 0x5F] << 8);
-        if (!ptrNext) break;
-        curAddr = ptrNext;
-      }
-      if (!visited.has(0x4E89)) entities.push(0x4E89);
-      if (!visited.has(0x4F37)) entities.push(0x4F37);
+      const entities = entityAddresses(buf); // panel-webview.js: active + inactive lists
 
       let partyCount = 0;
       let enemyCount = 0;

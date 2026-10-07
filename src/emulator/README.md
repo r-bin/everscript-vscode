@@ -33,7 +33,7 @@ own state each frame (`samplePreLoopState` in `panel-webview.js`):
 | `$7E0106`, `$7E6187` | INIDISP shadow, CGRAM mirror | fallback when the core has no `_getPpuView`. Both run ahead of the picture: the mirror reaches CGRAM a frame later through the upload queue |
 | `$7E241F` | room effect | effect 2 also places plane-0 characters against BG1's scroll (`$8FC7E8`) |
 
-Entities: every one in the list at `$7E3DDF` is drawn (the engine has no "invisible" flag; `+0x10` bit 5 only marks scripted actors), the main sprite `+0x06` unless `+0x12` bit 15, the shadow `+0x09` unless bit 14.
+Entities: every one in the active list `$7E3DDF` and the inactive list `$7E3DE1` (the engine parks entities there while they are away from the screen) is drawn (the engine has no "invisible" flag; `+0x10` bit 5 only marks scripted actors), the main sprite `+0x06` unless `+0x12` bit 15, the shadow `+0x09` unless bit 14.
 
 `#` toggles speed-up (4 frames per display frame, the TAS replay path).
 
