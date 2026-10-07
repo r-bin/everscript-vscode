@@ -1590,16 +1590,22 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           const rel = addr - 0x3DDF;
           if (rel < 0 || rel + 0x8E > buf.length) continue;
 
+          // Draw mode 0 ($8FC6C5) draws a main sprite (+0x06, bank +0x08)
+          // unless +0x12 bit 15 hides it, and a secondary one (+0x09, bank
+          // +0x0B: the shadow) unless bit 14 does. Nothing else hides a listed
+          // entity: +0x10 bit 5 is "scripted" (control(NONE), walk(), every
+          // cutscene actor), not "invisible" - skipping it lost the intro's cast.
+          const hideFlags = buf[rel + 0x12] | (buf[rel + 0x13] << 8);
           const spriteBank = buf[rel + 0x08];
           const spriteAddr = buf[rel + 0x06] | (buf[rel + 0x07] << 8);
-          if (spriteBank < 0xC0 || spriteBank > 0xDF || spriteAddr < 3) continue;
+          const mainOk = !(hideFlags & 0x8000) && spriteBank >= 0xC0 && spriteBank <= 0xDF && spriteAddr >= 3;
+          const secBank = buf[rel + 0x0B];
+          const secAddr = buf[rel + 0x09] | (buf[rel + 0x0A] << 8);
+          const secOk = !(hideFlags & 0x4000) && secBank >= 0xC0 && secBank <= 0xDF && secAddr >= 3;
+          if (!mainOk && !secOk) continue;
 
           const isBoy = (addr === 0x4E89);
           const isDog = (addr === 0x4F37);
-          const isParty = isBoy || isDog;
-
-          const flags = buf[rel + 0x10] | (buf[rel + 0x11] << 8);
-          if (!isParty && (flags & 0x0020)) continue;
           const depth = entityDepth(buf, rel);
           if (depth === 'hidden') continue;
 
@@ -1632,34 +1638,36 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           }
           if (!palAddr) palAddr = 0xAD0B;
 
-          const spritePtr = (spriteBank << 16) | spriteAddr;
-          const sprite = getDecodedSprite(rom, spritePtr, palAddr, { cg: preState.cgramBuf, slot: slotOffset });
-          if (!sprite) continue;
-
-          const roomSpriteX = posX - sprite.originX;
-          const roomSpriteY = posY - sprite.originY - Math.floor(posZ / 16);
           // $8FC7E8: in a room with effect 2 a plane-0 character is placed
           // against BG1's scroll (it belongs to the parallax layer), and two
           // lines lower than the camera formula gives.
           const onBg1 = preState.roomEffect === 2 && (buf[rel + 0x18] & 0x30) === 0;
           const refX = onBg1 ? preState.bg1X : layout.camX;
           const refY = onBg1 ? preState.bg1Y - 2 : layout.camY;
-          const screenX = layout.emuX + (roomSpriteX - refX) * layout.scaleSnes;
-          const screenY = layout.emuY + (roomSpriteY - refY) * layout.scaleSnes;
-          const screenW = sprite.width * layout.scaleSnes;
-          const screenH = sprite.height * layout.scaleSnes;
-
-          if (screenX + screenW <= 0 || screenX >= layout.wrapW || screenY + screenH <= 0 || screenY >= layout.wrapH) continue;
-
-          drawList.push({
-            canvas: sprite.canvas,
-            x: screenX,
-            y: screenY,
-            w: screenW,
-            h: screenH,
-            sortY: posY,
-            front: depth === 'front',
-          });
+          const live = { cg: preState.cgramBuf, slot: slotOffset };
+          // The secondary sprite sits on the ground (no height) and sorts
+          // just behind the main one, as the engine queues it.
+          const parts = [];
+          if (secOk) parts.push({ ptr: (secBank << 16) | secAddr, lift: 0, sort: posY - 0.5 });
+          if (mainOk) parts.push({ ptr: (spriteBank << 16) | spriteAddr, lift: Math.floor(posZ / 16), sort: posY });
+          for (let k = 0; k < parts.length; k++) {
+            const sprite = getDecodedSprite(rom, parts[k].ptr, palAddr, live);
+            if (!sprite) continue;
+            const screenX = layout.emuX + (posX - sprite.originX - refX) * layout.scaleSnes;
+            const screenY = layout.emuY + (posY - sprite.originY - parts[k].lift - refY) * layout.scaleSnes;
+            const screenW = sprite.width * layout.scaleSnes;
+            const screenH = sprite.height * layout.scaleSnes;
+            if (screenX + screenW <= 0 || screenX >= layout.wrapW || screenY + screenH <= 0 || screenY >= layout.wrapH) continue;
+            drawList.push({
+              canvas: sprite.canvas,
+              x: screenX,
+              y: screenY,
+              w: screenW,
+              h: screenH,
+              sortY: parts[k].sort,
+              front: depth === 'front',
+            });
+          }
         }
       }
 
