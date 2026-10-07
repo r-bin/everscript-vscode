@@ -226,7 +226,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       color: #6f9;
       border-color: #2e7d32;
     }
-    #ss-extend-label, #ss-overlay-label, #ss-object-label, #ss-anim-label {
+    #ss-extend-label, #ss-overlay-label, #ss-object-label, #ss-anim-label, #ss-collision-label {
       display: inline-flex;
       align-items: center;
       gap: 4px;
@@ -235,7 +235,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       cursor: pointer;
       user-select: none;
     }
-    #ss-extend-label input, #ss-overlay-label input, #ss-object-label input, #ss-anim-label input {
+    #ss-extend-label input, #ss-overlay-label input, #ss-object-label input, #ss-anim-label input, #ss-collision-label input {
       cursor: pointer;
     }
     /* -- ROM picker overlay --------------------------------------------- */
@@ -537,6 +537,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       <button id="screen-trigger-toggle" class="screen-chip active" type="button" title="Toggle Trigger Overlay (B &amp; Step-on)">TRIGGERS ON</button>
       <button id="screen-object-toggle" class="screen-chip active" type="button" title="Toggle Objects Overlay">OBJECTS ON</button>
       <button id="screen-anim-toggle" class="screen-chip active" type="button" title="Toggle Animated Tiles Overlay">ANIM TILES ON</button>
+      <button id="screen-collision-toggle" class="screen-chip active" type="button" title="Toggle Collision Lines Overlay">COLLISION ON</button>
       <button id="screen-fog-toggle" class="screen-chip" type="button" title="Toggle Fog of War outside emulator">FOG OFF</button>
       <button id="screen-speed-chip" class="screen-chip" type="button" title="Speed-up (#)">SPEED x1</button>
       <button id="screen-focus-chip" class="screen-chip" type="button" title="When the VS Code debugger stops: show the line in the editor (code) or keep the focus on the emulator (stay)">BREAK: code</button>
@@ -568,6 +569,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         <label id="ss-overlay-label" title="Toggle trigger overlay"><input type="checkbox" id="ss-overlay-toggle" checked /> triggers</label>
         <label id="ss-object-label" title="Toggle objects overlay"><input type="checkbox" id="ss-object-toggle" checked /> objects</label>
         <label id="ss-anim-label" title="Toggle animated tiles overlay"><input type="checkbox" id="ss-anim-toggle" checked /> anim tiles</label>
+        <label id="ss-collision-label" title="Toggle collision lines overlay"><input type="checkbox" id="ss-collision-toggle" checked /> collision</label>
         <button id="ss-pause-btn"  class="ss-btn" disabled>pause</button>
         <button id="ss-resume-btn" class="ss-btn" disabled>resume</button>
         <button id="ss-toggle-btn" class="ss-btn">hide panel</button>
@@ -1356,13 +1358,16 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     let triggersOverlayEnabled = true;
     let objectsOverlayEnabled = true;
     let animTilesOverlayEnabled = true;
+    let collisionOverlayEnabled = true;
     let fogOfWarEnabled = false;
     let cachedMapId = -1;
     let cachedTriggers = null;
     let cachedObjects = null;
     let cachedAnimTiles = null;
+    let cachedCollisionImg = null;
     const roomObjectsCache = new Map();
     const roomAnimTilesCache = new Map();
+    const roomCollisionCache = new Map();
     let lastRequestedMapId = -1;
     let lastRequestedObjKey = '';
     let lastRequestedGrassKey = '';
@@ -1571,6 +1576,11 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         overlayCtx.beginPath();
         overlayCtx.rect(layout.emuX, layout.emuY, layout.emuW, layout.emuH);
         overlayCtx.clip();
+      }
+
+      // Collision: contours and wall tint (the line version)
+      if (collisionOverlayEnabled) {
+        renderCollisionOverlay(overlayCtx, layout, preState, activeRoomMap, cachedCollisionImg, cachedMapId);
       }
 
       // Step-on triggers: Pink (#ff69b4, rgba(255, 100, 180, 0.22))
@@ -1791,6 +1801,21 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
           overlayCtx.fillText(cluster.letter, labelX, labelY);
         }
       }
+    }
+
+    function renderCollisionOverlay(overlayCtx, layout, preState, roomMap, cachedImg, cachedId) {
+      if (!overlayCtx || !preState) return;
+      const cImg = (roomMap && roomMap.mapId === preState.mapId && roomMap.collisionImg)
+        || (cachedImg && cachedId === preState.mapId ? cachedImg : null);
+      if (!cImg || !cImg.complete || !cImg.naturalWidth) return;
+      const mapWidth = (roomMap && roomMap.width) || (cImg.naturalWidth / 2);
+      const mapHeight = (roomMap && roomMap.height) || (cImg.naturalHeight / 2);
+      const mapX = layout.emuX - layout.camX * layout.scaleSnes;
+      const mapY = layout.emuY - (layout.camY + 1) * layout.scaleSnes;
+      const mapW = mapWidth * layout.scaleSnes;
+      const mapH = mapHeight * layout.scaleSnes;
+      overlayCtx.imageSmoothingEnabled = false;
+      overlayCtx.drawImage(cImg, mapX, mapY, mapW, mapH);
     }
 
     // -- Sprite decoding & caching ---------------------------------------------
@@ -2520,6 +2545,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         cachedTriggers = parseRoomTriggers(loadedRomData, mapId);
         cachedObjects = roomObjectsCache.get(mapId) || null;
         cachedAnimTiles = roomAnimTilesCache.get(mapId) || null;
+        cachedCollisionImg = roomCollisionCache.get(mapId) || null;
         spriteCache.clear();
         cutGrassTileSet.clear();
         lastRequestedObjKey = '';
@@ -3357,7 +3383,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     }
 
     function hasAnyActiveOverlay() {
-      return triggersOverlayEnabled || objectsOverlayEnabled || animTilesOverlayEnabled || fogOfWarEnabled;
+      return triggersOverlayEnabled || objectsOverlayEnabled || animTilesOverlayEnabled || collisionOverlayEnabled || fogOfWarEnabled;
     }
 
     function checkClearOverlayCanvas() {
@@ -3469,6 +3495,40 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     if (animCb) {
       animCb.addEventListener('change', () => {
         setAnimTilesOverlay(animCb.checked);
+      });
+    }
+
+    function setCollisionOverlay(enabled) {
+      collisionOverlayEnabled = !!enabled;
+      const chip = document.getElementById('screen-collision-toggle');
+      if (chip) {
+        if (collisionOverlayEnabled) {
+          chip.classList.add('active');
+          chip.textContent = 'COLLISION ON';
+        } else {
+          chip.classList.remove('active');
+          chip.textContent = 'COLLISION OFF';
+        }
+      }
+      const cb = document.getElementById('ss-collision-toggle');
+      if (cb) cb.checked = collisionOverlayEnabled;
+      checkClearOverlayCanvas();
+    }
+
+    const collisionChip = document.getElementById('screen-collision-toggle');
+    if (collisionChip) {
+      collisionChip.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setCollisionOverlay(!collisionOverlayEnabled);
+        const screenCanvas = document.getElementById('screen');
+        if (screenCanvas) screenCanvas.focus();
+      });
+    }
+
+    const collisionCb = document.getElementById('ss-collision-toggle');
+    if (collisionCb) {
+      collisionCb.addEventListener('change', () => {
+        setCollisionOverlay(collisionCb.checked);
       });
     }
 
@@ -3830,6 +3890,13 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
           roomAnimTilesCache.set(evt.data.mapId, evt.data.animTiles);
           if (evt.data.mapId === cachedMapId) cachedAnimTiles = evt.data.animTiles;
         }
+        let collImg = null;
+        if (evt.data.collisionUri) {
+          collImg = new Image();
+          collImg.src = evt.data.collisionUri;
+          roomCollisionCache.set(evt.data.mapId, collImg);
+          if (evt.data.mapId === cachedMapId) cachedCollisionImg = collImg;
+        }
         if (evt.data.imageUri) {
           const mapId = evt.data.mapId;
           const img = new Image();
@@ -3877,6 +3944,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
               mapId: mapId,
               img: img,
               foregroundImg: fgImg,
+              collisionImg: collImg,
               layers: layerImgs,
               bgPalette: Array.isArray(evt.data.bgPalette) ? evt.data.bgPalette : null,
               animGroups: loadedGroups,

@@ -751,6 +751,31 @@ function _handleRoomMapRequest(mapId, objectStates, cutGrassTiles, layered) {
             }
         } catch (_) {}
 
+        let collisionUri = null;
+        try {
+            const wTiles = room.header.widthTiles;
+            const hTiles = room.header.heightTiles;
+            const collImg = maps.overlayLayer(wTiles * 16, hTiles * 16, img => {
+                maps.drawCollisionOverlay(img, staged, {
+                    contours: true,
+                    tiles: false,
+                    drift: false,
+                    transparent: false,
+                    elevation: false,
+                    gates: false,
+                    grass: false,
+                    objects: false,
+                    triggers: false,
+                    labels: false,
+                });
+            });
+            if (collImg && _hasOpaquePixel(collImg)) {
+                _alignPixelsToSnes(collImg);
+                const coll2x = _scale2x(collImg);
+                collisionUri = maps.encodePngDataUri(coll2x);
+            }
+        } catch (_) {}
+
         let animGroups = [];
         try {
             const encodeFrame = f => {
@@ -921,6 +946,7 @@ function _handleRoomMapRequest(mapId, objectStates, cutGrassTiles, layered) {
             mapId: mapId,
             imageUri: imageUri,
             foregroundUri: foregroundUri,
+            collisionUri: collisionUri,
             layers: layers,
             bgPalette: bgPalette,
             animGroups: animGroups,
