@@ -16,13 +16,15 @@
  *
  * While stopped, memory shows in the editor too: hovering MEMORY.X (or
  * <0x0ADA>, $7E0ADA, arg[0x02]) evaluates it, and inline values print every
- * memory name of the stopped function next to its line.
+ * memory name of the stopped function next to its line, and what each
+ * if / else if / while condition evaluates to right now.
  */
 
 const vscode = require('vscode');
 const { EmulatorDebugSession } = require('./emulator-session');
 const { findSourceMap } = require('./source-map');
 const { NAME_PATTERN, MEMORY_PATTERN } = require('./memory-access');
+const { conditionOf } = require('./conditions');
 
 class InlineAdapter {
     constructor(deps) {
@@ -67,13 +69,35 @@ function expressionAt(document, position) {
     return undefined;
 }
 
-/** Inline values: memory names and literals from the stopped function's start to the stopped line. */
-function inlineValues(document, context, isMemory) {
-    const stopLine = context.stoppedLocation.end.line;
-    let start = stopLine;
-    while (start > 0 && stopLine - start < 400 && !/^\s*(?:fun|map)\b/.test(document.lineAt(start).text)) start--;
+/** Lines [start, end] of the fun / map block around a line (brace matched). */
+function functionRange(document, line) {
+    let start = line;
+    while (start > 0 && line - start < 600 && !/^\s*(?:fun|map)\b/.test(document.lineAt(start).text)) start--;
+    let depth = 0;
+    let opened = false;
+    for (let i = start; i < document.lineCount && i - start < 2000; i++) {
+        const code = document.lineAt(i).text.replace(/\/\/.*$/, '');
+        for (const ch of code) {
+            if (ch === '{') { depth++; opened = true; }
+            else if (ch === '}') depth--;
+        }
+        if (opened && depth <= 0) return { start, end: i };
+    }
+    return { start, end: Math.min(document.lineCount - 1, line) };
+}
+
+/**
+ * Inline values for the stopped function: every memory name and literal, and
+ * after each if / else if / while condition what it evaluates to with the
+ * memory as it is now (later conditions are a prediction: memory can change
+ * before execution gets there). In an if / else-if chain, the branches after
+ * the taken one say so instead.
+ */
+async function inlineValues(document, context, session, isMemory) {
+    const { start, end } = functionRange(document, context.stoppedLocation.end.line);
     const values = [];
-    for (let line = start; line <= stopLine; line++) {
+    const takenAtIndent = new Map(); // indentation of an if chain -> a branch already taken
+    for (let line = start; line <= end; line++) {
         const text = document.lineAt(line).text;
         const comment = text.indexOf('//');
         const code = comment >= 0 ? text.slice(0, comment) : text;
@@ -86,6 +110,22 @@ function inlineValues(document, context, isMemory) {
                 values.push(new vscode.InlineValueEvaluatableExpression(range, m[0]));
             }
         }
+        const condition = session && conditionOf(code);
+        if (!condition) continue;
+        const indent = code.search(/\S/);
+        const chained = condition.kind === 'else if';
+        if (!chained) takenAtIndent.delete(indent);
+        let hint;
+        if (chained && takenAtIndent.get(indent)) {
+            hint = '⇒ skipped (an earlier branch runs)';
+        } else {
+            let result = await session.memory.evaluateCondition(condition.text, session._stoppedSlot());
+            if (result !== undefined && condition.negated) result = !result;
+            if (result === undefined) continue;
+            hint = result ? '⇒ true' : '⇒ false';
+            if (condition.kind !== 'while' && result) takenAtIndent.set(indent, true);
+        }
+        values.push(new vscode.InlineValueText(new vscode.Range(line, condition.end, line, condition.end), hint));
     }
     return values;
 }
@@ -131,7 +171,8 @@ function registerDebugger(context, emulator, repoPath, lookupSymbol) {
             provideEvaluatableExpression: expressionAt,
         }),
         vscode.languages.registerInlineValuesProvider('everscript', {
-            provideInlineValues: (document, viewPort, context) => inlineValues(document, context, isMemory),
+            provideInlineValues: (document, viewPort, context) =>
+                inlineValues(document, context, [...sessions].find(session => session.snapshot) || null, isMemory),
         }),
         vscode.debug.registerDebugConfigurationProvider('everscript', {
             provideDebugConfigurations() {

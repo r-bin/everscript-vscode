@@ -15,6 +15,8 @@
  */
 
 const fs = require('fs');
+const { constantNames, constantValue } = require('./value-types');
+const { evaluateCondition } = require('./conditions');
 
 const WRAM = 0x7E0000;
 const MAX_READ = 4096;
@@ -65,18 +67,31 @@ function parseLocation(expression, symbols, lookupSymbol) {
     return null;
 }
 
-/** Display text of a location's current value. */
-async function readValue(location, bridge) {
+/** The raw byte / word at a location. */
+async function readNumber(location, bridge) {
     const bytes = await bridge.read(location.address, location.size);
     if (bytes.length < location.size) throw new Error('emulator memory not readable');
-    const value = location.size === 1 ? bytes[0] : bytes[0] | (bytes[1] << 8);
-    if (location.flag !== undefined) return ((value & location.flag) !== 0 ? 'true' : 'false') + '  (' + hex(value, 4) + ')';
-    return hex(value, location.size * 2) + '  (' + value + ')';
+    return location.size === 1 ? bytes[0] : bytes[0] | (bytes[1] << 8);
 }
 
-/** Number literal in .evs notation: 0x1F, 0d31, 31, true / false. */
-function parseValue(text) {
+/** Display text: flags as true / false, typed values by their enum names. */
+function formatValue(location, value, constants) {
+    if (location.flag !== undefined) return ((value & location.flag) !== 0 ? 'true' : 'false') + '  (' + hex(value, 4) + ')';
+    const text = hex(value, location.size * 2) + '  (' + value + ')';
+    const names = location.enumType ? constantNames(constants || {}, location.enumType, value) : [];
+    return names.length ? names.join(' | ') + '  ' + text : text;
+}
+
+/** Display text of a location's current value. */
+async function readValue(location, bridge, constants) {
+    return formatValue(location, await readNumber(location, bridge), constants);
+}
+
+/** Number literal in .evs notation: 0x1F, 0d31, 31, true / false, or an ENUM.MEMBER constant. */
+function parseValue(text, constants) {
     const t = String(text).trim();
+    const constant = constants ? constantValue(constants, t) : undefined;
+    if (constant !== undefined) return constant;
     if (/^(true|false)$/i.test(t)) return /^true$/i.test(t) ? 1 : 0;
     if (/^0x[0-9a-f]+$/i.test(t)) return parseInt(t, 16);
     if (/^0d\d+$/i.test(t)) return parseInt(t.slice(2), 10);
@@ -85,8 +100,8 @@ function parseValue(text) {
 }
 
 /** Write a new value (a flag sets or clears its bit in the word). */
-async function writeValue(location, text, bridge) {
-    let value = parseValue(text);
+async function writeValue(location, text, bridge, constants) {
+    let value = parseValue(text, constants);
     if (location.flag !== undefined) {
         const [lo, hi] = await bridge.read(location.address, 2);
         const word = lo | (hi << 8);
@@ -94,7 +109,7 @@ async function writeValue(location, text, bridge) {
     }
     const bytes = location.size === 1 ? [value & 0xFF] : [value & 0xFF, (value >> 8) & 0xFF];
     await bridge.write(location.address, bytes);
-    return readValue(location, bridge);
+    return readValue(location, bridge, constants);
 }
 
 /** DAP readMemory: bytes from a memoryReference (bus address) in chunks. */
@@ -150,20 +165,33 @@ function sourceLines(file, start, end) {
 
 /** Memory lookups for one debug session (symbols change when the source map reloads). */
 class MemoryInspector {
-    constructor(bridge, getSymbols, lookupSymbol) {
+    /** @param getMap () -> SourceMap | null (symbols, constants, inferred types) */
+    constructor(bridge, getMap, lookupSymbol) {
         this.bridge = bridge;
-        this.getSymbols = getSymbols;
+        this.getMap = getMap;
         this.lookupSymbol = lookupSymbol;
     }
 
+    get constants() {
+        const map = this.getMap();
+        return (map && map.constants) || {};
+    }
+
     locate(expression) {
-        return parseLocation(expression, this.getSymbols(), this.lookupSymbol);
+        const map = this.getMap();
+        const location = parseLocation(expression, map && map.symbols, this.lookupSymbol);
+        const enumType = location && map && map.types && map.types.get(String(expression).trim());
+        if (enumType && location.flag === undefined) {
+            location.enumType = enumType;
+            location.type += ': ' + enumType;
+        }
+        return location;
     }
 
     /** DAP value fields of a location: value, type, memory view, watch name. */
     async describe(expression, location) {
         return {
-            value: await readValue(location, this.bridge),
+            value: await readValue(location, this.bridge, this.constants),
             type: location.type,
             evaluateName: expression,
             memoryReference: hex(location.address, 6),
@@ -174,7 +202,8 @@ class MemoryInspector {
     /** The Memory scope: every memory name used in lines [start, end] of file, with its value now. */
     async variables(file, start, end) {
         const variables = [];
-        for (const name of memoryNamesIn(sourceLines(file, start, end), this.getSymbols(), this.lookupSymbol)) {
+        const map = this.getMap();
+        for (const name of memoryNamesIn(sourceLines(file, start, end), map && map.symbols, this.lookupSymbol)) {
             const location = this.locate(name);
             if (location && location.arg === undefined) variables.push(Object.assign({ name }, await this.describe(name, location)));
         }
@@ -203,7 +232,20 @@ class MemoryInspector {
     async set(expression, value) {
         const location = this.locate(expression);
         if (!location || location.arg !== undefined) throw new Error('Only memory can be written');
-        return { value: await writeValue(location, value, this.bridge), type: location.type, variablesReference: 0 };
+        return { value: await writeValue(location, value, this.bridge, this.constants), type: location.type, variablesReference: 0 };
+    }
+
+    /** An if / while condition with the current memory: true, false, or undefined (unknowable). */
+    evaluateCondition(text, slot) {
+        return evaluateCondition(text, async operand => {
+            const constant = constantValue(this.constants, operand);
+            if (constant !== undefined) return constant;
+            const location = this.locate(operand);
+            if (!location) return undefined;
+            if (location.arg !== undefined) return slot ? slot.args[location.arg] : undefined;
+            const value = await readNumber(location, this.bridge);
+            return location.flag !== undefined ? ((value & location.flag) !== 0 ? 1 : 0) : value;
+        });
     }
 }
 

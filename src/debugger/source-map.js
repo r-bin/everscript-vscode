@@ -57,6 +57,9 @@ class SourceMap {
         this._lines = this._indexLines();
         // Named memory (MEMORY.X, FLAG.X ...): { name, address (WRAM offset), size, flag? }
         this.symbols = new Map((json.symbols || []).map(symbol => [symbol.name, symbol]));
+        // { ENUM: { MEMBER: value } }, and symbol name -> enum it holds (value-types.js, filled by the session)
+        this.constants = json.constants || {};
+        this.types = new Map();
     }
 
     _chain(statement) {

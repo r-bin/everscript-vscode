@@ -14,6 +14,8 @@ const { SourceMap, findSourceMap } = require('../../src/debugger/source-map');
 const frames = require('../../src/debugger/script-frames');
 const { EmulatorDebugSession } = require('../../src/debugger/emulator-session');
 const memory = require('../../src/debugger/memory-access');
+const { inferTypes } = require('../../src/debugger/value-types');
+const { evaluateCondition, conditionOf } = require('../../src/debugger/conditions');
 
 let passed = 0;
 let failed = 0;
@@ -66,6 +68,7 @@ const MAP_JSON = {
         { name: 'MEMORY.ANSWER', address: 0x289D, size: 2 },
         { name: 'FLAG.BUSY', address: 0x28FA, size: 2, flag: 0x10 },
     ],
+    constants: { ALCHEMY_INDEX: { ACID_RAIN: 0, HARD_BALL: 5 }, ANSWERS: { YES: 0x1234 } },
 };
 const map = new SourceMap(MAP_JSON, '');
 
@@ -255,11 +258,13 @@ test('disconnect disarms the emulator', async () => {
 pending.push(async () => console.log('memory:'));
 
 const RAM = { 0x7E0ADA: 0x05, 0x7E289D: 0x34, 0x7E289E: 0x12, 0x7E28FA: 0x10 };
-const inspector = bridge => new memory.MemoryInspector(bridge, () => map.symbols, name => name === 'MEMORY.OLD' ? '(Byte) <0x0ADA>' : null);
+map.types = new Map([['MEMORY.SELECTED', 'ALCHEMY_INDEX']]);
+const inspector = bridge => new memory.MemoryInspector(bridge, () => map, name => name === 'MEMORY.OLD' ? '(Byte) <0x0ADA>' : null);
 
 test('names resolve through the source map, with their type', async () => {
     const mem = inspector(memoryBridge(RAM));
-    assert.deepStrictEqual(await mem.evaluate('MEMORY.SELECTED'), { result: '0x05  (5)', type: 'Byte', memoryReference: '0x7E0ADA', variablesReference: 0 });
+    assert.deepStrictEqual(await mem.evaluate('MEMORY.SELECTED'),
+        { result: 'ALCHEMY_INDEX.HARD_BALL  0x05  (5)', type: 'Byte: ALCHEMY_INDEX', memoryReference: '0x7E0ADA', variablesReference: 0 });
     assert.strictEqual((await mem.evaluate('MEMORY.ANSWER')).result, '0x1234  (4660)');
     assert.strictEqual((await mem.evaluate('FLAG.BUSY')).result, 'true  (0x0010)');
     assert.strictEqual((await mem.evaluate('FLAG.BUSY')).type, 'Flag');
@@ -280,6 +285,7 @@ test('writing memory: bytes, words and flag bits', async () => {
     const bridge = memoryBridge(RAM);
     const mem = inspector(bridge);
     assert.strictEqual((await mem.set('MEMORY.SELECTED', '0x1F')).value, '0x1F  (31)');
+    assert.strictEqual((await mem.set('MEMORY.SELECTED', 'ALCHEMY_INDEX.ACID_RAIN')).value, 'ALCHEMY_INDEX.ACID_RAIN  0x00  (0)');
     assert.strictEqual((await mem.set('MEMORY.ANSWER', '0d300')).value, '0x012C  (300)');
     assert.strictEqual((await mem.set('FLAG.BUSY', 'false')).value, 'false  (0x0000)');
     assert.strictEqual(bridge.ram.get(0x7E0ADB), undefined, 'a byte write stays one byte');
@@ -291,8 +297,35 @@ test('the Memory scope lists the names a function uses', async () => {
     const file = path.join(dir, 'f.evs');
     fs.writeFileSync(file, 'fun f() {\n    MEMORY.SELECTED = ITEM.X; // MEMORY.ANSWER\n    if(FLAG.BUSY) { <0x289D> = 1; }\n}\n');
     const vars = await inspector(memoryBridge(RAM)).variables(file, 1, 4);
-    assert.deepStrictEqual(vars.map(v => v.name + '=' + v.type), ['MEMORY.SELECTED=Byte', 'FLAG.BUSY=Flag', '<0x289D>=Word']);
+    assert.deepStrictEqual(vars.map(v => v.name + '=' + v.type), ['MEMORY.SELECTED=Byte: ALCHEMY_INDEX', 'FLAG.BUSY=Flag', '<0x289D>=Word']);
     assert.strictEqual(vars[0].evaluateName, 'MEMORY.SELECTED');
+});
+
+test('types: explicit // @type, else the enum the sources use with it', () => {
+    const files = {
+        '/ram.evs': 'enum MEMORY {\n    ANSWER = <0x289D>, // @type ANSWERS\n}\n',
+        '/use.evs': 'MEMORY.SELECTED = ALCHEMY_INDEX.HARD_BALL;\nif(ALCHEMY_INDEX.ACID_RAIN != MEMORY.SELECTED) {}\nMEMORY.ANSWER = ALCHEMY_INDEX.HARD_BALL;\n',
+    };
+    const types = inferTypes(Object.keys(files), map.symbols, MAP_JSON.constants, file => files[file]);
+    assert.strictEqual(types.get('MEMORY.SELECTED'), 'ALCHEMY_INDEX');
+    assert.strictEqual(types.get('MEMORY.ANSWER'), 'ANSWERS', 'the explicit type wins');
+    assert.strictEqual(types.has('FLAG.BUSY'), false);
+});
+
+test('conditions evaluate against memory', async () => {
+    const mem = inspector(memoryBridge(RAM));
+    assert.strictEqual(await mem.evaluateCondition('MEMORY.ANSWER == ANSWERS.YES'), true);
+    assert.strictEqual(await mem.evaluateCondition('MEMORY.SELECTED == 0x01 || (FLAG.BUSY && !False)'), true);
+    assert.strictEqual(await mem.evaluateCondition('MEMORY.SELECTED >= 0d6'), false);
+    assert.strictEqual(await mem.evaluateCondition('(Byte) <0x0ADA> & 0x04'), true);
+    assert.strictEqual(await mem.evaluateCondition('True'), true);
+    assert.strictEqual(await mem.evaluateCondition('MEMORY.ANSWER is Word'), undefined, 'unknown syntax: no hint');
+    assert.strictEqual(await mem.evaluateCondition('dead(BOY)'), undefined);
+    assert.strictEqual(await evaluateCondition('1 ==', async () => 0), undefined);
+    assert.deepStrictEqual(conditionOf('    } else if(MEMORY.ANSWER == 0x01) { // x'),
+        { kind: 'else if', negated: false, text: 'MEMORY.ANSWER == 0x01', end: 36 });
+    assert.strictEqual(conditionOf('    if!(f(1)) {').text, 'f(1)');
+    assert.strictEqual(conditionOf('    foo(1);'), null);
 });
 
 test('the memory view reads and writes raw WRAM', async () => {

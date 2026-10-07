@@ -47,6 +47,8 @@ VS Code debug UI ── DAP (in-process) ── emulator-session.js
 | `emulator-session.js` | DAP session: breakpoints, stops, steps, threads, stack, variables, evaluate |
 | `script-frames.js` | Pure: snapshot → threads / frames / variables; step predicates |
 | `source-map.js` | Pure: reads `out/source_map.json`; address ↔ line, inline levels, step ranges, memory symbols |
+| `value-types.js` | Pure: which enum a memory value holds (`// @type ENUM` on its declaration, else inferred from the sources) |
+| `conditions.js` | Pure: evaluates an `if` / `while` condition against live memory |
 | `memory-access.js` | Pure: memory by name or `.evs` notation (type, read, write), the Memory scope, DAP readMemory / writeMemory |
 
 ## Launch
@@ -76,8 +78,16 @@ the map lacks fall back to the bundled language index.
 - **Watch / Debug Console / hover** (EvaluatableExpressionProvider): `MEMORY.NAME`,
   `(Byte) <0x0ADA>`, `<0x289D>`, `<0x28FA, 0x10>`, `$7E0ADA`, `arg[0x02]`; typed Byte / Word / Flag.
   Watch entries can be edited (setExpression).
-- **Inline values** (InlineValuesProvider): every memory name from the stopped
-  function's `fun` line to the stopped line, valued next to the code.
+- **Inline values** (InlineValuesProvider): every memory name of the stopped
+  function valued next to the code, and after each `if` / `else if` / `while`
+  condition what it evaluates to now (`⇒ true`, `⇒ false`, or "skipped" after the
+  taken branch of a chain). Below the stopped line that is a prediction: memory can
+  change before execution gets there. Conditions with calls or unknown names get no hint.
+- **Types**: a value of a typed memory name shows its enum name
+  (`ALCHEMY_INDEX.HARD_BALL  0x05 (5)`, type `Byte: ALCHEMY_INDEX`), and edits accept
+  constants. Explicit: `SELECTED_ALCHEMY_0 = (Byte) <0x0ADA>, // @type ALCHEMY_INDEX`;
+  otherwise the enum the sources assign or compare most. Enum constants come from the
+  compiler (`constants` in the source map). Animation ids: see `docs/animation-enum-links.md`.
 - **Variables → Memory**: the memory names the frame's function uses; editable (setVariable).
 - **Memory view**: values carry a memoryReference, so VS Code's binary data view
   (Hex Editor extension) shows and edits WRAM around them (readMemory / writeMemory).

@@ -28,6 +28,7 @@ const path = require('path');
 const { loadSourceMap, isStale } = require('./source-map');
 const frames = require('./script-frames');
 const memory = require('./memory-access');
+const { inferTypes } = require('./value-types');
 
 const NO_SCRIPT_THREAD = { id: 1000, name: 'no script running' };
 
@@ -44,7 +45,7 @@ class EmulatorDebugSession {
         this.level = 0;                  // inline level the stopped slot is shown at
         this.handles = [];               // frame / variable references of the current stop
         this.detach = null;
-        this.memory = new memory.MemoryInspector(deps.bridge, () => this.map && this.map.symbols, deps.lookupSymbol);
+        this.memory = new memory.MemoryInspector(deps.bridge, () => this.map, deps.lookupSymbol);
     }
 
     // ---- protocol plumbing ------------------------------------------------
@@ -163,6 +164,7 @@ class EmulatorDebugSession {
         }
         try {
             this.map = loadSourceMap(mapPath);
+            this.map.types = inferTypes(this.map.files, this.map.symbols, this.map.constants);
             if (announce) this._output('[evs-dbg] Source map: ' + mapPath + ' (' + this.map.statements.length + ' statements)');
         } catch (err) {
             this.map = null;
