@@ -33,6 +33,12 @@ const { buildHtml } = require('./panel-webview');
 const { processScriptTraceBatch } = require('./script-trace');
 const { CdlHost } = require('./cdl/host');
 const { TasHost } = require('./tas/host');
+const { ScriptDebugHost } = require('./script-debug-host');
+const {
+  getRomOfferData,
+  recordRomUsage,
+  getVanillaRom,
+} = require('./rom-history');
 
 const CORE_SUBDIR        = path.join('src', 'emulator', 'core', 'snes9x2005-wasm-vanilla');
 const CUSTOM_CORE_SUBDIR = path.join('src', 'emulator', 'core', 'snes9x2005-wasm');
@@ -45,6 +51,7 @@ const LEGACY_CUSTOM_CORE_DIRS = [
   path.join('src', 'emulator', 'core', 'snes9x'),
 ];
 
+let _context       = null;   // VS Code extension context
 let _panel         = null;   // active WebviewPanel
 let _pending       = null;   // { dataUrl, name } waiting to load
 let _currentRomBuffer = null; // raw ROM buffer for bytecode disassembly
@@ -58,6 +65,8 @@ let _webviewReady  = false;
 const _roomMapCache = new Map();
 let _cdl           = null;   // CdlHost: per-ROM code/data log library
 let _tas           = null;   // TasHost: input recordings and replays
+// VS Code script debugger hook: outlives the panel (a session can attach first).
+const _scriptDebug = new ScriptDebugHost(m => { if (_panel) _panel.webview.postMessage(m); }, line => _log(line));
 
 function _describeFile(filePath) {
   try {
@@ -146,79 +155,9 @@ function _dispatchPendingRom() {
     dataUrl: _pending.dataUrl,
     name: _pending.name,
     alchemyIcons: alchemyIcons,
+    scriptDebug: _scriptDebug.beforeRomLoad(),
   });
   return true;
-}
-
-function _findDebuggableEditor() {
-  const seen = new Set();
-  const editors = [vscode.window.activeTextEditor].concat(vscode.window.visibleTextEditors || []);
-  for (const editor of editors) {
-    if (!editor || !editor.document || editor.document.languageId !== 'everscript') continue;
-    const key = editor.document.uri.toString();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    return editor;
-  }
-  return null;
-}
-
-function _findEnclosingFunction(document, lineIndex) {
-  for (let line = Math.min(lineIndex, document.lineCount - 1); line >= 0; line--) {
-    const text = document.lineAt(line).text.trimStart();
-    const match = text.match(/^(?:@\w+\([^)]*\)\s*)*(?:fun|map)\s+(\w+)\s*\(/);
-    if (match) return match[1];
-  }
-  return 'trigger_enter';
-}
-
-function _captureDebuggerLocation() {
-  const editor = _findDebuggableEditor();
-  if (!editor) return null;
-  const line = editor.selection.active.line + 1;
-  return {
-    file: editor.document.uri.fsPath,
-    line,
-    name: _findEnclosingFunction(editor.document, line - 1),
-  };
-}
-
-async function _ensureDebuggerSession() {
-  if (vscode.debug.activeDebugSession && vscode.debug.activeDebugSession.type === 'everscript') {
-    return vscode.debug.activeDebugSession;
-  }
-  const location = _captureDebuggerLocation();
-  if (!location) return null;
-  const started = await vscode.debug.startDebugging(undefined, {
-    type: 'everscript',
-    request: 'launch',
-    name: 'Everscript Emulator Bridge',
-    program: location.file,
-    entryFunction: location.name || 'trigger_enter',
-  });
-  if (!started) return null;
-  return vscode.debug.activeDebugSession && vscode.debug.activeDebugSession.type === 'everscript'
-    ? vscode.debug.activeDebugSession
-    : null;
-}
-
-async function _syncDebuggerFromEmulator(payload) {
-  const session = await _ensureDebuggerSession();
-  if (!session) return { ok: false, text: 'VS Code debugger not connected (open an .evs editor first)' };
-  const location = _captureDebuggerLocation();
-  if (!location) return { ok: false, text: 'No active .evs editor to anchor debugger location' };
-  try {
-    await session.customRequest('syncFromEmulator', {
-      file: location.file,
-      line: location.line,
-      name: location.name,
-      reason: payload.reason || 'breakpoint',
-      details: payload.details || '',
-    });
-    return { ok: true, text: 'VS Code debugger synced to ' + path.basename(location.file) + ':' + location.line };
-  } catch (err) {
-    return { ok: false, text: 'Debugger sync failed: ' + err.message };
-  }
 }
 
 function _remapLegacyCorePath(rawPath) {
@@ -298,11 +237,26 @@ function _resetPanelHtml() {
     const coreJsUri   = _panel.webview.asWebviewUri(vscode.Uri.file(core.path)).toString();
     const coreWasmUri = _panel.webview.asWebviewUri(vscode.Uri.file(core.wasmPath)).toString();
     _log(`Core webview URIs: js=${coreJsUri} wasm=${coreWasmUri}`);
-    const html = buildHtml(_panel.webview, coreJsUri, coreWasmUri, core.label, core.path);
+    const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+    let cfgRomPath = '';
+    try { cfgRomPath = vscode.workspace.getConfiguration('everscript').get('romPath') || ''; } catch (_) {}
+    const romOfferData = getRomOfferData(_context, wsRoot, cfgRomPath);
+    const html = buildHtml(_panel.webview, coreJsUri, coreWasmUri, core.label, core.path, romOfferData);
     // Log a snippet to help diagnose CSP / script-load issues.
     _log('HTML head snippet: ' + html.substring(0, 220).replace(/\s+/g, ' '));
     _panel.webview.html = html;
   _armReadyTimeout();
+}
+
+function _broadcastRomOffer() {
+  if (!_panel) return;
+  try {
+    const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+    let cfgRomPath = '';
+    try { cfgRomPath = vscode.workspace.getConfiguration('everscript').get('romPath') || ''; } catch (_) {}
+    const romOfferData = getRomOfferData(_context, wsRoot, cfgRomPath);
+    _panel.webview.postMessage({ command: 'romOfferInfo', data: romOfferData });
+  } catch (_) {}
 }
 
 /**
@@ -312,9 +266,16 @@ function _resetPanelHtml() {
  * @param {object} [channel] Optional OutputChannel for build log.
  */
 function openEmulatorPanel(context, rom, channel) {
+    _context = context;
     if (rom) {
       _pending = rom;
       if (rom.draft) _activeDraft = rom.draft;
+      recordRomUsage({
+        path: rom.filePath || rom.path,
+        name: rom.name,
+        kind: rom.kind || (rom.draft ? 'editor' : 'file'),
+        dataUrl: rom.dataUrl,
+      }, _context);
     }
     if (channel) _buildChannel = channel;
   _ensureBuildChannel();
@@ -376,14 +337,58 @@ function openEmulatorPanel(context, rom, channel) {
     _panel.webview.onDidReceiveMessage(msg => {
         if (_cdl && typeof msg.command === 'string' && msg.command.startsWith('cdl') && _cdl.handle(msg)) return;
         if (_tas && typeof msg.command === 'string' && msg.command.startsWith('tas') && _tas.handle(msg)) return;
+        if (typeof msg.command === 'string' && msg.command.startsWith('scriptDebug') && _scriptDebug.handle(msg)) return;
         switch (msg.command) {
             case 'ready':
             _webviewReady = true;
             _clearReadyTimeout();
             _log('Webview runtime ready');
             _notifyWebviewStatus('ok', 'Core runtime ready');
+            _broadcastRomOffer();
             _dispatchPendingRom();
                 break;
+
+            case 'getRomOfferInfo':
+                _broadcastRomOffer();
+                break;
+
+            case 'loadVanillaRom': {
+                const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+                let cfgRomPath = '';
+                try { cfgRomPath = vscode.workspace.getConfiguration('everscript').get('romPath') || ''; } catch (_) {}
+                const v = getVanillaRom(wsRoot, cfgRomPath);
+                if (v && v.available && v.path) {
+                    recordRomUsage({ path: v.path, name: v.name, kind: 'vanilla' }, _context);
+                    _sendRomFile(v.path);
+                } else {
+                    vscode.window.showErrorMessage('Vanilla Secret of Evermore ROM not found. Please set everscript.romPath in settings.');
+                }
+                break;
+            }
+
+            case 'loadRecentRom': {
+                if (msg.path && fs.existsSync(msg.path)) {
+                    recordRomUsage({ path: msg.path, name: msg.name, kind: msg.kind || 'file' }, _context);
+                    _sendRomFile(msg.path);
+                } else {
+                    vscode.window.showErrorMessage(`ROM file not found: ${msg.path || msg.name || 'unknown'}`);
+                    _broadcastRomOffer();
+                }
+                break;
+            }
+
+            case 'romDropped': {
+                _log(`Dropped ROM: ${msg.name}`);
+                recordRomUsage({
+                    path: msg.path || '',
+                    name: msg.name,
+                    dataUrl: msg.dataUrl,
+                    kind: 'dropped',
+                    size: msg.size,
+                }, _context);
+                _broadcastRomOffer();
+                break;
+            }
 
             case 'webviewBoot':
               _log('Webview bootstrap running');
@@ -434,13 +439,6 @@ function openEmulatorPanel(context, rom, channel) {
 
             case 'debugBreakpointHit':
                 _log(`Breakpoint hit: ${msg.type} @ ${msg.address} pc=${msg.pc}`);
-              _syncDebuggerFromEmulator({
-                reason: 'breakpoint',
-                details: `${msg.type} @ ${msg.address} pc=${msg.pc}`,
-              }).then(result => {
-                _log(result.text);
-                if (_panel) _panel.webview.postMessage({ command: 'debuggerConnectionStatus', ok: result.ok, text: result.text });
-              });
                 break;
 
             case 'debugHookStatus':
@@ -453,13 +451,6 @@ function openEmulatorPanel(context, rom, channel) {
 
             case 'debugHookBreak':
               _log(msg.text);
-              _syncDebuggerFromEmulator({
-                reason: 'breakpoint',
-                details: msg.text,
-              }).then(result => {
-                _log(result.text);
-                if (_panel) _panel.webview.postMessage({ command: 'debuggerConnectionStatus', ok: result.ok, text: result.text });
-              });
               break;
 
             case 'scriptFocus':
@@ -480,11 +471,11 @@ function openEmulatorPanel(context, rom, channel) {
               break;
 
             case 'connectDebugger':
-              _ensureDebuggerSession().then(session => {
-                const ok = !!session;
-                const text = ok ? 'VS Code debugger connected' : 'Failed to connect VS Code debugger';
+              // Attach a VS Code debug session to the running ROM (debugger/inline-adapter.js).
+              Promise.resolve(vscode.commands.executeCommand('everscript.attachDebugger')).then(ok => {
+                const text = ok ? 'VS Code debugger attached' : 'VS Code debugger not started';
                 _log(text);
-                if (_panel) _panel.webview.postMessage({ command: 'debuggerConnectionStatus', ok, text });
+                if (_panel) _panel.webview.postMessage({ command: 'debuggerConnectionStatus', ok: !!ok, text });
               });
               break;
 
@@ -537,6 +528,7 @@ function openEmulatorPanel(context, rom, channel) {
     _panel.onDidDispose(() => {
       if (_cdl) { _cdl.dispose(); _cdl = null; }
       if (_tas) { _tas.dispose(); _tas = null; }
+      _scriptDebug.panelClosed();
       _clearReadyTimeout();
       _clearRomTimeout();
       _webviewReady = false;
@@ -556,6 +548,8 @@ function _sendRomFile(romPath) {
         _currentRomBuffer = new Uint8Array(romData);
         const dataUrl = 'data:application/octet-stream;base64,' + romData.toString('base64');
         _pending = { dataUrl, name: romName };
+        recordRomUsage({ path: romPath, name: romName, kind: 'file' }, _context);
+        _broadcastRomOffer();
     _log(`Manual ROM selected: ${romName} (${romData.length} bytes)`);
     if (!_dispatchPendingRom()) _resetPanelHtml();
     } catch (e) {
@@ -841,4 +835,16 @@ function injectEverscript(code) {
   return false;
 }
 
-module.exports = { openEmulatorPanel, sendRomFile: _sendRomFile, injectEverscript };
+/** The VS Code script debugger's bridge to the emulator (see script-debug-host.js). */
+function getScriptDebugBridge() {
+    return _scriptDebug;
+}
+
+/** Load a ROM file into the emulator, opening the panel when needed. */
+function runRomFile(context, romPath) {
+    const romData = fs.readFileSync(romPath);
+    const dataUrl = 'data:application/octet-stream;base64,' + romData.toString('base64');
+    openEmulatorPanel(context, { dataUrl, name: path.basename(romPath), filePath: romPath, kind: 'file' });
+}
+
+module.exports = { openEmulatorPanel, sendRomFile: _sendRomFile, injectEverscript, getScriptDebugBridge, runRomFile };

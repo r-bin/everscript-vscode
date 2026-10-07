@@ -18,6 +18,7 @@ const { getCdlFloatCss, getCdlFloatHtml, getCdlFloatScript } = require('./cdl-fl
 const { getCdlStripsScript } = require('./cdl-strips');
 const { getFpsCss, getFpsChipHtml, getFpsClientScript } = require('./fps-meter');
 const { getTasCss, getTasTabButtonHtml, getTasChipHtml, getTasOverlayHtml, getTasViewHtml, getTasClientScript } = require('./tas-view');
+const { getScriptDebugClientScript } = require('./script-debug-view');
 
 function _nonce() {
     let n = '';
@@ -101,7 +102,7 @@ function calculateTriggerBox(trigger, trigOffX, trigOffY, camX, camY) {
 //  HTML template
 // -----------------------------------------------------------------------------
 
-function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay) {
+function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay, romOfferData) {
     const nonce = _nonce();
 
     // NOTE: Module.locateFile uses the literal CORE_WASM filename constant
@@ -242,12 +243,142 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       position: fixed; inset: 0; z-index: 100;
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      background: #111; color: #ccc; gap: 16px;
+      background: #0f0f11; color: #ccc; padding: 24px 16px;
+      overflow-y: auto; box-sizing: border-box; gap: 14px;
     }
-    #overlay h2    { color: #eee; font-size: 18px; }
-    #pickBtn       { padding: 10px 24px; background: #1a6; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
+    .overlay-card {
+      width: 100%; max-width: 440px;
+      display: flex; flex-direction: column;
+      align-items: center; gap: 12px;
+    }
+    .overlay-header {
+      text-align: center;
+    }
+    .overlay-header h2 {
+      margin: 0; color: #eee; font-size: 19px; font-weight: 600; letter-spacing: -0.01em;
+    }
+    .overlay-subtitle {
+      font-size: 11px; color: #666; margin-top: 2px; font-family: monospace;
+    }
+
+    /* Drag and Drop Zone */
+    #rom-drop-zone {
+      width: 100%; box-sizing: border-box;
+      border: 2px dashed #33333d; border-radius: 8px;
+      background: rgba(255, 255, 255, 0.02);
+      padding: 18px 14px; text-align: center;
+      cursor: pointer; user-select: none;
+      transition: border-color 0.15s, background 0.15s, transform 0.15s;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+    }
+    #rom-drop-zone:hover {
+      border-color: #4a4a58;
+      background: rgba(255, 255, 255, 0.04);
+    }
+    #rom-drop-zone.drag-active, body.window-drag-active #rom-drop-zone {
+      border-color: #1a6;
+      background: rgba(17, 170, 102, 0.12);
+      box-shadow: 0 0 14px rgba(17, 170, 102, 0.25);
+      transform: scale(1.01);
+    }
+    .drop-zone-icon {
+      font-size: 26px; line-height: 1; margin-bottom: 2px;
+    }
+    .drop-zone-title {
+      font-size: 13px; font-weight: 600; color: #ddd;
+    }
+    .drop-zone-sub {
+      font-size: 11px; color: #777;
+    }
+
+    /* Action Buttons Row */
+    .overlay-action-row {
+      display: flex; width: 100%; gap: 10px;
+    }
+    .rom-action-btn {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 9px 12px; border-radius: 6px; cursor: pointer; font-family: inherit;
+      border: 1px solid #333; background: #1a1a20; color: #eee;
+      transition: background 0.12s, border-color 0.12s; min-height: 48px; text-align: center; box-sizing: border-box;
+    }
+    .rom-action-btn:hover {
+      background: #24242c; border-color: #444; color: #fff;
+    }
+    .rom-action-btn.primary {
+      background: #107c41; border-color: #16934f; color: #fff;
+    }
+    .rom-action-btn.primary:hover {
+      background: #149b52; border-color: #1bb761;
+    }
+    .rom-action-btn.disabled {
+      opacity: 0.45; cursor: not-allowed; border-color: #252528; background: #141416; color: #666;
+    }
+    .rom-action-btn .btn-main {
+      font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px;
+    }
+    .rom-action-btn .btn-meta {
+      font-size: 10px; opacity: 0.75; margin-top: 2px; font-family: monospace;
+      max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+
     #pickBtn:hover { background: #0c5; }
-    #load-status   { font-size: 12px; color: #888; max-width: 400px; text-align: center; }
+    #load-status {
+      font-size: 11px; color: #888; text-align: center; min-height: 16px;
+    }
+
+    /* Recent ROMs Section */
+    .recent-roms-section {
+      width: 100%; display: flex; flex-direction: column; gap: 6px;
+      margin-top: 4px; border-top: 1px solid #222; padding-top: 10px;
+    }
+    .recent-roms-header {
+      font-size: 10px; font-weight: 600; color: #888;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .recent-roms-list {
+      display: flex; flex-direction: column; gap: 4px;
+      max-height: 170px; overflow-y: auto; padding-right: 2px;
+    }
+    .recent-rom-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 10px; background: #151518; border: 1px solid #222228;
+      border-radius: 5px; cursor: pointer; transition: background 0.12s, border-color 0.12s;
+      user-select: none; text-align: left;
+    }
+    .recent-rom-item:hover {
+      background: #1e1e24; border-color: #353540;
+    }
+    .recent-rom-item.missing {
+      opacity: 0.45; cursor: not-allowed;
+    }
+    .recent-rom-left {
+      display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;
+    }
+    .recent-rom-name {
+      font-size: 12px; color: #ddd; font-weight: 500;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .recent-rom-badge {
+      font-size: 9px; font-family: monospace; font-weight: 600;
+      padding: 1px 5px; border-radius: 3px; flex-shrink: 0;
+      text-transform: uppercase; letter-spacing: 0.02em;
+    }
+    .badge-editor {
+      background: rgba(147, 51, 234, 0.18); color: #d8b4fe; border: 1px solid rgba(147, 51, 234, 0.4);
+    }
+    .badge-vanilla {
+      background: rgba(234, 179, 8, 0.18); color: #fde047; border: 1px solid rgba(234, 179, 8, 0.4);
+    }
+    .badge-build {
+      background: rgba(59, 130, 246, 0.18); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.4);
+    }
+    .badge-file, .badge-dropped {
+      background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+    .recent-rom-meta {
+      font-size: 10px; color: #777; font-family: monospace; white-space: nowrap; flex-shrink: 0; margin-left: 8px;
+    }
     /* -- Resizer & Script stack panel ----------------------------------- */
     #ss-resizer {
       height: 5px; background: #222; cursor: row-resize; flex-shrink: 0;
@@ -359,10 +490,38 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
 </head>
 <body>
   <div id="overlay">
-    <h2>Everscript Emulator</h2>
-    <div style="font-size:10px;color:#555;margin-top:-8px">snes9x2005-wasm</div>
-    <button id="pickBtn">Load ROM...</button>
-    <div id="load-status">Select a SNES ROM (.smc / .sfc) to begin.</div>
+    <div class="overlay-card">
+      <div class="overlay-header">
+        <h2>Everscript Emulator</h2>
+        <div class="overlay-subtitle">snes9x2005-wasm</div>
+      </div>
+
+      <div id="rom-drop-zone" class="rom-drop-zone" title="Drag and drop a SNES ROM here, or click to browse">
+        <div class="drop-zone-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="6" width="20" height="12" rx="4"></rect><path d="M6 12h4m-2-2v4"></path><circle cx="15" cy="11" r="1" fill="currentColor"></circle><circle cx="18" cy="13" r="1" fill="currentColor"></circle></svg></div>
+        <div class="drop-zone-title">Drop SNES ROM here</div>
+        <div class="drop-zone-sub">Drag &amp; drop any .smc / .sfc file, or click to browse</div>
+      </div>
+
+      <div class="overlay-action-row">
+        <button id="vanillaBtn" class="rom-action-btn primary" type="button" title="Load configured vanilla Secret of Evermore ROM">
+          <div class="btn-main"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg> <span>Load Vanilla ROM</span></div>
+          <div class="btn-meta" id="vanilla-desc">Secret of Evermore (U)</div>
+        </button>
+        <button id="pickBtn" class="rom-action-btn secondary" type="button" title="Choose a ROM file from disk">
+          <div class="btn-main"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"></path></svg> <span>Load ROM...</span></div>
+          <div class="btn-meta">Browse files</div>
+        </button>
+      </div>
+
+      <div id="load-status">Select a SNES ROM (.smc / .sfc) to begin.</div>
+
+      <div id="recent-roms-section" class="recent-roms-section" style="display:none;">
+        <div class="recent-roms-header">
+          <span>Recent &amp; Generated ROMs</span>
+        </div>
+        <div id="recent-roms-list" class="recent-roms-list"></div>
+      </div>
+    </div>
   </div>
 
   <div id="screen-wrap">
@@ -544,13 +703,172 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       document.body.appendChild(script);
     }
 
-    // -- ROM picker ------------------------------------------------------------
+    // -- ROM offer, quick launch & drag-and-drop ------------------------------
+    let currentOfferData = ${JSON.stringify(romOfferData || null)};
+
+    function renderRomOffer(data) {
+      if (!data) return;
+      currentOfferData = data;
+      const vBtn = document.getElementById('vanillaBtn');
+      const vDesc = document.getElementById('vanilla-desc');
+      if (vBtn && vDesc) {
+        if (data.vanilla && data.vanilla.available) {
+          vBtn.classList.remove('disabled');
+          vBtn.disabled = false;
+          vDesc.textContent = (data.vanilla.name || 'Vanilla ROM') + (data.vanilla.sizeFormatted ? ' (' + data.vanilla.sizeFormatted + ')' : '');
+          vBtn.title = 'Load vanilla Secret of Evermore ROM: ' + (data.vanilla.path || '');
+        } else {
+          vBtn.classList.add('disabled');
+          vBtn.disabled = true;
+          vDesc.textContent = 'Not found (set everscript.romPath)';
+          vBtn.title = 'Vanilla ROM not found. Please set everscript.romPath in VS Code settings.';
+        }
+      }
+
+      const recentSection = document.getElementById('recent-roms-section');
+      const recentList = document.getElementById('recent-roms-list');
+      if (recentSection && recentList) {
+        recentList.innerHTML = '';
+        if (data.recent && data.recent.length > 0) {
+          recentSection.style.display = 'flex';
+          for (const item of data.recent) {
+            const row = document.createElement('div');
+            row.className = 'recent-rom-item' + (item.exists ? '' : ' missing');
+            row.title = item.path || item.name;
+
+            const left = document.createElement('div');
+            left.className = 'recent-rom-left';
+
+            const badge = document.createElement('span');
+            badge.className = 'recent-rom-badge badge-' + (item.kind || 'file');
+            badge.textContent = item.badge || item.kind;
+
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'recent-rom-name';
+            nameSpan.textContent = item.name;
+
+            left.appendChild(badge);
+            left.appendChild(nameSpan);
+
+            const metaSpan = document.createElement('span');
+            metaSpan.className = 'recent-rom-meta';
+            const metaParts = [];
+            if (item.sizeFormatted) metaParts.push(item.sizeFormatted);
+            if (item.timeFormatted) metaParts.push(item.timeFormatted);
+            if (!item.exists) metaParts.push('(missing)');
+            metaSpan.textContent = metaParts.join(' - ');
+
+            row.appendChild(left);
+            row.appendChild(metaSpan);
+
+            row.addEventListener('click', () => {
+              if (item.exists) {
+                initAudio();
+                ensureAudioRunning();
+                vscodeApi.postMessage({ command: 'loadRecentRom', path: item.path, name: item.name, kind: item.kind });
+                document.getElementById('load-status').textContent = 'Loading ' + item.name + '...';
+              } else {
+                document.getElementById('load-status').textContent = 'File missing: ' + (item.path || item.name);
+              }
+            });
+
+            recentList.appendChild(row);
+          }
+        } else {
+          recentSection.style.display = 'none';
+        }
+      }
+    }
+
     document.getElementById('pickBtn').addEventListener('click', () => {
       initAudio();
       ensureAudioRunning();
       vscodeApi.postMessage({ command: 'pickRom' });
       document.getElementById('load-status').textContent = 'Waiting for file picker...';
     });
+
+    const dropZone = document.getElementById('rom-drop-zone');
+    if (dropZone) {
+      dropZone.addEventListener('click', () => {
+        document.getElementById('pickBtn').click();
+      });
+    }
+
+    const vanillaBtn = document.getElementById('vanillaBtn');
+    if (vanillaBtn) {
+      vanillaBtn.addEventListener('click', () => {
+        if (vanillaBtn.disabled) return;
+        initAudio();
+        ensureAudioRunning();
+        vscodeApi.postMessage({ command: 'loadVanillaRom' });
+        document.getElementById('load-status').textContent = 'Loading Vanilla ROM...';
+      });
+    }
+
+    function isFileTransfer(evt) {
+      return evt.dataTransfer && Array.from(evt.dataTransfer.types || []).includes('Files');
+    }
+
+    window.addEventListener('dragenter', evt => {
+      if (isFileTransfer(evt)) {
+        evt.preventDefault();
+        document.body.classList.add('window-drag-active');
+        if (dropZone) dropZone.classList.add('drag-active');
+      }
+    });
+
+    window.addEventListener('dragover', evt => {
+      if (isFileTransfer(evt)) {
+        evt.preventDefault();
+        evt.dataTransfer.dropEffect = 'copy';
+      }
+    });
+
+    window.addEventListener('dragleave', evt => {
+      if (evt.clientX <= 0 || evt.clientY <= 0 || evt.clientX >= window.innerWidth || evt.clientY >= window.innerHeight) {
+        document.body.classList.remove('window-drag-active');
+        if (dropZone) dropZone.classList.remove('drag-active');
+      }
+    });
+
+    window.addEventListener('drop', evt => {
+      document.body.classList.remove('window-drag-active');
+      if (dropZone) dropZone.classList.remove('drag-active');
+
+      if (!evt.dataTransfer || !evt.dataTransfer.files || !evt.dataTransfer.files.length) return;
+      evt.preventDefault();
+      evt.stopPropagation();
+
+      const file = evt.dataTransfer.files[0];
+      const fileName = file.name || 'game.sfc';
+      const filePath = file.path || '';
+
+      initAudio();
+      ensureAudioRunning();
+      const statusEl = document.getElementById('load-status');
+      if (statusEl) statusEl.textContent = 'Reading dropped ROM: ' + fileName + '...';
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const dataUrl = e.target.result;
+        vscodeApi.postMessage({
+          command: 'romDropped',
+          name: fileName,
+          path: filePath,
+          dataUrl: dataUrl,
+          size: file.size,
+        });
+        startWithRom(dataUrl, fileName);
+      };
+      reader.onerror = function(err) {
+        if (statusEl) statusEl.textContent = 'Failed to read dropped file: ' + (err && err.message || '');
+      };
+      reader.readAsDataURL(file);
+    });
+
+    if (currentOfferData) {
+      renderRomOffer(currentOfferData);
+    }
 
     window.addEventListener('message', evt => {
       if (evt.data.command === 'hostStatus') {
@@ -564,8 +882,13 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
             : (level === 'ok' ? '#7ad67a' : '#c8c8c8');
         return;
       }
+      if (evt.data.command === 'romOfferInfo') {
+        renderRomOffer(evt.data.data);
+        return;
+      }
       if (evt.data.command === 'loadRom') {
         if (evt.data.alchemyIcons) loadedAlchemyIcons = evt.data.alchemyIcons;
+        if (evt.data.scriptDebug) sdbgConfigure(evt.data.scriptDebug);
         romStage('loadRom received: ' + (evt.data.name || 'game'));
         startWithRom(evt.data.dataUrl, evt.data.name);
       }
@@ -743,6 +1066,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         HEAPU8.set(romData, ptr);
         Module._startWithRom(ptr, romData.length, AUDIO_FREQ);
         Module._my_free(ptr);
+        sdbgOnBoot();
         romStage('core start complete');
 
         romLoaded = true;
@@ -969,6 +1293,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           emulatorPausedState = paused;
           cdlOnPauseChanged(paused);
           tasOnPauseChanged(paused);
+          sdbgOnPauseChanged(paused);
         }
         fpsTick(timestamp, romLoaded && !paused);
         if (paused) {
@@ -2667,6 +2992,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       m.__everscriptBridgeInstalled = true;
       reportHookStatus('Debugger bridge installed; waiting for breakpoint events');
       m.onBreakpointHit = function(event) {
+        // The VS Code script debugger's interpreter hook decides for itself (false = keep running).
+        if (event.type === 'exec' && event.address === SDBG_DISPATCH && sdbg.armed) return sdbgOnHit(m);
         const addrText = event.type === 'write'
           ? '7E' + fmtHex(event.address, 4)
           : fmtBreakpointAddr(event.address);
@@ -2932,6 +3259,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     ${getCdlStripsScript()}
 
     ${getTasClientScript()}
+
+    ${getScriptDebugClientScript()}
 
     ${getFpsClientScript()}
 
@@ -3203,6 +3532,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       if (!evt.data) return;
       if (handleCdlMessage(evt.data)) return;
       if (handleTasMessage(evt.data)) return;
+      if (sdbgHandleMessage(evt.data)) return;
       if (evt.data.command === 'debuggerConnectionStatus') {
         setText('ss-debug-link-status', 'dbg: ' + evt.data.text, evt.data.ok ? 'ss-ok' : 'ss-warn');
       } else if (evt.data.command === 'scriptTraceLogged') {

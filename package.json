@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.165.0",
+  "version": "0.167.0",
   "publisher": "rbin",
   "main": "./src/extension.js",
   "engines": {
@@ -17,7 +17,8 @@
     "onDebugResolve:everscript",
     "onDebugAdapterProtocol:everscript",
     "onCommand:everscript.buildAndRun",
-    "onCommand:everscript.exportRoomMaps"
+    "onCommand:everscript.exportRoomMaps",
+    "onCommand:everscript.attachDebugger"
   ],
   "categories": [
     "Programming Languages",
@@ -105,9 +106,7 @@
     "debuggers": [
       {
         "type": "everscript",
-        "label": "Everscript Debug (Mock)",
-        "program": "./src/debugger/adapter.js",
-        "runtime": "node",
+        "label": "Everscript (Emulator)",
         "languages": [
           "everscript"
         ],
@@ -119,13 +118,34 @@
             "properties": {
               "program": {
                 "type": "string",
-                "description": "Path to the root .evs file to debug.",
+                "description": "The .evs file to build (the same file Build and Run compiles).",
                 "default": "${file}"
               },
-              "entryFunction": {
+              "build": {
+                "type": "boolean",
+                "description": "Build before running. false: run \"rom\" (or keep the running ROM) and debug it.",
+                "default": true
+              },
+              "rom": {
                 "type": "string",
-                "description": "Name of the function to start execution at.",
-                "default": "trigger_enter"
+                "description": "With \"build\": false, the ROM to load into the emulator."
+              },
+              "sourceMap": {
+                "type": "string",
+                "description": "Path to the compiler's source_map.json. Default: <everscript.repoPath>/out/source_map.json, or the nearest out/ above the program."
+              }
+            }
+          },
+          "attach": {
+            "properties": {
+              "program": {
+                "type": "string",
+                "description": "An .evs file of the project, used to find out/source_map.json.",
+                "default": "${file}"
+              },
+              "sourceMap": {
+                "type": "string",
+                "description": "Path to the compiler's source_map.json."
               }
             }
           }
@@ -134,21 +154,35 @@
           {
             "type": "everscript",
             "request": "launch",
-            "name": "Debug .evs script",
-            "program": "${file}",
-            "entryFunction": "trigger_enter"
+            "name": "Build and debug in emulator",
+            "program": "${file}"
+          },
+          {
+            "type": "everscript",
+            "request": "attach",
+            "name": "Attach to emulator",
+            "program": "${file}"
           }
         ],
         "configurationSnippets": [
           {
-            "label": "Everscript: Debug script",
-            "description": "Step through an .evs script in the mock runtime.",
+            "label": "Everscript: Build and debug in emulator",
+            "description": "Compile the .evs file, run the ROM in the emulator panel and stop on breakpoints.",
             "body": {
               "type": "everscript",
               "request": "launch",
-              "name": "Debug .evs script",
-              "program": "^\"${file}\"",
-              "entryFunction": "trigger_enter"
+              "name": "Build and debug in emulator",
+              "program": "^\"${file}\""
+            }
+          },
+          {
+            "label": "Everscript: Attach to emulator",
+            "description": "Debug the ROM already running in the emulator panel.",
+            "body": {
+              "type": "everscript",
+              "request": "attach",
+              "name": "Attach to emulator",
+              "program": "^\"${file}\""
             }
           }
         ]
@@ -183,13 +217,11 @@
         "command": "everscript.exportRoomMaps",
         "title": "Export Room Maps as PNG",
         "category": "Everscript"
-      }
-    ],
-    "keybindings": [
+      },
       {
-        "command": "everscript.buildAndRun",
-        "key": "f5",
-        "when": "editorLangId == everscript"
+        "command": "everscript.attachDebugger",
+        "title": "Attach Debugger to Emulator",
+        "category": "Everscript"
       }
     ],
     "problemMatchers": [
@@ -278,8 +310,13 @@
         },
         "everscript.cdl.scriptExcludes": {
           "type": "array",
-          "items": { "type": "string" },
-          "default": ["0000-01FF", "2834-2FFF"],
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "0000-01FF",
+            "2834-2FFF"
+          ],
           "markdownDescription": "WRAM ranges (hex offsets into `$7E0000`, `start-end`) never attributed to script instructions by the CDL recorder. Defaults skip direct-page scratch and the stack (`0000-01FF`) and the script temporaries, slot table and run list (`2834-2FFF`), which every script touches."
         },
         "everscript.tas.autoRecord": {

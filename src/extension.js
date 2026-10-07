@@ -898,7 +898,7 @@ function activate(context) {
                         const name = stem + '.sfc';
                         const dataUrl = 'data:application/octet-stream;base64,' + Buffer.from(rom).toString('base64');
                         ch.appendLine('  Launching emulator panel...');
-                        require('./emulator/panel').openEmulatorPanel(context, { dataUrl, name, romBuffer: rom, draft });
+                        require('./emulator/panel').openEmulatorPanel(context, { dataUrl, name, romBuffer: rom, draft, filePath: tempPath, kind: 'editor' });
                         ch.appendLine(`  [SUCCESS] Emulator launched with "${name}". Room 0x15 enter script will execute.`);
                         _radarPanel?.webview.postMessage({ ...reply, played: name, tempPath, report });
                     } catch (err) {
@@ -1236,46 +1236,12 @@ function activate(context) {
 
     );
 
-    // ── Debugger: DebugConfigurationProvider ────────────────────────────────
-    // Handles two cases:
-    //   1. F5 with no launch.json → fills in defaults using the active .evs file
-    //   2. A launch.json entry with program:"${file}" that VS Code did not expand
-    context.subscriptions.push(
-        vscode.debug.registerDebugConfigurationProvider('everscript', {
-            provideDebugConfigurations(folder) {
-                const editor  = vscode.window.activeTextEditor;
-                const program = (editor && editor.document.languageId === 'everscript')
-                    ? editor.document.uri.fsPath
-                    : '${file}';
-                return [{
-                    type:          'everscript',
-                    request:       'launch',
-                    name:          'Debug current .evs file',
-                    program,
-                    entryFunction: 'trigger_enter',
-                }];
-            },
-            resolveDebugConfiguration(folder, config) {
-                // F5 with no launch.json → empty config, fill it in
-                if (!config.type && !config.request && !config.name) {
-                    const editor = vscode.window.activeTextEditor;
-                    if (editor && editor.document.languageId === 'everscript') {
-                        config.type          = 'everscript';
-                        config.request       = 'launch';
-                        config.name          = 'Debug .evs file';
-                        config.program       = editor.document.uri.fsPath;
-                        config.entryFunction = 'trigger_enter';
-                    }
-                }
-                // Resolve unexpanded ${file} (shouldn't happen, safety net)
-                if (config.program === '${file}') {
-                    const editor = vscode.window.activeTextEditor;
-                    if (editor) config.program = editor.document.uri.fsPath;
-                }
-                return config;
-            },
-        }),
-    );
+    // ── Debugger: .evs scripts in the emulator (src/debugger/README.md) ────
+    const emulatorPanel = require('./emulator/panel');
+    require('./debugger/inline-adapter').registerDebugger(context, {
+        bridge: emulatorPanel.getScriptDebugBridge(),
+        runRom: romPath => emulatorPanel.runRomFile(context, romPath),
+    }, () => getExtConfig().repoPath || '');
 
     // ── Emulator Panel ───────────────────────────────────────────────────────
     const { openEmulatorPanel } = require('./emulator/panel');
@@ -1341,13 +1307,18 @@ function activate(context) {
         if (event.affectsConfiguration('everscript.repoPath')) syncDerivedSettingsFromRepoPath().catch(() => {});
     }));
 
-    // ── Build-and-Run (F5 in .evs files) ─────────────────────────────────────
+    // ── Build-and-Run ────────────────────────────────────────────────────────
+    // Options (the debugger's launch): { inputPath, run: false } builds without
+    // loading the ROM. Resolves to { ok, outputRom }. Menus pass a Uri instead.
     context.subscriptions.push(
-        vscode.commands.registerCommand('everscript.buildAndRun', async () => {
+        vscode.commands.registerCommand('everscript.buildAndRun', async (options) => {
+            const opts = options && typeof options.inputPath === 'string' ? options : {};
             const editor = vscode.window.activeTextEditor;
-            if (!editor || editor.document.languageId !== 'everscript') {
+            const inputFile = opts.inputPath
+                || (editor && editor.document.languageId === 'everscript' ? editor.document.uri.fsPath : '');
+            if (!inputFile) {
                 vscode.window.showWarningMessage('Everscript: no .evs file is active.');
-                return;
+                return { ok: false };
             }
 
             const cfg       = vscode.workspace.getConfiguration('everscript');
@@ -1373,7 +1344,7 @@ function activate(context) {
 
             if (!compilerBin) {
                 // Auto-detect by walking up from the active .evs file.
-                let dir = nodePath.dirname(editor.document.uri.fsPath);
+                let dir = nodePath.dirname(inputFile);
                 for (let depth = 0; depth < 8 && !compilerBin; depth++) {
                     const pyCandidate = nodePath.join(dir, 'everscript.py');
                     if (nodeFs.existsSync(pyCandidate)) {
@@ -1400,7 +1371,7 @@ function activate(context) {
                 vscode.window.showErrorMessage(
                     'Everscript: compiler not found. Open the Emulator panel \u2192 Settings tab and set the repo path.'
                 );
-                return;
+                return { ok: false };
             }
 
             if (!projectRoot) {
@@ -1425,7 +1396,7 @@ function activate(context) {
                 vscode.window.showErrorMessage(
                     'Everscript: no ROM found. Set the Vanilla ROM in the Emulator panel \u2192 Settings tab.'
                 );
-                return;
+                return { ok: false };
             }
 
             // ── 3. Resolve patches folder ──────────────────────────────────
@@ -1436,7 +1407,7 @@ function activate(context) {
             }
 
             // ── 4. Build spawn args ────────────────────────────────────────
-            const inputEvs  = editor.document.uri.fsPath;
+            const inputEvs  = inputFile;
             const outputRom = nodePath.join(projectRoot, 'out', romName);
 
             // Detect Python: prefer project venv so packages like 'injector' are available
@@ -1547,7 +1518,7 @@ function activate(context) {
                 vscode.window.showErrorMessage(
                     'Everscript build failed (exit ' + exitCode + '). See Output > Everscript Build.'
                 );
-                return;
+                return { ok: false };
             }
 
             // The ROM just changed. The render cache keys on a ROM fingerprint
@@ -1568,12 +1539,14 @@ function activate(context) {
                 channel.appendLine(`[Everscript] Error: ${e.message}`);
                 vscode.window.showErrorMessage('Everscript: build succeeded but output ROM not found: ' + e.message);
                 openEmulatorPanel(context, undefined, channel);
-                return;
+                return { ok: false };
             }
             channel.appendLine(`[Everscript] Output ROM:  ${outputRom}`);
             channel.appendLine(`[Everscript] ROM size:    ${(romData.length / 1024 / 1024).toFixed(2)} MB`);
+            if (opts.run === false) return { ok: true, outputRom };
             const dataUrl = 'data:application/octet-stream;base64,' + romData.toString('base64');
-            openEmulatorPanel(context, { dataUrl, name: nodePath.basename(outputRom) }, channel);
+            openEmulatorPanel(context, { dataUrl, name: nodePath.basename(outputRom), filePath: outputRom, kind: 'build' }, channel);
+            return { ok: true, outputRom };
         }),
     );
 }
