@@ -12,7 +12,8 @@ const path   = require('path');
 
 const { SourceMap, findSourceMap } = require('../../src/debugger/source-map');
 const frames = require('../../src/debugger/script-frames');
-const { EmulatorDebugSession, evaluate } = require('../../src/debugger/emulator-session');
+const { EmulatorDebugSession } = require('../../src/debugger/emulator-session');
+const memory = require('../../src/debugger/memory-access');
 
 let passed = 0;
 let failed = 0;
@@ -59,6 +60,11 @@ const MAP_JSON = {
         { address: 0x1020, file: 0, line: 20, function: 'menu' },
         { address: 0x2000, file: 0, line: 31, function: 'callee' },
         { address: 0x2008, file: 0, line: 32, function: 'callee' },
+    ],
+    symbols: [
+        { name: 'MEMORY.SELECTED', address: 0x0ADA, size: 1 },
+        { name: 'MEMORY.ANSWER', address: 0x289D, size: 2 },
+        { name: 'FLAG.BUSY', address: 0x28FA, size: 2, flag: 0x10 },
     ],
 };
 const map = new SourceMap(MAP_JSON, '');
@@ -152,6 +158,16 @@ test('stepping into an inlined call needs no execution', () => {
 // DAP session against a fake emulator bridge
 // ---------------------------------------------------------------------------
 
+/** A bridge over a little WRAM: { address: byte }. */
+function memoryBridge(bytes) {
+    const ram = new Map(Object.entries(bytes).map(([a, v]) => [Number(a), v]));
+    return {
+        ram,
+        read(address, length) { return Promise.resolve(Array.from({ length }, (_, i) => ram.get(address + i) || 0)); },
+        write(address, values) { values.forEach((v, i) => ram.set(address + i, v)); return Promise.resolve([]); },
+    };
+}
+
 function fakeBridge() {
     return {
         listener: null, configured: [], resumed: [], paused: 0,
@@ -218,7 +234,8 @@ test('a stop, its stack, an inline step in and a step over', async () => {
     assert.deepStrictEqual(stackFrames.map(f => f.name + ':' + f.line), ['helper:5', 'menu:13', 'callee:31']);
 
     const { scopes } = await request('scopes', { frameId: stackFrames[0].id });
-    const { variables } = await request('variables', { variablesReference: scopes[0].variablesReference });
+    assert.deepStrictEqual(scopes.map(sc => sc.name), ['Memory', 'Arguments', 'Script slot']);
+    const { variables } = await request('variables', { variablesReference: scopes[1].variablesReference });
     assert.strictEqual(variables[0].name, 'arg[0x00]');
     assert.ok(variables[0].value.startsWith('0x0007'));
 
@@ -235,13 +252,55 @@ test('disconnect disarms the emulator', async () => {
     assert.strictEqual(bridge.listener, null);
 });
 
-test('evaluate reads memory in .evs notation', async () => {
-    const bridge = fakeBridge();
-    assert.strictEqual(await evaluate('<0x22EB>', null, bridge), '0x1234  (4660)  byte 0x34');
-    assert.strictEqual(await evaluate('<0x22EB, 0x04>', null, bridge), 'true  (byte 0x34)');
-    assert.strictEqual(await evaluate('$7E22EB', null, bridge), '0x1234  (4660)  byte 0x34');
-    assert.strictEqual(await evaluate('arg[0x00]', RUNNING, bridge), '0x0007  (7)');
-    assert.strictEqual(await evaluate('MEMORY.FOO', null, bridge), null);
+pending.push(async () => console.log('memory:'));
+
+const RAM = { 0x7E0ADA: 0x05, 0x7E289D: 0x34, 0x7E289E: 0x12, 0x7E28FA: 0x10 };
+const inspector = bridge => new memory.MemoryInspector(bridge, () => map.symbols, name => name === 'MEMORY.OLD' ? '(Byte) <0x0ADA>' : null);
+
+test('names resolve through the source map, with their type', async () => {
+    const mem = inspector(memoryBridge(RAM));
+    assert.deepStrictEqual(await mem.evaluate('MEMORY.SELECTED'), { result: '0x05  (5)', type: 'Byte', memoryReference: '0x7E0ADA', variablesReference: 0 });
+    assert.strictEqual((await mem.evaluate('MEMORY.ANSWER')).result, '0x1234  (4660)');
+    assert.strictEqual((await mem.evaluate('FLAG.BUSY')).result, 'true  (0x0010)');
+    assert.strictEqual((await mem.evaluate('FLAG.BUSY')).type, 'Flag');
+    assert.strictEqual((await mem.evaluate('MEMORY.OLD')).type, 'Byte', 'language index fallback');
+});
+
+test('literal notations and arguments', async () => {
+    const mem = inspector(memoryBridge(RAM));
+    assert.strictEqual((await mem.evaluate('(Byte) <0x0ADA>')).result, '0x05  (5)');
+    assert.strictEqual((await mem.evaluate('<0x289D>')).result, '0x1234  (4660)');
+    assert.strictEqual((await mem.evaluate('<0x28FA, 0x20>')).result, 'false  (0x0010)');
+    assert.strictEqual((await mem.evaluate('$7E289D')).result, '0x1234  (4660)');
+    assert.strictEqual((await mem.evaluate('arg[0x00]', RUNNING)).result, '0x0007  (7)');
+    await assert.rejects(mem.evaluate('ITEM.BASICS'), /Not memory/);
+});
+
+test('writing memory: bytes, words and flag bits', async () => {
+    const bridge = memoryBridge(RAM);
+    const mem = inspector(bridge);
+    assert.strictEqual((await mem.set('MEMORY.SELECTED', '0x1F')).value, '0x1F  (31)');
+    assert.strictEqual((await mem.set('MEMORY.ANSWER', '0d300')).value, '0x012C  (300)');
+    assert.strictEqual((await mem.set('FLAG.BUSY', 'false')).value, 'false  (0x0000)');
+    assert.strictEqual(bridge.ram.get(0x7E0ADB), undefined, 'a byte write stays one byte');
+    await assert.rejects(mem.set('MEMORY.ANSWER', 'lots'), /Not a number/);
+});
+
+test('the Memory scope lists the names a function uses', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'evs-mem-'));
+    const file = path.join(dir, 'f.evs');
+    fs.writeFileSync(file, 'fun f() {\n    MEMORY.SELECTED = ITEM.X; // MEMORY.ANSWER\n    if(FLAG.BUSY) { <0x289D> = 1; }\n}\n');
+    const vars = await inspector(memoryBridge(RAM)).variables(file, 1, 4);
+    assert.deepStrictEqual(vars.map(v => v.name + '=' + v.type), ['MEMORY.SELECTED=Byte', 'FLAG.BUSY=Flag', '<0x289D>=Word']);
+    assert.strictEqual(vars[0].evaluateName, 'MEMORY.SELECTED');
+});
+
+test('the memory view reads and writes raw WRAM', async () => {
+    const bridge = memoryBridge(RAM);
+    const read = await memory.readMemoryRequest({ memoryReference: '0x7E289D', count: 2 }, bridge);
+    assert.deepStrictEqual([...Buffer.from(read.data, 'base64')], [0x34, 0x12]);
+    await memory.writeMemoryRequest({ memoryReference: '0x7E289D', offset: 1, data: Buffer.from([0xAB]).toString('base64') }, bridge);
+    assert.strictEqual(bridge.ram.get(0x7E289E), 0xAB);
 });
 
 (async () => {

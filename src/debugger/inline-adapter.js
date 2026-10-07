@@ -13,11 +13,16 @@
  *
  * F5 in an .evs editor runs everscript.debugInEmulator, not the launch.json
  * selection: the everscript repo's launch.json debugs the Python compiler.
+ *
+ * While stopped, memory shows in the editor too: hovering MEMORY.X (or
+ * <0x0ADA>, $7E0ADA, arg[0x02]) evaluates it, and inline values print every
+ * memory name of the stopped function next to its line.
  */
 
 const vscode = require('vscode');
 const { EmulatorDebugSession } = require('./emulator-session');
 const { findSourceMap } = require('./source-map');
+const { NAME_PATTERN, MEMORY_PATTERN } = require('./memory-access');
 
 class InlineAdapter {
     constructor(deps) {
@@ -42,14 +47,63 @@ function activeEvsFile() {
     return editor && editor.document.languageId === 'everscript' ? editor.document.uri.fsPath : undefined;
 }
 
+const HOVER_PATTERNS = [
+    MEMORY_PATTERN,
+    NAME_PATTERN,
+    /\$(?:7[EF])?[0-9a-fA-F]{4}\b/g,
+    /\barg\[\s*(?:0x[0-9a-fA-F]+|\d+)\s*\]/g,
+];
+
+/** The memory expression under the cursor (debug hover). */
+function expressionAt(document, position) {
+    const text = document.lineAt(position.line).text;
+    for (const pattern of HOVER_PATTERNS) {
+        for (const m of text.matchAll(new RegExp(pattern.source, 'g'))) {
+            if (position.character < m.index || position.character > m.index + m[0].length) continue;
+            const range = new vscode.Range(position.line, m.index, position.line, m.index + m[0].length);
+            return new vscode.EvaluatableExpression(range, m[0]);
+        }
+    }
+    return undefined;
+}
+
+/** Inline values: memory names and literals from the stopped function's start to the stopped line. */
+function inlineValues(document, context, isMemory) {
+    const stopLine = context.stoppedLocation.end.line;
+    let start = stopLine;
+    while (start > 0 && stopLine - start < 400 && !/^\s*(?:fun|map)\b/.test(document.lineAt(start).text)) start--;
+    const values = [];
+    for (let line = start; line <= stopLine; line++) {
+        const text = document.lineAt(line).text;
+        const comment = text.indexOf('//');
+        const code = comment >= 0 ? text.slice(0, comment) : text;
+        const seen = new Set();
+        for (const pattern of [NAME_PATTERN, MEMORY_PATTERN]) {
+            for (const m of code.matchAll(new RegExp(pattern.source, 'g'))) {
+                if (seen.has(m[0]) || (pattern === NAME_PATTERN && !isMemory(m[0]))) continue;
+                seen.add(m[0]);
+                const range = new vscode.Range(line, m.index, line, m.index + m[0].length);
+                values.push(new vscode.InlineValueEvaluatableExpression(range, m[0]));
+            }
+        }
+    }
+    return values;
+}
+
 /**
  * @param context
  * @param emulator { bridge, runRom(romPath) }   from emulator/panel.js
  * @param repoPath () => string                  everscript.repoPath
+ * @param lookupSymbol (name) -> "(Byte) <0x0ADA>" | null   fallback memory names
  */
-function registerDebugger(context, emulator, repoPath) {
+function registerDebugger(context, emulator, repoPath, lookupSymbol) {
+    const sessions = new Set();
+    // A name is memory when the running session's source map (or the language index) says so.
+    const isMemory = name => [...sessions].some(session => session.memory.locate(name))
+        || (!!lookupSymbol && /</.test(lookupSymbol(name) || ''));
     const deps = {
         bridge: emulator.bridge,
+        lookupSymbol,
         async build(config) {
             const result = await vscode.commands.executeCommand('everscript.buildAndRun', { inputPath: config.program, run: false });
             config.rom = result && result.outputRom;
@@ -66,8 +120,18 @@ function registerDebugger(context, emulator, repoPath) {
     context.subscriptions.push(
         vscode.debug.registerDebugAdapterDescriptorFactory('everscript', {
             createDebugAdapterDescriptor() {
-                return new vscode.DebugAdapterInlineImplementation(new InlineAdapter(deps));
+                const adapter = new InlineAdapter(deps);
+                sessions.add(adapter.session);
+                const dispose = adapter.dispose.bind(adapter);
+                adapter.dispose = () => { sessions.delete(adapter.session); dispose(); };
+                return new vscode.DebugAdapterInlineImplementation(adapter);
             },
+        }),
+        vscode.languages.registerEvaluatableExpressionProvider('everscript', {
+            provideEvaluatableExpression: expressionAt,
+        }),
+        vscode.languages.registerInlineValuesProvider('everscript', {
+            provideInlineValues: (document, viewPort, context) => inlineValues(document, context, isMemory),
         }),
         vscode.debug.registerDebugConfigurationProvider('everscript', {
             provideDebugConfigurations() {

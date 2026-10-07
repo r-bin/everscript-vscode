@@ -83,6 +83,8 @@ const vscodeMock = {
         registerReferenceProvider:        () => ({ dispose() {} }),
         registerCodeLensProvider:         () => ({ dispose() {} }),
         createDiagnosticCollection:       () => ({ dispose() {} }),
+        registerEvaluatableExpressionProvider: () => ({ dispose() {} }),
+        registerInlineValuesProvider:     () => ({ dispose() {} }),
     },
     debug: {
         registerDebugAdapterDescriptorFactory:  () => ({ dispose() {} }),

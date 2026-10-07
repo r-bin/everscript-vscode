@@ -1030,6 +1030,10 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       const bit = KEY_MAP[e.key];
       if (bit) keyInput &= ~bit;
     });
+    // Focus left the panel (a debugger stop focuses the editor): the key-ups go
+    // elsewhere, so release everything instead of holding e.g. Start forever.
+    window.addEventListener('blur', () => { keyInput = 0; });
+    document.addEventListener('visibilitychange', () => { if (document.hidden) keyInput = 0; });
 
     // -- ROM loading -----------------------------------------------------------
     let romLoaded = false;
@@ -1112,8 +1116,12 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       const extOverCtx    = extOverCanvas ? extOverCanvas.getContext('2d') : null;
       const imageData     = ctx.createImageData(512, 448);
       canvas.setAttribute('tabindex', '0');
+      // A click on the focused screen presses B; the click that focuses it only focuses.
+      let canvasHadFocus = false;
+      canvas.addEventListener('mousedown', () => { canvasHadFocus = document.hasFocus() && document.activeElement === canvas; });
       canvas.addEventListener('click', () => {
         canvas.focus();
+        if (!canvasHadFocus) return;
         keyInput |= (1 << 15);
         setTimeout(() => {
           keyInput &= ~(1 << 15);

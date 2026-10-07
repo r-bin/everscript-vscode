@@ -11,10 +11,12 @@
  *   bridge     emulator script hook (emulator/script-debug-host.js):
  *              attach(listener) -> detach(); configure({ breakpoints });
  *              resume(step | null); pause(); read(address, length) -> Promise<bytes>;
+ *              write(address, bytes) -> Promise;
  *              listener: { onStop(snapshot), onContinued(), onUnavailable(text), onRomLoad() }
  *   build      (config) -> Promise<boolean>   compile the .evs (launch)
  *   run        (config) -> Promise<void>      load the built ROM into the emulator (launch)
  *   findMap    (config) -> path | null        out/source_map.json
+ *   lookupSymbol (name) -> "(Byte) <0x0ADA>" | null   fallback names (language index)
  *
  * Stops come from the interpreter hook, so they always land between two
  * script instructions. A statement can be several instructions and inlined
@@ -25,6 +27,7 @@
 const path = require('path');
 const { loadSourceMap, isStale } = require('./source-map');
 const frames = require('./script-frames');
+const memory = require('./memory-access');
 
 const NO_SCRIPT_THREAD = { id: 1000, name: 'no script running' };
 
@@ -41,6 +44,7 @@ class EmulatorDebugSession {
         this.level = 0;                  // inline level the stopped slot is shown at
         this.handles = [];               // frame / variable references of the current stop
         this.detach = null;
+        this.memory = new memory.MemoryInspector(deps.bridge, () => this.map && this.map.symbols, deps.lookupSymbol);
     }
 
     // ---- protocol plumbing ------------------------------------------------
@@ -74,6 +78,10 @@ class EmulatorDebugSession {
         return {
             supportsConfigurationDoneRequest: true,
             supportsEvaluateForHovers: true,
+            supportsSetVariable: true,
+            supportsSetExpression: true,
+            supportsReadMemoryRequest: true,
+            supportsWriteMemoryRequest: true,
             supportsBreakpointLocationsRequest: true,
             supportsSteppingGranularity: false,
             supportsTerminateRequest: true,
@@ -308,7 +316,7 @@ class EmulatorDebugSession {
         const level = slot === this._stoppedSlot() ? this.level : null;
         const list = frames.threadFrames(this.map, this.snapshot, slot, level);
         const stackFrames = list.map(frame => ({
-            id: this._handle({ kind: 'frame', slot: frame.slot }),
+            id: this._handle({ kind: 'frame', slot: frame.slot, file: frame.file, line: frame.line }),
             name: frame.name,
             source: frame.file ? { name: path.basename(frame.file), path: frame.file } : undefined,
             line: frame.line,
@@ -322,66 +330,39 @@ class EmulatorDebugSession {
     _scopes(args) {
         const frame = this.handles[args.frameId - 1];
         if (!frame || frame.kind !== 'frame') return { scopes: [] };
-        return {
-            scopes: [
-                { name: 'Arguments', variablesReference: this._handle({ kind: 'args', slot: frame.slot }), expensive: false },
-                { name: 'Script slot', variablesReference: this._handle({ kind: 'slot', slot: frame.slot }), expensive: false },
-            ],
-        };
+        const scopes = [];
+        if (frame.file) {
+            scopes.push({ name: 'Memory', presentationHint: 'locals', expensive: false,
+                variablesReference: this._handle({ kind: 'memory', file: frame.file, line: frame.line }) });
+        }
+        scopes.push(
+            { name: 'Arguments', variablesReference: this._handle({ kind: 'args', slot: frame.slot }), expensive: false },
+            { name: 'Script slot', variablesReference: this._handle({ kind: 'slot', slot: frame.slot }), expensive: false },
+        );
+        return { scopes };
     }
 
-    _variables(args) {
+    async _variables(args) {
         const ref = this.handles[args.variablesReference - 1];
         if (!ref || !this.snapshot) return { variables: [] };
+        if (ref.kind === 'memory') {
+            const span = this.map && this.map.functionSpan(ref.file, ref.line);
+            return { variables: await this.memory.variables(ref.file, span ? span.start : ref.line, span ? span.end : ref.line) };
+        }
         const byPtr = new Map(this.snapshot.slots.map(slot => [slot.ptr, slot]));
         const list = ref.kind === 'args' ? frames.argVariables(ref.slot) : frames.slotVariables(ref.slot, byPtr);
         return { variables: list.map(v => Object.assign({ variablesReference: 0 }, v)) };
     }
 
-    async _evaluate(args) {
+    _evaluate(args) {
         const frame = args.frameId ? this.handles[args.frameId - 1] : null;
-        const slot = (frame && frame.slot) || this._stoppedSlot();
-        const result = await evaluate(String(args.expression || '').trim(), slot, this.deps.bridge);
-        if (result === null) {
-            if (args.context === 'hover') throw new Error('not evaluable');
-            throw new Error('Supported: <0x22EB>, <0x22EB, 0x01> (flag), $7E22EB, 0x7E22EB, arg[0x02]');
-        }
-        return { result, variablesReference: 0 };
+        return this.memory.evaluate(args.expression, (frame && frame.slot) || this._stoppedSlot(), args.context);
     }
+
+    _setExpression(args) { return this.memory.set(args.expression, args.value); }  // watch editing
+    _setVariable(args) { return this.memory.set(args.name, args.value); }          // Memory scope editing
+    _readMemory(args) { return memory.readMemoryRequest(args, this.deps.bridge); }
+    _writeMemory(args) { return memory.writeMemoryRequest(args, this.deps.bridge); }
 }
 
-function hexWord(value, width) {
-    return '0x' + (value >>> 0).toString(16).toUpperCase().padStart(width, '0');
-}
-
-/**
- * Debug console / watch / hover: memory reads in the notations .evs uses.
- * Returns the display string, or null when the expression is not one of them.
- */
-async function evaluate(expression, slot, bridge) {
-    let m = expression.match(/^arg\[\s*(0x[0-9a-f]+|\d+)\s*\]$/i);
-    if (m) {
-        if (!slot) return null;
-        const index = Number(m[1]) >> 1;
-        const word = slot.args[index];
-        return word === undefined ? null : hexWord(word, 4) + '  (' + word + ')';
-    }
-    m = expression.match(/^<\s*(0x[0-9a-f]+)\s*,\s*(0x[0-9a-f]+|\d+)\s*>$/i);
-    if (m) {
-        const address = 0x7E0000 + (Number(m[1]) & 0xFFFF);
-        const bit = Number(m[2]);
-        const [byte] = await bridge.read(address, 1);
-        return ((byte & bit) !== 0 ? 'true' : 'false') + '  (byte ' + hexWord(byte, 2) + ')';
-    }
-    m = expression.match(/^<\s*(0x[0-9a-f]+)\s*>$/i) || expression.match(/^\$(?:7E)?([0-9a-f]{4})$/i);
-    const raw = m ? null : expression.match(/^(?:\$|0x)(7[EF][0-9a-f]{4})$/i);
-    if (m || raw) {
-        const address = m ? 0x7E0000 + (parseInt(m[1].replace(/^0x/i, ''), 16) & 0xFFFF) : parseInt(raw[1], 16);
-        const [lo, hi] = await bridge.read(address, 2);
-        const word = lo | (hi << 8);
-        return hexWord(word, 4) + '  (' + word + ')  byte ' + hexWord(lo, 2);
-    }
-    return null;
-}
-
-module.exports = { EmulatorDebugSession, evaluate };
+module.exports = { EmulatorDebugSession };

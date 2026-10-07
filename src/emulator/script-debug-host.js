@@ -15,6 +15,7 @@
  *   resume(step | null)             step: stop predicate (debugger/script-frames.js)
  *   pause()
  *   read(snesAddress, length) -> Promise<number[]>
+ *   write(snesAddress, bytes) -> Promise          (resolves once the webview wrote them)
  */
 
 const READ_TIMEOUT_MS = 2000;
@@ -60,10 +61,19 @@ class ScriptDebugHost {
     }
 
     read(address, length) {
+        return this._request({ command: 'scriptDebugRead', address: address >>> 0, length });
+    }
+
+    write(address, bytes) {
+        return this._request({ command: 'scriptDebugWrite', address: address >>> 0, bytes: Array.from(bytes) });
+    }
+
+    /** Post a request; resolves with the webview's answer (bytes), [] when it does not answer. */
+    _request(message) {
         return new Promise(resolve => {
             const id = this.nextReadId++;
             this.reads.set(id, resolve);
-            this.post({ command: 'scriptDebugRead', id, address: address >>> 0, length });
+            this.post(Object.assign({ id }, message));
             setTimeout(() => { if (this.reads.delete(id)) resolve([]); }, READ_TIMEOUT_MS);
         });
     }

@@ -55,6 +55,8 @@ class SourceMap {
         this._chains = this.statements.map(statement => this._chain(statement));
         this._functionOf = this.statements.map(statement => this.functionAt(statement.address));
         this._lines = this._indexLines();
+        // Named memory (MEMORY.X, FLAG.X ...): { name, address (WRAM offset), size, flag? }
+        this.symbols = new Map((json.symbols || []).map(symbol => [symbol.name, symbol]));
     }
 
     _chain(statement) {

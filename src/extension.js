@@ -1241,7 +1241,12 @@ function activate(context) {
     require('./debugger/inline-adapter').registerDebugger(context, {
         bridge: emulatorPanel.getScriptDebugBridge(),
         runRom: romPath => emulatorPanel.runRomFile(context, romPath),
-    }, () => getExtConfig().repoPath || '');
+    }, () => getExtConfig().repoPath || '', name => {
+        // Fallback names for source maps without symbols: the bundled language index.
+        const [enumName, member] = name.split('.');
+        const entry = (idx.enums[enumName] || []).find(m => m.name === member);
+        return entry ? entry.value : null;
+    });
 
     // ── Emulator Panel ───────────────────────────────────────────────────────
     const { openEmulatorPanel } = require('./emulator/panel');

@@ -46,7 +46,8 @@ VS Code debug UI ── DAP (in-process) ── emulator-session.js
 | `inline-adapter.js` | Registers the `everscript` debug type (launch / attach), the only file using the VS Code API |
 | `emulator-session.js` | DAP session: breakpoints, stops, steps, threads, stack, variables, evaluate |
 | `script-frames.js` | Pure: snapshot → threads / frames / variables; step predicates |
-| `source-map.js` | Pure: reads `out/source_map.json`; address ↔ line, inline levels, step ranges |
+| `source-map.js` | Pure: reads `out/source_map.json`; address ↔ line, inline levels, step ranges, memory symbols |
+| `memory-access.js` | Pure: memory by name or `.evs` notation (type, read, write), the Memory scope, DAP readMemory / writeMemory |
 
 ## Launch
 
@@ -66,8 +67,22 @@ Needs the custom core (`everscript.snesCorePath`): the vanilla core has no debug
 Everything else is plain Node. No import of `emulator/` or `memory/`: the
 emulator bridge is injected by `extension.js`.
 
+## Memory while stopped
+
+The source map's `symbols` are the compiler's enum entries holding memory
+(`MEMORY.X`, `FLAG.X`, `CUSTOM_MEMORY.X` ...): WRAM offset, size, flag bit. Names
+the map lacks fall back to the bundled language index.
+
+- **Watch / Debug Console / hover** (EvaluatableExpressionProvider): `MEMORY.NAME`,
+  `(Byte) <0x0ADA>`, `<0x289D>`, `<0x28FA, 0x10>`, `$7E0ADA`, `arg[0x02]`; typed Byte / Word / Flag.
+  Watch entries can be edited (setExpression).
+- **Inline values** (InlineValuesProvider): every memory name from the stopped
+  function's `fun` line to the stopped line, valued next to the code.
+- **Variables → Memory**: the memory names the frame's function uses; editable (setVariable).
+- **Memory view**: values carry a memoryReference, so VS Code's binary data view
+  (Hex Editor extension) shows and edits WRAM around them (readMemory / writeMemory).
+
 ## Not yet
 
-- Named memory in the debug console (`MEMORY.QUESTION_ANSWER`): the source map has
-  no symbols, so only `<0x22EB>`, `<0x22EB, 0x01>`, `$7E22EB` and `arg[0x02]` evaluate.
+- Entity-relative memory (`<BOY>[FLAGS_5]`) is not evaluated.
 - Vanilla (uncompiled) scripts show as `script $XXXXXX` frames without source; stepping there goes one instruction at a time.

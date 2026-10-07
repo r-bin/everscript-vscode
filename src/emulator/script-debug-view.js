@@ -195,6 +195,14 @@ function getScriptDebugClientScript() {
         case 'scriptDebugConfigure': sdbgConfigure(msg); return true;
         case 'scriptDebugResume': sdbgResume(msg.step); return true;
         case 'scriptDebugPause': sdbgPause(); return true;
+        case 'scriptDebugWrite': {
+          const m = getModule();
+          if (sdbgApiReady(m) && typeof m.writeMemory === 'function') {
+            (msg.bytes || []).forEach((b, i) => m.writeMemory((msg.address + i) >>> 0, b & 0xFF));
+          }
+          vscodeApi.postMessage({ command: 'scriptDebugReadResult', id: msg.id, bytes: [] });
+          return true;
+        }
         case 'scriptDebugRead': {
           const m = getModule();
           const bytes = sdbgApiReady(m) ? Array.from(m.readMemoryRange(msg.address >>> 0, Math.min(msg.length | 0, 4096))) : [];

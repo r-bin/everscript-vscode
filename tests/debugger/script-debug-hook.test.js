@@ -122,6 +122,15 @@ function bootCore() {
     assert.strictEqual(romOffset(stop.address), enterAt);
     console.log('  [PASS] step over a room change: no stop in the scripts that reuse the slot');
 
+    // Memory while stopped: a source map symbol, written and read back through the webview.
+    const symbol = map.symbols.get('MEMORY.QUESTION_ANSWER');
+    assert.ok(symbol, 'the source map has memory symbols');
+    const address = 0x7E0000 + symbol.address;
+    webview.message({ command: 'scriptDebugWrite', id: 1, address, bytes: [0x34, 0x12] });
+    webview.message({ command: 'scriptDebugRead', id: 2, address, length: 2 });
+    assert.deepStrictEqual(posted.filter(msg => msg.command === 'scriptDebugReadResult' && msg.id === 2).pop().bytes, [0x34, 0x12]);
+    console.log('  [PASS] MEMORY.QUESTION_ANSWER written and read back while stopped');
+
     // 2. A step over in the enter script stops on its next line.
     running = stop.slots.find(slot => slot.ptr === stop.slot);
     const before = map.chainAt(romOffset(stop.address));
