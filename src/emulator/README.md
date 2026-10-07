@@ -29,8 +29,9 @@ own state each frame (`samplePreLoopState` in `panel-webview.js`):
 |---|---|---|
 | `$7E0112/$0114` | BG2 (terrain) scroll shadow = camera (V is camera - 1) | map, entities, triggers |
 | `$7E010E/$0110` | BG1 (canopy) scroll shadow | parallax: room effect 2 (`$D09BA7`: BG1 = camera x `$22FA`/16 + `$241B`; Podunk 1965, jungles, dark forest) and the Oglin cave lantern feed BG1 from elsewhere. Once BG1 leaves the camera the host sends each layer split by priority (`renderRoomLayers`) and the webview draws BG2.0, BG1.0 / sprites / BG2.1, BG1.1 at their own scrolls. Animated cells keep their first frame there. |
-| `$7E0106` | INIDISP shadow (bit 7 forced blank, low nibble brightness) | room loads, `fade_in()`/fade out, dying: CSS brightness on the extended canvases |
-| `$7E6187` | CGRAM mirror, 512 bytes | BG half vs the room palette gives the ring menu's dimming (it halves the colours, no colour math); OBJ half is what entity sprites are coloured from (slot `+0x0C`, chunk palette bits add 1) |
+| PPU (`_getPpuView`) | CGRAM, INIDISP, TM, TS, CGWSEL, CGADSUB as the coming frame renders them | fades (room loads, `fade_in()`, dying), the ring menu's dimming (it halves CGRAM, no colour math: BG half vs the room palette), sprite colours (OBJ half, slot `+0x0C`, chunk palette bits add 1), title cards (TM `0x04`: BG1/BG2 off, so the extension shows the backdrop) |
+| `$7E0106`, `$7E6187` | INIDISP shadow, CGRAM mirror | fallback when the core has no `_getPpuView`. Both run ahead of the picture: the mirror reaches CGRAM a frame later through the upload queue |
+| `$7E241F` | room effect | effect 2 also places plane-0 characters against BG1's scroll (`$8FC7E8`) |
 
 `#` toggles speed-up (4 frames per display frame, the TAS replay path).
 

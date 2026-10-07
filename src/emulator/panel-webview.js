@@ -1638,8 +1638,14 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
 
           const roomSpriteX = posX - sprite.originX;
           const roomSpriteY = posY - sprite.originY - Math.floor(posZ / 16);
-          const screenX = layout.emuX + (roomSpriteX - layout.camX) * layout.scaleSnes;
-          const screenY = layout.emuY + (roomSpriteY - layout.camY) * layout.scaleSnes;
+          // $8FC7E8: in a room with effect 2 a plane-0 character is placed
+          // against BG1's scroll (it belongs to the parallax layer), and two
+          // lines lower than the camera formula gives.
+          const onBg1 = preState.roomEffect === 2 && (buf[rel + 0x18] & 0x30) === 0;
+          const refX = onBg1 ? preState.bg1X : layout.camX;
+          const refY = onBg1 ? preState.bg1Y - 2 : layout.camY;
+          const screenX = layout.emuX + (roomSpriteX - refX) * layout.scaleSnes;
+          const screenY = layout.emuY + (roomSpriteY - refY) * layout.scaleSnes;
           const screenW = sprite.width * layout.scaleSnes;
           const screenH = sprite.height * layout.scaleSnes;
 
@@ -1742,7 +1748,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       const m = getModule();
       if (!m || !hasDebuggerApi(m) || !loadedRomData) return null;
       let camX = 0, camY = 0, mapId = -1, trigOffX = 0, trigOffY = 0, bg1X = 0, bg1Y = 0;
-      let iniDisp = 0x0F, cgramBuf = null;
+      let iniDisp = 0x0F, cgramBuf = null, mainScreen = 0x17, roomEffect = 0;
       let entBuf = null, palSlotBuf = null, projBuf = null, objStateBuf = null, grassQueueBuf = null, animIdxBuf = null;
 
       try {
@@ -1777,9 +1783,25 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           trigOffY = rawOY >= 0x8000 ? rawOY - 0x10000 : rawOY;
         }
 
-        const iniBuf = m.readMemoryRange(INIDISP_SHADOW, 1);
-        if (iniBuf && iniBuf.length >= 1) iniDisp = iniBuf[0];
-        cgramBuf = m.readMemoryRange(CGRAM_MIRROR, 512);
+        // The PPU itself when the core exposes it: read before mainLoop() it is
+        // exactly what this frame renders with. The game's own shadows run
+        // ahead of the picture (the CGRAM mirror by a frame or more, through
+        // the upload queue), which showed as the ring menu and death fades
+        // landing early on the extended layers.
+        const ppu = typeof m._getPpuView === 'function' ? m._getPpuView() : 0;
+        if (ppu && typeof HEAPU8 !== 'undefined') {
+          cgramBuf = HEAPU8.slice(ppu, ppu + 512);
+          iniDisp = HEAPU8[ppu + 512];
+          mainScreen = HEAPU8[ppu + 513];
+        } else {
+          const iniBuf = m.readMemoryRange(INIDISP_SHADOW, 1);
+          if (iniBuf && iniBuf.length >= 1) iniDisp = iniBuf[0];
+          // One frame behind the mirror is when it reaches CGRAM.
+          cgramBuf = lastCgramMirror;
+          lastCgramMirror = m.readMemoryRange(CGRAM_MIRROR, 512);
+        }
+        const effBuf = m.readMemoryRange(ROOM_EFFECT, 1);
+        if (effBuf && effBuf.length >= 1) roomEffect = effBuf[0];
 
         entBuf = readMemoryChunked(m, 0x7E3DDF, 0x1220);
         palSlotBuf = m.readMemoryRange(0x7E1278, 16);
@@ -1798,6 +1820,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
         bg1Y: bg1Y,
         iniDisp: iniDisp,
         cgramBuf: cgramBuf,
+        mainScreen: mainScreen,
+        roomEffect: roomEffect,
         mapId: mapId,
         trigOffX: trigOffX,
         trigOffY: trigOffY,
@@ -1817,6 +1841,10 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     // The engine's CGRAM mirror (512 bytes, DMA'd to CGRAM). The ring menu
     // halves every colour here rather than using colour math.
     const CGRAM_MIRROR = 0x7E6187;
+    // Room header byte 8. Effect 2 ($D09BA7) scrolls BG1 on its own, and
+    // $8FC7E8 then places plane-0 characters against BG1, not the camera.
+    const ROOM_EFFECT = 0x7E241F;
+    let lastCgramMirror = null;
 
     function bgr15(v) { return [v & 31, (v >> 5) & 31, (v >> 10) & 31]; }
     function median(a) {
@@ -2027,6 +2055,12 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       // animation overlays are composites of both layers).
       const roomMap = (extendMapEnabled && activeRoomMap && activeRoomMap.mapId === mapId) ? activeRoomMap : null;
       const layered = roomParallax && roomMap && roomMap.layers ? roomMap.layers : null;
+      // Main screen (TM): a title card or cutscene that turns BG1/BG2 or the
+      // sprites off leaves only the backdrop there, so the extension shows
+      // the same instead of the room.
+      const tm = preState.mainScreen === undefined ? 0x17 : preState.mainScreen;
+      const bgShown = (tm & 0x03) !== 0;
+      const objShown = (tm & 0x10) !== 0;
       // Palette dimming (ring menu) on the room images only; brightness on
       // the canvases (below) covers fades and forced blank.
       const tint = paletteTint(preState, roomMap ? roomMap.bgPalette : null);
@@ -2041,7 +2075,12 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       if (extMapCtx && extMapCanvas) {
         extMapCtx.clearRect(0, 0, wrapW, wrapH);
         extMapCtx.filter = mapFilter;
-        if (layered) {
+        if (!bgShown) {
+          if (roomMap) {
+            extMapCtx.fillStyle = '#000';
+            extMapCtx.fillRect(emuX - camX * scaleSnes, emuY - (camY + 1) * scaleSnes, roomMap.width * scaleSnes, roomMap.height * scaleSnes);
+          }
+        } else if (layered) {
           extMapCtx.imageSmoothingEnabled = false;
           extMapCtx.fillStyle = '#000';
           extMapCtx.fillRect(emuX - camX * scaleSnes, emuY - (camY + 1) * scaleSnes, roomMap.width * scaleSnes, roomMap.height * scaleSnes);
@@ -2077,13 +2116,19 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       let frontEntities = [];
       if (extEntCtx && extEntCanvas) {
         frontEntities = renderExtendedEntities(preState, layout, extEntCanvas, extEntCtx);
+        if (!objShown) {
+          extEntCtx.clearRect(0, 0, wrapW, wrapH);
+          frontEntities = [];
+        }
       }
 
       // 3. Extended foreground priority tiles (Layer 2)
       if (extFgCtx && extFgCanvas) {
         extFgCtx.clearRect(0, 0, wrapW, wrapH);
         extFgCtx.filter = mapFilter;
-        if (layered) {
+        if (!bgShown) {
+          // nothing of the room in front of the sprites either
+        } else if (layered) {
           extFgCtx.imageSmoothingEnabled = false;
           drawLayer(extFgCtx, layered.bg2High, camX, camY);
           drawLayer(extFgCtx, layered.bg1High, preState.bg1X, preState.bg1Y);
