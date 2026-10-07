@@ -3,10 +3,9 @@
 /**
  * emulator/tas/host.js
  *
- * Extension-host side of TAS support: writes the automatic input recording of
- * every emulator session, lists replays (bundled pinned movies first, then the
- * user's pinned files, then recordings newest first) and sends a movie to the
- * webview for playback.
+ * Extension-host side of input recording: writes the automatic recording of
+ * every emulator session, lists the recordings (pinned first, then newest
+ * first) and sends one to the webview for replay.
  *
  * A recording starts when the webview boots a ROM (tasRecStart), is appended
  * in batches (tasRecFrames) and ends on the next boot / panel close
@@ -14,7 +13,7 @@
  * or a replay watched to its end without taking over) is deleted on close.
  *
  * Messages (webview -> host): tasRecStart, tasRecFrames, tasRecEnd, tasList,
- *   tasLoad, tasPin, tasDelete, tasReveal, tasImport, tasPrefs
+ *   tasLoad, tasPin, tasDelete, tasReveal, tasPrefs
  * Messages (host -> webview): tasConfig, tasListResult, tasMovie, tasStatus
  */
 
@@ -22,11 +21,10 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { parseMovie, evsmvHeader, evsmvTrailer, EVSMV_MAGIC } = require('./movie');
+const { parseMovie, evsmvHeader, evsmvTrailer } = require('./movie');
 const { stripCopierHeader } = require('../cdl/library');
 
-const BUNDLED_DIR = path.join(__dirname, 'movies');
-const MOVIE_EXT = /\.(lsmv|evsmv)$/i;
+const MOVIE_EXT = /\.evsmv$/i;
 const PREFS_FILE = 'tas-prefs.json';
 
 const sha256 = buf => crypto.createHash('sha256').update(buf).digest('hex');
@@ -40,16 +38,6 @@ function safeName(name) {
     return String(name || 'rom').replace(/\.[^.]+$/, '').replace(/[^A-Za-z0-9 _()[\]!.-]+/g, '_').trim() || 'rom';
 }
 
-/** Parse warnings plus a note when the movie was made on another emulator core. */
-function movieWarnings(movie) {
-    const out = movie.warnings.slice();
-    const core = movie.meta.core;
-    if (core && !/snes9x/i.test(core)) {
-        out.push(`recorded on ${core}: snes9x2005 lags on different frames, so playback desyncs once the movie depends on exact timing`);
-    }
-    return out;
-}
-
 class TasHost {
     /**
      * @param {string} storageDir  extension global storage path
@@ -61,7 +49,7 @@ class TasHost {
         this.post = post;
         this.log = log;
         this.romSha = '';
-        this.rec = null;   // { file, fd, frames, live, cheats }
+        this.rec = null;   // { file, fd, header, frames, live, cheats }
     }
 
     _config() { return vscode.workspace.getConfiguration('everscript'); }
@@ -101,7 +89,6 @@ class TasHost {
             case 'tasPin': this._pin(msg.id, !!msg.pinned); break;
             case 'tasDelete': this._delete(msg.id); break;
             case 'tasReveal': vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(this.dir())); break;
-            case 'tasImport': this._import(); break;
             case 'tasPrefs': this._savePrefs(Object.assign(this._prefs(), { overlay: !!msg.overlay })); break;
             default: return false;
         }
@@ -117,7 +104,7 @@ class TasHost {
         const file = path.join(this.dir(), `${safeName(msg.name)}_${stamp(started)}.evsmv`);
         this.rec = {
             file, fd: null, frames: 0, live: false, cheats: false,
-            header: evsmvHeader({ rom: msg.name, romSha256: this.romSha, started: started.toISOString(), source: msg.source, ycable: !!msg.ycable }),
+            header: evsmvHeader({ rom: msg.name, romSha256: this.romSha, started: started.toISOString(), source: msg.source }),
         };
     }
 
@@ -156,61 +143,42 @@ class TasHost {
 
     // -- replay list --------------------------------------------------------------
 
+    /** "file:<name>.evsmv" -> path in the recordings folder (no other paths). */
     _resolve(id) {
-        const m = /^(builtin|file):(.+)$/.exec(String(id || ''));
-        if (!m || m[2] !== path.basename(m[2]) || !MOVIE_EXT.test(m[2])) return null;
-        return { builtin: m[1] === 'builtin', name: m[2], file: path.join(m[1] === 'builtin' ? BUNDLED_DIR : this.dir(), m[2]) };
+        const m = /^file:(.+)$/.exec(String(id || ''));
+        if (!m || m[1] !== path.basename(m[1]) || !MOVIE_EXT.test(m[1])) return null;
+        return { name: m[1], file: path.join(this.dir(), m[1]) };
     }
 
-    _describe(file, builtin, pinned) {
+    _describe(file, pinned) {
         const name = path.basename(file);
-        const st = fs.statSync(file);
-        const item = {
-            id: (builtin ? 'builtin:' : 'file:') + name,
-            name: name.replace(MOVIE_EXT, ''),
-            builtin, pinned, size: st.size, mtime: st.mtimeMs,
-            recording: !!(this.rec && this.rec.file === file),
+        const recording = !!(this.rec && this.rec.file === file);
+        const movie = parseMovie(fs.readFileSync(file, 'utf8'), name);
+        return {
+            id: 'file:' + name,
+            name: movie.title,
+            pinned,
+            mtime: fs.statSync(file).mtimeMs,
+            recording,
+            frames: recording ? this.rec.frames : movie.count,
+            meta: movie.meta,
+            warnings: movie.warnings,
+            romMatch: movie.meta.romSha256 && this.romSha ? movie.meta.romSha256 === this.romSha : null,
         };
-        let meta = {}, frames = null, warnings = [];
-        if (/\.lsmv$/i.test(name)) {
-            const movie = parseMovie(fs.readFileSync(file), name);
-            meta = movie.meta;
-            frames = movie.count;
-            warnings = movieWarnings(movie);
-        } else {
-            const text = fs.readFileSync(file, 'utf8');
-            if (!text.startsWith(EVSMV_MAGIC)) return null;
-            const movie = parseMovie(Buffer.from(text), name);
-            meta = movie.meta;
-            frames = item.recording ? this.rec.frames : movie.count;
-            warnings = movie.warnings;
-        }
-        item.frames = frames;
-        item.meta = meta;
-        item.warnings = warnings;
-        item.romMatch = meta.romSha256 && this.romSha ? meta.romSha256 === this.romSha : null;
-        return item;
     }
 
     list() {
-        const prefs = this._prefs();
-        const pins = new Set(prefs.pinned || []);
-        const items = [];
-        const add = (file, builtin, pinned) => {
-            try {
-                const item = this._describe(file, builtin, pinned);
-                if (item) items.push(item);
-            } catch (e) {
-                this.log(`TAS: cannot read ${file}: ${e.message}`);
-            }
-        };
-        if (fs.existsSync(BUNDLED_DIR)) {
-            for (const name of fs.readdirSync(BUNDLED_DIR).filter(n => MOVIE_EXT.test(n)).sort()) add(path.join(BUNDLED_DIR, name), true, true);
-        }
+        const pins = new Set(this._prefs().pinned || []);
         const dir = this.dir();
-        for (const name of fs.readdirSync(dir).filter(n => MOVIE_EXT.test(n))) add(path.join(dir, name), false, pins.has(name));
-        const rank = it => (it.builtin ? 0 : it.pinned ? 1 : 2);
-        items.sort((a, b) => rank(a) - rank(b) || b.mtime - a.mtime);
+        const items = [];
+        for (const name of fs.readdirSync(dir).filter(n => MOVIE_EXT.test(n))) {
+            try {
+                items.push(this._describe(path.join(dir, name), pins.has(name)));
+            } catch (e) {
+                this.log(`TAS: cannot read ${name}: ${e.message}`);
+            }
+        }
+        items.sort((a, b) => (b.pinned - a.pinned) || b.mtime - a.mtime);
         return items;
     }
 
@@ -221,31 +189,30 @@ class TasHost {
     _load(id) {
         const ref = this._resolve(id);
         if (!ref || !fs.existsSync(ref.file)) {
-            this.post({ command: 'tasStatus', text: 'replay not found: ' + id });
+            this.post({ command: 'tasStatus', text: 'recording not found: ' + id });
             return;
         }
         try {
-            const movie = parseMovie(fs.readFileSync(ref.file), ref.name);
+            const movie = parseMovie(fs.readFileSync(ref.file, 'utf8'), ref.name);
             const pads = Buffer.from(movie.pads.buffer, movie.pads.byteOffset, movie.pads.byteLength);
             this.post({
                 command: 'tasMovie',
                 id,
                 title: movie.title,
                 count: movie.count,
-                ycable: movie.ycable,
                 pads: pads.toString('base64'),
                 romMatch: movie.meta.romSha256 && this.romSha ? movie.meta.romSha256 === this.romSha : null,
-                warnings: movieWarnings(movie),
+                warnings: movie.warnings,
             });
-            this.log(`TAS replay: ${ref.file} (${movie.count} frames${movie.ycable ? ', 4 pads' : ''})`);
+            this.log(`TAS replay: ${ref.file} (${movie.count} frames)`);
         } catch (e) {
-            this.post({ command: 'tasStatus', text: 'cannot read replay: ' + e.message });
+            this.post({ command: 'tasStatus', text: 'cannot read recording: ' + e.message });
         }
     }
 
     _pin(id, pinned) {
         const ref = this._resolve(id);
-        if (!ref || ref.builtin) return;
+        if (!ref) return;
         const prefs = this._prefs();
         const pins = new Set(prefs.pinned || []);
         if (pinned) pins.add(ref.name); else pins.delete(ref.name);
@@ -256,42 +223,18 @@ class TasHost {
 
     async _delete(id) {
         const ref = this._resolve(id);
-        if (!ref || ref.builtin || !fs.existsSync(ref.file)) return;
+        if (!ref || !fs.existsSync(ref.file)) return;
         if (this.rec && this.rec.file === ref.file) {
             this.post({ command: 'tasStatus', text: 'that is the recording in progress' });
             return;
         }
-        const ok = await vscode.window.showWarningMessage(`Delete replay "${ref.name}"?`, { modal: true }, 'Delete');
+        const ok = await vscode.window.showWarningMessage(`Delete recording "${ref.name}"?`, { modal: true }, 'Delete');
         if (ok !== 'Delete') return;
         fs.unlinkSync(ref.file);
         this._pin(id, false);
     }
 
-    async _import() {
-        const uris = await vscode.window.showOpenDialog({
-            canSelectMany: true,
-            openLabel: 'Import replay',
-            filters: { 'Input movies': ['lsmv', 'evsmv'] },
-        });
-        if (!uris || !uris.length) return;
-        const prefs = this._prefs();
-        const pins = new Set(prefs.pinned || []);
-        for (const uri of uris) {
-            const name = path.basename(uri.fsPath);
-            try {
-                parseMovie(fs.readFileSync(uri.fsPath), name);
-                fs.copyFileSync(uri.fsPath, path.join(this.dir(), name));
-                pins.add(name);
-            } catch (e) {
-                vscode.window.showErrorMessage(`Cannot import ${name}: ${e.message}`);
-            }
-        }
-        prefs.pinned = [...pins];
-        this._savePrefs(prefs);
-        this._sendList();
-    }
-
     dispose() { this._recEnd(); }
 }
 
-module.exports = { TasHost, stamp, safeName };
+module.exports = { TasHost };

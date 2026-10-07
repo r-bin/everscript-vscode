@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.161.0",
+  "version": "0.162.0",
   "publisher": "rbin",
   "main": "./src/extension.js",
   "engines": {
@@ -290,7 +290,7 @@
         "everscript.tas.recordingsDirectory": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Folder for input recordings and imported replays (`.evsmv`, `.lsmv`). Empty: `tas-recordings` in the extension's global storage (REPLAYS tab > open folder).",
+          "markdownDescription": "Folder for input recordings (`.evsmv`). Empty: `tas-recordings` in the extension's global storage (REPLAYS tab > open folder).",
           "scope": "machine"
         },
         "everscript.patchesPath": {

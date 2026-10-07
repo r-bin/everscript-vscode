@@ -1,8 +1,9 @@
 'use strict';
 
 /**
- * TAS support: movie formats (lsmv / evsmv), the recording host, the webview
- * wiring, and the custom core's power-on restart + 4-pad input.
+ * Input recording / replay: the .evsmv format, the recording host, the webview
+ * wiring (incl. the FPS meter), and the custom core's EVS_TAS parts: power-on
+ * restart and the lag-frame flag.
  *
  * The core test needs the vanilla SoE ROM: $EVS_ROM, or ../everscript/ next to
  * this repo; it is skipped when absent.
@@ -18,7 +19,6 @@ const Module = require('module');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const movie = require('../../src/emulator/tas/movie');
-const BUNDLED = path.join(ROOT, 'src', 'emulator', 'tas', 'movies', 'rbin-secretofevermore-gameend.lsmv');
 
 let passed = 0;
 let failed = 0;
@@ -61,45 +61,30 @@ function withVscodeStub(config, fn) {
 
 console.log('TAS Tests:');
 
-test('pad text <-> word uses lsnes order BYsSudlrAXLR0123 from bit 15', () => {
+test('pad text <-> word uses BYsSudlrAXLR0123 from bit 15', () => {
     assert.strictEqual(movie.padToText(0x8000), 'B...............');
     assert.strictEqual(movie.padToText(0x0080), '........A.......');
-    assert.strictEqual(movie.padToText(0x0001), '...............3');
     assert.strictEqual(movie.textToPad('BYsSudlrAXLR0123'), 0xFFFF);
     assert.strictEqual(movie.textToPad('....u..r........'), (1 << 11) | (1 << 8));
-    assert.strictEqual(movie.frameLine(0x8000, 0, 0, 0), 'F|B...............');
-    assert.strictEqual(movie.frameLine(0, 1, 0, 0), 'F|................|...............3|................|................');
+    assert.strictEqual(movie.frameLine(0x8000), 'F|B...............');
 });
 
-test('bundled any% TAS parses: 23402 frames, Y-cable pads, ROM hash', () => {
-    const m = movie.parseMovie(fs.readFileSync(BUNDLED), path.basename(BUNDLED));
-    assert.strictEqual(m.format, 'lsmv');
-    assert.strictEqual(m.count, 23402);
-    assert.strictEqual(m.ycable, true);
-    assert.strictEqual(m.meta.romSha256, '17c864a76d498feb6479eee8e7d6807b951c66225033228622bb66754baab1db');
-    assert.strictEqual(m.meta.authors, 'r.bin');
-    // last frame: "BYsS...rA...01.3|..s.u.l.A.L.0..3|.Y.S..lrA...01.3|..." in the four pads' slots
-    const last = Array.from(m.pads.subarray((m.count - 1) * 4));
-    assert.strictEqual(movie.padToText(last[0]), '.Y.S..lrA...01.3');
-    assert.strictEqual(movie.padToText(last[1]), 'BYs.u.l.AXL.0.2.');
-    assert.deepStrictEqual(m.warnings, []);
-});
-
-test('evsmv round-trips header, frames and trailer', () => {
-    const text = movie.evsmvHeader({ rom: 'SoE.smc', romSha256: 'ab', started: '2026-10-07T00:00:00.000Z', source: 'x', ycable: true })
-        + movie.frameLine(0x8000, 0, 0, 0) + '\n'
-        + movie.frameLine(0x1000, 0x0001, 0, 0x0080) + '\n'
-        + movie.evsmvTrailer({ frames: 2, cheats: false });
-    const m = movie.parseMovie(Buffer.from(text), 'SoE_2026.evsmv');
+test('evsmv round-trips header, frames and trailer; other files are rejected', () => {
+    const text = movie.evsmvHeader({ rom: 'SoE.smc', romSha256: 'ab', started: '2026-10-07T00:00:00.000Z', source: 'x' })
+        + movie.frameLine(0x8000) + '\n'
+        + movie.frameLine(0x1000) + '\n'
+        + movie.evsmvTrailer({ frames: 2, cheats: true });
+    const m = movie.parseMovie(text, 'SoE_2026.evsmv');
     assert.strictEqual(m.title, 'SoE_2026');
     assert.strictEqual(m.count, 2);
-    assert.strictEqual(m.ycable, true);
-    assert.deepStrictEqual(Array.from(m.pads), [0x8000, 0, 0, 0, 0x1000, 1, 0, 0x80]);
+    assert.deepStrictEqual(Array.from(m.pads), [0x8000, 0x1000]);
     assert.strictEqual(m.meta.source, 'x');
     assert.strictEqual(m.meta.romSha256, 'ab');
+    assert.strictEqual(m.warnings.length, 1, 'cheats warning');
+    assert.throws(() => movie.parseMovie('PK...', 'x.lsmv'));
 });
 
-test('host: recording kept only when a button was pressed by hand; list pins the bundled TAS first', () => {
+test('host: recording kept only when a button was pressed by hand; pins; replay load', () => {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'evs-tas-'));
     try {
         withVscodeStub({}, ({ TasHost }) => {
@@ -119,24 +104,24 @@ test('host: recording kept only when a button was pressed by hand; list pins the
             host.handle({ command: 'tasRecStart', name: 'Secret of Evermore.smc', source: 'tas' });
             host.handle({ command: 'tasRecFrames', text: 'F|B...............\nF|................\n', frames: 2, live: true });
             const items = host.list();
-            assert.ok(items[0].builtin && items[0].pinned, 'bundled movie first, pinned');
-            assert.ok(items.some(it => it.recording), 'recording in progress listed');
+            assert.strictEqual(items.length, 1);
+            assert.ok(items[0].recording, 'recording in progress listed');
             host.handle({ command: 'tasRecEnd' });
             const files = fs.readdirSync(dir).filter(n => n.endsWith('.evsmv'));
             assert.strictEqual(files.length, 1);
             assert.ok(/^Secret of Evermore_\d{4}-\d\d-\d\d_\d\d-\d\d-\d\d\.evsmv$/.test(files[0]), files[0]);
-            const rec = movie.parseMovie(fs.readFileSync(path.join(dir, files[0])), files[0]);
+            const rec = movie.parseMovie(fs.readFileSync(path.join(dir, files[0]), 'utf8'), files[0]);
             assert.strictEqual(rec.count, 2);
             assert.strictEqual(rec.meta.source, 'tas');
             assert.strictEqual(rec.meta.romSha256, crypto.createHash('sha256').update(Buffer.alloc(1024, 1)).digest('hex'));
 
             host.handle({ command: 'tasPin', id: 'file:' + files[0], pinned: true });
             assert.ok(host.list().find(it => it.id === 'file:' + files[0]).pinned);
-            host.handle({ command: 'tasLoad', id: 'builtin:rbin-secretofevermore-gameend.lsmv' });
+            host.handle({ command: 'tasLoad', id: 'file:' + files[0] });
             const loaded = posted.find(m => m.command === 'tasMovie');
-            assert.strictEqual(loaded.count, 23402);
-            assert.strictEqual(Buffer.from(loaded.pads, 'base64').length, 23402 * 8);
-            host.handle({ command: 'tasLoad', id: 'file:../../etc/passwd.lsmv' });
+            assert.strictEqual(loaded.count, 2);
+            assert.deepStrictEqual(Array.from(new Uint16Array(new Uint8Array(Buffer.from(loaded.pads, 'base64')).buffer)), [0x8000, 0]);
+            host.handle({ command: 'tasLoad', id: 'file:../../etc/passwd.evsmv' });
             assert.ok(posted.some(m => m.command === 'tasStatus' && /not found/.test(m.text)), 'path traversal rejected');
         });
     } finally {
@@ -144,11 +129,12 @@ test('host: recording kept only when a button was pressed by hand; list pins the
     }
 });
 
-test('webview: REPLAYS tab, inputs chip, frame loop routes joypads through tasApplyInput; script parses', () => {
-    const src = fs.readFileSync(path.join(ROOT, 'src', 'emulator', 'tas-view.js'), 'utf8');
-    assert.ok(!/[^\x09\x0A\x0D\x20-\x7E]/.test(src), 'tas-view.js must be ASCII');
-    const client = src.slice(src.indexOf('function getTasClientScript'));
-    assert.ok(!client.includes('\\'), 'no backslashes in the client script');
+test('webview: REPLAYS tab, inputs + FPS chips, frame loop routes joypads through tasApplyInput; script parses', () => {
+    for (const [file, fn] of [['tas-view.js', 'getTasClientScript'], ['fps-meter.js', 'getFpsClientScript']]) {
+        const src = fs.readFileSync(path.join(ROOT, 'src', 'emulator', file), 'utf8');
+        assert.ok(!/[^\x09\x0A\x0D\x20-\x7E]/.test(src), file + ' must be ASCII');
+        assert.ok(!src.slice(src.indexOf('function ' + fn)).includes('\\'), 'no backslashes in ' + fn);
+    }
     const { buildHtml } = require('../../src/emulator/panel-webview');
     const html = buildHtml({ cspSource: '' }, 'core.js', 'core.wasm', 'core', 'core');
     assert.ok(html.includes('id="ss-tab-tas"') && html.includes('id="ss-view-tas"'));
@@ -156,6 +142,9 @@ test('webview: REPLAYS tab, inputs chip, frame loop routes joypads through tasAp
     assert.ok(!/Module\._setJoypadInput\(keyInput\)/.test(html), 'joypads only set by tasApplyInput');
     assert.ok(html.includes('tasApplyInput(Module, keyInput);'));
     assert.ok(html.includes('if (m && !tasReplaying()) maintainCheats(m);'), 'no cheat writes during replay');
+    assert.ok(html.includes('id="screen-fps"'), 'FPS chip');
+    assert.strictEqual((html.match(/Module\._mainLoop\(\);\s*fpsCountFrame\(Module\);/g) || []).length, 2, 'every emulated frame counted');
+    assert.ok(html.includes('fpsTick(timestamp, romLoaded && !paused);'), 'paused time is not measured');
     for (const m of html.matchAll(/<script>([\s\S]*?)<\/script>/g)) new Function(m[1]);
 });
 
@@ -175,29 +164,33 @@ function loadCore() {
     });
 }
 
-test('custom core: restarting a ROM is a power-on, and the TAS plays identically after it', async () => {
+test('custom core (EVS_TAS): restart is a power-on, so input replays identically; lag frames are flagged', async () => {
     const romPath = findRom();
     if (!romPath) { console.log('    (skipped: no SoE ROM; set EVS_ROM)'); return; }
     const M = await loadCore();
-    assert.strictEqual(typeof M._setJoypadInputs, 'function', 'setJoypadInputs exported');
+    assert.strictEqual(typeof M._takeInputPolled, 'function', 'takeInputPolled exported');
     const rom = fs.readFileSync(romPath);
-    const tas = movie.parseMovie(fs.readFileSync(BUNDLED), 'tas');
+    // Start / A / directions in a fixed pseudo-random pattern: gets through the intro screens.
+    const pad = f => [0x1000, 0x0080, 0, 0x0800, 0x0100, 0][(f * 7 + (f >> 5)) % 6];
     const run = frames => {
         const p = M._my_malloc(rom.length);
         M.heap().set(rom, p);
         M._startWithRom(p, rom.length, 44100);
         M._my_free(p);
+        let polled = 0;
         for (let f = 0; f < frames; f++) {
-            const o = f * 4;
-            M._setJoypadInputs(tas.pads[o], tas.pads[o + 1], tas.pads[o + 2], tas.pads[o + 3]);
+            M._setJoypadInput(pad(f));
             M._mainLoop();
+            polled += M._takeInputPolled();
         }
         const s = M._saveState();
-        return crypto.createHash('sha1').update(M.heap().subarray(s + 0x10c14, s + 0x10c14 + 0x20000)).digest('hex');
+        return { polled, wram: crypto.createHash('sha1').update(M.heap().subarray(s + 0x10c14, s + 0x10c14 + 0x20000)).digest('hex') };
     };
     const first = run(3000);
     const again = run(3000);
-    assert.strictEqual(again, first, 'WRAM after 3000 movie frames: fresh boot vs restart');
+    assert.strictEqual(again.wram, first.wram, 'WRAM after 3000 frames: fresh boot vs restart');
+    assert.strictEqual(again.polled, first.polled);
+    assert.ok(first.polled > 2000 && first.polled < 3000, 'some lag frames, mostly polled: ' + first.polled);
 });
 
 (async () => {

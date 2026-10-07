@@ -16,6 +16,7 @@ const {
 const { getCdlCss, getCdlTabButtonHtml, getCdlViewHtml, getCdlClientScript } = require('./cdl-view');
 const { getCdlFloatCss, getCdlFloatHtml, getCdlFloatScript } = require('./cdl-float');
 const { getCdlStripsScript } = require('./cdl-strips');
+const { getFpsCss, getFpsChipHtml, getFpsClientScript } = require('./fps-meter');
 const { getTasCss, getTasTabButtonHtml, getTasChipHtml, getTasOverlayHtml, getTasViewHtml, getTasClientScript } = require('./tas-view');
 
 function _nonce() {
@@ -353,6 +354,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     ${getCdlCss()}
     ${getCdlFloatCss()}
     ${getTasCss()}
+    ${getFpsCss()}
   </style>
 </head>
 <body>
@@ -376,6 +378,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
       <button id="screen-trigger-toggle" class="screen-chip active" type="button" title="Toggle Trigger Overlay (B &amp; Step-on)">TRIGGERS ON</button>
       <button id="screen-fog-toggle" class="screen-chip" type="button" title="Toggle Fog of War outside emulator">FOG OFF</button>
       ${getTasChipHtml()}
+      ${getFpsChipHtml()}
       <div id="screen-zoom-chip" class="screen-chip-group">
         <button id="screen-zout" class="screen-chip" type="button" title="Zoom out">-</button>
         <span id="screen-zlevel" class="screen-chip" style="cursor:default">100%</span>
@@ -945,6 +948,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           cdlOnPauseChanged(paused);
           tasOnPauseChanged(paused);
         }
+        fpsTick(timestamp, romLoaded && !paused);
         if (paused) {
           if (timestamp - lastPausedFrame < PAUSED_FRAME_MS) return;
           lastPausedFrame = timestamp;
@@ -964,10 +968,12 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
           for (let extra = tasExtraFrames(); extra > 0 && !isEmulatorPaused(); extra--) {
             tasApplyInput(Module, keyInput);
             Module._mainLoop();
+            fpsCountFrame(Module);
             romFrameCount++;
           }
           tasApplyInput(Module, keyInput);
           Module._mainLoop();
+          fpsCountFrame(Module);
           const fbPtr = Module._getScreenBuffer();
           if (fbPtr) {
             imageData.data.set(new Uint8ClampedArray(HEAPU8.buffer, fbPtr, 512 * 448 * 4));
@@ -2628,6 +2634,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay)
     ${getCdlStripsScript()}
 
     ${getTasClientScript()}
+
+    ${getFpsClientScript()}
 
     function selectTab(tabName) {
       currentBottomTab = tabName;

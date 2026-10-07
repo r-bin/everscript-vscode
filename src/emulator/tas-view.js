@@ -3,16 +3,16 @@
 /**
  * emulator/tas-view.js
  *
- * The emulator's TAS support, webview half (host half: tas/host.js):
+ * Input recording and replay, webview half (host half: tas/host.js):
  *  - every boot of a ROM starts an input recording; each emulated frame's pad
- *    words are buffered and sent to the host in batches (and on pause / ROM
+ *    word is buffered and sent to the host in batches (and on pause / ROM
  *    change / tab hide), so the SSD sees one small append per two seconds;
- *  - the REPLAYS tab lists pinned movies (the bundled any% TAS first) and
- *    recordings; playing one reboots the loaded ROM (the core's restart is a
- *    true power-on) and feeds the movie's pads frame by frame, optionally
- *    several frames per display frame; "take over" or the movie's end hands
- *    control back to the keyboard while the recording continues as a branch;
- *  - the input overlay draws the pads fed to the core this frame.
+ *  - the REPLAYS tab lists the recordings (pinned first); playing one reboots
+ *    the loaded ROM (with the custom core's EVS_TAS build a restart is a true
+ *    power-on) and feeds the recorded pads frame by frame, optionally several
+ *    frames per display frame; "take over" or the end hands control back to
+ *    the keyboard while the new recording continues as a branch;
+ *  - the input overlay draws the pad fed to the core this frame.
  *
  * tasApplyInput() is the only place the frame loop sets joypads.
  *
@@ -45,7 +45,7 @@ function getTasCss() {
     #tas-empty { color: #666; padding: 12px 8px; font-size: 11px; line-height: 1.5; }
     #tas-input-overlay {
       position: absolute; left: 8px; bottom: 8px; z-index: 19;
-      width: 236px; height: 80px; pointer-events: none; display: none;
+      width: 118px; height: 80px; pointer-events: none; display: none;
     }
   `;
 }
@@ -55,11 +55,11 @@ function getTasTabButtonHtml() {
 }
 
 function getTasChipHtml() {
-  return `<button id="screen-inputs-toggle" class="screen-chip" type="button" title="Toggle the input overlay (pads fed to the core each frame)">INPUTS OFF</button>`;
+  return `<button id="screen-inputs-toggle" class="screen-chip" type="button" title="Toggle the input overlay (the pad fed to the core each frame)">INPUTS OFF</button>`;
 }
 
 function getTasOverlayHtml() {
-  return `<canvas id="tas-input-overlay" width="472" height="160"></canvas>`;
+  return `<canvas id="tas-input-overlay" width="236" height="160"></canvas>`;
 }
 
 function getTasViewHtml() {
@@ -72,7 +72,6 @@ function getTasViewHtml() {
           <select id="tas-speed"><option value="1">1x</option><option value="2">2x</option><option value="4">4x</option><option value="8">8x</option><option value="16">16x</option></select>
         </label>
         <button id="tas-overlay-btn" class="ss-btn" type="button">input overlay</button>
-        <button id="tas-import" class="ss-btn" type="button" title="Copy .lsmv / .evsmv movies into the recordings folder and pin them">import...</button>
         <button id="tas-reveal" class="ss-btn" type="button">open folder</button>
         <span id="tas-status"></span>
       </div>
@@ -90,11 +89,10 @@ function getTasClientScript() {
     let tasRec = null;           // { frames, lines, live, cheats } while recording
     let tasPlay = null;          // { id, title, pads, count, pos } while replaying
     let tasPendingMovie = null;  // movie waiting for the reboot that starts it
-    let tasYCable = false;       // this session feeds all four pads (setJoypadInputs)
     let tasSessionFrame = 0;     // frames since power-on
     let tasSpeed = 1;
     let tasOverlayOn = false;
-    let tasLastPads = [0, 0, 0, 0];
+    let tasLastPad = 0;
     let tasItems = [];
     let tasNotice = '';
 
@@ -140,13 +138,11 @@ function getTasClientScript() {
       tasRefreshBadge();
     }
 
-    function tasRecordFrame(p1, p1b, p2, p2b, fromMovie) {
+    function tasRecordFrame(pad, fromMovie) {
       if (!tasRec) return;
-      tasRec.lines.push((p1b | p2 | p2b)
-        ? 'F|' + tasPadText(p1) + '|' + tasPadText(p1b) + '|' + tasPadText(p2) + '|' + tasPadText(p2b)
-        : 'F|' + tasPadText(p1));
+      tasRec.lines.push('F|' + tasPadText(pad));
       tasRec.frames++;
-      if (!fromMovie && p1) tasRec.live = true;
+      if (!fromMovie && pad) tasRec.live = true;
       if (typeof cheatAtlasEnabled !== 'undefined' && (cheatAtlasEnabled || cheatInvincibleEnabled || cheatNoclipEnabled)) tasRec.cheats = true;
       if (tasRec.lines.length >= TAS_FLUSH_FRAMES) tasFlush();
     }
@@ -163,12 +159,11 @@ function getTasClientScript() {
       tasEndRecording();
       tasPlay = tasPendingMovie;
       tasPendingMovie = null;
-      tasYCable = !!(tasPlay && tasPlay.ycable);
       tasSessionFrame = 0;
-      tasLastPads = [0, 0, 0, 0];
+      tasLastPad = 0;
       if (tasAutoRecord) {
         tasRec = { frames: 0, lines: [], live: false, cheats: false };
-        vscodeApi.postMessage({ command: 'tasRecStart', name: name || 'game', source: tasPlay ? tasPlay.title : '', ycable: tasYCable });
+        vscodeApi.postMessage({ command: 'tasRecStart', name: name || 'game', source: tasPlay ? tasPlay.title : '' });
       }
       if (tasPlay) tasSetStatus('replaying ' + tasPlay.title);
       tasRefreshBadge();
@@ -176,21 +171,19 @@ function getTasClientScript() {
     }
 
     // -- input -------------------------------------------------------------------------
-    // Sets the joypads for the frame about to run and records them.
+    // Sets the joypad for the frame about to run and records it.
     function tasApplyInput(m, live) {
-      let p1 = live, p1b = 0, p2 = 0, p2b = 0, fromMovie = false;
+      let pad = live, fromMovie = false;
       if (tasPlay) {
-        const o = tasPlay.pos * 4, pads = tasPlay.pads;
-        p1 = pads[o]; p1b = pads[o + 1]; p2 = pads[o + 2]; p2b = pads[o + 3];
+        pad = tasPlay.pads[tasPlay.pos];
         fromMovie = true;
         if (++tasPlay.pos >= tasPlay.count) tasStopPlayback('replay finished at frame ' + tasPlay.count + ' - keyboard has control');
         else if (tasPlay.pos % 60 === 0) tasRefreshBadge();
       }
-      if (tasYCable && typeof m._setJoypadInputs === 'function') m._setJoypadInputs(p1, p1b, p2, p2b);
-      else m._setJoypadInput(p1);
-      tasLastPads = [p1, p1b, p2, p2b];
+      m._setJoypadInput(pad);
+      tasLastPad = pad;
       tasSessionFrame++;
-      tasRecordFrame(p1, p1b, p2, p2b, fromMovie);
+      tasRecordFrame(pad, fromMovie);
     }
 
     // Extra frames to emulate this display frame (fast-forward while replaying).
@@ -206,11 +199,12 @@ function getTasClientScript() {
       const bin = atob(msg.pads || '');
       const bytes = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      const movie = { id: msg.id, title: msg.title, count: msg.count, pos: 0, ycable: !!msg.ycable,
+      const movie = { id: msg.id, title: msg.title, count: msg.count, pos: 0,
         pads: new Uint16Array(bytes.buffer, 0, bytes.length >> 1) };
-      if (!movie.count) { tasSetStatus('empty replay'); return; }
+      if (!movie.count) { tasSetStatus('empty recording'); return; }
       const m = getModule();
-      if (movie.ycable && m && typeof m._setJoypadInputs !== 'function') tasNotice = 'this core reads pad 1 only: 4-pad movie will desync';
+      // takeInputPolled marks an EVS_TAS core: only there is a restart a power-on.
+      if (m && typeof m._takeInputPolled !== 'function') tasNotice = 'this core restarts with a reset, not a power-on: may desync';
       else if (msg.romMatch === false) tasNotice = 'recorded on a different ROM: expect a desync';
       else tasNotice = (msg.warnings || [])[0] || '';
       tasPendingMovie = movie;
@@ -247,7 +241,6 @@ function getTasClientScript() {
       face(78, 28, 14, '#43c060');   // Y
       face(102, 28, 7, '#f0504a');   // A
       face(90, 41, 15, '#f0d040');   // B
-      for (let b = 0; b < 4; b++) { ctx.beginPath(); ctx.arc(x + (44 + b * 7) * s, y + 46 * s, 2 * s, 0, Math.PI * 2); fill(on(3 - b), '#c080ff'); }
     }
 
     function tasDrawOverlay() {
@@ -257,10 +250,7 @@ function getTasClientScript() {
       if (!tasOverlayOn || !romLoaded) return;
       const ctx = c.getContext('2d');
       ctx.clearRect(0, 0, c.width, c.height);
-      tasDrawPad(ctx, 4, 40, 2, tasLastPads[0]);
-      if (tasYCable) {
-        for (let k = 1; k < 4; k++) tasDrawPad(ctx, 240 + ((k - 1) % 2) * 116, 44 + Math.floor((k - 1) / 2) * 60, 1, tasLastPads[k]);
-      }
+      tasDrawPad(ctx, 4, 40, 2, tasLastPad);
       const label = tasPlay ? 'PLAY ' + tasPlay.pos + '/' + tasPlay.count : (tasRec ? 'REC ' : '') + 'F ' + tasSessionFrame;
       ctx.font = 'bold 18px monospace';
       ctx.textBaseline = 'top';
@@ -286,25 +276,24 @@ function getTasClientScript() {
       const parts = [];
       if (it.recording) parts.push('<span class="rec">recording now</span>');
       if (it.frames != null) parts.push(it.frames + ' frames (' + tasFmtTime(it.frames) + ')');
-      if (!it.builtin) parts.push(new Date(it.meta && it.meta.started ? it.meta.started : it.mtime).toLocaleString());
-      if (it.meta && it.meta.authors) parts.push('by ' + tasEsc(it.meta.authors));
+      parts.push(new Date(it.meta && it.meta.started ? it.meta.started : it.mtime).toLocaleString());
       if (it.meta && it.meta.source) parts.push('from ' + tasEsc(it.meta.source));
       if (it.romMatch === true) parts.push('<span class="ok">ROM ok</span>');
       if (it.romMatch === false) parts.push('<span class="bad">other ROM</span>');
       const warn = (it.warnings || []).join('; ');
       const playing = tasPlay && tasPlay.id === it.id;
       return '<div class="tas-row' + (playing ? ' playing' : '') + '" data-id="' + tasEsc(it.id) + '"' + (it.recording ? ' data-recording="1"' : '') + (warn ? ' title="' + tasEsc(warn) + '"' : '') + '>'
-        + '<button class="tas-pin' + (it.pinned ? ' on' : '') + '" data-act="pin" type="button" title="' + (it.builtin ? 'bundled with the extension' : it.pinned ? 'unpin' : 'pin') + '"' + (it.builtin ? ' disabled' : '') + '>' + (it.pinned ? '&#9733;' : '&#9734;') + '</button>'
+        + '<button class="tas-pin' + (it.pinned ? ' on' : '') + '" data-act="pin" type="button" title="' + (it.pinned ? 'unpin' : 'pin') + '">' + (it.pinned ? '&#9733;' : '&#9734;') + '</button>'
         + '<div class="tas-main"><div class="tas-name">' + tasEsc(it.name) + '</div>'
         + '<div class="tas-meta">' + parts.join(' &middot; ') + (warn ? ' &middot; <span class="bad">' + tasEsc(warn) + '</span>' : '') + '</div></div>'
         + '<button class="ss-btn" data-act="play" type="button" title="' + (it.recording ? 'end this session and replay it from power-on' : 'replay from power-on') + '">' + (playing ? 'restart' : 'play') + '</button>'
-        + (it.builtin ? '' : '<button class="ss-btn" data-act="delete" type="button"' + (it.recording ? ' disabled' : '') + '>delete</button>')
+        + '<button class="ss-btn" data-act="delete" type="button"' + (it.recording ? ' disabled' : '') + '>delete</button>'
         + '</div>';
     }
 
     function tasRenderList() {
       const list = document.getElementById('tas-list');
-      if (!list || !tasItems.length) return;
+      if (!list) return;
       const pinned = tasItems.filter(it => it.pinned), rest = tasItems.filter(it => !it.pinned);
       let html = '';
       if (pinned.length) html += '<div class="tas-group">PINNED</div>' + pinned.map(tasRow).join('');
@@ -341,7 +330,6 @@ function getTasClientScript() {
       document.getElementById('tas-takeover').addEventListener('click', () => tasStopPlayback());
       document.getElementById('tas-speed').addEventListener('change', evt => { tasSpeed = parseInt(evt.target.value, 10) || 1; });
       document.getElementById('tas-overlay-btn').addEventListener('click', () => tasSetOverlay(!tasOverlayOn, true));
-      document.getElementById('tas-import').addEventListener('click', () => vscodeApi.postMessage({ command: 'tasImport' }));
       document.getElementById('tas-reveal').addEventListener('click', () => vscodeApi.postMessage({ command: 'tasReveal' }));
       const chip = document.getElementById('screen-inputs-toggle');
       if (chip) chip.addEventListener('click', evt => {

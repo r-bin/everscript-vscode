@@ -99,20 +99,22 @@ Standard keyboard layout:
   - Select: `Space` (`' '`)
   - Pause / Resume: `Escape`
 
-Joypads are set only by `tasApplyInput()` (`src/emulator/tas-view.js`), once per
-`_mainLoop()`: live keys, or a replay's movie frame. `setJoypadInputs(p1, p1b, p2, p2b)`
-(custom core) feeds lsnes Y-cable pads: auto-joypad then reads `$421C`/`$421E` from
-the second pad of each port regardless of `$4201` bit 7; `setJoypadInput(p1)` restores
-plain snes9x behaviour.
+The joypad is set only by `tasApplyInput()` (`src/emulator/tas-view.js`), once per
+`_mainLoop()`: live keys, or a replay's recorded frame.
 
-### Determinism (input movies)
+### `EVS_TAS` (input recording / replay determinism)
+
+All core changes for recordings sit behind `#if EVS_TAS` (`source/evs-tas.h`, constant
+on; build with `-DEVS_TAS=0` for the original behaviour). Emulation itself is unchanged:
 
 - `startWithRom` on a running core is a power-on: it clears CPU, ICPU, APU, IAPU and
   DSP channel state before `S9xReset`. A plain reset left them from the last run and
   every restart played differently.
 - Debugger reads (`readMemory`, `readMemoryRange`) peek memory: no CPU cycles charged,
   no I/O register handlers (I/O reads return the last written value from `FillRAM`).
-  Going through `S9xGetByte` made the webview's wall-clock polls shift emulation.
+  Going through `S9xGetByte` let the webview's wall-clock polls shift emulation.
+- `takeInputPolled()`: 1 if the game read `$4016/$4017/$4218-$421F` since the last call,
+  0 for a lag frame. The FPS chip's "game" rate counts these.
 - Anything new that touches emulation state must run inside the frame loop, never
   from a timer, or recorded sessions stop replaying.
 
