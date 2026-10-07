@@ -22,7 +22,7 @@
  *     slots: [{ index, ptr, loc, state, parent, entity, timer, args: [16 words] }] }
  */
 
-const { romOffset } = require('./source-map');
+const { romOffset, sameLocation } = require('./source-map');
 
 const STATE_RUN = 2;
 const STATE_WAIT = 4;
@@ -116,8 +116,13 @@ function stepPredicate(map, snapshot, slot, level, kind) {
     let ranges = [];
     if (chain) {
         const depth = Math.min(level, chain.length - 1);
-        if (kind === 'out') ranges = depth > 0 ? map.rangesAt(address, depth - 1) : null;
-        else ranges = map.rangesAt(address, depth);
+        if (kind === 'out') {
+            // Out of a block written in the function (conversation({ ... })): finish the whole call.
+            const outer = depth > 0 && map.lexicalLevel(address) === depth ? 0 : depth - 1;
+            ranges = depth > 0 ? map.rangesAt(address, outer) : null;
+        } else {
+            ranges = map.stepRangesAt(address, depth);
+        }
     } else if (kind !== 'out') {
         ranges = [[address, address + 1]];
     }
@@ -142,17 +147,31 @@ function inlineStepInLevel(map, snapshot, slot, level) {
     return chain && level < chain.length - 1 ? level + 1 : null;
 }
 
-/** The level a stop is shown at: a breakpoint's own line, else where the statement starts. */
-function stopLevel(map, snapshot, breakpointLines) {
+/**
+ * The level a stop is shown at:
+ *  - a breakpoint: the breakpoint line that starts at this address;
+ *  - otherwise the innermost line written in the function's own text, or, when
+ *    the previous stop was deeper in the same frames (stepping inside an inlined
+ *    function), that depth for as long as the frames are the same.
+ * @param previous { slot, chain, level } of the last stop, or null
+ */
+function stopLevel(map, snapshot, breakpointLines, previous) {
     if (!map || snapshot.address == null) return 0;
     const offset = romOffset(snapshot.address);
     const chain = map.chainAt(offset);
     if (!chain) return 0;
     if (snapshot.reason === 'breakpoint' && breakpointLines) {
-        const level = chain.findIndex(loc => breakpointLines.has(loc.file + ':' + loc.line));
+        const level = chain.findIndex((loc, j) => breakpointLines.has(loc.file + ':' + loc.line)
+            && map.locationsAt(loc.file, loc.line).some(at => at.address === offset && at.level === j));
         if (level >= 0) return level;
     }
-    return map.entryLevel(offset);
+    let level = map.lexicalLevel(offset);
+    if (previous && previous.slot === snapshot.slot && previous.chain) {
+        let same = 0;
+        while (same < previous.chain.length && same < chain.length && sameLocation(previous.chain[same], chain[same])) same++;
+        level = Math.max(level, Math.min(previous.level, same));
+    }
+    return Math.min(level, chain.length - 1);
 }
 
 /** Variables describing a script slot. */

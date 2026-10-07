@@ -115,6 +115,46 @@ test('findSourceMap walks up from the program to out/source_map.json', () => {
     assert.strictEqual(findSourceMap({ sourceMap: path.join(root, 'nope.json') }), null);
 });
 
+// host() (main.evs 40..46) calls wrap({ ... }) on line 41; wrap (lib.evs) is
+// inlined and runs the block (lines 42, 43) between its own code.
+const via41 = [{ function: 'wrap', file: 1, line: 11 }, { function: 'host', file: 0, line: 41 }];
+const BLOCK_MAP = new SourceMap({
+    version: 1,
+    files: [MAIN, LIB],
+    functions: [{ name: 'host', address: 0x3000, size: 0x14, file: 0, line: 40, endLine: 46 }],
+    statements: [
+        { address: 0x3000, file: 1, line: 10, function: 'wrap', callers: [{ function: 'host', file: 0, line: 41 }] },
+        { address: 0x3004, file: 0, line: 42, function: 'anonymous', callers: via41 },
+        { address: 0x3008, file: 0, line: 43, function: 'anonymous', callers: via41 },
+        { address: 0x300C, file: 1, line: 12, function: 'wrap', callers: [{ function: 'host', file: 0, line: 41 }] },
+        { address: 0x3010, file: 0, line: 45, function: 'host' },
+    ],
+}, '');
+
+test('a block inside a call is stepped line by line', () => {
+    assert.strictEqual(BLOCK_MAP.lexicalLevel(0x3004), 2);
+    assert.strictEqual(BLOCK_MAP.lexicalLevel(0x3000), 0);
+    // over line 41: stop at the block's first line
+    assert.deepStrictEqual(BLOCK_MAP.stepRangesAt(0x3000, 0), [[0x3000, 0x3004], [0x300C, 0x3010]]);
+    // over a block line: the next block line, or through wrap's own end to line 45
+    assert.deepStrictEqual(BLOCK_MAP.stepRangesAt(0x3004, 2), [[0x3000, 0x3008], [0x300C, 0x3010]]);
+    assert.deepStrictEqual(BLOCK_MAP.stepRangesAt(0x3008, 2), [[0x3000, 0x3004], [0x3008, 0x3010]]);
+});
+
+test('stops inside the block show the block line', () => {
+    const at = address => ({ reason: 'step', slot: 1, address: 0xC00000 | address });
+    assert.strictEqual(frames.stopLevel(BLOCK_MAP, at(0x3004), null, null), 2);
+    const bp = new Set([MAIN + ':41', MAIN + ':42']);
+    assert.strictEqual(frames.stopLevel(BLOCK_MAP, Object.assign(at(0x3004), { reason: 'breakpoint' }), bp, null), 2,
+        'the breakpoint that starts here, not the enclosing call');
+    assert.strictEqual(frames.stopLevel(BLOCK_MAP, Object.assign(at(0x3000), { reason: 'breakpoint' }), bp, null), 0);
+});
+
+test('step out of the block finishes the call', () => {
+    const snap = { reason: 'step', slot: 0x28FC, address: 0xC03004, slots: [slot(0, { state: 2 })] };
+    assert.deepStrictEqual(frames.stepPredicate(BLOCK_MAP, snap, snap.slots[0], 2, 'out').ranges, [[0x3000, 0x3010]]);
+});
+
 // ---------------------------------------------------------------------------
 // Snapshot: slot 0 runs menu at 0x1008, called from slot 1 (callee, suspended).
 // ---------------------------------------------------------------------------

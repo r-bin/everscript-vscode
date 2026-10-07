@@ -238,13 +238,22 @@ class EmulatorDebugSession {
         this._reloadIfStale();
         this.snapshot = snapshot;
         this.handles = [];
-        this.level = frames.stopLevel(this.map, snapshot, this.breakpointLines);
+        const previous = this.lastStop;
+        this.level = frames.stopLevel(this.map, snapshot, this.breakpointLines, previous);
+        this._rememberStop();
         const stopped = this._stoppedSlot();
         this._event('stopped', {
             reason: snapshot.reason === 'breakpoint' ? 'breakpoint' : snapshot.reason === 'step' ? 'step' : 'pause',
             threadId: stopped ? frames.threadId(stopped) : this._threadList()[0].id,
             allThreadsStopped: true,
         });
+    }
+
+    /** Where the stopped slot is shown (for the next stop's level). */
+    _rememberStop() {
+        const snap = this.snapshot;
+        const chain = this.map && snap && snap.address != null ? this.map.chainAt(snap.address & 0x3FFFFF) : null;
+        this.lastStop = chain ? { slot: snap.slot, chain, level: this.level } : null;
     }
 
     _stoppedSlot() {
@@ -298,6 +307,7 @@ class EmulatorDebugSession {
                 // The inlined callee starts at this very address: nothing to run.
                 this.level = deeper;
                 this.handles = [];
+                this._rememberStop();
                 setImmediate(() => this._event('stopped', { reason: 'step', threadId: frames.threadId(slot), allThreadsStopped: true }));
                 return {};
             }
