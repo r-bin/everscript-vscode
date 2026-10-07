@@ -813,6 +813,110 @@ function _handleRoomMapRequest(mapId, objectStates, cutGrassTiles, layered) {
             }
         } catch (_) { bgPalette = null; }
 
+        const roomObjects = [];
+        try {
+            if (room.objects && room.objects.length) {
+                for (let i = 0; i < room.objects.length; i++) {
+                    const obj = room.objects[i];
+                    const box = maps.objectBounds(rom, room, obj);
+                    if (!box || box.w <= 0 || box.h <= 0) continue;
+                    const states = [];
+                    for (let s = 0; s < obj.states.length; s++) {
+                        const st = obj.states[s];
+                        const stamp = maps.parseObjectStamp(rom, room.objectArea, st.metatileId);
+                        states.push({
+                            state: st.state,
+                            hold: st.hold,
+                            x: st.tileX * 16,
+                            y: st.tileY * 16,
+                            w: (stamp.valid ? stamp.tw : st.targetWidth) * 16,
+                            h: (stamp.valid ? stamp.th : st.targetHeight) * 16,
+                        });
+                    }
+                    roomObjects.push({
+                        index: obj.objectIndex,
+                        x: box.x * 16,
+                        y: box.y * 16,
+                        w: box.w * 16,
+                        h: box.h * 16,
+                        states: states,
+                    });
+                }
+            }
+        } catch (_) {}
+
+        const animTileClusters = [];
+        try {
+            if (room.animation && room.animation.length) {
+                const wTiles = room.header.widthTiles;
+                const hTiles = room.header.heightTiles;
+                const cellMap = new Map();
+                for (let y = 0; y < hTiles; y++) {
+                    for (let x = 0; x < wTiles; x++) {
+                        const chans = maps.cellChannels(room, x, y, 'composite');
+                        if (chans && chans.length) {
+                            cellMap.set(x + ',' + y, chans[0]);
+                        }
+                    }
+                }
+                const unvisited = new Set(cellMap.keys());
+                for (const key of cellMap.keys()) {
+                    if (!unvisited.has(key)) continue;
+                    const chan = cellMap.get(key);
+                    const clusterKeys = [];
+                    const queue = [key];
+                    unvisited.delete(key);
+                    while (queue.length > 0) {
+                        const cur = queue.pop();
+                        clusterKeys.push(cur);
+                        const [cx, cy] = cur.split(',').map(Number);
+                        const neighbors = [
+                            cx + ',' + (cy - 1),
+                            cx + ',' + (cy + 1),
+                            (cx - 1) + ',' + cy,
+                            (cx + 1) + ',' + cy,
+                        ];
+                        for (const n of neighbors) {
+                            if (unvisited.has(n) && cellMap.get(n) === chan) {
+                                unvisited.delete(n);
+                                queue.push(n);
+                            }
+                        }
+                    }
+                    const parsedCells = clusterKeys.map(k => {
+                        const [cx, cy] = k.split(',').map(Number);
+                        return { x: cx, y: cy };
+                    });
+                    parsedCells.sort((a, b) => a.y !== b.y ? a.y - b.y : a.x - b.x);
+
+                    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                    for (const c of parsedCells) {
+                        if (c.x < minX) minX = c.x;
+                        if (c.x > maxX) maxX = c.x;
+                        if (c.y < minY) minY = c.y;
+                        if (c.y > maxY) maxY = c.y;
+                    }
+                    const isRect = parsedCells.length === (maxX - minX + 1) * (maxY - minY + 1);
+                    const letter = String.fromCharCode(65 + (chan % 26));
+
+                    animTileClusters.push({
+                        channel: chan,
+                        letter: letter,
+                        cells: parsedCells.map(c => ({ x: c.x * 16, y: c.y * 16 })),
+                        cellCoords: parsedCells,
+                        bbox: {
+                            x: minX * 16,
+                            y: minY * 16,
+                            w: (maxX - minX + 1) * 16,
+                            h: (maxY - minY + 1) * 16,
+                        },
+                        isRect: isRect,
+                        first: { x: parsedCells[0].x * 16, y: parsedCells[0].y * 16 },
+                    });
+                }
+            }
+        } catch (_) {}
+
         const data = {
             mapId: mapId,
             imageUri: imageUri,
@@ -824,6 +928,8 @@ function _handleRoomMapRequest(mapId, objectStates, cutGrassTiles, layered) {
             height: composite.height,
             offX: room.header.originX,
             offY: room.header.originY,
+            objects: roomObjects,
+            animTiles: animTileClusters,
         };
         _roomMapCache.set(cacheKey, data);
         _panel.webview.postMessage(Object.assign({ command: 'roomMapRendered' }, data));

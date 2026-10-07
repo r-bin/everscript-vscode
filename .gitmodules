@@ -5,3 +5,6 @@
 [submodule "core/snes9x2005-wasm-vanilla"]
 	path = src/emulator/core/snes9x2005-wasm-vanilla
 	url = https://github.com/lrusso/snes9x2005-wasm.git
+[submodule "wiki"]
+	path = wiki
+	url = https://github.com/r-bin/everscript.wiki.git

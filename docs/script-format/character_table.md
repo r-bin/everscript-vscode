@@ -21,7 +21,7 @@ character pointer (`LDX $0060,Y`). The address is where to look.
 | `+0x00` | 3 | name pointer | 24-bit; `$8C89FD` |
 | `+0x03` | 2 | behaviour | selects the AI script (`$8FCD1A`) |
 | `+0x05` | 2 | spawn flags | OR'd into entity `+0x10` at spawn (`$8FB0C3`); bit 1 = non-hostile ([hostility](#hostility)); the hit test compares the party bits (`$5006`) |
-| `+0x07` | 2 | flags | bit 0: registered in a list at `$58AF` (`$8FC4BA`) · bit 1: −30 on the hit rate (`$8FBA46`) · bits 2–3: tested by the script engine (`$8C86A6`, `$8C86DA`) · **bit 4: immune to projectiles**, an automatic miss (`$8FB9FB`) |
+| `+0x07` | 2 | flags | bit 0: registered in a list at `$58AF` (`$8FC4BA`) · bit 1: −30 on the hit rate (`$8FBA46`) · bits 2–3: tested by the script engine (`$8C86A6`, `$8C86DA`) · **bit 4: immune to weapon projectiles**, automatic miss in physical to-hit check (`$8FB9FB`; magic projectiles bypass this and never miss) |
 | `+0x09` | 2 | palette | an address in bank `$90` ([below](#the-palette)); `$90CD1B` |
 | `+0x0B` | 2 | second palette | when non-zero, loaded into palette slot 2 (`$90CD01` → `$90CF3A`) |
 | `+0x0D` | 2 | radius | body box `2r × r` (`$8FB472`); hurt region half-size `r` round the feet (`$8FB651`) |

@@ -226,7 +226,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       color: #6f9;
       border-color: #2e7d32;
     }
-    #ss-extend-label, #ss-overlay-label {
+    #ss-extend-label, #ss-overlay-label, #ss-object-label, #ss-anim-label {
       display: inline-flex;
       align-items: center;
       gap: 4px;
@@ -235,7 +235,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       cursor: pointer;
       user-select: none;
     }
-    #ss-extend-label input, #ss-overlay-label input {
+    #ss-extend-label input, #ss-overlay-label input, #ss-object-label input, #ss-anim-label input {
       cursor: pointer;
     }
     /* -- ROM picker overlay --------------------------------------------- */
@@ -535,6 +535,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     <div id="screen-overlay-bar">
       <button id="screen-extend-toggle" class="screen-chip active" type="button" title="Toggle Extended Map">MAP EXT ON</button>
       <button id="screen-trigger-toggle" class="screen-chip active" type="button" title="Toggle Trigger Overlay (B &amp; Step-on)">TRIGGERS ON</button>
+      <button id="screen-object-toggle" class="screen-chip active" type="button" title="Toggle Objects Overlay">OBJECTS ON</button>
+      <button id="screen-anim-toggle" class="screen-chip active" type="button" title="Toggle Animated Tiles Overlay">ANIM TILES ON</button>
       <button id="screen-fog-toggle" class="screen-chip" type="button" title="Toggle Fog of War outside emulator">FOG OFF</button>
       <button id="screen-speed-chip" class="screen-chip" type="button" title="Speed-up (#)">SPEED x1</button>
       <button id="screen-focus-chip" class="screen-chip" type="button" title="When the VS Code debugger stops: show the line in the editor (code) or keep the focus on the emulator (stay)">BREAK: code</button>
@@ -564,6 +566,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       <div id="ss-controls">
         <label id="ss-extend-label" title="Toggle extended map background"><input type="checkbox" id="ss-extend-toggle" checked /> extend map</label>
         <label id="ss-overlay-label" title="Toggle trigger overlay"><input type="checkbox" id="ss-overlay-toggle" checked /> triggers</label>
+        <label id="ss-object-label" title="Toggle objects overlay"><input type="checkbox" id="ss-object-toggle" checked /> objects</label>
+        <label id="ss-anim-label" title="Toggle animated tiles overlay"><input type="checkbox" id="ss-anim-toggle" checked /> anim tiles</label>
         <button id="ss-pause-btn"  class="ss-btn" disabled>pause</button>
         <button id="ss-resume-btn" class="ss-btn" disabled>resume</button>
         <button id="ss-toggle-btn" class="ss-btn">hide panel</button>
@@ -1079,6 +1083,10 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         loadedRomName = name || 'game';
         cachedMapId = -1;
         cachedTriggers = null;
+        cachedObjects = null;
+        cachedAnimTiles = null;
+        roomObjectsCache.clear();
+        roomAnimTilesCache.clear();
         lastRequestedMapId = -1;
         activeRoomMap = null;
         spriteCache.clear();
@@ -1343,12 +1351,18 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       requestAnimationFrame(frame);
     }
 
-    // -- Extended map and triggers overlay -------------------------------------
+    // -- Extended map and overlays --------------------------------------------
     let extendMapEnabled = true;
     let triggersOverlayEnabled = true;
+    let objectsOverlayEnabled = true;
+    let animTilesOverlayEnabled = true;
     let fogOfWarEnabled = false;
     let cachedMapId = -1;
     let cachedTriggers = null;
+    let cachedObjects = null;
+    let cachedAnimTiles = null;
+    const roomObjectsCache = new Map();
+    const roomAnimTilesCache = new Map();
     let lastRequestedMapId = -1;
     let lastRequestedObjKey = '';
     let lastRequestedGrassKey = '';
@@ -1489,7 +1503,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
 
     ${calculateTriggerBox.toString()}
 
-    function renderTriggersOverlay(overlayCtx, layout) {
+    function renderTriggersOverlay(overlayCtx, layout, preState) {
       if (!overlayCtx) return;
       if (!layout) {
         const wrap = document.getElementById('screen-wrap');
@@ -1551,12 +1565,6 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         }
       }
 
-      if (!triggersOverlayEnabled || !cachedTriggers) return;
-
-      const stepOn = cachedTriggers.stepOn || [];
-      const bTrigger = cachedTriggers.bTrigger || [];
-      if (!stepOn.length && !bTrigger.length) return;
-
       overlayCtx.save();
 
       if (!extendMapEnabled) {
@@ -1566,59 +1574,223 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       }
 
       // Step-on triggers: Pink (#ff69b4, rgba(255, 100, 180, 0.22))
-      overlayCtx.lineWidth = 1;
-      for (let i = 0; i < stepOn.length; i++) {
-        const box = calculateTriggerBox(stepOn[i], layout.trigOffX, layout.trigOffY, layout.camX, layout.camY);
-        const tx = layout.emuX + (box.posX - layout.camX) * layout.scaleSnes;
-        const ty = layout.emuY + (box.posY - layout.camY) * layout.scaleSnes;
-        const tw = box.boxW * layout.scaleSnes;
-        const th = box.boxH * layout.scaleSnes;
+      if (triggersOverlayEnabled && cachedTriggers) {
+        const stepOn = cachedTriggers.stepOn || [];
+        const bTrigger = cachedTriggers.bTrigger || [];
+        overlayCtx.lineWidth = 1;
+        for (let i = 0; i < stepOn.length; i++) {
+          const box = calculateTriggerBox(stepOn[i], layout.trigOffX, layout.trigOffY, layout.camX, layout.camY);
+          const tx = layout.emuX + (box.posX - layout.camX) * layout.scaleSnes;
+          const ty = layout.emuY + (box.posY - layout.camY) * layout.scaleSnes;
+          const tw = box.boxW * layout.scaleSnes;
+          const th = box.boxH * layout.scaleSnes;
 
-        if (tx + tw <= 0 || tx >= layout.wrapW || ty + th <= 0 || ty >= layout.wrapH) continue;
+          if (tx + tw <= 0 || tx >= layout.wrapW || ty + th <= 0 || ty >= layout.wrapH) continue;
 
-        overlayCtx.fillStyle = 'rgba(255, 100, 180, 0.22)';
-        overlayCtx.fillRect(tx, ty, tw, th);
-        overlayCtx.strokeStyle = '#ff69b4';
-        overlayCtx.strokeRect(tx + 0.5, ty + 0.5, tw - 1, th - 1);
+          overlayCtx.fillStyle = 'rgba(255, 100, 180, 0.22)';
+          overlayCtx.fillRect(tx, ty, tw, th);
+          overlayCtx.strokeStyle = '#ff69b4';
+          overlayCtx.strokeRect(tx + 0.5, ty + 0.5, tw - 1, th - 1);
 
-        const label = (stepOn[i].scriptId >>> 0).toString(16).toUpperCase();
-        overlayCtx.font = '10px monospace';
-        const textW = overlayCtx.measureText(label).width;
-        const labelX = tx + 2;
-        const labelY = ty + 10;
-        overlayCtx.fillStyle = 'rgba(0, 0, 0, 0.65)';
-        overlayCtx.fillRect(labelX - 1, labelY - 9, textW + 2, 11);
-        overlayCtx.fillStyle = '#ff69b4';
-        overlayCtx.fillText(label, labelX, labelY);
+          const label = (stepOn[i].scriptId >>> 0).toString(16).toUpperCase();
+          overlayCtx.font = '10px monospace';
+          const textW = overlayCtx.measureText(label).width;
+          const labelX = tx + 2;
+          const labelY = ty + 10;
+          overlayCtx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+          overlayCtx.fillRect(labelX - 1, labelY - 9, textW + 2, 11);
+          overlayCtx.fillStyle = '#ff69b4';
+          overlayCtx.fillText(label, labelX, labelY);
+        }
+
+        // B-triggers: Yellow (#ffcc00, rgba(255, 210, 0, 0.22))
+        for (let i = 0; i < bTrigger.length; i++) {
+          const box = calculateTriggerBox(bTrigger[i], layout.trigOffX, layout.trigOffY, layout.camX, layout.camY);
+          const tx = layout.emuX + (box.posX - layout.camX) * layout.scaleSnes;
+          const ty = layout.emuY + (box.posY - layout.camY) * layout.scaleSnes;
+          const tw = box.boxW * layout.scaleSnes;
+          const th = box.boxH * layout.scaleSnes;
+
+          if (tx + tw <= 0 || tx >= layout.wrapW || ty + th <= 0 || ty >= layout.wrapH) continue;
+
+          overlayCtx.fillStyle = 'rgba(255, 210, 0, 0.22)';
+          overlayCtx.fillRect(tx, ty, tw, th);
+          overlayCtx.strokeStyle = '#ffcc00';
+          overlayCtx.strokeRect(tx + 0.5, ty + 0.5, tw - 1, th - 1);
+
+          const label = (bTrigger[i].scriptId >>> 0).toString(16).toUpperCase();
+          overlayCtx.font = '10px monospace';
+          const textW = overlayCtx.measureText(label).width;
+          const labelX = tx + 2;
+          const labelY = ty + 10;
+          overlayCtx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+          overlayCtx.fillRect(labelX - 1, labelY - 9, textW + 2, 11);
+          overlayCtx.fillStyle = '#ffcc00';
+          overlayCtx.fillText(label, labelX, labelY);
+        }
       }
 
-      // B-triggers: Yellow (#ffcc00, rgba(255, 210, 0, 0.22))
-      for (let i = 0; i < bTrigger.length; i++) {
-        const box = calculateTriggerBox(bTrigger[i], layout.trigOffX, layout.trigOffY, layout.camX, layout.camY);
-        const tx = layout.emuX + (box.posX - layout.camX) * layout.scaleSnes;
-        const ty = layout.emuY + (box.posY - layout.camY) * layout.scaleSnes;
-        const tw = box.boxW * layout.scaleSnes;
-        const th = box.boxH * layout.scaleSnes;
+      // Objects: Section 3 map objects (sky blue)
+      if (objectsOverlayEnabled && cachedObjects && cachedObjects.length) {
+        renderObjectsOverlay(overlayCtx, layout, cachedObjects, (preState && preState.objStateBuf) || null);
+      }
 
-        if (tx + tw <= 0 || tx >= layout.wrapW || ty + th <= 0 || ty >= layout.wrapH) continue;
-
-        overlayCtx.fillStyle = 'rgba(255, 210, 0, 0.22)';
-        overlayCtx.fillRect(tx, ty, tw, th);
-        overlayCtx.strokeStyle = '#ffcc00';
-        overlayCtx.strokeRect(tx + 0.5, ty + 0.5, tw - 1, th - 1);
-
-        const label = (bTrigger[i].scriptId >>> 0).toString(16).toUpperCase();
-        overlayCtx.font = '10px monospace';
-        const textW = overlayCtx.measureText(label).width;
-        const labelX = tx + 2;
-        const labelY = ty + 10;
-        overlayCtx.fillStyle = 'rgba(0, 0, 0, 0.65)';
-        overlayCtx.fillRect(labelX - 1, labelY - 9, textW + 2, 11);
-        overlayCtx.fillStyle = '#ffcc00';
-        overlayCtx.fillText(label, labelX, labelY);
+      // Animated tiles: Section 2 animated tiles (purple)
+      if (animTilesOverlayEnabled && cachedAnimTiles && cachedAnimTiles.length) {
+        renderAnimTilesOverlay(overlayCtx, layout, cachedAnimTiles);
       }
 
       overlayCtx.restore();
+    }
+
+    function renderObjectsOverlay(overlayCtx, layout, objects, objStateBuf) {
+      if (!overlayCtx || !objects || !objects.length) return;
+
+      for (let i = 0; i < objects.length; i++) {
+        const obj = objects[i];
+        const tx = layout.emuX + (obj.x - layout.camX) * layout.scaleSnes;
+        const ty = layout.emuY + (obj.y - layout.camY) * layout.scaleSnes;
+        const tw = obj.w * layout.scaleSnes;
+        const th = obj.h * layout.scaleSnes;
+
+        if (tx + tw <= 0 || tx >= layout.wrapW || ty + th <= 0 || ty >= layout.wrapH) continue;
+
+        const liveState = (objStateBuf && objStateBuf[obj.index]) || 0;
+
+        // 1. Cluster area: soft blue tint and dashed blue border
+        overlayCtx.fillStyle = 'rgba(41, 182, 246, 0.12)';
+        overlayCtx.fillRect(tx, ty, tw, th);
+
+        overlayCtx.strokeStyle = '#29b6f6';
+        overlayCtx.lineWidth = 1;
+        overlayCtx.setLineDash([Math.round(4 * layout.scaleSnes), Math.round(3 * layout.scaleSnes)]);
+        overlayCtx.strokeRect(tx + 0.5, ty + 0.5, tw - 1, th - 1);
+        overlayCtx.setLineDash([]);
+
+        // 2. Sub-frames / states
+        if (obj.states && obj.states.length) {
+          for (let s = 0; s < obj.states.length; s++) {
+            const st = obj.states[s];
+            const sx = layout.emuX + (st.x - layout.camX) * layout.scaleSnes;
+            const sy = layout.emuY + (st.y - layout.camY) * layout.scaleSnes;
+            const sw = st.w * layout.scaleSnes;
+            const sh = st.h * layout.scaleSnes;
+
+            if (sx + sw <= 0 || sx >= layout.wrapW || sy + sh <= 0 || sy >= layout.wrapH) continue;
+
+            const isActive = (st.state === liveState && liveState > 0);
+            if (isActive) {
+              overlayCtx.fillStyle = 'rgba(41, 182, 246, 0.2)';
+              overlayCtx.fillRect(sx, sy, sw, sh);
+              overlayCtx.strokeStyle = '#29b6f6';
+              overlayCtx.lineWidth = 1.5;
+              overlayCtx.strokeRect(sx + 0.5, sy + 0.5, sw - 1, sh - 1);
+            } else {
+              overlayCtx.strokeStyle = 'rgba(41, 182, 246, 0.4)';
+              overlayCtx.lineWidth = 1;
+              overlayCtx.strokeRect(sx + 0.5, sy + 0.5, sw - 1, sh - 1);
+            }
+          }
+        }
+
+        // 3. Object ID label in top-right corner
+        const label = liveState > 0 ? ('OBJ ' + obj.index + ':' + liveState) : ('OBJ ' + obj.index);
+        overlayCtx.font = '10px monospace';
+        const textW = overlayCtx.measureText(label).width;
+        let labelX = tx + tw - textW - 4;
+        if (labelX < tx + 2) labelX = tx + 2;
+        const labelY = ty + 10;
+
+        overlayCtx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+        overlayCtx.fillRect(labelX - 1, labelY - 9, textW + 2, 11);
+        overlayCtx.fillStyle = '#29b6f6';
+        overlayCtx.fillText(label, labelX, labelY);
+      }
+    }
+
+    function renderAnimTilesOverlay(overlayCtx, layout, animTiles) {
+      if (!overlayCtx || !animTiles || !animTiles.length) return;
+
+      const u = 16 * layout.scaleSnes;
+
+      for (let i = 0; i < animTiles.length; i++) {
+        const cluster = animTiles[i];
+        if (!cluster.cells || !cluster.cells.length) continue;
+
+        const bx = layout.emuX + (cluster.bbox.x - layout.camX) * layout.scaleSnes;
+        const by = layout.emuY + (cluster.bbox.y - layout.camY) * layout.scaleSnes;
+        const bw = cluster.bbox.w * layout.scaleSnes;
+        const bh = cluster.bbox.h * layout.scaleSnes;
+        if (bx + bw <= 0 || bx >= layout.wrapW || by + bh <= 0 || by >= layout.wrapH) continue;
+
+        // 1. Soft purple fill on each cell
+        overlayCtx.fillStyle = 'rgba(191, 85, 236, 0.15)';
+        for (let j = 0; j < cluster.cells.length; j++) {
+          const c = cluster.cells[j];
+          const cx = layout.emuX + (c.x - layout.camX) * layout.scaleSnes;
+          const cy = layout.emuY + (c.y - layout.camY) * layout.scaleSnes;
+          overlayCtx.fillRect(cx, cy, u, u);
+        }
+
+        // 2. Contour outline edges
+        const coordSet = new Set();
+        for (let j = 0; j < cluster.cellCoords.length; j++) {
+          coordSet.add(cluster.cellCoords[j].x + ',' + cluster.cellCoords[j].y);
+        }
+
+        overlayCtx.strokeStyle = '#bf55ec';
+        overlayCtx.lineWidth = Math.max(1, Math.round(1.5 * layout.scaleSnes));
+        overlayCtx.beginPath();
+        for (let j = 0; j < cluster.cellCoords.length; j++) {
+          const cc = cluster.cellCoords[j];
+          const cx = layout.emuX + (cc.x * 16 - layout.camX) * layout.scaleSnes;
+          const cy = layout.emuY + (cc.y * 16 - layout.camY) * layout.scaleSnes;
+
+          if (!coordSet.has(cc.x + ',' + (cc.y - 1))) {
+            overlayCtx.moveTo(cx, cy);
+            overlayCtx.lineTo(cx + u, cy);
+          }
+          if (!coordSet.has(cc.x + ',' + (cc.y + 1))) {
+            overlayCtx.moveTo(cx, cy + u);
+            overlayCtx.lineTo(cx + u, cy + u);
+          }
+          if (!coordSet.has((cc.x - 1) + ',' + cc.y)) {
+            overlayCtx.moveTo(cx, cy);
+            overlayCtx.lineTo(cx, cy + u);
+          }
+          if (!coordSet.has((cc.x + 1) + ',' + cc.y)) {
+            overlayCtx.moveTo(cx + u, cy);
+            overlayCtx.lineTo(cx + u, cy + u);
+          }
+        }
+        overlayCtx.stroke();
+
+        // 3. Non-rectangular dotted bounding box
+        if (!cluster.isRect) {
+          overlayCtx.save();
+          overlayCtx.strokeStyle = 'rgba(191, 85, 236, 0.5)';
+          overlayCtx.lineWidth = 1;
+          overlayCtx.setLineDash([Math.round(3 * layout.scaleSnes), Math.round(2 * layout.scaleSnes)]);
+          overlayCtx.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+          overlayCtx.restore();
+        }
+
+        // 4. Pattern letter badge in top-left cell of the cluster
+        if (cluster.letter && cluster.first) {
+          const fx = layout.emuX + (cluster.first.x - layout.camX) * layout.scaleSnes;
+          const fy = layout.emuY + (cluster.first.y - layout.camY) * layout.scaleSnes;
+
+          overlayCtx.font = 'bold 10px monospace';
+          const textW = overlayCtx.measureText(cluster.letter).width;
+          const labelX = fx + 2;
+          const labelY = fy + 10;
+
+          overlayCtx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+          overlayCtx.fillRect(labelX - 1, labelY - 9, textW + 2, 11);
+          overlayCtx.fillStyle = '#bf55ec';
+          overlayCtx.fillText(cluster.letter, labelX, labelY);
+        }
+      }
     }
 
     // -- Sprite decoding & caching ---------------------------------------------
@@ -2346,6 +2518,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       if (mapId !== cachedMapId) {
         cachedMapId = mapId;
         cachedTriggers = parseRoomTriggers(loadedRomData, mapId);
+        cachedObjects = roomObjectsCache.get(mapId) || null;
+        cachedAnimTiles = roomAnimTilesCache.get(mapId) || null;
         spriteCache.clear();
         cutGrassTileSet.clear();
         lastRequestedObjKey = '';
@@ -2550,7 +2724,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
 
       // 4. Extended triggers overlay (Layer 4)
       if (extOverCtx && extOverCanvas) {
-        renderTriggersOverlay(extOverCtx, layout);
+        renderTriggersOverlay(extOverCtx, layout, preState);
       }
     }
 
@@ -3182,6 +3356,20 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       });
     }
 
+    function hasAnyActiveOverlay() {
+      return triggersOverlayEnabled || objectsOverlayEnabled || animTilesOverlayEnabled || fogOfWarEnabled;
+    }
+
+    function checkClearOverlayCanvas() {
+      if (!hasAnyActiveOverlay()) {
+        const extOverCanvas = document.getElementById('extended-overlay');
+        if (extOverCanvas) {
+          const extCtx = extOverCanvas.getContext('2d');
+          if (extCtx) extCtx.clearRect(0, 0, extOverCanvas.width, extOverCanvas.height);
+        }
+      }
+    }
+
     function setTriggersOverlay(enabled) {
       triggersOverlayEnabled = !!enabled;
       const chip = document.getElementById('screen-trigger-toggle');
@@ -3196,11 +3384,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       }
       const cb = document.getElementById('ss-overlay-toggle');
       if (cb) cb.checked = triggersOverlayEnabled;
-      const extOverCanvas = document.getElementById('extended-overlay');
-      if (!triggersOverlayEnabled && !fogOfWarEnabled && extOverCanvas) {
-        const extCtx = extOverCanvas.getContext('2d');
-        if (extCtx) extCtx.clearRect(0, 0, extOverCanvas.width, extOverCanvas.height);
-      }
+      checkClearOverlayCanvas();
     }
 
     const triggerChip = document.getElementById('screen-trigger-toggle');
@@ -3220,6 +3404,74 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       });
     }
 
+    function setObjectsOverlay(enabled) {
+      objectsOverlayEnabled = !!enabled;
+      const chip = document.getElementById('screen-object-toggle');
+      if (chip) {
+        if (objectsOverlayEnabled) {
+          chip.classList.add('active');
+          chip.textContent = 'OBJECTS ON';
+        } else {
+          chip.classList.remove('active');
+          chip.textContent = 'OBJECTS OFF';
+        }
+      }
+      const cb = document.getElementById('ss-object-toggle');
+      if (cb) cb.checked = objectsOverlayEnabled;
+      checkClearOverlayCanvas();
+    }
+
+    const objectChip = document.getElementById('screen-object-toggle');
+    if (objectChip) {
+      objectChip.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setObjectsOverlay(!objectsOverlayEnabled);
+        const screenCanvas = document.getElementById('screen');
+        if (screenCanvas) screenCanvas.focus();
+      });
+    }
+
+    const objectCb = document.getElementById('ss-object-toggle');
+    if (objectCb) {
+      objectCb.addEventListener('change', () => {
+        setObjectsOverlay(objectCb.checked);
+      });
+    }
+
+    function setAnimTilesOverlay(enabled) {
+      animTilesOverlayEnabled = !!enabled;
+      const chip = document.getElementById('screen-anim-toggle');
+      if (chip) {
+        if (animTilesOverlayEnabled) {
+          chip.classList.add('active');
+          chip.textContent = 'ANIM TILES ON';
+        } else {
+          chip.classList.remove('active');
+          chip.textContent = 'ANIM TILES OFF';
+        }
+      }
+      const cb = document.getElementById('ss-anim-toggle');
+      if (cb) cb.checked = animTilesOverlayEnabled;
+      checkClearOverlayCanvas();
+    }
+
+    const animChip = document.getElementById('screen-anim-toggle');
+    if (animChip) {
+      animChip.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setAnimTilesOverlay(!animTilesOverlayEnabled);
+        const screenCanvas = document.getElementById('screen');
+        if (screenCanvas) screenCanvas.focus();
+      });
+    }
+
+    const animCb = document.getElementById('ss-anim-toggle');
+    if (animCb) {
+      animCb.addEventListener('change', () => {
+        setAnimTilesOverlay(animCb.checked);
+      });
+    }
+
     function setFogOfWar(enabled) {
       fogOfWarEnabled = !!enabled;
       const chip = document.getElementById('screen-fog-toggle');
@@ -3232,11 +3484,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
           chip.textContent = 'FOG OFF';
         }
       }
-      const extOverCanvas = document.getElementById('extended-overlay');
-      if (!triggersOverlayEnabled && !fogOfWarEnabled && extOverCanvas) {
-        const extCtx = extOverCanvas.getContext('2d');
-        if (extCtx) extCtx.clearRect(0, 0, extOverCanvas.width, extOverCanvas.height);
-      }
+      checkClearOverlayCanvas();
     }
 
     const fogChip = document.getElementById('screen-fog-toggle');
@@ -3574,6 +3822,14 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       } else if (evt.data.command === 'scriptTraceLogged') {
         appendTraceEntries(evt.data.entries);
       } else if (evt.data.command === 'roomMapRendered') {
+        if (Array.isArray(evt.data.objects)) {
+          roomObjectsCache.set(evt.data.mapId, evt.data.objects);
+          if (evt.data.mapId === cachedMapId) cachedObjects = evt.data.objects;
+        }
+        if (Array.isArray(evt.data.animTiles)) {
+          roomAnimTilesCache.set(evt.data.mapId, evt.data.animTiles);
+          if (evt.data.mapId === cachedMapId) cachedAnimTiles = evt.data.animTiles;
+        }
         if (evt.data.imageUri) {
           const mapId = evt.data.mapId;
           const img = new Image();
@@ -3628,6 +3884,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
               height: evt.data.height,
               offX: evt.data.offX,
               offY: evt.data.offY,
+              objects: evt.data.objects || null,
+              animTiles: evt.data.animTiles || null,
             };
           };
           img.src = evt.data.imageUri;
