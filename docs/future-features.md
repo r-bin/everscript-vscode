@@ -170,6 +170,26 @@ cycle (`maps/vanilla-animation.ts`), one channel per placed graphic
 phase that vanilla attests for the same graphics: the same torch cycle at
 another phase, so neighbours flicker out of step, or another room's delays.
 
+### 17. Emulator: SPC monitor panel
+
+Proposed 2026-10-08, not scheduled. Mockup with real data:
+https://claude.ai/artifact/QHt9cxWViSqToKoiHRjRwr (Main Title, synced to audio).
+
+A panel next to the emulator that follows the sound driver every frame:
+- **Voice lanes:** a piano roll of the 8 DSP voices. A note is a `KON` bit, its pitch is `P(H/L)`, and its colour is the sample.
+- **Voice strip:** sample address, pitch and L/R volume per voice.
+- **Sequence:** the raw sequence bytes per track, with the bytes the driver read on this tick lit.
+- **ARAM map:** 64 KB, one pixel per byte, by region (driver, base bank, song samples, sequence, echo), with the playing samples glowing.
+
+Facts it builds on (everscript `docs/audio_music_sound_formats.md` §5–§7):
+- The driver keys voice *v* with `SRCN = v` and writes the real sample into a per-voice directory at `$0200` (`DIR = $02`). Read the sample from `$0200 + 4v`, not from `SRCN`.
+- The capture method (DSP writes + sequence reads) was checked against libgme: constant offset, no drift. In the panel, reading the core directly removes even that offset.
+
+Open before building:
+- Does the bundled snes9x core expose APU RAM, DSP registers and SPC700 reads? Its save state, or a new export like `_getPpuView()`. Not checked.
+- The sequence opcodes and the pointer tables at `$2070`–`$2350` are not decoded, so the sequence stays raw hex and track→voice is unmapped.
+- Pitch can only be shown relative to each sample's native rate until the sample base notes are known.
+
 ## Data Requirements
 
 Many hover/completion features require machine-readable data that doesn't exist yet:
