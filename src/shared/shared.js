@@ -266,6 +266,7 @@ __SPRITES_JS__
 __DOCS_JS__
 __ROUTE_JS__
 __RNG_JS__
+__ROM_JS__
 // Init active tab and selected map highlight
 (function(){
   var t=ACTIVE_TAB||'radar';

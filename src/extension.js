@@ -158,6 +158,7 @@ function radarItemIcons() {
     return buildItemIcons(romReaders.loadRomBuffer(ws, getExtConfig().romPath || ''));
 }
 const roomTree = require('./rooms');
+const { handlesRomMessage, handleRomMessage } = require('./rom');
 const { findRoomImage, parseRoomContent, collectRoomsFromDir, buildRoomTree, renderVanillaTree, renderRoomsTree, buildRoomsJson, setRoomImageUris, buildRoomTileOverlay, buildRoomMetatilePalette, buildComposedPreview, buildBlankRoom, buildDraftCollision, buildExportRom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews, decoIndex, decoCells, buildDecoPreviews, buildWidgetPreviews, buildConstructGhost, relatedTiles, neighbourTiles, vanillaExamples, proceduralFill, handlesCustomMapMessage, handleCustomMapMessage } = roomTree;
 
 const romReaders = require('./shared/rom-readers');
@@ -783,6 +784,30 @@ function activate(context) {
                                 romBuf: romReaders.loadRomBuffer(_ws, _cfg.romPath || ''),
                             };
                         },
+                    });
+                } else if (handlesRomMessage(msg.command)) {
+                    // The ROM tab: map of every bank, CDL coverage, readers
+                    // (src/rom/README.md). The CDL library is the emulator's,
+                    // read here so the rom domain never imports the emulator.
+                    const _ws = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+                    handleRomMessage(msg, {
+                        post: (m) => _radarPanel?.webview.postMessage(m),
+                        loadRom: () => romReaders.loadRomBuffer(_ws, getExtConfig().romPath || ''),
+                        loadCdl: (rom) => {
+                            const { CdlLibrary, romHash } = require('./emulator/cdl/library');
+                            const root = path.join(context.globalStorageUri.fsPath, 'cdl-library');
+                            return fs.existsSync(path.join(root, romHash(rom))) ? new CdlLibrary(root, rom) : null;
+                        },
+                        readWiki: () => {
+                            const candidates = [
+                                _ws && path.join(_ws, 'wiki', 'rom', 'Rom-Map.md'),
+                                _ws && path.join(_ws, '.github', 'rom-map.md'),
+                                path.join(context.extensionPath, 'wiki', 'rom', 'Rom-Map.md'),
+                            ];
+                            const hit = candidates.find(p => p && fs.existsSync(p));
+                            return hit ? fs.readFileSync(hit, 'utf8') : '';
+                        },
+                        rooms: () => new Map(VANILLA_ROOMS.flatMap(a => a.rooms.map(r => [parseInt(r.id, 16), { name: r.name, area: a.area }]))),
                     });
                 } else if (msg.command === 'mapExportRom') {
                     // A playable ROM: the vanilla ROM, extended, with this

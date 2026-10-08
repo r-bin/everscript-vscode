@@ -15,4 +15,5 @@ Renders the WRAM memory radar: the grid of 128KB WRAM addresses, lifecycle badge
 - May depend on `../shared/` (radar-utils, rom-readers)
 - May depend on `../docs/` (render-docs-tab)
 - May depend on `../rooms/` (room tree, rendering)
+- May depend on `../rom/` (the ROM tab's pane scaffold)
 - No dependency on `../debugger/` or `../emulator/`

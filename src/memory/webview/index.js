@@ -10,6 +10,7 @@ const roomsDir   = path.join(__dirname, '../../rooms/webview');
 const spritesDir = path.join(__dirname, '../../sprites/webview');
 const docsDir    = path.join(__dirname, '../../docs');
 const routesDir  = path.join(__dirname, '../../routes');
+const romDir     = path.join(__dirname, '../../rom/webview');
 
 const fileCache = new Map();
 
@@ -33,7 +34,7 @@ function inject(text, placeholder, content) {
   return text.replace(placeholder, () => content);
 }
 
-function buildMainJs({ jsData, roomsData, scalingData, spritesData, roomsJs, scalingJs, spritesJs, docsJs, routeJs, rngJs }) {
+function buildMainJs({ jsData, roomsData, scalingData, spritesData, roomsJs, scalingJs, spritesJs, docsJs, routeJs, rngJs, romJs }) {
   let out = loadFile(path.join(sharedDir, 'shared.js'));
   for (const [placeholder, content] of [
     ['__JS_DATA__', jsData],
@@ -46,6 +47,7 @@ function buildMainJs({ jsData, roomsData, scalingData, spritesData, roomsJs, sca
     ['__DOCS_JS__', docsJs],
     ['__ROUTE_JS__', routeJs],
     ['__RNG_JS__', rngJs],
+    ['__ROM_JS__', romJs || ''],
   ]) {
     out = inject(out, placeholder, content);
   }
@@ -166,12 +168,14 @@ module.exports = {
     + loadFile(path.join(roomsDir, 'map-editor-tile-tab.css')) + '\n'
     + loadFile(path.join(roomsDir, 'rooms-rail.css')) + '\n'
     + loadFile(path.join(roomsDir, 'rooms-layout.css')) + '\n'
-    + loadFile(path.join(spritesDir, 'sprites-layout.css')),
+    + loadFile(path.join(spritesDir, 'sprites-layout.css')) + '\n'
+    + loadFile(path.join(romDir, 'rom-tab.css')),
   get scalingJs() { return loadScalingJs(); },
   get roomsJs() { return loadRoomsJs(); },
   get spritesJs() { return loadFile(path.join(spritesDir, 'sprites-lazy.js')) + '\n' + loadFile(path.join(spritesDir, 'sprites-script.js')) + '\n' + loadFile(path.join(spritesDir, 'sprites-motion.js')) + '\n' + loadFile(path.join(spritesDir, 'sprites-view.js')); },
   docsJs: loadFile(path.join(docsDir, 'docs-tab.js')),
   routeJs: loadFile(path.join(routesDir, 'route-tab.js')),
   rngJs: loadFile(path.join(docsDir, 'rng-tab.js')),
+  romJs: loadFile(path.join(romDir, 'rom-tab.js')),
   buildMainJs,
 };

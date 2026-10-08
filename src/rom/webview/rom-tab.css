@@ -1,0 +1,66 @@
+/* ROM tab (src/rom). Scoped by the rom- prefix; colours come from VS Code's
+   theme tokens with the dark defaults of the design mock as fallbacks. */
+.rom-pane{flex-direction:column;flex:1;min-height:0;font:13px/1.4 var(--vscode-font-family,-apple-system,"Segoe UI",sans-serif);
+  --rom-line:var(--vscode-panel-border,#3c3c3c);--rom-dim:var(--vscode-descriptionForeground,#8b8b8b);--rom-card:var(--vscode-sideBar-background,#252526)}
+.rom-top{display:flex;align-items:center;gap:18px;padding:8px 6px 10px;border-bottom:1px solid var(--rom-line);flex-shrink:0}
+.rom-title{font-size:14px;font-weight:600;white-space:nowrap}
+.rom-stats{display:flex;gap:16px;color:var(--rom-dim);flex-wrap:wrap}
+.rom-stats b{color:var(--vscode-editor-foreground,#ccc);font-weight:600}
+.rom-seg{display:inline-flex;border:1px solid var(--rom-line);border-radius:4px;overflow:hidden;margin-left:auto}
+.rom-seg-btn{background:transparent;color:var(--rom-dim);border:0;padding:4px 10px;cursor:pointer;font:inherit;font-size:12px}
+.rom-seg-btn.rom-on{background:var(--vscode-button-secondaryBackground,#3a3d41);color:var(--vscode-button-secondaryForeground,#fff)}
+.rom-seg-btn:disabled{opacity:.35;cursor:default}
+.rom-search{background:var(--vscode-input-background,#3c3c3c);color:var(--vscode-input-foreground,#ccc);border:1px solid var(--vscode-input-border,#4a4a4a);border-radius:3px;padding:5px 10px;width:260px;font:inherit}
+.rom-btn{border:1px solid var(--rom-line);border-radius:3px;padding:3px 10px;color:inherit;background:var(--vscode-button-secondaryBackground,#333);cursor:pointer;font:inherit;font-size:12px}
+.rom-body{display:grid;grid-template-columns:minmax(300px,430px) 1fr;flex:1;min-height:0}
+.rom-left{border-right:1px solid var(--rom-line);padding:10px 12px;overflow-y:auto}
+.rom-hdr{display:flex;color:var(--rom-dim);font-size:11px;margin:0 0 6px 34px}
+.rom-hdr span{flex:1;padding-left:2px}
+.rom-row{display:flex;align-items:center;gap:6px;height:13px;margin-bottom:2px}
+.rom-bk{width:28px;font:11px var(--vscode-editor-font-family,ui-monospace,Menlo,monospace);color:var(--rom-dim);flex-shrink:0}
+.rom-half{flex:1;display:flex;height:10px;border-radius:2px;overflow:hidden;cursor:pointer;min-width:0}
+.rom-half i,.rom-dbar i,.rom-cdlbar i{display:block;min-width:0}
+.rom-half:hover{filter:brightness(1.25)}
+.rom-half.rom-sel{outline:2px solid var(--vscode-focusBorder,#fff);outline-offset:1px}
+.rom-legend{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:12px;font-size:11px;color:var(--rom-dim)}
+.rom-chip{display:inline-flex;align-items:center;gap:5px}
+.rom-dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:7px;vertical-align:-1px;flex-shrink:0}
+.rom-chip .rom-dot{margin-right:0}
+.rom-right{padding:12px 18px;overflow:auto;min-width:0}
+.rom-empty{color:var(--rom-dim);padding:12px 0}
+.rom-crumb{color:var(--rom-dim);font-size:12px}
+.rom-crumb b{color:var(--vscode-editor-foreground,#ccc)}
+.rom-h2{font-size:16px;margin:4px 0 2px;font-weight:600;opacity:1;text-transform:none;letter-spacing:0}
+.rom-sub{color:var(--rom-dim);margin-bottom:10px}
+.rom-pane code{font:11.5px var(--vscode-editor-font-family,ui-monospace,Menlo,monospace);color:var(--vscode-textPreformat-foreground,#d7ba7d)}
+.rom-dbar{display:flex;height:22px;border-radius:3px;overflow:hidden;gap:2px;margin:6px 0 2px}
+.rom-dbar.rom-dcdl{height:6px;gap:0;margin-top:3px}
+.rom-ruler{display:flex;justify-content:space-between;font:10.5px var(--vscode-editor-font-family,ui-monospace,Menlo,monospace);color:var(--rom-dim);margin-bottom:12px}
+.rom-cards{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.rom-card{background:var(--rom-card);border:1px solid var(--rom-line);border-radius:4px;padding:7px 12px;min-width:110px}
+.rom-k{font-size:11px;color:var(--rom-dim)}
+.rom-v{font-size:16px;font-weight:600;margin-top:2px}
+.rom-table{width:100%;border-collapse:collapse}
+.rom-table th{text-align:left;font-weight:500;color:var(--rom-dim);font-size:11px;padding:6px 8px;border-bottom:1px solid var(--rom-line)}
+.rom-table td{padding:5px 8px;border-bottom:1px solid rgba(128,128,128,.12);vertical-align:top}
+.rom-tr{cursor:pointer}
+.rom-tr:hover td{background:var(--vscode-list-hoverBackground,#2a2d2e)}
+.rom-tr.rom-open td{background:var(--vscode-list-inactiveSelectionBackground,#37373d)}
+.rom-addr{font:12px var(--vscode-editor-font-family,ui-monospace,Menlo,monospace);color:var(--vscode-debugTokenExpression-name,#9cdcfe);white-space:nowrap}
+.rom-num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.rom-area{white-space:nowrap}
+.rom-note{color:var(--rom-dim);font-size:12px}
+.rom-cdl{width:70px}
+.rom-cdlbar{display:flex;width:60px;height:6px;margin-top:6px;border-radius:2px;overflow:hidden;background:#2b2f36}
+.rom-pt td{color:var(--rom-dim)}
+.rom-warn td.rom-addr{box-shadow:inset 2px 0 0 #cca700}
+.rom-badge{font-size:10.5px;background:#4d3f00;color:#e2c24a;border-radius:8px;padding:1px 7px;margin-left:6px;white-space:nowrap}
+.rom-badge.rom-dim{background:rgba(128,128,128,.2);color:var(--rom-dim)}
+.rom-dim{color:var(--rom-dim)}
+.rom-more td{background:var(--rom-card)}
+.rom-morebox{display:flex;flex-direction:column;gap:6px;padding:4px 2px}
+.rom-fullnote{color:var(--rom-dim)}
+.rom-readers{border-collapse:collapse;margin-top:4px}
+.rom-readers td{padding:2px 10px 2px 0;border:0}
+.rom-foot{color:var(--rom-dim);font-size:11.5px;margin-top:8px}
+.rom-foot a{color:var(--vscode-textLink-foreground,#3794ff)}

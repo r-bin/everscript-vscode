@@ -56,6 +56,14 @@ module.exports = {
     },
 
     {
+      name: 'no-rom-to-emulator',
+      comment: 'The ROM tab takes CDL data as plain arrays injected by extension.js, never the emulator itself.',
+      severity: 'warn',
+      from: { path: '^src/rom/' },
+      to: { path: '^src/emulator/' },
+    },
+
+    {
       name: 'no-language-to-emulator',
       comment: 'Language features must not depend on the emulator.',
       severity: 'warn',
