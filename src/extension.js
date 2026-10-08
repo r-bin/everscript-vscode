@@ -1273,6 +1273,13 @@ function activate(context) {
         return entry ? entry.value : null;
     });
 
+    // ── soe:// resources (src/resources/README.md) ──────────────────────────
+    require('./resources').registerSoeResources(context, {
+        vanillaRom: () => romReaders.loadRomBuffer(vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null, getExtConfig().romPath || ''),
+        emulatorRom: () => emulatorPanel.getCurrentRom(),
+        readMemory: (addr, len) => emulatorPanel.readMemory(addr, len),
+    });
+
     // ── Emulator Panel ───────────────────────────────────────────────────────
     const { openEmulatorPanel } = require('./emulator/panel');
     context.subscriptions.push(

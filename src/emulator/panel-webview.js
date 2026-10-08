@@ -19,6 +19,7 @@ const { getCdlStripsScript } = require('./cdl-strips');
 const { getFpsCss, getFpsChipHtml, getFpsClientScript } = require('./fps-meter');
 const { getTasCss, getTasTabButtonHtml, getTasChipHtml, getTasOverlayHtml, getTasViewHtml, getTasClientScript } = require('./tas-view');
 const { getScriptDebugClientScript } = require('./script-debug-view');
+const { getMemoryBridgeClientScript } = require('./memory-bridge-view');
 
 function _nonce() {
     let n = '';
@@ -3599,6 +3600,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     ${getTasClientScript()}
 
     ${getScriptDebugClientScript()}
+
+    ${getMemoryBridgeClientScript()}
 
     ${getFpsClientScript()}
 

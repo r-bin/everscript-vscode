@@ -44,6 +44,7 @@ const vscodeMock = {
             dispose() {},
         }),
         onDidChangeConfiguration: () => ({ dispose() {} }),
+        registerFileSystemProvider: () => ({ dispose() {} }),
     },
     window: {
         activeTextEditor: null,

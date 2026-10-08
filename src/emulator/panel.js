@@ -34,6 +34,7 @@ const { processScriptTraceBatch } = require('./script-trace');
 const { CdlHost } = require('./cdl/host');
 const { TasHost } = require('./tas/host');
 const { ScriptDebugHost } = require('./script-debug-host');
+const { MemoryBridge } = require('./memory-bridge');
 const {
   getRomOfferData,
   recordRomUsage,
@@ -68,6 +69,8 @@ let _tas           = null;   // TasHost: input recordings and replays
 // VS Code script debugger hook: outlives the panel (a session can attach first).
 const _scriptDebug = new ScriptDebugHost(m => { if (_panel) _panel.webview.postMessage(m); }, line => _log(line),
   () => _keepFocusAfterBreak());
+// soe://ram/ reads: request/reply with the webview, which owns the core.
+const _memory = new MemoryBridge(m => !!(_panel && _webviewReady && _panel.webview.postMessage(m) !== undefined));
 // "BREAK: stay" chip: a debugger stop leaves the focus on the emulator (globalState).
 const KEEP_FOCUS_KEY = 'everscript.emulator.keepFocusOnBreak';
 const KEEP_FOCUS_MS = 2000;
@@ -365,6 +368,7 @@ function openEmulatorPanel(context, rom, channel) {
         if (_cdl && typeof msg.command === 'string' && msg.command.startsWith('cdl') && _cdl.handle(msg)) return;
         if (_tas && typeof msg.command === 'string' && msg.command.startsWith('tas') && _tas.handle(msg)) return;
         if (typeof msg.command === 'string' && msg.command.startsWith('scriptDebug') && _scriptDebug.handle(msg)) return;
+        if (_memory.handle(msg)) return;
         switch (msg.command) {
             case 'ready':
             _webviewReady = true;
@@ -561,6 +565,7 @@ function openEmulatorPanel(context, rom, channel) {
       if (_cdl) { _cdl.dispose(); _cdl = null; }
       if (_tas) { _tas.dispose(); _tas = null; }
       _scriptDebug.panelClosed();
+      _memory.reset('The emulator was closed');
       _clearReadyTimeout();
       _clearRomTimeout();
       _webviewReady = false;
@@ -1011,4 +1016,10 @@ function runRomFile(context, romPath) {
     openEmulatorPanel(context, { dataUrl, name: path.basename(romPath), filePath: romPath, kind: 'file' });
 }
 
-module.exports = { openEmulatorPanel, sendRomFile: _sendRomFile, injectEverscript, getScriptDebugBridge, runRomFile };
+/** The ROM running in the emulator, or null. */
+function getCurrentRom() { return _panel ? _currentRomBuffer : null; }
+
+/** Bytes at a 24-bit bus address of the running game (soe://ram/). */
+function readMemory(addr, len) { return _memory.read(addr, len); }
+
+module.exports = { openEmulatorPanel, sendRomFile: _sendRomFile, injectEverscript, getScriptDebugBridge, runRomFile, getCurrentRom, readMemory };

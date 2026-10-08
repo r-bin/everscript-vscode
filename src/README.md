@@ -17,6 +17,7 @@ All production code lives here. Each subdirectory is an ownership domain.
 | `rom/` | ROM tab: every bank's content, gaps and CDL coverage, measured from the ROM |
 | `debugger/` | VS Code debugger for .evs scripts in the emulator: DAP session, compiler source map, step logic |
 | `localizations/` | Centralized subjective names (maps, sounds, tables, functions) & ROM string resolution |
+| `resources/` | Read-only `soe://` file system: ROM, decoded assets and live WRAM as files |
 
 Entry point: `extension.js` (orchestration root, registered as `main` in package.json).
 
@@ -28,6 +29,7 @@ Entry point: `extension.js` (orchestration root, registered as `main` in package
 - `rom/` → may use `maps/`; never `emulator/` (the CDL library is injected by `extension.js`)
 - `emulator/` → may use `shared/`
 - `debugger/` → no memory, no emulator internals (the emulator bridge is injected by `extension.js`)
+- `resources/` → may use `shared/`, `maps/`, `script/`, `localizations/`; never `emulator/` (ROM and memory reads are injected by `extension.js`)
 - No circular dependencies allowed
 
 See `.depcruise.js` for machine-enforced rules.

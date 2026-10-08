@@ -64,6 +64,14 @@ module.exports = {
     },
 
     {
+      name: 'no-resources-to-emulator',
+      comment: 'The soe:// file system gets the emulator ROM and memory reads injected by extension.js.',
+      severity: 'warn',
+      from: { path: '^src/resources/' },
+      to: { path: '^src/emulator/' },
+    },
+
+    {
       name: 'no-language-to-emulator',
       comment: 'Language features must not depend on the emulator.',
       severity: 'warn',

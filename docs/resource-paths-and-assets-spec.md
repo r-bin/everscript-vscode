@@ -51,7 +51,7 @@ All paths follow a clean, canonical slash hierarchy: `/<domain>/<selector>[<modi
 
 ## 3. Architecture: Why a Virtual Path Router, NOT a Full VFS
 
-> **Superseded:** this section is replaced by [`soeres-filesystem-spec.md`](soeres-filesystem-spec.md): a read-only `FileSystemProvider` for `soeres:`, with `soeres:/…` as the canonical address.
+> **Superseded:** this section is replaced by [`soe-filesystem-spec.md`](soe-filesystem-spec.md): a read-only `FileSystemProvider` for `soe:`, implemented in `src/resources/`.
 
 ### The VFS Anti-Pattern in VS Code
 Implementing a full `vscode.FileSystemProvider` (Virtual File System) was considered and rejected:

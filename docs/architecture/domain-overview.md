@@ -32,6 +32,7 @@
 | DAP / breakpoints / mock runtime | `debugger`, `shared` | emulator internals |
 | Script decoding (ROM bytes → instructions) | `script` | Everything — script is isolated |
 | Config / settings | `shared` | All others |
+| `soe://` file system (ROM / WRAM as files) | `resources`, `shared` | debugger, rooms, scaling |
 | Panel assembly (render-radar.js) | `memory_radar`, `shared` | domain internals |
 
 ---
@@ -333,6 +334,23 @@ relax one to make a change pass.
 **Related:** `src/rooms/data/room-scripts.js` is the thin filesystem shim that
 loads a ROM for this decoder. `script_parser/` is a separate standalone
 sandbox with its own `package.json` and is not part of the extension.
+
+---
+
+## Domain: `resources`
+
+**Purpose:** The read-only `soe://` file system: ROM content, decoded assets
+and the running emulator's WRAM as files, usable in editor tabs and webviews.
+
+**Folder:** `src/resources/`
+
+**Public API:** `require('./resources').registerSoeResources(context, { vanillaRom, emulatorRom, readMemory })`;
+`src/resources/webview.js` → `soeResourceRoots`, `rewriteSoeUrls`, `soeClientScript`
+
+**Allowed deps:** `vscode`, `shared`, `maps`, `script`, `localizations`
+**Forbidden deps:** `emulator` (its ROM and memory reads are injected by `extension.js`)
+
+**Documentation:** `src/resources/README.md`, `docs/soe-filesystem-spec.md`
 
 ---
 
