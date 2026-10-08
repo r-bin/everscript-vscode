@@ -43,6 +43,8 @@ const TEMPLATES = [
     ['soe://rom/assets/{kind}/{name}/info.json', 'Item', 'kind: ingredients, armor, consumables, alchemy; name e.g. wax.'],
     ['soe://localization/scripts/{id}.json', 'Script localization', 'Script name and metadata by ID or address.'],
     ['soe://localization/maps/{id}.json', 'Map localization', 'Room name and area by room ID.'],
+    ['soe://rom/assets/scripts/everscript/{addr}.md', 'Decoded script', 'Full script disassembly in markdown by SNES address (hex), e.g. 0x93c8a1.md.'],
+    ['soe://rom/assets/scripts/rooms/{id}/enter.md', 'Room enter script', 'Room enter script disassembly by room ID (hex), e.g. 38/enter.md.'],
 ];
 
 const URI_ARG = {

@@ -299,6 +299,75 @@ test('provider: reading script with known name in ROM/bus as JSON adds the name'
     fsp.dispose();
 }, true);
 
+test('provider: script VFS decodes by address (md, evs, json, with/without everscript)', async () => {
+    const fsp = new SoeFileSystem({ vanillaRom: () => rom, emulatorRom: () => null, readMemory: () => Promise.resolve(new Uint8Array()) });
+
+    // With /everscript/ prefix
+    const md1 = Buffer.from(await fsp.readFile(uri('soe://rom/assets/scripts/everscript/0x93c8a1.md'))).toString('utf8');
+    assert.match(md1, /^# Script \$93C8A1/);
+    assert.match(md1, /09 54 29 04 00 01 A4 48 00/);
+
+    // Direct address
+    const md2 = Buffer.from(await fsp.readFile(uri('soe://rom/assets/scripts/0x93c8a1.md'))).toString('utf8');
+    assert.strictEqual(md1, md2);
+
+    // Via soe://rom/scripts/ alias
+    const md3 = Buffer.from(await fsp.readFile(uri('soe://rom/scripts/0x93c8a1.md'))).toString('utf8');
+    assert.strictEqual(md1, md3);
+
+    // Plain Everscript (.evs)
+    const evs = Buffer.from(await fsp.readFile(uri('soe://rom/assets/scripts/0x93c8a1.evs'))).toString('utf8');
+    assert.match(evs, /\$93C8A1:\s+IF \(script\[0x9\] & 0x0100\) == FALSE THEN SKIP 72/);
+
+    // Structured JSON (.json)
+    const j = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/assets/scripts/0x93c8a1.json'))).toString('utf8'));
+    assert.strictEqual(j.addressSnes, 0x93c8a1);
+    assert.strictEqual(j.instructions.length, 16);
+    assert.strictEqual(j.terminated, true);
+
+    fsp.dispose();
+}, true);
+
+test('provider: script VFS decodes by room (enter, step-on, b-trigger, room index)', async () => {
+    const fsp = new SoeFileSystem({ vanillaRom: () => rom, emulatorRom: () => null, readMemory: () => Promise.resolve(new Uint8Array()) });
+
+    // soe://rom/assets/scripts/everscript/rooms/38/enter.md
+    const enter1 = Buffer.from(await fsp.readFile(uri('soe://rom/assets/scripts/everscript/rooms/38/enter.md'))).toString('utf8');
+    assert.match(enter1, /^# Room 38: Enter Script \(\$9384D9\)/);
+    assert.match(enter1, /Prehistoria - South jungle \/ Start/);
+
+    // Without /everscript/ prefix
+    const enter2 = Buffer.from(await fsp.readFile(uri('soe://rom/assets/scripts/rooms/38/enter.md'))).toString('utf8');
+    assert.strictEqual(enter1, enter2);
+
+    // Under soe://rom/scripts/rooms/38/enter.md
+    const enter3 = Buffer.from(await fsp.readFile(uri('soe://rom/scripts/rooms/38/enter.md'))).toString('utf8');
+    assert.strictEqual(enter1, enter3);
+
+    // Under map assets: soe://rom/assets/maps/38/scripts/enter.md
+    const enter4 = Buffer.from(await fsp.readFile(uri('soe://rom/assets/maps/38/scripts/enter.md'))).toString('utf8');
+    assert.strictEqual(enter1, enter4);
+
+    // Step-on trigger
+    const step0 = Buffer.from(await fsp.readFile(uri('soe://rom/assets/scripts/rooms/38/step-on/0.md'))).toString('utf8');
+    assert.match(step0, /Step-on Trigger #0/);
+    assert.match(step0, /\$938000/);
+
+    // B-trigger with loot
+    const b0 = Buffer.from(await fsp.readFile(uri('soe://rom/assets/scripts/rooms/38/b-trigger/0.md'))).toString('utf8');
+    assert.match(b0, /B-Trigger #0/);
+    assert.match(b0, /_loot_chest\(0x05, MONEY, 0d15\);/);
+
+    // Room index
+    const roomIdx = Buffer.from(await fsp.readFile(uri('soe://rom/assets/scripts/rooms/38/index.md'))).toString('utf8');
+    assert.match(roomIdx, /^# Room 38 Scripts/);
+    assert.match(roomIdx, /\[enter\.md\]\(enter\.md\)/);
+    assert.match(roomIdx, /step-on\/0\.md/);
+    assert.match(roomIdx, /b-trigger\/0\.md/);
+
+    fsp.dispose();
+}, true);
+
 (async () => {
     for (const t of tests) {
         if (t.needsRom && !rom) { console.log('  - ' + t.name + ' (no test ROM)'); skipped++; continue; }

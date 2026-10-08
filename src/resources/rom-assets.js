@@ -23,19 +23,24 @@ const ICONS = 'soe://rom/assets/icons/';
 
 function resolveAssets(segments, rom) {
     const [kind, id, leaf, ...extra] = segments;
-    if (extra.length) return null;
     if (kind === undefined) {
         return dir(['icons', ...Object.keys(CATEGORIES), 'alchemy', 'strings', 'maps', 'scripts'].map(n => [n, 'dir']));
     }
+    if (kind === 'scripts') {
+        const { resolveScripts } = require('./script-files');
+        return resolveScripts(segments.slice(1), rom);
+    }
+    if (kind === 'maps' && (leaf === 'scripts' || extra.includes('scripts'))) {
+        const { resolveScripts } = require('./script-files');
+        const sIdx = segments.indexOf('scripts');
+        return resolveScripts(['rooms', id, ...segments.slice(sIdx + 1)], rom);
+    }
+    if (extra.length) return null;
     if (kind === 'icons') return icons(rom, id, leaf);
     if (kind in CATEGORIES) return items(rom, kind, id, leaf);
     if (kind === 'alchemy') return alchemy(rom, id, leaf);
     if (kind === 'strings') return strings(rom, id, leaf);
     if (kind === 'maps') return maps(rom, id, leaf);
-    if (kind === 'scripts') {
-        const { resolveLocalization } = require('./localization-files');
-        return resolveLocalization(['scripts', ...segments.slice(1)], rom);
-    }
     return null;
 }
 
@@ -175,10 +180,14 @@ function maps(rom, name, leaf) {
     if (!/^[0-9a-f]{1,2}$/i.test(name)) return null;
     const id = parseInt(name, 16);
     if (id >= MAX_ROOMS) return null;
-    if (leaf === undefined) return dir([['info.md', 'file'], ['header.json', 'file'], ['render.png', 'file']], () => roomMarkdown(rom, id));
+    if (leaf === undefined) return dir([['info.md', 'file'], ['header.json', 'file'], ['render.png', 'file'], ['scripts', 'dir']], () => roomMarkdown(rom, id));
     if (leaf === 'header.json') return json(() => plain(decodeRoom(rom, id).header));
     if (leaf === 'render.png') return file(() => encodePng(renderRoomComposite(rom, decodeRoom(rom, id))));
     if (leaf === 'info.md') return text(() => roomMarkdown(rom, id));
+    if (leaf === 'scripts') {
+        const { resolveScripts } = require('./script-files');
+        return resolveScripts(['rooms', hexId(id, 2)], rom);
+    }
     return null;
 }
 
@@ -197,7 +206,7 @@ function roomMarkdown(rom, id) {
 | Objects | ${d.objects.length} |
 | Triggers | ${d.triggers.stepOn.length} step-on, ${d.triggers.bTrigger.length} B-button |
 
-[header.json](header.json)
+[header.json](header.json) | [scripts/](scripts/index.md)
 
 ![Room ${hexId(id, 2)}](render.png)
 `;

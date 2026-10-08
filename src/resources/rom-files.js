@@ -22,9 +22,13 @@ const HEADER = 0xFFC0;
 function resolveRom(segments, rom) {
     const [head, ...rest] = segments;
     if (head === undefined) {
-        return dir([['index.md', 'file'], ['rom.sfc', 'file'], ['header.json', 'file'], ['assets', 'dir']]);
+        return dir([['index.md', 'file'], ['rom.sfc', 'file'], ['header.json', 'file'], ['assets', 'dir'], ['scripts', 'dir']]);
     }
     if (head === 'assets') return resolveAssets(rest, rom);
+    if (head === 'scripts') {
+        const { resolveScripts } = require('./script-files');
+        return resolveScripts(rest, rom);
+    }
     if (rest.length === 0) {
         if (head === 'index.md') return text(() => indexMarkdown(rom));
         if (head === 'rom.sfc') return file(() => Buffer.from(rom.buffer, rom.byteOffset, rom.length));
