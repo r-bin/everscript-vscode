@@ -33,6 +33,7 @@
 | Script decoding (ROM bytes → instructions) | `script` | Everything — script is isolated |
 | Config / settings | `shared` | All others |
 | `soe://` file system (ROM / WRAM as files) | `resources`, `shared` | debugger, rooms, scaling |
+| MCP server for AI clients | `mcp` | All others (reads via `vscode.workspace.fs`) |
 | Panel assembly (render-radar.js) | `memory_radar`, `shared` | domain internals |
 
 ---
@@ -351,6 +352,22 @@ and the running emulator's WRAM as files, usable in editor tabs and webviews.
 **Forbidden deps:** `emulator` (its ROM and memory reads are injected by `extension.js`)
 
 **Documentation:** `src/resources/README.md`, `docs/soe-filesystem-spec.md`
+
+---
+
+## Domain: `mcp`
+
+**Purpose:** A read-only MCP server (Streamable HTTP, `127.0.0.1:47917/mcp`) so AI
+clients can browse the `soe://` file system, including the live emulator.
+
+**Folder:** `src/mcp/`
+
+**Public API:** `require('./mcp').registerMcpServer(context)`; Claude Code connects via the repo's `.mcp.json`
+
+**Allowed deps:** `vscode` only — every read goes through `vscode.workspace.fs`
+**Forbidden deps:** every other `src/` domain
+
+**Documentation:** `src/mcp/README.md`
 
 ---
 

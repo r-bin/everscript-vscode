@@ -1280,6 +1280,8 @@ function activate(context) {
         readMemory: (addr, len) => emulatorPanel.readMemory(addr, len),
         emulatorStatus: () => emulatorPanel.getStatus(),
     });
+    // AI clients read the same soe:// tree over MCP (src/mcp/README.md).
+    require('./mcp').registerMcpServer(context);
 
     // ── Emulator Panel ───────────────────────────────────────────────────────
     const { openEmulatorPanel } = require('./emulator/panel');

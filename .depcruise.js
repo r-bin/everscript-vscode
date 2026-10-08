@@ -72,6 +72,14 @@ module.exports = {
     },
 
     {
+      name: 'no-mcp-to-domains',
+      comment: 'The MCP server reads soe:// through vscode.workspace.fs only.',
+      severity: 'warn',
+      from: { path: '^src/mcp/' },
+      to: { path: '^src/(?!mcp/)' },
+    },
+
+    {
       name: 'no-language-to-emulator',
       comment: 'Language features must not depend on the emulator.',
       severity: 'warn',

@@ -101,6 +101,18 @@ An address without an extension reads as `.json` (`soe://bus/8cd0a6` → `soe://
 
 ---
 
+## 3a. AI access over MCP (v0.180.0)
+
+A tool like Claude Code cannot read `soe://` itself, because it only sees the real disk. So the
+extension host runs a read-only MCP server (`src/mcp/`) at `http://127.0.0.1:47917/mcp`, and the repo's
+`.mcp.json` points Claude Code at it.
+
+- **Tools:** `soe_list(uri)` and `soe_read(uri)`. PNG files come back as images.
+- **Resources:** the entry points and URI templates.
+
+Verified with a headless Claude Code session against a VS Code instance running the emulator. The session read
+`status.json` and the live room via `soe://bus/7e0adb`, received the wax icon as an image, and resolved `soe://bus/8cd0a6`.
+
 ## 4. Next (Phase 2): static content
 
 | Path | Content | Source |

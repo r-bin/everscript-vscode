@@ -18,6 +18,7 @@ All production code lives here. Each subdirectory is an ownership domain.
 | `debugger/` | VS Code debugger for .evs scripts in the emulator: DAP session, compiler source map, step logic |
 | `localizations/` | Centralized subjective names (maps, sounds, tables, functions) & ROM string resolution |
 | `resources/` | Read-only `soe://` file system: ROM, decoded assets and live WRAM as files |
+| `mcp/` | Read-only MCP server (127.0.0.1:47917) serving `soe://` to AI clients; `.mcp.json` at the repo root |
 
 Entry point: `extension.js` (orchestration root, registered as `main` in package.json).
 
@@ -29,6 +30,7 @@ Entry point: `extension.js` (orchestration root, registered as `main` in package
 - `rom/` → may use `maps/`; never `emulator/` (the CDL library is injected by `extension.js`)
 - `emulator/` → may use `shared/`
 - `debugger/` → no memory, no emulator internals (the emulator bridge is injected by `extension.js`)
+- `mcp/` → `vscode` only; reads `soe://` through `vscode.workspace.fs`, never another domain
 - `resources/` → may use `shared/`, `maps/`, `script/`, `localizations/`; never `emulator/` (ROM and memory reads are injected by `extension.js`)
 - No circular dependencies allowed
 
