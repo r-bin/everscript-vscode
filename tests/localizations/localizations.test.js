@@ -148,3 +148,48 @@ test('localizations strings: decode uncompressed ROM string', () => {
     // When stringIndex is null, uses name
     assert.equal(resolveLocalizedName({ name: 'Direct Name', stringIndex: null }, mockRom), 'Direct Name');
 });
+
+test('localizations scripts: NPC, ABS, and Global script lookups', () => {
+    const {
+        getNpcScript,
+        getNpcScriptName,
+        getAbsScript,
+        getAbsScriptName,
+        getGlobalScript,
+        getGlobalScriptName,
+        setScriptOverride,
+    } = require('../../src/localizations');
+
+    // NPC scripts from screenshot
+    assert.equal(getNpcScriptName(0x17CD), 'Thraxx damage/kill');
+    assert.equal(getNpcScriptName('0x17cd'), 'Thraxx damage/kill');
+    assert.equal(getNpcScriptName(0x199E), 'Aegis kill');
+    assert.equal(getNpcScriptName(0x1A79), 'Vigor damage');
+    assert.equal(getNpcScriptName(0x1A70), 'Footknight kill');
+    assert.equal(getNpcScriptName(0x1A82), 'Puppet damage/kill');
+    assert.equal(getNpcScriptName(0x1A85), 'Mungola? damage/kill');
+    assert.equal(getNpcScriptName(0x19B0), 'Aquagoth');
+
+    // ABS scripts from screenshot
+    assert.equal(getAbsScriptName(0x93CA9F), 'Thraxx maggot trigger part');
+    assert.equal(getAbsScriptName('0x93ca9f'), 'Thraxx maggot trigger part');
+    assert.equal(getAbsScriptName(0x93D036), 'Thraxx damage / kill part [1]');
+
+    // Global scripts
+    assert.equal(getGlobalScriptName(0x00), 'Fade-out / stop music');
+    assert.equal(getGlobalScriptName('0x00'), 'Fade-out / stop music');
+
+    // Fallbacks
+    assert.equal(getNpcScriptName(0x9999), 'Unnamed Short script 0x9999');
+    assert.equal(getAbsScriptName(0x999999), 'Unnamed ABS script 0x999999');
+    assert.equal(getGlobalScriptName(0x99), 'Unnamed Global script 0x99');
+
+    // Dynamic overrides
+    setScriptOverride('npc', 0x17CD, 'Custom Thraxx Boss');
+    assert.equal(getNpcScriptName(0x17CD), 'Custom Thraxx Boss');
+
+    // Restore for other tests
+    setScriptOverride('npc', 0x17CD, 'Thraxx damage/kill');
+    assert.equal(getNpcScriptName(0x17CD), 'Thraxx damage/kill');
+});
+

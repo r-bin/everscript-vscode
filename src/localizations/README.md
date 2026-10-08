@@ -19,20 +19,29 @@
 4. **Functions (`functions.js`)**
    - Curated list of engine routine entry points, handlers, and script VM dispatchers.
 
-5. **In-game String Resolution (`strings.js`)**
+5. **Script Names (`scripts.js`)**
+   - NPC / Short scripts (e.g. `0x17cd` -> "Thraxx damage/kill", `0x199e` -> "Aegis kill", `0x1a79` -> "Vigor damage").
+   - Absolute scripts by ROM address (e.g. `0x93ca9f` -> "Thraxx maggot trigger part", `0x93d036` -> "Thraxx damage / kill part [1]").
+   - Global scripts (e.g. `0x00` -> "Fade-out / stop music").
+   - Dynamic overrides and string index binding via `setScriptOverride`.
+
+6. **In-game String Resolution (`strings.js`)**
    - Decoder for ROM strings using the 3002-key table at `$C3:D000` (`$11D000`).
    - Resolves `stringIndex` properties dynamically against ROM bytes when available, falling back to subjective names.
 
 ## Usage
 
 ```js
-const { getMapName, getMusicName, getTableName, getFunctionName, resolveLocalizedName } = require('./localizations');
+const { getMapName, getMusicName, getTableName, getFunctionName, getNpcScriptName, getAbsScriptName, resolveLocalizedName } = require('./localizations');
 
 // Get standard subjective names
 console.log(getMapName(0x38)); // "South jungle / Start"
 console.log(getMapName(0x38, { full: true })); // "Prehistoria - South jungle / Start"
 console.log(getMusicName(0x00)); // "Main Title"
+console.log(getNpcScriptName(0x17cd)); // "Thraxx damage/kill"
+console.log(getAbsScriptName(0x93ca9f)); // "Thraxx maggot trigger part"
 
 // Resolve dynamically from ROM if stringIndex is set
 const name = getMapName(0x38, { rom: romBuffer });
 ```
+

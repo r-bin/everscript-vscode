@@ -8,6 +8,7 @@ const maps = require('./maps');
 const sounds = require('./sounds');
 const tables = require('./tables');
 const functions = require('./functions');
+const scripts = require('./scripts');
 
 module.exports = {
     // Strings & resolution
@@ -42,4 +43,17 @@ module.exports = {
     FUNCTION_BY_ADDRESS: functions.FUNCTION_BY_ADDRESS,
     getFunction: functions.getFunction,
     getFunctionName: functions.getFunctionName,
+
+    // Scripts (NPC, ABS, Global)
+    NPC_SCRIPTS: scripts.NPC_SCRIPTS,
+    ABS_SCRIPTS: scripts.ABS_SCRIPTS,
+    GLOBAL_SCRIPTS: scripts.GLOBAL_SCRIPTS,
+    getNpcScript: scripts.getNpcScript,
+    getNpcScriptName: scripts.getNpcScriptName,
+    getAbsScript: scripts.getAbsScript,
+    getAbsScriptName: scripts.getAbsScriptName,
+    getGlobalScript: scripts.getGlobalScript,
+    getGlobalScriptName: scripts.getGlobalScriptName,
+    setScriptOverride: scripts.setScriptOverride,
 };
+
