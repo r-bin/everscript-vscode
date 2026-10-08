@@ -222,7 +222,16 @@ class CdlHost {
                     scriptXrefs: b64ToWords(d.scriptXrefs),
                     romHits: b64ToWords(d.romHits),
                     wramHits: b64ToWords(d.wramHits),
+                    rets: b64ToWords(d.rets),
+                    regs: b64ToWords(d.regs),
+                    bases: b64ToWords(d.bases),
+                    wcode: (d.wcode || []).map(c => ({ index: c.index, code: b64ToBytes(c.code), state: b64ToBytes(c.state) })),
+                    aram: (d.aram || []).map(a => ({ index: a.index, data: b64ToBytes(a.data) })),
                 });
+                if (d.dropped && d.dropped !== this.droppedWarned) {
+                    this.droppedWarned = d.dropped;
+                    this.log(`CDL: ${d.dropped} records dropped this session because a recorder table is full`, true);
+                }
                 if (changed) {
                     this.indexCache = null;
                     this._scheduleFlush();

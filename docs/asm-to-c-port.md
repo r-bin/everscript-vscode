@@ -341,6 +341,8 @@ or ROM bytes.
 | Shiftable export (all pointer forms symbolised) + padding test | partial: room and string pointers only |
 | 65816 → C lifter with M/X specialisation | ✅ via snesrecomp, seeded from the CDL (`recomp.sh`, v0.159.0); SoE run in v0.159.1, see §5.0 |
 | Replace a routine with hand-written C | available in snesrecomp (`hle_func`); none written yet |
+| Exit widths, jump tables, pointer jumps, PEI;RTS, WRAM routines as snesrecomp directives (recorded call stack, DB/D) | ✅ v0.174.0 |
+| Tables as editable assets (`tables/`), enums, structs, `functions.json` (incl. SA-1 blockers), SPC700 coverage | ✅ v0.174.0 |
 | SoE booting in snesrecomp (host / frame driver) | ❌, the next milestone (§11) |
 | Lockstep two-machine frame diff + divergence report | ❌ |
 | Asset extractor (ROM → `assets/`) | partial (rooms) |
@@ -443,8 +445,9 @@ verified function at a time, and the generated C shrinks accordingly.
 2. **Coverage.** 94.7 % of the ROM is untouched by the CDL, and only 3 rooms were ever
    loaded, so most of the Asar export is still `incbin rom.bin`. Coverage limits the
    disassembly, the seeds and the lockstep check alike.
-3. **Indirect jumps.** 376 of 1084 function variants stay interpreter-only, mostly behind
-   jump tables. The 46 observed sites are in the cfgs as comments (§5.0).
+3. **Indirect jumps.** 376 of 1084 function variants stayed interpreter-only (v0.159.1), mostly
+   behind jump tables. Since v0.174.0 recorded jump tables, pointer jumps and `pei ; rts` are
+   written as `indirect_dispatch`; PHA/PEA + RTS dispatch sites remain comments (no directive).
 
 ### 11.4 Next steps
 

@@ -8,6 +8,10 @@
  *   banks/bank_XX.asm     code (with callers / accesses as comments) and data
  *   rom.bin               copy of the ROM; unreached / DMA runs are incbin slices
  *   tables.md             ROM lookup tables: shape, index source, result (tables.js)
+ *   tables/               tables as editable assets: tbl_*.asm (incsrc'd), tables.json, tables.h
+ *   ram.asm, enums.asm, structs.asm (+ structs.h)   WRAM names, enums / states / flags, structs
+ *   functions.json        per-function summary (widths, DB/D, WRAM / I/O footprint, SA-1 blockers)
+ *   spc/aram.cdl          SPC700 coverage of ARAM, when recorded
  *   rooms/, rom.cdl, build.sh, build-cdl.js, export.json, STEPS.md  (asar-build.js)
  * Known regions (known-regions.js: header, rooms, strings, their pointer
  * tables) are placed first and override the CDL's view of their bytes.
@@ -24,6 +28,11 @@ const { findKnownRegions } = require('./known-regions');
 const { writeBuildFiles } = require('./asar-build');
 const { writeRecompSeeds } = require('./recomp-seeds');
 const { findTables, tablesReport, tableComment } = require('./tables');
+const { buildTableAssets } = require('./table-assets');
+const { exportWram } = require('./wram-export');
+const { buildEnums, enumsAsm } = require('./enums');
+const { inferStructs, structsAsm, structsHeader } = require('./structs');
+const { buildFunctions } = require('./functions');
 
 const CDL_CODE = 0x01, CDL_DATA = 0x02;
 const EXT_DMA = 0x01, EXT_APU = 0x02, EXT_HEAD = 0x04, EXT_POINTER = 0x20;
@@ -61,6 +70,13 @@ function pickBoundaries(rom, lib, map) {
     return { insLen, conflicts };
 }
 
+/** "12 sparse, 3 contains executed code" */
+function summarizeSkips(skipped) {
+    const counts = {};
+    for (const s of skipped) { const why = s.split(': ')[1].replace(/ \(.*\)$/, ''); counts[why] = (counts[why] || 0) + 1; }
+    return Object.entries(counts).map(([k, n]) => n + ' ' + k).join(', ') || 'none';
+}
+
 function exportAsar(lib, romInput, outDir) {
     const rom = romInput.length % 1024 === 512 ? romInput.subarray(512) : romInput;
     const map = createRomMap(rom);
@@ -71,6 +87,10 @@ function exportAsar(lib, romInput, outDir) {
     const tableAtBase = new Map(tables.map(t => [t.base, t]));
 
     const known = findKnownRegions(rom, map, lib.cdl);
+    const taken = new Uint8Array(rom.length);
+    for (const r of known.regions) taken.fill(1, r.start, r.end);
+    const assets = buildTableAssets({ tables, rom, lib, map, index, taken });
+    known.regions = known.regions.concat(assets.regions).sort((a, b) => a.start - b.start);
     const regionAt = new Map(known.regions.map(r => [r.start, r]));
     const inRegion = new Uint8Array(rom.length);
     for (const r of known.regions) inRegion.fill(1, r.start, r.end);
@@ -136,7 +156,12 @@ function exportAsar(lib, romInput, outDir) {
             const segBase = off - (off % map.segment);
             return segBase === off ? segName(off) : segName(segBase) + '+$' + hex(off - segBase, 4);
         }
-        if (!emitted.has(off)) return null;
+        if (!emitted.has(off)) {
+            // a field inside a table asset: tbl_XXXXXX+$n keeps the bytes and follows the table
+            const r = width === 16 ? regionOf(off) : null;
+            if (!r || !r.table || (map.type !== 'LoROM' && (bus & 0xFFFF) < 0x8000)) return null;
+            return r.name + '+$' + hex(off - r.start, 4);
+        }
         if (width === 16 && map.type !== 'LoROM' && (bus & 0xFFFF) < 0x8000 && !index.callers.has(off)) return null;
         return nameOf(off);
     }
@@ -189,7 +214,7 @@ function exportAsar(lib, romInput, outDir) {
             lines.push('');
             if (readers.length) lines.push('; read by: ' + clip([...new Set(readers)], LIST_MAX).join(', '));
             if (lib.romHits && lib.romHits[off]) lines.push('; first byte read ' + countText(lib.romHits[off]) + ' times');
-            if (tableAtBase.has(off)) lines.push('; table: ' + tableComment(tableAtBase.get(off), map));
+            if (tableAtBase.has(off) && !regionAt.has(off)) lines.push('; table: ' + tableComment(tableAtBase.get(off), map));
         }
         lines.push(name + ':');
         return lines;
@@ -281,6 +306,27 @@ function exportAsar(lib, romInput, outDir) {
 
     const s = lib.summary ? lib.summary() : null;
     const mapper = { LoROM: 'lorom', HiROM: 'hirom', ExHiROM: 'exhirom' }[map.type] || 'hirom';
+    // WRAM names, enums, structs: defines the bank files may use once renamed
+    exportWram(lib, rom, outDir, {});
+    const enums = buildEnums(lib, rom);
+    fs.writeFileSync(path.join(outDir, 'enums.asm'), enumsAsm(enums) + '\n');
+    fs.writeFileSync(path.join(outDir, 'enums.json'), JSON.stringify(enums, null, 1) + '\n');
+    const structs = inferStructs(lib, rom, map, index);
+    fs.writeFileSync(path.join(outDir, 'structs.asm'), structsAsm(structs, index) + '\n');
+    fs.writeFileSync(path.join(outDir, 'structs.h'), structsHeader(structs) + '\n');
+    fs.writeFileSync(path.join(outDir, 'structs.json'), JSON.stringify(structs, null, 1) + '\n');
+    const functions = buildFunctions(lib, rom, map, index, tables);
+    fs.writeFileSync(path.join(outDir, 'functions.json'), JSON.stringify(functions.list, null, 1) + '\n');
+    fs.rmSync(path.join(outDir, 'tables'), { recursive: true, force: true });
+    for (const f of assets.files) {
+        fs.mkdirSync(path.dirname(path.join(outDir, f.path)), { recursive: true });
+        fs.writeFileSync(path.join(outDir, f.path), f.text);
+    }
+    if (lib.aram && lib.aram.some(v => v)) {
+        fs.mkdirSync(path.join(outDir, 'spc'), { recursive: true });
+        fs.writeFileSync(path.join(outDir, 'spc', 'aram.cdl'), lib.aram);
+    }
+
     const main = [
         '; Generated by Everscript from the CDL library (' + (lib.hash || '') + ')',
         '; ROM: ' + (map.header ? map.header.title : '?') + ' - ' + map.type + ', ' + rom.length + ' bytes',
@@ -292,17 +338,27 @@ function exportAsar(lib, romInput, outDir) {
         '',
         ...known.defines,
         '',
+        'incsrc "ram.asm"',
+        'incsrc "enums.asm"',
+        'incsrc "structs.asm"',
+        '',
         ...includes,
         '',
     ].join('\n');
     const mainPath = path.join(outDir, 'main.asm');
     fs.writeFileSync(mainPath, main);
-    const recomp = writeRecompSeeds({ lib, map, index, known, outDir });
+    const recomp = writeRecompSeeds({ lib, rom, map, index, known, outDir });
     known.steps.push(recomp.step);
     const report = tablesReport(tables, map, index, lib);
     fs.writeFileSync(path.join(outDir, 'tables.md'), report.text + '\n');
     known.steps.push('ROM lookup tables: tables.md with ' + tables.length + ' tables ('
-        + Object.entries(report.counts).map(([k, n]) => n + ' ' + k).join(', ') + ').');
+        + Object.entries(report.counts).map(([k, n]) => n + ' ' + k).join(', ') + '); ' + assets.regions.length
+        + ' became assets in tables/ (' + assets.skipped.length + ' kept inline: ' + summarizeSkips(assets.skipped) + ').');
+    known.steps.push(`WRAM: ram.asm, ${enums.length} enums / states / flag sets in enums.asm, ${structs.length} structs in structs.asm / structs.h.`);
+    let aramExec = 0;
+    if (lib.aram) for (const v of lib.aram) if (v & 1) aramExec++;
+    known.steps.push(`functions.json: ${functions.summary.functions} functions; SA-1: ${functions.summary.pure} need nothing S-CPU-only (callees included), `
+        + `${functions.summary.wramOnly} more only need their WRAM moved` + (aramExec ? `; SPC700: ${aramExec} ARAM opcodes recorded (spc/aram.cdl).` : '.'));
     const build = writeBuildFiles({ lib, rom, map, outDir, known, labels: [...emitted].map(o => [nameOf(o), o]), banks: includes.length, functions: index.entries.length });
     return { mainPath, build, recomp, known, tables: tables.length, banks: includes.length, functions: index.entries.length, codeLines, index, map };
 }

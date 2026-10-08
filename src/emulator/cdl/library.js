@@ -21,6 +21,7 @@
  *   script-xrefs.bin [script instruction, wram addr, flags]                       OR
  *   rom-hits.bin     [rom offset, hits lo, hits hi]  execs at opcode heads, reads at data   SUM
  *   wram-hits.bin    [wram addr, reads lo, reads hi, writes lo, writes hi]                 SUM
+ *   rets / regs / bases / wram-code / aram: library-ext.js
  *
  * Newer files are optional: a library written before they existed still loads,
  * keeps all its data, and gains them on the next flush (wram.flags is derived
@@ -32,6 +33,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { initExt, mergeExt, loadExt, extWriters, EXT_FILES } = require('./library-ext');
 
 const FORMAT = 1;
 const WRAM_SIZE = 0x20000;
@@ -103,6 +105,7 @@ class CdlLibrary {
         this.wramReads = new Float64Array(WRAM_SIZE);
         this.wramWrites = new Float64Array(WRAM_SIZE);
         this.hasHits = false;
+        initExt(this);
         this.manifest = null;
         this.dirty = new Set();
         this.changes = 0;
@@ -143,6 +146,8 @@ class CdlLibrary {
             this.wramWrites[wh[i]] = wh[i + 3] + wh[i + 4] * TWO32;
         }
         this.hasHits = !!(rh || wh);
+        loadExt(this, (name, magic, words) => readRecords(this._file(name), magic, words),
+            name => (fs.existsSync(this._file(name)) ? new Uint8Array(fs.readFileSync(this._file(name))) : null));
         if (fs.existsSync(this._file('wram.flags'))) {
             this.wflags.set(fs.readFileSync(this._file('wram.flags')).subarray(0, WRAM_SIZE));
         } else {
@@ -256,6 +261,7 @@ class CdlLibrary {
         this.mergeLists(delta.xrefs, delta.edges, delta.stats);
         this.mergeScriptXrefs(delta.scriptXrefs);
         this.addHits(delta.romHits, delta.wramHits);
+        mergeExt(this, delta, name => this._touch(name));
         return this.changes !== before;
     }
 
@@ -290,6 +296,7 @@ class CdlLibrary {
                 }
                 return packRecords('EVWH', rows, 5);
             },
+            ...extWriters(this, packRecords),
         };
         for (const name of this.dirty) {
             const data = writers[name] && writers[name]();
@@ -303,7 +310,7 @@ class CdlLibrary {
             title: this.info.title || (this.manifest && this.manifest.title) || '',
             mapType: this.info.mapType || (this.manifest && this.manifest.mapType) || '',
             romSize: this.romSize,
-            files: ['rom.cdl', 'rom.ext', 'wram-values.bin', 'xrefs.bin', 'edges.bin', 'pcstats.bin', 'wram.flags', 'script-xrefs.bin', 'rom-hits.bin', 'wram-hits.bin'],
+            files: ['rom.cdl', 'rom.ext', 'wram-values.bin', 'xrefs.bin', 'edges.bin', 'pcstats.bin', 'wram.flags', 'script-xrefs.bin', 'rom-hits.bin', 'wram-hits.bin', ...EXT_FILES],
             updated: now,
         });
         writeAtomic(this._file('manifest.json'), JSON.stringify(this.manifest, null, 2));

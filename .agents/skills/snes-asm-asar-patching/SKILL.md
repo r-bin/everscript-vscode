@@ -84,6 +84,24 @@ Writing 65c816 assembly without crashing the SNES requires strict adherence to r
 
 ---
 
+## 3.4 Names and data from the CDL export
+
+The emulator's CDL export (`docs/workflows/cdl-export-build-recomp.md`, cdl-recorder skill)
+writes recorded facts as Asar source a patch can reuse instead of raw addresses:
+
+- `ram.asm`: `!wram_7EXXXX` for every WRAM address the CPU touched, with readers/writers.
+- `enums.asm`: `!enum_7EXXXX_NN` per recorded value; for state variables the comment names the
+  handler each value dispatches to. `!flag_7EXXXX_bitN` for bit-flag bytes.
+- `structs.asm`: `!struct_7EXXXX_N` instance bases and `!struct_7EXXXX_fNN` field offsets.
+- `tables/tbl_XXXXXX.asm`: ROM lookup tables as editable `dw` / `db` rows. Changing a value
+  there and rebuilding changes only that value; changing the entry count needs the indexing code.
+- `functions.json`: the entry and exit M/X widths each function was seen with — check them
+  before hooking a routine (§3.1).
+
+These are recordings, not proofs: a value or path never played is missing.
+
+---
+
 ## 4. Disassembling IPS to Asar with `ips2asar.py`
 
 To inspect what an existing binary IPS patch is doing:

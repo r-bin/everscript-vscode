@@ -5,9 +5,10 @@
  *
  * CDL -> snesrecomp analysis seeds (https://github.com/RetroPortingToolKit/snesrecomp):
  *   recomp/cfg/bankXX.cfg   one per bank code ran in (the runtime bank, e.g. $80, not $C0):
- *                           `func <name> <pc16> entry_mx:M,X` per recorded entry,
- *                           `data_region` for known regions (rooms, strings, tables),
- *                           observed indirect jumps/calls as comments
+ *                           `func <name> <pc16> entry_mx:M,X [exit_mx:M,X]` per recorded entry,
+ *                           exit width variants, indirect_dispatch for recorded jump tables /
+ *                           pointer jumps / PEI;RTS, ram_routine for WRAM code (recomp-analysis.js),
+ *                           `data_region` for known regions (rooms, strings, lookup tables)
  *   recomp.sh               scaffold once, copy the seeds, `generate`, build the static library
  * The seeds only add roots and widths the recorder saw; snesrecomp's own analysis
  * still walks everything reachable from them and the vectors (`auto_vectors`).
@@ -16,10 +17,11 @@
 const fs = require('fs');
 const path = require('path');
 const { hex } = require('./rom-map');
+const { returnsByEntry, exitDirectives, dispatchDirectives, noReturnComments, ramRoutines } = require('./recomp-analysis');
 
 const CDL_ACC_8 = 0x20, CDL_IDX_8 = 0x10;
 const EXT_SEEN_M16 = 0x08, EXT_SEEN_X16 = 0x10;
-const FLOW_CALL = 1, FLOW_INDIRECT = 8, FLOW_INTERRUPT = 0x10;
+const FLOW_CALL = 1, FLOW_INTERRUPT = 0x10;
 
 const RECOMP_SH = `#!/bin/sh
 # Static recompilation with snesrecomp (https://github.com/RetroPortingToolKit/snesrecomp)
@@ -69,17 +71,6 @@ function entryAddresses(lib, map, index) {
     return at;
 }
 
-/** Indirect jumps / calls (JMP (a), JMP (a,x), JML [a], JSR (a,x)) and their observed targets. */
-function indirectSites(lib) {
-    const sites = new Map();   // from bus -> [to bus]
-    for (const [key, kind] of lib.edges) {
-        if (!(kind & FLOW_INDIRECT) || (kind & FLOW_INTERRUPT)) continue;
-        const from = Math.floor(key / 0x1000000), to = key % 0x1000000;
-        (sites.get(from) || sites.set(from, []).get(from)).push(to);
-    }
-    return sites;
-}
-
 /** Known regions merged where one ends exactly where the next starts. */
 function mergedRegions(regions) {
     const out = [];
@@ -91,14 +82,15 @@ function mergedRegions(regions) {
     return out;
 }
 
-function writeRecompSeeds({ lib, map, index, known, outDir }) {
+function writeRecompSeeds({ lib, rom, map, index, known, outDir }) {
     const cfgDir = path.join(outDir, 'recomp', 'cfg');
     fs.rmSync(cfgDir, { recursive: true, force: true });
     fs.mkdirSync(cfgDir, { recursive: true });
 
     const banks = new Map();   // runtime bank -> lines
     const bankLines = b => banks.get(b) || banks.set(b, []).get(b);
-    let funcs = 0, mixed = 0;
+    let funcs = 0, mixed = 0, exits = 0;
+    const returns = returnsByEntry(lib);
     for (const [off, buses] of entryAddresses(lib, map, index)) {
         const c = lib.cdl[off], e = lib.ext[off];
         const m = []; if (e & EXT_SEEN_M16) m.push(0); if (c & CDL_ACC_8) m.push(1);
@@ -109,16 +101,19 @@ function writeRecompSeeds({ lib, map, index, known, outDir }) {
         if (note) mixed++;
         for (const bus of buses) {
             const name = index.labelName(off) + (buses.size > 1 ? '_' + hex(bus >>> 16, 2) : '');
-            bankLines(bus >>> 16).push(`func ${name} ${hex(bus & 0xFFFF, 4).toLowerCase()} entry_mx:${m[0]},${x[0]}${note}`);
+            const ex = exitDirectives(returns.get(bus), bus);
+            if (ex.inline || ex.lines.length) exits++;
+            bankLines(bus >>> 16).push(`func ${name} ${hex(bus & 0xFFFF, 4).toLowerCase()} entry_mx:${m[0]},${x[0]}${ex.inline}${note}`, ...ex.lines);
             funcs++;
         }
     }
 
-    const sites = indirectSites(lib);
-    for (const [from, tos] of sites) {
-        const targets = [...new Set(tos)].sort((a, b) => a - b).map(t => hex(t, 6));
-        bankLines(from >>> 16).push(`# indirect at ${hex(from & 0xFFFF, 4)} -> ${targets.join(',')}  (observed; add an indirect_dispatch once the table is known)`);
-    }
+    const dispatch = rom ? dispatchDirectives({ lib, rom, map }) : { lines: new Map(), counts: { indexed: 0, pointer: 0, rtsstack: 0, comments: 0 } };
+    for (const [bank, lines] of dispatch.lines) bankLines(bank).push(...lines);
+    const labelOf = bus => { const o = map.busToRom(bus); return (o >= 0 && index.labelName(o)) || '$' + hex(bus, 6); };
+    const noReturn = noReturnComments(returns, labelOf);
+    for (const n of noReturn) bankLines(n.bank).push(n.line);
+    const ram = ramRoutines(lib, returns);
 
     // Known data, in the canonical bank and, for the upper half, the $80 mirror code reads it through.
     const data = ['# Known data regions (export seeds: rooms, strings, tables)'];
@@ -134,14 +129,17 @@ function writeRecompSeeds({ lib, map, index, known, outDir }) {
     const b0 = bankLines(0);
     b0.unshift('auto_vectors');
     b0.push(...data);
+    if (ram.lines.length || ram.skipped.length) b0.push('# Code executed from WRAM (recorded bytes)', ...ram.lines, ...ram.skipped);
     for (const [bank, lines] of [...banks].sort((a, b) => a[0] - b[0])) {
         const head = [`# Generated by Everscript from the CDL library (${lib.hash || ''}); regenerated on every export`, `bank = ${hex(bank, 2).toLowerCase()}`];
         fs.writeFileSync(path.join(cfgDir, `bank${hex(bank, 2).toLowerCase()}.cfg`), head.concat(lines).join('\n') + '\n');
     }
     fs.writeFileSync(path.join(outDir, 'recomp.sh'), RECOMP_SH, { mode: 0o755 });
     return {
-        banks: banks.size, funcs, mixed, indirect: sites.size,
-        step: `snesrecomp seeds: recomp/cfg/ with ${banks.size} bank cfgs, ${funcs} func entries (${mixed} entered with several M/X widths, first one used), ${sites.size} indirect sites as comments, ${merged.length} data regions (${known.regions.length} known regions merged). Run \`SNESRECOMP=/path/to/snesrecomp ./recomp.sh\`.`,
+        banks: banks.size, funcs, mixed, exits, dispatch: dispatch.counts, ramRoutines: ram.lines.length,
+        step: `snesrecomp seeds: recomp/cfg/ with ${banks.size} bank cfgs, ${funcs} func entries (${mixed} entered with several M/X widths, first one used; ${exits} with recorded exit widths), `
+            + `indirect_dispatch: ${dispatch.counts.indexed} indexed tables, ${dispatch.counts.pointer} pointer jumps, ${dispatch.counts.rtsstack} PEI;RTS, ${dispatch.counts.comments} sites as comments; `
+            + `${noReturn.length} noreturn candidates (comments), ${ram.lines.length} ram_routines (${ram.skipped.length} skipped), ${merged.length} data regions (${known.regions.length} known regions merged). Run \`SNESRECOMP=/path/to/snesrecomp ./recomp.sh\`.`,
     };
 }
 

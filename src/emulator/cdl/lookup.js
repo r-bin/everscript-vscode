@@ -11,6 +11,8 @@ const { hex, busName, countText } = require('./rom-map');
 const { flagText, SPACE } = require('./xref-index');
 const { valuesSeen } = require('./wram-export');
 const { tableAt, tableTitle } = require('./tables');
+const { regsByPc, basesByPc } = require('./library-ext');
+const { returnsByEntry } = require('./recomp-analysis');
 
 function parseQuery(text) {
     const clean = String(text || '').replace(/[$\s:_]/g, '').replace(/^0x/i, '');
@@ -77,6 +79,7 @@ function lookup(lib, index, map, text, opts) {
     if (ext & 0x01) kinds.push('DMA source');
     if (ext & 0x02) kinds.push('APU stream');
     if (ext & 0x20) kinds.push('jump-table pointer');
+    if (ext & 0x80) kinds.push('HDMA table');
     lines.push('seen as: ' + (kinds.join(', ') || 'unreached'));
     if (lib.hasHits && lib.romHits[off]) lines.push((ext & 0x04 ? 'executed ' : 'read ') + countText(lib.romHits[off]) + ' times');
     const label = index.labelName(off);
@@ -96,6 +99,25 @@ function lookup(lib, index, map, text, opts) {
             lines.push('in function: ' + index.labelName(f) + (f !== off ? ' +$' + hex(off - f, 2) : ''));
             const callers = (index.callers.get(f) || []).filter(c => c.kind & 0x11);
             lines.push('function called by:', ...(callers.length ? [...new Set(callers.map(c => '  ' + index.describePc(c.from)))] : ['  (no recorded calls)']));
+        }
+        const bus = map.canonical(off);
+        const pcs = [...index.byPc.keys()].filter(pc => map.busToRom(pc) === off);
+        const regs = regsByPc(lib), bases = basesByPc(lib);
+        for (const pc of new Set([...pcs, ...[...regs.keys()].filter(p => map.busToRom(p) === off)])) {
+            const r = regs.get(pc);
+            if (r) {
+                const fmt = (set, w) => [...set].sort((a, b) => a - b).map(v => '$' + hex(v, w)).join(' ');
+                lines.push('registers at ' + busName(pc) + ': DB ' + (fmt(r.db, 2) || '?') + ', D ' + (fmt(r.d, 4) || '?') + (r.y.size ? ', Y ' + fmt(r.y, 4) : ''));
+            }
+            const b = bases.get(pc);
+            if (b) lines.push('pointer bases: ' + b.slice(0, 12).map(x => '$' + hex(x.base, 6)).join(' ') + (b.length > 12 ? ' +' + (b.length - 12) : ''));
+        }
+        if (f === off) {
+            const returns = returnsByEntry(lib);
+            const ret = returns.get(bus) || [...returns].find(([e]) => map.busToRom(e) === off)?.[1];
+            if (ret && ret.variants.size) lines.push('entry -> exit widths: ' + [...ret.variants].map(([k, v]) => k + ' -> ' + [...v].join('/')).join(', '));
+            if (ret && ret.modified.size) lines.push('adjusts its return address (inline data after the call?)');
+            if (ret && !ret.normal && ret.dropped.size) lines.push('never returned normally (frame unwound)');
         }
         const here = (index.callers.get(off) || []).filter(c => f !== off || !(c.kind & 0x11));
         if (here.length) lines.push('jumped to from:', ...[...new Set(here.map(c => '  ' + index.describePc(c.from)))]);

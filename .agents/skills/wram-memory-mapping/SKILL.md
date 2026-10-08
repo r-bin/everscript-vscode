@@ -101,3 +101,21 @@ if (<0x2260, 0x10>) {
 // Mark a gourd as looted ($2268 bit 0x01)
 <0x2268, 0x01> = True;
 ```
+
+---
+
+## Recorded evidence from the CDL export
+
+The emulator's CDL recorder (cdl-recorder skill) gives measured, not assumed, layout data.
+The memory map stays the source of truth for names; use the export to check or extend it:
+
+- `structs.json` / `structs.h`: instance bases, stride and field offsets inferred from
+  indexed and pointer accesses. Recorded on SoE: entity records at `$7E3DE5 + n * $8E`
+  (30+ slots, reached through pointer bases) and two further records at `$7E4E89` / `$7E4F37`
+  (`$AE` apart, so larger than a slot).
+- `enums.json`: values each WRAM byte was written with; state variables name their handlers.
+- `ram.asm`: readers / writers (functions and script instructions) and read/write counts.
+- `functions.json`: which WRAM ranges each function reads and writes.
+
+Only what was played is recorded; a field never touched while recording is absent.
+

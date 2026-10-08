@@ -1,7 +1,7 @@
 ---
 name: cdl-recorder
-description: Use when touching the Code/Data Logger (CDL) — the recorder compiled into the snes9x core (cdl.c, cdl-wram.c, cdl-table.c, hook sites in cpuexec/getset/dma/cpuops), the per-ROM library, xrefs, the Asar / ram.asm / snesrecomp exports, the CDL tab, or any analysis built on recorded coverage (struct inference, indirect-jump resolution, recomp seeds).
-applyTo: "src/emulator/cdl/**,src/emulator/cdl-*.js,src/emulator/core/snes9x2005-wasm/source/cdl*,tools/gen-cdl-optable.js,tests/debugger/cdl.test.js,docs/workflows/cdl-export-build-recomp.md,docs/asm-to-c-port.md"
+description: Use when touching the Code/Data Logger (CDL) — the recorder compiled into the snes9x core (cdl*.c, hook sites in cpuexec/getset/dma/cpuops/spc700.h/apumem.h), the per-ROM library, xrefs, the Asar export and its assets (tables/, enums, structs, functions.json, snesrecomp cfgs), the CDL tab, or any analysis built on recorded data for a recomp, decomp or SA-1 port.
+applyTo: "src/emulator/cdl/**,src/emulator/cdl-*.js,src/emulator/core/snes9x2005-wasm/source/cdl*,src/emulator/core/snes9x2005-wasm/source/spc700.h,src/emulator/core/snes9x2005-wasm/source/apumem.h,tools/gen-cdl-optable.js,tests/debugger/cdl*.test.js,docs/workflows/cdl-export-build-recomp.md,docs/asm-to-c-port.md"
 ---
 
 # Skill: CDL recorder, library and exports
@@ -9,17 +9,24 @@ applyTo: "src/emulator/cdl/**,src/emulator/cdl-*.js,src/emulator/core/snes9x2005
 Read first: `src/emulator/cdl/README.md` (file map, invariants, allowed deps).
 Usage: `docs/workflows/cdl-export-build-recomp.md`. Goal and status: `docs/asm-to-c-port.md` §10–11.
 Design history: `docs/tracing-disassembler-and-asar-generation.md` §9 (§1–8 are the original
-proposal; parts of it were never built, e.g. struct fingerprinting).
+proposal and differ from what was built).
+
+**Goal of everything here:** collect what a static recompilation (snesrecomp), a later
+decompilation (readable C) and an even later SA-1 port need, which static analysis alone
+cannot know: real entry/exit widths, jump-table targets, data bank / direct page, which
+bytes are tables, how WRAM is laid out, and what each function touches.
 
 ## 1. Pipeline
 
 ```text
 core (WASM, per instruction / access)        webview (every 15 s)        host (Node)
-  cdl.c       rom.cdl + rom.ext, edges,  ──► cdl-view.js drains only ──► library.js merges (OR/min/max/union)
-              xrefs, pcstats, wvals           changed chunks / dirty      flushes 60 s after last change
-  cdl-wram.c  wflags, script-xrefs            table entries                (max every 5 min, at once on pause/stop)
-                                                                           ▼
-                                   asar-export / wram-export / recomp-seeds / asar-build
+  cdl.c        rom.cdl/ext, edges, xrefs, ─► cdl-view.js drains only ──► library.js + library-ext.js merge
+               pcstats, wvals, DMA/HDMA/$2180    changed chunks /           flush 60 s after last change
+  cdl-wram.c   wflags, script-xrefs, WRAM code   new table entries          (max every 5 min, at once on pause/stop)
+  cdl-count.c  hit counters (deltas)                                        ▼
+  cdl-flow.c   shadow call stack -> rets       asar-export ─► banks/, tables/ (assets), ram/enums/structs.asm,
+  cdl-regs.c   DB / D, pointer bases + Y                      functions.json, recomp/cfg (snesrecomp), spc/aram.cdl
+  cdl-spc.c    SPC700 ARAM coverage
 ```
 
 ## 2. Hard rules
@@ -30,84 +37,100 @@ core (WASM, per instruction / access)        webview (every 15 s)        host (N
   from different sessions or players merge to the same result in any order. A new field needs
   a merge rule before it ships.
 - **Hit counts are the one exception: they are summed** (user decision, v0.173.0: having counts
-  matters more than idempotence). This is only correct because the core drains counts as
-  **deltas** (`cdl-count.c` zeroes what it hands out) and the library adds each delta once.
-  Never seed counts back into the core, and never re-apply a library's counts to itself.
+  matters more than idempotence). Correct only because the core drains them as **deltas**
+  (`cdl-count.c` zeroes what it hands out). Never seed counts back, never merge a library into itself.
+- **`wram-code.bin` keeps the first bytes seen**; a later session with different bytes only sets
+  `CHANGED` in `wram-code.state`. Never emit a `ram_routine` for a CHANGED byte range.
 - **New library files are optional.** Old libraries must load unchanged; bump nothing, add a file.
 - **Export must rebuild byte-identically** (`asar --fix-checksum=off`). Known regions win over
-  the CDL for their bytes. Branches always use a label, never a bare number.
-- **`opcodes.js` is the single source for the opcode table.** After editing it, run
-  `node tools/gen-cdl-optable.js` (regenerates `cdl-optable.h`; a test fails on drift),
-  then rebuild the core (emulator-subsystem skill).
-- **Every C hook sits behind `#if EVS_CDL`** and checks `cdl.active` with `__builtin_expect(…, 0)`.
-  `cdl.active` is only true inside `S9xMainLoop`, so debugger reads are never recorded.
+  the CDL for their bytes. Branches always use a label. Table assets are known regions that
+  `incsrc` their file, so an asset that is wrong only misnames bytes, never changes them.
+- **`opcodes.js` is the single source for the opcode tables** (`CDL_OpInfo`, `CDL_OpFlow`,
+  `CDL_OpPtr`). After editing it run `node tools/gen-cdl-optable.js`, then rebuild the core.
+- **Every C hook sits behind `#if EVS_CDL`** (`-DEVS_CDL=0` strips them; `CDL_SPC_*` macros
+  compile to nothing). CPU hooks check `cdl.active` (true only inside `S9xMainLoop`, so debugger
+  reads are never recorded). SPC hooks check `cdl.enabled`: the APU catches up outside it.
+- **The active APU is `spc700.c` + `apumem.h`**, not `apu_blargg.c` (`USE_BLARGG_APU` is not
+  defined). Hooks in `apu_blargg.c` would be dead code.
 - `rom.cdl` keeps the **Mesen-S / BizHawk bit layout** (CODE 01, DATA 02, JUMP 04, SUB 08,
-  IDX8 10, ACC8 20). Anything else goes in `rom.ext` or a new file.
+  IDX8 10, ACC8 20). Everything else goes in `rom.ext` or a new file. `rom.ext` and `wram.flags`
+  have no free bits left (0x80 = HDMA / DMA since v0.174.0).
+- **snesrecomp directives must match its parser** (`recompiler/v2/cfg_loader.py`): `rtsstack` is
+  only valid on a `PEI` site; `exit_mx` widths use 1 = 8-bit; `indirect_dispatch` counts are
+  entries, not bytes. When there is no directive for a pattern, write a `#` comment instead.
 
-## 3. What is recorded (and what is not)
+## 3. What is recorded
 
 | Recorded | Where | Notes |
 |---|---|---|
-| code/data per ROM byte, opcode head, M/X seen (both widths → conflict) | `rom.cdl`, `rom.ext` | M/X per instruction byte |
-| control-flow edges: call, jump, taken branch, indirect, interrupt | `edges.bin` | **no return edges** (RTS/RTL/RTI are not flow kinds) |
-| (PC, effective address, R/W, byte/word, pointer, DMA) | `xrefs.bin` | **capped at 128 addresses per (PC, space)**, beyond → bulk range in `pcstats` |
-| values written per WRAM byte (256-bit set) | `wram-values.bin` | writes only, per byte (word values are split) |
-| WRAM R/W/width/exec/script/pointer per byte | `wram.flags` | |
-| script instruction → WRAM it touched | `script-xrefs.bin` | needs the interpreter fetch pattern (SoE `$0CD0A6`) |
-| DMA source ranges in ROM (VRAM/CGRAM kind) | `rom.ext`, xrefs | general DMA only |
-| executions per opcode head, reads per ROM data byte | `rom-hits.bin` (core `cdl-count.c`) | summed; Float64 in the host, 2×uint32 on disk |
-| reads / writes per WRAM byte | `wram-hits.bin` | a word access counts at its low byte |
+| code/data per ROM byte, opcode head, M/X seen (both widths → conflict) | `rom.cdl`, `rom.ext` | |
+| edges: call, jump, taken branch, indirect, interrupt, **FLOW_RETURN** (0x20) | `edges.bin` | FLOW_RETURN = return to an address the code pushed or adjusted |
+| (PC, effective address, R/W, width, pointer, DMA) | `xrefs.bin` | capped at 128 addresses per (PC, space), then a bulk range in `pcstats` |
+| HDMA table starts | `xrefs.bin` from PC 0 | labelled `hdma_*`; table bytes get `EXT_HDMA` |
+| values written per WRAM byte | `wram-values.bin` | includes `$2180` writes and DMA into WRAM |
+| WRAM R/W/width/exec/script/pointer/DMA per byte | `wram.flags` | `WF_POINTER` also for pointer fetches of `(dp),Y` etc. |
+| script instruction → WRAM it touched | `script-xrefs.bin` | SoE interpreter fetch found by byte pattern |
+| hit counts | `rom-hits.bin`, `wram-hits.bin` | summed deltas |
+| return outcomes per (entry, return instr, entry M/X, exit M/X) | `rets.bin` | NORMAL / MODIFIED (adjusted return address) / DROPPED (call site never returned to) / INTERRUPT |
+| DB and D per instruction, Y at pointer sites | `regs.bin` | change-filtered per ROM byte; ≤32 values per (PC, kind) |
+| pointer behind `(dp)`, `(dp,X)`, `(dp),Y`, `[dp]`, `[dp],Y`, `(sr,S),Y` | `bases.bin` | read before the instruction runs; ≤32 per PC |
+| code executed from WRAM: bytes + seen/changed | `wram-code.bin`, `wram-code.state` | |
+| SPC700: exec / operand / read / write per ARAM byte | `aram.cdl` | operands = bytes between two sequential opcode fetches |
 
-**Not recorded** (known gaps):
-- **DB and D register values.** Effective addresses are right, but the base/offset split for
-  dp modes and the bank for `abs` cannot be recovered when D ≠ 0 or DB ≠ $7E/$80.
-- **Pointer bases of indirect modes** (`(dp),y`, `[dp],y`, `(sr,s),y`): only the effective address
-  is stored, so a field offset in Y and a struct base in the pointer cannot be separated.
-  The pointer fetch itself is only flagged `XR_POINTER` for indirect *jumps*.
-- **HDMA table reads** (`S9xDoHDMA` reads through raw pointers, no hook), so HDMA tables in ROM stay unmarked.
-- **WRAM writes through `$2180` (WMDATA)** and DMA into WRAM: recorded as an I/O access, the
-  WRAM bytes they write get no flags or values.
-- **Return-address tricks**: stack drops (`PLA:PLA` before RTS), push-address-then-RTS dispatch,
-  and inline arguments after `JSR`. These produce no edge or flag. (On SoE, recorded data shows
-  no inline args after JSR/JSL so far.)
-- **SPC700 / ARAM**: only "ROM byte streamed to `$2140-3`" (`EXT_APU_SOURCE`).
-- **Stack-relative accesses** (`lda $07,s`) further than 4 bytes from S land in WRAM xrefs as noise.
-- Edge/xref tables grow up to `TABLE_MAX`, then **drop new keys silently**.
+**Shadow call stack** (`cdl-flow.c`): calls and interrupts push (entry, expected return, call
+site, S after the push). A return is matched **by S**: top frame → normal (or MODIFIED if the
+target differs); deeper frame → the frames above are DROPPED; below every frame → a return
+through a pushed address (FLOW_RETURN edge, target marked JUMP_TARGET). TCS/TXS do not reset it;
+an RTS with S above every frame does (stack switch).
+
+**Still not recorded:** per-value counts, word values as words (wvals split bytes), read values,
+SPC700 DSP / BRR sample origins, SA-1 / coprocessor buses (snes9x2005's SA-1 core is separate and
+unhooked), timing (cycles per function). HDMA hooks are not exercised on SoE (it uses general DMA
+in every sampled frame); they are verified only by code review.
+
+**Recording overhead** (headless, 3000 SoE frames): 900 ms off, 1260 ms with the v0.172 recorder,
+1410 ms with everything above. The SPC fast path is inline in `cdl.h`; keep new per-instruction
+work behind a "seen lately" or "already marked" check.
 
 ## 4. Changing the recorder: checklist
 
-1. C side: add the bit/table in `cdl.h` / `cdl.c` (or `cdl-wram.c` for WRAM), a dirty bit,
-   and a drain export (`EMSCRIPTEN_KEEPALIVE`, records into `CDL_Out`).
-2. Keep the per-instruction path allocation-free; filter repeats through the `recent*` cache
-   before touching a hash table.
-3. Webview: drain it in `cdl-view.js` and post a delta. Host: merge it in `library.js` with a
-   commutative rule, and write it as a new optional file.
-4. Export consumers: `xref-index.js` first (all exporters read through it).
-5. Tests: `tests/debugger/cdl.test.js` (merge order independence, rebuild byte-identity).
-6. Rebuild the core and run the headless boot to check that recording still keeps up at full speed.
+1. C: constant/prototype in `cdl.h`, code in the owning `cdl-*.c` (new stream → new file), a dirty
+   bit or dirty list, a drain export (`EMSCRIPTEN_KEEPALIVE`, records into `CDL_Out`), alloc/free
+   wired into `cdlEnable` / `cdlDisable`.
+2. `debugger-post.js` `cdlDrain` (guard with `typeof Module._x === 'function'` so older cores
+   still work), then **rebuild the core** (`sh tools/build_snes_core.sh custom`) — the glue is
+   part of the build output.
+3. `cdl-view.js` posts it, `host.js` decodes it, `library.js` / `library-ext.js` merge and store it.
+4. Consumers read through `xref-index.js` / `library-ext.js` helpers (`retsList`, `regsByPc`, `basesByPc`).
+5. Tests: `tests/debugger/cdl.test.js` (core streams, export) and `tests/debugger/cdl-recomp.test.js`
+   (new streams, directives, assets, structs, enums, functions). Check `-DEVS_CDL=0` still compiles.
+6. Headless check: boot `../everscript/out/Secret of Evermore (U) [!].smc` (skips the intro), run a
+   few thousand frames with scripted input, drain into a scratch `CdlLibrary`, export, `build.sh`.
 
-## 5. Analyses that work on today's data
+## 5. Export products and how they are derived
 
-- **ROM lookup tables** (`tables.js`, exported as `tables.md` plus `; table:` header comments).
-  Each `abs,X` / `abs,Y` / `long,X` ROM read gives `index = address − operand`. Sites sharing a
-  base form one table; neighbouring bases with the same index set are fields of one record;
-  the entry size is the gcd of the indices. A walk back finds the index source
-  (`$7E0010 > asl > tax`), and a walk forward finds the result (`sta $7E0020`, or the A operand of
-  `cmp/adc`). Entries are classified as increasing/decreasing curves, code pointers or plain lookups.
-  On vanilla SoE: 202 tables. Limits: only indices that were actually used are seen (play the
-  level-ups to see a stat table), `[dp],y` reads are not covered, and a walk back can cross a
-  loop join and report the wrong source.
+| File | Module | Derived from |
+|---|---|---|
+| `recomp/cfg/bankXX.cfg` | `recomp-seeds.js`, `recomp-analysis.js` | `func … entry_mx exit_mx`, `exit_mx_variant` / `exit_mx_set` from rets; `indirect_dispatch … idx:X` for `jmp/jsr (abs,X)` (count = highest table entry that is an observed target); `ptrtail` / `ptrcall` (PEA before) for `jmp (abs)` / `jml [abs]`; `rtsstack` for `pei ; rts`; `ram_routine` for unchanged WRAM code; comments for PHA/PEA+RTS dispatch, adjusted returns, never-returning callees |
+| `tables.md`, `tables/tbl_*.asm`, `tables.json`, `tables.h` | `tables.js`, `table-assets.js` | indexed ROM reads. Asset only when dense (≥1 recorded index per 8 entries), no executed byte inside, no overlap, one bank; else comment only. Code operands into an asset become `tbl_X+$n` |
+| `enums.asm`, `enums.json` | `enums.js` | ram.asm classification; a state that feeds `asl / tax / jsr (abs,X)` maps each value to its handler |
+| `structs.asm`, `structs.h`, `structs.json` | `structs.js` | indexed absolute accesses, pointer bases + Y, D ≠ 0. Sets merge when they share ≥ half the smaller one and sit on the larger one's stride; byte-stride groups that overlap are dropped |
+| `functions.json` | `functions.js` | per function: entries, callers/callees, widths, DB/D, WRAM ranges, I/O by class, ROM data, pointer bases, SA-1 blockers (direct + through callees) |
+| `ram.asm` | `wram-export.js` | every WRAM address, accessors, values, hit counts |
+| `spc/aram.cdl` | `asar-export.js` | ARAM coverage |
 
-- **Struct inference from indexed absolute modes** (`abs,X`, `abs,Y`, `long,X`). The operand
-  is static, so `index = effective − operand`. Group PCs by identical index sets: the shared set
-  gives the instance bases, and the operands give the field offsets. On vanilla SoE, 129 PCs
-  share the set `$3DE5 $3E73 $3F01 $3F8F $401D $40AB $4E89 $4F37` (six entity slots, stride
-  `$8E`, plus two more at `$4E89/$4F37`) with 62 fields from `+$03` to `+$8C`. A second set
-  gives an array at `$3BC9`, stride `$59`. No exporter emits this yet.
-  (The `$4E45/$4EB5` stride `$70` example in the tracing doc does not match the recorded data.)
-- **Indirect dispatch tables**: the site instruction (`jmp (abs,x)` etc.) gives the table base,
-  and the edges give the observed targets. Read the table forward while entries point at code or
-  into the same bank's code range to get `indirect_dispatch` counts for snesrecomp.
-- **Exit width**: the M/X recorded on a function's RTS/RTL heads gives its exit state.
-- `dp`-mode xrefs: valid as effective addresses, but only decomposable when D = 0
-  (SoE executes TCD at only 5 sites and PLD at 1; check those functions before trusting dp offsets there).
+On SoE (headless, 6000 frames): 347 of 354 functions with exit widths, 32 indexed dispatch tables,
+4 never-returning callees, 12 PHA/PEA+RTS dispatch sites (e.g. `8C:CB9C` with 12 targets; `8F:9821`
+reached by "returns" from 8 places, a yield-like pattern), 26 table assets, 49 structs. Entity
+records: `struct_7E3DE5`, stride `$8E`, 30+ slots seen through pointer bases; `$7E4E89` / `$7E4F37`
+are two further records `$AE` apart (larger records, not on the `$8E` lattice).
+
+## 6. What each goal still needs
+
+- **Recomp (snesrecomp):** the generated C must boot (host / frame driver, `asm-to-c-port.md` §11);
+  PHA/PEA+RTS sites need `hle_dispatch`; observed-only target lists are incomplete until played.
+- **Decomp:** names. The assets give shapes (tables.h, structs.h, enums) but every name is still an
+  address; `hle_func` replacements are checked against the lockstep diff (§6 of the port doc).
+- **SA-1 port:** `functions.json` lists, per function, what keeps it on the S-CPU. The 12 SoE
+  functions with no blockers and the ~190 that only touch WRAM are the first candidates; their WRAM
+  ranges are what would move to BW-RAM / I-RAM. Timing data (cycles per function) is not recorded yet.

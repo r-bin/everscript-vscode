@@ -77,6 +77,10 @@ What the folder contains:
 | `export.json` | ROM identity and every label's original offset (used by `build-cdl.js`) |
 | `build.sh`, `build-cdl.js` | rebuild the ROM and its CDL (§4) |
 | `tables.md` | ROM lookup tables: base, entry size, values, curve / pointer guess, which WRAM variable indexes it and where the value goes |
+| `tables/tbl_XXXXXX.asm` | the safe tables as editable assets (one `dw` / `db` row per entry), included by the bank files; `tables.json` and `tables.h` (C arrays) for tools and a decomp |
+| `ram.asm`, `enums.asm`, `structs.asm` | WRAM names, enum / state / flag values (states name the handler per value), struct instances and fields; included by `main.asm`. `structs.h` and `*.json` for C and tools |
+| `functions.json` | per function: entry / exit widths, DB / D seen, callers / callees, WRAM ranges, I/O registers, ROM data, SA-1 blockers |
+| `spc/aram.cdl` | SPC700 coverage of ARAM (exec / operand / read / write), when recorded |
 | `recomp/cfg/bankXX.cfg`, `recomp.sh` | snesrecomp seeds and runner (§5) |
 | `STEPS.md` | one entry per export: what was seeded, coverage, files written |
 
@@ -122,6 +126,12 @@ Output in `build/`:
 Rules: a room must start at `$xx8000` or above in its bank, because the engine reads it
 through the `$80–$BF` mirror. It must also not cross a bank boundary. Edit `rooms/*.bin`
 to change a room's content; a size change is fine because nothing after it moves.
+
+### Edit a lookup table
+
+`tables/tbl_XXXXXX.asm` holds one row per entry. Change values and run `./build.sh`; only those
+bytes change. The header says what indexes the table and where the value goes. Adding entries
+needs the code that indexes the table (and room after it: `tables.md` lists "room for N entries").
 
 ### Add a room id
 
@@ -192,6 +202,20 @@ func func_CC9A76 9a76 entry_mx:0,0
 
 `bank00.cfg` adds `auto_vectors` and `data_region` lines for the known regions.
 
+What the seeds contain since v0.174.0 (from the recorded call stack and registers):
+
+| Directive | When |
+|---|---|
+| `func … exit_mx:M,X` | every recorded return of the function left with the same widths |
+| `exit_mx_variant` / `exit_mx_set` | exit widths depend on the entry variant / one variant exits several ways |
+| `indirect_dispatch <site> <n> idx:X` | `jmp/jsr ($table,x)`; n = highest table entry that matches an observed target |
+| `indirect_dispatch <site> <n> ptrtail\|ptrcall targets:…` | `jmp ($ptr)` / `jml [$ptr]` (ptrcall when a `pea` precedes it) |
+| `indirect_dispatch <pei> <n> rtsstack targets:…` | `pei ($dp) ; rts` |
+| `ram_routine <7Exxxx> MmXn <bytes>` | code run from WRAM whose bytes never changed |
+| `# …` comments | PHA/PEA + RTS dispatch, adjusted return addresses (inline data), callees that never returned |
+
+Target lists are what was observed; play more to complete them.
+
 ### Result on SoE (v0.159.1)
 
 | | roots | function variants | native C | interpreter only | edges |
@@ -214,10 +238,10 @@ end product: [asm-to-c-port.md §11](../asm-to-c-port.md#11-does-the-current-pat
 
 - **Play more.** Every new function the recorder sees is a new root. Export again and
   re-run `recomp.sh`.
-- **Resolve the indirect jumps.** The 376 interpreter-only variants mostly sit behind
-  jump tables. Each `# indirect at …` comment lists a site and the targets seen so far.
-  Turning it into snesrecomp's `indirect_dispatch <site> <count> idx:X tables:<base>`
-  (table base and size from the instruction at the site) moves those variants to native C.
+- **Indirect jumps.** Since v0.174.0 the seeds write `indirect_dispatch` for recorded jump
+  tables, pointer jumps and `pei ; rts` themselves. What is left as `# …` comments has no
+  directive form: PHA/PEA + RTS dispatch (consider `hle_dispatch`), adjusted return addresses
+  and callees that never returned (check `noreturn_jsr` / `terminal_jsr` by hand).
 - **Mixed entry widths.** `STEPS.md` counts functions entered with more than one M/X
   combination. The cfg gets the first one seen, plus a comment listing the others.
 

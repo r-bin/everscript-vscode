@@ -51,13 +51,15 @@ const LEGEND = [
   ['data', '#ffdead'], ['pointer', '#da70d6'], ['graphics (DMA)', '#ffb6c1'], ['music (APU)', '#add8e6'],
   ['M/X conflict', '#ff4040'],
   ['read', '#3d7fd9'], ['written', '#e08a2e'], ['read+written', '#b05fd6'], ['by scripts', '#4ec9b0'], ['code', '#ffffff'],
+  ['HDMA table', '#ff8c00'], ['by DMA', '#8a8a8a'],
 ];
 const WRAM_LEGEND_START = 9;
+const LEGEND_HDMA = 14, LEGEND_WRAM_DMA = 15;
 
 function getCdlViewHtml() {
   const item = ([name, color]) => `<span><i style="background:${color}"></i>${name}</span>`;
-  const legend = '<b>ROM</b>' + LEGEND.slice(0, WRAM_LEGEND_START).map(item).join('')
-    + '<b>WRAM</b>' + LEGEND.slice(WRAM_LEGEND_START).map(item).join('');
+  const legend = '<b>ROM</b>' + LEGEND.slice(0, WRAM_LEGEND_START).concat([LEGEND[LEGEND_HDMA]]).map(item).join('')
+    + '<b>WRAM</b>' + LEGEND.slice(WRAM_LEGEND_START, LEGEND_HDMA).concat([LEGEND[LEGEND_WRAM_DMA]]).map(item).join('');
   return `
     <div id="ss-view-cdl" class="ss-tab-view">
       <div class="ss-subbar">
@@ -208,7 +210,9 @@ function getCdlClientScript() {
       const d = m.cdlDrain();
       if (!d.chunks.length && !d.wvals.length && !d.wflags.length && !d.xrefs.length
           && !d.edges.length && !d.stats.length && !d.scriptXrefs.length
-          && !(d.romHits && d.romHits.length) && !(d.wramHits && d.wramHits.length)) return false;
+          && !(d.romHits && d.romHits.length) && !(d.wramHits && d.wramHits.length)
+          && !(d.rets && d.rets.length) && !(d.regs && d.regs.length) && !(d.bases && d.bases.length)
+          && !(d.wcode && d.wcode.length) && !(d.aram && d.aram.length)) return false;
       const enc = list => list.map(c => ({ index: c.index, data: cdlBytesToB64(c.data) }));
       vscodeApi.postMessage({ command: 'cdlDelta', delta: {
         chunks: d.chunks.map(c => ({ index: c.index, cdl: cdlBytesToB64(c.cdl), ext: cdlBytesToB64(c.ext) })),
@@ -220,6 +224,12 @@ function getCdlClientScript() {
         scriptXrefs: cdlWordsToB64(d.scriptXrefs),
         romHits: cdlWordsToB64(d.romHits),
         wramHits: cdlWordsToB64(d.wramHits),
+        rets: cdlWordsToB64(d.rets),
+        regs: cdlWordsToB64(d.regs),
+        bases: cdlWordsToB64(d.bases),
+        wcode: (d.wcode || []).map(c => ({ index: c.index, code: cdlBytesToB64(c.code), state: cdlBytesToB64(c.state) })),
+        aram: enc(d.aram || []),
+        dropped: d.dropped || 0,
       } });
       cdlLastDrain = Date.now();
       return true;

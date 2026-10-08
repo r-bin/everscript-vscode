@@ -13,14 +13,20 @@ const OUT = path.join(__dirname, '..', 'src', 'emulator', 'core', 'snes9x2005-wa
 
 function render() {
     // bits 0-1: operand bytes; 0x04: +1 when M=0; 0x08: +1 when X=0;
-    // 0x10: stack op; 0x20: indirect jump through a ROM/RAM pointer
+    // 0x10: stack op; 0x20: indirect jump through a ROM/RAM pointer;
+    // 0x40: return (RTS/RTL/RTI); 0x80: sets S (TCS/TXS)
     const info = OPCODES.map((o, op) => {
         const size = MODE_SIZE[o.mode];
         let v = size === 'M' ? 1 | 0x04 : size === 'X' ? 1 | 0x08 : size;
         if (isStackOp(op)) v |= 0x10;
         if (op === 0x6C || op === 0x7C || op === 0xDC || op === 0xFC) v |= 0x20;
+        if (op === 0x60 || op === 0x6B || op === 0x40) v |= 0x40;
+        if (op === 0x1B || op === 0x9A) v |= 0x80;
         return v;
     });
+    // data access through a pointer in direct page / on the stack (see CDL_PTR_*)
+    const PTR = { idp: 1, idpx: 2, idpy: 3, ildp: 4, ildpy: 5, isry: 6, sr: 7 };
+    const ptr = OPCODES.map(o => (o.mnemonic === 'PEI' || o.mnemonic === 'JMP' || o.mnemonic === 'JML' || o.mnemonic === 'JSR') ? 0 : (PTR[o.mode] || 0));
     const flow = OPCODES.map((_, op) => flowKind(op));
 
     const hex = arr => arr.map(v => '0x' + v.toString(16).padStart(2, '0'))
@@ -36,9 +42,24 @@ function render() {
 #define CDL_OP_X16      0x08
 #define CDL_OP_STACK    0x10
 #define CDL_OP_IJUMP    0x20
+#define CDL_OP_RET      0x40
+#define CDL_OP_SETS     0x80
+
+/* CDL_OpPtr: 1 (dp)  2 (dp,X)  3 (dp),Y  4 [dp]  5 [dp],Y  6 (sr,S),Y  7 sr,S */
+#define CDL_PTR_IDP   1
+#define CDL_PTR_IDPX  2
+#define CDL_PTR_IDPY  3
+#define CDL_PTR_ILDP  4
+#define CDL_PTR_ILDPY 5
+#define CDL_PTR_ISRY  6
+#define CDL_PTR_SR    7
 
 static const uint8_t CDL_OpInfo[256] = {
 ${hex(info)}
+};
+
+static const uint8_t CDL_OpPtr[256] = {
+${hex(ptr)}
 };
 
 /* FLOW bits: 1 call, 2 jump, 4 conditional branch, 8 indirect */

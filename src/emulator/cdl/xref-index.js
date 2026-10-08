@@ -38,7 +38,7 @@ function buildIndex(lib, map) {
     const scriptSpan = new Map();      // script -> { count, lo, hi }
 
     const setLabel = (off, kind) => {
-        const rank = { func: 5, loc: 4, gfx: 3, ptrs: 2, data: 1 };
+        const rank = { func: 5, loc: 4, gfx: 3, hdma: 3, ptrs: 2, data: 1 };
         const old = labels.get(off);
         if (!old || rank[kind] > rank[old]) labels.set(off, kind);
     };
@@ -90,13 +90,13 @@ function buildIndex(lib, map) {
 
     // Data labels: the base of what each instruction reads from ROM (its lowest
     // address), every address when it touches only a few, DMA sources as gfx.
-    for (const [, list] of byPc) {
+    for (const [pc, list] of byPc) {
         const rom = list.filter(x => (x.spaceAddr >>> 24) === SPACE.ROM);
         if (!rom.length) continue;
         let low = Infinity;
         for (const x of rom) {
             const off = x.spaceAddr & 0xFFFFFF;
-            if (x.flags & XR.DMA) { setLabel(off, 'gfx'); continue; }
+            if (x.flags & XR.DMA) { setLabel(off, pc === 0 ? 'hdma' : 'gfx'); continue; }
             if (off < low) low = off;
             if (rom.length <= 4 && !(cdl[off] & CDL_CODE)) setLabel(off, 'data');
         }
@@ -122,7 +122,7 @@ function buildIndex(lib, map) {
     /** "func_C08000+$12 (80:8012)" for a bus PC. */
     function describePc(pc) {
         const where = hex(pc >>> 16, 2) + ':' + hex(pc & 0xFFFF, 4);
-        if (pc === 0) return 'interrupt';
+        if (pc === 0) return 'interrupt / HDMA';
         const off = map.busToRom(pc);
         if (off < 0) return where;
         const f = functionOf(off);

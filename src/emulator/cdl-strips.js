@@ -51,6 +51,7 @@ function getCdlStripsScript() {
       if (e & 0x04) return 2;
       if (c & 0x01) return 3;
       if (e & 0x02) return 7;
+      if (e & 0x80) return 14;
       if (e & 0x01) return 6;
       if (e & 0x20) return 5;
       return 4;
@@ -59,6 +60,7 @@ function getCdlStripsScript() {
     function cdlWramColor(f) {
       if (f & 0x10) return 13;
       if (f & 0x20) return 12;
+      if (f & 0x80) return 15;
       if ((f & 3) === 3) return 11;
       if (f & 2) return 10;
       if (f & 1) return 9;
@@ -141,7 +143,8 @@ function getCdlStripsScript() {
         if (f & 4) parts.push('8-bit');
         if (f & 0x20) parts.push('by scripts');
         if (f & 0x10) parts.push('executed');
-        if (f & 0x40) parts.push('jump pointer');
+        if (f & 0x40) parts.push('pointer');
+        if (f & 0x80) parts.push('DMA / HDMA / $2180');
         return cdlWramName(a.off) + '  ' + (parts.join(', ') || 'untouched');
       }
       const text = a.bank + ':' + cdlHex(a.inner, 4) + '  (ROM $' + cdlHex(a.off, 6) + ')';
@@ -155,6 +158,7 @@ function getCdlStripsScript() {
       if (e & 0x01) parts.push('DMA source');
       if (e & 0x02) parts.push('APU');
       if (e & 0x20) parts.push('pointer');
+      if (e & 0x80) parts.push('HDMA table');
       return text + '  ' + (parts.join(', ') || 'unreached');
     }
 
