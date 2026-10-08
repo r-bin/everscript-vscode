@@ -7,6 +7,9 @@
  * field merges with a commutative, associative, idempotent operation (OR,
  * min/max, set union), so sessions, players and re-imports can be merged in
  * any order without double counting (docs/tracing-disassembler-and-asar-generation.md 9.3).
+ * Exception: hit counts are summed. The core hands out each count once (drains
+ * are deltas), so a library's counts are the total over every recorded session;
+ * merging the same library twice would double them.
  *
  *   rom.cdl          1 byte / ROM byte (Mesen-S / BizHawk layout, importable)
  *   rom.ext          1 byte / ROM byte (opcode head, M/X seen, DMA, APU)
@@ -16,6 +19,8 @@
  *   pcstats.bin      [space<<24|pc, count, lo, hi, flags] max / min / max / OR
  *   wram.flags       1 byte / WRAM byte (R / W / byte / word / exec / script / ptr)  OR
  *   script-xrefs.bin [script instruction, wram addr, flags]                       OR
+ *   rom-hits.bin     [rom offset, hits lo, hits hi]  execs at opcode heads, reads at data   SUM
+ *   wram-hits.bin    [wram addr, reads lo, reads hi, writes lo, writes hi]                 SUM
  *
  * Newer files are optional: a library written before they existed still loads,
  * keeps all its data, and gains them on the next flush (wram.flags is derived
@@ -31,6 +36,7 @@ const crypto = require('crypto');
 const FORMAT = 1;
 const WRAM_SIZE = 0x20000;
 const WVAL_BYTES = 32;
+const TWO32 = 0x100000000;
 const CHUNK = 0x10000;
 
 /** ROM bytes without a 512-byte copier header. */
@@ -93,6 +99,10 @@ class CdlLibrary {
         this.stats = new Map();
         this.wflags = new Uint8Array(WRAM_SIZE);
         this.scriptXrefs = new Map();
+        this.romHits = new Float64Array(this.romSize);
+        this.wramReads = new Float64Array(WRAM_SIZE);
+        this.wramWrites = new Float64Array(WRAM_SIZE);
+        this.hasHits = false;
         this.manifest = null;
         this.dirty = new Set();
         this.changes = 0;
@@ -124,6 +134,15 @@ class CdlLibrary {
             readRecords(this._file('pcstats.bin'), 'EVPS', 5),
         );
         this.mergeScriptXrefs(readRecords(this._file('script-xrefs.bin'), 'EVSX', 3));
+        const rh = readRecords(this._file('rom-hits.bin'), 'EVRH', 3);
+        if (rh) for (let i = 0; i + 2 < rh.length; i += 3) if (rh[i] < this.romSize) this.romHits[rh[i]] = rh[i + 1] + rh[i + 2] * TWO32;
+        const wh = readRecords(this._file('wram-hits.bin'), 'EVWH', 5);
+        if (wh) for (let i = 0; i + 4 < wh.length; i += 5) {
+            if (wh[i] >= WRAM_SIZE) continue;
+            this.wramReads[wh[i]] = wh[i + 1] + wh[i + 2] * TWO32;
+            this.wramWrites[wh[i]] = wh[i + 3] + wh[i + 4] * TWO32;
+        }
+        this.hasHits = !!(rh || wh);
         if (fs.existsSync(this._file('wram.flags'))) {
             this.wflags.set(fs.readFileSync(this._file('wram.flags')).subarray(0, WRAM_SIZE));
         } else {
@@ -210,6 +229,24 @@ class CdlLibrary {
         }
     }
 
+    /** Add drained hit deltas: romHits [off, n], wramHits [addr, reads, writes]. */
+    addHits(romHits, wramHits) {
+        if (romHits && romHits.length) {
+            for (let i = 0; i + 1 < romHits.length; i += 2) if (romHits[i] < this.romSize) this.romHits[romHits[i]] += romHits[i + 1];
+            this._touch('rom-hits.bin');
+            this.hasHits = true;
+        }
+        if (wramHits && wramHits.length) {
+            for (let i = 0; i + 2 < wramHits.length; i += 3) {
+                if (wramHits[i] >= WRAM_SIZE) continue;
+                this.wramReads[wramHits[i]] += wramHits[i + 1];
+                this.wramWrites[wramHits[i]] += wramHits[i + 2];
+            }
+            this._touch('wram-hits.bin');
+            this.hasHits = true;
+        }
+    }
+
     /** Merge one drained delta from the webview recorder (see debugger-post.js cdlDrain). */
     applyDelta(delta) {
         const before = this.changes;
@@ -218,6 +255,7 @@ class CdlLibrary {
         for (const w of delta.wflags || []) this.mergeWflags(w.index, w.data);
         this.mergeLists(delta.xrefs, delta.edges, delta.stats);
         this.mergeScriptXrefs(delta.scriptXrefs);
+        this.addHits(delta.romHits, delta.wramHits);
         return this.changes !== before;
     }
 
@@ -239,6 +277,19 @@ class CdlLibrary {
             'wram.flags': () => this.wflags,
             'script-xrefs.bin': () => packRecords('EVSX',
                 [...this.scriptXrefs].map(([k, f]) => [Math.floor(k / 0x20000), k % 0x20000, f]), 3),
+            'rom-hits.bin': () => {
+                const rows = [];
+                for (let i = 0; i < this.romSize; i++) { const n = this.romHits[i]; if (n) rows.push([i, n % TWO32, Math.floor(n / TWO32)]); }
+                return packRecords('EVRH', rows, 3);
+            },
+            'wram-hits.bin': () => {
+                const rows = [];
+                for (let i = 0; i < WRAM_SIZE; i++) {
+                    const r = this.wramReads[i], w = this.wramWrites[i];
+                    if (r || w) rows.push([i, r % TWO32, Math.floor(r / TWO32), w % TWO32, Math.floor(w / TWO32)]);
+                }
+                return packRecords('EVWH', rows, 5);
+            },
         };
         for (const name of this.dirty) {
             const data = writers[name] && writers[name]();
@@ -252,7 +303,7 @@ class CdlLibrary {
             title: this.info.title || (this.manifest && this.manifest.title) || '',
             mapType: this.info.mapType || (this.manifest && this.manifest.mapType) || '',
             romSize: this.romSize,
-            files: ['rom.cdl', 'rom.ext', 'wram-values.bin', 'xrefs.bin', 'edges.bin', 'pcstats.bin', 'wram.flags', 'script-xrefs.bin'],
+            files: ['rom.cdl', 'rom.ext', 'wram-values.bin', 'xrefs.bin', 'edges.bin', 'pcstats.bin', 'wram.flags', 'script-xrefs.bin', 'rom-hits.bin', 'wram-hits.bin'],
             updated: now,
         });
         writeAtomic(this._file('manifest.json'), JSON.stringify(this.manifest, null, 2));

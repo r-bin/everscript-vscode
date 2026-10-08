@@ -207,7 +207,8 @@ function getCdlClientScript() {
       if (!m || !cdlOn) return false;
       const d = m.cdlDrain();
       if (!d.chunks.length && !d.wvals.length && !d.wflags.length && !d.xrefs.length
-          && !d.edges.length && !d.stats.length && !d.scriptXrefs.length) return false;
+          && !d.edges.length && !d.stats.length && !d.scriptXrefs.length
+          && !(d.romHits && d.romHits.length) && !(d.wramHits && d.wramHits.length)) return false;
       const enc = list => list.map(c => ({ index: c.index, data: cdlBytesToB64(c.data) }));
       vscodeApi.postMessage({ command: 'cdlDelta', delta: {
         chunks: d.chunks.map(c => ({ index: c.index, cdl: cdlBytesToB64(c.cdl), ext: cdlBytesToB64(c.ext) })),
@@ -217,6 +218,8 @@ function getCdlClientScript() {
         edges: cdlWordsToB64(d.edges),
         stats: cdlWordsToB64(d.stats),
         scriptXrefs: cdlWordsToB64(d.scriptXrefs),
+        romHits: cdlWordsToB64(d.romHits),
+        wramHits: cdlWordsToB64(d.wramHits),
       } });
       cdlLastDrain = Date.now();
       return true;

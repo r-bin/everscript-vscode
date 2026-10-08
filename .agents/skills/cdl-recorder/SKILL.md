@@ -26,9 +26,13 @@ core (WASM, per instruction / access)        webview (every 15 s)        host (N
 
 - **Off by default** and **paused = idle** (no tick, no drain, no write).
 - **Never touch the disk per instruction.** Record into WASM memory; drain only dirty data.
-- **Every field merges commutatively and idempotently** (OR, min, max, set union). Never add
-  hit counters or anything order-dependent: libraries from different sessions or players must
-  merge to the same result in any order. A new field needs a merge rule before it ships.
+- **Every field merges commutatively and idempotently** (OR, min, max, set union), so libraries
+  from different sessions or players merge to the same result in any order. A new field needs
+  a merge rule before it ships.
+- **Hit counts are the one exception: they are summed** (user decision, v0.173.0: having counts
+  matters more than idempotence). This is only correct because the core drains counts as
+  **deltas** (`cdl-count.c` zeroes what it hands out) and the library adds each delta once.
+  Never seed counts back into the core, and never re-apply a library's counts to itself.
 - **New library files are optional.** Old libraries must load unchanged; bump nothing, add a file.
 - **Export must rebuild byte-identically** (`asar --fix-checksum=off`). Known regions win over
   the CDL for their bytes. Branches always use a label, never a bare number.
@@ -51,6 +55,8 @@ core (WASM, per instruction / access)        webview (every 15 s)        host (N
 | WRAM R/W/width/exec/script/pointer per byte | `wram.flags` | |
 | script instruction → WRAM it touched | `script-xrefs.bin` | needs the interpreter fetch pattern (SoE `$0CD0A6`) |
 | DMA source ranges in ROM (VRAM/CGRAM kind) | `rom.ext`, xrefs | general DMA only |
+| executions per opcode head, reads per ROM data byte | `rom-hits.bin` (core `cdl-count.c`) | summed; Float64 in the host, 2×uint32 on disk |
+| reads / writes per WRAM byte | `wram-hits.bin` | a word access counts at its low byte |
 
 **Not recorded** (known gaps):
 - **DB and D register values.** Effective addresses are right, but the base/offset split for
@@ -81,6 +87,16 @@ core (WASM, per instruction / access)        webview (every 15 s)        host (N
 6. Rebuild the core and run the headless boot to check that recording still keeps up at full speed.
 
 ## 5. Analyses that work on today's data
+
+- **ROM lookup tables** (`tables.js`, exported as `tables.md` plus `; table:` header comments).
+  Each `abs,X` / `abs,Y` / `long,X` ROM read gives `index = address − operand`. Sites sharing a
+  base form one table; neighbouring bases with the same index set are fields of one record;
+  the entry size is the gcd of the indices. A walk back finds the index source
+  (`$7E0010 > asl > tax`), and a walk forward finds the result (`sta $7E0020`, or the A operand of
+  `cmp/adc`). Entries are classified as increasing/decreasing curves, code pointers or plain lookups.
+  On vanilla SoE: 202 tables. Limits: only indices that were actually used are seen (play the
+  level-ups to see a stat table), `[dp],y` reads are not covered, and a walk back can cross a
+  loop join and report the wrong source.
 
 - **Struct inference from indexed absolute modes** (`abs,X`, `abs,Y`, `long,X`). The operand
   is static, so `index = effective − operand`. Group PCs by identical index sets: the shared set

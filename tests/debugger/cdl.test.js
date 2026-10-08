@@ -244,6 +244,66 @@ test('lookup parses addresses and answers who calls / who touches', () => {
     assert.ok(code.includes('in function: func_C08010') && code.includes('func_C08000+$05 (80:8005)'), code);
 });
 
+test('hit counts sum drained deltas and survive a flush', () => {
+    const rom = makeRom();
+    const root = path.join(tmp, 'hits');
+    const lib = new CdlLibrary(root, rom);
+    const d = { romHits: Uint32Array.from([0x8000, 5, 0x9000, 2]), wramHits: Uint32Array.from([0x4E57, 3, 1]) };
+    lib.applyDelta(d);
+    lib.applyDelta(d);
+    assert.strictEqual(lib.romHits[0x8000], 10);
+    assert.strictEqual(lib.wramReads[0x4E57], 6);
+    assert.strictEqual(lib.wramWrites[0x4E57], 2);
+    lib.romHits[0x9000] = 2 ** 33 + 7;   // beyond 32 bits
+    lib.dirty.add('rom-hits.bin');
+    const written = lib.flush();
+    assert.ok(written.includes('rom-hits.bin') && written.includes('wram-hits.bin'));
+    const again = new CdlLibrary(root, rom);
+    assert.ok(again.hasHits);
+    assert.strictEqual(again.romHits[0x8000], 10);
+    assert.strictEqual(again.romHits[0x9000], 2 ** 33 + 7);
+    assert.strictEqual(again.wramReads[0x4E57], 6);
+    assert.strictEqual(new CdlLibrary(path.join(tmp, 'nohits'), rom).hasHits, false, 'old libraries load without counts');
+});
+
+test('lookup tables: base, entry size, curve, index source and result', () => {
+    const { findTables, tablesReport } = require('../../src/emulator/cdl/tables');
+    const rom = makeRom();
+    //   A000 AF 10 00 7E  lda.l $7E0010 / A004 0A asl / A005 AA tax
+    //   A006 BF 00 B0 C0  lda.l $C0B000,x / A00A 8F 20 00 7E sta.l $7E0020 / A00E 60 rts
+    rom.set([0xAF, 0x10, 0x00, 0x7E, 0x0A, 0xAA, 0xBF, 0x00, 0xB0, 0xC0, 0x8F, 0x20, 0x00, 0x7E, 0x60], 0xA000);
+    const curve = [10, 20, 35, 50, 80, 120, 200, 300];
+    curve.forEach((v, i) => { rom[0xB000 + i * 2] = v & 0xFF; rom[0xB001 + i * 2] = v >> 8; });
+    const lib = new CdlLibrary(path.join(tmp, 'tables'), rom);
+    for (const [off, len] of [[0xA000, 4], [0xA004, 1], [0xA005, 1], [0xA006, 4], [0xA00A, 4], [0xA00E, 1]]) {
+        lib.cdl[off] |= 0x01; lib.ext[off] |= 0x04 | 0x08 | 0x10;
+        for (let i = 1; i < len; i++) lib.cdl[off + i] |= 0x01;
+    }
+    for (let i = 0; i < 16; i++) lib.cdl[0xB000 + i] |= 0x02;
+    const R = 0x01, W = 0x02, WORD = 0x08;
+    lib.mergeLists(Uint32Array.from([
+        0xC0A000, (SPACE.WRAM << 24) | 0x10, R | WORD,
+        0xC0A006, (SPACE.ROM << 24) | 0xB000, R | WORD,
+        0xC0A006, (SPACE.ROM << 24) | 0xB002, R | WORD,
+        0xC0A006, (SPACE.ROM << 24) | 0xB004, R | WORD,
+        0xC0A006, (SPACE.ROM << 24) | 0xB00E, R | WORD,
+        0xC0A00A, (SPACE.WRAM << 24) | 0x20, W | WORD,
+    ]), null, null);
+    const map = createRomMap(rom);
+    const tables = findTables(lib, rom, map, buildIndex(lib, map));
+    assert.strictEqual(tables.length, 1);
+    const t = tables[0];
+    assert.strictEqual(t.base, 0xB000);
+    assert.strictEqual(t.size, 2);
+    assert.strictEqual(t.entries, 8);
+    assert.strictEqual(t.kind, 'increasing curve');
+    assert.deepStrictEqual(t.values, curve);
+    const s = t.fields[0].sites[0];
+    assert.strictEqual(s.index, '$7E0010 > asl > tax');
+    assert.strictEqual(s.result, 'sta $7E0020');
+    assert.ok(/tbl \$C0B000: word increasing curve, 8 entries of \$02/.test(tablesReport(tables, map, buildIndex(lib, map), lib).text));
+});
+
 test('host decodes webview deltas (base64 words) into the library', () => {
     const origLoad = Module._load;
     Module._load = function (req, ...rest) {

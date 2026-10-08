@@ -47,7 +47,14 @@ function createRomMap(rom) {
 
 const hex = (v, w) => (v >>> 0).toString(16).toUpperCase().padStart(w, '0');
 
+/** 1234 / 12.3k / 4.56M / 7.89G: a hit count in at most 5 characters. */
+function countText(n) {
+    if (n < 10000) return String(n);
+    for (const [d, u] of [[1e9, 'G'], [1e6, 'M'], [1e3, 'k']]) if (n >= d) return (n / d).toPrecision(3) + u;
+    return String(n);
+}
+
 /** "C0:8012" */
 function busName(addr) { return hex(addr >>> 16, 2) + ':' + hex(addr & 0xFFFF, 4); }
 
-module.exports = { createRomMap, hex, busName };
+module.exports = { createRomMap, hex, busName, countText };

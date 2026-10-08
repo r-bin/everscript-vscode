@@ -76,6 +76,7 @@ What the folder contains:
 | `rom.cdl` | the recorded CDL, 1 byte per ROM byte (Mesen-S / BizHawk bit layout) |
 | `export.json` | ROM identity and every label's original offset (used by `build-cdl.js`) |
 | `build.sh`, `build-cdl.js` | rebuild the ROM and its CDL (§4) |
+| `tables.md` | ROM lookup tables: base, entry size, values, curve / pointer guess, which WRAM variable indexes it and where the value goes |
 | `recomp/cfg/bankXX.cfg`, `recomp.sh` | snesrecomp seeds and runner (§5) |
 | `STEPS.md` | one entry per export: what was seeded, coverage, files written |
 

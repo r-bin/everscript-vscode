@@ -16,6 +16,7 @@ Usage (record → export → `build.sh` → `recomp.sh`): `docs/workflows/cdl-ex
 | `known-regions.js` | Seeds the export before any CDL data: header + vectors; for SoE the 127 room blobs (`rooms/*.bin`), the map table as `dl room_XX-$400000`, 3002 strings `str_<index>` and the key table as `dl strkey(str_XXXX)`, the room enter script table `room_enter_scripts`, the two string key readers (`string_keys_ref_N`, immediates as expressions) |
 | `recomp-seeds.js` | `recomp/cfg/bankXX.cfg` seeds for [snesrecomp](https://github.com/RetroPortingToolKit/snesrecomp) (func entries + entry M/X per runtime bank, data regions, indirect sites as comments) and `recomp.sh` |
 | `asar-build.js` | `rom.cdl`, `export.json` (labels + original offsets), `build.sh` + standalone `build-cdl.js` (ROM + CDL, flags follow labels), appends `STEPS.md` once per export |
+| `tables.js` | ROM lookup tables (HP per level, curves, dispatch tables) from indexed ROM reads: base, entry size, fields, index source, result → `tables.md` + header comments |
 | `wram-export.js` | `ram.asm`: every WRAM address, accessors, values seen, enum / bit-flag guesses |
 | `lookup.js` | "who calls / who touches" answers for the CDL tab |
 | `host.js` | Panel glue (the only file that needs `vscode`): seed, snapshot, merge deltas, flush policy, export, lookup, script naming |
@@ -31,7 +32,9 @@ The webview half is `../cdl-view.js` (tab, tick / drain), `../cdl-strips.js` (RO
   keep coming, at once on pause / stop / ROM change / close (tmp-file + rename).
 - Paused (Esc, pause button, breakpoint) or off, nothing runs: no tick, no drain, no write.
 - Every stored field merges with OR / min / max / union — re-importing or merging sessions
-  in any order gives the same library. No hit counters.
+  in any order gives the same library. Exception: hit counts (`rom-hits.bin`, `wram-hits.bin`,
+  core `cdl-count.c`) are summed. The core drains them as deltas, so each count arrives once;
+  merging the same library twice would double them.
 - Export must reassemble byte-identical: `asar --fix-checksum=off main.asm out.sfc`
   (`./build.sh` in the export folder does this and writes `build/out.cdl`).
 - Known regions win over the CDL for their bytes; each is a plain ROM slice, so a wrong

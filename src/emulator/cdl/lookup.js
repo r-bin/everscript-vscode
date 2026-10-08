@@ -7,9 +7,10 @@
  * Accepts 7E4E57, $7E:4E57, 4E57 (WRAM bank $7E), 2118 (I/O), C0:8000 / 808000 (ROM).
  */
 
-const { hex, busName } = require('./rom-map');
+const { hex, busName, countText } = require('./rom-map');
 const { flagText, SPACE } = require('./xref-index');
 const { valuesSeen } = require('./wram-export');
+const { tableAt, tableTitle } = require('./tables');
 
 function parseQuery(text) {
     const clean = String(text || '').replace(/[$\s:_]/g, '').replace(/^0x/i, '');
@@ -51,6 +52,7 @@ function lookup(lib, index, map, text, opts) {
                     ? values.length + ' distinct ($' + hex(values[0], 2) + '-$' + hex(values[values.length - 1], 2) + ')'
                     : values.map(v => '$' + hex(v, 2)).join(' ')));
             }
+            if (lib.hasHits) lines.push('hits: ' + countText(lib.wramReads[q.addr]) + ' reads, ' + countText(lib.wramWrites[q.addr]) + ' writes');
             const word = index.accessorsOf(SPACE.WRAM, q.addr - 1).filter(a => a.flags & 8);
             if (word.length) lines.push('also the high byte of word $' + hex(0x7E0000 + q.addr - 1, 6) + ' (' + word.length + ' accessors)');
         }
@@ -76,8 +78,18 @@ function lookup(lib, index, map, text, opts) {
     if (ext & 0x02) kinds.push('APU stream');
     if (ext & 0x20) kinds.push('jump-table pointer');
     lines.push('seen as: ' + (kinds.join(', ') || 'unreached'));
+    if (lib.hasHits && lib.romHits[off]) lines.push((ext & 0x04 ? 'executed ' : 'read ') + countText(lib.romHits[off]) + ' times');
     const label = index.labelName(off);
     if (label) lines.push('label: ' + label);
+    const table = opts && opts.tables ? tableAt(opts.tables, off) : null;
+    if (table) {
+        const k = Math.floor((off - table.base) / table.size);
+        lines.push('in ' + tableTitle(table, map) + ' (entry ' + k + ' +$' + hex((off - table.base) % table.size, 2) + ')');
+        for (const s of table.fields[0].sites.slice(0, 4)) {
+            if (s.index) lines.push('  index: ' + s.index);
+            if (s.result) lines.push('  result: ' + s.result);
+        }
+    }
     if (cdl & 0x01) {
         const f = index.functionOf(off);
         if (f >= 0) {

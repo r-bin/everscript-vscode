@@ -23,6 +23,7 @@ const { buildIndex } = require('./xref-index');
 const { exportAsar } = require('./asar-export');
 const { exportWram } = require('./wram-export');
 const { lookup } = require('./lookup');
+const { findTables } = require('./tables');
 const { getActiveAddressLookup } = require('../address-lookup');
 
 const IDLE_FLUSH_MS = 60 * 1000;
@@ -135,7 +136,8 @@ class CdlHost {
     _index() {
         if (!this.indexCache) {
             const map = createRomMap(this._body());
-            this.indexCache = { map, index: buildIndex(this.lib, map) };
+            const index = buildIndex(this.lib, map);
+            this.indexCache = { map, index, tables: findTables(this.lib, this._body(), map, index) };
         }
         return this.indexCache;
     }
@@ -218,6 +220,8 @@ class CdlHost {
                     edges: b64ToWords(d.edges),
                     stats: b64ToWords(d.stats),
                     scriptXrefs: b64ToWords(d.scriptXrefs),
+                    romHits: b64ToWords(d.romHits),
+                    wramHits: b64ToWords(d.wramHits),
                 });
                 if (changed) {
                     this.indexCache = null;
@@ -239,8 +243,8 @@ class CdlHost {
             case 'cdlLookup': {
                 const lib = this._library();
                 if (!lib) return true;
-                const { index, map } = this._index();
-                this.post({ command: 'cdlLookupResult', lines: lookup(lib, index, map, msg.query, { describeScript: this._scriptNamer() }) });
+                const { index, map, tables } = this._index();
+                this.post({ command: 'cdlLookupResult', lines: lookup(lib, index, map, msg.query, { describeScript: this._scriptNamer(), tables }) });
                 return true;
             }
             default:
@@ -263,7 +267,7 @@ class CdlHost {
             } else {
                 const r = exportAsar(lib, this.rom, outDir);
                 file = r.mainPath;
-                text = `Asar export: ${r.banks} banks, ${r.functions} functions, ${r.codeLines} instructions`;
+                text = `Asar export: ${r.banks} banks, ${r.functions} functions, ${r.codeLines} instructions, ${r.tables} lookup tables`;
             }
             text += ` (${Date.now() - t0} ms)`;
             this.log(text + ' -> ' + outDir);

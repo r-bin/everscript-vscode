@@ -7,6 +7,7 @@
  *   main.asm              mapper + incsrc of every bank
  *   banks/bank_XX.asm     code (with callers / accesses as comments) and data
  *   rom.bin               copy of the ROM; unreached / DMA runs are incbin slices
+ *   tables.md             ROM lookup tables: shape, index source, result (tables.js)
  *   rooms/, rom.cdl, build.sh, build-cdl.js, export.json, STEPS.md  (asar-build.js)
  * Known regions (known-regions.js: header, rooms, strings, their pointer
  * tables) are placed first and override the CDL's view of their bytes.
@@ -16,12 +17,13 @@
 
 const fs = require('fs');
 const path = require('path');
-const { createRomMap, hex } = require('./rom-map');
+const { createRomMap, hex, countText } = require('./rom-map');
 const { buildIndex, SPACE } = require('./xref-index');
 const { decodeAt, formatInstruction, staticTarget } = require('./disasm');
 const { findKnownRegions } = require('./known-regions');
 const { writeBuildFiles } = require('./asar-build');
 const { writeRecompSeeds } = require('./recomp-seeds');
+const { findTables, tablesReport, tableComment } = require('./tables');
 
 const CDL_CODE = 0x01, CDL_DATA = 0x02;
 const EXT_DMA = 0x01, EXT_APU = 0x02, EXT_HEAD = 0x04, EXT_POINTER = 0x20;
@@ -65,6 +67,8 @@ function exportAsar(lib, romInput, outDir) {
     const index = buildIndex(lib, map);
     const segName = off => 'seg_' + hex(map.canonical(off), 6);
     const { insLen, conflicts } = pickBoundaries(rom, lib, map);
+    const tables = findTables(lib, rom, map, index);
+    const tableAtBase = new Map(tables.map(t => [t.base, t]));
 
     const known = findKnownRegions(rom, map, lib.cdl);
     const regionAt = new Map(known.regions.map(r => [r.start, r]));
@@ -179,10 +183,13 @@ function exportAsar(lib, romInput, outDir) {
                 const names = [...new Set(callers.map(c => index.describePc(c.from)))];
                 lines.push('; called by: ' + clip(names, LIST_MAX).join(', '));
             }
+            if (lib.romHits && lib.romHits[off]) lines.push('; executed ' + countText(lib.romHits[off]) + ' times');
         } else if (kind === 'data' || kind === 'gfx' || kind === 'ptrs') {
             const readers = index.accessorsOf(SPACE.ROM, off).map(a => index.describePc(a.pc));
             lines.push('');
             if (readers.length) lines.push('; read by: ' + clip([...new Set(readers)], LIST_MAX).join(', '));
+            if (lib.romHits && lib.romHits[off]) lines.push('; first byte read ' + countText(lib.romHits[off]) + ' times');
+            if (tableAtBase.has(off)) lines.push('; table: ' + tableComment(tableAtBase.get(off), map));
         }
         lines.push(name + ':');
         return lines;
@@ -292,8 +299,12 @@ function exportAsar(lib, romInput, outDir) {
     fs.writeFileSync(mainPath, main);
     const recomp = writeRecompSeeds({ lib, map, index, known, outDir });
     known.steps.push(recomp.step);
+    const report = tablesReport(tables, map, index, lib);
+    fs.writeFileSync(path.join(outDir, 'tables.md'), report.text + '\n');
+    known.steps.push('ROM lookup tables: tables.md with ' + tables.length + ' tables ('
+        + Object.entries(report.counts).map(([k, n]) => n + ' ' + k).join(', ') + ').');
     const build = writeBuildFiles({ lib, rom, map, outDir, known, labels: [...emitted].map(o => [nameOf(o), o]), banks: includes.length, functions: index.entries.length });
-    return { mainPath, build, recomp, known, banks: includes.length, functions: index.entries.length, codeLines, index, map };
+    return { mainPath, build, recomp, known, tables: tables.length, banks: includes.length, functions: index.entries.length, codeLines, index, map };
 }
 
 module.exports = { exportAsar };
