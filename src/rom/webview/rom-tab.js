@@ -1,10 +1,12 @@
 // Ownership: the ROM tab in the webview — bank strips, the selected half's
 // table, search, the CDL layer, and row details with CDL readers.
-// State owned: _rom (model, layer, selected half, open row, search, readers).
+// State owned: _rom (model, layer, mode, selected half, open row, search, readers,
+// the host's bus facts and the selected bus address). Wiring: rom-init.js.
 // Runs inside the panel's shared IIFE (`vs` = the VS Code API). The model comes
 // from the host (src/rom/host.js) on demand: the tab asks the first time it shows.
 
-var _rom = { model: null, error: '', layer: 'content', sel: -1, open: '', query: '', showTiny: false, readers: {}, requested: false, xrefs: false };
+var _rom = { model: null, error: '', layer: 'content', mode: 'file', sel: -1, open: '', query: '', showTiny: false, readers: {}, requested: false, xrefs: false,
+  bus: null, busSel: null };
 
 var ROM_COLORS = {
   '🗺️': '#4fa36b', '🖼️': '#3d7fb8', '🧍': '#7a62c4', '🎵': '#c9824a', '📜': '#b8a33d', '💬': '#c25f87',
@@ -182,71 +184,3 @@ function romAskReaders(r) {
   if (!r || r.n == null || !_rom.model.hasCdl || _rom.readers[romRowKey(r)]) return;
   if (vs) vs.postMessage({ command: 'romReaders', s: r.a, e: r.a + r.n, key: romRowKey(r) });
 }
-
-function romRenderAll() { romRenderTop(); romRenderStrips(); romRenderDetail(); }
-
-// ── Wiring (bound once: the page is rebuilt on every panel re-render) ─────────
-function romRowByKey(key) {
-  var h = _rom.model && _rom.model.halves[_rom.sel], hit = null;
-  if (h) h.rows.forEach(function (r) { if (romRowKey(r) === key) hit = r; });
-  return hit;
-}
-
-function romClosest(el, attr, root) {
-  for (var n = el; n && n !== root; n = n.parentNode) if (n.dataset && n.dataset[attr] !== undefined) return n;
-  return null;
-}
-
-function setupRomTab() {
-  var pane = document.querySelector('.rom-pane');
-  // A node-only harness (tests/memory/ui.test.js) runs this bundle without a browser.
-  if (!pane || !pane.dataset || pane.dataset.romBound || typeof window === 'undefined' || !window.addEventListener) return;
-  pane.dataset.romBound = '1';
-  pane.addEventListener('click', function (e) {
-    var t;
-    if ((t = romClosest(e.target, 'romHalf', pane))) { _rom.sel = Number(t.dataset.romHalf); _rom.open = ''; _rom.query = ''; document.getElementById('rom-search').value = ''; romRenderStrips(); romRenderDetail(); return; }
-    if ((t = romClosest(e.target, 'romLayer', pane))) {
-      if (t.disabled) return;
-      _rom.layer = t.dataset.romLayer;
-      pane.querySelectorAll('[data-rom-layer]').forEach(function (b) { b.classList.toggle('rom-on', b === t); });
-      romRenderStrips(); return;
-    }
-    if ((t = romClosest(e.target, 'romGotoRoom', pane))) {
-      var rooms = document.querySelector('.tab[data-tab="rooms"]');
-      if (rooms) rooms.click();
-      if (typeof gotoVanillaRoom === 'function') gotoVanillaRoom(Number(t.dataset.romGotoRoom));
-      return;
-    }
-    if ((t = romClosest(e.target, 'romTiny', pane))) { e.preventDefault(); _rom.showTiny = true; romRenderDetail(); return; }
-    if ((t = romClosest(e.target, 'romJump', pane))) { _rom.query = ''; document.getElementById('rom-search').value = ''; romFind(Number(t.dataset.romJump)); romRenderStrips(); romRenderDetail(); return; }
-    if ((t = romClosest(e.target, 'romRow', pane))) {
-      if (romClosest(e.target, 'romGotoRoom', pane)) return;
-      _rom.open = _rom.open === t.dataset.romRow ? '' : t.dataset.romRow;
-      romAskReaders(romRowByKey(_rom.open));
-      romRenderDetail();
-    }
-  });
-  document.getElementById('rom-refresh').addEventListener('click', function () { _rom.readers = {}; romRequest(true); });
-  document.getElementById('rom-search').addEventListener('input', function (e) {
-    _rom.query = e.target.value.trim();
-    var file = romAddressQuery(_rom.query);
-    if (_rom.model && file != null) { romFind(file); romRenderStrips(); }
-    if (_rom.model) romRenderDetail();
-  });
-  var tab = document.querySelector('.tab[data-tab="rom"]');
-  if (tab) tab.addEventListener('click', function () { if (!_rom.model && !_rom.requested) romRequest(false); });
-  window.addEventListener('message', function (ev) {
-    var msg = ev.data || {};
-    if (msg.command === 'romMap') {
-      _rom.model = msg.model || null; _rom.error = msg.error || ''; _rom.xrefs = !!msg.hasXrefs;
-      if (_rom.model && (_rom.sel < 0 || _rom.sel >= _rom.model.halves.length)) _rom.sel = 0;
-      romRenderAll();
-    } else if (msg.command === 'romReaders') {
-      _rom.readers[msg.key] = { readers: msg.readers || [], none: msg.none || '', wide: msg.wide || 0 };
-      if (_rom.open === msg.key) romRenderDetail();
-    }
-  });
-  if (typeof ACTIVE_TAB !== 'undefined' && ACTIVE_TAB === 'rom') romRequest(false);
-}
-
-setupRomTab();

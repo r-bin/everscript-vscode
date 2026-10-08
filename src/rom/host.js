@@ -4,11 +4,13 @@
 // loaders (ROM, CDL library, wiki text, room names) and `post`.
 //
 // State owned: `_cache` (one model per ROM hash + CDL presence) and `_cdl`
-// (the loaded library's cross references, for reader lookups).
+// (the loaded library's cross references, for reader lookups, and its bus facts:
+// executed bank halves, WRAM usage).
 
 const crypto = require('crypto');
 const { buildRomModel, stripCopierHeader } = require('./build');
 const { readersOf } = require('./model/readers');
+const { executedByHalf, wramStrip } = require('./model/bus-usage');
 
 const COMMANDS = new Set(['romMapRequest', 'romReaders']);
 
@@ -19,7 +21,7 @@ const handlesRomMessage = command => COMMANDS.has(command);
 
 /**
  * @param msg  webview message
- * @param deps {post, loadRom: () => Buffer|null, loadCdl: (rom) => {cdl, xrefs, stats}|null,
+ * @param deps {post, loadRom: () => Buffer|null, loadCdl: (rom) => {cdl, xrefs, stats, edges, wflags}|null,
  *              readWiki: () => string, rooms: () => Map<id, {name, area}>}
  */
 function handleRomMessage(msg, deps) {
@@ -34,14 +36,15 @@ function sendModel(msg, deps) {
         const hash = crypto.createHash('sha1').update(stripCopierHeader(romBuf)).digest('hex');
         if (msg.refresh || !_cdl || _cdl.hash !== hash) {
             const lib = deps.loadCdl(romBuf);
-            _cdl = { hash, cdl: lib ? lib.cdl : null, xrefs: lib ? lib.xrefs : null, stats: lib ? lib.stats : null };
+            _cdl = { hash, cdl: lib ? lib.cdl : null, xrefs: lib ? lib.xrefs : null, stats: lib ? lib.stats : null,
+                bus: lib ? { executed: executedByHalf(lib.stats, lib.edges), wram: wramStrip(lib.wflags) } : null };
             _cache = null;
         }
         const key = hash + (_cdl.cdl ? ':cdl' : '');
         if (!_cache || _cache.key !== key) {
             _cache = { key, model: buildRomModel(romBuf, { rooms: deps.rooms(), wiki: deps.readWiki(), cdl: _cdl.cdl }) };
         }
-        deps.post({ command: 'romMap', model: _cache.model, hasXrefs: !!(_cdl.xrefs && _cdl.xrefs.size) });
+        deps.post({ command: 'romMap', model: _cache.model, hasXrefs: !!(_cdl.xrefs && _cdl.xrefs.size), bus: _cdl.bus });
     } catch (err) {
         deps.post({ command: 'romMap', error: String(err && err.message || err) });
     }

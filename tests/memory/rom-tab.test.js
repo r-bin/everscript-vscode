@@ -10,6 +10,7 @@ const assert = require('assert');
 const { buildRomModel } = require('../../src/rom');
 const { readersOf } = require('../../src/rom/model/readers');
 const { parseWikiPoints, mergePoints } = require('../../src/rom/model/wiki-overlay');
+const { executedByHalf, wramStrip } = require('../../src/rom/model/bus-usage');
 const { renderRadarHtml } = require('../../src/memory/render-radar');
 
 let passed = 0, failed = 0;
@@ -47,10 +48,25 @@ check('readers: exact ROM xrefs grouped by PC, bulk ranges included, other space
     assert.ok(r.find(x => x.pc === '$90:AAAA').bulk);
 });
 
+check('bus usage: executed bank halves from pcstats and edges, WRAM strip from flags', () => {
+    const stats = new Map([[(1 << 24) | 0x8CC898, {}], [(0 << 24) | 0x808020, {}], [(1 << 24) | 0x7E2000, {}]]);
+    const edges = new Map([[0x808020 * 0x1000000 + 0x8C8000, 1], [0x008025 * 0x1000000 + 0x808030, 1]]);
+    const ex = executedByHalf(stats, edges);
+    assert.deepStrictEqual(ex, { [0x8C * 2 + 1]: 2, [0x80 * 2 + 1]: 2, [0x00 * 2 + 1]: 1 }, JSON.stringify(ex));
+    const flags = new Uint8Array(0x20000); flags[0] = 0x10; flags[600] = 2; flags[1100] = 1;
+    const w = wramStrip(flags);
+    assert.deepStrictEqual(w.strip, [[3, 1], [2, 1], [1, 1], [0, 253]]);
+    assert.strictEqual(w.touched, 3);
+});
+
 check('a non-Evermore ROM still gets halves, header and gaps', () => {
     const fake = new Uint8Array(0x20000).fill(0x42);
+    fake.set([0x21], 0xFFD5);                          // map mode: HiROM
+    fake.set([0x00, 0x00, 0xFF, 0xFF], 0xFFDC);        // checksum complement / checksum
     const m = buildRomModel(fake);
     assert.strictEqual(m.evermore, false);
+    assert.strictEqual(m.mapping.hirom, true);
+    assert.strictEqual(buildRomModel(new Uint8Array(0x20000).fill(0x42)).mapping.hirom, false, 'no HiROM header: LoROM');
     assert.strictEqual(m.halves.length, 4);
     assert.ok(m.halves[1].rows.some(r => r.name === 'Interrupt vectors'));
 });
@@ -145,6 +161,34 @@ async function dom() {
             assert.match(await page.textContent('.rom-h2'), /\$9F:8000/);
             assert.ok(await page.locator('.rom-tr.rom-open', { hasText: 'ROOM_48' }).count() === 1);
             assert.ok(await page.locator('[data-rom-goto-room="72"]').count() === 1);
+        });
+        await step('Bus view: a bus address resolves to its room and four mirrors', async () => {
+            await page.click('[data-rom-mode="bus"]');
+            assert.strictEqual(await page.evaluate(() => getComputedStyle(document.getElementById('rom-file-view')).display), 'none');
+            await page.fill('#rom-search', '$9F:D600');
+            assert.match(await page.textContent('#rom-bus-view .rom-h2'), /\$9F:D600/);
+            assert.match(await page.textContent('#rom-bus-view'), /ROOM_48/);
+            assert.strictEqual(await page.locator('#rom-bus-view .rom-table tr').count(), 5, 'header + $1F, $5F, $9F, $DF');
+        });
+        await step('Bus view: WRAM, I/O and a canvas click', async () => {
+            await page.fill('#rom-search', '7E2258');
+            assert.match(await page.textContent('#rom-bus-view'), /\$7E2258/);
+            await page.fill('#rom-search', '$00:2118');
+            assert.match(await page.textContent('#rom-bus-view'), /PPU registers/);
+            const box = await page.locator('#rom-bus-canvas').boundingBox();
+            await page.mouse.click(box.x + box.width * (0xC0 + 0.5) / 256, box.y + 2);
+            assert.match(await page.textContent('#rom-bus-view .rom-h2'), /\$C0:0000/);
+            assert.match(await page.textContent('#rom-bus-view'), /Strings/);
+        });
+        await step('Compare view: a file half shows its bus windows; a map click selects the half', async () => {
+            await page.click('[data-rom-mode="cmp"]');
+            await page.click('#rom-cmp-view .rom-half[data-rom-half="25"]');
+            assert.match(await page.textContent('#rom-cmp-view .rom-h2'), /0x0C8000/);
+            assert.match(await page.textContent('#rom-cmp-view'), /\$8C:8000–FFFF/);
+            const box = await page.locator('#rom-cmp-canvas').boundingBox();
+            await page.mouse.click(box.x + box.width * (0x9F + 0.5) / 256, box.y + box.height * 0.8);
+            assert.match(await page.textContent('#rom-cmp-view .rom-h2'), /0x1F8000/);
+            await page.click('[data-rom-mode="file"]');
         });
         await step('a text search lists matches across the ROM; a click jumps there', async () => {
             await page.fill('#rom-search', 'Character table');

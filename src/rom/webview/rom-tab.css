@@ -6,7 +6,8 @@
 .rom-title{font-size:14px;font-weight:600;white-space:nowrap}
 .rom-stats{display:flex;gap:16px;color:var(--rom-dim);flex-wrap:wrap}
 .rom-stats b{color:var(--vscode-editor-foreground,#ccc);font-weight:600}
-.rom-seg{display:inline-flex;border:1px solid var(--rom-line);border-radius:4px;overflow:hidden;margin-left:auto}
+.rom-seg{display:inline-flex;border:1px solid var(--rom-line);border-radius:4px;overflow:hidden;flex-shrink:0}
+.rom-ml{margin-left:auto}
 .rom-seg-btn{background:transparent;color:var(--rom-dim);border:0;padding:4px 10px;cursor:pointer;font:inherit;font-size:12px}
 .rom-seg-btn.rom-on{background:var(--vscode-button-secondaryBackground,#3a3d41);color:var(--vscode-button-secondaryForeground,#fff)}
 .rom-seg-btn:disabled{opacity:.35;cursor:default}
@@ -64,3 +65,30 @@
 .rom-readers td{padding:2px 10px 2px 0;border:0}
 .rom-foot{color:var(--rom-dim);font-size:11.5px;margin-top:8px}
 .rom-foot a{color:var(--vscode-textLink-foreground,#3794ff)}
+
+/* Bus and Compare views */
+.rom-busview{display:grid;grid-template-columns:1fr 460px;flex:1;min-height:0}
+.rom-cmpview{display:grid;grid-template-columns:minmax(260px,330px) 1fr 420px;flex:1;min-height:0}
+.rom-bus-left,.rom-cmp-bus{padding:10px 14px;overflow:auto;border-right:1px solid var(--rom-line);min-width:0}
+.rom-bus-right,.rom-cmp-side{padding:12px 18px;overflow:auto;min-width:0}
+.rom-cmp-file{padding:10px 12px;overflow:auto;border-right:1px solid var(--rom-line)}
+.rom-cap{color:var(--rom-dim);font-size:11px;margin-bottom:6px}
+.rom-bus-frame{margin-left:44px;position:relative}
+.rom-zones{position:relative;height:16px;font-size:10.5px;color:var(--rom-dim)}
+.rom-zones span{position:absolute;border-left:1px solid #555;padding-left:4px;white-space:nowrap;overflow:hidden;max-width:25%}
+.rom-exrow{position:relative;height:6px;margin:2px 0 3px}
+.rom-ex{position:absolute;top:0;width:3px;height:6px;background:#d16969;border-radius:1px}
+.rom-bus-grid{position:relative}
+.rom-bus-canvas{display:block;width:100%;height:auto;image-rendering:pixelated;border:1px solid var(--rom-line);cursor:crosshair}
+.rom-yax{position:absolute;left:-44px;top:0;bottom:0;width:40px;font:10px var(--vscode-editor-font-family,ui-monospace,Menlo,monospace);color:var(--rom-dim)}
+.rom-yax span{position:absolute;right:4px;transform:translateY(-50%)}
+.rom-xax{position:relative;height:16px;font:10px var(--vscode-editor-font-family,ui-monospace,Menlo,monospace);color:var(--rom-dim);margin-top:3px}
+.rom-xax span{position:absolute;white-space:nowrap}
+.rom-card.rom-wide{margin-bottom:12px}
+.rom-card.rom-wide .rom-v{font-size:13.5px;font-weight:500}
+.rom-h3{font-size:13px;font-weight:600;margin:16px 0 4px;opacity:1;text-transform:none;letter-spacing:0}
+.rom-wram{display:flex;height:14px;border-radius:3px;overflow:hidden;margin:4px 0 3px}
+.rom-wram i{display:block;min-width:0}
+.rom-small{font-size:11.5px;margin-top:4px}
+.rom-yes{color:var(--vscode-testing-iconPassed,#89d185)}
+.rom-cmp-items{display:flex;flex-wrap:wrap;gap:6px 12px;margin:10px 0 0;font-size:12px}

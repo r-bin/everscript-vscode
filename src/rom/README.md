@@ -1,8 +1,14 @@
 # rom/ — ROM tab
 
-The radar panel's **ROM** tab: a map of every 64 KB bank of the loaded ROM, split into its two
-32 KB halves (nothing in Secret of Evermore crosses a half line), with what each region is, how
-big it is, which world uses it, and what the CDL recorder saw.
+The radar panel's **ROM** tab, in three views:
+
+- **File**: every 64 KB bank of the loaded ROM, split into its two 32 KB halves (nothing in Secret
+  of Evermore crosses a half line), with what each region is, how big it is, which world uses it,
+  and what the CDL recorder saw.
+- **Bus**: the CPU's 24-bit address space ($00:0000–$FF:FFFF): WRAM, I/O, SRAM, the four ROM
+  windows and open bus, with a resolver for one address (what it reaches, its mirrors, which
+  bank halves code ran from).
+- **Compare**: file halves beside the bus map; a half is outlined everywhere it appears.
 
 Reference: the everscript wiki's ROM map (`wiki/rom/Rom-Map.md`), whose §4 this tab computes live.
 
@@ -19,7 +25,12 @@ Reference: the everscript wiki's ROM map (`wiki/rom/Rom-Map.md`), whose §4 this
 | `model/points.js` | Curated routine / table names (points without a size) |
 | `model/wiki-overlay.js` | Extra points from the wiki's §4 rows |
 | `model/readers.js` | "Which code reads these bytes", from the CDL library's xrefs |
-| `webview/rom-tab.js`, `.css` | Strips, half table, search, CDL layer, row details |
+| `model/bus-usage.js` | CDL facts on the bus side: bank halves code executed from (pcstats + edges), WRAM strip |
+| `webview/rom-tab.js`, `.css` | `_rom`; File view: strips, half table, CDL layer, row details, text search |
+| `webview/rom-bus-map.js` | Bus mapping (HiROM / LoROM, FastROM, SRAM), the bank × offset canvas |
+| `webview/rom-bus-view.js` | Bus view: map + address resolver + WRAM strip |
+| `webview/rom-compare.js` | Compare view: file halves ↔ bus windows, the four-window summary |
+| `webview/rom-init.js` | Wiring and view switching; loaded last |
 
 ## Dependencies
 
@@ -44,4 +55,6 @@ Reference: the everscript wiki's ROM map (`wiki/rom/Rom-Map.md`), whose §4 this
 - Rows never cross a 32 KB half; each half's rows sum to 32 KB.
 - Room sizes come from `maps.objectAreaEnd` (no blob overlaps another). The everscript repo's
   Python `_object_area_end` overestimates 22 rooms; do not import its numbers.
-- A non-Evermore ROM gets header, gaps and CDL coverage only.
+- A non-Evermore ROM gets header, gaps and CDL coverage only; the bus mapping comes from its header.
+- The CDL stores data reads by file offset: the Bus view never claims which mirror *data* went
+  through, only which bank halves *code* ran in.

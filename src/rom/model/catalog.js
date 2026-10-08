@@ -11,10 +11,11 @@ const WORLD = { Prehistoria: '🦖 Prehistoria', Antiqua: '🏛️ Antiqua', Got
 const worldOf = area => WORLD[area] || (area ? '❓ ' + area : '');
 const SUB = { 0: 'raw', 3: 'lzss', 7: 'markov' };
 
-function headerRegions(R) {
-    R(0xFFB0, 0xFFC0, '🏷️', 'Extended header', 'maker code, game code, expansion sizes');
-    R(0xFFC0, 0xFFE0, '🏷️', 'Cartridge header', 'title, map mode, cartridge type, ROM and SRAM size');
-    R(0xFFE0, 0x10000, '🏷️', 'Interrupt vectors', 'native $FFE4..$FFEF, emulation $FFF4..$FFFF');
+/** @param base header start: $FFC0 (HiROM) or $7FC0 (LoROM) */
+function headerRegions(R, base = 0xFFC0) {
+    R(base - 0x10, base, '🏷️', 'Extended header', 'maker code, game code, expansion sizes');
+    R(base, base + 0x20, '🏷️', 'Cartridge header', 'title, map mode, cartridge type, ROM and SRAM size');
+    R(base + 0x20, base + 0x40, '🏷️', 'Interrupt vectors', 'native $FFE4..$FFEF, emulation $FFF4..$FFFF');
 }
 
 /**

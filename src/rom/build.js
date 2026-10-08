@@ -17,9 +17,22 @@ function stripCopierHeader(rom) {
     return rom.length % 1024 === 512 ? rom.subarray(512) : rom;
 }
 
-function headerTitle(rom) {
-    if (rom.length < 0x10000) return '';
-    return String.fromCharCode(...rom.subarray(0xFFC0, 0xFFD5)).replace(/[^\x20-\x7E]/g, '').trim();
+function headerTitle(rom, base) {
+    if (rom.length < base + 0x40) return '';
+    return String.fromCharCode(...rom.subarray(base, base + 0x15)).replace(/[^\x20-\x7E]/g, '').trim();
+}
+
+/** How the cartridge maps onto the bus: HiROM or LoROM, FastROM, SRAM size (from the header). */
+function busMapping(rom) {
+    const score = base => {
+        if (rom.length < base + 0x40) return -1;
+        const mode = rom[base + 0x15], sum = rom[base + 0x1E] | rom[base + 0x1F] << 8, inv = rom[base + 0x1C] | rom[base + 0x1D] << 8;
+        return ((sum ^ inv) === 0xFFFF ? 2 : 0) + ((mode & 1) === (base === 0xFFC0 ? 1 : 0) ? 1 : 0) + (/^[\x20-\x7E]+$/.test(headerTitle(rom, base)) ? 1 : 0);
+    };
+    const hirom = score(0xFFC0) >= score(0x7FC0);
+    const base = hirom ? 0xFFC0 : 0x7FC0;
+    const sramCode = rom.length > base + 0x18 ? rom[base + 0x18] : 0;
+    return { hirom, fast: !!(rom[base + 0x15] & 0x10), sramBytes: sramCode && sramCode < 9 ? 1024 << sramCode : 0, headerBase: base };
 }
 
 /**
@@ -30,7 +43,8 @@ function headerTitle(rom) {
  */
 function buildRomModel(romBytes, opts = {}) {
     const rom = new Uint8Array(stripCopierHeader(romBytes));
-    const title = headerTitle(rom);
+    const mapping = busMapping(rom);
+    const title = headerTitle(rom, mapping.headerBase);
     const evermore = /SECRET OF EVERMORE/.test(title) && rom.length >= 0x300000 && rom[0xFFD5] === 0x31;
     const regions = [];
     const R = (s, e, cat, name, notes = '', area = '', prio = 1, extra = {}) =>
@@ -38,7 +52,7 @@ function buildRomModel(romBytes, opts = {}) {
     let points = [], spriteBlocks = 0;
     const errors = [];
 
-    headerRegions(R);
+    headerRegions(R, mapping.headerBase);
     if (evermore) {
         const step = (label, fn) => { try { return fn(); } catch (err) { errors.push(label + ': ' + (err && err.message || err)); return null; } };
         const worlds = step('rooms', () => roomRegions(rom, R, opts.rooms || new Map())) || new Map();
@@ -54,7 +68,7 @@ function buildRomModel(romBytes, opts = {}) {
     }
     const { halves, totals } = layoutHalves(rom, regions, points, opts.cdl || null);
     return {
-        title: title || '(no header)', size: rom.length, evermore, hasCdl: !!opts.cdl,
+        title: title || '(no header)', size: rom.length, evermore, hasCdl: !!opts.cdl, mapping,
         wikiPoints: evermore ? parseWikiPoints(opts.wiki).length : 0,
         spriteBlocks, errors, totals, halves,
         codePoints: points.filter(p => p.cat === '🧠').map(p => ({ s: p.s, name: p.name })),

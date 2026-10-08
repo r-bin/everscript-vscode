@@ -176,6 +176,8 @@ module.exports = {
   docsJs: loadFile(path.join(docsDir, 'docs-tab.js')),
   routeJs: loadFile(path.join(routesDir, 'route-tab.js')),
   rngJs: loadFile(path.join(docsDir, 'rng-tab.js')),
-  romJs: loadFile(path.join(romDir, 'rom-tab.js')),
+  // Order matters: rom-tab.js declares _rom, rom-init.js binds and runs last.
+  romJs: ['rom-tab.js', 'rom-bus-map.js', 'rom-bus-view.js', 'rom-compare.js', 'rom-init.js']
+    .map(function(f) { return loadFile(path.join(romDir, f)); }).join('\n'),
   buildMainJs,
 };
