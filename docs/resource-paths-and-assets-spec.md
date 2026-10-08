@@ -51,6 +51,8 @@ All paths follow a clean, canonical slash hierarchy: `/<domain>/<selector>[<modi
 
 ## 3. Architecture: Why a Virtual Path Router, NOT a Full VFS
 
+> **Superseded:** this section is replaced by [`soeres-filesystem-spec.md`](soeres-filesystem-spec.md): a read-only `FileSystemProvider` for `soeres:`, with `soeres:/…` as the canonical address.
+
 ### The VFS Anti-Pattern in VS Code
 Implementing a full `vscode.FileSystemProvider` (Virtual File System) was considered and rejected:
 1. **Webview Sandbox Boundary:** A webview runs in an isolated browser iframe. Browser `<img>` tags cannot resolve custom VS Code VFS protocols due to Content Security Policy (CSP).
@@ -122,3 +124,4 @@ If a user wants to open an inspection tab in VS Code editor, `vscode.workspace.r
    - Support `<img src="/assets/.../icon.png">` in webview renders.
 3. **Phase 3: Deep Link Command Handler**
    - Implement `everscript.reveal` dispatcher routing to Memory Radar or Map Editor tabs.
+
