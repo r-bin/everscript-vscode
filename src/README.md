@@ -16,6 +16,7 @@ All production code lives here. Each subdirectory is an ownership domain.
 | `script/` | Everscript bytecode decoder, ported from SoEScriptDumper (TypeScript, pure) |
 | `rom/` | ROM tab: every bank's content, gaps and CDL coverage, measured from the ROM |
 | `debugger/` | VS Code debugger for .evs scripts in the emulator: DAP session, compiler source map, step logic |
+| `localizations/` | Centralized subjective names (maps, sounds, tables, functions) & ROM string resolution |
 
 Entry point: `extension.js` (orchestration root, registered as `main` in package.json).
 
