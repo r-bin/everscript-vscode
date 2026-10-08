@@ -107,11 +107,12 @@ A tool like Claude Code cannot read `soe://` itself, because it only sees the re
 extension host runs a read-only MCP server (`src/mcp/`) at `http://127.0.0.1:47917/mcp`, and the repo's
 `.mcp.json` points Claude Code at it.
 
+- **Clients (v0.181.0):** Claude Code (`.mcp.json`), Antigravity (`.agents/mcp_config.json`), Gemini CLI (`.gemini/settings.json`), and VS Code's chat through `registerMcpServerDefinitionProvider`. Details in `src/mcp/README.md`.
 - **Tools:** `soe_list(uri)` and `soe_read(uri)`. PNG files come back as images.
 - **Resources:** the entry points and URI templates.
 
 Verified with a headless Claude Code session against a VS Code instance running the emulator. The session read
-`status.json` and the live room via `soe://bus/7e0adb`, received the wax icon as an image, and resolved `soe://bus/8cd0a6`.
+`status.json` and the live room via `soe://bus/7e0adb`, received the wax icon as an image, and resolved `soe://bus/8cd0a6`. The same check passed with Antigravity's `agy -p`.
 
 ## 4. Next (Phase 2): static content
 

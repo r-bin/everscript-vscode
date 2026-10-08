@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.180.0",
+  "version": "0.181.0",
   "publisher": "rbin",
   "main": "./src/extension.js",
   "engines": {
@@ -23,7 +23,8 @@
     "onFileSystem:soe",
     "onCommand:everscript.checkSoeResources",
     "onCommand:everscript.openSoeResource",
-    "onStartupFinished"
+    "onStartupFinished",
+    "onMcpCollection:everscript-soe"
   ],
   "categories": [
     "Programming Languages",
@@ -359,14 +360,14 @@
         "everscript.mcp.enabled": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Serve the read-only `soe://` file system to AI clients over MCP at `http://127.0.0.1:<port>/mcp` (localhost only). Claude Code picks it up from the repo's `.mcp.json`."
+          "markdownDescription": "Serve the read-only `soe://` file system to AI clients over MCP at `http://127.0.0.1:<port>/mcp` (localhost only). VS Code's chat (Copilot) gets it automatically; Claude Code, Gemini CLI and Antigravity read `.mcp.json`, `.gemini/settings.json` and `.agents/mcp_config.json` in the repo."
         },
         "everscript.mcp.port": {
           "type": "number",
           "default": 47917,
           "minimum": 1024,
           "maximum": 65535,
-          "markdownDescription": "Port of the `soe://` MCP server. Keep it in sync with `.mcp.json`. With several VS Code windows, the first one to start serves it."
+          "markdownDescription": "Port of the `soe://` MCP server. Copilot follows this setting; keep `.mcp.json`, `.gemini/settings.json` and `.agents/mcp_config.json` in sync. With several VS Code windows, the first one to start serves it."
         }
       }
     },
@@ -375,6 +376,12 @@
         "command": "everscript.debugInEmulator",
         "key": "f5",
         "when": "editorLangId == everscript && !inDebugMode"
+      }
+    ],
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "everscript-soe",
+        "label": "Everscript soe://"
       }
     ]
   },

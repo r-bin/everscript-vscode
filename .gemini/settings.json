@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "everscript-soe": {
+      "httpUrl": "http://127.0.0.1:47917/mcp",
+      "trust": true
+    }
+  }
+}

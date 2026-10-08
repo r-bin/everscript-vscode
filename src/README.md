@@ -18,7 +18,7 @@ All production code lives here. Each subdirectory is an ownership domain.
 | `debugger/` | VS Code debugger for .evs scripts in the emulator: DAP session, compiler source map, step logic |
 | `localizations/` | Centralized subjective names (maps, sounds, tables, functions) & ROM string resolution |
 | `resources/` | Read-only `soe://` file system: ROM, decoded assets and live WRAM as files |
-| `mcp/` | Read-only MCP server (127.0.0.1:47917) serving `soe://` to AI clients; `.mcp.json` at the repo root |
+| `mcp/` | Read-only MCP server (127.0.0.1:47917) serving `soe://` to AI clients (Claude Code, Antigravity, Gemini CLI, Copilot) |
 
 Entry point: `extension.js` (orchestration root, registered as `main` in package.json).
 
