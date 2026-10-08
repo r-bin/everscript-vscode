@@ -28,6 +28,7 @@ const ENTRY_POINTS = [
     ['soe://ram/status.json', 'Emulator status', 'closed / open / running, ROM, paused.'],
     ['soe://ram/flags.json', 'Story flags', 'Every named flag and whether it is set (live).'],
     ['soe://bus/index.md', 'SNES bus', 'Bus addresses → their WRAM or ROM file.'],
+    ['soe://localization/index.md', 'Localization overview', 'Curated subjective names: scripts, maps, sounds, tables, functions.'],
 ];
 
 const TEMPLATES = [
@@ -40,6 +41,8 @@ const TEMPLATES = [
     ['soe://rom/assets/strings/{index}.txt', 'In-game string', 'String by hex index (0000-0bb9).'],
     ['soe://rom/assets/maps/{id}/info.md', 'Room', 'Room summary; also header.json and render.png.'],
     ['soe://rom/assets/{kind}/{name}/info.json', 'Item', 'kind: ingredients, armor, consumables, alchemy; name e.g. wax.'],
+    ['soe://localization/scripts/{id}.json', 'Script localization', 'Script name and metadata by ID or address.'],
+    ['soe://localization/maps/{id}.json', 'Map localization', 'Room name and area by room ID.'],
 ];
 
 const URI_ARG = {
@@ -88,8 +91,8 @@ function hexdump(bytes) {
  */
 function createMcpHandler(fsApi) {
     const checkUri = uri => {
-        if (typeof uri !== 'string' || !/^soe:\/\/(rom|ram|bus)(\/|$)/.test(uri)) {
-            throw rpcError(-32602, 'uri must start with soe://rom/, soe://ram/ or soe://bus/');
+        if (typeof uri !== 'string' || !/^soe:\/\/(rom|ram|bus|localization)(\/|$)/.test(uri)) {
+            throw rpcError(-32602, 'uri must start with soe://rom/, soe://ram/, soe://bus/ or soe://localization/');
         }
         return uri;
     };
@@ -125,7 +128,7 @@ function createMcpHandler(fsApi) {
             protocolVersion: PROTOCOL_VERSIONS.includes(params && params.protocolVersion) ? params.protocolVersion : PROTOCOL_VERSIONS[0],
             capabilities: { resources: {}, tools: {} },
             serverInfo: { name: 'everscript-soe', title: 'Everscript soe://', version: fsApi.version },
-            instructions: 'Read-only access to Secret of Evermore: the ROM (soe://rom/), decoded assets (soe://rom/assets/), the running emulator\'s WRAM (soe://ram/) and SNES bus addresses (soe://bus/). Numbers in paths are hex without $. Start with soe_read soe://rom/index.md or soe://ram/index.md.',
+            instructions: 'Read-only access to Secret of Evermore: the ROM (soe://rom/), decoded assets (soe://rom/assets/), the running emulator\'s WRAM (soe://ram/), SNES bus addresses (soe://bus/) and localized names (soe://localization/). Numbers in paths are hex without $. Start with soe_read soe://rom/index.md, soe://ram/index.md or soe://localization/index.md.',
         }),
         ping: () => ({}),
         'tools/list': () => ({ tools: TOOLS }),

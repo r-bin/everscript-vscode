@@ -13,6 +13,7 @@ const { parseSoeParts } = require('../shared/resource-uri');
 const { resolveRom } = require('./rom-files');
 const { resolveRam } = require('./ram-files');
 const { busTarget, indexMarkdown: busIndex } = require('./bus-files');
+const { resolveLocalization } = require('./localization-files');
 const { autoIndex } = require('./autoindex');
 const { dir, text } = require('./nodes');
 
@@ -52,6 +53,9 @@ class SoeFileSystem {
             r = { node: resolveRam(p.segments, this._deps.readMemory, this._deps.emulatorStatus), rom: null };
         } else if (p.authority === 'bus') {
             r = this._routeBus(uri, p.segments);
+        } else if (p.authority === 'localization' || p.authority === 'localizations') {
+            const rom = this._optionalRom(p.rom);
+            r = { node: resolveLocalization(p.segments, rom), rom };
         } else {
             throw vscode.FileSystemError.FileNotFound(uri);
         }
@@ -90,6 +94,14 @@ class SoeFileSystem {
                 : 'ROM not found: set everscript.romPath');
         }
         return rom instanceof Uint8Array ? rom : new Uint8Array(rom);
+    }
+
+    _optionalRom(which) {
+        try {
+            return this._pickRom(null, which);
+        } catch (_) {
+            return null;
+        }
     }
 
     _node(uri) {

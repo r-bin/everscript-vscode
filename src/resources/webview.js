@@ -9,7 +9,7 @@
 
 const vscode = require('vscode');
 
-const AUTHORITIES = ['rom', 'ram'];
+const AUTHORITIES = ['rom', 'ram', 'localization'];
 const root = a => vscode.Uri.parse(`soe://${a}/`);
 
 /** Add to a webview's `localResourceRoots`, or it may not read `soe://`. */
@@ -25,7 +25,7 @@ function soeBases(webview) {
 /** Rewrite every `soe://rom/…` and `soe://ram/…` in an HTML string. */
 function rewriteSoeUrls(html, webview) {
     const bases = soeBases(webview);
-    return html.replace(/soe:\/\/(rom|ram)\//g, (_, a) => bases[a]);
+    return html.replace(/soe:\/\/(rom|ram|localization)\//g, (_, a) => bases[a]);
 }
 
 /**

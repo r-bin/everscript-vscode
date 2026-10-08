@@ -235,6 +235,70 @@ test('provider: stat, readDirectory, errors and read-only', async () => {
     fsp.dispose();
 });
 
+test('provider: soe://localization/ routes and directories', async () => {
+    const fsp = new SoeFileSystem({ vanillaRom: () => rom, emulatorRom: () => null, readMemory: () => Promise.resolve(new Uint8Array()) });
+    const d = fsp.readDirectory(uri('soe://localization/'));
+    const names = d.map(([n]) => n);
+    assert.ok(names.includes('scripts'));
+    assert.ok(names.includes('maps'));
+    assert.ok(names.includes('sounds'));
+    assert.ok(names.includes('tables'));
+    assert.ok(names.includes('functions'));
+    assert.ok(names.includes('strings'));
+
+    const md = Buffer.from(await fsp.readFile(uri('soe://localization/index.md'))).toString('utf8');
+    assert.match(md, /^# soe:\/\/localization\//);
+
+    const summary = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://localization/index.json'))).toString('utf8'));
+    assert.strictEqual(summary.counts.maps, 127);
+    assert.strictEqual(summary.counts.npcScripts, 128);
+    fsp.dispose();
+});
+
+test('provider: soe://localization/scripts/ resolves known script names as JSON', async () => {
+    const fsp = new SoeFileSystem({ vanillaRom: () => rom, emulatorRom: () => null, readMemory: () => Promise.resolve(new Uint8Array()) });
+    // NPC script via npc/19b3.json
+    const s1 = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://localization/scripts/npc/19b3.json'))).toString('utf8'));
+    assert.strictEqual(s1.name, 'Fire Power Dude');
+    assert.strictEqual(s1.kind, 'npc');
+    assert.strictEqual(s1.id, 6579);
+
+    // NPC script direct via scripts/19b3.json
+    const s1Direct = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://localization/scripts/19b3.json'))).toString('utf8'));
+    assert.strictEqual(s1Direct.name, 'Fire Power Dude');
+
+    // ABS script via abs/93ca9f.json
+    const s2 = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://localization/scripts/abs/93ca9f.json'))).toString('utf8'));
+    assert.strictEqual(s2.name, 'Thraxx maggot trigger part');
+    assert.strictEqual(s2.kind, 'abs');
+
+    // Global script via global/00.json
+    const s3 = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://localization/scripts/global/00.json'))).toString('utf8'));
+    assert.strictEqual(s3.name, 'Fade-out / stop music');
+    assert.strictEqual(s3.kind, 'global');
+
+    // Maps via maps/38.json
+    const m = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://localization/maps/38.json'))).toString('utf8'));
+    assert.strictEqual(m.name, 'South jungle / Start');
+    assert.strictEqual(m.area, 'Prehistoria');
+
+    fsp.dispose();
+});
+
+test('provider: reading script with known name in ROM/bus as JSON adds the name', async () => {
+    const fsp = new SoeFileSystem({ vanillaRom: () => rom, emulatorRom: () => null, readMemory: () => Promise.resolve(new Uint8Array()) });
+    // Bus address 0x93ca9f -> soe://rom/13ca9f.json
+    const res = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://bus/93ca9f'))).toString('utf8'));
+    assert.strictEqual(res.name, 'Thraxx maggot trigger part');
+    assert.deepStrictEqual(res.script, { kind: 'abs', name: 'Thraxx maggot trigger part' });
+
+    // Also via soe://rom/assets/scripts/19b3.json
+    const assetScript = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/assets/scripts/19b3.json'))).toString('utf8'));
+    assert.strictEqual(assetScript.name, 'Fire Power Dude');
+
+    fsp.dispose();
+}, true);
+
 (async () => {
     for (const t of tests) {
         if (t.needsRom && !rom) { console.log('  - ' + t.name + ' (no test ROM)'); skipped++; continue; }

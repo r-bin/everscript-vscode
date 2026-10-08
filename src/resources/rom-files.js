@@ -11,7 +11,7 @@
 // Bus addresses go through soe://bus/ (bus-files.js), which links here.
 
 const { snesToRom } = require('../maps');
-const { getTable, getFunction } = require('../localizations');
+const { getTable, getFunction, getAbsScript } = require('../localizations');
 const { parseAddressName, hexId } = require('../shared/resource-uri');
 const { dir, file, json, text } = require('./nodes');
 const { resolveAssets } = require('./rom-assets');
@@ -48,16 +48,22 @@ function slice(rom, name) {
 function describe(rom, off) {
     const at = i => (off + i < rom.length ? rom[off + i] : 0);
     const fast = (off & 0xFFFF) >= 0x8000 && off < 0x400000 ? 0x800000 + off : null;
-    const named = getTable(off) || getFunction(0xC00000 + off) || (fast !== null && getFunction(fast));
+    const busAddr = 0xC00000 + off;
+    const script = getAbsScript(busAddr) || (fast !== null && getAbsScript(fast));
+    const named = getTable(off)
+        || getFunction(busAddr)
+        || (fast !== null && getFunction(fast))
+        || script;
     return {
         offset: '$' + hexId(off, 6),
-        bus: '$' + hexId(0xC00000 + off, 6),
+        bus: '$' + hexId(busAddr, 6),
         fastBus: fast === null ? null : '$' + hexId(fast, 6),
         byte: at(0),
         word: at(0) | (at(1) << 8),
         long: at(0) | (at(1) << 8) | (at(2) << 16),
         name: named ? named.name : null,
         notes: named && named.notes ? named.notes : null,
+        script: script ? { kind: 'abs', name: script.name } : undefined,
     };
 }
 

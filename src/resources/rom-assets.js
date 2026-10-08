@@ -25,13 +25,17 @@ function resolveAssets(segments, rom) {
     const [kind, id, leaf, ...extra] = segments;
     if (extra.length) return null;
     if (kind === undefined) {
-        return dir(['icons', ...Object.keys(CATEGORIES), 'alchemy', 'strings', 'maps'].map(n => [n, 'dir']));
+        return dir(['icons', ...Object.keys(CATEGORIES), 'alchemy', 'strings', 'maps', 'scripts'].map(n => [n, 'dir']));
     }
     if (kind === 'icons') return icons(rom, id, leaf);
     if (kind in CATEGORIES) return items(rom, kind, id, leaf);
     if (kind === 'alchemy') return alchemy(rom, id, leaf);
     if (kind === 'strings') return strings(rom, id, leaf);
     if (kind === 'maps') return maps(rom, id, leaf);
+    if (kind === 'scripts') {
+        const { resolveLocalization } = require('./localization-files');
+        return resolveLocalization(['scripts', ...segments.slice(1)], rom);
+    }
     return null;
 }
 
