@@ -1,0 +1,612 @@
+<title>Call-Graph Galaxy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: full-bleed canvas "sky"; HUD panels float on it — layers (left), detail drawer (right), replay bar (bottom). Single deliberate dark look. */
+:root {
+  color-scheme: dark;
+  --void: #07080f;
+  --panel: rgba(14, 16, 30, 0.86);
+  --panel-solid: #0e101e;
+  --line: rgba(150, 160, 220, 0.16);
+  --ink: #e6e8f5;
+  --ink-2: #9aa0c3;
+  --ink-3: #636a92;
+  --accent: #8fb3ff;
+  --gold: #fcd34d;
+  --write: #fb923c;
+  --read: #67e8f9;
+  --dma: #e879f9;
+  --font-display: "Chakra Petch", "Avenir Next Condensed", "Arial Narrow", sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+html, body { height: 100%; }
+body { background: var(--void); color: var(--ink); font-family: var(--font-body); font-size: 13px; overflow: hidden; }
+#sky { position: fixed; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
+#sky:active { cursor: grabbing; }
+.hud { position: fixed; z-index: 2; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Title + layers */
+#side { top: calc(16px + env(safe-area-inset-top, 0px)); left: 16px; width: 264px; max-height: calc(100% - 120px); overflow: auto; padding: 14px 14px 12px; display: flex; flex-direction: column; gap: 12px; }
+h1 { font-family: var(--font-display); font-weight: 600; font-size: 20px; letter-spacing: 0.02em; margin: 0; line-height: 1.1; text-wrap: balance; }
+.sub { color: var(--ink-2); font-size: 11.5px; line-height: 1.45; margin: 4px 0 0; }
+.sub code { font-family: var(--font-mono); font-size: 10.5px; color: var(--ink); }
+.eyebrow { font-family: var(--font-display); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 6px; }
+.search { display: flex; gap: 6px; }
+.search input { flex: 1; min-width: 0; background: rgba(255,255,255,0.04); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font-family: var(--font-mono); font-size: 12px; }
+.rows { display: grid; gap: 2px; }
+.row { display: grid; grid-template-columns: 14px 1fr auto; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 6px; border: 0; background: none; text-align: left; font-size: 12.5px; }
+.row:hover { background: rgba(255,255,255,0.05); }
+.row[aria-pressed="false"] { opacity: 0.38; }
+.row .n { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.sw { width: 10px; height: 10px; display: inline-block; }
+.sw.dot { border-radius: 50%; }
+.sw.sq { border-radius: 2px; transform: scale(0.8); }
+.sw.tri { width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 9px solid currentColor; background: none !important; }
+.sw.dia { transform: rotate(45deg) scale(0.75); }
+.sw.ring { border-radius: 50%; border: 2px solid currentColor; background: none !important; }
+.sw.ln { height: 2px; width: 12px; border-radius: 1px; }
+.banks { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { border: 1px solid var(--line); background: rgba(255,255,255,0.03); border-radius: 999px; padding: 2px 8px 2px 6px; font-family: var(--font-mono); font-size: 11px; display: inline-flex; align-items: center; gap: 5px; }
+.chip[aria-pressed="true"] { border-color: currentColor; background: rgba(255,255,255,0.08); }
+.chip i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; background: none; padding: 4px 8px; font-size: 11.5px; color: var(--ink-2); }
+.seg button[aria-pressed="true"] { background: rgba(143,179,255,0.16); color: var(--ink); }
+.seg button:disabled { opacity: 0.35; cursor: not-allowed; }
+.note { font-size: 11px; color: var(--ink-3); line-height: 1.45; margin: 4px 0 0; }
+
+/* Detail drawer */
+#detail { top: calc(16px + env(safe-area-inset-top, 0px)); right: 16px; width: 360px; max-height: calc(100% - 120px); overflow: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+#detail .close { position: absolute; top: 10px; right: 10px; border: 0; background: none; color: var(--ink-3); font-size: 18px; line-height: 1; padding: 4px 6px; }
+.kind { font-family: var(--font-display); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; display: inline-flex; align-items: center; gap: 6px; }
+.dtitle { font-family: var(--font-mono); font-size: 17px; font-weight: 500; margin: 4px 0 0; word-break: break-word; padding-right: 20px; }
+.dname { color: var(--ink-2); margin: 2px 0 0; font-size: 12.5px; }
+.badges { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.badge { font-family: var(--font-mono); font-size: 10.5px; padding: 1px 6px; border-radius: 4px; background: rgba(255,255,255,0.06); color: var(--ink-2); }
+.badge.hot { background: rgba(252,211,77,0.15); color: var(--gold); }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.stat { border-top: 1px solid var(--line); padding-top: 6px; }
+.stat b { display: block; font-family: var(--font-display); font-weight: 600; font-size: 20px; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 10.5px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.08em; }
+.group h3 { margin: 0 0 4px; font-size: 11px; font-weight: 600; color: var(--ink-2); display: flex; align-items: center; gap: 6px; }
+.group h3 .n { color: var(--ink-3); font-family: var(--font-mono); font-weight: 400; }
+.links { display: flex; flex-wrap: wrap; gap: 3px; }
+.lnk { border: 1px solid var(--line); background: none; border-radius: 4px; padding: 1px 6px; font-family: var(--font-mono); font-size: 11px; color: var(--ink); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lnk:hover { border-color: var(--accent); }
+.lnk.more { color: var(--ink-3); }
+pre.asm { margin: 0; font-family: var(--font-mono); font-size: 11.5px; line-height: 1.6; background: rgba(0,0,0,0.35); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; overflow-x: auto; }
+pre.asm .ad { color: var(--ink-3); }
+pre.asm .mn { color: var(--accent); }
+pre.asm .io { color: var(--dma); }
+pre.asm .lb { color: var(--gold); cursor: pointer; text-decoration: underline dotted; }
+pre.asm .lb.dead { cursor: default; text-decoration: none; }
+.flowkey { display: flex; gap: 12px; font-size: 11px; color: var(--ink-2); flex-wrap: wrap; }
+.flowkey span { display: inline-flex; align-items: center; gap: 5px; }
+
+/* Replay */
+#replay { left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: min(640px, calc(100% - 32px)); padding: 10px 14px; display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; }
+#play { border: 1px solid var(--line); background: rgba(143,179,255,0.12); border-radius: 999px; width: 34px; height: 34px; display: grid; place-items: center; font-size: 12px; }
+#replay input[type=range] { width: 100%; accent-color: var(--accent); }
+#replay .lbl { font-family: var(--font-mono); font-size: 11px; color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+#replay .cap { grid-column: 1 / -1; font-size: 10.5px; color: var(--ink-3); margin: -4px 0 0; }
+
+#tip { position: fixed; z-index: 3; pointer-events: none; background: var(--panel-solid); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; font-family: var(--font-mono); font-size: 11px; white-space: nowrap; }
+.toggle-side { display: none; }
+
+@media (max-width: 760px) {
+  #side { width: auto; right: 16px; max-height: 46%; padding: 10px 12px; }
+  #side.folded .fold { display: none; }
+  .toggle-side { display: inline-block; border: 1px solid var(--line); background: none; border-radius: 6px; padding: 2px 8px; font-size: 11px; color: var(--ink-2); }
+  #detail { top: auto; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); left: 16px; right: 16px; width: auto; max-height: 44%; }
+  h1 { font-size: 17px; }
+}
+</style>
+
+<canvas id="sky" aria-label="Force-directed graph of functions, WRAM, ROM assets, I/O registers and scripts"></canvas>
+
+<aside id="side" class="hud">
+  <div>
+    <div style="display:flex;justify-content:space-between;align-items:start;gap:8px">
+      <h1>Call-Graph Galaxy</h1>
+      <button class="toggle-side" id="fold" type="button" aria-expanded="true">Layers</button>
+    </div>
+    <p class="sub" id="meta"></p>
+  </div>
+  <div class="search">
+    <input id="q" type="search" placeholder="func_C08650, BOY_CURRENT_HP, $2118…" aria-label="Find a node" autocomplete="off">
+  </div>
+  <div class="fold">
+    <p class="eyebrow">Bodies</p>
+    <div class="rows" id="kinds"></div>
+  </div>
+  <div class="fold">
+    <p class="eyebrow">Links</p>
+    <div class="rows" id="etypes"></div>
+  </div>
+  <div class="fold">
+    <p class="eyebrow">Banks · click to isolate</p>
+    <div class="banks" id="banks"></div>
+  </div>
+  <div class="fold">
+    <p class="eyebrow">Function size</p>
+    <div class="seg" id="sizeby">
+      <button type="button" data-v="bytes" aria-pressed="true">Code bytes</button>
+      <button type="button" data-v="callers" aria-pressed="false">Callers</button>
+      <button type="button" data-v="hits" aria-pressed="false" disabled>Hits</button>
+    </div>
+    <p class="note" id="hitsnote" hidden>Hit counts need a recording made with v0.173 or later. This library predates them.</p>
+  </div>
+</aside>
+
+<aside id="detail" class="hud" hidden aria-live="polite"></aside>
+
+<div id="replay" class="hud">
+  <button id="play" type="button" aria-label="Replay how the recording grew">▶</button>
+  <input id="t" type="range" min="0" max="100" value="100" aria-label="Recording progress">
+  <span class="lbl" id="tl"></span>
+  <p class="cap">Replay order is rebuilt from the calls, starting at the NMI vector. The library doesn't store when each byte was first logged.</p>
+</div>
+<div id="tip" hidden></div>
+
+<script id="graph-data" type="application/json">__DATA__</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script>
+(() => {
+const G = JSON.parse(document.getElementById('graph-data').textContent);
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const byId = new Map(G.nodes.map(n => [n.id, n]));
+const byLabel = new Map(G.nodes.map(n => [n.label, n]));
+
+// ---------- palette ----------
+const BANK_COLORS = { C0: '#ffb454', CC: '#7aa2ff', CD: '#c792ea', CE: '#5eead4', CF: '#ff7eb6', D0: '#a3e635', D1: '#f97316' };
+const OTHER_BANK = '#8b93b8';
+const REGION_COLORS = { 'Direct page': '#bae6fd', 'Engine': '#7dd3fc', 'Entities & stats': '#22d3ee', 'Save file': '#fde68a', 'Room scratch': '#5eead4', 'Script VM': '#a5b4fc', 'Buffers': '#60a5fa', 'Bank $7F': '#818cf8', '?': '#94a3b8' };
+const KIND = {
+  func:   { name: 'Functions',     shape: 'dot',  color: '#7aa2ff' },
+  wram:   { name: 'WRAM',          shape: 'sq',   color: '#22d3ee' },
+  asset:  { name: 'ROM assets',    shape: 'tri',  color: '#8b93b8' },
+  io:     { name: 'I/O registers', shape: 'dia',  color: '#f0abfc' },
+  script: { name: 'Scripts',       shape: 'ring', color: '#fcd34d' },
+};
+const ETYPE = {
+  call:   { name: 'Calls',            color: [190, 205, 255], a: 0.16, types: ['call', 'jump'] },
+  read:   { name: 'WRAM reads',       color: [103, 232, 249], a: 0.05, types: ['read'] },
+  write:  { name: 'WRAM writes',      color: [251, 146, 60],  a: 0.06, types: ['write'] },
+  rom:    { name: 'ROM reads + DMA',  color: [232, 121, 249], a: 0.10, types: ['rom', 'dma'] },
+  io:     { name: 'I/O access',       color: [240, 171, 252], a: 0.10, types: ['iow', 'ior'] },
+  script: { name: 'Script touches',   color: [252, 211, 77],  a: 0.10, types: ['script', 'runs'] },
+};
+const typeGroup = {}; for (const [g, e] of Object.entries(ETYPE)) for (const t of e.types) typeGroup[t] = g;
+const colorOf = n => n.kind === 'func' ? (BANK_COLORS[n.bank] || OTHER_BANK)
+  : n.kind === 'asset' ? (n.dma ? '#e879f9' : (BANK_COLORS[n.bank] || OTHER_BANK))
+  : n.kind === 'wram' ? (REGION_COLORS[n.region] || '#94a3b8')
+  : KIND[n.kind].color;
+
+// ---------- adjacency ----------
+for (const n of G.nodes) { n.out = []; n.in = []; n.deg = 0; }
+for (const l of G.links) {
+  l.source = byId.get(l.s); l.target = byId.get(l.t); l.g = typeGroup[l.type];
+  l.source.out.push(l); l.target.in.push(l); l.source.deg++; l.target.deg++;
+  l.seed = Math.random();
+}
+
+// ---------- anchors: banks orbit a WRAM core; assets on the rim; I/O + scripts as satellites ----------
+const funcBanks = [...new Set(G.nodes.filter(n => n.kind === 'func').map(n => n.bank))].sort();
+const bankAngle = {}; funcBanks.forEach((b, i) => bankAngle[b] = -Math.PI / 2 + i * 2 * Math.PI / funcBanks.length);
+const regions = Object.keys(REGION_COLORS);
+const R_BANK = 360, R_RIM = 640;
+const SAT = { io: [700, -520], script: [-700, 520] };
+function anchor(n) {
+  if (n.kind === 'func') { const a = bankAngle[n.bank]; return [Math.cos(a) * R_BANK, Math.sin(a) * R_BANK]; }
+  if (n.kind === 'wram') { const i = regions.indexOf(n.region); const a = i / regions.length * 2 * Math.PI; return [Math.cos(a) * 90, Math.sin(a) * 90]; }
+  if (n.kind === 'asset') {
+    const a = bankAngle[n.bank] ?? (parseInt(n.bank, 16) * 2.399);
+    return [Math.cos(a) * R_RIM, Math.sin(a) * R_RIM];
+  }
+  return SAT[n.kind];
+}
+for (const n of G.nodes) { const [ax, ay] = anchor(n); n.ax = ax; n.ay = ay; n.x = ax + (Math.random() - 0.5) * 120; n.y = ay + (Math.random() - 0.5) * 120; }
+
+// ---------- sizes ----------
+let sizeBy = 'bytes';
+function radius(n) {
+  switch (n.kind) {
+    case 'func': if (sizeBy === 'hits') return 2 + Math.log10(n.hits + 1) * 2.2;
+      return sizeBy === 'callers' ? 2.2 + Math.sqrt(n.callers) * 2.0 : 2 + Math.sqrt(n.bytes) / 2.6 + Math.sqrt(n.callers) * 0.6;
+    case 'wram': return 1.7 + Math.sqrt(n.users) * (n.named ? 1.1 : 0.8);
+    case 'asset': return 2.6 + Math.sqrt(n.users) * 1.3;
+    case 'io': return 3 + Math.sqrt(n.users) * 0.9;
+    case 'script': return Math.min(16, 4 + Math.sqrt(n.touches) / 5);
+  }
+  return 3;
+}
+for (const n of G.nodes) n.r = radius(n);
+
+// ---------- discovery order (BFS over calls from NMI, then the rest) ----------
+(function order() {
+  const funcs = G.nodes.filter(n => n.kind === 'func');
+  const seen = new Set(); let k = 0;
+  const seeds = [...funcs.filter(n => n.vector), ...funcs.filter(n => !n.in.some(l => l.g === 'call')).sort((a, b) => b.out.length - a.out.length), ...funcs.sort((a, b) => b.callers - a.callers)];
+  for (const s of seeds) {
+    if (seen.has(s)) continue;
+    const q = [s]; seen.add(s);
+    while (q.length) { const n = q.shift(); n.key = k++; for (const l of n.out) if (l.g === 'call' && !seen.has(l.target)) { seen.add(l.target); q.push(l.target); } }
+  }
+  for (const n of G.nodes) if (n.kind !== 'func') {
+    let m = Infinity; for (const l of [...n.in, ...n.out]) { const o = l.source === n ? l.target : l.source; if (o.kind === 'func') m = Math.min(m, o.key); }
+    n.key = (m === Infinity ? k : m) + 0.5 + Math.random() * 0.4;
+  }
+  [...G.nodes].sort((a, b) => a.key - b.key).forEach((n, i) => n.order = i);
+})();
+
+// ---------- simulation ----------
+const linkStrength = l => l.g === 'call' ? 0.08 : l.g === 'script' ? 0.006 : 0.006;
+const sim = d3.forceSimulation(G.nodes)
+  .force('link', d3.forceLink(G.links).strength(linkStrength).distance(l => l.g === 'call' ? 40 : 90))
+  .force('charge', d3.forceManyBody().strength(n => n.kind === 'wram' ? -6 : -26).distanceMax(260))
+  .force('x', d3.forceX(n => n.ax).strength(n => n.kind === 'wram' ? 0.08 : 0.22))
+  .force('y', d3.forceY(n => n.ay).strength(n => n.kind === 'wram' ? 0.08 : 0.22))
+  .force('collide', d3.forceCollide(n => n.r + 1.2).iterations(1))
+  .stop();
+for (let i = 0; i < 240; i++) sim.tick();
+sim.alpha(0.08).alphaDecay(0.03).on('tick', () => dirty = true).restart();
+
+// ---------- canvas ----------
+const canvas = document.getElementById('sky');
+const ctx = canvas.getContext('2d');
+let W = 0, H = 0, dpr = 1, dirty = true;
+function resize() {
+  dpr = Math.min(2, devicePixelRatio || 1);
+  W = innerWidth; H = innerHeight;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  makeStars(); dirty = true;
+}
+let stars = [];
+function makeStars() {
+  const c = Math.round(W * H / 2600); stars = [];
+  for (let i = 0; i < c; i++) stars.push({ x: Math.random() * W, y: Math.random() * H, r: Math.random() * 1.1 + 0.2, p: Math.random() * 6.28, s: 0.4 + Math.random() * 1.4 });
+}
+const glowCache = new Map();
+function glow(color) {
+  if (glowCache.has(color)) return glowCache.get(color);
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d'); const grd = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  grd.addColorStop(0, color + 'cc'); grd.addColorStop(0.25, color + '55'); grd.addColorStop(1, color + '00');
+  g.fillStyle = grd; g.fillRect(0, 0, 64, 64); glowCache.set(color, c); return c;
+}
+
+// ---------- state ----------
+const state = {
+  kinds: Object.fromEntries(Object.keys(KIND).map(k => [k, true])),
+  etypes: Object.fromEntries(Object.keys(ETYPE).map(k => [k, true])),
+  bank: null, selected: null, hover: null, reveal: G.nodes.length,
+};
+const visible = n => state.kinds[n.kind] && n.order < state.reveal;
+const inBank = n => !state.bank || (n.kind === 'func' || n.kind === 'asset' ? n.bank === state.bank : [...n.in, ...n.out].some(l => { const o = l.source === n ? l.target : l.source; return o.kind === 'func' && o.bank === state.bank; }));
+let bankCache = new Map();
+const bankOk = n => { if (!state.bank) return true; if (!bankCache.has(n)) bankCache.set(n, inBank(n)); return bankCache.get(n); };
+let neigh = null;
+function setNeighbours() {
+  neigh = null; const s = state.selected; if (!s) return;
+  neigh = new Set([s]); for (const l of [...s.in, ...s.out]) if (state.etypes[l.g]) neigh.add(l.source === s ? l.target : l.source);
+}
+
+// ---------- zoom ----------
+let T = d3.zoomIdentity;
+const zoom = d3.zoom().scaleExtent([0.12, 10]).on('zoom', e => { T = e.transform; dirty = true; });
+const sel = d3.select(canvas).call(zoom).on('dblclick.zoom', null);
+function fit() {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const n of G.nodes) { x0 = Math.min(x0, n.x); y0 = Math.min(y0, n.y); x1 = Math.max(x1, n.x); y1 = Math.max(y1, n.y); }
+  const narrow = W < 760, padL = narrow ? 16 : 296, padR = narrow ? 16 : 392, padT = narrow ? 120 : 24, padB = narrow ? 120 : 96;
+  const k = Math.min((W - padL - padR) / (x1 - x0), (H - padT - padB) / (y1 - y0)) * 0.98;
+  const cx = padL + (W - padL - padR) / 2, cy = padT + (H - padT - padB) / 2;
+  sel.call(zoom.transform, d3.zoomIdentity.translate(cx - k * (x0 + x1) / 2, cy - k * (y0 + y1) / 2).scale(k));
+}
+
+// ---------- draw ----------
+function curve(l) {
+  const a = l.source, b = l.target, dx = b.x - a.x, dy = b.y - a.y;
+  return [a.x, a.y, (a.x + b.x) / 2 - dy * 0.12, (a.y + b.y) / 2 + dx * 0.12, b.x, b.y];
+}
+function bez(c, t) { const u = 1 - t; return [u * u * c[0] + 2 * u * t * c[2] + t * t * c[4], u * u * c[1] + 2 * u * t * c[3] + t * t * c[5]]; }
+function shape(n, x, y, r) {
+  ctx.beginPath();
+  switch (n.kind) {
+    case 'wram': ctx.rect(x - r * 0.8, y - r * 0.8, r * 1.6, r * 1.6); break;
+    case 'asset': ctx.moveTo(x, y - r * 1.1); ctx.lineTo(x + r, y + r * 0.7); ctx.lineTo(x - r, y + r * 0.7); ctx.closePath(); break;
+    case 'io': ctx.moveTo(x, y - r); ctx.lineTo(x + r, y); ctx.lineTo(x, y + r); ctx.lineTo(x - r, y); ctx.closePath(); break;
+    default: ctx.arc(x, y, r, 0, Math.PI * 2);
+  }
+}
+const now = () => performance.now();
+function draw() {
+  const t = now();
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = '#07080f'; ctx.fillRect(0, 0, W, H);
+  // stars (screen space, gentle parallax)
+  for (const s of stars) {
+    const tw = reduceMotion ? 0.6 : 0.45 + 0.35 * Math.sin(t / 1000 * s.s + s.p);
+    ctx.globalAlpha = tw * 0.7; ctx.fillStyle = '#c7d2fe';
+    const px = ((s.x + T.x * 0.04 * s.r) % W + W) % W, py = ((s.y + T.y * 0.04 * s.r) % H + H) % H;
+    ctx.fillRect(px, py, s.r, s.r);
+  }
+  ctx.globalAlpha = 1;
+  ctx.setTransform(dpr * T.k, 0, 0, dpr * T.k, dpr * T.x, dpr * T.y);
+  ctx.globalCompositeOperation = 'lighter';
+  // nebulae per bank
+  for (const b of funcBanks) {
+    const a = bankAngle[b], x = Math.cos(a) * R_BANK, y = Math.sin(a) * R_BANK;
+    const dim = state.bank && state.bank !== b ? 0.25 : 1;
+    ctx.globalAlpha = 0.22 * dim; ctx.drawImage(glow(BANK_COLORS[b] || OTHER_BANK), x - 260, y - 260, 520, 520);
+  }
+  ctx.globalAlpha = 0.16; ctx.drawImage(glow('#22d3ee'), -230, -230, 460, 460);
+  ctx.globalAlpha = 1;
+
+  // links
+  const s = state.selected;
+  ctx.lineWidth = 1 / T.k * (T.k > 1 ? 1 : 0.9);
+  for (const [g, e] of Object.entries(ETYPE)) {
+    if (!state.etypes[g]) continue;
+    ctx.beginPath(); let any = false;
+    for (const l of G.links) {
+      if (l.g !== g || !visible(l.source) || !visible(l.target)) continue;
+      if (s && (l.source === s || l.target === s)) continue;
+      if (state.bank && !(bankOk(l.source) && bankOk(l.target))) continue;
+      const c = curve(l); ctx.moveTo(c[0], c[1]); ctx.quadraticCurveTo(c[2], c[3], c[4], c[5]); any = true;
+    }
+    if (!any) continue;
+    ctx.strokeStyle = `rgba(${e.color.join(',')},${s ? e.a * 0.35 : e.a})`;
+    ctx.stroke();
+  }
+  // selected links + particles (direction = data flow: writes go out, reads come in)
+  if (s) {
+    for (const l of [...s.in, ...s.out]) {
+      if (!state.etypes[l.g] || !visible(l.source) || !visible(l.target)) continue;
+      const e = ETYPE[l.g]; const c = curve(l);
+      ctx.strokeStyle = `rgba(${e.color.join(',')},0.75)`; ctx.lineWidth = 1.4 / T.k;
+      ctx.beginPath(); ctx.moveTo(c[0], c[1]); ctx.quadraticCurveTo(c[2], c[3], c[4], c[5]); ctx.stroke();
+      if (reduceMotion) continue;
+      const reverse = l.type === 'read' || l.type === 'rom' || l.type === 'ior' || l.type === 'dma';
+      ctx.fillStyle = `rgb(${e.color.join(',')})`;
+      for (let k = 0; k < 2; k++) {
+        let p = ((t / 1600) + l.seed + k / 2) % 1; if (reverse) p = 1 - p;
+        const [px, py] = bez(c, p); ctx.beginPath(); ctx.arc(px, py, 1.8 / T.k + 0.6, 0, 6.283); ctx.fill();
+      }
+    }
+  }
+
+  // nodes
+  for (const n of G.nodes) {
+    if (!visible(n)) continue;
+    const on = (!neigh || neigh.has(n)) && bankOk(n);
+    const col = colorOf(n);
+    const born = n.bornAt ? (t - n.bornAt) / 700 : 2;
+    ctx.globalAlpha = on ? 0.9 : 0.12;
+    const gr = n.r * (n.kind === 'func' ? 4.2 : 3.2);
+    ctx.drawImage(glow(col), n.x - gr, n.y - gr, gr * 2, gr * 2);
+    ctx.globalAlpha = on ? 1 : 0.18;
+    shape(n, n.x, n.y, n.r);
+    if (n.kind === 'script') { ctx.strokeStyle = col; ctx.lineWidth = 1.6; ctx.stroke(); }
+    else { ctx.fillStyle = col; ctx.fill(); }
+    if (born < 1) { ctx.globalAlpha = 1 - born; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1 / T.k; ctx.beginPath(); ctx.arc(n.x, n.y, n.r + born * 26, 0, 6.283); ctx.stroke(); }
+  }
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+  // selection ring
+  if (s && visible(s)) {
+    const pr = s.r + 5 + (reduceMotion ? 0 : Math.sin(t / 300) * 1.5);
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5 / T.k;
+    ctx.beginPath(); ctx.arc(s.x, s.y, pr, 0, 6.283); ctx.stroke();
+  }
+  // labels
+  ctx.textBaseline = 'middle';
+  const fs = 10.5 / T.k;
+  ctx.font = `500 ${fs}px "IBM Plex Mono", monospace`;
+  const labelled = [];
+  if (neigh) { for (const n of neigh) labelled.push(n); }
+  else for (const n of G.nodes) if (visible(n) && bankOk(n) && (n.r * T.k > 9 || (n.kind === 'io' && T.k > 0.9) || (n.kind === 'script' && T.k > 0.7) || (n.kind === 'wram' && n.named && T.k > 2.2))) labelled.push(n);
+  for (const n of labelled.slice(0, 160)) {
+    if (!visible(n)) continue;
+    const txt = n.label;
+    const x = n.x + n.r + 4 / T.k, y = n.y;
+    ctx.fillStyle = 'rgba(7,8,15,0.7)';
+    const w = ctx.measureText(txt).width; ctx.fillRect(x - 2 / T.k, y - fs * 0.62, w + 4 / T.k, fs * 1.24);
+    ctx.fillStyle = n === s ? '#ffffff' : '#c9cde6'; ctx.fillText(txt, x, y);
+  }
+  // bank captions (screen-size text)
+  ctx.font = `600 ${12 / T.k}px "Chakra Petch", sans-serif`; ctx.textAlign = 'center';
+  for (const b of funcBanks) {
+    const a = bankAngle[b], x = Math.cos(a) * (R_BANK + 175), y = Math.sin(a) * (R_BANK + 175);
+    ctx.fillStyle = BANK_COLORS[b] || OTHER_BANK; ctx.globalAlpha = state.bank && state.bank !== b ? 0.3 : 0.85;
+    ctx.fillText(`BANK $${b}`, x, y);
+  }
+  ctx.globalAlpha = 0.75; ctx.fillStyle = '#7dd3fc'; ctx.fillText('WRAM CORE', 0, -170);
+  ctx.fillStyle = '#f0abfc'; ctx.fillText('PPU · DMA · APU · MATH', SAT.io[0], SAT.io[1] - 120);
+  ctx.fillStyle = '#fcd34d'; ctx.fillText('EVERSCRIPT', SAT.script[0], SAT.script[1] + 140);
+  ctx.globalAlpha = 1; ctx.textAlign = 'left';
+}
+function loop() {
+  const animating = !reduceMotion || state.selected || playing || G.nodes.some(n => n.bornAt && now() - n.bornAt < 700);
+  if (dirty || animating) { draw(); dirty = false; }
+  requestAnimationFrame(loop);
+}
+
+// ---------- picking ----------
+function pick(ev) {
+  const [mx, my] = d3.pointer(ev, canvas); const [x, y] = T.invert([mx, my]);
+  let best = null, bd = Infinity;
+  for (const n of G.nodes) {
+    if (!visible(n)) continue;
+    const d = Math.hypot(n.x - x, n.y - y), rr = Math.max(n.r + 2, 7 / T.k);
+    if (d < rr && d < bd) { bd = d; best = n; }
+  }
+  return best;
+}
+const tip = document.getElementById('tip');
+canvas.addEventListener('pointermove', ev => {
+  const n = pick(ev); state.hover = n; canvas.style.cursor = n ? 'pointer' : '';
+  if (!n) { tip.hidden = true; return; }
+  tip.textContent = `${n.emoji || ''}${n.label} · ${KIND[n.kind].name.replace(/s$/, '')}`;
+  tip.hidden = false; tip.style.left = Math.min(ev.clientX + 12, W - tip.offsetWidth - 8) + 'px'; tip.style.top = (ev.clientY + 14) + 'px';
+});
+canvas.addEventListener('pointerleave', () => tip.hidden = true);
+canvas.addEventListener('click', ev => { const n = pick(ev); select(n, false); });
+
+// ---------- detail drawer ----------
+const detail = document.getElementById('detail');
+const hex = (v, w) => v.toString(16).toUpperCase().padStart(w, '0');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function wramAddr(n) { const bank = n.addr >= 0x10000 ? '7F' : '7E'; return n.named ? `$${bank}:${hex(n.addr & 0xFFFF, 4)}` : n.label; }
+function group(title, list, swatch) {
+  if (!list.length) return '';
+  const uniq = [...new Map(list.map(n => [n.id, n])).values()].sort((a, b) => (b.deg - a.deg));
+  const shown = uniq.slice(0, 24);
+  return `<div class="group"><h3>${swatch || ''}${title} <span class="n">${uniq.length}</span></h3><div class="links">${shown.map(n => `<button type="button" class="lnk" data-id="${n.id}" title="${esc(n.label)}">${esc((n.emoji || '') + n.label)}</button>`).join('')}${uniq.length > 24 ? `<span class="lnk more">+${uniq.length - 24}</span>` : ''}</div></div>`;
+}
+const sw = (c, shape = 'ln') => `<i class="sw ${shape}" style="background:${c};color:${c}"></i>`;
+function asmHtml(lines) {
+  return lines.map(l => {
+    const m = l.match(/^(\w{4})\s+(\S+)(.*)$/); if (!m) return esc(l);
+    let ops = esc(m[3]).replace(/\b((?:func|loc|data|ptrs|gfx)_[0-9A-F]{6})\b/g, (x) => `<span class="lb${byLabel.has(x) ? '' : ' dead'}" data-label="${x}">${x}</span>`)
+      .replace(/\$(21[0-4][0-9A-F]|4[23][0-9A-F]{2})\b/g, '<span class="io">$$$1</span>');
+    return `<span class="ad">${m[1]}</span>  <span class="mn">${esc(m[2])}</span>${ops}`;
+  }).join('\n');
+}
+function others(n, pred) { const r = new Set(); for (const l of n.out) if (pred(l, 'out')) r.add(l.target); for (const l of n.in) if (pred(l, 'in')) r.add(l.source); return [...r]; }
+function renderDetail(n) {
+  if (!n) { detail.hidden = true; return; }
+  const col = colorOf(n); let head = '', stats = '', body = '';
+  const k = KIND[n.kind];
+  const kindTag = `<span class="kind" style="color:${col}"><i class="sw ${k.shape}" style="background:${col};color:${col}"></i>${k.name.replace(/s$/, '')}</span>`;
+  if (n.kind === 'func') {
+    const callers = others(n, (l, d) => d === 'in' && l.g === 'call');
+    const callees = others(n, (l, d) => d === 'out' && l.g === 'call');
+    head = `<div class="dtitle">${n.label}</div><div class="badges"><span class="badge">bank $${n.bank}</span><span class="badge">${n.bytes} code bytes</span>${n.hits ? `<span class="badge">${n.hits.toLocaleString()} hits</span>` : ''}${n.vector ? `<span class="badge hot">${n.vector} vector</span>` : ''}${G.meta.interp === n.id ? '<span class="badge hot">script interpreter</span>' : ''}</div>`;
+    stats = `<div class="stats"><div class="stat"><b>${callers.length}</b><span>callers</span></div><div class="stat"><b>${callees.length}</b><span>callees</span></div><div class="stat"><b>${new Set(others(n, l => l.g === 'read' || l.g === 'write').map(x => x.id)).size}</b><span>WRAM vars</span></div></div>`;
+    body = `<pre class="asm" aria-label="Disassembly">${asmHtml(n.asm || [])}${n.asm && n.asm.length >= 14 ? '\n<span class="ad">…</span>' : ''}</pre>`
+      + group('Called by', callers, sw('rgb(190,205,255)'))
+      + group('Calls', callees, sw('rgb(190,205,255)'))
+      + group('Writes', others(n, (l, d) => d === 'out' && l.type === 'write'), sw('var(--write)'))
+      + group('Reads', others(n, (l, d) => d === 'out' && l.type === 'read'), sw('var(--read)'))
+      + group('DMA sources', others(n, (l, d) => d === 'out' && l.type === 'dma'), sw('var(--dma)'))
+      + group('ROM data', others(n, (l, d) => d === 'out' && l.type === 'rom'), sw('#8b93b8'))
+      + group('Hardware registers', others(n, (l, d) => d === 'out' && l.g === 'io'), sw('#f0abfc'))
+      + group('Scripts run here', others(n, (l, d) => d === 'in' && l.type === 'runs'), sw('#fcd34d'));
+  } else if (n.kind === 'wram') {
+    const w = others(n, (l, d) => d === 'in' && l.type === 'write'), r = others(n, (l, d) => d === 'in' && l.type === 'read'), sc = others(n, (l, d) => d === 'in' && l.g === 'script');
+    head = `<div class="dtitle">${esc(n.named ? n.label : wramAddr(n))}</div>${n.named ? `<p class="dname">${n.emoji || ''} ${wramAddr(n)}</p>` : '<p class="dname">Unnamed 64-byte page: not in memory-map.md yet</p>'}<div class="badges"><span class="badge">${esc(n.region)}</span></div>`;
+    stats = `<div class="stats"><div class="stat"><b>${w.length}</b><span>writers</span></div><div class="stat"><b>${r.length}</b><span>readers</span></div><div class="stat"><b>${sc.length}</b><span>scripts</span></div></div>`;
+    body = group('Written by', w, sw('var(--write)')) + group('Read by', r, sw('var(--read)')) + group('Touched by scripts', sc, sw('#fcd34d'));
+  } else if (n.kind === 'asset') {
+    const u = others(n, (l, d) => d === 'in');
+    head = `<div class="dtitle">${n.label}</div><div class="badges"><span class="badge">${{ data: 'data table', ptrs: 'pointer table', gfx: 'graphics', hdma: 'HDMA table' }[n.sub] || n.sub}</span><span class="badge">bank $${n.bank}</span>${n.dma ? `<span class="badge hot">DMA → ${n.target}</span>` : ''}</div>`;
+    stats = `<div class="stats"><div class="stat"><b>${u.length}</b><span>readers</span></div></div>`;
+    body = group(n.dma ? 'Uploaded by' : 'Read by', u, sw(n.dma ? 'var(--dma)' : '#8b93b8'));
+  } else if (n.kind === 'io') {
+    const w = others(n, (l, d) => d === 'in' && l.type === 'iow'), r = others(n, (l, d) => d === 'in' && l.type === 'ior');
+    head = `<div class="dtitle">${n.label}</div><p class="dname">$${hex(n.addr, 4)}</p>`;
+    stats = `<div class="stats"><div class="stat"><b>${w.length}</b><span>writers</span></div><div class="stat"><b>${r.length}</b><span>readers</span></div></div>`;
+    body = group('Written by', w, sw('#f0abfc')) + group('Read by', r, sw('#f0abfc'));
+  } else if (n.kind === 'script') {
+    const v = others(n, (l, d) => d === 'out' && l.type === 'script');
+    head = `<div class="dtitle">${esc(n.label)}</div><div class="badges"><span class="badge">$${n.addr}</span>${n.tag ? `<span class="badge">${esc(n.tag)}</span>` : ''}${n.bulk ? '<span class="badge hot">bulk: room load</span>' : ''}</div>`;
+    stats = `<div class="stats"><div class="stat"><b>${n.instrs}</b><span>instrs seen</span></div><div class="stat"><b>${n.touches.toLocaleString()}</b><span>WRAM bytes</span></div><div class="stat"><b>${v.length}</b><span>named vars</span></div></div>`;
+    body = group('Named WRAM it touches', v, sw('#fcd34d')) + group('Runs on', others(n, (l, d) => d === 'out' && l.type === 'runs'), sw('#fcd34d'));
+  }
+  detail.innerHTML = `<button type="button" class="close" aria-label="Close">×</button><div>${kindTag}${head}</div>${stats}<div class="flowkey"><span>${sw('rgb(190,205,255)')}call</span><span>${sw('var(--write)')}write →</span><span>${sw('var(--read)')}← read</span><span>${sw('var(--dma)')}DMA</span></div>${body}`;
+  detail.hidden = false;
+}
+detail.addEventListener('click', ev => {
+  if (ev.target.closest('.close')) { select(null); return; }
+  const b = ev.target.closest('[data-id]'); if (b) { select(byId.get(b.dataset.id), true); return; }
+  const lb = ev.target.closest('[data-label]'); if (lb && byLabel.has(lb.dataset.label)) select(byLabel.get(lb.dataset.label), true);
+});
+function select(n, center) {
+  state.selected = n || null; setNeighbours(); renderDetail(state.selected); dirty = true;
+  if (n && center) {
+    const narrow = W < 760;
+    const px = narrow ? W / 2 : (296 + (W - 392)) / 2, py = narrow ? H * 0.3 : H / 2;
+    const k = Math.max(T.k, 1.6);
+    sel.transition().duration(reduceMotion ? 0 : 650).call(zoom.transform, d3.zoomIdentity.translate(px - n.x * k, py - n.y * k).scale(k));
+  }
+}
+
+// ---------- side panel controls ----------
+const counts = {}; for (const n of G.nodes) counts[n.kind] = (counts[n.kind] || 0) + 1;
+document.getElementById('meta').innerHTML = `Your recorded CDL library for <code>${G.meta.title}</code> (<code>${G.meta.sha1.slice(0, 8)}</code>), last updated ${new Date(G.meta.recorded).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}. ${G.nodes.length.toLocaleString()} bodies, ${G.links.length.toLocaleString()} links.`;
+document.getElementById('kinds').innerHTML = Object.entries(KIND).map(([k, v]) => `<button type="button" class="row" data-kind="${k}" aria-pressed="true"><i class="sw ${v.shape}" style="background:${v.color};color:${v.color}"></i>${v.name}<span class="n">${counts[k] || 0}</span></button>`).join('');
+const ecount = {}; for (const l of G.links) ecount[l.g] = (ecount[l.g] || 0) + 1;
+document.getElementById('etypes').innerHTML = Object.entries(ETYPE).map(([k, v]) => `<button type="button" class="row" data-etype="${k}" aria-pressed="true"><i class="sw ln" style="background:rgb(${v.color})"></i>${v.name}<span class="n">${(ecount[k] || 0).toLocaleString()}</span></button>`).join('');
+const bcount = {}; for (const n of G.nodes) if (n.kind === 'func') bcount[n.bank] = (bcount[n.bank] || 0) + 1;
+document.getElementById('banks').innerHTML = funcBanks.map(b => `<button type="button" class="chip" data-bank="${b}" aria-pressed="false" style="color:${BANK_COLORS[b] || OTHER_BANK}"><i style="background:currentColor"></i><span style="color:var(--ink)">$${b} · ${bcount[b]}</span></button>`).join('');
+document.getElementById('side').addEventListener('click', ev => {
+  const k = ev.target.closest('[data-kind]'); if (k) { const v = !state.kinds[k.dataset.kind]; state.kinds[k.dataset.kind] = v; k.setAttribute('aria-pressed', v); setNeighbours(); dirty = true; }
+  const e = ev.target.closest('[data-etype]'); if (e) { const v = !state.etypes[e.dataset.etype]; state.etypes[e.dataset.etype] = v; e.setAttribute('aria-pressed', v); setNeighbours(); dirty = true; }
+  const b = ev.target.closest('[data-bank]'); if (b) {
+    state.bank = state.bank === b.dataset.bank ? null : b.dataset.bank; bankCache = new Map();
+    document.querySelectorAll('[data-bank]').forEach(x => x.setAttribute('aria-pressed', x.dataset.bank === state.bank)); dirty = true;
+  }
+  const s = ev.target.closest('#sizeby [data-v]'); if (s && !s.disabled) {
+    sizeBy = s.dataset.v; document.querySelectorAll('#sizeby [data-v]').forEach(x => x.setAttribute('aria-pressed', x === s));
+    for (const n of G.nodes) n.r = radius(n); sim.force('collide').radius(n => n.r + 1.2); sim.alpha(0.15).restart();
+  }
+});
+const fold = document.getElementById('fold'), side = document.getElementById('side');
+fold.addEventListener('click', () => { const f = side.classList.toggle('folded'); fold.setAttribute('aria-expanded', !f); });
+if (innerWidth < 760) { side.classList.add('folded'); fold.setAttribute('aria-expanded', 'false'); }
+const q = document.getElementById('q');
+q.addEventListener('keydown', ev => {
+  if (ev.key !== 'Enter') return;
+  const s = q.value.trim().toLowerCase().replace(/^\$?(7e:)?/, ''); if (!s) return;
+  const hit = G.nodes.find(n => n.label.toLowerCase() === s || n.label.toLowerCase() === 'func_' + s)
+    || G.nodes.find(n => n.label.toLowerCase().includes(s))
+    || G.nodes.find(n => n.addr != null && typeof n.addr === 'number' && hex(n.addr, 4).toLowerCase() === s.padStart(4, '0'));
+  if (hit) { state.kinds[hit.kind] = true; document.querySelector(`[data-kind="${hit.kind}"]`).setAttribute('aria-pressed', 'true'); select(hit, true); }
+});
+
+if (G.meta.hasHits) { const hb = document.querySelector('#sizeby [data-v="hits"]'); hb.disabled = false; }
+else document.getElementById('hitsnote').hidden = false;
+
+// ---------- replay ----------
+const range = document.getElementById('t'), tl = document.getElementById('tl'), playBtn = document.getElementById('play');
+range.max = G.nodes.length; range.value = G.nodes.length;
+let playing = false, playStart = 0;
+const funcTotal = counts.func;
+function setReveal(v, flash) {
+  const prev = state.reveal; state.reveal = v;
+  if (flash) { const t = now(); for (const n of G.nodes) if (n.order >= prev && n.order < v) n.bornAt = t; }
+  range.value = v;
+  const f = G.nodes.filter(n => n.kind === 'func' && n.order < v).length;
+  tl.textContent = `${f} / ${funcTotal} functions`;
+  dirty = true;
+}
+function tickPlay() {
+  if (!playing) return;
+  const p = Math.min(1, (now() - playStart) / 14000);
+  setReveal(Math.round(p * p * G.nodes.length), true);
+  if (p >= 1) { playing = false; playBtn.textContent = '▶'; playBtn.setAttribute('aria-label', 'Replay how the recording grew'); return; }
+  requestAnimationFrame(tickPlay);
+}
+playBtn.addEventListener('click', () => {
+  if (playing) { playing = false; playBtn.textContent = '▶'; return; }
+  playing = true; playBtn.textContent = '❚❚'; playBtn.setAttribute('aria-label', 'Pause replay');
+  const startFrom = state.reveal >= G.nodes.length ? 0 : state.reveal;
+  playStart = now() - Math.sqrt(startFrom / G.nodes.length) * 14000; setReveal(startFrom, false); tickPlay();
+});
+range.addEventListener('input', () => { playing = false; playBtn.textContent = '▶'; setReveal(+range.value, true); });
+
+// ---------- boot ----------
+addEventListener('resize', () => { resize(); });
+resize(); fit(); setReveal(G.nodes.length, false);
+const start = byLabel.get('func_C08650');
+if (start && innerWidth >= 760) select(start, false);
+requestAnimationFrame(loop);
+})();
+</script>
