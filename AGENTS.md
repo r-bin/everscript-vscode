@@ -64,6 +64,7 @@ Skills load on demand based on their `description` and `applyTo` globs.
 | `split-orchestration` | `.agents/skills/split-orchestration/SKILL.md` | Decomposing god files (`src/extension.js`, panel files) |
 | `webview-dom-safety` | `.agents/skills/webview-dom-safety/SKILL.md` | Idempotent event binding, event target walk-up, SVG coordinate systems |
 | `emulator-subsystem` | `.agents/skills/emulator-subsystem/SKILL.md` | snes9x2005-wasm core build, licensing, audio sync, display scaling, keybinds |
+| `cdl-recorder` | `.agents/skills/cdl-recorder/SKILL.md` | Code/Data Logger: core hooks, mergeable library, xrefs, Asar / ram.asm / snesrecomp exports, recorded gaps |
 | `map-editor-rules` | `.agents/skills/map-editor-rules/SKILL.md` | Editor hard rules: 7 tile families, ROM budgets, collision bit layouts |
 | `map-construction` | `.agents/skills/map-construction/SKILL.md` | How maps are constructed, cell-to-graphic mapping, animation groups |
 | `map-entities` | `.agents/skills/map-entities/SKILL.md` | Characters, enemies, spawns, palettes, body/hurt/strike boxes |
