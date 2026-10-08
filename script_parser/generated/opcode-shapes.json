@@ -15183,7 +15183,7 @@
         "instructionAddress": 9996917,
         "nextInstructionAddress": 9996923,
         "expectedSize": 6,
-        "text": "WRITE $2455+x66=0x19b3, $2455+x68=0x0040 (talk script): Fire Power Dude",
+        "text": "WRITE $2455+x66=0x19b3, $2455+x68=0x0040 (talk script): NPC script 0x19b3",
         "scriptStart": 9996538,
         "scriptEnd": 9997143
       },
@@ -15959,7 +15959,7 @@
       "write {mem}+x66={hex}, {mem}+x68={hex} (talk script): fe village npc5",
       "write {mem}+x66={hex}, {mem}+x68={hex} (talk script): fe village npc6",
       "write {mem}+x66={hex}, {mem}+x68={hex} (talk script): fire eyes",
-      "write {mem}+x66={hex}, {mem}+x68={hex} (talk script): fire power dude",
+      "write {mem}+x66={hex}, {mem}+x68={hex} (talk script): npc script {hex}",
       "write {mem}+x66={hex}, {mem}+x68={hex} (talk script): horace camp madronius",
       "write {mem}+x66={hex}, {mem}+x68={hex} (talk script): horace in camp?",
       "write {mem}+x66={hex}, {mem}+x68={hex} (talk script): hut npc {num}",

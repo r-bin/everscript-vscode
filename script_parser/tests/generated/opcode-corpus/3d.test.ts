@@ -320,7 +320,7 @@ const CASES = [
     "opcode": 61,
     "instructionAddress": 9996917,
     "expectedSize": 6,
-    "text": "WRITE $2455+x66=0x19b3, $2455+x68=0x0040 (talk script): Fire Power Dude"
+    "text": "WRITE $2455+x66=0x19b3, $2455+x68=0x0040 (talk script): NPC script 0x19b3"
   },
   {
     "opcode": 61,

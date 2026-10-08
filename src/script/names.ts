@@ -17,12 +17,23 @@ type Table = Record<string, string>;
 const RAM = names.ram as Table;
 const RAM_VALUES = names.ramValues as Record<string, Table>;
 const FLAGS = names.flags as Table;
-const ABS_SCRIPTS = names.absScripts as Table;
-const NPC_SCRIPTS = names.npcScripts as Table;
-const GLOBAL_SCRIPTS = names.globalScripts as Table;
-const MAPS = names.maps as Table;
 const LOOT_REWARDS = names.lootRewards as Table;
 const ENEMIES = names.enemies as Record<string, EnemyName>;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let localizationsModule: any = null;
+function getLocalizations() {
+    if (!localizationsModule) {
+        try {
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            localizationsModule = require('../localizations');
+        } catch (_) {
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            localizationsModule = require('../../localizations');
+        }
+    }
+    return localizationsModule;
+}
 
 /** What an ENEMY enum value names, from the encoder's own enum. */
 export interface EnemyName {
@@ -70,16 +81,16 @@ export function ramValueToStr(addr: number, value: number): string | null {
  * because it inlines the called script instead.
  */
 export function absScriptName(romAddr: number, fallback?: string): string {
-    return ABS_SCRIPTS[String(romAddr)] ?? fallback ?? `Unnamed ABS script ${u24(romAddr)}`;
+    return getLocalizations().getAbsScriptName(romAddr, { fallback: fallback ?? `Unnamed ABS script ${u24(romAddr)}` });
 }
 
 /** `kind` names the call site: `Short`, `NPC Talk`, `NPC Kill`, ... */
 export function npcScriptName(id: number, kind = 'Short'): string {
-    return NPC_SCRIPTS[String(id)] ?? `Unnamed ${kind} script ${u16(id)}`;
+    return getLocalizations().getNpcScriptName(id, { kind, fallback: `Unnamed ${kind} script ${u16(id)}` });
 }
 
 export function globalScriptName(id: number): string {
-    return GLOBAL_SCRIPTS[String(id)] ?? `Unnamed Global script ${u8(id)}`;
+    return getLocalizations().getGlobalScriptName(id, { fallback: `Unnamed Global script ${u8(id)}` });
 }
 
 /**
@@ -107,7 +118,7 @@ export function enemyName(index: number): EnemyName | null {
 
 /** Room name for a CHANGE MAP target, or empty. */
 export function mapName(id: number): string {
-    return MAPS[String(id)] ?? '';
+    return getLocalizations().getMapName(id, { full: true, fallback: '' });
 }
 
 /**

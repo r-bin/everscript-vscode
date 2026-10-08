@@ -53,6 +53,10 @@ function getScriptsAllPath(): string {
   if (fs.existsSync(candidatePath)) {
     return candidatePath;
   }
+  const external = process.env.SOE_SCRIPT_DUMP || path.resolve(process.env.HOME || '', 'Documents', 'GitHub', 'SoETilesViewer', 'SoEScriptDumper', 'script_all');
+  if (fs.existsSync(external)) {
+    return external;
+  }
   throw new Error(`Could not find scripts_all.txt in ${dependenciesDir}`);
 }
 

@@ -46,8 +46,8 @@ const VANILLA_MAPS = [
     { id: 0x36, hex: '0x36', area: 'Prehistoria', name: 'Both fire pits (one room)', fullName: 'Prehistoria - Both fire pits (one room)', stringIndex: null },
 
     // Antiqua
-    { id: 0x53, hex: '0x53', area: 'Antiqua', name: 'Act 2 Start Cutscene', fullName: 'Antiqua - Act 2 Start Cutscene', stringIndex: null },
-    { id: 0x6a, hex: '0x6a', area: 'Antiqua', name: 'Act 2 Start Cutscene - waterfall', fullName: 'Antiqua - Act 2 Start Cutscene - waterfall', stringIndex: null },
+    { id: 0x53, hex: '0x53', area: 'Antiqua', name: 'Act2 Start Cutscene', fullName: 'Antiqua - Act2 Start Cutscene', stringIndex: null },
+    { id: 0x6a, hex: '0x6a', area: 'Antiqua', name: 'Act2 Start Cutscene - waterfall', fullName: 'Antiqua - Act2 Start Cutscene - waterfall', stringIndex: null },
     { id: 0x0a, hex: '0x0a', area: 'Antiqua', name: 'Nobilia, Market', fullName: 'Antiqua - Nobilia, Market', stringIndex: null },
     { id: 0x08, hex: '0x08', area: 'Antiqua', name: 'Nobilia, Square', fullName: 'Antiqua - Nobilia, Square', stringIndex: null },
     { id: 0x09, hex: '0x09', area: 'Antiqua', name: 'Nobilia, Square during Aegis fight', fullName: 'Antiqua - Nobilia, Square during Aegis fight', stringIndex: null },
@@ -186,7 +186,10 @@ function getMap(id) {
  */
 function getMapName(id, options = {}) {
     const map = getMap(id);
-    if (!map) return typeof id === 'number' ? `Room 0x${id.toString(16).padStart(2, '0')}` : `Room ${id}`;
+    if (!map) {
+        if (options.fallback !== undefined) return options.fallback;
+        return typeof id === 'number' ? `Room 0x${id.toString(16).padStart(2, '0')}` : `Room ${id}`;
+    }
     const prop = options.full ? 'fullName' : 'name';
     return resolveLocalizedName(map, options.rom, prop);
 }

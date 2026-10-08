@@ -6,7 +6,7 @@ const { resolveLocalizedName } = require('./strings');
 
 let rawNames = null;
 try {
-    rawNames = require('../script/names.json');
+    rawNames = require('./data/scripts.json');
 } catch (_) {
     rawNames = { npcScripts: {}, absScripts: {}, globalScripts: {} };
 }
@@ -147,3 +147,4 @@ module.exports = {
     getGlobalScriptName,
     setScriptOverride,
 };
+

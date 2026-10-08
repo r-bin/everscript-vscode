@@ -169,6 +169,7 @@ test('localizations scripts: NPC, ABS, and Global script lookups', () => {
     assert.equal(getNpcScriptName(0x1A82), 'Puppet damage/kill');
     assert.equal(getNpcScriptName(0x1A85), 'Mungola? damage/kill');
     assert.equal(getNpcScriptName(0x19B0), 'Aquagoth');
+    assert.equal(getNpcScriptName(0x19B3), 'Fire Power Dude');
 
     // ABS scripts from screenshot
     assert.equal(getAbsScriptName(0x93CA9F), 'Thraxx maggot trigger part');

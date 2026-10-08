@@ -203,7 +203,7 @@ const SHAPES = [
     "opcode": 61
   },
   {
-    "shape": "write {mem}+x66={hex}, {mem}+x68={hex} (talk script): fire power dude",
+    "shape": "write {mem}+x66={hex}, {mem}+x68={hex} (talk script): npc script {hex}",
     "instructionAddress": 9996917,
     "expectedSize": 6,
     "opcode": 61

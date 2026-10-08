@@ -14,6 +14,12 @@
 
 const path = require('path');
 const fs   = require('fs');
+const {
+  getNpcScriptName,
+  getGlobalScriptName,
+  ABS_SCRIPTS,
+  getMapName,
+} = require('../localizations');
 
 const SCRIPTS_START_ADDR_US = 0x928000;
 const ENTER_TABLE_OFFSET    = 0x1b;
@@ -55,15 +61,6 @@ class RomAddressLookup {
 
   _loadNamesData() {
     try {
-      const namesPath = path.join(__dirname, '..', 'script', 'names.json');
-      if (fs.existsSync(namesPath)) {
-        this.namesData = JSON.parse(fs.readFileSync(namesPath, 'utf8'));
-      }
-    } catch (_) {
-      this.namesData = null;
-    }
-
-    try {
       const knownPath = path.join(__dirname, 'known-scripts.json');
       if (fs.existsSync(knownPath)) {
         this.knownScripts = JSON.parse(fs.readFileSync(knownPath, 'utf8'));
@@ -89,11 +86,9 @@ class RomAddressLookup {
         if (!isNaN(addr) && addr > 0 && !this.lookupMap.has(addr)) {
           const hexId = '0x' + entry.id.toString(16).toLowerCase();
           const shortTag = entry.kind === 'global' ? `global[${hexId}]` : `npc[${hexId}]`;
-          let displayName = entry.name;
-          if (entry.kind === 'global' && this.namesData && this.namesData.globalScripts) {
-            const named = this.namesData.globalScripts[String(entry.id)];
-            if (named) displayName = named;
-          }
+          const displayName = entry.kind === 'global'
+            ? getGlobalScriptName(entry.id)
+            : getNpcScriptName(entry.id);
           this.lookupMap.set(addr, {
             addr,
             id: entry.id,
@@ -105,14 +100,14 @@ class RomAddressLookup {
       }
     }
 
-    // 3. Global / abs scripts from names.json
-    if (this.namesData && this.namesData.absScripts) {
-      for (const [addrStr, name] of Object.entries(this.namesData.absScripts)) {
-        const addr = parseInt(addrStr, 10);
-        if (!isNaN(addr) && addr > 0 && !this.lookupMap.has(addr)) {
+    // 3. Global / abs scripts from localizations
+    if (ABS_SCRIPTS) {
+      for (const [addr, entry] of ABS_SCRIPTS.entries()) {
+        if (typeof addr !== 'number') continue;
+        if (addr > 0 && !this.lookupMap.has(addr)) {
           this.lookupMap.set(addr, {
             addr,
-            name: `Global: ${name}`,
+            name: `Global: ${entry.name}`,
             shortTag: `global[0x${addr.toString(16)}]`,
             kind: 'global',
           });
@@ -122,7 +117,7 @@ class RomAddressLookup {
 
     if (!this.rom || this.rom.length < 0x300000) return;
 
-    // 3. Vanilla Enter Scripts for all 127 rooms
+    // 4. Vanilla Enter Scripts for all 127 rooms
     const mapscriptTableSnes = SCRIPTS_START_ADDR_US + read16(this.rom, SCRIPTS_START_ADDR_US);
 
     for (let r = 0; r < 127; r++) {
@@ -130,7 +125,7 @@ class RomAddressLookup {
       const packed = read24(this.rom, enterPtrAddr);
       if (packed > 0) {
         const snesAddr = scriptValueToSnes(packed);
-        const mapName = (this.namesData && this.namesData.maps && this.namesData.maps[String(r)]) || '';
+        const mapName = getMapName(r, { full: true, fallback: '' });
         const roomHex = '0x' + r.toString(16).toUpperCase().padStart(2, '0');
         if (!this.lookupMap.has(snesAddr)) {
           this.lookupMap.set(snesAddr, {

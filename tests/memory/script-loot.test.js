@@ -47,7 +47,7 @@ const PRIZES = names.ramValues[String(0x2391)] || {};
 
 /** Upstream trims the region prefix: "Gothica - Dark Forest" → "Dark Forest". */
 function shortMapName(mapId) {
-    const full = names.maps[String(mapId)];
+    const full = script.mapName(mapId);
     if (!full) return `MAP 0x${hex(mapId, 2)}`;
     const dash = full.indexOf('- ');
     return dash >= 0 ? full.slice(dash + 2) : full;
