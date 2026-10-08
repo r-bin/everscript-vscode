@@ -10,6 +10,7 @@
 //   soe://ram/<addr>.json           byte, word and name at addr     (live, unlisted)
 //   soe://ram/<addr>.<bit>.json     one flag bit and its name       (live, unlisted)
 //   soe://ram/flags.json            every named flag, set or not    (live)
+//   soe://ram/status.json           emulator open/running, ROM, paused (live, no game needed)
 //   soe://ram/symbols.json          every named address and flag
 
 const { parseAddressName, hexId } = require('../shared/resource-uri');
@@ -25,13 +26,18 @@ const label = s => String(s).replace(/\s*\(\$[0-9a-f]+\)\s*$/i, '');
 const addrName = a => (NAMES.ram[String(a)] !== undefined ? label(NAMES.ram[String(a)]) : null);
 const flagName = (a, bit) => NAMES.flags[`${a}:${bit}`] ?? null;
 
-function resolveRam(segments, readMemory) {
+/**
+ * @param {(bus: number, len: number) => Promise<Uint8Array>} readMemory
+ * @param {() => Promise<object>} status
+ */
+function resolveRam(segments, readMemory, status) {
     if (segments.length > 1) return null;
     const [name] = segments;
     if (name === undefined) {
-        return dir([['index.md', 'file'], ['wram.bin', 'file'], ['flags.json', 'file'], ['symbols.json', 'file']]);
+        return dir([['index.md', 'file'], ['status.json', 'file'], ['wram.bin', 'file'], ['flags.json', 'file'], ['symbols.json', 'file']]);
     }
     if (name === 'index.md') return text(indexMarkdown);
+    if (name === 'status.json') return json(status, true);
     if (name === 'symbols.json') return json(symbols);
     if (name === 'wram.bin') return file(() => readMemory(WRAM, WRAM_SIZE).then(Buffer.from), true);
     if (name === 'flags.json') return json(() => flags(readMemory), true);
@@ -94,11 +100,14 @@ function indexMarkdown() {
     return `# soe://ram/
 
 The running emulator's WRAM (\`$7E0000-$7FFFFF\`). Every file except
-[symbols.json](symbols.json) and this page needs a game running in the
-Everscript emulator; open files refresh about once a second.
+[status.json](status.json), [symbols.json](symbols.json) and this page needs
+a game running in the Everscript emulator; open files refresh about once a
+second. Bus addresses work too: [soe://bus/7e0adb](soe://bus/7e0adb) links to
+[0adb.json](0adb.json).
 
 | Path | Content |
 |---|---|
+| [status.json](status.json) | emulator closed / open / running, its ROM, paused |
 | [wram.bin](wram.bin) | all 128 KB |
 | \`<addr>[<len>].bin\` | slice, hex, e.g. [2222[2].bin](2222%5B2%5D.bin) or [7e1000[40].bin](7e1000%5B40%5D.bin) |
 | \`<addr>.json\` | byte, word and name, e.g. [0adb.json](0adb.json) (current room) |

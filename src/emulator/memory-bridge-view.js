@@ -3,8 +3,8 @@
 /**
  * emulator/memory-bridge-view.js
  *
- * Page side of memory-bridge.js: answers { command: 'soeReadMemory' } with the
- * bytes at a bus address. The debugger core reads any bus address through
+ * Page side of memory-bridge.js: answers { command: 'soeRequest' } with the
+ * bytes at a bus address (kind 'read') or the run state (kind 'status'). The debugger core reads any bus address through
  * readMemoryRange (4 KB per call); the vanilla core only has its save state,
  * so it serves WRAM from there (offset 0x10c14, verified on that core).
  *
@@ -35,12 +35,17 @@ function getMemoryBridgeClientScript() {
 
     window.addEventListener('message', evt => {
       const d = evt.data;
-      if (!d || d.command !== 'soeReadMemory') return;
-      const reply = { command: 'soeMemory', id: d.id };
+      if (!d || d.command !== 'soeRequest') return;
+      const reply = { command: 'soeReply', id: d.id };
       try {
         const m = getModule();
-        if (!m || !romLoaded) reply.error = 'No game is running in the emulator';
-        else reply.bytes = Array.from(soeReadBus(m, d.addr >>> 0, d.len >>> 0));
+        if (d.kind === 'status') {
+          reply.status = { romLoaded: !!(m && romLoaded), paused: !!(m && typeof m.isEmulationPaused === 'function' && m.isEmulationPaused()) };
+        } else if (!m || !romLoaded) {
+          reply.error = 'No game is running in the emulator';
+        } else {
+          reply.bytes = Array.from(soeReadBus(m, d.addr >>> 0, d.len >>> 0));
+        }
       } catch (e) {
         reply.error = String(e && e.message || e);
       }

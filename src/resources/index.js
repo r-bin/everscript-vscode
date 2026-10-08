@@ -11,7 +11,8 @@ const { checkSoeResources } = require('./check-panel');
 /**
  * @param {vscode.ExtensionContext} context
  * @param {{ vanillaRom: () => Uint8Array|null, emulatorRom: () => Uint8Array|null,
- *           readMemory: (bus: number, len: number) => Promise<Uint8Array> }} deps
+ *           readMemory: (bus: number, len: number) => Promise<Uint8Array>,
+ *           emulatorStatus: () => Promise<object> }} deps
  */
 function registerSoeResources(context, deps) {
     const fsProvider = new SoeFileSystem(deps);
@@ -27,7 +28,7 @@ async function openSoeResource(address) {
     const value = typeof address === 'string' ? address : await vscode.window.showInputBox({
         prompt: 'soe:// address to open',
         value: 'soe://rom/index.md',
-        validateInput: v => /^soe:\/\/(rom|ram)\//.test(v) ? null : 'Starts with soe://rom/ or soe://ram/',
+        validateInput: v => /^soe:\/\/(rom|ram|bus)\//.test(v) ? null : 'Starts with soe://rom/, soe://ram/ or soe://bus/',
     });
     if (!value) return;
     const uri = vscode.Uri.parse(value);

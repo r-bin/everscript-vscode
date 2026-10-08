@@ -56,6 +56,7 @@ let _context       = null;   // VS Code extension context
 let _panel         = null;   // active WebviewPanel
 let _pending       = null;   // { dataUrl, name } waiting to load
 let _currentRomBuffer = null; // raw ROM buffer for bytecode disassembly
+let _currentRomName = '';     // name of the ROM the game started from
 let _activeDraft   = null;   // custom draft object for trigger/address lookup
 let _hideInactiveTrace = false; // filter inactive/end script events
 let _extensionPath = '';
@@ -445,6 +446,7 @@ function openEmulatorPanel(context, rom, channel) {
                 _clearReadyTimeout();
                 _clearRomTimeout();
               _log(`Emulator started: ${msg.name}`);
+              _currentRomName = msg.name || '';
               _notifyWebviewStatus('ok', `ROM started: ${msg.name}`);
                 if (_pending) _pending = null;
                 if (_cdl && _currentRomBuffer) _cdl.romStarted(_currentRomBuffer);
@@ -572,6 +574,7 @@ function openEmulatorPanel(context, rom, channel) {
       _panel = null;
       _pending = null;
       _currentRomBuffer = null;
+      _currentRomName = '';
       _activeDraft = null;
       _roomMapCache.clear();
     }, null, context.subscriptions);
@@ -1022,4 +1025,16 @@ function getCurrentRom() { return _panel ? _currentRomBuffer : null; }
 /** Bytes at a 24-bit bus address of the running game (soe://ram/). */
 function readMemory(addr, len) { return _memory.read(addr, len); }
 
-module.exports = { openEmulatorPanel, sendRomFile: _sendRomFile, injectEverscript, getScriptDebugBridge, runRomFile, getCurrentRom, readMemory };
+/** `closed` / `open` / `running`, the ROM and whether it is paused (soe://ram/status.json). */
+async function getStatus() {
+  if (!_panel) return { emulator: 'closed', rom: null, paused: null };
+  const rom = _currentRomBuffer ? { name: _currentRomName || null, size: _currentRomBuffer.length } : null;
+  try {
+    const s = await _memory.status();
+    return { emulator: s.romLoaded ? 'running' : 'open', rom, paused: s.romLoaded ? s.paused : null };
+  } catch (_) {
+    return { emulator: 'open', rom, paused: null };
+  }
+}
+
+module.exports = { openEmulatorPanel, sendRomFile: _sendRomFile, injectEverscript, getScriptDebugBridge, runRomFile, getCurrentRom, readMemory, getStatus };

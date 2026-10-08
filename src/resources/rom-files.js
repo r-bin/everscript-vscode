@@ -6,11 +6,13 @@
 //   soe://rom/rom.sfc             the whole unheadered ROM
 //   soe://rom/header.json         cartridge header at $FFC0
 //   soe://rom/<off>[<len>].bin    file-offset slice (unlisted; default 0x100 bytes)
-//   soe://rom/bus/<addr>[<len>].bin  the same, by 24-bit HiROM bus address
+//   soe://rom/<off>.json          byte, word, long and table/function name
 //   soe://rom/assets/...          decoded content, rom-assets.js
+// Bus addresses go through soe://bus/ (bus-files.js), which links here.
 
 const { snesToRom } = require('../maps');
-const { parseAddressName } = require('../shared/resource-uri');
+const { getTable, getFunction } = require('../localizations');
+const { parseAddressName, hexId } = require('../shared/resource-uri');
 const { dir, file, json, text } = require('./nodes');
 const { resolveAssets } = require('./rom-assets');
 
@@ -27,19 +29,36 @@ function resolveRom(segments, rom) {
         if (head === 'index.md') return text(() => indexMarkdown(rom));
         if (head === 'rom.sfc') return file(() => Buffer.from(rom.buffer, rom.byteOffset, rom.length));
         if (head === 'header.json') return json(() => readHeader(rom));
-        return slice(rom, head, a => a);
+        return slice(rom, head);
     }
-    if (head === 'bus' && rest.length === 1) return slice(rom, rest[0], toFileOffset);
     return null;
 }
 
-function slice(rom, name, toOffset) {
+function slice(rom, name) {
     const a = parseAddressName(name);
-    if (!a || a.ext !== 'bin' || a.bit !== null) return null;
-    const off = toOffset(a.addr);
+    if (!a || a.bit !== null || a.addr >= rom.length) return null;
+    const off = a.addr;
+    if (a.ext === 'json') return a.len === null ? json(() => describe(rom, off)) : null;
     const len = a.len ?? DEFAULT_SLICE;
-    if (off === null || off + len > rom.length) return null;
+    if (off + len > rom.length) return null;
     return file(() => Buffer.from(rom.subarray(off, off + len)));
+}
+
+/** One ROM address: its values, its bus spellings, and any name it has. */
+function describe(rom, off) {
+    const at = i => (off + i < rom.length ? rom[off + i] : 0);
+    const fast = (off & 0xFFFF) >= 0x8000 && off < 0x400000 ? 0x800000 + off : null;
+    const named = getTable(off) || getFunction(0xC00000 + off) || (fast !== null && getFunction(fast));
+    return {
+        offset: '$' + hexId(off, 6),
+        bus: '$' + hexId(0xC00000 + off, 6),
+        fastBus: fast === null ? null : '$' + hexId(fast, 6),
+        byte: at(0),
+        word: at(0) | (at(1) << 8),
+        long: at(0) | (at(1) << 8) | (at(2) << 16),
+        name: named ? named.name : null,
+        notes: named && named.notes ? named.notes : null,
+    };
 }
 
 /** HiROM: banks $40-$7D and $C0-$FF whole, $00-$3F and $80-$BF upper halves. */
@@ -80,7 +99,8 @@ Add \`?rom=vanilla\` to any path to read the configured vanilla ROM instead of t
 | [rom.sfc](rom.sfc) | the whole unheadered ROM |
 | [header.json](header.json) | cartridge header at \`$FFC0\` |
 | \`<offset>[<len>].bin\` | slice by file offset, hex, e.g. [128000[40].bin](128000%5B40%5D.bin) |
-| \`bus/<addr>[<len>].bin\` | slice by HiROM bus address, e.g. [bus/c4601f[20].bin](bus/c4601f%5B20%5D.bin) |
+| \`<offset>.json\` | byte, word, long and name, e.g. [0e8000.json](0e8000.json) (ring-menu icon table) |
+| \`soe://bus/<addr>\` | the same by 24-bit bus address; links here or to \`soe://ram/\` |
 | [assets/icons/](assets/icons) | ring-menu icons by icon id |
 | [assets/ingredients/](assets/ingredients), [armor/](assets/armor), [consumables/](assets/consumables), [alchemy/](assets/alchemy) | icon.png + info.json per item, by name |
 | [assets/strings/](assets/strings) | in-game strings by index |

@@ -1278,6 +1278,7 @@ function activate(context) {
         vanillaRom: () => romReaders.loadRomBuffer(vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null, getExtConfig().romPath || ''),
         emulatorRom: () => emulatorPanel.getCurrentRom(),
         readMemory: (addr, len) => emulatorPanel.readMemory(addr, len),
+        emulatorStatus: () => emulatorPanel.getStatus(),
     });
 
     // ── Emulator Panel ───────────────────────────────────────────────────────

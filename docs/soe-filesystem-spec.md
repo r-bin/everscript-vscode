@@ -1,6 +1,6 @@
 # `soe://` Read-Only File System Specification
 
-> **Status:** Phase 1 implemented (v0.178.0) in `src/resources/`. Later phases are proposals.
+> **Status:** Phase 1 implemented (v0.178.0, `bus`/index/links/status v0.179.0) in `src/resources/`. Later phases are proposals.
 > **Builds on:** [`resource-paths-and-assets-spec.md`](resource-paths-and-assets-spec.md)
 > **Replaces:** §3 of that spec ("VFS rejected") and its `TextDocumentContentProvider` (§3.4)
 > **Goal:** One read-only `vscode.FileSystemProvider` for the `soe` scheme. It serves ROM content, decoded assets and live emulator memory as files, so editor tabs, webview `<img>` tags and links share one address.
@@ -17,10 +17,14 @@ soe://rom/assets/ingredients/wax/icon.png?rom=vanilla  …read from the configur
 soe://ram/0adb.json                                    the running game's WRAM
 ```
 
-- **Authority = which memory.** `rom` is the cartridge, `ram` the emulator's WRAM. `vram`, `cgram`, `oam` and `aram` are reserved for later (§5).
+- **Authority = which memory.** `rom` is the cartridge, `ram` the emulator's WRAM, `bus` the 24-bit CPU bus. `bus` holds no data: each address links to its `ram/` or `rom/` file. `vram`, `cgram`, `oam` and `aram` are reserved for later (§5).
 - **Path = what is read.** Every number is hex without `$`. The file extension chooses the representation (§2).
 - **Query = where from.** `?rom=vanilla` reads `everscript.romPath`, and `?rom=emulator` reads the ROM running in the emulator. Without a query, the emulator's ROM is used when one runs, otherwise vanilla. `ram` reads always come from the running emulator. A save-state source (`?state=`) is a possible later addition.
 - **Read-only.** Every write operation throws `NoPermissions`.
+- **Like a classic VFS.**
+  - Every directory has an `index.md`: links, plus a gallery for images.
+  - A file stored once is reached elsewhere through a symlink (`File | SymbolicLink`): `ingredients/wax/icon.png` → `icons/<id>.png`, `soe://bus/7e0adb` → `soe://ram/0adb.json`.
+  - Arbitrary byte ranges (`<addr>[<len>].bin`) stay unlisted.
 
 **Acceptance checks:**
 - `<img src="soe://rom/assets/ingredients/wax/icon.png">` renders in a webview.
@@ -58,12 +62,12 @@ Both are verified by `Everscript: Check soe:// Resources`. The command also retu
 | `rom.sfc` | the whole unheadered ROM |
 | `header.json` | cartridge header at `$FFC0` |
 | `<offset>[<len>].bin` | slice by file offset (unlisted; default length `0x100`), e.g. `128000[40].bin` |
-| `bus/<addr>[<len>].bin` | slice by 24-bit HiROM bus address, e.g. `bus/c4601f[20].bin` |
-| `assets/icons/<id>.png` | ring-menu icon by icon id (`$CE8000` table, even ids `0000`-`0142`) |
-| `assets/{ingredients,armor,consumables}/<name>/icon.png`, `info.json` | by `LOOT_REWARD` name (`wax`, `mud_pepper`) or hex reward id (`0200`) |
+| `<offset>.json` | byte, word, long, bus spellings and table/function name, e.g. `0e8000.json` |
+| `assets/icons/<id>.png` | ring-menu icon by icon id (`$CE8000` table); only ids that draw are listed (all 162 in vanilla) |
+| `assets/{ingredients,armor,consumables}/<name>/icon.png`, `info.json` | by `LOOT_REWARD` name (`wax`, `mud_pepper`) or hex reward id (`0200`); `icon.png` links to `icons/` |
 | `assets/alchemy/<name>/icon.png`, `info.json` | by formula name (`acid_rain`), with its "known" flag |
-| `assets/strings/<idx>.txt` | in-game string from the 3,002-entry table at `$11D000` |
-| `assets/maps/index.json` | room id → name, area |
+| `assets/strings/<idx>.txt`, `index.md` | in-game string from the 3,002-entry table at `$11D000`; the index is a table of all |
+| `assets/maps/index.json`, `index.md` | room id → name, area |
 | `assets/maps/<id>/info.md`, `header.json`, `render.png` | room summary, decoded header, composite render |
 
 ### `soe://ram/`
@@ -71,6 +75,7 @@ Both are verified by `Everscript: Check soe:// Resources`. The command also retu
 | Path | Content |
 |---|---|
 | `index.md` | overview with links |
+| `status.json` | emulator `closed` / `open` / `running`, its ROM, `paused`; works without a game |
 | `wram.bin` | all 128 KB, `$7E0000-$7FFFFF` |
 | `<addr>[<len>].bin` | slice (unlisted); addr is a WRAM offset (`2222`) or bus address (`7e2222`) |
 | `<addr>.json` | byte, word, name and value name, e.g. `0adb.json` (current room) |
@@ -78,8 +83,19 @@ Both are verified by `Everscript: Check soe:// Resources`. The command also retu
 | `flags.json` | every named flag and whether it is set |
 | `symbols.json` | every named address and flag; needs no emulator |
 
+### `soe://bus/`
+
+| Bus range | Links to |
+|---|---|
+| `$7E0000-$7FFFFF` | `soe://ram/<offset>…` |
+| `$00-$3F`, `$80-$BF` : `$0000-$1FFF` | `soe://ram/<offset>…` (WRAM mirror) |
+| `$00-$3F`, `$80-$BF` : `$8000-$FFFF`; `$40-$7D`, `$C0-$FF` | `soe://rom/<file offset>…` |
+| I/O registers, SRAM | not served (some registers change when read) |
+
+An address without an extension reads as `.json` (`soe://bus/8cd0a6` → `soe://rom/0cd0a6.json`, "Script VM opcode dispatch"). `.bin`, `[<len>]` and `.<bit>` carry over to the target.
+
 **How live reads work:**
-- **The bridge.** The core runs in the emulator webview, so the host asks it: `soeReadMemory` → `soeMemory` (`src/emulator/memory-bridge.js` and `memory-bridge-view.js`).
+- **The bridge.** The core runs in the emulator webview, so the host asks it: `soeRequest` (kind `read` or `status`) → `soeReply` (`src/emulator/memory-bridge.js` and `memory-bridge-view.js`).
 - **Which read.** The debugger core reads any bus address with `readMemoryRange`, 4 KB per call. The vanilla core serves WRAM from its save state at offset `0x10c14`.
 - **Caching and refresh.** Live files are cached for 250 ms and re-announced once a second while watched. Without a running game, reads throw `Unavailable`.
 
@@ -119,4 +135,5 @@ Each item needs a new bridge read from the core first.
 1. **Workspace folder:** should "Add `soe://rom/` to workspace" be offered? Explorer browsing works, but Quick Open and Search over virtual files need proposed APIs.
 2. **Hover images:** whether hover Markdown renders `![](soe://…)` is untested.
 3. **Writes:** a WRAM poke through `writeFile` stays out of scope. If wanted, it goes behind a setting and the debugger's write path.
-4. **Existing data URIs:** should the Rooms tab and the emulator overlay switch from data-URI icons (`rooms/data/item-icons.js`) to `soe://rom/assets/…/icon.png`?
+4. **String decoding:** `localizations/strings.js` returns control bytes and broken dictionary words ("Found ¢ parts NectW" for Nectar). `assets/strings/` serves its output as-is, and the index only hides the control bytes.
+5. **Existing data URIs:** should the Rooms tab and the emulator overlay switch from data-URI icons (`rooms/data/item-icons.js`) to `soe://rom/assets/…/icon.png`?

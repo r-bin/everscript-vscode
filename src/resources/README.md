@@ -9,6 +9,7 @@ Spec: `docs/soe-filesystem-spec.md`.
 soe://rom/assets/ingredients/wax/icon.png              the cartridge (ROM)
 soe://rom/assets/ingredients/wax/icon.png?rom=vanilla  …from the configured ROM file
 soe://ram/0adb.json                                    the emulator's WRAM, live
+soe://bus/7e0adb                                       24-bit bus address → links to the above
 ```
 
 The authority names the memory, the path names what is read, `?rom=` names
@@ -21,10 +22,12 @@ running in the emulator; default: the emulator's when one runs, else vanilla).
 |---|---|
 | `index.js` | `registerSoeResources(context, deps)`: the provider and the two commands |
 | `fs-provider.js` | `SoeFileSystem`: routing, ROM choice, caching, live-file watch, errors |
-| `nodes.js` | the `dir` / `file` shapes handlers return |
-| `rom-files.js` | `soe://rom/`: `rom.sfc`, `header.json`, offset and bus slices |
+| `nodes.js` | the `dir` / `file` / `link` shapes handlers return |
+| `autoindex.js` | the `index.md` of a directory without its own: links + image gallery |
+| `bus-files.js` | `soe://bus/`: maps a bus address to its `ram/` or `rom/` file (no data of its own) |
+| `rom-files.js` | `soe://rom/`: `rom.sfc`, `header.json`, offset slices, `<offset>.json` |
 | `rom-assets.js` | `soe://rom/assets/`: icons, items by name, alchemy, strings, maps |
-| `ram-files.js` | `soe://ram/`: `wram.bin`, slices, `<addr>.json`, flags, symbols |
+| `ram-files.js` | `soe://ram/`: `status.json`, `wram.bin`, slices, `<addr>.json`, flags, symbols |
 | `webview.js` | `soeResourceRoots`, `rewriteSoeUrls`, `soeClientScript` for any webview |
 | `check-panel.js` | `Everscript: Check soe:// Resources`, the feature's acceptance check |
 
@@ -53,3 +56,6 @@ The address grammar (`parseSoeParts`, `parseAddressName`) is pure and lives in
 - `ram/` files are `live`: cached 250 ms, re-announced every second while
   watched and an emulator is open, `Unavailable` without a running game.
 - Ids in paths are hex without `$`; item names are aliases of their hex reward id.
+- Every directory lists an `index.md`: the handler's own (`dir(entries, index)`) or autoindex.js.
+- A file stored once and reachable elsewhere is a link: `ingredients/wax/icon.png` → `icons/<id>.png`,
+  every `soe://bus/…` → its `ram/` or `rom/` file. Links stat as `File | SymbolicLink`.

@@ -23,7 +23,7 @@ require.cache.vscode = { id: 'vscode', filename: 'vscode', loaded: true, exports
     EventEmitter: class { constructor() { this.event = () => {}; } fire() {} dispose() {} },
     Disposable: class { constructor(f) { this.dispose = f; } },
     FileSystemError,
-    FileType: { File: 1, Directory: 2 },
+    FileType: { File: 1, Directory: 2, SymbolicLink: 64 },
     FilePermission: { Readonly: 1 },
     FileChangeType: { Changed: 1 },
 } };
@@ -32,6 +32,7 @@ const { parseSoeParts, parseAddressName, slugify } = require('../../src/shared/r
 const { resolveRom, toFileOffset } = require('../../src/resources/rom-files');
 const { resolveRam } = require('../../src/resources/ram-files');
 const { SoeFileSystem } = require('../../src/resources/fs-provider');
+const { busTarget } = require('../../src/resources/bus-files');
 
 const romPath = path.join(__dirname, '..', '..', 'script_parser', 'dependencies', 'Secret of Evermore (U) [!].smc');
 const rom = fs.existsSync(romPath) ? new Uint8Array(fs.readFileSync(romPath)) : null;
@@ -41,7 +42,12 @@ const tests = [];
 const test = (name, fn, needsRom = false) => tests.push({ name, fn, needsRom });
 const uri = s => {
     const u = new URL(s);
-    return { authority: u.host, path: decodeURIComponent(u.pathname), query: u.search.slice(1), toString: () => s };
+    const make = (authority, path, query) => ({
+        authority, path, query,
+        with: c => make(c.authority ?? authority, c.path ?? path, c.query ?? query),
+        toString: () => `soe://${authority}${path}${query ? '?' + query : ''}`,
+    });
+    return make(u.host, decodeURIComponent(u.pathname), u.search.slice(1));
 };
 const read = async node => Buffer.from(await node.read());
 
@@ -132,7 +138,9 @@ test('rom/ lists ingredients and alchemy by name', () => {
 test('rom/header.json, slices and strings decode', async () => {
     const h = JSON.parse(await read(resolveRom(['header.json'], rom)));
     assert.match(h.title, /SECRET OF EVERMORE/);
-    assert.deepStrictEqual([...await read(resolveRom(['bus', 'c4601f[4].bin'], rom))], [...rom.subarray(0x04601f, 0x046023)]);
+    const icons = JSON.parse(await read(resolveRom(['0e8000.json'], rom)));
+    assert.strictEqual(icons.name, 'Ring-menu icon table');
+    assert.strictEqual(icons.bus, '$ce8000');
     assert.strictEqual((await read(resolveRom(['128000.bin'], rom))).length, 0x100);
     assert.ok((await read(resolveRom(['assets', 'strings', '0540.txt'], rom))).length > 1);
 }, true);
@@ -144,7 +152,63 @@ test('rom/assets/maps/38 has info, header and a render', async () => {
     assert.strictEqual(resolveRom(['assets', 'maps', '7f'], rom), null);
 }, true);
 
+test('rom/assets/icons lists the icons that draw; item icons are links to them', async () => {
+    const listed = resolveRom(['assets', 'icons'], rom).entries;
+    assert.strictEqual(listed.length, 162, 'every vanilla icon id has a frame');
+    const wax = resolveRom(['assets', 'ingredients', 'wax'], rom).entries;
+    assert.deepStrictEqual(wax.map(e => e[1]), ['link', 'file']);
+    const icon = resolveRom(['assets', 'ingredients', 'wax', 'icon.png'], rom);
+    assert.match(icon.link, /^soe:\/\/rom\/assets\/icons\/[0-9a-f]{4}\.png$/);
+    assert.ok(listed.some(([n]) => icon.link.endsWith('/' + n)), 'the link target is listed');
+}, true);
+
+test('busTarget maps WRAM, its low mirror and ROM; refuses I/O', () => {
+    assert.deepStrictEqual(busTarget('7e0adb'), { authority: 'ram', name: '0adb.json' });
+    assert.deepStrictEqual(busTarget('7f0000[10].bin'), { authority: 'ram', name: '10000[10].bin' });
+    assert.deepStrictEqual(busTarget('7e2258.0.json'), { authority: 'ram', name: '2258.0.json' });
+    assert.deepStrictEqual(busTarget('000f42'), { authority: 'ram', name: '0f42.json' });
+    assert.deepStrictEqual(busTarget('c4601f[20].bin'), { authority: 'rom', name: '04601f[20].bin' });
+    assert.deepStrictEqual(busTarget('8cd0a6'), { authority: 'rom', name: '0cd0a6.json' });
+    assert.strictEqual(busTarget('002100'), null, 'PPU register');
+    assert.strictEqual(busTarget('306000'), null, 'SRAM');
+    assert.strictEqual(busTarget('80fff0[20].bin'), null, 'crosses into the next bank');
+});
+
 // ── provider ─────────────────────────────────────────────────────────────────
+
+test('provider: soe://bus/ serves the target file as a symlink', async () => {
+    const fsp = new SoeFileSystem({ vanillaRom: () => rom, emulatorRom: () => null, readMemory, emulatorStatus: async () => ({ emulator: 'closed' }) });
+    const st = await fsp.stat(uri('soe://bus/7e0adb'));
+    assert.strictEqual(st.type, 1 | 64);
+    assert.strictEqual(JSON.parse(Buffer.from(await fsp.readFile(uri('soe://bus/7e0adb')))).byte, 0x38);
+    const romBytes = Buffer.from(await fsp.readFile(uri('soe://bus/c4601f[4].bin')));
+    assert.deepStrictEqual([...romBytes], [...rom.subarray(0x04601f, 0x046023)]);
+    await assert.rejects(fsp.readFile(uri('soe://bus/002100')), e => e.code === 'FileNotFound');
+    assert.match(Buffer.from(await fsp.readFile(uri('soe://bus/index.md'))).toString(), /^# soe:\/\/bus\//);
+    fsp.dispose();
+}, true);
+
+test('provider: every directory has an index.md', async () => {
+    const fsp = new SoeFileSystem({ vanillaRom: () => rom, emulatorRom: () => null, readMemory, emulatorStatus: async () => ({ emulator: 'closed' }) });
+    const md = async p => Buffer.from(await fsp.readFile(uri(p))).toString();
+    assert.ok(fsp.readDirectory(uri('soe://rom/assets/icons/')).some(([n]) => n === 'index.md'));
+    assert.match(await md('soe://rom/assets/icons/index.md'), /\[!\[0056\.png\]\(0056\.png\)\]/, 'generic gallery');
+    assert.match(await md('soe://rom/assets/ingredients/index.md'), /wax\/icon\.png/, 'item gallery');
+    assert.match(await md('soe://rom/assets/ingredients/wax/index.md'), /\[!\[icon\.png\]\(icon\.png\)\]/);
+    assert.match(await md('soe://rom/assets/strings/index.md'), /\| \[0540\]\(0540\.txt\) \| Arme Polish\. \|/);
+    assert.match(await md('soe://rom/assets/maps/38/index.md'), /^# Room 38/);
+    assert.match(await md('soe://ram/index.md'), /^# soe:\/\/ram\//);
+    await assert.rejects(fsp.readFile(uri('soe://rom/assets/strings/0540.txt/index.md')), e => e.code === 'FileNotFound');
+    fsp.dispose();
+}, true);
+
+test('provider: status.json answers without a game', async () => {
+    const fsp = new SoeFileSystem({ vanillaRom: () => null, emulatorRom: () => null, readMemory,
+        emulatorStatus: async () => ({ emulator: 'closed', rom: null, paused: null }) });
+    assert.strictEqual(JSON.parse(Buffer.from(await fsp.readFile(uri('soe://ram/status.json')))).emulator, 'closed');
+    fsp.dispose();
+});
+
 
 test('provider: ?rom= picks the ROM; default prefers the emulator', async () => {
     const other = new Uint8Array(rom);
