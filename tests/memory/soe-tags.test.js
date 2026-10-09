@@ -247,6 +247,27 @@ test('provider: check.json — every link resolves against the ROM', async () =>
     fsp.dispose();
 }, true);
 
+test('provider: a mounted ROM folder shows ram/, tags/ and localization/; tag links stay in the mount', async () => {
+    const { mountSegment } = require('../../src/shared/resource-uri');
+    const m = mountSegment('/roms/soe.smc');
+    const fsp = new SoeFileSystem({ vanillaRom: () => null, emulatorRom: () => null, romFile: p => (p === '/roms/soe.smc' ? rom : null),
+        readMemory, emulatorStatus: async () => ({ emulator: 'closed' }) });
+    const names = fsp.readDirectory(uri(`soe://rom/${m}/`)).map(([n]) => n);
+    for (const n of ['assets', 'rom.sfc', 'ram', 'tags', 'localization']) assert.ok(names.includes(n), n);
+    assert.ok(fsp.readDirectory(uri(`soe://rom/${m}/tags/`)).some(([n]) => n === 'boy'));
+    const md = await read(fsp, `soe://rom/${m}/tags/boy/hp.md`);
+    assert.ok(md.includes(`(soe://rom/${m}/ram/4eb3.json)`), md.slice(0, 600));
+    assert.ok(md.includes(`(soe://rom/${m}/tags/character/hp.md)`), md.split("\n").find(l => /Inherits/.test(l)));
+    assert.ok(!/\(soe:\/\/(ram|tags)\//.test(md), 'no link leaves the mount');
+    const raptors = await read(fsp, `soe://rom/${m}/tags/map/raptors.md`);
+    assert.ok(raptors.includes(`![render](soe://rom/${m}/assets/maps/5c/render.png)`));
+    assert.strictEqual(JSON.parse(await read(fsp, `soe://rom/${m}/ram/4eb3.json`)).byte, 30);
+    assert.match(await read(fsp, `soe://rom/${m}/ram/index.md`), /^# soe:\/\/ram\//);
+    assert.match(await read(fsp, `soe://rom/${m}/localization/index.md`), /./);
+    assert.strictEqual((await fsp.stat(uri(`soe://rom/${m}/tags/map/5c.md`))).type, 1 | 64);
+    fsp.dispose();
+}, true);
+
 (async () => {
     for (const t of tests) {
         if (t.needsRom && !rom) { console.log('  - ' + t.name + ' (no test ROM)'); skipped++; continue; }

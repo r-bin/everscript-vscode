@@ -50,9 +50,12 @@ class SoeFileSystem {
     _route(uri) {
         const p = parseSoeParts(uri.authority, uri.path, uri.query);
         let r;
-        if (p.authority === 'rom') {
+        if (p.authority === 'rom' && p.mount && MOUNTED.includes(p.segments[0])) {
+            r = this._routeMounted(uri, p);
+        } else if (p.authority === 'rom') {
             const rom = this._pickRom(uri, p.rom);
             r = { node: resolveRom(p.segments, rom), rom };
+            if (p.mount && !p.segments.length && r.node) r.node = { ...r.node, entries: [...r.node.entries, ...MOUNTED.map(m => [m, 'dir'])] };
         } else if (p.authority === 'ram') {
             r = { node: resolveRam(p.segments, this._deps.readMemory, this._deps.emulatorStatus), rom: null };
         } else if (p.authority === 'bus') {
@@ -67,6 +70,27 @@ class SoeFileSystem {
         }
         if (!r.node && p.segments[p.segments.length - 1] === 'index.md') r.node = this._index(uri, p);
         return r;
+    }
+
+    /**
+     * `soe://rom/~<mount>/ram/…`, `tags/…`, `localization/…`: the other authorities
+     * inside a ROM opened as a folder, so the Explorer shows them next to `assets/`.
+     * Tag pages link absolutely; their links are rewritten into the mount, so the
+     * Markdown preview (whose resource roots are the workspace folders) loads them.
+     */
+    _routeMounted(uri, p) {
+        const [authority, ...rest] = p.segments;
+        const prefix = `/${p.mount}/${authority}`;
+        const inner = uri.with({ authority, path: uri.path.startsWith(prefix) ? uri.path.slice(prefix.length) || '/' : '/', query: `rom=${encodeURIComponent(p.rom)}` });
+        if (authority === 'tags') {
+            const node = resolveTags(rest, this._tagContext());
+            return { node: node && intoMount(node, p.mount), rom: null };
+        }
+        if (authority === 'localization') {
+            const rom = this._pickRom(uri, p.rom);
+            return { node: resolveLocalization(rest, rom), rom };
+        }
+        return this._route(inner);
     }
 
     /** A bus address is served as the ram/ or rom/ file it names, marked as a link to it. */
@@ -194,7 +218,7 @@ class SoeFileSystem {
 
     /** Live files are re-announced while watched; static ones never change. */
     watch(uri) {
-        if (uri.authority !== 'ram' && uri.authority !== 'bus' && uri.authority !== 'tags') return new vscode.Disposable(() => {});
+        if (!isLive(uri)) return new vscode.Disposable(() => {});
         const key = uri.toString();
         const w = this._watched.get(key) || { uri, count: 0 };
         w.count++;
@@ -226,6 +250,27 @@ class SoeFileSystem {
     writeFile(uri) { throw vscode.FileSystemError.NoPermissions(uri); }
     delete(uri) { throw vscode.FileSystemError.NoPermissions(uri); }
     rename(uri) { throw vscode.FileSystemError.NoPermissions(uri); }
+}
+
+/** Authorities a mounted ROM folder shows next to its own files. */
+const MOUNTED = ['ram', 'tags', 'localization'];
+
+/** Whether files under `uri` can change while watched (WRAM, and tag pages that show it). */
+function isLive(uri) {
+    if (uri.authority === 'ram' || uri.authority === 'bus' || uri.authority === 'tags') return true;
+    const p = parseSoeParts(uri.authority, uri.path, uri.query);
+    return p.authority === 'rom' && !!p.mount && (p.segments[0] === 'ram' || p.segments[0] === 'tags');
+}
+
+/** A tags/ node whose absolute `soe://` links point into the ROM mounted at `mount`. */
+function intoMount(node, mount) {
+    const rewrite = s => s.replace(/soe:\/\/(rom|ram|tags|localizations?)\//g, (_, a) => (a === 'rom' ? `soe://rom/${mount}/` : `soe://rom/${mount}/${a === 'localizations' ? 'localization' : a}/`));
+    if (node.kind !== 'file') return node;
+    return {
+        ...node,
+        link: node.link && rewrite(node.link),
+        read: async () => Buffer.from(rewrite(Buffer.from(await node.read()).toString('utf8')), 'utf8'),
+    };
 }
 
 /** `/Users/…/x.smc` or `C:\\…\\x.smc`: a `?rom=` naming a ROM file. */

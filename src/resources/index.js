@@ -32,13 +32,14 @@ async function openSoeResource(address) {
     const value = typeof address === 'string' ? address : await vscode.window.showInputBox({
         prompt: 'soe:// address to open',
         value: 'soe://rom/index.md',
-        validateInput: v => /^soe:\/\/(rom|ram|bus)\//.test(v) ? null : 'Starts with soe://rom/, soe://ram/ or soe://bus/',
+        validateInput: v => /^soe:\/\/(rom|ram|bus|tags|localization)(\/|$)/.test(v) ? null : 'Starts with soe://rom/, ram/, bus/, tags/ or localization/',
     });
     if (!value) return;
+    const target = /^soe:\/\/[a-z]+\/?$/.test(value) ? value.replace(/\/?$/, '/index.md') : value;
     // `.md` opens in the built-in Markdown preview: package.json associates
     // `soe:/**/*.md` with it (preview extensions that resolve images as
     // file: paths, e.g. Markdown Preview Enhanced, cannot load soe: images).
-    return vscode.commands.executeCommand('vscode.open', vscode.Uri.parse(value));
+    return vscode.commands.executeCommand('vscode.open', vscode.Uri.parse(target));
 }
 
 const MD_PREVIEW = 'vscode.markdown.preview.editor';

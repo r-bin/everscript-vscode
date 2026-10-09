@@ -21,7 +21,10 @@ when one runs, else vanilla).
 
 **Open ROM as Folder** (right-click a `.smc`/`.sfc` in the Explorer, or the
 button in an open ROM's editor title bar) mounts `soe://rom/~<base64url path>/` as an extra workspace
-folder, so the ROM browses like a directory. VS Code cannot expand a file in
+folder, so the ROM browses like a directory. Next to `assets/` it shows
+`ram/`, `tags/` and `localization/` (`soe://rom/~…/tags/boy/hp.md` is
+`soe://tags/boy/hp.md`); tag pages there link into the mount, so the
+Markdown preview loads their images. VS Code cannot expand a file in
 place; remove it with *Remove Folder from Workspace*. The ROM is named in the
 path, not the query: a webview checks a requested resource against its roots
 with the query stripped from the request but not the root, so a `?rom=` root
