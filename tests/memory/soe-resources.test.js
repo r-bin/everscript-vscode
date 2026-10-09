@@ -155,10 +155,16 @@ test('rom/assets/maps/38 has info, header, render, layers, collision and animati
     assert.strictEqual(l2.subarray(1, 4).toString(), 'PNG');
     const col = await read(resolveRom(['assets', 'maps', '38', 'collision.png'], rom));
     assert.strictEqual(col.subarray(1, 4).toString(), 'PNG');
-    const colGif = await read(resolveRom(['assets', 'maps', '38', 'collision.gif'], rom));
-    assert.strictEqual(colGif.subarray(0, 6).toString('ascii'), 'GIF89a');
+
+    // GIF provided only when that layer animates
+    const l2Gif = await read(resolveRom(['assets', 'maps', '38', 'layer2.gif'], rom));
+    assert.strictEqual(l2Gif.subarray(0, 6).toString('ascii'), 'GIF89a');
     const gif = await read(resolveRom(['assets', 'maps', '38', 'animation.gif'], rom));
     assert.strictEqual(gif.subarray(0, 6).toString('ascii'), 'GIF89a');
+
+    // Layer 1 and Collision are static in room 38 -> no GIF provided
+    assert.strictEqual(resolveRom(['assets', 'maps', '38', 'layer1.gif'], rom), null);
+    assert.strictEqual(resolveRom(['assets', 'maps', '38', 'collision.gif'], rom), null);
     assert.strictEqual(resolveRom(['assets', 'maps', '7f'], rom), null);
 }, true);
 
@@ -556,17 +562,17 @@ test('provider: map tiles (CHR 16x16 PNG/BIN) and room metatile composition fold
     const m1Col = await fsp.readFile(uri('soe://rom/assets/maps/00/metatiles/001/collision.png'));
     assert.strictEqual(m1Col.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
 
-    // Room 00 full animated GIF and layer GIFs
+    // Room 00 full animated GIF (composite animates) and Layer 2 GIF (layer 2 animates)
     const mapGif = await fsp.readFile(uri('soe://rom/assets/maps/00/animation.gif'));
     assert.strictEqual(mapGif.subarray(0, 6).toString('ascii'), 'GIF89a');
-    const l1Gif = await fsp.readFile(uri('soe://rom/assets/maps/00/layer1.gif'));
-    assert.strictEqual(l1Gif.subarray(0, 6).toString('ascii'), 'GIF89a');
     const l2Gif = await fsp.readFile(uri('soe://rom/assets/maps/00/layer2.gif'));
     assert.strictEqual(l2Gif.subarray(0, 6).toString('ascii'), 'GIF89a');
-    const cGif = await fsp.readFile(uri('soe://rom/assets/maps/00/collision.gif'));
-    assert.strictEqual(cGif.subarray(0, 6).toString('ascii'), 'GIF89a');
 
-    // Room 00 layer PNGs and collision PNG
+    // Layer 1 and Collision are static in room 00 -> no GIF provided
+    await assert.rejects(fsp.readFile(uri('soe://rom/assets/maps/00/layer1.gif')), e => e.code === 'FileNotFound');
+    await assert.rejects(fsp.readFile(uri('soe://rom/assets/maps/00/collision.gif')), e => e.code === 'FileNotFound');
+
+    // Room 00 layer PNGs and collision PNG (always provided)
     const l1Png = await fsp.readFile(uri('soe://rom/assets/maps/00/layer1.png'));
     assert.strictEqual(l1Png.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
     const l2Png = await fsp.readFile(uri('soe://rom/assets/maps/00/layer2.png'));
@@ -579,6 +585,10 @@ test('provider: map tiles (CHR 16x16 PNG/BIN) and room metatile composition fold
     assert.strictEqual(atlasGif.subarray(0, 6).toString('ascii'), 'GIF89a');
     const atlasCol = await fsp.readFile(uri('soe://rom/assets/maps/00/metatiles/atlas_collision.png'));
     assert.strictEqual(atlasCol.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+
+    // Metatile 000 is static -> no animation.gif and no collision.gif
+    await assert.rejects(fsp.readFile(uri('soe://rom/assets/maps/00/metatiles/000/animation.gif')), e => e.code === 'FileNotFound');
+    await assert.rejects(fsp.readFile(uri('soe://rom/assets/maps/00/metatiles/000/collision.gif')), e => e.code === 'FileNotFound');
 
     // Metatile 002 (animated metatile) has animation.gif
     const m2Gif = await fsp.readFile(uri('soe://rom/assets/maps/00/metatiles/002/animation.gif'));

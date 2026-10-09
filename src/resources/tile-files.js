@@ -244,7 +244,10 @@ function resolveRoomTiles(room, rom, subSegments) {
 
     const table = metatileTable(room);
     const rId = room.roomId ?? room.id ?? 0;
-    const hasAnim = room.animation && room.animation.length > 0;
+    const { isRoomAnimated, isLayerAnimated, isMetatileAnimated, renderMetatileAnimationGif, renderMetatileAtlasAnimationGif } = require('./map-animation');
+    const hasAnim = isRoomAnimated(room);
+    const hasL1Anim = isLayerAnimated(room, 'layer1');
+    const hasL2Anim = isLayerAnimated(room, 'layer2');
 
     // Root of room metatiles: soe://rom/assets/maps/<id>/metatiles/
     if (name === undefined) {
@@ -253,7 +256,9 @@ function resolveRoomTiles(room, rom, subSegments) {
             ['atlas.png', 'file'],
             ...(hasAnim ? [['atlas.gif', 'file']] : []),
             ['atlas_layer1.png', 'file'],
+            ...(hasL1Anim ? [['atlas_layer1.gif', 'file']] : []),
             ['atlas_layer2.png', 'file'],
+            ...(hasL2Anim ? [['atlas_layer2.gif', 'file']] : []),
             ['atlas_collision.png', 'file'],
             ...table.map((m) => [hexId(m.index, 3), 'dir']),
         ];
@@ -276,7 +281,7 @@ function resolveRoomTiles(room, rom, subSegments) {
     }
 
     if (name === 'atlas.gif') {
-        const { renderMetatileAtlasAnimationGif } = require('./map-animation');
+        if (!hasAnim) return null;
         return file(() => renderMetatileAtlasAnimationGif(rom, room));
     }
 
@@ -310,7 +315,6 @@ function resolveRoomTiles(room, rom, subSegments) {
     if (extra.length > 0) return null;
 
     const m = table[idx];
-    const { isMetatileAnimated, renderMetatileAnimationGif } = require('./map-animation');
     const animInfo = isMetatileAnimated(room, m);
 
     // Inside metatile folder: 000/
@@ -323,7 +327,6 @@ function resolveRoomTiles(room, rom, subSegments) {
             ['layer1.png', 'file'],
             ['layer2.png', 'file'],
             ['collision.png', 'file'],
-            ['collision.gif', 'file'],
         ];
         return dir(entries, () => metatileMarkdown(room, m));
     }
@@ -331,17 +334,15 @@ function resolveRoomTiles(room, rom, subSegments) {
     if (leaf === 'info.json') return json(() => metatileComposition(room, m));
     if (leaf === 'info.md') return text(() => metatileMarkdown(room, m));
     if (leaf === 'render.png') return file(() => renderSingleMetatile(rom, room, idx, 'composite'));
-    if (leaf === 'animation.gif') return file(() => renderMetatileAnimationGif(rom, room, idx));
+    if (leaf === 'animation.gif') {
+        if (!animInfo.animated) return null;
+        return file(() => renderMetatileAnimationGif(rom, room, idx));
+    }
     if (leaf === 'layer1.png') return file(() => renderSingleMetatile(rom, room, idx, 'layer1'));
     if (leaf === 'layer2.png') return file(() => renderSingleMetatile(rom, room, idx, 'layer2'));
     if (leaf === 'collision.png') {
         const { renderMetatileCollision } = require('./map-layers');
         return file(() => encodePng(renderMetatileCollision(room, idx)));
-    }
-    if (leaf === 'collision.gif') {
-        const { renderMetatileCollision } = require('./map-layers');
-        const { encodeGif } = require('./gif');
-        return file(() => encodeGif(16, 16, [{ data: renderMetatileCollision(room, idx).data, ticks: 60 }]));
     }
 
     return null;

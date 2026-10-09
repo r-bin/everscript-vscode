@@ -127,12 +127,44 @@ function getWordChannel(room, word) {
     return (ch >= 0 && ch < (room.animation || []).length) ? ch : -1;
 }
 
+function isChannelActive(room, ch) {
+    const c = (room.animation || [])[ch];
+    return Boolean(c && c.frames && c.frames.length > 1);
+}
+
+function isLayerAnimated(room, layerName) {
+    const channels = room.animation || [];
+    const active = new Set(
+        channels.map((c, i) => (c.frames && c.frames.length > 1 ? i : -1)).filter((i) => i >= 0)
+    );
+    if (!active.size) return false;
+
+    const words = layerName === 'layer1' ? room.layer1VramWords : room.layer2VramWords;
+    if (!words) return false;
+
+    for (const row of words) {
+        for (const w of row) {
+            const ch = getWordChannel(room, w);
+            if (active.has(ch)) return true;
+        }
+    }
+    return false;
+}
+
+function isRoomAnimated(room) {
+    return isLayerAnimated(room, 'layer1') || isLayerAnimated(room, 'layer2');
+}
+
+function isCollisionAnimated(_room) {
+    return false;
+}
+
 function isMetatileAnimated(room, m) {
     const ch1 = getWordChannel(room, m.layer1);
     const ch2 = getWordChannel(room, m.layer2);
     const channels = [];
-    if (ch1 >= 0) channels.push(ch1);
-    if (ch2 >= 0 && ch2 !== ch1) channels.push(ch2);
+    if (ch1 >= 0 && isChannelActive(room, ch1)) channels.push(ch1);
+    if (ch2 >= 0 && ch2 !== ch1 && isChannelActive(room, ch2)) channels.push(ch2);
     return {
         animated: channels.length > 0,
         channels,
@@ -209,4 +241,7 @@ module.exports = {
     renderMetatileAtlasAnimationGif,
     renderMetatileAnimationGif,
     isMetatileAnimated,
+    isLayerAnimated,
+    isRoomAnimated,
+    isCollisionAnimated,
 };

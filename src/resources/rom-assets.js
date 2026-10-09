@@ -209,20 +209,24 @@ function maps(rom, name, leaf) {
     let d;
     try { d = decodeRoom(rom, id); } catch (_) { return null; }
     if (!d) return null;
-    const hasAnim = d.animation && d.animation.length > 0;
+    const { isRoomAnimated, isLayerAnimated, isCollisionAnimated, renderRoomAnimationGif } = require('./map-animation');
+    const hasAnim = isRoomAnimated(d);
+    const hasL1Anim = isLayerAnimated(d, 'layer1');
+    const hasL2Anim = isLayerAnimated(d, 'layer2');
+    const hasCollAnim = isCollisionAnimated(d);
+
     if (leaf === undefined) {
         const entries = [
             ['info.md', 'file'],
             ['header.json', 'file'],
             ['render.png', 'file'],
-            ['render.gif', 'file'],
-            ...(hasAnim ? [['animation.gif', 'file']] : []),
+            ...(hasAnim ? [['render.gif', 'file'], ['animation.gif', 'file']] : []),
             ['layer1.png', 'file'],
-            ['layer1.gif', 'file'],
+            ...(hasL1Anim ? [['layer1.gif', 'file']] : []),
             ['layer2.png', 'file'],
-            ['layer2.gif', 'file'],
+            ...(hasL2Anim ? [['layer2.gif', 'file']] : []),
             ['collision.png', 'file'],
-            ['collision.gif', 'file'],
+            ...(hasCollAnim ? [['collision.gif', 'file']] : []),
             ['scripts', 'dir'],
             ['tiles', 'dir'],
             ['metatiles', 'dir'],
@@ -232,7 +236,7 @@ function maps(rom, name, leaf) {
     if (leaf === 'header.json') return json(() => plain(d.header));
     if (leaf === 'render.png') return file(() => encodePng(renderRoomComposite(rom, d)));
     if (leaf === 'animation.gif' || leaf === 'render.gif') {
-        const { renderRoomAnimationGif } = require('./map-animation');
+        if (!hasAnim) return null;
         return file(() => renderRoomAnimationGif(rom, d));
     }
     if (leaf === 'layer1.png') {
@@ -240,6 +244,7 @@ function maps(rom, name, leaf) {
         return file(() => encodePng(renderRoomLayer(rom, d, 'layer1')));
     }
     if (leaf === 'layer1.gif') {
+        if (!hasL1Anim) return null;
         const { renderRoomLayerGif } = require('./map-layers');
         return file(() => renderRoomLayerGif(rom, d, 'layer1'));
     }
@@ -248,6 +253,7 @@ function maps(rom, name, leaf) {
         return file(() => encodePng(renderRoomLayer(rom, d, 'layer2')));
     }
     if (leaf === 'layer2.gif') {
+        if (!hasL2Anim) return null;
         const { renderRoomLayerGif } = require('./map-layers');
         return file(() => renderRoomLayerGif(rom, d, 'layer2'));
     }
@@ -256,6 +262,7 @@ function maps(rom, name, leaf) {
         return file(() => encodePng(renderRoomCollision(d)));
     }
     if (leaf === 'collision.gif') {
+        if (!hasCollAnim) return null;
         const { renderRoomCollisionGif } = require('./map-layers');
         return file(() => renderRoomCollisionGif(d));
     }
@@ -274,11 +281,18 @@ function maps(rom, name, leaf) {
 function roomMarkdown(rom, id) {
     const d = decodeRoom(rom, id);
     const h = d.header;
-    const hasAnim = d.animation && d.animation.length > 0;
+    const { isRoomAnimated, isLayerAnimated } = require('./map-animation');
+    const hasAnim = isRoomAnimated(d);
+    const hasL1Anim = isLayerAnimated(d, 'layer1');
+    const hasL2Anim = isLayerAnimated(d, 'layer2');
     const animRow = hasAnim ? `| Animated tiles | ${d.animation.length} channels ([animation.gif](animation.gif)) |\n` : '';
     const visual = hasAnim
         ? `![Room ${hexId(id, 2)} (Animated)](animation.gif)\n\n*(Static view: [render.png](render.png))*`
         : `![Room ${hexId(id, 2)}](render.png)`;
+
+    const animLinksRow = (hasAnim || hasL1Anim || hasL2Anim)
+        ? `| ${hasAnim ? '[animation.gif](animation.gif)' : '*(static)*'} | ${hasL1Anim ? '[layer1.gif](layer1.gif)' : '*(static)*'} | ${hasL2Anim ? '[layer2.gif](layer2.gif)' : '*(static)*'} | *(static)* |\n`
+        : '';
 
     return `# Room ${hexId(id, 2)}: ${getMapName(id, { full: true })}
 
@@ -299,7 +313,7 @@ ${animRow}| Objects | ${d.objects.length} |
 | Composite | Layer 1 (Canopy) | Layer 2 (Terrain) | Collision |
 |:---:|:---:|:---:|:---:|
 | [render.png](render.png) | [layer1.png](layer1.png) | [layer2.png](layer2.png) | [collision.png](collision.png) |
-${hasAnim ? '| [animation.gif](animation.gif) | [layer1.gif](layer1.gif) | [layer2.gif](layer2.gif) | [collision.gif](collision.gif) |\n' : ''}
+${animLinksRow}
 ${visual}
 `;
 }
