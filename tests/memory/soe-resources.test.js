@@ -112,9 +112,10 @@ test('ram/ slices accept WRAM offsets and $7E bus addresses alike', async () => 
 
 test('ram/flags.json and symbols.json list the named flags', async () => {
     const flags = JSON.parse(await read(resolveRam(['flags.json'], readMemory)));
-    assert.ok(flags.find(f => f.flag === '2258.0' && f.set && f.name === 'Acid Rain'));
+    assert.ok(flags.find(f => f.address === '2258').bits.find(b => b.flag === '2258.0' && b.set && b.name === 'Acid Rain'));
     const symbols = JSON.parse(await read(resolveRam(['symbols.json'], () => { throw new Error('no emulator needed'); })));
-    assert.ok(symbols.flags.length > 800 && symbols.addresses.length > 10);
+    assert.ok(symbols.flags.length > 100 && symbols.addresses.length > 10, 'one entry per flag byte');
+    assert.ok(symbols.flags.reduce((n, f) => n + Object.keys(f.bits).length, 0) > 800);
 });
 
 // ── rom/ ─────────────────────────────────────────────────────────────────────

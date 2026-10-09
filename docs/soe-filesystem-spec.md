@@ -79,14 +79,14 @@ Both are verified by `Everscript: Check soe:// Resources`. The command also retu
 
 | Path | Content |
 |---|---|
-| `index.md` | overview with links |
+| `index.md` | every known address (names.json + tags) with type, name, live value and tags; records; links |
 | `status.json` | emulator `closed` / `open` / `running`, its ROM, `paused`; works without a game |
 | `wram.bin` | all 128 KB, `$7E0000-$7FFFFF` |
 | `<addr>[<len>].bin` | slice (unlisted); addr is a WRAM offset (`2222`) or bus address (`7e2222`) |
-| `<addr>.json` | byte, word, name and value name, e.g. `0adb.json` (current room) |
+| `<addr>.json` | value read at the address's known size (`type`, `size`, `value`, `hex`), name, value name, tags; a flag byte lists its `bits`. Known addresses are listed |
 | `<addr>.<bit>.json` | one flag and its name, e.g. `2258.0.json` (Acid Rain known) |
-| `flags.json` | every named flag and whether it is set |
-| `symbols.json` | every named address and flag; needs no emulator |
+| `flags.json` | every flag byte: value, binary, and its named bits set or not |
+| `symbols.json` | every known address with `size`/`type`/`tags`, flag bytes with named bits, records; needs no emulator |
 
 ### `soe://bus/`
 
@@ -137,7 +137,7 @@ Verified with a headless Claude Code session against a VS Code instance running 
 
 ### `soe://tags/` (v0.186.0)
 
-Tags connect the files above by concept: `soe://tags/boy/hp.md` links `soe://ram/4eb3.json` with its live value, `soe://tags/map/raptors.md` links the room, its scripts, enemies and music. Spec: [`soe-tags-spec.md`](soe-tags-spec.md). A ROM opened as a folder lists `ram/`, `tags/` and `localization/` next to `assets/` (v0.186.1).
+Tags connect the files above by concept: `soe://tags/boy/hp.md` links `soe://ram/4eb3.json` with its live value, `soe://tags/map/raptors.md` links the room, its scripts, enemies and music. Spec: [`soe-tags-spec.md`](soe-tags-spec.md). A ROM opened as a folder holds `rom/`, `ram/`, `tags/` and `localization/` (v0.187.0).
 
 ---
 

@@ -21,10 +21,12 @@ when one runs, else vanilla).
 
 **Open ROM as Folder** (right-click a `.smc`/`.sfc` in the Explorer, or the
 button in an open ROM's editor title bar) mounts `soe://rom/~<base64url path>/` as an extra workspace
-folder, so the ROM browses like a directory. Next to `assets/` it shows
-`ram/`, `tags/` and `localization/` (`soe://rom/~…/tags/boy/hp.md` is
-`soe://tags/boy/hp.md`); tag pages there link into the mount, so the
-Markdown preview loads their images. VS Code cannot expand a file in
+folder, so the game browses like a directory: `rom/` (the cartridge:
+`assets/`, `header.json`, `rom.sfc`), `ram/`, `tags/` and `localization/`
+(`soe://rom/~…/tags/boy/hp.md` is `soe://tags/boy/hp.md`). The mount's
+old root paths (`~…/assets/…`) still resolve, unlisted. Pages that link
+across files (tags/, `ram/index.md`) are served with relative link targets
+(`page-links.js`): the built-in Markdown preview loads only relative images. VS Code cannot expand a file in
 place; remove it with *Remove Folder from Workspace*. The ROM is named in the
 path, not the query: a webview checks a requested resource against its roots
 with the query stripped from the request but not the root, so a `?rom=` root
@@ -54,6 +56,8 @@ binds the same key and wins on extension load order; a user keybinding
 | `audio-files.js` | `audio/`: music tracks, playable `.spc` snapshots, sound effects, descriptors |
 | `table-files.js` | `tables/`: engine lookup and pointer tables with `data.bin` and `data.json` |
 | `gif.js` | pure GIF89a encoder for animated character and sprite sequences |
+| `ram-symbols.js` | every known WRAM address (names.json + tag links) with size and type; flag bytes; records |
+| `page-links.js` | link targets of generated pages: into a mount, relative to the page |
 | `ram-files.js` | `soe://ram/`: `status.json`, `wram.bin`, slices, `<addr>.json`, flags, symbols |
 | `tag-model.js` | `soe://tags/` graph: merges generated + `tags/tags.json`, inheritance, aliases, conflicts, validation |
 | `tag-generate.js` | generated tags (rooms, areas, enemies, music, sounds, flags, RAM names, tables, items) from shipped data |

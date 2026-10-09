@@ -7,6 +7,8 @@ const IMAGE = /\.(png|gif)(\?.*)?$/i;
 
 const cell = s => String(s ?? '').replace(/\|/g, '\\|').replace(/\n/g, ' ');
 const tagPath = id => id.split('.').join('/');
+/** Link text for a resource: the address without `soe://`. */
+const short = uri => String(uri).replace(/^soe:\/\//, '');
 
 /** The page address of a tag: `soe://tags/boy/index.md` for a tag with sub-tags, else `soe://tags/boy/hp.md`. */
 function pageUri(model, id, ext = 'md') {
@@ -20,6 +22,8 @@ function formatValue(uri, bytes) {
     if (/\.json(\?|$)/.test(uri)) {
         const v = JSON.parse(Buffer.from(bytes).toString('utf8'));
         if (typeof v.set === 'boolean') return v.set ? 'set' : 'clear';
+        if (Array.isArray(v.bits)) return `${v.hex}: ${v.bits.filter(b => b.set).map(b => b.name).join(', ') || 'none set'}`;
+        if (typeof v.value === 'number') return `${v.value} (${v.hex})${v.valueName ? ' ' + v.valueName : ''}`;
         if (typeof v.word === 'number') return `${v.word} (${v.hex})${v.valueName ? ' ' + v.valueName : ''}`;
         if (typeof v.byte === 'number') return `${v.byte}`;
         return null;
@@ -80,7 +84,7 @@ function tagMarkdown(model, id, values = new Map(), live = null) {
     if (j.links.length) {
         out.push('## Links', '', '| Resource | Role | Value | Source |', '|---|---|---|---|');
         for (const l of j.links) {
-            out.push(`| [${cell(l.uri)}](${l.uri}) | ${cell(l.role)}${l.status ? ` (${l.status})` : ''} | ${cell(l.value ?? '')} | ${cell(l.source)} |`);
+            out.push(`| [${cell(short(l.uri))}](${l.uri}) | ${cell(l.role)}${l.status ? ` (${l.status})` : ''} | ${cell(l.value ?? '')} | ${cell(l.source)} |`);
         }
         out.push('');
         const images = j.links.filter(l => IMAGE.test(l.uri));
@@ -89,13 +93,13 @@ function tagMarkdown(model, id, values = new Map(), live = null) {
     if (j.conflicts.length) {
         out.push('## Conflicts', '', '| Address | Claim | Mapped as |', '|---|---|---|');
         for (const c of j.conflicts) {
-            out.push(`| [${cell(c.uri)}](${c.uri}) | ${cell(c.claim.text)} (${cell(c.claim.source)}, on ${tagLink(model, c.claim.id)}) | ${tagLink(model, c.link.id)} (${cell(c.link.source || c.link.role || 'tags.json')}) |`);
+            out.push(`| [${cell(short(c.uri))}](${c.uri}) | ${cell(c.claim.text)} (${cell(c.claim.source)}, on ${tagLink(model, c.claim.id)}) | ${tagLink(model, c.link.id)} (${cell(c.link.source || c.link.role || 'tags.json')}) |`);
         }
         out.push('');
     }
     if (j.claims.length) {
         out.push('## Unverified claims', '');
-        for (const c of j.claims) out.push(`- [${c.uri}](${c.uri}): "${c.text}" (${c.source || 'no source'}, ${c.status})`);
+        for (const c of j.claims) out.push(`- [${short(c.uri)}](${c.uri}): "${c.text}" (${c.source || 'no source'}, ${c.status})`);
         out.push('');
     }
     if (j.sub.length) {

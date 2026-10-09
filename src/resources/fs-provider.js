@@ -18,6 +18,7 @@ const { resolveLocalization } = require('./localization-files');
 const { resolveTags } = require('./tag-files');
 const { autoIndex } = require('./autoindex');
 const { dir, text } = require('./nodes');
+const { intoMount, pageLinks } = require('./page-links');
 
 const LIVE_TTL_MS = 250;
 const WATCH_INTERVAL_MS = 1000;
@@ -50,21 +51,22 @@ class SoeFileSystem {
     _route(uri) {
         const p = parseSoeParts(uri.authority, uri.path, uri.query);
         let r;
-        if (p.authority === 'rom' && p.mount && MOUNTED.includes(p.segments[0])) {
+        if (p.authority === 'rom' && p.mount && (!p.segments.length || MOUNTED.includes(p.segments[0])
+            || (p.segments.length === 1 && p.segments[0] === 'index.md'))) {
             r = this._routeMounted(uri, p);
         } else if (p.authority === 'rom') {
+            // Also the paths a mount had before it gained rom/ (`~m/assets/…`): served, not listed.
             const rom = this._pickRom(uri, p.rom);
             r = { node: resolveRom(p.segments, rom), rom };
-            if (p.mount && !p.segments.length && r.node) r.node = { ...r.node, entries: [...r.node.entries, ...MOUNTED.map(m => [m, 'dir'])] };
         } else if (p.authority === 'ram') {
-            r = { node: resolveRam(p.segments, this._deps.readMemory, this._deps.emulatorStatus), rom: null };
+            r = { node: present(resolveRam(p.segments, this._deps.readMemory, this._deps.emulatorStatus), uri, null), rom: null };
         } else if (p.authority === 'bus') {
             r = this._routeBus(uri, p.segments);
         } else if (p.authority === 'localization' || p.authority === 'localizations') {
             const rom = this._optionalRom(p.rom);
             r = { node: resolveLocalization(p.segments, rom), rom };
         } else if (p.authority === 'tags') {
-            r = { node: resolveTags(p.segments, this._tagContext()), rom: null };
+            r = { node: present(resolveTags(p.segments, this._tagContext()), uri, null), rom: null };
         } else {
             throw vscode.FileSystemError.FileNotFound(uri);
         }
@@ -73,24 +75,26 @@ class SoeFileSystem {
     }
 
     /**
-     * `soe://rom/~<mount>/ram/…`, `tags/…`, `localization/…`: the other authorities
-     * inside a ROM opened as a folder, so the Explorer shows them next to `assets/`.
-     * Tag pages link absolutely; their links are rewritten into the mount, so the
-     * Markdown preview (whose resource roots are the workspace folders) loads them.
+     * A ROM opened as a folder (`soe://rom/~<mount>/`) is a game root: `rom/` is the
+     * cartridge, `ram/`, `tags/` and `localization/` are those authorities. Pages
+     * served here link into the mount (page-links.js), so the Markdown preview,
+     * whose resource roots are the workspace folders, loads their images.
      */
     _routeMounted(uri, p) {
         const [authority, ...rest] = p.segments;
-        const prefix = `/${p.mount}/${authority}`;
-        const inner = uri.with({ authority, path: uri.path.startsWith(prefix) ? uri.path.slice(prefix.length) || '/' : '/', query: `rom=${encodeURIComponent(p.rom)}` });
-        if (authority === 'tags') {
-            const node = resolveTags(rest, this._tagContext());
-            return { node: node && intoMount(node, p.mount), rom: null };
+        if (authority === undefined) return { node: dir([['index.md', 'file'], ...MOUNTED.map(m => [m, 'dir'])], () => mountIndex(p.rom)), rom: null };
+        if (authority === 'index.md') return { node: text(() => mountIndex(p.rom)), rom: null };
+        if (authority === 'rom') {
+            const rom = this._pickRom(uri, p.rom);
+            return { node: resolveRom(rest, rom), rom };
         }
         if (authority === 'localization') {
             const rom = this._pickRom(uri, p.rom);
             return { node: resolveLocalization(rest, rom), rom };
         }
-        return this._route(inner);
+        const node = authority === 'tags' ? resolveTags(rest, this._tagContext())
+            : resolveRam(rest, this._deps.readMemory, this._deps.emulatorStatus);
+        return { node: present(node, uri, p.mount), rom: null };
     }
 
     /** A bus address is served as the ram/ or rom/ file it names, marked as a link to it. */
@@ -252,25 +256,46 @@ class SoeFileSystem {
     rename(uri) { throw vscode.FileSystemError.NoPermissions(uri); }
 }
 
-/** Authorities a mounted ROM folder shows next to its own files. */
-const MOUNTED = ['ram', 'tags', 'localization'];
+/** What a mounted ROM folder holds. */
+const MOUNTED = ['rom', 'ram', 'tags', 'localization'];
 
-/** Whether files under `uri` can change while watched (WRAM, and tag pages that show it). */
+/** Whether files under `uri` can change while watched (WRAM, and pages that show it). */
 function isLive(uri) {
     if (uri.authority === 'ram' || uri.authority === 'bus' || uri.authority === 'tags') return true;
     const p = parseSoeParts(uri.authority, uri.path, uri.query);
     return p.authority === 'rom' && !!p.mount && (p.segments[0] === 'ram' || p.segments[0] === 'tags');
 }
 
-/** A tags/ node whose absolute `soe://` links point into the ROM mounted at `mount`. */
-function intoMount(node, mount) {
-    const rewrite = s => s.replace(/soe:\/\/(rom|ram|tags|localizations?)\//g, (_, a) => (a === 'rom' ? `soe://rom/${mount}/` : `soe://rom/${mount}/${a === 'localizations' ? 'localization' : a}/`));
-    if (node.kind !== 'file') return node;
+/**
+ * A tags/ or ram/ file as served at `uri`: Markdown link targets relative to the
+ * page (and inside `mount`), JSON addresses inside `mount`.
+ */
+function present(node, uri, mount) {
+    if (!node || node.kind !== 'file') return node;
+    const md = /\.md$/.test(uri.path);
+    if (!md && !mount) return node;
+    const rewrite = s => (md ? pageLinks(s, uri.authority, uri.path, mount) : intoMount(s, mount));
     return {
         ...node,
-        link: node.link && rewrite(node.link),
+        link: node.link && mount ? intoMount(node.link, mount) : node.link,
         read: async () => Buffer.from(rewrite(Buffer.from(await node.read()).toString('utf8')), 'utf8'),
     };
+}
+
+/** The `index.md` of a mounted ROM folder. */
+function mountIndex(romPath) {
+    const name = String(romPath).split(/[\\/]/).pop();
+    return `# ${name}
+
+\`${romPath}\`, opened as a folder.
+
+| Folder | Content |
+|---|---|
+| [rom/](rom/index.md) | the cartridge: header, decoded assets (icons, items, rooms, characters, audio, tables), byte slices |
+| [ram/](ram/index.md) | the running game's WRAM: every known address with its live value, flags |
+| [tags/](tags/index.md) | concepts that connect both: [boy](tags/boy/index.md), [map.raptors](tags/map/raptors.md) |
+| [localization/](localization/index.md) | names for scripts, rooms, sounds, tables, functions |
+`;
 }
 
 /** `/Users/…/x.smc` or `C:\\…\\x.smc`: a `?rom=` naming a ROM file. */

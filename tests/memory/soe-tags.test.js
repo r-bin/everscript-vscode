@@ -186,8 +186,8 @@ test('provider: boy/hp.md shows the live value, links and inheritance', async ()
     const fsp = provider();
     const md = await read(fsp, 'soe://tags/boy/hp.md');
     assert.match(md, /^# boy\.hp: Current HP/);
-    assert.match(md, /\| \[soe:\/\/ram\/4eb3\.json\]\(soe:\/\/ram\/4eb3\.json\) \| entity record \| 30 \(\$001e\)/);
-    assert.match(md, /Inherits from: \[character\.hp\]\(soe:\/\/tags\/character\/hp\.md\)/);
+    assert.match(md, /\| \[ram\/4eb3\.json\]\(soe:\/\/ram\/4eb3\.json\) \| entity record \| 30 \(\$001e\)/);
+    assert.match(md, /Inherits from: \[character\.hp\]\(\.\.\/character\/hp\.md\)/, 'tag links are relative');
     assert.match(md, /## Unverified claims[\s\S]*0a37/);
     const j = JSON.parse(await read(fsp, 'soe://tags/boy/hp.json'));
     assert.strictEqual(j.links[0].value, '30 ($001e)');
@@ -199,7 +199,7 @@ test('provider: boy/index.md tabulates every sub-tag with values', async () => {
     const fsp = provider();
     const md = await read(fsp, 'soe://tags/boy/index.md');
     assert.match(md, /^# boy: The boy/);
-    assert.match(md, /\| \[level\]\(soe:\/\/tags\/boy\/level\.md\) \| Level \| 1 \(\$0001\) \| \[player\.level\]/);
+    assert.match(md, /\| \[level\]\(level\.md\) \| Level \| 1 \(\$0001\) \| \[player\.level\]\(\.\.\/player\/level\.md\)/);
     assert.ok(!/not mapped yet/.test(md));
     const names = fsp.readDirectory(uri('soe://tags/boy/')).map(([n]) => n);
     assert.ok(names.includes('hp.md') && names.includes('hp.json') && names.includes('index.json'));
@@ -218,7 +218,7 @@ test('provider: without a game the page still renders and says why', async () =>
 test('provider: virtual sub-tags, aliases and search', async () => {
     const fsp = provider();
     assert.match(await read(fsp, 'soe://tags/enemy/hp.md'), /\*\*Not mapped yet\.\*\* Inherited from \[character\.hp\]/);
-    assert.match(await read(fsp, 'soe://tags/enemy/index.md'), /\| \[hp\]\(soe:\/\/tags\/enemy\/hp\.md\) \| Current HP \| \*not mapped yet\* \|/);
+    assert.match(await read(fsp, 'soe://tags/enemy/index.md'), /\| \[hp\]\(hp\.md\) \| Current HP \| \*not mapped yet\* \|/);
     assert.strictEqual((await fsp.stat(uri('soe://tags/map/5c.md'))).type, 1 | 64);
     assert.match(await read(fsp, 'soe://tags/map/5c.md'), /^# map\.raptors: Prehistoria - Raptors/);
     assert.match(await read(fsp, 'soe://tags/search/raptor.md'), /\[enemy\.raptor\]/);
@@ -247,26 +247,67 @@ test('provider: check.json — every link resolves against the ROM', async () =>
     fsp.dispose();
 }, true);
 
-test('provider: a mounted ROM folder shows ram/, tags/ and localization/; tag links stay in the mount', async () => {
+test('provider: a mounted ROM folder holds rom/, ram/, tags/ and localization/; pages link inside it', async () => {
     const { mountSegment } = require('../../src/shared/resource-uri');
     const m = mountSegment('/roms/soe.smc');
     const fsp = new SoeFileSystem({ vanillaRom: () => null, emulatorRom: () => null, romFile: p => (p === '/roms/soe.smc' ? rom : null),
         readMemory, emulatorStatus: async () => ({ emulator: 'closed' }) });
     const names = fsp.readDirectory(uri(`soe://rom/${m}/`)).map(([n]) => n);
-    for (const n of ['assets', 'rom.sfc', 'ram', 'tags', 'localization']) assert.ok(names.includes(n), n);
-    assert.ok(fsp.readDirectory(uri(`soe://rom/${m}/tags/`)).some(([n]) => n === 'boy'));
+    assert.deepStrictEqual(names, ['index.md', 'rom', 'ram', 'tags', 'localization']);
+    assert.match(await read(fsp, `soe://rom/${m}/index.md`), /^# soe\.smc/);
+    const romNames = fsp.readDirectory(uri(`soe://rom/${m}/rom/`)).map(([n]) => n);
+    for (const n of ['assets', 'rom.sfc', 'header.json']) assert.ok(romNames.includes(n), n);
+    assert.ok(JSON.parse(await read(fsp, `soe://rom/${m}/header.json`)).title, 'old root paths still resolve');
     const md = await read(fsp, `soe://rom/${m}/tags/boy/hp.md`);
-    assert.ok(md.includes(`(soe://rom/${m}/ram/4eb3.json)`), md.slice(0, 600));
-    assert.ok(md.includes(`(soe://rom/${m}/tags/character/hp.md)`), md.split("\n").find(l => /Inherits/.test(l)));
-    assert.ok(!/\(soe:\/\/(ram|tags)\//.test(md), 'no link leaves the mount');
+    assert.ok(md.includes('[ram/4eb3.json](../../ram/4eb3.json)'), md.slice(0, 700));
+    assert.ok(md.includes('(../character/hp.md)'));
+    assert.ok(!/\]\(soe:/.test(md), 'no link leaves the mount');
+    const boy = await read(fsp, `soe://rom/${m}/tags/boy/index.md`);
+    assert.ok(boy.includes('![sprite](../../rom/assets/characters/00/sprite.png)'), 'images are relative');
     const raptors = await read(fsp, `soe://rom/${m}/tags/map/raptors.md`);
-    assert.ok(raptors.includes(`![render](soe://rom/${m}/assets/maps/5c/render.png)`));
-    assert.strictEqual(JSON.parse(await read(fsp, `soe://rom/${m}/ram/4eb3.json`)).byte, 30);
-    assert.match(await read(fsp, `soe://rom/${m}/ram/index.md`), /^# soe:\/\/ram\//);
+    assert.ok(raptors.includes('![render](../../rom/assets/maps/5c/render.png)'));
+    const j = JSON.parse(await read(fsp, `soe://rom/${m}/tags/boy/hp.json`));
+    assert.strictEqual(j.links[0].uri, `soe://rom/${m}/ram/4eb3.json`);
+    assert.strictEqual(JSON.parse(await read(fsp, `soe://rom/${m}/ram/4eb3.json`)).value, 30);
+    const ram = await read(fsp, `soe://rom/${m}/ram/index.md`);
+    assert.ok(ram.includes('[boy.hp](../tags/boy/hp.md)'), 'ram index links tags inside the mount');
     assert.match(await read(fsp, `soe://rom/${m}/localization/index.md`), /./);
     assert.strictEqual((await fsp.stat(uri(`soe://rom/${m}/tags/map/5c.md`))).type, 1 | 64);
     fsp.dispose();
 }, true);
+
+test('ram/: known addresses from names.json and tags, sized; flag bytes list their bits', async () => {
+    const fsp = provider();
+    const names = fsp.readDirectory(uri('soe://ram/')).map(([n]) => n);
+    for (const n of ['4eb3.json', '0a35.json', '00c3.json']) assert.ok(names.includes(n), n);
+    const hp = JSON.parse(await read(fsp, 'soe://ram/4eb3.json'));
+    assert.strictEqual(hp.type, 'word');
+    assert.deepStrictEqual(hp.tags, ['boy.hp']);
+    const rate = JSON.parse(await read(fsp, 'soe://ram/0a55.json'));
+    assert.strictEqual(rate.size, 1);
+    assert.strictEqual(rate.hex, '$00');
+    fakeWram[0x2258] = 0b101;
+    const f = JSON.parse(await read(fsp, 'soe://ram/2258.json'));
+    assert.strictEqual(f.type, 'flags');
+    assert.strictEqual(f.hex, '$05');
+    assert.deepStrictEqual(f.bits.filter(b => b.set).map(b => b.name), ['Acid Rain', 'Barrier']);
+    const idx = await read(fsp, 'soe://ram/index.md');
+    assert.match(idx, /\| \[4eb3\]\(4eb3\.json\) \| word \| Current HP \| 30 \(\$001e\) \| \[boy\.hp\]/);
+    const sym = JSON.parse(await read(fsp, 'soe://ram/symbols.json'));
+    assert.ok(sym.addresses.find(a => a.address === '4eb3' && a.size === 2 && a.type === 'word'));
+    assert.ok(sym.flags.find(x => x.address === '2258' && x.bits[0] === 'Acid Rain'));
+    const flags = JSON.parse(await read(fsp, 'soe://ram/flags.json'));
+    const b = flags.find(x => x.address === '2258');
+    assert.strictEqual(b.binary, '00000101');
+    assert.ok(b.bits.find(x => x.bit === 0 && x.set && x.name === 'Acid Rain'));
+    fsp.dispose();
+});
+
+test('provider: ram/index.md renders without a game', async () => {
+    const fsp = provider(noGame);
+    assert.match(await read(fsp, 'soe://ram/index.md'), /Live values unavailable \(Emulator is not open\)/);
+    fsp.dispose();
+});
 
 (async () => {
     for (const t of tests) {
