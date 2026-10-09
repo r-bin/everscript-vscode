@@ -32,7 +32,7 @@ The enums already explain the addresses; the link is just never written down:
 | `$0A50` level | `POINTER_BOY` + `LEVEL (0x2a)` | all |
 | `$0A7F` dog max HP | `POINTER_DOG (0x0a70)` + `MAX_HP` | wiki |
 
-Tags make these sums explicit (§5), so conflicts like the wiki's `$0A3F` row show up on their own (§6). The wiki's `0x0a37 BOY_CURRENT_HP` fits no enum (`0x0a26 + 0x11` is not an `ATTRIBUTE_GENERAL` entry). It stays an unverified claim until it is checked in the emulator.
+Tags store the results of these sums as plain resource links (§5), with the sum as the fact's `source`, so conflicts like the wiki's `$0A3F` row show up on their own (§6). The wiki's `0x0a37 BOY_CURRENT_HP` fits no enum (`0x0a26 + 0x11` is not an `ATTRIBUTE_GENERAL` entry). It stays an unverified claim until it is checked in the emulator.
 
 ---
 
@@ -61,8 +61,6 @@ A tag is a set of **facts**. Each fact is one kind of link to data that already 
 | Fact kind | Example for `boy.hp` | Points at |
 |---|---|---|
 | `ram` | `$7E4EB3` word, current HP | `soe://bus/7e4eb3` → `soe://ram/4eb3.json` |
-| `enum` | `ATTRIBUTE.HP = 0x2a` | `.evs` file + line (workspace path) |
-| `derived` | `ATTRIBUTE._BOY + ATTRIBUTE.HP` = `$4EB3` | the base and offset entries it is computed from (§5.1) |
 | `table` | stat/level-up tables, if any | `soe://rom/tables/<name>/info.json` |
 | `asm` | code that reads or writes the address | `soe://rom/<offset>.json`, later `rom/banks/<bb>.asm` |
 | `script` | scripts that read `<0x23e5>[0x0f]` etc. | `soe://rom/assets/scripts/<id>.evs` (Phase 2 of the file-system spec) |
@@ -71,7 +69,7 @@ A tag is a set of **facts**. Each fact is one kind of link to data that already 
 | `claim` | "`7E0A37` = BOY_CURRENT_HP" (wiki) | the source text it is copied from (§6) |
 | `see` | related tag | `boy.max_hp`, `dog.hp`, `character.hp` |
 
-Every fact carries a `source`: the file and line, the generator, or "hand-authored". The source is how a reader finds out how far to trust the fact.
+Every fact carries a `source`: free text saying where the value was worked out (`ATTRIBUTE._BOY + ATTRIBUTE.HP`, `02_ram.evs BOY_CURRENT_HP`, a wiki page), or the generator's name. It is documentation only. The plugin never reads the files a source names (§5.4). The source is how a reader finds out how far to trust the fact.
 
 ### 3.1 `soe://tags/boy/hp.md` (rendered)
 
@@ -84,12 +82,10 @@ Every fact carries a `source`: the file and line, the generator, or "hand-author
 ## Memory
 | Address | Size | Role | Source |
 |---|---|---|---|
-| [$7E4EB3](soe://bus/7e4eb3) | word | entity record: _BOY + ATTRIBUTE.HP | derived; 02_ram.evs BOY_CURRENT_HP |
+| [$7E4EB3](soe://bus/7e4eb3) | word | entity record | ATTRIBUTE._BOY + ATTRIBUTE.HP; 02_ram.evs BOY_CURRENT_HP |
 
-## Derived from
-- ATTRIBUTE._BOY = 0x4E89, tagged boy (03_sprites.evs:937)
-- [character.hp](../character/hp.md): ATTRIBUTE.HP = 0x2a, inherited from character
-  (in/core/[group] 00_general_enums/[group] 05_everscript/03_sprites.evs:848)
+## Inherited from
+- [character.hp](../character/hp.md): "Current HP" (character → player → boy)
 
 ## Unverified claims
 - $7E0A37 = BOY_CURRENT_HP (wiki/ram/Ram-Map.md): fits no enum; see docs/todo/soe-tags.md
@@ -117,7 +113,7 @@ The tree comes from what the extension already decodes, so most tags are generat
 
 | Root | Children | Generated from |
 |---|---|---|
-| `character`, `player`, `boy`, `dog`, `enemy` | the tag tree of §5.2: attributes, stats, equipment, sprite, animations | `@tag` in the `.evs` enums, RAM symbols |
+| `character`, `player`, `boy`, `dog`, `enemy` | the tag graph of §5.2: attributes, stats, equipment, sprite, animations | `src/resources/tags/tags.json` |
 | `enemy.<name>` | one per character record (`enemy.raptor`): sprite, animations, stats | `maps/characters.ts`, `names.json enemies` |
 | `map` | `map.<name>` per room | `localizations/maps.js` |
 | `item`, `ingredient`, `alchemy` | per entry | `rom-assets.js` (same names it already serves) |
@@ -151,76 +147,81 @@ Names are the lowercased display name with non-alphanumerics folded to `_` (`Pre
 
 ## 5. Where tag definitions live
 
-### 5.1 In the Everscript sources: `@tag`
+### 5.1 One JSON file in the plugin
 
-Most knowledge lives in the `everscript` repo's `.evs` enums, so tags are declared there, next to the value they describe, with an annotation like `@install` / `@inject`:
+Tags live in `src/resources/tags/tags.json`. The plugin reads nothing else to build them: no `.evs` files, no `core.evs`, no `everscript` checkout. That avoids a version dependency between the plugin and the compiler's core library (§5.4).
 
-```
-@tag("character")                         // every entity record has this layout
-@tag_parent("player", "character")        // tag tree, declared once (§5.2)
-@tag_parent("boy", "player")
-@tag_parent("dog", "player")
-@tag_parent("enemy", "character")
-enum ATTRIBUTE {
-    @tag("hp") HP = 0x2a,
-    @tag("max_hp") MAX_HP = 0x0f,
-    @tag("x") X = 0x1a,
-    …
-    // BOY/DOG SPECIFIC
-    @tag("player", "xp_required") TOTAL_XP_REQUIRED = 0x94,
-    @tag("player", "boost_attack") BOOST_ATTACK = 0xa0,
-    …
-    @tag("boy") @layout(ATTRIBUTE) _BOY = 0x4E89,     // a base: boy.* = _BOY + entry
-    @tag("dog") @layout(ATTRIBUTE) _DOG = 0x4F37,
+```json
+{
+  "character": {
+    "title": "Any entity: boy, dog, enemy, NPC",
+    "sub": {
+      "hp":     { "title": "Current HP" },
+      "max_hp": { "title": "Max HP" },
+      "x":      { "title": "X position" }
+    }
+  },
+  "player": {
+    "title": "A character the player controls",
+    "parents": ["character"],
+    "sub": {
+      "attack":      { "title": "Attack" },
+      "xp_required": { "title": "XP to next level" }
+    }
+  },
+  "boy": {
+    "title": "The boy",
+    "parents": ["player"],
+    "sub": {
+      "hp":          { "links": ["soe://ram/4eb3.json"], "size": 2, "source": "ATTRIBUTE._BOY + ATTRIBUTE.HP; 02_ram.evs BOY_CURRENT_HP" },
+      "max_hp":      { "links": ["soe://ram/0a35.json", "soe://ram/4e98.json"], "size": 2, "source": "stats block; entity record" },
+      "attack":      { "links": ["soe://ram/0a3f.json"], "size": 2, "source": "ATTRIBUTE_GENERAL.POINTER_BOY + ATTACK" },
+      "xp_required": { "links": ["soe://ram/4f1d.json"], "size": 2, "source": "ATTRIBUTE._BOY + TOTAL_XP_REQUIRED" }
+    },
+    "see": ["dog"]
+  },
+  "map.raptors": {
+    "parents": ["map"],
+    "links": ["soe://rom/assets/maps/5c/info.md", "soe://rom/assets/maps/5c/render.png"],
+    "see": ["enemy.raptor", "music.raptor_attack"]
+  }
 }
-
-@tag("player")                            // the stats block only players have
-enum ATTRIBUTE_GENERAL {
-    @tag("max_hp") MAX_HP = 0x0f,
-    @tag("attack") ATTACK = 0x19,
-    …
-    @tag("boy") @layout(ATTRIBUTE_GENERAL) POINTER_BOY = 0x0a26,
-    @tag("dog") @layout(ATTRIBUTE_GENERAL) POINTER_DOG = 0x0a70,
-}
 ```
 
-| Annotation | On | Means |
-|---|---|---|
-| `@tag("a", "b", …)` | enum | every entry belongs to these tags (the enum's *scope*) |
-| `@tag("a", …)` | entry | the entry is the tag `<scope>.a`; a tag that is a node in the tree (`"player"`) narrows the entry's scope instead |
-| `@tag_parent("child", "parent")` | enum | one edge of the tag tree |
-| `@layout(ENUM)` | entry | the entry's value is a base address, and `ENUM`'s entries are offsets from it |
+| Field | Meaning |
+|---|---|
+| key | the tag id (`boy`, `map.raptors`) |
+| `title` | one line for the summary and for hovers |
+| `parents` | zero or more tags this one inherits from (§5.2) |
+| `links` | `soe://` resources (or workspace paths) that hold the data |
+| `sub` | child tags, keyed by the last id segment: `boy.sub.hp` is the tag `boy.hp` |
+| `size`, `source`, `status` | per fact: width in bytes, how it was worked out, `unverified` (§6) |
+| `see` | related tags; back-links are computed |
 
-**How `boy.hp` comes out:** `_BOY` is tagged `boy` with layout `ATTRIBUTE`. `ATTRIBUTE.HP` is `character.hp`, and `boy` is a `character` by the tree, so `boy.hp` gets a `derived` fact `$4E89 + 0x2a = $4EB3`, with both enum lines as its source. `enemy` is also a `character`, so it gets `hp` too, but it never gets `xp_required`, because that entry is narrowed to `player`. This is the inheritance the enum already has in its comments ("BOY/DOG SPECIFIC").
+### 5.2 Precompiled sub-tags and multiple inheritance
 
-Two inheritance paths give the boy two `max_hp` facts: the entity record (`$4E98`) and the stats block (`$0A35`). Both are listed, each with its role. Neither one is dropped.
-
-### 5.2 The tag tree
+- **Sub-tags are precompiled.** `boy.hp` stores the finished link `soe://ram/4eb3.json`. The plugin does no base + offset arithmetic. The sums in §1 were worked out once, by hand or by a script, and only the result and its `source` are kept.
+- **A parent defines the vocabulary, a child the data.** `character` says that every character has an `hp`. `boy` says where the boy's is. `soe://tags/boy/index.md` lists every sub-tag of all ancestors. A sub-tag the boy has no link for is shown as "not mapped yet", which is a research list for free.
+- **Multiple inheritance.** `parents` is a list, e.g. `enemy.raptor` → `["enemy", "prehistoria"]`. Sub-tags are merged from all parents. If two parents give the same sub-tag different titles, both are shown. If a child sets a sub-tag, the child's value wins over every parent's. Cycles are a load error.
 
 ```
-character            ATTRIBUTE (entity record)
-├── player           ATTRIBUTE_GENERAL (stats block), ATTRIBUTE player-only entries
-│   ├── boy          _BOY, POINTER_BOY, 02_ram.evs BOY_*
-│   └── dog          _DOG, POINTER_DOG, DOG_*
-└── enemy            CHARACTER_ADDRESS.ENTITY_* slots, ENEMY enum, names.json enemies
+character            hp, max_hp, x, y, …
+├── player           attack, defense, xp, xp_required, …
+│   ├── boy          (all links)
+│   └── dog
+└── enemy
+    └── enemy.raptor (+ prehistoria)
 ```
 
-A tag inherits every child tag of its ancestors. `soe://tags/boy/index.md` therefore lists `hp`, `attack`, `xp_required`, …, and says where each one is inherited from ("from player", "from character").
+### 5.3 Generated tags
 
-### 5.3 How the extension reads them
+Merged into the same graph, with no JSON entry needed: one tag per room (`map.*`), character record (`enemy.*`), item, song, flag, table and named RAM address, built from the modules listed in §4. A JSON entry with the same id adds to a generated tag and never replaces it, so `map.raptors` above only adds the `see` links.
 
-`tools/generate_data.py` already parses the core enums into `src/language/data/index.json` (hovers, completion). It also collects `@tag`, `@tag_parent` and `@layout`, together with each entry's file and line, so the tags ship with the extension and work without the `everscript` repo checked out. When the repo is open in the workspace, the live workspace index (`src/language/workspace-index.js`) can replace the snapshot, as it already does for declarations.
+**Back-links are computed.** If `boy` lists `see: dog`, then `dog` shows `boy` under "Referenced by". Authors write each link once.
 
-### 5.4 Generated and authored tags
+### 5.4 Later: tags from `core.evs`
 
-Merged into the same tree:
-
-1. **Generated** (no annotation needed): one tag per room, character, item, song, flag, table and RAM symbol, built from the modules listed in §4.
-2. **Authored** (`src/resources/tags/*.json`, one file per root): links that belong in neither the ROM nor an enum, such as external claims (§6) or `see` links between unrelated tags.
-
-An authored entry adds facts to the tag with the same id. It never replaces one, so a regenerated fact cannot be lost through an edit.
-
-**Back-links are computed.** If `boy.hp` lists `see: dog.hp`, then `dog.hp` shows `boy.hp` under "Referenced by". Authors write each link once.
+The enums in the `everscript` core library already contain most of these offsets. Reading them from the plugin would make the plugin depend on one version of the core library. The cleaner way: bundle `core.evs` inside the compiler, and let the plugin read its enums statically from the compiler package it ships with. Until then the plugin only tags resources in its own JSON. See [`todo/soe-tags.md`](todo/soe-tags.md).
 
 ---
 
@@ -233,7 +234,7 @@ Notes copied from outside sources (the Data Crystals RAM list, the wiki, forum n
 ```
 
 - **External lists are unverified references.** The Data Crystals RAM list is a pointer for research, never an authority: its lines are claims with `status: "unverified"`, linked by address and stored as references, not copied in bulk. A claim is only shown on a tag whose address it matches.
-- When facts give different meanings for the same address, the tag gets a **Conflicts** section that lists each one with its source. An enum-derived fact outranks a claim in the summary line. The claim stays listed, so the `$0A3F` row of §1 shows "attack (enum, Data Crystals)" against "magic defense (wiki)".
+- When facts give different meanings for the same address, the tag gets a **Conflicts** section that lists each one with its source. A fact in `tags.json` without `status: "unverified"` outranks a claim in the summary line. The claim stays listed, so the `$0A3F` row of §1 shows "attack (enum, Data Crystals)" against "magic defense (wiki)".
 - A claim becomes `verified` once someone checks it in the emulator (for example, the value changes when attack is equipped). Verification records how it was checked and the version. The procedure is the same as the "verified engine WRAM addresses" practice already used in the emulator notes.
 - `?` comments in enums (`POINTER_BEHAVIOR_CURRENT = 0x00, // ?`) become `unverified` facts. They are never left out, because an uncertain fact is still something to research.
 
@@ -266,7 +267,7 @@ Uses of the same data outside `soe://`:
 | Phase | Scope |
 |---|---|
 | 1 | `soe://tags/` provider (`src/resources/tag-files.js`), generated `map.*`, `character.*`, `item.*`, `music.*`, `flag.*`, RAM-symbol tags; `index.md` per directory; `.md` + `.json` |
-| 2 | `@tag` / `@tag_parent` / `@layout` in the `everscript` compiler and in `generate_data.py`; the tag tree; `derived` facts (base + offset); back-links; live values |
+| 2 | `tags.json` with `character` / `player` / `boy` / `dog` / `enemy` and their precompiled sub-tags; multiple inheritance; back-links; live values |
 | 3 | claims (wiki, Data Crystals references) with the Conflicts section; `search/` |
 | 4 | `asm` facts from CDL / disassembly, `script` facts from decompiled room scripts; hover and Memory Radar integration |
 
@@ -277,7 +278,7 @@ Dependency rules follow `src/resources/README.md`: tag files may use `shared/`, 
 ## 10. Open questions and follow-ups
 
 Decided:
-- **Enum source:** tags are declared in the `everscript` sources (§5.1) and shipped as a snapshot in `index.json` (§5.3).
+- **No `.evs` dependency:** tags are one JSON file in the plugin with precompiled links (§5.1). Reading enums waits for `core.evs` to ship inside the compiler (§5.4).
 - **Canonical current HP:** `$4EB3` (`_BOY + ATTRIBUTE.HP`, and `02_ram.evs` agrees). The wiki's `$0A37` is an unverified claim.
 - **Data Crystals:** an unverified reference (§6).
 

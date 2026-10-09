@@ -1,6 +1,8 @@
 # Tag ids as names in Everscript (`<boy.hp>`)
 
-> Status: **idea, nothing built.** Depends on [soe-tags.md](soe-tags.md) items 1–2.
+> Status: **idea, nothing built.** Depends on the "Later: tags from `core.evs`" part of
+> [soe-tags.md](soe-tags.md): the compiler has to know the tags, so they must come from
+> `core.evs`, not from the plugin's `tags.json`.
 > Spec: [soe-tags-spec.md](../soe-tags-spec.md) §5.
 
 ## The idea
