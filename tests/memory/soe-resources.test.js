@@ -234,6 +234,24 @@ test('provider: ?rom=<absolute path> reads that ROM file (Open ROM as Folder)', 
     await assert.rejects(fsp.readFile(uri('soe://rom/header.json' + missing)), e => e.code === 'Unavailable' && /not readable/.test(e.message));
 }, true);
 
+test('carryRomQuery: relative and soe://rom links keep ?rom=, others do not', () => {
+    const { carryRomQuery } = require('../../src/resources/fs-provider');
+    const q = 'rom=%2Fx%2FA+B.smc';
+    const md = '[![a](0000.png)](0000.png) [d](dir/index.md#top) [s](soe://rom/header.json) '
+        + '[r](soe://ram/0adb.json) [w](https://x.org/a) [h](#anchor) [k](a.md?rom=vanilla)';
+    assert.strictEqual(carryRomQuery(md, '/x/A B.smc'),
+        `[![a](0000.png?${q})](0000.png?${q}) [d](dir/index.md?${q}#top) [s](soe://rom/header.json?${q}) `
+        + '[r](soe://ram/0adb.json) [w](https://x.org/a) [h](#anchor) [k](a.md?rom=vanilla)');
+});
+
+test('provider: rooms list every room; scripts/ does not list itself', async () => {
+    const fsp = new SoeFileSystem({ vanillaRom: () => rom, emulatorRom: () => null, readMemory });
+    assert.deepStrictEqual(fsp.readDirectory(uri('soe://rom/assets/scripts/')).map(([n]) => n), ['index.md', 'index.json', 'rooms']);
+    const md = Buffer.from(await fsp.readFile(uri('soe://rom/assets/scripts/rooms/index.md'))).toString();
+    assert.ok(/# Room Scripts \(127\)/.test(md), md.slice(0, 80));
+    assert.ok(md.includes('[38/index.md](38/index.md)'));
+}, true);
+
 test('provider: stat, readDirectory, errors and read-only', async () => {
     const fsp = new SoeFileSystem({ vanillaRom: () => null, emulatorRom: () => null,
         readMemory: () => Promise.reject(new Error('The emulator is not open')) });

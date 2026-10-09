@@ -6,8 +6,9 @@ const {
     decodeScript, buildRoomScriptModel, snesToRom,
     extractLoot, extractTransitions, extractSpawns, isLoot, lootToEverscript,
 } = require('../script');
+const { MAX_ROOMS } = require('../maps');
 const {
-    getMapName, getMapArea, MAX_ROOMS,
+    getMapName, getMapArea,
     getAbsScript, getNpcScript, getGlobalScript,
 } = require('../localizations');
 const { hexId } = require('../shared/resource-uri');
@@ -23,7 +24,6 @@ function resolveScripts(segments, rom) {
             ['index.md', 'file'],
             ['index.json', 'file'],
             ['rooms', 'dir'],
-            ['everscript', 'dir'],
         ], () => MD.scriptsRootMarkdown());
     }
 
@@ -31,7 +31,7 @@ function resolveScripts(segments, rom) {
     if (head === 'index.md') return text(() => MD.scriptsRootMarkdown());
     if (head === 'index.json') {
         return json(() => ({
-            categories: ['rooms', 'everscript'],
+            categories: ['rooms'],
             sampleAddresses: ['0x93c8a1', '0x9384d9'],
             roomCount: MAX_ROOMS,
         }));

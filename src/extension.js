@@ -1275,7 +1275,8 @@ function activate(context) {
 
     // ── soe:// resources (src/resources/README.md) ──────────────────────────
     require('./resources').registerSoeResources(context, {
-        vanillaRom: () => romReaders.loadRomBuffer(vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null, getExtConfig().romPath || ''),
+        // The first on-disk folder: a mounted ROM (soe://rom/?rom=…) can be listed first.
+        vanillaRom: () => romReaders.loadRomBuffer(vscode.workspace.workspaceFolders?.find(f => f.uri.scheme === 'file')?.uri.fsPath ?? null, getExtConfig().romPath || ''),
         emulatorRom: () => emulatorPanel.getCurrentRom(),
         romFile: romPath => romReaders.loadRomFile(romPath),
         readMemory: (addr, len) => emulatorPanel.readMemory(addr, len),

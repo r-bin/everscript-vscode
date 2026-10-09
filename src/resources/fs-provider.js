@@ -140,6 +140,8 @@ class SoeFileSystem {
     async _produce(uri, node) {
         try {
             const out = await node.read();
+            const rom = new URLSearchParams(uri.query || '').get('rom');
+            if (rom && uri.path.endsWith('.md')) return Buffer.from(carryRomQuery(Buffer.from(out).toString('utf8'), rom));
             return out instanceof Uint8Array ? out : Buffer.from(out);
         } catch (err) {
             if (err instanceof vscode.FileSystemError) throw err;
@@ -206,6 +208,24 @@ class SoeFileSystem {
     rename(uri) { throw vscode.FileSystemError.NoPermissions(uri); }
 }
 
+/**
+ * The Markdown preview resolves `[x](0000.png)` against the document without
+ * its query, so a page read with `?rom=` hands that query to every relative
+ * and `soe://rom|localization/` link that has none. Without it, the images of
+ * a mounted ROM (`?rom=<path>`) would load from the default ROM instead.
+ */
+function carryRomQuery(markdown, rom) {
+    const query = new URLSearchParams({ rom }).toString();
+    return markdown.replace(/\]\(([^)\s]+)\)/g, (all, target) => {
+        if (target.startsWith('#') || target.includes('?')) return all;
+        const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(target);
+        if (scheme && !/^soe:\/\/(rom|localizations?)\//i.test(target)) return all;
+        const hash = target.indexOf('#');
+        const [path, frag] = hash < 0 ? [target, ''] : [target.slice(0, hash), target.slice(hash)];
+        return `](${path}?${query}${frag})`;
+    });
+}
+
 /** `/Users/…/x.smc` or `C:\\…\\x.smc`: a `?rom=` naming a ROM file. */
 function isAbsolutePath(s) {
     return typeof s === 'string' && (s.startsWith('/') || /^[A-Za-z]:[\\/]/.test(s));
@@ -217,4 +237,4 @@ function fileType(kind) {
     return vscode.FileType.File;
 }
 
-module.exports = { SoeFileSystem };
+module.exports = { carryRomQuery, SoeFileSystem };
