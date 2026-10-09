@@ -26,6 +26,11 @@ path, not the query: a webview checks a requested resource against its roots
 with the query stripped from the request but not the root, so a `?rom=` root
 would deny the Markdown preview every image.
 
+`.md` files under `soe:` open in VS Code's built-in Markdown preview
+(`configurationDefaults` → `workbench.editorAssociations`). Preview extensions
+that resolve images as `file:` paths (Markdown Preview Enhanced) show no
+`soe:` images.
+
 ## Files
 
 | File | Owns |

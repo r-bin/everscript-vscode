@@ -34,9 +34,10 @@ async function openSoeResource(address) {
         validateInput: v => /^soe:\/\/(rom|ram|bus)\//.test(v) ? null : 'Starts with soe://rom/, soe://ram/ or soe://bus/',
     });
     if (!value) return;
-    const uri = vscode.Uri.parse(value);
-    if (uri.path.endsWith('.md')) return vscode.commands.executeCommand('markdown.showPreview', uri);
-    return vscode.commands.executeCommand('vscode.open', uri);
+    // `.md` opens in the built-in Markdown preview: package.json associates
+    // `soe:/**/*.md` with it (preview extensions that resolve images as
+    // file: paths, e.g. Markdown Preview Enhanced, cannot load soe: images).
+    return vscode.commands.executeCommand('vscode.open', vscode.Uri.parse(value));
 }
 
 /**
