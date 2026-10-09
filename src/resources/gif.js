@@ -20,7 +20,6 @@ function encodeGif(width, height, frames) {
     // Build palette across all frames (up to 256 colors).
     // Index 0 is reserved for transparent.
     const paletteMap = new Map();
-    paletteMap.set('0,0,0,0', 0);
     const paletteColors = [[0, 0, 0]]; // index 0: transparent background
 
     const indexedFrames = frames.map((f) => {
@@ -34,7 +33,7 @@ function encodeGif(width, height, frames) {
             if (a < 128) {
                 indices[i] = 0;
             } else {
-                const key = `${r},${g},${b}`;
+                const key = (r << 16) | (g << 8) | b;
                 let idx = paletteMap.get(key);
                 if (idx === undefined) {
                     if (paletteColors.length < 256) {

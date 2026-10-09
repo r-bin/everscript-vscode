@@ -179,6 +179,8 @@ function decodeCollisionWord(cw) {
 
 function metatileComposition(room, m) {
     const rId = room.roomId ?? room.id ?? 0;
+    const { isMetatileAnimated } = require('./map-animation');
+    const animInfo = isMetatileAnimated(room, m);
     return {
         roomId: rId,
         roomHex: hexId(rId, 2),
@@ -187,6 +189,8 @@ function metatileComposition(room, m) {
         id: m.id,
         idHex: '$' + hexId(m.id, 4),
         uses: m.uses,
+        animated: animInfo.animated,
+        animationChannels: animInfo.channels,
         layer1: decodeTilemapWord(m.layer1),
         layer2: decodeTilemapWord(m.layer2),
         collision: decodeCollisionWord(m.collision),
@@ -196,14 +200,19 @@ function metatileComposition(room, m) {
 function metatileMarkdown(room, m) {
     const c = metatileComposition(room, m);
     const geomLabel = c.collision.solid ? 'Solid' : c.collision.open ? 'Open' : `Code ${c.collision.geometryHex}`;
+    const animHeader = c.animated ? ' | Animated' : '';
+    const animAlign = c.animated ? '|:---:' : '';
+    const animCell = c.animated ? ' | ![Animation](animation.gif)' : '';
+    const animNote = c.animated ? `- **Animated**: Yes (Channel${c.animationChannels.length > 1 ? 's' : ''} ${c.animationChannels.join(', ')})\n` : '';
+
     return `# Room ${c.roomHex} — Metatile ${c.indexHex} (${c.idHex})
 
 **Usage**: ${c.uses} cell${c.uses === 1 ? '' : 's'} in room ${c.roomHex}
 **Collision**: \`${c.collision.word}\` (${geomLabel})
 
-| Composite | Layer 1 (Canopy) | Layer 2 (Terrain) |
-|:---:|:---:|:---:|
-| ![Composite](render.png) | ![Layer 1](layer1.png) | ![Layer 2](layer2.png) |
+| Composite | Layer 1 (Canopy) | Layer 2 (Terrain)${animHeader} |
+|:---:|:---:|:---:${animAlign}|
+| ![Composite](render.png) | ![Layer 1](layer1.png) | ![Layer 2](layer2.png)${animCell} |
 
 ## Tilemap Layers
 
@@ -221,10 +230,10 @@ function metatileMarkdown(room, m) {
 - **Sprite In Front**: ${c.collision.spriteDrawsInFront ? 'Yes' : 'No'}
 - **Sprite Hidden**: ${c.collision.spriteHidden ? 'Yes' : 'No'}
 - **Holds Plane**: ${c.collision.holdsPlane ? 'Yes' : 'No'}
-- **Drift Vector**: ${c.collision.drift.name || 'None'}
+${animNote}- **Drift Vector**: ${c.collision.drift.name || 'None'}
 - **Entity Gate**: ${c.collision.entityGate >= 0 ? c.collision.entityGate : 'None'}
 
-[info.json](info.json) | [render.png](render.png)
+[info.json](info.json) | [render.png](render.png)${c.animated ? ' | [animation.gif](animation.gif)' : ''}
 `;
 }
 
@@ -235,18 +244,20 @@ function resolveRoomTiles(room, rom, subSegments) {
 
     const table = metatileTable(room);
     const rId = room.roomId ?? room.id ?? 0;
+    const hasAnim = room.animation && room.animation.length > 0;
 
     // Root of room metatiles: soe://rom/assets/maps/<id>/metatiles/
     if (name === undefined) {
         const entries = [
             ['index.json', 'file'],
             ['atlas.png', 'file'],
+            ...(hasAnim ? [['atlas.gif', 'file']] : []),
             ...table.map((m) => [hexId(m.index, 3), 'dir']),
         ];
         return dir(entries, () => [
             `# Room ${hexId(rId, 2)} Metatiles`, '',
             `${room.metatileCount} metatiles in dictionary. Base metatile \`$${hexId(room.baseMetatile, 4)}\`.`, '',
-            '![Atlas](atlas.png)', '',
+            hasAnim ? '![Atlas (Animated)](atlas.gif)\n\n*(Static atlas: [atlas.png](atlas.png))*' : '![Atlas](atlas.png)', '',
             '| Index | ID | Uses | Layer 1 | Layer 2 | Collision | Folder |', '|---|---|---|---|---|---|---|',
             ...table.slice(0, 100).map((m) => `| \`${hexId(m.index, 3)}\` | \`$${hexId(m.id, 4)}\` | ${m.uses} | \`$${hexId(m.layer1, 4)}\` | \`$${hexId(m.layer2, 4)}\` | \`$${hexId(m.collision, 4)}\` | [${hexId(m.index, 3)}/](${hexId(m.index, 3)}/info.md) |`),
             ...(table.length > 100 ? ['', `*(showing first 100 of ${table.length} metatiles)*`] : []),
@@ -259,6 +270,11 @@ function resolveRoomTiles(room, rom, subSegments) {
 
     if (name === 'atlas.png') {
         return file(() => encodePng(getRoomAtlas(rom, room, 'composite').image));
+    }
+
+    if (name === 'atlas.gif') {
+        const { renderMetatileAtlasAnimationGif } = require('./map-animation');
+        return file(() => renderMetatileAtlasAnimationGif(rom, room));
     }
 
     // Direct metatile image request: 000.png (for backwards compatibility)
@@ -278,6 +294,8 @@ function resolveRoomTiles(room, rom, subSegments) {
     if (extra.length > 0) return null;
 
     const m = table[idx];
+    const { isMetatileAnimated, renderMetatileAnimationGif } = require('./map-animation');
+    const animInfo = isMetatileAnimated(room, m);
 
     // Inside metatile folder: 000/
     if (leaf === undefined) {
@@ -285,6 +303,7 @@ function resolveRoomTiles(room, rom, subSegments) {
             ['info.json', 'file'],
             ['info.md', 'file'],
             ['render.png', 'file'],
+            ...(animInfo.animated ? [['animation.gif', 'file']] : []),
             ['layer1.png', 'file'],
             ['layer2.png', 'file'],
         ];
@@ -294,6 +313,7 @@ function resolveRoomTiles(room, rom, subSegments) {
     if (leaf === 'info.json') return json(() => metatileComposition(room, m));
     if (leaf === 'info.md') return text(() => metatileMarkdown(room, m));
     if (leaf === 'render.png') return file(() => renderSingleMetatile(rom, room, idx, 'composite'));
+    if (leaf === 'animation.gif') return file(() => renderMetatileAnimationGif(rom, room, idx));
     if (leaf === 'layer1.png') return file(() => renderSingleMetatile(rom, room, idx, 'layer1'));
     if (leaf === 'layer2.png') return file(() => renderSingleMetatile(rom, room, idx, 'layer2'));
 

@@ -145,10 +145,12 @@ test('rom/header.json, slices and strings decode', async () => {
     assert.ok((await read(resolveRom(['assets', 'strings', '0540.txt'], rom))).length > 1);
 }, true);
 
-test('rom/assets/maps/38 has info, header and a render', async () => {
+test('rom/assets/maps/38 has info, header, render and animation.gif', async () => {
     assert.match(String(await read(resolveRom(['assets', 'maps', '38', 'info.md'], rom))), /^# Room 38/);
     const png = await read(resolveRom(['assets', 'maps', '38', 'render.png'], rom));
     assert.strictEqual(png.subarray(1, 4).toString(), 'PNG');
+    const gif = await read(resolveRom(['assets', 'maps', '38', 'animation.gif'], rom));
+    assert.strictEqual(gif.subarray(0, 6).toString('ascii'), 'GIF89a');
     assert.strictEqual(resolveRom(['assets', 'maps', '7f'], rom), null);
 }, true);
 
@@ -539,6 +541,18 @@ test('provider: map tiles (CHR 16x16 PNG/BIN) and room metatile composition fold
     assert.strictEqual(m0Layer1.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
     const m0Layer2 = await fsp.readFile(uri('soe://rom/assets/maps/00/metatiles/000/layer2.png'));
     assert.strictEqual(m0Layer2.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+
+    // Room 00 full animated GIF
+    const mapGif = await fsp.readFile(uri('soe://rom/assets/maps/00/animation.gif'));
+    assert.strictEqual(mapGif.subarray(0, 6).toString('ascii'), 'GIF89a');
+
+    // Room 00 metatiles atlas animated GIF
+    const atlasGif = await fsp.readFile(uri('soe://rom/assets/maps/00/metatiles/atlas.gif'));
+    assert.strictEqual(atlasGif.subarray(0, 6).toString('ascii'), 'GIF89a');
+
+    // Metatile 002 (animated metatile) has animation.gif
+    const m2Gif = await fsp.readFile(uri('soe://rom/assets/maps/00/metatiles/002/animation.gif'));
+    assert.strictEqual(m2Gif.subarray(0, 6).toString('ascii'), 'GIF89a');
 
     fsp.dispose();
 }, true);

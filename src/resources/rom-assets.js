@@ -205,10 +205,29 @@ function maps(rom, name, leaf) {
     }
     if (!/^[0-9a-f]{1,2}$/i.test(name)) return null;
     const id = parseInt(name, 16);
-    if (id >= MAX_ROOMS) return null;
-    if (leaf === undefined) return dir([['info.md', 'file'], ['header.json', 'file'], ['render.png', 'file'], ['scripts', 'dir'], ['tiles', 'dir'], ['metatiles', 'dir']], () => roomMarkdown(rom, id));
-    if (leaf === 'header.json') return json(() => plain(decodeRoom(rom, id).header));
-    if (leaf === 'render.png') return file(() => encodePng(renderRoomComposite(rom, decodeRoom(rom, id))));
+    if (id < 0 || id >= MAX_ROOMS) return null;
+    let d;
+    try { d = decodeRoom(rom, id); } catch (_) { return null; }
+    if (!d) return null;
+    const hasAnim = d.animation && d.animation.length > 0;
+    if (leaf === undefined) {
+        const entries = [
+            ['info.md', 'file'],
+            ['header.json', 'file'],
+            ['render.png', 'file'],
+            ...(hasAnim ? [['animation.gif', 'file']] : []),
+            ['scripts', 'dir'],
+            ['tiles', 'dir'],
+            ['metatiles', 'dir'],
+        ];
+        return dir(entries, () => roomMarkdown(rom, id));
+    }
+    if (leaf === 'header.json') return json(() => plain(d.header));
+    if (leaf === 'render.png') return file(() => encodePng(renderRoomComposite(rom, d)));
+    if (leaf === 'animation.gif' || leaf === 'render.gif') {
+        const { renderRoomAnimationGif } = require('./map-animation');
+        return file(() => renderRoomAnimationGif(rom, d));
+    }
     if (leaf === 'info.md') return text(() => roomMarkdown(rom, id));
     if (leaf === 'scripts') {
         const { resolveScripts } = require('./script-files');
@@ -224,6 +243,13 @@ function maps(rom, name, leaf) {
 function roomMarkdown(rom, id) {
     const d = decodeRoom(rom, id);
     const h = d.header;
+    const hasAnim = d.animation && d.animation.length > 0;
+    const animRow = hasAnim ? `| Animated tiles | ${d.animation.length} channels ([animation.gif](animation.gif)) |\n` : '';
+    const animLink = hasAnim ? ' | [animation.gif](animation.gif)' : '';
+    const visual = hasAnim
+        ? `![Room ${hexId(id, 2)} (Animated)](animation.gif)\n\n*(Static view: [render.png](render.png))*`
+        : `![Room ${hexId(id, 2)}](render.png)`;
+
     return `# Room ${hexId(id, 2)}: ${getMapName(id, { full: true })}
 
 | | |
@@ -233,12 +259,12 @@ function roomMarkdown(rom, id) {
 | Blob | file offset \`$${hexId(d.romPointerFile, 6)}\`, bus \`$${hexId(d.romPointerSnes, 6)}\` |
 | Metatiles | ${d.metatileCount} ([tiles/](tiles/index.md)) |
 | Tile families | ${d.tileFamilies.join(', ')} |
-| Objects | ${d.objects.length} |
+${animRow}| Objects | ${d.objects.length} |
 | Triggers | ${d.triggers.stepOn.length} step-on, ${d.triggers.bTrigger.length} B-button |
 
-[header.json](header.json) | [scripts/](scripts/index.md) | [tiles/](tiles/index.md)
+[header.json](header.json) | [scripts/](scripts/index.md) | [tiles/](tiles/index.md)${animLink}
 
-![Room ${hexId(id, 2)}](render.png)
+${visual}
 `;
 }
 
