@@ -24,6 +24,7 @@ function registerSoeResources(context, deps) {
         vscode.commands.registerCommand('everscript.checkSoeResources', checkSoeResources),
         vscode.commands.registerCommand('everscript.openSoeResource', openSoeResource),
         vscode.commands.registerCommand('everscript.openRomAsFolder', openRomAsFolder),
+        vscode.commands.registerCommand('everscript.toggleSoeMarkdown', toggleSoeMarkdown),
     );
 }
 
@@ -38,6 +39,23 @@ async function openSoeResource(address) {
     // `soe:/**/*.md` with it (preview extensions that resolve images as
     // file: paths, e.g. Markdown Preview Enhanced, cannot load soe: images).
     return vscode.commands.executeCommand('vscode.open', vscode.Uri.parse(value));
+}
+
+const MD_PREVIEW = 'vscode.markdown.preview.editor';
+
+/**
+ * Swap the active `soe:` Markdown tab in place: text ⇄ built-in preview.
+ * Bound to cmd/ctrl+shift+v for `soe:` (package.json), where preview
+ * extensions that read images as file: paths show none.
+ */
+async function toggleSoeMarkdown() {
+    const tab = vscode.window.tabGroups.activeTabGroup.activeTab;
+    const input = tab && tab.input;
+    const uri = input && input.uri;
+    if (!uri) return;
+    const toPreview = !(input instanceof vscode.TabInputCustom && input.viewType === MD_PREVIEW);
+    await vscode.commands.executeCommand('vscode.openWith', uri, toPreview ? MD_PREVIEW : 'default', { viewColumn: tab.group.viewColumn });
+    if (!tab.isPinned) await vscode.window.tabGroups.close(tab).then(undefined, () => {});
 }
 
 /**

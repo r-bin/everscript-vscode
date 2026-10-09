@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.183.3",
+  "version": "0.184.0",
   "publisher": "rbin",
   "main": "./src/extension.js",
   "engines": {
@@ -24,6 +24,7 @@
     "onCommand:everscript.checkSoeResources",
     "onCommand:everscript.openSoeResource",
     "onCommand:everscript.openRomAsFolder",
+    "onCommand:everscript.toggleSoeMarkdown",
     "onStartupFinished",
     "onMcpCollection:everscript-soe"
   ],
@@ -246,6 +247,13 @@
         "category": "Everscript"
       },
       {
+        "command": "everscript.toggleSoeMarkdown",
+        "title": "Toggle Markdown Source/Preview",
+        "category": "Everscript",
+        "icon": "$(open-preview)",
+        "enablement": "resourceScheme == soe"
+      },
+      {
         "command": "everscript.openRomAsFolder",
         "title": "Open ROM as Folder",
         "category": "Everscript",
@@ -304,6 +312,11 @@
         }
       ],
       "editor/title": [
+        {
+          "when": "resourceScheme == soe && (editorLangId == markdown || activeCustomEditorId == 'vscode.markdown.preview.editor')",
+          "command": "everscript.toggleSoeMarkdown",
+          "group": "navigation"
+        },
         {
           "when": "resourceScheme == file && resourceExtname =~ /^\\.(smc|sfc)$/i",
           "command": "everscript.openRomAsFolder",
@@ -402,6 +415,12 @@
         "command": "everscript.debugInEmulator",
         "key": "f5",
         "when": "editorLangId == everscript && !inDebugMode"
+      },
+      {
+        "command": "everscript.toggleSoeMarkdown",
+        "key": "ctrl+shift+v",
+        "mac": "cmd+shift+v",
+        "when": "resourceScheme == soe && (editorLangId == markdown || activeCustomEditorId == 'vscode.markdown.preview.editor')"
       }
     ],
     "mcpServerDefinitionProviders": [

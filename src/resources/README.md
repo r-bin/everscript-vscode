@@ -29,7 +29,10 @@ would deny the Markdown preview every image.
 `.md` files under `soe:` open in VS Code's built-in Markdown preview
 (`configurationDefaults` → `workbench.editorAssociations`). Preview extensions
 that resolve images as `file:` paths (Markdown Preview Enhanced) show no
-`soe:` images.
+`soe:` images. `Everscript: Toggle Markdown Source/Preview` (cmd/ctrl+shift+v
+on `soe:` Markdown) swaps a tab in place between text and that preview. MPE
+binds the same key and wins on extension load order; a user keybinding
+`-markdown-preview-enhanced.openPreview` hands the key back.
 
 ## Files
 
