@@ -8,7 +8,7 @@ Spec: `docs/soe-filesystem-spec.md`.
 ```
 soe://rom/assets/ingredients/wax/icon.png              the cartridge (ROM)
 soe://rom/assets/ingredients/wax/icon.png?rom=vanilla  …from the configured ROM file
-soe://rom/?rom=/path/to/Some%20Rom.smc                 …from that file (Open ROM as Folder)
+soe://rom/~L3BhdGgvdG8vU29tZSBSb20uc21j/assets/…       …from that file: a mount (Open ROM as Folder)
 soe://ram/0adb.json                                    the emulator's WRAM, live
 soe://bus/7e0adb                                       24-bit bus address → links to the above
 ```
@@ -19,9 +19,12 @@ running in the emulator, an absolute path = that file; default: the emulator's
 when one runs, else vanilla).
 
 **Open ROM as Folder** (right-click a `.smc`/`.sfc` in the Explorer, or the
-button in an open ROM's editor title bar) mounts `soe://rom/?rom=<path>` as an extra workspace
+button in an open ROM's editor title bar) mounts `soe://rom/~<base64url path>/` as an extra workspace
 folder, so the ROM browses like a directory. VS Code cannot expand a file in
-place; remove it with *Remove Folder from Workspace*.
+place; remove it with *Remove Folder from Workspace*. The ROM is named in the
+path, not the query: a webview checks a requested resource against its roots
+with the query stripped from the request but not the root, so a `?rom=` root
+would deny the Markdown preview every image.
 
 ## Files
 

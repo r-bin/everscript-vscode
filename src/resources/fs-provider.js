@@ -5,9 +5,9 @@
 // VS Code file-system answers. Aliases (`node.link`) stat as symlinks.
 //
 // Which ROM (`soe://rom/...`): `?rom=vanilla` is the configured ROM file,
-// `?rom=emulator` the one running in the emulator, `?rom=<absolute path>` that
-// file (a ROM opened as a folder); without a query, the emulator's when one
-// runs, else vanilla.
+// `?rom=emulator` the one running in the emulator, `?rom=<absolute path>` or a
+// `~…` mount segment that file (a ROM opened as a folder); without either, the
+// emulator's when one runs, else vanilla.
 
 const vscode = require('vscode');
 const { parseSoeParts } = require('../shared/resource-uri');
@@ -61,7 +61,7 @@ class SoeFileSystem {
         } else {
             throw vscode.FileSystemError.FileNotFound(uri);
         }
-        if (!r.node && p.segments[p.segments.length - 1] === 'index.md') r.node = this._index(uri, p.segments);
+        if (!r.node && p.segments[p.segments.length - 1] === 'index.md') r.node = this._index(uri, p);
         return r;
     }
 
@@ -76,11 +76,12 @@ class SoeFileSystem {
     }
 
     /** `index.md` of a directory that has none of its own. */
-    _index(uri, segments) {
-        const parent = uri.with({ path: '/' + segments.slice(0, -1).map(s => s + '/').join('') });
+    _index(uri, p) {
+        const dirPath = p.segments.slice(0, -1).map(s => s + '/').join('');
+        const parent = uri.with({ path: '/' + (p.mount ? p.mount + '/' : '') + dirPath });
         const { node } = this._route(parent);
         if (!node || node.kind !== 'dir') return null;
-        const address = `soe://${parent.authority}${parent.path}`;
+        const address = `soe://${parent.authority}/${dirPath}`;
         return text(() => (node.index ? node.index() : autoIndex(address, node.entries)));
     }
 
@@ -140,8 +141,6 @@ class SoeFileSystem {
     async _produce(uri, node) {
         try {
             const out = await node.read();
-            const rom = new URLSearchParams(uri.query || '').get('rom');
-            if (rom && uri.path.endsWith('.md')) return Buffer.from(carryRomQuery(Buffer.from(out).toString('utf8'), rom));
             return out instanceof Uint8Array ? out : Buffer.from(out);
         } catch (err) {
             if (err instanceof vscode.FileSystemError) throw err;
@@ -208,24 +207,6 @@ class SoeFileSystem {
     rename(uri) { throw vscode.FileSystemError.NoPermissions(uri); }
 }
 
-/**
- * The Markdown preview resolves `[x](0000.png)` against the document without
- * its query, so a page read with `?rom=` hands that query to every relative
- * and `soe://rom|localization/` link that has none. Without it, the images of
- * a mounted ROM (`?rom=<path>`) would load from the default ROM instead.
- */
-function carryRomQuery(markdown, rom) {
-    const query = new URLSearchParams({ rom }).toString();
-    return markdown.replace(/\]\(([^)\s]+)\)/g, (all, target) => {
-        if (target.startsWith('#') || target.includes('?')) return all;
-        const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(target);
-        if (scheme && !/^soe:\/\/(rom|localizations?)\//i.test(target)) return all;
-        const hash = target.indexOf('#');
-        const [path, frag] = hash < 0 ? [target, ''] : [target.slice(0, hash), target.slice(hash)];
-        return `](${path}?${query}${frag})`;
-    });
-}
-
 /** `/Users/…/x.smc` or `C:\\…\\x.smc`: a `?rom=` naming a ROM file. */
 function isAbsolutePath(s) {
     return typeof s === 'string' && (s.startsWith('/') || /^[A-Za-z]:[\\/]/.test(s));
@@ -237,4 +218,4 @@ function fileType(kind) {
     return vscode.FileType.File;
 }
 
-module.exports = { carryRomQuery, SoeFileSystem };
+module.exports = { SoeFileSystem };

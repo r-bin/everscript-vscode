@@ -55,7 +55,7 @@ const read = async node => Buffer.from(await node.read());
 
 test('parseSoeParts splits authority, segments and ?rom=', () => {
     const p = parseSoeParts('ROM', '/assets/ingredients/wax/icon.png', 'rom=vanilla');
-    assert.deepStrictEqual(p, { authority: 'rom', segments: ['assets', 'ingredients', 'wax', 'icon.png'], rom: 'vanilla' });
+    assert.deepStrictEqual(p, { authority: 'rom', segments: ['assets', 'ingredients', 'wax', 'icon.png'], rom: 'vanilla', mount: null });
     assert.strictEqual(parseSoeParts('ram', '/', '').rom, null);
 });
 
@@ -234,15 +234,24 @@ test('provider: ?rom=<absolute path> reads that ROM file (Open ROM as Folder)', 
     await assert.rejects(fsp.readFile(uri('soe://rom/header.json' + missing)), e => e.code === 'Unavailable' && /not readable/.test(e.message));
 }, true);
 
-test('carryRomQuery: relative and soe://rom links keep ?rom=, others do not', () => {
-    const { carryRomQuery } = require('../../src/resources/fs-provider');
-    const q = 'rom=%2Fx%2FA+B.smc';
-    const md = '[![a](0000.png)](0000.png) [d](dir/index.md#top) [s](soe://rom/header.json) '
-        + '[r](soe://ram/0adb.json) [w](https://x.org/a) [h](#anchor) [k](a.md?rom=vanilla)';
-    assert.strictEqual(carryRomQuery(md, '/x/A B.smc'),
-        `[![a](0000.png?${q})](0000.png?${q}) [d](dir/index.md?${q}#top) [s](soe://rom/header.json?${q}) `
-        + '[r](soe://ram/0adb.json) [w](https://x.org/a) [h](#anchor) [k](a.md?rom=vanilla)');
+test('mount segment: ~<base64url path> names the ROM file and is stripped from segments', () => {
+    const { mountSegment } = require('../../src/shared/resource-uri');
+    const m = mountSegment('/x/Secret of Evermore (U) [!].smc');
+    assert.ok(/^~[A-Za-z0-9_-]+$/.test(m), m);
+    const p = parseSoeParts('rom', `/${m}/assets/icons/0000.png`, '');
+    assert.deepStrictEqual(p, { authority: 'rom', segments: ['assets', 'icons', '0000.png'], rom: '/x/Secret of Evermore (U) [!].smc', mount: m });
 });
+
+test('provider: a ~mount reads that ROM file; autoindex stays inside the mount', async () => {
+    const { loadRomFile } = require('../../src/shared/rom-readers');
+    const { mountSegment } = require('../../src/shared/resource-uri');
+    const fsp = new SoeFileSystem({ vanillaRom: () => null, emulatorRom: () => null, romFile: loadRomFile, readMemory });
+    const base = `soe://rom/${mountSegment(romPath)}/`;
+    assert.ok(JSON.parse(Buffer.from(await fsp.readFile(uri(base + 'header.json')))).title.startsWith('SECRET OF EVERMORE'));
+    const md = Buffer.from(await fsp.readFile(uri(base + 'assets/icons/index.md'))).toString();
+    assert.ok(md.startsWith('# soe://rom/assets/icons/'), md.slice(0, 60));
+    assert.ok(md.includes('[![0000.png](0000.png)](0000.png)'));
+}, true);
 
 test('provider: rooms list every room; scripts/ does not list itself', async () => {
     const fsp = new SoeFileSystem({ vanillaRom: () => rom, emulatorRom: () => null, readMemory });
