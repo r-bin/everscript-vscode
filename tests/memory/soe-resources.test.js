@@ -433,9 +433,13 @@ test('provider: characters VFS decodes records, sprite PNG, palette, and GIF ani
     const pal = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/assets/characters/00/palette.json'))).toString('utf8'));
     assert.strictEqual(pal.colors.length, 16);
 
-    // Animated GIF via direct shortcut and full path
-    const gifShortcut = await fsp.readFile(uri('soe://rom/assets/characters/00/w_walk.gif'));
-    assert.strictEqual(gifShortcut.subarray(0, 6).toString('ascii'), 'GIF89a');
+    // Character root entries - only info, sprite, palette, animations (no .gif shortcuts)
+    const charRootEntries = fsp.readDirectory(uri('soe://rom/assets/characters/00'));
+    const entryNames = charRootEntries.map(([name]) => name);
+    assert.ok(entryNames.includes('animations'));
+    assert.ok(entryNames.includes('info.json'));
+    assert.ok(entryNames.includes('sprite.png'));
+    assert.ok(!entryNames.some(n => n.endsWith('.gif')), 'no .gif shortcuts polluting character root');
 
     const gifFull = await fsp.readFile(uri('soe://rom/assets/characters/00/animations/w_walk/animation.gif'));
     assert.strictEqual(gifFull.subarray(0, 6).toString('ascii'), 'GIF89a');
@@ -460,9 +464,16 @@ test('provider: animation frames folder, frame PNG/JSON, and tiles folder with s
     assert.strictEqual(f0Json.frameIndex, 0);
     assert.ok(Array.isArray(f0Json.chunks));
 
-    // Animation script bytecode
+    // Animation script bytecode - must be formatted disassembly, never [object Object]
     const scriptTxt = Buffer.from(await fsp.readFile(uri('soe://rom/assets/characters/00/animations/w_walk/script.txt'))).toString('utf8');
     assert.ok(scriptTxt.length > 0);
+    assert.ok(!scriptTxt.includes('[object Object]'), 'script.txt must not contain [object Object]');
+    assert.match(scriptTxt, /^\$[0-9A-F]{6}:\s+[0-9a-f ]+/m, 'script.txt has proper hex disassembly format');
+
+    // Animation script structured JSON
+    const scriptJson = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/assets/characters/00/animations/w_walk/script.json'))).toString('utf8'));
+    assert.ok(Array.isArray(scriptJson) && scriptJson.length > 0);
+    assert.ok(scriptJson[0].addrHex !== undefined);
 
     // Animation tiles folder
     const tileEntries = fsp.readDirectory(uri('soe://rom/assets/characters/00/animations/w_walk/tiles'));
@@ -479,7 +490,7 @@ test('provider: animation frames folder, frame PNG/JSON, and tiles folder with s
     fsp.dispose();
 }, true);
 
-test('provider: map tiles (CHR 16x16 PNG/BIN) and room metatiles (atlas, index)', async () => {
+test('provider: map tiles (CHR 16x16 PNG/BIN) and room metatile composition folders', async () => {
     const fsp = new SoeFileSystem({ vanillaRom: () => rom, emulatorRom: () => null, romFile: () => null, readMemory, emulatorStatus: async () => ({}) });
 
     // Global CHR tiles index.json
@@ -501,6 +512,48 @@ test('provider: map tiles (CHR 16x16 PNG/BIN) and room metatiles (atlas, index)'
     const metaDict = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/assets/maps/00/metatiles/index.json'))).toString('utf8'));
     assert.ok(Array.isArray(metaDict) && metaDict.length > 0);
 
+    // Metatiles directory contains folders for metatiles
+    const metaEntries = fsp.readDirectory(uri('soe://rom/assets/maps/00/metatiles'));
+    assert.ok(metaEntries.some(([name, type]) => name === '000' && type === 2), 'metatile 000 is a directory');
+
+    // Metatile 000 folder contains composition: info.json, info.md, render.png, layer1.png, layer2.png
+    const m0Entries = fsp.readDirectory(uri('soe://rom/assets/maps/00/metatiles/000'));
+    const m0Names = m0Entries.map(([name]) => name);
+    assert.ok(m0Names.includes('info.json'));
+    assert.ok(m0Names.includes('info.md'));
+    assert.ok(m0Names.includes('render.png'));
+    assert.ok(m0Names.includes('layer1.png'));
+    assert.ok(m0Names.includes('layer2.png'));
+
+    // Metatile 000 info.json has full layer1, layer2, and collision breakdowns
+    const m0Info = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/assets/maps/00/metatiles/000/info.json'))).toString('utf8'));
+    assert.strictEqual(m0Info.index, 0);
+    assert.ok(m0Info.layer1 && m0Info.layer1.word && m0Info.layer1.slot !== undefined);
+    assert.ok(m0Info.layer2 && m0Info.layer2.word && m0Info.layer2.slot !== undefined);
+    assert.ok(m0Info.collision && m0Info.collision.word && m0Info.collision.geometry !== undefined);
+
+    // Metatile 000 renders
+    const m0Render = await fsp.readFile(uri('soe://rom/assets/maps/00/metatiles/000/render.png'));
+    assert.strictEqual(m0Render.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+    const m0Layer1 = await fsp.readFile(uri('soe://rom/assets/maps/00/metatiles/000/layer1.png'));
+    assert.strictEqual(m0Layer1.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+    const m0Layer2 = await fsp.readFile(uri('soe://rom/assets/maps/00/metatiles/000/layer2.png'));
+    assert.strictEqual(m0Layer2.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+
+    fsp.dispose();
+}, true);
+
+test('provider: canonical single location - no duplicate root folders or animations in assets', () => {
+    const fsp = new SoeFileSystem({ vanillaRom: () => rom, emulatorRom: () => null, readMemory });
+    const rootEntries = fsp.readDirectory(uri('soe://rom/')).map(([n]) => n);
+    assert.ok(rootEntries.includes('assets'));
+    assert.ok(!rootEntries.includes('characters'), 'characters is canonical under assets/');
+    assert.ok(!rootEntries.includes('audio'), 'audio is canonical under assets/');
+    assert.ok(!rootEntries.includes('tables'), 'tables is canonical under assets/');
+    assert.ok(!rootEntries.includes('tiles'), 'tiles is canonical under assets/');
+
+    const assetEntries = fsp.readDirectory(uri('soe://rom/assets/')).map(([n]) => n);
+    assert.ok(!assetEntries.includes('animations'), 'animations belong under characters/<id>/animations/');
     fsp.dispose();
 }, true);
 

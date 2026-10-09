@@ -24,7 +24,7 @@ const ICONS = 'soe://rom/assets/icons/';
 function resolveAssets(segments, rom) {
     const [kind, id, leaf, ...extra] = segments;
     if (kind === undefined) {
-        return dir(['icons', ...Object.keys(CATEGORIES), 'alchemy', 'strings', 'maps', 'scripts', 'characters', 'animations', 'tiles', 'audio', 'tables'].map(n => [n, 'dir']));
+        return dir(['icons', ...Object.keys(CATEGORIES), 'alchemy', 'strings', 'maps', 'scripts', 'characters', 'tiles', 'audio', 'tables'].map(n => [n, 'dir']));
     }
     if (kind === 'scripts') {
         const { resolveScripts } = require('./script-files');
@@ -33,10 +33,6 @@ function resolveAssets(segments, rom) {
     if (kind === 'characters') {
         const { resolveCharacters } = require('./character-files');
         return resolveCharacters(segments.slice(1), rom);
-    }
-    if (kind === 'animations') {
-        const { resolveAnimations } = require('./character-files');
-        return resolveAnimations(segments.slice(1), rom);
     }
     if (kind === 'tiles') {
         const { resolveTiles } = require('./tile-files');
@@ -58,10 +54,10 @@ function resolveAssets(segments, rom) {
     if (kind === 'maps' && (leaf === 'tiles' || leaf === 'metatiles' || extra.includes('tiles') || extra.includes('metatiles'))) {
         const { resolveRoomTiles } = require('./tile-files');
         const tileIdx = segments.indexOf('tiles') !== -1 ? segments.indexOf('tiles') : segments.indexOf('metatiles');
-        const subLeaf = segments[tileIdx + 1];
+        const subSegments = segments.slice(tileIdx + 1);
         const rId = parseInt(id, 16);
         if (Number.isInteger(rId) && rId >= 0 && rId < MAX_ROOMS) {
-            return resolveRoomTiles(decodeRoom(rom, rId), rom, subLeaf);
+            return resolveRoomTiles(decodeRoom(rom, rId), rom, subSegments);
         }
         return null;
     }

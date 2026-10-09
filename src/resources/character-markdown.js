@@ -79,15 +79,6 @@ function tilesIndexMarkdown(blocks) {
     ].join('\n') + '\n';
 }
 
-function animationsCatalogIndexMarkdown(catalog) {
-    return [
-        '# soe://rom/assets/animations/', '',
-        `${catalog.length} animation groups in ROM ($C4).`, '',
-        '| ID / Record | Label | Frames | Ticks |', '|---|---|---|---|',
-        ...catalog.slice(0, 100).map((c) => `| [${c.idHex || hexId(c.record, 4)}](${c.idHex || hexId(c.record, 4)}/index.md) | ${c.label || ''} | ${c.frameCount || ''} | ${c.totalTicks || ''} |`),
-    ].join('\n') + '\n';
-}
-
 module.exports = {
     characterMarkdown,
     charactersIndexMarkdown,
@@ -95,6 +86,6 @@ module.exports = {
     characterAnimationsIndexMarkdown,
     framesIndexMarkdown,
     tilesIndexMarkdown,
-    animationsCatalogIndexMarkdown,
 };
+
 

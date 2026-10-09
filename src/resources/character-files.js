@@ -9,7 +9,6 @@ const { characterPalette, paletteAt } = require('../maps/dist/character-record')
 const { decodeSpriteBlock } = require('../maps/dist/sprites');
 const { readCharacter, readAllCharacters, CHARACTER_COUNT } = require('../sprites/character-model');
 const { renderAnimation } = require('../sprites/animation-decoder');
-const { getCatalog } = require('../sprites/animation-catalog');
 const { encodeGif } = require('./gif');
 const { dir, file, json, text } = require('./nodes');
 const {
@@ -19,7 +18,6 @@ const {
     characterAnimationsIndexMarkdown,
     framesIndexMarkdown,
     tilesIndexMarkdown,
-    animationsCatalogIndexMarkdown,
 } = require('./character-markdown');
 
 // WeakMap cache: rom -> Map(key -> renderedAnim)
@@ -83,11 +81,6 @@ function resolveCharacters(segments, rom) {
             ['palette.json', 'file'],
             ['animations', 'dir'],
         ];
-        // Add animated GIF shortcuts for main animations
-        for (const a of charData.anims) {
-            const k = a.key || 'anim_' + hexId(a.offset || 0, 2);
-            entries.push([`${k}.gif`, 'file']);
-        }
         return dir(entries, () => characterMarkdown(charData));
     }
 
@@ -102,7 +95,7 @@ function resolveCharacters(segments, rom) {
         return s ? file(() => encodePng(s)) : null;
     }
 
-    // Direct <anim>.gif shortcut on character root
+    // Direct <anim>.gif shortcut on character root (for backwards compatibility)
     if (sub.endsWith('.gif')) {
         const animKey = sub.slice(0, -4);
         const animOpt = findAnimOption(charData, animKey);
@@ -179,6 +172,7 @@ function resolveAnimationDetails(rom, charId, animOpt, leaf, extra) {
             ['info.md', 'file'],
             ['animation.gif', 'file'],
             ['script.txt', 'file'],
+            ['script.json', 'file'],
             ['frames', 'dir'],
             ['tiles', 'dir'],
         ];
@@ -204,7 +198,8 @@ function resolveAnimationDetails(rom, charId, animOpt, leaf, extra) {
 
     if (leaf === 'info.md') return text(() => animationMarkdown(charId, animOpt, anim));
     if (leaf === 'animation.gif' || leaf === `${animOpt.key}.gif`) return animationGifFile(rom, charId, animOpt);
-    if (leaf === 'script.txt') return text(() => (anim.script ? anim.script.join('\n') + '\n' : ''));
+    if (leaf === 'script.txt') return text(() => (anim.script ? formatScriptDisassembly(anim.script) : ''));
+    if (leaf === 'script.json') return json(() => anim.script || []);
 
     // Frames folder
     if (leaf === 'frames') {
@@ -217,6 +212,17 @@ function resolveAnimationDetails(rom, charId, animOpt, leaf, extra) {
     }
 
     return null;
+}
+
+function formatScriptDisassembly(scriptLines) {
+    if (!Array.isArray(scriptLines) || scriptLines.length === 0) return '';
+    return scriptLines.map((l) => {
+        const addr = `$${(l.addrHex || '').toUpperCase()}:`;
+        const bytes = (l.bytesHex || '').padEnd(14);
+        const text = l.text || '';
+        const end = l.endFrame ? ' ; [frame-end]' : '';
+        return `${addr}  ${bytes}  ${text}${end}`;
+    }).join('\n') + '\n';
 }
 
 function animationGifFile(rom, charId, animOpt) {
@@ -348,32 +354,5 @@ function resolveAnimationTiles(rom, charId, anim, tileFile) {
     return null;
 }
 
-// ── standalone animations root: soe://rom/assets/animations/ ───────────────
+module.exports = { resolveCharacters };
 
-function resolveAnimations(segments, rom) {
-    const [animIdent, leaf, extra] = segments;
-
-    if (animIdent === undefined) {
-        const catalog = getCatalog(rom);
-        const entries = [
-            ['index.json', 'file'],
-            ...catalog.map((c) => [c.idHex || hexId(c.record, 4), 'dir']),
-        ];
-        return dir(entries, () => animationsCatalogIndexMarkdown(catalog));
-    }
-
-    if (animIdent === 'index.json') {
-        const catalog = getCatalog(rom);
-        return json(() => catalog);
-    }
-
-    // Try finding by hex record or global id in catalog
-    const catalog = getCatalog(rom);
-    const item = catalog.find((c) => c.idHex === animIdent || hexId(c.record, 4) === animIdent);
-    if (!item) return null;
-
-    const animOpt = { animRec: item.record, scriptAddr: item.scriptAddr, key: item.idHex || hexId(item.record, 4), label: item.label };
-    return resolveAnimationDetails(rom, item.ownerId ?? null, animOpt, leaf, extra);
-}
-
-module.exports = { resolveCharacters, resolveAnimations };
