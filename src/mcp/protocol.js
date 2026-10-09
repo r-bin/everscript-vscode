@@ -28,6 +28,8 @@ const ENTRY_POINTS = [
     ['soe://ram/status.json', 'Emulator status', 'closed / open / running, ROM, paused.'],
     ['soe://ram/flags.json', 'Story flags', 'Every named flag and whether it is set (live).'],
     ['soe://bus/index.md', 'SNES bus', 'Bus addresses → their WRAM or ROM file.'],
+    ['soe://tags/index.md', 'Tags', 'Everything known about one concept under one name: boy, boy.hp, map.raptors. Start here to explore.'],
+    ['soe://tags/boy/index.md', 'The boy', 'Every boy stat and attribute with its WRAM address and live value.'],
     ['soe://localization/index.md', 'Localization overview', 'Curated subjective names: scripts, maps, sounds, tables, functions.'],
 ];
 
@@ -41,6 +43,8 @@ const TEMPLATES = [
     ['soe://rom/assets/strings/{index}.txt', 'In-game string', 'String by hex index (0000-0bb9).'],
     ['soe://rom/assets/maps/{id}/info.md', 'Room', 'Room summary; also header.json and render.png.'],
     ['soe://rom/assets/{kind}/{name}/info.json', 'Item', 'kind: ingredients, armor, consumables, alchemy; name e.g. wax.'],
+    ['soe://tags/{path}.md', 'Tag', 'A tag by path: dots become slashes, e.g. boy/hp, map/raptors; a tag with sub-tags is {path}/index.md.'],
+    ['soe://tags/search/{word}.md', 'Tag search', 'Tags whose id or title contains a word, e.g. raptor.'],
     ['soe://localization/scripts/{id}.json', 'Script localization', 'Script name and metadata by ID or address.'],
     ['soe://localization/maps/{id}.json', 'Map localization', 'Room name and area by room ID.'],
     ['soe://rom/assets/scripts/everscript/{addr}.md', 'Decoded script', 'Full script disassembly in markdown by SNES address (hex), e.g. 0x93c8a1.md.'],
@@ -57,7 +61,7 @@ const TOOLS = [
     {
         name: 'soe_list',
         title: 'List a soe:// directory',
-        description: 'List a directory of the Secret of Evermore virtual file system (ROM, assets, live emulator WRAM). Start at soe://rom/, soe://ram/ or soe://bus/. Every directory also has an index.md.',
+        description: 'List a directory of the Secret of Evermore virtual file system (ROM, assets, live emulator WRAM). Start at soe://tags/ (concepts: boy, map.raptors), soe://rom/, soe://ram/ or soe://bus/. Every directory also has an index.md.',
         inputSchema: URI_ARG,
         annotations: { readOnlyHint: true },
     },
@@ -130,7 +134,7 @@ function createMcpHandler(fsApi) {
             protocolVersion: PROTOCOL_VERSIONS.includes(params && params.protocolVersion) ? params.protocolVersion : PROTOCOL_VERSIONS[0],
             capabilities: { resources: {}, tools: {} },
             serverInfo: { name: 'everscript-soe', title: 'Everscript soe://', version: fsApi.version },
-            instructions: 'Read-only access to Secret of Evermore: the ROM (soe://rom/), decoded assets (soe://rom/assets/), the running emulator\'s WRAM (soe://ram/), SNES bus addresses (soe://bus/) and localized names (soe://localization/). Numbers in paths are hex without $. Start with soe_read soe://rom/index.md, soe://ram/index.md or soe://localization/index.md.',
+            instructions: 'Read-only access to Secret of Evermore: the ROM (soe://rom/), decoded assets (soe://rom/assets/), the running emulator\'s WRAM (soe://ram/), SNES bus addresses (soe://bus/) and localized names (soe://localization/), and tags that connect all of these by concept (soe://tags/: boy, boy.hp, map.raptors; soe://tags/search/<word>.md). Numbers in paths are hex without $. Start with soe_read soe://tags/index.md to explore a concept, or soe://rom/index.md, soe://ram/index.md, soe://localization/index.md.',
         }),
         ping: () => ({}),
         'tools/list': () => ({ tools: TOOLS }),

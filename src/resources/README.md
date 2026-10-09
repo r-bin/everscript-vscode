@@ -11,6 +11,7 @@ soe://rom/assets/ingredients/wax/icon.png?rom=vanilla  …from the configured RO
 soe://rom/~L3BhdGgvdG8vU29tZSBSb20uc21j/assets/…       …from that file: a mount (Open ROM as Folder)
 soe://ram/0adb.json                                    the emulator's WRAM, live
 soe://bus/7e0adb                                       24-bit bus address → links to the above
+soe://tags/boy/hp.md                                   a concept: links to the above, live values
 ```
 
 The authority names the memory, the path names what is read, `?rom=` names
@@ -51,6 +52,11 @@ binds the same key and wins on extension load order; a user keybinding
 | `table-files.js` | `tables/`: engine lookup and pointer tables with `data.bin` and `data.json` |
 | `gif.js` | pure GIF89a encoder for animated character and sprite sequences |
 | `ram-files.js` | `soe://ram/`: `status.json`, `wram.bin`, slices, `<addr>.json`, flags, symbols |
+| `tag-model.js` | `soe://tags/` graph: merges generated + `tags/tags.json`, inheritance, aliases, conflicts, validation |
+| `tag-generate.js` | generated tags (rooms, areas, enemies, music, sounds, flags, RAM names, tables, items) from shipped data |
+| `tag-files.js` | `soe://tags/`: routing, directory listings, live values, search, `check.json` |
+| `tag-markdown.js` | tag pages as Markdown / JSON |
+| `tags/tags.json` | hand-authored tags: `character` → `player` → `boy` / `dog`, `enemy`, precompiled WRAM links |
 | `webview.js` | `soeResourceRoots`, `rewriteSoeUrls`, `soeClientScript` for any webview |
 | `check-panel.js` | `Everscript: Check soe:// Resources`, the feature's acceptance check |
 

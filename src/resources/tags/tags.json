@@ -1,0 +1,152 @@
+{
+  "//": "soe://tags/ — hand-authored tags. Spec: docs/soe-tags-spec.md §5. Addresses are precompiled: base + offset from the everscript enums (in/core/.../03_sprites.evs: ATTRIBUTE._BOY = 0x4E89, _DOG = 0x4F37 entity records; ATTRIBUTE_GENERAL.POINTER_BOY = 0x0a26, POINTER_DOG = 0x0a70 stats blocks). The plugin never reads those files; `source` only says where a value was worked out.",
+
+  "character": {
+    "title": "Any entity on screen: boy, dog, enemy, NPC",
+    "links": [{ "uri": "soe://rom/assets/characters/index.md", "role": "character records in the ROM" }],
+    "sub": {
+      "hp":             { "title": "Current HP" },
+      "max_hp":         { "title": "Max HP" },
+      "x":              { "title": "X position (pixels)" },
+      "y":              { "title": "Y position (pixels)" },
+      "z":              { "title": "Z height" },
+      "z_level":        { "title": "Floor level (stairs, bridges), masked with 0x0030" },
+      "velocity":       { "title": "Velocity" },
+      "face_direction": { "title": "Facing direction (enum FACE_DIRECTION)" },
+      "palette":        { "title": "Palette slot offset" },
+      "stamina":        { "title": "Stamina / attack charge state (enum STAMINA)" },
+      "status_1":       { "title": "Status effect #1 id" },
+      "damage_source":  { "title": "Entity that caused the most recent damage" },
+      "last_damage":    { "title": "Last damage taken" }
+    }
+  },
+
+  "player": {
+    "title": "A character the player controls",
+    "parents": ["character"],
+    "sub": {
+      "name":          { "title": "Name pointer" },
+      "attack":        { "title": "Attack" },
+      "defense":       { "title": "Defense" },
+      "magic_defense": { "title": "Magic defense" },
+      "evade":         { "title": "Evade %" },
+      "hit":           { "title": "Hit %" },
+      "xp":            { "title": "Experience" },
+      "xp_required":   { "title": "XP needed for the next level" },
+      "level":         { "title": "Level" },
+      "charge_max":    { "title": "Max charge-up" },
+      "charge_rate":   { "title": "Charge-up rate" },
+      "boost_attack":  { "title": "Status boost: attack" },
+      "boost_defend":  { "title": "Status boost: defense" },
+      "boost_evade":   { "title": "Status boost: evade" },
+      "boost_hit":     { "title": "Status boost: hit" },
+      "entity":        { "title": "Entity record (all character attributes)" },
+      "stats":         { "title": "Stats block (equipment-adjusted stats)" }
+    }
+  },
+
+  "enemy": {
+    "title": "A hostile character; records come from the ROM's character table",
+    "parents": ["character"]
+  },
+
+  "boy": {
+    "title": "The boy",
+    "parents": ["player"],
+    "links": [
+      { "uri": "soe://rom/assets/characters/00/info.md", "role": "character record" },
+      { "uri": "soe://rom/assets/characters/00/sprite.png", "role": "sprite" }
+    ],
+    "see": ["dog"],
+    "sub": {
+      "entity":         { "links": [{ "uri": "soe://ram/4e89[ae].bin", "role": "entity record $4E89-$4F36" }], "source": "ATTRIBUTE._BOY; CHARACTER_ADDRESS.BOY" },
+      "stats":          { "links": [{ "uri": "soe://ram/0a26[4a].bin", "role": "stats block $0A26-$0A6F" }], "source": "ATTRIBUTE_GENERAL.POINTER_BOY" },
+      "hp":             { "size": 2, "links": [{ "uri": "soe://ram/4eb3.json", "role": "entity record" }], "source": "_BOY + ATTRIBUTE.HP (0x2a); 02_ram.evs BOY_CURRENT_HP",
+                          "claims": [{ "uri": "soe://ram/0a37.json", "text": "0x0a37 BOY_CURRENT_HP", "source": "everscript wiki/ram/Ram-Map.md" }] },
+      "max_hp":         { "size": 2, "links": [
+                            { "uri": "soe://ram/0a35.json", "role": "stats block", "source": "POINTER_BOY + ATTRIBUTE_GENERAL.MAX_HP (0x0f); Data Crystals 7E0A35" },
+                            { "uri": "soe://ram/4e98.json", "role": "entity record", "source": "_BOY + ATTRIBUTE.MAX_HP (0x0f)", "status": "unverified" } ] },
+      "x":              { "size": 2, "links": [{ "uri": "soe://ram/4ea3.json", "role": "entity record" }], "source": "_BOY + ATTRIBUTE.X (0x1a)" },
+      "y":              { "size": 2, "links": [{ "uri": "soe://ram/4ea5.json", "role": "entity record" }], "source": "_BOY + ATTRIBUTE.Y (0x1c)" },
+      "z":              { "size": 2, "links": [{ "uri": "soe://ram/4ea7.json", "role": "entity record" }], "source": "_BOY + ATTRIBUTE.Z (0x1e)" },
+      "z_level":        { "size": 2, "links": [{ "uri": "soe://ram/4ea1.json", "role": "entity record" }], "source": "_BOY + ATTRIBUTE.Z_LEVEL (0x18)" },
+      "velocity":       { "size": 2, "links": [{ "uri": "soe://ram/4ea9.json", "role": "entity record" }], "source": "_BOY + ATTRIBUTE.VELOCITY (0x20)" },
+      "face_direction": { "size": 2, "links": [{ "uri": "soe://ram/4eab.json", "role": "entity record" }], "source": "_BOY + ATTRIBUTE.FACE_DIRECTION (0x22)" },
+      "palette":        { "size": 2, "links": [{ "uri": "soe://ram/4e95.json", "role": "entity record" }], "source": "_BOY + ATTRIBUTE.PALETTE (0x0c)" },
+      "stamina":        { "size": 2, "links": [{ "uri": "soe://ram/4eb7.json", "role": "entity record" }], "source": "_BOY + ATTRIBUTE.STAMINA (0x2e)" },
+      "status_1":       { "size": 2, "links": [{ "uri": "soe://ram/4ecf.json", "role": "entity record" }], "source": "_BOY + ATTRIBUTE.STATUS_ID_1 (0x46)" },
+      "damage_source":  { "size": 2, "links": [{ "uri": "soe://ram/4ebf.json", "role": "entity record" }], "source": "_BOY + ATTRIBUTE.DAMAGE_SOURCE (0x36)" },
+      "last_damage":    { "size": 2, "links": [{ "uri": "soe://ram/4eff.json", "role": "entity record" }], "source": "_BOY + ATTRIBUTE.LAST_DAMAGE (0x76)" },
+      "name":           { "size": 2, "links": [{ "uri": "soe://ram/0a26.json", "role": "stats block" }], "source": "POINTER_BOY + ATTRIBUTE_GENERAL.NAME_POINTER (0x00)" },
+      "attack":         { "size": 2, "links": [{ "uri": "soe://ram/0a3f.json", "role": "stats block" }], "source": "POINTER_BOY + ATTRIBUTE_GENERAL.ATTACK (0x19); Data Crystals 7E0A3F" },
+      "defense":        { "size": 2, "links": [{ "uri": "soe://ram/0a41.json", "role": "stats block" }], "source": "POINTER_BOY + ATTRIBUTE_GENERAL.DEFENSE (0x1b); Data Crystals 7E0A41" },
+      "magic_defense":  { "size": 2, "links": [{ "uri": "soe://ram/0a43.json", "role": "stats block" }], "source": "POINTER_BOY + ATTRIBUTE_GENERAL.MAGIC_DEFENSE (0x1d); Data Crystals 7E0A43",
+                          "claims": [{ "uri": "soe://ram/0a3f.json", "text": "0x0a3f BOY_MAGIC_DEFENSE", "source": "everscript wiki/ram/Ram-Map.md" }] },
+      "evade":          { "size": 2, "links": [{ "uri": "soe://ram/0a45.json", "role": "stats block" }], "source": "POINTER_BOY + ATTRIBUTE_GENERAL.EVASION (0x1f); Data Crystals 7E0A45" },
+      "hit":            { "size": 2, "links": [{ "uri": "soe://ram/0a47.json", "role": "stats block" }], "source": "POINTER_BOY + ATTRIBUTE_GENERAL.HIT (0x21); Data Crystals 7E0A47" },
+      "xp":             { "size": 4, "links": [{ "uri": "soe://ram/0a49[4].bin", "role": "stats block, 32-bit" }], "source": "POINTER_BOY + ATTRIBUTE_GENERAL.XP (0x23); 02_ram.evs BOY_XP, BOY_XP_2" },
+      "xp_required":    { "size": 2, "links": [{ "uri": "soe://ram/4f1d.json", "role": "entity record" }], "source": "_BOY + ATTRIBUTE.TOTAL_XP_REQUIRED (0x94); 02_ram.evs BOY_XP_REQUIRED" },
+      "level":          { "size": 2, "links": [{ "uri": "soe://ram/0a50.json", "role": "stats block" }], "source": "POINTER_BOY + ATTRIBUTE_GENERAL.LEVEL (0x2a); 02_ram.evs BOY_LEVEL" },
+      "charge_max":     { "size": 2, "links": [{ "uri": "soe://ram/0a52.json", "role": "stats block" }], "source": "POINTER_BOY + ATTRIBUTE_GENERAL.CHARGE_MAX (0x2c); Data Crystals 7E0A52" },
+      "charge_rate":    { "size": 1, "status": "unverified", "links": [{ "uri": "soe://ram/0a55.json", "role": "stats block" }], "source": "POINTER_BOY + ATTRIBUTE_GENERAL.CHARGE_RATE (0x2f)",
+                          "claims": [{ "uri": "soe://ram/0a54.json", "text": "7E0A54 to 7E0A55 = Boy - Chargeup Rate", "source": "Data Crystals RAM map" }] },
+      "boost_attack":   { "size": 2, "links": [{ "uri": "soe://ram/4f29.json", "role": "entity record" }], "source": "_BOY + ATTRIBUTE.BOOST_ATTACK (0xa0)" },
+      "boost_defend":   { "size": 2, "links": [{ "uri": "soe://ram/4f2b.json", "role": "entity record" }], "source": "_BOY + ATTRIBUTE.BOOST_DEFEND (0xa2)" },
+      "boost_evade":    { "size": 2, "links": [{ "uri": "soe://ram/4f2d.json", "role": "entity record" }], "source": "_BOY + ATTRIBUTE.BOOST_EVADE (0xa4)" },
+      "boost_hit":      { "size": 2, "links": [{ "uri": "soe://ram/4f2f.json", "role": "entity record" }], "source": "_BOY + ATTRIBUTE.BOOST_HIT (0xa6)" }
+    }
+  },
+
+  "dog": {
+    "title": "The dog",
+    "parents": ["player"],
+    "links": [
+      { "uri": "soe://rom/assets/characters/01/info.md", "role": "character record" },
+      { "uri": "soe://rom/assets/characters/01/sprite.png", "role": "sprite" }
+    ],
+    "sub": {
+      "entity":         { "links": [{ "uri": "soe://ram/4f37[ae].bin", "role": "entity record $4F37-$4FE4" }], "source": "ATTRIBUTE._DOG; CHARACTER_ADDRESS.DOG" },
+      "stats":          { "links": [{ "uri": "soe://ram/0a70[4a].bin", "role": "stats block $0A70-$0AB9" }], "source": "ATTRIBUTE_GENERAL.POINTER_DOG" },
+      "hp":             { "size": 2, "links": [{ "uri": "soe://ram/4f61.json", "role": "entity record" }], "source": "_DOG + ATTRIBUTE.HP (0x2a)" },
+      "max_hp":         { "size": 2, "links": [
+                            { "uri": "soe://ram/0a7f.json", "role": "stats block", "source": "POINTER_DOG + ATTRIBUTE_GENERAL.MAX_HP (0x0f); wiki DOG_MAX_HP" },
+                            { "uri": "soe://ram/4f46.json", "role": "entity record", "source": "_DOG + ATTRIBUTE.MAX_HP (0x0f)", "status": "unverified" } ] },
+      "x":              { "size": 2, "links": [{ "uri": "soe://ram/4f51.json", "role": "entity record" }], "source": "_DOG + ATTRIBUTE.X (0x1a)" },
+      "y":              { "size": 2, "links": [{ "uri": "soe://ram/4f53.json", "role": "entity record" }], "source": "_DOG + ATTRIBUTE.Y (0x1c)" },
+      "z":              { "size": 2, "links": [{ "uri": "soe://ram/4f55.json", "role": "entity record" }], "source": "_DOG + ATTRIBUTE.Z (0x1e)" },
+      "z_level":        { "size": 2, "links": [{ "uri": "soe://ram/4f4f.json", "role": "entity record" }], "source": "_DOG + ATTRIBUTE.Z_LEVEL (0x18)" },
+      "velocity":       { "size": 2, "links": [{ "uri": "soe://ram/4f57.json", "role": "entity record" }], "source": "_DOG + ATTRIBUTE.VELOCITY (0x20)" },
+      "face_direction": { "size": 2, "links": [{ "uri": "soe://ram/4f59.json", "role": "entity record" }], "source": "_DOG + ATTRIBUTE.FACE_DIRECTION (0x22)" },
+      "palette":        { "size": 2, "links": [{ "uri": "soe://ram/4f43.json", "role": "entity record" }], "source": "_DOG + ATTRIBUTE.PALETTE (0x0c)" },
+      "stamina":        { "size": 2, "links": [{ "uri": "soe://ram/4f65.json", "role": "entity record" }], "source": "_DOG + ATTRIBUTE.STAMINA (0x2e)" },
+      "status_1":       { "size": 2, "links": [{ "uri": "soe://ram/4f7d.json", "role": "entity record" }], "source": "_DOG + ATTRIBUTE.STATUS_ID_1 (0x46)" },
+      "damage_source":  { "size": 2, "links": [{ "uri": "soe://ram/4f6d.json", "role": "entity record" }], "source": "_DOG + ATTRIBUTE.DAMAGE_SOURCE (0x36)" },
+      "last_damage":    { "size": 2, "links": [{ "uri": "soe://ram/4fad.json", "role": "entity record" }], "source": "_DOG + ATTRIBUTE.LAST_DAMAGE (0x76)" },
+      "name":           { "size": 2, "links": [{ "uri": "soe://ram/0a70.json", "role": "stats block" }], "source": "POINTER_DOG + ATTRIBUTE_GENERAL.NAME_POINTER (0x00)" },
+      "attack":         { "size": 2, "links": [{ "uri": "soe://ram/0a89.json", "role": "stats block" }], "source": "POINTER_DOG + ATTRIBUTE_GENERAL.ATTACK (0x19)" },
+      "defense":        { "size": 2, "links": [{ "uri": "soe://ram/0a8b.json", "role": "stats block" }], "source": "POINTER_DOG + ATTRIBUTE_GENERAL.DEFENSE (0x1b)" },
+      "magic_defense":  { "size": 2, "links": [{ "uri": "soe://ram/0a8d.json", "role": "stats block" }], "source": "POINTER_DOG + ATTRIBUTE_GENERAL.MAGIC_DEFENSE (0x1d)" },
+      "evade":          { "size": 2, "links": [{ "uri": "soe://ram/0a8f.json", "role": "stats block" }], "source": "POINTER_DOG + ATTRIBUTE_GENERAL.EVASION (0x1f)" },
+      "hit":            { "size": 2, "links": [{ "uri": "soe://ram/0a91.json", "role": "stats block" }], "source": "POINTER_DOG + ATTRIBUTE_GENERAL.HIT (0x21)" },
+      "xp":             { "size": 4, "links": [{ "uri": "soe://ram/0a93[4].bin", "role": "stats block, 32-bit" }], "source": "POINTER_DOG + ATTRIBUTE_GENERAL.XP (0x23)" },
+      "xp_required":    { "size": 2, "links": [{ "uri": "soe://ram/4fcb.json", "role": "entity record" }], "source": "_DOG + ATTRIBUTE.TOTAL_XP_REQUIRED (0x94); 02_ram.evs DOG_XP_REQUIRED" },
+      "level":          { "size": 2, "links": [{ "uri": "soe://ram/0a9a.json", "role": "stats block" }], "source": "POINTER_DOG + ATTRIBUTE_GENERAL.LEVEL (0x2a); 02_ram.evs DOG_LEVEL" },
+      "charge_max":     { "size": 2, "links": [{ "uri": "soe://ram/0a9c.json", "role": "stats block" }], "source": "POINTER_DOG + ATTRIBUTE_GENERAL.CHARGE_MAX (0x2c)" },
+      "charge_rate":    { "size": 1, "status": "unverified", "links": [{ "uri": "soe://ram/0a9f.json", "role": "stats block" }], "source": "POINTER_DOG + ATTRIBUTE_GENERAL.CHARGE_RATE (0x2f)" },
+      "boost_attack":   { "size": 2, "links": [{ "uri": "soe://ram/4fd7.json", "role": "entity record" }], "source": "_DOG + ATTRIBUTE.BOOST_ATTACK (0xa0)" },
+      "boost_defend":   { "size": 2, "links": [{ "uri": "soe://ram/4fd9.json", "role": "entity record" }], "source": "_DOG + ATTRIBUTE.BOOST_DEFEND (0xa2)" },
+      "boost_evade":    { "size": 2, "links": [{ "uri": "soe://ram/4fdb.json", "role": "entity record" }], "source": "_DOG + ATTRIBUTE.BOOST_EVADE (0xa4)" },
+      "boost_hit":      { "size": 2, "links": [{ "uri": "soe://ram/4fdd.json", "role": "entity record" }], "source": "_DOG + ATTRIBUTE.BOOST_HIT (0xa6)" }
+    }
+  },
+
+  "enemy.raptor": {
+    "title": "Raptors (all colour variants)",
+    "parents": ["enemy"],
+    "see": ["enemy.raptor_purple", "enemy.raptor_green", "enemy.raptor_black", "enemy.raptor_teal", "map.raptors", "music.raptor_attack"]
+  },
+
+  "map.raptors": {
+    "see": ["enemy.raptor", "music.raptor_attack"]
+  }
+}

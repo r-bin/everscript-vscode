@@ -1,6 +1,6 @@
 'use strict';
 // Ownership: the read-only `soe://` FileSystemProvider. Routes a URI to the
-// rom/, ram/ or bus/ handler, picks the ROM, caches what it produced, adds an
+// rom/, ram/, bus/, localization/ or tags/ handler, picks the ROM, caches what it produced, adds an
 // `index.md` to every directory, and turns handler results and failures into
 // VS Code file-system answers. Aliases (`node.link`) stat as symlinks.
 //
@@ -15,6 +15,7 @@ const { resolveRom } = require('./rom-files');
 const { resolveRam } = require('./ram-files');
 const { busTarget, indexMarkdown: busIndex } = require('./bus-files');
 const { resolveLocalization } = require('./localization-files');
+const { resolveTags } = require('./tag-files');
 const { autoIndex } = require('./autoindex');
 const { dir, text } = require('./nodes');
 
@@ -41,6 +42,7 @@ class SoeFileSystem {
         this._live = new Map();         // uri → { at, promise }
         this._watched = new Map();      // uri string → { uri, count }
         this._timer = null;
+        this._tags = null;               // tags/ context, built on first use
     }
 
     // ── routing ──────────────────────────────────────────────────────────
@@ -58,6 +60,8 @@ class SoeFileSystem {
         } else if (p.authority === 'localization' || p.authority === 'localizations') {
             const rom = this._optionalRom(p.rom);
             r = { node: resolveLocalization(p.segments, rom), rom };
+        } else if (p.authority === 'tags') {
+            r = { node: resolveTags(p.segments, this._tagContext()), rom: null };
         } else {
             throw vscode.FileSystemError.FileNotFound(uri);
         }
@@ -73,6 +77,23 @@ class SoeFileSystem {
         const target = uri.with({ authority: t.authority, path: '/' + t.name });
         const r = this._route(target);
         return { node: r.node && { ...r.node, link: target.toString() }, rom: r.rom };
+    }
+
+    /** What tags/ may ask of the other authorities: read a file, or whether one exists (null: cannot tell without a ROM). */
+    _tagContext() {
+        if (!this._tags) {
+            this._tags = {
+                read: s => this.readFile(vscode.Uri.parse(s)),
+                exists: s => {
+                    try {
+                        return !!this._route(vscode.Uri.parse(s)).node;
+                    } catch (err) {
+                        return err && err.code === 'FileNotFound' ? false : null;
+                    }
+                },
+            };
+        }
+        return this._tags;
     }
 
     /** `index.md` of a directory that has none of its own. */
@@ -173,7 +194,7 @@ class SoeFileSystem {
 
     /** Live files are re-announced while watched; static ones never change. */
     watch(uri) {
-        if (uri.authority !== 'ram' && uri.authority !== 'bus') return new vscode.Disposable(() => {});
+        if (uri.authority !== 'ram' && uri.authority !== 'bus' && uri.authority !== 'tags') return new vscode.Disposable(() => {});
         const key = uri.toString();
         const w = this._watched.get(key) || { uri, count: 0 };
         w.count++;

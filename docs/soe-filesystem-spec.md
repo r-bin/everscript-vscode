@@ -135,7 +135,9 @@ Verified with a headless Claude Code session against a VS Code instance running 
 
 ---
 
-Cross-referencing tags over these files (`soe://tags/boy/hp.md`) are specified in [`soe-tags-spec.md`](soe-tags-spec.md).
+### `soe://tags/` (v0.186.0)
+
+Tags connect the files above by concept: `soe://tags/boy/hp.md` links `soe://ram/4eb3.json` with its live value, `soe://tags/map/raptors.md` links the room, its scripts, enemies and music. Spec: [`soe-tags-spec.md`](soe-tags-spec.md).
 
 ---
 

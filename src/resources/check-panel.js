@@ -4,6 +4,7 @@
 //   1. <img src="soe://rom/assets/ingredients/wax/icon.png">  (host rewrite)
 //   2. the same kind of <img> added by script, with ?rom=vanilla (page rewrite)
 //   3. fetch soe://ram/0adb.json                       (emulator connection)
+//   4. fetch soe://tags/check.json                     (tag graph: load errors, broken links)
 // The command resolves with each result, so a test can run it too.
 
 const vscode = require('vscode');
@@ -16,7 +17,7 @@ function nonce() {
     return Array.from({ length: 32 }, () => 'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 36)]).join('');
 }
 
-/** @returns {Promise<{ benchmark: object, dynamic: object, ram: object }>} */
+/** @returns {Promise<{ benchmark: object, dynamic: object, ram: object, tags: object }>} */
 function checkSoeResources() {
     if (_panel) _panel.dispose();
     const panel = vscode.window.createWebviewPanel('everscriptSoeCheck', 'soe:// Check', vscode.ViewColumn.Active, {
@@ -37,7 +38,7 @@ function checkSoeResources() {
     panel.webview.html = rewriteSoeUrls(buildHtml(panel.webview, nonce()), panel.webview);
     return result.then(results => {
         const ok = r => r && r.ok;
-        const line = ['benchmark', 'dynamic', 'ram'].map(k => `${k} ${ok(results[k]) ? '✓' : '✗'}`).join(' · ');
+        const line = ['benchmark', 'dynamic', 'ram', 'tags'].map(k => `${k} ${ok(results[k]) ? '✓' : '✗'}`).join(' · ');
         vscode.window.setStatusBarMessage(`soe:// check: ${line}`, 10000);
         return results;
     });
@@ -62,6 +63,8 @@ function buildHtml(webview, n) {
       <td id="dyn-cell"></td><td id="dyn-status">…</td></tr>
   <tr><td>Emulator connection<br><code>soe:&#47;/ram/0adb.json</code></td>
       <td><pre id="ram"></pre></td><td id="ram-status">…</td></tr>
+  <tr><td>Tags<br><code>soe:&#47;/tags/check.json</code></td>
+      <td><pre id="tags"></pre></td><td id="tags-status">…</td></tr>
 </table>
 <script nonce="${n}">${soeClientScript(webview)}</script>
 <script nonce="${n}">
@@ -70,10 +73,10 @@ function buildHtml(webview, n) {
   var results = {};
   function report(key, ok, detail) {
     results[key] = { ok: ok, detail: detail };
-    var el = document.getElementById(key === 'benchmark' ? 'bench-status' : key === 'dynamic' ? 'dyn-status' : 'ram-status');
+    var el = document.getElementById(key === 'benchmark' ? 'bench-status' : key === 'dynamic' ? 'dyn-status' : key + '-status');
     el.textContent = (ok ? '✓ ' : '✗ ') + detail;
     el.className = ok ? 'ok' : 'bad';
-    if (results.benchmark && results.dynamic && results.ram) vscode.postMessage({ command: 'soeCheckDone', results: results });
+    if (results.benchmark && results.dynamic && results.ram && results.tags) vscode.postMessage({ command: 'soeCheckDone', results: results });
   }
   function watchImage(img, key) {
     var done = false;
@@ -97,6 +100,16 @@ function buildHtml(webview, n) {
     document.getElementById('ram').textContent = JSON.stringify(v, null, 2);
     report('ram', true, 'current room $' + v.byte.toString(16));
   }).catch(function (e) { report('ram', false, String(e && e.message || e)); });
+
+  fetch(window.soeUrl('soe:' + '//tags/check.json')).then(function (r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }).then(function (c) {
+    var problems = c.errors.concat(c.links.broken.map(function (b) { return b.tag + ': ' + b.uri; }));
+    document.getElementById('tags').textContent = problems.slice(0, 20).join('\n');
+    report('tags', c.ok, c.tags + ' tags, ' + c.links.ok + ' links ok, ' + c.links.broken.length + ' broken, '
+      + c.errors.length + ' load errors' + (c.links.unchecked ? ', ' + c.links.unchecked + ' unchecked (no ROM)' : ''));
+  }).catch(function (e) { report('tags', false, String(e && e.message || e)); });
 })();
 </script>
 </body></html>`;

@@ -1,17 +1,21 @@
 # `soe://tags/`: open items
 
-> Status: **plan, nothing built.** Spec: [soe-tags-spec.md](../soe-tags-spec.md).
+> Status: items 1–2 **done in v0.186.0**; the rest is open. Spec: [soe-tags-spec.md](../soe-tags-spec.md).
 > Findings below were read from the `everscript` sources on 2026-10-09.
 
 ## Now: `tags.json` in the plugin
 
-1. **Write `src/resources/tags/tags.json`** (spec §5.1): `character`, `player`, `boy`,
+1. ✓ **Write `src/resources/tags/tags.json`** (spec §5.1): `character`, `player`, `boy`,
    `dog`, `enemy` with precompiled sub-tag links. Start from the sums in spec §1
    (`$4EB3`, `$4F1D`, `$0A35`–`$0A55`, dog `$0A70`/`$4F37` bases), each with its
    `source` text. Keep the script or notes that computed them out of the plugin's
    runtime.
-2. **Loader checks:** unknown parent, inheritance cycle, a sub-tag link that does not
-   resolve under `soe://`. All are load errors, shown by `Everscript: Check soe:// Resources`.
+2. ✓ **Loader checks:** unknown parent, inheritance cycle, a sub-tag link that does not
+   resolve under `soe://`. All are load errors, shown by `Everscript: Check soe:// Resources`
+   (`soe://tags/check.json`).
+
+Next: more `claims` from the Data Crystals list (as unverified references), and tags for
+alchemy formulas, weapons and the `CHARACTER_ADDRESS.ENTITY_*` slots.
 
 ## Later: tags from `core.evs`
 

@@ -1,6 +1,6 @@
 # `soe://tags/`: Tagging Specification
 
-> **Status:** Proposal, not implemented.
+> **Status:** Phases 1–2 and the claims/conflicts part of Phase 3 implemented in v0.186.0 (`src/resources/tag-*.js`, `src/resources/tags/tags.json`). Phase 4 is a proposal.
 > **Builds on:** [`soe-filesystem-spec.md`](soe-filesystem-spec.md) (the `soe://` provider, §3a MCP access)
 > **Goal:** Join everything known about one game concept (the boy, his HP, the Raptors room) under one name. Each fact links to the resource it came from, so a person or an AI can look up a concept and then follow links to the data.
 
@@ -193,7 +193,8 @@ Tags live in `src/resources/tags/tags.json`. The plugin reads nothing else to bu
 | key | the tag id (`boy`, `map.raptors`) |
 | `title` | one line for the summary and for hovers |
 | `parents` | zero or more tags this one inherits from (§5.2) |
-| `links` | `soe://` resources (or workspace paths) that hold the data |
+| `links` | `soe://` resources (or workspace paths) that hold the data: a string, or `{ uri, role, source, status }` |
+| `claims` | `{ uri, text, source }` from outside references; always `unverified` unless `status` says otherwise (§6) |
 | `sub` | child tags, keyed by the last id segment: `boy.sub.hp` is the tag `boy.hp` |
 | `size`, `source`, `status` | per fact: width in bytes, how it was worked out, `unverified` (§6) |
 | `see` | related tags; back-links are computed |
@@ -266,9 +267,9 @@ Uses of the same data outside `soe://`:
 
 | Phase | Scope |
 |---|---|
-| 1 | `soe://tags/` provider (`src/resources/tag-files.js`), generated `map.*`, `character.*`, `item.*`, `music.*`, `flag.*`, RAM-symbol tags; `index.md` per directory; `.md` + `.json` |
-| 2 | `tags.json` with `character` / `player` / `boy` / `dog` / `enemy` and their precompiled sub-tags; multiple inheritance; back-links; live values |
-| 3 | claims (wiki, Data Crystals references) with the Conflicts section; `search/` |
+| 1 ✓ | `soe://tags/` provider (`src/resources/tag-files.js`); generated `map.*`, `area.*`, `enemy.*`, `music.*`, `sound.*`, `flag.*`, `ram.*`, `table.*`, `ingredient.*` / `armor.*` / `consumable.*` (`tag-generate.js`); `index.md` + `index.json` per directory; `.md` + `.json` per tag |
+| 2 ✓ | `tags.json` with `character` / `player` / `boy` / `dog` / `enemy` and their precompiled sub-tags; multiple inheritance (`tag-model.js`); back-links; live values; `check.json` and a row in `Everscript: Check soe:// Resources` |
+| 3 | ✓ claims with the Conflicts section, ✓ `search/`; open: more claims from the Data Crystals list |
 | 4 | `asm` facts from CDL / disassembly, `script` facts from decompiled room scripts; hover and Memory Radar integration |
 
 Dependency rules follow `src/resources/README.md`: tag files may use `shared/`, `maps/`, `script/` and `localizations/`, never `emulator/`. Live values come through the injected `readMemory`, the same path `ram-files.js` uses.
