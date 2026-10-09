@@ -169,7 +169,42 @@ When close enough to strike, the AI invokes `$9082D8`. This routine inspects cur
                          ; -> Attack 3 (+0x3E)
 ```
 
-The selected animation record pointer is loaded into the entity's active animation slot, resetting the frame timer (`+0x05`), and entity stamina is drained (`STZ $002E,Y`).
+The selected animation record pointer is loaded into the entity's active animation slot, resetting the frame timer (`+0x05`).
+
+### Who Drains the Stamina?
+Stamina (`+0x2E`) is drained by the **Animation VM and the Engine Collision/Movement handlers**, not by high-level AI:
+1. **The Animation VM `reset` Opcode (`0x52` at `$908453`):**
+   Nearly every animation script opens with opcode `0x52` (`reset`). The handler at `$908453` tests whether the previous animation was in attacking mode:
+   ```assembly
+   908459  LDA $0016,X      ; Entity mode
+   90845C  BIT #$0010       ; Was mode bit $10 (ATTACKING) set?
+   90845F  BEQ $846D
+   908461  STZ $002E,X      ; Zero stamina! (+0x2E = 0)
+   ```
+   So when an attack animation starts or transitions back to idle, opcode `0x52` detects the attacking flag and dumps the stamina meter to 0.
+2. **Dedicated Animation Drain Opcode (`0x4E` at `$908495`):**
+   Certain attack animations explicitly invoke opcode `0x4E`, whose handler directly clears stamina:
+   ```assembly
+   908495  TYX
+   908496  REP #$30
+   908498  STZ $002E,X      ; Force clear stamina
+   ```
+3. **Contact Damage Impact (`$8FB584`):**
+   When a charging enemy (`mode $4000` or `$8000`) deals contact damage via physical collision (`$8FB52C`), the collision handler directly executes `STZ $002E,X` on impact (`$8FB584`). This prevents charging enemies from dealing damage every single subframe of overlap.
+4. **Running Drain (`$9082B0`–`$9082D2`):**
+   Entities running across the screen (`mode & 8`) decrement stamina every tick until exhausted.
+
+### Who Recharges the Stamina?
+Stamina is recharged by the engine's main tick loop at **`$8FCC5D`**:
+```assembly
+8FCC5D  LDA $002E,Y      ; Current stamina
+8FCC60  CLC
+8FCC61  ADC $8E002E,X    ; Add character record +0x2E (charge_speed)
+8FCC65  CMP $8E002C,X    ; Cap at character record +0x2C (charge_limit, $400 = 100%)
+8FCC69  BCC $8FCC6E
+8FCC6B  LDA $8E002C,X    ; Clamp to max charge
+8FCC6E  STA $002E,Y
+```
 
 ### 2. Delivering the Hit: Three Attack Mechanics
 
@@ -320,3 +355,4 @@ When the Dog entity slot is populated with the Raptor's character record:
 - AI 0 has **zero code** to check alchemy sniff spots (`$1453..$1459`) or follow the Boy.
 - Instead, AI 0's detection routine (`$8FD6B9`) tests proximity against Party Slot 1 (`$0F3E`, the Boy).
 - Because the Raptor is hostile and within 60 px of the Boy, it passes the proximity check, locks the Boy as its target (`STA $0024,Y`), advances towards him, and lunges with its bite attack!
+
