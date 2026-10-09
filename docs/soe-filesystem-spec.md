@@ -68,12 +68,12 @@ Both are verified by `Everscript: Check soe:// Resources`. The command also retu
 | `assets/alchemy/<name>/icon.png`, `info.json` | by formula name (`acid_rain`), with its "known" flag |
 | `assets/strings/<idx>.txt`, `index.md` | in-game string from the 3,002-entry table at `$11D000`; the index is a table of all |
 | `assets/maps/index.json`, `index.md` | room id → name, area |
-| `assets/maps/<id>/info.md`, `header.json`, `render.png`, `tiles`, `metatiles` | room summary, decoded header, composite render, metatile atlas and tiles |
-| `assets/characters/index.json`, `<id>/info.json`, `sprite.png`, `animations/` | 142 character records, idle sprites, animation sets, animated GIFs |
-| `assets/characters/<id>/animations/<name>/animation.gif`, `frames/`, `tiles/` | animated GIF, frame PNG/JSON sequences, sprite tile blocks |
+| `assets/maps/<id>/info.md`, `header.json`, `render.png`, `metatiles/` | room summary, decoded header, composite render, metatile atlas, and metatile composition folders (`<idx>/info.json`, `info.md`, `render.png`, `layer1.png`, `layer2.png`) |
+| `assets/characters/index.json`, `<id>/info.json`, `sprite.png`, `animations/` | 142 character records, idle sprites, animation sets, palette colors |
+| `assets/characters/<id>/animations/<name>/` | `animation.gif`, `script.txt` disassembly, `script.json`, `frames/` (PNG+JSON), `tiles/` (PNG+BIN) |
 | `assets/tiles/<id>.png`, `<id>.bin` | 6,688 master 16×16 CHR tile graphics at `$EE0000` |
 | `assets/audio/music/<id>/song.spc`, `info.json`, `sounds/<id>/info.json` | assembled 66 KB playable `.spc` files, descriptor transfers, sound effects |
-| `tables/index.json`, `<name>/data.bin`, `data.json`, `info.json` | 27+ engine lookup and pointer tables |
+| `assets/tables/index.json`, `<name>/data.bin`, `data.json`, `info.json` | 27+ engine lookup and pointer tables |
 
 ### `soe://ram/`
 
@@ -132,6 +132,10 @@ Verified with a headless Claude Code session against a VS Code instance running 
 | `rom/assets/characters/<id>.json` | character records | `maps/characters.ts`, `names.json` `enemies` |
 | `rom/assets/audio/{music,sfx}/index.json` | id → title, package | `localizations/sounds.js`, `rom/model/audio.js` |
 | `ram/scripts.json`, `ram/entities/<ptr>.json`, `ram/party.json`, `ram/room.json` | decoded live structures | bridge + WRAM tables in the skills |
+
+---
+
+Cross-referencing tags over these files (`soe://tags/boy/hp.md`) are specified in [`soe-tags-spec.md`](soe-tags-spec.md).
 
 ---
 
