@@ -159,6 +159,7 @@ function radarItemIcons() {
 }
 const roomTree = require('./rooms');
 const { handlesRomMessage, handleRomMessage } = require('./rom');
+const { handlesMusicMessage, handleMusicMessage } = require('./music');
 const { findRoomImage, parseRoomContent, collectRoomsFromDir, buildRoomTree, renderVanillaTree, renderRoomsTree, buildRoomsJson, setRoomImageUris, buildRoomTileOverlay, buildRoomMetatilePalette, buildComposedPreview, buildBlankRoom, buildDraftCollision, buildExportRom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews, decoIndex, decoCells, buildDecoPreviews, buildWidgetPreviews, buildConstructGhost, relatedTiles, neighbourTiles, vanillaExamples, proceduralFill, handlesCustomMapMessage, handleCustomMapMessage } = roomTree;
 
 const romReaders = require('./shared/rom-readers');
@@ -623,6 +624,7 @@ function activate(context) {
                     },
                 );
                 _radarPanel.onDidDispose(() => {
+                    require('./emulator/panel').apuStream.setOn(false);
                     _radarPanel = null;
                     _radarPinned = false;
                     _radarCurrentScope = null;
@@ -784,6 +786,15 @@ function activate(context) {
                                 romBuf: romReaders.loadRomBuffer(_ws, _cfg.romPath || ''),
                             };
                         },
+                    });
+                } else if (handlesMusicMessage(msg.command)) {
+                    // The Music tab (src/music/README.md). The emulator's sound
+                    // chip is injected so the music domain never imports it.
+                    const _ws = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+                    handleMusicMessage(msg, {
+                        post: (m) => _radarPanel?.webview.postMessage(m),
+                        loadRom: () => romReaders.loadRomBuffer(_ws, getExtConfig().romPath || ''),
+                        apu: require('./emulator/panel').apuStream,
                     });
                 } else if (handlesRomMessage(msg.command)) {
                     // The ROM tab: map of every bank, CDL coverage, readers
@@ -1287,6 +1298,10 @@ function activate(context) {
 
     // ── Emulator Panel ───────────────────────────────────────────────────────
     const { openEmulatorPanel } = require('./emulator/panel');
+    // The emulator's sound chip, frame by frame, to the radar's Music tab.
+    require('./emulator/panel').apuStream.setListener(f => {
+        if (_radarPanel) _radarPanel.webview.postMessage({ command: 'musicFrame', view: f.view, pkg: f.pkg, starts: f.starts, frame: f.frame });
+    });
     context.subscriptions.push(
         vscode.commands.registerCommand('everscript.openEmulator', () => {
             openEmulatorPanel(context);

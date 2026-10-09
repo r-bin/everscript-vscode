@@ -20,6 +20,7 @@ const { getFpsCss, getFpsChipHtml, getFpsClientScript } = require('./fps-meter')
 const { getTasCss, getTasTabButtonHtml, getTasChipHtml, getTasOverlayHtml, getTasViewHtml, getTasClientScript } = require('./tas-view');
 const { getScriptDebugClientScript } = require('./script-debug-view');
 const { getMemoryBridgeClientScript } = require('./memory-bridge-view');
+const { getApuStreamClientScript } = require('./apu-stream-view');
 
 function _nonce() {
     let n = '';
@@ -1352,6 +1353,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
           renderExtendedMapAndOverlays(preState, canvas, extMapCanvas, extMapCtx, extEntCanvas, extEntCtx, extFgCanvas, extFgCtx, extOverCanvas, extOverCtx);
           tasDrawOverlay();
           checkScriptExecutionTrace();
+          apuStreamTick(Module);
         }
       }
       requestAnimationFrame(frame);
@@ -3605,6 +3607,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     ${getScriptDebugClientScript()}
 
     ${getMemoryBridgeClientScript()}
+
+    ${getApuStreamClientScript()}
 
     ${getFpsClientScript()}
 

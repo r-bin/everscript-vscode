@@ -64,6 +64,14 @@ module.exports = {
     },
 
     {
+      name: 'no-music-to-emulator',
+      comment: 'The Music tab gets the emulator sound-chip stream injected by extension.js, never the emulator itself.',
+      severity: 'warn',
+      from: { path: '^src/music/' },
+      to: { path: '^src/emulator/' },
+    },
+
+    {
       name: 'no-resources-to-emulator',
       comment: 'The soe:// file system gets the emulator ROM and memory reads injected by extension.js.',
       severity: 'warn',

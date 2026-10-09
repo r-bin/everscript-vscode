@@ -15,6 +15,7 @@ All production code lives here. Each subdirectory is an ownership domain.
 | `emulator/` | Embedded SNES emulator: panel, webview, SNES ROM header model |
 | `script/` | Everscript bytecode decoder, ported from SoEScriptDumper (TypeScript, pure) |
 | `rom/` | ROM tab: every bank's content, gaps and CDL coverage, measured from the ROM |
+| `music/` | Music tab: the sound chip live from the emulator or playing a track in its own engine; voices, instruments, sound effects, ARAM |
 | `debugger/` | VS Code debugger for .evs scripts in the emulator: DAP session, compiler source map, step logic |
 | `localizations/` | Centralized subjective names (maps, sounds, tables, functions) & ROM string resolution |
 | `resources/` | Read-only `soe://` file system: ROM, decoded assets and live WRAM as files |
@@ -28,6 +29,7 @@ Entry point: `extension.js` (orchestration root, registered as `main` in package
 - `language/` → no debugger, no emulator, no memory UI
 - `memory/` → may use `shared/`, `docs/`, `rooms/`, `maps/`, `rom/`
 - `rom/` → may use `maps/`; never `emulator/` (the CDL library is injected by `extension.js`)
+- `music/` → may use `localizations/`; never `emulator/` (the sound-chip stream is injected by `extension.js`)
 - `emulator/` → may use `shared/`
 - `debugger/` → no memory, no emulator internals (the emulator bridge is injected by `extension.js`)
 - `mcp/` → `vscode` only; reads `soe://` through `vscode.workspace.fs`, never another domain

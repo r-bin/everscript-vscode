@@ -1,0 +1,59 @@
+/* Music tab (src/music). Scoped by the mu- prefix; colours from VS Code's theme
+   tokens with dark fallbacks, like the ROM tab. One screen: nothing here may
+   make the pane taller than the panel. */
+.mu-pane{flex-direction:column;flex:1;min-height:0;gap:8px;color:var(--mu-fg);font:12px/1.4 var(--vscode-font-family,-apple-system,"Segoe UI",sans-serif);
+  --mu-line:var(--vscode-panel-border,#3c3c3c);--mu-dim:var(--vscode-descriptionForeground,#8b8b8b);--mu-card:var(--vscode-sideBar-background,#252526);
+  --mu-fg:var(--vscode-editor-foreground,#ccc);--mu-accent:var(--vscode-focusBorder,#3794ff);--mu-mono:var(--vscode-editor-font-family,ui-monospace,Menlo,monospace)}
+.mu-top{display:flex;align-items:center;gap:12px;padding:6px 4px 8px;border-bottom:1px solid var(--mu-line);flex-shrink:0;min-width:0}
+.mu-src-l{color:var(--mu-dim)}
+.mu-src{background:var(--vscode-dropdown-background,#3c3c3c);color:var(--vscode-dropdown-foreground,#ccc);border:1px solid var(--vscode-dropdown-border,#4a4a4a);border-radius:3px;padding:3px 6px;font:inherit;max-width:260px}
+.mu-btn{border:1px solid var(--mu-line);border-radius:3px;padding:3px 12px;color:inherit;background:var(--vscode-button-secondaryBackground,#333);cursor:pointer;font:inherit}
+.mu-btn:disabled{opacity:.4;cursor:default}
+.mu-btn:focus-visible,.mu-src:focus-visible,.mu-row:focus-visible,.mu-chip:focus-visible,.mu-key:focus-visible{outline:2px solid var(--mu-accent);outline-offset:1px}
+.mu-status{color:var(--mu-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.mu-status b{color:var(--mu-fg);font-weight:600}
+.mu-main{display:grid;grid-template-columns:minmax(230px,1.1fr) minmax(220px,1fr) minmax(240px,1.2fr);gap:8px;flex:1;min-height:0}
+.mu-col{display:flex;flex-direction:column;min-height:0;min-width:0;background:var(--mu-card);border:1px solid var(--mu-line);border-radius:4px;padding:8px}
+.mu-h{font-weight:600;margin-bottom:6px;flex-shrink:0}
+.mu-h span{color:var(--mu-dim);font-weight:400;margin-left:6px}
+.mu-list{overflow-y:auto;min-height:0;flex:1}
+/* voices */
+.mu-voices{display:flex;flex-direction:column;gap:6px;flex:1;min-height:0;overflow:hidden}
+.mu-voice{display:grid;grid-template-columns:22px 1fr 58px;grid-template-rows:auto 5px;gap:2px 8px;align-items:center;padding:3px 5px;border-radius:3px;opacity:.5;transition:opacity .15s}
+.mu-voice.mu-on{opacity:1}
+.mu-voice.mu-kon{background:color-mix(in srgb,var(--mu-accent) 18%,transparent)}
+.mu-vn{font:600 11px var(--mu-mono);color:var(--mu-dim);grid-row:span 2}
+.mu-vs{display:flex;align-items:center;gap:6px;font:11px var(--mu-mono);min-width:0;white-space:nowrap;overflow:hidden}
+.mu-vp{font:11px var(--mu-mono);color:var(--mu-dim);text-align:right}
+.mu-meter{grid-column:2/4;display:grid;grid-template-columns:2fr 1fr 1fr;gap:3px}
+.mu-meter i{display:block;height:4px;background:var(--mu-line);border-radius:2px;overflow:hidden}
+.mu-meter i b{display:block;height:100%;width:0}
+.mu-dot{display:inline-block;width:9px;height:9px;border-radius:2px;flex-shrink:0}
+/* instruments */
+.mu-keys{display:flex;gap:2px;margin-bottom:6px;flex-shrink:0}
+.mu-key{flex:1;height:26px;border:1px solid var(--mu-line);border-radius:0 0 3px 3px;background:#e8e8e8;color:#333;font:10px var(--mu-mono);cursor:pointer;padding:0;display:flex;align-items:flex-end;justify-content:center}
+.mu-key.mu-black{background:#2a2a2a;color:#aaa}
+.mu-key:active,.mu-key.mu-down{background:var(--mu-accent);color:#fff}
+.mu-row{display:grid;grid-template-columns:12px 38px 1fr auto;gap:6px;align-items:center;padding:3px 5px;border-radius:3px;cursor:pointer;font:11px var(--mu-mono)}
+.mu-row:hover{background:var(--vscode-list-hoverBackground,#2a2d2e)}
+.mu-row.mu-sel{background:var(--vscode-list-activeSelectionBackground,#04395e);color:var(--vscode-list-activeSelectionForeground,#fff)}
+.mu-row.mu-playing .mu-dot{box-shadow:0 0 0 2px var(--mu-fg)}
+.mu-tag{color:var(--mu-dim);font-size:10px}
+/* sound effects */
+.mu-chips{display:flex;flex-wrap:wrap;gap:4px}
+.mu-chip{border:1px solid var(--mu-line);border-radius:3px;padding:2px 6px;background:transparent;color:inherit;font:11px var(--vscode-font-family,sans-serif);cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mu-chip:hover:not(:disabled){background:var(--vscode-list-hoverBackground,#2a2d2e)}
+.mu-chip code{font:10px var(--mu-mono);color:var(--mu-dim);margin-right:4px}
+.mu-chip.mu-pkg{border-color:color-mix(in srgb,var(--mu-accent) 60%,var(--mu-line))}
+.mu-chip:disabled{opacity:.35;cursor:default}
+.mu-sub{color:var(--mu-dim);margin:8px 0 4px;font-size:11px}
+/* ARAM */
+.mu-aram{flex-shrink:0;background:var(--mu-card);border:1px solid var(--mu-line);border-radius:4px;padding:8px}
+.mu-bar{position:relative;height:22px;border-radius:3px;overflow:hidden;background:var(--vscode-input-background,#3c3c3c)}
+.mu-bar i{position:absolute;top:0;bottom:0;min-width:1px}
+.mu-bar s{position:absolute;top:0;bottom:0;width:2px;text-decoration:none;box-shadow:0 0 0 1px rgba(0,0,0,.6)}
+.mu-ruler{display:flex;justify-content:space-between;font:10px var(--mu-mono);color:var(--mu-dim);margin:2px 0 6px}
+.mu-legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:11px;color:var(--mu-dim)}
+.mu-legend b{color:var(--mu-fg);font-weight:600;font-family:var(--mu-mono)}
+.mu-empty{color:var(--mu-dim);padding:6px 0}
+@media (prefers-reduced-motion:reduce){.mu-voice{transition:none}}

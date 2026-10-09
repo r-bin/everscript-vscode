@@ -10,6 +10,7 @@ const { renderRoomsTree, renderVanillaTree, buildRoomRailHtml,
         buildRoomsJson, VANILLA_ROOMS } = require('../rooms');
 const { buildSpritesTabHtml }    = require('../sprites');
 const { buildRomTabHtml }        = require('../rom');
+const { buildMusicTabHtml }      = require('../music');
 const radarWebview               = require('./webview');
 
 /**
@@ -104,7 +105,7 @@ function renderRadarHtml(
         '\nvar SPRITES_RAW_INDEX=' + JSON.stringify(spritesBundle?.rawIndex || []).replace(/<\/script>/gi, '<\\/script>') + ';' +
         '\nvar SPRITES_ANIMATIONS=' + JSON.stringify(spritesBundle?.animations || []).replace(/<\/script>/gi, '<\\/script>') + ';';
 
-    const js = radarWebview.buildMainJs({ jsData, roomsData, scalingData, spritesData, roomsJs, scalingJs, spritesJs, docsJs, routeJs, rngJs, romJs: radarWebview.romJs });
+    const js = radarWebview.buildMainJs({ jsData, roomsData, scalingData, spritesData, roomsJs, scalingJs, spritesJs, docsJs, routeJs, rngJs, romJs: radarWebview.romJs, musicJs: radarWebview.musicJs });
 
     // ── Rooms tab HTML ──────────────────────────────────────────────────────
     const roomsTabHtml =
@@ -179,6 +180,7 @@ function renderRadarHtml(
         '<button class="tab" data-tab="docs">\ud83d\udcda Docs</button>' +
         '<button class="tab" data-tab="rng">\ud83c\udfb2 RNG</button>' +
         '<button class="tab" data-tab="rom">\ud83d\udcbe ROM</button>' +
+        '<button class="tab" data-tab="music">\ud83c\udfb5 Music</button>' +
         '</div>' +
         memoryTabHtml +
         roomsTabHtml +
@@ -188,6 +190,7 @@ function renderRadarHtml(
         routeTabHtml +
         buildRngTabHtml() +
         buildRomTabHtml() +
+        buildMusicTabHtml() +
         '<script>' + js + '<\/script></body></html>';
 }
 

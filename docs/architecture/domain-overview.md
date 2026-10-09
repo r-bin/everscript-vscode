@@ -34,6 +34,7 @@
 | Config / settings | `shared` | All others |
 | `soe://` file system (ROM / WRAM as files) | `resources`, `shared` | debugger, rooms, scaling |
 | MCP server for AI clients | `mcp` | All others (reads via `vscode.workspace.fs`) |
+| Music tab / sound chip / SPC engine | `music`, `localizations` (+ `emulator/apu-stream*.js` and the core's `getApuView` for the live stream) | rooms, scaling, maps |
 | Panel assembly (render-radar.js) | `memory_radar`, `shared` | domain internals |
 
 ---
@@ -352,6 +353,22 @@ and the running emulator's WRAM as files, usable in editor tabs and webviews.
 **Forbidden deps:** `emulator` (its ROM and memory reads are injected by `extension.js`)
 
 **Documentation:** `src/resources/README.md`, `docs/soe-filesystem-spec.md`
+
+---
+
+## Domain: `music`
+
+**Purpose:** The radar panel's Music tab: the SNES sound chip live from the emulator, or playing a
+chosen track in the tab's own SPC engine; voices, instruments, sound effects, ARAM usage.
+
+**Folder:** `src/music/`
+
+**Public API:** `require('./music')` → `buildMusicModel`, `handlesMusicMessage`, `handleMusicMessage`, `buildMusicTabHtml`
+
+**Allowed deps:** `localizations`
+**Forbidden deps:** `emulator` (its sound-chip stream, `apuStream`, is injected by `extension.js`)
+
+**Documentation:** `src/music/README.md`, `docs/music-sequence-todo.md`
 
 ---
 

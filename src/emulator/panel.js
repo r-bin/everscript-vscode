@@ -35,6 +35,7 @@ const { CdlHost } = require('./cdl/host');
 const { TasHost } = require('./tas/host');
 const { ScriptDebugHost } = require('./script-debug-host');
 const { MemoryBridge } = require('./memory-bridge');
+const { ApuStream } = require('./apu-stream');
 const {
   getRomOfferData,
   recordRomUsage,
@@ -71,6 +72,7 @@ let _tas           = null;   // TasHost: input recordings and replays
 const _scriptDebug = new ScriptDebugHost(m => { if (_panel) _panel.webview.postMessage(m); }, line => _log(line),
   () => _keepFocusAfterBreak());
 // soe://ram/ reads: request/reply with the webview, which owns the core.
+const _apu = new ApuStream(m => !!(_panel && _webviewReady && _panel.webview.postMessage(m) !== undefined));
 const _memory = new MemoryBridge(m => !!(_panel && _webviewReady && _panel.webview.postMessage(m) !== undefined));
 // "BREAK: stay" chip: a debugger stop leaves the focus on the emulator (globalState).
 const KEEP_FOCUS_KEY = 'everscript.emulator.keepFocusOnBreak';
@@ -370,9 +372,11 @@ function openEmulatorPanel(context, rom, channel) {
         if (_tas && typeof msg.command === 'string' && msg.command.startsWith('tas') && _tas.handle(msg)) return;
         if (typeof msg.command === 'string' && msg.command.startsWith('scriptDebug') && _scriptDebug.handle(msg)) return;
         if (_memory.handle(msg)) return;
+        if (_apu.handle(msg)) return;
         switch (msg.command) {
             case 'ready':
             _webviewReady = true;
+            _apu.pageReady();
             _panel.webview.postMessage({ command: 'keepFocusOnBreak', on: _keepFocusSetting() });
             _clearReadyTimeout();
             _log('Webview runtime ready');
@@ -568,6 +572,7 @@ function openEmulatorPanel(context, rom, channel) {
       if (_tas) { _tas.dispose(); _tas = null; }
       _scriptDebug.panelClosed();
       _memory.reset('The emulator was closed');
+      _apu.reset('The emulator was closed');
       _clearReadyTimeout();
       _clearRomTimeout();
       _webviewReady = false;
@@ -1037,4 +1042,12 @@ async function getStatus() {
   }
 }
 
-module.exports = { openEmulatorPanel, sendRomFile: _sendRomFile, injectEverscript, getScriptDebugBridge, runRomFile, getCurrentRom, readMemory, getStatus };
+/** The sound chip for the radar's Music tab (apu-stream.js): frames while on, and full snapshots. */
+const apuStream = {
+  setListener: fn => _apu.setListener(fn),
+  setOn: on => _apu.setOn(on),
+  snapshot: () => _apu.snapshot(),
+  isOpen: () => !!_panel,
+};
+
+module.exports = { openEmulatorPanel, sendRomFile: _sendRomFile, injectEverscript, getScriptDebugBridge, runRomFile, getCurrentRom, readMemory, getStatus, apuStream };

@@ -35,7 +35,10 @@ src/emulator/core/**/*.c
 src/emulator/core/**/*.h
 src/emulator/core/**/Makefile*
 src/emulator/core/**/gitignore.txt
+src/music/engine/*.c
+src/music/engine/*.sh
 # NOTE: copyright notices must be bundled alongside built .wasm/.js artifacts
+# (src/music/engine/copyright and NOTICE.md ship with spc-engine.js)
 
 # build artifacts that should not be included
 out/**

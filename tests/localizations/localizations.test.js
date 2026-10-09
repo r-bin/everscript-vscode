@@ -86,9 +86,9 @@ test('localizations sounds: music matches EMU tracks', () => {
 
 test('localizations sounds: sound effects lookup', () => {
     assert.ok(SOUNDS.length > 30);
-    assert.equal(getSoundName(0x3B), 'Takeoff!');
-    assert.equal(getSoundName(0x42), 'Explosion');
-    assert.equal(getSoundName(0x56), 'Applause');
+    assert.equal(getSoundName(0xBC), 'Takeoff!');
+    assert.equal(getSoundName(0x64), 'Explosion');
+    assert.equal(getSoundName(0x6E), 'Arena Cheer');
     assert.equal(getSoundName(0x24), 'Dog Bark');
     assert.equal(getSoundName(0x6A), 'Dragon Roar');
 });

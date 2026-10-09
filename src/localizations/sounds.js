@@ -82,8 +82,11 @@ const MUSIC = [
 ];
 
 /**
- * Sound effects catalogue (opcode 0x30 / SFX table at $8C:8362).
- * Includes SFX present in the EMU reference rips and Everscript enums.
+ * Sound effects catalogue, keyed by **script id**: the sound() parameter
+ * (opcode 0x30). $8C:8362 maps script id / 2 to the driver's sound effect
+ * (0x00..0x59), so several script ids can reach one driver effect. The rips'
+ * Takeoff!/Explosion/Applause are driver effects 0x3B/0x42/0x56, reached by
+ * script ids 0xBC/0x64/0x6E.
  */
 const SOUNDS = [
     { id: 0x00, hex: '0x00', name: 'None', stringIndex: null },
@@ -107,11 +110,9 @@ const SOUNDS = [
     { id: 0x36, hex: '0x36', name: 'Teleporter', stringIndex: null },
     { id: 0x38, hex: '0x38', name: 'Click 1', stringIndex: null },
     { id: 0x3A, hex: '0x3a', name: 'Click 2', stringIndex: null },
-    { id: 0x3B, hex: '0x3b', name: 'Takeoff!', spc: '99 Takeoff!.spc', stringIndex: null },
     { id: 0x3C, hex: '0x3c', name: 'Impact', stringIndex: null },
     { id: 0x3E, hex: '0x3e', name: 'Gore Mosquito', stringIndex: null },
     { id: 0x40, hex: '0x40', name: 'Purchase', stringIndex: null },
-    { id: 0x42, hex: '0x42', name: 'Explosion', spc: '99 Explosion.spc', stringIndex: null },
     { id: 0x44, hex: '0x44', name: 'Loot / Click 3', stringIndex: null },
     { id: 0x46, hex: '0x46', name: 'Door', stringIndex: null },
     { id: 0x4C, hex: '0x4c', name: 'Alchemy Sound 1', stringIndex: null },
@@ -119,16 +120,16 @@ const SOUNDS = [
     { id: 0x50, hex: '0x50', name: 'Weird Sound', stringIndex: null },
     { id: 0x52, hex: '0x52', name: 'Piping Sound', stringIndex: null },
     { id: 0x54, hex: '0x54', name: 'Temple Bridge Collapsing', stringIndex: null },
-    { id: 0x56, hex: '0x56', name: 'Applause', spc: '99 Applause.spc', stringIndex: null },
     { id: 0x58, hex: '0x58', name: 'Thraxx Bridge Collapsing', stringIndex: null },
     { id: 0x5A, hex: '0x5a', name: 'Magma Hardening', stringIndex: null },
     { id: 0x5C, hex: '0x5c', name: 'Dog Maze Hint', stringIndex: null },
     { id: 0x5E, hex: '0x5e', name: 'Sandpit Swallow', stringIndex: null },
+    { id: 0x64, hex: '0x64', name: 'Explosion', spc: '99 Explosion.spc', stringIndex: null },
     { id: 0x66, hex: '0x66', name: 'Mosquito Attack', stringIndex: null },
     { id: 0x68, hex: '0x68', name: 'Flower Attack', stringIndex: null },
     { id: 0x6A, hex: '0x6a', name: 'Dragon Roar', stringIndex: null },
     { id: 0x6C, hex: '0x6c', name: 'Squeak', stringIndex: null },
-    { id: 0x6E, hex: '0x6e', name: 'Arena Cheer', stringIndex: null },
+    { id: 0x6E, hex: '0x6e', name: 'Arena Cheer', spc: '99 Applause.spc', stringIndex: null },
     { id: 0x72, hex: '0x72', name: 'Water Plop', stringIndex: null },
     { id: 0x74, hex: '0x74', name: 'Nitro Start', stringIndex: null },
     { id: 0x76, hex: '0x76', name: 'Elevator Door', stringIndex: null },
@@ -140,11 +141,13 @@ const SOUNDS = [
     { id: 0x9C, hex: '0x9c', name: 'Act 4 Switch', stringIndex: null },
     { id: 0xB0, hex: '0xb0', name: 'Act 4 Door Opening', stringIndex: null },
     { id: 0xB2, hex: '0xb2', name: 'Fan Activated', stringIndex: null },
+    { id: 0xBC, hex: '0xbc', name: 'Takeoff!', spc: '99 Takeoff!.spc', stringIndex: null },
     { id: 0xC6, hex: '0xc6', name: 'Clicking', stringIndex: null },
 ];
 
 /**
- * Tracks in 'Secret of Evermore (EMU)' that represent special volume or SFX exports.
+ * Tracks in 'Secret of Evermore (EMU)' that represent special volume or SFX
+ * exports. sfxId is the driver's sound effect (command $04), not a script id.
  */
 const EXTRAS = [
     { name: 'Windy Cave', spc: '16 Windy Cave.spc', musicId: 0x2D, volume: 0x30, sfxId: null },
