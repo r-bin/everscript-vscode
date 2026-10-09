@@ -396,6 +396,55 @@ The SFX translation table (`$8C:8362`, 112 words, the same address in both) diff
 - Script sound **97 is silent** (`$FFFF`) in the prototype. The final assigns it a new driver effect,
   `$57`.
 
+### 6.5 Playable prototype versions
+
+Five of the changed songs can be rebuilt as playable `.spc`. In each, every record that differs from
+retail is on this chip:
+
+- `0x2F` Fields of Gothica
+- `0x3B` Freak Show!!!
+- `0x3C` Item Fanfare
+- `0x3F` Dark Greenhouse
+- `0x42` Collapse of Ivor Tower
+
+The other changed songs each need a resized sample that is on chip 0.
+
+The prototype's sound driver is also on chip 0, and its tables are laid out differently from retail's:
+
+| Table | Prototype | Retail |
+|---|---|---|
+| Song sequence pointers | `$2E5E + 2·song` | `$2EB8 + 2·song` |
+| Instrument pointers | `$2126 + 2·id` | `$2124 + 2·id` |
+| Sample directory | `$1F00`, but samples in different slots | `$1F00` |
+
+The rebuilds therefore convert each prototype song (and its base package 0) to the retail driver's
+layout:
+
+- table entries move to the retail slot of the same instrument, sample or song;
+- data keeps the prototype's packing;
+- every absolute pointer is recomputed: directory entries, instrument pointers, the sequence header's
+  track pointers, and `F6 lo hi` operands in tracks;
+- instrument ids (`F5 xx`) and sample numbers (byte 2 of a 6-byte instrument record) are renumbered.
+
+Unchanged records that sit off-chip are taken from retail.
+
+**Checks:**
+
+- Rebuilding retail songs with the same rules reproduces their packages byte for byte.
+- Retail songs pushed through the prototype re-layout render with envelope correlation 0.96–1.0
+  against the real thing.
+- The five prototype songs match retail loudness, with envelope correlation 0.73–0.95. Their tracks
+  differ: Fields of Gothica, Item Fanfare, Dark Greenhouse and Collapse of Ivor Tower have
+  different-length tracks; Freak Show has two longer tracks plus 1–2-byte edits in three others.
+
+**`0x2E` Death of a Minotaur can't be rebuilt.** Its sequence is byte-identical to retail except for
+the instrument numbers: prototype `$6D`/`$6C` became retail `$74`/`$54`. Retail's versions of those
+instruments use table entries that the final added, along with the two new samples (§6.3). The
+prototype's own definitions of `$6D`/`$6C` are on chip 0. So the cue's notes were final in the
+prototype, and only its instruments were redone.
+
+The builder used `../everscript/tools/dump_spc.py` for the driver and rendering, and is not checked in.
+
 ---
 
 ## 7. Engine code
