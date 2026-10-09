@@ -32,6 +32,7 @@ copy first, since that's the upstream.
 | `custom-map-files.md` | **Custom maps on disk**: `map.json`, `history.json`, the export archive, and the widget library `widgets.json` |
 | `enemy-sprites-on-maps.md` | Drawing enemy sprites over a map, and why they can't be painted as map tiles without a sprite-to-family import |
 | `rom-export.md` | Export ROM: a custom map in room 0x15 — grid, dictionary, cuttable grass, animated tiles — and the round-trip check |
+| `secret-of-mana-comparison-and-porting.md` | **Secret of Mana comparison & porting**: how SoM maps work, differences from Evermore, and step-by-step map conversion feasibility |
 
 ## Upstream
 
