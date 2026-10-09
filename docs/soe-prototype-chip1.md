@@ -454,7 +454,24 @@ instruments use table entries that the final added, along with the two new sampl
 prototype's own definitions of `$6D`/`$6C` are on chip 0. So the cue's notes were final in the
 prototype, and only its instruments were redone.
 
-The builder used `../everscript/tools/dump_spc.py` for the driver and rendering, and is not checked in.
+**Reproducing:** [`tools/dump_proto_spc.py`](../tools/dump_proto_spc.py) builds the five songs. It
+needs the sibling `everscript` repo for the driver emulation and rendering
+(`../everscript/tools/dump_spc.py`) and libgme for `.wav` files.
+
+```
+python3 tools/dump_proto_spc.py \
+    --proto "Secret of Evermore (prototype) (chip 1).sfc" \
+    --rom "Secret of Evermore (U) [!].smc" \
+    --out-dir out/proto_spc --retail --verify
+```
+
+Options:
+
+- `--retail` also writes the retail versions, for A/B listening.
+- `--verify` runs the checks above first: the pointer-rule rebuild of retail packages `$00`, `$11`
+  and `$32`, then four prototype songs that keep the retail layout (`$11`, `$12`, `$1F`, `$32`),
+  converted and compared by envelope correlation. These score 0.96–1.00.
+- `--no-wav` writes `.spc` files only.
 
 ---
 
@@ -608,8 +625,9 @@ whether anything outside this chip turns on debug mode.
 
 ## Appendix: reproducing
 
-The analysis scripts lived in a session scratchpad and are not checked in. Everything above can be
-rebuilt from the two ROM files with:
+The SPC rebuild is checked in as [`tools/dump_proto_spc.py`](../tools/dump_proto_spc.py) (§6.5). The
+other analysis scripts lived in a session scratchpad and are not checked in. Everything else above can
+be rebuilt from the two ROM files with:
 
 - the chunk relocation map (32-byte window index, §1);
 - the `src/emulator/cdl/opcodes.js` matrix for disassembly (`M`/`X` tracked through `REP`/`SEP`);
