@@ -24,16 +24,46 @@ const ICONS = 'soe://rom/assets/icons/';
 function resolveAssets(segments, rom) {
     const [kind, id, leaf, ...extra] = segments;
     if (kind === undefined) {
-        return dir(['icons', ...Object.keys(CATEGORIES), 'alchemy', 'strings', 'maps', 'scripts'].map(n => [n, 'dir']));
+        return dir(['icons', ...Object.keys(CATEGORIES), 'alchemy', 'strings', 'maps', 'scripts', 'characters', 'animations', 'tiles', 'audio', 'tables'].map(n => [n, 'dir']));
     }
     if (kind === 'scripts') {
         const { resolveScripts } = require('./script-files');
         return resolveScripts(segments.slice(1), rom);
     }
+    if (kind === 'characters') {
+        const { resolveCharacters } = require('./character-files');
+        return resolveCharacters(segments.slice(1), rom);
+    }
+    if (kind === 'animations') {
+        const { resolveAnimations } = require('./character-files');
+        return resolveAnimations(segments.slice(1), rom);
+    }
+    if (kind === 'tiles') {
+        const { resolveTiles } = require('./tile-files');
+        return resolveTiles(segments.slice(1), rom);
+    }
+    if (kind === 'audio') {
+        const { resolveAudio } = require('./audio-files');
+        return resolveAudio(segments.slice(1), rom);
+    }
+    if (kind === 'tables') {
+        const { resolveTables } = require('./table-files');
+        return resolveTables(segments.slice(1), rom);
+    }
     if (kind === 'maps' && (leaf === 'scripts' || extra.includes('scripts'))) {
         const { resolveScripts } = require('./script-files');
         const sIdx = segments.indexOf('scripts');
         return resolveScripts(['rooms', id, ...segments.slice(sIdx + 1)], rom);
+    }
+    if (kind === 'maps' && (leaf === 'tiles' || leaf === 'metatiles' || extra.includes('tiles') || extra.includes('metatiles'))) {
+        const { resolveRoomTiles } = require('./tile-files');
+        const tileIdx = segments.indexOf('tiles') !== -1 ? segments.indexOf('tiles') : segments.indexOf('metatiles');
+        const subLeaf = segments[tileIdx + 1];
+        const rId = parseInt(id, 16);
+        if (Number.isInteger(rId) && rId >= 0 && rId < MAX_ROOMS) {
+            return resolveRoomTiles(decodeRoom(rom, rId), rom, subLeaf);
+        }
+        return null;
     }
     if (extra.length) return null;
     if (kind === 'icons') return icons(rom, id, leaf);
@@ -180,13 +210,17 @@ function maps(rom, name, leaf) {
     if (!/^[0-9a-f]{1,2}$/i.test(name)) return null;
     const id = parseInt(name, 16);
     if (id >= MAX_ROOMS) return null;
-    if (leaf === undefined) return dir([['info.md', 'file'], ['header.json', 'file'], ['render.png', 'file'], ['scripts', 'dir']], () => roomMarkdown(rom, id));
+    if (leaf === undefined) return dir([['info.md', 'file'], ['header.json', 'file'], ['render.png', 'file'], ['scripts', 'dir'], ['tiles', 'dir'], ['metatiles', 'dir']], () => roomMarkdown(rom, id));
     if (leaf === 'header.json') return json(() => plain(decodeRoom(rom, id).header));
     if (leaf === 'render.png') return file(() => encodePng(renderRoomComposite(rom, decodeRoom(rom, id))));
     if (leaf === 'info.md') return text(() => roomMarkdown(rom, id));
     if (leaf === 'scripts') {
         const { resolveScripts } = require('./script-files');
         return resolveScripts(['rooms', hexId(id, 2)], rom);
+    }
+    if (leaf === 'tiles' || leaf === 'metatiles') {
+        const { resolveRoomTiles } = require('./tile-files');
+        return resolveRoomTiles(decodeRoom(rom, id), rom, undefined);
     }
     return null;
 }
@@ -201,12 +235,12 @@ function roomMarkdown(rom, id) {
 | Area | ${getMapArea(id) || '?'} |
 | Size | ${h.widthTiles}×${h.heightTiles} cells |
 | Blob | file offset \`$${hexId(d.romPointerFile, 6)}\`, bus \`$${hexId(d.romPointerSnes, 6)}\` |
-| Metatiles | ${d.metatileCount} |
+| Metatiles | ${d.metatileCount} ([tiles/](tiles/index.md)) |
 | Tile families | ${d.tileFamilies.join(', ')} |
 | Objects | ${d.objects.length} |
 | Triggers | ${d.triggers.stepOn.length} step-on, ${d.triggers.bTrigger.length} B-button |
 
-[header.json](header.json) | [scripts/](scripts/index.md)
+[header.json](header.json) | [scripts/](scripts/index.md) | [tiles/](tiles/index.md)
 
 ![Room ${hexId(id, 2)}](render.png)
 `;

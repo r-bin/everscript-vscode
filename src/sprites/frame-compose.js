@@ -29,6 +29,7 @@ function composeAligned(rom, vmFrames, colours, colours2) {
     const width = Math.max(1, originX + right);
     const height = Math.max(1, originY + below);
 
+    const buffers = [];
     const images = composed.map((c) => {
         const data = new Uint8Array(width * height * 4);
         const dx = originX - c.originX;
@@ -46,10 +47,12 @@ function composeAligned(rom, vmFrames, colours, colours2) {
                 data[o + 3] = 255;
             }
         }
-        return 'data:image/png;base64,' + encodePng({ width, height, data }).toString('base64');
+        const pngBuf = encodePng({ width, height, data });
+        buffers.push({ pngBuf, rgba: data });
+        return 'data:image/png;base64,' + pngBuf.toString('base64');
     });
 
-    return { width, height, originX, originY, images, infos };
+    return { width, height, originX, originY, images, buffers, infos };
 }
 
 module.exports = { composeAligned };

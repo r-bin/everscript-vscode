@@ -43,8 +43,13 @@ binds the same key and wins on extension load order; a user keybinding
 | `nodes.js` | the `dir` / `file` / `link` shapes handlers return |
 | `autoindex.js` | the `index.md` of a directory without its own: links + image gallery |
 | `bus-files.js` | `soe://bus/`: maps a bus address to its `ram/` or `rom/` file (no data of its own) |
-| `rom-files.js` | `soe://rom/`: `rom.sfc`, `header.json`, offset slices, `<offset>.json` |
+| `rom-files.js` | `soe://rom/`: `rom.sfc`, `header.json`, offset slices, `<offset>.json`, top-level aliases |
 | `rom-assets.js` | `soe://rom/assets/`: icons, items by name, alchemy, strings, maps |
+| `character-files.js` | `characters/`, `animations/`: records, sprites, animation GIFs, frames, tile blocks |
+| `tile-files.js` | `assets/tiles/`: 16×16 CHR tile graphics table ($EE0000); room metatile atlas/tiles |
+| `audio-files.js` | `audio/`: music tracks, playable `.spc` snapshots, sound effects, descriptors |
+| `table-files.js` | `tables/`: engine lookup and pointer tables with `data.bin` and `data.json` |
+| `gif.js` | pure GIF89a encoder for animated character and sprite sequences |
 | `ram-files.js` | `soe://ram/`: `status.json`, `wram.bin`, slices, `<addr>.json`, flags, symbols |
 | `webview.js` | `soeResourceRoots`, `rewriteSoeUrls`, `soeClientScript` for any webview |
 | `check-panel.js` | `Everscript: Check soe:// Resources`, the feature's acceptance check |

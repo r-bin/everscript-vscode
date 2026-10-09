@@ -406,6 +406,173 @@ test('provider: script VFS decodes by room (enter, step-on, b-trigger, room inde
     fsp.dispose();
 }, true);
 
+test('provider: characters VFS decodes records, sprite PNG, palette, and GIF animation', async () => {
+    const fsp = new SoeFileSystem({ vanillaRom: () => rom, emulatorRom: () => null, romFile: () => null, readMemory, emulatorStatus: async () => ({}) });
+
+    // Characters index
+    const charList = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/assets/characters/index.json'))).toString('utf8'));
+    assert.strictEqual(charList.length, 142);
+    assert.strictEqual(charList[0].id, '00');
+    assert.strictEqual(charList[0].name, '<Boy Name>');
+
+    // Character 0 info.json and info.md
+    const boyInfo = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/assets/characters/00/info.json'))).toString('utf8'));
+    assert.strictEqual(boyInfo.id, 0);
+    assert.strictEqual(boyInfo.stats.hp, 30);
+    assert.ok(boyInfo.anims.length > 0);
+
+    const boyMd = Buffer.from(await fsp.readFile(uri('soe://rom/assets/characters/00/info.md'))).toString('utf8');
+    assert.match(boyMd, /# Character 00/);
+    assert.match(boyMd, /sprite\.png/);
+
+    // Sprite PNG
+    const spritePng = await fsp.readFile(uri('soe://rom/assets/characters/00/sprite.png'));
+    assert.strictEqual(spritePng.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+
+    // Palette JSON
+    const pal = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/assets/characters/00/palette.json'))).toString('utf8'));
+    assert.strictEqual(pal.colors.length, 16);
+
+    // Animated GIF via direct shortcut and full path
+    const gifShortcut = await fsp.readFile(uri('soe://rom/assets/characters/00/w_walk.gif'));
+    assert.strictEqual(gifShortcut.subarray(0, 6).toString('ascii'), 'GIF89a');
+
+    const gifFull = await fsp.readFile(uri('soe://rom/assets/characters/00/animations/w_walk/animation.gif'));
+    assert.strictEqual(gifFull.subarray(0, 6).toString('ascii'), 'GIF89a');
+
+    fsp.dispose();
+}, true);
+
+test('provider: animation frames folder, frame PNG/JSON, and tiles folder with sprite blocks', async () => {
+    const fsp = new SoeFileSystem({ vanillaRom: () => rom, emulatorRom: () => null, romFile: () => null, readMemory, emulatorStatus: async () => ({}) });
+
+    // Frames directory
+    const frameEntries = fsp.readDirectory(uri('soe://rom/assets/characters/00/animations/w_walk/frames'));
+    assert.ok(frameEntries.some(([name]) => name === '00.png'));
+    assert.ok(frameEntries.some(([name]) => name === '00.json'));
+
+    // Frame 00 PNG
+    const f0Png = await fsp.readFile(uri('soe://rom/assets/characters/00/animations/w_walk/frames/00.png'));
+    assert.strictEqual(f0Png.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+
+    // Frame 00 JSON
+    const f0Json = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/assets/characters/00/animations/w_walk/frames/00.json'))).toString('utf8'));
+    assert.strictEqual(f0Json.frameIndex, 0);
+    assert.ok(Array.isArray(f0Json.chunks));
+
+    // Animation script bytecode
+    const scriptTxt = Buffer.from(await fsp.readFile(uri('soe://rom/assets/characters/00/animations/w_walk/script.txt'))).toString('utf8');
+    assert.ok(scriptTxt.length > 0);
+
+    // Animation tiles folder
+    const tileEntries = fsp.readDirectory(uri('soe://rom/assets/characters/00/animations/w_walk/tiles'));
+    assert.ok(tileEntries.some(([name]) => name.endsWith('.png')));
+    assert.ok(tileEntries.some(([name]) => name === 'index.json'));
+
+    const tileList = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/assets/characters/00/animations/w_walk/tiles/index.json'))).toString('utf8'));
+    assert.ok(tileList.length > 0);
+    const block0 = tileList[0].blockHex;
+
+    const blockPng = await fsp.readFile(uri(`soe://rom/assets/characters/00/animations/w_walk/tiles/${block0}.png`));
+    assert.strictEqual(blockPng.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+
+    fsp.dispose();
+}, true);
+
+test('provider: map tiles (CHR 16x16 PNG/BIN) and room metatiles (atlas, index)', async () => {
+    const fsp = new SoeFileSystem({ vanillaRom: () => rom, emulatorRom: () => null, romFile: () => null, readMemory, emulatorStatus: async () => ({}) });
+
+    // Global CHR tiles index.json
+    const tilesList = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/assets/tiles/index.json'))).toString('utf8'));
+    assert.strictEqual(tilesList.length, 6688);
+
+    // Tile 0000 PNG
+    const t0Png = await fsp.readFile(uri('soe://rom/assets/tiles/0000.png'));
+    assert.strictEqual(t0Png.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+
+    // Tile 0000 BIN (128 bytes)
+    const t0Bin = await fsp.readFile(uri('soe://rom/assets/tiles/0000.bin'));
+    assert.strictEqual(t0Bin.length, 128);
+
+    // Room metatiles atlas and dictionary
+    const atlasPng = await fsp.readFile(uri('soe://rom/assets/maps/00/metatiles/atlas.png'));
+    assert.strictEqual(atlasPng.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+
+    const metaDict = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/assets/maps/00/metatiles/index.json'))).toString('utf8'));
+    assert.ok(Array.isArray(metaDict) && metaDict.length > 0);
+
+    fsp.dispose();
+}, true);
+
+test('provider: audio VFS (music track, valid 66KB SPC snapshot, and sound effects)', async () => {
+    const fsp = new SoeFileSystem({ vanillaRom: () => rom, emulatorRom: () => null, romFile: () => null, readMemory, emulatorStatus: async () => ({}) });
+
+    // Music index
+    const musicList = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/assets/audio/music/index.json'))).toString('utf8'));
+    assert.strictEqual(musicList.length, 70);
+    assert.strictEqual(musicList[0].name, 'Main Title');
+
+    // Song info
+    const songInfo = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/assets/audio/music/00/info.json'))).toString('utf8'));
+    assert.strictEqual(songInfo.name, 'Main Title');
+    assert.strictEqual(songInfo.transferCount, 407);
+
+    // Playable SNES .spc file (0x10200 = 66,048 bytes)
+    const spcBuf = await fsp.readFile(uri('soe://rom/assets/audio/music/00/song.spc'));
+    assert.strictEqual(spcBuf.length, 0x10200);
+    assert.strictEqual(spcBuf.subarray(0, 19).toString('ascii'), 'SNES-SPCMUSIC:v0.10');
+
+    // Sounds index and info
+    const sfxList = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/assets/audio/sounds/index.json'))).toString('utf8'));
+    assert.ok(sfxList.length > 0);
+
+    const sfx02 = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/assets/audio/sounds/02/info.json'))).toString('utf8'));
+    assert.strictEqual(sfx02.name, 'Menu Wheel Turn');
+
+    fsp.dispose();
+}, true);
+
+test('provider: tables VFS (lookup and pointer tables with data.bin and data.json)', async () => {
+    const fsp = new SoeFileSystem({ vanillaRom: () => rom, emulatorRom: () => null, romFile: () => null, readMemory, emulatorStatus: async () => ({}) });
+
+    // Tables index
+    const tableList = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/tables/index.json'))).toString('utf8'));
+    assert.ok(tableList.length >= 27);
+    assert.ok(tableList.some((t) => t.slug === 'orbit_table_y'));
+
+    // Table info
+    const orbitInfo = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/tables/orbit_table_y/info.json'))).toString('utf8'));
+    assert.strictEqual(orbitInfo.addressHex, '$8088a3');
+    assert.strictEqual(orbitInfo.size, 128);
+
+    // Table raw data.bin
+    const orbitBin = await fsp.readFile(uri('soe://rom/tables/orbit_table_y/data.bin'));
+    assert.strictEqual(orbitBin.length, 128);
+
+    // Table decoded data.json
+    const orbitJson = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/tables/orbit_table_y/data.json'))).toString('utf8'));
+    assert.strictEqual(orbitJson.byteLength, 128);
+    assert.strictEqual(orbitJson.bytes.length, 128);
+
+    fsp.dispose();
+}, true);
+
+test('encodeGif: produces valid GIF89a with Netscape infinite loop and frame delays', () => {
+    const { encodeGif } = require('../../src/resources/gif');
+    const w = 8, h = 8;
+    const f1 = new Uint8Array(w * h * 4);
+    const f2 = new Uint8Array(w * h * 4);
+    f1[0] = 255; f1[3] = 255; // red pixel at (0,0)
+    f2[4] = 255; f2[7] = 255; // green pixel at (1,0)
+    const gif = encodeGif(w, h, [
+        { data: f1, ticks: 6 },
+        { data: f2, ticks: 12 },
+    ]);
+    assert.strictEqual(gif.subarray(0, 6).toString('ascii'), 'GIF89a');
+    assert.ok(gif.includes(Buffer.from('NETSCAPE2.0')));
+    assert.strictEqual(gif[gif.length - 1], 0x3b); // trailer
+});
+
 (async () => {
     for (const t of tests) {
         if (t.needsRom && !rom) { console.log('  - ' + t.name + ' (no test ROM)'); skipped++; continue; }

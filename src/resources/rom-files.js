@@ -22,12 +22,42 @@ const HEADER = 0xFFC0;
 function resolveRom(segments, rom) {
     const [head, ...rest] = segments;
     if (head === undefined) {
-        return dir([['index.md', 'file'], ['rom.sfc', 'file'], ['header.json', 'file'], ['assets', 'dir'], ['scripts', 'dir']]);
+        return dir([
+            ['index.md', 'file'],
+            ['rom.sfc', 'file'],
+            ['header.json', 'file'],
+            ['assets', 'dir'],
+            ['scripts', 'dir'],
+            ['characters', 'dir'],
+            ['audio', 'dir'],
+            ['tables', 'dir'],
+            ['tiles', 'dir'],
+        ]);
     }
     if (head === 'assets') return resolveAssets(rest, rom);
     if (head === 'scripts') {
         const { resolveScripts } = require('./script-files');
         return resolveScripts(rest, rom);
+    }
+    if (head === 'characters') {
+        const { resolveCharacters } = require('./character-files');
+        return resolveCharacters(rest, rom);
+    }
+    if (head === 'animations') {
+        const { resolveAnimations } = require('./character-files');
+        return resolveAnimations(rest, rom);
+    }
+    if (head === 'audio') {
+        const { resolveAudio } = require('./audio-files');
+        return resolveAudio(rest, rom);
+    }
+    if (head === 'tables') {
+        const { resolveTables } = require('./table-files');
+        return resolveTables(rest, rom);
+    }
+    if (head === 'tiles') {
+        const { resolveTiles } = require('./tile-files');
+        return resolveTiles(rest, rom);
     }
     if (rest.length === 0) {
         if (head === 'index.md') return text(() => indexMarkdown(rom));
@@ -114,7 +144,11 @@ Add \`?rom=vanilla\` to any path to read the configured vanilla ROM instead of t
 | [assets/icons/](assets/icons) | ring-menu icons by icon id |
 | [assets/ingredients/](assets/ingredients), [armor/](assets/armor), [consumables/](assets/consumables), [alchemy/](assets/alchemy) | icon.png + info.json per item, by name |
 | [assets/strings/](assets/strings) | in-game strings by index |
-| [assets/maps/](assets/maps) | rooms: info.md, header.json, render.png |
+| [assets/maps/](assets/maps) | rooms: info.md, header.json, render.png, tiles |
+| [characters/](characters) | all 142 characters: info.json, sprite.png, animations, GIFs |
+| [audio/](audio) | audio subsystem: music with .spc snapshots, sounds |
+| [tables/](tables) | engine and lookup tables with data.bin, data.json |
+| [assets/tiles/](assets/tiles) | master 16×16 CHR tile graphics table ($EE0000) |
 
 ![Wax](assets/ingredients/wax/icon.png)
 `;

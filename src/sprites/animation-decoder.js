@@ -97,7 +97,7 @@ function renderAnimation(rom, characterId, animOpt = {}, requestedFacing = FACIN
     const colours = paletteAddr ? paletteAt(rom, paletteAddr) : characterPalette(rom, characterId);
     // Harry and Vigor draw some chunks with their second palette (+0x0B).
     const colours2 = secondPalette(rom, characterId);
-    const { width, height, originX, originY, images, infos } = composeAligned(rom, run.frames, colours, colours2);
+    const { width, height, originX, originY, images, buffers, infos } = composeAligned(rom, run.frames, colours, colours2);
     // The second sprite slot (usually the shadow) as its own layer: it stays on the
     // ground while height lifts the main sprite.
     const shadow = run.frames.some((f) => f.sprite2 && f.sprite2 !== f.sprite)
@@ -108,6 +108,7 @@ function renderAnimation(rom, characterId, animOpt = {}, requestedFacing = FACIN
     for (let i = 0; i < images.length; i++) {
         const info = infos[i];
         const pngDataUri = images[i];
+        const bufInfo = buffers && buffers[i];
 
         // Format chunks list for inspection (matching SoETilesViewer style: 0x0000 @ -12, -31, flags 10)
         const chunkList = (info ? info.chunks : []).map((ch) => ({
@@ -128,6 +129,8 @@ function renderAnimation(rom, characterId, animOpt = {}, requestedFacing = FACIN
         frames.push({
             frameIndex: i,
             png: pngDataUri,
+            pngBuf: bufInfo ? bufInfo.pngBuf : null,
+            rgba: bufInfo ? bufInfo.rgba : null,
             ticks: f.ticks,
             spriteAddr: f.sprite || 0,
             spriteHex: f.sprite ? hex6(f.sprite) : '—',
