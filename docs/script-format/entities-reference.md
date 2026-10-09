@@ -21,7 +21,7 @@ SoETilesViewer's `characterdata.h`, verified field by field
 | Offset | Field | Used for |
 |---|---|---|
 | `+0x00` | name pointer (24-bit) | labels |
-| `+0x03` | AI script index (`JMP ($CBE0,X)`) | behaviour, not modelled |
+| `+0x03` | AI behaviour index (`JMP ($CBE0,X)`) | [enemy_ai.md](enemy_ai.md) — 15 routines |
 | `+0x05` | default entity flags | `0x0002` = INVINCIBLE (every townsperson), `0x0020` INACTIVE, `0x0400` PHASING. A spawn's own flags override |
 | `+0x09` | palette: an address in bank `$90` | §4 |
 | `+0x0D` | **radius** in pixels (`unknown0d` upstream) | body and hurt box (§5, §6). 0 = no body |
