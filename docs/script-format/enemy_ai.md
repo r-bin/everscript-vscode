@@ -220,9 +220,22 @@ $$\text{Opcode: } \mathtt{47}\ \langle dx \rangle\ \langle dy \rangle\ \langle w
 - If the geometry overlaps and the target is not invulnerable or already on cooldown, the hit connects.
 
 #### B. Projectiles (Opcode `0x4C`)
-Shooters and ranged enemies (e.g. Stone Cobra spit, Bone Buzzard feathers, Floating Fan wind) declare opcode `0x4C` in their attack animation:
-- Opcode `0x4C` spawns a projectile entity (`$90DCA4`) aimed at the target pointer stored in entity `+0x24` or launched along the attacker's facing vector.
-- The projectile flies according to its projectile behaviour record (`$900000 + id`), carrying its own collision box and damage values.
+18 characters in the ROM declare opcode `0x4C` in their attack animations to spawn projectiles:
+- **Guardbot** (both variants `#68`, `#69`): laser projectile (`$DB6E`)
+- **Magmar** (both encounters `#87`, `#140`): lava fireballs (`$DA66`, `$DA7E`)
+- **Sphere Bot** (`#128`): laser beam (`$DB56`)
+- **Dark Toaster** (`#139`): energy bolts (`$DB0E`, `$DB26`)
+- **Tar Skull** (`#105`): tar spit (`$AE07`)
+- **Hedgadillo** (`#57`): spine / quill projectile (`$1C24`)
+- **Timberdrake & Sterling** (`#76`, `#77`): breath projectile (`$0614`)
+- **Vigor** (`#82`): boomerang (`$DA36`)
+- **Greeble & Neo Greeble** (`#66`, `#67`): ranged spit (`$C10A`)
+- **Bad Boy** (`#58`): thrown projectile (`$483A`)
+- **Raptor** (`#89`, `#90`, `#110`, `#136`): saliva / projectile breath (`$CF24`)
+
+*(Note: Enemies like Stone Cobras and Bone Buzzards use close-range strike boxes `0x47`, while Floating Fans swoop with flying movement modes `mode $0440`; they do not fire `0x4C` projectiles.)*
+
+Opcode `0x4C` spawns a projectile entity (`$90DCA4`) aimed at the target pointer stored in entity `+0x24` or along the attacker's facing vector. The projectile flies according to its projectile behaviour record (`$900000 + id`), carrying its own collision box and damage values.
 
 #### C. Contact Damage (Charging Mode)
 Enemies that ram into the player (Lime Slime, Magmar rolling, Rimsala charging, Widowmaker leap) have animations that set entity mode bits:
@@ -272,7 +285,37 @@ The engine dispatches enemy behaviour through the jump table at **`$8FCBE0`** in
 
 ---
 
-## 5. Are Enemies Using a Script Language?
+## 5. What Determines the AI Script? Can It Be Set in WRAM or Is It Linked to the Character?
+
+### It is Linked to the Character Record in ROM
+The AI script executed by an entity is **not stored as an AI ID field in the entity's WRAM structure**. Instead, it is permanently linked to the character record:
+
+1. **Character Record in ROM (`$8EB678`):**
+   Each character definition (stride 74 bytes) has its behaviour word at offset `+0x03`.
+2. **Entity Record in WRAM:**
+   When an entity spawns (`$8FB0BA`), the engine writes the **character table byte offset** into **`entity +0x60`** in WRAM (`STA $0060,Y`):
+   - Boy: `+0x60` = `$0000` (`0 * 74`)
+   - Dog: `+0x60` = `$004A` (`1 * 74`)
+   - Wimpy Flower: `+0x60` = `$1F7A` (`109 * 74`)
+3. **The AI Dispatcher (`$8FCD17`):**
+   Every single frame that an entity runs AI, the dispatcher performs:
+   ```assembly
+   8FCD17  LDX $0060,Y      ; Read character record offset from WRAM (+0x60)
+   8FCD1A  LDA $8E0003,X    ; Long-read behavior word from ROM bank $8E!
+   8FCD1E  TAX              ; Behavior index (0, 2, 4, ..., 28)
+   8FCD2E  JMP ($CBE0,X)    ; Indirect jump through AI jump table
+   ```
+
+### Can it be modified in WRAM?
+- **You cannot directly write an AI routine number into WRAM**, because there is no `entity.ai_behavior` byte in WRAM. The dispatcher *always* executes `LDA $8E0003,X`, which hardcodes reading from **ROM Bank `$8E`**.
+- **You CAN change the character identity (`entity +0x60`) in WRAM:**
+  If you overwrite the word at `entity +0x60` in WRAM to point to a different character record in `$8EB678`, the dispatcher on the very next frame will read that new character's `+0x03` behaviour word from ROM and immediately start running the new AI routine.
+- **Scripted override (`attach_script`):**
+  Event scripts can temporarily commandeer an entity by setting state bits (`$0014,Y & $F000`). At `$8FCD0C`, the engine checks these bits and diverts execution away from the combat AI dispatcher to the scripted path interpreter (`$8FD2DA`).
+
+---
+
+## 6. Are Enemies Using a Script Language?
 
 **No. Enemy AI in Secret of Evermore does not run an interpreted script language.**
 
@@ -284,7 +327,7 @@ However, the confusion often arises because two other systems *do* use bytecode 
 
 ---
 
-## 6. Are They Using Pre-Compiled Waypoints to Move?
+## 7. Are They Using Pre-Compiled Waypoints to Move?
 
 **No. The ROM contains no pre-compiled waypoints, path nodes, or navigation meshes for standard enemies.**
 
@@ -301,7 +344,7 @@ Instead, enemies navigate using dynamic steering and vector calculations:
 
 ---
 
-## 7. Do They React to Anything Besides Proximity?
+## 8. Do They React to Anything Besides Proximity?
 
 Proximity is only the spatial trigger. Enemies react to numerous additional internal and external conditions:
 
@@ -328,7 +371,7 @@ Proximity is only the spatial trigger. Enemies react to numerous additional inte
 
 ---
 
-## 8. Is the Dog Sniffing an AI Script?
+## 9. Is the Dog Sniffing an AI Script?
 
 ### The Mechanics of Sniffing in the Companion AI (`AI 0x06`, `$8FD0A8`)
 Sniffing is **hardcoded into the Dog's native companion AI routine** (`AI 0x06` at `$8FD0A8`). It is not an Everscript bytecode script.
