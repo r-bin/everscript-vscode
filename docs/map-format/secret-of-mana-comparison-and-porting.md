@@ -2,18 +2,32 @@
 
 This document explains the internal architecture of **Secret of Mana (SoM)** maps, compares it with **Secret of Evermore (SoE)**, and provides an end-to-end technical assessment of **porting maps from Secret of Mana to Secret of Evermore**.
 
-Information here is synthesized from:
-- The standalone C++/Qt **SoM Editor Beta 1.24** binary (`SoM Editor Beta 1.24.exe`)
-- The **smkerz/secret-of-mana-hacking** reverse-engineering repository
-- The **Moppleton/SecretOfManaRandomizer** (`VanillaMapUtil.cs`) engine utilities
-- Enker's SNES ROM bank disassembly and memory maps (`darkwoodinc.com`)
-- The verified **`everscript` / `everscript-vscode`** room decoding and encoding pipeline (`docs/map-format/`)
+---
+
+## References & Authoritative Sources
+
+The technical specifications in this document are derived from reverse-engineering sources, disassembly notes, and randomizer implementations:
+
+1. **Moppleton / Secret of Mana Randomizer**:
+   - [`SomMapCompressor.cs`](https://github.com/Moppu/SecretOfManaRandomizer/blob/main/SoMRandomizer/processing/common/SomMapCompressor.cs): Full C# implementation of Mana's 2D spatial map decompressor and compressor.
+   - [`VanillaMapUtil.cs`](https://github.com/Moppu/SecretOfManaRandomizer/blob/main/SoMRandomizer/processing/common/VanillaMapUtil.cs): Loading and manipulating composite maps, piece references (`0xFE`/`0xFF`), objects, headers, and raster triggers.
+   - [`SomVanillaValues.cs`](https://github.com/Moppu/SecretOfManaRandomizer/blob/main/SoMRandomizer/processing/common/SomVanillaValues.cs): Constants for all 436 composite maps, boss object IDs, Mode 7 / Layer 2 rendering requirements, and door replacement indices.
+2. **Enker's Secret of Mana ROM & Memory Disassembly**:
+   - [`som-banks.txt`](http://www.darkwoodinc.com/~enker/misc/som-banks.txt): ROM bank-by-bank layout (Banks `$00` through `$1F`).
+   - [`som-memmap.txt`](http://www.darkwoodinc.com/~enker/misc/som-memmap.txt): Zero-page, WRAM (`$7E/$7F`), OAM, CGRAM, and Ring Menu memory map.
+   - [`banks.php`](http://www.darkwoodinc.com/~enker/banks.php) / [`somB.txt`](http://www.darkwoodinc.com/~enker/banks/somB.txt) / [`som2.txt`](http://www.darkwoodinc.com/~enker/banks/som2.txt): Bank `$0B` collision tables and Bank `$02` decompressors / boss AI.
+3. **smkerz Secret of Mana Tools**:
+   - [`smkerz/secret-of-mana-hacking`](https://github.com/smkerz/secret-of-mana-hacking): Excel/VBA tools for room decompression/compression (`RoomCompress.bas`), tileset extraction, and palette extraction.
+4. **Standalone Desktop Editor**:
+   - **SoM Editor Beta 1.24** (`SoM Editor Beta 1.24.exe`): Reverse-engineered Qt 6/C++ binary exposing `TabMap`, `TabTileset16`, `TabTileset8`, `TabCollision`, `TabDoor`, `TabEvent`, and Mode 7 Flammie tools.
+5. **Secret of Evermore Specification**:
+   - Verified room decoder and encoder in `everscript-vscode` ([`docs/map-format/room-reference.md`](room-reference.md), [`map_encoding.md`](map_encoding.md), [`map_collision_mechanics.md`](map_collision_mechanics.md)).
 
 ---
 
 ## 1. How Secret of Mana Maps Work
 
-In Secret of Mana, what the player perceives as a "room" or "map" is not a single flat grid. It is an assembled composite structure with distinct layers, reusable chunks, raster-scanned trigger tables, and bank-swapped tileset definitions.
+In Secret of Mana, what the player perceives as a "room" or "map" is an assembled composite structure with distinct layers, reusable chunks, raster-scanned trigger tables, and bank-swapped tileset definitions.
 
 ```
                   SECRET OF MANA MAP PIPELINE
@@ -57,7 +71,7 @@ Unlike games with a static matrix per area, Secret of Mana builds full maps out 
   Byte 3: (xPos << 1) | bit_0x100    (X coordinate on map, bit 0 = chunk ID bit 8)
   Byte 4: (yPos << 1) | bit_0x200    (Y coordinate on map, bit 0 = chunk ID bit 9)
   ```
-- **Dynamic Chunking**: The engine hides or reveals entire chunks based on story event flags. For example, a destroyed village, a drained palace, or an opened bridge does not require reloading a different map; the engine simply evaluates the piece's event flag range during composite assembly.
+- **Dynamic Chunking**: The engine hides or reveals entire chunks based on story event flags. For example, a destroyed village, a drained palace, or an opened bridge does not require reloading a different map; the engine evaluates the piece's event flag range during composite assembly.
 
 ### 1.2 Tileset Hierarchy (Tileset8 to Tileset16)
 
@@ -72,7 +86,53 @@ Secret of Mana enforces a strict two-tier metatile hierarchy:
      - Flip Y bit
      - Priority bit (Mode 1 tile priority)
 
-### 1.3 Collision Model (Bank $0B 4-Byte Segments)
+### 1.3 Map Headers, Objects & Boss Rendering Modes
+
+As documented in `SomVanillaValues.cs` and `VanillaMapUtil.cs`:
+- The pointer table at `0x87000` (`MAP_OBJECT_OFFSETS`) points to an object list for each composite map.
+- The **first 8 bytes** of the list form the **Map Header**:
+  - `tileset16`: Which 16×16 tileset definition to load.
+  - Palettes: Background and entity palette assignments.
+  - Music track ID.
+  - Flammie flight permission flag.
+- The remaining 8-byte entries define entity spawns and interactive objects.
+- **Rendering Modes**:
+  - Most bosses and maps run on standard Mode 1 compositing.
+  - Specific bosses require **dedicated Layer 2 rendering maps**: Wall Face (`88`), Doom's Wall (`97`), Watermelon (`110`), Snow Dragon (`115`), Red Dragon (`117`), Blue Dragon (`119`), Dark Lich (`121`).
+  - Specific bosses run in **Mode 7**: Lime Slime (`106`), Dread Slime (`124`), Mana Beast (`127`).
+
+### 1.4 The 2D Spatial Map Compression Algorithm (`SomMapCompressor.cs`)
+
+Secret of Mana uses a specialized 2D spatial run-length and sliding-window compression format for its map chunks:
+
+```
+                      SOM 2D COMPRESSION OPCODES
+
+   Byte Range         Operation
+   ──────────────────────────────────────────────────────────────────────────
+   0x00 .. 0xBF       Literal uncompressed metatile byte.
+   0xC0 .. 0xC7       Repeat 1..8 times: previous decoded byte (decomp - 1).
+   0xC8 .. 0xCF       Repeat 1..8 times: 2nd previous decoded byte (decomp - 2).
+   0xD0 .. 0xD7       Repeat 1..8 times: 3rd previous decoded byte (decomp - 3).
+   0xD8 .. 0xDF       Repeat 1..8 times: 4th previous decoded byte (decomp - 4).
+   0xE0 + param m     Copy from row above:
+                      - if m < 0x80: repeat (m+1) times copying (decomp - width).
+                      - if m >= 0x80: repeat (m%0x80 + 1) times copying (decomp - 2*width).
+   0xE1 .. 0xE7       Repeat 2..8 times: copy tile from row above (decomp - width).
+   0xE8 .. 0xEF + m   Pattern repeat from sliding buffer of previous 16 bytes.
+   0xF0 + param m     Sequential arithmetic run of length (m%0x80 + 1):
+                      - if m < 0x80: tile index increment (+1 per step).
+                      - if m >= 0x80: tile index decrement (-1 per step).
+   0xF1 .. 0xF7       Repeat 1..7 times: sequential tile increment (+1).
+   0xF8 .. 0xFF       Repeat 1..8 times: sequential tile decrement (-1).
+```
+
+This algorithm exploits 2D tilemap characteristics:
+1. **Horizontal runs**: Repeated ground tiles (`0xC0..0xDF`).
+2. **Vertical 2D coherence**: Repeating vertical walls or tree canopies by looking back exactly one or two full row strides (`0xE0..0xE7`).
+3. **Sequential tile structures**: Metatiles that form borders or roads numbered contiguously in ROM (`0xF0..0xFF`).
+
+### 1.5 Collision Model (Bank $0B 4-Byte Segments)
 
 Mana does not store collision geometry per grid cell on the map. Instead, collision is tied to the **16×16 metatile**:
 - Bank `$0B` contains a master array of **256 4-byte collision structs** at `$CB:0000` (loaded into WRAM at `$7FB800`).
@@ -83,7 +143,7 @@ Mana does not store collision geometry per grid cell on the map. Instead, collis
   - Return / stairs (`collision 0x16`)
   - Trigger designations
 
-### 1.4 Triggers and the Door Table
+### 1.6 Triggers and the Door Table
 
 In Mana, triggers are evaluated through a combination of **collision scanning** and a central **Door Table**:
 - **Raster-Order Triggers**: The engine scans tiles across the composite map from left to right, top to bottom. When it encounters a tile whose collision marks it as a trigger, it consumes the next 16-bit word from the map's trigger table:
@@ -94,12 +154,7 @@ In Mana, triggers are evaluated through a combination of **collision scanning** 
   - Target landing coordinates $(X, Y)$
   - Arrival layer (`Land on layer 2 when checked / Y Raw odd`)
   - Door animation flag (`X Raw bit 7`)
-
-### 1.5 Mode 7 World Map & Flammie
-
-Secret of Mana implements a dedicated SNES Mode 7 3D flight engine:
-- Full spherical world map tilemap and 4bpp Mode 7 tiles (Bank `$06`).
-- Dedicated tables for landable coordinates (`TabWorldMapLandable`), takeoff coordinates (`TabTakeOff`), and Mode 7 dragon sprite rendering (`TabTilesFlammie`, `TabSpriteFlammie`, `TabPaletteFlammie`).
+- **Door Replacement Rules**: In boss arenas, exit door tiles are dynamically overwritten with floor tiles (e.g. in `replacementDoorTileIndexes` in `VanillaMapUtil.cs`) to prevent escaping during combat.
 
 ---
 
@@ -111,6 +166,7 @@ While both games share the Square SNES engine lineage, Brian Fehdrau and Square 
 | :--- | :--- | :--- | :--- |
 | **Map Storage Unit** | **Composite Maps** formed by assembling reusable chunks (*Map Pieces*) from Banks `$0C..$0F`. | **127 Monolithic Room Blobs** (`0x00..0x7E`) with fixed $W \times H$ matrices. | SoE maps cannot dynamically swap chunks; SoE uses separate rooms or Section 3 map objects instead. |
 | **Metatile Packaging** | Independent Layer 1 and Layer 2 16×16 tile arrays. | **Stamp Dictionary** (`{layer1: canopy, layer2: terrain, collision}`). | In SoE, canopy, terrain, and collision are bound into an atomic 8-byte entry in a 32 KB WRAM window. |
+| **Compression Pipeline** | Single-stage 2D spatial opcode compressor (`SomMapCompressor.cs`) with row-above lookbacks. | Two-stage pipeline across 3 blocks: Markov model byte predictor + LZSS bitflag compression. | Evermore's compression is general-purpose data compression, while Mana's is tailored to 2D grid geometry. |
 | **VRAM Tile Budgets** | Bank-switched tileset pointers for 8×8 and 16×16 data. | **Strict 7 Tile-Family Limit** per room (slot 0 reserved for HUD). | SoE limits rooms to 7 palette families; adopting an 8th family requires sacrificing an existing one. |
 | **Collision Representation** | 1-byte collision index per 16×16 tile referencing Bank `$0B` (256 4-byte structs). | **16-bit Bitfield Word per Stamp**: 4 elevation planes, transparency, drift, entity gates, 16 slopes. | SoE decouples collision from graphics: identical tiles can have different elevations, passabilities, or conveyor speeds. |
 | **Trigger Mechanism** | Raster scan of collision tiles matching entries in a trigger list + Door Table (`$C83000`). | Explicit 6-byte **Bounding Boxes** in room header: `(y_min, x_min, y_max, x_max, script_id)`. | SoE triggers do not depend on tile placement; they are spatial rectangles evaluated against player coordinates. |
@@ -151,7 +207,7 @@ However, because the two engines store maps differently, conversion requires an 
 ### Step 1: Composite Flattening
 1. Select the base state of the Mana map (evaluate the initial event flag condition).
 2. Read the composite map's piece placement table (from `$85000` / `$85468`).
-3. Decompress each background piece (`0xFE` stream) and foreground piece (`0xFF` stream) via Mana's sliding-window decompressor.
+3. Decompress each background piece (`0xFE` stream) and foreground piece (`0xFF` stream) via `SomMapCompressor.DecodeMap()`.
 4. Paint them into a unified 2D grid of size $W \times H$ (in 16×16 metatiles).
 
 ### Step 2: Tile De-duplication and Stamp Generation
@@ -221,8 +277,8 @@ While visual geometry, collision, and basic transitions can be converted 100% au
 1. **Dynamic Chunk Swapping**:
    - Mana swaps pieces on the fly using event flags (e.g. before and after a boss destroys a room).
    - In Evermore, this cannot be done within a single room blob. You must export **two separate Evermore room IDs** and trigger a room transition script when the story flag flips.
-2. **Mode 7 World Map**:
-   - Mana's overworld cannot be imported as an Evermore room blob. It would need to be divided into segmented 2D region maps (similar to Evermore's Prehistoria, Antiqua, Gothica, and Omnitopia regions).
+2. **Mode 7 World Map & Mode 7 Bosses**:
+   - Mana's overworld and Mode 7 boss arenas (Lime Slime `106`, Dread Slime `124`, Mana Beast `127`) cannot be imported as an Evermore room blob. Overworld areas would need to be divided into segmented 2D region maps.
 3. **Multi-layer Bridge Traversal**:
    - Mana handles bridges through separate layer rendering or return collision codes (`0x16`).
    - In Evermore, multi-level bridges should be manually verified using Evermore's **Elevation Plane system** (Plane 0 under the bridge, Plane 1 over the bridge, with plane-swap ramps at the entrances).
