@@ -12,7 +12,7 @@ out an address or a base + offset:
 // today
 <0x4EB3> = 0d01;                       // in/test/crowd_control.evs
 MEMORY.BOY_CURRENT_HP = 0d01;          // via 02_ram.evs
-<BOY>[ATTRIBUTE.HP] = 0d01;            // entity + offset, as in <BOY>[ATTRIBUTE.X] (36 uses in in/)
+<BOY>[ATTRIBUTE.HP] = 0d01;            // entity + offset; <BOY>[ATTRIBUTE.X/Y] has 36 uses in in/
 
 // with tag names
 <boy.hp> = 0d01;
