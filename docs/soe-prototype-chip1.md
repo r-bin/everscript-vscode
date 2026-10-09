@@ -187,7 +187,7 @@ These hooks only run when `$0E65` ≠ 0:
 
 | Where | What |
 |---|---|
-| `$8E:E165` | **Coordinate HUD** for the active character: field `+$3C` (4 digits), map cell X `+$62` and Y `+$63` (3 digits each), and Z `+$18` (2 digits), drawn every frame |
+| `$8E:E165` | **Collision HUD** for the active character, drawn every frame in the lower right: the collision word under its feet (`+$3C`, 4 digits at x 160 / y 176, probably hex), Z/elevation (`+$18`, 2 digits at x 210 / y 176), and map cell X (`+$62`) and Y (`+$63`) (3 decimal digits at x 160 and x 200, y 192). The print helpers `$80:95C2` / `$80:9623` are in chip 0, so the font is unknown. |
 | `$8E:E75C` | **Sound test, music.** Hold Select and press Up/Down to step `$0E5F` through 74 music-table entries; the number is drawn on screen. On release, the track plays through `$8C:8442` → `$8C:828F`. |
 | `$8E:E7DB` | **Sound test, effects.** Select + Left/Right steps `$0E5B` through all 112 SFX entries and plays them through `$8C:8362` → `$8C:82E3` |
 | `$8E:DEFC` | Sets up an 11-entry HUD layout (`$0F62` = 11, `$0F66…` = 0, 2, … 20) when debug is on, and clears it when off |
@@ -557,3 +557,61 @@ rebuilt from the two ROM files with:
   song packages (`src/music/model/rom-audio.js`), sprite chunk lists (`src/maps/sprites.ts`);
 - the parameters given above: prototype character table `$8E:B69C` × 136 × 76, song packages from
   `$8A:E220`, cheat table `$8C:F865`.
+
+---
+
+## TL;DR
+
+Only what is new or different. Unchanged and merely relocated data is left out.
+
+**Completely new: a debug and cheat suite the final deleted (§3)**
+
+- A debug flag at `$7E:0E65` and **22 joypad-sequence cheats**:
+  - 99 of every ingredient, all formulas;
+  - all weapons, all armor, all charms and trade goods;
+  - HP 100 / 999 / halve;
+  - kill all enemies;
+  - save anywhere;
+  - level up;
+  - alchemy and weapon skill +1;
+  - cure status;
+  - edit the state of the nearest room object;
+  - debug level 2.
+
+  Their messages include *"Fine, have all the spells too..."*, *"Jerk!"* and *"Lots-O-Beads"*.
+- A **built-in sound test**: hold Select and use the d-pad to step through 74 music entries or 112 sound
+  effects, which play on release.
+- A **collision HUD** showing the collision word under the character's feet, its elevation, and its map
+  cell. The developers apparently tuned room collision with it.
+- A debug text window in the script trigger dispatcher, a "DB: +N EXPERIENCE." message on kills, and
+  an L/R-held movement path that is probably walk-through-walls.
+- **It's locked in this build.** The Debug ON/OFF sequence (hold A, tap Start 3×, then Start+A+Select)
+  lands on a stray `RTS` one byte before the real toggle. Setting `$7E:0E65` = 1 would enable all of it.
+
+**What this reveals about the retail game**
+
+- **Select (switch boy/dog) still runs through the cheat matcher.** Its table at `$8C:F216` holds just
+  that one entry. Retail has no cheat codes.
+- The string "DB: + … EXPERIENCE." survives in retail at `$8F:82FC`, with nothing referencing it.
+
+**An earlier game balance and cast (§4–§5)**
+
+- **No Dark Toaster.** The stronger second versions of Rat, Mechaduster, Tentacle and Tiny Tentacle are
+  also missing (136 characters against 142).
+- **The final bosses were swapped.** Carltron's Robot has 20,000 HP and Magmar 30,000; the final reverses
+  that. Eye of Rimsala has 10,000 HP instead of 6,000.
+- **Red Jelly Ball** has attack 45 instead of 110, defense 120 instead of 240, and gives 100 EXP instead
+  of 600. Mechaduster gives 50 EXP instead of 600. Aquagoth drops 1,000 talons; in the final it drops none.
+- **No Confound status.** Rat and Mad Monk have no status attacks.
+- Money is a 32-bit field.
+
+**Different music (§6)**
+
+- **Two songs don't exist yet**: final `0x04` and `0x05`. Every later song id is 2 lower.
+- Script music id 9 plays a different track.
+- Instrument samples are much larger. One shared by "In the Arena" and "Desert of Doom" is 8,967 B
+  against 2,181 B in the final; overall there is about 15 KB more music.
+- "Death of a Minotaur" has two fewer instruments.
+- Sound effects `$42–$4A` are in a different order, and one script sound is silent.
+
+**Unknowable from this chip:** maps, scripts, dialogue and the build date are on the five missing chips.
