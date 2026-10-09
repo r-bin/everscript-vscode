@@ -1163,6 +1163,9 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         canvas.style.top = emuY + 'px';
         const zLvlEl = document.getElementById('screen-zlevel');
         if (zLvlEl) zLvlEl.textContent = Math.round(zoomLevel * 100) + '%';
+        if (romLoaded && lastSampledPreState) {
+          renderExtendedMapAndOverlays(lastSampledPreState, canvas, extMapCanvas, extMapCtx, extEntCanvas, extEntCtx, extFgCanvas, extFgCtx, extOverCanvas, extOverCtx);
+        }
       }
 
       function zoomAt(nextZoom, cx, cy) {
