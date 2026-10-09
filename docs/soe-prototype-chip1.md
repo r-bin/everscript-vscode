@@ -371,18 +371,20 @@ ones:
 | `0x08` Southern Jungle, `0x24` Staff Roll, `0x2A` Fire Eyes, `0x3A` Regal Castle, `0x44` Final Battle | 786 → 642 |
 | `0x08` Southern Jungle | 939 → 741 |
 
-Other per-song changes (small records, probably sequence or instrument data):
+Other per-song changes. Most are track data, and most of those are **re-encoding, not new music**:
+where the prototype writes a repeated phrase out note by note, the final calls it with a repeat
+command (`F6 start end count …`). That makes the track shorter but plays the same notes (§6.5).
 
 | Final song | Change |
 |---|---|
-| `0x2E` Death of a Minotaur | **+4,419 B**: two new samples (2,082 and 2,127 B) plus extra small records. The prototype version has two fewer instruments. |
+| `0x2E` Death of a Minotaur | **+4,419 B**: two new samples (2,082 and 2,127 B) plus extra small records. Same notes; the instruments were redone (§6.5). |
 | `0x07` Swamplands | two small record pairs removed (−19 B) |
-| `0x2F` Fields of Gothica | 150 → 151 and 154 → 58 |
-| `0x3A` Regal Castle | 127 + 122 → 30 + 30 |
-| `0x3B` Freak Show!!! | 566 + 517 → 488 + 439 |
-| `0x3C` Item Fanfare | 399 → 334 |
-| `0x3F` Dark Greenhouse | 192 + 194 → 33 + 35 |
-| `0x42` Collapse of Ivor Tower | 209/148/115/76 → 197/136/103/74 |
+| `0x2F` Fields of Gothica | track 7: 154 → 58, a written-out phrase replaced by a repeat. Track 1: one 1-byte → 2-byte edit. |
+| `0x3A` Regal Castle | 127 + 122 → 30 + 30 (not on this chip, so not examined) |
+| `0x3B` Freak Show!!! | 566 + 517 → 488 + 439, written-out repeats (`9b 0c cb` ×9 …) replaced by repeat commands |
+| `0x3C` Item Fanfare | 399 → 334, a phrase written out 7× replaced by a repeat |
+| `0x3F` Dark Greenhouse | 192 + 194 → 33 + 35: two tracks that spell out a 160-byte melody now call it instead |
+| `0x42` Collapse of Ivor Tower | 209/148/115/76 → 197/136/103/74. **A real change:** the prototype has an extra 12-byte phrase in three tracks, and a different 3-byte figure (×4) in the fourth. |
 
 The descriptor block is 25,814 bytes, against 26,420 in the final.
 
@@ -433,9 +435,18 @@ Unchanged records that sit off-chip are taken from retail.
 - Rebuilding retail songs with the same rules reproduces their packages byte for byte.
 - Retail songs pushed through the prototype re-layout render with envelope correlation 0.96–1.0
   against the real thing.
-- The five prototype songs match retail loudness, with envelope correlation 0.73–0.95. Their tracks
-  differ: Fields of Gothica, Item Fanfare, Dark Greenhouse and Collapse of Ivor Tower have
-  different-length tracks; Freak Show has two longer tracks plus 1–2-byte edits in three others.
+- The five prototype songs match retail loudness. Lined up in 10-second windows against retail:
+
+  | Song | Result | Audible? |
+  |---|---|---|
+  | Fields of Gothica | same timing, correlation 0.77–0.99 | no |
+  | Freak Show!!! | same, with a 40 ms drift from ~40 s | no |
+  | Item Fanfare | same, with a 40–60 ms drift | no |
+  | Dark Greenhouse | same timing, correlation 0.78–0.98 | no |
+  | Collapse of Ivor Tower | matches for ~20 s, then retail runs 2.4 s ahead and the offset keeps changing | **yes**: the prototype plays an extra passage |
+
+  So only Collapse of Ivor Tower is musically different. The other four differ in how the data is
+  stored, not in what plays.
 
 **`0x2E` Death of a Minotaur can't be rebuilt.** Its sequence is byte-identical to retail except for
 the instrument numbers: prototype `$6D`/`$6C` became retail `$74`/`$54`. Retail's versions of those
