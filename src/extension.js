@@ -1277,6 +1277,7 @@ function activate(context) {
     require('./resources').registerSoeResources(context, {
         vanillaRom: () => romReaders.loadRomBuffer(vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null, getExtConfig().romPath || ''),
         emulatorRom: () => emulatorPanel.getCurrentRom(),
+        romFile: romPath => romReaders.loadRomFile(romPath),
         readMemory: (addr, len) => emulatorPanel.readMemory(addr, len),
         emulatorStatus: () => emulatorPanel.getStatus(),
     });

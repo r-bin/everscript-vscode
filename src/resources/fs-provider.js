@@ -5,8 +5,9 @@
 // VS Code file-system answers. Aliases (`node.link`) stat as symlinks.
 //
 // Which ROM (`soe://rom/...`): `?rom=vanilla` is the configured ROM file,
-// `?rom=emulator` the one running in the emulator; without a query, the
-// emulator's when one runs, else vanilla.
+// `?rom=emulator` the one running in the emulator, `?rom=<absolute path>` that
+// file (a ROM opened as a folder); without a query, the emulator's when one
+// runs, else vanilla.
 
 const vscode = require('vscode');
 const { parseSoeParts } = require('../shared/resource-uri');
@@ -28,6 +29,7 @@ class SoeFileSystem {
      * @param {object} deps
      * @param {() => Uint8Array|null} deps.vanillaRom
      * @param {() => Uint8Array|null} deps.emulatorRom
+     * @param {(path: string) => Uint8Array|null} deps.romFile
      * @param {(bus: number, len: number) => Promise<Uint8Array>} deps.readMemory
      * @param {() => Promise<object>} deps.emulatorStatus
      */
@@ -87,10 +89,11 @@ class SoeFileSystem {
         if (which === 'vanilla') rom = this._deps.vanillaRom();
         else if (which === 'emulator') rom = this._deps.emulatorRom();
         else if (which === null) rom = this._deps.emulatorRom() || this._deps.vanillaRom();
-        else throw vscode.FileSystemError.FileNotFound(`${uri.toString()} (rom=${which}: use vanilla or emulator)`);
+        else if (isAbsolutePath(which)) rom = this._deps.romFile(which);
+        else throw vscode.FileSystemError.FileNotFound(`${uri && uri.toString()} (rom=${which}: use vanilla, emulator or an absolute path)`);
         if (!rom) {
-            throw vscode.FileSystemError.Unavailable(which === 'emulator'
-                ? 'No ROM is running in the emulator'
+            throw vscode.FileSystemError.Unavailable(which === 'emulator' ? 'No ROM is running in the emulator'
+                : isAbsolutePath(which) ? `ROM not readable: ${which}`
                 : 'ROM not found: set everscript.romPath');
         }
         return rom instanceof Uint8Array ? rom : new Uint8Array(rom);
@@ -201,6 +204,11 @@ class SoeFileSystem {
     writeFile(uri) { throw vscode.FileSystemError.NoPermissions(uri); }
     delete(uri) { throw vscode.FileSystemError.NoPermissions(uri); }
     rename(uri) { throw vscode.FileSystemError.NoPermissions(uri); }
+}
+
+/** `/Users/…/x.smc` or `C:\\…\\x.smc`: a `?rom=` naming a ROM file. */
+function isAbsolutePath(s) {
+    return typeof s === 'string' && (s.startsWith('/') || /^[A-Za-z]:[\\/]/.test(s));
 }
 
 function fileType(kind) {

@@ -223,6 +223,17 @@ test('provider: ?rom= picks the ROM; default prefers the emulator', async () => 
     await assert.rejects(fsp.readFile(uri('soe://rom/header.json?rom=nope')), e => e.code === 'FileNotFound');
 }, true);
 
+test('provider: ?rom=<absolute path> reads that ROM file (Open ROM as Folder)', async () => {
+    const { loadRomFile } = require('../../src/shared/rom-readers');
+    const fsp = new SoeFileSystem({ vanillaRom: () => null, emulatorRom: () => null, romFile: loadRomFile, readMemory });
+    const q = '?' + new URLSearchParams({ rom: romPath }).toString();
+    const title = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/header.json' + q)))).title;
+    assert.ok(title.startsWith('SECRET OF EVERMORE'), title);
+    assert.ok(fsp.readDirectory(uri('soe://rom/' + q)).some(([n]) => n === 'assets'));
+    const missing = '?' + new URLSearchParams({ rom: '/no/such/rom.smc' }).toString();
+    await assert.rejects(fsp.readFile(uri('soe://rom/header.json' + missing)), e => e.code === 'Unavailable' && /not readable/.test(e.message));
+}, true);
+
 test('provider: stat, readDirectory, errors and read-only', async () => {
     const fsp = new SoeFileSystem({ vanillaRom: () => null, emulatorRom: () => null,
         readMemory: () => Promise.reject(new Error('The emulator is not open')) });

@@ -8,19 +8,26 @@ Spec: `docs/soe-filesystem-spec.md`.
 ```
 soe://rom/assets/ingredients/wax/icon.png              the cartridge (ROM)
 soe://rom/assets/ingredients/wax/icon.png?rom=vanilla  …from the configured ROM file
+soe://rom/?rom=/path/to/Some%20Rom.smc                 …from that file (Open ROM as Folder)
 soe://ram/0adb.json                                    the emulator's WRAM, live
 soe://bus/7e0adb                                       24-bit bus address → links to the above
 ```
 
 The authority names the memory, the path names what is read, `?rom=` names
 where it is read from (`vanilla` = `everscript.romPath`, `emulator` = the ROM
-running in the emulator; default: the emulator's when one runs, else vanilla).
+running in the emulator, an absolute path = that file; default: the emulator's
+when one runs, else vanilla).
+
+**Open ROM as Folder** (right-click a `.smc`/`.sfc` in the Explorer, or the
+button in an open ROM's editor title bar) mounts `soe://rom/?rom=<path>` as an extra workspace
+folder, so the ROM browses like a directory. VS Code cannot expand a file in
+place; remove it with *Remove Folder from Workspace*.
 
 ## Files
 
 | File | Owns |
 |---|---|
-| `index.js` | `registerSoeResources(context, deps)`: the provider and the two commands |
+| `index.js` | `registerSoeResources(context, deps)`: the provider and its commands (open, check, Open ROM as Folder) |
 | `fs-provider.js` | `SoeFileSystem`: routing, ROM choice, caching, live-file watch, errors |
 | `nodes.js` | the `dir` / `file` / `link` shapes handlers return |
 | `autoindex.js` | the `index.md` of a directory without its own: links + image gallery |

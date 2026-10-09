@@ -44,6 +44,24 @@ function resolveRomPath(wsRoot, romPathOverride = '') {
     return null;
 }
 
+// ROM files mounted as folders (`soe://rom/?rom=<path>`): one entry per path,
+// so a mount never evicts the workspace ROM above.
+const _fileCache = new Map();
+
+/** Load the ROM at an absolute path, cached by path and mtime. Null if unreadable. */
+function loadRomFile(romPath) {
+    try {
+        const mtime = fs.statSync(romPath).mtimeMs;
+        const hit = _fileCache.get(romPath);
+        if (hit && hit.mtime === mtime) return hit.buf;
+        const buf = fs.readFileSync(romPath);
+        _fileCache.set(romPath, { mtime, buf });
+        return buf;
+    } catch (_e) {
+        return null;
+    }
+}
+
 /** Drop the cached ROM buffer (call when the ROM path setting changes). */
 function invalidateRomBuffer() { _romCache = null; }
 
@@ -307,6 +325,7 @@ function detectScaleEnemies(wsRoot, docPath) {
 }
 
 module.exports = {
+    loadRomFile,
     readPngDimensions,
     readRomTriggerOffsets,
     readRomMapHeader,

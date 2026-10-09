@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.182.0",
+  "version": "0.183.0",
   "publisher": "rbin",
   "main": "./src/extension.js",
   "engines": {
@@ -23,6 +23,7 @@
     "onFileSystem:soe",
     "onCommand:everscript.checkSoeResources",
     "onCommand:everscript.openSoeResource",
+    "onCommand:everscript.openRomAsFolder",
     "onStartupFinished",
     "onMcpCollection:everscript-soe"
   ],
@@ -243,6 +244,12 @@
         "command": "everscript.openSoeResource",
         "title": "Open soe:// Resource…",
         "category": "Everscript"
+      },
+      {
+        "command": "everscript.openRomAsFolder",
+        "title": "Open ROM as Folder",
+        "category": "Everscript",
+        "icon": "$(file-zip)"
       }
     ],
     "problemMatchers": [
@@ -282,6 +289,20 @@
           "when": "editorLangId == everscript",
           "command": "everscript.openMemoryRadar",
           "group": "navigation@30"
+        }
+      ],
+      "explorer/context": [
+        {
+          "when": "resourceScheme == file && resourceExtname =~ /^\\.(smc|sfc)$/i",
+          "command": "everscript.openRomAsFolder",
+          "group": "navigation@90"
+        }
+      ],
+      "editor/title": [
+        {
+          "when": "resourceScheme == file && resourceExtname =~ /^\\.(smc|sfc)$/i",
+          "command": "everscript.openRomAsFolder",
+          "group": "navigation"
         }
       ]
     },

@@ -19,7 +19,7 @@ soe://ram/0adb.json                                    the running game's WRAM
 
 - **Authority = which memory.** `rom` is the cartridge, `ram` the emulator's WRAM, `bus` the 24-bit CPU bus. `bus` holds no data: each address links to its `ram/` or `rom/` file. `vram`, `cgram`, `oam` and `aram` are reserved for later (§5).
 - **Path = what is read.** Every number is hex without `$`. The file extension chooses the representation (§2).
-- **Query = where from.** `?rom=vanilla` reads `everscript.romPath`, and `?rom=emulator` reads the ROM running in the emulator. Without a query, the emulator's ROM is used when one runs, otherwise vanilla. `ram` reads always come from the running emulator. A save-state source (`?state=`) is a possible later addition.
+- **Query = where from.** `?rom=vanilla` reads `everscript.romPath`, `?rom=emulator` reads the ROM running in the emulator, and `?rom=<absolute path>` reads that file (how *Open ROM as Folder* mounts a `.smc` in the Explorer). Without a query, the emulator's ROM is used when one runs, otherwise vanilla. `ram` reads always come from the running emulator. A save-state source (`?state=`) is a possible later addition.
 - **Read-only.** Every write operation throws `NoPermissions`.
 - **Like a classic VFS.**
   - Every directory has an `index.md`: links, plus a gallery for images.
