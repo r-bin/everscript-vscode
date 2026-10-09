@@ -204,6 +204,7 @@ function extractCell(image, col, row, cell) {
 }
 
 module.exports = {
+    getAnimationSchedule,
     renderRoomAnimationGif,
     renderMetatileAtlasAnimationGif,
     renderMetatileAnimationGif,

@@ -145,10 +145,18 @@ test('rom/header.json, slices and strings decode', async () => {
     assert.ok((await read(resolveRom(['assets', 'strings', '0540.txt'], rom))).length > 1);
 }, true);
 
-test('rom/assets/maps/38 has info, header, render and animation.gif', async () => {
+test('rom/assets/maps/38 has info, header, render, layers, collision and animation.gif', async () => {
     assert.match(String(await read(resolveRom(['assets', 'maps', '38', 'info.md'], rom))), /^# Room 38/);
     const png = await read(resolveRom(['assets', 'maps', '38', 'render.png'], rom));
     assert.strictEqual(png.subarray(1, 4).toString(), 'PNG');
+    const l1 = await read(resolveRom(['assets', 'maps', '38', 'layer1.png'], rom));
+    assert.strictEqual(l1.subarray(1, 4).toString(), 'PNG');
+    const l2 = await read(resolveRom(['assets', 'maps', '38', 'layer2.png'], rom));
+    assert.strictEqual(l2.subarray(1, 4).toString(), 'PNG');
+    const col = await read(resolveRom(['assets', 'maps', '38', 'collision.png'], rom));
+    assert.strictEqual(col.subarray(1, 4).toString(), 'PNG');
+    const colGif = await read(resolveRom(['assets', 'maps', '38', 'collision.gif'], rom));
+    assert.strictEqual(colGif.subarray(0, 6).toString('ascii'), 'GIF89a');
     const gif = await read(resolveRom(['assets', 'maps', '38', 'animation.gif'], rom));
     assert.strictEqual(gif.subarray(0, 6).toString('ascii'), 'GIF89a');
     assert.strictEqual(resolveRom(['assets', 'maps', '7f'], rom), null);
@@ -541,14 +549,36 @@ test('provider: map tiles (CHR 16x16 PNG/BIN) and room metatile composition fold
     assert.strictEqual(m0Layer1.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
     const m0Layer2 = await fsp.readFile(uri('soe://rom/assets/maps/00/metatiles/000/layer2.png'));
     assert.strictEqual(m0Layer2.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+    const m0Col = await fsp.readFile(uri('soe://rom/assets/maps/00/metatiles/000/collision.png'));
+    assert.strictEqual(m0Col.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
 
-    // Room 00 full animated GIF
+    // Metatile 001 (solid collision) has collision.png
+    const m1Col = await fsp.readFile(uri('soe://rom/assets/maps/00/metatiles/001/collision.png'));
+    assert.strictEqual(m1Col.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+
+    // Room 00 full animated GIF and layer GIFs
     const mapGif = await fsp.readFile(uri('soe://rom/assets/maps/00/animation.gif'));
     assert.strictEqual(mapGif.subarray(0, 6).toString('ascii'), 'GIF89a');
+    const l1Gif = await fsp.readFile(uri('soe://rom/assets/maps/00/layer1.gif'));
+    assert.strictEqual(l1Gif.subarray(0, 6).toString('ascii'), 'GIF89a');
+    const l2Gif = await fsp.readFile(uri('soe://rom/assets/maps/00/layer2.gif'));
+    assert.strictEqual(l2Gif.subarray(0, 6).toString('ascii'), 'GIF89a');
+    const cGif = await fsp.readFile(uri('soe://rom/assets/maps/00/collision.gif'));
+    assert.strictEqual(cGif.subarray(0, 6).toString('ascii'), 'GIF89a');
 
-    // Room 00 metatiles atlas animated GIF
+    // Room 00 layer PNGs and collision PNG
+    const l1Png = await fsp.readFile(uri('soe://rom/assets/maps/00/layer1.png'));
+    assert.strictEqual(l1Png.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+    const l2Png = await fsp.readFile(uri('soe://rom/assets/maps/00/layer2.png'));
+    assert.strictEqual(l2Png.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+    const cPng = await fsp.readFile(uri('soe://rom/assets/maps/00/collision.png'));
+    assert.strictEqual(cPng.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+
+    // Room 00 metatiles atlas animated GIF and collision atlas PNG
     const atlasGif = await fsp.readFile(uri('soe://rom/assets/maps/00/metatiles/atlas.gif'));
     assert.strictEqual(atlasGif.subarray(0, 6).toString('ascii'), 'GIF89a');
+    const atlasCol = await fsp.readFile(uri('soe://rom/assets/maps/00/metatiles/atlas_collision.png'));
+    assert.strictEqual(atlasCol.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
 
     // Metatile 002 (animated metatile) has animation.gif
     const m2Gif = await fsp.readFile(uri('soe://rom/assets/maps/00/metatiles/002/animation.gif'));

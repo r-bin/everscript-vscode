@@ -215,7 +215,14 @@ function maps(rom, name, leaf) {
             ['info.md', 'file'],
             ['header.json', 'file'],
             ['render.png', 'file'],
+            ['render.gif', 'file'],
             ...(hasAnim ? [['animation.gif', 'file']] : []),
+            ['layer1.png', 'file'],
+            ['layer1.gif', 'file'],
+            ['layer2.png', 'file'],
+            ['layer2.gif', 'file'],
+            ['collision.png', 'file'],
+            ['collision.gif', 'file'],
             ['scripts', 'dir'],
             ['tiles', 'dir'],
             ['metatiles', 'dir'],
@@ -227,6 +234,30 @@ function maps(rom, name, leaf) {
     if (leaf === 'animation.gif' || leaf === 'render.gif') {
         const { renderRoomAnimationGif } = require('./map-animation');
         return file(() => renderRoomAnimationGif(rom, d));
+    }
+    if (leaf === 'layer1.png') {
+        const { renderRoomLayer } = require('./map-layers');
+        return file(() => encodePng(renderRoomLayer(rom, d, 'layer1')));
+    }
+    if (leaf === 'layer1.gif') {
+        const { renderRoomLayerGif } = require('./map-layers');
+        return file(() => renderRoomLayerGif(rom, d, 'layer1'));
+    }
+    if (leaf === 'layer2.png') {
+        const { renderRoomLayer } = require('./map-layers');
+        return file(() => encodePng(renderRoomLayer(rom, d, 'layer2')));
+    }
+    if (leaf === 'layer2.gif') {
+        const { renderRoomLayerGif } = require('./map-layers');
+        return file(() => renderRoomLayerGif(rom, d, 'layer2'));
+    }
+    if (leaf === 'collision.png') {
+        const { renderRoomCollision } = require('./map-layers');
+        return file(() => encodePng(renderRoomCollision(d)));
+    }
+    if (leaf === 'collision.gif') {
+        const { renderRoomCollisionGif } = require('./map-layers');
+        return file(() => renderRoomCollisionGif(d));
     }
     if (leaf === 'info.md') return text(() => roomMarkdown(rom, id));
     if (leaf === 'scripts') {
@@ -245,7 +276,6 @@ function roomMarkdown(rom, id) {
     const h = d.header;
     const hasAnim = d.animation && d.animation.length > 0;
     const animRow = hasAnim ? `| Animated tiles | ${d.animation.length} channels ([animation.gif](animation.gif)) |\n` : '';
-    const animLink = hasAnim ? ' | [animation.gif](animation.gif)' : '';
     const visual = hasAnim
         ? `![Room ${hexId(id, 2)} (Animated)](animation.gif)\n\n*(Static view: [render.png](render.png))*`
         : `![Room ${hexId(id, 2)}](render.png)`;
@@ -262,8 +292,14 @@ function roomMarkdown(rom, id) {
 ${animRow}| Objects | ${d.objects.length} |
 | Triggers | ${d.triggers.stepOn.length} step-on, ${d.triggers.bTrigger.length} B-button |
 
-[header.json](header.json) | [scripts/](scripts/index.md) | [tiles/](tiles/index.md)${animLink}
+[header.json](header.json) | [scripts/](scripts/index.md) | [tiles/](tiles/index.md) | [metatiles/](metatiles/index.md)
 
+## Layers
+
+| Composite | Layer 1 (Canopy) | Layer 2 (Terrain) | Collision |
+|:---:|:---:|:---:|:---:|
+| [render.png](render.png) | [layer1.png](layer1.png) | [layer2.png](layer2.png) | [collision.png](collision.png) |
+${hasAnim ? '| [animation.gif](animation.gif) | [layer1.gif](layer1.gif) | [layer2.gif](layer2.gif) | [collision.gif](collision.gif) |\n' : ''}
 ${visual}
 `;
 }

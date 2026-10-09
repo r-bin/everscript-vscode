@@ -210,9 +210,9 @@ function metatileMarkdown(room, m) {
 **Usage**: ${c.uses} cell${c.uses === 1 ? '' : 's'} in room ${c.roomHex}
 **Collision**: \`${c.collision.word}\` (${geomLabel})
 
-| Composite | Layer 1 (Canopy) | Layer 2 (Terrain)${animHeader} |
-|:---:|:---:|:---:${animAlign}|
-| ![Composite](render.png) | ![Layer 1](layer1.png) | ![Layer 2](layer2.png)${animCell} |
+| Composite | Layer 1 (Canopy) | Layer 2 (Terrain) | Collision${animHeader} |
+|:---:|:---:|:---:|:---:${animAlign}|
+| ![Composite](render.png) | ![Layer 1](layer1.png) | ![Layer 2](layer2.png) | ![Collision](collision.png)${animCell} |
 
 ## Tilemap Layers
 
@@ -233,7 +233,7 @@ function metatileMarkdown(room, m) {
 ${animNote}- **Drift Vector**: ${c.collision.drift.name || 'None'}
 - **Entity Gate**: ${c.collision.entityGate >= 0 ? c.collision.entityGate : 'None'}
 
-[info.json](info.json) | [render.png](render.png)${c.animated ? ' | [animation.gif](animation.gif)' : ''}
+[info.json](info.json) | [render.png](render.png) | [layer1.png](layer1.png) | [layer2.png](layer2.png) | [collision.png](collision.png)${c.animated ? ' | [animation.gif](animation.gif)' : ''}
 `;
 }
 
@@ -252,6 +252,9 @@ function resolveRoomTiles(room, rom, subSegments) {
             ['index.json', 'file'],
             ['atlas.png', 'file'],
             ...(hasAnim ? [['atlas.gif', 'file']] : []),
+            ['atlas_layer1.png', 'file'],
+            ['atlas_layer2.png', 'file'],
+            ['atlas_collision.png', 'file'],
             ...table.map((m) => [hexId(m.index, 3), 'dir']),
         ];
         return dir(entries, () => [
@@ -275,6 +278,19 @@ function resolveRoomTiles(room, rom, subSegments) {
     if (name === 'atlas.gif') {
         const { renderMetatileAtlasAnimationGif } = require('./map-animation');
         return file(() => renderMetatileAtlasAnimationGif(rom, room));
+    }
+
+    if (name === 'atlas_layer1.png' || name === 'layer1.png') {
+        return file(() => encodePng(getRoomAtlas(rom, room, 'layer1').image));
+    }
+
+    if (name === 'atlas_layer2.png' || name === 'layer2.png') {
+        return file(() => encodePng(getRoomAtlas(rom, room, 'layer2').image));
+    }
+
+    if (name === 'atlas_collision.png' || name === 'collision.png') {
+        const { renderMetatileAtlasCollision } = require('./map-layers');
+        return file(() => encodePng(renderMetatileAtlasCollision(room).image));
     }
 
     // Direct metatile image request: 000.png (for backwards compatibility)
@@ -306,6 +322,8 @@ function resolveRoomTiles(room, rom, subSegments) {
             ...(animInfo.animated ? [['animation.gif', 'file']] : []),
             ['layer1.png', 'file'],
             ['layer2.png', 'file'],
+            ['collision.png', 'file'],
+            ['collision.gif', 'file'],
         ];
         return dir(entries, () => metatileMarkdown(room, m));
     }
@@ -316,6 +334,15 @@ function resolveRoomTiles(room, rom, subSegments) {
     if (leaf === 'animation.gif') return file(() => renderMetatileAnimationGif(rom, room, idx));
     if (leaf === 'layer1.png') return file(() => renderSingleMetatile(rom, room, idx, 'layer1'));
     if (leaf === 'layer2.png') return file(() => renderSingleMetatile(rom, room, idx, 'layer2'));
+    if (leaf === 'collision.png') {
+        const { renderMetatileCollision } = require('./map-layers');
+        return file(() => encodePng(renderMetatileCollision(room, idx)));
+    }
+    if (leaf === 'collision.gif') {
+        const { renderMetatileCollision } = require('./map-layers');
+        const { encodeGif } = require('./gif');
+        return file(() => encodeGif(16, 16, [{ data: renderMetatileCollision(room, idx).data, ticks: 60 }]));
+    }
 
     return null;
 }
