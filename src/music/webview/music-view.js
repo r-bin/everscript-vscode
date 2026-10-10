@@ -125,7 +125,29 @@ function muRuns(own) {
   return out;
 }
 
+// Voice allocation table for the Evermore driver SFX (primary stolen channels)
+var MU_SFX_VOICES = [
+  [7], [6,7], [6,7], [7], [7], [7], [7], [7], [7], [7], [6,7], [5,6,7], [5,6,7], [6,7], [7], [7],
+  [7], [7], [7], [5,6,7], [7], [7], [7], [5,6,7], [7], [7], [4,5,6,7], [7], [7], [3,4,5,6,7], [5,6,7], [4,5,6,7],
+  [6,7], [5,6,7], [6,7], [3,4,5,6,7], [3,4,5,6,7], [6,7], [3,4,5,6,7], [3,4,5,6,7], [5,6,7], [7], [7], [6,7], [7], [6,7], [6,7], [6,7],
+  [5,6,7], [6,7], [6,7], [7], [7], [6,7], [5,6,7], [6,7], [6,7], [5,6,7], [7], [6,7], [6,7], [7],
+  [7], [7], [7], [7], [5,6,7], [7], [7], [6,7], [5,6,7], [7], [7], [6,7], [6,7], [7], [7], [0,6],
+  [7], [7], [7], [7], [7], [7], [7], [7], [7], [6,7], [5,6,7], [7]
+];
+
+function muSfxVoices(sfxId) {
+  return MU_SFX_VOICES[sfxId] || [7];
+}
+
+/** Computes total bytes in a package layout: sum of record lengths. */
+function muPackageBytes(pkgLayout) {
+  if (!pkgLayout) return 0;
+  return pkgLayout.reduce(function (sum, r) { return sum + (r[1] || 0); }, 0);
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { muVoices: muVoices, muSemitones: muSemitones, muEcho: muEcho, muDecodeBrr: muDecodeBrr,
-    muInstruments: muInstruments, muOwners: muOwners, muRuns: muRuns, MU_OWNERS: MU_OWNERS };
+    muInstruments: muInstruments, muOwners: muOwners, muRuns: muRuns, MU_OWNERS: MU_OWNERS,
+    MU_SFX_VOICES: MU_SFX_VOICES, muSfxVoices: muSfxVoices, muPackageBytes: muPackageBytes };
 }
+

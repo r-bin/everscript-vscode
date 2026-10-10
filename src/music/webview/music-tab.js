@@ -19,10 +19,18 @@ var _music = {
   keyedPrev: 0,
   visible: false,
   layoutKey: '',
+  viewMode: 'timeline',            // 'timeline' or 'inspector'
+  muted: [false, false, false, false, false, false, false, false],
+  soloed: [false, false, false, false, false, false, false, false],
+  history: [],                     // timeline samples: { time, voices: [{ keyed, envx, pitch, st, start, inst, sfx }] }
+  hoverSfxId: -1,
+  activeSfxTriggered: {},          // sfxId -> { untilTime, voices: [] }
+  freeAramBytes: 0,
 };
 
 var MU_COLORS = ['#e5c07b', '#61afef', '#98c379', '#c678dd', '#e06c75', '#56b6c2', '#d19a66', '#a9b2c3'];
 var MU_OWNER_COLORS = { zp: '#5c6370', driver: '#7f8fd6', tables: '#b48ead', base: '#4f9d8f', song: '#d98a6c', data: '#e5c07b', echo: '#4d6a8f', ipl: '#5c6370' };
+
 
 function muHex(n, w) { return '$' + n.toString(16).toUpperCase().padStart(w, '0'); }
 function muEsc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -110,3 +118,199 @@ function muRenderVoices(cur, insts) {
   var sub = document.getElementById('mu-voices-sub');
   if (sub) sub.textContent = cur ? (function (n) { return n + ' of 8 sounding'; })(keyed.toString(2).replace(/0/g, '').length) : '';
 }
+
+function muRenderTimelineChannels() {
+  var box = document.getElementById('mu-tl-channels');
+  if (!box) return;
+  if (!box.firstChild) {
+    var html = '';
+    for (var v = 0; v < 8; v++) {
+      var badge = v >= 6 ? '<span class="mu-ch-badge mu-badge-sfx" title="Primary Sound Effects Voice">SFX</span>'
+        : (v >= 4 ? '<span class="mu-ch-badge mu-badge-shared" title="Music & Shared SFX">MIX</span>'
+        : '<span class="mu-ch-badge mu-badge-music" title="Music Voice">MUS</span>');
+      html += '<div class="mu-tl-ch" id="mu-tl-ch-' + v + '" data-tl-v="' + v + '">' +
+        '<span class="mu-ch-title">V' + v + '</span>' +
+        badge +
+        '<div class="mu-ch-btns">' +
+        '<button class="mu-mute-btn" data-tl-mute="' + v + '" title="Mute voice V' + v + '">M</button>' +
+        '<button class="mu-solo-btn" data-tl-solo="' + v + '" title="Solo voice V' + v + '">S</button>' +
+        '</div>' +
+        '</div>';
+    }
+    box.innerHTML = html;
+  }
+  for (var i = 0; i < 8; i++) {
+    var ch = document.getElementById('mu-tl-ch-' + i);
+    if (ch) {
+      var mBtn = ch.querySelector('[data-tl-mute]'), sBtn = ch.querySelector('[data-tl-solo]');
+      if (mBtn) mBtn.classList.toggle('mu-btn-active', !!_music.muted[i]);
+      if (sBtn) sBtn.classList.toggle('mu-btn-active', !!_music.soloed[i]);
+      var isHigh = false;
+      if (_music.hoverSfxId >= 0) {
+        var vList = muSfxVoices(_music.hoverSfxId);
+        if (vList.indexOf(i) >= 0) isHigh = true;
+      }
+      ch.classList.toggle('mu-ch-highlight', isHigh);
+    }
+  }
+}
+
+/** Record live frame into scrolling history buffer. */
+function muRecordTimelineFrame(cur, insts) {
+  var now = performance.now();
+  var voices = cur ? muVoices(cur.view) : null;
+  var snapshot = [];
+  var activeSfx = _music.activeSfxTriggered || {};
+  for (var v = 0; v < 8; v++) {
+    var vo = voices && voices[v];
+    var on = !!(vo && vo.keyed && vo.envx > 0);
+    var inst = vo ? insts.filter(function (x) { return x.start === cur.starts[v]; })[0] : null;
+    var st = vo ? muSemitones(vo.pitch) : 0;
+    // Check if voice was stolen by an active SFX
+    var stealingSfx = null;
+    for (var sId in activeSfx) {
+      var info = activeSfx[sId];
+      if (info.untilTime > now && info.voices.indexOf(v) >= 0) {
+        stealingSfx = { id: Number(sId), name: info.name };
+        break;
+      }
+    }
+    snapshot.push({
+      keyed: on,
+      envx: vo ? vo.envx : 0,
+      pitch: vo ? vo.pitch : 0,
+      st: isFinite(st) ? st : 0,
+      start: cur ? cur.starts[v] : 0,
+      instIndex: inst ? inst.index : -1,
+      sfx: stealingSfx,
+      muted: _music.muted[v] || (_music.soloed.some(function(x){return x;}) && !_music.soloed[v])
+    });
+  }
+  _music.history.push({ time: now, voices: snapshot });
+  // Keep ~6 seconds of history (at 60fps ~ 360 entries)
+  var cutoff = now - 6000;
+  while (_music.history.length > 0 && _music.history[0].time < cutoff) {
+    _music.history.shift();
+  }
+}
+
+/** Draw the multi-track timeline on canvas (FamiStudio / DAW style). */
+function muDrawTimeline(cur) {
+  var canvas = document.getElementById('mu-tl-canvas');
+  if (!canvas || !canvas.parentElement) return;
+  var rect = canvas.parentElement.getBoundingClientRect();
+  if (canvas.width !== Math.floor(rect.width) || canvas.height !== Math.floor(rect.height)) {
+    canvas.width = Math.floor(rect.width);
+    canvas.height = Math.floor(rect.height);
+  }
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width, H = canvas.height;
+  if (!W || !H) return;
+
+  ctx.clearRect(0, 0, W, H);
+
+  var laneH = H / 8;
+  var now = performance.now();
+  var timeWindow = 5000; // 5 seconds window
+  var playheadX = W * 0.75; // playhead at 75% width
+
+  // 1. Draw channel lane backgrounds and grid lines
+  for (var v = 0; v < 8; v++) {
+    var y0 = v * laneH;
+    ctx.fillStyle = v % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.1)';
+    if (_music.hoverSfxId >= 0 && muSfxVoices(_music.hoverSfxId).indexOf(v) >= 0) {
+      ctx.fillStyle = 'rgba(55,148,255,0.08)';
+    }
+    ctx.fillRect(0, y0, W, laneH);
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.beginPath();
+    ctx.moveTo(0, y0 + laneH);
+    ctx.lineTo(W, y0 + laneH);
+    ctx.stroke();
+
+    // Center pitch reference line in each lane
+    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+    ctx.beginPath();
+    ctx.moveTo(0, y0 + laneH / 2);
+    ctx.lineTo(W, y0 + laneH / 2);
+    ctx.stroke();
+  }
+
+  // Time grid vertical ticks
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  for (var sec = 0; sec <= 6; sec++) {
+    var gx = playheadX - (sec * 1000 / timeWindow) * playheadX;
+    if (gx >= 0) {
+      ctx.beginPath();
+      ctx.moveTo(gx, 0);
+      ctx.lineTo(gx, H);
+      ctx.stroke();
+    }
+  }
+
+  // 2. Draw historical note bars from history
+  var hist = _music.history;
+  if (hist && hist.length > 1) {
+    for (var v = 0; v < 8; v++) {
+      var y0 = v * laneH;
+      for (var i = 1; i < hist.length; i++) {
+        var hPrev = hist[i - 1], hCurr = hist[i];
+        var dtPrev = now - hPrev.time, dtCurr = now - hCurr.time;
+        var x1 = playheadX - (dtPrev / timeWindow) * playheadX;
+        var x2 = playheadX - (dtCurr / timeWindow) * playheadX;
+        if (x2 < 0 && x1 < 0) continue;
+
+        var vData = hCurr.voices[v];
+        if (vData && vData.keyed && vData.envx > 0) {
+          var width = Math.max(2, x2 - x1);
+          // Vertical offset inside lane based on pitch semitones (-36 st to +12 st)
+          var stClamped = Math.max(-36, Math.min(12, vData.st));
+          var pitchNorm = (stClamped + 36) / 48; // 0..1
+          var barH = Math.max(3, (laneH * 0.4) * (vData.envx / 128));
+          var barY = y0 + laneH - (pitchNorm * (laneH - barH - 4)) - barH - 2;
+
+          var color = vData.instIndex >= 0 ? muInstColor(vData.instIndex) : MU_COLORS[v % MU_COLORS.length];
+          if (vData.muted) {
+            ctx.fillStyle = 'rgba(100,100,100,0.3)';
+            ctx.fillRect(x1, barY, width, barH);
+          } else {
+            ctx.fillStyle = color;
+            ctx.fillRect(x1, barY, width, barH);
+            ctx.fillStyle = 'rgba(255,255,255,0.2)';
+            ctx.fillRect(x1, barY, width, 1);
+          }
+
+          // SFX voice stealing overlay
+          if (vData.sfx) {
+            ctx.fillStyle = 'rgba(224, 108, 117, 0.4)';
+            ctx.fillRect(x1, y0 + 1, width, laneH - 2);
+            ctx.fillStyle = '#fff';
+            ctx.font = '9px monospace';
+            if (i % 20 === 0) {
+              ctx.fillText('⚡ ' + (vData.sfx.name || 'SFX $' + vData.sfx.id.toString(16)), x1, y0 + 10);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 3. Draw playhead
+  ctx.strokeStyle = '#e5c07b';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(playheadX, 0);
+  ctx.lineTo(playheadX, H);
+  ctx.stroke();
+  ctx.lineWidth = 1;
+
+  // Small Playhead triangle at top
+  ctx.fillStyle = '#e5c07b';
+  ctx.beginPath();
+  ctx.moveTo(playheadX - 5, 0);
+  ctx.lineTo(playheadX + 5, 0);
+  ctx.lineTo(playheadX, 8);
+  ctx.fill();
+}
+

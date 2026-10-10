@@ -53,6 +53,15 @@ function muSnapshot(fn) {
 
 function muTriggerSfx(id) {
   muAudioCtx();
+  var s = _music.model && _music.model.sfx && _music.model.sfx[id];
+  var sName = s ? s.name : 'sfx ' + muHex(id, 2);
+  var voices = muSfxVoices(id);
+  _music.activeSfxTriggered[id] = {
+    name: sName,
+    voices: voices,
+    untilTime: performance.now() + 1200 // mark voice stolen for 1.2 sec
+  };
+
   if (muIsTrack()) {
     if (_music.playing && _music.spc) _music.spc.playSfx(id);
     else muPlay(function (spc) { spc.playSfx(id); });
@@ -124,7 +133,18 @@ function muFrame() {
       row.classList.toggle('mu-playing', !!(x && playing[x.start]));
     });
   }
-  muRenderVoices(cur, insts); muRenderMarkers(cur, insts); muRenderStatus();
+
+  // Record timeline history & render canvas
+  muRecordTimelineFrame(cur, insts);
+  if (_music.viewMode === 'timeline') {
+    muRenderTimelineChannels();
+    muDrawTimeline(cur);
+  } else {
+    muRenderVoices(cur, insts);
+  }
+
+  muRenderMarkers(cur, insts);
+  muRenderStatus();
   requestAnimationFrame(muFrame);
 }
 
@@ -136,12 +156,62 @@ function muShow(visible) {
   if (visible && !was) requestAnimationFrame(muFrame);
 }
 
+function muToggleView() {
+  _music.viewMode = _music.viewMode === 'timeline' ? 'inspector' : 'timeline';
+  var main = document.getElementById('mu-main');
+  var btn = document.getElementById('mu-view-toggle');
+  if (main) {
+    main.classList.toggle('mu-view-timeline', _music.viewMode === 'timeline');
+    main.classList.toggle('mu-view-inspector', _music.viewMode === 'inspector');
+  }
+  if (btn) {
+    btn.textContent = _music.viewMode === 'timeline' ? '☷ Timeline View' : '🗂 Inspector View';
+    btn.title = _music.viewMode === 'timeline' ? 'Currently in Timeline view. Click for Inspector' : 'Currently in Inspector view. Click for Timeline';
+  }
+}
+
 function muOnClick(e, pane) {
-  var t = e.target.closest ? e.target.closest('[data-mu-inst],[data-mu-key],[data-mu-sfx]') : null;
+  var t = e.target.closest ? e.target.closest('[data-mu-inst],[data-mu-key],[data-mu-sfx],[data-tl-mute],[data-tl-solo]') : null;
   if (!t || !pane.contains(t)) return;
   if (t.dataset.muInst !== undefined) { _music.selInst = Number(t.dataset.muInst); muPlayKey(0); _music.layoutKey = ''; return; }
   if (t.dataset.muKey !== undefined) { muPlayKey(Number(t.dataset.muKey)); return; }
-  if (t.dataset.muSfx !== undefined && !t.disabled) muTriggerSfx(Number(t.dataset.muSfx));
+  if (t.dataset.muSfx !== undefined && !t.disabled) { muTriggerSfx(Number(t.dataset.muSfx)); return; }
+
+  // Channel mute toggle
+  if (t.dataset.tlMute !== undefined) {
+    var vm = Number(t.dataset.tlMute);
+    _music.muted[vm] = !_music.muted[vm];
+    muRenderTimelineChannels();
+    return;
+  }
+  // Channel solo toggle
+  if (t.dataset.tlSolo !== undefined) {
+    var vs = Number(t.dataset.tlSolo);
+    _music.soloed[vs] = !_music.soloed[vs];
+    muRenderTimelineChannels();
+    return;
+  }
+}
+
+function muOnMouseOver(e) {
+  var t = e.target.closest ? e.target.closest('[data-mu-sfx]') : null;
+  var slot = document.getElementById('mu-ghost-slot');
+  if (t && t.dataset.muSfx !== undefined) {
+    var sId = Number(t.dataset.muSfx);
+    _music.hoverSfxId = sId;
+    muRenderTimelineChannels();
+
+    var bytes = Number(t.dataset.sfxBytes) || 0;
+    if (slot && bytes > 0) {
+      var isOverflow = bytes > (_music.freeAramBytes || 0);
+      var widthPct = Math.min(100, (bytes / 65536) * 100);
+      slot.innerHTML = '<i class="mu-ghost-alloc' + (isOverflow ? ' mu-ghost-overflow' : '') + '" style="right:0;width:' + widthPct.toFixed(2) + '%" title="Needs ' + bytes + ' B (' + (bytes/1024).toFixed(1) + ' KB) in ARAM"></i>';
+    }
+  } else if (_music.hoverSfxId >= 0) {
+    _music.hoverSfxId = -1;
+    muRenderTimelineChannels();
+    if (slot) slot.innerHTML = '';
+  }
 }
 
 function setupMusicTab() {
@@ -150,19 +220,41 @@ function setupMusicTab() {
   pane.dataset.muBound = '1';
   try { var st = vs && vs.getState && vs.getState(); if (st && st.musicSource) _music.source = st.musicSource; } catch (e) { /* tests */ }
   muRenderKeys();
+
+  // Initial view mode setup
+  var main = document.getElementById('mu-main');
+  if (main) {
+    main.classList.toggle('mu-view-timeline', _music.viewMode === 'timeline');
+    main.classList.toggle('mu-view-inspector', _music.viewMode === 'inspector');
+  }
+
   pane.addEventListener('click', function (e) { muOnClick(e, pane); });
+  pane.addEventListener('mouseover', function (e) { muOnMouseOver(e); });
+  pane.addEventListener('mouseout', function (e) {
+    if (!e.relatedTarget || !pane.contains(e.relatedTarget)) {
+      _music.hoverSfxId = -1;
+      muRenderTimelineChannels();
+      var slot = document.getElementById('mu-ghost-slot');
+      if (slot) slot.innerHTML = '';
+    }
+  });
+
   pane.addEventListener('keydown', function (e) {
     if (e.key === 'Enter' && e.target.dataset && e.target.dataset.muInst !== undefined) muOnClick(e, pane);
   });
   document.getElementById('mu-source').addEventListener('change', function (e) {
     muStop();
     _music.source = e.target.value; _music.spc = null; _music.error = ''; _music.layoutKey = '';
+    _music.history = [];
     muSaveSource(); muStream(); muRenderStatus();
   });
   document.getElementById('mu-play').addEventListener('click', function () {
     muAudioCtx();
     if (_music.playing) muStop(); else muPlay();
   });
+  var toggleBtn = document.getElementById('mu-view-toggle');
+  if (toggleBtn) toggleBtn.addEventListener('click', muToggleView);
+
   window.addEventListener('keydown', function (e) {
     if (!_music.visible || e.repeat || e.metaKey || e.ctrlKey || /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
     var k = MU_KEYS.indexOf(e.key.toUpperCase());
@@ -176,3 +268,4 @@ function setupMusicTab() {
 }
 
 setupMusicTab();
+
