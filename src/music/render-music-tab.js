@@ -38,6 +38,7 @@ function buildMusicTabHtml() {
         '<div class="mu-sfx-filters">' +
         '<button class="mu-filter-btn mu-active" data-sfx-filter="all">All</button>' +
         '<button class="mu-filter-btn" data-sfx-filter="recent">Recent</button>' +
+        '<button class="mu-filter-btn" data-sfx-filter="attack">⚔️ Atk</button>' +
         '<button class="mu-filter-btn" data-sfx-filter="loaded">Loaded</button>' +
         '<button class="mu-filter-btn" data-sfx-filter="base">Base</button>' +
         '</div>' +

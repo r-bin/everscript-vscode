@@ -78,13 +78,15 @@ function muRenderSfx(cur) {
 
   var freeBytes = _music.freeAramBytes || 0;
   var filter = _music.sfxFilter || 'all';
-  var now = performance.now();
+  var now = _music.timelineTime || performance.now();
 
   var listToRender = sfx;
   if (filter === 'recent') {
     listToRender = sfx.filter(function (s) { return _music.recentSfx[s.id]; }).sort(function (a, b) {
       return (_music.recentSfx[b.id] || 0) - (_music.recentSfx[a.id] || 0);
     });
+  } else if (filter === 'attack') {
+    listToRender = sfx.filter(function (s) { return muGetSfxCategory(s.name) === 'attack'; });
   } else if (filter === 'loaded') {
     listToRender = room;
   } else if (filter === 'base') {
@@ -99,19 +101,20 @@ function muRenderSfx(cur) {
     var fits = isBase || isLoaded ? true : pBytes <= freeBytes;
     var extraClass = !isBase && !isLoaded ? (fits ? 'mu-sfx-fits' : 'mu-sfx-overflow') : '';
     var vList = muSfxVoices(s.id).map(function (v) { return 'V' + v; }).join('/');
-    var sizeStr = pBytes ? (pBytes < 1024 ? pBytes + 'B' : (pBytes / 1024).toFixed(1) + 'KB') : '';
     var label = s.name || 'sfx ' + muHex(s.id, 2);
-    var fitsIcon = (!isBase && !isLoaded) ? (fits ? ' ✓' : ' ✗') : '';
+    var cat = muGetSfxCategory(s.name);
+    var catClass = cat === 'attack' ? 'mu-sfx-attack' : (cat === 'ui' ? 'mu-sfx-ui' : '');
+    var icon = cat === 'attack' ? '⚔️' : (cat === 'ui' ? '🎛️' : '⚡');
     var dis = (!on || (!isBase && !isLoaded)) ? ' disabled' : '';
     var isRecentlyActive = (_music.recentSfx[s.id] && now - _music.recentSfx[s.id] < 1200);
 
-    return '<button class="mu-sfx-item ' + tierClass + (extraClass ? ' ' + extraClass : '') + (isRecentlyActive ? ' mu-sfx-recent-active' : '') + '"' + dis +
+    return '<button class="mu-sfx-item ' + tierClass + (catClass ? ' ' + catClass : '') + (extraClass ? ' ' + extraClass : '') + (isRecentlyActive ? ' mu-sfx-recent-active' : '') + '"' + dis +
       ' data-mu-sfx="' + s.id + '" data-sfx-pkg="' + (s.package || 0) + '" data-sfx-bytes="' + pBytes + '"' +
       ' title="Driver ' + muHex(s.id, 2) + ' (' + muEsc(label) + ') → Channels: ' + vList + (pBytes ? ' · ' + pBytes + ' bytes' : '') + '">' +
-      '<span class="mu-sfx-ch">' + vList + '</span>' +
+      '<span class="mu-sfx-cat-icon">' + icon + '</span>' +
       '<span class="mu-sfx-id">' + muHex(s.id, 2) + '</span>' +
       '<span class="mu-sfx-name">' + muEsc(label) + '</span>' +
-      (sizeStr ? '<span class="mu-sfx-size">' + sizeStr + fitsIcon + '</span>' : '') +
+      '<span class="mu-sfx-ch">' + vList + '</span>' +
       '</button>';
   }
 

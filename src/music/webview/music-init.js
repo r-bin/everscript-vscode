@@ -56,12 +56,15 @@ function muTriggerSfx(id) {
   var s = _music.model && _music.model.sfx && _music.model.sfx[id];
   var sName = s ? s.name : 'sfx ' + muHex(id, 2);
   var voices = muSfxVoices(id);
-  var now = performance.now();
+  var cat = typeof muGetSfxCategory === 'function' ? muGetSfxCategory(sName) : 'sfx';
+  var now = _music.timelineTime || performance.now();
   _music.recentSfx[id] = now;
   _music.activeSfxTriggered[id] = {
     name: sName,
+    id: id,
     voices: voices,
-    untilTime: now + 1200 // mark voice stolen for 1.2 sec
+    category: cat,
+    untilTime: now + 1200
   };
   _music.layoutKey = ''; // trigger sidebar re-render for active glow
 
@@ -103,12 +106,21 @@ function muOnMessage(msg) {
       _music.live = null;
       _music.ram = null;
       _music.history = [];
+      _music.timelineTime = 0;
       _music.layoutKey = '';
     }
     muRenderStatus();
   } else if (msg.command === 'musicFrame') {
-    _music.live = { view: Uint8Array.from(msg.view), pkg: msg.pkg, starts: msg.starts || [], at: performance.now(), paused: !!msg.paused };
+    var wasPaused = !!msg.paused;
+    _music.live = { view: Uint8Array.from(msg.view), pkg: msg.pkg, starts: msg.starts || [], at: performance.now(), paused: wasPaused };
     _music.emuOpen = true;
+
+    // Advance emulated timeline history per emulator frame received (handles 1x, pause, and speedup smoothly)
+    if (!wasPaused && !muIsTrack()) {
+      var curInsts = muInstrumentsNow(_music.live);
+      muRecordTimelineFrame(_music.live, curInsts);
+    }
+
     if (msg.pkg !== _music.ramPkg && !_music.snapAsked) {
       _music.snapAsked = true;
       muSnapshot(function (r) {
@@ -145,15 +157,14 @@ function muFrame() {
     });
   }
 
-  // Only advance timeline history if audio is actually playing and emulator is not paused
-  var isPaused = !cur || (cur === _music.live && _music.live.paused);
-  if (!isPaused && (cur || _music.playing)) {
+  // In track mode, advance timeline per browser animation frame
+  if (muIsTrack() && _music.playing) {
     muRecordTimelineFrame(cur, insts);
   }
 
   muRenderVoices(cur, insts);
   if (_music.viewMode === 'timeline') {
-    muRenderTimelineChannels();
+    muRenderTimelineChannels(cur);
     muDrawTimeline(cur);
   }
 

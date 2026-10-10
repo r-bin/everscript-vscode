@@ -145,9 +145,26 @@ function muPackageBytes(pkgLayout) {
   return pkgLayout.reduce(function (sum, r) { return sum + (r[1] || 0); }, 0);
 }
 
+/** Categorizes a sound effect: 'attack' (combat/weapons), 'ui' (menus/clicks), or 'sfx' (general/ambient). */
+function muGetSfxCategory(name) {
+  if (!name) return 'sfx';
+  var n = name.toLowerCase();
+  if (n.indexOf('attack') >= 0 || n.indexOf('spear') >= 0 || n.indexOf('sword') >= 0 ||
+      n.indexOf('axe') >= 0 || n.indexOf('bark') >= 0 || n.indexOf('impact') >= 0 ||
+      n.indexOf('shoot') >= 0 || n.indexOf('projectile') >= 0 || n.indexOf('alchemy') >= 0) {
+    return 'attack';
+  }
+  if (n.indexOf('menu') >= 0 || n.indexOf('wheel') >= 0 || n.indexOf('click') >= 0 ||
+      n.indexOf('loot') >= 0 || n.indexOf('purchase') >= 0) {
+    return 'ui';
+  }
+  return 'sfx';
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { muVoices: muVoices, muSemitones: muSemitones, muEcho: muEcho, muDecodeBrr: muDecodeBrr,
     muInstruments: muInstruments, muOwners: muOwners, muRuns: muRuns, MU_OWNERS: MU_OWNERS,
-    MU_SFX_VOICES: MU_SFX_VOICES, muSfxVoices: muSfxVoices, muPackageBytes: muPackageBytes };
+    MU_SFX_VOICES: MU_SFX_VOICES, muSfxVoices: muSfxVoices, muPackageBytes: muPackageBytes,
+    muGetSfxCategory: muGetSfxCategory };
 }
 

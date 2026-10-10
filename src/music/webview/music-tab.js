@@ -28,6 +28,8 @@ var _music = {
   freeAramBytes: 0,
   sfxFilter: 'all',                // 'all', 'recent', 'loaded', 'base'
   recentSfx: {},                   // sfxId -> timestamp
+  timelineTime: 0,                 // emulated audio timeline clock (ms)
+  lastPort2: -1,                   // APU port 2 counter tracker
 };
 
 
@@ -122,18 +124,16 @@ function muRenderVoices(cur, insts) {
   if (sub) sub.textContent = cur ? (function (n) { return n + ' of 8 sounding'; })(keyed.toString(2).replace(/0/g, '').length) : '';
 }
 
-function muRenderTimelineChannels() {
+function muRenderTimelineChannels(cur) {
   var box = document.getElementById('mu-tl-channels');
   if (!box) return;
   if (!box.firstChild) {
     var html = '';
     for (var v = 0; v < 8; v++) {
-      var badge = v >= 6 ? '<span class="mu-ch-badge mu-badge-sfx" title="Primary Sound Effects Voice">SFX</span>'
-        : (v >= 4 ? '<span class="mu-ch-badge mu-badge-shared" title="Music & Shared SFX">MIX</span>'
-        : '<span class="mu-ch-badge mu-badge-music" title="Music Voice">MUS</span>');
       html += '<div class="mu-tl-ch" id="mu-tl-ch-' + v + '" data-tl-v="' + v + '">' +
         '<span class="mu-ch-title">V' + v + '</span>' +
-        badge +
+        '<span class="mu-ch-badge mu-badge-music" id="mu-ch-badge-' + v + '">MUS</span>' +
+        '<div class="mu-vu-meter"><div class="mu-vu-level" id="mu-vu-' + v + '"></div></div>' +
         '<div class="mu-ch-btns">' +
         '<button class="mu-mute-btn" data-tl-mute="' + v + '" title="Mute voice V' + v + '">M</button>' +
         '<button class="mu-solo-btn" data-tl-solo="' + v + '" title="Solo voice V' + v + '">S</button>' +
@@ -142,57 +142,146 @@ function muRenderTimelineChannels() {
     }
     box.innerHTML = html;
   }
+
+  var curVoices = (cur && cur.view) ? muVoices(cur.view) : null;
+  var now = _music.timelineTime || 0;
+  var activeSfx = _music.activeSfxTriggered || {};
+
   for (var i = 0; i < 8; i++) {
     var ch = document.getElementById('mu-tl-ch-' + i);
-    if (ch) {
-      var mBtn = ch.querySelector('[data-tl-mute]'), sBtn = ch.querySelector('[data-tl-solo]');
-      if (mBtn) mBtn.classList.toggle('mu-btn-active', !!_music.muted[i]);
-      if (sBtn) sBtn.classList.toggle('mu-btn-active', !!_music.soloed[i]);
-      var isHigh = false;
-      if (_music.hoverSfxId >= 0) {
-        var vList = muSfxVoices(_music.hoverSfxId);
-        if (vList.indexOf(i) >= 0) isHigh = true;
+    if (!ch) continue;
+
+    var mBtn = ch.querySelector('[data-tl-mute]'), sBtn = ch.querySelector('[data-tl-solo]');
+    if (mBtn) mBtn.classList.toggle('mu-btn-active', !!_music.muted[i]);
+    if (sBtn) sBtn.classList.toggle('mu-btn-active', !!_music.soloed[i]);
+
+    var isHigh = false;
+    if (_music.hoverSfxId >= 0 && muSfxVoices(_music.hoverSfxId).indexOf(i) >= 0) {
+      isHigh = true;
+    }
+    ch.classList.toggle('mu-ch-highlight', isHigh);
+
+    var vo = curVoices ? curVoices[i] : null;
+    var badgeEl = document.getElementById('mu-ch-badge-' + i);
+    var vuEl = document.getElementById('mu-vu-' + i);
+
+    if (vo && vuEl) {
+      var envx = (vo.keyed && vo.envx) ? vo.envx : 0;
+      vuEl.style.width = Math.min(100, Math.round((envx / 127) * 100)) + '%';
+    }
+
+    if (badgeEl) {
+      var actCat = null;
+      for (var sId in activeSfx) {
+        var info = activeSfx[sId];
+        if (info.untilTime > now && info.voices.indexOf(i) >= 0) {
+          actCat = info.category;
+          break;
+        }
       }
-      ch.classList.toggle('mu-ch-highlight', isHigh);
+      if (actCat === 'attack') {
+        badgeEl.className = 'mu-ch-badge mu-badge-atk';
+        badgeEl.textContent = '⚔️ ATK';
+        badgeEl.title = 'Player / Combat Attack Sound';
+      } else if (actCat === 'ui') {
+        badgeEl.className = 'mu-ch-badge mu-badge-ui';
+        badgeEl.textContent = '🎛️ UI';
+        badgeEl.title = 'UI / System Sound';
+      } else if (actCat === 'sfx') {
+        badgeEl.className = 'mu-ch-badge mu-badge-sfx';
+        badgeEl.textContent = '⚡ SFX';
+        badgeEl.title = 'Sound Effect';
+      } else if (i >= 6) {
+        badgeEl.className = 'mu-ch-badge mu-badge-sfx';
+        badgeEl.textContent = 'SFX';
+        badgeEl.title = 'Dedicated SFX Voice';
+      } else if (i >= 4) {
+        badgeEl.className = 'mu-ch-badge mu-badge-shared';
+        badgeEl.textContent = 'MIX';
+        badgeEl.title = 'Music & Shared SFX';
+      } else {
+        badgeEl.className = 'mu-ch-badge mu-badge-music';
+        badgeEl.textContent = 'MUS';
+        badgeEl.title = 'Music Voice';
+      }
     }
   }
 }
 
 /** Record live frame into scrolling history buffer. */
 function muRecordTimelineFrame(cur, insts) {
-  var now = performance.now();
-  var voices = cur ? muVoices(cur.view) : null;
+  if (!cur || !cur.view) return;
+  _music.timelineTime = (_music.timelineTime || 0) + 16.667;
+  var now = _music.timelineTime;
+
+  // Detect live APU port commands sent from SNES CPU to APU
+  var view = cur.view;
+  var cmd = view[15];     // Port 3 ($2143): 0x04 = SFX, 0x06 = music
+  var port2 = view[14];   // Port 2 ($2142): command counter
+  var param = view[12];   // Port 0 ($2140): parameter (SFX ID)
+
+  if (cmd === 0x04 && port2 !== _music.lastPort2) {
+    _music.lastPort2 = port2;
+    var sfxId = param;
+    if (_music.model && _music.model.sfx && _music.model.sfx[sfxId]) {
+      var sObj = _music.model.sfx[sfxId];
+      var sName = sObj.name || ('sfx ' + muHex(sfxId, 2));
+      var cat = muGetSfxCategory(sName);
+      var vList = muSfxVoices(sfxId);
+      _music.recentSfx[sfxId] = now;
+      _music.activeSfxTriggered[sfxId] = {
+        name: sName,
+        id: sfxId,
+        voices: vList,
+        category: cat,
+        untilTime: now + 500
+      };
+      _music.layoutKey = '';
+    }
+  }
+
+  var voices = muVoices(view);
   var snapshot = [];
   var activeSfx = _music.activeSfxTriggered || {};
+
   for (var v = 0; v < 8; v++) {
-    var vo = voices && voices[v];
+    var vo = voices[v];
     var on = !!(vo && vo.keyed && vo.envx > 0);
-    var inst = vo ? insts.filter(function (x) { return x.start === cur.starts[v]; })[0] : null;
+    var inst = (cur.starts && insts) ? insts.filter(function (x) { return x.start === cur.starts[v]; })[0] : null;
     var st = vo ? muSemitones(vo.pitch) : 0;
-    // Check if voice was stolen by an active SFX
+
     var stealingSfx = null;
+    var sfxCat = null;
     for (var sId in activeSfx) {
       var info = activeSfx[sId];
       if (info.untilTime > now && info.voices.indexOf(v) >= 0) {
-        stealingSfx = { id: Number(sId), name: info.name };
+        stealingSfx = { id: Number(sId), name: info.name, category: info.category };
+        sfxCat = info.category;
         break;
       }
     }
+
+    if (!stealingSfx && on && v >= 6 && inst && inst.from === 'base') {
+      sfxCat = 'sfx';
+      stealingSfx = { id: -1, name: 'SFX', category: 'sfx' };
+    }
+
     snapshot.push({
       keyed: on,
       envx: vo ? vo.envx : 0,
       pitch: vo ? vo.pitch : 0,
       st: isFinite(st) ? st : 0,
-      start: cur ? cur.starts[v] : 0,
+      start: cur.starts ? cur.starts[v] : 0,
       instIndex: inst ? inst.index : -1,
       sfx: stealingSfx,
-      muted: _music.muted[v] || (_music.soloed.some(function(x){return x;}) && !_music.soloed[v])
+      sfxCategory: sfxCat,
+      muted: _music.muted[v] || (_music.soloed.some(function (x) { return x; }) && !_music.soloed[v])
     });
   }
+
   _music.history.push({ time: now, voices: snapshot });
-  // Keep ~6 seconds of history (at 60fps ~ 360 entries)
   var cutoff = now - 6000;
-  while (_music.history.length > 0 && _music.history[0].time < cutoff) {
+  while (_music.history.length > 2 && _music.history[0].time < cutoff) {
     _music.history.shift();
   }
 }
@@ -213,36 +302,42 @@ function muDrawTimeline(cur) {
   ctx.clearRect(0, 0, W, H);
 
   var laneH = H / 8;
-  var now = performance.now();
-  var timeWindow = 5000; // 5 seconds window
-  var playheadX = W * 0.75; // playhead at 75% width
+  var now = _music.timelineTime || 0;
+  var timeWindow = 4500; // 4.5 seconds window across the screen
+  var playheadX = Math.max(100, W - 24); // Playhead at right edge: 95%+ of screen displays history!
 
-  // 1. Draw channel lane backgrounds and grid lines
+  // 1. Draw channel lane backgrounds and pitch guide lines
   for (var v = 0; v < 8; v++) {
     var y0 = v * laneH;
-    ctx.fillStyle = v % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.1)';
+    ctx.fillStyle = v % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.12)';
     if (_music.hoverSfxId >= 0 && muSfxVoices(_music.hoverSfxId).indexOf(v) >= 0) {
       ctx.fillStyle = 'rgba(55,148,255,0.08)';
     }
     ctx.fillRect(0, y0, W, laneH);
 
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    // Channel lane bottom divider
+    ctx.strokeStyle = 'rgba(255,255,255,0.07)';
     ctx.beginPath();
     ctx.moveTo(0, y0 + laneH);
     ctx.lineTo(W, y0 + laneH);
     ctx.stroke();
 
-    // Center pitch reference line in each lane
-    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
-    ctx.beginPath();
-    ctx.moveTo(0, y0 + laneH / 2);
-    ctx.lineTo(W, y0 + laneH / 2);
-    ctx.stroke();
+    // Subtle pitch guideline tracks inside each lane
+    ctx.strokeStyle = 'rgba(255,255,255,0.035)';
+    ctx.setLineDash([2, 4]);
+    for (var step = 1; step <= 3; step++) {
+      var gy = y0 + Math.round(laneH * (step / 4));
+      ctx.beginPath();
+      ctx.moveTo(0, gy);
+      ctx.lineTo(W, gy);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
   }
 
-  // Time grid vertical ticks
-  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-  for (var sec = 0; sec <= 6; sec++) {
+  // Time grid vertical ticks (1-second markers)
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  for (var sec = 1; sec <= 6; sec++) {
     var gx = playheadX - (sec * 1000 / timeWindow) * playheadX;
     if (gx >= 0) {
       ctx.beginPath();
@@ -266,27 +361,40 @@ function muDrawTimeline(cur) {
 
         var vData = hCurr.voices[v];
         if (vData && vData.keyed && vData.envx > 0) {
-          var width = Math.max(1.5, x2 - x1);
-          // Vertical offset inside lane based on pitch semitones (-36 st to +12 st)
+          var width = Math.max(2, x2 - x1);
           var stClamped = Math.max(-36, Math.min(12, vData.st));
           var pitchNorm = (stClamped + 36) / 48; // 0..1
-          var barH = Math.max(4, Math.round((laneH * 0.45) * (vData.envx / 128)));
+          var barH = Math.max(5, Math.round((laneH * 0.45) * (vData.envx / 128)));
           var barY = Math.round(y0 + laneH - (pitchNorm * (laneH - barH - 6)) - barH - 3);
 
-          var color = vData.instIndex >= 0 ? muInstColor(vData.instIndex) : MU_COLORS[v % MU_COLORS.length];
+          var color;
           if (vData.muted) {
-            ctx.fillStyle = 'rgba(80,80,80,0.3)';
-            ctx.fillRect(x1, barY, width, barH);
+            color = 'rgba(80,80,80,0.3)';
+          } else if (vData.sfxCategory === 'attack') {
+            color = '#f59e0b'; // Amber / Gold for Boy & weapon attacks!
+          } else if (vData.sfxCategory === 'ui') {
+            color = '#06b6d4'; // Cyan for UI
+          } else if (vData.sfxCategory === 'sfx') {
+            color = '#f43f5e'; // Coral / Red for general SFX
           } else {
-            ctx.fillStyle = color;
-            ctx.fillRect(x1, barY, width, barH);
-            ctx.fillStyle = 'rgba(255,255,255,0.25)';
+            color = vData.instIndex >= 0 ? muInstColor(vData.instIndex) : MU_COLORS[v % MU_COLORS.length];
+          }
+
+          ctx.fillStyle = color;
+          ctx.fillRect(x1, barY, width, barH);
+
+          // Top highlight
+          if (vData.sfxCategory === 'attack') {
+            ctx.fillStyle = 'rgba(254, 243, 199, 0.7)';
+            ctx.fillRect(x1, barY, width, 1.5);
+          } else {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
             ctx.fillRect(x1, barY, width, 1);
           }
         }
       }
 
-      // Collect contiguous SFX stealing spans to render clean, readable badges (no repetitive glitches!)
+      // Contiguous SFX badges
       var spanStart = -1, spanEnd = -1, lastSfx = null;
       for (var sIdx = 1; sIdx < hist.length; sIdx++) {
         var sCurr = hist[sIdx], sPrev = hist[sIdx - 1];
@@ -317,7 +425,7 @@ function muDrawTimeline(cur) {
     }
   }
 
-  // 3. Draw playhead
+  // 3. Draw playhead vertical line & indicator
   ctx.strokeStyle = '#e5c07b';
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -326,7 +434,6 @@ function muDrawTimeline(cur) {
   ctx.stroke();
   ctx.lineWidth = 1;
 
-  // Small Playhead triangle at top
   ctx.fillStyle = '#e5c07b';
   ctx.beginPath();
   ctx.moveTo(playheadX - 5, 0);
@@ -336,17 +443,24 @@ function muDrawTimeline(cur) {
 }
 
 function drawSfxBlock(ctx, x1, x2, y0, laneH, sfx) {
-  var bx = Math.min(x1, x2), bw = Math.max(12, Math.abs(x2 - x1));
-  ctx.fillStyle = 'rgba(224, 108, 117, 0.35)';
+  var bx = Math.min(x1, x2), bw = Math.max(16, Math.abs(x2 - x1));
+  var isAtk = sfx.category === 'attack';
+  var isUi = sfx.category === 'ui';
+
+  var bg = isAtk ? 'rgba(245, 158, 11, 0.35)' : (isUi ? 'rgba(6, 182, 212, 0.35)' : 'rgba(244, 63, 94, 0.35)');
+  var border = isAtk ? 'rgba(245, 158, 11, 0.9)' : (isUi ? 'rgba(6, 182, 212, 0.9)' : 'rgba(244, 63, 94, 0.9)');
+  var icon = isAtk ? '⚔️ ' : (isUi ? '🎛️ ' : '⚡ ');
+
+  ctx.fillStyle = bg;
   ctx.fillRect(bx, y0 + 1, bw, laneH - 2);
-  ctx.strokeStyle = 'rgba(224, 108, 117, 0.7)';
+  ctx.strokeStyle = border;
   ctx.strokeRect(bx + 0.5, y0 + 1.5, bw - 1, laneH - 3);
 
   // Badge label
   if (bw > 24) {
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 9px ' + (getComputedStyle(document.body).fontFamily || 'sans-serif');
-    var txt = '⚡ ' + (sfx.name || 'SFX $' + sfx.id.toString(16));
+    var txt = icon + (sfx.name || 'SFX $' + sfx.id.toString(16));
     ctx.save();
     ctx.beginPath();
     ctx.rect(bx, y0, bw, laneH);
