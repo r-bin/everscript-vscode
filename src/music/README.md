@@ -9,13 +9,54 @@ The radar panel's **Music** tab: one screen (no page scroll) that shows the SNES
 - **Instruments:** the samples in ARAM: the sample-directory entries (`$1F00`, 4 bytes each)
   written by package 0 (base bank) and by the loaded package. Click one, or a piano key (keys
   A–K), to hear it, decoded from BRR in the page.
-- **Sound effects:** the 90 driver effects. The base bank's 62 play in every room; the rest only
-  with their package. Click one to trigger it (command `$04`).
+- **Timeline** (default view): the 8 voices over time, the playhead at 75%. Left of it what played;
+  right of it the **read-ahead**: what the song will play next (dimmed). A box marks a voice an
+  effect holds, labelled with its name and who plays it. The channel column says who owns each
+  voice now (`♪ T3` a music track, `⚔ SFX $07` an effect, `—` free), what it plays, its
+  envelope, and mute / solo (timeline only).
+- **Sound effects** (sidebar, both views): the 90 driver effects. The base bank's 62 play in every
+  room; the rest only with their package. Click one to trigger it (command `$04`). Each row names
+  the animations that play it (⚔ an attack, ✦ another animation, ♦ none) and, live, the voices it
+  holds. Filters: All, Recent (what the game sent), Atk, Loaded, Base. Drag its left edge to resize;
+  × or the top bar's button hides it. Width and visibility are kept in the webview state.
 - **ARAM:** who owns each of the 64 KB (driver, tables, base samples, song samples, song and
   effect data, echo buffer) and how much is free. A tick marks the sample each voice plays.
 
 Facts: everscript `docs/audio_music_sound_formats.md` (driver protocol, packages, ARAM budget).
 Not done yet: the sequence ("script") view, see `docs/music-sequence-todo.md`.
+
+## The driver's own bookkeeping (disassembly of the ROM driver, verified in the engine)
+
+Who plays on a voice is read from the driver, never inferred from the voice number or the
+effect id. The emulator stream sends these ARAM bytes with every frame (`drv`,
+`emulator/apu-stream-view.js` `APU_DRIVER_RANGES`); `music-view.js` decodes them:
+
+| ARAM | Meaning |
+|---|---|
+| `$6C+v` | Owner of voice v: `$80` a sound effect, `$01` a music track, `$00` free |
+| `$D1+v` | Music track of voice v (`$80` + track) |
+| `$011B+v` | Effect id of voice v, written by the `$04` handler (`$0CC2` → `$0D5C`) |
+| `$75+2v` | Countdown of voice v's note; reloaded when a voice is assigned |
+| `$EA` | Write index of the 16-entry command queue: cmd `$1043+i`, param `$1053+i` / `$1063+i`. Commands are queued at the port (`$0B7D`) and run through the table at `$1E3D` |
+
+- The `$04` handler picks voices by priority (`$0E37`): Spear Attack (`$07`) lands on V0, V5 or
+  V7 depending on the song. A fixed effect → voice table is wrong.
+- When an effect's last note runs out, its countdown wraps past 0 but `$6C+v` stays `$80` until a
+  music track takes the voice back (Dog Bark, `$10`). Wrapped + silent = ended.
+- Every command lands in the queue, so effects are seen even when several arrive in one frame.
+  Reading ports once per frame missed them, and the Boy's weapon swing never showed.
+- The Boy's swing is not a `sound()` call: animation command `0x2E` `sound n` (`$90:8921`) doubles n
+  and reads `$8C:8362`, then `$8C:82DC` sends `$04`. Bone Crusher, swords and spears play `$07`
+  ("Spear Attack"). `../localizations/data/sound-animations.json` holds every animation → sound.
+
+## Read-ahead
+
+`music-forecast.js` loads a second engine (its own `createSpcEngine()` instance) with a copy of
+the shown chip and runs it ahead of the playhead, one frame (1/60 s) per step. It is reloaded when
+it goes stale: for a track, from the tab's engine after any new command; for the emulator, from a
+snapshot (all of ARAM, with the frame it was taken after) when the game sent a command, the
+package changed, or every 3 s. The copy has no timer phase or DSP envelope state, so its notes can
+be a timer tick (~20 ms) off; what the game will send next it cannot know.
 
 ## How it stays in sync
 
@@ -23,8 +64,9 @@ Not done yet: the sequence ("script") view, see `docs/music-sequence-todo.md`.
   224 bytes: SPC700 registers, the four ports in both directions, timers, the 128 DSP
   registers (ENVX/OUTX filled from the mixer) and the ARAM address. The emulator page posts
   it after every emulated frame while the tab wants it (`emulator/apu-stream-view.js`), with
-  the loaded package (WRAM `$7E0E4B`) and each voice's sample start (ARAM at DIR·256 + SRCN·4).
-  The tab asks for all 64 KB of ARAM when the package changes.
+  the loaded package (WRAM `$7E0E4B`), each voice's sample start (ARAM at DIR·256 + SRCN·4) and
+  the driver bytes below. The tab asks for all 64 KB of ARAM when the package changes, and for
+  the read-ahead.
 - **A track:** `engine/spc-engine.js` is blargg's SPC700 + S-DSP. It's built from the core's
   `apu_blargg.c`, which the core itself does not use. `music-engine.js` speaks the 65816's side
   of the port protocol to it, as bank `$8C` does: boot, package upload through the IPL hand-off,
@@ -45,8 +87,10 @@ Not done yet: the sequence ("script") view, see `docs/music-sequence-todo.md`.
 | `webview/music-view.js` | Pure: the 224-byte view, BRR, instruments, ARAM owners |
 | `webview/music-engine.js` | `MusicSpc`: the engine + the port protocol |
 | `webview/music-audio.js` | `_muAudio`: WebAudio output (32 kHz) and instrument previews |
-| `webview/music-tab.js` | `_music` state; status and voices |
-| `webview/music-lists.js` | Instruments + keys, sound effects, the ARAM map |
+| `webview/music-tab.js` | `_music` state; status, voices (inspector), the timeline's channel column |
+| `webview/music-timeline.js` | Timeline frames from the driver state, effect runs, the canvas |
+| `webview/music-forecast.js` | `_muFc`: the read-ahead engine |
+| `webview/music-lists.js` | Instruments + keys, the sound-effects sidebar, the ARAM map |
 | `webview/music-init.js` | Wiring, host messages, the frame loop; loaded last |
 
 ## Dependencies
@@ -59,8 +103,10 @@ Not done yet: the sequence ("script") view, see `docs/music-sequence-todo.md`.
 
 - `host.js`: `_cache` (the model and the ROM it came from).
 - `webview/music-tab.js`: `_music` (source, last frame, emulator ARAM and its package,
-  package bytes, the engine while a track plays, selected instrument).
-- `webview/music-audio.js`: `_muAudio` (audio context, output node, the chip being played).
+  package bytes, the engine while a track plays, selected instrument, timeline history,
+  the driver queue index, Recent, the sidebar's width and visibility).
+- `webview/music-forecast.js`: `_muFc` (the read-ahead engine and its frames).
+- `webview/music-audio.js`: `_muAudio` (audio context, output node, the chip being played, its clock).
 
 ## Invariants
 

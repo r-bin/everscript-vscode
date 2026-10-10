@@ -4,7 +4,7 @@
 // Pure; ROM bytes in, a JSON-ready object out.
 
 const { isEvermoreAudio, packageRecords, driverBlocks, musicPackages, sfxPackages, scriptIdsBySfx } = require('./rom-audio');
-const { getMusic, getMusicName, getSound, getSoundName } = require('../../localizations/sounds');
+const { getMusic, getMusicName, getSound, getSoundName, getSoundAnimations } = require('../../localizations/sounds');
 
 const hex2 = n => n.toString(16).toUpperCase().padStart(2, '0');
 
@@ -19,10 +19,27 @@ function sfxName(scripts) {
     return '';
 }
 
+/** Who plays driver effect `sfx` in an animation: [{ who, what, attack, record }], one per who + what. */
+function sfxAnimations(sfx) {
+    const out = [], seen = new Set();
+    for (const e of getSoundAnimations()) {
+        if (e.sfx !== sfx) continue;
+        for (const a of e.animations) {
+            for (const o of a.owners.length ? a.owners : [{ who: 'animation ' + a.record, what: '' }]) {
+                const k = o.who + '|' + o.what;
+                if (seen.has(k)) continue;
+                seen.add(k);
+                out.push({ who: o.who, what: o.what, attack: !!o.attack, record: a.record });
+            }
+        }
+    }
+    return out;
+}
+
 /**
  * { music, sfx, packages, driver } or { error }.
  *   music[m]    { id, package, name }
- *   sfx[s]      { id, package (0 = base bank), scripts: [sound() ids], name }
+ *   sfx[s]      { id, package (0 = base bank), scripts: [sound() ids], name, animations: [{ who, what, attack, record }] }
  *   packages[p] [[dest, len], ...]
  *   driver      { entry, blocks: [{ dest, bytes: number[] }] }
  */
@@ -38,7 +55,7 @@ function buildMusicModel(rom) {
         music: musicPk.map((p, m) => ({ id: m, package: p, name: getMusic(m) ? getMusicName(m) : 'Music $' + hex2(m) })),
         sfx: sfxPk.map((p, s) => {
             const ids = scripts.get(s) || [];
-            return { id: s, package: p, scripts: ids, name: sfxName(ids) };
+            return { id: s, package: p, scripts: ids, name: sfxName(ids), animations: sfxAnimations(s) };
         }),
         packages,
         driver: { entry: drv.entry, blocks: drv.blocks.map(b => ({ dest: b.dest, bytes: Array.from(b.bytes) })) },

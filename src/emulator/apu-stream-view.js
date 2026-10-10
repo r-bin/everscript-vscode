@@ -8,20 +8,27 @@
  * frame posts the core's getApuView (224 bytes: CPU registers, ports, timers,
  * the 128 DSP registers), the loaded package (WRAM $7E0E4B) and each voice's
  * sample: the start address in its directory entry (DSP DIR * 256 + SRCN * 4),
- * which the driver rewrites for every note. A snapshot request answers with
- * the view plus all 64 KB of ARAM.
+ * which the driver rewrites for every note, and `drv`: the sound driver's own
+ * bookkeeping, read from ARAM (APU_DRIVER_RANGES; the Music tab decodes it in
+ * music-view.js): who owns each voice, which effect, and the command queue.
+ * A snapshot request answers with the view plus all 64 KB of ARAM and the
+ * frame it was taken after.
  *
- *   host -> { command: 'apuStream', on }        page -> { command: 'apuFrame', view, pkg, starts, frame }
- *   host -> { command: 'apuSnapshot', id }      page -> { command: 'apuSnapshotReply', id, view, ram, pkg } | { ..., error }
+ *   host -> { command: 'apuStream', on }        page -> { command: 'apuFrame', view, pkg, starts, drv, frame }
+ *   host -> { command: 'apuSnapshot', id }      page -> { command: 'apuSnapshotReply', id, view, ram, pkg, frame } | { ..., error }
  *
  * Invariant: ASCII only, and no backslashes in the client script (it is
  * embedded in a template literal, see panel-webview.js).
  */
 
+// [ARAM address, length] read into `drv`, in this order (89 bytes).
+const APU_DRIVER_RANGES = [[0x6C, 8], [0xD1, 8], [0x11B, 8], [0x75, 16], [0xEA, 1], [0x1043, 48]];
+
 function getApuStreamClientScript() {
   return `
     let apuStreamOn = false;
     let apuStreamFrame = 0;
+    const APU_DRIVER_RANGES = ${JSON.stringify(APU_DRIVER_RANGES)};
 
     function apuViewBytes(m) {
       if (!m || typeof m._getApuView !== 'function') return null;
@@ -41,6 +48,14 @@ function getApuStreamClientScript() {
       return out;
     }
 
+    // The driver's voice owners, effects and command queue (see APU_DRIVER_RANGES).
+    function apuDriverBytes(view) {
+      const ram = view[0] | view[1] << 8 | view[2] << 16 | view[3] * 16777216;
+      const out = [];
+      for (const r of APU_DRIVER_RANGES) for (let i = 0; i < r[1]; i++) out.push(HEAPU8[ram + r[0] + i]);
+      return out;
+    }
+
     function apuLoadedPackage(m) {
       try { return typeof m.readMemory === 'function' ? m.readMemory(0x7E0E4B) : -1; } catch (e) { return -1; }
     }
@@ -56,6 +71,7 @@ function getApuStreamClientScript() {
         view: Array.from(view),
         pkg: apuLoadedPackage(m),
         starts: apuVoiceStarts(view),
+        drv: apuDriverBytes(view),
         frame: apuStreamFrame,
         paused: !!paused
       });
@@ -77,6 +93,7 @@ function getApuStreamClientScript() {
           reply.view = Array.from(view);
           reply.ram = Array.from(HEAPU8.subarray(ram, ram + 65536));
           reply.pkg = apuLoadedPackage(m);
+          reply.frame = apuStreamFrame;
         }
       } catch (e) {
         reply.error = String(e && e.message || e);
@@ -86,4 +103,4 @@ function getApuStreamClientScript() {
   `;
 }
 
-module.exports = { getApuStreamClientScript };
+module.exports = { getApuStreamClientScript, APU_DRIVER_RANGES };

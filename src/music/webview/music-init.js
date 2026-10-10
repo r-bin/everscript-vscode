@@ -37,37 +37,36 @@ function muPlay(then) {
       spc.boot(_music.model.driver, base);
       spc.playMusic(m.id, song);
       _music.spc = spc; _music.playing = true; _music.startedAt = performance.now();
-      muStartOutput(spc, false);
+      muResetTimeline();
+      muForecastLoad(spc.view(), spc.ram(), 0);
+      muStartOutput(spc, false, null, muOnTrackChunk);
       _music.layoutKey = '';
       if (then) then(spc);
     }).catch(function (e) { _music.error = 'The sound engine failed: ' + e.message; muRenderStatus(); });
   });
 }
 
-/** Ask the emulator for its sound chip; `fn(reply)` gets { view, ram, pkg } or { error }. */
+/** A track in the tab: one timeline frame per engine chunk; a new command reloads the read-ahead. */
+function muOnTrackChunk(spc, clockMs) {
+  var cur = muCurrent();
+  muRecordFrame(cur, muInstrumentsNow(cur), clockMs);
+  if (_muFc.stale) muForecastLoad(spc.view(), spc.ram(), clockMs);
+}
+
+/** Ask the emulator for its sound chip; `fn(reply)` gets { view, ram, pkg, frame } or { error }. */
 function muSnapshot(fn) {
   var id = _muNextId++;
   _muPending[id] = fn;
   muPost({ command: 'musicSnapshot', id: id });
 }
 
+/**
+ * Plays a sound effect. A track: into the tab's engine (its driver queues it,
+ * so the timeline shows it). The emulator: into a copy of its chip with the
+ * music muted; the game itself is not touched, so its timeline does not show it.
+ */
 function muTriggerSfx(id) {
   muAudioCtx();
-  var s = _music.model && _music.model.sfx && _music.model.sfx[id];
-  var sName = s ? s.name : 'sfx ' + muHex(id, 2);
-  var voices = muSfxVoices(id);
-  var cat = typeof muGetSfxCategory === 'function' ? muGetSfxCategory(sName) : 'sfx';
-  var now = _music.timelineTime || performance.now();
-  _music.recentSfx[id] = now;
-  _music.activeSfxTriggered[id] = {
-    name: sName,
-    id: id,
-    voices: voices,
-    category: cat,
-    untilTime: now + 1200
-  };
-  _music.layoutKey = ''; // trigger sidebar re-render for active glow
-
   if (muIsTrack()) {
     if (_music.playing && _music.spc) _music.spc.playSfx(id);
     else muPlay(function (spc) { spc.playSfx(id); });
@@ -94,6 +93,42 @@ function muPlayKey(semis) {
 }
 
 
+/** While the emulator timeline shows: a fresh snapshot for the read-ahead when it is stale or old. */
+function muWantSnapshot() {
+  if (!_music.visible || muIsTrack() || _music.viewMode !== 'timeline' || _music.snapAsked) return false;
+  var t = _music.timelineTime;
+  if (t - (_music.snapAskedAt || -1e9) < 400) return false;
+  return !_muFc.loaded || _muFc.stale || t - _muFc.loadedAt > 3000 || _music.live.pkg !== _music.ramPkg;
+}
+
+function muAskSnapshot() {
+  _music.snapAsked = true; _music.snapAskedAt = _music.timelineTime;
+  muSnapshot(function (r) {
+    _music.snapAsked = false;
+    if (r.error || muIsTrack()) return;
+    if (r.pkg !== _music.ramPkg) _music.layoutKey = '';
+    _music.ram = Uint8Array.from(r.ram); _music.ramPkg = r.pkg;
+    var at = _music.frameTimes[r.frame];
+    muForecastLoad(r.view, r.ram, at === undefined ? _music.timelineTime : at);
+  });
+}
+
+function muOnFrame(msg) {
+  var paused = !!msg.paused;
+  _music.live = { view: Uint8Array.from(msg.view), pkg: msg.pkg, starts: msg.starts || [], drv: msg.drv || null, at: performance.now(), paused: paused };
+  _music.emuOpen = true;
+  if (muIsTrack()) return;
+  // The timeline advances by emulated frames: frozen while paused, faster on speed-up.
+  if (!paused) {
+    _music.timelineTime += MU_FRAME_MS;
+    var cur = muCurrent();
+    muRecordFrame(cur, muInstrumentsNow(cur), _music.timelineTime);
+  }
+  _music.frameTimes[msg.frame] = _music.timelineTime;
+  delete _music.frameTimes[msg.frame - 600];
+  if (muWantSnapshot() || (msg.pkg !== _music.ramPkg && !_music.snapAsked)) muAskSnapshot();
+}
+
 function muOnMessage(msg) {
   if (msg.command === 'musicModel') {
     _music.model = msg.model; _music.layoutKey = '';
@@ -103,32 +138,13 @@ function muOnMessage(msg) {
   } else if (msg.command === 'musicEmulator') {
     _music.emuOpen = !!msg.open;
     if (!msg.open) {
-      _music.live = null;
-      _music.ram = null;
-      _music.history = [];
-      _music.timelineTime = 0;
+      _music.live = null; _music.ram = null; _music.ramPkg = -1;
+      if (!muIsTrack()) muResetTimeline();
       _music.layoutKey = '';
     }
     muRenderStatus();
   } else if (msg.command === 'musicFrame') {
-    var wasPaused = !!msg.paused;
-    _music.live = { view: Uint8Array.from(msg.view), pkg: msg.pkg, starts: msg.starts || [], at: performance.now(), paused: wasPaused };
-    _music.emuOpen = true;
-
-    // Advance emulated timeline history per emulator frame received (handles 1x, pause, and speedup smoothly)
-    if (!wasPaused && !muIsTrack()) {
-      var curInsts = muInstrumentsNow(_music.live);
-      muRecordTimelineFrame(_music.live, curInsts);
-    }
-
-    if (msg.pkg !== _music.ramPkg && !_music.snapAsked) {
-      _music.snapAsked = true;
-      muSnapshot(function (r) {
-        _music.snapAsked = false;
-        if (r.error) return;
-        _music.ram = Uint8Array.from(r.ram); _music.ramPkg = r.pkg; _music.layoutKey = '';
-      });
-    }
+    muOnFrame(msg);
   } else if (msg.command === 'musicPackageData') {
     _music.pkgData[msg.id] = msg.records.map(function (r) { return { dest: r.dest, bytes: Uint8Array.from(r.bytes) }; });
     var after = _music._afterPackages; _music._afterPackages = null;
@@ -144,7 +160,7 @@ function muFrame() {
   if (!_music.visible) return;
   var cur = muCurrent(), insts = muInstrumentsNow(cur);
   var echo = cur ? muEcho(cur.view).join('-') : '';
-  var key = _music.source + '|' + (cur ? cur.pkg : '-') + '|' + (cur && cur.ram ? 'ram' : '') + '|' + echo + '|' + _music.selInst + '|' + _music.ramPkg + '|' + _music.sfxFilter;
+  var key = _music.source + '|' + (cur ? cur.pkg : '-') + '|' + (cur && cur.ram ? 'ram' : '') + '|' + echo + '|' + _music.selInst + '|' + _music.ramPkg + '|' + _music.sfxFilter + '|' + !!cur;
   if (key !== _music.layoutKey) {
     _music.layoutKey = key;
     muRenderInstruments(cur, insts); muRenderSfx(cur); muRenderAram(cur);
@@ -157,16 +173,14 @@ function muFrame() {
     });
   }
 
-  // In track mode, advance timeline per browser animation frame
-  if (muIsTrack() && _music.playing) {
-    muRecordTimelineFrame(cur, insts);
-  }
-
-  muRenderVoices(cur, insts);
   if (_music.viewMode === 'timeline') {
-    muRenderTimelineChannels(cur);
-    muDrawTimeline(cur);
+    if (muIsTrack() ? _music.playing : !!_music.live) muForecastExtend(muTimelineNow() + MU_FUTURE_MS + 100, insts);
+    muRenderChannels();
+    muDrawTimeline();
   }
+  if (_music.sfxFired && _music.sfxFilter === 'recent') muRenderSfx(cur);
+  muUpdateSfxLive();
+  muRenderVoices(cur, insts);
 
   muRenderMarkers(cur, insts);
   muRenderStatus();
@@ -203,21 +217,8 @@ function muOnClick(e, pane) {
   if (t.dataset.muKey !== undefined) { muPlayKey(Number(t.dataset.muKey)); return; }
   if (t.dataset.muSfx !== undefined && !t.disabled) { muTriggerSfx(Number(t.dataset.muSfx)); return; }
 
-  // Channel mute toggle
-  if (t.dataset.tlMute !== undefined) {
-    var vm = Number(t.dataset.tlMute);
-    _music.muted[vm] = !_music.muted[vm];
-    muRenderTimelineChannels();
-    return;
-  }
-  // Channel solo toggle
-  if (t.dataset.tlSolo !== undefined) {
-    var vs = Number(t.dataset.tlSolo);
-    _music.soloed[vs] = !_music.soloed[vs];
-    muRenderTimelineChannels();
-    return;
-  }
-  // SFX filter toggle
+  if (t.dataset.tlMute !== undefined) { var m = Number(t.dataset.tlMute); _music.muted[m] = !_music.muted[m]; muRenderChannels(); return; }
+  if (t.dataset.tlSolo !== undefined) { var so = Number(t.dataset.tlSolo); _music.soloed[so] = !_music.soloed[so]; muRenderChannels(); return; }
   if (t.dataset.sfxFilter !== undefined) {
     _music.sfxFilter = t.dataset.sfxFilter;
     pane.querySelectorAll('.mu-filter-btn').forEach(function(b) {
@@ -234,7 +235,7 @@ function muOnMouseOver(e) {
   if (t && t.dataset.muSfx !== undefined) {
     var sId = Number(t.dataset.muSfx);
     _music.hoverSfxId = sId;
-    muRenderTimelineChannels();
+    muRenderChannels();
 
     var bytes = Number(t.dataset.sfxBytes) || 0;
     if (slot && bytes > 0) {
@@ -244,17 +245,55 @@ function muOnMouseOver(e) {
     }
   } else if (_music.hoverSfxId >= 0) {
     _music.hoverSfxId = -1;
-    muRenderTimelineChannels();
+    muRenderChannels();
     if (slot) slot.innerHTML = '';
   }
+}
+
+function muSaveSidebar() {
+  try { var st = (vs && vs.getState && vs.getState()) || {}; st.musicSfx = { width: _music.sfxWidth, open: _music.sfxOpen }; vs.setState(st); } catch (e) { /* no state in tests */ }
+}
+
+/** The sound-effects sidebar: its width and whether it shows. */
+function muApplySidebar() {
+  var bar = document.getElementById('mu-sfx-sidebar'), main = document.getElementById('mu-main'), btn = document.getElementById('mu-sfx-toggle');
+  if (bar) bar.style.width = _music.sfxWidth + 'px';
+  if (main) main.classList.toggle('mu-sfx-closed', !_music.sfxOpen);
+  if (btn) btn.classList.toggle('mu-btn-on', _music.sfxOpen);
+}
+
+function muToggleSidebar() { _music.sfxOpen = !_music.sfxOpen; muApplySidebar(); muSaveSidebar(); }
+
+/** Drag the sidebar's left edge to resize it (160 px to half the pane). */
+function muBindSidebarResize(pane) {
+  var grip = document.getElementById('mu-sb-resize'), bar = document.getElementById('mu-sfx-sidebar');
+  if (!grip || !bar) return;
+  grip.addEventListener('pointerdown', function (e) {
+    e.preventDefault();
+    grip.setPointerCapture(e.pointerId);
+    var right = bar.getBoundingClientRect().right, max = Math.max(200, pane.getBoundingClientRect().width / 2);
+    var move = function (ev) { _music.sfxWidth = Math.round(Math.max(160, Math.min(max, right - ev.clientX))); muApplySidebar(); };
+    var up = function () { grip.removeEventListener('pointermove', move); grip.removeEventListener('pointerup', up); grip.classList.remove('mu-dragging'); muSaveSidebar(); };
+    grip.classList.add('mu-dragging');
+    grip.addEventListener('pointermove', move);
+    grip.addEventListener('pointerup', up);
+  });
 }
 
 function setupMusicTab() {
   var pane = document.querySelector('.mu-pane');
   if (!pane || !pane.dataset || pane.dataset.muBound || typeof window === 'undefined' || !window.addEventListener) return;
   pane.dataset.muBound = '1';
-  try { var st = vs && vs.getState && vs.getState(); if (st && st.musicSource) _music.source = st.musicSource; } catch (e) { /* tests */ }
+  try {
+    var st = vs && vs.getState && vs.getState();
+    if (st && st.musicSource) _music.source = st.musicSource;
+    if (st && st.musicSfx) { _music.sfxWidth = st.musicSfx.width || _music.sfxWidth; _music.sfxOpen = st.musicSfx.open !== false; }
+  } catch (e) { /* tests */ }
   muRenderKeys();
+  muApplySidebar();
+  muBindSidebarResize(pane);
+  document.getElementById('mu-sfx-toggle').addEventListener('click', muToggleSidebar);
+  document.getElementById('mu-sb-close').addEventListener('click', muToggleSidebar);
 
   // Initial view mode setup
   var main = document.getElementById('mu-main');
@@ -268,7 +307,7 @@ function setupMusicTab() {
   pane.addEventListener('mouseout', function (e) {
     if (!e.relatedTarget || !pane.contains(e.relatedTarget)) {
       _music.hoverSfxId = -1;
-      muRenderTimelineChannels();
+      muRenderChannels();
       var slot = document.getElementById('mu-ghost-slot');
       if (slot) slot.innerHTML = '';
     }
@@ -280,7 +319,7 @@ function setupMusicTab() {
   document.getElementById('mu-source').addEventListener('change', function (e) {
     muStop();
     _music.source = e.target.value; _music.spc = null; _music.error = ''; _music.layoutKey = '';
-    _music.history = [];
+    muResetTimeline();
     muSaveSource(); muStream(); muRenderStatus();
   });
   document.getElementById('mu-play').addEventListener('click', function () {
@@ -303,4 +342,6 @@ function setupMusicTab() {
 }
 
 setupMusicTab();
+// For devtools and the DOM tests: the tab's state lives inside the page's closure.
+if (typeof window !== 'undefined') window.__music = { state: _music, forecast: _muFc, now: muTimelineNow };
 

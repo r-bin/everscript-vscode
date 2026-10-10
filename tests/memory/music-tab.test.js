@@ -63,7 +63,9 @@ async function modelAndEngine() {
         assert.strictEqual(model.sfx.filter(s => !s.package).length, 62);
     });
     await step('model: sound effects carry their package and the sound() ids that reach them', async () => {
-        assert.deepStrictEqual(model.sfx[0x42], { id: 0x42, package: 0x43, scripts: [0x64], name: 'Explosion' });
+        const { animations, ...explosion } = model.sfx[0x42];
+        assert.deepStrictEqual(explosion, { id: 0x42, package: 0x43, scripts: [0x64], name: 'Explosion' });
+        assert.deepStrictEqual(animations, []);
         assert.deepStrictEqual(model.sfx[0x56].scripts, [0x6E]);
         assert.notStrictEqual(model.sfx[0x03].name, 'None', 'script id 0 names no effect');
     });
@@ -91,6 +93,33 @@ async function modelAndEngine() {
         b.loadView(a.view(), Uint8Array.from(a.ram()));
         assert.ok(listen(b, 2).rms > 500);
         b.playSfx(0x01);
+    });
+    await step('model: animations name who plays an effect; the Boy\'s weapon swing is an attack', async () => {
+        const swing = model.sfx[0x07];
+        assert.ok(swing.animations.some(a => a.who === 'Bone Crusher' && a.attack), 'Bone Crusher swings with $07');
+        assert.ok(swing.animations.some(a => a.who === 'Horn Spear' && a.attack), 'spears too');
+        assert.strictEqual(V.muSfxCategory(swing), 'attack');
+        assert.strictEqual(V.muSfxCategory(model.sfx[0x01]), 'sfx', 'the ring menu is not an animation');
+        assert.match(V.muSfxSource(swing), /^Bone Crusher, Gladiator Sword \+\d+$/);
+    });
+    await step('driver state: who owns each voice, which effect, and every queued command', async () => {
+        const spc = await freshTrack(model, 0x05);
+        listen(spc, 1);
+        let drv = V.muDriverBytes(spc.ram());
+        assert.strictEqual(drv.length, 89);
+        let q = V.muDriverCommands(drv, -1);
+        assert.ok(V.muDriverOwners(drv).some(o => o.kind === 'mus'), 'music tracks own voices');
+        spc.playSfx(0x07); spc.playSfx(0x10);
+        spc.run(17067);
+        drv = V.muDriverBytes(spc.ram());
+        const fired = V.muDriverCommands(drv, q.at).cmds;
+        assert.deepStrictEqual(fired.map(c => [c.cmd, c.param & 0xFF]), [[0x04, 0x07], [0x04, 0x10]], 'both effects of one frame');
+        const owners = V.muDriverOwners(drv);
+        assert.deepStrictEqual([...new Set(owners.filter(o => o.kind === 'sfx').map(o => o.sfx))].sort((x, y) => x - y), [0x07, 0x10]);
+        // The driver, not a fixed table, picks the voice: on this song $07 lands where the priority allows.
+        // Dog Bark's voice stays $80 after it ends (until music takes it back); its countdown has wrapped.
+        listen(spc, 3);
+        assert.ok(V.muDriverOwners(V.muDriverBytes(spc.ram()), V.muVoices(spc.view())).every(o => o.kind !== 'sfx'), 'effects end');
     });
     await step('view helpers: instruments and ARAM owners of Regal Castle', async () => {
         const spc = await freshTrack(model, 0x3A);
@@ -146,6 +175,9 @@ async function coreStream(model) {
         assert.strictEqual(frames[0].pkg, 0x01, 'Main Title is loaded on the title screen');
         assert.strictEqual(frames[0].view.length, 224);
         assert.strictEqual(frames[0].starts.length, 8);
+        assert.strictEqual(frames[0].drv.length, 89, 'the driver bytes');
+        const owners = V.muDriverOwners(frames[0].drv);
+        assert.ok(owners.some(o => o.kind === 'mus'), 'Main Title owns voices: ' + JSON.stringify(owners));
         host.setOn(false);
     });
     await step('a snapshot carries all of ARAM; the tab finds Main Title’s instruments in it', async () => {
@@ -153,6 +185,7 @@ async function coreStream(model) {
         sent.splice(0).forEach(m => host.handle(m));
         const s = await got;
         assert.strictEqual(s.ram.length, 65536);
+        assert.strictEqual(typeof s.frame, 'number', 'the frame it was taken after');
         const insts = V.muInstruments(Uint8Array.from(s.ram), model.packages[0], model.packages[s.pkg]);
         assert.deepStrictEqual(insts.filter(i => i.from === 'song').map(i => i.index), [0x0E, 0x0F, 0x10, 0x11, 0x12]);
         const playing = frames[0].starts.filter(a => insts.some(i => i.start === a));
@@ -186,25 +219,77 @@ async function dom(model) {
     const view = Array.from(spc.view()), ram = Array.from(spc.ram());
     const d = view[32 + 0x5D] * 256;
     const starts = [...Array(8)].map((_, v) => { const e = (d + view[32 + v * 16 + 4] * 4) & 0xFFFF; return ram[e] | ram[e + 1] << 8; });
+    const drv = V.muDriverBytes(spc.ram());
     await page.evaluate(m => window.postMessage({ command: 'musicModel', model: m }, '*'), model);
-    await page.evaluate(f => window.postMessage({ command: 'musicFrame', view: f.view, pkg: 0x3B, starts: f.starts, frame: 1 }, '*'), { view, starts });
+    await page.evaluate(f => window.postMessage({ command: 'musicFrame', view: f.view, pkg: 0x3B, starts: f.starts, drv: f.drv, frame: 1 }, '*'), { view, starts, drv });
     await page.waitForTimeout(150);
     await step('a live frame asks for ARAM; with it, voices, instruments, effects and ARAM fill in', async () => {
         const snap = (await posted('musicSnapshot')).pop();
         assert.ok(snap, 'snapshot requested');
         await page.evaluate(a => window.postMessage({ command: 'musicSnapshotData', id: a.id, view: a.view, ram: a.ram, pkg: 0x3B }, '*'), { id: snap.id, view, ram });
-        await page.evaluate(f => window.postMessage({ command: 'musicFrame', view: f.view, pkg: 0x3B, starts: f.starts, frame: 2 }, '*'), { view, starts });
+        await page.evaluate(f => window.postMessage({ command: 'musicFrame', view: f.view, pkg: 0x3B, starts: f.starts, drv: f.drv, frame: 2 }, '*'), { view, starts, drv });
         await page.waitForTimeout(150);
         assert.match(await page.textContent('#mu-status'), /package \$3B · Regal Castle/);
         assert.ok(await page.locator('.mu-voice.mu-on').count() > 0);
         assert.strictEqual(await page.locator('#mu-inst .mu-row').count(), 19);
-        assert.strictEqual(await page.locator('#mu-sfx .mu-chip:not([disabled])').count(), 62);
+        assert.strictEqual(await page.locator('#mu-sfx-scroll .mu-sfx-item:not([disabled])').count(), 62, 'base bank effects playable');
         assert.match(await page.textContent('#mu-legend'), /Free [0-9.]+ KB/);
+    });
+    await step('the channel column shows the driver\'s owner of each voice', async () => {
+        const owners = await page.$$eval('.mu-tl-ch .mu-ch-own', els => els.map(e => e.textContent));
+        assert.strictEqual(owners.length, 8);
+        assert.ok(owners.some(t => /^♪ T\d$/.test(t)), owners.join(' '));
+    });
+    await step('a sound effect the game sends draws one box for as long as the driver gives it the voice', async () => {
+        const a = await freshTrack(model, 0x3A);
+        listen(a, 1);
+        const frame = (n) => { a.run(17067); const r = a.ram(), w = Array.from(a.view()); return { view: w, starts: V.muVoiceStarts(w, r), drv: V.muDriverBytes(r), frame: n }; };
+        const seq = [frame(10)];
+        a.playSfx(0x07); a.playSfx(0x10);
+        for (let i = 11; i < 40; i++) seq.push(frame(i));
+        await page.evaluate(fs => fs.forEach(f => window.postMessage(Object.assign({ command: 'musicFrame', pkg: 0x3B }, f), '*')), seq);
+        await page.waitForTimeout(150);
+        const got = await page.evaluate(() => {
+            const runs = {}, _music = window.__music.state;
+            _music.history.forEach(h => h.voices.forEach((V, v) => { if (V.own === 'sfx') (runs[v + ':' + V.sfx + ':' + V.gen] = (runs[v + ':' + V.sfx + ':' + V.gen] || 0) + 1); }));
+            return { runs, recent: Object.keys(_music.recentSfx).map(Number).sort((x, y) => x - y) };
+        });
+        assert.deepStrictEqual(got.recent, [0x07, 0x10], 'both effects in Recent');
+        const runs = Object.keys(got.runs);
+        assert.ok(runs.some(k => k.split(':')[1] === '7') && runs.some(k => k.split(':')[1] === '16'), JSON.stringify(got.runs));
+        // One run per voice and effect: no flicker into several boxes.
+        const perVoice = {};
+        runs.forEach(k => { const [v, sfx] = k.split(':'); perVoice[v + ':' + sfx] = (perVoice[v + ':' + sfx] || 0) + 1; });
+        assert.ok(Object.values(perVoice).every(n => n === 1), JSON.stringify(got.runs));
+        await page.click('[data-sfx-filter="recent"]');
+        await page.waitForTimeout(100);
+        assert.strictEqual(await page.locator('#mu-sfx-scroll .mu-sfx-item').count(), 2);
+        await page.click('[data-sfx-filter="all"]');
+    });
+    await step('the sidebar resizes and hides; both survive in the webview state', async () => {
+        const grip = await page.locator('#mu-sb-resize').boundingBox();
+        await page.mouse.move(grip.x + 4, grip.y + 50);
+        await page.mouse.down();
+        await page.mouse.move(grip.x - 80, grip.y + 50);
+        await page.mouse.up();
+        const w = await page.evaluate(() => document.getElementById('mu-sfx-sidebar').getBoundingClientRect().width);
+        assert.ok(Math.abs(w - 324) <= 2, 'width ' + w);
+        await page.click('#mu-sb-close');
+        assert.strictEqual(await page.locator('#mu-sfx-sidebar').isVisible(), false);
+        await page.click('#mu-sfx-toggle');
+        assert.strictEqual(await page.locator('#mu-sfx-sidebar').isVisible(), true);
     });
     await step('one screen: the page never scrolls', async () => {
         const [sh, ih] = await page.evaluate(() => [document.scrollingElement.scrollHeight, innerHeight]);
         assert.ok(sh <= ih, sh + ' > ' + ih);
     });
+    // A track plays through a ScriptProcessor; without an audio output its callback never runs.
+    const audio = await page.evaluate(() => new Promise(r => {
+        const c = new AudioContext({ sampleRate: 32000 }), n = c.createScriptProcessor(2048, 0, 2);
+        let k = 0; n.onaudioprocess = () => k++; n.connect(c.destination);
+        setTimeout(() => { n.disconnect(); c.close(); r(k); }, 600);
+    }));
+    if (!audio) { console.log('  (no audio output in this browser — track playback checks skipped)'); await step('no page errors', async () => assert.deepStrictEqual(errors, [])); await browser.close(); return; }
     await step('a track plays in the tab: packages asked, the stream switched off, voices sound', async () => {
         await page.selectOption('#mu-source', '0');
         await page.click('#mu-play');
@@ -217,6 +302,11 @@ async function dom(model) {
         assert.strictEqual((await posted('musicStream')).pop().on, false);
         assert.ok(await page.locator('.mu-voice.mu-on').count() > 0);
         assert.match(await page.textContent('#mu-inst-sub'), /5 from package \$01/);
+    });
+    await step('a track in the tab: the timeline records its frames and reads ahead of the playhead', async () => {
+        const st = await page.evaluate(() => { const m = window.__music; return { hist: m.state.history.length, ahead: m.forecast.frames.length, now: m.now(), t: m.forecast.t }; });
+        assert.ok(st.hist > 5, 'history ' + st.hist);
+        assert.ok(st.ahead > 30 && st.t > st.now + 1000, JSON.stringify(st));
     });
     await step('no page errors', async () => assert.deepStrictEqual(errors, []));
     await browser.close();

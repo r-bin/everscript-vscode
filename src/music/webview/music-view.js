@@ -25,6 +25,13 @@ function muVoices(view) {
   return out;
 }
 
+/** Each voice's sample start: its directory entry (DIR·256 + SRCN·4) in `ram`. */
+function muVoiceStarts(view, ram) {
+  var dir = view[MU_DSP + 0x5D] * 256, out = [];
+  for (var v = 0; v < 8; v++) { var e = (dir + view[MU_DSP + v * 16 + 4] * 4) & 0xFFFF; out.push(ram[e] | ram[e + 1] << 8); }
+  return out;
+}
+
 /** Semitones from the sample's own rate (pitch $1000). */
 function muSemitones(pitch) { return pitch ? 12 * Math.log2(pitch / 0x1000) : -Infinity; }
 
@@ -125,46 +132,85 @@ function muRuns(own) {
   return out;
 }
 
-// Voice allocation table for the Evermore driver SFX (primary stolen channels)
-var MU_SFX_VOICES = [
-  [7], [6,7], [6,7], [7], [7], [7], [7], [7], [7], [7], [6,7], [5,6,7], [5,6,7], [6,7], [7], [7],
-  [7], [7], [7], [5,6,7], [7], [7], [7], [5,6,7], [7], [7], [4,5,6,7], [7], [7], [3,4,5,6,7], [5,6,7], [4,5,6,7],
-  [6,7], [5,6,7], [6,7], [3,4,5,6,7], [3,4,5,6,7], [6,7], [3,4,5,6,7], [3,4,5,6,7], [5,6,7], [7], [7], [6,7], [7], [6,7], [6,7], [6,7],
-  [5,6,7], [6,7], [6,7], [7], [7], [6,7], [5,6,7], [6,7], [6,7], [5,6,7], [7], [6,7], [6,7], [7],
-  [7], [7], [7], [7], [5,6,7], [7], [7], [6,7], [5,6,7], [7], [7], [6,7], [6,7], [7], [7], [0,6],
-  [7], [7], [7], [7], [7], [7], [7], [7], [7], [6,7], [5,6,7], [7]
-];
-
-function muSfxVoices(sfxId) {
-  return MU_SFX_VOICES[sfxId] || [7];
-}
-
 /** Computes total bytes in a package layout: sum of record lengths. */
 function muPackageBytes(pkgLayout) {
   if (!pkgLayout) return 0;
   return pkgLayout.reduce(function (sum, r) { return sum + (r[1] || 0); }, 0);
 }
 
-/** Categorizes a sound effect: 'attack' (combat/weapons), 'ui' (menus/clicks), or 'sfx' (general/ambient). */
-function muGetSfxCategory(name) {
-  if (!name) return 'sfx';
-  var n = name.toLowerCase();
-  if (n.indexOf('attack') >= 0 || n.indexOf('spear') >= 0 || n.indexOf('sword') >= 0 ||
-      n.indexOf('axe') >= 0 || n.indexOf('bark') >= 0 || n.indexOf('impact') >= 0 ||
-      n.indexOf('shoot') >= 0 || n.indexOf('projectile') >= 0 || n.indexOf('alchemy') >= 0) {
-    return 'attack';
+/*
+ * The driver's own bookkeeping (disassembly of the ROM driver, src/music/README.md).
+ * `drv` holds these ARAM ranges in this order, as the emulator's stream sends
+ * them (emulator/apu-stream-view.js APU_DRIVER_RANGES) and muDriverBytes reads them:
+ *   $6C+v   owner of voice v: $80 a sound effect, $01 a music track, $00 free
+ *   $D1+v   music track of voice v ($80 | track)
+ *   $011B+v sound effect of voice v (written by the $04 handler, $0CC2)
+ *   $75+2v  countdown of voice v's current note; reloaded when the voice is assigned.
+ *           When an effect's last note runs out it wraps past 0 ($FFxx), but $6C+v keeps
+ *           $80 until a music track takes the voice back (seen with Dog Bark, $10).
+ *   $EA     write index of the command queue; the queue: cmd $1043+i, param $1053+i / $1063+i (16 entries)
+ */
+var MU_DRV_RANGES = [[0x6C, 8], [0xD1, 8], [0x11B, 8], [0x75, 16], [0xEA, 1], [0x1043, 48]];
+var MU_DRV = { owner: 0, track: 8, sfx: 16, count: 24, queueAt: 40, queue: 41 };
+
+/** `drv` from a whole ARAM (the tab's own engine). */
+function muDriverBytes(ram) {
+  var out = [];
+  MU_DRV_RANGES.forEach(function (r) { for (var i = 0; i < r[1]; i++) out.push(ram[r[0] + i]); });
+  return out;
+}
+
+/**
+ * Who owns each voice: [{ kind: 'sfx'|'mus'|'', sfx, track, count }]. With the
+ * view's `voices` (muVoices), an effect whose countdown has wrapped on a silent
+ * voice has ended: kind '' (the driver still holds the voice for music).
+ */
+function muDriverOwners(drv, voices) {
+  var out = [];
+  for (var v = 0; v < 8; v++) {
+    var o = drv ? drv[MU_DRV.owner + v] : 0;
+    var count = drv ? drv[MU_DRV.count + 2 * v] | drv[MU_DRV.count + 2 * v + 1] << 8 : 0;
+    var kind = o & 0x80 ? 'sfx' : o ? 'mus' : '';
+    if (kind === 'sfx' && voices && count >= 0x8000 && !(voices[v].keyed && voices[v].envx)) kind = '';
+    out.push({ kind: kind, sfx: drv ? drv[MU_DRV.sfx + v] : -1, track: drv ? drv[MU_DRV.track + v] & 0x7F : -1, count: count });
   }
-  if (n.indexOf('menu') >= 0 || n.indexOf('wheel') >= 0 || n.indexOf('click') >= 0 ||
-      n.indexOf('loot') >= 0 || n.indexOf('purchase') >= 0) {
-    return 'ui';
+  return out;
+}
+
+/** Commands queued since write index `from`: { at (new index), cmds: [{ cmd, param }] }. */
+function muDriverCommands(drv, from) {
+  var at = drv[MU_DRV.queueAt] & 15, cmds = [];
+  if (from < 0) return { at: at, cmds: cmds };
+  for (var i = from & 15; i !== at; i = (i + 1) & 15) {
+    cmds.push({ cmd: drv[MU_DRV.queue + i], param: drv[MU_DRV.queue + 16 + i] | drv[MU_DRV.queue + 32 + i] << 8 });
   }
-  return 'sfx';
+  return { at: at, cmds: cmds };
+}
+
+/**
+ * What a sound effect is, from the animations that play it (model sfx
+ * `animations`, from localizations/data/sound-animations.json): 'attack' when
+ * an attack animation plays it, 'anim' when another animation does, else 'sfx'.
+ */
+function muSfxCategory(sfx) {
+  var a = (sfx && sfx.animations) || [];
+  if (a.some(function (x) { return x.attack; })) return 'attack';
+  return a.length ? 'anim' : 'sfx';
+}
+
+/** "Bone Crusher, Horn Spear +8": who plays an effect, for labels. */
+function muSfxSource(sfx, max) {
+  var a = (sfx && sfx.animations) || [], names = [];
+  var pick = a.some(function (x) { return x.attack; }) ? a.filter(function (x) { return x.attack; }) : a;
+  pick.forEach(function (x) { if (names.indexOf(x.who) < 0) names.push(x.who); });
+  max = max || 2;
+  return names.slice(0, max).join(', ') + (names.length > max ? ' +' + (names.length - max) : '');
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { muVoices: muVoices, muSemitones: muSemitones, muEcho: muEcho, muDecodeBrr: muDecodeBrr,
+  module.exports = { muVoices: muVoices, muVoiceStarts: muVoiceStarts, muSemitones: muSemitones, muEcho: muEcho, muDecodeBrr: muDecodeBrr,
     muInstruments: muInstruments, muOwners: muOwners, muRuns: muRuns, MU_OWNERS: MU_OWNERS,
-    MU_SFX_VOICES: MU_SFX_VOICES, muSfxVoices: muSfxVoices, muPackageBytes: muPackageBytes,
-    muGetSfxCategory: muGetSfxCategory };
+    muPackageBytes: muPackageBytes, MU_DRV_RANGES: MU_DRV_RANGES, muDriverBytes: muDriverBytes,
+    muDriverOwners: muDriverOwners, muDriverCommands: muDriverCommands, muSfxCategory: muSfxCategory, muSfxSource: muSfxSource };
 }
 

@@ -52,7 +52,7 @@ function handleMusicMessage(msg, deps) {
             return;
         case 'musicSnapshot':
             deps.apu.snapshot()
-                .then(s => deps.post({ command: 'musicSnapshotData', id: msg.id, view: s.view, ram: s.ram, pkg: s.pkg }))
+                .then(s => deps.post({ command: 'musicSnapshotData', id: msg.id, view: s.view, ram: s.ram, pkg: s.pkg, frame: s.frame }))
                 .catch(e => deps.post({ command: 'musicSnapshotData', id: msg.id, error: String(e && e.message || e) }));
             return;
     }

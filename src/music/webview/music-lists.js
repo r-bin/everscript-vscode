@@ -47,85 +47,58 @@ function muRenderInstruments(cur, insts) {
   if (sub) sub.textContent = base + ' base · ' + song + ' from package ' + muHex(cur.pkg, 2);
 }
 
-function muSfxChip(s, enabled) {
-  var label = s.name || 'sfx ' + muHex(s.id, 2);
-  var how = s.scripts.length ? 'sound(' + s.scripts.map(function (x) { return '0x' + x.toString(16); }).join(' / ') + ')' : 'no sound() id reaches it';
-  var need = s.package ? 'needs package ' + muHex(s.package, 2) + ' (' + muPackageName(s.package) + ')' : 'base bank: every room';
-  return '<button class="mu-chip' + (s.package ? ' mu-pkg' : '') + '"' + (enabled ? '' : ' disabled') + ' data-mu-sfx="' + s.id + '" title="Driver effect ' + muHex(s.id, 2) + ' · ' + how + ' · ' + muEsc(need) + '">' +
-    '<code>' + muHex(s.id, 2) + '</code>' + muEsc(label) + '</button>';
+/** The sound effects sidebar's list (both views): filtered, one row per effect. */
+function muRenderSfx(cur) {
+  var box = document.getElementById('mu-sfx-scroll');
+  if (!box || !_music.model || _music.model.error) return;
+  var pkg = cur ? cur.pkg : -1, sfx = _music.model.sfx, on = !!cur;
+  var playable = sfx.filter(function (s) { return !s.package || s.package === pkg; }).length;
+  var count = document.getElementById('mu-sfx-sb-count');
+  if (count) count.textContent = cur ? playable + ' / ' + sfx.length + ' here' : sfx.length + '';
+
+  var filter = _music.sfxFilter, list = sfx;
+  if (filter === 'recent') {
+    list = sfx.filter(function (s) { return _music.recentSfx[s.id] !== undefined; })
+      .sort(function (a, b) { return _music.recentSfx[b.id] - _music.recentSfx[a.id]; });
+  } else if (filter === 'attack') list = sfx.filter(function (s) { return muSfxCategory(s) === 'attack'; });
+  else if (filter === 'loaded') list = sfx.filter(function (s) { return s.package && s.package === pkg; });
+  else if (filter === 'base') list = sfx.filter(function (s) { return !s.package; });
+
+  var free = _music.freeAramBytes || 0;
+  box.innerHTML = list.length ? list.map(function (s) {
+    var here = !s.package || s.package === pkg;
+    var bytes = s.package && _music.model.packages[s.package] ? muPackageBytes(_music.model.packages[s.package]) : 0;
+    var tier = !s.package ? 'mu-sfx-base' : here ? 'mu-sfx-loaded' : 'mu-sfx-unloaded' + (bytes <= free ? ' mu-sfx-fits' : ' mu-sfx-overflow');
+    var cat = muSfxCategory(s), label = s.name || 'sfx ' + muHex(s.id, 2), src = muSfxSource(s, 3);
+    var how = s.scripts.length ? 'sound(' + s.scripts.map(function (x) { return '0x' + x.toString(16); }).join(' / ') + ')' : 'no sound() id reaches it';
+    var need = s.package ? 'needs package ' + muHex(s.package, 2) + ' (' + muPackageName(s.package) + ')' : 'base bank: every room';
+    var by = s.animations && s.animations.length ? ' · played by ' + muSfxSource(s, 8) + ' (' + s.animations.length + ' animations)' : '';
+    return '<button class="mu-sfx-item mu-cat-' + cat + ' ' + tier + '"' + (on && here ? '' : ' disabled') +
+      ' data-mu-sfx="' + s.id + '" data-sfx-bytes="' + bytes + '"' +
+      ' title="Driver effect ' + muHex(s.id, 2) + ' · ' + how + ' · ' + muEsc(need) + muEsc(by) + '">' +
+      '<span class="mu-sfx-cat">' + MU_CAT_ICONS[cat] + '</span><code class="mu-sfx-id">' + muHex(s.id, 2) + '</code>' +
+      '<span class="mu-sfx-name">' + muEsc(label) + (src ? '<small>' + muEsc(src) + '</small>' : '') + '</span>' +
+      '<span class="mu-sfx-ch"></span></button>';
+  }).join('') : '<div class="mu-empty mu-sfx-none">' + (filter === 'recent' ? 'Nothing played yet: effects the game sends show up here.' : 'No sound effects match.') + '</div>';
+  box._live = '';
+  _music.sfxFired = false;
 }
 
-function muRenderSfx(cur) {
-  var box = document.getElementById('mu-sfx');
-  if (!box || !_music.model || _music.model.error) return;
-  var pkg = cur ? cur.pkg : -1, sfx = _music.model.sfx;
-  var room = sfx.filter(function (s) { return s.package && s.package === pkg; });
-  var base = sfx.filter(function (s) { return !s.package; });
-  var other = sfx.filter(function (s) { return s.package && s.package !== pkg; });
-  var on = !!cur;
-
-  // Inspector column view (when switched to Inspector)
-  box.innerHTML =
-    (room.length ? '<div class="mu-sub">This package (' + muHex(pkg, 2) + ')</div><div class="mu-chips">' + room.map(function (s) { return muSfxChip(s, on); }).join('') + '</div>' : '') +
-    '<div class="mu-sub">Base bank · every room</div><div class="mu-chips">' + base.map(function (s) { return muSfxChip(s, on); }).join('') + '</div>' +
-    '<div class="mu-sub">Not loaded here · their package comes with other music</div><div class="mu-chips">' + other.map(function (s) { return muSfxChip(s, false); }).join('') + '</div>';
-  var sub = document.getElementById('mu-sfx-sub');
-  if (sub) sub.textContent = cur ? (base.length + room.length) + ' playable' : '';
-
-  // Right vertical sidebar
-  var sbCount = document.getElementById('mu-sfx-sb-count');
-  if (sbCount) sbCount.textContent = cur ? (base.length + room.length) + ' / ' + sfx.length : '';
-
-  var freeBytes = _music.freeAramBytes || 0;
-  var filter = _music.sfxFilter || 'all';
-  var now = _music.timelineTime || performance.now();
-
-  var listToRender = sfx;
-  if (filter === 'recent') {
-    listToRender = sfx.filter(function (s) { return _music.recentSfx[s.id]; }).sort(function (a, b) {
-      return (_music.recentSfx[b.id] || 0) - (_music.recentSfx[a.id] || 0);
-    });
-  } else if (filter === 'attack') {
-    listToRender = sfx.filter(function (s) { return muGetSfxCategory(s.name) === 'attack'; });
-  } else if (filter === 'loaded') {
-    listToRender = room;
-  } else if (filter === 'base') {
-    listToRender = base;
-  }
-
-  function renderSidebarItem(s) {
-    var isBase = !s.package;
-    var isLoaded = s.package && s.package === pkg;
-    var tierClass = isBase ? 'mu-sfx-base' : (isLoaded ? 'mu-sfx-loaded' : 'mu-sfx-unloaded');
-    var pBytes = (s.package && _music.model.packages[s.package]) ? muPackageBytes(_music.model.packages[s.package]) : 0;
-    var fits = isBase || isLoaded ? true : pBytes <= freeBytes;
-    var extraClass = !isBase && !isLoaded ? (fits ? 'mu-sfx-fits' : 'mu-sfx-overflow') : '';
-    var vList = muSfxVoices(s.id).map(function (v) { return 'V' + v; }).join('/');
-    var label = s.name || 'sfx ' + muHex(s.id, 2);
-    var cat = muGetSfxCategory(s.name);
-    var catClass = cat === 'attack' ? 'mu-sfx-attack' : (cat === 'ui' ? 'mu-sfx-ui' : '');
-    var icon = cat === 'attack' ? '⚔️' : (cat === 'ui' ? '🎛️' : '⚡');
-    var dis = (!on || (!isBase && !isLoaded)) ? ' disabled' : '';
-    var isRecentlyActive = (_music.recentSfx[s.id] && now - _music.recentSfx[s.id] < 1200);
-
-    return '<button class="mu-sfx-item ' + tierClass + (catClass ? ' ' + catClass : '') + (extraClass ? ' ' + extraClass : '') + (isRecentlyActive ? ' mu-sfx-recent-active' : '') + '"' + dis +
-      ' data-mu-sfx="' + s.id + '" data-sfx-pkg="' + (s.package || 0) + '" data-sfx-bytes="' + pBytes + '"' +
-      ' title="Driver ' + muHex(s.id, 2) + ' (' + muEsc(label) + ') → Channels: ' + vList + (pBytes ? ' · ' + pBytes + ' bytes' : '') + '">' +
-      '<span class="mu-sfx-cat-icon">' + icon + '</span>' +
-      '<span class="mu-sfx-id">' + muHex(s.id, 2) + '</span>' +
-      '<span class="mu-sfx-name">' + muEsc(label) + '</span>' +
-      '<span class="mu-sfx-ch">' + vList + '</span>' +
-      '</button>';
-  }
-
-  var scrollBox = document.getElementById('mu-sfx-scroll');
-  if (scrollBox) {
-    if (!listToRender.length) {
-      scrollBox.innerHTML = '<div class="mu-empty" style="text-align:center;padding:12px;font-size:11px">No sound effects match filter</div>';
-    } else {
-      scrollBox.innerHTML = listToRender.map(renderSidebarItem).join('');
-    }
-  }
+/** Per frame: the voices each effect holds now (from the driver), and the last ones sent. */
+function muUpdateSfxLive() {
+  var box = document.getElementById('mu-sfx-scroll'), last = _music.history[_music.history.length - 1];
+  if (!box) return;
+  var held = {}, now = muTimelineNow();
+  if (last) last.voices.forEach(function (V, v) { if (V.own === 'sfx') (held[V.sfx] = held[V.sfx] || []).push('V' + v); });
+  var key = JSON.stringify(held) + Object.keys(_music.recentSfx).filter(function (id) { return now - _music.recentSfx[id] < 600; }).join(',');
+  if (box._live === key) return;
+  box._live = key;
+  box.querySelectorAll('.mu-sfx-item').forEach(function (b) {
+    var id = Number(b.dataset.muSfx), v = held[id];
+    b.querySelector('.mu-sfx-ch').textContent = v ? v.join(' ') : '';
+    b.classList.toggle('mu-sfx-on', !!v);
+    b.classList.toggle('mu-sfx-fired', now - (_music.recentSfx[id] === undefined ? -1e9 : _music.recentSfx[id]) < 600);
+  });
 }
 
 

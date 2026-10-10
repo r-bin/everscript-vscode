@@ -17,7 +17,7 @@ class ApuStream {
     this._nextId = 1;
   }
 
-  /** fn({ view: number[224], pkg, starts: number[8], frame }) for every emulated frame while on. */
+  /** fn({ view: number[224], pkg, starts: number[8], drv: number[89], frame, paused }) for every emulated frame while on. */
   setListener(fn) { this._listener = fn; }
 
   setOnClose(fn) { this._onClose = fn; }
@@ -30,7 +30,7 @@ class ApuStream {
   /** The page is (re)loaded: it starts off, so repeat the wish. */
   pageReady() { if (this._on) this._post({ command: 'apuStream', on: true }); }
 
-  /** { view, ram, pkg } from the running game. */
+  /** { view, ram, pkg, frame } from the running game. */
   snapshot() {
     return new Promise((resolve, reject) => {
       const id = this._nextId++;
@@ -44,7 +44,7 @@ class ApuStream {
   handle(msg) {
     if (!msg) return false;
     if (msg.command === 'apuFrame') {
-      if (this._listener) this._listener({ view: msg.view, pkg: msg.pkg, starts: msg.starts, frame: msg.frame, paused: !!msg.paused });
+      if (this._listener) this._listener({ view: msg.view, pkg: msg.pkg, starts: msg.starts, drv: msg.drv, frame: msg.frame, paused: !!msg.paused });
       return true;
     }
 
@@ -64,7 +64,7 @@ class ApuStream {
     this._pending.delete(id);
     clearTimeout(p.timer);
     if (error || !reply) p.reject(new Error(error || 'No reply'));
-    else p.resolve({ view: reply.view, ram: reply.ram, pkg: reply.pkg });
+    else p.resolve({ view: reply.view, ram: reply.ram, pkg: reply.pkg, frame: reply.frame });
   }
 }
 

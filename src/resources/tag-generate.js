@@ -6,13 +6,14 @@
 // both). docs/soe-tags-spec.md §5.3.
 
 const { VANILLA_MAPS } = require('../localizations/maps');
-const { MUSIC, SOUNDS } = require('../localizations/sounds');
+const { MUSIC, SOUNDS, getSoundAnimations } = require('../localizations/sounds');
 const { TABLES } = require('../localizations/tables');
 const { lootRewardName } = require('../script');
 const NAMES = require('../script/names.json');
 const { slugify, hexId } = require('../shared/resource-uri');
 
 const ROM = 'soe://rom/assets/';
+const MAX_SOUND_CHARACTERS = 12;   // a shared death animation is played by 80 characters
 const ITEM_CATEGORIES = { ingredient: ['ingredients', 0x0200], armor: ['armor', 0x0400], consumable: ['consumables', 0x0800] };
 
 /** names.json labels end in their own address: `PRIZE ($2391)` → `PRIZE`. */
@@ -88,6 +89,35 @@ function enemies() {
     return { enemy: { sub: fam.sub } };
 }
 
+/** One link per character whose animations play the sound: `plays it: Bone Crusher, Horn Spear (attack)`. */
+function soundAnimationLinks(entry) {
+    const byChar = new Map();
+    for (const a of entry ? entry.animations : []) {
+        for (const o of a.owners) {
+            if (o.character === undefined) continue;
+            if (!byChar.has(o.character)) byChar.set(o.character, { who: new Set(), what: new Set() });
+            byChar.get(o.character).who.add(o.who);
+            byChar.get(o.character).what.add(o.attack ? 'attack' : o.what);
+        }
+    }
+    const list = (set, n) => [...set].slice(0, n).join(', ') + (set.size > n ? ` +${set.size - n}` : '');
+    return [...byChar].slice(0, MAX_SOUND_CHARACTERS).map(([c, e]) => ({
+        uri: `${ROM}characters/${hexId(c, 2)}/info.md`,
+        role: `plays it: ${list(e.who, 4)} (${list(e.what, 3)})`,
+    }));
+}
+
+/** How many characters play the sound (more than MAX_SOUND_CHARACTERS are not linked). */
+function soundAnimationCount(entry) {
+    return new Set((entry ? entry.animations : []).flatMap(a => a.owners.map(o => o.character)).filter(c => c !== undefined)).size;
+}
+
+/** The Boy (character 0) and the Dog (1) by tag. */
+function soundAnimationSee(entry) {
+    const chars = new Set((entry ? entry.animations : []).flatMap(a => a.owners.map(o => o.character)));
+    return [chars.has(0) && 'boy', chars.has(1) && 'dog'].filter(Boolean);
+}
+
 function audio() {
     const music = family(MUSIC, {
         name: m => m.name,
@@ -101,13 +131,16 @@ function audio() {
             ],
         }),
     });
+    const anims = new Map(getSoundAnimations().map(e => [e.id, e]));
     const sound = family(SOUNDS, {
         name: s => s.name,
         suffix: s => hexId(s.id, 2),
         alias: s => hexId(s.id, 2),
         def: s => ({
             title: `${s.name} (sound $${hexId(s.id, 2)})`,
-            links: [{ uri: `${ROM}audio/sounds/${hexId(s.id, 2)}/info.json`, role: 'sound effect' }],
+            links: [{ uri: `${ROM}audio/sounds/${hexId(s.id, 2)}/info.json`, role: 'sound effect' }, ...soundAnimationLinks(anims.get(s.id))],
+            see: soundAnimationSee(anims.get(s.id)),
+            ...(anims.has(s.id) ? { source: `animation command sound $${hexId(s.id >> 1, 2)} in ${anims.get(s.id).animations.length} animations of ${soundAnimationCount(anims.get(s.id))} characters (sound-animations.json)` } : {}),
         }),
     });
     return {

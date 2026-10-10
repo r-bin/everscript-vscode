@@ -3,6 +3,7 @@
 // Source: Secret of Evermore (EMU) rips, everscript enum SOUND/MUSIC, and dump_spc.py.
 
 const { resolveLocalizedName } = require('./strings');
+const SOUND_ANIMATIONS = require('./data/sound-animations.json');
 
 /**
  * Master music catalogue (opcode 0x33, internal IDs 0x00..0x45).
@@ -196,7 +197,17 @@ function getSoundName(id, options = {}) {
     return resolveLocalizedName(entry, options.rom, 'name');
 }
 
+/**
+ * The animations that play a sound (command 0x2E/0x2F `sound n` = script id 2n),
+ * generated from the ROM by tools/gen-sound-animations.js:
+ * [{ id: script id, sfx: driver effect, animations: [{ record, label, sometimes?, owners: [{ who, what, character?, attack? }] }] }]
+ */
+function getSoundAnimations() {
+    return Object.entries(SOUND_ANIMATIONS).map(([hex, e]) => ({ id: parseInt(hex, 16), ...e }));
+}
+
 module.exports = {
+    getSoundAnimations,
     MUSIC,
     SOUNDS,
     EXTRAS,
