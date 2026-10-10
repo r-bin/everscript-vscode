@@ -35,6 +35,8 @@ var _music = {
   sfxWidth: 240, sfxOpen: true,    // the sound-effects sidebar
   lastSrc: {},                     // sfx id -> who last sent it { kind, name, entity, script, caller, time }
   hoverPt: null, hoverKey: '',     // the pointer over the timeline (music-hover.js)
+  hoverHeld: null, tipPinned: false,
+  srcInfo: {},                     // who-sent-it descriptions from the host, by source key
   pointed: 0,                      // entity the emulator marks for the hovered effect
   emuPaused: false, pausedAudio: false,
 };
@@ -142,12 +144,12 @@ function muRenderChannels() {
   if (!box.firstChild) {
     var html = '';
     for (var v = 0; v < 8; v++) {
+      // Compact: name + owner, what plays, envelope on the left; M / S stacked on the right.
       html += '<div class="mu-tl-ch" data-tl-v="' + v + '">' +
-        '<div class="mu-ch-top"><b class="mu-ch-name">V' + v + '</b><span class="mu-ch-own"></span>' +
+        '<div class="mu-ch-info"><div class="mu-ch-top"><b class="mu-ch-name">V' + v + '</b><span class="mu-ch-own"></span></div>' +
+        '<div class="mu-ch-what"></div><div class="mu-ch-vu"><i></i></div></div>' +
         '<span class="mu-ch-btns"><button class="mu-mute-btn" data-tl-mute="' + v + '" title="Mute V' + v + ' in the timeline">M</button>' +
-        '<button class="mu-solo-btn" data-tl-solo="' + v + '" title="Solo V' + v + ' in the timeline">S</button></span></div>' +
-        '<div class="mu-ch-what"></div>' +
-        '<div class="mu-ch-vu"><i></i></div></div>';
+        '<button class="mu-solo-btn" data-tl-solo="' + v + '" title="Solo V' + v + ' in the timeline">S</button></span></div>';
     }
     box.innerHTML = html;
   }
@@ -157,12 +159,12 @@ function muRenderChannels() {
     var own = '', ownCls = 'mu-own-idle', what = '', tip = 'Free: the driver gives this voice to nobody now', color = 'var(--mu-line)';
     if (V && V.own === 'sfx') {
       var info = muSfxInfo(V.sfx);
-      own = MU_CAT_ICONS[info.cat] + ' SFX ' + muHex(V.sfx, 2); ownCls = 'mu-own-' + info.cat;
+      own = MU_CAT_ICONS[info.cat] + muHex(V.sfx, 2); ownCls = 'mu-own-' + info.cat;
       what = info.name; color = MU_CAT_COLORS[info.cat];
       tip = 'Sound effect ' + muHex(V.sfx, 2) + ' · ' + info.name + (info.source ? ' · played by ' + info.source : '');
     } else if (V && V.own === 'mus') {
-      own = '♪ T' + V.track; ownCls = 'mu-own-mus';
-      what = V.on ? (V.inst >= 0 ? muHex(V.inst, 2) : '@' + muHex(V.start, 4)) + ' ' + (V.st >= 0 ? '+' : '') + V.st.toFixed(1) + ' st' : 'rest';
+      own = '♪T' + V.track; ownCls = 'mu-own-mus';
+      what = V.on ? (V.inst >= 0 ? muHex(V.inst, 2) : '@' + muHex(V.start, 4).slice(1)) + ' ' + (V.st >= 0 ? '+' : '') + V.st.toFixed(1) : 'rest';
       color = V.inst >= 0 ? muInstColor(V.inst) : MU_COLORS[i];
       tip = 'Music track ' + V.track + (V.on && V.inst >= 0 ? ' · sample ' + muHex(V.inst, 2) + ' at ' + V.st.toFixed(1) + ' semitones from its own rate' : '');
     } else if (V) {

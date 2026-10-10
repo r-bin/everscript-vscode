@@ -21,7 +21,7 @@ const { getTasCss, getTasTabButtonHtml, getTasChipHtml, getTasOverlayHtml, getTa
 const { getScriptDebugClientScript } = require('./script-debug-view');
 const { getMemoryBridgeClientScript } = require('./memory-bridge-view');
 const { getApuStreamClientScript } = require('./apu-stream-view');
-const { getSoundSourceClientScript } = require('./sound-source-view');
+const { getSoundSourceClientScript, getSoundChipHtml } = require('./sound-source-view');
 
 function _nonce() {
     let n = '';
@@ -542,6 +542,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       <button id="screen-anim-toggle" class="screen-chip active" type="button" title="Toggle Animated Tiles Overlay">ANIM TILES ON</button>
       <button id="screen-collision-toggle" class="screen-chip active" type="button" title="Toggle Collision Lines Overlay">COLLISION ON</button>
       <button id="screen-fog-toggle" class="screen-chip" type="button" title="Toggle Fog of War outside emulator">FOG OFF</button>
+      ${getSoundChipHtml()}
       <button id="screen-speed-chip" class="screen-chip" type="button" title="Speed-up (#)">SPEED x1</button>
       <button id="screen-focus-chip" class="screen-chip" type="button" title="When the VS Code debugger stops: show the line in the editor (code) or keep the focus on the emulator (stay)">BREAK: code</button>
       ${getTasChipHtml()}

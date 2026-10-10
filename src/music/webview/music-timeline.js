@@ -29,7 +29,7 @@ function muSfxInfo(id) {
 /** "Boy (animation)", "script $93D386", "engine $8F95C1": who sent an effect. */
 function muSrcLabel(src) {
   if (!src) return '';
-  if (src.kind === 'anim') return (src.name || 'entity ' + muHex(src.entity || 0, 4)) + ' (animation)';
+  if (src.kind === 'anim') return (src.name || 'entity ' + muHex(src.entity || 0, 4)) + ' (animation)' + (typeof src.pitch === 'number' && src.pitch ? ' · pitch ' + muPitchLabel(src.pitch) : '');
   if (src.kind === 'script') return 'script ' + muHex(src.script >>> 0, 6);
   if (src.kind === 'tab') return 'clicked in this tab';
   return 'engine code ' + muHex(src.caller >>> 0, 6);
@@ -218,7 +218,7 @@ function muDrawSfxBoxes(ctx, frames, v, y0, laneH, X, W, hit) {
   muSfxRuns(frames, v).forEach(function (r) {
     var x1 = X(frames[Math.max(0, r.first - 1)].time), x2 = X(frames[r.last].time);
     if (x2 < 0 || x1 > W) return;
-    var hot = _music.hoverSfxId === r.sfx || !!(hit && hit.kind === 'sfx' && hit.v === v && hit.first === r.first);
+    var hot = _music.hoverSfxId === r.sfx || !!(hit && hit.kind === 'sfx' && hit.v === v && hit.t0 === frames[Math.max(0, r.first - 1)].time);
     muDrawSfxBox(ctx, x1, x2, y0, laneH, r.sfx, r.src, hot);
   });
 }
@@ -236,7 +236,9 @@ function muDrawSfxBox(ctx, x1, x2, y0, laneH, sfx, src, hot) {
     ctx.beginPath(); ctx.rect(x1, y0, w - 2, laneH); ctx.clip();
     ctx.fillStyle = '#fff';
     ctx.font = '600 10px ' + MU_CANVAS_FONT();
-    ctx.fillText(MU_CAT_ICONS[info.cat] + ' ' + info.name, x1 + 4, y0 + 14);
+    // A pitch the game sent with it ($30): ↑ / ↓ and how far, the same sound higher or lower.
+    var bend = src && typeof src.pitch === 'number' && src.pitch ? (src.pitch > 0 ? ' ↑' : ' ↓') + Math.abs(src.pitch / 20).toFixed(1) : '';
+    ctx.fillText(MU_CAT_ICONS[info.cat] + ' ' + info.name + bend, x1 + 4, y0 + 14);
     var sub = src ? '← ' + muSrcLabel(src) : info.source;
     if (sub && laneH > 34) {
       ctx.fillStyle = src ? '#fde68a' : 'rgba(255,255,255,0.65)';

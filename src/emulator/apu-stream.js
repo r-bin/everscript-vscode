@@ -26,6 +26,15 @@ class ApuStream {
   /** fn(paused) when the emulator is paused or resumed. */
   setOnPause(fn) { this._onPause = fn; }
 
+  /** fn() -> sound-effect names by driver id; sent to every (re)loaded page for the screen's marks. */
+  setNames(fn) { this._names = fn; this._sendNames(); }
+
+  _sendNames() {
+    let names = null;
+    try { names = this._names ? this._names() : null; } catch { names = null; }
+    if (names) this._post({ command: 'apuSfxNames', names });
+  }
+
   /** Marks an entity on the emulator screen (0 = none), e.g. the one a sound came from. */
   point(entity, label) { this._post({ command: 'apuPoint', entity: entity | 0, label: String(label || '') }); }
 
@@ -35,7 +44,10 @@ class ApuStream {
   }
 
   /** The page is (re)loaded: it starts off, so repeat the wish. */
-  pageReady() { if (this._on) this._post({ command: 'apuStream', on: true }); }
+  pageReady() {
+    if (this._on) this._post({ command: 'apuStream', on: true });
+    this._sendNames();
+  }
 
   /** { view, ram, pkg, frame } from the running game. */
   snapshot() {

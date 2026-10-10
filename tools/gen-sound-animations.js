@@ -8,7 +8,13 @@
 // (ASL) and reads the word at $8C:8362 + 2n, then calls $8C:82DC, which sends
 // driver command $04. So n is the sound() script id 2n (the script opcode
 // indexes the same table with its byte unshifted). $FFFF entries are muted.
-// Keys: script id; values: { sfx: driver effect, animations: [...] }.
+// Keys: script id; values: { sfx: driver effect, animations: [...] }. Each
+// animation lists its sound commands: { at (ROM address of the command, what the
+// emulator's sound-source hook sees in $5D - 2), sprite (the frame it shows next),
+// pitch? } where pitch is a variation sent just before as driver command $30
+// (a pitch offset in 1/20 semitone for the next effect, $1DA7 -> $D9+2v):
+//   0x40 word   a fixed offset (signed word)        -> pitch: n
+//   0x3F word   -(Boy's stamina $7E4EB7 >> 2) when the word is non-zero -> pitch: 'stamina'
 
 const fs = require('fs');
 const path = require('path');
@@ -21,6 +27,8 @@ const { readAllCharacters, buildAnimationCatalog } = require('../src/sprites');
 
 const SCRIPT_SFX = 0x0C8362;
 const SOUND_OPS = [0x2E, 0x2F];
+const PITCH_STAMINA = 0x3F, PITCH_FIXED = 0x40;
+const SPRITE_OPS = l => /^sprite(_long)? /.test(l.text);
 const hex = (v, d) => v.toString(16).toUpperCase().padStart(d, '0');
 
 /** Who plays a record, as short { who, what, character? } entries. */
@@ -36,6 +44,17 @@ function owners(entry) {
     return out.filter(o => { const k = o.who + '|' + o.what; return !seen.has(k) && seen.add(k); });
 }
 
+/** The sprite a script shows after line i (the frame on screen when the sound plays), else before it. */
+function spriteAfter(lines, i) {
+    const spriteOf = l => {
+        const m = /\$([0-9a-f]{6})/i.exec(l.text);
+        return m ? parseInt(m[1], 16) : 0;
+    };
+    for (let k = i + 1; k < lines.length; k++) if (SPRITE_OPS(lines[k])) return spriteOf(lines[k]);
+    for (let k = i - 1; k >= 0; k--) if (SPRITE_OPS(lines[k])) return spriteOf(lines[k]);
+    return 0;
+}
+
 function build(rom) {
     let raw = fs.readFileSync(rom);
     if (raw.length % 0x8000 === 0x200) raw = raw.subarray(0x200);
@@ -44,14 +63,23 @@ function build(rom) {
     const byScript = new Map();
     for (const g of animationGroups(raw)) {
         for (const script of g.scripts) {
-            for (const l of disassembleScript(raw, script)) {
-                if (!l.known || !SOUND_OPS.includes(l.bytes[0] & 0x7F)) continue;
+            const lines = disassembleScript(raw, script);
+            let pitch = null;
+            lines.forEach((l, i) => {
+                const op = l.bytes[0] & 0x7F;
+                if (l.known && op === PITCH_FIXED) pitch = ((l.bytes[1] | l.bytes[2] << 8) << 16) >> 16;
+                if (l.known && op === PITCH_STAMINA) pitch = (l.bytes[1] | l.bytes[2]) ? 'stamina' : null;
+                if (!l.known || !SOUND_OPS.includes(op)) return;
                 const n = l.bytes[1], sfx = raw[SCRIPT_SFX + 2 * n] | raw[SCRIPT_SFX + 2 * n + 1] << 8;
-                if (sfx === 0xFFFF) continue;
+                const hit = { at: l.address, sprite: spriteAfter(lines, i), ...(pitch !== null ? { pitch } : {}) };
+                pitch = null;
+                if (sfx === 0xFFFF) return;
                 const id = '0x' + hex(2 * n, 2).toLowerCase();
                 if (!byScript.has(id)) byScript.set(id, { sfx, records: new Map() });
-                byScript.get(id).records.set(g.record, (l.bytes[0] & 0x7F) === 0x2F);
-            }
+                const rec = byScript.get(id).records;
+                if (!rec.has(g.record)) rec.set(g.record, { maybe: op === 0x2F, ops: [] });
+                if (!rec.get(g.record).ops.some(o => o.at === hit.at)) rec.get(g.record).ops.push(hit);
+            });
         }
     }
     const out = {};
@@ -59,9 +87,9 @@ function build(rom) {
         const { sfx, records } = byScript.get(id);
         out[id] = {
             sfx,
-            animations: [...records].sort((a, b) => a[0] - b[0]).map(([record, maybe]) => {
+            animations: [...records].sort((a, b) => a[0] - b[0]).map(([record, r]) => {
                 const e = byRecord.get(record);
-                return { record: '$' + hex(record, 4), label: e ? e.label : '', ...(maybe ? { sometimes: true } : {}), owners: owners(e) };
+                return { record: '$' + hex(record, 4), label: e ? e.label : '', ...(r.maybe ? { sometimes: true } : {}), ops: r.ops, owners: owners(e) };
             }),
         };
     }

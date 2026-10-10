@@ -37,9 +37,26 @@ function sfxAnimations(sfx) {
 }
 
 /**
+ * How animations vary driver effect `sfx` (command $30 just before it: a pitch offset in
+ * 1/20 semitone): { stamina: bool, offsets: [n] } or null when they never do.
+ */
+function sfxPitch(sfx) {
+    let stamina = false;
+    const offsets = new Set();
+    for (const e of getSoundAnimations()) {
+        if (e.sfx !== sfx) continue;
+        for (const a of e.animations) for (const o of a.ops || []) {
+            if (o.pitch === 'stamina') stamina = true;
+            else if (typeof o.pitch === 'number') offsets.add(o.pitch);
+        }
+    }
+    return stamina || offsets.size ? { stamina, offsets: [...offsets].sort((a, b) => a - b) } : null;
+}
+
+/**
  * { music, sfx, packages, driver } or { error }.
  *   music[m]    { id, package, name }
- *   sfx[s]      { id, package (0 = base bank), scripts: [sound() ids], name, animations: [{ who, what, attack, record }] }
+ *   sfx[s]      { id, package (0 = base bank), scripts: [sound() ids], name, animations: [{ who, what, attack, record }], pitch: sfxPitch() }
  *   packages[p] [[dest, len], ...]
  *   driver      { entry, blocks: [{ dest, bytes: number[] }] }
  */
@@ -55,7 +72,7 @@ function buildMusicModel(rom) {
         music: musicPk.map((p, m) => ({ id: m, package: p, name: getMusic(m) ? getMusicName(m) : 'Music $' + hex2(m) })),
         sfx: sfxPk.map((p, s) => {
             const ids = scripts.get(s) || [];
-            return { id: s, package: p, scripts: ids, name: sfxName(ids), animations: sfxAnimations(s) };
+            return { id: s, package: p, scripts: ids, name: sfxName(ids), animations: sfxAnimations(s), pitch: sfxPitch(s) };
         }),
         packages,
         driver: { entry: drv.entry, blocks: drv.blocks.map(b => ({ dest: b.dest, bytes: Array.from(b.bytes) })) },

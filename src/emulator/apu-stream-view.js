@@ -63,7 +63,8 @@ function getApuStreamClientScript() {
 
     // Called once per displayed frame, after mainLoop().
     function apuStreamTick(m, paused) {
-      sndSync(m, apuStreamOn && romLoaded);
+      sndSync(m, romLoaded && (apuStreamOn || sndShow));
+      const src = sndTake(paused);
       if (!apuStreamOn || !romLoaded) return;
       const view = apuViewBytes(m);
       if (!view) return;
@@ -74,7 +75,7 @@ function getApuStreamClientScript() {
         pkg: apuLoadedPackage(m),
         starts: apuVoiceStarts(view),
         drv: apuDriverBytes(view),
-        src: sndTake(paused),   // sound-source-view.js: who sent each effect this frame
+        src: src,   // sound-source-view.js: who sent each effect this frame
         frame: apuStreamFrame,
         paused: !!paused
       });

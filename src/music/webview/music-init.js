@@ -156,6 +156,8 @@ function muOnMessage(msg) {
       _music.layoutKey = '';
     }
     muRenderStatus();
+  } else if (msg.command === 'musicSourceInfo') {
+    _music.srcInfo[msg.key] = msg.info || false;
   } else if (msg.command === 'musicPaused') {
     muOnEmulatorPause(!!msg.paused);
   } else if (msg.command === 'musicFrame') {

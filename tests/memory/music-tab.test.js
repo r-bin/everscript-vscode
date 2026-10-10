@@ -64,7 +64,8 @@ async function modelAndEngine() {
         assert.strictEqual(model.sfx.filter(s => !s.package).length, 62);
     });
     await step('model: sound effects carry their package and the sound() ids that reach them', async () => {
-        const { animations, ...explosion } = model.sfx[0x42];
+        const { animations, pitch, ...explosion } = model.sfx[0x42];
+        assert.strictEqual(pitch, null);
         assert.deepStrictEqual(explosion, { id: 0x42, package: 0x43, scripts: [0x64], name: 'Explosion' });
         assert.deepStrictEqual(animations, []);
         assert.deepStrictEqual(model.sfx[0x56].scripts, [0x6E]);
@@ -204,7 +205,17 @@ async function coreStream(model) {
         }
         host.setOn(false);
         page.apuStreamTick(M, false);
-        assert.strictEqual(page.armed(), false, 'the hook is off with the stream');
+        assert.strictEqual(page.armed(), true, 'armed while the SOUNDS chip shows them');
+        vm.runInContext('sndShow = false;', page);
+        page.apuStreamTick(M, false);
+        assert.strictEqual(page.armed(), false, 'off with the chip and the stream');
+        const anims = hooks.filter(e => e.kind === 'anim');
+        assert.ok(anims.every(e => [0x2E, 0x2F].includes(rom[e.at & 0x3FFFFF] & 0x7F)), 'at = the animation\'s sound command');
+        const { describeSoundSource } = require('../../src/resources/sound-source');
+        const boy = describeSoundSource(rom, anims.find(e => e.name === 'Boy'));
+        assert.strictEqual(boy.who.uri, 'soe://tags/boy.md');
+        assert.match(boy.who.image, /^data:image\/png/);
+        assert.ok(boy.animation && boy.animation.uri && /characters\/00\/animations\//.test(boy.animation.uri), JSON.stringify(boy.animation));
         assert.ok(found.has('anim:7:Boy'), [...found].join(' '));
         assert.ok(found.has('anim:16:Dog'), [...found].join(' '));
         assert.ok(hooks.some(e => e.kind === 'script' && e.script >= 0x920000), 'sound() from a script');
@@ -258,7 +269,7 @@ async function dom(model) {
     await step('the channel column shows the driver\'s owner of each voice', async () => {
         const owners = await page.$$eval('.mu-tl-ch .mu-ch-own', els => els.map(e => e.textContent));
         assert.strictEqual(owners.length, 8);
-        assert.ok(owners.some(t => /^♪ T\d$/.test(t)), owners.join(' '));
+        assert.ok(owners.some(t => /^♪T\d$/.test(t)), owners.join(' '));
     });
     await step('a sound effect the game sends draws one box for as long as the driver gives it the voice', async () => {
         const a = await freshTrack(model, 0x3A);

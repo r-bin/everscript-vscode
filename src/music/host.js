@@ -11,6 +11,8 @@
 //   page -> musicStream { on }        host -> musicEmulator { open }   (frames: musicFrame, from extension.js)
 //   page -> musicSnapshot { id }      host -> musicSnapshotData { id, view, ram, pkg, frame } | { id, error }
 //   page -> musicPoint { entity, label }   marks that entity on the emulator screen (0 = none)
+//   page -> musicDescribe { key, src }     host -> musicSourceInfo { key, info }   (who sent a sound: names, pictures, links)
+//   page -> musicOpen { uri }              opens a soe:// link in the editor
 //                                     host -> musicPaused { paused }   (from extension.js: the emulator's pause)
 
 const { buildMusicModel, packageData } = require('./model/catalog');
@@ -35,7 +37,8 @@ function model(deps) {
 /**
  * @param msg  webview message
  * @param deps {post, loadRom: () => Buffer|null,
- *              apu: {setOn(on), snapshot(): Promise<{view, ram, pkg, frame}>, isOpen(): boolean, point(entity, label)}}
+ *              apu: {setOn(on), snapshot(): Promise<{view, ram, pkg, frame}>, isOpen(): boolean, point(entity, label)},
+ *              describeSource(rom, src) (resources/sound-source.js), open(uri)}
  */
 function handleMusicMessage(msg, deps) {
     switch (msg.command) {
@@ -52,6 +55,16 @@ function handleMusicMessage(msg, deps) {
             deps.apu.setOn(!!msg.on);
             deps.post({ command: 'musicEmulator', open: deps.apu.isOpen() });
             return;
+        case 'musicDescribe': {
+            const { rom } = model(deps);
+            let info = null;
+            try { info = deps.describeSource && rom ? deps.describeSource(rom, msg.src) : null; } catch { info = null; }
+            deps.post({ command: 'musicSourceInfo', key: msg.key, info });
+            return;
+        }
+        case 'musicOpen':
+            if (deps.open && /^soe:\/\//.test(String(msg.uri))) deps.open(String(msg.uri));
+            return;
         case 'musicPoint':
             if (deps.apu.point) deps.apu.point(msg.entity, msg.label);
             return;
@@ -63,4 +76,10 @@ function handleMusicMessage(msg, deps) {
     }
 }
 
-module.exports = { handlesMusicMessage, handleMusicMessage };
+/** Sound-effect names by driver id (for the emulator's marks), or null without the ROM. */
+function sfxNames(loadRom) {
+    const m = model({ loadRom }).model;
+    return m.error ? null : m.sfx.map(s => s.name || '');
+}
+
+module.exports = { handlesMusicMessage, handleMusicMessage, sfxNames };

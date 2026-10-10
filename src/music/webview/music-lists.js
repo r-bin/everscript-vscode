@@ -78,6 +78,7 @@ function muRenderSfx(cur) {
       ' title="Driver effect ' + muHex(s.id, 2) + ' · ' + how + ' · ' + muEsc(need) + muEsc(by) + '">' +
       '<span class="mu-sfx-cat">' + MU_CAT_ICONS[cat] + '</span><code class="mu-sfx-id">' + muHex(s.id, 2) + '</code>' +
       '<span class="mu-sfx-name">' + muEsc(label) + (src ? '<small>' + muEsc(src) + '</small>' : '') + '</span>' +
+      (s.pitch ? '<span class="mu-sfx-var" title="' + muEsc(muPitchVariants(s.pitch)) + '">~pitch</span>' : '') +
       '<span class="mu-sfx-ch"></span></button>';
   }).join('') : '<div class="mu-empty mu-sfx-none">' + (filter === 'recent' ? 'Nothing played yet: effects the game sends show up here.' : 'No sound effects match.') + '</div>';
   box._live = '';

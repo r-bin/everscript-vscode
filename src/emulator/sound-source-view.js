@@ -4,23 +4,27 @@
  * emulator/sound-source-view.js
  *
  * Page side: who sent each sound effect, for the radar's Music tab, and the
- * marks on the screen that point at it.
+ * marks on the screen that show it (the SOUNDS chip switches them).
  *
  * Every command reaches the sound driver through $8C:81FD (A = command, Y =
  * parameter; the only routine that writes the ports outside the IPL upload).
- * While the Music tab streams the sound chip, a non-pausing exec breakpoint
- * there records each $04 (sound effect): the effect (Y) and who called. Sound
- * effects go $8C:82DC -> $8C:831D -> JSL $8C:81FD, so the JSL return address at
- * S+1 is $8C:8327 and the real caller's is at S+4. Verified on the vanilla
- * intro (the Boy's swing $07, the Dog's bark $10):
+ * While sounds are shown or the Music tab streams, a non-pausing exec
+ * breakpoint there records each $04 (sound effect): the effect (Y) and who
+ * called. Sound effects go $8C:82DC -> $8C:831D -> JSL $8C:81FD, so the JSL
+ * return address at S+1 is $8C:8327 and the real caller's is at S+4. Verified
+ * on the vanilla intro (the Boy's swing $07, the Dog's bark $10):
  *   bank $90   the animation command `sound n` ($90:8921 / $90:894E). It pushed
- *              its entity (PHY) before the JSL: S+7..8 = entity pointer.
+ *              its entity (PHY) before the JSL: S+7..8 = entity pointer. [$5D] is
+ *              the animation script past the operand: the command is at [$5D] - 2.
  *   $8C:D6D3   the script opcode 0x30 ($8C:D6BD): $82-$84 points past its operand.
  *   anything else: engine code (the ring menu, ...), named by its address.
+ * A $30 (pitch offset for the next effect, 1/20 semitone; animation commands
+ * 0x3F / 0x40 send it) is kept and attached to the effect that follows.
  * They ride along with the next apuFrame as `src`.
  *
- *   page -> apuFrame { ..., src: [{ sfx, kind: 'anim'|'script'|'engine', entity, name, x, y, script, slot, caller }] }
+ *   page -> apuFrame { ..., src: [{ sfx, kind: 'anim'|'script'|'engine', entity, type, name, at, sprite, pal, script, slot, caller, pitch }] }
  *   host -> { command: 'apuPoint', entity, label }   mark an entity until pointed elsewhere (entity 0 = none)
+ *   host -> { command: 'apuSfxNames', names }        sound-effect names by driver id (for the marks)
  *
  * Needs the custom core's debugger API (addExecBreakpoint, getCPUState);
  * without it nothing is recorded. Invariant: ASCII only and no backslashes
@@ -30,16 +34,29 @@
 const SOUND_SEND = 0x8C81FD;
 const SFX_TAIL = 0x8C8327;     // return address of $8C:831D's JSL $8C:81FD
 
+/** The overlay bar's chip. */
+function getSoundChipHtml() {
+  return '<button id="screen-sound-toggle" class="screen-chip active" type="button" title="Show which entity makes each sound (and record who sent it for the Music tab)">SOUNDS ON</button>';
+}
+
 function getSoundSourceClientScript() {
   return `
     const SND_SEND = ${SOUND_SEND};
     const SND_SFX_TAIL = ${SFX_TAIL};
     const SND_PING_FRAMES = 75;
     let sndArmed = false;
+    let sndShow = true;
     let sndEvents = [];
     let sndPings = [];
     let sndPoint = null;
     let sndFrame = 0;
+    let sndPitch = null;
+    let sndNames = [];
+
+    function sndLabel(sfx) {
+      const n = sndNames[sfx];
+      return n ? n : 'sfx $' + sfx.toString(16).toUpperCase().padStart(2, '0');
+    }
 
     // Without onBreakpointHit (the debugger bridge) a breakpoint would pause the game.
     function sndCanHook(m) {
@@ -47,21 +64,21 @@ function getSoundSourceClientScript() {
         typeof m.getCPUState === 'function' && typeof m.onBreakpointHit === 'function';
     }
 
-    // Armed exactly while the Music tab streams (apuStreamTick calls this every frame).
+    // apuStreamTick calls this every frame: armed while sounds show or the Music tab streams.
     function sndSync(m, want) {
       if (!sndCanHook(m) || want === sndArmed) return;
       if (want) m.addExecBreakpoint(SND_SEND); else m.removeExecBreakpoint(SND_SEND);
       sndArmed = want;
-      if (!want) { sndEvents = []; sndPings = []; }
+      if (!want) { sndEvents = []; sndPings = []; sndPitch = null; }
     }
 
     function sndWord(m, a) { return m.readMemory(a) | (m.readMemory(a + 1) << 8); }
+    function sndSigned(v) { return v >= 0x8000 ? v - 0x10000 : v; }
 
-    function sndEntityName(m, addr) {
+    function sndEntityName(m, addr, type) {
       if (addr === 0x4E89) return 'Boy';
       if (addr === 0x4F37) return 'Dog';
       try {
-        const type = sndWord(m, 0x7E0000 + addr + 0x60);
         const rom = loadedRomData && ((loadedRomData.length % 1024 === 512) ? loadedRomData.subarray(512) : loadedRomData);
         if (rom && type >= 0x8000 && typeof decodeEntityName === 'function') {
           const name = decodeEntityName(rom, readRom24(rom, snesToRom(0x8E0000 | type)), type);
@@ -71,27 +88,37 @@ function getSoundSourceClientScript() {
       return 'entity $' + addr.toString(16).toUpperCase();
     }
 
-    function sndSigned(v) { return v >= 0x8000 ? v - 0x10000 : v; }
+    function sndAnimation(m, ev, ent) {
+      const at = 0x7E0000 + ent;
+      ev.kind = 'anim';
+      ev.entity = ent;
+      ev.type = sndWord(m, at + 0x60);
+      ev.name = sndEntityName(m, ent, ev.type);
+      ev.x = sndSigned(sndWord(m, at + 0x1A));
+      ev.y = sndSigned(sndWord(m, at + 0x1C));
+      ev.at = ((m.readMemory(0x7E005F) << 16) | sndWord(m, 0x7E005D)) - 2;
+      const bank = m.readMemory(at + 0x08), spr = sndWord(m, at + 0x06);
+      ev.sprite = bank >= 0xC0 && bank <= 0xDF && spr >= 3 ? (bank << 16) | spr : 0;
+      ev.pal = sndWord(m, 0x7E1278 + (m.readMemory(at + 0x0C) & 0x0E));
+      if (sndShow) sndPings.push({ entity: ent, sfx: ev.sfx, birth: sndFrame });
+    }
 
-    // onBreakpointHit for SND_SEND: record a sound effect and keep running.
+    // onBreakpointHit for SND_SEND: record a sound effect (or its pitch) and keep running.
     function sndOnHit(m) {
       try {
-        const cpu = m.getCPUState();
-        if ((cpu.a & 0xFF) !== 0x04) return false;
+        const cpu = m.getCPUState(), cmd = cpu.a & 0xFF;
+        if (cmd === 0x30) { sndPitch = sndSigned(cpu.y & 0xFFFF); return false; }
+        if (cmd !== 0x04) return false;
         const sp = cpu.sp & 0xFFFF;
         const stack = k => m.readMemory(0x7E0000 + ((sp + k) & 0xFFFF));
         const ret = k => ((stack(k + 2) << 16) | (stack(k + 1) << 8) | stack(k)) + 1;
         let at = 1, caller = ret(1);
         if (caller === SND_SFX_TAIL) { at = 4; caller = ret(4); }
         const ev = { sfx: cpu.y & 0xFF, kind: 'engine', caller: caller };
+        if (sndPitch !== null) { ev.pitch = sndPitch; sndPitch = null; }
         const ent = stack(at + 3) | (stack(at + 4) << 8);
         if ((caller >> 16) === 0x90 && ent >= 0x3000 && ent < 0x6000) {
-          ev.kind = 'anim';
-          ev.entity = ent;
-          ev.name = sndEntityName(m, ent);
-          ev.x = sndSigned(sndWord(m, 0x7E0000 + ent + 0x1A));
-          ev.y = sndSigned(sndWord(m, 0x7E0000 + ent + 0x1C));
-          sndPings.push({ entity: ent, sfx: ev.sfx, birth: sndFrame });
+          sndAnimation(m, ev, ent);
         } else if (caller >= 0x8CD6B0 && caller < 0x8CD6E0) {
           ev.kind = 'script';
           ev.script = ((m.readMemory(0x7E0084) << 16) | sndWord(m, 0x7E0082)) - 2;
@@ -110,14 +137,34 @@ function getSoundSourceClientScript() {
       return out;
     }
 
+    function sndSetShow(on) {
+      sndShow = !!on;
+      if (!sndShow) sndPings = [];
+      const chip = document.getElementById('screen-sound-toggle');
+      if (chip) { chip.classList.toggle('active', sndShow); chip.textContent = sndShow ? 'SOUNDS ON' : 'SOUNDS OFF'; }
+    }
+
+    (function sndBindChip() {
+      if (typeof document === 'undefined') return;
+      const chip = document.getElementById('screen-sound-toggle');
+      if (!chip) { document.addEventListener('DOMContentLoaded', sndBindChip); return; }
+      chip.addEventListener('click', e => {
+        e.stopPropagation();
+        sndSetShow(!sndShow);
+        const screen = document.getElementById('screen');
+        if (screen) screen.focus();
+      });
+    })();
+
     window.addEventListener('message', evt => {
       const d = evt.data;
-      if (!d || d.command !== 'apuPoint') return;
-      sndPoint = d.entity ? { entity: d.entity, label: String(d.label || '') } : null;
+      if (!d) return;
+      if (d.command === 'apuPoint') sndPoint = d.entity ? { entity: d.entity, label: String(d.label || '') } : null;
+      else if (d.command === 'apuSfxNames' && Array.isArray(d.names)) sndNames = d.names;
     });
 
     // Drawn with the triggers overlay: a ring that fades around an entity that just
-    // made a sound, and a steady one around the entity the Music tab points at.
+    // made a sound (with its name), and a steady one around the one the Music tab points at.
     function sndDraw(ctx, layout, preState) {
       sndPings = sndPings.filter(p => sndFrame - p.birth < SND_PING_FRAMES);
       if ((!sndPings.length && !sndPoint) || !preState || !preState.entBuf || !layout) return;
@@ -133,14 +180,16 @@ function getSoundSourceClientScript() {
       ctx.save();
       ctx.lineWidth = Math.max(1, Math.round(2 * s));
       ctx.font = 'bold ' + Math.round(9 * s) + 'px sans-serif';
+      // Several sounds of one entity in a row: one label each, stacked.
+      const stacked = {};
       for (const p of sndPings) {
         const pos = at(p.entity);
         if (!pos) continue;
-        const k = (sndFrame - p.birth) / SND_PING_FRAMES;
+        const k = (sndFrame - p.birth) / SND_PING_FRAMES, row = stacked[p.entity] = (stacked[p.entity] || 0) + 1;
         ctx.strokeStyle = 'rgba(245, 158, 11, ' + (1 - k).toFixed(2) + ')';
         ctx.beginPath(); ctx.arc(pos.x, pos.y, (10 + k * 10) * s, 0, Math.PI * 2); ctx.stroke();
         ctx.fillStyle = 'rgba(253, 230, 138, ' + (1 - k).toFixed(2) + ')';
-        ctx.fillText('sfx $' + p.sfx.toString(16).toUpperCase().padStart(2, '0'), pos.x + 12 * s, pos.y - 10 * s);
+        ctx.fillText(sndLabel(p.sfx), pos.x + 12 * s, pos.y - (10 + 10 * (row - 1)) * s);
       }
       if (sndPoint) {
         const pos = at(sndPoint.entity);
@@ -158,4 +207,4 @@ function getSoundSourceClientScript() {
   `;
 }
 
-module.exports = { getSoundSourceClientScript, SOUND_SEND };
+module.exports = { getSoundSourceClientScript, getSoundChipHtml, SOUND_SEND };

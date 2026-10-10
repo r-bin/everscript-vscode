@@ -795,6 +795,8 @@ function activate(context) {
                         post: (m) => _radarPanel?.webview.postMessage(m),
                         loadRom: () => romReaders.loadRomBuffer(_ws, getExtConfig().romPath || ''),
                         apu: require('./emulator/panel').apuStream,
+                        describeSource: (rom, src) => require('./resources/sound-source').describeSoundSource(rom, src),
+                        open: (uri) => vscode.commands.executeCommand('vscode.open', vscode.Uri.parse(uri)),
                     });
                 } else if (handlesRomMessage(msg.command)) {
                     // The ROM tab: map of every bank, CDL coverage, readers
@@ -1303,6 +1305,11 @@ function activate(context) {
         if (_radarPanel) _radarPanel.webview.postMessage({ command: 'musicFrame', view: f.view, pkg: f.pkg, starts: f.starts, drv: f.drv, src: f.src, frame: f.frame, paused: !!f.paused });
     });
 
+    // Sound-effect names for the emulator's marks (the Music model's, by driver id).
+    require('./emulator/panel').apuStream.setNames(() => {
+        const _ws = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+        return require('./music').sfxNames(() => romReaders.loadRomBuffer(_ws, getExtConfig().romPath || ''));
+    });
     require('./emulator/panel').apuStream.setOnPause(paused => {
         if (_radarPanel) _radarPanel.webview.postMessage({ command: 'musicPaused', paused });
     });

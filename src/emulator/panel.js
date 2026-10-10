@@ -1047,6 +1047,7 @@ const apuStream = {
   setListener: fn => _apu.setListener(fn),
   setOnClose: fn => _apu.setOnClose(fn),
   setOnPause: fn => _apu.setOnPause(fn),
+  setNames: fn => _apu.setNames(fn),
   setOn: on => _apu.setOn(on),
   point: (entity, label) => _apu.point(entity, label),
   snapshot: () => _apu.snapshot(),
