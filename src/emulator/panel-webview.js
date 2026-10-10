@@ -1328,6 +1328,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         resizeCanvas(false);
         if (romLoaded && paused) {
           renderExtendedMapAndOverlays(lastSampledPreState, canvas, extMapCanvas, extMapCtx, extEntCanvas, extEntCtx, extFgCanvas, extFgCtx, extOverCanvas, extOverCtx);
+          apuStreamTick(Module, true);
         } else if (romLoaded) {
           romFrameCount++;
           // Sample camera and entity state BEFORE _mainLoop() to match rendered frame
@@ -1341,6 +1342,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
             Module._mainLoop();
             fpsCountFrame(Module);
             romFrameCount++;
+            apuStreamTick(Module, false);
           }
           tasApplyInput(Module, keyInput);
           Module._mainLoop();
@@ -1353,8 +1355,9 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
           renderExtendedMapAndOverlays(preState, canvas, extMapCanvas, extMapCtx, extEntCanvas, extEntCtx, extFgCanvas, extFgCtx, extOverCanvas, extOverCtx);
           tasDrawOverlay();
           checkScriptExecutionTrace();
-          apuStreamTick(Module);
+          apuStreamTick(Module, false);
         }
+
       }
       requestAnimationFrame(frame);
     }

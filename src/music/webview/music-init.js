@@ -56,11 +56,14 @@ function muTriggerSfx(id) {
   var s = _music.model && _music.model.sfx && _music.model.sfx[id];
   var sName = s ? s.name : 'sfx ' + muHex(id, 2);
   var voices = muSfxVoices(id);
+  var now = performance.now();
+  _music.recentSfx[id] = now;
   _music.activeSfxTriggered[id] = {
     name: sName,
     voices: voices,
-    untilTime: performance.now() + 1200 // mark voice stolen for 1.2 sec
+    untilTime: now + 1200 // mark voice stolen for 1.2 sec
   };
+  _music.layoutKey = ''; // trigger sidebar re-render for active glow
 
   if (muIsTrack()) {
     if (_music.playing && _music.spc) _music.spc.playSfx(id);
@@ -87,6 +90,7 @@ function muPlayKey(semis) {
   if (inst && cur.ram) muPreview(cur.ram, inst, semis);
 }
 
+
 function muOnMessage(msg) {
   if (msg.command === 'musicModel') {
     _music.model = msg.model; _music.layoutKey = '';
@@ -94,9 +98,16 @@ function muOnMessage(msg) {
     else if (muIsTrack() && !msg.model.music[Number(_music.source)]) _music.source = 'emu';
     muRenderSources(); muRenderStatus(); muStream();
   } else if (msg.command === 'musicEmulator') {
-    _music.emuOpen = !!msg.open; muRenderStatus();
+    _music.emuOpen = !!msg.open;
+    if (!msg.open) {
+      _music.live = null;
+      _music.ram = null;
+      _music.history = [];
+      _music.layoutKey = '';
+    }
+    muRenderStatus();
   } else if (msg.command === 'musicFrame') {
-    _music.live = { view: Uint8Array.from(msg.view), pkg: msg.pkg, starts: msg.starts || [], at: performance.now() };
+    _music.live = { view: Uint8Array.from(msg.view), pkg: msg.pkg, starts: msg.starts || [], at: performance.now(), paused: !!msg.paused };
     _music.emuOpen = true;
     if (msg.pkg !== _music.ramPkg && !_music.snapAsked) {
       _music.snapAsked = true;
@@ -121,7 +132,7 @@ function muFrame() {
   if (!_music.visible) return;
   var cur = muCurrent(), insts = muInstrumentsNow(cur);
   var echo = cur ? muEcho(cur.view).join('-') : '';
-  var key = _music.source + '|' + (cur ? cur.pkg : '-') + '|' + (cur && cur.ram ? 'ram' : '') + '|' + echo + '|' + _music.selInst + '|' + _music.ramPkg;
+  var key = _music.source + '|' + (cur ? cur.pkg : '-') + '|' + (cur && cur.ram ? 'ram' : '') + '|' + echo + '|' + _music.selInst + '|' + _music.ramPkg + '|' + _music.sfxFilter;
   if (key !== _music.layoutKey) {
     _music.layoutKey = key;
     muRenderInstruments(cur, insts); muRenderSfx(cur); muRenderAram(cur);
@@ -134,19 +145,23 @@ function muFrame() {
     });
   }
 
-  // Record timeline history & render canvas
-  muRecordTimelineFrame(cur, insts);
+  // Only advance timeline history if audio is actually playing and emulator is not paused
+  var isPaused = !cur || (cur === _music.live && _music.live.paused);
+  if (!isPaused && (cur || _music.playing)) {
+    muRecordTimelineFrame(cur, insts);
+  }
+
+  muRenderVoices(cur, insts);
   if (_music.viewMode === 'timeline') {
     muRenderTimelineChannels();
     muDrawTimeline(cur);
-  } else {
-    muRenderVoices(cur, insts);
   }
 
   muRenderMarkers(cur, insts);
   muRenderStatus();
   requestAnimationFrame(muFrame);
 }
+
 
 function muShow(visible) {
   var was = _music.visible;
@@ -171,7 +186,7 @@ function muToggleView() {
 }
 
 function muOnClick(e, pane) {
-  var t = e.target.closest ? e.target.closest('[data-mu-inst],[data-mu-key],[data-mu-sfx],[data-tl-mute],[data-tl-solo]') : null;
+  var t = e.target.closest ? e.target.closest('[data-mu-inst],[data-mu-key],[data-mu-sfx],[data-tl-mute],[data-tl-solo],[data-sfx-filter]') : null;
   if (!t || !pane.contains(t)) return;
   if (t.dataset.muInst !== undefined) { _music.selInst = Number(t.dataset.muInst); muPlayKey(0); _music.layoutKey = ''; return; }
   if (t.dataset.muKey !== undefined) { muPlayKey(Number(t.dataset.muKey)); return; }
@@ -189,6 +204,15 @@ function muOnClick(e, pane) {
     var vs = Number(t.dataset.tlSolo);
     _music.soloed[vs] = !_music.soloed[vs];
     muRenderTimelineChannels();
+    return;
+  }
+  // SFX filter toggle
+  if (t.dataset.sfxFilter !== undefined) {
+    _music.sfxFilter = t.dataset.sfxFilter;
+    pane.querySelectorAll('.mu-filter-btn').forEach(function(b) {
+      b.classList.toggle('mu-active', b.dataset.sfxFilter === _music.sfxFilter);
+    });
+    _music.layoutKey = '';
     return;
   }
 }

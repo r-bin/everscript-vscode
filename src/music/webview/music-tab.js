@@ -26,7 +26,10 @@ var _music = {
   hoverSfxId: -1,
   activeSfxTriggered: {},          // sfxId -> { untilTime, voices: [] }
   freeAramBytes: 0,
+  sfxFilter: 'all',                // 'all', 'recent', 'loaded', 'base'
+  recentSfx: {},                   // sfxId -> timestamp
 };
+
 
 var MU_COLORS = ['#e5c07b', '#61afef', '#98c379', '#c678dd', '#e06c75', '#56b6c2', '#d19a66', '#a9b2c3'];
 var MU_OWNER_COLORS = { zp: '#5c6370', driver: '#7f8fd6', tables: '#b48ead', base: '#4f9d8f', song: '#d98a6c', data: '#e5c07b', echo: '#4d6a8f', ipl: '#5c6370' };
@@ -263,35 +266,53 @@ function muDrawTimeline(cur) {
 
         var vData = hCurr.voices[v];
         if (vData && vData.keyed && vData.envx > 0) {
-          var width = Math.max(2, x2 - x1);
+          var width = Math.max(1.5, x2 - x1);
           // Vertical offset inside lane based on pitch semitones (-36 st to +12 st)
           var stClamped = Math.max(-36, Math.min(12, vData.st));
           var pitchNorm = (stClamped + 36) / 48; // 0..1
-          var barH = Math.max(3, (laneH * 0.4) * (vData.envx / 128));
-          var barY = y0 + laneH - (pitchNorm * (laneH - barH - 4)) - barH - 2;
+          var barH = Math.max(4, Math.round((laneH * 0.45) * (vData.envx / 128)));
+          var barY = Math.round(y0 + laneH - (pitchNorm * (laneH - barH - 6)) - barH - 3);
 
           var color = vData.instIndex >= 0 ? muInstColor(vData.instIndex) : MU_COLORS[v % MU_COLORS.length];
           if (vData.muted) {
-            ctx.fillStyle = 'rgba(100,100,100,0.3)';
+            ctx.fillStyle = 'rgba(80,80,80,0.3)';
             ctx.fillRect(x1, barY, width, barH);
           } else {
             ctx.fillStyle = color;
             ctx.fillRect(x1, barY, width, barH);
-            ctx.fillStyle = 'rgba(255,255,255,0.2)';
+            ctx.fillStyle = 'rgba(255,255,255,0.25)';
             ctx.fillRect(x1, barY, width, 1);
           }
+        }
+      }
 
-          // SFX voice stealing overlay
-          if (vData.sfx) {
-            ctx.fillStyle = 'rgba(224, 108, 117, 0.4)';
-            ctx.fillRect(x1, y0 + 1, width, laneH - 2);
-            ctx.fillStyle = '#fff';
-            ctx.font = '9px monospace';
-            if (i % 20 === 0) {
-              ctx.fillText('⚡ ' + (vData.sfx.name || 'SFX $' + vData.sfx.id.toString(16)), x1, y0 + 10);
+      // Collect contiguous SFX stealing spans to render clean, readable badges (no repetitive glitches!)
+      var spanStart = -1, spanEnd = -1, lastSfx = null;
+      for (var sIdx = 1; sIdx < hist.length; sIdx++) {
+        var sCurr = hist[sIdx], sPrev = hist[sIdx - 1];
+        var curSfx = sCurr.voices[v] && sCurr.voices[v].sfx;
+        var sx1 = playheadX - ((now - sPrev.time) / timeWindow) * playheadX;
+        var sx2 = playheadX - ((now - sCurr.time) / timeWindow) * playheadX;
+
+        if (curSfx) {
+          if (!lastSfx || lastSfx.id !== curSfx.id) {
+            if (lastSfx && spanStart >= 0) {
+              drawSfxBlock(ctx, spanStart, sx1, y0, laneH, lastSfx);
             }
+            spanStart = sx1;
+            lastSfx = curSfx;
+          }
+          spanEnd = sx2;
+        } else {
+          if (lastSfx && spanStart >= 0) {
+            drawSfxBlock(ctx, spanStart, sx1, y0, laneH, lastSfx);
+            spanStart = -1;
+            lastSfx = null;
           }
         }
+      }
+      if (lastSfx && spanStart >= 0) {
+        drawSfxBlock(ctx, spanStart, spanEnd, y0, laneH, lastSfx);
       }
     }
   }
@@ -313,4 +334,26 @@ function muDrawTimeline(cur) {
   ctx.lineTo(playheadX, 8);
   ctx.fill();
 }
+
+function drawSfxBlock(ctx, x1, x2, y0, laneH, sfx) {
+  var bx = Math.min(x1, x2), bw = Math.max(12, Math.abs(x2 - x1));
+  ctx.fillStyle = 'rgba(224, 108, 117, 0.35)';
+  ctx.fillRect(bx, y0 + 1, bw, laneH - 2);
+  ctx.strokeStyle = 'rgba(224, 108, 117, 0.7)';
+  ctx.strokeRect(bx + 0.5, y0 + 1.5, bw - 1, laneH - 3);
+
+  // Badge label
+  if (bw > 24) {
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 9px ' + (getComputedStyle(document.body).fontFamily || 'sans-serif');
+    var txt = '⚡ ' + (sfx.name || 'SFX $' + sfx.id.toString(16));
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(bx, y0, bw, laneH);
+    ctx.clip();
+    ctx.fillText(txt, bx + 4, y0 + laneH / 2 + 3);
+    ctx.restore();
+  }
+}
+
 

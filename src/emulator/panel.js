@@ -1045,6 +1045,7 @@ async function getStatus() {
 /** The sound chip for the radar's Music tab (apu-stream.js): frames while on, and full snapshots. */
 const apuStream = {
   setListener: fn => _apu.setListener(fn),
+  setOnClose: fn => _apu.setOnClose(fn),
   setOn: on => _apu.setOn(on),
   snapshot: () => _apu.snapshot(),
   isOpen: () => !!_panel,

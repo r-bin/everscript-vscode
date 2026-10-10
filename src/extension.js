@@ -1300,7 +1300,11 @@ function activate(context) {
     const { openEmulatorPanel } = require('./emulator/panel');
     // The emulator's sound chip, frame by frame, to the radar's Music tab.
     require('./emulator/panel').apuStream.setListener(f => {
-        if (_radarPanel) _radarPanel.webview.postMessage({ command: 'musicFrame', view: f.view, pkg: f.pkg, starts: f.starts, frame: f.frame });
+        if (_radarPanel) _radarPanel.webview.postMessage({ command: 'musicFrame', view: f.view, pkg: f.pkg, starts: f.starts, frame: f.frame, paused: !!f.paused });
+    });
+
+    require('./emulator/panel').apuStream.setOnClose(() => {
+        if (_radarPanel) _radarPanel.webview.postMessage({ command: 'musicEmulator', open: false });
     });
     context.subscriptions.push(
         vscode.commands.registerCommand('everscript.openEmulator', () => {

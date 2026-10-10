@@ -12,12 +12,15 @@ class ApuStream {
     this._post = post;
     this._on = false;
     this._listener = null;
+    this._onClose = null;
     this._pending = new Map();
     this._nextId = 1;
   }
 
   /** fn({ view: number[224], pkg, starts: number[8], frame }) for every emulated frame while on. */
   setListener(fn) { this._listener = fn; }
+
+  setOnClose(fn) { this._onClose = fn; }
 
   setOn(on) {
     this._on = !!on;
@@ -41,15 +44,19 @@ class ApuStream {
   handle(msg) {
     if (!msg) return false;
     if (msg.command === 'apuFrame') {
-      if (this._listener) this._listener({ view: msg.view, pkg: msg.pkg, starts: msg.starts, frame: msg.frame });
+      if (this._listener) this._listener({ view: msg.view, pkg: msg.pkg, starts: msg.starts, frame: msg.frame, paused: !!msg.paused });
       return true;
     }
+
     if (msg.command === 'apuSnapshotReply') { this._settle(msg.id, msg, msg.error); return true; }
     return false;
   }
 
   /** The page went away: fail what is waiting. */
-  reset(reason) { for (const id of [...this._pending.keys()]) this._settle(id, null, reason); }
+  reset(reason) {
+    for (const id of [...this._pending.keys()]) this._settle(id, null, reason);
+    if (this._onClose) this._onClose();
+  }
 
   _settle(id, reply, error) {
     const p = this._pending.get(id);

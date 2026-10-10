@@ -46,12 +46,19 @@ function getApuStreamClientScript() {
     }
 
     // Called once per displayed frame, after mainLoop().
-    function apuStreamTick(m) {
+    function apuStreamTick(m, paused) {
       if (!apuStreamOn || !romLoaded) return;
       const view = apuViewBytes(m);
       if (!view) return;
       apuStreamFrame++;
-      vscodeApi.postMessage({ command: 'apuFrame', view: Array.from(view), pkg: apuLoadedPackage(m), starts: apuVoiceStarts(view), frame: apuStreamFrame });
+      vscodeApi.postMessage({
+        command: 'apuFrame',
+        view: Array.from(view),
+        pkg: apuLoadedPackage(m),
+        starts: apuVoiceStarts(view),
+        frame: apuStreamFrame,
+        paused: !!paused
+      });
     }
 
     window.addEventListener('message', evt => {

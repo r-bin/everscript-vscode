@@ -15,6 +15,8 @@ function buildMusicTabHtml() {
         '<span class="mu-status" id="mu-status">Loading…</span>' +
         '</div>' +
         '<div class="mu-main mu-view-timeline" id="mu-main">' +
+        '<!-- Left / Center View Area -->' +
+        '<div class="mu-view-area">' +
         '<!-- Inspector view -->' +
         '<div class="mu-inspect-view" id="mu-inspect-view">' +
         '<section class="mu-col mu-voices-col"><div class="mu-h">Voices <span id="mu-voices-sub"></span></div><div id="mu-voices" class="mu-voices"></div></section>' +
@@ -29,20 +31,26 @@ function buildMusicTabHtml() {
         '<div class="mu-tl-viewport" id="mu-tl-viewport"><canvas id="mu-tl-canvas" class="mu-tl-canvas"></canvas></div>' +
         '</div>' +
         '</div>' +
-        '<!-- Bottom Sound Effects Drawer -->' +
-        '<section class="mu-sfx-drawer" id="mu-sfx-drawer">' +
-        '<div class="mu-sfx-drawer-header"><span class="mu-h-sfx">Sound Effects</span><span id="mu-sfx-drawer-sub"></span></div>' +
-        '<div class="mu-sfx-tiers" id="mu-sfx-tiers">' +
-        '<div class="mu-tier mu-tier-base"><span class="mu-tier-lbl">BASE (Every room)</span><div class="mu-tier-chips" id="mu-tier-base-chips"></div></div>' +
-        '<div class="mu-tier mu-tier-loaded"><span class="mu-tier-lbl">LOADED (Current song)</span><div class="mu-tier-chips" id="mu-tier-loaded-chips"></div></div>' +
-        '<div class="mu-tier mu-tier-unloaded"><span class="mu-tier-lbl">UNLOADED (Other songs)</span><div class="mu-tier-chips" id="mu-tier-unloaded-chips"></div></div>' +
+        '<!-- Vertical SFX Sidebar on the right -->' +
+        '<aside class="mu-sfx-sidebar" id="mu-sfx-sidebar">' +
+        '<div class="mu-sfx-sb-head">' +
+        '<div class="mu-sfx-sb-title"><span>Sound Effects</span><span id="mu-sfx-sb-count"></span></div>' +
+        '<div class="mu-sfx-filters">' +
+        '<button class="mu-filter-btn mu-active" data-sfx-filter="all">All</button>' +
+        '<button class="mu-filter-btn" data-sfx-filter="recent">Recent</button>' +
+        '<button class="mu-filter-btn" data-sfx-filter="loaded">Loaded</button>' +
+        '<button class="mu-filter-btn" data-sfx-filter="base">Base</button>' +
         '</div>' +
-        '</section>' +
+        '</div>' +
+        '<div class="mu-sfx-scroll" id="mu-sfx-scroll"></div>' +
+        '</aside>' +
+        '</div>' +
         '<section class="mu-aram"><div class="mu-h">ARAM <span id="mu-aram-sub"></span></div>' +
         '<div class="mu-bar" id="mu-bar"></div><div class="mu-ruler"><span>$0000</span><span>$4000</span><span>$8000</span><span>$C000</span><span>$FFFF</span></div>' +
         '<div class="mu-legend" id="mu-legend"></div></section>' +
         '</div>';
 }
+
 
 
 module.exports = { buildMusicTabHtml };
