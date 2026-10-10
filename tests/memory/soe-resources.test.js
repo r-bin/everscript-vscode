@@ -624,6 +624,16 @@ test('provider: audio VFS (music track, valid 66KB SPC snapshot, and sound effec
     const songInfo = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/assets/audio/music/00/info.json'))).toString('utf8'));
     assert.strictEqual(songInfo.name, 'Main Title');
     assert.strictEqual(songInfo.transferCount, 407);
+    assert.ok(songInfo.audio && songInfo.audio.aram.freeBytes > 0);
+    assert.strictEqual(songInfo.audio.sounds.length, 62);
+
+    // Song markdown: ARAM usage, base/loaded sounds, viable animations
+    const songMd = Buffer.from(await fsp.readFile(uri('soe://rom/assets/audio/music/00/info.md'))).toString('utf8');
+    assert.match(songMd, /## ARAM Usage/);
+    assert.match(songMd, /## Sound Effects & Viable Animations/);
+    assert.match(songMd, /Base Sound Bank/);
+    assert.match(songMd, /Spear Attack/);
+    assert.match(songMd, /Viable Animations/);
 
     // Playable SNES .spc file (0x10200 = 66,048 bytes)
     const spcBuf = await fsp.readFile(uri('soe://rom/assets/audio/music/00/song.spc'));

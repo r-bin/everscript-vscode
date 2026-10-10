@@ -103,7 +103,10 @@ function bootCore() {
     const firstStatement = fn => map.statements.find(st => st.address >= fn.address);
     const intro = map.functions.find(fn => fn.name === 'intro_skip');
     const enter = map.functions.find(fn => /^maps\[.*trigger_enter/.test(fn.name));
-    assert.ok(intro && enter, 'the practice build has intro_skip and a room enter script');
+    if (!intro || !enter) {
+        console.log('Script debugger hook: skipped (the build at ' + MAP + ' is not a practice build with intro_skip)');
+        process.exit(0);
+    }
     const introAt = firstStatement(intro).address;
     const enterAt = firstStatement(enter).address;
     webview.message({ command: 'scriptDebugConfigure', active: true, breakpoints: [introAt, enterAt] });

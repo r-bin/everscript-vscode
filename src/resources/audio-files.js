@@ -2,9 +2,12 @@
 // Ownership: `soe://rom/assets/audio/` and `soe://rom/audio/` —
 // music, sound effects, song descriptors, and assembled SNES SPC files. Pure.
 
-const { MUSIC, SOUNDS, getMusic, getSound } = require('../localizations/sounds');
+const { MUSIC, SOUNDS, getMusic, getSound, getSoundAnimations } = require('../localizations/sounds');
 const { hexId, slugify } = require('../shared/resource-uri');
 const { dir, file, json, text } = require('./nodes');
+const { buildMusicModel } = require('../music/model/catalog');
+const { packageRecords, musicPackages, driverBlocks, isEvermoreAudio } = require('../music/model/rom-audio');
+const V = require('../music/webview/music-view');
 
 const SONG_COUNT_ADDR = 0x019900;
 const SONG_POINTERS_ADDR = 0x019903;
@@ -131,6 +134,24 @@ function parseSong(ident) {
     return MUSIC.find((m) => slugify(m.name) === slug) || null;
 }
 
+function formatViableAnimations(animations) {
+    if (!animations || !animations.length) return '*(none — script only)*';
+    const byWho = new Map();
+    for (const a of animations) {
+        if (!byWho.has(a.who)) byWho.set(a.who, new Set());
+        if (a.what) byWho.get(a.who).add(a.what);
+    }
+    const parts = [];
+    for (const [who, whats] of byWho) {
+        const whatList = [...whats];
+        if (whatList.length === 1) parts.push(`${who} (${whatList[0]})`);
+        else if (whatList.length > 1) parts.push(`${who} (${whatList.length} actions)`);
+        else parts.push(who);
+    }
+    if (parts.length <= 3) return parts.join(', ');
+    return parts.slice(0, 3).join(', ') + ` *(+${parts.length - 3} more)*`;
+}
+
 function readSongInfo(rom, songId, song, ptr) {
     const rawBytes = [];
     let cur = ptr;
@@ -155,6 +176,99 @@ function readSongInfo(rom, songId, song, ptr) {
         });
     }
 
+    let audio = null;
+    if (isEvermoreAudio(rom)) {
+        const musicPk = musicPackages(rom);
+        const pkgId = musicPk[songId];
+        const model = buildMusicModel(rom);
+        const basePkgLayout = model.packages[0] || [];
+        const songPkgLayout = model.packages[pkgId] || [];
+        const basePkgBytes = basePkgLayout.reduce((s, r) => s + (r[1] || 0), 0);
+        const songPkgBytes = songPkgLayout.reduce((s, r) => s + (r[1] || 0), 0);
+
+        const drv = driverBlocks(rom);
+        const own = V.muOwners(drv, basePkgLayout, songPkgLayout);
+        const counts = { zp: 0, driver: 0, tables: 0, base: 0, song: 0, data: 0, echo: 0, ipl: 0, free: 0 };
+        for (let i = 0; i < 0x10000; i++) {
+            const o = own[i];
+            if (o < 0) counts.free++;
+            else counts[V.MU_OWNERS[o].key]++;
+        }
+
+        const baseRecords = packageRecords(rom, 0);
+        const songRecords = packageRecords(rom, pkgId);
+
+        const getSfxAram = (sfxId, pkg) => {
+            const rec = pkg === 0 ? baseRecords : songRecords;
+            const targetAddr = 0x2070 + 2 * sfxId;
+            const write = rec.find(r => r.dest === targetAddr);
+            if (!write) return null;
+            const seqPtr = write.bytes[0] | (write.bytes[1] << 8);
+            const seqRec = rec.find(r => r.dest === seqPtr);
+            return {
+                ptr: seqPtr,
+                ptrHex: '$' + hexId(seqPtr, 4),
+                len: seqRec ? seqRec.bytes.length : null,
+            };
+        };
+
+        const activeSounds = [];
+        const unloadedSounds = [];
+        for (const s of model.sfx) {
+            const isBase = s.package === 0;
+            const isLoaded = s.package === pkgId;
+            if (isBase || isLoaded) {
+                activeSounds.push({
+                    id: s.id,
+                    hex: '$' + hexId(s.id, 2),
+                    name: s.name || `SFX $${hexId(s.id, 2)}`,
+                    bank: isBase ? 'Base' : 'Loaded',
+                    package: s.package,
+                    scripts: s.scripts || [],
+                    aram: getSfxAram(s.id, s.package),
+                    animations: s.animations || [],
+                });
+            } else if (s.animations && s.animations.length > 0) {
+                unloadedSounds.push({
+                    id: s.id,
+                    hex: '$' + hexId(s.id, 2),
+                    name: s.name || `SFX $${hexId(s.id, 2)}`,
+                    package: s.package,
+                    packageName: model.music[s.package - 1]?.name || `Package $${hexId(s.package, 2)}`,
+                    animations: s.animations,
+                });
+            }
+        }
+
+        const allSoundAnims = getSoundAnimations();
+        const activeSfxSet = new Set(activeSounds.map(s => s.id));
+        const viableRecords = new Set();
+        const unviableRecords = new Set();
+        for (const entry of allSoundAnims) {
+            for (const anim of entry.animations) {
+                if (activeSfxSet.has(entry.sfx)) viableRecords.add(anim.record);
+                else unviableRecords.add(anim.record);
+            }
+        }
+
+        audio = {
+            packageId: pkgId,
+            aram: {
+                totalBytes: 0x10000,
+                usedBytes: 0x10000 - counts.free,
+                freeBytes: counts.free,
+                breakdown: counts,
+                basePackageBytes: basePkgBytes,
+                songPackageBytes: songPkgBytes,
+            },
+            sounds: activeSounds,
+            unloadedSoundsWithAnims: unloadedSounds,
+            viableAnimationCount: viableRecords.size,
+            unviableAnimationCount: unviableRecords.size,
+            totalSoundAnimationsCount: viableRecords.size + unviableRecords.size,
+        };
+    }
+
     return {
         id: songId,
         hex: hexId(songId, 2),
@@ -164,6 +278,7 @@ function readSongInfo(rom, songId, song, ptr) {
         transferCount: count,
         transfers,
         rawBytes,
+        audio,
     };
 }
 
@@ -212,7 +327,10 @@ function buildSpc(rom, songId, title = 'Secret of Evermore') {
 
 function songMarkdown(song, ptr, rom) {
     const info = readSongInfo(rom, song.id, song, ptr);
-    return `# Song 0x${hexId(song.id, 2)}: ${song.name}
+    const audio = info.audio;
+
+    if (!audio) {
+        return `# Song 0x${hexId(song.id, 2)}: ${song.name}
 
 | Property | Value |
 |---|---|
@@ -229,6 +347,78 @@ function songMarkdown(song, ptr, rom) {
 ${info.transfers.slice(0, 50).map((t) => `| ${t.index} | ${t.len} B | \`${t.srcHex}\` | \`${t.destHex}\` |`).join('\n')}
 ${info.transfers.length > 50 ? `\n*(showing first 50 of ${info.transfers.length} transfers)*\n` : ''}
 `;
+    }
+
+    const baseCount = audio.sounds.filter(s => s.bank === 'Base').length;
+    const loadedCount = audio.sounds.filter(s => s.bank === 'Loaded').length;
+    const totalUsed = audio.aram.usedBytes;
+    const freeBytes = audio.aram.freeBytes;
+    const b = audio.aram.breakdown;
+
+    const sections = [];
+
+    sections.push(`# Song 0x${hexId(song.id, 2)}: ${song.name}
+
+| Property | Value |
+|---|---|
+| ID | \`0x${hexId(song.id, 2)}\` |
+| Reference SPC | ${song.spc || '*(none)*'} |
+| Descriptor pointer | \`$${hexId(ptr, 6)}\` |
+| Transfer records | ${info.transferCount} |
+| Package ID | \`0x${hexId(audio.packageId, 2)}\` (\`$${hexId(audio.packageId, 2)}\`) |
+| Total ARAM Used | ${totalUsed.toLocaleString('en-US')} B (${((totalUsed / 65536) * 100).toFixed(1)}%) |
+| Free ARAM | ${freeBytes.toLocaleString('en-US')} B (${((freeBytes / 65536) * 100).toFixed(1)}%) |
+| Available Sounds | ${audio.sounds.length} (${baseCount} base + ${loadedCount} loaded) |
+| Viable Animations | ${audio.viableAnimationCount} / ${audio.totalSoundAnimationsCount} (${((audio.viableAnimationCount / audio.totalSoundAnimationsCount) * 100).toFixed(1)}%) |
+
+[song.spc](song.spc) | [info.json](info.json) | [data.bin](data.bin)
+`);
+
+    sections.push(`## ARAM Usage
+| Region | ARAM Destination | Size | Role |
+|---|---|---|---|
+| Zero Page & Stack | \`$0000\`–\`$021F\` | 544 B | SPC700 direct page and stack |
+| Driver Code | \`$0700\`–\`$1EDF\` | 6,112 B | Wolfgang v3 SPC700 sound driver |
+| Base Sound Bank (Pkg $00) | \`$1EE0\`–\`$2351\`, \`$3AC0\`–\`$6782\` | ${audio.aram.basePackageBytes.toLocaleString('en-US')} B | Base samples (${b.base.toLocaleString('en-US')} B) + SFX sequence tables |
+| Loaded Song Bank (Pkg $${hexId(audio.packageId, 2)}) | \`$1F38\`–\`$1F4B\`, \`$678E\`+ | ${audio.aram.songPackageBytes.toLocaleString('en-US')} B | Song samples (${b.song.toLocaleString('en-US')} B) + music sequence data |
+| Free Space | — | ${freeBytes.toLocaleString('en-US')} B | Unallocated ARAM (${((freeBytes / 65536) * 100).toFixed(1)}% free) |
+`);
+
+    const soundRows = audio.sounds.map(s => {
+        const scriptLinks = s.scripts.length
+            ? s.scripts.map(id => `[\$${hexId(id, 2)}](../../sounds/${hexId(id, 2)}/info.md)`).join(', ')
+            : '—';
+        const aramStr = s.aram ? `\`${s.aram.ptrHex}\` (${s.aram.len !== null ? s.aram.len + ' B' : '?'})` : '—';
+        return `| \`${s.hex}\` | ${s.name} | ${s.bank} | ${scriptLinks} | ${aramStr} | ${formatViableAnimations(s.animations)} |`;
+    }).join('\n');
+
+    sections.push(`## Sound Effects & Viable Animations (${audio.sounds.length})
+When this track is loaded in ARAM, **${audio.sounds.length} sound effects** are active (${baseCount} base sounds + ${loadedCount} loaded sounds). Animations triggering these sounds will play correctly.
+
+| SFX | Name | Bank | Script Opcode | ARAM Sequence | Viable Animations |
+|---|---|---|---|---|---|
+${soundRows}
+`);
+
+    if (audio.unloadedSoundsWithAnims.length > 0) {
+        const unloadedList = audio.unloadedSoundsWithAnims.map(u =>
+            `- **${u.name}** (SFX \`${u.hex}\`, requires package \`$${hexId(u.package, 2)}\` / *${u.packageName}*): ${formatViableAnimations(u.animations)}`
+        ).join('\n');
+
+        sections.push(`## Unloaded Sounds & Incompatible Animations (${audio.unviableAnimationCount})
+These animations trigger sounds whose packages are not loaded by this track:
+${unloadedList}
+`);
+    }
+
+    sections.push(`## Transfers
+| # | Length | ROM Source | SPC Destination |
+|---|---|---|---|
+${info.transfers.slice(0, 50).map((t) => `| ${t.index} | ${t.len} B | \`${t.srcHex}\` | \`${t.destHex}\` |`).join('\n')}
+${info.transfers.length > 50 ? `\n*(showing first 50 of ${info.transfers.length} transfers)*\n` : ''}
+`);
+
+    return sections.join('\n');
 }
 
 function musicIndexMarkdown() {
