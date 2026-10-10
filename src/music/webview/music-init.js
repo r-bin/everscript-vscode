@@ -38,7 +38,7 @@ function muPlay(then) {
       spc.playMusic(m.id, song);
       _music.spc = spc; _music.playing = true; _music.startedAt = performance.now();
       muResetTimeline();
-      muForecastLoad(spc.view(), spc.ram(), 0);
+      muForecastLoad(spc.view(), spc.ram(), 0, MU_FUTURE_MS + 100, muInstrumentsNow(muCurrent()));
       muStartOutput(spc, false, null, muOnTrackChunk);
       _music.layoutKey = '';
       if (then) then(spc);
@@ -50,7 +50,7 @@ function muPlay(then) {
 function muOnTrackChunk(spc, clockMs) {
   var cur = muCurrent();
   muRecordFrame(cur, muInstrumentsNow(cur), clockMs);
-  if (_muFc.stale) muForecastLoad(spc.view(), spc.ram(), clockMs);
+  if (_muFc.stale) muForecastLoad(spc.view(), spc.ram(), clockMs, muTimelineNow() + MU_FUTURE_MS + 100, muInstrumentsNow(cur));
 }
 
 /** Ask the emulator for its sound chip; `fn(reply)` gets { view, ram, pkg, frame } or { error }. */
@@ -68,8 +68,9 @@ function muSnapshot(fn) {
 function muTriggerSfx(id) {
   muAudioCtx();
   if (muIsTrack()) {
-    if (_music.playing && _music.spc) _music.spc.playSfx(id);
-    else muPlay(function (spc) { spc.playSfx(id); });
+    var mark = function () { muAddSources([{ sfx: id, kind: 'tab' }], _muAudio.clockMs); };
+    if (_music.playing && _music.spc) { mark(); _music.spc.playSfx(id); }
+    else muPlay(function (spc) { mark(); spc.playSfx(id); });
     return;
   }
   // The emulator's chip, copied into the tab's engine: mute its music, then the effect.
@@ -109,7 +110,8 @@ function muAskSnapshot() {
     if (r.pkg !== _music.ramPkg) _music.layoutKey = '';
     _music.ram = Uint8Array.from(r.ram); _music.ramPkg = r.pkg;
     var at = _music.frameTimes[r.frame];
-    muForecastLoad(r.view, r.ram, at === undefined ? _music.timelineTime : at);
+    var cur = muCurrent();
+    muForecastLoad(r.view, r.ram, at === undefined ? _music.timelineTime : at, _music.timelineTime + MU_FUTURE_MS + 100, muInstrumentsNow(cur));
   });
 }
 
@@ -121,12 +123,23 @@ function muOnFrame(msg) {
   // The timeline advances by emulated frames: frozen while paused, faster on speed-up.
   if (!paused) {
     _music.timelineTime += MU_FRAME_MS;
+    muAddSources(msg.src, _music.timelineTime);
     var cur = muCurrent();
     muRecordFrame(cur, muInstrumentsNow(cur), _music.timelineTime);
   }
   _music.frameTimes[msg.frame] = _music.timelineTime;
   delete _music.frameTimes[msg.frame - 600];
   if (muWantSnapshot() || (msg.pkg !== _music.ramPkg && !_music.snapAsked)) muAskSnapshot();
+}
+
+/** The emulator's pause button also pauses whatever this tab plays (a track, an effect preview). */
+function muOnEmulatorPause(paused) {
+  _music.emuPaused = paused;
+  var ctx = _muAudio.ctx;
+  if (!ctx) return;
+  if (paused && ctx.state === 'running') { ctx.suspend(); _music.pausedAudio = true; }
+  else if (!paused && _music.pausedAudio) { ctx.resume(); _music.pausedAudio = false; }
+  muRenderStatus();
 }
 
 function muOnMessage(msg) {
@@ -143,6 +156,8 @@ function muOnMessage(msg) {
       _music.layoutKey = '';
     }
     muRenderStatus();
+  } else if (msg.command === 'musicPaused') {
+    muOnEmulatorPause(!!msg.paused);
   } else if (msg.command === 'musicFrame') {
     muOnFrame(msg);
   } else if (msg.command === 'musicPackageData') {
@@ -292,6 +307,7 @@ function setupMusicTab() {
   muRenderKeys();
   muApplySidebar();
   muBindSidebarResize(pane);
+  muBindTimelineHover();
   document.getElementById('mu-sfx-toggle').addEventListener('click', muToggleSidebar);
   document.getElementById('mu-sb-close').addEventListener('click', muToggleSidebar);
 

@@ -27,7 +27,7 @@ function buildMusicTabHtml() {
         '</div>' +
         '<div class="mu-timeline-view" id="mu-timeline-view">' +
         '<div class="mu-tl-channels" id="mu-tl-channels"></div>' +
-        '<div class="mu-tl-viewport" id="mu-tl-viewport"><canvas id="mu-tl-canvas" class="mu-tl-canvas"></canvas></div>' +
+        '<div class="mu-tl-viewport" id="mu-tl-viewport"><canvas id="mu-tl-canvas" class="mu-tl-canvas"></canvas><div class="mu-tl-tip" id="mu-tl-tip"></div></div>' +
         '</div>' +
         '</div>' +
         '<aside class="mu-sfx-sidebar" id="mu-sfx-sidebar">' +

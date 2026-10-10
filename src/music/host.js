@@ -9,7 +9,9 @@
 //   page -> musicInit                 host -> musicModel { model } | { error }
 //   page -> musicPackage { id }       host -> musicPackageData { id, records }
 //   page -> musicStream { on }        host -> musicEmulator { open }   (frames: musicFrame, from extension.js)
-//   page -> musicSnapshot { id }      host -> musicSnapshotData { id, view, ram, pkg } | { id, error }
+//   page -> musicSnapshot { id }      host -> musicSnapshotData { id, view, ram, pkg, frame } | { id, error }
+//   page -> musicPoint { entity, label }   marks that entity on the emulator screen (0 = none)
+//                                     host -> musicPaused { paused }   (from extension.js: the emulator's pause)
 
 const { buildMusicModel, packageData } = require('./model/catalog');
 
@@ -33,7 +35,7 @@ function model(deps) {
 /**
  * @param msg  webview message
  * @param deps {post, loadRom: () => Buffer|null,
- *              apu: {setOn(on), snapshot(): Promise<{view, ram, pkg}>, isOpen(): boolean}}
+ *              apu: {setOn(on), snapshot(): Promise<{view, ram, pkg, frame}>, isOpen(): boolean, point(entity, label)}}
  */
 function handleMusicMessage(msg, deps) {
     switch (msg.command) {
@@ -49,6 +51,9 @@ function handleMusicMessage(msg, deps) {
         case 'musicStream':
             deps.apu.setOn(!!msg.on);
             deps.post({ command: 'musicEmulator', open: deps.apu.isOpen() });
+            return;
+        case 'musicPoint':
+            if (deps.apu.point) deps.apu.point(msg.entity, msg.label);
             return;
         case 'musicSnapshot':
             deps.apu.snapshot()

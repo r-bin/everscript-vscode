@@ -6,10 +6,12 @@
 // ($6C+v, music-view.js muDriverOwners). Every command the game sends lands in
 // the driver's queue, so a sound effect is seen even when several arrive in one
 // frame. A box is one run of a voice owned by one effect; it restarts when the
-// effect is sent again and the driver reloads the voice.
+// effect is sent again and the driver reloads the voice. Who sent it (the
+// emulator's sound-source hook, emulator/sound-source-view.js) rides on the run.
 
 var MU_PAST_MS = 4500;               // history left of the playhead
 var MU_FUTURE_MS = 1500;             // read-ahead right of it (playhead at 75%)
+var MU_SRC_MATCH_MS = 100;           // a sender event belongs to a run starting this close
 var MU_CAT_COLORS = { attack: '#f59e0b', anim: '#c678dd', sfx: '#f43f5e' };
 var MU_CAT_ICONS = { attack: '⚔', anim: '✦', sfx: '♦' };
 
@@ -24,27 +26,55 @@ function muSfxInfo(id) {
   return { name: s ? (s.name || 'sfx ' + muHex(id, 2)) : 'sfx ' + muHex(id, 2), cat: muSfxCategory(s), source: muSfxSource(s) };
 }
 
+/** "Boy (animation)", "script $93D386", "engine $8F95C1": who sent an effect. */
+function muSrcLabel(src) {
+  if (!src) return '';
+  if (src.kind === 'anim') return (src.name || 'entity ' + muHex(src.entity || 0, 4)) + ' (animation)';
+  if (src.kind === 'script') return 'script ' + muHex(src.script >>> 0, 6);
+  if (src.kind === 'tab') return 'clicked in this tab';
+  return 'engine code ' + muHex(src.caller >>> 0, 6);
+}
+
+/** Sender events of one emulator frame (or a click in the tab) at timeline time `time`. */
+function muAddSources(list, time) {
+  (list || []).forEach(function (e) {
+    e.time = time;
+    _music.lastSrc[e.sfx] = e;
+    _music.srcSeq = (_music.srcSeq || 0) + 1;
+  });
+}
+
 /**
- * The 8 voices of one frame: { on, envx, st, inst, start, own, sfx, track, gen }.
- * `rec` (history only) tracks runs: { prev: owners, gen: [8], fired: { sfx: true } }.
+ * The 8 voices of one frame: { on, envx, st, inst, start, own, sfx, track, gen, src }.
+ * `rec` (history only) tracks runs: { prev, gen, start, src, fired, time }.
  */
 function muSampleVoices(view, starts, drv, insts, rec) {
-  if (insts && !insts._byStart) { insts._byStart = {}; insts.forEach(function (x) { insts._byStart[x.start] = x.index; }); }
+  if (insts && !insts._byStart) {
+    insts._byStart = {};
+    insts.forEach(function (x) { if (x.start) insts._byStart[x.start] = x.index; });
+  }
   var voices = muVoices(view), owners = muDriverOwners(drv, voices), out = [];
   for (var v = 0; v < 8; v++) {
-    var vo = voices[v], o = owners[v], st = muSemitones(vo.pitch);
-    var inst = insts && insts._byStart[starts[v]];
-    var gen = null;
+    var vo = voices[v], o = owners[v], st = muSemitones(vo.pitch), start = starts[v];
+    // The DSP reads the directory only at key-on. While the driver rewrites a
+    // voice's entry it can read $0000 for a frame; the voice still plays its sample.
+    if (rec) { if (start) rec.start[v] = start; else start = rec.start[v]; }
+    var inst = insts && start ? insts._byStart[start] : undefined;
+    var gen = null, src = null;
     if (rec && o.kind === 'sfx') {
       var p = rec.prev && rec.prev[v];
       var fresh = !p || p.kind !== 'sfx' || p.sfx !== o.sfx;
-      if (fresh || (rec.fired[o.sfx] && o.count > p.count)) rec.gen[v]++;
-      gen = rec.gen[v];
+      if (fresh || (rec.fired[o.sfx] && o.count > p.count)) {
+        rec.gen[v]++;
+        var e = _music.lastSrc[o.sfx];
+        rec.src[v] = e && Math.abs(rec.time - e.time) <= MU_SRC_MATCH_MS ? e : null;
+      }
+      gen = rec.gen[v]; src = rec.src[v];
     }
     out.push({
       on: !!(vo.keyed && vo.envx > 0), envx: vo.envx, st: isFinite(st) ? st : 0,
-      inst: inst === undefined ? -1 : inst, start: starts[v],
-      own: drv ? o.kind : '', sfx: o.kind === 'sfx' ? o.sfx : -1, track: o.track, gen: gen,
+      inst: inst === undefined ? -1 : inst, start: start || 0,
+      own: drv ? o.kind : '', sfx: o.kind === 'sfx' ? o.sfx : -1, track: o.track, gen: gen, src: src,
     });
   }
   if (rec) rec.prev = owners;
@@ -74,16 +104,22 @@ function muRecordFrame(cur, insts, time) {
   if (!cur || !cur.view || !cur.drv) return;
   var q = muDriverCommands(cur.drv, _music.queueAt);
   _music.queueAt = q.at;
-  var rec = _music.runs || (_music.runs = { prev: null, gen: [0, 0, 0, 0, 0, 0, 0, 0], fired: {} });
+  var rec = _music.runs || (_music.runs = { prev: null, gen: [0, 0, 0, 0, 0, 0, 0, 0], start: [0, 0, 0, 0, 0, 0, 0, 0], src: [], fired: {}, env: null });
   rec.fired = muOnDriverCommands(q.cmds, time);
-  _music.history.push({ time: time, voices: muSampleVoices(cur.view, cur.starts, cur.drv, insts, rec) });
+  rec.time = time;
+  var voices = muSampleVoices(cur.view, cur.starts, cur.drv, insts, rec);
+  // Each note the real chip starts calibrates the read-ahead (music-forecast.js).
+  var env = voices.map(function (V) { return V.on ? V.envx : 0; });
+  if (rec.env) for (var v = 0; v < 8; v++) if (muIsNoteStart(rec.env[v], env[v]) && voices[v].own === 'mus') muForecastMatch(v, time);
+  rec.env = env;
+  _music.history.push({ time: time, voices: voices });
   var cutoff = time - MU_PAST_MS - 500, h = _music.history, i = 0;
   while (i < h.length - 2 && h[i].time < cutoff) i++;
   if (i) h.splice(0, i);
 }
 
 function muResetTimeline() {
-  _music.history = []; _music.runs = null; _music.queueAt = -1; _music.timelineTime = 0;
+  _music.history = []; _music.runs = null; _music.queueAt = -1; _music.timelineTime = 0; _music.lastSrc = {};
   muForecastClear();
 }
 
@@ -93,6 +129,14 @@ function muNoteColor(v, V) {
 }
 
 function muLaneMuted(v) { return _music.muted[v] || (_music.soloed.some(Boolean) && !_music.soloed[v]); }
+
+/** The frame geometry of the canvas, shared with the hover (music-hover.js). */
+function muTimelineGeometry(W, H) {
+  var now = muTimelineNow(), playX = Math.round(W * MU_PAST_MS / (MU_PAST_MS + MU_FUTURE_MS)), k = playX / MU_PAST_MS;
+  var last = _music.history.length ? _music.history[_music.history.length - 1].time : now;
+  var frames = _music.history.concat(muForecastAhead(Math.max(now, last)));
+  return { W: W, H: H, now: now, playX: playX, k: k, laneH: H / 8, frames: frames, X: function (t) { return playX + (t - now) * k; } };
+}
 
 /** Draws history and read-ahead (DAW style: time runs left to right, the playhead at 75%). */
 function muDrawTimeline() {
@@ -106,11 +150,8 @@ function muDrawTimeline() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, W, H);
 
-  var now = muTimelineNow(), laneH = H / 8, playX = Math.round(W * MU_PAST_MS / (MU_PAST_MS + MU_FUTURE_MS));
-  var k = playX / MU_PAST_MS, X = function (t) { return playX + (t - now) * k; };
-  var ahead = muForecastAhead(Math.max(now, _music.history.length ? _music.history[_music.history.length - 1].time : now));
-  var frames = _music.history.concat(ahead.map(function (f) { return { time: f.time, voices: f.voices, ahead: true }; }));
-  var hoverLanes = muSfxLanes(_music.hoverSfxId);
+  var g = muTimelineGeometry(W, H), frames = g.frames, X = g.X, laneH = g.laneH, playX = g.playX;
+  var hit = muHoverHit(g), hoverLanes = muSfxLanes(_music.hoverSfxId);
 
   for (var v = 0; v < 8; v++) {
     ctx.fillStyle = hoverLanes.indexOf(v) >= 0 ? 'rgba(55,148,255,0.08)' : v % 2 ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.015)';
@@ -118,10 +159,8 @@ function muDrawTimeline() {
     ctx.fillStyle = 'rgba(255,255,255,0.07)';
     ctx.fillRect(0, Math.round((v + 1) * laneH) - 1, W, 1);
   }
-  ctx.fillStyle = 'rgba(255,255,255,0.025)';
-  ctx.fillRect(playX, 0, W - playX, H);
   ctx.fillStyle = 'rgba(255,255,255,0.05)';
-  for (var t = Math.ceil((now - MU_PAST_MS) / 1000) * 1000; t < now + MU_FUTURE_MS; t += 1000) ctx.fillRect(Math.round(X(t)), 0, 1, H);
+  for (var t = Math.ceil((g.now - MU_PAST_MS) / 1000) * 1000; t < g.now + MU_FUTURE_MS; t += 1000) ctx.fillRect(Math.round(X(t)), 0, 1, H);
 
   // Notes: one segment per frame, pitch high = up, height = envelope.
   for (v = 0; v < 8; v++) {
@@ -136,18 +175,22 @@ function muDrawTimeline() {
       ctx.fillStyle = muted ? 'rgba(110,110,110,0.35)' : muNoteColor(v, V);
       ctx.fillRect(x1, y, Math.max(1, x2 - x1), h);
     }
-    muDrawSfxBoxes(ctx, frames, v, y0, laneH, X, W);
+    muDrawSfxBoxes(ctx, frames, v, y0, laneH, X, W, hit);
   }
   // What has not played yet is dimmed (drawn opaque first: overlapping translucent frames stripe).
   ctx.fillStyle = 'rgba(16,16,18,0.45)';
   ctx.fillRect(playX, 0, W - playX, H);
+  muDrawHoverMark(ctx, g, hit);
 
   ctx.fillStyle = '#e5c07b';
   ctx.fillRect(playX - 1, 0, 2, H);
   ctx.beginPath(); ctx.moveTo(playX - 5, 0); ctx.lineTo(playX + 5, 0); ctx.lineTo(playX, 8); ctx.fill();
   ctx.font = '10px ' + MU_CANVAS_FONT();
   ctx.fillStyle = 'rgba(204,204,204,0.55)';
-  ctx.fillText(ahead.length ? 'read ahead' : (muIsTrack() || _music.live ? 'reading ahead…' : ''), playX + 8, 12);
+  var ahead = frames.length && frames[frames.length - 1].ahead;
+  ctx.fillText(ahead ? 'read ahead' : (muIsTrack() || _music.live ? 'reading ahead…' : ''), playX + 8, 12);
+  if (_music.emuPaused) ctx.fillText('⏸ emulator paused · hover a note or box', 8, 12);
+  muUpdateHoverTip(hit, g);
 }
 
 var _muFont = '';
@@ -156,32 +199,35 @@ function MU_CANVAS_FONT() {
   return _muFont;
 }
 
-/** Runs of one effect on voice v, one box each, labelled with its name and who plays it. */
-function muDrawSfxBoxes(ctx, frames, v, y0, laneH, X, W) {
-  var start = -1, key = null, sfx = -1, lastGen = null;
-  var flush = function (endIdx) {
-    if (start < 0) return;
-    var x1 = X(frames[Math.max(0, start - 1)].time), x2 = X(frames[endIdx].time);
-    if (x2 >= 0 && x1 <= W) muDrawSfxBox(ctx, x1, x2, y0, laneH, sfx);
-    start = -1; key = null;
-  };
+/** Index ranges of the effect runs on voice v: [{ sfx, first, last, src }] (the read-ahead continues the last run). */
+function muSfxRuns(frames, v) {
+  var runs = [], cur = null, lastGen = null;
   for (var i = 0; i < frames.length; i++) {
     var V = frames[i].voices[v];
-    if (V.own !== 'sfx') { flush(i - 1 < 0 ? 0 : i - 1); continue; }
-    var g = V.gen === null ? lastGen : V.gen;      // the read-ahead continues the last run
-    var kk = V.sfx + ':' + g;
-    if (kk !== key) { flush(Math.max(0, i - 1)); start = i; key = kk; sfx = V.sfx; }
+    if (V.own !== 'sfx') { cur = null; continue; }
+    var g = V.gen === null ? lastGen : V.gen, key = V.sfx + ':' + g;
+    if (!cur || cur.key !== key) { cur = { key: key, sfx: V.sfx, first: i, last: i, src: V.src }; runs.push(cur); }
+    cur.last = i;
     lastGen = g;
   }
-  flush(frames.length - 1);
+  return runs;
 }
 
-function muDrawSfxBox(ctx, x1, x2, y0, laneH, sfx) {
+/** One box per run, labelled with its name and who sent it (or, unknown, who can play it). */
+function muDrawSfxBoxes(ctx, frames, v, y0, laneH, X, W, hit) {
+  muSfxRuns(frames, v).forEach(function (r) {
+    var x1 = X(frames[Math.max(0, r.first - 1)].time), x2 = X(frames[r.last].time);
+    if (x2 < 0 || x1 > W) return;
+    var hot = _music.hoverSfxId === r.sfx || !!(hit && hit.kind === 'sfx' && hit.v === v && hit.first === r.first);
+    muDrawSfxBox(ctx, x1, x2, y0, laneH, r.sfx, r.src, hot);
+  });
+}
+
+function muDrawSfxBox(ctx, x1, x2, y0, laneH, sfx, src, hot) {
   var info = muSfxInfo(sfx), c = MU_CAT_COLORS[info.cat], w = Math.max(3, x2 - x1);
-  var hot = _music.hoverSfxId === sfx;
-  ctx.fillStyle = c + (hot ? '40' : '22');
+  ctx.fillStyle = c + (hot ? '48' : '22');
   ctx.fillRect(x1, y0 + 2, w, laneH - 4);
-  ctx.strokeStyle = c;
+  ctx.strokeStyle = hot ? '#fff' : c;
   ctx.lineWidth = hot ? 2 : 1;
   ctx.strokeRect(x1 + 0.5, y0 + 2.5, w - 1, laneH - 5);
   ctx.lineWidth = 1;
@@ -191,10 +237,11 @@ function muDrawSfxBox(ctx, x1, x2, y0, laneH, sfx) {
     ctx.fillStyle = '#fff';
     ctx.font = '600 10px ' + MU_CANVAS_FONT();
     ctx.fillText(MU_CAT_ICONS[info.cat] + ' ' + info.name, x1 + 4, y0 + 14);
-    if (info.source && laneH > 34) {
-      ctx.fillStyle = 'rgba(255,255,255,0.65)';
+    var sub = src ? '← ' + muSrcLabel(src) : info.source;
+    if (sub && laneH > 34) {
+      ctx.fillStyle = src ? '#fde68a' : 'rgba(255,255,255,0.65)';
       ctx.font = '9px ' + MU_CANVAS_FONT();
-      ctx.fillText(info.source, x1 + 4, y0 + 26);
+      ctx.fillText(sub, x1 + 4, y0 + 26);
     }
     ctx.restore();
   }

@@ -13,7 +13,14 @@ The radar panel's **Music** tab: one screen (no page scroll) that shows the SNES
   right of it the **read-ahead**: what the song will play next (dimmed). A box marks a voice an
   effect holds, labelled with its name and who plays it. The channel column says who owns each
   voice now (`♪ T3` a music track, `⚔ SFX $07` an effect, `—` free), what it plays, its
-  envelope, and mute / solo (timeline only).
+  envelope, and mute / solo (timeline only). **Hover** a note or a box (paused too): it is
+  framed, a tooltip says what it is, how long, when, who sent it and which animations can play
+  it; for an effect an entity sent, the emulator rings that entity on its screen.
+- **Who sent a sound** (emulator only, custom core): `emulator/sound-source-view.js` hooks
+  `$8C:81FD` while the stream runs. The box label says `← Boy (animation)`, `← script $93D386`
+  or `← engine code $8F95C1`; the sidebar row says *sent by*; the emulator rings the entity for
+  a moment. Effects played from this tab say *clicked in this tab*.
+- **Pause:** the emulator's pause button also pauses this tab's player (a track, an effect).
 - **Sound effects** (sidebar, both views): the 90 driver effects. The base bank's 62 play in every
   room; the rest only with their package. Click one to trigger it (command `$04`). Each row names
   the animations that play it (⚔ an attack, ✦ another animation, ♦ none) and, live, the voices it
@@ -43,6 +50,9 @@ effect id. The emulator stream sends these ARAM bytes with every frame (`drv`,
   V7 depending on the song. A fixed effect → voice table is wrong.
 - When an effect's last note runs out, its countdown wraps past 0 but `$6C+v` stays `$80` until a
   music track takes the voice back (Dog Bark, `$10`). Wrapped + silent = ended.
+- A voice's directory entry (`$0200+4v`) reads `$0000` for a frame while the driver rewrites it
+  around a note (seen on the emulator's chip, not in blargg's). The DSP reads the directory only at
+  key-on, so the tab keeps the voice's last sample; drawing `$0000` made one-frame stripes.
 - Every command lands in the queue, so effects are seen even when several arrive in one frame.
   Reading ports once per frame missed them, and the Boy's weapon swing never showed.
 - The Boy's swing is not a `sound()` call: animation command `0x2E` `sound n` (`$90:8921`) doubles n
@@ -56,7 +66,10 @@ the shown chip and runs it ahead of the playhead, one frame (1/60 s) per step. I
 it goes stale: for a track, from the tab's engine after any new command; for the emulator, from a
 snapshot (all of ARAM, with the frame it was taken after) when the game sent a command, the
 package changed, or every 3 s. The copy has no timer phase or DSP envelope state, so its notes can
-be a timer tick (~20 ms) off; what the game will send next it cannot know.
+be a timer tick (~20 ms) off: each note the real chip starts is matched with the copy's nearest
+one on that voice and the median difference (`_muFc.shift`) moves the copy onto the timeline. A
+reload runs the copy up to the playhead and past it at once (the engine does ~12 frames per ms),
+so the read-ahead never blinks empty. What the game will send next it cannot know.
 
 ## How it stays in sync
 
@@ -88,7 +101,8 @@ be a timer tick (~20 ms) off; what the game will send next it cannot know.
 | `webview/music-engine.js` | `MusicSpc`: the engine + the port protocol |
 | `webview/music-audio.js` | `_muAudio`: WebAudio output (32 kHz) and instrument previews |
 | `webview/music-tab.js` | `_music` state; status, voices (inspector), the timeline's channel column |
-| `webview/music-timeline.js` | Timeline frames from the driver state, effect runs, the canvas |
+| `webview/music-timeline.js` | Timeline frames from the driver state, effect runs and who sent them, the canvas |
+| `webview/music-hover.js` | Hover: what is under the pointer, its frame, the tooltip, the emulator's mark |
 | `webview/music-forecast.js` | `_muFc`: the read-ahead engine |
 | `webview/music-lists.js` | Instruments + keys, the sound-effects sidebar, the ARAM map |
 | `webview/music-init.js` | Wiring, host messages, the frame loop; loaded last |

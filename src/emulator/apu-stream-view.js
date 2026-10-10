@@ -14,7 +14,8 @@
  * A snapshot request answers with the view plus all 64 KB of ARAM and the
  * frame it was taken after.
  *
- *   host -> { command: 'apuStream', on }        page -> { command: 'apuFrame', view, pkg, starts, drv, frame }
+ *   host -> { command: 'apuStream', on }        page -> { command: 'apuFrame', view, pkg, starts, drv, src, frame }
+ *                                               page -> { command: 'apuPaused', paused }   (on every pause / resume)
  *   host -> { command: 'apuSnapshot', id }      page -> { command: 'apuSnapshotReply', id, view, ram, pkg, frame } | { ..., error }
  *
  * Invariant: ASCII only, and no backslashes in the client script (it is
@@ -62,6 +63,7 @@ function getApuStreamClientScript() {
 
     // Called once per displayed frame, after mainLoop().
     function apuStreamTick(m, paused) {
+      sndSync(m, apuStreamOn && romLoaded);
       if (!apuStreamOn || !romLoaded) return;
       const view = apuViewBytes(m);
       if (!view) return;
@@ -72,10 +74,14 @@ function getApuStreamClientScript() {
         pkg: apuLoadedPackage(m),
         starts: apuVoiceStarts(view),
         drv: apuDriverBytes(view),
+        src: sndTake(paused),   // sound-source-view.js: who sent each effect this frame
         frame: apuStreamFrame,
         paused: !!paused
       });
     }
+
+    // The emulator's pause button pauses the Music tab's own player too.
+    function apuPauseChanged(paused) { vscodeApi.postMessage({ command: 'apuPaused', paused: !!paused }); }
 
     window.addEventListener('message', evt => {
       const d = evt.data;

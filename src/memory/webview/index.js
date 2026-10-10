@@ -184,7 +184,7 @@ module.exports = {
     .map(function(f) { return loadFile(path.join(romDir, f)); }).join('\n'),
   // The sound engine first (createSpcEngine), music-init.js binds and runs last.
   musicJs: [path.join(musicDir, '..', 'engine', 'spc-engine.js')]
-    .concat(['music-view.js', 'music-engine.js', 'music-audio.js', 'music-tab.js', 'music-timeline.js', 'music-forecast.js', 'music-lists.js', 'music-init.js'].map(function(f) { return path.join(musicDir, f); }))
+    .concat(['music-view.js', 'music-engine.js', 'music-audio.js', 'music-tab.js', 'music-timeline.js', 'music-hover.js', 'music-forecast.js', 'music-lists.js', 'music-init.js'].map(function(f) { return path.join(musicDir, f); }))
     .map(loadFile).join('\n'),
   buildMainJs,
 };

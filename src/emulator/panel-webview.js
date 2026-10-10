@@ -21,6 +21,7 @@ const { getTasCss, getTasTabButtonHtml, getTasChipHtml, getTasOverlayHtml, getTa
 const { getScriptDebugClientScript } = require('./script-debug-view');
 const { getMemoryBridgeClientScript } = require('./memory-bridge-view');
 const { getApuStreamClientScript } = require('./apu-stream-view');
+const { getSoundSourceClientScript } = require('./sound-source-view');
 
 function _nonce() {
     let n = '';
@@ -1318,6 +1319,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
           cdlOnPauseChanged(paused);
           tasOnPauseChanged(paused);
           sdbgOnPauseChanged(paused);
+          apuPauseChanged(paused);
         }
         fpsTick(timestamp, romLoaded && !paused);
         if (paused) {
@@ -1578,6 +1580,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
           overlayCtx.restore();
         }
       }
+      sndDraw(overlayCtx, layout, preState);
 
       overlayCtx.save();
 
@@ -3212,6 +3215,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       m.onBreakpointHit = function(event) {
         // The VS Code script debugger's interpreter hook decides for itself (false = keep running).
         if (event.type === 'exec' && event.address === SDBG_DISPATCH && sdbg.armed) return sdbgOnHit(m);
+        // Who sent a sound effect (sound-source-view.js): record, keep running.
+        if (event.type === 'exec' && event.address === SND_SEND && sndArmed) return sndOnHit(m);
         const addrText = event.type === 'write'
           ? '7E' + fmtHex(event.address, 4)
           : fmtBreakpointAddr(event.address);
@@ -3611,6 +3616,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
 
     ${getMemoryBridgeClientScript()}
 
+    ${getSoundSourceClientScript()}
     ${getApuStreamClientScript()}
 
     ${getFpsClientScript()}

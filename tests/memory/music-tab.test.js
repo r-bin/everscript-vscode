@@ -17,6 +17,7 @@ const { MusicSpc } = require('../../src/music/webview/music-engine.js');
 const V = require('../../src/music/webview/music-view.js');
 const { ApuStream } = require('../../src/emulator/apu-stream');
 const { getApuStreamClientScript } = require('../../src/emulator/apu-stream-view');
+const { getSoundSourceClientScript } = require('../../src/emulator/sound-source-view');
 const { renderRadarHtml } = require('../../src/memory/render-radar');
 
 let passed = 0, failed = 0;
@@ -153,7 +154,7 @@ async function coreStream(model) {
     const page = { HEAPU8: global.HEAPU8, romLoaded: true, getModule: () => M, vscodeApi: { postMessage: m => sent.push(m) },
         window: { addEventListener: (t, fn) => listeners.push(fn) } };
     vm.createContext(page);
-    vm.runInContext(getApuStreamClientScript() + ';this.apuStreamTick = apuStreamTick;', page);
+    vm.runInContext(getSoundSourceClientScript() + getApuStreamClientScript() + ';this.apuStreamTick = apuStreamTick;', page);
     const host = new ApuStream(m => { listeners.forEach(fn => fn({ data: m })); return true; });
     const frames = [];
     host.setListener(f => frames.push(f));
@@ -190,6 +191,25 @@ async function coreStream(model) {
         assert.deepStrictEqual(insts.filter(i => i.from === 'song').map(i => i.index), [0x0E, 0x0F, 0x10, 0x11, 0x12]);
         const playing = frames[0].starts.filter(a => insts.some(i => i.start === a));
         assert.ok(playing.length > 0, 'voice samples are instruments');
+    });
+    await step('who sent a sound: the Boy\'s swing and the Dog\'s bark in the intro come from their animations', async () => {
+        const hooks = [];
+        M.onBreakpointHit = e => (page.sndOnHit && e.address === 0x8C81FD ? page.sndOnHit(M) : true);
+        vm.runInContext('this.sndOnHit = sndOnHit; this.armed = () => sndArmed;', page);
+        host.setOn(true);
+        const found = new Set();
+        for (let f = 0; f < 6000 && !(found.has('anim:7:Boy') && found.has('anim:16:Dog')); f++) {
+            M._mainLoop(); M._getSoundBuffer(); page.apuStreamTick(M, false);
+            for (const m of sent.splice(0)) for (const e of m.src || []) { hooks.push(e); found.add(e.kind + ':' + e.sfx + ':' + (e.name || '')); }
+        }
+        host.setOn(false);
+        page.apuStreamTick(M, false);
+        assert.strictEqual(page.armed(), false, 'the hook is off with the stream');
+        assert.ok(found.has('anim:7:Boy'), [...found].join(' '));
+        assert.ok(found.has('anim:16:Dog'), [...found].join(' '));
+        assert.ok(hooks.some(e => e.kind === 'script' && e.script >= 0x920000), 'sound() from a script');
+        assert.ok(!M._isEmulationPaused(), 'never pauses the game');
+        M.onBreakpointHit = undefined;
     });
 }
 
@@ -255,6 +275,8 @@ async function dom(model) {
             return { runs, recent: Object.keys(_music.recentSfx).map(Number).sort((x, y) => x - y) };
         });
         assert.deepStrictEqual(got.recent, [0x07, 0x10], 'both effects in Recent');
+        const fc = await page.evaluate(() => ({ shift: window.__music.forecast.shift, diffs: window.__music.forecast.diffs.length }));
+        assert.ok(Math.abs(fc.shift) <= 34, 'the read-ahead is off by two frames at most: ' + JSON.stringify(fc));
         const runs = Object.keys(got.runs);
         assert.ok(runs.some(k => k.split(':')[1] === '7') && runs.some(k => k.split(':')[1] === '16'), JSON.stringify(got.runs));
         // One run per voice and effect: no flicker into several boxes.

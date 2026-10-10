@@ -13,14 +13,21 @@ class ApuStream {
     this._on = false;
     this._listener = null;
     this._onClose = null;
+    this._onPause = null;
     this._pending = new Map();
     this._nextId = 1;
   }
 
-  /** fn({ view: number[224], pkg, starts: number[8], drv: number[89], frame, paused }) for every emulated frame while on. */
+  /** fn({ view: number[224], pkg, starts: number[8], drv: number[89], src: [], frame, paused }) for every emulated frame while on. */
   setListener(fn) { this._listener = fn; }
 
   setOnClose(fn) { this._onClose = fn; }
+
+  /** fn(paused) when the emulator is paused or resumed. */
+  setOnPause(fn) { this._onPause = fn; }
+
+  /** Marks an entity on the emulator screen (0 = none), e.g. the one a sound came from. */
+  point(entity, label) { this._post({ command: 'apuPoint', entity: entity | 0, label: String(label || '') }); }
 
   setOn(on) {
     this._on = !!on;
@@ -44,11 +51,12 @@ class ApuStream {
   handle(msg) {
     if (!msg) return false;
     if (msg.command === 'apuFrame') {
-      if (this._listener) this._listener({ view: msg.view, pkg: msg.pkg, starts: msg.starts, drv: msg.drv, frame: msg.frame, paused: !!msg.paused });
+      if (this._listener) this._listener({ view: msg.view, pkg: msg.pkg, starts: msg.starts, drv: msg.drv, src: msg.src || [], frame: msg.frame, paused: !!msg.paused });
       return true;
     }
 
     if (msg.command === 'apuSnapshotReply') { this._settle(msg.id, msg, msg.error); return true; }
+    if (msg.command === 'apuPaused') { if (this._onPause) this._onPause(!!msg.paused); return true; }
     return false;
   }
 

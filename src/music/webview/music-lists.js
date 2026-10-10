@@ -90,7 +90,7 @@ function muUpdateSfxLive() {
   if (!box) return;
   var held = {}, now = muTimelineNow();
   if (last) last.voices.forEach(function (V, v) { if (V.own === 'sfx') (held[V.sfx] = held[V.sfx] || []).push('V' + v); });
-  var key = JSON.stringify(held) + Object.keys(_music.recentSfx).filter(function (id) { return now - _music.recentSfx[id] < 600; }).join(',');
+  var key = JSON.stringify(held) + (_music.srcSeq || 0) + Object.keys(_music.recentSfx).filter(function (id) { return now - _music.recentSfx[id] < 600; }).join(',');
   if (box._live === key) return;
   box._live = key;
   box.querySelectorAll('.mu-sfx-item').forEach(function (b) {
@@ -98,6 +98,14 @@ function muUpdateSfxLive() {
     b.querySelector('.mu-sfx-ch').textContent = v ? v.join(' ') : '';
     b.classList.toggle('mu-sfx-on', !!v);
     b.classList.toggle('mu-sfx-fired', now - (_music.recentSfx[id] === undefined ? -1e9 : _music.recentSfx[id]) < 600);
+    var src = _music.lastSrc[id];
+    if (src && b._src !== src) {
+      b._src = src;
+      var small = b.querySelector('.mu-sfx-name small');
+      if (!small) { small = document.createElement('small'); b.querySelector('.mu-sfx-name').appendChild(small); }
+      small.textContent = 'sent by ' + muSrcLabel(src);
+      small.classList.add('mu-sfx-sent');
+    }
   });
 }
 

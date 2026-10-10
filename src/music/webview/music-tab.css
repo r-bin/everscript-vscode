@@ -51,6 +51,10 @@
 .mu-solo-btn.mu-btn-active{background:#e5c07b;color:#222;border-color:#e5c07b}
 .mu-tl-viewport{flex:1;position:relative;overflow:hidden;min-height:0;min-width:0}
 .mu-tl-canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.mu-tl-tip{display:none;position:absolute;z-index:3;max-width:340px;pointer-events:none;padding:6px 8px;border-radius:4px;border:1px solid var(--mu-line);background:var(--vscode-editorHoverWidget-background,#252526);color:var(--mu-fg);font-size:11px;line-height:1.45;box-shadow:0 4px 14px rgba(0,0,0,.45)}
+.mu-tl-tip code{font:10px var(--mu-mono);color:var(--mu-dim)}
+.mu-tl-tip .mu-tip-k{color:var(--mu-dim);margin-right:4px}
+.mu-tl-tip i{color:var(--mu-dim)}
 
 /* Sound effects sidebar (both views): resizable, can be hidden */
 .mu-sfx-toggle{margin-left:auto;font-size:11px;padding:3px 8px}
@@ -80,6 +84,7 @@
 .mu-sfx-name{font:11px var(--vscode-font-family,sans-serif);flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25}
 .mu-sfx-name,.mu-sfx-name small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mu-sfx-name small{font-size:10px;color:var(--mu-dim)}
+.mu-sfx-name small.mu-sfx-sent{color:#e5c07b}
 .mu-sfx-ch{font-weight:700;font-size:9px;flex-shrink:0;border-radius:2px;padding:0 3px}
 .mu-sfx-ch:empty{display:none}
 .mu-cat-attack{border-left-color:#f59e0b}.mu-cat-attack .mu-sfx-cat{color:#fbbf24}
@@ -90,6 +95,7 @@
 .mu-sfx-unloaded.mu-sfx-overflow .mu-sfx-id{color:#e06c75}
 .mu-sfx-on{background:color-mix(in srgb,var(--mu-accent) 18%,transparent)}
 .mu-sfx-on .mu-sfx-ch{background:var(--mu-accent);color:#fff}
+.mu-sfx-hot{border-color:#fff;background:color-mix(in srgb,var(--mu-accent) 22%,transparent)}
 .mu-sfx-fired{box-shadow:0 0 0 1px #e5c07b,0 0 6px rgba(229,192,123,.4)}
 
 /* voices list (in inspector view) */

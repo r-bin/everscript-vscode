@@ -33,6 +33,10 @@ var _music = {
   sfxFired: false,                 // a sound effect since the sidebar was last drawn
   timelineTime: 0,                 // emulated time of the last emulator frame (ms)
   sfxWidth: 240, sfxOpen: true,    // the sound-effects sidebar
+  lastSrc: {},                     // sfx id -> who last sent it { kind, name, entity, script, caller, time }
+  hoverPt: null, hoverKey: '',     // the pointer over the timeline (music-hover.js)
+  pointed: 0,                      // entity the emulator marks for the hovered effect
+  emuPaused: false, pausedAudio: false,
 };
 
 
@@ -81,10 +85,11 @@ function muRenderStatus() {
   if (muIsTrack()) {
     var m = _music.model.music[Number(_music.source)];
     var t = _music.playing ? Math.floor((performance.now() - _music.startedAt) / 1000) : 0;
-    el.innerHTML = 'Music <b>' + muHex(m.id, 2) + '</b> · package ' + muHex(m.package, 2) + (_music.playing ? ' · <b>' + Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0') + '</b> in this tab' : ' · stopped');
+    el.innerHTML = 'Music <b>' + muHex(m.id, 2) + '</b> · package ' + muHex(m.package, 2) + (_music.playing ? ' · <b>' + Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0') + '</b> in this tab' : ' · stopped') + (_music.emuPaused && _music.playing ? ' · ⏸ paused with the emulator' : '');
     return;
   }
   if (!_music.emuOpen) { el.textContent = 'Open the emulator (Everscript: Open Emulator) to follow its sound chip.'; return; }
+  if (_music.emuPaused) { el.innerHTML = '<b>⏸ Emulator paused</b> · hover the timeline for what played'; return; }
   if (!cur || performance.now() - _music.live.at > 1500) { el.textContent = 'Waiting for a running game in the emulator…'; return; }
   var pc = cur.view[4] | cur.view[5] << 8;
   el.innerHTML = '<b>Live</b> · package <b>' + muHex(cur.pkg, 2) + '</b> · ' + muEsc(muPackageName(cur.pkg)) + ' · driver at ' + muHex(pc, 4);

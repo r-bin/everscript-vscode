@@ -17,6 +17,7 @@ Embedded snes9x2005 WASM emulator panel integrated into VS Code.
 | `tas-view.js` | REPLAYS bottom-bar tab, input overlay, per-frame joypad feed (`tasApplyInput`) and session recording buffer |
 | `script-debug-host.js` / `script-debug-view.js` | VS Code debugger hook: host bridge (outlives the panel) and webview exec breakpoint on the interpreter fetch `$8C:D0A6` (see `src/debugger/README.md`) |
 | `apu-stream.js` / `apu-stream-view.js` | Sound-chip stream for the radar's Music tab: host side (on/off, frame listener, ARAM snapshots) and page side (posts the core's `getApuView` + package + voice samples after each frame while on). See `src/music/README.md` |
+| `sound-source-view.js` | Page side: while the Music tab streams, a non-pausing exec breakpoint at `$8C:81FD` records who sent each sound effect (an animation's entity, a script, engine code) into the next frame, and rings that entity on the screen; `apuPoint` marks the entity the Music tab hovers. Pause changes are posted as `apuPaused` |
 | `fps-meter.js` | Screen chip: frames emulated per second and frames the game read input in (lag), frozen while paused |
 | `tas/` | Input recordings: `.evsmv` format, recording files, replay list and pins (see `tas/README.md`) |
 | `core/snes9x2005-wasm/` | Custom emulator core (git submodule) |
