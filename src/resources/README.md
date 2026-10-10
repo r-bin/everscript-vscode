@@ -57,6 +57,8 @@ binds the same key and wins on extension load order; a user keybinding
 | `table-files.js` | `tables/`: engine lookup and pointer tables with `data.bin` and `data.json` |
 | `gif.js` | pure GIF89a encoder for animated character and sprite sequences |
 | `ram-symbols.js` | every known WRAM address (names.json + tag links) with size and type; flag bytes; records |
+| `asm-view.js` | `<offset>.asm` / `soe://bus/<addr>.asm`: a 65816 listing (16-bit A/X assumed until REP/SEP), and the excerpt around a call |
+| `sound-source.js` | Who sent a sound effect (the emulator hook's event) as names, pictures and links, for the Music tab |
 | `page-links.js` | link targets of generated pages: into a mount, relative to the page |
 | `ram-files.js` | `soe://ram/`: `status.json`, `wram.bin`, slices, `<addr>.json`, flags, symbols |
 | `tag-model.js` | `soe://tags/` graph: merges generated + `tags/tags.json`, inheritance, aliases, conflicts, validation |

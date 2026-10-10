@@ -7,6 +7,7 @@
 //   soe://bus/7e2258.0.json   → soe://ram/2258.0.json
 //   soe://bus/c4601f[20].bin  → soe://rom/04601f[20].bin
 //   soe://bus/8cd0a6          → soe://rom/0cd0a6.json  (named function)
+//   soe://bus/8cb8de.asm      → soe://rom/0cb8de.asm   (65816 listing, asm-view.js)
 //
 // HiROM map: $7E-$7F and the $0000-$1FFF mirror in banks $00-$3F/$80-$BF are
 // WRAM; $40-$7D, $C0-$FF and the upper halves of $00-$3F/$80-$BF are ROM.
@@ -19,7 +20,7 @@ const WRAM = 0x7E0000;
 
 /** `{ authority, name }` of the file a bus file name stands for, or null. */
 function busTarget(name) {
-    const a = parseAddressName(/\.(bin|json)$/i.test(name) ? name : name + '.json');
+    const a = parseAddressName(/\.(bin|json|asm)$/i.test(name) ? name : name + '.json');
     if (!a) return null;
     const bank = a.addr >> 16, lo = a.addr & 0xFFFF;
     const mirrored = (bank & 0x40) === 0;
@@ -31,7 +32,7 @@ function busTarget(name) {
     else if (mirrored && lo < 0x2000) ram = lo;
     if (ram !== null) return { authority: 'ram', name: hexId(ram, ram > 0xFFFF ? 5 : 4) + suffix };
 
-    if (a.bit !== null) return null;
+    if (a.bit !== null || (a.ext === 'asm' && a.len !== null)) return null;
     const off = toFileOffset(a.addr);
     if (off === null || (mirrored && lo < 0x8000)) return null;
     return { authority: 'rom', name: hexId(off, 6) + suffix };

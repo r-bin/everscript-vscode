@@ -43,7 +43,7 @@ function mountSegment(romPath) {
  * Null when the name is not of that shape.
  */
 function parseAddressName(name) {
-    const m = /^([0-9a-f]{1,6})(?:\[([0-9a-f]{1,5})\])?(?:\.([0-7]))?\.(bin|json)$/i.exec(String(name));
+    const m = /^([0-9a-f]{1,6})(?:\[([0-9a-f]{1,5})\])?(?:\.([0-7]))?\.(bin|json|asm)$/i.exec(String(name));
     if (!m) return null;
     const len = m[2] === undefined ? null : parseInt(m[2], 16);
     if (len === 0) return null;

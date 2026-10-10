@@ -52,17 +52,33 @@
 .mu-solo-btn.mu-btn-active{background:#e5c07b;color:#222;border-color:#e5c07b}
 .mu-tl-viewport{flex:1;position:relative;overflow:hidden;min-height:0;min-width:0}
 .mu-tl-canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-.mu-tl-tip{display:none;position:absolute;z-index:3;max-width:360px;padding:6px 8px;border-radius:4px;border:1px solid var(--mu-line);background:var(--vscode-editorHoverWidget-background,#252526);color:var(--mu-fg);font-size:11px;line-height:1.45;box-shadow:0 4px 14px rgba(0,0,0,.45)}
+.mu-tl-tip{display:none;position:fixed;z-index:50;max-width:340px;padding:7px 9px;border-radius:5px;border:1px solid var(--mu-line);background:var(--vscode-editorHoverWidget-background,#252526);color:var(--mu-fg);font-size:12px;line-height:1.5;box-shadow:0 6px 18px rgba(0,0,0,.5)}
+.mu-tl-card{z-index:51;max-width:380px;font-size:11px}
 .mu-tl-tip code{font:10px var(--mu-mono);color:var(--mu-dim)}
-.mu-tl-tip .mu-tip-k{color:var(--mu-dim);margin-right:4px}
 .mu-tl-tip i{color:var(--mu-dim)}
 .mu-tl-tip a{color:var(--vscode-textLink-foreground,#3794ff);text-decoration:none;cursor:pointer}
 .mu-tl-tip a:hover{text-decoration:underline}
-.mu-tip-src{display:flex;align-items:center;gap:8px;margin:3px 0}
-.mu-tip-src img{image-rendering:pixelated;max-height:44px;max-width:56px;flex-shrink:0;background:rgba(255,255,255,.04);border-radius:3px}
+.mu-tip-title{font-size:13px}
+.mu-tip-k{color:var(--mu-dim)}
+.mu-tip-row{margin-top:4px}
+.mu-tip-src{display:flex;align-items:center;gap:8px}
 .mu-tip-src>div{flex:1;min-width:0}
-.mu-tip-src img.mu-tip-frame{outline:1px solid #f59e0b}
-.mu-tip-pitch{color:#fde68a}
+.mu-tip-src img{image-rendering:pixelated;height:36px;flex-shrink:0}
+.mu-tip-src img.mu-tip-frame{height:36px;outline:1px solid rgba(245,158,11,.7);border-radius:2px}
+.mu-tip-more{border-bottom:1px dotted var(--mu-dim);cursor:help}
+.mu-tip-more:hover{border-bottom-color:var(--mu-accent);color:var(--mu-fg)}
+.mu-tip-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.mu-tip-chip{font-size:10px;padding:0 5px;border-radius:8px;border:1px solid var(--mu-line);color:var(--mu-dim)}
+.mu-tip-more .mu-tip-chip{border-color:color-mix(in srgb,var(--mu-accent) 50%,var(--mu-line));color:var(--mu-fg)}
+.mu-card-img{image-rendering:pixelated;display:block;max-height:96px;max-width:160px;margin:2px 0 4px}
+.mu-card-img.mu-card-big{max-height:128px}
+.mu-card-k{color:var(--mu-dim);margin:2px 0}
+.mu-card-code{font:10px var(--mu-mono);background:rgba(0,0,0,.25);border-radius:3px;padding:4px 6px;margin:4px 0;white-space:pre}
+.mu-card-code div{padding:0 2px}
+.mu-card-code .mu-code-mark{background:rgba(245,158,11,.22);color:#fde68a;border-radius:2px}
+.mu-card-table{border-collapse:collapse;margin-top:3px}
+.mu-card-table td{padding:1px 8px 1px 0;vertical-align:top}
+.mu-card-table td:first-child{white-space:nowrap;color:#fde68a}
 
 /* Sound effects sidebar (both views): resizable, can be hidden */
 .mu-sfx-toggle{margin-left:auto;font-size:11px;padding:3px 8px}

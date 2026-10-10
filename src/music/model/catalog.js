@@ -38,19 +38,26 @@ function sfxAnimations(sfx) {
 
 /**
  * How animations vary driver effect `sfx` (command $30 just before it: a pitch offset in
- * 1/20 semitone): { stamina: bool, offsets: [n] } or null when they never do.
+ * 1/20 semitone): { stamina: [animation], offsets: [{ n, by: [animation] }] } or null.
  */
 function sfxPitch(sfx) {
-    let stamina = false;
-    const offsets = new Set();
+    const stamina = new Set(), offsets = new Map();
     for (const e of getSoundAnimations()) {
         if (e.sfx !== sfx) continue;
         for (const a of e.animations) for (const o of a.ops || []) {
-            if (o.pitch === 'stamina') stamina = true;
-            else if (typeof o.pitch === 'number') offsets.add(o.pitch);
+            const by = a.label || 'animation ' + a.record;
+            if (o.pitch === 'stamina') stamina.add(by);
+            else if (typeof o.pitch === 'number') {
+                if (!offsets.has(o.pitch)) offsets.set(o.pitch, new Set());
+                offsets.get(o.pitch).add(by);
+            }
         }
     }
-    return stamina || offsets.size ? { stamina, offsets: [...offsets].sort((a, b) => a - b) } : null;
+    if (!stamina.size && !offsets.size) return null;
+    return {
+        stamina: [...stamina],
+        offsets: [...offsets].sort((x, y) => x[0] - y[0]).map(([n, by]) => ({ n, by: [...by] })),
+    };
 }
 
 /**

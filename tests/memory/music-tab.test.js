@@ -216,6 +216,15 @@ async function coreStream(model) {
         assert.strictEqual(boy.who.uri, 'soe://tags/boy.md');
         assert.match(boy.who.image, /^data:image\/png/);
         assert.ok(boy.animation && boy.animation.uri && /characters\/00\/animations\//.test(boy.animation.uri), JSON.stringify(boy.animation));
+        assert.ok(boy.animation.lines.some(l => l.mark && /^sound /.test(l.text)), 'the sound command, marked');
+        const eng = describeSoundSource(rom, { sfx: 3, kind: 'engine', caller: 0x8CB8DE });
+        assert.strictEqual(eng.engine.uri, 'soe://bus/8cb8de.asm');
+        const call = eng.engine.lines.find(l => l.mark);
+        assert.match(call.text, /^jsl \$8C82DC .*Play sound effect/, JSON.stringify(eng.engine.lines));
+        assert.ok(eng.engine.lines.some(l => l.text === 'lda #$0003'), 'the effect it plays, loaded into A');
+        const { resolveRom } = require('../../src/resources/rom-files');
+        const listing = (await resolveRom(['0cb8cf.asm'], rom).read()).toString();
+        assert.match(listing, /\$8CB8DA {2}22 dc 82 8c +jsl \$8C82DC/);
         assert.ok(found.has('anim:7:Boy'), [...found].join(' '));
         assert.ok(found.has('anim:16:Dog'), [...found].join(' '));
         assert.ok(hooks.some(e => e.kind === 'script' && e.script >= 0x920000), 'sound() from a script');

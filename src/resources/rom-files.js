@@ -7,6 +7,7 @@
 //   soe://rom/header.json         cartridge header at $FFC0
 //   soe://rom/<off>[<len>].bin    file-offset slice (unlisted; default 0x100 bytes)
 //   soe://rom/<off>.json          byte, word, long and table/function name
+//   soe://rom/<off>.asm           65816 listing from there (asm-view.js)
 //   soe://rom/assets/...          decoded content, rom-assets.js
 // Bus addresses go through soe://bus/ (bus-files.js), which links here.
 
@@ -14,6 +15,10 @@ const { snesToRom } = require('../maps');
 const { getTable, getFunction, getAbsScript } = require('../localizations');
 const { parseAddressName, hexId } = require('../shared/resource-uri');
 const { dir, file, json, text } = require('./nodes');
+const { asmListing } = require('./asm-view');
+
+/** A file offset as the bus address code runs at: $80-$BF upper halves (fast ROM), else $C0+. */
+function fileToBus(off) { return off < 0x400000 && (off & 0xFFFF) >= 0x8000 ? 0x800000 | off : 0xC00000 + off; }
 const { resolveAssets } = require('./rom-assets');
 
 const DEFAULT_SLICE = 0x100;
@@ -48,6 +53,7 @@ function slice(rom, name) {
     if (!a || a.bit !== null || a.addr >= rom.length) return null;
     const off = a.addr;
     if (a.ext === 'json') return a.len === null ? json(() => describe(rom, off)) : null;
+    if (a.ext === 'asm') return a.len === null ? text(() => asmListing(rom, fileToBus(off))) : null;
     const len = a.len ?? DEFAULT_SLICE;
     if (off + len > rom.length) return null;
     return file(() => Buffer.from(rom.subarray(off, off + len)));
@@ -73,6 +79,7 @@ function describe(rom, off) {
         name: named ? named.name : null,
         notes: named && named.notes ? named.notes : null,
         script: script ? { kind: 'abs', name: script.name } : undefined,
+        asm: 'soe://rom/' + hexId(off, 6) + '.asm',
     };
 }
 

@@ -13,6 +13,8 @@ const FUNCTIONS = [
     { address: 0x809033, name: 'Direct sprite draw (OAM)', notes: '', category: '🧠', stringIndex: null },
     { address: 0x8C805B, name: 'SPC700 IPL bootloader handshake & block upload', notes: '', category: '🧠', stringIndex: null },
     { address: 0x8C81FD, name: 'APU handshake / `$2140` spinlock', notes: '', category: '🧠', stringIndex: null },
+    { address: 0x8C82DC, name: 'Play sound effect (A = driver effect; does not load its package)', notes: 'sound() opcode 0x30 and the animation command sound n call it; $8C:831D sends $04 through $8C:81FD', category: '🧠', stringIndex: null },
+    { address: 0x8C82E3, name: 'Play sound effect, uploading its package first ($81:9A1E)', notes: 'no direct JSL callers', category: '🧠', stringIndex: null },
     { address: 0x8C8236, name: 'Song soundbank validation & loader (prevents or induces "The Sound Glitch")', notes: '', category: '🧠', stringIndex: null },
     { address: 0x8C828F, name: 'Opcode `0x33` (`music`) pre-dispatcher & volume handler', notes: '', category: '🧠', stringIndex: null },
     { address: 0x8C988D, name: 'Decompression dispatcher: reads `sub_flag`, jumps through `$8C:98A1`', notes: '', category: '🧠', stringIndex: null },

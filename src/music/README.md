@@ -16,9 +16,12 @@ The radar panel's **Music** tab: one screen (no page scroll) that shows the SNES
   envelope, and mute / solo (timeline only). **Hover** a note or a box (paused too): it is
   framed, a tooltip says what it is, how long, when, who sent it and which animations can play
   it; for an effect an entity sent, the emulator rings that entity on its screen. The tooltip can
-  be entered (it waits while the pointer moves to it) and links to `soe://` pages: the Boy / Dog tag
-  or the character (with its picture), the animation that ran the `sound` command (and its GIF),
-  the frame it plays on, the script. `resources/sound-source.js` builds them (injected).
+  be entered (it waits while the pointer moves to it) and floats above the pane. It stays short:
+  what, when, from whom; each dotted item opens a card on hover with the details, and each link
+  opens the `soe://` page: who (the Boy in the weapon / the Dog in the act whose palette was
+  loaded), the animation (GIF and the script lines around the `sound` command), the frame, the
+  pitch, the variations, the script excerpt, or the engine code (an asm excerpt around the call,
+  `soe://bus/<addr>.asm`). `resources/sound-source.js` builds them (injected).
 - **Variations:** an effect can be pitched for one play: driver command `$30` before `$04` sets
   `$0241/2`, which the `$04` handler copies to each voice's pitch offset (`$D9+2v`, added to the
   note at `$0981`), in 1/20 semitone (−256 = −12.8). Animation commands `0x40 n` send a fixed `n`;

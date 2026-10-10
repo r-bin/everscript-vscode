@@ -27,7 +27,7 @@ function buildMusicTabHtml() {
         '</div>' +
         '<div class="mu-timeline-view" id="mu-timeline-view">' +
         '<div class="mu-tl-channels" id="mu-tl-channels"></div>' +
-        '<div class="mu-tl-viewport" id="mu-tl-viewport"><canvas id="mu-tl-canvas" class="mu-tl-canvas"></canvas><div class="mu-tl-tip" id="mu-tl-tip"></div></div>' +
+        '<div class="mu-tl-viewport" id="mu-tl-viewport"><canvas id="mu-tl-canvas" class="mu-tl-canvas"></canvas></div>' +
         '</div>' +
         '</div>' +
         '<aside class="mu-sfx-sidebar" id="mu-sfx-sidebar">' +
@@ -49,6 +49,8 @@ function buildMusicTabHtml() {
         '<section class="mu-aram"><div class="mu-h">ARAM <span id="mu-aram-sub"></span></div>' +
         '<div class="mu-bar" id="mu-bar"></div><div class="mu-ruler"><span>$0000</span><span>$4000</span><span>$8000</span><span>$C000</span><span>$FFFF</span></div>' +
         '<div class="mu-legend" id="mu-legend"></div></section>' +
+        // The timeline's tooltip and its cards float above the whole pane (music-hover.js).
+        '<div class="mu-tl-tip" id="mu-tl-tip"></div><div class="mu-tl-tip mu-tl-card" id="mu-tl-card"></div>' +
         '</div>';
 }
 
