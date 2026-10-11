@@ -786,6 +786,10 @@ function getMenuClientScript() {
     let isMenuOpen = false;
     let menuActiveTab = 0; // Default LENS
     let menuSelectedRow = 0;
+    const tabSelectedRows = [0, 0, 0, 0, 0, 0];
+    const tabScrollTops = [0, 0, 0, 0, 0, 0];
+    const menuLocalObjStates = new Map();
+    let lastMenuMapId = -1;
     let menuListeningBtn = null;
     let menuListeningTimeout = null;
 
@@ -835,6 +839,32 @@ function getMenuClientScript() {
       return currentMap;
     }
 
+    function checkMapChange() {
+      const curMap = getCurrentMapId();
+      if (curMap !== lastMenuMapId) {
+        lastMenuMapId = curMap;
+        menuLocalObjStates.clear();
+        for (let i = 0; i < MENU_TAB_COUNT; i++) {
+          tabSelectedRows[i] = 0;
+          tabScrollTops[i] = 0;
+        }
+      }
+    }
+
+    function getEffectiveObjState(objIndex) {
+      if (menuLocalObjStates.has(objIndex)) {
+        return menuLocalObjStates.get(objIndex);
+      }
+      const m = getModule();
+      if (m && typeof m.readMemory === 'function') {
+        return m.readMemory(0x7E10CE + objIndex) || 0;
+      }
+      if (typeof lastSampledPreState !== 'undefined' && lastSampledPreState && lastSampledPreState.objStateBuf) {
+        return lastSampledPreState.objStateBuf[objIndex] || 0;
+      }
+      return 0;
+    }
+
     function openEmulatorMenu() {
       if (isMenuOpen) return;
       isMenuOpen = true;
@@ -851,6 +881,8 @@ function getMenuClientScript() {
 
       playMenuSound('wheel_open');
       syncMenuValuesFromRuntime();
+
+      checkMapChange();
 
       const curMap = getCurrentMapId();
       if (curMap >= 0 && (!cachedObjects || !cachedLootables)) {
@@ -870,14 +902,16 @@ function getMenuClientScript() {
           });
         }
       }
-      menuActiveTab = 0; // Default LENS tab
-      menuSelectedRow = 0;
+      menuSelectedRow = tabSelectedRows[menuActiveTab] || 0;
       renderMenuTab(menuActiveTab);
     }
 
     function closeEmulatorMenu() {
       if (!isMenuOpen) return;
       if (menuListeningBtn) cancelKeybindListen();
+      const menuBody = document.getElementById('menu-body');
+      if (menuBody) tabScrollTops[menuActiveTab] = menuBody.scrollTop;
+      tabSelectedRows[menuActiveTab] = menuSelectedRow;
       isMenuOpen = false;
       isLensModeActive = false;
       keyInput = 0;
@@ -912,16 +946,23 @@ function getMenuClientScript() {
       }
     }
 
-    function switchMenuTab(delta) {
+    function selectMenuTab(targetTab) {
       if (menuListeningBtn) cancelKeybindListen();
-      // Tabs don't loop: clamped between 0 and MENU_TAB_COUNT - 1
-      const target = Math.max(0, Math.min(menuActiveTab + delta, MENU_TAB_COUNT - 1));
+      const target = Math.max(0, Math.min(targetTab, MENU_TAB_COUNT - 1));
       if (target !== menuActiveTab) {
+        tabSelectedRows[menuActiveTab] = menuSelectedRow;
+        const menuBody = document.getElementById('menu-body');
+        if (menuBody) tabScrollTops[menuActiveTab] = menuBody.scrollTop;
+
         menuActiveTab = target;
-        menuSelectedRow = 0;
+        menuSelectedRow = tabSelectedRows[menuActiveTab] || 0;
         playMenuSound('wheel_turn');
         renderMenuTab(menuActiveTab);
       }
+    }
+
+    function switchMenuTab(delta) {
+      selectMenuTab(menuActiveTab + delta);
     }
 
     function renderMenuTab(tabIndex) {
@@ -947,7 +988,20 @@ function getMenuClientScript() {
       } else if (tabIndex === 5) {
         renderKeybindRows();
       }
-      updateMenuRowSelection();
+
+      const menuBody = document.getElementById('menu-body');
+      if (menuBody && typeof tabScrollTops[tabIndex] === 'number') {
+        menuBody.scrollTop = tabScrollTops[tabIndex];
+      }
+      updateMenuRowSelection(false);
+      try {
+        requestAnimationFrame(function() {
+          if (menuBody && typeof tabScrollTops[tabIndex] === 'number') {
+            menuBody.scrollTop = tabScrollTops[tabIndex];
+          }
+          updateMenuRowSelection(false);
+        });
+      } catch (_) {}
     }
 
     function updateLensTabInfo() {
@@ -979,12 +1033,14 @@ function getMenuClientScript() {
     }
 
     // Up / Down scrolls the active selection into view automatically!
-    function updateMenuRowSelection() {
+    function updateMenuRowSelection(smooth) {
+      const isSmooth = (smooth !== false);
       const activePanel = document.getElementById('menu-panel-' + menuActiveTab);
       if (!activePanel) return;
       const rows = activePanel.querySelectorAll('.menu-row');
       if (menuSelectedRow < 0) menuSelectedRow = 0;
       if (menuSelectedRow >= rows.length) menuSelectedRow = Math.max(0, rows.length - 1);
+      tabSelectedRows[menuActiveTab] = menuSelectedRow;
 
       rows.forEach(function(row, idx) {
         const isSel = (idx === menuSelectedRow);
@@ -1001,7 +1057,7 @@ function getMenuClientScript() {
             }
           }
           try {
-            row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            row.scrollIntoView({ block: 'nearest', behavior: isSmooth ? 'smooth' : 'auto' });
           } catch (_) {
             try { row.scrollIntoView(false); } catch (__) {}
           }
@@ -1018,6 +1074,7 @@ function getMenuClientScript() {
       const nextRow = Math.max(0, Math.min(menuSelectedRow + delta, rows.length - 1));
       if (nextRow !== menuSelectedRow) {
         menuSelectedRow = nextRow;
+        tabSelectedRows[menuActiveTab] = nextRow;
         playMenuSound('click_nav');
         updateMenuRowSelection();
       }
@@ -1158,9 +1215,36 @@ function getMenuClientScript() {
     }
 
     // -- Section 3 Map Objects Dynamic View -------------------------------------
+    function updateObjectRowDisplay(objIndex, newState, maxState) {
+      const pill = document.getElementById('menu-val-obj-' + objIndex);
+      if (pill) {
+        pill.textContent = 'State ' + newState + ' / ' + maxState;
+      }
+      if (cachedObjects) {
+        const obj = cachedObjects.find(function(o) { return o.index === objIndex; });
+        if (obj) {
+          const stateObj = (obj.states && obj.states[newState]) ? obj.states[newState] : null;
+          const previewSrc = (stateObj && stateObj.preview) ? stateObj.preview : (obj.preview || null);
+          const row = pill ? pill.closest('.menu-row') : null;
+          if (row) {
+            const previewBox = row.querySelector('.menu-preview-box');
+            if (previewBox) {
+              if (previewSrc) {
+                previewBox.innerHTML = '<img class="menu-preview-img" src="' + previewSrc + '" alt="OBJ #' + obj.index + '">';
+              } else {
+                previewBox.innerHTML = '<span class="menu-preview-empty">OBJ</span>';
+              }
+            }
+          }
+        }
+      }
+    }
+
     function renderObjectRows() {
       const container = document.getElementById('menu-objects-list');
       if (!container) return;
+      const menuBody = document.getElementById('menu-body');
+      const prevScroll = menuBody ? menuBody.scrollTop : 0;
       container.innerHTML = '';
       if (!cachedObjects) {
         const curMap = getCurrentMapId();
@@ -1186,16 +1270,10 @@ function getMenuClientScript() {
         container.innerHTML = '<div class="menu-empty-hint">No Section 3 map objects found in this room.</div>';
         return;
       }
-      const m = getModule();
       for (let i = 0; i < cachedObjects.length; i++) {
         const obj = cachedObjects[i];
         const maxState = (obj.states && obj.states.length) ? Math.max(1, obj.states.length - 1) : 1;
-        let curState = 0;
-        if (m && typeof m.readMemory === 'function') {
-          curState = m.readMemory(0x7E10CE + obj.index) || 0;
-        } else if (typeof lastSampledPreState !== 'undefined' && lastSampledPreState && lastSampledPreState.objStateBuf) {
-          curState = lastSampledPreState.objStateBuf[obj.index] || 0;
-        }
+        const curState = getEffectiveObjState(obj.index);
 
         const stateObj = (obj.states && obj.states[curState]) ? obj.states[curState] : null;
         const previewSrc = (stateObj && stateObj.preview) ? stateObj.preview : (obj.preview || null);
@@ -1231,6 +1309,7 @@ function getMenuClientScript() {
           btnLeft.addEventListener('click', function(e) {
             e.stopPropagation();
             menuSelectedRow = i;
+            tabSelectedRows[menuActiveTab] = i;
             updateMenuRowSelection();
             stepObjectState(obj.index, -1);
           });
@@ -1239,17 +1318,22 @@ function getMenuClientScript() {
           btnRight.addEventListener('click', function(e) {
             e.stopPropagation();
             menuSelectedRow = i;
+            tabSelectedRows[menuActiveTab] = i;
             updateMenuRowSelection();
             stepObjectState(obj.index, 1);
           });
         }
         row.addEventListener('click', function() {
           menuSelectedRow = i;
+          tabSelectedRows[menuActiveTab] = i;
           updateMenuRowSelection();
           stepObjectState(obj.index, 1);
         });
 
         container.appendChild(row);
+      }
+      if (menuBody) {
+        menuBody.scrollTop = prevScroll;
       }
     }
 
@@ -1258,19 +1342,24 @@ function getMenuClientScript() {
       const obj = cachedObjects.find(function(o) { return o.index === objIndex; });
       if (!obj) return;
       const maxState = (obj.states && obj.states.length) ? Math.max(1, obj.states.length - 1) : 1;
-      const m = getModule();
-      let curState = 0;
-      if (m && typeof m.readMemory === 'function') {
-        curState = m.readMemory(0x7E10CE + objIndex) || 0;
-      }
+      const curState = getEffectiveObjState(objIndex);
       const newState = Math.max(0, Math.min(curState + delta, maxState));
       if (newState === curState) return;
 
+      // 1. Update state caches immediately
+      menuLocalObjStates.set(objIndex, newState);
       if (typeof lastSampledPreState !== 'undefined' && lastSampledPreState && lastSampledPreState.objStateBuf) {
         lastSampledPreState.objStateBuf[objIndex] = newState;
       }
 
-      // Safe opcode 0x5C injection: 5C takes two expressions (0x82 = unsigned const byte)
+      // 2. Direct WRAM write (immediate effect even while paused)
+      const m = getModule();
+      if (m && typeof m.writeMemory === 'function') {
+        m.writeMemory(0x7E107E + objIndex, newState);
+        m.writeMemory(0x7E10CE + objIndex, newState);
+      }
+
+      // 3. Safe opcode 0x5C injection: 5C takes two expressions (0x82 = unsigned const byte)
       let injected = false;
       try {
         const hexObj = objIndex.toString(16).padStart(2, '0');
@@ -1278,17 +1367,11 @@ function getMenuClientScript() {
         injected = injectEverscript('5c 82 ' + hexObj + ' 82 ' + hexVal);
       } catch (_) {}
 
-      // Fallback direct WRAM write if script slot injection was not possible:
-      if (!injected && m && typeof m.writeMemory === 'function') {
-        m.writeMemory(0x7E107E + objIndex, newState);
-        m.writeMemory(0x7E10CE + objIndex, newState);
-      }
-
-      // 3. Update UI
+      // 4. Update UI in-place (preserves scroll position and active DOM)
       playMenuSound('click_nav');
-      renderObjectRows();
+      updateObjectRowDisplay(objIndex, newState, maxState);
 
-      // 4. Request room map refresh to draw new object tiles immediately
+      // 5. Request room map refresh to draw new object tiles immediately
       if (vscodeApi && typeof cachedMapId === 'number') {
         const objStateMap = {};
         objStateMap[objIndex] = newState;
@@ -1306,6 +1389,8 @@ function getMenuClientScript() {
     function renderLootRows() {
       const container = document.getElementById('menu-loot-list');
       if (!container) return;
+      const menuBody = document.getElementById('menu-body');
+      const prevScroll = menuBody ? menuBody.scrollTop : 0;
       container.innerHTML = '';
       if (!cachedLootables) {
         const curMap = getCurrentMapId();
@@ -1343,10 +1428,10 @@ function getMenuClientScript() {
             const b = m.readMemory(0x7E0000 + loot.setFlag.addr);
             isLooted = (b & (1 << loot.setFlag.bit)) !== 0;
           }
-          if (loot.objectId !== null && loot.objectId !== undefined) {
-            const ost = m.readMemory(0x7E10CE + loot.objectId);
-            if (ost > 0) isLooted = true;
-          }
+        }
+        if (loot.objectId !== null && loot.objectId !== undefined) {
+          const ost = getEffectiveObjState(loot.objectId);
+          if (ost > 0) isLooted = true;
         }
 
         const previewSrc = loot.preview || (cachedItemIcons && cachedItemIcons[loot.itemName]) || null;
@@ -1382,6 +1467,7 @@ function getMenuClientScript() {
           toggleBtn.addEventListener('click', function(e) {
             e.stopPropagation();
             menuSelectedRow = i;
+            tabSelectedRows[menuActiveTab] = i;
             updateMenuRowSelection();
             toggleLootState(i);
           });
@@ -1391,17 +1477,22 @@ function getMenuClientScript() {
           runBtn.addEventListener('click', function(e) {
             e.stopPropagation();
             menuSelectedRow = i;
+            tabSelectedRows[menuActiveTab] = i;
             updateMenuRowSelection();
             runLootScript(i);
           });
         }
         row.addEventListener('click', function() {
           menuSelectedRow = i;
+          tabSelectedRows[menuActiveTab] = i;
           updateMenuRowSelection();
           toggleLootState(i);
         });
 
         container.appendChild(row);
+      }
+      if (menuBody) {
+        menuBody.scrollTop = prevScroll;
       }
     }
 
@@ -1418,7 +1509,7 @@ function getMenuClientScript() {
         isLooted = (b & (1 << flag.bit)) !== 0;
       }
       if (loot.objectId !== null && loot.objectId !== undefined) {
-        const ost = m.readMemory(0x7E10CE + loot.objectId);
+        const ost = getEffectiveObjState(loot.objectId);
         if (ost > 0) isLooted = true;
       }
 
@@ -1430,6 +1521,7 @@ function getMenuClientScript() {
       }
       if (loot.objectId !== null && loot.objectId !== undefined) {
         const newObjState = targetLooted ? 1 : 0;
+        menuLocalObjStates.set(loot.objectId, newObjState);
         if (typeof lastSampledPreState !== 'undefined' && lastSampledPreState && lastSampledPreState.objStateBuf) {
           lastSampledPreState.objStateBuf[loot.objectId] = newObjState;
         }
@@ -1437,7 +1529,7 @@ function getMenuClientScript() {
         try {
           injected = injectEverscript('5c 82 ' + loot.objectId.toString(16).padStart(2, '0') + ' 82 ' + (targetLooted ? '01' : '00'));
         } catch (_) {}
-        if (!injected && m && typeof m.writeMemory === 'function') {
+        if (m && typeof m.writeMemory === 'function') {
           m.writeMemory(0x7E107E + loot.objectId, newObjState);
           m.writeMemory(0x7E10CE + loot.objectId, newObjState);
         }
@@ -1847,15 +1939,17 @@ function getMenuClientScript() {
           if (tabBtn) {
             tabBtn.addEventListener('click', (function(idx) {
               return function() {
-                if (menuActiveTab !== idx) {
-                  menuActiveTab = idx;
-                  menuSelectedRow = 0;
-                  playMenuSound('wheel_turn');
-                  renderMenuTab(idx);
-                }
+                selectMenuTab(idx);
               };
             })(i));
           }
+        }
+
+        const menuBody = document.getElementById('menu-body');
+        if (menuBody) {
+          menuBody.addEventListener('scroll', function() {
+            tabScrollTops[menuActiveTab] = menuBody.scrollTop;
+          });
         }
 
         // Steppers on Overlays & Emulation tabs
@@ -1868,6 +1962,7 @@ function getMenuClientScript() {
             btnLeft.addEventListener('click', function(e) {
               e.stopPropagation();
               menuSelectedRow = rIdx;
+              tabSelectedRows[menuActiveTab] = rIdx;
               updateMenuRowSelection();
               changeMenuValue(-1);
             });
@@ -1876,6 +1971,7 @@ function getMenuClientScript() {
             btnRight.addEventListener('click', function(e) {
               e.stopPropagation();
               menuSelectedRow = rIdx;
+              tabSelectedRows[menuActiveTab] = rIdx;
               updateMenuRowSelection();
               changeMenuValue(1);
             });
@@ -1883,6 +1979,7 @@ function getMenuClientScript() {
           r.addEventListener('click', function(e) {
             if (e.target.tagName === 'BUTTON') return;
             menuSelectedRow = rIdx;
+            tabSelectedRows[menuActiveTab] = rIdx;
             updateMenuRowSelection();
             activateMenuRow();
           });

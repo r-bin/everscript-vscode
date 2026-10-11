@@ -83,5 +83,23 @@ test('menu-view.js uses proper Everscript expression encoding (0x82) for opcode 
   assert.ok(menuCode.includes("'5c 82 ' + loot.objectId.toString(16)"), 'opcode 0x5C not using 0x82 sub-instruction prefix in lootables');
 });
 
+// 4. Menu State Persistence and In-place Stepper Updates
+test('menu-view.js maintains per-tab row selections and scroll offsets across open/close and tab changes', () => {
+  assert.ok(menuCode.includes('tabSelectedRows = [0, 0, 0, 0, 0, 0]'), 'missing tabSelectedRows tracking');
+  assert.ok(menuCode.includes('tabScrollTops = [0, 0, 0, 0, 0, 0]'), 'missing tabScrollTops tracking');
+  assert.ok(menuCode.includes('function selectMenuTab(targetTab)'), 'missing unified selectMenuTab function');
+  assert.ok(menuCode.includes('menuSelectedRow = tabSelectedRows[menuActiveTab] || 0'), 'openEmulatorMenu does not restore previous tab/row');
+  assert.ok(menuCode.includes('tabSelectedRows[menuActiveTab] = menuSelectedRow'), 'closeEmulatorMenu does not save tab/row');
+});
+
+test('menu-view.js updates object state pill immediately in-place without resetting scroll or reading stale paused WRAM', () => {
+  assert.ok(menuCode.includes('function updateObjectRowDisplay(objIndex, newState, maxState)'), 'missing updateObjectRowDisplay');
+  assert.ok(menuCode.includes('const menuLocalObjStates = new Map()'), 'missing menuLocalObjStates cache');
+  assert.ok(menuCode.includes('function getEffectiveObjState(objIndex)'), 'missing getEffectiveObjState helper');
+  assert.ok(menuCode.includes('m.writeMemory(0x7E107E + objIndex, newState)'), 'missing direct WRAM write to 0x7E107E in stepObjectState');
+  assert.ok(menuCode.includes('m.writeMemory(0x7E10CE + objIndex, newState)'), 'missing direct WRAM write to 0x7E10CE in stepObjectState');
+});
+
 console.log(`\nResults: ${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);
+
