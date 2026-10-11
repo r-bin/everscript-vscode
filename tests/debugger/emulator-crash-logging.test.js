@@ -112,6 +112,27 @@ test('panel-webview.js renders live vector overlays without static overlayImg hi
   assert.ok(webviewCode.includes('renderObjectsOverlay('), 'missing live renderObjectsOverlay');
 });
 
+test('menu-view.js links objects to live WRAM and clears local pause cache on open/close', () => {
+  assert.ok(menuCode.includes('function openEmulatorMenu() {\n      if (isMenuOpen) return;\n      isMenuOpen = true;\n      keyInput = 0;\n      menuLocalObjStates.clear();'), 'openEmulatorMenu must clear menuLocalObjStates so live WRAM is read');
+  assert.ok(menuCode.includes('function closeEmulatorMenu() {\n      if (!isMenuOpen) return;\n      if (menuListeningBtn) cancelKeybindListen();\n      const menuBody = document.getElementById(\'menu-body\');\n      if (menuBody) tabScrollTops[menuActiveTab] = menuBody.scrollTop;\n      tabSelectedRows[menuActiveTab] = menuSelectedRow;\n      menuLocalObjStates.clear();'), 'closeEmulatorMenu must clear menuLocalObjStates once emulation resumes');
+  assert.ok(menuCode.includes('for (let o = 0; o < 160; o++) {\n            const val = (o === objIndex) ? newState : (m.readMemory(0x7E10CE + o) || 0);'), 'stepObjectState must preserve full 160 WRAM object states in requestRoomMap');
+});
+
+test('panel-webview.js sets default extension on and technical overlays off', () => {
+  assert.ok(webviewCode.includes('let extendMapEnabled = true;'), 'extendMapEnabled must default to true');
+  assert.ok(webviewCode.includes('let triggersOverlayEnabled = false;'), 'triggersOverlayEnabled must default to false');
+  assert.ok(webviewCode.includes('let objectsOverlayEnabled = false;'), 'objectsOverlayEnabled must default to false');
+  assert.ok(webviewCode.includes('let animTilesOverlayEnabled = false;'), 'animTilesOverlayEnabled must default to false');
+  assert.ok(webviewCode.includes('let collisionOverlayEnabled = false;'), 'collisionOverlayEnabled must default to false');
+});
+
+test('menu-view.js gates Start button only on opening screen and name entry', () => {
+  assert.ok(menuCode.includes('const curMap = m.readMemory(0x7E0ADB);'), 'missing curMap check');
+  assert.ok(menuCode.includes('if (curMap === 0x00 || curMap === 0xFF) return false;'), 'curMap 0x00 must pass Start to game');
+  assert.ok(menuCode.includes('const boyMaxHp = m.readMemory(0x7E0A35) | (m.readMemory(0x7E0A36) << 8);'), 'missing boyMaxHp check');
+  assert.ok(menuCode.includes('if (boyMaxHp === 0) return false;'), 'uninitialized boyMaxHp must pass Start to name entry');
+});
+
 console.log(`\nResults: ${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);
 

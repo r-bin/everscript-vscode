@@ -513,7 +513,7 @@ function getMenuHtml() {
     <div id="emulator-menu" class="hidden">
       <div id="menu-card">
         <div id="menu-header">
-          <button id="menu-l-btn" class="menu-shoulder-btn" type="button" title="Previous Tab (L)">[L]</button>
+          <button id="menu-l-btn" class="menu-shoulder-btn" type="button" title="Previous Tab (L)">&lt; L</button>
           <div id="menu-tabs">
             <button id="menu-tab-btn-0" class="menu-tab-btn active" type="button" data-tab="0">LENS</button>
             <button id="menu-tab-btn-1" class="menu-tab-btn" type="button" data-tab="1">OVERLAYS</button>
@@ -522,7 +522,7 @@ function getMenuHtml() {
             <button id="menu-tab-btn-4" class="menu-tab-btn" type="button" data-tab="4">EMULATION</button>
             <button id="menu-tab-btn-5" class="menu-tab-btn" type="button" data-tab="5">CONTROLS</button>
           </div>
-          <button id="menu-r-btn" class="menu-shoulder-btn" type="button" title="Next Tab (R)">[R]</button>
+          <button id="menu-r-btn" class="menu-shoulder-btn" type="button" title="Next Tab (R)">R &gt;</button>
           <button id="menu-close-btn" type="button" title="Resume Game (B / Esc)">[X]</button>
         </div>
 
@@ -571,7 +571,7 @@ function getMenuHtml() {
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Triggers (B &amp; Step-on)</div>
               <div class="menu-row-value">
                 <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
-                <span id="menu-val-triggers" class="menu-pill active">ON</span>
+                <span id="menu-val-triggers" class="menu-pill">OFF</span>
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
@@ -579,7 +579,7 @@ function getMenuHtml() {
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Entities &amp; Objects</div>
               <div class="menu-row-value">
                 <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
-                <span id="menu-val-objects" class="menu-pill active">ON</span>
+                <span id="menu-val-objects" class="menu-pill">OFF</span>
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
@@ -587,7 +587,7 @@ function getMenuHtml() {
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Animated Tile Outlines</div>
               <div class="menu-row-value">
                 <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
-                <span id="menu-val-anim" class="menu-pill active">ON</span>
+                <span id="menu-val-anim" class="menu-pill">OFF</span>
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
@@ -595,7 +595,7 @@ function getMenuHtml() {
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Collision Geometry</div>
               <div class="menu-row-value">
                 <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
-                <span id="menu-val-collision" class="menu-pill active">ON</span>
+                <span id="menu-val-collision" class="menu-pill">OFF</span>
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
@@ -794,7 +794,7 @@ function getMenuClientScript() {
     let menuListeningTimeout = null;
 
     // Controllable Player Gate:
-    // Only intercepts Start when player is actively controllable (not in intro, showcase, or name entry)
+    // Only intercepts Start when player is in gameplay (not on opening screen, cinema, or entering name)
     function isPlayerControllable(m) {
       if (!m || !romLoaded) return false;
       try {
@@ -803,21 +803,9 @@ function getMenuClientScript() {
         const curMap = m.readMemory(0x7E0ADB);
         if (curMap === 0x00 || curMap === 0xFF) return false;
 
-        // 2. Engine sequence flags at $7E22EB:
-        //    0x02 = intro sequence
-        //    0x04 = showcase running
-        //    0x20 = animation / dialog freeze
-        const flags = m.readMemory(0x7E22EB);
-        if ((flags & 0x26) !== 0) return false;
-
-        // 3. Stats initialized check: Boy Max HP at $7E0A35 is 0 before name entry completes
+        // 2. Stats initialized check: Boy Max HP at $7E0A35 is 0 before name entry completes
         const boyMaxHp = m.readMemory(0x7E0A35) | (m.readMemory(0x7E0A36) << 8);
         if (boyMaxHp === 0) return false;
-
-        // 4. Entity check: Boy ($7E4EB3) or Dog ($7E4F61) HP > 0
-        const boyHp = m.readMemory(0x7E4EB3) | (m.readMemory(0x7E4EB4) << 8);
-        const dogHp = m.readMemory(0x7E4F61) | (m.readMemory(0x7E4F62) << 8);
-        if (boyHp === 0 && dogHp === 0) return false;
 
         return true;
       } catch (err) {
@@ -869,6 +857,7 @@ function getMenuClientScript() {
       if (isMenuOpen) return;
       isMenuOpen = true;
       keyInput = 0;
+      menuLocalObjStates.clear();
       const menuEl = document.getElementById('emulator-menu');
       if (menuEl) menuEl.classList.remove('hidden');
 
@@ -912,6 +901,7 @@ function getMenuClientScript() {
       const menuBody = document.getElementById('menu-body');
       if (menuBody) tabScrollTops[menuActiveTab] = menuBody.scrollTop;
       tabSelectedRows[menuActiveTab] = menuSelectedRow;
+      menuLocalObjStates.clear();
       isMenuOpen = false;
       isLensModeActive = false;
       keyInput = 0;
@@ -1304,7 +1294,7 @@ function getMenuClientScript() {
       const container = document.getElementById('menu-objects-list');
       if (!container) return;
       const menuBody = document.getElementById('menu-body');
-      const prevScroll = menuBody ? menuBody.scrollTop : 0;
+      const prevScroll = (menuBody && menuBody.scrollTop > 0) ? menuBody.scrollTop : (tabScrollTops[2] || 0);
       container.innerHTML = '';
       if (!cachedObjects) {
         const curMap = getCurrentMapId();
@@ -1395,6 +1385,7 @@ function getMenuClientScript() {
       if (menuBody) {
         menuBody.scrollTop = prevScroll;
       }
+      updateMenuRowSelection(false);
     }
 
     function stepObjectState(objIndex, delta) {
@@ -1427,7 +1418,15 @@ function getMenuClientScript() {
       // 5. Request room map refresh to draw new object tiles immediately
       if (vscodeApi && typeof cachedMapId === 'number') {
         const objStateMap = {};
-        objStateMap[objIndex] = newState;
+        const m = getModule();
+        if (m && typeof m.readMemory === 'function') {
+          for (let o = 0; o < 160; o++) {
+            const val = (o === objIndex) ? newState : (m.readMemory(0x7E10CE + o) || 0);
+            if (val > 0) objStateMap[o] = val;
+          }
+        } else {
+          objStateMap[objIndex] = newState;
+        }
         vscodeApi.postMessage({
           command: 'requestRoomMap',
           mapId: cachedMapId,
@@ -1443,7 +1442,7 @@ function getMenuClientScript() {
       const container = document.getElementById('menu-loot-list');
       if (!container) return;
       const menuBody = document.getElementById('menu-body');
-      const prevScroll = menuBody ? menuBody.scrollTop : 0;
+      const prevScroll = (menuBody && menuBody.scrollTop > 0) ? menuBody.scrollTop : (tabScrollTops[3] || 0);
       container.innerHTML = '';
       if (!cachedLootables) {
         const curMap = getCurrentMapId();
@@ -1547,6 +1546,7 @@ function getMenuClientScript() {
       if (menuBody) {
         menuBody.scrollTop = prevScroll;
       }
+      updateMenuRowSelection(false);
     }
 
     function toggleLootState(lootIdx) {
@@ -1778,22 +1778,27 @@ function getMenuClientScript() {
             return;
           }
         } else {
-          if (e.key === 'ArrowUp') {
+          const isUp = e.key === 'ArrowUp' || (userKeyMap && (e.key === userKeyMap['Up'] || (userKeyMap['Up'] && e.key.toLowerCase() === userKeyMap['Up'].toLowerCase())));
+          const isDown = e.key === 'ArrowDown' || (userKeyMap && (e.key === userKeyMap['Down'] || (userKeyMap['Down'] && e.key.toLowerCase() === userKeyMap['Down'].toLowerCase())));
+          const isLeft = e.key === 'ArrowLeft' || (userKeyMap && (e.key === userKeyMap['Left'] || (userKeyMap['Left'] && e.key.toLowerCase() === userKeyMap['Left'].toLowerCase())));
+          const isRight = e.key === 'ArrowRight' || (userKeyMap && (e.key === userKeyMap['Right'] || (userKeyMap['Right'] && e.key.toLowerCase() === userKeyMap['Right'].toLowerCase())));
+
+          if (isUp) {
             moveMenuSelection(-1);
             e.preventDefault();
             return;
           }
-          if (e.key === 'ArrowDown') {
+          if (isDown) {
             moveMenuSelection(1);
             e.preventDefault();
             return;
           }
-          if (e.key === 'ArrowLeft') {
+          if (isLeft) {
             changeMenuValue(-1);
             e.preventDefault();
             return;
           }
-          if (e.key === 'ArrowRight') {
+          if (isRight) {
             changeMenuValue(1);
             e.preventDefault();
             return;

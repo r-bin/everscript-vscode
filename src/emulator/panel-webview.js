@@ -1465,10 +1465,10 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
 
     // -- Extended map and overlays --------------------------------------------
     let extendMapEnabled = true;
-    let triggersOverlayEnabled = true;
-    let objectsOverlayEnabled = true;
-    let animTilesOverlayEnabled = true;
-    let collisionOverlayEnabled = true;
+    let triggersOverlayEnabled = false;
+    let objectsOverlayEnabled = false;
+    let animTilesOverlayEnabled = false;
+    let collisionOverlayEnabled = false;
     let fogOfWarEnabled = false;
     let cachedMapId = -1;
     let cachedTriggers = null;
