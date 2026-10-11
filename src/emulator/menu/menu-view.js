@@ -34,7 +34,7 @@ function getMenuCss() {
       display: flex;
       align-items: flex-start;
       justify-content: center;
-      padding-top: 14px;
+      padding-top: 0;
       background: rgba(8, 8, 12, 0.78);
       backdrop-filter: blur(2px);
       user-select: none;
@@ -58,7 +58,7 @@ function getMenuCss() {
       border-top: none !important;
       border-radius: 0 0 6px 6px !important;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6) !important;
-      width: auto !important;
+      width: 520px !important;
       max-width: 95% !important;
     }
     #emulator-menu.lens-tab-active #menu-body,
@@ -72,7 +72,8 @@ function getMenuCss() {
       max-height: 85vh;
       background: #141418;
       border: 1px solid #363640;
-      border-radius: 6px;
+      border-top: none;
+      border-radius: 0 0 6px 6px;
       box-shadow: 0 12px 36px rgba(0, 0, 0, 0.9);
       display: flex;
       flex-direction: column;
@@ -878,6 +879,7 @@ function getMenuClientScript() {
       if (!isMenuOpen) return;
       if (menuListeningBtn) cancelKeybindListen();
       isMenuOpen = false;
+      isLensModeActive = false;
       keyInput = 0;
       const menuEl = document.getElementById('emulator-menu');
       if (menuEl) {
@@ -886,10 +888,13 @@ function getMenuClientScript() {
       }
 
       const m = getModule();
-      if (m && hasDebuggerApi(m)) {
+      if (m && typeof m.resumeEmulation === 'function') {
         m.resumeEmulation();
         setText('ss-pause-state', 'running', 'ss-ok');
         setText('ss-last-hit', 'last: resumed from Menu', 'ss-ok');
+      }
+      if (typeof ensureAudioRunning === 'function') {
+        ensureAudioRunning();
       }
 
       playMenuSound('wheel_close');
@@ -1589,12 +1594,14 @@ function getMenuClientScript() {
         }
 
         // L / R Shoulder navigation ([L] / [R])
-        if (e.key === 'q' || e.key === 'Q' || e.key === 'PageUp') {
+        const isL = e.key === 'q' || e.key === 'Q' || e.key === 'PageUp' || e.key === 'l' || e.key === 'L' || e.key === '[' || (userKeyMap && (e.key === userKeyMap['L'] || e.code === userKeyMap['L']));
+        const isR = e.key === 'e' || e.key === 'E' || e.key === 'PageDown' || e.key === 'r' || e.key === 'R' || e.key === ']' || (userKeyMap && (e.key === userKeyMap['R'] || e.code === userKeyMap['R']));
+        if (isL) {
           switchMenuTab(-1);
           e.preventDefault();
           return;
         }
-        if (e.key === 'e' || e.key === 'E' || e.key === 'PageDown') {
+        if (isR) {
           switchMenuTab(1);
           e.preventDefault();
           return;
@@ -1761,6 +1768,7 @@ function getMenuClientScript() {
       }
       lastGamepadButtons[9] = gp.buttons[9] && gp.buttons[9].pressed;
     }
+    window.pollGamepadMenu = pollGamepadMenu;
 
     // Helper utilities for UI
     function setPillState(id, on) {

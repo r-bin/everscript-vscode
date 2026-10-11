@@ -156,6 +156,10 @@ test('rom/assets/maps/38 has info, header, render, layers, collision and animati
     assert.strictEqual(l2.subarray(1, 4).toString(), 'PNG');
     const col = await read(resolveRom(['assets', 'maps', '38', 'collision.png'], rom));
     assert.strictEqual(col.subarray(1, 4).toString(), 'PNG');
+    const overlay = await read(resolveRom(['assets', 'maps', '38', 'overlay.png'], rom));
+    assert.strictEqual(overlay.subarray(1, 4).toString(), 'PNG');
+    const overlayOpts = await read(resolveRom(['assets', 'maps', '38', 'overlay.png?map=0&collision=tiles&objects=1&triggers=1&viewport=10,10,20,20'], rom));
+    assert.strictEqual(overlayOpts.subarray(1, 4).toString(), 'PNG');
 
     // GIF provided only when that layer animates
     const l2Gif = await read(resolveRom(['assets', 'maps', '38', 'layer2.gif'], rom));

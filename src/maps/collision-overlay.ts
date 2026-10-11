@@ -11,7 +11,7 @@
 // the size of the map and keeps lining up with the interactive SVG layer.
 
 import { RoomData } from './room';
-import { PixelBuffer } from './render';
+import { PixelBuffer, renderRoomComposite, scale2x } from './render';
 import { driftVector, geometryMask, isAlwaysWalkable, tilePlane } from './collision';
 import { classifyRoom, RoomFeatures, PLANE_COLORS } from './overlay-features';
 import { drawLabelInRect, Rgba8 } from './font';
@@ -85,11 +85,22 @@ export function drawCollisionOverlay(
     const blend = (x: number, y: number, r: number, g: number, b: number, alpha: number): void => {
         if (x < 0 || y < 0 || x >= wPx || y >= hPx) return;
         const o = (y * wPx + x) * 4;
+        const curA = buf[o + 3] / 255;
+        if (curA === 0) {
+            buf[o] = r;
+            buf[o + 1] = g;
+            buf[o + 2] = b;
+            buf[o + 3] = Math.round(alpha * 255);
+            return;
+        }
         const inv = 1 - alpha;
-        buf[o] = Math.trunc(r * alpha + buf[o] * inv);
-        buf[o + 1] = Math.trunc(g * alpha + buf[o + 1] * inv);
-        buf[o + 2] = Math.trunc(b * alpha + buf[o + 2] * inv);
-        buf[o + 3] = 255;
+        const outA = alpha + curA * inv;
+        if (outA > 0) {
+            buf[o] = Math.trunc((r * alpha + buf[o] * curA * inv) / outA);
+            buf[o + 1] = Math.trunc((g * alpha + buf[o + 1] * curA * inv) / outA);
+            buf[o + 2] = Math.trunc((b * alpha + buf[o + 2] * curA * inv) / outA);
+            buf[o + 3] = Math.round(outA * 255);
+        }
     };
 
     const fillTile = (tc: number, tr: number, r: number, g: number, b: number, a: number): void => {
@@ -259,4 +270,57 @@ function drawTileCollision(
             }
         }
     }
+}
+
+export interface StandaloneOverlayOptions extends CollisionOverlayOptions {
+    /** Whether to render the base map composite under the overlay. Defaults to false (transparent overlay). */
+    renderMap?: boolean;
+    /** Scale factor (1 or 2). Defaults to 1. */
+    scale?: number;
+    /** Optional viewport cutout in room coordinates: clears pixels in this rectangle to transparent. */
+    cutoutViewport?: { x: number; y: number; width: number; height: number };
+}
+
+/**
+ * Render a room overlay as a standalone PixelBuffer (transparent or over base map).
+ * Applies collision contours, tiles, drift, objects, triggers according to opts.
+ */
+export function renderStandaloneOverlay(
+    rom: Uint8Array,
+    room: RoomData,
+    opts: StandaloneOverlayOptions = {},
+): PixelBuffer {
+    let img: PixelBuffer;
+    if (opts.renderMap) {
+        img = renderRoomComposite(rom, room);
+    } else {
+        const wPx = room.header.widthTiles * 16;
+        const hPx = room.header.heightTiles * 16;
+        img = {
+            width: wPx,
+            height: hPx,
+            data: new Uint8Array(wPx * hPx * 4),
+        };
+    }
+
+    drawCollisionOverlay(img, room, opts);
+
+    if (opts.cutoutViewport) {
+        const { x, y, width, height } = opts.cutoutViewport;
+        const x1 = Math.max(0, Math.min(img.width, Math.round(x)));
+        const y1 = Math.max(0, Math.min(img.height, Math.round(y)));
+        const x2 = Math.max(0, Math.min(img.width, Math.round(x + width)));
+        const y2 = Math.max(0, Math.min(img.height, Math.round(y + height)));
+        for (let cy = y1; cy < y2; cy++) {
+            const rowStart = (cy * img.width + x1) * 4;
+            const rowEnd = (cy * img.width + x2) * 4;
+            img.data.fill(0, rowStart, rowEnd);
+        }
+    }
+
+    if (opts.scale === 2) {
+        img = scale2x(img);
+    }
+
+    return img;
 }

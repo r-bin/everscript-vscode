@@ -57,7 +57,8 @@ class SoeFileSystem {
         } else if (p.authority === 'rom') {
             // Also the paths a mount had before it gained rom/ (`~m/assets/…`): served, not listed.
             const rom = this._pickRom(uri, p.rom);
-            r = { node: resolveRom(p.segments, rom, this._deps), rom };
+            const deps = uri.query ? Object.assign({}, this._deps, { query: uri.query }) : this._deps;
+            r = { node: resolveRom(p.segments, rom, deps), rom };
         } else if (p.authority === 'ram') {
             r = { node: present(resolveRam(p.segments, this._deps.readMemory, this._deps.emulatorStatus), uri, null), rom: null };
         } else if (p.authority === 'bus') {
@@ -86,7 +87,8 @@ class SoeFileSystem {
         if (authority === 'index.md') return { node: text(() => mountIndex(p.rom)), rom: null };
         if (authority === 'rom') {
             const rom = this._pickRom(uri, p.rom);
-            return { node: resolveRom(rest, rom, this._deps), rom };
+            const deps = uri.query ? Object.assign({}, this._deps, { query: uri.query }) : this._deps;
+            return { node: resolveRom(rest, rom, deps), rom };
         }
         if (authority === 'localization') {
             const rom = this._pickRom(uri, p.rom);

@@ -45,8 +45,10 @@ test('getMenuCss generates fixed top alignment, lens tab active style, tabs, and
     const css = getMenuCss();
     assert.ok(css.includes('#emulator-menu'), 'missing #emulator-menu style');
     assert.ok(css.includes('align-items: flex-start;'), 'menu should be pinned to the top');
+    assert.ok(css.includes('padding-top: 0;'), 'menu top should be fixed at 0 with no jump');
     assert.ok(css.includes('.lens-tab-active'), 'missing .lens-tab-active style');
     assert.ok(css.includes('#menu-card'), 'missing #menu-card style');
+    assert.ok(css.includes('width: 520px !important;'), 'lens card should stay 520px with no horizontal jump');
     assert.ok(css.includes('.menu-shoulder-btn'), 'missing .menu-shoulder-btn style');
     assert.ok(css.includes('.menu-tab-btn'), 'missing .menu-tab-btn style');
     assert.ok(css.includes('.menu-row.selected'), 'missing .menu-row.selected style');
@@ -138,6 +140,9 @@ test('getMenuClientScript defines isPlayerControllable, unified pause, objects, 
     assert.ok(script.includes('1/4x'), 'missing 1/4x speed');
     assert.ok(script.includes('1/2x'), 'missing 1/2x speed');
     assert.ok(script.includes('function pollGamepadMenu()'), 'missing pollGamepadMenu');
+    assert.ok(script.includes('window.pollGamepadMenu = pollGamepadMenu;'), 'pollGamepadMenu must be attached to window');
+    assert.ok(script.includes("isL = e.key === 'q'"), 'missing extended L keybind detection');
+    assert.ok(script.includes("isR = e.key === 'e'"), 'missing extended R keybind detection');
     assert.ok(script.includes('function startKeybindListen(btnName)'), 'missing startKeybindListen');
 });
 
@@ -162,6 +167,8 @@ test('buildHtml embeds menu, hides old overlay bar, and wires wheel event isolat
     assert.ok(html.includes('isPlayerControllable'), 'isPlayerControllable missing from buildHtml');
     assert.ok(html.includes('playMenuSound'), 'playMenuSound missing from buildHtml');
     assert.ok(html.includes('menuCard.contains(e.target)'), 'wheel event should check if target is inside menu');
+    assert.ok(html.includes('pollGamepadMenu()'), 'frame loop must poll gamepad menu');
+    assert.ok(html.includes('isLens = (typeof isMenuOpen !== \'undefined\' && isMenuOpen && typeof menuActiveTab !== \'undefined\' && menuActiveTab === 0)'), 'isLens must require isMenuOpen to prevent swallowing clicks');
 });
 
 console.log(`\nResults: ${passed} passed, ${failed} failed\n`);

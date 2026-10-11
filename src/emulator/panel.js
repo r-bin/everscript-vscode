@@ -789,6 +789,28 @@ function _handleRoomMapRequest(mapId, objectStates, cutGrassTiles, layered) {
             }
         } catch (_) {}
 
+        let overlayUri = null;
+        try {
+            const overImg = maps.renderStandaloneOverlay(rom, staged, {
+                renderMap: false,
+                contours: true,
+                tiles: false,
+                drift: true,
+                transparent: true,
+                elevation: true,
+                gates: true,
+                grass: true,
+                objects: true,
+                triggers: true,
+                labels: true,
+                scale: 2,
+            });
+            if (overImg && _hasOpaquePixel(overImg)) {
+                _alignPixelsToSnes(overImg);
+                overlayUri = maps.encodePngDataUri(overImg);
+            }
+        } catch (_) {}
+
         let animGroups = [];
         try {
             const encodeFrame = f => {
@@ -1030,6 +1052,8 @@ function _handleRoomMapRequest(mapId, objectStates, cutGrassTiles, layered) {
             imageUri: imageUri,
             foregroundUri: foregroundUri,
             collisionUri: collisionUri,
+            overlayUri: overlayUri,
+            vfsOverlayUri: 'soe://rom/assets/maps/' + hexId + '/overlay.png?map=0&collision=contours&objects=1&triggers=1&scale=2',
             layers: layers,
             bgPalette: bgPalette,
             animGroups: animGroups,

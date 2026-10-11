@@ -6,7 +6,7 @@
 
 const {
     renderItemIcon, lootIconId, alchemyIconId, iconEntry, ALCHEMY_FORMULAS, ICON_ID_LAST,
-    encodePng, decodeRoom, renderRoomComposite, applyObjectStates, MAX_ROOMS,
+    encodePng, decodeRoom, renderRoomComposite, renderStandaloneOverlay, applyObjectStates, MAX_ROOMS,
 } = require('../maps');
 const { lootRewardName, ramBitToStr } = require('../script');
 const { decodeRomString, getMapName, getMapArea } = require('../localizations');
@@ -248,6 +248,7 @@ function maps(rom, name, leaf, deps) {
             ...(hasL2Anim ? [['layer2.gif', 'file']] : []),
             ['collision.png', 'file'],
             ...(hasCollAnim ? [['collision.gif', 'file']] : []),
+            ['overlay.png', 'file'],
             ['scripts', 'dir'],
             ['tiles', 'dir'],
             ['metatiles', 'dir'],
@@ -256,9 +257,10 @@ function maps(rom, name, leaf, deps) {
         ];
         return dir(entries, () => roomMarkdown(rom, id));
     }
-    if (leaf === 'header.json') return json(() => plain(d.header));
-    if (leaf === 'render.png') return file(() => encodePng(renderRoomComposite(rom, d)));
-    if (leaf === 'live.png') {
+    const [cleanLeaf, leafQuery] = String(leaf || '').split('?');
+    if (cleanLeaf === 'header.json') return json(() => plain(d.header));
+    if (cleanLeaf === 'render.png') return file(() => encodePng(renderRoomComposite(rom, d)));
+    if (cleanLeaf === 'live.png') {
         return file(async () => {
             let staged = d;
             if (deps && typeof deps.emulatorStatus === 'function' && typeof deps.readMemory === 'function') {
@@ -285,51 +287,105 @@ function maps(rom, name, leaf, deps) {
             return encodePng(renderRoomComposite(rom, staged));
         });
     }
-    if (leaf === 'animation.gif' || leaf === 'render.gif') {
+    if (cleanLeaf === 'overlay.png') {
+        const queryParams = new URLSearchParams((deps && deps.query ? deps.query + '&' : '') + (leafQuery || ''));
+        const parseBool = (val, def) => {
+            if (val === undefined || val === null || val === '') return def;
+            return val !== '0' && val !== 'false';
+        };
+        const collisionVal = queryParams.get('collision');
+        const overlayOpts = {
+            renderMap: queryParams.get('map') === '1' || queryParams.get('map') === 'true',
+            contours: collisionVal !== '0' && collisionVal !== 'false',
+            tiles: collisionVal === 'tiles',
+            objects: parseBool(queryParams.get('objects'), true),
+            triggers: parseBool(queryParams.get('triggers'), true),
+            labels: parseBool(queryParams.get('labels'), false),
+            drift: parseBool(queryParams.get('drift'), true),
+            transparent: parseBool(queryParams.get('transparent'), true),
+            elevation: parseBool(queryParams.get('elevation'), true),
+            gates: parseBool(queryParams.get('gates'), true),
+            grass: parseBool(queryParams.get('grass'), true),
+            scale: queryParams.get('scale') === '2' ? 2 : 1,
+        };
+        const vp = queryParams.get('viewport') || queryParams.get('cutout');
+        if (vp) {
+            const parts = vp.split(',').map(Number);
+            if (parts.length === 4 && parts.every(n => Number.isFinite(n))) {
+                overlayOpts.cutoutViewport = { x: parts[0], y: parts[1], width: parts[2], height: parts[3] };
+            }
+        }
+        return file(async () => {
+            let staged = d;
+            if (deps && typeof deps.emulatorStatus === 'function' && typeof deps.readMemory === 'function') {
+                try {
+                    const st = await deps.emulatorStatus();
+                    if (st && st.emulator === 'running') {
+                        const mapBuf = await deps.readMemory(0x7E0B3C, 2);
+                        if (mapBuf && mapBuf.length >= 2) {
+                            const curMap = mapBuf[0] | (mapBuf[1] << 8);
+                            if (curMap === id && d.objects && d.objects.length) {
+                                const objStatesBuf = await deps.readMemory(0x7E10CE, d.objects.length);
+                                if (objStatesBuf) {
+                                    const objStates = {};
+                                    for (let i = 0; i < objStatesBuf.length; i++) {
+                                        objStates[i] = objStatesBuf[i];
+                                    }
+                                    staged = applyObjectStates(rom, d, objStates);
+                                }
+                            }
+                        }
+                    }
+                } catch (_) {}
+            }
+            return encodePng(renderStandaloneOverlay(rom, staged, overlayOpts));
+        });
+    }
+    if (cleanLeaf === 'animation.gif' || cleanLeaf === 'render.gif') {
         if (!hasAnim) return null;
         return file(() => renderRoomAnimationGif(rom, d));
     }
-    if (leaf === 'layer1.png') {
+    if (cleanLeaf === 'layer1.png') {
         const { renderRoomLayer } = require('./map-layers');
         return file(() => encodePng(renderRoomLayer(rom, d, 'layer1')));
     }
-    if (leaf === 'layer1.gif') {
+    if (cleanLeaf === 'layer1.gif') {
         if (!hasL1Anim) return null;
         const { renderRoomLayerGif } = require('./map-layers');
         return file(() => renderRoomLayerGif(rom, d, 'layer1'));
     }
-    if (leaf === 'layer2.png') {
+    if (cleanLeaf === 'layer2.png') {
         const { renderRoomLayer } = require('./map-layers');
         return file(() => encodePng(renderRoomLayer(rom, d, 'layer2')));
     }
-    if (leaf === 'layer2.gif') {
+    if (cleanLeaf === 'layer2.gif') {
         if (!hasL2Anim) return null;
         const { renderRoomLayerGif } = require('./map-layers');
         return file(() => renderRoomLayerGif(rom, d, 'layer2'));
     }
-    if (leaf === 'collision.png') {
+    if (cleanLeaf === 'collision.png') {
         const { renderRoomCollision } = require('./map-layers');
         return file(() => encodePng(renderRoomCollision(d)));
     }
-    if (leaf === 'collision.gif') {
+    if (cleanLeaf === 'collision.gif') {
         if (!hasCollAnim) return null;
         const { renderRoomCollisionGif } = require('./map-layers');
         return file(() => renderRoomCollisionGif(d));
     }
-    if (leaf === 'info.md') return text(() => roomMarkdown(rom, id));
-    if (leaf === 'scripts') {
+    if (cleanLeaf === 'info.md') return text(() => roomMarkdown(rom, id));
+    if (cleanLeaf === 'scripts') {
         const { resolveScripts } = require('./script-files');
         return resolveScripts(['rooms', hexId(id, 2)], rom);
     }
-    if (leaf === 'tiles' || leaf === 'metatiles') {
+    if (cleanLeaf === 'tiles' || cleanLeaf === 'metatiles') {
         const { resolveRoomTiles } = require('./tile-files');
         return resolveRoomTiles(decodeRoom(rom, id), rom, undefined);
     }
-    if (leaf === 'objects') {
+    if (cleanLeaf === 'objects') {
         const { resolveRoomObjects } = require('./map-objects');
         return resolveRoomObjects(decodeRoom(rom, id), rom, []);
     }
-    if (leaf === 'widgets') {
+    if (cleanLeaf === 'widgets') {
         const { resolveRoomWidgets } = require('./map-objects');
         return resolveRoomWidgets(decodeRoom(rom, id), rom, []);
     }
@@ -368,9 +424,9 @@ ${animRow}| Objects | ${d.objects.length} ([objects/](objects/index.md)) |
 
 ## Layers
 
-| Composite | Layer 1 (Canopy) | Layer 2 (Terrain) | Collision |
-|:---:|:---:|:---:|:---:|
-| [render.png](render.png) | [layer1.png](layer1.png) | [layer2.png](layer2.png) | [collision.png](collision.png) |
+| Composite | Layer 1 (Canopy) | Layer 2 (Terrain) | Collision | Overlay |
+|:---:|:---:|:---:|:---:|:---:|
+| [render.png](render.png) | [layer1.png](layer1.png) | [layer2.png](layer2.png) | [collision.png](collision.png) | [overlay.png](overlay.png) |
 ${animLinksRow}
 ${visual}
 `;

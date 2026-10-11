@@ -348,3 +348,26 @@ export function hiddenTileMask(room: RoomData, foreground: PixelBuffer, threshol
     }
     return out;
 }
+
+/** Scale a pixel buffer 2x (nearest neighbour). */
+export function scale2x(pb: PixelBuffer): PixelBuffer {
+    const w = pb.width, h = pb.height;
+    const src = pb.data;
+    const dst = new Uint8Array(w * 2 * h * 2 * 4);
+    for (let y = 0; y < h; y++) {
+        const srcRow = y * w * 4;
+        const dstRow0 = (y * 2) * (w * 2) * 4;
+        const dstRow1 = (y * 2 + 1) * (w * 2) * 4;
+        for (let x = 0; x < w; x++) {
+            const si = srcRow + x * 4;
+            const r = src[si], g = src[si + 1], b = src[si + 2], a = src[si + 3];
+            const di0 = dstRow0 + (x * 2) * 4;
+            dst[di0] = r; dst[di0 + 1] = g; dst[di0 + 2] = b; dst[di0 + 3] = a;
+            dst[di0 + 4] = r; dst[di0 + 5] = g; dst[di0 + 6] = b; dst[di0 + 7] = a;
+            const di1 = dstRow1 + (x * 2) * 4;
+            dst[di1] = r; dst[di1 + 1] = g; dst[di1 + 2] = b; dst[di1 + 3] = a;
+            dst[di1 + 4] = r; dst[di1 + 5] = g; dst[di1 + 6] = b; dst[di1 + 7] = a;
+        }
+    }
+    return { width: w * 2, height: h * 2, data: dst };
+}
