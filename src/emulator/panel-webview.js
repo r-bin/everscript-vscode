@@ -22,6 +22,7 @@ const { getScriptDebugClientScript } = require('./script-debug-view');
 const { getMemoryBridgeClientScript } = require('./memory-bridge-view');
 const { getApuStreamClientScript } = require('./apu-stream-view');
 const { getSoundSourceClientScript, getSoundChipHtml } = require('./sound-source-view');
+const { getMenuCss, getMenuHtml, getMenuClientScript } = require('./menu/menu-view');
 
 function _nonce() {
     let n = '';
@@ -489,6 +490,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     ${getCdlFloatCss()}
     ${getTasCss()}
     ${getFpsCss()}
+    ${getMenuCss()}
   </style>
 </head>
 <body>
@@ -535,7 +537,9 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     <canvas id="extended-overlay"></canvas>
     ${getCdlFloatHtml()}
     ${getTasOverlayHtml()}
+    ${getMenuHtml()}
     <div id="screen-overlay-bar">
+      <button id="screen-menu-btn" class="screen-chip" type="button" title="Quick Menu (Start)">MENU</button>
       <button id="screen-extend-toggle" class="screen-chip active" type="button" title="Toggle Extended Map">MAP EXT ON</button>
       <button id="screen-trigger-toggle" class="screen-chip active" type="button" title="Toggle Trigger Overlay (B &amp; Step-on)">TRIGGERS ON</button>
       <button id="screen-object-toggle" class="screen-chip active" type="button" title="Toggle Objects Overlay">OBJECTS ON</button>
@@ -1033,12 +1037,14 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
           return;
         }
       }
+      if (typeof isMenuOpen !== 'undefined' && isMenuOpen) return;
       if (e.repeat) return;
-      const bit = KEY_MAP[e.key];
+      const bit = (typeof dynamicKeyToBit !== 'undefined' && dynamicKeyToBit[e.key]) ? dynamicKeyToBit[e.key] : KEY_MAP[e.key];
       if (bit) { keyInput |= bit; e.preventDefault(); }
     });
     document.addEventListener('keyup', e => {
-      const bit = KEY_MAP[e.key];
+      if (typeof isMenuOpen !== 'undefined' && isMenuOpen) return;
+      const bit = (typeof dynamicKeyToBit !== 'undefined' && dynamicKeyToBit[e.key]) ? dynamicKeyToBit[e.key] : KEY_MAP[e.key];
       if (bit) keyInput &= ~bit;
     });
     // Focus left the panel (a debugger stop focuses the editor): the key-ups go
@@ -3603,6 +3609,14 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       });
     }
 
+    const menuBtn = document.getElementById('screen-menu-btn');
+    if (menuBtn) {
+      menuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (typeof openEmulatorMenu === 'function') openEmulatorMenu();
+      });
+    }
+
     ${getBottomBarClientScript()}
 
     ${getCdlFloatScript()}
@@ -3621,6 +3635,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     ${getApuStreamClientScript()}
 
     ${getFpsClientScript()}
+
+    ${getMenuClientScript()}
 
     function selectTab(tabName) {
       currentBottomTab = tabName;
