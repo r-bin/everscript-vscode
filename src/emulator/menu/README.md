@@ -11,3 +11,4 @@ Owns the on-screen display (OSD) Quick Menu for the embedded SNES emulator.
 
 - Strictly ASCII-only (no Unicode symbols or non-ASCII characters).
 - Gated Start button interception: Start opens the menu only when the player character is actively controllable (`isPlayerControllable()`), preserving in-game Start functionality during the cinematic intro, demo showcase, and name entry screen.
+

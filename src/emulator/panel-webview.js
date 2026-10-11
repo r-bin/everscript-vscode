@@ -195,11 +195,11 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       z-index: 4;
     }
     #screen-overlay-bar {
+      display: none !important;
       position: absolute;
       top: 8px;
       right: 8px;
       z-index: 20;
-      display: flex;
       gap: 6px;
       pointer-events: none;
     }
@@ -999,16 +999,34 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       's': 1 << 4,  'S': 1 << 4,   // R
     };
     let keyInput = 0;
-    // Speed-up: '#' runs SPEEDUP_FACTOR frames per display frame (and again to stop).
-    const SPEEDUP_FACTOR = 4;
+    // Speed multipliers: 1/4x, 1/2x, 1x, 2x, 4x
+    const SPEED_FACTORS = [0.25, 0.5, 1.0, 2.0, 4.0];
+    const SPEED_LABELS = ['1/4x', '1/2x', '1x', '2x', '4x'];
+    let speedIndex = 2; // default: 1x
+    let speedMultiplier = 1.0;
+    let speedAccumulator = 0;
     let speedUp = false;
-    function setSpeedUp(on) {
-      speedUp = !!on;
+
+    function setSpeedMultiplier(val) {
+      if (typeof val === 'number') {
+        speedMultiplier = val;
+        const found = SPEED_FACTORS.indexOf(val);
+        if (found !== -1) speedIndex = found;
+      }
+      speedUp = (speedMultiplier > 1.0);
       const chip = document.getElementById('screen-speed-chip');
       if (chip) {
-        chip.textContent = speedUp ? 'SPEED x' + SPEEDUP_FACTOR : 'SPEED x1';
-        chip.classList.toggle('active', speedUp);
+        chip.textContent = 'SPEED ' + SPEED_LABELS[speedIndex];
+        chip.classList.toggle('active', speedMultiplier !== 1.0);
       }
+      const menuVal = document.getElementById('menu-val-speed');
+      if (menuVal) {
+        menuVal.textContent = SPEED_LABELS[speedIndex];
+      }
+    }
+
+    function setSpeedUp(on) {
+      setSpeedMultiplier(on ? 4.0 : 1.0);
     }
     document.addEventListener('keydown', e => {
       if (e.key === '#' && !e.repeat) {
@@ -1020,6 +1038,11 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         }
       }
       if (e.key === 'Escape') {
+        if (typeof togglePauseMenu === 'function') {
+          togglePauseMenu('Escape');
+          e.preventDefault();
+          return;
+        }
         const m = getModule();
         if (m && hasDebuggerApi(m)) {
           const pauseEl = document.getElementById('ss-pause-state');
@@ -1201,6 +1224,13 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
 
       // Trackpad pinch-to-zoom (wheel with ctrlKey/metaKey) and two-finger pan (wheel)
       wrap.addEventListener('wheel', (e) => {
+        if (typeof isMenuOpen !== 'undefined' && isMenuOpen && !isLensModeActive) {
+          const menuCard = document.getElementById('menu-card');
+          if (menuCard && menuCard.contains(e.target)) {
+            // Inside menu card: allow natural scroll of menu list, do NOT zoom/pan map!
+            return;
+          }
+        }
         if (e.ctrlKey || e.metaKey) {
           e.preventDefault();
           const r = wrap.getBoundingClientRect();
@@ -1225,6 +1255,10 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       let panBaseY = 0;
       wrap.addEventListener('mousedown', (e) => {
         if (e.button === 2) return; // Right-click handled by contextmenu
+        if (typeof isMenuOpen !== 'undefined' && isMenuOpen && !isLensModeActive) {
+          const menuCard = document.getElementById('menu-card');
+          if (menuCard && menuCard.contains(e.target)) return;
+        }
         if (e.button === 1 || e.altKey || (e.target !== canvas && !e.target.closest('.screen-chip'))) {
           isPanning = true;
           panStartX = e.clientX;
@@ -1346,7 +1380,20 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
           const m = getModule();
           // A replay must see exactly the recorded memory: no cheat writes.
           if (m && !tasReplaying()) maintainCheats(m);
-          for (let extra = tasExtraFrames() + (speedUp ? SPEEDUP_FACTOR - 1 : 0); extra > 0 && !isEmulatorPaused(); extra--) {
+          if (speedMultiplier < 1.0) {
+            speedAccumulator += speedMultiplier;
+            if (speedAccumulator < 1.0) {
+              const fbPtr = Module._getScreenBuffer();
+              if (fbPtr) {
+                imageData.data.set(new Uint8ClampedArray(HEAPU8.buffer, fbPtr, 512 * 448 * 4));
+                ctx.putImageData(imageData, 0, 0);
+              }
+              renderExtendedMapAndOverlays(preState, canvas, extMapCanvas, extMapCtx, extEntCanvas, extEntCtx, extFgCanvas, extFgCtx, extOverCanvas, extOverCtx);
+              return;
+            }
+            speedAccumulator -= 1.0;
+          }
+          for (let extra = tasExtraFrames() + (speedMultiplier > 1.0 ? Math.floor(speedMultiplier) - 1 : 0); extra > 0 && !isEmulatorPaused(); extra--) {
             tasApplyInput(Module, keyInput);
             Module._mainLoop();
             fpsCountFrame(Module);

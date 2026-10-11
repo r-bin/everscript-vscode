@@ -4,11 +4,15 @@
  * emulator/menu/menu-view.js
  *
  * Owns: the Emulator Quick Menu OSD (On-Screen Display).
+ * - Fixed top positioning
  * - Tabs paged with L and R (Overlays, Emulation, Controls)
- * - Mouse and Gamepad / Keyboard navigation
- * - Authentic Evermore sound effects
- * - Gated Start button (intercepts only when player is controllable)
- * - Interactive controller and keybindings remapper
+ * - Map Lens mode as default entry for un-distorted room exploration
+ * - Non-looping stepped values (Speed: 1/4x, 1/2x, 1x, 2x, 4x; Zoom, toggles)
+ * - Up/Down automatic scroll-into-view
+ * - Wheel events inside menu scroll the menu instead of the map
+ * - Sound visualization toggle in menu
+ * - Unified Pause / Menu toggle (Start by default, Esc always pauses)
+ * - Interactive keybinding and gamepad remapping
  *
  * Strictly ASCII-only.
  */
@@ -23,8 +27,9 @@ function getMenuCss() {
       inset: 0;
       z-index: 60;
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: center;
+      padding-top: 14px;
       background: rgba(8, 8, 12, 0.78);
       backdrop-filter: blur(2px);
       user-select: none;
@@ -34,10 +39,57 @@ function getMenuCss() {
       display: none !important;
     }
 
+    /* Lens Mode: hides menu card, reveals floating top HUD bar */
+    #emulator-menu.lens-active {
+      background: rgba(0, 0, 0, 0.15) !important;
+      backdrop-filter: none !important;
+      pointer-events: auto;
+    }
+    #emulator-menu.lens-active #menu-card {
+      display: none !important;
+    }
+    #menu-lens-hud {
+      display: none;
+      background: rgba(16, 18, 24, 0.92);
+      border: 1px solid #3c3c48;
+      border-radius: 5px;
+      padding: 6px 14px;
+      font-size: 11px;
+      color: #ccc;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.8);
+      align-items: center;
+      gap: 12px;
+    }
+    #emulator-menu.lens-active #menu-lens-hud {
+      display: flex;
+    }
+    .menu-lens-tag {
+      color: #4ec9b0;
+      font-weight: bold;
+      letter-spacing: 0.05em;
+    }
+    .menu-lens-hint {
+      color: #8899aa;
+      font-size: 10px;
+    }
+    .menu-lens-close {
+      background: #252530;
+      border: 1px solid #445;
+      color: #ddd;
+      border-radius: 3px;
+      padding: 2px 7px;
+      cursor: pointer;
+      font-size: 10px;
+    }
+    .menu-lens-close:hover {
+      background: #353545;
+      color: #fff;
+    }
+
     #menu-card {
-      width: 460px;
-      max-width: 94%;
-      max-height: 92%;
+      width: 470px;
+      max-width: 95%;
+      max-height: 88vh;
       background: #141418;
       border: 1px solid #363640;
       border-radius: 6px;
@@ -56,6 +108,7 @@ function getMenuCss() {
       border-bottom: 1px solid #30303a;
       padding: 4px 8px;
       gap: 6px;
+      flex-shrink: 0;
     }
     .menu-shoulder-btn {
       background: #25252e;
@@ -121,7 +174,9 @@ function getMenuCss() {
     #menu-body {
       flex: 1;
       min-height: 0;
+      max-height: 380px;
       overflow-y: auto;
+      overflow-x: hidden;
       display: flex;
       flex-direction: column;
       background: #101014;
@@ -145,6 +200,7 @@ function getMenuCss() {
       cursor: pointer;
       font-size: 11px;
       transition: background 0.08s, border-color 0.08s;
+      flex-shrink: 0;
     }
     .menu-row:hover {
       background: rgba(255, 255, 255, 0.03);
@@ -196,6 +252,10 @@ function getMenuCss() {
       background: #30303c;
       color: #fff;
     }
+    .menu-stepper-btn:disabled, .menu-stepper-btn.disabled {
+      opacity: 0.35;
+      cursor: default;
+    }
     .menu-pill {
       min-width: 68px;
       text-align: center;
@@ -240,6 +300,7 @@ function getMenuCss() {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-shrink: 0;
     }
     .menu-device-status {
       color: #6f9;
@@ -248,8 +309,8 @@ function getMenuCss() {
     .menu-keybind-list {
       display: flex;
       flex-direction: column;
-      max-height: 230px;
       overflow-y: auto;
+      overflow-x: hidden;
     }
     .menu-bind-badge {
       display: inline-block;
@@ -279,6 +340,7 @@ function getMenuCss() {
       background: #14141a;
       border-top: 1px solid #252530;
       justify-content: flex-end;
+      flex-shrink: 0;
     }
     .menu-preset-btn {
       background: #1f1f26;
@@ -305,6 +367,7 @@ function getMenuCss() {
       font-size: 9px;
       color: #778;
       letter-spacing: 0.02em;
+      flex-shrink: 0;
     }
     .menu-footer-hint {
       display: flex;
@@ -316,6 +379,13 @@ function getMenuCss() {
 function getMenuHtml() {
   return `
     <div id="emulator-menu" class="hidden">
+      <!-- Lens Mode Floating HUD Bar -->
+      <div id="menu-lens-hud">
+        <span class="menu-lens-tag">[MAP LENS]</span>
+        <span class="menu-lens-hint">Pan: Drag / D-Pad / Arrows | Zoom: Wheel / +/- | [B] / Esc: Menu</span>
+        <button id="menu-lens-exit-btn" class="menu-lens-close" type="button">Back to Menu</button>
+      </div>
+
       <div id="menu-card">
         <div id="menu-header">
           <button id="menu-l-btn" class="menu-shoulder-btn" type="button" title="Previous Tab (L)">[L]</button>
@@ -331,7 +401,14 @@ function getMenuHtml() {
         <div id="menu-body">
           <!-- Tab 0: OVERLAYS -->
           <div id="menu-panel-0" class="menu-tab-panel active">
-            <div class="menu-row selected" data-row="0" data-action="toggle-extend">
+            <!-- Row 0: Lens default entry -->
+            <div class="menu-row selected" data-row="0" data-action="action-lens">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Map Lens (Explore Room)</div>
+              <div class="menu-row-value">
+                <span class="menu-action-pill">[A] Explore</span>
+              </div>
+            </div>
+            <div class="menu-row" data-row="1" data-action="toggle-extend">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Extended Map Background</div>
               <div class="menu-row-value">
                 <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
@@ -339,7 +416,7 @@ function getMenuHtml() {
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
-            <div class="menu-row" data-row="1" data-action="toggle-triggers">
+            <div class="menu-row" data-row="2" data-action="toggle-triggers">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Triggers (B &amp; Step-on)</div>
               <div class="menu-row-value">
                 <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
@@ -347,7 +424,7 @@ function getMenuHtml() {
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
-            <div class="menu-row" data-row="2" data-action="toggle-objects">
+            <div class="menu-row" data-row="3" data-action="toggle-objects">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Entities &amp; Objects</div>
               <div class="menu-row-value">
                 <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
@@ -355,7 +432,7 @@ function getMenuHtml() {
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
-            <div class="menu-row" data-row="3" data-action="toggle-anim">
+            <div class="menu-row" data-row="4" data-action="toggle-anim">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Animated Tile Outlines</div>
               <div class="menu-row-value">
                 <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
@@ -363,7 +440,7 @@ function getMenuHtml() {
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
-            <div class="menu-row" data-row="4" data-action="toggle-collision">
+            <div class="menu-row" data-row="5" data-action="toggle-collision">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Collision Geometry</div>
               <div class="menu-row-value">
                 <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
@@ -371,7 +448,7 @@ function getMenuHtml() {
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
-            <div class="menu-row" data-row="5" data-action="toggle-fog">
+            <div class="menu-row" data-row="6" data-action="toggle-fog">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Fog of War (Outer Bounds)</div>
               <div class="menu-row-value">
                 <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
@@ -379,7 +456,15 @@ function getMenuHtml() {
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
-            <div class="menu-row" data-row="6" data-action="step-zoom">
+            <div class="menu-row" data-row="7" data-action="toggle-sound-vis">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Sound Entity Visualizer</div>
+              <div class="menu-row-value">
+                <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
+                <span id="menu-val-sound-vis" class="menu-pill active">ON</span>
+                <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
+              </div>
+            </div>
+            <div class="menu-row" data-row="8" data-action="step-zoom">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Viewport Zoom / Scale</div>
               <div class="menu-row-value">
                 <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
@@ -407,7 +492,15 @@ function getMenuHtml() {
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
-            <div class="menu-row" data-row="2" data-action="toggle-breakpoint-focus">
+            <div class="menu-row" data-row="2" data-action="toggle-sound-vis-tab1">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Sound Entity Visualizer</div>
+              <div class="menu-row-value">
+                <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
+                <span id="menu-val-sound-vis-tab1" class="menu-pill active">ON</span>
+                <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
+              </div>
+            </div>
+            <div class="menu-row" data-row="3" data-action="toggle-breakpoint-focus">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Debugger Break Focus</div>
               <div class="menu-row-value">
                 <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
@@ -415,7 +508,7 @@ function getMenuHtml() {
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
-            <div class="menu-row" data-row="3" data-action="action-reset-rom">
+            <div class="menu-row" data-row="4" data-action="action-reset-rom">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Reset / Power-Cycle ROM</div>
               <div class="menu-row-value">
                 <span class="menu-action-pill">[Press A to Reset]</span>
@@ -430,7 +523,7 @@ function getMenuHtml() {
               <span id="menu-device-status" class="menu-device-status">Active</span>
             </div>
             <div id="menu-bind-list" class="menu-keybind-list">
-              <!-- Dynamically rendered or static keybind rows -->
+              <!-- Dynamically rendered keybind rows -->
             </div>
             <div class="menu-preset-row">
               <button id="menu-preset-arrows" class="menu-preset-btn" type="button">Default Arrows</button>
@@ -495,6 +588,15 @@ function getMenuClientScript() {
       'B': 1 << 15,
     };
 
+    // Non-looping stepped values
+    const MENU_SPEED_LABELS = ['1/4x', '1/2x', '1x', '2x', '4x'];
+    const MENU_SPEED_VALUES = [0.25, 0.5, 1.0, 2.0, 4.0];
+    let menuSpeedIndex = 2; // Default 1x
+
+    const MENU_ZOOM_LABELS = ['50%', '100%', '150%', '200%', 'Fit'];
+    const MENU_ZOOM_VALUES = [0.5, 1.0, 1.5, 2.0, -1]; // -1 is Fit
+    let menuZoomIndex = 4; // Default Fit
+
     let userKeyMap = Object.assign({}, DEFAULT_KEY_MAP);
     try {
       const savedBinds = localStorage.getItem('everscript_emulator_keybinds_v1');
@@ -503,7 +605,6 @@ function getMenuClientScript() {
       }
     } catch (e) {}
 
-    // Reverse lookup from event.key to SNES bit
     let dynamicKeyToBit = {};
     function rebuildKeyBitMap() {
       dynamicKeyToBit = {};
@@ -521,6 +622,7 @@ function getMenuClientScript() {
 
     // Menu State
     let isMenuOpen = false;
+    let isLensModeActive = false;
     let menuActiveTab = 0; // 0: Overlays, 1: Emulation, 2: Controls
     let menuSelectedRow = 0;
     let menuListeningBtn = null;
@@ -561,9 +663,13 @@ function getMenuClientScript() {
     function openEmulatorMenu() {
       if (isMenuOpen) return;
       isMenuOpen = true;
-      keyInput = 0; // clear any held inputs
+      keyInput = 0;
       const menuEl = document.getElementById('emulator-menu');
-      if (menuEl) menuEl.classList.remove('hidden');
+      if (menuEl) {
+        menuEl.classList.remove('hidden');
+        menuEl.classList.remove('lens-active');
+      }
+      isLensModeActive = false;
 
       const m = getModule();
       if (m && hasDebuggerApi(m)) {
@@ -581,9 +687,13 @@ function getMenuClientScript() {
       if (!isMenuOpen) return;
       if (menuListeningBtn) cancelKeybindListen();
       isMenuOpen = false;
+      isLensModeActive = false;
       keyInput = 0;
       const menuEl = document.getElementById('emulator-menu');
-      if (menuEl) menuEl.classList.add('hidden');
+      if (menuEl) {
+        menuEl.classList.add('hidden');
+        menuEl.classList.remove('lens-active');
+      }
 
       const m = getModule();
       if (m && hasDebuggerApi(m)) {
@@ -597,12 +707,49 @@ function getMenuClientScript() {
       if (screenCanvas) screenCanvas.focus();
     }
 
-    function switchMenuTab(delta) {
-      if (menuListeningBtn) cancelKeybindListen();
-      menuActiveTab = (menuActiveTab + delta + 3) % 3;
-      menuSelectedRow = 0;
+    // Unified Pause Toggle:
+    // Pausing opens the menu, resuming closes it.
+    function togglePauseMenu(source) {
+      if (isLensModeActive) {
+        exitLensMode();
+        return;
+      }
+      if (isMenuOpen) {
+        closeEmulatorMenu();
+      } else {
+        openEmulatorMenu();
+      }
+    }
+
+    function enterLensMode() {
+      isLensModeActive = true;
+      const menuEl = document.getElementById('emulator-menu');
+      if (menuEl) menuEl.classList.add('lens-active');
+      playMenuSound('click_confirm');
+    }
+
+    function exitLensMode() {
+      isLensModeActive = false;
+      const menuEl = document.getElementById('emulator-menu');
+      if (menuEl) menuEl.classList.remove('lens-active');
       playMenuSound('wheel_turn');
-      renderMenuTab(menuActiveTab);
+      updateMenuRowSelection();
+    }
+
+    function switchMenuTab(delta) {
+      if (isLensModeActive) {
+        exitLensMode();
+        return;
+      }
+      if (menuListeningBtn) cancelKeybindListen();
+      // Tabs don't loop: clamped between 0 and 2
+      const target = Math.max(0, Math.min(menuActiveTab + delta, 2));
+      if (target !== menuActiveTab) {
+        menuActiveTab = target;
+        menuSelectedRow = 0;
+        playMenuSound('wheel_turn');
+        renderMenuTab(menuActiveTab);
+      }
     }
 
     function renderMenuTab(tabIndex) {
@@ -619,6 +766,7 @@ function getMenuClientScript() {
       updateMenuRowSelection();
     }
 
+    // Up / Down scrolls the active selection into view automatically!
     function updateMenuRowSelection() {
       const activePanel = document.getElementById('menu-panel-' + menuActiveTab);
       if (!activePanel) return;
@@ -627,18 +775,24 @@ function getMenuClientScript() {
       if (menuSelectedRow >= rows.length) menuSelectedRow = Math.max(0, rows.length - 1);
 
       rows.forEach(function(row, idx) {
-        row.classList.toggle('selected', idx === menuSelectedRow);
+        const isSel = (idx === menuSelectedRow);
+        row.classList.toggle('selected', isSel);
+        if (isSel) {
+          row.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+        }
       });
     }
 
     function moveMenuSelection(delta) {
+      if (isLensModeActive) return;
       const activePanel = document.getElementById('menu-panel-' + menuActiveTab);
       if (!activePanel) return;
       const rows = activePanel.querySelectorAll('.menu-row');
       if (rows.length === 0) return;
-      const prev = menuSelectedRow;
-      menuSelectedRow = (menuSelectedRow + delta + rows.length) % rows.length;
-      if (menuSelectedRow !== prev) {
+      // Do not wrap selection: clamp between 0 and rows.length - 1
+      const target = Math.max(0, Math.min(menuSelectedRow + delta, rows.length - 1));
+      if (target !== menuSelectedRow) {
+        menuSelectedRow = target;
         playMenuSound('click_nav');
         updateMenuRowSelection();
       }
@@ -652,15 +806,16 @@ function getMenuClientScript() {
       setPillState('menu-val-anim', animTilesOverlayEnabled);
       setPillState('menu-val-collision', collisionOverlayEnabled);
       setPillState('menu-val-fog', fogOfWarEnabled);
-      const zEl = document.getElementById('menu-val-zoom');
-      if (zEl) {
-        const lvlEl = document.getElementById('screen-zlevel');
-        zEl.textContent = lvlEl ? lvlEl.textContent : 'Fit';
+      if (typeof sndShow !== 'undefined') {
+        setPillState('menu-val-sound-vis', sndShow);
+        setPillState('menu-val-sound-vis-tab1', sndShow);
       }
+      const zEl = document.getElementById('menu-val-zoom');
+      if (zEl) zEl.textContent = MENU_ZOOM_LABELS[menuZoomIndex];
 
       // Tab 1
       const spdEl = document.getElementById('menu-val-speed');
-      if (spdEl) spdEl.textContent = speedUp ? '4x' : '1x';
+      if (spdEl) spdEl.textContent = MENU_SPEED_LABELS[menuSpeedIndex];
       const focusEl = document.getElementById('menu-val-focus');
       if (focusEl) focusEl.textContent = keepFocusOnBreak ? 'Stay' : 'Code';
     }
@@ -673,50 +828,59 @@ function getMenuClientScript() {
       }
     }
 
+    // Stepping values does NOT loop!
     function changeMenuValue(delta) {
       if (menuActiveTab === 0) {
         // Tab 0: OVERLAYS
         switch (menuSelectedRow) {
           case 0:
-            setExtendMap(!extendMapEnabled);
+            // Lens Mode
+            enterLensMode();
+            break;
+          case 1:
+            // Extend map: delta < 0 is OFF, delta > 0 is ON
+            setExtendMap(delta > 0);
             setPillState('menu-val-extend', extendMapEnabled);
             playMenuSound('click_toggle');
             break;
-          case 1:
-            setTriggersOverlay(!triggersOverlayEnabled);
+          case 2:
+            setTriggersOverlay(delta > 0);
             setPillState('menu-val-triggers', triggersOverlayEnabled);
             playMenuSound('click_toggle');
             break;
-          case 2:
-            setObjectsOverlay(!objectsOverlayEnabled);
+          case 3:
+            setObjectsOverlay(delta > 0);
             setPillState('menu-val-objects', objectsOverlayEnabled);
             playMenuSound('click_toggle');
             break;
-          case 3:
-            setAnimTilesOverlay(!animTilesOverlayEnabled);
+          case 4:
+            setAnimTilesOverlay(delta > 0);
             setPillState('menu-val-anim', animTilesOverlayEnabled);
             playMenuSound('click_toggle');
             break;
-          case 4:
-            setCollisionOverlay(!collisionOverlayEnabled);
+          case 5:
+            setCollisionOverlay(delta > 0);
             setPillState('menu-val-collision', collisionOverlayEnabled);
             playMenuSound('click_toggle');
             break;
-          case 5:
-            setFogOfWar(!fogOfWarEnabled);
+          case 6:
+            setFogOfWar(delta > 0);
             setPillState('menu-val-fog', fogOfWarEnabled);
             playMenuSound('click_toggle');
             break;
-          case 6:
-            // Zoom stepper
-            if (delta > 0) {
-              const inBtn = document.getElementById('screen-zin');
-              if (inBtn) inBtn.click();
-            } else {
-              const outBtn = document.getElementById('screen-zout');
-              if (outBtn) outBtn.click();
+          case 7:
+            // Sound entity visualizer
+            if (typeof sndSetShow === 'function') {
+              sndSetShow(delta > 0);
+              setPillState('menu-val-sound-vis', sndShow);
+              setPillState('menu-val-sound-vis-tab1', sndShow);
+              playMenuSound('click_toggle');
             }
-            syncMenuValuesFromRuntime();
+            break;
+          case 8:
+            // Zoom stepper (clamped, does not loop!)
+            menuZoomIndex = Math.max(0, Math.min(menuZoomIndex + delta, MENU_ZOOM_LABELS.length - 1));
+            applyMenuZoom(menuZoomIndex);
             playMenuSound('click_toggle');
             break;
         }
@@ -724,21 +888,35 @@ function getMenuClientScript() {
         // Tab 1: EMULATION
         switch (menuSelectedRow) {
           case 0:
-            setSpeedUp(!speedUp);
+            // Speed: 1/4x, 1/2x, 1x, 2x, 4x (clamped, does not loop!)
+            menuSpeedIndex = Math.max(0, Math.min(menuSpeedIndex + delta, MENU_SPEED_LABELS.length - 1));
+            if (typeof setSpeedMultiplier === 'function') {
+              setSpeedMultiplier(MENU_SPEED_VALUES[menuSpeedIndex]);
+            }
             syncMenuValuesFromRuntime();
             playMenuSound('click_toggle');
             break;
           case 1:
-            // Sound mute
+            // Master sound
             playMenuSound('click_toggle');
             break;
           case 2:
-            setKeepFocusChip(!keepFocusOnBreak);
+            // Sound entity visualizer
+            if (typeof sndSetShow === 'function') {
+              sndSetShow(delta > 0);
+              setPillState('menu-val-sound-vis', sndShow);
+              setPillState('menu-val-sound-vis-tab1', sndShow);
+              playMenuSound('click_toggle');
+            }
+            break;
+          case 3:
+            // Breakpoint focus: delta < 0 is Code, delta > 0 is Stay (clamped!)
+            setKeepFocusChip(delta > 0);
             syncMenuValuesFromRuntime();
             playMenuSound('click_toggle');
             break;
-          case 3:
-            // Action handled by activate
+          case 4:
+            // Action reset ROM handled by activate
             break;
         }
       } else if (menuActiveTab === 2) {
@@ -747,11 +925,32 @@ function getMenuClientScript() {
       }
     }
 
+    function applyMenuZoom(idx) {
+      const val = MENU_ZOOM_VALUES[idx];
+      if (val === -1) {
+        const fitBtn = document.getElementById('screen-zfit');
+        if (fitBtn) fitBtn.click();
+      } else {
+        if (typeof zoomAt === 'function') {
+          const wrap = document.getElementById('screen-wrap');
+          const cx = wrap ? wrap.clientWidth / 2 : 256;
+          const cy = wrap ? wrap.clientHeight / 2 : 224;
+          zoomAt(val, cx, cy);
+        }
+      }
+      syncMenuValuesFromRuntime();
+    }
+
     function activateMenuRow() {
       if (menuActiveTab === 0) {
-        changeMenuValue(1);
+        if (menuSelectedRow === 0) {
+          enterLensMode();
+        } else {
+          // Toggle on activate
+          changeMenuValue(1);
+        }
       } else if (menuActiveTab === 1) {
-        if (menuSelectedRow === 3) {
+        if (menuSelectedRow === 4) {
           // Reset ROM
           playMenuSound('click_confirm');
           if (loadedRomData) {
@@ -796,14 +995,15 @@ function getMenuClientScript() {
         row.appendChild(label);
         row.appendChild(val);
 
-        row.addEventListener('click', function() {
+        row.addEventListener('click', function(e) {
+          e.stopPropagation();
           menuSelectedRow = idx;
           updateMenuRowSelection();
           startKeybindListen(btnName);
         });
 
         row.addEventListener('mouseenter', function() {
-          if (!menuListeningBtn) {
+          if (!menuListeningBtn && menuSelectedRow !== idx) {
             menuSelectedRow = idx;
             updateMenuRowSelection();
           }
@@ -849,28 +1049,49 @@ function getMenuClientScript() {
 
     // -- Keyboard Event Interception -------------------------------------------
     window.addEventListener('keydown', function(e) {
-      // 1. Menu is OPEN: All input belongs to the menu
+      // 1. Esc ALWAYS pauses the emulator / toggles menu
+      if (e.key === 'Escape') {
+        if (menuListeningBtn) {
+          cancelKeybindListen();
+          e.preventDefault();
+          return;
+        }
+        if (isLensModeActive) {
+          exitLensMode();
+          e.preventDefault();
+          return;
+        }
+        togglePauseMenu('Escape');
+        e.preventDefault();
+        return;
+      }
+
+      // 2. Lens Mode Active: Arrow keys pan camera
+      if (isLensModeActive) {
+        if (e.key === 'ArrowUp') { panY += 24; if (typeof updateScreenLayout === 'function') updateScreenLayout(); e.preventDefault(); return; }
+        if (e.key === 'ArrowDown') { panY -= 24; if (typeof updateScreenLayout === 'function') updateScreenLayout(); e.preventDefault(); return; }
+        if (e.key === 'ArrowLeft') { panX += 24; if (typeof updateScreenLayout === 'function') updateScreenLayout(); e.preventDefault(); return; }
+        if (e.key === 'ArrowRight') { panX -= 24; if (typeof updateScreenLayout === 'function') updateScreenLayout(); e.preventDefault(); return; }
+        if (e.key === 'Enter' || e.key === 'c' || e.key === 'C') { exitLensMode(); e.preventDefault(); return; }
+        return;
+      }
+
+      // 3. Menu is OPEN: Input belongs to menu
       if (isMenuOpen) {
         if (menuListeningBtn) {
-          if (e.key === 'Escape') {
-            cancelKeybindListen();
-          } else {
-            applyKeybind(e.key);
-          }
+          applyKeybind(e.key);
           e.preventDefault();
           e.stopPropagation();
           return;
         }
 
-        // Shoulder navigation (L / R)
+        // L / R Shoulder navigation
         if (e.key === 'q' || e.key === 'Q' || e.key === 'a' || e.key === 'A') {
-          // L tab left
           switchMenuTab(-1);
           e.preventDefault();
           return;
         }
         if (e.key === 'w' || e.key === 'W' || e.key === 's' || e.key === 'S') {
-          // R tab right
           switchMenuTab(1);
           e.preventDefault();
           return;
@@ -901,7 +1122,7 @@ function getMenuClientScript() {
           e.preventDefault();
           return;
         }
-        if (e.key === 'Escape' || e.key === 'c' || e.key === 'C') {
+        if (e.key === 'c' || e.key === 'C') {
           closeEmulatorMenu();
           e.preventDefault();
           return;
@@ -909,20 +1130,20 @@ function getMenuClientScript() {
         return;
       }
 
-      // 2. Menu is CLOSED: Check Start button gating
+      // 4. Menu is CLOSED: Check Pause / Start hotkey
       const startKey = userKeyMap['Start'] || 'Enter';
       if (e.key === startKey && !e.repeat) {
         const m = getModule();
         if (isPlayerControllable(m)) {
-          // Intercept Start and open menu!
-          openEmulatorMenu();
+          // Intercept Start and toggle pause / open menu
+          togglePauseMenu('Start');
           e.preventDefault();
           e.stopPropagation();
           return;
         }
       }
 
-      // Live joypad mapping via dynamic key map
+      // Normal live gameplay inputs
       const bit = dynamicKeyToBit[e.key];
       if (bit && !e.repeat) {
         keyInput |= bit;
@@ -954,8 +1175,25 @@ function getMenuClientScript() {
         devNameEl.textContent = 'Pad: ' + gp.id.slice(0, 24);
       }
 
+      if (isLensModeActive) {
+        // D-Pad or stick pans the camera in Lens mode!
+        const dx = (gp.axes[0] < -0.3 ? 8 : (gp.axes[0] > 0.3 ? -8 : 0));
+        const dy = (gp.axes[1] < -0.3 ? 8 : (gp.axes[1] > 0.3 ? -8 : 0));
+        if (dx !== 0 || dy !== 0) {
+          panX += dx;
+          panY += dy;
+          if (typeof updateScreenLayout === 'function') updateScreenLayout();
+        }
+        if ((gp.buttons[0] && gp.buttons[0].pressed && !lastGamepadButtons[0]) ||
+            (gp.buttons[9] && gp.buttons[9].pressed && !lastGamepadButtons[9])) {
+          exitLensMode();
+        }
+        lastGamepadButtons[0] = gp.buttons[0] && gp.buttons[0].pressed;
+        lastGamepadButtons[9] = gp.buttons[9] && gp.buttons[9].pressed;
+        return;
+      }
+
       if (isMenuOpen) {
-        // D-Pad and Face Buttons for Menu Navigation
         const now = Date.now();
         // L / R shoulders: buttons 4 and 5
         if (gp.buttons[4] && gp.buttons[4].pressed && !lastGamepadButtons[4]) {
@@ -990,7 +1228,7 @@ function getMenuClientScript() {
         if (gp.buttons[1] && gp.buttons[1].pressed && !lastGamepadButtons[1]) {
           activateMenuRow();
         }
-        // Button B (btn 0 or btn 1)
+        // Button B (btn 0)
         if (gp.buttons[0] && gp.buttons[0].pressed && !lastGamepadButtons[0]) {
           closeEmulatorMenu();
         }
@@ -1015,7 +1253,7 @@ function getMenuClientScript() {
       if (gp.buttons[9] && gp.buttons[9].pressed && !lastGamepadButtons[9]) {
         const m = getModule();
         if (isPlayerControllable(m)) {
-          openEmulatorMenu();
+          togglePauseMenu('GamepadStart');
           lastGamepadButtons[9] = true;
           return;
         }
@@ -1023,7 +1261,6 @@ function getMenuClientScript() {
       lastGamepadButtons[9] = gp.buttons[9] && gp.buttons[9].pressed;
     }
 
-    // Hook Gamepad polling into requestAnimationFrame loop
     function menuFrameTick() {
       pollGamepadMenu();
       requestAnimationFrame(menuFrameTick);
@@ -1032,6 +1269,13 @@ function getMenuClientScript() {
 
     // -- Mouse & Tab Bindings --------------------------------------------------
     function setupMenuDomEvents() {
+      // Lens exit button
+      const lensExit = document.getElementById('menu-lens-exit-btn');
+      if (lensExit) lensExit.addEventListener('click', function(e) {
+        e.stopPropagation();
+        exitLensMode();
+      });
+
       // L / R buttons
       const lBtn = document.getElementById('menu-l-btn');
       if (lBtn) lBtn.addEventListener('click', function(e) {
@@ -1051,11 +1295,11 @@ function getMenuClientScript() {
         closeEmulatorMenu();
       });
 
-      // Backdrop click closes menu
+      // Backdrop click closes menu (only when not in lens mode)
       const menuBackdrop = document.getElementById('emulator-menu');
       if (menuBackdrop) {
         menuBackdrop.addEventListener('click', function(e) {
-          if (e.target === menuBackdrop) {
+          if (e.target === menuBackdrop && !isLensModeActive) {
             closeEmulatorMenu();
           }
         });

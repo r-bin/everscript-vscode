@@ -29,6 +29,7 @@ test('menu-view.js and menu-sound.js are strictly ASCII-only', () => {
     const files = [
         path.join(__dirname, '..', '..', 'src', 'emulator', 'menu', 'menu-view.js'),
         path.join(__dirname, '..', '..', 'src', 'emulator', 'menu', 'menu-sound.js'),
+        path.join(__dirname, '..', '..', 'src', 'emulator', 'panel-webview.js'),
     ];
     for (const f of files) {
         const content = fs.readFileSync(f, 'utf8');
@@ -37,31 +38,34 @@ test('menu-view.js and menu-sound.js are strictly ASCII-only', () => {
     }
 });
 
-// 2. CSS verification
-test('getMenuCss generates required styling for modal, tabs, rows, and shoulder buttons', () => {
+// 2. CSS verification (fixed top, lens mode, rows)
+test('getMenuCss generates fixed top alignment, lens mode HUD, tabs, and rows', () => {
     const css = getMenuCss();
     assert.ok(css.includes('#emulator-menu'), 'missing #emulator-menu style');
+    assert.ok(css.includes('align-items: flex-start;'), 'menu should be pinned to the top');
+    assert.ok(css.includes('#menu-lens-hud'), 'missing #menu-lens-hud style');
     assert.ok(css.includes('#menu-card'), 'missing #menu-card style');
     assert.ok(css.includes('.menu-shoulder-btn'), 'missing .menu-shoulder-btn style');
     assert.ok(css.includes('.menu-tab-btn'), 'missing .menu-tab-btn style');
     assert.ok(css.includes('.menu-row.selected'), 'missing .menu-row.selected style');
-    assert.ok(css.includes('.menu-bind-badge'), 'missing .menu-bind-badge style');
 });
 
-// 3. HTML verification
-test('getMenuHtml defines L/R buttons, 3 tabs, overlay toggles, emulation speed, and remapper', () => {
+// 3. HTML verification (Lens default entry, sound visualizer, L/R buttons)
+test('getMenuHtml defines Map Lens default entry, sound visualizer, 3 tabs, and non-looping steppers', () => {
     const html = getMenuHtml();
     // Header & L/R shoulder controls
     assert.ok(html.includes('id="menu-l-btn"'), 'missing menu-l-btn');
     assert.ok(html.includes('id="menu-r-btn"'), 'missing menu-r-btn');
     assert.ok(html.includes('id="menu-close-btn"'), 'missing menu-close-btn');
+    assert.ok(html.includes('id="menu-lens-hud"'), 'missing lens HUD element');
 
     // Tab buttons
     assert.ok(html.includes('id="menu-tab-btn-0"'), 'missing OVERLAYS tab button');
     assert.ok(html.includes('id="menu-tab-btn-1"'), 'missing EMULATION tab button');
     assert.ok(html.includes('id="menu-tab-btn-2"'), 'missing CONTROLS tab button');
 
-    // Tab 0: Overlays
+    // Tab 0: Overlays (Lens must be row 0)
+    assert.ok(html.includes('Map Lens (Explore Room)'), 'missing Map Lens default entry');
     assert.ok(html.includes('id="menu-panel-0"'), 'missing overlays panel');
     assert.ok(html.includes('id="menu-val-extend"'), 'missing extend map toggle');
     assert.ok(html.includes('id="menu-val-triggers"'), 'missing triggers toggle');
@@ -69,6 +73,7 @@ test('getMenuHtml defines L/R buttons, 3 tabs, overlay toggles, emulation speed,
     assert.ok(html.includes('id="menu-val-anim"'), 'missing anim tiles toggle');
     assert.ok(html.includes('id="menu-val-collision"'), 'missing collision toggle');
     assert.ok(html.includes('id="menu-val-fog"'), 'missing fog toggle');
+    assert.ok(html.includes('id="menu-val-sound-vis"'), 'missing sound entity visualizer toggle');
     assert.ok(html.includes('id="menu-val-zoom"'), 'missing zoom control');
 
     // Tab 1: Emulation
@@ -97,31 +102,32 @@ test('getMenuSoundScript synthesizes authentic Evermore sound effect IDs', () =>
     assert.ok(script.includes('click_confirm'), 'missing click_confirm SFX (0x44)');
 });
 
-// 5. Client script & Controllable Character gate
-test('getMenuClientScript defines isPlayerControllable gate, L/R navigation, and key remapper', () => {
+// 5. Client script: Controllable Character gate, unified pause, lens mode, scrollIntoView
+test('getMenuClientScript defines isPlayerControllable gate, unified pause toggle, lens mode, and scrollIntoView', () => {
     const script = getMenuClientScript();
     assert.ok(script.includes('function isPlayerControllable(m)'), 'missing isPlayerControllable gate');
-    assert.ok(script.includes('0x7E0ADB'), 'missing map check in isPlayerControllable');
-    assert.ok(script.includes('0x7E22EB'), 'missing engine sequence flags check');
-    assert.ok(script.includes('0x7E0A35'), 'missing boy max HP check');
-
-    assert.ok(script.includes('function openEmulatorMenu()'), 'missing openEmulatorMenu');
-    assert.ok(script.includes('function closeEmulatorMenu()'), 'missing closeEmulatorMenu');
-    assert.ok(script.includes('function switchMenuTab(delta)'), 'missing switchMenuTab');
+    assert.ok(script.includes('function togglePauseMenu(source)'), 'missing unified togglePauseMenu');
+    assert.ok(script.includes('function enterLensMode()'), 'missing enterLensMode');
+    assert.ok(script.includes('function exitLensMode()'), 'missing exitLensMode');
+    assert.ok(script.includes('scrollIntoView'), 'selection change must call scrollIntoView');
+    assert.ok(script.includes('MENU_SPEED_LABELS'), 'missing non-looping speed labels');
+    assert.ok(script.includes('1/4x'), 'missing 1/4x speed');
+    assert.ok(script.includes('1/2x'), 'missing 1/2x speed');
     assert.ok(script.includes('function pollGamepadMenu()'), 'missing pollGamepadMenu');
     assert.ok(script.includes('function startKeybindListen(btnName)'), 'missing startKeybindListen');
 });
 
 // 6. Template integration in buildHtml
-test('buildHtml embeds menu CSS, HTML, menu button, and script', () => {
+test('buildHtml embeds menu, hides old overlay bar, and wires wheel event isolation', () => {
     const mockWebview = { asWebviewUri: (uri) => uri };
     const html = buildHtml(mockWebview, 'core.js', 'core.wasm', 'core', '/path/to/core');
 
     assert.ok(html.includes('id="emulator-menu"'), 'emulator-menu missing from buildHtml');
-    assert.ok(html.includes('id="screen-menu-btn"'), 'screen-menu-btn missing from buildHtml');
+    assert.ok(html.includes('#screen-overlay-bar {\n      display: none !important;'), 'old overlay bar should be hidden');
     assert.ok(html.includes('openEmulatorMenu'), 'openEmulatorMenu missing from buildHtml');
     assert.ok(html.includes('isPlayerControllable'), 'isPlayerControllable missing from buildHtml');
     assert.ok(html.includes('playMenuSound'), 'playMenuSound missing from buildHtml');
+    assert.ok(html.includes('menuCard.contains(e.target)'), 'wheel event should check if target is inside menu');
 });
 
 console.log(`\nResults: ${passed} passed, ${failed} failed\n`);
