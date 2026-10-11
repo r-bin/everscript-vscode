@@ -9,7 +9,26 @@ session.
 
 External resources:
 - `everscript` repo (this repo)
-- `SoETilesViewer` repo (reference only; do not modify or depend on it)
+- `SoETilesViewer` / `SoEScriptDumper` (GPLv3, third-party): **do not use** — no code, tables,
+  layouts or names from them, and do not read their source while implementing something
+  they also implement. Derive everything from the game itself.
+
+---
+
+## 0. Standing rules (every task)
+
+1. **Legal first.** Nothing that could bring legal trouble enters the repo: no ROM or ROM
+   bytes, no extracted graphics/icons/palettes/music/text/maps/script dumps, no screenshots,
+   no code or data copied from other projects. The extension decodes the *user's own ROM at
+   runtime*; the repo holds only our code and our own descriptions of facts.
+   See `AI_ARCHITECTURE_GUIDE.md` §3.8.
+2. **Write down what you learn.** Every address, routine, script, flag, struct or format you
+   learn about — even partially — is recorded in the same commit, in our own words, with its
+   purpose and evidence. Look it up before re-researching it. Format and locations: the
+   `game-knowledge` skill (`.agents/skills/game-knowledge/SKILL.md`).
+3. **Keep the AI files true.** When you find that a skill, an `AGENTS.md` (root or nested) or
+   the guide is wrong, stale or missing a trap you just hit, fix it in the same commit — no
+   need to ask. Prefer editing the existing file over adding a new one.
 
 ---
 
@@ -51,6 +70,7 @@ Skills load on demand based on their `description` and `applyTo` globs.
 
 | Skill | Canonical Location | Covers |
 |---|---|---|
+| `game-knowledge` | `.agents/skills/game-knowledge/SKILL.md` | Look up and record RAM/ROM/script knowledge: entry format, evidence, where it goes |
 | `release-ritual` | `.agents/skills/release-ritual/SKILL.md` | version bump, validation, commit format, `npm run deploy` |
 | `memory-radar` | `.agents/skills/memory-radar/SKILL.md` | WRAM grid tab, rooms/map-browser tab, tab ownership |
 | `map-format` | `.agents/skills/map-format/SKILL.md` | ROM map decoding port and validation against `everscript` repo |

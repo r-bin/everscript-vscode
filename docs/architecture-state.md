@@ -381,6 +381,8 @@ Measured against the project goal (readability + tooling):
 
 Order: #5 (trivial) → #2 names split → #3/#4 (ROM re-derivation, testable) → #1 (clean-room decoder) → #6/#7.
 
+**Decision (2026-10-11):** written permission from the author exists, but we still don't build on their work. #1, #3–#7 are re-implemented from the game's own code — plan in [docs/plans/script-decoder-from-game-code.md](plans/script-decoder-from-game-code.md). #2 (names) is **postponed**: it stays, isolated, until a separate decision. Room names in `src/localizations/` stay.
+
 ---
 
 ## 17. Tests — heavy tests only on demand
@@ -588,19 +590,93 @@ The wiki is a poor source of truth:
 The wiki should be **generated from, or checked against,** this repo.
 
 ### Proposal
-1. **One machine-readable source per address space**, in `src/localizations/data/` (names are localization, §19), with evidence on every entry:
-   - `ram.json`: `{ addr, size, type, name, group, values?, bits?, evidence: [{ kind: "trace" | "cdl" | "evs" | "research", ref }], verified: "v0.2xx" }`
-   - `rom-points.json`: the same shape for routine and table names (regions stay measured, not listed).
-   - Seed them from `02_ram.evs` (your own compiler definitions), `tags.json` and our docs. **Not** from `names.json` (§16).
+1. **One source per address space — one Markdown file per entry** (superseded the `ram.json` idea; see §27): `src/localizations/knowledge/ram/<addr>.md` and `…/rom/<addr>.md`, flat front matter for the machine fields (address, end, kind, name, lifetime, confidence, evidence) and a plain-language body for the purpose. Seed from `02_ram.evs` (your own compiler definitions), `tags.json`, `functions.js`/`tables.js` and our docs — **not** from `names.json` (§16).
 2. **Every consumer reads that one source:** Memory tab, ROM tab, `soe://ram`, `soe://rom`, hover and MCP. The runtime wiki overlay and the hard-coded bounds in `extension.js` go away.
-3. **The wiki gets generated sections** between markers (`<!-- generated:ram-map -->`), produced by `npm run gen:wiki`, the way Rom-Map §4 already is. Edits go to the JSON; the prose around the markers stays hand-written.
+3. **The RAM map and ROM map tables are generated** from the entries (`npm run gen:maps-docs`), into the repo's docs and into the wiki between markers (`<!-- generated:ram-map -->`), the way Rom-Map §4 already is. Edits go to the entries; prose around the markers stays hand-written.
 4. **Guards, cheapest first:**
 
    | Guard | Catches | Tier |
    |---|---|---|
-   | schema + no-overlap + unique-name checks on the JSON | typos, collisions | unit |
+   | front-matter schema + no-overlap + unique-name checks on the entries | typos, collisions | unit |
    | every named ROM point lies inside a measured region of the matching kind; code points are executed entry points in the CDL library (when present) | names pointing at the wrong bytes | rom |
    | headless boot in the bundled core under node (already proven, see the headless-boot notes): play a short input script, assert key addresses behave (HP drops on a hit, room id changes on a transition, a flag sets) | wrong or moved RAM addresses | emulator |
    | `gen:wiki --check`: fail when the wiki's generated sections differ from what the repo produces | wiki drift | unit (when the wiki checkout is present) |
-   | `02_ram.evs` ↔ `ram.json` diff when the everscript repo is present | compiler/extension drift | rom |
+   | `02_ram.evs` ↔ RAM entries diff when the everscript repo is present | compiler/extension drift | rom |
 5. **Show the evidence:** the tabs can badge entries with no evidence, or not verified since the last N versions, so staleness is visible instead of silent.
+
+---
+
+## 27. Format for the RAM map and ROM map — and the "write it down" loop
+
+### Format comparison
+| Format | Prose purpose per entry | Structured sub-data (bits, fields, per-room) | Parallel edits | Parse at runtime without deps | LLM-friendly |
+|---|---|---|---|---|---|
+| One big Markdown table (current wiki) | ✗ one cell, no line breaks, pipes break it | ✗ | ✗ every edit touches one file | fragile regex | ✓ |
+| JSON | ✗ no comments, no multi-line | ✓ | ✗ one file | ✓ | ~ (escaping) |
+| YAML / TOML file per area | ✓ (`|` blocks) | ✓ | ~ | ✗ needs a parser dependency | ✓ |
+| **Markdown per entry + flat front matter** | ✓ the body | ✓ small tables under fixed headings | ✓ one file per address | ✓ flat `key: value` is a few lines of code | ✓ |
+
+**Chosen: one Markdown file per entry** (`src/localizations/knowledge/{ram,rom}/<addr>.md`). The Markdown tables you like survive in two places: as the *generated* overview (RAM map, ROM map) and as small local tables inside an entry (`## Fields`, `## Bits`, `## Values`, `## Layout per room`). The full spec is in the `game-knowledge` skill. Example — what `soe://ram/2834` would serve:
+
+```markdown
+---
+addr: 7E2834
+end: 7E2BFF
+kind: region
+name: ROOM_SCRATCH
+title: Room scratch RAM
+lifetime: room
+confidence: likely
+evidence: ["write: cleared on screen transition (emulator, v0.200.0)"]
+---
+Temporary RAM for whatever the current room needs. Reset on every screen transition.
+Multi-purpose with no fixed structure: each room's scripts lay it out their own way,
+so a value only means something together with the room id.
+```
+
+Lookups inside a region (`soe://ram/2840`) resolve to the containing entry through `end:`.
+
+### Making agents write things down (done in this change)
+- Root `AGENTS.md` §0 has three **standing rules** for every task: legal first, write down what you learn, keep the AI files true (fix skills/AGENTS.md without asking).
+- New **`game-knowledge` skill** (`applyTo: "**"`): look up before researching, record after learning, entry format, evidence kinds, confidence levels, "Previously believed" for corrections, migrate legacy `functions.js`/`tables.js` lines on touch.
+- **Release-ritual checklist** gained three items: knowledge recorded, AI files fixed, nothing legally risky staged.
+
+### Still to build (code)
+1. Entry loader (flat front matter + body sections) in `src/localizations/`, with schema/overlap tests (unit tier).
+2. `soe://ram/<addr>` and `soe://rom/<addr>` serve the entry (purpose + fields + evidence) next to the live value; hover in `.evs` shows the purpose.
+3. Migrate `functions.js`, `tables.js` and the RAM side of `tags.json` into entries (scripted, one commit).
+4. Generate the RAM-map/ROM-map overview tables and the wiki sections; drop the runtime wiki overlay.
+5. Optional enforcement for Claude Code: a project `Stop` hook that reminds the agent to record findings when the session touched addresses. Instructions alone may be enough; add the hook only if entries keep going missing.
+
+---
+
+## 28. Legal audit — game assets and third-party material (2026-10-11)
+
+**Both GitHub repos are public** (`r-bin/everscript-vscode`, `r-bin/everscript`), so anything below that is in HEAD *or history* can be downloaded today.
+
+**Clean:** no ROM, image, audio, save, patch or archive file is tracked or was ever committed. Icons, strings, sprites and music are decoded from the user's ROM at runtime. There are no base64 or `data:` blobs. `resources/icons/*.svg` are hand-made logos.
+
+### In HEAD — remove
+| Path | What | Risk |
+|---|---|---|
+| `script_parser/generated/opcode-corpus.json` (2.4 MB) | **7,880 instructions with their raw ROM bytes** (35 KB of game bytecode) **plus SoEScriptDumper's disassembly text** — effectively `script_all` with the bytecode | **high** (verified) |
+| `script_parser/generated/opcode-shapes.json`, `script_parser/tests/generated/**` (branch-targets, script-boundaries, opcode-corpus, expression-corpus) | addresses + upstream dumper text per instruction, used as test oracles | medium |
+| `src/script/*`, `src/script/names.json`, `src/localizations/data/scripts.json`, `src/maps/sprites.ts`, `src/maps/character-record.ts` | GPL-derived code/data (§16) | handled by the rewrite plan; names postponed |
+| `sandbox/*`, `src/maps/render-script-model.js` | hard-coded paths to `script_all` and the ROM file | low |
+| `docs/map-format/map_decompression_trace_analysis.md` (16 hex lines), `docs/render-script-93.md` (2 lines) | short ROM byte excerpts | low — trim |
+| `README.md` §License | links to `file:///Users/v/...` | low — make it relative |
+
+### In history only — needs a rewrite to be gone
+`docs/payload-byte-plots.md`, `docs/payload-deep-analysis.md`, `docs/map-loading.md` (early versions: **full hex dumps of room payloads**), `tests/debugger/parity/snapshots/`, `tests/parity/snapshots/`, `tests/corpus/script-all-corpus.js` (dumper-output snapshots), every version of `script_parser/generated/` and `script_parser/tests/generated/`, `emulator/vendor/` (vendored EmulatorJS, GPLv3), `emulator/core/` (old snes9x build).
+
+Purge: `git filter-repo --invert-paths` over those paths, then force-push every branch and tag. Existing clones and forks keep the old history, and GitHub may keep cached views until support purges them. The same audit should run on `r-bin/everscript`, which holds `script_all` and the ROM in its working tree; check they were never committed.
+
+### Licences of what ships
+- The snes9x2005 core and the SPC engine built from it are **non-commercial**. The extension must never be sold, and the `copyright`/`NOTICE.md` files must keep shipping next to them.
+- The MIT `LICENSE` should say it covers our code only.
+
+### Guard rails
+- **Done in this change:** `.gitignore` blocks ROM, save, patch, audio, image, `script_all` and `dumps/` files. Our own art is re-allowed per path with `!path`.
+- **To do:**
+  - `.vscodeignore`: the same patterns plus `docs/**`, `wiki/**`, `.agents/**`, `tools/**` (§10).
+  - `tools/check-legal.js`, run as a pre-commit hook on staged files and in CI on `git ls-files`. It fails on: forbidden extensions; media/SPC/IPS magic bytes; `data:` URIs or 200+-character base64 runs; 64+ consecutive numeric literals or 8+ hex-dump lines; ROM filenames or `/Users/` paths in data files; source headers mentioning SoETilesViewer/SoEScriptDumper/`data.h`.

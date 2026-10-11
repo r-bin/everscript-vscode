@@ -13,3 +13,26 @@ traces/
 src/maps/dist/
 src/script/dist/
 .emscripten_cache/
+
+# Legal guard: game data never enters the repo (AI_ARCHITECTURE_GUIDE.md §3.8).
+# ROMs, saves, patches, audio, dumps and images. Re-allow our own art with `!path`.
+*.smc
+*.sfc
+*.swc
+*.fig
+*.srm
+*.state
+*.sav
+*.spc
+*.brr
+*.wav
+*.ips
+*.bps
+*.ups
+*.png
+*.gif
+*.jpg
+*.jpeg
+*.bmp
+*script_all*
+dumps/

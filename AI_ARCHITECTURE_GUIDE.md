@@ -98,15 +98,21 @@ in-place ROM mutation.
 - Host↔webview messages are a typed union per panel; no stringly-typed `command` switch
   without a type.
 
-### 3.8 Data provenance **[now — known violations in `docs/architecture-state.md` §16]**
-- ROM facts (addresses, tables, layouts, formats) must come from the ROM itself, traces,
-  or our own disassembly, and be checkable by a test against the ROM.
-- Do not copy code, data tables or structure definitions from other projects
-  (SoETilesViewer, SoEScriptDumper, …) — they are reference only and GPL-licensed, while
-  this project is MIT. The one exception is naming/localization data (room names, etc.),
-  which lives in `src/localizations/`.
+### 3.8 Legal: data provenance and no game assets **[now — known violations in `docs/architecture-state.md` §16, §28]**
+- **No game assets in the repo — ever, including git history:** no ROM or ROM byte dumps, no
+  graphics/icons/palettes/tiles extracted from the ROM (PNG, GIF, base64, pixel arrays), no
+  music/SPC/BRR/WAV, no game text or script dumps, no map blobs, no screenshots. The extension
+  decodes the user's own ROM at runtime; tests read it from `EVERSCRIPT_ROM` and skip without it.
+  Goldens hold observed facts (offsets, lengths, counts, hashes), never ROM bytes.
+- ROM facts (addresses, tables, layouts, formats) must come from the ROM itself, traces, or
+  our own disassembly, written in our own words, and be checkable by a test against the ROM.
+- Do not copy code, data tables, structure definitions or names from other projects
+  (SoETilesViewer, SoEScriptDumper, …) and do not read their source while implementing the
+  same thing. Legacy exceptions are being replaced (`docs/plans/script-decoder-from-game-code.md`);
+  upstream-derived names are a postponed decision — don't add more.
 - No runtime or test path may point into another repository's checkout; ROM location
   comes from settings or `EVERSCRIPT_ROM`.
+- Everything learned about the game is recorded as a knowledge entry (`game-knowledge` skill).
 
 ### 3.9 File size **[now]**
 

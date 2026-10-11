@@ -91,6 +91,9 @@ Types: `feat` (new token/feature), `fix` (bug), `test` (test-only), `docs` (docs
 - [ ] `npm run check:dead`, `npm run check:deps` reviewed (advisory/warn)
 - [ ] Tests pass: `npm test`
 - [ ] Version bumped in `package.json`
+- [ ] Everything learned about the game this session is recorded (`game-knowledge` skill)
+- [ ] Skills / `AGENTS.md` files that turned out wrong or incomplete are fixed
+- [ ] Nothing legally risky staged: no ROM bytes, extracted assets, game text, or third-party code
 
 ---
 

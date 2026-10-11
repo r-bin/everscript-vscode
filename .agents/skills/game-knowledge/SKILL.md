@@ -1,0 +1,105 @@
+---
+name: game-knowledge
+description: Use whenever you learn, confirm, correct or need anything about a Secret of Evermore address — a WRAM variable/struct/region, a flag, a ROM routine (asm), a script or script function, a table or a data format. Look it up before researching; write it down before you finish. Covers the knowledge-entry format under src/localizations/knowledge/ and what evidence to record.
+applyTo: "**"
+---
+
+# Skill: Game knowledge — write down everything you learn
+
+We re-learn the same addresses almost daily because findings stay in chat logs. **A finding
+that is not written down is lost.** This skill is the one place that says where and how.
+
+## 1. Before researching an address
+
+Look it up first — it may already be known:
+1. `src/localizations/knowledge/{ram,rom}/<addr>.md` (and regions containing it — check `end:`)
+2. `soe://ram/<addr>.json`, `soe://bus/<addr>`, `soe://tags/search/<word>.md` (MCP `soe_read`)
+3. `src/localizations/functions.js`, `tables.js` (legacy one-liners, being migrated)
+4. `docs/` (`grep -ri "<addr without \$>" docs`)
+
+## 2. After learning anything — record it in the same commit
+
+Record when you learned **what** something is, **how** it behaves, or that an earlier entry
+is **wrong**. Partial knowledge counts: an entry with `confidence: guess` and one honest
+sentence beats nothing. No permission needed — this is part of every task.
+
+| You learned about | Write to |
+|---|---|
+| a WRAM address, struct, flag byte or region | `src/localizations/knowledge/ram/<addr>.md` |
+| an asm routine, script, script function, table or data block in the ROM | `src/localizations/knowledge/rom/<addr>.md` |
+| a format or mechanism spanning many addresses | `docs/game-research/…` (prose), linked from the entries |
+| a workflow trap, a tool fact, or a skill/AGENTS.md statement that is wrong | fix that skill / `AGENTS.md` directly |
+
+Correcting is as important as adding: if an entry is wrong, fix it and say what the old
+belief was in the body (`Previously believed: …`).
+
+## 3. Entry format
+
+One file per entry, named by the **bus address as the game uses it**, 6 lowercase hex digits,
+no `$`: `ram/7e2834.md`, `rom/8cd0a6.md`. A region/struct gets one file at its start address;
+lookups for addresses inside it resolve through `end:`.
+
+```markdown
+---
+addr: 7E2834
+end: 7E2BFF
+kind: region
+name: ROOM_SCRATCH
+title: Room scratch RAM
+lifetime: room
+confidence: likely
+tags: [room, scratch, script]
+evidence: ["write: cleared on screen transition (watched in emulator, v0.200.0)", "read: room scripts of 0x33 and 0x5c use it differently"]
+see: [docs/game-research/room-scratch.md]
+---
+Temporary RAM for whatever the current room needs. Reset on every screen transition.
+Multi-purpose with no fixed structure: each room's scripts lay it out their own way
+(boss phase counters, puzzle state, …), so a value only means something together with
+the room id.
+
+## Layout per room
+| room | offset | size | meaning |
+|---|---|---|---|
+| 0x33 | +0x00 | 2 | boss phase |
+```
+
+### Front matter (flat: `key: value` or `key: [a, b]` — no nesting)
+| Key | Required | Values |
+|---|---|---|
+| `addr` | yes | hex bus address, uppercase, no `$` |
+| `end` / `size` | if longer than 1 byte | inclusive end address, or byte count |
+| `kind` | yes | RAM: `var`, `struct`, `region`, `flags`, `table`, `stack` · ROM: `code`, `script`, `table`, `data`, `region` |
+| `name` | yes | our own identifier (`UPPER_SNAKE` for data, `lower_snake` for code/scripts) |
+| `title` | yes | short human label |
+| `lifetime` | RAM | `frame`, `room`, `map`, `save` (persists in SRAM), `boot`, `unknown` |
+| `confidence` | yes | `guess`, `likely`, `confirmed` |
+| `tags` | no | `soe://tags` ids |
+| `evidence` | yes unless `guess` | list of `"kind: what was observed"` — kinds: `trace`, `write`, `read`, `cdl`, `disasm`, `test`, `evs` |
+| `see` | no | related entries/docs |
+
+### Body
+1. **First paragraph: plain-language purpose** — what it is for, when it changes, who uses it.
+   Write for someone who has never seen the game's code. Required for every entry.
+2. Optional fixed sections, as small Markdown tables: `## Fields` (struct: offset, size,
+   name, meaning), `## Bits` (flags), `## Values` (enum-like values), `## Layout per room`.
+3. Optional `## Notes` for caveats, open questions, `Previously believed: …`.
+
+## 4. Rules
+
+- **Facts only, our own words.** Addresses, behaviours, formats observed in the ROM or
+  emulator. Never paste game text, graphics, byte dumps or disassembly listings longer than a
+  few lines, and never copy from SoETilesViewer/SoEScriptDumper or other projects
+  (`AI_ARCHITECTURE_GUIDE.md` §3.8).
+- **Names are ours.** Pick descriptive names; don't import names from other projects.
+- **Evidence makes it trustworthy.** Say how you know. `confirmed` needs a trace, test or
+  disassembly you actually looked at.
+- **Don't duplicate.** If the address is in `functions.js`/`tables.js`, move it into an entry
+  and delete the JS line (migrate on touch).
+- **One commit:** the code change and the knowledge it produced land together.
+
+## 5. Why not one big Markdown table
+
+The overview tables (RAM map, ROM map) are **generated** from these entries. A single
+hand-edited table can't hold multi-sentence purposes, per-room layouts or bit tables; pipes
+and line breaks break it; and parallel agents editing one file conflict. One file per entry
+is greppable, merge-friendly, readable on its own, and served as-is by `soe://`.
