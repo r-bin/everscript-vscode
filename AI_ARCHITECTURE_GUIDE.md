@@ -1,255 +1,176 @@
 # AI Architecture Guide — Everscript VS Code Extension
 
-> This file is a cognitive anchor for AI sessions.
-> Read it before modifying any subsystem.
-> It defines laws, not suggestions.
+> The laws every change must follow. Read it before modifying any subsystem.
+> Each law is marked **[now]** (enforced today) or **[target]** (the direction; new code
+> must follow it, legacy code is migrated when touched).
+> Current measurements and the backlog live in `docs/architecture-state.md`, not here.
 
 ---
 
-## 1. Repository Mission
+## 1. Mission
 
-Make Everscript code more readable in VS Code.
-Every change must serve: better token differentiation, more information on hover/completion/diagnostics, or better developer tooling.
-
----
-
-## 2. Architectural Laws
-
-### 2.1 File Size
-
-| Range      | Status      |
-|------------|-------------|
-| 50–150 LOC | Ideal       |
-| 150–250    | Acceptable  |
-| 250–400    | Justified   |
-| > 400      | MUST split  |
-
-### 2.2 One Owner Per State
-
-Every important state has **one owner file**. Never two files that both mutate the same state. No mirrored state. No implicit synchronization.
-
-State that must have a single owner:
-- viewport dimensions
-- zoom scale
-- selection state
-- filter state
-- emulator runtime state
-- radar panel lifecycle
-- room tree cache
-- memory map cache
-- enum cache
-- extension config
-
-### 2.3 Directional Dependencies
-
-```
-parser → model → renderer → UI
-         ↓
-       rom-readers (read-only)
-```
-
-Forbidden directions:
-- renderer → parser
-- UI → model mutation (except via explicit action files)
-- rom-readers → UI
-- rom-readers → extension state
-
-### 2.4 Subsystem Isolation
-
-Each domain under `src/` (`debugger/`, `emulator/`, `memory/`, `rooms/`, `language/`,
-`shared/`, ...) must be:
-- independently understandable from its own files
-- independently testable without full extension startup
-- minimally coupled to other domains
-
-Cross-domain coupling rules (enforced by `.depcruise.js` / `npm run check:deps` — see
-`docs/architecture/domain-overview.md` for the full table):
-- `debugger` may NOT directly call `memory`/`rooms` rendering
-- `memory`/`rooms` may read ROM via `shared/rom-readers` but not call `debugger`
-- `language` may NOT call `memory`, `rooms`, `debugger`, or `emulator`
-- `shared` has no VS Code dependency and no dependency on any other domain
-
-### 2.5 Anti-Abstraction
-
-Prefer **duplication over coupling** for utilities used by only one subsystem.
-
-Forbidden patterns:
-- giant shared helpers
-- giant utils.js / common.js
-- abstraction pyramids (helpers-of-helpers)
-- dependency injection systems
-- registries
-
-Allowed shared code: `src/shared/radar-utils.js` (pure functions, no state),
-`src/shared/config.js` (config resolution).
+Make Everscript code more readable in VS Code, and make Secret of Evermore romhacking
+tooling usable from inside the editor. Every change must serve one of:
+- better token differentiation, hover, completion, diagnostics or navigation for `.evs`
+- better insight into the ROM / running game (emulator, maps, sprites, music, memory)
+- better developer tooling (build, debug, patch export, tests)
 
 ---
 
-## 3. Ownership Domains
+## 2. Domain kinds
 
-Since v0.6.0, all production code lives under `src/`, one directory per domain. See
-`docs/architecture/domain-overview.md` for the full per-domain "Allowed deps" /
-"Forbidden deps" table (that doc's "Current folder" / "Target folder" language predates
-the actual move — trust the directory names below and on disk, not its phase numbers).
+Every directory under `src/` is exactly one of three kinds. The kind decides what it may
+depend on.
 
-### `src/extension.js`
-- Activation only: command registration, watcher setup, panel lifecycle
-- Must NOT contain rendering logic, parsing logic, or model logic
-- Target: < 300 LOC — continue reducing
-
-### `src/debugger/`
-- Owns: DAP adapter, mock runtime
-- Does NOT own: radar rendering, language features, ROM graphics, the emulator panel
-
-### `src/emulator/`
-- Owns: SNES emulator panel lifecycle, WASM core loading, ROM header model,
-  room-script decoding, opcode registry
-- Does NOT own: radar rendering, language features
-
-### `src/memory/` + `src/rooms/`  (formerly `memory_radar/`)
-- `src/memory/` owns: radar panel assembly, WRAM grid tab rendering
-- `src/rooms/` owns: rooms/map-browser tab (tree building, parsing, rendering, data)
-- `src/docs/`, `src/scaling/`, `src/routes/` own the docs/RNG, scaling, and route tabs
-  respectively
-
-### `src/language/`  (formerly `code_highlighter/`)
-- Owns: grammar, hover, completions, diagnostics, symbols
-- Does NOT own: ROM parsing, radar state
-
-### `src/maps/` + `src/shared/`  (formerly parts of `memory_radar/`)
-- `src/maps/` owns: ROM map/blob evidence models, map pipeline, script rendering model.
-  **Being retired**, not extended: its sentinel-based tilemap decoder is an
-  independent, weaker re-derivation of ROM map decoding that the sibling `everscript`
-  repo already solves byte-exactly for all 127 rooms. See the `map-format` skill
-  before adding new heuristics here.
-- `src/shared/` owns: all ROM byte reading (`rom-readers.js`), config resolution
-  (`config.js` — including `everscript.repoPath`/`romPath`/`pythonPath`, reused by any
-  future map-server bridge), `radar-utils.js` — has ZERO VS Code dependencies, ZERO
-  rendering dependencies
-
-### `src/map-editor/`  (PLANNED — does not exist yet)
-- Will own: a bridge (spawned process, transport TBD) into the sibling `everscript`
-  repo's verified Python map/room decoder (`tools/dump_room.py`, `encode_room.py`,
-  `collision.py`, `cuttable_grass.py`, `render_map.py`), plus whatever map-editor UI is
-  built on top of it.
-- Dependency direction is fixed even though transport/packaging isn't decided yet: this
-  extension depends on the compiler/map-server, **never the reverse**.
-- Do not create this domain, or write code assuming it exists, without first reading
-  the `map-format` skill and the planning docs it points to in the `everscript` repo.
-
----
-
-## 4. Local Reasoning Principle
-
-Each directory must be understandable from its own files without reading parent directories.
-
-This means:
-- Every domain directory under `src/` gets a `README.md`
-- `README.md` defines: ownership, allowed dependencies, state owned, key invariants
-- No "see extension.js for details" — if `src/extension.js` owns it, move it or
-  document the invariant locally
-
----
-
-## 5. Cognitive Stabilization Doctrine
-
-AI sessions degrade when:
-- files are too large to hold in context
-- ownership is ambiguous
-- state flows are implicit
-- rendering logic and state mutation coexist
-- the same concept appears in 3+ files
-
-Counter-measures:
-- `AI_ARCHITECTURE_GUIDE.md` — laws (this file)
-- `STATE_FLOW.md` — authoritative state flow map
-- Per-domain `src/<domain>/README.md` — local ownership contracts
-- `.agents/skills/` — reusable architectural operation skills (`compress-architecture`,
-  `isolate-subsystem`, `stabilize-state-flow`, `split-orchestration`)
-- File size limits — enforced by commit review
-
----
-
-## 6. Anti-Entropy Checklist (run before every commit)
-
-- [ ] No file exceeds 400 LOC without documented justification
-- [ ] No new state variable added to `src/extension.js` (use domain modules under `src/`)
-- [ ] No new cross-domain require() added (check direction against `docs/architecture/domain-overview.md`)
-- [ ] Every new directory has a `README.md` or is trivially named
-- [ ] `npm run typecheck` passes
-- [ ] `npm run check:circular` passes (no circular deps)
-- [ ] `npm run check:dead` passes (no unused files)
-- [ ] `npm run check:deps` passes (no domain boundary violations — warn level)
-- [ ] Tests pass: `npm test`
-- [ ] Version bumped in `package.json`
-
----
-
-## 7. Current Entropy Hotspots (as of v0.5.1)
-
-> Historical snapshot — paths below predate the v0.6.0 `src/` refactor (see
-> `CHANGELOG.md` for the rename map, e.g. `memory_radar/` → `src/memory/` +
-> `src/rooms/` + `src/maps/`, `code_highlighter/` → `src/language/`,
-> `debugger/emulator/` → `src/emulator/`). Kept as-is for historical LOC records; do
-> not use these paths for navigation.
-
-| File | LOC | Status |
+| Kind | Domains | May depend on |
 |---|---|---|
-| `debugger/emulator/panel-webview.js` | 1007 | HTML template — single indivisible function, justified |
-| `extension.js` | 454 | Continue reducing; extract command handlers |
-| `debugger/emulator/panel.js` | 454 | Reduced from 1448; lifecycle + IPC only |
-| `memory_radar/models/map-blob-evidence-model.js` | 701 | Large but single-purpose |
-| `memory_radar/render-memory-tab.js` | 300 | Single-purpose tab renderer — acceptable |
+| **Library** (pure, no `vscode`, no UI) | `shared`, `maps`, `script`, `localizations` | other libraries only (`shared` depends on nothing) |
+| **Platform** (VS Code integration, no tab UI) | `resources` (soe:// VFS), `mcp`, `language`, `debugger` | libraries; `mcp` only `vscode.workspace.fs` |
+| **Feature** (a tab or panel) | `emulator`, `memory` (radar host), `rooms`, `sprites`, `music`, `rom`, `scaling`, `routes`, `docs` | libraries, platform read APIs (`soe://`) |
 
-### Completed decompositions (v0.5.0–v0.5.1):
-- ✅ `renderRadarHtml` (593 LOC) → `memory_radar/render-radar.js` + `render-memory-tab.js` + `render-docs-tab.js`
-- ✅ `code_highlighter/language-providers.js` (559 LOC) → 39-line facade + 6 focused modules
-- ✅ `memory_radar/webview/assets/scaling-tab.js` (638 LOC) → `assets/scaling/` (8 files)
-- ✅ `debugger/emulator/panel.js` (1448 LOC) → `panel.js` (454) + `panel-webview.js` (1007 HTML template)
-- ✅ Deleted dead: `assets/scaling-tab.js`, `memory_radar/room-tree-new.js`
-- ✅ v0.17.0: `emulator/room-script-model.js` + `opcode-registry.js` (1261 LOC) replaced by the ported `src/script/` domain
-
-### Priority migration order:
-1. Continue reducing `extension.js` below 300 LOC (extract radar command handler)
-2. Migrate `radar-utils.js` → TypeScript (good TS candidate: pure functions)
+`src/extension.js` is the composition root: it registers commands and injects
+cross-feature capabilities (e.g. the emulator's `readMemory` into `resources`). It owns no
+state and no logic.
 
 ---
 
-## 8. The Change Ritual (mandatory)
+## 3. Laws
 
-1. Bump version in `package.json` (patch/minor/major)
-2. Run validation: `npm run typecheck && npm run check:circular && npm run check:dead`
-3. Run tests: `/opt/homebrew/bin/npm test`
-4. Commit to `develop` with `v<ver>: [<domain>] <description>`
-5. Install: `npm run deploy` (packages a `.vsix` via `vsce` and installs it with
-   `code --install-extension --force`) — do not use the old `rsync`-to-
-   `~/.vscode/extensions/` method
-6. Tell user to reload VS Code
+### 3.1 Features are independently removable **[now: rule · target: fully true]**
+Deleting a feature domain may only break its own registration lines in `src/extension.js`.
+- A feature never `require`s another feature — not its host code, not its webview files,
+  not its globals. Cross-feature capability flows **only** through injection in
+  `extension.js` or through `soe://`.
+- Anything two features need moves down into a library (`shared/`, `maps/`, …) or into
+  `soe://`.
+- Tabs that share one webview are given to the host as a plain list of
+  `{ id, label, html, css, js, onMessage }` objects; a missing tab is skipped, not fatal.
+  (A plain array is not a "registry" in the sense of §3.6.)
+- Enforced by `.depcruise.js` (`npm run check:deps`). A new feature domain gets a
+  no-feature-to-feature rule the same day.
 
-**One prompt = one commit.**
+### 3.2 Direction **[now]**
+```
+library  ←  platform  ←  feature  ←  extension.js
+   (parser → model → renderer → UI inside each)
+```
+Forbidden: renderer → parser, UI mutating models except through explicit action files,
+any library touching `vscode`, the DOM or extension state, host code importing a
+`webview/` file.
 
----
+### 3.3 One owner per state **[now]**
+Every piece of state has exactly one owner file; no mirrored state, no implicit sync.
+Viewport, zoom, selection, filters, emulator runtime state, panel lifecycle, room tree
+cache, memory-map cache, enum cache and extension config each have a single owner listed
+in the domain's `README.md`.
 
-## 10. Architecture Specification Documents
+### 3.4 soe:// is the data plane **[target]**
+Anything derived from the ROM or live RAM that more than one consumer needs (a tab, hover,
+MCP, tests) is exposed under `soe://` first and consumed from there. Tabs fetch data from
+`soe://` instead of from each other. Writes, when added, produce patch overlays, never
+in-place ROM mutation.
 
-The following documents define the long-term target architecture:
+### 3.5 Code lives in code files, not strings **[target — no new violations]**
+- No JavaScript, CSS or HTML inside JS template literals or string concatenation. Webview
+  code lives in real `.ts`/`.js`, `.css` and `.html` files under `src/<domain>/webview/`.
+- Webviews load their code as files (`asWebviewUri`) or as an esbuild bundle — never by
+  `readFileSync` + string splicing.
+- Configuration reaches the webview as data (a `<script type="application/json">` block or
+  an `init` message), never by interpolating `${…}` into code.
+- Building DOM from data is fine; use the shared `escH` and keep it out of logic files.
+- Legacy offenders (the `src/emulator/*-view.js` family, `panel-webview.js`,
+  `menu/menu-view.js`, the radar concatenation in `memory/webview/index.js`) are converted
+  when touched. Do not add to them.
 
-| Document | Purpose |
+### 3.6 Shared code: extract on the third copy **[now]**
+- One user → keep it local. Two → duplication is acceptable. **Three or more → extract**
+  into the right library as pure functions.
+- Forbidden: grab-bag `utils.js`/`common.js`, helpers-of-helpers, DI containers, plugin
+  registries with discovery or lifecycle.
+- Known canonical homes: SNES addressing and byte reads → `shared/snes-addr`; graphics
+  decode (BGR555, 2/4bpp, sprite blocks) → `maps/`; webview helpers (`escH`, hex format,
+  tab strip, CSP shell, theme) → `shared/webview/`.
+
+### 3.7 Types **[target: strict everywhere]**
+- New files are TypeScript with `strict: true`. Libraries and platform code are TS first.
+- Existing JS is ratcheted: a file, once added to the strict list, may never fall out of
+  it. `@types/vscode` is a dev dependency, so the VS Code API is typed, not `any`.
+- Host↔webview messages are a typed union per panel; no stringly-typed `command` switch
+  without a type.
+
+### 3.8 Data provenance **[now — known violations in `docs/architecture-state.md` §16]**
+- ROM facts (addresses, tables, layouts, formats) must come from the ROM itself, traces,
+  or our own disassembly, and be checkable by a test against the ROM.
+- Do not copy code, data tables or structure definitions from other projects
+  (SoETilesViewer, SoEScriptDumper, …) — they are reference only and GPL-licensed, while
+  this project is MIT. The one exception is naming/localization data (room names, etc.),
+  which lives in `src/localizations/`.
+- No runtime or test path may point into another repository's checkout; ROM location
+  comes from settings or `EVERSCRIPT_ROM`.
+
+### 3.9 File size **[now]**
+
+| Hand-written LOC | Status |
 |---|---|
-| `docs/architecture/target-architecture.md` | Authoritative architecture spec: goals, domains, ownership, dependencies |
-| `docs/architecture/domain-overview.md` | Navigation guide — which domains to load for each task |
-| `docs/architecture/migration-plan.md` | Phased migration roadmap (current state → target) |
-| `docs/architecture/dependency-rules.md` | Dependency-cruiser rule motivations and graduation schedule |
-| `.depcruise.js` | Machine-readable dependency rules (run via `npm run check:deps`) |
+| ≤ 250 | fine |
+| 250–400 | justify in the domain README |
+| > 400 | must split before adding to it |
 
-**Read `docs/architecture/domain-overview.md` first** when starting any session.
-It tells you which files to load and which to ignore.
+Generated files, JSON data and vendored code are exempt. A large template literal is not
+"indivisible" — see §3.5.
 
-| Script | Tool | Purpose | Blocks release? |
-|---|---|---|---|
-| `npm run typecheck` | tsc | Type checking (noEmit) | Yes |
-| `npm run check:circular` | madge | Circular dependency scan | Yes |
-| `npm run check:dead` | knip | Unused files/exports | Yes (files only) |
-| `npm test` | custom | Full test suite | Yes |
+### 3.10 Local reasoning **[now]**
+Each `src/<domain>/` has a `README.md` stating: kind, ownership, state owned, allowed
+dependencies, key invariants. A directory must be understandable from its own files; do
+not write "see extension.js for details" — move the logic or document the invariant
+locally.
 
-Config: `tsconfig.json` (excludes webview assets), `knip.json` (ignores runtime-loaded assets).
+### 3.11 Performance **[now — known violations in `docs/architecture-state.md` §9]**
+- The extension activates only on `.evs`, `soe://`, its commands, debug and MCP — never
+  `onStartupFinished`. Heavy modules are `require`d lazily on first use.
+- Emulator per-frame work runs only when its output is visible. No per-frame round trip to
+  the extension host; batch to ≥ 100 ms. Send typed arrays over `postMessage`, never
+  `Array.from` of memory.
+
+### 3.12 What ships **[now — known violations in `docs/architecture-state.md` §10]**
+`.vscodeignore` excludes everything that is not runtime: docs, AI files, tools, tests,
+caches (`.emscripten_cache`), TS sources whose `dist/` ships, and every ROM/save-state
+extension (`*.sfc`, `*.smc`, `*.srm`, `*.spc`, `*.state`). Check with `vsce ls` after
+touching it.
+
+---
+
+## 4. Tests **[target — see `docs/architecture-state.md` §17]**
+
+| Script | Contents | When |
+|---|---|---|
+| `npm test` | grammar + unit tier (no ROM, no emcc, no browser), < 10 s | every commit |
+| `npm run test:rom` | ROM- and DOM-backed tests; skip cleanly without a ROM | when a ROM is present |
+| `npm run test:emulator` | built cores + headless runtime | when `src/emulator/**` or cores change |
+| `npm run test:slow` / `test:all` | full parity runs | on demand / pre-release |
+
+A new test file must be added to a tier; a test needing a ROM uses the shared skip guard.
+`npm test` must never rebuild native code or rewrite tracked files.
+
+---
+
+## 5. Checks and release
+
+- `npm run typecheck`, `npm run check:circular`, `npm run check:deps`, `npm test` must pass;
+  `npm run check:dead` is advisory.
+- Versioning, commit format and install steps have one home: the `release-ritual` skill
+  (`.agents/skills/release-ritual/SKILL.md`). Do not restate them elsewhere.
+
+---
+
+## 6. Where things are
+
+| Need | Read |
+|---|---|
+| Current measurements, debt and backlog | `docs/architecture-state.md` |
+| Which domain does what | `src/README.md`, then `src/<domain>/README.md` |
+| Machine-enforced dependency rules | `.depcruise.js` |
+| State ownership details | the owning domain's `README.md` |
+
+`STATE_FLOW.md` and `docs/architecture/*` predate the `src/` refactor; trust `src/` and
+the domain READMEs over them until they are rewritten or archived.
