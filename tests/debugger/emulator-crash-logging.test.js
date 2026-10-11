@@ -96,8 +96,20 @@ test('menu-view.js updates object state pill immediately in-place without resett
   assert.ok(menuCode.includes('function updateObjectRowDisplay(objIndex, newState, maxState)'), 'missing updateObjectRowDisplay');
   assert.ok(menuCode.includes('const menuLocalObjStates = new Map()'), 'missing menuLocalObjStates cache');
   assert.ok(menuCode.includes('function getEffectiveObjState(objIndex)'), 'missing getEffectiveObjState helper');
-  assert.ok(menuCode.includes('m.writeMemory(0x7E107E + objIndex, newState)'), 'missing direct WRAM write to 0x7E107E in stepObjectState');
-  assert.ok(menuCode.includes('m.writeMemory(0x7E10CE + objIndex, newState)'), 'missing direct WRAM write to 0x7E10CE in stepObjectState');
+  assert.ok(!menuCode.includes('m.writeMemory(0x7E107E + objIndex, newState)'), 'direct WRAM write breaks engine difference check $90A390');
+  assert.ok(menuCode.includes("'5c 82 ' + hexObj + ' 82 ' + hexVal"), 'stepObjectState must use opcode 0x5C for engine metatile updates');
+});
+
+// 5. Start button closing from all tabs & live vector overlays without baked image hijacking
+test('menu-view.js closes menu on Start, B, or Escape from any tab', () => {
+  assert.ok(menuCode.includes('e.key === startKey || (startKey === \'Enter\' && e.key === \'Enter\')'), 'Start key must close menu before row activation');
+  assert.ok(menuCode.includes('closeEmulatorMenu()'), 'missing closeEmulatorMenu');
+});
+
+test('panel-webview.js renders live vector overlays without static overlayImg hijacking', () => {
+  assert.ok(!webviewCode.includes('activeRoomMap.overlayImg'), 'static overlayImg must not hijack live vector overlays');
+  assert.ok(webviewCode.includes('renderCollisionOverlay(overlayCtx, layout, preState, activeRoomMap, cachedCollisionImg, cachedMapId)'), 'missing live renderCollisionOverlay');
+  assert.ok(webviewCode.includes('renderObjectsOverlay('), 'missing live renderObjectsOverlay');
 });
 
 console.log(`\nResults: ${passed} passed, ${failed} failed`);

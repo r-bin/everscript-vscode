@@ -1694,21 +1694,13 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         overlayCtx.clip();
       }
 
-      if (activeRoomMap && activeRoomMap.overlayImg && activeRoomMap.overlayImg.complete && activeRoomMap.overlayImg.naturalWidth > 0) {
-        const mapX = layout.emuX - layout.camX * layout.scaleSnes;
-        const mapY = layout.emuY - (layout.camY + 1) * layout.scaleSnes;
-        const mapW = activeRoomMap.width * layout.scaleSnes;
-        const mapH = activeRoomMap.height * layout.scaleSnes;
-        overlayCtx.imageSmoothingEnabled = false;
-        overlayCtx.drawImage(activeRoomMap.overlayImg, mapX, mapY, mapW, mapH);
-      } else {
-        // Collision: contours and wall tint (the line version)
-        if (collisionOverlayEnabled) {
-          renderCollisionOverlay(overlayCtx, layout, preState, activeRoomMap, cachedCollisionImg, cachedMapId);
-        }
+      // Collision: contours and wall tint (the line version)
+      if (collisionOverlayEnabled) {
+        renderCollisionOverlay(overlayCtx, layout, preState, activeRoomMap, cachedCollisionImg, cachedMapId);
+      }
 
-        // Step-on triggers: Pink (#ff69b4, rgba(255, 100, 180, 0.22))
-        if (triggersOverlayEnabled && cachedTriggers) {
+      // Step-on triggers: Pink (#ff69b4, rgba(255, 100, 180, 0.22))
+      if (triggersOverlayEnabled && cachedTriggers) {
           const stepOn = cachedTriggers.stepOn || [];
           const bTrigger = cachedTriggers.bTrigger || [];
           overlayCtx.lineWidth = 1;
@@ -1773,7 +1765,6 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         if (animTilesOverlayEnabled && cachedAnimTiles && cachedAnimTiles.length) {
           renderAnimTilesOverlay(overlayCtx, layout, cachedAnimTiles);
         }
-      }
 
       overlayCtx.restore();
     }

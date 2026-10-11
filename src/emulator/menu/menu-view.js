@@ -1192,20 +1192,80 @@ function getMenuClientScript() {
           changeMenuValue(1);
         }
       } else if (menuActiveTab === 1) {
-        changeMenuValue(1);
+        switch (menuSelectedRow) {
+          case 0:
+            setExtendMap(!extendMapEnabled);
+            setPillState('menu-val-extend', extendMapEnabled);
+            playMenuSound('click_toggle');
+            break;
+          case 1:
+            setTriggersOverlay(!triggersOverlayEnabled);
+            setPillState('menu-val-triggers', triggersOverlayEnabled);
+            playMenuSound('click_toggle');
+            break;
+          case 2:
+            setObjectsOverlay(!objectsOverlayEnabled);
+            setPillState('menu-val-objects', objectsOverlayEnabled);
+            playMenuSound('click_toggle');
+            break;
+          case 3:
+            setAnimTilesOverlay(!animTilesOverlayEnabled);
+            setPillState('menu-val-anim', animTilesOverlayEnabled);
+            playMenuSound('click_toggle');
+            break;
+          case 4:
+            setCollisionOverlay(!collisionOverlayEnabled);
+            setPillState('menu-val-collision', collisionOverlayEnabled);
+            playMenuSound('click_toggle');
+            break;
+          case 5:
+            setFogOfWar(!fogOfWarEnabled);
+            setPillState('menu-val-fog', fogOfWarEnabled);
+            playMenuSound('click_toggle');
+            break;
+          case 6:
+            if (typeof sndSetShow === 'function') {
+              sndSetShow(!sndShow);
+              setPillState('menu-val-sound-vis', sndShow);
+              setPillState('menu-val-sound-vis-tab4', sndShow);
+              playMenuSound('click_toggle');
+            }
+            break;
+          case 7:
+            changeMenuValue(1);
+            break;
+        }
       } else if (menuActiveTab === 2) {
         changeMenuValue(1);
       } else if (menuActiveTab === 3) {
         toggleLootState(menuSelectedRow);
       } else if (menuActiveTab === 4) {
-        if (menuSelectedRow === 4) {
-          playMenuSound('click_confirm');
-          if (loadedRomData) {
-            bootRom(loadedRomData, loadedRomName);
-            closeEmulatorMenu();
-          }
-        } else {
-          changeMenuValue(1);
+        switch (menuSelectedRow) {
+          case 2:
+            if (typeof sndSetShow === 'function') {
+              sndSetShow(!sndShow);
+              setPillState('menu-val-sound-vis', sndShow);
+              setPillState('menu-val-sound-vis-tab4', sndShow);
+              playMenuSound('click_toggle');
+            }
+            break;
+          case 3:
+            const focusChip = document.getElementById('ss-chip-stay');
+            const isStay = focusChip && focusChip.classList.contains('active');
+            setKeepFocusChip(!isStay);
+            syncMenuValuesFromRuntime();
+            playMenuSound('click_toggle');
+            break;
+          case 4:
+            playMenuSound('click_confirm');
+            if (loadedRomData) {
+              bootRom(loadedRomData, loadedRomName);
+              closeEmulatorMenu();
+            }
+            break;
+          default:
+            changeMenuValue(1);
+            break;
         }
       } else if (menuActiveTab === 5) {
         if (menuSelectedRow >= 0 && menuSelectedRow < SNES_BUTTON_NAMES.length) {
@@ -1352,14 +1412,7 @@ function getMenuClientScript() {
         lastSampledPreState.objStateBuf[objIndex] = newState;
       }
 
-      // 2. Direct WRAM write (immediate effect even while paused)
-      const m = getModule();
-      if (m && typeof m.writeMemory === 'function') {
-        m.writeMemory(0x7E107E + objIndex, newState);
-        m.writeMemory(0x7E10CE + objIndex, newState);
-      }
-
-      // 3. Safe opcode 0x5C injection: 5C takes two expressions (0x82 = unsigned const byte)
+      // 2. Safe opcode 0x5C injection: 5C takes two expressions (0x82 = unsigned const byte)
       let injected = false;
       try {
         const hexObj = objIndex.toString(16).padStart(2, '0');
@@ -1367,7 +1420,7 @@ function getMenuClientScript() {
         injected = injectEverscript('5c 82 ' + hexObj + ' 82 ' + hexVal);
       } catch (_) {}
 
-      // 4. Update UI in-place (preserves scroll position and active DOM)
+      // 3. Update UI in-place (preserves scroll position and active DOM)
       playMenuSound('click_nav');
       updateObjectRowDisplay(objIndex, newState, maxState);
 
@@ -1529,10 +1582,6 @@ function getMenuClientScript() {
         try {
           injected = injectEverscript('5c 82 ' + loot.objectId.toString(16).padStart(2, '0') + ' 82 ' + (targetLooted ? '01' : '00'));
         } catch (_) {}
-        if (m && typeof m.writeMemory === 'function') {
-          m.writeMemory(0x7E107E + loot.objectId, newObjState);
-          m.writeMemory(0x7E10CE + loot.objectId, newObjState);
-        }
       }
 
       if (targetLooted) {
@@ -1751,20 +1800,27 @@ function getMenuClientScript() {
           }
         }
 
-        if (e.key === 'Enter' || e.key === 'v' || e.key === 'V') {
+        const startKey = userKeyMap['Start'] || 'Enter';
+        const aKey = userKeyMap['A'] || 'v';
+        const bKey = userKeyMap['B'] || 'c';
+
+        // 1. Start button, B button, or Escape closes/resumes menu from ANY tab:
+        if (e.key === startKey || (startKey === 'Enter' && e.key === 'Enter') ||
+            e.key === bKey || (bKey && e.key.toLowerCase() === bKey.toLowerCase()) ||
+            e.key === 'Escape') {
+          closeEmulatorMenu();
+          e.preventDefault();
+          return;
+        }
+
+        // 2. Action / Confirm (A button, or Enter if Start is mapped to another key):
+        if (e.key === aKey || (aKey && e.key.toLowerCase() === aKey.toLowerCase()) ||
+            (startKey !== 'Enter' && e.key === 'Enter')) {
           if (menuActiveTab === 0) {
             closeEmulatorMenu();
           } else {
             activateMenuRow();
           }
-          e.preventDefault();
-          return;
-        }
-
-        // Closing menu
-        const startKey = userKeyMap['Start'] || 'Enter';
-        if (e.key === 'c' || e.key === 'C' || e.key === startKey || (startKey === 'Enter' && e.key === 'Enter' && menuActiveTab === 0)) {
-          closeEmulatorMenu();
           e.preventDefault();
           return;
         }
