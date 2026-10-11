@@ -852,13 +852,23 @@ function _handleRoomMapRequest(mapId, objectStates, cutGrassTiles, layered) {
         } catch (_) { bgPalette = null; }
 
         const roomObjects = [];
+        const hexId = mapId.toString(16).padStart(2, '0');
         try {
             if (room.objects && room.objects.length) {
                 for (let i = 0; i < room.objects.length; i++) {
                     const obj = room.objects[i];
-                    const box = maps.objectBounds(rom, room, obj);
-                    if (!box || box.w <= 0 || box.h <= 0) continue;
+                    let box = maps.objectBounds(rom, room, obj);
+                    if (!box || box.w <= 0 || box.h <= 0) {
+                        const firstSt = (obj.states && obj.states[0]) ? obj.states[0] : null;
+                        box = {
+                            x: firstSt ? firstSt.tileX : 0,
+                            y: firstSt ? firstSt.tileY : 0,
+                            w: firstSt ? (firstSt.targetWidth || 1) : 1,
+                            h: firstSt ? (firstSt.targetHeight || 1) : 1,
+                        };
+                    }
                     const count = (typeof maps.objectStateCount === 'function') ? maps.objectStateCount(obj) : (obj.states.length + 1);
+                    const states = [];
                     for (let s = 0; s < count; s++) {
                         const st = s > 0 ? obj.states[s - 1] : obj.states[0];
                         const stamp = st ? maps.parseObjectStamp(rom, room.objectArea, st.metatileId) : { valid: false };
@@ -875,17 +885,21 @@ function _handleRoomMapRequest(mapId, objectStates, cutGrassTiles, layered) {
                             w: (stamp.valid ? stamp.tw : (st ? st.targetWidth : box.w)) * 16,
                             h: (stamp.valid ? stamp.th : (st ? st.targetHeight : box.h)) * 16,
                             preview: preview,
+                            vfsUri: 'soe://rom/assets/maps/' + hexId + '/objects/' + i + '/state_' + s + '.png',
                         });
                     }
                     const objPreview = (states[0] && states[0].preview) ? states[0].preview : null;
                     roomObjects.push({
-                        index: obj.objectIndex,
+                        index: obj.objectIndex !== undefined ? obj.objectIndex : i,
                         x: box.x * 16,
                         y: box.y * 16,
                         w: box.w * 16,
                         h: box.h * 16,
                         preview: objPreview,
                         states: states,
+                        vfsUri: 'soe://rom/assets/maps/' + hexId + '/objects/' + i + '/',
+                        vfsPreview: 'soe://rom/assets/maps/' + hexId + '/objects/' + i + '/preview.png',
+                        vfsGif: 'soe://rom/assets/maps/' + hexId + '/objects/' + i + '/preview.gif',
                     });
                 }
             }
@@ -1027,6 +1041,7 @@ function _handleRoomMapRequest(mapId, objectStates, cutGrassTiles, layered) {
             animTiles: animTileClusters,
             lootables: roomLootables,
             itemIcons: itemIcons,
+            vfsLiveUri: 'soe://rom/assets/maps/' + hexId + '/live.png',
         };
         _roomMapCache.set(cacheKey, data);
         _panel.webview.postMessage(Object.assign({ command: 'roomMapRendered' }, data));

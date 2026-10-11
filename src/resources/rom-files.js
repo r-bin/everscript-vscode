@@ -24,7 +24,7 @@ const { resolveAssets } = require('./rom-assets');
 const DEFAULT_SLICE = 0x100;
 const HEADER = 0xFFC0;
 
-function resolveRom(segments, rom) {
+function resolveRom(segments, rom, deps) {
     const [head, ...rest] = segments;
     if (head === undefined) {
         return dir([
@@ -34,10 +34,10 @@ function resolveRom(segments, rom) {
             ['assets', 'dir'],
         ]);
     }
-    if (head === 'assets') return resolveAssets(rest, rom);
+    if (head === 'assets') return resolveAssets(rest, rom, deps);
     // Backward-compatibility: route unlisted direct asset categories to resolveAssets
     if (head === 'scripts' || head === 'characters' || head === 'audio' || head === 'tables' || head === 'tiles') {
-        return resolveAssets(segments, rom);
+        return resolveAssets(segments, rom, deps);
     }
     if (rest.length === 0) {
         if (head === 'index.md') return text(() => indexMarkdown(rom));

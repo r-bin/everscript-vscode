@@ -820,6 +820,20 @@ function getMenuClientScript() {
       }
     }
 
+    function getCurrentMapId() {
+      let currentMap = (typeof cachedMapId === 'number' && cachedMapId >= 0) ? cachedMapId : -1;
+      if (currentMap < 0 && typeof lastSampledPreState !== 'undefined' && lastSampledPreState && typeof lastSampledPreState.mapId === 'number') {
+        currentMap = lastSampledPreState.mapId;
+      }
+      if (currentMap < 0) {
+        const m = getModule();
+        if (m && typeof m.readMemory === 'function') {
+          currentMap = m.readMemory(0x7E0B3C) | (m.readMemory(0x7E0B3D) << 8);
+        }
+      }
+      return currentMap;
+    }
+
     function openEmulatorMenu() {
       if (isMenuOpen) return;
       isMenuOpen = true;
@@ -836,6 +850,25 @@ function getMenuClientScript() {
 
       playMenuSound('wheel_open');
       syncMenuValuesFromRuntime();
+
+      const curMap = getCurrentMapId();
+      if (curMap >= 0 && (!cachedObjects || !cachedLootables)) {
+        if (typeof roomObjectsCache !== 'undefined' && roomObjectsCache.has(curMap)) {
+          cachedObjects = roomObjectsCache.get(curMap);
+        }
+        if (typeof roomLootCache !== 'undefined' && roomLootCache.has(curMap)) {
+          cachedLootables = roomLootCache.get(curMap);
+        }
+        if ((!cachedObjects || !cachedLootables) && typeof vscodeApi !== 'undefined' && vscodeApi) {
+          vscodeApi.postMessage({
+            command: 'requestRoomMap',
+            mapId: curMap,
+            objectStates: null,
+            cutGrassTiles: null,
+            layered: false,
+          });
+        }
+      }
       menuActiveTab = 0; // Default LENS tab
       menuSelectedRow = 0;
       renderMenuTab(menuActiveTab);
@@ -930,7 +963,9 @@ function getMenuClientScript() {
           playerX = m.readMemory(0x7E4E89 + 0x1A) | (m.readMemory(0x7E4E89 + 0x1B) << 8);
           playerY = m.readMemory(0x7E4E89 + 0x1C) | (m.readMemory(0x7E4E89 + 0x1D) << 8);
         }
-        coordsEl.textContent = 'Cam: (' + Math.round(panX) + ', ' + Math.round(panY) + ') | Player: (' + playerX + ', ' + playerY + ')';
+        const px = (typeof panX !== 'undefined') ? panX : 0;
+        const py = (typeof panY !== 'undefined') ? panY : 0;
+        coordsEl.textContent = 'Cam: (' + Math.round(px) + ', ' + Math.round(py) + ') | Player: (' + playerX + ', ' + playerY + ')';
       }
 
       if (zoomPill) {
@@ -1122,7 +1157,27 @@ function getMenuClientScript() {
       const container = document.getElementById('menu-objects-list');
       if (!container) return;
       container.innerHTML = '';
-      if (!cachedObjects || !cachedObjects.length) {
+      if (!cachedObjects) {
+        const curMap = getCurrentMapId();
+        if (curMap >= 0 && typeof roomObjectsCache !== 'undefined' && roomObjectsCache.has(curMap)) {
+          cachedObjects = roomObjectsCache.get(curMap);
+        }
+      }
+      if (!cachedObjects) {
+        const curMap = getCurrentMapId();
+        if (curMap >= 0 && typeof vscodeApi !== 'undefined' && vscodeApi) {
+          vscodeApi.postMessage({
+            command: 'requestRoomMap',
+            mapId: curMap,
+            objectStates: null,
+            cutGrassTiles: null,
+            layered: false,
+          });
+        }
+        container.innerHTML = '<div class="menu-empty-hint">Loading Section 3 map objects...</div>';
+        return;
+      }
+      if (!cachedObjects.length) {
         container.innerHTML = '<div class="menu-empty-hint">No Section 3 map objects found in this room.</div>';
         return;
       }
@@ -1244,7 +1299,27 @@ function getMenuClientScript() {
       const container = document.getElementById('menu-loot-list');
       if (!container) return;
       container.innerHTML = '';
-      if (!cachedLootables || !cachedLootables.length) {
+      if (!cachedLootables) {
+        const curMap = getCurrentMapId();
+        if (curMap >= 0 && typeof roomLootCache !== 'undefined' && roomLootCache.has(curMap)) {
+          cachedLootables = roomLootCache.get(curMap);
+        }
+      }
+      if (!cachedLootables) {
+        const curMap = getCurrentMapId();
+        if (curMap >= 0 && typeof vscodeApi !== 'undefined' && vscodeApi) {
+          vscodeApi.postMessage({
+            command: 'requestRoomMap',
+            mapId: curMap,
+            objectStates: null,
+            cutGrassTiles: null,
+            layered: false,
+          });
+        }
+        container.innerHTML = '<div class="menu-empty-hint">Loading lootables...</div>';
+        return;
+      }
+      if (!cachedLootables.length) {
         container.innerHTML = '<div class="menu-empty-hint">No lootable gourds, chests or sniff spots found in this room.</div>';
         return;
       }

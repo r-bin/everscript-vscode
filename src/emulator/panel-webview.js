@@ -983,6 +983,12 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
 
     // -- Input -----------------------------------------------------------------
     var isLensModeActive = false;
+    var zoomLevel = 1.0;
+    var panX = 0;
+    var panY = 0;
+    var updateScreenLayout = function() {};
+    var zoomAt = function() {};
+    var resetZoom = function() {};
     const KEY_MAP = {
       'ArrowRight': 1 << 8,  'ArrowLeft': 1 << 9,
       'ArrowDown':  1 << 10, 'ArrowUp':   1 << 11,
@@ -1150,11 +1156,11 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       let lastWrapHeight = -1;
 
       // Zoom & Pan state
-      let zoomLevel = 1.0;
-      let panX = 0;
-      let panY = 0;
+      zoomLevel = 1.0;
+      panX = 0;
+      panY = 0;
 
-      function updateScreenLayout() {
+      updateScreenLayout = function() {
         const W = wrap.clientWidth, H = wrap.clientHeight;
         if (!W || !H) return;
         const fitScale = Math.max(Math.min(W / 512, H / 448), 0.01);
@@ -1173,9 +1179,9 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         if (romLoaded && lastSampledPreState) {
           renderExtendedMapAndOverlays(lastSampledPreState, canvas, extMapCanvas, extMapCtx, extEntCanvas, extEntCtx, extFgCanvas, extFgCtx, extOverCanvas, extOverCtx);
         }
-      }
+      };
 
-      function zoomAt(nextZoom, cx, cy) {
+      zoomAt = function(nextZoom, cx, cy) {
         const W = wrap.clientWidth, H = wrap.clientHeight;
         if (!W || !H) return;
         nextZoom = Math.max(0.25, Math.min(nextZoom, 10.0));
@@ -1195,7 +1201,14 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         panY = newEmuY - (H - newEmuH) / 2;
         zoomLevel = nextZoom;
         updateScreenLayout();
-      }
+      };
+
+      resetZoom = function() {
+        zoomLevel = 1.0;
+        panX = 0;
+        panY = 0;
+        updateScreenLayout();
+      };
 
       // Trackpad pinch-to-zoom (wheel with ctrlKey/metaKey) and two-finger pan (wheel)
       wrap.addEventListener('wheel', (e) => {
@@ -1283,10 +1296,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         zoomAt(zoomLevel / 1.25, wrap.clientWidth / 2, wrap.clientHeight / 2);
       });
       if (zfitBtn) zfitBtn.addEventListener('click', () => {
-        zoomLevel = 1.0;
-        panX = 0;
-        panY = 0;
-        updateScreenLayout();
+        resetZoom();
       });
 
       // Scale the canvases to fit the panel and sync dimensions

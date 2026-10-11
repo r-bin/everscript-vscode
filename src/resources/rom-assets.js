@@ -6,7 +6,7 @@
 
 const {
     renderItemIcon, lootIconId, alchemyIconId, iconEntry, ALCHEMY_FORMULAS, ICON_ID_LAST,
-    encodePng, decodeRoom, renderRoomComposite, MAX_ROOMS,
+    encodePng, decodeRoom, renderRoomComposite, applyObjectStates, MAX_ROOMS,
 } = require('../maps');
 const { lootRewardName, ramBitToStr } = require('../script');
 const { decodeRomString, getMapName, getMapArea } = require('../localizations');
@@ -21,7 +21,7 @@ const ALCHEMY_KNOWN = 0x2258;
 const STRING_COUNT = 3002;
 const ICONS = 'soe://rom/assets/icons/';
 
-function resolveAssets(segments, rom) {
+function resolveAssets(segments, rom, deps) {
     const [kind, id, leaf, ...extra] = segments;
     if (kind === undefined) {
         return dir(['icons', ...Object.keys(CATEGORIES), 'alchemy', 'strings', 'maps', 'scripts', 'characters', 'tiles', 'audio', 'tables'].map(n => [n, 'dir']));
@@ -51,6 +51,26 @@ function resolveAssets(segments, rom) {
         const sIdx = segments.indexOf('scripts');
         return resolveScripts(['rooms', id, ...segments.slice(sIdx + 1)], rom);
     }
+    if (kind === 'maps' && (leaf === 'objects' || extra.includes('objects'))) {
+        const { resolveRoomObjects } = require('./map-objects');
+        const oIdx = segments.indexOf('objects');
+        const subSegments = segments.slice(oIdx + 1);
+        const rId = parseInt(id, 16);
+        if (Number.isInteger(rId) && rId >= 0 && rId < MAX_ROOMS) {
+            return resolveRoomObjects(decodeRoom(rom, rId), rom, subSegments);
+        }
+        return null;
+    }
+    if (kind === 'maps' && (leaf === 'widgets' || extra.includes('widgets'))) {
+        const { resolveRoomWidgets } = require('./map-objects');
+        const wIdx = segments.indexOf('widgets');
+        const subSegments = segments.slice(wIdx + 1);
+        const rId = parseInt(id, 16);
+        if (Number.isInteger(rId) && rId >= 0 && rId < MAX_ROOMS) {
+            return resolveRoomWidgets(decodeRoom(rom, rId), rom, subSegments);
+        }
+        return null;
+    }
     if (kind === 'maps' && (leaf === 'tiles' || leaf === 'metatiles' || extra.includes('tiles') || extra.includes('metatiles'))) {
         const { resolveRoomTiles } = require('./tile-files');
         const tileIdx = segments.indexOf('tiles') !== -1 ? segments.indexOf('tiles') : segments.indexOf('metatiles');
@@ -66,7 +86,7 @@ function resolveAssets(segments, rom) {
     if (kind in CATEGORIES) return items(rom, kind, id, leaf);
     if (kind === 'alchemy') return alchemy(rom, id, leaf);
     if (kind === 'strings') return strings(rom, id, leaf);
-    if (kind === 'maps') return maps(rom, id, leaf);
+    if (kind === 'maps') return maps(rom, id, leaf, deps);
     return null;
 }
 
@@ -189,7 +209,7 @@ function cell(s) {
 
 // ── maps ─────────────────────────────────────────────────────────────────
 
-function maps(rom, name, leaf) {
+function maps(rom, name, leaf, deps) {
     if (name === undefined) {
         const ids = Array.from({ length: MAX_ROOMS }, (_, i) => i);
         return dir([['index.json', 'file'], ...ids.map(i => [hexId(i, 2), 'dir'])], () => [
@@ -220,6 +240,7 @@ function maps(rom, name, leaf) {
             ['info.md', 'file'],
             ['header.json', 'file'],
             ['render.png', 'file'],
+            ['live.png', 'file'],
             ...(hasAnim ? [['render.gif', 'file'], ['animation.gif', 'file']] : []),
             ['layer1.png', 'file'],
             ...(hasL1Anim ? [['layer1.gif', 'file']] : []),
@@ -230,11 +251,40 @@ function maps(rom, name, leaf) {
             ['scripts', 'dir'],
             ['tiles', 'dir'],
             ['metatiles', 'dir'],
+            ['objects', 'dir'],
+            ['widgets', 'dir'],
         ];
         return dir(entries, () => roomMarkdown(rom, id));
     }
     if (leaf === 'header.json') return json(() => plain(d.header));
     if (leaf === 'render.png') return file(() => encodePng(renderRoomComposite(rom, d)));
+    if (leaf === 'live.png') {
+        return file(async () => {
+            let staged = d;
+            if (deps && typeof deps.emulatorStatus === 'function' && typeof deps.readMemory === 'function') {
+                try {
+                    const st = await deps.emulatorStatus();
+                    if (st && st.emulator === 'running') {
+                        const mapBuf = await deps.readMemory(0x7E0B3C, 2);
+                        if (mapBuf && mapBuf.length >= 2) {
+                            const curMap = mapBuf[0] | (mapBuf[1] << 8);
+                            if (curMap === id && d.objects && d.objects.length) {
+                                const objStatesBuf = await deps.readMemory(0x7E10CE, d.objects.length);
+                                if (objStatesBuf) {
+                                    const objStates = {};
+                                    for (let i = 0; i < objStatesBuf.length; i++) {
+                                        objStates[i] = objStatesBuf[i];
+                                    }
+                                    staged = applyObjectStates(rom, d, objStates);
+                                }
+                            }
+                        }
+                    }
+                } catch (_) {}
+            }
+            return encodePng(renderRoomComposite(rom, staged));
+        });
+    }
     if (leaf === 'animation.gif' || leaf === 'render.gif') {
         if (!hasAnim) return null;
         return file(() => renderRoomAnimationGif(rom, d));
@@ -275,6 +325,14 @@ function maps(rom, name, leaf) {
         const { resolveRoomTiles } = require('./tile-files');
         return resolveRoomTiles(decodeRoom(rom, id), rom, undefined);
     }
+    if (leaf === 'objects') {
+        const { resolveRoomObjects } = require('./map-objects');
+        return resolveRoomObjects(decodeRoom(rom, id), rom, []);
+    }
+    if (leaf === 'widgets') {
+        const { resolveRoomWidgets } = require('./map-objects');
+        return resolveRoomWidgets(decodeRoom(rom, id), rom, []);
+    }
     return null;
 }
 
@@ -303,10 +361,10 @@ function roomMarkdown(rom, id) {
 | Blob | file offset \`$${hexId(d.romPointerFile, 6)}\`, bus \`$${hexId(d.romPointerSnes, 6)}\` |
 | Metatiles | ${d.metatileCount} ([tiles/](tiles/index.md)) |
 | Tile families | ${d.tileFamilies.join(', ')} |
-${animRow}| Objects | ${d.objects.length} |
+${animRow}| Objects | ${d.objects.length} ([objects/](objects/index.md)) |
 | Triggers | ${d.triggers.stepOn.length} step-on, ${d.triggers.bTrigger.length} B-button |
 
-[header.json](header.json) | [scripts/](scripts/index.md) | [tiles/](tiles/index.md) | [metatiles/](metatiles/index.md)
+[header.json](header.json) | [scripts/](scripts/index.md) | [tiles/](tiles/index.md) | [metatiles/](metatiles/index.md) | [objects/](objects/index.md) | [widgets/](widgets/index.md)
 
 ## Layers
 

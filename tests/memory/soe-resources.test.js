@@ -675,6 +675,39 @@ test('provider: tables VFS (lookup and pointer tables with data.bin and data.jso
     fsp.dispose();
 }, true);
 
+test('provider: map objects and widgets VFS (objects/index.json, previews, gifs, composition, live.png)', async () => {
+    const fsp = new SoeFileSystem({ vanillaRom: () => rom, emulatorRom: () => null, romFile: () => null, readMemory, emulatorStatus: async () => ({}) });
+
+    // Objects index for room 0
+    const objList = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/assets/maps/00/objects/index.json'))).toString('utf8'));
+    assert.strictEqual(objList.length, 11);
+    assert.strictEqual(objList[0].index, 0);
+
+    // Object 0 info, composition, preview png and preview gif
+    const objInfo = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/assets/maps/00/objects/0/info.json'))).toString('utf8'));
+    assert.strictEqual(objInfo.index, 0);
+    assert.ok(objInfo.states.length >= 1);
+
+    const objComp = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/assets/maps/00/objects/0/composition.json'))).toString('utf8'));
+    assert.strictEqual(objComp.index, 0);
+
+    const objPng = await fsp.readFile(uri('soe://rom/assets/maps/00/objects/0/preview.png'));
+    assert.ok(objPng.length > 0);
+
+    const objGif = await fsp.readFile(uri('soe://rom/assets/maps/00/objects/0/preview.gif'));
+    assert.strictEqual(objGif.subarray(0, 6).toString('ascii'), 'GIF89a');
+
+    // Widgets index
+    const widgetList = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/assets/maps/00/widgets/index.json'))).toString('utf8'));
+    assert.ok(Array.isArray(widgetList));
+
+    // Live room PNG
+    const livePng = await fsp.readFile(uri('soe://rom/assets/maps/00/live.png'));
+    assert.ok(livePng.length > 0);
+
+    fsp.dispose();
+}, true);
+
 test('encodeGif: produces valid GIF89a with Netscape infinite loop and frame delays', () => {
     const { encodeGif } = require('../../src/resources/gif');
     const w = 8, h = 8;
