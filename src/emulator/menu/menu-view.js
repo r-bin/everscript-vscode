@@ -519,8 +519,9 @@ function getMenuHtml() {
             <button id="menu-tab-btn-1" class="menu-tab-btn" type="button" data-tab="1">OVERLAYS</button>
             <button id="menu-tab-btn-2" class="menu-tab-btn" type="button" data-tab="2">OBJECTS</button>
             <button id="menu-tab-btn-3" class="menu-tab-btn" type="button" data-tab="3">LOOT</button>
-            <button id="menu-tab-btn-4" class="menu-tab-btn" type="button" data-tab="4">EMULATION</button>
-            <button id="menu-tab-btn-5" class="menu-tab-btn" type="button" data-tab="5">CONTROLS</button>
+            <button id="menu-tab-btn-4" class="menu-tab-btn" type="button" data-tab="4">CHEATS</button>
+            <button id="menu-tab-btn-5" class="menu-tab-btn" type="button" data-tab="5">EMULATION</button>
+            <button id="menu-tab-btn-6" class="menu-tab-btn" type="button" data-tab="6">CONTROLS</button>
           </div>
           <button id="menu-r-btn" class="menu-shoulder-btn" type="button" title="Next Tab (R)">R &gt;</button>
           <button id="menu-close-btn" type="button" title="Resume Game (B / Esc)">[X]</button>
@@ -637,8 +638,48 @@ function getMenuHtml() {
             <div id="menu-loot-list" class="menu-scroll-list"></div>
           </div>
 
-          <!-- Tab 4: EMULATION -->
+          <!-- Tab 4: CHEATS -->
           <div id="menu-panel-4" class="menu-tab-panel">
+            <div class="menu-row selected" data-row="0" data-action="toggle-cheat-noclip">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> No Clip / Phasing</div>
+              <div class="menu-row-value">
+                <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
+                <span id="menu-val-cheat-noclip" class="menu-pill">OFF</span>
+                <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
+              </div>
+            </div>
+            <div class="menu-row" data-row="1" data-action="toggle-cheat-invincible">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Invincibility (God Mode)</div>
+              <div class="menu-row-value">
+                <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
+                <span id="menu-val-cheat-invincible" class="menu-pill">OFF</span>
+                <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
+              </div>
+            </div>
+            <div class="menu-row" data-row="2" data-action="toggle-cheat-atlas">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Atlas Power (+480 ATK)</div>
+              <div class="menu-row-value">
+                <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
+                <span id="menu-val-cheat-atlas" class="menu-pill">OFF</span>
+                <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
+              </div>
+            </div>
+            <div class="menu-row" data-row="3" data-action="action-cheat-heal">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Full Heal Party (999 HP)</div>
+              <div class="menu-row-value">
+                <span class="menu-action-pill">[A] Heal</span>
+              </div>
+            </div>
+            <div class="menu-row" data-row="4" data-action="action-cheat-disable-all">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Disable All Cheats</div>
+              <div class="menu-row-value">
+                <span class="menu-action-pill">[A] Reset</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 5: EMULATION -->
+          <div id="menu-panel-5" class="menu-tab-panel">
             <div class="menu-row" data-row="0" data-action="step-speed">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Emulation Speed</div>
               <div class="menu-row-value">
@@ -679,8 +720,8 @@ function getMenuHtml() {
             </div>
           </div>
 
-          <!-- Tab 5: CONTROLS -->
-          <div id="menu-panel-5" class="menu-tab-panel">
+          <!-- Tab 6: CONTROLS -->
+          <div id="menu-panel-6" class="menu-tab-panel">
             <div class="menu-device-banner">
               <span id="menu-device-name">Input: Keyboard &amp; Gamepad</span>
               <span id="menu-device-status" class="menu-device-status">Active</span>
@@ -781,13 +822,13 @@ function getMenuClientScript() {
     }
     rebuildKeyBitMap();
 
-    // Menu State: 0: LENS, 1: OVERLAYS, 2: OBJECTS, 3: LOOT, 4: EMULATION, 5: CONTROLS
-    const MENU_TAB_COUNT = 6;
+    // Menu State: 0: LENS, 1: OVERLAYS, 2: OBJECTS, 3: LOOT, 4: CHEATS, 5: EMULATION, 6: CONTROLS
+    const MENU_TAB_COUNT = 7;
     let isMenuOpen = false;
     let menuActiveTab = 0; // Default LENS
     let menuSelectedRow = 0;
-    const tabSelectedRows = [0, 0, 0, 0, 0, 0];
-    const tabScrollTops = [0, 0, 0, 0, 0, 0];
+    const tabSelectedRows = [0, 0, 0, 0, 0, 0, 0];
+    const tabScrollTops = [0, 0, 0, 0, 0, 0, 0];
     const menuLocalObjStates = new Map();
     let lastMenuMapId = -1;
     let menuListeningBtn = null;
@@ -975,7 +1016,9 @@ function getMenuClientScript() {
         renderObjectRows();
       } else if (tabIndex === 3) {
         renderLootRows();
-      } else if (tabIndex === 5) {
+      } else if (tabIndex === 4 || tabIndex === 5) {
+        syncMenuValuesFromRuntime();
+      } else if (tabIndex === 6) {
         renderKeybindRows();
       }
 
@@ -1139,7 +1182,49 @@ function getMenuClientScript() {
           toggleLootState(menuSelectedRow);
         }
       } else if (menuActiveTab === 4) {
-        // Tab 4: EMULATION
+        // Tab 4: CHEATS
+        const m = getModule();
+        switch (menuSelectedRow) {
+          case 0:
+            cheatNoclipEnabled = (delta > 0);
+            if (!cheatNoclipEnabled && m) disableNoclipCheat(m);
+            else if (cheatNoclipEnabled && m) maintainCheats(m);
+            setPillState('menu-val-cheat-noclip', cheatNoclipEnabled);
+            playMenuSound('click_toggle');
+            break;
+          case 1:
+            cheatInvincibleEnabled = (delta > 0);
+            if (!cheatInvincibleEnabled && m) disableInvincibleCheat(m);
+            else if (cheatInvincibleEnabled && m) maintainCheats(m);
+            setPillState('menu-val-cheat-invincible', cheatInvincibleEnabled);
+            playMenuSound('click_toggle');
+            break;
+          case 2:
+            cheatAtlasEnabled = (delta > 0);
+            if (!cheatAtlasEnabled && m) disableAtlasCheat(m);
+            else if (cheatAtlasEnabled && m) maintainCheats(m);
+            setPillState('menu-val-cheat-atlas', cheatAtlasEnabled);
+            playMenuSound('click_toggle');
+            break;
+          case 3:
+            if (m) healParty(m);
+            playMenuSound('click_confirm');
+            break;
+          case 4:
+            cheatNoclipEnabled = false;
+            cheatInvincibleEnabled = false;
+            cheatAtlasEnabled = false;
+            if (m) {
+              disableNoclipCheat(m);
+              disableInvincibleCheat(m);
+              disableAtlasCheat(m);
+            }
+            syncMenuValuesFromRuntime();
+            playMenuSound('click_toggle');
+            break;
+        }
+      } else if (menuActiveTab === 5) {
+        // Tab 5: EMULATION
         switch (menuSelectedRow) {
           case 0:
             menuSpeedIndex = Math.max(0, Math.min(menuSpeedIndex + delta, MENU_SPEED_LABELS.length - 1));
@@ -1230,6 +1315,49 @@ function getMenuClientScript() {
       } else if (menuActiveTab === 3) {
         toggleLootState(menuSelectedRow);
       } else if (menuActiveTab === 4) {
+        // Tab 4: CHEATS
+        const m = getModule();
+        switch (menuSelectedRow) {
+          case 0:
+            cheatNoclipEnabled = !cheatNoclipEnabled;
+            if (!cheatNoclipEnabled && m) disableNoclipCheat(m);
+            else if (cheatNoclipEnabled && m) maintainCheats(m);
+            setPillState('menu-val-cheat-noclip', cheatNoclipEnabled);
+            playMenuSound('click_toggle');
+            break;
+          case 1:
+            cheatInvincibleEnabled = !cheatInvincibleEnabled;
+            if (!cheatInvincibleEnabled && m) disableInvincibleCheat(m);
+            else if (cheatInvincibleEnabled && m) maintainCheats(m);
+            setPillState('menu-val-cheat-invincible', cheatInvincibleEnabled);
+            playMenuSound('click_toggle');
+            break;
+          case 2:
+            cheatAtlasEnabled = !cheatAtlasEnabled;
+            if (!cheatAtlasEnabled && m) disableAtlasCheat(m);
+            else if (cheatAtlasEnabled && m) maintainCheats(m);
+            setPillState('menu-val-cheat-atlas', cheatAtlasEnabled);
+            playMenuSound('click_toggle');
+            break;
+          case 3:
+            if (m) healParty(m);
+            playMenuSound('click_confirm');
+            break;
+          case 4:
+            cheatNoclipEnabled = false;
+            cheatInvincibleEnabled = false;
+            cheatAtlasEnabled = false;
+            if (m) {
+              disableNoclipCheat(m);
+              disableInvincibleCheat(m);
+              disableAtlasCheat(m);
+            }
+            syncMenuValuesFromRuntime();
+            playMenuSound('click_toggle');
+            break;
+        }
+      } else if (menuActiveTab === 5) {
+        // Tab 5: EMULATION
         switch (menuSelectedRow) {
           case 2:
             if (typeof sndSetShow === 'function') {
@@ -1257,7 +1385,8 @@ function getMenuClientScript() {
             changeMenuValue(1);
             break;
         }
-      } else if (menuActiveTab === 5) {
+      } else if (menuActiveTab === 6) {
+        // Tab 6: CONTROLS
         if (menuSelectedRow >= 0 && menuSelectedRow < SNES_BUTTON_NAMES.length) {
           startKeybindListen(SNES_BUTTON_NAMES[menuSelectedRow]);
         }
@@ -1641,6 +1770,7 @@ function getMenuClientScript() {
       if (menuActiveTab === 0) updateLensTabInfo();
       else if (menuActiveTab === 2) renderObjectRows();
       else if (menuActiveTab === 3) renderLootRows();
+      else if (menuActiveTab === 4) syncMenuValuesFromRuntime();
     }
 
     // -- Remapper UI & Storage -------------------------------------------------
@@ -1968,6 +2098,9 @@ function getMenuClientScript() {
       setPillState('menu-val-fog', fogOfWarEnabled);
       setPillState('menu-val-sound-vis', sndShow);
       setPillState('menu-val-sound-vis-tab4', sndShow);
+      setPillState('menu-val-cheat-noclip', !!cheatNoclipEnabled);
+      setPillState('menu-val-cheat-invincible', !!cheatInvincibleEnabled);
+      setPillState('menu-val-cheat-atlas', !!cheatAtlasEnabled);
 
       const spdEl = document.getElementById('menu-val-speed');
       if (spdEl) spdEl.textContent = MENU_SPEED_LABELS[menuSpeedIndex];

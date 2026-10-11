@@ -57,21 +57,22 @@ test('getMenuCss generates fixed top alignment, lens tab active style, tabs, and
     assert.ok(css.includes('.menu-preview-img'), 'missing .menu-preview-img style');
 });
 
-// 3. HTML verification (6 tabs, Lens default, Objects list, Loot list, non-looping steppers)
-test('getMenuHtml defines 6 tabs with Lens default, Objects list, Loot list, and steppers', () => {
+// 3. HTML verification (7 tabs, Lens default, Objects list, Loot list, Cheats, non-looping steppers)
+test('getMenuHtml defines 7 tabs with Lens default, Objects list, Loot list, Cheats, and steppers', () => {
     const html = getMenuHtml();
     // Header & L/R shoulder controls
     assert.ok(html.includes('id="menu-l-btn"'), 'missing menu-l-btn');
     assert.ok(html.includes('id="menu-r-btn"'), 'missing menu-r-btn');
     assert.ok(html.includes('id="menu-close-btn"'), 'missing menu-close-btn');
 
-    // 6 Tab buttons
+    // 7 Tab buttons
     assert.ok(html.includes('id="menu-tab-btn-0"'), 'missing LENS tab button');
     assert.ok(html.includes('id="menu-tab-btn-1"'), 'missing OVERLAYS tab button');
     assert.ok(html.includes('id="menu-tab-btn-2"'), 'missing OBJECTS tab button');
     assert.ok(html.includes('id="menu-tab-btn-3"'), 'missing LOOT tab button');
-    assert.ok(html.includes('id="menu-tab-btn-4"'), 'missing EMULATION tab button');
-    assert.ok(html.includes('id="menu-tab-btn-5"'), 'missing CONTROLS tab button');
+    assert.ok(html.includes('id="menu-tab-btn-4"'), 'missing CHEATS tab button');
+    assert.ok(html.includes('id="menu-tab-btn-5"'), 'missing EMULATION tab button');
+    assert.ok(html.includes('id="menu-tab-btn-6"'), 'missing CONTROLS tab button');
 
     // Tab 0: LENS (Default tab)
     assert.ok(html.includes('id="menu-panel-0"'), 'missing lens panel');
@@ -98,14 +99,20 @@ test('getMenuHtml defines 6 tabs with Lens default, Objects list, Loot list, and
     assert.ok(html.includes('id="menu-panel-3"'), 'missing loot panel');
     assert.ok(html.includes('id="menu-loot-list"'), 'missing loot list container');
 
-    // Tab 4: Emulation
-    assert.ok(html.includes('id="menu-panel-4"'), 'missing emulation panel');
+    // Tab 4: Cheats
+    assert.ok(html.includes('id="menu-panel-4"'), 'missing cheats panel');
+    assert.ok(html.includes('id="menu-val-cheat-noclip"'), 'missing cheat noclip pill');
+    assert.ok(html.includes('id="menu-val-cheat-invincible"'), 'missing cheat invincible pill');
+    assert.ok(html.includes('id="menu-val-cheat-atlas"'), 'missing cheat atlas pill');
+
+    // Tab 5: Emulation
+    assert.ok(html.includes('id="menu-panel-5"'), 'missing emulation panel');
     assert.ok(html.includes('id="menu-val-speed"'), 'missing speed control');
     assert.ok(html.includes('id="menu-val-sound"'), 'missing sound control');
     assert.ok(html.includes('id="menu-val-focus"'), 'missing breakpoint focus control');
 
-    // Tab 5: Controls & Remapper
-    assert.ok(html.includes('id="menu-panel-5"'), 'missing controls panel');
+    // Tab 6: Controls & Remapper
+    assert.ok(html.includes('id="menu-panel-6"'), 'missing controls panel');
     assert.ok(html.includes('id="menu-bind-list"'), 'missing keybind list');
     assert.ok(html.includes('id="menu-preset-arrows"'), 'missing preset arrows');
     assert.ok(html.includes('id="menu-preset-wasd"'), 'missing preset wasd');
@@ -144,6 +151,9 @@ test('getMenuClientScript defines isPlayerControllable, unified pause, objects, 
     assert.ok(script.includes("isL = e.key === 'q'"), 'missing extended L keybind detection');
     assert.ok(script.includes("isR = e.key === 'e'"), 'missing extended R keybind detection');
     assert.ok(script.includes('function startKeybindListen(btnName)'), 'missing startKeybindListen');
+    assert.ok(script.includes('cheatNoclipEnabled'), 'missing cheatNoclipEnabled integration');
+    assert.ok(script.includes('cheatInvincibleEnabled'), 'missing cheatInvincibleEnabled integration');
+    assert.ok(script.includes('healParty'), 'missing healParty integration');
 });
 
 // 6. Sound source positioning (script sound mapping to object center, trigger, or enter script)

@@ -2722,6 +2722,11 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       const cutTiles = cutGrassTileSet.size > 0 ? Array.from(cutGrassTileSet) : null;
       const grassKey = cutTiles ? cutTiles.sort().join(';') : '';
 
+      if (mapId !== lastRequestedMapId) {
+        objectStates = null;
+        objKey = '';
+      }
+
       if (mapId !== lastRequestedMapId || objKey !== lastRequestedObjKey || grassKey !== lastRequestedGrassKey || roomParallax !== lastRequestedLayered) {
         lastRequestedMapId = mapId;
         lastRequestedObjKey = objKey;
@@ -2830,7 +2835,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       let frontEntities = [];
       if (extEntCtx && extEntCanvas) {
         frontEntities = renderExtendedEntities(preState, layout, extEntCanvas, extEntCtx);
-        if (!objShown) {
+        if (!objShown || !extendMapEnabled) {
           extEntCtx.clearRect(0, 0, wrapW, wrapH);
           frontEntities = [];
         }
@@ -3461,6 +3466,25 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       });
     }
 
+    function redrawExtendedLayersNow() {
+      if (typeof renderExtendedMapAndOverlays !== 'function') return;
+      const sc = document.getElementById('screen');
+      const extM = document.getElementById('extended-map');
+      const extE = document.getElementById('extended-entities');
+      const extF = document.getElementById('extended-foreground');
+      const extO = document.getElementById('extended-overlay');
+      if (!sc || !extM || !extE || !extF || !extO) return;
+      const mCtx = extM.getContext('2d');
+      const eCtx = extE.getContext('2d');
+      const fCtx = extF.getContext('2d');
+      const oCtx = extO.getContext('2d');
+      if (!mCtx || !eCtx || !fCtx || !oCtx) return;
+      const pre = (typeof lastSampledPreState !== 'undefined' && lastSampledPreState) ? lastSampledPreState : (typeof samplePreLoopState === 'function' ? samplePreLoopState() : null);
+      if (pre) {
+        renderExtendedMapAndOverlays(pre, sc, extM, mCtx, extE, eCtx, extF, fCtx, extO, oCtx);
+      }
+    }
+
     function setExtendMap(enabled) {
       extendMapEnabled = !!enabled;
       const chip = document.getElementById('screen-extend-toggle');
@@ -3491,7 +3515,13 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
           const fgCtx = extFgCanvas.getContext('2d');
           if (fgCtx) fgCtx.clearRect(0, 0, extFgCanvas.width, extFgCanvas.height);
         }
+        const extOverCanvas = document.getElementById('extended-overlay');
+        if (extOverCanvas) {
+          const overCtx = extOverCanvas.getContext('2d');
+          if (overCtx) overCtx.clearRect(0, 0, extOverCanvas.width, extOverCanvas.height);
+        }
       }
+      redrawExtendedLayersNow();
     }
 
     const extendChip = document.getElementById('screen-extend-toggle');
@@ -3540,6 +3570,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       const cb = document.getElementById('ss-overlay-toggle');
       if (cb) cb.checked = triggersOverlayEnabled;
       checkClearOverlayCanvas();
+      redrawExtendedLayersNow();
     }
 
     const triggerChip = document.getElementById('screen-trigger-toggle');
@@ -3574,6 +3605,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       const cb = document.getElementById('ss-object-toggle');
       if (cb) cb.checked = objectsOverlayEnabled;
       checkClearOverlayCanvas();
+      redrawExtendedLayersNow();
     }
 
     const objectChip = document.getElementById('screen-object-toggle');
@@ -3608,6 +3640,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       const cb = document.getElementById('ss-anim-toggle');
       if (cb) cb.checked = animTilesOverlayEnabled;
       checkClearOverlayCanvas();
+      redrawExtendedLayersNow();
     }
 
     const animChip = document.getElementById('screen-anim-toggle');
@@ -3642,6 +3675,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       const cb = document.getElementById('ss-collision-toggle');
       if (cb) cb.checked = collisionOverlayEnabled;
       checkClearOverlayCanvas();
+      redrawExtendedLayersNow();
     }
 
     const collisionChip = document.getElementById('screen-collision-toggle');
@@ -3674,6 +3708,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         }
       }
       checkClearOverlayCanvas();
+      redrawExtendedLayersNow();
     }
 
     const fogChip = document.getElementById('screen-fog-toggle');
@@ -4098,7 +4133,10 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
               layerImgs[k].src = uri;
             }
           }
-          img.onload = function() {
+          let imgLoaded = false;
+          let fgLoaded = !evt.data.foregroundUri;
+          function tryActivate() {
+            if (!imgLoaded || !fgLoaded) return;
             activeRoomMap = {
               mapId: mapId,
               img: img,
@@ -4115,7 +4153,22 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
               objects: evt.data.objects || null,
               animTiles: evt.data.animTiles || null,
             };
+            redrawExtendedLayersNow();
+          }
+          img.onload = function() {
+            imgLoaded = true;
+            tryActivate();
           };
+          if (fgImg) {
+            fgImg.onload = function() {
+              fgLoaded = true;
+              tryActivate();
+            };
+            fgImg.onerror = function() {
+              fgLoaded = true;
+              tryActivate();
+            };
+          }
           img.src = evt.data.imageUri;
         }
       } else if (evt.data.command === 'idleSprites') {

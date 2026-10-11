@@ -85,8 +85,8 @@ test('menu-view.js uses proper Everscript expression encoding (0x82) for opcode 
 
 // 4. Menu State Persistence and In-place Stepper Updates
 test('menu-view.js maintains per-tab row selections and scroll offsets across open/close and tab changes', () => {
-  assert.ok(menuCode.includes('tabSelectedRows = [0, 0, 0, 0, 0, 0]'), 'missing tabSelectedRows tracking');
-  assert.ok(menuCode.includes('tabScrollTops = [0, 0, 0, 0, 0, 0]'), 'missing tabScrollTops tracking');
+  assert.ok(menuCode.includes('tabSelectedRows = [0, 0, 0, 0, 0, 0, 0]'), 'missing tabSelectedRows tracking');
+  assert.ok(menuCode.includes('tabScrollTops = [0, 0, 0, 0, 0, 0, 0]'), 'missing tabScrollTops tracking');
   assert.ok(menuCode.includes('function selectMenuTab(targetTab)'), 'missing unified selectMenuTab function');
   assert.ok(menuCode.includes('menuSelectedRow = tabSelectedRows[menuActiveTab] || 0'), 'openEmulatorMenu does not restore previous tab/row');
   assert.ok(menuCode.includes('tabSelectedRows[menuActiveTab] = menuSelectedRow'), 'closeEmulatorMenu does not save tab/row');
@@ -131,6 +131,30 @@ test('menu-view.js gates Start button only on opening screen and name entry', ()
   assert.ok(menuCode.includes('if (curMap === 0x00 || curMap === 0xFF) return false;'), 'curMap 0x00 must pass Start to game');
   assert.ok(menuCode.includes('const boyMaxHp = m.readMemory(0x7E0A35) | (m.readMemory(0x7E0A36) << 8);'), 'missing boyMaxHp check');
   assert.ok(menuCode.includes('if (boyMaxHp === 0) return false;'), 'uninitialized boyMaxHp must pass Start to name entry');
+});
+
+test('panel.js caches static room metadata in _roomMetaCache for fast room updates', () => {
+  const panelCode = fs.readFileSync(path.join(__dirname, '../../src/emulator/panel.js'), 'utf8');
+  assert.ok(panelCode.includes('const _roomMetaCache = new Map();'), 'panel.js must define _roomMetaCache');
+  assert.ok(panelCode.includes('_getRoomMeta(rom, mapId)'), 'panel.js must use _getRoomMeta to avoid re-encoding animation groups on every frame');
+  assert.ok(panelCode.includes('_roomMetaCache.clear();'), 'panel.js must clear _roomMetaCache on disposal');
+});
+
+test('panel-webview.js synchronizes background and foreground image activation and immediate redraw', () => {
+  assert.ok(webviewCode.includes('let imgLoaded = false;'), 'missing imgLoaded flag');
+  assert.ok(webviewCode.includes('let fgLoaded = !evt.data.foregroundUri;'), 'missing fgLoaded flag');
+  assert.ok(webviewCode.includes('function tryActivate() {'), 'missing tryActivate dual-image sync');
+  assert.ok(webviewCode.includes('function redrawExtendedLayersNow() {'), 'missing redrawExtendedLayersNow for synchronous layer updates');
+  assert.ok(webviewCode.includes('redrawExtendedLayersNow();'), 'toggles must invoke redrawExtendedLayersNow');
+});
+
+test('menu-view.js provides CHEATS tab with noclip, invincibility, and full heal', () => {
+  assert.ok(menuCode.includes('id="menu-tab-btn-4" class="menu-tab-btn" type="button" data-tab="4">CHEATS</button>'), 'missing CHEATS tab button');
+  assert.ok(menuCode.includes('id="menu-panel-4" class="menu-tab-panel"'), 'missing CHEATS panel');
+  assert.ok(menuCode.includes('toggle-cheat-noclip'), 'missing toggle-cheat-noclip row');
+  assert.ok(menuCode.includes('toggle-cheat-invincible'), 'missing toggle-cheat-invincible row');
+  assert.ok(menuCode.includes('action-cheat-heal'), 'missing action-cheat-heal row');
+  assert.ok(menuCode.includes('MENU_TAB_COUNT = 7;'), 'MENU_TAB_COUNT must be 7');
 });
 
 console.log(`\nResults: ${passed} passed, ${failed} failed`);
