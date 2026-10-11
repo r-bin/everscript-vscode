@@ -5,14 +5,19 @@
  *
  * Owns: the Emulator Quick Menu OSD (On-Screen Display).
  * - Fixed top positioning
- * - Tabs paged with L and R (Overlays, Emulation, Controls)
- * - Map Lens mode as default entry for un-distorted room exploration
+ * - 6 Tabs paged with L and R:
+ *     0: LENS (Default - undistorted room view, pan & zoom)
+ *     1: OVERLAYS (Extended Map, Triggers, Entities, Anim Tiles, Collision, Fog, Sound FX, Zoom)
+ *     2: OBJECTS (Section 3 objects list, state 0...max, stepper alters WRAM & engine)
+ *     3: LOOT (Chests, Gourds & Sniff spots, preview icon, looted toggle, safe script run)
+ *     4: EMULATION (Speed 1/4x..4x, Sound, Debugger Focus, Reset)
+ *     5: CONTROLS (Interactive keybinds & gamepad remapper, presets)
  * - Non-looping stepped values (Speed: 1/4x, 1/2x, 1x, 2x, 4x; Zoom, toggles)
  * - Up/Down automatic scroll-into-view
  * - Wheel events inside menu scroll the menu instead of the map
- * - Sound visualization toggle in menu
+ * - Outside clicks/drags on Lens tab pan the map
+ * - Sound visualization toggle in menu with script position mapping
  * - Unified Pause / Menu toggle (Start by default, Esc always pauses)
- * - Interactive keybinding and gamepad remapping
  *
  * Strictly ASCII-only.
  */
@@ -39,57 +44,20 @@ function getMenuCss() {
       display: none !important;
     }
 
-    /* Lens Mode: hides menu card, reveals floating top HUD bar */
-    #emulator-menu.lens-active {
-      background: rgba(0, 0, 0, 0.15) !important;
+    /* Lens Tab Active: translucent backdrop so map shines through cleanly */
+    #emulator-menu.lens-tab-active {
+      background: rgba(0, 0, 0, 0.18) !important;
       backdrop-filter: none !important;
-      pointer-events: auto;
+      pointer-events: none;
     }
-    #emulator-menu.lens-active #menu-card {
-      display: none !important;
-    }
-    #menu-lens-hud {
-      display: none;
-      background: rgba(16, 18, 24, 0.92);
-      border: 1px solid #3c3c48;
-      border-radius: 5px;
-      padding: 6px 14px;
-      font-size: 11px;
-      color: #ccc;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.8);
-      align-items: center;
-      gap: 12px;
-    }
-    #emulator-menu.lens-active #menu-lens-hud {
-      display: flex;
-    }
-    .menu-lens-tag {
-      color: #4ec9b0;
-      font-weight: bold;
-      letter-spacing: 0.05em;
-    }
-    .menu-lens-hint {
-      color: #8899aa;
-      font-size: 10px;
-    }
-    .menu-lens-close {
-      background: #252530;
-      border: 1px solid #445;
-      color: #ddd;
-      border-radius: 3px;
-      padding: 2px 7px;
-      cursor: pointer;
-      font-size: 10px;
-    }
-    .menu-lens-close:hover {
-      background: #353545;
-      color: #fff;
+    #emulator-menu.lens-tab-active #menu-card {
+      pointer-events: auto !important;
     }
 
     #menu-card {
-      width: 470px;
+      width: 520px;
       max-width: 95%;
-      max-height: 88vh;
+      max-height: 85vh;
       background: #141418;
       border: 1px solid #363640;
       border-radius: 6px;
@@ -128,22 +96,24 @@ function getMenuCss() {
     }
     #menu-tabs {
       display: flex;
-      gap: 4px;
+      gap: 3px;
       flex: 1;
       justify-content: center;
+      overflow-x: auto;
     }
     .menu-tab-btn {
       background: transparent;
       border: none;
       color: #778899;
       font-family: inherit;
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 600;
       letter-spacing: 0.04em;
-      padding: 5px 10px;
+      padding: 4px 7px;
       cursor: pointer;
       border-radius: 3px;
       transition: all 0.12s;
+      white-space: nowrap;
     }
     .menu-tab-btn:hover {
       color: #ddd;
@@ -174,7 +144,7 @@ function getMenuCss() {
     #menu-body {
       flex: 1;
       min-height: 0;
-      max-height: 380px;
+      max-height: 400px;
       overflow-y: auto;
       overflow-x: hidden;
       display: flex;
@@ -249,104 +219,234 @@ function getMenuCss() {
       padding: 0;
     }
     .menu-stepper-btn:hover {
-      background: #30303c;
+      background: #353545;
       color: #fff;
-    }
-    .menu-stepper-btn:disabled, .menu-stepper-btn.disabled {
-      opacity: 0.35;
-      cursor: default;
     }
     .menu-pill {
-      min-width: 68px;
+      display: inline-block;
+      min-width: 44px;
       text-align: center;
       background: #181820;
-      border: 1px solid #343440;
+      border: 1px solid #333340;
       border-radius: 3px;
-      padding: 2px 8px;
+      padding: 2px 7px;
       font-size: 10px;
       font-weight: 600;
-      letter-spacing: 0.03em;
-      color: #aaa;
+      color: #778899;
     }
     .menu-pill.active {
-      background: rgba(46, 125, 50, 0.25);
-      border-color: #2e7d32;
-      color: #7ad67a;
+      color: #4ec9b0;
+      border-color: rgba(78, 201, 176, 0.4);
+      background: rgba(78, 201, 176, 0.08);
     }
-
-    /* Action button in row */
     .menu-action-pill {
-      background: #202028;
-      border: 1px solid #404050;
+      background: #252535;
+      border: 1px solid #444458;
+      color: #ccd;
       border-radius: 3px;
-      padding: 3px 10px;
+      padding: 3px 9px;
       font-size: 10px;
-      color: #ccc;
-      cursor: pointer;
+      font-weight: 600;
     }
     .menu-action-pill:hover {
-      background: #30303c;
+      background: #383850;
       color: #fff;
-      border-color: #555566;
     }
 
-    /* Controls Tab */
-    .menu-device-banner {
-      background: #16161d;
-      border-bottom: 1px solid #282832;
-      padding: 6px 12px;
-      font-size: 10px;
-      color: #8899aa;
+    /* Tab 0: LENS Panel */
+    .menu-lens-panel {
+      padding: 10px 14px;
       display: flex;
-      justify-content: space-between;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .menu-lens-header {
+      background: #161620;
+      border: 1px solid #282836;
+      border-radius: 4px;
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .menu-lens-room {
+      color: #4ec9b0;
+      font-weight: bold;
+      font-size: 12px;
+      letter-spacing: 0.04em;
+    }
+    .menu-lens-coords {
+      color: #8899aa;
+      font-size: 10px;
+    }
+    .menu-lens-hint-box {
+      margin-top: 6px;
+      padding: 8px 12px;
+      background: rgba(78, 201, 176, 0.06);
+      border-left: 3px solid #4ec9b0;
+      font-size: 10px;
+      color: #aab;
+      line-height: 1.5;
+    }
+    .menu-lens-hint-title {
+      color: #4ec9b0;
+      font-weight: bold;
+      margin-bottom: 2px;
+    }
+
+    /* Section headers & lists for Objects and Loot */
+    .menu-section-header {
+      padding: 6px 14px;
+      font-size: 10px;
+      font-weight: bold;
+      color: #8899aa;
+      background: #16161e;
+      border-bottom: 1px solid #252530;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      flex-shrink: 0;
+    }
+    .menu-scroll-list {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+    }
+    .menu-empty-hint {
+      padding: 20px;
+      color: #778899;
+      text-align: center;
+      font-style: italic;
+      font-size: 11px;
+    }
+    .menu-obj-badge {
+      color: #38bdf8;
+      font-weight: bold;
+    }
+    .menu-obj-coords {
+      color: #64748b;
+      font-size: 10px;
+    }
+
+    /* Loot Tab Styles */
+    .menu-loot-img {
+      width: 16px;
+      height: 16px;
+      vertical-align: middle;
+      margin-right: 4px;
+      image-rendering: pixelated;
+    }
+    .menu-loot-fallback {
+      color: #fbbf24;
+      font-weight: bold;
+      font-size: 10px;
+      margin-right: 4px;
+    }
+    .menu-loot-name {
+      color: #f1f5f9;
+      font-weight: 600;
+    }
+    .menu-loot-meta {
+      color: #64748b;
+      font-size: 10px;
+      margin-left: 4px;
+    }
+    .menu-loot-actions {
+      display: flex;
+      gap: 6px;
       align-items: center;
+    }
+    .menu-loot-toggle-btn {
+      border: 1px solid;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: bold;
+      padding: 2px 7px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .menu-loot-toggle-btn.looted {
+      background: rgba(34, 197, 94, 0.2);
+      border-color: #22c55e;
+      color: #4ade80;
+    }
+    .menu-loot-toggle-btn.unlooted {
+      background: rgba(245, 158, 11, 0.15);
+      border-color: #f59e0b;
+      color: #fbbf24;
+    }
+    .menu-loot-run-btn {
+      background: #252535;
+      border: 1px solid #444455;
+      color: #94a3b8;
+      border-radius: 3px;
+      font-size: 10px;
+      padding: 2px 6px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .menu-loot-run-btn:hover {
+      background: #3b3b4f;
+      color: #fff;
+    }
+
+    /* Keybind Remapper List */
+    .menu-device-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 14px;
+      background: #181822;
+      border-bottom: 1px solid #282836;
+      font-size: 10px;
+      color: #99aabb;
       flex-shrink: 0;
     }
     .menu-device-status {
-      color: #6f9;
+      color: #4ec9b0;
       font-weight: bold;
     }
     .menu-keybind-list {
       display: flex;
       flex-direction: column;
-      overflow-y: auto;
-      overflow-x: hidden;
+      width: 100%;
     }
     .menu-bind-badge {
-      display: inline-block;
-      min-width: 80px;
-      text-align: center;
-      background: #20202a;
-      border: 1px solid #3c3c4a;
+      background: #1a1a24;
+      border: 1px solid #353545;
+      color: #ccd;
       border-radius: 3px;
-      padding: 2px 6px;
+      padding: 2px 8px;
       font-size: 10px;
-      color: #ddd;
+      font-weight: bold;
+      min-width: 52px;
+      text-align: center;
+      display: inline-block;
     }
     .menu-bind-badge.listening {
-      background: rgba(220, 100, 40, 0.35);
-      border-color: #d64;
-      color: #ff9;
-      animation: menu-pulse 0.8s infinite alternate;
+      background: #c72e2e;
+      border-color: #f55;
+      color: #fff;
+      animation: menuPulse 0.8s infinite alternate;
     }
-    @keyframes menu-pulse {
+    @keyframes menuPulse {
       from { opacity: 0.7; }
       to { opacity: 1; }
     }
     .menu-preset-row {
       display: flex;
-      gap: 6px;
-      padding: 8px 12px;
-      background: #14141a;
-      border-top: 1px solid #252530;
+      align-items: center;
       justify-content: flex-end;
+      gap: 8px;
+      padding: 8px 14px;
+      border-top: 1px solid #20202a;
+      background: #121218;
       flex-shrink: 0;
     }
     .menu-preset-btn {
-      background: #1f1f26;
-      border: 1px solid #383844;
+      background: #202028;
+      border: 1px solid #3c3c4a;
+      color: #99a;
       border-radius: 3px;
-      color: #aaa;
       padding: 3px 8px;
       font-size: 10px;
       cursor: pointer;
@@ -379,36 +479,55 @@ function getMenuCss() {
 function getMenuHtml() {
   return `
     <div id="emulator-menu" class="hidden">
-      <!-- Lens Mode Floating HUD Bar -->
-      <div id="menu-lens-hud">
-        <span class="menu-lens-tag">[MAP LENS]</span>
-        <span class="menu-lens-hint">Pan: Drag / D-Pad / Arrows | Zoom: Wheel / +/- | [B] / Esc: Menu</span>
-        <button id="menu-lens-exit-btn" class="menu-lens-close" type="button">Back to Menu</button>
-      </div>
-
       <div id="menu-card">
         <div id="menu-header">
           <button id="menu-l-btn" class="menu-shoulder-btn" type="button" title="Previous Tab (L)">[L]</button>
           <div id="menu-tabs">
-            <button id="menu-tab-btn-0" class="menu-tab-btn active" type="button" data-tab="0">OVERLAYS</button>
-            <button id="menu-tab-btn-1" class="menu-tab-btn" type="button" data-tab="1">EMULATION</button>
-            <button id="menu-tab-btn-2" class="menu-tab-btn" type="button" data-tab="2">CONTROLS</button>
+            <button id="menu-tab-btn-0" class="menu-tab-btn active" type="button" data-tab="0">LENS</button>
+            <button id="menu-tab-btn-1" class="menu-tab-btn" type="button" data-tab="1">OVERLAYS</button>
+            <button id="menu-tab-btn-2" class="menu-tab-btn" type="button" data-tab="2">OBJECTS</button>
+            <button id="menu-tab-btn-3" class="menu-tab-btn" type="button" data-tab="3">LOOT</button>
+            <button id="menu-tab-btn-4" class="menu-tab-btn" type="button" data-tab="4">EMULATION</button>
+            <button id="menu-tab-btn-5" class="menu-tab-btn" type="button" data-tab="5">CONTROLS</button>
           </div>
           <button id="menu-r-btn" class="menu-shoulder-btn" type="button" title="Next Tab (R)">[R]</button>
           <button id="menu-close-btn" type="button" title="Resume Game (B / Esc)">[X]</button>
         </div>
 
         <div id="menu-body">
-          <!-- Tab 0: OVERLAYS -->
+          <!-- Tab 0: LENS -->
           <div id="menu-panel-0" class="menu-tab-panel active">
-            <!-- Row 0: Lens default entry -->
-            <div class="menu-row selected" data-row="0" data-action="action-lens">
-              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Map Lens (Explore Room)</div>
-              <div class="menu-row-value">
-                <span class="menu-action-pill">[A] Explore</span>
+            <div class="menu-lens-panel">
+              <div class="menu-lens-header">
+                <div class="menu-lens-room" id="menu-lens-room-title">Map Lens (Undistorted Room View)</div>
+                <div class="menu-lens-coords" id="menu-lens-coords">Cam: (0, 0) | Player: (0, 0)</div>
+              </div>
+              <div class="menu-row selected" data-row="0" data-action="step-zoom-lens">
+                <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Zoom / Scale</div>
+                <div class="menu-row-value">
+                  <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
+                  <span id="menu-val-lens-zoom" class="menu-pill">Fit</span>
+                  <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
+                </div>
+              </div>
+              <div class="menu-row" data-row="1" data-action="action-reset-pan">
+                <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Center on Player / Reset Pan</div>
+                <div class="menu-row-value">
+                  <span class="menu-action-pill">[A] Center</span>
+                </div>
+              </div>
+              <div class="menu-lens-hint-box">
+                <div class="menu-lens-hint-title">Navigation:</div>
+                <div>&bull; Drag map canvas or use D-Pad / Arrows to pan</div>
+                <div>&bull; Mouse wheel to zoom in / out</div>
+                <div>&bull; [L] / [R] to switch menus &middot; Esc / Start to resume</div>
               </div>
             </div>
-            <div class="menu-row" data-row="1" data-action="toggle-extend">
+          </div>
+
+          <!-- Tab 1: OVERLAYS -->
+          <div id="menu-panel-1" class="menu-tab-panel">
+            <div class="menu-row selected" data-row="0" data-action="toggle-extend">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Extended Map Background</div>
               <div class="menu-row-value">
                 <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
@@ -416,7 +535,7 @@ function getMenuHtml() {
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
-            <div class="menu-row" data-row="2" data-action="toggle-triggers">
+            <div class="menu-row" data-row="1" data-action="toggle-triggers">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Triggers (B &amp; Step-on)</div>
               <div class="menu-row-value">
                 <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
@@ -424,7 +543,7 @@ function getMenuHtml() {
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
-            <div class="menu-row" data-row="3" data-action="toggle-objects">
+            <div class="menu-row" data-row="2" data-action="toggle-objects">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Entities &amp; Objects</div>
               <div class="menu-row-value">
                 <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
@@ -432,7 +551,7 @@ function getMenuHtml() {
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
-            <div class="menu-row" data-row="4" data-action="toggle-anim">
+            <div class="menu-row" data-row="3" data-action="toggle-anim">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Animated Tile Outlines</div>
               <div class="menu-row-value">
                 <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
@@ -440,7 +559,7 @@ function getMenuHtml() {
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
-            <div class="menu-row" data-row="5" data-action="toggle-collision">
+            <div class="menu-row" data-row="4" data-action="toggle-collision">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Collision Geometry</div>
               <div class="menu-row-value">
                 <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
@@ -448,7 +567,7 @@ function getMenuHtml() {
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
-            <div class="menu-row" data-row="6" data-action="toggle-fog">
+            <div class="menu-row" data-row="5" data-action="toggle-fog">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Fog of War (Outer Bounds)</div>
               <div class="menu-row-value">
                 <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
@@ -456,7 +575,7 @@ function getMenuHtml() {
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
-            <div class="menu-row" data-row="7" data-action="toggle-sound-vis">
+            <div class="menu-row" data-row="6" data-action="toggle-sound-vis">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Sound Entity Visualizer</div>
               <div class="menu-row-value">
                 <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
@@ -464,7 +583,7 @@ function getMenuHtml() {
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
-            <div class="menu-row" data-row="8" data-action="step-zoom">
+            <div class="menu-row" data-row="7" data-action="step-zoom">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Viewport Zoom / Scale</div>
               <div class="menu-row-value">
                 <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
@@ -474,8 +593,20 @@ function getMenuHtml() {
             </div>
           </div>
 
-          <!-- Tab 1: EMULATION -->
-          <div id="menu-panel-1" class="menu-tab-panel">
+          <!-- Tab 2: OBJECTS -->
+          <div id="menu-panel-2" class="menu-tab-panel">
+            <div class="menu-section-header">Section 3 Map Objects (0 ... Max State)</div>
+            <div id="menu-objects-list" class="menu-scroll-list"></div>
+          </div>
+
+          <!-- Tab 3: LOOT -->
+          <div id="menu-panel-3" class="menu-tab-panel">
+            <div class="menu-section-header">Room Pickups (Chests, Gourds &amp; Sniff Spots)</div>
+            <div id="menu-loot-list" class="menu-scroll-list"></div>
+          </div>
+
+          <!-- Tab 4: EMULATION -->
+          <div id="menu-panel-4" class="menu-tab-panel">
             <div class="menu-row" data-row="0" data-action="step-speed">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Emulation Speed</div>
               <div class="menu-row-value">
@@ -492,11 +623,11 @@ function getMenuHtml() {
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
-            <div class="menu-row" data-row="2" data-action="toggle-sound-vis-tab1">
+            <div class="menu-row" data-row="2" data-action="toggle-sound-vis-tab4">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Sound Entity Visualizer</div>
               <div class="menu-row-value">
                 <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
-                <span id="menu-val-sound-vis-tab1" class="menu-pill active">ON</span>
+                <span id="menu-val-sound-vis-tab4" class="menu-pill active">ON</span>
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
@@ -516,15 +647,13 @@ function getMenuHtml() {
             </div>
           </div>
 
-          <!-- Tab 2: CONTROLS -->
-          <div id="menu-panel-2" class="menu-tab-panel">
+          <!-- Tab 5: CONTROLS -->
+          <div id="menu-panel-5" class="menu-tab-panel">
             <div class="menu-device-banner">
               <span id="menu-device-name">Input: Keyboard &amp; Gamepad</span>
               <span id="menu-device-status" class="menu-device-status">Active</span>
             </div>
-            <div id="menu-bind-list" class="menu-keybind-list">
-              <!-- Dynamically rendered keybind rows -->
-            </div>
+            <div id="menu-bind-list" class="menu-keybind-list"></div>
             <div class="menu-preset-row">
               <button id="menu-preset-arrows" class="menu-preset-btn" type="button">Default Arrows</button>
               <button id="menu-preset-wasd" class="menu-preset-btn" type="button">WASD</button>
@@ -620,10 +749,10 @@ function getMenuClientScript() {
     }
     rebuildKeyBitMap();
 
-    // Menu State
+    // Menu State: 0: LENS, 1: OVERLAYS, 2: OBJECTS, 3: LOOT, 4: EMULATION, 5: CONTROLS
+    const MENU_TAB_COUNT = 6;
     let isMenuOpen = false;
-    let isLensModeActive = false;
-    let menuActiveTab = 0; // 0: Overlays, 1: Emulation, 2: Controls
+    let menuActiveTab = 0; // Default LENS
     let menuSelectedRow = 0;
     let menuListeningBtn = null;
     let menuListeningTimeout = null;
@@ -665,11 +794,7 @@ function getMenuClientScript() {
       isMenuOpen = true;
       keyInput = 0;
       const menuEl = document.getElementById('emulator-menu');
-      if (menuEl) {
-        menuEl.classList.remove('hidden');
-        menuEl.classList.remove('lens-active');
-      }
-      isLensModeActive = false;
+      if (menuEl) menuEl.classList.remove('hidden');
 
       const m = getModule();
       if (m && hasDebuggerApi(m)) {
@@ -680,6 +805,8 @@ function getMenuClientScript() {
 
       playMenuSound('wheel_open');
       syncMenuValuesFromRuntime();
+      menuActiveTab = 0; // Default LENS tab
+      menuSelectedRow = 0;
       renderMenuTab(menuActiveTab);
     }
 
@@ -687,12 +814,11 @@ function getMenuClientScript() {
       if (!isMenuOpen) return;
       if (menuListeningBtn) cancelKeybindListen();
       isMenuOpen = false;
-      isLensModeActive = false;
       keyInput = 0;
       const menuEl = document.getElementById('emulator-menu');
       if (menuEl) {
         menuEl.classList.add('hidden');
-        menuEl.classList.remove('lens-active');
+        menuEl.classList.remove('lens-tab-active');
       }
 
       const m = getModule();
@@ -710,10 +836,6 @@ function getMenuClientScript() {
     // Unified Pause Toggle:
     // Pausing opens the menu, resuming closes it.
     function togglePauseMenu(source) {
-      if (isLensModeActive) {
-        exitLensMode();
-        return;
-      }
       if (isMenuOpen) {
         closeEmulatorMenu();
       } else {
@@ -721,29 +843,10 @@ function getMenuClientScript() {
       }
     }
 
-    function enterLensMode() {
-      isLensModeActive = true;
-      const menuEl = document.getElementById('emulator-menu');
-      if (menuEl) menuEl.classList.add('lens-active');
-      playMenuSound('click_confirm');
-    }
-
-    function exitLensMode() {
-      isLensModeActive = false;
-      const menuEl = document.getElementById('emulator-menu');
-      if (menuEl) menuEl.classList.remove('lens-active');
-      playMenuSound('wheel_turn');
-      updateMenuRowSelection();
-    }
-
     function switchMenuTab(delta) {
-      if (isLensModeActive) {
-        exitLensMode();
-        return;
-      }
       if (menuListeningBtn) cancelKeybindListen();
-      // Tabs don't loop: clamped between 0 and 2
-      const target = Math.max(0, Math.min(menuActiveTab + delta, 2));
+      // Tabs don't loop: clamped between 0 and MENU_TAB_COUNT - 1
+      const target = Math.max(0, Math.min(menuActiveTab + delta, MENU_TAB_COUNT - 1));
       if (target !== menuActiveTab) {
         menuActiveTab = target;
         menuSelectedRow = 0;
@@ -754,16 +857,54 @@ function getMenuClientScript() {
 
     function renderMenuTab(tabIndex) {
       menuActiveTab = tabIndex;
-      for (let i = 0; i < 3; i++) {
+      const menuEl = document.getElementById('emulator-menu');
+      if (menuEl) {
+        menuEl.classList.toggle('lens-tab-active', tabIndex === 0);
+      }
+
+      for (let i = 0; i < MENU_TAB_COUNT; i++) {
         const tabBtn = document.getElementById('menu-tab-btn-' + i);
         const panel = document.getElementById('menu-panel-' + i);
         if (tabBtn) tabBtn.classList.toggle('active', i === tabIndex);
         if (panel) panel.classList.toggle('active', i === tabIndex);
       }
-      if (tabIndex === 2) {
+
+      if (tabIndex === 0) {
+        updateLensTabInfo();
+      } else if (tabIndex === 2) {
+        renderObjectRows();
+      } else if (tabIndex === 3) {
+        renderLootRows();
+      } else if (tabIndex === 5) {
         renderKeybindRows();
       }
       updateMenuRowSelection();
+    }
+
+    function updateLensTabInfo() {
+      const roomTitleEl = document.getElementById('menu-lens-room-title');
+      const coordsEl = document.getElementById('menu-lens-coords');
+      const zoomPill = document.getElementById('menu-val-lens-zoom');
+
+      if (roomTitleEl) {
+        const mapName = (typeof activeRoomMap !== 'undefined' && activeRoomMap && activeRoomMap.name) ? activeRoomMap.name : '';
+        const hex = (typeof cachedMapId === 'number' && cachedMapId >= 0) ? ('0x' + cachedMapId.toString(16).toUpperCase().padStart(2, '0')) : '0x00';
+        roomTitleEl.textContent = 'Room ' + hex + (mapName ? ' (' + mapName + ')' : ' Exploration Lens');
+      }
+
+      if (coordsEl) {
+        let playerX = 0, playerY = 0;
+        const m = getModule();
+        if (m && typeof m.readMemory === 'function') {
+          playerX = m.readMemory(0x7E4E89 + 0x1A) | (m.readMemory(0x7E4E89 + 0x1B) << 8);
+          playerY = m.readMemory(0x7E4E89 + 0x1C) | (m.readMemory(0x7E4E89 + 0x1D) << 8);
+        }
+        coordsEl.textContent = 'Cam: (' + Math.round(panX) + ', ' + Math.round(panY) + ') | Player: (' + playerX + ', ' + playerY + ')';
+      }
+
+      if (zoomPill) {
+        zoomPill.textContent = MENU_ZOOM_LABELS[menuZoomIndex];
+      }
     }
 
     // Up / Down scrolls the active selection into view automatically!
@@ -778,117 +919,101 @@ function getMenuClientScript() {
         const isSel = (idx === menuSelectedRow);
         row.classList.toggle('selected', isSel);
         if (isSel) {
-          row.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+          try {
+            row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          } catch (e) {
+            row.scrollIntoView(false);
+          }
         }
       });
     }
 
     function moveMenuSelection(delta) {
-      if (isLensModeActive) return;
       const activePanel = document.getElementById('menu-panel-' + menuActiveTab);
       if (!activePanel) return;
       const rows = activePanel.querySelectorAll('.menu-row');
-      if (rows.length === 0) return;
-      // Do not wrap selection: clamp between 0 and rows.length - 1
-      const target = Math.max(0, Math.min(menuSelectedRow + delta, rows.length - 1));
-      if (target !== menuSelectedRow) {
-        menuSelectedRow = target;
+      if (!rows.length) return;
+
+      const nextRow = Math.max(0, Math.min(menuSelectedRow + delta, rows.length - 1));
+      if (nextRow !== menuSelectedRow) {
+        menuSelectedRow = nextRow;
         playMenuSound('click_nav');
         updateMenuRowSelection();
       }
     }
 
-    function syncMenuValuesFromRuntime() {
-      // Tab 0
-      setPillState('menu-val-extend', extendMapEnabled);
-      setPillState('menu-val-triggers', triggersOverlayEnabled);
-      setPillState('menu-val-objects', objectsOverlayEnabled);
-      setPillState('menu-val-anim', animTilesOverlayEnabled);
-      setPillState('menu-val-collision', collisionOverlayEnabled);
-      setPillState('menu-val-fog', fogOfWarEnabled);
-      if (typeof sndShow !== 'undefined') {
-        setPillState('menu-val-sound-vis', sndShow);
-        setPillState('menu-val-sound-vis-tab1', sndShow);
-      }
-      const zEl = document.getElementById('menu-val-zoom');
-      if (zEl) zEl.textContent = MENU_ZOOM_LABELS[menuZoomIndex];
-
-      // Tab 1
-      const spdEl = document.getElementById('menu-val-speed');
-      if (spdEl) spdEl.textContent = MENU_SPEED_LABELS[menuSpeedIndex];
-      const focusEl = document.getElementById('menu-val-focus');
-      if (focusEl) focusEl.textContent = keepFocusOnBreak ? 'Stay' : 'Code';
-    }
-
-    function setPillState(id, on) {
-      const el = document.getElementById(id);
-      if (el) {
-        el.textContent = on ? 'ON' : 'OFF';
-        el.classList.toggle('active', !!on);
-      }
-    }
-
-    // Stepping values does NOT loop!
+    // Steppers / Toggles: Non-looping, clamped left and right
     function changeMenuValue(delta) {
       if (menuActiveTab === 0) {
-        // Tab 0: OVERLAYS
+        // Tab 0: LENS
+        if (menuSelectedRow === 0) {
+          // Zoom stepper
+          menuZoomIndex = Math.max(0, Math.min(menuZoomIndex + delta, MENU_ZOOM_LABELS.length - 1));
+          applyMenuZoom(menuZoomIndex);
+          updateLensTabInfo();
+          playMenuSound('click_toggle');
+        }
+      } else if (menuActiveTab === 1) {
+        // Tab 1: OVERLAYS
         switch (menuSelectedRow) {
           case 0:
-            // Lens Mode
-            enterLensMode();
-            break;
-          case 1:
-            // Extend map: delta < 0 is OFF, delta > 0 is ON
             setExtendMap(delta > 0);
             setPillState('menu-val-extend', extendMapEnabled);
             playMenuSound('click_toggle');
             break;
-          case 2:
+          case 1:
             setTriggersOverlay(delta > 0);
             setPillState('menu-val-triggers', triggersOverlayEnabled);
             playMenuSound('click_toggle');
             break;
-          case 3:
+          case 2:
             setObjectsOverlay(delta > 0);
             setPillState('menu-val-objects', objectsOverlayEnabled);
             playMenuSound('click_toggle');
             break;
-          case 4:
+          case 3:
             setAnimTilesOverlay(delta > 0);
             setPillState('menu-val-anim', animTilesOverlayEnabled);
             playMenuSound('click_toggle');
             break;
-          case 5:
+          case 4:
             setCollisionOverlay(delta > 0);
             setPillState('menu-val-collision', collisionOverlayEnabled);
             playMenuSound('click_toggle');
             break;
-          case 6:
+          case 5:
             setFogOfWar(delta > 0);
             setPillState('menu-val-fog', fogOfWarEnabled);
             playMenuSound('click_toggle');
             break;
-          case 7:
-            // Sound entity visualizer
+          case 6:
             if (typeof sndSetShow === 'function') {
               sndSetShow(delta > 0);
               setPillState('menu-val-sound-vis', sndShow);
-              setPillState('menu-val-sound-vis-tab1', sndShow);
+              setPillState('menu-val-sound-vis-tab4', sndShow);
               playMenuSound('click_toggle');
             }
             break;
-          case 8:
-            // Zoom stepper (clamped, does not loop!)
+          case 7:
             menuZoomIndex = Math.max(0, Math.min(menuZoomIndex + delta, MENU_ZOOM_LABELS.length - 1));
             applyMenuZoom(menuZoomIndex);
             playMenuSound('click_toggle');
             break;
         }
-      } else if (menuActiveTab === 1) {
-        // Tab 1: EMULATION
+      } else if (menuActiveTab === 2) {
+        // Tab 2: OBJECTS
+        if (cachedObjects && cachedObjects[menuSelectedRow]) {
+          stepObjectState(cachedObjects[menuSelectedRow].index, delta);
+        }
+      } else if (menuActiveTab === 3) {
+        // Tab 3: LOOT
+        if (cachedLootables && cachedLootables[menuSelectedRow]) {
+          toggleLootState(menuSelectedRow);
+        }
+      } else if (menuActiveTab === 4) {
+        // Tab 4: EMULATION
         switch (menuSelectedRow) {
           case 0:
-            // Speed: 1/4x, 1/2x, 1x, 2x, 4x (clamped, does not loop!)
             menuSpeedIndex = Math.max(0, Math.min(menuSpeedIndex + delta, MENU_SPEED_LABELS.length - 1));
             if (typeof setSpeedMultiplier === 'function') {
               setSpeedMultiplier(MENU_SPEED_VALUES[menuSpeedIndex]);
@@ -897,61 +1022,45 @@ function getMenuClientScript() {
             playMenuSound('click_toggle');
             break;
           case 1:
-            // Master sound
             playMenuSound('click_toggle');
             break;
           case 2:
-            // Sound entity visualizer
             if (typeof sndSetShow === 'function') {
               sndSetShow(delta > 0);
               setPillState('menu-val-sound-vis', sndShow);
-              setPillState('menu-val-sound-vis-tab1', sndShow);
+              setPillState('menu-val-sound-vis-tab4', sndShow);
               playMenuSound('click_toggle');
             }
             break;
           case 3:
-            // Breakpoint focus: delta < 0 is Code, delta > 0 is Stay (clamped!)
             setKeepFocusChip(delta > 0);
             syncMenuValuesFromRuntime();
             playMenuSound('click_toggle');
             break;
-          case 4:
-            // Action reset ROM handled by activate
-            break;
-        }
-      } else if (menuActiveTab === 2) {
-        // Tab 2: Remap
-        activateMenuRow();
-      }
-    }
-
-    function applyMenuZoom(idx) {
-      const val = MENU_ZOOM_VALUES[idx];
-      if (val === -1) {
-        const fitBtn = document.getElementById('screen-zfit');
-        if (fitBtn) fitBtn.click();
-      } else {
-        if (typeof zoomAt === 'function') {
-          const wrap = document.getElementById('screen-wrap');
-          const cx = wrap ? wrap.clientWidth / 2 : 256;
-          const cy = wrap ? wrap.clientHeight / 2 : 224;
-          zoomAt(val, cx, cy);
         }
       }
-      syncMenuValuesFromRuntime();
     }
 
     function activateMenuRow() {
       if (menuActiveTab === 0) {
-        if (menuSelectedRow === 0) {
-          enterLensMode();
+        if (menuSelectedRow === 1) {
+          // Reset pan & center on player
+          panX = 0;
+          panY = 0;
+          if (typeof updateScreenLayout === 'function') updateScreenLayout();
+          updateLensTabInfo();
+          playMenuSound('click_confirm');
         } else {
-          // Toggle on activate
           changeMenuValue(1);
         }
       } else if (menuActiveTab === 1) {
+        changeMenuValue(1);
+      } else if (menuActiveTab === 2) {
+        changeMenuValue(1);
+      } else if (menuActiveTab === 3) {
+        toggleLootState(menuSelectedRow);
+      } else if (menuActiveTab === 4) {
         if (menuSelectedRow === 4) {
-          // Reset ROM
           playMenuSound('click_confirm');
           if (loadedRomData) {
             bootRom(loadedRomData, loadedRomName);
@@ -960,12 +1069,294 @@ function getMenuClientScript() {
         } else {
           changeMenuValue(1);
         }
-      } else if (menuActiveTab === 2) {
-        // Start remapping selected button
+      } else if (menuActiveTab === 5) {
         if (menuSelectedRow >= 0 && menuSelectedRow < SNES_BUTTON_NAMES.length) {
           startKeybindListen(SNES_BUTTON_NAMES[menuSelectedRow]);
         }
       }
+    }
+
+    // -- Section 3 Map Objects Dynamic View -------------------------------------
+    function renderObjectRows() {
+      const container = document.getElementById('menu-objects-list');
+      if (!container) return;
+      container.innerHTML = '';
+      if (!cachedObjects || !cachedObjects.length) {
+        container.innerHTML = '<div class="menu-empty-hint">No Section 3 map objects found in this room.</div>';
+        return;
+      }
+      const m = getModule();
+      for (let i = 0; i < cachedObjects.length; i++) {
+        const obj = cachedObjects[i];
+        const maxState = (obj.states && obj.states.length) ? Math.max(1, obj.states.length - 1) : 1;
+        let curState = 0;
+        if (m && typeof m.readMemory === 'function') {
+          curState = m.readMemory(0x7E10CE + obj.index) || 0;
+        } else if (preState && preState.objStateBuf) {
+          curState = preState.objStateBuf[obj.index] || 0;
+        }
+
+        const row = document.createElement('div');
+        row.className = 'menu-row' + (i === menuSelectedRow ? ' selected' : '');
+        row.setAttribute('data-row', String(i));
+        row.setAttribute('data-action', 'stepper-obj-state');
+
+        row.innerHTML =
+          '<div class="menu-row-label">' +
+            '<span class="menu-row-cursor">&gt;</span> ' +
+            '<span class="menu-obj-badge">OBJ #' + obj.index + '</span> ' +
+            '<span class="menu-obj-coords">(' + obj.x + ',' + obj.y + ' ' + obj.w + 'x' + obj.h + ')</span>' +
+          '</div>' +
+          '<div class="menu-row-value">' +
+            '<button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>' +
+            '<span id="menu-val-obj-' + obj.index + '" class="menu-pill active">State ' + curState + ' / ' + maxState + '</span>' +
+            '<button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>' +
+          '</div>';
+
+        const btnLeft = row.querySelector('[data-step="-1"]');
+        const btnRight = row.querySelector('[data-step="1"]');
+        if (btnLeft) {
+          btnLeft.addEventListener('click', function(e) {
+            e.stopPropagation();
+            menuSelectedRow = i;
+            updateMenuRowSelection();
+            stepObjectState(obj.index, -1);
+          });
+        }
+        if (btnRight) {
+          btnRight.addEventListener('click', function(e) {
+            e.stopPropagation();
+            menuSelectedRow = i;
+            updateMenuRowSelection();
+            stepObjectState(obj.index, 1);
+          });
+        }
+        row.addEventListener('click', function() {
+          menuSelectedRow = i;
+          updateMenuRowSelection();
+          stepObjectState(obj.index, 1);
+        });
+
+        container.appendChild(row);
+      }
+    }
+
+    function stepObjectState(objIndex, delta) {
+      if (!cachedObjects) return;
+      const obj = cachedObjects.find(function(o) { return o.index === objIndex; });
+      if (!obj) return;
+      const maxState = (obj.states && obj.states.length) ? Math.max(1, obj.states.length - 1) : 1;
+      const m = getModule();
+      let curState = 0;
+      if (m && typeof m.readMemory === 'function') {
+        curState = m.readMemory(0x7E10CE + objIndex) || 0;
+      }
+      const newState = Math.max(0, Math.min(curState + delta, maxState));
+      if (newState === curState) return;
+
+      // 1. Direct WRAM write
+      if (m && typeof m.writeMemory === 'function') {
+        m.writeMemory(0x7E10CE + objIndex, newState);
+      }
+      if (preState && preState.objStateBuf) {
+        preState.objStateBuf[objIndex] = newState;
+      }
+
+      // 2. Safe opcode 0x5C injection
+      try {
+        const hexObj = objIndex.toString(16).padStart(2, '0');
+        const hexVal = newState.toString(16).padStart(2, '0');
+        injectEverscript('5c ' + hexObj + ' ' + hexVal);
+      } catch (_) {}
+
+      // 3. Update pill UI
+      const pill = document.getElementById('menu-val-obj-' + objIndex);
+      if (pill) pill.textContent = 'State ' + newState + ' / ' + maxState;
+
+      playMenuSound('click_nav');
+
+      // 4. Request room map refresh to draw new object tiles immediately
+      if (vscodeApi && typeof cachedMapId === 'number') {
+        const objStateMap = {};
+        objStateMap[objIndex] = newState;
+        vscodeApi.postMessage({
+          command: 'requestRoomMap',
+          mapId: cachedMapId,
+          objectStates: objStateMap,
+          cutGrassTiles: null,
+          layered: false,
+        });
+      }
+    }
+
+    // -- Lootables Dynamic View ------------------------------------------------
+    function renderLootRows() {
+      const container = document.getElementById('menu-loot-list');
+      if (!container) return;
+      container.innerHTML = '';
+      if (!cachedLootables || !cachedLootables.length) {
+        container.innerHTML = '<div class="menu-empty-hint">No lootable gourds, chests or sniff spots found in this room.</div>';
+        return;
+      }
+      const m = getModule();
+      for (let i = 0; i < cachedLootables.length; i++) {
+        const loot = cachedLootables[i];
+        let isLooted = false;
+        if (m && typeof m.readMemory === 'function') {
+          if (loot.checkFlag) {
+            const b = m.readMemory(0x7E0000 + loot.checkFlag.addr);
+            isLooted = (b & (1 << loot.checkFlag.bit)) !== 0;
+          } else if (loot.setFlag) {
+            const b = m.readMemory(0x7E0000 + loot.setFlag.addr);
+            isLooted = (b & (1 << loot.setFlag.bit)) !== 0;
+          }
+          if (loot.objectId !== null && loot.objectId !== undefined) {
+            const ost = m.readMemory(0x7E10CE + loot.objectId);
+            if (ost > 0) isLooted = true;
+          }
+        }
+
+        const iconUri = (cachedItemIcons && cachedItemIcons[loot.itemName]) ? cachedItemIcons[loot.itemName] : null;
+        const iconHtml = iconUri
+          ? '<img class="menu-loot-img" src="' + iconUri + '" alt="" />'
+          : '<span class="menu-loot-fallback">' + (loot.kind === 'sniff' ? '[S]' : '[G]') + '</span>';
+
+        const row = document.createElement('div');
+        row.className = 'menu-row' + (i === menuSelectedRow ? ' selected' : '');
+        row.setAttribute('data-row', String(i));
+        row.setAttribute('data-action', 'toggle-loot');
+
+        row.innerHTML =
+          '<div class="menu-row-label">' +
+            '<span class="menu-row-cursor">&gt;</span> ' +
+            iconHtml +
+            '<span class="menu-loot-name">' + loot.itemName + (loot.amount > 1 ? ' x' + loot.amount : '') + '</span> ' +
+            '<span class="menu-loot-meta">(' + (loot.kind === 'sniff' ? 'Sniff' : (loot.objectId !== null ? 'OBJ #' + loot.objectId : 'Chest')) + ' @ ' + loot.x + ',' + loot.y + ')</span>' +
+          '</div>' +
+          '<div class="menu-row-value menu-loot-actions">' +
+            '<button class="menu-loot-toggle-btn ' + (isLooted ? 'looted' : 'unlooted') + '" type="button">' +
+              (isLooted ? 'LOOTED' : 'UNLOOTED') +
+            '</button>' +
+            '<button class="menu-loot-run-btn" type="button" title="Run loot script in emulator">[Run]</button>' +
+          '</div>';
+
+        const toggleBtn = row.querySelector('.menu-loot-toggle-btn');
+        if (toggleBtn) {
+          toggleBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            menuSelectedRow = i;
+            updateMenuRowSelection();
+            toggleLootState(i);
+          });
+        }
+        const runBtn = row.querySelector('.menu-loot-run-btn');
+        if (runBtn) {
+          runBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            menuSelectedRow = i;
+            updateMenuRowSelection();
+            runLootScript(i);
+          });
+        }
+        row.addEventListener('click', function() {
+          menuSelectedRow = i;
+          updateMenuRowSelection();
+          toggleLootState(i);
+        });
+
+        container.appendChild(row);
+      }
+    }
+
+    function toggleLootState(lootIdx) {
+      if (!cachedLootables || !cachedLootables[lootIdx]) return;
+      const loot = cachedLootables[lootIdx];
+      const m = getModule();
+      if (!m || typeof m.readMemory !== 'function') return;
+
+      let isLooted = false;
+      const flag = loot.setFlag || loot.checkFlag;
+      if (flag) {
+        const b = m.readMemory(0x7E0000 + flag.addr);
+        isLooted = (b & (1 << flag.bit)) !== 0;
+      }
+      if (loot.objectId !== null && loot.objectId !== undefined) {
+        const ost = m.readMemory(0x7E10CE + loot.objectId);
+        if (ost > 0) isLooted = true;
+      }
+
+      const targetLooted = !isLooted;
+      if (flag) {
+        const oldB = m.readMemory(0x7E0000 + flag.addr);
+        const newB = targetLooted ? (oldB | (1 << flag.bit)) : (oldB & ~(1 << flag.bit));
+        m.writeMemory(0x7E0000 + flag.addr, newB);
+      }
+      if (loot.objectId !== null && loot.objectId !== undefined) {
+        const newObjState = targetLooted ? 1 : 0;
+        m.writeMemory(0x7E10CE + loot.objectId, newObjState);
+        if (preState && preState.objStateBuf) preState.objStateBuf[loot.objectId] = newObjState;
+        try {
+          injectEverscript('5c ' + loot.objectId.toString(16).padStart(2, '0') + ' ' + (targetLooted ? '01' : '00'));
+        } catch (_) {}
+      }
+
+      if (targetLooted) {
+        playMenuSound('click_confirm');
+      } else {
+        playMenuSound('click_toggle');
+      }
+
+      renderLootRows();
+
+      if (vscodeApi && typeof cachedMapId === 'number' && loot.objectId !== null) {
+        const objStateMap = {};
+        objStateMap[loot.objectId] = targetLooted ? 1 : 0;
+        vscodeApi.postMessage({
+          command: 'requestRoomMap',
+          mapId: cachedMapId,
+          objectStates: objStateMap,
+          cutGrassTiles: null,
+          layered: false,
+        });
+      }
+    }
+
+    function runLootScript(lootIdx) {
+      if (!cachedLootables || !cachedLootables[lootIdx]) return;
+      const loot = cachedLootables[lootIdx];
+      const m = getModule();
+      if (!m || typeof m.readMemory !== 'function') return;
+
+      // Crash prevention: check free script slot count
+      let freeSlot = -1;
+      for (let s = 0; s < 20; s++) {
+        if ((m.readMemory(0x7E28FC + s * 0x4F + 3) | (m.readMemory(0x7E28FC + s * 0x4F + 4) << 8)) === 0) {
+          freeSlot = s;
+          break;
+        }
+      }
+      const runIdx = m.readMemory(0x7E0086) | (m.readMemory(0x7E0087) << 8);
+      if (freeSlot < 0 || runIdx >= 40) {
+        console.warn('Cannot run loot script: all 20 script slots occupied (prevented game crash)');
+        playMenuSound('wheel_close');
+        return;
+      }
+
+      if (loot.scriptAddressSnes) {
+        const snes = loot.scriptAddressSnes;
+        const b0 = snes & 0xFF, b1 = (snes >> 8) & 0xFF, b2 = (snes >> 16) & 0xFF;
+        const hex = '29 ' + b0.toString(16).padStart(2, '0') + ' ' + b1.toString(16).padStart(2, '0') + ' ' + b2.toString(16).padStart(2, '0');
+        injectEverscript(hex);
+        playMenuSound('click_confirm');
+        closeEmulatorMenu();
+      }
+    }
+
+    function refreshMenuDataIfOpen() {
+      if (!isMenuOpen) return;
+      if (menuActiveTab === 0) updateLensTabInfo();
+      else if (menuActiveTab === 2) renderObjectRows();
+      else if (menuActiveTab === 3) renderLootRows();
     }
 
     // -- Remapper UI & Storage -------------------------------------------------
@@ -977,7 +1368,7 @@ function getMenuClientScript() {
       SNES_BUTTON_NAMES.forEach(function(btnName, idx) {
         const row = document.createElement('div');
         row.className = 'menu-row' + (idx === menuSelectedRow ? ' selected' : '');
-        row.setAttribute('data-row', idx);
+        row.setAttribute('data-row', String(idx));
 
         const label = document.createElement('div');
         label.className = 'menu-row-label';
@@ -1000,13 +1391,6 @@ function getMenuClientScript() {
           menuSelectedRow = idx;
           updateMenuRowSelection();
           startKeybindListen(btnName);
-        });
-
-        row.addEventListener('mouseenter', function() {
-          if (!menuListeningBtn && menuSelectedRow !== idx) {
-            menuSelectedRow = idx;
-            updateMenuRowSelection();
-          }
         });
 
         container.appendChild(row);
@@ -1049,15 +1433,10 @@ function getMenuClientScript() {
 
     // -- Keyboard Event Interception -------------------------------------------
     window.addEventListener('keydown', function(e) {
-      // 1. Esc ALWAYS pauses the emulator / toggles menu
+      // 1. Esc ALWAYS pauses/resumes the emulator & toggles menu
       if (e.key === 'Escape') {
         if (menuListeningBtn) {
           cancelKeybindListen();
-          e.preventDefault();
-          return;
-        }
-        if (isLensModeActive) {
-          exitLensMode();
           e.preventDefault();
           return;
         }
@@ -1066,17 +1445,7 @@ function getMenuClientScript() {
         return;
       }
 
-      // 2. Lens Mode Active: Arrow keys pan camera
-      if (isLensModeActive) {
-        if (e.key === 'ArrowUp') { panY += 24; if (typeof updateScreenLayout === 'function') updateScreenLayout(); e.preventDefault(); return; }
-        if (e.key === 'ArrowDown') { panY -= 24; if (typeof updateScreenLayout === 'function') updateScreenLayout(); e.preventDefault(); return; }
-        if (e.key === 'ArrowLeft') { panX += 24; if (typeof updateScreenLayout === 'function') updateScreenLayout(); e.preventDefault(); return; }
-        if (e.key === 'ArrowRight') { panX -= 24; if (typeof updateScreenLayout === 'function') updateScreenLayout(); e.preventDefault(); return; }
-        if (e.key === 'Enter' || e.key === 'c' || e.key === 'C') { exitLensMode(); e.preventDefault(); return; }
-        return;
-      }
-
-      // 3. Menu is OPEN: Input belongs to menu
+      // 2. Menu is OPEN: Input belongs to menu
       if (isMenuOpen) {
         if (menuListeningBtn) {
           applyKeybind(e.key);
@@ -1085,14 +1454,21 @@ function getMenuClientScript() {
           return;
         }
 
-        // L / R Shoulder navigation
-        if (e.key === 'q' || e.key === 'Q' || e.key === 'a' || e.key === 'A') {
+        // L / R Shoulder navigation ([L] / [R])
+        if (e.key === 'q' || e.key === 'Q' || e.key === 'PageUp') {
           switchMenuTab(-1);
           e.preventDefault();
           return;
         }
-        if (e.key === 'w' || e.key === 'W' || e.key === 's' || e.key === 'S') {
+        if (e.key === 'e' || e.key === 'E' || e.key === 'PageDown') {
           switchMenuTab(1);
+          e.preventDefault();
+          return;
+        }
+
+        // Tab switches forward, Shift+Tab switches backward
+        if (e.key === 'Tab') {
+          switchMenuTab(e.shiftKey ? -1 : 1);
           e.preventDefault();
           return;
         }
@@ -1127,25 +1503,24 @@ function getMenuClientScript() {
           e.preventDefault();
           return;
         }
+        e.preventDefault();
         return;
       }
 
-      // 4. Menu is CLOSED: Check Pause / Start hotkey
+      // 3. Game is running: Check Start button for controllable player
       const startKey = userKeyMap['Start'] || 'Enter';
-      if (e.key === startKey && !e.repeat) {
+      if (e.key === startKey || (startKey === 'Enter' && e.key === 'Enter')) {
         const m = getModule();
         if (isPlayerControllable(m)) {
-          // Intercept Start and toggle pause / open menu
-          togglePauseMenu('Start');
+          openEmulatorMenu();
           e.preventDefault();
-          e.stopPropagation();
           return;
         }
       }
 
-      // Normal live gameplay inputs
+      // Normal SNES game input dispatch
       const bit = dynamicKeyToBit[e.key];
-      if (bit && !e.repeat) {
+      if (bit) {
         keyInput |= bit;
         e.preventDefault();
       }
@@ -1173,24 +1548,6 @@ function getMenuClientScript() {
       const devNameEl = document.getElementById('menu-device-name');
       if (devNameEl && gp.id) {
         devNameEl.textContent = 'Pad: ' + gp.id.slice(0, 24);
-      }
-
-      if (isLensModeActive) {
-        // D-Pad or stick pans the camera in Lens mode!
-        const dx = (gp.axes[0] < -0.3 ? 8 : (gp.axes[0] > 0.3 ? -8 : 0));
-        const dy = (gp.axes[1] < -0.3 ? 8 : (gp.axes[1] > 0.3 ? -8 : 0));
-        if (dx !== 0 || dy !== 0) {
-          panX += dx;
-          panY += dy;
-          if (typeof updateScreenLayout === 'function') updateScreenLayout();
-        }
-        if ((gp.buttons[0] && gp.buttons[0].pressed && !lastGamepadButtons[0]) ||
-            (gp.buttons[9] && gp.buttons[9].pressed && !lastGamepadButtons[9])) {
-          exitLensMode();
-        }
-        lastGamepadButtons[0] = gp.buttons[0] && gp.buttons[0].pressed;
-        lastGamepadButtons[9] = gp.buttons[9] && gp.buttons[9].pressed;
-        return;
       }
 
       if (isMenuOpen) {
@@ -1249,149 +1606,169 @@ function getMenuClientScript() {
         return;
       }
 
-      // When closed: Check Start button gating from Gamepad (button 9)
+      // When gameplay is active: Start button opens menu if controllable
       if (gp.buttons[9] && gp.buttons[9].pressed && !lastGamepadButtons[9]) {
         const m = getModule();
         if (isPlayerControllable(m)) {
-          togglePauseMenu('GamepadStart');
-          lastGamepadButtons[9] = true;
-          return;
+          openEmulatorMenu();
         }
       }
       lastGamepadButtons[9] = gp.buttons[9] && gp.buttons[9].pressed;
     }
 
-    function menuFrameTick() {
-      pollGamepadMenu();
-      requestAnimationFrame(menuFrameTick);
-    }
-    requestAnimationFrame(menuFrameTick);
-
-    // -- Mouse & Tab Bindings --------------------------------------------------
-    function setupMenuDomEvents() {
-      // Lens exit button
-      const lensExit = document.getElementById('menu-lens-exit-btn');
-      if (lensExit) lensExit.addEventListener('click', function(e) {
-        e.stopPropagation();
-        exitLensMode();
-      });
-
-      // L / R buttons
-      const lBtn = document.getElementById('menu-l-btn');
-      if (lBtn) lBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        switchMenuTab(-1);
-      });
-      const rBtn = document.getElementById('menu-r-btn');
-      if (rBtn) rBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        switchMenuTab(1);
-      });
-
-      // Close button
-      const closeBtn = document.getElementById('menu-close-btn');
-      if (closeBtn) closeBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        closeEmulatorMenu();
-      });
-
-      // Backdrop click closes menu (only when not in lens mode)
-      const menuBackdrop = document.getElementById('emulator-menu');
-      if (menuBackdrop) {
-        menuBackdrop.addEventListener('click', function(e) {
-          if (e.target === menuBackdrop && !isLensModeActive) {
-            closeEmulatorMenu();
-          }
-        });
+    // Helper utilities for UI
+    function setPillState(id, on) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.classList.toggle('active', !!on);
+        el.textContent = on ? 'ON' : 'OFF';
       }
+    }
 
-      // Tabs click
-      for (let i = 0; i < 3; i++) {
-        const tabBtn = document.getElementById('menu-tab-btn-' + i);
-        if (tabBtn) {
-          tabBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            menuActiveTab = i;
-            menuSelectedRow = 0;
-            playMenuSound('wheel_turn');
-            renderMenuTab(i);
+    function applyMenuZoom(idx) {
+      const val = MENU_ZOOM_VALUES[idx];
+      const lbl = MENU_ZOOM_LABELS[idx];
+      const pill = document.getElementById('menu-val-zoom');
+      const lensPill = document.getElementById('menu-val-lens-zoom');
+      if (pill) pill.textContent = lbl;
+      if (lensPill) lensPill.textContent = lbl;
+      if (val === -1) {
+        zoomLevel = 1.0;
+        panX = 0;
+        panY = 0;
+        if (typeof updateScreenLayout === 'function') updateScreenLayout();
+      } else {
+        const wrap = document.getElementById('screen-wrapper');
+        const cx = wrap ? wrap.clientWidth / 2 : 256;
+        const cy = wrap ? wrap.clientHeight / 2 : 224;
+        if (typeof zoomAt === 'function') zoomAt(val, cx, cy);
+      }
+    }
+
+    function syncMenuValuesFromRuntime() {
+      setPillState('menu-val-extend', extendMapEnabled);
+      setPillState('menu-val-triggers', triggersOverlayEnabled);
+      setPillState('menu-val-objects', objectsOverlayEnabled);
+      setPillState('menu-val-anim', animTilesOverlayEnabled);
+      setPillState('menu-val-collision', collisionOverlayEnabled);
+      setPillState('menu-val-fog', fogOfWarEnabled);
+      setPillState('menu-val-sound-vis', sndShow);
+      setPillState('menu-val-sound-vis-tab4', sndShow);
+
+      const spdEl = document.getElementById('menu-val-speed');
+      if (spdEl) spdEl.textContent = MENU_SPEED_LABELS[menuSpeedIndex];
+
+      const zmEl = document.getElementById('menu-val-zoom');
+      if (zmEl) zmEl.textContent = MENU_ZOOM_LABELS[menuZoomIndex];
+
+      const focusChip = document.getElementById('ss-chip-stay');
+      const isStay = focusChip && focusChip.classList.contains('active');
+      const focusPill = document.getElementById('menu-val-focus');
+      if (focusPill) {
+        focusPill.textContent = isStay ? 'Stay' : 'Code';
+        focusPill.classList.toggle('active', isStay);
+      }
+    }
+
+    // Bind DOM events once DOM is loaded
+    (function initMenuDom() {
+      function setup() {
+        const lBtn = document.getElementById('menu-l-btn');
+        const rBtn = document.getElementById('menu-r-btn');
+        const closeBtn = document.getElementById('menu-close-btn');
+
+        if (lBtn) lBtn.addEventListener('click', function() { switchMenuTab(-1); });
+        if (rBtn) rBtn.addEventListener('click', function() { switchMenuTab(1); });
+        if (closeBtn) closeBtn.addEventListener('click', closeEmulatorMenu);
+
+        for (let i = 0; i < MENU_TAB_COUNT; i++) {
+          const tabBtn = document.getElementById('menu-tab-btn-' + i);
+          if (tabBtn) {
+            tabBtn.addEventListener('click', (function(idx) {
+              return function() {
+                if (menuActiveTab !== idx) {
+                  menuActiveTab = idx;
+                  menuSelectedRow = 0;
+                  playMenuSound('wheel_turn');
+                  renderMenuTab(idx);
+                }
+              };
+            })(i));
+          }
+        }
+
+        // Steppers on Overlays & Emulation tabs
+        const rows = document.querySelectorAll('.menu-row');
+        rows.forEach(function(r) {
+          const btnLeft = r.querySelector('[data-step="-1"]');
+          const btnRight = r.querySelector('[data-step="1"]');
+          const rIdx = parseInt(r.getAttribute('data-row'), 10);
+          if (btnLeft) {
+            btnLeft.addEventListener('click', function(e) {
+              e.stopPropagation();
+              menuSelectedRow = rIdx;
+              updateMenuRowSelection();
+              changeMenuValue(-1);
+            });
+          }
+          if (btnRight) {
+            btnRight.addEventListener('click', function(e) {
+              e.stopPropagation();
+              menuSelectedRow = rIdx;
+              updateMenuRowSelection();
+              changeMenuValue(1);
+            });
+          }
+          r.addEventListener('click', function(e) {
+            if (e.target.tagName === 'BUTTON') return;
+            menuSelectedRow = rIdx;
+            updateMenuRowSelection();
+            activateMenuRow();
+          });
+        });
+
+        // Keybind Presets
+        const pArrows = document.getElementById('menu-preset-arrows');
+        const pWasd = document.getElementById('menu-preset-wasd');
+        const pReset = document.getElementById('menu-preset-reset');
+        if (pArrows) {
+          pArrows.addEventListener('click', function() {
+            userKeyMap = Object.assign({}, DEFAULT_KEY_MAP);
+            localStorage.setItem('everscript_emulator_keybinds_v1', JSON.stringify(userKeyMap));
+            rebuildKeyBitMap();
+            playMenuSound('click_confirm');
+            renderKeybindRows();
+          });
+        }
+        if (pWasd) {
+          pWasd.addEventListener('click', function() {
+            userKeyMap = Object.assign({}, DEFAULT_KEY_MAP, {
+              'Up': 'w', 'Down': 's', 'Left': 'a', 'Right': 'd',
+              'B': 'j', 'A': 'k', 'Y': 'u', 'X': 'i', 'L': 'q', 'R': 'e'
+            });
+            localStorage.setItem('everscript_emulator_keybinds_v1', JSON.stringify(userKeyMap));
+            rebuildKeyBitMap();
+            playMenuSound('click_confirm');
+            renderKeybindRows();
+          });
+        }
+        if (pReset) {
+          pReset.addEventListener('click', function() {
+            localStorage.removeItem('everscript_emulator_keybinds_v1');
+            userKeyMap = Object.assign({}, DEFAULT_KEY_MAP);
+            rebuildKeyBitMap();
+            playMenuSound('click_confirm');
+            renderKeybindRows();
           });
         }
       }
 
-      // Row click and hover delegation
-      [0, 1].forEach(function(tabIdx) {
-        const panel = document.getElementById('menu-panel-' + tabIdx);
-        if (!panel) return;
-        const rows = panel.querySelectorAll('.menu-row');
-        rows.forEach(function(row, rIdx) {
-          row.addEventListener('click', function(e) {
-            e.stopPropagation();
-            menuSelectedRow = rIdx;
-            updateMenuRowSelection();
-            if (e.target.closest('.menu-stepper-btn')) {
-              const step = parseInt(e.target.closest('.menu-stepper-btn').getAttribute('data-step') || '1', 10);
-              changeMenuValue(step);
-            } else {
-              activateMenuRow();
-            }
-          });
-          row.addEventListener('mouseenter', function() {
-            if (menuSelectedRow !== rIdx) {
-              menuSelectedRow = rIdx;
-              updateMenuRowSelection();
-            }
-          });
-        });
-      });
-
-      // Presets
-      const btnArrows = document.getElementById('menu-preset-arrows');
-      if (btnArrows) btnArrows.addEventListener('click', function() {
-        userKeyMap = Object.assign({}, DEFAULT_KEY_MAP);
-        localStorage.setItem('everscript_emulator_keybinds_v1', JSON.stringify(userKeyMap));
-        rebuildKeyBitMap();
-        playMenuSound('click_confirm');
-        renderKeybindRows();
-      });
-
-      const btnWasd = document.getElementById('menu-preset-wasd');
-      if (btnWasd) btnWasd.addEventListener('click', function() {
-        userKeyMap = Object.assign({}, DEFAULT_KEY_MAP, {
-          'Up': 'w',
-          'Down': 's',
-          'Left': 'a',
-          'Right': 'd',
-          'B': 'k',
-          'A': 'l',
-          'Y': 'j',
-          'X': 'i',
-          'L': 'q',
-          'R': 'e',
-          'Select': ' ',
-          'Start': 'Enter',
-        });
-        localStorage.setItem('everscript_emulator_keybinds_v1', JSON.stringify(userKeyMap));
-        rebuildKeyBitMap();
-        playMenuSound('click_confirm');
-        renderKeybindRows();
-      });
-
-      const btnReset = document.getElementById('menu-preset-reset');
-      if (btnReset) btnReset.addEventListener('click', function() {
-        userKeyMap = Object.assign({}, DEFAULT_KEY_MAP);
-        try { localStorage.removeItem('everscript_emulator_keybinds_v1'); } catch (e) {}
-        rebuildKeyBitMap();
-        playMenuSound('click_confirm');
-        renderKeybindRows();
-      });
-    }
-
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', setupMenuDomEvents);
-    } else {
-      setupMenuDomEvents();
-    }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setup);
+      } else {
+        setup();
+      }
+    })();
   `;
 }
 

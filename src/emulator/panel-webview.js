@@ -1119,8 +1119,10 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         cachedMapId = -1;
         cachedTriggers = null;
         cachedObjects = null;
+        cachedLootables = null;
         cachedAnimTiles = null;
         roomObjectsCache.clear();
+        roomLootCache.clear();
         roomAnimTilesCache.clear();
         lastRequestedMapId = -1;
         activeRoomMap = null;
@@ -1428,9 +1430,12 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     let cachedMapId = -1;
     let cachedTriggers = null;
     let cachedObjects = null;
+    let cachedLootables = null;
+    let cachedItemIcons = {};
     let cachedAnimTiles = null;
     let cachedCollisionImg = null;
     const roomObjectsCache = new Map();
+    const roomLootCache = new Map();
     const roomAnimTilesCache = new Map();
     const roomCollisionCache = new Map();
     let lastRequestedMapId = -1;
@@ -2610,6 +2615,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         cachedMapId = mapId;
         cachedTriggers = parseRoomTriggers(loadedRomData, mapId);
         cachedObjects = roomObjectsCache.get(mapId) || null;
+        cachedLootables = roomLootCache.get(mapId) || null;
         cachedAnimTiles = roomAnimTilesCache.get(mapId) || null;
         cachedCollisionImg = roomCollisionCache.get(mapId) || null;
         spriteCache.clear();
@@ -3969,6 +3975,14 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
           roomObjectsCache.set(evt.data.mapId, evt.data.objects);
           if (evt.data.mapId === cachedMapId) cachedObjects = evt.data.objects;
         }
+        if (Array.isArray(evt.data.lootables)) {
+          roomLootCache.set(evt.data.mapId, evt.data.lootables);
+          if (evt.data.mapId === cachedMapId) cachedLootables = evt.data.lootables;
+        }
+        if (evt.data.itemIcons) {
+          cachedItemIcons = Object.assign(cachedItemIcons || {}, evt.data.itemIcons);
+        }
+        if (typeof refreshMenuDataIfOpen === 'function') refreshMenuDataIfOpen();
         if (Array.isArray(evt.data.animTiles)) {
           roomAnimTilesCache.set(evt.data.mapId, evt.data.animTiles);
           if (evt.data.mapId === cachedMapId) cachedAnimTiles = evt.data.animTiles;

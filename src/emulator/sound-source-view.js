@@ -103,6 +103,62 @@ function getSoundSourceClientScript() {
       if (sndShow) sndPings.push({ entity: ent, sfx: ev.sfx, birth: sndFrame });
     }
 
+    function sndMapScriptPosition(m, ev) {
+      if (!ev) return null;
+      // 1. Check if running slot has an attached entity (+0x0D in $7E28FC slot structure)
+      if (typeof ev.slot === 'number' && ev.slot >= 0x2800 && ev.slot < 0x3000) {
+        const entPtr = sndWord(m, 0x7E0000 + ev.slot + 0x0D);
+        if (entPtr >= 0x3000 && entPtr < 0x6000) {
+          const at = 0x7E0000 + entPtr;
+          const x = sndSigned(sndWord(m, at + 0x1A));
+          const y = sndSigned(sndWord(m, at + 0x1C));
+          const name = sndEntityName(m, entPtr, sndWord(m, at + 0x60));
+          return { worldX: x, worldY: y, label: name };
+        }
+      }
+
+      // 2. Check if ev.script matches known triggers in cachedTriggers
+      if (typeof cachedTriggers !== 'undefined' && cachedTriggers && typeof ev.script === 'number') {
+        const trigs = (cachedTriggers.bTrigger || []).concat(cachedTriggers.stepOn || []);
+        const offX = cachedTriggers.offX || 0;
+        const offY = cachedTriggers.offY || 0;
+        for (let i = 0; i < trigs.length; i++) {
+          const t = trigs[i];
+          if (t.x1 !== undefined && t.x2 !== undefined) {
+            const cx = Math.round(((t.x1 + t.x2) / 2 - offX) * 16);
+            const cy = Math.round(((t.y1 + t.y2) / 2 - offY) * 16);
+            // Check if there is an object right here
+            if (typeof cachedObjects !== 'undefined' && cachedObjects) {
+              for (let o = 0; o < cachedObjects.length; o++) {
+                const obj = cachedObjects[o];
+                if (Math.abs((obj.x + obj.w / 2) - cx) < 24 && Math.abs((obj.y + obj.h / 2) - cy) < 24) {
+                  return { worldX: Math.round(obj.x + obj.w / 2), worldY: Math.round(obj.y + obj.h / 2), label: 'OBJ #' + obj.index };
+                }
+              }
+            }
+            const isB = (cachedTriggers.bTrigger || []).includes(t);
+            return { worldX: cx, worldY: cy, label: isB ? 'B-trig #' + i : 'Step-on #' + i };
+          }
+        }
+      }
+
+      // 3. Check if ev.script is in Enter script range
+      if (typeof ev.script === 'number' && (ev.script === 0xBC8000 || ((ev.script >> 16) === 0xBC))) {
+        const px = sndSigned(sndWord(m, 0x7E4E89 + 0x1A));
+        const py = sndSigned(sndWord(m, 0x7E4E89 + 0x1C));
+        return { worldX: px || 128, worldY: py || 120, label: 'Enter Script' };
+      }
+
+      // 4. Default: Player position
+      try {
+        const px = sndSigned(sndWord(m, 0x7E4E89 + 0x1A));
+        const py = sndSigned(sndWord(m, 0x7E4E89 + 0x1C));
+        if (px || py) return { worldX: px, worldY: py, label: 'Script' };
+      } catch (_) {}
+
+      return null;
+    }
+
     // onBreakpointHit for SND_SEND: record a sound effect (or its pitch) and keep running.
     function sndOnHit(m) {
       try {
@@ -123,6 +179,19 @@ function getSoundSourceClientScript() {
           ev.kind = 'script';
           ev.script = ((m.readMemory(0x7E0084) << 16) | sndWord(m, 0x7E0082)) - 2;
           ev.slot = sndWord(m, 0x7E007E);
+          if (sndShow) {
+            const mapped = sndMapScriptPosition(m, ev);
+            if (mapped) {
+              sndPings.push({
+                worldX: mapped.worldX,
+                worldY: mapped.worldY,
+                sfx: ev.sfx,
+                birth: sndFrame,
+                label: mapped.label,
+                kind: 'script',
+              });
+            }
+          }
         }
         if (sndEvents.length < 32) sndEvents.push(ev);
       } catch (e) { /* never stop the game for this */ }
@@ -183,13 +252,18 @@ function getSoundSourceClientScript() {
       // Several sounds of one entity in a row: one label each, stacked.
       const stacked = {};
       for (const p of sndPings) {
-        const pos = at(p.entity);
+        const pos = (p.worldX !== undefined && p.worldY !== undefined)
+          ? { x: layout.emuX + (p.worldX - layout.camX) * layout.scaleSnes, y: layout.emuY + (p.worldY - layout.camY - 12) * layout.scaleSnes }
+          : at(p.entity);
         if (!pos) continue;
-        const k = (sndFrame - p.birth) / SND_PING_FRAMES, row = stacked[p.entity] = (stacked[p.entity] || 0) + 1;
-        ctx.strokeStyle = 'rgba(245, 158, 11, ' + (1 - k).toFixed(2) + ')';
+        const k = (sndFrame - p.birth) / SND_PING_FRAMES;
+        const key = (p.worldX !== undefined) ? (p.worldX + ',' + p.worldY) : p.entity;
+        const row = stacked[key] = (stacked[key] || 0) + 1;
+        ctx.strokeStyle = p.kind === 'script' ? 'rgba(56, 189, 248, ' + (1 - k).toFixed(2) + ')' : 'rgba(245, 158, 11, ' + (1 - k).toFixed(2) + ')';
         ctx.beginPath(); ctx.arc(pos.x, pos.y, (10 + k * 10) * s, 0, Math.PI * 2); ctx.stroke();
-        ctx.fillStyle = 'rgba(253, 230, 138, ' + (1 - k).toFixed(2) + ')';
-        ctx.fillText(sndLabel(p.sfx), pos.x + 12 * s, pos.y - (10 + 10 * (row - 1)) * s);
+        ctx.fillStyle = p.kind === 'script' ? 'rgba(186, 230, 253, ' + (1 - k).toFixed(2) + ')' : 'rgba(253, 230, 138, ' + (1 - k).toFixed(2) + ')';
+        const labelText = p.label ? (p.label + ': ' + sndLabel(p.sfx)) : sndLabel(p.sfx);
+        ctx.fillText(labelText, pos.x + 12 * s, pos.y - (10 + 10 * (row - 1)) * s);
       }
       if (sndPoint) {
         const pos = at(sndPoint.entity);

@@ -955,6 +955,48 @@ function _handleRoomMapRequest(mapId, objectStates, cutGrassTiles, layered) {
             }
         } catch (_) {}
 
+        const roomLootables = [];
+        try {
+            const { buildRoomScriptModel } = require('../script');
+            const scriptModel = buildRoomScriptModel(rom, mapId);
+            const allTrigs = [...(scriptModel.bTrigger || []), ...(scriptModel.stepOn || [])];
+            let lootIdx = 0;
+            for (const trig of allTrigs) {
+                if (!trig.loot || !trig.loot.length) continue;
+                for (const fact of trig.loot) {
+                    const trigBox = {
+                        x: (trig.x1 - room.header.originX) * 16,
+                        y: (trig.y1 - room.header.originY) * 16,
+                        w: Math.max(1, (trig.x2 - trig.x1) * 16),
+                        h: Math.max(1, (trig.y2 - trig.y1) * 16),
+                    };
+                    roomLootables.push({
+                        index: lootIdx++,
+                        kind: fact.kind || 'gourd',
+                        item: fact.item ? fact.item.value : null,
+                        itemName: fact.itemName || (fact.item ? ('0x' + fact.item.value.toString(16).toUpperCase()) : 'Unknown'),
+                        amount: fact.amount || 1,
+                        objectId: fact.objectId,
+                        checkFlag: fact.checkFlag,
+                        setFlag: fact.setFlag,
+                        x: trigBox.x,
+                        y: trigBox.y,
+                        w: trigBox.w,
+                        h: trigBox.h,
+                        triggerIndex: trig.index,
+                        scriptAddressSnes: trig.scriptAddressSnes,
+                    });
+                }
+            }
+        } catch (_) {}
+
+        let itemIcons = null;
+        try {
+            const { buildItemIcons } = require('../rooms/data/item-icons');
+            const icons = buildItemIcons(rom);
+            itemIcons = (icons && icons.loot) ? icons.loot : null;
+        } catch (_) {}
+
         const data = {
             mapId: mapId,
             imageUri: imageUri,
@@ -969,6 +1011,8 @@ function _handleRoomMapRequest(mapId, objectStates, cutGrassTiles, layered) {
             offY: room.header.originY,
             objects: roomObjects,
             animTiles: animTileClusters,
+            lootables: roomLootables,
+            itemIcons: itemIcons,
         };
         _roomMapCache.set(cacheKey, data);
         _panel.webview.postMessage(Object.assign({ command: 'roomMapRendered' }, data));
