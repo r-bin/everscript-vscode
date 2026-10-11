@@ -8,7 +8,6 @@ Route planner webview tab for the Memory Radar panel.
 |---|---|
 | `route-tab.js` | Webview asset — route planner client-side JS |
 
-## Dependency Rules
+## Rules for changing this folder
 
-- Webview assets are browser-side only; excluded from typecheck/knip
-- No server-side Node files in this domain currently
+Dependencies, invariants and tests: [AGENTS.md](AGENTS.md).

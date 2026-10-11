@@ -40,13 +40,6 @@ Entities: every one in the active list `$7E3DDF` and the inactive list `$7E3DE1`
 
 `#` toggles speed-up (4 frames per display frame, the TAS replay path).
 
-## Core Path Remapping
+## Rules for changing this folder
 
-`panel.js` defines `LEGACY_CUSTOM_CORE_DIRS` to remap any user-configured paths from:
-- `debugger/core/snes9x2005-wasm` (pre-v0.6.0 location)
-- `src/emulator/core/snes9x2005-wasm` (current location)
-
-## Dependency Rules
-
-- May depend on `../shared/`
-- No dependency on `../memory/`, `../rooms/`, or `../debugger/`
+Dependencies, invariants and tests: [AGENTS.md](AGENTS.md).

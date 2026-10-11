@@ -80,20 +80,6 @@ The address grammar (`parseSoeParts`, `parseAddressName`) is pure and lives in
 4. For elements a script adds later, include `soeClientScript(webview)` in the page.
    It rewrites `src`/`href` and exposes `window.soeUrl()`.
 
-## Dependency rules
+## Rules for changing this folder
 
-- May use `shared/`, `maps/`, `script/`, `localizations/`.
-- Never `emulator/`: the emulator's ROM and memory reads are injected by
-  `extension.js` (`emulatorRom`, `readMemory`), as `rom/` gets the CDL library.
-  `.depcruise.js` rule `no-resources-to-emulator`.
-
-## Invariants
-
-- Read-only: every write operation throws `NoPermissions`.
-- `rom/` files are pure functions of the ROM bytes, cached per ROM buffer.
-- `ram/` files are `live`: cached 250 ms, re-announced every second while
-  watched and an emulator is open, `Unavailable` without a running game.
-- Ids in paths are hex without `$`; item names are aliases of their hex reward id.
-- Every directory lists an `index.md`: the handler's own (`dir(entries, index)`) or autoindex.js.
-- A file stored once and reachable elsewhere is a link: `ingredients/wax/icon.png` → `icons/<id>.png`,
-  every `soe://bus/…` → its `ram/` or `rom/` file. Links stat as `File | SymbolicLink`.
+Dependencies, invariants and tests: [AGENTS.md](AGENTS.md).

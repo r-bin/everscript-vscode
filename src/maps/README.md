@@ -7,8 +7,8 @@ buffer, returns data. No VS Code API, no filesystem, no rendering.
 ## Why a port and not a re-derivation
 
 This repo twice shipped independent guesses at logic `everscript` already implemented
-correctly — the old sentinel-scan tilemap decoder (now shelved in `sandbox/maps/`,
-which failed outright on room `0x38`) and `tools/generate_data.py`'s regex grammar. This
+correctly — the old sentinel-scan tilemap decoder (removed in v0.155.1, which failed
+outright on room `0x38`) and `tools/generate_data.py`'s regex grammar. This
 is not that: it is a line-by-line port of an implementation that round-trips all 127
 vanilla rooms byte-exactly, and `npm run check:maps` proves the port still agrees with
 it. See the `map-format` and `rom-map-data` skills.
@@ -60,14 +60,10 @@ npm run build:maps     # tsc -p tsconfig.maps.json  ->  src/maps/dist/
 npm run check:maps     # diff the port against the Python implementation
 ```
 
-`dist/` is gitignored and rebuilt by `npm test`, `npm run package` and `npm run deploy`.
-Consumers should `require('../maps')` (the facade), never `./dist` directly.
-
 ## Model shape
 
-Every grid is **numbers**, never hex strings. Upstream returns both forms and warns that
-mixing them silently produces wrong results; the port keeps only the numeric form and
-formats at render time.
+Every grid is **numbers** (upstream returns hex strings too; the port keeps only the
+numeric form).
 
 ```js
 const { decodeRoom } = require('../maps');
@@ -77,21 +73,6 @@ room.collisionWords[y][x];        // 16-bit collision word — decode with ./col
 room.layer1MetatileIds[y][x];     // metatile ID (WRAM offset)
 room.triggers.stepOn[i].scriptId; // matches script_all's "id:" field
 ```
-
-Never interpret a collision word by hand — use `passability()`, `tilePlane()`,
-`driftVector()`, `entityGate()`. The bitfield is not obvious and a hand-reading of it
-was wrong for years upstream.
-
-## Dependency Rules
-
-- No VS Code API
-- No imports from other `src/` domains
-- No webview rendering (the Rooms tab owns its own — see `src/rooms/rendering/tile-overlay.js`)
-- No banners: `render_full_composition` grows the PNG to fit a header and legend;
-  the port emits neither, because the Rooms tab needs the raster to stay exactly
-  the size of the map so it keeps registering with the interactive SVG layer.
-  `buildSummary()` and `buildLegend()` hand that text to the webview as data.
-- Testable in plain Node.js (`tests/memory/map-parity.test.js`)
 
 ## Sprites
 
@@ -153,3 +134,7 @@ tile. `checkMetatilePalette` requires every sampled atlas cell to be
 pixel-identical to the same metatile in the room it came from.
 
 See [docs/map-format/map_editor_ui.md](../../docs/map-format/map_editor_ui.md).
+
+## Rules for changing this folder
+
+Dependencies, invariants and tests: [AGENTS.md](AGENTS.md).

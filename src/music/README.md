@@ -46,8 +46,7 @@ Not done yet: the sequence ("script") view, see `docs/music-sequence-todo.md`.
 
 ## The driver's own bookkeeping (disassembly of the ROM driver, verified in the engine)
 
-Who plays on a voice is read from the driver, never inferred from the voice number or the
-effect id. The emulator stream sends these ARAM bytes with every frame (`drv`,
+The emulator stream sends these ARAM bytes with every frame (`drv`,
 `emulator/apu-stream-view.js` `APU_DRIVER_RANGES`); `music-view.js` decodes them:
 
 | ARAM | Meaning |
@@ -58,18 +57,7 @@ effect id. The emulator stream sends these ARAM bytes with every frame (`drv`,
 | `$75+2v` | Countdown of voice v's note; reloaded when a voice is assigned |
 | `$EA` | Write index of the 16-entry command queue: cmd `$1043+i`, param `$1053+i` / `$1063+i`. Commands are queued at the port (`$0B7D`) and run through the table at `$1E3D` |
 
-- The `$04` handler picks voices by priority (`$0E37`): Spear Attack (`$07`) lands on V0, V5 or
-  V7 depending on the song. A fixed effect → voice table is wrong.
-- When an effect's last note runs out, its countdown wraps past 0 but `$6C+v` stays `$80` until a
-  music track takes the voice back (Dog Bark, `$10`). Wrapped + silent = ended.
-- A voice's directory entry (`$0200+4v`) reads `$0000` for a frame while the driver rewrites it
-  around a note (seen on the emulator's chip, not in blargg's). The DSP reads the directory only at
-  key-on, so the tab keeps the voice's last sample; drawing `$0000` made one-frame stripes.
-- Every command lands in the queue, so effects are seen even when several arrive in one frame.
-  Reading ports once per frame missed them, and the Boy's weapon swing never showed.
-- The Boy's swing is not a `sound()` call: animation command `0x2E` `sound n` (`$90:8921`) doubles n
-  and reads `$8C:8362`, then `$8C:82DC` sends `$04`. Bone Crusher, swords and spears play `$07`
-  ("Spear Attack"). `../localizations/data/sound-animations.json` holds every animation → sound.
+Traps that follow from this: [AGENTS.md](AGENTS.md) § Pitfalls.
 
 ## Read-ahead
 
@@ -119,29 +107,6 @@ so the read-ahead never blinks empty. What the game will send next it cannot kno
 | `webview/music-lists.js` | Instruments + keys, the sound-effects sidebar, the ARAM map |
 | `webview/music-init.js` | Wiring, host messages, the frame loop; loaded last |
 
-## Dependencies
+## Rules for changing this folder
 
-- Uses `../localizations` (track and sound names).
-- Must **not** import `../emulator`: `extension.js` injects the emulator's `apuStream`
-  (`setOn`, `snapshot`, `isOpen`) and forwards frames as `musicFrame`.
-
-## State owned
-
-- `host.js`: `_cache` (the model and the ROM it came from).
-- `webview/music-tab.js`: `_music` (source, last frame, emulator ARAM and its package,
-  package bytes, the engine while a track plays, selected instrument, timeline history,
-  the driver queue index, Recent, the sidebar's width and visibility).
-- `webview/music-forecast.js`: `_muFc` (the read-ahead engine and its frames).
-- `webview/music-audio.js`: `_muAudio` (audio context, output node, the chip being played, its clock).
-
-## Invariants
-
-- Package reads walk bank upper halves only, as `$8C:818D` does.
-- Music `M` uses package `M + 1` through `$81:99D8`; sound effects through `$81:9A1E`.
-  Script ids (`sound()` parameters) are not driver effect ids: `$8C:8362` maps one to the other.
-- A voice's sample is its directory entry (DIR·256 + SRCN·4), not SRCN. The driver uses
-  DIR = `$02` and rewrites the entries per note.
-- The emulator stream runs only while the Music tab is visible with the Emulator source. It
-  stops when the radar panel closes.
-- The page is rebuilt when the radar re-renders. The source survives in webview state, but a
-  playing track stops.
+Dependencies, invariants and tests: [AGENTS.md](AGENTS.md).

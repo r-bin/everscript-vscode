@@ -1,0 +1,59 @@
+# src/rooms — agent rules
+
+Kind: **feature** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [README.md](README.md).
+Related skills: `map-editor-rules`, `map-construction`, `map-entities`, `rom-map-data`,
+`memory-radar`, `webview-dom-safety`
+
+## Owns
+- All Rooms-tab server-side logic: room tree building, room content parsing, vanilla data,
+  lua-watcher POIs, server-side HTML/JSON rendering, custom maps and widgets on disk.
+- Client-side room interactions and SVG rendering live in `webview/`.
+- Does NOT own: ROM map decoding (`../maps/`, a pure model), emulator state, memory-map state.
+
+## Dependencies
+- Allowed: libraries (`../shared/`, `../maps/`, `../script/`, `../localizations/`) and
+  platform read APIs (`soe://`).
+- Always import rooms functionality through `rooms/index.js`, never bypass to internal files.
+- Forbidden: `rooms/` → `extension.js` (no upward call), `../debugger/`, `vscode` (VS Code
+  API is injected, e.g. `custom-host.js`), and any other feature (`.depcruise.js`:
+  `no-sibling-tabs` rooms ↛ scaling).
+- Existing exceptions (do not add more): none in `rooms/`. Inbound: `emulator/panel.js` →
+  `data/item-icons`; `memory/` requires `rooms/` and reads `webview/` as the radar host.
+
+## State owned
+| State | File | Notes |
+|---|---|---|
+| Lua watcher POI cache | `data/lua-watchers.js` | Invalidated by `invalidateLuaWatcherCaches()` |
+| Vanilla data cache | `data/vanilla-data.js` | Invalidated by `invalidateVanillaDataCaches()` |
+| Room tree cache | `extension.js` `_radarRoomTree` | Rooms module is STATELESS; cache owned by caller |
+| Webview globals | one owner file each | see README's client-side list and `STATE_FLOW.md` |
+
+## Invariants
+1. `parsing/content-parser.js` is pure: file path + line range in, data out — no side effects.
+2. `parsing/file-scanner.js` receives `{getMapEnum, readScriptAllTriggers, readLuaWatchers,
+   readRomMapHeader}` by injection — no direct requires of lua-watchers.
+3. `buildRoomsJson` flattens the tree to `{ mapName: { content, romHeader, ... } }`.
+4. `renderVanillaTree` and `renderRoomsTree` return HTML strings — no DOM operations.
+5. `index.js` bridges the old no-arg API (used by `extension.js`) to the dep-injected API.
+6. The webview files share one scope, so a global belongs to exactly one of them.
+   `rom-overlay.js` owns the view state; `detail-renderer.js` owns the request state.
+   Do not mirror either into the other.
+7. Loot icons are decoded from the user's ROM (`data/item-icons.js`), never bundled.
+
+## Tests
+- Unit (`npm test`): `tests/memory/map-editor.test.js`, `rebuild-invalidation.test.js`,
+  `smoke.test.js`, `activation.test.js`, `tests/localizations/localizations.test.js`.
+- ROM (skip without `EVERSCRIPT_ROM`): `tests/memory/map-parity.test.js`,
+  `rom-export.test.js`, `collision-suggest.test.js`, `custom-maps.test.js`, `soe-resources.test.js`.
+- DOM (Playwright, skips without a browser): `tests/memory/map-editor-dom.test.js`,
+  `tests/memory/rooms-rail-dom.test.js`.
+
+## Pitfalls
+- Delegated handlers bind **once per panel node**: `#room-detail` outlives a re-render, and a
+  second handler made every toggle fire twice and cancel itself out (`webview-dom-safety` §1).
+- Every `display` rule on a popup needs a matching `[hidden]` override: an author rule beats
+  the UA `[hidden]{display:none}` regardless of specificity (`webview-dom-safety` §7a).
+- `rooms-rail.css` outranks `shared.css` on **specificity**, never on source order, so the
+  result does not depend on how the bundle is concatenated.
+- Name keywords (`sniff_wax_2` → `WAX`) apply only to an author-written name; a decoded
+  reward is matched exactly, or `LIMESTONE_TABLET` would draw as Limestone.

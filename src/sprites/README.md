@@ -32,15 +32,6 @@ The radar tab is called **Characters** (it was "Sprites"); inside it, three mode
 | `webview/sprites-layout.css` | Styling adhering to VS Code theme tokens | < 300 |
 | `index.js` | Public API exports | < 50 |
 
-## 3. Allowed dependencies
+## Rules for changing this folder
 
-- `src/maps/` (pure ROM functions: `rom.ts`, `sprites.ts`, `character-record.ts`, `character-animation.ts`, `png.ts`)
-- `src/shared/` (`rom-readers.js`)
-- `src/language/data/index.json` (enum definitions for external animations)
-- No dependency on `src/rooms/`, `src/debugger/`, `src/scaling/`, or `vscode`.
-
-## 4. Rules
-
-The animation and entity rules this tab encodes (attack facing rounding, stamina →
-attack level, palette precedence, the home palette slot, Dog forms) are in the
-`animation-script` and `map-entities` skills (`.agents/skills/`).
+Dependencies, invariants and tests: [AGENTS.md](AGENTS.md).

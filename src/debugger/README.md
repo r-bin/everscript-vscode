@@ -72,12 +72,6 @@ VS Code debug UI ── DAP (in-process) ── emulator-session.js
 
 Needs the custom core (`everscript.snesCorePath`): the vanilla core has no debugger API.
 
-## Allowed dependencies
-
-`inline-adapter.js` → `vscode`, `emulator-session.js`, `source-map.js`.
-Everything else is plain Node. No import of `emulator/` or `memory/`: the
-emulator bridge is injected by `extension.js`.
-
 ## Memory while stopped
 
 The source map's `symbols` are the compiler's enum entries holding memory
@@ -105,3 +99,7 @@ the map lacks fall back to the bundled language index.
 
 - Entity-relative memory (`<BOY>[FLAGS_5]`) is not evaluated.
 - Vanilla (uncompiled) scripts show as `script $XXXXXX` frames without source; stepping there goes one instruction at a time.
+
+## Rules for changing this folder
+
+Dependencies, invariants and tests: [AGENTS.md](AGENTS.md).

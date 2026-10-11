@@ -12,8 +12,6 @@ Shared utilities used across multiple domains. No VS Code API. No domain-specifi
 | `shared.js` | Webview asset — common JS loaded in all radar webview tabs |
 | `shared.css` | Webview asset — common CSS for radar panel |
 
-## Dependency Rules
+## Rules for changing this folder
 
-- No imports from other `src/` domains
-- No `require('vscode')` — `config.js` is the single exception (reads settings)
-- Pure functions preferred; all exports are tested
+Dependencies, invariants and tests: [AGENTS.md](AGENTS.md).

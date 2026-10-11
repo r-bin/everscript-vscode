@@ -10,10 +10,6 @@ Renders the WRAM memory radar: the grid of 128KB WRAM addresses, lifecycle badge
 | `render-radar.js` | Top-level radar HTML assembler: tabs, layout, webview entry |
 | `webview/index.js` | Loads and concatenates all webview asset JS/CSS into the panel HTML |
 
-## Dependency Rules
+## Rules for changing this folder
 
-- May depend on `../shared/` (radar-utils, rom-readers)
-- May depend on `../docs/` (render-docs-tab)
-- May depend on `../rooms/` (room tree, rendering)
-- May depend on `../rom/` (the ROM tab's pane scaffold)
-- No dependency on `../debugger/` or `../emulator/`
+Dependencies, invariants and tests: [AGENTS.md](AGENTS.md).

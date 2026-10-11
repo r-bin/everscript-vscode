@@ -17,7 +17,6 @@ Damage scaling calculator and alchemy chart for the Memory Radar webview panel.
 | `events.js` | UI event wiring |
 | `tab-init.js` | Tab initialization entry point |
 
-## Dependency Rules
+## Rules for changing this folder
 
-- Webview assets are browser-side concatenated; no `require()` — excluded from all Node.js tooling
-- No server-side Node files in this domain (pure client-side tab)
+Dependencies, invariants and tests: [AGENTS.md](AGENTS.md).

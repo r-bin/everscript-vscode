@@ -32,29 +32,6 @@ Reference: the everscript wiki's ROM map (`wiki/rom/Rom-Map.md`), whose §4 this
 | `webview/rom-compare.js` | Compare view: file halves ↔ bus windows, the four-window summary |
 | `webview/rom-init.js` | Wiring and view switching; loaded last |
 
-## Dependencies
+## Rules for changing this folder
 
-- May use `../maps` (room, sprite and animation decoders).
-- Must **not** import `../emulator`: `extension.js` loads the CDL library and injects
-  `{cdl, xrefs, stats}`; the model only takes plain arrays and maps.
-- Names: `extension.js` injects the Rooms tab's room catalogue and the wiki text
-  (`<workspace>/wiki/rom/Rom-Map.md`, `<workspace>/.github/rom-map.md`, then the copy in the
-  extension's own `wiki/` submodule).
-
-## State owned
-
-- `host.js`: `_cache` (model per ROM sha1 + CDL presence), `_cdl` (the library's xrefs/stats).
-  The ↻ button rebuilds both (re-reads the CDL library).
-- `webview/rom-tab.js`: `_rom` (model, layer, selected half, open row, search, readers).
-
-## Invariants
-
-- Every region is measured from a pointer table or a decoder; the only fill is script bytecode
-  (what is left of the upper halves `$92..$9B`), at the lowest priority.
-- A byte has one owner: higher priority, then the later start, then the earlier claim.
-- Rows never cross a 32 KB half; each half's rows sum to 32 KB.
-- Room sizes come from `maps.objectAreaEnd` (no blob overlaps another). The everscript repo's
-  Python `_object_area_end` overestimates 22 rooms; do not import its numbers.
-- A non-Evermore ROM gets header, gaps and CDL coverage only; the bus mapping comes from its header.
-- The CDL stores data reads by file offset: the Bus view never claims which mirror *data* went
-  through, only which bank halves *code* ran in.
+Dependencies, invariants and tests: [AGENTS.md](AGENTS.md).

@@ -1,13 +1,5 @@
 # rooms/ — Rooms Tab Subsystem README
 
-## Ownership
-
-Owns: all rooms tab server-side logic — room tree building, room content parsing, vanilla data, lua-watcher POIs, server-side HTML/JSON rendering.
-
-Does NOT own: client-side room interactions, SVG rendering (those live in `webview/`), ROM map decoding (that is `../maps/`, a pure model), emulator state, memory-map state.
-
----
-
 ## Directory Map
 
 ```
@@ -43,8 +35,6 @@ rooms/
 
 ## Public API (via index.js)
 
-Always import rooms functionality through `rooms/index.js`, never bypass to internal files.
-
 ```js
 const {
   parseRoomContent,
@@ -67,36 +57,6 @@ const {
 
 ---
 
-## State Owned (module-local)
-
-| State | File | Notes |
-|---|---|---|
-| Lua watcher POI cache | `lua-watchers.js` | Invalidated by `invalidateLuaWatcherCaches()` |
-| Vanilla data cache | `vanilla-data.js` | Invalidated by `invalidateVanillaDataCaches()` |
-| Room tree cache | `extension.js._radarRoomTree` | Rooms module is STATELESS; cache owned by caller |
-
----
-
-## Dependency Rules
-
-```
-content-parser.js  → fs, parseEvsNum (radar-utils)
-file-scanner.js    → fs, path, readPngDimensions (rom-readers), content-parser.js
-                    receives deps: {getMapEnum, readScriptAllTriggers, readLuaWatchers, readRomMapHeader}
-tree-renderer.js   → radarEsc (radar-utils), buildRoomsJson pure transform
-lua-watchers.js    → fs, path, rom-readers.js
-vanilla-data.js    → fs, path, rom-readers.js
-index.js           → all of above + injects deps
-```
-
-**Forbidden:**
-- `rooms/` → `extension.js` (no upward call)
-- `rooms/` → `debugger/`
-- `rooms/` → `code_highlighter/`
-- `rooms/` → `vscode` (pure server-side logic)
-
----
-
 ## Data Flow
 
 ```
@@ -110,16 +70,6 @@ buildRoomTree(doc, wsRoot, extCfg, deps)
   ↓ renderRoomsTree(nodes)                              → HTML string
   ↓ buildRoomsJson(tree)                                → JSON object
 ```
-
----
-
-## Key Invariants
-
-1. `content-parser.js` is pure: takes file path + line range, returns data — no side effects.
-2. `file-scanner.js` uses explicit deps injection — no direct requires of rom-readers/lua-watchers.
-3. `buildRoomsJson` flattens the tree to `{ mapName: { content, romHeader, ... } }`.
-4. `renderVanillaTree` and `renderRoomsTree` return HTML strings — no DOM operations.
-5. `index.js` bridges old no-arg API (used by `extension.js`) to new dep-injected API.
 
 ---
 
@@ -310,8 +260,7 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   model those call into is map-editor-trigger-select.js's
 - `map-editor-input.js` — clicks on the *chrome*, routed to what they mean, plus
   the status line and the edit toggle; owns `_editPendingNote` / `_editPanelRoom`.
-  Bound **once per panel node**: `#room-detail` outlives a re-render, and a second
-  handler made every toggle fire twice and cancel itself out. Also owns
+  Also owns
   `EDIT_FILTER_MENUS`, the one list every dropdown in the editor's chrome
   registers into — the filter bar's four (Triggers, Objects, Special, More)
   and the tool pill's `⋯` — which drives both their open/close toggle and the
@@ -395,10 +344,7 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   and the resize grip. Consumes theme.css's tokens, so it must be
   concatenated after it — both are appended to `shared.css` in
   `src/memory/webview/index.js`'s `css` export, not part of the
-  `ROOMS_JS_FILES` bundle (they are CSS, not JS). Every `display` rule on a
-  popup needs a matching `[hidden]` override: an author rule beats the UA
-  stylesheet's `[hidden]{display:none}` regardless of specificity, which is
-  how a dropdown once stayed visually open for four phases
+  `ROOMS_JS_FILES` bundle (they are CSS, not JS)
 - `map-editor-tile-tab.css` — the Tile tab's own chrome (§8a), in its own
   file for the same size reason `rooms-rail.css` is: the family cards and
   their collapsed swatch strip, the `+ add a family` control, the invalid-
@@ -411,14 +357,8 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   `.rg-rail`, which theme.css's token selector also lists (`.rg-theme,
   .rg-rail`) — one declaration of the palette, two scopes. That hook is also
   what switches the rail, and only the rail, off shared.css's monospace body
-  font; ids inside it stay mono. Rules here outrank shared.css's flat
-  pre-redesign tree rules on **specificity** (`.rg-rail li.rn-map` beats
-  `.rn-map`), never on source order, so the result does not depend on how
-  the bundle is concatenated
-
-Because the files share one scope, a global belongs to exactly one of them.
-`rom-overlay.js` owns the view state; `detail-renderer.js` owns the request
-state. Do not mirror either into the other.
+  font; ids inside it stay mono. It outranks shared.css's flat pre-redesign
+  tree rules by specificity (`.rg-rail li.rn-map` beats `.rn-map`)
 
 ## Loot icons
 
@@ -432,9 +372,7 @@ is [docs/item-icons.md](../../docs/item-icons.md).
 Live rooms name their triggers in the source; vanilla rooms have no names, so
 the name comes from the reward `src/script/` read out of the ROM script.
 `trigItemName()` in `webview/utils.js` owns that choice — source name first,
-decoded reward second — so both paths go through one renderer. Keywords
-(`sniff_wax_2` → `WAX`) apply only to a name an author wrote; a decoded reward
-is matched exactly, or `LIMESTONE_TABLET` would draw as Limestone.
+decoded reward second — so both paths go through one renderer.
 
 An icon is drawn 2×2 viewBox units — 16px against an 8px tile, the size the
 game draws it. Without a ROM, `itemEmoji()` stands in. Money, trade goods and
@@ -458,3 +396,7 @@ A plain left click selects: it highlights the shape and the matching row.
 Browser rules, and it keeps the panel from lurching every time you point at
 something. Cmd-click on a live entity with a source line still goes to the
 code; that handler stops propagation, so the two never both fire.
+
+## Rules for changing this folder
+
+Dependencies, invariants and tests: [AGENTS.md](AGENTS.md).

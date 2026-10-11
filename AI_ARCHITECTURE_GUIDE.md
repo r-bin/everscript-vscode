@@ -62,7 +62,7 @@ any library touching `vscode`, the DOM or extension state, host code importing a
 Every piece of state has exactly one owner file; no mirrored state, no implicit sync.
 Viewport, zoom, selection, filters, emulator runtime state, panel lifecycle, room tree
 cache, memory-map cache, enum cache and extension config each have a single owner listed
-in the domain's `README.md`.
+in the domain's `AGENTS.md`.
 
 ### 3.4 soe:// is the data plane **[target]**
 Anything derived from the ROM or live RAM that more than one consumer needs (a tab, hover,
@@ -120,10 +120,16 @@ Generated files, JSON data and vendored code are exempt. A large template litera
 "indivisible" — see §3.5.
 
 ### 3.10 Local reasoning **[now]**
-Each `src/<domain>/` has a `README.md` stating: kind, ownership, state owned, allowed
-dependencies, key invariants. A directory must be understandable from its own files; do
-not write "see extension.js for details" — move the logic or document the invariant
-locally.
+Each `src/<domain>/` has two files, following the nested `AGENTS.md` convention:
+- `AGENTS.md` — the contract agents load automatically when working in that folder: kind,
+  ownership, allowed dependencies (plus existing exceptions not to extend), state owned,
+  invariants, tests. Short (≤ 70 lines); rules live only here.
+- `README.md` — descriptive docs for humans (file tables, how it works); it links to
+  `AGENTS.md` and does not restate the rules.
+
+A directory must be understandable from its own files; do not write "see extension.js for
+details" — move the logic or document the invariant locally. A new domain gets both files
+in the commit that creates it.
 
 ### 3.11 Performance **[now — known violations in `docs/architecture-state.md` §9]**
 - The extension activates only on `.evs`, `soe://`, its commands, debug and MCP — never
@@ -169,8 +175,9 @@ A new test file must be added to a tier; a test needing a ROM uses the shared sk
 |---|---|
 | Current measurements, debt and backlog | `docs/architecture-state.md` |
 | Which domain does what | `src/README.md`, then `src/<domain>/README.md` |
+| Rules for one domain | `src/<domain>/AGENTS.md` (auto-loaded by agents in that folder) |
 | Machine-enforced dependency rules | `.depcruise.js` |
-| State ownership details | the owning domain's `README.md` |
+| State ownership details | the owning domain's `AGENTS.md` |
 
 `STATE_FLOW.md` and `docs/architecture/*` predate the `src/` refactor; trust `src/` and
-the domain READMEs over them until they are rewritten or archived.
+the domain `AGENTS.md`/`README.md` files over them until they are rewritten or archived.

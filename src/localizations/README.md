@@ -12,7 +12,7 @@
 2. **Sound & Music Names (`sounds.js`)**
    - Music tracks (`0x00`..`0x45`) mapped to titles verified against reference rips in `Secret of Evermore (EMU)`.
    - Sound effect (SFX) parameters mapped to descriptive titles from EMU reference rips and engine disassembly.
-   - `getSoundAnimations()`: which animations play which sound (animation command `0x2E`/`0x2F` `sound n` = script id `2n`), from `data/sound-animations.json`. That file is generated from the ROM by `tools/gen-sound-animations.js`; rerun it when the animation catalogue changes.
+   - `getSoundAnimations()`: which animations play which sound (animation command `0x2E`/`0x2F` `sound n` = script id `2n`), from `data/sound-animations.json` (generated from the ROM by `tools/gen-sound-animations.js`).
 
 3. **Tables (`tables.js`)**
    - Curated list of engine lookup tables, jump tables, and alchemy/character data structures by ROM bus address.
@@ -46,3 +46,6 @@ console.log(getAbsScriptName(0x93ca9f)); // "Thraxx maggot trigger part"
 const name = getMapName(0x38, { rom: romBuffer });
 ```
 
+## Rules for changing this folder
+
+Dependencies, invariants and tests: [AGENTS.md](AGENTS.md).

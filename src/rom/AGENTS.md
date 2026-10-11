@@ -1,0 +1,41 @@
+# src/rom — agent rules
+
+Kind: **feature** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [README.md](README.md).
+Related skills: `snes-memory-mapping`, `rom-map-data`, `cdl-recorder` (`.agents/skills/`).
+
+## Owns
+- The radar panel's **ROM** tab (File, Bus, Compare views): the pure model (`build.js`,
+  `model/`), the `romMapRequest` / `romReaders` requests (`host.js`), the pane scaffold,
+  and the page code in `webview/`.
+
+## Dependencies
+- May use `../maps` (room, sprite and animation decoders) and `../localizations` (names).
+- Must **not** import `../emulator`: `extension.js` loads the CDL library and injects
+  `{cdl, xrefs, stats}`; the model only takes plain arrays and maps.
+- Names: `extension.js` injects the Rooms tab's room catalogue and the wiki text
+  (`<workspace>/wiki/rom/Rom-Map.md`, `<workspace>/.github/rom-map.md`, then the copy in the
+  extension's own `wiki/` submodule).
+
+Existing exceptions (do not add more):
+- `webview/rom-init.js` calls the Rooms tab's page global `gotoVanillaRoom` (guarded by
+  `typeof`), a feature → feature link through the shared radar page.
+
+## State owned
+- `host.js`: `_cache` (model per ROM sha1 + CDL presence), `_cdl` (the library's xrefs/stats).
+  The ↻ button rebuilds both (re-reads the CDL library).
+- `webview/rom-tab.js`: `_rom` (model, layer, selected half, open row, search, readers).
+
+## Invariants
+- Every region is measured from a pointer table or a decoder; the only fill is script bytecode
+  (what is left of the upper halves `$92..$9B`), at the lowest priority.
+- A byte has one owner: higher priority, then the later start, then the earlier claim.
+- Rows never cross a 32 KB half; each half's rows sum to 32 KB.
+- Room sizes come from `maps.objectAreaEnd` (no blob overlaps another). The everscript repo's
+  Python `_object_area_end` overestimates 22 rooms; do not import its numbers.
+- A non-Evermore ROM gets header, gaps and CDL coverage only; the bus mapping comes from its header.
+- The CDL stores data reads by file offset: the Bus view never claims which mirror *data* went
+  through, only which bank halves *code* ran in.
+
+## Tests
+- `tests/memory/rom-tab.test.js` — unit (readers, wiki overlay, bus usage), rom (model
+  against the vanilla ROM; skips without it) and dom (skips without playwright).

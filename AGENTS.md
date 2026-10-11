@@ -82,10 +82,16 @@ Skills load on demand based on their `description` and `applyTo` globs.
 ## 4. Architectural cognitive stabilization
 
 Before working in any domain, read:
-- `AI_ARCHITECTURE_GUIDE.md` — global architectural laws, file size limits, anti-abstraction rules, entropy hotspots
-- `STATE_FLOW.md` — authoritative state ownership table and data flow maps (cross-check file paths against actual `src/` layout — this doc predates the `src/` refactor in places)
-- `docs/architecture/domain-overview.md` — which domains to load for a given task
-- The domain's own `src/<domain>/README.md` — local ownership contract, allowed deps, key invariants
+- `AI_ARCHITECTURE_GUIDE.md` — the laws: domain kinds, dependency direction, removable features,
+  no code in strings, data provenance, file size, types
+- The domain's own `src/<domain>/AGENTS.md` — its kind, ownership, allowed deps (and the
+  existing exceptions not to extend), invariants and tests. Agents that support nested
+  `AGENTS.md` load it automatically when touching files in that folder; the domain's
+  `README.md` holds the descriptive docs.
+- `docs/architecture-state.md` — current measurements, known violations and the backlog
+
+`STATE_FLOW.md` and `docs/architecture/*` predate the `src/` refactor; trust `src/` and the
+domain `AGENTS.md`/`README.md` files over them.
 
 ---
 

@@ -73,13 +73,11 @@ number of bytes but describes them wrongly is otherwise invisible. So the
 phrasing is upstream's, quirks included, and a few upstream bugs are
 reproduced deliberately with a comment saying so (`0xad` shifts one value
 twice and the other not at all; one sniff-spot case tests the wrong variable).
-Improving the wording means losing the measurement, so don't.
 
 The names come from `data.h` and `sniffflags.inc`, plus the `LOOT_REWARD`
 enum from the sibling `everscript` compiler repo, imported by
 `tools/generate-script-names.js` into the committed `names.json` — 842 flag
-names, 235 absolute scripts, 128 NPC scripts, 126 rooms, 87 loot rewards.
-Re-run it only when those change:
+names, 235 absolute scripts, 128 NPC scripts, 126 rooms, 87 loot rewards:
 
 ```
 node tools/generate-script-names.js [path/to/data.h] [path/to/everscript]
@@ -155,15 +153,12 @@ npm run build:script    # tsc -p tsconfig.script.json -> src/script/dist/
 npm run check:script    # diff boundaries AND summaries against script_all
 ```
 
-`dist/` is gitignored and rebuilt by `npm test`, `npm run package` and
-`npm run deploy`. Consumers `require('../script')` (the facade), never `./dist`.
-
-The parity harness needs the `SoETilesViewer` checkout and a ROM; it *skips*
-rather than fails when either is missing, since neither is committed here.
-Override with `SOE_TILES_VIEWER`, `SOE_SCRIPT_DUMP`, `EVERSCRIPT_ROM`.
-
 ## Not ported yet
 
 - **Decoded game text.** `SHOW TEXT` reports the pointer and whether the blob
   is compressed, but not the string; that needs the text decompressor. These
   three opcodes are scored on boundaries only.
+
+## Rules for changing this folder
+
+Dependencies, invariants and tests: [AGENTS.md](AGENTS.md).

@@ -423,12 +423,15 @@ Release ritual: `npm test` every commit; `test:rom` when a ROM is present (+~40 
 
 What to fix inside AGENTS.md: the file map (missing emulator, maps, script, music, mcp, rom, tools, tests), the §4 reading list (points at three stale docs), and the skills table duplicating every skill's own description — an index of names is enough.
 
-### Nested AGENTS.md files?
-These are *directory-scoped* (hierarchical) instruction files: agents load the nearest `AGENTS.md` above a file they edit. **Recommendation: don't add them.** This repo already has two mechanisms that do the same job:
-- 19 `src/<domain>/README.md` files, which the guide makes the per-domain contract (§3.10);
-- 20 skills with `applyTo` globs, which are effectively directory-scoped already.
+### Nested AGENTS.md files — adopted
+These are *directory-scoped* (hierarchical) instruction files from the agents.md convention: an agent loads the nearest `AGENTS.md` above the file it works on.
 
-A third mechanism means three places to drift. The only benefit — auto-loading without the agent choosing to — is achievable with one line in AGENTS.md: *"Before editing `src/<domain>/`, read `src/<domain>/README.md`."* Revisit only if agents demonstrably keep breaking one domain's rules.
+**Verified in Claude Code:** after adding `src/mcp/AGENTS.md`, reading `src/mcp/protocol.js` injected that file into the session automatically.
+
+Layout (guide §3.10):
+- `src/<domain>/AGENTS.md` — the contract: kind, ownership, dependencies + existing exceptions, state, invariants, tests. ≤ 70 lines, rules only.
+- `src/<domain>/README.md` — descriptive docs; the rule sections moved out, a link back remains. No rule lives in both.
+- Root `AGENTS.md` §4 now points at the nested files instead of `STATE_FLOW.md`/`docs/architecture/*`.
 
 ---
 
@@ -541,3 +544,63 @@ docs/                        architecture/ extension/ game-research/ plans/ work
 Folded into `docs/plans/`: `simulation/`, `call-log/`, `todo.md`. Deleted: `experimental/`, `docs/roadmap-and-vision.md`, one-off tools. Gitignored scratch stays in `tmp/` — prune it and `out/`.
 
 If the full move feels like too much churn: do only the cheap, high-signal renames (`memory`→`radar`, `src/docs`→`rng-docs`, `tests/memory`→`tests/<domain>`, `script_parser`→`packages/script-parser`) and encode the three kinds in `.depcruise.js`.
+
+---
+
+## 25. Not violating the GPL — options
+
+*Not legal advice; this is the engineering reading of the situation.*
+
+**Renaming is not enough.** Copyright protects *expression*: code structure, the order and shape of cases, comments, chosen names and the selection of data. A case-for-case translation from C++ to TypeScript (which is what `src/script/*.ts` says it is) stays a derivative work after every identifier is renamed. What is free to use are **facts about the game**: an address, an opcode's byte value, a record's layout as the ROM stores it. They're free because they are the ROM's facts, not the upstream author's expression — provided we establish them ourselves.
+
+| Option | What it takes | Verdict |
+|---|---|---|
+| **1. Ask permission** | Both repos are by one main author (black-sliver: 73 of 77 SoETilesViewer commits). Ask for the ported parts, `names.json` data and room names to be usable under MIT (a short written grant or a relicence of those files). | **Do first.** Cheapest; also covers the names. |
+| **2. Independent reimplementation** | Derive each fact from **the game itself**, not from `list-rooms.cpp`. The real spec of the script format is the game's own script interpreter: disassemble its opcode jump table (CDL + trace tooling already exists), write an evidence note per opcode in `docs/script-format/`, then implement **table-driven from that spec** with our own structure and names. Tests use ROM goldens produced by the game (emulator traces), not upstream output. Keep the old port until the new one matches it on every room, then delete it. Rule during the rewrite: nobody opens the upstream source. | **Fallback, and do the cheap parts now**: `maps/sprites.ts` and `character-record.ts` can be re-derived from ROM reads in days. |
+| 3. Relicense the extension to GPLv3 | Legally simple for the ported files. **But** the bundled snes9x2005 core is under a *non-commercial* licence (see the `emulator-subsystem` skill), which conflicts with GPL's "no further restrictions" — defensible only as separate-program aggregation. Murky. | Not recommended. |
+| 4. Remove the features | Script decoding feeds the debugger, hover, Rooms scripts, `soe://` scripts and the ROM tab. | Too costly. |
+
+Housekeeping regardless of choice:
+- Fix `docs/release-checklist.md:53` (it says MIT).
+- State in `LICENSE`/README that MIT covers our code only and bundled third-party parts (snes9x core, SPC engine) keep their own licences, with the `copyright`/`NOTICE` files that already ship.
+- The new guide's §3.8 makes "derive from the ROM, with a test" the rule for all future work, so the problem doesn't regrow.
+
+---
+
+## 26. Keeping the RAM and ROM views from going stale
+
+### Where the content comes from today
+| View | Source | Stale risk |
+|---|---|---|
+| ROM tab: **regions** | measured live from the ROM by decoders (`src/rom/model/*`) | none (fresh by construction) ✓ |
+| ROM tab: **point names** | `localizations` FUNCTIONS/TABLES **+ wiki §4 rows regex-parsed at runtime** (`rom/model/wiki-overlay.js`) from the first copy found: `<workspace>/wiki/rom/Rom-Map.md` → `.github/rom-map.md` → the extension's own `wiki/` submodule | high: output depends on the open workspace. The bundled submodule is pinned at a **2024 commit with no `rom/` folder**. Wiki §4 is itself generated from the ROM, so the data loops back on itself. |
+| `soe://ram` symbols | `src/script/names.json` (SoEScriptDumper data, see §16) + hand-curated `resources/tags/tags.json` | medium; also the GPL problem |
+| Memory tab | `.evs` scope analysis + region bounds hard-coded in `extension.js:18` (copied from the compiler and `02_ram.evs`) | medium: silent drift from the compiler |
+| everscript `wiki/ram/Ram-Map.md` | 576 lines of hand-written prose that calls itself "the authoritative single source of truth" | high: nothing checks it |
+
+That is four RAM truths and two ROM-name truths.
+
+### Should the views be generated from the wiki? **No — invert it.**
+The wiki is a poor source of truth:
+- It is prose with Markdown tables, parsed by regex; a harmless edit can silently break the parse.
+- It lives in a separate git repo with no review, tests or types, and isn't versioned with the code (the submodule here is two years behind).
+
+The wiki should be **generated from, or checked against,** this repo.
+
+### Proposal
+1. **One machine-readable source per address space**, in `src/localizations/data/` (names are localization, §19), with evidence on every entry:
+   - `ram.json`: `{ addr, size, type, name, group, values?, bits?, evidence: [{ kind: "trace" | "cdl" | "evs" | "research", ref }], verified: "v0.2xx" }`
+   - `rom-points.json`: the same shape for routine and table names (regions stay measured, not listed).
+   - Seed them from `02_ram.evs` (your own compiler definitions), `tags.json` and our docs. **Not** from `names.json` (§16).
+2. **Every consumer reads that one source:** Memory tab, ROM tab, `soe://ram`, `soe://rom`, hover and MCP. The runtime wiki overlay and the hard-coded bounds in `extension.js` go away.
+3. **The wiki gets generated sections** between markers (`<!-- generated:ram-map -->`), produced by `npm run gen:wiki`, the way Rom-Map §4 already is. Edits go to the JSON; the prose around the markers stays hand-written.
+4. **Guards, cheapest first:**
+
+   | Guard | Catches | Tier |
+   |---|---|---|
+   | schema + no-overlap + unique-name checks on the JSON | typos, collisions | unit |
+   | every named ROM point lies inside a measured region of the matching kind; code points are executed entry points in the CDL library (when present) | names pointing at the wrong bytes | rom |
+   | headless boot in the bundled core under node (already proven, see the headless-boot notes): play a short input script, assert key addresses behave (HP drops on a hit, room id changes on a transition, a flag sets) | wrong or moved RAM addresses | emulator |
+   | `gen:wiki --check`: fail when the wiki's generated sections differ from what the repo produces | wiki drift | unit (when the wiki checkout is present) |
+   | `02_ram.evs` ↔ `ram.json` diff when the everscript repo is present | compiler/extension drift | rom |
+5. **Show the evidence:** the tabs can badge entries with no evidence, or not verified since the last N versions, so staleness is visible instead of silent.
