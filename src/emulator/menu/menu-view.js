@@ -1266,20 +1266,23 @@ function getMenuClientScript() {
       const newState = Math.max(0, Math.min(curState + delta, maxState));
       if (newState === curState) return;
 
-      // 1. Direct WRAM write
-      if (m && typeof m.writeMemory === 'function') {
-        m.writeMemory(0x7E10CE + objIndex, newState);
-      }
       if (typeof lastSampledPreState !== 'undefined' && lastSampledPreState && lastSampledPreState.objStateBuf) {
         lastSampledPreState.objStateBuf[objIndex] = newState;
       }
 
-      // 2. Safe opcode 0x5C injection
+      // Safe opcode 0x5C injection: 5C takes two expressions (0x82 = unsigned const byte)
+      let injected = false;
       try {
         const hexObj = objIndex.toString(16).padStart(2, '0');
         const hexVal = newState.toString(16).padStart(2, '0');
-        injectEverscript('5c ' + hexObj + ' ' + hexVal);
+        injected = injectEverscript('5c 82 ' + hexObj + ' 82 ' + hexVal);
       } catch (_) {}
+
+      // Fallback direct WRAM write if script slot injection was not possible:
+      if (!injected && m && typeof m.writeMemory === 'function') {
+        m.writeMemory(0x7E107E + objIndex, newState);
+        m.writeMemory(0x7E10CE + objIndex, newState);
+      }
 
       // 3. Update UI
       playMenuSound('click_nav');
@@ -1427,13 +1430,17 @@ function getMenuClientScript() {
       }
       if (loot.objectId !== null && loot.objectId !== undefined) {
         const newObjState = targetLooted ? 1 : 0;
-        m.writeMemory(0x7E10CE + loot.objectId, newObjState);
         if (typeof lastSampledPreState !== 'undefined' && lastSampledPreState && lastSampledPreState.objStateBuf) {
           lastSampledPreState.objStateBuf[loot.objectId] = newObjState;
         }
+        let injected = false;
         try {
-          injectEverscript('5c ' + loot.objectId.toString(16).padStart(2, '0') + ' ' + (targetLooted ? '01' : '00'));
+          injected = injectEverscript('5c 82 ' + loot.objectId.toString(16).padStart(2, '0') + ' 82 ' + (targetLooted ? '01' : '00'));
         } catch (_) {}
+        if (!injected && m && typeof m.writeMemory === 'function') {
+          m.writeMemory(0x7E107E + loot.objectId, newObjState);
+          m.writeMemory(0x7E10CE + loot.objectId, newObjState);
+        }
       }
 
       if (targetLooted) {

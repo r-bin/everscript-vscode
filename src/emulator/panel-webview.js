@@ -652,20 +652,60 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     //    before the assignment below runs.
     var vscodeApi; // eslint-disable-line no-var
 
-    window.onerror = function(msg, src, line) {
-      console.error('[EVS webview]', msg, src || '', line || '');
-      if (vscodeApi) vscodeApi.postMessage({ command: 'ejsError',
-        error: msg + (src ? ' [' + src.split('/').pop() + ':' + line + ']' : '') });
+    function collectCrashContext(extra) {
+      var ctx = Object.assign({}, extra || {});
+      ctx.rom = (typeof currentRomName === 'string') ? currentRomName : '';
+      ctx.frame = (typeof romFrameCount === 'number') ? romFrameCount : 0;
+      ctx.mapId = (typeof cachedMapId === 'number') ? cachedMapId : -1;
+      if (typeof lastSampledPreState !== 'undefined' && lastSampledPreState) {
+        ctx.camX = lastSampledPreState.camX;
+        ctx.camY = lastSampledPreState.camY;
+        if (ctx.mapId < 0 && typeof lastSampledPreState.mapId === 'number') {
+          ctx.mapId = lastSampledPreState.mapId;
+        }
+      }
+      try {
+        var m = (typeof getModule === 'function') ? getModule() : (window.Module || null);
+        if (m && typeof m.getCPUState === 'function') {
+          ctx.cpu = m.getCPUState();
+        }
+      } catch (_) {}
+      try {
+        if (typeof scriptSlotTrackers !== 'undefined' && Array.isArray(scriptSlotTrackers)) {
+          ctx.scriptSlots = scriptSlotTrackers
+            .map(function(t, idx) { return { slot: idx, state: t.state, loc: t.loc, entity: t.entity }; })
+            .filter(function(t) { return t.state > 0 || t.loc > 0; });
+        }
+      } catch (_) {}
+      return ctx;
+    }
+
+    function reportEmulatorCrash(type, message, details) {
+      var data = collectCrashContext(Object.assign({ type: type, message: String(message || 'Unknown error') }, details || {}));
+      console.error('[EVS CRASH]', data);
+      if (vscodeApi) {
+        vscodeApi.postMessage(Object.assign({ command: 'emulatorCrash' }, data));
+      }
+    }
+
+    window.onerror = function(msg, src, line, col, error) {
+      console.error('[EVS webview error]', msg, src || '', line || '', col || '', error);
+      reportEmulatorCrash('window_onerror', msg, {
+        source: src,
+        line: line,
+        col: col,
+        stack: error && error.stack ? error.stack : (new Error().stack)
+      });
     };
     window.addEventListener('unhandledrejection', function(evt) {
       var r = evt.reason instanceof Error ? evt.reason.message : String(evt.reason || 'unhandledrejection');
+      var st = evt.reason instanceof Error && evt.reason.stack ? evt.reason.stack : null;
       console.error('[EVS webview rejection]', r);
-      if (vscodeApi) vscodeApi.postMessage({ command: 'ejsError', error: r });
+      reportEmulatorCrash('unhandledrejection', r, { stack: st });
     });
     document.addEventListener('securitypolicyviolation', function(evt) {
       console.error('[EVS CSP violation]', evt.blockedURI, evt.violatedDirective);
-      if (vscodeApi) vscodeApi.postMessage({ command: 'ejsError',
-        error: 'CSP: ' + evt.blockedURI + ' blocked by ' + evt.violatedDirective });
+      reportEmulatorCrash('securitypolicyviolation', 'CSP: ' + evt.blockedURI + ' blocked by ' + evt.violatedDirective, {});
     });
 
     console.log('[EVS webview] boot start');
@@ -702,7 +742,15 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       },
       onAbort: function(reason) {
         const msg = reason ? String(reason) : 'unknown abort';
-        if (vscodeApi) vscodeApi.postMessage({ command: 'ejsError', error: 'Core aborted: ' + msg });
+        reportEmulatorCrash('core_abort', 'Core aborted: ' + msg, { stack: (new Error()).stack });
+      },
+      printErr: function(text) {
+        console.error('[EVS core stderr]', text);
+        if (typeof text === 'string' && /abort|assert|exception|fatal/i.test(text)) {
+          reportEmulatorCrash('core_assert', text, {});
+        } else if (vscodeApi && typeof text === 'string' && text.trim()) {
+          vscodeApi.postMessage({ command: 'emulatorStderr', text: text });
+        }
       }
     };
 
@@ -1346,66 +1394,71 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         lastFrameTimestamp = timestamp - (elapsed % FRAME_INTERVAL_MS);
         if (typeof pollGamepadMenu === 'function') pollGamepadMenu();
 
-        const paused = isEmulatorPaused();
-        if (paused !== emulatorPausedState) {
-          emulatorPausedState = paused;
-          cdlOnPauseChanged(paused);
-          tasOnPauseChanged(paused);
-          sdbgOnPauseChanged(paused);
-          apuPauseChanged(paused);
-        }
-        fpsTick(timestamp, romLoaded && !paused);
-        if (paused) {
-          if (timestamp - lastPausedFrame < PAUSED_FRAME_MS) return;
-          lastPausedFrame = timestamp;
-        }
-
-        resizeCanvas(false);
-        if (romLoaded && paused) {
-          renderExtendedMapAndOverlays(lastSampledPreState, canvas, extMapCanvas, extMapCtx, extEntCanvas, extEntCtx, extFgCanvas, extFgCtx, extOverCanvas, extOverCtx);
-          apuStreamTick(Module, true);
-        } else if (romLoaded) {
-          romFrameCount++;
-          // Sample camera and entity state BEFORE _mainLoop() to match rendered frame
-          const preState = samplePreLoopState();
-          lastSampledPreState = preState;
-          const m = getModule();
-          // A replay must see exactly the recorded memory: no cheat writes.
-          if (m && !tasReplaying()) maintainCheats(m);
-          if (speedMultiplier < 1.0) {
-            speedAccumulator += speedMultiplier;
-            if (speedAccumulator < 1.0) {
-              const fbPtr = Module._getScreenBuffer();
-              if (fbPtr) {
-                imageData.data.set(new Uint8ClampedArray(HEAPU8.buffer, fbPtr, 512 * 448 * 4));
-                ctx.putImageData(imageData, 0, 0);
-              }
-              renderExtendedMapAndOverlays(preState, canvas, extMapCanvas, extMapCtx, extEntCanvas, extEntCtx, extFgCanvas, extFgCtx, extOverCanvas, extOverCtx);
-              return;
-            }
-            speedAccumulator -= 1.0;
+        try {
+          const paused = isEmulatorPaused();
+          if (paused !== emulatorPausedState) {
+            emulatorPausedState = paused;
+            cdlOnPauseChanged(paused);
+            tasOnPauseChanged(paused);
+            sdbgOnPauseChanged(paused);
+            apuPauseChanged(paused);
           }
-          for (let extra = tasExtraFrames() + (speedMultiplier > 1.0 ? Math.floor(speedMultiplier) - 1 : 0); extra > 0 && !isEmulatorPaused(); extra--) {
+          fpsTick(timestamp, romLoaded && !paused);
+          if (paused) {
+            if (timestamp - lastPausedFrame < PAUSED_FRAME_MS) return;
+            lastPausedFrame = timestamp;
+          }
+
+          resizeCanvas(false);
+          if (romLoaded && paused) {
+            renderExtendedMapAndOverlays(lastSampledPreState, canvas, extMapCanvas, extMapCtx, extEntCanvas, extEntCtx, extFgCanvas, extFgCtx, extOverCanvas, extOverCtx);
+            apuStreamTick(Module, true);
+          } else if (romLoaded) {
+            romFrameCount++;
+            // Sample camera and entity state BEFORE _mainLoop() to match rendered frame
+            const preState = samplePreLoopState();
+            lastSampledPreState = preState;
+            const m = getModule();
+            // A replay must see exactly the recorded memory: no cheat writes.
+            if (m && !tasReplaying()) maintainCheats(m);
+            if (speedMultiplier < 1.0) {
+              speedAccumulator += speedMultiplier;
+              if (speedAccumulator < 1.0) {
+                const fbPtr = Module._getScreenBuffer();
+                if (fbPtr) {
+                  imageData.data.set(new Uint8ClampedArray(HEAPU8.buffer, fbPtr, 512 * 448 * 4));
+                  ctx.putImageData(imageData, 0, 0);
+                }
+                renderExtendedMapAndOverlays(preState, canvas, extMapCanvas, extMapCtx, extEntCanvas, extEntCtx, extFgCanvas, extFgCtx, extOverCanvas, extOverCtx);
+                return;
+              }
+              speedAccumulator -= 1.0;
+            }
+            for (let extra = tasExtraFrames() + (speedMultiplier > 1.0 ? Math.floor(speedMultiplier) - 1 : 0); extra > 0 && !isEmulatorPaused(); extra--) {
+              tasApplyInput(Module, keyInput);
+              Module._mainLoop();
+              fpsCountFrame(Module);
+              romFrameCount++;
+              apuStreamTick(Module, false);
+            }
             tasApplyInput(Module, keyInput);
             Module._mainLoop();
             fpsCountFrame(Module);
-            romFrameCount++;
+            const fbPtr = Module._getScreenBuffer();
+            if (fbPtr) {
+              imageData.data.set(new Uint8ClampedArray(HEAPU8.buffer, fbPtr, 512 * 448 * 4));
+              ctx.putImageData(imageData, 0, 0);
+            }
+            renderExtendedMapAndOverlays(preState, canvas, extMapCanvas, extMapCtx, extEntCanvas, extEntCtx, extFgCanvas, extFgCtx, extOverCanvas, extOverCtx);
+            tasDrawOverlay();
+            checkScriptExecutionTrace();
             apuStreamTick(Module, false);
           }
-          tasApplyInput(Module, keyInput);
-          Module._mainLoop();
-          fpsCountFrame(Module);
-          const fbPtr = Module._getScreenBuffer();
-          if (fbPtr) {
-            imageData.data.set(new Uint8ClampedArray(HEAPU8.buffer, fbPtr, 512 * 448 * 4));
-            ctx.putImageData(imageData, 0, 0);
-          }
-          renderExtendedMapAndOverlays(preState, canvas, extMapCanvas, extMapCtx, extEntCanvas, extEntCtx, extFgCanvas, extFgCtx, extOverCanvas, extOverCtx);
-          tasDrawOverlay();
-          checkScriptExecutionTrace();
-          apuStreamTick(Module, false);
+        } catch (frameErr) {
+          reportEmulatorCrash('frame_loop_error', frameErr && frameErr.message ? frameErr.message : String(frameErr), {
+            stack: frameErr && frameErr.stack ? frameErr.stack : null
+          });
         }
-
       }
       requestAnimationFrame(frame);
     }
@@ -2460,7 +2513,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         entBuf = readMemoryChunked(m, 0x7E3DDF, 0x1220);
         palSlotBuf = m.readMemoryRange(0x7E1278, 16);
         projBuf = m.readMemoryRange(0x7E6387, 352);
-        objStateBuf = m.readMemoryRange(0x7E10CE, 64);
+        objStateBuf = m.readMemoryRange(0x7E10CE, 160);
         grassQueueBuf = m.readMemoryRange(0x7E0FD0, 148);
         animIdxBuf = m.readMemoryRange(ANIM_FRAME_INDEX_ADDR, ANIM_MAX_CHANNELS);
       } catch (_) {
@@ -2563,6 +2616,19 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       if (filter === lastBrightnessFilter) return;
       lastBrightnessFilter = filter;
       for (let i = 0; i < canvases.length; i++) if (canvases[i]) canvases[i].style.filter = filter;
+    }
+
+    function applyCanvasLayersFilter(brightness, tint, mapCanvas, fgCanvas, entCanvas) {
+      const b = (typeof brightness === 'number') ? brightness : 1;
+      const t = tint || { brightness: 1, saturate: 1 };
+      const mapF = tintFilter(b * t.brightness, t.saturate);
+      const mapFilterStr = mapF === 'none' ? '' : mapF;
+      const entF = tintFilter(b, 1);
+      const entFilterStr = entF === 'none' ? '' : entF;
+
+      if (mapCanvas && mapCanvas.style.filter !== mapFilterStr) mapCanvas.style.filter = mapFilterStr;
+      if (fgCanvas && fgCanvas.style.filter !== mapFilterStr) fgCanvas.style.filter = mapFilterStr;
+      if (entCanvas && entCanvas.style.filter !== entFilterStr) entCanvas.style.filter = entFilterStr;
     }
 
     // The engine's per-channel animation state: frame index at $7E4FE6 + ch,
@@ -2720,10 +2786,9 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       const tm = preState.mainScreen === undefined ? 0x17 : preState.mainScreen;
       const bgShown = (tm & 0x03) !== 0;
       const objShown = (tm & 0x10) !== 0;
-      // Palette dimming (ring menu) on the room images only; brightness on
-      // the canvases (below) covers fades and forced blank.
+      // Palette dimming (ring menu) and brightness fades are applied to the canvases
+      // via applyCanvasLayersFilter (hardware accelerated CSS).
       const tint = paletteTint(preState, roomMap ? roomMap.bgPalette : null);
-      const mapFilter = tintFilter(tint.brightness, tint.saturate);
       const drawLayer = (lctx, img, scrollX, scrollY) => {
         if (!img || !img.complete || !img.naturalWidth) return;
         lctx.drawImage(img, emuX - scrollX * scaleSnes, emuY - (scrollY + 1) * scaleSnes,
@@ -2733,7 +2798,6 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       // 1. Extended map background (Layer 0) - shifted 1 SNES pixel up to fix vertical seam
       if (extMapCtx && extMapCanvas) {
         extMapCtx.clearRect(0, 0, wrapW, wrapH);
-        extMapCtx.filter = mapFilter;
         if (!bgShown) {
           if (roomMap) {
             extMapCtx.fillStyle = '#000';
@@ -2784,7 +2848,6 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       // 3. Extended foreground priority tiles (Layer 2)
       if (extFgCtx && extFgCanvas) {
         extFgCtx.clearRect(0, 0, wrapW, wrapH);
-        extFgCtx.filter = mapFilter;
         if (!bgShown) {
           // nothing of the room in front of the sprites either
         } else if (layered) {
@@ -2815,12 +2878,11 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
             }
           }
         }
-        extFgCtx.filter = 'none';
         drawEntityItems(extFgCtx, frontEntities);
       }
 
-      // Follow the screen's fades (the triggers overlay stays lit).
-      applyScreenBrightness(screenBrightness(preState), [extMapCanvas, extEntCanvas, extFgCanvas]);
+      // Follow the screen fades and ring menu palette tint via hardware-accelerated CSS filter
+      applyCanvasLayersFilter(screenBrightness(preState), tint, extMapCanvas, extFgCanvas, extEntCanvas);
 
       // 4. Extended triggers overlay (Layer 4)
       if (extOverCtx && extOverCanvas) {

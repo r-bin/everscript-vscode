@@ -62,6 +62,7 @@ let _activeDraft   = null;   // custom draft object for trigger/address lookup
 let _hideInactiveTrace = false; // filter inactive/end script events
 let _extensionPath = '';
 let _buildChannel  = null;   // output channel for build log
+let _emulatorChannel = null; // output channel for emulator runtime and crash log
 let _readyTimeout  = null;
 let _romTimeout    = null;
 let _webviewReady  = false;
@@ -122,10 +123,66 @@ function _ensureBuildChannel() {
   return _buildChannel;
 }
 
+function _ensureEmulatorChannel() {
+  if (!_emulatorChannel) _emulatorChannel = vscode.window.createOutputChannel('Everscript Emulator');
+  return _emulatorChannel;
+}
+
 function _log(line, show) {
-  const ch = _ensureBuildChannel();
-  ch.appendLine('[Everscript] ' + line);
-  if (show) ch.show(true);
+  const emuCh = _ensureEmulatorChannel();
+  const time = new Date().toLocaleTimeString();
+  emuCh.appendLine(`[${time}] ${line}`);
+  if (_buildChannel && _buildChannel !== emuCh) {
+    _buildChannel.appendLine('[Everscript] ' + line);
+  }
+  if (show) emuCh.show(true);
+}
+
+function _logCrash(crash) {
+  const ch = _ensureEmulatorChannel();
+  const time = new Date().toISOString();
+  const border = '================================================================================';
+  ch.appendLine(border);
+  ch.appendLine(`[EMULATOR CRASH REPORT] ${time}`);
+  ch.appendLine(`Error: ${crash.message || crash.error || 'Unknown emulator error'}`);
+  if (crash.type) ch.appendLine(`Type: ${crash.type}`);
+  if (crash.source) ch.appendLine(`Source: ${crash.source}${crash.line ? ':' + crash.line : ''}${crash.col ? ':' + crash.col : ''}`);
+  ch.appendLine(`ROM: ${_currentRomName || 'unknown'}${crash.frame !== undefined ? ` | Frame: ${crash.frame}` : ''}${crash.mapId !== undefined && crash.mapId >= 0 ? ` | Map ID: 0x${crash.mapId.toString(16).toUpperCase()} (${crash.mapId})` : ''}`);
+  if (crash.camX !== undefined || crash.camY !== undefined) {
+    ch.appendLine(`Camera: X=${crash.camX ?? 0}, Y=${crash.camY ?? 0}`);
+  }
+
+  if (crash.cpu) {
+    const c = crash.cpu;
+    const h = (v, len) => (typeof v === 'number' ? (v >>> 0).toString(16).toUpperCase().padStart(len, '0') : '????');
+    ch.appendLine('');
+    ch.appendLine('SNES CPU State:');
+    ch.appendLine(`  PC: $${h(c.pc, 6)} (PB: $${h(c.pb, 2)})   A: $${h(c.a, 4)}   X: $${h(c.x, 4)}   Y: $${h(c.y, 4)}`);
+    ch.appendLine(`  SP: $${h(c.sp, 4)}   DB: $${h(c.db, 2)}   P: $${h(c.p, 2)}`);
+  }
+
+  if (crash.stack) {
+    ch.appendLine('');
+    ch.appendLine('Stack Trace:');
+    ch.appendLine(crash.stack);
+  }
+
+  if (Array.isArray(crash.scriptSlots) && crash.scriptSlots.length > 0) {
+    ch.appendLine('');
+    ch.appendLine('Active Script Slots:');
+    for (const slot of crash.scriptSlots) {
+      const locHex = slot.loc !== undefined ? (slot.loc >>> 0).toString(16).toUpperCase().padStart(6, '0') : '000000';
+      ch.appendLine(`  Slot ${slot.slot}: state=${slot.state} loc=$${locHex} entity=${slot.entity !== undefined ? slot.entity : '-'}`);
+    }
+  }
+
+  ch.appendLine(border);
+  ch.show(true);
+
+  const shortMsg = (crash.message || crash.error || 'Unknown error').slice(0, 120);
+  vscode.window.showErrorMessage(`Everscript Emulator: ${shortMsg}`, 'Show Crash Log').then(sel => {
+    if (sel === 'Show Crash Log') ch.show(true);
+  });
 }
 
 function _estimateDataUrlBytes(dataUrl) {
@@ -458,14 +515,25 @@ function openEmulatorPanel(context, rom, channel) {
                 vscode.window.setStatusBarMessage(`$(check) Emulator: ${msg.name} running`, 5000);
                 break;
 
+            case 'emulatorCrash':
+              _webviewReady = false;
+              _clearReadyTimeout();
+              _clearRomTimeout();
+              _notifyWebviewStatus('error', `Emulator crash: ${msg.message || msg.error}`);
+              _logCrash(msg);
+              break;
+
+            case 'emulatorStderr':
+              _log(`[core stderr] ${msg.text}`);
+              break;
+
             case 'ejsError':
               _webviewReady = false;
               _clearReadyTimeout();
               _clearRomTimeout();
-              _log(`Emulator error: ${msg.error}`, true);
               _notifyWebviewStatus('error', `Emulator error: ${msg.error}`);
-              vscode.window.showErrorMessage(`Everscript Emulator: ${msg.error}`);
-                break;
+              _logCrash(msg);
+              break;
 
             case 'romLoadLog':
               _log(`ROM load stage: ${msg.text}`);
