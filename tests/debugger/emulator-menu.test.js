@@ -50,7 +50,9 @@ test('getMenuCss generates fixed top alignment, lens tab active style, tabs, and
     assert.ok(css.includes('.menu-shoulder-btn'), 'missing .menu-shoulder-btn style');
     assert.ok(css.includes('.menu-tab-btn'), 'missing .menu-tab-btn style');
     assert.ok(css.includes('.menu-row.selected'), 'missing .menu-row.selected style');
-    assert.ok(css.includes('.menu-loot-toggle-btn'), 'missing .menu-loot-toggle-btn style');
+    assert.ok(css.includes('.lens-tab-active #menu-body'), 'missing .lens-tab-active #menu-body hide');
+    assert.ok(css.includes('.menu-preview-box'), 'missing .menu-preview-box style');
+    assert.ok(css.includes('.menu-preview-img'), 'missing .menu-preview-img style');
 });
 
 // 3. HTML verification (6 tabs, Lens default, Objects list, Loot list, non-looping steppers)
@@ -128,6 +130,7 @@ test('getMenuClientScript defines isPlayerControllable, unified pause, objects, 
     assert.ok(script.includes('function renderObjectRows()'), 'missing renderObjectRows');
     assert.ok(script.includes('function stepObjectState(objIndex, delta)'), 'missing stepObjectState');
     assert.ok(script.includes('function renderLootRows()'), 'missing renderLootRows');
+    assert.ok(script.includes('menu-preview-box'), 'missing preview box markup in rows');
     assert.ok(script.includes('function toggleLootState(lootIdx)'), 'missing toggleLootState');
     assert.ok(script.includes('function runLootScript(lootIdx)'), 'missing runLootScript');
     assert.ok(script.includes('scrollIntoView'), 'selection change must call scrollIntoView');

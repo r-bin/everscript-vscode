@@ -982,11 +982,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     }
 
     // -- Input -----------------------------------------------------------------
-    // Button bitmask positions:
-    //   R=4, L=5, X=6, A=7, RIGHT=8, LEFT=9, DOWN=10, UP=11,
-    //   START=12, SELECT=13, Y=14, B=15
-    // TODO: Make keybindings configurable via VS Code settings (\`everscript.emulatorKeybindings\`)
-    // and provide an in-webview interactive controller remapping dialog.
+    var isLensModeActive = false;
     const KEY_MAP = {
       'ArrowRight': 1 << 8,  'ArrowLeft': 1 << 9,
       'ArrowDown':  1 << 10, 'ArrowUp':   1 << 11,
@@ -1033,29 +1029,6 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         const tag = e.target && e.target.tagName;
         if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
           setSpeedUp(!speedUp);
-          e.preventDefault();
-          return;
-        }
-      }
-      if (e.key === 'Escape') {
-        if (typeof togglePauseMenu === 'function') {
-          togglePauseMenu('Escape');
-          e.preventDefault();
-          return;
-        }
-        const m = getModule();
-        if (m && hasDebuggerApi(m)) {
-          const pauseEl = document.getElementById('ss-pause-state');
-          const isPaused = pauseEl && pauseEl.textContent.trim() === 'paused';
-          if (isPaused) {
-            m.resumeEmulation();
-            setText('ss-pause-state', 'running', 'ss-ok');
-            setText('ss-last-hit', 'last: resumed via Escape', 'ss-ok');
-          } else {
-            m.pauseEmulation();
-            setText('ss-pause-state', 'paused', 'ss-bad');
-            setText('ss-last-hit', 'last: paused via Escape', 'ss-warn');
-          }
           e.preventDefault();
           return;
         }
@@ -1226,7 +1199,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
 
       // Trackpad pinch-to-zoom (wheel with ctrlKey/metaKey) and two-finger pan (wheel)
       wrap.addEventListener('wheel', (e) => {
-        if (typeof isMenuOpen !== 'undefined' && isMenuOpen && !isLensModeActive) {
+        const isLens = (typeof menuActiveTab !== 'undefined' && menuActiveTab === 0);
+        if (typeof isMenuOpen !== 'undefined' && isMenuOpen && !isLens) {
           const menuCard = document.getElementById('menu-card');
           if (menuCard && menuCard.contains(e.target)) {
             // Inside menu card: allow natural scroll of menu list, do NOT zoom/pan map!
@@ -1257,11 +1231,16 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       let panBaseY = 0;
       wrap.addEventListener('mousedown', (e) => {
         if (e.button === 2) return; // Right-click handled by contextmenu
-        if (typeof isMenuOpen !== 'undefined' && isMenuOpen && !isLensModeActive) {
+        const isLens = (typeof menuActiveTab !== 'undefined' && menuActiveTab === 0);
+        if (typeof isMenuOpen !== 'undefined' && isMenuOpen && !isLens) {
           const menuCard = document.getElementById('menu-card');
           if (menuCard && menuCard.contains(e.target)) return;
         }
-        if (e.button === 1 || e.altKey || (e.target !== canvas && !e.target.closest('.screen-chip'))) {
+        if (isLens) {
+          const menuHeader = document.getElementById('menu-header');
+          if (menuHeader && menuHeader.contains(e.target)) return;
+        }
+        if (isLens || e.button === 1 || e.altKey || (e.target !== canvas && !e.target.closest('.screen-chip'))) {
           isPanning = true;
           panStartX = e.clientX;
           panStartY = e.clientY;

@@ -858,25 +858,33 @@ function _handleRoomMapRequest(mapId, objectStates, cutGrassTiles, layered) {
                     const obj = room.objects[i];
                     const box = maps.objectBounds(rom, room, obj);
                     if (!box || box.w <= 0 || box.h <= 0) continue;
-                    const states = [];
-                    for (let s = 0; s < obj.states.length; s++) {
-                        const st = obj.states[s];
-                        const stamp = maps.parseObjectStamp(rom, room.objectArea, st.metatileId);
+                    const count = (typeof maps.objectStateCount === 'function') ? maps.objectStateCount(obj) : (obj.states.length + 1);
+                    for (let s = 0; s < count; s++) {
+                        const st = s > 0 ? obj.states[s - 1] : obj.states[0];
+                        const stamp = st ? maps.parseObjectStamp(rom, room.objectArea, st.metatileId) : { valid: false };
+                        let preview = null;
+                        try {
+                            const img = maps.renderObjectState(rom, room, i, s);
+                            if (img) preview = maps.encodePngDataUri(img);
+                        } catch (_) {}
                         states.push({
-                            state: st.state,
-                            hold: st.hold,
-                            x: st.tileX * 16,
-                            y: st.tileY * 16,
-                            w: (stamp.valid ? stamp.tw : st.targetWidth) * 16,
-                            h: (stamp.valid ? stamp.th : st.targetHeight) * 16,
+                            state: s,
+                            hold: st ? st.hold : 0,
+                            x: st ? st.tileX * 16 : box.x * 16,
+                            y: st ? st.tileY * 16 : box.y * 16,
+                            w: (stamp.valid ? stamp.tw : (st ? st.targetWidth : box.w)) * 16,
+                            h: (stamp.valid ? stamp.th : (st ? st.targetHeight : box.h)) * 16,
+                            preview: preview,
                         });
                     }
+                    const objPreview = (states[0] && states[0].preview) ? states[0].preview : null;
                     roomObjects.push({
                         index: obj.objectIndex,
                         x: box.x * 16,
                         y: box.y * 16,
                         w: box.w * 16,
                         h: box.h * 16,
+                        preview: objPreview,
                         states: states,
                     });
                 }
@@ -955,6 +963,13 @@ function _handleRoomMapRequest(mapId, objectStates, cutGrassTiles, layered) {
             }
         } catch (_) {}
 
+        let itemIcons = null;
+        try {
+            const { buildItemIcons } = require('../rooms/data/item-icons');
+            const icons = buildItemIcons(rom);
+            itemIcons = (icons && icons.loot) ? icons.loot : null;
+        } catch (_) {}
+
         const roomLootables = [];
         try {
             const { buildRoomScriptModel } = require('../script');
@@ -970,6 +985,11 @@ function _handleRoomMapRequest(mapId, objectStates, cutGrassTiles, layered) {
                         w: Math.max(1, (trig.x2 - trig.x1) * 16),
                         h: Math.max(1, (trig.y2 - trig.y1) * 16),
                     };
+                    const objForLoot = (fact.objectId !== null) ? roomObjects.find(function(o) { return o.index === fact.objectId; }) : null;
+                    let lootPreview = (objForLoot && objForLoot.preview) ? objForLoot.preview : null;
+                    if (!lootPreview && itemIcons && fact.itemName && itemIcons[fact.itemName]) {
+                        lootPreview = itemIcons[fact.itemName];
+                    }
                     roomLootables.push({
                         index: lootIdx++,
                         kind: fact.kind || 'gourd',
@@ -977,6 +997,7 @@ function _handleRoomMapRequest(mapId, objectStates, cutGrassTiles, layered) {
                         itemName: fact.itemName || (fact.item ? ('0x' + fact.item.value.toString(16).toUpperCase()) : 'Unknown'),
                         amount: fact.amount || 1,
                         objectId: fact.objectId,
+                        preview: lootPreview,
                         checkFlag: fact.checkFlag,
                         setFlag: fact.setFlag,
                         x: trigBox.x,
@@ -988,13 +1009,6 @@ function _handleRoomMapRequest(mapId, objectStates, cutGrassTiles, layered) {
                     });
                 }
             }
-        } catch (_) {}
-
-        let itemIcons = null;
-        try {
-            const { buildItemIcons } = require('../rooms/data/item-icons');
-            const icons = buildItemIcons(rom);
-            itemIcons = (icons && icons.loot) ? icons.loot : null;
         } catch (_) {}
 
         const data = {

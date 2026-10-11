@@ -44,14 +44,26 @@ function getMenuCss() {
       display: none !important;
     }
 
-    /* Lens Tab Active: translucent backdrop so map shines through cleanly */
+    /* Lens Tab Active: top-bar only, completely unobstructed map */
     #emulator-menu.lens-tab-active {
-      background: rgba(0, 0, 0, 0.18) !important;
+      background: transparent !important;
       backdrop-filter: none !important;
-      pointer-events: none;
+      pointer-events: none !important;
+      padding-top: 0 !important;
     }
     #emulator-menu.lens-tab-active #menu-card {
       pointer-events: auto !important;
+      background: #1c1c22 !important;
+      border: 1px solid #30303a !important;
+      border-top: none !important;
+      border-radius: 0 0 6px 6px !important;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6) !important;
+      width: auto !important;
+      max-width: 95% !important;
+    }
+    #emulator-menu.lens-tab-active #menu-body,
+    #emulator-menu.lens-tab-active #menu-footer {
+      display: none !important;
     }
 
     #menu-card {
@@ -318,13 +330,32 @@ function getMenuCss() {
       font-style: italic;
       font-size: 11px;
     }
-    .menu-obj-badge {
-      color: #38bdf8;
-      font-weight: bold;
+    /* Preview Thumbnail Box (Fixed size, stretched inside) */
+    .menu-preview-box {
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+      min-height: 36px;
+      background: #0d0d12;
+      border: 1px solid #282836;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      margin-right: 8px;
+      flex-shrink: 0;
     }
-    .menu-obj-coords {
-      color: #64748b;
-      font-size: 10px;
+    .menu-preview-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      image-rendering: pixelated;
+    }
+    .menu-preview-empty {
+      font-size: 8px;
+      color: #556;
+      text-align: center;
     }
 
     /* Loot Tab Styles */
@@ -919,10 +950,20 @@ function getMenuClientScript() {
         const isSel = (idx === menuSelectedRow);
         row.classList.toggle('selected', isSel);
         if (isSel) {
+          const menuBody = document.getElementById('menu-body');
+          if (menuBody) {
+            const rowRect = row.getBoundingClientRect();
+            const bodyRect = menuBody.getBoundingClientRect();
+            if (rowRect.top < bodyRect.top) {
+              menuBody.scrollTop -= (bodyRect.top - rowRect.top);
+            } else if (rowRect.bottom > bodyRect.bottom) {
+              menuBody.scrollTop += (rowRect.bottom - bodyRect.bottom);
+            }
+          }
           try {
             row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-          } catch (e) {
-            row.scrollIntoView(false);
+          } catch (_) {
+            try { row.scrollIntoView(false); } catch (__) {}
           }
         }
       });
@@ -1092,9 +1133,19 @@ function getMenuClientScript() {
         let curState = 0;
         if (m && typeof m.readMemory === 'function') {
           curState = m.readMemory(0x7E10CE + obj.index) || 0;
-        } else if (preState && preState.objStateBuf) {
-          curState = preState.objStateBuf[obj.index] || 0;
+        } else if (typeof lastSampledPreState !== 'undefined' && lastSampledPreState && lastSampledPreState.objStateBuf) {
+          curState = lastSampledPreState.objStateBuf[obj.index] || 0;
         }
+
+        const stateObj = (obj.states && obj.states[curState]) ? obj.states[curState] : null;
+        const previewSrc = (stateObj && stateObj.preview) ? stateObj.preview : (obj.preview || null);
+        let previewHtml = '<div class="menu-preview-box">';
+        if (previewSrc) {
+          previewHtml += '<img class="menu-preview-img" src="' + previewSrc + '" alt="OBJ #' + obj.index + '">';
+        } else {
+          previewHtml += '<span class="menu-preview-empty">OBJ</span>';
+        }
+        previewHtml += '</div>';
 
         const row = document.createElement('div');
         row.className = 'menu-row' + (i === menuSelectedRow ? ' selected' : '');
@@ -1104,6 +1155,7 @@ function getMenuClientScript() {
         row.innerHTML =
           '<div class="menu-row-label">' +
             '<span class="menu-row-cursor">&gt;</span> ' +
+            previewHtml +
             '<span class="menu-obj-badge">OBJ #' + obj.index + '</span> ' +
             '<span class="menu-obj-coords">(' + obj.x + ',' + obj.y + ' ' + obj.w + 'x' + obj.h + ')</span>' +
           '</div>' +
@@ -1158,8 +1210,8 @@ function getMenuClientScript() {
       if (m && typeof m.writeMemory === 'function') {
         m.writeMemory(0x7E10CE + objIndex, newState);
       }
-      if (preState && preState.objStateBuf) {
-        preState.objStateBuf[objIndex] = newState;
+      if (typeof lastSampledPreState !== 'undefined' && lastSampledPreState && lastSampledPreState.objStateBuf) {
+        lastSampledPreState.objStateBuf[objIndex] = newState;
       }
 
       // 2. Safe opcode 0x5C injection
@@ -1169,11 +1221,9 @@ function getMenuClientScript() {
         injectEverscript('5c ' + hexObj + ' ' + hexVal);
       } catch (_) {}
 
-      // 3. Update pill UI
-      const pill = document.getElementById('menu-val-obj-' + objIndex);
-      if (pill) pill.textContent = 'State ' + newState + ' / ' + maxState;
-
+      // 3. Update UI
       playMenuSound('click_nav');
+      renderObjectRows();
 
       // 4. Request room map refresh to draw new object tiles immediately
       if (vscodeApi && typeof cachedMapId === 'number') {
@@ -1216,10 +1266,14 @@ function getMenuClientScript() {
           }
         }
 
-        const iconUri = (cachedItemIcons && cachedItemIcons[loot.itemName]) ? cachedItemIcons[loot.itemName] : null;
-        const iconHtml = iconUri
-          ? '<img class="menu-loot-img" src="' + iconUri + '" alt="" />'
-          : '<span class="menu-loot-fallback">' + (loot.kind === 'sniff' ? '[S]' : '[G]') + '</span>';
+        const previewSrc = loot.preview || (cachedItemIcons && cachedItemIcons[loot.itemName]) || null;
+        let previewHtml = '<div class="menu-preview-box">';
+        if (previewSrc) {
+          previewHtml += '<img class="menu-preview-img" src="' + previewSrc + '" alt="' + loot.itemName + '">';
+        } else {
+          previewHtml += '<span class="menu-preview-empty">' + (loot.kind === 'sniff' ? 'SNIFF' : 'LOOT') + '</span>';
+        }
+        previewHtml += '</div>';
 
         const row = document.createElement('div');
         row.className = 'menu-row' + (i === menuSelectedRow ? ' selected' : '');
@@ -1229,7 +1283,7 @@ function getMenuClientScript() {
         row.innerHTML =
           '<div class="menu-row-label">' +
             '<span class="menu-row-cursor">&gt;</span> ' +
-            iconHtml +
+            previewHtml +
             '<span class="menu-loot-name">' + loot.itemName + (loot.amount > 1 ? ' x' + loot.amount : '') + '</span> ' +
             '<span class="menu-loot-meta">(' + (loot.kind === 'sniff' ? 'Sniff' : (loot.objectId !== null ? 'OBJ #' + loot.objectId : 'Chest')) + ' @ ' + loot.x + ',' + loot.y + ')</span>' +
           '</div>' +
@@ -1294,7 +1348,9 @@ function getMenuClientScript() {
       if (loot.objectId !== null && loot.objectId !== undefined) {
         const newObjState = targetLooted ? 1 : 0;
         m.writeMemory(0x7E10CE + loot.objectId, newObjState);
-        if (preState && preState.objStateBuf) preState.objStateBuf[loot.objectId] = newObjState;
+        if (typeof lastSampledPreState !== 'undefined' && lastSampledPreState && lastSampledPreState.objStateBuf) {
+          lastSampledPreState.objStateBuf[loot.objectId] = newObjState;
+        }
         try {
           injectEverscript('5c ' + loot.objectId.toString(16).padStart(2, '0') + ' ' + (targetLooted ? '01' : '00'));
         } catch (_) {}
@@ -1433,6 +1489,9 @@ function getMenuClientScript() {
 
     // -- Keyboard Event Interception -------------------------------------------
     window.addEventListener('keydown', function(e) {
+      const tag = e.target && e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
       // 1. Esc ALWAYS pauses/resumes the emulator & toggles menu
       if (e.key === 'Escape') {
         if (menuListeningBtn) {
@@ -1473,41 +1532,67 @@ function getMenuClientScript() {
           return;
         }
 
-        if (e.key === 'ArrowUp') {
-          moveMenuSelection(-1);
-          e.preventDefault();
-          return;
+        // On Lens Tab (Tab 0): Arrow keys pan the map!
+        if (menuActiveTab === 0) {
+          let dx = 0, dy = 0;
+          if (e.key === 'ArrowUp') dy = 32;
+          else if (e.key === 'ArrowDown') dy = -32;
+          else if (e.key === 'ArrowLeft') dx = 32;
+          else if (e.key === 'ArrowRight') dx = -32;
+          if (dx !== 0 || dy !== 0) {
+            panX += dx;
+            panY += dy;
+            if (typeof updateScreenLayout === 'function') updateScreenLayout();
+            if (typeof updateLensTabInfo === 'function') updateLensTabInfo();
+            e.preventDefault();
+            return;
+          }
+        } else {
+          if (e.key === 'ArrowUp') {
+            moveMenuSelection(-1);
+            e.preventDefault();
+            return;
+          }
+          if (e.key === 'ArrowDown') {
+            moveMenuSelection(1);
+            e.preventDefault();
+            return;
+          }
+          if (e.key === 'ArrowLeft') {
+            changeMenuValue(-1);
+            e.preventDefault();
+            return;
+          }
+          if (e.key === 'ArrowRight') {
+            changeMenuValue(1);
+            e.preventDefault();
+            return;
+          }
         }
-        if (e.key === 'ArrowDown') {
-          moveMenuSelection(1);
-          e.preventDefault();
-          return;
-        }
-        if (e.key === 'ArrowLeft') {
-          changeMenuValue(-1);
-          e.preventDefault();
-          return;
-        }
-        if (e.key === 'ArrowRight') {
-          changeMenuValue(1);
-          e.preventDefault();
-          return;
-        }
+
         if (e.key === 'Enter' || e.key === 'v' || e.key === 'V') {
-          activateMenuRow();
+          if (menuActiveTab === 0) {
+            closeEmulatorMenu();
+          } else {
+            activateMenuRow();
+          }
           e.preventDefault();
           return;
         }
-        if (e.key === 'c' || e.key === 'C') {
+
+        // Closing menu
+        const startKey = userKeyMap['Start'] || 'Enter';
+        if (e.key === 'c' || e.key === 'C' || e.key === startKey || (startKey === 'Enter' && e.key === 'Enter' && menuActiveTab === 0)) {
           closeEmulatorMenu();
           e.preventDefault();
           return;
         }
+
         e.preventDefault();
         return;
       }
 
-      // 3. Game is running: Check Start button for controllable player
+      // 3. Menu is CLOSED: Check Start button for controllable player
       const startKey = userKeyMap['Start'] || 'Enter';
       if (e.key === startKey || (startKey === 'Enter' && e.key === 'Enter')) {
         const m = getModule();
@@ -1518,21 +1603,7 @@ function getMenuClientScript() {
         }
       }
 
-      // Normal SNES game input dispatch
-      const bit = dynamicKeyToBit[e.key];
-      if (bit) {
-        keyInput |= bit;
-        e.preventDefault();
-      }
-    }, true);
-
-    window.addEventListener('keyup', function(e) {
-      if (isMenuOpen) return;
-      const bit = dynamicKeyToBit[e.key];
-      if (bit) {
-        keyInput &= ~bit;
-        e.preventDefault();
-      }
+      // Normal SNES game keys pass through to panel-webview.js input listener.
     }, true);
 
     // -- Gamepad Polling & Menu Support ----------------------------------------
