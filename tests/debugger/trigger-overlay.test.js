@@ -159,7 +159,6 @@ test('buildHtml renders trigger overlay UI elements and event bindings', () => {
     const html = buildHtml(mockWebview, 'core.js', 'core.wasm', 'core', '/path/to/core');
 
     assert.ok(html.includes('id="screen-trigger-toggle"'), 'screen-trigger-toggle missing');
-    assert.ok(html.includes('id="ss-overlay-toggle"'), 'ss-overlay-toggle missing');
     assert.ok(html.includes('triggersOverlayEnabled'), 'triggersOverlayEnabled missing');
     assert.ok(html.includes('renderTriggersOverlay'), 'renderTriggersOverlay missing');
     assert.ok(html.includes('#ff69b4'), 'pink step-on styling missing');
@@ -174,7 +173,6 @@ test('buildHtml includes extended map background and full-viewport overlay canva
     assert.ok(html.includes('id="extended-map"'), 'extended-map canvas missing');
     assert.ok(html.includes('id="extended-overlay"'), 'extended-overlay canvas missing');
     assert.ok(html.includes('id="screen-extend-toggle"'), 'screen-extend-toggle missing');
-    assert.ok(html.includes('id="ss-extend-toggle"'), 'ss-extend-toggle missing');
     assert.ok(html.includes('extendMapEnabled'), 'extendMapEnabled missing');
     assert.ok(html.includes('setExtendMap'), 'setExtendMap missing');
     assert.ok(html.includes('requestRoomMap'), 'requestRoomMap postMessage missing');

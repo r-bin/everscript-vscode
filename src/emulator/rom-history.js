@@ -9,13 +9,161 @@
  * - Recently opened / built / dropped ROM files
  */
 
-const path = require('path');
-const fs   = require('fs');
-const os   = require('os');
+const path   = require('path');
+const fs     = require('fs');
+const os     = require('os');
+const crypto = require('crypto');
+const maps   = require('../maps');
 const { resolveRomPath } = require('../shared/rom-readers');
 
 const HISTORY_FILENAME = 'recent-roms.json';
 const MAX_HISTORY_ITEMS = 15;
+
+const KNOWN_EVERMORE_HASHES = [
+  {
+    region: 'US',
+    name: 'USA',
+    language: 'English',
+    icon: 'US',
+    flag: 'USA',
+    crc32: 'a5c0045e',
+    sha1: '79e7738630fff5699217ef58ecc421bc8fcbcd89',
+  },
+  {
+    region: 'EU',
+    name: 'Europe',
+    language: 'English',
+    icon: 'EU',
+    flag: 'EUR',
+    crc32: 'e168d085',
+    sha1: 'ae17166919fdfdf26cc5771f83cfd19eaf71806c',
+  },
+  {
+    region: 'DE',
+    name: 'Germany',
+    language: 'German',
+    icon: 'DE',
+    flag: 'DEU',
+    crc32: '27f60e77',
+    sha1: '5e5c2082526690d05f962c3ffbd7e080c681bfa4',
+  },
+  {
+    region: 'FR',
+    name: 'France',
+    language: 'French',
+    icon: 'FR',
+    flag: 'FRA',
+    crc32: '7425bb91',
+    sha1: '8a430c9d6a3dcef974252fe8d946a0d619bb1a61',
+  },
+  {
+    region: 'ES',
+    name: 'Spain',
+    language: 'Spanish',
+    icon: 'ES',
+    flag: 'ESP',
+    crc32: '7bfe934f',
+    sha1: '4363ce4b19e76261f9325ac9a0cce27d97490df2',
+  },
+];
+
+let _crcTable = null;
+function calcCrc32(bytes) {
+  if (!_crcTable) {
+    _crcTable = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+      _crcTable[n] = c >>> 0;
+    }
+  }
+  let crc = 0xFFFFFFFF;
+  for (let i = 0; i < bytes.length; i++) crc = _crcTable[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+function detectRomDetails(target) {
+  try {
+    let buf = null;
+    if (typeof target === 'string') {
+      if (!fs.existsSync(target)) return null;
+      buf = fs.readFileSync(target);
+    } else if (Buffer.isBuffer(target) || (target && target.buffer)) {
+      buf = target;
+    }
+    if (!buf || buf.length < 0x200000) return null;
+
+    const clean = (buf.length % 1024 === 512) ? buf.subarray(512) : buf;
+    const sha1 = crypto.createHash('sha1').update(clean).digest('hex').toLowerCase();
+    const crc = calcCrc32(clean).toString(16).padStart(8, '0').toLowerCase();
+
+    // 1. Known Evermore releases
+    const match = KNOWN_EVERMORE_HASHES.find(h => h.sha1 === sha1 || h.crc32 === crc);
+    if (match) {
+      return {
+        known: true,
+        isCustomMap: false,
+        region: match.region,
+        regionName: match.name,
+        language: match.language,
+        icon: match.icon,
+        flag: match.flag,
+        sha1: sha1,
+        crc32: crc,
+      };
+    }
+
+    // 2. Custom map showcase ROM detection
+    // BuildExportRom patches intro jump at $92E0CA (file offset 0x12E0CA):
+    // OP_CHANGE_MAP (0x22), at.x, at.y, roomId (0x15), 0x00, OP_END (0x00)
+    if (clean.length >= 0x300000 && clean.length <= 0x500000) {
+      const introOffset = 0x12e0ca;
+      if (clean[introOffset] === 0x22 && clean[introOffset + 4] === 0x00 && clean[introOffset + 5] === 0x00) {
+        const targetRoom = clean[introOffset + 3];
+        if (targetRoom >= 0 && targetRoom <= 0x7e) {
+          try {
+            const room = maps.decodeRoom(clean, targetRoom);
+            if (room && room.header) {
+              let previewDataUri = '';
+              try {
+                const composite = maps.renderRoomComposite(clean, room);
+                if (composite) previewDataUri = maps.encodePngDataUri(composite);
+              } catch (_) {}
+              return {
+                known: false,
+                isCustomMap: true,
+                targetRoom: targetRoom,
+                roomWidth: room.header.widthTiles,
+                roomHeight: room.header.heightTiles,
+                previewDataUri: previewDataUri || '',
+                region: 'MAP',
+                regionName: 'Custom Map (Room ' + targetRoom + ')',
+                icon: 'MAP',
+                flag: 'MAP',
+                sha1: sha1,
+                crc32: crc,
+              };
+            }
+          } catch (_) {}
+        }
+      }
+    }
+
+    // 3. Fallback: unknown / mod / hack
+    return {
+      known: false,
+      isCustomMap: false,
+      region: '?',
+      regionName: 'Unknown ROM / Hack',
+      icon: '?',
+      flag: '?',
+      sha1: sha1,
+      crc32: crc,
+    };
+  } catch (_) {
+    return null;
+  }
+}
 
 function formatBytes(bytes) {
   if (typeof bytes !== 'number' || isNaN(bytes) || bytes <= 0) return '';
@@ -68,12 +216,17 @@ function getVanillaRom(wsRoot, cfgRomPath) {
     const p = resolveRomPath(wsRoot, cfgRomPath || '');
     if (p && fs.existsSync(p)) {
       const st = fs.statSync(p);
+      const details = detectRomDetails(p);
       return {
         available: true,
         path: p,
         name: path.basename(p),
         size: st.size,
         sizeFormatted: formatBytes(st.size),
+        icon: (details && details.icon) || 'US',
+        region: (details && details.region) || 'US',
+        regionName: (details && details.regionName) || 'USA',
+        language: (details && details.language) || 'English',
       };
     }
   } catch (_) {}
@@ -131,6 +284,10 @@ function writeHistoryFile(storageDir, list) {
   } catch (_) {}
 }
 
+function clearRecentRoms(storageDir) {
+  writeHistoryFile(storageDir, []);
+}
+
 function recordRomUsage(entry, context) {
   if (!entry) return;
   const storageDir = getStorageDir(context);
@@ -152,6 +309,13 @@ function recordRomUsage(entry, context) {
     } catch (_) {}
   }
 
+  let details = null;
+  if (filePath && fs.existsSync(filePath)) {
+    details = detectRomDetails(filePath);
+  } else if (entry.romBuffer) {
+    details = detectRomDetails(entry.romBuffer);
+  }
+
   const list = readHistoryFile(storageDir);
   const now = Date.now();
   let size = entry.size || 0;
@@ -169,9 +333,14 @@ function recordRomUsage(entry, context) {
   filtered.unshift({
     path: filePath,
     name: name,
-    kind: kind,
+    kind: (details && details.isCustomMap) ? 'editor' : kind,
     lastUsed: now,
     size: size,
+    icon: (details && details.icon) || '?',
+    region: (details && details.region) || '?',
+    regionName: (details && details.regionName) || 'Unknown ROM',
+    isCustomMap: !!(details && details.isCustomMap),
+    previewDataUri: (details && details.previewDataUri) || '',
   });
 
   writeHistoryFile(storageDir, filtered);
@@ -200,7 +369,8 @@ function getRecentRoms(storageDir) {
   const merged = Array.from(byPath.values());
   merged.sort((a, b) => (b.lastUsed || 0) - (a.lastUsed || 0));
 
-  return merged.slice(0, 10).map(item => {
+  let changed = false;
+  const result = merged.slice(0, 10).map(item => {
     let exists = false;
     let size = item.size || 0;
     if (item.path) {
@@ -208,6 +378,17 @@ function getRecentRoms(storageDir) {
         if (fs.existsSync(item.path)) {
           exists = true;
           if (!size) size = fs.statSync(item.path).size;
+          if (!item.icon || item.icon === '?' || (item.isCustomMap && !item.previewDataUri)) {
+            const d = detectRomDetails(item.path);
+            if (d) {
+              item.icon = d.icon;
+              item.region = d.region;
+              item.regionName = d.regionName;
+              item.isCustomMap = d.isCustomMap;
+              if (d.previewDataUri) item.previewDataUri = d.previewDataUri;
+              changed = true;
+            }
+          }
         }
       } catch (_) {}
     }
@@ -221,8 +402,19 @@ function getRecentRoms(storageDir) {
       size: size,
       sizeFormatted: formatBytes(size),
       exists: exists,
+      icon: item.icon || '?',
+      region: item.region || '?',
+      regionName: item.regionName || '',
+      isCustomMap: !!item.isCustomMap,
+      previewDataUri: item.previewDataUri || '',
     };
   });
+
+  if (changed) {
+    try { writeHistoryFile(storageDir, merged); } catch (_) {}
+  }
+
+  return result;
 }
 
 function getRomOfferData(context, wsRoot, cfgRomPath) {
@@ -242,4 +434,8 @@ module.exports = {
   recordRomUsage,
   getRecentRoms,
   getRomOfferData,
+  clearRecentRoms,
+  detectRomDetails,
+  calcCrc32,
+  KNOWN_EVERMORE_HASHES,
 };

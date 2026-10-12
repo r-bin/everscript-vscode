@@ -287,7 +287,6 @@ function getBottomBarTabButtonsHtml() {
         <button id="ss-tab-entities" class="ss-tab" type="button">ENTITIES (<span id="ss-ent-count">0</span>)</button>
         <button id="ss-tab-alchemy" class="ss-tab" type="button">ALCHEMY &amp; PROJECTILES (<span id="ss-alc-count">0</span>)</button>
         <button id="ss-tab-palettes" class="ss-tab" type="button">PALETTES</button>
-        <button id="ss-tab-cheats" class="ss-tab" type="button">CHEATS</button>
   `;
 }
 
@@ -422,74 +421,6 @@ function getBottomBarViewsHtml() {
         <div id="pal-sec-maps">
           <div class="pal-section-title">MAP PALETTES (8 sub-palettes &middot; WRAM $7E61A7 &middot; CGRAM 0..127)</div>
           <div id="pal-map-grid" class="pal-grid"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tab: Cheats -->
-    <div id="ss-view-cheats" class="ss-tab-view">
-      <div class="ss-subbar">
-        <button id="btn-cheats-all" class="ss-btn" type="button">Enable All</button>
-        <button id="btn-cheats-none" class="ss-btn" type="button">Disable All</button>
-        <button id="btn-cheat-heal" class="ss-btn" type="button">Heal Party (999 HP)</button>
-        <span style="flex:1"></span>
-        <span id="cheat-global-status" style="color:#7ad67a">Ready</span>
-      </div>
-      <div class="ss-scroll-content">
-        <div class="cheat-card-grid">
-          <!-- Cheat 1: Atlas Glitch -->
-          <div class="cheat-card">
-            <div class="cheat-card-header">
-              <label class="cheat-toggle-label">
-                <input type="checkbox" id="cheat-toggle-atlas" />
-                <span class="cheat-card-title">Atlas 999 Glitch</span>
-              </label>
-              <span id="cheat-atlas-badge" class="cheat-badge off">OFF</span>
-            </div>
-            <div class="cheat-desc">
-              Applies the Atlas buff (+480 attack boost, infinite timer) into player status slots ($7E4ECF for Boy, $7E4F7D for Dog). Below 100% weapon charge, stamina math underflows to 65,535 and caps at 999 damage per strike.
-            </div>
-          </div>
-
-          <!-- Cheat 2: Invincible Flag -->
-          <div class="cheat-card">
-            <div class="cheat-card-header">
-              <label class="cheat-toggle-label">
-                <input type="checkbox" id="cheat-toggle-invincible" />
-                <span class="cheat-card-title">Invincible Flag (0x0002)</span>
-              </label>
-              <span id="cheat-invincible-badge" class="cheat-badge off">OFF</span>
-            </div>
-            <div class="cheat-desc">
-              Sets bit 0x0002 (FLAG_INVINCIBLE) in player entity flags (+0x10) for Boy ($7E4E99) and Dog ($7E4F47). The game engine treats the party as invulnerable NPCs during hit detection, completely ignoring hostile strikes.
-            </div>
-          </div>
-
-          <!-- Cheat 3: No Clip Flag -->
-          <div class="cheat-card">
-            <div class="cheat-card-header">
-              <label class="cheat-toggle-label">
-                <input type="checkbox" id="cheat-toggle-noclip" />
-                <span class="cheat-card-title">No Clip / Phasing (0x0400)</span>
-              </label>
-              <span id="cheat-noclip-badge" class="cheat-badge off">OFF</span>
-            </div>
-            <div class="cheat-desc">
-              Sets bit 0x0400 (PHASING) in player entity flags (+0x10) for Boy ($7E4E9A) and Dog ($7E4F48). Allows walking freely through solid walls, boundaries, obstacles, and elevation barriers like phasing mosquitoes.
-            </div>
-          </div>
-        </div>
-
-        <!-- Live Party Monitor -->
-        <div class="party-monitor">
-          <span style="font-weight:bold;color:#eee">Party Monitor:</span>
-          <span id="mon-boy-hp">Boy HP: --</span>
-          <span id="mon-boy-flags">Boy Flags: ----</span>
-          <span id="mon-boy-status">Boy Status 1: ----</span>
-          <span style="color:#444">|</span>
-          <span id="mon-dog-hp">Dog HP: --</span>
-          <span id="mon-dog-flags">Dog Flags: ----</span>
-          <span id="mon-dog-status">Dog Status 1: ----</span>
         </div>
       </div>
     </div>
@@ -1247,8 +1178,6 @@ function getBottomBarClientScript() {
         updateAlchemyTab(lastSampledPreState, rom);
       } else if (currentBottomTab === 'palettes') {
         updatePalettesTab(lastSampledPreState, rom);
-      } else if (currentBottomTab === 'cheats') {
-        updateCheatsTab(m);
       }
     }
 
@@ -1327,89 +1256,6 @@ function getBottomBarClientScript() {
       if (palBtnAll) palBtnAll.addEventListener('click', () => setPalFilter('all'));
       if (palBtnSprites) palBtnSprites.addEventListener('click', () => setPalFilter('sprites'));
       if (palBtnMaps) palBtnMaps.addEventListener('click', () => setPalFilter('maps'));
-
-      // Cheats event listeners
-      const tAtlas = document.getElementById('cheat-toggle-atlas');
-      const tInvincible = document.getElementById('cheat-toggle-invincible');
-      const tNoclip = document.getElementById('cheat-toggle-noclip');
-      const bAtlas = document.getElementById('cheat-atlas-badge');
-      const bInvincible = document.getElementById('cheat-invincible-badge');
-      const bNoclip = document.getElementById('cheat-noclip-badge');
-
-      function updateCheatUi() {
-        if (tAtlas) tAtlas.checked = cheatAtlasEnabled;
-        if (tInvincible) tInvincible.checked = cheatInvincibleEnabled;
-        if (tNoclip) tNoclip.checked = cheatNoclipEnabled;
-
-        if (bAtlas) {
-          bAtlas.textContent = cheatAtlasEnabled ? 'ACTIVE' : 'OFF';
-          bAtlas.className = 'cheat-badge ' + (cheatAtlasEnabled ? 'active' : 'off');
-        }
-        if (bInvincible) {
-          bInvincible.textContent = cheatInvincibleEnabled ? 'ACTIVE' : 'OFF';
-          bInvincible.className = 'cheat-badge ' + (cheatInvincibleEnabled ? 'active' : 'off');
-        }
-        if (bNoclip) {
-          bNoclip.textContent = cheatNoclipEnabled ? 'ACTIVE' : 'OFF';
-          bNoclip.className = 'cheat-badge ' + (cheatNoclipEnabled ? 'active' : 'off');
-        }
-        const m = getModule();
-        if (m) maintainCheats(m);
-        updateCheatsTab(m);
-      }
-
-      if (tAtlas) {
-        tAtlas.addEventListener('change', (e) => {
-          cheatAtlasEnabled = e.target.checked;
-          if (!cheatAtlasEnabled) disableAtlasCheat(getModule());
-          updateCheatUi();
-        });
-      }
-      if (tInvincible) {
-        tInvincible.addEventListener('change', (e) => {
-          cheatInvincibleEnabled = e.target.checked;
-          if (!cheatInvincibleEnabled) disableInvincibleCheat(getModule());
-          updateCheatUi();
-        });
-      }
-      if (tNoclip) {
-        tNoclip.addEventListener('change', (e) => {
-          cheatNoclipEnabled = e.target.checked;
-          if (!cheatNoclipEnabled) disableNoclipCheat(getModule());
-          updateCheatUi();
-        });
-      }
-
-      const btnAllCheats = document.getElementById('btn-cheats-all');
-      if (btnAllCheats) {
-        btnAllCheats.addEventListener('click', () => {
-          cheatAtlasEnabled = true;
-          cheatInvincibleEnabled = true;
-          cheatNoclipEnabled = true;
-          updateCheatUi();
-        });
-      }
-
-      const btnNoCheats = document.getElementById('btn-cheats-none');
-      if (btnNoCheats) {
-        btnNoCheats.addEventListener('click', () => {
-          const m = getModule();
-          cheatAtlasEnabled = false;
-          cheatInvincibleEnabled = false;
-          cheatNoclipEnabled = false;
-          disableAtlasCheat(m);
-          disableInvincibleCheat(m);
-          disableNoclipCheat(m);
-          updateCheatUi();
-        });
-      }
-
-      const btnHeal = document.getElementById('btn-cheat-heal');
-      if (btnHeal) {
-        btnHeal.addEventListener('click', () => {
-          healParty(getModule());
-        });
-      }
     }
   `;
 }

@@ -43,12 +43,12 @@ test('bottom-bar-views.js and modified panel files are strictly ASCII-only', () 
 });
 
 // 2. Tab buttons HTML
-test('getBottomBarTabButtonsHtml exposes entities, alchemy, palettes, and cheats tab buttons', () => {
+test('getBottomBarTabButtonsHtml exposes entities, alchemy, and palettes tab buttons', () => {
     const html = getBottomBarTabButtonsHtml();
     assert.ok(html.includes('id="ss-tab-entities"'), 'ss-tab-entities missing');
     assert.ok(html.includes('id="ss-tab-alchemy"'), 'ss-tab-alchemy missing');
     assert.ok(html.includes('id="ss-tab-palettes"'), 'ss-tab-palettes missing');
-    assert.ok(html.includes('id="ss-tab-cheats"'), 'ss-tab-cheats missing');
+    assert.ok(!html.includes('id="ss-tab-cheats"'), 'ss-tab-cheats should be removed (ported to pause menu)');
     assert.ok(html.includes('id="ss-ent-count"'), 'ss-ent-count badge missing');
     assert.ok(html.includes('id="ss-alc-count"'), 'ss-alc-count badge missing');
 });
@@ -86,17 +86,9 @@ test('getBottomBarViewsHtml includes palettes view with sprite and map grids', (
     assert.ok(html.includes('id="pal-map-grid"'), 'pal-map-grid missing');
 });
 
-test('getBottomBarViewsHtml includes cheats view with atlas, invincible, and no clip toggles', () => {
+test('getBottomBarViewsHtml excludes cheats view (ported to pause menu)', () => {
     const html = getBottomBarViewsHtml();
-    assert.ok(html.includes('id="ss-view-cheats"'), 'ss-view-cheats view missing');
-    assert.ok(html.includes('id="cheat-toggle-atlas"'), 'cheat-toggle-atlas missing');
-    assert.ok(html.includes('id="cheat-toggle-invincible"'), 'cheat-toggle-invincible missing');
-    assert.ok(html.includes('id="cheat-toggle-noclip"'), 'cheat-toggle-noclip missing');
-    assert.ok(html.includes('id="btn-cheats-all"'), 'btn-cheats-all missing');
-    assert.ok(html.includes('id="btn-cheats-none"'), 'btn-cheats-none missing');
-    assert.ok(html.includes('id="btn-cheat-heal"'), 'btn-cheat-heal missing');
-    assert.ok(html.includes('id="mon-boy-hp"'), 'mon-boy-hp missing');
-    assert.ok(html.includes('id="mon-dog-hp"'), 'mon-dog-hp missing');
+    assert.ok(!html.includes('id="ss-view-cheats"'), 'ss-view-cheats should be removed');
 });
 
 // 4. Client-side script features
@@ -130,18 +122,13 @@ test('buildHtml correctly embeds all bottom bar buttons, views, CSS and logic', 
     assert.ok(html.includes('id="ss-tab-entities"'), 'ss-tab-entities missing in buildHtml');
     assert.ok(html.includes('id="ss-tab-alchemy"'), 'ss-tab-alchemy missing in buildHtml');
     assert.ok(html.includes('id="ss-tab-palettes"'), 'ss-tab-palettes missing in buildHtml');
-    assert.ok(html.includes('id="ss-tab-cheats"'), 'ss-tab-cheats missing in buildHtml');
+    assert.ok(!html.includes('id="ss-tab-cheats"'), 'ss-tab-cheats should not be in buildHtml');
 
     // Tab views
     assert.ok(html.includes('id="ss-view-entities"'), 'ss-view-entities missing in buildHtml');
     assert.ok(html.includes('id="ss-view-alchemy"'), 'ss-view-alchemy missing in buildHtml');
     assert.ok(html.includes('id="ss-view-palettes"'), 'ss-view-palettes missing in buildHtml');
-    assert.ok(html.includes('id="ss-view-cheats"'), 'ss-view-cheats missing in buildHtml');
-
-    // Cheat toggles
-    assert.ok(html.includes('id="cheat-toggle-atlas"'), 'cheat-toggle-atlas missing in buildHtml');
-    assert.ok(html.includes('id="cheat-toggle-invincible"'), 'cheat-toggle-invincible missing in buildHtml');
-    assert.ok(html.includes('id="cheat-toggle-noclip"'), 'cheat-toggle-noclip missing in buildHtml');
+    assert.ok(!html.includes('id="ss-view-cheats"'), 'ss-view-cheats should not be in buildHtml');
 });
 
 console.log(`\nResults: ${passed} passed, ${failed} failed`);

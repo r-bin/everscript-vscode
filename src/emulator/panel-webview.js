@@ -340,6 +340,15 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       text-transform: uppercase; letter-spacing: 0.05em;
       display: flex; justify-content: space-between; align-items: center;
     }
+    .clear-recent-btn {
+      background: transparent; border: 1px solid #3c3c4a;
+      color: #8899aa; border-radius: 3px; padding: 1px 6px;
+      font-size: 9px; cursor: pointer; font-family: inherit;
+      transition: all 0.12s;
+    }
+    .clear-recent-btn:hover {
+      background: rgba(255, 60, 60, 0.15); border-color: #c33; color: #f66;
+    }
     .recent-roms-list {
       display: flex; flex-direction: column; gap: 4px;
       max-height: 170px; overflow-y: auto; padding-right: 2px;
@@ -358,6 +367,34 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     }
     .recent-rom-left {
       display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;
+    }
+    .rom-region-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 1px 5px; border-radius: 3px; font-size: 9px; font-weight: bold;
+      font-family: monospace; margin-right: 2px; background: #252530; color: #4ec9b0;
+      border: 1px solid #3c3c4e; flex-shrink: 0;
+    }
+    .rom-region-badge.badge-US { color: #569cd6; border-color: #2b4c6e; background: rgba(86, 156, 214, 0.12); }
+    .rom-region-badge.badge-EU { color: #dcdcaa; border-color: #5c5c36; background: rgba(220, 220, 170, 0.12); }
+    .rom-region-badge.badge-DE { color: #ce9178; border-color: #5c3c32; background: rgba(206, 145, 120, 0.12); }
+    .rom-region-badge.badge-FR { color: #4ec9b0; border-color: #245248; background: rgba(78, 201, 176, 0.12); }
+    .rom-region-badge.badge-ES { color: #c586c0; border-color: #583355; background: rgba(197, 134, 192, 0.12); }
+    .rom-region-badge.badge-MAP { color: #6f9; border-color: #2e7d32; background: rgba(102, 255, 153, 0.12); }
+    .rom-region-badge.badge-unk { color: #888; border-color: #444; background: rgba(120, 120, 120, 0.12); }
+
+    .recent-rom-thumb {
+      width: 34px; height: 30px; object-fit: cover;
+      border-radius: 3px; border: 1px solid #383848; background: #000;
+      image-rendering: pixelated; margin-right: 6px; flex-shrink: 0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    }
+    .recent-rom-right {
+      display: flex; align-items: center; flex-shrink: 0; margin-left: 8px;
+    }
+    .recent-rom-item.keyboard-focused, .rom-action-btn.keyboard-focused, .clear-recent-btn.keyboard-focused {
+      outline: 2px solid #4ec9b0 !important; outline-offset: 1px !important;
+      box-shadow: 0 0 8px rgba(78, 201, 176, 0.45) !important;
+      background: rgba(78, 201, 176, 0.08) !important;
     }
     .recent-rom-name {
       font-size: 12px; color: #ddd; font-weight: 500;
@@ -381,44 +418,69 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.3);
     }
     .recent-rom-meta {
-      font-size: 10px; color: #777; font-family: monospace; white-space: nowrap; flex-shrink: 0; margin-left: 8px;
+      font-size: 10px; color: #777; font-family: monospace; white-space: nowrap; flex-shrink: 0;
     }
-    /* -- Resizer & Script stack panel ----------------------------------- */
+
+    /* -- Resizer & Sidebar panel ----------------------------------- */
+    #main-container {
+      display: flex; flex-direction: row; width: 100%; height: 100%;
+      overflow: hidden; position: relative;
+    }
+    .sidebar-expand-btn {
+      position: absolute; top: 10px; right: 10px; z-index: 25;
+      background: rgba(24, 24, 30, 0.85); color: #99aabb;
+      border: 1px solid #3c3c4a; border-radius: 4px;
+      padding: 4px 8px; font-size: 10px; font-weight: bold;
+      font-family: inherit; cursor: pointer; display: none;
+      transition: all 0.15s;
+    }
+    .sidebar-expand-btn:hover {
+      background: #282835; color: #fff; border-color: #007acc;
+    }
+    #screen-wrap.sidebar-hidden .sidebar-expand-btn {
+      display: block;
+    }
+
     #ss-resizer {
-      height: 5px; background: #222; cursor: row-resize; flex-shrink: 0;
-      border-top: 1px solid #333; border-bottom: 1px solid #111;
+      width: 5px; height: 100%; background: #1c1c22; cursor: col-resize; flex-shrink: 0;
+      border-left: 1px solid #2e2e38; border-right: 1px solid #111;
       transition: background 0.15s;
     }
     #ss-resizer:hover, #ss-resizer.dragging { background: #007acc; }
+    #ss-resizer.collapsed { display: none !important; }
 
     #script-stack {
-      height: 240px; min-height: 28px; max-height: 80vh;
-      background: #0d0d0d; border-top: 1px solid #333;
-      font-size: 11px; display: none; flex-direction: column; overflow: hidden;
+      width: 380px; min-width: 220px; max-width: 65vw; height: 100%;
+      background: #0d0d0d; border-left: 1px solid #2a2a35;
+      font-size: 11px; display: none; flex-direction: column; overflow: hidden; flex-shrink: 0;
     }
     #script-stack.visible { display: flex; }
     #script-stack.collapsed {
-      height: 28px !important; min-height: 28px !important; overflow: hidden !important;
-    }
-    #script-stack.collapsed > :not(#ss-header) {
       display: none !important;
     }
     #ss-header {
-      position: sticky; top: 0;
-      background: #1a1a1a; padding: 3px 8px;
-      color: #aaa; font-size: 10px; letter-spacing: 0.05em;
-      display: flex; justify-content: space-between; align-items: center;
-      border-bottom: 1px solid #333; flex-shrink: 0;
+      background: #16161c; padding: 4px 8px;
+      color: #aaa; font-size: 10px;
+      display: flex; flex-direction: column; gap: 4px;
+      border-bottom: 1px solid #2a2a35; flex-shrink: 0;
     }
-    #ss-tabs { display: flex; gap: 4px; align-items: center; }
+    #ss-header-top {
+      display: flex; justify-content: space-between; align-items: center; width: 100%;
+    }
+    #ss-header-title {
+      font-weight: bold; letter-spacing: 0.05em; color: #778899; font-size: 10px;
+    }
+    #ss-tabs {
+      display: flex; flex-wrap: wrap; gap: 3px; align-items: center;
+    }
     .ss-tab {
-      border: 1px solid #333; background: #141414; color: #888;
-      padding: 3px 8px; border-radius: 3px; font-size: 10px; cursor: pointer;
-      font-family: inherit; font-weight: bold;
+      border: 1px solid #2e2e38; background: #141418; color: #8899aa;
+      padding: 3px 6px; border-radius: 3px; font-size: 10px; cursor: pointer;
+      font-family: inherit; font-weight: 600; white-space: nowrap;
     }
-    .ss-tab:hover { background: #222; color: #ccc; }
+    .ss-tab:hover { background: #22222c; color: #fff; }
     .ss-tab.active { background: #007acc; color: #fff; border-color: #007acc; }
-    #ss-controls { display: flex; gap: 6px; align-items: center; }
+    #ss-controls { display: flex; gap: 4px; align-items: center; }
 
     .ss-tab-view { display: none; flex: 1; min-height: 0; flex-direction: column; overflow: hidden; }
     .ss-tab-view.active { display: flex; }
@@ -523,125 +585,95 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       <div id="recent-roms-section" class="recent-roms-section" style="display:none;">
         <div class="recent-roms-header">
           <span>Recent &amp; Generated ROMs</span>
+          <button id="clearRecentBtn" class="clear-recent-btn" type="button" title="Clear recent ROMs history">Clear</button>
         </div>
         <div id="recent-roms-list" class="recent-roms-list"></div>
       </div>
     </div>
   </div>
 
-  <div id="screen-wrap">
-    <canvas id="extended-map"></canvas>
-    <canvas id="extended-entities"></canvas>
-    <canvas id="extended-foreground"></canvas>
-    <canvas id="screen" width="512" height="448"></canvas>
-    <canvas id="extended-overlay"></canvas>
-    ${getCdlFloatHtml()}
-    ${getTasOverlayHtml()}
-    ${getMenuHtml()}
-    <div id="screen-overlay-bar">
-      <button id="screen-menu-btn" class="screen-chip" type="button" title="Quick Menu (Start)">MENU</button>
-      <button id="screen-extend-toggle" class="screen-chip active" type="button" title="Toggle Extended Map">MAP EXT ON</button>
-      <button id="screen-trigger-toggle" class="screen-chip active" type="button" title="Toggle Trigger Overlay (B &amp; Step-on)">TRIGGERS ON</button>
-      <button id="screen-object-toggle" class="screen-chip active" type="button" title="Toggle Objects Overlay">OBJECTS ON</button>
-      <button id="screen-anim-toggle" class="screen-chip active" type="button" title="Toggle Animated Tiles Overlay">ANIM TILES ON</button>
-      <button id="screen-collision-toggle" class="screen-chip active" type="button" title="Toggle Collision Lines Overlay">COLLISION ON</button>
-      <button id="screen-fog-toggle" class="screen-chip" type="button" title="Toggle Fog of War outside emulator">FOG OFF</button>
-      ${getSoundChipHtml()}
-      <button id="screen-speed-chip" class="screen-chip" type="button" title="Speed-up (#)">SPEED x1</button>
-      <button id="screen-focus-chip" class="screen-chip" type="button" title="When the VS Code debugger stops: show the line in the editor (code) or keep the focus on the emulator (stay)">BREAK: code</button>
-      ${getTasChipHtml()}
-      ${getFpsChipHtml()}
-      <div id="screen-zoom-chip" class="screen-chip-group">
-        <button id="screen-zout" class="screen-chip" type="button" title="Zoom out">-</button>
-        <span id="screen-zlevel" class="screen-chip" style="cursor:default">100%</span>
-        <button id="screen-zin" class="screen-chip" type="button" title="Zoom in">+</button>
-        <button id="screen-zfit" class="screen-chip" type="button" title="Fit to viewport">fit</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="ss-resizer" title="Drag to resize panel"></div>
-
-  <div id="script-stack">
-    <div id="ss-header">
-      <div id="ss-tabs">
-        <button id="ss-tab-trace" class="ss-tab active" type="button">SCRIPT TRACE (<span id="ss-tab-trace-count">0</span>)</button>
-        <button id="ss-tab-stack" class="ss-tab" type="button">SCRIPT STACK (<span id="ss-count">waiting...</span>)</button>
-        ${getBottomBarTabButtonsHtml()}
-        ${getCdlTabButtonHtml()}
-        ${getTasTabButtonHtml()}
-        <button id="ss-tab-debug" class="ss-tab" type="button">DEBUGGER &amp; HOOKS</button>
-      </div>
-      <div id="ss-controls">
-        <label id="ss-extend-label" title="Toggle extended map background"><input type="checkbox" id="ss-extend-toggle" checked /> extend map</label>
-        <label id="ss-overlay-label" title="Toggle trigger overlay"><input type="checkbox" id="ss-overlay-toggle" checked /> triggers</label>
-        <label id="ss-object-label" title="Toggle objects overlay"><input type="checkbox" id="ss-object-toggle" checked /> objects</label>
-        <label id="ss-anim-label" title="Toggle animated tiles overlay"><input type="checkbox" id="ss-anim-toggle" checked /> anim tiles</label>
-        <label id="ss-collision-label" title="Toggle collision lines overlay"><input type="checkbox" id="ss-collision-toggle" checked /> collision</label>
-        <button id="ss-pause-btn"  class="ss-btn" disabled>pause</button>
-        <button id="ss-resume-btn" class="ss-btn" disabled>resume</button>
-        <button id="ss-toggle-btn" class="ss-btn">hide panel</button>
-      </div>
-    </div>
-
-    <!-- Tab 1: Script Trace Log (Active by default) -->
-    <div id="ss-view-trace" class="ss-tab-view active">
-      <div id="ss-trace-header">
-        <div id="ss-trace-controls">
-          <button id="ss-trace-clear-btn" class="ss-btn" type="button">clear</button>
-          <button id="ss-trace-copy-btn" class="ss-btn" type="button">copy</button>
-          <label id="ss-trace-scroll-label"><input type="checkbox" id="ss-trace-scroll" checked /> auto-scroll</label>
-          <label id="ss-trace-hide-inactive-label"><input type="checkbox" id="ss-trace-hide-inactive" /> hide inactive</label>
+  <div id="main-container">
+    <div id="screen-wrap">
+      <canvas id="extended-map"></canvas>
+      <canvas id="extended-entities"></canvas>
+      <canvas id="extended-foreground"></canvas>
+      <canvas id="screen" width="512" height="448"></canvas>
+      <canvas id="extended-overlay"></canvas>
+      ${getCdlFloatHtml()}
+      ${getTasOverlayHtml()}
+      ${getMenuHtml()}
+      <button id="sidebar-expand-btn" class="sidebar-expand-btn" type="button" title="Open Sidebar">&lt; SIDEBAR</button>
+      <div id="screen-overlay-bar">
+        <button id="screen-menu-btn" class="screen-chip" type="button" title="Quick Menu (Start)">MENU</button>
+        <button id="screen-extend-toggle" class="screen-chip active" type="button" title="Toggle Extended Map">MAP EXT ON</button>
+        <button id="screen-trigger-toggle" class="screen-chip active" type="button" title="Toggle Trigger Overlay (B &amp; Step-on)">TRIGGERS ON</button>
+        <button id="screen-object-toggle" class="screen-chip active" type="button" title="Toggle Objects Overlay">OBJECTS ON</button>
+        <button id="screen-anim-toggle" class="screen-chip active" type="button" title="Toggle Animated Tiles Overlay">ANIM TILES ON</button>
+        <button id="screen-collision-toggle" class="screen-chip active" type="button" title="Toggle Collision Lines Overlay">COLLISION ON</button>
+        <button id="screen-fog-toggle" class="screen-chip" type="button" title="Toggle Fog of War outside emulator">FOG OFF</button>
+        ${getSoundChipHtml()}
+        <button id="screen-speed-chip" class="screen-chip" type="button" title="Speed-up (#)">SPEED x1</button>
+        <button id="screen-focus-chip" class="screen-chip" type="button" title="When the VS Code debugger stops: show the line in the editor (code) or keep the focus on the emulator (stay)">BREAK: code</button>
+        ${getTasChipHtml()}
+        ${getFpsChipHtml()}
+        <div id="screen-zoom-chip" class="screen-chip-group">
+          <button id="screen-zout" class="screen-chip" type="button" title="Zoom out">-</button>
+          <span id="screen-zlevel" class="screen-chip" style="cursor:default">100%</span>
+          <button id="screen-zin" class="screen-chip" type="button" title="Zoom in">+</button>
+          <button id="screen-zfit" class="screen-chip" type="button" title="Fit to viewport">fit</button>
         </div>
-        <span id="ss-trace-count">0 lines</span>
       </div>
-      <div id="ss-trace-log"></div>
     </div>
 
-    <!-- Tab 2: Script Stack live slot table -->
-    <div id="ss-view-stack" class="ss-tab-view">
-      <div id="ss-detail">waiting for script stack detail...</div>
-      <table id="ss-table">
-        <thead><tr><th>#</th><th>PC</th><th>state</th><th>next</th><th>entity</th><th>timer</th></tr></thead>
-        <tbody id="ss-tbody"></tbody>
-      </table>
-    </div>
+    <div id="ss-resizer" title="Drag to resize sidebar"></div>
 
-    ${getBottomBarViewsHtml()}
-
-    ${getCdlViewHtml()}
-
-    ${getTasViewHtml()}
-
-    <!-- Tab 3: Debugger & Breakpoints -->
-    <div id="ss-view-debug" class="ss-tab-view">
-      <div id="ss-core-row" title="${corePathDisplay}">
-        <span id="ss-core-label">core:</span>
-        <span id="ss-core-name">${coreLabel}</span>
-        <span id="ss-core-path">${corePathDisplay}</span>
-      </div>
-      <div id="ss-meta">
-        <span id="ss-api-status">api: not ready</span>
-        <span id="ss-cpu-status">pc: ------</span>
-        <span id="ss-pause-state">running</span>
-        <span id="ss-break-status">hook: unavailable</span>
-        <span id="ss-exec-break-status">script bp: unavailable</span>
-        <span id="ss-debug-link-status">dbg: disconnected</span>
-        <span id="ss-last-hit">last: -</span>
-      </div>
-      <div style="background:#141414;padding:4px 8px;display:flex;gap:6px;border-bottom:1px solid #222;">
-        <button id="ss-hook-btn" class="ss-btn" disabled>arm stack hook</button>
-        <button id="ss-hook-all-btn" class="ss-btn" disabled>break all hooks</button>
-        <button id="ss-debug-link-btn" class="ss-btn">connect dbg</button>
-      </div>
-      <div id="ss-breakpoints">
-        <div id="ss-bp-controls">
-          <span>manual script breakpoints</span>
-          <input id="ss-bp-input" type="text" placeholder="94E5FB / 0x94E5FB" spellcheck="false" />
-          <button id="ss-bp-add-btn" class="ss-btn" disabled>add</button>
+    <div id="script-stack">
+      <div id="ss-header">
+        <div id="ss-header-top">
+          <span id="ss-header-title">EMULATOR SIDEBAR</span>
+          <div id="ss-controls">
+            <button id="ss-pause-btn"  class="ss-btn" disabled>pause</button>
+            <button id="ss-resume-btn" class="ss-btn" disabled>resume</button>
+            <button id="ss-toggle-btn" class="ss-btn" title="Toggle Sidebar">hide sidebar</button>
+          </div>
         </div>
-        <div id="ss-bp-list"><span class="ss-bp-empty">no manual script breakpoints</span></div>
+        <div id="ss-tabs">
+          <button id="ss-tab-trace" class="ss-tab active" type="button">TRACE (<span id="ss-tab-trace-count">0</span>)</button>
+          <button id="ss-tab-stack" class="ss-tab" type="button">STACK (<span id="ss-count">waiting...</span>)</button>
+          ${getBottomBarTabButtonsHtml()}
+          ${getCdlTabButtonHtml()}
+          ${getTasTabButtonHtml()}
+        </div>
       </div>
+
+      <!-- Tab 1: Script Trace Log (Active by default) -->
+      <div id="ss-view-trace" class="ss-tab-view active">
+        <div id="ss-trace-header">
+          <div id="ss-trace-controls">
+            <button id="ss-trace-clear-btn" class="ss-btn" type="button">clear</button>
+            <button id="ss-trace-copy-btn" class="ss-btn" type="button">copy</button>
+            <label id="ss-trace-scroll-label"><input type="checkbox" id="ss-trace-scroll" checked /> auto-scroll</label>
+            <label id="ss-trace-hide-inactive-label"><input type="checkbox" id="ss-trace-hide-inactive" /> hide inactive</label>
+          </div>
+          <span id="ss-trace-count">0 lines</span>
+        </div>
+        <div id="ss-trace-log"></div>
+      </div>
+
+      <!-- Tab 2: Script Stack live slot table -->
+      <div id="ss-view-stack" class="ss-tab-view">
+        <div id="ss-detail">waiting for script stack detail...</div>
+        <table id="ss-table">
+          <thead><tr><th>#</th><th>PC</th><th>state</th><th>next</th><th>entity</th><th>timer</th></tr></thead>
+          <tbody id="ss-tbody"></tbody>
+        </table>
+      </div>
+
+      ${getBottomBarViewsHtml()}
+
+      ${getCdlViewHtml()}
+
+      ${getTasViewHtml()}
     </div>
   </div>
 
@@ -778,7 +810,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         if (data.vanilla && data.vanilla.available) {
           vBtn.classList.remove('disabled');
           vBtn.disabled = false;
-          vDesc.textContent = (data.vanilla.name || 'Vanilla ROM') + (data.vanilla.sizeFormatted ? ' (' + data.vanilla.sizeFormatted + ')' : '');
+          const regPrefix = data.vanilla.region ? '[' + data.vanilla.region + '] ' : '';
+          vDesc.textContent = regPrefix + (data.vanilla.name || 'Vanilla ROM') + (data.vanilla.sizeFormatted ? ' (' + data.vanilla.sizeFormatted + ')' : '');
           vBtn.title = 'Load vanilla Secret of Evermore ROM: ' + (data.vanilla.path || '');
         } else {
           vBtn.classList.add('disabled');
@@ -786,6 +819,16 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
           vDesc.textContent = 'Not found (set everscript.romPath)';
           vBtn.title = 'Vanilla ROM not found. Please set everscript.romPath in VS Code settings.';
         }
+      }
+
+      const clearBtn = document.getElementById('clearRecentBtn');
+      if (clearBtn) {
+        clearBtn.onclick = (e) => {
+          e.stopPropagation();
+          vscodeApi.postMessage({ command: 'clearRecentRoms' });
+          const statusEl = document.getElementById('load-status');
+          if (statusEl) statusEl.textContent = 'Recent ROMs cleared.';
+        };
       }
 
       const recentSection = document.getElementById('recent-roms-section');
@@ -797,14 +840,22 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
           for (const item of data.recent) {
             const row = document.createElement('div');
             row.className = 'recent-rom-item' + (item.exists ? '' : ' missing');
-            row.title = item.path || item.name;
+            row.title = (item.isCustomMap ? '[Custom Map] ' : '') + (item.path || item.name);
 
             const left = document.createElement('div');
             left.className = 'recent-rom-left';
 
+            // Region / Type icon badge
+            const regBadge = document.createElement('span');
+            const reg = item.region || (item.isCustomMap ? 'MAP' : '?');
+            regBadge.className = 'rom-region-badge badge-' + reg;
+            regBadge.textContent = item.icon || (item.isCustomMap ? 'MAP' : '?');
+            regBadge.title = item.regionName || (item.isCustomMap ? 'Custom Map' : 'Unknown ROM');
+            left.appendChild(regBadge);
+
             const badge = document.createElement('span');
-            badge.className = 'recent-rom-badge badge-' + (item.kind || 'file');
-            badge.textContent = item.badge || item.kind;
+            badge.className = 'recent-rom-badge badge-' + (item.isCustomMap ? 'editor' : (item.kind || 'file'));
+            badge.textContent = item.isCustomMap ? 'Custom Map' : (item.badge || item.kind);
 
             const nameSpan = document.createElement('span');
             nameSpan.className = 'recent-rom-name';
@@ -813,6 +864,18 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
             left.appendChild(badge);
             left.appendChild(nameSpan);
 
+            const right = document.createElement('div');
+            right.className = 'recent-rom-right';
+
+            if (item.previewDataUri) {
+              const thumb = document.createElement('img');
+              thumb.className = 'recent-rom-thumb';
+              thumb.src = item.previewDataUri;
+              thumb.alt = 'Map Preview';
+              thumb.title = 'Custom Map Preview (Room ' + (item.targetRoom != null ? item.targetRoom : '0x15') + ')';
+              right.appendChild(thumb);
+            }
+
             const metaSpan = document.createElement('span');
             metaSpan.className = 'recent-rom-meta';
             const metaParts = [];
@@ -820,9 +883,10 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
             if (item.timeFormatted) metaParts.push(item.timeFormatted);
             if (!item.exists) metaParts.push('(missing)');
             metaSpan.textContent = metaParts.join(' - ');
+            right.appendChild(metaSpan);
 
             row.appendChild(left);
-            row.appendChild(metaSpan);
+            row.appendChild(right);
 
             row.addEventListener('click', () => {
               if (item.exists) {
@@ -840,6 +904,92 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         } else {
           recentSection.style.display = 'none';
         }
+      }
+    }
+
+    let overlayFocusedIdx = -1;
+
+    function getOverlayFocusables() {
+      const list = [];
+      const vBtn = document.getElementById('vanillaBtn');
+      if (vBtn && !vBtn.disabled) list.push(vBtn);
+      const pBtn = document.getElementById('pickBtn');
+      if (pBtn) list.push(pBtn);
+      const clearBtn = document.getElementById('clearRecentBtn');
+      const recentSec = document.getElementById('recent-roms-section');
+      if (clearBtn && recentSec && recentSec.style.display !== 'none') list.push(clearBtn);
+      const items = document.querySelectorAll('.recent-rom-item:not(.missing)');
+      items.forEach(it => list.push(it));
+      return list;
+    }
+
+    function setOverlayFocus(idx) {
+      const items = getOverlayFocusables();
+      if (!items.length) {
+        overlayFocusedIdx = -1;
+        return;
+      }
+      items.forEach(el => el.classList.remove('keyboard-focused'));
+      if (idx < 0) idx = 0;
+      if (idx >= items.length) idx = items.length - 1;
+      overlayFocusedIdx = idx;
+      const target = items[overlayFocusedIdx];
+      if (target) {
+        target.classList.add('keyboard-focused');
+        if (typeof target.scrollIntoView === 'function') {
+          try { target.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' }); } catch (_) {}
+        }
+      }
+    }
+
+    function activateOverlayFocused() {
+      const items = getOverlayFocusables();
+      if (overlayFocusedIdx >= 0 && overlayFocusedIdx < items.length) {
+        items[overlayFocusedIdx].click();
+      }
+    }
+
+    let lastOverlayGamepadPoll = 0;
+    function pollGamepadOverlay() {
+      if (romLoaded) return;
+      const gamepads = typeof navigator.getGamepads === 'function' ? navigator.getGamepads() : [];
+      let pad = null;
+      for (let i = 0; i < gamepads.length; i++) {
+        if (gamepads[i] && gamepads[i].connected) { pad = gamepads[i]; break; }
+      }
+      if (!pad) return;
+
+      const now = performance.now();
+      if (now - lastOverlayGamepadPoll < 160) return;
+
+      const dUp = (pad.buttons[12] && pad.buttons[12].pressed) || (pad.axes[1] && pad.axes[1] < -0.5);
+      const dDown = (pad.buttons[13] && pad.buttons[13].pressed) || (pad.axes[1] && pad.axes[1] > 0.5);
+      const dLeft = (pad.buttons[14] && pad.buttons[14].pressed) || (pad.axes[0] && pad.axes[0] < -0.5);
+      const dRight = (pad.buttons[15] && pad.buttons[15].pressed) || (pad.axes[0] && pad.axes[0] > 0.5);
+      const btnA = (pad.buttons[0] && pad.buttons[0].pressed) || (pad.buttons[9] && pad.buttons[9].pressed);
+      const btnB = (pad.buttons[1] && pad.buttons[1].pressed);
+
+      if (dUp || dDown) {
+        lastOverlayGamepadPoll = now;
+        const items = getOverlayFocusables();
+        if (items.length) {
+          const delta = dUp ? -1 : 1;
+          const next = overlayFocusedIdx < 0 ? 0 : (overlayFocusedIdx + delta + items.length) % items.length;
+          setOverlayFocus(next);
+        }
+      } else if (dLeft || dRight) {
+        lastOverlayGamepadPoll = now;
+        if (overlayFocusedIdx === 0 && dRight) setOverlayFocus(1);
+        else if (overlayFocusedIdx === 1 && dLeft) setOverlayFocus(0);
+      } else if (btnA) {
+        lastOverlayGamepadPoll = now + 160;
+        if (overlayFocusedIdx >= 0) activateOverlayFocused();
+        else setOverlayFocus(0);
+      } else if (btnB) {
+        lastOverlayGamepadPoll = now;
+        const items = getOverlayFocusables();
+        items.forEach(el => el.classList.remove('keyboard-focused'));
+        overlayFocusedIdx = -1;
       }
     }
 
@@ -1087,12 +1237,60 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
           return;
         }
       }
+      if (!romLoaded) {
+        const tag = e.target && e.target.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+        const k = e.key;
+        if (k === 'ArrowDown' || k === 's' || k === 'S') {
+          const items = getOverlayFocusables();
+          if (items.length) {
+            const next = overlayFocusedIdx < 0 ? 0 : (overlayFocusedIdx + 1) % items.length;
+            setOverlayFocus(next);
+            e.preventDefault();
+          }
+          return;
+        }
+        if (k === 'ArrowUp' || k === 'w' || k === 'W') {
+          const items = getOverlayFocusables();
+          if (items.length) {
+            const next = overlayFocusedIdx < 0 ? 0 : (overlayFocusedIdx - 1 + items.length) % items.length;
+            setOverlayFocus(next);
+            e.preventDefault();
+          }
+          return;
+        }
+        if (k === 'ArrowLeft' || k === 'a' || k === 'A') {
+          if (overlayFocusedIdx === 1) { setOverlayFocus(0); e.preventDefault(); return; }
+        }
+        if (k === 'ArrowRight' || k === 'd' || k === 'D') {
+          if (overlayFocusedIdx === 0) { setOverlayFocus(1); e.preventDefault(); return; }
+        }
+        if (k === 'Enter' || k === ' ' || k === 'v' || k === 'V') {
+          if (overlayFocusedIdx >= 0) {
+            activateOverlayFocused();
+            e.preventDefault();
+          } else {
+            setOverlayFocus(0);
+            e.preventDefault();
+          }
+          return;
+        }
+        if (k === 'Escape' || k === 'c' || k === 'C' || k === 'b' || k === 'B') {
+          const items = getOverlayFocusables();
+          items.forEach(el => el.classList.remove('keyboard-focused'));
+          overlayFocusedIdx = -1;
+          e.preventDefault();
+          return;
+        }
+        return;
+      }
       if (typeof isMenuOpen !== 'undefined' && isMenuOpen) return;
       if (e.repeat) return;
       const bit = (typeof dynamicKeyToBit !== 'undefined' && dynamicKeyToBit[e.key]) ? dynamicKeyToBit[e.key] : KEY_MAP[e.key];
       if (bit) { keyInput |= bit; e.preventDefault(); }
     });
     document.addEventListener('keyup', e => {
+      if (!romLoaded) return;
       if (typeof isMenuOpen !== 'undefined' && isMenuOpen) return;
       const bit = (typeof dynamicKeyToBit !== 'undefined' && dynamicKeyToBit[e.key]) ? dynamicKeyToBit[e.key] : KEY_MAP[e.key];
       if (bit) keyInput &= ~bit;
@@ -1393,6 +1591,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         if (elapsed < FRAME_INTERVAL_MS - 2.0) return;
         lastFrameTimestamp = timestamp - (elapsed % FRAME_INTERVAL_MS);
         if (typeof pollGamepadMenu === 'function') pollGamepadMenu();
+        if (typeof pollGamepadOverlay === 'function') pollGamepadOverlay();
 
         try {
           const paused = isEmulatorPaused();
@@ -3421,48 +3620,74 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       wramPollTimer = setInterval(pollOnce, 250);
     }
 
-    // -- Script stack controls -------------------------------------------------
-    document.getElementById('ss-pause-btn').addEventListener('click', () => {
-      const m = getModule();
-      if (!hasDebuggerApi(m)) return;
-      m.pauseEmulation();
-      setText('ss-pause-state', 'paused', 'ss-bad');
-      setText('ss-last-hit', 'last: manual pause', 'ss-warn');
-    });
+    const pauseBtn = document.getElementById('ss-pause-btn');
+    if (pauseBtn) {
+      pauseBtn.addEventListener('click', () => {
+        const m = getModule();
+        if (!hasDebuggerApi(m)) return;
+        m.pauseEmulation();
+        setText('ss-pause-state', 'paused', 'ss-bad');
+        setText('ss-last-hit', 'last: manual pause', 'ss-warn');
+      });
+    }
 
-    document.getElementById('ss-resume-btn').addEventListener('click', () => {
-      const m = getModule();
-      if (!hasDebuggerApi(m)) return;
-      m.resumeEmulation();
-      setText('ss-pause-state', 'running', 'ss-ok');
-    });
+    const resumeBtn = document.getElementById('ss-resume-btn');
+    if (resumeBtn) {
+      resumeBtn.addEventListener('click', () => {
+        const m = getModule();
+        if (!hasDebuggerApi(m)) return;
+        m.resumeEmulation();
+        setText('ss-pause-state', 'running', 'ss-ok');
+      });
+    }
 
-    document.getElementById('ss-hook-btn').addEventListener('click', () => {
-      const m = getModule();
-      if (!hasWriteBreakpointApi(m)) return;
-      if (scriptHookArmed) disarmScriptStackHook(m);
-      else armScriptStackHook(m);
-    });
+    const hookBtn = document.getElementById('ss-hook-btn');
+    if (hookBtn) {
+      hookBtn.addEventListener('click', () => {
+        const m = getModule();
+        if (!hasWriteBreakpointApi(m)) return;
+        if (scriptHookArmed) disarmScriptStackHook(m);
+        else armScriptStackHook(m);
+      });
+    }
 
-    document.getElementById('ss-hook-all-btn').addEventListener('click', () => {
-      const m = getModule();
-      if (!hasDebuggerApi(m)) return;
-      if (!scriptHookArmed && hasWriteBreakpointApi(m)) armScriptStackHook(m);
-      toggleBreakAllHooks();
-    });
+    const hookAllBtn = document.getElementById('ss-hook-all-btn');
+    if (hookAllBtn) {
+      hookAllBtn.addEventListener('click', () => {
+        const m = getModule();
+        if (!hasDebuggerApi(m)) return;
+        if (!scriptHookArmed && hasWriteBreakpointApi(m)) armScriptStackHook(m);
+        toggleBreakAllHooks();
+      });
+    }
 
-    document.getElementById('ss-debug-link-btn').addEventListener('click', () => {
-      vscodeApi.postMessage({ command: 'connectDebugger' });
-    });
+    const debugLinkBtn = document.getElementById('ss-debug-link-btn');
+    if (debugLinkBtn) {
+      debugLinkBtn.addEventListener('click', () => {
+        vscodeApi.postMessage({ command: 'connectDebugger' });
+      });
+    }
 
     const toggleStackBtn = document.getElementById('ss-toggle-btn');
+    const sidebarExpandBtn = document.getElementById('sidebar-expand-btn');
+    function setSidebarCollapsed(collapsed) {
+      const stack = document.getElementById('script-stack');
+      const screenWrap = document.getElementById('screen-wrap');
+      if (stack) stack.classList.toggle('collapsed', collapsed);
+      if (screenWrap) screenWrap.classList.toggle('sidebar-hidden', collapsed);
+      if (toggleStackBtn) toggleStackBtn.textContent = collapsed ? 'show sidebar' : 'hide sidebar';
+      window.dispatchEvent(new Event('resize'));
+    }
     if (toggleStackBtn) {
       toggleStackBtn.addEventListener('click', () => {
         const stack = document.getElementById('script-stack');
-        stack.classList.toggle('collapsed');
-        const isCollapsed = stack.classList.contains('collapsed');
-        toggleStackBtn.textContent = isCollapsed ? 'show panel' : 'hide panel';
-        window.dispatchEvent(new Event('resize'));
+        const isCollapsed = stack ? !stack.classList.contains('collapsed') : true;
+        setSidebarCollapsed(isCollapsed);
+      });
+    }
+    if (sidebarExpandBtn) {
+      sidebarExpandBtn.addEventListener('click', () => {
+        setSidebarCollapsed(false);
       });
     }
 
@@ -3783,7 +4008,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
 
     function selectTab(tabName) {
       currentBottomTab = tabName;
-      const tabs = ['trace', 'stack', 'entities', 'alchemy', 'palettes', 'cheats', 'cdl', 'tas', 'debug'];
+      const tabs = ['trace', 'stack', 'entities', 'alchemy', 'palettes', 'cdl', 'tas'];
       for (const t of tabs) {
         const btn = document.getElementById('ss-tab-' + t);
         const view = document.getElementById('ss-view-' + t);
@@ -3802,35 +4027,31 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     if (tabAlchemyBtn) tabAlchemyBtn.addEventListener('click', () => selectTab('alchemy'));
     const tabPalettesBtn = document.getElementById('ss-tab-palettes');
     if (tabPalettesBtn) tabPalettesBtn.addEventListener('click', () => selectTab('palettes'));
-    const tabCheatsBtn = document.getElementById('ss-tab-cheats');
-    if (tabCheatsBtn) tabCheatsBtn.addEventListener('click', () => selectTab('cheats'));
     const tabCdlBtn = document.getElementById('ss-tab-cdl');
     if (tabCdlBtn) tabCdlBtn.addEventListener('click', () => { selectTab('cdl'); cdlOnTabShown(); });
     const tabTasBtn = document.getElementById('ss-tab-tas');
     if (tabTasBtn) tabTasBtn.addEventListener('click', () => { selectTab('tas'); if (romLoaded) tasRequestList(); });
-    const tabDebugBtn = document.getElementById('ss-tab-debug');
-    if (tabDebugBtn) tabDebugBtn.addEventListener('click', () => selectTab('debug'));
 
     const resizer = document.getElementById('ss-resizer');
     if (resizer) {
       let isDragging = false;
-      let startY = 0;
-      let startH = 0;
+      let startX = 0;
+      let startW = 0;
       resizer.addEventListener('mousedown', (e) => {
         isDragging = true;
-        startY = e.clientY;
+        startX = e.clientX;
         const stackEl = document.getElementById('script-stack');
-        startH = stackEl ? stackEl.getBoundingClientRect().height : 260;
-        document.body.style.cursor = 'ns-resize';
+        startW = stackEl ? stackEl.getBoundingClientRect().width : 380;
+        document.body.style.cursor = 'col-resize';
         document.body.style.userSelect = 'none';
         e.preventDefault();
       });
       window.addEventListener('mousemove', (e) => {
         if (!isDragging) return;
-        const delta = startY - e.clientY;
-        const newH = Math.max(80, Math.min(window.innerHeight - 100, startH + delta));
+        const delta = startX - e.clientX;
+        const newW = Math.max(200, Math.min(window.innerWidth * 0.65, startW + delta));
         const stackEl = document.getElementById('script-stack');
-        if (stackEl) stackEl.style.height = newH + 'px';
+        if (stackEl) stackEl.style.width = newW + 'px';
         window.dispatchEvent(new Event('resize'));
       });
       window.addEventListener('mouseup', () => {
@@ -3842,26 +4063,36 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       });
     }
 
-    document.getElementById('ss-bp-add-btn').addEventListener('click', () => {
-      const input = document.getElementById('ss-bp-input');
-      if (!input) return;
-      if (addManualExecBreakpoint(input.value)) input.value = '';
-      else setText('ss-last-hit', 'last: invalid script breakpoint address', 'ss-bad');
-    });
+    const bpAddBtn = document.getElementById('ss-bp-add-btn');
+    if (bpAddBtn) {
+      bpAddBtn.addEventListener('click', () => {
+        const input = document.getElementById('ss-bp-input');
+        if (!input) return;
+        if (addManualExecBreakpoint(input.value)) input.value = '';
+        else setText('ss-last-hit', 'last: invalid script breakpoint address', 'ss-bad');
+      });
+    }
 
-    document.getElementById('ss-bp-input').addEventListener('keydown', (evt) => {
-      if (evt.key !== 'Enter') return;
-      evt.preventDefault();
-      document.getElementById('ss-bp-add-btn').click();
-    });
+    const bpInput = document.getElementById('ss-bp-input');
+    if (bpInput) {
+      bpInput.addEventListener('keydown', (evt) => {
+        if (evt.key !== 'Enter') return;
+        evt.preventDefault();
+        const addBtn = document.getElementById('ss-bp-add-btn');
+        if (addBtn) addBtn.click();
+      });
+    }
 
-    document.getElementById('ss-bp-list').addEventListener('click', (evt) => {
-      const btn = evt.target && evt.target.closest ? evt.target.closest('[data-remove-exec-bp]') : null;
-      if (!btn) return;
-      const addr = parseInt(btn.getAttribute('data-remove-exec-bp') || '', 10);
-      if (!Number.isFinite(addr)) return;
-      removeManualExecBreakpoint(addr >>> 0);
-    });
+    const bpList = document.getElementById('ss-bp-list');
+    if (bpList) {
+      bpList.addEventListener('click', (evt) => {
+        const btn = evt.target && evt.target.closest ? evt.target.closest('[data-remove-exec-bp]') : null;
+        if (!btn) return;
+        const addr = parseInt(btn.getAttribute('data-remove-exec-bp') || '', 10);
+        if (!Number.isFinite(addr)) return;
+        removeManualExecBreakpoint(addr >>> 0);
+      });
+    }
 
     function escH(s) {
       return String(s || '')

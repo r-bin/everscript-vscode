@@ -121,5 +121,52 @@ test('getRomOfferData returns both vanilla and recent ROMs', () => {
   assert.ok(Array.isArray(data.recent), 'Offer data must have recent array');
 });
 
+test('clearRecentRoms empties the recent roms list', () => {
+  const testDir = path.join(os.tmpdir(), 'evs_test_clear_' + Date.now());
+  fs.mkdirSync(testDir, { recursive: true });
+  const mockContext = { globalStorageUri: { fsPath: testDir } };
+  try {
+    const file1 = path.join(testDir, 'game.sfc');
+    fs.writeFileSync(file1, 'data');
+    recordRomUsage({ path: file1, name: 'game.sfc' }, mockContext);
+    assert.strictEqual(getRecentRoms(testDir).length, 1);
+    const { clearRecentRoms } = require('../../src/emulator/rom-history');
+    clearRecentRoms(testDir);
+    assert.strictEqual(getRecentRoms(testDir).length, 0);
+  } finally {
+    try {
+      const files = fs.readdirSync(testDir);
+      for (const f of files) fs.unlinkSync(path.join(testDir, f));
+      fs.rmdirSync(testDir);
+    } catch (_) {}
+  }
+});
+
+test('detectRomDetails detects known vanilla Secret of Evermore hashes', () => {
+  const { detectRomDetails } = require('../../src/emulator/rom-history');
+  const wsRoot = path.resolve(__dirname, '../..');
+  const vanillaPath = path.join(wsRoot, 'script_parser', 'dependencies', 'Secret of Evermore (U) [!].smc');
+  if (fs.existsSync(vanillaPath)) {
+    const details = detectRomDetails(vanillaPath);
+    assert.ok(details, 'Should return details for vanilla ROM');
+    assert.strictEqual(details.known, true);
+    assert.strictEqual(details.region, 'US');
+    assert.strictEqual(details.icon, 'US');
+    assert.strictEqual(details.sha1, '79e7738630fff5699217ef58ecc421bc8fcbcd89');
+  }
+});
+
+test('detectRomDetails returns ? for unknown ROM buffers', () => {
+  const { detectRomDetails } = require('../../src/emulator/rom-history');
+  const dummy = Buffer.alloc(0x200000);
+  const details = detectRomDetails(dummy);
+  assert.ok(details);
+  assert.strictEqual(details.known, false);
+  assert.strictEqual(details.isCustomMap, false);
+  assert.strictEqual(details.icon, '?');
+  assert.strictEqual(details.region, '?');
+});
+
 console.log(`\nResults: ${passed} passed, ${failed} failed\n`);
 if (failed > 0) process.exit(1);
+

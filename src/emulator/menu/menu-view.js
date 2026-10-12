@@ -92,6 +92,7 @@ function getMenuCss() {
       flex-shrink: 0;
     }
     .menu-shoulder-btn {
+      flex-shrink: 0;
       background: #25252e;
       border: 1px solid #454555;
       color: #8899aa;
@@ -110,11 +111,30 @@ function getMenuCss() {
     #menu-tabs {
       display: flex;
       gap: 3px;
-      flex: 1;
-      justify-content: center;
+      flex: 1 1 auto;
+      min-width: 0;
+      justify-content: flex-start;
       overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: thin;
+      scrollbar-color: #3e3e50 transparent;
+      align-items: center;
+    }
+    #menu-tabs::-webkit-scrollbar {
+      height: 4px;
+    }
+    #menu-tabs::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    #menu-tabs::-webkit-scrollbar-thumb {
+      background: #3e3e50;
+      border-radius: 2px;
+    }
+    #menu-tabs::-webkit-scrollbar-thumb:hover {
+      background: #55556a;
     }
     .menu-tab-btn {
+      flex-shrink: 0;
       background: transparent;
       border: none;
       color: #778899;
@@ -138,6 +158,7 @@ function getMenuCss() {
       border-bottom: 2px solid #4ec9b0;
     }
     #menu-close-btn {
+      flex-shrink: 0;
       background: transparent;
       border: none;
       color: #667;
@@ -1008,6 +1029,11 @@ function getMenuClientScript() {
         const panel = document.getElementById('menu-panel-' + i);
         if (tabBtn) tabBtn.classList.toggle('active', i === tabIndex);
         if (panel) panel.classList.toggle('active', i === tabIndex);
+      }
+
+      const activeTabBtn = document.getElementById('menu-tab-btn-' + tabIndex);
+      if (activeTabBtn && typeof activeTabBtn.scrollIntoView === 'function') {
+        try { activeTabBtn.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' }); } catch (_) {}
       }
 
       if (tabIndex === 0) {

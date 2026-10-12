@@ -40,6 +40,8 @@ const {
   getRomOfferData,
   recordRomUsage,
   getVanillaRom,
+  clearRecentRoms,
+  getStorageDir,
 } = require('./rom-history');
 
 const CORE_SUBDIR        = path.join('src', 'emulator', 'core', 'snes9x2005-wasm-vanilla');
@@ -481,6 +483,12 @@ function openEmulatorPanel(context, rom, channel) {
                     kind: 'dropped',
                     size: msg.size,
                 }, _context);
+                _broadcastRomOffer();
+                break;
+            }
+
+            case 'clearRecentRoms': {
+                clearRecentRoms(getStorageDir(_context));
                 _broadcastRomOffer();
                 break;
             }
