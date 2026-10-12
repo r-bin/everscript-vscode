@@ -23,6 +23,51 @@ const { decodeAt } = require('./disasm');
 const FLOW_INDIRECT = 8, FLOW_RETURN = 0x20;
 const EXT_HEAD = 0x04;
 const TABLE_SCAN = 256;
+const CDL_CODE = 0x01, CDL_DATA = 0x02, SPACE_ROM = 1;
+
+/** ROM offset -> Set of PCs that read it (recorded xrefs). */
+function romReaders(lib) {
+    const by = new Map();
+    for (const key of lib.xrefs.keys()) {
+        const pc = Math.floor(key / 0x4000000), sa = key % 0x4000000;
+        if ((sa >>> 24) !== SPACE_ROM) continue;
+        const off = sa & 0xFFFFFF;
+        (by.get(off) || by.set(off, new Set()).get(off)).add(pc);
+    }
+    return by;
+}
+
+/**
+ * Entries of a jmp/jsr (abs,X) table beyond the highest observed one. The CDL only knows the
+ * entries that were taken while recording; a too-small count makes snesrecomp route the rest
+ * through its interpreter fallback, which went wrong at SoE's $8F:9F46 (16 entries, 8 observed:
+ * garbled title-screen sprites). Keep counting while an entry is a plausible same-bank code
+ * pointer and the table bytes are not something else: never executed, not read by another
+ * non-dispatch instruction (the next table), target not recorded as data only.
+ */
+function staticTableCount({ lib, rom, map, bank, base, observed, site, readers }) {
+    let count = observed;
+    for (let k = observed; k < TABLE_SCAN; k++) {
+        const o = map.busToRom((bank << 16) | ((base + k * 2) & 0xFFFF));
+        if (o < 0 || o + 1 >= rom.length) break;
+        if ((lib.cdl[o] | lib.cdl[o + 1]) & CDL_CODE) break;
+        // another jmp/jsr (abs,X) may share the table (SoE $8F:9ECA reads $8F:9F46's entries 8+); a plain
+        // data read (lda $A3F8,x) marks the next table
+        const other = pc => {
+            if (pc === site) return false;
+            const po = map.busToRom(pc);
+            return !(po >= 0 && (rom[po] === 0x7C || rom[po] === 0xFC));
+        };
+        if ([...(readers.get(o) || [])].some(other) || [...(readers.get(o + 1) || [])].some(other)) break;
+        const w = rom[o] | (rom[o + 1] << 8);
+        const t = map.busToRom((bank << 16) | w);
+        if (w < 0x8000 || t < 0) break;
+        if ((lib.cdl[t] & CDL_DATA) && !(lib.cdl[t] & CDL_CODE)) break;
+        if (t >= map.busToRom((bank << 16) | base) && t < o + 2) break;   // points into the table itself
+        count = k + 1;
+    }
+    return count;
+}
 const RAM_ROUTINE_MAX = 0x400;
 
 const mxName = (m8, x8) => 'M' + (m8 ? 1 : 0) + 'X' + (x8 ? 1 : 0);
@@ -97,6 +142,7 @@ function dispatchDirectives({ lib, rom, map }) {
     }
     const modifiedAt = new Set(retsList(lib).filter(r => r.flags & RET.MODIFIED).map(r => r.retPc));
     const t6 = v => hex(v, 6).toLowerCase(), t4 = v => hex(v & 0xFFFF, 4).toLowerCase();
+    let readers = null;
 
     for (const [site, tos] of [...sites].sort((a, b) => a[0] - b[0])) {
         const bank = site >>> 16, off = map.busToRom(site), ins = head(rom, lib, off);
@@ -111,7 +157,10 @@ function dispatchDirectives({ lib, rom, map }) {
                 if (tos.has((bank << 16) | rom[o] | (rom[o + 1] << 8))) count = k + 1;
             }
             if (count) {
-                add(bank, `indirect_dispatch ${t4(site)} ${count} idx:X    # ${ins.mnemonic.toLowerCase()} ($${hex(ins.operand, 4)},x), table entries up to the highest observed target ${seen}`);
+                readers = readers || romReaders(lib);
+                const total = staticTableCount({ lib, rom, map, bank, base: ins.operand, observed: count, site, readers });
+                const why = total > count ? `${count} entries up to the highest observed target, ${total - count} more by static scan` : 'entries up to the highest observed target';
+                add(bank, `indirect_dispatch ${t4(site)} ${total} idx:X    # ${ins.mnemonic.toLowerCase()} ($${hex(ins.operand, 4)},x), ${why} ${seen}`);
                 counts.indexed++;
             } else {
                 add(bank, `# indirect at ${t4(site)} ${seen}: no observed target found in the table at $${hex(ins.operand, 4)}`);
@@ -192,4 +241,4 @@ function ramRoutines(lib, returns) {
     return { lines: out, skipped };
 }
 
-module.exports = { returnsByEntry, exitDirectives, dispatchDirectives, noReturnComments, ramRoutines };
+module.exports = { returnsByEntry, exitDirectives, dispatchDirectives, noReturnComments, ramRoutines, staticTableCount };

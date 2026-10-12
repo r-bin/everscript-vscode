@@ -16,6 +16,7 @@ Last updated 2026-10-12 (v0.201.9).
 | [cdl-design-history.md](cdl-design-history.md) | Original design and what was built (§9) |
 | [asm-to-c-port.md](asm-to-c-port.md) | **snesrecomp + lockstep `hle_func`**: the path to C, room ids, status |
 | [ghidra.md](ghidra.md) | **Ghidra + ghidra-snes**: what for, plugin gaps, setup with workarounds, VFS |
+| [recomp-bug-hunt.md](recomp-bug-hunt.md) | **Debugging the recomp**: method (headless repro, snes9x reference, build without seeds, seed bisect), findings, open issues |
 | [recomp-host.md](recomp-host.md) | **The snesrecomp host**: set up, seeds, boot result, lockstep against snes9x |
 | [rea.md](rea.md) | **REA** (MCP over Ghidra): answers, spike recipe and results |
 | [formats.md](formats.md) | File formats we use, compatible formats to emit, what REA's formats add |

@@ -323,6 +323,28 @@ test('host package: rebuild replaces the game but keeps saves and settings', () 
     assert.ok(fs.readFileSync(first.script, 'utf8').includes('/roms/soe.smc'));
 });
 
+test('dispatch table size: static scan past the observed entries, stops at a data read, allows a sibling dispatcher', () => {
+    const { staticTableCount } = require('../../src/emulator/cdl/recomp-analysis');
+    // bank $8F mapped flat for the test: bus $8Fxxxx -> offset xxxx
+    const map = { busToRom: b => ((b >>> 16) === 0x8F ? b & 0xFFFF : -1) };
+    const rom = new Uint8Array(0x10000), cdl = new Uint8Array(0x10000);
+    const put = (o, w) => { rom[o] = w & 0xFF; rom[o + 1] = w >> 8; };
+    for (let k = 0; k < 16; k++) put(0xA3D8 + k * 2, 0x9E00 + k * 8);   // 16 code pointers
+    put(0xA3F8, 0x0102);                                                   // next table: small values
+    rom[0x9F46] = 0x7C; rom[0x9ECA] = 0x7C; rom[0x9F4B] = 0xBF;            // two dispatchers + one lda long,x
+    const key = (pc, off) => pc * 0x4000000 + ((1 << 24) | off);
+    const xrefs = new Map();
+    for (let k = 0; k < 8; k++) xrefs.set(key(0x8F9F46, 0xA3D8 + k * 2), 1);
+    for (let k = 8; k < 16; k++) xrefs.set(key(0x8F9ECA, 0xA3D8 + k * 2), 1);   // sibling dispatcher
+    xrefs.set(key(0x8F9F4B, 0xA3F8), 1);                                       // data read: next table
+    const readers = new Map();
+    for (const k of xrefs.keys()) { const pc = Math.floor(k / 0x4000000), off = k % 0x4000000 & 0xFFFFFF; (readers.get(off) || readers.set(off, new Set()).get(off)).add(pc); }
+    const lib = { cdl, xrefs };
+    assert.strictEqual(staticTableCount({ lib, rom, map, bank: 0x8F, base: 0xA3D8, observed: 8, site: 0x8F9F46, readers }), 16);
+    cdl[0xA3E8] = 0x01;   // an executed byte inside the table ends it
+    assert.strictEqual(staticTableCount({ lib, rom, map, bank: 0x8F, base: 0xA3D8, observed: 8, site: 0x8F9F46, readers }), 8);
+});
+
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);
