@@ -139,6 +139,38 @@ const DISPATCH_EXCLUSIONS = new Map([
 ]);
 
 /**
+ * Function entries excluded from being emitted as root `func` directives in recomp/cfg/bankXX.cfg.
+ *
+ * Why:
+ * When related functions in a tight internal cluster (like the dynamic sprite allocator and direct OAM drawer)
+ * are emitted as separate root `func` entries, snesrecomp's control flow analysis can either merge them into
+ * a massive multi-entry mega-function or compile inter-routine JSLs with mismatched C/65816 stack frames.
+ * When left to the LLE interpreter fallback, they execute coherently with exact 65816 stack pushes/pulls.
+ *
+ * Addresses in bank $80 (mirrored at $C0):
+ * - $80960A / $C0960A: sprite VRAM block allocator (allocates blocks in $7E:50AD)
+ * - $809685 / $C09685: sprite VRAM block free routine
+ * - $8096BB / $C096BB: dynamic sprite queue consumer (sets up DP $02..$27 and calls JSL $809040)
+ * - $809033 / $C09033: direct sprite draw routine (direct_sprite_draw_oam)
+ * - $809040 / $C09040: direct sprite draw routine internal entry (called from 96bb)
+ * - $808FEE / $C08FEE: dynamic sprite queue setup routine
+ */
+const FUNC_EXCLUSIONS = new Map([
+    [0x80960A, 'dynamic sprite allocator cluster; stack/register desync in snesrecomp mega-function corrupts OAM allocations'],
+    [0xC0960A, 'dynamic sprite allocator cluster; stack/register desync in snesrecomp mega-function corrupts OAM allocations'],
+    [0x809685, 'dynamic sprite allocator cluster; stack/register desync in snesrecomp mega-function corrupts OAM allocations'],
+    [0xC09685, 'dynamic sprite allocator cluster; stack/register desync in snesrecomp mega-function corrupts OAM allocations'],
+    [0x8096BB, 'dynamic sprite allocator cluster; stack/register desync in snesrecomp mega-function corrupts OAM allocations'],
+    [0xC096BB, 'dynamic sprite allocator cluster; stack/register desync in snesrecomp mega-function corrupts OAM allocations'],
+    [0x809033, 'dynamic sprite allocator cluster; direct_sprite_draw_oam; leaves stack frame intact for interpreter'],
+    [0xC09033, 'dynamic sprite allocator cluster; direct_sprite_draw_oam; leaves stack frame intact for interpreter'],
+    [0x809040, 'dynamic sprite allocator cluster; internal entry called from 96bb; leaves stack frame intact for interpreter'],
+    [0xC09040, 'dynamic sprite allocator cluster; internal entry called from 96bb; leaves stack frame intact for interpreter'],
+    [0x808FEE, 'dynamic sprite allocator cluster; sprite queue setup; leaves stack frame intact for interpreter'],
+    [0xC08FEE, 'dynamic sprite allocator cluster; sprite queue setup; leaves stack frame intact for interpreter'],
+]);
+
+/**
  * Indirect sites: directive or comment per site, keyed by runtime bank.
  * @returns {{ lines: Map(bank -> string[]), counts: { indexed, pointer, rtsstack, comments } }}
  */
@@ -259,4 +291,4 @@ function ramRoutines(lib, returns) {
     return { lines: out, skipped };
 }
 
-module.exports = { returnsByEntry, exitDirectives, dispatchDirectives, noReturnComments, ramRoutines, staticTableCount };
+module.exports = { returnsByEntry, exitDirectives, dispatchDirectives, noReturnComments, ramRoutines, staticTableCount, DISPATCH_EXCLUSIONS, FUNC_EXCLUSIONS };

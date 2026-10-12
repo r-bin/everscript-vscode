@@ -17,7 +17,7 @@
 const fs = require('fs');
 const path = require('path');
 const { hex } = require('./rom-map');
-const { returnsByEntry, exitDirectives, dispatchDirectives, noReturnComments, ramRoutines } = require('./recomp-analysis');
+const { returnsByEntry, exitDirectives, dispatchDirectives, noReturnComments, ramRoutines, FUNC_EXCLUSIONS } = require('./recomp-analysis');
 
 const CDL_ACC_8 = 0x20, CDL_IDX_8 = 0x10;
 const EXT_SEEN_M16 = 0x08, EXT_SEEN_X16 = 0x10;
@@ -100,10 +100,15 @@ function writeRecompSeeds({ lib, rom, map, index, known, outDir }) {
         const note = m.length > 1 || x.length > 1 ? `    # entered with M${m.join('/')} X${x.join('/')}` : '';
         if (note) mixed++;
         for (const bus of buses) {
+            const pc16 = hex(bus & 0xFFFF, 4).toLowerCase();
+            if (FUNC_EXCLUSIONS && FUNC_EXCLUSIONS.has(bus)) {
+                bankLines(bus >>> 16).push(`# func at ${pc16}: excluded (${FUNC_EXCLUSIONS.get(bus)})`);
+                continue;
+            }
             const name = index.labelName(off) + (buses.size > 1 ? '_' + hex(bus >>> 16, 2) : '');
             const ex = exitDirectives(returns.get(bus), bus);
             if (ex.inline || ex.lines.length) exits++;
-            bankLines(bus >>> 16).push(`func ${name} ${hex(bus & 0xFFFF, 4).toLowerCase()} entry_mx:${m[0]},${x[0]}${ex.inline}${note}`, ...ex.lines);
+            bankLines(bus >>> 16).push(`func ${name} ${pc16} entry_mx:${m[0]},${x[0]}${ex.inline}${note}`, ...ex.lines);
             funcs++;
         }
     }
