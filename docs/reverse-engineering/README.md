@@ -3,7 +3,9 @@
 The master page: what we want, which approaches we have, how each goal is reached, and which
 approach to improve or borrow from. Details live in the pages linked below.
 
-Last updated 2026-10-12 (v0.201.8).
+Last updated 2026-10-12 (v0.201.9).
+
+**Build everything we know into a recomp and see what blocks it:** `SOE_ROM=<clean rom> npm run recomp` ([tools/recomp/README.md](../../tools/recomp/README.md)).
 
 ## Pages
 
@@ -74,9 +76,10 @@ complement, REA optional.**
 | Step | Approach | Status / what to build |
 |---|---|---|
 | 1. Boot snesrecomp output | host / frame driver ([asm-to-c-port.md](asm-to-c-port.md) §11.3) | **the hard milestone**, not started |
-| 2. Names into the C | `symbols.json` → snesrecomp names and Asar labels ([formats.md](formats.md) §2) | to build; names come from G1 step 4 |
+| 2. Names into the C | curated names → Asar labels, snesrecomp `func` names, Mesen2 labels | **done** (v0.201.9, `npm run recomp`); `symbols.json` as the canonical file still to build ([formats.md](formats.md) §2) |
 | 3. Assets | one decoder + format doc + viewer per unknown ROM-tab region; data lineage (G1 step 2) shows which regions are graphics, tilemaps, palettes or scripts | rooms, map graphics, sprites, animation, audio, scripts done; the rest by region |
 | 4. Verify | per-frame WRAM hash log (CDL improvement 8) as the oracle | to build |
+| – Track progress | `npm run recomp` → `out/recomp/REPORT.md`: rebuild identical?, snesrecomp native vs interpreter-only, coverage, names, comments, WRAM names, prioritised to-do | **done** (`tools/recomp/`) |
 
 ### G3 — Decomp in C
 

@@ -13,10 +13,11 @@ Usage (record → export → `build.sh` → `recomp.sh`): `docs/reverse-engineer
 | `rom-map.js` | ROM offset ⇄ bus address (canonical HiROM `$C0+`, LoROM `$80+:8000`) |
 | `xref-index.js` | Functions, callers, enclosing function, accessors per address, labels |
 | `disasm.js` | Decode one instruction with recorded M/X; format Asar text that reassembles byte-exact |
-| `asar-export.js` | `main.asm` + `banks/*.asm` + `rom.bin` (incbin for unreached / DMA runs) |
+| `asar-export.js` | `main.asm` + `banks/*.asm` + `rom.bin` (incbin for unreached / DMA runs). Options: `names` (curated labels + descriptions), `wramNames`, `assets` (from `tools/recomp/`, which may read `src/localizations` and `src/rom`; this domain may not) |
 | `known-regions.js` | Seeds the export before any CDL data: header + vectors; for SoE the 127 room blobs (`rooms/*.bin`), the map table as `dl room_XX-$400000`, 3002 strings `str_<index>` and the key table as `dl strkey(str_XXXX)`, the room enter script table `room_enter_scripts`, the two string key readers (`string_keys_ref_N`, immediates as expressions) |
 | `recomp-analysis.js` | Recorded flow → snesrecomp directives: exit widths, `indirect_dispatch` (indexed / ptrtail / ptrcall / rtsstack), `ram_routine`, comments for patterns without a directive |
 | `recomp-seeds.js` | `recomp/cfg/bankXX.cfg` seeds for [snesrecomp](https://github.com/RetroPortingToolKit/snesrecomp) (func entries + entry M/X per runtime bank, data regions, indirect sites as comments) and `recomp.sh` |
+| `mesen-export.js` | Mesen2 files: `mesen/labels.mlb` (labels + comments for ROM and WRAM, `memtype:addr[-end]:label[:comment]`) and `mesen/rom.cdl` (`CDLv2` + CRC32 + flags, asset ranges as data) |
 | `asar-build.js` | `rom.cdl`, `export.json` (labels + original offsets), `build.sh` + standalone `build-cdl.js` (ROM + CDL, flags follow labels), appends `STEPS.md` once per export |
 | `tables.js` | ROM lookup tables (HP per level, curves, dispatch tables) from indexed ROM reads: base, entry size, fields, index source, result → `tables.md` + header comments |
 | `table-assets.js` | Safe tables → `tables/tbl_*.asm` (incsrc'd known regions), `tables.json`, `tables.h` |

@@ -235,6 +235,39 @@ test('lookup shows registers, exit widths and table membership', () => {
     assert.ok(fnLines.includes('M0X0 -> M1X0'), fnLines);
 });
 
+test('curated names + Mesen2 files: labels, comments, CDLv2 header, still byte-identical', () => {
+    const { crc32 } = require('../../src/emulator/cdl/mesen-export');
+    const named = path.join(tmp, 'named');
+    exportAsar(lib, rom, named, {
+        names: new Map([[0x8010, { name: 'set_screen', note: 'Writes INIDISP' }]]),
+        wramNames: new Map([[0x3000, { name: 'actor_table', note: 'records', size: 0x180 }]]),
+        assets: [{ start: 0x9000, end: 0x9010, name: 'Test asset' }],
+    });
+    const bank = fs.readFileSync(path.join(named, 'banks', 'bank_C0.asm'), 'utf8');
+    assert.ok(/^set_screen:$/m.test(bank) && bank.includes('; Writes INIDISP'), 'named label + description');
+    assert.ok(/jsr(\.w)? set_screen/.test(bank), 'callers use the name');
+    assert.ok(/^func set_screen 8010 /m.test(fs.readFileSync(path.join(named, 'recomp', 'cfg', 'bank80.cfg'), 'utf8')), 'snesrecomp seed uses the name');
+    const mlb = fs.readFileSync(path.join(named, 'mesen', 'labels.mlb'), 'utf8');
+    assert.ok(mlb.includes('SnesPrgRom:8010:set_screen:Writes INIDISP'), mlb);
+    assert.ok(mlb.includes('SnesWorkRam:3000-317F:actor_table:records'), mlb);
+    assert.ok(mlb.includes('SnesPrgRom:9000::asset: Test asset (16 bytes)'), mlb);
+    const cdl = fs.readFileSync(path.join(named, 'mesen', 'rom.cdl'));
+    assert.strictEqual(cdl.toString('ascii', 0, 5), 'CDLv2');
+    assert.strictEqual(cdl.readUInt32LE(5), crc32(rom));
+    assert.strictEqual(cdl.length, 9 + rom.length);
+    assert.strictEqual(cdl[9 + 0x9000] & 0x02, 0x02, 'asset bytes marked data');
+    const asar = process.env.ASAR || path.resolve(ROOT, '..', 'asar', 'asar', 'bin', 'asar');
+    if (fs.existsSync(asar)) {
+        execFileSync(asar, ['--fix-checksum=off', 'main.asm', 'out.sfc'], { cwd: named, stdio: 'pipe' });
+        assert.ok(Buffer.from(rom).equals(fs.readFileSync(path.join(named, 'out.sfc'))), 'named export still reassembles byte-identical');
+    }
+});
+
+test('crc32 matches the standard check value', () => {
+    const { crc32 } = require('../../src/emulator/cdl/mesen-export');
+    assert.strictEqual(crc32(Buffer.from('123456789')), 0xCBF43926);
+});
+
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);

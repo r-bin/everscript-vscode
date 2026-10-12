@@ -67,15 +67,31 @@ The `$everscript` problem matcher parses compiler error output for the Tasks pan
 
 ## Installation
 
-Until published to the Marketplace, install via rsync into the VS Code extensions folder:
-
 ```sh
-rsync -a --delete --exclude='.git' /path/to/everscript-vscode/ ~/.vscode/extensions/everscript-0.1.4/
+npm install
+npm run deploy        # packages out/everscript-<version>.vsix and installs it with `code --install-extension`
 ```
 
-Then reload VS Code.
+Then reload VS Code (**Developer: Reload Window**). For development, launch the Extension
+Development Host from the repo with **F5**.
 
-Or launch the Extension Development Host from the repo with **F5**.
+## Building, testing and the recomp build
+
+| Command | What it does |
+|---|---|
+| `npm install` | dependencies |
+| `npm test` | full suite: builds maps, script decoder, emulator cores and music engine, then grammar, memory and debugger tests |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run check:circular` / `check:deps` / `check:dead` | circular imports, domain boundaries (warn), unused files and exports (advisory) |
+| `npm run build:maps` / `build:script` | compile the TypeScript decoders (`src/maps`, `src/script`) |
+| `npm run build:cores` | rebuild both snes9x WASM cores (needs Emscripten; `tools/build_snes_core.sh`) |
+| `npm run build:music-engine` | rebuild the SPC engine (`src/music/engine/build-engine.sh`) |
+| `npm run check:maps` / `check:script` / `check:encode` / `check:collision` | parity and round-trip checks against the ROM (need a ROM) |
+| `npm run package` / `npm run deploy` | build the `.vsix` / build and install it |
+| `SOE_ROM=<clean rom> npm run recomp` | **recomp build**: CDL library + asset knowledge + our names → byte-identical Asar project with names and comments, Mesen2 labels + CDL, snesrecomp C, and `out/recomp/REPORT.md` with what still blocks a recomp. Options (`--compile`, `--strict`, `--no-recomp`, tool paths): [`tools/recomp/README.md`](tools/recomp/README.md) |
+
+Release steps for contributors and agents: `.agents/skills/release-ritual/SKILL.md`.
+Reverse-engineering overview: [`docs/reverse-engineering/README.md`](docs/reverse-engineering/README.md).
 
 ## Customisation
 

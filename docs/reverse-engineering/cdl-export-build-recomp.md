@@ -23,6 +23,21 @@ This turns play sessions in the embedded emulator into three things:
 
 ---
 
+
+## 0. One command (since v0.201.9)
+
+```sh
+SOE_ROM="/path/to/Secret of Evermore (U) [!].smc" npm run recomp     # add --compile to build the C library
+```
+
+`tools/recomp/build.js` runs §3–§5 below without VS Code. It reads the recorded library from
+globalStorage, adds our curated names (`functions.js`, `tables.js`, knowledge entries) as labels,
+adds the ROM tab's asset regions to a Mesen2 CDL, writes Mesen2 labels and comments, checks
+that the rebuild is byte-identical, runs snesrecomp with the seeds, and writes
+`out/recomp/REPORT.md`, a prioritised list of what still blocks a recomp. Details:
+`tools/recomp/README.md`. The manual steps below are still valid, for example from the
+extension's CDL tab export.
+
 ## 1. Prerequisites
 
 | For | Needs |

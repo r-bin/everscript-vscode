@@ -35,14 +35,8 @@ function busMapping(rom) {
     return { hirom, fast: !!(rom[base + 0x15] & 0x10), sramBytes: sramCode && sramCode < 9 ? 1024 << sramCode : 0, headerBase: base };
 }
 
-/**
- * @param romBytes Buffer/Uint8Array (a copier header is stripped)
- * @param opts.rooms  Map<room id, {name, area}>
- * @param opts.wiki   wiki/rom/Rom-Map.md text, or ''
- * @param opts.cdl    Uint8Array CDL bytes for this ROM, or null
- */
-function buildRomModel(romBytes, opts = {}) {
-    const rom = new Uint8Array(stripCopierHeader(romBytes));
+/** Every region the catalogs can place, before layout: { s, e, cat, name, notes, area, prio }. */
+function collectRegions(rom, opts = {}) {
     const mapping = busMapping(rom);
     const title = headerTitle(rom, mapping.headerBase);
     const evermore = /SECRET OF EVERMORE/.test(title) && rom.length >= 0x300000 && rom[0xFFD5] === 0x31;
@@ -66,6 +60,23 @@ function buildRomModel(romBytes, opts = {}) {
             .map(p => ({ s: busToFile(p.bus), cat: p.cat, name: p.name, notes: p.notes }))
             .filter(p => p.s < rom.length);
     }
+    return { mapping, title, evermore, regions, points, spriteBlocks, errors };
+}
+
+/** Region list only (for exports and the recomp build); a copier header is stripped. */
+function romRegions(romBytes, opts = {}) {
+    return collectRegions(new Uint8Array(stripCopierHeader(romBytes)), opts).regions;
+}
+
+/**
+ * @param romBytes Buffer/Uint8Array (a copier header is stripped)
+ * @param opts.rooms  Map<room id, {name, area}>
+ * @param opts.wiki   wiki/rom/Rom-Map.md text, or ''
+ * @param opts.cdl    Uint8Array CDL bytes for this ROM, or null
+ */
+function buildRomModel(romBytes, opts = {}) {
+    const rom = new Uint8Array(stripCopierHeader(romBytes));
+    const { mapping, title, evermore, regions, points, spriteBlocks, errors } = collectRegions(rom, opts);
     const { halves, totals } = layoutHalves(rom, regions, points, opts.cdl || null);
     return {
         title: title || '(no header)', size: rom.length, evermore, hasCdl: !!opts.cdl, mapping,
@@ -75,4 +86,4 @@ function buildRomModel(romBytes, opts = {}) {
     };
 }
 
-module.exports = { buildRomModel, stripCopierHeader };
+module.exports = { buildRomModel, romRegions, stripCopierHeader };

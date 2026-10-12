@@ -118,6 +118,9 @@ work behind a "seen lately" or "already marked" check.
 | `functions.json` | `functions.js` | per function: entries, callers/callees, widths, DB/D, WRAM ranges, I/O by class, ROM data, pointer bases, SA-1 blockers (direct + through callees) |
 | `ram.asm` | `wram-export.js` | every WRAM address, accessors, values, hit counts |
 | `spc/aram.cdl` | `asar-export.js` | ARAM coverage |
+| `mesen/labels.mlb`, `mesen/rom.cdl` | `mesen-export.js` | export comments + curated names (option `names`, `wramNames`), asset ranges (`assets`); formats in docs/reverse-engineering/formats.md §3 |
+
+**Curated names** reach the export only through options (`exportAsar(lib, rom, dir, { names, wramNames, assets })`): the cdl domain may not import `src/localizations`. `tools/recomp/` (`npm run recomp`) collects them and runs export → asar → snesrecomp → `out/recomp/REPORT.md`. A name must be a valid Asar/C identifier; `buildIndex(lib, map, { names })` makes `labelName()` return it.
 
 On SoE (headless, 6000 frames): 347 of 354 functions with exit widths, 32 indexed dispatch tables,
 4 never-returning callees, 12 PHA/PEA+RTS dispatch sites (e.g. `8C:CB9C` with 12 targets; `8F:9821`

@@ -27,7 +27,12 @@ function push(map, key, value) {
     if (list) list.push(value); else map.set(key, [value]);
 }
 
-function buildIndex(lib, map) {
+/**
+ * @param opts.names  Map<rom offset, { name, note? }>: curated names (valid Asar / C identifiers)
+ *                    that replace `func_XXXXXX`; an offset the CDL did not label becomes a data label
+ */
+function buildIndex(lib, map, opts = {}) {
+    const names = opts.names || new Map();
     const { cdl, ext } = lib;
     const labels = new Map();          // rom offset -> 'func' | 'loc' | 'data' | 'gfx' | 'ptrs'
     const callers = new Map();         // rom offset -> [{ from, kind }]
@@ -103,6 +108,8 @@ function buildIndex(lib, map) {
         if (low !== Infinity && !(cdl[low] & CDL_CODE)) setLabel(low, 'data');
     }
 
+    for (const off of names.keys()) if (off >= 0 && off < cdl.length) setLabel(off, 'data');
+
     const entries = [...labels].filter(([, k]) => k === 'func').map(([o]) => o).sort((a, b) => a - b);
 
     function functionOf(off) {
@@ -116,7 +123,15 @@ function buildIndex(lib, map) {
 
     function labelName(off) {
         const kind = labels.get(off);
-        return kind ? kind + '_' + hex(map.canonical(off), 6) : null;
+        if (!kind) return null;
+        const named = names.get(off);
+        return named ? named.name : kind + '_' + hex(map.canonical(off), 6);
+    }
+
+    /** Curated description of a labelled offset, or null. */
+    function noteOf(off) {
+        const named = names.get(off);
+        return named && named.note ? named.note : null;
     }
 
     /** "func_C08000+$12 (80:8012)" for a bus PC. */
@@ -151,7 +166,7 @@ function buildIndex(lib, map) {
         }).sort((a, b) => a.script - b.script);
     }
 
-    return { labels, callers, byAddr, byPc, bulk, entries, functionOf, labelName, describePc, accessorsOf, scriptAccessorsOf };
+    return { labels, callers, byAddr, byPc, bulk, entries, functionOf, labelName, noteOf, describePc, accessorsOf, scriptAccessorsOf };
 }
 
 function flagText(flags) {

@@ -13,6 +13,7 @@
  *   functions.json        per-function summary (widths, DB/D, WRAM / I/O footprint, SA-1 blockers)
  *   spc/aram.cdl          SPC700 coverage of ARAM, when recorded
  *   rooms/, rom.cdl, build.sh, build-cdl.js, export.json, STEPS.md  (asar-build.js)
+ *   mesen/labels.mlb, mesen/rom.cdl  Mesen2 labels + comments, CDL with asset ranges (mesen-export.js)
  * Known regions (known-regions.js: header, rooms, strings, their pointer
  * tables) are placed first and override the CDL's view of their bytes.
  * Pass 1 picks instruction boundaries over the whole ROM so labels are only
@@ -33,6 +34,7 @@ const { exportWram } = require('./wram-export');
 const { buildEnums, enumsAsm } = require('./enums');
 const { inferStructs, structsAsm, structsHeader } = require('./structs');
 const { buildFunctions } = require('./functions');
+const { writeMesenFiles } = require('./mesen-export');
 
 const CDL_CODE = 0x01, CDL_DATA = 0x02;
 const EXT_DMA = 0x01, EXT_APU = 0x02, EXT_HEAD = 0x04, EXT_POINTER = 0x20;
@@ -77,10 +79,16 @@ function summarizeSkips(skipped) {
     return Object.entries(counts).map(([k, n]) => n + ' ' + k).join(', ') || 'none';
 }
 
-function exportAsar(lib, romInput, outDir) {
+/**
+ * @param opts.names      Map<rom offset, { name, note? }> curated names (see xref-index.js)
+ * @param opts.wramNames  Map<wram offset, { name, note?, size? }> for the Mesen labels
+ * @param opts.assets     [{ start, end, name }] ROM ranges known to be data (Mesen CDL, report)
+ */
+function exportAsar(lib, romInput, outDir, opts = {}) {
     const rom = romInput.length % 1024 === 512 ? romInput.subarray(512) : romInput;
     const map = createRomMap(rom);
-    const index = buildIndex(lib, map);
+    const index = buildIndex(lib, map, { names: opts.names });
+    const comments = [];   // { off, label?, size?, comment } for the Mesen label file
     const segName = off => 'seg_' + hex(map.canonical(off), 6);
     const { insLen, conflicts } = pickBoundaries(rom, lib, map);
     const tables = findTables(lib, rom, map, index);
@@ -201,8 +209,11 @@ function exportAsar(lib, romInput, outDir) {
         const name = index.labelName(off);
         const kind = index.labels.get(off);
         const lines = [];
+        const note = index.noteOf(off);
+        comments.push({ off, label: name, comment: note || '' });
         if (kind === 'func') {
             lines.push('', '; ' + ('==== ' + name + ' ').padEnd(70, '='));
+            if (note) lines.push('; ' + note);
             const callers = (index.callers.get(off) || []).filter(c => c.kind & 0x11);
             if (callers.length) {
                 const names = [...new Set(callers.map(c => index.describePc(c.from)))];
@@ -212,6 +223,7 @@ function exportAsar(lib, romInput, outDir) {
         } else if (kind === 'data' || kind === 'gfx' || kind === 'ptrs') {
             const readers = index.accessorsOf(SPACE.ROM, off).map(a => index.describePc(a.pc));
             lines.push('');
+            if (note) lines.push('; ' + note);
             if (readers.length) lines.push('; read by: ' + clip([...new Set(readers)], LIST_MAX).join(', '));
             if (lib.romHits && lib.romHits[off]) lines.push('; first byte read ' + countText(lib.romHits[off]) + ' times');
             if (tableAtBase.has(off) && !regionAt.has(off)) lines.push('; table: ' + tableComment(tableAtBase.get(off), map));
@@ -289,6 +301,7 @@ function exportAsar(lib, romInput, outDir) {
                 const text = '    ' + (asm || 'db ' + raw.join(','));
                 const note = (asm ? '' : ins.mnemonic.toLowerCase() + ' (target not addressable)  ') + instructionComment(off, ins, addr, asm);
                 lines.push(note ? text.padEnd(36) + '; ' + note : text);
+                if (note) comments.push({ off, comment: note });
                 codeLines++;
                 off += ins.len;
                 continue;
@@ -359,8 +372,10 @@ function exportAsar(lib, romInput, outDir) {
     if (lib.aram) for (const v of lib.aram) if (v & 1) aramExec++;
     known.steps.push(`functions.json: ${functions.summary.functions} functions; SA-1: ${functions.summary.pure} need nothing S-CPU-only (callees included), `
         + `${functions.summary.wramOnly} more only need their WRAM moved` + (aramExec ? `; SPC700: ${aramExec} ARAM opcodes recorded (spc/aram.cdl).` : '.'));
+    const mesen = writeMesenFiles({ rom, lib, outDir, comments, wramNames: opts.wramNames, assets: opts.assets });
+    known.steps.push(`Mesen2: mesen/labels.mlb (${mesen.labels} labels, ${mesen.comments} comments), mesen/rom.cdl (+${mesen.assetBytes} asset bytes marked data).`);
     const build = writeBuildFiles({ lib, rom, map, outDir, known, labels: [...emitted].map(o => [nameOf(o), o]), banks: includes.length, functions: index.entries.length });
-    return { mainPath, build, recomp, known, tables: tables.length, banks: includes.length, functions: index.entries.length, codeLines, index, map };
+    return { mainPath, build, recomp, mesen, known, tables: tables.length, banks: includes.length, functions: index.entries.length, codeLines, commentedLines: comments.filter(c => !c.label).length, index, map, regions: known.regions };
 }
 
 module.exports = { exportAsar };

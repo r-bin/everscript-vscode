@@ -50,7 +50,8 @@
     "check:collision": "node tools/measure-collision.js",
     "check:maps": "node tests/memory/map-parity.test.js",
     "build:script": "tsc -p tsconfig.script.json",
-    "check:script": "node tests/memory/script-parity.test.js"
+    "check:script": "node tests/memory/script-parity.test.js",
+    "recomp": "node tools/recomp/build.js"
   },
   "devDependencies": {
     "@types/node": "^25.9.1",

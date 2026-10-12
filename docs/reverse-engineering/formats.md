@@ -52,8 +52,8 @@ export (outside the repo) or is produced on demand.
 
 | Format | Consumer | Shape | Gain |
 |---|---|---|---|
-| **Mesen2 `.cdl`** | Mesen2 | ASCII `CDLv2`, then the ROM's CRC32 (little-endian), then one flag byte per ROM byte. Header-less files still load, with a warning (read in Mesen2's source, 2026-10-12) | Our coverage in the best SNES debugger, without the warning |
-| **Mesen2 labels `.mlb`** | Mesen2 | one label per line: `memorytype:address[-end]:label[:comment]`; the address is an offset inside that memory type, in hex; newlines in comments are written as `\n` (read in Mesen2's source, 2026-10-12) | Our names while debugging. Check the exact SNES memory-type names (e.g. PRG ROM, work RAM) in Mesen2's `MemoryType` enum before writing the exporter |
+| **Mesen2 `.cdl`** ✅ written since v0.201.9 (`mesen/rom.cdl`, asset ranges OR-ed in as data) | Mesen2 | ASCII `CDLv2`, then the ROM's CRC32 (little-endian), then one flag byte per ROM byte. Header-less files still load, with a warning (read in Mesen2's source, 2026-10-12) | Our coverage in the best SNES debugger, without the warning |
+| **Mesen2 labels `.mlb`** ✅ written since v0.201.9 (`mesen/labels.mlb`: names, descriptions, per-instruction comments, assets, WRAM names) | Mesen2 | one label per line: `memorytype:address[-end]:label[:comment]`; the address is an offset inside that memory type, in hex; newlines in comments are written as `\n` (read in Mesen2's source, 2026-10-12) | Our names while debugging. SNES memory types used: `SnesPrgRom` (ROM file offset), `SnesWorkRam` (WRAM offset) |
 | **Seed TSV** `addr<TAB>function\|code\|label[<TAB>name]` | REA (`REA_GHIDRA_SEED_FILE`), our Ghidra script | REA's format, simple enough to adopt as-is | Same file for REA and plain Ghidra |
 | **Context TSV** `addr<TAB>M<TAB>X<TAB>DB<TAB>D` | our Ghidra script | ours | Fixes Ghidra's width and bank errors (ghidra.md §2) |
 | WLA-DX style `.sym` (`bank:addr name`) | bsnes-plus and other debuggers/assemblers | widely used plain text; check each consumer's exact syntax | Low effort once `symbols.json` exists |
