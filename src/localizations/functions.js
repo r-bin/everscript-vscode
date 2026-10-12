@@ -24,7 +24,7 @@ const FUNCTIONS = [
     { address: 0x8CC88C, name: 'Load a 16×16 map graphic through `$EE:0000 + 3·id`, DMA to VRAM', notes: '', category: '🧠', stringIndex: null },
     { address: 0x8CC9C0, name: 'Map graphic dual-stream decompressor', notes: '', category: '🧠', stringIndex: null },
     { address: 0x8CCE99, name: 'Room enter-script lookup (id × 5 via the 8-bit multiplier)', notes: '', category: '🧠', stringIndex: null },
-    { address: 0x8CD0A6, name: 'Script VM opcode dispatch', notes: '', category: '🧠', stringIndex: null },
+    { address: 0x8CD0A6, name: 'Script VM opcode dispatch', notes: 'Loop: fetch the opcode byte through the 24-bit script pointer at DP $82-$84 and advance it, double it, JSR through the handler table at $8C:E8BD (one word per opcode, same bank). Repeats while the handler returns carry set, then writes the pointer back to the slot at X = DP $7E (words $82 → X+0, $83 → X+1; skipped when the word at $83 is 0). Seen in the REA/Ghidra spike, v0.201.6', category: '🧠', stringIndex: null },
     { address: 0x8CD6BE, name: 'Script opcode `0x30` (`sound`)', notes: '', category: '🧠', stringIndex: null },
     { address: 0x8CD709, name: 'Script opcode `0x33` (`music`)', notes: '', category: '🧠', stringIndex: null },
     { address: 0x8F8398, name: 'Character stat recalculation (armor, charms, buffs) — unverified', notes: '', category: '🧠', stringIndex: null },
