@@ -440,10 +440,11 @@ verified function at a time, and the generated C shrinks accordingly.
 
 ### 11.3 What blocks progress, in order of impact
 
-1. **Nothing runs yet.** Today the output is a static library. Until SoE boots in
-   snesrecomp, no replaced function can be checked against the original. The host
-   (frame driver, snesrecomp's `game_rtl.c` step) is the next hard milestone, more
-   important than more seeds.
+1. ~~Nothing runs yet.~~ **It boots (2026-10-12, v0.201.10):** a scaffolded snesrecomp
+   project with the framework's beam frame driver shows the Squaresoft logo and the intro,
+   with 682 of 1033 variants native ([recomp-host.md](recomp-host.md)). WRAM matches snes9x up
+   to NMI counter 305, then drifts for timing reasons. The lockstep tool
+   (`npm run recomp:lockstep`) is the oracle for every `hle_func` from here on.
 2. **Coverage.** 94.7 % of the ROM is untouched by the CDL, and only 3 rooms were ever
    loaded, so most of the Asar export is still `incbin rom.bin`. Coverage limits the
    disassembly, the seeds and the lockstep check alike.

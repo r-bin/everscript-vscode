@@ -46,8 +46,19 @@ annotated in `labels.mlb`. They do not change the assembly, so the rebuild stays
 | Accessed WRAM bytes with a name | RAM knowledge entries (`src/localizations/knowledge/ram/`) |
 | snesrecomp interpreter-only (LLE) variants | recorded jump-table targets, more directives |
 
-The report always lists "no host / frame driver" until one exists: the generated C does not run
-on its own ([asm-to-c-port.md](../../docs/reverse-engineering/asm-to-c-port.md) §11.3).
+The report checks for a host project (`../SecretOfEvermoreSNESRecomp`, or `SOE_RECOMP_EXE`).
+Setting one up and feeding it these seeds: [recomp-host.md](../../docs/reverse-engineering/recomp-host.md).
+
+## Lockstep against snes9x
+
+```sh
+npm run recomp:lockstep -- --rom <clean rom> [--exe <recomp executable>] [--from 295 --to 479 --step 10]
+```
+
+`lockstep.js` runs the ROM in our snes9x core and in the recomp without input, lines both up on
+the NMI frame counter `$7E0100`, copies snes9x's RNG state into the recomp (the reset seeds it
+from PPU timing), and prints how many WRAM bytes differ at each counter value, plus the first
+divergence. Today: identical through counter 305, timing drift from 315.
 
 Measured on 2026-10-12 with the current library: byte-identical rebuild; 9.3 % of the ROM
 recorded, 94.0 % known; 38 of 403 recorded functions named; 47.2 % of instruction lines

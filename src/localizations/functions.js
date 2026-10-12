@@ -5,12 +5,14 @@
 const { resolveLocalizedName } = require('./strings');
 
 const FUNCTIONS = [
-    { address: 0x808020, name: 'RESET handler', notes: '', category: '🧠', stringIndex: null },
-    { address: 0x80823A, name: 'NMI (V-Blank) handler', notes: '', category: '🧠', stringIndex: null },
+    { address: 0x808020, name: 'RESET handler', notes: 'Native mode, stack $1FFF, D=0; clears PPU/CPU registers; fills VRAM and both WRAM banks by fixed-source DMA; PPU shadow defaults ($0106=$8F); seeds the RNG $0133-$0139 from the PPU H/V counters; enables NMI + auto-joypad ($4200=$81, mirror $0E6B); JML $80:8B66 (read in the clean ROM while setting up the snesrecomp host, v0.201.10)', category: '🧠', stringIndex: null },
+    { address: 0x80823A, name: 'NMI (V-Blank) handler', notes: 'Skips the VRAM upload queues while $0F3A != 0; copies the PPU shadow registers $0106-$0125 to the PPU; CGRAM queue ($128E/$1290) unless $0F3C != 0; increments the frame counter $0100 (read in the clean ROM while setting up the snesrecomp host, v0.201.10)', category: '🧠', stringIndex: null },
     { address: 0x8084EA, name: 'IRQ handler', notes: '', category: '🧠', stringIndex: null },
+    { address: 0x808507, name: 'Enable NMI + auto-joypad', notes: 'SEI, $4200=$81 and its mirror $0E6B; also sets $012B=$858B and $012D=$0080 (meaning unknown). Called by the room reset $90:8E90 (static, likely)', category: '🧠', stringIndex: null },
     { address: 0x80859B, name: 'Random number generator', notes: 'Four words at $0133/$0135/$0137/$0139 mixed with rotate + add-with-carry; returns the new $0133 in A. 17 callers incl. the screen shake (static: REA/Ghidra spike v0.201.7, likely)', category: '🧠', stringIndex: null },
     { address: 0x80885E, name: 'COP handler', notes: '', category: '🧠', stringIndex: null },
     { address: 0x80885F, name: 'BRK handler', notes: '', category: '🧠', stringIndex: null },
+    { address: 0x808B66, name: 'Main loop entry (the reset handler jumps here)', notes: 'Also calls the room-enter routine $8E:E4E2 (read in the clean ROM while setting up the snesrecomp host, v0.201.10, guess)', category: '🧠', stringIndex: null },
     { address: 0x809033, name: 'Direct sprite draw (OAM)', notes: '', category: '🧠', stringIndex: null },
     { address: 0x8C805B, name: 'SPC700 IPL bootloader handshake & block upload', notes: '', category: '🧠', stringIndex: null },
     { address: 0x8C81FD, name: 'APU handshake / `$2140` spinlock', notes: '', category: '🧠', stringIndex: null },

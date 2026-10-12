@@ -16,6 +16,7 @@ Last updated 2026-10-12 (v0.201.9).
 | [cdl-design-history.md](cdl-design-history.md) | Original design and what was built (§9) |
 | [asm-to-c-port.md](asm-to-c-port.md) | **snesrecomp + lockstep `hle_func`**: the path to C, room ids, status |
 | [ghidra.md](ghidra.md) | **Ghidra + ghidra-snes**: what for, plugin gaps, setup with workarounds, VFS |
+| [recomp-host.md](recomp-host.md) | **The snesrecomp host**: set up, seeds, boot result, lockstep against snes9x |
 | [rea.md](rea.md) | **REA** (MCP over Ghidra): answers, spike recipe and results |
 | [formats.md](formats.md) | File formats we use, compatible formats to emit, what REA's formats add |
 | [other-tools.md](other-tools.md) | Mesen2, Asar, DiztinGUIsh, bsnes-plus, everscript, SA-1 investigation |
@@ -75,7 +76,7 @@ complement, REA optional.**
 
 | Step | Approach | Status / what to build |
 |---|---|---|
-| 1. Boot snesrecomp output | host / frame driver ([asm-to-c-port.md](asm-to-c-port.md) §11.3) | **the hard milestone**, not started |
+| 1. Boot snesrecomp output | host / frame driver ([recomp-host.md](recomp-host.md)) | **boots to the intro** (v0.201.10); lockstep identical to counter 305, timing drift after |
 | 2. Names into the C | curated names → Asar labels, snesrecomp `func` names, Mesen2 labels | **done** (v0.201.9, `npm run recomp`); `symbols.json` as the canonical file still to build ([formats.md](formats.md) §2) |
 | 3. Assets | one decoder + format doc + viewer per unknown ROM-tab region; data lineage (G1 step 2) shows which regions are graphics, tilemaps, palettes or scripts | rooms, map graphics, sprites, animation, audio, scripts done; the rest by region |
 | 4. Verify | per-frame WRAM hash log (CDL improvement 8) as the oracle | to build |

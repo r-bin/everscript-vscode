@@ -2,7 +2,7 @@
   "name": "everscript",
   "displayName": "Everscript",
   "description": "Syntax highlighting, hover docs, and completions for Everscript (.evs) — the Secret of Evermore ROM scripting language",
-  "version": "0.201.9",
+  "version": "0.201.10",
   "publisher": "rbin",
   "main": "./src/extension.js",
   "engines": {
@@ -51,7 +51,8 @@
     "check:maps": "node tests/memory/map-parity.test.js",
     "build:script": "tsc -p tsconfig.script.json",
     "check:script": "node tests/memory/script-parity.test.js",
-    "recomp": "node tools/recomp/build.js"
+    "recomp": "node tools/recomp/build.js",
+    "recomp:lockstep": "node tools/recomp/lockstep.js"
   },
   "devDependencies": {
     "@types/node": "^25.9.1",

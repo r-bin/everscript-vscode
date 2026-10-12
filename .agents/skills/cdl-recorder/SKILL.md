@@ -133,7 +133,8 @@ are two further records `$AE` apart (larger records, not on the `$8E` lattice).
 Cross-tool plan (CDL + snesrecomp + Ghidra/ghidra-snes + REA, per goal): `docs/reverse-engineering/README.md`.
 The CDL library also seeds Ghidra/REA (functions at their `$8x` execution address, names, WRAM labels): `docs/reverse-engineering/rea.md` §10.1.
 
-- **Recomp (snesrecomp):** the generated C must boot (host / frame driver, `asm-to-c-port.md` §11);
+- **Recomp (snesrecomp):** boots to the intro in a scaffolded host project (`docs/reverse-engineering/recomp-host.md`);
+  lockstep vs snes9x (`npm run recomp:lockstep`) drifts from NMI counter ~315 (timing);
   PHA/PEA+RTS sites need `hle_dispatch`; observed-only target lists are incomplete until played.
 - **Decomp:** names. The assets give shapes (tables.h, structs.h, enums) but every name is still an
   address; `hle_func` replacements are checked against the lockstep diff (§6 of the port doc).
