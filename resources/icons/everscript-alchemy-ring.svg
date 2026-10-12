@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <!-- Outer Alchemical Ring Menu (Transmutation Circle) -->
+  <circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.85" />
+  <!-- 4 Elemental Ingredient Nodes (North: Brimstone, East: Ash, South: Water, West: Root) -->
+  <circle cx="12" cy="2.5" r="1.3" fill="currentColor" />
+  <circle cx="21.5" cy="12" r="1.3" fill="currentColor" />
+  <circle cx="12" cy="21.5" r="1.3" fill="currentColor" />
+  <circle cx="2.5" cy="12" r="1.3" fill="currentColor" />
+  <!-- Cardinal alignment ticks -->
+  <line x1="12" y1="4.2" x2="12" y2="5.8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
+  <line x1="12" y1="18.2" x2="12" y2="19.8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
+  <line x1="4.2" y1="12" x2="5.8" y2="12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
+  <line x1="18.2" y1="12" x2="19.8" y2="12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
+  <!-- Inner Chiseled EVS Glyphs -->
+  <g fill="currentColor">
+    <!-- E -->
+    <path d="M 5.5 8.5 H 8.8 V 10.0 H 8.1 L 7.8 9.4 H 6.8 V 11.5 H 8.0 V 12.5 H 6.8 V 14.6 H 7.9 L 8.3 14.0 H 8.9 V 15.5 H 5.5 V 14.5 L 6.0 14.7 V 9.3 L 5.5 9.5 Z" />
+    <!-- V -->
+    <path d="M 9.8 8.5 H 11.4 L 11.2 9.4 H 10.7 L 11.8 14.2 L 12.9 9.4 H 12.4 L 12.2 8.5 H 13.8 L 13.6 9.4 H 13.1 L 12.0 15.5 H 11.3 L 10.2 9.4 H 9.7 Z" />
+    <!-- S -->
+    <path d="M 18.0 9.8 H 17.3 L 17.0 9.1 C 16.6 8.7 16.1 8.5 15.4 8.5 C 14.7 8.5 14.2 8.9 14.2 9.6 C 14.2 10.3 14.7 10.7 15.6 11.1 C 17.0 11.7 17.9 12.4 17.9 13.6 C 17.9 14.9 16.7 15.6 15.3 15.6 C 14.5 15.6 13.9 15.3 13.5 14.7 V 13.8 H 14.2 L 14.4 14.6 C 14.7 14.8 15.0 14.9 15.4 14.9 C 16.0 14.9 16.7 14.4 16.7 13.6 C 16.7 12.8 16.1 12.3 15.0 11.8 C 13.8 11.3 13.0 10.6 13.0 9.4 C 13.0 8.2 14.0 7.4 15.4 7.4 C 16.1 7.4 16.8 7.7 17.3 8.3 H 18.0 Z" />
+  </g>
+</svg>
+
