@@ -74,6 +74,26 @@ function hookMain(project) {
     return { ok: true, patched: true };
 }
 
+/**
+ * Give our glue the beam driver's resume point (framework file, generated, not stored in git):
+ * its file save states carry neither that PC nor g_cpu, so game_rtl.c saves and restores both
+ * (docs/recomp/bugs-and-todos.md, save states). Three accessors after its statics. Idempotent.
+ */
+function hookBeamDriver(project) {
+    const file = path.join(project, 'snesrecomp', 'runner', 'src', 'beam_frame_driver.c');
+    let s = fs.readFileSync(file, 'utf8');
+    if (s.includes('snes_beam_frame_driver_set_resume')) return { ok: true, patched: false };
+    const anchor = 'static bool s_wai_halted;\n';
+    if (!s.includes(anchor)) return { ok: false, reason: 'beam_frame_driver.c layout changed: cannot hook the resume point' };
+    s = s.replace(anchor, anchor +
+        '\n/* everscript glue (tools/recomp/host.js): save states restore the resume point. */\n' +
+        'uint32_t snes_beam_frame_driver_resume_pc(void) { return s_resume_pc; }\n' +
+        'bool snes_beam_frame_driver_wai_halted(void) { return s_wai_halted; }\n' +
+        'void snes_beam_frame_driver_set_resume(uint32_t pc, bool wai_halted) { s_resume_pc = pc; s_wai_halted = wai_halted; }\n');
+    fs.writeFileSync(file, s);
+    return { ok: true, patched: true };
+}
+
 /** Our seeds: bank8x/9x cfgs replace the previous ones; bank00 keeps its generated block and gains our data regions. */
 function applySeeds(seedDir, project) {
     const cfgDir = path.join(project, 'recomp');
@@ -137,6 +157,8 @@ function buildHost({ snesrecomp, romPath, out, seedDir, fresh, build }) {
     const glue = copyTree(GLUE, project);
     const hook = hookMain(project);
     if (!hook.ok) return { ok: false, reason: hook.reason };
+    const beam = hookBeamDriver(project);
+    if (!beam.ok) return { ok: false, reason: beam.reason };
     const seeds = applySeeds(seedDir, project);
     const env = { ...process.env, SNESRECOMP_ROM: path.resolve(romPath), PATH: path.join(require('os').homedir(), '.cargo/bin') + ':' + process.env.PATH };
     const g = run('bash', ['tools/regen.sh', '--cfg-roots', '--rom', path.resolve(romPath)], { cwd: project, env }, log);
@@ -153,4 +175,4 @@ function buildHost({ snesrecomp, romPath, out, seedDir, fresh, build }) {
     return { ...res, ...pkg, built: true, ok: pkg.ok };
 }
 
-module.exports = { buildHost, platformTag, applySeeds, hookMain, packageGame };
+module.exports = { buildHost, platformTag, applySeeds, hookMain, hookBeamDriver, packageGame };

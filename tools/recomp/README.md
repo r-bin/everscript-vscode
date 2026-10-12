@@ -51,6 +51,16 @@ annotated in `labels.mlb`. They do not change the assembly, so the rebuild stays
 
 Setting one up and feeding it these seeds: [docs/recomp/setup.md](../../docs/recomp/setup.md) and [docs/recomp/game-rtl.md](../../docs/recomp/game-rtl.md).
 
+## Same input script on snes9x
+
+```sh
+node tools/recomp/s9x-run.js <rom> <save.srm | -> <script.txt> <outdir>
+```
+
+Runs a recomp headless script (`wait`, `press`, `poke`, `pokefor`, `forcepoke`, `dump`, `quit`)
+on the extension's snes9x core and dumps WRAM, VRAM and the picture in the recomp's layout, to
+check whether a glitch also happens on the reference (docs/recomp/debugging.md §5.3).
+
 ## Lockstep against snes9x
 
 ```sh
