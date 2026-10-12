@@ -227,7 +227,7 @@ docs/
   extension/             editor, emulator, debugger, CDL, soe:// specs, highlighter spec
   game-research/         map-format/, script-format/, combat/, prototype/, patches/
   plans/                 ROADMAP.md, per-feature plans, simulation/, research-requests.md
-  workflows/             cdl-export-build-recomp, release
+  reverse-engineering/   RE master plan, CDL, recomp/C port, Ghidra, REA, formats
   archive/               revert notes, migration plan, early concepts
 ```
 
@@ -540,7 +540,7 @@ dist/                        esbuild output (host + webview bundles) — ships
 tests/<domain>/              tiered via tests/tiers.json
 tools/                       live generators/build scripts only (+ README)
 packages/script-parser/      (was script_parser/)
-docs/                        architecture/ extension/ game-research/ plans/ workflows/ archive/
+docs/                        architecture/ extension/ game-research/ plans/ reverse-engineering/ archive/
 ```
 
 Folded into `docs/plans/`: `simulation/`, `call-log/`, `todo.md`. Deleted: `experimental/`, `docs/roadmap-and-vision.md`, one-off tools. Gitignored scratch stays in `tmp/` — prune it and `out/`.

@@ -6,7 +6,7 @@
  * Per-ROM CDL library: <root>/<sha1>/ outside the workspace. Every stored
  * field merges with a commutative, associative, idempotent operation (OR,
  * min/max, set union), so sessions, players and re-imports can be merged in
- * any order without double counting (docs/tracing-disassembler-and-asar-generation.md 9.3).
+ * any order without double counting (docs/reverse-engineering/cdl-design-history.md 9.3).
  * Exception: hit counts are summed. The core hands out each count once (drains
  * are deltas), so a library's counts are the total over every recorded session;
  * merging the same library twice would double them.

@@ -46,3 +46,6 @@ scripts/**
 build-cache/**
 *.log
 *.vsix
+
+# Claude Code wiring (symlink to .agents/agents)
+.claude/**

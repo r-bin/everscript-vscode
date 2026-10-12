@@ -53,7 +53,7 @@ of:
 | `src/language/language-configuration.json` | Bracket matching, comment toggle, word pattern |
 | `src/language/tests/highlight.test.evs` | Grammar unit tests (vscode-tmgrammar-test) |
 | `docs/future-features.md` | Roadmap — read before starting new features |
-| `docs/reverse-engineering-master-plan.md` | RE goals (RAM/ROM map, recomp, decomp, SA-1, mashups) and how CDL, snesrecomp, Ghidra and REA combine — read before RE work |
+| `docs/reverse-engineering/` | RE master page (`README.md`: goals, how each is reached) + one page per approach (CDL, recomp/C port, Ghidra, REA, formats, other tools) — read before RE work |
 | `docs/vscode-highlighter-spec.md` | Token category spec |
 | `AI_ARCHITECTURE_GUIDE.md` | Architectural laws, file size limits, ownership rules |
 | `STATE_FLOW.md` | Authoritative state ownership table |
@@ -97,6 +97,7 @@ Skills load on demand based on their `description` and `applyTo` globs.
 | `snes-memory-mapping` | `.agents/skills/snes-memory-mapping/SKILL.md` | SNES memory maps (HiROM, LoROM, cartridge ROM vs WRAM) |
 | `sprites-subsystem` | `.agents/skills/sprites-subsystem/SKILL.md` | Sprites rendering, animation frames, OBJ palettes |
 | `wram-memory-mapping` | `.agents/skills/wram-memory-mapping/SKILL.md` | WRAM address allocation, entity tables, party stats |
+| `ghidra-analysis` | `.agents/skills/ghidra-analysis/SKILL.md` | Ghidra + ghidra-snes / REA on SoE: what for, setup traps, seeding from the CDL, trusting static results |
 
 ---
 
@@ -123,3 +124,6 @@ Specialized workflow personas live in `.agents/agents/`:
 - `everscript-plugin-builder.md`
 - `mechanics-modeler.md`
 - `script-parser-generator.md`
+- `re-curator.md` — one pass over the knowledge gaps (names, RAM/ROM entries) from CDL, `soe://`, curated sources and Ghidra/REA dossiers
+
+Claude Code sees these through the symlink `.claude/agents` → `.agents/agents`.

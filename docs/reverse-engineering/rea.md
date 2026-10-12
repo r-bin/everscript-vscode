@@ -2,7 +2,16 @@
 
 Evaluated 2026-10-12 against the REA README and its `docs/` folder
 (<https://github.com/morluto/rea>, MIT), then tested the same day with REA 6.4.0, Ghidra 12.1.4
-and ghidra-snes (§10). §1–§9 are the desk study. Where §10 contradicts them, §10 wins.
+and ghidra-snes (§10). §0 answers the practical questions; §1–§9 are the desk study; where §10 contradicts them, §10 wins.
+
+## 0. Answers (after the spike)
+
+| Question | Answer |
+|---|---|
+| **Is REA helpful?** | Somewhat. With two local patches and CDL seeds it produced correct disassembly, a real direct-call graph (234 of 361 functions with callers) and fast per-function dossiers. From those an agent named 12 functions in one pass (§10.3). The facts come from Ghidra; REA adds an MCP interface and evidence-tagged output. |
+| **Do we need a SNES plugin in REA before using it?** | For anything beyond experiments, yes. Today a 3-line local patch to REA's file-format check is needed, and every REA update overwrites it. The durable fix is an upstream **SNES profile** (§4.3): admit SNES ROMs, pin `65816:LE:24:snes` + the SNES loader, accept seeds and ideally M/X/DB/D context. ghidra-snes also needs the execution-bank fix ([ghidra.md §2](ghidra.md#2-do-we-have-to-improve-the-snes-plugin-first)). |
+| **Is Ghidra alone good enough?** | **Yes, and it is better for our pipeline.** Headless Ghidra plus our own scripts gives the same facts, plus things REA cannot do: apply M/X/DB/D context from the CDL, keep a persistent project, and export `static.json` into the library. REA is optional, for ad-hoc agent questions. |
+| **How to set it up?** | Ghidra first ([ghidra.md §3](ghidra.md#3-setup-guide-macos-tested), including the loader patch and install location). Then REA as in §2 below plus the format patch and environment in §10.1. |
 
 ## TL;DR
 
@@ -13,7 +22,7 @@ and ghidra-snes (§10). §1–§9 are the desk study. Where §10 contradicts the
 | Can we make it work? | **Yes, with two local patches** (REA's format check, ghidra-snes's `$80–$BF` mapping) plus CDL seeds: 556 procedures, 234 of 361 tested functions with real callers (§10). |
 | Do we need to help it with SNES asm? | Yes, heavily: memory map and mirrors, M/X widths, DB/D, function entries, data vs code. Our CDL library already has most of this. |
 | What can we expect? | Correct disassembly, a real direct-call graph, fast dossiers per function; an agent named 12 functions from them in one pass (§10.3). No jump tables, no DP/DB, pseudocode is noise, nothing persists. |
-| Can it recomp/decomp SoE? | **No.** It produces no recompilable code. Recomp stays snesrecomp, decomp stays the `hle_func` + lockstep method (`docs/asm-to-c-port.md`). REA could help with naming during decomp cleanup. |
+| Can it recomp/decomp SoE? | **No.** It produces no recompilable code. Recomp stays snesrecomp, decomp stays the `hle_func` + lockstep method (`docs/reverse-engineering/asm-to-c-port.md`). REA could help with naming during decomp cleanup. |
 | Can our asset knowledge help it? | Yes. We can generate its seed file (functions, code, labels) from the CDL library, `tables.json`, `functions.json` and the localization tables, so Ghidra stops disassembling graphics and tables. |
 
 ---
@@ -99,7 +108,7 @@ without REA.
 
 ## 4. Do we need to help it with SNES asm? Yes
 
-Ghidra's 65816 support is the weak link, and `docs/asm-to-c-port.md` §5 already notes it
+Ghidra's 65816 support is the weak link, and `docs/reverse-engineering/asm-to-c-port.md` §5 already notes it
 "gets widths and banks wrong too often". Below are the problems, and where our data fixes each.
 
 ### 4.1 Problems REA + stock Ghidra cannot solve alone
@@ -179,7 +188,7 @@ around it.
 
 No. REA's "reconstruction readiness" is an internal conformance test for its own
 fixtures, not a code generator.
-- **Recomp:** stays snesrecomp, fed by our CDL export (`docs/workflows/cdl-export-build-recomp.md`).
+- **Recomp:** stays snesrecomp, fed by our CDL export (`docs/reverse-engineering/cdl-export-build-recomp.md`).
   REA adds nothing that the CDL does not already provide more accurately.
 - **Decomp (readable C):** stays one verified `hle_func` at a time against the lockstep diff
   (`asm-to-c-port.md` §6, §11.2). REA can help at the step where a human or agent must
@@ -208,7 +217,7 @@ fixtures, not a code generator.
 
 We set this up in a local folder outside the repo (`~/Documents/GitHub/rea-snes-spike`, which
 has its own README with rerun and undo steps). Nothing from it is committed. Overall comparison
-with our other tools: `docs/reverse-engineering-master-plan.md`.
+with our other tools: `docs/reverse-engineering/README.md`.
 
 ### 10.1 How we got it working (recipe)
 

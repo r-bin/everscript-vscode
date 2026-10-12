@@ -86,7 +86,7 @@ Writing 65c816 assembly without crashing the SNES requires strict adherence to r
 
 ## 3.4 Names and data from the CDL export
 
-The emulator's CDL export (`docs/workflows/cdl-export-build-recomp.md`, cdl-recorder skill)
+The emulator's CDL export (`docs/reverse-engineering/cdl-export-build-recomp.md`, cdl-recorder skill)
 writes recorded facts as Asar source a patch can reuse instead of raw addresses:
 
 - `ram.asm`: `!wram_7EXXXX` for every WRAM address the CPU touched, with readers/writers.

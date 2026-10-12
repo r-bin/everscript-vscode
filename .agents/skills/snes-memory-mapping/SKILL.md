@@ -93,5 +93,5 @@ Consequences for any static tool:
   `off & 0x8000 ? 0x800000 + off : 0xC00000 + off`.
 - Ghidra + ghidra-snes maps only `$C0–$FF` (plus bank `$00`'s mirror). Calls into `$8x` then land
   in unmapped memory. Map `$80–$BF:8000–FFFF` as **file-backed** blocks; Ghidra refuses
-  functions in byte-mapped (mirror) blocks. Recipe: `docs/rea-reverse-engineering-mcp.md` §10.1.
+  functions in byte-mapped (mirror) blocks. Recipe: `docs/reverse-engineering/rea.md` §10.1.
 - The same byte has two addresses; dedupe by file offset when merging results.

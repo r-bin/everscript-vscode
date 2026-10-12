@@ -1,9 +1,25 @@
-# Reverse engineering Secret of Evermore: tools, goals, plan
+# Reverse engineering Secret of Evermore
 
-The one page that compares every reverse-engineering approach we have, says what each one can
-reach, and how they combine. Details live in the linked docs; this page decides direction.
+The master page: what we want, which approaches we have, how each goal is reached, and which
+approach to improve or borrow from. Details live in the pages linked below.
 
-Last updated 2026-10-12 (v0.201.7).
+Last updated 2026-10-12 (v0.201.8).
+
+## Pages
+
+| Page | Approach / topic |
+|---|---|
+| [cdl.md](cdl.md) | **Our CDL recorder + Asar export**: strengths, limits, what the emulator could record next |
+| [cdl-export-build-recomp.md](cdl-export-build-recomp.md) | Workflow: record → export → build ROM + `.cdl` → snesrecomp C |
+| [cdl-design-history.md](cdl-design-history.md) | Original design and what was built (§9) |
+| [asm-to-c-port.md](asm-to-c-port.md) | **snesrecomp + lockstep `hle_func`**: the path to C, room ids, status |
+| [ghidra.md](ghidra.md) | **Ghidra + ghidra-snes**: what for, plugin gaps, setup with workarounds, VFS |
+| [rea.md](rea.md) | **REA** (MCP over Ghidra): answers, spike recipe and results |
+| [formats.md](formats.md) | File formats we use, compatible formats to emit, what REA's formats add |
+| [other-tools.md](other-tools.md) | Mesen2, Asar, DiztinGUIsh, bsnes-plus, everscript, SA-1 investigation |
+
+Skills: `cdl-recorder`, `ghidra-analysis`, `game-knowledge`, `snes-memory-mapping`,
+`snes-asm-asar-patching`. Agent: `re-curator` (§7).
 
 ---
 
@@ -12,150 +28,144 @@ Last updated 2026-10-12 (v0.201.7).
 | # | Goal | Done means |
 |---|---|---|
 | **G1** | **Complete RAM map + ROM map** | Every WRAM byte has an owner, a size and a purpose (or is proven unused). Every ROM byte has an owner: code, a named table, or a decoded asset |
-| **G2** | **Recomp with function names, every asset decoded and explained** | snesrecomp output boots; its functions carry our names, not `func_C08650`; every ROM asset has a decoder, a format doc and an editor or at least a viewer |
+| **G2** | **Recomp with function names; every asset decoded and explained** | snesrecomp output boots; its functions carry our names; every ROM asset has a decoder, a format doc and a viewer or editor |
 | G3 | Decomp in readable C | Engine routines replaced one by one with hand-written C that passes the per-frame WRAM diff |
-| G4 | SA-1 patch | The game runs with an SA-1 cartridge layout and offloads work to the SA-1 |
-| G5 | Mashup with other games | Content (rooms, sprites, music, mechanics) from other SNES games (e.g. Secret of Mana) or new content brought into SoE, or SoE content moved out. Legal note: a mashup ships as a patch that reads both games from the user's own ROMs |
+| G4 | SA-1 patch | The game runs on an SA-1 layout and offloads work to the SA-1 |
+| G5 | Mashup with other games | Content (rooms, sprites, music, mechanics) moved between SoE and other SNES games (e.g. Secret of Mana), shipped as a patch that reads the user's own ROMs |
 
-G1 and G2 feed everything else: G3 needs names and known data, G4 needs a shiftable disassembly
-(every pointer symbolised), G5 needs decoders, encoders and free space.
+G1 and G2 feed the rest: G3 needs names and known data, G4 needs a shiftable disassembly (every
+pointer symbolised), G5 needs decoders, encoders and free space.
 
----
+## 2. The approaches in one table
 
-## 2. What we have
-
-### 2.1 Our own tools (in this repo or next to it)
-
-| Tool | What it gives | Where |
-|---|---|---|
-| **Embedded emulator + CDL recorder** | Runtime truth: code vs data per byte, M/X width per instruction, DB/D, call stack with real returns, jump-table targets, xrefs, WRAM R/W/width/values, DMA sources, SPC700 coverage. Mergeable library per ROM | `src/emulator/cdl/`, skill `cdl-recorder` |
-| **Asar export** | Byte-identical, rebuildable disassembly; `ram.asm`, `tables/`, `enums`, `structs.h`, `functions.json`; snesrecomp `cfg` directives | `docs/workflows/cdl-export-build-recomp.md` |
-| **snesrecomp** (external, fed by the export) | 65816 → C with M/X specialisation; `hle_func` to swap in hand-written C | `docs/asm-to-c-port.md` §5, §11 |
-| **Headless snes9x under node** | Scripted runs, frame stepping, WRAM/VRAM dumps: automated coverage and lockstep diffs | memory note *headless boot* |
-| **ROM tab (`src/rom/`)** | One owner per ROM byte for everything we can decode (rooms, graphics, sprites, animation, audio, strings, scripts), plus CDL counts per region | `src/rom/README.md` |
-| **Decoders** | Rooms (LZSS, Markov grid, blob layout), map graphics, sprites, animation bytecode, sound packages, scripts (everscript decompiler) | `src/maps`, `src/sprites`, `src/music`, `../everscript` |
-| **Knowledge base** | `functions.js`, `tables.js`, `ram-symbols` (names.json + tags), `soe://` MCP (ROM, assets, live WRAM, tags), everscript wiki `Rom-Map.md` / `Ram-Map.md` | skill `game-knowledge`, `docs/soe-filesystem-spec.md` |
-| **Call-graph galaxy** | Visual map of the CDL library | `tools/call-graph-galaxy/` |
-
-### 2.2 External tools
-
-| Tool | What it gives | Status for us |
-|---|---|---|
-| **Ghidra + ghidra-snes** (MIT) | Static disassembly of the *whole* ROM, persistent project, GUI, scripting (Java/Python) to apply our context, C-header type import, decompiler | Works headless and in the GUI. Needs a local loader patch to map the `$80–$BF` code banks (see `docs/rea-reverse-engineering-mcp.md` §10) |
-| **REA + Ghidra + ghidra-snes** (MIT) | An MCP/CLI front end over Ghidra: evidence-tagged answers, batch dossiers, agent-friendly | Works only with local patches to REA *and* ghidra-snes. Throwaway sessions, no custom scripts. Doc: `docs/rea-reverse-engineering-mcp.md` |
-| **Mesen2** | Best SNES debugger: breakpoints, trace logger, its own CDL, label import | Useful for one-off investigations; our CDL uses its bit layout, so files interchange |
-| **DiztinGUIsh** | Interactive CDL-driven disassembler → Asar | Windows-only; our export covers its output. See `docs/tracing-disassembler-and-asar-generation.md` §8 |
-| bsnes-plus | Debugger with usage map | Superseded by Mesen2 + our CDL |
-
-Not allowed: `SoETilesViewer`, `SoEScriptDumper` (GPLv3, AGENTS.md).
-
----
-
-## 3. Side-by-side
-
-| Capability | CDL + Asar + snesrecomp (ours) | Ghidra + ghidra-snes | REA (+ Ghidra + ghidra-snes) |
+| Capability | CDL + Asar + snesrecomp (ours) | Ghidra + ghidra-snes | REA (over Ghidra) |
 |---|---|---|---|
-| Code vs data | ✅ exact, but only for executed bytes (~5 % of the ROM today) | ⚠️ guessed by flow analysis over the whole ROM; disassembles data if not told | same as Ghidra |
-| M/X widths | ✅ recorded per instruction | ❌ default only; wrong after any `SEP/REP` it cannot follow, unless a script sets context | ❌ no way to pass context |
-| DB / D | ✅ recorded | ❌ unknown → bad xrefs for 16-bit and DP accesses | ❌ |
+| Code vs data | ✅ exact, for executed bytes only (~5 % today) | ⚠️ guessed over the whole ROM | same as Ghidra |
+| M/X widths, DB/D | ✅ recorded | ❌ unless a script applies them from the CDL | ❌ no way to pass them |
 | Jump tables, `PHA/PEA+RTS` | ✅ observed targets | ❌ mostly unresolved | ❌ |
-| Callers / call graph | ✅ observed edges | ✅ static edges for direct `JSR/JSL`, including code never run (after the mirror patch) | ✅ same as Ghidra, via MCP |
-| WRAM layout, structs, enums | ✅ widths, values, strides, enum handlers | ❌ | ❌ (labels only, via seeds) |
+| Call graph | ✅ observed | ✅ static, direct calls, incl. unplayed code (after the loader patch) | ✅ same as Ghidra |
+| WRAM layout, structs, enums | ✅ | ❌ | ❌ |
 | Asset boundaries | ✅ for read / DMA'd data | ❌ | ❌ |
 | Rebuildable output | ✅ byte-identical Asar | ❌ | ❌ |
-| C output | ✅ machine C (snesrecomp) | ⚠️ pseudocode, not compilable, noisy on 65816 | ⚠️ same, marked `compilable: false` |
-| Names | ✅ from our tables, into labels / snesrecomp | ✅ persistent in the project | ⚠️ seed file in, lost on close |
-| Persistence | ✅ library on disk | ✅ project | ❌ re-import every session (~10 s) |
-| Agent access | ⚠️ `soe://` MCP, no disassembly query | ❌ GUI / scripts | ✅ 170 MCP tools |
-| Coverage limit | what was played | whole ROM, but quality drops where context is missing | same as Ghidra |
-| Effort to keep working | ours | upstream + one local loader patch | upstream + patches to REA and ghidra-snes |
+| C | ✅ machine C (snesrecomp), readable via `hle_func` | ⚠️ pseudocode, unusable on 65816 | ⚠️ same |
+| Persistence | ✅ library | ✅ project | ❌ re-import per session |
+| Agent access | ⚠️ `soe://` (no disassembly queries yet) | ❌ GUI / scripts | ✅ MCP |
+| Upkeep | ours | one local loader patch (upstreamable) | patches to REA *and* ghidra-snes |
 
-**In one line each:** the CDL knows *exactly* what ran and nothing else; Ghidra guesses about
-*everything* and gets 65816 context wrong; REA is Ghidra with an agent-friendly front end and
-fewer controls.
+**In one line each:** the CDL knows *exactly* what ran and nothing else. Ghidra guesses about
+*everything* and gets 65816 context wrong unless we feed it ours. REA is Ghidra with an agent
+front end and fewer controls. **Decision: CDL first, Ghidra (headless, scripted) as the static
+complement, REA optional.**
 
----
+## 3. How each goal is reached
 
-## 4. What each approach can reach, per goal
+### G1 — RAM map + ROM map (highest priority)
 
-| Goal | CDL + Asar + snesrecomp | Ghidra + ghidra-snes | REA | Verdict |
-|---|---|---|---|---|
-| **G1 RAM map** | ✅ main source: every accessed byte with width, values, accessors; structs and enums | ⚠️ static xrefs to WRAM *only* for long addresses (`$7E:xxxx`); 16-bit ones need DB | ⚠️ same | CDL + longer recording; static xrefs add accessors from unplayed code |
-| **G1 ROM map** | ✅ for executed code and read data; ROM tab owns everything decodable | ✅ finds code that never ran (direct-call reachable) | ✅ same, by agent | ROM tab + CDL, with Ghidra's static functions filling unplayed code |
-| **G2 recomp** | ✅ the path (snesrecomp seeded from CDL); blocked on the host/frame driver | ❌ | ❌ | ours |
-| **G2 names** | ✅ carrier: names flow into Asar labels and snesrecomp | ✅ good *workbench* for a human | ✅ good *workbench* for an agent: batch dossiers → proposed names | name in Ghidra/REA, store in `functions.js` |
-| **G2 assets** | ✅ DMA/read boundaries, table assets | ❌ | ❌ | decoders in `src/maps` etc., ROM tab |
-| G3 decomp | ✅ lockstep `hle_func` | ⚠️ reading aid | ⚠️ reading aid | ours; Ghidra/REA to understand a routine before writing its C |
-| G4 SA-1 | ⚠️ `functions.json` lists SA-1 blockers per function | — | — | blocked by HiROM layout (`../evermore-sa1/README.md`): needs a shiftable disassembly first |
-| G5 mashup | ⚠️ room moving works (v0.158.0); assets need encoders | — | — | decoders + encoders + free space; see `docs/asm-to-c-port.md` §8 |
+| Step | Approach | Status / what to build |
+|---|---|---|
+| 1. Raise coverage from ~5 % | CDL + headless harness: scripted inputs from a save state per room, menu, boss, death | harness exists; scripted runs and save-state set to build ([cdl.md](cdl.md) §3) |
+| 2. Record context | CDL improvements 1–3: room/mode/NMI tags, data lineage, DMA destinations | to build ([cdl.md](cdl.md) §2) |
+| 3. Fill unplayed code statically | Ghidra headless, seeded + context-applied from the CDL, exports `static.json` into the library | loader patch done locally; seed/context export and Ghidra scripts to build ([ghidra.md](ghidra.md)) |
+| 4. Name and explain | `re-curator` agent passes over the gaps, writing `functions.js` / knowledge entries with evidence | agent defined (§7) |
+| 5. Publish the maps | generator: knowledge entries + library + ROM tab model → RAM map and ROM map (wiki §4 and `soe://`) | ROM tab exists; entry loader and map generator to build |
 
----
+### G2 — Named recomp + every asset decoded (highest priority)
 
-## 5. Combining them
+| Step | Approach | Status / what to build |
+|---|---|---|
+| 1. Boot snesrecomp output | host / frame driver ([asm-to-c-port.md](asm-to-c-port.md) §11.3) | **the hard milestone**, not started |
+| 2. Names into the C | `symbols.json` → snesrecomp names and Asar labels ([formats.md](formats.md) §2) | to build; names come from G1 step 4 |
+| 3. Assets | one decoder + format doc + viewer per unknown ROM-tab region; data lineage (G1 step 2) shows which regions are graphics, tilemaps, palettes or scripts | rooms, map graphics, sprites, animation, audio, scripts done; the rest by region |
+| 4. Verify | per-frame WRAM hash log (CDL improvement 8) as the oracle | to build |
 
-They are complementary, not alternatives. One loop, with **one name source**:
+### G3 — Decomp in C
+
+snesrecomp boots (G2.1) → replace leaf routines first (decompressors, room loader: their
+semantics are already ported in `src/maps`) with `hle_func` C, checked by the per-frame diff.
+Ghidra/REA help read a routine before writing its C. CDL improvement 4 (register snapshots)
+gives argument conventions.
+
+### G4 — SA-1
+
+Blocked by the HiROM layout ([other-tools.md](other-tools.md), `../evermore-sa1`). Needs a
+shiftable disassembly (every pointer form symbolised, [asm-to-c-port.md](asm-to-c-port.md) §8)
+so the code can move. Then `functions.json` SA-1 blockers and CDL cycle counts (improvement 7)
+pick the candidates.
+
+### G5 — Mashups
+
+Needs encoders next to every decoder (rooms are done, v0.158.0), free space from the
+shiftable disassembly, and the same decode/encode work for the other game. Ship only patches
+and tools; both games' data comes from the user's ROMs at runtime.
+
+## 4. Which approach to improve, which to borrow from
+
+| Improve | What | Why |
+|---|---|---|
+| **CDL recorder** | context tags, data lineage, DMA destinations, table read values, register snapshots, cycles, frame hash log ([cdl.md](cdl.md) §2) | the most accurate source; these turn "accessed" into "what for" |
+| **Export** | `symbols.json` + adapters (Mesen2 `.cdl`/`.mlb`, seed + context TSV, `.sym`), provenance stamp ([formats.md](formats.md)) | names and facts reach every tool |
+| **ghidra-snes** (upstream PR) | execution-bank mapping as a loader option; DB/D as context | removes our only local patch |
+| **Ghidra scripts** (ours) | apply seeds + M/X/DB/D context from the CDL; export `static.json` | static fill with our context |
+| REA (upstream PR, optional) | SNES profile | only if we want REA's MCP for agents |
+
+| Borrow | From | Into |
+|---|---|---|
+| Static reachability | Ghidra | library `static.json` → Asar export marks code, more recomp seeds |
+| Seed TSV format | REA | our Ghidra hand-off |
+| Evidence envelope (input digest, tool version, limitations) | REA | stamps on exports and evidence strings |
+| Batch dossiers → naming | REA | `re-curator` passes, using Ghidra or REA output |
+| Header-detection scoring, MMIO labels | ghidra-snes | nothing to do: our ROM tab already covers it |
+| Interactive debugging with our names | Mesen2 | `.mlb` export |
+
+## 5. How they combine
 
 ```text
           play / scripted headless runs
                     │
                     ▼
-     CDL library (runtime truth, ~5 % today)
-       │                     │
-       │ seeds: functions,   │ export
-       │ M/X, DB/D, labels   ▼
-       ▼               Asar project ──► snesrecomp C ──► hle_func C (G3)
-  Ghidra + ghidra-snes        ▲                ▲
-  (static, whole ROM)         │                │
-       │ statically found     │ labels         │ function names
-       │ functions, callers   │                │
-       ▼                      │                │
-  REA / human: read, name ──► functions.js / knowledge entries / ram-symbols
-                               (the single name source; seeds read it back)
+     CDL library (recorded facts, per ROM) ◄───── static.json (Ghidra, tagged static)
+       │                  │                               ▲
+       │ symbols.json,    │ export                        │ headless scripts
+       │ seeds, context   ▼                               │
+       └──────────► Ghidra + ghidra-snes ─────────────────┘
+                          │ dossiers (or REA)
+                          ▼
+   re-curator ─► functions.js / tables.js / knowledge entries   (single name source)
+                          │
+           ┌──────────────┼───────────────┬──────────────┐
+           ▼              ▼               ▼              ▼
+     Asar labels   snesrecomp names   soe:// + maps   Mesen2 labels
 ```
 
-Rules that make it work:
-1. **Names live in one place** (`src/localizations/` and the knowledge entries). Ghidra
-   projects, REA sessions and snesrecomp configs are generated from it, never edited as the
-   source of truth.
-2. **Runtime beats static.** Where the CDL has a fact (width, target, code/data), it overrides
-   Ghidra. Ghidra fills only what the CDL has not seen, and those bytes stay marked "static".
-3. **Everything checks against the ROM.** Asar rebuilds byte-identically; recomp/C checks
-   against the per-frame WRAM diff.
+Rules: names live in one place; runtime beats static; everything checks against the ROM (Asar
+rebuilds byte-identically, C passes the per-frame diff).
 
----
+## 6. Recommended order
 
-## 6. Ideas worth cherry-picking
+1. **Coverage** (G1.1): scripted headless runs, merged into the library.
+2. **Context tags + DMA destinations** (G1.2, CDL improvements 1 and 3): cheap and big for the maps.
+3. **`symbols.json` + seed/context export, Ghidra scripts, `static.json`** (G1.3).
+4. **`re-curator` passes** (G1.4), continuously.
+5. **Entry loader + map generator** (G1.5).
+6. **snesrecomp host / frame driver** (G2.1), then names into the C (G2.2).
+7. Assets region by region (G2.3), using data lineage (CDL improvement 2).
+8. G3 / G4 / G5 on top.
 
-| From | Idea | Into | Gain |
-|---|---|---|---|
-| Ghidra | Static reachability from known entries | Asar export: mark statically found code as code instead of `incbin` (`asm-to-c-port.md` §11.4.1 already suggests the snesrecomp manifest) | More of the ROM map is code, more recomp seeds — without playing |
-| Our CDL | M/X, DB, D, jump targets as a **Ghidra script** (context register + references) | Ghidra project | Fixes Ghidra's three biggest 65816 errors for the covered part |
-| ghidra-snes patch | Map `$80–$BF` upper halves as *file-backed* blocks | Ghidra / REA | Calls link, seeds land where code runs (all 449 CDL entries are upper-half code) |
-| REA | Seed TSV format (`addr<TAB>function|code|label<TAB>name`) | Our exporter | One generic hand-off format for Ghidra, REA, Mesen labels |
-| REA | Evidence-tagged dossiers per function (asm, callers, callees, refs) | An agent naming loop | Batch first-pass names with evidence, `confidence: guess` |
-| REA | Load-image verification (checks mapped bytes against the file) | Our Asar export check | Already have byte-identical rebuild; nothing to add |
-| Headless harness | Scripted input + save state per room → long unattended CDL sessions | CDL library | The biggest lever for G1: coverage is 5 % |
-| Mesen2 | Label file export (`.mlb`) from `functions.js` / `ram-symbols` | Mesen2 debugging | Our names in the best debugger |
+## 7. The `re-curator` agent
 
----
+`.agents/agents/re-curator.md` (also reachable for Claude Code through `.claude/agents/`). One
+pass: pick the highest-value gaps (or a given scope), look up, gather evidence from the CDL
+library, curated sources, `soe://`, and Ghidra/REA dossiers when available, then write names and
+entries with confidence and evidence and report what still needs the emulator. It follows the
+`game-knowledge` and `release-ritual` skills.
 
-## 7. Recommended order
-
-1. **Coverage (G1).** Scripted headless runs through every room, menu, boss and death; merge
-   into the library. Without this, every tool above stays at ~5 %.
-2. **Static fill (G1).** Ghidra headless with the patched ghidra-snes, seeded from the CDL;
-   export statically found functions and their direct-call edges back into the library as
-   "static" facts; Asar export marks them as code.
-3. **Naming loop (G2).** Batch dossiers (REA or a plain Ghidra script) → proposed names with
-   evidence → `functions.js` / knowledge entries → seeds, Asar labels, snesrecomp names.
-4. **Recomp boot (G2).** The host / frame driver for snesrecomp (`asm-to-c-port.md` §11.3.1).
-5. **Assets (G2).** Close the ROM tab's unknown regions one decoder at a time; each gets a
-   format doc and a viewer.
-6. G3 / G4 / G5 build on the above: `hle_func` replacements, shiftable disassembly for SA-1 and
-   free space, encoders for mashups.
+It is only as good as its inputs. Missing pieces that would make it fully streamlined:
+`symbols.json`, an in-repo seed/dossier export, the entry loader, and the map generator (§3 G1).
+Until then it writes `functions.js` / `tables.js` lines and RAM entries by hand, which is how
+the first 12 names and 7 entries were made (rea.md §10.3).
 
 ## 8. Legal
 
-Same rules everywhere (AI_ARCHITECTURE_GUIDE.md §3.8): the ROM, CDL libraries, Ghidra projects,
-REA snapshots, disassembly, pseudocode and decoded assets stay outside the repo. The repo holds
-our code and our own descriptions: names, addresses, formats and evidence.
+The ROM, CDL libraries, Ghidra projects, REA snapshots, disassembly, pseudocode and decoded
+assets stay outside the repo. The repo holds our code and our own descriptions: names,
+addresses, formats and evidence (AI_ARCHITECTURE_GUIDE.md §3.8).

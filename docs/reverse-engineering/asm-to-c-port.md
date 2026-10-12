@@ -3,8 +3,8 @@
 > Status: **in progress.** Stage 1 (byte-exact Asar export) shipped in v0.156.0, room/string
 > relocation in v0.158.0, and the stage 3 lift via snesrecomp in v0.159.x. Where this
 > stands and what comes next: §11.
-> Prerequisite reading: [tracing-disassembler-and-asar-generation.md](tracing-disassembler-and-asar-generation.md).
-> Step-by-step usage: [workflows/cdl-export-build-recomp.md](workflows/cdl-export-build-recomp.md).
+> Prerequisite reading: [cdl-design-history.md](cdl-design-history.md).
+> Step-by-step usage: [cdl-export-build-recomp.md](cdl-export-build-recomp.md).
 
 ---
 
@@ -159,8 +159,8 @@ Rules:
 
 Ghidra's 65816 module is useful for reading a routine, but its output is not a source of
 lifted code: it gets widths and banks wrong too often. Setup that works for SoE (ghidra-snes +
-`$8x` bank mapping + CDL seeds, optionally behind REA): `docs/rea-reverse-engineering-mcp.md` §10;
-how it fits with the CDL and snesrecomp: `docs/reverse-engineering-master-plan.md`.
+`$8x` bank mapping + CDL seeds, optionally behind REA): `docs/reverse-engineering/rea.md` §10;
+how it fits with the CDL and snesrecomp: `docs/reverse-engineering/README.md`.
 
 ## 6. Stage 4 — lockstep hybrid (the core of the method)
 
@@ -380,7 +380,7 @@ it without moving broke the boot.
 loader's index math are all 16-bit, but the enter-script lookup multiplies with the SNES
 hardware multiplier, which is 8×8 bit (`lda $0ADB : ora #$0500 : sta $4202`). Id `$0100`
 loaded room `$00`. Going beyond 256 means changing that routine, for example to `asl`/`adc`
-math. Recipe for adding rooms: [workflows/cdl-export-build-recomp.md](workflows/cdl-export-build-recomp.md#add-a-room-id).
+math. Recipe for adding rooms: [cdl-export-build-recomp.md](cdl-export-build-recomp.md#add-a-room-id).
 
 **Not covered:** code the recorder has not seen yet. The recorded exact readers of `$0ADB`
 are the loader, the enter-script lookup, `CHANGE MAP` (writes) and the new-game routine

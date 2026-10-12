@@ -1,7 +1,7 @@
 # Workflow: CDL recording → Asar project → ROM + .cdl → C (snesrecomp)
 
 > Status: working end to end on Secret of Evermore since v0.159.1.
-> Background and the overall plan: [asm-to-c-port.md](../asm-to-c-port.md).
+> Background and the overall plan: [asm-to-c-port.md](asm-to-c-port.md).
 > Code: `src/emulator/cdl/` ([README](../../src/emulator/cdl/README.md)).
 
 This turns play sessions in the embedded emulator into three things:
@@ -157,7 +157,7 @@ labels. Verified headless with id `$7F`.
 4. Point a door's `CHANGE MAP` (or the boot script) at the new id and `./build.sh`.
 
 Limit: **256 ids** (`$00–$FF`). The enter-script lookup uses the 8×8-bit hardware
-multiplier, so id `$100` aliases to `$00`. See [asm-to-c-port.md §11.1](../asm-to-c-port.md).
+multiplier, so id `$100` aliases to `$00`. See [asm-to-c-port.md §11.1](asm-to-c-port.md).
 
 ### Move the string key table
 
@@ -229,12 +229,12 @@ AppleClang; it took about 60 s. A re-run after a new export takes about 20 s.
 **This is not a playable port.** It is the game code as C functions over a `CpuState`
 (`func_C08650_M0X0(CpuState *cpu)`). Making it run needs a host frame driver on top of
 snesrecomp's runner, and then the lockstep RAM comparison against the real ROM
-([asm-to-c-port.md](../asm-to-c-port.md) §6).
+([asm-to-c-port.md](asm-to-c-port.md) §6).
 
 ## 6. Getting more out of it
 
 Where this leads, and why the generated C is the runtime and test rig rather than the
-end product: [asm-to-c-port.md §11](../asm-to-c-port.md#11-does-the-current-path-reach-the-goal-assessment-2026-10-06).
+end product: [asm-to-c-port.md §11](asm-to-c-port.md#11-does-the-current-path-reach-the-goal-assessment-2026-10-06).
 
 - **Play more.** Every new function the recorder sees is a new root. Export again and
   re-run `recomp.sh`.

@@ -1,14 +1,14 @@
 ---
 name: cdl-recorder
 description: Use when touching the Code/Data Logger (CDL) — the recorder compiled into the snes9x core (cdl*.c, hook sites in cpuexec/getset/dma/cpuops/spc700.h/apumem.h), the per-ROM library, xrefs, the Asar export and its assets (tables/, enums, structs, functions.json, snesrecomp cfgs), the CDL tab, or any analysis built on recorded data for a recomp, decomp or SA-1 port.
-applyTo: "src/emulator/cdl/**,src/emulator/cdl-*.js,src/emulator/core/snes9x2005-wasm/source/cdl*,src/emulator/core/snes9x2005-wasm/source/spc700.h,src/emulator/core/snes9x2005-wasm/source/apumem.h,tools/gen-cdl-optable.js,tests/debugger/cdl*.test.js,docs/workflows/cdl-export-build-recomp.md,docs/asm-to-c-port.md"
+applyTo: "src/emulator/cdl/**,src/emulator/cdl-*.js,src/emulator/core/snes9x2005-wasm/source/cdl*,src/emulator/core/snes9x2005-wasm/source/spc700.h,src/emulator/core/snes9x2005-wasm/source/apumem.h,tools/gen-cdl-optable.js,tests/debugger/cdl*.test.js,docs/reverse-engineering/cdl-export-build-recomp.md,docs/reverse-engineering/asm-to-c-port.md"
 ---
 
 # Skill: CDL recorder, library and exports
 
 Read first: `src/emulator/cdl/README.md` (file map, invariants, allowed deps).
-Usage: `docs/workflows/cdl-export-build-recomp.md`. Goal and status: `docs/asm-to-c-port.md` §10–11.
-Design history: `docs/tracing-disassembler-and-asar-generation.md` §9 (§1–8 are the original
+Usage: `docs/reverse-engineering/cdl-export-build-recomp.md`. Goal and status: `docs/reverse-engineering/asm-to-c-port.md` §10–11.
+Design history: `docs/reverse-engineering/cdl-design-history.md` §9 (§1–8 are the original
 proposal and differ from what was built).
 
 **Goal of everything here:** collect what a static recompilation (snesrecomp), a later
@@ -127,8 +127,8 @@ are two further records `$AE` apart (larger records, not on the `$8E` lattice).
 
 ## 6. What each goal still needs
 
-Cross-tool plan (CDL + snesrecomp + Ghidra/ghidra-snes + REA, per goal): `docs/reverse-engineering-master-plan.md`.
-The CDL library also seeds Ghidra/REA (functions at their `$8x` execution address, names, WRAM labels): `docs/rea-reverse-engineering-mcp.md` §10.1.
+Cross-tool plan (CDL + snesrecomp + Ghidra/ghidra-snes + REA, per goal): `docs/reverse-engineering/README.md`.
+The CDL library also seeds Ghidra/REA (functions at their `$8x` execution address, names, WRAM labels): `docs/reverse-engineering/rea.md` §10.1.
 
 - **Recomp (snesrecomp):** the generated C must boot (host / frame driver, `asm-to-c-port.md` §11);
   PHA/PEA+RTS sites need `hle_dispatch`; observed-only target lists are incomplete until played.
