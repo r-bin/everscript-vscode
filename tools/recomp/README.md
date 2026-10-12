@@ -4,9 +4,11 @@ One command that turns everything we know about the game into a rebuildable, nam
 disassembly and a snesrecomp C project, and reports what still blocks a working recomp.
 
 ```sh
-SOE_ROM="/path/to/Secret of Evermore (U) [!].smc" npm run recomp            # export + rebuild + snesrecomp
-SOE_ROM=… npm run recomp -- --compile --strict                             # also compile the C; fail on problems
-SOE_ROM=… npm run recomp -- --no-recomp                                    # stop after the Asar rebuild (2 s)
+SOE_ROM="/path/to/Secret of Evermore (U) [!].smc" npm run recomp   # everything: export, rebuild, host project, game
+SOE_ROM=… npm run recomp -- --fresh --strict                      # scaffold the host project again; fail on problems
+SOE_ROM=… npm run recomp -- --no-build                            # generate the C but do not compile the game
+SOE_ROM=… npm run recomp -- --no-recomp                           # stop after the Asar rebuild (2 s)
+open "out/recomp/SecretOfEvermore-macos-arm64/play.command"       # play (Linux: play.sh, Windows: play.bat)
 ```
 
 ## What it does
@@ -16,8 +18,9 @@ SOE_ROM=… npm run recomp -- --no-recomp                                    # s
 | 1. Inputs | CDL library for the ROM (`<globalStorage>/rbin.everscript/cdl-library/<sha1>/`), asset regions from the ROM tab (`src/rom`), curated names (`functions.js`, `tables.js`, `knowledge/{ram,rom}/*.md`, `ram-symbols`) | – |
 | 2. Export | the above | `asar/`: `main.asm`, `banks/*.asm` with **our function names** and **line comments** (callers, accesses, jump targets, curated descriptions), `ram.asm`, `structs.h`, `tables/`, `functions.json`; `asar/mesen/labels.mlb` + `asar/mesen/rom.cdl` (Mesen2); `asar/recomp/cfg/` (snesrecomp seeds, named) |
 | 3. Rebuild | `asar/` | `asar/build/out.sfc` (must equal the ROM byte for byte), `out.sym` (WLA symbols), `out.cdl`; `asar.log` |
-| 4. Recomp | seeds + rebuilt ROM | `asar/recomp/project/generated/*.c` (and with `--compile` the static library); `snesrecomp.log` |
-| 5. Report | all of the above | `REPORT.md`, `report.json`: status per step, measures, a prioritised to-do list |
+| 4. Host project | seeds + clean ROM + `tools/recomp/host/` | `project/`: snesrecomp's scaffold (first run or `--fresh`; clones the framework submodules), our glue laid over it, seeds in `project/recomp/`, generated C in `project/src/gen/`, build in `project/build/`; `recomp-host.log` |
+| 5. Game | the build | **`SecretOfEvermore-<os>-<arch>/`**: executable, `assets/`, `mods/`, start script with the ROM path (`play.command` / `play.sh` / `play.bat`) |
+| 6. Report | all of the above | `REPORT.md`, `report.json`: status per step, measures, a prioritised to-do list |
 
 Names become identifiers valid in Asar, C and Mesen (`Random number generator` →
 `random_number_generator`; collisions get the address appended). An offset with a curated name
@@ -33,7 +36,7 @@ annotated in `labels.mlb`. They do not change the assembly, so the rebuild stays
 | a CDL library for that ROM | meaningful output (without one: vectors only) | recorded in the emulator's CDL tab; `--lib` |
 | Asar | step 3 | `--asar` / `ASAR` / `asar` on PATH / `../asar/asar/bin/asar` |
 | snesrecomp checkout, Python 3.9+, Rust/cargo (first run builds its analyzer) | step 4 | `--snesrecomp` / `SNESRECOMP` / `../snesrecomp` |
-| CMake + Ninja + a C compiler | `--compile` | PATH |
+| CMake + a C compiler (+ network on the first scaffold) | steps 4–5 | PATH |
 
 ## Reading the report
 

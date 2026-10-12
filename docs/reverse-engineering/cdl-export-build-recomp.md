@@ -27,7 +27,7 @@ This turns play sessions in the embedded emulator into three things:
 ## 0. One command (since v0.201.9)
 
 ```sh
-SOE_ROM="/path/to/Secret of Evermore (U) [!].smc" npm run recomp     # add --compile to build the C library
+SOE_ROM="/path/to/Secret of Evermore (U) [!].smc" npm run recomp     # also builds the playable game, see recomp-host.md
 ```
 
 `tools/recomp/build.js` runs §3–§5 below without VS Code. It reads the recorded library from

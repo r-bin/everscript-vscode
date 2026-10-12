@@ -64,10 +64,9 @@ function todo(m, rebuild, recomp, recorded) {
     const add = (prio, area, text) => t.push({ prio, area, text });
     if (!recorded) add(0, 'CDL', 'No CDL library for this ROM: record a session in the emulator (CDL tab) first.');
     if (!rebuild.identical) add(0, 'Asar', rebuild.reason || ('Rebuild differs from the ROM at file offset $' + (rebuild.firstDiff >>> 0).toString(16).toUpperCase() + ' (asar.log, asar/build/out.sfc).'));
-    if (recomp && !recomp.skipped && !recomp.ok) add(0, 'snesrecomp', (recomp.reason || 'generate failed') + ' — see snesrecomp.log.');
-    const host = process.env.SOE_RECOMP_EXE || path.resolve(__dirname, '../../../SecretOfEvermoreSNESRecomp/build/SecretOfEvermoreSNESRecomp');
-    if (!fs.existsSync(host)) add(1, 'Host', 'No runnable host project: scaffold one (docs/reverse-engineering/recomp-host.md §2).');
-    add(1, 'Lockstep', 'Recomp and snes9x diverge from NMI counter ~315 (intro fade / loading timing): run `npm run recomp:lockstep` and fix the first divergence (recomp-host.md §4).');
+    if (recomp && !recomp.skipped && !recomp.ok) add(0, 'snesrecomp', (recomp.reason || 'host step failed') + ' — see recomp-host.log.');
+    if (recomp && !recomp.skipped && recomp.ok && !recomp.exe) add(1, 'Host', 'Game not built this run (--no-build).');
+    add(1, 'Lockstep', 'Recomp and snes9x diverge from NMI counter ~315 (intro fade / loading timing): run `npm run recomp:lockstep` and fix the first divergence (recomp-host.md §3).');
     const cov = pct(m.code + m.data, m.romBytes);
     if (cov < 50) add(1, 'CDL', `Coverage ${p1(cov)} of the ROM recorded: play more rooms, menus, bosses (or scripted headless runs).`);
     if (recomp && recomp.parsed && recomp.parsed.interpreter) add(2, 'snesrecomp', `${recomp.parsed.interpreter} function variants interpreter-only: jump tables / dispatch need targets (record more, or add directives).`);
@@ -101,8 +100,8 @@ function writeReport({ out, romPath, sha1, rom, inputs, exp, rebuild, recomp, lo
         '| Step | Result |', '|---|---|',
         `| Asar rebuild | ${status(rebuild.identical, rebuild.identical ? 'byte-identical' : (rebuild.reason || 'differs at $' + (rebuild.firstDiff >>> 0).toString(16)))} |`,
         `| snesrecomp generate | ${rc} |`,
-        `| Static library | ${recomp.compiled == null ? '— not requested (--compile)' : status(recomp.compiled)} |`,
-        `| Runnable recomp | ${fs.existsSync(process.env.SOE_RECOMP_EXE || path.resolve(__dirname, '../../../SecretOfEvermoreSNESRecomp/build/SecretOfEvermoreSNESRecomp')) ? '✅ host project boots to the intro (recomp-host.md)' : '❌ no host project (recomp-host.md §2)'} |`, '',
+        `| Game (host build) | ${recomp.exe ? '✅ `' + path.relative(out, recomp.dir) + '/` — start with `' + path.basename(recomp.script) + '`' : recomp.skipped ? '— skipped' : recomp.built === false && recomp.ok ? '— not built (--no-build)' : '❌ ' + (recomp.reason || '')} |`,
+        `| Project | ${recomp.project ? '`' + path.relative(out, recomp.project) + '/`' + (recomp.scaffolded ? ' (scaffolded this run)' : '') + (recomp.glue != null ? `, ${recomp.glue} glue file(s) from tools/recomp/host/, ${recomp.seeds.banks} seed banks + ${recomp.seeds.regions} data regions` : '') : '—'} |`, '',
         '## Measures', '',
         '| Measure | Value |', '|---|---|',
         `| ROM recorded by the CDL (code + data) | ${p1(pct(m.code + m.data, m.romBytes))} (${m.code} code, ${m.data} data bytes) |`,
@@ -118,8 +117,10 @@ function writeReport({ out, romPath, sha1, rom, inputs, exp, rebuild, recomp, lo
         '## Outputs', '',
         '- `asar/` — Asar project (`main.asm`, `banks/`, …), `asar/build/out.sfc` + `out.sym` (WLA symbols) + `out.cdl`',
         '- `asar/mesen/labels.mlb`, `asar/mesen/rom.cdl` — load in Mesen2 (Debugger → Import labels / CDL)',
-        '- `asar/recomp/cfg/` — snesrecomp seeds; `asar/recomp/project/generated/` — C',
-        '- `asar.log`, `snesrecomp.log`, `report.json`', '',
+        '- `asar/recomp/cfg/` — snesrecomp seeds (copied into `project/recomp/`)',
+        '- `project/` — the scaffolded host project: generated C in `src/gen/`, our glue from `tools/recomp/host/`, build in `build/`',
+        '- `SecretOfEvermore-<os>-<arch>/` — the game: executable, assets, start script (`play.command` / `play.sh` / `play.bat`)',
+        '- `asar.log`, `recomp-host.log`, `report.json`', '',
         '## Steps', '',
         ...log.map(s => `- ${s.name}: ${(s.ms / 1000).toFixed(1)} s`), '',
     ];

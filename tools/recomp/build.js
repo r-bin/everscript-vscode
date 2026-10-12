@@ -18,6 +18,7 @@ const { exportAsar } = require(path.join(REPO, 'src/emulator/cdl/asar-export'));
 const { romRegions } = require(path.join(REPO, 'src/rom'));
 const { collectNames } = require('./names');
 const { writeReport } = require('./report');
+const { buildHost } = require('./host');
 
 const HELP = `node tools/recomp/build.js [options]      (npm run recomp -- [options])
   --rom <file>         clean ROM (env SOE_ROM)
@@ -26,11 +27,12 @@ const HELP = `node tools/recomp/build.js [options]      (npm run recomp -- [opti
   --asar <bin>         Asar binary (env ASAR; default: asar on PATH, else ../asar/asar/bin/asar)
   --snesrecomp <dir>   snesrecomp checkout (env SNESRECOMP; default: ../snesrecomp)
   --no-recomp          stop after the Asar rebuild
-  --compile            also build snesrecomp's static library (CMake + Ninja)
-  --strict             exit 1 unless the rebuild is byte-identical and snesrecomp succeeded`;
+  --no-build           generate the C in the host project but do not compile / package the game
+  --fresh              delete out/recomp/project and scaffold it again
+  --strict             exit 1 unless the rebuild is byte-identical and the game was built`;
 
 function args(argv) {
-    const o = { recomp: true, compile: false, strict: false };
+    const o = { recomp: true, build: true, fresh: false, strict: false };
     for (let i = 0; i < argv.length; i++) {
         const a = argv[i], next = () => argv[++i];
         if (a === '--help' || a === '-h') { console.log(HELP); process.exit(0); }
@@ -40,7 +42,8 @@ function args(argv) {
         else if (a === '--asar') o.asar = next();
         else if (a === '--snesrecomp') o.snesrecomp = next();
         else if (a === '--no-recomp') o.recomp = false;
-        else if (a === '--compile') o.compile = true;
+        else if (a === '--no-build') o.build = false;
+        else if (a === '--fresh') o.fresh = true;
         else if (a === '--strict') o.strict = true;
         else { console.error('unknown option ' + a + '\n' + HELP); process.exit(2); }
     }
@@ -111,41 +114,16 @@ function main() {
     let recomp = { skipped: true };
     if (o.recomp) {
         const sr = path.resolve(o.snesrecomp || process.env.SNESRECOMP || path.join(REPO, '../snesrecomp'));
-        recomp = step('recomp: snesrecomp generate', () => runSnesrecomp({ sr, asarDir, out, compile: o.compile, rom: rebuild.identical ? path.join(asarDir, 'build/out.sfc') : path.join(asarDir, 'rom.bin') }));
+        recomp = step('recomp: host project (scaffold, glue, seeds, generate' + (o.build ? ', build, package)' : ')'), () => {
+            if (!fs.existsSync(path.join(sr, 'snesrecomp_cli.py'))) return { ok: false, reason: 'snesrecomp not found at ' + sr + ' (--snesrecomp or SNESRECOMP)' };
+            return buildHost({ snesrecomp: sr, romPath, out, seedDir: path.join(asarDir, 'recomp', 'cfg'), fresh: o.fresh, build: o.build });
+        });
+        if (recomp.exe) console.log('   game: ' + path.relative(process.cwd(), recomp.dir) + '  (start: ' + path.basename(recomp.script) + ')');
     }
 
     const report = writeReport({ out, romPath, sha1, map, rom, inputs, exp, rebuild, recomp, log });
     console.log('\n' + report.summary + '\nReport: ' + path.relative(process.cwd(), report.file));
-    if (o.strict && !(rebuild.identical && (recomp.skipped || recomp.ok))) process.exit(1);
-}
-
-function runSnesrecomp({ sr, asarDir, out, compile, rom }) {
-    const cli = path.join(sr, 'snesrecomp_cli.py');
-    if (!fs.existsSync(cli)) return { ok: false, reason: 'snesrecomp not found at ' + sr + ' (--snesrecomp or SNESRECOMP)' };
-    const py = process.env.PYTHON || 'python3';
-    const env = { ...process.env, PATH: path.join(os.homedir(), '.cargo/bin') + ':' + process.env.PATH };
-    const proj = path.join(asarDir, 'recomp', 'project');
-    let text = '';
-    if (!fs.existsSync(path.join(proj, 'CMakeLists.txt'))) {
-        fs.rmSync(proj, { recursive: true, force: true });
-        const s = run(py, [cli, 'build', '--rom', rom, '--output', proj], { env });
-        text += '$ snesrecomp build\n' + s.out + '\n';
-        if (s.status !== 0) { fs.writeFileSync(path.join(out, 'snesrecomp.log'), text); return { ok: false, reason: 'scaffold failed (snesrecomp.log)', status: s.status }; }
-    }
-    const cfgDir = path.join(proj, 'config');
-    for (const f of fs.readdirSync(cfgDir)) if (/^bank.*\.cfg$/.test(f)) fs.rmSync(path.join(cfgDir, f));
-    const seeds = path.join(asarDir, 'recomp', 'cfg');
-    for (const f of fs.readdirSync(seeds)) fs.copyFileSync(path.join(seeds, f), path.join(cfgDir, f));
-    const g = run(py, [cli, 'generate', '--rom', rom, '--project-root', proj, '--cfg-dir', 'config', '--out-dir', 'generated', '--cfg-roots', '--no-host-root-scan'], { env });
-    text += '$ snesrecomp generate\n' + g.out + '\n';
-    let compiled = null;
-    if (g.status === 0 && compile) {
-        const c = run('sh', [path.join(proj, 'build.sh')], { env });
-        text += '$ build.sh\n' + c.out + '\n';
-        compiled = c.status === 0;
-    }
-    fs.writeFileSync(path.join(out, 'snesrecomp.log'), text);
-    return { ok: g.status === 0 && compiled !== false, status: g.status, compiled, output: g.out, project: proj };
+    if (o.strict && !(rebuild.identical && (recomp.skipped || (recomp.ok && (recomp.exe || !o.build))))) process.exit(1);
 }
 
 main();

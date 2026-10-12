@@ -5,7 +5,7 @@
 // both on the NMI frame counter ($7E0100), and compare WRAM at the same counter values.
 // The recomp's RNG state ($0133-$013A) is set to snes9x's value first, because the reset handler
 // seeds it from the PPU H/V counters, which differ between any two emulators.
-//   node tools/recomp/lockstep.js --rom <clean rom> --exe <SoE recomp executable> [--from 295 --to 479 --step 10]
+//   node tools/recomp/lockstep.js --rom <clean rom> [--exe <recomp executable, default: the one npm run recomp built>] [--from 295 --to 479 --step 10]
 
 const fs = require('fs');
 const os = require('os');
@@ -30,7 +30,9 @@ function args(argv) {
         o[k] = ['from', 'to', 'step'].includes(k) ? Number(v) : v;
     }
     o.rom = o.rom || process.env.SOE_ROM;
-    o.exe = o.exe || process.env.SOE_RECOMP_EXE || path.resolve(REPO, '../SecretOfEvermoreSNESRecomp/build/SecretOfEvermoreSNESRecomp');
+    const { platformTag } = require('./host');
+    o.exe = o.exe || process.env.SOE_RECOMP_EXE
+        || path.join(REPO, 'out', 'recomp', 'SecretOfEvermore-' + platformTag(), 'SecretOfEvermore' + (process.platform === 'win32' ? '.exe' : ''));
     if (!o.rom || !fs.existsSync(o.rom) || !fs.existsSync(o.exe)) {
         console.error('usage: lockstep.js --rom <clean rom> --exe <recomp executable> [--from N --to N --step N]');
         process.exit(2);
@@ -71,7 +73,10 @@ function referenceRun(rom, wanted) {
 function recompRun(exe, romPath, wanted, rng, dir) {
     const hex = n => n.toString(16).toUpperCase();
     const lines = ['turbo on', `until16 100 == ${hex(SYNC_AT)}`, `poke ${hex(RNG[0])} ${rng.toString('hex')}`];
-    for (const c of wanted) lines.push(`until16 100 == ${hex(c)}`, `dump c${c}`);
+    for (const c of wanted) {
+        if (c <= SYNC_AT) continue;   // up to the RNG sync (the poke takes a frame): not comparable
+        lines.push(`until16 100 == ${hex(c)}`, `dump c${c}`);
+    }
     lines.push('quit');
     const script = path.join(dir, 'lockstep.txt');
     fs.writeFileSync(script, lines.join('\n') + '\n');
@@ -97,16 +102,19 @@ async function main() {
     if (!ref.has(SYNC_AT)) { console.error('snes9x never reached counter ' + SYNC_AT); process.exit(1); }
     const rec = recompRun(o.exe, o.rom, wanted, ref.get(SYNC_AT).subarray(...RNG), dir);
     console.log('counter  differing WRAM bytes (timing noise excluded)  first addresses');
-    let first = null;
+    let first = null, compared = 0;
     for (const c of wanted) {
         const a = rec.get(c), b = ref.get(c);
+        if (c <= SYNC_AT) { console.log(String(c).padStart(7) + '  skipped (RNG sync at ' + SYNC_AT + ')'); continue; }
         if (!a || !b) { console.log(String(c).padStart(7) + '  missing (' + (!a ? 'recomp' : 'snes9x') + ')'); continue; }
+        compared++;
         const diff = [];
         for (let i = 0; i < 0x20000; i++) if (a[i] !== b[i] && !NOISE.has(i)) diff.push(i);
         if (diff.length && first === null) first = c;
         console.log(String(c).padStart(7) + '  ' + String(diff.length).padStart(6) + '  ' + diff.slice(0, 10).map(i => '$' + i.toString(16).toUpperCase().padStart(4, '0')).join(' '));
     }
-    console.log(first === null ? '\nIdentical at every checked counter.' : `\nFirst divergence at counter ${first}. Dumps: ${dir}`);
+    if (!compared) { console.log(`\nNothing compared: see ${dir}/recomp.log`); process.exit(1); }
+    console.log(first === null ? `\nIdentical at all ${compared} checked counters.` : `\nFirst divergence at counter ${first}. Dumps: ${dir}`);
 }
 
 main();
