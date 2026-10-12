@@ -100,8 +100,12 @@ function packageGame({ project, out, romPath }) {
     const built = [path.join(project, 'build', exeName), path.join(project, 'build', 'Release', exeName)].find(p => fs.existsSync(p));
     if (!built) return { ok: false, reason: 'executable not found in project/build' };
     const dir = path.join(out, 'SecretOfEvermore-' + tag);
-    fs.rmSync(dir, { recursive: true, force: true });
+    // Replace only what this step writes: saves/ (SRAM + save states), config.ini and keybinds.ini
+    // belong to the player and survive every rebuild.
     fs.mkdirSync(dir, { recursive: true });
+    for (const f of ['SecretOfEvermore', 'SecretOfEvermore.exe', 'assets', 'mods', 'play.command', 'play.sh', 'play.bat']) {
+        fs.rmSync(path.join(dir, f), { recursive: true, force: true });
+    }
     const exe = path.join(dir, 'SecretOfEvermore' + (process.platform === 'win32' ? '.exe' : ''));
     fs.copyFileSync(built, exe);
     fs.chmodSync(exe, 0o755);
@@ -149,4 +153,4 @@ function buildHost({ snesrecomp, romPath, out, seedDir, fresh, build }) {
     return { ...res, ...pkg, built: true, ok: pkg.ok };
 }
 
-module.exports = { buildHost, platformTag, applySeeds, hookMain };
+module.exports = { buildHost, platformTag, applySeeds, hookMain, packageGame };

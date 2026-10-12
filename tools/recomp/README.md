@@ -19,7 +19,7 @@ open "out/recomp/SecretOfEvermore-macos-arm64/play.command"       # play (Linux:
 | 2. Export | the above | `asar/`: `main.asm`, `banks/*.asm` with **our function names** and **line comments** (callers, accesses, jump targets, curated descriptions), `ram.asm`, `structs.h`, `tables/`, `functions.json`; `asar/mesen/labels.mlb` + `asar/mesen/rom.cdl` (Mesen2); `asar/recomp/cfg/` (snesrecomp seeds, named) |
 | 3. Rebuild | `asar/` | `asar/build/out.sfc` (must equal the ROM byte for byte), `out.sym` (WLA symbols), `out.cdl`; `asar.log` |
 | 4. Host project | seeds + clean ROM + `tools/recomp/host/` | `project/`: snesrecomp's scaffold (first run or `--fresh`; clones the framework submodules), our glue laid over it, seeds in `project/recomp/`, generated C in `project/src/gen/`, build in `project/build/`; `recomp-host.log` |
-| 5. Game | the build | **`SecretOfEvermore-<os>-<arch>/`**: executable, `assets/`, `mods/`, start script with the ROM path (`play.command` / `play.sh` / `play.bat`) |
+| 5. Game | the build | **`SecretOfEvermore-<os>-<arch>/`**: executable, `assets/`, `mods/`, start script with the ROM path (`play.command` / `play.sh` / `play.bat`); `saves/`, `config.ini`, `keybinds.ini` survive rebuilds |
 | 6. Report | all of the above | `REPORT.md`, `report.json`: status per step, measures, a prioritised to-do list |
 
 Names become identifiers valid in Asar, C and Mesen (`Random number generator` →

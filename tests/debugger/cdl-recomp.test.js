@@ -303,6 +303,26 @@ test('host main.c hook: after_config field + declaration, idempotent, refuses an
     assert.strictEqual(hookMain(proj).ok, false);
 });
 
+test('host package: rebuild replaces the game but keeps saves and settings', () => {
+    const { packageGame, platformTag } = require('../../tools/recomp/host');
+    const proj = path.join(tmp, 'pkgproj'), out = path.join(tmp, 'pkgout');
+    const exe = 'SecretOfEvermoreSNESRecomp' + (process.platform === 'win32' ? '.exe' : '');
+    fs.mkdirSync(path.join(proj, 'build', 'assets'), { recursive: true });
+    fs.writeFileSync(path.join(proj, 'build', exe), 'v1');
+    fs.writeFileSync(path.join(proj, 'build', 'assets', 'font.bin'), 'f');
+    const first = packageGame({ project: proj, out, romPath: '/roms/soe.smc' });
+    assert.ok(first.ok && first.dir.endsWith('SecretOfEvermore-' + platformTag()));
+    fs.mkdirSync(path.join(first.dir, 'saves'));
+    fs.writeFileSync(path.join(first.dir, 'saves', 'save.srm'), 'progress');
+    fs.writeFileSync(path.join(first.dir, 'config.ini'), 'mine');
+    fs.writeFileSync(path.join(proj, 'build', exe), 'v2');
+    packageGame({ project: proj, out, romPath: '/roms/soe.smc' });
+    assert.strictEqual(fs.readFileSync(first.exe, 'utf8'), 'v2', 'game replaced');
+    assert.strictEqual(fs.readFileSync(path.join(first.dir, 'saves', 'save.srm'), 'utf8'), 'progress', 'save kept');
+    assert.strictEqual(fs.readFileSync(path.join(first.dir, 'config.ini'), 'utf8'), 'mine', 'settings kept');
+    assert.ok(fs.readFileSync(first.script, 'utf8').includes('/roms/soe.smc'));
+});
+
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);
