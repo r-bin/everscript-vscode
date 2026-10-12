@@ -113,6 +113,14 @@ function writeRecompSeeds({ lib, rom, map, index, known, outDir }) {
         }
     }
 
+    // Dropping the root is not enough: snesrecomp rediscovers an excluded routine as the target of a
+    // compiled caller's JSL and compiles it anyway ($80:9033 from $90:D749 corrupted the OBJ tile LRU
+    // lists, v0.201.19). force_lle keeps the boundary on the interpreter for every caller.
+    const forced = new Set([...(FUNC_EXCLUSIONS || new Map()).keys()].map(bus => (0x800000 | (bus & 0x3FFFFF)) >>> 0));
+    for (const pc24 of [...forced].sort((a, b) => a - b)) {
+        bankLines(pc24 >>> 16).push(`force_lle ${hex(pc24, 6).toLowerCase()}    # ${FUNC_EXCLUSIONS.get(pc24)}`);
+    }
+
     const dispatch = rom ? dispatchDirectives({ lib, rom, map }) : { lines: new Map(), counts: { indexed: 0, pointer: 0, rtsstack: 0, comments: 0 } };
     for (const [bank, lines] of dispatch.lines) bankLines(bank).push(...lines);
     const labelOf = bus => { const o = map.busToRom(bus); return (o >= 0 && index.labelName(o)) || '$' + hex(bus, 6); };
