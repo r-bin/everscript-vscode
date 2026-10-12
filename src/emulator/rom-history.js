@@ -82,9 +82,24 @@ function calcCrc32(bytes) {
   return (crc ^ 0xFFFFFFFF) >>> 0;
 }
 
-function detectRomDetails(target) {
+function isCustomMapPath(target, hintPath) {
+  const p = String(typeof target === 'string' ? target : (hintPath || '')).toLowerCase();
+  const base = path.basename(p);
+  return base.endsWith('_emulator.sfc') || base.endsWith('_emulator.smc') || base.includes('_emulator.');
+}
+
+function extractCustomMapName(target, hintPath) {
+  const p = String(typeof target === 'string' ? target : (hintPath || ''));
+  const base = path.basename(p);
+  const m = base.match(/^(.+?)_emulator\.(sfc|smc)$/i);
+  if (m) return m[1];
+  return base.replace(/\.(sfc|smc)$/i, '');
+}
+
+function detectRomDetails(target, hintPath) {
   try {
     let buf = null;
+    let targetPath = typeof target === 'string' ? target : (hintPath || '');
     if (typeof target === 'string') {
       if (!fs.existsSync(target)) return null;
       buf = fs.readFileSync(target);
@@ -97,7 +112,46 @@ function detectRomDetails(target) {
     const sha1 = crypto.createHash('sha1').update(clean).digest('hex').toLowerCase();
     const crc = calcCrc32(clean).toString(16).padStart(8, '0').toLowerCase();
 
-    // 1. Known Evermore releases
+    // 1. Path-based custom map detection (e.g. *_emulator.sfc from the map editor)
+    const customByPath = isCustomMapPath(target, hintPath);
+    const introOffset = 0x12e0ca;
+    const customByContent = clean.length >= 0x300000 && clean[introOffset] === 0x22 && clean[introOffset + 4] === 0x00 && clean[introOffset + 5] === 0x00;
+
+    if (customByPath || customByContent) {
+      const customName = extractCustomMapName(target, hintPath) || 'custom_map';
+      const targetRoom = customByContent ? clean[introOffset + 3] : 0x15;
+      let previewDataUri = '';
+      let roomWidth = 16;
+      let roomHeight = 14;
+      try {
+        const room = maps.decodeRoom(clean, targetRoom);
+        if (room && room.header) {
+          roomWidth = room.header.widthTiles;
+          roomHeight = room.header.heightTiles;
+          const composite = maps.renderRoomComposite(clean, room);
+          if (composite) previewDataUri = maps.encodePngDataUri(composite);
+        }
+      } catch (_) {}
+
+      return {
+        known: false,
+        isCustomMap: true,
+        customName: customName,
+        vfsUri: 'soe://rom/maps/custom/' + encodeURIComponent(customName),
+        targetRoom: targetRoom,
+        roomWidth: roomWidth,
+        roomHeight: roomHeight,
+        previewDataUri: previewDataUri || '',
+        region: 'MAP',
+        regionName: 'Custom Map (' + customName + ')',
+        icon: 'MAP',
+        flag: 'MAP',
+        sha1: sha1,
+        crc32: crc,
+      };
+    }
+
+    // 2. Known Evermore releases
     const match = KNOWN_EVERMORE_HASHES.find(h => h.sha1 === sha1 || h.crc32 === crc);
     if (match) {
       return {
@@ -111,42 +165,6 @@ function detectRomDetails(target) {
         sha1: sha1,
         crc32: crc,
       };
-    }
-
-    // 2. Custom map showcase ROM detection
-    // BuildExportRom patches intro jump at $92E0CA (file offset 0x12E0CA):
-    // OP_CHANGE_MAP (0x22), at.x, at.y, roomId (0x15), 0x00, OP_END (0x00)
-    if (clean.length >= 0x300000 && clean.length <= 0x500000) {
-      const introOffset = 0x12e0ca;
-      if (clean[introOffset] === 0x22 && clean[introOffset + 4] === 0x00 && clean[introOffset + 5] === 0x00) {
-        const targetRoom = clean[introOffset + 3];
-        if (targetRoom >= 0 && targetRoom <= 0x7e) {
-          try {
-            const room = maps.decodeRoom(clean, targetRoom);
-            if (room && room.header) {
-              let previewDataUri = '';
-              try {
-                const composite = maps.renderRoomComposite(clean, room);
-                if (composite) previewDataUri = maps.encodePngDataUri(composite);
-              } catch (_) {}
-              return {
-                known: false,
-                isCustomMap: true,
-                targetRoom: targetRoom,
-                roomWidth: room.header.widthTiles,
-                roomHeight: room.header.heightTiles,
-                previewDataUri: previewDataUri || '',
-                region: 'MAP',
-                regionName: 'Custom Map (Room ' + targetRoom + ')',
-                icon: 'MAP',
-                flag: 'MAP',
-                sha1: sha1,
-                crc32: crc,
-              };
-            }
-          } catch (_) {}
-        }
-      }
     }
 
     // 3. Fallback: unknown / mod / hack
@@ -311,9 +329,9 @@ function recordRomUsage(entry, context) {
 
   let details = null;
   if (filePath && fs.existsSync(filePath)) {
-    details = detectRomDetails(filePath);
+    details = detectRomDetails(filePath, filePath || name);
   } else if (entry.romBuffer) {
-    details = detectRomDetails(entry.romBuffer);
+    details = detectRomDetails(entry.romBuffer, filePath || name);
   }
 
   const list = readHistoryFile(storageDir);
@@ -333,6 +351,8 @@ function recordRomUsage(entry, context) {
   filtered.unshift({
     path: filePath,
     name: name,
+    customName: (details && details.customName) || '',
+    vfsUri: (details && details.vfsUri) || '',
     kind: (details && details.isCustomMap) ? 'editor' : kind,
     lastUsed: now,
     size: size,
@@ -379,12 +399,14 @@ function getRecentRoms(storageDir) {
           exists = true;
           if (!size) size = fs.statSync(item.path).size;
           if (!item.icon || item.icon === '?' || (item.isCustomMap && !item.previewDataUri)) {
-            const d = detectRomDetails(item.path);
+            const d = detectRomDetails(item.path, item.path || item.name);
             if (d) {
               item.icon = d.icon;
               item.region = d.region;
               item.regionName = d.regionName;
               item.isCustomMap = d.isCustomMap;
+              if (d.customName) item.customName = d.customName;
+              if (d.vfsUri) item.vfsUri = d.vfsUri;
               if (d.previewDataUri) item.previewDataUri = d.previewDataUri;
               changed = true;
             }
@@ -395,6 +417,8 @@ function getRecentRoms(storageDir) {
     return {
       path: item.path || '',
       name: item.name || (item.path ? path.basename(item.path) : 'ROM'),
+      customName: item.customName || '',
+      vfsUri: item.vfsUri || (item.isCustomMap ? ('soe://rom/maps/custom/' + encodeURIComponent(item.customName || item.name)) : ''),
       kind: item.kind || 'file',
       badge: getBadge(item.kind),
       lastUsed: item.lastUsed || 0,

@@ -354,109 +354,89 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       max-height: 170px; overflow-y: auto; padding-right: 2px;
     }
     .recent-rom-item {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 6px 10px; background: #151518; border: 1px solid #222228;
-      border-radius: 5px; cursor: pointer; transition: background 0.12s, border-color 0.12s;
+      display: flex; align-items: center; gap: 14px;
+      padding: 8px 12px; background: #15151a; border: 1px solid #252530;
+      border-radius: 6px; cursor: pointer; transition: all 0.12s ease;
       user-select: none; text-align: left;
     }
     .recent-rom-item:hover {
-      background: #1e1e24; border-color: #353540;
+      background: #1d1d26; border-color: #383848;
+    }
+    .recent-rom-item.keyboard-focused, .rom-action-btn.keyboard-focused, .clear-recent-btn.keyboard-focused {
+      outline: 2px solid #4ec9b0 !important; outline-offset: 1px !important;
+      box-shadow: 0 0 10px rgba(78, 201, 176, 0.45) !important;
+      background: rgba(78, 201, 176, 0.08) !important;
     }
     .recent-rom-item.missing {
       opacity: 0.45; cursor: not-allowed;
     }
-    .recent-rom-left {
-      display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;
-    }
-    .rom-region-badge {
-      display: inline-flex; align-items: center; justify-content: center;
-      padding: 1px 5px; border-radius: 3px; font-size: 9px; font-weight: bold;
-      font-family: monospace; margin-right: 2px; background: #252530; color: #4ec9b0;
-      border: 1px solid #3c3c4e; flex-shrink: 0;
-    }
-    .rom-region-badge.badge-US { color: #569cd6; border-color: #2b4c6e; background: rgba(86, 156, 214, 0.12); }
-    .rom-region-badge.badge-EU { color: #dcdcaa; border-color: #5c5c36; background: rgba(220, 220, 170, 0.12); }
-    .rom-region-badge.badge-DE { color: #ce9178; border-color: #5c3c32; background: rgba(206, 145, 120, 0.12); }
-    .rom-region-badge.badge-FR { color: #4ec9b0; border-color: #245248; background: rgba(78, 201, 176, 0.12); }
-    .rom-region-badge.badge-ES { color: #c586c0; border-color: #583355; background: rgba(197, 134, 192, 0.12); }
-    .rom-region-badge.badge-MAP { color: #6f9; border-color: #2e7d32; background: rgba(102, 255, 153, 0.12); }
-    .rom-region-badge.badge-unk { color: #888; border-color: #444; background: rgba(120, 120, 120, 0.12); }
 
-    .recent-rom-thumb {
-      width: 34px; height: 30px; object-fit: cover;
-      border-radius: 3px; border: 1px solid #383848; background: #000;
-      image-rendering: pixelated; margin-right: 6px; flex-shrink: 0;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    .recent-rom-square {
+      width: 68px; height: 68px; min-width: 68px; min-height: 68px;
+      border-radius: 6px; overflow: hidden; background: #0c0c10;
+      border: 1px solid #2e2e3e; display: flex; align-items: center; justify-content: center;
+      position: relative; flex-shrink: 0; box-shadow: inset 0 0 6px rgba(0,0,0,0.6);
     }
-    .recent-rom-right {
-      display: flex; align-items: center; flex-shrink: 0; margin-left: 8px;
+    .recent-rom-square img {
+      width: 100%; height: 100%; object-fit: cover;
+      image-rendering: pixelated; display: block;
     }
-    .recent-rom-item.keyboard-focused, .rom-action-btn.keyboard-focused, .clear-recent-btn.keyboard-focused {
-      outline: 2px solid #4ec9b0 !important; outline-offset: 1px !important;
-      box-shadow: 0 0 8px rgba(78, 201, 176, 0.45) !important;
-      background: rgba(78, 201, 176, 0.08) !important;
+    .recent-rom-square-badge {
+      font-size: 20px; font-weight: bold; font-family: monospace;
+      letter-spacing: 0.05em; color: #8899aa;
+    }
+    .recent-rom-square-badge.badge-US { color: #569cd6; }
+    .recent-rom-square-badge.badge-EU { color: #dcdcaa; }
+    .recent-rom-square-badge.badge-DE { color: #ce9178; }
+    .recent-rom-square-badge.badge-FR { color: #4ec9b0; }
+    .recent-rom-square-badge.badge-ES { color: #c586c0; }
+    .recent-rom-square-badge.badge-unk { color: #667788; }
+
+    .recent-rom-info {
+      flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column;
+      justify-content: center; gap: 6px;
     }
     .recent-rom-name {
-      font-size: 12px; color: #ddd; font-weight: 500;
+      font-size: 13px; color: #eee; font-weight: 600;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      line-height: 1.25;
     }
-    .recent-rom-badge {
-      font-size: 9px; font-family: monospace; font-weight: 600;
-      padding: 1px 5px; border-radius: 3px; flex-shrink: 0;
-      text-transform: uppercase; letter-spacing: 0.02em;
+    .recent-rom-details {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 11px; color: #888899; font-family: monospace;
+      line-height: 1.2;
     }
-    .badge-editor {
-      background: rgba(147, 51, 234, 0.18); color: #d8b4fe; border: 1px solid rgba(147, 51, 234, 0.4);
+    .recent-rom-pill {
+      padding: 1px 5px; border-radius: 3px; font-size: 9px; font-weight: bold;
+      font-family: monospace; border: 1px solid #3c3c4e; background: #20202a;
     }
-    .badge-vanilla {
-      background: rgba(234, 179, 8, 0.18); color: #fde047; border: 1px solid rgba(234, 179, 8, 0.4);
-    }
-    .badge-build {
-      background: rgba(59, 130, 246, 0.18); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.4);
-    }
-    .badge-file, .badge-dropped {
-      background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.3);
-    }
-    .recent-rom-meta {
-      font-size: 10px; color: #777; font-family: monospace; white-space: nowrap; flex-shrink: 0;
-    }
+    .recent-rom-pill.badge-US { color: #569cd6; border-color: #2b4c6e; background: rgba(86, 156, 214, 0.12); }
+    .recent-rom-pill.badge-EU { color: #dcdcaa; border-color: #5c5c36; background: rgba(220, 220, 170, 0.12); }
+    .recent-rom-pill.badge-DE { color: #ce9178; border-color: #5c3c32; background: rgba(206, 145, 120, 0.12); }
+    .recent-rom-pill.badge-FR { color: #4ec9b0; border-color: #245248; background: rgba(78, 201, 176, 0.12); }
+    .recent-rom-pill.badge-ES { color: #c586c0; border-color: #583355; background: rgba(197, 134, 192, 0.12); }
 
-    /* -- Resizer & Sidebar panel ----------------------------------- */
+    /* -- Resizer & Bottom panel ------------------------------------ */
     #main-container {
-      display: flex; flex-direction: row; width: 100%; height: 100%;
+      display: flex; flex-direction: column; width: 100%; height: 100%;
       overflow: hidden; position: relative;
-    }
-    .sidebar-expand-btn {
-      position: absolute; top: 10px; right: 10px; z-index: 25;
-      background: rgba(24, 24, 30, 0.85); color: #99aabb;
-      border: 1px solid #3c3c4a; border-radius: 4px;
-      padding: 4px 8px; font-size: 10px; font-weight: bold;
-      font-family: inherit; cursor: pointer; display: none;
-      transition: all 0.15s;
-    }
-    .sidebar-expand-btn:hover {
-      background: #282835; color: #fff; border-color: #007acc;
-    }
-    #screen-wrap.sidebar-hidden .sidebar-expand-btn {
-      display: block;
     }
 
     #ss-resizer {
-      width: 5px; height: 100%; background: #1c1c22; cursor: col-resize; flex-shrink: 0;
-      border-left: 1px solid #2e2e38; border-right: 1px solid #111;
+      height: 5px; width: 100%; background: #1c1c22; cursor: row-resize; flex-shrink: 0;
+      border-top: 1px solid #2e2e38; border-bottom: 1px solid #111;
       transition: background 0.15s;
     }
     #ss-resizer:hover, #ss-resizer.dragging { background: #007acc; }
-    #ss-resizer.collapsed { display: none !important; }
 
     #script-stack {
-      width: 380px; min-width: 220px; max-width: 65vw; height: 100%;
-      background: #0d0d0d; border-left: 1px solid #2a2a35;
+      height: 260px; min-height: 80px; max-height: calc(100vh - 100px); width: 100%;
+      background: #0d0d0d; border-top: 1px solid #2a2a35;
       font-size: 11px; display: none; flex-direction: column; overflow: hidden; flex-shrink: 0;
     }
     #script-stack.visible { display: flex; }
     #script-stack.collapsed {
-      display: none !important;
+      height: 28px !important; min-height: 28px !important;
     }
     #ss-header {
       background: #16161c; padding: 4px 8px;
@@ -602,7 +582,6 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       ${getCdlFloatHtml()}
       ${getTasOverlayHtml()}
       ${getMenuHtml()}
-      <button id="sidebar-expand-btn" class="sidebar-expand-btn" type="button" title="Open Sidebar">&lt; SIDEBAR</button>
       <div id="screen-overlay-bar">
         <button id="screen-menu-btn" class="screen-chip" type="button" title="Quick Menu (Start)">MENU</button>
         <button id="screen-extend-toggle" class="screen-chip active" type="button" title="Toggle Extended Map">MAP EXT ON</button>
@@ -625,16 +604,16 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       </div>
     </div>
 
-    <div id="ss-resizer" title="Drag to resize sidebar"></div>
+    <div id="ss-resizer" title="Drag to resize panel"></div>
 
     <div id="script-stack">
       <div id="ss-header">
         <div id="ss-header-top">
-          <span id="ss-header-title">EMULATOR SIDEBAR</span>
+          <span id="ss-header-title">EMULATOR</span>
           <div id="ss-controls">
             <button id="ss-pause-btn"  class="ss-btn" disabled>pause</button>
             <button id="ss-resume-btn" class="ss-btn" disabled>resume</button>
-            <button id="ss-toggle-btn" class="ss-btn" title="Toggle Sidebar">hide sidebar</button>
+            <button id="ss-toggle-btn" class="ss-btn" title="Toggle Panel">hide panel</button>
           </div>
         </div>
         <div id="ss-tabs">
@@ -840,53 +819,56 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
           for (const item of data.recent) {
             const row = document.createElement('div');
             row.className = 'recent-rom-item' + (item.exists ? '' : ' missing');
-            row.title = (item.isCustomMap ? '[Custom Map] ' : '') + (item.path || item.name);
+            row.title = (item.isCustomMap ? ('[Custom Map] ' + (item.vfsUri ? item.vfsUri + '\n' : '')) : '') + (item.path || item.name);
 
-            const left = document.createElement('div');
-            left.className = 'recent-rom-left';
-
-            // Region / Type icon badge
-            const regBadge = document.createElement('span');
-            const reg = item.region || (item.isCustomMap ? 'MAP' : '?');
-            regBadge.className = 'rom-region-badge badge-' + reg;
-            regBadge.textContent = item.icon || (item.isCustomMap ? 'MAP' : '?');
-            regBadge.title = item.regionName || (item.isCustomMap ? 'Custom Map' : 'Unknown ROM');
-            left.appendChild(regBadge);
-
-            const badge = document.createElement('span');
-            badge.className = 'recent-rom-badge badge-' + (item.isCustomMap ? 'editor' : (item.kind || 'file'));
-            badge.textContent = item.isCustomMap ? 'Custom Map' : (item.badge || item.kind);
-
-            const nameSpan = document.createElement('span');
-            nameSpan.className = 'recent-rom-name';
-            nameSpan.textContent = item.name;
-
-            left.appendChild(badge);
-            left.appendChild(nameSpan);
-
-            const right = document.createElement('div');
-            right.className = 'recent-rom-right';
-
+            // Left: Big square for map preview or region badge
+            const square = document.createElement('div');
+            square.className = 'recent-rom-square';
             if (item.previewDataUri) {
-              const thumb = document.createElement('img');
-              thumb.className = 'recent-rom-thumb';
-              thumb.src = item.previewDataUri;
-              thumb.alt = 'Map Preview';
-              thumb.title = 'Custom Map Preview (Room ' + (item.targetRoom != null ? item.targetRoom : '0x15') + ')';
-              right.appendChild(thumb);
+              const img = document.createElement('img');
+              img.src = item.previewDataUri;
+              img.alt = 'Map Preview';
+              img.title = item.isCustomMap ? ('Custom Map: ' + (item.customName || item.name)) : 'ROM Preview';
+              square.appendChild(img);
+            } else {
+              const badge = document.createElement('div');
+              const reg = item.region || '?';
+              badge.className = 'recent-rom-square-badge badge-' + (reg === '?' ? 'unk' : reg);
+              badge.textContent = item.icon || reg;
+              square.appendChild(badge);
+            }
+
+            // Right: Information (upper name, lower details)
+            const info = document.createElement('div');
+            info.className = 'recent-rom-info';
+
+            const nameEl = document.createElement('div');
+            nameEl.className = 'recent-rom-name';
+            nameEl.textContent = item.isCustomMap && item.customName ? item.customName : item.name;
+
+            const detailsEl = document.createElement('div');
+            detailsEl.className = 'recent-rom-details';
+
+            if (item.region && item.region !== 'MAP' && item.region !== '?') {
+              const regPill = document.createElement('span');
+              regPill.className = 'recent-rom-pill badge-' + item.region;
+              regPill.textContent = item.region;
+              detailsEl.appendChild(regPill);
             }
 
             const metaSpan = document.createElement('span');
-            metaSpan.className = 'recent-rom-meta';
             const metaParts = [];
             if (item.sizeFormatted) metaParts.push(item.sizeFormatted);
             if (item.timeFormatted) metaParts.push(item.timeFormatted);
             if (!item.exists) metaParts.push('(missing)');
-            metaSpan.textContent = metaParts.join(' - ');
-            right.appendChild(metaSpan);
+            metaSpan.textContent = metaParts.join(' \u2022 ');
+            detailsEl.appendChild(metaSpan);
 
-            row.appendChild(left);
-            row.appendChild(right);
+            info.appendChild(nameEl);
+            info.appendChild(detailsEl);
+
+            row.appendChild(square);
+            row.appendChild(info);
 
             row.addEventListener('click', () => {
               if (item.exists) {
@@ -903,6 +885,9 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
           }
         } else {
           recentSection.style.display = 'none';
+        }
+        if (!romLoaded) {
+          setOverlayFocus(0);
         }
       }
     }
@@ -3669,25 +3654,14 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     }
 
     const toggleStackBtn = document.getElementById('ss-toggle-btn');
-    const sidebarExpandBtn = document.getElementById('sidebar-expand-btn');
-    function setSidebarCollapsed(collapsed) {
-      const stack = document.getElementById('script-stack');
-      const screenWrap = document.getElementById('screen-wrap');
-      if (stack) stack.classList.toggle('collapsed', collapsed);
-      if (screenWrap) screenWrap.classList.toggle('sidebar-hidden', collapsed);
-      if (toggleStackBtn) toggleStackBtn.textContent = collapsed ? 'show sidebar' : 'hide sidebar';
-      window.dispatchEvent(new Event('resize'));
-    }
     if (toggleStackBtn) {
       toggleStackBtn.addEventListener('click', () => {
         const stack = document.getElementById('script-stack');
-        const isCollapsed = stack ? !stack.classList.contains('collapsed') : true;
-        setSidebarCollapsed(isCollapsed);
-      });
-    }
-    if (sidebarExpandBtn) {
-      sidebarExpandBtn.addEventListener('click', () => {
-        setSidebarCollapsed(false);
+        if (!stack) return;
+        stack.classList.toggle('collapsed');
+        const isCollapsed = stack.classList.contains('collapsed');
+        toggleStackBtn.textContent = isCollapsed ? 'show panel' : 'hide panel';
+        window.dispatchEvent(new Event('resize'));
       });
     }
 
@@ -4035,23 +4009,23 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     const resizer = document.getElementById('ss-resizer');
     if (resizer) {
       let isDragging = false;
-      let startX = 0;
-      let startW = 0;
+      let startY = 0;
+      let startH = 0;
       resizer.addEventListener('mousedown', (e) => {
         isDragging = true;
-        startX = e.clientX;
+        startY = e.clientY;
         const stackEl = document.getElementById('script-stack');
-        startW = stackEl ? stackEl.getBoundingClientRect().width : 380;
-        document.body.style.cursor = 'col-resize';
+        startH = stackEl ? stackEl.getBoundingClientRect().height : 260;
+        document.body.style.cursor = 'row-resize';
         document.body.style.userSelect = 'none';
         e.preventDefault();
       });
       window.addEventListener('mousemove', (e) => {
         if (!isDragging) return;
-        const delta = startX - e.clientX;
-        const newW = Math.max(200, Math.min(window.innerWidth * 0.65, startW + delta));
+        const delta = startY - e.clientY;
+        const newH = Math.max(80, Math.min(window.innerHeight - 100, startH + delta));
         const stackEl = document.getElementById('script-stack');
-        if (stackEl) stackEl.style.width = newW + 'px';
+        if (stackEl) stackEl.style.height = newH + 'px';
         window.dispatchEvent(new Event('resize'));
       });
       window.addEventListener('mouseup', () => {

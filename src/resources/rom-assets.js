@@ -51,6 +51,28 @@ function resolveAssets(segments, rom, deps) {
         const sIdx = segments.indexOf('scripts');
         return resolveScripts(['rooms', id, ...segments.slice(sIdx + 1)], rom);
     }
+    if (kind === 'maps' && id === 'custom') {
+        const customName = leaf;
+        const subLeaf = extra[0];
+        if (customName === undefined) {
+            return dir([['index.json', 'file']]);
+        }
+        const renderPngNode = file(() => {
+            if (!rom) throw new Error('ROM required for custom map render');
+            const clean = (rom.length % 1024 === 512) ? rom.subarray(512) : rom;
+            const rId = 0x15;
+            const d = decodeRoom(clean, rId);
+            if (!d) throw new Error('Custom room ' + hexId(rId, 2) + ' not found in ROM');
+            return encodePng(renderRoomComposite(clean, d));
+        });
+        if (subLeaf === undefined || subLeaf === 'render.png') {
+            return renderPngNode;
+        }
+        if (subLeaf === 'info.md') {
+            return text(() => '# Custom Map: ' + customName + '\n\nCompiled into Room 0x15.\n');
+        }
+        return null;
+    }
     if (kind === 'maps' && (leaf === 'objects' || extra.includes('objects'))) {
         const { resolveRoomObjects } = require('./map-objects');
         const oIdx = segments.indexOf('objects');

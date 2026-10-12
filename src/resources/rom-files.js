@@ -36,7 +36,7 @@ function resolveRom(segments, rom, deps) {
     }
     if (head === 'assets') return resolveAssets(rest, rom, deps);
     // Backward-compatibility: route unlisted direct asset categories to resolveAssets
-    if (head === 'scripts' || head === 'characters' || head === 'audio' || head === 'tables' || head === 'tiles') {
+    if (head === 'maps' || head === 'scripts' || head === 'characters' || head === 'audio' || head === 'tables' || head === 'tiles') {
         return resolveAssets(segments, rom, deps);
     }
     if (rest.length === 0) {

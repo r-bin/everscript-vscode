@@ -167,6 +167,17 @@ test('detectRomDetails returns ? for unknown ROM buffers', () => {
   assert.strictEqual(details.region, '?');
 });
 
+test('detectRomDetails detects custom map ROM by path name', () => {
+  const { detectRomDetails } = require('../../src/emulator/rom-history');
+  const dummy = Buffer.alloc(0x300000);
+  const details = detectRomDetails(dummy, '/path/to/Copy_of_Shops_emulator.sfc');
+  assert.ok(details);
+  assert.strictEqual(details.isCustomMap, true);
+  assert.strictEqual(details.customName, 'Copy_of_Shops');
+  assert.strictEqual(details.vfsUri, 'soe://rom/maps/custom/Copy_of_Shops');
+  assert.strictEqual(details.region, 'MAP');
+});
+
 console.log(`\nResults: ${passed} passed, ${failed} failed\n`);
 if (failed > 0) process.exit(1);
 
