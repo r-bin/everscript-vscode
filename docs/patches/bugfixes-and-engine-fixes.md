@@ -118,3 +118,4 @@ A collection of targeted 65816 assembly patches created by community reverse-eng
 ### SPC700 Sound Delay & Driver Synchronization
 - **The Bug:** On hardware and accurate SNES emulators, audio sample streaming between the 65816 CPU and the SPC700 audio coprocessor would occasionally stall when sound effects were triggered during heavy DMA transfers (such as screen transitions or Mode 7 sequences), causing audible audio latency or missed notes.
 - **The Fix:** Optimizes the audio command queue handshake in the sound driver upload block to prevent CPU-SPC700 race conditions.
+

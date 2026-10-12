@@ -122,3 +122,4 @@ Vanilla Barrier lasts 45 seconds and consumes 1 Limestone and 2 Wax. Limestone i
 ### Verminator (Sewers Boss)
 - In vanilla SoE, Verminator has a 5/16 probability of rolling **Explosion**. He frequently double-casts it on the Boy, dealing over 600 damage and killing the player instantly from full health without counterplay.
 - *MKDH:* Reduced Explosion roll from `5/16` to `3/16`, boosting Drain and Acid Rain to `6/16`. The double-cast Explosion probability drops from $9.7\%$ to $3.5\%$.
+

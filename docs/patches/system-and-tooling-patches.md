@@ -171,3 +171,4 @@ Created by phonymike, this reference bridges live 24-bit SNES WRAM (`$7E:0000..$
 - Active Alchemy Bitfield: SRAM `+0x158` $\rightarrow$ WRAM `$7E:2258`
 - Story Flags Array: SRAM `+0x180` $\rightarrow$ WRAM `$7E:2280..$7E:237F`
 This mapping forms the foundation for save editors, runtime radar displays, and SRAM comparison utilities.
+

@@ -90,3 +90,4 @@ Applying multiple IPS patches to a single ROM requires understanding the memory 
    - XaserLE claims Bank `$FE` (`$FE:0000..$FE:05FF`) for the debug menu kernel.
    - Everscript uses Bank `$FD` and `$FE` (`!ROM_EXTENSION = $FD0000`, `!ROM_HOOK = $FE5000`) for custom script hooks and hotkey routines.
 3. **Preserving Processor State in Hooks:** Several early community patches suffered from subtle crashes because 65816 status flags (`P.M`, `P.X`, Direct Page `D`, Data Bank `B`) were not cleanly preserved across `JSL`/`RTL` boundaries (see [snes-asm-asar-patching](../../.agents/skills/snes-asm-asar-patching/SKILL.md)). Everscript's modern patch architecture enforces strict `PHP`/`PHB`/`PHD` wraps on all injected hooks.
+

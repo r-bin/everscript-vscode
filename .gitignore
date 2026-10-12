@@ -36,3 +36,4 @@ src/script/dist/
 *.bmp
 *script_all*
 dumps/
+last_run_report.json

@@ -125,6 +125,19 @@ function prevHead(rom, lib, off) {
     return null;
 }
 
+// Sites where emitting an indirect_dispatch directive breaks runtime execution:
+// - $8F:9F46 / $CF:9F46: JMP ($A3D8,x) inside func_CF9F05. Active loop with PHA/PLA stack usage at $A3B1.
+//   snesrecomp emits a native tail call (RecompStackPop + return), causing native call stack frames
+//   to desynchronize from the 65816 stack across iterations, corrupting WRAM $7E:ABDE (OAM) in Cycle 2.
+// - $80:84BE / $00:84BE: JML [$0125] NMI dynamic hook called via PHK; PEA $84C0 (3-byte return frame, not 2).
+//   Static target list misses dynamic hooks.
+const DISPATCH_EXCLUSIONS = new Map([
+    [0x8F9F46, 'stack-resident loop dispatcher in func_CF9F05; native RecompStackPop desynchronizes C stack across loop'],
+    [0xCF9F46, 'stack-resident loop dispatcher in func_CF9F05; native RecompStackPop desynchronizes C stack across loop'],
+    [0x8084BE, 'NMI dynamic hook JML [$0125] with 3-byte return frame (PHK; PEA) and dynamic targets'],
+    [0x0084BE, 'NMI dynamic hook JML [$0125] with 3-byte return frame (PHK; PEA) and dynamic targets'],
+]);
+
 /**
  * Indirect sites: directive or comment per site, keyed by runtime bank.
  * @returns {{ lines: Map(bank -> string[]), counts: { indexed, pointer, rtsstack, comments } }}
@@ -148,6 +161,11 @@ function dispatchDirectives({ lib, rom, map }) {
         const bank = site >>> 16, off = map.busToRom(site), ins = head(rom, lib, off);
         const targets = [...tos].sort((a, b) => a - b);
         const seen = '(' + targets.length + ' observed: ' + targets.map(t6).join(',') + ')';
+        if (DISPATCH_EXCLUSIONS.has(site)) {
+            add(bank, `# indirect at ${t4(site)} ${seen}: excluded (${DISPATCH_EXCLUSIONS.get(site)})`);
+            counts.comments++;
+            continue;
+        }
         if (!ins) { add(bank, `# indirect at ${t4(site)} ${seen}: site not decodable`); counts.comments++; continue; }
         if (ins.op === 0x7C || ins.op === 0xFC) {
             let count = 0;
