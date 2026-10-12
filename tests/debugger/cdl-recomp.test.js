@@ -288,6 +288,21 @@ test('host seeds: bank cfgs replaced, bank00 keeps its block and gains one data-
     assert.ok(fs.readFileSync(path.join(proj, 'recomp', 'bank80.cfg'), 'utf8').includes('random_number_generator'));
 });
 
+test('host main.c hook: after_config field + declaration, idempotent, refuses an unknown layout', () => {
+    const { hookMain } = require('../../tools/recomp/host');
+    const proj = path.join(tmp, 'hookproj');
+    fs.mkdirSync(path.join(proj, 'src'), { recursive: true });
+    const main = '#include "host_main.h"\n#include "game_rtl.h"\n\nstatic const SnesDesktopHostGame kGameHost = {\n    .display_name = "x",\n};\n';
+    fs.writeFileSync(path.join(proj, 'src', 'main.c'), main);
+    assert.deepStrictEqual(hookMain(proj), { ok: true, patched: true });
+    assert.deepStrictEqual(hookMain(proj), { ok: true, patched: false });
+    const out = fs.readFileSync(path.join(proj, 'src', 'main.c'), 'utf8');
+    assert.strictEqual((out.match(/\.after_config\s*= SoeAfterConfig/g) || []).length, 1);
+    assert.ok(out.includes('void SoeAfterConfig(void);'));
+    fs.writeFileSync(path.join(proj, 'src', 'main.c'), 'int main(void) { return 0; }\n');
+    assert.strictEqual(hookMain(proj).ok, false);
+});
+
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);

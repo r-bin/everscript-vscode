@@ -57,6 +57,23 @@ function ensureProject({ snesrecomp, romPath, out, project, fresh, log }) {
     return { ok: true, scaffolded: true };
 }
 
+/**
+ * Hook our glue into the scaffold's main.c (generated, not stored in git): one descriptor field
+ * plus its declaration. Idempotent; fails loudly when the scaffold's layout changes.
+ */
+function hookMain(project) {
+    const file = path.join(project, 'src', 'main.c');
+    let s = fs.readFileSync(file, 'utf8');
+    if (s.includes('SoeAfterConfig')) return { ok: true, patched: false };
+    const decl = '#include "game_rtl.h"\n';
+    const field = /(static const SnesDesktopHostGame kGameHost = \{\n)/;
+    if (!s.includes(decl) || !field.test(s)) return { ok: false, reason: 'src/main.c layout changed: cannot hook SoeAfterConfig' };
+    s = s.replace(decl, decl + 'void SoeAfterConfig(void);   /* everscript glue: tools/recomp/host/src/game_rtl.c */\n');
+    s = s.replace(field, '$1    .after_config        = SoeAfterConfig,   /* everscript glue */\n');
+    fs.writeFileSync(file, s);
+    return { ok: true, patched: true };
+}
+
 /** Our seeds: bank8x/9x cfgs replace the previous ones; bank00 keeps its generated block and gains our data regions. */
 function applySeeds(seedDir, project) {
     const cfgDir = path.join(project, 'recomp');
@@ -114,6 +131,8 @@ function buildHost({ snesrecomp, romPath, out, seedDir, fresh, build }) {
     const p = ensureProject({ snesrecomp, romPath, out, project, fresh, log });
     if (!p.ok) return { ok: false, reason: p.reason };
     const glue = copyTree(GLUE, project);
+    const hook = hookMain(project);
+    if (!hook.ok) return { ok: false, reason: hook.reason };
     const seeds = applySeeds(seedDir, project);
     const env = { ...process.env, SNESRECOMP_ROM: path.resolve(romPath), PATH: path.join(require('os').homedir(), '.cargo/bin') + ':' + process.env.PATH };
     const g = run('bash', ['tools/regen.sh', '--cfg-roots', '--rom', path.resolve(romPath)], { cwd: project, env }, log);
@@ -130,4 +149,4 @@ function buildHost({ snesrecomp, romPath, out, seedDir, fresh, build }) {
     return { ...res, ...pkg, built: true, ok: pkg.ok };
 }
 
-module.exports = { buildHost, platformTag, applySeeds };
+module.exports = { buildHost, platformTag, applySeeds, hookMain };
