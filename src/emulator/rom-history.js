@@ -137,7 +137,7 @@ function detectRomDetails(target, hintPath) {
         known: false,
         isCustomMap: true,
         customName: customName,
-        vfsUri: 'soe://rom/maps/custom/' + encodeURIComponent(customName),
+        vfsUri: 'soe://maps/custom/' + encodeURIComponent(customName),
         targetRoom: targetRoom,
         roomWidth: roomWidth,
         roomHeight: roomHeight,

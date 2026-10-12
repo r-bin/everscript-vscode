@@ -387,7 +387,7 @@ function openEmulatorPanel(context, rom, channel) {
   }
 
     if (_panel) {
-        _panel.reveal(vscode.ViewColumn.Beside, true);
+        _panel.reveal(vscode.ViewColumn.Beside, false);
     _log('Emulator panel reused');
       if (_pending && !_dispatchPendingRom()) _resetPanelHtml();
         return;

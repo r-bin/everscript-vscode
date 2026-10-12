@@ -174,7 +174,7 @@ test('detectRomDetails detects custom map ROM by path name', () => {
   assert.ok(details);
   assert.strictEqual(details.isCustomMap, true);
   assert.strictEqual(details.customName, 'Copy_of_Shops');
-  assert.strictEqual(details.vfsUri, 'soe://rom/maps/custom/Copy_of_Shops');
+  assert.strictEqual(details.vfsUri, 'soe://maps/custom/Copy_of_Shops');
   assert.strictEqual(details.region, 'MAP');
 });
 

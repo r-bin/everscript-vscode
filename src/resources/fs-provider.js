@@ -16,6 +16,7 @@ const { resolveRam } = require('./ram-files');
 const { busTarget, indexMarkdown: busIndex } = require('./bus-files');
 const { resolveLocalization } = require('./localization-files');
 const { resolveTags } = require('./tag-files');
+const { resolveMaps } = require('./custom-map-files');
 const { autoIndex } = require('./autoindex');
 const { dir, text } = require('./nodes');
 const { intoMount, pageLinks } = require('./page-links');
@@ -68,6 +69,10 @@ class SoeFileSystem {
             r = { node: resolveLocalization(p.segments, rom), rom };
         } else if (p.authority === 'tags') {
             r = { node: present(resolveTags(p.segments, this._tagContext()), uri, null), rom: null };
+        } else if (p.authority === 'maps') {
+            const rom = this._optionalRom(p.rom);
+            const deps = uri.query ? Object.assign({}, this._deps, { query: uri.query }) : this._deps;
+            r = { node: resolveMaps(p.segments, rom, deps), rom };
         } else {
             throw vscode.FileSystemError.FileNotFound(uri);
         }
@@ -93,6 +98,11 @@ class SoeFileSystem {
         if (authority === 'localization') {
             const rom = this._pickRom(uri, p.rom);
             return { node: resolveLocalization(rest, rom), rom };
+        }
+        if (authority === 'maps') {
+            const rom = this._pickRom(uri, p.rom);
+            const deps = uri.query ? Object.assign({}, this._deps, { query: uri.query }) : this._deps;
+            return { node: resolveMaps(rest, rom, deps), rom };
         }
         const node = authority === 'tags' ? resolveTags(rest, this._tagContext())
             : resolveRam(rest, this._deps.readMemory, this._deps.emulatorStatus);
@@ -259,7 +269,7 @@ class SoeFileSystem {
 }
 
 /** What a mounted ROM folder holds. */
-const MOUNTED = ['rom', 'ram', 'tags', 'localization'];
+const MOUNTED = ['rom', 'ram', 'tags', 'localization', 'maps'];
 
 /** Whether files under `uri` can change while watched (WRAM, and pages that show it). */
 function isLive(uri) {

@@ -32,7 +32,7 @@ async function openSoeResource(address) {
     const value = typeof address === 'string' ? address : await vscode.window.showInputBox({
         prompt: 'soe:// address to open',
         value: 'soe://rom/index.md',
-        validateInput: v => /^soe:\/\/(rom|ram|bus|tags|localization)(\/|$)/.test(v) ? null : 'Starts with soe://rom/, ram/, bus/, tags/ or localization/',
+        validateInput: v => /^soe:\/\/(rom|ram|bus|tags|localization|maps)(\/|$)/.test(v) ? null : 'Starts with soe://rom/, ram/, bus/, tags/, localization/ or maps/',
     });
     if (!value) return;
     const target = /^soe:\/\/[a-z]+\/?$/.test(value) ? value.replace(/\/?$/, '/index.md') : value;

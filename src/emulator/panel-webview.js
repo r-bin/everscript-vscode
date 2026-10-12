@@ -819,7 +819,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
           for (const item of data.recent) {
             const row = document.createElement('div');
             row.className = 'recent-rom-item' + (item.exists ? '' : ' missing');
-            row.title = (item.isCustomMap ? ('[Custom Map] ' + (item.vfsUri ? item.vfsUri + '\n' : '')) : '') + (item.path || item.name);
+            row.tabIndex = 0;
+            row.title = (item.isCustomMap ? ('[Custom Map] ' + (item.vfsUri ? item.vfsUri + ' - ' : '')) : '') + (item.path || item.name);
 
             // Left: Big square for map preview or region badge
             const square = document.createElement('div');
@@ -861,7 +862,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
             if (item.sizeFormatted) metaParts.push(item.sizeFormatted);
             if (item.timeFormatted) metaParts.push(item.timeFormatted);
             if (!item.exists) metaParts.push('(missing)');
-            metaSpan.textContent = metaParts.join(' \u2022 ');
+            metaSpan.textContent = metaParts.join(' - ');
             detailsEl.appendChild(metaSpan);
 
             info.appendChild(nameEl);
@@ -921,6 +922,9 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       const target = items[overlayFocusedIdx];
       if (target) {
         target.classList.add('keyboard-focused');
+        if (typeof target.focus === 'function') {
+          try { target.focus(); } catch (_) {}
+        }
         if (typeof target.scrollIntoView === 'function') {
           try { target.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' }); } catch (_) {}
         }
@@ -1067,6 +1071,11 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     if (currentOfferData) {
       renderRomOffer(currentOfferData);
     }
+
+    window.addEventListener('load', () => {
+      try { window.focus(); } catch (_) {}
+      if (!romLoaded) setOverlayFocus(0);
+    });
 
     window.addEventListener('message', evt => {
       if (evt.data.command === 'hostStatus') {

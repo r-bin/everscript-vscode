@@ -97,8 +97,8 @@ function hexdump(bytes) {
  */
 function createMcpHandler(fsApi) {
     const checkUri = uri => {
-        if (typeof uri !== 'string' || !/^soe:\/\/(rom|ram|bus|localization)(\/|$)/.test(uri)) {
-            throw rpcError(-32602, 'uri must start with soe://rom/, soe://ram/, soe://bus/ or soe://localization/');
+        if (typeof uri !== 'string' || !/^soe:\/\/(rom|ram|bus|localization|tags|maps)(\/|$)/.test(uri)) {
+            throw rpcError(-32602, 'uri must start with soe://rom/, soe://ram/, soe://bus/, soe://localization/, soe://tags/ or soe://maps/');
         }
         return uri;
     };

@@ -712,6 +712,29 @@ test('provider: map objects and widgets VFS (objects/index.json, previews, gifs,
     fsp.dispose();
 }, true);
 
+test('provider: maps VFS routes at root level (soe://maps/ and soe://maps/custom/)', async () => {
+    const fsp = new SoeFileSystem({ vanillaRom: () => rom, emulatorRom: () => null, romFile: () => null, readMemory, emulatorStatus: async () => ({}) });
+
+    // Root soe://maps/ directory has custom/
+    const mapsDir = await fsp.readDirectory(uri('soe://maps/'));
+    assert.ok(mapsDir.some(([name]) => name === 'custom'));
+    assert.ok(mapsDir.some(([name]) => name === 'index.md'));
+
+    // soe://maps/custom/ directory
+    const customDir = await fsp.readDirectory(uri('soe://maps/custom/'));
+    assert.ok(customDir.some(([name]) => name === 'index.json'));
+
+    // Custom map info and render
+    const customInfo = Buffer.from(await fsp.readFile(uri('soe://maps/custom/My_Test_Map/info.md'))).toString('utf8');
+    assert.match(customInfo, /Custom Map: My_Test_Map/);
+
+    const customPng = await fsp.readFile(uri('soe://maps/custom/My_Test_Map/render.png'));
+    assert.ok(customPng.length > 0);
+    assert.strictEqual(customPng.subarray(0, 8).toString('hex'), '89504e470d0a1a0a'); // PNG magic
+
+    fsp.dispose();
+}, true);
+
 test('encodeGif: produces valid GIF89a with Netscape infinite loop and frame delays', () => {
     const { encodeGif } = require('../../src/resources/gif');
     const w = 8, h = 8;
