@@ -102,7 +102,8 @@ add new skills in `.agents/skills/<name>/SKILL.md` and they show up in both (new
 | `snes-memory-mapping` | `.agents/skills/snes-memory-mapping/SKILL.md` | SNES memory maps (HiROM, LoROM, cartridge ROM vs WRAM) |
 | `sprites-subsystem` | `.agents/skills/sprites-subsystem/SKILL.md` | Sprites rendering, animation frames, OBJ palettes |
 | `wram-memory-mapping` | `.agents/skills/wram-memory-mapping/SKILL.md` | WRAM address allocation, entity tables, party stats |
-| `recomp` | `.agents/skills/recomp/SKILL.md` | The snesrecomp build: commands, ownership of generated files, headless runs, the traps (force_lle, bounce differential, frozen-but-drawn, save states) |
+| `recomp` | `.agents/skills/recomp/SKILL.md` | The snesrecomp build: commands, ownership of generated files, headless runs |
+| `recomp-debugging` | `.agents/skills/recomp-debugging/SKILL.md` | Reproduce and fix recomp bugs: headless repro, reference emulators (snes9x headless/lockstep, Mesen2, snesref, COSIM) and how to compare, classifying C vs seeds vs glue vs runtime, fixes, where to find what |
 | `ghidra-analysis` | `.agents/skills/ghidra-analysis/SKILL.md` | Ghidra + ghidra-snes / REA on SoE: what for, setup traps, seeding from the CDL, trusting static results |
 
 ---
