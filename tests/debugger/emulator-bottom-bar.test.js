@@ -131,5 +131,23 @@ test('buildHtml correctly embeds all bottom bar buttons, views, CSS and logic', 
     assert.ok(!html.includes('id="ss-view-cheats"'), 'ss-view-cheats should not be in buildHtml');
 });
 
+// 6. Boot order: the launcher runs renderRomOffer() and loadCoreScript() while the
+// script is still being evaluated. Reading a let before its declaration throws,
+// which killed the whole script in v0.201.26 (dead ROM buttons, no focus).
+test('ROM state is declared before the launcher boot code reads it', () => {
+    const mockWebview = { asWebviewUri: (uri) => uri };
+    const offer = { vanilla: { available: true }, recent: [] };
+    const html = buildHtml(mockWebview, 'core.js', 'core.wasm', 'core', '/path/to/core', offer);
+    const firstUse = Math.min(
+        html.indexOf('renderRomOffer(currentOfferData);'),
+        html.indexOf('loadCoreScript();'),
+    );
+    assert.ok(firstUse > 0, 'boot code not found');
+    for (const name of ['romLoaded', 'romFrameCount', 'loadedRomName']) {
+        const decl = html.indexOf('let ' + name + ' =');
+        assert.ok(decl > 0 && decl < firstUse, name + ' must be declared before the boot code runs');
+    }
+});
+
 console.log(`\nResults: ${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);

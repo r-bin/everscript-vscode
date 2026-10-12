@@ -735,6 +735,15 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     }
     console.log('[EVS webview] boot done, api:', vscodeApi ? 'ok' : 'MISSING');
 
+    // ROM state. Declared before any boot code runs: renderRomOffer() and
+    // reportEmulatorCrash() read it synchronously, and reading a let before its
+    // declaration throws and kills the whole script (dead launcher buttons).
+    let romLoaded = false;
+    let loadedRomData = null;
+    let loadedRomName = 'game';
+    let romLaunchTimestamp = 0;
+    let romFrameCount = 0;
+
     function romStage(text) {
       console.log('[EVS romStage]', text);
       if (vscodeApi) vscodeApi.postMessage({ command: 'romLoadLog', text });
@@ -1308,11 +1317,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     document.addEventListener('visibilitychange', () => { if (document.hidden) keyInput = 0; });
 
     // -- ROM loading -----------------------------------------------------------
-    let romLoaded = false;
-    let loadedRomData = null;
-    let loadedRomName = 'game';
-    let romLaunchTimestamp = 0;
-    let romFrameCount = 0;
+    // (ROM state is declared at boot, above romStage: the ROM offer and crash
+    // reporting read it before this point, and a let read early throws.)
 
     function startWithRom(dataUrl, name) {
       try {

@@ -50,3 +50,9 @@ Related skills: `emulator-subsystem`, `cdl-recorder`, `webview-dom-safety`, `deb
 ## Pitfalls
 - `window.prompt` / `confirm` / `alert` are inert in a VS Code webview (no throw); use an
   inline form (`webview-dom-safety` §3). Verify click bugs in a real headless browser (§5).
+- `panel-webview.js` is one big script: a `let` read before its declaration (even via
+  `typeof`) throws and kills everything after it — dead launcher buttons, no focus, no
+  `loadRom` listener (v0.201.26). Code that runs during boot (`renderRomOffer`,
+  `loadCoreScript`, crash reporting) may only touch state declared above it; the ROM state
+  lives next to `romStage`. Check `pageerror` in headless Chromium: `setContent` + an inline
+  `acquireVsCodeApi` stub in `<head>` (`addInitScript` does not run for `setContent`).
