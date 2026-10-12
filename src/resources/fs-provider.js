@@ -269,7 +269,7 @@ class SoeFileSystem {
 }
 
 /** What a mounted ROM folder holds. */
-const MOUNTED = ['rom', 'ram', 'tags', 'localization', 'maps'];
+const MOUNTED = ['rom', 'ram', 'tags', 'localization'];
 
 /** Whether files under `uri` can change while watched (WRAM, and pages that show it). */
 function isLive(uri) {

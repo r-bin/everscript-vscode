@@ -246,34 +246,34 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     #overlay {
       position: fixed; inset: 0; z-index: 100;
       display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      background: #0f0f11; color: #ccc; padding: 24px 16px;
-      overflow-y: auto; box-sizing: border-box; gap: 14px;
+      align-items: center; justify-content: flex-start;
+      background: #0f0f11; color: #ccc; padding: 12px 16px 10px;
+      overflow: hidden; box-sizing: border-box;
     }
     .overlay-card {
-      width: 100%; max-width: 440px;
+      width: 100%; max-width: 480px; height: 100%; max-height: 100%;
       display: flex; flex-direction: column;
-      align-items: center; gap: 12px;
+      align-items: stretch; gap: 8px; box-sizing: border-box;
     }
     .overlay-header {
-      text-align: center;
+      text-align: center; flex-shrink: 0;
     }
     .overlay-header h2 {
-      margin: 0; color: #eee; font-size: 19px; font-weight: 600; letter-spacing: -0.01em;
+      margin: 0; color: #eee; font-size: 17px; font-weight: 600; letter-spacing: -0.01em;
     }
     .overlay-subtitle {
-      font-size: 11px; color: #666; margin-top: 2px; font-family: monospace;
+      font-size: 11px; color: #666; margin-top: 1px; font-family: monospace;
     }
 
     /* Drag and Drop Zone */
     #rom-drop-zone {
-      width: 100%; box-sizing: border-box;
+      width: 100%; box-sizing: border-box; flex-shrink: 0;
       border: 2px dashed #33333d; border-radius: 8px;
       background: rgba(255, 255, 255, 0.02);
-      padding: 18px 14px; text-align: center;
+      padding: 8px 12px; text-align: center;
       cursor: pointer; user-select: none;
       transition: border-color 0.15s, background 0.15s, transform 0.15s;
-      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
     }
     #rom-drop-zone:hover {
       border-color: #4a4a58;
@@ -286,24 +286,24 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       transform: scale(1.01);
     }
     .drop-zone-icon {
-      font-size: 26px; line-height: 1; margin-bottom: 2px;
+      font-size: 20px; line-height: 1; margin-bottom: 1px;
     }
     .drop-zone-title {
-      font-size: 13px; font-weight: 600; color: #ddd;
+      font-size: 12px; font-weight: 600; color: #ddd;
     }
     .drop-zone-sub {
-      font-size: 11px; color: #777;
+      font-size: 10px; color: #777;
     }
 
     /* Action Buttons Row */
     .overlay-action-row {
-      display: flex; width: 100%; gap: 10px;
+      display: flex; width: 100%; gap: 8px; flex-shrink: 0;
     }
     .rom-action-btn {
       flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-      padding: 9px 12px; border-radius: 6px; cursor: pointer; font-family: inherit;
+      padding: 6px 10px; border-radius: 6px; cursor: pointer; font-family: inherit;
       border: 1px solid #333; background: #1a1a20; color: #eee;
-      transition: background 0.12s, border-color 0.12s; min-height: 48px; text-align: center; box-sizing: border-box;
+      transition: background 0.12s, border-color 0.12s; min-height: 40px; text-align: center; box-sizing: border-box;
     }
     .rom-action-btn:hover {
       background: #24242c; border-color: #444; color: #fff;
@@ -321,24 +321,26 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px;
     }
     .rom-action-btn .btn-meta {
-      font-size: 10px; opacity: 0.75; margin-top: 2px; font-family: monospace;
-      max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      font-size: 10px; opacity: 0.75; margin-top: 1px; font-family: monospace;
+      max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
 
     #pickBtn:hover { background: #0c5; }
     #load-status {
-      font-size: 11px; color: #888; text-align: center; min-height: 16px;
+      font-size: 11px; color: #888; text-align: center; min-height: 15px; flex-shrink: 0;
     }
 
     /* Recent ROMs Section */
     .recent-roms-section {
       width: 100%; display: flex; flex-direction: column; gap: 6px;
-      margin-top: 4px; border-top: 1px solid #222; padding-top: 10px;
+      margin-top: 2px; border-top: 1px solid #222; padding-top: 8px;
+      flex: 1; min-height: 0; overflow: hidden;
     }
     .recent-roms-header {
       font-size: 10px; font-weight: 600; color: #888;
       text-transform: uppercase; letter-spacing: 0.05em;
       display: flex; justify-content: space-between; align-items: center;
+      flex-shrink: 0;
     }
     .clear-recent-btn {
       background: transparent; border: 1px solid #3c3c4a;
@@ -351,13 +353,13 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     }
     .recent-roms-list {
       display: flex; flex-direction: column; gap: 4px;
-      max-height: 170px; overflow-y: auto; padding-right: 2px;
+      flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px;
     }
     .recent-rom-item {
-      display: flex; align-items: center; gap: 14px;
-      padding: 8px 12px; background: #15151a; border: 1px solid #252530;
+      display: flex; align-items: center; gap: 10px;
+      padding: 6px 10px; background: #15151a; border: 1px solid #252530;
       border-radius: 6px; cursor: pointer; transition: all 0.12s ease;
-      user-select: none; text-align: left;
+      user-select: none; text-align: left; flex-shrink: 0;
     }
     .recent-rom-item:hover {
       background: #1d1d26; border-color: #383848;
@@ -372,17 +374,17 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     }
 
     .recent-rom-square {
-      width: 68px; height: 68px; min-width: 68px; min-height: 68px;
-      border-radius: 6px; overflow: hidden; background: #0c0c10;
+      width: 48px; height: 48px; min-width: 48px; min-height: 48px;
+      border-radius: 5px; overflow: hidden; background: #0c0c10;
       border: 1px solid #2e2e3e; display: flex; align-items: center; justify-content: center;
-      position: relative; flex-shrink: 0; box-shadow: inset 0 0 6px rgba(0,0,0,0.6);
+      position: relative; flex-shrink: 0; box-shadow: inset 0 0 4px rgba(0,0,0,0.6);
     }
     .recent-rom-square img {
       width: 100%; height: 100%; object-fit: cover;
       image-rendering: pixelated; display: block;
     }
     .recent-rom-square-badge {
-      font-size: 20px; font-weight: bold; font-family: monospace;
+      font-size: 16px; font-weight: bold; font-family: monospace;
       letter-spacing: 0.05em; color: #8899aa;
     }
     .recent-rom-square-badge.badge-US { color: #569cd6; }
@@ -394,16 +396,16 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
 
     .recent-rom-info {
       flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column;
-      justify-content: center; gap: 6px;
+      justify-content: center; gap: 3px;
     }
     .recent-rom-name {
-      font-size: 13px; color: #eee; font-weight: 600;
+      font-size: 12px; color: #eee; font-weight: 600;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      line-height: 1.25;
+      line-height: 1.2;
     }
     .recent-rom-details {
-      display: flex; align-items: center; gap: 8px;
-      font-size: 11px; color: #888899; font-family: monospace;
+      display: flex; align-items: center; gap: 6px;
+      font-size: 10px; color: #888899; font-family: monospace;
       line-height: 1.2;
     }
     .recent-rom-pill {
@@ -776,6 +778,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       };
       document.body.appendChild(script);
     }
+    loadCoreScript();
 
     // -- ROM offer, quick launch & drag-and-drop ------------------------------
     let currentOfferData = ${JSON.stringify(romOfferData || null)};
@@ -873,12 +876,20 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
 
             row.addEventListener('click', () => {
               if (item.exists) {
-                initAudio();
-                ensureAudioRunning();
-                vscodeApi.postMessage({ command: 'loadRecentRom', path: item.path, name: item.name, kind: item.kind });
-                document.getElementById('load-status').textContent = 'Loading ' + item.name + '...';
+                try { initAudio(); } catch (_) {}
+                try { ensureAudioRunning(); } catch (_) {}
+                if (vscodeApi) vscodeApi.postMessage({ command: 'loadRecentRom', path: item.path, name: item.name, kind: item.kind });
+                const statusEl = document.getElementById('load-status');
+                if (statusEl) statusEl.textContent = 'Loading ' + item.name + '...';
               } else {
-                document.getElementById('load-status').textContent = 'File missing: ' + (item.path || item.name);
+                const statusEl = document.getElementById('load-status');
+                if (statusEl) statusEl.textContent = 'File missing: ' + (item.path || item.name);
+              }
+            });
+            row.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                row.click();
               }
             });
 
@@ -983,10 +994,11 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     }
 
     document.getElementById('pickBtn').addEventListener('click', () => {
-      initAudio();
-      ensureAudioRunning();
-      vscodeApi.postMessage({ command: 'pickRom' });
-      document.getElementById('load-status').textContent = 'Waiting for file picker...';
+      try { initAudio(); } catch (_) {}
+      try { ensureAudioRunning(); } catch (_) {}
+      if (vscodeApi) vscodeApi.postMessage({ command: 'pickRom' });
+      const statusEl = document.getElementById('load-status');
+      if (statusEl) statusEl.textContent = 'Waiting for file picker...';
     });
 
     const dropZone = document.getElementById('rom-drop-zone');
@@ -1000,10 +1012,11 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     if (vanillaBtn) {
       vanillaBtn.addEventListener('click', () => {
         if (vanillaBtn.disabled) return;
-        initAudio();
-        ensureAudioRunning();
-        vscodeApi.postMessage({ command: 'loadVanillaRom' });
-        document.getElementById('load-status').textContent = 'Loading Vanilla ROM...';
+        try { initAudio(); } catch (_) {}
+        try { ensureAudioRunning(); } catch (_) {}
+        if (vscodeApi) vscodeApi.postMessage({ command: 'loadVanillaRom' });
+        const statusEl = document.getElementById('load-status');
+        if (statusEl) statusEl.textContent = 'Loading Vanilla ROM...';
       });
     }
 
@@ -1045,8 +1058,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       const fileName = file.name || 'game.sfc';
       const filePath = file.path || '';
 
-      initAudio();
-      ensureAudioRunning();
+      try { initAudio(); } catch (_) {}
+      try { ensureAudioRunning(); } catch (_) {}
       const statusEl = document.getElementById('load-status');
       if (statusEl) statusEl.textContent = 'Reading dropped ROM: ' + fileName + '...';
 
@@ -4442,8 +4455,6 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
 
     renderManualExecBreakpoints();
     initCdlTab();
-
-    loadCoreScript();
   </script>
 </body>
 </html>`;

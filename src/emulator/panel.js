@@ -229,7 +229,8 @@ function _armRomTimeout(romName) {
 }
 
 function _dispatchPendingRom() {
-  if (!_pending || !_panel || !_webviewReady) return false;
+  if (!_pending || !_panel) return false;
+  if (!_webviewReady) return true;
   const romName = _pending.name || 'game';
   _log(`Sending ROM to webview: ${romName}`);
   _armRomTimeout(romName);
@@ -388,7 +389,6 @@ function openEmulatorPanel(context, rom, channel) {
 
     if (_panel) {
         _panel.reveal(vscode.ViewColumn.Beside, false);
-    _log('Emulator panel reused');
       if (_pending && !_dispatchPendingRom()) _resetPanelHtml();
         return;
     }
@@ -673,7 +673,6 @@ function _sendRomFile(romPath) {
         _pending = { dataUrl, name: romName };
         recordRomUsage({ path: romPath, name: romName, kind: 'file' }, _context);
         _broadcastRomOffer();
-    _log(`Manual ROM selected: ${romName} (${romData.length} bytes)`);
     if (!_dispatchPendingRom()) _resetPanelHtml();
     } catch (e) {
     _log('Failed to read ROM: ' + e.message, true);
