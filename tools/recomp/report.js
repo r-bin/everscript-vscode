@@ -66,7 +66,7 @@ function todo(m, rebuild, recomp, recorded) {
     if (!rebuild.identical) add(0, 'Asar', rebuild.reason || ('Rebuild differs from the ROM at file offset $' + (rebuild.firstDiff >>> 0).toString(16).toUpperCase() + ' (asar.log, asar/build/out.sfc).'));
     if (recomp && !recomp.skipped && !recomp.ok) add(0, 'snesrecomp', (recomp.reason || 'host step failed') + ' — see recomp-host.log.');
     if (recomp && !recomp.skipped && recomp.ok && !recomp.exe) add(1, 'Host', 'Game not built this run (--no-build).');
-    add(1, 'Lockstep', 'Recomp and snes9x diverge from NMI counter ~315 (intro fade / loading timing): run `npm run recomp:lockstep` and fix the first divergence (recomp-host.md §3).');
+    add(1, 'Lockstep', 'Recomp and snes9x diverge from NMI counter ~315 (intro fade / loading timing): run `npm run recomp:lockstep` and fix the first divergence (docs/recomp/bugs-and-todos.md §1.3).');
     const cov = pct(m.code + m.data, m.romBytes);
     if (cov < 50) add(1, 'CDL', `Coverage ${p1(cov)} of the ROM recorded: play more rooms, menus, bosses (or scripted headless runs).`);
     if (recomp && recomp.parsed && recomp.parsed.interpreter) add(2, 'snesrecomp', `${recomp.parsed.interpreter} function variants interpreter-only: jump tables / dispatch need targets (record more, or add directives).`);

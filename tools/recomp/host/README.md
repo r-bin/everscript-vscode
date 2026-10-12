@@ -17,4 +17,4 @@ Rules:
 - The interface a file must keep is the scaffold's: `game_rtl.c` provides `GameRunOneFrame`,
   `GameDrawPpuFrame`, `GameSessionReset` and `kGameInfo` (declared in the scaffold's `game_rtl.h`).
 
-Background: [docs/reverse-engineering/recomp-host.md](../../../docs/reverse-engineering/recomp-host.md).
+Background: [docs/recomp/game-rtl.md](../../../docs/recomp/game-rtl.md).

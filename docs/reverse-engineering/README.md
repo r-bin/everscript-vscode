@@ -16,8 +16,9 @@ Last updated 2026-10-12 (v0.201.9).
 | [cdl-design-history.md](cdl-design-history.md) | Original design and what was built (§9) |
 | [asm-to-c-port.md](asm-to-c-port.md) | **snesrecomp + lockstep `hle_func`**: the path to C, room ids, status |
 | [ghidra.md](ghidra.md) | **Ghidra + ghidra-snes**: what for, plugin gaps, setup with workarounds, VFS |
-| [recomp-bug-hunt.md](recomp-bug-hunt.md) | **Debugging the recomp**: method (headless repro, snes9x reference, build without seeds, seed bisect), findings, open issues |
-| [recomp-host.md](recomp-host.md) | **The snesrecomp host**: set up, seeds, boot result, lockstep against snes9x |
+| [docs/recomp/](../recomp/README.md) | **Static recompilation (snesrecomp)**: [setup](../recomp/setup.md), [Game RTL glue](../recomp/game-rtl.md), [debugging](../recomp/debugging.md), [bugs & roadmap](../recomp/bugs-and-todos.md) |
+| [recomp-bug-hunt.md](recomp-bug-hunt.md) | *(Moved to [docs/recomp/bugs-and-todos.md](../recomp/bugs-and-todos.md))* |
+| [recomp-host.md](recomp-host.md) | *(Moved to [docs/recomp/game-rtl.md](../recomp/game-rtl.md))* |
 | [rea.md](rea.md) | **REA** (MCP over Ghidra): answers, spike recipe and results |
 | [formats.md](formats.md) | File formats we use, compatible formats to emit, what REA's formats add |
 | [other-tools.md](other-tools.md) | Mesen2, Asar, DiztinGUIsh, bsnes-plus, everscript, SA-1 investigation |
@@ -77,7 +78,7 @@ complement, REA optional.**
 
 | Step | Approach | Status / what to build |
 |---|---|---|
-| 1. Boot snesrecomp output | host / frame driver ([recomp-host.md](recomp-host.md)) | **boots to the intro** (v0.201.10); lockstep identical to counter 305, timing drift after |
+| 1. Boot snesrecomp output | host / frame driver ([docs/recomp/game-rtl.md](../recomp/game-rtl.md)) | **boots to the intro** (v0.201.10); lockstep identical to counter 305, timing drift after |
 | 2. Names into the C | curated names → Asar labels, snesrecomp `func` names, Mesen2 labels | **done** (v0.201.9, `npm run recomp`); `symbols.json` as the canonical file still to build ([formats.md](formats.md) §2) |
 | 3. Assets | one decoder + format doc + viewer per unknown ROM-tab region; data lineage (G1 step 2) shows which regions are graphics, tilemaps, palettes or scripts | rooms, map graphics, sprites, animation, audio, scripts done; the rest by region |
 | 4. Verify | per-frame WRAM hash log (CDL improvement 8) as the oracle | to build |

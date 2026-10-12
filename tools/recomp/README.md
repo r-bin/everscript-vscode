@@ -49,8 +49,7 @@ annotated in `labels.mlb`. They do not change the assembly, so the rebuild stays
 | Accessed WRAM bytes with a name | RAM knowledge entries (`src/localizations/knowledge/ram/`) |
 | snesrecomp interpreter-only (LLE) variants | recorded jump-table targets, more directives |
 
-The report checks for a host project (`../SecretOfEvermoreSNESRecomp`, or `SOE_RECOMP_EXE`).
-Setting one up and feeding it these seeds: [recomp-host.md](../../docs/reverse-engineering/recomp-host.md).
+Setting one up and feeding it these seeds: [docs/recomp/setup.md](../../docs/recomp/setup.md) and [docs/recomp/game-rtl.md](../../docs/recomp/game-rtl.md).
 
 ## Lockstep against snes9x
 

@@ -11,7 +11,7 @@ const TABLES = [
     { address: 0x8C98A1, name: 'Decompressor jump table', notes: '8 methods; 0x00 raw, 0x03 LZSS, 0x07 Markov', category: '📋', stringIndex: null },
     { address: 0x8CE8BD, name: 'Script opcode handler table', notes: '195 words, opcodes 0x00-0xC2 → handler in bank $8C (used by $8C:D0A6); unused opcodes point at STP traps $8C:E8B5-E8BC; 0xAB → $8C:E8B1 (JML $80:84C9)', category: '📋', stringIndex: null },
     { address: 0x8F0000, name: 'Hit-chance table base', notes: 'indexed via $8F:BAAF', category: '📋', stringIndex: null },
-    { address: 0x8FA3D8, name: 'Shared jump table of $8F:9F46 and $8F:9ECA', notes: '16 words. jmp ($A3D8,x) at $8F:9F46 uses all 16; jmp ($A3E8,x) at $8F:9ECA starts at entry 8. The CDL had only seen entries 0-7, and an 8-entry snesrecomp seed garbled the title-screen sprites (recomp-bug-hunt.md)', category: '📋', stringIndex: null },
+    { address: 0x8FA3D8, name: 'Shared jump table of $8F:9F46 and $8F:9ECA', notes: '16 words. jmp ($A3D8,x) at $8F:9F46 uses all 16; jmp ($A3E8,x) at $8F:9ECA starts at entry 8. The CDL had only seen entries 0-7, and an 8-entry snesrecomp seed garbled the title-screen sprites (docs/recomp/bugs-and-todos.md)', category: '📋', stringIndex: null },
     { address: 0x8FA3F8, name: 'Table read right after the $8F:9F46 dispatch', notes: 'lda $8FA3F8,x at $8F:9F4B; ends the jump table before it; meaning unknown', category: '📋', stringIndex: null },
     { address: 0x8FBAAF, name: 'Hit-chance pointers by evade', notes: '', category: '📋', stringIndex: null },
     { address: 0x8FAF18, name: 'Mover direction table', notes: '', category: '📋', stringIndex: null },

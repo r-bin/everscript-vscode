@@ -61,7 +61,7 @@ core (WASM, per instruction / access)        webview (every 15 s)        host (N
 - **`idx:X` counts are statically extended** (`staticTableCount`): the CDL only sees taken entries,
   and an under-counted table broke SoE's title sprites (`$8F:9F46`, 16 entries, 8 observed).
   Pointer forms (`ptrcall`, `ptrtail`, `rtsstack`) with observed-only targets make snesrecomp
-  **skip** unknown handlers: treat them as risky. Recomp debugging: `docs/reverse-engineering/recomp-bug-hunt.md`.
+  **skip** unknown handlers: treat them as risky. Recomp debugging: `docs/recomp/debugging.md` and `docs/recomp/bugs-and-todos.md`.
 
 ## 3. What is recorded
 
@@ -137,7 +137,7 @@ are two further records `$AE` apart (larger records, not on the `$8E` lattice).
 Cross-tool plan (CDL + snesrecomp + Ghidra/ghidra-snes + REA, per goal): `docs/reverse-engineering/README.md`.
 The CDL library also seeds Ghidra/REA (functions at their `$8x` execution address, names, WRAM labels): `docs/reverse-engineering/rea.md` §10.1.
 
-- **Recomp (snesrecomp):** boots to the intro in a scaffolded host project (`docs/reverse-engineering/recomp-host.md`);
+- **Recomp (snesrecomp):** boots to the intro in a scaffolded host project (`docs/recomp/game-rtl.md`);
   lockstep vs snes9x (`npm run recomp:lockstep`) drifts from NMI counter ~315 (timing);
   PHA/PEA+RTS sites need `hle_dispatch`; observed-only target lists are incomplete until played.
 - **Decomp:** names. The assets give shapes (tables.h, structs.h, enums) but every name is still an
