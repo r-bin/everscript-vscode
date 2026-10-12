@@ -93,13 +93,17 @@ the room id.
 - **Names are ours.** Pick descriptive names; don't import names from other projects.
 - **Evidence makes it trustworthy.** Say how you know. `confirmed` needs a trace, test or
   disassembly you actually looked at.
-- **Don't duplicate.** If the address is in `functions.js`/`tables.js`, move it into an entry
-  and delete the JS line (migrate on touch).
+- **Don't duplicate — but don't break consumers.** Nothing reads the entries yet (no loader as
+  of v0.201.7; the first entries are the RAM ones under `knowledge/ram/`). `functions.js` /
+  `tables.js` / `names.json` are what the hover, ROM tab, exports and seeds read today, so new
+  *function and table names* still go there (with evidence in `notes`). Move a JS line into an
+  entry only once a loader serves entries to those consumers. RAM facts with no JS home go into
+  entries now.
 - **One commit:** the code change and the knowledge it produced land together.
 
 ## 5. Why not one big Markdown table
 
-The overview tables (RAM map, ROM map) are **generated** from these entries. A single
+The overview tables (RAM map, ROM map) are meant to be **generated** from these entries (the generator does not exist yet). A single
 hand-edited table can't hold multi-sentence purposes, per-room layouts or bit tables; pipes
 and line breaks break it; and parallel agents editing one file conflict. One file per entry
 is greppable, merge-friendly, readable on its own, and served as-is by `soe://`.

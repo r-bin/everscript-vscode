@@ -76,3 +76,22 @@ For an unheadered HiROM Evermore image:
 2. **SNES Bus Address $\to$ ROM File Offset:**
    - If address begins with `$92..$9B` or `$B0`: `File Offset = Bus Address - 0x800000`.
    - If address begins with `$C0..$C3`: `File Offset = Bus Address - 0xC00000`.
+
+---
+
+## 5. Which bank code runs from (disassembler / Ghidra trap)
+
+HiROM exposes every 64 KB ROM bank twice: `$C0–$FF` (whole bank) and `$80–$BF` (upper half
+`$8000–$FFFF` only). The **upper half** of file bank *n* is reachable at both `$(80+n):8000` and
+`$(C0+n):8000`; the **lower half** only at `$(C0+n):0000`. SoE's code runs from the `$8x` copy:
+all 449 function entries the CDL recorded are upper-half code in banks `$80`, `$8C–$92`, and
+`JSL`/`JML` operands use `$8x`.
+
+Consequences for any static tool:
+- Put code (functions, seeds, labels) at the **execution address**: upper-half code at `$8x`,
+  lower-half code at `$Cx`. File offset → execution address:
+  `off & 0x8000 ? 0x800000 + off : 0xC00000 + off`.
+- Ghidra + ghidra-snes maps only `$C0–$FF` (plus bank `$00`'s mirror). Calls into `$8x` then land
+  in unmapped memory. Map `$80–$BF:8000–FFFF` as **file-backed** blocks; Ghidra refuses
+  functions in byte-mapped (mirror) blocks. Recipe: `docs/rea-reverse-engineering-mcp.md` §10.1.
+- The same byte has two addresses; dedupe by file offset when merging results.

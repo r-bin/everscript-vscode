@@ -53,6 +53,7 @@ of:
 | `src/language/language-configuration.json` | Bracket matching, comment toggle, word pattern |
 | `src/language/tests/highlight.test.evs` | Grammar unit tests (vscode-tmgrammar-test) |
 | `docs/future-features.md` | Roadmap — read before starting new features |
+| `docs/reverse-engineering-master-plan.md` | RE goals (RAM/ROM map, recomp, decomp, SA-1, mashups) and how CDL, snesrecomp, Ghidra and REA combine — read before RE work |
 | `docs/vscode-highlighter-spec.md` | Token category spec |
 | `AI_ARCHITECTURE_GUIDE.md` | Architectural laws, file size limits, ownership rules |
 | `STATE_FLOW.md` | Authoritative state ownership table |

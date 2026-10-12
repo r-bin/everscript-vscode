@@ -9,6 +9,7 @@ const TABLES = [
     { address: 0x8088A3, name: 'Orbit table (y)', notes: 'angle → y, boomerang ellipse', category: '📋', stringIndex: null },
     { address: 0x808923, name: 'Orbit table (x)', notes: 'angle → x', category: '📋', stringIndex: null },
     { address: 0x8C98A1, name: 'Decompressor jump table', notes: '8 methods; 0x00 raw, 0x03 LZSS, 0x07 Markov', category: '📋', stringIndex: null },
+    { address: 0x8CE8BD, name: 'Script opcode handler table', notes: '195 words, opcodes 0x00-0xC2 → handler in bank $8C (used by $8C:D0A6); unused opcodes point at STP traps $8C:E8B5-E8BC; 0xAB → $8C:E8B1 (JML $80:84C9)', category: '📋', stringIndex: null },
     { address: 0x8F0000, name: 'Hit-chance table base', notes: 'indexed via $8F:BAAF', category: '📋', stringIndex: null },
     { address: 0x8FBAAF, name: 'Hit-chance pointers by evade', notes: '', category: '📋', stringIndex: null },
     { address: 0x8FAF18, name: 'Mover direction table', notes: '', category: '📋', stringIndex: null },

@@ -10,9 +10,9 @@ and ghidra-snes (§10). §1–§9 are the desk study. Where §10 contradicts the
 |---|---|
 | What is it? | An MCP server + CLI (`rea`, npm package `rea-agents`) that lets an agent drive Ghidra / IDA / Hopper and other analyzers, and returns findings with their evidence. |
 | Does it know SNES / 65816? | **No.** Raw-binary mode admits only x86, x86_64, ARM, AArch64. The only legacy profile is 16-bit DOS. |
-| Can we make it work? | **Only with a patch to REA.** Ghidra + ghidra-snes import SoE fine, but REA 6.4.0 refuses any file that is not ELF/MZ/Mach-O. A local patch on that check works (§10). |
+| Can we make it work? | **Yes, with two local patches** (REA's format check, ghidra-snes's `$80–$BF` mapping) plus CDL seeds: 556 procedures, 234 of 361 tested functions with real callers (§10). |
 | Do we need to help it with SNES asm? | Yes, heavily: memory map and mirrors, M/X widths, DB/D, function entries, data vs code. Our CDL library already has most of this. |
-| What can we expect? | Agent-driven reading of single routines (disassembly, xrefs, rough pseudocode), proposed names. Static only, nothing persists between sessions, 65816 pseudocode is often wrong. |
+| What can we expect? | Correct disassembly, a real direct-call graph, fast dossiers per function; an agent named 12 functions from them in one pass (§10.3). No jump tables, no DP/DB, pseudocode is noise, nothing persists. |
 | Can it recomp/decomp SoE? | **No.** It produces no recompilable code. Recomp stays snesrecomp, decomp stays the `hle_func` + lockstep method (`docs/asm-to-c-port.md`). REA could help with naming during decomp cleanup. |
 | Can our asset knowledge help it? | Yes. We can generate its seed file (functions, code, labels) from the CDL library, `tables.json`, `functions.json` and the localization tables, so Ghidra stops disassembling graphics and tables. |
 
@@ -134,7 +134,7 @@ extracted data go into the PR.
 
 ## 5. Using what we know about assets and code
 
-Proposed generator (not built): `tools/gen-rea-seeds.js <cdl library dir> > traces/rea/soe-seeds.tsv`.
+A working generator exists in the spike folder (`scripts/gen-seeds.js`, §10.1 step 6); not yet in the repo.
 
 | Source | Becomes |
 |---|---|
@@ -166,7 +166,7 @@ around it.
 **Not good for / limits:**
 - 65816 pseudocode is unreliable even with seeds. Treat it as a reading aid only, never as
   lifted code.
-- No persistence: each `open_binary` re-imports and re-analyzes (minutes for 3 MB).
+- No persistence: each `open_binary` re-imports and re-analyzes (~7–10 s for SoE with seeds).
   Snapshots cache query results, not a Ghidra project.
 - No runtime facts. Our CDL recorder already knows more about real widths, targets and
   data than static analysis can find.
@@ -196,9 +196,9 @@ fixtures, not a code generator.
 
 ## 9. Proposed next steps
 
-1. ~~Spike~~ done, see §10: go with a patch.
-2. Seeds help: 1 → 475 procedures. Still to do: compare 3–4 known routines with and without
-   seeds, and add `code`/`label` rows (tables, assets) to the seeds.
+1. ~~Spike~~ done, see §10: go with two patches.
+2. ~~Seeds~~ done: 1 → 556 procedures; naming trial in §10.3. Still to do: `code`/`label` rows
+   for tables and assets, and jump-table targets (needs an upstream input).
 3. If widths/banks are still the blocker: draft the SNES profile for REA (§4.3) and propose
    it upstream.
 4. If no-go: drop REA. Use Ghidra directly (with a script that applies CDL context), or
@@ -207,45 +207,90 @@ fixtures, not a code generator.
 ## 10. Spike results (2026-10-12)
 
 We set this up in a local folder outside the repo (`~/Documents/GitHub/rea-snes-spike`, which
-has its own README). Nothing from it is committed.
+has its own README with rerun and undo steps). Nothing from it is committed. Overall comparison
+with our other tools: `docs/reverse-engineering-master-plan.md`.
 
-### What worked
+### 10.1 How we got it working (recipe)
 
-- **ghidra-snes** (<https://github.com/joshleaves/ghidra-snes>, MIT) has no release, so we
-  built it from source: `GHIDRA_INSTALL_DIR=… ./gradlew buildExtension` with JDK 21. It
-  provides the `SNES ROM Loader` and language `65816:LE:24:snes`. The `.sla` was not built,
-  so we compiled it once with `$GHIDRA_INSTALL_DIR/support/sleigh …/65816.slaspec`.
-- Headless Ghidra then imports the clean US ROM as HiROM. It maps banks `$C0–$EF`, WRAM,
-  I/O and the bank `$00` ROM mirror. It does **not** map the `$80–$BF` mirrors the code runs
-  from, so use `$C0`-based addresses: `$8C:D0A6` → `0xCCD0A6`.
-- With the REA patch below, `rea inspect` and `rea function` run in about 7 s each. They
-  include a full re-import and auto-analysis every time.
-- **Seeds matter.** Unseeded, Ghidra finds 1 procedure (reset). A seed file built from the
-  retail CDL library (`rom.cdl` SUB bit = 449 entries, 73 named from
-  `src/localizations/functions.js`) gives 475 procedures, and names show up in the output.
-- REA's MCP server starts (170 tools) from a project `.mcp.json` in the spike folder.
+1. **ghidra-snes** (<https://github.com/joshleaves/ghidra-snes>, MIT) has no release. Build it:
+   `GHIDRA_INSTALL_DIR=… ./gradlew buildExtension` (JDK 21). Then compile its language once:
+   `$GHIDRA_INSTALL_DIR/support/sleigh …/data/languages/65816.slaspec`. It provides the
+   `SNES ROM Loader` and language `65816:LE:24:snes`.
+2. **Patch the loader** (local, ~10 lines in `SnesRomLoader.loadRom`): for HiROM, map the upper
+   halves `$80–$AF:8000–FFFF` as *file-backed* blocks (same file offsets as `$C0–$EF:8000–FFFF`)
+   and add the low-RAM / I/O mirrors for those banks. Stock ghidra-snes maps only bank `$00`'s
+   mirror, so every call into `$8x` went to "non-existing memory". Byte-*mapped* mirror blocks
+   do not work: Ghidra refuses to create functions inside them (all 449 seeds failed).
+3. **Install the extension into the Ghidra install** (`$GHIDRA_INSTALL_DIR/Ghidra/Extensions/`),
+   not the user folder: REA starts Ghidra with a temporary settings folder and its language
+   catalog only scans the install. With Homebrew that is inside the Cellar; `brew upgrade`
+   removes it.
+4. **Patch REA** (local, 3 lines in `dist/domain/binaryTarget.js`): REA 6.4.0 (npm and `main`)
+   accepts only ELF / MZ / Mach-O, `--target-format` only takes `dos-com`, and its raw-binary
+   code refuses a language override. The patch reports a ROM-sized file as a known format so
+   Ghidra auto-picks the SNES loader. Side effect: REA labels the subject `elf / x86`.
+5. **Use the clean ROM.** ghidra-snes rejects headers whose checksum does not match the file;
+   `../everscript/out/*.smc` is patched (sum `$4453` ≠ stored `$FE2E`).
+6. **Seed file** (`REA_GHIDRA_SEED_FILE`), generated by `scripts/gen-seeds.js` in the spike:
+   functions from the CDL library (`rom.cdl` SUB bit), names from `functions.js`, script opcode
+   handlers read from the user's ROM table `$8C:E8BD`, WRAM labels from `ram-symbols`. **Seed at
+   the execution address** (`$8x` for upper-half code, `$Cx` for lower-half): all 449 CDL entry
+   points are upper-half code, and calls use `$8x`.
+7. For Claude Code: a project `.mcp.json` in the spike folder (REA MCP, 170 tools).
+   Batch work: `scripts/dossiers.js` drives one MCP session (`open_binary` once, then
+   `analyze_function` per address) with a 60 s limit per call: one function made Ghidra's
+   decompiler spin for 14 minutes, and a hung call blocks the session.
 
-### What blocked, and the workaround
+### 10.2 What it returned (four runs over the 376 unnamed CDL functions)
 
-| Trap | Detail | Workaround |
+| Run | Setup | Procedures | Functions with callers | Note |
+|---|---|---|---|---|
+| 1 | no seeds | 1 | – | only reset |
+| 2 | CDL seeds at `$Cx` | 475 | 30 / 300 | calls target `$8x`, unmapped |
+| 3 | seeds at `$8x`, mapped mirrors | 1 | 0 | Ghidra refuses functions in mapped blocks |
+| 4 | seeds at `$8x`, file-backed `$8x` banks | 556 | **234 / 361** | 211 with callees, 14 errors, 1 timeout |
+
+Per function REA returns assembly (widths right where we checked), basic blocks, callers,
+callees, references and named references, plus pseudocode. About 7 s per CLI call (re-import
+each time); in one MCP session the 376 functions took ~5 minutes.
+
+What it still gets wrong or misses: jump-table targets (`JSR (abs,X)`, e.g. `$8C:D0A6`) stay
+unresolved, so those handlers have no callers; DP and DB are unknown, so 16-bit and direct-page
+accesses do not hit our WRAM labels (only long `$7E:xxxx` operands did); pseudocode is noise.
+
+### 10.3 How useful it was: the naming trial
+
+From the run-4 dossiers we ranked candidates by evidence (calls to named routines, long
+accesses to named WRAM) and read ten plus two of their callees. Results, all now in
+`src/localizations/functions.js` with evidence and `likely` / `guess`:
+
+| Address | Name | Confidence |
 |---|---|---|
-| REA rejects the ROM | REA 6.4.0 (npm == `main`) checks the header itself and accepts only ELF, MZ and Mach-O (`dist/domain/binaryTarget.js`). `--target-format` only takes `dos-com`. The documented raw-binary mode is not exposed in the CLI. In code it allows only 4 CPUs and refuses a language override (`GhidraLauncher.ts`). | Local 3-line patch: when the file size is a multiple of `$8000`, report it as a known format. Ghidra then picks the SNES loader itself. The subject shows up as `format: elf, architecture: x86`, which is cosmetic but wrong. |
-| Extension not seen by REA | REA starts Ghidra with a temporary settings folder, so extensions in `~/Library/ghidra/<ver>/Extensions` are ignored. Its language catalog only scans `$GHIDRA_INSTALL_DIR/Ghidra/Extensions`. | Install the extension into the Ghidra install. With Homebrew that is inside the Cellar, and `brew upgrade` removes it. |
-| Patched ROMs rejected | ghidra-snes accepts a header only if the stored checksum matches the file. `../everscript/out/*.smc` is patched (sum `$4453` ≠ stored `$FE2E`). | Use the clean ROM, or fix the checksum on a copy. |
+| `$80:859B` | Random number generator (state `$0133–$0139`) | likely |
+| `$8E:E41E` | Per-frame field tick (frame counter `$0B19`) | likely |
+| `$90:94AB` | Camera: centre on target, clamp to map bounds | likely |
+| `$90:9897` / `$90:98A5` | Start screen shake / random shake offset per frame | likely |
+| `$8E:E4E2` | Enter room: stop sound, reset, enter script, run frames until ready | guess |
+| `$90:8E90` | Reset per-room state | guess |
+| `$90:9839` | Per-frame map effects | guess |
+| `$8F:C61E` | Entity pass + boy/dog overlay sprites | guess |
 
-### Quality on a known routine (`$8C:D0A6`, script opcode dispatch)
+Side findings that are facts, not guesses: the script opcode table `$8C:E8BD` has 195 entries;
+27 unused opcodes point at `STP` bytes (`$8C:E8B5–E8BC`) and halt the game; opcodes `0x30–0x32`
+start at `$8C:D6A7` and `0x33` at `$8C:D6D6` (our older entries `$D6BE` / `$D709` are inside
+them). Seven new WRAM entries went to `src/localizations/knowledge/ram/` (RNG state, shake
+offsets, camera target and follow pointer, frame counter, entity list head).
 
-- **Assembly: correct.** The 16-bit `AND #$00FF` and `JSR ($E8BD,X)` decode right.
-- **Jump table: not resolved.** No callees, no callers, `outgoing_references` only has the loop
-  branch. Our CDL edges know the targets, but REA has no way to pass them in.
-- **Pseudocode: noise.** DP is unknown (`in_DP + 0x82`), and every direct-page access branches
-  on the emulation-mode flag. It is useless as C and barely helps as a reading aid. This
-  matches `asm-to-c-port.md` §5.
+**Assessment.** With the two patches and CDL seeds, REA is a *good evidence collector*: the
+call graph for direct calls is real, and reading a routine with its callers and named callees is
+fast. The names come from the agent reading assembly, not from REA. Roughly half of the
+candidates could be named with reasonable confidence in one pass; the rest need emulator
+confirmation. It does not replace the CDL (runtime facts) and does not produce usable C.
 
-### Verdict
+### 10.4 Verdict
 
-REA works for SoE only with a local patch. It adds an agent-friendly, evidence-tagged
-front end over Ghidra, but no SNES knowledge. The upstream SNES profile (§4.3) is still the
-real fix: it should admit SNES ROMs, map the mirrors, and take DP/DB/M/X and jump-table
-targets from our CDL. Until then, our own CDL disassembly + Asar export is more accurate.
-REA is worth it only for ad-hoc "explain this routine" questions.
+Usable for naming and "explain this routine" work, after the patches. For the long run the
+fixes belong upstream: a SNES profile in REA (admit SNES ROMs, take DP/DB/M/X and jump-table
+targets as input) and execution-bank mapping in ghidra-snes. Plain Ghidra with a script that
+applies our CDL context would get the same call graph with persistence and better context; see
+the master plan for which to build.

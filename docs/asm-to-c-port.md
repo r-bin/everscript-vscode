@@ -158,7 +158,9 @@ Rules:
 | DMA register writes | Stay as writes to the emulated PPU/DMA. Do not reinterpret them yet |
 
 Ghidra's 65816 module is useful for reading a routine, but its output is not a source of
-lifted code: it gets widths and banks wrong too often.
+lifted code: it gets widths and banks wrong too often. Setup that works for SoE (ghidra-snes +
+`$8x` bank mapping + CDL seeds, optionally behind REA): `docs/rea-reverse-engineering-mcp.md` §10;
+how it fits with the CDL and snesrecomp: `docs/reverse-engineering-master-plan.md`.
 
 ## 6. Stage 4 — lockstep hybrid (the core of the method)
 

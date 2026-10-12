@@ -127,6 +127,9 @@ are two further records `$AE` apart (larger records, not on the `$8E` lattice).
 
 ## 6. What each goal still needs
 
+Cross-tool plan (CDL + snesrecomp + Ghidra/ghidra-snes + REA, per goal): `docs/reverse-engineering-master-plan.md`.
+The CDL library also seeds Ghidra/REA (functions at their `$8x` execution address, names, WRAM labels): `docs/rea-reverse-engineering-mcp.md` §10.1.
+
 - **Recomp (snesrecomp):** the generated C must boot (host / frame driver, `asm-to-c-port.md` §11);
   PHA/PEA+RTS sites need `hle_dispatch`; observed-only target lists are incomplete until played.
 - **Decomp:** names. The assets give shapes (tables.h, structs.h, enums) but every name is still an
