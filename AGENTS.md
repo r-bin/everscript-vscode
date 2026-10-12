@@ -68,6 +68,8 @@ Full domain map (post v0.6.0 `src/` refactor): see `src/README.md`.
 
 The canonical skill content is maintained in `.agents/skills/<skill-name>/SKILL.md`.
 Skills load on demand based on their `description` and `applyTo` globs.
+Claude Code finds them only under `.claude/skills/`, which is a symlink to `.agents/skills` —
+add new skills in `.agents/skills/<name>/SKILL.md` and they show up in both (new session needed).
 
 | Skill | Canonical Location | Covers |
 |---|---|---|
