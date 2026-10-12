@@ -137,9 +137,12 @@ are two further records `$AE` apart (larger records, not on the `$8E` lattice).
 Cross-tool plan (CDL + snesrecomp + Ghidra/ghidra-snes + REA, per goal): `docs/reverse-engineering/README.md`.
 The CDL library also seeds Ghidra/REA (functions at their `$8x` execution address, names, WRAM labels): `docs/reverse-engineering/rea.md` §10.1.
 
-- **Recomp (snesrecomp):** boots to the intro in a scaffolded host project (`docs/recomp/game-rtl.md`);
-  lockstep vs snes9x (`npm run recomp:lockstep`) drifts from NMI counter ~315 (timing);
+- **Recomp (snesrecomp):** playable in the field (village, jungle, combat; `recomp` skill,
+  `docs/recomp/README.md`); lockstep vs snes9x drifts from NMI counter ~315 (timing);
   PHA/PEA+RTS sites need `hle_dispatch`; observed-only target lists are incomplete until played.
+  The library used so far is a ~10 s recording (9.3 % of the ROM): a full-play CDL is the next input.
+  `FUNC_EXCLUSIONS` also emit `force_lle`: dropping a root alone lets snesrecomp compile the routine
+  as a JSL target (v0.201.19).
 - **Decomp:** names. The assets give shapes (tables.h, structs.h, enums) but every name is still an
   address; `hle_func` replacements are checked against the lockstep diff (§6 of the port doc).
 - **SA-1 port:** `functions.json` lists, per function, what keeps it on the S-CPU. The 12 SoE

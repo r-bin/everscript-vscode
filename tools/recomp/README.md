@@ -61,6 +61,15 @@ Runs a recomp headless script (`wait`, `press`, `poke`, `pokefor`, `forcepoke`, 
 on the extension's snes9x core and dumps WRAM, VRAM and the picture in the recomp's layout, to
 check whether a glitch also happens on the reference (docs/recomp/debugging.md §5.3).
 
+## Headless exploration helpers
+
+```sh
+node tools/recomp/room-nav.js <rom> <room hex> [--script]     # triggers + destinations, enemy spawns, script lines
+node tools/recomp/check-obj-tiles.js <tag.wram.bin>... [--vram] # OBJ tile cache lists consistent? portrait tile hash
+```
+
+How they fit together: [docs/recomp/headless-exploration.md](../../docs/recomp/headless-exploration.md).
+
 ## Lockstep against snes9x
 
 ```sh

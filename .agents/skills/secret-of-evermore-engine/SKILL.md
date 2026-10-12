@@ -47,12 +47,17 @@ Active Gameplay Loop (Every Frame)
   4. Branch on progression flags (e.g., if boss is defeated, skip boss cutscene and leave room in cleared state).
 
 ### 2.2 Step-On Triggers
-- Defined as rectangular coordinate bounding boxes: `[x0, y0 : x1, y1]`.
-- Continuously polled by the engine against player tile coordinates.
+- Defined as rectangular boxes in absolute 16-px cells: `[x0, y0 : x1, y1]`. In entity pixel
+  space a box is `(cell − room origin) × 16`; the origin is at `$7E0F86`/`$0F88` (= bytes 0/1 of
+  the room data). `tools/recomp/room-nav.js` prints them with their destination rooms.
+- Checked while the player **moves**: writing the Boy's coordinates into a box does nothing until
+  he takes a step onto it (verified headless, v0.201.18).
 - Used for:
   - Room exits: calling `map_transition(MAP.NEXT_ROOM, ENTRANCE, DIRECTION)`.
   - Environmental traps: pit falls, quicksand, pressure plates.
   - Cutscene triggers: stepping past an invisible line starts a scripted sequence.
+
+Enemy spawn positions in enter scripts are absolute 8-px units (pixel = unit × 8, no origin).
 
 ### 2.3 B-Triggers (Interactions)
 - Activated when the player presses the **B button** facing an object, or strikes it with a weapon:
@@ -71,3 +76,14 @@ Active Gameplay Loop (Every Frame)
   - Hitbox definitions, HP, attack power, and AI routine pointers are assigned.
   - Three prize slots are loaded: drop item 1, drop item 2, drop item 3, along with their respective drop rates and quantities.
 - An engine hook system at `$0EAC` tracks 3 active slots (offsets `+0`, `+4`, `+8`) in every room that manages enemy instances.
+
+---
+
+## Frame loop and sprite tiles (v0.201.19)
+
+- The field tick ends in `$8F:9817`, a spare-time loop: until the NMI bumps `$7E0100` it runs entity
+  tasks round-robin, then `$80:8F85` finishes the frame. Frame boundaries usually fall inside it.
+- Dynamic 8×8 OBJ tiles live in an LRU cache of 128 slots (slot = OBJ tile number), kept as two
+  doubly linked lists at `$7E9727` (next) / `$7E96A5` (prev), sentinels `$80` (cache) and `$81`
+  (used this frame). `$80:A4B5` allocates, queues uploads at `$7E15D6`; the NMI uploads only while
+  `$7E00D9` != 0. Tiles `$80`+ (HUD portrait) are not slots: a broken list hands one out anyway.

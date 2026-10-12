@@ -53,13 +53,13 @@ of:
 | `src/language/language-configuration.json` | Bracket matching, comment toggle, word pattern |
 | `src/language/tests/highlight.test.evs` | Grammar unit tests (vscode-tmgrammar-test) |
 | `docs/future-features.md` | Roadmap — read before starting new features |
-| `docs/recomp/` | Recomp master page (`README.md`), setup (`setup.md`), Game Runtime Layer (`game-rtl.md`), debugging (`debugging.md`), open bugs & roadmap (`bugs-and-todos.md`), addons (`snesmod-addons.md`), enhancements (`enhancements.md`), experimental graphics (`experimental-renderer.md`) |
+| `docs/recomp/` | Recomp master page (`README.md`), setup (`setup.md`), Game Runtime Layer (`game-rtl.md`), debugging (`debugging.md`), headless exploration (`headless-exploration.md`), open bugs & roadmap (`bugs-and-todos.md`), addons (`snesmod-addons.md`), enhancements (`enhancements.md`), experimental graphics (`experimental-renderer.md`) |
 | `docs/reverse-engineering/` | RE master page (`README.md`: goals, how each is reached) + one page per approach (CDL, recomp/C port, Ghidra, REA, formats, other tools) — read before RE work |
 | `docs/vscode-highlighter-spec.md` | Token category spec |
 | `AI_ARCHITECTURE_GUIDE.md` | Architectural laws, file size limits, ownership rules |
 | `STATE_FLOW.md` | Authoritative state ownership table |
 | `docs/architecture/domain-overview.md` | Which `src/` domains to load for a given task |
-| `tools/recomp/` | `npm run recomp`: CDL + names + assets → Asar (byte-identical) + Mesen2 files → snesrecomp host project (`out/recomp/project/`, generated) + our glue (`tools/recomp/host/`, the only game-specific host files in git) → playable `out/recomp/SecretOfEvermore-<os>-<arch>/` + `REPORT.md`; `npm run recomp:lockstep`: that game vs snes9x |
+| `tools/recomp/` | `room-nav.js` (room triggers/spawns → headless script lines), `check-obj-tiles.js`, `s9x-run.js` (same script on snes9x); `npm run recomp`: CDL + names + assets → Asar (byte-identical) + Mesen2 files → snesrecomp host project (`out/recomp/project/`, generated) + our glue (`tools/recomp/host/`, the only game-specific host files in git) → playable `out/recomp/SecretOfEvermore-<os>-<arch>/` + `REPORT.md`; `npm run recomp:lockstep`: that game vs snes9x |
 | `scripts/` | Shell wrappers for the npm commands: `build-plugin.sh`, `test.sh`, `build-recomp.sh`, `play-recomp.sh`, `lockstep.sh`, `release.sh` (see `scripts/README.md`) |
 | `simulation/` | Design notes for the planned simulation domain — md only, no code yet |
 
@@ -102,6 +102,7 @@ add new skills in `.agents/skills/<name>/SKILL.md` and they show up in both (new
 | `snes-memory-mapping` | `.agents/skills/snes-memory-mapping/SKILL.md` | SNES memory maps (HiROM, LoROM, cartridge ROM vs WRAM) |
 | `sprites-subsystem` | `.agents/skills/sprites-subsystem/SKILL.md` | Sprites rendering, animation frames, OBJ palettes |
 | `wram-memory-mapping` | `.agents/skills/wram-memory-mapping/SKILL.md` | WRAM address allocation, entity tables, party stats |
+| `recomp` | `.agents/skills/recomp/SKILL.md` | The snesrecomp build: commands, ownership of generated files, headless runs, the traps (force_lle, bounce differential, frozen-but-drawn, save states) |
 | `ghidra-analysis` | `.agents/skills/ghidra-analysis/SKILL.md` | Ghidra + ghidra-snes / REA on SoE: what for, setup traps, seeding from the CDL, trusting static results |
 
 ---
