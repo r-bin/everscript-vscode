@@ -294,3 +294,24 @@ Porting Secret of Mana maps into Secret of Evermore is an achievable project:
 - **Graphic Assets**: Fits within Evermore's Mode 1 compositing, provided the tiles are clustered into **7 Tile Families** and under **264 CHR slots**.
 - **Collision**: Translates directly into Evermore's 16-bit collision bitfield words.
 - **Scripting & Warps**: Mana's Door Table and raster triggers can be compiled directly into high-level **Everscript (`.evs`)** transition scripts.
+
+---
+
+## 7. Extension Implementation (`everscript-vscode`)
+
+As of v0.201.38, the extension natively understands and imports vanilla Secret of Mana maps:
+
+1. **Decoder Pipeline (`src/maps/mana/`)**:
+   - `mana-compressor.ts`: Full 2D spatial opcode decompressor (`0x00..0xBF` literals, `0xC0..0xDF` repeats, `0xE0..0xEF` sliding window lookback, `0xF0..0xF7` arithmetic runs, `0xF8..0xFF` stack chunk stamps).
+   - `mana-tileset.ts`: Decodes 384 metatiles from Bank `$0B` compressed bitstreams, 4-byte collision structs, 1-byte collision lookup tables, and Bank `$0C` BGR555 palette sets.
+   - `mana-catalog.ts`: Complete catalog of 408 vanilla composite map names.
+   - `mana-room.ts`: Decodes map headers, objects, doors/triggers, piece references (`0xFE`/`0xFF`), decompresses pieces, and flattens into unified $W \times H$ grids.
+   - `mana-render.ts`: Renders composite Mana maps (terrain + canopy) to RGBA `PixelBuffer` and PNG data URI.
+   - `mana-integrate.ts`: Converts Mana room data into Evermore Custom Map document (`saved.cells`, `saved.coll`, `saved.added`, `saved.placed`, `saved.start`, and Everscript transition stubs).
+
+2. **Rooms Tab Integration**:
+   - Lists vanilla Mana maps in the Rooms tab rail under a dedicated "Secret of Mana" group.
+   - Selecting a Mana room renders the composite map in the central canvas without opening the right sidebar dock (`#rg-dock`), keeping the UI clean since Mana maps do not use Evermore's 7-family stamp editor dock.
+   - The header displays `[SoM #<id>]` and provides an `[Integrate into Evermore]` button.
+   - Clicking `[Integrate into Evermore]` automatically creates a custom map entry in the user's custom maps store, writes `transitions.evs` with door stubs, and opens the new map in the full Evermore editor with all tools and palettes active.
+

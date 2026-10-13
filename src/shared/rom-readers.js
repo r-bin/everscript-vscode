@@ -17,9 +17,22 @@ function romCandidates(wsRoot, romPathOverride = '') {
     return out;
 }
 
+/** Candidate Secret of Mana ROM paths, in resolution order. */
+function manaRomCandidates(wsRoot, romPathOverride = '') {
+    const out = [];
+    if (romPathOverride) out.push(romPathOverride);
+    out.push('/Users/v/romhacking/Secret of Mana (U) [!].smc');
+    if (wsRoot) {
+        out.push(path.join(wsRoot, 'Secret of Mana (U) [!].smc'));
+        out.push(path.join(wsRoot, 'Secret of Mana.smc'));
+    }
+    return out;
+}
+
 // The ROM is ~3MB and the individual readers each re-read it. Cache the buffer
 // keyed by path + mtime so repeated decodes (e.g. room tile overlays) are cheap.
 let _romCache = null;
+let _manaRomCache = null;
 
 /** Load the workspace ROM as a Buffer, cached by path and mtime. Null if absent. */
 function loadRomBuffer(wsRoot, romPathOverride = '') {
@@ -36,9 +49,32 @@ function loadRomBuffer(wsRoot, romPathOverride = '') {
     return null;
 }
 
+/** Load the Secret of Mana ROM as a Buffer, cached by path and mtime. Null if absent. */
+function loadManaRomBuffer(wsRoot, romPathOverride = '') {
+    try {
+        for (const p of manaRomCandidates(wsRoot, romPathOverride)) {
+            if (!p || !fs.existsSync(p)) continue;
+            const mtime = fs.statSync(p).mtimeMs;
+            if (_manaRomCache && _manaRomCache.path === p && _manaRomCache.mtime === mtime) return _manaRomCache.buf;
+            const buf = fs.readFileSync(p);
+            _manaRomCache = { path: p, mtime, buf };
+            return buf;
+        }
+    } catch (_e) { /* fall through to null */ }
+    return null;
+}
+
 /** The ROM file `loadRomBuffer` would read, or null when none exists. */
 function resolveRomPath(wsRoot, romPathOverride = '') {
     for (const p of romCandidates(wsRoot, romPathOverride)) {
+        if (p && fs.existsSync(p)) return p;
+    }
+    return null;
+}
+
+/** The Mana ROM file `loadManaRomBuffer` would read, or null when none exists. */
+function resolveManaRomPath(wsRoot, romPathOverride = '') {
+    for (const p of manaRomCandidates(wsRoot, romPathOverride)) {
         if (p && fs.existsSync(p)) return p;
     }
     return null;
@@ -335,4 +371,7 @@ module.exports = {
     loadRomBuffer,
     resolveRomPath,
     invalidateRomBuffer,
+    loadManaRomBuffer,
+    resolveManaRomPath,
+    manaRomCandidates,
 };

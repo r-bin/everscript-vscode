@@ -55,6 +55,12 @@ function railSelectRow(li) {
     if (vr) renderRoomDetail(vr);
     return;
   }
+  if (li.dataset.manaId !== undefined) {
+    var mr = (typeof MANA_ROOM_DETAILS !== 'undefined' && MANA_ROOM_DETAILS)
+      ? MANA_ROOM_DETAILS[li.dataset.manaId] : null;
+    if (mr) renderRoomDetail(mr);
+    return;
+  }
   var room = (typeof ROOMS !== 'undefined' && ROOMS) ? ROOMS[li.dataset.map] : null;
   if (room) renderRoomDetail(room);
 }
@@ -86,7 +92,7 @@ function railSetGroup(key, open) {
 /** What a row matches against: its visible label plus its id. */
 function railRowHaystack(li) {
   return ((li.textContent || '') + ' ' + (li.dataset.vid || '') + ' ' + (li.dataset.map || '')
-    + ' ' + (li.dataset.custom ? 'custom' : ''))
+    + ' ' + (li.dataset.manaId || '') + ' ' + (li.dataset.custom ? 'custom' : ''))
     .toLowerCase();
 }
 

@@ -150,7 +150,8 @@ function getExtConfig() {
 }
 
 const roomData = require('./rooms');
-const { VANILLA_ROOMS, getMapEnum, readLuaWatchers, readScriptAllTriggers, buildVanillaRoomContent, buildVanillaRoomDetails, buildItemIcons, invalidateRoomDataCaches } = roomData;
+const { VANILLA_ROOMS, getMapEnum, readLuaWatchers, readScriptAllTriggers, buildVanillaRoomContent, buildVanillaRoomDetails, buildManaRoomDetails, buildItemIcons, invalidateRoomDataCaches } = roomData;
+const maps = require('./maps');
 
 /** The ring menu's item icons from the configured ROM, for the radar page (rooms/data/item-icons.js). */
 function radarItemIcons() {
@@ -495,9 +496,10 @@ function refreshRadar(editor) {
     const _extCfg1 = getExtConfig();
     const _wsRoot1 = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
     const _vrd1 = buildVanillaRoomDetails(_wsRoot1, _extCfg1.romPath || '');
+    const _mrd1 = buildManaRoomDetails(_wsRoot1, _extCfg1.manaRomPath || '');
     const _romBuf1 = romReaders.loadRomBuffer(_wsRoot1, _extCfg1.romPath || '');
     const _spBundle1 = getSpritesBundle(_romBuf1);
-    _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree || [], _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, radarItemIcons(), _hitLookup, getRadarEnums(), _vrd1, _radarByteScriptFocus, _spBundle1);
+    _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree || [], _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, radarItemIcons(), _hitLookup, getRadarEnums(), _vrd1, _radarByteScriptFocus, _spBundle1, _mrd1);
     _radarPanel.title = 'Radar: ' + scope.name;
 }
 
@@ -649,9 +651,10 @@ function activate(context) {
             const _extCfg2 = getExtConfig();
             const _wsRoot2b = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
             const _vrd2 = buildVanillaRoomDetails(_wsRoot2b, _extCfg2.romPath || '');
+            const _mrd2 = buildManaRoomDetails(_wsRoot2b, _extCfg2.manaRomPath || '');
             const _romBuf2 = romReaders.loadRomBuffer(_wsRoot2b, _extCfg2.romPath || '');
             const _spBundle2 = getSpritesBundle(_romBuf2);
-            _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree, _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, radarItemIcons(), _hitLookup, getRadarEnums(), _vrd2, _radarByteScriptFocus, _spBundle2);
+            _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree, _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, radarItemIcons(), _hitLookup, getRadarEnums(), _vrd2, _radarByteScriptFocus, _spBundle2, _mrd2);
 
             // `everscript.newMap` asked for a blank room. The webview has just
             // been rebuilt, so this is the first moment it can be told.
@@ -726,6 +729,41 @@ function activate(context) {
                     } catch (err) {
                         _radarPanel.webview.postMessage({ ...reply, error: String(err && err.message || err) });
                     }
+                } else if (msg.command === 'requestManaRoomTiles') {
+                    const manaId = Number(msg.manaId);
+                    const reply = { command: 'roomTiles', mapName: msg.mapName, manaId, isMana: true };
+                    if (!Number.isInteger(manaId) || manaId < 0) {
+                        _radarPanel.webview.postMessage({ ...reply, error: 'invalid mana room id' });
+                        return;
+                    }
+                    try {
+                        const _cfg = getExtConfig();
+                        const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+                        const manaRomBuf = romReaders.loadManaRomBuffer(_ws, _cfg.manaRomPath || '');
+                        if (!manaRomBuf) {
+                            _radarPanel.webview.postMessage({ ...reply, error: 'Secret of Mana ROM not found — set everscript.manaRomPath' });
+                            return;
+                        }
+                        const manaRoom = maps.decodeManaRoom(manaRomBuf, manaId);
+                        if (!manaRoom) {
+                            _radarPanel.webview.postMessage({ ...reply, error: `Could not decode Secret of Mana room ${manaId}` });
+                            return;
+                        }
+                        const rendered = maps.renderManaRoom(manaRomBuf, manaRoom);
+                        const overlay = {
+                            imageUri: rendered.imageUri,
+                            foregroundUri: null,
+                            canopyOverlayUri: null,
+                            imageWidth: rendered.width,
+                            imageHeight: rendered.height,
+                            layer: msg.layer || 'both',
+                            originX: Number(msg.originX) || 0,
+                            originY: Number(msg.originY) || 0,
+                        };
+                        _radarPanel.webview.postMessage({ ...reply, overlay });
+                    } catch (err) {
+                        _radarPanel.webview.postMessage({ ...reply, error: String(err && err.message || err) });
+                    }
                 } else if (msg.command === 'requestRoomMetatiles') {
                     // The room's metatile dictionary — the stamps a map editor
                     // can place. Its own request because the biggest room is a
@@ -784,6 +822,14 @@ function activate(context) {
                             return {
                                 romPath: romReaders.resolveRomPath(_ws, _cfg.romPath || ''),
                                 romBuf: romReaders.loadRomBuffer(_ws, _cfg.romPath || ''),
+                            };
+                        },
+                        loadManaRom: () => {
+                            const _cfg = getExtConfig();
+                            const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+                            return {
+                                manaRomPath: romReaders.resolveManaRomPath(_ws, _cfg.manaRomPath || ''),
+                                manaRomBuf: romReaders.loadManaRomBuffer(_ws, _cfg.manaRomPath || ''),
                             };
                         },
                     });
@@ -1157,9 +1203,10 @@ function activate(context) {
                         const _extCfg3 = getExtConfig();
                         const _wsRoot3 = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
                         const _vrd3 = buildVanillaRoomDetails(_wsRoot3, _extCfg3.romPath || '');
+                        const _mrd3 = buildManaRoomDetails(_wsRoot3, _extCfg3.manaRomPath || '');
                         const _romBuf3 = romReaders.loadRomBuffer(_wsRoot3, _extCfg3.romPath || '');
                         const _spBundle3 = getSpritesBundle(_romBuf3);
-                        _radarPanel.webview.html = renderRadarHtml(gscope, refs, pools, argRefs, getRadarMap(), _radarRoomTree || [], _radarActiveTab, null, _scalingChars || [], _scaleActive, radarItemIcons(), _hitLookup, getRadarEnums(), _vrd3, _radarByteScriptFocus, _spBundle3);
+                        _radarPanel.webview.html = renderRadarHtml(gscope, refs, pools, argRefs, getRadarMap(), _radarRoomTree || [], _radarActiveTab, null, _scalingChars || [], _scaleActive, radarItemIcons(), _hitLookup, getRadarEnums(), _vrd3, _radarByteScriptFocus, _spBundle3, _mrd3);
                         _radarPanel.title = 'Radar: (global)';
                     }
                 } else if (msg.command === 'autoScope') {

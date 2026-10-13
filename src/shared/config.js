@@ -39,6 +39,7 @@ function resolveExtConfig(rawConfig, wsRoot) {
         patchesDirectory: normalizePath(raw.patchesDirectory) || legacyPatchesPath || defaults.patchesDirectory,
         patchesPath: legacyPatchesPath,
         romPath: normalizePath(raw.romPath) || defaults.romPath,
+        manaRomPath: normalizePath(raw.manaRomPath) || '/Users/v/romhacking/Secret of Mana (U) [!].smc',
         compilerPath: normalizePath(raw.compilerPath) || defaults.compilerPath,
         pythonPath: normalizePath(raw.pythonPath) || defaults.pythonPath,
         snesCorePath: normalizePath(raw.snesCorePath),

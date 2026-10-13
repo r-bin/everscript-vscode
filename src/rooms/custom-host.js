@@ -31,9 +31,10 @@ const store = require('./data/custom-store');
 const widgetStore = require('./data/widget-store');
 const { buildCustomMapArchive } = require('./rendering/custom-export');
 const { graphicFamilies } = require('./rendering/vanilla-index');
+const maps = require('../maps');
 
 const COMMANDS = new Set(['requestCustomMaps', 'saveCustomMap', 'setCustomActive', 'deleteCustomMap', 'exportCustomMap',
-    'requestWidgets', 'saveWidget', 'deleteWidget']);
+    'requestWidgets', 'saveWidget', 'deleteWidget', 'integrateManaMap']);
 
 /** The prefs key the maps lived under before they had folders. */
 const LEGACY_PREF = 'customMaps';
@@ -74,6 +75,41 @@ function handleCustomMapMessage(msg, deps) {
             store.saveMap(root, msg.map || {}, opts);
         } catch (err) {
             vscode.window.showErrorMessage('Could not save the custom map: ' + String(err && err.message || err));
+        }
+        return;
+    }
+    if (msg.command === 'integrateManaMap') {
+        try {
+            const manaId = Number(msg.manaId);
+            const manaRomBuf = deps.loadManaRom ? deps.loadManaRom().manaRomBuf : null;
+            if (!manaRomBuf) {
+                vscode.window.showErrorMessage('Secret of Mana ROM not found — configure everscript.manaRomPath');
+                return;
+            }
+            const manaRoom = maps.decodeManaRoom(manaRomBuf, manaId);
+            if (!manaRoom) {
+                vscode.window.showErrorMessage(`Could not decode Secret of Mana room ${manaId}`);
+                return;
+            }
+            const integrated = maps.integrateManaToEvermore(manaRoom);
+            store.saveMap(root, {
+                key: integrated.key,
+                name: integrated.name,
+                borrow: integrated.borrow,
+                w: integrated.w,
+                h: integrated.h,
+                saved: integrated.saved,
+            }, { active: integrated.key });
+
+            if (integrated.everscriptSource) {
+                const evsPath = path.join(root, integrated.key, 'transitions.evs');
+                try { fs.writeFileSync(evsPath, integrated.everscriptSource); } catch { /* ignore */ }
+            }
+
+            post({ command: 'customMaps', ...store.listMaps(root), active: integrated.key, forceOpen: integrated.key });
+            vscode.window.showInformationMessage(`Integrated Secret of Mana map #${manaId} as "${integrated.name}" into Evermore!`);
+        } catch (err) {
+            vscode.window.showErrorMessage('Integration failed: ' + String(err && err.message || err));
         }
         return;
     }

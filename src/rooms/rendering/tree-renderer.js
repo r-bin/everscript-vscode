@@ -26,6 +26,25 @@ function renderVanillaTree(vanillaRooms) {
 }
 
 /**
+ * Server-side render of Secret of Mana foreign map list.
+ * @param {Object} manaRooms Map<manaId, manaRoomDetailObject>
+ * @returns {string} HTML string.
+ */
+function renderManaTree(manaRooms) {
+    if (!manaRooms || !Object.keys(manaRooms).length) {
+        return '<div class="rm-empty">No Secret of Mana ROM configured.</div>';
+    }
+    let html = '<ul class="rt">';
+    const list = Object.values(manaRooms);
+    for (const r of list) {
+        html += '<li class="rn-map mn-map" data-mana-id="' + radarEsc(String(r.manaId))
+              + '"><span class="rn-label">' + radarEsc(r.name)
+              + '</span><span class="rn-vid-tag">' + radarEsc(`${r.widthTiles}×${r.heightTiles}`) + '</span></li>';
+    }
+    return html + '</ul>';
+}
+
+/**
  * Server-side render of the Rooms tab's left rail: search, the two room
  * groups, and the `+ New Map` footer.
  *
@@ -45,9 +64,10 @@ function renderVanillaTree(vanillaRooms) {
  *
  * @param {string} treeHtml         renderRoomsTree output (the active file's rooms).
  * @param {string} vanillaTreeHtml  renderVanillaTree output (the ROM catalogue).
+ * @param {string} [manaTreeHtml]   renderManaTree output (Secret of Mana maps).
  * @returns {string} HTML string.
  */
-function buildRoomRailHtml(treeHtml, vanillaTreeHtml) {
+function buildRoomRailHtml(treeHtml, vanillaTreeHtml, manaTreeHtml = '') {
     const group = (key, label, title, open, body) =>
         '<div class="rm-grp" id="rm-grp-' + key + '">'
         + '<button class="rm-grp-h" data-rail-grp="' + key + '"'
@@ -66,6 +86,8 @@ function buildRoomRailHtml(treeHtml, vanillaTreeHtml) {
         + '<div class="rm-rail-scroll" id="rm-rail-scroll">'
         + group('vanilla', 'Vanilla rooms', 'Every room in the ROM, grouped by area',
             false, vanillaTreeHtml)
+        + (manaTreeHtml ? group('mana', 'Secret of Mana', 'Foreign maps from Secret of Mana, for preview and integration into Evermore',
+            false, manaTreeHtml) : '')
         + group('live', 'Custom rooms', 'New maps you have made, and rooms declared in the active .evs file',
             true, treeHtml)
         + '<div class="rm-rail-none" id="rm-rail-none" hidden>No rooms match</div>'
@@ -164,4 +186,4 @@ function buildRoomsJson(tree, activeTab, selectedMap) {
          + ';var SELECTED_MAP=' + JSON.stringify(selectedMap || null) + ';';
 }
 
-module.exports = { renderVanillaTree, renderRoomsTree, buildRoomRailHtml, buildRoomsJson };
+module.exports = { renderVanillaTree, renderManaTree, renderRoomsTree, buildRoomRailHtml, buildRoomsJson };
