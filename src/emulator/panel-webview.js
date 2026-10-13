@@ -2444,14 +2444,70 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         }
 
         if (thinStaminaBarEnabled && (isBoy || isDog || stamina > 0)) {
+          // Check if character has multi-tier attacks (>1 attack animations)
+          let attackAnimsCount = (isBoy || isDog) ? 4 : 0;
+          if (!attackAnimsCount && rom) {
+            const stype = buf[rel + 0x60] | (buf[rel + 0x61] << 8);
+            if (stype >= 0x8000) {
+              const charId = Math.floor(((0x8E0000 | stype) - 0x8EB678) / 74);
+              if (charId >= 0 && charId < 142) {
+                const snes = 0x8EB678 + charId * 74;
+                for (const off of [0x38, 0x3A, 0x3C, 0x3E]) {
+                  const o = snesToRom(snes + off);
+                  if (o + 1 < rom.length && (rom[o] | (rom[o + 1] << 8))) attackAnimsCount++;
+                }
+              }
+            }
+          }
+
+          const isMultiAttack = (attackAnimsCount > 1) || (maxStamina > 0x400);
           const sH = Math.max(1.5, Math.round(2 * layout.scaleSnes));
           overlayCtx.fillStyle = 'rgba(0, 0, 0, 0.75)';
           overlayCtx.fillRect(barX - 1, barY - 1, barW + 2, sH + 2);
-          const sRatio = Math.max(0, Math.min(1, stamina / maxStamina));
-          const sFillW = Math.round(barW * sRatio);
-          const sColor = sRatio >= 1.0 ? '#ffeb3b' : '#00e5ff';
-          overlayCtx.fillStyle = sColor;
-          overlayCtx.fillRect(barX, barY, sFillW, sH);
+
+          if (isMultiAttack) {
+            // Complex colored stamina bar:
+            // Tiers: Tier 0 (< 100% / $400), Tier 1 (100%..199% / $400..$7FF), Tier 2 (200%..299% / $800..$BFF), Tier 3 (>= 300% / $C00)
+            // Color palettes with distinct charging vs charged tints:
+            // Tier 0: < $200 (0..49%): soft cyan (#00b0ff), $200..$3FF (50..99%): vibrant cyan (#00e5ff)
+            // Tier 1: $400 (charged 100%): bright lime (#aeea00), $401..$7FF (charging Lvl 2): lime green (#76ff03)
+            // Tier 2: $800 (charged 200%): golden yellow (#ffd600), $801..$BFF (charging Lvl 3): bright amber (#ffab00)
+            // Tier 3: >= $C00 (charged 300% max): blazing radiant orange-red (#ff3d00)
+            let sColor = '#00b0ff';
+            if (stamina >= 0xC00) {
+              sColor = '#ff3d00'; // Blazing red-orange
+            } else if (stamina >= 0x800) {
+              sColor = (stamina === 0x800) ? '#ffd600' : '#ffab00'; // Gold tier
+            } else if (stamina >= 0x400) {
+              sColor = (stamina === 0x400) ? '#aeea00' : '#76ff03'; // Lime tier
+            } else if (stamina >= 0x200) {
+              sColor = '#00e5ff'; // Vibrant cyan (50-99%)
+            } else {
+              sColor = '#00b0ff'; // Sky blue (0-49%)
+            }
+
+            const sRatio = Math.max(0, Math.min(1, stamina / maxStamina));
+            const sFillW = Math.round(barW * sRatio);
+            overlayCtx.fillStyle = sColor;
+            overlayCtx.fillRect(barX, barY, sFillW, sH);
+
+            // Subtle tier tick dividers at 100% ($400) and 200% ($800) if bar is wide enough
+            if (maxStamina > 0x400 && barW >= 20) {
+              overlayCtx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+              const tick1 = Math.round(barW * (0x400 / maxStamina));
+              if (tick1 > 2 && tick1 < barW - 2) overlayCtx.fillRect(barX + tick1, barY, 1, sH);
+              if (maxStamina >= 0xC00) {
+                const tick2 = Math.round(barW * (0x800 / maxStamina));
+                if (tick2 > 2 && tick2 < barW - 2) overlayCtx.fillRect(barX + tick2, barY, 1, sH);
+              }
+            }
+          } else {
+            const sRatio = Math.max(0, Math.min(1, stamina / maxStamina));
+            const sFillW = Math.round(barW * sRatio);
+            const sColor = sRatio >= 1.0 ? '#ffeb3b' : '#00e5ff';
+            overlayCtx.fillStyle = sColor;
+            overlayCtx.fillRect(barX, barY, sFillW, sH);
+          }
         }
       }
     }
@@ -2636,13 +2692,17 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       titleEl.textContent = 'CHARACTER: ' + name + ' ($7E' + fmtHex(addr, 4) + ')';
       const hpPct = Math.round(Math.min(100, (hp / maxHp) * 100));
       const stamPct = Math.round(Math.min(100, (stamina / maxStamina) * 100));
+      const stamTier = stamina >= 0xC00 ? 'Lvl 3 (>=300%, power x4)' :
+                       stamina >= 0x800 ? 'Lvl 2 (200%, power x2)' :
+                       stamina >= 0x400 ? 'Lvl 1 (100%, power x1)' :
+                       stamina >= 0x200 ? 'Lvl 0 (50-99%, power x1/2)' : 'Lvl 0 (<50%, power x1/4)';
 
       bodyEl.innerHTML =
         '<div class="inspect-row"><span class="inspect-label">Category:</span><span class="inspect-val">' + category + '</span></div>' +
         '<div class="inspect-row"><span class="inspect-label">Address:</span><span class="inspect-val">$7E' + fmtHex(addr, 4) + '</span></div>' +
         '<div class="inspect-row"><span class="inspect-label">Position:</span><span class="inspect-val">X: ' + posX + ', Y: ' + posY + ', Z: ' + posZ + '</span></div>' +
         '<div class="inspect-row"><span class="inspect-label">HP:</span><span class="inspect-val">' + hp + ' / ' + maxHp + ' (' + hpPct + '%)</span></div>' +
-        '<div class="inspect-row"><span class="inspect-label">Stamina:</span><span class="inspect-val">' + stamina + ' / ' + maxStamina + ' (' + stamPct + '%)</span></div>' +
+        '<div class="inspect-row"><span class="inspect-label">Stamina:</span><span class="inspect-val">' + stamina + ' / ' + maxStamina + ' (' + stamPct + '%) [' + stamTier + ']</span></div>' +
         '<div class="inspect-row"><span class="inspect-label">Flags:</span><span class="inspect-val">0x' + fmtHex(flags, 4) + '</span></div>' +
         '<div class="inspect-row"><span class="inspect-label">Type ID:</span><span class="inspect-val">0x' + fmtHex(stype, 4) + '</span></div>';
 

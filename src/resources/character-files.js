@@ -148,6 +148,7 @@ function resolveCharacterAnimations(charData, animKey, leaf, extra, rom) {
         return json(() => charData.anims.map((a) => ({
             key: a.key,
             label: a.label,
+            purpose: a.purpose || null,
             offset: a.offset,
             animRec: a.animRec,
             scriptAddr: a.scriptAddr,
@@ -184,6 +185,7 @@ function resolveAnimationDetails(rom, charId, animOpt, leaf, extra) {
             characterId: charId,
             key: animOpt.key,
             label: animOpt.label,
+            purpose: animOpt.purpose || null,
             scriptAddrHex: anim.scriptHex,
             totalTicks: anim.totalTicks,
             frameCount: anim.frames.length,

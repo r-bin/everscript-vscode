@@ -19,7 +19,7 @@ function characterMarkdown(c) {
 ![Idle Sprite](sprite.png)
 
 ## Animations
-${c.anims.map((a) => `- [${a.label || a.key}](animations/${a.key || hexId(a.offset, 2)}/index.md)`).join('\n')}
+${c.anims.map((a) => `- [${a.label || a.key}](animations/${a.key || hexId(a.offset, 2)}/index.md)${a.purpose ? ` *(purpose: ${a.purpose})*` : ''}`).join('\n')}
 `;
 }
 
@@ -39,6 +39,7 @@ function animationMarkdown(charId, animOpt, anim) {
 
 | Property | Value |
 |---|---|
+| Purpose | **${animOpt.purpose || 'unspecified'}** |
 | Script address | \`${anim.scriptHex}\` |
 | Frames | ${anim.frames.length} ([frames/](frames/index.md)) |
 | Total duration | ${anim.totalTicks} ticks (~${(anim.totalTicks / 60).toFixed(2)}s) |
@@ -57,7 +58,7 @@ function characterAnimationsIndexMarkdown(charData) {
         `${charData.anims.length} animations available. Each has \`animation.gif\`, \`script.txt\`, \`frames/\`, and \`tiles/\`.`, '',
         ...charData.anims.map((a) => {
             const k = a.key || hexId(a.offset || 0, 2);
-            return `- [${a.label || k}](${k}/index.md)`;
+            return `- [${a.label || k}](${k}/index.md)${a.purpose ? ` *(purpose: ${a.purpose})*` : ''}`;
         }),
     ].join('\n');
 }

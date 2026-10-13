@@ -465,6 +465,18 @@ test('provider: characters VFS decodes records, sprite PNG, palette, and GIF ani
     const gifFull = await fsp.readFile(uri('soe://rom/assets/characters/00/animations/w_walk/animation.gif'));
     assert.strictEqual(gifFull.subarray(0, 6).toString('ascii'), 'GIF89a');
 
+    // Purpose listed in animation index.json and info.json
+    const animIndex = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/assets/characters/00/animations/index.json'))).toString('utf8'));
+    assert.ok(animIndex.length > 0);
+    const atk0 = animIndex.find(a => a.key === 'w_atk0');
+    assert.ok(atk0, 'w_atk0 must be in animations');
+    assert.strictEqual(atk0.purpose, 'attack_0');
+    const attackAnims = animIndex.filter(a => a.purpose && a.purpose.startsWith('attack'));
+    assert.ok(attackAnims.length > 1, 'Boy must have >1 attack animations (multi-tier complex stamina)');
+
+    const wWalkInfo = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://rom/assets/characters/00/animations/w_walk/info.json'))).toString('utf8'));
+    assert.strictEqual(wWalkInfo.purpose, 'walk');
+
     fsp.dispose();
 }, true);
 

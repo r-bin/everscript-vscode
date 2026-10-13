@@ -32,6 +32,12 @@ const SLOT_LABELS = [
     null, null, 'Sleep', 'Sit', null, 'Bark',
 ];
 
+const SLOT_PURPOSES = [
+    'idle', 'walk', 'run', null, 'knockback',
+    'attack_0', 'attack_1', 'attack_2', 'attack_3',
+    null, null, 'sleep', 'sit', null, 'bark',
+];
+
 const read16 = (rom, snes) => {
     const o = snesToRom(snes);
     return rom[o] | (rom[o + 1] << 8);
@@ -48,6 +54,7 @@ function readDogForm(rom, index) {
         anims.push({
             key: 'd_slot' + s,
             label: SLOT_LABELS[s] || 'Slot ' + s,
+            purpose: SLOT_PURPOSES[s] || null,
             animRec,
             category: 'weapon',
             paletteAddr,

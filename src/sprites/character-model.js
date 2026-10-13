@@ -41,16 +41,16 @@ const WEAPON_NAMES = [
 ];
 
 const WEAPON_ANIM_OFFSETS = [
-    { key: 'w_stand', label: 'Idle', offset: 0x08 },
-    { key: 'w_walk', label: 'Walk', offset: 0x0a },
-    { key: 'w_run', label: 'Run', offset: 0x0c },
-    { key: 'w_atk0', label: 'Attack Lvl 0', offset: 0x0e },
-    { key: 'w_atk1', label: 'Attack Lvl 1', offset: 0x10 },
-    { key: 'w_atk2', label: 'Attack Lvl 2', offset: 0x12 },
-    { key: 'w_atk3', label: 'Attack Lvl 3', offset: 0x14 },
+    { key: 'w_stand', label: 'Idle', offset: 0x08, purpose: 'idle' },
+    { key: 'w_walk', label: 'Walk', offset: 0x0a, purpose: 'walk' },
+    { key: 'w_run', label: 'Run', offset: 0x0c, purpose: 'run' },
+    { key: 'w_atk0', label: 'Attack Lvl 0', offset: 0x0e, purpose: 'attack_0' },
+    { key: 'w_atk1', label: 'Attack Lvl 1', offset: 0x10, purpose: 'attack_1' },
+    { key: 'w_atk2', label: 'Attack Lvl 2', offset: 0x12, purpose: 'attack_2' },
+    { key: 'w_atk3', label: 'Attack Lvl 3', offset: 0x14, purpose: 'attack_3' },
     // Was 'Charge Attack': a held pose with mode $0020 (invulnerable) — the dodge.
-    { key: 'w_charge', label: 'Dodge (invulnerable)', offset: 0x16 },
-    { key: 'w_damage', label: 'Knockback', offset: 0x18 },
+    { key: 'w_charge', label: 'Dodge (invulnerable)', offset: 0x16, purpose: 'dodge' },
+    { key: 'w_damage', label: 'Knockback', offset: 0x18, purpose: 'knockback' },
 ];
 
 /** A script in the animation banks that draws at least one sprite when run. */
@@ -88,6 +88,7 @@ function readWeaponAnimations(rom, weaponIdx) {
             anims.push({
                 key: f.key,
                 label: f.label,
+                purpose: f.purpose || null,
                 offset: f.offset,
                 animRec,
                 scriptAddr,
@@ -129,22 +130,22 @@ const STAT_MEANINGS = {
 
 /** Character animation field offsets in the 74-byte struct. */
 const STANDARD_ANIM_FIELDS = [
-    { key: 'stand', label: 'Idle', offset: 0x32 },
-    { key: 'walk', label: 'Walk', offset: 0x34 },
-    { key: 'run', label: 'Run', offset: 0x36 },
-    { key: 'atk0', label: 'Attack Lvl 0', offset: 0x38 },
-    { key: 'atk1', label: 'Attack Lvl 1', offset: 0x3a },
-    { key: 'atk2', label: 'Attack Lvl 2', offset: 0x3c },
-    { key: 'atk3', label: 'Attack Lvl 3', offset: 0x3e },
-    { key: 'damage', label: 'Knockback', offset: 0x40 },
-    { key: 'death', label: 'Death', offset: 0x42 },
-    { key: 'spoils', label: 'Death with spoils', offset: 0x44 },
+    { key: 'stand', label: 'Idle', offset: 0x32, purpose: 'idle' },
+    { key: 'walk', label: 'Walk', offset: 0x34, purpose: 'walk' },
+    { key: 'run', label: 'Run', offset: 0x36, purpose: 'run' },
+    { key: 'atk0', label: 'Attack Lvl 0', offset: 0x38, purpose: 'attack_0' },
+    { key: 'atk1', label: 'Attack Lvl 1', offset: 0x3a, purpose: 'attack_1' },
+    { key: 'atk2', label: 'Attack Lvl 2', offset: 0x3c, purpose: 'attack_2' },
+    { key: 'atk3', label: 'Attack Lvl 3', offset: 0x3e, purpose: 'attack_3' },
+    { key: 'damage', label: 'Knockback', offset: 0x40, purpose: 'knockback' },
+    { key: 'death', label: 'Death', offset: 0x42, purpose: 'death' },
+    { key: 'spoils', label: 'Death with spoils', offset: 0x44, purpose: 'spoils' },
     // Was 'Block': casting alchemy or using an item (Boy, Bad Boy, Verminator); mode $0120,
     // invulnerable while it plays. Started by its own routine at $90829B.
-    { key: 'block', label: 'Cast (alchemy / item)', offset: 0x46 },
+    { key: 'block', label: 'Cast (alchemy / item)', offset: 0x46, purpose: 'cast' },
     // Only on the evil copies (Bad Dawg, Bad Boy, Dark Toaster): started at $8FC1D6 when
     // state +0x12 bit $40 is raised while alive.
-    { key: 'x48', label: 'Field +0x48 (evil copies)', offset: 0x48 },
+    { key: 'x48', label: 'Field +0x48 (evil copies)', offset: 0x48, purpose: 'special' },
 ];
 
 /** Read 16-bit value from ROM at SNES address. */
@@ -244,9 +245,30 @@ function getExternalAnimations(rom, characterId, characterName) {
             }
 
             if (scriptAddr && isValidAnimationScript(rom, scriptAddr)) {
+                let purpose = 'external';
+                const lower = item.name.toLowerCase();
+                if (lower.includes('atk') || lower.includes('attack')) {
+                    if (lower.includes('0') || lower.includes('lvl0')) purpose = 'attack_0';
+                    else if (lower.includes('1') || lower.includes('lvl1')) purpose = 'attack_1';
+                    else if (lower.includes('2') || lower.includes('lvl2')) purpose = 'attack_2';
+                    else if (lower.includes('3') || lower.includes('lvl3')) purpose = 'attack_3';
+                    else purpose = 'attack';
+                } else if (lower.includes('walk')) {
+                    purpose = 'walk';
+                } else if (lower.includes('run')) {
+                    purpose = 'run';
+                } else if (lower.includes('idle') || lower.includes('stand')) {
+                    purpose = 'idle';
+                } else if (lower.includes('death') || lower.includes('die')) {
+                    purpose = 'death';
+                } else if (lower.includes('damage') || lower.includes('hit') || lower.includes('knockback')) {
+                    purpose = 'knockback';
+                }
+
                 out.push({
                     key: item.name,
                     label: item.name.replace(/_/g, ' '),
+                    purpose,
                     valueHex: '0x' + num.toString(16),
                     num,
                     category: 'external',
@@ -327,6 +349,7 @@ function readCharacter(rom, id) {
             anims.push({
                 key: f.key,
                 label: f.label,
+                purpose: f.purpose || null,
                 offset: f.offset,
                 animRec,
                 scriptAddr,
