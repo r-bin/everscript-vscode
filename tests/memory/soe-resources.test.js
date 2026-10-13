@@ -747,6 +747,97 @@ test('provider: maps VFS routes at root level (soe://maps/ and soe://maps/custom
     fsp.dispose();
 }, true);
 
+test('provider: logs VFS routes at root level and mounted ROM (soe://logs/)', async () => {
+    const mockLogs = {
+        crashes: [
+            {
+                timestamp: '2026-10-13T18:00:00.000Z',
+                error: 'CPU trap at $8FACB1',
+                rom: 'Secret of Evermore.smc',
+                frame: 1000,
+                mapId: 0x15,
+                camX: 100,
+                camY: 150,
+                cpu: { pc: 0x8FACB1, pb: 0x8F, a: 0x1234, x: 0x5678, y: 0x0000, sp: 0x01FF, db: 0x7E, p: 0x34 },
+                scriptSlots: [{ slot: 0, state: 2, loc: 0x92A42F, entity: 0x4E89 }],
+            },
+        ],
+        launches: [
+            {
+                timestamp: '2026-10-13T17:55:00.000Z',
+                name: 'custom_room_0x15.smc',
+                size: 3145728,
+            },
+        ],
+        scriptTrace: [
+            {
+                timestamp: '2026-10-13T17:56:00.000Z',
+                timeStr: '+1.00s, f60',
+                frame: 60,
+                slot: 0,
+                entity: '4E89',
+                event: 'start',
+                locHex: '0x92A42F',
+                summary: 'END (return)',
+                line: '[+1.00s, f60] [s0 | 4E89 | start] [0x15.step[0]] 0x92A42F: END (return) [00]',
+                tag: '0x15.step[0]',
+            },
+        ],
+    };
+
+    const fsp = new SoeFileSystem({
+        vanillaRom: () => rom,
+        emulatorRom: () => null,
+        romFile: () => null,
+        readMemory,
+        emulatorStatus: async () => ({}),
+        getLogs: () => mockLogs,
+    });
+
+    // 1. Directory listing
+    const logsDir = await fsp.readDirectory(uri('soe://logs/'));
+    const names = logsDir.map(([n]) => n);
+    assert.ok(names.includes('index.md'), 'index.md in logs');
+    assert.ok(names.includes('crashes.json'), 'crashes.json in logs');
+    assert.ok(names.includes('crashes.md'), 'crashes.md in logs');
+    assert.ok(names.includes('launches.json'), 'launches.json in logs');
+    assert.ok(names.includes('launches.md'), 'launches.md in logs');
+    assert.ok(names.includes('script-trace.log'), 'script-trace.log in logs');
+    assert.ok(names.includes('script-trace.json'), 'script-trace.json in logs');
+
+    // 2. Read index.md
+    const indexContent = Buffer.from(await fsp.readFile(uri('soe://logs/index.md'))).toString('utf8');
+    assert.ok(indexContent.includes('# Emulator Runtime Logs'));
+
+    // 3. Read crashes
+    const crashesJson = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://logs/crashes.json'))).toString('utf8'));
+    assert.strictEqual(crashesJson.length, 1);
+    assert.strictEqual(crashesJson[0].error, 'CPU trap at $8FACB1');
+
+    const crashesMd = Buffer.from(await fsp.readFile(uri('soe://logs/crashes.md'))).toString('utf8');
+    assert.ok(crashesMd.includes('CPU trap at $8FACB1'));
+    assert.ok(crashesMd.includes('PC: $8FACB1'));
+
+    // 4. Read launches
+    const launchesJson = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://logs/launches.json'))).toString('utf8'));
+    assert.strictEqual(launchesJson.length, 1);
+    assert.strictEqual(launchesJson[0].name, 'custom_room_0x15.smc');
+
+    const launchesMd = Buffer.from(await fsp.readFile(uri('soe://logs/launches.md'))).toString('utf8');
+    assert.ok(launchesMd.includes('custom_room_0x15.smc'));
+
+    // 5. Read script trace
+    const traceLog = Buffer.from(await fsp.readFile(uri('soe://logs/script-trace.log'))).toString('utf8');
+    assert.ok(traceLog.includes('[0x15.step[0]]'));
+    assert.ok(traceLog.includes('END (return)'));
+
+    const traceJson = JSON.parse(Buffer.from(await fsp.readFile(uri('soe://logs/script-trace.json'))).toString('utf8'));
+    assert.strictEqual(traceJson.length, 1);
+    assert.strictEqual(traceJson[0].locHex, '0x92A42F');
+
+    fsp.dispose();
+});
+
 test('encodeGif: produces valid GIF89a with Netscape infinite loop and frame delays', () => {
     const { encodeGif } = require('../../src/resources/gif');
     const w = 8, h = 8;

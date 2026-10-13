@@ -104,6 +104,7 @@ add new skills in `.agents/skills/<name>/SKILL.md` and they show up in both (new
 | `wram-memory-mapping` | `.agents/skills/wram-memory-mapping/SKILL.md` | WRAM address allocation, entity tables, party stats |
 | `recomp` | `.agents/skills/recomp/SKILL.md` | The snesrecomp build: commands, ownership of generated files, headless runs |
 | `recomp-debugging` | `.agents/skills/recomp-debugging/SKILL.md` | Reproduce and fix recomp bugs: headless repro, reference emulators (snes9x headless/lockstep, Mesen2, snesref, COSIM) and how to compare, classifying C vs seeds vs glue vs runtime, fixes, where to find what |
+| `emulator-script-debugging` | `.agents/skills/emulator-script-debugging/SKILL.md` | Start emulator, launch ROM, teleport Boy, step onto triggers, and analyze script trace logs and VFS log files |
 | `ghidra-analysis` | `.agents/skills/ghidra-analysis/SKILL.md` | Ghidra + ghidra-snes / REA on SoE: what for, setup traps, seeding from the CDL, trusting static results |
 
 ---

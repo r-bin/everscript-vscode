@@ -183,8 +183,7 @@ class RomAddressLookup {
           shortTag: `${roomHex}.b[${i}]`,
         };
         roomTrigs.bTrigger.push(trigInfo);
-        if (addr && (!this.lookupMap.has(addr) || addr === 0x92A42F)) {
-          // If address is shared (e.g. 0x92A42F), save reference to active room trigger
+        if (addr && addr !== 0x92A42F && !this.lookupMap.has(addr)) {
           this.lookupMap.set(addr, trigInfo);
         }
       });
@@ -207,7 +206,7 @@ class RomAddressLookup {
           shortTag: `${roomHex}.step[${i}]`,
         };
         roomTrigs.stepOn.push(trigInfo);
-        if (addr && (!this.lookupMap.has(addr) || addr === 0x92A42F)) {
+        if (addr && addr !== 0x92A42F && !this.lookupMap.has(addr)) {
           this.lookupMap.set(addr, trigInfo);
         }
       });
@@ -328,23 +327,48 @@ class RomAddressLookup {
       for (const trig of roomTrigs.stepOn) {
         if (trig.addr === addr && trig.scriptId !== 477) return trig;
       }
-      // If address is bare empty return (0x92A42F) and room has B-triggers, attribute to room B-trigger
-      if (addr === 0x92A42F && roomTrigs.bTrigger.length > 0) {
-        const t0 = roomTrigs.bTrigger[0];
+      // If address is bare empty return (0x92A42F)
+      if (addr === 0x92A42F) {
         const hex = '0x' + roomId.toString(16).toUpperCase().padStart(2, '0');
-        return {
-          ...t0,
-          name: `Room ${hex} B-trigger (bare END)`,
-          shortTag: `${hex}.b[0]`,
-        };
-      }
-      if (addr === 0x92A42F && roomTrigs.stepOn.length > 0) {
-        const s0 = roomTrigs.stepOn[0];
-        const hex = '0x' + roomId.toString(16).toUpperCase().padStart(2, '0');
-        return {
-          ...s0,
-          name: `Room ${hex} Step-on #0 (bare END)`,
-          shortTag: `${hex}.step[0]`,
+        if (item && item.triggerKind === 'stepOn' && roomTrigs.stepOn.length > 0) {
+          const idx = typeof item.triggerIndex === 'number' ? item.triggerIndex : 0;
+          const t = roomTrigs.stepOn[idx] || roomTrigs.stepOn[0];
+          return {
+            ...t,
+            name: `Room ${hex} Step-on #${idx} (bare END)`,
+            shortTag: `${hex}.step[${idx}]`,
+          };
+        }
+        if (item && item.triggerKind === 'bTrigger' && roomTrigs.bTrigger.length > 0) {
+          const idx = typeof item.triggerIndex === 'number' ? item.triggerIndex : 0;
+          const t = roomTrigs.bTrigger[idx] || roomTrigs.bTrigger[0];
+          return {
+            ...t,
+            name: `Room ${hex} B-trigger #${idx} (bare END)`,
+            shortTag: `${hex}.b[${idx}]`,
+          };
+        }
+        if (roomTrigs.bTrigger.length > 0) {
+          const t0 = roomTrigs.bTrigger[0];
+          return {
+            ...t0,
+            name: `Room ${hex} B-trigger (bare END)`,
+            shortTag: `${hex}.b[0]`,
+          };
+        }
+        if (roomTrigs.stepOn.length > 0) {
+          const s0 = roomTrigs.stepOn[0];
+          return {
+            ...s0,
+            name: `Room ${hex} Step-on #0 (bare END)`,
+            shortTag: `${hex}.step[0]`,
+          };
+        }
+        return this.lookupMap.get(addr) || {
+          addr: 0x92A42F,
+          name: 'Empty Trigger (bare END)',
+          shortTag: 'empty',
+          kind: 'empty',
         };
       }
     }

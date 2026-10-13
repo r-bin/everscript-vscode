@@ -68,6 +68,9 @@ let _emulatorChannel = null; // output channel for emulator runtime and crash lo
 let _readyTimeout  = null;
 let _romTimeout    = null;
 let _webviewReady  = false;
+const _crashHistory = [];       // recent crash reports (capped at 50)
+const _launchHistory = [];      // recent ROM launches (capped at 50)
+const _scriptTraceHistory = []; // recent formatted script trace entries (capped at 2000)
 const _roomMapCache = new Map();
 const _roomMetaCache = new Map();
 let _cdl           = null;   // CdlHost: per-ROM code/data log library
@@ -182,10 +185,30 @@ function _logCrash(crash) {
   ch.appendLine(border);
   ch.show(true);
 
-  const shortMsg = (crash.message || crash.error || 'Unknown error').slice(0, 120);
-  vscode.window.showErrorMessage(`Everscript Emulator: ${shortMsg}`, 'Show Crash Log').then(sel => {
-    if (sel === 'Show Crash Log') ch.show(true);
+  _crashHistory.push({
+    timestamp: time,
+    error: crash.message || crash.error || 'Unknown emulator error',
+    type: crash.type || null,
+    source: crash.source ? `${crash.source}${crash.line ? ':' + crash.line : ''}${crash.col ? ':' + crash.col : ''}` : null,
+    rom: _currentRomName || 'unknown',
+    frame: crash.frame !== undefined ? crash.frame : null,
+    mapId: crash.mapId !== undefined && crash.mapId >= 0 ? crash.mapId : null,
+    camX: crash.camX ?? null,
+    camY: crash.camY ?? null,
+    cpu: crash.cpu ? {
+      pc: crash.cpu.pc,
+      pb: crash.cpu.pb,
+      a: crash.cpu.a,
+      x: crash.cpu.x,
+      y: crash.cpu.y,
+      sp: crash.cpu.sp,
+      db: crash.cpu.db,
+      p: crash.cpu.p,
+    } : null,
+    stack: crash.stack || null,
+    scriptSlots: Array.isArray(crash.scriptSlots) ? crash.scriptSlots : [],
   });
+  if (_crashHistory.length > 50) _crashHistory.shift();
 }
 
 function _estimateDataUrlBytes(dataUrl) {
@@ -517,6 +540,12 @@ function openEmulatorPanel(context, rom, channel) {
                 _clearRomTimeout();
               _log(`Emulator started: ${msg.name}`);
               _currentRomName = msg.name || '';
+              _launchHistory.push({
+                timestamp: new Date().toISOString(),
+                name: msg.name || 'unknown',
+                size: _currentRomBuffer ? _currentRomBuffer.length : null,
+              });
+              if (_launchHistory.length > 50) _launchHistory.shift();
               _notifyWebviewStatus('ok', `ROM started: ${msg.name}`);
                 if (_pending) _pending = null;
                 if (_cdl && _currentRomBuffer) _cdl.romStarted(_currentRomBuffer);
@@ -632,10 +661,23 @@ function openEmulatorPanel(context, rom, channel) {
                 _panel.webview.postMessage({ command: 'scriptTraceLogged', entries: formatted });
               }
               for (const entry of formatted) {
+                _scriptTraceHistory.push({
+                  timestamp: new Date().toISOString(),
+                  timeStr: entry.timeStr || '',
+                  frame: entry.frame,
+                  slot: entry.slot,
+                  entity: entry.entity,
+                  event: entry.event,
+                  locHex: entry.locHex,
+                  summary: entry.summary,
+                  line: entry.line,
+                  tag: entry.lookup ? entry.lookup.shortTag : '',
+                });
                 if (entry.lookup && entry.lookup.room !== undefined && entry.lookup.kind && (entry.event === 'start' || entry.event === 'exec')) {
                   vscode.commands.executeCommand('everscript._triggerExecuted', entry.lookup);
                 }
               }
+              while (_scriptTraceHistory.length > 2000) _scriptTraceHistory.shift();
               break;
             }
         }
@@ -1221,4 +1263,13 @@ const apuStream = {
   isOpen: () => !!_panel,
 };
 
-module.exports = { openEmulatorPanel, sendRomFile: _sendRomFile, injectEverscript, getScriptDebugBridge, runRomFile, getCurrentRom, readMemory, getStatus, apuStream };
+/** Recent emulator runtime logs (soe://logs/). */
+function getLogHistory() {
+  return {
+    crashes: _crashHistory.slice(),
+    launches: _launchHistory.slice(),
+    scriptTrace: _scriptTraceHistory.slice(),
+  };
+}
+
+module.exports = { openEmulatorPanel, sendRomFile: _sendRomFile, injectEverscript, getScriptDebugBridge, runRomFile, getCurrentRom, readMemory, getStatus, apuStream, getLogHistory };

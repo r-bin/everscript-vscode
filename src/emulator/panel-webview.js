@@ -4909,6 +4909,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       state: 0,
       timer1: 0,
       entity: 0,
+      triggerKind: null,
+      triggerIndex: null,
       initialized: false,
     }));
 
@@ -5000,7 +5002,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
           } catch (_) {}
           const elapsedSec = romLaunchTimestamp > 0 ? ((performance.now() - romLaunchTimestamp) / 1000) : 0;
           const timeStr = '+' + elapsedSec.toFixed(2) + 's, f' + romFrameCount;
-          batch.push({
+          const entry = {
             slot: s,
             entity,
             event,
@@ -5011,7 +5013,14 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
             bytes: rawBytes,
             timeStr,
             frame: romFrameCount,
-          });
+          };
+          if (event === 'end' && tracker.triggerKind) {
+            entry.triggerKind = tracker.triggerKind;
+            entry.triggerIndex = tracker.triggerIndex;
+            tracker.triggerKind = null;
+            tracker.triggerIndex = null;
+          }
+          batch.push(entry);
         }
 
         tracker.loc = loc;
@@ -5026,17 +5035,20 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         if (curStepOnScriptId !== 0xFFFF && curStepOnScriptId !== 0x5555) {
           let activeStepIndex = -1;
           if (cachedTriggers && Array.isArray(cachedTriggers.stepOn) && cachedTriggers.stepOn.length > 0) {
-            const tOffX = (lastLayout && lastLayout.trigOffX) || cachedTriggers.offX || 0;
-            const tOffY = (lastLayout && lastLayout.trigOffY) || cachedTriggers.offY || 0;
             const rawBoyX = m.readMemory(0x7E4EA3) | (m.readMemory(0x7E4EA4) << 8);
-            const boyX = rawBoyX >= 0x8000 ? rawBoyX - 0x10000 : rawBoyX;
             const rawBoyY = m.readMemory(0x7E4EA5) | (m.readMemory(0x7E4EA6) << 8);
-            const boyY = rawBoyY >= 0x8000 ? rawBoyY - 0x10000 : rawBoyY;
+            const rawOX = m.readMemory(0x7E0F86) | (m.readMemory(0x7E0F87) << 8);
+            const rawOY = m.readMemory(0x7E0F88) | (m.readMemory(0x7E0F89) << 8);
+            const playerTileX = ((rawBoyX >> 4) + rawOX) & 0xFFFF;
+            const playerTileY = ((rawBoyY >> 4) + rawOY) & 0xFFFF;
             const sList = cachedTriggers.stepOn;
 
+            // Replicate SNES $8FACB1 step-on search:
+            // Condition: playerTileY >= t.y1 && playerTileY < t.y2 && playerTileX >= t.x1 && playerTileX < t.x2
             for (let i = 0; i < sList.length; i++) {
-              const box = calculateTriggerBox(sList[i], tOffX, tOffY, 0, 0);
-              if (boyX >= box.posX && boyX <= box.posX + box.boxW && boyY >= box.posY && boyY <= box.posY + box.boxH) {
+              const t = sList[i];
+              if (playerTileY >= t.y1 && playerTileY < t.y2 &&
+                  playerTileX >= t.x1 && playerTileX < t.x2) {
                 activeStepIndex = i;
                 break;
               }
@@ -5058,6 +5070,10 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
             if (slotStartItem) {
               slotStartItem.triggerKind = 'stepOn';
               slotStartItem.triggerIndex = activeStepIndex;
+              if (scriptSlotTrackers[slotStartItem.slot]) {
+                scriptSlotTrackers[slotStartItem.slot].triggerKind = 'stepOn';
+                scriptSlotTrackers[slotStartItem.slot].triggerIndex = activeStepIndex;
+              }
             } else {
               const targetLoc = resolveScriptIdToSnes(loadedRomData, curStepOnScriptId);
               if (isValidScriptAddr(targetLoc)) {
@@ -5068,6 +5084,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
                 } catch (_) {}
                 const elapsedSec = romLaunchTimestamp > 0 ? ((performance.now() - romLaunchTimestamp) / 1000) : 0;
                 const timeStr = '+' + elapsedSec.toFixed(2) + 's, f' + romFrameCount;
+                // Emit paired start and end for 0-frame executions so lifecycle is consistently logged
                 batch.push({
                   slot: 0,
                   entity: 0x4E89,
@@ -5077,6 +5094,20 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
                   state: 0,
                   timer1: 0,
                   bytes: rawBytes,
+                  timeStr,
+                  frame: romFrameCount,
+                  triggerKind: 'stepOn',
+                  triggerIndex: activeStepIndex,
+                });
+                batch.push({
+                  slot: 0,
+                  entity: 0x4E89,
+                  event: 'end',
+                  loc: targetLoc,
+                  nextLoc: targetLoc,
+                  state: 0,
+                  timer1: 0,
+                  bytes: [],
                   timeStr,
                   frame: romFrameCount,
                   triggerKind: 'stepOn',

@@ -17,6 +17,7 @@ const { busTarget, indexMarkdown: busIndex } = require('./bus-files');
 const { resolveLocalization } = require('./localization-files');
 const { resolveTags } = require('./tag-files');
 const { resolveMaps } = require('./custom-map-files');
+const { resolveLogs } = require('./log-files');
 const { autoIndex } = require('./autoindex');
 const { dir, text } = require('./nodes');
 const { intoMount, pageLinks } = require('./page-links');
@@ -73,6 +74,8 @@ class SoeFileSystem {
             const rom = this._optionalRom(p.rom);
             const deps = uri.query ? Object.assign({}, this._deps, { query: uri.query }) : this._deps;
             r = { node: resolveMaps(p.segments, rom, deps), rom };
+        } else if (p.authority === 'logs') {
+            r = { node: resolveLogs(p.segments, this._deps.getLogs), rom: null };
         } else {
             throw vscode.FileSystemError.FileNotFound(uri);
         }
@@ -103,6 +106,9 @@ class SoeFileSystem {
             const rom = this._pickRom(uri, p.rom);
             const deps = uri.query ? Object.assign({}, this._deps, { query: uri.query }) : this._deps;
             return { node: resolveMaps(rest, rom, deps), rom };
+        }
+        if (authority === 'logs') {
+            return { node: resolveLogs(rest, this._deps.getLogs), rom: null };
         }
         const node = authority === 'tags' ? resolveTags(rest, this._tagContext())
             : resolveRam(rest, this._deps.readMemory, this._deps.emulatorStatus);
@@ -269,13 +275,13 @@ class SoeFileSystem {
 }
 
 /** What a mounted ROM folder holds. */
-const MOUNTED = ['rom', 'ram', 'tags', 'localization'];
+const MOUNTED = ['rom', 'ram', 'tags', 'localization', 'logs'];
 
 /** Whether files under `uri` can change while watched (WRAM, and pages that show it). */
 function isLive(uri) {
-    if (uri.authority === 'ram' || uri.authority === 'bus' || uri.authority === 'tags') return true;
+    if (uri.authority === 'ram' || uri.authority === 'bus' || uri.authority === 'tags' || uri.authority === 'logs') return true;
     const p = parseSoeParts(uri.authority, uri.path, uri.query);
-    return p.authority === 'rom' && !!p.mount && (p.segments[0] === 'ram' || p.segments[0] === 'tags');
+    return p.authority === 'rom' && !!p.mount && (p.segments[0] === 'ram' || p.segments[0] === 'tags' || p.segments[0] === 'logs');
 }
 
 /**
@@ -307,6 +313,7 @@ function mountIndex(romPath) {
 | [ram/](ram/index.md) | the running game's WRAM: every known address with its live value, flags |
 | [tags/](tags/index.md) | concepts that connect both: [boy](tags/boy/index.md), [map.raptors](tags/map/raptors.md) |
 | [localization/](localization/index.md) | names for scripts, rooms, sounds, tables, functions |
+| [logs/](logs/index.md) | emulator runtime logs: crashes, launches, script execution trace |
 `;
 }
 

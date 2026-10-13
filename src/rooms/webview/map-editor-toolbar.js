@@ -97,15 +97,27 @@ function editLockIconSvg(locked) {
 }
 
 /**
+/** Left rail and right dock visibility toggles for responsive map workspace. */
+function editSidebarTogglesHtml() {
+  var railOn = typeof isRailVisible === 'function' ? isRailVisible() : true;
+  var dockOn = typeof isDockVisible === 'function' ? isDockVisible() : true;
+  return '<button class="rdf rg-edit-tool-icon rg-rail-toggle' + (railOn ? ' on' : '') + '" id="rg-rail-toggle-btn"'
+    + ' data-edit-act="toggle-rail" aria-pressed="' + railOn + '" title="' + (railOn ? 'Collapse room tree (left sidebar)' : 'Expand room tree (left sidebar)') + '">'
+    + '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><line x1="6" y1="2" x2="6" y2="14"/></svg></button>'
+    + '<button class="rdf rg-edit-tool-icon rg-dock-toggle' + (dockOn ? ' on' : '') + '" id="rg-dock-toggle-btn"'
+    + ' data-edit-act="toggle-dock" aria-pressed="' + dockOn + '" title="' + (dockOn ? 'Collapse inspector / tabs (right dock)' : 'Expand inspector / tabs (right dock)') + '">'
+    + '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><line x1="10" y1="2" x2="10" y2="14"/></svg></button>';
+}
+
+/**
  * The room's own actions, at the right end of its name line (detail-renderer.js
- * `#rg-head-acts`): the `⋯` menu, then the lock. They act on the map, not on
- * a stroke, so they are not tools.
+ * `#rg-head-acts`): the sidebar toggles, the `⋯` menu, then the lock.
  */
 function editHeadActsHtml() {
   // Editing a widget, the bar is the widget's (map-editor-widget-edit.js).
   if (typeof widgetEditing === 'function' && widgetEditing()) return widgetEditActsHtml();
   // Native tooltips here: the styled `data-tip` is the pill's own (map-editor-canvas.css).
-  return (buildEditOverflowHtml() + editLockButtonHtml()).replace(/ data-tip="/g, ' title="');
+  return (editSidebarTogglesHtml() + buildEditOverflowHtml() + editLockButtonHtml()).replace(/ data-tip="/g, ' title="');
 }
 
 /** Redraw the name line's actions — the lock's icon follows the draft. */

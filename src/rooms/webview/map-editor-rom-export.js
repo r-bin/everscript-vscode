@@ -99,7 +99,12 @@ function romExportPayload(why) {
 function editExportRom() { romExportSend('mapExportRom', 'building the ROM…'); }
 
 /** The `play-rom` action: the same ROM, run in the embedded emulator. */
-function editPlayRom() { romExportSend('mapPlayRom', 'building the ROM for the emulator…'); }
+function editPlayRom() {
+  if (typeof collapseSidebarsForEmulator === 'function' && window.innerWidth < 1200) {
+    collapseSidebarsForEmulator();
+  }
+  romExportSend('mapPlayRom', 'building the ROM for the emulator…');
+}
 
 function romExportSend(command, busyNote) {
   if (_romExportBusy) return;

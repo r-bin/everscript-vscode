@@ -69,6 +69,8 @@ function editAction(act) {
   if (act === 'delete-map') customDeleteMap();
   if (act === 'copy-map') { if (typeof customDuplicateMap === 'function') customDuplicateMap(); return; }
   if (act === 'save-widget') { if (typeof widgetSaveFromSelection === 'function') widgetSaveFromSelection(); return; }
+  if (act === 'toggle-rail') { if (typeof editToggleRail === 'function') editToggleRail(); return; }
+  if (act === 'toggle-dock') { if (typeof editToggleDock === 'function') editToggleDock(); return; }
 }
 
 /** The collision word the room already uses with this terrain word. */

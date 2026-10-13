@@ -117,3 +117,33 @@ body.rg-resizing{cursor:col-resize;user-select:none}
 
 /* The Trigger and Object tabs' "Loot only" quick filter. */
 .rg-theme .rg-list-filter{margin:6px 0 2px;display:flex;gap:4px}
+
+/* ── Sidebar collapsed states & responsive overlay mode ───────────────── */
+.rm-panels.rail-collapsed .rm-rail,
+.rm-rail.collapsed{display:none!important}
+.rm-panels.rail-collapsed .rm-split,
+.rm-split.collapsed{display:none!important}
+
+.dock-collapsed .rg-dock,
+.dock-collapsed #rg-dock,
+.rg-dock.collapsed{display:none!important}
+.dock-collapsed .rg-split,
+.dock-collapsed #rg-split,
+.rg-split.collapsed{display:none!important}
+
+/* Header sidebar toggle buttons */
+.rg-theme .rd-head-acts .rg-rail-toggle,
+.rg-theme .rd-head-acts .rg-dock-toggle{opacity:.75;transition:opacity .15s,color .15s}
+.rg-theme .rd-head-acts .rg-rail-toggle.on,
+.rg-theme .rd-head-acts .rg-dock-toggle.on{opacity:1;color:var(--rg-accent,#6aa0ff)}
+
+/* Responsive overlay: prevents sidebars from squishing map canvas on narrow viewports */
+@media (max-width:950px){
+  .rm-panels{position:relative;overflow:hidden}
+  .rm-left.rm-rail:not(.collapsed){position:absolute;top:0;bottom:0;left:0;z-index:50;box-shadow:4px 0 18px rgba(0,0,0,.5);background:var(--rg-bg-chrome)}
+  .rm-split{display:none!important}
+  .rg-theme .rg-edit-row{position:relative;overflow:hidden}
+  .rg-theme .rg-dock:not(.collapsed){position:absolute;top:0;bottom:0;right:0;z-index:50;box-shadow:-4px 0 18px rgba(0,0,0,.5);background:var(--rg-bg-chrome)}
+  .rg-theme .rg-split{display:none!important}
+  .rg-theme .rg-outer{flex:1 1 100%!important;width:100%!important;min-width:0!important}
+}
