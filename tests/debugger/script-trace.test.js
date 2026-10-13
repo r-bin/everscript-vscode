@@ -472,6 +472,94 @@ test('Paired step-on start and end events preserve trigger attribution without b
   assert.ok(results[1].line.includes('END of script'));
 });
 
+// Test 17: B-trigger attribution with specific indices (e.g. b[8], b[9])
+test('B-trigger attribution resolves higher indices b[8] and b[9] without defaulting to b[0]', () => {
+  const bTriggers = [];
+  for (let i = 0; i < 10; i++) {
+    bTriggers.push({ x1: i, y1: 10, x2: i + 1, y2: 11, scriptId: 477 });
+  }
+  const draft = { bTrigger: bTriggers, stepOn: [] };
+
+  const batch = [
+    {
+      slot: 0,
+      entity: 0x4E89,
+      event: 'start',
+      loc: 0x92A42F,
+      bytes: [0x00],
+      timeStr: '+3.00s, f180',
+      frame: 180,
+      triggerKind: 'bTrigger',
+      triggerIndex: 8,
+    },
+    {
+      slot: 0,
+      entity: 0x4E89,
+      event: 'start',
+      loc: 0x92A42F,
+      bytes: [0x00],
+      timeStr: '+3.50s, f210',
+      frame: 210,
+      triggerKind: 'bTrigger',
+      triggerIndex: 9,
+    },
+  ];
+
+  const results = processScriptTraceBatch(batch, null, null, draft);
+  assert.strictEqual(results.length, 2);
+  assert.strictEqual(results[0].lookup.shortTag, '0x15.b[8]');
+  assert.strictEqual(results[1].lookup.shortTag, '0x15.b[9]');
+  assert.ok(results[0].line.includes('[0x15.b[8]]'));
+  assert.ok(results[1].line.includes('[0x15.b[9]]'));
+});
+
+// Test 18: Step-on trigger 0 and 1 end events format as step[0] and step[1], never b[0]
+test('Step-on triggers 0 and 1 end events format as step[0] and step[1], never b[0]', () => {
+  const draft = {
+    bTrigger: [
+      { x1: 5, y1: 10, x2: 6, y2: 11, scriptId: 477 },
+    ],
+    stepOn: [
+      { x1: 2, y1: 3, x2: 4, y2: 5, scriptId: 477 },
+      { x1: 10, y1: 12, x2: 12, y2: 14, scriptId: 477 },
+    ],
+  };
+
+  const batch = [
+    {
+      slot: 0,
+      entity: 0x4E89,
+      event: 'end',
+      loc: 0x92A42F,
+      bytes: [],
+      timeStr: '+4.00s, f240',
+      frame: 240,
+      triggerKind: 'stepOn',
+      triggerIndex: 0,
+    },
+    {
+      slot: 0,
+      entity: 0x4E89,
+      event: 'end',
+      loc: 0x92A42F,
+      bytes: [],
+      timeStr: '+5.00s, f300',
+      frame: 300,
+      triggerKind: 'stepOn',
+      triggerIndex: 1,
+    },
+  ];
+
+  const results = processScriptTraceBatch(batch, null, null, draft);
+  assert.strictEqual(results.length, 2);
+  assert.strictEqual(results[0].lookup.shortTag, '0x15.step[0]');
+  assert.strictEqual(results[1].lookup.shortTag, '0x15.step[1]');
+  assert.ok(results[0].line.includes('[0x15.step[0]]'));
+  assert.ok(results[1].line.includes('[0x15.step[1]]'));
+  assert.ok(!results[0].line.includes('[0x15.b[0]]'));
+  assert.ok(!results[1].line.includes('[0x15.b[0]]'));
+});
+
 console.log(`\nResults: ${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);
 

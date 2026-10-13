@@ -366,8 +366,9 @@ class RomAddressLookup {
         }
         return this.lookupMap.get(addr) || {
           addr: 0x92A42F,
-          name: 'Empty Trigger (bare END)',
-          shortTag: 'empty',
+          room: roomId,
+          name: `Room ${hex} Trigger (bare END)`,
+          shortTag: `${hex}.end`,
           kind: 'empty',
         };
       }

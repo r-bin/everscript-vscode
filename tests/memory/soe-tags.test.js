@@ -253,7 +253,7 @@ test('provider: a mounted ROM folder holds rom/, ram/, tags/ and localization/; 
     const fsp = new SoeFileSystem({ vanillaRom: () => null, emulatorRom: () => null, romFile: p => (p === '/roms/soe.smc' ? rom : null),
         readMemory, emulatorStatus: async () => ({ emulator: 'closed' }) });
     const names = fsp.readDirectory(uri(`soe://rom/${m}/`)).map(([n]) => n);
-    assert.deepStrictEqual(names, ['index.md', 'rom', 'ram', 'tags', 'localization']);
+    assert.deepStrictEqual(names, ['index.md', 'rom', 'ram', 'tags', 'localization', 'logs']);
     assert.match(await read(fsp, `soe://rom/${m}/index.md`), /^# soe\.smc/);
     const romNames = fsp.readDirectory(uri(`soe://rom/${m}/rom/`)).map(([n]) => n);
     for (const n of ['assets', 'rom.sfc', 'header.json']) assert.ok(romNames.includes(n), n);

@@ -137,3 +137,4 @@ Breaking down each token:
 | Wrong trigger index reported (e.g. `step[2]` instead of `step[0]`) | Trigger boxes overlapping or stale origin offset | Ensure cell math uses `((boyX >> 4) + originX)`; eliminate box overlap |
 | Teleported Boy freezes or walks in place | Script slot in state 4 (waiting) or partner freeze flag set | Check `$7E22EB`; clear scripted wait flags |
 | Emulator crash | Invalid jump, stack overflow, or execution of non-script data | Open `soe://logs/crashes.md` to inspect CPU PC and slot locations |
+

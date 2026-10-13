@@ -54,6 +54,7 @@ function parseRoomTriggers(rom, mapId) {
 
     const stepOn = [];
     if (stepLen >= 6 && stepLen % 6 === 0 && stepLen <= 600) {
+        let idx = 0;
         for (let p = 0; p < stepLen; p += 6) {
             const at = stepTableRom + p;
             if (at + 5 >= rom.length) break;
@@ -63,12 +64,15 @@ function parseRoomTriggers(rom, mapId) {
                 y2: rom[at + 2],
                 x2: rom[at + 3],
                 scriptId: rom[at + 4] | (rom[at + 5] << 8),
+                index: idx++,
+                kind: 'stepOn',
             });
         }
     }
 
     const bTrigger = [];
     if (bLen >= 6 && bLen % 6 === 0 && bLen <= 600) {
+        let idx = 0;
         for (let p = 0; p < bLen; p += 6) {
             const at = bTableRom + p;
             if (at + 5 >= rom.length) break;
@@ -78,6 +82,8 @@ function parseRoomTriggers(rom, mapId) {
                 y2: rom[at + 2],
                 x2: rom[at + 3],
                 scriptId: rom[at + 4] | (rom[at + 5] << 8),
+                index: idx++,
+                kind: 'bTrigger',
             });
         }
     }
@@ -1868,6 +1874,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     let thinHpBarEnabled = true;
     let thinStaminaBarEnabled = true;
     let inspectedTarget = null;
+    let lastInjectedTrigger = null;
     let cachedMapId = -1;
     let cachedTriggers = null;
     let cachedObjects = null;
@@ -2759,8 +2766,9 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       redrawExtendedLayersNow();
     }
 
-    function openTriggerInspector(typeStr, trigger) {
+    function openTriggerInspector(typeStr, trigger, triggerIndex) {
       if (!trigger) return;
+      if (typeof triggerIndex === 'number') trigger.index = triggerIndex;
       inspectedTarget = { type: 'trigger', trigger: trigger };
 
       const card = document.getElementById('menu-inspect-card');
@@ -2794,6 +2802,12 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       trigBtn.type = 'button';
       trigBtn.textContent = '[Trigger Script (Everscript call_id)]';
       trigBtn.addEventListener('click', function() {
+        lastInjectedTrigger = {
+          kind: (trigger && trigger.kind) || (typeStr === 'B-Trigger' ? 'bTrigger' : 'stepOn'),
+          index: (trigger && typeof trigger.index === 'number') ? trigger.index : (typeof triggerIndex === 'number' ? triggerIndex : 0),
+          scriptId: trigger.scriptId,
+          expiryFrame: romFrameCount + 40,
+        };
         const ok = injectEverscript('call_id(0x' + trigger.scriptId.toString(16) + ')');
         if (typeof playMenuSound === 'function') playMenuSound('click_confirm');
         setText('ss-last-hit', 'triggered ' + typeStr + ' script ' + scriptIdHex + ' via call_id()', 'ss-ok');
@@ -2886,7 +2900,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         for (let i = 0; i < bList.length; i++) {
           const box = calculateTriggerBox(bList[i], tOffX, tOffY, (lastLayout ? lastLayout.camX : 0), (lastLayout ? lastLayout.camY : 0));
           if (worldX >= box.posX && worldX <= box.posX + box.boxW && worldY >= box.posY && worldY <= box.posY + box.boxH) {
-            openTriggerInspector('B-Trigger', bList[i]);
+            openTriggerInspector('B-Trigger', bList[i], i);
             return true;
           }
         }
@@ -2894,7 +2908,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         for (let i = 0; i < sList.length; i++) {
           const box = calculateTriggerBox(sList[i], tOffX, tOffY, (lastLayout ? lastLayout.camX : 0), (lastLayout ? lastLayout.camY : 0));
           if (worldX >= box.posX && worldX <= box.posX + box.boxW && worldY >= box.posY && worldY <= box.posY + box.boxH) {
-            openTriggerInspector('Step-on', sList[i]);
+            openTriggerInspector('Step-on', sList[i], i);
             return true;
           }
         }
@@ -4961,6 +4975,11 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         if ((tracker.state === 0 || tracker.loc === 0) && (state !== 0 && loc !== 0)) {
           event = 'start';
           targetLoc = loc;
+          if (lastInjectedTrigger && romFrameCount <= lastInjectedTrigger.expiryFrame) {
+            tracker.triggerKind = lastInjectedTrigger.kind;
+            tracker.triggerIndex = lastInjectedTrigger.index;
+            lastInjectedTrigger = null;
+          }
         }
         // Condition 2: Slot was waiting (state 4) and resumed to executing (state 2)
         else if (tracker.state === 4 && state === 2) {
@@ -5014,11 +5033,13 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
             timeStr,
             frame: romFrameCount,
           };
-          if (event === 'end' && tracker.triggerKind) {
+          if (tracker.triggerKind) {
             entry.triggerKind = tracker.triggerKind;
             entry.triggerIndex = tracker.triggerIndex;
-            tracker.triggerKind = null;
-            tracker.triggerIndex = null;
+            if (event === 'end') {
+              tracker.triggerKind = null;
+              tracker.triggerIndex = null;
+            }
           }
           batch.push(entry);
         }
@@ -5064,17 +5085,21 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
           }
           if (activeStepIndex === -1) activeStepIndex = 0;
 
-          const isNewActivation = (lastStepOnScriptId === 0xFFFF) || (activeStepIndex !== lastStepOnIndex && lastStepOnIndex !== -1);
-          if (isNewActivation) {
-            const slotStartItem = batch.find(item => item.event === 'start');
-            if (slotStartItem) {
-              slotStartItem.triggerKind = 'stepOn';
-              slotStartItem.triggerIndex = activeStepIndex;
-              if (scriptSlotTrackers[slotStartItem.slot]) {
-                scriptSlotTrackers[slotStartItem.slot].triggerKind = 'stepOn';
-                scriptSlotTrackers[slotStartItem.slot].triggerIndex = activeStepIndex;
-              }
-            } else {
+          const slotStartItem = batch.find(item => item.event === 'start' && item.slot === 0);
+          if (slotStartItem) {
+            slotStartItem.triggerKind = 'stepOn';
+            slotStartItem.triggerIndex = activeStepIndex;
+            if (scriptSlotTrackers[0]) {
+              scriptSlotTrackers[0].triggerKind = 'stepOn';
+              scriptSlotTrackers[0].triggerIndex = activeStepIndex;
+            }
+          } else {
+            if (scriptSlotTrackers[0] && scriptSlotTrackers[0].state !== 0 && !scriptSlotTrackers[0].triggerKind) {
+              scriptSlotTrackers[0].triggerKind = 'stepOn';
+              scriptSlotTrackers[0].triggerIndex = activeStepIndex;
+            }
+            const isNewActivation = (lastStepOnScriptId === 0xFFFF) || (activeStepIndex !== lastStepOnIndex && lastStepOnIndex !== -1);
+            if (isNewActivation) {
               const targetLoc = resolveScriptIdToSnes(loadedRomData, curStepOnScriptId);
               if (isValidScriptAddr(targetLoc)) {
                 let rawBytes = [];
@@ -5121,6 +5146,73 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         } else {
           lastStepOnScriptId = 0xFFFF;
           lastStepOnIndex = -1;
+
+          // B-trigger execution detection for slot 0
+          const slotStartItem = batch.find(item => item.event === 'start' && item.slot === 0);
+          if (slotStartItem && !slotStartItem.triggerKind && cachedTriggers && Array.isArray(cachedTriggers.bTrigger) && cachedTriggers.bTrigger.length > 0) {
+            const rawBoyX = m.readMemory(0x7E4EA3) | (m.readMemory(0x7E4EA4) << 8);
+            const rawBoyY = m.readMemory(0x7E4EA5) | (m.readMemory(0x7E4EA6) << 8);
+            const rawOX = m.readMemory(0x7E0F86) | (m.readMemory(0x7E0F87) << 8);
+            const rawOY = m.readMemory(0x7E0F88) | (m.readMemory(0x7E0F89) << 8);
+            const playerTileX = ((rawBoyX >> 4) + rawOX) & 0xFFFF;
+            const playerTileY = ((rawBoyY >> 4) + rawOY) & 0xFFFF;
+            const rawFacing = m.readMemory(0x7E4EAB);
+            const FACING_DELTAS = {
+              0:  [ 0, -1], // N
+              2:  [ 1, -1], // NE
+              4:  [ 1,  0], // E
+              6:  [ 1,  1], // SE
+              8:  [ 0,  1], // S
+              10: [-1,  1], // SW
+              12: [-1,  0], // W
+              14: [-1, -1], // NW
+            };
+            const delta = FACING_DELTAS[rawFacing & 0x0E] || [0, 1];
+            const targetTileX = (playerTileX + delta[0]) & 0xFFFF;
+            const targetTileY = (playerTileY + delta[1]) & 0xFFFF;
+            const bList = cachedTriggers.bTrigger;
+            let activeBIndex = -1;
+
+            // 1. Check facing tile first (normal B-press target)
+            for (let i = 0; i < bList.length; i++) {
+              const t = bList[i];
+              if (targetTileY >= t.y1 && targetTileY < t.y2 &&
+                  targetTileX >= t.x1 && targetTileX < t.x2) {
+                activeBIndex = i;
+                break;
+              }
+            }
+            // 2. Check player standing tile as fallback
+            if (activeBIndex === -1) {
+              for (let i = 0; i < bList.length; i++) {
+                const t = bList[i];
+                if (playerTileY >= t.y1 && playerTileY < t.y2 &&
+                    playerTileX >= t.x1 && playerTileX < t.x2) {
+                  activeBIndex = i;
+                  break;
+                }
+              }
+            }
+            // 3. Check matching script address in B-triggers
+            if (activeBIndex === -1 && slotStartItem.loc) {
+              for (let i = 0; i < bList.length; i++) {
+                const tLoc = resolveScriptIdToSnes(loadedRomData, bList[i].scriptId);
+                if (tLoc === slotStartItem.loc && tLoc !== 0x92A42F) {
+                  activeBIndex = i;
+                  break;
+                }
+              }
+            }
+
+            if (activeBIndex !== -1) {
+              slotStartItem.triggerKind = 'bTrigger';
+              slotStartItem.triggerIndex = activeBIndex;
+              if (scriptSlotTrackers[0]) {
+                scriptSlotTrackers[0].triggerKind = 'bTrigger';
+                scriptSlotTrackers[0].triggerIndex = activeBIndex;
+              }
+            }
+          }
         }
       } catch (_) {}
 

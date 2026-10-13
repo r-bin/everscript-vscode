@@ -559,6 +559,12 @@ function openEmulatorPanel(context, rom, channel) {
               _clearRomTimeout();
               _notifyWebviewStatus('error', `Emulator crash: ${msg.message || msg.error}`);
               _logCrash(msg);
+              vscode.window.showErrorMessage(`Emulator crash: ${msg.message || msg.error}`, 'Show Crash Log').then(choice => {
+                if (choice === 'Show Crash Log') {
+                  const ch = _ensureEmulatorChannel();
+                  if (ch) ch.show(true);
+                }
+              });
               break;
 
             case 'emulatorStderr':
