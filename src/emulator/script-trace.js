@@ -159,7 +159,7 @@ function processScriptTraceBatch(items, currentRom, wsRoot, customDraft = null, 
     }
 
     // Resolve human-readable ROM address information
-    const lookup = lookupTable ? lookupTable.lookup(loc) : null;
+    const lookup = lookupTable ? lookupTable.lookup(loc, undefined, item) : null;
 
     // Use current ROM or synthesize buffer from bytes sent from emulator bus
     let romBuf = rom;

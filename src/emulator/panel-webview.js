@@ -102,6 +102,21 @@ function calculateTriggerBox(trigger, trigOffX, trigOffY, camX, camY) {
     };
 }
 
+function resolveScriptIdToSnes(rom, scriptId) {
+    if (scriptId === 477) return 0x92A42F;
+    if (!rom || typeof scriptId !== 'number') return 0;
+    const headerOffset = (rom.length % 1024 === 512) ? 512 : 0;
+    const startRom = 0x128000 + headerOffset;
+    if (startRom + 2 > rom.length) return 0;
+    const tableOffset = rom[startRom] | (rom[startRom + 1] << 8);
+    const mapscriptTableRom = startRom + tableOffset;
+    const ptr = mapscriptTableRom + scriptId;
+    if (ptr + 2 >= rom.length) return 0;
+    const packed = rom[ptr] | (rom[ptr + 1] << 8) | (rom[ptr + 2] << 16);
+    if (!packed) return 0;
+    return (0x928000 + (packed & 0x007fff) + ((packed & 0xff8000) << 1)) >>> 0;
+}
+
 // -----------------------------------------------------------------------------
 //  HTML template
 // -----------------------------------------------------------------------------
@@ -1488,6 +1503,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         loadedRomName = name || 'game';
         cachedMapId = -1;
         cachedTriggers = null;
+        lastStepOnScriptId = 0xFFFF;
+        lastStepOnIndex = -1;
         cachedObjects = null;
         cachedLootables = null;
         cachedAnimTiles = null;
@@ -2036,6 +2053,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     ${parseRoomTriggers.toString()}
 
     ${calculateTriggerBox.toString()}
+    ${resolveScriptIdToSnes.toString()}
 
     function renderTriggersOverlay(overlayCtx, layout, preState) {
       if (!overlayCtx) return;
@@ -3629,6 +3647,8 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       if (mapId !== cachedMapId) {
         cachedMapId = mapId;
         cachedTriggers = parseRoomTriggers(loadedRomData, mapId);
+        lastStepOnScriptId = 0xFFFF;
+        lastStepOnIndex = -1;
         cachedObjects = roomObjectsCache.get(mapId) || null;
         cachedLootables = roomLootCache.get(mapId) || null;
         cachedAnimTiles = roomAnimTilesCache.get(mapId) || null;
@@ -4892,6 +4912,9 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       initialized: false,
     }));
 
+    let lastStepOnScriptId = 0xFFFF;
+    let lastStepOnIndex = -1;
+
     let totalTraceCount = 0;
 
     function isValidScriptAddr(loc) {
@@ -4996,6 +5019,79 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         tracker.timer1 = timer1;
         tracker.entity = entity;
       }
+
+      // Step-on trigger execution detection via $7E2429
+      try {
+        const curStepOnScriptId = (m.readMemory(0x7E2429) | (m.readMemory(0x7E242A) << 8)) >>> 0;
+        if (curStepOnScriptId !== 0xFFFF && curStepOnScriptId !== 0x5555) {
+          let activeStepIndex = -1;
+          if (cachedTriggers && Array.isArray(cachedTriggers.stepOn) && cachedTriggers.stepOn.length > 0) {
+            const tOffX = (lastLayout && lastLayout.trigOffX) || cachedTriggers.offX || 0;
+            const tOffY = (lastLayout && lastLayout.trigOffY) || cachedTriggers.offY || 0;
+            const rawBoyX = m.readMemory(0x7E4EA3) | (m.readMemory(0x7E4EA4) << 8);
+            const boyX = rawBoyX >= 0x8000 ? rawBoyX - 0x10000 : rawBoyX;
+            const rawBoyY = m.readMemory(0x7E4EA5) | (m.readMemory(0x7E4EA6) << 8);
+            const boyY = rawBoyY >= 0x8000 ? rawBoyY - 0x10000 : rawBoyY;
+            const sList = cachedTriggers.stepOn;
+
+            for (let i = 0; i < sList.length; i++) {
+              const box = calculateTriggerBox(sList[i], tOffX, tOffY, 0, 0);
+              if (boyX >= box.posX && boyX <= box.posX + box.boxW && boyY >= box.posY && boyY <= box.posY + box.boxH) {
+                activeStepIndex = i;
+                break;
+              }
+            }
+            if (activeStepIndex === -1) {
+              for (let i = 0; i < sList.length; i++) {
+                if (sList[i].scriptId === curStepOnScriptId) {
+                  activeStepIndex = i;
+                  break;
+                }
+              }
+            }
+          }
+          if (activeStepIndex === -1) activeStepIndex = 0;
+
+          const isNewActivation = (lastStepOnScriptId === 0xFFFF) || (activeStepIndex !== lastStepOnIndex && lastStepOnIndex !== -1);
+          if (isNewActivation) {
+            const slotStartItem = batch.find(item => item.event === 'start');
+            if (slotStartItem) {
+              slotStartItem.triggerKind = 'stepOn';
+              slotStartItem.triggerIndex = activeStepIndex;
+            } else {
+              const targetLoc = resolveScriptIdToSnes(loadedRomData, curStepOnScriptId);
+              if (isValidScriptAddr(targetLoc)) {
+                let rawBytes = [];
+                try {
+                  const buf = m.readMemoryRange(targetLoc, 32);
+                  if (buf && buf.length) rawBytes = Array.from(buf);
+                } catch (_) {}
+                const elapsedSec = romLaunchTimestamp > 0 ? ((performance.now() - romLaunchTimestamp) / 1000) : 0;
+                const timeStr = '+' + elapsedSec.toFixed(2) + 's, f' + romFrameCount;
+                batch.push({
+                  slot: 0,
+                  entity: 0x4E89,
+                  event: 'start',
+                  loc: targetLoc,
+                  nextLoc: targetLoc,
+                  state: 0,
+                  timer1: 0,
+                  bytes: rawBytes,
+                  timeStr,
+                  frame: romFrameCount,
+                  triggerKind: 'stepOn',
+                  triggerIndex: activeStepIndex,
+                });
+              }
+            }
+          }
+          lastStepOnScriptId = curStepOnScriptId;
+          lastStepOnIndex = activeStepIndex;
+        } else {
+          lastStepOnScriptId = 0xFFFF;
+          lastStepOnIndex = -1;
+        }
+      } catch (_) {}
 
       if (batch.length > 0 && vscodeApi) {
         vscodeApi.postMessage({ command: 'scriptTraceBatch', items: batch });
@@ -5227,4 +5323,5 @@ module.exports = {
   buildHtml: _buildHtml,
   parseRoomTriggers,
   calculateTriggerBox,
+  resolveScriptIdToSnes,
 };

@@ -75,3 +75,4 @@ Registered in `package.json` under task type `everscript`:
 ## 4. Open Work & Roadmap
 
 For planned additions (live diagnostics/linter, symbol rename `F2`, signature help, and script tag names `<boy.hp>`), see [`docs/todo/language-tools-and-lsp.md`](todo/language-tools-and-lsp.md).
+

@@ -59,3 +59,4 @@ The engine reads the following verified WRAM registers every frame tick:
 ## 4. Open Work & Roadmap
 
 For planned additions (live painting directly from Map Editor to WRAM, editor camera box overlay, REPL console, save state scrubber), see [`docs/todo/emulator-and-runtime.md`](todo/emulator-and-runtime.md).
+

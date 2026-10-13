@@ -216,15 +216,110 @@ class RomAddressLookup {
     this.roomTriggersMap.set(roomId, roomTrigs);
   }
 
-  lookup(addr, currentRoomId) {
+  _getRoomTriggers(roomId) {
+    if (this.roomTriggersMap.has(roomId)) {
+      return this.roomTriggersMap.get(roomId);
+    }
+    if (!this.rom || typeof roomId !== 'number' || roomId < 0 || roomId > 0x90) return null;
+    const headerOffset = (this.rom.length % 1024 === 512) ? 512 : 0;
+    const mapTableRom = headerOffset + 0x1ffde7;
+    const ptrAddr = mapTableRom + roomId * 4;
+    if (ptrAddr + 3 >= this.rom.length) return null;
+    const dataSnes = this.rom[ptrAddr] | (this.rom[ptrAddr + 1] << 8) | (this.rom[ptrAddr + 2] << 16);
+    if (dataSnes === 0 || dataSnes === 0xFFFFFF) return null;
+    const dataRom = headerOffset + (((dataSnes >> 16) & 0x3f) * 0x10000 + (dataSnes & 0xffff));
+    if (dataRom + 20 >= this.rom.length) return null;
+
+    const stepLen = this.rom[dataRom + 0x0d] | (this.rom[dataRom + 0x0e] << 8);
+    const stepTableRom = dataRom + 0x0f;
+    const bLenRom = stepTableRom + stepLen;
+    if (bLenRom + 2 >= this.rom.length) return null;
+    const bLen = this.rom[bLenRom] | (this.rom[bLenRom + 1] << 8);
+    const bTableRom = bLenRom + 2;
+
+    const roomHex = '0x' + roomId.toString(16).toUpperCase().padStart(2, '0');
+    const roomTrigs = { bTrigger: [], stepOn: [], enter: null };
+
+    if (stepLen >= 6 && stepLen % 6 === 0 && stepLen <= 600) {
+      let idx = 0;
+      for (let p = 0; p < stepLen; p += 6) {
+        const at = stepTableRom + p;
+        if (at + 5 >= this.rom.length) break;
+        const sId = this.rom[at + 4] | (this.rom[at + 5] << 8);
+        const addr = this.resolveScriptIdToSnes(sId) || (sId === 477 ? 0x92A42F : 0);
+        const coords = `(${this.rom[at + 1]},${this.rom[at + 0]})`;
+        roomTrigs.stepOn.push({
+          addr,
+          room: roomId,
+          kind: 'stepOn',
+          index: idx,
+          scriptId: sId,
+          coords,
+          name: `Room ${roomHex} Step-on #${idx} at ${coords}`,
+          shortTag: `${roomHex}.step[${idx}]`,
+        });
+        idx++;
+      }
+    }
+
+    if (bLen >= 6 && bLen % 6 === 0 && bLen <= 600) {
+      let idx = 0;
+      for (let p = 0; p < bLen; p += 6) {
+        const at = bTableRom + p;
+        if (at + 5 >= this.rom.length) break;
+        const sId = this.rom[at + 4] | (this.rom[at + 5] << 8);
+        const addr = this.resolveScriptIdToSnes(sId) || (sId === 477 ? 0x92A42F : 0);
+        const coords = `(${this.rom[at + 1]},${this.rom[at + 0]})`;
+        roomTrigs.bTrigger.push({
+          addr,
+          room: roomId,
+          kind: 'bTrigger',
+          index: idx,
+          scriptId: sId,
+          coords,
+          name: `Room ${roomHex} B-trigger #${idx} at ${coords}`,
+          shortTag: `${roomHex}.b[${idx}]`,
+        });
+        idx++;
+      }
+    }
+
+    this.roomTriggersMap.set(roomId, roomTrigs);
+    return roomTrigs;
+  }
+
+  lookup(addr, currentRoomId, item) {
     if (typeof addr !== 'number' || addr <= 0) return null;
 
-    // Check custom room 0x15 specific triggers first if room matches
+    // Check custom room or room-specific triggers first if room matches
     const roomId = currentRoomId !== undefined ? currentRoomId : this.activeRoomId;
-    const roomTrigs = this.roomTriggersMap.get(roomId);
+    const roomTrigs = this.roomTriggersMap.has(roomId)
+      ? this.roomTriggersMap.get(roomId)
+      : this._getRoomTriggers(roomId);
+
     if (roomTrigs) {
       if (addr === roomTrigs.enter) {
         return this.lookupMap.get(addr) || null;
+      }
+      // Prioritize triggerKind and triggerIndex if provided in item
+      if (item && item.triggerKind) {
+        const isStep = item.triggerKind === 'stepOn';
+        const list = isStep ? roomTrigs.stepOn : roomTrigs.bTrigger;
+        const idx = typeof item.triggerIndex === 'number' ? item.triggerIndex : 0;
+        if (list && list[idx]) {
+          const t = list[idx];
+          if (t.scriptId === 477 || addr === 0x92A42F) {
+            const hex = '0x' + roomId.toString(16).toUpperCase().padStart(2, '0');
+            const kindLabel = isStep ? 'Step-on' : 'B-trigger';
+            const kindTag = isStep ? 'step' : 'b';
+            return {
+              ...t,
+              name: `Room ${hex} ${kindLabel} #${idx} (bare END)`,
+              shortTag: `${hex}.${kindTag}[${idx}]`,
+            };
+          }
+          return t;
+        }
       }
       // Check if address matches any specific non-empty trigger in this room
       for (const trig of roomTrigs.bTrigger) {
@@ -241,6 +336,15 @@ class RomAddressLookup {
           ...t0,
           name: `Room ${hex} B-trigger (bare END)`,
           shortTag: `${hex}.b[0]`,
+        };
+      }
+      if (addr === 0x92A42F && roomTrigs.stepOn.length > 0) {
+        const s0 = roomTrigs.stepOn[0];
+        const hex = '0x' + roomId.toString(16).toUpperCase().padStart(2, '0');
+        return {
+          ...s0,
+          name: `Room ${hex} Step-on #0 (bare END)`,
+          shortTag: `${hex}.step[0]`,
         };
       }
     }

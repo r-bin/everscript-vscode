@@ -297,7 +297,12 @@ function highlightExecutedTrigger(lookup) {
   if (kind) {
     var index = typeof lookup.index === 'number' ? lookup.index : 0;
     if (typeof triggerSelect === 'function') {
-      triggerSelect({ kind: kind, id: 'base:' + index });
+      var list = typeof editTriggerList === 'function' ? editTriggerList(kind) : [];
+      if (list && list[index] && list[index].ref) {
+        triggerSelect(list[index].ref);
+      } else {
+        triggerSelect({ kind: kind, id: 'base:' + index });
+      }
     }
   }
   if (typeof editNote === 'function' && lookup.name) {

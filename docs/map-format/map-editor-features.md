@@ -70,3 +70,4 @@ The **Info tab (Header sub-tab)** exposes editable PPU registers:
 - Extends vanilla 3MB ROM to 4MB (`0x300000..0x3FFFFF`).
 - Repoints developer room `0x15` (Brian's Test Ground) pointer table to custom map payload.
 - Rewrites intro jump (`$92E0CA`) to `load_map(0x15, x, y)` and injects Laser Lance for grass cutting.
+
