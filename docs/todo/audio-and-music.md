@@ -37,3 +37,4 @@ Once the sequence bytecode is decoded, extend the Radar Music panel:
 - **Live Playhead Indicator:** Highlight the exact sequence byte currently read by the SPC driver in real time (via zero-page track pointers or ARAM read telemetry).
 - **Control Flow Visuals:** Display sequence command chips, track loop points, and branch jumps as visual arcs connecting loop boundaries.
 - **Interactive ARAM Map:** 64 KB memory grid highlighting active driver code, sample tables, and active sound buffers with glowing phosphor fades on access.
+

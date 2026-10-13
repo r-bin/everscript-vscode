@@ -2,32 +2,32 @@
 
 > Single source of truth for all open tasks, roadmaps, and feature backlogs across the project.
 > Each file in this directory represents a distinct, logical task cluster.
+> Audited against current codebase: completed items have been removed from open backlogs and documented in their respective cluster files.
 
 ---
 
 ## Task Clusters
 
-| Cluster Document | Domain | Key Responsibilities / Topics | Status |
+| Cluster Document | Domain | Completed & Shipped | Active Open Tasks |
 |---|---|---|---|
-| [map-editor.md](map-editor.md) | Map Editor (`src/rooms/`) | Wiring bugs, widget special tiles, frame editing regressions, collision tools, PT bit 6, flood fill, panning, 4-way resize, header effects, procedural tiles, ROM save | 🔴 Active |
-| [emulator-and-runtime.md](emulator-and-runtime.md) | Emulator (`src/emulator/`) | Live painting into running game, viewport tracking on editor, REPL console, DAP debugger, save state scrubber, bi-directional WRAM sync | 🟡 In Progress |
-| [language-tools-and-lsp.md](language-tools-and-lsp.md) | Language (`src/language/`) | Language Server Protocol (LSP), hover docs, autocomplete, diagnostics, go-to-definition, inlay hints, problem matchers, tag names in scripts | 🟡 In Progress |
-| [audio-and-music.md](audio-and-music.md) | Music (`src/music/`) | Wolfgang v3 sequence bytecode decoding, SPC driver trace, opcode table, piano roll visualization, live playhead, ARAM map | 🟡 Research |
-| [static-recompilation.md](static-recompilation.md) | Recomp (`tools/recomp/`) | Lockstep timing drift, upstream snesrecomp PRs (BG mode 4, save states), automated in-game playthrough, HLE C replacements, CDL static coverage | 🟡 Active |
-| [research-and-visualizations.md](research-and-visualizations.md) | RE & Tools (`tools/`) | Call-graph galaxy, ROM heat-strip timelapse, script execution flame graph, WRAM phosphor heatmap, event-flag DAG, world atlas, Act 0 dog animations | 💡 Exploration |
-| [resource-tags-system.md](resource-tags-system.md) | Tags (`src/resources/tags/`) | Ontology expansion (alchemy, weapons, entity slots), `core.evs` compiler bundling, static tag derivation, validation tooling | 🟢 Foundation Shipped |
-| [combat-damage-and-routing.md](combat-damage-and-routing.md) | Mechanics (`src/scaling/`) | Atlas damage traces (100% vs <100%), subtraction formula, unified physical math, spell damage graphs, route planner simulation | 🟡 Blocked on Trace |
-| [romhacks-and-ports.md](romhacks-and-ports.md) | Experimental Romhacks | Secret of Mana content port (maps, enemies, ROM budgets), SoE + ALttP Combo ROM (SMZ3-style ExHiROM, bank CDL audit, SRAM relocation) | 💡 Long-term |
+| [map-editor.md](map-editor.md) | Map Editor (`src/rooms/`) | ✅ Collision shape picker (0x0..0xF) & 8px pen<br>✅ Plane-transparent (bit 6)<br>✅ Widget special properties serialization<br>✅ Atomic placed widgets & move/delete<br>✅ Two-finger scroll panning<br>✅ Header effects catalogue & presets<br>✅ Procedural tile fill in neighbours card<br>✅ Animation phase variants & tick stagger<br>✅ Copy room as widget & test ROM export | 🟡 Flood fill tool (by metatile id)<br>🟡 Pan hand tool (`H`) & Space-hold<br>🟡 4-direction room resize (N/W)<br>🟡 Cross-map tile references<br>🟡 Direct Save to ROM for vanilla slots<br>🟡 Object/trigger tabular editor |
+| [emulator-and-runtime.md](emulator-and-runtime.md) | Emulator (`src/emulator/`, `src/debugger/`) | ✅ Full DAP debugger (breakpoints & stepping)<br>✅ Extended map multi-layer rendering<br>✅ Live camera coordinates located (`$7E0112/$0114`)<br>✅ Sound-chip telemetry to Music tab<br>✅ TAS recording & playback<br>✅ Runtime script injection engine | 🟡 Live painting from editor into running game<br>🟡 Emulator viewport overlay box on editor<br>🟡 Interactive in-panel Everscript REPL<br>🟡 Save state scrubbing timeline |
+| [language-tools-and-lsp.md](language-tools-and-lsp.md) | Language (`src/language/`) | ✅ Native hover documentation<br>✅ Keyword/enum autocompletion<br>✅ Go-to-definition & symbol references<br>✅ Document symbols & breadcrumbs<br>✅ Compiler problem matchers & build tasks<br>✅ Dead branch fading & code snippets | 🟡 Rich live diagnostics & AST linter<br>🟡 Workspace-wide rename (`F2`)<br>🟡 Signature help & inlay hints<br>🟡 Tag names in scripts (`<boy.hp>`)<br>🟢 Optional external Python LSP daemon |
+| [combat-damage-and-routing.md](combat-damage-and-routing.md) | Mechanics (`src/scaling/`) | ✅ Unified physical damage engine<br>✅ 16-bit RNG simulated alchemy damage curves & charts | 🟡 Atlas 100% vs sub-100% traces<br>🟡 Trace-backed Atlas subtraction formula<br>🟡 Route progression simulation |
+| [resource-tags-system.md](resource-tags-system.md) | Tags (`src/resources/tags/`) | ✅ `soe://tags/` provider & hierarchy<br>✅ Multiple inheritance & back-links<br>✅ Tag validation & check tooling | 🟡 Expand `tags.json` ontology (alchemy/weapons)<br>🟡 Bundle `core.evs` in compiler for auto-generation<br>🟡 WRAM address verification |
+| [audio-and-music.md](audio-and-music.md) | Music (`src/music/`) | ✅ Radar Music tab with voice lanes, ARAM map, sound-chip stream | 🟡 Wolfgang v3 sequence bytecode decoding<br>🟡 Piano roll track lanes & live playhead |
+| [static-recompilation.md](static-recompilation.md) | Recomp (`tools/recomp/`) | ✅ Milestone 1: Headless intro & attract loop clean<br>✅ Save state `SEXC` chunks & dynamic exclusions | 🟡 Timing drift investigation after NMI ~315<br>🟡 Upstream PRs (BG Mode 4, CPU save states)<br>🟡 Milestone 2: Automated playthrough<br>🟡 Milestone 3: HLE C decompressors |
+| [research-and-visualizations.md](research-and-visualizations.md) | RE & Tools (`tools/`) | ✅ Call-graph galaxy prototype | 💡 Galaxy standalone HTML export<br>💡 ROM heat-strip timelapse over TAS<br>💡 Script flame graph & WRAM phosphor heatmap<br>💡 Event-flag DAG & World atlas<br>🟡 Act 0 dog missing animations & bark patch |
+| [romhacks-and-ports.md](romhacks-and-ports.md) | Romhacks & Ports | — | 💡 Secret of Mana content port to SoE<br>💡 SoE + ALttP Combo ROM (ExHiROM) |
 
 ---
 
 ## Guidelines for Working on Tasks
 
 1. **Before Starting Work:**
-   - Review the relevant cluster file above.
-   - Check related skills in `.agents/skills/` (e.g. `map-editor-rules`, `emulator-subsystem`, `recomp-debugging`, `game-knowledge`).
-   - Ground any new facts in verified ROM or emulator behavior (`game-knowledge` skill).
+   - Check the relevant cluster file above for ground truth and already-shipped foundation.
+   - Review related skills in `.agents/skills/`.
 2. **When Completing or Updating Work:**
-   - Mark completed items with status updates or commit hashes.
+   - Move completed items to the "Verified Completed Features" section of the cluster file.
    - Record lessons learned and addresses in `src/localizations/knowledge/`.
    - Follow the `release-ritual` skill (`npm run typecheck && npm run check:circular && npm run check:dead && npm test`).

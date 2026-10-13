@@ -72,3 +72,4 @@ Issues identified for contribution back to [RetroPortingToolKit/snesrecomp](http
 
 ### Milestone 4: Broaden Static CDL Coverage
 - Ingest Ghidra and REA headless exports (`static.json`) to seed unreached code paths, expanding native C compilation coverage from ~10% toward 100%.
+

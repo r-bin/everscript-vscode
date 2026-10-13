@@ -47,3 +47,4 @@ Exploring the feasibility of creating an SMZ3-style single combo cartridge combi
 ### 2.3 Initial Spike & Comparison
 - **Prototype Spike:** Build test ExHiROM image with ALttP at `$00` and SoE at `$C0` using SMZ3's common dispatcher. Headless boot verification for both engines.
 - **Alternative:** Archipelago multiworld runs SoE and ALttP as two separate ROMs communicating over network. A single cartridge combo ROM is worthwhile only if seamless in-hardware transitions are desired.
+

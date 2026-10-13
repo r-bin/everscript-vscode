@@ -44,3 +44,4 @@ Address conflicts to verify in live emulation:
 4. **Wiki Corrections in `everscript/wiki/ram/Ram-Map.md`:**
    - `$0A3F`: Wiki says `BOY_MAGIC_DEFENSE`, enum says `POINTER_BOY + ATTACK (0x19)`.
    - `$0A43`: Wiki says `BOY_MAGIC_ATTACK`, enum says `POINTER_BOY + MAGIC_DEFENSE (0x1d)`.
+

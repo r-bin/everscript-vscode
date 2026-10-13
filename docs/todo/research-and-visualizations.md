@@ -51,3 +51,4 @@ The Dog's form table at `$CF945F` has six 40-byte entries (10-byte header + 15 a
 3. **ROM Expansion to 4 MB:** Vanilla 3 MB ROM has zero runs of free space ≥ 1 KB. Expand image to 4 MB (HiROM banks `$F0..$FF`) and update header size byte (`$FFD7`).
 4. **Codec Implementation:** Add 4bpp block encoder and sprite-info writer to `src/maps/sprites.ts`.
 5. **Draw & Integrate Poses:** Pixel ~85 missing poses in the Act 0 palette, allocate dead block IDs, assemble animation scripts, and repoint `$CF936D` form slots.
+

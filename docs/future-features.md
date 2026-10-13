@@ -8,19 +8,22 @@ Items are grouped by VS Code extension API surface and rough complexity.
 ## Currently Working
 
 - **Language Support**:
-  - TextMate grammar (syntax highlighting)
-  - Language configuration (bracket matching, comment toggle)
+  - TextMate grammar (syntax highlighting) and language configuration
   - Bundled Everscript Dark theme
-  - Grammar unit tests via `vscode-tmgrammar-test`
+  - Native language providers (`src/language/`): hover documentation, keyword/enum autocompletion, go-to-definition, and document symbols outline
+  - Compiler problem matchers and "Build ROM" tasks (`package.json`)
+  - Dead branch highlighting (`src/language/dead-branch.js`) and snippets
 - **Memory Radar & Rooms Panel**:
   - Live WRAM grid visualization, lifecycle analysis, and memory pool tracking
-  - Room tree browser, map collision/trigger layers, and candidate entity spawner preview
-  - Characters tab: animation catalog, raw sprite viewer, hit/hurt/strike boxes, and dog form catalogs
+  - Room tree browser, map collision/trigger layers, candidate entity spawner preview, and characters/sprites catalog
+  - Map Editor with Collision shape picker, Special levels, Widgets tab, and Section 2 animated tiles
 - **Embedded SNES Emulator Subsystem**:
   - Direct `snes9x2005-wasm` integration with planar 44.1kHz audio streaming and aspect-fit video
-  - Live script execution hooks, WRAM inspection, and breakpoint support
-  - **Map Extension**: Multi-layer room rendering outside emulator boundaries (2x pixel-grid canvas, Section 2 dynamic animated tiles, foreground Mode 1 canopy occlusions, live WRAM party/entity sync, dog act palettes, projectiles with 3D elevation, trigger overlays)
-  - **Runtime Everscript Injection**: Compile and execute Everscript statements at runtime (e.g. right-click to walk character to target world coordinate)
+  - Full VS Code Debug Adapter Protocol (DAP) debugger with breakpoints and stepping (`src/debugger/`)
+  - Map Extension multi-layer room rendering outside emulator boundaries
+  - Runtime Everscript Injection, TAS input recording/replay, and sound-chip streaming to Music tab
+
+> For active open tasks and future roadmaps, see the consolidated task clusters in [`docs/todo/README.md`](todo/README.md).
 
 ---
 
