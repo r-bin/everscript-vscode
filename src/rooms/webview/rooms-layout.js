@@ -222,6 +222,7 @@ function setupLayoutResponsive() {
     });
     ro.observe(document.body);
   }
+  layoutUpdateCompact();
 }
 
 setupLayoutResize();

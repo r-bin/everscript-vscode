@@ -21,18 +21,20 @@ function createMockEnv(initialWidth) {
   const elements = {};
 
   function makeEl(tag, className, id) {
-    const classList = new Set((className || '').split(' ').filter(Boolean));
+    let classList = new Set((className || '').split(' ').filter(Boolean));
     const el = {
       tagName: tag.toUpperCase(),
       id: id || '',
-      className: className || '',
+      get className() { return Array.from(classList).join(' '); },
+      set className(val) {
+        classList = new Set((val || '').split(' ').filter(Boolean));
+      },
       classList: {
-        add: (...c) => { c.forEach(x => classList.add(x)); el.className = Array.from(classList).join(' '); },
-        remove: (...c) => { c.forEach(x => classList.delete(x)); el.className = Array.from(classList).join(' '); },
+        add: (...c) => { c.forEach(x => classList.add(x)); },
+        remove: (...c) => { c.forEach(x => classList.delete(x)); },
         toggle: (c, val) => {
           if (val === undefined) val = !classList.has(c);
           if (val) classList.add(c); else classList.delete(c);
-          el.className = Array.from(classList).join(' ');
           return val;
         },
         has: (c) => classList.has(c),
@@ -190,6 +192,27 @@ test('in wide mode, sidebars can both be open simultaneously', () => {
 
   assert.strictEqual(env.context._layoutCollapsed.rail, false, 'rail remains open');
   assert.strictEqual(env.context._layoutCollapsed.dock, false, 'dock opens as well');
+});
+
+test('fresh dock element gets collapsed class when layoutApplyCollapsed is called', () => {
+  const env = createMockEnv(800);
+  env.context._layoutCollapsed.dock = true;
+  // Simulate fresh dock created on room reload without collapsed class
+  env.elements['#rg-dock'].className = 'rg-dock';
+  assert.strictEqual(env.elements['#rg-dock'].classList.contains('collapsed'), false);
+
+  env.context.layoutApplyCollapsed();
+  assert.strictEqual(env.elements['#rg-dock'].classList.contains('collapsed'), true);
+});
+
+test('newly rendered room-detail retains rg-compact when layoutUpdateCompact runs', () => {
+  const env = createMockEnv(800);
+  // Simulate roomDetail innerHTML/className reset to 'rg-theme'
+  env.elements['#room-detail'].className = 'rg-theme';
+  assert.strictEqual(env.elements['#room-detail'].classList.contains('rg-compact'), false);
+
+  env.context.layoutUpdateCompact();
+  assert.strictEqual(env.elements['#room-detail'].classList.contains('rg-compact'), true);
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);

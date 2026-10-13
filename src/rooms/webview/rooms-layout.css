@@ -107,8 +107,9 @@ body.rg-resizing{cursor:col-resize;user-select:none}
   gap:8px;
   min-width:0;
   width:100%;
+  height:30px;
   position:relative;
-  z-index:58;
+  z-index:70;
 }
 .rg-theme .rd-head-titles{
   display:flex;
@@ -226,7 +227,10 @@ body.rg-resizing{cursor:col-resize;user-select:none}
 .rg-overlay-backdrop{
   display:none;
   position:absolute;
-  inset:0;
+  top:36px;
+  bottom:0;
+  left:0;
+  right:0;
   background:rgba(0,0,0,.45);
   backdrop-filter:blur(2px);
   -webkit-backdrop-filter:blur(2px);
@@ -283,9 +287,10 @@ body.rg-resizing{cursor:col-resize;user-select:none}
   border-right:1px solid var(--rg-border,#333)!important;
 }
 .rm-compact .rg-theme .rg-dock:not(.collapsed),
-.rg-compact .rg-dock:not(.collapsed){
+.rg-compact .rg-dock:not(.collapsed),
+.rm-compact-mode .rg-dock:not(.collapsed){
   position:absolute!important;
-  top:0!important;
+  top:36px!important;
   bottom:0!important;
   right:0!important;
   z-index:60!important;
@@ -314,9 +319,10 @@ body.rg-resizing{cursor:col-resize;user-select:none}
     box-shadow:4px 0 24px rgba(0,0,0,.6)!important;
     border-right:1px solid var(--rg-border,#333)!important;
   }
-  .rg-theme .rg-dock:not(.collapsed){
+  .rg-theme .rg-dock:not(.collapsed),
+  .rg-dock:not(.collapsed){
     position:absolute!important;
-    top:0!important;
+    top:36px!important;
     bottom:0!important;
     right:0!important;
     z-index:60!important;

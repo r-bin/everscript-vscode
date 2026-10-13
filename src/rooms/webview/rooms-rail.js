@@ -39,8 +39,9 @@ function railScrollEl() { return document.getElementById('rm-rail-scroll'); }
 function railSelectRow(li) {
   if (!li) return;
   if (typeof isCompactMode === 'function' && isCompactMode()) {
-    if (typeof _layoutCollapsed !== 'undefined' && !_layoutCollapsed.rail) {
+    if (typeof _layoutCollapsed !== 'undefined') {
       _layoutCollapsed.rail = true;
+      _layoutCollapsed.dock = true;
       if (typeof layoutApplyCollapsed === 'function') layoutApplyCollapsed();
     }
   }

@@ -17,6 +17,8 @@ function renderRoomDetail(room){
   // #room-detail is the one node that already wraps the canvas, the docked
   // panel column and the filter bar above it, so no extra wrapper is needed.
   panel.className='rg-theme';
+  if(typeof isCompactMode==='function'&&isCompactMode())panel.classList.add('rg-compact');
+  if(typeof _layoutCollapsed!=='undefined'&&_layoutCollapsed.dock)panel.classList.add('dock-collapsed');
   // Leaving a custom map keeps its draft (map-editor-custom.js).
   if(!room.custom&&typeof customStash==='function')customStash();
   console.log('[RoomsRender] renderRoomDetail:start', {room: room && room.name});
@@ -185,6 +187,8 @@ function renderRoomDetail(room){
   // just rebuilt, so a draft already on is switched on again to rebuild its
   // tool pill and dock; a locked vanilla room can be looked at, not changed.
   else if(roomVanillaIdNum(room)!=null&&editDraft()){editDraft().on=false;editToggle(room,null);}
+  if(typeof layoutApplyCollapsed==='function')layoutApplyCollapsed();
+  if(typeof layoutUpdateCompact==='function')layoutUpdateCompact();
 }
 
 /** Whether this room opens locked: a custom map never, anything else yes, unless its draft says otherwise. */

@@ -53,6 +53,8 @@ function editDock(on, room) {
       // handler on the dock itself so all tab-panel buttons (Object tab frame
       // chips, ◀ ▶, Delete frame, +, etc.) are routed correctly.
       bindEditControls(dock, room);
+      if (typeof layoutApplyCollapsed === 'function') layoutApplyCollapsed();
+      if (typeof layoutUpdateCompact === 'function') layoutUpdateCompact();
     }
     // The resize grip sits over the map's own bottom-right corner, so the
     // map is resized where it is rather than through a form. In the map
