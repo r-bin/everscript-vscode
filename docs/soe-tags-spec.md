@@ -88,7 +88,7 @@ Every fact carries a `source`: free text saying where the value was worked out (
 - [character.hp](../character/hp.md): "Current HP" (character → player → boy)
 
 ## Unverified claims
-- $7E0A37 = BOY_CURRENT_HP (wiki/ram/Ram-Map.md): fits no enum; see docs/todo/soe-tags.md
+- $7E0A37 = BOY_CURRENT_HP (wiki/ram/Ram-Map.md): fits no enum; see docs/todo/resource-tags-system.md
 
 ## Code
 - (Phase 4) routines that read or write $4EB3, from the CDL / disassembly
@@ -222,7 +222,7 @@ Merged into the same graph, with no JSON entry needed: one tag per room (`map.*`
 
 ### 5.4 Later: tags from `core.evs`
 
-The enums in the `everscript` core library already contain most of these offsets. Reading them from the plugin would make the plugin depend on one version of the core library. The cleaner way: bundle `core.evs` inside the compiler, and let the plugin read its enums statically from the compiler package it ships with. Until then the plugin only tags resources in its own JSON. See [`todo/soe-tags.md`](todo/soe-tags.md).
+The enums in the `everscript` core library already contain most of these offsets. Reading them from the plugin would make the plugin depend on one version of the core library. The cleaner way: bundle `core.evs` inside the compiler, and let the plugin read its enums statically from the compiler package it ships with. Until then the plugin only tags resources in its own JSON. See [`todo/resource-tags-system.md`](todo/resource-tags-system.md).
 
 ---
 
@@ -283,4 +283,4 @@ Decided:
 - **Canonical current HP:** `$4EB3` (`_BOY + ATTRIBUTE.HP`, and `02_ram.evs` agrees). The wiki's `$0A37` is an unverified claim.
 - **Data Crystals:** an unverified reference (§6).
 
-Still open: [`todo/soe-tags.md`](todo/soe-tags.md). Tag ids as names inside scripts (`<boy.hp>`): [`todo/tag-names-in-scripts.md`](todo/tag-names-in-scripts.md).
+Still open: [`todo/resource-tags-system.md`](todo/resource-tags-system.md). Tag ids as names inside scripts (`<boy.hp>`): [`todo/language-tools-and-lsp.md`](todo/language-tools-and-lsp.md).

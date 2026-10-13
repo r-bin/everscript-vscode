@@ -368,7 +368,7 @@ chosen track in the tab's own SPC engine; voices, instruments, sound effects, AR
 **Allowed deps:** `localizations`
 **Forbidden deps:** `emulator` (its sound-chip stream, `apuStream`, is injected by `extension.js`)
 
-**Documentation:** `src/music/README.md`, `docs/music-sequence-todo.md`
+**Documentation:** `src/music/README.md`, `docs/todo/audio-and-music.md`
 
 ---
 

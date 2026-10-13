@@ -101,4 +101,4 @@ palettes (4 safe slots per room) are a separate budget on the Rooms tab
   default of 1 tick.
 - Custom-map export writes **no triggers or scripts**.
 - Open design questions and history: `docs/map-editor-redesign-plan.md`,
-  `docs/map-editor-todo.md`, `docs/animation-tab-plan.md`.
+  `docs/todo/map-editor.md`, `docs/animation-tab-plan.md`.

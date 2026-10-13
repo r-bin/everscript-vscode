@@ -214,7 +214,7 @@ Personas: keep `everscript-plugin-builder` and `mechanics-modeler`; drop `archit
 
 ### Docs
 - **Empty/stale:** `docs/roadmap-and-vision.md` (0 bytes), `emulator-status-and-roadmap.md` (pinned to v0.154.0), `future-features.md` (lists hover/completion/definition/problem matcher as future — all shipped), `emulator-v0.2.71-revert-notes.md`, `sprite-rendering.md` (stub), `architecture/migration-plan.md` + `target-architecture.md` (migration done), early emulator/editor concept docs, `docs/features/` (empty), `wiki/` (3 near-empty pages), `README.md` (duplicate "Customisation" heading, nothing about emulator/map editor/soe://, links outside the repo).
-- **Roadmap sprawl:** `todo.md`, `future-features.md`, `roadmap-and-vision.md`, `emulator-status-and-roadmap.md`, `map-editor-todo.md`, `music-sequence-todo.md`, `map-editor-redesign-plan.md`, `docs/todo/*` (7). Collapse into `docs/plans/ROADMAP.md` + per-feature files.
+- **Roadmap sprawl:** Consolidated into clustered files under `docs/todo/` (`README.md` index + domain task clusters).
 - **Missing:** READMEs for `tools/`, `tests/`, `script_parser/`, `sandbox/`; no CHANGELOG (the git log already follows `vX.Y.Z: [tab] …`, so it can be generated).
 - Filenames with spaces (`Naris Super Heal Logic.md`, `Prophet Bronze Armor Logic.md`) → kebab-case.
 

@@ -173,7 +173,7 @@ another phase, so neighbours flicker out of step, or another room's delays.
 ### 17. Emulator: SPC monitor panel
 
 Built 2026-10-09 as the radar's **Music** tab (`src/music/README.md`), without the sequence view
-(`docs/music-sequence-todo.md`). Proposed 2026-10-08. Mockup with real data:
+(`docs/todo/audio-and-music.md`). Proposed 2026-10-08. Mockup with real data:
 https://claude.ai/artifact/QHt9cxWViSqToKoiHRjRwr (Main Title, synced to audio).
 
 A panel next to the emulator that follows the sound driver every frame:

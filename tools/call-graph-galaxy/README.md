@@ -34,7 +34,7 @@ The graph is **pruned to stay readable**. It keeps the top 160 assets, unnamed W
 pages need 4 or more functions, and disassembly stops after 14 instructions. That makes
 it a picture, not a dataset. For complete machine-readable data, use the CDL export
 (`functions.json`, `structs.json`, `enums.json`, `tables.json`, `ram.asm`). See
-`docs/todo/research-topics.md` § "Galaxy follow-ups" for an AI-readable form.
+`docs/todo/research-and-visualizations.md` § "Visual Analysis Tools" for an AI-readable form.
 
 Node size uses code bytes, callers, or hits. Hits are only available when the library
 has `rom-hits.bin`, which means it was recorded with v0.173 or later. The replay order

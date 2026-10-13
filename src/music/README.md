@@ -42,7 +42,7 @@ The radar panel's **Music** tab: one screen (no page scroll) that shows the SNES
   effect data, echo buffer) and how much is free. A tick marks the sample each voice plays.
 
 Facts: everscript `docs/audio_music_sound_formats.md` (driver protocol, packages, ARAM budget).
-Not done yet: the sequence ("script") view, see `docs/music-sequence-todo.md`.
+Not done yet: the sequence ("script") view, see `docs/todo/audio-and-music.md`.
 
 ## The driver's own bookkeeping (disassembly of the ROM driver, verified in the engine)
 
