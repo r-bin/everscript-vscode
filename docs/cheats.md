@@ -100,3 +100,81 @@ over a sword's diagonal) and slightly when running (3.00 vs 2.75).
   in game.
 - Collision against walls is separate (`$8FAF48`): sliding along a wall can
   turn a diagonal into a straight move.
+
+---
+
+## Walking through enemies (Hitbox phase glitch)
+
+**While running, in rare situations the Boy can phase directly through an advancing enemy without being blocked or damaged.**
+This glitch is most commonly observed when running North while an enemy moves South, particularly with Volcano Lizards (Vipers) and Act 3 Slimes.
+
+### Why it happens
+
+1. **The 2:1 squashed hitbox (`$8FB4AB`).** Body collision between two entities tests:
+   ```
+   |dx| < r1 + r2      and      2 * |dy| < r1 + r2
+   ```
+   Because vertical delta `|dy|` is doubled (`ASL A` at `$8FB4C5`), the vertical collision band is **half** the horizontal width:
+   ```
+   |dy| < (r1 + r2) / 2
+   ```
+   The Boy's radius is $r = 8$ (Character Record `+0x0D`). Both Volcano Lizards (Vipers `#91`/`#92`) and Slimes (Lime Slime `#62`, Blue Goo `#63`, Red Jelly `#61`) have radius $r = 10$.
+   - **Horizontal width:** $r_1 + r_2 = 18 \implies |dx| \le 17$ (a **35 px** wide box).
+   - **Vertical height:** $2 \cdot |dy| < 18 \implies |dy| \le 8$ (an **only 17 px tall** box, from $-8$ to $+8$ px relative to center).
+
+2. **High closing speed & discrete tick sampling.**
+   Collision is evaluated at discrete positions on each tick (not swept continuously).
+   - Running straight moves the Boy at $2.50$ to $2.75$ px/tick (with spear/bazooka); running diagonally moves up to $3.00$ px/tick vertically. Steps dither between 2 and 3 px (`$8FB090` cycles `3, 2, 0, 1`).
+   - An enemy advancing toward the player adds another $1.5$ to $3.0$ px/tick.
+   - Closing velocity along the vertical axis is **$5$ to $6+$ px per tick**. Across a collision zone only 17 px tall, the two entities spend only 2–3 ticks near the threshold.
+
+3. **Subframe update order and the "already overlapping" rule (`$8FB4FD`).**
+   Entities update sequentially within each tick:
+   1. Player (Boy at `$7E4E89`)
+   2. Companion (Dog at `$7E4F37`)
+   3. Active enemies (linked list from `$7E3DDF`)
+
+   Suppose the Boy runs North and lands just outside the collision boundary (e.g. distance $|dy| = 9$ or $10$ px, where threshold is $8$). The move is outside the box and succeeds (`SEC` at `$8FB4A9`).
+
+   Later in the *same tick*, the enemy updates and moves South by 2–3 px. The distance drops to $|dy| \le 8$ px. If the enemy is in an animation that does not trigger contact damage or deflection:
+   
+   On the **next tick**, the Boy steps North again. His destination $(X', Y')$ is inside the enemy's box. The engine checks whether the prospective destination hits: it does (`CMP $18$`). But then it evaluates the Boy's **starting position** at `$8FB4FD`–`$8FB520`:
+   ```assembly
+   8FB4FD  LDX $4C          ; mover (Boy)
+   8FB4FF  LDA $001C,Y      ; candidate Y (Enemy)
+   8FB503  SBC $001C,X      ; mover current Y (Boy current Y)
+   ...
+   8FB50C  ASL A            ; 2 * |dy_current|
+   8FB50D  CMP $18          ; was current |dy| < (r1 + r2) / 2?
+   8FB51E  CMP $18          ; was current |dx| < (r1 + r2)?
+   8FB522  RTS              ; IF BOTH WERE ALREADY INSIDE: ALLOW MOVE!
+   ```
+   Because the enemy stepped toward the Boy on the previous subframe, the Boy's current position is **already inside** the enemy's collision box.
+   
+   To ensure that overlapping spawns never permanently trap the player, the engine allows any move that begins inside an existing overlap (`RTS` at `$8FB522`). The move is approved! On subsequent frames, the Boy continues moving North until exiting cleanly on the far side.
+
+### Does it depend on the enemy hitbox?
+
+**Yes.**
+- **The 2:1 aspect ratio makes it almost exclusively vertical:** Horizontally ($E \leftrightarrow W$), the threshold is 35 px wide. Approaching horizontally takes 6–7 ticks, ensuring that the mover hits the outer boundary and gets blocked. Vertically, the threshold is only 17 px tall, so high closing speed can cross from outside to inside in a single interleaved subframe.
+- **Enemy radius:** Enemies with radius $r=10$ (Lizards, Slimes) or smaller ($r=6$ Frippo/spiders) produce narrow vertical collision bands (13–17 px). Enemies with large radii ($r=16$ Bad Dawg, $r=20$ Raptors/Megataur, $r=30$ Salabog) produce vertical bands of 25 to 39+ px, which are too wide for standard running steps to jump the boundary into an overlapping state.
+- **Elevation plane mismatch (`+0x18`):** In multi-plane rooms (like Volcano room `0x3B` or Sewers room `0x3D`), if an enemy steps on a transition tile that changes its elevation plane, planes differ (`$8FB4F3 EOR $44 != 0`), causing body collision to be skipped entirely.
+
+### Why Volcano Lizards and Act 3 Slimes?
+
+1. **Both have radius 10:** Volcano Lizards (Vipers `#91`/`#92`) and Slimes (Lime Slime `#62`, Blue Goo `#63`, Red Jelly `#61`) both have radius 10, sharing the 17 px vertical collision window.
+2. **Aggressive vertical pursuit:** Both enemies use homing AI that charges straight North/South when aggroed.
+3. **Inert contact damage during recovery:** Contact damage at `$8FB52C` requires charging mode (`mode $4000/$8000`) **and** full stamina (`+0x2E >= $0400`). After a Slime leaps or a Viper strikes, stamina is dumped to 0 (`STZ $002E,X` via `$908461` or `$8FB584`). While stamina recharges, the enemy's body is physically passive—phasing through it deals no damage and causes no knockback.
+
+### TAS utilization and manipulation
+
+- **Can it be manipulated? Yes.**
+  A TAS can manipulate:
+  - Exact sub-pixel positioning and the 4-tick speed dither phase (`$0F36` cycling table `$8FB090`: `3, 2, 0, 1`).
+  - Enemy AI step timers (`+0x7A`) and RNG rolls (`$80859B`) to force the enemy to step South immediately after the Boy stops at $|dy| = 9$ or $10$ px.
+  - This guarantees that the Boy begins the subsequent frame already overlapping, cleanly passing through.
+
+- **Can it be used to walk through all enemies? No.**
+  - **Large enemies ($r \ge 16$):** Large hitboxes (Raptors, Megataur, Timberdrake) are 25–39+ px tall, making the boundary too thick to cross into overlap in one subframe without being blocked.
+  - **Stationary or fleeing enemies:** If an enemy does not move toward the player, closing speed is limited to the Boy's run speed (2.5–3.0 px/tick). The Boy alone cannot cross an 8-pixel boundary without being blocked at the threshold.
+  - **Full-stamina charging enemies:** If an enemy with `mode $4000/$8000` has full stamina (`+0x2E >= $0400`), entering the body box triggers contact damage at `$8FB52C`, interrupting the Boy with knockback unless protected by casting/dodging invulnerability (`mode $20`).
