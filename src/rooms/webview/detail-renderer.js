@@ -46,6 +46,7 @@ function renderRoomDetail(room){
     html=widgetEditHeadHtml();
   }else{
     html='<div class="rd-head">';
+    html+='<div class="rd-head-titles">';
     // A custom map's name is its own to change; a ROM room's is the game's.
     if(room.custom)html+='<input id="rg-map-name" class="rg-appbar-name rd-name-input" value="'+escH(room.name)
       +'" aria-label="Map name" title="The map’s name — Enter to finish"/>';
@@ -53,6 +54,7 @@ function renderRoomDetail(room){
     if(room.vanillaId)html+='<span class="rd-vid">'+escH(room.vanillaId)+'</span>';
     html+='<span class="rd-file">'+escH(room.relPath||'')+'</span>';
     if(typeof room.startLine==='number'&&room.startLine>=0)html+='<a class="ll" data-line="'+room.startLine+'" href="#">go to code</a>';
+    html+='</div>';
     // The map's own actions — the ⋯ menu and the lock (map-editor-toolbar.js renderEditHeadActs).
     html+='<span class="rd-head-acts" id="rg-head-acts"></span>';
     html+='</div>';

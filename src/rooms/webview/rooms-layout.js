@@ -10,6 +10,7 @@
 var LAYOUT_MIN = { rail: 160, dock: 300 };
 // The map column never gets narrower than this while the dock grows.
 var LAYOUT_MAP_MIN = 360;
+var LAYOUT_COMPACT_WIDTH = 1050;
 var _layoutWidths = { rail: null, dock: null };
 var _layoutCollapsed = { rail: false, dock: false };
 var _layoutDrag = null;
@@ -20,6 +21,63 @@ function isRailVisible() {
 
 function isDockVisible() {
   return !_layoutCollapsed.dock;
+}
+
+function isCompactMode() {
+  var panels = document.querySelector('.rm-panels');
+  var w = panels ? panels.getBoundingClientRect().width : (typeof window !== 'undefined' ? window.innerWidth : 1200);
+  return w > 0 && w < LAYOUT_COMPACT_WIDTH;
+}
+
+function closeOverlays() {
+  var changed = false;
+  if (!_layoutCollapsed.rail) { _layoutCollapsed.rail = true; changed = true; }
+  if (!_layoutCollapsed.dock) { _layoutCollapsed.dock = true; changed = true; }
+  if (changed) {
+    layoutApplyCollapsed();
+    if (typeof vs !== 'undefined' && vs) vs.postMessage({ command: 'saveUiPref', key: 'layoutCollapsed', value: _layoutCollapsed });
+  }
+}
+
+function layoutApplyBackdrop() {
+  var panels = document.querySelector('.rm-panels');
+  if (!panels) return;
+  var bd = document.getElementById('rg-overlay-backdrop');
+  if (!bd) {
+    bd = document.createElement('div');
+    bd.id = 'rg-overlay-backdrop';
+    bd.className = 'rg-overlay-backdrop';
+    bd.title = 'Click to close';
+    bd.addEventListener('click', function () {
+      closeOverlays();
+    });
+    panels.appendChild(bd);
+  }
+  var show = isCompactMode() && (!_layoutCollapsed.rail || !_layoutCollapsed.dock);
+  bd.classList.toggle('active', show);
+}
+
+function layoutUpdateCompact() {
+  var compact = isCompactMode();
+  var panels = document.querySelector('.rm-panels');
+  var roomDetail = document.getElementById('room-detail');
+  var body = document.body;
+
+  if (panels) panels.classList.toggle('rm-compact', compact);
+  if (roomDetail) roomDetail.classList.toggle('rg-compact', compact);
+  if (body) body.classList.toggle('rm-compact-mode', compact);
+
+  if (compact) {
+    // If transitioning into compact mode and both sidebars were open,
+    // collapse the rail so at most one overlay is active and map is clear
+    if (!_layoutCollapsed.rail && !_layoutCollapsed.dock) {
+      _layoutCollapsed.rail = true;
+      layoutApplyCollapsed();
+    }
+  }
+
+  layoutApplyBackdrop();
+  if (typeof _zoomRefit === 'function') _zoomRefit();
 }
 
 function layoutApplyCollapsed() {
@@ -55,18 +113,27 @@ function layoutApplyCollapsed() {
     else dockSplit.classList.remove('collapsed');
   }
 
+  layoutApplyBackdrop();
   if (typeof renderEditHeadActs === 'function') renderEditHeadActs();
   if (typeof _zoomRefit === 'function') _zoomRefit();
 }
 
 function editToggleRail() {
   _layoutCollapsed.rail = !_layoutCollapsed.rail;
+  if (isCompactMode() && !_layoutCollapsed.rail) {
+    // Only one sidebar overlay open at a time in compact mode
+    _layoutCollapsed.dock = true;
+  }
   layoutApplyCollapsed();
   if (typeof vs !== 'undefined' && vs) vs.postMessage({ command: 'saveUiPref', key: 'layoutCollapsed', value: _layoutCollapsed });
 }
 
 function editToggleDock() {
   _layoutCollapsed.dock = !_layoutCollapsed.dock;
+  if (isCompactMode() && !_layoutCollapsed.dock) {
+    // Only one sidebar overlay open at a time in compact mode
+    _layoutCollapsed.rail = true;
+  }
   layoutApplyCollapsed();
   if (typeof vs !== 'undefined' && vs) vs.postMessage({ command: 'saveUiPref', key: 'layoutCollapsed', value: _layoutCollapsed });
 }
@@ -121,6 +188,7 @@ function setupLayoutResize() {
   document.addEventListener('pointerdown', function (e) {
     var h = e.target && e.target.closest ? e.target.closest('[data-split]') : null;
     if (!h || e.button !== 0) return;
+    if (isCompactMode()) return;
     _layoutDrag = h.getAttribute('data-split');
     document.body.classList.add('rg-resizing');
     e.preventDefault();
@@ -140,4 +208,21 @@ function setupLayoutResize() {
   });
 }
 
+function setupLayoutResponsive() {
+  if (typeof window === 'undefined') return;
+  window.addEventListener('resize', layoutUpdateCompact);
+  window.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && isCompactMode() && (!_layoutCollapsed.rail || !_layoutCollapsed.dock)) {
+      closeOverlays();
+    }
+  });
+  if (typeof ResizeObserver !== 'undefined' && document.body) {
+    var ro = new ResizeObserver(function () {
+      layoutUpdateCompact();
+    });
+    ro.observe(document.body);
+  }
+}
+
 setupLayoutResize();
+setupLayoutResponsive();

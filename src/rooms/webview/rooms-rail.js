@@ -38,6 +38,12 @@ function railScrollEl() { return document.getElementById('rm-rail-scroll'); }
  */
 function railSelectRow(li) {
   if (!li) return;
+  if (typeof isCompactMode === 'function' && isCompactMode()) {
+    if (typeof _layoutCollapsed !== 'undefined' && !_layoutCollapsed.rail) {
+      _layoutCollapsed.rail = true;
+      if (typeof layoutApplyCollapsed === 'function') layoutApplyCollapsed();
+    }
+  }
   // A custom map (map-editor-custom.js) selects itself.
   if (li.dataset.custom !== undefined) { customOpen(li.dataset.custom); return; }
   document.querySelectorAll('.rn-map.rsel').forEach(function (x) { x.classList.remove('rsel'); });

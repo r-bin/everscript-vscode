@@ -97,8 +97,64 @@ body.rg-resizing{cursor:col-resize;user-select:none}
 
 /* The lock, at the tool pill's right end; lit while locked. Disabled tools
  * (locked) read as unavailable rather than merely unselected. */
-.rg-theme .rd-head{position:relative}
-.rg-theme .rd-head-acts{position:absolute;right:0;top:0;display:flex;align-items:center;gap:4px}
+/* ── Detail header: responsive flex layout ───────────────────────────────── */
+.rg-theme .rg-outer > .rd-head{
+  flex:none;
+  margin-bottom:6px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  min-width:0;
+  width:100%;
+  position:relative;
+  z-index:58;
+}
+.rg-theme .rd-head-titles{
+  display:flex;
+  align-items:baseline;
+  gap:8px;
+  flex:1 1 auto;
+  min-width:0;
+  overflow:hidden;
+}
+.rg-theme .rd-head .rd-name{
+  flex:0 0 auto;
+  font-size:13px;
+  font-weight:700;
+  white-space:nowrap;
+}
+.rg-theme .rd-head .rd-name-input{
+  flex:0 1 auto;
+  max-width:180px;
+  min-width:60px;
+  width:auto;
+  font-size:12px;
+}
+.rg-theme .rd-head .rd-vid{
+  flex:0 0 auto;
+  font-size:9px;
+  opacity:.4;
+  white-space:nowrap;
+}
+.rg-theme .rd-head .rd-file{
+  flex:1 1 auto;
+  font-size:9px;
+  opacity:.35;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  min-width:0;
+  display:block;
+}
+.rg-theme .rd-head-acts{
+  position:static;
+  margin-left:auto;
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
 .rg-theme .rd-head-acts .rdf{display:flex;align-items:center;justify-content:center;min-width:28px;height:26px;padding:0 6px;
   border:1px solid var(--rg-border);border-radius:var(--rg-radius-control);background:var(--rg-bg-float);color:var(--rg-text-secondary)}
 .rg-theme .rd-head-acts .rdf:hover{color:var(--rg-text-primary);background:var(--rg-bg-hover)}
@@ -118,6 +174,35 @@ body.rg-resizing{cursor:col-resize;user-select:none}
 /* The Trigger and Object tabs' "Loot only" quick filter. */
 .rg-theme .rg-list-filter{margin:6px 0 2px;display:flex;gap:4px}
 
+/* Tool pill and filter bar responsive scrolling bounds */
+.rg-theme #rg-edit-bar{
+  max-width:calc(100% - 16px);
+  overflow-x:auto;
+  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
+}
+.rg-theme #rg-edit-bar::-webkit-scrollbar{display:none}
+
+.rg-theme .rg-canvas-zone .rg-view-filters{
+  overflow-x:auto;
+  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
+}
+.rg-theme .rg-canvas-zone .rg-view-filters::-webkit-scrollbar{display:none}
+
+/* Zoom chip repositioning to avoid tool pill collision on narrow views */
+.rg-compact.rg-editing .rg-canvas-card .rg-zoom,
+.rg-compact .rg-canvas-card .rg-zoom{
+  top:46px;
+  right:8px;
+}
+@media (max-width:650px){
+  .rg-theme.rg-editing .rg-canvas-card .rg-zoom{
+    top:46px;
+    right:8px;
+  }
+}
+
 /* ── Sidebar collapsed states & responsive overlay mode ───────────────── */
 .rm-panels.rail-collapsed .rm-rail,
 .rm-rail.collapsed{display:none!important}
@@ -133,17 +218,111 @@ body.rg-resizing{cursor:col-resize;user-select:none}
 
 /* Header sidebar toggle buttons */
 .rg-theme .rd-head-acts .rg-rail-toggle,
-.rg-theme .rd-head-acts .rg-dock-toggle{opacity:.75;transition:opacity .15s,color .15s}
+.rg-theme .rd-head-acts .rg-dock-toggle{opacity:.75;transition:opacity .15s,color .15s,background .15s}
 .rg-theme .rd-head-acts .rg-rail-toggle.on,
-.rg-theme .rd-head-acts .rg-dock-toggle.on{opacity:1;color:var(--rg-accent,#6aa0ff)}
+.rg-theme .rd-head-acts .rg-dock-toggle.on{opacity:1;color:var(--rg-accent,#6aa0ff);background:var(--rg-accent-soft)}
 
-/* Responsive overlay: prevents sidebars from squishing map canvas on narrow viewports */
-@media (max-width:950px){
+/* ── Overlay backdrop (compact responsive mode) ──────────────────────────── */
+.rg-overlay-backdrop{
+  display:none;
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,.45);
+  backdrop-filter:blur(2px);
+  -webkit-backdrop-filter:blur(2px);
+  z-index:55;
+  cursor:pointer;
+  opacity:0;
+  transition:opacity .15s ease;
+}
+.rm-compact .rg-overlay-backdrop.active,
+.rm-compact-mode .rg-overlay-backdrop.active{
+  display:block;
+  opacity:1;
+}
+
+/* ── Responsive overlay mode: when window is narrow or emulator is open ───── */
+.rm-compact,
+.rm-compact-mode{
+  position:relative;
+}
+.rm-compact .rm-panels,
+.rm-panels.rm-compact{
+  position:relative;
+  overflow:hidden;
+}
+.rm-compact .rm-split,
+.rm-compact .rg-split{
+  display:none!important;
+}
+.rm-compact .rm-right{
+  flex:1 1 100%!important;
+  width:100%!important;
+  min-width:0!important;
+  padding:4px 6px!important;
+}
+.rm-compact .rg-edit-row{
+  position:relative;
+  overflow:hidden;
+  width:100%!important;
+}
+.rm-compact .rg-outer{
+  flex:1 1 100%!important;
+  width:100%!important;
+  min-width:0!important;
+}
+.rm-compact .rm-left.rm-rail:not(.collapsed){
+  position:absolute!important;
+  top:0!important;
+  bottom:0!important;
+  left:0!important;
+  z-index:60!important;
+  width:min(280px,85vw)!important;
+  background:var(--rg-bg-chrome,#161616)!important;
+  box-shadow:4px 0 24px rgba(0,0,0,.6)!important;
+  border-right:1px solid var(--rg-border,#333)!important;
+}
+.rm-compact .rg-theme .rg-dock:not(.collapsed),
+.rg-compact .rg-dock:not(.collapsed){
+  position:absolute!important;
+  top:0!important;
+  bottom:0!important;
+  right:0!important;
+  z-index:60!important;
+  width:min(380px,90vw)!important;
+  background:var(--rg-bg-chrome,#161616)!important;
+  box-shadow:-4px 0 24px rgba(0,0,0,.6)!important;
+  border-left:1px solid var(--rg-border,#333)!important;
+}
+
+@media (max-width:1050px){
+  .rg-overlay-backdrop.active{display:block;opacity:1}
   .rm-panels{position:relative;overflow:hidden}
-  .rm-left.rm-rail:not(.collapsed){position:absolute;top:0;bottom:0;left:0;z-index:50;box-shadow:4px 0 18px rgba(0,0,0,.5);background:var(--rg-bg-chrome)}
   .rm-split{display:none!important}
-  .rg-theme .rg-edit-row{position:relative;overflow:hidden}
-  .rg-theme .rg-dock:not(.collapsed){position:absolute;top:0;bottom:0;right:0;z-index:50;box-shadow:-4px 0 18px rgba(0,0,0,.5);background:var(--rg-bg-chrome)}
   .rg-theme .rg-split{display:none!important}
+  .rm-right{flex:1 1 100%!important;width:100%!important;min-width:0!important;padding:4px 6px!important}
+  .rg-theme .rg-edit-row{position:relative;overflow:hidden;width:100%!important}
   .rg-theme .rg-outer{flex:1 1 100%!important;width:100%!important;min-width:0!important}
+  .rm-left.rm-rail:not(.collapsed){
+    position:absolute!important;
+    top:0!important;
+    bottom:0!important;
+    left:0!important;
+    z-index:60!important;
+    width:min(280px,85vw)!important;
+    background:var(--rg-bg-chrome,#161616)!important;
+    box-shadow:4px 0 24px rgba(0,0,0,.6)!important;
+    border-right:1px solid var(--rg-border,#333)!important;
+  }
+  .rg-theme .rg-dock:not(.collapsed){
+    position:absolute!important;
+    top:0!important;
+    bottom:0!important;
+    right:0!important;
+    z-index:60!important;
+    width:min(380px,90vw)!important;
+    background:var(--rg-bg-chrome,#161616)!important;
+    box-shadow:-4px 0 24px rgba(0,0,0,.6)!important;
+    border-left:1px solid var(--rg-border,#333)!important;
+  }
 }

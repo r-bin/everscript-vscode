@@ -271,7 +271,7 @@
 .rg-theme .rg-seek-divider{width:1px;height:16px;background:var(--rg-border);margin:0 2px}
 .rg-theme .rg-seek-act{font-size:10px}
 .rg-theme .rg-seek-del:hover:not([disabled]){color:var(--rg-error);border-color:var(--rg-error)}
-.rg-theme .rd-head .rd-name-input{width:calc(100% - 110px);font-size:12px}
+.rg-theme .rd-head .rd-name-input{max-width:180px;min-width:60px;width:auto;font-size:12px}
 .rg-theme .rg-appbar .rd-file{opacity:.7;color:var(--rg-accent-text)}
 .rg-theme .rg-appbar .rd-head-acts .rg-appbar-delete:hover{color:var(--rg-error)}
 
