@@ -209,3 +209,91 @@ Once the `$8FB4FD` overlap bypass is primed (which a TAS achieves with $100\%$ d
 - **Act 4 Dog (Omnitopia Toaster)** moves at **$6.75$ to $8.00$ px/tick** straight North—the fastest vertical displacement in the game.
 - At $8$ px/tick, the Dog traverses the entire $25$ px collision interior in **only 3 to 4 ticks** (compared to 6–7 ticks for the Boy).
 - Clearing the box in half the time drastically minimizes the window in which an enemy can trigger an attack frame, AI redirection, or recovery phase.
+
+---
+
+## Desert of Doom wrap bypass (Destination passability glitch)
+
+**Running into specific 2-tile columns of the Desert wrap triggers fails to teleport the player back into the desert, allowing direct escape to Nobilia (North) or Crustacia (South).**
+
+- **Running North (columns $X = 11, 12$):** Stepping into the Northern wrap trigger at row $Y = 33$ does not wrap the Boy South. Instead, the camera scrolls South while the Boy remains at row $Y = 33$. Continuing North walks directly through the oasis corridor into Nobilia Market.
+- **Running South (columns $X = 22, 23$, directly beneath the stone):** Reaching the Southern wrap trigger at row $Y = 103..105$ under the stone (trickier because the rock's hitbox requires pixel-perfect diagonal alignment) fails to wrap the Boy North. Continuing South walks directly into the exit trigger to East of Crustacia.
+- **Dog separation trick:** Leaving the Dog outside Nobilia before entering keeps the Dog in the northern sector. When the Boy walks down and scrolls the desert South, the Dog remains near the Nobilia entrance and can simply walk into the exit trigger.
+
+### Why it happens
+
+1. **The illusion of an infinite desert (`Room 0x1B`).**
+   The Desert of Doom is not an infinite or dynamically generated world; it is a single fixed room of $97 \times 113$ metatiles. The infinite desert is created by four perimeter step-on trigger strips:
+   - **North boundary (row $Y = 33$, Triggers #1–#4):** runs script `0x3F9`.
+   - **South boundary (row $Y = 103$, Triggers #14–#15):** runs script `0x40E`.
+   - **West boundary (col $X = 5$, Triggers #10, #13):** runs script `0x408`.
+   - **East boundary (col $X = 78$, Triggers #11, #12):** runs script `0x40B`.
+
+   When the player crosses row $Y = 33$ walking North, script `0x3F9` executes:
+   ```assembly
+   10 A4 00 06 A4 00 29 31 9A : WRITE $22fc = $22fc + 1   ; Increment Desert Screen Y
+   96 B0 B2                   : Teleport player by 0, +2 screens
+   ```
+   When crossing row $Y = 103$ walking South, script `0x40E` executes:
+   ```assembly
+   10 A4 00 06 A4 00 29 31 9B : WRITE $22fc = $22fc - 1   ; Decrement Desert Screen Y
+   96 B0 CE                   : Teleport player by 0, -2 screens
+   ```
+
+2. **Opcode `0x96` and the teleport routine (`$90A001`).**
+   Opcode `0x96` dispatches to `$8CE49D`, which converts the screen arguments into 512-pixel increments ($2 \text{ screens} = 1024\text{ px} = 64\text{ metatiles}$) and calls `$90A001`:
+   - First, it updates the camera scroll registers `DP $BF` (X) and `DP $C1` (Y) **unconditionally**.
+   - Next, it loops through all active entities in the linked list starting at `$7E3DDF` (Boy, Dog, NPCs).
+   - For each entity, it computes prospective destination coordinates:
+     $$\text{dest\_X} = \text{curr\_X} + dX, \quad \text{dest\_Y} = \text{curr\_Y} + dY$$
+   - **The Destination Passability Gate (`$90A097`):** Before writing the new coordinates, it calls `$909561` to test whether the destination metatile is passable:
+     ```assembly
+     90A097  JSL $909561      ; Test passability at (dest_X, dest_Y) on plane $44
+     90A09B  BCC $90A0A1      ; IF IMPASSABLE / BLOCKED: SKIP MOVE!
+     90A09D  JSL $8FC2E4      ; IF PASSABLE: commit position to entity +$1A, +$1C
+     ```
+   - **If the destination metatile is solid, `$909561` returns with Carry Clear (`BCC`).**
+   - The engine **skips `$8FC2E4` entirely**! The entity's coordinate fields are never updated, and the entity remains at its starting coordinates.
+
+3. **The 64-tile stone alignment.**
+   Because the developers constructed the desert by copying rock clusters across the grid, solid obstacles align vertically across exactly 64 metatiles:
+
+   - **The Northern Bypass ($X = 11, 12$):**
+     Stepping onto row $Y = 33$ at columns $X = 11$ or $X = 12$ targets destination:
+     $$Y_{\text{dest}} = 33 + 64 = 97..98$$
+     At row $Y = 98$, columns $X = 11$ and $X = 12$ contain a solid rock (`cw = 0x101F`, geometry code `0xF`).
+     The passability test fails. The camera jumps South by 2 screens, but **the Boy remains at $Y = 33$**.
+
+   - **The Southern Bypass ($X = 22, 23$):**
+     Stepping onto row $Y = 103$ at columns $X = 22$ or $X = 23$ targets destination:
+     $$Y_{\text{dest}} = 103 - 64 = 39..41$$
+     At row $Y = 40..41$, columns $X = 22$ and $X = 23$ contain a solid rock (`cw = 0x101F`, geometry code `0xF`).
+     The passability test fails. The camera jumps North by 2 screens, but **the Boy remains at $Y = 103$**.
+
+4. **Why the player does not get trapped (`$2429` re-trigger suppression).**
+   When the trigger fires, the step-on search routine at `$8FACB1` records the trigger script ID into `$7E2429`. On every frame:
+   ```assembly
+   8FAD15  CPX $2429            ; Is this trigger already active?
+   8FAD18  BEQ $8FAD4F          ; If yes: SKIP EXECUTION
+   ```
+   Because `$2429` matches, the trigger does not re-fire on subsequent ticks while the Boy stands on the trigger line. The Boy continues walking straight in his current direction:
+   - Walking North: steps from row $Y = 33$ into $Y = 32$, exiting the trigger line and walking into Nobilia.
+   - Walking South: steps from row $Y = 103$ into $Y = 104..106$, walking directly into Trigger #8/#9 at $Y = 106$ to exit to Crustacia.
+
+5. **Why the Southern bypass requires pixel-perfect diagonal movement.**
+   At the bottom of the map, column $X = 22, 23$ has a multi-tier rock:
+   - Row $Y = 103$ has `cw = 0x4013`: geometry code `0x3` (top barrier, only $py < 8$ is walkable, while $py \ge 8$ is solid).
+   - Row $Y = 104$ is fully solid (`0x101F`).
+   - Row $Y = 105$ has two quicksand drift tiles (`.Ad`, pushing West).
+   - Row $Y = 106$ is the Crustacia exit trigger (`cw = 0x5010`).
+
+   Walking straight South along columns 22..23 blocks the player on the rock barrier at $py \ge 8$. Walking South through adjacent columns ($X = 21$ or $X = 24$) hits open sand at the destination ($Y = 40$ is open on $X = 21, 24$), so the wrap teleports successfully.
+   To bypass the wrap, the player must clip diagonally into the sub-tile walkable window of $Y = 103$ at columns 22..23 without getting deflected into adjacent columns, triggering the blocked teleport and slipping through to the exit tiles at $Y = 105..106$.
+
+6. **The Dog Separation trick explained.**
+   When entering the Desert of Doom, the room's enter script normally disables the Dog:
+   ```assembly
+   42 D1 FB FF : Teleport dog off-screen
+   BE          : Stop/disable doggo and SELECT button
+   ```
+   However, if the player separates the party and leaves the Dog outside Nobilia before entering, the Dog is never processed by the desert enter script. As the Boy walks South through the desert and triggers screen wraps, the camera and desert coordinates update, but the Dog remains parked outside Nobilia. Switching to the Dog allows simply walking North into the Nobilia entrance.
