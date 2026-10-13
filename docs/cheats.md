@@ -255,20 +255,23 @@ Once the `$8FB4FD` overlap bypass is primed (which a TAS achieves with $100\%$ d
    - **If the destination metatile is solid, `$909561` returns with Carry Clear (`BCC`).**
    - The engine **skips `$8FC2E4` entirely**! The entity's coordinate fields are never updated, and the entity remains at its starting coordinates.
 
-3. **The 64-tile stone alignment.**
-   Because the developers constructed the desert by copying rock clusters across the grid, solid obstacles align vertically across exactly 64 metatiles:
+3. **The double coincidence of 64-tile stone alignment.**
+   The glitch in both directions is a remarkable **double coincidence** combining accidental map layout symmetry with the engine's asymmetric camera-vs-player teleport logic:
+   - The script programmers hardcoded the wrap distance to exactly $\pm 2$ screens ($\pm 64$ metatiles, 1024 px).
+   - The level designers stamped rock clusters onto the $97 \times 113$ grid purely by aesthetic placement, unaware of the exact mathematical wrap distance or the passability check in `$90A001`.
+   - By pure coincidence, **in both directions independently**, a solid rock lands at the exact landing coordinates of the trigger:
+     - **Coincidence 1 (Northbound to Nobilia, $X = 11, 12$):**
+       Stepping onto row $Y = 33$ at columns $X = 11$ or $X = 12$ targets destination:
+       $$Y_{\text{dest}} = 33 + 64 = 97..98$$
+       At row $Y = 98$, columns $X = 11$ and $X = 12$ contain a solid rock (`cw = 0x101F`, geometry code `0xF`).
+       The passability test fails. The camera jumps South by 2 screens, but **the Boy remains at $Y = 33$**.
+     - **Coincidence 2 (Southbound to Crustacia, $X = 22, 23$):**
+       Stepping onto row $Y = 103$ at columns $X = 22$ or $X = 23$ targets destination:
+       $$Y_{\text{dest}} = 103 - 64 = 39..41$$
+       At row $Y = 40..41$, columns $X = 22$ and $X = 23$ contain a solid rock (`cw = 0x101F`, geometry code `0xF`).
+       The passability test fails. The camera jumps North by 2 screens, but **the Boy remains at $Y = 103$**.
 
-   - **The Northern Bypass ($X = 11, 12$):**
-     Stepping onto row $Y = 33$ at columns $X = 11$ or $X = 12$ targets destination:
-     $$Y_{\text{dest}} = 33 + 64 = 97..98$$
-     At row $Y = 98$, columns $X = 11$ and $X = 12$ contain a solid rock (`cw = 0x101F`, geometry code `0xF`).
-     The passability test fails. The camera jumps South by 2 screens, but **the Boy remains at $Y = 33$**.
-
-   - **The Southern Bypass ($X = 22, 23$):**
-     Stepping onto row $Y = 103$ at columns $X = 22$ or $X = 23$ targets destination:
-     $$Y_{\text{dest}} = 103 - 64 = 39..41$$
-     At row $Y = 40..41$, columns $X = 22$ and $X = 23$ contain a solid rock (`cw = 0x101F`, geometry code `0xF`).
-     The passability test fails. The camera jumps North by 2 screens, but **the Boy remains at $Y = 103$**.
+   Had either rock been shifted by just a single tile horizontally or vertically, that direction's bypass would not exist. That both the northern and southern perimeter triggers possess an exact 2-tile collision blind spot is an extraordinary double fluke of level design.
 
 4. **Why the player does not get trapped (`$2429` re-trigger suppression).**
    When the trigger fires, the step-on search routine at `$8FACB1` records the trigger script ID into `$7E2429`. On every frame:
