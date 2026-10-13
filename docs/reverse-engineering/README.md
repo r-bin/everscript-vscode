@@ -15,6 +15,7 @@ Last updated 2026-10-12 (v0.201.9).
 | [cdl-export-build-recomp.md](cdl-export-build-recomp.md) | Workflow: record → export → build ROM + `.cdl` → snesrecomp C |
 | [cdl-design-history.md](cdl-design-history.md) | Original design and what was built (§9) |
 | [asm-to-c-port.md](asm-to-c-port.md) | **snesrecomp + lockstep `hle_func`**: the path to C, room ids, status |
+| [incremental-decomp-guide.md](incremental-decomp-guide.md) | **Step-by-step incremental decomp**: from mechanical C to verified idiomatic C with examples |
 | [ghidra.md](ghidra.md) | **Ghidra + ghidra-snes**: what for, plugin gaps, setup with workarounds, VFS |
 | [docs/recomp/](../recomp/README.md) | **Static recompilation (snesrecomp)**: [setup](../recomp/setup.md), [Game RTL glue](../recomp/game-rtl.md), [debugging](../recomp/debugging.md), [bugs & roadmap](../recomp/bugs-and-todos.md) |
 | [recomp-bug-hunt.md](recomp-bug-hunt.md) | *(Moved to [docs/recomp/bugs-and-todos.md](../recomp/bugs-and-todos.md))* |

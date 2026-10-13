@@ -4,7 +4,7 @@
 > relocation in v0.158.0, and the stage 3 lift via snesrecomp in v0.159.x. Where this
 > stands and what comes next: §11.
 > Prerequisite reading: [cdl-design-history.md](cdl-design-history.md).
-> Step-by-step usage: [cdl-export-build-recomp.md](cdl-export-build-recomp.md).
+> Step-by-step usage: [cdl-export-build-recomp.md](cdl-export-build-recomp.md) and [incremental-decomp-guide.md](incremental-decomp-guide.md).
 
 ---
 
