@@ -90,6 +90,8 @@ test('getMenuHtml defines 7 tabs with Lens default, Objects list, Loot list, Che
     assert.ok(html.includes('id="menu-val-fog"'), 'missing fog toggle');
     assert.ok(html.includes('id="menu-val-sound-vis"'), 'missing sound entity visualizer toggle');
     assert.ok(html.includes('id="menu-val-zoom"'), 'missing zoom control');
+    assert.ok(html.includes('id="menu-val-hp-bar"'), 'missing thin hp bar toggle');
+    assert.ok(html.includes('id="menu-val-stamina-bar"'), 'missing thin stamina bar toggle');
 
     // Tab 2: Section 3 Objects
     assert.ok(html.includes('id="menu-panel-2"'), 'missing objects panel');
@@ -179,6 +181,8 @@ test('buildHtml embeds menu, hides old overlay bar, and wires wheel event isolat
     assert.ok(html.includes('menuCard.contains(e.target)'), 'wheel event should check if target is inside menu');
     assert.ok(html.includes('pollGamepadMenu()'), 'frame loop must poll gamepad menu');
     assert.ok(html.includes('isLens = (typeof isMenuOpen !== \'undefined\' && isMenuOpen && typeof menuActiveTab !== \'undefined\' && menuActiveTab === 0)'), 'isLens must require isMenuOpen to prevent swallowing clicks');
+    assert.ok(html.includes('id="menu-inspect-card"'), 'menu-inspect-card must be present in buildHtml');
+    assert.ok(html.includes('menu-state-pill'), 'menu-state-pill styles must be present in menu CSS');
 });
 
 console.log(`\nResults: ${passed} passed, ${failed} failed\n`);

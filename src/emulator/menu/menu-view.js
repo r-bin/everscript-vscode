@@ -273,6 +273,22 @@ function getMenuCss() {
       border-color: rgba(78, 201, 176, 0.4);
       background: rgba(78, 201, 176, 0.08);
     }
+    .menu-state-pill {
+      min-width: 20px;
+      padding: 1px 4px;
+      font-size: 9px;
+      cursor: pointer;
+    }
+    .menu-state-pill:hover {
+      background: #2a2a36;
+      color: #fff;
+    }
+    .menu-state-pill.active {
+      background: rgba(78, 201, 176, 0.25);
+      border-color: #4ec9b0;
+      color: #4ec9b0;
+      font-weight: bold;
+    }
     .menu-action-pill {
       background: #252535;
       border: 1px solid #444458;
@@ -645,6 +661,22 @@ function getMenuHtml() {
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
+            <div class="menu-row" data-row="8" data-action="toggle-hp-bar">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Thin HP Bar</div>
+              <div class="menu-row-value">
+                <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
+                <span id="menu-val-hp-bar" class="menu-pill active">ON</span>
+                <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
+              </div>
+            </div>
+            <div class="menu-row" data-row="9" data-action="toggle-stamina-bar">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Thin Stamina Bar</div>
+              <div class="menu-row-value">
+                <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
+                <span id="menu-val-stamina-bar" class="menu-pill active">ON</span>
+                <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
+              </div>
+            </div>
           </div>
 
           <!-- Tab 2: OBJECTS -->
@@ -967,6 +999,7 @@ function getMenuClientScript() {
       isMenuOpen = false;
       isLensModeActive = false;
       keyInput = 0;
+      if (typeof closeInspector === 'function') closeInspector();
       const menuEl = document.getElementById('emulator-menu');
       if (menuEl) {
         menuEl.classList.add('hidden');
@@ -1196,6 +1229,20 @@ function getMenuClientScript() {
             applyMenuZoom(menuZoomIndex);
             playMenuSound('click_toggle');
             break;
+          case 8:
+            if (typeof setThinHpBar === 'function') {
+              setThinHpBar(delta > 0);
+              setPillState('menu-val-hp-bar', thinHpBarEnabled);
+              playMenuSound('click_toggle');
+            }
+            break;
+          case 9:
+            if (typeof setThinStaminaBar === 'function') {
+              setThinStaminaBar(delta > 0);
+              setPillState('menu-val-stamina-bar', thinStaminaBarEnabled);
+              playMenuSound('click_toggle');
+            }
+            break;
         }
       } else if (menuActiveTab === 2) {
         // Tab 2: OBJECTS
@@ -1335,6 +1382,20 @@ function getMenuClientScript() {
           case 7:
             changeMenuValue(1);
             break;
+          case 8:
+            if (typeof setThinHpBar === 'function') {
+              setThinHpBar(!thinHpBarEnabled);
+              setPillState('menu-val-hp-bar', thinHpBarEnabled);
+              playMenuSound('click_toggle');
+            }
+            break;
+          case 9:
+            if (typeof setThinStaminaBar === 'function') {
+              setThinStaminaBar(!thinStaminaBarEnabled);
+              setPillState('menu-val-stamina-bar', thinStaminaBarEnabled);
+              playMenuSound('click_toggle');
+            }
+            break;
         }
       } else if (menuActiveTab === 2) {
         changeMenuValue(1);
@@ -1440,6 +1501,11 @@ function getMenuClientScript() {
                 previewBox.innerHTML = '<span class="menu-preview-empty">OBJ</span>';
               }
             }
+            const sBtns = row.querySelectorAll('.menu-state-pill');
+            sBtns.forEach(function(sb) {
+              const sVal = parseInt(sb.getAttribute('data-state'), 10);
+              sb.classList.toggle('active', sVal === newState);
+            });
           }
         }
       }
@@ -1490,6 +1556,13 @@ function getMenuClientScript() {
         }
         previewHtml += '</div>';
 
+        let statesPillsHtml = '<div class="menu-obj-states-pills" style="display:inline-flex;gap:3px;margin:0 6px;align-items:center;">';
+        for (let s = 0; s <= maxState; s++) {
+          const isActive = (s === curState);
+          statesPillsHtml += '<button type="button" class="menu-pill menu-state-pill' + (isActive ? ' active' : '') + '" data-obj="' + obj.index + '" data-state="' + s + '" title="Set State ' + s + '">' + s + '</button>';
+        }
+        statesPillsHtml += '</div>';
+
         const row = document.createElement('div');
         row.className = 'menu-row' + (i === menuSelectedRow ? ' selected' : '');
         row.setAttribute('data-row', String(i));
@@ -1501,12 +1574,25 @@ function getMenuClientScript() {
             previewHtml +
             '<span class="menu-obj-badge">OBJ #' + obj.index + '</span> ' +
             '<span class="menu-obj-coords">(' + obj.x + ',' + obj.y + ' ' + obj.w + 'x' + obj.h + ')</span>' +
+            statesPillsHtml +
           '</div>' +
           '<div class="menu-row-value">' +
             '<button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>' +
             '<span id="menu-val-obj-' + obj.index + '" class="menu-pill active">State ' + curState + ' / ' + maxState + '</span>' +
             '<button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>' +
           '</div>';
+
+        const sBtns = row.querySelectorAll('.menu-state-pill');
+        sBtns.forEach(function(sb) {
+          sb.addEventListener('click', function(e) {
+            e.stopPropagation();
+            menuSelectedRow = i;
+            tabSelectedRows[menuActiveTab] = i;
+            updateMenuRowSelection();
+            const targetState = parseInt(sb.getAttribute('data-state'), 10);
+            stepObjectState(obj.index, targetState - curState);
+          });
+        });
 
         const btnLeft = row.querySelector('[data-step="-1"]');
         const btnRight = row.querySelector('[data-step="1"]');
@@ -2124,6 +2210,8 @@ function getMenuClientScript() {
       setPillState('menu-val-fog', fogOfWarEnabled);
       setPillState('menu-val-sound-vis', sndShow);
       setPillState('menu-val-sound-vis-tab4', sndShow);
+      setPillState('menu-val-hp-bar', typeof thinHpBarEnabled !== 'undefined' ? !!thinHpBarEnabled : true);
+      setPillState('menu-val-stamina-bar', typeof thinStaminaBarEnabled !== 'undefined' ? !!thinStaminaBarEnabled : true);
       setPillState('menu-val-cheat-noclip', !!cheatNoclipEnabled);
       setPillState('menu-val-cheat-invincible', !!cheatInvincibleEnabled);
       setPillState('menu-val-cheat-atlas', !!cheatAtlasEnabled);

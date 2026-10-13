@@ -107,5 +107,41 @@ test('no free slot refuses instead of overwriting a live script', () => {
     assert.strictEqual(m.word(0x7E0086), 0);
 });
 
+test('destroy(BOY) and destroy(0x4E89) parse and land in WRAM', () => {
+    const m = fakeModule();
+    assert.strictEqual(inject(m, 'destroy(BOY)'), true);
+    assert.strictEqual(m.readMemory(0x7FFF00), 0x9B);
+    assert.strictEqual(m.readMemory(0x7FFF01), 0xD0);
+    assert.strictEqual(m.readMemory(0x7FFF02), 0x00);
+
+    const m2 = fakeModule();
+    assert.strictEqual(inject(m2, 'destroy(0x4E89)'), true);
+    assert.strictEqual(m2.readMemory(0x7FFF00), 0x9B);
+    assert.strictEqual(m2.readMemory(0x7FFF01), 0x84);
+    assert.strictEqual(m2.readMemory(0x7FFF02), 0x89);
+    assert.strictEqual(m2.readMemory(0x7FFF03), 0x4E);
+    assert.strictEqual(m2.readMemory(0x7FFF04), 0x00);
+});
+
+test('call_id(0x36) parses and lands in WRAM', () => {
+    const m = fakeModule();
+    assert.strictEqual(inject(m, 'call_id(0x36)'), true);
+    assert.strictEqual(m.readMemory(0x7FFF00), 0xA4);
+    assert.strictEqual(m.readMemory(0x7FFF01), 0x36);
+    assert.strictEqual(m.readMemory(0x7FFF02), 0x00);
+    assert.strictEqual(m.readMemory(0x7FFF03), 0x00);
+});
+
+test('set_object_state(2, 1) parses and lands in WRAM', () => {
+    const m = fakeModule();
+    assert.strictEqual(inject(m, 'set_object_state(2, 1)'), true);
+    assert.strictEqual(m.readMemory(0x7FFF00), 0x5C);
+    assert.strictEqual(m.readMemory(0x7FFF01), 0x82);
+    assert.strictEqual(m.readMemory(0x7FFF02), 0x02);
+    assert.strictEqual(m.readMemory(0x7FFF03), 0x82);
+    assert.strictEqual(m.readMemory(0x7FFF04), 0x01);
+    assert.strictEqual(m.readMemory(0x7FFF05), 0x00);
+});
+
 console.log(`\nResults: ${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);

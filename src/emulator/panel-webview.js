@@ -194,6 +194,130 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       pointer-events: none;
       z-index: 4;
     }
+    #menu-inspect-card {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 480px;
+      max-width: 94%;
+      background: #14141c;
+      border: 1px solid #36364a;
+      border-radius: 5px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.9);
+      z-index: 70;
+      color: #ccc;
+      font-family: monospace;
+      font-size: 11px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      pointer-events: auto !important;
+    }
+    #menu-inspect-card.hidden {
+      display: none !important;
+    }
+    .inspect-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 10px;
+      background: #1c1c28;
+      border-bottom: 1px solid #2d2d3e;
+      font-weight: bold;
+      color: #4ec9b0;
+    }
+    #inspect-close-btn {
+      background: transparent;
+      border: none;
+      color: #778899;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: bold;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+    #inspect-close-btn:hover {
+      color: #ff6666;
+      background: rgba(255, 100, 100, 0.15);
+    }
+    .inspect-body {
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .inspect-footer {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+      padding: 5px 10px;
+      background: #181822;
+      border-top: 1px solid #282836;
+    }
+    .inspect-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .inspect-label {
+      color: #8899aa;
+    }
+    .inspect-val {
+      color: #fff;
+      font-weight: 600;
+    }
+    .inspect-script-box {
+      background: #0d0d12;
+      border: 1px solid #242432;
+      border-radius: 3px;
+      padding: 6px 8px;
+      font-size: 10px;
+      line-height: 1.4;
+      max-height: 110px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      color: #9cdcfe;
+    }
+    .inspect-states-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 4px;
+    }
+    .inspect-state-btn {
+      background: #1e1e28;
+      border: 1px solid #36364a;
+      color: #aaa;
+      padding: 3px 8px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 10px;
+      font-family: inherit;
+    }
+    .inspect-state-btn:hover {
+      background: #303040;
+      color: #fff;
+    }
+    .inspect-state-btn.active {
+      background: rgba(78, 201, 176, 0.2);
+      border-color: #4ec9b0;
+      color: #4ec9b0;
+      font-weight: bold;
+    }
+    .inspect-danger-btn {
+      background: #421616 !important;
+      border-color: #882b2b !important;
+      color: #ffaaaa !important;
+    }
+    .inspect-danger-btn:hover {
+      background: #622020 !important;
+      color: #fff !important;
+    }
     #screen-overlay-bar {
       display: none !important;
       position: absolute;
@@ -584,6 +708,14 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       ${getCdlFloatHtml()}
       ${getTasOverlayHtml()}
       ${getMenuHtml()}
+      <div id="menu-inspect-card" class="hidden">
+        <div class="inspect-header">
+          <span id="inspect-title">INSPECTOR</span>
+          <button id="inspect-close-btn" type="button" title="Close">[X]</button>
+        </div>
+        <div id="inspect-body" class="inspect-body"></div>
+        <div id="inspect-footer" class="inspect-footer"></div>
+      </div>
       <div id="screen-overlay-bar">
         <button id="screen-menu-btn" class="screen-chip" type="button" title="Quick Menu (Start)">MENU</button>
         <button id="screen-extend-toggle" class="screen-chip active" type="button" title="Toggle Extended Map">MAP EXT ON</button>
@@ -1501,7 +1633,9 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       let panStartY = 0;
       let panBaseX = 0;
       let panBaseY = 0;
+      let dragDist = 0;
       wrap.addEventListener('mousedown', (e) => {
+        dragDist = 0;
         if (e.button === 2) return; // Right-click handled by contextmenu
         const isLens = (typeof isMenuOpen !== 'undefined' && isMenuOpen && typeof menuActiveTab !== 'undefined' && menuActiveTab === 0);
         if (typeof isMenuOpen !== 'undefined' && isMenuOpen && !isLens) {
@@ -1536,13 +1670,45 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       });
       window.addEventListener('mousemove', (e) => {
         if (!isPanning) return;
-        panX = panBaseX + (e.clientX - panStartX);
-        panY = panBaseY + (e.clientY - panStartY);
+        const dx = e.clientX - panStartX;
+        const dy = e.clientY - panStartY;
+        dragDist += Math.abs(dx) + Math.abs(dy);
+        panX = panBaseX + dx;
+        panY = panBaseY + dy;
         updateScreenLayout();
       });
       window.addEventListener('mouseup', () => {
         isPanning = false;
       });
+
+      wrap.addEventListener('click', (e) => {
+        if (dragDist > 6) return;
+        const inspectCard = document.getElementById('menu-inspect-card');
+        if (inspectCard && inspectCard.contains(e.target)) return;
+        const menuCard = document.getElementById('menu-card');
+        if (menuCard && menuCard.contains(e.target)) return;
+        if (e.target.closest && (e.target.closest('.screen-chip') || e.target.closest('.screen-btn'))) return;
+
+        // If paused, inspector click allows selecting character, trigger, or object
+        if (typeof isEmulatorPaused === 'function' && isEmulatorPaused() && romLoaded && lastLayout) {
+          const rect = wrap.getBoundingClientRect();
+          const mouseX = e.clientX - rect.left;
+          const mouseY = e.clientY - rect.top;
+          const worldX = Math.round(lastLayout.camX + (mouseX - lastLayout.emuX) / lastLayout.scaleSnes);
+          const worldY = Math.round(lastLayout.camY + (mouseY - lastLayout.emuY) / lastLayout.scaleSnes);
+          if (typeof handleMapInspectClick === 'function') {
+            handleMapInspectClick(worldX, worldY, mouseX, mouseY);
+          }
+        }
+      });
+
+      const inspectCloseBtn = document.getElementById('inspect-close-btn');
+      if (inspectCloseBtn) {
+        inspectCloseBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (typeof closeInspector === 'function') closeInspector();
+        });
+      }
 
       // Zoom buttons
       const zinBtn = document.getElementById('screen-zin');
@@ -1682,6 +1848,9 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     let animTilesOverlayEnabled = false;
     let collisionOverlayEnabled = false;
     let fogOfWarEnabled = false;
+    let thinHpBarEnabled = true;
+    let thinStaminaBarEnabled = true;
+    let inspectedTarget = null;
     let cachedMapId = -1;
     let cachedTriggers = null;
     let cachedObjects = null;
@@ -1727,6 +1896,10 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
 
       let bytecode = null;
       const walkMatch = str.match(/^walk\\s*\\(\\s*(\\w+)\\s*,\\s*(\\w+)\\s*,\\s*(-?\\d+)\\s*,\\s*(-?\\d+)\\s*(?:,\\s*(\\w+)\\s*)?(?:,\\s*(\\w+)\\s*)?\\)/i);
+      const destroyMatch = str.match(/^destroy\\s*\\(\\s*([^)]+)\\s*\\)/i);
+      const callMatch = str.match(/^(?:call_id|call|trigger)\\s*\\(\\s*([^)]+)\\s*\\)/i);
+      const objMatch = str.match(/^(?:set_object_state|set_obj_state|set_state)\\s*\\(\\s*([^,]+)\\s*,\\s*([^)]+)\\s*\\)/i);
+
       if (walkMatch) {
         const charName = walkMatch[1].toUpperCase();
         const typeName = walkMatch[2].toUpperCase();
@@ -1756,6 +1929,35 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
           if (unlock) bytecode.push(0x2B, unlock);
         }
         bytecode.push(0x00); // END
+      } else if (destroyMatch) {
+        const targetRaw = destroyMatch[1].trim().toUpperCase();
+        let targetToken = null;
+        if (targetRaw === 'BOY') targetToken = [0xD0];
+        else if (targetRaw === 'DOG') targetToken = [0xD1];
+        else if (targetRaw === 'ACTIVE') targetToken = [0xD2];
+        else if (targetRaw === 'INACTIVE') targetToken = [0xD3];
+        else {
+          const cleanAddr = targetRaw.replace(/[<>]/g, '');
+          const addrVal = cleanAddr.startsWith('0X') ? parseInt(cleanAddr, 16) : parseInt(cleanAddr, 10);
+          if (!isNaN(addrVal)) {
+            targetToken = [0x84, addrVal & 0xFF, (addrVal >> 8) & 0xFF];
+          }
+        }
+        if (targetToken) {
+          bytecode = [0x9B, ...targetToken, 0x00];
+        }
+      } else if (callMatch) {
+        const idRaw = callMatch[1].trim();
+        const idVal = idRaw.toLowerCase().startsWith('0x') ? parseInt(idRaw, 16) : parseInt(idRaw, 10);
+        if (!isNaN(idVal)) {
+          bytecode = [0xA4, idVal & 0xFF, (idVal >> 8) & 0xFF, 0x00];
+        }
+      } else if (objMatch) {
+        const objVal = parseInt(objMatch[1].trim(), 10);
+        const stateVal = parseInt(objMatch[2].trim(), 10);
+        if (!isNaN(objVal) && !isNaN(stateVal)) {
+          bytecode = [0x5C, 0x82, objVal & 0xFF, 0x82, stateVal & 0xFF, 0x00];
+        }
       } else {
         const hexMatch = str.match(/^(?:0x)?([0-9a-fA-F\\s,]+)$/);
         if (hexMatch) {
@@ -1978,6 +2180,12 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
           renderAnimTilesOverlay(overlayCtx, layout, cachedAnimTiles);
         }
 
+        // Thin HP and Stamina bars
+        renderHpAndStaminaBarsOverlay(overlayCtx, layout, preState);
+
+        // Active inspection highlight
+        renderInspectSelection(overlayCtx, layout, preState);
+
       overlayCtx.restore();
     }
 
@@ -2150,6 +2358,461 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     function snesToRom(snes) { return snes & 0x3fffff; }
     function atRom(rom, snes) { return rom[snesToRom(snes)]; }
     function readRom24(rom, off) { return rom[off] | (rom[off + 1] << 8) | (rom[off + 2] << 16); }
+
+    function renderHpAndStaminaBarsOverlay(overlayCtx, layout, preState) {
+      if (!overlayCtx || (!thinHpBarEnabled && !thinStaminaBarEnabled)) return;
+      if (!preState || !preState.entBuf) return;
+      const buf = preState.entBuf;
+      const entities = entityAddresses(buf);
+      const rom = (loadedRomData && loadedRomData.length % 1024 === 512) ? loadedRomData.subarray(512) : loadedRomData;
+
+      for (let i = 0; i < entities.length; i++) {
+        const addr = entities[i];
+        const rel = addr - 0x3DDF;
+        if (rel < 0 || rel + 0x70 > buf.length) continue;
+
+        const isBoy = (addr === 0x4E89);
+        const isDog = (addr === 0x4F37);
+
+        const hideFlags = buf[rel + 0x12] | (buf[rel + 0x13] << 8);
+        if (hideFlags & 0x8000) continue;
+
+        const hp = buf[rel + 0x2A] | (buf[rel + 0x2B] << 8);
+        if (hp <= 0 && !isBoy && !isDog) continue;
+
+        const rawX = buf[rel + 0x1A] | (buf[rel + 0x1B] << 8);
+        const posX = rawX >= 0x8000 ? rawX - 0x10000 : rawX;
+        const rawY = buf[rel + 0x1C] | (buf[rel + 0x1D] << 8);
+        const posY = rawY >= 0x8000 ? rawY - 0x10000 : rawY;
+        const rawZ = buf[rel + 0x1E] | (buf[rel + 0x1F] << 8);
+        const posZ = rawZ >= 0x8000 ? rawZ - 0x10000 : rawZ;
+
+        const onBg1 = preState.roomEffect === 2 && (buf[rel + 0x18] & 0x30) === 0;
+        const refX = onBg1 ? preState.bg1X : layout.camX;
+        const refY = onBg1 ? preState.bg1Y - 2 : layout.camY;
+
+        const screenX = layout.emuX + (posX - refX) * layout.scaleSnes;
+        const screenY = layout.emuY + (posY - Math.floor(posZ / 16) - refY) * layout.scaleSnes;
+
+        let maxHp = 0;
+        if (isBoy) {
+          maxHp = (preState.wram && preState.wram.length > 0x0A36) ? (preState.wram[0x0A35] | (preState.wram[0x0A36] << 8)) : 999;
+          if (!maxHp) maxHp = Math.max(hp, 999);
+        } else if (isDog) {
+          maxHp = (preState.wram && preState.wram.length > 0x0A80) ? (preState.wram[0x0A7F] | (preState.wram[0x0A80] << 8)) : 999;
+          if (!maxHp) maxHp = Math.max(hp, 999);
+        } else {
+          const stype = buf[rel + 0x60] | (buf[rel + 0x61] << 8);
+          if (stype >= 0x8000 && rom) {
+            const recOffset = snesToRom(0x8E0000 | (stype + 0x0F));
+            if (recOffset >= 0 && recOffset + 2 <= rom.length) {
+              maxHp = rom[recOffset] | (rom[recOffset + 1] << 8);
+            }
+          }
+          if (!maxHp || maxHp < hp) maxHp = Math.max(hp, 1);
+        }
+
+        const stamina = buf[rel + 0x2E] | (buf[rel + 0x2F] << 8);
+        const maxStamina = Math.max(0x400, stamina);
+
+        const headOffset = (isDog ? 18 : 28) * layout.scaleSnes;
+        const barW = Math.max(18, Math.round(24 * layout.scaleSnes));
+        const barH = Math.max(2, Math.round(2.5 * layout.scaleSnes));
+        const barX = Math.round(screenX - barW / 2);
+        let barY = Math.round(screenY - headOffset);
+
+        if (barX + barW < 0 || barX > layout.wrapW || barY + 10 < 0 || barY > layout.wrapH) continue;
+
+        if (thinHpBarEnabled && maxHp > 0) {
+          overlayCtx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+          overlayCtx.fillRect(barX - 1, barY - 1, barW + 2, barH + 2);
+          const ratio = Math.max(0, Math.min(1, hp / maxHp));
+          const fillW = Math.round(barW * ratio);
+          const color = ratio > 0.5 ? '#4caf50' : (ratio > 0.2 ? '#ff9800' : '#f44336');
+          overlayCtx.fillStyle = color;
+          overlayCtx.fillRect(barX, barY, fillW, barH);
+          barY += barH + 2;
+        }
+
+        if (thinStaminaBarEnabled && (isBoy || isDog || stamina > 0)) {
+          const sH = Math.max(1.5, Math.round(2 * layout.scaleSnes));
+          overlayCtx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+          overlayCtx.fillRect(barX - 1, barY - 1, barW + 2, sH + 2);
+          const sRatio = Math.max(0, Math.min(1, stamina / maxStamina));
+          const sFillW = Math.round(barW * sRatio);
+          const sColor = sRatio >= 1.0 ? '#ffeb3b' : '#00e5ff';
+          overlayCtx.fillStyle = sColor;
+          overlayCtx.fillRect(barX, barY, sFillW, sH);
+        }
+      }
+    }
+
+    function renderInspectSelection(overlayCtx, layout, preState) {
+      if (!overlayCtx || !inspectedTarget || !layout) return;
+      if (inspectedTarget.type === 'char') {
+        const refX = layout.camX;
+        const refY = layout.camY;
+        const sx = layout.emuX + (inspectedTarget.posX - refX) * layout.scaleSnes;
+        const sy = layout.emuY + (inspectedTarget.posY - refY) * layout.scaleSnes;
+        overlayCtx.save();
+        overlayCtx.strokeStyle = '#4ec9b0';
+        overlayCtx.lineWidth = Math.max(1.5, Math.round(2 * layout.scaleSnes));
+        overlayCtx.beginPath();
+        overlayCtx.arc(sx, sy - 14 * layout.scaleSnes, 18 * layout.scaleSnes, 0, Math.PI * 2);
+        overlayCtx.stroke();
+        overlayCtx.restore();
+      } else if (inspectedTarget.type === 'trigger') {
+        const box = calculateTriggerBox(inspectedTarget.trigger, trigOffX, trigOffY, layout.camX, layout.camY);
+        const tx = layout.emuX + (box.posX - layout.camX) * layout.scaleSnes;
+        const ty = layout.emuY + (box.posY - layout.camY) * layout.scaleSnes;
+        const tw = box.boxW * layout.scaleSnes;
+        const th = box.boxH * layout.scaleSnes;
+        overlayCtx.save();
+        overlayCtx.strokeStyle = '#ffffff';
+        overlayCtx.lineWidth = Math.max(2, Math.round(2.5 * layout.scaleSnes));
+        overlayCtx.strokeRect(tx - 0.5, ty - 0.5, tw + 1, th + 1);
+        overlayCtx.restore();
+      } else if (inspectedTarget.type === 'obj') {
+        const obj = inspectedTarget.obj;
+        const tx = layout.emuX + (obj.x - layout.camX) * layout.scaleSnes;
+        const ty = layout.emuY + (obj.y - layout.camY) * layout.scaleSnes;
+        const tw = obj.w * layout.scaleSnes;
+        const th = obj.h * layout.scaleSnes;
+        overlayCtx.save();
+        overlayCtx.strokeStyle = '#4ec9b0';
+        overlayCtx.lineWidth = Math.max(2, Math.round(2.5 * layout.scaleSnes));
+        overlayCtx.strokeRect(tx - 0.5, ty - 0.5, tw + 1, th + 1);
+        overlayCtx.restore();
+      }
+    }
+
+    function decodeTriggerScriptPreview(rom, scriptId) {
+      if (!rom || typeof scriptId !== 'number') return ['(ROM not loaded)'];
+      const headerOffset = (rom.length % 1024 === 512) ? 512 : 0;
+      const scriptsStartRom = headerOffset + 0x128000;
+      if (scriptsStartRom + 2 >= rom.length) return ['(Invalid script table)'];
+      const tableOffset = rom[scriptsStartRom] | (rom[scriptsStartRom + 1] << 8);
+      const tableRom = scriptsStartRom + tableOffset;
+      if (tableRom + scriptId + 2 >= rom.length) return ['(Script ID out of range)'];
+      const rawPtr = rom[tableRom + scriptId] | (rom[tableRom + scriptId + 1] << 8) | (rom[tableRom + scriptId + 2] << 16);
+      if (rawPtr === 0 || rawPtr === 0xFFFFFF) return ['(Empty script pointer)'];
+      const scriptSnes = (0x928000 + (rawPtr & 0x7FFF) + ((rawPtr & 0xFF8000) << 1)) >>> 0;
+      const scriptRom = headerOffset + (((scriptSnes >> 16) & 0x3F) * 0x10000 + (scriptSnes & 0xFFFF));
+      if (scriptRom >= rom.length) return ['(Script address out of range)'];
+
+      const lines = [];
+      let ptr = scriptRom;
+      let snesPtr = scriptSnes;
+      let count = 0;
+      while (ptr < rom.length && count < 8) {
+        const op = rom[ptr++];
+        const addrHex = '$' + snesPtr.toString(16).toUpperCase();
+        snesPtr++;
+        count++;
+        if (op === 0x00) {
+          lines.push(addrHex + ': end() [00]');
+          break;
+        } else if (op === 0xA3) {
+          const id = rom[ptr++];
+          snesPtr++;
+          lines.push(addrHex + ': call_global(0x' + id.toString(16).toUpperCase() + ') [A3]');
+        } else if (op === 0xA4) {
+          const id = rom[ptr] | (rom[ptr + 1] << 8);
+          ptr += 2; snesPtr += 2;
+          lines.push(addrHex + ': call_id(0x' + id.toString(16).toUpperCase() + ') [A4]');
+        } else if (op === 0x22) {
+          const x = (rom[ptr++] << 3);
+          const y = (rom[ptr++] << 3);
+          const mapId = (rom[ptr] | (rom[ptr + 1] << 8)) & 0xFF;
+          ptr += 2; snesPtr += 4;
+          lines.push(addrHex + ': load_map(0x' + mapId.toString(16).toUpperCase() + ', ' + x + ', ' + y + ') [22]');
+        } else if (op === 0x36) {
+          lines.push(addrHex + ': fade_in() [36]');
+        } else if (op === 0x37) {
+          lines.push(addrHex + ': fade_out() [37]');
+        } else if (op === 0x2A) {
+          ptr++; snesPtr++;
+          lines.push(addrHex + ': control(NONE) [2A]');
+        } else if (op === 0x2B) {
+          ptr++; snesPtr++;
+          lines.push(addrHex + ': control(ACTIVE) [2B]');
+        } else if (op === 0x5C) {
+          ptr += 4; snesPtr += 4;
+          lines.push(addrHex + ': set_object_state(...) [5C]');
+        } else {
+          lines.push(addrHex + ': opcode 0x' + op.toString(16).toUpperCase());
+          break;
+        }
+      }
+      if (!lines.length) lines.push('(No instructions found)');
+      return lines;
+    }
+
+    function closeInspector() {
+      inspectedTarget = null;
+      const card = document.getElementById('menu-inspect-card');
+      if (card) card.classList.add('hidden');
+      checkClearOverlayCanvas();
+      redrawExtendedLayersNow();
+    }
+
+    function openCharacterInspector(addr) {
+      if (!lastSampledPreState || !lastSampledPreState.entBuf) return;
+      const buf = lastSampledPreState.entBuf;
+      const rel = addr - 0x3DDF;
+      if (rel < 0 || rel + 0x70 > buf.length) return;
+
+      const rom = (loadedRomData && loadedRomData.length % 1024 === 512) ? loadedRomData.subarray(512) : loadedRomData;
+      const isBoy = (addr === 0x4E89);
+      const isDog = (addr === 0x4F37);
+
+      const stype = buf[rel + 0x60] | (buf[rel + 0x61] << 8);
+      let name = isBoy ? 'Boy' : isDog ? 'Dog' : '';
+      if (!name && stype >= 0x8000 && rom) {
+        const namePtr = readRom24(rom, snesToRom(0x8E0000 | stype));
+        name = decodeEntityName(rom, namePtr, stype);
+      }
+      if (!name) name = isBoy ? 'Boy' : isDog ? 'Dog' : ('Entity $' + addr.toString(16).toUpperCase());
+
+      const hp = buf[rel + 0x2A] | (buf[rel + 0x2B] << 8);
+      const rawX = buf[rel + 0x1A] | (buf[rel + 0x1B] << 8);
+      const posX = rawX >= 0x8000 ? rawX - 0x10000 : rawX;
+      const rawY = buf[rel + 0x1C] | (buf[rel + 0x1D] << 8);
+      const posY = rawY >= 0x8000 ? rawY - 0x10000 : rawY;
+      const rawZ = buf[rel + 0x1E] | (buf[rel + 0x1F] << 8);
+      const posZ = rawZ >= 0x8000 ? rawZ - 0x10000 : rawZ;
+
+      let maxHp = 0;
+      if (isBoy) {
+        maxHp = (lastSampledPreState.wram && lastSampledPreState.wram.length > 0x0A36) ? (lastSampledPreState.wram[0x0A35] | (lastSampledPreState.wram[0x0A36] << 8)) : 999;
+        if (!maxHp) maxHp = Math.max(hp, 999);
+      } else if (isDog) {
+        maxHp = (lastSampledPreState.wram && lastSampledPreState.wram.length > 0x0A80) ? (lastSampledPreState.wram[0x0A7F] | (lastSampledPreState.wram[0x0A80] << 8)) : 999;
+        if (!maxHp) maxHp = Math.max(hp, 999);
+      } else {
+        if (stype >= 0x8000 && rom) {
+          const recOffset = snesToRom(0x8E0000 | (stype + 0x0F));
+          if (recOffset >= 0 && recOffset + 2 <= rom.length) {
+            maxHp = rom[recOffset] | (rom[recOffset + 1] << 8);
+          }
+        }
+        if (!maxHp || maxHp < hp) maxHp = Math.max(hp, 1);
+      }
+
+      const stamina = buf[rel + 0x2E] | (buf[rel + 0x2F] << 8);
+      const maxStamina = Math.max(0x400, stamina);
+      const flags = buf[rel + 0x10] | (buf[rel + 0x11] << 8);
+      const isNpc = !isBoy && !isDog && ((flags & 0x0002) !== 0);
+      const category = isBoy ? 'Party (Boy)' : isDog ? 'Party (Dog)' : isNpc ? 'NPC' : 'Enemy';
+
+      inspectedTarget = { type: 'char', addr: addr, posX: posX, posY: posY };
+
+      const card = document.getElementById('menu-inspect-card');
+      const titleEl = document.getElementById('inspect-title');
+      const bodyEl = document.getElementById('inspect-body');
+      const footerEl = document.getElementById('inspect-footer');
+      if (!card || !titleEl || !bodyEl || !footerEl) return;
+
+      titleEl.textContent = 'CHARACTER: ' + name + ' ($7E' + fmtHex(addr, 4) + ')';
+      const hpPct = Math.round(Math.min(100, (hp / maxHp) * 100));
+      const stamPct = Math.round(Math.min(100, (stamina / maxStamina) * 100));
+
+      bodyEl.innerHTML =
+        '<div class="inspect-row"><span class="inspect-label">Category:</span><span class="inspect-val">' + category + '</span></div>' +
+        '<div class="inspect-row"><span class="inspect-label">Address:</span><span class="inspect-val">$7E' + fmtHex(addr, 4) + '</span></div>' +
+        '<div class="inspect-row"><span class="inspect-label">Position:</span><span class="inspect-val">X: ' + posX + ', Y: ' + posY + ', Z: ' + posZ + '</span></div>' +
+        '<div class="inspect-row"><span class="inspect-label">HP:</span><span class="inspect-val">' + hp + ' / ' + maxHp + ' (' + hpPct + '%)</span></div>' +
+        '<div class="inspect-row"><span class="inspect-label">Stamina:</span><span class="inspect-val">' + stamina + ' / ' + maxStamina + ' (' + stamPct + '%)</span></div>' +
+        '<div class="inspect-row"><span class="inspect-label">Flags:</span><span class="inspect-val">0x' + fmtHex(flags, 4) + '</span></div>' +
+        '<div class="inspect-row"><span class="inspect-label">Type ID:</span><span class="inspect-val">0x' + fmtHex(stype, 4) + '</span></div>';
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'menu-action-pill inspect-danger-btn';
+      delBtn.type = 'button';
+      delBtn.textContent = '[Delete Character (Everscript)]';
+      delBtn.addEventListener('click', function() {
+        const targetStr = isBoy ? 'BOY' : isDog ? 'DOG' : ('0x' + addr.toString(16));
+        const ok = injectEverscript('destroy(' + targetStr + ')');
+        const m = getModule();
+        if (m && hasDebuggerApi(m)) {
+          m.writeMemory(addr + 0x2A, 0);
+          m.writeMemory(addr + 0x2B, 0);
+          const hi = m.readMemory(addr + 0x13);
+          m.writeMemory(addr + 0x13, hi | 0x80);
+        }
+        if (lastSampledPreState && lastSampledPreState.entBuf) {
+          lastSampledPreState.entBuf[rel + 0x2A] = 0;
+          lastSampledPreState.entBuf[rel + 0x2B] = 0;
+          lastSampledPreState.entBuf[rel + 0x13] |= 0x80;
+        }
+        delBtn.disabled = true;
+        delBtn.textContent = '[Deleted]';
+        delBtn.style.opacity = '0.5';
+        if (typeof playMenuSound === 'function') playMenuSound('click_confirm');
+        setText('ss-last-hit', 'deleted character ' + name + ' ($7E' + fmtHex(addr, 4) + ') via destroy()', 'ss-ok');
+        redrawExtendedLayersNow();
+      });
+
+      footerEl.innerHTML = '';
+      footerEl.appendChild(delBtn);
+
+      card.classList.remove('hidden');
+      if (typeof playMenuSound === 'function') playMenuSound('click_nav');
+      redrawExtendedLayersNow();
+    }
+
+    function openTriggerInspector(typeStr, trigger) {
+      if (!trigger) return;
+      inspectedTarget = { type: 'trigger', trigger: trigger };
+
+      const card = document.getElementById('menu-inspect-card');
+      const titleEl = document.getElementById('inspect-title');
+      const bodyEl = document.getElementById('inspect-body');
+      const footerEl = document.getElementById('inspect-footer');
+      if (!card || !titleEl || !bodyEl || !footerEl) return;
+
+      const scriptIdHex = '$' + fmtHex(trigger.scriptId, 4);
+      titleEl.textContent = typeStr.toUpperCase() + ' (Script ' + scriptIdHex + ')';
+
+      const box = calculateTriggerBox(trigger, trigOffX, trigOffY, (lastLayout ? lastLayout.camX : 0), (lastLayout ? lastLayout.camY : 0));
+      const previewLines = decodeTriggerScriptPreview(loadedRomData, trigger.scriptId);
+
+      let scriptBoxHtml = '<div class="inspect-script-box">';
+      for (let i = 0; i < previewLines.length; i++) {
+        scriptBoxHtml += '<div>' + previewLines[i] + '</div>';
+      }
+      scriptBoxHtml += '</div>';
+
+      bodyEl.innerHTML =
+        '<div class="inspect-row"><span class="inspect-label">Type:</span><span class="inspect-val">' + typeStr + '</span></div>' +
+        '<div class="inspect-row"><span class="inspect-label">Script ID:</span><span class="inspect-val">' + scriptIdHex + ' (' + trigger.scriptId + ')</span></div>' +
+        '<div class="inspect-row"><span class="inspect-label">Tile Bounds:</span><span class="inspect-val">(' + trigger.x1 + ', ' + trigger.y1 + ') to (' + trigger.x2 + ', ' + trigger.y2 + ')</span></div>' +
+        '<div class="inspect-row"><span class="inspect-label">World Rect:</span><span class="inspect-val">' + box.posX + ', ' + box.posY + ' (' + box.boxW + 'x' + box.boxH + ' px)</span></div>' +
+        '<div style="margin-top:4px;"><span class="inspect-label">Script Content:</span></div>' +
+        scriptBoxHtml;
+
+      const trigBtn = document.createElement('button');
+      trigBtn.className = 'menu-action-pill';
+      trigBtn.type = 'button';
+      trigBtn.textContent = '[Trigger Script (Everscript call_id)]';
+      trigBtn.addEventListener('click', function() {
+        const ok = injectEverscript('call_id(0x' + trigger.scriptId.toString(16) + ')');
+        if (typeof playMenuSound === 'function') playMenuSound('click_confirm');
+        setText('ss-last-hit', 'triggered ' + typeStr + ' script ' + scriptIdHex + ' via call_id()', 'ss-ok');
+      });
+
+      footerEl.innerHTML = '';
+      footerEl.appendChild(trigBtn);
+
+      card.classList.remove('hidden');
+      if (typeof playMenuSound === 'function') playMenuSound('click_nav');
+      redrawExtendedLayersNow();
+    }
+
+    function openObjectInspector(obj) {
+      if (!obj) return;
+      inspectedTarget = { type: 'obj', obj: obj };
+
+      const card = document.getElementById('menu-inspect-card');
+      const titleEl = document.getElementById('inspect-title');
+      const bodyEl = document.getElementById('inspect-body');
+      const footerEl = document.getElementById('inspect-footer');
+      if (!card || !titleEl || !bodyEl || !footerEl) return;
+
+      const curState = (typeof getEffectiveObjState === 'function') ? getEffectiveObjState(obj.index) : (((lastSampledPreState && lastSampledPreState.objStateBuf && lastSampledPreState.objStateBuf[obj.index]) || 0));
+      const maxState = (obj.states && obj.states.length) ? Math.max(1, obj.states.length - 1) : 1;
+
+      titleEl.textContent = 'MAP OBJECT #' + obj.index + ' (State ' + curState + ' / ' + maxState + ')';
+
+      let stateBtnsHtml = '<div class="inspect-states-row">';
+      for (let s = 0; s <= maxState; s++) {
+        const isActive = (s === curState);
+        stateBtnsHtml += '<button type="button" class="inspect-state-btn' + (isActive ? ' active' : '') + '" data-obj="' + obj.index + '" data-state="' + s + '">State ' + s + '</button>';
+      }
+      stateBtnsHtml += '</div>';
+
+      bodyEl.innerHTML =
+        '<div class="inspect-row"><span class="inspect-label">Object Index:</span><span class="inspect-val">#' + obj.index + '</span></div>' +
+        '<div class="inspect-row"><span class="inspect-label">Coordinates:</span><span class="inspect-val">(' + obj.x + ', ' + obj.y + ') ' + obj.w + 'x' + obj.h + ' px</span></div>' +
+        '<div class="inspect-row"><span class="inspect-label">Current State:</span><span id="inspect-obj-curstate" class="inspect-val">State ' + curState + ' of ' + maxState + '</span></div>' +
+        '<div style="margin-top:4px;"><span class="inspect-label">Available States (click to set):</span></div>' +
+        stateBtnsHtml;
+
+      const sBtns = bodyEl.querySelectorAll('.inspect-state-btn');
+      sBtns.forEach(function(b) {
+        b.addEventListener('click', function() {
+          const targetState = parseInt(b.getAttribute('data-state'), 10);
+          if (typeof stepObjectState === 'function') {
+            stepObjectState(obj.index, targetState - curState);
+          } else {
+            const hexObj = obj.index.toString(16).padStart(2, '0');
+            const hexVal = targetState.toString(16).padStart(2, '0');
+            injectEverscript('5c 82 ' + hexObj + ' 82 ' + hexVal);
+          }
+          openObjectInspector(obj);
+        });
+      });
+
+      footerEl.innerHTML = '<span style="color:#778899;font-size:10px;">Click any state above to alter WRAM &amp; engine.</span>';
+
+      card.classList.remove('hidden');
+      if (typeof playMenuSound === 'function') playMenuSound('click_nav');
+      redrawExtendedLayersNow();
+    }
+
+    function handleMapInspectClick(worldX, worldY, mouseX, mouseY) {
+      if (lastSampledPreState && lastSampledPreState.entBuf) {
+        const buf = lastSampledPreState.entBuf;
+        const entities = entityAddresses(buf);
+        for (let i = 0; i < entities.length; i++) {
+          const addr = entities[i];
+          const rel = addr - 0x3DDF;
+          if (rel < 0 || rel + 0x70 > buf.length) continue;
+          const hideFlags = buf[rel + 0x12] | (buf[rel + 0x13] << 8);
+          if (hideFlags & 0x8000) continue;
+          const rawX = buf[rel + 0x1A] | (buf[rel + 0x1B] << 8);
+          const posX = rawX >= 0x8000 ? rawX - 0x10000 : rawX;
+          const rawY = buf[rel + 0x1C] | (buf[rel + 0x1D] << 8);
+          const posY = rawY >= 0x8000 ? rawY - 0x10000 : rawY;
+          if (Math.abs(worldX - posX) <= 18 && worldY >= posY - 36 && worldY <= posY + 8) {
+            openCharacterInspector(addr);
+            return true;
+          }
+        }
+      }
+
+      if (cachedTriggers) {
+        const bList = cachedTriggers.bTrigger || [];
+        for (let i = 0; i < bList.length; i++) {
+          const box = calculateTriggerBox(bList[i], trigOffX, trigOffY, (lastLayout ? lastLayout.camX : 0), (lastLayout ? lastLayout.camY : 0));
+          if (worldX >= box.posX && worldX <= box.posX + box.boxW && worldY >= box.posY && worldY <= box.posY + box.boxH) {
+            openTriggerInspector('B-Trigger', bList[i]);
+            return true;
+          }
+        }
+        const sList = cachedTriggers.stepOn || [];
+        for (let i = 0; i < sList.length; i++) {
+          const box = calculateTriggerBox(sList[i], trigOffX, trigOffY, (lastLayout ? lastLayout.camX : 0), (lastLayout ? lastLayout.camY : 0));
+          if (worldX >= box.posX && worldX <= box.posX + box.boxW && worldY >= box.posY && worldY <= box.posY + box.boxH) {
+            openTriggerInspector('Step-on', sList[i]);
+            return true;
+          }
+        }
+      }
+
+      if (cachedObjects && cachedObjects.length) {
+        for (let i = 0; i < cachedObjects.length; i++) {
+          const obj = cachedObjects[i];
+          if (worldX >= obj.x && worldX <= obj.x + obj.w && worldY >= obj.y && worldY <= obj.y + obj.h) {
+            openObjectInspector(obj);
+            return true;
+          }
+        }
+      }
+
+      closeInspector();
+      return false;
+    }
 
     const POOL_LARGE = { pointers: 0xec0000, data: 0xd90000, size: 16 };
     const POOL_SMALL = { pointers: 0xd80000, data: 0xd10000, size: 8 };
@@ -3769,7 +4432,19 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
     }
 
     function hasAnyActiveOverlay() {
-      return triggersOverlayEnabled || objectsOverlayEnabled || animTilesOverlayEnabled || collisionOverlayEnabled || fogOfWarEnabled;
+      return triggersOverlayEnabled || objectsOverlayEnabled || animTilesOverlayEnabled || collisionOverlayEnabled || fogOfWarEnabled || thinHpBarEnabled || thinStaminaBarEnabled || (inspectedTarget !== null);
+    }
+
+    function setThinHpBar(enabled) {
+      thinHpBarEnabled = !!enabled;
+      checkClearOverlayCanvas();
+      redrawExtendedLayersNow();
+    }
+
+    function setThinStaminaBar(enabled) {
+      thinStaminaBarEnabled = !!enabled;
+      checkClearOverlayCanvas();
+      redrawExtendedLayersNow();
     }
 
     function checkClearOverlayCanvas() {
