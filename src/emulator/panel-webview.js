@@ -2395,12 +2395,21 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         const screenY = layout.emuY + (posY - Math.floor(posZ / 16) - refY) * layout.scaleSnes;
 
         let maxHp = 0;
+        const m = (typeof getModule === 'function') ? getModule() : null;
         if (isBoy) {
-          maxHp = (preState.wram && preState.wram.length > 0x0A36) ? (preState.wram[0x0A35] | (preState.wram[0x0A36] << 8)) : 999;
-          if (!maxHp) maxHp = Math.max(hp, 999);
+          if (m && typeof m.readMemory === 'function') {
+            maxHp = (m.readMemory(0x7E0A35) || 0) | ((m.readMemory(0x7E0A36) || 0) << 8);
+          } else if (preState.wram && preState.wram.length > 0x0A36) {
+            maxHp = preState.wram[0x0A35] | (preState.wram[0x0A36] << 8);
+          }
+          if (!maxHp) maxHp = Math.max(hp, 1);
         } else if (isDog) {
-          maxHp = (preState.wram && preState.wram.length > 0x0A80) ? (preState.wram[0x0A7F] | (preState.wram[0x0A80] << 8)) : 999;
-          if (!maxHp) maxHp = Math.max(hp, 999);
+          if (m && typeof m.readMemory === 'function') {
+            maxHp = (m.readMemory(0x7E0A7F) || 0) | ((m.readMemory(0x7E0A80) || 0) << 8);
+          } else if (preState.wram && preState.wram.length > 0x0A80) {
+            maxHp = preState.wram[0x0A7F] | (preState.wram[0x0A80] << 8);
+          }
+          if (!maxHp) maxHp = Math.max(hp, 1);
         } else {
           const stype = buf[rel + 0x60] | (buf[rel + 0x61] << 8);
           if (stype >= 0x8000 && rom) {
@@ -2415,7 +2424,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         const stamina = buf[rel + 0x2E] | (buf[rel + 0x2F] << 8);
         const maxStamina = Math.max(0x400, stamina);
 
-        const headOffset = (isDog ? 18 : 28) * layout.scaleSnes;
+        const headOffset = (isDog ? 28 : 42) * layout.scaleSnes;
         const barW = Math.max(18, Math.round(24 * layout.scaleSnes));
         const barH = Math.max(2, Math.round(2.5 * layout.scaleSnes));
         const barX = Math.round(screenX - barW / 2);
@@ -2462,7 +2471,9 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         overlayCtx.stroke();
         overlayCtx.restore();
       } else if (inspectedTarget.type === 'trigger') {
-        const box = calculateTriggerBox(inspectedTarget.trigger, trigOffX, trigOffY, layout.camX, layout.camY);
+        const tOffX = layout.trigOffX || 0;
+        const tOffY = layout.trigOffY || 0;
+        const box = calculateTriggerBox(inspectedTarget.trigger, tOffX, tOffY, layout.camX, layout.camY);
         const tx = layout.emuX + (box.posX - layout.camX) * layout.scaleSnes;
         const ty = layout.emuY + (box.posY - layout.camY) * layout.scaleSnes;
         const tw = box.boxW * layout.scaleSnes;
@@ -2583,12 +2594,21 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       const posZ = rawZ >= 0x8000 ? rawZ - 0x10000 : rawZ;
 
       let maxHp = 0;
+      const mInst = (typeof getModule === 'function') ? getModule() : null;
       if (isBoy) {
-        maxHp = (lastSampledPreState.wram && lastSampledPreState.wram.length > 0x0A36) ? (lastSampledPreState.wram[0x0A35] | (lastSampledPreState.wram[0x0A36] << 8)) : 999;
-        if (!maxHp) maxHp = Math.max(hp, 999);
+        if (mInst && typeof mInst.readMemory === 'function') {
+          maxHp = (mInst.readMemory(0x7E0A35) || 0) | ((mInst.readMemory(0x7E0A36) || 0) << 8);
+        } else if (lastSampledPreState.wram && lastSampledPreState.wram.length > 0x0A36) {
+          maxHp = lastSampledPreState.wram[0x0A35] | (lastSampledPreState.wram[0x0A36] << 8);
+        }
+        if (!maxHp) maxHp = Math.max(hp, 1);
       } else if (isDog) {
-        maxHp = (lastSampledPreState.wram && lastSampledPreState.wram.length > 0x0A80) ? (lastSampledPreState.wram[0x0A7F] | (lastSampledPreState.wram[0x0A80] << 8)) : 999;
-        if (!maxHp) maxHp = Math.max(hp, 999);
+        if (mInst && typeof mInst.readMemory === 'function') {
+          maxHp = (mInst.readMemory(0x7E0A7F) || 0) | ((mInst.readMemory(0x7E0A80) || 0) << 8);
+        } else if (lastSampledPreState.wram && lastSampledPreState.wram.length > 0x0A80) {
+          maxHp = lastSampledPreState.wram[0x0A7F] | (lastSampledPreState.wram[0x0A80] << 8);
+        }
+        if (!maxHp) maxHp = Math.max(hp, 1);
       } else {
         if (stype >= 0x8000 && rom) {
           const recOffset = snesToRom(0x8E0000 | (stype + 0x0F));
@@ -2782,9 +2802,11 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
       }
 
       if (cachedTriggers) {
+        const tOffX = (lastLayout && lastLayout.trigOffX) || 0;
+        const tOffY = (lastLayout && lastLayout.trigOffY) || 0;
         const bList = cachedTriggers.bTrigger || [];
         for (let i = 0; i < bList.length; i++) {
-          const box = calculateTriggerBox(bList[i], trigOffX, trigOffY, (lastLayout ? lastLayout.camX : 0), (lastLayout ? lastLayout.camY : 0));
+          const box = calculateTriggerBox(bList[i], tOffX, tOffY, (lastLayout ? lastLayout.camX : 0), (lastLayout ? lastLayout.camY : 0));
           if (worldX >= box.posX && worldX <= box.posX + box.boxW && worldY >= box.posY && worldY <= box.posY + box.boxH) {
             openTriggerInspector('B-Trigger', bList[i]);
             return true;
@@ -2792,7 +2814,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
         }
         const sList = cachedTriggers.stepOn || [];
         for (let i = 0; i < sList.length; i++) {
-          const box = calculateTriggerBox(sList[i], trigOffX, trigOffY, (lastLayout ? lastLayout.camX : 0), (lastLayout ? lastLayout.camY : 0));
+          const box = calculateTriggerBox(sList[i], tOffX, tOffY, (lastLayout ? lastLayout.camX : 0), (lastLayout ? lastLayout.camY : 0));
           if (worldX >= box.posX && worldX <= box.posX + box.boxW && worldY >= box.posY && worldY <= box.posY + box.boxH) {
             openTriggerInspector('Step-on', sList[i]);
             return true;
