@@ -178,3 +178,34 @@ This glitch is most commonly observed when running North while an enemy moves So
   - **Large enemies ($r \ge 16$):** Large hitboxes (Raptors, Megataur, Timberdrake) are 25–39+ px tall, making the boundary too thick to cross into overlap in one subframe without being blocked.
   - **Stationary or fleeing enemies:** If an enemy does not move toward the player, closing speed is limited to the Boy's run speed (2.5–3.0 px/tick). The Boy alone cannot cross an 8-pixel boundary without being blocked at the threshold.
   - **Full-stamina charging enemies:** If an enemy with `mode $4000/$8000` has full stamina (`+0x2E >= $0400`), entering the body box triggers contact damage at `$8FB52C`, interrupting the Boy with knockback unless protected by casting/dodging invulnerability (`mode $20`).
+
+### Is the Dog better at tunneling?
+
+**In casual play: No (worse odds). In a TAS: Yes, significantly (Act 4 Dog is the best tunneling vehicle in the game).**
+
+The Dog has conflicting factors: a much larger body, but radically higher speeds.
+
+| Character | Radius ($r$) | Hitbox vs $r=10$ Enemy | Run Speed N/S (px/tick) | Approach Window Odds ($S_E=2$) | Ticks to Cross Box |
+|---|---|---|---|---|---|
+| **Boy** | 8 | $35 \times 17$ px ($|dy| \le 8$) | 2.50 – 2.75 | $\frac{2}{3+2} = \mathbf{40\%}$ | $\approx 6 - 7$ ticks |
+| **Act 1 Dog** | 16 | $51 \times 25$ px ($|dy| \le 12$) | 4.00 | $\frac{2}{4+2} = \mathbf{33\%}$ | $\approx 6 - 7$ ticks |
+| **Act 4 Dog** | 16 | $51 \times 25$ px ($|dy| \le 12$) | 6.75 – 8.00 | $\frac{2}{8+2} = \mathbf{20\%}$ | $\mathbf{\approx 3 - 4\text{ ticks}}$ |
+
+#### 1. Disadvantage: Larger Hitbox ($r = 16$)
+The Dog's radius is $16$ (double the Boy's $8$). Against a radius 10 enemy, the combined vertical threshold is:
+$$2 \cdot |dy| < 26 \implies |dy| \le 12\text{ px}$$
+The Dog's collision box is **$25$ px tall** (vs the Boy's $17$ px) and **$51$ px wide** (vs $35$ px). Being $47\%$ taller makes the Dog a much larger obstacle that is harder to clear without an overlap state.
+
+#### 2. Casual Play: Worse Random Odds ($P_{\text{spatial}} = \frac{S_E}{S_{\text{dog}} + S_E}$)
+Because the Dog covers larger strides each tick ($4$ or $8$ px per tick):
+- When running at an enemy stepping at $2$ px/tick, the approach step modulo is wider ($6$ or $10$ px).
+- The fixed entry window ($S_E = 2$ px) represents a smaller fraction of the approach stride:
+  - Act 1 Dog ($4.00$ px/tick): $\mathbf{33\%}$ spatial alignment.
+  - Act 4 Dog ($8.00$ px/tick): $\mathbf{20\%}$ spatial alignment.
+- Furthermore, when the Dog is AI-controlled (playing as the Boy), companion AI (`$8FD0B0`) frequently turns, hesitates, sniffs, or stops to charge bite attacks. The Dog will almost never sustain a blind dead-straight sprint through an enemy unless the player manually controls the Dog via `SELECT`.
+
+#### 3. TAS & Crossing Advantage: Act 4 Dog clears the box in 3 ticks
+Once the `$8FB4FD` overlap bypass is primed (which a TAS achieves with $100\%$ determinism via sub-pixel alignment):
+- **Act 4 Dog (Omnitopia Toaster)** moves at **$6.75$ to $8.00$ px/tick** straight North—the fastest vertical displacement in the game.
+- At $8$ px/tick, the Dog traverses the entire $25$ px collision interior in **only 3 to 4 ticks** (compared to 6–7 ticks for the Boy).
+- Clearing the box in half the time drastically minimizes the window in which an enemy can trigger an attack frame, AI redirection, or recovery phase.
