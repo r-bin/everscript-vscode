@@ -238,3 +238,14 @@ the product bug being investigated.
 suite runs every check in one page. And treat the same leak as a real product risk: if
 a code path sets shared state like `_layerForce` without clearing it, the UI shows the
 identical symptom to the user.
+
+## 8. VS Code's own webview stylesheet caps images
+
+Every webview gets a default stylesheet with `img, video { max-width: 100%; max-height: 100% }`.
+An `<img width=W height=H>` wider than its container keeps its height and loses width, so a
+wide map reads as "vertically stretched" (Secret of Mana Maps, v0.205.0). Plain Chromium has no
+such rule, so a headless test passes unless it injects it. Draw map pictures as SVGs sized by
+their `width`/`height` attributes (or set `max-width:none; max-height:none` on purpose), and
+add the rule in DOM tests: `tests/mana/mana-panel-dom.test.js` does
+(`img,video{max-width:100%;max-height:100%}` loaded as a stylesheet file, since the page's CSP
+blocks inline styles).
