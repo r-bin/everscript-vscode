@@ -86,6 +86,11 @@ addition splits them (merging into its own file; opcode families as `ops-*.ts`).
   game's amounts; `loot.test.js` pins one.
 - **The whole inventory layout** falls out of simulating global `0x3e` once per item —
   [knowledge/ram/7e22ff.md](../localizations/knowledge/ram/7e22ff.md).
+- **Scripts a room change cuts off.** `CHANGE MAP` ends every thread, so a script that writes
+  progress on two different ticks can be stopped in between: a reward kept with its
+  "opened" flag never set, or the other way round.
+  `node tools/simulation/exit-cutoff.js` lists them with the nearest exit and its window;
+  the results are in [docs/cheats.md](../../docs/cheats.md#leaving-a-room-cuts-every-running-script).
 
 ## Limits
 

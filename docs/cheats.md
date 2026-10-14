@@ -300,3 +300,85 @@ Once the `$8FB4FD` overlap bypass is primed (which a TAS achieves with $100\%$ d
    BE          : Stop/disable doggo and SELECT button
    ```
    However, if the player separates the party and leaves the Dog outside Nobilia before entering, the Dog is never processed by the desert enter script. As the Boy walks South through the desert and triggers screen wraps, the camera and desert coordinates update, but the Dog remains parked outside Nobilia. Switching to the Dog allows simply walking North into the Nobilia entrance.
+
+## Leaving a room cuts every running script
+
+**A room change ends every script that is running, at once, wherever it is.** Whatever a
+script had not done yet when the map changed never happens. A pickup that hands out its
+reward first and only later records "opened" can be emptied again and again.
+
+### Why it happens
+
+1. **Scripts are threads.** Each field tick, the scheduler (`$8C:CFFD`) runs every
+   script thread once, in run-list order (`$7E2F28`). A trigger, a chest, a door and the
+   room's background scripts all run side by side.
+2. **`CHANGE MAP` (`0x22`) ends all of them.** The scheduler doesn't finish the others
+   first: every thread is dropped and the next room starts in the same tick. The
+   simulation models it this way, and it replays the real game exactly through intro
+   scenes that end in a map change (`tests/simulation/scheduler.test.js`).
+3. **A door waits before it changes the map.** Exits are scripts too:
+
+   | Exit | What it does before `CHANGE MAP` | Window |
+   |---|---|---|
+   | Most doors: global `0x27` (`$92:9FA0`) | fade out, step 2 px forward, `SLEEP 15` | 15 ticks; neither character is stopped |
+   | Omnitopia: their own script, then global `0x2e` (`$92:A010`) | stop both characters, walk both to a point, `SLEEP 47`, fade out, `SLEEP 15` | at least 66 ticks; both are stopped at its first instruction |
+
+   A script that starts inside that window runs only until the map changes.
+4. **Normal pickups have nothing to cut.** Gourds, sniff spots and most chests go through
+   the loot scripts (`0x39`, `0x3a`, `0x3b` → `0x3e`). Those count the item and set the
+   pickup's flag on the same tick. The 19 ticks of a sniff animation come before both.
+
+### How to use it
+
+Start the target script before the exit's map change, and early enough that its reward
+lands first. A way that works: pause-buffer the step into the exit, press SELECT to switch
+to the other character (parked next to the target), and press B on it. Omnitopia exits stop
+both characters on their first instruction, so there the B press has to land on the frame
+the exit fires. That's what the pause buffer is for.
+
+SELECT has to still work. Scripts that start with `0xBC` ("stop the Boy") also disable
+SELECT. The chests below don't use it.
+
+### The most abusable scripts
+
+These scripted chests give first and set their "opened" bit (`$2284`) 134 ticks (2.2 s)
+later, after the jingle. A cut anywhere in those 134 ticks keeps the reward, leaves the
+bit clear, and the chest is full again on the next visit.
+
+| Room | Chest (B-button) | Gives at tick 0 | "Opened" at tick 134 | Nearest exit |
+|---|---|---|---|---|
+| `0x44` Omnitopia Greenhouse | #0 `$9B:889A` | **30 Cryo-Blast** (`$2347`, no cap test) | `$2284` bit 1 | **4 cells**, 66-tick window |
+| `0x47` Omnitopia Storage room | #3 `$9B:8EAB` | 30 Thunder Ball (`$2345`) | `$2284` bit 5 | 50 cells |
+| `0x47` | #1 `$9B:8F1F` | 30 Particle Bomb (`$2346`, capped at 99) | `$2284` bit 7 | 46 cells |
+| `0x47` | #2 `$9B:8EE8` | Protector Ring (`$233F`) | `$2284` bit 6 | 42 cells |
+
+The Greenhouse chest is the practical one: its exit is 4 cells (64 px) away. The storage
+room's only exit is 40–50 cells away from its chests, too far for the other character to
+stand at both. The storage room chests also need the room's light on (`$22E6` bit 5).
+
+### The other way round: items you can lose
+
+Some scripts set the flag first and give later. Cut one off and the chest is spent, but the
+item never arrives:
+
+| Room | Script | "Opened" at tick 0 | Item at tick | Nearest exit |
+|---|---|---|---|---|
+| `0x42` Omnitopia Reactor room | B #1 `$9B:BC51` | `$22E9` bit 1 | Old Reliable, 15 | 1 cell |
+| `0x00` Omnitopia Alarm room | B #0 `$9B:92AD` | `$22E9` bit 0 | Titanium Vest, 15 | 3 cells |
+| `0x46` Professor's lab | B #0 `$9B:C457` | `$2287` bit 5 | Laser Lance, 30 | 36 cells |
+
+They stop the Boy and SELECT at once (`0xBC`), so this only bites when the chest and an exit
+start on the same frame.
+
+### What is and isn't checked
+
+- **Ticks and order:** from the scripts, run by the simulation, whose scheduler matches the
+  real game instruction for instruction. Ticks after an engine wait (`0x2e`: a walk, a text
+  box) are lower bounds.
+- **Not played in the game:** these particular chests. The pause-buffer and SELECT method is
+  a player report. Whether the engine still takes input during the 15-tick door fade has not
+  been checked.
+- **Scope:** every step-on and B-button trigger in all 127 rooms. NPC talk scripts (trades,
+  alchemists) are not scanned yet.
+- **Re-run:** `node tools/simulation/exit-cutoff.js [rom]` lists every script with progress
+  writes on two different ticks, the nearest exit and its window.

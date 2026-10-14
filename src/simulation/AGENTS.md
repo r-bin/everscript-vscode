@@ -47,4 +47,4 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
 - ROM + everscript checkout with `.venv` (`EVERSCRIPT_REPO`): `everscript.test.js` compiles
   every emitted room script and requires identical bytes.
 - Debugger core + ROM: `scheduler.test.js` (records the game headless, replays exactly).
-- `npm run test:simulation` runs all five; `tools/simulation/sweep-rooms.js` analyses every room.
+- `npm run test:simulation` runs all five; `tools/simulation/sweep-rooms.js` analyses every room; `tools/simulation/exit-cutoff.js` lists the scripts a room change cuts off.
