@@ -72,6 +72,14 @@ module.exports = {
     },
 
     {
+      name: 'scripts-tab-no-features',
+      comment: 'The Scripts tab gets the animation renderer (sprites) and the silent music player (music) injected by extension.js; it imports libraries only.',
+      severity: 'error',
+      from: { path: '^src/scripts-tab/' },
+      to: { path: '^src/(sprites|music|rooms|emulator|memory|rom|scaling|routes|docs|debugger|resources|mcp)/' },
+    },
+
+    {
       name: 'no-resources-to-emulator',
       comment: 'The soe:// file system gets the emulator ROM and memory reads injected by extension.js.',
       severity: 'warn',

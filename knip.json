@@ -13,6 +13,7 @@
     "src/sprites/webview/**",
     "src/rom/webview/**",
     "src/music/webview/**",
+    "src/scripts-tab/webview/**",
     "src/docs/**",
     "src/routes/**",
     "src/shared/shared.js",

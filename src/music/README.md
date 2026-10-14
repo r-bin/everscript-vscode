@@ -42,7 +42,9 @@ The radar panel's **Music** tab: one screen (no page scroll) that shows the SNES
   effect data, echo buffer) and how much is free. A tick marks the sample each voice plays.
 
 Facts: everscript `docs/audio_music_sound_formats.md` (driver protocol, packages, ARAM budget).
-Not done yet: the sequence ("script") view, see `docs/todo/audio-and-music.md`.
+The sequence ("script") view is the Scripts tab's Music view (`src/scripts-tab/`), fed by
+`model/track-timeline.js` (`trackSequence`, `trackTimeline`: the track played silently in the
+engine on the host), injected by `extension.js`. Opcodes are still undecoded: `docs/todo/audio-and-music.md`.
 
 ## The driver's own bookkeeping (disassembly of the ROM driver, verified in the engine)
 
@@ -94,6 +96,7 @@ so the read-ahead never blinks empty. What the game will send next it cannot kno
 | `host.js` | The webview's `music*` requests; caches the model per ROM. No `vscode` |
 | `model/rom-audio.js` | ROM tables: driver, packages (upper-half reads), music/sfx → package, script id → sfx |
 | `model/catalog.js` | The model the page gets: tracks, sound effects, package layouts, driver bytes |
+| `model/track-timeline.js` | For the Scripts tab (injected): a track's sequence records, and the track played silently on the host (notes per voice) |
 | `render-music-tab.js` | The pane scaffold |
 | `engine/spc-engine.c`, `build-engine.sh` | The engine's C side; `build-engine.sh` (`npm run build:music-engine`) writes `spc-engine.js` (wasm embedded, 43 KB) |
 | `engine/copyright`, `engine/NOTICE.md` | Licence terms shipped with the engine (blargg's SPC code is LGPL-2.1, inside the snes9x2005 core) |

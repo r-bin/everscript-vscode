@@ -61,6 +61,7 @@ of:
 | `docs/architecture/domain-overview.md` | Which `src/` domains to load for a given task |
 | `tools/recomp/` | `room-nav.js` (room triggers/spawns → headless script lines), `check-obj-tiles.js`, `s9x-run.js` (same script on snes9x); `npm run recomp`: CDL + names + assets → Asar (byte-identical) + Mesen2 files → snesrecomp host project (`out/recomp/project/`, generated) + our glue (`tools/recomp/host/`, the only game-specific host files in git) → playable `out/recomp/SecretOfEvermore-<os>-<arch>/` + `REPORT.md`; `npm run recomp:lockstep`: that game vs snes9x |
 | `scripts/` | Shell wrappers for the npm commands: `build-plugin.sh`, `test.sh`, `build-recomp.sh`, `play-recomp.sh`, `lockstep.sh`, `release.sh` (see `scripts/README.md`) |
+| `src/scripts-tab/` | Scripts tab (radar): Everscript + map, animation and alchemy scripts + animation, music sequences + silent player — not `src/script/` (the decoder) |
 | `simulation/` | Design notes for the simulation; the code is `src/simulation/` (scenarios, loot cases, byte-identical Everscript; `npm run test:simulation`) |
 
 Full domain map (post v0.6.0 `src/` refactor): see `src/README.md`.

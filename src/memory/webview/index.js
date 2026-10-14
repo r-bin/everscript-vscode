@@ -12,6 +12,7 @@ const docsDir    = path.join(__dirname, '../../docs');
 const routesDir  = path.join(__dirname, '../../routes');
 const romDir     = path.join(__dirname, '../../rom/webview');
 const musicDir   = path.join(__dirname, '../../music/webview');
+const scriptsDir = path.join(__dirname, '../../scripts-tab/webview');
 
 const fileCache = new Map();
 
@@ -35,7 +36,7 @@ function inject(text, placeholder, content) {
   return text.replace(placeholder, () => content);
 }
 
-function buildMainJs({ jsData, roomsData, scalingData, spritesData, roomsJs, scalingJs, spritesJs, docsJs, routeJs, rngJs, romJs, musicJs }) {
+function buildMainJs({ jsData, roomsData, scalingData, spritesData, roomsJs, scalingJs, spritesJs, docsJs, routeJs, rngJs, romJs, musicJs, scriptsJs }) {
   let out = loadFile(path.join(sharedDir, 'shared.js'));
   for (const [placeholder, content] of [
     ['__JS_DATA__', jsData],
@@ -50,6 +51,7 @@ function buildMainJs({ jsData, roomsData, scalingData, spritesData, roomsJs, sca
     ['__RNG_JS__', rngJs],
     ['__ROM_JS__', romJs || ''],
     ['__MUSIC_JS__', musicJs || ''],
+    ['__SCRIPTS_JS__', scriptsJs || ''],
   ]) {
     out = inject(out, placeholder, content);
   }
@@ -172,7 +174,8 @@ module.exports = {
     + loadFile(path.join(roomsDir, 'rooms-layout.css')) + '\n'
     + loadFile(path.join(spritesDir, 'sprites-layout.css')) + '\n'
     + loadFile(path.join(romDir, 'rom-tab.css')) + '\n'
-    + loadFile(path.join(musicDir, 'music-tab.css')),
+    + loadFile(path.join(musicDir, 'music-tab.css')) + '\n'
+    + loadFile(path.join(scriptsDir, 'scripts-tab.css')),
   get scalingJs() { return loadScalingJs(); },
   get roomsJs() { return loadRoomsJs(); },
   get spritesJs() { return loadFile(path.join(spritesDir, 'sprites-lazy.js')) + '\n' + loadFile(path.join(spritesDir, 'sprites-script.js')) + '\n' + loadFile(path.join(spritesDir, 'sprites-motion.js')) + '\n' + loadFile(path.join(spritesDir, 'sprites-view.js')); },
@@ -186,5 +189,8 @@ module.exports = {
   musicJs: [path.join(musicDir, '..', 'engine', 'spc-engine.js')]
     .concat(['music-view.js', 'music-engine.js', 'music-audio.js', 'music-tab.js', 'music-timeline.js', 'music-hover.js', 'music-forecast.js', 'music-lists.js', 'music-init.js'].map(function(f) { return path.join(musicDir, f); }))
     .map(loadFile).join('\n'),
+  // scripts-tab.js declares _scr, scripts-init.js binds and runs last.
+  scriptsJs: ['scripts-tab.js', 'scripts-room.js', 'scripts-anim.js', 'scripts-music.js', 'scripts-init.js']
+    .map(function(f) { return loadFile(path.join(scriptsDir, f)); }).join('\n'),
   buildMainJs,
 };

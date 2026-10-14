@@ -10,7 +10,8 @@
 The Radar's **Music** tab (`src/music/`) visualizes voices, instruments, sound effects, and ARAM, but not the active song sequence itself. The Wolfgang v3 sequence bytecode interpreter needs reverse engineering to accurately display upcoming notes and track playback.
 
 ### 1.1 Verified Knowledge
-- Each music package writes a 2-byte pointer at `$2E00+` to its sequence (e.g. Main Title: `$2EB8` → `$C231`).
+- Each music package writes a 2-byte pointer at `$2E00+` to its sequence (e.g. Main Title: `$2EB8` → `$C231`). Package P writes it at `$2EB6 + 2P`, for all 70 tracks; the header is the record uploaded to that address, each track its own record (`src/music/model/track-timeline.js` `trackSequence`, test `tests/memory/scripts-tab.test.js`).
+- The Scripts tab's Music view shows those bytes with `≥ $F0` marked, and plays the track silently in the tab's engine (notes read off the DSP envelopes per frame; the engine's view has no key-on bit, so a retrigger without a silent gap shows only as an envelope jump).
 - The sequence starts with a track count followed by 2-byte track pointers (e.g. Main Title: `08`, then `$C242 $C269 $C2A7 $C2E6 $C2FC $C319 $C349 $C373`).
 - Tracks run up to the end of the package's final record (`$C3A9`).
 - Driver reads sequence bytes on timer ticks (~1,983 bytes in 30s during Main Title playback).

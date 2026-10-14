@@ -161,6 +161,7 @@ function radarItemIcons() {
 const roomTree = require('./rooms');
 const { handlesRomMessage, handleRomMessage } = require('./rom');
 const { handlesMusicMessage, handleMusicMessage } = require('./music');
+const { handlesScriptsMessage, handleScriptsMessage } = require('./scripts-tab');
 const { findRoomImage, parseRoomContent, collectRoomsFromDir, buildRoomTree, renderVanillaTree, renderRoomsTree, buildRoomsJson, setRoomImageUris, buildRoomTileOverlay, buildRoomMetatilePalette, buildComposedPreview, buildBlankRoom, buildDraftCollision, buildExportRom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews, decoIndex, decoCells, buildDecoPreviews, buildWidgetPreviews, buildConstructGhost, relatedTiles, neighbourTiles, vanillaExamples, proceduralFill, handlesCustomMapMessage, handleCustomMapMessage } = roomTree;
 
 const romReaders = require('./shared/rom-readers');
@@ -843,6 +844,24 @@ function activate(context) {
                         apu: require('./emulator/panel').apuStream,
                         describeSource: (rom, src) => require('./resources/sound-source').describeSoundSource(rom, src),
                         open: (uri) => vscode.commands.executeCommand('vscode.open', vscode.Uri.parse(uri)),
+                    });
+                } else if (handlesScriptsMessage(msg.command)) {
+                    // The Scripts tab (src/scripts-tab/README.md). The animation
+                    // renderer and the silent music player belong to the
+                    // Characters and Music tabs; they are injected here so the
+                    // scripts-tab domain never imports another feature.
+                    const _ws = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+                    const music = require('./music');
+                    handleScriptsMessage(msg, {
+                        post: (m) => _radarPanel?.webview.postMessage(m),
+                        loadRom: () => romReaders.loadRomBuffer(_ws, getExtConfig().romPath || ''),
+                        animations: (rom) => getSpritesBundle(rom).animations,
+                        renderAnimation,
+                        music: {
+                            list: (rom) => { const m = music.buildMusicModel(rom); return m.error ? [] : m.music; },
+                            sequence: music.trackSequence,
+                            timeline: music.trackTimeline,
+                        },
                     });
                 } else if (handlesRomMessage(msg.command)) {
                     // The ROM tab: map of every bank, CDL coverage, readers

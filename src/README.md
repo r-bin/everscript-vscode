@@ -16,6 +16,7 @@ All production code lives here. Each subdirectory is an ownership domain.
 | `script/` | Everscript bytecode decoder, ported from SoEScriptDumper (TypeScript, pure) |
 | `simulation/` | Runs scripts symbolically: loot cases, room scenarios + flag tree, NPC tracking, clusters, byte-identical Everscript (TypeScript, pure) |
 | `rom/` | ROM tab: every bank's content, gaps and CDL coverage, measured from the ROM |
+| `scripts-tab/` | Scripts tab: Everscript (room scripts + map, simulation toggle, clusters), animation and alchemy scripts with their animation, music sequences with a silent player |
 | `music/` | Music tab: the sound chip live from the emulator or playing a track in its own engine; voices, instruments, sound effects, ARAM |
 | `debugger/` | VS Code debugger for .evs scripts in the emulator: DAP session, compiler source map, step logic |
 | `localizations/` | Centralized subjective names (maps, sounds, tables, functions) & ROM string resolution |
@@ -30,6 +31,7 @@ Entry point: `extension.js` (orchestration root, registered as `main` in package
 - `language/` → no debugger, no emulator, no memory UI
 - `memory/` → may use `shared/`, `docs/`, `rooms/`, `maps/`, `rom/`
 - `rom/` → may use `maps/`; never `emulator/` (the CDL library is injected by `extension.js`)
+- `scripts-tab/` → libraries only (`script/`, `maps/`, `localizations/`, `simulation/`); sprites and music capabilities are injected by `extension.js`
 - `music/` → may use `localizations/`; never `emulator/` (the sound-chip stream is injected by `extension.js`)
 - `emulator/` → may use `shared/`
 - `debugger/` → no memory, no emulator internals (the emulator bridge is injected by `extension.js`)

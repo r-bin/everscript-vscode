@@ -26,7 +26,7 @@ depend on.
 |---|---|---|
 | **Library** (pure, no `vscode`, no UI) | `shared`, `maps`, `script`, `localizations` | other libraries only (`shared` depends on nothing) |
 | **Platform** (VS Code integration, no tab UI) | `resources` (soe:// VFS), `mcp`, `language`, `debugger` | libraries; `mcp` only `vscode.workspace.fs` |
-| **Feature** (a tab or panel) | `emulator`, `memory` (radar host), `rooms`, `sprites`, `music`, `rom`, `scaling`, `routes`, `docs` | libraries, platform read APIs (`soe://`) |
+| **Feature** (a tab or panel) | `emulator`, `memory` (radar host), `rooms`, `sprites`, `music`, `scripts-tab`, `rom`, `scaling`, `routes`, `docs` | libraries, platform read APIs (`soe://`) |
 
 `src/extension.js` is the composition root: it registers commands and injects
 cross-feature capabilities (e.g. the emulator's `readMemory` into `resources`). It owns no
