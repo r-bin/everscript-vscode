@@ -47,6 +47,14 @@ function scenario(s: Scenario, i: number): string[] {
     if (s.either.length) out.push(`Holds either way: ${s.either.join(', ')}.`, '');
     out.push('**Prepare** (before the screen fades in)', '', ...parts(s.prepare, ''), '');
     out.push('**Execute**', '', ...(s.execute.length ? parts(s.execute, '') : ['- (nothing after the fade-in)']), '');
+    if (s.background.length) {
+        out.push('**Running alongside** (scripts the room starts; each runs at the tick the game runs it)', '');
+        for (const b of s.background) {
+            out.push(`- slot ${b.slot.toString(16)}: from ${b.started}${b.ended ? ` to ${b.ended}` : ', still running at the end'}`);
+            out.push(...parts(b.parts, '  ').slice(0, 12));
+        }
+        out.push('');
+    }
     const npcs = s.entities.map((e) => `| ${e.label} | ${e.x ?? '?'}, ${e.y ?? '?'} | ${e.refs.map(ramHex).join(' ') || '—'} | ${e.whenText} |`);
     if (npcs.length) out.push('| NPC | at | RAM | when |', '|---|---|---|---|', ...npcs);
     return out;

@@ -16,6 +16,7 @@
 
 import { Sym, c, bin, un, bit, truthy, key, ramHex } from './sym';
 import { Memory, SAVE_BASE, TEMP_BASE, flagAddr } from './memory';
+import { rngBelow } from './rng';
 
 export interface EvalContext {
     mem: Memory;
@@ -29,6 +30,10 @@ export interface EvalContext {
     owner: Sym;
     /** A value nothing in the model determines, named for the report. */
     fresh(name: string): Sym;
+    /** The game timer's low (`$0B19`) or high (`$0B1B`) word now. */
+    timer?(high: boolean): Sym;
+    /** One draw of the game's RNG ($80:859B), advancing its state in WRAM. */
+    random?(): Sym;
 }
 
 export interface Operand {
@@ -134,8 +139,13 @@ export function evalOperand(rom: Uint8Array, at: number, toFile: (snes: number) 
                 case 0x15: res = un('~', res); src = `~${src}`; break;
                 case 0x16: res = un('-', res); src = `-${src}`; break;
                 case 0x29: ctx.stack.push(res); srcStack.push(src); break;
-                case 0x2a: res = ctx.fresh('random'); src = 'random()'; break;
-                case 0x2b: res = ctx.fresh(`random below ${key(res)}`); src = `randrange(${src})`; break;
+                case 0x2a: res = ctx.random ? ctx.random() : ctx.fresh('random'); src = 'random()'; break;
+                case 0x2b: {
+                    const r = ctx.random ? ctx.random() : ctx.fresh('random');
+                    res = r.k === 'c' && res.k === 'c' ? c(rngBelow(r.v, res.v)) : ctx.fresh(`random below ${key(res)}`);
+                    src = `randrange(${src})`;
+                    break;
+                }
                 case 0x2c: res = ctx.fresh(`dialog choice`); src = `dialog_response(${src})`; break;
                 case 0x54: { const i = u8(); res = ctx.fresh(`script data ${hx(i, 2)}`); src = `script[${hx(i, 2)}]`; break; }
                 case 0x55: case 0x56: {
@@ -146,7 +156,7 @@ export function evalOperand(rom: Uint8Array, at: number, toFile: (snes: number) 
                     break;
                 }
                 case 0x57: res = { k: 'atom', name: 'dog is controlled', volatile: false }; src = 'DOG_ACTIVE'; break;
-                case 0x58: case 0x59: res = ctx.fresh('game timer'); src = 'timer()'; break;
+                case 0x58: case 0x59: res = ctx.timer ? ctx.timer(op === 0x59) : ctx.fresh('game timer'); src = op === 0x58 ? 'time0()' : 'time2()'; break;
                 case 0x5a: case 0x5b: res = ctx.fresh('shop result'); src = 'shop()'; break;
                 case 0x5c: res = ctx.fresh(`${key(res)} dies to next hit`); src = `dead(${src})`; break;
                 default:

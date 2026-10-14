@@ -47,10 +47,10 @@ export interface ScriptAnalysis {
 
 export function analyzeScript(m: Machine, entry: number, pins: readonly Pin[] = PINS_BETWEEN_PICKUPS): ScriptAnalysis {
     // Every outcome apart if that is affordable; else let helpers merge; else merge everything.
-    let res = simulate(m, entry, { pins, maxPaths: 96, maxSteps: 40000 });
+    let res = simulate(m, entry, { pins, maxPaths: 96, maxSteps: 150000, maxTicks: 600, abstractVisual: true });
     let detail: ScriptAnalysis['detail'] = 'every path';
-    if (res.capped) { res = simulate(m, entry, { pins, rejoin: true, joinDepth: 1, maxPaths: 96, maxSteps: 40000 }); detail = 'helpers merged'; }
-    if (res.capped) { res = simulate(m, entry, { pins, rejoin: true, maxPaths: 96, maxSteps: 60000 }); detail = 'all branches merged'; }
+    if (res.capped) { res = simulate(m, entry, { pins, rejoin: true, joinDepth: 1, maxPaths: 96, maxSteps: 150000, maxTicks: 600, abstractVisual: true }); detail = 'helpers merged'; }
+    if (res.capped) { res = simulate(m, entry, { pins, rejoin: true, maxPaths: 96, maxSteps: 150000, maxTicks: 600, abstractVisual: true }); detail = 'all branches merged'; }
     const paths = res.paths;
     const loots = paths.map((p) => lootOutcome(p, m.dec));
     const maps = paths.map((p) => firstMap(p));

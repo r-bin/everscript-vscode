@@ -28,6 +28,28 @@ require('./src/simulation').roomReport(sim.room(0x25));   // Markdown
 `soe://rom/assets/scripts/rooms/<id>/simulation.md`, `simulation.json` and `decompiled.evs`
 serve the same for AI clients.
 
+## Time: every thread at the tick the SNES runs it
+
+Scripts the room starts (`0x07`/`0xb4`) run alongside the enter script, interleaved exactly as
+the game's scheduler (`$8C:CFFD`, see `knowledge/rom/8ccffd.md`) interleaves them: one pass per
+tick in run-list order, a started script joining the same pass, calls and returns costing no
+tick, `YIELD` one tick, `SLEEP n` max(1, n−1) ticks, `CHANGE MAP` ending everything, slots
+allocated as the game allocates them, the game's own RNG (`rng.ts`).
+
+Two things are decided by the engine, not by scripts: how long a `0x2e` wait takes (a walk, a
+text box, the camera) and how many random numbers the engine drew between passes. Given them —
+a trace or a snapshot of the real game (`snapshot.ts`, options `engineWait` / `rngAtTick`) — the
+simulation is indistinguishable from the game: `tests/simulation/scheduler.test.js` records the
+real game headless (`tools/simulation/trace-scripts.js`) and requires every simulated
+instruction to match its tick, slot and address (5338 of 5338).
+
+Without them, each `0x2e` wait is an event at an unknown tick (`time.ts`): orders the outcome
+depends on are forked and recorded like any other condition; orders it does not depend on are
+not (`por.ts`: turns that touch different WRAM and different engine resources commute). For
+room analysis (`abstractVisual`), threads that can only move and animate entities
+(`reach.ts`) run without timing forks, and paths that differ only in their phase merge; rooms
+are followed for 5 seconds of game time (`ROOM_HORIZON`). Both are reported.
+
 ## How it works
 
 | File | Does |
@@ -39,6 +61,11 @@ serve the same for AI clients.
 | `state.ts` | A path: pc, frames, WRAM, assumptions, trace, placed NPCs; merging two paths. |
 | `explore.ts` | Runs a script to every end. *Paths* mode keeps every outcome apart; *rejoin* mode merges sides of a branch at its join (`cfg.ts`) — or, inside a call, at the return — so independent `if`s do not multiply. |
 | `cfg.ts` | Control-flow graph and immediate post-dominators: where a branch's sides meet. |
+| `time.ts` | Ticks and engine events: difference constraints, projection and join for merging. |
+| `por.ts` | Footprints of a turn (WRAM read/written, engine resources) and when two turns commute. |
+| `reach.ts` | What a thread can ever do: recognises visual-only threads. |
+| `rng.ts` | The game's random number generator `$80:859B` and `randrange`. |
+| `snapshot.ts` | Start from a moment of the real game: WRAM, slots, run list. |
 | `understand.ts` | WRAM diff → changes (`+= n`, flag bits, stores) and loot outcomes. |
 | `trigger.ts` | A small script as cases; falls back to merging when it is too branchy, and says so in `detail`. |
 | `segments.ts` | A trace → parts (place NPC, objects, transition, dialog, …); prepare/execute split. |
@@ -47,7 +74,10 @@ serve the same for AI clients.
 | `report.ts` | Markdown report, JSON summary, room Everscript. |
 
 `sym.ts` is ~330 lines: the value algebra, its memoisation and size bound interlock (every
-constructor uses them), so splitting it would only scatter one set of rules.
+constructor uses them), so splitting it would only scatter one set of rules. `state.ts`
+(~400) is the path and its merge operations, which must see every field; `step.ts` (~340)
+is the instruction semantics, one case per opcode family. Both are at the limit: the next
+addition splits them (merging into its own file; opcode families as `ops-*.ts`).
 
 ## What it found
 
@@ -62,6 +92,8 @@ constructor uses them), so splitting it would only scatter one set of rules.
 - Opaque instructions (movement, text, sprites, …) are recorded, not modelled; if one
   writes WRAM the simulation does not know.
 - Currency comparisons (`0x0a/0x0b/0x8e/0x8f`) fork on a named unknown rather than on money.
-- Async calls are listed, not run alongside.
+- Engine waits and the engine's RNG draws are unknown without a trace (see Time above).
+- Room analysis stops at 5 s of game time and at a step budget; capped rooms say so.
+  `node tools/simulation/sweep-rooms.js` lists every room's state.
 - ~18% of room scripts have a condition with no exact Everscript spelling yet; those are
   emitted as raw `code(...)` (still identical bytes).

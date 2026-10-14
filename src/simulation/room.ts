@@ -12,9 +12,12 @@ import { Pin } from './memory';
 import { Machine } from './machine';
 import { simulate, SimPath } from './explore';
 import { SimEntity } from './state';
-import { segment, splitPrepareExecute, Part } from './segments';
+import { segment, splitPrepareExecute, stepsOfThread, threadsOf, Part } from './segments';
 import { analyzeScript, ScriptAnalysis, Condition } from './trigger';
 import { describeCondition, PINS_BETWEEN_PICKUPS } from './understand';
+
+/** How much game time a room's enter script is followed for: 5 seconds. Reported, never hidden. */
+export const ROOM_HORIZON = 300;
 
 export interface Scenario {
     /** Conditions that select it, in the order the script tests them. */
@@ -24,6 +27,12 @@ export interface Scenario {
     prepare: Part[];
     execute: Part[];
     entities: Array<SimEntity & { whenText: string }>;
+    /**
+     * Scripts the room starts that run alongside the enter script (0x07): when
+     * each started and ended, in ticks, and what it did. Runs at the tick the
+     * game runs it (explore.ts; checked against the game by scheduler.test.js).
+     */
+    background: Array<{ slot: number; started: string; ended: string | null; parts: Part[] }>;
     /** How many raw paths it stands for. */
     merged: number;
     end: string;
@@ -79,12 +88,12 @@ function isMajor(p: Part): boolean {
 }
 
 export function analyzeRoom(m: Machine, mapId: number, tables: RoomTables, pins: readonly Pin[] = PINS_BETWEEN_PICKUPS): RoomAnalysis {
-    const sim = simulate(m, tables.enter.scriptAddressSnes, { pins, rejoin: true, maxPaths: 2048 });
+    const sim = simulate(m, tables.enter.scriptAddressSnes, { pins, rejoin: true, maxPaths: 1024, maxSteps: 600000, maxTicks: ROOM_HORIZON, abstractVisual: true });
     const scenarios: Scenario[] = [];
     const seen = new Map<string, Scenario>();
     for (const path of sim.paths) {
         if (path.end === 'recursion' || path.end === 'budget') continue;
-        for (const v of expand(segment(path.steps), [])) {
+        for (const v of expand(segment(stepsOfThread(path.steps, 0)), [])) {
             const s = scenario(m, path, v.parts, v.when);
             // Paths that differ only below what a scenario shows are one scenario.
             const sig = s.when.map((w) => w.text).join('&') + '|' + [...s.prepare, ...s.execute].map((p) => p.title).join(';') +
@@ -108,6 +117,9 @@ export function analyzeRoom(m: Machine, mapId: number, tables: RoomTables, pins:
     function scenario(mm: Machine, path: SimPath, parts: Part[], extra: Condition[]): Scenario {
         const when = [...path.assumptions.filter((a) => a.depth === 0).map((a) => ({ cond: a.cond, value: a.value, text: describeCondition(a.cond, a.value, mm.dec) })), ...extra];
         const split = splitPrepareExecute(parts);
+        // Thread 0 is the enter script; every other one was started while the room ran.
+        const background = threadsOf(path.steps).filter((t) => t.tid !== 0)
+            .map((t) => ({ slot: t.slot, started: t.started, ended: t.ended, parts: segment(stepsOfThread(path.steps, t.tid)) }));
         const known = new Map(when.map((w) => [key(w.cond), w.value] as [string, boolean]));
         const present = path.entities
             .map((e) => ({ ...e, when: under(e.when, known) }))
@@ -115,6 +127,7 @@ export function analyzeRoom(m: Machine, mapId: number, tables: RoomTables, pins:
         return {
             when, either: path.either.map((e) => describeCondition(e, true, mm.dec)), ...split,
             entities: present.map((e) => ({ ...e, whenText: isC(e.when) ? 'always' : key(e.when) })),
+            background,
             merged: path.merged, end: path.end,
         };
     }
@@ -133,8 +146,10 @@ export function analyzeRoom(m: Machine, mapId: number, tables: RoomTables, pins:
 }
 
 /** The binary tree of the conditions that tell scenarios apart. */
-export function flagTree(items: Array<{ when: Condition[]; i: number }>): FlagNode {
-    if (items.length <= 1) return { scenarios: items.map((x) => x.i) };
+export function flagTree(items: Array<{ when: Condition[]; i: number }>, depth = 0): FlagNode {
+    // Scenarios that do not test a condition sit on both sides of it, so the tree can
+    // grow fast: past a depth, the rest is listed rather than split further.
+    if (items.length <= 1 || depth >= 10) return { scenarios: items.map((x) => x.i) };
     const ck = (c: Condition): string => key(c.cond);
     // Split on the first condition that some scenarios assume true and others false.
     for (const c of items[0].when.concat(...items.map((x) => x.when))) {
@@ -143,7 +158,7 @@ export function flagTree(items: Array<{ when: Condition[]; i: number }>): FlagNo
         if (!yes.length || !no.length) continue;
         const rest = items.filter((x) => !yes.includes(x) && !no.includes(x));
         const strip = (xs: typeof items) => xs.map((x) => ({ i: x.i, when: x.when.filter((w) => ck(w) !== ck(c)) }));
-        return { cond: { ...c, value: true, text: c.value ? c.text : c.text.replace(/^not /, '') }, then: flagTree(strip([...yes, ...rest])), else: flagTree(strip([...no, ...rest])) };
+        return { cond: { ...c, value: true, text: c.value ? c.text : c.text.replace(/^not /, '') }, then: flagTree(strip([...yes, ...rest]), depth + 1), else: flagTree(strip([...no, ...rest]), depth + 1) };
     }
     return { scenarios: items.map((x) => x.i) };
 }

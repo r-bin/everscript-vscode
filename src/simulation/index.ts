@@ -41,6 +41,8 @@ export type { Pin } from './memory';
 export type { Part } from './segments';
 export type { RoomAnalysis, Scenario, FlagNode, Cluster, RoomTriggerAnalysis } from './room';
 export { roomReport, roomSummary, roomEverscript } from './report';
+export { pathFromMoment } from './snapshot';
+export type { GameMoment } from './snapshot';
 export type { EmittedScript, Neutral } from './everscript';
 export type { Sym } from './sym';
 export type { SimResult, SimPath, SimOptions } from './explore';

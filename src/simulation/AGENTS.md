@@ -34,6 +34,11 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
   keep `bounded()` on every constructor that nests.
 - `emitScript` output must compile to the ROM bytes; anything without an exact spelling is
   raw `code(...)`, never an approximation.
+- The scheduler model is the game's (`knowledge/rom/8ccffd.md`); change it only with
+  `scheduler.test.js` passing — it replays the real game instruction by instruction.
+- Exact runs (trace/snapshot, oracles) never use `abstractVisual`; analysis runs say when they
+  did, and every unknown timing order that matters is a recorded condition.
+- Budgets (steps, ticks, paths) end runs as `capped`/`horizon`, never silently.
 
 ## Tests
 - Unit: `tests/simulation/sim-units.test.js` (no ROM).
@@ -41,4 +46,5 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
   decoded loot), `room.test.js` (Fire Eyes' Village; layout over every room).
 - ROM + everscript checkout with `.venv` (`EVERSCRIPT_REPO`): `everscript.test.js` compiles
   every emitted room script and requires identical bytes.
-- `npm run test:simulation` runs all four.
+- Debugger core + ROM: `scheduler.test.js` (records the game headless, replays exactly).
+- `npm run test:simulation` runs all five; `tools/simulation/sweep-rooms.js` analyses every room.

@@ -107,5 +107,38 @@ test('an increment is read as "+= n", a flag change as bits', () => {
     assert.strictEqual(sim.key(ch[1].amount), '3');
 });
 
+// ── time: the game's scheduler ($8C:CFFD) ──────────────────────────────────
+
+/** Bytes at AT, more bytes at AT + 0x10. */
+function simWith2(main, other) {
+    const rom = new Uint8Array(0x400000);
+    rom.set(main, script.snesToRom(AT));
+    rom.set(other, script.snesToRom(AT + 0x10));
+    return sim.createSimulator(rom);
+}
+/** The packed script pointer of AT + 0x10 ($948010 → 0x010010). */
+const PTR = [0x10, 0x00, 0x01];
+
+test('a started script (0x07) runs in the same tick, after its starter\'s turn', () => {
+    // main: start other; $2391 = 1; END     other: $2393 = 2; END
+    const S = simWith2([0x07, ...PTR, 0x18, 0x39, 0x01, 0xb1, 0x00], [0x18, 0x3b, 0x01, 0xb2, 0x00]);
+    const p = S.run(AT, { log: true }).paths[0];
+    assert.deepStrictEqual(p.log.map(([t, slot, pc]) => [t, slot.toString(16), (pc - AT).toString(16)]),
+        [[0, '28fc', '0'], [0, '28fc', '4'], [0, '28fc', '8'], [0, '294b', '10'], [0, '294b', '14']]);
+});
+
+test('SLEEP n wakes max(1, n-1) ticks later; n = 0 does not pause', () => {
+    for (const [n, tick] of [[0, 0], [1, 1], [2, 1], [5, 4]]) {
+        const p = simWith([0xa7, n, 0x18, 0x39, 0x01, 0xb1, 0x00]).run(AT, { log: true }).paths[0];
+        assert.strictEqual(p.log[1][0], tick, `SLEEP ${n}`);
+    }
+});
+
+test('YIELD ends the turn for exactly one tick; a call costs none', () => {
+    // main: YIELD; RCALL-free: CALL other (0x29); END     other: END
+    const p = simWith2([0x3a, 0x29, ...PTR, 0x00], [0x00]).run(AT, { log: true }).paths[0];
+    assert.deepStrictEqual(p.log.map(([t]) => t), [0, 1, 1, 1]);
+});
+
 console.log(`\nsim-units: ${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

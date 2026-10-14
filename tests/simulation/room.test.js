@@ -33,13 +33,16 @@ function treeConds(n, out = new Set()) {
     return out;
 }
 
-test("Fire Eyes' Village: the flag tree splits on credits, outro, the Thraxx nudge and the windwalker", () => {
+test("Fire Eyes' Village: scenarios split on credits, outro, the windwalker and the Thraxx nudge", () => {
     const conds = treeConds(fe.flags);
-    for (const k of ['$22f2&0x01', '$22f1&0x40', '($2260&0x10 && !($225f&0x80))', '($22ec&0x20 && !($22dc&0x08))']) {
+    for (const k of ['$22f2&0x01', '$22f1&0x40', '($22ec&0x20 && !($22dc&0x08))']) {
         assert.ok(conds.has(k), `missing ${k} in ${[...conds].join(', ')}`);
     }
+    // The nudge has one side only: "not nudged" ends the same way as "nudged already
+    // this session" ($245f), so those merged; the scenarios that show it carry it.
+    assert.ok(fe.scenarios.some((s) => s.when.some((w) => sim.key(w.cond) === '($2260&0x10 && !($225f&0x80))' && w.value)));
     assert.ok(!fe.capped);
-    assert.ok(fe.scenarios.length >= 8 && fe.scenarios.length <= 32, `${fe.scenarios.length} scenarios`);
+    assert.ok(fe.scenarios.length >= 5 && fe.scenarios.length <= 32, `${fe.scenarios.length} scenarios`);
 });
 
 const plain = fe.scenarios.find((s) => s.when.every((w) => !w.value));
@@ -84,19 +87,22 @@ test('the report renders', () => {
     assert.ok(md.includes('## Flag tree') && md.includes('**Prepare**') && md.includes('### loot: 20 pickups'));
 });
 
-test('every room simulates, and the operand layout agrees with the decoder everywhere', () => {
+test('every room script runs through the simulation, and the operand layout agrees with the decoder everywhere', () => {
+    // Small budgets: this checks that every reachable instruction is executed with the
+    // right layout, not the analysis itself (tools/simulation/sweep-rooms.js does that).
     const all = sim.createSimulator(rom);
-    let scenarios = 0, triggers = 0, capped = 0;
+    const script = require('../../src/script');
+    let scripts = 0;
     for (let id = 0; id < 0x7f; id++) {
-        const r = all.room(id);
-        scenarios += r.scenarios.length;
-        triggers += r.triggers.length;
-        if (r.capped) capped++;
+        const m = script.buildRoomScriptModel(rom, id);
+        for (const t of [m.enter, ...m.stepOn, ...m.bTrigger]) {
+            all.run(t.scriptAddressSnes, { maxSteps: 4000, maxTicks: 60, maxPaths: 64, rejoin: true, abstractVisual: true });
+            scripts++;
+        }
     }
-    console.log(`    ${scenarios} scenarios, ${triggers} triggers, ${capped} rooms capped`);
     const errors = [...all.machine.layoutErrors.entries()].map(([a, e]) => `${a.toString(16)} op ${e.opcode.toString(16)} ${e.ours}/${e.decoder}`);
+    console.log(`    ${scripts} scripts run`);
     assert.deepStrictEqual(errors, []);
-    assert.strictEqual(capped, 0);
 });
 
 console.log(`\nsimulation room: ${passed} passed, ${failed} failed`);

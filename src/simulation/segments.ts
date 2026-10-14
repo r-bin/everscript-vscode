@@ -36,6 +36,39 @@ const hx = (v: number, d = 2): string => '0x' + v.toString(16).padStart(d, '0');
 /** Global scripts that mark the screen becoming visible (see the README). */
 const FADE_IN = [/^Fade-in/, /^Unnamed Global script 0x36$/, /cinematic/i];
 
+/** The steps of one thread (by its uid), branches included. */
+export function stepsOfThread(steps: readonly Step[], tid: number): Step[] {
+    const out: Step[] = [];
+    for (const st of steps) {
+        if (st.kind === 'event') { if (st.event.tid === tid) out.push(st); continue; }
+        if (st.kind === 'branch') {
+            const then = stepsOfThread(st.then, tid), other = stepsOfThread(st.else, tid);
+            if (then.length || other.length) out.push({ ...st, then, else: other });
+            continue;
+        }
+        out.push(st);
+    }
+    return out;
+}
+
+/** Every thread a trace shows, in order of first appearance: slot, first and last tick, how it ended. */
+export function threadsOf(steps: readonly Step[]): Array<{ tid: number; slot: number; started: string; ended: string | null; events: number }> {
+    const seen = new Map<number, { tid: number; slot: number; started: string; ended: string | null; events: number }>();
+    const walk = (ss: readonly Step[]): void => {
+        for (const st of ss) {
+            if (st.kind === 'branch') { walk(st.then); walk(st.else); continue; }
+            if (st.kind !== 'event') continue;
+            const e = st.event;
+            let t = seen.get(e.tid);
+            if (!t) { t = { tid: e.tid, slot: e.thread, started: e.time, ended: null, events: 0 }; seen.set(e.tid, t); }
+            t.events++;
+            if (e.type === 'thread-end') t.ended = e.time;
+        }
+    };
+    walk(steps);
+    return [...seen.values()];
+}
+
 /** Group a step list (top level of a trace, or one side of a branch). */
 export function segment(steps: Step[]): Part[] {
     const parts: Part[] = [];
@@ -99,7 +132,7 @@ export function segment(steps: Step[]): Part[] {
                 parts.push({ kind: loot ? 'loot' : 'call', title: `${ev.async ? 'start' : 'call'} ${ev.name}`, at: ev.at, steps: steps.slice(start, i) });
                 continue;
             }
-            case 'wait':
+            case 'wait': case 'wake':
                 inner();
                 parts.push({ kind: 'wait', title: ev.summary, at: ev.at, steps: steps.slice(start, i) });
                 continue;

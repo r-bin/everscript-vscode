@@ -120,7 +120,7 @@ export function describeCondition(cond: Sym, value: boolean, dec: Decoder): stri
     } else if (cond.k === 'bin' && cond.op === '==' && key(cond) === '(boy == controlled char)') {
         return value ? 'the boy is in control' : 'the dog is in control';
     } else {
-        text = key(cond).replace(/#\d+/g, '');
+        text = key(cond).replace(/⟨\d+⟩/g, '');
     }
     return value ? text : `not ${text}`;
 }
