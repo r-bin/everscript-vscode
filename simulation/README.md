@@ -1,8 +1,12 @@
 # /simulation — design notes
 
 Written for: whoever builds the simulation, including future agents in this
-repo. Design only — **no code lives here yet**, and the plan is deliberately
-md-first.
+repo. Design only — the code lives in [`src/simulation/`](../src/simulation/README.md).
+
+> **Built (v0.202.0):** the interpreter and virtual WRAM (0), spawn scenarios
+> (2, as scenarios + flag tree, with NPC conditions), loot interaction (4,
+> read from the game's own loot scripts) and the room storyboard (5, as
+> prepare/execute parts). Not built: damage (1), fights, routes (6).
 
 The Rooms tab currently answers *what a room contains*. This folder plans the
 next question: *what happens in it*. One virtual WRAM, one script

@@ -14,6 +14,7 @@ const {
 const { hexId } = require('../shared/resource-uri');
 const { dir, json, text } = require('./nodes');
 const MD = require('./script-markdown');
+const { resolveSimulationFile, SIMULATION_FILES } = require('./simulation-files');
 
 function resolveScripts(segments, rom) {
     if (segments.length > 0 && segments[0] === 'everscript') {
@@ -71,6 +72,7 @@ function resolveRoomScripts(rest, rom) {
             ['enter.md', 'file'],
             ['enter.evs', 'file'],
             ['enter.json', 'file'],
+            ...SIMULATION_FILES.map((f) => [f, 'file']),
             ['step-on', 'dir'],
             ['b-trigger', 'dir'],
         ], () => renderRoomIndexMd(rom, mapId));
@@ -82,6 +84,8 @@ function resolveRoomScripts(rest, rom) {
     if (sub === 'enter.md' || sub === 'enter.evs' || sub === 'enter.json') {
         return renderRoomEnter(rom, mapId, sub.split('.')[1]);
     }
+
+    if (SIMULATION_FILES.includes(sub)) return resolveSimulationFile(rom, mapId, sub);
 
     if (sub === 'step-on') {
         return renderTriggersDir(rom, mapId, 'step-on', leaf);

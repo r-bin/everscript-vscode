@@ -1,8 +1,9 @@
 # Simulating a room's enter script
 
-> Status: **not built.** The decoder now reports which NPCs an enter script
-> *can* place; deciding which it *does* place needs the simulation described
-> here. The two things that *were* unknown — what the NPC index means and
+> Status: **built** in [`src/simulation/`](../src/simulation/README.md)
+> (v0.202.0): enter scripts become scenarios with a flag tree, and each placed
+> NPC carries the condition that places it. The text below is the history.
+> The decoder still reports which NPCs an enter script *can* place. The two things that *were* unknown — what the NPC index means and
 > what its coordinates mean — are now settled; see below.
 
 ## Why a simulation is the right tool here

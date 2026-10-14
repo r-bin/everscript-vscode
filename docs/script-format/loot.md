@@ -24,6 +24,18 @@ own `LootData` does — loses the amount.
 **All 922 pickups in the ROM write a literal item.** Not one computes it, so
 reading the bytes tells us everything running the game would.
 
+## Cross-checked by simulation
+
+`src/simulation` reads loot the other way: it runs the trigger through the
+game's own loot scripts (globals `0x39`/`0x3a`/`0x3b` → `0x3e`) and watches
+which inventory byte goes up. **910 of 910** item pickups agree with the
+extraction above. Four Ebon Keep scripts (`$98:CCCC` and three more) differ,
+and there the simulation is right: the extraction walks linearly and carries
+a `$2461` bonus staged on one path across an `END` into another path.
+Conditional rewards come out as cases — the village-huts gourd `$94:E0ED`
+gives Call Beads when Thraxx is dead (`$2260&0x10`), a Biscuit otherwise,
+which the extraction reports only as Biscuit.
+
 ## How it is validated
 
 Upstream's `sniffflags.inc` was itself *generated* by the reference's loot

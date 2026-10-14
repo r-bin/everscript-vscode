@@ -14,6 +14,7 @@ All production code lives here. Each subdirectory is an ownership domain.
 | `routes/` | Route planner tab webview assets |
 | `emulator/` | Embedded SNES emulator: panel, webview, SNES ROM header model |
 | `script/` | Everscript bytecode decoder, ported from SoEScriptDumper (TypeScript, pure) |
+| `simulation/` | Runs scripts symbolically: loot cases, room scenarios + flag tree, NPC tracking, clusters, byte-identical Everscript (TypeScript, pure) |
 | `rom/` | ROM tab: every bank's content, gaps and CDL coverage, measured from the ROM |
 | `music/` | Music tab: the sound chip live from the emulator or playing a track in its own engine; voices, instruments, sound effects, ARAM |
 | `debugger/` | VS Code debugger for .evs scripts in the emulator: DAP session, compiler source map, step logic |
@@ -33,7 +34,8 @@ Entry point: `extension.js` (orchestration root, registered as `main` in package
 - `emulator/` → may use `shared/`
 - `debugger/` → no memory, no emulator internals (the emulator bridge is injected by `extension.js`)
 - `mcp/` → `vscode` only; reads `soe://` through `vscode.workspace.fs`, never another domain
-- `resources/` → may use `shared/`, `maps/`, `script/`, `localizations/`; never `emulator/` (ROM and memory reads are injected by `extension.js`)
+- `simulation/` → `script/` only, injected through its `index.js`
+- `resources/` → may use `shared/`, `maps/`, `script/`, `simulation/`, `localizations/`; never `emulator/` (ROM and memory reads are injected by `extension.js`)
 - No circular dependencies allowed
 
 See `.depcruise.js` for machine-enforced rules.

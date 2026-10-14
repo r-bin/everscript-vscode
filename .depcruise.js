@@ -80,6 +80,14 @@ module.exports = {
     },
 
     {
+      name: 'simulation-is-a-library',
+      comment: 'src/simulation is pure: it may use the script decoder facade and nothing else in src/.',
+      severity: 'error',
+      from: { path: '^src/simulation/' },
+      to: { path: '^src/(?!simulation/|script/)' },
+    },
+
+    {
       name: 'no-mcp-to-domains',
       comment: 'The MCP server reads soe:// through vscode.workspace.fs only.',
       severity: 'warn',

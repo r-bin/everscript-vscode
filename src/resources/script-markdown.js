@@ -135,6 +135,9 @@ function roomScriptsIndexMarkdown(model, mapId, roomName, roomArea) {
         '',
         `**Area:** ${roomArea || 'Unknown'}`,
         '',
+        '**Simulated:** [simulation.md](simulation.md) (scenarios, flag tree, trigger cases) | ' +
+            '[simulation.json](simulation.json) | [decompiled.evs](decompiled.evs) (compiles to the same bytes)',
+        '',
         '## Enter Script',
         '',
         `- Address: \`${fmtSnes(model.enter.scriptAddressSnes)}\``,

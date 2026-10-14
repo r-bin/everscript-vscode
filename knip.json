@@ -20,7 +20,8 @@
     "src/emulator/webview/**",
     "tests/**",
     "sandbox/**",
-    "src/maps/dist/**"
+    "src/maps/dist/**",
+    "src/simulation/dist/**"
   ],
   "ignoreDependencies": [
     "playwright"
