@@ -150,8 +150,7 @@ function getExtConfig() {
 }
 
 const roomData = require('./rooms');
-const { VANILLA_ROOMS, getMapEnum, readLuaWatchers, readScriptAllTriggers, buildVanillaRoomContent, buildVanillaRoomDetails, buildManaRoomDetails, buildItemIcons, invalidateRoomDataCaches } = roomData;
-const maps = require('./maps');
+const { VANILLA_ROOMS, getMapEnum, readLuaWatchers, readScriptAllTriggers, buildVanillaRoomContent, buildVanillaRoomDetails, buildItemIcons, invalidateRoomDataCaches } = roomData;
 
 /** The ring menu's item icons from the configured ROM, for the radar page (rooms/data/item-icons.js). */
 function radarItemIcons() {
@@ -497,10 +496,9 @@ function refreshRadar(editor) {
     const _extCfg1 = getExtConfig();
     const _wsRoot1 = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
     const _vrd1 = buildVanillaRoomDetails(_wsRoot1, _extCfg1.romPath || '');
-    const _mrd1 = buildManaRoomDetails(_wsRoot1, _extCfg1.manaRomPath || '');
     const _romBuf1 = romReaders.loadRomBuffer(_wsRoot1, _extCfg1.romPath || '');
     const _spBundle1 = getSpritesBundle(_romBuf1);
-    _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree || [], _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, radarItemIcons(), _hitLookup, getRadarEnums(), _vrd1, _radarByteScriptFocus, _spBundle1, _mrd1);
+    _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree || [], _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, radarItemIcons(), _hitLookup, getRadarEnums(), _vrd1, _radarByteScriptFocus, _spBundle1);
     _radarPanel.title = 'Radar: ' + scope.name;
 }
 
@@ -524,6 +522,18 @@ class RadarCodeLensProvider {
 
 /** globalState key for the Rooms webview's remembered UI state. */
 const ROOMS_UI_PREFS_KEY = 'everscript.roomsUi';
+
+/** Secret of Mana Maps panel (lazy: src/mana-maps is only loaded when opened). */
+function openManaMaps() {
+    return require('./mana-maps').openManaMaps();
+}
+
+/** True when everscript.romPath names a Secret of Mana ROM rather than Evermore. */
+function romIsMana() {
+    const ws = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+    const rom = romReaders.loadRomBuffer(ws, getExtConfig().romPath || '');
+    return !!rom && require('./mana').isManaRom(rom);
+}
 
 function activate(context) {
     const idx = lp.loadIndex(context.extensionPath);
@@ -592,6 +602,8 @@ function activate(context) {
         // Memory Radar command — opens a scope-aware WRAM visualizer beside the editor.
         // Triggered via: right-click → "Open Memory Radar", or the ◉ CodeLens above fun/map/area/group.
         vscode.commands.registerCommand('everscript.openMemoryRadar', async (doc, startLine) => {
+            // A Secret of Mana ROM gets its own panel (src/mana-maps), never the Evermore tabs.
+            if (romIsMana()) return openManaMaps();
             const editor   = vscode.window.activeTextEditor;
             const document = (doc && typeof doc.lineCount === 'number') ? doc : editor?.document;
             if (!document) {
@@ -652,10 +664,9 @@ function activate(context) {
             const _extCfg2 = getExtConfig();
             const _wsRoot2b = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
             const _vrd2 = buildVanillaRoomDetails(_wsRoot2b, _extCfg2.romPath || '');
-            const _mrd2 = buildManaRoomDetails(_wsRoot2b, _extCfg2.manaRomPath || '');
             const _romBuf2 = romReaders.loadRomBuffer(_wsRoot2b, _extCfg2.romPath || '');
             const _spBundle2 = getSpritesBundle(_romBuf2);
-            _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree, _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, radarItemIcons(), _hitLookup, getRadarEnums(), _vrd2, _radarByteScriptFocus, _spBundle2, _mrd2);
+            _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree, _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, radarItemIcons(), _hitLookup, getRadarEnums(), _vrd2, _radarByteScriptFocus, _spBundle2);
 
             // `everscript.newMap` asked for a blank room. The webview has just
             // been rebuilt, so this is the first moment it can be told.
@@ -730,41 +741,6 @@ function activate(context) {
                     } catch (err) {
                         _radarPanel.webview.postMessage({ ...reply, error: String(err && err.message || err) });
                     }
-                } else if (msg.command === 'requestManaRoomTiles') {
-                    const manaId = Number(msg.manaId);
-                    const reply = { command: 'roomTiles', mapName: msg.mapName, manaId, isMana: true };
-                    if (!Number.isInteger(manaId) || manaId < 0) {
-                        _radarPanel.webview.postMessage({ ...reply, error: 'invalid mana room id' });
-                        return;
-                    }
-                    try {
-                        const _cfg = getExtConfig();
-                        const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-                        const manaRomBuf = romReaders.loadManaRomBuffer(_ws, _cfg.manaRomPath || '');
-                        if (!manaRomBuf) {
-                            _radarPanel.webview.postMessage({ ...reply, error: 'Secret of Mana ROM not found — set everscript.manaRomPath' });
-                            return;
-                        }
-                        const manaRoom = maps.decodeManaRoom(manaRomBuf, manaId);
-                        if (!manaRoom) {
-                            _radarPanel.webview.postMessage({ ...reply, error: `Could not decode Secret of Mana room ${manaId}` });
-                            return;
-                        }
-                        const rendered = maps.renderManaRoom(manaRomBuf, manaRoom);
-                        const overlay = {
-                            imageUri: rendered.imageUri,
-                            foregroundUri: null,
-                            canopyOverlayUri: null,
-                            imageWidth: rendered.width,
-                            imageHeight: rendered.height,
-                            layer: msg.layer || 'both',
-                            originX: Number(msg.originX) || 0,
-                            originY: Number(msg.originY) || 0,
-                        };
-                        _radarPanel.webview.postMessage({ ...reply, overlay });
-                    } catch (err) {
-                        _radarPanel.webview.postMessage({ ...reply, error: String(err && err.message || err) });
-                    }
                 } else if (msg.command === 'requestRoomMetatiles') {
                     // The room's metatile dictionary — the stamps a map editor
                     // can place. Its own request because the biggest room is a
@@ -823,14 +799,6 @@ function activate(context) {
                             return {
                                 romPath: romReaders.resolveRomPath(_ws, _cfg.romPath || ''),
                                 romBuf: romReaders.loadRomBuffer(_ws, _cfg.romPath || ''),
-                            };
-                        },
-                        loadManaRom: () => {
-                            const _cfg = getExtConfig();
-                            const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-                            return {
-                                manaRomPath: romReaders.resolveManaRomPath(_ws, _cfg.manaRomPath || ''),
-                                manaRomBuf: romReaders.loadManaRomBuffer(_ws, _cfg.manaRomPath || ''),
                             };
                         },
                     });
@@ -1222,10 +1190,9 @@ function activate(context) {
                         const _extCfg3 = getExtConfig();
                         const _wsRoot3 = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
                         const _vrd3 = buildVanillaRoomDetails(_wsRoot3, _extCfg3.romPath || '');
-                        const _mrd3 = buildManaRoomDetails(_wsRoot3, _extCfg3.manaRomPath || '');
                         const _romBuf3 = romReaders.loadRomBuffer(_wsRoot3, _extCfg3.romPath || '');
                         const _spBundle3 = getSpritesBundle(_romBuf3);
-                        _radarPanel.webview.html = renderRadarHtml(gscope, refs, pools, argRefs, getRadarMap(), _radarRoomTree || [], _radarActiveTab, null, _scalingChars || [], _scaleActive, radarItemIcons(), _hitLookup, getRadarEnums(), _vrd3, _radarByteScriptFocus, _spBundle3, _mrd3);
+                        _radarPanel.webview.html = renderRadarHtml(gscope, refs, pools, argRefs, getRadarMap(), _radarRoomTree || [], _radarActiveTab, null, _scalingChars || [], _scaleActive, radarItemIcons(), _hitLookup, getRadarEnums(), _vrd3, _radarByteScriptFocus, _spBundle3);
                         _radarPanel.title = 'Radar: (global)';
                     }
                 } else if (msg.command === 'autoScope') {
@@ -1362,6 +1329,20 @@ function activate(context) {
         emulatorStatus: () => emulatorPanel.getStatus(),
         getLogs: () => emulatorPanel.getLogHistory(),
     });
+    // ── som:// Secret of Mana (src/mana-resources/README.md) — its own tree, never mixed into soe:// ──
+    const manaResources = require('./mana-resources').registerManaResources(context, () => ({
+        manaRomPath: vscode.workspace.getConfiguration('everscript').get('manaRomPath') || '',
+        romPath: getExtConfig().romPath || '',
+        wsRoot: vscode.workspace.workspaceFolders?.find(f => f.uri.scheme === 'file')?.uri.fsPath ?? null,
+    }));
+    context.subscriptions.push(
+        vscode.commands.registerCommand('everscript.openManaMaps', openManaMaps),
+        vscode.workspace.onDidChangeConfiguration(e => {
+            if (!e.affectsConfiguration('everscript.manaRomPath') && !e.affectsConfiguration('everscript.romPath')) return;
+            manaResources.refresh();
+            require('./mana-maps').refreshManaMaps();
+        }),
+    );
     // AI clients read the same soe:// tree over MCP (src/mcp/README.md).
     require('./mcp').registerMcpServer(context);
 

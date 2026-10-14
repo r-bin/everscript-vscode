@@ -71,10 +71,8 @@ function customLoadMaps(msg) {
   var waiters = _customLoadWaiters;
   _customLoadWaiters = [];
   waiters.forEach(function (fn) { fn(); });
-  // Where you left off: the map that was open, if nothing else is, or explicit forceOpen.
-  if (msg && msg.forceOpen && customFind(msg.forceOpen)) {
-    customOpen(msg.forceOpen);
-  } else if (!waiters.length && !_customActive && msg && msg.active && customFind(msg.active) && customNothingOpen()) {
+  // Where you left off: the map that was open, if nothing else is.
+  if (!waiters.length && !_customActive && msg && msg.active && customFind(msg.active) && customNothingOpen()) {
     customOpen(msg.active);
   }
 }

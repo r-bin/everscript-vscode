@@ -87,6 +87,40 @@ module.exports = {
       to: { path: '^src/emulator/' },
     },
 
+    // ── Secret of Mana stays apart from Evermore (src/mana*/AGENTS.md) ─────────
+
+    {
+      name: 'mana-is-alone',
+      comment: 'src/mana is a pure Secret of Mana library: no Evermore (or any other src/) code.',
+      severity: 'error',
+      from: { path: '^src/mana/' },
+      to: { path: '^src/(?!mana/)' },
+    },
+
+    {
+      name: 'mana-resources-only-mana',
+      comment: 'The som:// file system uses the Mana library and nothing Evermore.',
+      severity: 'error',
+      from: { path: '^src/mana-resources/' },
+      to: { path: '^src/(?!mana-resources/|mana/)' },
+    },
+
+    {
+      name: 'mana-maps-reads-som-only',
+      comment: 'The Mana Maps panel reads Mana data through som:// only.',
+      severity: 'error',
+      from: { path: '^src/mana-maps/' },
+      to: { path: '^src/(?!mana-maps/)' },
+    },
+
+    {
+      name: 'no-evermore-to-mana',
+      comment: 'Evermore domains never use Mana code; only extension.js wires the two side by side.',
+      severity: 'error',
+      from: { path: '^src/', pathNot: '^src/(mana|mana-resources|mana-maps)/|^src/extension\\.js$' },
+      to: { path: '^src/(mana|mana-resources|mana-maps)/' },
+    },
+
     {
       name: 'simulation-is-a-library',
       comment: 'src/simulation is pure: it may use the script decoder facade and nothing else in src/.',

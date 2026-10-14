@@ -123,9 +123,7 @@ function editHeadActsHtml() {
 /** Redraw the name line's actions — the lock's icon follows the draft. */
 function renderEditHeadActs() {
   var el = document.getElementById('rg-head-acts');
-  if (!el) return;
-  if (el.querySelector('#rg-integrate-mana')) return;
-  el.innerHTML = editDraft() ? editHeadActsHtml() : '';
+  if (el) el.innerHTML = editDraft() ? editHeadActsHtml() : '';
   if (typeof widgetEditHeadSync === 'function') widgetEditHeadSync();
 }
 

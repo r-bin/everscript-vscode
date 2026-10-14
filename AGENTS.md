@@ -29,6 +29,11 @@ External resources:
 3. **Keep the AI files true.** When you find that a skill, an `AGENTS.md` (root or nested) or
    the guide is wrong, stale or missing a trap you just hit, fix it in the same commit — no
    need to ask. Prefer editing the existing file over adding a new one.
+4. **Secret of Mana is a different game.** Nothing known about Evermore (formats, engine,
+   addresses, scripts) is assumed for Secret of Mana, or the other way round; only SNES
+   hardware facts carry over. Mana code lives in `src/mana*` and never imports an Evermore
+   domain (`.depcruise.js`); Mana facts go to `docs/mana/`, checked against the running game
+   (`tools/mana/check-map.js`).
 
 ---
 
@@ -63,6 +68,8 @@ of:
 | `scripts/` | Shell wrappers for the npm commands: `build-plugin.sh`, `test.sh`, `build-recomp.sh`, `play-recomp.sh`, `lockstep.sh`, `release.sh` (see `scripts/README.md`) |
 | `src/scripts-tab/` | Scripts tab (radar): Everscript + map, animation and alchemy scripts + animation, music sequences + silent player — not `src/script/` (the decoder) |
 | `simulation/` | Design notes for the simulation; the code is `src/simulation/` (scenarios, loot cases, byte-identical Everscript; `npm run test:simulation`) |
+| `src/mana/`, `src/mana-resources/`, `src/mana-maps/` | Secret of Mana, kept apart from Evermore: pure decoder/renderer (TS library), the read-only `som://` file system, and the Maps panel (`everscript.openManaMaps`). Format + evidence: `docs/mana/` |
+| `tools/mana/check-map.js` | Loads any Secret of Mana map in the headless game and compares its screen with our render |
 
 Full domain map (post v0.6.0 `src/` refactor): see `src/README.md`.
 

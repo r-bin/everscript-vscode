@@ -128,5 +128,3 @@ export { planCustomAnimation, remapWord, cycleFrom, wordSlot, MAX_CHANNELS } fro
 export type { ChannelSpec } from './custom-animation';
 export type { CustomAnimationPlan } from './custom-animation';
 export type { CustomRoomInput, CustomRoomBlob, HeaderOverrides } from './custom-room';
-
-export * from './mana';

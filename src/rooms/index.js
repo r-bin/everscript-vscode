@@ -23,13 +23,11 @@ const { relatedTiles, neighbourTiles, vanillaExamples, proceduralFill } = requir
 const { buildItemIcons }                                            = require('./data/item-icons');
 const { VANILLA_ROOMS, buildVanillaRoomContent,
         buildVanillaRoomDetails, invalidateVanillaDataCaches }      = require('./data/vanilla-data');
-const { buildManaRoomDetails, invalidateManaDataCaches }            = require('./data/mana-data');
 const { getMapEnum, readLuaWatchers, readScriptAllTriggers,
         invalidateLuaWatcherCaches }                                = require('./data/lua-watchers');
 
 function invalidateRoomDataCaches() {
     invalidateVanillaDataCaches();
-    invalidateManaDataCaches();
     invalidateLuaWatcherCaches();
     invalidateRoomDrafts();
     invalidateDecoCatalogue();
@@ -62,7 +60,6 @@ module.exports = {
 
     // Rendering
     renderVanillaTree: renderVanillaTreeCompat,
-    renderManaTree: require('./rendering/tree-renderer').renderManaTree,
     renderRoomsTree,
     buildRoomRailHtml,
     buildRoomsJson,
@@ -97,7 +94,6 @@ module.exports = {
     readScriptAllTriggers,
     buildVanillaRoomContent,
     buildVanillaRoomDetails,
-    buildManaRoomDetails,
     buildItemIcons,
     invalidateRoomDataCaches,
 };

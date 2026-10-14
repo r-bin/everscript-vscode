@@ -22,6 +22,7 @@ tests/**
 # Only the TypeScript *sources* under src/maps are excluded; their compiled
 # output in src/maps/dist/ is what ships and is required at runtime.
 src/maps/*.ts
+src/mana/*.ts
 
 # Emulator cores: ship only the built artifacts (snes9x_2005.js/.wasm), not the
 # C sources, build scripts, docs or submodule git pointers that surround them.

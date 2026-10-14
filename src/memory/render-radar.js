@@ -6,7 +6,7 @@
 
 const { buildMemoryTabHtml }     = require('./render-memory-tab');
 const { buildDocsTabHtml, buildRngTabHtml } = require('../docs/render-docs-tab');
-const { renderRoomsTree, renderVanillaTree, renderManaTree, buildRoomRailHtml,
+const { renderRoomsTree, renderVanillaTree, buildRoomRailHtml,
         buildRoomsJson, VANILLA_ROOMS } = require('../rooms');
 const { buildSpritesTabHtml }    = require('../sprites');
 const { buildRomTabHtml }        = require('../rom');
@@ -16,7 +16,7 @@ const radarWebview               = require('./webview');
 
 /**
  * Build the complete radar webview HTML.
- * The last parameters (enumByAddr, vanillaRoomDetails, byteScriptFocus, spritesBundle, manaRoomDetails)
+ * The last parameters (enumByAddr, vanillaRoomDetails, byteScriptFocus, spritesBundle)
  * are provided by the call site in extension.js; tests call with 8 args and
  * rely on the defaults.
  */
@@ -25,7 +25,7 @@ function renderRadarHtml(
     roomTree = [], activeTab = 'radar', selectedMap = null,
     chars = [], scaleActive = false, itemIcons = null, hitLookup = null,
     enumByAddr = new Map(), vanillaRoomDetails = {}, byteScriptFocus = '',
-    spritesBundle = null, manaRoomDetails = {}
+    spritesBundle = null
 ) {
     // ── Memory tab (grid + detail table) ───────────────────────────────────
     const { html: memoryTabHtml, cellData } = buildMemoryTabHtml(
@@ -43,13 +43,11 @@ function renderRadarHtml(
     // ── Rooms tab data ──────────────────────────────────────────────────────
     const treeHtml        = renderRoomsTree(roomTree);
     const vanillaTreeHtml = renderVanillaTree();
-    const manaTreeHtml    = renderManaTree(manaRoomDetails);
     const roomsData =
         buildRoomsJson(roomTree, activeTab, selectedMap) +
         '\nvar ACTIVE_BYTE_SCRIPT_FOCUS=' + JSON.stringify(byteScriptFocus || '') + ';' +
         '\nvar VANILLA_ROOMS_DATA=' + JSON.stringify(VANILLA_ROOMS) + ';' +
-        '\nvar VANILLA_ROOM_DETAILS=' + JSON.stringify(vanillaRoomDetails).replace(/<\/script>/gi, '<\\/script>') + ';' +
-        '\nvar MANA_ROOM_DETAILS=' + JSON.stringify(manaRoomDetails).replace(/<\/script>/gi, '<\\/script>') + ';';
+        '\nvar VANILLA_ROOM_DETAILS=' + JSON.stringify(vanillaRoomDetails).replace(/<\/script>/gi, '<\\/script>') + ';';
 
     // ── Scaling tab data ────────────────────────────────────────────────────
     const scalingData =
@@ -114,7 +112,7 @@ function renderRadarHtml(
     const roomsTabHtml =
         '<div class="tab-pane" data-tab="rooms" style="display:none">' +
         '<div class="rm-panels">' +
-        buildRoomRailHtml(treeHtml, vanillaTreeHtml, manaTreeHtml) +
+        buildRoomRailHtml(treeHtml, vanillaTreeHtml) +
         // The handle that resizes the rail (rooms/webview/rooms-layout.js).
         '<div class="rm-split" data-split="rail" title="Drag to resize"></div>' +
         '<div class="rm-right"><div id="room-detail" class="rm-detail-placeholder"><span>Select a room</span></div></div>' +

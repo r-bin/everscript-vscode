@@ -350,7 +350,7 @@ function bindEditControls(panel, room) {
       renderComposer();
       return;
     }
-    if (t.dataset.editAct) { editAction(t.dataset.editAct, t); return; }
+    if (t.dataset.editAct) { editAction(t.dataset.editAct); return; }
     // A composed stamp in the preview strip.
     if (t.dataset.mtIndex && t.parentNode && t.parentNode.parentNode
         && t.parentNode.parentNode.id === 'rg-compose-preview') {

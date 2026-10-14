@@ -54,7 +54,6 @@ function renderRoomDetail(room){
       +'" aria-label="Map name" title="The map’s name — Enter to finish"/>';
     else html+='<span class="rd-name">'+escH(room.name)+'</span>';
     if(room.vanillaId)html+='<span class="rd-vid">'+escH(room.vanillaId)+'</span>';
-    else if(room.isMana)html+='<span class="rd-vid">SoM #'+escH(room.manaId)+'</span>';
     html+='<span class="rd-file">'+escH(room.relPath||'')+'</span>';
     if(typeof room.startLine==='number'&&room.startLine>=0)html+='<a class="ll" data-line="'+room.startLine+'" href="#">go to code</a>';
     html+='</div>';
@@ -188,16 +187,6 @@ function renderRoomDetail(room){
   // just rebuilt, so a draft already on is switched on again to rebuild its
   // tool pill and dock; a locked vanilla room can be looked at, not changed.
   else if(roomVanillaIdNum(room)!=null&&editDraft()){editDraft().on=false;editToggle(room,null);}
-  if(room.isMana){
-    var headActs=document.getElementById('rg-head-acts');
-    if(headActs){
-      headActs.innerHTML='<button class="rdf rd-act-import" id="rg-integrate-mana" data-edit-act="integrateMana" data-mana-id="'+escH(room.manaId)+'" title="Integrate this Secret of Mana map into Evermore as a Custom Map">Integrate into Evermore</button>';
-    }
-    if(typeof editDock==='function')editDock(false,room);
-    var chrome=document.getElementById('rg-edit-chrome');
-    if(chrome&&chrome.parentNode)chrome.parentNode.removeChild(chrome);
-    panel.classList.remove('rg-editing');
-  }
   if(typeof layoutApplyCollapsed==='function')layoutApplyCollapsed();
   if(typeof layoutUpdateCompact==='function')layoutUpdateCompact();
 }
@@ -271,22 +260,6 @@ function requestRoomTileOverlay(room,svgResult,layer){
   // A custom map's id is only where its graphics come from; rendering that
   // room would put the donor's picture under the new map.
   if(room&&room.custom)return;
-  if(room&&room.isMana){
-    if(typeof vs==='undefined'||!vs||!svgResult)return;
-    _pendingTileRoom=room.name;
-    _pendingTileOrigin={x:svgResult.x1||0,y:svgResult.y1||0};
-    if(typeof svgResult.mapX0==='number')_pendingTileMapOrigin={x:svgResult.mapX0,y:svgResult.mapY0};
-    var manaKey='mana:'+room.manaId+':'+(layer||_currentLayer);
-    var hit=_overlayCache[manaKey];
-    if(hit&&hit.originX===_pendingTileOrigin.x&&hit.originY===_pendingTileOrigin.y){
-      applyRoomTileOverlay({command:'roomTiles',mapName:room.name,manaId:room.manaId,isMana:true,overlay:hit});
-      return;
-    }
-    setTileBusy(true);
-    vs.postMessage({command:'requestManaRoomTiles',manaId:room.manaId,mapName:room.name,
-                    layer:layer||_currentLayer,originX:_pendingTileOrigin.x,originY:_pendingTileOrigin.y});
-    return;
-  }
   if(id==null||typeof vs==='undefined'||!vs||!svgResult)return;
   var which=layer||_currentLayer;
   _pendingTileRoom=room.name;
@@ -347,11 +320,7 @@ function applyRoomTileOverlay(msg){
   if(!msg.overlay)return;
   clearTileError();
   var ov=msg.overlay;
-  if(msg.isMana||typeof msg.manaId==='number'){
-    _overlayCache['mana:'+msg.manaId+':'+(ov.layer||_currentLayer)]=ov;
-  }else if(typeof msg.roomId==='number'){
-    cacheOverlay(msg.roomId,ov.layer,ov.overlay||'',ov.objectStates||'',ov);
-  }
+  if(typeof msg.roomId==='number')cacheOverlay(msg.roomId,ov.layer,ov.overlay||'',ov.objectStates||'',ov);
 
   // Swap the render into the SVG's <image>, and resize it to the raster's real
   // extent in viewBox units (1 unit = one 8px tile). Sizing it here rather

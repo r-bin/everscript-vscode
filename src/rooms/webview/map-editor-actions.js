@@ -4,16 +4,7 @@
 // Split out of map-editor-input.js, which owns the pointer gestures, to keep
 // both inside the 400-line limit. One `act` string per button.
 
-function editAction(act, target) {
-  if (act === 'integrateMana') {
-    var btn = target || document.getElementById('rg-integrate-mana');
-    var manaId = btn ? Number(btn.dataset.manaId) : null;
-    if (manaId != null && typeof vs !== 'undefined' && vs) {
-      vs.postMessage({ command: 'integrateManaMap', manaId: manaId });
-      if (typeof editNote === 'function') editNote('Integrating Secret of Mana map #' + manaId + ' into Evermore…');
-    }
-    return;
-  }
+function editAction(act) {
   var d = editDraft();
   if (!d) return;
   if (act === 'lock') { editLockToggle(); return; }
