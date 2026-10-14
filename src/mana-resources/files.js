@@ -4,15 +4,15 @@
 //
 //   index.md, info.json             the ROM: title, map and area counts
 //   maps/index.md, maps/index.json  every map: id, size, area
-//   maps/<id>.png                   the map drawn as the game shows it (frame 0 of animations)
-//   maps/<id>.json                  header bytes, sizes, pieces, display mode
+//   maps/<id>.png, .a.png, .b.png   the map as the game shows it (frame 0), or one layer
+//   maps/<id>.json, .collision.json, .anim.json   data, collision, animation (map-files.js)
 //   areas/index.md, areas/index.json  the areas, their map ids (+ "other") and which
 //                                   ids share one picture (same sets and pieces)
 //   areas/<slug>.md                 an area's maps as images
 // Ids in paths are hex without `$`, like soe://.
 
 const mana = require('../mana');
-const { encodePng } = require('./png');
+const { mapFile, MAP_FILE_EXTS } = require('./map-files');
 
 /** @typedef {{ kind: 'dir', entries: Array<[string, 'file' | 'dir']> } | { kind: 'file', read: () => Buffer }} SomNode */
 
@@ -57,20 +57,6 @@ function getCatalog(rom) {
     return c;
 }
 
-/** @param {Uint8Array} rom @param {number} id */
-function mapJson(rom, id) {
-    const m = mana.loadMap(rom, id);
-    if (!m) return null;
-    return {
-        id, w: m.w, h: m.h, sizeB: m.sizeB,
-        header: m.header.bytes,
-        charSet: m.header.charSet, paletteSet: m.header.paletteSet,
-        metatileSet: m.header.metatileSet, halves: [m.header.halfA, m.header.halfB],
-        display: m.display,
-        placed: m.placed, skipped: m.skipped,
-    };
-}
-
 /**
  * @param {string[]} segments path below som://rom/
  * @param {Uint8Array} rom
@@ -85,18 +71,13 @@ function resolveSom(segments, rom) {
     if (top === 'info.json' && name === undefined) return file(() => json({ title: c.title, maps: c.maps.length, areas: c.areas.length }));
     if (top === 'maps') {
         if (name === undefined) return { kind: 'dir', entries: [['index.md', 'file'], ['index.json', 'file'],
-            ...c.maps.flatMap(m => /** @type {Array<[string, 'file']>} */ ([[m.hex + '.png', 'file'], [m.hex + '.json', 'file']]))] };
+            ...c.maps.flatMap(m => MAP_FILE_EXTS.map(e => /** @type {[string, 'file']} */ ([m.hex + '.' + e, 'file'])))] };
         if (name === 'index.json') return file(() => json(c.maps));
         if (name === 'index.md') return file(() => buf(mapsIndex(c)));
-        const hit = /^([0-9a-f]+)\.(png|json)$/.exec(name);
+        const hit = /^([0-9a-f]+)\.(.+)$/.exec(name);
         const m = hit && c.maps.find(x => x.hex === hit[1]);
-        if (!hit || !m) return null;
-        if (hit[2] === 'json') return file(() => json(mapJson(rom, m.id)));
-        return file(() => {
-            const map = mana.loadMap(rom, m.id);
-            if (!map) throw new Error(`map ${m.hex} has no pieces`);
-            return encodePng(mana.renderMap(map));
-        });
+        const produce = m && mapFile(rom, m.id, hit[2]);
+        return produce ? file(produce) : null;
     }
     if (top === 'areas') {
         if (name === undefined) return { kind: 'dir', entries: [['index.md', 'file'], ['index.json', 'file'], ...c.areas.map(a => /** @type {[string, 'file']} */ ([a.slug + '.md', 'file']))] };

@@ -154,9 +154,13 @@ const ROOMS_JS_FILES = [
   'tab-init.js',         // the top-level tab strip
 ];
 
+// Map-view pieces shared with the Secret of Mana Maps panel (src/shared/webview/map-view/).
+const MAP_VIEW_DIR = path.join(sharedDir, 'webview', 'map-view');
+const MAP_VIEW_JS_FILES = ['tile-animation.js', 'view-chips.js'];
+
 function loadRoomsJs() {
-  return ROOMS_JS_FILES
-    .map(function(f) { return loadFile(path.join(roomsDir, f)); })
+  return MAP_VIEW_JS_FILES.map(function(f) { return loadFile(path.join(MAP_VIEW_DIR, f)); })
+    .concat(ROOMS_JS_FILES.map(function(f) { return loadFile(path.join(roomsDir, f)); }))
     .join('\n');
 }
 
@@ -169,6 +173,7 @@ module.exports = {
   css: loadFile(path.join(sharedDir, 'shared.css')) + '\n'
     + loadFile(path.join(roomsDir, 'map-editor-theme.css')) + '\n'
     + loadFile(path.join(roomsDir, 'map-editor-canvas.css')) + '\n'
+    + loadFile(path.join(sharedDir, 'webview', 'map-view', 'map-view.css')) + '\n'
     + loadFile(path.join(roomsDir, 'map-editor-tile-tab.css')) + '\n'
     + loadFile(path.join(roomsDir, 'rooms-rail.css')) + '\n'
     + loadFile(path.join(roomsDir, 'rooms-layout.css')) + '\n'

@@ -1,0 +1,227 @@
+/* Ownership: the map views' shared look — the design tokens and the filter bar
+ * (chips, the segmented BG | FG | Collision pill, chip dropdowns). Shared by the
+ * Evermore Rooms tab (loaded after map-editor-canvas.css by src/memory/webview/index.js)
+ * and the Secret of Mana Maps panel; markup from view-chips.js.
+ *
+ * Scoped under `.rg-theme` (the Rooms tab puts it on `#room-detail`, the Mana panel on
+ * its body); `.rg-rail` also gets the tokens — the Rooms rail is a sibling of
+ * `#room-detail`. Values ported from the map editor design mock.
+ */
+.rg-theme,
+.rg-rail{
+  --rg-bg-app: oklch(20% 0.004 250);
+  --rg-bg-chrome: oklch(22% 0.004 250);
+  --rg-bg-float: oklch(24% 0.005 250);
+  --rg-bg-hover: oklch(27% 0.005 250);
+  --rg-border: oklch(32% 0.005 250);
+  --rg-border-strong: oklch(38% 0.005 250);
+  --rg-text-primary: oklch(93% 0.003 250);
+  --rg-text-secondary: oklch(72% 0.005 250);
+  --rg-text-muted: oklch(52% 0.005 250);
+  --rg-accent: oklch(70% 0.14 260);
+  --rg-accent-soft: oklch(70% 0.14 260 / 0.16);
+  --rg-accent-text: oklch(97% 0.01 260);
+  --rg-success: oklch(68% 0.14 150);
+  --rg-warning: oklch(78% 0.14 80);
+  --rg-error: oklch(68% 0.17 25);
+  --rg-stripe-a: oklch(30% 0.006 250);
+  --rg-stripe-b: oklch(26% 0.006 250);
+  /* Trigger accents: step ~ pink, B ~ yellow. Not consumed until the
+     trigger tools land (see docs/map-editor-redesign-plan.md Phase 1/4). */
+  --rg-trigger-step: oklch(72% 0.19 350);
+  /* Animated tiles (map-editor-anim-tab.js): one colour for every animation mark. */
+  --rg-anim: oklch(70% 0.19 295);
+  --rg-trigger-b: oklch(80% 0.17 95);
+  --rg-shadow-float: 0 8px 24px rgba(0,0,0,.45);
+  --rg-shadow-subtle: 0 2px 6px rgba(0,0,0,.3);
+  --rg-radius-pill: 12px;
+  --rg-radius-control: 7px;
+  /* System stack for UI chrome text — no network font fetch. The mono
+     stack is the one shared.css already uses (line 3): keep it for
+     coordinates/counts/badges so that register doesn't change. */
+  --rg-font-ui: -apple-system, "Segoe UI", system-ui, sans-serif;
+  --rg-font-mono: "SF Mono","Cascadia Code",monospace;
+}
+
+/* ── Docked filter bar (map-editor-filterbar.js) ──────────────────────────
+ * The mock's `layerDockBarStyle`: a chrome-coloured bar spanning the canvas
+ * column, its six controls centred. Built once per room render as
+ * `filtersHtml` and handed to buildRoomSvgSection (svg-builder.js), which
+ * places it under the canvas card inside `#rg-outer` — so it travels with
+ * the canvas rather than the name/header line above it. Unlike the pill it is
+ * not edit-mode-only.
+ *
+ * Scoped by `.rg-view-filters` (a class the bar's own root carries alongside
+ * `.rd-filters`) rather than an `#rg-outer > .rd-filters` combinator: that
+ * combinator also matched the tool pill, and silently won the cascade over
+ * the pill's own centring and radius. */
+.rg-theme .rg-view-filters{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:center;
+  width:auto;
+  max-width:100%;
+  margin:8px 0 0;
+  padding:8px 12px;
+  background:var(--rg-bg-chrome);
+  border:1px solid var(--rg-border);
+  border-radius:10px;
+  font-family:var(--rg-font-ui);
+}
+/* Chip treatment, not shared.css's flat `.rdf` (border #444, opacity .35
+ * when off) — that look is what made this bar read as a pre-redesign
+ * leftover next to the pill and tab strip. Family/tile/deco filter rows
+ * elsewhere are `.rd-filters` *without* `.rg-view-filters`, so they are
+ * untouched. */
+.rg-theme .rg-view-filters .rdf{
+  box-sizing:border-box;
+  height:26px;
+  padding:0 10px;
+  border:1px solid transparent;
+  border-radius:var(--rg-radius-control);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  background:transparent;
+  color:var(--rg-text-secondary);
+  opacity:1;
+  font-family:var(--rg-font-ui);
+  font-size:11px;
+  transition:background 120ms ease-out;
+}
+.rg-theme .rg-view-filters .rdf:hover{background:var(--rg-bg-hover);color:var(--rg-text-primary)}
+.rg-theme .rg-view-filters .rdf.on{
+  background:var(--rg-accent-soft);
+  color:var(--rg-accent-text);
+  border-color:transparent;
+}
+/* The primary row's chips are bordered (the mock's `dockBtnStyle`); the
+ * sub-toggles inside a popup stay flat, so a popup reads as a list rather
+ * than a second bar. A chip and its caret share one border — in the mock the
+ * caret is part of the chip, not a second button beside it — so the border
+ * goes on the group and the two children lose their own. */
+.rg-theme .rg-view-filters > .rdf{
+  border-color:var(--rg-border);
+  background:var(--rg-bg-float);
+}
+.rg-theme .rg-view-filters > .rdf.on{
+  background:var(--rg-accent-soft);
+  border-color:transparent;
+}
+.rg-theme .rg-view-filters > .rg-filter-group{
+  gap:0;
+  border:1px solid var(--rg-border);
+  border-radius:var(--rg-radius-control);
+  background:var(--rg-bg-float);
+  overflow:visible;
+}
+.rg-theme .rg-view-filters > .rg-filter-group > .rdf{
+  border-color:transparent;
+  border-radius:0;
+}
+.rg-theme .rg-view-filters > .rg-filter-group > .rdf:first-child{
+  border-radius:var(--rg-radius-control) 0 0 var(--rg-radius-control);
+}
+.rg-theme .rg-view-filters > .rg-filter-group > .rg-filter-caret{
+  border-radius:0 var(--rg-radius-control) var(--rg-radius-control) 0;
+}
+/* "edit" and "locked" are verbs, not view toggles — a stronger outline keeps
+ * them from reading as two more filter chips at the end of the row. */
+.rg-theme .rg-view-filters #rg-lock-btn{
+  border-color:var(--rg-border-strong);
+  background:transparent;
+}
+.rg-theme .rg-view-filters #rg-lock-btn.on{
+  background:transparent;
+  color:var(--rg-text-secondary);
+  border-color:var(--rg-border-strong);
+}
+.rg-theme .rg-view-filters .rdf-sep{background:var(--rg-border-strong);height:16px;margin:0 2px}
+
+/* ── The segmented Background | Foreground | Collision group ──────────────
+ * The mock's `tileVisGroup.wrapStyle`: three segments in one bordered group,
+ * hairline-divided, no per-segment radius. Two of them are views of
+ * rom-overlay.js's single `_currentLayer`; the third is the `c` feature flag.
+ * See romLayerVis for why that is one owner rather than three booleans. */
+.rg-theme .rg-seg{
+  display:inline-flex;
+  border:1px solid var(--rg-border);
+  border-radius:var(--rg-radius-control);
+  /* Visible, not hidden: Collision's menu opens out of the pill. The end
+     segments carry the rounding instead. */
+  overflow:visible;
+}
+.rg-theme .rg-seg > :first-child{border-radius:var(--rg-radius-control) 0 0 var(--rg-radius-control)!important}
+.rg-theme .rg-seg > :last-child{border-radius:0 var(--rg-radius-control) var(--rg-radius-control) 0!important}
+.rg-theme .rg-seg .rg-seg-group{display:inline-flex;position:relative}
+.rg-theme .rg-view-filters .rg-seg .rg-seg-group .rdf.rg-filter-caret{border-right:1px solid var(--rg-border)}
+.rg-theme .rg-view-filters .rg-seg .rdf{
+  border:none;
+  border-right:1px solid var(--rg-border);
+  border-radius:0;
+  background:var(--rg-bg-float);
+  color:var(--rg-text-muted);
+}
+.rg-theme .rg-view-filters .rg-seg .rdf:last-child{border-right:none}
+.rg-theme .rg-view-filters .rg-seg .rdf.on{
+  background:var(--rg-accent-soft);
+  color:var(--rg-accent);
+}
+
+/* ── Filter-chip dropdowns: a chip plus a caret that opens a popup ────────
+ * One shared chrome for every dropdown in this editor —
+ * map-editor-filterbar.js's Triggers/Objects/more chips,
+ * map-editor-special.js's Special chip, and map-editor-toolbar.js's `⋯`
+ * overflow. Each popup's own id (`#rg-special-dropdown`,
+ * `#rg-tool-dropdown`, …) is what map-editor-input.js's one
+ * EDIT_FILTER_MENUS loop keys off of, not the class.
+ *
+ * Opens upward by default, like the mock's `groupMenuStyle`: the filter bar
+ * sits under the canvas, so the popup reaches back up over it rather than
+ * off the bottom of the panel. */
+.rg-theme .rg-filter-group{position:relative;display:inline-flex;gap:2px}
+.rg-theme .rg-filter-caret{color:var(--rg-text-muted)}
+.rg-theme .rg-view-filters .rg-filter-caret{padding:0 6px}
+.rg-theme .rg-filter-popup{
+  position:absolute;bottom:100%;left:0;margin-bottom:4px;
+  display:flex;flex-direction:column;gap:2px;
+  background:var(--rg-bg-float);
+  border:1px solid var(--rg-border);
+  border-radius:9px;
+  padding:4px;
+  box-shadow:var(--rg-shadow-float);
+  z-index:20;
+  white-space:nowrap;
+  min-width:150px;
+}
+/* The overflow drawer holds the ~14 toggles the mock never modelled; one
+ * column of those is taller than the canvas card. */
+.rg-theme .rg-filter-popup-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(120px,1fr));
+  gap:2px;
+}
+/* The tool pill's own `⋯` hangs off the *top* of the card, so its popup
+ * opens downward instead. */
+.rg-theme .rg-filter-popup-down{
+  top:100%;bottom:auto;left:auto;right:0;margin:4px 0 0;
+}
+/* Author styles always beat the UA stylesheet's `[hidden]{display:none}`
+ * regardless of specificity, so every `display` rule above needs its own
+ * `[hidden]` counterpart. Getting this wrong once already left the Special
+ * dropdown visually open from Phase 3 to Phase 6 while `.hidden` still read
+ * true — which is why the regression tests assert computed `display`, not
+ * just the IDL property. */
+.rg-theme .rg-filter-popup[hidden],
+.rg-theme .rg-filter-popup-grid[hidden],
+.rg-theme .rg-filter-popup-down[hidden]{display:none}
+/* A popup is a list of choices, not a second chip row: flat, full-width,
+ * left-aligned. */
+.rg-theme .rg-filter-popup .rdf{
+  justify-content:flex-start;
+  width:100%;
+  border-color:transparent;
+  background:transparent;
+}

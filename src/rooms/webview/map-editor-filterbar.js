@@ -57,7 +57,9 @@ function filterGroupHtml(p) {
 }
 
 /**
- * Background | Foreground | Collision, as one bordered segmented group.
+ * Background | Foreground | Collision, as one bordered segmented group (the shared
+ * builders in src/shared/webview/map-view/view-chips.js, also used by the Secret of
+ * Mana Maps panel).
  *
  * Background and Foreground are two views of rom-overlay.js's single
  * `_currentLayer` (see `romLayerVis` there for why that is one owner and not
@@ -67,14 +69,14 @@ function filterGroupHtml(p) {
  */
 function visSegmentsHtml(ctx) {
   if (!ctx.romId) return '';
-  return '<span class="rg-seg">'
-    + romVisSegmentHtml('bg', 'BG',
-      'Background: draw the terrain layer (the “L2 terrain” render). Both segments on is the composite.')
-    + romVisSegmentHtml('fg', 'FG',
-      'Foreground: draw the canopy layer (the “L1 canopy” render). Both segments on is the composite.')
-    + collisionChipHtml()
-    + (typeof cutLayerButtonHtml === 'function' ? cutLayerButtonHtml() : '')
-    + '</span>';
+  return mapViewSegHtml([
+    romVisSegmentHtml('bg', 'BG',
+      'Background: draw the terrain layer (the “L2 terrain” render). Both segments on is the composite.'),
+    romVisSegmentHtml('fg', 'FG',
+      'Foreground: draw the canopy layer (the “L1 canopy” render). Both segments on is the composite.'),
+    collisionChipHtml(),
+    typeof cutLayerButtonHtml === 'function' ? cutLayerButtonHtml() : '',
+  ]);
 }
 
 /** Toggle button for Bit 15 (Interact) overlay — in the Special menu (map-editor-special.js). */
@@ -102,13 +104,13 @@ function collisionChipHtml() {
     return '<button class="rdf' + (mode === key ? ' on' : '') + '" data-collision-mode="' + key + '" title="'
       + escH(tip) + '">' + escH(label) + '</button>';
   };
-  return '<span class="rg-filter-group rg-seg-group">' + romOverlayButtonHtml('c', 'Collision')
-    + '<button class="rdf rg-filter-caret" data-edit-collision-menu="1" title="How collision is drawn"'
-    + ' aria-label="How collision is drawn">▾</button>'
-    + '<div class="rg-filter-popup" id="rg-collision-dropdown" hidden>'
-    + opt('outline', 'Outline', 'The smart outline: each level’s walls as a contour, the wall tint inside')
-    + opt('tiles', 'Tile by tile', 'Every pixel a tile makes solid, filled in its level’s colour')
-    + '</div></span>';
+  return mapViewMenuChipHtml(romOverlayButtonHtml('c', 'Collision'), {
+    attr: 'edit-collision-menu', id: 'rg-collision-dropdown', title: 'How collision is drawn',
+    options: [
+      opt('outline', 'Outline', 'The smart outline: each level’s walls as a contour, the wall tint inside'),
+      opt('tiles', 'Tile by tile', 'Every pixel a tile makes solid, filled in its level’s colour'),
+    ],
+  });
 }
 
 /**

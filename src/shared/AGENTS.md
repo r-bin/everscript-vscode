@@ -7,8 +7,13 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
   parsing (`radar-utils.js`), ROM file reading (`rom-readers.js`), `soe://` URI helpers
   (`resource-uri.js`), `zip.js`, `opcodes-65816.js`, and the radar webview assets
   (`shared.js`, `shared.css`).
+- `webview/map-view/`: the map views' shared webview pieces — filter-bar chip builders
+  (`view-chips.js`), their look and the design tokens (`map-view.css`), and the tile
+  animation player (`tile-animation.js`). Used by the Evermore Rooms tab (bundled by
+  `src/memory/webview/index.js`) and the Secret of Mana Maps panel (loaded as files).
+  Game-neutral: no Evermore or Mana knowledge in them.
 - Planned canonical homes (guide §3.6, not created yet): SNES addressing and byte reads →
-  `shared/snes-addr`; webview helpers (`escH`, hex format, tab strip, CSP shell, theme) →
+  `shared/snes-addr`; other webview helpers (`escH`, hex format, tab strip, CSP shell) →
   `shared/webview/`.
 
 ## Dependencies
@@ -25,3 +30,5 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
   `tests/debugger/settings-model.test.js` (`config`).
 - ROM (skip without one): `tests/memory/soe-resources.test.js`, `soe-tags.test.js`
   (`resource-uri`, `rom-readers`); `custom-maps.test.js` (`zip`).
+- `webview/map-view/`: `tests/memory/map-editor-dom.test.js` (Rooms) and
+  `tests/mana/mana-panel-dom.test.js` (Mana) run them in headless Chromium.

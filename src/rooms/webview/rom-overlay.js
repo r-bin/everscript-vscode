@@ -141,8 +141,7 @@ function romLayerVis(which){
 }
 
 function romVisSegmentHtml(which,label,title){
-  return '<button class="rdf rdf-vis'+(romLayerVis(which)?' on':'')+'" data-vis-layer="'+which+
-         '" title="'+escH(title)+'">'+escH(label)+'</button>';
+  return mapViewChipHtml({cls:'rdf-vis',on:romLayerVis(which),attrs:{'vis-layer':which},title:title,label:label});
 }
 
 /**

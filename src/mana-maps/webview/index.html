@@ -4,22 +4,32 @@
 <meta charset="UTF-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src {{cspSource}} data:; style-src {{cspSource}}; script-src 'nonce-{{nonce}}';">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="{{mapViewCss}}">
 <link rel="stylesheet" href="{{styleUri}}">
 <title>Secret of Mana Maps</title>
 </head>
-<body>
+<body class="rg-theme">
 <nav id="areas" aria-label="Areas"></nav>
 <main>
   <header>
     <h1 id="title">Maps</h1>
     <span id="meta"></span>
-    <span class="zoom" role="group" aria-label="Zoom">
-      <button data-zoom="0.25">¼×</button><button data-zoom="0.5">½×</button><button data-zoom="1">1×</button><button data-zoom="2">2×</button>
-    </span>
   </header>
+  <div id="filters" class="rd-filters rg-view-filters" role="toolbar" aria-label="View"></div>
+  <div id="legend" class="legend" hidden>
+    <span><i class="sw mc-wall"></i>wall</span>
+    <span><i class="sw mc-diag"></i>half wall (diagonal)</span>
+    <span><i class="sw mc-l1"></i>level-1 floor — a wall to walkers on level 2</span>
+    <span><i class="sw mc-l0"></i>floor of both levels (stairs, ramps)</span>
+    <span><i class="sw sw-plain"></i>level-2 floor</span>
+    <span><i class="sw mc-switch"></i>changes the walker’s level</span>
+  </div>
   <section id="view"></section>
 </main>
 <script type="application/json" id="init">{{init}}</script>
+<script nonce="{{nonce}}" src="{{animJs}}"></script>
+<script nonce="{{nonce}}" src="{{chipsJs}}"></script>
+<script nonce="{{nonce}}" src="{{mapSvgJs}}"></script>
 <script nonce="{{nonce}}" src="{{scriptUri}}"></script>
 </body>
 </html>

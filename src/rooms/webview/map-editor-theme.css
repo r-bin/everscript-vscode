@@ -30,41 +30,8 @@
  * ~969-976) — its own README calls them a placeholder, so exact hue-matching
  * was never the goal.
  */
-.rg-theme,
-.rg-rail{
-  --rg-bg-app: oklch(20% 0.004 250);
-  --rg-bg-chrome: oklch(22% 0.004 250);
-  --rg-bg-float: oklch(24% 0.005 250);
-  --rg-bg-hover: oklch(27% 0.005 250);
-  --rg-border: oklch(32% 0.005 250);
-  --rg-border-strong: oklch(38% 0.005 250);
-  --rg-text-primary: oklch(93% 0.003 250);
-  --rg-text-secondary: oklch(72% 0.005 250);
-  --rg-text-muted: oklch(52% 0.005 250);
-  --rg-accent: oklch(70% 0.14 260);
-  --rg-accent-soft: oklch(70% 0.14 260 / 0.16);
-  --rg-accent-text: oklch(97% 0.01 260);
-  --rg-success: oklch(68% 0.14 150);
-  --rg-warning: oklch(78% 0.14 80);
-  --rg-error: oklch(68% 0.17 25);
-  --rg-stripe-a: oklch(30% 0.006 250);
-  --rg-stripe-b: oklch(26% 0.006 250);
-  /* Trigger accents: step ~ pink, B ~ yellow. Not consumed until the
-     trigger tools land (see docs/map-editor-redesign-plan.md Phase 1/4). */
-  --rg-trigger-step: oklch(72% 0.19 350);
-  /* Animated tiles (map-editor-anim-tab.js): one colour for every animation mark. */
-  --rg-anim: oklch(70% 0.19 295);
-  --rg-trigger-b: oklch(80% 0.17 95);
-  --rg-shadow-float: 0 8px 24px rgba(0,0,0,.45);
-  --rg-shadow-subtle: 0 2px 6px rgba(0,0,0,.3);
-  --rg-radius-pill: 12px;
-  --rg-radius-control: 7px;
-  /* System stack for UI chrome text — no network font fetch. The mono
-     stack is the one shared.css already uses (line 3): keep it for
-     coordinates/counts/badges so that register doesn't change. */
-  --rg-font-ui: -apple-system, "Segoe UI", system-ui, sans-serif;
-  --rg-font-mono: "SF Mono","Cascadia Code",monospace;
-}
+/* The tokens themselves live in src/shared/webview/map-view/map-view.css (shared with
+ * the Secret of Mana Maps panel); this file and map-editor-canvas.css consume them. */
 
 /* ── Tab shell (the docked panel column's own tab strip) ─────────────────
  * `#rg-tabstrip` is buildEditTabStripHtml()'s root (map-editor-tabs.js),

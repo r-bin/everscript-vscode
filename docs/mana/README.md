@@ -104,9 +104,59 @@ one of 52 areas, the rest (arenas, cannon rides, credits, other event states) ar
 sets and pieces, different objects or scripts, e.g. 7 Kakkara interiors); the panel
 shows each picture once.
 
+## Collision — `$02:A043`, `$01:BE15`, `$00:D84C`
+
+Each metatile has 4 bytes: index `$CB:0400 + set*384 + half*192 + n` → 4 bytes at
+`$CB:0000 + index*4`, copied to `$7F:B800` (layer A) / `$7F:BC00` (layer B). The player's
+movement reads layer A only (`$01:BA5B`, `$01:BB5C`, `$01:BD33` → `$01:BE15`).
+
+| byte | bits | meaning (from the code) |
+|---|---|---|
+| c0 | 0-2 | 0 floor of no level, 1 / 2 floor of level 1 / 2, 3 wall, 4-7 no wall (`CMP #4; BCS`) |
+| c0 | 3 | changes the walker's level (`$00:D868`) |
+| c1 | 7 | special cell (below) |
+| c2 | high nibble 1, low 4-7 | diagonal half wall: 4 bottom-left, 5 top-right, 6 top-left, 7 bottom-right |
+
+Stepping on a 0-2 floor sets the walker's level to it (`$00:D884`); a level-1 floor is solid
+to a walker on level 2 and the other way round (`$01:BE2B`: `(c0 ^ level) & 3 == 3`). That is
+how bridges and their undersides work. Most walkable ground is level 2 (map 128: 1184 cells,
+3358 walls, 2 level-1, 48 shared). Not named yet: c0 bits 4-7, c1 bits 0-6 (bit 4 is tested
+at `$01:B9CD`), other c2 values, c3.
+
+## Special cells — `$00:D03A`, `$02:B517`
+
+On load the game scans layer A; every cell whose c1 bit 7 is set gets its own metatile
+slot `$C0+k` (tile words to `$7F:C600+8k`, collision to `$7F:BB00+4k`) and the cell is
+rewritten to `$C0+k`, so the game can change that one cell later. c1 is the kind: `$80`
+(2105 cells), `$C0` (191), `$86` (50: cave entrances), `$87` (22: signposts), `$85` (6: a gate),
+`$82` (3: a water edge) — the descriptions are what those cells look like, not code.
+
+No cuttable tiles were found: no code writes the slot tables at runtime except the
+save/restore pair `$02:AB30`/`$02:AB42`. Weapon obstacles (bushes, rocks) appear to be map
+objects, which are not decoded yet.
+
+## Animation — run the game's own code
+
+Three systems, set up at load and stepped every frame by `$00:B0BB`:
+
+| setup | per frame | what moves | upload (NMI `$00:C304`) |
+|---|---|---|---|
+| `$01:B0EC` (byte 0 bit 7): slot `$C8:0400[b0&$3F]`, records from `$C8:0441` | `$01:B033`, one record per frame (`$F4&7`), modes 0 loop / `$40` ping-pong / `$80` two on one back / `$C0` once then random hold | 4-char blocks `$DC:8000+(b&$3F)*$200` into chars `$360+k*4` | `$DC:[$92]` → VRAM `[$96]`, `$80` bytes |
+| `$01:B17E` (byte 0 bit 6): entries `$C8:0000` listed by `$C8:0600[b0&$3F]`, target char `w&$3FF`, mode `w>>12`, speed `(w>>10)&3`; reads the chars back from VRAM | `$01:BFE0` | pixel transforms of single chars (shifts, rotations, …, 16 modes) | `$7F:820A` → `$7F:820C`, `$20`/`$40` bytes or two words |
+| `$02:BC7E` (byte 1 bit 7): effect bytes `$C8:087B[$C8:0802[b1&$7F] .. $C8:0803[..]]`: palette bits 0-2, speed 3-4, type 5-7; types 0-2 cycle the colours whose ROM word has bit 15 set (`$02:BEB1`) | `$02:BAD6` (even frames) | CGRAM colours (`$0600` shadow) | the shadow |
+
+Rather than re-deriving every mode, `src/mana/animate.ts` runs these routines on a small
+65816 interpreter (`cpu65816.ts`, `snes-bus.ts`) and records which characters and colours
+change. Checked against the game: maps 16, 35, 113, 128 and 136 — every animated
+character and colour goes through exactly the same set of states over 480 frames, and
+nothing else changes in the game. The same interpreter runs the game's `$02:A000` and
+`$00:CB90` and reproduces our metatile tables and layers exactly (rom tests).
+The Maps panel plays it per cell kind (cells with the same tile words share frames).
+
 ## Not done yet
 
 - Objects, NPCs, doors and event triggers (`$C8:7000` after the header, `$C8:4000`,
   door table) are not decoded; the reference pictures include some sprites.
 - Pieces hidden by event flags use flag value 0 (a new game).
 - BG3 (weather, text) and parallax scrolling of layer B are not drawn.
+- Layer B's own collision (`$7F:BC00`) is not drawn; the player uses layer A's.

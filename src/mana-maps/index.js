@@ -10,6 +10,8 @@ const vscode = require('vscode');
 
 const SOM_ROOT = vscode.Uri.parse('som://rom/');
 const WEBVIEW_DIR = path.join(__dirname, 'webview');
+// Map-view pieces shared with the Evermore Rooms tab (chips, their CSS, the animation player).
+const MAP_VIEW_DIR = path.join(__dirname, '..', 'shared', 'webview', 'map-view');
 
 /** @type {vscode.WebviewPanel | null} */
 let panel = null;
@@ -39,10 +41,23 @@ function pageHtml(webview, base, init) {
         nonce,
         styleUri: String(webview.asWebviewUri(vscode.Uri.joinPath(base, 'style.css'))),
         scriptUri: String(webview.asWebviewUri(vscode.Uri.joinPath(base, 'main.js'))),
+        mapSvgJs: String(webview.asWebviewUri(vscode.Uri.joinPath(base, 'map-svg.js'))),
+        mapViewCss: String(webview.asWebviewUri(vscode.Uri.file(path.join(MAP_VIEW_DIR, 'map-view.css')))),
+        animJs: String(webview.asWebviewUri(vscode.Uri.file(path.join(MAP_VIEW_DIR, 'tile-animation.js')))),
+        chipsJs: String(webview.asWebviewUri(vscode.Uri.file(path.join(MAP_VIEW_DIR, 'view-chips.js')))),
         init: JSON.stringify(init).replace(/</g, '\\u003c'),
     });
     const html = fs.readFileSync(path.join(WEBVIEW_DIR, 'index.html'), 'utf8');
     return html.replace(/\{\{(\w+)\}\}/g, (_, k) => values[k] ?? '');
+}
+
+/** The page asks for a som://rom/ file (collision, animation); send its text back. */
+async function answer(p, msg) {
+    if (!p || !msg || msg.command !== 'read' || typeof msg.path !== 'string' || msg.path.includes('..')) return;
+    let text = null;
+    try { text = Buffer.from(await vscode.workspace.fs.readFile(vscode.Uri.parse('som://rom/' + msg.path))).toString('utf8'); }
+    catch { text = null; }
+    p.webview.postMessage({ command: 'file', path: msg.path, text });
 }
 
 /** Open (or reveal) the Maps panel. */
@@ -52,9 +67,10 @@ async function openManaMaps() {
     panel = vscode.window.createWebviewPanel('everscript.manaMaps', 'Secret of Mana — Maps', vscode.ViewColumn.Active, {
         enableScripts: true,
         retainContextWhenHidden: true,
-        localResourceRoots: [base, SOM_ROOT],
+        localResourceRoots: [base, vscode.Uri.file(MAP_VIEW_DIR), SOM_ROOT],
     });
     panel.onDidDispose(() => { panel = null; });
+    panel.webview.onDidReceiveMessage(msg => answer(panel, msg));
     panel.webview.html = pageHtml(panel.webview, base, await loadInit(panel.webview));
     return panel;
 }

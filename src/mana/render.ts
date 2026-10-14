@@ -16,18 +16,32 @@ export interface ManaImage { width: number; height: number; rgba: Uint8Array }
 
 interface LayerPixels { color: Uint8Array; prio: Uint8Array }
 
-export function renderMap(map: ManaMap): ManaImage {
-    const width = map.w * 16, height = map.h * 16;
-    const a = drawLayer(map, 'A', width, height);
-    const b = drawLayer(map, 'B', width, height);
+/** A rectangle of cells, and optionally other VRAM/CGRAM (an animation frame). */
+export interface RenderOptions {
+    x?: number; y?: number; w?: number; h?: number;
+    vram?: Uint8Array;
+    cgram?: Uint16Array;
+    /** Which layers to draw (default both); a hidden layer is transparent on both screens. */
+    layers?: { a: boolean; b: boolean };
+}
+
+export function renderMap(map: ManaMap, opts: RenderOptions = {}): ManaImage {
+    const x0 = opts.x ?? 0, y0 = opts.y ?? 0;
+    const cw = opts.w ?? map.w - x0, ch = opts.h ?? map.h - y0;
+    const width = cw * 16, height = ch * 16;
+    const vram = opts.vram ?? map.vram, cgram = opts.cgram ?? map.cgram;
+    const show = opts.layers ?? { a: true, b: true };
+    const area = { x0, y0, cw, ch, vram };
+    const a = show.a ? drawLayer(map, 'A', area) : emptyLayer(width * height);
+    const b = show.b ? drawLayer(map, 'B', area) : emptyLayer(width * height);
     const { main, sub, math } = map.display;
     const rgba = new Uint8Array(width * height * 4);
     for (let i = 0; i < width * height; i++) {
         const m = pick(i, main, a, b), s = pick(i, sub, a, b);
-        let c = rgb(map.cgram[m.color]);
+        let c = rgb(cgram[m.color]);
         if (math & (m.layer === 1 ? 0x01 : m.layer === 2 ? 0x02 : 0x20)) {
             const half = (math & 0x40) && s.layer !== 0;
-            const add = s.layer !== 0 ? rgb(map.cgram[s.color]) : [0, 0, 0];
+            const add = s.layer !== 0 ? rgb(cgram[s.color]) : [0, 0, 0];
             c = c.map((v, k) => {
                 let r = math & 0x80 ? v - add[k] : v + add[k];
                 if (half) r >>= 1;
@@ -52,16 +66,22 @@ function pick(i: number, enabled: number, a: LayerPixels, b: LayerPixels): { col
     return { color: 0, layer: 0 };
 }
 
-function drawLayer(map: ManaMap, which: 'A' | 'B', width: number, height: number): LayerPixels {
-    const color = new Uint8Array(width * height), prio = new Uint8Array(width * height);
+function emptyLayer(n: number): LayerPixels {
+    return { color: new Uint8Array(n), prio: new Uint8Array(n) };
+}
+
+function drawLayer(map: ManaMap, which: 'A' | 'B',
+    area: { x0: number; y0: number; cw: number; ch: number; vram: Uint8Array }): LayerPixels {
+    const width = area.cw * 16;
+    const { color, prio } = emptyLayer(width * area.ch * 16);
     const table = which === 'A' ? map.tableA : map.tableB;
-    for (let cy = 0; cy < map.h; cy++) {
-        for (let cx = 0; cx < map.w; cx++) {
-            const n = map.cell(which, cx, cy);
+    for (let cy = 0; cy < area.ch; cy++) {
+        for (let cx = 0; cx < area.cw; cx++) {
+            const n = map.cell(which, area.x0 + cx, area.y0 + cy);
             if (n < 0 || n >= 192) continue;
             for (let q = 0; q < 4; q++) {
                 const word = table[n * 4 + q];
-                drawChar(map.vram, word, cx * 16 + (q & 1) * 8, cy * 16 + (q >> 1) * 8, width, color, prio);
+                drawChar(area.vram, word, cx * 16 + (q & 1) * 8, cy * 16 + (q >> 1) * 8, width, color, prio);
             }
         }
     }

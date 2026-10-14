@@ -75,6 +75,11 @@ buildRoomTree(doc, wsRoot, extCfg, deps)
 
 ## Client-Side Counterpart
 
+The map views' shared pieces come first in that script: `src/shared/webview/map-view/`
+(`tile-animation.js` — the player `animation.js` wraps; `view-chips.js` — the chip and
+segmented-pill builders the filter bar uses; their CSS and the `--rg-*` tokens in
+`map-view.css`). The Secret of Mana Maps panel uses the same files.
+
 The client-side room interactions live in `webview/`, concatenated into one
 script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
 - `bootstrap.js` — message listener, byte-script focus

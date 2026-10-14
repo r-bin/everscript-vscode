@@ -41,3 +41,16 @@ The same held for maps 48, 350 and 35 loaded with the tool above.
 In the save state of this core, `FillRAM` (last values written to `$21xx`) follows WRAM
 and SRAM: state offset of WRAM + `$40000`. The 512×448 screen buffer holds the picture
 doubled in both directions.
+
+## Animation against the game
+
+Load a map in the emulator (as `check-map.js` does), let it settle, record for 480 frames
+the content of every character `traceAnimation` says animates, and the animated CGRAM
+colours; then compare the *sets* of states per character/colour with the trace's (the
+phase differs, the sets must not), and check that no other character changes in the
+game. Map 250 could not be checked: forcing its id at `$00:C481` does not load it.
+
+The same interpreter can run any self-contained routine: `cpu.call(addr)` (JSL/RTL) or
+`cpu.call(addr, { rts: true })`; set the routine's direct-page inputs in `bus.wram` first
+and keep the data bank 0 unless the routine sets its own (`$01:F403` writes PPU and DMA
+registers with absolute addressing).

@@ -77,5 +77,44 @@ test('som:// lists areas and serves map pictures', () => {
     assert.strictEqual(resolveSom(['maps', empty.toString(16) + '.png'], rom), null);
 });
 
+test('map 128 animates the 38 characters and 13 colours the game animates', () => {
+    // Checked against the running game: over 480 frames each of these took exactly
+    // the same set of states as in the emulator, and nothing else changed there.
+    const m = mana.loadMap(rom, 128);
+    const t = mana.traceAnimation(rom, m.header);
+    assert.strictEqual(t.chars.size, 38);
+    assert.deepStrictEqual([...t.colours].sort((a, b) => a - b),
+        [0x6b, 0x6c, 0x6d, 0x6e, 0x6f, 0x78, 0x79, 0x7a, 0x7b, 0x7c, 0x7d, 0x7e, 0x7f]);
+    const a = JSON.parse(resolveSom(['maps', '80.anim.json'], rom).read());
+    assert.strictEqual(a.kinds.length, 138);
+    assert.ok(a.images.every(u => u.startsWith('data:image/png;base64,')));
+    assert.strictEqual(mana.traceAnimation(rom, mana.readHeader(rom, 176)), null);
+});
+
+test('map 128 collision: walls, level-2 floors, a few level-1 and shared floors', () => {
+    const m = mana.loadMap(rom, 128);
+    const c = mana.collisionOf(rom, m);
+    const count = [0, 0, 0, 0];
+    for (let i = 0; i < c.w * c.h; i++) count[mana.floorOf(c.bytes[i * 4])]++;
+    assert.deepStrictEqual(count, [48, 2, 1184, 3358]);
+    const j = JSON.parse(resolveSom(['maps', '80.collision.json'], rom).read());
+    assert.strictEqual(j.floor.length, 56 * 82);
+    assert.strictEqual(j.specials.length, 4);
+});
+
+test('the game\'s own loaders, run on the interpreter, build the same tables and layers', () => {
+    const { Cpu65816 } = require('../../src/mana/dist/cpu65816');
+    const { SnesBus } = require('../../src/mana/dist/snes-bus');
+    for (const id of [16, 113, 128]) {
+        const bus = new SnesBus(rom), cpu = new Cpu65816(bus);
+        const h = mana.readHeader(rom, id).bytes, m = mana.loadMap(rom, id);
+        bus.wram[0x1C] = h[2]; bus.wram[0x1B] = h[1]; cpu.call(0x02A000);
+        for (let i = 0; i < 768; i++) assert.strictEqual(bus.wram[0x1C000 + 2 * i] | (bus.wram[0x1C001 + 2 * i] << 8), m.tableA[i]);
+        bus.wram[0xDC] = id & 0xFF; bus.wram[0xDD] = id >> 8;
+        cpu.call(0x00CB90, { rts: true });
+        for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) assert.strictEqual(bus.wram[0x10000 + y * 128 + x], m.mem[y * 128 + x]);
+    }
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

@@ -22,9 +22,9 @@ function editCutLayerOn() { return _editCutLayer; }
 
 /** The bottom bar's toggle, next to Collision (map-editor-filterbar.js). */
 function cutLayerButtonHtml() {
-  return '<button class="rdf rdf-cut' + (_editCutLayer ? ' on' : '') + '" data-edit-act="cut-layer"'
-    + ' title="' + escH('Draw on the cuttable layer: tiles the player can cut away, revealing the tile '
-      + 'beneath. Off: draw the map itself.') + '">Cuttable</button>';
+  return mapViewChipHtml({ cls: 'rdf-cut', on: _editCutLayer, attrs: { 'edit-act': 'cut-layer' }, label: 'Cuttable',
+    title: 'Draw on the cuttable layer: tiles the player can cut away, revealing the tile '
+      + 'beneath. Off: draw the map itself.' });
 }
 
 function editCutToggle() {
