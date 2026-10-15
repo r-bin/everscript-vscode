@@ -111,8 +111,41 @@ Taken as an idea only, no code or layout (§ legal note above; [port.md](port.md
 - **Switching game** means saving and reloading through the front end. WRAM, the SPC700 driver
   and the PPU state do not survive the handover.
 
-Believed, not verified *(to verify from public documentation before using)*: in SMZ3, ALttP runs
-from `$00–$3F` and Super Metroid from `$80`/`$C0`.
+### 4.1 What SMZ3 actually does (read 2026-10-15, public docs only)
+
+Source: `banks.txt` and `resources/create_exhirom.py` in the public
+`tewtal/alttp_sm_combo_randomizer_rom` repository. Only facts were read; no code or layout is copied.
+
+- **Two LoROM games, two windows.** ALttP (1 MB) goes into the upper halves of file banks
+  `0x40–0x5F`, so it runs from `$00–$1F:8000+` with unchanged bank bytes (§2.1). Super Metroid's
+  first 2 MB go into the upper halves of `0x00–0x3F`, so `$80–$BF:8000+` still show its banks.
+- **Lower-half trick for the overflow.** SM's LoROM banks `$40–$5F` (its 3rd MB) go into the
+  *lower* halves of file banks `0x00–0x1F`, i.e. `$C0–$DF:0000–7FFF`. The game asked for
+  `$C0+n:8000`; it now gets `$C0+n:0000`. SMZ3 does not rewrite every pointer. It hooks the few
+  central routines that take a bank as a parameter (decompression, music upload, bank-wrap
+  checks) and, when the bank is `≥ $C0`, subtracts `$8000` and wraps at `$8000` instead of `$0000`.
+- **The free lower halves hold the shared parts:** randomizer tables, extra graphics, per-game
+  "state data" (ready WRAM/VRAM images to enter a game mid-play), a common SPC player and its data,
+  common VRAM-DMA routines, teleport tables, multiworld code, credits.
+- **SRAM pages.** ALttP's SRAM moves to `$A0:6000–7FFF`, SM's to `$A1:6000–…`: one bigger SRAM,
+  each game its own 8 KB page, chosen by the bank number.
+- **Transition code** lives in each game's own banks (a "Zelda transition" and an "SM transition"
+  block) plus one common IRQ vector.
+
+### 4.2 What carries over to Evermore + Secret of Mana
+
+| SMZ3 trick | For us |
+|---|---|
+| Partner in the second 4 MB, same CPU addresses | Mana (HiROM, 2 MB, SlowROM) at file `0x400000`: `$00–$1F:8000+` show its code unchanged; its `$C0–$DF` data becomes `$40–$5F`. No speed loss. |
+| Hook central loaders instead of rewriting every pointer | Find Mana's routines that take a bank (decompressor, DMA/gfx loaders, SPC upload, script/text readers) with the CDL; there, map `$C0+n` → `$40+n`. Inline `LDA $Cx:…` long reads still need patching one by one; the CDL bus-form audit lists them. |
+| Lower halves as shared space | `$40–$5F:0000–7FFF` (Mana's lower halves) is **not** free: a HiROM game uses the whole 64 KB bank. Free for us: `$60–$7D` (≈1.9 MB), plus Evermore's `$F0–$FF` only where patches leave room. |
+| SRAM pages `$A0`/`$A1` | Header SRAM size ≥ 16 KB; Evermore keeps its page, Mana's SRAM accesses move to another page. Where Mana keeps its SRAM is not yet recorded in `docs/mana/` — part of the partner audit. |
+| State data for a mid-game switch | Must not ship in the repo. Can be made at convert time from the user's ROM in the headless core (`reference_headless_boot`), like everything else. |
+| Common SPC player / VRAM DMA | Each game uploads its own SPC driver on entry; a shared routine in bank `$60+` can do the handover. |
+| FastROM/SlowROM | Evermore sets FastROM for `$80+`; Mana runs only in `$00–$7D`, which are always slow. Nothing to switch. |
+
+Unlike SM, Mana is not LoROM: there is no "same bytes at `$80+` and `$C0+`" for free. The work is
+the bank-byte relocation of §2.2. SMZ3's lesson is to do it in the central routines, found by the CDL.
 
 ## 5. Engineering steps
 
