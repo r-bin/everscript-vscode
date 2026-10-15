@@ -80,6 +80,9 @@ core (WASM, per instruction / access)        webview (every 15 s)        host (N
 | pointer behind `(dp)`, `(dp,X)`, `(dp),Y`, `[dp]`, `[dp],Y`, `(sr,S),Y` | `bases.bin` | read before the instruction runs; ≤32 per PC |
 | code executed from WRAM: bytes + seen/changed | `wram-code.bin`, `wram-code.state` | |
 | SPC700: exec / operand / read / write per ARAM byte | `aram.cdl` | operands = bytes between two sequential opcode fetches |
+| **bus form** per ROM byte: low nibble = forms it was executed through, high nibble = read through (1 `$C0-$FF`, 2 `$80-$BF`, 4 `$00-$3F`, 8 `$40-$7D`) | `bus.cdl` (`cdl-bus.c`) | `rom.cdl`/xrefs keep only the ROM offset, so the mirror used is lost without this. OR-merged |
+| instruction → lowest/highest bus address it read per form (data reads, DMA sources) | `bus-sites.bin` | CPU vector fetches (`$00:FFE0-FFFF` when an interrupt is taken) are recorded under pc 0, not under the interrupted instruction |
+| master cycles per opcode head (gap to the next instruction, incl. DMA/interrupt stalls) | `rom-cycles.bin` (`cdl-count.c`) | summed deltas like hit counts; the scanline wrap is corrected with `H_Max`; idle loops (wait for NMI) dominate, leave them out of any analysis |
 
 **Shadow call stack** (`cdl-flow.c`): calls and interrupts push (entry, expected return, call
 site, S after the push). A return is matched **by S**: top frame → normal (or MODIFIED if the
@@ -89,7 +92,7 @@ an RTS with S above every frame does (stack switch).
 
 **Still not recorded:** per-value counts, word values as words (wvals split bytes), read values,
 SPC700 DSP / BRR sample origins, SA-1 / coprocessor buses (snes9x2005's SA-1 core is separate and
-unhooked), timing (cycles per function). HDMA hooks are not exercised on SoE (it uses general DMA
+unhooked). Cycles are per instruction and not split by caller; `functions.json` sums them per function. HDMA hooks are not exercised on SoE (it uses general DMA
 in every sampled frame); they are verified only by code review.
 
 **Recording overhead** (headless, 3000 SoE frames): 900 ms off, 1260 ms with the v0.172 recorder,
@@ -119,7 +122,8 @@ work behind a "seen lately" or "already marked" check.
 | `tables.md`, `tables/tbl_*.asm`, `tables.json`, `tables.h` | `tables.js`, `table-assets.js` | indexed ROM reads. Asset only when dense (≥1 recorded index per 8 entries), no executed byte inside, no overlap, one bank; else comment only. Code operands into an asset become `tbl_X+$n` |
 | `enums.asm`, `enums.json` | `enums.js` | ram.asm classification; a state that feeds `asl / tax / jsr (abs,X)` maps each value to its handler |
 | `structs.asm`, `structs.h`, `structs.json` | `structs.js` | indexed absolute accesses, pointer bases + Y, D ≠ 0. Sets merge when they share ≥ half the smaller one and sit on the larger one's stride; byte-stride groups that overlap are dropped |
-| `functions.json` | `functions.js` | per function: entries, callers/callees, widths, DB/D, WRAM ranges, I/O by class, ROM data, pointer bases, SA-1 blockers (direct + through callees) |
+| `functions.json` | `functions.js` | per function: entries, callers/callees, widths, DB/D, WRAM ranges, I/O by class, ROM data, pointer bases, SA-1 blockers (direct + through callees), `cycles`, `execForms` / `readForms` (mirrors used) |
+| `bus.md`, `bus.json` | `bus-report.js` | ExHiROM audit (bytes/instructions/edges through `$00-$3F`, `$40-$7D`), SA-1 audit (every form but `$C0-$FF`), bytes per file bank and form, top functions by cycles |
 | `ram.asm` | `wram-export.js` | every WRAM address, accessors, values, hit counts |
 | `spc/aram.cdl` | `asar-export.js` | ARAM coverage |
 | `mesen/labels.mlb`, `mesen/rom.cdl` | `mesen-export.js` | export comments + curated names (option `names`, `wramNames`), asset ranges (`assets`); formats in docs/reverse-engineering/formats.md §3 |
@@ -147,4 +151,5 @@ The CDL library also seeds Ghidra/REA (functions at their `$8x` execution addres
   address; `hle_func` replacements are checked against the lockstep diff (§6 of the port doc).
 - **SA-1 port:** `functions.json` lists, per function, what keeps it on the S-CPU. The 12 SoE
   functions with no blockers and the ~190 that only touch WRAM are the first candidates; their WRAM
-  ranges are what would move to BW-RAM / I-RAM. Timing data (cycles per function) is not recorded yet.
+  ranges are what would move to BW-RAM / I-RAM. Cycles per function are recorded since v0.212.1 (`functions.json`, `bus.md`).
+- **ExHiROM / SA-1 layout ports:** `bus.md` is the audit (what ran or was read through which mirror); plan and gates in `docs/architecture/rom-layout-options.md` §5.

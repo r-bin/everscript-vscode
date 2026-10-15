@@ -9,6 +9,8 @@
  *   entries, callers, callees, exec count, entry/exit widths (rets), DB/D seen,
  *   WRAM read/write footprint (as ranges), I/O registers, ROM data read,
  *   pointer bases, indirect sites, abnormal returns
+ *   cycles (master cycles recorded in the function's instructions), execForms / readForms (which bus
+ *     mirrors it ran / read through: C80 = $C0-$FF, 80 = $80-$BF, 00 = $00-$3F, 40 = $40-$7D)
  *   sa1.blockers: what keeps the function on the S-CPU. The SA-1 cannot reach
  *     the PPU, APU ports, WRAM port, DMA or S-CPU registers, nor WRAM itself
  *     (WRAM variables would have to move to BW-RAM / I-RAM). transitiveBlockers
@@ -17,7 +19,7 @@
 
 const { hex } = require('./rom-map');
 const { SPACE, XR, EXT_HEAD } = require('./xref-index');
-const { regsByPc, basesByPc } = require('./library-ext');
+const { regsByPc, basesByPc, busSitesList } = require('./library-ext');
 const { returnsByEntry } = require('./recomp-analysis');
 const { decodeAt } = require('./disasm');
 
@@ -51,7 +53,7 @@ function buildFunctions(lib, rom, map, index, tables) {
         let f = byFunc.get(off);
         if (!f) {
             f = { off, entries: new Set(), callers: new Set(), callees: new Set(), interrupt: false, wramR: new Set(), wramW: new Set(),
-                io: new Map(), rom: new Set(), db: new Set(), d: new Set(), bases: new Set(), indirect: 0, end: off };
+                io: new Map(), rom: new Set(), cycles: 0, exec: 0, read: 0, db: new Set(), d: new Set(), bases: new Set(), indirect: 0, end: off };
             byFunc.set(off, f);
         }
         return f;
@@ -102,8 +104,16 @@ function buildFunctions(lib, rom, map, index, tables) {
         if (owner < 0) continue;
         const ins = decodeAt(rom, off, lib.cdl[off], lib.ext[off]);
         const f = fn(owner);
+        if (lib.romCycles) f.cycles += lib.romCycles[off];
+        if (lib.bus) f.exec |= lib.bus[off] & 0xF;
         if (ins) f.end = Math.max(f.end, off + ins.len);
     }
+
+    for (const site of busSitesList(lib)) {
+        const off = map.busToRom(site.pc), owner = off >= 0 ? index.functionOf(off) : -1;
+        if (owner >= 0) fn(owner).read |= site.formBit;
+    }
+    const formNames = bits => [[1, 'C0-FF'], [2, '80-BF'], [4, '00-3F'], [8, '40-7D']].filter(([b]) => bits & b).map(([, n]) => n);
 
     const tableNames = new Map((tables || []).map(t => ['data_' + hex(map.canonical(t.base), 6), 'tbl_' + hex(map.canonical(t.base), 6)]));
     const records = new Map();
@@ -120,6 +130,7 @@ function buildFunctions(lib, rom, map, index, tables) {
         records.set(f.off, {
             name: index.labelName(f.off) || 'func_' + hex(map.canonical(f.off), 6),
             romOffset: f.off, size: f.end - f.off, bus: map.canonical(f.off), entries: [...f.entries].map(e => '$' + hex(e, 6)),
+            cycles: f.cycles, execForms: formNames(f.exec), readForms: formNames(f.read),
             interrupt: f.interrupt, execCount: (lib.romHits && lib.romHits[f.off]) || 0,
             callers: [...f.callers].slice(0, 32), callees: [...f.callees].map(o => index.labelName(o) || '$' + hex(map.canonical(o), 6)),
             widths: ret ? Object.fromEntries([...ret.variants].map(([k, v]) => [k, [...v]])) : {},

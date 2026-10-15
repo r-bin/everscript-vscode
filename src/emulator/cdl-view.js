@@ -212,7 +212,8 @@ function getCdlClientScript() {
           && !d.edges.length && !d.stats.length && !d.scriptXrefs.length
           && !(d.romHits && d.romHits.length) && !(d.wramHits && d.wramHits.length)
           && !(d.rets && d.rets.length) && !(d.regs && d.regs.length) && !(d.bases && d.bases.length)
-          && !(d.wcode && d.wcode.length) && !(d.aram && d.aram.length)) return false;
+          && !(d.wcode && d.wcode.length) && !(d.aram && d.aram.length)
+          && !(d.bus && d.bus.length) && !(d.busSites && d.busSites.length) && !(d.romCycles && d.romCycles.length)) return false;
       const enc = list => list.map(c => ({ index: c.index, data: cdlBytesToB64(c.data) }));
       vscodeApi.postMessage({ command: 'cdlDelta', delta: {
         chunks: d.chunks.map(c => ({ index: c.index, cdl: cdlBytesToB64(c.cdl), ext: cdlBytesToB64(c.ext) })),
@@ -229,6 +230,9 @@ function getCdlClientScript() {
         bases: cdlWordsToB64(d.bases),
         wcode: (d.wcode || []).map(c => ({ index: c.index, code: cdlBytesToB64(c.code), state: cdlBytesToB64(c.state) })),
         aram: enc(d.aram || []),
+        bus: enc(d.bus || []),
+        busSites: cdlWordsToB64(d.busSites || []),
+        romCycles: cdlWordsToB64(d.romCycles || []),
         dropped: d.dropped || 0,
       } });
       cdlLastDrain = Date.now();

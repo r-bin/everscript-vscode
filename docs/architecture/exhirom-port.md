@@ -100,13 +100,17 @@ bank-`$00` area.
 Each step ends in something checkable. Keep the first 4 MB **byte-identical** to the current
 ROM until step 5, so every existing tool (CDL, recomp seeds, patches) keeps working.
 
-1. **Find every mirror use (trap test).** Build a throwaway ExHiROM image: vanilla 4 MB
-   (3 MB + 1 MB pad) followed by a second 4 MB filled with a recognisable trap pattern, header
-   at `0x40FFC0`. Add a core hook (or a conditional watch in the headless runner) that logs any
-   CPU read, fetch or DMA source that resolves into file `≥ 0x400000`. Play the existing scripted
-   runs (`tools/recomp/` scripts, TAS-style headless runs). Every hit is a place that used a
-   `$00–$3F:8000+` or `$40–$7D` address and must be rewritten to `$80+`/`$C0+`. Result goes in
-   `docs/` as a list of routines with evidence (`game-knowledge` skill).
+1. **Find every mirror use — the CDL does it now (v0.212.1).** The recorder keeps, per ROM byte,
+   which bus forms (`$C0–$FF`, `$80–$BF`, `$00–$3F`, `$40–$7D`) executed or read it, plus the
+   instruction that read through each form (`bus.cdl`, `bus-sites.bin`; export `bus.md` /
+   `bus.json`, "ExHiROM audit"). Control flow keeps its bank in `edges.bin`. Record a long
+   playthrough instead of building a trap image. A trap image (vanilla 4 MB followed by 4 MB of
+   recognisable bytes, header at `0x40FFC0`, a hook logging reads that resolve to file
+   `≥ 0x400000`) stays useful as an independent cross-check before shipping.
+   **First result** (6000 headless frames, title and intro only): the only mirror-executed code is
+   the first 17 bytes of the NMI handler at `$00:823A`, entered through the vector at `$FFEA`;
+   the only mirror data read is that vector. Everything else runs through `$80+`/`$C0+`
+   (`knowledge/rom/80823a.md`). A full-play recording is still needed before trusting this.
 2. **Fix the hits** in an Asar patch (`patches/`, `snes-asm-asar-patching` skill) using
    the `exhirom` mapper (`src/emulator/cdl/asar-export.js` already emits it). Re-run step 1 until
    zero hits across a full playthrough route and the intro/attract loop.

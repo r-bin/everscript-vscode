@@ -9,7 +9,7 @@ Usage (record → export → `build.sh` → `recomp.sh`): `docs/reverse-engineer
 |---|---|
 | `opcodes.js` | 65816 opcode matrix — single source for the disassembler and the core's `cdl-optable.h` (`node tools/gen-cdl-optable.js`) |
 | `library.js` | Per-ROM library `<globalStorage>/cdl-library/<sha1>/`; mergeable files, atomic flush |
-| `library-ext.js` | Library streams for recomp / decomp: `rets.bin` (call stack outcomes, exit widths), `regs.bin` (DB / D / Y), `bases.bin` (pointer bases), `wram-code.*`, `aram.cdl`; decoded views `retsList` / `regsByPc` / `basesByPc` |
+| `library-ext.js` | Library streams for recomp / decomp / layout ports: `bus.cdl`, `bus-sites.bin`, `rom-cycles.bin` (cycles are summed deltas), `rets.bin` (call stack outcomes, exit widths), `regs.bin` (DB / D / Y), `bases.bin` (pointer bases), `wram-code.*`, `aram.cdl`; decoded views `retsList` / `regsByPc` / `basesByPc` |
 | `rom-map.js` | ROM offset ⇄ bus address (canonical HiROM `$C0+`, LoROM `$80+:8000`) |
 | `xref-index.js` | Functions, callers, enclosing function, accessors per address, labels |
 | `disasm.js` | Decode one instruction with recorded M/X; format Asar text that reassembles byte-exact |
@@ -23,6 +23,7 @@ Usage (record → export → `build.sh` → `recomp.sh`): `docs/reverse-engineer
 | `table-assets.js` | Safe tables → `tables/tbl_*.asm` (incsrc'd known regions), `tables.json`, `tables.h` |
 | `structs.js` | WRAM struct inference (indexed / pointer / D-relative accesses) → `structs.asm`, `structs.h`, `structs.json` |
 | `enums.js` | Enums, states (value → handler) and bit flags → `enums.asm`, `enums.json` |
+| `bus-report.js` | `bus.json` / `bus.md`: ExHiROM and SA-1 audits from the bus-form stream (`bus.cdl`, `bus-sites.bin`), bytes per bank and form, top functions by cycles (`rom-cycles.bin`) |
 | `functions.js` | `functions.json`: per-function widths, DB/D, WRAM / I/O footprint, SA-1 blockers |
 | `wram-export.js` | `ram.asm`: every WRAM address, accessors, values seen, enum / bit-flag guesses |
 | `lookup.js` | "who calls / who touches" answers for the CDL tab |

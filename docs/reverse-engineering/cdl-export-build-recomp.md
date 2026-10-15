@@ -94,7 +94,8 @@ What the folder contains:
 | `tables.md` | ROM lookup tables: base, entry size, values, curve / pointer guess, which WRAM variable indexes it and where the value goes |
 | `tables/tbl_XXXXXX.asm` | the safe tables as editable assets (one `dw` / `db` row per entry), included by the bank files; `tables.json` and `tables.h` (C arrays) for tools and a decomp |
 | `ram.asm`, `enums.asm`, `structs.asm` | WRAM names, enum / state / flag values (states name the handler per value), struct instances and fields; included by `main.asm`. `structs.h` and `*.json` for C and tools |
-| `functions.json` | per function: entry / exit widths, DB / D seen, callers / callees, WRAM ranges, I/O registers, ROM data, SA-1 blockers |
+| `functions.json` | per function: entry / exit widths, DB / D seen, callers / callees, WRAM ranges, I/O registers, ROM data, SA-1 blockers, cycles, bus forms used |
+| `bus.md`, `bus.json` | which ROM mirror ran / was read (ExHiROM and SA-1 audits) and where the cycles went; see `docs/architecture/rom-layout-options.md` §5 |
 | `spc/aram.cdl` | SPC700 coverage of ARAM (exec / operand / read / write), when recorded |
 | `recomp/cfg/bankXX.cfg`, `recomp.sh` | snesrecomp seeds and runner (§5) |
 | `STEPS.md` | one entry per export: what was seeded, coverage, files written |

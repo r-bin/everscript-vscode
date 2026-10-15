@@ -227,6 +227,9 @@ class CdlHost {
                     bases: b64ToWords(d.bases),
                     wcode: (d.wcode || []).map(c => ({ index: c.index, code: b64ToBytes(c.code), state: b64ToBytes(c.state) })),
                     aram: (d.aram || []).map(a => ({ index: a.index, data: b64ToBytes(a.data) })),
+                    bus: (d.bus || []).map(a => ({ index: a.index, data: b64ToBytes(a.data) })),
+                    busSites: b64ToWords(d.busSites),
+                    romCycles: b64ToWords(d.romCycles),
                 });
                 if (d.dropped && d.dropped !== this.droppedWarned) {
                     this.droppedWarned = d.dropped;

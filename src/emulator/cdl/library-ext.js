@@ -11,6 +11,11 @@
  *   wram-code.bin    128 KB  first bytes seen executing from WRAM
  *   wram-code.state  128 KB  1 seen, 2 executed again with other bytes                   OR
  *   aram.cdl         64 KB   SPC700: 1 exec, 2 operand, 4 read, 8 write                  OR
+ *   bus.cdl          1 byte / ROM byte: low nibble = bus forms it ran through, high = read through   OR
+ *                    (form bits 1 = $C0-$FF, 2 = $80-$BF, 4 = $00-$3F, 8 = $40-$7D)
+ *   bus-sites.bin    [formIdx<<24|pc, flags, lo, hi]  instruction -> lowest / highest bus address
+ *                    it read in that form (ExHiROM / SA-1 audit)                              OR / min / max
+ *   rom-cycles.bin   [rom offset, cycles lo, cycles hi]  master cycles per opcode head       SUM
  * All merges are order independent except which bytes wram-code.bin keeps when two
  * sessions saw different code: the state then says CHANGED either way.
  */
@@ -23,6 +28,9 @@ const BASE = { Y: 1, LONG: 2, STACK: 4 };
 const WCODE = { SEEN: 1, CHANGED: 2 };
 const ARAM = { EXEC: 1, OPERAND: 2, READ: 4, WRITE: 8 };
 
+const BUS = { C: 1, B8: 2, B0: 4, B4: 8 };
+const TWO32 = 0x100000000;
+
 const retKey = (entry, retPc, mx) => (entry * 0x1000000 + retPc) * 16 + (mx & 0xF);
 const regKey = (pc, kv) => pc * 0x100000 + kv;
 const baseKey = (pc, base) => pc * 0x1000000 + base;
@@ -34,6 +42,9 @@ function initExt(lib) {
     lib.wcode = new Uint8Array(WRAM_SIZE);
     lib.wcodeState = new Uint8Array(WRAM_SIZE);
     lib.aram = new Uint8Array(ARAM_SIZE);
+    lib.bus = new Uint8Array(lib.romSize);
+    lib.busSites = new Map();   // formIdx * 2^24 + pc -> { flags, lo, hi }
+    lib.romCycles = new Float64Array(lib.romSize);
 }
 
 function orInto(map, key, flags) {
@@ -74,18 +85,40 @@ function mergeExt(lib, d, touch) {
             if (v !== lib.aram[base + i]) { lib.aram[base + i] = v; touch('aram.cdl'); }
         }
     }
+    for (const c of d.bus || []) {
+        const base = c.index * 0x10000;
+        for (let i = 0; i < c.data.length && base + i < lib.romSize; i++) {
+            const v = lib.bus[base + i] | c.data[i];
+            if (v !== lib.bus[base + i]) { lib.bus[base + i] = v; touch('bus.cdl'); }
+        }
+    }
+    if (d.busSites) for (let i = 0; i + 3 < d.busSites.length; i += 4) {
+        const k = d.busSites[i], old = lib.busSites.get(k);
+        const lo = d.busSites[i + 2], hi = d.busSites[i + 3], flags = d.busSites[i + 1] & 0xFF;
+        if (!old) { lib.busSites.set(k, { flags, lo, hi }); touch('bus-sites.bin'); continue; }
+        const next = { flags: old.flags | flags, lo: Math.min(old.lo, lo), hi: Math.max(old.hi, hi) };
+        if (next.flags !== old.flags || next.lo !== old.lo || next.hi !== old.hi) { lib.busSites.set(k, next); touch('bus-sites.bin'); }
+    }
+    if (d.romCycles) {   // deltas: summed
+        for (let i = 0; i + 1 < d.romCycles.length; i += 2) if (d.romCycles[i] < lib.romSize) lib.romCycles[d.romCycles[i]] += d.romCycles[i + 1];
+        if (d.romCycles.length) touch('rom-cycles.bin');
+    }
 }
 
 /** Load the extension files: readRecords(name, magic, words), readBytes(name) -> Uint8Array | null. */
 function loadExt(lib, readRecords, readBytes) {
-    const code = readBytes('wram-code.bin'), state = readBytes('wram-code.state'), aram = readBytes('aram.cdl');
+    const code = readBytes('wram-code.bin'), state = readBytes('wram-code.state'), aram = readBytes('aram.cdl'), bus = readBytes('bus.cdl');
     mergeExt(lib, {
         rets: readRecords('rets.bin', 'EVRT', 3),
         regs: readRecords('regs.bin', 'EVRG', 2),
         bases: readRecords('bases.bin', 'EVBS', 3),
         wcode: code && state ? [{ index: 0, code: code.subarray(0, WRAM_SIZE), state: state.subarray(0, WRAM_SIZE) }] : [],
         aram: aram ? [{ index: 0, data: aram.subarray(0, ARAM_SIZE) }] : [],
+        bus: bus ? [{ index: 0, data: bus.subarray(0, lib.romSize) }] : [],
+        busSites: readRecords('bus-sites.bin', 'EVBU', 4),
     }, () => {});
+    const cyc = readRecords('rom-cycles.bin', 'EVRY', 3);   // stored totals: assigned, not summed again
+    if (cyc) for (let i = 0; i + 2 < cyc.length; i += 3) if (cyc[i] < lib.romSize) lib.romCycles[cyc[i]] = cyc[i + 1] + cyc[i + 2] * TWO32;
 }
 
 /** Writers for flush(): name -> () => Buffer | Uint8Array. */
@@ -100,6 +133,13 @@ function extWriters(lib, packRecords) {
         'wram-code.bin': () => lib.wcode,
         'wram-code.state': () => lib.wcodeState,
         'aram.cdl': () => lib.aram,
+        'bus.cdl': () => lib.bus,
+        'bus-sites.bin': () => packRecords('EVBU', [...lib.busSites].map(([k, v]) => [k, v.flags, v.lo, v.hi]), 4),
+        'rom-cycles.bin': () => {
+            const rows = [];
+            for (let i = 0; i < lib.romSize; i++) { const n = lib.romCycles[i]; if (n) rows.push([i, n % TWO32, Math.floor(n / TWO32)]); }
+            return packRecords('EVRY', rows, 3);
+        },
     };
 }
 
@@ -132,7 +172,12 @@ function basesByPc(lib) {
     return out;
 }
 
+/** [{ pc, formBit, flags, lo, hi }] - instructions that read ROM through a mirror form. */
+function busSitesList(lib) {
+    return [...lib.busSites].map(([k, v]) => ({ pc: k % 0x1000000, formBit: 1 << Math.floor(k / 0x1000000), ...v }));
+}
+
 module.exports = {
-    initExt, mergeExt, loadExt, extWriters, retsList, regsByPc, basesByPc,
-    RET, REG, BASE, WCODE, ARAM, EXT_FILES: ['rets.bin', 'regs.bin', 'bases.bin', 'wram-code.bin', 'wram-code.state', 'aram.cdl'],
+    initExt, mergeExt, loadExt, extWriters, retsList, regsByPc, basesByPc, busSitesList,
+    BUS, RET, REG, BASE, WCODE, ARAM, EXT_FILES: ['rets.bin', 'regs.bin', 'bases.bin', 'wram-code.bin', 'wram-code.state', 'aram.cdl', 'bus.cdl', 'bus-sites.bin', 'rom-cycles.bin'],
 };

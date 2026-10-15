@@ -11,6 +11,7 @@
  *   tables/               tables as editable assets: tbl_*.asm (incsrc'd), tables.json, tables.h
  *   ram.asm, enums.asm, structs.asm (+ structs.h)   WRAM names, enums / states / flags, structs
  *   functions.json        per-function summary (widths, DB/D, WRAM / I/O footprint, SA-1 blockers)
+ *   bus.json, bus.md      which ROM mirror ran / was read (ExHiROM and SA-1 audit) and where the cycles went
  *   spc/aram.cdl          SPC700 coverage of ARAM, when recorded
  *   rooms/, rom.cdl, build.sh, build-cdl.js, export.json, STEPS.md  (asar-build.js)
  *   mesen/labels.mlb, mesen/rom.cdl  Mesen2 labels + comments, CDL with asset ranges (mesen-export.js)
@@ -35,6 +36,7 @@ const { buildEnums, enumsAsm } = require('./enums');
 const { inferStructs, structsAsm, structsHeader } = require('./structs');
 const { buildFunctions } = require('./functions');
 const { writeMesenFiles } = require('./mesen-export');
+const { buildBusReport, busReportMd } = require('./bus-report');
 
 const CDL_CODE = 0x01, CDL_DATA = 0x02;
 const EXT_DMA = 0x01, EXT_APU = 0x02, EXT_HEAD = 0x04, EXT_POINTER = 0x20;
@@ -330,6 +332,9 @@ function exportAsar(lib, romInput, outDir, opts = {}) {
     fs.writeFileSync(path.join(outDir, 'structs.json'), JSON.stringify(structs, null, 1) + '\n');
     const functions = buildFunctions(lib, rom, map, index, tables);
     fs.writeFileSync(path.join(outDir, 'functions.json'), JSON.stringify(functions.list, null, 1) + '\n');
+    const busReport = buildBusReport(lib, map, functions.list);
+    fs.writeFileSync(path.join(outDir, 'bus.json'), JSON.stringify(busReport, null, 1) + '\n');
+    fs.writeFileSync(path.join(outDir, 'bus.md'), busReportMd(busReport));
     fs.rmSync(path.join(outDir, 'tables'), { recursive: true, force: true });
     for (const f of assets.files) {
         fs.mkdirSync(path.dirname(path.join(outDir, f.path)), { recursive: true });
@@ -372,6 +377,7 @@ function exportAsar(lib, romInput, outDir, opts = {}) {
     if (lib.aram) for (const v of lib.aram) if (v & 1) aramExec++;
     known.steps.push(`functions.json: ${functions.summary.functions} functions; SA-1: ${functions.summary.pure} need nothing S-CPU-only (callees included), `
         + `${functions.summary.wramOnly} more only need their WRAM moved` + (aramExec ? `; SPC700: ${aramExec} ARAM opcodes recorded (spc/aram.cdl).` : '.'));
+    known.steps.push(`bus.md: ${busReport.recordedBytes} bytes with a recorded mirror form; ExHiROM needs ${busReport.exhirom.readSites.length} read sites and ${busReport.exhirom.edgesInto.length} edges rewritten (as seen), SA-1 ${busReport.sa1.readSites.length} / ${busReport.sa1.edgesInto.length}.`);
     const mesen = writeMesenFiles({ rom, lib, outDir, comments, wramNames: opts.wramNames, assets: opts.assets });
     known.steps.push(`Mesen2: mesen/labels.mlb (${mesen.labels} labels, ${mesen.comments} comments), mesen/rom.cdl (+${mesen.assetBytes} asset bytes marked data).`);
     const build = writeBuildFiles({ lib, rom, map, outDir, known, labels: [...emitted].map(o => [nameOf(o), o]), banks: includes.length, functions: index.entries.length });

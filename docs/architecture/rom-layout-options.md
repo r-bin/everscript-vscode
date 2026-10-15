@@ -113,7 +113,32 @@ the largest item in this document.
 
 ---
 
-## 5. Recommendation
+## 5. Staged plan: CDL → recomp → ExHiROM → SA-1
+
+Each stage produces the input of the next and ends in something that can be checked. The
+recorder (v0.212.1) now writes what stages 3 and 4 need, so recording can start before the
+later stages are built.
+
+| Stage | Input | Output | Gate (checkable) | Recorder support |
+|---|---|---|---|---|
+| 1. **CDL** | play the game | library: code/data, edges, rets, regs, hit counts, **bus forms, mirror read sites, cycles per instruction** | coverage of the ROM; the ExHiROM audit in `bus.md` stops changing over new play | `bus.cdl`, `bus-sites.bin`, `rom-cycles.bin` → `bus.md`, `bus.json`, `functions.json` (`cycles`, `execForms`, `readForms`) |
+| 2. **Recomp** | the library | byte-identical Asar project + snesrecomp host; every pointer symbolised (shiftable) | recomp lockstep vs snes9x; rebuild is byte-identical | `functions.json`, `recomp/cfg`, tables/structs/enums |
+| 3. **ExHiROM** | stage 1 audit + stage 2 project | 6–8 MB image, header/vectors/stubs, first 4 MB identical | `bus.md` ExHiROM audit empty (except vector stubs), lockstep identical | audit lists exactly what to rewrite; the NMI stub at `$00:823A` is the known item |
+| 4. **SA-1** | stage 1 SA-1 audit and cycles + stage 2 shiftable project | `$8x → $Cx` rewrite, header at `0x7FC0`, BW-RAM variable map, then per-function offload | boot identical; then per-function lockstep; measured cycles drop | SA-1 audit (every non-`$C0` form), `functions.json` blockers, **cycles per function** to pick candidates |
+
+Notes on what the first recordings already say (headless, title and intro screens only — do not
+extrapolate to fights or big rooms):
+
+- **ExHiROM is nearly free**: only the NMI handler's first 17 bytes ran through bank `$00`.
+- **SA-1 is a big rewrite**: about 27,000 executed bytes, 78,000 read bytes, ~300 reading
+  instructions and ~1,600 control-flow edges use `$80–$BF`, all of which become `$Cx`.
+- **There is nothing to speed up there**: 85.6 % of the recorded cycles are the wait-for-NMI
+  spin at `$80:858C` (`knowledge/rom/80858c.md`). One frame measures ≈ 355,000 master cycles,
+  matching the 357,368 of a real frame, so the counter is trustworthy. Record busy scenes
+  (fights, large rooms, many entities) before judging SA-1: if they also idle most of the frame,
+  SA-1 buys little.
+
+## 6. Recommendation
 
 1. **Do D0 now.** It is the first step of both, small, and valuable on its own.
 2. **Pick the target by the goal, not by habit:**
@@ -124,8 +149,8 @@ the largest item in this document.
      fork of the same shiftable disassembly (the final ROM can only be one of them).
 3. **Do not put content in the second 4 MB** until the target is decided; that is the one
    piece of work B-only data would not carry to C.
-4. Before committing to C, measure: record cycles per function in the CDL (improvement 7,
-   `docs/reverse-engineering/cdl.md`) and confirm that the engine is CPU-bound where the S-CPU
+4. Before committing to C, measure: the CDL records cycles per instruction since v0.212.1
+   (`functions.json` `cycles`, `bus.md` "Cycles"); record busy scenes and confirm that the engine is CPU-bound where the S-CPU
    cannot be relieved by other means. If the slowdown is DMA/VBlank bound, SA-1 will not fix it.
 
 Orthogonal options that work with A, B or C and need no layout change: streaming music via
