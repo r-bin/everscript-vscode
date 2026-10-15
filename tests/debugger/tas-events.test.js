@@ -196,6 +196,22 @@ test('a cheat that rewrites memory every frame replays without a desync', () => 
     assert.strictEqual(w.mem[0x100], rec.mem[0x100], 'the replay reached the same memory');
 });
 
+test('while recording by hand the webview asks the host for a replay check every N minutes', () => {
+    const w = makeWebview();
+    w.call('handleTasMessage({ command: "tasConfig", autoRecord: true, verifyEveryMinutes: 0.06 })');
+    w.call('tasOnBoot("x")');
+    for (let i = 0; i < 300; i++) frameStep(w, i === 0 ? 0x80 : 0);
+    const asks = w.posted.filter(p => p.command === 'tasVerify').length;
+    assert.strictEqual(asks, 1, 'asked ' + asks + ' times in 300 frames at every 180');
+    const flushedBefore = w.posted.findIndex(p => p.command === 'tasVerify') > w.posted.findIndex(p => p.command === 'tasRecFrames');
+    assert.ok(flushedBefore, 'the frames are sent before the check is requested');
+    const off = makeWebview();
+    off.call('handleTasMessage({ command: "tasConfig", autoRecord: true, verifyEveryMinutes: 0 })');
+    off.call('tasOnBoot("x")');
+    for (let i = 0; i < 300; i++) frameStep(off, i === 0 ? 0x80 : 0);
+    assert.strictEqual(off.posted.filter(p => p.command === 'tasVerify').length, 0, '0 turns it off');
+});
+
 test('the movie sample rate is the one the emulator panel boots with', () => {
     const panel = fs.readFileSync(path.join(ROOT, 'src/emulator/panel-webview.js'), 'utf8');
     assert.ok(new RegExp('AUDIO_FREQ\\s*=\\s*' + movie.AUDIO_RATE + '\\b').test(panel));

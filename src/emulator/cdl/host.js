@@ -230,6 +230,9 @@ class CdlHost {
                     bus: (d.bus || []).map(a => ({ index: a.index, data: b64ToBytes(a.data) })),
                     busSites: b64ToWords(d.busSites),
                     romCycles: b64ToWords(d.romCycles),
+                    ioVals: (d.ioVals || []).map(a => ({ index: a.index, data: b64ToBytes(a.data) })),
+                    sramFlags: (d.sramFlags || []).map(a => ({ index: a.index, data: b64ToBytes(a.data) })),
+                    wordRanges: (d.wordRanges || []).map(a => ({ set: a.set, index: a.index, data: b64ToBytes(a.data) })),
                 });
                 if (d.dropped && d.dropped !== this.droppedWarned) {
                     this.droppedWarned = d.dropped;

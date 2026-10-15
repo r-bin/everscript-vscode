@@ -82,6 +82,9 @@ core (WASM, per instruction / access)        webview (every 15 s)        host (N
 | SPC700: exec / operand / read / write per ARAM byte | `aram.cdl` | operands = bytes between two sequential opcode fetches |
 | **bus form** per ROM byte: low nibble = forms it was executed through, high nibble = read through (1 `$C0-$FF`, 2 `$80-$BF`, 4 `$00-$3F`, 8 `$40-$7D`) | `bus.cdl` (`cdl-bus.c`) | `rom.cdl`/xrefs keep only the ROM offset, so the mirror used is lost without this. OR-merged |
 | instruction → lowest/highest bus address it read per form (data reads, DMA sources) | `bus-sites.bin` | CPU vector fetches (`$00:FFE0-FFFF` when an interrupt is taken) are recorded under pc 0, not under the interrupted instruction |
+| values the CPU wrote to I/O registers (`$2100-$21FF` incl. SPC ports `$2140-$2143`, `$4200-$437F` incl. DMA channels): 256-bit bitmap per register | `io-values.bin` (`cdl-values.c`, `library-values.js`) | not DMA-driven writes; the SPC upload makes `$2140` show all 256 values |
+| SRAM bytes read / written (byte or word) | `sram-flags.bin` | what an SA-1 port must map to BW-RAM; the boot reads ~3300 bytes |
+| 16-bit WRAM stores: min, max, and the sorted value list while there are at most 16 distinct values (else "more"), in two sets: 0 natural, 1 within 600 frames after a movie memory write (cheat, menu toggle) | `word-ranges.bin` (10.5 MB, fixed) | merge is commutative/associative/idempotent; headless replay picks the set (`cdlSetValueSet`), the live recorder always records set 0; byte values stay in `wram-values.bin` |
 | master cycles per opcode head (gap to the next instruction, incl. DMA/interrupt stalls) | `rom-cycles.bin` (`cdl-count.c`) | summed deltas like hit counts; the scanline wrap is corrected with `H_Max`; idle loops (wait for NMI) dominate, leave them out of any analysis |
 
 **Shadow call stack** (`cdl-flow.c`): calls and interrupts push (entry, expected return, call
@@ -90,7 +93,7 @@ target differs); deeper frame → the frames above are DROPPED; below every fram
 through a pushed address (FLOW_RETURN edge, target marked JUMP_TARGET). TCS/TXS do not reset it;
 an RTS with S above every frame does (stack switch).
 
-**Still not recorded:** per-value counts, word values as words (wvals split bytes), read values,
+**Still not recorded:** per-value counts, read values,
 SPC700 DSP / BRR sample origins, SA-1 / coprocessor buses (snes9x2005's SA-1 core is separate and
 unhooked). Cycles are per instruction and not split by caller; `functions.json` sums them per function. HDMA hooks are not exercised on SoE (it uses general DMA
 in every sampled frame); they are verified only by code review.
@@ -146,6 +149,11 @@ the recorder gains a stream. Movies record pad input, memory writes (cheats, obj
 toggles), soft resets, a WRAM CRC every 60 frames and a VRAM/CGRAM/OAM/SRAM/ARAM CRC every 600; a power-cycle starts
 a new movie. The replay boots at the movie's audio rate (44100): the rate leaks into ARAM (`src/emulator/tas/README.md`).
 Recording the CDL never changes emulation (tested: same checksums with `--cdl`).
+`--states <dir>` saves a state at room changes (`$7E0ADB`, at least 60 s apart, none before frame 600: a state taken at
+frame 1 does not reproduce the run) and `--from-state <file>` resumes from one (`tools/cdl/replay-states.js`,
+`tests/debugger/tas-states.test.js`); states hold ROM-derived memory and stay out of git. While you record by hand the
+extension replays the session headless every `everscript.tas.verifyEveryMinutes` (default 30) and reports OK / desync
+(`src/emulator/tas/verify.js`); a failure after resuming from a state is repeated from power-on before it is believed.
 
 ## 6. What each goal still needs
 

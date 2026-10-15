@@ -95,3 +95,31 @@ Consequences for any static tool:
   in unmapped memory. Map `$80–$BF:8000–FFFF` as **file-backed** blocks; Ghidra refuses
   functions in byte-mapped (mirror) blocks. Recipe: `docs/reverse-engineering/rea.md` §10.1.
 - The same byte has two addresses; dedupe by file offset when merging results.
+
+---
+
+## 6. The 4th megabyte is not free: the game reads past its own end
+
+The vanilla code at `$80:D113` sets DB = `$B0` and reads 64 bytes at `$B0:E653–$B0:E6D1` (file
+`0x30E653–0x30E6D1`), beyond the 3 MB ROM (`src/localizations/knowledge/rom/80d113.md`). What it gets
+depends on who answers for the missing megabyte:
+- the original cartridge (and bsnes-style emulators): file `0x20E653+` (the 1 MB chip mirrors)
+- the bundled snes9x2005 core: file `0x00E653+` (offset % 3 MB)
+- Mesen2: file `0x200653+`, i.e. `$FF`s (its padding loop repeats one 4 KB block)
+- a ROM grown to 4 MB by our ROM export (zeros, then extension code at `0x308000+`): whatever was put there.
+
+So any layout that writes `0x30E653–0x30E6D1` changes the game. The ExHiROM build keeps the cartridge's
+answer there (`tools/exhirom/convert.js --upper hardware`).
+
+## 7. ExHiROM (8 MB) build
+
+`node tools/exhirom/convert.js <clean rom> <out.sfc>` — plan and proof in
+`docs/architecture/exhirom-port.md`. Layout of the result:
+- `0x000000–0x2FFFFF`: the original, unchanged except the header fields (`$FFD5 = $35`, `$FFD7 = $0D`,
+  checksum pair). Still `$C0–$FF` and `$80–$BF` as above.
+- `0x300000–0x3FFFFF`: the cartridge's mirror of `0x200000+` (see §6).
+- `0x400000–0x7FFFFF`: new, bus `$40–$7D:0000–FFFF` and `$00–$3F:8000–FFFF` (slow ROM). Holds a copy
+  of the header (`0x40FFB0`), the vectors (`0x40FFE0`) and the 13 + 4 + 4 + 2 bytes the vectors run in
+  bank `$00` before `JML` into `$80` (`0x408020`, `0x40823A`, `0x4084EA`, `0x40885E`). Everything else is
+  free.
+- Bus `$00–$3F:8000+` is no longer the first 4 MB. Write new code for `$80+`/`$C0+`.

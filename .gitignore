@@ -24,6 +24,8 @@ src/mana/dist/
 *.fig
 *.srm
 *.state
+*.state.gz
+*.states/
 *.sav
 *.spc
 *.brr

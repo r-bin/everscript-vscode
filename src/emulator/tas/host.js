@@ -13,7 +13,7 @@
  * or a replay watched to its end without taking over) is deleted on close.
  *
  * Messages (webview -> host): tasRecStart, tasRecFrames, tasRecEnd, tasList,
- *   tasLoad, tasPin, tasDelete, tasReveal, tasPrefs, tasDesync
+ *   tasLoad, tasPin, tasDelete, tasReveal, tasPrefs, tasDesync, tasVerify (replay the session so far headless, see verify.js)
  * Messages (host -> webview): tasConfig, tasListResult, tasMovie, tasStatus
  */
 
@@ -23,6 +23,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { parseMovie, evsmvHeader, evsmvTrailer, rleFrames } = require('./movie');
 const { stripCopierHeader } = require('../cdl/library');
+const { verifyMovieSafely } = require('./verify');
 
 const MOVIE_EXT = /\.evsmv$/i;
 const PREFS_FILE = 'tas-prefs.json';
@@ -85,10 +86,12 @@ class TasHost {
     /** A ROM (re)booted in the webview. */
     romStarted(rom) {
         this.romSha = rom ? sha256(stripCopierHeader(rom)) : '';
+        this.rom = rom || null;
         this.post({
             command: 'tasConfig',
             autoRecord: !!this._config().get('tas.autoRecord', true),
             overlay: !!this._prefs().overlay,
+            verifyEveryMinutes: Number(this._config().get('tas.verifyEveryMinutes', 30)) || 0,
         });
     }
 
@@ -102,6 +105,7 @@ class TasHost {
             case 'tasPin': this._pin(msg.id, !!msg.pinned); break;
             case 'tasDelete': this._delete(msg.id); break;
             case 'tasReveal': vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(this.dir())); break;
+            case 'tasVerify': this._verify(); break;
             case 'tasDesync': this.log(`TAS replay desync at frame ${msg.frame}: expected ${msg.expected}, got ${msg.got}`, true); break;
             case 'tasPrefs': this._savePrefs(Object.assign(this._prefs(), { overlay: !!msg.overlay })); break;
             default: return false;
@@ -152,6 +156,38 @@ class TasHost {
             else this.log(`TAS recording saved: ${rec.file} (${rec.frames} frames)`);
         } catch (e) {
             this.log('TAS recording close failed: ' + e.message, true);
+        }
+    }
+
+    // -- replay check -------------------------------------------------------------
+
+    /** Replay what is recorded so far on a headless core and say whether every checksum matches. */
+    async _verify() {
+        const rec = this.rec;
+        if (this.verifying || !rec || rec.fd === null || !this.rom) return;
+        this.verifying = true;
+        const frames = rec.frames;
+        try {
+            const romFile = path.join(this.dir(), '.verify-rom.smc');
+            if (!fs.existsSync(romFile) || fs.statSync(romFile).size !== this.rom.length) fs.writeFileSync(romFile, this.rom);
+            this.post({ command: 'tasStatus', text: `checking the recording (${frames} frames) on a headless copy...` });
+            const r = await verifyMovieSafely({ node: process.execPath, movie: rec.file, rom: romFile });
+            if (r.ok) {
+                this.post({ command: 'tasStatus', text: `replay check OK: ${frames} frames reproduce every checksum` });
+                this.log(`TAS replay check OK (${frames} frames, ${r.summary}${r.note ? '; ' + r.note : ''})`);
+            } else if (r.desync) {
+                const text = `REPLAY CHECK FAILED: desync at frame ${r.desync.frame} (${r.desync.detail}). Keep playing is not safe: see ${rec.file}`;
+                this.post({ command: 'tasStatus', text });
+                this.log(text, true);
+                vscode.window.showErrorMessage(text);
+            } else {
+                this.post({ command: 'tasStatus', text: 'replay check could not run: ' + r.error });
+                this.log('TAS replay check could not run: ' + r.error, true);
+            }
+        } catch (e) {
+            this.log('TAS replay check failed: ' + e.message, true);
+        } finally {
+            this.verifying = false;
         }
     }
 

@@ -1,18 +1,27 @@
 // Replay an Everscript movie (.evsmv) headless on the extension's snes9x core, optionally with the CDL recorder on.
 //   node tools/cdl/replay.js <movie.evsmv> <rom> [--cdl <library root>] [--drain <frames>] [--until <frame>]
-//                            [--collect <every>] [--quiet]
+//                            [--collect <every>] [--quiet] [--states <dir>] [--state-spacing <n>] [--state-every <n>]
+//                            [--from-state <file>]
 // Applies the movie's events (memory writes, soft resets) at the recorded frame boundaries and compares the WRAM
 // checksums (S lines). Exit code: 0 ok, 2 desync (first mismatch is reported, replay stops), 1 error.
 //   --cdl      record into the library under <root> (same layout as the extension's; flushed every --drain frames)
 //   --drain    frames between CDL drains / flushes (default 3600)
 //   --until    stop after this many frames
+//   --states   save a state at every room change (at least --state-spacing frames apart, default 3600) and, with
+//              --state-every, every N frames; files and index.json go in <dir> (outside git: see replay-states.js)
+//   --from-state  boot, load that state and continue the movie from its frame (events before it are not applied)
 //   --force    replay although the movie names another emulator core build (# core:) than the one in use
 //   --collect  print the WRAM checksum and the other spaces' every N frames as "frame wram vram=..|cgram=..|..." lines instead of comparing (movie without S lines)
 // The movie is the source of truth and the CDL library is derived: rerun this whenever the recorder gains streams.
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const crypto = require('crypto');
+const { StateWriter, loadStateFile } = require('./replay-states');
 const { parseMovie, groupEvents, wramCrc, spaceCrcs, spacesLine, SPACES, crcText } = require('../../src/emulator/tas/movie');
+
+// Word ranges (cdl-values.c) go to set 1 for CHEAT_WINDOW frames after a memory write the movie recorded (cheat, menu
+// toggle, injected script): the game's own stores right after one see values it would not produce by itself.
+const CHEAT_WINDOW = 600;
 
 const CORE = path.join(__dirname, '../../src/emulator/core/snes9x2005-wasm/snes9x_2005.js');
 const arg = (name, dflt) => { const i = process.argv.indexOf('--' + name); return i < 0 ? dflt : process.argv[i + 1]; };
@@ -47,12 +56,18 @@ function run(moviePath, romPath, opts) {
             lib = new CdlLibrary(opts.cdl, new Uint8Array(stripCopierHeader(romBuf)));
             if (!M.cdlEnable()) { console.error('the core has no CDL recorder'); process.exit(1); }
         }
+        let startFrame = 0;
+        if (opts.fromState) {
+            startFrame = loadStateFile(M, opts.fromState);
+            if (startFrame > movie.count) { console.error('the state is from frame ' + startFrame + ', the movie has ' + movie.count); process.exit(1); }
+        }
+        const states = opts.states ? new StateWriter(opts.states, { spacing: opts.stateSpacing, every: opts.stateEvery, core: coreId(), rom: movie.meta.romSha256 }) : null;
         const drain = () => { if (lib) { lib.applyDelta(M.cdlDrain()); lib.flush(); } };
         const read = (addr, n) => M.readMemoryRange(addr, n);
-        let desync = null, checked = 0;
+        let desync = null, checked = 0, lastWrite = -Infinity;
         const boundary = k => {
             for (const ev of events.get(k) || []) {
-                if (ev.kind === 'W') for (let i = 0; i < ev.bytes.length; i++) M.writeMemory(ev.addr + i, ev.bytes[i]);
+                if (ev.kind === 'W') { lastWrite = k; for (let i = 0; i < ev.bytes.length; i++) M.writeMemory(ev.addr + i, ev.bytes[i]); }
                 else if (ev.kind === 'R') M._softReset();
                 else if (ev.kind === 'S' && !opts.collect) {
                     const got = wramCrc(read);
@@ -70,9 +85,11 @@ function run(moviePath, romPath, opts) {
             }
             if (opts.collect && k > 0 && k % opts.collect === 0) console.log(k + ' ' + crcText(wramCrc(read)) + ' ' + spacesLine(spaceCrcs(id => M.readSpace(id))).slice(2));
         };
-        for (let k = 0; k < frames && !desync; k++) {
+        for (let k = startFrame; k < frames && !desync; k++) {
+            if (states) states.consider(M, k);
             boundary(k);
             if (desync) break;
+            if (lib && typeof M._cdlSetValueSet === 'function') M._cdlSetValueSet(k - lastWrite < CHEAT_WINDOW ? 1 : 0);
             M._setJoypadInput(movie.pads[k]);
             M._mainLoop();
             if (lib && (k + 1) % opts.drainEvery === 0) drain();
@@ -80,6 +97,7 @@ function run(moviePath, romPath, opts) {
         }
         if (!desync && frames === movie.count) boundary(frames);   // events after the last frame
         drain();
+        if (states) console.log(states.finish() + ' states in ' + states.dir);
         if (desync) {
             console.error('DESYNC at frame ' + desync.frame + ': expected ' + desync.expected + ', got ' + desync.got);
             process.exit(2);
@@ -90,7 +108,7 @@ function run(moviePath, romPath, opts) {
 }
 
 if (require.main === module) {
-    const OPT_WITH_VALUE = new Set(['--cdl', '--drain', '--until', '--collect']);
+    const OPT_WITH_VALUE = new Set(['--cdl', '--drain', '--until', '--collect', '--states', '--state-spacing', '--state-every', '--from-state']);
     const positional = [];
     const argv = process.argv.slice(2);
     for (let i = 0; i < argv.length; i++) {
@@ -103,6 +121,7 @@ if (require.main === module) {
         run(moviePath, romPath, {
             cdl: arg('cdl'), drainEvery: parseInt(arg('drain', '3600'), 10), until: parseInt(arg('until', '0'), 10) || 0,
             collect: parseInt(arg('collect', '0'), 10) || 0, quiet: flag('quiet'), force: flag('force'),
+            states: arg('states'), stateSpacing: parseInt(arg('state-spacing', '3600'), 10), stateEvery: parseInt(arg('state-every', '0'), 10) || 0, fromState: arg('from-state'),
         });
     } catch (e) { console.error(e.message); process.exit(1); }
 }

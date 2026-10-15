@@ -114,6 +114,7 @@ function getTasClientScript() {
     let tasApplying = false;     // true while a replay applies a recorded write
     let tasDesync = null;        // { frame, expected, got } after the first mismatch
     let tasCrcTable = null;
+    let tasVerifyEvery = 0;      // frames between replay checks while recording (0 = off)
 
     function tasPadText(w) {
       let s = '';
@@ -343,6 +344,10 @@ function getTasClientScript() {
       }
       if (!fromMovie && tasRec && tasSessionFrame > 0 && tasSessionFrame % TAS_CHECK_EVERY === 0) {
         tasRecordEvent('S|' + tasHex(tasWramCrc(m), 8));
+        if (tasRec.live && tasVerifyEvery && tasSessionFrame % tasVerifyEvery === 0) {
+          tasFlush();
+          vscodeApi.postMessage({ command: 'tasVerify' });
+        }
         if (tasSessionFrame % TAS_SPACES_EVERY === 0) {
           const crcs = tasSpaceCrcs(m);
           if (crcs) tasRecordEvent(tasSpacesLine(crcs));
@@ -527,6 +532,7 @@ function getTasClientScript() {
       if (data.command === 'tasConfig') {
         initTasTab();
         tasAutoRecord = data.autoRecord !== false;
+        tasVerifyEvery = Math.max(0, Math.floor((data.verifyEveryMinutes || 0) * 60 * 60.0988 / TAS_CHECK_EVERY)) * TAS_CHECK_EVERY;
         tasSetOverlay(!!data.overlay, false);
         tasRequestList();
       } else if (data.command === 'tasListResult') {

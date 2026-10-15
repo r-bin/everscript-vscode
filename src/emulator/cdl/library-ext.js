@@ -16,9 +16,12 @@
  *   bus-sites.bin    [formIdx<<24|pc, flags, lo, hi]  instruction -> lowest / highest bus address
  *                    it read in that form (ExHiROM / SA-1 audit)                              OR / min / max
  *   rom-cycles.bin   [rom offset, cycles lo, cycles hi]  master cycles per opcode head       SUM
+ * The streams about written values (io-values.bin, sram-flags.bin, word-ranges.bin) are in library-values.js.
  * All merges are order independent except which bytes wram-code.bin keeps when two
  * sessions saw different code: the state then says CHANGED either way.
  */
+
+const values = require('./library-values');
 
 const WRAM_SIZE = 0x20000;
 const ARAM_SIZE = 0x10000;
@@ -45,6 +48,7 @@ function initExt(lib) {
     lib.bus = new Uint8Array(lib.romSize);
     lib.busSites = new Map();   // formIdx * 2^24 + pc -> { flags, lo, hi }
     lib.romCycles = new Float64Array(lib.romSize);
+    values.initValues(lib);
 }
 
 function orInto(map, key, flags) {
@@ -103,6 +107,7 @@ function mergeExt(lib, d, touch) {
         for (let i = 0; i + 1 < d.romCycles.length; i += 2) if (d.romCycles[i] < lib.romSize) lib.romCycles[d.romCycles[i]] += d.romCycles[i + 1];
         if (d.romCycles.length) touch('rom-cycles.bin');
     }
+    values.mergeValues(lib, d, touch);
 }
 
 /** Load the extension files: readRecords(name, magic, words), readBytes(name) -> Uint8Array | null. */
@@ -117,6 +122,7 @@ function loadExt(lib, readRecords, readBytes) {
         bus: bus ? [{ index: 0, data: bus.subarray(0, lib.romSize) }] : [],
         busSites: readRecords('bus-sites.bin', 'EVBU', 4),
     }, () => {});
+    values.loadValues(lib, readBytes);
     const cyc = readRecords('rom-cycles.bin', 'EVRY', 3);   // stored totals: assigned, not summed again
     if (cyc) for (let i = 0; i + 2 < cyc.length; i += 3) if (cyc[i] < lib.romSize) lib.romCycles[cyc[i]] = cyc[i + 1] + cyc[i + 2] * TWO32;
 }
@@ -133,6 +139,7 @@ function extWriters(lib, packRecords) {
         'wram-code.bin': () => lib.wcode,
         'wram-code.state': () => lib.wcodeState,
         'aram.cdl': () => lib.aram,
+        ...values.valueWriters(lib),
         'bus.cdl': () => lib.bus,
         'bus-sites.bin': () => packRecords('EVBU', [...lib.busSites].map(([k, v]) => [k, v.flags, v.lo, v.hi]), 4),
         'rom-cycles.bin': () => {
@@ -179,5 +186,5 @@ function busSitesList(lib) {
 
 module.exports = {
     initExt, mergeExt, loadExt, extWriters, retsList, regsByPc, basesByPc, busSitesList,
-    BUS, RET, REG, BASE, WCODE, ARAM, EXT_FILES: ['rets.bin', 'regs.bin', 'bases.bin', 'wram-code.bin', 'wram-code.state', 'aram.cdl', 'bus.cdl', 'bus-sites.bin', 'rom-cycles.bin'],
+    BUS, RET, REG, BASE, WCODE, ARAM, EXT_FILES: ['rets.bin', 'regs.bin', 'bases.bin', 'wram-code.bin', 'wram-code.state', 'aram.cdl', 'bus.cdl', 'bus-sites.bin', 'rom-cycles.bin', ...values.FILES],
 };
