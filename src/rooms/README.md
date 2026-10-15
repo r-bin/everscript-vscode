@@ -288,6 +288,14 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
 - `map-editor-trigger-scripts.js` — the scripts in the Trigger tab's rows
   (collapsed: what the script does; open: one summary line per instruction)
   and the Enter tab; owns `_triggerOpen` / `_triggerEnterView`
+- `rooms-imported.js` — rooms converted from another game (the host's
+  `src/mana-to-evermore`: Secret of Mana maps), listed by `renderImportedTree` in their
+  own rail group under the vanilla rooms. A row (`data-import`) asks the host for its
+  details (`requestImportedRoom` -> `importedRoom`), then opens like a ROM room: its id
+  is `0x1000 + map id`, which `roomVanillaIdNum` accepts for `room.imported`, and the
+  host answers its requests from the room's own ROM image. Families named by a label
+  (`m12`) go through `familyName`. Owns `_importedRooms` / `_importedWaiting` /
+  `_importedFamilies`
 - `rooms-layout.js` / `rooms-layout.css` — the tab fills the screen with
   nothing under the editor; the rail and dock resize handles (`_layoutWidths`,
   saved as the `layoutWidths` UI pref)

@@ -54,3 +54,24 @@ The same interpreter can run any self-contained routine: `cpu.call(addr)` (JSL/R
 `cpu.call(addr, { rts: true })`; set the routine's direct-page inputs in `bus.wram` first
 and keep the data bank 0 unless the routine sets its own (`$01:F403` writes PPU and DMA
 registers with absolute addressing).
+
+## Step events against the game
+
+```
+EVERSCRIPT_MANA_ROM="…/Secret of Mana (U) [!].smc" node tools/mana/check-events.js 80
+```
+
+Loads the map like `check-map.js`, saves the state, and for every cell `mapEvents` lists
+restores it, writes the cell's value (read from `$7F` as the game holds it) into
+`$7E:E04B/E04C`, clears `$D0` and runs 3 frames with a breakpoint on the event runner
+`$01:E76D`. It prints the expected and the run event per cell and exits non-zero on a
+difference. This checks the table lookup and the slot numbering, not walking: that a
+character's cell value reaches `$E04B` is read from `$00:D682`.
+
+## Converted rooms against the Mana picture
+
+`tests/mana/mana-evermore.test.js` (both ROMs) converts maps to Evermore rooms, draws them
+with Evermore's renderer and compares with `src/mana`'s picture. Over all 408 maps 97.8%
+of pixels agree; the rest are mixed-palette tiles redrawn in one palette, per-tile
+priority, and the backdrop colour (Evermore draws black). See
+[evermore-rooms.md](evermore-rooms.md).

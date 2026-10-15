@@ -29,7 +29,7 @@ const SHARED_JS = ['tile-animation.js', 'view-chips.js'].map((f) => fs.readFileS
 /** The editor's files, in the order the bundle concatenates them. */
 const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-history.js', 'map-editor-stamps.js', 'map-editor-paint.js',
     'map-editor-anim.js', 'map-editor-ui.js', 'map-editor-phases.js', 'map-editor-constructs.js', 'map-editor-families.js',
-    'map-editor-relations.js', 'map-editor-chips.js', 'map-editor-stranded.js',
+    'map-editor-relations.js', 'rooms-imported.js', 'map-editor-chips.js', 'map-editor-stranded.js',
     'map-editor-tiles.js', 'map-editor-tile-lazy.js', 'map-editor-tile-filters.js', 'map-editor-neighbours.js', 'map-editor-deco.js', 'map-editor-widgets.js', 'map-editor-widget-colours.js', 'map-editor-widget-edit.js', 'map-editor-preview.js', 'map-editor-special.js', 'map-editor-flag-overlays.js',
     'map-editor-trigger-select.js', 'map-editor-trigger-panel.js', 'map-editor-trigger-order.js', 'map-editor-animations.js', 'map-editor-anim-tab.js', 'map-editor-anim-sets.js', 'map-editor-anim-map.js', 'map-editor-anim-placed.js', 'map-editor-objects.js', 'map-editor-object-list.js', 'map-editor-object-holds.js', 'map-editor-family-sets.js', 'map-editor-placed-list.js',
     'map-editor-toolbar.js', 'map-editor-filterbar.js', 'rom-overlay.js',

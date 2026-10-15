@@ -31,9 +31,11 @@ External resources:
    need to ask. Prefer editing the existing file over adding a new one.
 4. **Secret of Mana is a different game.** Nothing known about Evermore (formats, engine,
    addresses, scripts) is assumed for Secret of Mana, or the other way round; only SNES
-   hardware facts carry over. Mana code lives in `src/mana*` and never imports an Evermore
-   domain (`.depcruise.js`); Mana facts go to `docs/mana/`, checked against the running game
-   (`tools/mana/check-map.js`).
+   hardware facts carry over. Mana code lives in `src/mana`, `src/mana-resources` and
+   `src/mana-maps` and never imports an Evermore domain (`.depcruise.js`); Mana facts go to
+   `docs/mana/`, checked against the running game (`tools/mana/check-map.js`,
+   `check-events.js`). The one place the two meet is `src/mana-to-evermore`: an explicit
+   translation table (`docs/mana/evermore-rooms.md`), each row pairing two documented facts.
 
 ---
 
@@ -69,7 +71,8 @@ of:
 | `src/scripts-tab/` | Scripts tab (radar): Everscript + map, animation and alchemy scripts + animation, music sequences + silent player — not `src/script/` (the decoder) |
 | `simulation/` | Design notes for the simulation; the code is `src/simulation/` (scenarios, loot cases, byte-identical Everscript; `npm run test:simulation`) |
 | `src/mana/`, `src/mana-resources/`, `src/mana-maps/` | Secret of Mana, kept apart from Evermore: pure decoder/renderer (TS library), the read-only `som://` file system, and the Maps panel (`everscript.openManaMaps`). Format + evidence: `docs/mana/` |
-| `tools/mana/check-map.js` | Loads any Secret of Mana map in the headless game and compares its screen with our render |
+| `src/mana-to-evermore/` | Secret of Mana maps converted into Evermore rooms, listed in the Rooms tab under the vanilla rooms (`docs/mana/evermore-rooms.md`) |
+| `tools/mana/check-map.js`, `check-events.js` | Load any Secret of Mana map in the headless game and compare its screen / its step events with ours |
 
 Full domain map (post v0.6.0 `src/` refactor): see `src/README.md`.
 

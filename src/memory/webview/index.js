@@ -84,6 +84,7 @@ const ROOMS_JS_FILES = [
   'svg-spawns.js',       // buildSpawnLayers (the NPC layers svg-builder places)
   'svg-builder.js',      // buildRoomSvgSection
   'rooms-layout.js',     // the rail and dock resize handles (_layoutWidths)
+  'rooms-imported.js',   // rooms converted from another game: opening them, family labels
   'zoom-pan.js',         // setupZoomPan: scale, pan offset, pinch and two-finger panning
   'interactions.js',     // setupByteScriptFocus, setupMouseEvents, setupHoverHighlights, setupClickHandlers
   'animation.js',        // Section 2 tile animation overlay + rAF playback

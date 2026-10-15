@@ -228,6 +228,8 @@ function roomVanillaIdNum(room){
     if(raw==null)return null;
     n=(typeof raw==='number')?raw:parseInt(String(raw).replace(/^0x/i,''),16);
   }
+  // A converted room (rooms-imported.js) has an id past the ROM rooms; the host knows it.
+  if(room.imported&&isFinite(n)&&n>0x7e)return n;
   return (isFinite(n)&&n>=0&&n<=0x7e)?n:null;
 }
 

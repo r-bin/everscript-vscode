@@ -49,6 +49,8 @@ function railSelectRow(li) {
   if (li.dataset.custom !== undefined) { customOpen(li.dataset.custom); return; }
   document.querySelectorAll('.rn-map.rsel').forEach(function (x) { x.classList.remove('rsel'); });
   li.classList.add('rsel');
+  // A converted room (rooms-imported.js) asks the host for its details first.
+  if (li.dataset.import !== undefined) { importedOpen(li); return; }
   if (li.dataset.vid !== undefined) {
     var vr = (typeof VANILLA_ROOM_DETAILS !== 'undefined' && VANILLA_ROOM_DETAILS)
       ? VANILLA_ROOM_DETAILS[li.dataset.vid] : null;
@@ -85,7 +87,7 @@ function railSetGroup(key, open) {
 
 /** What a row matches against: its visible label plus its id. */
 function railRowHaystack(li) {
-  return ((li.textContent || '') + ' ' + (li.dataset.vid || '') + ' ' + (li.dataset.map || '')
+  return ((li.textContent || '') + ' ' + (li.dataset.vid || '') + ' ' + (li.dataset.import || '') + ' ' + (li.dataset.map || '')
     + ' ' + (li.dataset.custom ? 'custom' : ''))
     .toLowerCase();
 }

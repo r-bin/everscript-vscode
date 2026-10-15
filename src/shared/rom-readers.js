@@ -126,7 +126,19 @@ function readRomMapHeader(wsRoot, mapId, romPathOverride = '') {
         for (const p of romCandidates) {
             if (p && fs.existsSync(p)) { romBuf = fs.readFileSync(p); break; }
         }
-        if (!romBuf) return null;
+        return readRomMapHeaderFrom(romBuf, mapId);
+    } catch { return null; }
+}
+
+/**
+ * The same header, read from a ROM already in memory (a converted room's image,
+ * src/mana-to-evermore). Null when it cannot be read.
+ * @param {Uint8Array} romBuf
+ * @param {number} mapId
+ */
+function readRomMapHeaderFrom(romBuf, mapId) {
+    if (!romBuf || mapId == null) return null;
+    try {
         // Map pointer table at SNES 0x9ffde7 = ROM 0x1ffde7 (HiROM no header)
         const mapTableRom = 0x1ffde7;
         const ptrAddr = mapTableRom + mapId * 4;
@@ -329,6 +341,7 @@ module.exports = {
     readPngDimensions,
     readRomTriggerOffsets,
     readRomMapHeader,
+    readRomMapHeaderFrom,
     readRomCharacters,
     readRomHitLookup,
     detectScaleEnemies,

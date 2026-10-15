@@ -16,46 +16,13 @@ const { mapFile, MAP_FILE_EXTS } = require('./map-files');
 
 /** @typedef {{ kind: 'dir', entries: Array<[string, 'file' | 'dir']> } | { kind: 'file', read: () => Buffer }} SomNode */
 
-const hex = (/** @type {number} */ n) => n.toString(16);
-const slug = (/** @type {string} */ name) => name.toLowerCase().replace(/'/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const buf = (/** @type {string} */ s) => Buffer.from(s, 'utf8');
 const json = (/** @type {unknown} */ v) => buf(JSON.stringify(v, null, 2) + '\n');
 /** @param {() => Buffer} read @returns {SomNode} */
 const file = read => ({ kind: 'file', read });
 
-/** @type {WeakMap<Uint8Array, ReturnType<typeof catalog>>} */
-const catalogs = new WeakMap();
-
-/** @param {Uint8Array} rom */
-function catalog(rom) {
-    const maps = [];
-    for (let id = 0; id < mana.MAP_COUNT; id++) {
-        const size = mana.mapSize(rom, id);
-        if (!size) continue;
-        const area = mana.areaOf(id);
-        maps.push({ id, hex: hex(id), w: size.w, h: size.h, area: area ? area.name : null });
-    }
-    const ids = maps.map(m => m.id);
-    const key = (/** @type {number} */ id) => mana.pictureKey(rom, id, mana.readHeader(rom, id).bytes);
-    /** Ids grouped by the picture they draw, first appearance first. */
-    const pictures = (/** @type {number[]} */ list) => {
-        /** @type {Map<string, number[]>} */
-        const groups = new Map();
-        for (const id of list) { const k = key(id); groups.set(k, [...(groups.get(k) || []), id]); }
-        return [...groups.values()];
-    };
-    const area = (/** @type {string} */ name, /** @type {string} */ s, /** @type {number[]} */ list) => ({ name, slug: s, maps: list, pictures: pictures(list) });
-    const areas = mana.AREAS.map(a => area(a.name, slug(a.name), a.maps.filter(id => ids.includes(id))));
-    areas.push(area('Other maps', 'other', mana.mapsWithoutArea(ids)));
-    return { title: mana.romTitle(rom), maps, areas };
-}
-
-/** @param {Uint8Array} rom */
-function getCatalog(rom) {
-    let c = catalogs.get(rom);
-    if (!c) { c = catalog(rom); catalogs.set(rom, c); }
-    return c;
-}
+/** The maps and areas (src/mana catalog.ts), built once per ROM buffer. @param {Uint8Array} rom */
+const getCatalog = rom => mana.mapCatalog(rom);
 
 /**
  * @param {string[]} segments path below som://rom/
@@ -89,31 +56,31 @@ function resolveSom(segments, rom) {
     return null;
 }
 
-/** @param {ReturnType<typeof catalog>} c */
+/** @param {ReturnType<typeof getCatalog>} c */
 function romIndex(c) {
     return `# ${c.title}\n\n${c.maps.length} maps in ${c.areas.length - 1} areas.\n\n- [maps/](maps/index.md)\n- [areas/](areas/index.md)\n`;
 }
 
-/** @param {ReturnType<typeof catalog>} c */
+/** @param {ReturnType<typeof getCatalog>} c */
 function mapsIndex(c) {
     const rows = c.maps.map(m => `| [${m.hex}](${m.hex}.png) | ${m.id} | ${m.w}×${m.h} | ${m.area || ''} |`);
     return `# Maps\n\n| id | dec | cells | area |\n|---|---|---|---|\n${rows.join('\n')}\n`;
 }
 
-/** @param {ReturnType<typeof catalog>} c */
+/** @param {ReturnType<typeof getCatalog>} c */
 function areasIndex(c) {
     const rows = c.areas.map(a => `- [${a.name}](${a.slug}.md) — ${a.maps.length} maps`);
     return `# Areas\n\n${rows.join('\n')}\n`;
 }
 
-/** @param {ReturnType<typeof catalog>} c @param {{ name: string, pictures: number[][] }} a */
+/** @param {ReturnType<typeof getCatalog>} c @param {{ name: string, pictures: number[][] }} a */
 function areaPage(c, a) {
     const parts = a.pictures.map(([id, ...same]) => {
         const m = c.maps.find(x => x.id === id);
-        const also = same.length ? ` (same picture: ${same.map(hex).join(', ')})` : '';
+        const also = same.length ? ` (same picture: ${same.map(n => n.toString(16)).join(', ')})` : '';
         return m ? `## ${m.hex} (${m.id}) — ${m.w}×${m.h}${also}\n\n![map ${m.hex}](../maps/${m.hex}.png)\n` : '';
     });
     return `# ${a.name}\n\n${parts.join('\n')}`;
 }
 
-module.exports = { resolveSom, getCatalog, slug };
+module.exports = { resolveSom, getCatalog, slug: mana.slugOf };

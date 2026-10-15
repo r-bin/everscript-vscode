@@ -39,6 +39,9 @@ Related skills: `map-editor-rules`, `map-construction`, `map-entities`, `rom-map
    `rom-overlay.js` owns the view state; `detail-renderer.js` owns the request state.
    Do not mirror either into the other.
 7. Loot icons are decoded from the user's ROM (`data/item-icons.js`), never bundled.
+8. Rooms converted from another game arrive as data (`importedRooms` rail groups, then
+   one room per `requestImportedRoom`); nothing here knows the other game. Their ids are
+   `>= 0x1000` and their family ids carry a `label` — never treat either as a ROM id.
 
 ## Tests
 - Unit (`npm test`): `tests/memory/map-editor.test.js`, `rebuild-invalidation.test.js`,
@@ -46,7 +49,7 @@ Related skills: `map-editor-rules`, `map-construction`, `map-entities`, `rom-map
 - ROM (skip without `EVERSCRIPT_ROM`): `tests/memory/map-parity.test.js`,
   `rom-export.test.js`, `collision-suggest.test.js`, `custom-maps.test.js`, `soe-resources.test.js`.
 - DOM (Playwright, skips without a browser): `tests/memory/map-editor-dom.test.js`,
-  `tests/memory/rooms-rail-dom.test.js`.
+  `tests/memory/rooms-rail-dom.test.js`, `tests/mana/mana-rooms-dom.test.js` (converted rooms).
 
 ## Pitfalls
 - Delegated handlers bind **once per panel node**: `#room-detail` outlives a re-render, and a

@@ -302,7 +302,7 @@ function tileGroupShell(family, sheet, badge, expected) {
   var fams = editFamilies();
   var slot = fams.indexOf(family);
   var meta = chipMeta(family);
-  var title = 'Family ' + family
+  var title = 'Family ' + familyName(family)
     + (meta && meta.areas.length ? '\n' + meta.areas.join(', ') : '')
     + (meta && meta.names.length ? '\n' + meta.names.slice(0, 3).join('\n') : '')
     + (slot >= 0 ? '\nin palette slot ' + (slot + 1) : '\nnot loaded — clicking a tile adopts it')
@@ -311,7 +311,7 @@ function tileGroupShell(family, sheet, badge, expected) {
     + (badge ? '\nbest match with what you have placed: ' + badge : '');
   return '<div class="rg-tile-group" data-group-fam="' + family + '">'
     + '<div class="rg-group-h" title="' + escH(title) + '">'
-    + '<b class="rg-group-name">' + family + '</b>'
+    + '<b class="rg-group-name">' + escH(familyName(family)) + '</b>'
     + '<span class="rg-group-where">' + escH(meta && meta.areas.length ? meta.areas[0] : '') + '</span>'
     + (slot >= 0 ? '<span class="rg-group-slot">slot ' + (slot + 1) + '</span>'
       : '<span class="rg-group-slot off">not loaded</span>')

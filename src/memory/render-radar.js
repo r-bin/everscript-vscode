@@ -16,7 +16,8 @@ const radarWebview               = require('./webview');
 
 /**
  * Build the complete radar webview HTML.
- * The last parameters (enumByAddr, vanillaRoomDetails, byteScriptFocus, spritesBundle)
+ * The last parameters (enumByAddr, vanillaRoomDetails, byteScriptFocus, spritesBundle,
+ * importedRooms: rail groups of converted rooms)
  * are provided by the call site in extension.js; tests call with 8 args and
  * rely on the defaults.
  */
@@ -25,7 +26,7 @@ function renderRadarHtml(
     roomTree = [], activeTab = 'radar', selectedMap = null,
     chars = [], scaleActive = false, itemIcons = null, hitLookup = null,
     enumByAddr = new Map(), vanillaRoomDetails = {}, byteScriptFocus = '',
-    spritesBundle = null
+    spritesBundle = null, importedRooms = []
 ) {
     // ── Memory tab (grid + detail table) ───────────────────────────────────
     const { html: memoryTabHtml, cellData } = buildMemoryTabHtml(
@@ -112,7 +113,7 @@ function renderRadarHtml(
     const roomsTabHtml =
         '<div class="tab-pane" data-tab="rooms" style="display:none">' +
         '<div class="rm-panels">' +
-        buildRoomRailHtml(treeHtml, vanillaTreeHtml) +
+        buildRoomRailHtml(treeHtml, vanillaTreeHtml, importedRooms) +
         // The handle that resizes the rail (rooms/webview/rooms-layout.js).
         '<div class="rm-split" data-split="rail" title="Drag to resize"></div>' +
         '<div class="rm-right"><div id="room-detail" class="rm-detail-placeholder"><span>Select a room</span></div></div>' +

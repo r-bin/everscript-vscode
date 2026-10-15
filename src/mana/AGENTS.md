@@ -25,3 +25,4 @@ ROM bytes in, map data and pictures out. What the folder does: [README.md](READM
 - `tests/mana/mana-cpu.test.js` — unit, the interpreter and bus on synthetic programs.
 - `tests/mana/mana-rom.test.js` — rom tier; needs `EVERSCRIPT_MANA_ROM`, else skips.
 - `tools/mana/check-map.js` — compares a picture with the running game (manual).
+- `tools/mana/check-events.js` — compares step events with the running game (manual).

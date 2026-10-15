@@ -117,8 +117,16 @@ module.exports = {
       name: 'no-evermore-to-mana',
       comment: 'Evermore domains never use Mana code; only extension.js wires the two side by side.',
       severity: 'error',
-      from: { path: '^src/', pathNot: '^src/(mana|mana-resources|mana-maps)/|^src/extension\\.js$' },
-      to: { path: '^src/(mana|mana-resources|mana-maps)/' },
+      from: { path: '^src/', pathNot: '^src/(mana|mana-resources|mana-maps|mana-to-evermore)/|^src/extension\\.js$' },
+      to: { path: '^src/(mana|mana-resources|mana-maps|mana-to-evermore)/' },
+    },
+
+    {
+      name: 'mana-to-evermore-bridges-libraries',
+      comment: 'The one converter between the games: the Mana library, the Evermore maps library and shared helpers, nothing else.',
+      severity: 'error',
+      from: { path: '^src/mana-to-evermore/' },
+      to: { path: '^src/(?!mana-to-evermore/|mana/|maps/|shared/)' },
     },
 
     {

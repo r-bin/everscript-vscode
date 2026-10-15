@@ -18,6 +18,7 @@ All production code lives here. Each subdirectory is an ownership domain.
 | `mana/` | Secret of Mana maps: header, pieces, metatiles, characters, palettes, Mode 1 picture, areas (TypeScript, pure; nothing Evermore) |
 | `mana-resources/` | Read-only `som://` file system: Secret of Mana maps and areas as files |
 | `mana-maps/` | Secret of Mana Maps panel: area list and map pictures, read from `som://` |
+| `mana-to-evermore/` | The one bridge: a Mana map converted into a real Evermore room (cells, graphics, families, collision, step-on boxes) for the Rooms tab |
 | `rom/` | ROM tab: every bank's content, gaps and CDL coverage, measured from the ROM |
 | `scripts-tab/` | Scripts tab: Everscript (room scripts + map, simulation toggle, clusters), animation and alchemy scripts with their animation, music sequences with a silent player |
 | `music/` | Music tab: the sound chip live from the emulator or playing a track in its own engine; voices, instruments, sound effects, ARAM |
@@ -41,7 +42,7 @@ Entry point: `extension.js` (orchestration root, registered as `main` in package
 - `mcp/` → `vscode` only; reads `soe://` through `vscode.workspace.fs`, never another domain
 - `simulation/` → `script/` only, injected through its `index.js`
 - `resources/` → may use `shared/`, `maps/`, `script/`, `simulation/`, `localizations/`; never `emulator/` (ROM and memory reads are injected by `extension.js`)
-- `mana/` → nothing in `src/`; `mana-resources/` → `mana/` only; `mana-maps/` → `som://` only; no Evermore domain uses any of them
+- `mana/` → nothing in `src/`; `mana-resources/` → `mana/` only; `mana-maps/` → `som://` only; `mana-to-evermore/` → `mana/`, `maps/`, `shared/`; no Evermore domain uses any of them (only `extension.js` wires them)
 - No circular dependencies allowed
 
 See `.depcruise.js` for machine-enforced rules.

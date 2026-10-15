@@ -26,6 +26,28 @@ function renderVanillaTree(vanillaRooms) {
 }
 
 /**
+ * Rooms converted from another game (src/mana-to-evermore), as rail rows. Same row
+ * markup as a vanilla room, but `data-import` instead of `data-vid`: the room's
+ * details are asked for when it is opened (rooms-imported.js), not sent up front.
+ * @param {Array<{area: string, rooms: Array<{id: string, name: string, tag: string}>}>} areas
+ * @returns {string} HTML string.
+ */
+function renderImportedTree(areas) {
+    let html = '<ul class="rt">';
+    for (const grp of areas || []) {
+        html += '<li class="rn-area"><span class="rn-area-label">' + radarEsc(grp.area) + '</span><ul class="rt">';
+        for (const r of grp.rooms) {
+            html += '<li class="rn-map vn-map" data-import="' + radarEsc(r.id)
+                  + '" data-name="' + radarEsc(r.name)
+                  + '"><span class="rn-label">' + radarEsc(r.name)
+                  + '</span><span class="rn-vid-tag">' + radarEsc(r.tag) + '</span></li>';
+        }
+        html += '</ul></li>';
+    }
+    return html + '</ul>';
+}
+
+/**
  * Server-side render of the Rooms tab's left rail: search, the two room
  * groups, and the `+ New Map` footer.
  *
@@ -45,9 +67,11 @@ function renderVanillaTree(vanillaRooms) {
  *
  * @param {string} treeHtml         renderRoomsTree output (the active file's rooms).
  * @param {string} vanillaTreeHtml  renderVanillaTree output (the ROM catalogue).
+ * @param {Array<{key: string, label: string, title: string, areas: Array}>} [imported]
+ *   Groups of converted rooms, shown collapsed under the vanilla rooms.
  * @returns {string} HTML string.
  */
-function buildRoomRailHtml(treeHtml, vanillaTreeHtml) {
+function buildRoomRailHtml(treeHtml, vanillaTreeHtml, imported) {
     const group = (key, label, title, open, body) =>
         '<div class="rm-grp" id="rm-grp-' + key + '">'
         + '<button class="rm-grp-h" data-rail-grp="' + key + '"'
@@ -66,6 +90,7 @@ function buildRoomRailHtml(treeHtml, vanillaTreeHtml) {
         + '<div class="rm-rail-scroll" id="rm-rail-scroll">'
         + group('vanilla', 'Vanilla rooms', 'Every room in the ROM, grouped by area',
             false, vanillaTreeHtml)
+        + (imported || []).map((g) => group(g.key, g.label, g.title, false, renderImportedTree(g.areas))).join('')
         + group('live', 'Custom rooms', 'New maps you have made, and rooms declared in the active .evs file',
             true, treeHtml)
         + '<div class="rm-rail-none" id="rm-rail-none" hidden>No rooms match</div>'
@@ -164,4 +189,4 @@ function buildRoomsJson(tree, activeTab, selectedMap) {
          + ';var SELECTED_MAP=' + JSON.stringify(selectedMap || null) + ';';
 }
 
-module.exports = { renderVanillaTree, renderRoomsTree, buildRoomRailHtml, buildRoomsJson };
+module.exports = { renderVanillaTree, renderImportedTree, renderRoomsTree, buildRoomRailHtml, buildRoomsJson };

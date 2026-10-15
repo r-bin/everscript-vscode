@@ -94,6 +94,9 @@ if(typeof window!=='undefined'&&window.addEventListener){
     }else if(data.command==='mapExportRomDone'){
       // Export ROM finished, failed or was cancelled (map-editor-rom-export.js).
       if(typeof applyRomExportDone==='function')applyRomExportDone(data);
+    }else if(data.command==='importedRoom'){
+      // A converted room's details, asked for when its rail row was opened.
+      if(typeof applyImportedRoom==='function')applyImportedRoom(data);
     }else if(data.command==='blankRoom'){
       // A room that is not in the ROM, to try things in.
       if(typeof applyBlankRoom==='function')applyBlankRoom(data);

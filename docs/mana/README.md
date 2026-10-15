@@ -17,7 +17,8 @@ Map id in `$DC`. Header pointer `$C8:7000 + id*2` (16-bit, bank `$C8`), 8 bytes:
 | 0 | `$1C` → `$01:F403` | BG character list (`& $3F`); whole byte = animated-tile slot for `$01:F5CE`; bit 7 = animated tiles on (`$01:B0EC`); bit 6 = palette animation (`$01:B17E`) |
 | 1 | `$1B` | palette set (`& $7F`, `$01:F62D`); bit 7 also starts `$02:BC7E` (palette effects) |
 | 2 | `$1C` → `$02:A000` | metatile + collision set (`& $3F`); **bit 6 = half of layer A, bit 7 = half of layer B** |
-| 3, 4 | `$02:AB03`, `$C45D` | not used for drawing |
+| 3 | `$B8` (`$00:C49C`) | step events (below); also `$02:AB03` |
+| 4 | `$C45D` | not used for drawing |
 | 5 | `$30` → `$02:AA60` | display mode (`& $3F`) |
 | 6, 7 | `$94`, `$C524` | not used for drawing |
 
@@ -135,6 +136,28 @@ No cuttable tiles were found: no code writes the slot tables at runtime except t
 save/restore pair `$02:AB30`/`$02:AB42`. Weapon obstacles (bushes, rocks) appear to be map
 objects, which are not decoded yet.
 
+## Step events — `$C8:4000`, `$00:B637`
+
+`$C8:4000 + id*2` is a 16-bit pointer into bank `$C8` to a list of event words; the game
+runs `word & $0FFF` through `$01:E76D`. Header byte 3 is loaded into `$B8` (`$00:C49C`):
+
+| bits | meaning (from the code) |
+|---|---|
+| 2 | word 0 is the map's own event, run by `$00:BED3`/`$00:BEE5` |
+| 0-1 | `b`: `$00:BEC9` sets `$4D = $C0 - b` |
+
+The special-cell scan (below) rewrites layer A's special cells, row by row, to
+`$C0 + k`. When a character's cell changes, `$00:D682` stores the new cell value in
+`$E04B,X`; `$00:B637` takes any value `v >= $4D`, clears it and runs word
+`(v - $4D) + (bit 2 ? 1 : 0)`. So with `b > 0` the plain metatiles `$C0-b..$BF` are step
+events too, wherever they are drawn (`$BF` runs event `$6D8` in maps `$11` and `$3E`).
+`$00:B630` returns while `$D0` is non-zero (it is after a forced map load). Header byte 3
+is 0 or 4 in 372 of the 408 maps. Some maps have fewer words than cells (map 0 has none):
+those cells read past the list and are left out by `mapEvents` (`src/mana/events.ts`).
+
+Checked in the game: `tools/mana/check-events.js` puts each cell's value under the first
+character and records the event `$01:E76D` runs — maps `$10`, `$11`, `$3E`, `$80`: 36 of 36.
+
 ## Animation — run the game's own code
 
 Three systems, set up at load and stepped every frame by `$00:B0BB`:
@@ -155,8 +178,9 @@ The Maps panel plays it per cell kind (cells with the same tile words share fram
 
 ## Not done yet
 
-- Objects, NPCs, doors and event triggers (`$C8:7000` after the header, `$C8:4000`,
-  door table) are not decoded; the reference pictures include some sprites.
+- Objects and NPCs (8-byte records after the header at `$C8:7000`, gated by event flags
+  like pieces) and what each event does are not decoded; the reference pictures include
+  some sprites. Step events say which event runs, not where a door leads.
 - Pieces hidden by event flags use flag value 0 (a new game).
 - BG3 (weather, text) and parallax scrolling of layer B are not drawn.
 - Layer B's own collision (`$7F:BC00`) is not drawn; the player uses layer A's.

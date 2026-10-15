@@ -498,7 +498,7 @@ function refreshRadar(editor) {
     const _vrd1 = buildVanillaRoomDetails(_wsRoot1, _extCfg1.romPath || '');
     const _romBuf1 = romReaders.loadRomBuffer(_wsRoot1, _extCfg1.romPath || '');
     const _spBundle1 = getSpritesBundle(_romBuf1);
-    _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree || [], _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, radarItemIcons(), _hitLookup, getRadarEnums(), _vrd1, _radarByteScriptFocus, _spBundle1);
+    _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree || [], _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, radarItemIcons(), _hitLookup, getRadarEnums(), _vrd1, _radarByteScriptFocus, _spBundle1, radarImportedRooms());
     _radarPanel.title = 'Radar: ' + scope.name;
 }
 
@@ -533,6 +533,38 @@ function romIsMana() {
     const ws = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
     const rom = romReaders.loadRomBuffer(ws, getExtConfig().romPath || '');
     return !!rom && require('./mana').isManaRom(rom);
+}
+
+/**
+ * Secret of Mana maps as Evermore rooms (src/mana-to-evermore): the Rooms tab lists
+ * them under the vanilla rooms when a Mana ROM is found beside the Evermore one.
+ * Set in activate(), where the Mana ROM accessor is made.
+ */
+let _manaRooms = null;
+
+/** The rail groups of converted rooms, [] when there are none. */
+function radarImportedRooms() {
+    try {
+        const areas = _manaRooms ? _manaRooms.railGroups() : [];
+        return areas.length ? [{ key: 'mana', label: 'Secret of Mana', areas,
+            title: 'Secret of Mana maps converted to Evermore rooms: tiles, families, collision, step-on events' }] : [];
+    } catch { return []; }
+}
+
+/**
+ * The ROM and room id that answer a Rooms-tab request about `roomId`: the Evermore
+ * ROM for a ROM room (0..0x7E), a converted room's own image otherwise. Null when
+ * neither applies (`error` says why).
+ */
+function radarRoomRom(roomId) {
+    const id = Number(roomId);
+    if (Number.isInteger(id) && id >= 0 && id <= 0x7e) {
+        const ws = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+        const romBuf = romReaders.loadRomBuffer(ws, getExtConfig().romPath || '');
+        return romBuf ? { romBuf, roomId: id } : { error: 'ROM not found — set everscript.romPath' };
+    }
+    const hit = _manaRooms && _manaRooms.resolveRoom(id);
+    return hit ? { romBuf: hit.rom, roomId: hit.roomId } : { error: 'invalid room id' };
 }
 
 function activate(context) {
@@ -666,7 +698,7 @@ function activate(context) {
             const _vrd2 = buildVanillaRoomDetails(_wsRoot2b, _extCfg2.romPath || '');
             const _romBuf2 = romReaders.loadRomBuffer(_wsRoot2b, _extCfg2.romPath || '');
             const _spBundle2 = getSpritesBundle(_romBuf2);
-            _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree, _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, radarItemIcons(), _hitLookup, getRadarEnums(), _vrd2, _radarByteScriptFocus, _spBundle2);
+            _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree, _radarActiveTab, selectedMap, _scalingChars || [], _scaleActive, radarItemIcons(), _hitLookup, getRadarEnums(), _vrd2, _radarByteScriptFocus, _spBundle2, radarImportedRooms());
 
             // `everscript.newMap` asked for a blank room. The webview has just
             // been rebuilt, so this is the first moment it can be told.
@@ -717,27 +749,33 @@ function activate(context) {
                     // in the tree JSON: 127 rooms of tile data would bloat every render.
                     const roomId = Number(msg.roomId);
                     const reply = { command: 'roomTiles', mapName: msg.mapName, roomId };
-                    if (!Number.isInteger(roomId) || roomId < 0 || roomId > 0x7e) {
-                        _radarPanel.webview.postMessage({ ...reply, error: 'invalid room id' });
-                        return;
-                    }
                     try {
-                        const _cfg = getExtConfig();
-                        const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
-                        if (!romBuf) {
-                            _radarPanel.webview.postMessage({ ...reply, error: 'ROM not found — set everscript.romPath' });
+                        // A ROM room, or a converted one's own image (radarRoomRom).
+                        const src = radarRoomRom(roomId);
+                        if (src.error) {
+                            _radarPanel.webview.postMessage({ ...reply, error: src.error });
                             return;
                         }
                         // msg.overlay carries the top bar's feature flags. It used
                         // to be dropped here, so every render came back bare and
                         // the toggles looked dead however the user set them.
                         const overlay = buildRoomTileOverlay(
-                            romBuf, roomId,
+                            src.romBuf, src.roomId,
                             Number(msg.originX) || 0, Number(msg.originY) || 0,
                             msg.layer, typeof msg.overlay === 'string' ? msg.overlay : undefined,
                             msg.objectStates, msg.animate === true, msg.header);
-                        _radarPanel.webview.postMessage({ ...reply, overlay });
+                        // The reply names the room the tab asked about, not the image's slot.
+                        _radarPanel.webview.postMessage({ ...reply, overlay: { ...overlay, roomId } });
+                    } catch (err) {
+                        _radarPanel.webview.postMessage({ ...reply, error: String(err && err.message || err) });
+                    }
+                } else if (msg.command === 'requestImportedRoom') {
+                    // A converted room's details, built when it is opened (rooms-imported.js).
+                    const reply = { command: 'importedRoom', id: msg.id };
+                    try {
+                        const room = _manaRooms && _manaRooms.detail(msg.id, msg.name);
+                        _radarPanel.webview.postMessage(room ? { ...reply, room }
+                            : { ...reply, error: 'Needs both ROMs: everscript.romPath (Evermore) and a Secret of Mana ROM' });
                     } catch (err) {
                         _radarPanel.webview.postMessage({ ...reply, error: String(err && err.message || err) });
                     }
@@ -748,19 +786,14 @@ function activate(context) {
                     // open the palette. See docs/map-format/map_editor_ui.md.
                     const roomId = Number(msg.roomId);
                     const reply = { command: 'roomMetatiles', mapName: msg.mapName, roomId };
-                    if (!Number.isInteger(roomId) || roomId < 0 || roomId > 0x7e) {
-                        _radarPanel.webview.postMessage({ ...reply, error: 'invalid room id' });
-                        return;
-                    }
                     try {
-                        const _cfg = getExtConfig();
-                        const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
-                        if (!romBuf) {
-                            _radarPanel.webview.postMessage({ ...reply, error: 'ROM not found — set everscript.romPath' });
+                        const src = radarRoomRom(roomId);
+                        if (src.error) {
+                            _radarPanel.webview.postMessage({ ...reply, error: src.error });
                             return;
                         }
-                        const palette = buildRoomMetatilePalette(romBuf, roomId, msg.layer, msg.bgPalette, msg.header);
+                        // `roomId`: the tab's id, also for a converted room drawn from its image's slot.
+                        const palette = { ...buildRoomMetatilePalette(src.romBuf, src.roomId, msg.layer, msg.bgPalette, msg.header), roomId };
                         // `atlasOnly`: a header edit wants the stamps' pictures redrawn, nothing else.
                         _radarPanel.webview.postMessage({ ...reply, palette, atlasOnly: msg.atlasOnly === true });
                     } catch (err) {
@@ -1035,8 +1068,11 @@ function activate(context) {
                             _radarPanel.webview.postMessage({ ...reply, error: 'ROM not found — set everscript.romPath' });
                             return;
                         }
+                        // A converted family lives in its room's image (src/mana-to-evermore).
+                        const conv = _manaRooms && _manaRooms.resolveFamily(msg.family);
                         _radarPanel.webview.postMessage({ ...reply,
-                            sheet: buildFamilySheet(romBuf, msg.family, msg.borrowFrom) });
+                            sheet: conv ? buildFamilySheet(conv.rom, msg.family, conv.roomId)
+                                : buildFamilySheet(romBuf, msg.family, msg.borrowFrom) });
                     } catch (err) {
                         _radarPanel.webview.postMessage({ ...reply, error: String(err && err.message || err) });
                     }
@@ -1192,7 +1228,7 @@ function activate(context) {
                         const _vrd3 = buildVanillaRoomDetails(_wsRoot3, _extCfg3.romPath || '');
                         const _romBuf3 = romReaders.loadRomBuffer(_wsRoot3, _extCfg3.romPath || '');
                         const _spBundle3 = getSpritesBundle(_romBuf3);
-                        _radarPanel.webview.html = renderRadarHtml(gscope, refs, pools, argRefs, getRadarMap(), _radarRoomTree || [], _radarActiveTab, null, _scalingChars || [], _scaleActive, radarItemIcons(), _hitLookup, getRadarEnums(), _vrd3, _radarByteScriptFocus, _spBundle3);
+                        _radarPanel.webview.html = renderRadarHtml(gscope, refs, pools, argRefs, getRadarMap(), _radarRoomTree || [], _radarActiveTab, null, _scalingChars || [], _scaleActive, radarItemIcons(), _hitLookup, getRadarEnums(), _vrd3, _radarByteScriptFocus, _spBundle3, radarImportedRooms());
                         _radarPanel.title = 'Radar: (global)';
                     }
                 } else if (msg.command === 'autoScope') {
@@ -1335,11 +1371,16 @@ function activate(context) {
         romPath: getExtConfig().romPath || '',
         wsRoot: vscode.workspace.workspaceFolders?.find(f => f.uri.scheme === 'file')?.uri.fsPath ?? null,
     }));
+    _manaRooms = require('./mana-to-evermore').createManaRooms({
+        soeRom: () => romReaders.loadRomBuffer(vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null, getExtConfig().romPath || ''),
+        manaRom: () => { const r = manaResources.manaRom(); return r && r.rom; },
+    });
     context.subscriptions.push(
         vscode.commands.registerCommand('everscript.openManaMaps', openManaMaps),
         vscode.workspace.onDidChangeConfiguration(e => {
             if (!e.affectsConfiguration('everscript.manaRomPath') && !e.affectsConfiguration('everscript.romPath')) return;
             manaResources.refresh();
+            _manaRooms.clear();
             require('./mana-maps').refreshManaMaps();
         }),
     );

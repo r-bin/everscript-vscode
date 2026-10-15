@@ -25,3 +25,7 @@ export type { CellAnimation, AnimatedKind } from './anim-cells';
 export type { RenderOptions } from './render';
 export { collisionOf, floorOf, diagonalOf, switchesLevel, specialOf } from './collision';
 export type { MapCollision, Floor } from './collision';
+export { mapEvents } from './events';
+export type { MapEvents, StepEvent } from './events';
+export { mapCatalog, slugOf } from './catalog';
+export type { MapCatalog, CatalogMap, CatalogArea } from './catalog';

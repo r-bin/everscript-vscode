@@ -15,6 +15,8 @@ Built by `npm run build:mana` (`tsconfig.mana.json`) into `dist/`; `index.js` is
 | `map.ts` | `loadMap`: everything one map needs | — |
 | `render.ts` | Mode 1 BG1/BG2 picture with priorities and colour math | SNES PPU |
 | `areas.ts` | maps grouped into the areas players know | — |
+| `catalog.ts` | every map, its area, and the ids that draw the same picture (som:// and the Evermore rooms) | — |
+| `events.ts` | the map's own event and each cell's step event | `$C8:4000`, `$00:B637`, `$00:D03A` |
 | `collision.ts` | layer A collision bytes per cell, floor class / diagonal / level switch / special | `$02:A043`, `$01:BE15` |
 | `cpu65816.ts` | a 65816 interpreter (native mode, no interrupts) to run game routines | — |
 | `snes-bus.ts` | HiROM, WRAM, VRAM/CGRAM ports, DMA, multiply/divide for it | — |

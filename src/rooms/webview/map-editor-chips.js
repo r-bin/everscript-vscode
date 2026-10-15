@@ -67,13 +67,13 @@ function chipArtStyle(familyId) {
 function chipMeta(familyId) {
   var all = _famCatalogue || [];
   for (var i = 0; i < all.length; i++) if (all[i].id === familyId) return all[i];
-  return null;
+  return importedFamily(familyId);
 }
 
 /** Everything a sentence used to say about one family, as its tooltip. */
 function chipTitle(familyId, slot) {
   var f = chipMeta(familyId);
-  return escH('Family ' + familyId
+  return escH('Family ' + familyName(familyId)
     + (f ? ' — ' + f.tiles + ' graphics' : '')
     + (f && f.areas.length ? '\n' + f.areas.join(', ') : '')
     + (f && f.names.length ? '\n' + f.names.slice(0, 3).join('\n') : '')
@@ -113,16 +113,16 @@ function familyCardHtml(f, slot) {
     + (slot >= 0 ? ' adopted' : '') + '">'
     + '<button class="rg-fam-body" data-chip="' + f.id + '" title="' + chipTitle(f.id, slot) + '">'
     + '<i class="rg-chip-art" style="' + chipArtStyle(f.id) + '"></i>'
-    + '<span class="rg-fam-meta"><b>' + f.id + '</b>'
+    + '<span class="rg-fam-meta"><b>' + escH(familyName(f.id)) + '</b>'
     + (f.tiles ? '<span class="rg-fam-n">' + f.tiles + '</span>' : '') + '</span>'
     + '<span class="rg-fam-where">' + escH(f.areas[0] || 'unused') + '</span>'
     + '</button>'
     + (slot >= 0
       ? '<button class="rg-fam-x" data-chip-drop="' + slot + '"'
         + ' title="' + escH('Free palette slot ' + (slot + 1)
-          + '. Cells already drawn in family ' + f.id + ' go invalid until it comes back.') + '">×</button>'
+          + '. Cells already drawn in family ' + familyName(f.id) + ' go invalid until it comes back.') + '">×</button>'
       : '<button class="rg-fam-x rg-fam-plus" data-chip-adopt="' + f.id + '"'
-        + ' title="' + escH('Load family ' + f.id + ' into a free palette slot') + '">+</button>')
+        + ' title="' + escH('Load family ' + familyName(f.id) + ' into a free palette slot') + '">+</button>')
     + '</div>';
 }
 

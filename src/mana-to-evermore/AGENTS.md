@@ -1,0 +1,29 @@
+# src/mana-to-evermore — agent rules
+
+Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2), the one bridge between the two
+games: a Secret of Mana map rewritten as an Evermore room. What it does: [README.md](README.md);
+the translation table: [docs/mana/evermore-rooms.md](../../docs/mana/evermore-rooms.md).
+
+## Owns
+- Converting a Mana map into Evermore cells, graphics, families, collision and step-on
+  boxes (`convert.js`), the in-memory ROM image that holds it (`virtual-rom.js`, `ids.js`),
+  and serving converted rooms to the Rooms tab's host (`rooms.js`).
+
+## Dependencies
+- `mana/`, `maps/` and `shared/` only (`.depcruise.js` `mana-to-evermore-bridges-libraries`).
+  Only `extension.js` requires it (`no-evermore-to-mana`). No `vscode`: ROMs arrive as functions.
+
+## Invariants
+- Each mapping is a stated translation between two documented facts (one per game),
+  never an assumption that one game works like the other. Facts about Mana go in
+  `src/mana` + `docs/mana`, about Evermore in `src/maps` + `docs/map-format`; this folder
+  only pairs them, and every pairing is a row in `docs/mana/evermore-rooms.md`.
+- The room is encoded by Evermore's own encoder and must decode with `decodeRoom`.
+- The image is built in memory and never written anywhere; vanilla graphics, families and
+  rooms other than slot `0x7E` are untouched in it.
+- Converted rooms use tab ids from `0x1000`, never a ROM room id.
+
+## Tests
+- `tests/mana/mana-evermore.test.js` — unit checks always; both ROMs (`EVERSCRIPT_ROM`,
+  `EVERSCRIPT_MANA_ROM`) for the end-to-end part.
+- `tests/mana/mana-rooms-dom.test.js` — the rail group and opening a room (Playwright).
