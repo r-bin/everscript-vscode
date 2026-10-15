@@ -73,7 +73,7 @@ of:
 | `simulation/` | Design notes for the simulation; the code is `src/simulation/` (scenarios, loot cases, byte-identical Everscript; `npm run test:simulation`) |
 | `src/mana/`, `src/mana-resources/`, `src/mana-maps/` | Secret of Mana, kept apart from Evermore: pure decoder/renderer (TS library), the read-only `som://` file system, and the Maps panel (`everscript.openManaMaps`). Format + evidence: `docs/mana/` |
 | `src/mana-to-evermore/` | Secret of Mana maps converted into Evermore rooms, listed in the Rooms tab under the vanilla rooms (`docs/mana/evermore-rooms.md`) |
-| `tools/mana/check-map.js`, `check-events.js` | Load any Secret of Mana map in the headless game and compare its screen / its step events with ours |
+| `tools/mana/check-map.js`, `check-events.js`, `find-picture.js` | Load any Secret of Mana map in the headless game and compare its screen / its step events with ours; find which map a picture shows |
 
 Full domain map (post v0.6.0 `src/` refactor): see `src/README.md`.
 

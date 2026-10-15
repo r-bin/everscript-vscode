@@ -5,6 +5,7 @@ Everything here was read from Secret of Mana's own code (US ROM, `Secret of MANA
 the running game. Nothing about Secret of Evermore applies here unless the SNES itself
 explains it. Code: [`src/mana/`](../../src/mana/README.md). Files: `som://rom/`.
 How to check a claim yourself: [verifying.md](verifying.md).
+RAM addresses: [wram.md](wram.md). Mana maps as Evermore rooms: [evermore-rooms.md](evermore-rooms.md).
 
 Addresses are SNES bus addresses (`$CC:E270` = file offset `$0CE270`).
 
@@ -118,12 +119,17 @@ movement reads layer A only (`$01:BA5B`, `$01:BB5C`, `$01:BD33` → `$01:BE15`).
 | c0 | 3 | changes the walker's level (`$00:D868`) |
 | c1 | 7 | special cell (below) |
 | c2 | high nibble 1, low 4-7 | diagonal half wall: 4 bottom-left, 5 top-right, 6 top-left, 7 bottom-right |
+| c2 | high nibble `$C` | cut by a weapon: becomes metatile c3 ("Cuttable tiles" below) |
+| c2 | high nibble `$F` | a second branch of the cut probe (`$01:D382`, needs `$E02C,X`); not named. Layer A: `$FF` 456 cells, `$F8` 116, others < 10 |
+| c3 | | with c2 = `$Cn`, the metatile the cell becomes |
 
 Stepping on a 0-2 floor sets the walker's level to it (`$00:D884`); a level-1 floor is solid
 to a walker on level 2 and the other way round (`$01:BE2B`: `(c0 ^ level) & 3 == 3`). That is
 how bridges and their undersides work. Most walkable ground is level 2 (map 128: 1184 cells,
-3358 walls, 2 level-1, 48 shared). Not named yet: c0 bits 4-7, c1 bits 0-6 (bit 4 is tested
-at `$01:B9CD`), other c2 values, c3.
+3358 walls, 2 level-1, 48 shared). c1 bit 6 lets the party walk onto a
+special cell ("Special cells"). Not named yet: c0 bits 4-7, c1 bits 0-5 (bit 4 is tested
+at `$01:B9CD`: with it set the cell blocks spawned characters), c2 values outside the
+three groups above, c3 unless c2 is `$Cn`.
 
 ## Special cells — `$00:D03A`, `$02:B517`
 

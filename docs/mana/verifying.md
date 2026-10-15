@@ -75,3 +75,47 @@ with Evermore's renderer and compares with `src/mana`'s picture. Over all 408 ma
 of pixels agree; the rest are mixed-palette tiles redrawn in one palette, per-tile
 priority, and the backdrop colour (Evermore draws black). See
 [evermore-rooms.md](evermore-rooms.md).
+
+## Which map is this picture?
+
+```
+EVERSCRIPT_MANA_ROM="…" node tools/mana/find-picture.js shot.png 122 -4 -77
+```
+
+Compares the middle of each whole cell of a picture (a screenshot of the Rooms tab, the
+Maps panel or a fan map) with every cell of every map's render and prints the best places.
+Give the cell width in picture pixels and where the first cell edge would be. The user's
+cuttable-grass screenshot (Rooms tab, ~760%) came out as map `$81` at cell 3,33; maps
+`$80`/`$65` tie because the Potos Falls maps share those cells.
+
+## Playing the game headless
+
+What was learned getting a controllable character (2026-10-15):
+
+- `check-map.js`'s opening (title, new game, 68 × Start/B through the log-bridge
+  dialogue), then 12 × (300 frames, B) without forcing a map: the boy stands in the river
+  at Potos Falls (map `$80`, pixel 508,442 = cell 31,27) with `$D0` = 0 — he can be
+  moved. Save a state there (`_saveState`) instead of replaying the opening each time.
+- Steer with the d-pad toward a target read from `$7E:E002/E004`; walls stop it, so plan
+  the route over layer A's collision first (breadth-first over cells whose c0 & 7 != 3;
+  diagonal half walls are passable). From the river, the sword's corner (cells 47,50-51)
+  is walled off, so the sword cannot be reached on map `$80` alone.
+- Writing `$E002/E004` moves the character's numbers but not the camera, and the
+  character then does not move: teleporting this way does not work.
+
+## Cutting on the interpreter
+
+The cut probe `$01:D293` runs on `cpu65816.ts` after the game's own loaders have built
+the map (`$02:A000`, `$00:CB90`). Set the attacker: position `$E002/E004`, layer
+`$E00B`, weapon type `$E068`, attack out `$E0C2` = 1, reach `$E0C0` = 0, facing `$56` = 0,
+bounds `$C0/$C2`; then call with X = the entity offset and **DB = `$7E`** (it reads
+`$E0xx,X`; with the usual DB = 0 it silently reads ROM and nothing happens). The cell in
+`$7F:0000` then holds c3 or is unchanged. `tests/mana/mana-rom.test.js` does this for
+map `$81`.
+
+## A converted room in the editor
+
+`tests/mana/mana-editor-dom.test.js [shots dir]` builds the real radar page, answers its
+requests from both ROMs as `extension.js` does, opens Potos 2 and Path to Pandora, and
+checks (and screenshots) the Tile, Trigger (Step-on sub-tab) and Object tabs. Use it to
+see what the editor shows for a Mana room without VS Code.
