@@ -103,18 +103,16 @@ $$\text{Final Power} = \text{Min Power} + \text{Random Add}$$
 
 ### 4.2 Animation VM (Bank `$90`, Slots `$7E:3364`..`$7E:3563`)
 - **8 concurrent slots**, 64 bytes (`0x40`) stride.
-- Interpreted by routine `$90:80CE`.
-- Bit 7 of command byte marks end of frame / delay yield.
-- **Keyframe Synchronization:** Damage/healing is triggered at designated keyframe steps within the animation sequence (preliminary reverse engineering; not yet fully verified via disassembly).
-- Key opcodes:
-  - `0x00`: Terminate script / release slot (`$90:878A`).
-  - `0x01..0x1E`: Frame hold delay timer (`$90:836C`).
-  - `0x22..0x2B`: Render sprite frame at offset (`$90:8418`).
-  - `0x2C`: Switch sprite sheet bank and table pointer (`$90:842F`).
-  - `0x2D`: Loop back to script start (`$90:877D`).
-  - `0x2E`: Play sound effect ID (`$90:8921`).
-  - `0x38`: Clear slot attribute field (`$90:8B6C`).
-  - `0xDD`: Full-screen palette flash.
+- **The effect animations are ordinary animation scripts**: records in the same table
+  (`$C43E3A`), the same bytecode and interpreter (`$9080D0`) as characters, enemies and
+  weapons. Opcodes, widths and the frame-end bit: the `animation-script` skill and
+  `docs/script-format/animation_script.md` — that table is canonical; do not keep a second
+  opcode list here (an older one here had `0x00` as "terminate" (it is `nop`), `0x2C` as
+  "switch sheet" (second sprite slot) and `0xDD` as "palette flash" — `0xDD` is `0x5D`
+  with bit 7 set).
+- **Keyframe synchronization** is `effect_done` (`0x5D`, handler `$908C75`): it sets bit 1
+  of `+0x26`, which only bank `$91` reads (`$919BCC`, `$919D2E`, `$91A53A`). Nothing else in
+  the language is alchemy-specific.
 
 ---
 
