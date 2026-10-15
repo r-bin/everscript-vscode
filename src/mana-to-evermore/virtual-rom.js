@@ -4,31 +4,15 @@
 // where). Built in memory, never written to disk. Every Evermore reader then sees an
 // ordinary room: decodeRoom, the renderer, the collision overlay, the tile palette.
 //
-// The blob is made with Evermore's own encoder (src/maps encode.ts), so the room is real
-// Evermore data: a grid of stamps numbered by first appearance (the order the Markov
-// encoder accepts, custom-room.ts), the dictionary, Block 1, step-on triggers.
+// The blob is made with Evermore's own builder (src/maps own-room.ts), so the room is real
+// Evermore data: grid, dictionary, Block 1, step-on triggers, the cuttable layer
+// (Section 4) and objects (Section 3), numbered the way a custom map's are.
 
 const maps = require('../maps');
 const ids = require('./ids');
 
 /** Header bytes 11-12 are not known; they are copied from this vanilla room. */
 const HEADER_DONOR = 0x34;
-
-function dictionary(room) {
-    const w = room.widthTiles, h = room.heightTiles, base = w * h * 2;
-    const key = new Map(), l1 = [], l2 = [], cw = [], grid = new Array(w * h);
-    for (let i = 0; i < w * h; i++) {
-        const k = room.cells[i * 3] + ',' + room.cells[i * 3 + 1] + ',' + room.cells[i * 3 + 2];
-        let n = key.get(k);
-        if (n === undefined) {
-            n = l1.length;
-            key.set(k, n);
-            l1.push(room.cells[i * 3]); l2.push(room.cells[i * 3 + 1]); cw.push(room.cells[i * 3 + 2]);
-        }
-        grid[i] = base + n * 8;
-    }
-    return { base, l1, l2, cw, grid };
-}
 
 function header(soeRom, room) {
     const donor = maps.modelFromRom(soeRom, HEADER_DONOR).header;
@@ -41,25 +25,16 @@ function header(soeRom, room) {
     return h;
 }
 
-/** The blob for a converted room, and what it costs against Evermore's budgets. */
+/** The blob for a converted room (Evermore's own builder), and what it costs against Evermore's budgets. */
 function buildRoomBlob(soeRom, room) {
-    const d = dictionary(room);
-    const model = {
+    const built = maps.buildOwnRoomBlob({
+        widthTiles: room.widthTiles, heightTiles: room.heightTiles,
         header: header(soeRom, room),
-        stepOn: room.stepOn.map((t) => ({ y1: t.y1, x1: t.x1, y2: t.y2, x2: t.x2, scriptId: t.scriptId & 0xFFFF })),
-        bTrigger: [],
-        tileFamilies: room.families.map((f) => f.id),
-        extras: new Uint8Array(0),
-        block1: maps.encodeBlock1(room.graphics.map((_, i) => ids.GRAPHIC_BASE + i), true),
-        section2Count: 0,
-        section2Data: Uint8Array.from([0xFF]),
-        objectOffsets: [],
-        block2: maps.encodeBlock2(d.grid, room.widthTiles, room.heightTiles, d.base, 0),
-        section4: Uint8Array.from([0x00]),
-        block3: maps.encodeBlock3(d.l1, d.l2, d.cw, true),
-        objectArea: new Uint8Array(0),
-    };
-    return { blob: maps.buildBlob(model), metatileCount: d.l1.length, wramBytes: d.base + d.l1.length * 8 };
+        graphics: room.graphics.map((_, i) => ids.GRAPHIC_BASE + i),
+        families: room.families.map((f) => f.id),
+        cells: room.cells, cut: room.cut, objects: room.objects, stepOn: room.stepOn,
+    });
+    return { blob: built.blob, metatileCount: built.metatileCount, wramBytes: built.wramBytes, cuttable: built.cuttable };
 }
 
 /**
@@ -82,7 +57,16 @@ function buildVirtualRom(soeRom, room, salt) {
         const at = ids.PALETTE_TABLE + f.id * 32;
         f.colours.forEach((c, k) => { rom[at + k * 2] = c & 0xFF; rom[at + k * 2 + 1] = c >> 8; });
     }
-    const built = buildRoomBlob(soeRom, room);
+    let built = buildRoomBlob(soeRom, room);
+    // Too big for one bank half: leave out the largest objects (whole-map variants) first.
+    const dropped = [];
+    while (built.blob.length > ids.BLOB_MAX && room.objects.length) {
+        const big = room.objects.reduce((a, o) => (o.w * o.h > a.w * a.h ? o : a));
+        room.objects = room.objects.filter((o) => o !== big);
+        dropped.push({ flag: big.flag, w: big.w, h: big.h });
+        built = buildRoomBlob(soeRom, room);
+    }
+    room.stats.droppedObjects = dropped;
     if (built.blob.length > ids.BLOB_MAX) throw new Error(`the converted room needs ${built.blob.length} bytes, one bank half holds ${ids.BLOB_MAX}`);
     maps.writeRoomAt(rom, ids.ROOM_SLOT, built.blob, ids.BLOB_AT);
     return { rom, roomId: ids.ROOM_SLOT, blobBytes: built.blob.length, metatileCount: built.metatileCount, wramBytes: built.wramBytes };

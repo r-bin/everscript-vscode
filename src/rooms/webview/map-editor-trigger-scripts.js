@@ -79,6 +79,8 @@ function triggerScriptFor(t, kind) {
  */
 function triggerScriptWhat(s) {
   if (!s) return '';
+  // A converted room's trigger (rooms-imported.js) says what it does in words.
+  if (s.what) return s.what;
   var bits = [];
   var code = (s.everscript || []).filter(Boolean);
   if (code.length) bits.push(code[0] + (code.length > 1 ? ' +' + (code.length - 1) : ''));

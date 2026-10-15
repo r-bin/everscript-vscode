@@ -117,6 +117,16 @@ test('Evermore\'s render of converted rooms agrees with the Mana render', () => 
     assert.ok(got[0] >= 90 && got[1] >= 98 && got[2] >= 99 && got[3] >= 95, got.join(' '));
 });
 
+test('weapon-cut cells become Evermore cuttable grass, event-flag pieces Evermore objects', () => {
+    const r81 = bridge.convertManaMap(som, 0x81), v81 = bridge.buildVirtualRom(soe, r81, 0x82);
+    assert.strictEqual(maps.decodeRoom(v81.rom, v81.roomId).cuttableGrass.tiles.length, r81.cut.length);
+    assert.strictEqual(r81.cut.length, 154);
+    const r66 = bridge.convertManaMap(som, 0x66), v66 = bridge.buildVirtualRom(soe, r66, 0x67);
+    const objs = maps.decodeRoom(v66.rom, v66.roomId).objects;
+    assert.deepStrictEqual(objs.map(o => [o.states[0].tileX, o.states[0].tileY, o.states[0].targetWidth, o.states[0].targetHeight]), [[29, 28, 3, 2]]);
+    assert.deepStrictEqual(r66.objects.map(o => [o.flag, o.values]), [[0x10, [0, 6]]]);
+});
+
 test('every map converts into a room Evermore decodes', () => {
     let n = 0;
     for (let id = 0; id < mana.MAP_COUNT; id++) {

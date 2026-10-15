@@ -32,7 +32,8 @@ draws Gold City (`$71`) with the wrong half (3% of pixels right instead of 100%)
 (next records on layer A) / `$FF` (layer B) markers and 5-byte records
 `[flag, min<<4|max, piece lo, x<<1|bit8, y<<1|bit9]`. A record is placed when
 `min <= $7E:CF00[flag] <= max`. Layer A is decoded into `$7F:0000`, layer B into
-`$7F:4000`, `$80` bytes a row. The first placed piece of a layer sets its size
+`$7F:4000`, `$80` bytes a row (map `$66`, Potos: piece 13 at 29,28 is placed only while event flag
+`$10` is 6-15 — the ground that breaks open). The first placed piece of a layer sets its size
 (`$9C/$9D`, `$A0/$A1`); the map is layer A's size. Layer B repeats with its own size.
 408 ids have pieces.
 
@@ -138,17 +139,34 @@ unless the word at `$7F:B800 + cell*4` has bit 14 (c1 bit 6) set — so `$C0` ce
 walked onto, `$80`-kind cells are solid and run their event when walked into (the Mana
 Sword in the stone at Potos Falls, `$80`, cells 47,50-51, event `$847`).
 
-### Cuttable tiles: none in the map data
+### Cuttable tiles — `$01:D293`, `$01:D376`
 
-Searched for (2026-10-15): every store into the metatile tables (`STA $C000,X/Y`,
-`$C002,X`, `$7F:C000,X`) and the collision tables (`$B800`/`$BB00`/`$BC00` in every
-addressing form). Outside the loader (`$02:A000`, `$02:B517`) and the save/restore pair
-`$02:AB30`/`$02:AB42`, every hit (`$00:FA4B`, `$01:90DA`, `$02:A5A4`, `$02:A5EC`,
-`$02:AC3A`) builds the sprite list at `$7E:C000`, not map tiles. So no cell's tiles or
-collision change while a map is shown except through a map reload, and Mana has nothing
-like Evermore's cuttable-grass table to convert. Bushes and rocks the weapons clear are
-then most likely objects (below) — not confirmed: a headless test needs the sword, and
-the Potos Falls corner that holds it is walled off from the river where the game starts.
+A weapon changes a cell through its collision bytes 2 and 3. `$01:CE19` calls `$01:D293`
+for an entity whose attack is out (`$E0C2,X != 0`); it probes the cell at the entity's
+position plus a reach toward its facing (`$56`), in layer A (`$7F:0000`, collision
+`$7F:B800`) or layer B (`$7F:4000`, `$7F:BC00`) by `$E00B,X` bit 7. At `$01:D376` it reads
+c2/c3 of that cell: when c2 is `$Cn` and the attack's weapon type `$E068,X` matches `n`
+(`$01:D3AB`), c3 is stored into the cell (`$01:D3F5`): **the cell becomes metatile c3**.
+
+| n | weapon types (`$E068`) that cut it |
+|---|---|
+| 0-7 | that type only |
+| 8 | 1 and 2 |
+| 9 | 3 and 4 |
+| A | 5 and up |
+| B | below 3 |
+
+In the ROM: 3858 cells in 63 maps (3088 layer A, 770 layer B); n = 1 (1117), 2 (1929),
+8 (812). Example: map `$81`'s bushes are metatile `$05` with collision `13 00 C8 5F` and
+become `$5F`, cut stubble. Which weapon each type number is has not been read yet.
+`c2 = $Fn` (with `$E02C,X` set) is another branch, not named.
+
+Checked by running `$01:D293` on the interpreter with map `$81` loaded by the game's own
+loaders (`tests/mana/mana-rom.test.js`): the bush becomes `$5F` for types 1 and 2 and
+stays for 0, 3 and 5; plain grass never changes. Not yet seen in the running game (that
+needs the sword). An earlier version of this page said Mana had no cuttable tiles: it had
+searched for writes to the metatile and collision tables, but cutting writes the cell.
+Code: `src/mana/cuttable.ts`.
 
 ## Objects — `$00:C481`, `$00:DCE3`, `$00:DD55`
 
@@ -214,8 +232,9 @@ The Maps panel plays it per cell kind (cells with the same tile words share fram
 
 ## Not done yet
 
-- Objects are placed but not drawn (sprites not decoded), and most of their bytes are not
-  named; what each event does is not decoded. Step events say which event runs, not where
+- Character objects are placed but not drawn (sprites not decoded), and most of their
+  bytes are not named; what each event does is not decoded; which weapon each weapon type
+  number (`$E068`) is. Step events say which event runs, not where
   a door leads.
 - Pieces hidden by event flags use flag value 0 (a new game).
 - BG3 (weather, text) and parallax scrolling of layer B are not drawn.

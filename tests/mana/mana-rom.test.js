@@ -131,5 +131,28 @@ test('step events: map $10 runs the events the game ran (tools/mana/check-events
     assert.deepStrictEqual(e.steps.map(s => s.event), [0x83F, 0x83F, 0x803, 0x803, 0x606, 0x805, 0x607, 0x905, 0x11F, 0x608, 0x600, 0x601, 0x806, 0x806]);
 });
 
+test('cutting: the game\'s $01:D293 turns map $81\'s bush into $5F for weapon types 1 and 2 only', () => {
+    const { Cpu65816 } = require('../../src/mana/dist/cpu65816');
+    const { SnesBus } = require('../../src/mana/dist/snes-bus');
+    const id = 0x81, m = mana.loadMap(rom, id), h = mana.readHeader(rom, id).bytes;
+    const cut = (x, y, weapon) => {
+        const bus = new SnesBus(rom), cpu = new Cpu65816(bus);
+        bus.wram[0x1C] = h[2]; bus.wram[0x1B] = h[1]; cpu.call(0x02A000);
+        bus.wram[0xDC] = id; bus.wram[0xDD] = 0; cpu.call(0x00CB90, { rts: true });
+        const w16 = (a, v) => { bus.wram[a] = v & 255; bus.wram[a + 1] = v >> 8; };
+        // Entity 0 standing on the cell, attack out ($E0C2), no reach ($E0C0), facing 0.
+        w16(0xE002, x * 16 + 8); w16(0xE004, y * 16 + 8); bus.wram[0xE00B] = 0; bus.wram[0xE068] = weapon;
+        w16(0xE0C0, 0); w16(0xE0C2, 1); w16(0xC0, m.w * 16); w16(0xC2, m.h * 16); w16(0x56, 0);
+        cpu.x = 0; cpu.db = 0x7E;   // it reads the entity as $E0xx,X with the data bank at $7E
+        cpu.call(0x01D293, { rts: true, maxSteps: 20000 });
+        return bus.wram[0x10000 + y * 128 + x];
+    };
+    assert.deepStrictEqual([0, 1, 2, 3, 5].map(t => cut(6, 37, t)), [0x05, 0x5F, 0x5F, 0x05, 0x05]);
+    assert.strictEqual(cut(3, 37, 1), 0x8C);
+    const cells = mana.cuttableCells(rom, m).filter(c => c.x === 6 && c.y === 37);
+    assert.deepStrictEqual(cells.map(c => [c.layer, c.from, c.to, c.weapons]), [['A', 0x05, 0x5F, 8]]);
+    assert.deepStrictEqual(mana.weaponTypes(8), [1, 2]);
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

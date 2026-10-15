@@ -12,10 +12,12 @@
 //   Mana BG palette 1..7        -> family m<set*8 + palette-1>; only the palettes the map
 //                                  draws with, in slots 1..k
 //   Mana collision (c0, c2)     -> geometry + plane; step events -> bit 14 + a box
+//   weapon-cut cells (c2 $Cn)   -> the cuttable layer; event-flag pieces -> objects
 // Only SNES facts are shared: both games use Mode 1 tilemap words with the same bits.
 
 const mana = require('../mana');
 const { FAMILY_BASE, MAX_GRAPHICS } = require('./ids');
+const { flagObjects } = require('./pieces');
 
 const EMPTY_GRAPHIC = 0;        // slot 0 is always the fully transparent graphic
 
@@ -175,7 +177,13 @@ function convertManaMap(manaRom, id) {
         }
         return t;
     };
+    // What weapons change (cuttable.ts) and what event flags change (pieces.js) are
+    // tiles the map can show too.
+    const cuts = mana.cuttableCells(manaRom, map);
+    const flagged = flagObjects(manaRom, map);
     for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) { tileOf('A', map.cell('A', x, y)); tileOf('B', map.cell('B', x, y)); }
+    for (const c of cuts) tileOf(c.layer, c.to);
+    for (const o of flagged) for (const f of o.frames) for (const v of Object.values(f)) { tileOf('A', v.A); tileOf('B', v.B); }
     const used = new Map();                     // Mana palette -> graphic slots drawn in it
     for (const layer of ['A', 'B']) for (const t of tiles[layer].values()) {
         if (t.m.empty) continue;
@@ -190,18 +198,47 @@ function convertManaMap(manaRom, id) {
         if (!t || t.m.empty) return 1 << 10;    // the empty graphic, in slot 1
         return (t.g.v << 15) | (t.g.h << 14) | (t.m.priority << 13) | (slotOf(t.m.palette) << 10) | slotChr(t.g.slot);
     };
-    const col = mana.collisionOf(manaRom, map);
     const events = mana.mapEvents(manaRom, map);
     const stepAt = new Set(events.steps.map((s) => s.y * map.w + s.x));
+    // A cell's three words for layer-A metatile `a` and layer-B metatile `b`: the player
+    // moves by layer A's collision, so that is the cell's collision word.
+    const stamp = (x, y, a, b) => {
+        const c = mana.metatileCollision(manaRom, map, 'A', a);
+        return [wordFor('A', a), wordFor('B', b), collisionWord(c[0], c[2], stepAt.has(y * map.w + x))];
+    };
     const cells = new Array(map.w * map.h * 3);
     for (let y = 0; y < map.h; y++) {
         for (let x = 0; x < map.w; x++) {
             const i = y * map.w + x;
-            cells[i * 3] = wordFor('A', map.cell('A', x, y));
-            cells[i * 3 + 1] = wordFor('B', map.cell('B', x, y));
-            cells[i * 3 + 2] = collisionWord(col.bytes[i * 4], col.bytes[i * 4 + 2], stepAt.has(i));
+            const w = stamp(x, y, map.cell('A', x, y), map.cell('B', x, y));
+            cells[i * 3] = w[0]; cells[i * 3 + 1] = w[1]; cells[i * 3 + 2] = w[2];
         }
     }
+    // Evermore's cuttable layer: the cell shows its words until cut, then `cells`.
+    const cut = [];
+    const cutSeen = new Set();
+    for (const c of cuts) {
+        const i = c.y * map.w + c.x;
+        if (cutSeen.has(i)) continue;
+        cutSeen.add(i);
+        const top = [cells[i * 3], cells[i * 3 + 1], cells[i * 3 + 2]];
+        const a = c.layer === 'A' ? c.to : map.cell('A', c.x, c.y), b = c.layer === 'B' ? c.to : map.cell('B', c.x, c.y);
+        const under = stamp(c.x, c.y, a, b);
+        cells[i * 3] = under[0]; cells[i * 3 + 1] = under[1]; cells[i * 3 + 2] = under[2];
+        cut.push([c.x, c.y, ...top]);
+    }
+    const objects = flagged.map((o) => ({
+        x: o.x, y: o.y, w: o.w, h: o.h, flag: o.flag, values: o.values,
+        frames: o.frames.map((f) => {
+            const out = {};
+            for (const [k, v] of Object.entries(f)) {
+                const [dx, dy] = k.split(',').map(Number);
+                const w = stamp(o.x + dx, o.y + dy, v.A, v.B);
+                out[k] = { layer1: w[0], layer2: w[1], collision: w[2] };
+            }
+            return out;
+        }),
+    }));
     const set = map.header.paletteSet;
     const families = palettes.map((p) => {
         const colours = Array.from(map.cgram.subarray(p * 16, p * 16 + 16), (c) => c & 0x7FFF);
@@ -216,9 +253,12 @@ function convertManaMap(manaRom, id) {
         graphics: graphics.slots.map(encodeGraphic),
         families,
         stepOn: triggerBoxes(events.steps),
+        cut,
+        objects,
         onEnter: events.onEnter,
-        objects: mana.mapObjects(manaRom, id).map((o) => ({ x: o.x, y: o.y, kind: o.kind })),
-        stats: Object.assign(stats, { graphics: graphics.slots.length, stepCells: events.steps.length }),
+        spawns: mana.mapObjects(manaRom, id).map((o) => ({ x: o.x, y: o.y, kind: o.kind })),
+        stats: Object.assign(stats, { graphics: graphics.slots.length, stepCells: events.steps.length,
+            cuttable: cut.length, objects: objects.length }),
     };
 }
 

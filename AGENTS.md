@@ -36,6 +36,7 @@ External resources:
    `docs/mana/`, checked against the running game (`tools/mana/check-map.js`,
    `check-events.js`). The one place the two meet is `src/mana-to-evermore`: an explicit
    translation table (`docs/mana/evermore-rooms.md`), each row pairing two documented facts.
+   Use the plugin's features for both games (`supported-games` skill).
 
 ---
 
@@ -87,6 +88,7 @@ add new skills in `.agents/skills/<name>/SKILL.md` and they show up in both (new
 
 | Skill | Canonical Location | Covers |
 |---|---|---|
+| `supported-games` | `.agents/skills/supported-games/SKILL.md` | Secret of Mana vs Evermore: som:// vs soe://, no facts across games, where each game's facts go and how they are checked, one UI for both games |
 | `game-knowledge` | `.agents/skills/game-knowledge/SKILL.md` | Look up and record RAM/ROM/script knowledge: entry format, evidence, where it goes |
 | `release-ritual` | `.agents/skills/release-ritual/SKILL.md` | version bump, validation, commit format, `npm run deploy` |
 | `memory-radar` | `.agents/skills/memory-radar/SKILL.md` | WRAM grid tab, rooms/map-browser tab, tab ownership |

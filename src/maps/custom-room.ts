@@ -12,6 +12,7 @@
 import { decodeRoom } from './room';
 import { RoomModel, TriggerRecord, buildBlob, encodeBlock1, encodeBlock2, encodeBlock3, modelFromRom } from './encode';
 import { MAX_WRAM } from './budget';
+import { encodeObjectArea } from './object-encode';
 import { MIN_WIDTH, MIN_HEIGHT, MAX_TILES } from './blank-room';
 import { AnimationIndex } from './vanilla-animation';
 import { ChannelSpec, CustomAnimationPlan, planCustomAnimation, remapWord } from './custom-animation';
@@ -31,13 +32,7 @@ export interface CustomObjectInput {
     holds?: number[];
 }
 
-/** Descriptor `s`'s byte 0: the ticks state `s` is held, 0..255. */
-export const DEFAULT_OBJECT_HOLD = 1;
-function objectHold(obj: CustomObjectInput, s: number): number {
-    const v = obj.holds && obj.holds[s];
-    if (typeof v !== 'number' || !Number.isFinite(v)) return s === 0 ? 0 : DEFAULT_OBJECT_HOLD;
-    return Math.max(0, Math.min(255, Math.round(v)));
-}
+export { DEFAULT_OBJECT_HOLD } from './object-encode';
 
 export interface CustomRoomInput {
     /** The room whose graphics and families the map was drawn with. */
@@ -195,72 +190,7 @@ export function buildCustomRoomBlob(rom: Uint8Array, input: CustomRoomInput): Cu
     const animation = planCustomAnimation(graphics, l1.concat(l2), input.animations, undefined, input.channels);
     const remap = (word: number): number => remapWord(animation, word & 0xffff);
 
-    const objectOffsets: number[] = [];
-    const objectAreaSink: number[] = [];
-    const validObjects = (input.objects || []).filter((o) => (o.frames || []).length > 0);
-
-    for (const obj of validObjects) {
-        const recOffset = objectAreaSink.length;
-        objectOffsets.push(recOffset);
-        const frames = obj.frames;
-        const maxState = frames.length;
-        const recLen = 1 + maxState * 5;
-        const recBytes: number[] = [maxState];
-        const tw = obj.w, th = obj.h, n = tw * th;
-
-        // A frame is how the area looks in that state (the map, its tiles
-        // over it), but the engine XORs each descriptor into whatever the
-        // grid holds by then, one state after another (object-stamps.ts).
-        // So descriptor s is state s+1's ids XOR state s's, not state 0's.
-        const look = (state: number): number[] => {
-            const frame = state > 0 ? frames[state - 1] || {} : {};
-            const ids: number[] = [];
-            for (let k = 0; k < n; k++) {
-                const dx = k % tw, dy = Math.floor(k / tw);
-                const f = frame[dx + ',' + dy];
-                const at = grid[(obj.y + dy) * w + (obj.x + dx)] ?? 0;
-                if (!f) { ids.push(at); continue; }
-                const kStr = (f.layer1 & 0xffff) + ',' + (f.layer2 & 0xffff) + ',' + (f.collision & 0xffff);
-                const idx = dict.key.get(kStr);
-                ids.push(idx === undefined ? at : base + idx * 8);
-            }
-            return ids;
-        };
-
-        const stateStamps: number[][] = [];
-        let prev = look(0);
-        for (let s = 0; s < maxState; s++) {
-            const next = look(s + 1);
-            const stampBytes: number[] = [tw, th];
-            let mask = 0, bit = 0;
-            const deltaBytes: number[] = [];
-            for (let k = 0; k < n; k++) {
-                const delta = (next[k] ^ prev[k]) & 0xffff;
-                if (delta) {
-                    mask |= (1 << bit);
-                    deltaBytes.push(delta & 0xff, (delta >> 8) & 0xff);
-                }
-                bit++;
-                if (bit === 8 || k === n - 1) {
-                    stampBytes.push(mask);
-                    for (let b = 0; b < deltaBytes.length; b++) stampBytes.push(deltaBytes[b]);
-                    mask = 0; bit = 0; deltaBytes.length = 0;
-                }
-            }
-            stateStamps.push(stampBytes);
-            prev = next;
-        }
-
-        let curStampOffset = recOffset + recLen;
-        for (let s = 0; s < maxState; s++) {
-            recBytes.push(objectHold(obj, s), obj.x, obj.y, curStampOffset & 0xff, (curStampOffset >> 8) & 0xff);
-            curStampOffset += stateStamps[s].length;
-        }
-        for (let b = 0; b < recBytes.length; b++) objectAreaSink.push(recBytes[b]);
-        for (let s = 0; s < maxState; s++) {
-            for (let b = 0; b < stateStamps[s].length; b++) objectAreaSink.push(stateStamps[s][b]);
-        }
-    }
+    const { objectOffsets, objectArea } = encodeObjectArea(input.objects || [], grid, dict.key, base, w);
 
     const model: RoomModel = {
         header,
@@ -287,7 +217,7 @@ export function buildCustomRoomBlob(rom: Uint8Array, input: CustomRoomInput): Cu
         block2: encodeBlock2(grid, w, h, base, dict.sources),
         section4: dict.section4,
         block3: encodeBlock3(l1.map(remap), l2.map(remap), cw, true),
-        objectArea: Uint8Array.from(objectAreaSink),
+        objectArea,
     };
     return {
         blob: buildBlob(model), model, metatileCount: l1.length, wramBytes, cuttable: dict.sources, animation, remap,
@@ -324,7 +254,7 @@ export function draftTopCells(input: CustomRoomInput): number[] {
  * order the Markov encoder always accepts; a beneath stamp that is never
  * placed goes last, since the grid never names it.
  */
-function buildDictionary(input: CustomRoomInput, w: number, h: number, base: number) {
+export function buildDictionary(input: Pick<CustomRoomInput, 'cells' | 'cut' | 'objects'>, w: number, h: number, base: number) {
     const l1: number[] = [];
     const l2: number[] = [];
     const cw: number[] = [];

@@ -27,3 +27,4 @@ the translation table: [docs/mana/evermore-rooms.md](../../docs/mana/evermore-ro
 - `tests/mana/mana-evermore.test.js` — unit checks always; both ROMs (`EVERSCRIPT_ROM`,
   `EVERSCRIPT_MANA_ROM`) for the end-to-end part.
 - `tests/mana/mana-rooms-dom.test.js` — the rail group and opening a room (Playwright).
+- `tests/mana/mana-editor-dom.test.js` — a converted room in the real editor: Tile, Trigger, Object tabs (both ROMs + Playwright).

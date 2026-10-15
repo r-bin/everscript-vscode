@@ -128,3 +128,6 @@ export { planCustomAnimation, remapWord, cycleFrom, wordSlot, MAX_CHANNELS } fro
 export type { ChannelSpec } from './custom-animation';
 export type { CustomAnimationPlan } from './custom-animation';
 export type { CustomRoomInput, CustomRoomBlob, HeaderOverrides } from './custom-room';
+export { buildOwnRoomBlob } from './own-room';
+export type { OwnRoomInput, OwnRoomBlob } from './own-room';
+export { encodeObjectArea } from './object-encode';

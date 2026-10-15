@@ -16,6 +16,7 @@ Built by `npm run build:mana` (`tsconfig.mana.json`) into `dist/`; `index.js` is
 | `render.ts` | Mode 1 BG1/BG2 picture with priorities and colour math | SNES PPU |
 | `areas.ts` | maps grouped into the areas players know | — |
 | `catalog.ts` | every map, its area, and the ids that draw the same picture (som:// and the Evermore rooms) | — |
+| `cuttable.ts` | cells a weapon changes: c2 `$Cn` -> metatile c3, which weapon types | `$01:D293`, `$01:D376` |
 | `objects.ts` | the map's objects: cell, kind word, flag bits (records after the header) | `$00:C481`, `$00:DD55` |
 | `events.ts` | the map's own event and each cell's step event | `$C8:4000`, `$00:B637`, `$00:D03A` |
 | `collision.ts` | layer A collision bytes per cell, floor class / diagonal / level switch / special | `$02:A043`, `$01:BE15` |

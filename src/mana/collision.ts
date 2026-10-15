@@ -29,13 +29,21 @@ export interface MapCollision {
     bytes: Uint8Array;
 }
 
-export function collisionOf(rom: Rom, map: ManaMap): MapCollision {
+/** A metatile's 4 collision bytes in one layer's half (`$02:A043`). */
+export function metatileCollision(rom: Rom, map: ManaMap, layer: 'A' | 'B', n: number): number[] {
+    const half = layer === 'A' ? map.header.halfA : map.header.halfB;
+    const idx = u8(rom, COLLISION_INDEX + map.header.metatileSet * 384 + half * 192 + n);
+    return [0, 1, 2, 3].map(k => u8(rom, COLLISION_STRUCTS + idx * 4 + k));
+}
+
+/** Per cell, layer A's collision (`$7F:B800`) or layer B's (`$7F:BC00`, repeated with its size). */
+export function collisionOf(rom: Rom, map: ManaMap, layer: 'A' | 'B' = 'A'): MapCollision {
     const { w, h, header } = map;
     const bytes = new Uint8Array(w * h * 4);
-    const base = COLLISION_INDEX + header.metatileSet * 384 + header.halfA * 192;
+    const base = COLLISION_INDEX + header.metatileSet * 384 + (layer === 'A' ? header.halfA : header.halfB) * 192;
     for (let y = 0; y < h; y++) {
         for (let x = 0; x < w; x++) {
-            const n = map.cell('A', x, y);
+            const n = map.cell(layer, x, y);
             if (n < 0 || n >= 192) continue;
             const idx = u8(rom, base + n);
             for (let k = 0; k < 4; k++) bytes[(y * w + x) * 4 + k] = u8(rom, COLLISION_STRUCTS + idx * 4 + k);

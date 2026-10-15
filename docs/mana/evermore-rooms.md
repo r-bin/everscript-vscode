@@ -30,8 +30,9 @@ h-flip 14, priority 13, palette 10-12, character 0-9.
 | level switch (c0 bit 3) | — | an ordinary Evermore tile sets the plane anyway |
 | step event cell (`$C8:4000`) | step-on bit 14 + a step-on box | boxes: runs of one event along a row, merged with the same run above; `scriptId` = the Mana event number |
 | the map's own event (byte 3 bit 2) | — | kept as `conversion.onEnter` |
-| objects (records after the header) | spawn markers in the Rooms tab | `Mana object C001` at the cell; nothing in the blob (Evermore spawns characters from scripts) |
-| — | cuttable layer (Section 4) | none: Mana changes no cell at runtime (README "Cuttable tiles") |
+| weapon-cut cell (c2 `$Cn`, becomes c3) | cuttable layer (Section 4) | the cell's words until cut, then metatile c3's; one source per (cell, beneath) pair, Evermore's own `buildDictionary`. Which weapons may cut it is lost: Evermore's grass has no weapon test |
+| event-flag piece (placed while flag in range) | object (Section 3) | per flag: state 0 = every flag 0 (the picture), one state per other flag value that changes the cells; area = box around every changed cell. The Potos ground (map `$66`, flag `$10` >= 6) is object #0. Which flag value a state is, is kept as `values` |
+| objects (character records after the header) | spawn markers in the Rooms tab | `Mana object C001` at the cell; nothing in the blob (Evermore spawns characters from scripts) |
 
 Layer B's collision, animated tiles and palette effects are not converted yet. A step-on box's `scriptId` is a Mana event number: it names no Evermore
 script, and the tab labels it `Mana event NNN`.
@@ -52,9 +53,34 @@ two rooms. In the tab the room's id is `0x1000 + map id` (`0x1080` = Potos Falls
 draft or request can mistake it for a ROM room; the host answers requests for it from
 its image.
 
-## Budgets
+## Maps that cannot be ported as they are
 
-All 408 maps convert. One map (`$0E`) has more than 264 distinct graphics; the extra
-ones are drawn empty (`droppedGraphics`). Twelve 120x120 maps need more than Evermore's
-32 KB WRAM window for grid and stamps (`wramBytes`); the tab shows them, but the game could
-not load them.
+All 408 maps convert and open in the editor. These would not work as Evermore rooms in
+the game, or lose something on the way (measured 2026-10-15 over every map):
+
+| maps | why |
+|---|---|
+| `$92`, `$A2`, `$A3`, `$A4`, `$A7`, `$DF`, `$E0`, `$191`-`$195` (120x120) | grid + stamps need 33 656-42 672 bytes; Evermore's WRAM window is 32 768 (`budget.ts` MAX_WRAM). Evermore rooms are at most 128 cells a side, but the grid alone is 28 800 bytes here |
+| `$0E` | more distinct 16x16 graphics than the 264 a tilemap word can name; the rest are drawn empty |
+| `$C6` | one event flag swaps the whole 120x120 map; that object alone overflows the 32 KB bank half a blob may use, so it is left out |
+| `$04`, `$05`, `$1FF` | more than 64 special cells (174, 174, 481): `$02:B517` keeps writing slots past 64, over layer B's collision (`$7F:BC00`) and metatile table (`$7F:C800`), while the slot number wraps; the conversion follows the wrap for events but not the overwrite. These maps are probably never shown in this state |
+| 43 maps | layer B has its own size and is repeated; Mana scrolls it on its own (parallax), Evermore draws it fixed |
+| every map | the backdrop colour (Evermore draws black), mixed-palette tiles (one palette per cell, ~12 per map), per-8x8 priority, animated tiles and palette effects, layer B's collision, the weapon a cut needs, character objects |
+
+## The editor for Mana rooms
+
+A converted room opens in the same editor as a vanilla room, locked. What each tab shows,
+and what is missing:
+
+| tab | shows | missing |
+|---|---|---|
+| Tile | the families (`m<n>`) with their art, the room's stamps, collision sub-tab | Mana's own animated tiles; Mana names for tiles |
+| Special | Evermore specials read off the collision words | Mana's special-cell kinds (c1) and level switches |
+| Trigger | step-on boxes, each `Mana event NNN` | what an event does (Mana's event scripts are not decoded); the map's own event (`onEnter`); B-triggers (none known in Mana) |
+| Object | event-flag pieces as objects, with their states' tiles | the flag value per state in the UI (it is in `values`) |
+| Widgets, Info | as for any room; Info's budgets show the overflows above | — |
+| map view | the map, collision overlay, cuttable cells, step boxes, objects; Mana's character objects as spawn markers | sprites for those characters |
+
+Editing a converted room is not supported: it is locked, and nothing saves back to the
+Mana ROM or exports it to an Evermore ROM yet (the image's graphics and colours would
+need free space in the Evermore ROM — `virtual-rom.js` shows where they would go).

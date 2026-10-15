@@ -33,6 +33,8 @@ it. See the `map-format` and `rom-map-data` skills.
 | `vanilla-adjacency.ts` | The grid walk behind it: undirected adjacency (tile ranking) and, off the same edges, per-side per-layer neighbours (`directionalNeighbours`, §8b) |
 | `encode.ts` | The write path: block encoders, `buildBlob`, `modelFromRom`, `writeRoomAt` (port of `encode_room.py`) |
 | `encode-streams.ts` | The LZSS and Markov compressors `encode.ts` uses |
+| `own-room.ts` | `buildOwnRoomBlob`: a room from its own graphics list, families and header (no donor) — converted Secret of Mana maps |
+| `object-encode.ts` | Section 3 records and state descriptors, shared by both room builders |
 | `custom-room.ts` | A custom map's resolved grid → a room blob, borrowing a donor's graphics ([rom-export.md](../../docs/map-format/rom-export.md)) |
 | `custom-animation.ts` | A custom map's Section 2: a channel per placed animated graphic, the slot order and word renumbering that make it play |
 | `budget.ts` | The four ceilings (graphics, families, stamps, WRAM) and what an edit adds to them |
