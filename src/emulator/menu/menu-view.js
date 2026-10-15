@@ -771,6 +771,12 @@ function getMenuHtml() {
                 <span class="menu-action-pill">[Press A to Reset]</span>
               </div>
             </div>
+            <div class="menu-row" data-row="5" data-action="action-soft-reset">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Soft Reset (keeps RAM and save)</div>
+              <div class="menu-row-value">
+                <span class="menu-action-pill">[Press A to Reset]</span>
+              </div>
+            </div>
           </div>
 
           <!-- Tab 6: CONTROLS -->
@@ -1465,6 +1471,12 @@ function getMenuClientScript() {
             playMenuSound('click_confirm');
             if (loadedRomData) {
               bootRom(loadedRomData, loadedRomName);
+              closeEmulatorMenu();
+            }
+            break;
+          case 5:
+            if (typeof tasSoftReset === 'function' && tasSoftReset()) {
+              playMenuSound('click_confirm');
               closeEmulatorMenu();
             }
             break;

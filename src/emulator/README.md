@@ -43,3 +43,6 @@ Entities: every one in the active list `$7E3DDF` and the inactive list `$7E3DE1`
 ## Rules for changing this folder
 
 Dependencies, invariants and tests: [AGENTS.md](AGENTS.md).
+
+
+`softReset()` (core export, EVS_TAS builds): the console reset button; recorded in movies as `R|soft` (`tas/README.md`).

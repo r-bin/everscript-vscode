@@ -14,6 +14,16 @@
  *    the keyboard while the new recording continues as a branch;
  *  - the input overlay draws the pad fed to the core this frame.
  *
+ * Beyond the pad, a movie also records everything that changes the emulation
+ * from outside (movie.js documents the lines): memory writes made through
+ * Module.writeMemory (cheats, object states, menu toggles, injected scripts;
+ * a hook installed once records them, WRAM writes that change nothing are
+ * dropped), soft resets, and a WRAM checksum every TAS_CHECK_EVERY frames. A
+ * replay applies the same events at the same frame boundaries and compares the
+ * checksums, so a desync is reported at the first checkpoint that differs.
+ * Opening the pause menu changes nothing by itself: no frame runs while it is
+ * open, so only what is done in it (a flag toggle = a write, reset = an event) counts.
+ *
  * tasApplyInput() is the only place the frame loop sets joypads.
  *
  * Invariant: ASCII only, and no backslashes in the client script (it is
@@ -26,6 +36,7 @@ function getTasCss() {
     #tas-status { color: #888; margin-left: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     #tas-rec-badge { font-size: 10px; padding: 1px 6px; border-radius: 3px; border: 1px solid #333; color: #777; }
     #tas-rec-badge.rec { color: #ff6b6b; border-color: #7a2a2a; background: rgba(120, 30, 30, 0.25); }
+    #tas-rec-badge.play.desync { color: #ff6b6b; border-color: #7a2a2a; background: rgba(120, 30, 30, 0.35); }
     #tas-rec-badge.play { color: #6f9; border-color: #2e7d32; background: rgba(26, 60, 26, 0.35); }
     #tas-speed { background: #1a1a1a; color: #ccc; border: 1px solid #333; font: inherit; font-size: 10px; }
     #tas-list { flex: 1; min-height: 0; overflow-y: auto; padding: 2px 0; }
@@ -71,6 +82,7 @@ function getTasViewHtml() {
         <label title="Frames emulated per display frame while replaying">speed
           <select id="tas-speed"><option value="1">1x</option><option value="2">2x</option><option value="4">4x</option><option value="8">8x</option><option value="16">16x</option></select>
         </label>
+        <button id="tas-softreset" class="ss-btn" type="button" title="The console reset button (keeps RAM and the save); recorded in the movie">soft reset</button>
         <button id="tas-overlay-btn" class="ss-btn" type="button">input overlay</button>
         <button id="tas-reveal" class="ss-btn" type="button">open folder</button>
         <span id="tas-status"></span>
@@ -95,6 +107,11 @@ function getTasClientScript() {
     let tasLastPad = 0;
     let tasItems = [];
     let tasNotice = '';
+    const TAS_CHECK_EVERY = 600;
+    let tasPendingW = null;      // { addr, next, bytes } write being coalesced
+    let tasApplying = false;     // true while a replay applies a recorded write
+    let tasDesync = null;        // { frame, expected, got } after the first mismatch
+    let tasCrcTable = null;
 
     function tasPadText(w) {
       let s = '';
@@ -118,7 +135,9 @@ function getTasClientScript() {
       if (badge) {
         badge.classList.toggle('rec', !!tasRec && !tasPlay);
         badge.classList.toggle('play', !!tasPlay);
-        badge.textContent = tasPlay ? 'PLAY ' + tasPlay.pos + ' / ' + tasPlay.count
+        badge.classList.toggle('desync', !!tasPlay && !!tasDesync);
+        badge.textContent = tasPlay && tasDesync ? 'DESYNC ' + tasDesync.frame
+          : tasPlay ? 'PLAY ' + tasPlay.pos + ' / ' + tasPlay.count
           : tasRec ? 'REC ' + tasFmtTime(tasRec.frames)
           : romLoaded ? (tasAutoRecord ? 'rec waiting' : 'recording off') : 'no ROM';
       }
@@ -131,20 +150,125 @@ function getTasClientScript() {
 
     // -- recording ------------------------------------------------------------------
     function tasFlush() {
+      tasFlushWrite();
       if (!tasRec || !tasRec.lines.length) return;
       vscodeApi.postMessage({ command: 'tasRecFrames', text: tasRec.lines.join(String.fromCharCode(10)) + String.fromCharCode(10),
-        frames: tasRec.lines.length, live: tasRec.live, cheats: tasRec.cheats });
+        frames: tasRec.unsent, live: tasRec.live, cheats: tasRec.cheats });
       tasRec.lines = [];
+      tasRec.unsent = 0;
       tasRefreshBadge();
     }
 
     function tasRecordFrame(pad, fromMovie) {
       if (!tasRec) return;
+      tasFlushWrite();
       tasRec.lines.push('F|' + tasPadText(pad));
       tasRec.frames++;
+      tasRec.unsent++;
       if (!fromMovie && pad) tasRec.live = true;
       if (typeof cheatAtlasEnabled !== 'undefined' && (cheatAtlasEnabled || cheatInvincibleEnabled || cheatNoclipEnabled)) tasRec.cheats = true;
-      if (tasRec.lines.length >= TAS_FLUSH_FRAMES) tasFlush();
+      if (tasRec.unsent >= TAS_FLUSH_FRAMES) tasFlush();
+    }
+
+    // An event line between two frame lines (see movie.js).
+    function tasRecordEvent(line) {
+      if (!tasRec) return;
+      tasFlushWrite();
+      tasRec.lines.push(line);
+    }
+
+    // -- memory writes, resets, checksums ---------------------------------------------
+    function tasHex(n, w) {
+      return n.toString(16).toUpperCase().padStart(w, '0');
+    }
+
+    function tasFlushWrite() {
+      const w = tasPendingW;
+      if (!w) return;
+      tasPendingW = null;
+      if (tasRec) tasRec.lines.push('W|' + tasHex(w.addr, 6) + '|' + w.bytes.map(b => tasHex(b, 2)).join(''));
+    }
+
+    // Every write the UI makes passes Module.writeMemory: wrap it once.
+    function tasInstallWriteHook(m) {
+      if (!m || m.tasWriteHooked || typeof m.writeMemory !== 'function') return;
+      const raw = m.writeMemory;
+      m.tasWriteHooked = true;
+      m.tasWriteRaw = raw;
+      m.writeMemory = function (addr, value) {
+        if (tasRec && !tasApplying) tasNoteWrite(m, addr >>> 0, value & 255);
+        return raw.apply(m, arguments);
+      };
+    }
+
+    function tasNoteWrite(m, addr, value) {
+      // Writing what is already there changes nothing (cheats rewrite every frame): not an event.
+      if (addr >= 0x7E0000 && addr < 0x800000 && typeof m.readMemory === 'function' && m.readMemory(addr) === value) return;
+      if (tasPendingW && tasPendingW.next === addr) {
+        tasPendingW.bytes.push(value);
+        tasPendingW.next++;
+      } else {
+        tasFlushWrite();
+        tasPendingW = { addr: addr, next: addr + 1, bytes: [value] };
+      }
+    }
+
+    // CRC-32 (IEEE), the same as movie.js crc32 (a test keeps them equal).
+    function tasCrcUpdate(crc, bytes) {
+      if (!tasCrcTable) {
+        tasCrcTable = new Uint32Array(256);
+        for (let n = 0; n < 256; n++) {
+          let c = n;
+          for (let k = 0; k < 8; k++) c = c & 1 ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+          tasCrcTable[n] = c >>> 0;
+        }
+      }
+      for (let i = 0; i < bytes.length; i++) crc = tasCrcTable[(crc ^ bytes[i]) & 255] ^ (crc >>> 8);
+      return crc >>> 0;
+    }
+
+    function tasWramCrc(m) {
+      let crc = 0xFFFFFFFF;
+      for (let off = 0; off < 0x20000; off += 4096) crc = tasCrcUpdate(crc, m.readMemoryRange(0x7E0000 + off, 4096));
+      return (crc ^ 0xFFFFFFFF) >>> 0;
+    }
+
+    // The console's reset button: RAM and the save are kept. Recorded, so a replay presses it too.
+    function tasSoftReset() {
+      const m = getModule();
+      if (!m || !romLoaded) { tasSetStatus('load the ROM first'); return false; }
+      if (typeof m._softReset !== 'function') { tasSetStatus('this core has no soft reset'); return false; }
+      if (tasPlay) { tasSetStatus('take over first: a replay is running'); return false; }
+      tasRecordEvent('R|soft');
+      m._softReset();
+      tasSetStatus('soft reset');
+      return true;
+    }
+
+    // Replay: apply the events recorded at the boundary before that frame runs.
+    function tasPlayEvents(m, frame) {
+      const list = tasPlay.events.get(frame);
+      if (!list) return;
+      for (const ev of list) {
+        if (ev.kind === 'W') {
+          tasApplying = true;
+          try { for (let i = 0; i < ev.bytes.length; i++) m.writeMemory(ev.addr + i, ev.bytes[i]); }
+          finally { tasApplying = false; }
+          tasRecordEvent('W|' + tasHex(ev.addr, 6) + '|' + ev.bytes.map(b => tasHex(b, 2)).join(''));
+        } else if (ev.kind === 'R') {
+          if (typeof m._softReset === 'function') m._softReset();
+          tasRecordEvent('R|soft');
+        } else if (ev.kind === 'S') {
+          const got = tasWramCrc(m);
+          if (got !== ev.crc && !tasDesync) {
+            tasDesync = { frame: frame, expected: tasHex(ev.crc, 8), got: tasHex(got, 8) };
+            tasSetStatus('DESYNC at frame ' + frame + ' (expected ' + tasDesync.expected + ', got ' + tasDesync.got + ')');
+            vscodeApi.postMessage({ command: 'tasDesync', frame: frame, expected: tasDesync.expected, got: tasDesync.got });
+            tasRefreshBadge();
+          }
+          tasRecordEvent('S|' + tasHex(got, 8));
+        }
+      }
     }
 
     function tasEndRecording() {
@@ -161,8 +285,11 @@ function getTasClientScript() {
       tasPendingMovie = null;
       tasSessionFrame = 0;
       tasLastPad = 0;
+      tasPendingW = null;
+      tasDesync = null;
+      tasInstallWriteHook(getModule());
       if (tasAutoRecord) {
-        tasRec = { frames: 0, lines: [], live: false, cheats: false };
+        tasRec = { frames: 0, unsent: 0, lines: [], live: false, cheats: false };
         vscodeApi.postMessage({ command: 'tasRecStart', name: name || 'game', source: tasPlay ? tasPlay.title : '' });
       }
       if (tasPlay) tasSetStatus('replaying ' + tasPlay.title);
@@ -175,10 +302,18 @@ function getTasClientScript() {
     function tasApplyInput(m, live) {
       let pad = live, fromMovie = false;
       if (tasPlay) {
-        pad = tasPlay.pads[tasPlay.pos];
-        fromMovie = true;
-        if (++tasPlay.pos >= tasPlay.count) tasStopPlayback('replay finished at frame ' + tasPlay.count + ' - keyboard has control');
-        else if (tasPlay.pos % 60 === 0) tasRefreshBadge();
+        tasPlayEvents(m, tasPlay.pos);
+        if (tasPlay.pos >= tasPlay.count) {
+          tasStopPlayback('replay finished at frame ' + tasPlay.count + (tasDesync ? ' - DESYNCED at frame ' + tasDesync.frame : ' - keyboard has control'));
+        } else {
+          pad = tasPlay.pads[tasPlay.pos];
+          fromMovie = true;
+          tasPlay.pos++;
+          if (tasPlay.pos % 60 === 0) tasRefreshBadge();
+        }
+      }
+      if (!fromMovie && tasRec && tasSessionFrame > 0 && tasSessionFrame % TAS_CHECK_EVERY === 0) {
+        tasRecordEvent('S|' + tasHex(tasWramCrc(m), 8));
       }
       m._setJoypadInput(pad);
       tasLastPad = pad;
@@ -199,7 +334,12 @@ function getTasClientScript() {
       const bin = atob(msg.pads || '');
       const bytes = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      const movie = { id: msg.id, title: msg.title, count: msg.count, pos: 0,
+      const events = new Map();
+      for (const ev of (msg.events || [])) {
+        if (!events.has(ev.frame)) events.set(ev.frame, []);
+        events.get(ev.frame).push(ev);
+      }
+      const movie = { id: msg.id, title: msg.title, count: msg.count, pos: 0, events: events,
         pads: new Uint16Array(bytes.buffer, 0, bytes.length >> 1) };
       if (!movie.count) { tasSetStatus('empty recording'); return; }
       const m = getModule();
@@ -328,6 +468,7 @@ function getTasClientScript() {
         else if (act === 'delete') vscodeApi.postMessage({ command: 'tasDelete', id });
       });
       document.getElementById('tas-takeover').addEventListener('click', () => tasStopPlayback());
+      document.getElementById('tas-softreset').addEventListener('click', () => tasSoftReset());
       document.getElementById('tas-speed').addEventListener('change', evt => { tasSpeed = parseInt(evt.target.value, 10) || 1; });
       document.getElementById('tas-overlay-btn').addEventListener('click', () => tasSetOverlay(!tasOverlayOn, true));
       document.getElementById('tas-reveal').addEventListener('click', () => vscodeApi.postMessage({ command: 'tasReveal' }));

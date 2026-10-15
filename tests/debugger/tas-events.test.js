@@ -1,0 +1,212 @@
+'use strict';
+
+/**
+ * Movie events (writes, soft resets, WRAM checksums): the format in movie.js, the webview half
+ * (tas-view.js) driven against a fake core, and, when a local Secret of Evermore ROM is found, the
+ * headless replay tool (tools/cdl/replay.js) on the real core: checksums match across processes
+ * and a changed input is reported as a desync.
+ * ROM lookup: EVERSCRIPT_ROM, else /Users/v/romhacking. The ROM is only read.
+ */
+
+const assert = require('assert');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const vm = require('vm');
+const { execFileSync, spawnSync } = require('child_process');
+
+const ROOT = path.resolve(__dirname, '../..');
+const movie = require('../../src/emulator/tas/movie');
+const { getTasClientScript } = require('../../src/emulator/tas-view');
+
+let passed = 0;
+let failed = 0;
+function test(name, fn) {
+    try { fn(); console.log(`  [PASS] ${name}`); passed++; }
+    catch (e) { console.error(`  [FAIL] ${name}\n    ${e.stack || e.message}`); failed++; }
+}
+
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'evs-tas-events-'));
+console.log('TAS events tests:');
+
+// ---- movie.js -----------------------------------------------------------------------------
+test('CRC-32 matches the standard check value; WRAM CRC reads the 128 KB in core-sized chunks', () => {
+    assert.strictEqual(movie.crc32(Buffer.from('123456789')), 0xCBF43926);
+    const reads = [];
+    movie.wramCrc((addr, n) => { reads.push([addr, n]); return new Uint8Array(n); });
+    assert.strictEqual(reads.length, 32);
+    assert.deepStrictEqual(reads[0], [0x7E0000, 4096]);
+    assert.deepStrictEqual(reads[31], [0x7E0000 + 31 * 4096, 4096]);
+});
+
+test('event lines parse into the boundary they sit on; version 1 movies still load', () => {
+    const text = movie.evsmvHeader({ rom: 'x', romSha256: '', started: 't' }) + [
+        'W|7E4ECF|00FF', 'F|....', 'F|B...', 'W|7E0010|01', 'R|soft', 'S|0000ABCD', 'F|....',
+    ].join('\n') + '\n';
+    const m = movie.parseMovie(text, 'a.evsmv');
+    assert.strictEqual(m.version, 2);
+    assert.strictEqual(m.count, 3);
+    assert.deepStrictEqual(m.events.map(e => [e.frame, e.kind]), [[0, 'W'], [2, 'W'], [2, 'R'], [2, 'S']]);
+    assert.deepStrictEqual(m.events[0].bytes, [0, 255]);
+    assert.strictEqual(m.events[0].addr, 0x7E4ECF);
+    assert.strictEqual(m.events[3].crc, 0xABCD);
+    assert.strictEqual(movie.groupEvents(m.events).get(2).length, 3);
+    assert.strictEqual(movie.writeLine(0x7E4ECF, [0, 255]), 'W|7E4ECF|00FF');
+    const v1 = movie.parseMovie('# Everscript movie 1\n# cheats: yes\nF|....\n', 'old');
+    assert.strictEqual(v1.version, 1);
+    assert.strictEqual(v1.events.length, 0);
+    assert.ok(v1.warnings.length, 'version 1 cannot replay cheats');
+    assert.ok(!m.warnings.length);
+});
+
+// ---- the webview half against a fake core -------------------------------------------------
+function makeWebview() {
+    const posted = [];
+    const mem = new Uint8Array(0x20000);
+    let resets = 0;
+    const m = {
+        writes: [],
+        writeMemory(addr, v) { this.writes.push([addr, v]); if (addr >= 0x7E0000 && addr < 0x800000) mem[addr - 0x7E0000] = v; },
+        readMemory(addr) { return mem[addr - 0x7E0000]; },
+        readMemoryRange(addr, n) { return mem.subarray(addr - 0x7E0000, addr - 0x7E0000 + n); },
+        _setJoypadInput(p) { this.pad = p; },
+        _softReset() { resets++; mem[0] = 0; mem.fill(0, 0, 16); },
+        _takeInputPolled() { return 1; },
+        frames: 0,
+        run() { this.frames++; mem[0x100]++; },    // a frame bumps a counter, like the NMI
+    };
+    const sandbox = {
+        document: { getElementById: () => null, addEventListener() {} },
+        vscodeApi: { postMessage: msg => posted.push(msg) },
+        romLoaded: true, loadedRomData: new Uint8Array(4), loadedRomName: 'x',
+        getModule: () => m, setControlEnabled() {}, console, atob: s => Buffer.from(s, 'base64').toString('binary'),
+        bootRom() { vm.runInContext('tasOnBoot("x")', ctx); },
+    };
+    const ctx = vm.createContext(sandbox);
+    vm.runInContext(getTasClientScript(), ctx);
+    return { ctx, m, mem, posted, resets: () => resets, call: code => vm.runInContext(code, ctx) };
+}
+
+function frameStep(w, pad) { w.call('tasApplyInput(getModule(), ' + pad + ')'); w.m.run(); }
+
+test('the webview records frames, merged writes, resets and checksums in order, and drops no-op writes', () => {
+    const w = makeWebview();
+    w.call('tasOnBoot("x")');
+    frameStep(w, 0x80);
+    w.m.writeMemory(0x7E4ECF, 5); w.m.writeMemory(0x7E4ED0, 6);   // coalesce into one line
+    w.m.writeMemory(0x7E4ECF, 5);                                   // no change: not an event
+    w.m.writeMemory(0x7E0010, 0);                                   // memory is 0 already: not an event
+    frameStep(w, 0);
+    w.call('tasSoftReset()');
+    frameStep(w, 0);
+    for (let i = 0; i < 600; i++) frameStep(w, 0);
+    w.call('tasFlush()');
+    const text = w.posted.filter(p => p.command === 'tasRecFrames').map(p => p.text).join('');
+    const lines = text.trim().split('\n');
+    assert.strictEqual(lines[0], 'F|' + movie.padToText(0x80));
+    assert.strictEqual(lines[1], 'W|7E4ECF|0506');
+    assert.ok(lines[2].startsWith('F|'));
+    assert.strictEqual(lines[3], 'R|soft');
+    assert.ok(lines.some(l => /^S\|[0-9A-F]{8}$/.test(l)), 'a checksum line after 600 frames');
+    const sent = w.posted.filter(p => p.command === 'tasRecFrames').reduce((n, p) => n + p.frames, 0);
+    assert.strictEqual(sent, 603, 'the host is told the frame count, not the line count');
+    // the checksum in the file equals movie.js over the same memory, i.e. the two CRC codes agree
+    const s = lines.find(l => l[0] === 'S');
+    assert.strictEqual(s.slice(2).length, 8);
+});
+
+test('a replay applies events at their boundary, presses reset, and reports the first checksum mismatch', () => {
+    // record
+    const rec = makeWebview();
+    rec.call('tasOnBoot("x")');
+    for (let i = 0; i < 3; i++) frameStep(rec, 0);
+    rec.m.writeMemory(0x7E0200, 0x42);
+    frameStep(rec, 0);
+    rec.call('tasSoftReset()');
+    for (let i = 0; i < 598; i++) frameStep(rec, 0);       // frame 602: checksum at 600 is in the file
+    rec.call('tasFlush()');
+    const text = movie.evsmvHeader({ rom: 'x', romSha256: '', started: 't' }) + rec.posted.filter(p => p.command === 'tasRecFrames').map(p => p.text).join('');
+    const parsed = movie.parseMovie(text, 'm');
+    assert.ok(parsed.events.some(e => e.kind === 'S' && e.frame === 600));
+    const finalMem = Uint8Array.from(rec.mem);
+
+    const play = (mutate) => {
+        const w = makeWebview();
+        const events = parsed.events.map(e => ({ ...e }));
+        if (mutate) mutate(events);
+        const pads = Buffer.from(parsed.pads.buffer, parsed.pads.byteOffset, parsed.pads.byteLength).toString('base64');
+        w.call('tasHandleBoot = 0');
+        w.call('handleTasMessage(' + JSON.stringify({ command: 'tasMovie', id: 'x', title: 't', count: parsed.count, pads, events }) + ')');
+        for (let i = 0; i < parsed.count; i++) frameStep(w, 0);
+        frameStep(w, 0);   // the call after the last frame applies the trailing events and hands control back
+        return w;
+    };
+    const ok = play();
+    assert.deepStrictEqual(Array.from(ok.mem.subarray(0, 0x300)), Array.from(finalMem.subarray(0, 0x300)).map((v, i) => (i === 0x100 ? v + 1 : v)), 'same memory (one extra frame was run)');
+    assert.strictEqual(ok.resets(), 1, 'the reset was pressed once');
+    assert.strictEqual(ok.call('tasDesync'), null);
+    const bad = play(events => { const s = events.find(e => e.kind === 'S'); s.crc ^= 1; });
+    assert.ok(bad.call('tasDesync'), 'a wrong checksum is a desync');
+    assert.strictEqual(bad.call('tasDesync.frame'), 600);
+    assert.ok(bad.posted.some(p => p.command === 'tasDesync' && p.frame === 600));
+});
+
+test('the webview CRC code equals movie.js', () => {
+    const w = makeWebview();
+    const data = Uint8Array.from({ length: 1000 }, (_, i) => (i * 37 + 11) & 255);
+    const got = w.call('(tasCrcUpdate(0xFFFFFFFF, new Uint8Array([' + Array.from(data).join(',') + '])) ^ 0xFFFFFFFF) >>> 0');
+    assert.strictEqual(got, movie.crc32(data));
+});
+
+// ---- the headless tool on the real core -----------------------------------------------------
+function findRom() {
+    return [process.env.EVERSCRIPT_ROM, '/Users/v/romhacking/Secret of Evermore (U) [!].smc'].filter(Boolean).find(p => fs.existsSync(p));
+}
+
+test('headless replay: checksums match across processes, a changed event desyncs, CDL records', () => {
+    const rom = findRom();
+    const core = path.join(ROOT, 'src/emulator/core/snes9x2005-wasm/snes9x_2005.js');
+    if (!rom || !fs.existsSync(core)) { console.log('    (skipped: no local ROM or built core)'); return; }
+    const tool = path.join(ROOT, 'tools/cdl/replay.js');
+    const pads = [];
+    for (let i = 0; i < 1500; i++) pads.push(i % 50 < 3 ? 0x1000 : 0);
+    const body = pads.map((p, i) => {
+        const ev = i === 100 ? 'W|7E1F00|DEADBEEF\n' : i === 700 ? 'R|soft\n' : '';
+        return ev + movie.frameLine(p);
+    }).join('\n') + '\n';
+    const header = movie.evsmvHeader({ rom: 'x', romSha256: '', started: 't' });
+    const bare = path.join(tmp, 'bare.evsmv');
+    fs.writeFileSync(bare, header + body);
+    const collect = () => execFileSync(process.execPath, [tool, bare, rom, '--collect', '300'], { encoding: 'utf8', timeout: 180000 }).trim().split('\n');
+    const a = collect(), b = collect();
+    assert.deepStrictEqual(a, b, 'two processes give the same checksums');
+    assert.strictEqual(a.length, 5);
+
+    // the same movie with its checksums in it replays clean
+    const withChecks = header + pads.map((p, i) => {
+        const crc = a.find(l => l.startsWith(i + ' '));
+        const ev = i === 100 ? 'W|7E1F00|DEADBEEF\n' : i === 700 ? 'R|soft\n' : '';
+        return (crc ? 'S|' + crc.split(' ')[1] + '\n' : '') + (i === 300 ? '' : '') + ev + movie.frameLine(p);
+    }).join('\n') + '\n';
+    // checksums are taken before the boundary's events; move the S line after them by construction above:
+    // frames 300/600/900/1200 carry no events, so the order cannot matter here.
+    const good = path.join(tmp, 'good.evsmv');
+    fs.writeFileSync(good, withChecks);
+    const libRoot = path.join(tmp, 'lib');
+    const ok = spawnSync(process.execPath, [tool, good, rom, '--cdl', libRoot, '--drain', '600'], { encoding: 'utf8', timeout: 180000 });
+    assert.strictEqual(ok.status, 0, ok.stdout + ok.stderr);
+    assert.ok(/4 checksums matched/.test(ok.stdout), ok.stdout);
+    const libs = fs.readdirSync(libRoot);
+    assert.ok(libs.length === 1 && fs.existsSync(path.join(libRoot, libs[0], 'bus.cdl')), 'the CDL library was written');
+
+    // change one recorded write: the first checkpoint after it differs
+    const tampered = path.join(tmp, 'tampered.evsmv');
+    fs.writeFileSync(tampered, withChecks.replace('W|7E1F00|DEADBEEF', 'W|7E1F00|DEADBEEE'));
+    const bad = spawnSync(process.execPath, [tool, tampered, rom], { encoding: 'utf8', timeout: 180000 });
+    assert.strictEqual(bad.status, 2, bad.stdout + bad.stderr);
+    assert.ok(/DESYNC at frame 300/.test(bad.stderr), bad.stderr);
+});
+
+fs.rmSync(tmp, { recursive: true, force: true });
+console.log(`\n${passed} passed, ${failed} failed`);
+process.exit(failed ? 1 : 0);

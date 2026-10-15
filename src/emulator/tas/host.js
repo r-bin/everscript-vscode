@@ -13,7 +13,7 @@
  * or a replay watched to its end without taking over) is deleted on close.
  *
  * Messages (webview -> host): tasRecStart, tasRecFrames, tasRecEnd, tasList,
- *   tasLoad, tasPin, tasDelete, tasReveal, tasPrefs
+ *   tasLoad, tasPin, tasDelete, tasReveal, tasPrefs, tasDesync
  * Messages (host -> webview): tasConfig, tasListResult, tasMovie, tasStatus
  */
 
@@ -89,6 +89,7 @@ class TasHost {
             case 'tasPin': this._pin(msg.id, !!msg.pinned); break;
             case 'tasDelete': this._delete(msg.id); break;
             case 'tasReveal': vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(this.dir())); break;
+            case 'tasDesync': this.log(`TAS replay desync at frame ${msg.frame}: expected ${msg.expected}, got ${msg.got}`, true); break;
             case 'tasPrefs': this._savePrefs(Object.assign(this._prefs(), { overlay: !!msg.overlay })); break;
             default: return false;
         }
@@ -201,6 +202,7 @@ class TasHost {
                 title: movie.title,
                 count: movie.count,
                 pads: pads.toString('base64'),
+                events: movie.events,
                 romMatch: movie.meta.romSha256 && this.romSha ? movie.meta.romSha256 === this.romSha : null,
                 warnings: movie.warnings,
             });

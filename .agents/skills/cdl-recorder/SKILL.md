@@ -136,6 +136,15 @@ reached by "returns" from 8 places, a yield-like pattern), 26 table assets, 49 s
 records: `struct_7E3DE5`, stride `$8E`, 30+ slots seen through pointer bases; `$7E4E89` / `$7E4F37`
 are two further records `$AE` apart (larger records, not on the `$8E` lattice).
 
+## 5b. Building a library from a movie
+
+Play once, replay forever: the input recording (`.evsmv`, `src/emulator/tas/README.md`) is the
+source of truth and the library is derived. `node tools/cdl/replay.js <movie> <rom> --cdl <root>`
+replays headless with the recorder on, drains and flushes every `--drain` frames, and stops
+with exit code 2 at the first WRAM-checksum mismatch ("DESYNC at frame N"). Rerun it whenever
+the recorder gains a stream. Movies record pad input, memory writes (cheats, object states, menu
+toggles), soft resets and a WRAM CRC every 600 frames; a power-cycle starts a new movie.
+
 ## 6. What each goal still needs
 
 Cross-tool plan (CDL + snesrecomp + Ghidra/ghidra-snes + REA, per goal): `docs/reverse-engineering/README.md`.

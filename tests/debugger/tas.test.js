@@ -80,7 +80,8 @@ test('evsmv round-trips header, frames and trailer; other files are rejected', (
     assert.deepStrictEqual(Array.from(m.pads), [0x8000, 0x1000]);
     assert.strictEqual(m.meta.source, 'x');
     assert.strictEqual(m.meta.romSha256, 'ab');
-    assert.strictEqual(m.warnings.length, 1, 'cheats warning');
+    assert.strictEqual(m.warnings.length, 0, 'version 2 replays the cheat writes, so cheats are no warning');
+    assert.strictEqual(movie.parseMovie('# Everscript movie 1\n# cheats: yes\nF|....\n', 'old').warnings.length, 1, 'a version 1 recording cannot replay cheats');
     assert.throws(() => movie.parseMovie('PK...', 'x.lsmv'));
 });
 
