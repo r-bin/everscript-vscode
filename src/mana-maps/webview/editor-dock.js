@@ -5,7 +5,8 @@
 // node itself is the shell's (shellDockMount); this file fills it and handles its clicks.
 // State lives on the editor instance `E` (editor.js); nothing is owned here.
 
-var MANA_TABS = [['tile', 'Tile'], ['special', 'Special'], ['object', 'Object'], ['trigger', 'Trigger'], ['info', 'Info']];
+/** In the Evermore editor's order (Tile, Special, Trigger, Object, …, Info); Mana has no Widgets. */
+var MANA_TABS = [['tile', 'Tile'], ['special', 'Special'], ['trigger', 'Trigger'], ['object', 'Object'], ['info', 'Info']];
 
 function manaPanel(E, key, title, body, note) {
   return shellPanelHtml(key, title, body, note, E.panelOpen[key] !== false);

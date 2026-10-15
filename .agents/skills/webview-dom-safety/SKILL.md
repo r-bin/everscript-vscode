@@ -42,6 +42,12 @@ Anything that legitimately changes between renders (which room is active, which
 callback closure to use) must be stored in a module-level variable the handler reads
 at call time — not baked into the closure — because the closure is created only once.
 
+**When the handler closes over a per-open object** (the Secret of Mana editor's `E`, made anew for each map),
+a dataset guard is the wrong fix: it would keep the first map's `E` forever. Keep the handler in a variable and
+remove it in the editor's `close()`. `manaEditorOpen` once added its pill/filter-bar click handler to
+`#room-detail` on every map open and never removed it: after the second map every chip flipped twice and the
+filter bar "could not be interacted with" (v0.218.0). A test that opens one map never sees it — open a second.
+
 This is not hypothetical: `setupEditGestures` and `setupEditKeys` in this codebase
 already had this guard (`wrap.dataset.editBound`, `window._editKeysBound`) before
 `bindEditControls` was written without it. When adding a new delegated handler, copy

@@ -65,14 +65,22 @@ async function main() {
     check('the Trigger tab keeps the Triggers chip on and locked, and shows them', await chipState('triggers') === 'on forced' && await n('#rg-over .ed-triggers') === 1);
     await chip('triggers');
     check('a click on the locked chip changes nothing', await chipState('triggers') === 'on forced' && await n('#rg-over .ed-triggers') === 1);
+    const subs = () => p.evaluate(() => [...document.querySelectorAll('#rg-tab-body [data-trig-sub]')].map(b => b.dataset.trigSub + ':' + b.textContent.trim().replace(/\s+/g, ' ')));
+    check('the Trigger tab always shows its kinds with their counts, as the Evermore one does',
+        (await subs()).join('|') === 'on:S Step on 0|into:W Walk into 1|cells:X Exits · hit 2|enter:E Enter', (await subs()).join('|'));
+    check('a kind with nothing in it still lists none', /none yet/.test(await body()));
+    await p.click('[data-trig-sub="cells"]');
     const tb = await body();
-    check('the Trigger tab lists the exit and the on-hit cell', /exit: back to the previous map/.test(tb) && /on hit · event \$6F8/.test(tb), tb);
+    check('Exits · hit lists the exit and the on-hit cell', /exit: back to the previous map/.test(tb) && /on hit · event \$6F8/.test(tb), tb);
+    await p.click('[data-trig-sub="enter"]');
+    check('Enter shows the map’s own event and the kinds stay', (await subs()).length === 4 && /on entry|no event of its own/.test(await body()));
+    await p.click('[data-trig-sub="into"]');
     await p.click('[data-row-step="0"]');
     await p.click('[data-fires="on"]');
     check('Step on turns the walk-into trigger into a step-on one (c1 bit 6, through a metatile copy)',
-        /#0 · step on · event \$123/.test(await body()) && await n('#rg-over .ed-trig.into') === 0, await body());
+        /#0 · event \$123/.test(await body()) && await n('#rg-over .ed-trig.into') === 0 && /on:S Step on 1/.test((await subs()).join('|')), await body());
     await p.keyboard.press('Control+z');
-    check('undo makes it walk into again', /#0 · walk into/.test(await body()));
+    check('undo makes it walk into again', await n('#rg-over .ed-trig.into') === 1 && /into:W Walk into 1/.test((await subs()).join('|')));
 
     // Specials: stairs on the picked layer; the Special tab paints a push.
     await tab('tile');
@@ -94,6 +102,8 @@ async function main() {
     await tab('tile');
     await p.click('[data-tile-sub="collision"]');
     check('Tile › Collision keeps the Collision chip on', await chipState('collision') === 'on forced' && await n('#rg-over .mm-collision') === 1);
+    check('the shapes are the Evermore Collision tab’s swatch cards: the pen, open, solid, four half walls',
+        await n('#rg-tab-body .rg-coll-grid .rg-coll-chip .rg-coll-swatch') === 7 && await n('#rg-tab-body .rg-coll-pen.rg-armed') === 1 && await n('#rg-tab-body .rg-coll-keys kbd') === 3);
     const walls = () => p.evaluate(() => { const e = document.querySelector('#rg-over .mm-collision .mc-wall'); return e ? e.getAttribute('d').split('M').length - 1 : 0; });
     const diags = () => p.evaluate(() => { const e = document.querySelector('#rg-over .mm-collision .mc-diag'); return e ? e.getAttribute('d').split('M').length - 1 : 0; });
     await p.click('[data-coll="wall"]');
@@ -121,6 +131,14 @@ async function main() {
     check('Grid on draws the 16 px grid', await n('#rg-grid path') === 1);
     await chip('grid');
     check('Grid off removes it', await n('#rg-grid path') === 0);
+    // Opening a second map: the filter bar still answers every click once (a handler left on #room-detail by
+    // the first map flipped each chip twice, so the bar looked dead).
+    await p.click('li.rn-map[data-map="176"]');
+    await p.waitForSelector('#rg-svg');
+    await p.waitForTimeout(300);
+    await chip('grid');
+    check('on the next map a chip still switches with one click', await chipState('grid') === 'on' && await n('#rg-grid path') === 1);
+    await chip('grid');
     check('no page errors', !errors.length, errors.join('; '));
     await browser.close();
 }

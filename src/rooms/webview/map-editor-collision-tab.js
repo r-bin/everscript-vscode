@@ -341,19 +341,15 @@ function collCellBoxSvg(a, col, bad) {
     + '" fill="none" stroke="' + col + '" stroke-width="' + (bad ? 0.12 : 0.08) + '" stroke-dasharray="' + (bad ? '0.12 0.12' : '0.3 0.2') + '"/>';
 }
 
-/** A shape's swatch: its solid pixels in the level's colour, as "Tile by tile" draws them. */
+/** A shape's swatch: its solid pixels in the level's colour, as "Tile by tile" draws them (the shell's swatch). */
 function collSwatchSvg(code, color) {
-  return '<svg class="rg-coll-swatch" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">'
-    + '<rect width="16" height="16" class="rg-coll-swatch-bg"/>'
-    + '<path d="' + collMaskPath(code, 0, 0, 1) + '" fill="' + color + '" fill-opacity=".75"/></svg>';
+  return shellSwatchSvg(collMaskPath(code, 0, 0, 1), color);
 }
 
 /** The 8px pen's own swatch: a 2×2 of quarters, one drawn. */
 function collPenSwatchSvg(color) {
-  return '<svg class="rg-coll-swatch" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">'
-    + '<rect width="16" height="16" class="rg-coll-swatch-bg"/>'
-    + '<path d="M0 8h8v8h-8zM8 8h8v8h-8zM0 0h8v8h-8z" fill="' + color + '" fill-opacity=".75"/>'
-    + '<path d="M8 0v16M0 8h16" stroke="currentColor" stroke-opacity=".5" stroke-width=".6"/></svg>';
+  return shellSwatchSvg('M0 8h8v8h-8zM8 8h8v8h-8zM0 0h8v8h-8z', color,
+    '<path d="M8 0v16M0 8h16" stroke="currentColor" stroke-opacity=".5" stroke-width=".6"/>');
 }
 
 /** The pencil's badge on the Collision tab: what it draws, in miniature (map-editor-drawable.js). */
@@ -371,25 +367,22 @@ function collisionTabHtml() {
   var html = '<div class="rg-coll-filters">'
     + '<button class="rdf rg-chip-toggle' + (_collVanillaOnly ? ' on' : '') + '" data-coll-vanilla="1" aria-pressed="' + _collVanillaOnly
     + '" title="Only the shapes vanilla places somewhere">Used in vanilla</button></div>'
-    + '<div class="rg-coll-keys"><span><kbd>Left</kbd> draw</span><span><kbd>Right</kbd> carve</span>'
-    + '<span><kbd>Eraser</kbd> back to predicted</span></div>'
-    + '<div class="rg-coll-grid">'
-    + '<button class="rdf rg-coll-chip rg-coll-pen' + (_collPick < 0 ? ' on rg-armed' : '') + '" data-coll-pick="-1" title="'
-    + escH('8px pen — draws and carves 8px squares into the collision the cell has now. A 16px cell takes a tile while its squares '
+    + shellKeysHtml([['Left', 'draw'], ['Right', 'carve'], ['Eraser', 'back to predicted']]);
+  var cards = [{ attrs: { 'coll-pick': -1 }, swatch: collPenSwatchSvg(color), label: '8px pen', sub: 'draw · carve', on: _collPick < 0, dashed: true,
+    title: '8px pen — draws and carves 8px squares into the collision the cell has now. A 16px cell takes a tile while its squares '
       + 'match one: all four, two along a side, an L of three (45°). A lone corner or opposite corners match none: '
-      + 'they stay drawn with a "?", and the cell keeps its own.') + '">'
-    + collPenSwatchSvg(color) + '<span class="rg-coll-lbl">8px pen<b>draw · carve</b></span></button>';
+      + 'they stay drawn with a "?", and the cell keeps its own.' }];
   COLL_CODES.forEach(function (c) {
     var count = uses ? uses[c[0]] || 0 : null;
     if (_collVanillaOnly && count === 0) return;
-    var on = _collPick === c[0];
     var tip = c[1] + (c[3] ? ', ' + c[3] : '') + ' — code 0x' + c[0].toString(16) + ', on whole cells'
       + (count != null ? '\nPlaced on ' + count + ' vanilla cell' + (count === 1 ? '' : 's') : '')
       + (c[3] ? '\n' + COLL_HOW[c[3]] : c[2] != null ? '\nSame solid pixels as 0x' + c[2].toString(16)
         + (count === 0 ? '; open in the engine’s tables, and no vanilla room places it' : '') : '');
-    html += '<button class="rdf rg-coll-chip' + (on ? ' on rg-armed' : '') + '" data-coll-pick="' + c[0] + '" title="' + escH(tip) + '">'
-      + collSwatchSvg(c[0], color) + '<span class="rg-coll-lbl">' + escH(c[1] + (c[3] ? ' · ' + c[3] : '')) + '<b>0x' + c[0].toString(16) + '</b></span></button>';
+    cards.push({ attrs: { 'coll-pick': c[0] }, swatch: collSwatchSvg(c[0], color), label: c[1] + (c[3] ? ' · ' + c[3] : ''),
+      sub: '0x' + c[0].toString(16), on: _collPick === c[0], title: tip });
   });
-  return html + '</div><div class="rs-note rg-coll-foot">Over the collision each tile was predicted; '
+  html += shellSwatchGridHtml(cards);
+  return html + '<div class="rs-note rg-coll-foot">Over the collision each tile was predicted; '
     + 'it clears always-walkable (stairs, drift).' + (n ? ' ' + n + ' cell' + (n === 1 ? '' : 's') + ' set by hand.' : '') + '</div>';
 }

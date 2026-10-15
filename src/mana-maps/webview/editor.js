@@ -80,7 +80,7 @@ function manaEditorOpen(ctx) {
   manaEdLoaded[entry.id] = ctx.data;
   var S = manaEdSessions.get(entry.id), M = S.model;
   var defaults = { tool: 'paint', tab: 'tile', layer: 'A', tile: 0, a: true, b: true, collision: false, animate: true, cut: true, specials: false, objects: true, characters: false, triggers: true, grid: false,
-    objSub: 'characters', tileSub: 'tiles', coll: 'pen', level: null, special: 'eff:33' };
+    objSub: 'characters', tileSub: 'tiles', trigSub: 'on', coll: 'pen', level: null, special: 'eff:33' };
   Object.keys(defaults).forEach(function (k) { if (st[k] === undefined) st[k] = defaults[k]; });
   if (st.layer === 'B' && !M.sizeB) st.layer = 'A';
   var E = { ctx: ctx, entry: entry, st: st, S: S, M: M, H: S.history, W: M.w * 16, HPX: M.h * 16, panelOpen: {}, closed: false, raf: 0,
@@ -128,8 +128,10 @@ function manaEditorOpen(ctx) {
   S.onApply = function (cells) { manaApplyEverything(E, cells); };
   S.onChange = function () { if (!E.closed) { manaPillRefresh(E); manaNoteSummary(E); } };
 
-  // Clicks on the pill, the filter bar and the name line (the dock has its own, editor-dock.js).
-  panel.addEventListener('click', function (ev) {
+  // Clicks on the pill, the filter bar and the name line (the dock has its own, editor-dock.js). `#room-detail`
+  // outlives the editor, so the handler goes with it in close(): one left behind ran every click once per map
+  // opened, and an even count flipped each chip twice — the filter bar looked dead until the next map.
+  var onClick = function (ev) {
     var t = ev.target instanceof Element ? ev.target : null;
     if (!t) return;
     var b = t.closest('button');
@@ -143,11 +145,13 @@ function manaEditorOpen(ctx) {
     else if (act === 'toggle-dock') editToggleDock();
     var k = b.dataset.toggle;
     if (k) manaToggleView(E, k);
-  });
+  };
+  panel.addEventListener('click', onClick);
 
   return {
     close: function () {
       E.closed = true;
+      panel.removeEventListener('click', onClick);
       manaStageStop(E);
       manaToolsUnbind(E);
       S.onApply = null; S.onChange = null;

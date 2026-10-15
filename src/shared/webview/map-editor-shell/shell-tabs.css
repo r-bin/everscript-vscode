@@ -113,3 +113,29 @@
 .rg-theme .rg-trigger-where-step{fill:var(--rg-trigger-step);stroke:var(--rg-trigger-step)}
 .rg-theme .rg-trigger-what{display:block;font-family:var(--rg-font-ui);font-size:11px;color:var(--rg-text-muted);
   overflow:hidden;text-overflow:ellipsis}
+
+/* ── A palette of swatch cards (frame.js shellSwatchGridHtml, shellSwatchSvg, shellKeysHtml): the Collision
+ * tabs of both games. Each card is a shape drawn as its solid pixels; `.rg-coll-pen` is the dashed tool card. */
+.rg-theme .rg-coll-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:6px}
+.rg-theme .rg-coll-chip{opacity:1;display:flex;flex-direction:column;align-items:center;gap:3px;height:auto;padding:6px 2px;
+  font-size:10px;line-height:1.2;text-align:center;color:var(--rg-text-secondary)}
+.rg-theme .rg-coll-chip:hover{color:var(--rg-text-primary)}
+.rg-theme .rg-coll-swatch{width:36px;height:36px;image-rendering:pixelated;border-radius:3px}
+.rg-theme .rg-coll-swatch-bg{fill:var(--rg-bg-app)}
+.rg-theme .rg-coll-filters{display:flex;gap:4px;margin-bottom:8px}
+.rg-theme .rg-coll-filters .rdf{opacity:1}
+.rg-theme .rg-coll-filters .rdf.on{background:var(--rg-accent-soft);color:var(--rg-accent-text);border-color:transparent}
+.rg-theme .rg-coll-keys{display:flex;flex-wrap:wrap;gap:4px 12px;margin:0 0 8px;font-size:11px;color:var(--rg-text-secondary)}
+.rg-theme .rg-coll-keys kbd{font:600 10px var(--rg-font-ui);padding:1px 5px;margin-right:3px;border-radius:4px;
+  border:1px solid var(--rg-border);background:var(--rg-bg-float);color:var(--rg-text-primary)}
+.rg-theme .rg-coll-pen{border-style:dashed}
+.rg-theme .rg-coll-foot{margin-top:8px}
+.rg-theme .rg-coll-lbl b{display:block;font:500 9px var(--rg-font-mono, monospace);color:var(--rg-text-muted)}
+
+/* ── The armed look: what the open tab will draw, select or erase (a shape, a special, a trigger kind, a widget)
+ * wears the selected tile swatch's accent ring, so every tab of both games says it the same way. */
+.rg-theme .rg-armed{
+  outline:2px solid var(--rg-accent)!important;outline-offset:1px;
+  border-color:transparent!important;background:var(--rg-accent-soft)!important;
+  color:var(--rg-accent)!important;opacity:1!important;
+}

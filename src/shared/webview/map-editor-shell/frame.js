@@ -241,6 +241,33 @@ function shellPanelHtml(key, title, body, note, open) {
     + '</div>';
 }
 
+/**
+ * A grid of swatch cards — a palette to draw with (the Collision tabs' shapes). `cards`: [{attrs, swatch, label,
+ * sub, on, dashed, title}]: `attrs` the button's data attributes ({'coll-pick': 3} -> data-coll-pick="3"), `swatch`
+ * an svg (shellSwatchSvg), `sub` the small second line, `dashed` the look of a tool that is not one of the entries.
+ */
+function shellSwatchGridHtml(cards) {
+  return '<div class="rg-coll-grid">' + cards.map(function (c) {
+    var attrs = '';
+    Object.keys(c.attrs || {}).forEach(function (k) { attrs += ' data-' + k + '="' + shellEscape(c.attrs[k]) + '"'; });
+    return '<button class="rdf rg-coll-chip' + (c.dashed ? ' rg-coll-pen' : '') + (c.on ? ' on rg-armed' : '') + '"' + attrs
+      + ' title="' + shellEscape(c.title || '') + '">' + c.swatch + '<span class="rg-coll-lbl">' + shellEscape(c.label)
+      + (c.sub ? '<b>' + shellEscape(c.sub) + '</b>' : '') + '</span></button>';
+  }).join('') + '</div>';
+}
+
+/** A swatch: a 16×16 square, `path` (in its pixels) filled with `color`, then `extra` svg on top. */
+function shellSwatchSvg(path, color, extra) {
+  return '<svg class="rg-coll-swatch" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">'
+    + '<rect width="16" height="16" class="rg-coll-swatch-bg"/>'
+    + (path ? '<path d="' + path + '" fill="' + color + '" fill-opacity=".75"/>' : '') + (extra || '') + '</svg>';
+}
+
+/** How the mouse buttons and keys work, as a row of key caps: [[key, what]]. */
+function shellKeysHtml(keys) {
+  return '<div class="rg-coll-keys">' + keys.map(function (k) { return '<span><kbd>' + shellEscape(k[0]) + '</kbd> ' + shellEscape(k[1]) + '</span>'; }).join('') + '</div>';
+}
+
 /** The two buttons that show and hide the rail and the dock, for the name line's actions. */
 function shellSidebarTogglesHtml(railOn, dockOn) {
   return '<button class="rdf rg-edit-tool-icon rg-rail-toggle' + (railOn ? ' on' : '') + '" id="rg-rail-toggle-btn"'
@@ -292,5 +319,6 @@ if (typeof module !== 'undefined' && module.exports) {
     shellCanvasParts: shellCanvasParts, shellToolButtonHtml: shellToolButtonHtml, shellActButtonHtml: shellActButtonHtml,
     shellPillHtml: shellPillHtml, shellSideBarHtml: shellSideBarHtml, shellStatusbarHtml: shellStatusbarHtml, shellTabStripHtml: shellTabStripHtml,
     shellRailTreeHtml: shellRailTreeHtml, shellPanelHtml: shellPanelHtml, shellSidebarTogglesHtml: shellSidebarTogglesHtml,
+    shellSwatchGridHtml: shellSwatchGridHtml, shellSwatchSvg: shellSwatchSvg, shellKeysHtml: shellKeysHtml,
     statusPad2: statusPad2, STATUS_NO_XY: STATUS_NO_XY };
 }

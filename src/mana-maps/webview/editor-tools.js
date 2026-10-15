@@ -118,7 +118,7 @@ function manaTabList(E) {
         return !all.length ? -1 : i >= 0 ? all[(i + 1) % all.length] : all[all.length - 1];
       } };
   }
-  if (E.st.tab === 'trigger') {
+  if (E.st.tab === 'trigger' && (manaTrigSub(E) === 'on' || manaTrigSub(E) === 'into')) {
     var at = function (c) { return manaEdStepAt(M, c.x, c.y); };
     return { kind: 'steps', key: 'step', list: M.steps, at: at, pick: at };
   }
@@ -172,6 +172,7 @@ function manaOnDown(E, e) {
     var hit = tl ? tl.pick(c) : -1;
     if (hit < 0) { if (shellPanStart(E.zp, E.pan, E.wrap, e)) e.preventDefault(); return; }
     E.S.sel[tl.key] = hit;
+    manaFollowStep(E, tl, hit);
     E.H.begin();
     E.drag = { kind: tl.kind, i: hit, before: manaEdClone(tl.list) };
     manaStageOverlays(E); manaDockRender(E);
@@ -181,11 +182,12 @@ function manaOnDown(E, e) {
   e.stopPropagation(); e.preventDefault();
   E.H.begin();
   if (st.tool === 'pick') {
-    if (tl) { var i = tl.pick(c); if (i >= 0) { E.S.sel[tl.key] = i; manaStageOverlays(E); manaDockRender(E); } }
+    if (tl) { var i = tl.pick(c); if (i >= 0) { E.S.sel[tl.key] = i; manaFollowStep(E, tl, i); manaStageOverlays(E); manaDockRender(E); } }
     else manaPickCell(E, c);
     return;
   }
   if (manaPiecesActive(E)) return;   // the map's changes are read-only
+  if (!tl && !manaStrokeKind(E)) return;   // Info, and the trigger kinds the pencil does not draw
   if (!tl) { E.painting = true; manaPaintCell(E, c); return; }
   var at = tl.at(c);
   if (st.tool === 'erase') {
@@ -202,7 +204,7 @@ function manaOnDown(E, e) {
   var idx = at >= 0 ? at : manaListAdd(E, tl, c);
   if (idx < 0) return;
   E.S.sel[tl.key] = idx;
-  E.drag = { kind: tl.kind, i: idx, before: snap };
+  E.drag = { kind: tl.kind, i: idx, before: snap, added: at < 0 };
   manaStageOverlays(E); manaDockRender(E);
 }
 
@@ -217,6 +219,7 @@ function manaOnMove(E, e) {
 function manaOnUp(E) {
   if (E.drag) {
     manaRecordList(E, E.drag.kind, E.drag.before);
+    if (E.drag.added && E.drag.kind === 'steps') manaStepFitKind(E, E.M.steps[E.drag.i]);
     E.drag = null;
   }
   E.painting = false;
@@ -224,6 +227,19 @@ function manaOnUp(E) {
   E.H.end();
   manaStageOverlays(E);
   manaDockRender(E);
+}
+
+/** A step event picked on the map shows on its own kind's sub-tab (step on / walk into). */
+function manaFollowStep(E, tl, i) {
+  if (tl.kind === 'steps' && E.M.steps[i]) E.st.trigSub = manaStepFires(E, E.M.steps[i]) === 'walk into' ? 'into' : 'on';
+}
+
+/** A step event placed on a Trigger sub-tab fires the way that sub-tab says: its cell gets a wish when it does not already. */
+function manaStepFitKind(E, s) {
+  var sub = manaTrigSub(E);
+  if (!s || (sub !== 'on' && sub !== 'into') || (manaStepFires(E, s) === 'walk into') === (sub === 'into')) return;
+  var ch = manaEdSetWish(E.M, 'A', manaEdIndex(E.M, 'A', s.x, s.y), 'walk', { on: sub === 'on' });
+  if (ch) E.H.record(ch);
 }
 
 /** Pick: the metatile (Tile), the cell's shape (Collision) or its stairs / push / switch (Special). */

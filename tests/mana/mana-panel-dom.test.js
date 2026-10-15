@@ -68,7 +68,7 @@ async function main() {
     check('opening a map builds the shell\'s page: name line, canvas card with the pill, zoom chip, filter bar, status bar, dock',
         shell.head === 'Wide 1' && shell.zoom && shell.statusbar && shell.dock && shell.cardPill, JSON.stringify(shell));
     check('the pill is the Evermore editor\'s: select, pencil, erase, pick', shell.pill.join() === 'select,pencil,erase,pick', shell.pill.join());
-    check('the dock\'s tab strip is the shell\'s: Tile | Special | Object | Trigger | Info', shell.tabs.join() === 'Tile,Special,Object,Trigger,Info', shell.tabs.join());
+    check('the dock\'s tab strip is the shell\'s, in the Evermore order: Tile | Special | Trigger | Object | Info', shell.tabs.join() === 'Tile,Special,Trigger,Object,Info', shell.tabs.join());
     check('the filter bar is the shared segmented pill: BG1 | BG2 | Collision, then the chips', shell.filters.join() === 'BG1,BG2,Collision,Animate,Cuttable,Specials,Objects,Characters,Triggers,Grid', shell.filters.join());
 
     const fit = await p.evaluate(() => { const w = document.getElementById('rg-wrap').getBoundingClientRect(), s = document.getElementById('rg-svg').getBoundingClientRect(); return { ww: w.width, sw: s.width, sh: s.height }; });

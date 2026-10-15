@@ -52,3 +52,5 @@
 .mana-info-row { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; padding: 2px 0; color: var(--rg-text-secondary); }
 .mana-info-row b { font-weight: 500; color: var(--rg-text-primary); }
 .message { padding: 24px; opacity: 0.8; }
+/* Tile › Collision's floor-level row (the shell's .rg-coll-filters) wraps in a narrow dock. */
+.rg-theme .mana-levels { flex-wrap: wrap; align-items: center; }
