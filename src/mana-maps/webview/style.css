@@ -75,7 +75,9 @@ figcaption { font-size: 0.9em; opacity: 0.75; padding: 2px 0; cursor: pointer; }
 .message { padding: 24px; opacity: 0.8; }
 
 /* ── the map editor (editor.js) ─────────────────────────────────────────────── */
-.edit-btn { display: block; margin-top: 2px; font: inherit; font-size: 0.85em; cursor: pointer;
+.fig-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.fig-head figcaption { padding: 0; }
+.edit-btn { display: block; font: inherit; font-size: 0.85em; cursor: pointer;
     color: var(--vscode-button-secondaryForeground); background: var(--vscode-button-secondaryBackground);
     border: 1px solid var(--vscode-panel-border, transparent); border-radius: 3px; padding: 1px 10px; }
 .edit-btn:hover { background: var(--vscode-button-secondaryHoverBackground); }

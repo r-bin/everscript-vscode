@@ -150,7 +150,11 @@
     var edit = el('button', 'edit-btn', 'Edit');
     edit.dataset.edit = String(id);
     edit.title = 'Open this map in the editor (changes are not saved)';
-    fig.append(svg, cap, edit);
+    // The caption and the Edit button come first: a map can be 1300 px tall, and a button under
+    // it would be out of sight.
+    var head = el('div', 'fig-head');
+    head.append(cap, edit);
+    fig.append(head, svg);
     return fig;
   }
 
