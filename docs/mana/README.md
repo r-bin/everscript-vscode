@@ -132,9 +132,45 @@ rewritten to `$C0+k`, so the game can change that one cell later. c1 is the kind
 (2105 cells), `$C0` (191), `$86` (50: cave entrances), `$87` (22: signposts), `$85` (6: a gate),
 `$82` (3: a water edge) — the descriptions are what those cells look like, not code.
 
-No cuttable tiles were found: no code writes the slot tables at runtime except the
-save/restore pair `$02:AB30`/`$02:AB42`. Weapon obstacles (bushes, rocks) appear to be map
-objects, which are not decoded yet.
+The slot value is what runs the cell's event (below), and c1 bit 6 says how: in the
+movement code (`$01:B9A3`) a party member may not enter a cell with value `>= $4D`
+unless the word at `$7F:B800 + cell*4` has bit 14 (c1 bit 6) set — so `$C0` cells are
+walked onto, `$80`-kind cells are solid and run their event when walked into (the Mana
+Sword in the stone at Potos Falls, `$80`, cells 47,50-51, event `$847`).
+
+### Cuttable tiles: none in the map data
+
+Searched for (2026-10-15): every store into the metatile tables (`STA $C000,X/Y`,
+`$C002,X`, `$7F:C000,X`) and the collision tables (`$B800`/`$BB00`/`$BC00` in every
+addressing form). Outside the loader (`$02:A000`, `$02:B517`) and the save/restore pair
+`$02:AB30`/`$02:AB42`, every hit (`$00:FA4B`, `$01:90DA`, `$02:A5A4`, `$02:A5EC`,
+`$02:AC3A`) builds the sprite list at `$7E:C000`, not map tiles. So no cell's tiles or
+collision change while a map is shown except through a map reload, and Mana has nothing
+like Evermore's cuttable-grass table to convert. Bushes and rocks the weapons clear are
+then most likely objects (below) — not confirmed: a headless test needs the sword, and
+the Potos Falls corner that holds it is walled off from the river where the game starts.
+
+## Objects — `$00:C481`, `$00:DCE3`, `$00:DD55`
+
+After the 8-byte header comes the map's object list: 8-byte records up to the next
+map's header. The loader stores its address at `$7E:E802` and its length / 8 at
+`$7E:E800`; `$00:DCE3` copies every record into `$7E:C800` (16 bytes each): bytes 0-7 at
++8..+15, +0 = 1 (in use), +7 = byte 3 bit 7 (`$80`) | byte 2 bit 7 (`$40`). A list of `$31` or more
+records sends the game into an endless loop (`$00:DCE8`). Map `$1FF`'s list would be
+1009 records, and for 13 maps (0, 1, 2, 4, 5, 7, `$F3`, `$18E`, `$1E2`, `$1E4`-`$1E7`) the next
+header lies before their own; `mapObjects` returns no objects for all of these.
+
+| byte | meaning |
+|---|---|
+| 2, 3 | cell x, y in bits 0-6 (bit 7: the `$C807` flags) |
+| 6-7 | kind word: `$C001` in 1350 of the 2179 records (enemies on the maps tried) |
+| 0, 1, 4, 5 | not named yet (not an event-flag gate: all 22 of map `$10`'s are copied) |
+
+When a record's character is spawned, +0 becomes `$81` and +3 its entity slot (`$7E:E600`,
+`$E800`, … `$200` apart); it stands at `cell * 16 + 4` pixels. Checked headless after
+forced loads of maps `$10` and `$81`: all records copied, and the 2 + 4 spawned entities
+stand exactly there (`src/mana/objects.ts`). Only records near the camera were spawned.
+Their sprites are not decoded.
 
 ## Step events — `$C8:4000`, `$00:B637`
 
@@ -178,9 +214,9 @@ The Maps panel plays it per cell kind (cells with the same tile words share fram
 
 ## Not done yet
 
-- Objects and NPCs (8-byte records after the header at `$C8:7000`, gated by event flags
-  like pieces) and what each event does are not decoded; the reference pictures include
-  some sprites. Step events say which event runs, not where a door leads.
+- Objects are placed but not drawn (sprites not decoded), and most of their bytes are not
+  named; what each event does is not decoded. Step events say which event runs, not where
+  a door leads.
 - Pieces hidden by event flags use flag value 0 (a new game).
 - BG3 (weather, text) and parallax scrolling of layer B are not drawn.
 - Layer B's own collision (`$7F:BC00`) is not drawn; the player uses layer A's.

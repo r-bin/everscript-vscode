@@ -75,6 +75,19 @@ function drawSpecials(svg, c) {
   return g;
 }
 
+/** Objects (som://rom/maps/<id>.objects.json): a ring where each one is placed, labelled with its kind. */
+function drawObjects(svg, list) {
+  var g = svgEl('g', { 'class': 'mm-objects', 'pointer-events': 'none' });
+  (list.objects || []).forEach(function (o) {
+    g.appendChild(svgEl('circle', { cx: o.x * 16 + 8, cy: o.y * 16 + 8, r: 6, 'class': 'mo-ring' }));
+    var t = svgEl('text', { x: o.x * 16 + 8, y: o.y * 16 - 1, 'class': 'mo-label' });
+    t.textContent = o.kind.toString(16).toUpperCase();
+    g.appendChild(t);
+  });
+  svg.appendChild(g);
+  return g;
+}
+
 /** Start the animation from som://rom/maps/<id>.anim.json; returns the player or null. */
 function playAnimation(svg, a) {
   if (!a || !a.kinds || !a.kinds.length) return null;

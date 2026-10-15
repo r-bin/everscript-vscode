@@ -7,7 +7,7 @@
 // that its id is past the ROM rooms (roomVanillaIdNum accepts it for `imported`
 // rooms), and that its families carry a label (`m12`) instead of being ROM ids.
 //
-// Owns: _importedRooms, _importedWaiting, _importedFamilies.
+// Owns: _importedRooms, _importedWaiting, _importedFamilies, _importedPreviews.
 
 /** Details already received, by rail id (`som-80`). */
 var _importedRooms = {};
@@ -15,6 +15,8 @@ var _importedRooms = {};
 var _importedWaiting = null;
 /** Family id -> catalogue-shaped entry ({id, label, tiles, areas, names}) of converted rooms. */
 var _importedFamilies = {};
+/** Family id -> the preview strip sheet that has its row (the host's buildFamilyPreviews shape). */
+var _importedPreviews = {};
 
 /** Open a converted room's rail row. */
 function importedOpen(li) {
@@ -37,6 +39,8 @@ function applyImportedRoom(msg) {
     return;
   }
   (msg.room.families || []).forEach(function (f) { _importedFamilies[f.id] = f; });
+  var pv = msg.room.familyPreviews;
+  if (pv && pv.families) pv.families.forEach(function (id) { _importedPreviews[id] = pv; });
   _importedRooms[msg.id] = msg.room;
   renderRoomDetail(msg.room);
 }
@@ -44,6 +48,11 @@ function applyImportedRoom(msg) {
 /** A converted family's entry, or null for a ROM family. */
 function importedFamily(id) {
   return _importedFamilies[id] || null;
+}
+
+/** The preview sheet holding a converted family's chip art, or null. */
+function importedPreviews(id) {
+  return _importedPreviews[id] || null;
 }
 
 /** How a family is named on screen: its label when converted, else its ROM id. */

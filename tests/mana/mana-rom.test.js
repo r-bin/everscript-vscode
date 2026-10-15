@@ -116,5 +116,20 @@ test('the game\'s own loaders, run on the interpreter, build the same tables and
     }
 });
 
+test('objects: 2179 records; map $81 spawns its first ones where the game put them', () => {
+    let n = 0;
+    for (let id = 0; id < mana.MAP_COUNT; id++) if (mana.mapSize(rom, id)) n += mana.mapObjects(rom, id).length;
+    assert.strictEqual(n, 2179);
+    // Seen headless after a forced load: entities at (x, y) * 16 + 4 pixels.
+    assert.deepStrictEqual(mana.mapObjects(rom, 0x81).slice(0, 4).map(o => [o.x, o.y, o.kind]),
+        [[22, 37, 0xC001], [20, 26, 0xC001], [33, 21, 0xC001], [44, 20, 0xC001]]);
+});
+
+test('step events: map $10 runs the events the game ran (tools/mana/check-events.js)', () => {
+    const e = mana.mapEvents(rom, mana.loadMap(rom, 0x10));
+    assert.strictEqual(e.onEnter, 0x70E);
+    assert.deepStrictEqual(e.steps.map(s => s.event), [0x83F, 0x83F, 0x803, 0x803, 0x606, 0x805, 0x607, 0x905, 0x11F, 0x608, 0x600, 0x601, 0x806, 0x806]);
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

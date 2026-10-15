@@ -774,6 +774,9 @@ function activate(context) {
                     const reply = { command: 'importedRoom', id: msg.id };
                     try {
                         const room = _manaRooms && _manaRooms.detail(msg.id, msg.name);
+                        // The family chips' art, drawn from the room's own image (two tiles each).
+                        const src = room && _manaRooms.resolveRoom(room.romRoomId);
+                        if (src) room.familyPreviews = buildFamilyPreviews(src.rom, room.families.map((f) => f.id), 2);
                         _radarPanel.webview.postMessage(room ? { ...reply, room }
                             : { ...reply, error: 'Needs both ROMs: everscript.romPath (Evermore) and a Secret of Mana ROM' });
                     } catch (err) {

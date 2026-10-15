@@ -15,7 +15,7 @@
   var title = document.getElementById('title');
   var meta = document.getElementById('meta');
 
-  var state = Object.assign({ area: null, map: null, zoom: 1, a: true, b: true, collision: false, animate: true, specials: false },
+  var state = Object.assign({ area: null, map: null, zoom: 1, a: true, b: true, collision: false, animate: true, specials: false, objects: false },
     vscode.getState() || {});
   var maps = new Map((init.maps || []).map(function (m) { return [m.id, m]; }));
   var areas = init.areas || [];
@@ -79,6 +79,8 @@
       title: 'Play the animated tiles and colours — the game’s own animation routines, run frame by frame. Both layers must be on.' })
       + mapViewChipHtml({ label: 'Specials', on: state.specials, attrs: { toggle: 'specials' },
       title: 'Special cells (collision byte 1 bit 7): doors, signs and event spots the game can change. Labelled with that byte.' })
+      + mapViewChipHtml({ label: 'Objects', on: state.objects, attrs: { toggle: 'objects' },
+      title: 'The map’s objects: the records after its header the game spawns as characters (enemies, people). Labelled with their kind word.' })
       + '<span class="zoom-chips">' + [0.25, 0.5, 1, 2].map(function (z) {
         return mapViewChipHtml({ label: z === 0.25 ? '¼×' : z === 0.5 ? '½×' : z + '×', on: state.zoom === z, attrs: { zoom: z } });
       }).join('') + '</span>';
@@ -147,6 +149,11 @@
         if (!c || !svg.isConnected) return;
         if (state.collision) drawCollision(svg, c);
         if (state.specials) drawSpecials(svg, c);
+      });
+    }
+    if (state.objects) {
+      readJson('maps/' + m.hex + '.objects.json', function (o) {
+        if (o && svg.isConnected) drawObjects(svg, o);
       });
     }
     if (state.animate && state.a && state.b) {

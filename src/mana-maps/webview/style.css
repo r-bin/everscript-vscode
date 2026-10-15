@@ -68,6 +68,8 @@ svg.mm-map image { image-rendering: pixelated; }
 .mc-switch { fill: none; stroke: #ff4df0; stroke-width: 1.5; border-color: #ff4df0; }
 .sw-plain { background: transparent; }
 .ms-cell { fill: rgba(255, 216, 74, 0.15); stroke: #ffd84a; stroke-width: 1; }
+.mo-ring { fill: rgba(255, 110, 200, 0.2); stroke: #ff6ec8; stroke-width: 1.5; }
+.mo-label { fill: #fff; stroke: #000; stroke-width: 1.5px; paint-order: stroke; font: bold 6px monospace; text-anchor: middle; }
 .ms-label { fill: #fff; stroke: #000; stroke-width: 1.5px; paint-order: stroke; font: bold 6px monospace; text-anchor: middle; }
 figcaption { font-size: 0.9em; opacity: 0.75; padding: 2px 0; cursor: pointer; }
 .message { padding: 24px; opacity: 0.8; }

@@ -20,7 +20,7 @@ h-flip 14, priority 13, palette 10-12, character 0-9.
 | metatile: 4 tilemap words of 8x8 chars | one 16x16 graphic + one word | the 4 chars with their flips drawn into one graphic; equal graphics share a Block 1 slot, also mirrored (the word's flip bits) |
 | a metatile mixing palettes | — | redrawn in the palette with most pixels, other colours replaced by the nearest; counted (`recolouredTiles`) |
 | per-char priority | per-cell priority | the majority of opaque pixels |
-| BG palettes 1-7 of palette set `s` | palette slots 1-7, family `m<s*8 + p-1>` | the same palette is the same family in every map that loads it |
+| BG palettes 1-7 of palette set `s` | family `m<s*8 + p-1>` | only the palettes the map draws with, in slots 1..k by palette number; the same palette is the same family in every map |
 | display mode: TM, TS, CGADSUB | header bytes 4-6 | CGWSEL is `$02` in Mana, written to byte 7 |
 | backdrop colour (`$C8:0100` bytes 7-8) | — | Evermore keeps palette 0 for the HUD; drawn black |
 | floor of level 1 / 2 (c0 = 1 / 2) | plane 1 / 2 (`$10` / `$20`) | each solid from the other level in both games |
@@ -30,9 +30,10 @@ h-flip 14, priority 13, palette 10-12, character 0-9.
 | level switch (c0 bit 3) | — | an ordinary Evermore tile sets the plane anyway |
 | step event cell (`$C8:4000`) | step-on bit 14 + a step-on box | boxes: runs of one event along a row, merged with the same run above; `scriptId` = the Mana event number |
 | the map's own event (byte 3 bit 2) | — | kept as `conversion.onEnter` |
+| objects (records after the header) | spawn markers in the Rooms tab | `Mana object C001` at the cell; nothing in the blob (Evermore spawns characters from scripts) |
+| — | cuttable layer (Section 4) | none: Mana changes no cell at runtime (README "Cuttable tiles") |
 
-Layer B's collision, animated tiles and palette effects, objects and NPCs are not
-converted yet. A step-on box's `scriptId` is a Mana event number: it names no Evermore
+Layer B's collision, animated tiles and palette effects are not converted yet. A step-on box's `scriptId` is a Mana event number: it names no Evermore
 script, and the tab labels it `Mana event NNN`.
 
 ## Where the room lives

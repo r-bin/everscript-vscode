@@ -25,6 +25,7 @@ const INIT = {
 };
 const FILES = {
     'maps/b0.collision.json': { w: 6, h: 2, floor: '333222' + '102000', diagonal: '000000' + '000400', switches: [[5, 1]], specials: [{ x: 1, y: 1, kind: 0x87 }] },
+    'maps/b0.objects.json': { objects: [{ x: 2, y: 1, kind: 0xC001 }] },
     'maps/b0.anim.json': { length: 60, images: ['data:image/png;base64,AA==', 'data:image/png;base64,AQ=='],
         kinds: [{ cells: [[0, 0], [1, 0], [2, 0]], starts: [0, 30], frames: [0, 1] }] },
 };
@@ -71,6 +72,7 @@ async function main() {
 
     await p.click('#filters [data-toggle="collision"]');
     await p.click('#filters [data-toggle="specials"]');
+    await p.click('#filters [data-toggle="objects"]');
     await p.waitForTimeout(200);
     const ov = await p.evaluate(() => ({
         classes: [...document.querySelectorAll('.mm-collision path')].map(e => e.getAttribute('class')).sort(),
@@ -81,6 +83,8 @@ async function main() {
     check('collision draws walls, diagonal halves, level-1 and shared floors', ov.classes.join(',') === 'mc-diag,mc-l0,mc-l1,mc-wall', ov.classes.join(','));
     check('level switches and special cells are marked and labelled', ov.switches === 1 && ov.label === '87', JSON.stringify(ov));
     check('the collision legend shows with the overlay', ov.legend);
+    const obj = await p.evaluate(() => [document.querySelectorAll('.mo-ring').length, (document.querySelector('.mo-label') || {}).textContent]);
+    check('objects are ringed and labelled with their kind', obj[0] === 1 && obj[1] === 'C001', JSON.stringify(obj));
 
     await p.click('#filters [data-toggle="a"]');
     await p.waitForTimeout(200);

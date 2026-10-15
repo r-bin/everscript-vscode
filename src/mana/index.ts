@@ -29,3 +29,5 @@ export { mapEvents } from './events';
 export type { MapEvents, StepEvent } from './events';
 export { mapCatalog, slugOf } from './catalog';
 export type { MapCatalog, CatalogMap, CatalogArea } from './catalog';
+export { mapObjects } from './objects';
+export type { ManaObject } from './objects';

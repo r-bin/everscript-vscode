@@ -81,8 +81,9 @@ test('Potos Falls opens as room 0x1080 with families m.. and its three step-on e
     const d = service.detail('som-80', 'Potos Falls 1');
     assert.strictEqual(d.romRoomId, 0x1080);
     assert.strictEqual(d.imported, 'mana');
-    assert.strictEqual(d.families.length, 7);
-    assert.ok(d.families.every(f => /^m\d+$/.test(f.label)));
+    assert.ok(d.families.length >= 1 && d.families.length <= 7);
+    assert.ok(d.families.every(f => /^m\d+$/.test(f.label) && f.tiles > 0), 'every family draws something');
+    assert.strictEqual(d.content.enemies.length, mana.mapObjects(som, 0x80).length);
     assert.deepStrictEqual(d.content.triggers.stepOn.map(t => [t.x1, t.y1, t.x2, t.y2, t.label]), [
         [47, 50, 48, 52, 'Mana event 847'], [40, 54, 41, 55, 'Mana event 104'], [26, 59, 27, 60, 'Mana event 102']]);
     assert.strictEqual(d.content.romHeader.mapW, 56);

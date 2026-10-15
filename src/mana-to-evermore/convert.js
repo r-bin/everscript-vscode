@@ -9,7 +9,8 @@
 //   Mana metatile (4 chars)     -> one 16x16 graphic; one palette and one priority
 //                                  per cell, so a metatile that mixes them is redrawn
 //                                  in its main palette (nearest colours) — counted
-//   Mana BG palette 1..7        -> palette slot 1..7, family m<set*8 + palette-1>
+//   Mana BG palette 1..7        -> family m<set*8 + palette-1>; only the palettes the map
+//                                  draws with, in slots 1..k
 //   Mana collision (c0, c2)     -> geometry + plane; step events -> bit 14 + a box
 // Only SNES facts are shared: both games use Mode 1 tilemap words with the same bits.
 
@@ -154,23 +155,40 @@ function triggerBoxes(steps) {
 /**
  * Convert map `id`. Returns null for an id without pieces.
  * `cells` holds three words per cell, row by row; `graphics` 128-byte Evermore graphics
- * by Block 1 slot; `families` the seven palette slots.
+ * by Block 1 slot; `families` the palettes the map draws with, by slot.
  */
 function convertManaMap(manaRom, id) {
     const map = mana.loadMap(manaRom, id);
     if (!map) return null;
     const stats = { recolouredTiles: 0, recolouredPixels: 0, mixedPriority: 0, droppedGraphics: 0 };
     const graphics = graphicTable(stats);
-    const wordCache = { A: new Map(), B: new Map() };
+    // First every metatile the map shows, so only the palettes it draws with become
+    // families, packed into slots 1..k in palette order (a word names its slot).
+    const tiles = { A: new Map(), B: new Map() };
+    const tileOf = (layer, n) => {
+        if (n < 0 || n >= 192) return null;
+        let t = tiles[layer].get(n);
+        if (!t) {
+            const m = metatilePixels(map, layer === 'A' ? map.tableA : map.tableB, n, stats);
+            t = { m, g: m.empty ? { slot: EMPTY_GRAPHIC, h: 0, v: 0 } : graphics.place(m.px) };
+            tiles[layer].set(n, t);
+        }
+        return t;
+    };
+    for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) { tileOf('A', map.cell('A', x, y)); tileOf('B', map.cell('B', x, y)); }
+    const used = new Map();                     // Mana palette -> graphic slots drawn in it
+    for (const layer of ['A', 'B']) for (const t of tiles[layer].values()) {
+        if (t.m.empty) continue;
+        if (!used.has(t.m.palette)) used.set(t.m.palette, new Set());
+        used.get(t.m.palette).add(t.g.slot);
+    }
+    const palettes = [...used.keys()].sort((x, y) => x - y);
+    if (!palettes.length) palettes.push(1);
+    const slotOf = (p) => palettes.indexOf(p) + 1;
     const wordFor = (layer, n) => {
-        if (n < 0 || n >= 192) return 0x0400;
-        let w = wordCache[layer].get(n);
-        if (w !== undefined) return w;
-        const m = metatilePixels(map, layer === 'A' ? map.tableA : map.tableB, n, stats);
-        const g = m.empty ? { slot: EMPTY_GRAPHIC, h: 0, v: 0 } : graphics.place(m.px);
-        w = (g.v << 15) | (g.h << 14) | (m.priority << 13) | (m.palette << 10) | slotChr(g.slot);
-        wordCache[layer].set(n, w);
-        return w;
+        const t = tileOf(layer, n);
+        if (!t || t.m.empty) return 1 << 10;    // the empty graphic, in slot 1
+        return (t.g.v << 15) | (t.g.h << 14) | (t.m.priority << 13) | (slotOf(t.m.palette) << 10) | slotChr(t.g.slot);
     };
     const col = mana.collisionOf(manaRom, map);
     const events = mana.mapEvents(manaRom, map);
@@ -185,12 +203,12 @@ function convertManaMap(manaRom, id) {
         }
     }
     const set = map.header.paletteSet;
-    const families = [];
-    for (let p = 1; p <= 7; p++) {
+    const families = palettes.map((p) => {
         const colours = Array.from(map.cgram.subarray(p * 16, p * 16 + 16), (c) => c & 0x7FFF);
         const n = set * 8 + p - 1;
-        families.push({ id: FAMILY_BASE + n, label: 'm' + n, paletteSet: set, palette: p, colours });
-    }
+        return { id: FAMILY_BASE + n, label: 'm' + n, paletteSet: set, palette: p, colours,
+            graphics: used.has(p) ? used.get(p).size : 0 };
+    });
     return {
         id, widthTiles: map.w, heightTiles: map.h,
         display: { tm: map.display.main, ts: map.display.sub, colorMath: map.display.math, colorWindow: 0x02 },
@@ -199,6 +217,7 @@ function convertManaMap(manaRom, id) {
         families,
         stepOn: triggerBoxes(events.steps),
         onEnter: events.onEnter,
+        objects: mana.mapObjects(manaRom, id).map((o) => ({ x: o.x, y: o.y, kind: o.kind })),
         stats: Object.assign(stats, { graphics: graphics.slots.length, stepCells: events.steps.length }),
     };
 }

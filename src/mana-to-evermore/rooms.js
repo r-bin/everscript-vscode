@@ -76,7 +76,7 @@ function createManaRooms(deps) {
             relPath: 'Secret of Mana map ' + manaId.toString(16) + ', converted',
             startLine: -1, endLine: -1, imageUri: null, imageDims: null,
             families: room.families.map((f) => ({
-                id: f.id, label: f.label, tiles: 0, rooms: 1, areas: ['Secret of Mana'],
+                id: f.id, label: f.label, tiles: f.graphics, rooms: 1, areas: ['Secret of Mana'],
                 names: ['palette set ' + f.paletteSet + ', palette ' + f.palette],
             })),
             conversion: Object.assign({
@@ -84,7 +84,9 @@ function createManaRooms(deps) {
             }, room.stats),
             content: {
                 initMap: { x1: 0, y1: 0, x2: room.widthTiles * 2, y2: room.heightTiles * 2 },
-                entrances: [], enemies: [], objects: [], transitions: [],
+                entrances: [], objects: [], transitions: [],
+                // Mana's map objects, as the tab's spawn markers (8-pixel units).
+                enemies: room.objects.map((o) => ({ x: o.x * 2, y: o.y * 2, type: 'Mana object ' + hex4(o.kind), dynamic: false })),
                 triggerNames: { stepOn: stepOn.map((t) => t.label), bTrigger: [] },
                 triggers: { enter: null, stepOn, bTrigger: [], meta: null },
                 roomError: null,

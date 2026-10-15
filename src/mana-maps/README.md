@@ -6,7 +6,8 @@ Rules for agents: [AGENTS.md](AGENTS.md). Opened by **Everscript: Secret of Mana
 Left: the areas (Potos Falls, Potos, …, then "Other maps"), each expandable to its map ids.
 Middle: the chosen area's pictures side by side (maps that draw the same picture are shown
 once, captioned with all their ids), or one map. Filter bar (shared with the Rooms tab's):
-BG1 | BG2 | Collision, Animate, Specials, and zoom. Collision tints walls and half walls
+BG1 | BG2 | Collision, Animate, Specials, Objects, and zoom. Objects rings each object
+record's cell and labels it with its kind word. Collision tints walls and half walls
 red, level-1 floors blue, floors of both levels amber and marks level switches; Specials
 outlines special cells with their kind byte; Animate plays the game's own animation.
 

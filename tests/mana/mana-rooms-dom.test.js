@@ -20,6 +20,7 @@ const IMPORTED = [{ key: 'mana', label: 'Secret of Mana', title: 'converted',
 const ROOM = {
     name: 'Potos Falls 1', vanillaId: 'som 80', romRoomId: 0x1080, imported: 'mana',
     relPath: 'Secret of Mana map 80, converted', startLine: -1, endLine: -1, imageUri: null, imageDims: null,
+    familyPreviews: { families: [41500], columns: 2, cell: 16, imageUri: 'data:image/png;base64,AA==' },
     families: [{ id: 41500, label: 'm53', tiles: 0, rooms: 1, areas: ['Secret of Mana'], names: ['palette set 6, palette 6'] }],
     content: {
         initMap: { x1: 0, y1: 0, x2: 32, y2: 28 }, entrances: [], enemies: [], objects: [], transitions: [],
@@ -40,6 +41,8 @@ function labelChecks() {
     ctx.applyImportedRoom({ id: 'som-80', room: ROOM });
     check('a converted family is named by its label (m53), a ROM family by its id',
         ctx.familyName(41500) === 'm53' && ctx.familyName(12) === '12');
+    const art = ctx.chipArtStyle(41500);
+    check('a converted family\'s chip art is its room\'s own preview strip', /data:image\/png;base64,AA/.test(art), art);
     const title = ctx.chipTitle(41500, 0);
     check('the family card says "Family m53" and where it is from', /^Family m53/.test(title) && /Secret of Mana/.test(title), title);
 }

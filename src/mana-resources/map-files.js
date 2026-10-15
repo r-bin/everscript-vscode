@@ -6,6 +6,7 @@
 //   <id>.json             header bytes, sets, halves, display mode, placed/skipped pieces
 //   <id>.collision.json   per cell: floor class, diagonal, level switch; special cells
 //   <id>.anim.json        animated cells: frames (PNG data URIs, shared), when each starts
+//   <id>.objects.json     the map's objects: cell, kind word, flag bits, raw bytes
 
 const mana = require('../mana');
 const { encodePng } = require('./png');
@@ -81,6 +82,12 @@ function animation(rom, id) {
     return json({ length: cells.length, images, kinds });
 }
 
+/** @param {Uint8Array} rom @param {number} id */
+function objects(rom, id) {
+    load(rom, id);
+    return json({ objects: mana.mapObjects(rom, id) });
+}
+
 /** File name -> producer for one map, or null. */
 function mapFile(rom, id, ext) {
     switch (ext) {
@@ -90,10 +97,11 @@ function mapFile(rom, id, ext) {
         case 'json': return () => data(rom, id);
         case 'collision.json': return () => collision(rom, id);
         case 'anim.json': return () => animation(rom, id);
+        case 'objects.json': return () => objects(rom, id);
     }
     return null;
 }
 
-const MAP_FILE_EXTS = ['png', 'a.png', 'b.png', 'json', 'collision.json', 'anim.json'];
+const MAP_FILE_EXTS = ['png', 'a.png', 'b.png', 'json', 'collision.json', 'anim.json', 'objects.json'];
 
 module.exports = { mapFile, MAP_FILE_EXTS };

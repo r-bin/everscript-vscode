@@ -56,7 +56,8 @@ function applyChipPreviews(msg) {
 }
 
 function chipArtStyle(familyId) {
-  var pv = _chipPreviews;
+  // A converted room's families come with their own strip (rooms-imported.js).
+  var pv = importedFamily(familyId) ? importedPreviews(familyId) : _chipPreviews;
   if (!pv || pv === 'pending') return '';
   var row = pv.families.indexOf(familyId);
   if (row < 0) return '';
