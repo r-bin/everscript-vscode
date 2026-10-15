@@ -77,18 +77,11 @@ function buildRoomSvgSection(opts){
 
   var html='';
   if(hasCoords||imageUri){
-    html+='<div class="rg-outer rs-map" id="rg-outer">';
-    // The canvas zone centres one rounded, bordered, shadowed card in empty
-    // space, per the design mock's canvasInnerStyle + canvasCardStyle. The
-    // grid is no longer left-aligned and full-bleed; the floating tool pill
-    // (map-editor-toolbar.js) hangs off this card's top edge and the zoom
-    // chip sits inside its bottom-left corner, which is why the card — not
-    // #rg-outer — is what establishes the positioning context for both.
-    html+='<div class="rg-canvas-zone" id="rg-canvas-zone">';
-    html+='<div class="rg-canvas-card" id="rg-canvas-card">';
-    html+='<div class="rg-wrap" id="rg-wrap" style="width:'+dispW+'px;height:'+dispH+'px">';
-    html+='<div id="rg-canvas" style="position:absolute;width:'+dispW+'px;height:'+dispH+'px;transform-origin:0 0;will-change:transform">';
-    html+='<svg class="rg-svg" id="rg-svg" width="'+dispW+'" height="'+dispH+'" viewBox="'+x1+' '+y1+' '+W+' '+H+'">';
+    // The canvas column's frame is the shell's (src/shared/webview/map-editor-shell/frame.js): the
+    // canvas card with the tool pill on its top edge and the zoom chip in its corner, the viewport, the
+    // svg. `canvas.open` ends with the svg's start tag, `canvas.close` starts with its end tag.
+    var canvas=shellCanvasParts({dispW:dispW,dispH:dispH,viewBox:x1+' '+y1+' '+W+' '+H,filtersHtml:filtersHtml,statusHtml:statusHtml});
+    html+=canvas.open;
 
     // The map image lives inside the SVG, in viewBox units, so it shares one
     // coordinate system with the grid and the entity overlays. Sized from the
@@ -242,24 +235,7 @@ function buildRoomSvgSection(opts){
       else  html+='<circle class="svge-entrance" data-idx="'+i+'" data-kind="entrance" cx="'+cx+'" cy="'+cy+'" r="0.26" fill="none" stroke="#22bb55" stroke-width="0.18" pointer-events="none"/>';
     });
 
-    html+='</svg></div></div>';   // rg-canvas, rg-wrap
-    // The zoom chip: a read-out of the current level plus the three controls
-    // that change it, in the card's bottom-left corner (the mock's
-    // zoomChipStyle). The ids are the ones interactions.js's setupZoomPan
-    // already binds — this is chrome, not behaviour.
-    html+='<div class="rg-zoom" id="rg-zoom">'
-      +'<button id="rg-zout" title="Zoom out" aria-label="zoom out">−</button>'
-      +'<span class="rg-zoom-level" id="rg-zoom-level" title="Zoom — 100% is one ROM pixel per '
-      +'screen pixel. Ctrl/⌘ + scroll over the map to pinch.">—</span>'
-      +'<button id="rg-zin" title="Zoom in" aria-label="zoom in">+</button>'
-      +'<button id="rg-zfit" title="Fit the whole room in the frame">fit</button>'
-      +'</div>';
-    // The filter bar floats over the map's bottom edge, like the tool pill
-    // over its top (rooms-layout.css); the status bar is the column's floor.
-    html+=filtersHtml;
-    html+='</div></div>';   // rg-canvas-card, rg-canvas-zone
-    html+=statusHtml;
-    html+='</div>'; // rg-outer
+    html+=canvas.close;
   }else{
     html+='<div class="rg-outer rs-map"><div class="rg-canvas-zone">'
       +'<div class="rg-canvas-card" id="rg-canvas-card">';

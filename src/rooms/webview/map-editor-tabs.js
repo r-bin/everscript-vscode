@@ -65,17 +65,14 @@ var EDIT_TABS = [
   ['info', 'Info'],
 ];
 
-/** The horizontal strip at the top of the docked panel column. */
+/** The horizontal strip at the top of the docked panel column (the shell's shellTabStripHtml). */
 function buildEditTabStripHtml() {
-  var html = '<div class="rg-tabstrip" id="rg-tabstrip">';
   if (editInTileGroup(_editActiveTab)) _editTileSub = _editActiveTab;
-  EDIT_TABS.forEach(function (t) {
+  return shellTabStripHtml(EDIT_TABS.map(function (t) {
     // `Tile` opens the sub-tab last open in it.
-    var on = t[0] === 'tile' ? editInTileGroup(_editActiveTab) : _editActiveTab === t[0];
-    html += '<button class="rg-tab' + (on ? ' on' : '') + '" data-edit-active-tab="'
-      + (t[0] === 'tile' ? _editTileSub : t[0]) + '">' + t[1] + '</button>';
-  });
-  return html + '</div>';
+    return { value: t[0] === 'tile' ? _editTileSub : t[0], label: t[1],
+      on: t[0] === 'tile' ? editInTileGroup(_editActiveTab) : _editActiveTab === t[0] };
+  }), 'edit-active-tab');
 }
 
 /** Header | Budget | Map, over the Info tab's body; '' on the other tabs. */

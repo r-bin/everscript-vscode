@@ -1,258 +1,24 @@
-/* Ownership: the canvas column's own chrome — the centred canvas card, the
- * floating tool pill over it, the zoom chip inside it, the docked filter bar
- * and status bar under it, the shared filter-dropdown chrome, and the resize
- * grip.
- *
- * Split out of map-editor-theme.css in Phase 7a (it was at 381 lines and this
- * pass rebuilt the whole column); that file keeps the design tokens every
- * rule here consumes and the right-hand panel column's chrome. Both are
- * scoped under `.rg-theme` — the class `renderRoomDetail` puts on
- * `#room-detail` (detail-renderer.js) — and both are concatenated onto
- * shared.css, tokens first, by src/memory/webview/index.js's `css` export.
- *
- * Layout ported from the design mock (`Map Editor UI.dc.html`):
- * `canvasInnerStyle` ~1096, `canvasCardStyle` ~1097, `gridWrapStyle` ~1098,
- * `floatingToolbarStyle` ~1100, `tileVisGroup.wrapStyle` ~1143,
- * `layerDockBarStyle` ~1193, `groupMenuStyle` ~1194, `zoomChipStyle` ~1196.
- */
-
-/* ── The canvas zone and the card it centres ──────────────────────────────
- * The mock's whole canvas thesis: one rounded, bordered, shadowed card
- * floating in padded empty space, rather than a left-aligned full-bleed
- * grid. The card is the positioning context for both the tool pill (which
- * hangs off its top edge) and the zoom chip (inside its bottom-left), so
- * `position:relative` here is load-bearing, not decoration. */
-.rg-theme .rg-canvas-zone{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:16px;
-  padding:32px 24px;
-  min-width:0;
-  overflow:auto;
-  background:var(--rg-bg-app);
-  border-radius:12px;
-}
-.rg-theme .rg-canvas-card{
-  position:relative;
-  max-width:100%;
-  padding:20px;
-  background:var(--rg-bg-float);
-  border:1px solid var(--rg-border);
-  border-radius:12px;
-  box-shadow:var(--rg-shadow-float);
-}
-/* Room for the pill, which overlaps the top edge — but only while it is
- * there. A permanent 52px of dead space above a browsing-mode map would be
- * the mock's padding without the mock's reason for it. */
-.rg-theme.rg-editing .rg-canvas-card{padding-top:52px}
-/* gridWrapStyle: the grid itself gets the card's inner radius. `.rg-wrap`
- * already clips (shared.css), so this only rounds the corners. */
-.rg-theme .rg-canvas-card .rg-wrap{border-radius:4px}
-/* The "decoding ROM map…" badge (shared.css) is positioned against
- * `#rg-outer`'s top-centre, which is exactly where the tool pill now hangs —
- * the two overlapped — and `#rg-outer` is the whole column now, so nudging
- * its own ::after put the badge out beside the panel dock instead of over
- * the map. Re-hung on the card itself, whose box *is* the map. */
-.rg-theme .rg-outer.rg-busy::after{display:none}
-.rg-theme .rg-outer.rg-busy .rg-canvas-card::after{
-  content:'decoding ROM map…';
-  position:absolute;top:10px;right:10px;z-index:5;
-  padding:2px 8px;border-radius:9px;
-  background:rgba(20,20,20,.82);color:var(--rg-text-secondary);
-  font-family:var(--rg-font-mono);font-size:10px;pointer-events:none;
-}
-
-/* ── Floating tool pill (map-editor-toolbar.js) ───────────────────────────
- * `#rg-edit-bar` lives inside `#rg-edit-chrome`, which map-editor-input.js's
- * editToggle inserts as the canvas card's first child while a room is in
- * edit mode. Icon-only, one row, grouped by thin dividers — the phase pair
- * (`room`/`deco`) is the one group that keeps words, because no glyph for
- * "replace the floor" vs. "add over it" would read.
- *
- * Every rule is scoped to that id so the many other `.rd-filters`/`.rdf`
- * rows elsewhere (family/tile/deco filters, the composer) keep the plain
- * shared.css look they were designed against. */
-.rg-theme #rg-edit-bar{
-  position:absolute;
-  top:-17px;
-  left:50%;
-  transform:translateX(-50%);
-  display:flex;
-  flex-wrap:nowrap;
-  align-items:center;
-  gap:3px;
-  width:max-content;
-  max-width:none;
-  margin:0;
-  padding:4px;
-  background:var(--rg-bg-float);
-  border:1px solid var(--rg-border);
-  border-radius:var(--rg-radius-pill);
-  box-shadow:var(--rg-shadow-float);
-  z-index:5;
-  font-family:var(--rg-font-ui);
-}
-.rg-theme #rg-edit-bar .rg-edit-group{display:flex;align-items:center;gap:2px}
-.rg-theme #rg-edit-bar .rg-edit-divider{
-  width:1px;height:20px;background:var(--rg-border);margin:0 3px;flex-shrink:0;
-}
-.rg-theme #rg-edit-bar .rdf{
-  box-sizing:border-box;
-  height:28px;
-  min-width:28px;
-  padding:0 7px;
-  border:1px solid transparent;
-  border-radius:var(--rg-radius-control);
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  background:transparent;
-  color:var(--rg-text-secondary);
-  opacity:1;
-  font-family:var(--rg-font-ui);
-  font-size:11px;
-  transition:background 120ms ease-out;
-}
-/* The icon buttons are square; only the phase pair keeps a text width. */
-.rg-theme #rg-edit-bar .rg-edit-tool-icon{width:28px;padding:0}
-.rg-theme #rg-edit-bar .rdf:hover{background:var(--rg-bg-hover);color:var(--rg-text-primary)}
-.rg-theme #rg-edit-bar .rdf.on{background:var(--rg-accent-soft);color:var(--rg-accent-text);border-color:transparent}
-.rg-theme #rg-edit-bar .rg-edit-icon{font-size:14px;line-height:1}
-
-/* The filter bar, its chips, the segmented pill and the chip dropdowns moved to
- * src/shared/webview/map-view/map-view.css (shared with the Secret of Mana Maps panel). */
-
-/* ── Zoom chip (svg-builder.js, inside the card's bottom-left) ────────────
- * The mock's `zoomChipStyle` plus the three controls it replaces: `.rg-zoom`
- * used to be its own row above the canvas. Position and radius are all that
- * changed — the drag/pinch math and the button ids are interactions.js's
- * setupZoomPan, untouched; the `%` read-out is written from its applyZoom. */
-.rg-theme .rg-canvas-card .rg-zoom{
-  position:absolute;
-  bottom:10px;
-  left:10px;
-  z-index:4;
-  margin:0;
-  display:flex;
-  align-items:center;
-  gap:2px;
-  padding:2px 4px;
-  background:var(--rg-bg-float);
-  border:1px solid var(--rg-border);
-  border-radius:6px;
-  box-shadow:var(--rg-shadow-subtle);
-  opacity:.92;
-}
-.rg-theme .rg-canvas-card .rg-zoom:hover{opacity:1}
-.rg-theme .rg-zoom button{
-  border:1px solid transparent;
-  border-radius:4px;
-  background:transparent;
-  color:var(--rg-text-secondary);
-  font-family:var(--rg-font-mono);
-  font-size:11px;
-}
-.rg-theme .rg-zoom button:hover{background:var(--rg-bg-hover);color:var(--rg-text-primary)}
-.rg-theme .rg-zoom-level{
-  min-width:38px;
-  text-align:center;
-  font-family:var(--rg-font-mono);
-  font-size:11px;
-  color:var(--rg-text-secondary);
-}
-
-/* ── Status bar (map-editor-filterbar.js's buildStatusBarHtml) ────────────
- * The mock's own bottom bar: `x: 07 y: 04 · 18 × 12 · <draft summary>`, with
- * the hovered entity's label (`#rg-tip`, which used to be a bare div under
- * the canvas) pushed to the right end. Built on every room render, not only
- * in edit mode — the coordinate read-out is useful while browsing too. */
-.rg-theme .rg-statusbar{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  min-height:24px;
-  margin-top:6px;
-  padding:4px 10px;
-  background:var(--rg-bg-chrome);
-  border:1px solid var(--rg-border);
-  border-radius:8px;
-  font-family:var(--rg-font-mono);
-  font-size:10px;
-  color:var(--rg-text-muted);
-  white-space:nowrap;
-  overflow:hidden;
-}
-.rg-theme .rg-status-sep{color:var(--rg-border-strong)}
-.rg-theme .rg-statusbar .rg-edit-count{
-  margin:0;
-  min-width:0; /* or the ellipsis never engages — plan doc §8a.3 item 1 */
-  color:var(--rg-text-secondary);
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-.rg-theme .rg-status-tip{
-  margin-left:auto;
-  min-width:0;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  color:var(--rg-text-muted);
-}
-
-/* ── Resize grip (map-editor-newroom.js's `.rg-resize`/`.rg-resize-label`) ─
- * Chrome only: theme palette instead of shared.css's flat teal/black.
- * Position, size and drag behavior (resizeStart/resizeMove/resizeEnd) are
- * untouched. */
-.rg-theme .rg-resize{
-  background:linear-gradient(135deg,transparent 45%,var(--rg-accent) 45%,var(--rg-accent) 55%,
-    transparent 55%,transparent 70%,var(--rg-accent) 70%,var(--rg-accent) 80%,transparent 80%);
-}
-.rg-theme .rg-resize-label{
-  background:var(--rg-bg-float);
-  border:1px solid var(--rg-border);
-  box-shadow:var(--rg-shadow-subtle);
-  color:var(--rg-success);
-}
-.rg-theme .rg-resize-label.over{color:var(--rg-error)}
+/* Ownership: the Evermore editor's own canvas chrome — what its pill, level bar, stamps, groups,
+ * specials, objects and animations draw over the map. The canvas card, the pill itself, the zoom chip,
+ * the status bar, the resize grip and the pill's tooltips are the shared shell's
+ * (src/shared/webview/map-editor-shell/shell-canvas.css). Scoped under `.rg-theme`; tokens in map-view.css. */
 
 /* The cuttable layer while it is being edited (map-editor-cutlayer.js): a
    green outline per cuttable cell, the colour upstream render_map.py gives
    cuttable grass. */
 .rg-cut-mark{fill:rgba(60,200,90,.12);stroke:rgb(60,200,90);stroke-width:.18;pointer-events:none}
 
-/* ── The pill's tooltips (map-editor-toolbar.js `data-tip`) ───────────────
- * Drawn here rather than by the native `title`, which never appeared on the
- * pill. Below the button, after a short hover, one line per `\n`. */
-.rg-theme #rg-edit-bar [data-tip]{position:relative}
-.rg-theme #rg-edit-bar [data-tip]::after{
-  content:attr(data-tip);
-  position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);
-  width:max-content;max-width:280px;white-space:pre-line;text-align:left;
-  padding:6px 9px;border-radius:6px;
-  background:var(--rg-bg-float);color:var(--rg-text-primary);
-  border:1px solid var(--rg-border);box-shadow:var(--rg-shadow-float);
-  font:11px/1.4 var(--rg-font-ui);
-  z-index:20;pointer-events:none;
-  visibility:hidden;opacity:0;transition:opacity 80ms ease-out 0s,visibility 0s 80ms;
-}
-.rg-theme #rg-edit-bar [data-tip]:hover::after{
-  visibility:visible;opacity:1;transition:opacity 80ms ease-out 350ms,visibility 0s 350ms;
-}
-/* Only while its menu is closed — the menu opens where the tip would be. */
-.rg-theme #rg-edit-bar .rg-filter-group:has(.rg-filter-popup:not([hidden])) [data-tip]::after{display:none}
-
 /* The pencil's badge: what it draws right now (map-editor-drawable.js). */
-.rg-theme #rg-edit-bar .rg-draw-badge{
+.rg-theme .rg-edit-bar .rg-draw-badge{
   position:absolute;right:1px;bottom:1px;min-width:10px;height:10px;padding:0 1px;
   border-radius:3px;font:700 8px/10px var(--rg-font-ui);text-align:center;
   background:var(--rg-bg-float);color:var(--rg-accent-text);box-shadow:0 0 0 1px var(--rg-border);
 }
-.rg-theme #rg-edit-bar .rg-draw-badge .rg-coll-swatch{display:block;width:12px;height:12px;border-radius:2px}
-.rg-theme #rg-edit-bar .rg-draw-badge:has(.rg-coll-swatch){padding:0;height:12px;right:0;bottom:0}
-.rg-theme #rg-edit-bar .rg-draw-badge.idle{color:var(--rg-text-secondary);opacity:.7}
-.rg-theme #rg-edit-bar .rg-draw-trigger-b{color:var(--rg-trigger-b)}
-.rg-theme #rg-edit-bar .rg-draw-trigger-step{color:var(--rg-trigger-step)}
+.rg-theme .rg-edit-bar .rg-draw-badge .rg-coll-swatch{display:block;width:12px;height:12px;border-radius:2px}
+.rg-theme .rg-edit-bar .rg-draw-badge:has(.rg-coll-swatch){padding:0;height:12px;right:0;bottom:0}
+.rg-theme .rg-edit-bar .rg-draw-badge.idle{color:var(--rg-text-secondary);opacity:.7}
+.rg-theme .rg-edit-bar .rg-draw-trigger-b{color:var(--rg-trigger-b)}
+.rg-theme .rg-edit-bar .rg-draw-trigger-step{color:var(--rg-trigger-step)}
 
 /* Triggers the draft placed (map-editor-drawable.js editTriggerSvg). */
 .rg-theme .rg-trigger-placed rect{fill-opacity:.18;stroke-width:.12}
@@ -324,7 +90,7 @@
 .rg-theme .rg-obj-area.sel{stroke-width:.2;stroke-dasharray:none;fill:var(--rg-object);fill-opacity:.1}
 .rg-theme .rg-obj-drag{stroke-dasharray:none;fill:var(--rg-object);fill-opacity:.18}
 .rg-theme .rg-object-where-box{fill:var(--rg-object);fill-opacity:.7;stroke:var(--rg-object);stroke-width:.6}
-.rg-theme #rg-edit-bar .rg-draw-object{color:var(--rg-object)}
+.rg-theme .rg-edit-bar .rg-draw-object{color:var(--rg-object)}
 
 /* Animated tiles on the map (map-editor-anim-tab.js editAnimSvg): unfinished ones always, all on the Animation tab. */
 .rg-theme .rg-anim-cell{fill:var(--rg-anim);fill-opacity:0;stroke:var(--rg-anim);stroke-opacity:.75;stroke-width:.08;pointer-events:none}

@@ -33,60 +33,6 @@
 /* The tokens themselves live in src/shared/webview/map-view/map-view.css (shared with
  * the Secret of Mana Maps panel); this file and map-editor-canvas.css consume them. */
 
-/* ── Tab shell (the docked panel column's own tab strip) ─────────────────
- * `#rg-tabstrip` is buildEditTabStripHtml()'s root (map-editor-tabs.js),
- * the first child of `#rg-panels` on every redraw. `#rg-tab-body` is the
- * scroll container for whichever tab is active; the strip itself does not
- * scroll away with it. Ported from the mock's `tabStripStyle` (a 2px accent
- * underline on the active tab, dimmed inactive labels). */
-.rg-theme .rg-panels{
-  display:flex;
-  flex-direction:column;
-}
-.rg-theme .rg-tab-body{
-  flex:1;
-  min-height:0;
-  overflow-y:auto;
-  padding-right:4px;
-}
-.rg-theme .rg-tab-body[data-tab="tile"]{
-  overflow:hidden;display:flex;flex-direction:column;padding-right:0;
-}
-/* The Tile tab: families, filters and neighbours stay; the tiles scroll. */
-.rg-theme .rg-tile-head{flex-shrink:0;padding-right:4px;padding-bottom:6px}
-.rg-theme .rg-tile-scroll{flex:1;min-height:0;overflow-y:auto;padding-right:4px}
-.rg-theme .rg-tabstrip{
-  display:flex;
-  /* Eight tabs since Animation: spread across the dock, never past it. */
-  justify-content:space-between;
-  gap:8px;
-  min-width:0;
-  flex-shrink:0;
-  padding:0 2px 8px;
-  margin-bottom:8px;
-  border-bottom:1px solid var(--rg-border);
-  font-family:var(--rg-font-ui);
-}
-.rg-theme .rg-tab{
-  border:none;
-  background:transparent;
-  cursor:pointer;
-  padding:4px 0 8px;
-  margin-bottom:-9px;
-  font-family:var(--rg-font-ui);
-  font-size:12px;
-  font-weight:400;
-  color:var(--rg-text-muted);
-  border-bottom:2px solid transparent;
-  transition:color 140ms ease-out;
-}
-.rg-theme .rg-tab:hover{color:var(--rg-text-primary)}
-.rg-theme .rg-tab.on{
-  color:var(--rg-text-primary);
-  font-weight:500;
-  border-bottom-color:var(--rg-accent);
-}
-
 /* ── Special tab (map-editor-special.js's specialTabHtml) ────────────────
  * A 4-column grid of chips per group, matching the mock's layout. */
 .rg-theme .rg-special-group{margin-bottom:12px}

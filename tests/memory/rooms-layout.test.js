@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-const layoutJs = fs.readFileSync(path.join(__dirname, '../../src/rooms/webview/rooms-layout.js'), 'utf8');
+const layoutJs = fs.readFileSync(path.join(__dirname, '../../src/shared/webview/map-editor-shell/layout.js'), 'utf8');
 
 let passed = 0, failed = 0;
 function test(name, fn) {

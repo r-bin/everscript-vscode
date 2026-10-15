@@ -83,9 +83,7 @@ const ROOMS_JS_FILES = [
   'utils.js',            // escH, hexNum, normScriptAddr, tsvg, item icon helpers (ITEM_ICONS)
   'svg-spawns.js',       // buildSpawnLayers (the NPC layers svg-builder places)
   'svg-builder.js',      // buildRoomSvgSection
-  'rooms-layout.js',     // the rail and dock resize handles (_layoutWidths)
   'rooms-imported.js',   // rooms converted from another game: opening them, family labels
-  'zoom-pan.js',         // setupZoomPan: scale, pan offset, pinch and two-finger panning
   'interactions.js',     // setupByteScriptFocus, setupMouseEvents, setupHoverHighlights, setupClickHandlers
   'animation.js',        // Section 2 tile animation overlay + rAF playback
   'metatile-palette.js', // the room's metatile dictionary from the host (_mtPalette/_mtLayer)
@@ -162,10 +160,21 @@ const MAP_VIEW_JS_FILES = ['tile-animation.js', 'view-chips.js'];
 // "not saved" notice, so both games' editors word and draw it the same way.
 const EDITOR_CORE_DIR = path.join(sharedDir, 'webview', 'map-editor-core');
 const EDITOR_CORE_JS_FILES = ['edit-session.js'];
+// The shared editor shell (src/shared/webview/map-editor-shell/): layout, zoom/pan, rail, tabs, pill, status bar.
+const EDITOR_SHELL_DIR = path.join(sharedDir, 'webview', 'map-editor-shell');
+const EDITOR_SHELL_JS_FILES = [
+  'frame.js',     // markup: page frame, rail, header, canvas column, pill, status bar, tab strip, dock mount
+  'layout.js',    // the rail and dock resize handles, collapsed and compact states (_layoutWidths)
+  'zoom-pan.js',  // setupZoomPan: scale, pan offset, pinch and two-finger panning
+  'pan.js',       // dragging the map to pan it
+  'rail.js',      // group/area collapse, search filter, click binding (_railQuery)
+  'status.js',    // the pointer's cell in the status bar
+];
 
 function loadRoomsJs() {
   return MAP_VIEW_JS_FILES.map(function(f) { return loadFile(path.join(MAP_VIEW_DIR, f)); })
     .concat(EDITOR_CORE_JS_FILES.map(function(f) { return loadFile(path.join(EDITOR_CORE_DIR, f)); }))
+    .concat(EDITOR_SHELL_JS_FILES.map(function(f) { return loadFile(path.join(EDITOR_SHELL_DIR, f)); }))
     .concat(ROOMS_JS_FILES.map(function(f) { return loadFile(path.join(roomsDir, f)); }))
     .join('\n');
 }
@@ -178,11 +187,14 @@ module.exports = {
   // both only consume them.
   css: loadFile(path.join(sharedDir, 'shared.css')) + '\n'
     + loadFile(path.join(roomsDir, 'map-editor-theme.css')) + '\n'
+    + loadFile(path.join(EDITOR_SHELL_DIR, 'shell-tabs.css')) + '\n'
+    + loadFile(path.join(EDITOR_SHELL_DIR, 'shell-canvas.css')) + '\n'
     + loadFile(path.join(roomsDir, 'map-editor-canvas.css')) + '\n'
     + loadFile(path.join(sharedDir, 'webview', 'map-view', 'map-view.css')) + '\n'
     + loadFile(path.join(EDITOR_CORE_DIR, 'map-editor-core.css')) + '\n'
     + loadFile(path.join(roomsDir, 'map-editor-tile-tab.css')) + '\n'
-    + loadFile(path.join(roomsDir, 'rooms-rail.css')) + '\n'
+    + loadFile(path.join(EDITOR_SHELL_DIR, 'shell-rail.css')) + '\n'
+    + loadFile(path.join(EDITOR_SHELL_DIR, 'shell-layout.css')) + '\n'
     + loadFile(path.join(roomsDir, 'rooms-layout.css')) + '\n'
     + loadFile(path.join(spritesDir, 'sprites-layout.css')) + '\n'
     + loadFile(path.join(romDir, 'rom-tab.css')) + '\n'

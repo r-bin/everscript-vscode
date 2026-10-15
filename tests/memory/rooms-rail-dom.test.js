@@ -247,6 +247,8 @@ async function main() {
     // load a second copy of the file at global scope — which is exactly the
     // double-bind case.
     await page.addScriptTag({ path: path.join(__dirname, '..', '..',
+        'src', 'shared', 'webview', 'map-editor-shell', 'rail.js') });
+    await page.addScriptTag({ path: path.join(__dirname, '..', '..',
         'src', 'rooms', 'webview', 'rooms-rail.js') });
     const before = await displayOf(page, '#rm-vanilla-tree');
     await page.click('.rm-grp-h[data-rail-grp="vanilla"]');

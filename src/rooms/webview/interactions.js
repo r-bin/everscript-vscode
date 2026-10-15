@@ -20,43 +20,8 @@ function setupByteScriptFocus(){
   apply();
 }
 
-/**
- * Set up zoom controls for the SVG canvas.
- * @param {object} p - { svg, canvas, wrap, W, H, dispW, dispH, zoomState }
- */
-// The pan gesture is tracked globally so it survives the pointer leaving the
-// SVG. setupMouseEvents runs on every room render, so the window listeners are
-// registered once and read whichever session mousedown last opened — binding
-// per render leaked a listener per selected room.
-var _activePan=null,_activePanState=null,_activePanWrap=null,_globalPanBound=false;
-// How far the pointer may travel before a drag stops counting as a click.
-var PAN_CLICK_SLOP=3;
-
-function ensureGlobalPanHandlers(){
-  if(_globalPanBound)return;
-  if(typeof window==='undefined'||!window.addEventListener)return;
-  _globalPanBound=true;
-
-  window.addEventListener('mousemove',function(e){
-    var st=_activePanState,p=_activePan;
-    if(!st||!st.panActive||!p||!p._applyPan||!p._getViewportMetrics)return;
-    var dx=e.clientX-st.panCX,dy=e.clientY-st.panCY;
-    if(Math.abs(dx)>PAN_CLICK_SLOP||Math.abs(dy)>PAN_CLICK_SLOP)st.panMoved=true;
-    var m=p._getViewportMetrics();
-    p._applyPan(
-      Math.min(m.maxX,Math.max(m.minX,st.panBX+dx)),
-      Math.min(m.maxY,Math.max(m.minY,st.panBY+dy))
-    );
-  });
-
-  window.addEventListener('mouseup',function(){
-    var st=_activePanState;
-    if(st&&st.panActive){
-      st.panActive=false;
-      if(_activePanWrap)_activePanWrap.classList.remove('rg-panning');
-    }
-  });
-}
+// The pan gesture (start, and the window handlers that carry it past the SVG's edge) is the shared
+// shell's: shellPanStart / shellPanEnd in src/shared/webview/map-editor-shell/pan.js.
 
 /**
  * Wire all mouse events: pan, box-select, entity drag, click select.
@@ -117,17 +82,8 @@ function setupMouseEvents(p){
   svg.addEventListener('mousedown',function(e){
     if(e.button!==0||state.dragEnt)return;
     if(e.metaKey||e.ctrlKey)return;
-    {
-      // Only enable pan when the canvas is larger than the viewport
-      var m=p._getViewportMetrics?p._getViewportMetrics():null;
-      if(m&&m.pxW<=m.wW&&m.pxH<=m.wH)return;
-      // Base the drag on the live pan offset, not a stale local copy.
-      var cur=p._getPan?p._getPan():{x:state.panX||0,y:state.panY||0};
-      state.panActive=true;state.panCX=e.clientX;state.panCY=e.clientY;state.panBX=cur.x;state.panBY=cur.y;
-      state.panMoved=false;
-      _activePan=p;_activePanState=state;_activePanWrap=wrap;
-      if(wrap)wrap.classList.add('rg-panning');
-    }
+    // Only pans when the canvas is larger than the viewport.
+    if(!shellPanStart(p,state,wrap,e))return;
     e.preventDefault();
   });
 
@@ -149,7 +105,7 @@ function setupMouseEvents(p){
       if(state.dragEnt.ghostEl&&state.dragEnt.ghostEl.parentNode)state.dragEnt.ghostEl.parentNode.removeChild(state.dragEnt.ghostEl);
       state.dragEnt=null;return;
     }
-    if(state.panActive){state.panActive=false;if(wrap)wrap.classList.remove('rg-panning');}
+    shellPanEnd(state,wrap);
   });
 
   svg.addEventListener('mouseleave',function(){
@@ -157,8 +113,6 @@ function setupMouseEvents(p){
     // carry it on, so a fast drag past the edge doesn't cancel mid-gesture.
     if(state.dragEnt){if(state.dragEnt.ghostEl&&state.dragEnt.ghostEl.parentNode)state.dragEnt.ghostEl.parentNode.removeChild(state.dragEnt.ghostEl);state.dragEnt=null;}
   });
-
-  ensureGlobalPanHandlers();
 
   svg.addEventListener('click',function(e){
     if(e.shiftKey||state.dragEnt)return;

@@ -26,28 +26,11 @@ function editDock(on, room) {
   var dock = document.getElementById('rg-dock');
   if (on) {
     if (!dock) {
-      var row = document.createElement('div');
-      row.className = 'rg-edit-row';
-      dock = document.createElement('div');
-      dock.className = 'rg-dock';
-      dock.id = 'rg-dock';
-      // One column, and only one. The panels are the editor's whole tile
-      // UI — families, tiles, new metatiles, checks, the composer. The
-      // browsing palette below the map stays where it is and is hidden
-      // while editing: showing both put two different tile pickers on
-      // screen at once, one of them the pre-rebuild version.
-      var panels = document.createElement('div');
-      panels.id = 'rg-panels';
-      panels.className = 'rg-panels';
-      outer.parentNode.insertBefore(row, outer);
-      row.appendChild(outer);
-      // The room's name line heads the map column, so the dock reaches the top.
-      var head = row.parentNode.querySelector(':scope > .rd-head');
-      if (head) outer.insertBefore(head, outer.firstChild);
-      // The handle that resizes the dock (rooms-layout.js).
-      row.insertAdjacentHTML('beforeend', '<div class="rg-split" data-split="dock" title="Drag to resize"></div>');
-      row.appendChild(dock);
-      dock.appendChild(panels);
+      // The dock beside the map column is the shell's (shellDockMount); the panels are the editor's whole
+      // tile UI — families, tiles, new metatiles, checks, the composer. The browsing palette below the
+      // map stays where it is and is hidden while editing: showing both put two different tile pickers
+      // on screen at once, one of them the pre-rebuild version.
+      dock = shellDockMount(outer).dock;
       // #rg-panels is outside #room-detail, so its clicks never reach the
       // #room-detail listener that bindEditControls attaches. Bind the same
       // handler on the dock itself so all tab-panel buttons (Object tab frame
@@ -69,9 +52,7 @@ function editDock(on, room) {
     if (room && !mtPaletteFits(room)) requestMetatilePalette(room, _mtLayer);
     renderEditPanels();
   } else if (dock) {
-    var split = dock.parentNode.querySelector('.rg-split');
-    if (split) split.parentNode.removeChild(split);
-    dock.parentNode.removeChild(dock);
+    shellDockUnmount(dock);
     ['rg-resize', 'rg-resize-label'].forEach(function (id) {
       var el = document.getElementById(id);
       if (el) el.parentNode.removeChild(el);

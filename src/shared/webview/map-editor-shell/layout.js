@@ -1,11 +1,21 @@
-// Ownership: the Rooms tab's two resizable columns — the rooms rail on the
-// left and the editor's dock on the right — dragged by their handles
-// (`[data-split="rail"]`, render-radar.js; `[data-split="dock"]`,
-// map-editor-ui.js editDock). Widths are CSS variables on the page root
-// (`--rm-rail-w`, `--rg-dock-w`), so they survive every re-render, and are
-// remembered by the host (`uiPrefs`, key `layoutWidths`).
+// Ownership: the editor page's two resizable columns — the rail on the left and the dock on the
+// right — dragged by their handles (`[data-split="rail"]`, shellFrameHtml; `[data-split="dock"]`,
+// shellDockMount), their collapsed states and the compact (narrow window) overlay mode. Widths are
+// CSS variables on the page root (`--rm-rail-w`, `--rg-dock-w`), so they survive every re-render,
+// and are remembered through `shellSavePref` (the Rooms tab: the host's `uiPrefs`).
+// Game-neutral: loaded by the Evermore Rooms tab and the Secret of Mana editor. Plain script: globals.
 //
-// Owns: _layoutWidths, _layoutDrag.
+// Owns: _layoutWidths, _layoutDrag, _layoutCollapsed, shellPrefSaver.
+
+/**
+ * Where a preference goes. A page sets `shellPrefSaver = function (key, value) {...}`; the Rooms tab
+ * leaves it and gets the host's `saveUiPref` message through `vs`.
+ */
+var shellPrefSaver = null;
+function shellSavePref(key, value) {
+  if (shellPrefSaver) { shellPrefSaver(key, value); return; }
+  if (typeof vs !== 'undefined' && vs) vs.postMessage({ command: 'saveUiPref', key: key, value: value });
+}
 
 var LAYOUT_MIN = { rail: 160, dock: 300 };
 // The map column never gets narrower than this while the dock grows.
@@ -35,7 +45,7 @@ function closeOverlays() {
   if (!_layoutCollapsed.dock) { _layoutCollapsed.dock = true; changed = true; }
   if (changed) {
     layoutApplyCollapsed();
-    if (typeof vs !== 'undefined' && vs) vs.postMessage({ command: 'saveUiPref', key: 'layoutCollapsed', value: _layoutCollapsed });
+    shellSavePref('layoutCollapsed', _layoutCollapsed);
   }
 }
 
@@ -125,7 +135,7 @@ function editToggleRail() {
     _layoutCollapsed.dock = true;
   }
   layoutApplyCollapsed();
-  if (typeof vs !== 'undefined' && vs) vs.postMessage({ command: 'saveUiPref', key: 'layoutCollapsed', value: _layoutCollapsed });
+  shellSavePref('layoutCollapsed', _layoutCollapsed);
 }
 
 function editToggleDock() {
@@ -135,7 +145,7 @@ function editToggleDock() {
     _layoutCollapsed.rail = true;
   }
   layoutApplyCollapsed();
-  if (typeof vs !== 'undefined' && vs) vs.postMessage({ command: 'saveUiPref', key: 'layoutCollapsed', value: _layoutCollapsed });
+  shellSavePref('layoutCollapsed', _layoutCollapsed);
 }
 
 function collapseSidebarsForEmulator() {
@@ -204,7 +214,7 @@ function setupLayoutResize() {
     if (!_layoutDrag) return;
     _layoutDrag = null;
     document.body.classList.remove('rg-resizing');
-    if (typeof vs !== 'undefined' && vs) vs.postMessage({ command: 'saveUiPref', key: 'layoutWidths', value: _layoutWidths });
+    shellSavePref('layoutWidths', _layoutWidths);
   });
 }
 

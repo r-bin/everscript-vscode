@@ -219,38 +219,14 @@ function buildViewFilterBarHtml(ctx) {
 
 // ── the status bar ────────────────────────────────────────────────────────
 
-/** Two digits, so the read-out does not jitter width as the pointer moves. */
-function statusPad2(n) {
-  var s = String(Math.abs(n));
-  return (n < 0 ? '-' : '') + (s.length < 2 ? '0' + s : s);
-}
-
-var STATUS_NO_XY = 'x: -- y: --';
-
 /**
- * The full-width bar under the filter bar: hovered cell, room size, the
- * draft summary, and the hovered entity's own label.
- *
- * `#rg-edit-count` moved here out of the tool pill in Phase 7a — same id,
- * same writer (map-editor-input.js's `editNote` and map-editor-ui.js's
- * `renderEditChrome`), so nothing that writes the status line changed. It is
- * built on every room render rather than only in edit mode, because the
- * coordinate read-out and the hover label are useful while just browsing.
- *
- * `#rg-tip` keeps its id too: interactions.js's setupHoverHighlights writes
- * it, and this only changes where it sits.
+ * The status bar under the filter bar (the shell's shellStatusbarHtml): hovered cell, room size, the draft
+ * summary (`#rg-edit-count`: map-editor-input.js's `editNote` and map-editor-ui.js's `renderEditChrome`
+ * write it) and the hovered entity's own label (`#rg-tip`: interactions.js's setupHoverHighlights).
+ * Built on every room render, not only in edit mode: the coordinate read-out is useful while browsing.
  */
 function buildStatusBarHtml(opts) {
-  var w = opts && opts.widthTiles, h = opts && opts.heightTiles;
-  return '<div class="rg-statusbar" id="rg-statusbar">'
-    + '<span id="rg-status-xy" title="The metatile cell under the pointer">' + STATUS_NO_XY + '</span>'
-    + '<span class="rg-status-sep">·</span>'
-    + '<span id="rg-status-size" title="Room size in 16 px metatiles">'
-    + (w && h ? w + ' × ' + h : '—') + '</span>'
-    + '<span class="rg-status-sep">·</span>'
-    + '<span class="rg-edit-count" id="rg-edit-count"></span>'
-    + '<span class="rg-status-tip" id="rg-tip"></span>'
-    + '</div>';
+  return shellStatusbarHtml({ width: opts && opts.widthTiles, height: opts && opts.heightTiles });
 }
 
 /** Room size in metatiles, from whichever source knows it. */
@@ -267,33 +243,17 @@ function renderStatusSize() {
   el.textContent = _mtPalette.widthTiles + ' × ' + _mtPalette.heightTiles;
 }
 
-/**
- * Track the pointer's cell into the status bar.
- *
- * Bound **once per `#rg-wrap`** (its own dataset flag, per the
- * webview-dom-safety skill) and in the **capture** phase:
- * map-editor-gestures.js's capture handler on the same node calls
- * `stopPropagation()` mid-stroke, which would starve a bubble-phase listener
- * on an ancestor — but listeners on the same node still all run, so the
- * read-out keeps updating while painting.
- */
+/** Track the pointer's cell into the status bar (the shell's shellStatusBind). */
 function setupStatusBar() {
-  var wrap = document.getElementById('rg-wrap');
-  if (!wrap || wrap.dataset.statusBound) return;
-  wrap.dataset.statusBound = '1';
-  function write(text) {
-    var el = document.getElementById('rg-status-xy');
-    if (el) el.textContent = text;
-  }
-  wrap.addEventListener('mousemove', function (e) {
+  shellStatusBind(function (e) {
     var cell = (typeof editEventCell === 'function') ? editEventCell(e) : null;
+    if (!cell) return null;
     var interactInfo = '';
-    if (cell && typeof editCellInteractState === 'function') {
-      var st = editCellInteractState(typeof _mtPalette !== 'undefined' ? _mtPalette : null, cell.x, cell.y);
-      interactInfo = ' · interact: ' + st;
-      if (typeof editCellStepOnState === 'function') interactInfo += ' · step-on: ' + editCellStepOnState(typeof _mtPalette !== 'undefined' ? _mtPalette : null, cell.x, cell.y);
+    if (typeof editCellInteractState === 'function') {
+      var pal = typeof _mtPalette !== 'undefined' ? _mtPalette : null;
+      interactInfo = ' · interact: ' + editCellInteractState(pal, cell.x, cell.y);
+      if (typeof editCellStepOnState === 'function') interactInfo += ' · step-on: ' + editCellStepOnState(pal, cell.x, cell.y);
     }
-    write(cell ? 'x: ' + statusPad2(cell.x) + ' y: ' + statusPad2(cell.y) + interactInfo : STATUS_NO_XY);
-  }, true);
-  wrap.addEventListener('mouseleave', function () { write(STATUS_NO_XY); }, true);
+    return 'x: ' + statusPad2(cell.x) + ' y: ' + statusPad2(cell.y) + interactInfo;
+  });
 }

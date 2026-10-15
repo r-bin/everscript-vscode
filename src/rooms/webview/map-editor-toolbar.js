@@ -156,10 +156,8 @@ function editToolButtonHtml(key) {
   }
   var off = EDIT_LOCKED_TOOLS[key] && editLocked();
   if (off) tip = 'Locked — unlock the map to use this\n' + tip;
-  return '<button class="rdf rg-edit-tool-icon' + (d && d.tool === key ? ' on' : '')
-    + '" data-edit-tool="' + key + '" data-tip="' + escH(tip) + '" aria-label="' + escH(def[1]) + '"'
-    + (off ? ' disabled' : '') + '>'
-    + '<span class="rg-edit-icon" aria-hidden="true">' + EDIT_TOOL_ICONS[key] + '</span>' + badge + '</button>';
+  return shellToolButtonHtml({ key: key, icon: EDIT_TOOL_ICONS[key], tip: tip, label: def[1],
+    on: !!(d && d.tool === key), off: !!off, badge: badge });
 }
 
 /**
@@ -167,36 +165,26 @@ function editToolButtonHtml(key) {
  * replaces in one `outerHTML` write.
  */
 function buildEditToolbarHtml() {
-  var html = '<div class="rg-edit-chrome" id="rg-edit-chrome">'
-    + '<div class="rd-filters rg-edit-bar" id="rg-edit-bar">';
-  EDIT_TOOL_GROUPS.forEach(function (group, i) {
-    if (i) html += '<span class="rg-edit-divider"></span>';
-    html += '<span class="rg-edit-group">';
-    group.forEach(function (key) { html += editToolButtonHtml(key); });
+  var dis = editLocked();
+  var groups = EDIT_TOOL_GROUPS.map(function (group, i) {
+    var buttons = group.map(function (key) { return editToolButtonHtml(key); });
     if (i === 1) {
       var hasSel = (typeof widgetHasSelection === 'function') ? widgetHasSelection() : !!_editSel;
       if (hasSel) {
-        html += '<button class="rdf rg-edit-tool-icon" data-edit-act="save-widget" data-tip="Save selection as a widget in library" aria-label="save widget"><span class="rg-edit-icon" aria-hidden="true">⬚</span></button>';
+        buttons.push('<button class="rdf rg-edit-tool-icon" data-edit-act="save-widget" data-tip="Save selection as a widget in library" aria-label="save widget"><span class="rg-edit-icon" aria-hidden="true">⬚</span></button>');
       }
     }
-    html += '</span>';
+    return buttons;
   });
   // The room/deco phase pair that used to sit here is gone — §8a.2.
-  var dis = editLocked() ? ' disabled' : '';
-  html += '<span class="rg-edit-divider"></span><span class="rg-edit-group">'
-    + '<button class="rdf rg-edit-tool-icon" data-edit-act="undo" data-tip="Undo the last change"'
-    + ' aria-label="undo"' + dis + '><span class="rg-edit-icon" aria-hidden="true">↶</span></button>'
-    + '<button class="rdf rg-edit-tool-icon" data-edit-act="redo" data-tip="Redo"'
-    + ' aria-label="redo"' + dis + '><span class="rg-edit-icon" aria-hidden="true">↷</span></button>'
-    + '</span>'
-    + '</div>'
-    // The level bar sits at the map's left edge (map-editor-levels.js).
-    + (typeof buildLevelBarHtml === 'function' ? buildLevelBarHtml() : '')
-    // A converted room's changes are never written anywhere (rooms-imported.js).
-    + (typeof importedNotSavedHtml === 'function' ? importedNotSavedHtml() : '')
-    // When editing a widget, the animation timeline sits at the bottom.
-    + '</div>';
-  return html;
+  groups.push([
+    shellActButtonHtml({ act: 'undo', icon: '↶', tip: 'Undo the last change', label: 'undo', disabled: dis }),
+    shellActButtonHtml({ act: 'redo', icon: '↷', tip: 'Redo', label: 'redo', disabled: dis }),
+  ]);
+  // The level bar sits at the map's left edge (map-editor-levels.js); a converted room's changes are
+  // never written anywhere (rooms-imported.js). The markup of the pill is the shell's (shellPillHtml).
+  return shellPillHtml(groups, (typeof buildLevelBarHtml === 'function' ? buildLevelBarHtml() : '')
+    + (typeof importedNotSavedHtml === 'function' ? importedNotSavedHtml() : ''));
 }
 
 /**

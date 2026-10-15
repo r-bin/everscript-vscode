@@ -47,19 +47,19 @@ function renderRoomDetail(room){
   if(typeof widgetEditShowing==='function'&&widgetEditShowing(room)){
     html=widgetEditHeadHtml();
   }else{
-    html='<div class="rd-head">';
-    html+='<div class="rd-head-titles">';
-    // A custom map's name is its own to change; a ROM room's is the game's.
-    if(room.custom)html+='<input id="rg-map-name" class="rg-appbar-name rd-name-input" value="'+escH(room.name)
-      +'" aria-label="Map name" title="The map’s name — Enter to finish"/>';
-    else html+='<span class="rd-name">'+escH(room.name)+'</span>';
-    if(room.vanillaId)html+='<span class="rd-vid">'+escH(room.vanillaId)+'</span>';
-    html+='<span class="rd-file">'+escH(room.relPath||'')+'</span>';
-    if(typeof room.startLine==='number'&&room.startLine>=0)html+='<a class="ll" data-line="'+room.startLine+'" href="#">go to code</a>';
-    html+='</div>';
-    // The map's own actions — the ⋯ menu and the lock (map-editor-toolbar.js renderEditHeadActs).
-    html+='<span class="rd-head-acts" id="rg-head-acts"></span>';
-    html+='</div>';
+    // The header's markup is the shell's (shellHeadHtml); the map's own actions — the ⋯ menu and the lock —
+    // are filled in by map-editor-toolbar.js renderEditHeadActs.
+    var tags='';
+    if(room.vanillaId)tags+='<span class="rd-vid">'+escH(room.vanillaId)+'</span>';
+    tags+='<span class="rd-file">'+escH(room.relPath||'')+'</span>';
+    if(typeof room.startLine==='number'&&room.startLine>=0)tags+='<a class="ll" data-line="'+room.startLine+'" href="#">go to code</a>';
+    html=shellHeadHtml({
+      name:room.name,
+      // A custom map's name is its own to change; a ROM room's is the game's.
+      nameHtml:room.custom?'<input id="rg-map-name" class="rg-appbar-name rd-name-input" value="'+escH(room.name)
+        +'" aria-label="Map name" title="The map’s name — Enter to finish"/>':null,
+      tagsHtml:tags
+    });
   }
 
   // The per-room display toggles, and the status bar under them. The

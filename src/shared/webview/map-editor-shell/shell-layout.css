@@ -1,0 +1,292 @@
+/* Ownership: the shell's page layout — the editor fills the tab, the rail and the dock resize
+ * (layout.js), the map fills the space between the bars, the detail header, and the collapsed and
+ * compact (narrow window) overlay states. Game-neutral; loaded by the Evermore Rooms tab and the
+ * Secret of Mana editor. Consumes the tokens of ../map-view/map-view.css. */
+
+/* ── One screen, no page scroll ─────────────────────────────────────────── */
+.rm-left.rm-rail{width:var(--rm-rail-w,200px)}
+.rm-right:has(> #room-detail.rg-theme){overflow:hidden;display:flex;flex-direction:column;padding-bottom:8px}
+#room-detail.rg-theme{flex:1;min-height:0;display:flex;flex-direction:column}
+#room-detail.rg-theme > *{flex:none}
+/* The room's name line heads the map column, not the page: the dock runs to
+ * the top (map-editor-ui.js editDock moves it into #rg-outer). */
+.rg-theme .rg-outer > .rd-head{flex:none;margin-bottom:6px}
+/* The editor row takes all the height left under the room's name; the map
+ * column stacks canvas, filter bar and status bar, the status bar last — the
+ * bottom of the screen. */
+#room-detail.rg-theme > .rg-edit-row{flex:1;min-height:0;align-items:stretch;gap:0}
+.rg-theme .rg-edit-row > .rg-outer{display:flex;flex-direction:column;min-height:0;margin-bottom:0}
+.rg-theme .rg-edit-row > .rg-outer > .rg-canvas-zone{flex:1;min-height:0}
+.rg-theme .rg-edit-row > .rg-outer > .rd-filters,
+.rg-theme .rg-edit-row > .rg-outer > .rg-statusbar{flex:none}
+/* The dock runs the full height and scrolls inside its tab body. */
+.rg-theme .rg-dock{display:flex;flex-direction:column;min-height:0;width:var(--rg-dock-w,400px);min-width:300px;max-width:none}
+.rg-theme .rg-dock > .rg-panels{flex:1;min-height:0;max-height:none;margin-bottom:0}
+
+/* ── Resize handles ─────────────────────────────────────────────────────── */
+.rm-split,.rg-theme .rg-split{flex:none;width:8px;cursor:col-resize;position:relative;touch-action:none}
+.rm-split::after,.rg-theme .rg-split::after{
+  content:'';position:absolute;top:0;bottom:0;left:3px;width:2px;border-radius:1px;background:transparent;
+  transition:background .12s}
+.rm-split:hover::after,.rg-theme .rg-split:hover::after,.rg-resizing .rm-split::after,.rg-resizing .rg-split::after{
+  background:var(--rg-accent,#6aa0ff)}
+body.rg-resizing{cursor:col-resize;user-select:none}
+
+/* ── The map fills the space between the bars ──────────────────────────────
+ * The canvas card is the whole zone now: no padding, border or shadow. The
+ * viewport (#rg-wrap) fills it and zoom-pan.js fits the map to its live size.
+ * The interactive bars float in front of the map: the tools at the top, the
+ * levels against the right edge, the filters at the bottom, the zoom chip
+ * top-right. */
+.rg-theme .rg-edit-row > .rg-outer > .rg-canvas-zone{position:relative;padding:0;gap:0;border-radius:0;overflow:hidden}
+.rg-theme .rg-canvas-zone > .rg-canvas-card{position:absolute;inset:0;max-width:none;padding:0;background:none;
+  border:none;border-radius:0;box-shadow:none}
+.rg-theme.rg-editing .rg-canvas-zone > .rg-canvas-card{padding-top:0}
+.rg-theme .rg-canvas-zone .rg-wrap{width:100%!important;height:100%!important;border-radius:0;background:var(--rg-bg-app)}
+.rg-theme .rg-canvas-zone .rg-edit-bar{top:8px}
+.rg-theme .rg-canvas-card .rg-zoom{top:8px;right:8px;bottom:auto;left:auto}
+.rg-theme .rg-canvas-zone .rg-view-filters{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);z-index:5;
+  margin:0;flex-wrap:nowrap;width:max-content;max-width:calc(100% - 16px);padding:5px 8px;gap:4px;
+  background:var(--rg-bg-float);border-radius:var(--rg-radius-pill);box-shadow:var(--rg-shadow-float)}
+.rg-theme .rg-canvas-zone .rg-view-filters .rdf{white-space:nowrap}
+/* A popup opens upwards: the bar is on the map's bottom edge. */
+.rg-theme .rg-canvas-zone .rg-view-filters .rg-filter-popup{top:auto;bottom:calc(100% + 6px)}
+/* The status bar is the column's floor: a flat strip, edge to edge. */
+.rg-theme .rg-edit-row > .rg-outer > .rg-statusbar{margin:0;border:none;border-top:1px solid var(--rg-border);border-radius:0}
+/* The grip rides the map's own corner inside the canvas. */
+/* (placed on the map's corner by map-editor-newroom.js editPlaceResizeGrip) */
+
+/* The lock, at the tool pill's right end; lit while locked. Disabled tools
+ * (locked) read as unavailable rather than merely unselected. */
+/* ── Detail header: responsive flex layout ───────────────────────────────── */
+.rg-theme .rg-outer > .rd-head{
+  flex:none;
+  margin-bottom:6px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  min-width:0;
+  width:100%;
+  height:30px;
+  position:relative;
+  z-index:70;
+}
+.rg-theme .rd-head-titles{
+  display:flex;
+  align-items:baseline;
+  gap:8px;
+  flex:1 1 auto;
+  min-width:0;
+  overflow:hidden;
+}
+.rg-theme .rd-head .rd-name{
+  flex:0 0 auto;
+  font-size:13px;
+  font-weight:700;
+  white-space:nowrap;
+}
+.rg-theme .rd-head .rd-name-input{
+  flex:0 1 auto;
+  max-width:180px;
+  min-width:60px;
+  width:auto;
+  font-size:12px;
+}
+.rg-theme .rd-head .rd-vid{
+  flex:0 0 auto;
+  font-size:9px;
+  opacity:.4;
+  white-space:nowrap;
+}
+.rg-theme .rd-head .rd-file{
+  flex:1 1 auto;
+  font-size:9px;
+  opacity:.35;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  min-width:0;
+  display:block;
+}
+.rg-theme .rd-head-acts{
+  position:static;
+  margin-left:auto;
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
+.rg-theme .rd-head-acts .rdf{display:flex;align-items:center;justify-content:center;min-width:28px;height:26px;padding:0 6px;
+  border:1px solid var(--rg-border);border-radius:var(--rg-radius-control);background:var(--rg-bg-float);color:var(--rg-text-secondary)}
+.rg-theme .rd-head-acts .rdf:hover{color:var(--rg-text-primary);background:var(--rg-bg-hover)}
+.rg-theme .rd-head-acts .rg-lock.on{color:var(--rg-warning);background:color-mix(in srgb,var(--rg-warning) 14%,transparent)}
+.rg-theme .rd-head-acts .rg-lock-ic{display:block}
+/* The ⋯ menu opens down from the name line, right-aligned with it. */
+.rg-theme .rd-head-acts .rg-filter-group{position:relative}
+.rg-theme .rd-head-acts .rg-filter-popup{top:calc(100% + 4px);bottom:auto;left:auto;right:0;z-index:20;min-width:180px}
+/* Its rows are actions, not toggles: full strength (shared.css dims an `.rdf`
+ * that is not `.on`), flat and left-aligned, not the name line's bordered buttons. */
+.rg-theme .rd-head-acts .rg-filter-popup .rdf{opacity:1;justify-content:flex-start;height:28px;padding:0 10px;
+  border-color:transparent;background:transparent;color:var(--rg-text-primary);font:500 12px var(--rg-font-ui)}
+.rg-theme .rd-head-acts .rg-filter-popup .rdf:hover{background:var(--rg-bg-hover)}
+.rg-theme .rd-head-acts .rg-filter-popup .rdf[data-edit-act="delete-map"]{color:var(--rg-error)}
+.rg-theme .rg-edit-bar .rdf:disabled,.rg-theme .rg-level-b:disabled{opacity:.3;cursor:not-allowed}
+
+/* Tool pill and filter bar responsive scrolling bounds */
+.rg-theme .rg-edit-bar{
+  max-width:calc(100% - 16px);
+  overflow-x:auto;
+  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
+}
+.rg-theme .rg-edit-bar::-webkit-scrollbar{display:none}
+
+.rg-theme .rg-canvas-zone .rg-view-filters{
+  overflow-x:auto;
+  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
+}
+.rg-theme .rg-canvas-zone .rg-view-filters::-webkit-scrollbar{display:none}
+
+/* Zoom chip repositioning to avoid tool pill collision on narrow views */
+.rg-compact.rg-editing .rg-canvas-card .rg-zoom,
+.rg-compact .rg-canvas-card .rg-zoom{
+  top:46px;
+  right:8px;
+}
+@media (max-width:650px){
+  .rg-theme.rg-editing .rg-canvas-card .rg-zoom{
+    top:46px;
+    right:8px;
+  }
+}
+
+/* ── Sidebar collapsed states & responsive overlay mode ───────────────── */
+.rm-panels.rail-collapsed .rm-rail,
+.rm-rail.collapsed{display:none!important}
+.rm-panels.rail-collapsed .rm-split,
+.rm-split.collapsed{display:none!important}
+
+.dock-collapsed .rg-dock,
+.dock-collapsed #rg-dock,
+.rg-dock.collapsed{display:none!important}
+.dock-collapsed .rg-split,
+.dock-collapsed #rg-split,
+.rg-split.collapsed{display:none!important}
+
+/* Header sidebar toggle buttons */
+.rg-theme .rd-head-acts .rg-rail-toggle,
+.rg-theme .rd-head-acts .rg-dock-toggle{opacity:.75;transition:opacity .15s,color .15s,background .15s}
+.rg-theme .rd-head-acts .rg-rail-toggle.on,
+.rg-theme .rd-head-acts .rg-dock-toggle.on{opacity:1;color:var(--rg-accent,#6aa0ff);background:var(--rg-accent-soft)}
+
+/* ── Overlay backdrop (compact responsive mode) ──────────────────────────── */
+.rg-overlay-backdrop{
+  display:none;
+  position:absolute;
+  top:36px;
+  bottom:0;
+  left:0;
+  right:0;
+  background:rgba(0,0,0,.45);
+  backdrop-filter:blur(2px);
+  -webkit-backdrop-filter:blur(2px);
+  z-index:55;
+  cursor:pointer;
+  opacity:0;
+  transition:opacity .15s ease;
+}
+.rm-compact .rg-overlay-backdrop.active,
+.rm-compact-mode .rg-overlay-backdrop.active{
+  display:block;
+  opacity:1;
+}
+
+/* ── Responsive overlay mode: when window is narrow or emulator is open ───── */
+.rm-compact,
+.rm-compact-mode{
+  position:relative;
+}
+.rm-compact .rm-panels,
+.rm-panels.rm-compact{
+  position:relative;
+  overflow:hidden;
+}
+.rm-compact .rm-split,
+.rm-compact .rg-split{
+  display:none!important;
+}
+.rm-compact .rm-right{
+  flex:1 1 100%!important;
+  width:100%!important;
+  min-width:0!important;
+  padding:4px 6px!important;
+}
+.rm-compact .rg-edit-row{
+  position:relative;
+  overflow:hidden;
+  width:100%!important;
+}
+.rm-compact .rg-outer{
+  flex:1 1 100%!important;
+  width:100%!important;
+  min-width:0!important;
+}
+.rm-compact .rm-left.rm-rail:not(.collapsed){
+  position:absolute!important;
+  top:0!important;
+  bottom:0!important;
+  left:0!important;
+  z-index:60!important;
+  width:min(280px,85vw)!important;
+  background:var(--rg-bg-chrome,#161616)!important;
+  box-shadow:4px 0 24px rgba(0,0,0,.6)!important;
+  border-right:1px solid var(--rg-border,#333)!important;
+}
+.rm-compact .rg-theme .rg-dock:not(.collapsed),
+.rg-compact .rg-dock:not(.collapsed),
+.rm-compact-mode .rg-dock:not(.collapsed){
+  position:absolute!important;
+  top:36px!important;
+  bottom:0!important;
+  right:0!important;
+  z-index:60!important;
+  width:min(380px,90vw)!important;
+  background:var(--rg-bg-chrome,#161616)!important;
+  box-shadow:-4px 0 24px rgba(0,0,0,.6)!important;
+  border-left:1px solid var(--rg-border,#333)!important;
+}
+
+@media (max-width:1050px){
+  .rg-overlay-backdrop.active{display:block;opacity:1}
+  .rm-panels{position:relative;overflow:hidden}
+  .rm-split{display:none!important}
+  .rg-theme .rg-split{display:none!important}
+  .rm-right{flex:1 1 100%!important;width:100%!important;min-width:0!important;padding:4px 6px!important}
+  .rg-theme .rg-edit-row{position:relative;overflow:hidden;width:100%!important}
+  .rg-theme .rg-outer{flex:1 1 100%!important;width:100%!important;min-width:0!important}
+  .rm-left.rm-rail:not(.collapsed){
+    position:absolute!important;
+    top:0!important;
+    bottom:0!important;
+    left:0!important;
+    z-index:60!important;
+    width:min(280px,85vw)!important;
+    background:var(--rg-bg-chrome,#161616)!important;
+    box-shadow:4px 0 24px rgba(0,0,0,.6)!important;
+    border-right:1px solid var(--rg-border,#333)!important;
+  }
+  .rg-theme .rg-dock:not(.collapsed),
+  .rg-dock:not(.collapsed){
+    position:absolute!important;
+    top:36px!important;
+    bottom:0!important;
+    right:0!important;
+    z-index:60!important;
+    width:min(380px,90vw)!important;
+    background:var(--rg-bg-chrome,#161616)!important;
+    box-shadow:-4px 0 24px rgba(0,0,0,.6)!important;
+    border-left:1px solid var(--rg-border,#333)!important;
+  }
+}

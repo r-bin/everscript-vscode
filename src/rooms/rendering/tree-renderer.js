@@ -4,6 +4,8 @@
 // No filesystem I/O, no caching.
 
 const { radarEsc } = require('../../shared/radar-utils');
+// The rail's markup is the shared editor shell's, so the Secret of Mana editor builds the same one.
+const { shellRailHtml } = require('../../shared/webview/map-editor-shell/frame');
 
 /**
  * Server-side render of the static vanilla room list grouped by act.
@@ -72,34 +74,15 @@ function renderImportedTree(areas) {
  * @returns {string} HTML string.
  */
 function buildRoomRailHtml(treeHtml, vanillaTreeHtml, imported) {
-    const group = (key, label, title, open, body) =>
-        '<div class="rm-grp" id="rm-grp-' + key + '">'
-        + '<button class="rm-grp-h" data-rail-grp="' + key + '"'
-        + ' aria-expanded="' + (open ? 'true' : 'false') + '"'
-        + ' aria-controls="rm-' + key + '-tree" title="' + radarEsc(title) + '">'
-        + '<span class="rm-grp-chev" aria-hidden="true">' + (open ? '▾' : '▸') + '</span>'
-        + radarEsc(label) + '</button>'
-        + '<div class="rm-grp-body" id="rm-' + key + '-tree"' + (open ? '' : ' hidden') + '>'
-        + body + '</div></div>';
-
-    return '<div class="rm-left rm-rail rg-rail">'
-        + '<div class="rm-rail-search">'
-        + '<input id="rm-rail-q" class="rm-rail-q" type="search" autocomplete="off"'
-        + ' spellcheck="false" placeholder="Search rooms" aria-label="Search rooms">'
-        + '</div>'
-        + '<div class="rm-rail-scroll" id="rm-rail-scroll">'
-        + group('vanilla', 'Vanilla rooms', 'Every room in the ROM, grouped by area',
-            false, vanillaTreeHtml)
-        + (imported || []).map((g) => group(g.key, g.label, g.title, false, renderImportedTree(g.areas))).join('')
-        + group('live', 'Custom rooms', 'New maps you have made, and rooms declared in the active .evs file',
-            true, treeHtml)
-        + '<div class="rm-rail-none" id="rm-rail-none" hidden>No rooms match</div>'
-        + '</div>'
-        + '<div class="rm-rail-foot">'
-        + '<button class="rm-rail-new" id="rm-new-map"'
-        + ' title="A new, empty custom map, one SNES screen (16×14 tiles)">'
-        + '+ New Map</button>'
-        + '</div></div>';
+    return shellRailHtml({
+        groups: [
+            { key: 'vanilla', label: 'Vanilla rooms', title: 'Every room in the ROM, grouped by area', open: false, body: vanillaTreeHtml },
+        ].concat((imported || []).map((g) => ({ key: g.key, label: g.label, title: g.title, open: false, body: renderImportedTree(g.areas) })))
+            .concat([{ key: 'live', label: 'Custom rooms', title: 'New maps you have made, and rooms declared in the active .evs file', open: true, body: treeHtml }]),
+        search: { placeholder: 'Search rooms' },
+        noneText: 'No rooms match',
+        foot: { label: '+ New Map', title: 'A new, empty custom map, one SNES screen (16×14 tiles)' },
+    });
 }
 
 /**

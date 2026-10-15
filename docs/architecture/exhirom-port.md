@@ -5,6 +5,8 @@ bundled snes9x2005 core (`src/emulator/core/snes9x2005-wasm/source/memmap.c`), *
 read from our own code/docs, *(hardware)* for generic SNES facts, and *(to verify)* when they
 must be checked on the running game before relying on them.
 
+Compared with staying HiROM and with an SA-1 port (mutually exclusive as a final ROM, shared first steps): [rom-layout-options.md](rom-layout-options.md).
+
 Related: `docs/todo/romhacks-and-ports.md` §2 (combo ROM idea), `.agents/skills/snes-memory-mapping/SKILL.md`
 (today's HiROM layout), `docs/patches/README.md` (the 4 MB squeeze).
 

@@ -13,6 +13,7 @@ const { buildRomTabHtml }        = require('../rom');
 const { buildMusicTabHtml }      = require('../music');
 const { buildScriptsTabHtml }    = require('../scripts-tab');
 const radarWebview               = require('./webview');
+const { shellFrameHtml }         = require('../shared/webview/map-editor-shell/frame');
 
 /**
  * Build the complete radar webview HTML.
@@ -112,12 +113,7 @@ function renderRadarHtml(
     // ── Rooms tab HTML ──────────────────────────────────────────────────────
     const roomsTabHtml =
         '<div class="tab-pane" data-tab="rooms" style="display:none">' +
-        '<div class="rm-panels">' +
-        buildRoomRailHtml(treeHtml, vanillaTreeHtml, importedRooms) +
-        // The handle that resizes the rail (rooms/webview/rooms-layout.js).
-        '<div class="rm-split" data-split="rail" title="Drag to resize"></div>' +
-        '<div class="rm-right"><div id="room-detail" class="rm-detail-placeholder"><span>Select a room</span></div></div>' +
-        '</div>' +
+        shellFrameHtml({ railHtml: buildRoomRailHtml(treeHtml, vanillaTreeHtml, importedRooms), placeholder: 'Select a room' }) +
         '</div>';
 
     // ── Scaling tab HTML ────────────────────────────────────────────────────

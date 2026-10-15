@@ -1,30 +1,18 @@
-// Ownership: the Rooms tab's left rail — every interaction in it.
+// Ownership: the Rooms tab's left rail — what selecting a row does, following an exit link, and wiring
+// the rail to the shared shell. The rail's own behaviour (group and area collapse, the search filter, the
+// click binding) is the shell's: src/shared/webview/map-editor-shell/rail.js, shared with the Secret of
+// Mana editor; its markup is shellRailHtml (tree-renderer.js buildRoomRailHtml).
 //
-// Phase 7b split this out of tab-init.js, which now owns only the top-level
-// tab strip. The rail's five behaviours all read or write the same tree, so
-// one file owns them: group collapse, area collapse, the search filter, which
-// row is selected, and the `+ New Map` footer.
-//
-// Owns: _railQuery, _railExitBound.
-//
-// There is no `_vanillaMode` any more. The mode toggle swapped two trees in
-// and out; the rail now shows both at once as two collapsible groups, so
-// "which tree am I looking at" is not state — it is where you are scrolled.
-// A row says which tree it came from itself: `data-vid` is a ROM catalogue
-// room, `data-map` is a room declared in the active .evs file.
+// A row says which tree it came from itself: `data-vid` is a ROM catalogue room, `data-map` is a room
+// declared in the active .evs file, `data-import` a converted one, `data-custom` a custom map.
 
-/** The active search term, lowercased. '' means no filter. */
-var _railQuery = '';
-
-/** Set once the document-level exit-link handler is attached. */
 var _railExitBound = false;
 
-/** Closest ancestor (inclusive) matching a selector, or null. */
-function railClosest(el, sel) {
-  return (el && el.closest) ? el.closest(sel) : null;
+/** What the Rooms tab's search also matches on a row: its ids (so "0x12" finds a room) and "custom". */
+function railExtraHaystack(li) {
+  return (li.dataset.vid || '') + ' ' + (li.dataset.import || '') + ' ' + (li.dataset.map || '')
+    + ' ' + (li.dataset.custom ? 'custom' : '');
 }
-
-function railScrollEl() { return document.getElementById('rm-rail-scroll'); }
 
 // ── Selection ────────────────────────────────────────────────────────────────
 // One handler for both trees. Pre-7b the live and vanilla handlers each
@@ -59,74 +47,6 @@ function railSelectRow(li) {
   }
   var room = (typeof ROOMS !== 'undefined' && ROOMS) ? ROOMS[li.dataset.map] : null;
   if (room) renderRoomDetail(room);
-}
-
-// ── Groups ───────────────────────────────────────────────────────────────────
-
-/** Open or close one top-level group. `open` omitted means toggle. */
-function railSetGroup(key, open) {
-  var head = document.querySelector('.rm-grp-h[data-rail-grp="' + key + '"]');
-  var body = document.getElementById('rm-' + key + '-tree');
-  if (!head || !body) return;
-  var next = (open === undefined) ? body.hidden : !!open;
-  body.hidden = !next;
-  head.setAttribute('aria-expanded', next ? 'true' : 'false');
-  var chev = head.querySelector('.rm-grp-chev');
-  if (chev) chev.textContent = next ? '▾' : '▸';
-}
-
-// ── Search ───────────────────────────────────────────────────────────────────
-// A client-side filter over the already-rendered rows: no host round-trip, no
-// re-render, and no second copy of the room list to keep in sync. Matching is
-// on the row's own text plus its id attribute, so both "sewers" and "0x12"
-// find Ebon Keep sewers.
-//
-// Expansion state is never written while filtering. `.rm-searching` on the
-// scroll box force-reveals collapsed groups and areas through CSS for the
-// duration, so clearing the field restores exactly the tree that was open.
-
-/** What a row matches against: its visible label plus its id. */
-function railRowHaystack(li) {
-  return ((li.textContent || '') + ' ' + (li.dataset.vid || '') + ' ' + (li.dataset.import || '') + ' ' + (li.dataset.map || '')
-    + ' ' + (li.dataset.custom ? 'custom' : ''))
-    .toLowerCase();
-}
-
-/** Apply `_railQuery` to the tree. Cheap enough to run on every keystroke. */
-function railApplyFilter() {
-  var scroll = railScrollEl();
-  if (!scroll) return;
-  var q = _railQuery;
-  var searching = q.length > 0;
-  scroll.classList.toggle('rm-searching', searching);
-
-  var hits = 0;
-  scroll.querySelectorAll('li.rn-map').forEach(function (li) {
-    var show = !searching || railRowHaystack(li).indexOf(q) !== -1;
-    li.classList.toggle('rm-off', !show);
-    if (show) hits += 1;
-  });
-  // An area with nothing left in it is noise, and so is a whole group.
-  scroll.querySelectorAll('li.rn-area').forEach(function (area) {
-    area.classList.toggle('rm-off',
-      searching && !area.querySelector('li.rn-map:not(.rm-off)'));
-  });
-  scroll.querySelectorAll('.rm-grp').forEach(function (grp) {
-    grp.classList.toggle('rm-off',
-      searching && !grp.querySelector('li.rn-map:not(.rm-off)'));
-  });
-
-  var none = document.getElementById('rm-rail-none');
-  if (none) none.hidden = !searching || hits > 0;
-}
-
-/** Drop the filter and put the field back to empty. */
-function railClearSearch() {
-  var input = document.getElementById('rm-rail-q');
-  if (input) input.value = '';
-  if (!_railQuery) return;
-  _railQuery = '';
-  railApplyFilter();
 }
 
 // ── Following an exit ────────────────────────────────────────────────────────
@@ -165,49 +85,14 @@ function gotoVanillaRoom(mapId) {
 // element that actually carries the meaning (§2).
 
 function setupRoomRail() {
-  var scroll = railScrollEl();
-  if (scroll && !scroll.dataset.railBound) {
-    scroll.dataset.railBound = '1';
-    scroll.addEventListener('click', function (e) {
-      var t = e.target;
-      var head = railClosest(t, '.rm-grp-h');
-      if (head) { railSetGroup(head.dataset.railGrp); return; }
-      var label = railClosest(t, '.rn-area-label');
-      if (label) {
-        var li = railClosest(label, 'li.rn-area');
-        if (li) li.classList.toggle('collapsed');
-        return;
-      }
-      var row = railClosest(t, 'li.rn-map');
-      if (row) railSelectRow(row);
-    });
-  }
-
-  var input = document.getElementById('rm-rail-q');
-  if (input && !input.dataset.railBound) {
-    input.dataset.railBound = '1';
-    input.addEventListener('input', function () {
-      _railQuery = String(input.value || '').trim().toLowerCase();
-      railApplyFilter();
-    });
-    input.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') { railClearSearch(); input.blur(); }
-    });
-  }
-
-  // `+ New Map` is the project-level action — the same one the
-  // `everscript.newMap` command runs, which is why it can share
-  // `roomsNewMap()` rather than post a message the host would only bounce
-  // back. The editor's own `new room…` (an inline w/h form that borrows the
-  // *currently open* room's graphics) is a different action and stays in the
-  // tool pill's `⋯` overflow.
-  var newBtn = document.getElementById('rm-new-map');
-  if (newBtn && !newBtn.dataset.railBound) {
-    newBtn.dataset.railBound = '1';
-    newBtn.addEventListener('click', function () {
-      if (typeof roomsNewMap === 'function') roomsNewMap();
-    });
-  }
+  // `+ New Map` is the project-level action — the same one the `everscript.newMap` command runs, which is
+  // why it can share `roomsNewMap()` rather than post a message the host would only bounce back. The
+  // editor's own `new room…` (an inline w/h form that borrows the *currently open* room's graphics) is a
+  // different action and stays in the tool pill's `⋯` overflow.
+  shellRailBind({
+    onSelect: railSelectRow,
+    onNew: function () { if (typeof roomsNewMap === 'function') roomsNewMap(); },
+  });
 
   // Delegated on the document, because the detail panel is re-rendered on
   // every room change and per-link handlers would have to be rewired.
