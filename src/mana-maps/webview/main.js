@@ -38,33 +38,51 @@
     pending.delete(msg.path);
   });
 
-  /** A map's name in the rail: its area and its place in it, like the converted rooms in the Rooms tab. */
+  /** The ids that draw `id`'s picture (its variants), in id order; [id] when it has none. */
+  function variantsOf(id) {
+    var group = null;
+    areas.forEach(function (a) { (a.pictures || []).forEach(function (g) { if (!group && g.indexOf(id) >= 0) group = g; }); });
+    return (group || [id]).slice().sort(function (x, y) { return x - y; });
+  }
+
+  /** The rail: one row per picture (a room), named by its area and its place in it, like the converted rooms
+   * in the Rooms tab. The row opens the area's own map; the others that draw it are its variants. */
   function railEntries() {
     var entries = [];
     areas.forEach(function (a) {
-      if (!a.maps.length) return;
-      entries.push({ area: a.name, rooms: a.maps.map(function (id, i) {
+      var pics = a.pictures || a.maps.map(function (id) { return [id]; });
+      if (!pics.length) return;
+      entries.push({ area: a.name, rooms: pics.map(function (g, i) {
+        var id = g[0];
         var m = maps.get(id) || { hex: String(id) };
-        var name = a.maps.length > 1 ? a.name + ' ' + (i + 1) : a.name;
-        return { name: name, tag: m.hex, attrs: { map: id, name: name, area: a.name } };
+        var name = pics.length > 1 ? a.name + ' ' + (i + 1) : a.name;
+        return { name: name, tag: m.hex, attrs: { map: id, maps: g.join(' '), name: name, area: a.name } };
       }) });
     });
     return entries;
   }
 
+  /** The rail row showing map `id` (its own row, or the row of the room it is a variant of). */
+  function rowFor(id) {
+    return document.querySelector('.rn-map[data-map="' + id + '"]')
+      || Array.prototype.find.call(document.querySelectorAll('.rn-map[data-maps]'), function (li) {
+        return li.dataset.maps.split(' ').indexOf(String(id)) >= 0;
+      }) || null;
+  }
+
   function entryFor(id) {
     var m = maps.get(id);
-    var row = document.querySelector('.rn-map[data-map="' + id + '"]');
+    var row = rowFor(id);
     var area = row ? row.dataset.area : '';
-    var group = null;
-    areas.forEach(function (a) { (a.pictures || []).forEach(function (g) { if (g.indexOf(id) >= 0 && g.length > 1) group = g; }); });
-    var same = group ? 'same picture: ' + group.filter(function (x) { return x !== id; }).map(function (x) { return (maps.get(x) || { hex: x }).hex; }).join(', ') : '';
-    var variants = group ? group.slice().sort(function (a, b) { return a - b; }).map(function (x) { return { id: x, hex: (maps.get(x) || { hex: String(x) }).hex }; }) : [];
+    var group = variantsOf(id);
+    var same = group.length > 1 ? 'same picture: ' + group.filter(function (x) { return x !== id; }).map(function (x) { return (maps.get(x) || { hex: x }).hex; }).join(', ') : '';
+    var variants = group.length > 1 ? group.map(function (x) { return { id: x, hex: (maps.get(x) || { hex: String(x) }).hex }; }) : [];
     return Object.assign({}, m, { name: row ? row.dataset.name : m.hex, areaName: area, variants: variants, note: [m.w + '×' + m.h, same].filter(Boolean).join(' · ') });
   }
 
-  function select(li) {
-    var id = Number(li.dataset.map);
+  /** Highlight `li` and open map `id` (default: the row's own map; a variant keeps its room's row selected). */
+  function select(li, id) {
+    if (id === undefined) id = Number(li.dataset.map);
     document.querySelectorAll('.rn-map.rsel').forEach(function (x) { x.classList.remove('rsel'); });
     li.classList.add('rsel');
     state.map = id;
@@ -85,7 +103,7 @@
       if (opening !== id) return;
       if (!data) { panel.innerHTML = '<div class="rs rs-error"><div class="rs-h">Cannot open this map</div><div class="rs-note">The ROM could not decode it.</div></div>'; return; }
       editor = manaEditorOpen({ entry: entryFor(id), data: data, somBase: init.somBase, state: state, save: save, readJson: readJson,
-        openVariant: function (vid) { var li = document.querySelector('.rn-map[data-map="' + vid + '"]'); if (li) select(li); } });
+        openVariant: function (vid) { var li = rowFor(vid); if (li) select(li, vid); } });
     });
   }
 
@@ -98,8 +116,8 @@
     }),
     placeholder: 'Select a map',
   });
-  shellRailBind({ onSelect: select });
+  shellRailBind({ onSelect: function (li) { select(li); } });
   layoutApplyPrefs(Object.assign({}, state.prefs.layoutWidths, { layoutCollapsed: state.prefs.layoutCollapsed }));
-  var first = state.map !== null && document.querySelector('.rn-map[data-map="' + state.map + '"]');
-  if (first) { var area = first.closest('li.rn-area'); if (area) area.classList.remove('collapsed'); select(first); }
+  var first = state.map !== null && rowFor(state.map);
+  if (first) { var area = first.closest('li.rn-area'); if (area) area.classList.remove('collapsed'); select(first, state.map); }
 })();

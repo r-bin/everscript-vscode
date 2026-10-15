@@ -66,9 +66,15 @@ test('som:// lists areas and serves map pictures', () => {
     const c = getCatalog(rom);
     assert.strictEqual(c.maps.length, 408);
     assert.deepStrictEqual(c.areas[0], { name: 'Potos Falls', slug: 'potos-falls', maps: [128, 101, 129, 130], pictures: [[128, 101], [129], [130]] });
+    // Variants are found by the picture the map draws, not its piece list: $8E lists two of $8B's pieces in
+    // another order. A map listed under no area that draws an area's picture is a variant there ($67 of $88).
+    const water = c.areas.find(a => a.name === 'Water Palace');
+    assert.deepStrictEqual(water.pictures, [[0x88, 0x67], [0x8B, 0x8E, 0x8F], [0x87]]);
+    assert.ok(!c.areas.find(a => a.slug === 'other').maps.includes(0x67));
     assert.strictEqual(c.areas[c.areas.length - 1].slug, 'other');
     const total = c.areas.reduce((n, a) => n + a.maps.length, 0);
-    assert.strictEqual(total, 408, 'every map is in exactly one area or other');
+    assert.strictEqual(total, 406, 'every map is in at most one area or other ($67 and $1B0 only as variants)');
+    assert.strictEqual(new Set(c.areas.flatMap(a => a.pictures.flat())).size, 408, 'every map is shown somewhere');
     const png = resolveSom(['maps', '80.png'], rom).read();
     assert.deepStrictEqual([...png.subarray(1, 4)], [0x50, 0x4e, 0x47]);
     assert.strictEqual(png.readUInt32BE(16), 56 * 16);

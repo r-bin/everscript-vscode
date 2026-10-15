@@ -20,7 +20,9 @@ What the folder does: [README.md](README.md).
   with its tab strip, layout, zoom and pan. Do not rebuild a piece here: parametrise it in the shell, or leave
   the feature out until it can be shared. `style.css` holds only what the shell does not cover (collision
   colours, the picker, the info rows, overlay marks) and uses the shell's tokens.
-- The rail lists every map by area; clicking one opens it in the editor. Dock tabs: Tile (sub-tabs **Tiles** — the
+- The rail lists one row per picture (a room) by area; clicking one opens the area's own map. The other maps that
+  draw that picture are its variants (catalog `pictures`, any area): they have no row, a variant open keeps its room's
+  row selected (`rowFor` in main.js). Dock tabs: Tile (sub-tabs **Tiles** — the
   metatile picker — and **Collision**), Special (stairs, push, layer switch), Object (sub-tabs **Characters** — the 8-byte records, enemies and people together — and **Map changes** — the
   event-flag pieces as Evermore-style cards with state chips), Trigger (step on / walk into; exits and on-hit cells), Info.
 - Every filter chip shows or hides its overlay. A tab that edits an overlay keeps its chip on and locked

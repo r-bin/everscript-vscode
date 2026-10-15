@@ -85,12 +85,24 @@ export function mapSize(rom: Rom, id: number, flags: FlagValues = () => 0): Piec
 
 /**
  * Maps with the same key draw the same picture: same character, palette and
- * metatile sets, display mode and visible pieces. Many map ids share one
- * picture and differ only in objects or event scripts.
+ * metatile sets, display mode and the same assembled layers. Many map ids share
+ * one picture and differ only in objects or event scripts. The layers are
+ * compared, not the piece lists: the same pieces may be listed in another order
+ * (map $8E lists two of $8B's pieces swapped).
  */
 export function pictureKey(rom: Rom, id: number, header: number[], flags: FlagValues = () => 0): string {
-    const pieces = readPlacements(rom, id)
-        .filter(r => { const v = flags(r.flag); return v >= r.min && v <= r.max; })
-        .map(r => `${r.layer}${r.piece}@${r.x},${r.y}`);
-    return [header[0], header[1], header[2], header[5] & 0x3F, ...pieces].join(' ');
+    const { mem, sizeA, sizeB } = assembleLayers(rom, id, flags);
+    const layer = (base: number, size: PieceSize | null): string => {
+        if (!size) return '-';
+        let h1 = 0x811C9DC5, h2 = 0x01000193;               // two FNV-1a style hashes over the rows
+        for (let y = 0; y < size.h; y++) {
+            for (let x = 0; x < size.w; x++) {
+                const b = mem[(base + y * ROW + x) & 0xFFFF];
+                h1 = Math.imul(h1 ^ b, 0x01000193) >>> 0;
+                h2 = Math.imul(h2 ^ b, 0x5BD1E995) >>> 0;
+            }
+        }
+        return `${size.w}x${size.h}:${h1.toString(16)}${h2.toString(16)}`;
+    };
+    return [header[0], header[1], header[2], header[5] & 0x3F, layer(LAYER_A, sizeA), layer(LAYER_B, sizeB)].join(' ');
 }

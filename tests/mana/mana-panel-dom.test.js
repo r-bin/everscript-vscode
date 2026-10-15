@@ -46,7 +46,7 @@ async function main() {
         areaLabel: (document.querySelector('.rn-area-label') || {}).textContent,
     }));
     check('the page is the shell\'s frame (rail, splitter, detail), the rail a flex column', frame.panels && frame.railDisplay === 'flex', JSON.stringify(frame));
-    check('the rail lists the area and its maps, as a group of rows like the Rooms tab\'s', frame.groups.join() === '▾Secret of Mana' && frame.areaLabel === 'Wide' && frame.rows.length === 2 && /Wide 1/.test(frame.rows[0]), JSON.stringify(frame));
+    check('the rail lists the area and one row per room (a variant has no row of its own), like the Rooms tab\'s', frame.groups.join() === '▾Secret of Mana' && frame.areaLabel === 'Wide' && frame.rows.length === 2 && /Wide 1/.test(frame.rows[0]), JSON.stringify(frame));
 
     await p.fill('#rm-rail-q', 'wide 2');
     check('the rail search filters its rows (the shell\'s rail.js)', await p.locator('li.rn-map:not(.rm-off)').count() === 1);
@@ -98,7 +98,9 @@ async function main() {
     await p.click('#rg-variant-bar .rg-level-b:not(.on)');
     await p.waitForSelector('#rg-svg');
     await p.waitForTimeout(300);
-    check('a click on a variant opens that map in the same editor', (await p.textContent('.rd-head .rd-name')) === 'Wide 2' && await p.locator('#rg-variant-bar .rg-level-b.on').textContent() === '2');
+    check('a click on a variant opens that map in the same editor, under its room\'s name and row',
+        (await p.textContent('.rd-head .rd-name')) === 'Wide 1' && await p.locator('#rg-variant-bar .rg-level-b.on').textContent() === '2'
+        && await p.locator('li.rn-map.rsel[data-map="176"]').count() === 1);
     await p.click('li.rn-map[data-map="176"]');
     await p.waitForSelector('#rg-svg');
     await p.waitForTimeout(300);

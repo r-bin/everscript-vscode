@@ -110,7 +110,14 @@ against our renders pixel for pixel (`src/mana/areas.ts`); 266 of 408 maps belon
 one of 52 areas, the rest (arenas, cannon rides, credits, other event states) are
 "other". The pictures are not in the repo. Many ids draw the same picture (same
 sets and pieces, different objects or scripts, e.g. 7 Kakkara interiors); the panel
-shows each picture once.
+shows each picture once, as one rail row with the other ids as variants.
+
+"Same picture" compares the assembled layers at flag value 0 (`pictureKey`, `src/mana/placement.ts`),
+not the piece lists: map `$8E` has `$8B`'s and `$8F`'s 31 piece records, but two of them
+(piece 234 at 21,7 and 27,6) in swapped order, so a list comparison split Water Palace 2 in two.
+Groups cross area lines: `$67` (no area) draws `$88`'s picture, `$1B0` (no area) `$1B4`'s, and `$93`
+(Todo Village) and `$14C` (Santa's House) draw the same one. A map no area lists that draws an
+area's picture is shown as that room's variant, not under "other" (`src/mana/catalog.ts`).
 
 ## Collision — `$02:A043`, `$01:BE15`, `$00:D84C`, `$00:D359`
 

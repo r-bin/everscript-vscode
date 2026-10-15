@@ -27,7 +27,7 @@ Built by `npm run build:mana` (`tsconfig.mana.json`) into `dist/`; `index.js` is
 | `animate.ts` | runs the game's animation setup and per-frame code, records what changes | `$01:B0EC`, `$01:B17E`, `$02:BC7E`, `$00:B0BB`, `$00:C304` |
 | `anim-cells.ts` | turns a trace into frames per cell kind (cells with equal tile words) | — |
 
-`loadMap` + `renderMap` take ~30 ms per map; `mapSize` and `pictureKey` decode nothing;
+`loadMap` + `renderMap` take ~30 ms per map; `mapSize` decodes nothing, `pictureKey` only the pieces (all 512 maps in ~40 ms);
 `traceAnimation` ~20 ms, `animateCells` up to ~200 ms (map 128).
 
 `cpu65816.ts` is 376 lines: one table-like switch over the 256 opcodes plus the

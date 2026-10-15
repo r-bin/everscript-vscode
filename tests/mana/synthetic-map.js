@@ -45,9 +45,10 @@ const edit = id => ({
 
 const INIT = {
     title: 'Test',
-    maps: [{ id: 176, hex: 'b0', w: 6, h: 2, area: 'Wide' }, { id: 177, hex: 'b1', w: 6, h: 2, area: 'Wide' }],
-    // The two maps draw the same picture: each is the other's variant.
-    areas: [{ name: 'Wide', slug: 'wide', maps: [176, 177], pictures: [[176, 177]] }],
+    maps: [{ id: 176, hex: 'b0', w: 6, h: 2, area: 'Wide' }, { id: 177, hex: 'b1', w: 6, h: 2, area: 'Wide' },
+        { id: 178, hex: 'b2', w: 6, h: 2, area: null }],
+    // b0 and b2 draw the same picture (b2 is listed under no area): one room with two variants, b1 a second room.
+    areas: [{ name: 'Wide', slug: 'wide', maps: [176, 177], pictures: [[176, 178], [177]] }],
 };
 
 const anim = { length: 60, images: ['data:image/png;base64,AA==', 'data:image/png;base64,AQ=='],
@@ -55,7 +56,7 @@ const anim = { length: 60, images: ['data:image/png;base64,AA==', 'data:image/pn
 
 /** What the stub host answers for a `som://rom/` path, or null. */
 function hostFile(p) {
-    if (/^maps\/b[01]\.edit\.json$/.test(p)) return JSON.stringify(edit(p === 'maps/b0.edit.json' ? 176 : 177));
+    if (/^maps\/b[012]\.edit\.json$/.test(p)) return JSON.stringify(edit(p === 'maps/b1.edit.json' ? 177 : p === 'maps/b2.edit.json' ? 178 : 176));
     if (p === 'maps/b0.anim.json') return JSON.stringify(anim);
     if (/^maps\/b[01]\.collision\.json$/.test(p)) return null;
     return null;
@@ -65,7 +66,7 @@ function hostFile(p) {
 function somDir() {
     const dir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'mana-som-'));
     fs.mkdirSync(path.join(dir, 'maps'));
-    ['b0', 'b1'].forEach(h => fs.writeFileSync(path.join(dir, 'maps', h + '.tiles.a.png'), sheetPng()));
+    ['b0', 'b1', 'b2'].forEach(h => fs.writeFileSync(path.join(dir, 'maps', h + '.tiles.a.png'), sheetPng()));
     return dir;
 }
 
