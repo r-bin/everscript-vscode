@@ -3,7 +3,7 @@
 /**
  * tools/exhirom/convert.js on a synthetic HiROM image (no game bytes): header in both places, checksum, the
  * bank-$00 entry code copied to the new half, the 4th-megabyte mirror modes, and refusals for vector code that a
- * plain copy cannot move. The real-ROM proof is `node tools/exhirom/prove.js` (docs/architecture/exhirom-port.md).
+ * plain copy cannot move. The real-ROM proof is `node tools/exhirom/prove.js` (docs/exhirom/port.md).
  */
 
 const assert = require('assert');

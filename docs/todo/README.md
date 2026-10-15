@@ -18,7 +18,7 @@
 | [audio-and-music.md](audio-and-music.md) | Music (`src/music/`) | [Sound Engine Guide](../audio_music_sound_formats.md):<br>✅ Radar Music tab with voice lanes, ARAM map, sound-chip stream | 🟡 Wolfgang v3 sequence bytecode decoding<br>🟡 Piano roll track lanes & live playhead |
 | [static-recompilation.md](static-recompilation.md) | Recomp (`tools/recomp/`) | [Recomp Master](../recomp/README.md) & [Bugs/Roadmap](../recomp/bugs-and-todos.md):<br>✅ Milestone 1: Headless intro & attract loop clean<br>✅ Save state `SEXC` chunks & dynamic exclusions | 🟡 Timing drift investigation after NMI ~315<br>🟡 Upstream PRs (BG Mode 4, CPU save states)<br>🟡 Milestone 2: Automated playthrough<br>🟡 Milestone 3: HLE C decompressors |
 | [research-and-visualizations.md](research-and-visualizations.md) | RE & Tools (`tools/`) | [Act 0 Dog Research](act0-dog-animations.md):<br>✅ Call-graph galaxy prototype | 💡 Galaxy standalone HTML export<br>💡 ROM heat-strip timelapse over TAS<br>💡 Script flame graph & WRAM phosphor heatmap<br>💡 Event-flag DAG & World atlas<br>🟡 Act 0 dog missing animations & bark patch |
-| [romhacks-and-ports.md](romhacks-and-ports.md) | Romhacks & Ports | — | 💡 Secret of Mana content port to SoE<br>💡 SoE + ALttP Combo ROM (ExHiROM) |
+| [romhacks-and-ports.md](romhacks-and-ports.md) | Romhacks & Ports | — | 💡 Secret of Mana content port to SoE<br>💡 Combo ROM → [docs/exhirom/combo-rom.md](../exhirom/combo-rom.md) |
 
 ---
 

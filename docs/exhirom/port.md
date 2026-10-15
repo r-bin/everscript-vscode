@@ -5,9 +5,9 @@ bundled snes9x2005 core (`src/emulator/core/snes9x2005-wasm/source/memmap.c`), *
 read from our own code/docs, *(hardware)* for generic SNES facts, and *(to verify)* when they
 must be checked on the running game before relying on them.
 
-Compared with staying HiROM and with an SA-1 port (mutually exclusive as a final ROM, shared first steps): [rom-layout-options.md](rom-layout-options.md).
+Compared with staying HiROM and with an SA-1 port (mutually exclusive as a final ROM, shared first steps): [layout-options.md](layout-options.md).
 
-Related: `docs/todo/romhacks-and-ports.md` §2 (combo ROM idea), `.agents/skills/snes-memory-mapping/SKILL.md`
+Related: [combo-rom.md](combo-rom.md) (a second game on the cartridge), `.agents/skills/snes-memory-mapping/SKILL.md`
 (today's HiROM layout), `docs/patches/README.md` (the 4 MB squeeze).
 
 ---
@@ -22,8 +22,8 @@ several games on one cartridge.
 | Reason | What it buys | Honest weight |
 |---|---|---|
 | **Room to grow** | Today's free space is `$F0–$FF` (1 MB). Public patches already fight for it: the 2-player patch claims `$F0`/`$FE`, the debug menu claims `$FE` *(repo: `docs/patches/README.md`)*. ExHiROM gives up to ~4 MB more. | Real, but 1 MB is plenty for scripts alone. Matters for the Mana port (maps, tiles, sprites, samples, music). |
-| **Combo ROM** | SoE next to a second game on one cartridge (`romhacks-and-ports.md` §2). Impossible in plain HiROM: no room, and a second game needs its own bank-`$00` code. | The reason ExHiROM exists in this plan. |
-| **Mana content port** | Secret of Mana rooms/art need budget (`romhacks-and-ports.md` §1). | Only if the 1 MB runs out. |
+| **Combo ROM** | SoE next to a second game on one cartridge ([combo-rom.md](combo-rom.md)). Impossible in plain HiROM: no room, and a second game needs its own bank-`$00` code. | The reason ExHiROM exists in this plan. |
+| **Mana content port** | Secret of Mana rooms/art need budget (`docs/todo/romhacks-and-ports.md` §1). | Only if the 1 MB runs out. |
 
 **Not** a reason: speed or features. ExHiROM adds no hardware; the second half of the ROM is
 *slower* (see §2). If the goal is only "a bit more room", expand within HiROM first (the
@@ -86,7 +86,7 @@ runs, a small shared front end (reset/NMI/IRQ vectors and a dispatcher) chooses 
 game gets its own SRAM region, and game switching is a save-and-reload through the front end,
 not a live handover of WRAM. We take only that architecture; **no code, tables or layouts are
 copied** (AGENTS.md rule 0.1). Its exact bank assignments are *to verify* from public
-documentation before we rely on them — `romhacks-and-ports.md` §2.1 records what we currently
+documentation before we rely on them — [combo-rom.md](combo-rom.md) §4 records what we currently
 believe, which is not yet checked.
 
 For SoE this means: SoE stays at `$C0–$EF`/`$80–$AF` exactly as now (that is the cheapest,
@@ -126,7 +126,7 @@ ROM until step 5, so every existing tool (CDL, recomp seeds, patches) keeps work
    assets, a second game. Every new region is recorded in the ROM map generator and
    `map-editor-rules` budgets.
 6. **(Combo only)** dispatcher, SRAM segregation, and the transition routine from
-   `romhacks-and-ports.md` §2.2.
+   [combo-rom.md](combo-rom.md) §5.
 
 Milestone for the whole port: the converted ROM plays the same as the original under the
 lockstep comparison, with the second half still empty. Everything after is ordinary content.

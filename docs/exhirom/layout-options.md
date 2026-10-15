@@ -1,7 +1,7 @@
 # Evermore ROM layout: stay HiROM, ExHiROM, or SA-1?
 
 Status: **comparison and recommendation, nothing built.** Companion to
-[exhirom-port.md](exhirom-port.md). Labels: *(repo)* = read in our code/docs/ROM,
+[port.md](port.md). Labels: *(repo)* = read in our code/docs/ROM,
 *(core source)* = read in the bundled snes9x2005 core, *(hardware)* = generic SNES knowledge,
 *(estimate)* = my effort guess, not a measurement, *(to verify)* = check on the running game
 before relying on it.
@@ -64,7 +64,7 @@ flat 8 MB view.
 **As work: mostly no.** Both need the same first two steps:
 
 1. **De-mirror audit** — find and rewrite every read/execution that relies on a mirror
-   (`exhirom-port.md` §4 steps 1–2). For ExHiROM that is only the `$00–$3F:8000+`/`$40–$7D` users;
+   ([port.md](port.md) §4 steps 1–2). For ExHiROM that is only the `$00–$3F:8000+`/`$40–$7D` users;
    for SA-1 it is *all* `$8x–$Bx` users too, a superset.
 2. **Symbolise every pointer form** so code and data can move (the "shiftable disassembly",
    `docs/reverse-engineering/asm-to-c-port.md` §4, §8.1). The byte-identical Asar export from the

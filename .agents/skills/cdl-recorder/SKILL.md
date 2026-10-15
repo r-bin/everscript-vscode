@@ -171,4 +171,4 @@ The CDL library also seeds Ghidra/REA (functions at their `$8x` execution addres
 - **SA-1 port:** `functions.json` lists, per function, what keeps it on the S-CPU. The 12 SoE
   functions with no blockers and the ~190 that only touch WRAM are the first candidates; their WRAM
   ranges are what would move to BW-RAM / I-RAM. Cycles per function are recorded since v0.212.1 (`functions.json`, `bus.md`).
-- **ExHiROM / SA-1 layout ports:** `bus.md` is the audit (what ran or was read through which mirror); plan and gates in `docs/architecture/rom-layout-options.md` §5.
+- **ExHiROM / SA-1 layout ports:** `bus.md` is the audit (what ran or was read through which mirror); plan and gates in `docs/exhirom/layout-options.md` §5.

@@ -25,28 +25,7 @@ Investigating the technical feasibility of porting Secret of Mana rooms, enemies
 
 ---
 
-## 2. Side Quest: Combo ROM (Secret of Evermore + ALttP)
+## 2. Side Quest: Combo ROM (Secret of Evermore + a second game)
 
-Exploring the feasibility of creating an SMZ3-style single combo cartridge combining Secret of Evermore with another SNES title (e.g. A Link to the Past).
-
-> How and why to move SoE to ExHiROM (bus map, header/vectors, audit method, order of work): `docs/architecture/exhirom-port.md`.
-
-### 2.1 Architecture Analysis (SMZ3 Model)
-- **Memory Map (ExHiROM):**
-  - ALttP executes from banks `$00-$3F`.
-  - Super Metroid executes from `$80/$C0`.
-  - SoE is HiROM FastROM (`$31`, 3MB, 8KB SRAM). Its reset/NMI/IRQ vectors jump directly to bank `$80`.
-  - Therefore, SoE could reside natively at `$C0-$EF`, leaving `$F0-$FF` spare.
-- **SRAM Segregation:** Each game maintains its own dedicated SRAM bank (e.g. `$A0`, `$A1`).
-- **Game Switching:** Handled by saving state and force-loading a targeted entrance coordinate in the partner game; live WRAM does not survive cartridge transition.
-
-### 2.2 Required Engineering Steps
-1. **CDL Conflict Audit:** Run the CDL recorder over a complete SoE playthrough to identify all ROM reads through `$00-$3F:8000+` or `$40-$7D`. In ExHiROM, these mirror banks collide with ALttP and must be patched to absolute upper banks (`$C0+`).
-2. **SRAM Bank Relocation:** Relocate all SoE SRAM reads/writes to a dedicated SRAM bank.
-3. **Transition Routine:** Flush save data to SRAM, upload the target game's SPC700 sound driver, and jump directly to the target map entrance.
-4. **Shared Mechanics:** Shared item tables, cross-game pickup messages/sprites, and Everscript chest/gourd rewriting.
-
-### 2.3 Initial Spike & Comparison
-- **Prototype Spike:** Build test ExHiROM image with ALttP at `$00` and SoE at `$C0` using SMZ3's common dispatcher. Headless boot verification for both engines.
-- **Alternative:** Archipelago multiworld runs SoE and ALttP as two separate ROMs communicating over network. A single cartridge combo ROM is worthwhile only if seamless in-hardware transitions are desired.
-
+Moved to [`docs/exhirom/combo-rom.md`](../exhirom/combo-rom.md): where a second game fits, LoROM vs HiROM
+partners, candidate games, SMZ3-shaped architecture, steps. ExHiROM itself: [`docs/exhirom/`](../exhirom/README.md).

@@ -9,6 +9,11 @@ RAM addresses: [wram.md](wram.md). Mana maps as Evermore rooms: [evermore-rooms.
 
 Addresses are SNES bus addresses (`$CC:E270` = file offset `$0CE270`).
 
+ROM speed: **SlowROM.** Header at file `0x00FFC0`, map mode byte `$21` (HiROM, slow). No
+`STA`/`STX`/`STY`/`STZ`/`STA long` to `$420D` (MEMSEL) occurs anywhere in the ROM (byte search,
+US ROM). The game never switches FastROM on. Its code runs in banks `$00–$02` (the routines on
+this page) and reads data through `$C0+`. Use: [`docs/exhirom/combo-rom.md`](../exhirom/combo-rom.md) §3.
+
 ## Loading order — `$00:C481`
 
 Map id in `$DC`. Header pointer `$C8:7000 + id*2` (16-bit, bank `$C8`), 8 bytes:

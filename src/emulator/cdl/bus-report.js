@@ -4,7 +4,7 @@
  * emulator/cdl/bus-report.js
  *
  * bus.json / bus.md: what the recording says about moving Evermore to another
- * cartridge layout, in the order of the plan (docs/architecture/rom-layout-options.md):
+ * cartridge layout, in the order of the plan (docs/exhirom/layout-options.md):
  *   exhirom  bytes that ran / were read through $00-$3F or $40-$7D (those bytes
  *            change meaning in ExHiROM), the instructions that read them, and the
  *            control-flow edges that land there
@@ -74,7 +74,7 @@ function buildBusReport(lib, map, functions) {
 function busReportMd(r) {
     const L = [];
     L.push('# Bus-form report', '',
-        'Which mirror of the ROM the recorded program used (`bus.cdl`, `bus-sites.bin`), and where the cycles went. Only observed behaviour: no hits means "not seen yet", not "safe". Plan: `docs/architecture/rom-layout-options.md`.', '',
+        'Which mirror of the ROM the recorded program used (`bus.cdl`, `bus-sites.bin`), and where the cycles went. Only observed behaviour: no hits means "not seen yet", not "safe". Plan: `docs/exhirom/layout-options.md`.', '',
         `ROM layout: ${r.layout}. Bytes with a recorded bus form: ${r.recordedBytes}.`, '');
     for (const [key, title, why] of [
         ['exhirom', 'ExHiROM audit', 'Bytes seen through `$00-$3F:8000+` or `$40-$7D` change meaning in ExHiROM. Zero here after a long recording means the first 4 MB can stay identical.'],

@@ -95,7 +95,7 @@ gives argument conventions.
 
 ### G4 — SA-1
 
-Blocked by the HiROM layout ([other-tools.md](other-tools.md), `../evermore-sa1`); effort and alternatives: [rom-layout-options.md](../architecture/rom-layout-options.md). Needs a
+Blocked by the HiROM layout ([other-tools.md](other-tools.md), `../evermore-sa1`); effort and alternatives: [layout-options.md](../exhirom/layout-options.md). Needs a
 shiftable disassembly (every pointer form symbolised, [asm-to-c-port.md](asm-to-c-port.md) §8)
 so the code can move. Then `functions.json` SA-1 blockers and CDL cycle counts (improvement 7)
 pick the candidates.

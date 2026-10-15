@@ -114,7 +114,7 @@ answer there (`tools/exhirom/convert.js --upper hardware`).
 ## 7. ExHiROM (8 MB) build
 
 `node tools/exhirom/convert.js <clean rom> <out.sfc>` — plan and proof in
-`docs/architecture/exhirom-port.md`. Layout of the result:
+`docs/exhirom/port.md`. Layout of the result:
 - `0x000000–0x2FFFFF`: the original, unchanged except the header fields (`$FFD5 = $35`, `$FFD7 = $0D`,
   checksum pair). Still `$C0–$FF` and `$80–$BF` as above.
 - `0x300000–0x3FFFFF`: the cartridge's mirror of `0x200000+` (see §6).
