@@ -8,7 +8,8 @@
 //   <id>.anim.json        animated cells: frames (PNG data URIs, shared), when each starts
 //   <id>.objects.json     the map's objects: cell, kind word, flag bits, raw bytes
 //   <id>.edit.json        everything the editor starts from: both layers' metatile numbers, each
-//                         metatile's 4 collision bytes, the step events, the objects, the backdrop
+//                         metatile's 4 collision bytes, the step events, the character records, the event-flag
+//                         pieces and their states, the backdrop
 //   <id>.tiles.a.png / .tiles.b.png   layer A's / B's 192 metatiles as a 16x12 sheet (colour 0 clear)
 
 const mana = require('../mana');
@@ -121,6 +122,8 @@ function editModel(rom, id) {
         lead: b3 & 3, ownEvent: (b3 & 4) !== 0,
         events: ev,
         objects: mana.mapObjects(rom, id),
+        // The event-flag pieces: the parts of the map that change with the story, as states (src/mana/flag-pieces.ts).
+        pieces: mana.flagPieces(rom, m),
     });
 }
 

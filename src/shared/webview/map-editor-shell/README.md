@@ -11,9 +11,9 @@ page with it.
 
 | File | Role |
 |---|---|
-| `frame.js` | markup builders: `shellFrameHtml`, `shellRailHtml`, `shellRailTreeHtml`, `shellHeadHtml`, `shellCanvasParts` (the column in two halves around the svg), `shellToolButtonHtml` / `shellActButtonHtml` / `shellPillHtml` (+ `SHELL_TOOL_ICONS`), `shellStatusbarHtml`, `shellTabStripHtml`, `shellPanelHtml`, `shellSidebarTogglesHtml`; DOM: `shellDockMount` / `shellDockUnmount` |
+| `frame.js` | markup builders: `shellFrameHtml`, `shellRailHtml`, `shellRailTreeHtml`, `shellHeadHtml`, `shellCanvasParts` (the column in two halves around the svg), `shellToolButtonHtml` / `shellActButtonHtml` / `shellPillHtml` (+ `SHELL_TOOL_ICONS`), `shellSideBarHtml` (the Evermore level bar, the Mana variant bar), `shellStatusbarHtml`, `shellTabStripHtml`, `shellPanelHtml`, `shellSidebarTogglesHtml`; DOM: `shellDockMount` / `shellDockUnmount` |
 | `layout.js` | rail and dock resize handles, collapsed sidebars, compact (narrow window) overlay mode; preferences go through `shellSavePref` (a page sets `shellPrefSaver`) |
-| `zoom-pan.js` | `setupZoomPan(p)`: scale, pan offset, pinch, two-finger pan, the zoom chip; `p.pxPerUnit` says what one svg unit is (Evermore 8, Mana 1) |
+| `zoom-pan.js` | `setupZoomPan(p)`: scale, pan offset, pinch, two-finger pan, the zoom chip; one svg unit is 8 px in both games' editors |
 | `pan.js` | `shellPanStart` / `shellPanEnd`: dragging the map |
 | `rail.js` | group and area collapse, the search filter, `shellRailBind({onSelect, onNew})` |
 | `status.js` | `shellStatusBind(describe)`: the pointer's cell in the status bar |

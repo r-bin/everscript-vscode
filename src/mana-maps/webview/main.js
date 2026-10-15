@@ -59,7 +59,8 @@
     var group = null;
     areas.forEach(function (a) { (a.pictures || []).forEach(function (g) { if (g.indexOf(id) >= 0 && g.length > 1) group = g; }); });
     var same = group ? 'same picture: ' + group.filter(function (x) { return x !== id; }).map(function (x) { return (maps.get(x) || { hex: x }).hex; }).join(', ') : '';
-    return Object.assign({}, m, { name: row ? row.dataset.name : m.hex, areaName: area, note: [m.w + '×' + m.h, same].filter(Boolean).join(' · ') });
+    var variants = group ? group.slice().sort(function (a, b) { return a - b; }).map(function (x) { return { id: x, hex: (maps.get(x) || { hex: String(x) }).hex }; }) : [];
+    return Object.assign({}, m, { name: row ? row.dataset.name : m.hex, areaName: area, variants: variants, note: [m.w + '×' + m.h, same].filter(Boolean).join(' · ') });
   }
 
   function select(li) {
@@ -83,7 +84,8 @@
     readJson('maps/' + m.hex + '.edit.json', function (data) {
       if (opening !== id) return;
       if (!data) { panel.innerHTML = '<div class="rs rs-error"><div class="rs-h">Cannot open this map</div><div class="rs-note">The ROM could not decode it.</div></div>'; return; }
-      editor = manaEditorOpen({ entry: entryFor(id), data: data, somBase: init.somBase, state: state, save: save, readJson: readJson });
+      editor = manaEditorOpen({ entry: entryFor(id), data: data, somBase: init.somBase, state: state, save: save, readJson: readJson,
+        openVariant: function (vid) { var li = document.querySelector('.rn-map[data-map="' + vid + '"]'); if (li) select(li); } });
     });
   }
 

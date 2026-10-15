@@ -183,5 +183,40 @@ test('lists change through snapshots: apply restores before and after', () => {
     assert.strictEqual(M.manaEdStepAt(m, 0, 0), -1);
 });
 
+test('a state of a map change shows its cells over the map; what the user painted stays on top; it is a view, not an edit', () => {
+    const d = data();
+    d.pieces = [{ flag: 0x10, values: [0, 6], x: 1, y: 0, w: 2, h: 1, frames: [{ '0,0': { A: 3, B: -1 }, '1,0': { A: 4, B: -1 } }] }];
+    const m = M.manaEdModel(d);
+    assert.strictEqual(M.manaEdCell(m, 'A', 1, 0), 1, 'state 0 is the map as it opens');
+    m.pieceState[0] = 1;
+    assert.deepStrictEqual([M.manaEdCell(m, 'A', 1, 0), M.manaEdCell(m, 'A', 2, 0), M.manaEdCell(m, 'A', 0, 0)], [3, 4, 1]);
+    assert.strictEqual(M.manaEdCellChanged(m, 1, 0), true);
+    assert.strictEqual(M.manaEdCellEdited(m, 1, 0), false);
+    M.manaEdSetCell(m, 'A', 1, 0, 9);
+    assert.strictEqual(M.manaEdCell(m, 'A', 1, 0), 9, 'a painted cell wins over the state');
+    assert.strictEqual(M.manaEdCellEdited(m, 1, 0), true);
+    assert.strictEqual(M.manaEdCollisionView(m).floor.length, 6);
+    m.pieceState[0] = 0;
+    assert.strictEqual(M.manaEdCell(m, 'A', 2, 0), 1);
+});
+
+test('a piece\'s state has a box inside its area, and a click finds the piece whose area holds the cell', () => {
+    const p = { x: 4, y: 2, w: 3, h: 3, frames: [{ '1,1': { A: 5, B: -1 }, '2,1': { A: 5, B: -1 }, '1,2': { A: 5, B: -1 } }] };
+    assert.deepStrictEqual(M.manaEdFrameBounds(p, 1), { dx: 1, dy: 1, w: 2, h: 2, count: 3 });
+    assert.strictEqual(M.manaEdFrameBounds({ frames: [{}] }, 1), null);
+    const m = M.manaEdModel(Object.assign(data(), { pieces: [p] }));
+    assert.strictEqual(M.manaEdPieceAt(m, 5, 3), 0);
+    assert.strictEqual(M.manaEdPieceAt(m, 3, 3), -1);
+});
+
+test('records on one cell are all found, in order', () => {
+    const d = data();
+    d.objects.push({ x: 2, y: 1, flags: 0, kind: 0x420C, bytes: [0, 0, 2, 1, 0, 0, 0x0C, 0x42] });
+    const m = M.manaEdModel(d);
+    assert.deepStrictEqual(M.manaEdObjectsAt(m, 2, 1), [0, 1]);
+    assert.strictEqual(M.manaEdObjectAt(m, 2, 1), 1, 'the topmost is the last');
+    assert.deepStrictEqual(M.manaEdObjectsAt(m, 9, 9), []);
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

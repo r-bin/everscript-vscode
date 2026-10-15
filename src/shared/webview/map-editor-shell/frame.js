@@ -178,6 +178,25 @@ function shellStatusbarHtml(o) {
 }
 
 /**
+ * The side bar: a vertical pill on the card's edge with a heading and one round button per choice.
+ *   o.id, o.cls   the bar's id and extra class (`rg-variant-bar`); o.label the heading; o.aria its aria-label
+ *   o.items       [{text, attr: {'edit-level': 2}, on, tip, color, disabled}]  `color` is the button's accent
+ */
+function shellSideBarHtml(o) {
+  var html = '<div class="rg-level-bar' + (o.cls ? ' ' + o.cls : '') + '"' + (o.id ? ' id="' + o.id + '"' : '')
+    + ' role="radiogroup" aria-label="' + shellEscape(o.aria || o.label) + '">'
+    + '<span class="rg-level-h">' + shellEscape(o.label) + '</span>';
+  o.items.forEach(function (it) {
+    var attrs = '';
+    Object.keys(it.attr || {}).forEach(function (k) { attrs += ' data-' + k + '="' + shellEscape(it.attr[k]) + '"'; });
+    html += '<button class="rg-level-b' + (it.on ? ' on' : '') + '"' + attrs
+      + ' style="--lv:' + it.color + '" role="radio" aria-checked="' + !!it.on + '"'
+      + ' data-tip="' + shellEscape(it.tip || '') + '"' + (it.disabled ? ' disabled' : '') + '>' + shellEscape(it.text) + '</button>';
+  });
+  return html + '</div>';
+}
+
+/**
  * The strip of tabs at the top of the dock. `tabs`: [{value, label, on}]; each button carries
  * `data-<attr>="value"` (default `edit-active-tab`, the Evermore editor's delegated click key).
  */
@@ -271,7 +290,7 @@ function shellDockUnmount(dock) {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { shellEscape: shellEscape, shellFrameHtml: shellFrameHtml, shellRailHtml: shellRailHtml, shellHeadHtml: shellHeadHtml,
     shellCanvasParts: shellCanvasParts, shellToolButtonHtml: shellToolButtonHtml, shellActButtonHtml: shellActButtonHtml,
-    shellPillHtml: shellPillHtml, shellStatusbarHtml: shellStatusbarHtml, shellTabStripHtml: shellTabStripHtml,
+    shellPillHtml: shellPillHtml, shellSideBarHtml: shellSideBarHtml, shellStatusbarHtml: shellStatusbarHtml, shellTabStripHtml: shellTabStripHtml,
     shellRailTreeHtml: shellRailTreeHtml, shellPanelHtml: shellPanelHtml, shellSidebarTogglesHtml: shellSidebarTogglesHtml,
     statusPad2: statusPad2, STATUS_NO_XY: STATUS_NO_XY };
 }

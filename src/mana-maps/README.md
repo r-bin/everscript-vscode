@@ -6,15 +6,17 @@ Rules for agents: [AGENTS.md](AGENTS.md). Opened by **Everscript: Secret of Mana
 The page is the Evermore Rooms editor's, built from the same shared shell (`src/shared/webview/map-editor-shell/`):
 left, the rail of areas and their maps (search, collapse); middle, the map on a card with the floating pill
 (Select, Pencil, Erase, Pick, Undo, Redo) over its top edge, the zoom chip, the filter bar over its bottom edge
-(BG1 | BG2 | Collision, Animate, Specials, Objects, Triggers, Grid) and the status bar; right, the dock with
-Tile (the metatile picker, collision of the picked one), Object, Trigger and Info tabs. Zoom, pan, the resizable
+(BG1 | BG2 | Collision, Animate, Specials, Objects, Characters, Triggers, Grid) and the status bar; right, the dock with
+Tile (the metatile picker, collision of the picked one), Object (Characters and Map changes), Trigger and Info tabs. Zoom, pan, the resizable
 rail and dock and the compact narrow-window mode are the shell's.
 
 Like the Evermore pencil, the open tab decides what Pencil, Erase and Pick work on: a metatile (Tile; its
-collision comes with it), an object (Object: place, move, delete; kind and position editable, the other bytes
-kept) or a step event (Trigger: add, move, delete, set the number). **Nothing is saved**: the pill carries a
+collision comes with it), a character record (Object › Characters: place, move, delete; kind and position
+editable, the other bytes kept) or a step event (Trigger: add, move, delete, set the number). **Nothing is saved**: the pill carries a
 notice, and the edits last until the panel is closed (they survive opening another map).
-Details and the reasons: [docs/architecture/one-map-editor.md](../../docs/architecture/one-map-editor.md).
+**Map changes** are the event-flag pieces, drawn like Evermore objects (dashed area box, where each state draws,
+the open state's frame) with state chips; a chip shows the map with that state (read-only). A **variant bar** on the
+card's right edge opens the other maps that draw the same picture. Details and the reasons: [docs/architecture/one-map-editor.md](../../docs/architecture/one-map-editor.md).
 
 | File | Role |
 |---|---|

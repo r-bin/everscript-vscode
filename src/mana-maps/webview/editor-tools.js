@@ -24,8 +24,21 @@ function manaPillHtml(E) {
     shellActButtonHtml({ act: 'undo', icon: '↶', tip: 'Undo the last change (Ctrl+Z)', label: 'undo', disabled: !H.canUndo() }),
     shellActButtonHtml({ act: 'redo', icon: '↷', tip: 'Redo (Ctrl+Shift+Z)', label: 'redo', disabled: !H.canRedo() }),
   ];
-  return shellPillHtml([tools, history], H.dirty()
-    ? editNotSavedHtml('Secret of Mana map').replace('class="ed-notsaved"', 'class="ed-notsaved rg-notsaved"') : '');
+  return shellPillHtml([tools, history], manaVariantBarHtml(E) + (H.dirty()
+    ? editNotSavedHtml('Secret of Mana map').replace('class="ed-notsaved"', 'class="ed-notsaved rg-notsaved"') : ''));
+}
+
+/**
+ * The maps that draw the same picture as this one (same sets and pieces; their own characters and scripts), as the
+ * shell's side bar on the card's right edge — the Evermore level bar's twin. '' when the map has no variants.
+ */
+function manaVariantBarHtml(E) {
+  var v = E.entry.variants || [];
+  if (v.length < 2) return '';
+  return shellSideBarHtml({ id: 'rg-variant-bar', cls: 'rg-variant-bar', label: 'Variant', items: v.map(function (x, i) {
+    return { text: String(i + 1), attr: { 'mana-variant': x.id }, on: x.id === E.entry.id, color: 'var(--rg-accent)',
+      tip: 'Map ' + x.hex + ' (' + x.id + ') — draws the same picture, with its own characters and scripts' };
+  }) });
 }
 
 /** Redraw the pill in place (the wrapper is replaced in one write, like the Evermore editor's). */
@@ -37,7 +50,7 @@ function manaPillRefresh(E) {
 /** What the status line says while nothing else does: how much has changed. */
 function manaNoteSummary(E) {
   var n = 0, M = E.M;
-  for (var y = 0; y < M.h; y++) for (var x = 0; x < M.w; x++) if (manaEdCellChanged(M, x, y)) n++;
+  for (var y = 0; y < M.h; y++) for (var x = 0; x < M.w; x++) if (manaEdCellEdited(M, x, y)) n++;
   var el = document.getElementById('rg-edit-count');
   if (el) el.textContent = E.H.dirty() ? n + ' cell' + (n === 1 ? '' : 's') + ' changed' : 'nothing changed';
 }
@@ -64,11 +77,35 @@ function manaPaintCell(E, c) {
   if (E.st.collision || E.st.specials) manaStageOverlaysSoon(E);
 }
 
-/** The list a tab edits: {key, list, at(c) -> index}, or null on the Tile and Info tabs. */
+/**
+ * The list the open tab edits: {kind, key, list, at(c), pick(c)}, or null on the Tile, Map changes and Info tabs.
+ * `at` is the topmost entry on a cell; `pick` steps through the ones stacked there (a second click on the same
+ * cell takes the next record, so records on one cell can all be reached).
+ */
 function manaTabList(E) {
-  if (E.st.tab === 'object') return { kind: 'objects', key: 'obj', list: E.M.objects, at: function (c) { return manaEdObjectAt(E.M, c.x, c.y); } };
-  if (E.st.tab === 'trigger') return { kind: 'steps', key: 'step', list: E.M.steps, at: function (c) { return manaEdStepAt(E.M, c.x, c.y); } };
+  var M = E.M, S = E.S;
+  if (E.st.tab === 'object' && E.st.objSub === 'characters') {
+    return { kind: 'objects', key: 'obj', list: M.objects, at: function (c) { return manaEdObjectAt(M, c.x, c.y); },
+      pick: function (c) {
+        var all = manaEdObjectsAt(M, c.x, c.y), i = all.indexOf(S.sel.obj);
+        return !all.length ? -1 : i >= 0 ? all[(i + 1) % all.length] : all[all.length - 1];
+      } };
+  }
+  if (E.st.tab === 'trigger') {
+    var at = function (c) { return manaEdStepAt(M, c.x, c.y); };
+    return { kind: 'steps', key: 'step', list: M.steps, at: at, pick: at };
+  }
   return null;
+}
+
+/** On the Map changes sub-tab: the piece whose area holds the cell. Select and Pick choose it; nothing there is editable. */
+function manaPiecesActive(E) { return E.st.tab === 'object' && E.st.objSub === 'changes'; }
+
+/** Scroll the map so cell (x, y) is in the middle of the viewport. */
+function manaCenterOn(E, x, y) {
+  var zp = E.zp, m = zp._getViewportMetrics(), s = zp._getScale(zp.zoomState.scale);
+  var cx = (x + 0.5) * MANA_CELL, cy = (y + 0.5) * MANA_CELL;
+  zp._applyPan(Math.min(m.maxX, Math.max(m.minX, m.wW / 2 - cx * s)), Math.min(m.maxY, Math.max(m.minY, m.wH / 2 - cy * s)));
 }
 
 function manaListAdd(E, tl, c) {
@@ -95,8 +132,14 @@ function manaRecordList(E, kind, before) {
 function manaOnDown(E, e) {
   var c = manaCellAt(E, e), st = E.st, tl = manaTabList(E);
   if (!c) { if (st.tool === 'select' && shellPanStart(E.zp, E.pan, E.wrap, e)) e.preventDefault(); return; }
+  if (manaPiecesActive(E) && (st.tool === 'select' || st.tool === 'pick')) {
+    var pi = manaEdPieceAt(E.M, c.x, c.y);
+    if (pi >= 0) { E.S.sel.piece = pi; manaStageMarks(E); manaDockRender(E); e.stopPropagation(); e.preventDefault(); return; }
+    if (st.tool === 'select' && shellPanStart(E.zp, E.pan, E.wrap, e)) e.preventDefault();
+    return;
+  }
   if (st.tool === 'select') {
-    var hit = tl ? tl.at(c) : -1;
+    var hit = tl ? tl.pick(c) : -1;
     if (hit < 0) { if (shellPanStart(E.zp, E.pan, E.wrap, e)) e.preventDefault(); return; }
     E.S.sel[tl.key] = hit;
     E.H.begin();
@@ -108,13 +151,14 @@ function manaOnDown(E, e) {
   e.stopPropagation(); e.preventDefault();
   E.H.begin();
   if (st.tool === 'pick') {
-    if (tl) { var i = tl.at(c); if (i >= 0) { E.S.sel[tl.key] = i; manaStageOverlays(E); manaDockRender(E); } }
+    if (tl) { var i = tl.pick(c); if (i >= 0) { E.S.sel[tl.key] = i; manaStageOverlays(E); manaDockRender(E); } }
     else {
       var n = manaEdCell(E.M, st.layer, c.x, c.y);
       if (n >= 0 && n < 192) { st.tile = n; E.ctx.save(); manaDockRender(E); }
     }
     return;
   }
+  if (manaPiecesActive(E)) return;   // the map's changes are read-only
   if (!tl) { E.painting = true; manaPaintCell(E, c); return; }
   var at = tl.at(c);
   if (st.tool === 'erase') {

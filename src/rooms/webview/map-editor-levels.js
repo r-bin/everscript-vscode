@@ -25,16 +25,15 @@ function buildLevelBarHtml() {
   var cur = editLevel();
   // Locked, the level is the map's, not a choice (the lock is map-editor-toolbar.js's).
   var off = typeof editLocked === 'function' && editLocked();
-  var html = '<div class="rg-level-bar" id="rg-level-bar" role="radiogroup" aria-label="Level">'
-    + '<span class="rg-level-h">Level</span>';
+  var items = [];
   for (var p = 3; p >= 0; p--) {
-    html += '<button class="rg-level-b' + (p === cur ? ' on' : '') + '" data-edit-level="' + p + '"'
-      + ' style="--lv:' + LEVEL_COLORS[p] + '" role="radio" aria-checked="' + (p === cur) + '"'
-      + ' data-tip="' + escH('Level ' + p + (p === 1 ? ' (the usual one)' : '')
+    items.push({ text: String(p), attr: { 'edit-level': p }, on: p === cur, color: LEVEL_COLORS[p], disabled: off,
+      tip: 'Level ' + p + (p === 1 ? ' (the usual one)' : '')
         + ' — new tiles are drawn on it. Tiles on another level are walls, unless '
-        + 'plane-transparent: that is how bridges pass over tunnels.') + '"' + (off ? ' disabled' : '') + '>' + p + '</button>';
+        + 'plane-transparent: that is how bridges pass over tunnels.' });
   }
-  return html + '</div>';
+  // The bar's markup is the shell's (shellSideBarHtml): the Secret of Mana variant bar is the same one.
+  return shellSideBarHtml({ id: 'rg-level-bar', label: 'Level', aria: 'Level', items: items });
 }
 
 function editLevelPick(p) {

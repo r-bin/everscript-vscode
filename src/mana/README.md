@@ -17,6 +17,7 @@ Built by `npm run build:mana` (`tsconfig.mana.json`) into `dist/`; `index.js` is
 | `metatile-sheet.ts` | one layer's 192 metatiles as a plain picture sheet (editor picker, redrawing changed cells) | SNES PPU |
 | `areas.ts` | maps grouped into the areas players know | — |
 | `catalog.ts` | every map, its area, and the ids that draw the same picture (som:// and the Evermore rooms) | — |
+| `flag-pieces.ts` | the event-flag pieces: per flag, state 0 and one state per flag value that changes the cells, with the area box | `$00:CB90` |
 | `cuttable.ts` | cells a weapon changes: c2 `$Cn` -> metatile c3, which weapon types | `$01:D293`, `$01:D376` |
 | `objects.ts` | the map's objects: cell, kind word, flag bits (records after the header) | `$00:C481`, `$00:DD55` |
 | `events.ts` | the map's own event and each cell's step event | `$C8:4000`, `$00:B637`, `$00:D03A` |

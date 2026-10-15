@@ -23,6 +23,9 @@ function manaEdModel(d) {
     steps: (d.events && d.events.steps || []).map(function (s) { return { x: s.x, y: s.y, event: s.event }; }),
     onEnter: d.events ? d.events.onEnter : null,
     objects: (d.objects || []).map(function (o) { return { x: o.x, y: o.y, flags: o.flags, kind: o.kind, bytes: o.bytes.slice() }; }),
+    // The event-flag pieces (map changes) and which state of each is showing: a view choice, not an edit.
+    pieces: d.pieces || [],
+    pieceState: (d.pieces || []).map(function () { return 0; }),
   };
 }
 
@@ -34,9 +37,47 @@ function manaEdIndex(m, layer, x, y) {
   return (y % m.sizeB.h) * m.sizeB.w + (x % m.sizeB.w);
 }
 
+/** The cell a state of a piece shows at (x, y): {A, B}, or null. A later piece wins over an earlier one. */
+function manaEdStateCell(m, x, y) {
+  var out = null;
+  for (var i = 0; i < m.pieces.length; i++) {
+    var s = m.pieceState[i], p = m.pieces[i];
+    if (!s) continue;
+    var c = p.frames[s - 1] && p.frames[s - 1][(x - p.x) + ',' + (y - p.y)];
+    if (c) out = c;
+  }
+  return out;
+}
+
+/**
+ * The metatile showing at a cell: what the user painted there, else what the selected state of a piece puts
+ * there, else the map's own. (A painted cell wins: the user's edit is on top of any state.)
+ */
 function manaEdCell(m, layer, x, y) {
   if (layer === 'B' && !m.sizeB) return -1;
-  return (layer === 'A' ? m.a : m.b)[manaEdIndex(m, layer, x, y)];
+  var i = manaEdIndex(m, layer, x, y), arr = layer === 'A' ? m.a : m.b, orig = layer === 'A' ? m.origA : m.origB;
+  if (arr[i] !== orig[i]) return arr[i];
+  var st = manaEdStateCell(m, x, y);
+  return st && st[layer] >= 0 ? st[layer] : arr[i];
+}
+
+/** The box of the cells a piece's state changes, inside the piece's area: {dx, dy, w, h, count}, or null. */
+function manaEdFrameBounds(piece, s) {
+  var f = piece.frames[s - 1];
+  var keys = f ? Object.keys(f) : [];
+  if (!keys.length) return null;
+  var xs = keys.map(function (k) { return Number(k.split(',')[0]); }), ys = keys.map(function (k) { return Number(k.split(',')[1]); });
+  var x0 = Math.min.apply(null, xs), y0 = Math.min.apply(null, ys);
+  return { dx: x0, dy: y0, w: Math.max.apply(null, xs) - x0 + 1, h: Math.max.apply(null, ys) - y0 + 1, count: keys.length };
+}
+
+/** The topmost piece whose area holds the cell, or -1. */
+function manaEdPieceAt(m, x, y) {
+  for (var i = m.pieces.length - 1; i >= 0; i--) {
+    var p = m.pieces[i];
+    if (x >= p.x && y >= p.y && x < p.x + p.w && y < p.y + p.h) return i;
+  }
+  return -1;
 }
 
 /** The 4 collision bytes of metatile `n` of `layer`, or zeros past the 192. */
@@ -57,7 +98,7 @@ function manaEdCollisionView(m) {
   var floor = '', diagonal = '', switches = [], specials = [];
   for (var y = 0; y < m.h; y++) {
     for (var x = 0; x < m.w; x++) {
-      var d = manaEdDecodeCollision(manaEdTileCollision(m, 'A', m.a[y * m.w + x]));
+      var d = manaEdDecodeCollision(manaEdTileCollision(m, 'A', manaEdCell(m, 'A', x, y)));
       floor += d.floor; diagonal += d.diagonal;
       if (d.switches) switches.push([x, y]);
       if (d.special) specials.push({ x: x, y: y, kind: d.special });
@@ -66,13 +107,23 @@ function manaEdCollisionView(m) {
   return { w: m.w, h: m.h, floor: floor, diagonal: diagonal, switches: switches, specials: specials };
 }
 
-/** Whether layer A's cell (x, y) is drawn differently from how the map opened (either layer). */
-function manaEdCellChanged(m, x, y) {
-  var i = y * m.w + x;
-  if (m.a[i] !== m.origA[i]) return true;
+/** Whether the user painted this cell (a selected state does not count: that is a view, not an edit). */
+function manaEdCellEdited(m, x, y) {
+  if (m.a[y * m.w + x] !== m.origA[y * m.w + x]) return true;
   if (!m.sizeB) return false;
   var j = manaEdIndex(m, 'B', x, y);
   return m.b[j] !== m.origB[j];
+}
+
+/** Whether the cell is drawn differently from how the map opened: painted over, or changed by a selected state. */
+function manaEdCellChanged(m, x, y) {
+  var i = y * m.w + x;
+  if (m.a[i] !== m.origA[i]) return true;
+  if (m.sizeB) {
+    var j = manaEdIndex(m, 'B', x, y);
+    if (m.b[j] !== m.origB[j]) return true;
+  }
+  return !!manaEdStateCell(m, x, y);
 }
 
 /**
@@ -127,6 +178,13 @@ function manaEdObjectAt(m, x, y) {
   return -1;
 }
 
+/** Every record on a cell, in list order (several can stand on one: the game spawns what its flags allow). */
+function manaEdObjectsAt(m, x, y) {
+  var out = [];
+  for (var i = 0; i < m.objects.length; i++) if (m.objects[i].x === x && m.objects[i].y === y) out.push(i);
+  return out;
+}
+
 function manaEdStepAt(m, x, y) {
   for (var i = 0; i < m.steps.length; i++) if (m.steps[i].x === x && m.steps[i].y === y) return i;
   return -1;
@@ -135,6 +193,6 @@ function manaEdStepAt(m, x, y) {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { manaEdModel: manaEdModel, manaEdSetCell: manaEdSetCell, manaEdApply: manaEdApply, manaEdCell: manaEdCell,
     manaEdTileCollision: manaEdTileCollision, manaEdDecodeCollision: manaEdDecodeCollision, manaEdCollisionView: manaEdCollisionView,
-    manaEdCellChanged: manaEdCellChanged, manaEdNewObject: manaEdNewObject, manaEdPlaceObject: manaEdPlaceObject, manaEdSetKind: manaEdSetKind,
-    manaEdObjectAt: manaEdObjectAt, manaEdStepAt: manaEdStepAt, manaEdClone: manaEdClone, MANA_ED_MAX_OBJECTS: MANA_ED_MAX_OBJECTS };
+    manaEdCellChanged: manaEdCellChanged, manaEdCellEdited: manaEdCellEdited, manaEdNewObject: manaEdNewObject, manaEdPlaceObject: manaEdPlaceObject, manaEdSetKind: manaEdSetKind,
+    manaEdObjectAt: manaEdObjectAt, manaEdObjectsAt: manaEdObjectsAt, manaEdStateCell: manaEdStateCell, manaEdFrameBounds: manaEdFrameBounds, manaEdPieceAt: manaEdPieceAt, manaEdStepAt: manaEdStepAt, manaEdClone: manaEdClone, MANA_ED_MAX_OBJECTS: MANA_ED_MAX_OBJECTS };
 }

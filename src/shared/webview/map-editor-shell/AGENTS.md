@@ -12,7 +12,7 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2), part of `src/shared`. W
 
 ## Invariants
 - No game's words here: no rooms, families, metatiles, collision bits, ROM. A page passes content in; a hook
-  (`shellPrefSaver`, `railExtraHaystack`, `describe`, `onSelect`, `p.pxPerUnit`) carries anything game-shaped.
+  (`shellPrefSaver`, `railExtraHaystack`, `describe`, `onSelect`, a unit of 8 px) carries anything game-shaped.
 - The Evermore editor must run on every piece here (its tests prove it): do not fork a piece for one game —
   parametrise it, or leave the feature out of the other page until it can be shared.
 - Classes before ids in stylesheets (`.rg-edit-bar`, not `#rg-edit-bar`); the ids stay in the markup for scripts.

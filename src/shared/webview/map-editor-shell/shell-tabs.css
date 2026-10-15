@@ -87,3 +87,29 @@
 .rg-theme .rg-trigger-card{border:1px solid var(--rg-border);border-radius:7px;overflow:hidden}
 .rg-theme .rg-trigger-card.on{border-color:var(--rg-accent);background:var(--rg-bg-chrome)}
 .rg-theme .rg-trigger-card > .rg-trigger-row{border:none;border-radius:0}
+
+/* ── An object's card in the dock: its row, its states as chips, the open state's bar. */
+.rg-theme .rg-object-card{border:1px solid var(--rg-border);border-radius:7px;overflow:hidden}
+.rg-theme .rg-object-card.on{border-color:var(--rg-accent);background:var(--rg-bg-chrome)}
+.rg-theme .rg-object-card .rg-object-row,.rg-theme .rg-placed-card .rg-placed-row{border:none;border-radius:0}
+.rg-theme .rg-object-still{font-family:var(--rg-font-ui);font-size:11px;color:var(--rg-text-muted);margin-left:4px}
+.rg-theme .rg-object-expanded{padding:6px 8px 8px 30px;border-top:1px solid var(--rg-border)}
+.rg-theme .ro-chip-add{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px dashed var(--rg-border);border-radius:3px;background:transparent;color:var(--rg-text-secondary);cursor:pointer;font-size:16px;font-weight:bold}
+.rg-theme .ro-chip-add:hover{border-color:var(--rg-accent);color:var(--rg-accent)}
+.rg-theme .rg-object-frame-bar{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:11px;color:var(--rg-text-secondary)}
+.rg-theme .rg-obj-move{padding:1px 4px;font-size:9px}
+.rg-theme .rdf-xs{padding:2px 6px;font-size:11px}
+.rg-theme .rdf-warn{color:#ef4444;border-color:#ef4444}
+.rg-theme .rg-anim-frame-col{display:flex;flex-direction:column;align-items:center;gap:4px}
+
+/* ── A row's pictures (where the thing is in the map, what it looks like) and its second line. */
+.rg-theme .rg-trigger-where,.rg-theme .rg-trigger-tiles{
+  width:44px;height:30px;flex-shrink:0;border:1px solid var(--rg-border);border-radius:4px;
+  background:var(--rg-bg-app,#0b0b0d);image-rendering:pixelated;pointer-events:none;
+}
+.rg-theme .rg-trigger-where-map{opacity:.4}
+.rg-theme .rg-trigger-where-box{stroke-width:.6;fill-opacity:.7}
+.rg-theme .rg-trigger-where-b{fill:var(--rg-trigger-b);stroke:var(--rg-trigger-b)}
+.rg-theme .rg-trigger-where-step{fill:var(--rg-trigger-step);stroke:var(--rg-trigger-step)}
+.rg-theme .rg-trigger-what{display:block;font-family:var(--rg-font-ui);font-size:11px;color:var(--rg-text-muted);
+  overflow:hidden;text-overflow:ellipsis}

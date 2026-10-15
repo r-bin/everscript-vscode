@@ -50,19 +50,96 @@ function manaField(label, f, v, hex, digits) {
     + (hex ? '' : ' type="number" min="0" max="127"') + '></label>';
 }
 
-function manaObjectTab(E) {
+/** The sub-tabs of the Object tab (the shell's `.rg-subtabs`), with how many each holds. */
+function manaObjectSubtabs(E) {
+  var subs = [['characters', 'Characters', E.M.objects.length, 'The records the game turns into characters (enemies, people) when the map loads'],
+    ['changes', 'Map changes', E.M.pieces.length, 'The parts of the map that change as the story moves on: each is an area with states']];
+  return '<div class="rg-subtabs" role="tablist">' + subs.map(function (t) {
+    var on = E.st.objSub === t[0];
+    return '<button class="rg-subtab' + (on ? ' on' : '') + '" role="tab" aria-selected="' + on + '" data-obj-sub="' + t[0]
+      + '" title="' + shellEscape(t[3]) + '">' + t[1] + ' <span class="rs-note">' + t[2] + '</span></button>';
+  }).join('') + '</div>';
+}
+
+function manaCharactersTab(E) {
   var M = E.M, sel = E.S.sel.obj, o = M.objects[sel];
   var rows = M.objects.map(function (ob, i) {
-    return manaRowHtml('obj', i, '#' + i + ' · kind $' + manaEdHex(ob.kind, 4) + ' · ' + ob.x + ',' + ob.y, i === sel, 'Select this object');
+    var here = manaEdObjectsAt(M, ob.x, ob.y);
+    var shared = here.length > 1 ? ' · ' + (here.indexOf(i) + 1) + '/' + here.length + ' on this cell' : '';
+    return manaRowHtml('obj', i, '#' + i + ' · kind $' + manaEdHex(ob.kind, 4) + ' · ' + ob.x + ',' + ob.y + shared, i === sel,
+      'Select this record and show it on the map\nbytes ' + ob.bytes.map(function (b) { return manaEdHex(b, 2); }).join(' '));
   }).join('') || '<div class="rs-note">none on this map</div>';
   var inspector = o
     ? manaField('x', 'x', o.x) + manaField('y', 'y', o.y) + manaField('kind $', 'kind', o.kind, true, 4)
       + '<div class="mana-bytes">bytes ' + o.bytes.map(function (b) { return manaEdHex(b, 2); }).join(' ') + '</div>'
-    : '<div class="rs-note">Select an object to edit its position and kind.</div>';
-  return '<div class="rs-note">The map’s objects: the records the game turns into characters (enemies, people) when it loads. '
-    + 'The pencil places one (it copies the selected object’s bytes, else kind $C001); only position and kind are editable — the other bytes are not decoded and stay as they are.</div>'
+    : '<div class="rs-note">Select a record to edit its position and kind.</div>';
+  return '<div class="rs-note">The records the game turns into characters (enemies, people) when the map loads, drawn as circles. '
+    + 'Several records on one cell are one ring with a count: they look like variants of one character, and the game spawns what their flags allow. '
+    + 'The pencil places one (it copies the selected record’s bytes, else kind $C001); only position and kind are editable — the other bytes are not decoded and stay as they are.</div>'
     + '<div class="rg-trigger-list">' + rows + '</div>'
     + manaPanel(E, 'obj-sel', 'SELECTED', inspector, M.objects.length + ' / ' + MANA_ED_MAX_OBJECTS);
+}
+
+/**
+ * A piece's area as it looks in `state`: the map's picture under the area, and that state's cells over it
+ * (the Evermore object card's thumbnails). Drawn in game pixels, cropped by the viewBox.
+ */
+function manaPieceThumb(E, p, state, cls) {
+  var x = p.x * 16, y = p.y * 16, w = p.w * 16, h = p.h * 16, maxDim = Math.max(p.w, p.h, 1);
+  var tiles = '';
+  var f = state >= 1 ? p.frames[state - 1] : null;
+  Object.keys(f || {}).forEach(function (k) {
+    var q = k.split(',');
+    tiles += manaTileGroup(E, p.x + Number(q[0]), p.y + Number(q[1]), f[k].A, f[k].B).outerHTML;
+  });
+  var size = cls ? 'class="' + cls + '"' : 'class="ro-img" width="' + Math.round(30 * p.w / maxDim) + '" height="' + Math.round(30 * p.h / maxDim) + '"';
+  return '<svg ' + size + ' viewBox="' + x + ' ' + y + ' ' + w + ' ' + h + '" preserveAspectRatio="xMidYMid meet" aria-hidden="true">'
+    + '<image href="' + E.ctx.somBase + 'maps/' + E.entry.hex + '.png" x="0" y="0" width="' + E.W + '" height="' + E.HPX + '" preserveAspectRatio="none"/>' + tiles + '</svg>';
+}
+
+/** Where the piece sits in the map: the whole map, dimmed, its area lit (the Evermore card's first picture). */
+function manaPieceWhere(E, p) {
+  return '<svg class="rg-trigger-where" viewBox="0 0 ' + E.W + ' ' + E.HPX + '" preserveAspectRatio="xMidYMid meet" aria-hidden="true">'
+    + '<g class="rg-trigger-where-map"><image href="' + E.ctx.somBase + 'maps/' + E.entry.hex + '.png" x="0" y="0" width="' + E.W + '" height="' + E.HPX + '" preserveAspectRatio="none"/></g>'
+    + '<rect class="rg-object-where-box" x="' + (p.x * 16) + '" y="' + (p.y * 16) + '" width="' + (p.w * 16) + '" height="' + (p.h * 16) + '" style="stroke-width:6"/></svg>';
+}
+
+/** One map change as the Evermore Object tab draws an object: a card with its row, and its states as chips. */
+function manaPieceCardHtml(E, p, i) {
+  var M = E.M, sel = E.S.sel.piece === i, active = M.pieceState[i] || 0;
+  var title = 'Object ' + i + ' — event flag $' + manaEdHex(p.flag, 2) + ', ' + p.w + '×' + p.h + ' cells at ' + p.x + ',' + p.y;
+  var chips = '<div class="rg-object-expanded"><div class="ro-chips">';
+  for (var s = 0; s <= p.frames.length; s++) {
+    var b = s ? manaEdFrameBounds(p, s) : null;
+    var tip = s === 0 ? 'State 0 — the map as it opens (every flag 0)'
+      : 'State ' + s + ' — from flag $' + manaEdHex(p.flag, 2) + ' = ' + p.values[s] + (b ? ' · ' + b.w + '×' + b.h + ' (' + b.count + ' cells)' : ' · same as base');
+    chips += '<div class="rg-anim-frame-col"><button class="ro-chip' + (active === s ? ' sel' : '') + '" data-piece-state="' + i + ':' + s + '" title="' + shellEscape(tip) + '">'
+      + manaPieceThumb(E, p, s) + '<span class="ro-lbl">' + s + '</span></button><span class="rs-note">' + (s === 0 ? '0' : '= ' + p.values[s]) + '</span></div>';
+  }
+  chips += '</div>';
+  if (active >= 1) {
+    var cur = manaEdFrameBounds(p, active);
+    chips += '<div class="rg-object-frame-bar"><span class="rg-obj-frame-info">State ' + active + ' (flag $' + manaEdHex(p.flag, 2) + ' = ' + p.values[active] + '): '
+      + (cur ? cur.w + '×' + cur.h + ' (' + cur.count + ' cells)' : 'same as base') + '</span>'
+      + '<button class="rdf rdf-xs" data-piece-state="' + i + ':' + (active - 1) + '" title="' + (active === 1 ? 'State 0 (the map as it opens)' : 'State ' + (active - 1)) + '">◀</button>'
+      + '<button class="rdf rdf-xs" data-piece-state="' + i + ':' + (active + 1) + '" title="State ' + (active + 1) + '"' + (active >= p.frames.length ? ' disabled' : '') + '>▶</button></div>';
+  }
+  chips += '</div>';
+  return '<div class="rg-object-card' + (sel ? ' on' : '') + '"><div class="rg-trigger-row' + (sel ? ' on' : '') + '" data-piece="' + i + '" title="' + shellEscape(title) + '">'
+    + manaPieceWhere(E, p) + manaPieceThumb(E, p, active, 'rg-trigger-tiles')
+    + '<span class="rg-trigger-label">#' + i + ' · ' + p.w + '×' + p.h + ' cells'
+    + '<span class="rg-trigger-what">flag $' + manaEdHex(p.flag, 2) + ' · state ' + active + ' of ' + p.frames.length + '</span></span></div>' + chips + '</div>';
+}
+
+function manaChangesTab(E) {
+  var cards = E.M.pieces.map(function (p, i) { return manaPieceCardHtml(E, p, i); }).join('')
+    || '<div class="rs-note">This map has no parts that change with the story.</div>';
+  return '<div class="rs-note">Areas of the map that change as the story moves on (an event flag): state 0 is the map as it opens, each further state is what a higher flag value changes. '
+    + 'Pick a state to see the map with it; a dashed box outlines each area and where its states draw. Read-only for now.</div>' + cards;
+}
+
+function manaObjectTab(E) {
+  return manaObjectSubtabs(E) + (E.st.objSub === 'changes' ? manaChangesTab(E) : manaCharactersTab(E));
 }
 
 function manaTriggerTab(E) {
@@ -151,8 +228,31 @@ function manaDockBind(E) {
     }
     var del = t.closest('[data-del-obj],[data-del-step]');
     if (del) { var isObj = del.dataset.delObj !== undefined; E.S.sel[isObj ? 'obj' : 'step'] = Number(isObj ? del.dataset.delObj : del.dataset.delStep); manaDeleteSelected(E); return; }
+    var sub = t.closest('[data-obj-sub]');
+    if (sub) { E.st.objSub = sub.dataset.objSub; E.ctx.save(); manaStageOverlays(E); manaDockRender(E); return; }
+    var chip = t.closest('[data-piece-state]');
+    if (chip) {
+      if (chip.disabled) return;
+      var cs = chip.dataset.pieceState.split(':'), pi = Number(cs[0]);
+      E.S.sel.piece = pi; E.M.pieceState[pi] = Number(cs[1]);
+      manaStageEdits(E, null); manaStageOverlays(E); manaPillRefresh(E); manaDockRender(E); manaNoteSummary(E);
+      return;
+    }
+    var card = t.closest('[data-piece]');
+    if (card) {
+      var ci = Number(card.dataset.piece), pc = E.M.pieces[ci];
+      E.S.sel.piece = ci; manaStageMarks(E); manaDockRender(E);
+      manaCenterOn(E, pc.x + (pc.w - 1) / 2, pc.y + (pc.h - 1) / 2);
+      return;
+    }
     var row = t.closest('[data-row-obj],[data-row-step]');
-    if (row) { var o = row.dataset.rowObj !== undefined; E.S.sel[o ? 'obj' : 'step'] = Number(o ? row.dataset.rowObj : row.dataset.rowStep); manaStageOverlays(E); manaDockRender(E); }
+    if (row) {
+      var o = row.dataset.rowObj !== undefined, ri = Number(o ? row.dataset.rowObj : row.dataset.rowStep);
+      E.S.sel[o ? 'obj' : 'step'] = ri;
+      var target = o ? E.M.objects[ri] : E.M.steps[ri];
+      manaStageOverlays(E); manaDockRender(E);
+      if (target) manaCenterOn(E, target.x, target.y);
+    }
   });
   dock.addEventListener('change', function (ev) {
     var t = ev.target;

@@ -32,30 +32,13 @@
 /* ── Level bar (map-editor-levels.js) ─────────────────────────────────────
  * A vertical pill hanging on the card's left edge, like the tool pill on
  * its top edge: levels 3..0, each in its collision-overlay colour. */
-.rg-theme .rg-level-bar{
-  position:absolute;left:-19px;top:50%;transform:translateY(-50%);z-index:5;
-  display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 4px;
-  background:var(--rg-bg-float);border:1px solid var(--rg-border);border-radius:var(--rg-radius-pill);
-  box-shadow:var(--rg-shadow-float);font-family:var(--rg-font-ui);
-}
-.rg-theme .rg-level-h{font-size:8px;letter-spacing:.04em;text-transform:uppercase;color:var(--rg-text-secondary);
-  writing-mode:vertical-rl;transform:rotate(180deg);margin-bottom:2px}
-.rg-theme .rg-level-b{
-  position:relative;width:26px;height:26px;border-radius:var(--rg-radius-control);border:1px solid transparent;
-  background:transparent;color:var(--rg-text-secondary);font:600 11px var(--rg-font-ui);cursor:pointer;
-  box-shadow:inset 3px 0 0 var(--lv);
-}
-.rg-theme .rg-level-b:hover{background:var(--rg-bg-hover);color:var(--rg-text-primary)}
-.rg-theme .rg-level-b.on{background:color-mix(in srgb, var(--lv) 22%, transparent);color:var(--rg-text-primary);
-  border-color:var(--lv)}
-.rg-theme .rg-level-bar [data-tip]::after{
-  content:attr(data-tip);position:absolute;left:calc(100% + 10px);top:50%;transform:translateY(-50%);
-  width:max-content;max-width:240px;white-space:normal;text-align:left;padding:6px 9px;border-radius:6px;
-  background:var(--rg-bg-float);color:var(--rg-text-primary);border:1px solid var(--rg-border);
-  box-shadow:var(--rg-shadow-float);font:400 11px/1.4 var(--rg-font-ui);z-index:20;pointer-events:none;
-  visibility:hidden;opacity:0;transition:opacity 80ms ease-out 0s,visibility 0s 80ms;
-}
-.rg-theme .rg-level-bar [data-tip]:hover::after{visibility:visible;opacity:1;transition:opacity 80ms ease-out 350ms,visibility 0s 350ms}
+
+
+
+
+
+
+
 
 /* Stamped objects (map-editor-groups.js): faint while the Select tool is
  * out, solid when selected, dashed where a drag would put it. */
@@ -85,11 +68,10 @@
   box-shadow:0 0 0 100000px rgba(0,0,0,.4)}
 
 /* Objects (map-editor-objects.js): the area, dashed; the selected one solid and tinted. */
-.rg-theme { --rg-object: oklch(78% 0.13 200); }
-.rg-theme .rg-obj-area{fill:none;stroke:var(--rg-object);stroke-width:.12;stroke-dasharray:.45 .3;pointer-events:none}
-.rg-theme .rg-obj-area.sel{stroke-width:.2;stroke-dasharray:none;fill:var(--rg-object);fill-opacity:.1}
-.rg-theme .rg-obj-drag{stroke-dasharray:none;fill:var(--rg-object);fill-opacity:.18}
-.rg-theme .rg-object-where-box{fill:var(--rg-object);fill-opacity:.7;stroke:var(--rg-object);stroke-width:.6}
+
+
+
+
 .rg-theme .rg-edit-bar .rg-draw-object{color:var(--rg-object)}
 
 /* Animated tiles on the map (map-editor-anim-tab.js editAnimSvg): unfinished ones always, all on the Animation tab. */

@@ -8,7 +8,7 @@
 
 /** Sessions by map id; a session is {model, history, sel}. */
 var manaEdSessions = editSessionStore(function (id) {
-  var s = { model: manaEdModel(manaEdLoaded[id]), sel: { obj: -1, step: -1 }, onApply: null, onChange: null };
+  var s = { model: manaEdModel(manaEdLoaded[id]), sel: { obj: -1, step: -1, piece: -1 }, onApply: null, onChange: null };
   s.history = editHistoryCreate(function (change, which) {
     var cells = manaEdApply(s.model, change, which);
     if (s.onApply) s.onApply(cells);
@@ -34,7 +34,8 @@ function manaFiltersHtml(E) {
     chip('Collision', 'collision', 'What the player bumps into, from the metatiles’ collision bytes'),
   ]) + chip('Animate', 'animate', 'Play the animated tiles (cells you changed stay still)')
     + chip('Specials', 'specials', 'Special cells (collision byte 1 bit 7)')
-    + chip('Objects', 'objects', 'The map’s objects')
+    + chip('Objects', 'objects', 'The map’s objects: the parts of it that change with the story, with where each state draws')
+    + chip('Characters', 'characters', 'The character records (enemies, people) the game spawns when the map loads')
     + chip('Triggers', 'triggers', 'Step events: the cells that run an event when stepped on')
     + chip('Grid', 'grid', 'The 16 px grid') + '</div>';
 }
@@ -47,14 +48,14 @@ function renderEditHeadActs() {
 
 /**
  * Open the editor for map `ctx.entry` in `#room-detail`. `ctx`: {entry:{id,hex,w,h,name,areaName}, data (edit.json),
- * somBase, state (view prefs, persisted by ctx.save), save(), readJson(path, cb)}.
+ * somBase, state (view prefs, persisted by ctx.save), save(), readJson(path, cb), openVariant(id)}.
  * Returns {close()}: stop the animation and the keyboard and mouse handlers.
  */
 function manaEditorOpen(ctx) {
   var entry = ctx.entry, st = ctx.state;
   manaEdLoaded[entry.id] = ctx.data;
   var S = manaEdSessions.get(entry.id), M = S.model;
-  var defaults = { tool: 'paint', tab: 'tile', layer: 'A', tile: 0, a: true, b: true, collision: false, animate: true, specials: false, objects: false, triggers: true, grid: false };
+  var defaults = { tool: 'paint', tab: 'tile', layer: 'A', tile: 0, a: true, b: true, collision: false, animate: true, specials: false, objects: true, characters: false, triggers: true, grid: false, objSub: 'characters' };
   Object.keys(defaults).forEach(function (k) { if (st[k] === undefined) st[k] = defaults[k]; });
   if (st.layer === 'B' && !M.sizeB) st.layer = 'A';
   var E = { ctx: ctx, entry: entry, st: st, S: S, M: M, H: S.history, W: M.w * 16, HPX: M.h * 16, panelOpen: {}, closed: false, raf: 0,
@@ -63,11 +64,12 @@ function manaEditorOpen(ctx) {
   // E.H is the history; E.W and E.HPX are the map's size in pixels.
 
   var panel = document.getElementById('room-detail');
-  panel.className = 'rg-theme rg-editing';
+  // The object marks' labels and sub-frames are shown (the Evermore filter bar's ID and Sub-frames chips).
+  panel.className = 'rg-theme rg-editing show-obj-id show-obj-frames';
   if (typeof isCompactMode === 'function' && isCompactMode()) panel.classList.add('rg-compact');
   if (_layoutCollapsed.dock) panel.classList.add('dock-collapsed');
   var dispW = 520, dispH = Math.min(600, Math.round(dispW * E.HPX / E.W));
-  var parts = shellCanvasParts({ dispW: dispW, dispH: dispH, viewBox: '0 0 ' + E.W + ' ' + E.HPX, filtersHtml: manaFiltersHtml(E),
+  var parts = shellCanvasParts({ dispW: dispW, dispH: dispH, viewBox: '0 0 ' + (E.W / MANA_UNIT) + ' ' + (E.HPX / MANA_UNIT), filtersHtml: manaFiltersHtml(E),
     statusHtml: shellStatusbarHtml({ width: M.w, height: M.h, cellTitle: 'The cell under the pointer', sizeTitle: 'Map size in 16 px cells' }),
     zoomTitle: 'Zoom — 100% is one game pixel per screen pixel. Ctrl/⌘ + scroll over the map to pinch.' });
   panel.innerHTML = shellHeadHtml({ name: entry.name, tags: [{ cls: 'rd-vid', text: entry.hex }, { cls: 'rd-file', text: entry.note || '' }] })
@@ -85,8 +87,8 @@ function manaEditorOpen(ctx) {
   layoutApplyCollapsed();
   layoutUpdateCompact();
 
-  E.zp = { svg: E.svg, canvas: document.getElementById('rg-canvas'), wrap: E.wrap, W: E.W, H: E.HPX, dispW: dispW, dispH: dispH,
-    zoomState: { scale: 0 }, panX: 0, panY: 0, pxPerUnit: 1 };
+  E.zp = { svg: E.svg, canvas: document.getElementById('rg-canvas'), wrap: E.wrap, W: E.W / MANA_UNIT, H: E.HPX / MANA_UNIT, dispW: dispW, dispH: dispH,
+    zoomState: { scale: 0 }, panX: 0, panY: 0 };
   setupZoomPan(E.zp);
   manaStageStart(E);
   manaToolsBind(E);
@@ -108,6 +110,7 @@ function manaEditorOpen(ctx) {
     var b = t.closest('button');
     if (!b || b.disabled) return;
     if (b.dataset.editTool) { manaSetTool(E, b.dataset.editTool); return; }
+    if (b.dataset.manaVariant) { ctx.openVariant(Number(b.dataset.manaVariant)); return; }
     var act = b.dataset.editAct;
     if (act === 'undo') E.H.undo();
     else if (act === 'redo') E.H.redo();

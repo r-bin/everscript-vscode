@@ -194,14 +194,11 @@
 .rg-theme .rg-trigger-kind b{display:inline-block;min-width:1.1em;text-align:center}
 .rg-theme .rg-trigger-kind-b b{color:var(--rg-trigger-b)}
 .rg-theme .rg-trigger-kind-step b{color:var(--rg-trigger-step)}
-.rg-theme .rg-trigger-where,.rg-theme .rg-trigger-tiles{
-  width:44px;height:30px;flex-shrink:0;border:1px solid var(--rg-border);border-radius:4px;
-  background:var(--rg-bg-app,#0b0b0d);image-rendering:pixelated;pointer-events:none;
-}
-.rg-theme .rg-trigger-where-map{opacity:.4}
-.rg-theme .rg-trigger-where-box{stroke-width:.6;fill-opacity:.7}
-.rg-theme .rg-trigger-where-b{fill:var(--rg-trigger-b);stroke:var(--rg-trigger-b)}
-.rg-theme .rg-trigger-where-step{fill:var(--rg-trigger-step);stroke:var(--rg-trigger-step)}
+
+
+
+
+
 /* ── The armed look ────────────────────────────────────────────────────────
  * What the open tab will draw, select or erase — a special, a trigger kind,
  * a widget — wears the selected tile swatch's own accent ring
@@ -217,24 +214,24 @@
 .rg-theme .rg-start.sel .rg-start-cell{stroke:var(--rg-accent);stroke-width:.2;stroke-dasharray:none;fill:var(--rg-accent-soft);fill-opacity:.35}
 
 /* ── Object cluster & frames (map-editor-objects.js) ────────────────────────── */
-.rg-theme .rg-obj-cluster{fill:none;stroke:var(--rg-object);stroke-width:.14;stroke-dasharray:.3 .3;pointer-events:none}
-.rg-theme .rg-obj-cluster.sel{fill:var(--rg-object);fill-opacity:.06;stroke-width:.18}
-.rg-theme .rg-obj-frame{fill:none;stroke:var(--rg-object);stroke-width:.2;stroke-dasharray:none;pointer-events:none}
+
+
+
 /* One border around a whole object — its row and, when open, its states. */
-.rg-theme .rg-object-card{border:1px solid var(--rg-border);border-radius:7px;overflow:hidden}
-.rg-theme .rg-object-card.on{border-color:var(--rg-accent);background:var(--rg-bg-chrome)}
-.rg-theme .rg-object-card .rg-object-row,.rg-theme .rg-placed-card .rg-placed-row{border:none;border-radius:0}
+
+
+
 .rg-theme .rg-placed-card{margin-bottom:6px}
 .rg-theme .rg-widget-var-thumb{display:block;width:30px;height:30px;background-repeat:no-repeat;image-rendering:pixelated}
-.rg-theme .rg-object-still{font-family:var(--rg-font-ui);font-size:11px;color:var(--rg-text-muted);margin-left:4px}
-.rg-theme .rg-object-expanded{padding:6px 8px 8px 30px;border-top:1px solid var(--rg-border)}
-.rg-theme .ro-chip-add{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px dashed var(--rg-border);border-radius:3px;background:transparent;color:var(--rg-text-secondary);cursor:pointer;font-size:16px;font-weight:bold}
-.rg-theme .ro-chip-add:hover{border-color:var(--rg-accent);color:var(--rg-accent)}
-.rg-theme .rg-object-frame-bar{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:11px;color:var(--rg-text-secondary)}
-.rg-theme .rg-obj-frame-info{flex:1}
-.rg-theme .rg-obj-move{padding:1px 4px;font-size:9px}
-.rg-theme .rdf-xs{padding:2px 6px;font-size:11px}
-.rg-theme .rdf-warn{color:#ef4444;border-color:#ef4444}
+
+
+
+
+
+
+
+
+
 
 /* ── Info tab: CAPACITY bars and CHECKS, the mock's inspector layout ────── */
 .rg-theme .rg-info-sec{margin-bottom:24px;font-family:var(--rg-font-ui)}
@@ -289,7 +286,7 @@
 .rg-theme .rg-anim-set{display:flex;flex-direction:column;gap:4px;margin-bottom:6px}
 .rg-theme .rg-anim-set-line{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
 .rg-theme .rg-anim-set-line .rg-anim-timing-lbl{min-width:44px}
-.rg-theme .rg-anim-frame-col{display:flex;flex-direction:column;align-items:center;gap:4px}
+
 .rg-theme input.rg-anim-ticks{-moz-appearance:textfield;appearance:textfield;min-width:0}
 .rg-theme input.rg-anim-ticks::-webkit-inner-spin-button,.rg-theme input.rg-anim-ticks::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .rg-theme .rg-anim-ticks{width:52px;box-sizing:border-box;padding:2px 2px;border:1px solid var(--rg-border);border-radius:var(--rg-radius-control);background:var(--rg-bg-app);color:var(--rg-text-primary);font:11px var(--rg-font-mono);text-align:center}

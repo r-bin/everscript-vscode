@@ -181,5 +181,18 @@ test('the editor\'s data (edit.json, tiles sheets) is the library\'s map, cell b
     }
 });
 
+test('the event-flag pieces: the editor\'s data is the converter\'s objects; Water Palace 2 has three 3x6 areas with two states', () => {
+    const { flagObjects } = require('../../src/mana-to-evermore/pieces');
+    for (const id of [0x66, 0x8B]) {
+        const m = mana.loadMap(rom, id);
+        const d = JSON.parse(resolveSom(['maps', id.toString(16) + '.edit.json'], rom).read());
+        assert.deepStrictEqual(d.pieces, JSON.parse(JSON.stringify(flagObjects(rom, m))));
+    }
+    const wp = JSON.parse(resolveSom(['maps', '8b.edit.json'], rom).read()).pieces;
+    assert.deepStrictEqual(wp.map(p => [p.w, p.h, p.frames.length + 1]), [[3, 6, 2], [3, 6, 2], [3, 6, 2]]);
+    // A state's cells all lie inside its area.
+    for (const p of wp) for (const k of Object.keys(p.frames[0])) { const [x, y] = k.split(',').map(Number); assert.ok(x < p.w && y < p.h); }
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

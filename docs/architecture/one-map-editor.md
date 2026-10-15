@@ -72,6 +72,10 @@ Built (v0.211.0 – v0.212.0):
   filter bar, zoom/pan as the Rooms tab. Select / Pencil / Erase / Pick / Undo / Redo; the open tab (Tile,
   Object, Trigger) decides what the pencil draws, as in Evermore; Info tab; nothing saved, with the notice.
   Data: `som://rom/maps/<hex>.edit.json` and `.tiles.a.png` / `.tiles.b.png`.
+- Mana objects (v0.214.0): the Object tab has Characters (records; stacked ones one ring with a count) and Map
+  changes (the event-flag pieces as Evermore-style cards, states as chips, drawn with the Evermore object marks —
+  CSS moved into the shell); a variant bar (the shell's side bar, shared with the Evermore level bar) opens the maps
+  that draw the same picture. Map changes are read-only for now (painting into a state is not built).
 - Evermore tab: an unlocked converted Mana room shows the same notice; **Copy map** works for one (the host
   answers a donor of `0x1000 + map id` from the room's image). A saved copy needs the Mana ROM when reopened.
 

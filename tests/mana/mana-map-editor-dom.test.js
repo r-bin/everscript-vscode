@@ -89,24 +89,51 @@ async function main() {
     await click(0, 0);
     check('Pick takes the metatile under the pointer', /metatile \$03/.test(await info()), await info());
 
-    // Objects: the open tab decides what the pencil draws.
+    // Characters: the open tab decides what the pencil draws; records on one cell are one ring with a count.
     await p.click('#rg-tabstrip [data-mana-tab="object"]');
     const rings = () => p.locator('#rg-over .ed-objects .mo-ring').count();
-    check('the Object tab lists the map\'s object and the map rings it', await p.locator('[data-row-obj]').count() === 1 && await rings() === 1);
+    const rows = () => p.locator('[data-row-obj]').count();
+    check('the Object tab has two sub-tabs: Characters and Map changes', (await p.locator('.rg-subtab').allTextContents()).map(t => t.replace(/\s+\d+$/, '')).join() === 'Characters,Map changes');
+    check('Characters lists the three records; the map rings two cells (two records share one)', await rows() === 3 && await rings() === 2);
+    check('the two records on one cell are marked in the list and drawn as one ring with ×2',
+        /1\/2 on this cell/.test(await info()) && (await p.locator('#rg-over .ed-objects .mo-label').allTextContents()).includes('×2'));
+    await p.click('[data-edit-tool="select"]');
+    await click(0, 1);
+    const picked = () => p.evaluate(() => (document.querySelector('.rg-trigger-row.on') || {}).dataset && document.querySelector('.rg-trigger-row.on').dataset.rowObj);
+    const first = await picked();
+    await click(0, 1);
+    check('Select takes one of the stacked records, and a second click on the cell takes the next', first !== undefined && (await picked()) !== first, first + ' -> ' + await picked());
     await p.click('[data-edit-tool="paint"]');
     await click(4, 1);
-    check('with the pencil, a click on an empty cell places an object', await rings() === 2 && await p.locator('[data-row-obj]').count() === 2);
-    check('it copies the selected object\'s kind ($C001)', /kind \$C001/.test(await info()));
+    check('with the pencil, a click on an empty cell places a record', await rings() === 3 && await rows() === 4);
+    check('it copies the selected record\'s kind', /kind \$420[CD]/.test(await info()));
     await p.fill('#rg-tab-body [data-f="kind"]', 'c123');
     await p.dispatchEvent('#rg-tab-body [data-f="kind"]', 'change');
-    check('the kind field changes the row and the label', /kind \$C123/.test(await info()) && (await p.locator('#rg-over .ed-objects .mo-label').last().textContent()) === 'C123');
-    await p.click('[data-del-obj="1"]');
-    check('the row\'s × removes the object', await rings() === 1);
+    check('the kind field changes the row and the label', /kind \$C123/.test(await info()) && (await p.locator('#rg-over .ed-objects .mo-label').allTextContents()).includes('C123'));
+    await p.click('[data-del-obj="3"]');
+    check('the row\'s × removes the record', await rings() === 2 && await rows() === 3);
     await p.keyboard.press('Control+z');
-    check('Undo brings it back, with its edited kind', await rings() === 2 && /kind \$C123/.test(await info()));
+    check('Undo brings it back, with its edited kind', await rings() === 3 && /kind \$C123/.test(await info()));
     await p.click('[data-edit-tool="erase"]');
     await click(4, 1);
-    check('the eraser removes the object under the pointer on this tab', await rings() === 1);
+    check('the eraser removes the record under the pointer on this tab', await rings() === 2);
+
+    // Map changes: the event-flag pieces, as the Evermore Object tab draws objects.
+    await p.click('[data-obj-sub="changes"]');
+    check('Map changes shows a card for the piece, with its states as chips (0 and 1)', await p.locator('.rg-object-card').count() === 1 && await p.locator('.ro-chip').count() === 2);
+    check('the map outlines it like an Evermore object: the dashed area and its state\'s sub-frame, no circles',
+        await p.locator('#rg-marks .rg-obj-area').count() === 1 && await p.locator('#rg-marks .rg-obj-subframe').count() === 1 && await rings() === 0);
+    const before = await changed();
+    await p.click('[data-piece-state="0:1"]');
+    check('state 1 redraws the map with that state\'s cells (2 cells), without counting as an edit',
+        await changed() === before + 2 && await p.locator('.rg-notsaved').count() === 1 && /5 cells changed/.test(await p.textContent('#rg-edit-count')), String(await changed()));
+    check('the open state\'s frame is outlined and the card says which state and flag',
+        await p.locator('#rg-marks .rg-obj-frame').count() === 1 && /flag \$10 = 6/.test(await info()), await info());
+    await p.click('[data-edit-tool="paint"]');
+    await click(4, 1);
+    check('map changes are read-only: the pencil does nothing here', await changed() === before + 2);
+    await p.click('[data-piece-state="0:0"]');
+    check('state 0 puts the map back', await changed() === before);
 
     // Triggers: the map's step event; drag it with Select.
     await p.click('#rg-tabstrip [data-mana-tab="trigger"]');

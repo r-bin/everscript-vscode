@@ -21,7 +21,13 @@ What the folder does: [README.md](README.md).
   the feature out until it can be shared. `style.css` holds only what the shell does not cover (collision
   colours, the picker, the info rows, overlay marks) and uses the shell's tokens.
 - The rail lists every map by area; clicking one opens it in the editor. Dock tabs: Tile (metatile picker),
-  Object, Trigger, Info. Pill: Select, Pencil, Erase, Pick, Undo, Redo. Like the Evermore pencil, the open tab
+  Object (sub-tabs **Characters** — the 8-byte records, enemies and people together — and **Map changes** — the
+  event-flag pieces as Evermore-style cards with state chips), Trigger, Info. A variant bar on the card's right
+  edge (the shell's side bar, the level bar's twin) opens the maps that draw the same picture.
+- Only characters are circles (one ring with a count per cell). Map objects are drawn with the Evermore object
+  marks (`rg-obj-area`, `rg-obj-subframe`, `rg-obj-frame`, in the shell's CSS, in 8 px units: the stage's viewBox
+  is in those units and the pixel-sized content is in a `scale(1/8)` group). Map changes are read-only: a state is
+  a view (`pieceState` in the model), not an edit, and does not count as a change. Pill: Select, Pencil, Erase, Pick, Undo, Redo. Like the Evermore pencil, the open tab
   decides what Pencil / Erase / Pick work on (a metatile, an object, a step event).
 - **Nothing the editor changes is saved or written anywhere**; the pill's notice says so while a map has
   changes. Edits live in `manaEdSessions` (one per map) until the page closes. Write-back and "play my edited

@@ -30,13 +30,19 @@ const edit = id => ({
     collision: { a: collision, b: new Array(768).fill(0) },
     backdrop: [10, 20, 30], lead: 0, ownEvent: false,
     events: { onEnter: null, steps: [{ x: 1, y: 0, event: 0x123 }] },
-    objects: [{ index: 0, x: 2, y: 1, flags: 0, kind: 0xC001, bytes: [0, 0, 2, 1, 0, 0, 1, 0xC0] }],
+    // One record on its own cell, and two on (0, 1): the game spawns what their flags allow.
+    objects: [{ index: 0, x: 2, y: 1, flags: 0, kind: 0xC001, bytes: [0, 0, 2, 1, 0, 0, 1, 0xC0] },
+        { index: 1, x: 0, y: 1, flags: 0, kind: 0x420C, bytes: [0, 0, 0, 1, 0, 0, 0x0C, 0x42] },
+        { index: 2, x: 0, y: 1, flags: 0, kind: 0x420D, bytes: [0, 0, 0, 1, 0, 0, 0x0D, 0x42] }],
+    // One event-flag piece: cells (1,0) and (2,0) turn into metatile 3 from flag $10 = 6.
+    pieces: [{ flag: 0x10, values: [0, 6], x: 1, y: 0, w: 2, h: 1, frames: [{ '0,0': { A: 3, B: -1 }, '1,0': { A: 3, B: -1 } }] }],
 });
 
 const INIT = {
     title: 'Test',
     maps: [{ id: 176, hex: 'b0', w: 6, h: 2, area: 'Wide' }, { id: 177, hex: 'b1', w: 6, h: 2, area: 'Wide' }],
-    areas: [{ name: 'Wide', slug: 'wide', maps: [176, 177], pictures: [[176], [177]] }],
+    // The two maps draw the same picture: each is the other's variant.
+    areas: [{ name: 'Wide', slug: 'wide', maps: [176, 177], pictures: [[176, 177]] }],
 };
 
 const anim = { length: 60, images: ['data:image/png;base64,AA==', 'data:image/png;base64,AQ=='],

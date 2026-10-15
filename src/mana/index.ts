@@ -32,5 +32,7 @@ export { mapCatalog, slugOf } from './catalog';
 export type { MapCatalog, CatalogMap, CatalogArea } from './catalog';
 export { mapObjects } from './objects';
 export type { ManaObject } from './objects';
+export { flagPieces } from './flag-pieces';
+export type { FlagPiece } from './flag-pieces';
 export { cuttableCells, weaponTypes } from './cuttable';
 export type { CuttableCell } from './cuttable';

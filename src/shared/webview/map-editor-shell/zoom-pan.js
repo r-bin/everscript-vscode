@@ -3,8 +3,8 @@
 // two-finger panning. Game-neutral: the Evermore Rooms tab and the Secret of Mana editor both
 // call setupZoomPan with their own svg/canvas/wrap and units. Plain browser script: globals.
 
-// Evermore: one SVG viewBox unit is one 8 px ROM tile, so this is the scale at which the zoom chip
-// reads 100%. A page whose unit is something else passes `p.pxPerUnit` (Secret of Mana: 1, a unit is a pixel).
+// One SVG viewBox unit is one 8 px tile (both games' editors draw in these units), so this is the scale at
+// which the zoom chip reads 100%.
 var ZOOM_ROM_PX_PER_UNIT=8;
 // Fit the map to the viewport again — set by setupZoomPan for whoever changes
 // the map's extent (map-editor-newroom.js resizeMapTo).
@@ -67,7 +67,7 @@ function setupZoomPan(p){
     // 1:1 — "100%" means one ROM pixel per screen pixel, which is the only
     // reading of the number that means anything here.
     var lvl=document.getElementById('rg-zoom-level');
-    if(lvl)lvl.textContent=Math.round(getScale(s)*100/(p.pxPerUnit||ZOOM_ROM_PX_PER_UNIT))+'%';
+    if(lvl)lvl.textContent=Math.round(getScale(s)*100/ZOOM_ROM_PX_PER_UNIT)+'%';
   }
 
   /**

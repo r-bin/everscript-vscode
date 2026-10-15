@@ -228,3 +228,54 @@
 /* Only while its menu is closed — the menu opens where the tip would be. */
 .rg-theme .rg-edit-bar .rg-filter-group:has(.rg-filter-popup:not([hidden])) [data-tip]::after{display:none}
 
+
+/* The colour of an object's marks (the Evermore object tab and Secret of Mana's map changes). */
+.rg-theme { --rg-object: oklch(78% 0.13 200); }
+
+/* ── Map objects on the map: the area's dashed box, its number, where each state draws, the open state's frame.
+ * Evermore objects and Secret of Mana's event-flag pieces are drawn with these marks. The label and sub-frame
+ * are shown by `.show-obj-id` / `.show-obj-frames` on the panel (the Evermore filter bar sets them). */
+.rg-theme .rg-obj-area{fill:none;stroke:var(--rg-object);stroke-width:.12;stroke-dasharray:.45 .3;pointer-events:none}
+.rg-theme .rg-obj-area.sel{stroke-width:.2;stroke-dasharray:none;fill:var(--rg-object);fill-opacity:.1}
+.rg-theme .rg-obj-drag{stroke-dasharray:none;fill:var(--rg-object);fill-opacity:.18}
+.rg-theme .rg-object-where-box{fill:var(--rg-object);fill-opacity:.7;stroke:var(--rg-object);stroke-width:.6}
+.rg-theme .rg-obj-cluster{fill:none;stroke:var(--rg-object);stroke-width:.14;stroke-dasharray:.3 .3;pointer-events:none}
+.rg-theme .rg-obj-cluster.sel{fill:var(--rg-object);fill-opacity:.06;stroke-width:.18}
+.rg-theme .rg-obj-frame{fill:none;stroke:var(--rg-object);stroke-width:.2;stroke-dasharray:none;pointer-events:none}
+.rg-theme .rg-obj-frame-info{flex:1}
+.rg-theme text.rg-corner-lbl{font-family:var(--rg-font-mono);font-weight:700;paint-order:stroke;stroke:#000;
+  stroke-width:.06;user-select:none}
+.hide-trig-type .rg-trig-type{display:none}
+.rg-theme .rg-trig-id,.rg-theme .rg-obj-id,.rg-theme .rg-obj-subframe{display:none}
+.show-trig-id .rg-trig-id,.show-obj-id .rg-obj-id,.show-obj-frames .rg-obj-subframe{display:inline}
+.rg-theme .rg-obj-id{fill:var(--rg-object)}
+.rg-theme .rg-obj-subframe{fill:none;stroke:var(--rg-object);stroke-width:.1;stroke-dasharray:.2 .15;opacity:.8}
+
+/* ── The side bar: a vertical pill hanging on the card's edge, like the tool pill on its top edge. The Evermore
+ * level bar (levels 3..0, each in its collision colour, on the left) and the Secret of Mana variant bar (the maps
+ * that draw the same picture, on the right) are both this: `shellSideBarHtml` (frame.js). */
+.rg-theme .rg-level-bar{
+  position:absolute;left:-19px;top:50%;transform:translateY(-50%);z-index:5;
+  display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 4px;
+  background:var(--rg-bg-float);border:1px solid var(--rg-border);border-radius:var(--rg-radius-pill);
+  box-shadow:var(--rg-shadow-float);font-family:var(--rg-font-ui);
+}
+.rg-theme .rg-level-h{font-size:8px;letter-spacing:.04em;text-transform:uppercase;color:var(--rg-text-secondary);
+  writing-mode:vertical-rl;transform:rotate(180deg);margin-bottom:2px}
+.rg-theme .rg-level-b{
+  position:relative;width:26px;height:26px;border-radius:var(--rg-radius-control);border:1px solid transparent;
+  background:transparent;color:var(--rg-text-secondary);font:600 11px var(--rg-font-ui);cursor:pointer;
+  box-shadow:inset 3px 0 0 var(--lv);
+}
+.rg-theme .rg-level-b:hover{background:var(--rg-bg-hover);color:var(--rg-text-primary)}
+.rg-theme .rg-level-b.on{background:color-mix(in srgb, var(--lv) 22%, transparent);color:var(--rg-text-primary);
+  border-color:var(--lv)}
+.rg-theme .rg-level-bar [data-tip]::after{
+  content:attr(data-tip);position:absolute;left:calc(100% + 10px);top:50%;transform:translateY(-50%);
+  width:max-content;max-width:240px;white-space:normal;text-align:left;padding:6px 9px;border-radius:6px;
+  background:var(--rg-bg-float);color:var(--rg-text-primary);border:1px solid var(--rg-border);
+  box-shadow:var(--rg-shadow-float);font:400 11px/1.4 var(--rg-font-ui);z-index:20;pointer-events:none;
+  visibility:hidden;opacity:0;transition:opacity 80ms ease-out 0s,visibility 0s 80ms;
+}
+.rg-theme .rg-level-bar [data-tip]:hover::after{visibility:visible;opacity:1;transition:opacity 80ms ease-out 350ms,visibility 0s 350ms}
+.rg-theme .rg-canvas-zone .rg-variant-bar{left:auto;right:8px}

@@ -250,6 +250,9 @@ re-encoder, which does not exist).
 | collision | **per metatile** (4 bytes, "Collision") — a cell has none of its own | nothing directly: painting a metatile changes the cell's picture and collision together; the overlay is recomputed from the metatiles |
 | step events | cell → event word through the metatile number (`$C0 - b` and up) or the special-cell slot ("Step events"); the words are one list per map | a list of `{x, y, event}` read off the original map; add / move / delete / set the number. It is the cell → event result, not the encoding: painting a metatile does not change it |
 | objects | 8-byte records ("Objects"); bytes 2-3 position (high bits are flags), 6-7 the kind word; others unnamed | place / move / delete, position and kind word; every other byte kept as read (a new object copies the selected one's bytes, else kind `$C001`, the commonest). At most `$30` (a list of `$31` stops the game) |
+| characters | the 8-byte records above; several can stand on one cell (e.g. Water Palace 2: three at 17,38, kinds `$420C`-`$420E`); enemies and people are not told apart | listed together as "Characters"; one ring with a count per cell, the only things drawn as circles |
+| event-flag pieces ("map changes") | a piece is placed only while its flag is in range (`$00:CB90`): the map changes as the story moves on | shown as Evermore draws an object: an area box with its states (state 0 = every flag 0, one state per flag value that changes cells), each state's cells outlined; pick a state to see the map with it; read-only (`src/mana/flag-pieces.ts`) |
+| picture variants | many map ids draw the same picture (same sets and pieces) with different characters and scripts ("Areas") | a variant bar on the card's right edge opens another variant |
 | scripts | what an event does is not decoded | shown as the event number only |
 
 Changed cells are redrawn from the metatile sheets (`som://rom/maps/<hex>.tiles.a.png` / `.b.png`)

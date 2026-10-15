@@ -69,7 +69,7 @@ async function main() {
         shell.head === 'Wide 1' && shell.zoom && shell.statusbar && shell.dock && shell.cardPill, JSON.stringify(shell));
     check('the pill is the Evermore editor\'s: select, pencil, erase, pick', shell.pill.join() === 'select,pencil,erase,pick', shell.pill.join());
     check('the dock\'s tab strip is the shell\'s: Tile | Object | Trigger | Info', shell.tabs.join() === 'Tile,Object,Trigger,Info', shell.tabs.join());
-    check('the filter bar is the shared segmented pill: BG1 | BG2 | Collision, then the chips', shell.filters.join() === 'BG1,BG2,Collision,Animate,Specials,Objects,Triggers,Grid', shell.filters.join());
+    check('the filter bar is the shared segmented pill: BG1 | BG2 | Collision, then the chips', shell.filters.join() === 'BG1,BG2,Collision,Animate,Specials,Objects,Characters,Triggers,Grid', shell.filters.join());
 
     const fit = await p.evaluate(() => { const w = document.getElementById('rg-wrap').getBoundingClientRect(), s = document.getElementById('rg-svg').getBoundingClientRect(); return { ww: w.width, sw: s.width, sh: s.height }; });
     check('the map fits its viewport and keeps its shape (6x2 cells -> 3:1)', Math.abs(fit.sw / fit.sh - 3) < 0.05 && fit.sw <= fit.ww + 1, JSON.stringify(fit));
@@ -78,15 +78,28 @@ async function main() {
 
     await p.click('.rg-view-filters [data-toggle="collision"]');
     await p.click('.rg-view-filters [data-toggle="specials"]');
-    await p.click('.rg-view-filters [data-toggle="objects"]');
+    await p.click('.rg-view-filters [data-toggle="characters"]');
     await p.waitForTimeout(200);
     const ov = await p.evaluate(() => ({
         classes: [...document.querySelectorAll('#rg-over .mm-collision path')].map(e => e.getAttribute('class')).sort(),
         label: (document.querySelector('#rg-over .ms-label') || {}).textContent,
         ring: document.querySelectorAll('#rg-over .ed-objects .mo-ring').length,
+        labels: [...document.querySelectorAll('#rg-over .ed-objects .mo-label')].map(e => e.textContent).sort(),
+        marks: document.querySelectorAll('#rg-marks .rg-obj-area').length,
     }));
     check('the collision overlay is drawn from the metatiles\' collision: level-2 floor (all of this map) is the plain ground', ov.classes.length === 0 && await p.locator('#rg-over .mm-collision').count() === 1, ov.classes.join());
-    check('the objects overlay rings the map\'s object', ov.ring === 1, JSON.stringify(ov));
+    check('only characters are circles: records on one cell are one ring with a count (3 records, 2 cells)', ov.ring === 2 && ov.labels.join() === 'C001,×2', JSON.stringify(ov));
+    check('the map\'s changing area is drawn as Evermore draws an object: a dashed box (rg-obj-area), not a circle', ov.marks === 1, JSON.stringify(ov));
+    const box = await p.evaluate(() => { const r = document.querySelector('#rg-marks .rg-obj-area'); return ['x', 'y', 'width', 'height'].map(a => +r.getAttribute(a)); });
+    check('its box is the piece\'s area in the Evermore units (2 per cell): 2,0 4x2', box.join() === '2,0,4,2', box.join());
+    check('the variant bar lists the maps that draw the same picture, this one lit', await p.locator('#rg-variant-bar .rg-level-b').count() === 2 && await p.locator('#rg-variant-bar .rg-level-b.on').textContent() === '1');
+    await p.click('#rg-variant-bar .rg-level-b:not(.on)');
+    await p.waitForSelector('#rg-svg');
+    await p.waitForTimeout(300);
+    check('a click on a variant opens that map in the same editor', (await p.textContent('.rd-head .rd-name')) === 'Wide 2' && await p.locator('#rg-variant-bar .rg-level-b.on').textContent() === '2');
+    await p.click('li.rn-map[data-map="176"]');
+    await p.waitForSelector('#rg-svg');
+    await p.waitForTimeout(300);
 
     await p.click('.rg-view-filters [data-toggle="a"]');
     await p.waitForTimeout(200);

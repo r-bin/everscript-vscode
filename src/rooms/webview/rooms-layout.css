@@ -3,8 +3,7 @@
  * (one screen, resize handles, the map filling the space between the bars, the header, the collapsed
  * and compact overlay states) is the shared shell's (src/shared/webview/map-editor-shell/shell-layout.css). */
 
-.rg-theme .rg-trigger-what{display:block;font-family:var(--rg-font-ui);font-size:11px;color:var(--rg-text-muted);
-  overflow:hidden;text-overflow:ellipsis}
+
 .rg-theme .rg-trigger-body{padding:6px 10px 8px 30px;border-top:1px solid var(--rg-border);font-size:11px}
 .rg-theme .rg-enter-body{padding-left:10px;border:1px solid var(--rg-border);border-radius:7px;margin-top:6px}
 .rg-theme .rg-script{display:flex;flex-direction:column;gap:1px;margin-top:4px;font-family:var(--rg-font-mono);
@@ -29,13 +28,12 @@
 /* ── Map labels: trigger type/script id, object number, sub-frames ─────────
  * Drawn always (map-editor-drawable.js editCornerLabelSvg, map-editor-objects.js),
  * shown by the filter bar's Triggers and Objects menus. */
-.rg-theme text.rg-corner-lbl{font-family:var(--rg-font-mono);font-weight:700;paint-order:stroke;stroke:#000;
-  stroke-width:.06;user-select:none}
-.hide-trig-type .rg-trig-type{display:none}
-.rg-theme .rg-trig-id,.rg-theme .rg-obj-id,.rg-theme .rg-obj-subframe{display:none}
-.show-trig-id .rg-trig-id,.show-obj-id .rg-obj-id,.show-obj-frames .rg-obj-subframe{display:inline}
-.rg-theme .rg-obj-id{fill:var(--rg-object)}
-.rg-theme .rg-obj-subframe{fill:none;stroke:var(--rg-object);stroke-width:.1;stroke-dasharray:.2 .15;opacity:.8}
+
+
+
+
+
+
 
 /* The Trigger and Object tabs' "Loot only" quick filter. */
 .rg-theme .rg-list-filter{margin:6px 0 2px;display:flex;gap:4px}
