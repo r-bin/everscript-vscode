@@ -68,6 +68,7 @@ of:
 | `STATE_FLOW.md` | Authoritative state ownership table |
 | `docs/architecture/domain-overview.md` | Which `src/` domains to load for a given task |
 | `docs/architecture/one-map-editor.md` | Decided plan: one map editor (core + per-game adapter) for Evermore and Secret of Mana, what is saved, order of work — read before touching `src/rooms/webview/map-editor*` or `src/mana-maps` |
+| `docs/architecture/exhirom-port.md` | Plan: why and how to port Evermore from HiROM to ExHiROM (bus map, vectors/header, mirror-read audit, SMZ3 model) |
 | `tools/recomp/` | `room-nav.js` (room triggers/spawns → headless script lines), `check-obj-tiles.js`, `s9x-run.js` (same script on snes9x); `npm run recomp`: CDL + names + assets → Asar (byte-identical) + Mesen2 files → snesrecomp host project (`out/recomp/project/`, generated) + our glue (`tools/recomp/host/`, the only game-specific host files in git) → playable `out/recomp/SecretOfEvermore-<os>-<arch>/` + `REPORT.md`; `npm run recomp:lockstep`: that game vs snes9x |
 | `scripts/` | Shell wrappers for the npm commands: `build-plugin.sh`, `test.sh`, `build-recomp.sh`, `play-recomp.sh`, `lockstep.sh`, `release.sh` (see `scripts/README.md`) |
 | `src/scripts-tab/` | Scripts tab (radar): Everscript + map, animation and alchemy scripts + animation, music sequences + silent player — not `src/script/` (the decoder) |

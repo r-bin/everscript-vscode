@@ -29,6 +29,8 @@ Investigating the technical feasibility of porting Secret of Mana rooms, enemies
 
 Exploring the feasibility of creating an SMZ3-style single combo cartridge combining Secret of Evermore with another SNES title (e.g. A Link to the Past).
 
+> How and why to move SoE to ExHiROM (bus map, header/vectors, audit method, order of work): `docs/architecture/exhirom-port.md`.
+
 ### 2.1 Architecture Analysis (SMZ3 Model)
 - **Memory Map (ExHiROM):**
   - ALttP executes from banks `$00-$3F`.
