@@ -20,9 +20,12 @@ What the folder does: [README.md](README.md).
   with its tab strip, layout, zoom and pan. Do not rebuild a piece here: parametrise it in the shell, or leave
   the feature out until it can be shared. `style.css` holds only what the shell does not cover (collision
   colours, the picker, the info rows, overlay marks) and uses the shell's tokens.
-- The rail lists every map by area; clicking one opens it in the editor. Dock tabs: Tile (metatile picker),
-  Object (sub-tabs **Characters** — the 8-byte records, enemies and people together — and **Map changes** — the
-  event-flag pieces as Evermore-style cards with state chips), Trigger, Info. A variant bar on the card's right
+- The rail lists every map by area; clicking one opens it in the editor. Dock tabs: Tile (sub-tabs **Tiles** — the
+  metatile picker — and **Collision**), Special (stairs, push, layer switch), Object (sub-tabs **Characters** — the 8-byte records, enemies and people together — and **Map changes** — the
+  event-flag pieces as Evermore-style cards with state chips), Trigger (step on / walk into; exits and on-hit cells), Info.
+- Every filter chip shows or hides its overlay. A tab that edits an overlay keeps its chip on and locked
+  (`manaForcedBy` in editor.js); nothing else may force a chip. The animation is played inside `#rg-px` (pixels),
+  right after the picture — on the svg root it lands in the 8 px viewBox units, 8× too big (the v0.212 bug). A variant bar on the card's right
   edge (the shell's side bar, the level bar's twin) opens the maps that draw the same picture.
 - Only characters are circles (one ring with a count per cell). Map objects are drawn with the Evermore object
   marks (`rg-obj-area`, `rg-obj-subframe`, `rg-obj-frame`, in the shell's CSS, in 8 px units: the stage's viewBox
@@ -33,8 +36,11 @@ What the folder does: [README.md](README.md).
   changes. Edits live in `manaEdSessions` (one per map) until the page closes. Write-back and "play my edited
   map" need Mana's map re-encoded and are deliberately not built
   ([docs/architecture/one-map-editor.md](../../docs/architecture/one-map-editor.md)).
-- Collision is per metatile in Mana, never per cell: painting a metatile changes picture and collision
-  together; there is no free collision brush (it would invent data the game does not have). Step events and
+- Collision is per metatile in Mana, never per cell. The user draws what a cell should be (collision, specials,
+  how its trigger fires) as a *wish*; `editor-props.js` solves wishes into metatiles: one with the same picture
+  and bytes, else a copy (every byte kept, only the wished fields changed) in a slot the map does not use — never
+  0, never a step-event metatile, never a cut result. Where nothing fits the cell keeps its own and is marked “?”:
+  never round a drawing to a shape Mana does not have. On one byte (c2) the last wish drawn wins. Step events and
   objects are edited as lists; only the fields documented in `docs/mana/README.md` are editable, every other
   byte is kept as read.
 - History, sessions and the "not saved" notice are the core's (`src/shared/webview/map-editor-core/`).
@@ -56,4 +62,6 @@ What the folder does: [README.md](README.md).
 - `tests/mana/mana-map-editor-dom.test.js` — the editor page, same harness (`tests/mana/panel-page.js`):
   paint, drag, undo/redo, objects, triggers, the session, the notice.
 - `tests/mana/mana-editor-core.test.js` — the core and `editor-model.js` (unit).
+- `tests/mana/mana-editor-props.test.js` — cell properties and the solver (unit).
+- `tests/mana/mana-editor-cells-dom.test.js` — every chip, the forced chips, Tile › Collision, Special, Trigger kinds.
 - `tests/mana/mana-rom.test.js` — `edit.json` and the sheets against the library (needs the ROM).

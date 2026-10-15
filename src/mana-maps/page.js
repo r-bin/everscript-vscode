@@ -32,7 +32,8 @@ const SCRIPTS = [
     path.join(CORE, 'edit-history.js'), path.join(CORE, 'edit-session.js'), path.join(CORE, 'edit-tools.js'),
     path.join(SHELL, 'frame.js'), path.join(SHELL, 'layout.js'), path.join(SHELL, 'zoom-pan.js'),
     path.join(SHELL, 'pan.js'), path.join(SHELL, 'rail.js'), path.join(SHELL, 'status.js'),
-    ...['editor-model.js', 'map-svg.js', 'editor-stage.js', 'editor-tools.js', 'editor-dock.js', 'editor.js', 'main.js'].map(f => path.join(WEBVIEW, f)),
+    ...['editor-model.js', 'editor-props.js', 'map-svg.js', 'editor-overlays.js', 'editor-stage.js', 'editor-tools.js', 'editor-dock.js',
+        'editor-dock-cells.js', 'editor.js', 'main.js'].map(f => path.join(WEBVIEW, f)),
 ];
 
 /** Every directory the page reads from (the host's localResourceRoots). */

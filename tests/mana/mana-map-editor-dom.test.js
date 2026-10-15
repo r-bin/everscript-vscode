@@ -144,7 +144,7 @@ async function main() {
     check('Select drags a step event to another cell', await p.evaluate(() => +document.querySelector('#rg-over .ed-trig').getAttribute('x')) === 5 * 16 + 1);
     await p.click('[data-edit-tool="paint"]');
     await click(2, 0);
-    check('with the pencil, a click adds a step event with the selected one\'s number', await p.locator('[data-row-step]').count() === 2 && /#1 · event \$123/.test(await info()));
+    check('with the pencil, a click adds a step event with the selected one\'s number', await p.locator('[data-row-step]').count() === 2 && /#1 · walk into · event \$123/.test(await info()));
 
     // The session survives opening another map and coming back.
     await p.click('li.rn-map[data-map="177"]');

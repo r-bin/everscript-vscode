@@ -1,6 +1,7 @@
 'use strict';
 // A made-up Secret of Mana map for the page tests: 6x2 cells, a hand-made metatile sheet (metatile n is a
-// solid colour, n=0 clear), collision, one step event, one object, an animation. No ROM bytes.
+// solid colour, n=0 clear), collision, one step event, one object, an animation; map b1 also a cuttable bush,
+// a strike cell, an exit and stairs. No ROM bytes.
 
 const fs = require('fs');
 const path = require('path');
@@ -23,10 +24,14 @@ const collision = new Array(192 * 4).fill(0);
 collision[1 * 4] = 2; collision[2 * 4] = 2;       // metatiles 1, 2: level-2 floor
 collision[3 * 4] = 3;                             // metatile 3: a wall
 collision[4 * 4 + 1] = 0x87;                      // metatile 4: a special cell
+// Map b1 also shows: 5 a bush cut by weapon type 1 into metatile 6, 7 a strike cell (event $6F8), 8 an exit
+// back to the previous map, 9 stairs. All level-2 floor like the rest.
+[[5, [2, 0, 0xC1, 6]], [6, [2, 0, 0, 0]], [7, [2, 0, 0xF8, 0x6F]], [8, [2, 0x10, 0, 0]], [9, [2, 0, 0x21, 0]]]
+    .forEach(([n, c]) => c.forEach((b, k) => { collision[n * 4 + k] = b; }));
 
 const edit = id => ({
     id, w: 6, h: 2, sizeB: null,
-    a: [1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2], b: [],
+    a: id === 177 ? [1, 1, 1, 1, 1, 9, 2, 2, 2, 5, 7, 8] : [1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2], b: [],
     collision: { a: collision, b: new Array(768).fill(0) },
     backdrop: [10, 20, 30], lead: 0, ownEvent: false,
     events: { onEnter: null, steps: [{ x: 1, y: 0, event: 0x123 }] },

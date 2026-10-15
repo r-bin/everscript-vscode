@@ -1,7 +1,7 @@
 // Ownership: the map on screen in the Secret of Mana editor — what goes inside the shell's `#rg-svg`: the
 // map's own picture, the animation, the cells the user changed or a selected state changes (redrawn from the
-// metatile sheets), the grid and the overlays (collision, specials, step events, the characters, the hovered
-// thing), and the map objects' marks. One map, one SVG with the Evermore editor's units (the viewBox is in
+// metatile sheets), the grid, the overlays (drawn by editor-overlays.js; the characters and the hovered
+// thing here), and the map objects' marks. One map, one SVG with the Evermore editor's units (the viewBox is in
 // 8 px units, a cell is 2), so the shell's zoom and pan — and the object marks' shared CSS, which is written
 // in those units — work on it unchanged. The pixel-sized content sits in `#rg-px`, scaled by 1/8.
 // State lives on the editor instance `E` (editor.js); nothing is owned here.
@@ -47,7 +47,8 @@ function manaStageAnimate(E) {
   E.ctx.readJson('maps/' + E.entry.hex + '.anim.json', function (a) {
     if (E.closed || !E.svg || !E.svg.isConnected) return;
     manaStageStop(E);
-    E.player = playAnimation(E.svg, a);
+    // Into the pixel group, right after the picture: the changed cells and overlays stay on top of it.
+    E.player = playAnimation(document.getElementById('rg-px'), a);
   });
 }
 
@@ -105,31 +106,20 @@ function manaStageGrid(E) {
   host.appendChild(svgEl('path', { 'class': 'rg-grid-coarse', d: d, fill: 'none', stroke: 'rgba(160,140,80,0.42)', 'stroke-width': 0.6 }));
 }
 
-/** Collision, specials, step events and characters over the map (in the pixel group). */
+/**
+ * The overlays over the map (in the pixel group): the cut layer, collision, specials, triggers, characters.
+ * A tab that edits an overlay shows it while it is open (manaForcedChip): there is nothing to edit under a hidden one.
+ */
 function manaStageOverlays(E) {
-  var host = document.getElementById('rg-over'), st = E.st, M = E.M;
+  var host = document.getElementById('rg-over');
   if (!host) return;
   host.textContent = '';
-  if (st.collision || st.specials) {
-    var c = manaEdCollisionView(M);
-    if (st.collision) drawCollision(host, c);
-    if (st.specials) drawSpecials(host, c);
-  }
-  // What the open tab edits is always shown: there is nothing to edit under a hidden overlay.
-  if (st.triggers || st.tab === 'trigger') host.appendChild(manaTriggersGroup(E));
-  if (st.characters || (st.tab === 'object' && st.objSub === 'characters')) host.appendChild(manaCharactersGroup(E));
+  manaCutOverlay(E, host);
+  if (manaChipOn(E, 'collision')) manaCollisionOverlay(E, host);
+  if (manaChipOn(E, 'specials')) manaSpecialsOverlay(E, host);
+  if (manaChipOn(E, 'triggers')) host.appendChild(manaTriggersGroup(E));
+  if (manaChipOn(E, 'characters')) host.appendChild(manaCharactersGroup(E));
   manaStageMarks(E);
-}
-
-function manaTriggersGroup(E) {
-  var g = svgEl('g', { 'class': 'ed-triggers', 'pointer-events': 'none' });
-  E.M.steps.forEach(function (s, i) {
-    g.appendChild(svgEl('rect', { x: s.x * 16 + 1, y: s.y * 16 + 1, width: 14, height: 14, 'class': 'ed-trig' + (E.S.sel.step === i ? ' sel' : '') }));
-    var t = svgEl('text', { x: s.x * 16 + 8, y: s.y * 16 + 11, 'class': 'ms-label' });
-    t.textContent = manaEdHex(s.event, 3);
-    g.appendChild(t);
-  });
-  return g;
 }
 
 /**
@@ -159,7 +149,7 @@ function manaStageMarks(E) {
   var host = document.getElementById('rg-marks'), st = E.st, M = E.M;
   if (!host) return;
   host.textContent = '';
-  if (!(st.objects || (st.tab === 'object' && st.objSub === 'changes'))) return;
+  if (!manaChipOn(E, 'objects')) return;
   var C = MANA_CELL, html = '';
   M.pieces.forEach(function (p, i) {
     var sel = E.S.sel.piece === i, active = M.pieceState[i] || 0;
@@ -190,7 +180,7 @@ function manaStageOverlaysSoon(E) {
   E.raf = requestAnimationFrame(function () { E.raf = 0; if (!E.closed) manaStageOverlays(E); });
 }
 
-/** The map cell under mouse event `e`, or null outside the map. */
+/** The map cell under mouse event `e` ({x, y, q}), or null outside the map. */
 function manaCellAt(E, e) {
   var svg = E.svg;
   if (!svg || !svg.getScreenCTM) return null;
@@ -198,7 +188,9 @@ function manaCellAt(E, e) {
   pt.x = e.clientX; pt.y = e.clientY;
   var p = pt.matrixTransform(svg.getScreenCTM().inverse());
   var x = Math.floor(p.x / MANA_CELL), y = Math.floor(p.y / MANA_CELL);   // viewBox units: a cell is 2
-  return x < 0 || y < 0 || x >= E.M.w || y >= E.M.h ? null : { x: x, y: y };
+  if (x < 0 || y < 0 || x >= E.M.w || y >= E.M.h) return null;
+  // q: the 8 px quarter under the pointer (1 top-left, 2 top-right, 4 bottom-left, 8 bottom-right).
+  return { x: x, y: y, q: (p.x - x * MANA_CELL >= MANA_CELL / 2 ? 2 : 1) * (p.y - y * MANA_CELL >= MANA_CELL / 2 ? 4 : 1) };
 }
 
 /** Light the cell under the pointer. */

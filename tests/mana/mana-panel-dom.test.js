@@ -68,13 +68,15 @@ async function main() {
     check('opening a map builds the shell\'s page: name line, canvas card with the pill, zoom chip, filter bar, status bar, dock',
         shell.head === 'Wide 1' && shell.zoom && shell.statusbar && shell.dock && shell.cardPill, JSON.stringify(shell));
     check('the pill is the Evermore editor\'s: select, pencil, erase, pick', shell.pill.join() === 'select,pencil,erase,pick', shell.pill.join());
-    check('the dock\'s tab strip is the shell\'s: Tile | Object | Trigger | Info', shell.tabs.join() === 'Tile,Object,Trigger,Info', shell.tabs.join());
-    check('the filter bar is the shared segmented pill: BG1 | BG2 | Collision, then the chips', shell.filters.join() === 'BG1,BG2,Collision,Animate,Specials,Objects,Characters,Triggers,Grid', shell.filters.join());
+    check('the dock\'s tab strip is the shell\'s: Tile | Special | Object | Trigger | Info', shell.tabs.join() === 'Tile,Special,Object,Trigger,Info', shell.tabs.join());
+    check('the filter bar is the shared segmented pill: BG1 | BG2 | Collision, then the chips', shell.filters.join() === 'BG1,BG2,Collision,Animate,Cuttable,Specials,Objects,Characters,Triggers,Grid', shell.filters.join());
 
     const fit = await p.evaluate(() => { const w = document.getElementById('rg-wrap').getBoundingClientRect(), s = document.getElementById('rg-svg').getBoundingClientRect(); return { ww: w.width, sw: s.width, sh: s.height }; });
     check('the map fits its viewport and keeps its shape (6x2 cells -> 3:1)', Math.abs(fit.sw / fit.sh - 3) < 0.05 && fit.sw <= fit.ww + 1, JSON.stringify(fit));
     const anim = await p.evaluate(() => ({ uses: document.querySelectorAll('#rg-svg use').length, defs: document.querySelectorAll('#rg-svg defs image').length }));
     check('animated cells of one kind share one image (3 <use>, 1 defs image)', anim.uses === 3 && anim.defs === 1, JSON.stringify(anim));
+    check('the animation plays in the pixel group, right after the picture (not the 8 px viewBox: there it drew 8x too big, off the map)',
+        await p.evaluate(() => { const u = document.querySelector('#rg-svg use'); const img = document.getElementById('rg-img'); return !!u && u.closest('#rg-px') !== null && img.nextSibling.contains(u); }));
 
     await p.click('.rg-view-filters [data-toggle="collision"]');
     await p.click('.rg-view-filters [data-toggle="specials"]');

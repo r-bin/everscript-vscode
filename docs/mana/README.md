@@ -112,29 +112,158 @@ one of 52 areas, the rest (arenas, cannon rides, credits, other event states) ar
 sets and pieces, different objects or scripts, e.g. 7 Kakkara interiors); the panel
 shows each picture once.
 
-## Collision — `$02:A043`, `$01:BE15`, `$00:D84C`
+## Collision — `$02:A043`, `$01:BE15`, `$00:D84C`, `$00:D359`
 
 Each metatile has 4 bytes: index `$CB:0400 + set*384 + half*192 + n` → 4 bytes at
-`$CB:0000 + index*4`, copied to `$7F:B800` (layer A) / `$7F:BC00` (layer B). The player's
-movement reads layer A only (`$01:BA5B`, `$01:BB5C`, `$01:BD33` → `$01:BE15`).
+`$CB:0000 + index*4`, copied to `$7F:B800 + n*4` (layer A) / `$7F:BC00 + n*4` (layer B); the
+special slots `$C0+k` follow at `$BB00 + 4k` / `$BF00 + 4k`. A character's movement reads the
+layer it stands on: bit 7 of its `+$0B` picks `$7F:0000` + `$B800` or `$7F:4000` + `$BC00`
+(`$00:D759` for a move, `$01:B737` for the stuck-character search; game: in the headless walks the
+movement readers also read `$7F:BCxx`-`$BFxx`). An earlier version of this page said movement reads layer A only.
 
-| byte | bits | meaning (from the code) |
+**Cells are 16 pixels; there is no 8-pixel collision.** Every reader turns a pixel position into
+one cell, `(y & $FF0) << 3 | x >> 4`, and reads that cell's one 4-byte record. The position
+inside the cell (`x & 15`, `y & 15`) is used only to (a) cut the diagonal half walls along
+their diagonal, pixel by pixel (`$01:BE64`-`BEF4`, `$01:BC85`-`BD13`), and (b) round wall
+corners: a walker that runs into a wall cell with its probe in the cell's outer 8 pixels is
+turned along the wall instead of stopped (result codes 8/9 in `$02`, `$01:BE47`/`$01:BA8A`;
+the diagonals have similar 2- and 12-pixel margins). The probe points sit half the walker's
+width (`$1A`) to the side and 4 pixels below its position (`$01:B9EA`, `$01:BAE2`).
+
+Who reads what (all reads found statically — every `[dp],Y` / `$7F:000n,X` read through a
+pointer set to `$B800`/`$BC00` — and the CDL readers of `$7F:B800`-`$BFFF` while walking headless
+from the waterfall map `$80` and after forced loads: the same set, plus the load-time copies):
+
+| reader | what it is | bytes and bits it uses |
 |---|---|---|
-| c0 | 0-2 | 0 floor of no level, 1 / 2 floor of level 1 / 2, 3 wall, 4-7 no wall (`CMP #4; BCS`) |
-| c0 | 3 | changes the walker's level (`$00:D868`) |
-| c1 | 7 | special cell (below) |
-| c2 | high nibble 1, low 4-7 | diagonal half wall: 4 bottom-left, 5 top-right, 6 top-left, 7 bottom-right |
-| c2 | high nibble `$C` | cut by a weapon: becomes metatile c3 ("Cuttable tiles" below) |
-| c2 | high nibble `$F` | a second branch of the cut probe (`$01:D382`, needs `$E02C,X`); not named. Layer A: `$FF` 456 cells, `$F8` 116, others < 10 |
-| c3 | | with c2 = `$Cn`, the metatile the cell becomes |
+| `$01:B93E` → `$01:B9EA`/`$01:BAE2` → `$01:BE15`, `$01:BC37`, `$01:BD33`, `$01:BF13` | can the walker move here (per pixel step) | c0 bits 0-2 and 3, c1 bits 4 and 6 (16-bit read), c2 when its high nibble is 1 |
+| `$00:D74F` (`$00:D84C`) | the cell the walker has moved into | c0 bits 0-3, c1 bits 0-2 and 4, c0 bit 2, c2 and c3 whole |
+| `$00:D359` | what the entered cell does, every frame, from `+$48`/`+$49` | c2 high nibble `$2`, `$3`, `$4`, `$D`; c3 for `$D` |
+| `$01:DF37` | a character put on the map | c0 bits 0-1 → its level, c1 bits 0-2 → `+$8E` |
+| `$01:B84B` | free-cell search for a stuck character | c0 bits 0-2, c2 high nibble 1 |
+| `$01:D293` | the attack probe (cut, strike) | c2 high nibble `$C` / `$F`, c3 |
+| `$02:16A9`-`16EB` | the 4-way wall test of another moving kind (`$02:15F8`) | c0 bits 0-1, c2 high nibble 1 |
+| `$02:C1D7`, `$02:C195` | the small objects at `$7E:D000` | c0 bits 4-5, c2 high nibble `$F`, c3 |
+| `$00:D05E`, `$02:B517` | special cells at load | c1 bit 7, whole record copied |
 
-Stepping on a 0-2 floor sets the walker's level to it (`$00:D884`); a level-1 floor is solid
-to a walker on level 2 and the other way round (`$01:BE2B`: `(c0 ^ level) & 3 == 3`). That is
-how bridges and their undersides work. Most walkable ground is level 2 (map 128: 1184 cells,
-3358 walls, 2 level-1, 48 shared). c1 bit 6 lets the party walk onto a
-special cell ("Special cells"). Not named yet: c0 bits 4-7, c1 bits 0-5 (bit 4 is tested
-at `$01:B9CD`: with it set the cell blocks spawned characters), c2 values outside the
-three groups above, c3 unless c2 is `$Cn`.
+`$02:19CE`, `$02:234B`, `$02:23F0`, `$02:040C`, `$02:1CE0` also point at `$7F:BC00`, but they
+fill or DMA that RAM for another screen mode; they are not map collision.
+
+| byte | bits | meaning (from the code) | evidence | sure? |
+|---|---|---|---|---|
+| c0 | 0-2 | 0 floor of no level, 1 / 2 floor of level 1 / 2, 3 wall, 4-7 no wall (`CMP #4; BCS`) | `$01:BE1D`; game | yes |
+| c0 | 2 (values 4-7) | also: the walker keeps its sprite priority (c1 bits 0-2 are not applied) and its level | `$00:D69A`, `$00:D876` | code |
+| c0 | 3 | flips the walker to the other layer: `+$0B` bit 7 toggles, level bits cleared; bit 3 of the walker's state stops it flipping back until it leaves the cell. Never solid (`$01:B9E0`) | `$00:D864`-`D874`; game | yes |
+| c0 | 4-5 | a height, `$00`/`$10`/`$20`/`$30`, for the objects at `$7E:D000` | `$02:C1D7`, `$02:C293` | code; objects not seen |
+| c0 | 6-7 | no reader found | | — |
+| c1 | 0-2 | sprite priority from this cell on (0 = keep the last) | `$00:D6A0`, `$00:F6D6`; game | yes |
+| c1 | 3, 5 | never set in the ROM's maps; no reader found | | — |
+| c1 | 4 | return cell: entering it takes the party back to the saved return point; a wall for other characters | `$00:D688`, `$00:BBD1`, `$01:CCF5`, `$01:B9CD`; game | yes |
+| c1 | 6 | the party may walk onto this special cell ("Special cells") | `$01:B9B3` | code |
+| c1 | 7 | special cell ("Special cells") | `$00:D05E` | yes |
+| c2 | `$1n`, low 4-7 | diagonal half wall: 4 bottom-left, 5 top-right, 6 top-left, 7 bottom-right | `$01:BE64`-`BEF4` | code |
+| c2 | `$2n` | stairs and slopes: movement slowed to half | `$00:D391`; game | yes |
+| c2 | `$3n` | pushes the walker: direction `n & 3`, speed `(n >> 2) + 1` pixels per frame | `$00:D3DD`; game | yes |
+| c2 | `$4n` | asks for sound `$7n` on entering; only in map `$1FF` (not a real map) | `$00:D37A` | code |
+| c2 | `$Cn` | cut by a weapon: becomes metatile c3 ("Cuttable tiles") | `$01:D376` | interpreter |
+| c2 | `$Dn` | step event `c3*16 + n`; only in map `$1FF` | `$00:D362`, `$00:D449` | code |
+| c2 | `$Fn` | strike event: hitting the cell runs event `c3*16 + n` | `$01:D382`, `$01:CD95` | interpreter; game (map `$3E`) |
+| c2 | other | `$0n` and `$5n`-`$Bn`, `$En`: nothing reads them; only 0 occurs | | — |
+| c3 | | with `$Cn` the new metatile, with `$Dn`/`$Fn` the event's high bits; 0 everywhere else | | yes |
+
+Value counts are layer A over the 407 real maps (`$1FF` reads past the data and is left out).
+
+**c0 bits 0-2, level.** Stepping on a 0-2 floor sets the walker's level to it (`$00:D884`); a
+level-1 floor is solid to a walker on level 2 and the other way round (`$01:BE2B`:
+`(c0 ^ level) & 3 == 3`). That is how bridges and their undersides work. Most walkable ground
+is level 2 (map 128: 1184 cells, 3358 walls, 2 level-1, 48 shared). Values 4-7 are rare:
+`$15` is the deck of the log bridge in maps `$80`/`$65` (cells 30-33, 67), so a walker on it keeps
+the level and sprite priority it had at the bridge end; 542 cells in 20 maps, `$16` 12 cells in map `$3C`.
+
+**c0 bit 3, layer switch.** `$1B` is the walker's `+$0B` while it moves (written back at
+`$00:D8AE`). On a bit-3 cell `$1B = ($1B ^ $88) & $F8`: layer bit 7 flips, bit 3 marks "already
+flipped", the level is cleared; a cell with c0 & 7 = 3-7 clears bit 3 again, a 0-2 floor sets
+the new level. Characters that follow (not `+$2C`) take the leader's layer bit instead
+(`$00:D890`). Checked in the game: on map `$80`, with bit 3 set in RAM on the metatile ahead of
+the boy, his `+$0B` went from 2 to `$82` as he walked onto it. In the ROM: `c0 = $18`, 84 cells in
+18 maps. (This page used to call it "changes the walker's level".)
+
+**c0 bits 4-5, height.** `$02:C1D7` reads `c0 & $30` under one of the small objects that
+`$02:BF1D` spawns, three at a time, at `$7E:D000 + slot/8` when a character's animation reaches
+command `$FB` (`$00:F98D`). Each has a height (`+6`) that rises and falls along a sine table
+(`$00:FD22`); `$02:C293` ends it (`+7` = 8 frames) once its height is no longer above the cell's
+`c0 & $30`, and `$02:C171` adds the cell's value to the height. What these objects are on screen
+has not been seen (none was spawned in the headless runs, which had no weapon). Values:
+`$1x` 899282 cells (floors `$10`-`$13`), `$7x` 285965 (`$73`, walls, 216 maps), `$0x` 675,
+`$2x` 454 (`$23`, 8 maps), `$5x` 25.
+
+**c1 bits 0-2, sprite priority.** When a walker enters a cell whose c0 bit 2 is clear and whose
+`c1 & 7` is not 0, that value goes to `+$8E` (`$00:D6A0`, `$00:D2B5`; `$01:DF7E` sets it when a
+character is placed; `$00:F0A2` copies one character's to all three party members). The sprite builder
+(`$00:F6D6`) changes the OAM priority bits of the character's own attribute (`+$8B`, priority 2 for
+the three party members: `$2B`, `$2D`, `$2F` seen): 4-7 give priority 0-3; 2 keeps 2 and draws the
+pieces marked in the sprite frame (piece byte bit 7) one higher; 1 and 3 give priority 1 with the marked
+pieces at 2. Seen in the game: walking up map `$80` column 18, `+$8E` was 7 on rows 54-53 (`c1 = 7`)
+and 2 on rows 52-51 (`c1 = 2`); the OAM priority itself was not compared piece by piece. Values: 6 (1028901
+cells, 405 maps), 2 (66716), 7 (65167), 0 (25611), 5 (6, maps `$E9`-`$EB`).
+
+**c1 bit 4, return cell.** When the character the player controls (`+$2C` non-zero, `+$0E`
+bit 7 clear, `$FF` and `$D0` zero) enters it, `$00:D688` sets its `+$4A` to `$80`; the main loop
+(`$00:B613`) then runs `$00:BBD1`: the party stops, `$01:CCF5` copies the return point
+`$7E:CE00`-`CEFF` to `$7E:CD00` and puts `$CD08` into the map id `$DC`, and the next map loads.
+The return point is saved by `$01:CBCF` (current state `$CD00` → `$CE00`), called from elsewhere.
+For characters in slots `$600` and up the cell is a wall, and for party members too while `$D0` or
+`+$1C` is non-zero (`$01:B9CD`). Checked in the game: on map `$80`, with c1 bit 4 set in RAM on
+the metatile ahead and `$7E:CE08` = `$2B`, walking onto it ran `$00:BBD1`, `$01:CCF5` and the
+map loader with `$DC = $2B`. In the ROM: always the record `10 10 00 00`, 71 cells in 39 maps,
+mostly two side by side (map `$2B` cells 13-14, 78; map `$F1` cells 12-13, 22).
+
+**c2, the cell's effect.** When a walker moves into a cell whose c2 differs from the last
+one's (`+$4D`), c2 and c3 go to `+$48` / `+$49` (`$00:D8B3`). Each frame `$00:D359` acts on
+`+$48`'s high nibble (unless `+$60`/`+$1C` is non-zero or `$F1` bit 7 is set):
+
+- `$2n`, stairs and slopes. On frames where the frame counter `$F4` has bit 2 clear, movement
+  along the slow axis is cancelled — vertical for `$20`/`$21`, horizontal for `$22`/`$23` — so the
+  walker goes at half speed. On `$22`/`$23`, on even frames with bit 2 set, horizontal movement
+  also moves the walker up (`$22`, going right) or down (`$23`, going right) by as much. When
+  movement is cancelled every 8th frame, the character the player controls asks for sound
+  `$EF` (`$00:BB11` writes `$95`, which `$00:B565` passes to `$7E:1E00`; that `$95` is the sound
+  request is read from the code, the sound was not listened to).
+  Seen in the game on map `$80`: up the cliff stairs at column 18 (`$21`) the boy moved 12 pixels in
+  12 frames instead of 24; walking right onto the log bridge (`$22`, cells 28, 67-68) he slowed
+  and rose 8 pixels onto the deck. In the ROM: `$21` 3774 cells in 205 maps (stairs), `$23` 289,
+  `$22` 10 (the bridge ends in Potos Falls).
+- `$3n`, push. After the normal move (`$00:D482`) the walker's step gets `(n >> 2) + 1` pixels
+  added toward `n & 3`: 0 up, 1 down, 2 left, 3 right. Seen in the game: map `$80` cell 18, 46
+  (`$32`): the boy drifted left 1 pixel per frame. In the ROM: 4046 cells in 35 maps — the
+  Kakkara Desert maps, the Sunken Continent, Gaia's Navel, the Potos Falls river, the Sandship,
+  speeds 1-3 (4 is never used).
+- `$4n` asks for sound `$7n` unless that sound is the current request, and `$Dn` runs event
+  `c3*16 + n` once (it clears `+$48`) for a character with `+$71` bit 7 while `$D0` is 0. Only
+  map `$1FF` has these values.
+
+`$1n`, `$Cn` and `$Fn` are not handled here: the movement code reads `$1n`, the attack probe
+`$Cn`/`$Fn`.
+
+**c2 = `$Fn`, strike event.** In the attack probe (`$01:D376`, see "Cuttable tiles"), a cell
+with c2 = `$Fn` hit by a party member whose `+$2C` is set, when no target was found yet this
+frame, stores `$8000 | (c3*16 + n)` in `$0E` and the attacker in `$1C` (`$01:D389`). After the
+three party members, `$01:CD95` runs `$0E & $0FFF` through the event runner `$01:E76D` when `$D0`
+is 0 (bit 15 tells a cell from a character target). The `$7E:D000` objects run the same event when
+they come down on such a cell (`$02:C195`). Checked by running `$01:D293` on the interpreter with
+the game's loaders: maps `$3D`, `$11D`, `$2B`, `$19F` → `$0E` = `$86F8`, `$81AF`, `$8568`, `$84C0`;
+0 with `+$2C` clear or on a plain cell. **Seen in the running game:** the boy was sent to map `$3E`
+(through a return cell set up in RAM, see c1 bit 4), placed below the strike cell 33, 31 and B pressed:
+`$01:D389` ran, `$0E` became `$86F8` with `$1C` = 0 (the boy), and `$01:CD95` → `$01:CDC1` ran event
+`$6F8` through `$01:E76D`. Nothing visible followed with his weapon (type 1): no sound request
+(`$95`), no event lock (`$D0`), no movement, no map change, the screen unchanged over 900 frames.
+What `$6F8` does (perhaps something only for another weapon) is not decoded. The attack probe only
+runs on maps whose header byte 7 is `$FF` (`$ED` bit 7, `$01:CDDF`), and `$00:BEAA` clears that bit
+while event flag `$7E:CF00` is 0, as it is right after the opening; the run set `$CF00` = 1 first.
+In the ROM: 131 cells in
+27 maps; `$F8`/`$6F` (event `$6F8`) 114 cells in 19 maps (Lofty Mountains, Mana Fortress, …),
+`$FF`/`$1A` (`$1AF`) in Gaia's Navel and the Underground Palace, `$F5`-`$F8`/`$56` (`$565`-`$568`)
+in the Sunken Continent, `$F0`/`$4C` (`$4C0`) in the Grand Palace.
 
 ## Special cells — `$00:D03A`, `$02:B517`
 
@@ -170,7 +299,7 @@ c2/c3 of that cell: when c2 is `$Cn` and the attack's weapon type `$E068,X` matc
 In the ROM: 3858 cells in 63 maps (3088 layer A, 770 layer B); n = 1 (1117), 2 (1929),
 8 (812). Example: map `$81`'s bushes are metatile `$05` with collision `13 00 C8 5F` and
 become `$5F`, cut stubble. Which weapon each type number is has not been read yet.
-`c2 = $Fn` (with `$E02C,X` set) is another branch, not named.
+`c2 = $Fn` is the other branch: a strike event ("Collision").
 
 Checked by running `$01:D293` on the interpreter with map `$81` loaded by the game's own
 loaders (`tests/mana/mana-rom.test.js`): the bush becomes `$5F` for types 1 and 2 and
@@ -274,5 +403,7 @@ different from what the game would draw. `som://rom/maps/<hex>.edit.json` carrie
   a door leads.
 - Pieces hidden by event flags use flag value 0 (a new game).
 - BG3 (weather, text) and parallax scrolling of layer B are not drawn.
-- Layer B's own collision (`$7F:BC00`) is not drawn; the player uses layer A's.
+- Layer B's own collision (`$7F:BC00`) is not drawn, although a walker on layer B (after a c0
+  bit 3 cell) moves by it. The `$7E:D000` objects that read c0 bits 4-5 are not identified;
+  c0 bits 6-7 and c1 bits 3 and 5 have no reader.
 - Writing an edited map back (re-encoding pieces and stamps) and playing it; decoding event scripts.

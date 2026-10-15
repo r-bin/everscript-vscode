@@ -26,7 +26,20 @@ function manaEdModel(d) {
     // The event-flag pieces (map changes) and which state of each is showing: a view choice, not an edit.
     pieces: d.pieces || [],
     pieceState: (d.pieces || []).map(function () { return 0; }),
+    // Each layer's 192 metatiles: which picture (sheet slot) and which 4 collision bytes. The solver
+    // (editor-props.js) gives a wished cell a copy of its metatile with other bytes, in a free slot.
+    tiles: { A: manaEdTiles(d.collision.a), B: manaEdTiles(d.collision.b) },
+    lead: d.lead || 0,
+    // What the user wants cells to be (editor-props.js), by layer and cell index; `seq` orders the wishes,
+    // `ver` counts changes so a solved layer is reused until something changes.
+    wish: { A: {}, B: {} }, seq: 0, ver: 0, solved: {},
   };
+}
+
+function manaEdTiles(bytes) {
+  var out = [];
+  for (var n = 0; n < 192; n++) out.push({ pic: n, coll: [bytes[n * 4] || 0, bytes[n * 4 + 1] || 0, bytes[n * 4 + 2] || 0, bytes[n * 4 + 3] || 0] });
+  return out;
 }
 
 function manaEdClone(list) { return JSON.parse(JSON.stringify(list)); }
@@ -86,19 +99,22 @@ function manaEdTileCollision(m, layer, n) {
   return n >= 0 && n < 192 ? [src[n * 4], src[n * 4 + 1], src[n * 4 + 2], src[n * 4 + 3]] : [0, 0, 0, 0];
 }
 
-/** Floor class 0-3, diagonal 4-7 or 0, level switch and special kind of collision bytes (src/mana/collision.ts). */
+/** Floor class 0-3, diagonal 4-7 or 0, layer switch (c0 bit 3) and special kind of collision bytes (src/mana/collision.ts). */
 function manaEdDecodeCollision(c) {
   var f = c[0] & 7;
   return { floor: f < 4 ? f : 0, diagonal: (c[2] & 0xF0) === 0x10 && (c[2] & 7) >= 4 ? c[2] & 7 : 0,
     switches: (c[0] & 8) !== 0, special: c[1] & 0x80 ? c[1] : 0 };
 }
 
-/** Layer A's collision as the overlay draws it ({w, h, floor, diagonal, switches, specials}). */
-function manaEdCollisionView(m) {
+/** A layer's collision as the overlay draws it ({w, h, floor, diagonal, switches, specials}), wishes solved. */
+function manaEdCollisionView(m, layer) {
+  layer = layer || 'A';
   var floor = '', diagonal = '', switches = [], specials = [];
+  var bytesAt = typeof manaEdCellBytes === 'function' ? manaEdCellBytes
+    : function (mm, l, x, y) { return manaEdTileCollision(mm, l, manaEdCell(mm, l, x, y)); };
   for (var y = 0; y < m.h; y++) {
     for (var x = 0; x < m.w; x++) {
-      var d = manaEdDecodeCollision(manaEdTileCollision(m, 'A', manaEdCell(m, 'A', x, y)));
+      var d = manaEdDecodeCollision(bytesAt(m, layer, x, y));
       floor += d.floor; diagonal += d.diagonal;
       if (d.switches) switches.push([x, y]);
       if (d.special) specials.push({ x: x, y: y, kind: d.special });
@@ -137,11 +153,17 @@ function manaEdSetCell(m, layer, x, y, n) {
   if (arr[i] === n) return null;
   var change = { k: 'cell', layer: layer, i: i, before: arr[i], after: n };
   arr[i] = n;
+  m.ver++;
   return change;
 }
 
 /** Apply (`which` 'after') or revert ('before') a recorded change; returns the cells to redraw or null for "all". */
 function manaEdApply(m, change, which) {
+  m.ver++;
+  if (change.k === 'wish') {
+    manaEdApplyWishChange(m, change, which);
+    return change.layer === 'A' ? [{ x: change.i % m.w, y: Math.floor(change.i / m.w) }] : null;
+  }
   if (change.k === 'cell') {
     (change.layer === 'A' ? m.a : m.b)[change.i] = change[which];
     return change.layer === 'A' ? [{ x: change.i % m.w, y: Math.floor(change.i / m.w) }] : null;

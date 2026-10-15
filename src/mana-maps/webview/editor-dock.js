@@ -1,11 +1,11 @@
 // Ownership: the right-hand dock of the Secret of Mana editor — its tab strip (the shell's
-// shellTabStripHtml) and the four tabs: Tile (the metatile picker and what the picked metatile is),
-// Object and Trigger (the list, drawn with the shell's rows and cards, and an inspector for the selected
-// one) and Info (what the map is, and the collision colours). The dock node itself is the shell's
-// (shellDockMount); this file fills it and handles its clicks.
+// shellTabStripHtml) and its tabs: Tile › Tiles (the metatile picker and what the picked metatile is), Object
+// (the list, drawn with the shell's rows and cards, and an inspector for the selected one) and Info (what the
+// map is, and the collision colours). Tile › Collision, Special and Trigger are editor-dock-cells.js'. The dock
+// node itself is the shell's (shellDockMount); this file fills it and handles its clicks.
 // State lives on the editor instance `E` (editor.js); nothing is owned here.
 
-var MANA_TABS = [['tile', 'Tile'], ['object', 'Object'], ['trigger', 'Trigger'], ['info', 'Info']];
+var MANA_TABS = [['tile', 'Tile'], ['special', 'Special'], ['object', 'Object'], ['trigger', 'Trigger'], ['info', 'Info']];
 
 function manaPanel(E, key, title, body, note) {
   return shellPanelHtml(key, title, body, note, E.panelOpen[key] !== false);
@@ -13,10 +13,23 @@ function manaPanel(E, key, title, body, note) {
 
 /** The collision bytes of a metatile in words, as the game's movement code reads them (docs/mana/README.md). */
 function manaDescribeTile(E, layer, n) {
-  var c = manaEdTileCollision(E.M, layer, n), d = manaEdDecodeCollision(c);
-  var floor = ['floor of no level', 'level-1 floor', 'level-2 floor', 'wall'][d.floor];
+  var c = manaEdTileCollision(E.M, layer, n), d = manaEdDecodeCollision(c), e = manaEdEffectOf(c), f = c[0] & 7;
+  var floor = f === 3 ? 'wall' : f >= 4 ? 'floor of any level' : ['floor of no level', 'level-1 floor', 'level-2 floor'][f];
+  var what = e ? (e.kind === 'stairs' ? 'stairs' : e.kind === 'push' ? 'pushes ' + MANA_ED_PUSH_DIRS[e.dir] + ' ' + e.speed + ' px'
+    : e.kind === 'cut' ? 'cut by weapon ' + manaEdCutWeapons(e.n) + ' → $' + manaEdHex(e.to, 2) : 'on hit: event $' + manaEdHex(e.event, 3)) : '';
   return 'metatile $' + manaEdHex(n, 2) + ' · collision ' + c.map(function (b) { return manaEdHex(b, 2); }).join(' ') + ' · ' + floor
-    + (d.diagonal ? ' · half wall ' + d.diagonal : '') + (d.switches ? ' · level switch' : '') + (d.special ? ' · special $' + manaEdHex(d.special, 2) : '');
+    + (d.diagonal ? ' · half wall ' + d.diagonal : '') + (what ? ' · ' + what : '') + (d.switches ? ' · layer switch' : '')
+    + (c[1] & 0x10 ? ' · exit to the previous map' : '') + (d.special ? ' · special cell $' + manaEdHex(d.special, 2) + (c[1] & 0x40 ? ' (step on)' : ' (walk into)') : '')
+    + ' · sprite priority ' + ((c[1] & 7) ? c[1] & 7 : 'kept') + ((c[0] >> 4) & 3 ? ' · height ' + ((c[0] >> 4) & 3) * 16 : '');
+}
+
+/** The Tile tab's sub-tabs (the shell's `.rg-subtabs`): the metatiles, and the collision drawn over them. */
+function manaTileSubtabs(E) {
+  return '<div class="rg-subtabs" role="tablist">' + [['tiles', 'Tiles', 'Paint metatiles: picture and collision together'],
+    ['collision', 'Collision', 'Draw the collision you want; the editor finds metatiles that give it']].map(function (t) {
+    var on = E.st.tileSub === t[0];
+    return '<button class="rg-subtab' + (on ? ' on' : '') + '" role="tab" aria-selected="' + on + '" data-tile-sub="' + t[0] + '" title="' + t[2] + '">' + t[1] + '</button>';
+  }).join('') + '</div>';
 }
 
 function manaTileTab(E) {
@@ -26,15 +39,16 @@ function manaTileTab(E) {
     mapViewChipHtml({ label: 'Layer B', on: st.layer === 'B', attrs: { layer: 'B' }, cls: M.sizeB ? '' : 'disabled',
       title: M.sizeB ? 'Paint layer B (BG2). It repeats with its own size, so one change shows in every repeat.' : 'This map has no layer B' }),
   ]) + '</div></div>';
+  if (st.tileSub === 'collision') return manaTileSubtabs(E) + head + '<div class="rg-tile-scroll">' + manaCollisionTab(E) + '</div>';
   var n = st.tile, sheet = E.ctx.somBase + 'maps/' + E.entry.hex + '.tiles.' + st.layer.toLowerCase() + '.png';
   var picker = '<svg id="mana-picker" class="mana-picker" viewBox="0 0 256 192" width="256" height="192" aria-label="Metatiles">'
     + '<rect width="256" height="192" fill="rgb(' + M.backdrop.join(',') + ')"/>'
     + '<image href="' + sheet + '" x="0" y="0" width="256" height="192"/>'
     + '<rect class="mana-picked" x="' + ((n % 16) * 16 + 0.5) + '" y="' + (Math.floor(n / 16) * 16 + 0.5) + '" width="15" height="15"/></svg>';
-  return head + '<div class="rg-tile-scroll">'
+  return manaTileSubtabs(E) + head + '<div class="rg-tile-scroll">'
     + manaPanel(E, 'picker', 'METATILES', picker, st.layer === 'A' ? 'layer A' : 'layer B')
     + manaPanel(E, 'picked', 'PICKED', '<div class="rs-note">' + shellEscape(manaDescribeTile(E, st.layer, n)) + '</div>'
-      + '<div class="rs-note">Collision belongs to the metatile in Mana, not the cell: painting this changes the picture and the collision together.</div>')
+      + '<div class="rs-note">Painting a metatile brings its collision; collision drawn in Tile › Collision stays on top of it. The sprite priority and height are read-only.</div>')
     + '</div>';
 }
 
@@ -142,30 +156,19 @@ function manaObjectTab(E) {
   return manaObjectSubtabs(E) + (E.st.objSub === 'changes' ? manaChangesTab(E) : manaCharactersTab(E));
 }
 
-function manaTriggerTab(E) {
-  var M = E.M, sel = E.S.sel.step, s = M.steps[sel];
-  var rows = M.steps.map(function (st, i) {
-    return manaRowHtml('step', i, '#' + i + ' · event $' + manaEdHex(st.event, 3) + ' · ' + st.x + ',' + st.y, i === sel, 'Select this step event');
-  }).join('') || '<div class="rs-note">none on this map</div>';
-  var inspector = s
-    ? manaField('x', 'x', s.x) + manaField('y', 'y', s.y) + manaField('event $', 'event', s.event, true, 3)
-    : '<div class="rs-note">Select a step event to edit its cell and number.</div>';
-  return '<div class="rs-note">Step events: the cells that run an event when a character steps onto them. '
-    + 'What an event does is not decoded — only its number is shown.</div>'
-    + (M.onEnter !== null ? '<div class="rs-note">The map’s own event on entry: $' + manaEdHex(M.onEnter, 3) + '</div>' : '')
-    + '<div class="rg-trigger-list">' + rows + '</div>'
-    + manaPanel(E, 'step-sel', 'SELECTED', inspector, String(M.steps.length));
-}
-
 function manaInfoTab(E) {
   var M = E.M, e = E.entry;
   var row = function (k, v) { return '<div class="mana-info-row"><span>' + k + '</span><b>' + shellEscape(v) + '</b></div>'; };
   var map = row('map', e.hex + ' (' + e.id + ')') + row('size', M.w + ' × ' + M.h + ' cells')
     + row('layer B', M.sizeB ? M.sizeB.w + ' × ' + M.sizeB.h + ', repeated' : 'none')
-    + row('objects', String(M.objects.length)) + row('step events', String(M.steps.length))
+    + row('objects', String(M.objects.length)) + row('triggers', String(M.steps.length))
+    + ['A', 'B'].filter(function (l) { return l === 'A' || M.sizeB; }).map(function (l) {
+      var sv = manaEdSolve(M, l);
+      return row('layer ' + l + ' metatiles', sv.used + ' / ' + sv.room + (sv.copies.length ? ' (' + sv.copies.length + ' copies)' : '') + (sv.unfit ? ' · ' + sv.unfit + ' “?”' : ''));
+    }).join('')
     + row('area', e.areaName || '—');
   var legend = [['mc-wall', 'wall'], ['mc-diag', 'half wall (diagonal)'], ['mc-l1', 'level-1 floor — a wall to walkers on level 2'],
-    ['mc-l0', 'floor of both levels (stairs, ramps)'], ['sw-plain', 'level-2 floor'], ['mc-switch', 'changes the walker’s level']]
+    ['mc-l0', 'floor of no level'], ['sw-plain', 'level-2 floor, or any level'], ['mw-quarters', '8 px squares you drew'], ['mw-unfit', '“?”: no metatile gives what you drew']]
     .map(function (l) { return '<div class="mana-legend-row"><i class="sw ' + l[0] + '"></i>' + l[1] + '</div>'; }).join('');
   return manaPanel(E, 'info-map', 'MAP', map)
     + manaPanel(E, 'info-coll', 'COLLISION COLOURS', legend, 'Collision chip')
@@ -177,7 +180,8 @@ function manaDockRender(E) {
   var dock = E.panels;
   if (!dock) return;
   var tab = E.st.tab;
-  var body = tab === 'tile' ? manaTileTab(E) : tab === 'object' ? manaObjectTab(E) : tab === 'trigger' ? manaTriggerTab(E) : manaInfoTab(E);
+  var body = tab === 'tile' ? manaTileTab(E) : tab === 'special' ? manaSpecialTab(E) : tab === 'object' ? manaObjectTab(E)
+    : tab === 'trigger' ? manaTriggerTab(E) : manaInfoTab(E);
   var scroll = dock.querySelector('.rg-tab-body, .rg-tile-scroll');
   var top = scroll ? scroll.scrollTop : 0;
   dock.innerHTML = shellTabStripHtml(MANA_TABS.map(function (t) { return { value: t[0], label: t[1], on: t[0] === tab }; }), 'mana-tab')
@@ -214,11 +218,12 @@ function manaDockBind(E) {
     var t = ev.target instanceof Element ? ev.target : null;
     if (!t) return;
     var tab = t.closest('[data-mana-tab]');
-    if (tab) { E.st.tab = tab.dataset.manaTab; E.ctx.save(); manaDockRender(E); manaStageOverlays(E); return; }
+    if (tab) { E.st.tab = tab.dataset.manaTab; E.ctx.save(); manaDockRender(E); manaFiltersRefresh(E); manaStageOverlays(E); return; }
+    if (manaCellDockClick(E, t)) return;
     var head = t.closest('[data-panel]');
     if (head) { var k = head.dataset.panel; E.panelOpen[k] = E.panelOpen[k] === false; manaDockRender(E); return; }
     var layer = t.closest('[data-layer]');
-    if (layer) { if (layer.classList.contains('disabled')) return; E.st.layer = layer.dataset.layer; E.ctx.save(); manaDockRender(E); return; }
+    if (layer) { if (layer.classList.contains('disabled')) return; E.st.layer = layer.dataset.layer; E.ctx.save(); manaDockRender(E); manaStageOverlays(E); return; }
     var pick = t.closest('#mana-picker');
     if (pick) {
       var r = pick.getBoundingClientRect(), k2 = 256 / r.width;
@@ -229,7 +234,7 @@ function manaDockBind(E) {
     var del = t.closest('[data-del-obj],[data-del-step]');
     if (del) { var isObj = del.dataset.delObj !== undefined; E.S.sel[isObj ? 'obj' : 'step'] = Number(isObj ? del.dataset.delObj : del.dataset.delStep); manaDeleteSelected(E); return; }
     var sub = t.closest('[data-obj-sub]');
-    if (sub) { E.st.objSub = sub.dataset.objSub; E.ctx.save(); manaStageOverlays(E); manaDockRender(E); return; }
+    if (sub) { E.st.objSub = sub.dataset.objSub; E.ctx.save(); manaFiltersRefresh(E); manaStageOverlays(E); manaDockRender(E); return; }
     var chip = t.closest('[data-piece-state]');
     if (chip) {
       if (chip.disabled) return;

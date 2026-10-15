@@ -15,11 +15,21 @@
 .sw { display: inline-block; width: 12px; height: 12px; margin-right: 8px; vertical-align: -2px; border: 1px solid #888; }
 .mana-legend-row { font-size: 11px; padding: 2px 0; color: var(--rg-text-secondary); }
 
-/* Special cells, objects, step events, the hovered cell. */
-.ms-cell { fill: rgba(255, 216, 74, 0.15); stroke: #ffd84a; stroke-width: 1; }
+/* What the user drew (editor-overlays.js): 8 px squares, and the cells no metatile fits. */
+.mw-quarters { fill: rgba(255, 255, 255, 0.18); stroke: #fff; stroke-width: 0.6; stroke-dasharray: 1.5 1; background: rgba(255, 255, 255, 0.18); }
+.mw-unfit { fill: rgba(255, 140, 0, 0.25); stroke: #ff8c00; stroke-width: 1.2; background: rgba(255, 140, 0, 0.25); }
+.mw-unfit-label { fill: #ff8c00; stroke: #000; stroke-width: 1.5px; paint-order: stroke; font: bold 10px monospace; text-anchor: middle; }
+/* Specials (stairs, push, layer switch), cuttable cells. */
+.mp-label { fill: #9ff; stroke: #000; stroke-width: 1.5px; paint-order: stroke; font: bold 8px monospace; text-anchor: middle; }
+.mc-cut { fill: rgba(120, 230, 90, 0.12); stroke: #7ce65a; stroke-width: 1; stroke-dasharray: 2 1; }
+
+/* Triggers, objects, the hovered cell. */
 .ms-label, .mo-label { fill: #fff; stroke: #000; stroke-width: 1.5px; paint-order: stroke; font: bold 6px monospace; text-anchor: middle; }
 .mo-ring { fill: rgba(255, 110, 200, 0.2); stroke: #ff6ec8; stroke-width: 1.5; }
 .ed-trig { fill: rgba(80, 200, 255, 0.15); stroke: #50c8ff; stroke-width: 1; }
+.ed-trig.into { fill: rgba(80, 200, 255, 0.35); stroke-dasharray: none; stroke-width: 2; }
+.ed-exit { fill: rgba(255, 216, 74, 0.2); stroke: #ffd84a; stroke-width: 1; }
+.ed-hit { fill: rgba(255, 90, 90, 0.15); stroke: #ff5a5a; stroke-width: 1; stroke-dasharray: 2 1; }
 .ed-trig.sel, .mo-ring.sel { stroke: #fff; stroke-width: 2; }
 .mana-hover { fill: rgba(255, 255, 255, 0.12); stroke: rgba(255, 255, 255, 0.5); stroke-width: 0.8; }
 
@@ -27,6 +37,13 @@
 .mana-picker { display: block; width: 100%; height: auto; border: 1px solid var(--rg-border); border-radius: 6px; cursor: pointer; background: var(--rg-bg-app); }
 .mana-picked { fill: none; stroke: var(--rg-accent); stroke-width: 1.5; pointer-events: none; }
 .rg-theme .rdf.disabled { opacity: 0.4; pointer-events: none; }
+/* A filter chip the open tab keeps on: it looks on, and does nothing on click. */
+.rg-theme .rg-view-filters .rdf.forced { cursor: default; box-shadow: inset 0 -2px 0 var(--rg-accent); }
+
+/* Tile › Collision and Special: the entries to draw with. */
+.mana-pal-row { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0; }
+.mana-pal-grid { display: grid; grid-template-columns: repeat(4, 1fr); }
+.rg-theme .mana-pal { min-width: 0; padding: 3px 8px; font-size: 11px; }
 
 /* The Object and Trigger tabs' inspector, the Info rows. */
 .mana-field { display: inline-block; margin: 4px 8px 4px 0; font-size: 11px; color: var(--rg-text-secondary); }

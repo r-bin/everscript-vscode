@@ -24,20 +24,44 @@ function manaEdHex(n, digits) {
   return s;
 }
 
-/** The filter bar over the map's bottom edge: the shell's chips, with Mana's views. */
-function manaFiltersHtml(E) {
+/** Which dock tab shows an overlay while it is open (it edits it), or ''. */
+function manaForcedBy(E, key) {
   var st = E.st;
-  var chip = function (label, key, title) { return mapViewChipHtml({ label: label, on: !!st[key], attrs: { toggle: key }, title: title }); };
+  if (key === 'collision' && st.tab === 'tile' && st.tileSub === 'collision') return 'Tile › Collision';
+  if (key === 'specials' && st.tab === 'special') return 'Special';
+  if (key === 'triggers' && st.tab === 'trigger') return 'Trigger';
+  if (key === 'characters' && st.tab === 'object' && st.objSub === 'characters') return 'Object › Characters';
+  if (key === 'objects' && st.tab === 'object' && st.objSub === 'changes') return 'Object › Map changes';
+  return '';
+}
+
+/** Whether an overlay shows: its chip is on, or the open tab edits it. */
+function manaChipOn(E, key) { return !!E.st[key] || !!manaForcedBy(E, key); }
+
+/** The filter bar over the map's bottom edge: the shell's chips, with Mana's views. A chip its tab forces is on and locked. */
+function manaFiltersHtml(E) {
+  var chip = function (label, key, title) {
+    var by = manaForcedBy(E, key);
+    return mapViewChipHtml({ label: label, on: manaChipOn(E, key), attrs: { toggle: key }, cls: by ? 'forced' : '',
+      title: title + (by ? ' — shown while the ' + by + ' tab is open' : '') });
+  };
   return '<div class="rd-filters rg-view-filters">' + mapViewSegHtml([
     chip('BG1', 'a', 'Layer A, drawn on BG1'),
     chip('BG2', 'b', 'Layer B, drawn on BG2'),
-    chip('Collision', 'collision', 'What the player bumps into, from the metatiles’ collision bytes'),
+    chip('Collision', 'collision', 'Walls, half walls and floor levels of the layer picked in the Tile tab'),
   ]) + chip('Animate', 'animate', 'Play the animated tiles (cells you changed stay still)')
-    + chip('Specials', 'specials', 'Special cells (collision byte 1 bit 7)')
+    + chip('Cuttable', 'cut', 'On: the grass and bushes a weapon cuts, outlined (hover for which weapons). Off: the map with them cut')
+    + chip('Specials', 'specials', 'Stairs, push and layer switches of the layer picked in the Tile tab (the Special tab)')
     + chip('Objects', 'objects', 'The map’s objects: the parts of it that change with the story, with where each state draws')
     + chip('Characters', 'characters', 'The character records (enemies, people) the game spawns when the map loads')
-    + chip('Triggers', 'triggers', 'Step events: the cells that run an event when stepped on')
+    + chip('Triggers', 'triggers', 'Step on, walk into and on hit: the cells that run an event, and the exits back to the previous map')
     + chip('Grid', 'grid', 'The 16 px grid') + '</div>';
+}
+
+/** Redraw the filter bar (after a chip or a tab changes). */
+function manaFiltersRefresh(E) {
+  var bar = document.querySelector('.rg-view-filters');
+  if (bar) bar.outerHTML = manaFiltersHtml(E);
 }
 
 /** The name line's actions: the shell's rail and dock toggles. Called by layout.js whenever they change. */
@@ -55,7 +79,8 @@ function manaEditorOpen(ctx) {
   var entry = ctx.entry, st = ctx.state;
   manaEdLoaded[entry.id] = ctx.data;
   var S = manaEdSessions.get(entry.id), M = S.model;
-  var defaults = { tool: 'paint', tab: 'tile', layer: 'A', tile: 0, a: true, b: true, collision: false, animate: true, specials: false, objects: true, characters: false, triggers: true, grid: false, objSub: 'characters' };
+  var defaults = { tool: 'paint', tab: 'tile', layer: 'A', tile: 0, a: true, b: true, collision: false, animate: true, cut: true, specials: false, objects: true, characters: false, triggers: true, grid: false,
+    objSub: 'characters', tileSub: 'tiles', coll: 'pen', level: null, special: 'eff:33' };
   Object.keys(defaults).forEach(function (k) { if (st[k] === undefined) st[k] = defaults[k]; });
   if (st.layer === 'B' && !M.sizeB) st.layer = 'A';
   var E = { ctx: ctx, entry: entry, st: st, S: S, M: M, H: S.history, W: M.w * 16, HPX: M.h * 16, panelOpen: {}, closed: false, raf: 0,
@@ -95,7 +120,7 @@ function manaEditorOpen(ctx) {
   shellStatusBind(function (e) {
     var c = manaCellAt(E, e);
     if (!c) return null;
-    var a = manaEdCell(M, 'A', c.x, c.y), b = manaEdCell(M, 'B', c.x, c.y);
+    var a = manaEdCellMetatile(M, 'A', c.x, c.y), b = manaEdCellMetatile(M, 'B', c.x, c.y);
     return 'x: ' + statusPad2(c.x) + ' y: ' + statusPad2(c.y) + ' · A $' + manaEdHex(a, 2) + (b >= 0 ? ' · B $' + manaEdHex(b, 2) : '');
   });
   manaNoteSummary(E);
@@ -133,11 +158,11 @@ function manaEditorOpen(ctx) {
 /** A filter chip: flip the view and redraw only what it changes. */
 function manaToggleView(E, k) {
   var st = E.st;
+  if (manaForcedBy(E, k)) return;
   st[k] = !st[k];
   if (!st.a && !st.b) st[k === 'a' ? 'b' : 'a'] = true;   // there is no picture of nothing
   E.ctx.save();
-  var bar = document.querySelector('.rg-view-filters');
-  if (bar) bar.outerHTML = manaFiltersHtml(E);
+  manaFiltersRefresh(E);
   if (k === 'a' || k === 'b') manaStageLayers(E);
   else if (k === 'animate') manaStageAnimate(E);
   else if (k === 'grid') manaStageGrid(E);

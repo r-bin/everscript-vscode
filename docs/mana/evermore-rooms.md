@@ -27,7 +27,7 @@ h-flip 14, priority 13, palette 10-12, character 0-9.
 | floor of no level (c0 = 0, or 4-7) | plane 2 + plane-transparent (`$60`) | open from every level |
 | wall (c0 = 3) | geometry `$F`, plane 2 (`$2F`) | |
 | diagonal half wall 4 / 5 / 6 / 7 (c2) | geometry `$2` / `$9` / `$A` / `$1` | bottom-left / top-right / top-left / bottom-right solid |
-| level switch (c0 bit 3) | — | an ordinary Evermore tile sets the plane anyway |
+| layer switch (c0 bit 3: the walker moves to the other layer, A↔B) | — | not converted |
 | step event cell (`$C8:4000`) | step-on bit 14 + a step-on box | boxes: runs of one event along a row, merged with the same run above; `scriptId` = the Mana event number |
 | the map's own event (byte 3 bit 2) | — | kept as `conversion.onEnter` |
 | weapon-cut cell (c2 `$Cn`, becomes c3) | cuttable layer (Section 4) | the cell's words until cut, then metatile c3's; one source per (cell, beneath) pair, Evermore's own `buildDictionary`. Which weapons may cut it is lost: Evermore's grass has no weapon test |
@@ -88,7 +88,7 @@ and what is missing:
 | tab | shows | missing |
 |---|---|---|
 | Tile | the families (`m<n>`) with their art, the room's stamps, collision sub-tab | Mana's own animated tiles; Mana names for tiles |
-| Special | Evermore specials read off the collision words | Mana's special-cell kinds (c1) and level switches |
+| Special | Evermore specials read off the collision words | Mana's special-cell kinds (c1) and layer switches |
 | Trigger | step-on boxes, each `Mana event NNN` | what an event does (Mana's event scripts are not decoded); the map's own event (`onEnter`); B-triggers (none known in Mana) |
 | Object | event-flag pieces as objects, with their states' tiles | the flag value per state in the UI (it is in `values`) |
 | Widgets, Info | as for any room; Info's budgets show the overflows above | — |

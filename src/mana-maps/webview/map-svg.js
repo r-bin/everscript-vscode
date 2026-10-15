@@ -1,5 +1,5 @@
-// Ownership: drawing a Secret of Mana map into an SVG — the picture URL, the collision and special-cell
-// overlays and the tile animation. Pixels are SVG units (16 per cell); the zoom is the shell's
+// Ownership: drawing a Secret of Mana map into an SVG — the picture URL, the collision overlay and the tile
+// animation. Pixels are SVG units (16 per cell); the zoom is the shell's
 // (zoom-pan.js sets the SVG's width/height), so nothing is scaled by CSS (VS Code's default
 // `img { max-width: 100% }` is what squashed maps before).
 // Uses mapAnimPlay from src/shared/webview/map-view/tile-animation.js.
@@ -51,21 +51,11 @@ function drawCollision(svg, c) {
   return g;
 }
 
-/** Special cells (collision byte 1 bit 7): outlined, labelled with that byte. */
-function drawSpecials(svg, c) {
-  var g = svgEl('g', { 'class': 'mm-specials', 'pointer-events': 'none' });
-  (c.specials || []).forEach(function (s) {
-    g.appendChild(svgEl('rect', { x: s.x * 16 + 0.5, y: s.y * 16 + 0.5, width: 15, height: 15, 'class': 'ms-cell' }));
-    var t = svgEl('text', { x: s.x * 16 + 8, y: s.y * 16 + 10.5, 'class': 'ms-label' });
-    t.textContent = s.kind.toString(16).toUpperCase();
-    g.appendChild(t);
-  });
-  svg.appendChild(g);
-  return g;
-}
-
-/** Start the animation from som://rom/maps/<id>.anim.json; returns the player or null. */
-function playAnimation(svg, a) {
+/**
+ * Start the animation from som://rom/maps/<id>.anim.json in `host` (the group holding the `.mm-picture`, in
+ * pixels), right after the picture; returns the player or null.
+ */
+function playAnimation(host, a) {
   if (!a || !a.kinds || !a.kinds.length) return null;
   var groups = a.kinds.map(function (k) {
     var delays = k.starts.map(function (s, i) {
@@ -78,5 +68,5 @@ function playAnimation(svg, a) {
       at: k.cells.map(function (p) { return { x: p[0] * 16, y: p[1] * 16, w: 16, h: 16 }; }),
     };
   });
-  return mapAnimPlay(svg, groups, { after: svg.querySelector('.mm-picture'), randomPhase: false });
+  return mapAnimPlay(host, groups, { after: host.querySelector('.mm-picture'), randomPhase: false });
 }

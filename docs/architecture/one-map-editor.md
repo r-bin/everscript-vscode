@@ -34,10 +34,12 @@ built (v0.211.0); what is still open is listed under "Status and what is left".
 ## Mana editor v1
 
 Tile painting from a picker, erase, pick, undo/redo, layer toggles (BG1 / BG2 / Collision), zoom,
-animation preview; specials and step events shown. **Collision is not painted on its own**: in Mana
-it belongs to the metatile (`docs/mana/README.md`, "Collision"), so painting a metatile changes
-picture and collision together and the overlay shows the result. A free per-cell collision brush
-would invent data the game does not have.
+animation preview; specials and step events shown. Collision belongs to the metatile in Mana
+(`docs/mana/README.md`, "Collision"), so painting a metatile changes picture and collision together.
+Since v0.217 collision, specials (stairs, push, layer switch) and how a trigger fires are **drawn as
+wishes** (Tile › Collision, Special, Trigger) and solved into metatiles: one with the same picture and
+bytes, else a copy in a slot the map does not use; "?" where none can (`src/mana-maps/webview/editor-props.js`).
+No cell ever gets bytes no metatile has.
 Also objects and triggers, at the level the facts allow (`docs/mana/README.md`):
 - objects: place / move / delete; only known fields editable, unnamed bytes kept as read;
 - triggers: add / move / resize step-event cells, set the event number;

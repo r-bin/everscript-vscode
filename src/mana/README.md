@@ -21,7 +21,7 @@ Built by `npm run build:mana` (`tsconfig.mana.json`) into `dist/`; `index.js` is
 | `cuttable.ts` | cells a weapon changes: c2 `$Cn` -> metatile c3, which weapon types | `$01:D293`, `$01:D376` |
 | `objects.ts` | the map's objects: cell, kind word, flag bits (records after the header) | `$00:C481`, `$00:DD55` |
 | `events.ts` | the map's own event and each cell's step event | `$C8:4000`, `$00:B637`, `$00:D03A` |
-| `collision.ts` | layer A collision bytes per cell, floor class / diagonal / level switch / special | `$02:A043`, `$01:BE15` |
+| `collision.ts` | layer A collision bytes per cell, floor class / diagonal / layer switch / special | `$02:A043`, `$01:BE15` |
 | `cpu65816.ts` | a 65816 interpreter (native mode, no interrupts) to run game routines | — |
 | `snes-bus.ts` | HiROM, WRAM, VRAM/CGRAM ports, DMA, multiply/divide for it | — |
 | `animate.ts` | runs the game's animation setup and per-frame code, records what changes | `$01:B0EC`, `$01:B17E`, `$02:BC7E`, `$00:B0BB`, `$00:C304` |

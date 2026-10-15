@@ -4,7 +4,7 @@
 //
 //   <id>.png / <id>.a.png / <id>.b.png  both layers / layer A (BG1) only / layer B (BG2) only
 //   <id>.json             header bytes, sets, halves, display mode, placed/skipped pieces
-//   <id>.collision.json   per cell: floor class, diagonal, level switch; special cells
+//   <id>.collision.json   per cell: floor class, diagonal, layer switch; special cells
 //   <id>.anim.json        animated cells: frames (PNG data URIs, shared), when each starts
 //   <id>.objects.json     the map's objects: cell, kind word, flag bits, raw bytes
 //   <id>.edit.json        everything the editor starts from: both layers' metatile numbers, each
