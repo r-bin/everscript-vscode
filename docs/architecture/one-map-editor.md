@@ -60,28 +60,28 @@ the headless-Chromium Mana editor tests (`tests/mana/mana-editor-dom.test.js`) r
 
 ## Status and what is left
 
-Built (v0.211.0):
-- `src/shared/webview/map-editor-core/` — history, sessions, "not saved" notice, grid strokes, tool
-  strip; `.depcruise.js` rule `map-editor-core-is-game-neutral`.
-- Mana editor (`src/mana-maps/webview/editor.js` + `editor-model.js`) on that core: Paint, Erase,
-  Pick, Objects, Triggers, Edit A / B, undo/redo, picker, inspector, the notice, per-map sessions.
-  Data: `som://rom/maps/<hex>.edit.json` and `.tiles.a.png` / `.tiles.b.png`
-  (`src/mana/metatile-sheet.ts`). The panel keeps its overview and opens the editor from a
-  figure's Edit button; it is the Mana entry point, not deleted.
-- Evermore tab: an unlocked converted Mana room shows the same notice; **Copy map** now works for
-  one (the host answers a donor of `0x1000 + map id` from the room's image — before, the copy was
-  saved with a donor the Evermore ROM does not have and opened blank). A saved copy needs the Mana
-  ROM to be found when it is reopened.
-- Tests: `mana-editor-core`, `mana-map-editor-dom`, the ROM-tier `edit.json` check, and
-  `mana-editor-dom` (restart of a saved copy).
+Built (v0.211.0 – v0.212.0):
+- `src/shared/webview/map-editor-core/` — history, sessions, "not saved" notice, tool keys;
+  `.depcruise.js` rule `map-editor-core-is-game-neutral`.
+- `src/shared/webview/map-editor-shell/` — the page both games are built from: frame, rail, name line, canvas
+  column (card, pill, zoom chip, filter bar, status bar), dock and tab strip, layout with compact mode, zoom and
+  pan, and their CSS (rule `map-editor-shell-is-game-neutral`). **The Evermore Rooms editor runs on these
+  files** (moved out of `src/rooms/webview/` with `git mv`; the Rooms bundle loads them; the Rooms host builds its
+  rail and frame with `frame.js`); screenshots of the Evermore editor are unchanged by the move.
+- Mana editor on the shell and core (`src/mana-maps/webview/`): same frame, rail, pill, dock, status bar,
+  filter bar, zoom/pan as the Rooms tab. Select / Pencil / Erase / Pick / Undo / Redo; the open tab (Tile,
+  Object, Trigger) decides what the pencil draws, as in Evermore; Info tab; nothing saved, with the notice.
+  Data: `som://rom/maps/<hex>.edit.json` and `.tiles.a.png` / `.tiles.b.png`.
+- Evermore tab: an unlocked converted Mana room shows the same notice; **Copy map** works for one (the host
+  answers a donor of `0x1000 + map id` from the room's image). A saved copy needs the Mana ROM when reopened.
 
-Left, on purpose:
-- **The Evermore editor is not split into core + adapter yet.** Only the notice moved. Its history
-  lives in its draft (`map-editor.js`, `map-editor-history.js`), its gestures, zoom/pan and tool
-  pill are Evermore-shaped (14k lines in one shared scope). The core is where each of those goes
-  once it can be written without `editDraft()`; do it a file at a time (`compress-architecture`).
-- Mana: objects and triggers are edited at the level the facts allow (see "Mana editor v1");
-  scripts need decoding first; no write-back, no "play my edited map".
+Left, on purpose (state it plainly, do not assume it done):
+- **The action registry** that would replace the Evermore `editAction` switch and the 400-line click router
+  (`map-editor-actions.js`, `map-editor-input.js`), and **moving the Evermore draft's undo onto
+  `edit-history.js`** (71 `_edit` references in `map-editor.js`). Until then the Evermore editor has its own
+  history and click routing and the Mana page its own; the shell and the core do not yet cover those two.
+- Evermore-only tabs (Special, Animation, Widgets) and tools (copy, move, stamp) are absent from the Mana page.
+- Mana: scripts need decoding first; no write-back, no "play my edited map".
 - Changed Mana cells ignore BG priority and colour math (a limit of drawing a cell alone).
 
 ## Known state at decision time

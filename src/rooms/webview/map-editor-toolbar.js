@@ -56,10 +56,7 @@ var EDIT_TOOL_GROUPS = [
  * button is rendered for them. A dead control is worse than an honest gap;
  * see §7a of the plan, where the gap is recorded.
  */
-var EDIT_TOOL_ICONS = {
-  select: '↖', paint: '✎', erase: '⌫', pick: '⤵',
-  copy: '⧉', move: '✥', stamp: '❖',
-};
+var EDIT_TOOL_ICONS = SHELL_TOOL_ICONS;   // the glyphs are the shell's (frame.js): both games' pills use them
 
 /**
  * The actions that did not earn a permanent slot.
@@ -99,14 +96,8 @@ function editLockIconSvg(locked) {
 /**
 /** Left rail and right dock visibility toggles for responsive map workspace. */
 function editSidebarTogglesHtml() {
-  var railOn = typeof isRailVisible === 'function' ? isRailVisible() : true;
-  var dockOn = typeof isDockVisible === 'function' ? isDockVisible() : true;
-  return '<button class="rdf rg-edit-tool-icon rg-rail-toggle' + (railOn ? ' on' : '') + '" id="rg-rail-toggle-btn"'
-    + ' data-edit-act="toggle-rail" aria-pressed="' + railOn + '" title="' + (railOn ? 'Collapse room tree (left sidebar)' : 'Expand room tree (left sidebar)') + '">'
-    + '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><line x1="6" y1="2" x2="6" y2="14"/></svg></button>'
-    + '<button class="rdf rg-edit-tool-icon rg-dock-toggle' + (dockOn ? ' on' : '') + '" id="rg-dock-toggle-btn"'
-    + ' data-edit-act="toggle-dock" aria-pressed="' + dockOn + '" title="' + (dockOn ? 'Collapse inspector / tabs (right dock)' : 'Expand inspector / tabs (right dock)') + '">'
-    + '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><line x1="10" y1="2" x2="10" y2="14"/></svg></button>';
+  return shellSidebarTogglesHtml(typeof isRailVisible === 'function' ? isRailVisible() : true,
+    typeof isDockVisible === 'function' ? isDockVisible() : true);
 }
 
 /**

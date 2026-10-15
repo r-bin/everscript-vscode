@@ -3,27 +3,28 @@
 Rules for agents: [AGENTS.md](AGENTS.md). Opened by **Everscript: Secret of Mana: Open Maps**
 (`everscript.openManaMaps`), or by **Open Memory Radar** when `everscript.romPath` is a Mana ROM.
 
-Left: the areas (Potos Falls, Potos, …, then "Other maps"), each expandable to its map ids.
-Middle: the chosen area's pictures side by side (maps that draw the same picture are shown
-once, captioned with all their ids), or one map. Filter bar (shared with the Rooms tab's):
-BG1 | BG2 | Collision, Animate, Specials, Objects, and zoom. Objects rings each object
-record's cell and labels it with its kind word. Collision tints walls and half walls
-red, level-1 floors blue, floors of both levels amber and marks level switches; Specials
-outlines special cells with their kind byte; Animate plays the game's own animation.
+The page is the Evermore Rooms editor's, built from the same shared shell (`src/shared/webview/map-editor-shell/`):
+left, the rail of areas and their maps (search, collapse); middle, the map on a card with the floating pill
+(Select, Pencil, Erase, Pick, Undo, Redo) over its top edge, the zoom chip, the filter bar over its bottom edge
+(BG1 | BG2 | Collision, Animate, Specials, Objects, Triggers, Grid) and the status bar; right, the dock with
+Tile (the metatile picker, collision of the picked one), Object, Trigger and Info tabs. Zoom, pan, the resizable
+rail and dock and the compact narrow-window mode are the shell's.
 
-Each figure has an **Edit** button: it opens the map in the editor. Tools: Paint (the picked
-metatile; collision comes with it), Erase (metatile 0), Pick, Objects (place, move, delete; kind and
-position editable, the other bytes kept), Triggers (add, move, delete step events, set the event
-number); Edit A / Edit B chooses the layer; Undo / Redo (Ctrl+Z / Ctrl+Shift+Z). **Nothing is saved**:
-a notice says so, and the edits last until the panel is closed (they survive going back to the maps).
+Like the Evermore pencil, the open tab decides what Pencil, Erase and Pick work on: a metatile (Tile; its
+collision comes with it), an object (Object: place, move, delete; kind and position editable, the other bytes
+kept) or a step event (Trigger: add, move, delete, set the number). **Nothing is saved**: the pill carries a
+notice, and the edits last until the panel is closed (they survive opening another map).
 Details and the reasons: [docs/architecture/one-map-editor.md](../../docs/architecture/one-map-editor.md).
 
 | File | Role |
 |---|---|
-| `index.js` | creates the panel, reads `som://rom/{info,maps/index,areas/index}.json`, hands the page the editor core's files |
-| `webview/editor-model.js` | the map being edited as plain data: layers, objects, step events, the changes (no DOM; unit-tested) |
-| `webview/editor.js` | the editor page: stage (picture, changed cells, overlays), tools, picker, inspector |
-| `webview/index.html` | page shell (CSP, `#init` data) |
-| `webview/main.js` | area list, filter bar, which maps show, lazy loading, persisted state |
-| `webview/map-svg.js` | one map's SVG, collision and special overlays, starting its animation |
-| `webview/style.css` | layout with VS Code theme colours |
+| `index.js` | creates the panel, reads `som://rom/{info,maps/index,areas/index}.json`, answers the page's `som://` reads |
+| `page.js` | the one list of stylesheets and scripts the page loads (host and tests), and filling `webview/index.html` |
+| `webview/main.js` | the data, the rail, opening a map, the view prefs |
+| `webview/editor.js` | one map's sessions and page, assembled from the shell |
+| `webview/editor-stage.js` | what is on the map: picture, animation, changed cells, grid, overlays |
+| `webview/editor-tools.js` | the pill, strokes (paint, erase, pick, move), keys |
+| `webview/editor-dock.js` | the dock's four tabs |
+| `webview/editor-model.js` | the map being edited as plain data and its changes (no DOM; unit-tested) |
+| `webview/map-svg.js` | collision and special overlays, the animation |
+| `webview/style.css` | what the shell does not cover (collision colours, picker, info rows) |

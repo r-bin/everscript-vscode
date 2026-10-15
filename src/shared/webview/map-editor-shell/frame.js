@@ -114,6 +114,12 @@ function shellCanvasParts(o) {
   return { open: open, close: close };
 }
 
+/** One glyph per tool, since the pill is icon-only; both games' editors draw their tools with these. */
+var SHELL_TOOL_ICONS = {
+  select: '↖', paint: '✎', erase: '⌫', pick: '⤵',
+  copy: '⧉', move: '✥', stamp: '❖',
+};
+
 /** One tool button of the pill. `o`: {key, icon, tip, label, on, off, badge}. */
 function shellToolButtonHtml(o) {
   return '<button class="rdf rg-edit-tool-icon' + (o.on ? ' on' : '')
@@ -183,6 +189,50 @@ function shellTabStripHtml(tabs, attr) {
 }
 
 /**
+ * A tree of rooms for a rail group: areas, each with rows. `areas`: [{area, rooms: [{name, tag, attrs}]}];
+ * `attrs` are the row's data attributes ({import: 'som-66'} -> data-import="som-66"). Rows are
+ * `li.rn-map.vn-map`, which rail.js selects and filters.
+ */
+function shellRailTreeHtml(areas) {
+  var html = '<ul class="rt">';
+  (areas || []).forEach(function (grp) {
+    html += '<li class="rn-area"><span class="rn-area-label">' + shellEscape(grp.area) + '</span><ul class="rt">';
+    grp.rooms.forEach(function (r) {
+      var attrs = '';
+      Object.keys(r.attrs || {}).forEach(function (k) { attrs += ' data-' + k + '="' + shellEscape(r.attrs[k]) + '"'; });
+      html += '<li class="rn-map vn-map"' + attrs + '><span class="rn-label">' + shellEscape(r.name)
+        + '</span><span class="rn-vid-tag">' + shellEscape(r.tag) + '</span></li>';
+    });
+    html += '</ul></li>';
+  });
+  return html + '</ul>';
+}
+
+/**
+ * A collapsible panel of the dock: a header (`data-panel="key"`, the click key) and, open, a body.
+ * `note` is a small grey note after the title.
+ */
+function shellPanelHtml(key, title, body, note, open) {
+  return '<div class="rg-panel' + (open ? ' open' : '') + '">'
+    + '<div class="rg-panel-h" data-panel="' + key + '">'
+    + '<span class="rg-panel-caret">' + (open ? '▾' : '▸') + '</span> ' + title
+    + (note ? ' <span class="rs-note">' + note + '</span>' : '')
+    + '</div>'
+    + (open ? '<div class="rg-panel-b">' + body + '</div>' : '')
+    + '</div>';
+}
+
+/** The two buttons that show and hide the rail and the dock, for the name line's actions. */
+function shellSidebarTogglesHtml(railOn, dockOn) {
+  return '<button class="rdf rg-edit-tool-icon rg-rail-toggle' + (railOn ? ' on' : '') + '" id="rg-rail-toggle-btn"'
+    + ' data-edit-act="toggle-rail" aria-pressed="' + railOn + '" title="' + (railOn ? 'Collapse room tree (left sidebar)' : 'Expand room tree (left sidebar)') + '">'
+    + '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><line x1="6" y1="2" x2="6" y2="14"/></svg></button>'
+    + '<button class="rdf rg-edit-tool-icon rg-dock-toggle' + (dockOn ? ' on' : '') + '" id="rg-dock-toggle-btn"'
+    + ' data-edit-act="toggle-dock" aria-pressed="' + dockOn + '" title="' + (dockOn ? 'Collapse inspector / tabs (right dock)' : 'Expand inspector / tabs (right dock)') + '">'
+    + '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><line x1="10" y1="2" x2="10" y2="14"/></svg></button>';
+}
+
+/**
  * Put the dock beside the canvas column: the column moves into a row `.rg-edit-row`, the room's name
  * line heads it, a splitter and the dock (`#rg-dock > #rg-panels`) follow. Returns
  * {dock, panels, created}; `created` is false when it was already there.
@@ -222,5 +272,6 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = { shellEscape: shellEscape, shellFrameHtml: shellFrameHtml, shellRailHtml: shellRailHtml, shellHeadHtml: shellHeadHtml,
     shellCanvasParts: shellCanvasParts, shellToolButtonHtml: shellToolButtonHtml, shellActButtonHtml: shellActButtonHtml,
     shellPillHtml: shellPillHtml, shellStatusbarHtml: shellStatusbarHtml, shellTabStripHtml: shellTabStripHtml,
+    shellRailTreeHtml: shellRailTreeHtml, shellPanelHtml: shellPanelHtml, shellSidebarTogglesHtml: shellSidebarTogglesHtml,
     statusPad2: statusPad2, STATUS_NO_XY: STATUS_NO_XY };
 }

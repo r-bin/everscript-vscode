@@ -1,12 +1,9 @@
-/* Ownership: the look of the editor core's own pieces (the "not saved" notice, the history
-   buttons), for every page that includes them. Colours are VS Code theme tokens, so it follows the
+/* Ownership: the look of the editor core's own pieces (the "not saved" notice), for every page that includes them. Colours are VS Code theme tokens, so it follows the
    theme in the Mana panel and in the Rooms tab alike. */
 .ed-notsaved {
   padding: 4px 10px;
   border-left: 3px solid var(--vscode-editorWarning-foreground, #cca700);
   background: var(--vscode-inputValidation-warningBackground, rgba(204, 167, 0, 0.12));
 }
-/* On the Rooms tab the notice floats over the top of the map, out of the way of the clicks. */
-.rg-notsaved { position: absolute; top: 4px; left: 50%; transform: translateX(-50%); z-index: 5; pointer-events: none; white-space: nowrap; }
-.ed-history { display: inline-flex; gap: 2px; margin-left: 6px; }
-.ed-history button:disabled { opacity: 0.4; }
+/* In both editors the notice floats over the map just under the tool pill, out of the way of the clicks. */
+.rg-notsaved { position: absolute; top: 50px; left: 50%; transform: translateX(-50%); z-index: 5; pointer-events: none; white-space: nowrap; }

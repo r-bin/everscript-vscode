@@ -1,12 +1,12 @@
 'use strict';
-// The Secret of Mana Maps page in headless Chromium: the real webview files and the
-// shared map-view pieces, a synthetic catalogue, and a stub host answering som://
-// reads. No ROM needed; skips without playwright. Run: node tests/mana/mana-panel-dom.test.js
+// The Secret of Mana Maps page in headless Chromium: the real page (src/mana-maps/page.js), built from the shared
+// editor shell, with a synthetic map and a stub host answering som:// reads. Checks the page is the shell the Evermore
+// Rooms tab runs on (frame, rail, canvas card, pill, filter bar, status bar, dock) and the view features.
+// No ROM needed; skips without playwright. Run: node tests/mana/mana-panel-dom.test.js
 
 const fs = require('fs');
-const path = require('path');
-
 const { writePage, url } = require('./panel-page');
+const { INIT, hostFile, somDir } = require('./synthetic-map');
 
 let passed = 0, failed = 0;
 const check = (name, cond, detail) => {
@@ -14,75 +14,94 @@ const check = (name, cond, detail) => {
     else { console.error('  ✗ ' + name + (detail ? '\n    ' + detail : '')); failed++; }
 };
 
-// One wide map (the shape VS Code's `img { max-width:100% }` used to squash), 6x2 cells.
-const INIT = {
-    title: 'Test', somBase: 'file:///nowhere/',
-    maps: [{ id: 176, hex: 'b0', w: 6, h: 2, area: 'Wide' }],
-    areas: [{ name: 'Wide', slug: 'wide', maps: [176], pictures: [[176]] }],
-};
-const FILES = {
-    'maps/b0.collision.json': { w: 6, h: 2, floor: '333222' + '102000', diagonal: '000000' + '000400', switches: [[5, 1]], specials: [{ x: 1, y: 1, kind: 0x87 }] },
-    'maps/b0.objects.json': { objects: [{ x: 2, y: 1, kind: 0xC001 }] },
-    'maps/b0.anim.json': { length: 60, images: ['data:image/png;base64,AA==', 'data:image/png;base64,AQ=='],
-        kinds: [{ cells: [[0, 0], [1, 0], [2, 0]], starts: [0, 30], frames: [0, 1] }] },
-};
-
 async function main() {
     let chromium;
     try { ({ chromium } = require('playwright')); } catch { console.log('\nMana maps page: playwright not installed — skipped'); return; }
     let browser;
-    try { browser = await chromium.launch(); } catch (e) { console.log('\nMana maps page: no browser — skipped'); return; }
-    console.log('\nSecret of Mana Maps page:');
-    const { dir: tmp, page } = writePage(INIT, INIT.somBase);
-    // VS Code's own default webview stylesheet caps images like this.
-    fs.writeFileSync(path.join(tmp, 'vscode.css'), 'img,video{max-width:100%;max-height:100%}');
+    try { browser = await chromium.launch({ args: ['--allow-file-access-from-files'] }); } catch (e) { console.log('\nMana maps page: no browser — skipped'); return; }
+    console.log('\nSecret of Mana Maps page (the shared editor shell):');
+    const dir = somDir();
+    const { dir: tmp, page } = writePage(INIT, url(dir) + '/');
 
-    const p = await browser.newPage({ viewport: { width: 500, height: 600 } });
+    const p = await browser.newPage({ viewport: { width: 1500, height: 800 } });
     const errors = [];
     p.on('pageerror', e => errors.push(e.message));
-    await p.exposeFunction('hostRead', f => (FILES[f] ? JSON.stringify(FILES[f]) : null));
+    await p.exposeFunction('hostRead', f => hostFile(f));
     await p.addInitScript(() => {
-        let st = { zoom: 4 };
+        let st = {};
         window.acquireVsCodeApi = () => ({
             getState: () => st, setState: s => { st = s; },
             postMessage: async m => { if (m.command === 'read') window.postMessage({ command: 'file', path: m.path, text: await window.hostRead(m.path) }, '*'); },
         });
     });
     await p.goto(url(page));
-    await p.addStyleTag({ url: url(path.join(tmp, 'vscode.css')) });
     await p.waitForTimeout(300);
 
-    const box = await p.evaluate(() => { const r = document.querySelector('svg.mm-map').getBoundingClientRect(); return [r.width, r.height]; });
-    check('a map wider than the view keeps its shape (384x128 at 4x, not squashed)', box[0] === 384 && box[1] === 128, JSON.stringify(box));
-    const chips = await p.evaluate(() => [...document.querySelectorAll('#filters .rg-seg .rdf')].map(b => b.textContent));
-    check('the filter bar is the shared segmented pill: BG1 | BG2 | Collision', chips.join('|') === 'BG1|BG2|Collision', chips.join('|'));
-    const anim = await p.evaluate(() => ({ uses: document.querySelectorAll('svg.mm-map use').length, defs: document.querySelectorAll('svg.mm-map defs image').length }));
+    // The frame is the Evermore Rooms tab's: rail | splitter | detail.
+    const frame = await p.evaluate(() => ({
+        panels: !!document.querySelector('.rm-panels > .rm-rail + .rm-split[data-split="rail"] + .rm-right > #room-detail'),
+        railDisplay: getComputedStyle(document.querySelector('.rm-rail')).display,
+        groups: [...document.querySelectorAll('.rm-grp-h')].map(h => h.textContent.trim()),
+        rows: [...document.querySelectorAll('li.rn-map')].map(li => li.textContent.trim()),
+        areaLabel: (document.querySelector('.rn-area-label') || {}).textContent,
+    }));
+    check('the page is the shell\'s frame (rail, splitter, detail), the rail a flex column', frame.panels && frame.railDisplay === 'flex', JSON.stringify(frame));
+    check('the rail lists the area and its maps, as a group of rows like the Rooms tab\'s', frame.groups.join() === '▾Secret of Mana' && frame.areaLabel === 'Wide' && frame.rows.length === 2 && /Wide 1/.test(frame.rows[0]), JSON.stringify(frame));
+
+    await p.fill('#rm-rail-q', 'wide 2');
+    check('the rail search filters its rows (the shell\'s rail.js)', await p.locator('li.rn-map:not(.rm-off)').count() === 1);
+    await p.fill('#rm-rail-q', '');
+
+    await p.click('li.rn-map[data-map="176"]');
+    await p.waitForSelector('#rg-svg');
+    await p.waitForTimeout(400);
+    const shell = await p.evaluate(() => ({
+        head: (document.querySelector('.rd-head .rd-name') || {}).textContent,
+        pill: [...document.querySelectorAll('#rg-edit-bar [data-edit-tool]')].map(b => b.getAttribute('aria-label')),
+        zoom: !!document.getElementById('rg-zoom-level') && document.getElementById('rg-zoom-level').textContent,
+        statusbar: !!document.querySelector('.rg-statusbar #rg-status-xy'),
+        tabs: [...document.querySelectorAll('#rg-tabstrip .rg-tab')].map(b => b.textContent),
+        dock: !!document.querySelector('.rg-edit-row > #rg-dock'),
+        cardPill: !!document.querySelector('#rg-canvas-card > #rg-edit-chrome > #rg-edit-bar.rg-edit-bar'),
+        filters: [...document.querySelectorAll('.rg-view-filters .rdf')].map(b => b.textContent),
+    }));
+    check('opening a map builds the shell\'s page: name line, canvas card with the pill, zoom chip, filter bar, status bar, dock',
+        shell.head === 'Wide 1' && shell.zoom && shell.statusbar && shell.dock && shell.cardPill, JSON.stringify(shell));
+    check('the pill is the Evermore editor\'s: select, pencil, erase, pick', shell.pill.join() === 'select,pencil,erase,pick', shell.pill.join());
+    check('the dock\'s tab strip is the shell\'s: Tile | Object | Trigger | Info', shell.tabs.join() === 'Tile,Object,Trigger,Info', shell.tabs.join());
+    check('the filter bar is the shared segmented pill: BG1 | BG2 | Collision, then the chips', shell.filters.join() === 'BG1,BG2,Collision,Animate,Specials,Objects,Triggers,Grid', shell.filters.join());
+
+    const fit = await p.evaluate(() => { const w = document.getElementById('rg-wrap').getBoundingClientRect(), s = document.getElementById('rg-svg').getBoundingClientRect(); return { ww: w.width, sw: s.width, sh: s.height }; });
+    check('the map fits its viewport and keeps its shape (6x2 cells -> 3:1)', Math.abs(fit.sw / fit.sh - 3) < 0.05 && fit.sw <= fit.ww + 1, JSON.stringify(fit));
+    const anim = await p.evaluate(() => ({ uses: document.querySelectorAll('#rg-svg use').length, defs: document.querySelectorAll('#rg-svg defs image').length }));
     check('animated cells of one kind share one image (3 <use>, 1 defs image)', anim.uses === 3 && anim.defs === 1, JSON.stringify(anim));
 
-    await p.click('#filters [data-toggle="collision"]');
-    await p.click('#filters [data-toggle="specials"]');
-    await p.click('#filters [data-toggle="objects"]');
+    await p.click('.rg-view-filters [data-toggle="collision"]');
+    await p.click('.rg-view-filters [data-toggle="specials"]');
+    await p.click('.rg-view-filters [data-toggle="objects"]');
     await p.waitForTimeout(200);
     const ov = await p.evaluate(() => ({
-        classes: [...document.querySelectorAll('.mm-collision path')].map(e => e.getAttribute('class')).sort(),
-        switches: document.querySelectorAll('.mc-switch').length - document.querySelectorAll('.legend .mc-switch').length,
-        label: (document.querySelector('.ms-label') || {}).textContent,
-        legend: !document.getElementById('legend').hidden,
+        classes: [...document.querySelectorAll('#rg-over .mm-collision path')].map(e => e.getAttribute('class')).sort(),
+        label: (document.querySelector('#rg-over .ms-label') || {}).textContent,
+        ring: document.querySelectorAll('#rg-over .ed-objects .mo-ring').length,
     }));
-    check('collision draws walls, diagonal halves, level-1 and shared floors', ov.classes.join(',') === 'mc-diag,mc-l0,mc-l1,mc-wall', ov.classes.join(','));
-    check('level switches and special cells are marked and labelled', ov.switches === 1 && ov.label === '87', JSON.stringify(ov));
-    check('the collision legend shows with the overlay', ov.legend);
-    const obj = await p.evaluate(() => [document.querySelectorAll('.mo-ring').length, (document.querySelector('.mo-label') || {}).textContent]);
-    check('objects are ringed and labelled with their kind', obj[0] === 1 && obj[1] === 'C001', JSON.stringify(obj));
+    check('the collision overlay is drawn from the metatiles\' collision: level-2 floor (all of this map) is the plain ground', ov.classes.length === 0 && await p.locator('#rg-over .mm-collision').count() === 1, ov.classes.join());
+    check('the objects overlay rings the map\'s object', ov.ring === 1, JSON.stringify(ov));
 
-    await p.click('#filters [data-toggle="a"]');
+    await p.click('.rg-view-filters [data-toggle="a"]');
     await p.waitForTimeout(200);
-    const href = await p.evaluate(() => document.querySelector('.mm-picture').getAttribute('href'));
+    const href = await p.evaluate(() => document.getElementById('rg-img').getAttribute('href'));
     check('BG1 off shows layer B alone (maps/b0.b.png), and stops the animation',
-        href.endsWith('maps/b0.b.png') && !(await p.evaluate(() => document.querySelectorAll('svg.mm-map use').length)), href);
+        href.endsWith('maps/b0.b.png') && !(await p.evaluate(() => document.querySelectorAll('#rg-svg use').length)), href);
+
+    await p.click('[data-edit-act="toggle-dock"]');
+    check('the shell\'s dock toggle hides the dock', await p.evaluate(() => getComputedStyle(document.getElementById('rg-dock')).display) === 'none');
+    await p.click('[data-edit-act="toggle-dock"]');
+    check('and shows it again', await p.evaluate(() => getComputedStyle(document.getElementById('rg-dock')).display) !== 'none');
     check('no page errors', !errors.length, errors.join('; '));
     await browser.close();
     fs.rmSync(tmp, { recursive: true, force: true });
+    fs.rmSync(dir, { recursive: true, force: true });
 }
 
 main().catch(e => { console.error(e); failed++; }).finally(() => {

@@ -3,10 +3,6 @@
  * (one screen, resize handles, the map filling the space between the bars, the header, the collapsed
  * and compact overlay states) is the shared shell's (src/shared/webview/map-editor-shell/shell-layout.css). */
 
-/* ── Trigger cards: the row and, opened, its script, in one border ──────── */
-.rg-theme .rg-trigger-card{border:1px solid var(--rg-border);border-radius:7px;overflow:hidden}
-.rg-theme .rg-trigger-card.on{border-color:var(--rg-accent);background:var(--rg-bg-chrome)}
-.rg-theme .rg-trigger-card > .rg-trigger-row{border:none;border-radius:0}
 .rg-theme .rg-trigger-what{display:block;font-family:var(--rg-font-ui);font-size:11px;color:var(--rg-text-muted);
   overflow:hidden;text-overflow:ellipsis}
 .rg-theme .rg-trigger-body{padding:6px 10px 8px 30px;border-top:1px solid var(--rg-border);font-size:11px}

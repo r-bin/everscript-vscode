@@ -3,12 +3,12 @@
 Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2), part of `src/shared`. What it does: [README.md](README.md).
 
 ## Owns
-- What every map editor needs whatever the game: undo/redo history, per-map sessions, the "not
-  saved" notice, pointer strokes over a grid, the tool strip's markup and key bindings.
+- What every map editor needs whatever the game and that is not page chrome: undo/redo history,
+  per-map sessions, the "not saved" notice, the tool and history key bindings. Page chrome is the
+  sibling `map-editor-shell`.
 
 ## Dependencies
 - Nothing: no imports from `src/` outside this folder (`.depcruise.js` `map-editor-core-is-game-neutral`).
-  `edit-tools.js` uses the chip builders of `../map-view/view-chips.js` as globals; a page loads both.
 
 ## Invariants
 - No game's words here: no tile families, metatiles, collision bits, ROM, rooms. If a piece needs

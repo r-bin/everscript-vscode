@@ -1,105 +1,37 @@
-body {
-    margin: 0;
-    padding: 0;
-    display: flex;
-    height: 100vh;
-    overflow: hidden;
-    color: var(--vscode-foreground);
-    background: var(--vscode-editor-background);
-    font-family: var(--vscode-font-family);
-    font-size: var(--vscode-font-size);
-}
-nav {
-    width: 220px;
-    flex: none;
-    overflow-y: auto;
-    border-right: 1px solid var(--vscode-panel-border, transparent);
-    background: var(--vscode-sideBar-background);
-    padding: 4px 0;
-}
-nav .area {
-    display: flex;
-    justify-content: space-between;
-    padding: 3px 10px;
-    cursor: pointer;
-    user-select: none;
-}
-nav .area .n { opacity: 0.6; }
-nav .area:hover, nav .map:hover { background: var(--vscode-list-hoverBackground); }
-nav .area.sel, nav .map.sel { background: var(--vscode-list-activeSelectionBackground); color: var(--vscode-list-activeSelectionForeground); }
-nav .maps { display: none; }
-nav .open > .maps { display: block; }
-nav .map { padding: 2px 10px 2px 24px; cursor: pointer; opacity: 0.85; }
-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-header {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 12px;
-    padding: 6px 12px;
-    border-bottom: 1px solid var(--vscode-panel-border, transparent);
-}
-header h1 { font-size: 1.1em; margin: 0; font-weight: 600; }
-header #meta { opacity: 0.7; flex: 1; }
-#view {
-    flex: 1;
-    overflow: auto;
-    padding: 12px;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    align-content: flex-start;
-    gap: 12px;
-}
-figure { margin: 0; }
-/* Sized by its width/height attributes only: VS Code's default webview CSS caps
-   images at max-width:100%, which squashed wide maps into tall ones. */
-svg.mm-map { display: block; max-width: none; max-height: none; background: #000; }
-svg.mm-map image { image-rendering: pixelated; }
-#filters { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 12px;
-    border-bottom: 1px solid var(--vscode-panel-border, transparent); }
-#filters .zoom-chips { display: inline-flex; gap: 2px; margin-left: auto; }
-.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 4px 12px; font-size: 11px; opacity: 0.85; }
-.legend[hidden], #filters[hidden] { display: none; }   /* an author `display` beats the UA [hidden] rule */
-.legend .sw { display: inline-block; width: 12px; height: 12px; margin-right: 5px; vertical-align: -2px; border: 1px solid #888; }
+/* Ownership: the Secret of Mana editor's own look — what the shared shell (src/shared/webview/map-editor-shell/)
+ * and the map-view tokens do not cover: the collision overlay colours, the metatile picker, the info rows,
+ * the overlay marks for objects and step events. Everything else is the shell's, so the page looks like the
+ * Evermore Rooms editor. Scoped under `.rg-theme` where it uses the shell's tokens. */
+
+/* The map is crisp at any zoom. */
+#rg-img, #rg-edit-tiles image, .mana-picker image { image-rendering: pixelated; }
+
+/* Collision overlay (map-svg.js drawCollision) and its legend. */
 .mc-wall, .mc-diag { fill: rgba(230, 60, 60, 0.5); background: rgba(230, 60, 60, 0.5); }
 .mc-l1 { fill: rgba(70, 140, 255, 0.4); background: rgba(70, 140, 255, 0.4); }
 .mc-l0 { fill: rgba(255, 190, 60, 0.4); background: rgba(255, 190, 60, 0.4); }
 .mc-switch { fill: none; stroke: #ff4df0; stroke-width: 1.5; border-color: #ff4df0; }
 .sw-plain { background: transparent; }
-.ms-cell { fill: rgba(255, 216, 74, 0.15); stroke: #ffd84a; stroke-width: 1; }
-.mo-ring { fill: rgba(255, 110, 200, 0.2); stroke: #ff6ec8; stroke-width: 1.5; }
-.mo-label { fill: #fff; stroke: #000; stroke-width: 1.5px; paint-order: stroke; font: bold 6px monospace; text-anchor: middle; }
-.ms-label { fill: #fff; stroke: #000; stroke-width: 1.5px; paint-order: stroke; font: bold 6px monospace; text-anchor: middle; }
-figcaption { font-size: 0.9em; opacity: 0.75; padding: 2px 0; cursor: pointer; }
-.message { padding: 24px; opacity: 0.8; }
+.sw { display: inline-block; width: 12px; height: 12px; margin-right: 8px; vertical-align: -2px; border: 1px solid #888; }
+.mana-legend-row { font-size: 11px; padding: 2px 0; color: var(--rg-text-secondary); }
 
-/* ── the map editor (editor.js) ─────────────────────────────────────────────── */
-.fig-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
-.fig-head figcaption { padding: 0; }
-.edit-btn { display: block; font: inherit; font-size: 0.85em; cursor: pointer;
-    color: var(--vscode-button-secondaryForeground); background: var(--vscode-button-secondaryBackground);
-    border: 1px solid var(--vscode-panel-border, transparent); border-radius: 3px; padding: 1px 10px; }
-.edit-btn:hover { background: var(--vscode-button-secondaryHoverBackground); }
-.ed { flex: 1 1 100%; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
-.ed-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.ed-bar .zoom-chips { display: inline-flex; gap: 2px; margin-left: auto; }
-.ed-bar .disabled { opacity: 0.4; pointer-events: none; }
-#ed-notice { min-height: 2.2em; }   /* the stage does not jump when the notice shows (the notice's look: map-editor-core.css) */
-.ed-body { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
-.ed-scroll { flex: 1 1 400px; min-width: 0; overflow: auto; max-height: calc(100vh - 170px); border: 1px solid var(--vscode-panel-border, transparent); }
-.ed-stage { position: relative; background: #000; }
-.ed-stage > * { position: absolute; left: 0; top: 0; max-width: none; max-height: none; }
-.ed-stage svg.ed-over { cursor: crosshair; touch-action: none; }
-.ed-stage canvas.ed-edits { pointer-events: none; image-rendering: pixelated; }
-.ed-side { flex: 0 0 auto; width: 512px; max-width: 100%; display: flex; flex-direction: column; gap: 8px; }
-#ed-picker { width: 512px; max-width: 100%; image-rendering: pixelated; cursor: pointer; border: 1px solid var(--vscode-panel-border, transparent); }
-.ed-info, .ed-inspector { font-size: 0.9em; }
-.ed-inspector h3 { margin: 0 0 4px; font-size: 1em; }
-.ed-inspector h3 span { opacity: 0.6; font-weight: normal; }
-.ed-inspector label { display: inline-block; margin-right: 8px; }
-.ed-inspector input { width: 5em; background: var(--vscode-input-background); color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border, transparent); }
-.ed-bytes { font-family: var(--vscode-editor-font-family, monospace); opacity: 0.8; margin: 4px 0; }
+/* Special cells, objects, step events, the hovered cell. */
+.ms-cell { fill: rgba(255, 216, 74, 0.15); stroke: #ffd84a; stroke-width: 1; }
+.ms-label, .mo-label { fill: #fff; stroke: #000; stroke-width: 1.5px; paint-order: stroke; font: bold 6px monospace; text-anchor: middle; }
+.mo-ring { fill: rgba(255, 110, 200, 0.2); stroke: #ff6ec8; stroke-width: 1.5; }
 .ed-trig { fill: rgba(80, 200, 255, 0.15); stroke: #50c8ff; stroke-width: 1; }
 .ed-trig.sel, .mo-ring.sel { stroke: #fff; stroke-width: 2; }
+.mana-hover { fill: rgba(255, 255, 255, 0.12); stroke: rgba(255, 255, 255, 0.5); stroke-width: 0.8; }
+
+/* The Tile tab's picker. */
+.mana-picker { display: block; width: 100%; height: auto; border: 1px solid var(--rg-border); border-radius: 6px; cursor: pointer; background: var(--rg-bg-app); }
+.mana-picked { fill: none; stroke: var(--rg-accent); stroke-width: 1.5; pointer-events: none; }
+.rg-theme .rdf.disabled { opacity: 0.4; pointer-events: none; }
+
+/* The Object and Trigger tabs' inspector, the Info rows. */
+.mana-field { display: inline-block; margin: 4px 8px 4px 0; font-size: 11px; color: var(--rg-text-secondary); }
+.mana-field input { width: 5em; background: var(--rg-bg-chrome); color: var(--rg-text-primary); border: 1px solid var(--rg-border); border-radius: 4px; padding: 2px 4px; font: inherit; }
+.mana-bytes { font-family: var(--rg-font-mono); font-size: 11px; color: var(--rg-text-muted); margin: 4px 0; }
+.mana-info-row { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; padding: 2px 0; color: var(--rg-text-secondary); }
+.mana-info-row b { font-weight: 500; color: var(--rg-text-primary); }
+.message { padding: 24px; opacity: 0.8; }

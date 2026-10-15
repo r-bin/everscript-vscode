@@ -87,14 +87,7 @@ function panelRestoreScroll(body, anchor) {
 
 /** A collapsible section, so four panels fit in one sidebar. */
 function panel(key, title, body, note) {
-  var on = _panelOpen[key] !== false;
-  return '<div class="rg-panel' + (on ? ' open' : '') + '">'
-    + '<div class="rg-panel-h" data-panel="' + key + '">'
-    + '<span class="rg-panel-caret">' + (on ? '▾' : '▸') + '</span> ' + title
-    + (note ? ' <span class="rs-note">' + note + '</span>' : '')
-    + '</div>'
-    + (on ? '<div class="rg-panel-b">' + body + '</div>' : '')
-    + '</div>';
+  return shellPanelHtml(key, title, body, note, _panelOpen[key] !== false);
 }
 
 /**

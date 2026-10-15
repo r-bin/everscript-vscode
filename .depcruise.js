@@ -114,6 +114,14 @@ module.exports = {
     },
 
     {
+      name: 'map-editor-shell-is-game-neutral',
+      comment: 'The shared editor shell (frame, rail, layout, zoom/pan, pill, status bar, dock) knows no game: it imports nothing from src/ outside itself.',
+      severity: 'error',
+      from: { path: '^src/shared/webview/map-editor-shell/' },
+      to: { path: '^src/(?!shared/webview/map-editor-shell/)' },
+    },
+
+    {
       name: 'mana-maps-reads-som-only',
       comment: 'The Mana Maps panel reads Mana data through som:// only.',
       severity: 'error',

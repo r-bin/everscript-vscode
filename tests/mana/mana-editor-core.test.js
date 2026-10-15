@@ -8,7 +8,6 @@ const path = require('path');
 const CORE = path.join(__dirname, '..', '..', 'src', 'shared', 'webview', 'map-editor-core');
 const { editHistoryCreate } = require(path.join(CORE, 'edit-history.js'));
 const { editSessionStore, editNotSavedHtml } = require(path.join(CORE, 'edit-session.js'));
-const { editGridCell } = require(path.join(CORE, 'edit-grid.js'));
 const { editToolForKey, editHistoryForKey } = require(path.join(CORE, 'edit-tools.js'));
 const M = require(path.join(__dirname, '..', '..', 'src', 'mana-maps', 'webview', 'editor-model.js'));
 
@@ -73,14 +72,6 @@ test('sessions: one per key, made once, dirty ones listed', () => {
 test('the not-saved notice names the map and says it lasts until the tab is closed', () => {
     const html = editNotSavedHtml('Secret of Mana map');
     assert.ok(/not saved/.test(html) && /Secret of Mana map/.test(html) && /closed/.test(html));
-});
-
-test('grid: a point maps to its cell, clamped to the grid', () => {
-    const rect = { left: 100, top: 50 };
-    assert.deepStrictEqual(editGridCell(rect, 100, 50, 32, 6, 2), { x: 0, y: 0 });
-    assert.deepStrictEqual(editGridCell(rect, 100 + 32 * 3 + 5, 50 + 40, 32, 6, 2), { x: 3, y: 1 });
-    assert.deepStrictEqual(editGridCell(rect, 10, 10, 32, 6, 2), { x: 0, y: 0 });
-    assert.deepStrictEqual(editGridCell(rect, 9999, 9999, 32, 6, 2), { x: 5, y: 1 });
 });
 
 test('keys: tool letters, undo and redo', () => {

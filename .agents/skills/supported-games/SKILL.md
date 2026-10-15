@@ -56,8 +56,10 @@ game supports it, not through a second tool:
 - **Mana Maps panel** (`everscript.openManaMaps`) — the maps as the game draws them, with
   collision, animation, special cells and objects, and a map editor (Edit button): paint
   metatiles, objects, step events, undo/redo. Nothing it changes is saved. It shares the filter
-  bar, the tile animation player and the editor core (history, sessions, grid strokes, notice)
-  with the Rooms tab (`src/shared/webview/map-view/`, `.../map-editor-core/`). The two editors
+  bar, the tile animation player, the editor core (history, sessions, notice) and the editor shell
+  (frame, rail, canvas card, pill, dock, layout, zoom/pan) with the Rooms tab (`src/shared/webview/map-view/`,
+  `.../map-editor-core/`, `.../map-editor-shell/`) — the Mana page looks and behaves like the Evermore editor
+  because it is built from the same files. The two editors
   never mix data: the Rooms tab shows Evermore plus *converted* Mana rooms, the panel native
   Mana maps. Plan: `docs/architecture/one-map-editor.md`.
 - Mana collision is per **metatile**, not per cell — there is no free collision brush.

@@ -1,6 +1,6 @@
-// Ownership: one map on the page — its SVG (picture, collision and special-cell
-// overlays) and its animation. Pixels are SVG units (16 per cell); the zoom is the
-// SVG's width/height, so nothing is ever scaled by CSS (VS Code's default
+// Ownership: drawing a Secret of Mana map into an SVG — the picture URL, the collision and special-cell
+// overlays and the tile animation. Pixels are SVG units (16 per cell); the zoom is the shell's
+// (zoom-pan.js sets the SVG's width/height), so nothing is scaled by CSS (VS Code's default
 // `img { max-width: 100% }` is what squashed maps before).
 // Uses mapAnimPlay from src/shared/webview/map-view/tile-animation.js.
 
@@ -16,17 +16,6 @@ function svgEl(tag, attrs) {
 function mapPictureUrl(somBase, hex, layers) {
   var ext = layers.a && layers.b ? 'png' : layers.a ? 'a.png' : 'b.png';
   return somBase + 'maps/' + hex + '.' + ext;
-}
-
-/** Build the (still empty) SVG for map `m` ({hex, w, h}). */
-function buildMapSvg(m, zoom) {
-  var W = m.w * 16, H = m.h * 16;
-  var svg = svgEl('svg', { viewBox: '0 0 ' + W + ' ' + H, width: Math.round(W * zoom), height: Math.round(H * zoom),
-    'class': 'mm-map', 'data-hex': m.hex });
-  // The picture's href is set when the map scrolls into view (main.js fillFigure).
-  var img = svgEl('image', { x: 0, y: 0, width: W, height: H, preserveAspectRatio: 'none', 'class': 'mm-picture' });
-  svg.appendChild(img);
-  return svg;
 }
 
 var TRIANGLES = {
@@ -69,19 +58,6 @@ function drawSpecials(svg, c) {
     g.appendChild(svgEl('rect', { x: s.x * 16 + 0.5, y: s.y * 16 + 0.5, width: 15, height: 15, 'class': 'ms-cell' }));
     var t = svgEl('text', { x: s.x * 16 + 8, y: s.y * 16 + 10.5, 'class': 'ms-label' });
     t.textContent = s.kind.toString(16).toUpperCase();
-    g.appendChild(t);
-  });
-  svg.appendChild(g);
-  return g;
-}
-
-/** Objects (som://rom/maps/<id>.objects.json): a ring where each one is placed, labelled with its kind. */
-function drawObjects(svg, list) {
-  var g = svgEl('g', { 'class': 'mm-objects', 'pointer-events': 'none' });
-  (list.objects || []).forEach(function (o) {
-    g.appendChild(svgEl('circle', { cx: o.x * 16 + 8, cy: o.y * 16 + 8, r: 6, 'class': 'mo-ring' }));
-    var t = svgEl('text', { x: o.x * 16 + 8, y: o.y * 16 - 1, 'class': 'mo-label' });
-    t.textContent = o.kind.toString(16).toUpperCase();
     g.appendChild(t);
   });
   svg.appendChild(g);

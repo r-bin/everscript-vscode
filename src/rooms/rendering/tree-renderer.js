@@ -5,7 +5,7 @@
 
 const { radarEsc } = require('../../shared/radar-utils');
 // The rail's markup is the shared editor shell's, so the Secret of Mana editor builds the same one.
-const { shellRailHtml } = require('../../shared/webview/map-editor-shell/frame');
+const { shellRailHtml, shellRailTreeHtml } = require('../../shared/webview/map-editor-shell/frame');
 
 /**
  * Server-side render of the static vanilla room list grouped by act.
@@ -35,18 +35,8 @@ function renderVanillaTree(vanillaRooms) {
  * @returns {string} HTML string.
  */
 function renderImportedTree(areas) {
-    let html = '<ul class="rt">';
-    for (const grp of areas || []) {
-        html += '<li class="rn-area"><span class="rn-area-label">' + radarEsc(grp.area) + '</span><ul class="rt">';
-        for (const r of grp.rooms) {
-            html += '<li class="rn-map vn-map" data-import="' + radarEsc(r.id)
-                  + '" data-name="' + radarEsc(r.name)
-                  + '"><span class="rn-label">' + radarEsc(r.name)
-                  + '</span><span class="rn-vid-tag">' + radarEsc(r.tag) + '</span></li>';
-        }
-        html += '</ul></li>';
-    }
-    return html + '</ul>';
+    return shellRailTreeHtml((areas || []).map((grp) => ({ area: grp.area,
+        rooms: grp.rooms.map((r) => ({ name: r.name, tag: r.tag, attrs: { import: r.id, name: r.name } })) })));
 }
 
 /**

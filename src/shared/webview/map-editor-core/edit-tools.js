@@ -1,20 +1,7 @@
-// Ownership: the editor's tool strip — which tools an adapter offers, which is active, the undo /
-// redo buttons — as markup. Game-neutral; the adapter owns the tools and what they do. Needs
-// view-chips.js (mapViewChipHtml). Plain browser script: defines globals.
-//
-// A tool is `{ id, label, title, key }`; `key` is the one-letter shortcut shown in the title.
-// Clicks carry `data-edit-tool="<id>"` or `data-edit-act="undo|redo"`; the page binds them.
-
-function editToolsHtml(tools, active, history) {
-  var parts = tools.map(function (t) {
-    return mapViewChipHtml({ label: t.label, on: t.id === active, attrs: { 'edit-tool': t.id },
-      title: t.title + (t.key ? ' (' + t.key.toUpperCase() + ')' : '') });
-  });
-  var chips = mapViewSegHtml(parts);
-  var undo = '<button class="rdf" data-edit-act="undo" title="Undo (Ctrl+Z)"' + (history.canUndo() ? '' : ' disabled') + '>Undo</button>';
-  var redo = '<button class="rdf" data-edit-act="redo" title="Redo (Ctrl+Shift+Z)"' + (history.canRedo() ? '' : ' disabled') + '>Redo</button>';
-  return chips + '<span class="ed-history">' + undo + redo + '</span>';
-}
+// Ownership: the editor's keys — which tool a letter selects, and the undo / redo shortcuts. Game-neutral: an
+// adapter lists its tools as `{ id, key }`. The tool strip itself is the shell's pill
+// (src/shared/webview/map-editor-shell/frame.js shellPillHtml). Plain browser script: defines globals (and
+// `module.exports` under Node, for the unit test).
 
 /** The tool a key selects, or null (`tools` as above; ignores keys with a modifier). */
 function editToolForKey(tools, ev) {
