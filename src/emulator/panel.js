@@ -448,6 +448,7 @@ function openEmulatorPanel(context, rom, channel) {
       context.globalStorageUri ? context.globalStorageUri.fsPath : path.join(context.extensionPath, '.storage'),
       m => { if (_panel) _panel.webview.postMessage(m); },
       _log,
+      () => _resolveCore().wasmPath,
     );
 
     _panel.webview.onDidReceiveMessage(msg => {

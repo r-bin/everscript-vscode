@@ -39,12 +39,26 @@ test('CRC-32 matches the standard check value; WRAM CRC reads the 128 KB in core
     assert.deepStrictEqual(reads[31], [0x7E0000 + 31 * 4096, 4096]);
 });
 
+test('frame lines run-length encode and expand; T lines round-trip', () => {
+    const text = ['F|....', 'F|....', 'F|....', 'F|B...', 'W|7E0010|01', 'F|B...', 'F|B...'].join('\n') + '\n';
+    assert.strictEqual(movie.rleFrames(text), 'F|....*3\nF|B...\nW|7E0010|01\nF|B...*2\n');
+    const m = movie.parseMovie(movie.evsmvHeader({ rom: 'x', romSha256: '', started: 't', core: 'abc' }) + movie.rleFrames(text), 'a');
+    assert.strictEqual(m.count, 6);
+    assert.deepStrictEqual(Array.from(m.pads), [0, 0, 0, 0x8000, 0x8000, 0x8000]);
+    assert.strictEqual(m.events[0].frame, 4, 'the event sits after the 4th emulated frame');
+    assert.strictEqual(m.meta.core, 'abc');
+    const crcs = movie.spaceCrcs(id => (id === 3 ? null : new Uint8Array([id])));
+    const line = movie.spacesLine(crcs);
+    assert.deepStrictEqual(movie.parseEvent(line), { kind: 'T', crcs });
+    assert.strictEqual(crcs.sram, 0, 'a cartridge without SRAM checksums as 0');
+});
+
 test('event lines parse into the boundary they sit on; version 1 movies still load', () => {
     const text = movie.evsmvHeader({ rom: 'x', romSha256: '', started: 't' }) + [
         'W|7E4ECF|00FF', 'F|....', 'F|B...', 'W|7E0010|01', 'R|soft', 'S|0000ABCD', 'F|....',
     ].join('\n') + '\n';
     const m = movie.parseMovie(text, 'a.evsmv');
-    assert.strictEqual(m.version, 2);
+    assert.strictEqual(m.version, 3);
     assert.strictEqual(m.count, 3);
     assert.deepStrictEqual(m.events.map(e => [e.frame, e.kind]), [[0, 'W'], [2, 'W'], [2, 'R'], [2, 'S']]);
     assert.deepStrictEqual(m.events[0].bytes, [0, 255]);
@@ -64,6 +78,7 @@ function makeWebview() {
     const posted = [];
     const mem = new Uint8Array(0x20000);
     let resets = 0;
+    const spaces = [0, 1, 2, 3, 4].map(i => new Uint8Array([i, i + 1, i + 2]));
     const m = {
         writes: [],
         writeMemory(addr, v) { this.writes.push([addr, v]); if (addr >= 0x7E0000 && addr < 0x800000) mem[addr - 0x7E0000] = v; },
@@ -72,6 +87,7 @@ function makeWebview() {
         _setJoypadInput(p) { this.pad = p; },
         _softReset() { resets++; mem[0] = 0; mem.fill(0, 0, 16); },
         _takeInputPolled() { return 1; },
+        readSpace(id) { return spaces[id]; },
         frames: 0,
         run() { this.frames++; mem[0x100]++; },    // a frame bumps a counter, like the NMI
     };
@@ -107,7 +123,8 @@ test('the webview records frames, merged writes, resets and checksums in order, 
     assert.strictEqual(lines[1], 'W|7E4ECF|0506');
     assert.ok(lines[2].startsWith('F|'));
     assert.strictEqual(lines[3], 'R|soft');
-    assert.ok(lines.some(l => /^S\|[0-9A-F]{8}$/.test(l)), 'a checksum line after 600 frames');
+    assert.ok(lines.some(l => /^S\|[0-9A-F]{8}$/.test(l)), 'a checksum line after 60 frames');
+    assert.ok(lines.some(l => /^T\|vram=[0-9A-F]{8}\|cgram=[0-9A-F]{8}\|oam=[0-9A-F]{8}\|sram=[0-9A-F]{8}\|aram=[0-9A-F]{8}$/.test(l)), 'the other spaces after 600 frames');
     const sent = w.posted.filter(p => p.command === 'tasRecFrames').reduce((n, p) => n + p.frames, 0);
     assert.strictEqual(sent, 603, 'the host is told the frame count, not the line count');
     // the checksum in the file equals movie.js over the same memory, i.e. the two CRC codes agree
@@ -127,7 +144,8 @@ test('a replay applies events at their boundary, presses reset, and reports the 
     rec.call('tasFlush()');
     const text = movie.evsmvHeader({ rom: 'x', romSha256: '', started: 't' }) + rec.posted.filter(p => p.command === 'tasRecFrames').map(p => p.text).join('');
     const parsed = movie.parseMovie(text, 'm');
-    assert.ok(parsed.events.some(e => e.kind === 'S' && e.frame === 600));
+    assert.ok(parsed.events.some(e => e.kind === 'S' && e.frame === 60));
+    assert.ok(parsed.events.some(e => e.kind === 'T' && e.frame === 600));
     const finalMem = Uint8Array.from(rec.mem);
 
     const play = (mutate) => {
@@ -147,8 +165,40 @@ test('a replay applies events at their boundary, presses reset, and reports the 
     assert.strictEqual(ok.call('tasDesync'), null);
     const bad = play(events => { const s = events.find(e => e.kind === 'S'); s.crc ^= 1; });
     assert.ok(bad.call('tasDesync'), 'a wrong checksum is a desync');
-    assert.strictEqual(bad.call('tasDesync.frame'), 600);
-    assert.ok(bad.posted.some(p => p.command === 'tasDesync' && p.frame === 600));
+    assert.strictEqual(bad.call('tasDesync.frame'), 60);
+    assert.ok(bad.posted.some(p => p.command === 'tasDesync' && p.frame === 60));
+    // a wrong checksum of another space is a desync too, and names the space
+    const badSpace = play(events => { const t = events.find(e => e.kind === 'T'); t.crcs.vram ^= 1; });
+    assert.strictEqual(badSpace.call('tasDesync.frame'), 600);
+    assert.ok(/^vram /.test(badSpace.call('tasDesync.expected')));
+});
+
+test('a cheat that rewrites memory every frame replays without a desync', () => {
+    const rec = makeWebview();
+    rec.call('tasOnBoot("x")');
+    for (let i = 0; i < 700; i++) {
+        rec.m.writeMemory(0x7E0100, 0x10 + (i % 3));    // like maintainCheats(): before the frame, every frame
+        rec.m.writeMemory(0x7E4ECF, 0);                 // a value the game never touches: one event only
+        frameStep(rec, i % 7 === 0 ? 0x80 : 0);
+    }
+    rec.call('tasFlush()');
+    const text = movie.evsmvHeader({ rom: 'x', romSha256: '', started: 't' }) + movie.rleFrames(rec.posted.filter(p => p.command === 'tasRecFrames').map(p => p.text).join(''));
+    const parsed = movie.parseMovie(text, 'm');
+    assert.strictEqual(parsed.count, 700);
+    assert.strictEqual(parsed.events.filter(e => e.kind === 'W' && e.addr === 0x7E4ECF).length, 0, 'a write that changes nothing is no event');
+    assert.ok(parsed.events.filter(e => e.kind === 'W' && e.addr === 0x7E0100).length > 50, 'the cheat is recorded whenever the game had changed the value');
+    assert.ok(parsed.events.some(e => e.kind === 'T'), 'the other spaces are checked too');
+    const w = makeWebview();
+    const pads = Buffer.from(parsed.pads.buffer, parsed.pads.byteOffset, parsed.pads.byteLength).toString('base64');
+    w.call('handleTasMessage(' + JSON.stringify({ command: 'tasMovie', id: 'x', title: 't', count: parsed.count, pads, events: parsed.events }) + ')');
+    for (let i = 0; i < parsed.count; i++) frameStep(w, 0);
+    assert.strictEqual(w.call('tasDesync'), null);
+    assert.strictEqual(w.mem[0x100], rec.mem[0x100], 'the replay reached the same memory');
+});
+
+test('the movie sample rate is the one the emulator panel boots with', () => {
+    const panel = fs.readFileSync(path.join(ROOT, 'src/emulator/panel-webview.js'), 'utf8');
+    assert.ok(new RegExp('AUDIO_FREQ\\s*=\\s*' + movie.AUDIO_RATE + '\\b').test(panel));
 });
 
 test('the webview CRC code equals movie.js', () => {
@@ -180,13 +230,17 @@ test('headless replay: checksums match across processes, a changed event desyncs
     const collect = () => execFileSync(process.execPath, [tool, bare, rom, '--collect', '300'], { encoding: 'utf8', timeout: 180000 }).trim().split('\n');
     const a = collect(), b = collect();
     assert.deepStrictEqual(a, b, 'two processes give the same checksums');
+    // determinism contract: the recorder only observes, so the CDL on or off gives the same checksums in every space
+    const withCdl = execFileSync(process.execPath, [tool, bare, rom, '--collect', '300', '--cdl', path.join(tmp, 'lib-det')], { encoding: 'utf8', timeout: 180000 }).trim().split('\n');
+    assert.deepStrictEqual(withCdl, a, 'recording the CDL does not change emulation');
     assert.strictEqual(a.length, 5);
+    assert.ok(/^300 [0-9A-F]{8} vram=[0-9A-F]{8}\|cgram=/.test(a[0]), a[0]);
 
     // the same movie with its checksums in it replays clean
     const withChecks = header + pads.map((p, i) => {
         const crc = a.find(l => l.startsWith(i + ' '));
         const ev = i === 100 ? 'W|7E1F00|DEADBEEF\n' : i === 700 ? 'R|soft\n' : '';
-        return (crc ? 'S|' + crc.split(' ')[1] + '\n' : '') + (i === 300 ? '' : '') + ev + movie.frameLine(p);
+        return (crc ? 'S|' + crc.split(' ')[1] + '\nT|' + crc.split(' ')[2] + '\n' : '') + ev + movie.frameLine(p);
     }).join('\n') + '\n';
     // checksums are taken before the boundary's events; move the S line after them by construction above:
     // frames 300/600/900/1200 carry no events, so the order cannot matter here.
@@ -195,7 +249,7 @@ test('headless replay: checksums match across processes, a changed event desyncs
     const libRoot = path.join(tmp, 'lib');
     const ok = spawnSync(process.execPath, [tool, good, rom, '--cdl', libRoot, '--drain', '600'], { encoding: 'utf8', timeout: 180000 });
     assert.strictEqual(ok.status, 0, ok.stdout + ok.stderr);
-    assert.ok(/4 checksums matched/.test(ok.stdout), ok.stdout);
+    assert.ok(/8 checksums matched/.test(ok.stdout), ok.stdout);
     const libs = fs.readdirSync(libRoot);
     assert.ok(libs.length === 1 && fs.existsSync(path.join(libRoot, libs[0], 'bus.cdl')), 'the CDL library was written');
 
@@ -205,6 +259,22 @@ test('headless replay: checksums match across processes, a changed event desyncs
     const bad = spawnSync(process.execPath, [tool, tampered, rom], { encoding: 'utf8', timeout: 180000 });
     assert.strictEqual(bad.status, 2, bad.stdout + bad.stderr);
     assert.ok(/DESYNC at frame 300/.test(bad.stderr), bad.stderr);
+
+    // one wrong VRAM checksum: named in the report
+    const badVram = path.join(tmp, 'badvram.evsmv');
+    const vramCrc = /vram=([0-9A-F]{8})/.exec(a[1])[1];
+    fs.writeFileSync(badVram, withChecks.replace('vram=' + vramCrc, 'vram=' + (parseInt(vramCrc, 16) ^ 1).toString(16).toUpperCase().padStart(8, '0')));
+    const bv = spawnSync(process.execPath, [tool, badVram, rom], { encoding: 'utf8', timeout: 180000 });
+    assert.strictEqual(bv.status, 2, bv.stdout + bv.stderr);
+    assert.ok(/DESYNC at frame 600: expected vram /.test(bv.stderr), bv.stderr);
+
+    // a movie from another core build is refused unless --force
+    const other = path.join(tmp, 'other.evsmv');
+    fs.writeFileSync(other, withChecks.replace('# start:', '# core: 0000000000000000\n# start:'));
+    const refused = spawnSync(process.execPath, [tool, other, rom, '--until', '10'], { encoding: 'utf8', timeout: 60000 });
+    assert.strictEqual(refused.status, 1, refused.stdout + refused.stderr);
+    assert.ok(/another|recorded on core/.test(refused.stderr), refused.stderr);
+    assert.strictEqual(spawnSync(process.execPath, [tool, other, rom, '--until', '10', '--force'], { encoding: 'utf8', timeout: 60000 }).status, 0);
 });
 
 fs.rmSync(tmp, { recursive: true, force: true });

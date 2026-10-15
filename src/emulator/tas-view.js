@@ -107,7 +107,9 @@ function getTasClientScript() {
     let tasLastPad = 0;
     let tasItems = [];
     let tasNotice = '';
-    const TAS_CHECK_EVERY = 600;
+    const TAS_CHECK_EVERY = 60;     // WRAM checksum (S line)
+    const TAS_SPACES_EVERY = 600;   // the other memory spaces (T line)
+    const TAS_SPACES = [['vram', 0], ['cgram', 1], ['oam', 2], ['sram', 3], ['aram', 4]];
     let tasPendingW = null;      // { addr, next, bytes } write being coalesced
     let tasApplying = false;     // true while a replay applies a recorded write
     let tasDesync = null;        // { frame, expected, got } after the first mismatch
@@ -233,6 +235,21 @@ function getTasClientScript() {
       return (crc ^ 0xFFFFFFFF) >>> 0;
     }
 
+    // CRC-32 of VRAM, CGRAM, OAM, SRAM and ARAM (core.readSpace); null on a core without it.
+    function tasSpaceCrcs(m) {
+      if (typeof m.readSpace !== 'function') return null;
+      const out = {};
+      for (const sp of TAS_SPACES) {
+        const bytes = m.readSpace(sp[1]);
+        out[sp[0]] = bytes ? (tasCrcUpdate(0xFFFFFFFF, bytes) ^ 0xFFFFFFFF) >>> 0 : 0;
+      }
+      return out;
+    }
+
+    function tasSpacesLine(crcs) {
+      return 'T|' + TAS_SPACES.map(sp => sp[0] + '=' + tasHex(crcs[sp[0]] >>> 0, 8)).join('|');
+    }
+
     // The console's reset button: RAM and the save are kept. Recorded, so a replay presses it too.
     function tasSoftReset() {
       const m = getModule();
@@ -267,6 +284,18 @@ function getTasClientScript() {
             tasRefreshBadge();
           }
           tasRecordEvent('S|' + tasHex(got, 8));
+        } else if (ev.kind === 'T') {
+          const got = tasSpaceCrcs(m);
+          if (!got) continue;
+          for (const sp of TAS_SPACES) {
+            if (ev.crcs[sp[0]] !== undefined && ev.crcs[sp[0]] !== got[sp[0]] && !tasDesync) {
+              tasDesync = { frame: frame, expected: sp[0] + ' ' + tasHex(ev.crcs[sp[0]], 8), got: tasHex(got[sp[0]], 8) };
+              tasSetStatus('DESYNC at frame ' + frame + ' in ' + sp[0] + ' (expected ' + tasHex(ev.crcs[sp[0]], 8) + ', got ' + tasHex(got[sp[0]], 8) + ')');
+              vscodeApi.postMessage({ command: 'tasDesync', frame: frame, expected: tasDesync.expected, got: tasDesync.got });
+              tasRefreshBadge();
+            }
+          }
+          tasRecordEvent(tasSpacesLine(got));
         }
       }
     }
@@ -314,6 +343,10 @@ function getTasClientScript() {
       }
       if (!fromMovie && tasRec && tasSessionFrame > 0 && tasSessionFrame % TAS_CHECK_EVERY === 0) {
         tasRecordEvent('S|' + tasHex(tasWramCrc(m), 8));
+        if (tasSessionFrame % TAS_SPACES_EVERY === 0) {
+          const crcs = tasSpaceCrcs(m);
+          if (crcs) tasRecordEvent(tasSpacesLine(crcs));
+        }
       }
       m._setJoypadInput(pad);
       tasLastPad = pad;
@@ -346,6 +379,7 @@ function getTasClientScript() {
       // takeInputPolled marks an EVS_TAS core: only there is a restart a power-on.
       if (m && typeof m._takeInputPolled !== 'function') tasNotice = 'this core restarts with a reset, not a power-on: may desync';
       else if (msg.romMatch === false) tasNotice = 'recorded on a different ROM: expect a desync';
+      else if (msg.coreMatch === false) tasNotice = 'recorded on a different emulator core build: may desync';
       else tasNotice = (msg.warnings || [])[0] || '';
       tasPendingMovie = movie;
       bootRom(loadedRomData, loadedRomName);
@@ -420,6 +454,7 @@ function getTasClientScript() {
       if (it.meta && it.meta.source) parts.push('from ' + tasEsc(it.meta.source));
       if (it.romMatch === true) parts.push('<span class="ok">ROM ok</span>');
       if (it.romMatch === false) parts.push('<span class="bad">other ROM</span>');
+      if (it.coreMatch === false) parts.push('<span class="bad">other core</span>');
       const warn = (it.warnings || []).join('; ');
       const playing = tasPlay && tasPlay.id === it.id;
       return '<div class="tas-row' + (playing ? ' playing' : '') + '" data-id="' + tasEsc(it.id) + '"' + (it.recording ? ' data-recording="1"' : '') + (warn ? ' title="' + tasEsc(warn) + '"' : '') + '>'

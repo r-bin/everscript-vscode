@@ -21,13 +21,28 @@
  *                           first mismatch as a desync
  * A power-cycle is not an event: it starts a new recording.
  *
+ * Version 3 (the one written now) checks more, and more often:
+ *   S|<crc8>                every CHECK_EVERY (60) frames instead of every 600
+ *   T|vram=<crc8>|cgram=..|oam=..|sram=..|aram=..
+ *                           CRC-32 of the other memory spaces every SPACES_EVERY (600) frames
+ * and the header names the core build (# core:), which a replay compares: a core that
+ * emulates differently cannot replay a movie. Version 1 and 2 movies still load and replay.
+ *
  * Pure: no vscode, no fs (callers pass buffers / text).
  */
 
 const BUTTONS = 'BYsSudlrAXLR0123';
-const EVSMV_MAGIC = '# Everscript movie 2';
+const EVSMV_MAGIC = '# Everscript movie 3';
+const EVSMV_MAGIC_V2 = '# Everscript movie 2';
 const EVSMV_MAGIC_V1 = '# Everscript movie 1';
-const CHECK_EVERY = 600;     // frames between S lines
+const CHECK_EVERY = 60;      // frames between S lines (WRAM)
+// The sample rate the emulator panel boots the core with (panel-webview.js AUDIO_FREQ; a test keeps them
+// equal). The rate leaks into emulation: the SPC700 sees DSP state that depends on it, so a few ARAM bytes
+// differ between rates. A replay must boot with the rate the movie was recorded at.
+const AUDIO_RATE = 44100;
+const SPACES_EVERY = 600;    // frames between T lines (the other memory spaces)
+// The core's readSpace(id) ids (exports.c getSpacePtr) and the names used in T lines.
+const SPACES = [['vram', 0], ['cgram', 1], ['oam', 2], ['sram', 3], ['aram', 4]];
 const WRAM_BASE = 0x7E0000;
 const WRAM_SIZE = 0x20000;
 const READ_CHUNK = 4096;     // the core's readMemoryRange limit
@@ -87,16 +102,35 @@ function wramCrc(read) {
     return crcFinish(crc);
 }
 
+/** CRCs of VRAM, CGRAM, OAM, SRAM and ARAM through readSpace(id) -> bytes | null: { vram: n, ... }. */
+function spaceCrcs(readSpace) {
+    const out = {};
+    for (const [name, id] of SPACES) {
+        const bytes = readSpace(id);
+        out[name] = bytes ? crc32(bytes) : 0;
+    }
+    return out;
+}
+
 const hexByte = n => (n & 0xFF).toString(16).toUpperCase().padStart(2, '0');
 const writeLine = (addr, bytes) => 'W|' + (addr >>> 0).toString(16).toUpperCase().padStart(6, '0') + '|' + Array.from(bytes, hexByte).join('');
 const resetLine = () => 'R|soft';
 const checkLine = crc => 'S|' + crcText(crc);
+const spacesLine = crcs => 'T|' + SPACES.map(([name]) => name + '=' + crcText(crcs[name] >>> 0)).join('|');
 
-/** One event line -> { kind, addr, bytes } | { kind: 'R' } | { kind: 'S', crc } | null. */
+/** One event line -> { kind, addr, bytes } | { kind: 'R' } | { kind: 'S', crc } | { kind: 'T', crcs } | null. */
 function parseEvent(line) {
     const parts = line.trim().split('|');
     if (parts[0] === 'R') return { kind: 'R' };
     if (parts[0] === 'S' && /^[0-9A-F]{8}$/i.test(parts[1] || '')) return { kind: 'S', crc: parseInt(parts[1], 16) >>> 0 };
+    if (parts[0] === 'T') {
+        const crcs = {};
+        for (const part of parts.slice(1)) {
+            const m = /^([a-z]+)=([0-9A-F]{8})$/i.exec(part);
+            if (m) crcs[m[1]] = parseInt(m[2], 16) >>> 0;
+        }
+        return Object.keys(crcs).length ? { kind: 'T', crcs } : null;
+    }
     if (parts[0] === 'W' && /^[0-9A-F]{6}$/i.test(parts[1] || '') && /^([0-9A-F]{2})+$/i.test(parts[2] || '')) {
         const bytes = [];
         for (let i = 0; i < parts[2].length; i += 2) bytes.push(parseInt(parts[2].slice(i, i + 2), 16));
@@ -105,18 +139,51 @@ function parseEvent(line) {
     return null;
 }
 
+/** Frame lines may carry a repeat count ("F|....*5" = 5 frames): the frames in these lines. */
+function totalFrames(lines) {
+    let n = 0;
+    for (const line of lines) {
+        if (line[0] !== 'F') continue;
+        const star = line.indexOf('*');
+        n += star < 0 ? 1 : Math.max(1, parseInt(line.slice(star + 1), 10) || 1);
+    }
+    return n;
+}
+
+/** Collapse consecutive identical frame lines of a recorded batch into "F|pad*n"; other lines stay. */
+function rleFrames(text) {
+    const out = [];
+    let run = null;
+    const flush = () => { if (run) { out.push(run.n > 1 ? run.line + '*' + run.n : run.line); run = null; } };
+    for (const line of text.split('\n')) {
+        if (!line) continue;
+        if (line[0] === 'F' && line.indexOf('*') < 0) {
+            if (run && run.line === line) run.n++;
+            else { flush(); run = { line, n: 1 }; }
+        } else { flush(); out.push(line); }
+    }
+    flush();
+    return out.length ? out.join('\n') + '\n' : '';
+}
+
 /** Throws unless the text is an .evsmv recording. */
 function parseMovie(text, fileName) {
-    if (!text.startsWith(EVSMV_MAGIC) && !text.startsWith(EVSMV_MAGIC_V1)) throw new Error('not an Everscript recording');
-    const version = text.startsWith(EVSMV_MAGIC) ? 2 : 1;
+    const version = text.startsWith(EVSMV_MAGIC) ? 3 : text.startsWith(EVSMV_MAGIC_V2) ? 2 : text.startsWith(EVSMV_MAGIC_V1) ? 1 : 0;
+    if (!version) throw new Error('not an Everscript recording');
     const lines = text.split('\n');
-    const pads = new Uint16Array(lines.length);
+    const pads = new Uint16Array(totalFrames(lines));
     const events = [];   // { frame, kind, ... } in file order; frame = frames emulated before it
     let count = 0;
     for (const line of lines) {
         const c = line[0];
-        if (c === 'F') pads[count++] = textToPad(line.slice(line.indexOf('|') + 1));
-        else if (c === 'W' || c === 'R' || c === 'S') {
+        if (c === 'F') {
+            const body = line.slice(line.indexOf('|') + 1);
+            const star = body.indexOf('*');
+            const pad = textToPad(star < 0 ? body : body.slice(0, star));
+            const n = star < 0 ? 1 : Math.max(1, parseInt(body.slice(star + 1), 10) || 1);
+            for (let i = 0; i < n; i++) { if (count >= pads.length) break; pads[count++] = pad; }
+        }
+        else if (c === 'W' || c === 'R' || c === 'S' || c === 'T') {
             const ev = parseEvent(line);
             if (ev) events.push({ frame: count, ...ev });
         }
@@ -128,14 +195,16 @@ function parseMovie(text, fileName) {
         count,
         version,
         events,
-        meta: { rom: m.rom || '', romSha256: (m['rom.sha256'] || '').toLowerCase(), started: m.started || '', source: m.source || '', cheats: m.cheats || '' },
+        meta: { rom: m.rom || '', romSha256: (m['rom.sha256'] || '').toLowerCase(), core: m.core || '', audio: parseInt(m.audio, 10) || AUDIO_RATE, started: m.started || '', source: m.source || '', cheats: m.cheats || '' },
         warnings: version === 1 && m.cheats === 'yes' ? ['cheats were on while recording: may not sync'] : [],
     };
 }
 
-function evsmvHeader({ rom, romSha256, started, source }) {
+function evsmvHeader({ rom, romSha256, started, source, core }) {
     const lines = [EVSMV_MAGIC, '# rom: ' + (rom || ''), '# rom.sha256: ' + (romSha256 || ''), '# started: ' + started,
-        '# start: power-on, empty SRAM', '# check: every ' + CHECK_EVERY + ' frames'];
+        '# start: power-on, empty SRAM', '# check: WRAM every ' + CHECK_EVERY + ' frames, other spaces every ' + SPACES_EVERY];
+    if (core) lines.push('# core: ' + core);
+    lines.push('# audio: ' + AUDIO_RATE);
     if (source) lines.push('# source: ' + source);
     return lines.join('\n') + '\n';
 }
@@ -155,6 +224,6 @@ function groupEvents(events) {
 }
 
 module.exports = {
-    BUTTONS, EVSMV_MAGIC, CHECK_EVERY, WRAM_BASE, WRAM_SIZE, padToText, textToPad, frameLine, parseMovie, evsmvHeader, evsmvTrailer,
-    crc32, crcUpdate, crcFinish, crcText, wramCrc, writeLine, resetLine, checkLine, parseEvent, groupEvents,
+    BUTTONS, EVSMV_MAGIC, CHECK_EVERY, SPACES_EVERY, AUDIO_RATE, SPACES, spaceCrcs, spacesLine, WRAM_BASE, WRAM_SIZE, padToText, textToPad, frameLine, parseMovie, evsmvHeader, evsmvTrailer,
+    rleFrames, crc32, crcUpdate, crcFinish, crcText, wramCrc, writeLine, resetLine, checkLine, parseEvent, groupEvents,
 };

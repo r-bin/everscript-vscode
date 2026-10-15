@@ -143,7 +143,9 @@ source of truth and the library is derived. `node tools/cdl/replay.js <movie> <r
 replays headless with the recorder on, drains and flushes every `--drain` frames, and stops
 with exit code 2 at the first WRAM-checksum mismatch ("DESYNC at frame N"). Rerun it whenever
 the recorder gains a stream. Movies record pad input, memory writes (cheats, object states, menu
-toggles), soft resets and a WRAM CRC every 600 frames; a power-cycle starts a new movie.
+toggles), soft resets, a WRAM CRC every 60 frames and a VRAM/CGRAM/OAM/SRAM/ARAM CRC every 600; a power-cycle starts
+a new movie. The replay boots at the movie's audio rate (44100): the rate leaks into ARAM (`src/emulator/tas/README.md`).
+Recording the CDL never changes emulation (tested: same checksums with `--cdl`).
 
 ## 6. What each goal still needs
 

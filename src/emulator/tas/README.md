@@ -22,7 +22,8 @@ game frame rates.
 - A recording holds more than the pad (format version 2, `movie.js` documents the lines):
   `W|addr|bytes` memory writes made through `Module.writeMemory` (cheats, object states, menu
   toggles such as loot/flag rows, injected scripts, the script debugger), `R|soft` the console
-  reset button, and `S|crc` a CRC-32 of the 128 KB WRAM every 600 frames. A hook on
+  reset button, `S|crc` a CRC-32 of the 128 KB WRAM every 60 frames, and `T|vram=..|cgram=..|oam=..|sram=..|aram=..`
+  a CRC-32 of the other memory spaces (the core's `readSpace(id)`) every 600 frames. A hook on
   `Module.writeMemory` (installed at every boot, `tasInstallWriteHook`) records them; a WRAM
   write that changes nothing is dropped, so a cheat that rewrites every frame costs a line only
   when the game changed the value. Adjacent bytes of one boundary are merged into one line.
@@ -34,6 +35,15 @@ game frame rates.
   recorded as what it does: flag/cheat/loot toggles are writes, **Soft Reset** (menu EMULATION
   tab, or the REPLAYS bar button) is `R|soft`. **Reset / Power-Cycle ROM** boots a new session
   and recording, as before. Pause/resume, speed, zoom and overlays do not change emulation.
+- Format version 3 (v0.215.0) adds the `T` lines, `S` every 60 frames, the header lines `# core:` (first 16 hex of
+  the core wasm's SHA-256; a replay on another build warns, `tools/cdl/replay.js` refuses without `--force`) and
+  `# audio:` (the sample rate), and run-length encoded frame lines (`F|pad*n`, written by `rleFrames` in the host).
+  Versions 1 and 2 still load.
+- **The sample rate leaks into emulation.** The SPC700 sees DSP state that depends on it: five ARAM bytes differ between
+  32040 and 44100 Hz after 1500 frames (WRAM, VRAM, CGRAM, OAM do not). The panel boots at 44100 (`AUDIO_FREQ`), so a
+  replay boots at the movie's `# audio:` rate. Tools that replay or compare ARAM must not use 32040 by habit.
+- Every way into emulator memory from outside is `Module.writeMemory` (hooked), `softReset` and the pad; audited at v0.215.0
+  (`maintainCheats` writes through `writeMemory`; there is no other cheat engine in use; a replay does not run it).
 - Version 1 recordings still replay (without events); their cheat warning stays.
 - Headless: `node tools/cdl/replay.js <movie> <rom> [--cdl <library root>]` replays on the same
   core, verifies the checksums (exit 2 on desync) and can record the CDL library meanwhile. The

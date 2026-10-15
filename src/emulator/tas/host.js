@@ -21,7 +21,7 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { parseMovie, evsmvHeader, evsmvTrailer } = require('./movie');
+const { parseMovie, evsmvHeader, evsmvTrailer, rleFrames } = require('./movie');
 const { stripCopierHeader } = require('../cdl/library');
 
 const MOVIE_EXT = /\.evsmv$/i;
@@ -43,8 +43,10 @@ class TasHost {
      * @param {string} storageDir  extension global storage path
      * @param {(msg: object) => void} post  sends to the webview
      * @param {(line: string, show?: boolean) => void} log
+     * @param {() => string} [coreWasmPath]  the emulator core in use (its hash goes into every movie)
      */
-    constructor(storageDir, post, log) {
+    constructor(storageDir, post, log, coreWasmPath) {
+        this.coreWasmPath = coreWasmPath || (() => '');
         this.defaultDir = path.join(storageDir, 'tas-recordings');
         this.post = post;
         this.log = log;
@@ -67,6 +69,17 @@ class TasHost {
 
     _savePrefs(prefs) {
         fs.writeFileSync(path.join(this.dir(), PREFS_FILE), JSON.stringify(prefs, null, 2));
+    }
+
+    /** Short hash of the core's wasm: a core that emulates differently cannot replay a movie. */
+    coreId() {
+        try { return sha256(fs.readFileSync(this.coreWasmPath())).slice(0, 16); } catch (_) { return ''; }
+    }
+
+    /** true / false / null (movie or core unknown). */
+    _coreMatch(movie) {
+        const mine = this.coreId();
+        return movie.meta.core && mine ? movie.meta.core === mine : null;
     }
 
     /** A ROM (re)booted in the webview. */
@@ -105,7 +118,7 @@ class TasHost {
         const file = path.join(this.dir(), `${safeName(msg.name)}_${stamp(started)}.evsmv`);
         this.rec = {
             file, fd: null, frames: 0, live: false, cheats: false,
-            header: evsmvHeader({ rom: msg.name, romSha256: this.romSha, started: started.toISOString(), source: msg.source }),
+            header: evsmvHeader({ rom: msg.name, romSha256: this.romSha, started: started.toISOString(), source: msg.source, core: this.coreId() }),
         };
     }
 
@@ -117,7 +130,7 @@ class TasHost {
                 rec.fd = fs.openSync(rec.file, 'a');
                 fs.writeSync(rec.fd, rec.header);
             }
-            fs.writeSync(rec.fd, msg.text);
+            fs.writeSync(rec.fd, rleFrames(msg.text));
         } catch (e) {
             this.log('TAS recording write failed: ' + e.message, true);
             this.rec = null;
@@ -165,6 +178,7 @@ class TasHost {
             meta: movie.meta,
             warnings: movie.warnings,
             romMatch: movie.meta.romSha256 && this.romSha ? movie.meta.romSha256 === this.romSha : null,
+            coreMatch: this._coreMatch(movie),
         };
     }
 
@@ -204,6 +218,7 @@ class TasHost {
                 pads: pads.toString('base64'),
                 events: movie.events,
                 romMatch: movie.meta.romSha256 && this.romSha ? movie.meta.romSha256 === this.romSha : null,
+                coreMatch: this._coreMatch(movie),
                 warnings: movie.warnings,
             });
             this.log(`TAS replay: ${ref.file} (${movie.count} frames)`);
