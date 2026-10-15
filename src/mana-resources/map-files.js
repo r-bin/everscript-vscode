@@ -7,6 +7,9 @@
 //   <id>.collision.json   per cell: floor class, diagonal, level switch; special cells
 //   <id>.anim.json        animated cells: frames (PNG data URIs, shared), when each starts
 //   <id>.objects.json     the map's objects: cell, kind word, flag bits, raw bytes
+//   <id>.edit.json        everything the editor starts from: both layers' metatile numbers, each
+//                         metatile's 4 collision bytes, the step events, the objects, the backdrop
+//   <id>.tiles.a.png / .tiles.b.png   layer A's / B's 192 metatiles as a 16x12 sheet (colour 0 clear)
 
 const mana = require('../mana');
 const { encodePng } = require('./png');
@@ -88,6 +91,44 @@ function objects(rom, id) {
     return json({ objects: mana.mapObjects(rom, id) });
 }
 
+/** Both layers' metatile numbers, cell by cell (layer B with its own size, as the game repeats it). */
+function layerCells(m, layer, w, h) {
+    const out = [];
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) out.push(m.cell(layer, x, y));
+    return out;
+}
+
+/** Collision bytes of every metatile of a layer's half, 4 each, in metatile order. */
+function halfCollision(rom, m, layer) {
+    const out = [];
+    for (let n = 0; n < mana.METATILES_PER_HALF; n++) out.push(...mana.metatileCollision(rom, m, layer, n));
+    return out;
+}
+
+/** @param {Uint8Array} rom @param {number} id */
+function editModel(rom, id) {
+    const m = load(rom, id);
+    const bd = m.display.backdrop;
+    const ev = mana.mapEvents(rom, m);
+    const b3 = m.header.bytes[3];
+    return json({
+        id, w: m.w, h: m.h, sizeB: m.sizeB,
+        a: layerCells(m, 'A', m.w, m.h),
+        b: m.sizeB ? layerCells(m, 'B', m.sizeB.w, m.sizeB.h) : [],
+        collision: { a: halfCollision(rom, m, 'A'), b: halfCollision(rom, m, 'B') },
+        backdrop: [(bd & 31) << 3 | (bd & 31) >> 2, (bd >> 5 & 31) << 3 | (bd >> 5 & 31) >> 2, (bd >> 10 & 31) << 3 | (bd >> 10 & 31) >> 2],
+        // How step events number their metatiles ($00:B637): values from $C0 - lead up run an event.
+        lead: b3 & 3, ownEvent: (b3 & 4) !== 0,
+        events: ev,
+        objects: mana.mapObjects(rom, id),
+    });
+}
+
+/** @param {Uint8Array} rom @param {number} id @param {'A'|'B'} layer */
+function tileSheet(rom, id, layer) {
+    return encodePng(mana.renderMetatileSheet(load(rom, id), layer));
+}
+
 /** File name -> producer for one map, or null. */
 function mapFile(rom, id, ext) {
     switch (ext) {
@@ -98,10 +139,13 @@ function mapFile(rom, id, ext) {
         case 'collision.json': return () => collision(rom, id);
         case 'anim.json': return () => animation(rom, id);
         case 'objects.json': return () => objects(rom, id);
+        case 'edit.json': return () => editModel(rom, id);
+        case 'tiles.a.png': return () => tileSheet(rom, id, 'A');
+        case 'tiles.b.png': return () => tileSheet(rom, id, 'B');
     }
     return null;
 }
 
-const MAP_FILE_EXTS = ['png', 'a.png', 'b.png', 'json', 'collision.json', 'anim.json', 'objects.json'];
+const MAP_FILE_EXTS = ['png', 'a.png', 'b.png', 'json', 'collision.json', 'anim.json', 'objects.json', 'edit.json', 'tiles.a.png', 'tiles.b.png'];
 
 module.exports = { mapFile, MAP_FILE_EXTS };

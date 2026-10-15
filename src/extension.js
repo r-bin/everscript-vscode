@@ -1020,19 +1020,14 @@ function activate(context) {
                     // preview uses its families and palette.
                     const roomId = Number(msg.roomId);
                     const reply = { command: 'composedPreview', mapName: msg.mapName, roomId };
-                    if (!Number.isInteger(roomId) || roomId < 0 || roomId > 0x7e) {
-                        _radarPanel.webview.postMessage({ ...reply, error: 'invalid room id' });
-                        return;
-                    }
                     try {
-                        const _cfg = getExtConfig();
-                        const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
-                        if (!romBuf) {
-                            _radarPanel.webview.postMessage({ ...reply, error: 'ROM not found — set everscript.romPath' });
+                        // A ROM room, or the room a converted map's copy borrows from (radarRoomRom).
+                        const src = radarRoomRom(roomId);
+                        if (src.error) {
+                            _radarPanel.webview.postMessage({ ...reply, error: src.error });
                             return;
                         }
-                        const preview = buildComposedPreview(romBuf, roomId,
+                        const preview = buildComposedPreview(src.romBuf, src.roomId,
                             Array.isArray(msg.drafts) ? msg.drafts : [], msg.layer, msg.extra);
                         _radarPanel.webview.postMessage({ ...reply, preview });
                     } catch (err) {
@@ -1045,15 +1040,15 @@ function activate(context) {
                     // of docs/map-format/building-a-room-from-scratch.md.
                     const reply = { command: 'blankRoom', mapName: msg.mapName };
                     try {
-                        const _cfg = getExtConfig();
-                        const _ws  = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-                        const romBuf = romReaders.loadRomBuffer(_ws, _cfg.romPath || '');
-                        if (!romBuf) {
-                            _radarPanel.webview.postMessage({ ...reply, error: 'ROM not found — set everscript.romPath' });
+                        // The donor is a ROM room, or a converted Secret of Mana room (a copy of one
+                        // borrows its graphics and families): radarRoomRom finds the image it lives in.
+                        const src = radarRoomRom(Number(msg.borrowFrom) || 0x76);
+                        if (src.error) {
+                            _radarPanel.webview.postMessage({ ...reply, error: src.error });
                             return;
                         }
-                        _radarPanel.webview.postMessage({ ...reply, room: buildBlankRoom(romBuf, {
-                            widthTiles: msg.widthTiles, heightTiles: msg.heightTiles, borrowFrom: msg.borrowFrom,
+                        _radarPanel.webview.postMessage({ ...reply, room: buildBlankRoom(src.romBuf, {
+                            widthTiles: msg.widthTiles, heightTiles: msg.heightTiles, borrowFrom: src.roomId,
                             minTiles: msg.minTiles,
                         }) });
                     } catch (err) {

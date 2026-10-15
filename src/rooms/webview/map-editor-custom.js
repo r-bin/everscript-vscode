@@ -246,6 +246,9 @@ function customRoomDetail(m) {
     custom: m.key,
     // Where the tile data comes from — the only thing the donor is for.
     romRoomId: m.borrow,
+    // A donor past the ROM rooms is a converted room (rooms-imported.js): the host knows its id,
+    // so roomVanillaIdNum must accept it here too.
+    imported: m.borrow > 0x7e ? 'donor' : undefined,
     relPath: 'custom map · graphics from room 0x' + m.borrow.toString(16) + ' · not in any .evs file yet',
     content: { initMap: { x1: 0, y1: 0, x2: m.w * 2, y2: m.h * 2 } },
   };

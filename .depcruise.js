@@ -106,6 +106,14 @@ module.exports = {
     },
 
     {
+      name: 'map-editor-core-is-game-neutral',
+      comment: 'The shared map-editor core (history, sessions, grid strokes, tool strip) knows no game: it imports nothing from src/ outside itself.',
+      severity: 'error',
+      from: { path: '^src/shared/webview/map-editor-core/' },
+      to: { path: '^src/(?!shared/webview/map-editor-core/)' },
+    },
+
+    {
       name: 'mana-maps-reads-som-only',
       comment: 'The Mana Maps panel reads Mana data through som:// only.',
       severity: 'error',

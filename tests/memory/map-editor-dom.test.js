@@ -24,7 +24,9 @@ const WEBVIEW = path.join(__dirname, '..', '..', 'src', 'rooms', 'webview');
 const read = (f) => fs.readFileSync(path.join(WEBVIEW, f), 'utf8');
 /** Map-view pieces the bundle puts in front of the rooms files (src/memory/webview/index.js). */
 const MAP_VIEW = path.join(__dirname, '..', '..', 'src', 'shared', 'webview', 'map-view');
-const SHARED_JS = ['tile-animation.js', 'view-chips.js'].map((f) => fs.readFileSync(path.join(MAP_VIEW, f), 'utf8')).join('\n');
+const CORE = path.join(__dirname, '..', '..', 'src', 'shared', 'webview', 'map-editor-core');
+const SHARED_JS = ['tile-animation.js', 'view-chips.js'].map((f) => fs.readFileSync(path.join(MAP_VIEW, f), 'utf8'))
+  .concat(['edit-session.js'].map((f) => fs.readFileSync(path.join(CORE, f), 'utf8'))).join('\n');
 
 /** The editor's files, in the order the bundle concatenates them. */
 const FILES = ['metatile-palette.js', 'map-editor.js', 'map-editor-history.js', 'map-editor-stamps.js', 'map-editor-paint.js',

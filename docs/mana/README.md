@@ -236,6 +236,28 @@ nothing else changes in the game. The same interpreter runs the game's `$02:A000
 `$00:CB90` and reproduces our metatile tables and layers exactly (rom tests).
 The Maps panel plays it per cell kind (cells with the same tile words share frames).
 
+## Editing a map in the plugin — what is and is not a cell's own
+
+The Maps panel's editor (`src/mana-maps/webview/editor.js`; plan and reasons:
+[docs/architecture/one-map-editor.md](../architecture/one-map-editor.md)) edits a map in the terms
+the facts above allow, and **saves nothing**: Mana's map data is compressed and a changed map often
+would not fit its old slot, so there is no write-back and no way to play an edited map (both need a
+re-encoder, which does not exist).
+
+| Thing | What the game has | What the editor edits |
+|---|---|---|
+| picture | a metatile number per cell in each layer (layer B with its own size, repeated) | the number, per cell; layer B's cell shows in every repeat |
+| collision | **per metatile** (4 bytes, "Collision") — a cell has none of its own | nothing directly: painting a metatile changes the cell's picture and collision together; the overlay is recomputed from the metatiles |
+| step events | cell → event word through the metatile number (`$C0 - b` and up) or the special-cell slot ("Step events"); the words are one list per map | a list of `{x, y, event}` read off the original map; add / move / delete / set the number. It is the cell → event result, not the encoding: painting a metatile does not change it |
+| objects | 8-byte records ("Objects"); bytes 2-3 position (high bits are flags), 6-7 the kind word; others unnamed | place / move / delete, position and kind word; every other byte kept as read (a new object copies the selected one's bytes, else kind `$C001`, the commonest). At most `$30` (a list of `$31` stops the game) |
+| scripts | what an event does is not decoded | shown as the event number only |
+
+Changed cells are redrawn from the metatile sheets (`som://rom/maps/<hex>.tiles.a.png` / `.b.png`)
+with each character in its own palette, colour 0 transparent, over the real picture. BG priority and
+colour math are not applied to them (they need the whole screen), so a changed cell can look slightly
+different from what the game would draw. `som://rom/maps/<hex>.edit.json` carries the editable data;
+`tests/mana/mana-rom.test.js` checks it against the library cell by cell.
+
 ## Not done yet
 
 - Character objects are placed but not drawn (sprites not decoded), and most of their
@@ -245,3 +267,4 @@ The Maps panel plays it per cell kind (cells with the same tile words share fram
 - Pieces hidden by event flags use flag value 0 (a new game).
 - BG3 (weather, text) and parallax scrolling of layer B are not drawn.
 - Layer B's own collision (`$7F:BC00`) is not drawn; the player uses layer A's.
+- Writing an edited map back (re-encoding pieces and stamps) and playing it; decoding event scripts.

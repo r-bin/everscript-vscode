@@ -192,6 +192,8 @@ function buildEditToolbarHtml() {
     + '</div>'
     // The level bar sits at the map's left edge (map-editor-levels.js).
     + (typeof buildLevelBarHtml === 'function' ? buildLevelBarHtml() : '')
+    // A converted room's changes are never written anywhere (rooms-imported.js).
+    + (typeof importedNotSavedHtml === 'function' ? importedNotSavedHtml() : '')
     // When editing a widget, the animation timeline sits at the bottom.
     + '</div>';
   return html;

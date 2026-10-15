@@ -16,6 +16,7 @@ export { loadMap } from './map';
 export type { ManaMap } from './map';
 export { renderMap } from './render';
 export type { ManaImage } from './render';
+export { renderMetatileSheet, SHEET_COLUMNS } from './metatile-sheet';
 export { AREAS, areaOf, mapsWithoutArea } from './areas';
 export type { ManaArea } from './areas';
 export { traceAnimation } from './animate';

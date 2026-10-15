@@ -1,7 +1,7 @@
 # One map editor, two games
 
-Decided 2026-10-15 (design interview with the owner). Status: **planned**; nothing below is
-built yet except the Evermore editor and the read-only Mana views.
+Decided 2026-10-15 (design interview with the owner). Status: steps 1-3 of "Order of work" are
+built (v0.211.0); what is still open is listed under "Status and what is left".
 
 ## Shape
 
@@ -33,8 +33,11 @@ built yet except the Evermore editor and the read-only Mana views.
 
 ## Mana editor v1
 
-Tile painting from a picker, erase, collision painting, undo/redo, layer toggles
-(BG1 / BG2 / Collision), zoom, animation preview; specials and step events shown.
+Tile painting from a picker, erase, pick, undo/redo, layer toggles (BG1 / BG2 / Collision), zoom,
+animation preview; specials and step events shown. **Collision is not painted on its own**: in Mana
+it belongs to the metatile (`docs/mana/README.md`, "Collision"), so painting a metatile changes
+picture and collision together and the overlay shows the result. A free per-cell collision brush
+would invent data the game does not have.
 Also objects and triggers, at the level the facts allow (`docs/mana/README.md`):
 - objects: place / move / delete; only known fields editable, unnamed bytes kept as read;
 - triggers: add / move / resize step-event cells, set the event number;
@@ -55,7 +58,33 @@ a time alongside these steps, never as a big-bang rewrite. Every step ends with 
 the headless-Chromium Mana editor tests (`tests/mana/mana-editor-dom.test.js`) replace
 `tests/mana/mana-panel-dom.test.js`.
 
+## Status and what is left
+
+Built (v0.211.0):
+- `src/shared/webview/map-editor-core/` — history, sessions, "not saved" notice, grid strokes, tool
+  strip; `.depcruise.js` rule `map-editor-core-is-game-neutral`.
+- Mana editor (`src/mana-maps/webview/editor.js` + `editor-model.js`) on that core: Paint, Erase,
+  Pick, Objects, Triggers, Edit A / B, undo/redo, picker, inspector, the notice, per-map sessions.
+  Data: `som://rom/maps/<hex>.edit.json` and `.tiles.a.png` / `.tiles.b.png`
+  (`src/mana/metatile-sheet.ts`). The panel keeps its overview and opens the editor from a
+  figure's Edit button; it is the Mana entry point, not deleted.
+- Evermore tab: an unlocked converted Mana room shows the same notice; **Copy map** now works for
+  one (the host answers a donor of `0x1000 + map id` from the room's image — before, the copy was
+  saved with a donor the Evermore ROM does not have and opened blank). A saved copy needs the Mana
+  ROM to be found when it is reopened.
+- Tests: `mana-editor-core`, `mana-map-editor-dom`, the ROM-tier `edit.json` check, and
+  `mana-editor-dom` (restart of a saved copy).
+
+Left, on purpose:
+- **The Evermore editor is not split into core + adapter yet.** Only the notice moved. Its history
+  lives in its draft (`map-editor.js`, `map-editor-history.js`), its gestures, zoom/pan and tool
+  pill are Evermore-shaped (14k lines in one shared scope). The core is where each of those goes
+  once it can be written without `editDraft()`; do it a file at a time (`compress-architecture`).
+- Mana: objects and triggers are edited at the level the facts allow (see "Mana editor v1");
+  scripts need decoding first; no write-back, no "play my edited map".
+- Changed Mana cells ignore BG priority and colour math (a limit of drawing a cell alone).
+
 ## Known state at decision time
 
-- `tests/memory/rooms-rail-dom.test.js` ("rows are the mock's 32px") fails on HEAD v0.210.1,
+- `tests/memory/rooms-rail-dom.test.js` ("rows are the mock's 32px") failed on HEAD v0.210.1,
   unrelated to this plan.

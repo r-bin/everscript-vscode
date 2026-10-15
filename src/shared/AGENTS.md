@@ -12,6 +12,8 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
   animation player (`tile-animation.js`). Used by the Evermore Rooms tab (bundled by
   `src/memory/webview/index.js`) and the Secret of Mana Maps panel (loaded as files).
   Game-neutral: no Evermore or Mana knowledge in them.
+- `webview/map-editor-core/`: the game-neutral map editor core (undo history, sessions, the
+  "not saved" notice, grid strokes, tool strip). Its own [AGENTS.md](webview/map-editor-core/AGENTS.md).
 - Planned canonical homes (guide §3.6, not created yet): SNES addressing and byte reads →
   `shared/snes-addr`; other webview helpers (`escH`, hex format, tab strip, CSP shell) →
   `shared/webview/`.

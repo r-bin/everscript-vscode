@@ -3,7 +3,8 @@
 // (persisted with vscode.setState). Data comes from the #init block and from
 // som:// files the host reads on request ({command:'read', path} -> 'file').
 // Filter-bar markup: src/shared/webview/map-view/view-chips.js (shared with the
-// Evermore Rooms tab); one map's SVG, overlays and animation: map-svg.js.
+// Evermore Rooms tab); one map's SVG, overlays and animation: map-svg.js; the editor a
+// map's Edit button opens: editor.js (on the core in src/shared/webview/map-editor-core/).
 (function () {
   // @ts-ignore acquireVsCodeApi is provided by the webview host
   var vscode = acquireVsCodeApi();
@@ -15,11 +16,12 @@
   var title = document.getElementById('title');
   var meta = document.getElementById('meta');
 
-  var state = Object.assign({ area: null, map: null, zoom: 1, a: true, b: true, collision: false, animate: true, specials: false, objects: false },
+  var state = Object.assign({ area: null, map: null, edit: null, zoom: 1, a: true, b: true, collision: false, animate: true, specials: false, objects: false },
     vscode.getState() || {});
   var maps = new Map((init.maps || []).map(function (m) { return [m.id, m]; }));
   var areas = init.areas || [];
   var players = [];
+  var editor = null;            // the open map editor (editor.js), if any
   var pending = new Map();      // path -> [callbacks]
   var files = new Map();        // path -> parsed JSON
 
@@ -89,7 +91,31 @@
 
   function stopPlayers() { players.forEach(function (p) { p.stop(); }); players = []; }
 
+  function closeEditor() { if (editor) { editor.close(); editor = null; } }
+
+  /** The map editor for map `id`: its data first, then the page (editor.js). */
+  function renderEditor(id) {
+    var m = maps.get(id);
+    bar.hidden = true;
+    legend.hidden = true;
+    stopPlayers();
+    closeEditor();
+    view.textContent = '';
+    title.textContent = 'Edit ' + m.hex;
+    meta.textContent = label(id);
+    readJson('maps/' + m.hex + '.edit.json', function (data) {
+      if (!data || state.edit !== id) { if (!data) view.append(el('div', 'message', 'Cannot read this map for editing.')); return; }
+      view.textContent = '';
+      editor = manaEditorOpen({ root: view, entry: m, data: data, somBase: init.somBase, state: state, save: save, readJson: readJson,
+        onBack: function () { state.edit = null; state.map = id; save(); render(); } });
+    });
+  }
+
   function render() {
+    bar.hidden = false;
+    closeEditor();
+    if (state.edit !== null && maps.has(state.edit)) { buildBar(); renderEditor(state.edit); return; }
+    state.edit = null;
     buildBar();
     stopPlayers();
     nav.querySelectorAll('.sel').forEach(function (e) { e.classList.remove('sel'); });
@@ -121,7 +147,10 @@
     var also = same.length ? ' — same picture: ' + same.map(function (s) { return (maps.get(s) || { hex: s }).hex; }).join(', ') : '';
     var cap = el('figcaption', '', label(id) + also);
     cap.dataset.map = String(id);
-    fig.append(svg, cap);
+    var edit = el('button', 'edit-btn', 'Edit');
+    edit.dataset.edit = String(id);
+    edit.title = 'Open this map in the editor (changes are not saved)';
+    fig.append(svg, cap, edit);
     return fig;
   }
 
@@ -165,7 +194,7 @@
     }
   }
 
-  function select(area, map) { state.area = area; state.map = map; save(); render(); }
+  function select(area, map) { state.area = area; state.map = map; state.edit = null; save(); render(); }
 
   nav.addEventListener('click', function (ev) {
     var t = ev.target instanceof Element ? ev.target.closest('[data-area]') : null;
@@ -173,6 +202,8 @@
     select(t.dataset.area || null, t.dataset.map ? Number(t.dataset.map) : null);
   });
   view.addEventListener('click', function (ev) {
+    var e = ev.target instanceof Element ? ev.target.closest('[data-edit]') : null;
+    if (e && e.classList.contains('edit-btn')) { state.edit = Number(e.dataset.edit); save(); render(); return; }
     var t = ev.target instanceof Element ? ev.target.closest('figcaption') : null;
     if (t && t.dataset.map) select(state.area, state.map === Number(t.dataset.map) ? null : Number(t.dataset.map));
   });

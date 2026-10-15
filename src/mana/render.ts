@@ -88,7 +88,7 @@ function drawLayer(map: ManaMap, which: 'A' | 'B',
     return { color, prio };
 }
 
-function drawChar(vram: Uint8Array, word: number, x0: number, y0: number, width: number,
+export function drawChar(vram: Uint8Array, word: number, x0: number, y0: number, width: number,
     color: Uint8Array, prio: Uint8Array): void {
     const base = (word & 0x3FF) * 32, pal = ((word >> 10) & 7) * 16, p = (word >> 13) & 1;
     const hf = word & 0x4000, vf = word & 0x8000;
@@ -106,10 +106,10 @@ function drawChar(vram: Uint8Array, word: number, x0: number, y0: number, width:
     }
 }
 
-function rgb(c: number): number[] {
+export function rgb(c: number): number[] {
     return [c & 31, (c >> 5) & 31, (c >> 10) & 31];
 }
 
-function expand(v: number): number {
+export function expand(v: number): number {
     return (v << 3) | (v >> 2);
 }

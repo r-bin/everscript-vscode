@@ -58,7 +58,7 @@ async function main() {
     }
 
     console.log('\nrooms rail DOM:');
-    const page = await browser.newPage({ viewport: { width: 1000, height: 640 } });
+    const page = await browser.newPage({ viewport: { width: 1500, height: 640 } });
     const pageErrors = [];
     page.on('pageerror', (e) => pageErrors.push(e.message));
 

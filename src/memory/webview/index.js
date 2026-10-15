@@ -158,9 +158,14 @@ const ROOMS_JS_FILES = [
 // Map-view pieces shared with the Secret of Mana Maps panel (src/shared/webview/map-view/).
 const MAP_VIEW_DIR = path.join(sharedDir, 'webview', 'map-view');
 const MAP_VIEW_JS_FILES = ['tile-animation.js', 'view-chips.js'];
+// The game-neutral editor core (src/shared/webview/map-editor-core/): the Rooms editor uses its
+// "not saved" notice, so both games' editors word and draw it the same way.
+const EDITOR_CORE_DIR = path.join(sharedDir, 'webview', 'map-editor-core');
+const EDITOR_CORE_JS_FILES = ['edit-session.js'];
 
 function loadRoomsJs() {
   return MAP_VIEW_JS_FILES.map(function(f) { return loadFile(path.join(MAP_VIEW_DIR, f)); })
+    .concat(EDITOR_CORE_JS_FILES.map(function(f) { return loadFile(path.join(EDITOR_CORE_DIR, f)); }))
     .concat(ROOMS_JS_FILES.map(function(f) { return loadFile(path.join(roomsDir, f)); }))
     .join('\n');
 }
@@ -175,6 +180,7 @@ module.exports = {
     + loadFile(path.join(roomsDir, 'map-editor-theme.css')) + '\n'
     + loadFile(path.join(roomsDir, 'map-editor-canvas.css')) + '\n'
     + loadFile(path.join(sharedDir, 'webview', 'map-view', 'map-view.css')) + '\n'
+    + loadFile(path.join(EDITOR_CORE_DIR, 'map-editor-core.css')) + '\n'
     + loadFile(path.join(roomsDir, 'map-editor-tile-tab.css')) + '\n'
     + loadFile(path.join(roomsDir, 'rooms-rail.css')) + '\n'
     + loadFile(path.join(roomsDir, 'rooms-layout.css')) + '\n'

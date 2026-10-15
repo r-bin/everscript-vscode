@@ -294,8 +294,10 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   details (`requestImportedRoom` -> `importedRoom`), then opens like a ROM room: its id
   is `0x1000 + map id`, which `roomVanillaIdNum` accepts for `room.imported`, and the
   host answers its requests from the room's own ROM image. Families named by a label
-  (`m12`) go through `familyName`. Owns `_importedRooms` / `_importedWaiting` /
-  `_importedFamilies`
+  (`m12`) go through `familyName`. A change to an unlocked converted room shows the editor core's
+  "not saved" notice (`importedNotSavedHtml`); a copy of one (Copy map) is a custom map whose donor
+  `borrow` is the converted id, which `customRoomDetail` marks `imported` so the host answers from the
+  room's image. Owns `_importedRooms` / `_importedWaiting` / `_importedFamilies`
 - `rooms-layout.js` / `rooms-layout.css` — the tab fills the screen with
   nothing under the editor; the rail and dock resize handles (`_layoutWidths`,
   saved as the `layoutWidths` UI pref)

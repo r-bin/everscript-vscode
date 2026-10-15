@@ -154,5 +154,32 @@ test('cutting: the game\'s $01:D293 turns map $81\'s bush into $5F for weapon ty
     assert.deepStrictEqual(mana.weaponTypes(8), [1, 2]);
 });
 
+test('the editor\'s data (edit.json, tiles sheets) is the library\'s map, cell by cell and metatile by metatile', () => {
+    const E = require('../../src/mana-maps/webview/editor-model.js');
+    for (const id of [0x66, 0x80, 0x10]) {
+        const m = mana.loadMap(rom, id);
+        const hex = id.toString(16);
+        const d = JSON.parse(resolveSom(['maps', hex + '.edit.json'], rom).read());
+        assert.deepStrictEqual([d.w, d.h], [m.w, m.h]);
+        assert.strictEqual(d.a.length, m.w * m.h);
+        for (let y = 0; y < m.h; y += 7) for (let x = 0; x < m.w; x += 5) assert.strictEqual(d.a[y * m.w + x], m.cell('A', x, y), hex + ' A ' + x + ',' + y);
+        if (m.sizeB) { assert.strictEqual(d.b.length, m.sizeB.w * m.sizeB.h); assert.strictEqual(E.manaEdCell(E.manaEdModel(d), 'B', m.w - 1, m.h - 1), m.cell('B', m.w - 1, m.h - 1)); }
+        // The overlay the editor draws from the metatiles equals the collision the library reads per cell.
+        const c = mana.collisionOf(rom, m), v = E.manaEdCollisionView(E.manaEdModel(d));
+        for (let i = 0; i < c.w * c.h; i++) {
+            assert.strictEqual(+v.floor[i], mana.floorOf(c.bytes[i * 4]), hex + ' floor ' + i);
+            assert.strictEqual(+v.diagonal[i], mana.diagonalOf(c.bytes[i * 4 + 2]), hex + ' diagonal ' + i);
+        }
+        assert.strictEqual(v.specials.length, c.bytes.filter((_, i) => i % 4 === 1).filter(b => mana.specialOf(b)).length);
+        assert.deepStrictEqual(d.events.steps, mana.mapEvents(rom, m).steps);
+        assert.strictEqual(d.objects.length, mana.mapObjects(rom, id).length);
+        for (const l of ['a', 'b']) {
+            const png = resolveSom(['maps', hex + '.tiles.' + l + '.png'], rom).read();
+            assert.strictEqual(png.readUInt32BE(16), 256);
+            assert.strictEqual(png.readUInt32BE(20), 192);
+        }
+    }
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

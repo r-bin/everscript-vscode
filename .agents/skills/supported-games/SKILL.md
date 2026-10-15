@@ -12,7 +12,7 @@ The extension supports two games. They share the SNES and nothing else.
 
 | | Secret of Evermore | Secret of Mana |
 |---|---|---|
-| file system (MCP, editor) | `soe://` (`src/resources`, MCP `everscript-soe`) | `som://` (`src/mana-resources`): `som://rom/maps/<hex>.png/.json/.collision.json/.anim.json/.objects.json`, `areas/` |
+| file system (MCP, editor) | `soe://` (`src/resources`, MCP `everscript-soe`) | `som://` (`src/mana-resources`): `som://rom/maps/<hex>.png/.json/.collision.json/.anim.json/.objects.json/.edit.json/.tiles.a.png`, `areas/` |
 | library | `src/maps`, `src/script`, … | `src/mana` (pure TS: header, pieces, metatiles, collision, events, objects, cuttable cells, animation on `cpu65816.ts`) |
 | ROM setting | `everscript.romPath` | `everscript.manaRomPath` (or a ROM with "mana" in its name beside it) |
 | facts written to | `src/localizations/knowledge/` (`game-knowledge` skill) | `docs/mana/README.md` + the `src/mana` file that reads it |
@@ -54,8 +54,13 @@ game supports it, not through a second tool:
   spawn markers. The webview stays game-neutral: converted rooms arrive as data
   (`rooms-imported.js`), with ids from `0x1000` and family labels.
 - **Mana Maps panel** (`everscript.openManaMaps`) — the maps as the game draws them, with
-  collision, animation, special cells and objects; it shares the filter bar and the tile
-  animation player with the Rooms tab (`src/shared/webview/map-view/`).
+  collision, animation, special cells and objects, and a map editor (Edit button): paint
+  metatiles, objects, step events, undo/redo. Nothing it changes is saved. It shares the filter
+  bar, the tile animation player and the editor core (history, sessions, grid strokes, notice)
+  with the Rooms tab (`src/shared/webview/map-view/`, `.../map-editor-core/`). The two editors
+  never mix data: the Rooms tab shows Evermore plus *converted* Mana rooms, the panel native
+  Mana maps. Plan: `docs/architecture/one-map-editor.md`.
+- Mana collision is per **metatile**, not per cell — there is no free collision brush.
 - **som://** for anything an agent or the user wants to read as files.
 
 When a Mana feature is missing, check `docs/mana/evermore-rooms.md` ("The editor for Mana

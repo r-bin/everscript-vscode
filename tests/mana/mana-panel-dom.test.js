@@ -6,10 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const SRC = path.join(__dirname, '..', '..', 'src');
-const WV = path.join(SRC, 'mana-maps', 'webview');
-const MV = path.join(SRC, 'shared', 'webview', 'map-view');
-const url = p => 'file://' + p;
+const { writePage, url } = require('./panel-page');
 
 let passed = 0, failed = 0;
 const check = (name, cond, detail) => {
@@ -36,15 +33,7 @@ async function main() {
     let browser;
     try { browser = await chromium.launch(); } catch (e) { console.log('\nMana maps page: no browser — skipped'); return; }
     console.log('\nSecret of Mana Maps page:');
-    const tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'mana-page-'));
-    const values = {
-        cspSource: "file: 'self'", nonce: 'n1',
-        styleUri: url(path.join(WV, 'style.css')), scriptUri: url(path.join(WV, 'main.js')), mapSvgJs: url(path.join(WV, 'map-svg.js')),
-        mapViewCss: url(path.join(MV, 'map-view.css')), animJs: url(path.join(MV, 'tile-animation.js')), chipsJs: url(path.join(MV, 'view-chips.js')),
-        init: JSON.stringify(INIT).replace(/</g, '\\u003c'),
-    };
-    const page = path.join(tmp, 'page.html');
-    fs.writeFileSync(page, fs.readFileSync(path.join(WV, 'index.html'), 'utf8').replace(/\{\{(\w+)\}\}/g, (_, k) => values[k]));
+    const { dir: tmp, page } = writePage(INIT, INIT.somBase);
     // VS Code's own default webview stylesheet caps images like this.
     fs.writeFileSync(path.join(tmp, 'vscode.css'), 'img,video{max-width:100%;max-height:100%}');
 

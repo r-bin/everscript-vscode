@@ -67,6 +67,19 @@ the game, or lose something on the way (measured 2026-10-15 over every map):
 | 43 maps | layer B has its own size and is repeated; Mana scrolls it on its own (parallax), Evermore draws it fixed |
 | every map | the backdrop colour (Evermore draws black), mixed-palette tiles (one palette per cell, ~12 per map), per-8x8 priority, animated tiles and palette effects, layer B's collision, the weapon a cut needs, character objects |
 
+## Changing a converted room, and keeping the work
+
+A converted room is a **view of the Mana map**, rebuilt from the user's Mana ROM each time:
+- Unlock it (the lock in the tool pill) and edit it like any room. **Nothing is saved**: a notice
+  says so once the draft has a change. Only custom maps are written to disk.
+- **Copy map** makes a custom Evermore map from it and that copy is saved. It *borrows* the
+  converted room as its donor (the id `0x1000 + map id`, its families `m<n>` / ids from 41447), so
+  it needs the Mana ROM to be found when it is opened again; without it the copy opens with an
+  error and nothing is lost on disk. No Mana data is stored in the copy beyond cell indices.
+  Whether the copy would fit an Evermore ROM slot is the Evermore export's rule, not checked here.
+- The native Mana map is edited in the Mana Maps panel instead ([README.md](README.md)); the two
+  editors never share data.
+
 ## The editor for Mana rooms
 
 A converted room opens in the same editor as a vanilla room, locked. What each tab shows,

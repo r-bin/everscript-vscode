@@ -60,3 +60,15 @@ function familyName(id) {
   var f = _importedFamilies[id];
   return f && f.label ? f.label : String(id);
 }
+
+/**
+ * The "changes are not saved" notice for a converted room that has changes in its draft, else ''.
+ * A converted room is not a custom map: nothing writes its draft (only custom maps are saved,
+ * map-editor-custom-store.js), and "duplicate as a custom map" is the way to keep the work.
+ * The wording is the editor core's (src/shared/webview/map-editor-core/edit-session.js).
+ */
+function importedNotSavedHtml() {
+  var d = editDraft();
+  if (!d || d.customKey || !(d.roomId > 0x7e) || !d.undo || !d.undo.length) return '';
+  return editNotSavedHtml('converted Secret of Mana room').replace('class="ed-notsaved"', 'class="ed-notsaved rg-notsaved"');
+}

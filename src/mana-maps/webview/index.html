@@ -5,6 +5,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src {{cspSource}} data:; style-src {{cspSource}}; script-src 'nonce-{{nonce}}';">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="{{mapViewCss}}">
+<link rel="stylesheet" href="{{coreCss}}">
 <link rel="stylesheet" href="{{styleUri}}">
 <title>Secret of Mana Maps</title>
 </head>
@@ -29,7 +30,13 @@
 <script type="application/json" id="init">{{init}}</script>
 <script nonce="{{nonce}}" src="{{animJs}}"></script>
 <script nonce="{{nonce}}" src="{{chipsJs}}"></script>
+<script nonce="{{nonce}}" src="{{coreHistoryJs}}"></script>
+<script nonce="{{nonce}}" src="{{coreSessionJs}}"></script>
+<script nonce="{{nonce}}" src="{{coreGridJs}}"></script>
+<script nonce="{{nonce}}" src="{{coreToolsJs}}"></script>
 <script nonce="{{nonce}}" src="{{mapSvgJs}}"></script>
+<script nonce="{{nonce}}" src="{{editorModelJs}}"></script>
+<script nonce="{{nonce}}" src="{{editorJs}}"></script>
 <script nonce="{{nonce}}" src="{{scriptUri}}"></script>
 </body>
 </html>

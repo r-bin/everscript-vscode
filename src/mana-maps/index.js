@@ -12,6 +12,8 @@ const SOM_ROOT = vscode.Uri.parse('som://rom/');
 const WEBVIEW_DIR = path.join(__dirname, 'webview');
 // Map-view pieces shared with the Evermore Rooms tab (chips, their CSS, the animation player).
 const MAP_VIEW_DIR = path.join(__dirname, '..', 'shared', 'webview', 'map-view');
+// The game-neutral editor core (history, sessions, grid strokes, tool strip) the editor page is built on.
+const EDITOR_CORE_DIR = path.join(__dirname, '..', 'shared', 'webview', 'map-editor-core');
 
 /** @type {vscode.WebviewPanel | null} */
 let panel = null;
@@ -45,6 +47,13 @@ function pageHtml(webview, base, init) {
         mapViewCss: String(webview.asWebviewUri(vscode.Uri.file(path.join(MAP_VIEW_DIR, 'map-view.css')))),
         animJs: String(webview.asWebviewUri(vscode.Uri.file(path.join(MAP_VIEW_DIR, 'tile-animation.js')))),
         chipsJs: String(webview.asWebviewUri(vscode.Uri.file(path.join(MAP_VIEW_DIR, 'view-chips.js')))),
+        coreCss: String(webview.asWebviewUri(vscode.Uri.file(path.join(EDITOR_CORE_DIR, 'map-editor-core.css')))),
+        coreHistoryJs: String(webview.asWebviewUri(vscode.Uri.file(path.join(EDITOR_CORE_DIR, 'edit-history.js')))),
+        coreSessionJs: String(webview.asWebviewUri(vscode.Uri.file(path.join(EDITOR_CORE_DIR, 'edit-session.js')))),
+        coreGridJs: String(webview.asWebviewUri(vscode.Uri.file(path.join(EDITOR_CORE_DIR, 'edit-grid.js')))),
+        coreToolsJs: String(webview.asWebviewUri(vscode.Uri.file(path.join(EDITOR_CORE_DIR, 'edit-tools.js')))),
+        editorModelJs: String(webview.asWebviewUri(vscode.Uri.joinPath(base, 'editor-model.js'))),
+        editorJs: String(webview.asWebviewUri(vscode.Uri.joinPath(base, 'editor.js'))),
         init: JSON.stringify(init).replace(/</g, '\\u003c'),
     });
     const html = fs.readFileSync(path.join(WEBVIEW_DIR, 'index.html'), 'utf8');
@@ -67,7 +76,7 @@ async function openManaMaps() {
     panel = vscode.window.createWebviewPanel('everscript.manaMaps', 'Secret of Mana — Maps', vscode.ViewColumn.Active, {
         enableScripts: true,
         retainContextWhenHidden: true,
-        localResourceRoots: [base, vscode.Uri.file(MAP_VIEW_DIR), SOM_ROOT],
+        localResourceRoots: [base, vscode.Uri.file(MAP_VIEW_DIR), vscode.Uri.file(EDITOR_CORE_DIR), SOM_ROOT],
     });
     panel.onDidDispose(() => { panel = null; });
     panel.webview.onDidReceiveMessage(msg => answer(panel, msg));

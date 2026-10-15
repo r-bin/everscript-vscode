@@ -14,6 +14,7 @@ Built by `npm run build:mana` (`tsconfig.mana.json`) into `dist/`; `index.js` is
 | `palette.ts` | BG palettes, display mode (TM/TS/CGADSUB/backdrop) | `$01:F62D`, `$02:AA60` |
 | `map.ts` | `loadMap`: everything one map needs | — |
 | `render.ts` | Mode 1 BG1/BG2 picture with priorities and colour math | SNES PPU |
+| `metatile-sheet.ts` | one layer's 192 metatiles as a plain picture sheet (editor picker, redrawing changed cells) | SNES PPU |
 | `areas.ts` | maps grouped into the areas players know | — |
 | `catalog.ts` | every map, its area, and the ids that draw the same picture (som:// and the Evermore rooms) | — |
 | `cuttable.ts` | cells a weapon changes: c2 `$Cn` -> metatile c3, which weapon types | `$01:D293`, `$01:D376` |

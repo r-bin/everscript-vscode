@@ -42,6 +42,9 @@ Related skills: `map-editor-rules`, `map-construction`, `map-entities`, `rom-map
 8. Rooms converted from another game arrive as data (`importedRooms` rail groups, then
    one room per `requestImportedRoom`); nothing here knows the other game. Their ids are
    `>= 0x1000` and their family ids carry a `label` — never treat either as a ROM id.
+   Nothing about them is saved (only custom maps are); a copy of one is a custom map that
+   borrows the converted room, so host requests about a donor go through `radarRoomRom`
+   (`extension.js`), never straight to the Evermore ROM.
 
 ## Tests
 - Unit (`npm test`): `tests/memory/map-editor.test.js`, `rebuild-invalidation.test.js`,
