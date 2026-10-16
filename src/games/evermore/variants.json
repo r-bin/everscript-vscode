@@ -9,10 +9,113 @@
         "file": "0x11D000",
         "count": 3002,
         "readers": [
-          { "pc": "$8C:CCF7", "file": "0x0CCCF7", "asm": "lda #$0091 : sta $28 : ldy #$D000" },
-          { "pc": "$8C:CD35", "file": "0x0CCD35", "asm": "lda #$0091 : sta $28 : ldy #$D000" }
+          {
+            "pc": "$8C:CCF7",
+            "file": "0x0CCCF7",
+            "asm": "lda #$0091 : sta $28 : ldy #$D000"
+          },
+          {
+            "pc": "$8C:CD35",
+            "file": "0x0CCD35",
+            "asm": "lda #$0091 : sta $28 : ldy #$D000"
+          }
         ],
         "notes": "Base string key table for US release. Key index is 16-bit offset / 3."
+      },
+      "germany": {
+        "snes": "$92:8000",
+        "file": "0x128000",
+        "count": 3087,
+        "plainCount": 75,
+        "readers": [
+          {
+            "pc": "$CC:D0BA",
+            "file": "0x0CD0BA",
+            "asm": "lda #$0092 : sta $28 : ldy #$8000"
+          },
+          {
+            "pc": "$CC:D0F8",
+            "file": "0x0CD0F8",
+            "asm": "lda #$0092 : sta $28 : ldy #$8000"
+          }
+        ],
+        "notes": "Discovered from signature A9 bb 00 85 28 A0 aa aa. Sample plain strings: Reis, Gew[F3]rz, Huhn."
+      },
+      "europe": {
+        "snes": "$92:8000",
+        "file": "0x128000",
+        "count": 3085,
+        "plainCount": 75,
+        "readers": [
+          {
+            "pc": "$CC:D0BA",
+            "file": "0x0CD0BA",
+            "asm": "lda #$0092 : sta $28 : ldy #$8000"
+          },
+          {
+            "pc": "$CC:D0F8",
+            "file": "0x0CD0F8",
+            "asm": "lda #$0092 : sta $28 : ldy #$8000"
+          }
+        ],
+        "notes": "Discovered from signature A9 bb 00 85 28 A0 aa aa. Sample plain strings: rice, bead, rice."
+      },
+      "france": {
+        "snes": "$92:8000",
+        "file": "0x128000",
+        "count": 3083,
+        "plainCount": 49,
+        "readers": [
+          {
+            "pc": "$CC:D0BA",
+            "file": "0x0CD0BA",
+            "asm": "lda #$0092 : sta $28 : ldy #$8000"
+          },
+          {
+            "pc": "$CC:D0F8",
+            "file": "0x0CD0F8",
+            "asm": "lda #$0092 : sta $28 : ldy #$8000"
+          }
+        ],
+        "notes": "Discovered from signature A9 bb 00 85 28 A0 aa aa. Sample plain strings: riz, Parfum, [86]."
+      },
+      "spain1": {
+        "snes": "$92:8000",
+        "file": "0x128000",
+        "count": 3082,
+        "plainCount": 65,
+        "readers": [
+          {
+            "pc": "$CC:D0BA",
+            "file": "0x0CD0BA",
+            "asm": "lda #$0092 : sta $28 : ldy #$8000"
+          },
+          {
+            "pc": "$CC:D0F8",
+            "file": "0x0CD0F8",
+            "asm": "lda #$0092 : sta $28 : ldy #$8000"
+          }
+        ],
+        "notes": "Discovered from signature A9 bb 00 85 28 A0 aa aa. Sample plain strings: [96], Tapiz, Tapiz."
+      },
+      "spain2": {
+        "snes": "$92:8000",
+        "file": "0x128000",
+        "count": 3082,
+        "plainCount": 65,
+        "readers": [
+          {
+            "pc": "$CC:D0BA",
+            "file": "0x0CD0BA",
+            "asm": "lda #$0092 : sta $28 : ldy #$8000"
+          },
+          {
+            "pc": "$CC:D0F8",
+            "file": "0x0CD0F8",
+            "asm": "lda #$0092 : sta $28 : ldy #$8000"
+          }
+        ],
+        "notes": "Discovered from signature A9 bb 00 85 28 A0 aa aa. Sample plain strings: [96], Tapiz, Tapiz."
       }
     }
   },
@@ -26,10 +129,83 @@
         "file": "0x1FFDE7",
         "count": 127,
         "readers": [
-          { "pc": "$90:8F69", "file": "0x108F69", "asm": "lda.l $9FFDE7,x" },
-          { "pc": "$90:8F6F", "file": "0x108F6F", "asm": "lda.l $9FFDE8,x" }
+          {
+            "pc": "$90:8F69",
+            "file": "0x108F69",
+            "asm": "lda.l $9FFDE7,x"
+          },
+          {
+            "pc": "$90:8F6F",
+            "file": "0x108F6F",
+            "asm": "lda.l $9FFDE8,x"
+          }
         ],
         "notes": "Table ends before slot $7F (0x1FFFFF)."
+      },
+      "germany": {
+        "snes": "$A0:FDE5",
+        "file": "0x20FDE5",
+        "count": 127,
+        "readers": [
+          {
+            "pc": "$D0:8F6E",
+            "file": "0x108F6E",
+            "asm": "lda.l $A0FDE5,x"
+          }
+        ],
+        "notes": "Discovered from room blob loader signature. Room 0x61 points to blob at 0x29B3AA."
+      },
+      "europe": {
+        "snes": "$A0:FDE5",
+        "file": "0x20FDE5",
+        "count": 127,
+        "readers": [
+          {
+            "pc": "$D0:8F6E",
+            "file": "0x108F6E",
+            "asm": "lda.l $A0FDE5,x"
+          }
+        ],
+        "notes": "Discovered from room blob loader signature. Room 0x61 points to blob at 0x29B3AA."
+      },
+      "france": {
+        "snes": "$A0:FDE5",
+        "file": "0x20FDE5",
+        "count": 127,
+        "readers": [
+          {
+            "pc": "$D0:8F6E",
+            "file": "0x108F6E",
+            "asm": "lda.l $A0FDE5,x"
+          }
+        ],
+        "notes": "Discovered from room blob loader signature. Room 0x61 points to blob at 0x29B3AA."
+      },
+      "spain1": {
+        "snes": "$A0:FDE5",
+        "file": "0x20FDE5",
+        "count": 127,
+        "readers": [
+          {
+            "pc": "$D0:8F6E",
+            "file": "0x108F6E",
+            "asm": "lda.l $A0FDE5,x"
+          }
+        ],
+        "notes": "Discovered from room blob loader signature. Room 0x61 points to blob at 0x29B3AA."
+      },
+      "spain2": {
+        "snes": "$A0:FDE5",
+        "file": "0x20FDE5",
+        "count": 127,
+        "readers": [
+          {
+            "pc": "$D0:8F6E",
+            "file": "0x108F6E",
+            "asm": "lda.l $A0FDE5,x"
+          }
+        ],
+        "notes": "Discovered from room blob loader signature. Room 0x61 points to blob at 0x29B3AA."
       }
     }
   },
@@ -43,10 +219,83 @@
         "file": "0x12801B",
         "count": 127,
         "readers": [
-          { "pc": "$8C:CECC", "file": "0x0CCECC", "asm": "lda.l $92801B,x" },
-          { "pc": "$8C:CED2", "file": "0x0CCED2", "asm": "lda.l $92801C,x" }
+          {
+            "pc": "$8C:CECC",
+            "file": "0x0CCECC",
+            "asm": "lda.l $92801B,x"
+          },
+          {
+            "pc": "$8C:CED2",
+            "file": "0x0CCED2",
+            "asm": "lda.l $92801C,x"
+          }
         ],
         "notes": "Indexed by id*5 via hardware multiplier ($211B/$211C). Overlaps global script pointer table at end."
+      },
+      "germany": {
+        "snes": "$93:801B",
+        "file": "0x13801B",
+        "count": 127,
+        "readers": [
+          {
+            "pc": "$CC:D2B1",
+            "file": "0x0CD2B1",
+            "asm": "lda.l $93801B,x"
+          }
+        ],
+        "notes": "Discovered from enter script multiplier routine."
+      },
+      "europe": {
+        "snes": "$93:801B",
+        "file": "0x13801B",
+        "count": 127,
+        "readers": [
+          {
+            "pc": "$CC:D2B1",
+            "file": "0x0CD2B1",
+            "asm": "lda.l $93801B,x"
+          }
+        ],
+        "notes": "Discovered from enter script multiplier routine."
+      },
+      "france": {
+        "snes": "$93:801B",
+        "file": "0x13801B",
+        "count": 127,
+        "readers": [
+          {
+            "pc": "$CC:D2B1",
+            "file": "0x0CD2B1",
+            "asm": "lda.l $93801B,x"
+          }
+        ],
+        "notes": "Discovered from enter script multiplier routine."
+      },
+      "spain1": {
+        "snes": "$93:801B",
+        "file": "0x13801B",
+        "count": 127,
+        "readers": [
+          {
+            "pc": "$CC:D2B1",
+            "file": "0x0CD2B1",
+            "asm": "lda.l $93801B,x"
+          }
+        ],
+        "notes": "Discovered from enter script multiplier routine."
+      },
+      "spain2": {
+        "snes": "$93:801B",
+        "file": "0x13801B",
+        "count": 127,
+        "readers": [
+          {
+            "pc": "$CC:D2B1",
+            "file": "0x0CD2B1",
+            "asm": "lda.l $93801B,x"
+          }
+        ],
+        "notes": "Discovered from enter script multiplier routine."
       }
     }
   },
@@ -62,12 +311,178 @@
         "headerSnes": "$92:8000",
         "headerFile": "0x128000",
         "readers": [
-          { "pc": "$8C:CE63", "file": "0x0CCE63", "asm": "lda.l $928000,x" },
-          { "pc": "$8C:CE69", "file": "0x0CCE69", "asm": "lda.l $928002,x" },
-          { "pc": "$8C:D3B5", "file": "0x0CD3B5", "asm": "lda.l $928000,x" },
-          { "pc": "$8C:D3BB", "file": "0x0CD3BB", "asm": "lda.l $928002,x" }
+          {
+            "pc": "$8C:CE63",
+            "file": "0x0CCE63",
+            "asm": "lda.l $928000,x"
+          },
+          {
+            "pc": "$8C:CE69",
+            "file": "0x0CCE69",
+            "asm": "lda.l $928002,x"
+          },
+          {
+            "pc": "$8C:D3B5",
+            "file": "0x0CD3B5",
+            "asm": "lda.l $928000,x"
+          },
+          {
+            "pc": "$8C:D3BB",
+            "file": "0x0CD3BB",
+            "asm": "lda.l $928002,x"
+          }
         ],
         "notes": "Readers index relative to script bank base $92:8000 + word[$92:8000]."
+      },
+      "germany": {
+        "snes": "$93:8294",
+        "file": "0x138294",
+        "headerSnes": "$93:8000",
+        "headerFile": "0x138000",
+        "count": 2344,
+        "readers": [
+          {
+            "pc": "$CC:D248",
+            "file": "0x0CD248",
+            "asm": "lda.l $938000,x"
+          },
+          {
+            "pc": "$CC:D24E",
+            "file": "0x0CD24E",
+            "asm": "lda.l $938002,x"
+          },
+          {
+            "pc": "$CC:D79E",
+            "file": "0x0CD79E",
+            "asm": "lda.l $938000,x"
+          },
+          {
+            "pc": "$CC:D7A4",
+            "file": "0x0CD7A4",
+            "asm": "lda.l $938002,x"
+          }
+        ],
+        "notes": "Script bank header at $93:8000, global pointer table at $93:8294."
+      },
+      "europe": {
+        "snes": "$93:8294",
+        "file": "0x138294",
+        "headerSnes": "$93:8000",
+        "headerFile": "0x138000",
+        "count": 2344,
+        "readers": [
+          {
+            "pc": "$CC:D248",
+            "file": "0x0CD248",
+            "asm": "lda.l $938000,x"
+          },
+          {
+            "pc": "$CC:D24E",
+            "file": "0x0CD24E",
+            "asm": "lda.l $938002,x"
+          },
+          {
+            "pc": "$CC:D79E",
+            "file": "0x0CD79E",
+            "asm": "lda.l $938000,x"
+          },
+          {
+            "pc": "$CC:D7A4",
+            "file": "0x0CD7A4",
+            "asm": "lda.l $938002,x"
+          }
+        ],
+        "notes": "Script bank header at $93:8000, global pointer table at $93:8294."
+      },
+      "france": {
+        "snes": "$93:8294",
+        "file": "0x138294",
+        "headerSnes": "$93:8000",
+        "headerFile": "0x138000",
+        "count": 2344,
+        "readers": [
+          {
+            "pc": "$CC:D248",
+            "file": "0x0CD248",
+            "asm": "lda.l $938000,x"
+          },
+          {
+            "pc": "$CC:D24E",
+            "file": "0x0CD24E",
+            "asm": "lda.l $938002,x"
+          },
+          {
+            "pc": "$CC:D79E",
+            "file": "0x0CD79E",
+            "asm": "lda.l $938000,x"
+          },
+          {
+            "pc": "$CC:D7A4",
+            "file": "0x0CD7A4",
+            "asm": "lda.l $938002,x"
+          }
+        ],
+        "notes": "Script bank header at $93:8000, global pointer table at $93:8294."
+      },
+      "spain1": {
+        "snes": "$93:8294",
+        "file": "0x138294",
+        "headerSnes": "$93:8000",
+        "headerFile": "0x138000",
+        "count": 2344,
+        "readers": [
+          {
+            "pc": "$CC:D248",
+            "file": "0x0CD248",
+            "asm": "lda.l $938000,x"
+          },
+          {
+            "pc": "$CC:D24E",
+            "file": "0x0CD24E",
+            "asm": "lda.l $938002,x"
+          },
+          {
+            "pc": "$CC:D79E",
+            "file": "0x0CD79E",
+            "asm": "lda.l $938000,x"
+          },
+          {
+            "pc": "$CC:D7A4",
+            "file": "0x0CD7A4",
+            "asm": "lda.l $938002,x"
+          }
+        ],
+        "notes": "Script bank header at $93:8000, global pointer table at $93:8294."
+      },
+      "spain2": {
+        "snes": "$93:8294",
+        "file": "0x138294",
+        "headerSnes": "$93:8000",
+        "headerFile": "0x138000",
+        "count": 2344,
+        "readers": [
+          {
+            "pc": "$CC:D248",
+            "file": "0x0CD248",
+            "asm": "lda.l $938000,x"
+          },
+          {
+            "pc": "$CC:D24E",
+            "file": "0x0CD24E",
+            "asm": "lda.l $938002,x"
+          },
+          {
+            "pc": "$CC:D79E",
+            "file": "0x0CD79E",
+            "asm": "lda.l $938000,x"
+          },
+          {
+            "pc": "$CC:D7A4",
+            "file": "0x0CD7A4",
+            "asm": "lda.l $938002,x"
+          }
+        ],
+        "notes": "Script bank header at $93:8000, global pointer table at $93:8294."
       }
     }
   }

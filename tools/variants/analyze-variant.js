@@ -309,7 +309,9 @@ async function main() {
     const doWrite = args.includes('--write');
 
     if (!romPath) {
-        romPath = '/Users/v/romhacking/evermore variants/Secret of Evermore (Germany).sfc';
+        const os = require('os');
+        const variantsDir = process.env.SOE_VARIANTS_DIR || path.join(os.homedir(), 'romhacking', 'evermore variants');
+        romPath = path.join(variantsDir, 'Secret of Evermore (Germany).sfc');
     }
 
     if (!fs.existsSync(romPath)) {
