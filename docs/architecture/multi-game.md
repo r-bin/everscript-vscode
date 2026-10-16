@@ -135,7 +135,7 @@ code, folder or docs are part of the cleanup.
    ROM; `openManaMaps` merged.
 6. Derived-ROM marker in `tools/table-hack` and `tools/exhirom`.
 
-**Status (v0.229.0):**
+**Status (v0.232.0):**
 - Built: 1 (resolver, library file, identification; every ROM reader in the extension, tests, tools and
   scripts goes through it; `romPath` / `manaRomPath` / `$SOE_ROM` / `EVERSCRIPT_ROM` are gone; old
   settings are adopted once into the library), 2 (`registerGame`, Evermore and Mana descriptors),
@@ -145,7 +145,9 @@ code, folder or docs are part of the cleanup.
   base", feature table, drop zone), the drop-a-ROM prompt. Panels still follow the selected ROM instead
   of keeping the one they were opened with; `openManaMaps` is not merged yet; per-panel empty states
   are still the old messages.
-- Open: 3 (moving the domains).
+- Built in part, 3: one TypeScript build (`tsconfig.build.json`, `dist/` mirrors `src/`, v0.231.0); Secret of
+  Mana moved (v0.232.0): `games/mana/decoder`, `games/mana/resources`, `games/mana/maps`, and the bridge
+  `games/evermore/imports/mana`. The Evermore domains and `platform/` candidates are still at `src/<domain>`.
 - Headless: `npm run roms` lists the library and adds/selects/marks ROMs (`tools/roms.js`).
 
 ## 8. The map editor (from the 2026-10-15 plan)
