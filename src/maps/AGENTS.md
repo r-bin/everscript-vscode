@@ -16,7 +16,7 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
 - Consumers `require('../maps')` (the facade), never `./dist` directly.
 - Existing exceptions (do not add more):
   - `render-script-model.js` requires `fs` and hard-codes a ROM path inside the
-    SoETilesViewer checkout (`docs/architecture-state.md` §16 #5).
+    SoETilesViewer checkout (`docs/cleanup.md` step 2).
 
 ## Invariants
 - Pure: takes a ROM buffer, returns data.
@@ -32,7 +32,7 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
   must keep agreeing with it.
 - Do not port or copy code, tables or struct layouts from SoETilesViewer/SoEScriptDumper;
   derive from the ROM with a test (guide §3.8). Known violations to replace, not extend:
-  `sprites.ts`, `character-record.ts` (`docs/architecture-state.md` §16).
+  `sprites.ts`, `character-record.ts` (`docs/cleanup.md` step 2).
 - `dist/` is gitignored; emitted by `tsconfig.maps.json` (`npm run build:maps`), rebuilt by
   `npm test`, `npm run package` and `npm run deploy`.
 

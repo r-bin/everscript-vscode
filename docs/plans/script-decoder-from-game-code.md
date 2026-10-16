@@ -4,8 +4,9 @@
 (`src/maps/sprites.ts`, `src/maps/character-record.ts`, `src/sprites/character-model.js`) and
 everything else ported from SoEScriptDumper/SoETilesViewer is re-implemented **from the game
 itself**. We have the author's written agreement, but we choose not to build on their work.
-Names (`src/script/names.json`, room names) are **postponed** — they stay, isolated and
-flagged, until a separate decision.
+Names (`src/script/names.json`, room names) stay for now; room names are rewritten in our own
+style and the disassembly text is reinvented in the everscript compiler's spelling
+(`docs/cleanup.md` D4).
 
 ## Principle
 
@@ -44,7 +45,7 @@ Working rules for whoever implements it (human or agent):
 - Store as JSON of offsets and lengths only. Coverage report: which opcodes were observed.
 
 ### 3. Implement
-- New library domain `src/script-vm/` (strict TS, own naming, own output wording), table-driven
+- New library domain `src/games/evermore/script-vm/` (`docs/architecture/multi-game.md`) (strict TS, own naming, own output wording), table-driven
   from the phase-1 spec. Never guesses a length: an opcode without a spec stops the walk.
 
 ### 4. Validate
@@ -71,5 +72,4 @@ Working rules for whoever implements it (human or agent):
 ## Done when
 - No file in `src/` declares itself a port of, or reads anything from, the upstream projects.
 - Every opcode has a knowledge entry with `confidence: confirmed` or a documented gap.
-- `docs/architecture-state.md` §16 items #1, #3–#7 are closed; #2 (names) remains as the
-  postponed decision.
+- `docs/cleanup.md` step 2 is ticked.

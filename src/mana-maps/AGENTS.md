@@ -37,7 +37,7 @@ What the folder does: [README.md](README.md).
 - **Nothing the editor changes is saved or written anywhere**; the pill's notice says so while a map has
   changes. Edits live in `manaEdSessions` (one per map) until the page closes. Write-back and "play my edited
   map" need Mana's map re-encoded and are deliberately not built
-  ([docs/architecture/one-map-editor.md](../../docs/architecture/one-map-editor.md)).
+  ([docs/architecture/multi-game.md](../../docs/architecture/multi-game.md)).
 - Collision is per metatile in Mana, never per cell. The user draws what a cell should be (collision, specials,
   how its trigger fires) as a *wish*; `editor-props.js` solves wishes into metatiles: one with the same picture
   and bytes, else a copy (every byte kept, only the wished fields changed) in a slot the map does not use — never

@@ -452,7 +452,7 @@ The Maps panel plays it per cell kind (cells with the same tile words share fram
 ## Editing a map in the plugin — what is and is not a cell's own
 
 The Maps panel's editor (`src/mana-maps/webview/editor.js`; plan and reasons:
-[docs/architecture/one-map-editor.md](../architecture/one-map-editor.md)) edits a map in the terms
+[docs/architecture/multi-game.md](../architecture/multi-game.md)) edits a map in the terms
 the facts above allow, and **saves nothing**: Mana's map data is compressed and a changed map often
 would not fit its old slot, so there is no write-back and no way to play an edited map (both need a
 re-encoder, which does not exist).

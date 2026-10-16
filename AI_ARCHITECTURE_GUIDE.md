@@ -3,7 +3,7 @@
 > The laws every change must follow. Read it before modifying any subsystem.
 > Each law is marked **[now]** (enforced today) or **[target]** (the direction; new code
 > must follow it, legacy code is migrated when touched).
-> Current measurements and the backlog live in `docs/architecture-state.md`, not here.
+> The backlog lives in `docs/cleanup.md`, the target structure in `docs/architecture/multi-game.md`, not here.
 
 ---
 
@@ -100,20 +100,21 @@ in-place ROM mutation.
 - Host↔webview messages are a typed union per panel; no stringly-typed `command` switch
   without a type.
 
-### 3.8 Legal: data provenance and no game assets **[now — known violations in `docs/architecture-state.md` §16, §28]**
+### 3.8 Legal: data provenance and no game assets **[now — known violations in `docs/cleanup.md` steps 1–2, §4]**
 - **No game assets in the repo — ever, including git history:** no ROM or ROM byte dumps, no
   graphics/icons/palettes/tiles extracted from the ROM (PNG, GIF, base64, pixel arrays), no
   music/SPC/BRR/WAV, no game text or script dumps, no map blobs, no screenshots. The extension
-  decodes the user's own ROM at runtime; tests read it from `EVERSCRIPT_ROM` and skip without it.
+  decodes the user's own ROM at runtime; tests read it through `soe://` and skip without it.
   Goldens hold observed facts (offsets, lengths, counts, hashes), never ROM bytes.
 - ROM facts (addresses, tables, layouts, formats) must come from the ROM itself, traces, or
   our own disassembly, written in our own words, and be checkable by a test against the ROM.
 - Do not copy code, data tables, structure definitions or names from other projects
   (SoETilesViewer, SoEScriptDumper, …) and do not read their source while implementing the
-  same thing. Legacy exceptions are being replaced (`docs/plans/script-decoder-from-game-code.md`);
-  upstream-derived names are a postponed decision — don't add more.
-- No runtime or test path may point into another repository's checkout; ROM location
-  comes from settings or `EVERSCRIPT_ROM`.
+  same thing. Legacy exceptions are being replaced (`docs/plans/script-decoder-from-game-code.md`).
+  Names already in the repo stay for now and are rewritten in our own style (`docs/cleanup.md`
+  D4); don't add more.
+- No runtime or test path may point into another repository's checkout; the ROM comes only from
+  the game's scheme (`soe://`, `som://`) through the resolver (`docs/architecture/multi-game.md` §5).
 - Everything learned about the game is recorded as a knowledge entry (`game-knowledge` skill).
 
 ### 3.9 File size **[now]**
@@ -139,14 +140,14 @@ A directory must be understandable from its own files; do not write "see extensi
 details" — move the logic or document the invariant locally. A new domain gets both files
 in the commit that creates it.
 
-### 3.11 Performance **[now — known violations in `docs/architecture-state.md` §9]**
+### 3.11 Performance **[now — roadmap in `docs/cleanup.md` §5]**
 - The extension activates only on `.evs`, `soe://`, its commands, debug and MCP — never
   `onStartupFinished`. Heavy modules are `require`d lazily on first use.
 - Emulator per-frame work runs only when its output is visible. No per-frame round trip to
   the extension host; batch to ≥ 100 ms. Send typed arrays over `postMessage`, never
   `Array.from` of memory.
 
-### 3.12 What ships **[now — known violations in `docs/architecture-state.md` §10]**
+### 3.12 What ships **[now — known violations in `docs/cleanup.md` 1.4]**
 `.vscodeignore` excludes everything that is not runtime: docs, AI files, tools, tests,
 caches (`.emscripten_cache`), TS sources whose `dist/` ships, and every ROM/save-state
 extension (`*.sfc`, `*.smc`, `*.srm`, `*.spc`, `*.state`). Check with `vsce ls` after
@@ -154,7 +155,7 @@ touching it.
 
 ---
 
-## 4. Tests **[target — see `docs/architecture-state.md` §17]**
+## 4. Tests **[target — see `docs/cleanup.md` 6.6]**
 
 | Script | Contents | When |
 |---|---|---|
@@ -181,7 +182,8 @@ A new test file must be added to a tier; a test needing a ROM uses the shared sk
 
 | Need | Read |
 |---|---|
-| Current measurements, debt and backlog | `docs/architecture-state.md` |
+| Cleanup decisions and backlog | `docs/cleanup.md` |
+| Target structure for any game | `docs/architecture/multi-game.md` |
 | Which domain does what | `src/README.md`, then `src/<domain>/README.md` |
 | Rules for one domain | `src/<domain>/AGENTS.md` (auto-loaded by agents in that folder) |
 | Machine-enforced dependency rules | `.depcruise.js` |

@@ -4,7 +4,7 @@
 //
 // Nothing here is persisted: a session lives as long as the page, so switching to another map and
 // back keeps the edits and closing the page drops them. Whether anything is ever written back is
-// the adapter's business (docs/architecture/one-map-editor.md).
+// the adapter's business (docs/architecture/multi-game.md).
 
 /** A store of sessions by key (a map id). `make(key)` builds a new session: `{ model, history }`. */
 function editSessionStore(make) {

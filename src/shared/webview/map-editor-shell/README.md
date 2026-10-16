@@ -1,6 +1,6 @@
 # src/shared/webview/map-editor-shell — the editor page both games are built from
 
-Rules for agents: [AGENTS.md](AGENTS.md). Plan: [docs/architecture/one-map-editor.md](../../../../docs/architecture/one-map-editor.md).
+Rules for agents: [AGENTS.md](AGENTS.md). Plan: [docs/architecture/multi-game.md](../../../../docs/architecture/multi-game.md).
 
 The page the Evermore Rooms tab and the Secret of Mana Maps panel share: the frame (rail | splitter |
 detail), the rail, the name line, the canvas column (card, floating tool pill, zoom chip, filter bar, status

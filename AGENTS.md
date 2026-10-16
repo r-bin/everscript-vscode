@@ -10,8 +10,10 @@ session.
 External resources:
 - `everscript` repo (this repo)
 - `SoETilesViewer` / `SoEScriptDumper` (GPLv3, third-party): **do not use** — no code, tables,
-  layouts or names from them, and do not read their source while implementing something
-  they also implement. Derive everything from the game itself.
+  layouts or structure from them, and do not read their source while implementing something
+  they also implement. Derive everything from the game itself. The one exception is the names
+  already in the repo (room, enemy, item, flag names): they stay for now and get rewritten in our
+  own style; add no new ones (`docs/cleanup.md` D3, D4).
 
 ---
 
@@ -67,7 +69,8 @@ of:
 | `AI_ARCHITECTURE_GUIDE.md` | Architectural laws, file size limits, ownership rules |
 | `STATE_FLOW.md` | Authoritative state ownership table |
 | `docs/architecture/domain-overview.md` | Which `src/` domains to load for a given task |
-| `docs/architecture/one-map-editor.md` | Decided plan: one map editor (core + per-game adapter) for Evermore and Secret of Mana, what is saved, order of work — read before touching `src/rooms/webview/map-editor*` or `src/mana-maps` |
+| `docs/architecture/multi-game.md` | Decided target: any game (`platform/` + `core/` + `games/<game>/`), game descriptor, variants and base ROM, ROM library and panel, `soe://` as the only source; §8 the one map editor (core + per-game adapter) — read before touching `src/rooms/webview/map-editor*`, `src/mana*` or ROM loading |
+| `docs/cleanup.md` | The repo cleanup: decisions D1–D13 and the ordered work items — read before deleting, moving, deduplicating or porting to TS |
 | `docs/evermore-releases.md` | The Evermore ROMs that exist (US, Europe, Germany, France, Spain Rev 1/2, prototype chip): how to identify them, 50 Hz speed, completeness, why US addresses don't apply to PAL builds |
 | `docs/exhirom/port.md` | Evermore as ExHiROM: why, bus map, what was built (§6) and how it was proven; the game's read past its 3 MB (`$80:D113`) |
 | `tools/exhirom/` | `npm run exhirom` / `scripts/build-exhirom.sh`: `convert.js` (clean ROM → 8 MB ExHiROM in `out/soe-exhirom.sfc`), `prove.js` (static + bus + snes9x/Mesen2 replay of every recorded movie + CDL → `out/exhirom/REPORT.md`) |
@@ -140,7 +143,7 @@ Before working in any domain, read:
   existing exceptions not to extend), invariants and tests. Agents that support nested
   `AGENTS.md` load it automatically when touching files in that folder; the domain's
   `README.md` holds the descriptive docs.
-- `docs/architecture-state.md` — current measurements, known violations and the backlog
+- `docs/cleanup.md` — the cleanup decisions, known violations and the ordered backlog
 
 `STATE_FLOW.md` and `docs/architecture/*` predate the `src/` refactor; trust `src/` and the
 domain `AGENTS.md`/`README.md` files over them.

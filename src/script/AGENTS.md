@@ -13,8 +13,8 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
 
 ## Invariants
 - Do not port or copy code, tables or struct layouts from SoETilesViewer/SoEScriptDumper;
-  derive from the ROM with a test (guide §3.8). The current decoder and `names.json` are
-  known violations to replace, not extend (`docs/architecture-state.md` §16 #1, #2).
+  derive from the ROM with a test (guide §3.8). The current decoder is a known violation to
+  replace, not extend; `names.json` stays for now (`docs/cleanup.md` step 2, D4).
 - `decodeScript` never guesses a length: an opcode with no case stops the walk and says
   so in `stopReason` / `stoppedAt`. `bad-operand` stops it too.
 - The operand stack belongs to the decode run — never reset it between operands.

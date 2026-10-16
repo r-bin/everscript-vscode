@@ -1,6 +1,6 @@
 # src/shared/webview/map-editor-core — the game-neutral editor core
 
-Rules for agents: [AGENTS.md](AGENTS.md). Plan: [docs/architecture/one-map-editor.md](../../../../docs/architecture/one-map-editor.md).
+Rules for agents: [AGENTS.md](AGENTS.md). Plan: [docs/architecture/multi-game.md](../../../../docs/architecture/multi-game.md).
 The page around it (frame, rail, canvas card, pill, dock, layout, zoom/pan) is the sibling
 [map-editor-shell](../map-editor-shell/README.md).
 

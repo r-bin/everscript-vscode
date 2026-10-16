@@ -24,7 +24,7 @@ step-event metatile). **Cuttable** on outlines the cells a weapon cuts; off draw
 notice, and the edits last until the panel is closed (they survive opening another map).
 **Map changes** are the event-flag pieces, drawn like Evermore objects (dashed area box, where each state draws,
 the open state's frame) with state chips; a chip shows the map with that state (read-only). The rail has one row per room; a **variant bar** on the
-card's right edge opens every map that draws the same picture (in id order), wherever the catalog lists it. Details and the reasons: [docs/architecture/one-map-editor.md](../../docs/architecture/one-map-editor.md).
+card's right edge opens every map that draws the same picture (in id order), wherever the catalog lists it. Details and the reasons: [docs/architecture/multi-game.md](../../docs/architecture/multi-game.md).
 
 | File | Role |
 |---|---|

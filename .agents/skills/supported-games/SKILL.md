@@ -61,7 +61,7 @@ game supports it, not through a second tool:
   `.../map-editor-core/`, `.../map-editor-shell/`) — the Mana page looks and behaves like the Evermore editor
   because it is built from the same files. The two editors
   never mix data: the Rooms tab shows Evermore plus *converted* Mana rooms, the panel native
-  Mana maps. Plan: `docs/architecture/one-map-editor.md`.
+  Mana maps. Plan: `docs/architecture/multi-game.md` (§8; the whole doc: one UX for every game).
 - Mana collision is per **metatile**, not per cell. The Mana editor draws collision/specials as wishes and solves
   them into metatiles (copies in free slots, "?" where none fit) — never per-cell bytes (`src/mana-maps/AGENTS.md`).
 - **som://** for anything an agent or the user wants to read as files.
