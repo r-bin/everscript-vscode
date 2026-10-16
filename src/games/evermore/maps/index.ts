@@ -16,7 +16,32 @@ export type {
     TriggerRecord,
 } from './room';
 
-export { MAX_ROOMS, MAP_LIST_ADDR, snesToRom, read16, read24, roomBlobOffset, hex } from './rom';
+export { MAX_ROOMS, MAP_LIST_ADDR, mapTableOffset, snesToRom, read16, read24, roomBlobOffset, hex } from './rom';
+export {
+    identifyEvermoreVariant,
+    toVariantId,
+    toJsonVariantKey,
+    getTableInfo,
+    getTableFileOffset,
+    getTableCount,
+    getMapTableOffset,
+    getMapPalettesOffset,
+    getMapTileGraphicsOffset,
+    getStringKeysOffset,
+    getStringKeysCount,
+    getRoomEnterScriptsOffset,
+    getScriptPointersOffset,
+    getScriptHeaderOffset,
+    getScriptOpcodeTableOffset,
+    getAnimateIdsOffset,
+    getAnimationRecordsOffset,
+    getAnimationVmDispatchOffset,
+    getCharacterRecordsOffset,
+    getEnemyIndexOffset,
+    getSongPackagesOffset,
+    getSpriteBlocks16Offset,
+    getSpriteBlocks8Offset,
+} from '../variant-resolver';
 export { parseBlobLayout } from './blob-layout';
 export type { BlobLayout, PayloadBlock } from './blob-layout';
 

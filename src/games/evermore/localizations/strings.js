@@ -5,18 +5,27 @@
 const STRING_KEYS_ADDR = 0x11D000;
 const STRING_KEY_COUNT = 3002;
 
+let vr;
+try {
+    vr = require('../../../../dist/games/evermore/variant-resolver');
+} catch {}
+
 /**
- * Decode a plain or dictionary-compressed string from the ROM by index (0..3001).
+ * Decode a plain or dictionary-compressed string from the ROM by index.
  *
  * @param {Uint8Array|Buffer} rom
  * @param {number} stringIndex
  * @returns {string|null}
  */
 function decodeRomString(rom, stringIndex) {
-    if (!rom || typeof stringIndex !== 'number' || stringIndex < 0 || stringIndex >= STRING_KEY_COUNT) {
+    if (!rom || typeof stringIndex !== 'number' || stringIndex < 0) {
         return null;
     }
-    const o = STRING_KEYS_ADDR + stringIndex * 3;
+    const maxCount = vr ? vr.getStringKeysCount(rom) || STRING_KEY_COUNT : STRING_KEY_COUNT;
+    if (stringIndex >= maxCount) return null;
+
+    const baseOffset = vr ? vr.getStringKeysOffset(rom) || STRING_KEYS_ADDR : STRING_KEYS_ADDR;
+    const o = baseOffset + stringIndex * 3;
     if (o + 3 > rom.length) return null;
 
     const v = rom[o] | (rom[o + 1] << 8) | (rom[o + 2] << 16);

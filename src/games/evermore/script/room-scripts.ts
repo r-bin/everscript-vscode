@@ -18,6 +18,7 @@
 // index, which is why the ids are multiples of three.
 
 import { read16, read24, scriptValueToSnes, snesToRom, u8, SCRIPTS_START_ADDR_US } from './addressing';
+import { getMapTableOffset, getScriptHeaderOffset, getRoomEnterScriptsOffset } from '../variant-resolver';
 import { decodeScript, unresolvedNote, DecodedInstruction, StopReason } from './decoder';
 import { extractLoot, isLoot, LootFacts } from './loot';
 import { lootToEverscript } from './everscript';
@@ -177,9 +178,10 @@ function walk(rom: Uint8Array, addr: number, depth: number, out: Walk): ReturnTy
     return res;
 }
 
-function script(rom: Uint8Array, pointerSnes: number): RoomScript {
+function script(rom: Uint8Array, pointerSnes: number, scriptBase?: number): RoomScript {
     const rawScriptValue = read24(rom, pointerSnes);
-    const scriptAddressSnes = scriptValueToSnes(rawScriptValue);
+    const base = scriptBase ?? (0x800000 | getScriptHeaderOffset(rom));
+    const scriptAddressSnes = scriptValueToSnes(rawScriptValue, base);
     const out: Walk = { rows: [], scopes: [] };
     const res = walk(rom, scriptAddressSnes, 0, out);
     const first = out.rows.find((r) => r.opcode !== 0x00);
@@ -220,16 +222,20 @@ function triggerRows(rom: Uint8Array, tableRom: number, length: number): Trigger
 
 /** Everything the Rooms tab needs about one room's scripts. */
 export function buildRoomScriptModel(rom: Uint8Array, mapId: number): RoomScriptModel {
-    const dataPointerSnes = read24(rom, MAP_LIST_ADDR_US + mapId * 4);
+    const mapTableFile = getMapTableOffset(rom);
+    const dataPointerSnes = read24(rom, mapTableFile + mapId * 4);
     const dataRom = blobRom(dataPointerSnes);
     const stepLength = rom[dataRom + TRIGGER_TABLE_OFFSET] | (rom[dataRom + TRIGGER_TABLE_OFFSET + 1] << 8);
     const stepTableRom = dataRom + TRIGGER_TABLE_OFFSET + 2;
     const bLengthRom = stepTableRom + stepLength;
     const bLength = rom[bLengthRom] | (rom[bLengthRom + 1] << 8);
-    const mapscriptTableSnes = SCRIPTS_START_ADDR_US + read16(rom, SCRIPTS_START_ADDR_US);
-    const enterPointerSnes = SCRIPTS_START_ADDR_US + ENTER_SCRIPT_TABLE_OFFSET + 5 * mapId;
+    const scriptHeaderFile = getScriptHeaderOffset(rom);
+    const scriptsStartSnes = 0x800000 | scriptHeaderFile;
+    const mapscriptTableSnes = scriptsStartSnes + read16(rom, scriptHeaderFile);
+    const enterTableFile = getRoomEnterScriptsOffset(rom);
+    const enterPointerSnes = (0x800000 | enterTableFile) + 5 * mapId;
     const decode = (t: TriggerRow): RoomTrigger =>
-        ({ ...t, ...script(rom, mapscriptTableSnes + t.scriptId) });
+        ({ ...t, ...script(rom, mapscriptTableSnes + t.scriptId, scriptsStartSnes) });
 
     return {
         mapId,
@@ -245,7 +251,7 @@ export function buildRoomScriptModel(rom: Uint8Array, mapId: number): RoomScript
             enterPointerSnes,
             enterRawValue: read24(rom, enterPointerSnes),
         },
-        enter: script(rom, enterPointerSnes),
+        enter: script(rom, enterPointerSnes, scriptsStartSnes),
         stepOn: triggerRows(rom, stepTableRom, stepLength).map(decode),
         bTrigger: triggerRows(rom, bLengthRom + 2, bLength).map(decode),
     };

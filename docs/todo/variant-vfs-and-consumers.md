@@ -36,32 +36,32 @@ soe://strings/*                Dynamic map_tile_graphics    Dynamic script_point
 ## 2. Consumer Subsystems & Required Adaptations
 
 ### 2.1 Map Editor & Rooms Subsystem (`src/games/evermore/maps/`, `src/rooms/`)
-- [ ] **`src/games/evermore/maps/rom.ts`**:
-  - Replace static `MAP_LIST_ADDR = 0x1ffde7` with `mapTableOffset(rom)` (returning `0x1FFDE7` for US, `0x20FDE5` for PAL).
-  - Update `roomBlobOffset(rom, id)` to use `mapTableOffset(rom)`.
-- [ ] **`src/games/evermore/maps/room.ts`**:
-  - Update `decodeRoom(rom, roomId)` to read room pointers from the variant-detected table.
-- [ ] **Background Palettes & Tile Graphics**:
-  - Update background palette loader: US `0x1CC322` vs PAL `0x1DC323`.
-  - Update metatile graphics loader: US & Family B `0x2E0000` vs Family A `0x2F0000`.
-- [ ] **Rooms Tab & Webview Editor (`src/rooms/`)**:
-  - Verify room list, metatile sheets, and palette rendering against PAL variants.
+- [x] **`src/games/evermore/maps/rom.ts`**:
+  - Implemented `mapTableOffset(rom)` resolving `0x1FFDE7` for US and `0x20FDE5` for PAL.
+  - Updated `roomBlobOffset(rom, id)` to use `mapTableOffset(rom)`.
+- [x] **`src/games/evermore/maps/room.ts`**:
+  - Updated `decodeRoom(rom, roomId)` to read room pointers dynamically via `mapTableOffset(rom)`.
+- [x] **Background Palettes & Tile Graphics**:
+  - Updated `extractTileFamilyPalette(rom, familyId)`: dynamic via `getMapPalettesOffset(rom)` (US `0x1CC322` vs PAL `0x1DC323`).
+  - Updated `decompressTile16x16(rom, tileId)`: dynamic via `getMapTileGraphicsOffset(rom)` (US/Family B `0x2E0000` vs Family A `0x2F0000`).
+- [x] **Rooms Tab & Webview Editor (`src/rooms/`)**:
+  - Verified room decoding, metatile decompression, and palette extraction across all PAL retail variants.
 
 ### 2.2 Text & Dialogue Subsystem (`src/games/evermore/language/`, `src/resources/`)
-- [ ] **String Key Lookup**:
-  - Dynamically read `string_keys` table base from variant: `$91:D000` (US) or `$92:8000` (PAL).
-  - Support PAL plain string key decoding (e.g. German "Reis", "Gewürz", French "riz", Spanish "Tapiz").
+- [x] **String Key Lookup**:
+  - Dynamically read `string_keys` table base from variant: `$91:D000` (US) or `$92:8000` (PAL) via `getStringKeysOffset(rom)`.
+  - Supported PAL plain string key decoding (e.g. German "Reis", "Gewürz", French "riz", Spanish "Tapiz").
 - [ ] **Hover & Autocomplete Providers**:
   - Hover on string IDs resolves localized text matching the active ROM variant.
 - [ ] **PAL String Decompressor**:
   - Implement or port the PAL decompression routine for compressed dialogue.
 
 ### 2.3 Script Subsystem (`src/games/evermore/script/`, `src/scripts-tab/`)
-- [ ] **Room Enter Scripts**:
-  - Dynamic enter script table address: US `$92:801B` vs PAL `$93:801B`.
-- [ ] **Script Pointer Table**:
-  - Dynamic base header: US `$92:8000` vs PAL `$93:8000`.
-  - Global script pointer table: US `$92:8294` vs PAL `$93:8294`.
+- [x] **Room Enter Scripts**:
+  - Dynamic enter script table address: US `$92:801B` vs PAL `$93:801B` via `getRoomEnterScriptsOffset(rom)`.
+- [x] **Script Pointer Table**:
+  - Dynamic base header: US `$92:8000` vs PAL `$93:8000` via `getScriptHeaderOffset(rom)`.
+  - Global script pointer table: US `$92:8294` vs PAL `$93:8294` via `getScriptPointersOffset(rom)`.
 - [ ] **Script Opcode Dispatcher**:
   - Opcode jump table: US `$8C:E8BD` vs PAL `$8C:ECBE`.
   - Bytecode disassembler respects opcode offsets in PAL.

@@ -2,8 +2,10 @@
 // Pure. Ported from everscript/tools/render_map.py ($8CC88C / $8CC9C0).
 // See docs/map-format/map_tile_graphics_decompression.md.
 
-/** ROM file offset of the master 16x16 graphic pointer table (SNES $EE0000). */
-const GRAPHIC_TABLE = 0x2e0000;
+import { getMapTileGraphicsOffset } from '../variant-resolver';
+
+/** US ROM file offset of the master 16x16 graphic pointer table (SNES $EE0000). */
+export const GRAPHIC_TABLE = 0x2e0000;
 
 /** A decompressed metatile: 4 sub-tiles of 8x8 in 4bpp = 128 bytes. */
 const TILE_BYTES = 128;
@@ -17,7 +19,8 @@ const TILE_BYTES = 128;
  *            ($8CC9C0)
  */
 export function decompressTile16x16(rom: Uint8Array, tileId: number): Uint8Array {
-    const ptrAddr = GRAPHIC_TABLE + tileId * 3;
+    const tableOffset = getMapTileGraphicsOffset(rom);
+    const ptrAddr = tableOffset + tileId * 3;
     const dataAddr = (rom[ptrAddr] | (rom[ptrAddr + 1] << 8) | (rom[ptrAddr + 2] << 16)) & 0x3fffff;
     const tileInfo = rom[dataAddr];
     const out = new Uint8Array(TILE_BYTES);

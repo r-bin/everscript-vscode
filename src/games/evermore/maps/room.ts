@@ -8,7 +8,7 @@
 // Upstream carries both forms and warns that mixing them silently produces
 // wrong results; the port drops the string forms and formats at render time.
 
-import { read16, readByte, roomBlobOffset, snesToRom, read24, MAP_LIST_ADDR, MAP_TABLE_STRIDE, MAX_ROOMS } from './rom';
+import { read16, readByte, roomBlobOffset, snesToRom, read24, mapTableOffset, MAP_TABLE_STRIDE, MAX_ROOMS } from './rom';
 import { decompressLzss, copyRaw } from './lzss';
 import { decompressMarkovGrid } from './markov';
 import { parseBlobLayout, BlobLayout, PayloadBlock } from './blob-layout';
@@ -217,7 +217,8 @@ export function decodeRoom(rom: Uint8Array, roomId: number): RoomData {
     if (!Number.isInteger(roomId) || roomId < 0 || roomId >= MAX_ROOMS) {
         throw new Error(`Room id ${roomId} out of range (expected 0..${MAX_ROOMS - 1})`);
     }
-    const tableEntry = MAP_LIST_ADDR + roomId * MAP_TABLE_STRIDE;
+    const tableOffset = mapTableOffset(rom);
+    const tableEntry = tableOffset + roomId * MAP_TABLE_STRIDE;
     if (tableEntry + 3 > rom.length) {
         throw new Error(
             `ROM too small for the map pointer table (need 0x${(tableEntry + 3).toString(16)}, ` +
@@ -225,7 +226,7 @@ export function decodeRoom(rom: Uint8Array, roomId: number): RoomData {
         );
     }
 
-    const snesPtr = read24(rom, MAP_LIST_ADDR + roomId * MAP_TABLE_STRIDE);
+    const snesPtr = read24(rom, tableEntry);
     const blob = roomBlobOffset(rom, roomId);
     if (blob + 0x0f > rom.length) {
         throw new Error(

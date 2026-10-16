@@ -13,9 +13,15 @@ export const MAX_ROOMS = 127;
 export const MAP_TABLE_STRIDE = 4;
 
 import { hiromFileOffset, fileU16, fileU24 } from '../../../platform/snes/hirom';
+import { getMapTableOffset } from '../variant-resolver';
 
 /** Translate a SNES 24-bit FastROM/HiROM address to a ROM file offset. */
 export const snesToRom = hiromFileOffset;
+
+/** Dynamic ROM file offset for the master map pointer table (US: 0x1FFDE7, PAL: 0x20FDE5). */
+export function mapTableOffset(rom?: Uint8Array | string): number {
+    return rom ? getMapTableOffset(rom) : MAP_LIST_ADDR;
+}
 
 /** Read a 16-bit little-endian value at a file offset. */
 export const read16 = fileU16;
@@ -30,7 +36,8 @@ export function readByte(rom: Uint8Array, offset: number): number {
 
 /** ROM file offset of a room's blob, resolved through the map pointer table. */
 export function roomBlobOffset(rom: Uint8Array, roomId: number): number {
-    return snesToRom(read24(rom, MAP_LIST_ADDR + roomId * MAP_TABLE_STRIDE));
+    const tableAddr = mapTableOffset(rom);
+    return snesToRom(read24(rom, tableAddr + roomId * MAP_TABLE_STRIDE));
 }
 
 /** Format a number as a fixed-width `0x`-prefixed uppercase hex string. */

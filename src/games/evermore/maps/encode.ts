@@ -16,7 +16,7 @@ import { parseObjectStamp } from './object-stamps';
 import { lzssCompress, encodeMarkovGrid } from './encode-streams';
 
 export { lzssCompress, encodeMarkovGrid };
-import { MAP_LIST_ADDR, MAX_ROOMS, MAP_TABLE_STRIDE, read16, read24, snesToRom } from './rom';
+import { MAP_LIST_ADDR, MAX_ROOMS, MAP_TABLE_STRIDE, read16, read24, snesToRom, mapTableOffset, roomBlobOffset } from './rom';
 
 export const SUB_RAW = 0x00;
 export const SUB_LZSS = 0x03;
@@ -126,7 +126,7 @@ export function modelFromRom(rom: Uint8Array, roomId: number): RoomModel {
     // decode of the donor room failed.
     const copy = (from: number, to: number): Uint8Array => Uint8Array.prototype.slice.call(rom, from, to);
 
-    const blob = snesToRom(read24(rom, MAP_LIST_ADDR + roomId * MAP_TABLE_STRIDE));
+    const blob = roomBlobOffset(rom, roomId);
     const L = parseBlobLayout(rom, blob);
 
     const records = (start: number, length: number): TriggerRecord[] => {
@@ -268,7 +268,7 @@ export function writeRoomAt(rom: Uint8Array, roomId: number, blob: Uint8Array, a
     }
     rom.set(blob, atOffset);
     const snes = 0x800000 | atOffset;
-    const entry = MAP_LIST_ADDR + roomId * MAP_TABLE_STRIDE;
+    const entry = mapTableOffset(rom) + roomId * MAP_TABLE_STRIDE;
     rom[entry] = snes & 0xff;
     rom[entry + 1] = (snes >> 8) & 0xff;
     rom[entry + 2] = (snes >> 16) & 0xff;

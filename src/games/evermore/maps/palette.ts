@@ -2,14 +2,16 @@
 // Pure. Ported from everscript/tools/render_map.py ($90D020 / $9CC322).
 // See docs/map-format/map_palette_extraction.md.
 
+import { getMapPalettesOffset } from '../variant-resolver';
+
 /** An 8-bit RGBA colour. Index 0 of every sub-palette is transparent. */
 export type Rgba = readonly [number, number, number, number];
 
-/** ROM file offset of the tile-family palette table (SNES $9CC322). */
-const PALETTE_TABLE = 0x1cc322;
+/** US ROM file offset of the tile-family palette table (SNES $9CC322). */
+export const PALETTE_TABLE = 0x1cc322;
 
 /** Bytes per tile-family palette: 16 colours x 2 bytes. */
-const PALETTE_STRIDE = 32;
+export const PALETTE_STRIDE = 32;
 
 /** Number of background sub-palettes in CGRAM. */
 const CGRAM_SUBPALETTES = 8;
@@ -27,7 +29,8 @@ function emptyPalette(): Rgba[] {
  * 8 bits per channel with `(c << 3) | (c >> 2)`.
  */
 export function extractTileFamilyPalette(rom: Uint8Array, familyId: number): Rgba[] {
-    const base = PALETTE_TABLE + familyId * PALETTE_STRIDE;
+    const tableOffset = getMapPalettesOffset(rom);
+    const base = tableOffset + familyId * PALETTE_STRIDE;
     const colors: Rgba[] = [];
 
     for (let i = 0; i < 16; i++) {

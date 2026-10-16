@@ -7,6 +7,24 @@ const { hexId, slugify } = require('../../../shared/resource-uri');
 const { snesToRom } = require('../maps');
 const { dir, file, json, text } = require('./nodes');
 
+let vr;
+try {
+    vr = require('../../../../dist/games/evermore/variant-resolver');
+} catch {}
+
+const TABLE_TO_VARIANT_KEY = {
+    'Room pointer table': 'map_table',
+    'String key table': 'string_keys',
+    'Room enter-script table': 'room_enter_scripts',
+    'Map graphic pointer table': 'map_tile_graphics',
+    'Global animation ids': 'animate_ids',
+    'Animation records': 'animation_records',
+    'Script opcode handler table': 'script_opcode_table',
+    'Character table': 'character_records',
+    'Animation VM dispatch': 'animation_vm_dispatch',
+    'Song pointer table': 'song_packages',
+};
+
 function toFileOffset(bus) {
     const bank = bus >> 16;
     if (bank === 0x7E || bank === 0x7F) return null;
@@ -91,8 +109,38 @@ function resolveTables(segments, rom) {
     const table = parseTable(name);
     if (!table) return null;
 
-    const fileOff = getTableFileOffset(table.address);
-    const size = TABLE_SIZES[table.address] || 256;
+    let fileOff = getTableFileOffset(table.address);
+    let size = TABLE_SIZES[table.address] || 256;
+    let snesAddr = table.address;
+
+    if (vr && rom) {
+        const vKey = TABLE_TO_VARIANT_KEY[table.name];
+        if (vKey) {
+            const info = vr.getTableInfo(vKey, rom);
+            if (info) {
+                fileOff = parseInt(info.file, 16);
+                if (info.snes) {
+                    const cleaned = info.snes.replace(/[$:]/g, '');
+                    snesAddr = parseInt(cleaned, 16);
+                }
+                if (info.count) {
+                    const entrySizes = {
+                        map_table: 4,
+                        string_keys: 3,
+                        room_enter_scripts: 5,
+                        map_tile_graphics: 3,
+                        animate_ids: 2,
+                        animation_records: 4,
+                        script_opcode_table: 2,
+                        character_records: 74,
+                        animation_vm_dispatch: 2,
+                        song_packages: 3,
+                    };
+                    size = info.count * (entrySizes[vKey] || 1);
+                }
+            }
+        }
+    }
 
     if (leaf === undefined) {
         return dir([
@@ -100,7 +148,7 @@ function resolveTables(segments, rom) {
             ['info.md', 'file'],
             ['data.bin', 'file'],
             ['data.json', 'file'],
-        ], () => tableMarkdown(table, fileOff, size));
+        ], () => tableMarkdown(table, fileOff, size, snesAddr));
     }
 
     if (leaf === 'info.json') {
@@ -108,8 +156,8 @@ function resolveTables(segments, rom) {
             name: table.name,
             slug: slugify(table.name),
             category: table.category,
-            address: table.address,
-            addressHex: '$' + hexId(table.address, 6),
+            address: snesAddr,
+            addressHex: '$' + hexId(snesAddr, 6),
             fileOffsetHex: fileOff !== null ? '$' + hexId(fileOff, 6) : null,
             size,
             notes: table.notes,
@@ -117,7 +165,7 @@ function resolveTables(segments, rom) {
     }
 
     if (leaf === 'info.md') {
-        return text(() => tableMarkdown(table, fileOff, size));
+        return text(() => tableMarkdown(table, fileOff, size, snesAddr));
     }
 
     if (leaf === 'data.bin') {
@@ -157,12 +205,12 @@ function decodeTableData(rom, off, len) {
     };
 }
 
-function tableMarkdown(table, fileOff, size) {
+function tableMarkdown(table, fileOff, size, snesAddr = table.address) {
     return `# ${table.category} ${table.name}
 
 | Property | Value |
 |---|---|
-| SNES Bus Address | \`$${hexId(table.address, 6)}\` |
+| SNES Bus Address | \`$${hexId(snesAddr, 6)}\` |
 | ROM File Offset | \`${fileOff !== null ? '$' + hexId(fileOff, 6) : '—'}\` |
 | Length | ${size} bytes |
 | Notes | ${table.notes || '—'} |
