@@ -256,6 +256,36 @@ function recordInto(root, rom, hits) {
             await full.p.keyboard.press('c');
             assert.deepStrictEqual((await sent('tasLoad')).map(m => m.id), ['file:b.evsmv'], 'B, B plays the next one');
             assert.strictEqual(await full.p.evaluate(() => isMenuOpen), false, 'playing closes the menu');
+            // CDL: the usual card; Recording and Export are rows, then one selectable row per bank that does nothing.
+            await full.p.evaluate(() => { cdlBuildStrips(0x300000); menuActiveTab = 8; tabSelectedRows[8] = 0; openEmulatorMenu(); window.__sent.length = 0; });
+            const cdlCard = await full.p.evaluate(() => document.getElementById('menu-card').getBoundingClientRect().width);
+            assert.ok(cdlCard <= 520, 'CDL keeps the card width: ' + cdlCard);
+            assert.deepStrictEqual(await full.p.evaluate(() => ['cdl-legend', 'cdl-side', 'cdl-toggle'].map(id => getComputedStyle(document.getElementById(id)).display)), ['none', 'none', 'none'], 'no legend, lookup or buttons in the menu');
+            await full.p.keyboard.press('ArrowDown');
+            await full.p.keyboard.press('ArrowDown');
+            assert.strictEqual(await full.p.evaluate(() => document.getElementById('menu-val-cdl-export').textContent), 'Asar project');
+            await full.p.keyboard.press('ArrowRight');
+            await full.p.keyboard.press('c');
+            assert.deepStrictEqual((await sent('cdlExport')).map(m => m.kind), ['wram'], 'Export: Right picks the WRAM map, B exports it');
+            for (let i = 0; i < 4; i++) await full.p.keyboard.press('ArrowDown');
+            assert.deepStrictEqual(await full.p.evaluate(() => [menuSelectedRow, document.querySelector('#emu-slot-cdl .cdl-bank.selected canvas').getAttribute('data-strip')]), [6, '1'], 'Down walks the banks (WRAM 7E, 7F, then ROM)');
+            const before = await full.p.evaluate(() => window.__sent.length);
+            await full.p.keyboard.press('c');
+            await full.p.keyboard.press('ArrowRight');
+            assert.strictEqual(await full.p.evaluate(() => window.__sent.length), before, 'a bank row does nothing');
+            await full.p.evaluate(() => closeEmulatorMenu());
+            // In a side bar: no title, status or WRAM; the ROM strips fill the height.
+            await full.p.evaluate(() => emuSetPanelPlace('cdl', 'left'));
+            const fit = await full.p.evaluate(() => {
+                const side = document.getElementById('emu-side-left').getBoundingClientRect();
+                const banks = Array.from(document.querySelectorAll('#emu-side-left .cdl-bank')).filter(r => getComputedStyle(r).display !== 'none');
+                return { title: getComputedStyle(document.getElementById('emu-side-left'), '::before').display, n: banks.length, bottom: banks[banks.length - 1].getBoundingClientRect().bottom, top: banks[0].getBoundingClientRect().top, side: [side.top, side.bottom] };
+            });
+            assert.strictEqual(fit.title, 'none');
+            assert.strictEqual(fit.n, 48, 'only the ROM banks');
+            assert.ok(fit.bottom <= fit.side[1] + 1 && fit.top - fit.side[0] < 8, 'the strips fit the side bar: ' + JSON.stringify(fit));
+            await full.p.evaluate(() => emuSetPanelPlace('cdl', 'hidden'));
+
             await full.p.evaluate(() => { menuActiveTab = 1; openEmulatorMenu(); menuSelectedRow = 10; activateMenuRow(); });
             assert.deepStrictEqual(await full.p.evaluate(() => [tasOverlayIsOn(), document.getElementById('menu-val-inputs').textContent]), [true, 'ON'], 'the input display is in OVERLAYS');
             await full.p.evaluate(() => closeEmulatorMenu());

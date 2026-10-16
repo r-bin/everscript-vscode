@@ -11,13 +11,16 @@
  * row on top: hidden, left side bar, right side bar or bottom bar.
  *   - Side bars are drawn over the picture (#emu-side-left / #emu-side-right), as narrow as
  *     their content and at most a third of the screen, in a compact read-only form
- *     (emulator-panels.css). One panel per side: placing a second one hides the first.
+ *     (emulator-panels.css; data-panel names the panel in it). One panel per side: placing
+ *     a second one hides the first.
  *     Both are hidden while the pause menu is open.
  *   - The bottom bar (#script-stack) has a tab for every panel placed there; with none
  *     placed there is no bottom bar.
  *   - The panel of the open menu tab is moved into that tab and back when the menu
  *     closes or turns to another tab. A panel is one element: it is moved, never copied,
  *     so its update code does not care where it is.
+ * CDL's tab keeps the usual card size too: its buttons are menu rows, its banks selectable
+ * rows (cdl-view.js); Up / Down on the other panel tabs scrolls the panel.
  * REPLAYS lives in the menu only (its tab, its status chip on the screen: tas-view.js); it is
  * not a panel: its rows are menu rows (replays-list.js) and its tab has the usual card size.
  *
@@ -104,6 +107,7 @@ function emuPanelsLayout() {
     const n = sides[side];
     host.classList.toggle('shown', !!n && !menuOpen && emuRomUp());
     host.setAttribute('data-title', n ? EMU_PANEL_TITLES[n] : '');
+    host.setAttribute('data-panel', n || '');
   }
 
   for (const n of EMU_PANELS) {

@@ -63,6 +63,11 @@ CDL, TRACE, STACK, ENTITIES, ALCHEMY and PALETTES are panels (`#ss-view-<name>`)
 - The bottom bar has a tab for each panel placed there. With none there is no bottom bar.
 - A panel is one element, moved (never copied) into the open menu tab and back, so its update
   code does not care where it is. Per-frame work asks `emuPanelVisible(name)`.
+- CDL is the exception to "in full": only the bottom bar shows its buttons, legend, lookup and
+  hover half. Its menu tab keeps the usual card size: "Recording" (on / off) and "Export"
+  (Asar project / WRAM map / bundle, whichever the profile has; B exports) are menu rows, then
+  the status line and one row per bank that Up / Down selects and that does nothing (`.menu-pick`).
+  In a side bar it has no title, no status and no WRAM: the ROM strips share the full height.
 - REPLAYS is a menu tab only, with the usual card size (not a panel). It lists the recordings
   with this ROM's SHA-256 (the host's `romMatch`), one menu row each; playing one closes the
   menu, then reboots. Whether a recording replays in sync is written into it (`tas/README.md`). The chip at the top of the screen

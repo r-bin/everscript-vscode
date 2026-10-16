@@ -15,9 +15,10 @@
 function getCdlStripsScript() {
   return `
     // -- strips -------------------------------------------------------------------
+    // Every bank row is a .menu-pick: in the pause menu Up / Down selects it, B does nothing.
     function cdlAddStrip(host, label, len, attr) {
       const row = document.createElement('div');
-      row.className = 'cdl-bank';
+      row.className = 'cdl-bank menu-pick' + (attr[0] === 'w' ? ' cdl-wram' : '');
       const lab = document.createElement('div');
       lab.className = 'cdl-bank-label';
       lab.innerHTML = label + '<small>-</small>';
@@ -43,6 +44,7 @@ function getCdlStripsScript() {
       for (let i = 0; i * CDL_CHUNK < size; i++) {
         cdlRomStrips.push(cdlAddStrip(host, cdlLabels[i] || cdlHex(i, 2), Math.min(CDL_CHUNK, size - i * CDL_CHUNK), String(i)));
       }
+      if (typeof isMenuOpen !== 'undefined' && isMenuOpen && menuActiveTab === 8) updateMenuRowSelection(false);
     }
 
     function cdlRomColor(c, e, b) {

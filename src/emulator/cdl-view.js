@@ -8,6 +8,10 @@
  * coverage strips (one per 64 KB, one pixel per byte), WRAM access strips
  * ($7E / $7F), Asar / WRAM export buttons and the xref lookup box (full extension),
  * the "export bundle" button (SNES CDL Recorder).
+ * Only the bottom bar shows all of it. The pause-menu tab keeps the usual card: the
+ * buttons become its "Recording" and "Export" rows (cdlMenuStep / cdlMenuActivate), each
+ * bank is a row that can be selected but does nothing, no legend, lookup or hover half.
+ * The side bar shows only the ROM strips, stretched over its height (emulator-panels.css).
  *
  * Recording state lives in the core (cdl.c). While recording and not paused,
  * one 1 s tick consumes the core's dirty chunks: it recounts their coverage
@@ -151,6 +155,54 @@ function getCdlClientScript() {
       setControlEnabled('cdl-flush', cdlOn);
       const badge = document.getElementById('ss-cdl-count');
       if (badge) badge.textContent = !cdlOn ? 'off' : cdlPaused ? 'paused' : (cdlCoverageText(cdlSummary) || 'rec');
+      cdlMenuSync();
+    }
+
+    // -- pause-menu rows (menu/menu-view.js: 1 Recording, 2 Export, then the banks) --
+    // The exports are the panel's buttons: only those this profile shows are offered.
+    const CDL_EXPORTS = [['cdl-export-asm', 'Asar project'], ['cdl-export-wram', 'WRAM map'], ['cdl-export-bundle', 'Bundle']];
+    let cdlExportPick = 0;
+
+    function cdlExportChoices() {
+      return CDL_EXPORTS.filter(([id]) => {
+        const b = document.getElementById(id);
+        return b && (typeof emuShown !== 'function' || emuShown(b));
+      });
+    }
+
+    function cdlMenuSync() {
+      const rec = document.getElementById('menu-val-cdl-rec');
+      if (rec) { rec.textContent = cdlWanted ? 'ON' : 'OFF'; rec.classList.toggle('active', cdlWanted); }
+      const ex = document.getElementById('menu-val-cdl-export');
+      const choices = cdlExportChoices();
+      cdlExportPick = Math.max(0, Math.min(cdlExportPick, choices.length - 1));
+      if (ex) ex.textContent = choices.length ? choices[cdlExportPick][1] : '-';
+    }
+
+    function cdlMenuStep(row, delta) {
+      if (row === 1) {
+        if ((delta > 0) !== cdlWanted) { if (cdlWanted) cdlStop(); else cdlStart(); }
+      } else if (row === 2) {
+        cdlExportPick += delta;
+      } else {
+        return;   // a bank: nothing to change
+      }
+      cdlMenuSync();
+      if (typeof playMenuSound === 'function') playMenuSound('click_toggle');
+    }
+
+    function cdlMenuActivate(row) {
+      if (row === 1) {
+        cdlMenuStep(1, cdlWanted ? -1 : 1);
+      } else if (row === 2) {
+        const pick = cdlExportChoices()[cdlExportPick];
+        if (pick) document.getElementById(pick[0]).click();
+      }
+    }
+
+    function cdlInMenu() {
+      const view = document.getElementById('ss-view-cdl');
+      return !!(view && view.closest('.emu-panel-slot'));
     }
 
     // The live core while recording, else the library snapshot.
@@ -372,7 +424,7 @@ function getCdlClientScript() {
         if (a) document.getElementById('cdl-hover').textContent = cdlDescribe(a);
       });
       banks.addEventListener('click', evt => {
-        if (!evt.target || evt.target.tagName !== 'CANVAS') return;
+        if (!evt.target || evt.target.tagName !== 'CANVAS' || cdlInMenu()) return;
         const a = cdlAddressAt(evt);
         if (a && document.body.classList.contains('profile-full')) cdlLookup(a.wram ? cdlWramName(a.off) : a.bank + ':' + cdlHex(a.inner, 4));
       });

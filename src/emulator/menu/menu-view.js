@@ -557,6 +557,26 @@ const MENU_PANELS = [
   [13, 'palettes', 'full evermore'],
 ];
 
+// CDL's own rows (cdl-view.js cdlMenuStep / cdlMenuActivate); below them one row per bank.
+const MENU_CDL_ROWS = `
+            <div class="menu-row" data-row="1" data-action="cdl-record" title="Record code/data coverage, calls and memory accesses">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Recording</div>
+              <div class="menu-row-value">
+                <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
+                <span id="menu-val-cdl-rec" class="menu-pill">OFF</span>
+                <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
+              </div>
+            </div>
+            <div class="menu-row" data-row="2" data-action="cdl-export" title="Left / Right: what to export, B: export it">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Export</div>
+              <div class="menu-row-value">
+                <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
+                <span id="menu-val-cdl-export" class="menu-pill">-</span>
+                <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
+                <span class="menu-action-pill">[B] Export</span>
+              </div>
+            </div>`;
+
 function getMenuHtml() {
   return `
     <div id="emulator-menu" class="hidden">
@@ -774,6 +794,7 @@ function getMenuHtml() {
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
+            ${name === 'cdl' ? MENU_CDL_ROWS : ''}
             <div id="emu-slot-${name}" class="emu-panel-slot"></div>
           </div>`).join('')}
 
@@ -1103,7 +1124,8 @@ function getMenuClientScript() {
       const menuEl = document.getElementById('emulator-menu');
       if (menuEl) {
         menuEl.classList.toggle('lens-tab-active', tabIndex === 0);
-        menuEl.classList.toggle('panel-tab-active', tabIndex >= 8);
+        // CDL (8) keeps the usual card; the other panels get the whole card.
+        menuEl.classList.toggle('panel-tab-active', tabIndex >= 9);
       }
       if (typeof emuPanelsLayout === 'function') emuPanelsLayout();
 
@@ -1131,6 +1153,8 @@ function getMenuClientScript() {
         renderKeybindRows();
       } else if (tabIndex === 7) {
         if (romLoaded && typeof tasRequestList === 'function') tasRequestList();
+      } else if (tabIndex === 8) {
+        if (typeof cdlMenuSync === 'function') cdlMenuSync();
       }
 
       const menuBody = document.getElementById('menu-body');
@@ -1181,7 +1205,7 @@ function getMenuClientScript() {
       const isSmooth = (smooth !== false);
       const activePanel = document.getElementById('menu-panel-' + menuActiveTab);
       if (!activePanel) return;
-      const rows = activePanel.querySelectorAll('.menu-row');
+      const rows = activePanel.querySelectorAll('.menu-row, .menu-pick');
       if (menuSelectedRow < 0) menuSelectedRow = 0;
       if (menuSelectedRow >= rows.length) menuSelectedRow = Math.max(0, rows.length - 1);
       tabSelectedRows[menuActiveTab] = menuSelectedRow;
@@ -1210,10 +1234,11 @@ function getMenuClientScript() {
     }
 
     function moveMenuSelection(delta) {
-      if (menuActiveTab >= 8 && typeof emuPanelMenuScroll === 'function') { emuPanelMenuScroll(menuActiveTab, delta); return; }
+      if (menuActiveTab >= 9 && typeof emuPanelMenuScroll === 'function') { emuPanelMenuScroll(menuActiveTab, delta); return; }
       const activePanel = document.getElementById('menu-panel-' + menuActiveTab);
       if (!activePanel) return;
-      const rows = activePanel.querySelectorAll('.menu-row');
+      // .menu-pick rows (CDL banks) can be selected but do nothing.
+      const rows = activePanel.querySelectorAll('.menu-row, .menu-pick');
       if (!rows.length) return;
 
       const nextRow = Math.max(0, Math.min(menuSelectedRow + delta, rows.length - 1));
@@ -1229,6 +1254,10 @@ function getMenuClientScript() {
 
     // Steppers / Toggles: Non-looping, clamped left and right
     function changeMenuValue(delta) {
+      if (menuActiveTab === 8 && menuSelectedRow > 0) {
+        if (typeof cdlMenuStep === 'function') cdlMenuStep(menuSelectedRow, delta);
+        return;
+      }
       if (menuActiveTab >= 8) {
         if (typeof emuPanelMenuStep === 'function') emuPanelMenuStep(menuActiveTab, delta);
         return;
@@ -1390,6 +1419,10 @@ function getMenuClientScript() {
     }
 
     function activateMenuRow() {
+      if (menuActiveTab === 8 && menuSelectedRow > 0) {
+        if (typeof cdlMenuActivate === 'function') cdlMenuActivate(menuSelectedRow);
+        return;
+      }
       if (menuActiveTab >= 8) {
         if (typeof emuPanelMenuStep === 'function') emuPanelMenuStep(menuActiveTab, 1);
         return;

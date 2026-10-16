@@ -4,6 +4,7 @@
  * The side bars over the picture and the panels' compact side form (emulator-panels.js).
  * A side bar is as narrow as its content, at most a third of the screen. In it a panel is
  * read-only: no buttons, filters, legends or lookup, fewer table columns.
+ * CDL's pause-menu tab keeps the usual card: menu rows on top, then one row per bank.
  */
 .emu-side {
   position: absolute; top: 0; bottom: 0; z-index: 40;
@@ -32,11 +33,17 @@
 .emu-side .alc-section-title > span:first-child,
 .emu-side .pal-section-title { display: none; }
 .emu-side .ss-subbar { padding: 2px 6px; }
-.emu-side #cdl-status { margin-left: 0; white-space: normal; }
-.emu-side #cdl-banks { padding: 2px 6px; }
-.emu-side .cdl-bank { gap: 4px; margin-bottom: 1px; }
-.emu-side .cdl-bank-label { width: 40px; flex-direction: row; justify-content: space-between; align-items: center; font-size: 9px; }
-.emu-side .cdl-bank canvas { flex: none; width: 128px; height: 12px; }
+
+/* CDL in a side bar: no title, no status, no WRAM; the ROM strips share the full height */
+.emu-side[data-panel="cdl"]::before,
+.emu-side #ss-view-cdl .ss-subbar,
+.emu-side .cdl-group,
+.emu-side .cdl-wram { display: none; }
+.emu-side #cdl-body { flex: 1; min-height: 0; }
+.emu-side #cdl-banks { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; padding: 2px 6px; }
+.emu-side .cdl-bank { flex: 1 1 0; min-height: 0; max-height: 24px; gap: 4px; margin-bottom: 1px; overflow: hidden; }
+.emu-side .cdl-bank-label { width: 40px; flex-direction: row; justify-content: space-between; align-items: center; font-size: 9px; line-height: 1; }
+.emu-side .cdl-bank canvas { flex: none; width: 128px; height: 100%; min-height: 0; }
 .emu-side #ss-trace-log { font-size: 10px; padding: 2px 6px; }
 .emu-side table { font-size: 10px; }
 /* ENTITIES: icon, name, HP, position */
@@ -51,3 +58,19 @@
 #emulator-menu.panel-tab-active #menu-body { max-height: none; overflow: hidden; }
 .menu-panel-host.active { flex: 1; min-height: 0; }
 .emu-panel-slot { flex: 1; min-height: 0; display: flex; flex-direction: column; font-size: 11px; }
+
+/* CDL in its pause-menu tab: the usual card; the card body scrolls, not the panel.
+   Its buttons are menu rows (menu-view.js), so only the status line and the strips stay. */
+#menu-panel-8.active, #emu-slot-cdl { flex: none; }
+#emu-slot-cdl .ss-tab-view, #emu-slot-cdl #cdl-body { flex: none; overflow: visible; }
+#emu-slot-cdl #cdl-banks { flex: 1; overflow: visible; padding: 0 0 4px; }
+#emu-slot-cdl .ss-subbar > :not(#cdl-status),
+#emu-slot-cdl #cdl-legend,
+#emu-slot-cdl #cdl-side { display: none; }
+#emu-slot-cdl .ss-subbar { padding: 5px 14px; background: none; border-bottom: 1px solid #1a1a20; }
+#emu-slot-cdl #cdl-status { margin-left: 0; white-space: normal; font-size: 10px; }
+#emu-slot-cdl .cdl-group { padding: 0 14px; }
+#emu-slot-cdl .cdl-bank { margin: 0; padding: 2px 14px 2px 11px; border-left: 3px solid transparent; }
+#emu-slot-cdl .cdl-bank.selected { background: rgba(78, 201, 176, 0.14); border-left-color: #4ec9b0; }
+#emu-slot-cdl .cdl-bank-label { width: 72px; flex-direction: row; justify-content: space-between; align-items: center; }
+#emu-slot-cdl .cdl-bank canvas { height: 16px; cursor: default; }
