@@ -8,7 +8,7 @@
 // Evermore data: grid, dictionary, Block 1, step-on triggers, the cuttable layer
 // (Section 4) and objects (Section 3), numbered the way a custom map's are.
 
-const maps = require('../maps');
+const maps = require('../../../../maps');
 const ids = require('./ids');
 
 /** Header bytes 11-12 are not known; they are copied from this vanilla room. */

@@ -1,7 +1,7 @@
 'use strict';
 // A converted Secret of Mana room in the real Rooms-tab editor, end to end: the real radar
 // page in headless Chromium, and a host stub that answers the page's requests the way
-// extension.js does (src/mana-to-evermore + src/rooms renderers on both ROMs). Checks the
+// extension.js does (src/games/evermore/imports/mana + src/rooms renderers on both ROMs). Checks the
 // Tile, Trigger and Object tabs. Needs both ROMs and playwright, else skips.
 // Run: node tests/mana/mana-editor-dom.test.js [shots dir]  (both ROMs from the ROM library: npm run roms)
 
@@ -24,7 +24,7 @@ async function main() {
     try { browser = await chromium.launch(); } catch { console.log('\nMana editor DOM: no browser — skipped'); return; }
 
     const rooms = require('../../src/rooms');
-    const bridge = require('../../src/mana-to-evermore');
+    const bridge = require('../../src/games/evermore/imports/mana');
     const { renderRadarHtml } = require('../../src/memory/render-radar');
     const soe = fs.readFileSync(SOE), som = new Uint8Array(fs.readFileSync(SOM));
     const service = bridge.createManaRooms({ soeRom: () => soe, manaRom: () => som });

@@ -1,7 +1,7 @@
-# mana-to-evermore — Secret of Mana maps as Evermore rooms
+# games/evermore/imports/mana — Secret of Mana maps as Evermore rooms
 
 Rules: [AGENTS.md](AGENTS.md). Translation table and budgets:
-[docs/mana/evermore-rooms.md](../../docs/mana/evermore-rooms.md).
+[docs/mana/evermore-rooms.md](../../../../../docs/mana/evermore-rooms.md).
 
 | File | What |
 |---|---|
@@ -16,7 +16,7 @@ Rules: [AGENTS.md](AGENTS.md). Translation table and budgets:
 the tile table and word builder it owns; splitting them would pass that state around.
 It must split before it grows further (`pieces.js` already took the objects' search).
 
-Plain CommonJS on top of the two compiled libraries' facades (`src/mana`, `src/maps`),
+Plain CommonJS on top of the two compiled libraries' facades (`src/games/mana/decoder`, `src/maps`),
 so it has no build step of its own.
 
 ## Flow

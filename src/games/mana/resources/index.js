@@ -1,5 +1,5 @@
 'use strict';
-// Ownership: entry point of the mana-resources domain: registers the read-only
+// Ownership: entry point of games/mana/resources: registers the read-only
 // `som://` file system for Secret of Mana. Which ROM file is injected by
 // extension.js (the ROM library), so this domain reads no config itself.
 

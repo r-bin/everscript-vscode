@@ -6,7 +6,7 @@
 // Evermore data.
 
 const fs = require('fs');
-const { isManaRom } = require('../mana');
+const { isManaRom } = require('../decoder');
 
 /** @type {{ path: string, mtime: number, rom: Uint8Array } | null} */
 let cache = null;

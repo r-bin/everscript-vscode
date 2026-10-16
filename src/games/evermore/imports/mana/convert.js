@@ -15,7 +15,7 @@
 //   weapon-cut cells (c2 $Cn)   -> the cuttable layer; event-flag pieces -> objects
 // Only SNES facts are shared: both games use Mode 1 tilemap words with the same bits.
 
-const mana = require('../mana');
+const mana = require('../../../mana/decoder');
 const { FAMILY_BASE, MAX_GRAPHICS } = require('./ids');
 const { flagObjects } = require('./pieces');
 

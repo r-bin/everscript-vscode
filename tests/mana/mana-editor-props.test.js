@@ -1,5 +1,5 @@
 'use strict';
-// The Mana editor's cell properties and solver (src/mana-maps/webview/editor-props.js) on a made-up map: what a
+// The Mana editor's cell properties and solver (src/games/mana/maps/webview/editor-props.js) on a made-up map: what a
 // cell's bytes mean, and how a drawn wish becomes a metatile — reused, copied into a free slot, or "?" when no
 // slot is free, the metatile is a step event, or the 8 px drawing has no Mana shape. No DOM, no ROM.
 // Run: node tests/mana/mana-editor-props.test.js
@@ -10,7 +10,7 @@ const path = require('path');
 const vm = require('vm');
 
 // The two files are plain browser scripts sharing globals: run them in one context, as the page does.
-const DIR = path.join(__dirname, '..', '..', 'src', 'mana-maps', 'webview');
+const DIR = path.join(__dirname, '..', '..', 'src', 'games', 'mana', 'maps', 'webview');
 const ctx = { module: undefined };
 vm.createContext(ctx);
 ['editor-model.js', 'editor-props.js'].forEach(f => vm.runInContext(fs.readFileSync(path.join(DIR, f), 'utf8'), ctx, { filename: f }));

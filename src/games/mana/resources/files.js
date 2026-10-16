@@ -11,7 +11,7 @@
 //   areas/<slug>.md                 an area's maps as images
 // Ids in paths are hex without `$`, like soe://.
 
-const mana = require('../mana');
+const mana = require('../decoder');
 const { mapFile, MAP_FILE_EXTS } = require('./map-files');
 
 /** @typedef {{ kind: 'dir', entries: Array<[string, 'file' | 'dir']> } | { kind: 'file', read: () => Buffer }} SomNode */
@@ -21,7 +21,7 @@ const json = (/** @type {unknown} */ v) => buf(JSON.stringify(v, null, 2) + '\n'
 /** @param {() => Buffer} read @returns {SomNode} */
 const file = read => ({ kind: 'file', read });
 
-/** The maps and areas (src/mana catalog.ts), built once per ROM buffer. @param {Uint8Array} rom */
+/** The maps and areas (src/games/mana/decoder catalog.ts), built once per ROM buffer. @param {Uint8Array} rom */
 const getCatalog = rom => mana.mapCatalog(rom);
 
 /**

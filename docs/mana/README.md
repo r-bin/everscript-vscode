@@ -3,7 +3,7 @@
 Everything here was read from Secret of Mana's own code (US ROM, `Secret of MANA`,
 2 MB HiROM) with the extension's emulator core and CDL recorder, then checked against
 the running game. Nothing about Secret of Evermore applies here unless the SNES itself
-explains it. Code: [`src/mana/`](../../src/mana/README.md). Files: `som://rom/`.
+explains it. Code: [`src/games/mana/decoder/`](../../src/games/mana/decoder/README.md). Files: `som://rom/`.
 How to check a claim yourself: [verifying.md](verifying.md).
 RAM addresses: [wram.md](wram.md). Mana maps as Evermore rooms: [evermore-rooms.md](evermore-rooms.md).
 
@@ -106,18 +106,18 @@ translucent waterfalls. Palette 7 colours 8–15 rotate at runtime (waterfall sh
 
 The Maps panel groups maps like the fantasyanime.com collection
 (<https://fantasyanime.com/mana/sommaps.htm>): each of its pictures was matched
-against our renders pixel for pixel (`src/mana/areas.ts`); 266 of 408 maps belong to
+against our renders pixel for pixel (`src/games/mana/decoder/areas.ts`); 266 of 408 maps belong to
 one of 52 areas, the rest (arenas, cannon rides, credits, other event states) are
 "other". The pictures are not in the repo. Many ids draw the same picture (same
 sets and pieces, different objects or scripts, e.g. 7 Kakkara interiors); the panel
 shows each picture once, as one rail row with the other ids as variants.
 
-"Same picture" compares the assembled layers at flag value 0 (`pictureKey`, `src/mana/placement.ts`),
+"Same picture" compares the assembled layers at flag value 0 (`pictureKey`, `src/games/mana/decoder/placement.ts`),
 not the piece lists: map `$8E` has `$8B`'s and `$8F`'s 31 piece records, but two of them
 (piece 234 at 21,7 and 27,6) in swapped order, so a list comparison split Water Palace 2 in two.
 Groups cross area lines: `$67` (no area) draws `$88`'s picture, `$1B0` (no area) `$1B4`'s, and `$93`
 (Todo Village) and `$14C` (Santa's House) draw the same one. A map no area lists that draws an
-area's picture is shown as that room's variant, not under "other" (`src/mana/catalog.ts`).
+area's picture is shown as that room's variant, not under "other" (`src/games/mana/decoder/catalog.ts`).
 
 ## Collision — `$02:A043`, `$01:BE15`, `$00:D84C`, `$00:D359`
 
@@ -385,7 +385,7 @@ loaders (`tests/mana/mana-rom.test.js`): the bush becomes `$5F` for types 1 and 
 stays for 0, 3 and 5; plain grass never changes. Not yet seen in the running game (that
 needs the sword). An earlier version of this page said Mana had no cuttable tiles: it had
 searched for writes to the metatile and collision tables, but cutting writes the cell.
-Code: `src/mana/cuttable.ts`.
+Code: `src/games/mana/decoder/cuttable.ts`.
 
 ## Objects — `$00:C481`, `$00:DCE3`, `$00:DD55`
 
@@ -406,7 +406,7 @@ header lies before their own; `mapObjects` returns no objects for all of these.
 When a record's character is spawned, +0 becomes `$81` and +3 its entity slot (`$7E:E600`,
 `$E800`, … `$200` apart); it stands at `cell * 16 + 4` pixels. Checked headless after
 forced loads of maps `$10` and `$81`: all records copied, and the 2 + 4 spawned entities
-stand exactly there (`src/mana/objects.ts`). Only records near the camera were spawned.
+stand exactly there (`src/games/mana/decoder/objects.ts`). Only records near the camera were spawned.
 Their sprites are not decoded.
 
 ## Step events — `$C8:4000`, `$00:B637`
@@ -426,7 +426,7 @@ The special-cell scan (below) rewrites layer A's special cells, row by row, to
 events too, wherever they are drawn (`$BF` runs event `$6D8` in maps `$11` and `$3E`).
 `$00:B630` returns while `$D0` is non-zero (it is after a forced map load). Header byte 3
 is 0 or 4 in 372 of the 408 maps. Some maps have fewer words than cells (map 0 has none):
-those cells read past the list and are left out by `mapEvents` (`src/mana/events.ts`).
+those cells read past the list and are left out by `mapEvents` (`src/games/mana/decoder/events.ts`).
 
 Checked in the game: `tools/mana/check-events.js` puts each cell's value under the first
 character and records the event `$01:E76D` runs — maps `$10`, `$11`, `$3E`, `$80`: 36 of 36.
@@ -441,7 +441,7 @@ Three systems, set up at load and stepped every frame by `$00:B0BB`:
 | `$01:B17E` (byte 0 bit 6): entries `$C8:0000` listed by `$C8:0600[b0&$3F]`, target char `w&$3FF`, mode `w>>12`, speed `(w>>10)&3`; reads the chars back from VRAM | `$01:BFE0` | pixel transforms of single chars (shifts, rotations, …, 16 modes) | `$7F:820A` → `$7F:820C`, `$20`/`$40` bytes or two words |
 | `$02:BC7E` (byte 1 bit 7): effect bytes `$C8:087B[$C8:0802[b1&$7F] .. $C8:0803[..]]`: palette bits 0-2, speed 3-4, type 5-7; types 0-2 cycle the colours whose ROM word has bit 15 set (`$02:BEB1`) | `$02:BAD6` (even frames) | CGRAM colours (`$0600` shadow) | the shadow |
 
-Rather than re-deriving every mode, `src/mana/animate.ts` runs these routines on a small
+Rather than re-deriving every mode, `src/games/mana/decoder/animate.ts` runs these routines on a small
 65816 interpreter (`cpu65816.ts`, `snes-bus.ts`) and records which characters and colours
 change. Checked against the game: maps 16, 35, 113, 128 and 136 — every animated
 character and colour goes through exactly the same set of states over 480 frames, and
@@ -451,7 +451,7 @@ The Maps panel plays it per cell kind (cells with the same tile words share fram
 
 ## Editing a map in the plugin — what is and is not a cell's own
 
-The Maps panel's editor (`src/mana-maps/webview/editor.js`; plan and reasons:
+The Maps panel's editor (`src/games/mana/maps/webview/editor.js`; plan and reasons:
 [docs/architecture/multi-game.md](../architecture/multi-game.md)) edits a map in the terms
 the facts above allow, and **saves nothing**: Mana's map data is compressed and a changed map often
 would not fit its old slot, so there is no write-back and no way to play an edited map (both need a
@@ -464,7 +464,7 @@ re-encoder, which does not exist).
 | step events | cell → event word through the metatile number (`$C0 - b` and up) or the special-cell slot ("Step events"); the words are one list per map | a list of `{x, y, event}` read off the original map; add / move / delete / set the number. It is the cell → event result, not the encoding: painting a metatile does not change it |
 | objects | 8-byte records ("Objects"); bytes 2-3 position (high bits are flags), 6-7 the kind word; others unnamed | place / move / delete, position and kind word; every other byte kept as read (a new object copies the selected one's bytes, else kind `$C001`, the commonest). At most `$30` (a list of `$31` stops the game) |
 | characters | the 8-byte records above; several can stand on one cell (e.g. Water Palace 2: three at 17,38, kinds `$420C`-`$420E`); enemies and people are not told apart | listed together as "Characters"; one ring with a count per cell, the only things drawn as circles |
-| event-flag pieces ("map changes") | a piece is placed only while its flag is in range (`$00:CB90`): the map changes as the story moves on | shown as Evermore draws an object: an area box with its states (state 0 = every flag 0, one state per flag value that changes cells), each state's cells outlined; pick a state to see the map with it; read-only (`src/mana/flag-pieces.ts`) |
+| event-flag pieces ("map changes") | a piece is placed only while its flag is in range (`$00:CB90`): the map changes as the story moves on | shown as Evermore draws an object: an area box with its states (state 0 = every flag 0, one state per flag value that changes cells), each state's cells outlined; pick a state to see the map with it; read-only (`src/games/mana/decoder/flag-pieces.ts`) |
 | picture variants | many map ids draw the same picture (same sets and pieces) with different characters and scripts ("Areas") | a variant bar on the card's right edge opens another variant |
 | scripts | what an event does is not decoded | shown as the event number only |
 

@@ -99,7 +99,7 @@ function manaEdTileCollision(m, layer, n) {
   return n >= 0 && n < 192 ? [src[n * 4], src[n * 4 + 1], src[n * 4 + 2], src[n * 4 + 3]] : [0, 0, 0, 0];
 }
 
-/** Floor class 0-3, diagonal 4-7 or 0, layer switch (c0 bit 3) and special kind of collision bytes (src/mana/collision.ts). */
+/** Floor class 0-3, diagonal 4-7 or 0, layer switch (c0 bit 3) and special kind of collision bytes (src/games/mana/decoder/collision.ts). */
 function manaEdDecodeCollision(c) {
   var f = c[0] & 7;
   return { floor: f < 4 ? f : 0, diagonal: (c[2] & 0xF0) === 0x10 && (c[2] & 7) >= 4 ? c[2] & 7 : 0,

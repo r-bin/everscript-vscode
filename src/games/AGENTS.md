@@ -16,4 +16,5 @@ one list of games (removing a game = deleting its folder and its line).
 ## Invariants
 - Variant hashes are facts about the user's own dumps, recorded with their source
   (Evermore: docs/evermore-releases.md §1).
-- The other game domains (`src/maps`, `src/mana`, …) move in here during cleanup step 4.
+- Secret of Mana lives in `mana/` (`decoder/`, `resources/`, `maps/`, each with its own AGENTS.md);
+  the Evermore domains (`src/maps`, `src/script`, …) move into `evermore/` during cleanup step 4.

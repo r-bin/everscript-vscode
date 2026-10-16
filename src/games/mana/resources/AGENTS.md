@@ -1,4 +1,4 @@
-# src/mana-resources — agent rules
+# src/games/mana/resources — agent rules
 
 Kind: **platform** (see `/AI_ARCHITECTURE_GUIDE.md` §2). The read-only `som://` file
 system: Secret of Mana's data plane. What the folder does: [README.md](README.md).
@@ -8,7 +8,7 @@ system: Secret of Mana's data plane. What the folder does: [README.md](README.md
 - `som://` is separate from `soe://`: no Evermore path ever serves Mana data and back.
 
 ## Dependencies
-- `mana/` only (plus `vscode` in `index.js`/`fs-provider.js`). Never `resources/`,
+- `decoder/` only (plus `vscode` in `index.js`/`fs-provider.js`). Never the Evermore `resources/`,
   `maps/` or any Evermore domain (`.depcruise.js` `mana-resources-only-mana`).
 - Settings arrive injected from `extension.js` (`where()`); this domain reads no config.
 

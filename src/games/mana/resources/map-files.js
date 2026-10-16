@@ -12,7 +12,7 @@
 //                         pieces and their states, the backdrop
 //   <id>.tiles.a.png / .tiles.b.png   layer A's / B's 192 metatiles as a 16x12 sheet (colour 0 clear)
 
-const mana = require('../mana');
+const mana = require('../decoder');
 const { encodePng } = require('./png');
 
 const json = v => Buffer.from(JSON.stringify(v) + '\n', 'utf8');
@@ -122,7 +122,7 @@ function editModel(rom, id) {
         lead: b3 & 3, ownEvent: (b3 & 4) !== 0,
         events: ev,
         objects: mana.mapObjects(rom, id),
-        // The event-flag pieces: the parts of the map that change with the story, as states (src/mana/flag-pieces.ts).
+        // The event-flag pieces: the parts of the map that change with the story, as states (src/games/mana/decoder/flag-pieces.ts).
         pieces: mana.flagPieces(rom, m),
     });
 }

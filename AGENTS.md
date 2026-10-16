@@ -33,10 +33,10 @@ External resources:
    need to ask. Prefer editing the existing file over adding a new one.
 4. **Secret of Mana is a different game.** Nothing known about Evermore (formats, engine,
    addresses, scripts) is assumed for Secret of Mana, or the other way round; only SNES
-   hardware facts carry over. Mana code lives in `src/mana`, `src/mana-resources` and
-   `src/mana-maps` and never imports an Evermore domain (`.depcruise.js`); Mana facts go to
+   hardware facts carry over. Mana code lives in `src/games/mana/decoder`, `src/games/mana/resources` and
+   `src/games/mana/maps` and never imports an Evermore domain (`.depcruise.js`); Mana facts go to
    `docs/mana/`, checked against the running game (`tools/mana/check-map.js`,
-   `check-events.js`). The one place the two meet is `src/mana-to-evermore`: an explicit
+   `check-events.js`). The one place the two meet is `src/games/evermore/imports/mana`: an explicit
    translation table (`docs/mana/evermore-rooms.md`), each row pairing two documented facts.
    Use the plugin's features for both games (`supported-games` skill).
 
@@ -69,7 +69,7 @@ of:
 | `AI_ARCHITECTURE_GUIDE.md` | Architectural laws, file size limits, ownership rules |
 | `STATE_FLOW.md` | Authoritative state ownership table |
 | `docs/architecture/domain-overview.md` | Which `src/` domains to load for a given task |
-| `docs/architecture/multi-game.md` | Decided target: any game (`platform/` + `core/` + `games/<game>/`), game descriptor, variants and base ROM, ROM library and panel, `soe://` as the only source; §8 the one map editor (core + per-game adapter) — read before touching `src/rooms/webview/map-editor*`, `src/mana*` or ROM loading |
+| `docs/architecture/multi-game.md` | Decided target: any game (`platform/` + `core/` + `games/<game>/`), game descriptor, variants and base ROM, ROM library and panel, `soe://` as the only source; §8 the one map editor (core + per-game adapter) — read before touching `src/rooms/webview/map-editor*`, `src/games/mana/` or ROM loading |
 | `docs/cleanup.md` | The repo cleanup: decisions D1–D13 and the ordered work items — read before deleting, moving, deduplicating or porting to TS |
 | `docs/evermore-releases.md` | The Evermore ROMs that exist (US, Europe, Germany, France, Spain Rev 1/2, prototype chip): how to identify them, 50 Hz speed, completeness, why US addresses don't apply to PAL builds |
 | `docs/exhirom/port.md` | Evermore as ExHiROM: why, bus map, what was built (§6) and how it was proven; the game's read past its 3 MB (`$80:D113`) |
@@ -83,8 +83,8 @@ of:
 | `src/scripts-tab/` | Scripts tab (radar): Everscript + map, animation and alchemy scripts + animation, music sequences + silent player — not `src/script/` (the decoder) |
 | `docs/plans/simulation/` | Design notes for the simulation; the code is `src/simulation/` (scenarios, loot cases, byte-identical Everscript; `npm run test:simulation`) |
 | `src/platform/`, `src/core/`, `src/games/` | The game-neutral layers and the game list (multi-game.md): ROM identification, the ROM library (`npm run roms`), Switch ROM / ROM panel, game descriptors |
-| `src/mana/`, `src/mana-resources/`, `src/mana-maps/` | Secret of Mana, kept apart from Evermore: pure decoder/renderer (TS library), the read-only `som://` file system, and the Maps panel (`everscript.openManaMaps`). Format + evidence: `docs/mana/` |
-| `src/mana-to-evermore/` | Secret of Mana maps converted into Evermore rooms, listed in the Rooms tab under the vanilla rooms (`docs/mana/evermore-rooms.md`) |
+| `src/games/mana/decoder/`, `src/games/mana/resources/`, `src/games/mana/maps/` | Secret of Mana, kept apart from Evermore: pure decoder/renderer (TS library), the read-only `som://` file system, and the Maps panel (`everscript.openManaMaps`). Format + evidence: `docs/mana/` |
+| `src/games/evermore/imports/mana/` | Secret of Mana maps converted into Evermore rooms, listed in the Rooms tab under the vanilla rooms (`docs/mana/evermore-rooms.md`) |
 | `tools/mana/check-map.js`, `check-events.js`, `find-picture.js` | Load any Secret of Mana map in the headless game and compare its screen / its step events with ours; find which map a picture shows |
 
 Full domain map (post v0.6.0 `src/` refactor): see `src/README.md`.

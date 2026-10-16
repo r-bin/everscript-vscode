@@ -9,7 +9,7 @@
 // --shots  <f1,f2,..> <dir>: save the screen after those frames as <dir>/<frame>.png
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm'), crypto = require('crypto');
-const { encodePng } = require('../../src/mana-resources/png');
+const { encodePng } = require('../../src/games/mana/resources/png');
 const { parseMovie, groupEvents, wramCrc, crcText, WRAM_BASE, WRAM_SIZE, AUDIO_RATE } = require('../../src/emulator/tas/movie');
 
 const CORE = process.env.TABLE_HACK_CORE || path.join(__dirname, '../../src/emulator/core/snes9x2005-wasm/snes9x_2005.js');

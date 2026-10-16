@@ -1,6 +1,6 @@
 'use strict';
 // The editor core (src/shared/webview/map-editor-core/) and the Mana editor model
-// (src/mana-maps/webview/editor-model.js): plain data, no DOM, no ROM. Run: node tests/mana/mana-editor-core.test.js
+// (src/games/mana/maps/webview/editor-model.js): plain data, no DOM, no ROM. Run: node tests/mana/mana-editor-core.test.js
 
 const assert = require('assert');
 const path = require('path');
@@ -9,7 +9,7 @@ const CORE = path.join(__dirname, '..', '..', 'src', 'shared', 'webview', 'map-e
 const { editHistoryCreate } = require(path.join(CORE, 'edit-history.js'));
 const { editSessionStore, editNotSavedHtml } = require(path.join(CORE, 'edit-session.js'));
 const { editToolForKey, editHistoryForKey } = require(path.join(CORE, 'edit-tools.js'));
-const M = require(path.join(__dirname, '..', '..', 'src', 'mana-maps', 'webview', 'editor-model.js'));
+const M = require(path.join(__dirname, '..', '..', 'src', 'games', 'mana', 'maps', 'webview', 'editor-model.js'));
 
 let passed = 0, failed = 0;
 function test(name, fn) {
@@ -96,7 +96,7 @@ const data = () => ({
     objects: [{ x: 2, y: 1, flags: 0x40, kind: 0xC001, bytes: [0, 0, 0x82, 1, 0, 0, 1, 0xC0] }],
 });
 
-test('collision bytes decode as the game reads them (src/mana/collision.ts)', () => {
+test('collision bytes decode as the game reads them (src/games/mana/decoder/collision.ts)', () => {
     assert.deepStrictEqual(M.manaEdDecodeCollision([2, 0, 0, 0]), { floor: 2, diagonal: 0, switches: false, special: 0 });
     assert.deepStrictEqual(M.manaEdDecodeCollision([0x0B, 0, 0, 0]), { floor: 3, diagonal: 0, switches: true, special: 0 });
     assert.strictEqual(M.manaEdDecodeCollision([5, 0, 0, 0]).floor, 0, 'c0 values 4-7 are no floor');

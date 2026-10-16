@@ -2,13 +2,13 @@
 // (docs/mana/README.md "Step events").
 //   node tools/mana/check-events.js <map id, hex>   (the Mana ROM of the ROM library)
 // Plays the opening headless like check-map.js, makes the map loader at $00:C481 load
-// the given map, then for each cell src/mana's mapEvents lists: restores the state,
+// the given map, then for each cell src/games/mana/decoder's mapEvents lists: restores the state,
 // puts that cell's value under the first character ($7E:E04B/E04C, as $00:D682 does),
 // clears $D0 (non-zero after a forced load, which makes $00:B630 return), runs 3 frames
 // and records what the event runner $01:E76D was called with.
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
-const mana = require('../../src/mana');
+const mana = require('../../src/games/mana/decoder');
 
 const romPath = require('../rom').romOrExit('mana');
 const id = parseInt(process.argv[2], 16);

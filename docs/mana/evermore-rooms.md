@@ -4,7 +4,7 @@ With both ROMs set (`everscript.romPath` = Evermore, a Secret of Mana ROM found 
 `everscript.manaRomPath` or beside it), the Rooms tab lists every Mana map in a
 **Secret of Mana** group under the vanilla rooms. Opening one converts it, cell by cell,
 into a real Evermore room and shows it in the editor like a vanilla room (locked).
-Code: [`src/mana-to-evermore/`](../../src/mana-to-evermore/README.md).
+Code: [`src/games/evermore/imports/mana/`](../../src/games/evermore/imports/mana/README.md).
 
 This page is the translation table. Each side's facts are documented on its own side
 (Mana: [README.md](README.md); Evermore: `docs/map-format/`). Neither game's facts are

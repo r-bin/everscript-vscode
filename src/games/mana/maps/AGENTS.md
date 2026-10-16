@@ -1,4 +1,4 @@
-# src/mana-maps — agent rules
+# src/games/mana/maps — agent rules
 
 Kind: **feature** (see `/AI_ARCHITECTURE_GUIDE.md` §2). The Secret of Mana Maps panel.
 What the folder does: [README.md](README.md).
@@ -9,8 +9,8 @@ What the folder does: [README.md](README.md).
 
 ## Dependencies
 - Reads Mana data only through `som://` (`vscode.workspace.fs`; pictures via
-  `asWebviewUri`, JSON via the page's `read` message). Never `require`s `mana/`,
-  `mana-resources/` or any Evermore domain (`.depcruise.js` `mana-maps-reads-som-only`).
+  `asWebviewUri`, JSON via the page's `read` message). Never `require`s the decoder,
+  `resources/` or any Evermore domain (`.depcruise.js` `mana-maps-reads-som-only`).
 - The page loads the shared pieces from `src/shared/webview/` (`map-view/`, `map-editor-core/`,
   `map-editor-shell/`) by file path — the same files the Evermore Rooms tab uses.
 
@@ -37,7 +37,7 @@ What the folder does: [README.md](README.md).
 - **Nothing the editor changes is saved or written anywhere**; the pill's notice says so while a map has
   changes. Edits live in `manaEdSessions` (one per map) until the page closes. Write-back and "play my edited
   map" need Mana's map re-encoded and are deliberately not built
-  ([docs/architecture/multi-game.md](../../docs/architecture/multi-game.md)).
+  ([docs/architecture/multi-game.md](../../../../docs/architecture/multi-game.md)).
 - Collision is per metatile in Mana, never per cell. The user draws what a cell should be (collision, specials,
   how its trigger fires) as a *wish*; `editor-props.js` solves wishes into metatiles: one with the same picture
   and bytes, else a copy (every byte kept, only the wished fields changed) in a slot the map does not use — never

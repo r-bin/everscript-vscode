@@ -3,12 +3,12 @@
 // Plays the opening headless on the extension's emulator core up to the fall from
 // the log bridge, makes the map loader at $00:C481 read the
 // given id from $DC instead, runs 200 frames, then finds the game's screen inside
-// src/mana's render of that map and prints how many pixels agree. Sprites,
+// src/games/mana/decoder's render of that map and prints how many pixels agree. Sprites,
 // animated characters and palette cycling account for the rest.
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
-const mana = require('../../src/mana');
-const { encodePng } = require('../../src/mana-resources/png');
+const mana = require('../../src/games/mana/decoder');
+const { encodePng } = require('../../src/games/mana/resources/png');
 
 const romPath = require('../rom').romOrExit('mana');
 const id = Number(process.argv[2]);

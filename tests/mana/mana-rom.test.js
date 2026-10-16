@@ -11,8 +11,8 @@
 const assert = require('assert');
 const crypto = require('crypto');
 const fs = require('fs');
-const mana = require('../../src/mana');
-const { resolveSom, getCatalog } = require('../../src/mana-resources/files');
+const mana = require('../../src/games/mana/decoder');
+const { resolveSom, getCatalog } = require('../../src/games/mana/resources/files');
 
 const ROM_PATH = require('../../dist/games').romPath('mana') || '';
 if (!ROM_PATH || !fs.existsSync(ROM_PATH)) {
@@ -109,8 +109,8 @@ test('map 128 collision: walls, level-2 floors, a few level-1 and shared floors'
 });
 
 test('the game\'s own loaders, run on the interpreter, build the same tables and layers', () => {
-    const { Cpu65816 } = require('../../dist/mana/cpu65816');
-    const { SnesBus } = require('../../dist/mana/snes-bus');
+    const { Cpu65816 } = require('../../dist/games/mana/decoder/cpu65816');
+    const { SnesBus } = require('../../dist/games/mana/decoder/snes-bus');
     for (const id of [16, 113, 128]) {
         const bus = new SnesBus(rom), cpu = new Cpu65816(bus);
         const h = mana.readHeader(rom, id).bytes, m = mana.loadMap(rom, id);
@@ -138,8 +138,8 @@ test('step events: map $10 runs the events the game ran (tools/mana/check-events
 });
 
 test('cutting: the game\'s $01:D293 turns map $81\'s bush into $5F for weapon types 1 and 2 only', () => {
-    const { Cpu65816 } = require('../../dist/mana/cpu65816');
-    const { SnesBus } = require('../../dist/mana/snes-bus');
+    const { Cpu65816 } = require('../../dist/games/mana/decoder/cpu65816');
+    const { SnesBus } = require('../../dist/games/mana/decoder/snes-bus');
     const id = 0x81, m = mana.loadMap(rom, id), h = mana.readHeader(rom, id).bytes;
     const cut = (x, y, weapon) => {
         const bus = new SnesBus(rom), cpu = new Cpu65816(bus);
@@ -161,7 +161,7 @@ test('cutting: the game\'s $01:D293 turns map $81\'s bush into $5F for weapon ty
 });
 
 test('the editor\'s data (edit.json, tiles sheets) is the library\'s map, cell by cell and metatile by metatile', () => {
-    const E = require('../../src/mana-maps/webview/editor-model.js');
+    const E = require('../../src/games/mana/maps/webview/editor-model.js');
     for (const id of [0x66, 0x80, 0x10]) {
         const m = mana.loadMap(rom, id);
         const hex = id.toString(16);
@@ -188,7 +188,7 @@ test('the editor\'s data (edit.json, tiles sheets) is the library\'s map, cell b
 });
 
 test('the event-flag pieces: the editor\'s data is the converter\'s objects; Water Palace 2 has three 3x6 areas with two states', () => {
-    const { flagObjects } = require('../../src/mana-to-evermore/pieces');
+    const { flagObjects } = require('../../src/games/evermore/imports/mana/pieces');
     for (const id of [0x66, 0x8B]) {
         const m = mana.loadMap(rom, id);
         const d = JSON.parse(resolveSom(['maps', id.toString(16) + '.edit.json'], rom).read());

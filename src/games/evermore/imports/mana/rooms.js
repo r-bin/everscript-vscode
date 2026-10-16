@@ -8,8 +8,8 @@
 // Families are named m<n> (n = palette set * 8 + palette - 1): the same Mana palette is
 // the same family in every map that loads it.
 
-const mana = require('../mana');
-const { readRomMapHeaderFrom } = require('../shared/rom-readers');
+const mana = require('../../../mana/decoder');
+const { readRomMapHeaderFrom } = require('../../../../shared/rom-readers');
 const { convertManaMap } = require('./convert');
 const { buildVirtualRom } = require('./virtual-rom');
 const ids = require('./ids');

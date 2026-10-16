@@ -1,12 +1,12 @@
 'use strict';
 // The 65816 interpreter and SNES bus the Secret of Mana library uses to run the
-// game's own animation code (src/mana/cpu65816.ts, snes-bus.ts). Small programs on
+// game's own animation code (src/games/mana/decoder/cpu65816.ts, snes-bus.ts). Small programs on
 // a synthetic ROM image; no ROM needed. Run: node tests/mana/mana-cpu.test.js
 
 const assert = require('assert');
-const { Cpu65816 } = require('../../dist/mana/cpu65816');
-const { SnesBus } = require('../../dist/mana/snes-bus');
-const mana = require('../../src/mana');
+const { Cpu65816 } = require('../../dist/games/mana/decoder/cpu65816');
+const { SnesBus } = require('../../dist/games/mana/decoder/snes-bus');
+const mana = require('../../src/games/mana/decoder');
 
 let passed = 0, failed = 0;
 function test(name, fn) {

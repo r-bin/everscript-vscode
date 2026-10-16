@@ -86,22 +86,46 @@ module.exports = {
       to: { path: '^src/emulator/' },
     },
 
-    // ── Secret of Mana stays apart from Evermore (src/mana*/AGENTS.md) ─────────
+    // ── Secret of Mana stays apart from Evermore (src/games/mana/*/AGENTS.md) ─────────
 
     {
-      name: 'mana-is-alone',
-      comment: 'src/mana is a pure Secret of Mana library: no Evermore (or any other src/) code.',
+      name: 'mana-decoder-is-alone',
+      comment: 'games/mana/decoder is a pure Secret of Mana library: no Evermore (or any other src/) code.',
       severity: 'error',
-      from: { path: '^src/mana/' },
-      to: { path: '^src/(?!mana/)' },
+      from: { path: '^src/games/mana/decoder/' },
+      to: { path: '^(src|dist)/(?!games/mana/decoder/)' },
     },
 
     {
       name: 'mana-resources-only-mana',
-      comment: 'The som:// file system uses the Mana library and nothing Evermore.',
+      comment: 'The som:// file system uses the Mana decoder and nothing Evermore.',
       severity: 'error',
-      from: { path: '^src/mana-resources/' },
-      to: { path: '^src/(?!mana-resources/|mana/)' },
+      from: { path: '^src/games/mana/resources/' },
+      to: { path: '^src/(?!games/mana/(resources|decoder)/)' },
+    },
+
+    {
+      name: 'mana-maps-reads-som-only',
+      comment: 'The Mana Maps panel reads Mana data through som:// only.',
+      severity: 'error',
+      from: { path: '^src/games/mana/maps/' },
+      to: { path: '^src/(?!games/mana/maps/)' },
+    },
+
+    {
+      name: 'no-evermore-to-mana',
+      comment: 'Evermore domains never use Mana code; only extension.js wires the two side by side, and games/index.ts lists the game.',
+      severity: 'error',
+      from: { path: '^src/', pathNot: '^src/games/mana/|^src/games/evermore/imports/mana/|^src/games/index\\.ts$|^src/extension\\.js$' },
+      to: { path: '^src/games/(mana/|evermore/imports/mana/)' },
+    },
+
+    {
+      name: 'mana-import-bridges-libraries',
+      comment: 'The one converter between the games (games/evermore/imports/mana): the Mana decoder, the Evermore maps library and shared helpers, nothing else.',
+      severity: 'error',
+      from: { path: '^src/games/evermore/imports/mana/' },
+      to: { path: '^src/(?!games/evermore/imports/mana/|games/mana/decoder/|maps/|shared/)' },
     },
 
     {
@@ -118,30 +142,6 @@ module.exports = {
       severity: 'error',
       from: { path: '^src/shared/webview/map-editor-shell/' },
       to: { path: '^src/(?!shared/webview/map-editor-shell/)' },
-    },
-
-    {
-      name: 'mana-maps-reads-som-only',
-      comment: 'The Mana Maps panel reads Mana data through som:// only.',
-      severity: 'error',
-      from: { path: '^src/mana-maps/' },
-      to: { path: '^src/(?!mana-maps/)' },
-    },
-
-    {
-      name: 'no-evermore-to-mana',
-      comment: 'Evermore domains never use Mana code; only extension.js wires the two side by side.',
-      severity: 'error',
-      from: { path: '^src/', pathNot: '^src/(mana|mana-resources|mana-maps|mana-to-evermore)/|^src/extension\\.js$' },
-      to: { path: '^src/(mana|mana-resources|mana-maps|mana-to-evermore)/' },
-    },
-
-    {
-      name: 'mana-to-evermore-bridges-libraries',
-      comment: 'The one converter between the games: the Mana library, the Evermore maps library and shared helpers, nothing else.',
-      severity: 'error',
-      from: { path: '^src/mana-to-evermore/' },
-      to: { path: '^src/(?!mana-to-evermore/|mana/|maps/|shared/)' },
     },
 
     {

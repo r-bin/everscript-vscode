@@ -119,7 +119,7 @@ function readRomMapHeader(wsRoot, mapId, romPathOverride = '') {
 
 /**
  * The same header, read from a ROM already in memory (a converted room's image,
- * src/mana-to-evermore). Null when it cannot be read.
+ * src/games/evermore/imports/mana). Null when it cannot be read.
  * @param {Uint8Array} romBuf
  * @param {number} mapId
  */

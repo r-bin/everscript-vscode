@@ -519,20 +519,20 @@ class RadarCodeLensProvider {
 /** globalState key for the Rooms webview's remembered UI state. */
 const ROOMS_UI_PREFS_KEY = 'everscript.roomsUi';
 
-/** Secret of Mana Maps panel (lazy: src/mana-maps is only loaded when opened). */
+/** Secret of Mana Maps panel (lazy: src/games/mana/maps is only loaded when opened). */
 function openManaMaps() {
-    return require('./mana-maps').openManaMaps();
+    return require('./games/mana/maps').openManaMaps();
 }
 
 /** True when the Evermore ROM lookup found a Secret of Mana ROM (a hand-picked path can be anything). */
 function romIsMana() {
     const ws = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
     const rom = romReaders.loadRomBuffer(ws, '');
-    return !!rom && require('./mana').isManaRom(rom);
+    return !!rom && require('./games/mana/decoder').isManaRom(rom);
 }
 
 /**
- * Secret of Mana maps as Evermore rooms (src/mana-to-evermore): the Rooms tab lists
+ * Secret of Mana maps as Evermore rooms (src/games/evermore/imports/mana): the Rooms tab lists
  * them under the vanilla rooms when a Mana ROM is found beside the Evermore one.
  * Set in activate(), where the Mana ROM accessor is made.
  */
@@ -634,7 +634,7 @@ function activate(context) {
         // Memory Radar command — opens a scope-aware WRAM visualizer beside the editor.
         // Triggered via: right-click → "Open Memory Radar", or the ◉ CodeLens above fun/map/area/group.
         vscode.commands.registerCommand('everscript.openMemoryRadar', async (doc, startLine) => {
-            // A Secret of Mana ROM gets its own panel (src/mana-maps), never the Evermore tabs.
+            // A Secret of Mana ROM gets its own panel (src/games/mana/maps), never the Evermore tabs.
             if (romIsMana()) return openManaMaps();
             const editor   = vscode.window.activeTextEditor;
             const document = (doc && typeof doc.lineCount === 'number') ? doc : editor?.document;
@@ -1066,7 +1066,7 @@ function activate(context) {
                             _radarPanel.webview.postMessage({ ...reply, error: 'ROM not found — use Everscript: Switch ROM' });
                             return;
                         }
-                        // A converted family lives in its room's image (src/mana-to-evermore).
+                        // A converted family lives in its room's image (src/games/evermore/imports/mana).
                         const conv = _manaRooms && _manaRooms.resolveFamily(msg.family);
                         _radarPanel.webview.postMessage({ ...reply,
                             sheet: conv ? buildFamilySheet(conv.rom, msg.family, conv.roomId)
@@ -1363,9 +1363,9 @@ function activate(context) {
         emulatorStatus: () => emulatorPanel.getStatus(),
         getLogs: () => emulatorPanel.getLogHistory(),
     });
-    // ── som:// Secret of Mana (src/mana-resources/README.md) — its own tree, never mixed into soe:// ──
-    const manaResources = require('./mana-resources').registerManaResources(context, () => ({ path: roms.romPathFor('mana') }));
-    _manaRooms = require('./mana-to-evermore').createManaRooms({
+    // ── som:// Secret of Mana (src/games/mana/resources/README.md) — its own tree, never mixed into soe:// ──
+    const manaResources = require('./games/mana/resources').registerManaResources(context, () => ({ path: roms.romPathFor('mana') }));
+    _manaRooms = require('./games/evermore/imports/mana').createManaRooms({
         soeRom: () => romReaders.loadRomBuffer(vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null, ''),
         manaRom: () => { const r = manaResources.manaRom(); return r && r.rom; },
     });
@@ -1375,7 +1375,7 @@ function activate(context) {
             romReaders.invalidateRomBuffer();
             manaResources.refresh();
             _manaRooms.clear();
-            require('./mana-maps').refreshManaMaps();
+            require('./games/mana/maps').refreshManaMaps();
         }),
     );
     // AI clients read the same soe:// tree over MCP (src/mcp/README.md).

@@ -1,4 +1,4 @@
-# src/mana — agent rules
+# src/games/mana/decoder — agent rules
 
 Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). Secret of Mana, pure TypeScript:
 ROM bytes in, map data and pictures out. What the folder does: [README.md](README.md).
@@ -9,11 +9,11 @@ ROM bytes in, map data and pictures out. What the folder does: [README.md](READM
 
 ## Dependencies
 - None inside `src/`. Never `maps/`, `script/` or anything else Evermore: the two games
-  share no format here, only SNES hardware rules (`.depcruise.js` `mana-is-alone`).
+  share no format here, only SNES hardware rules (`.depcruise.js` `mana-decoder-is-alone`).
 
 ## Invariants
 - Every format fact comes from Secret of Mana's own code or the running game, with the
-  routine address in the file comment ([docs/mana/README.md](../../docs/mana/README.md)).
+  routine address in the file comment ([docs/mana/README.md](../../../../docs/mana/README.md)).
   Never from Evermore knowledge, other projects' code, or guesses.
 - Map pictures show frame 0 of animations and flag value 0 for event pieces.
 - Animation is the game's own code run on `cpu65816.ts`; do not re-implement its modes by

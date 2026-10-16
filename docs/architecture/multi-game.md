@@ -28,7 +28,7 @@ src/
     evermore/           decoder, soe:// provider, map adapter, emulator panels (ENTITIES,
                         ALCHEMY…), knowledge entries, names, language (grammar, theme, debugger),
                         script VM, table hack / ExHiROM support
-      imports/mana/     the Mana-to-Evermore bridge (was src/mana-to-evermore)
+      imports/mana/     the Mana-to-Evermore bridge (was src/games/evermore/imports/mana)
     mana/               decoder, som:// provider, map adapter, knowledge entries
 docs/platform/  docs/games/<game>/   mirror the code
 ```
@@ -126,7 +126,7 @@ code, folder or docs are part of the cleanup.
    `script-trace.js`, `gen-sound-animations.js`, the npm/sh wrappers and their docs).
 2. Game descriptor and `registerGame()`; Evermore and Mana descriptors with variants and base.
 3. Move domains, one per commit with `git mv`, converting to TS as they move:
-   `src/mana*` → `games/mana/`; Evermore domains (`maps`, `script`, `sprites`, `localizations`,
+   `src/mana*` → `games/mana/` (done in v0.232.0); Evermore domains (`maps`, `script`, `sprites`, `localizations`,
    `resources`, `language`, `debugger`, `music`, `scaling`, `routes`, `rom`…) → `games/evermore/`
    or, where game-neutral, `core/`; `emulator` core / CDL / `recorder` / `mcp` → `platform/`.
    Each move updates the domain's `AGENTS.md` and README.
@@ -164,7 +164,7 @@ code, folder or docs are part of the cleanup.
 - **Mana editor v1:** tile painting, erase, pick, undo/redo, BG1/BG2/Collision toggles, zoom,
   animation preview, specials and step events. Collision belongs to the metatile in Mana, so
   painting a metatile changes picture and collision together. Since v0.217 collision, specials and
-  trigger kind are drawn as wishes and solved into metatiles (`src/mana-maps/webview/editor-props.js`);
+  trigger kind are drawn as wishes and solved into metatiles (`src/games/mana/maps/webview/editor-props.js`);
   no cell ever gets bytes no metatile has. Objects: place/move/delete, only known fields editable.
   Triggers: add/move/resize step-event cells, set the event number. Scripts show as an event number
   only until Mana event scripts are decoded (checked with `tools/mana/check-events.js`).
@@ -173,7 +173,7 @@ code, folder or docs are part of the cleanup.
 notice, tool keys; rule `map-editor-core-is-game-neutral`) and `src/shared/webview/map-editor-shell/`
 (frame, rail, name line, canvas column, dock, tab strip, layout, zoom/pan, CSS; rule
 `map-editor-shell-is-game-neutral`) — the Evermore Rooms editor runs on these; the Mana editor
-(`src/mana-maps/webview/`) on the same shell and core with Select / Pencil / Erase / Pick /
+(`src/games/mana/maps/webview/`) on the same shell and core with Select / Pencil / Erase / Pick /
 Undo / Redo, Characters and Map-changes object cards (read-only), and the collision/special solver.
 Copy map works for a converted Mana room in the Evermore tab. In the new layout both folders are
 `core/map-editor/`.

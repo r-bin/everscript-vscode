@@ -7,7 +7,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const SRC = path.join(__dirname, '..');
+const SRC = path.join(__dirname, '..', '..', '..');
 const SHARED = path.join(SRC, 'shared');
 const MAP_VIEW = path.join(SHARED, 'webview', 'map-view');
 const CORE = path.join(SHARED, 'webview', 'map-editor-core');

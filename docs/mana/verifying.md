@@ -12,7 +12,7 @@ node tools/mana/check-map.js 113 out/
 `tools/mana/check-map.js` plays the opening (title, new game, the log-bridge dialogue),
 breaks at the map loader `$00:C481` before the fall to the waterfall, writes the wanted id
 into `$DC`, and lets the game load that map instead. It saves `game-<id>.png` (the screen)
-and `render-<id>.png` (src/mana), finds the screen inside the render and prints the share
+and `render-<id>.png` (src/games/mana/decoder), finds the screen inside the render and prints the share
 of equal pixels (5-bit colour). Seen: 48 → 98.9%, 113 → 97.6%, 35 → 96.9%; the rest is
 sprites. 128 (the waterfall) → ~60%: its water characters animate and palette 7 rotates,
 so the frame differs from frame 0.
@@ -71,7 +71,7 @@ character's cell value reaches `$E04B` is read from `$00:D682`.
 ## Converted rooms against the Mana picture
 
 `tests/mana/mana-evermore.test.js` (both ROMs) converts maps to Evermore rooms, draws them
-with Evermore's renderer and compares with `src/mana`'s picture. Over all 408 maps 97.8%
+with Evermore's renderer and compares with `src/games/mana/decoder`'s picture. Over all 408 maps 97.8%
 of pixels agree; the rest are mixed-palette tiles redrawn in one palette, per-tile
 priority, and the backdrop colour (Evermore draws black). See
 [evermore-rooms.md](evermore-rooms.md).

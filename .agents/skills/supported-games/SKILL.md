@@ -1,7 +1,7 @@
 ---
 name: supported-games
-description: Use whenever a prompt is about Secret of Mana (SoM, "mana", som://, src/mana*, Mana maps, Mana rooms in the Rooms tab) or touches both games. Says which data plane to read (som:// for Mana, soe:// for Evermore), that facts never cross from one game to the other, where each game's facts are written down and how they are checked, and that the plugin's own features (editor, file systems, headless tools) are the way to work on every supported game.
-applyTo: "src/mana*/**,docs/mana/**,tools/mana/**,tests/mana/**"
+description: Use whenever a prompt is about Secret of Mana (SoM, "mana", som://, src/games/mana, Mana maps, Mana rooms in the Rooms tab) or touches both games. Says which data plane to read (som:// for Mana, soe:// for Evermore), that facts never cross from one game to the other, where each game's facts are written down and how they are checked, and that the plugin's own features (editor, file systems, headless tools) are the way to work on every supported game.
+applyTo: "src/games/mana/**,src/games/evermore/imports/mana/**,docs/mana/**,tools/mana/**,tests/mana/**"
 ---
 
 # Supported games: Secret of Evermore and Secret of Mana
@@ -12,10 +12,10 @@ The extension supports two games. They share the SNES and nothing else.
 
 | | Secret of Evermore | Secret of Mana |
 |---|---|---|
-| file system (MCP, editor) | `soe://` (`src/resources`, MCP `everscript-soe`) | `som://` (`src/mana-resources`): `som://rom/maps/<hex>.png/.json/.collision.json/.anim.json/.objects.json/.edit.json/.tiles.a.png`, `areas/` |
-| library | `src/maps`, `src/script`, … | `src/mana` (pure TS: header, pieces, metatiles, collision, events, objects, cuttable cells, animation on `cpu65816.ts`) |
+| file system (MCP, editor) | `soe://` (`src/resources`, MCP `everscript-soe`) | `som://` (`src/games/mana/resources`): `som://rom/maps/<hex>.png/.json/.collision.json/.anim.json/.objects.json/.edit.json/.tiles.a.png`, `areas/` |
+| library | `src/maps`, `src/script`, … | `src/games/mana/decoder` (pure TS: header, pieces, metatiles, collision, events, objects, cuttable cells, animation on `cpu65816.ts`) |
 | Which ROM | the ROM library (Everscript: Switch ROM; headless `npm run roms`): selected Evermore ROM, else the base `us` | the same library: selected Mana ROM, else the base `us` |
-| facts written to | `src/localizations/knowledge/` (`game-knowledge` skill) | `docs/mana/README.md` + the `src/mana` file that reads it |
+| facts written to | `src/localizations/knowledge/` (`game-knowledge` skill) | `docs/mana/README.md` + the `src/games/mana/decoder` file that reads it |
 | checked with | CDL, recomp, headless runs | `tools/mana/check-map.js` (screen vs render), `check-events.js` (step events), `find-picture.js` (which map a screenshot shows), the game's own routines run on `cpu65816.ts` (rom tests); `docs/mana/verifying.md` |
 | RAM map | `src/localizations/knowledge/` | `docs/mana/wram.md` |
 
@@ -32,15 +32,15 @@ For a Mana question, start with `som://rom/index.md` or `docs/mana/README.md`, n
   them in the running game. Write the routine address next to the fact.
 - No code, tables or names from other projects (randomizers, viewers), for either game.
 
-The one place both games meet is `src/mana-to-evermore`: an explicit translation table
+The one place both games meet is `src/games/evermore/imports/mana`: an explicit translation table
 (`docs/mana/evermore-rooms.md`) in which each row pairs a documented Mana fact with a
 documented Evermore fact. Adding a conversion means adding a row there, with both sides
 already documented on their own side. It is a translation, never evidence: what Evermore
 does with a converted room says nothing about Mana.
 
-Dependency rules (`.depcruise.js`): `src/mana` imports nothing in `src/`;
-`src/mana-resources` only `src/mana`; `src/mana-maps` only `som://`;
-`src/mana-to-evermore` only `src/mana`, `src/maps`, `src/shared`; Evermore domains never
+Dependency rules (`.depcruise.js`): `src/games/mana/decoder` imports nothing in `src/`;
+`src/games/mana/resources` only `src/games/mana/decoder`; `src/games/mana/maps` only `som://`;
+`src/games/evermore/imports/mana` only `src/games/mana/decoder`, `src/maps`, `src/shared`; Evermore domains never
 import any of them — only `extension.js` wires them in.
 
 ## 3. Use the plugin's features for every game
@@ -63,7 +63,7 @@ game supports it, not through a second tool:
   never mix data: the Rooms tab shows Evermore plus *converted* Mana rooms, the panel native
   Mana maps. Plan: `docs/architecture/multi-game.md` (§8; the whole doc: one UX for every game).
 - Mana collision is per **metatile**, not per cell. The Mana editor draws collision/specials as wishes and solves
-  them into metatiles (copies in free slots, "?" where none fit) — never per-cell bytes (`src/mana-maps/AGENTS.md`).
+  them into metatiles (copies in free slots, "?" where none fit) — never per-cell bytes (`src/games/mana/maps/AGENTS.md`).
 - **som://** for anything an agent or the user wants to read as files.
 
 When a Mana feature is missing, check `docs/mana/evermore-rooms.md` ("The editor for Mana

@@ -3,11 +3,11 @@
 // <cell px> is how wide one 16x16 map cell is in the picture (122 for a Rooms-tab
 // screenshot at ~760%); left/top are where the first cell edge would be (negative when
 // the picture starts mid-cell). Compares the middle of every whole cell with every cell
-// of every map's render (src/mana) and prints the five best places. Grid lines and
+// of every map's render (src/games/mana/decoder) and prints the five best places. Grid lines and
 // markers in the picture are mostly skipped by sampling only the middle 40%.
 'use strict';
 const fs = require('fs'), zlib = require('zlib');
-const mana = require('../../src/mana');
+const mana = require('../../src/games/mana/decoder');
 
 const romPath = require('../rom').romOrExit('mana');
 const [file, size, left = '0', top = '0'] = process.argv.slice(2);

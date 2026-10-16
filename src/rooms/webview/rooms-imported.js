@@ -1,4 +1,4 @@
-// Ownership: rooms converted from another game (the host's src/mana-to-evermore) —
+// Ownership: rooms converted from another game (the host's src/games/evermore/imports/mana) —
 // opening one from the rail, and the family labels they bring.
 //
 // A converted room is an ordinary ROM room to the rest of the tab: the host answers

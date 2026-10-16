@@ -18,10 +18,13 @@ All production code lives here. Each subdirectory is an ownership domain.
 | `recorder/` | SNES CDL Recorder: the second extension's entry (`recorder/package.json`), the emulator in its recorder profile |
 | `script/` | Everscript bytecode decoder (TypeScript, pure); re-done from the game in cleanup step 2 |
 | `simulation/` | Runs scripts symbolically: loot cases, room scenarios + flag tree, NPC tracking, clusters, byte-identical Everscript (TypeScript, pure) |
-| `mana/` | Secret of Mana maps: header, pieces, metatiles, characters, palettes, Mode 1 picture, areas (TypeScript, pure; nothing Evermore) |
-| `mana-resources/` | Read-only `som://` file system: Secret of Mana maps and areas as files |
-| `mana-maps/` | Secret of Mana Maps panel: area list and map pictures, read from `som://` |
-| `mana-to-evermore/` | The one bridge: a Mana map converted into a real Evermore room (cells, graphics, families, collision, step-on boxes) for the Rooms tab |
+| `platform/` | Game-neutral: ROM header and identification, the ROM library, the game registry (`docs/architecture/multi-game.md`) |
+| `core/` | Game-neutral features: Switch ROM, the ROM panel, the status bar item |
+| `games/` | One folder per game; `games/index.ts` lists them |
+| `games/mana/decoder/` | Secret of Mana maps: header, pieces, metatiles, characters, palettes, Mode 1 picture, areas (TypeScript, pure; nothing Evermore) |
+| `games/mana/resources/` | Read-only `som://` file system: Secret of Mana maps and areas as files |
+| `games/mana/maps/` | Secret of Mana Maps panel: area list and map pictures, read from `som://` |
+| `games/evermore/imports/mana/` | The one bridge: a Mana map converted into a real Evermore room (cells, graphics, families, collision, step-on boxes) for the Rooms tab |
 | `rom/` | ROM tab: every bank's content, gaps and CDL coverage, measured from the ROM |
 | `scripts-tab/` | Scripts tab: Everscript (room scripts + map, simulation toggle, clusters), animation and alchemy scripts with their animation, music sequences with a silent player |
 | `music/` | Music tab: the sound chip live from the emulator or playing a track in its own engine; voices, instruments, sound effects, ARAM |
@@ -46,7 +49,8 @@ Entry point: `extension.js` (orchestration root, registered as `main` in package
 - `mcp/` → `vscode` only; reads `soe://` through `vscode.workspace.fs`, never another domain
 - `simulation/` → `script/` only, injected through its `index.js`
 - `resources/` → may use `shared/`, `maps/`, `script/`, `simulation/`, `localizations/`; never `emulator/` (ROM and memory reads are injected by `extension.js`)
-- `mana/` → nothing in `src/`; `mana-resources/` → `mana/` only; `mana-maps/` → `som://` only; `mana-to-evermore/` → `mana/`, `maps/`, `shared/`; no Evermore domain uses any of them (only `extension.js` wires them)
+- `platform/` → no `core/`, no game; `core/` → `platform/` only; a game never imports another game except through `games/<game>/imports/<other>/`
+- `games/mana/decoder/` → nothing in `src/`; `games/mana/resources/` → the decoder only; `games/mana/maps/` → `som://` only; `games/evermore/imports/mana/` → the Mana decoder, `maps/`, `shared/`; no Evermore domain uses any of them (only `extension.js` wires them)
 - No circular dependencies allowed
 
 See `.depcruise.js` for machine-enforced rules.

@@ -28,7 +28,7 @@ function renderVanillaTree(vanillaRooms) {
 }
 
 /**
- * Rooms converted from another game (src/mana-to-evermore), as rail rows. Same row
+ * Rooms converted from another game (src/games/evermore/imports/mana), as rail rows. Same row
  * markup as a vanilla room, but `data-import` instead of `data-vid`: the room's
  * details are asked for when it is opened (rooms-imported.js), not sent up front.
  * @param {Array<{area: string, rooms: Array<{id: string, name: string, tag: string}>}>} areas

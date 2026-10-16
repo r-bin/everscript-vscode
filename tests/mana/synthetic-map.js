@@ -5,7 +5,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { encodePng } = require('../../src/mana-resources/png');
+const { encodePng } = require('../../src/games/mana/resources/png');
 
 const tileColour = n => [(n * 23) % 256, 40 + n, 200 - n];
 

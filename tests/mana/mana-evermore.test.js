@@ -1,19 +1,19 @@
 'use strict';
-// Secret of Mana maps as Evermore rooms (src/mana-to-evermore), end to end on both real
+// Secret of Mana maps as Evermore rooms (src/games/evermore/imports/mana), end to end on both real
 // ROMs: converted, encoded with Evermore's own encoder, decoded and drawn by Evermore's
 // renderer, and served to the Rooms tab. Skips without both ROMs.
 // Run: node tests/mana/mana-evermore.test.js  (both ROMs from the ROM library: npm run roms)
 //
 // Goldens are observed facts (counts, ids, agreement), never ROM bytes. "Agreement" is the
-// share of pixels where Evermore's render of the converted room equals src/mana's render
+// share of pixels where Evermore's render of the converted room equals src/games/mana/decoder's render
 // of the map (5 bits per channel); Evermore has no backdrop colour, so its black there
 // counts as the backdrop.
 
 const assert = require('assert');
 const fs = require('fs');
-const mana = require('../../src/mana');
+const mana = require('../../src/games/mana/decoder');
 const maps = require('../../src/maps');
-const bridge = require('../../src/mana-to-evermore');
+const bridge = require('../../src/games/evermore/imports/mana');
 const rooms = require('../../src/rooms');
 
 let passed = 0, failed = 0;

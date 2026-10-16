@@ -1,10 +1,10 @@
 'use strict';
-// Unit tests for the Secret of Mana library (src/mana) on synthetic ROM images:
+// Unit tests for the Secret of Mana library (src/games/mana/decoder) on synthetic ROM images:
 // every piece opcode, the metatile bit codes, the character formats and the
 // Mode 1 compositor. No ROM needed. Run: node tests/mana/mana-units.test.js
 
 const assert = require('assert');
-const mana = require('../../src/mana');
+const mana = require('../../src/games/mana/decoder');
 
 let passed = 0, failed = 0;
 function test(name, fn) {

@@ -1,5 +1,5 @@
 'use strict';
-// The Secret of Mana Maps page in headless Chromium: the real page (src/mana-maps/page.js), built from the shared
+// The Secret of Mana Maps page in headless Chromium: the real page (src/games/mana/maps/page.js), built from the shared
 // editor shell, with a synthetic map and a stub host answering som:// reads. Checks the page is the shell the Evermore
 // Rooms tab runs on (frame, rail, canvas card, pill, filter bar, status bar, dock) and the view features.
 // No ROM needed; skips without playwright. Run: node tests/mana/mana-panel-dom.test.js
