@@ -45,9 +45,9 @@ async function answer(p, msg) {
 }
 
 /** Open (or reveal) the Maps panel. */
-async function openManaMaps() {
-    if (panel) { panel.reveal(); return panel; }
-    panel = vscode.window.createWebviewPanel('everscript.manaMaps', 'Secret of Mana — Maps', vscode.ViewColumn.Active, {
+async function openManaMaps(column = vscode.ViewColumn.Active) {
+    if (panel) { panel.reveal(column); return panel; }
+    panel = vscode.window.createWebviewPanel('everscript.manaMaps', 'Secret of Mana — Maps', column, {
         enableScripts: true,
         retainContextWhenHidden: true,
         localResourceRoots: [...ROOTS.map(r => vscode.Uri.file(r)), SOM_ROOT],
@@ -64,4 +64,8 @@ async function refreshManaMaps() {
     panel.webview.html = render(panel.webview, await loadInit(panel.webview));
 }
 
-module.exports = { openManaMaps, refreshManaMaps };
+function getManaMapsPanel() {
+    return panel;
+}
+
+module.exports = { openManaMaps, refreshManaMaps, getManaMapsPanel };

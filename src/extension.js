@@ -520,13 +520,23 @@ class RadarCodeLensProvider {
 const ROOMS_UI_PREFS_KEY = 'everscript.roomsUi';
 
 /** Secret of Mana Maps panel (lazy: src/games/mana/maps is only loaded when opened). */
-function openManaMaps() {
-    return require('./games/mana/maps').openManaMaps();
+function openManaMaps(column) {
+    return require('./games/mana/maps').openManaMaps(column);
+}
+
+/** Terranigma Maps panel (lazy: src/games/terra/maps is only loaded when opened). */
+function openTerraMaps(column) {
+    return require('./games/terra/maps').openTerraMaps(column);
 }
 
 /** True when the ROM chosen with Switch ROM is a Secret of Mana ROM (multi-game.md §6: one command, any game). */
 function romIsMana() {
     return roms.selectedGame() === 'mana';
+}
+
+/** True when the ROM chosen with Switch ROM is a Terranigma ROM. */
+function romIsTerra() {
+    return roms.selectedGame() === 'terra';
 }
 
 /**
@@ -632,8 +642,9 @@ function activate(context) {
         // Memory Radar command — opens a scope-aware WRAM visualizer beside the editor.
         // Triggered via: right-click → "Open Memory Radar", or the ◉ CodeLens above fun/map/area/group.
         vscode.commands.registerCommand('everscript.openMemoryRadar', async (doc, startLine) => {
-            // A Secret of Mana ROM gets its own panel (src/games/mana/maps), never the Evermore tabs.
+            // Secret of Mana or Terranigma ROMs get their own panel (multi-game.md §6: one command, any game).
             if (romIsMana()) return openManaMaps();
+            if (romIsTerra()) return openTerraMaps();
             const editor   = vscode.window.activeTextEditor;
             const document = (doc && typeof doc.lineCount === 'number') ? doc : editor?.document;
             if (!document) {
@@ -1368,11 +1379,78 @@ function activate(context) {
         manaRom: () => { const r = manaResources.manaRom(); return r && r.rom; },
     });
     context.subscriptions.push(
+        vscode.commands.registerCommand('everscript.openTerraMaps', col => openTerraMaps(col)),
         roms.onDidChangeRoms(() => {
             romReaders.invalidateRomBuffer();
             manaResources.refresh();
             _manaRooms.clear();
             require('./games/mana/maps').refreshManaMaps();
+            require('./games/terra/maps').refreshTerraMaps();
+
+            _scalingChars = null;
+            _hitLookup = null;
+            _radarRoomTree = null;
+            _radarRoomDocPath = null;
+
+            const game = roms.selectedGame();
+            const manaMaps = require('./games/mana/maps');
+            const terraMaps = require('./games/terra/maps');
+            const manaPanel = manaMaps.getManaMapsPanel?.();
+            const terraPanel = terraMaps.getTerraMapsPanel?.();
+
+            if (game === 'terra') {
+                let targetCol = null;
+                if (_radarPanel) {
+                    targetCol = _radarPanel.viewColumn;
+                    _radarPanel.dispose();
+                    _radarPanel = null;
+                } else if (manaPanel) {
+                    targetCol = manaPanel.viewColumn;
+                    manaPanel.dispose();
+                }
+                if (targetCol || terraPanel) {
+                    terraMaps.openTerraMaps(targetCol || vscode.ViewColumn.Active);
+                }
+            } else if (game === 'mana') {
+                let targetCol = null;
+                if (_radarPanel) {
+                    targetCol = _radarPanel.viewColumn;
+                    _radarPanel.dispose();
+                    _radarPanel = null;
+                } else if (terraPanel) {
+                    targetCol = terraPanel.viewColumn;
+                    terraPanel.dispose();
+                }
+                if (targetCol || manaPanel) {
+                    manaMaps.openManaMaps(targetCol || vscode.ViewColumn.Active);
+                }
+            } else if (game === 'evermore') {
+                let targetCol = null;
+                if (terraPanel) {
+                    targetCol = terraPanel.viewColumn;
+                    terraPanel.dispose();
+                } else if (manaPanel) {
+                    targetCol = manaPanel.viewColumn;
+                    manaPanel.dispose();
+                }
+                if (targetCol) {
+                    vscode.commands.executeCommand('everscript.openMemoryRadar');
+                } else if (_radarPanel && _radarDoc) {
+                    try {
+                        const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+                        const scope = radarDetectScope(_radarDoc, 0);
+                        const { refs, pools, argRefs } = radarAnalyzeScope(_radarDoc, scope.startLine, scope.endLine);
+                        const mapByAddr = getRadarMap();
+                        _radarRoomTree = buildRoomTree(_radarDoc, wsRoot, getExtConfig());
+                        _radarRoomDocPath = _radarDoc.uri.fsPath;
+                        setRoomImageUris(_radarRoomTree, p => _radarPanel.webview.asWebviewUri(vscode.Uri.file(p)).toString());
+                        const vrd = buildVanillaRoomDetails(wsRoot, '');
+                        const romBuf = romReaders.loadRomBuffer(wsRoot, '');
+                        const spBundle = getSpritesBundle(romBuf);
+                        _radarPanel.webview.html = renderRadarHtml(scope, refs, pools, argRefs, mapByAddr, _radarRoomTree, _radarActiveTab, null, _scalingChars || [], _scaleActive, radarItemIcons(), _hitLookup, getRadarEnums(), vrd, _radarByteScriptFocus, spBundle, radarImportedRooms());
+                    } catch (_) {}
+                }
+            }
         }),
     );
     // AI clients read the same soe:// tree over MCP (src/mcp/README.md).

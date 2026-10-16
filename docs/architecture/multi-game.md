@@ -144,7 +144,8 @@ does too (registered in `src/games/terra/`, European base ROM title `TERRANIGMA 
   base", feature table, drop zone), the drop-a-ROM prompt. Panels still follow the selected ROM instead
   of keeping the one they were opened with; per-panel empty states are still the old messages.
   `openManaMaps` is merged (v0.236.0): Open Memory Radar opens the Mana Maps panel when the selected ROM is
-  a Mana ROM.
+  a Mana ROM, and opens Terranigma Maps (v0.240.0) when a Terranigma ROM is selected. Active open panels
+  automatically reload or switch across games on Switch ROM.
 - Built in part, 3: one TypeScript build (`tsconfig.build.json`, `dist/` mirrors `src/`, v0.231.0); Secret of
   Mana moved (v0.232.0): `games/mana/decoder`, `games/mana/resources`, `games/mana/maps`, and the bridge
   `games/evermore/imports/mana`. The twelve Evermore-only domains moved as they were (v0.233.0):

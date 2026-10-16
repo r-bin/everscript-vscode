@@ -48,6 +48,36 @@ test('room table constants and boundary checks', () => {
     assert.strictEqual(terra.readRoomBusAddress(smallRom, 0), null);
     assert.strictEqual(terra.readRoomBusAddress(smallRom, -1), null);
     assert.strictEqual(terra.readRoomBusAddress(smallRom, 2000), null);
+    assert.strictEqual(terra.readRoomHeaderBytes(smallRom, 0), null);
+    assert.strictEqual(terra.decodeRoomHeader(smallRom, 0), null);
+});
+
+test('decodeRoomHeader decodes header bitstream opcodes and SPC tracks', () => {
+    const rom = new Uint8Array(0x200000);
+    // Put pointer for room 0x000A at 0x06959c + 0x000A * 3 pointing to bus $9A:8350 -> file 0x1A8350
+    const tableOffset = terra.TERRA_BASE_ROOM_TABLE_OFFSET;
+    const ptrOffset = tableOffset + 0x000A * 3;
+    rom[ptrOffset] = 0x50;
+    rom[ptrOffset + 1] = 0x83;
+    rom[ptrOffset + 2] = 0x9A;
+
+    // Put room header at 0x1A8350: [0x02, 0x14, 0x10, 0x01, 0x02, 0x00]
+    const headerOffset = 0x1A8350;
+    rom[headerOffset] = 0x02; rom[headerOffset + 1] = 0x14; // SPC track 0x14
+    rom[headerOffset + 2] = 0x10; rom[headerOffset + 3] = 0x01; rom[headerOffset + 4] = 0x02; // Layers
+    rom[headerOffset + 5] = 0x00; // End
+
+    const header = terra.decodeRoomHeader(rom, 0x000A);
+    assert.ok(header);
+    assert.strictEqual(header.roomId, 0x000A);
+    assert.strictEqual(header.busAddress, 0x9A8350);
+    assert.strictEqual(header.fileOffset, 0x1A8350);
+    assert.strictEqual(header.spcTrack, 0x14);
+    assert.deepStrictEqual(header.rawBytes, [0x02, 0x14, 0x10, 0x01, 0x02, 0x00]);
+    assert.strictEqual(header.opcodes.length, 3);
+    assert.strictEqual(header.opcodes[0].opcode, 0x02);
+    assert.strictEqual(header.opcodes[1].opcode, 0x10);
+    assert.strictEqual(header.opcodes[2].opcode, 0x00);
 });
 
 // Check if a Terranigma ROM is available from the ROM library

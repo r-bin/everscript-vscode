@@ -46,3 +46,4 @@ Room headers at the Table A pointer targets consist of a stream of bitflag comma
 * `0x10`: Map Layer 1 / Layer 2 / Tile definitions.
 * `0x20`: Tile Map / Collision data.
 * `0x40`: Palette data.
+

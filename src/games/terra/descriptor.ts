@@ -17,3 +17,4 @@ export const terra: GameDescriptor = {
     capabilities: { maps: 'partial', knowledge: 'partial' },
     docs: 'docs/terra/',
 };
+
