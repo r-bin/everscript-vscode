@@ -33,6 +33,7 @@ C code (pseudocode is noise on 65816), asset boundaries, or anything the extensi
 | DB / D | missing or wrong refs for 16-bit / direct-page operands | not modelled; add refs from CDL `regs.bin` by script |
 | Decompiler hang | one function spun 14 min and blocked the session | per-call timeout, restart the session, skip the address |
 | REA refuses `.sfc/.smc` | "unsupported binary format" | REA 6.4.0 accepts only ELF/MZ/Mach-O; local patch or upstream SNES profile (rea.md §0) |
+| Opening someone else's old project | `NotOwnerException`, then "Language not found for '65816:LE:16:default'" | On a copy: set `OWNER` in `<name>.rep/project.prp`; give a cloned Ghidra install an `.ldefs` with that id pointing at ghidra-snes's files; read annotations only (`docs/reverse-engineering/community-ghidra-notes.md` §1) |
 
 ## 3. Rules
 

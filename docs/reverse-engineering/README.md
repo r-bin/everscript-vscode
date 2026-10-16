@@ -23,6 +23,7 @@ Last updated 2026-10-12 (v0.201.9).
 | [rea.md](rea.md) | **REA** (MCP over Ghidra): answers, spike recipe and results |
 | [formats.md](formats.md) | File formats we use, compatible formats to emit, what REA's formats add |
 | [other-tools.md](other-tools.md) | Mesen2, Asar, DiztinGUIsh, bsnes-plus, everscript, SA-1 investigation |
+| [community-ghidra-notes.md](community-ghidra-notes.md) | Old hand-annotated community Ghidra project: its terms vs ours, tables, field names, formulas, leads to check |
 | [docs/patches/](../patches/README.md) | **Patches & community hacks**: catalog of public patches, balance overhauls, engine bugfixes, and system mods |
 
 Skills: `cdl-recorder`, `ghidra-analysis`, `game-knowledge`, `snes-memory-mapping`,
