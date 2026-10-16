@@ -1,6 +1,8 @@
 # Porting Evermore to ExHiROM — why and how
 
-Status: **plan, nothing built yet.** Facts below are marked *(core source)* when read from the
+Status: **built and proven (v0.216.0)** — `tools/exhirom/convert.js` turns a clean ROM into an 8 MB
+ExHiROM image; §6 says how, §7 how it was proven. §1–§5 are the original plan, kept for the reasoning.
+Facts below are marked *(core source)* when read from the
 bundled snes9x2005 core (`src/emulator/core/snes9x2005-wasm/source/memmap.c`), *(repo)* when
 read from our own code/docs, *(hardware)* for generic SNES facts, and *(to verify)* when they
 must be checked on the running game before relying on them.
@@ -75,7 +77,12 @@ Consequences, in order of importance:
 6. **Emulator detection.** The bundled core picks `TalesROMMap` (its ExHiROM mapper) when the
    map byte (masked with `~0x10`) is `$25` *and* the file is larger than 4 MB
    *(core source: `memmap.c`, `Memory.CalculatedSize > 0x400000` → `ExtendedFormat`)*. So the
-   header must be right and the file must really exceed 4 MB (pad it).
+   header must be right and the file must really exceed 4 MB (pad it). **Trap found while building
+   it:** with a file over 4 MB the core scores the headers at `0xFFC0` and `0x40FFC0` and uses
+   `0x40FFC0` only when it scores *at least as high*. Map mode `$35` scores 2 lower than `$31`
+   (`(mode & 0xF) < 4` earns +2), so if the old header is left alone the image boots as plain HiROM.
+   The build therefore writes the same ExHiROM header in both places (6 bytes change at `0xFFC0`).
+   Any emulator that scores headers then reaches the same answer.
 
 ---
 
@@ -108,9 +115,10 @@ ROM until step 5, so every existing tool (CDL, recomp seeds, patches) keeps work
    recognisable bytes, header at `0x40FFC0`, a hook logging reads that resolve to file
    `≥ 0x400000`) stays useful as an independent cross-check before shipping.
    **First result** (6000 headless frames, title and intro only): the only mirror-executed code is
-   the first 17 bytes of the NMI handler at `$00:823A`, entered through the vector at `$FFEA`;
-   the only mirror data read is that vector. Everything else runs through `$80+`/`$C0+`
-   (`knowledge/rom/80823a.md`). A full-play recording is still needed before trusting this.
+   17 bytes in bank `$00` — the 13-byte reset entry and the 4-byte NMI `JML` (first written down as
+   "17 bytes of the NMI handler", corrected in v0.216.0); the only mirror data read is the NMI vector.
+   **Full result** (v0.216.0, §7): the same, plus one read the intro never makes — `$80:D113` reads
+   `$B0:E653+`, past the end of the 3 MB ROM.
 2. **Fix the hits** in an Asar patch (`patches/`, `snes-asm-asar-patching` skill) using
    the `exhirom` mapper (`src/emulator/cdl/asar-export.js` already emits it). Re-run step 1 until
    zero hits across a full playthrough route and the intro/attract loop.
