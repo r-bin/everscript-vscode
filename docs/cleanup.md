@@ -190,7 +190,8 @@ What is duplicated between Evermore and Mana is what becomes `core/`.
   `readFileSync` concatenation of ~70 webview files.
 - [ ] **5.4 Split files > 400 lines** (v0.249.0: `src/extension.js` 1791 → the 25-line composition root +
   `games/evermore/extension.js` 1250; the map editor's and Characters tab's messages → `rooms/editor-host.js`,
-  `sprites/radar-host.js`, unit-tested in `tests/memory/radar-hosts.test.js`) (19 at v0.199; largest `emulator/panel-webview.js` 4115,
+  `sprites/radar-host.js`, unit-tested in `tests/memory/radar-hosts.test.js`; v0.250.0: scope analysis → `memory/scope-analysis.js`, Build and Run → `language/build-and-run.js`,
+  Export Room Maps → `rooms/export-maps.js`: `games/evermore/extension.js` 1250 → 776) (19 at v0.199; largest `emulator/panel-webview.js` 4115,
   `menu-view.js` 1925, `extension.js` 1627, `bottom-bar-views.js` 1422, `sprites-view.js` 1409,
   `emulator/panel.js` 1130). The split lines are in the old audit §7.
 - [ ] **5.5 TS everywhere (D9)** with `@types/vscode` and `strict`; typed host↔webview message

@@ -3,10 +3,7 @@
 const vscode = require('vscode');
 const path   = require('path');
 const fs     = require('fs');
-const os     = require('os');
-const { radarLifecycle, radarH, radarEsc, radarExtractEmoji, radarParseName, radarParseNotes, parseEvsNum, parseEnumsFromContent, parseEvsEnumValues } = require('./radar-utils');
-const radarWebview = require('./memory/webview');
-const { readRoomScriptModel } = require('./rooms/data/room-scripts');
+const { parseEnumsFromContent } = require('./radar-utils');
 const { resolveExtConfig, getRepoAutofillUpdates } = require('./language/config');
 
 
@@ -147,7 +144,7 @@ function getExtConfig() {
 }
 
 const roomData = require('./rooms');
-const { VANILLA_ROOMS, getMapEnum, readLuaWatchers, readScriptAllTriggers, buildVanillaRoomContent, buildVanillaRoomDetails, buildItemIcons, invalidateRoomDataCaches } = roomData;
+const { VANILLA_ROOMS, buildVanillaRoomDetails, buildItemIcons, invalidateRoomDataCaches } = roomData;
 
 /** The ring menu's item icons from the configured ROM, for the radar page (rooms/data/item-icons.js). */
 function radarItemIcons() {
@@ -160,16 +157,16 @@ const { handlesMusicMessage, handleMusicMessage } = require('./music');
 const { handlesScriptsMessage, handleScriptsMessage } = require('./scripts-tab');
 const { handlesEditorMessage, handleEditorMessage } = require('./rooms/editor-host');
 const { handlesSpritesMessage, handleSpritesMessage } = require('./sprites/radar-host');
-const { findRoomImage, parseRoomContent, collectRoomsFromDir, buildRoomTree, renderVanillaTree, renderRoomsTree, buildRoomsJson, setRoomImageUris, buildRoomTileOverlay, buildRoomMetatilePalette, buildComposedPreview, buildBlankRoom, buildDraftCollision, buildExportRom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews, decoIndex, decoCells, buildDecoPreviews, buildWidgetPreviews, buildConstructGhost, relatedTiles, neighbourTiles, vanillaExamples, proceduralFill, handlesCustomMapMessage, handleCustomMapMessage } = roomTree;
+const { buildRoomTree, renderRoomsTree, buildRoomsJson, setRoomImageUris, handlesCustomMapMessage, handleCustomMapMessage } = roomTree;
 
 const romReaders = require('./rom-readers');
 const roms = require('../../core/roms/host');
 const gameViews = require('../../core/game-views');
 const platform = require('../../../dist/platform');
-const { readPngDimensions, readRomTriggerOffsets, readRomMapHeader, readRomCharacters, readRomHitLookup, detectScaleEnemies } = romReaders;
+const { readRomCharacters, readRomHitLookup, detectScaleEnemies } = romReaders;
 
 const { renderRadarHtml } = require('./memory/render-radar');
-const { readAllCharacters, getRawSpriteIndex, renderAnimation, renderRawSprite, buildAnimationCatalog, characterThumbs, listPalettes, renderInPalettes, thumbFor } = require('./sprites');
+const { readAllCharacters, getRawSpriteIndex, renderAnimation, buildAnimationCatalog, characterThumbs } = require('./sprites');
 
 // ── Activation ────────────────────────────────────────────────────────────────
 
@@ -195,237 +192,7 @@ async function syncDerivedSettingsFromRepoPath() {
     }
 }
 
-// ── Radar scope/analysis functions ───────────────────────────────────────────
-
-function radarReadMemoryMap(filePath) {
-    const map = new Map();
-    if (!fs.existsSync(filePath)) return map;
-    for (const line of fs.readFileSync(filePath, 'utf8').split(/\r?\n/)) {
-        if (!line.startsWith('|')) continue;
-        const cells = line.split('|').map(c => c.trim()).filter(Boolean);
-        if (cells.length < 3) continue;
-        const m = cells[0].match(/0x([0-9a-fA-F]{4})(?:[^0-9a-fA-F]*0x([0-9a-fA-F]{4}))?/);
-        if (!m) continue;
-        const start = parseInt(m[1], 16), end = m[2] ? parseInt(m[2], 16) : start;
-        if (start > end) continue;
-        const rawName = cells[1] || '';
-        const nameParts = radarParseName(rawName);
-        const name = nameParts[0] || rawName.replace(/<[^>]+>/g, '').trim();
-        if (/^\s*\(gap/i.test(name)) continue;
-        const notes = radarParseNotes(cells[3] || '');
-        const typeStr = cells[2] || '';
-        const isWord = /\bWord\b/i.test(typeStr);
-        const effectiveEnd = (isWord && end === start) ? start + 1 : end;
-        const entry = {
-            name, nameParts, type: typeStr, notes,
-            lifecycle: radarLifecycle(start, typeStr, notes),
-            isWord, addrStart: start, addrEnd: effectiveEnd,
-        };
-        for (let a = start; a <= effectiveEnd; a++) {
-            const ex = map.get(a);
-            if (!ex || ex.addrStart < start) map.set(a, entry);
-        }
-    }
-    return map;
-}
-
-function radarFindOpenBrace(document, fromLine) {
-    for (let l = fromLine; l < Math.min(fromLine + 10, document.lineCount); l++) {
-        if (document.lineAt(l).text.includes('{')) return l;
-    }
-    return -1;
-}
-
-function radarFindCloseBrace(document, ob) {
-    let depth = 0;
-    for (let l = ob; l < document.lineCount; l++) {
-        for (const ch of document.lineAt(l).text.replace(/\/\/.*$/, '')) {
-            if (ch === '{') depth++;
-            else if (ch === '}') { depth--; if (depth === 0) return l; }
-        }
-    }
-    return -1;
-}
-
-function radarDetectScope(document, cursorLine) {
-    const declRe = /^\s*(fun|map|area|group)\s+([A-Za-z_][A-Za-z0-9_]*)\b/;
-    for (let line = cursorLine; line >= 0; line--) {
-        const m = declRe.exec(document.lineAt(line).text);
-        if (!m) continue;
-        const ob = radarFindOpenBrace(document, line);
-        if (ob === -1) return { kind: m[1], name: m[2], startLine: line, endLine: line };
-        const cb = radarFindCloseBrace(document, ob);
-        return { kind: m[1], name: m[2], startLine: line, endLine: cb === -1 ? document.lineCount - 1 : cb };
-    }
-    return { kind: 'global', name: 'global', startLine: 0, endLine: document.lineCount - 1 };
-}
-
-function radarAnalyzeScope(document, startLine, endLine) {
-    const refs = new Map();
-    const pools = [];
-    const argRefs = new Map();
-
-    const add = (addr, line, rawText, source, isWrite) => {
-        if (!refs.has(addr)) refs.set(addr, { reads: [], writes: [], sources: [] });
-        const r = refs.get(addr);
-        const entry = { line, text: rawText.trim() };
-        if (isWrite) { if (!r.writes.some(x => x.line === line)) r.writes.push(entry); }
-        else         { if (!r.reads.some(x => x.line === line))  r.reads.push(entry); }
-        if (!r.sources.includes(source)) r.sources.push(source);
-    };
-    const addArg = (idx, line, rawText, isWrite) => {
-        if (!argRefs.has(idx)) argRefs.set(idx, { reads: [], writes: [] });
-        const r = argRefs.get(idx);
-        const entry = { line, text: rawText.trim() };
-        if (isWrite) { if (!r.writes.some(x => x.line === line)) r.writes.push(entry); }
-        else         { if (!r.reads.some(x => x.line === line))  r.reads.push(entry); }
-    };
-    const isWrite = (text, hexLit) => {
-        const h = hexLit.replace(/^0x/i, '');
-        return new RegExp('<\\s*0x' + h + '[^>]*>\\s*(?:[+\\-*\\/&|^]|<<|>>)?=(?!=)', 'i').test(text) ||
-               new RegExp('memory\\s*\\(\\s*0x' + h + '[^)]*\\)\\s*(?:[+\\-*\\/&|^]|<<|>>)?=(?!=)', 'i').test(text);
-    };
-
-    const seenPools = new Set();
-    const addPool = (ps, pe, lineIdx) => {
-        if (isNaN(ps) || isNaN(pe) || ps > pe) return;
-        const key = ps + '-' + pe;
-        if (seenPools.has(key)) return;
-        seenPools.add(key);
-        pools.push({ start: ps, end: pe, line: lineIdx, lc: radarLifecycle(ps, '', '') });
-    };
-    for (let i = 0; i < document.lineCount; i++) {
-        const text = document.lineAt(i).text.replace(/\/\/.*$/, '');
-        const poolM = text.match(/<\s*(0x[0-9a-fA-F]+)\s*>\s*\.\.\s*<\s*(0x[0-9a-fA-F]+)\s*>/);
-        if (poolM) addPool(parseInt(poolM[1], 16), parseInt(poolM[2], 16), i);
-    }
-    const docDir = path.dirname(document.uri.fsPath);
-    const mainEvsPath = path.join(docDir, 'main.evs');
-    if (mainEvsPath !== document.uri.fsPath && fs.existsSync(mainEvsPath)) {
-        const mainLines = fs.readFileSync(mainEvsPath, 'utf8').split(/\r?\n/);
-        for (let i = 0; i < mainLines.length; i++) {
-            const text = mainLines[i].replace(/\/\/.*$/, '');
-            const poolM = text.match(/<\s*(0x[0-9a-fA-F]+)\s*>\s*\.\.\s*<\s*(0x[0-9a-fA-F]+)\s*>/);
-            if (poolM) addPool(parseInt(poolM[1], 16), parseInt(poolM[2], 16), i);
-        }
-    }
-
-    for (let i = startLine; i <= endLine; i++) {
-        const rawText = document.lineAt(i).text;
-        const text    = rawText.replace(/\/\/.*$/, '');
-        if (/<\s*0x[0-9a-fA-F]+\s*>\s*\.\.\s*</.test(text)) continue;
-        for (const m of text.matchAll(/\bmemory\s*\(\s*(0x[0-9a-fA-F]+)/g)) {
-            const a = parseInt(m[1], 16);
-            if (!isNaN(a)) add(a, i, rawText, 'memory()', isWrite(text, m[1]));
-        }
-        for (const m of text.matchAll(/<\s*(0x[0-9a-fA-F]+)/g)) {
-            const a = parseInt(m[1], 16);
-            if (!isNaN(a)) add(a, i, rawText, '<deref>', isWrite(text, m[1]));
-        }
-        for (const m of text.matchAll(/\barg\s*\[\s*(0x[0-9a-fA-F]+|\d+)\s*\]/g)) {
-            const raw = m[1];
-            const idx = raw.startsWith('0x') || raw.startsWith('0X') ? parseInt(raw, 16) : parseInt(raw, 10);
-            if (!isNaN(idx)) {
-                const argIsWrite = /\barg\s*\[\s*[^\]]+\]\s*(?:[+\-*\/&|^]|<<|>>)?=(?!=)/.test(text);
-                addArg(idx, i, rawText, argIsWrite);
-            }
-        }
-    }
-    return { refs, pools, argRefs };
-}
-
-/**
- * Export decoded room maps as PNG files.
- *
- * The in-repo equivalent of `tools/render_map.py --all-rooms -o out/maps`,
- * so the PNGs are reachable without leaving VS Code or setting up Python.
- */
-async function exportRoomMaps() {
-    const maps = require('./maps');
-    const cfg  = getExtConfig();
-    const ws   = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
-    const rom  = romReaders.loadRomBuffer(ws, '');
-    if (!rom) {
-        vscode.window.showErrorMessage('Everscript: ROM not found — use Everscript: Switch ROM.');
-        return;
-    }
-
-    const scopePick = await vscode.window.showQuickPick(
-        [
-            { label: 'This room only', detail: 'Pick a single room id', all: false },
-            { label: 'All rooms', detail: 'Export every vanilla room (0x00–0x7E)', all: true },
-        ],
-        { placeHolder: 'Export room maps as PNG' },
-    );
-    if (!scopePick) return;
-
-    const layerPick = await vscode.window.showQuickPick(
-        ['composite', 'layer2', 'layer1'],
-        { placeHolder: 'Which layer? (composite = as the SNES displays it)' },
-    );
-    if (!layerPick) return;
-
-    let roomIds = [];
-    if (scopePick.all) {
-        roomIds = Array.from({ length: maps.MAX_ROOMS }, (_, i) => i);
-    } else {
-        const raw = await vscode.window.showInputBox({
-            prompt: 'Room id (hex, e.g. 0x38)',
-            value: '0x38',
-            validateInput: (v) => {
-                const n = parseInt(String(v).replace(/^0x/i, ''), 16);
-                return Number.isInteger(n) && n >= 0 && n <= 0x7e ? null : 'Expected a hex room id in 0x00–0x7E';
-            },
-        });
-        if (!raw) return;
-        roomIds = [parseInt(String(raw).replace(/^0x/i, ''), 16)];
-    }
-
-    const target = await vscode.window.showOpenDialog({
-        canSelectFolders: true, canSelectFiles: false, canSelectMany: false,
-        openLabel: 'Export here',
-        defaultUri: ws ? vscode.Uri.file(path.join(ws, 'out')) : undefined,
-    });
-    if (!target || !target.length) return;
-    const outDir = target[0].fsPath;
-
-    await vscode.window.withProgress(
-        { location: vscode.ProgressLocation.Notification, title: 'Exporting room maps', cancellable: true },
-        async (progress, token) => {
-            let written = 0;
-            const failures = [];
-            for (let i = 0; i < roomIds.length; i++) {
-                if (token.isCancellationRequested) break;
-                const id = roomIds[i];
-                progress.report({
-                    message: `0x${id.toString(16).padStart(2, '0')} (${i + 1}/${roomIds.length})`,
-                    increment: 100 / roomIds.length,
-                });
-                try {
-                    const room  = maps.decodeRoom(rom, id);
-                    const image = layerPick === 'composite'
-                        ? maps.renderRoomComposite(rom, room)
-                        : maps.renderVramLayer(rom, room, layerPick === 'layer1' ? room.layer1VramWords : room.layer2VramWords);
-                    const file = path.join(outDir, `room_0x${id.toString(16).padStart(2, '0')}_${layerPick}.png`);
-                    fs.writeFileSync(file, maps.encodePng(image));
-                    written += 1;
-                } catch (err) {
-                    failures.push(`0x${id.toString(16)}: ${err && err.message || err}`);
-                }
-                // Yield so the progress notification can paint.
-                await new Promise((r) => setImmediate(r));
-            }
-
-            if (failures.length) {
-                console.warn('[Everscript] Map export failures:\n  ' + failures.join('\n  '));
-                vscode.window.showWarningMessage(
-                    `Exported ${written} map(s); ${failures.length} failed (first: ${failures[0]}).`);
-            } else {
-                vscode.window.showInformationMessage(`Exported ${written} map(s) to ${outDir}`);
-            }
-        },
-    );
-}
+const { radarReadMemoryMap, radarDetectScope, radarAnalyzeScope } = require('./memory/scope-analysis');
 
 function refreshRadar(editor) {
     if (!_radarPanel || _radarPinned) return;
@@ -967,7 +734,7 @@ function activate(context) {
             syncDerivedSettingsFromRepoPath().catch(() => {});
             vscode.commands.executeCommand('workbench.action.openSettings', 'everscript');
         }),
-        vscode.commands.registerCommand('everscript.exportRoomMaps', exportRoomMaps),
+        vscode.commands.registerCommand('everscript.exportRoomMaps', () => require('./rooms/export-maps').exportRoomMaps(getExtConfig)),
 
         // A map editor is a workspace, not a read-out: it opens in the active
         // column with the whole editor area, on the Rooms tab, already in edit
@@ -1002,248 +769,7 @@ function activate(context) {
         if (event.affectsConfiguration('everscript.repoPath')) syncDerivedSettingsFromRepoPath().catch(() => {});
     }));
 
-    // ── Build-and-Run ────────────────────────────────────────────────────────
-    // Options (the debugger's launch): { inputPath, run: false } builds without
-    // loading the ROM. Resolves to { ok, outputRom }. Menus pass a Uri instead.
-    context.subscriptions.push(
-        vscode.commands.registerCommand('everscript.buildAndRun', async (options) => {
-            const opts = options && typeof options.inputPath === 'string' ? options : {};
-            const editor = vscode.window.activeTextEditor;
-            const inputFile = opts.inputPath
-                || (editor && editor.document.languageId === 'everscript' ? editor.document.uri.fsPath : '');
-            if (!inputFile) {
-                vscode.window.showWarningMessage('Everscript: no .evs file is active.');
-                return { ok: false };
-            }
-
-            const cfg       = vscode.workspace.getConfiguration('everscript');
-            const nodePath  = require('path');
-            const nodeFs    = require('fs');
-            const nodeOs    = require('os');
-            const cp        = require('child_process');
-            const extCfg    = getExtConfig();
-
-            // ── 1. Resolve compiler and project root ───────────────────────
-            let repoPath    = extCfg.repoPath || '';
-            let patchesPath = extCfg.patchesDir || '';
-            let romPath     = roms.romPathFor('evermore') || ''; // the Evermore ROM of the ROM library
-            let compilerBin = extCfg.compilerPath || ''; // manual override
-            let projectRoot = repoPath;
-            let useScript   = false;
-
-            // Prefer everscript.py in the repo root (Python-based compiler).
-            if (repoPath && nodeFs.existsSync(nodePath.join(repoPath, 'everscript.py'))) {
-                useScript = true;
-                if (!compilerBin) compilerBin = nodePath.join(repoPath, 'everscript.py');
-            }
-
-            if (!compilerBin) {
-                // Auto-detect by walking up from the active .evs file.
-                let dir = nodePath.dirname(inputFile);
-                for (let depth = 0; depth < 8 && !compilerBin; depth++) {
-                    const pyCandidate = nodePath.join(dir, 'everscript.py');
-                    if (nodeFs.existsSync(pyCandidate)) {
-                        useScript   = true;
-                        compilerBin = pyCandidate;
-                        if (!projectRoot) projectRoot = dir;
-                        break;
-                    }
-                    for (const bin of ['everscript_mac', 'everscript', 'everscript.exe']) {
-                        const candidate = nodePath.join(dir, 'dist', bin);
-                        if (nodeFs.existsSync(candidate)) {
-                            compilerBin = candidate;
-                            if (!projectRoot) projectRoot = dir;
-                            break;
-                        }
-                    }
-                    const parent = nodePath.dirname(dir);
-                    if (parent === dir) break;
-                    dir = parent;
-                }
-            }
-
-            if (!compilerBin) {
-                vscode.window.showErrorMessage(
-                    'Everscript: compiler not found. Open the Emulator panel \u2192 Settings tab and set the repo path.'
-                );
-                return { ok: false };
-            }
-
-            if (!projectRoot) {
-                projectRoot = useScript
-                    ? nodePath.dirname(compilerBin)
-                    : nodePath.dirname(nodePath.dirname(compilerBin)); // parent of dist/
-            }
-
-            // ── 2. Resolve ROM ─────────────────────────────────────────────
-            let romName = '';
-            if (romPath) {
-                romName = nodePath.basename(romPath);
-            } else {
-                try {
-                    const files = nodeFs.readdirSync(projectRoot);
-                    const found = files.find(f => /\.(smc|sfc)$/i.test(f));
-                    if (found) romName = found;
-                } catch (_) {}
-            }
-
-            if (!romName) {
-                vscode.window.showErrorMessage(
-                    'Everscript: no ROM found. Set the Vanilla ROM in the Emulator panel \u2192 Settings tab.'
-                );
-                return { ok: false };
-            }
-
-            // ── 3. Resolve patches folder ──────────────────────────────────
-            let patchesArg = patchesPath;
-            if (!patchesArg && projectRoot) {
-                const defaultPatches = nodePath.join(projectRoot, 'patches');
-                if (nodeFs.existsSync(defaultPatches)) patchesArg = defaultPatches;
-            }
-
-            // ── 4. Build spawn args ────────────────────────────────────────
-            const inputEvs  = inputFile;
-            const outputRom = nodePath.join(projectRoot, 'out', romName);
-
-            // Detect Python: prefer project venv so packages like 'injector' are available
-            let pythonBin = extCfg.pythonPath || '';
-            if (!pythonBin && projectRoot) {
-                for (const rel of ['.venv/bin/python3', '.venv/bin/python', 'venv/bin/python3', 'venv/bin/python']) {
-                    const c = nodePath.join(projectRoot, rel);
-                    if (nodeFs.existsSync(c)) { pythonBin = c; break; }
-                }
-            }
-            if (!pythonBin) pythonBin = 'python3';
-
-            // Use relative paths (matches: python everscript.py --rom ... --patches ./patches in/...)
-            const _sep = nodePath.sep;
-            const inputArg = inputEvs.startsWith(projectRoot + _sep)
-                ? nodePath.relative(projectRoot, inputEvs)
-                : inputEvs;
-            const patchesArgRel = patchesArg && patchesArg.startsWith(projectRoot)
-                ? nodePath.relative(projectRoot, patchesArg)
-                : patchesArg;
-
-            let spawnBin, spawnArgs;
-            if (useScript) {
-                spawnBin  = pythonBin;
-                spawnArgs = [compilerBin, '--rom', romName];
-                if (patchesArgRel) spawnArgs.push('--patches', patchesArgRel);
-                spawnArgs.push(inputArg);
-            } else {
-                spawnBin  = compilerBin;
-                spawnArgs = ['--rom', romName, inputArg];
-            }
-
-            function buildSpawnEnv() {
-                const env = { ...process.env };
-                const pathKey = Object.keys(env).find((key) => key.toUpperCase() === 'PATH') || 'PATH';
-                const pathEntries = [];
-                const seen = new Set();
-                function addPathEntry(entry) {
-                    if (!entry || seen.has(entry)) return;
-                    seen.add(entry);
-                    pathEntries.push(entry);
-                }
-
-                if (projectRoot) {
-                    for (const rel of ['.venv/bin', 'venv/bin']) {
-                        const candidate = nodePath.join(projectRoot, rel);
-                        if (nodeFs.existsSync(candidate)) addPathEntry(candidate);
-                    }
-                }
-                if (pythonBin) addPathEntry(nodePath.dirname(pythonBin));
-
-                const shellBin = env.SHELL || '/bin/zsh';
-                try {
-                    const shellResult = cp.spawnSync(shellBin, ['-lic', 'printf %s "$PATH"'], {
-                        cwd: projectRoot,
-                        encoding: 'utf8',
-                        env,
-                        timeout: 5000,
-                    });
-                    if (shellResult.status === 0 && shellResult.stdout) {
-                        for (const entry of shellResult.stdout.split(nodePath.delimiter)) addPathEntry(entry);
-                    }
-                } catch (_) {}
-
-                for (const entry of String(env[pathKey] || '').split(nodePath.delimiter)) addPathEntry(entry);
-                for (const entry of [
-                    '/opt/homebrew/bin',
-                    '/usr/local/bin',
-                    '/usr/bin',
-                    '/bin',
-                    nodePath.join(nodeOs.homedir(), 'Documents', 'GitHub', 'asar', 'asar', 'bin'),
-                    nodePath.join(nodeOs.homedir(), 'GitHub', 'asar', 'asar', 'bin'),
-                ]) {
-                    if (nodeFs.existsSync(entry)) addPathEntry(entry);
-                }
-
-                env[pathKey] = pathEntries.join(nodePath.delimiter);
-                return env;
-            }
-
-            const channel = vscode.window.createOutputChannel('Everscript Build');
-            channel.clear();
-            channel.show(true);
-            channel.appendLine(`[Everscript] Compiling: ${nodePath.basename(inputEvs)}`);
-            channel.appendLine(`[Everscript] CWD:       ${projectRoot}`);
-            function _qArg(a) { return /[ ()\[\]\\!'"<>]/.test(a) ? '"' + a.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"' : a; }
-            channel.appendLine(`[Everscript] Command:   ${[spawnBin, ...spawnArgs.map(_qArg)].join(' ')}`);
-            channel.appendLine('');
-
-            const statusItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-            statusItem.text = '$(sync~spin) Everscript: building...';
-            statusItem.show();
-
-            const exitCode = await new Promise(resolve => {
-                const proc = cp.spawn(spawnBin, spawnArgs, { cwd: projectRoot, shell: false, env: buildSpawnEnv() });
-                proc.stdout.on('data', d => channel.append(d.toString()));
-                proc.stderr.on('data', d => channel.append(d.toString()));
-                proc.on('close', code => resolve(code));
-                proc.on('error', err => {
-                    channel.appendLine('[Everscript] Error: ' + err.message);
-                    resolve(1);
-                });
-            });
-
-            statusItem.dispose();
-
-            if (exitCode !== 0) {
-                vscode.window.showErrorMessage(
-                    'Everscript build failed (exit ' + exitCode + '). See Output > Everscript Build.'
-                );
-                return { ok: false };
-            }
-
-            // The ROM just changed. The render cache keys on a ROM fingerprint
-            // so it would recover on its own, but drop it explicitly too —
-            // a stale map render is worse than a slow one.
-            romReaders.invalidateRomBuffer();
-            roomTree.invalidateRoomRenders();
-            roomTree.invalidateMetatilePalettes();
-
-            channel.appendLine('[Everscript] Build succeeded.');
-
-            // ── 5. Load output ROM into the emulator ───────────────────────
-            let romData;
-            try {
-                romData = nodeFs.readFileSync(outputRom);
-            } catch (e) {
-                channel.appendLine(`[Everscript] Output ROM not found: ${outputRom}`);
-                channel.appendLine(`[Everscript] Error: ${e.message}`);
-                vscode.window.showErrorMessage('Everscript: build succeeded but output ROM not found: ' + e.message);
-                openEmulatorPanel(context, undefined, channel);
-                return { ok: false };
-            }
-            channel.appendLine(`[Everscript] Output ROM:  ${outputRom}`);
-            channel.appendLine(`[Everscript] ROM size:    ${(romData.length / 1024 / 1024).toFixed(2)} MB`);
-            if (opts.run === false) return { ok: true, outputRom };
-            const dataUrl = 'data:application/octet-stream;base64,' + romData.toString('base64');
-            openEmulatorPanel(context, { dataUrl, name: nodePath.basename(outputRom), filePath: outputRom, kind: 'build' }, channel);
-            return { ok: true, outputRom };
-        }),
-    );
+    require('./language/build-and-run').registerBuildAndRun(context, { getExtConfig, openEmulatorPanel });
 }
 
 
