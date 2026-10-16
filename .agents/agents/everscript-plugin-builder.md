@@ -332,7 +332,4 @@ When adding a new module:
 - Add to the domain README if it introduces new state ownership
 
 When working on architecture skills, use:
-- `compress-architecture` for file extraction work
-- `isolate-subsystem` for dependency direction fixes
-- `stabilize-state-flow` for state ownership consolidation
-- `split-orchestration` for god-file decomposition
+- `architecture` for layers, file splits, dependency fixes and state ownership

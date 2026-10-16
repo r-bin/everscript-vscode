@@ -129,7 +129,7 @@ content is meant to be small, the viewBox has to be allowed to be exactly that s
 ## 5. Verify click-handling bugs in a real headless browser, with the real stylesheet
 
 Reading webview code twice missed both the caret bug (§2) and a bug where a click
-handler was silently dead code (a scripted edit had no-op'd — see the `code-quality`
+handler was silently dead code (a scripted edit had no-op'd — see the `architecture`
 skill's note on scripted substitutions). Both were found immediately by driving a real
 page with Playwright and clicking a real element.
 

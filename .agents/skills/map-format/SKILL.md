@@ -112,7 +112,7 @@ It would be a new ownership domain, sibling to `src/games/evermore/debugger/`, `
 `src/emulator/`, `src/games/evermore/language/`. Before writing code against it: add it to
 `AI_ARCHITECTURE_GUIDE.md`'s ownership-domain list and to
 `docs/architecture/domain-overview.md`'s per-domain "Allowed deps" table, the same way
-the existing domains are documented (see the `isolate-subsystem` skill). If it spawns
+the existing domains are documented (see the `architecture` skill). If it spawns
 anything Python, reuse `src/games/evermore/language/config.js`'s existing `everscript.repoPath` /
 `pythonPath` resolution and the `child_process.spawn` pattern `src/games/evermore/extension.js` already
 uses for "Build and Run" — don't invent a second of either.

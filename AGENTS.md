@@ -109,11 +109,7 @@ add new skills in `.agents/skills/<name>/SKILL.md` and they show up in both (new
 | `rom-map-data` | `.agents/skills/rom-map-data/SKILL.md` | Room blob layout, compression blocks, collision bitfields |
 | `grammar-rules` | `.agents/skills/grammar-rules/SKILL.md` | TextMate pattern rules, test assertion format |
 | `colour-theme` | `.agents/skills/colour-theme/SKILL.md` | P1–P9 priority palette |
-| `code-quality` | `.agents/skills/code-quality/SKILL.md` | TS migration policy, dead code policy |
-| `compress-architecture` | `.agents/skills/compress-architecture/SKILL.md` | Splitting oversized files by ownership |
-| `isolate-subsystem` | `.agents/skills/isolate-subsystem/SKILL.md` | Fixing forbidden cross-domain dependencies |
-| `stabilize-state-flow` | `.agents/skills/stabilize-state-flow/SKILL.md` | Consolidating state to a single owner |
-| `split-orchestration` | `.agents/skills/split-orchestration/SKILL.md` | Decomposing god files (`src/games/evermore/extension.js`, panel files) |
+| `architecture` | `.agents/skills/architecture/SKILL.md` | Layers and dependency rules, splitting files, state ownership, moving files (traps), TS and dead code policy |
 | `webview-dom-safety` | `.agents/skills/webview-dom-safety/SKILL.md` | Idempotent event binding, event target walk-up, SVG coordinate systems |
 | `emulator-subsystem` | `.agents/skills/emulator-subsystem/SKILL.md` | snes9x2005-wasm core build, licensing, audio sync, display scaling, keybinds |
 | `cdl-recorder` | `.agents/skills/cdl-recorder/SKILL.md` | Code/Data Logger: core hooks, call stack / DB / D / SPC700 recording, mergeable library, Asar export with table assets, enums, structs, functions.json, snesrecomp directives; what recomp / decomp / SA-1 still need |
@@ -154,7 +150,6 @@ domain `AGENTS.md`/`README.md` files over them.
 ## 5. Workflows and personas
 
 Specialized workflow personas live in `.agents/agents/`:
-- `architecture-compressor.md`
 - `everscript-plugin-builder.md`
 - `mechanics-modeler.md`
 - `re-curator.md` — one pass over the knowledge gaps (names, RAM/ROM entries) from CDL, `soe://`, curated sources and Ghidra/REA dossiers
