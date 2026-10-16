@@ -1,8 +1,8 @@
 # Retire everscript-vscode: one repo for language, compiler, plugin and knowledge
 
 **Status: draft (2026-10-16), not decided.** Nothing here applies until the owner accepts it.
-It changes cleanup decisions D7 and D9 ([cleanup.md](cleanup.md)) and replaces the
-recommendation in `architecture-state.md` §22.
+It changes cleanup decisions D7 and D9 ([cleanup.md](../cleanup.md)) and replaces the
+recommendation in [architecture-state.md](../architecture-state.md) §22.
 
 ## 1. Why
 
@@ -78,14 +78,14 @@ Rules that change:
 
 Each step is one commit (or one short series) and leaves both repos working until step 8.
 
-1. **Accept this plan.** Amend D7, D9 and `architecture-state.md` §22; update
-   `docs/todo/language-tools-and-lsp.md` §1.5 (the Python LSP stays an option, the TS port does
+1. **Accept this plan.** Amend D7, D9 and [architecture-state.md](../architecture-state.md) §22; update
+   [language-tools-and-lsp.md](language-tools-and-lsp.md) §1.5 (the Python LSP stays an option, the TS port does
    not).
 2. **Legal pass on `everscript`, tree and history.** Run the `check:legal` rules over it.
    Known suspects: the `soetilesviewer` skill (this repo's rules forbid using that tool),
    `in/evermizer_contributions/` (third-party content: licence?), any script dumps or hex
    dumps in `docs/`. Fix the tree; list the history findings next to
-   [legal-history.md](legal-history.md).
+   [legal-history.md](../legal-history.md).
 3. **Exporter (G2, G3), still two repos.** `everscript/tools/export_language_data.py` imports
    `compiler/lexer.py` + `parser.py` + `ast_everscript.py`, parses `in/core/` and writes
    `language-data.json` (functions + signatures, enums, RAM regions, opcode table). The
@@ -115,7 +115,7 @@ Rollback: before step 8 nothing is lost; the plugin repo still builds on its own
 
 ## 5. Open questions
 
-- **Repo name.** The target is multi-game (`architecture/multi-game.md`: Mana, later
+- **Repo name.** The target is multi-game ([architecture/multi-game.md](../architecture/multi-game.md): Mana, later
   Terranigma); a repo named after Evermore's script language will hold all of it. Rename now,
   later, or never?
 - **`in/` vs `content/`.** Renaming costs every compiler path and doc; keeping it costs nothing.

@@ -248,4 +248,4 @@ message rewrite, then force-push; old clones and forks keep the old history.
 Carried from the old audit; they live in `docs/todo/`: emulator performance (visibility gating,
 AudioWorklet pacing, `SND_SEND` arming, core flags), PAL timing (multi-game.md §6), unified
 webview theming on `--vscode-*`, live diagnostics and `soe://` in hovers, porting the everscript
-compiler front end to TS (draft alternative: keep the Python compiler and move this repo into `everscript`, [merge-into-everscript.md](merge-into-everscript.md)).
+compiler front end to TS (draft alternative: keep the Python compiler and move this repo into `everscript`, [merge-into-everscript.md](todo/merge-into-everscript.md)).
