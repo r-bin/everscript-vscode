@@ -15,7 +15,7 @@ const { exportWram } = require('../../../platform/cdl/wram-export');
 const { lookup } = require('../../../platform/cdl/lookup');
 const { findTables } = require('../../../platform/cdl/tables');
 const { buildIndex } = require('../../../platform/cdl/xref-index');
-const { getActiveAddressLookup } = require('../../../emulator/address-lookup');
+const { getActiveAddressLookup } = require('../emulator/address-lookup');
 const { hex } = require('../../../platform/cdl/rom-map');
 
 /** The Asar export with Evermore's known regions (rooms, strings, enter scripts) seeded. */

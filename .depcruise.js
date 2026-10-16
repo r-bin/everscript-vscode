@@ -44,6 +44,13 @@ module.exports = {
       to: { path: '^(src/games/|dist/games/)' },
     },
     {
+      name: 'emulator-knows-no-game',
+      comment: 'The emulator panel is game-neutral on the host side: a game hands in its half through configureEmulator({ game, cdlTools }).',
+      severity: 'error',
+      from: { path: '^src/emulator/' },
+      to: { path: '^(src|dist)/games/' },
+    },
+    {
       name: 'games-stay-apart',
       comment: 'A game never imports another game (the only bridge is games/<game>/imports/<other>/).',
       severity: 'error',

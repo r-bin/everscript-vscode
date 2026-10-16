@@ -6,6 +6,9 @@ one list of games (removing a game = deleting its folder and its line).
 ## Owns
 - `<game>/descriptor.ts`: id, scheme, header match, variants (SHA-1, one `base`), capabilities, docs.
 - `evermore/derived.ts`: the marker our builders write into ROMs derived from the Evermore base ROM.
+- `evermore/emulator/`: Evermore's half of the emulator panel's host side (`host.js`, handed in through
+  `configureEmulator({ game })`), script trace, address lookup, custom-map test ROMs; `evermore/cdl/`:
+  the CDL export's Evermore seeds (`regions.js`) and the CDL tab's tools.
 - `index.ts`: `registerGames()`, plus `romPath(game)` / `baseRomPath(game)` for tests and tools.
 
 ## Dependencies

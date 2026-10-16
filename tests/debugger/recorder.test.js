@@ -288,7 +288,7 @@ function recordInto(root, rom, hits) {
 
             // TRACE: no button bar; the bottom bar shows everything, the menu time + source + script,
             // a side bar time + script. Clear is a menu row; Down past it scrolls the trace.
-            const { ScriptTraceFormatter } = require('../../src/emulator/trace-formatter');
+            const { ScriptTraceFormatter } = require('../../src/games/evermore/emulator/trace-formatter');
             const fmt = new ScriptTraceFormatter();
             const traceHtml = fmt.formatHtml({ slot: 0, entity: 0x23b9, event: 'step', loc: 0x9DD008, locHex: '0x9DD008', bytesHex: '9D D0 08', summary: 'Make boy walk', timeStr: '20:18:59.123' }, { shortTag: '0x12.step[0]', name: 'step' });
             assert.strictEqual(await full.p.evaluate(() => document.getElementById('ss-trace-header')), null, 'no button bar');

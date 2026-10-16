@@ -14,13 +14,15 @@ Related skills: `emulator-subsystem`, `cdl-recorder`, `webview-dom-safety`, `deb
 - The two profiles (full Everscript, SNES CDL Recorder) and the Evermore gating: README "Profiles and games".
 
 ## Dependencies
-- Allowed: libraries (`../shared/`, `../maps/`, `../script/`, `../localizations/`) and
-  platform read APIs (`soe://`).
-- No dependency on `../memory/`, `../rooms/`, `../debugger/` or any other feature. The ROM,
-  Music and soe:// domains get emulator data injected by `src/extension.js`
+- `platform/` (CDL engine, TAS movie format, ROM library, through `dist/platform` or `../platform/`) and
+  `vscode`. **No game** (`.depcruise.js` `emulator-knows-no-game`): the game's host-side half comes in
+  through `configureEmulator({ game, cdlTools })` — Evermore's is `src/games/evermore/emulator/host.js`
+  (room pictures, idle sprites, alchemy/loot icons, script trace, describing its own test ROMs) and
+  `src/games/evermore/cdl/tools.js`. The recorder passes neither, so its package has no game code.
+- The ROM, Music and soe:// domains get emulator data injected by `src/extension.js`
   (`.depcruise.js`: `no-rom-to-emulator`, `no-music-to-emulator`, `no-resources-to-emulator`).
-- Existing exceptions (do not add more):
-  - `panel.js` → `../rooms/data/item-icons` (feature → feature; should move to `maps/` or `soe://`).
+- Still Evermore inside: the webview side (`panel-webview.js`, `bottom-bar-views.js`, `menu/`) — the
+  ENTITIES / ALCHEMY panels and the pause menu read Evermore WRAM; they move out with cleanup 5.3.
 
 ## State owned
 - `panel.js` (module-local, per panel): the active `WebviewPanel`, pending ROM, current ROM

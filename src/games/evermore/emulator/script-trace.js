@@ -19,7 +19,7 @@ try {
 
 const path   = require('path');
 const fs     = require('fs');
-const { decodeInstruction, OperandStack } = require('../games/evermore/script');
+const { decodeInstruction, OperandStack } = require('../script');
 const { getActiveAddressLookup } = require('./address-lookup');
 const { ScriptTraceFormatter } = require('./trace-formatter');
 
@@ -35,7 +35,7 @@ function ensureScriptTraceChannel() {
 
 /** The Evermore ROM of the ROM library (docs/architecture/multi-game.md, section 5), when the emulator has none. */
 function loadFallbackRom(_wsRoot) {
-  const rom = require('../games/evermore/rom-readers').loadRomBuffer(null);
+  const rom = require('../rom-readers').loadRomBuffer(null);
   return rom ? new Uint8Array(rom) : null;
 }
 

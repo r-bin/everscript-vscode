@@ -35,7 +35,6 @@ const ASSETS = [
     'src/emulator/webview/emulator-panels.js',
     'src/emulator/webview/emulator-panels.css',
     'src/emulator/webview/replays-list.js',
-    'src/emulator/known-scripts.json',   // address-lookup.js
 ];
 
 const REQUIRE = /\brequire\(\s*(['"])([^'"]+)\1\s*\)/g;

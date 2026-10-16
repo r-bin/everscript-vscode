@@ -4,8 +4,8 @@
  * src/emulator/rom-history.js
  *
  * Tracks ROM loading history and offers quick-launch targets for the emulator:
- * - Configured vanilla Secret of Evermore ROM
- * - Temporarily generated ROMs from the map editor (*_emulator.sfc)
+ * - The base ROM of the selected game (ROM library)
+ * - ROMs a game built itself (Evermore: map editor test ROMs, *_emulator.sfc), described by the game
  * - Recently opened / built / dropped ROM files
  */
 
@@ -13,8 +13,6 @@ const path   = require('path');
 const fs     = require('fs');
 const os     = require('os');
 const crypto = require('crypto');
-const maps   = require('../games/evermore/maps');
-const { resolveRomPath } = require('../games/evermore/rom-readers');
 
 const HISTORY_FILENAME = 'recent-roms.json';
 const MAX_HISTORY_ITEMS = 15;
@@ -23,18 +21,14 @@ const MAX_HISTORY_ITEMS = 15;
 // this file only shapes it for the quick-launch list.
 const platform = require('../../dist/platform');
 
-function isCustomMapPath(target, hintPath) {
-  const p = String(typeof target === 'string' ? target : (hintPath || '')).toLowerCase();
-  const base = path.basename(p);
-  return base.endsWith('_emulator.sfc') || base.endsWith('_emulator.smc') || base.includes('_emulator.');
-}
-
-function extractCustomMapName(target, hintPath) {
-  const p = String(typeof target === 'string' ? target : (hintPath || ''));
-  const base = path.basename(p);
-  const m = base.match(/^(.+?)_emulator\.(sfc|smc)$/i);
-  if (m) return m[1];
-  return base.replace(/\.(sfc|smc)$/i, '');
+/**
+ * A game can describe ROMs it built itself (Evermore: the map editor's test ROMs) before the
+ * library identification runs: (rom without copier header, target, hintPath) => details or null.
+ * Set by the emulator panel from configureEmulator({ game }).
+ */
+let _describeRom = null;
+function setRomDescriber(fn) {
+  _describeRom = typeof fn === 'function' ? fn : null;
 }
 
 function detectRomDetails(target, hintPath) {
@@ -53,44 +47,9 @@ function detectRomDetails(target, hintPath) {
     const sha1 = crypto.createHash('sha1').update(clean).digest('hex').toLowerCase();
     const crc = platform.crc32(clean).toString(16).padStart(8, '0').toLowerCase();
 
-    // 1. Path-based custom map detection (e.g. *_emulator.sfc from the map editor)
-    const customByPath = isCustomMapPath(target, hintPath);
-    const introOffset = 0x12e0ca;
-    const customByContent = clean.length >= 0x300000 && clean[introOffset] === 0x22 && clean[introOffset + 4] === 0x00 && clean[introOffset + 5] === 0x00;
-
-    if (customByPath || customByContent) {
-      const customName = extractCustomMapName(target, hintPath) || 'custom_map';
-      const targetRoom = customByContent ? clean[introOffset + 3] : 0x15;
-      let previewDataUri = '';
-      let roomWidth = 16;
-      let roomHeight = 14;
-      try {
-        const room = maps.decodeRoom(clean, targetRoom);
-        if (room && room.header) {
-          roomWidth = room.header.widthTiles;
-          roomHeight = room.header.heightTiles;
-          const composite = maps.renderRoomComposite(clean, room);
-          if (composite) previewDataUri = maps.encodePngDataUri(composite);
-        }
-      } catch (_) {}
-
-      return {
-        known: false,
-        isCustomMap: true,
-        customName: customName,
-        vfsUri: 'soe://maps/custom/' + encodeURIComponent(customName),
-        targetRoom: targetRoom,
-        roomWidth: roomWidth,
-        roomHeight: roomHeight,
-        previewDataUri: previewDataUri || '',
-        region: 'MAP',
-        regionName: 'Custom Map (' + customName + ')',
-        icon: 'MAP',
-        flag: 'MAP',
-        sha1: sha1,
-        crc32: crc,
-      };
-    }
+    // 1. A ROM the game itself built (e.g. a map editor test ROM)
+    const own = _describeRom ? _describeRom(clean, target, hintPath) : null;
+    if (own) return Object.assign(own, { sha1: sha1, crc32: crc });
 
     // 2. A known variant of a registered game
     const id = platform.identifyRom(clean);
@@ -173,7 +132,10 @@ function getStorageDir(context) {
 
 function getVanillaRom(wsRoot, cfgRomPath) {
   try {
-    const p = resolveRomPath(wsRoot, cfgRomPath || '');
+    // The base ROM of the selected ROM's game (the clean one to hack), else the selected ROM itself.
+    const sel = platform.selectedRom();
+    const base = sel && sel.game ? platform.baseRom(sel.game) : null;
+    const p = cfgRomPath || (base && base.path) || (sel && sel.path) || null;
     if (p && fs.existsSync(p)) {
       const st = fs.statSync(p);
       const details = detectRomDetails(p);
@@ -401,4 +363,5 @@ module.exports = {
   getRomOfferData,
   clearRecentRoms,
   detectRomDetails,
+  setRomDescriber,
 };

@@ -133,11 +133,12 @@ test('menu-view.js gates Start button only on opening screen and name entry', ()
   assert.ok(menuCode.includes('if (boyMaxHp === 0) return false;'), 'uninitialized boyMaxHp must pass Start to name entry');
 });
 
-test('panel.js caches static room metadata in _roomMetaCache for fast room updates', () => {
-  const panelCode = fs.readFileSync(path.join(__dirname, '../../src/emulator/panel.js'), 'utf8');
-  assert.ok(panelCode.includes('const _roomMetaCache = new Map();'), 'panel.js must define _roomMetaCache');
-  assert.ok(panelCode.includes('_getRoomMeta(rom, mapId)'), 'panel.js must use _getRoomMeta to avoid re-encoding animation groups on every frame');
-  assert.ok(panelCode.includes('_roomMetaCache.clear();'), 'panel.js must clear _roomMetaCache on disposal');
+test('the Evermore emulator host caches static room metadata; the panel clears it on disposal', () => {
+  const hostCode = fs.readFileSync(path.join(__dirname, '../../src/games/evermore/emulator/host.js'), 'utf8');
+  assert.ok(hostCode.includes('const _roomMetaCache = new Map();'), 'the host must define _roomMetaCache');
+  assert.ok(hostCode.includes('_getRoomMeta(rom, mapId)'), 'the host must use _getRoomMeta to avoid re-encoding animation groups on every frame');
+  assert.ok(hostCode.includes('_roomMetaCache.clear();'), 'clearCaches must clear _roomMetaCache');
+  assert.ok(panelCode.includes('_options.game.clearCaches()'), 'panel.js must clear the game caches on disposal');
 });
 
 test('panel-webview.js synchronizes background and foreground image activation and immediate redraw', () => {
