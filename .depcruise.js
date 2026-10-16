@@ -29,14 +29,6 @@ module.exports = {
       to: { path: '^src/' },
     },
 
-    {
-      name: 'no-sandbox-to-src',
-      comment: 'sandbox/ contains experiments only. It must not import from src/.',
-      severity: 'error',
-      from: { path: '^sandbox/' },
-      to: { path: '^src/' },
-    },
-
     // ── DOMAIN ISOLATION RULES (warn) ──────────────────────────────────────
 
     {
@@ -76,7 +68,7 @@ module.exports = {
       comment: 'The Scripts tab gets the animation renderer (sprites) and the silent music player (music) injected by extension.js; it imports libraries only.',
       severity: 'error',
       from: { path: '^src/scripts-tab/' },
-      to: { path: '^src/(sprites|music|rooms|emulator|memory|rom|scaling|routes|docs|debugger|resources|mcp)/' },
+      to: { path: '^src/(sprites|music|rooms|emulator|memory|rom|scaling|docs|debugger|resources|mcp)/' },
     },
 
     {
@@ -266,9 +258,7 @@ module.exports = {
       path: [
         '\\.test\\.js$',
         'script_parser/dependencies/',
-        'sandbox/',
         'tmp/',
-        'experimental/',
       ],
     },
     moduleSystems: ['cjs'],

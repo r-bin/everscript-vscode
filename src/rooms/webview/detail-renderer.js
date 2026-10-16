@@ -2,8 +2,7 @@
 // the host-rendered ROM map image.
 // Orchestrates: the header line and the editor (SVG section, filter bar,
 // status bar). Nothing is drawn under the editor any more: the trigger
-// scripts live in the Trigger tab, the header in Info, and what the editor
-// has no place for is parked in sandbox/room-data/ (its README says what and why).
+// scripts live in the Trigger tab, the header in Info; nothing else is drawn.
 // Then wires all interactions.
 // Depends on: utils.js, svg-builder.js, interactions.js, rom-overlay.js (all
 // globals — the webview JS is concatenated into one script). rom-overlay.js

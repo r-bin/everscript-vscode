@@ -456,7 +456,7 @@ instruments use table entries that the final added, along with the two new sampl
 prototype's own definitions of `$6D`/`$6C` are on chip 0. So the cue's notes were final in the
 prototype, and only its instruments were redone.
 
-**Reproducing:** [`tools/dump_proto_spc.py`](../tools/dump_proto_spc.py) builds the five songs. It
+**Reproducing:** `tools/dump_proto_spc.py` (removed 2026-10-16 with all Python tools; in git history) builds the five songs. It
 needs the sibling `everscript` repo for the driver emulation and rendering
 (`../everscript/tools/dump_spc.py`) and libgme for `.wav` files.
 
@@ -627,7 +627,7 @@ whether anything outside this chip turns on debug mode.
 
 ## Appendix: reproducing
 
-The SPC rebuild is checked in as [`tools/dump_proto_spc.py`](../tools/dump_proto_spc.py) (§6.5). The
+The SPC rebuild is checked in as `tools/dump_proto_spc.py` (removed 2026-10-16 with all Python tools; in git history) (§6.5). The
 other analysis scripts lived in a session scratchpad and are not checked in. Everything else above can
 be rebuilt from the two ROM files with:
 

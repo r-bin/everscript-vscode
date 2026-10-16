@@ -12,7 +12,7 @@ This dossier is limited to what the decode trace proves for the Strong Heart ext
 
 - `/Users/v/Library/Application Support/Mesen2/Debugger/strongheart_exterior_decode_tiles_fist_call__breakpoint_bus=ee0000.txt`
 
-The primary model artifact is `render-script-model.js`. The dump tool is `tools/render-script-dump-93.js`.
+The primary model artifact is `render-script-model.js`. (The old dump tool `tools/render-script-dump-93.js` was broken and is deleted.)
 
 ---
 
@@ -169,12 +169,7 @@ Structure:
 - Logical size: **0x72** bytes (counter-proven last consumed byte = `0x8FE645`)
 - Hardware-touched size: 0x73 bytes (16-bit bus overlap at `0x8FE646`)
 
-First 32 raw bytes:
-
-```text
-93 61 44 44 44 44 44 44 44 4D 44 44 44 44 E4 91
-44 91 90 20 5A 80 58 93 9F AE 0F 09 A7 8C 39 C6
-```
+The raw bytes are not kept here (game data); read them from `soe://rom/` on your own ROM.
 
 VRAM writes (first 4):
 - `VMADDL = 0x2020` (prelude setup)

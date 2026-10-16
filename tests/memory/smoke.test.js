@@ -355,7 +355,7 @@ test('rooms detail emits render log messages in rooms tab path', () => {
 
 test('rooms detail draws nothing under the editor: no ROM header, script tables or render canvas', () => {
     // v0.90.0: the scripts moved into the Trigger tab, the header into Info;
-    // what the editor has no place for is parked in sandbox/room-data/.
+    //.
     const roomTreeData = [{
         kind:'map', name:'script_room', vanillaId:'0x33', relPath:'vanilla (rom)', startLine:0, endLine:2,
         imageUri:null, imageDims:null,
@@ -585,7 +585,7 @@ test('webview source is pasted into the bundle literally, not as a replacement p
     const rw = require('../../src/memory/webview');
     const bundle = rw.buildMainJs({
         jsData: '', roomsData: '', scalingData: '',
-        roomsJs: "var probe='flag $'+1;", scalingJs: '', docsJs: '', routeJs: '', rngJs: '',
+        roomsJs: "var probe='flag $'+1;", scalingJs: '', docsJs: '', rngJs: '',
     });
     assert.ok(bundle.includes("var probe='flag $'+1;"), 'injected source was rewritten');
     assert.doesNotThrow(() => new vm.Script(bundle), 'bundle no longer parses');

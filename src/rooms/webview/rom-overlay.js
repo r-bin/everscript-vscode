@@ -1,5 +1,4 @@
-// Ownership: the ROM map view's top-bar controls. (Its data section under the
-// map is parked in sandbox/room-data/rom-map-features.js.)
+// Ownership: the ROM map view's top-bar controls.
 // Owns _currentLayer / _currentOverlay — which render is on screen and which
 // features are baked into it. Called from detail-renderer.js.
 //

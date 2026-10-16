@@ -98,7 +98,6 @@ function renderRadarHtml(
     const roomsJs   = radarWebview.roomsJs;
     const spritesJs = radarWebview.spritesJs;
     const docsJs    = radarWebview.docsJs;
-    const routeJs   = radarWebview.routeJs;
     const rngJs     = radarWebview.rngJs;
 
     // ── Sprites tab data & HTML ─────────────────────────────────────────────
@@ -108,7 +107,7 @@ function renderRadarHtml(
         '\nvar SPRITES_RAW_INDEX=' + JSON.stringify(spritesBundle?.rawIndex || []).replace(/<\/script>/gi, '<\\/script>') + ';' +
         '\nvar SPRITES_ANIMATIONS=' + JSON.stringify(spritesBundle?.animations || []).replace(/<\/script>/gi, '<\\/script>') + ';';
 
-    const js = radarWebview.buildMainJs({ jsData, roomsData, scalingData, spritesData, roomsJs, scalingJs, spritesJs, docsJs, routeJs, rngJs, romJs: radarWebview.romJs, musicJs: radarWebview.musicJs, scriptsJs: radarWebview.scriptsJs });
+    const js = radarWebview.buildMainJs({ jsData, roomsData, scalingData, spritesData, roomsJs, scalingJs, spritesJs, docsJs, rngJs, romJs: radarWebview.romJs, musicJs: radarWebview.musicJs, scriptsJs: radarWebview.scriptsJs });
 
     // ── Rooms tab HTML ──────────────────────────────────────────────────────
     const roomsTabHtml =
@@ -140,32 +139,6 @@ function renderRadarHtml(
         '</div>' +
         '</div>';
 
-    // ── Route tab HTML ──────────────────────────────────────────────────────
-    const routeTabHtml =
-        '<div class="tab-pane" data-tab="route" style="display:none">' +
-        '<div class="rp-wrap">' +
-        '<div class="rp-banner">Mock UI only. Physical hit expectations, route-grade spell scaling / 8-cast modeling, XP tables, and route simulation are still missing. This tab is a scaffold for the route-planner workflow.</div>' +
-        '<div class="rp-grid">' +
-        '<div class="rp-side">' +
-        '<div class="rp-h">Add Step</div>' +
-        '<div class="rp-templates">' +
-        '<div class="rp-tpl"><div><div class="rp-tpl-name">Thraxx\'s Heart</div><div class="rp-tpl-sub">Alchemy 8-cast boss kill</div></div><button class="rp-btn" data-rp-add="heart8">add</button></div>' +
-        '<div class="rp-tpl"><div><div class="rp-tpl-name">Skelesnail</div><div class="rp-tpl-sub">Alchemy 8-cast spell leveling</div></div><button class="rp-btn" data-rp-add="skelesnail8">add</button></div>' +
-        '<div class="rp-tpl"><div><div class="rp-tpl-name">Magmar</div><div class="rp-tpl-sub">Alchemy any% Act 1 route step</div></div><button class="rp-btn" data-rp-add="magmar8">add</button></div>' +
-        '<div class="rp-tpl"><div><div class="rp-tpl-name">Sterling</div><div class="rp-tpl-sub">Physical / atlas overflow example</div></div><button class="rp-btn" data-rp-add="sterlingPhys">add</button></div>' +
-        '</div>' +
-        '<div class="rp-link-note">Draft spec: docs/route-planner.md</div>' +
-        '</div>' +
-        '<div class="rp-main">' +
-        '<div class="rp-toolbar"><div class="rp-h" style="margin:0">Route</div><div><button class="rp-btn" id="rp-sim-btn">simulate route</button></div></div>' +
-        '<div class="rp-toolbar-note">A route is a list of enemies killed by physical or alchemy methods. Dog participation is intentionally ignored in this mock.</div>' +
-        '<div id="rp-list"></div>' +
-        '<div class="rp-sim"><div class="rp-h">Simulation Output</div><div id="rp-sim-out"></div></div>' +
-        '</div>' +
-        '</div>' +
-        '</div>' +
-        '</div>';
-
     // ── Assemble full page ──────────────────────────────────────────────────
     return '<!doctype html><html><head><meta charset="utf-8"><style>' + css + '</style></head>' +
         '<body class="hrest">' +
@@ -174,7 +147,6 @@ function renderRadarHtml(
         '<button class="tab" data-tab="rooms">\ud83d\uddfa Rooms</button>' +
         '<button class="tab" data-tab="sprites">\ud83d\udc7e Characters</button>' +
         '<button class="tab" data-tab="scaling">\u2694\ufe0f Scaling</button>' +
-        '<button class="tab" data-tab="route">\ud83e\udded Route</button>' +
         '<button class="tab" data-tab="docs">\ud83d\udcda Docs</button>' +
         '<button class="tab" data-tab="rng">\ud83c\udfb2 RNG</button>' +
         '<button class="tab" data-tab="rom">\ud83d\udcbe ROM</button>' +
@@ -186,7 +158,6 @@ function renderRadarHtml(
         spritesTabHtml +
         scalingTabHtml +
         buildDocsTabHtml() +
-        routeTabHtml +
         buildRngTabHtml() +
         buildRomTabHtml() +
         buildMusicTabHtml() +

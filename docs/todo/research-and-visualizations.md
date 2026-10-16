@@ -11,7 +11,7 @@ Visualizations building on data already recorded across the CDL logger, script d
 
 ### 1.1 ✨ Call-Graph Galaxy
 - **Concept:** Force-directed 3D/2D graph of the CDL call stack and xrefs. Node size indicates execution hit count, node color maps to ROM bank, and selecting a node displays its disassembly.
-- **Status:** **🟡 Prototype in `tools/call-graph-galaxy/`**
+- **Status:** **⚪ Prototype removed 2026-10-16 (`tools/call-graph-galaxy/`, in git history); rebuild on the CDL tab if wanted**
 - **Follow-ups:**
   - Connect script calls (`src/script/`) to assembly call sites.
   - Export interactive standalone HTML artifact for easy web browsing.

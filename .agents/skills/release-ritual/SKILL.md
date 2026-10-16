@@ -28,6 +28,7 @@ workflow.
    npm run check:circular              # madge circular dependency scan (src/)
    npm run check:dead                  # knip unused files/exports scan
    npm run check:deps                  # depcruise domain boundary rules (warn level)
+   npm run check:legal -- --staged     # no game data, upstream code or home paths staged
    ```
    All of these except `check:dead` (advisory) and `check:deps` (warn level) must pass
    before proceeding. Fix failures before continuing.
@@ -99,6 +100,7 @@ Types: `feat` (new token/feature), `fix` (bug), `test` (test-only), `docs` (docs
 - [ ] Everything learned about the game this session is recorded (`game-knowledge` skill)
 - [ ] Skills / `AGENTS.md` files that turned out wrong or incomplete are fixed
 - [ ] Nothing legally risky staged: no ROM bytes, extracted assets, game text, or third-party code
+      (`npm run check:legal -- --staged`; the tree baseline `tools/check-legal.baseline.json` only shrinks)
 
 ---
 

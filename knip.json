@@ -1,6 +1,5 @@
 {
   "entry": [
-    "src/extension.js",
     "src/recorder/extension.js",
     "src/shared/config.js"
   ],
@@ -8,28 +7,16 @@
     "src/**/*.js"
   ],
   "ignore": [
-    "src/memory/webview/**",
-    "src/scaling/webview/**",
-    "src/rooms/webview/**",
-    "src/sprites/webview/**",
-    "src/rom/webview/**",
-    "src/music/webview/**",
-    "src/scripts-tab/webview/**",
+    "src/**/webview/**",
     "src/docs/**",
-    "src/routes/**",
     "src/shared/shared.js",
-    "src/emulator/core/**",
-    "src/emulator/webview/**",
-    "tests/**",
-    "sandbox/**",
-    "src/maps/dist/**",
-    "src/simulation/dist/**"
-  ],
-  "ignoreDependencies": [
-    "playwright"
+    "src/emulator/core/**"
   ],
   "ignoreExportsUsedInFile": true,
   "rules": {
     "exports": "warn"
-  }
+  },
+  "ignoreBinaries": [
+    "vsce"
+  ]
 }

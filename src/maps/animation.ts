@@ -36,7 +36,7 @@
 //    cached across a state change replay the old channels over the new
 //    tiles. The caller keys this the same way it keys the render.
 
-import { RoomData } from './room';
+import type { RoomData } from './room';
 import { read16 } from './rom';
 import { PixelBuffer, renderVramLayer, compositeLayers } from './render';
 

@@ -90,7 +90,6 @@ src/extension.js  ← orchestrator only, no business logic
   ├── src/maps/      ← ROM map/blob models (being retired in favor of a map-server — see the `map-format` skill)
   ├── src/scaling/   ← scaling calculator
   ├── src/docs/      ← docs/RNG tab
-  ├── src/routes/    ← route planner
   ├── src/language/  ← grammar, hover, completion, definitions
   ├── src/debugger/  ← DAP adapter
   ├── src/emulator/  ← SNES emulator panel
@@ -104,8 +103,8 @@ src/extension.js  ← orchestrator only, no business logic
 ## A distinct instance of the same problem: pointing at a sibling repo's authoritative implementation
 
 Everything above is about domains *inside* `src/`. The same isolation discipline
-applies across the repo boundary too: `src/maps/`'s ROM decoder and
-`tools/generate_data.py`'s grammar scraper are both independent re-derivations of logic
+applies across the repo boundary too: `src/maps/`'s ROM decoder and the old
+`tools/generate_data.py` grammar scraper (deleted) were independent re-derivations of logic
 the sibling `everscript` repo already implements correctly and verified byte-exact. The
 fix for that is not "isolate it better" in the usual sense — it's "stop maintaining a
 second implementation and call the real one." See the `map-format` skill before

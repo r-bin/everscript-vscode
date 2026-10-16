@@ -288,7 +288,7 @@ test('Rooms HTML includes room render canvas styles', () => {
 
 test('Rooms JS draws nothing under the editor: no ROM header, script tables or render canvas', () => {
     // v0.90.0: scripts are in the Trigger tab, the header in Info; the rest is
-    // parked in sandbox/room-data/.
+    //.
     const roomsElements = runWithTrackingDoc(jsRoomsCode);
     const detail = (roomsElements['room-detail'] && roomsElements['room-detail'].innerHTML) || '';
     assert.ok(detail.includes('rd-head'), 'Expected the room header line');

@@ -1,0 +1,8 @@
+{
+  "fileExtensions": ["js", "ts"],
+  "excludeRegExp": ["/dist/", "/emulator/core/"],
+  "detectiveOptions": {
+    "ts": { "skipTypeImports": true, "skipAsyncImports": true },
+    "es6": { "skipTypeImports": true }
+  }
+}

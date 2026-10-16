@@ -4,7 +4,7 @@
 // Ported from everscript/tools/render_map.py (RoomRenderer).
 // See docs/map-format/map_rendering_pipeline.md.
 
-import { RoomData } from './room';
+import type { RoomData } from './room';
 import { buildRoomCgramPalettes, Rgba } from './palette';
 import { decompressTile16x16, decodeTilePixels } from './chr';
 import { spriteDrawsInFront } from './collision';

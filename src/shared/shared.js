@@ -264,7 +264,6 @@ __ROOMS_JS__
 __SCALING_JS__
 __SPRITES_JS__
 __DOCS_JS__
-__ROUTE_JS__
 __RNG_JS__
 __ROM_JS__
 __MUSIC_JS__

@@ -303,8 +303,8 @@ script by `memory/webview/index.js` (`ROOMS_JS_FILES` fixes the order):
   saved as the `layoutWidths` UI pref)
 - Nothing is drawn under the editor since v0.90.0: the entity tables, script
   cards, ROM header, sprite palettes, ROM data section and object-state
-  browser were removed or parked in `sandbox/room-data/` (its README says
-  which and why)
+  browser were removed (the parked copies were deleted 2026-10-16; git history
+  has them)
 - `interactions.js` — zoom/pan, mouse events, click handlers. Also writes the
   zoom chip's `%` read-out from its own `applyZoom`, since it is the single
   owner of the scale (100% = one ROM pixel per screen pixel: a viewBox unit

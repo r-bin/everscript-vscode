@@ -92,21 +92,22 @@ an item only when its check passes.
 ## 3. Order of work
 
 ### Step 1 — Legal check and the rules agents read
-- [ ] **1.1** `tools/check-legal.ts` + `npm run check:legal` (tree) and `--history` (every commit;
-  writes the list in §4). Fails on: ROM/save/patch/audio/image extensions and magic bytes; `data:`
+- [x] **1.1** `tools/check-legal.mts` + `npm run check:legal` (tree; `--staged`; `--history` writes
+  [legal-history.md](legal-history.md); `--baseline` rewrites `tools/check-legal.baseline.json`, the
+  known findings that later steps remove — it only shrinks). Fails on: ROM/save/patch/audio/image extensions and magic bytes; `data:`
   URIs or 200+-char base64 runs; 64+ consecutive numeric literals or 8+ hex-dump lines; ROM file
-  names or `/Users/` paths; mentions of SoETilesViewer / SoEScriptDumper / `data.h` /
+  names or home-directory paths; mentions of SoETilesViewer / SoEScriptDumper / `data.h` /
   `list-rooms.cpp` / `characterdata.h` outside this file, the plan and `AGENTS.md`. Run in the
   release ritual on staged files.
 - [x] **1.2** One rule on names in `AGENTS.md`, `AI_ARCHITECTURE_GUIDE.md` §3.8 and the plan (D4).
-- [ ] **1.3** `docs/release-checklist.md:53` calls the upstream tool MIT — it is GPLv3; fix the row.
+- [x] **1.3** `docs/release-checklist.md` (called the upstream tool MIT; stale) deleted.
   `LICENSE`/README: MIT covers our code only; the snes9x2005 core and the SPC engine are
   non-commercial and keep their `copyright`/`NOTICE` files. README §License: no `file:///Users/…`
   links.
-- [ ] **1.4** `.vscodeignore` and `.gitignore`: ROM/save/patch/audio globs, `docs/**`, `wiki/**`,
+- [x] **1.4** `.vscodeignore` and `.gitignore`: ROM/save/patch/audio globs, `docs/**`, `wiki/**`,
   `.agents/**`, `tools/**`, `.emscripten_cache/**` (re-measure the VSIX; at v0.199 it was 37 MB,
-  ~30 MB of it the emscripten cache).
-- [ ] **1.5** Trim the short ROM byte excerpts in `docs/map-format/map_decompression_trace_analysis.md`
+  ~30 MB of it the emscripten cache; now 614 files, 7.6 MB).
+- [x] **1.5** Trim the short ROM byte excerpts in `docs/map-format/map_decompression_trace_analysis.md`
   and `docs/render-script-93.md`.
 
 ### Step 2 — The re-do (D3, D4)
@@ -133,25 +134,30 @@ Inventory of 2026-10-16. Move the ROM out of `script_parser/dependencies/` first
 `src/shared/rom-readers.js:15`, `src/emulator/script-trace.js:29` and
 `tools/gen-sound-animations.js` look for it there — they go through the resolver (D5) instead.
 
-- [ ] **3.1 Delete, superseded:** `script_parser/` (whole package), `sandbox/opcodes`,
+- [ ] **3.1 Delete, superseded:** `script_parser/` (whole package — **open**: waits for the resolver,
+  step 4) · done: `sandbox/opcodes`,
   `sandbox/corpus`, `sandbox/boundaries` (broken: import the missing `tests/parity/failure-types`),
   `tools/snes9x_wram.py`, `tools/pack_snes_core.py`, `tools/generate_data.py`,
   `tools/dump_proto_spc.py`, `tools/check-encode.js` + npm `check:encode`.
-- [ ] **3.2 Delete, one-off or broken:** `tools/_extract_webview.py`, `tools/_patch_extension.py`,
+- [x] **3.2 Delete, one-off or broken:** `tools/_extract_webview.py`, `tools/_patch_extension.py`,
   `tools/extract_modules.py`, `tools/slice_montage.py`, `tools/run_slicer.py`,
   `tools/process_maps.sh`, `tools/render-script-dump-93.js` (imports the missing
   `memory_radar/`), `tools/call-graph-galaxy/`, `sandbox/room-data/`.
-- [ ] **3.3 Delete, unreferenced:** tracked `tools/__pycache__/*.pyc`, `experimental/`,
-  `.storage/`, `dependencies/` (Finder aliases), `.gemini/` (duplicates `.mcp.json`),
-  `last_run_report.json`, `.github/agents/`.
-- [ ] **3.4 Move:** `call-log/design.md`, `simulation/*.md` → `docs/plans/`; `todo.md` → `docs/todo/`.
-- [ ] **3.5 Dead code (re-measure):** emulator handlers with no sender (`wramDelta`,
-  `getRomOfferInfo` in `emulator/panel.js`), unreferenced `src/emulator/webview/index.html` (or make
-  it the real shell, step 5), stub Route tab, setting `everscript.patchesPath` (alias of
-  `patchesDirectory`), the vanilla core shipped but never chosen.
-- [ ] **3.6** knip: drop the blanket webview ignores and the stale entries; extend `check:circular`
-  to `.ts`. Then make `check:dead` blocking.
-- [ ] **3.7** `npm run package`: also run `build:script`; no hard-coded `/opt/homebrew/bin/vsce`.
+- [x] **3.3 Delete, unreferenced:** tracked `tools/__pycache__/*.pyc`, `.gemini/` (duplicates
+  `.mcp.json`; Gemini users keep their own). Untracked leftovers to delete by hand (git cannot
+  restore them, so agents leave them): `experimental/`, `.storage/`, `dependencies/` (Finder
+  aliases), `.github/`, `last_run_report.json`, `tools/__pycache__/`, `tools/call-graph-galaxy/`.
+- [x] **3.4 Move:** `call-log/design.md` → `docs/plans/call-log.md`, `simulation/*.md` →
+  `docs/plans/simulation/`, `todo.md` → `docs/todo/scratch.md`.
+- [x] **3.5 Dead code:** emulator handlers with no sender (`wramDelta`, `getRomOfferInfo`),
+  unreferenced `src/emulator/webview/index.html`, the Route mock tab (`src/routes/`, its HTML, CSS
+  and logic in `docs-tab.js`; the plan stays in `docs/route-planner.md`), setting
+  `everscript.patchesPath`. Checked and kept: the vanilla core is the default bundled core.
+- [x] **3.6** knip: one `src/**/webview/**` ignore instead of nine folders, stale entries gone, clean.
+  The webview ignore goes with esbuild (5.3), because those files are spliced as strings and knip
+  cannot follow them. `check:circular` covers `.ts` (`.madgerc`, type-only imports skipped); the one
+  cycle (`maps/animation → render → room`) was type-only. Both checks are now blocking.
+- [x] **3.7** `npm run package`: `vsce` from `PATH` (`build:script` already ran via `build:simulation`).
 
 ### Step 4 — Multi-game restructure (D5, D6)
 Follow [architecture/multi-game.md](architecture/multi-game.md) §7. In short: resolver + ROM
@@ -217,8 +223,11 @@ What is duplicated between Evermore and Mana is what becomes `core/`.
 
 ## 4. Known future problem: git history
 
-Kept by D2. `npm run check:legal -- --history` writes the full list of commits here; known so far
-(old audit §28):
+Kept by D2. `npm run check:legal -- --history` writes the full list of commits to
+[legal-history.md](legal-history.md) (2026-10-16: 366 of 565 commits, nearly all for mentions of the
+upstream projects; real data: `docs/payload-byte-plots.md` hex dump, the vendored EmulatorJS
+`emulator/vendor/`, old core with an embedded base64 wasm, `script_parser/generated/opcode-corpus.json`,
+a tracked `.pyc`). Known from the old audit §28:
 - Early versions of `docs/payload-byte-plots.md`, `docs/payload-deep-analysis.md`,
   `docs/map-loading.md`: full hex dumps of room payloads.
 - `tests/debugger/parity/snapshots/`, `tests/parity/snapshots/`, `tests/corpus/script-all-corpus.js`:

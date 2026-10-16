@@ -1,8 +1,5 @@
 tmp/
-sandbox/**
-call-log/**
 script_parser/**
-experimental/**
 
 **/.git/**
 **/.vscode/**
@@ -50,3 +47,29 @@ build-cache/**
 
 # Claude Code wiring (symlinks to .agents/agents and .agents/skills)
 .claude/**
+
+# Not part of the extension (docs/cleanup.md 1.4)
+.emscripten_cache/**
+docs/**
+wiki/**
+.agents/**
+tools/**
+recorder/**
+AGENTS.md
+**/AGENTS.md
+AI_ARCHITECTURE_GUIDE.md
+STATE_FLOW.md
+src/script/*.ts
+src/simulation/*.ts
+**/*.d.ts
+**/*.d.ts.map
+
+# Legal guard: game data never ships
+**/*.smc
+**/*.sfc
+**/*.srm
+**/*.spc
+**/*.state
+**/*.sav
+**/*.ips
+**/*.bps

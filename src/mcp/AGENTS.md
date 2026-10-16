@@ -17,7 +17,7 @@ clients connect: [README.md](README.md).
 - Read-only. Localhost only: binds 127.0.0.1, rejects non-local `Host`/`Origin` (403).
 - Stateless: no `Mcp-Session-Id`, no SSE; notifications get 202.
 - Settings `everscript.mcp.enabled` (default on) and `everscript.mcp.port` (default
-  47917). Changing the port means updating `.mcp.json`, `.gemini/settings.json` and
+  47917). Changing the port means updating `.mcp.json` and
   `.agents/mcp_config.json` in the same commit.
 - A second VS Code window logs the taken port in the "Everscript MCP" output channel and
   runs without a server — never fail activation over it.

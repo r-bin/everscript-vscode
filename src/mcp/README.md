@@ -8,7 +8,7 @@ live emulator, at `http://127.0.0.1:47917/mcp`.
 |---|---|---|
 | Claude Code | repo `.mcp.json`: `"type": "http", "url"` | headless session, v0.180.0 |
 | Antigravity (IDE + `agy`) | repo `.agents/mcp_config.json`: `"serverUrl"` | `agy -p`, v0.181.0 |
-| Gemini CLI | repo `.gemini/settings.json`: `"httpUrl"`, `"trust": true` | format from the docs only |
+| Gemini CLI | your own `.gemini/settings.json` (not in the repo): `"httpUrl"`, `"trust": true` | format from the docs only |
 | VS Code chat (Copilot) | `vscode.lm.registerMcpServerDefinitionProvider` (follows the port setting) | registration only |
 
 Notes:

@@ -136,13 +136,6 @@ consumed. Do NOT attempt to infer addresses from call sites.
 - Memory-map cache invalidated by a watcher on `**/.github/memory-map.md`.
 - Enum cache invalidated by a watcher on `**/in/core/**/*.evs`.
 
-## Snes9x live memory prototype
-
-- `tools/snes9x_wram.py` — macOS Mach VM reader (`task_for_pid` + `mach_vm_read`) for
-  the running Snes9x process's 128 KB WRAM buffer.
-- `--addr 0xNNNN` reads one address; `--watch` polls every 0.5s; `--json` emits JSON
-  lines for VS Code integration. Requires `sudo` or `get-task-allow` entitlement.
-
 No overlap is expected between WRAM entries — the address space is memory-mapped, so two
 scripts should never legitimately share an address. Do not add overlap-warning UI.
 

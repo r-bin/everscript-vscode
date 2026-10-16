@@ -1,7 +1,7 @@
 ---
 name: rom-map-data
 description: Secret of Evermore map data in ROM -- room blob layout, the three compressed payload blocks, the collision word bitfield, and which document answers which question. Start here for anything about map/room binary format, including work on the TypeScript port in src/maps/.
-applyTo: "src/maps/**,docs/map-format/**,sandbox/maps/**"
+applyTo: "src/maps/**,docs/map-format/**"
 ---
 
 # ROM Map Data & Tilemap Architecture

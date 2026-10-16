@@ -1,7 +1,7 @@
 ---
 name: map-format
-description: Use before touching ROM map/room decoding in src/maps/, tools/generate_data.py, or anything that reads Secret of Evermore room/tilemap bytes in everscript-vscode. src/maps/ is a TypeScript port of the sibling everscript repo's verified decoder — port and validate against it, never re-derive it.
-applyTo: "src/maps/**,tools/generate_data.py,src/language/data/index.json,src/rooms/rendering/tile-overlay.js"
+description: Use before touching ROM map/room decoding in src/maps/ or anything that reads Secret of Evermore room/tilemap bytes in everscript-vscode. src/maps/ is a TypeScript port of the sibling everscript repo's verified decoder — port and validate against it, never re-derive it.
+applyTo: "src/maps/**,src/language/data/index.json,src/rooms/rendering/tile-overlay.js"
 ---
 
 # Skill: Map Format — Port the Authoritative Implementation, Don't Re-derive It
@@ -37,16 +37,11 @@ dumping raw RGBA from both sides — so neither PNG encoder can hide a differenc
 
 1. **The sentinel decoder** — a `strict7`/`short6` heuristic scan for locating
    compressed map blocks, which worked on a handful of simple rooms and **failed on room
-   `0x38`**. Now shelved in `sandbox/maps/` (`map-pipeline-model.js`,
-   `map-blob-evidence-model.js`) as exploration-only, out of the extension's runtime
-   path. **Do not revive or extend it** — `src/maps/` supersedes it.
-2. **`tools/generate_data.py`** (in this repo) — regexes `in/core/*.evs` by hand
-   (`r'^enum\s+(\w+)\s*\{'`, `r'^fun\s+(\w+)\s*\(([^)]*)\)'`) to produce
-   `src/language/data/index.json` (hover docs / completion data). This is a second,
-   independent, weaker guess at the same grammar `everscript`'s `compiler/lexer.py` +
-   `compiler/parser.py` (a real `rply` LALR(1) grammar) already implement correctly. It
-   silently drifts from `in/core/` because nothing wires it into a build step. **Still
-   unfixed** — the same port-or-bridge choice applies when someone takes it on.
+   `0x38`**. Deleted (git history has it). **Do not revive it** — `src/maps/` supersedes it.
+2. **`tools/generate_data.py`** — a regex scraper of `in/core/*.evs` that built
+   `src/language/data/index.json` (hover/completion data), a weaker second guess at the
+   compiler's real grammar. Deleted 2026-10-16; `index.json` is now frozen data. When it
+   needs regenerating, have the everscript compiler emit it — never write a third scraper.
 
 The TextMate grammar (`src/language/syntaxes/everscript.tmLanguage.json`, see the
 `grammar-rules` skill) is a deliberate, correct exception — it has to be a fast

@@ -32,12 +32,10 @@ function buildRepoDefaults(repoPath, wsRoot) {
 function resolveExtConfig(rawConfig, wsRoot) {
     const raw = rawConfig || {};
     const defaults = buildRepoDefaults(raw.repoPath, wsRoot);
-    const legacyPatchesPath = normalizePath(raw.patchesPath);
     return {
         repoPath: normalizePath(raw.repoPath),
         inDirectory: normalizePath(raw.inDirectory) || defaults.inDirectory,
-        patchesDirectory: normalizePath(raw.patchesDirectory) || legacyPatchesPath || defaults.patchesDirectory,
-        patchesPath: legacyPatchesPath,
+        patchesDirectory: normalizePath(raw.patchesDirectory) || defaults.patchesDirectory,
         romPath: normalizePath(raw.romPath) || defaults.romPath,
         compilerPath: normalizePath(raw.compilerPath) || defaults.compilerPath,
         pythonPath: normalizePath(raw.pythonPath) || defaults.pythonPath,
@@ -52,7 +50,7 @@ function getRepoAutofillUpdates(rawConfig, wsRoot) {
     const defaults = buildRepoDefaults(repoPath, wsRoot);
     const updates = {};
     if (!normalizePath(raw.inDirectory)) updates.inDirectory = defaults.inDirectory;
-    if (!normalizePath(raw.patchesDirectory) && !normalizePath(raw.patchesPath)) updates.patchesDirectory = defaults.patchesDirectory;
+    if (!normalizePath(raw.patchesDirectory)) updates.patchesDirectory = defaults.patchesDirectory;
     if (!normalizePath(raw.romPath)) updates.romPath = defaults.romPath;
     if (!normalizePath(raw.compilerPath)) updates.compilerPath = defaults.compilerPath;
     if (!normalizePath(raw.pythonPath)) updates.pythonPath = defaults.pythonPath;

@@ -9,7 +9,6 @@ const scalingDir = path.join(__dirname, '../../scaling/webview');
 const roomsDir   = path.join(__dirname, '../../rooms/webview');
 const spritesDir = path.join(__dirname, '../../sprites/webview');
 const docsDir    = path.join(__dirname, '../../docs');
-const routesDir  = path.join(__dirname, '../../routes');
 const romDir     = path.join(__dirname, '../../rom/webview');
 const musicDir   = path.join(__dirname, '../../music/webview');
 const scriptsDir = path.join(__dirname, '../../scripts-tab/webview');
@@ -36,7 +35,7 @@ function inject(text, placeholder, content) {
   return text.replace(placeholder, () => content);
 }
 
-function buildMainJs({ jsData, roomsData, scalingData, spritesData, roomsJs, scalingJs, spritesJs, docsJs, routeJs, rngJs, romJs, musicJs, scriptsJs }) {
+function buildMainJs({ jsData, roomsData, scalingData, spritesData, roomsJs, scalingJs, spritesJs, docsJs, rngJs, romJs, musicJs, scriptsJs }) {
   let out = loadFile(path.join(sharedDir, 'shared.js'));
   for (const [placeholder, content] of [
     ['__JS_DATA__', jsData],
@@ -47,7 +46,6 @@ function buildMainJs({ jsData, roomsData, scalingData, spritesData, roomsJs, sca
     ['__SCALING_JS__', scalingJs],
     ['__SPRITES_JS__', spritesJs || ''],
     ['__DOCS_JS__', docsJs],
-    ['__ROUTE_JS__', routeJs],
     ['__RNG_JS__', rngJs],
     ['__ROM_JS__', romJs || ''],
     ['__MUSIC_JS__', musicJs || ''],
@@ -204,7 +202,6 @@ module.exports = {
   get roomsJs() { return loadRoomsJs(); },
   get spritesJs() { return loadFile(path.join(spritesDir, 'sprites-lazy.js')) + '\n' + loadFile(path.join(spritesDir, 'sprites-script.js')) + '\n' + loadFile(path.join(spritesDir, 'sprites-motion.js')) + '\n' + loadFile(path.join(spritesDir, 'sprites-view.js')); },
   docsJs: loadFile(path.join(docsDir, 'docs-tab.js')),
-  routeJs: loadFile(path.join(routesDir, 'route-tab.js')),
   rngJs: loadFile(path.join(docsDir, 'rng-tab.js')),
   // Order matters: rom-tab.js declares _rom, rom-init.js binds and runs last.
   romJs: ['rom-tab.js', 'rom-bus-map.js', 'rom-bus-view.js', 'rom-compare.js', 'rom-init.js']

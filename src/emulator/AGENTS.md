@@ -4,7 +4,7 @@ Kind: **feature** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
 Related skills: `emulator-subsystem`, `cdl-recorder`, `webview-dom-safety`, `debugger-protocol`
 
 ## Owns
-- The emulator WebviewPanel (`panel.js`, `panel-webview.js`, `webview/index.html`), the
+- The emulator WebviewPanel (`panel.js`, `panel-webview.js`), the
   snes9x2005-wasm cores (`core/`, git submodules), the panels (CDL, TRACE, …) and where they are shown
   (`webview/emulator-panels.js`: menu tab, side bar, bottom bar), the REPLAYS menu tab,
   the script-debug hook (`script-debug-host.js` / `script-debug-view.js`) and the

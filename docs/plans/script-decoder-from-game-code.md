@@ -60,7 +60,7 @@ Working rules for whoever implements it (human or agent):
   `src/script-vm/`.
 - Delete: legacy decoder files, `tools/generate-script-names.js` (once names are decided),
   the parity tests that read upstream output (`script-parity`, `script-loot` upstream parts),
-  `script_parser/` and `sandbox/` corpora derived from upstream dumps, the hard-coded upstream
+  `script_parser/` (the `sandbox/` corpora are already deleted), the hard-coded upstream
   ROM path in `src/maps/render-script-model.js`.
 
 ### B. Sprites and characters (parallel, smaller)

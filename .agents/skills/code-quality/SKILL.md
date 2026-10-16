@@ -11,8 +11,8 @@ deciding whether to delete something.
 
 ## Before writing a new decoder/parser: check for an authoritative implementation first
 
-Before extending ROM-format decoding logic (`src/maps/`) or the `.evs` language-data
-generator (`tools/generate_data.py`), check whether the sibling `everscript` repo
+Before extending ROM-format decoding logic (`src/maps/`) or the `.evs` language data
+(`src/language/data/index.json`), check whether the sibling `everscript` repo
 already implements it correctly — it usually does. See the `map-format` skill. This
 repo has twice shipped a second, weaker, independently-maintained guess at something
 `everscript`'s compiler or map tools already solved byte-exact; don't make it a third

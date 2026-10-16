@@ -5,7 +5,7 @@
 // vscode.workspace.fs, so this domain depends on no other src/ domain.
 //
 // Clients find it by config file: Claude Code `.mcp.json`, Gemini CLI
-// `.gemini/settings.json`, Antigravity `.agents/mcp_config.json`. Copilot
+// Antigravity `.agents/mcp_config.json`. Copilot
 // gets it from registerMcpServerDefinitionProvider below, which follows the
 // port setting.
 //

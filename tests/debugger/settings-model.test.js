@@ -52,11 +52,6 @@ test('resolveExtConfig falls back to workspace defaults when repoPath is empty',
     assert.strictEqual(out.romPath, '/workspace/Secret of Evermore (U) [!].smc');
 });
 
-test('resolveExtConfig still honors legacy patchesPath when patchesDirectory is empty', () => {
-    const out = resolveExtConfig({ repoPath: '/tmp/everscript', patchesPath: '/legacy/patches' }, null);
-    assert.strictEqual(out.patchesDirectory, '/legacy/patches');
-});
-
 test('getRepoAutofillUpdates only suggests missing fields', () => {
     const out = getRepoAutofillUpdates({
         repoPath: '/tmp/everscript',

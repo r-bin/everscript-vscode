@@ -11,7 +11,6 @@ All production code lives here. Each subdirectory is an ownership domain.
 | `scaling/` | Scaling/Alchemy tab: damage math, charts, state, webview assets |
 | `maps/` | ROM map models: pipeline, blob evidence, render-script, alchemy |
 | `rooms/` | Rooms map browser: tree building, content parsing, rendering, data watchers |
-| `routes/` | Route planner tab webview assets |
 | `emulator/` | Embedded SNES emulator: panel, webview, SNES ROM header model; profiles (Everscript / recorder) and Evermore gating; recording bundles |
 | `recorder/` | SNES CDL Recorder: the second extension's entry (`recorder/package.json`), the emulator in its recorder profile |
 | `script/` | Everscript bytecode decoder, ported from SoEScriptDumper (TypeScript, pure) |

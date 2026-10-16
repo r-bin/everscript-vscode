@@ -81,7 +81,7 @@ separate questions.
 ## 5. Damage
 
 Physical: modelled only as test helpers in `tests/memory/damage.test.js` (move it
-to a module before building on it, `simulation/damage.md`). Alchemy:
+to a module before building on it, `docs/plans/simulation/damage.md`). Alchemy:
 `src/maps/alchemy-model.js`. Return distributions, not averages.
 
 ## 6. Doors and entrances

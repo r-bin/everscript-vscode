@@ -16,7 +16,6 @@ Existing exceptions (do not add more):
 - `docs-tab.js` calls the Scaling tab's `alchemy-math.js` globals
   (`alchemyDamageFromPower`, `alchemyDamageSamples`, `alchemyRangeAtLevel`,
   `alchemySpellBonusBaseAtLevel`, `alchemySpellPowerAtLevel`, `effectiveMdef`).
-- `docs-tab.js` also holds the Route Planner's logic (`rp-*`) for `src/routes`.
 
 ## Invariants
 - `render-docs-tab.js` builds HTML by string concatenation, a §3.5 legacy form; do not add

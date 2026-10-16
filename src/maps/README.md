@@ -8,7 +8,7 @@ buffer, returns data. No VS Code API, no filesystem, no rendering.
 
 This repo twice shipped independent guesses at logic `everscript` already implemented
 correctly — the old sentinel-scan tilemap decoder (removed in v0.155.1, which failed
-outright on room `0x38`) and `tools/generate_data.py`'s regex grammar. This
+outright on room `0x38`) and the regex grammar scraper `tools/generate_data.py` (both deleted). This
 is not that: it is a line-by-line port of an implementation that round-trips all 127
 vanilla rooms byte-exactly, and `npm run check:maps` proves the port still agrees with
 it. See the `map-format` and `rom-map-data` skills.

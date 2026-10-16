@@ -13,7 +13,6 @@ Embedded snes9x2005 WASM emulator panel integrated into VS Code.
 | `webview/emulator-panels.js` / `.css` | Where each panel is shown: its pause-menu tab, a side bar over the picture, the bottom bar or nowhere (README "Panels") |
 | `bundle-commands.js` | Export (recorder) and import (Everscript) of recording bundles: dialogs, which library, which replays |
 | `snes-rom-header-model.js` | SNES ROM header parser |
-| `webview/index.html` | Emulator webview entry HTML |
 | `cdl-view.js` | CDL panel: record toggle, ROM + WRAM strips, last-flush snapshot, Asar/WRAM export, xref lookup |
 | `cdl-strips.js` | CDL panel strips: per-chunk painting and hover descriptions |
 | `cdl-float.js` | Scrolling-combat-text style floating coverage gains above the active character |

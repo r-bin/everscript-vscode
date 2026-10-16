@@ -199,7 +199,7 @@ strike box; 54 have no attack animation; 42 attack without `0x47` (shooters use
 | alchemy: `base_might`, level scale, RNG, `(0x40 − magic_def)/0x40` | | `src/maps/alchemy-model.js`, [../alchemy-damage.md](../alchemy-damage.md) |
 
 What is missing (one `damage(attacker, defender, method)` entry point, the
-party's attack value) is in `simulation/damage.md`. A box hitting and damage being
+party's attack value) is in `docs/plans/simulation/damage.md`. A box hitting and damage being
 dealt are separate questions: the traced sword hit on a Wimpy Flower did 0.
 
 ---

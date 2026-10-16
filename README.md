@@ -86,7 +86,7 @@ Development Host from the repo with **F5**.
 | `npm run build:maps` / `build:script` | compile the TypeScript decoders (`src/maps`, `src/script`) |
 | `npm run build:cores` | rebuild both snes9x WASM cores (needs Emscripten; `tools/build_snes_core.sh`) |
 | `npm run build:music-engine` | rebuild the SPC engine (`src/music/engine/build-engine.sh`) |
-| `npm run check:maps` / `check:script` / `check:encode` / `check:collision` | parity and round-trip checks against the ROM (need a ROM) |
+| `npm run check:maps` / `check:script` / `check:collision` | parity and round-trip checks against the ROM (need a ROM) |
 | `npm run package` / `npm run deploy` | build the `.vsix` / build and install it |
 | `npm run recomp:lockstep -- --rom <clean rom>` | compare the snesrecomp host build with snes9x frame by frame (WRAM at equal NMI counts; [`docs/reverse-engineering/recomp-host.md`](docs/reverse-engineering/recomp-host.md)) |
 | `SOE_ROM=<clean rom> npm run recomp` | **recomp build**: CDL library + asset knowledge + our names → byte-identical Asar project with names and comments, Mesen2 labels + CDL, snesrecomp C, and `out/recomp/REPORT.md` with what still blocks a recomp. Also scaffolds the snesrecomp host project, lays our glue (`tools/recomp/host/`) over it and builds the playable game into `out/recomp/SecretOfEvermore-<os>-<arch>/` (start: `play.command` / `play.sh` / `play.bat`). Options (`--fresh`, `--no-build`, `--strict`, `--no-recomp`, tool paths): [`tools/recomp/README.md`](tools/recomp/README.md) |
@@ -168,8 +168,14 @@ Key scopes:
 
 ## License & Legal
 
-This extension is licensed under the [MIT License](file:///Users/v/Documents/GitHub/everscript-vscode/LICENSE).
+Our own code is licensed under the [MIT License](LICENSE). The MIT licence covers this
+repository's code only; bundled third-party parts keep their own licences:
 
-The embedded SNES emulator WebAssembly core (`snes9x2005-wasm`) is distributed for personal, non-commercial use in accordance with the Snes9x non-commercial license and GNU General Public License v2 (GPL-2.0). Upstream source repositories: [r-bin/snes9x2005-wasm](https://github.com/r-bin/snes9x2005-wasm) and [lrusso/snes9x2005-wasm](https://github.com/lrusso/snes9x2005-wasm). Full copyright information is documented in `src/emulator/core/snes9x2005-wasm/copyright`.
+- The embedded SNES emulator WebAssembly core (`snes9x2005-wasm`) and the SPC engine built from
+  it are distributed for personal, **non-commercial** use under the Snes9x licence (see
+  `src/emulator/core/snes9x2005-wasm/copyright` and `src/music/engine/copyright`). The extension
+  must not be sold. Upstream: [r-bin/snes9x2005-wasm](https://github.com/r-bin/snes9x2005-wasm),
+  [lrusso/snes9x2005-wasm](https://github.com/lrusso/snes9x2005-wasm).
 
-No ROMs, game audio, or proprietary assets from *Secret of Evermore* are included with this extension. Users provide their own legally acquired game ROMs for testing and debugging.
+No ROM, game graphics, audio, text or other assets of any game are included. The extension
+decodes the ROM you provide, at run time.

@@ -507,10 +507,6 @@ function openEmulatorPanel(context, rom, channel) {
             _reopenLastRom();
                 break;
 
-            case 'getRomOfferInfo':
-                _broadcastRomOffer();
-                break;
-
             case 'loadVanillaRom': {
                 const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
                 let cfgRomPath = '';
@@ -568,10 +564,6 @@ function openEmulatorPanel(context, rom, channel) {
                     if (!uris || !uris.length) return;
                     _sendRomFile(uris[0].fsPath);
                 });
-                break;
-
-            case 'wramDelta':
-                // Reserved - forward to Memory Radar live mode.
                 break;
 
             case 'gameStarted':
