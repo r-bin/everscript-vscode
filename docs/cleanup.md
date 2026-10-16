@@ -131,7 +131,7 @@ Scope, from the inventory of 2026-10-16:
 
 ### Step 3 — Dead code and tools (D7)
 Inventory of 2026-10-16. Move the ROM out of `script_parser/dependencies/` first: 7 tests,
-`src/shared/rom-readers.js:15`, `src/emulator/script-trace.js:29` and
+`src/games/evermore/rom-readers.js:15`, `src/emulator/script-trace.js:29` and
 `tools/gen-sound-animations.js` look for it there — they go through the resolver (D5) instead.
 
 - [x] **3.1 Delete, superseded:** `script_parser/` (tracked files; its untracked `dependencies/` and

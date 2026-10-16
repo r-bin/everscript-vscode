@@ -248,7 +248,7 @@ test('provider: check.json — every link resolves against the ROM', async () =>
 }, true);
 
 test('provider: a mounted ROM folder holds rom/, ram/, tags/ and localization/; pages link inside it', async () => {
-    const { mountSegment } = require('../../src/shared/resource-uri');
+    const { mountSegment } = require('../../src/games/evermore/resources/resource-uri');
     const m = mountSegment('/roms/soe.smc');
     const fsp = new SoeFileSystem({ vanillaRom: () => null, emulatorRom: () => null, romFile: p => (p === '/roms/soe.smc' ? rom : null),
         readMemory, emulatorStatus: async () => ({ emulator: 'closed' }) });

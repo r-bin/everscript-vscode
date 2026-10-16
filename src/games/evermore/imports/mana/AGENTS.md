@@ -10,7 +10,7 @@ the translation table: [docs/mana/evermore-rooms.md](../../../../../docs/mana/ev
   and serving converted rooms to the Rooms tab's host (`rooms.js`).
 
 ## Dependencies
-- `games/mana/decoder/`, `maps/` and `shared/` only (`.depcruise.js` `mana-import-bridges-libraries`).
+- `games/mana/decoder/`, Evermore `maps/` and `rom-readers.js`, and `shared/` only (`.depcruise.js` `mana-import-bridges-libraries`).
   Only `extension.js` requires it (`no-evermore-to-mana`). No `vscode`: ROMs arrive as functions.
 
 ## Invariants

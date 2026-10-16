@@ -185,7 +185,7 @@ const EXPECTED_EXPORTS = {
         'findRoomImage', 'parseRoomContent', 'collectRoomsFromDir', 'buildRoomTree',
         'renderVanillaTree', 'renderRoomsTree', 'buildRoomsJson', 'setRoomImageUris',
     ],
-    './src/shared/rom-readers': [
+    './src/games/evermore/rom-readers': [
         'readPngDimensions', 'readRomTriggerOffsets', 'readRomMapHeader',
         'readRomCharacters', 'readRomHitLookup', 'detectScaleEnemies',
     ],

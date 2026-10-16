@@ -21,7 +21,7 @@ const { renderCharacterSprite } = require('../../../../dist/games/evermore/maps/
 const { encodePng } = require('../../../../dist/games/evermore/maps/png');
 const { getSoundAnimations } = require('../localizations/sounds');
 const { getFunctionName } = require('../localizations/functions');
-const { hexId } = require('../../../shared/resource-uri');
+const { hexId } = require('./resource-uri');
 
 const ROM = 'soe://rom/assets/';
 const BOY = 0x4E89, DOG = 0x4F37;

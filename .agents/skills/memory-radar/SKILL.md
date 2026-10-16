@@ -1,7 +1,7 @@
 ---
 name: memory-radar
-description: Use when touching the Memory Radar webview panel in everscript-vscode — its Memory tab (WRAM grid, address lifecycle, arg tracking, pools) or its Rooms tab (map browser, room tree, SVG grid). Source lives under src/memory/, src/rooms/, src/games/evermore/docs-tab/render-docs-tab.js, and src/shared/radar-utils.js.
-applyTo: "src/memory/**,src/rooms/**,src/shared/radar-utils.js,src/games/evermore/docs-tab/render-docs-tab.js,src/extension.js"
+description: Use when touching the Memory Radar webview panel in everscript-vscode — its Memory tab (WRAM grid, address lifecycle, arg tracking, pools) or its Rooms tab (map browser, room tree, SVG grid). Source lives under src/memory/, src/rooms/, src/games/evermore/docs-tab/render-docs-tab.js, and src/games/evermore/radar-utils.js.
+applyTo: "src/memory/**,src/rooms/**,src/games/evermore/radar-utils.js,src/games/evermore/docs-tab/render-docs-tab.js,src/extension.js"
 ---
 
 # Skill: Memory Radar & Rooms Tab
@@ -15,7 +15,7 @@ Current source locations (post v0.6.0 `src/` refactor):
   `src/rooms/webview/`
 - `src/games/evermore/sprites/` (the **Characters** tab, formerly Sprites: `character-model.js`, `animation-catalog.js`, `animation-decoder.js`, `raw-sprites.js`, `sprites-tab.js`, `webview/`)
 - `src/games/evermore/docs-tab/render-docs-tab.js` (docs/RNG tab, rendered in the same panel)
-- `src/shared/radar-utils.js` (pure functions shared by memory/rooms)
+- `src/games/evermore/radar-utils.js` (pure functions shared by memory/rooms)
 - Panel lifecycle and command registration: `src/extension.js`
 
 **Boundary note:** this skill covers the Rooms tab's *browsing* of already-parsed
@@ -119,7 +119,7 @@ consumed. Do NOT attempt to infer addresses from call sites.
 - `radarReadEnums(wsFolder)` scans `.evs` files under the **workspace's** `in/core/`
   (recursively) for `enum CLASSNAME { NAME = ... <0xNNNN> }`.
 - Returns `Map<addr, [{cls, name}]>`. Pure core lives in `radar-utils.js` /
-  `src/shared/radar-utils.js`; cached via `getRadarEnums()` /
+  `src/games/evermore/radar-utils.js`; cached via `getRadarEnums()` /
   `invalidateRadarEnums()`, invalidated by a watcher on `**/in/core/**/*.evs`.
 - Detail table shows matching addresses with `<span class="enum-tag">CLASSNAME.NAME</span>`.
 

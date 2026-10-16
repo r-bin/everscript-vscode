@@ -4,10 +4,10 @@ const vscode = require('vscode');
 const path   = require('path');
 const fs     = require('fs');
 const os     = require('os');
-const { radarLifecycle, radarH, radarEsc, radarExtractEmoji, radarParseName, radarParseNotes, parseEvsNum, parseEnumsFromContent, parseEvsEnumValues } = require('./shared/radar-utils');
+const { radarLifecycle, radarH, radarEsc, radarExtractEmoji, radarParseName, radarParseNotes, parseEvsNum, parseEnumsFromContent, parseEvsEnumValues } = require('./games/evermore/radar-utils');
 const radarWebview = require('./memory/webview');
 const { readRoomScriptModel } = require('./rooms/data/room-scripts');
-const { resolveExtConfig, getRepoAutofillUpdates } = require('./shared/config');
+const { resolveExtConfig, getRepoAutofillUpdates } = require('./games/evermore/language/config');
 
 
 
@@ -160,7 +160,7 @@ const { handlesMusicMessage, handleMusicMessage } = require('./games/evermore/mu
 const { handlesScriptsMessage, handleScriptsMessage } = require('./games/evermore/scripts-tab');
 const { findRoomImage, parseRoomContent, collectRoomsFromDir, buildRoomTree, renderVanillaTree, renderRoomsTree, buildRoomsJson, setRoomImageUris, buildRoomTileOverlay, buildRoomMetatilePalette, buildComposedPreview, buildBlankRoom, buildDraftCollision, buildExportRom, buildFamilySheet, buildFamilyCatalogue, buildFamilyPreviews, decoIndex, decoCells, buildDecoPreviews, buildWidgetPreviews, buildConstructGhost, relatedTiles, neighbourTiles, vanillaExamples, proceduralFill, handlesCustomMapMessage, handleCustomMapMessage } = roomTree;
 
-const romReaders = require('./shared/rom-readers');
+const romReaders = require('./games/evermore/rom-readers');
 const roms = require('./core/roms/host');
 const { readPngDimensions, readRomTriggerOffsets, readRomMapHeader, readRomCharacters, readRomHitLookup, detectScaleEnemies } = romReaders;
 

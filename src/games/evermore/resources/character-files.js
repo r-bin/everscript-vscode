@@ -2,7 +2,7 @@
 // Ownership: `soe://rom/assets/characters/` and `soe://rom/assets/animations/` —
 // characters, character animations, animated GIFs, frames, sprite tiles, and bytecode listings. Pure.
 
-const { hexId, slugify } = require('../../../shared/resource-uri');
+const { hexId, slugify } = require('./resource-uri');
 const { encodePng } = require('../../../../dist/games/evermore/maps/png');
 const { renderCharacterSprite } = require('../../../../dist/games/evermore/maps/characters');
 const { characterPalette, paletteAt } = require('../../../../dist/games/evermore/maps/character-record');

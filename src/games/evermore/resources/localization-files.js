@@ -20,7 +20,7 @@ const {
     getNpcScript, getAbsScript, getGlobalScript,
     decodeRomString, resolveLocalizedName,
 } = require('../localizations');
-const { hexId } = require('../../../shared/resource-uri');
+const { hexId } = require('./resource-uri');
 const { dir, json, text } = require('./nodes');
 const MD = require('./localization-markdown');
 

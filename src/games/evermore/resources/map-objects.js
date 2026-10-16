@@ -8,7 +8,7 @@ const { buildDecoCatalogue } = require('../../../rooms/rendering/deco-catalogue'
 const { entryRoom } = require('../../../rooms/rendering/deco-preview');
 const { encodeGif } = require('./gif');
 const { dir, file, json, text } = require('./nodes');
-const { hexId } = require('../../../shared/resource-uri');
+const { hexId } = require('./resource-uri');
 
 /**
  * Resolve Section 3 map objects for a room.

@@ -3,7 +3,7 @@
 // Pure function: reads one file, returns structured data. No caching, no side effects.
 
 const fs = require('fs');
-const { parseEvsNum } = require('../../shared/radar-utils');
+const { parseEvsNum } = require('../../games/evermore/radar-utils');
 
 /**
  * Parse the content of a single map block from a .evs file.

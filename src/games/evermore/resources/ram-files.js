@@ -15,7 +15,7 @@
 //   soe://ram/symbols.json          every known address (size, type, name, tags) and flag byte
 // Known addresses: ram-symbols.js (names.json + soe://tags/ WRAM links).
 
-const { parseAddressName, hexId } = require('../../../shared/resource-uri');
+const { parseAddressName, hexId } = require('./resource-uri');
 const NAMES = require('../script/names.json');
 const { dir, file, json, text } = require('./nodes');
 const { ramSymbols, ramSymbol, ramBlocks } = require('./ram-symbols');

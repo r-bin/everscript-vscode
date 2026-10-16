@@ -9,7 +9,7 @@ const {
     radarLifecycle, radarH, radarEsc,
     radarExtractEmoji, radarParseName, radarParseNotes, parseEvsNum,
     parseEnumsFromContent, parseEvsEnumValues,
-} = require('../../src/shared/radar-utils');
+} = require('../../src/games/evermore/radar-utils');
 
 let passed = 0, failed = 0;
 function test(name, fn) {

@@ -80,7 +80,7 @@ Key rules:
 | A domain with its own doc-path tracker duplicating the extension's | Move to the one
   authoritative tracker |
 | Multiple files calling a ROM reader and caching locally | Centralize in
-  `src/shared/rom-readers.js` with one cache |
+  `src/games/evermore/rom-readers.js` with one cache |
 | Constants duplicated in server and client code | Move to server; inject as a JS
   global in the webview |
 

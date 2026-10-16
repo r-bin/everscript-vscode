@@ -74,7 +74,7 @@ parser was explicitly evaluated and rejected for that specific case (see
 - `src/extension.js` handles a `requestRoomTiles` message from the Rooms tab webview and
   replies with `roomTiles`. Decoding is **on demand per selected room**: the rooms tree
   JSON carries no tile data, because 127 rooms of it would bloat every render.
-- `src/shared/rom-readers.js` `loadRomBuffer()` caches the ~3MB ROM by path+mtime.
+- `src/games/evermore/rom-readers.js` `loadRomBuffer()` caches the ~3MB ROM by path+mtime.
 
 ## Still Python-only upstream
 
@@ -113,7 +113,7 @@ It would be a new ownership domain, sibling to `src/games/evermore/debugger/`, `
 `AI_ARCHITECTURE_GUIDE.md`'s ownership-domain list and to
 `docs/architecture/domain-overview.md`'s per-domain "Allowed deps" table, the same way
 the existing domains are documented (see the `isolate-subsystem` skill). If it spawns
-anything Python, reuse `src/shared/config.js`'s existing `everscript.repoPath` /
+anything Python, reuse `src/games/evermore/language/config.js`'s existing `everscript.repoPath` /
 `pythonPath` resolution and the `child_process.spawn` pattern `src/extension.js` already
 uses for "Build and Run" — don't invent a second of either.
 

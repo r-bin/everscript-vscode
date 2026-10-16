@@ -3,7 +3,7 @@
 // ROM lookup tables, jump tables, pointer tables, and formula tables. Pure.
 
 const { TABLES } = require('../localizations/tables');
-const { hexId, slugify } = require('../../../shared/resource-uri');
+const { hexId, slugify } = require('./resource-uri');
 const { snesToRom } = require('../maps');
 const { dir, file, json, text } = require('./nodes');
 

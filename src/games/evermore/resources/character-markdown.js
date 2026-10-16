@@ -1,7 +1,7 @@
 'use strict';
 // Ownership: Markdown builders for soe://rom/assets/characters/ and animations/. Pure.
 
-const { hexId } = require('../../../shared/resource-uri');
+const { hexId } = require('./resource-uri');
 
 function characterMarkdown(c) {
     return `# Character ${hexId(c.id, 2)}: ${c.name}

@@ -70,7 +70,7 @@ binds the same key and wins on extension load order; a user keybinding
 | `check-panel.js` | `Everscript: Check soe:// Resources`, the feature's acceptance check |
 
 The address grammar (`parseSoeParts`, `parseAddressName`) is pure and lives in
-`src/shared/resource-uri.js`.
+`src/games/evermore/resources/resource-uri.js`.
 
 ## Using `soe://` in a webview
 

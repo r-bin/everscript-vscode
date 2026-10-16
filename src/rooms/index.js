@@ -41,7 +41,7 @@ function buildRoomTreeWithDeps(document, wsRoot, extCfg) {
         getMapEnum,
         readScriptAllTriggers,
         readLuaWatchers,
-        readRomMapHeader: require('../shared/rom-readers').readRomMapHeader,
+        readRomMapHeader: require('../games/evermore/rom-readers').readRomMapHeader,
     });
 }
 

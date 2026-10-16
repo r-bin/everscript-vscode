@@ -5,7 +5,7 @@
 
 const path = require('path');
 const vscode = require('vscode');
-const { SCHEME, parseSoeParts, mountSegment } = require('../../../shared/resource-uri');
+const { SCHEME, parseSoeParts, mountSegment } = require('./resource-uri');
 const { SoeFileSystem } = require('./fs-provider');
 const { checkSoeResources } = require('./check-panel');
 

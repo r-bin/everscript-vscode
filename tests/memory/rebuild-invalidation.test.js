@@ -4,7 +4,7 @@
 // the emulator, which is how a stale PREVIEW_CACHE reference broke F5.
 
 const rooms = require('../../src/rooms');
-const romReaders = require('../../src/shared/rom-readers');
+const romReaders = require('../../src/games/evermore/rom-readers');
 
 try {
     romReaders.invalidateRomBuffer();

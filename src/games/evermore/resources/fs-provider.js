@@ -10,7 +10,7 @@
 // emulator's when one runs, else vanilla.
 
 const vscode = require('vscode');
-const { parseSoeParts } = require('../../../shared/resource-uri');
+const { parseSoeParts } = require('./resource-uri');
 const { resolveRom } = require('./rom-files');
 const { resolveRam } = require('./ram-files');
 const { busTarget, indexMarkdown: busIndex } = require('./bus-files');

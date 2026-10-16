@@ -9,7 +9,7 @@
 // the same family in every map that loads it.
 
 const mana = require('../../../mana/decoder');
-const { readRomMapHeaderFrom } = require('../../../../shared/rom-readers');
+const { readRomMapHeaderFrom } = require('../../rom-readers');
 const { convertManaMap } = require('./convert');
 const { buildVirtualRom } = require('./virtual-rom');
 const ids = require('./ids');

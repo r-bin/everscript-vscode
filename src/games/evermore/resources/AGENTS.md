@@ -9,7 +9,7 @@ Kind: **platform** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: 
 - This is the data plane (`/AI_ARCHITECTURE_GUIDE.md` §3.4): ROM/RAM-derived data that more
   than one consumer needs is exposed here first.
 - Not the address grammar: `parseSoeParts` / `parseAddressName` are pure and live in
-  `src/shared/resource-uri.js`.
+  `src/games/evermore/resources/resource-uri.js`.
 
 ## Dependencies
 - May use `shared/`, `maps/`, `script/`, `simulation/`, `localizations/`.

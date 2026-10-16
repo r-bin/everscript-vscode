@@ -236,7 +236,7 @@ Every verification so far (`check:maps`, the render comparison, all 127-room
 sweeps) runs against the stock retail ROM. `parseBlobLayout`'s deterministic
 offset-walking has no fallback if a patch changes a room's section framing,
 relocates the map pointer table, or adds an 128th+ room. The extension's own
-`patches/` / `scale_enemies` detection (`src/shared/config.js`,
+`patches/` / `scale_enemies` detection (`src/games/evermore/language/config.js`,
 `detectScaleEnemies`) exists for *script* behavior, not map data — nobody has
 checked whether any shipped or hypothetical map-editing patch would break
 `decodeRoom`'s assumptions. If `src/map-editor/` (see the `map-format` skill's
@@ -270,7 +270,7 @@ still needs to run the Python tool directly.
 ### 2.1 The render cache never invalidates when the ROM changes
 
 `tile-overlay.js` exports `invalidateRoomRenders()`, but **nothing calls it.**
-`src/shared/rom-readers.js`'s `loadRomBuffer()` correctly detects a changed ROM
+`src/games/evermore/rom-readers.js`'s `loadRomBuffer()` correctly detects a changed ROM
 by mtime and returns a fresh buffer — but `tile-overlay.js`'s own render cache
 is keyed only by `roomId:layer`, not by ROM identity, so after the user runs
 "Build and Run" (`everscript.buildAndRun`) and recompiles a modified ROM, the

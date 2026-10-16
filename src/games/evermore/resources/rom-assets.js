@@ -10,7 +10,7 @@ const {
 } = require('../maps');
 const { lootRewardName, ramBitToStr } = require('../script');
 const { decodeRomString, getMapName, getMapArea } = require('../localizations');
-const { slugify, hexId } = require('../../../shared/resource-uri');
+const { slugify, hexId } = require('./resource-uri');
 const { gallery, href } = require('./autoindex');
 const { dir, file, link, json, text } = require('./nodes');
 

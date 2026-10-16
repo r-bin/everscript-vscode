@@ -13,7 +13,7 @@
 
 const { snesToRom } = require('../maps');
 const { getTable, getFunction, getAbsScript } = require('../localizations');
-const { parseAddressName, hexId } = require('../../../shared/resource-uri');
+const { parseAddressName, hexId } = require('./resource-uri');
 const { dir, file, json, text } = require('./nodes');
 const { asmListing } = require('./asm-view');
 

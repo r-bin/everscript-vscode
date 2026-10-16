@@ -5,7 +5,7 @@
 const { dir, file, json, text } = require('./nodes');
 const { resolveAssets } = require('./rom-assets');
 const { encodePng, decodeRoom, renderRoomComposite } = require('../maps');
-const { hexId } = require('../../../shared/resource-uri');
+const { hexId } = require('./resource-uri');
 
 function resolveMaps(segments, rom, deps) {
     const [head, ...rest] = segments;

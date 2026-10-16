@@ -11,7 +11,7 @@ const {
     getMapName, getMapArea,
     getAbsScript, getNpcScript, getGlobalScript,
 } = require('../localizations');
-const { hexId } = require('../../../shared/resource-uri');
+const { hexId } = require('./resource-uri');
 const { dir, json, text } = require('./nodes');
 const MD = require('./script-markdown');
 const { resolveSimulationFile, SIMULATION_FILES } = require('./simulation-files');

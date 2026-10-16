@@ -216,7 +216,7 @@ Freezing the much smaller, dependency-free map-server subset is strictly easier 
 working. Bundled into the `.vsix` (which a monorepo's single CI pipeline can do as one release step:
 freeze, copy into `dist/`, package), a user installs one extension and the map editor works —
 no `everscript.pythonPath`/`repoPath` settings to configure, no separate Python install, none of the
-"does this contributor's machine have a working `.venv`" friction `src/shared/config.js` exists to
+"does this contributor's machine have a working `.venv`" friction `src/games/evermore/language/config.js` exists to
 paper over today. This isn't a different transport from Option A/B — it's still
 `child_process.spawn` talking JSON to a subprocess, just spawning a bundled binary instead of
 `python3 tools/map_server.py`. It's additive on top of whichever of A/B is chosen, not a fourth
@@ -349,7 +349,7 @@ that's still labeled "in progress" or "mock" elsewhere in the same extension.
 
 - [ ] Rewrite `tools/generate_data.py` (in `everscript-vscode`) to import `compiler.lexer` /
       `compiler.parser` from `everscript` instead of hand-rolled regex. Requires deciding how
-      `everscript-vscode` locates its `everscript` checkout at build time — `src/shared/config.js`
+      `everscript-vscode` locates its `everscript` checkout at build time — `src/games/evermore/language/config.js`
       already resolves `repoPath`/`pythonPath` for the compiler-spawning use case; reuse that
       resolution rather than inventing a second one.
 - [ ] Wire the rewritten `generate_data.py` into an actual build/CI step (`package.json` `scripts`)

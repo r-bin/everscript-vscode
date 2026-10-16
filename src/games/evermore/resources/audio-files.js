@@ -3,7 +3,7 @@
 // music, sound effects, song descriptors, and assembled SNES SPC files. Pure.
 
 const { MUSIC, SOUNDS, getMusic, getSound, getSoundAnimations } = require('../localizations/sounds');
-const { hexId, slugify } = require('../../../shared/resource-uri');
+const { hexId, slugify } = require('./resource-uri');
 const { dir, file, json, text } = require('./nodes');
 const { buildMusicModel } = require('../music/model/catalog');
 const { packageRecords, musicPackages, driverBlocks, isEvermoreAudio } = require('../music/model/rom-audio');

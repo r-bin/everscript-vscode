@@ -27,7 +27,7 @@ ROM models, pure transforms. JavaScript remains acceptable for: unstable orchest
 rendering, experimental code.
 
 - Migrate incrementally — one file at a time, by domain. Do NOT mass-convert JS files.
-- Good TS candidates: `src/shared/radar-utils.js`, `src/shared/config.js`, parser output
+- Good TS candidates: `src/games/evermore/radar-utils.js`, `src/games/evermore/language/config.js`, parser output
   types.
 - Use `allowJs: true` + `checkJs: false` (current `tsconfig.json`) to avoid disruption.
 - When migrating a file: rename `.js` → `.ts`, add local interfaces only, avoid

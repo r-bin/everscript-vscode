@@ -3,7 +3,7 @@
 // Maintains a cache for the expensive buildVanillaRoomDetails call.
 // Depends on: readRomMapHeader (rom-readers), readScriptAllTriggers (lua-watchers).
 
-const { readRomMapHeader } = require('../../shared/rom-readers');
+const { readRomMapHeader } = require('../../games/evermore/rom-readers');
 const { readScriptAllTriggers } = require('./lua-watchers');
 
 let _radarVanillaRoomsCache    = null;

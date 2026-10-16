@@ -14,7 +14,7 @@ const fs     = require('fs');
 const os     = require('os');
 const crypto = require('crypto');
 const maps   = require('../games/evermore/maps');
-const { resolveRomPath } = require('../shared/rom-readers');
+const { resolveRomPath } = require('../games/evermore/rom-readers');
 
 const HISTORY_FILENAME = 'recent-roms.json';
 const MAX_HISTORY_ITEMS = 15;

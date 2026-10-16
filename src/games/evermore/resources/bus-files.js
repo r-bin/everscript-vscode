@@ -13,7 +13,7 @@
 // WRAM; $40-$7D, $C0-$FF and the upper halves of $00-$3F/$80-$BF are ROM.
 // I/O registers and SRAM are not served: some registers change when read.
 
-const { parseAddressName, hexId } = require('../../../shared/resource-uri');
+const { parseAddressName, hexId } = require('./resource-uri');
 const { toFileOffset } = require('./rom-files');
 
 const WRAM = 0x7E0000;

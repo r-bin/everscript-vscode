@@ -2,7 +2,7 @@
 // Ownership: Markdown and Everscript text generators for decoded ROM scripts.
 // Pure formatting functions only; no routing or I/O.
 
-const { hexId } = require('../../../shared/resource-uri');
+const { hexId } = require('./resource-uri');
 
 function fmtSnes(addr) {
     return '$' + (addr >>> 0).toString(16).toUpperCase().padStart(6, '0');

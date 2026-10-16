@@ -5,7 +5,7 @@
 
 const path = require('path');
 const fs   = require('fs');
-const { romPath } = require('../../dist/games');
+const { romPath } = require('../../../dist/games');
 
 /** Candidate ROM paths, in resolution order: an explicit path, then the library's Evermore ROM. */
 function romCandidates(_wsRoot, romPathOverride = '') {

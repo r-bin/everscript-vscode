@@ -64,13 +64,13 @@ Instead of a VFS, the architecture consists of three small, decoupled layers:
 
 ```mermaid
 flowchart LR
-    URI["Resource Path<br>('/assets/ingredients/wax/icon.png')"] --> Router["Pure Path Router<br>(src/shared/resource-uri.js)"]
+    URI["Resource Path<br>('/assets/ingredients/wax/icon.png')"] --> Router["Pure Path Router<br>(src/games/evermore/resources/resource-uri.js)"]
     Router --> WebviewResolver["Webview Asset Resolver<br>(In-memory Data URIs)"]
     Router --> PanelDeepLink["Panel Deep Linker<br>(command:everscript.reveal)"]
     Router --> DocProvider["Virtual Doc Provider<br>(TextDocumentContentProvider)"]
 ```
 
-#### 1. Pure Path Router (`src/shared/resource-uri.js`, ~60 LOC)
+#### 1. Pure Path Router (`src/games/evermore/resources/resource-uri.js`, ~60 LOC)
 A pure, synchronous function parsing paths into typed descriptors:
 ```typescript
 interface ResourceRoute {
@@ -118,7 +118,7 @@ If a user wants to open an inspection tab in VS Code editor, `vscode.workspace.r
 
 ## 5. Implementation Roadmap
 
-1. **Phase 1: URI Parser & Formatter (`src/shared/resource-uri.js`)**
+1. **Phase 1: URI Parser & Formatter (`src/games/evermore/resources/resource-uri.js`)**
    - Unit tests covering `/wram/`, `/bus/`, `/rom/`, and `/assets/`.
 2. **Phase 2: HTML Template Asset Preprocessor**
    - Support `<img src="/assets/.../icon.png">` in webview renders.
