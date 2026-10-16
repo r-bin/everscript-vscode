@@ -21,6 +21,11 @@
  *                           first mismatch as a desync
  * A power-cycle is not an event: it starts a new recording.
  *
+ * Two header-style lines may be appended to a finished recording (tas/host.js), and once there
+ * they stay: "# desync: <frame> <detail>" (the first replay that lost sync, or a failed replay
+ * check while recording) and "# synced: <ISO date>" (a replay to the end matched every checksum).
+ * A desync wins: the recording is not trusted again.
+ *
  * Version 3 (the one written now) checks more, and more often:
  *   S|<crc8>                every CHECK_EVERY (60) frames instead of every 600
  *   T|vram=<crc8>|cgram=..|oam=..|sram=..|aram=..
@@ -195,7 +200,8 @@ function parseMovie(text, fileName) {
         count,
         version,
         events,
-        meta: { rom: m.rom || '', romSha256: (m['rom.sha256'] || '').toLowerCase(), core: m.core || '', audio: parseInt(m.audio, 10) || AUDIO_RATE, started: m.started || '', source: m.source || '', cheats: m.cheats || '' },
+        meta: { rom: m.rom || '', romSha256: (m['rom.sha256'] || '').toLowerCase(), core: m.core || '', audio: parseInt(m.audio, 10) || AUDIO_RATE, started: m.started || '', source: m.source || '', cheats: m.cheats || '',
+            desync: m.desync || '', synced: m.synced || '' },
         warnings: version === 1 && m.cheats === 'yes' ? ['cheats were on while recording: may not sync'] : [],
     };
 }

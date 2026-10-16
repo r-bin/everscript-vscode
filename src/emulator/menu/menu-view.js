@@ -580,7 +580,7 @@ function getMenuHtml() {
             <button id="menu-tab-btn-6" class="menu-tab-btn" type="button" data-tab="6">CONTROLS</button>
           </div>
           <button id="menu-r-btn" class="menu-shoulder-btn" type="button" title="Next Tab (R)">R &gt;</button>
-          <button id="menu-close-btn" type="button" title="Resume Game (B / Esc)">[X]</button>
+          <button id="menu-close-btn" type="button" title="Resume Game (A / Esc)">[X]</button>
         </div>
 
         <div id="menu-body">
@@ -602,7 +602,7 @@ function getMenuHtml() {
               <div class="menu-row" data-row="1" data-action="action-reset-pan" data-needs="evermore">
                 <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Center on Player / Reset Pan</div>
                 <div class="menu-row-value">
-                  <span class="menu-action-pill">[A] Center</span>
+                  <span class="menu-action-pill">[B] Center</span>
                 </div>
               </div>
               <div class="menu-lens-hint-box">
@@ -696,6 +696,14 @@ function getMenuHtml() {
                 <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
               </div>
             </div>
+            <div class="menu-row" data-row="10" data-action="toggle-inputs" title="The pad fed to the core each frame (also the INPUTS chip on the screen)">
+              <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Input Display</div>
+              <div class="menu-row-value">
+                <button class="menu-stepper-btn" data-step="-1" type="button">&lt;</button>
+                <span id="menu-val-inputs" class="menu-pill">OFF</span>
+                <button class="menu-stepper-btn" data-step="1" type="button">&gt;</button>
+              </div>
+            </div>
           </div>
 
           <!-- Tab 2: OBJECTS -->
@@ -739,18 +747,18 @@ function getMenuHtml() {
             <div class="menu-row" data-row="3" data-action="action-cheat-heal">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Full Heal Party (999 HP)</div>
               <div class="menu-row-value">
-                <span class="menu-action-pill">[A] Heal</span>
+                <span class="menu-action-pill">[B] Heal</span>
               </div>
             </div>
             <div class="menu-row" data-row="4" data-action="action-cheat-disable-all">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Disable All Cheats</div>
               <div class="menu-row-value">
-                <span class="menu-action-pill">[A] Reset</span>
+                <span class="menu-action-pill">[B] Reset</span>
               </div>
             </div>
           </div>
 
-          <!-- Tab 7: REPLAYS (the REPLAYS view is moved in, emulator-panels.js) -->
+          <!-- Tab 7: REPLAYS (the REPLAYS view is moved in, emulator-panels.js; its rows: webview/replays-list.js) -->
           <div id="menu-panel-7" class="menu-tab-panel menu-panel-host">
             <div id="emu-slot-tas" class="emu-panel-slot"></div>
           </div>
@@ -798,13 +806,13 @@ function getMenuHtml() {
             <div class="menu-row" data-row="3" data-action="action-reset-rom">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Reset / Power-Cycle ROM</div>
               <div class="menu-row-value">
-                <span class="menu-action-pill">[Press A to Reset]</span>
+                <span class="menu-action-pill">[B] Reset</span>
               </div>
             </div>
             <div class="menu-row" data-row="4" data-action="action-soft-reset">
               <div class="menu-row-label"><span class="menu-row-cursor">&gt;</span> Soft Reset (keeps RAM and save)</div>
               <div class="menu-row-value">
-                <span class="menu-action-pill">[Press A to Reset]</span>
+                <span class="menu-action-pill">[B] Reset</span>
               </div>
             </div>
           </div>
@@ -829,9 +837,9 @@ function getMenuHtml() {
             <span>[L]/[R]: Tabs</span>
             <span>Up/Down: Select</span>
             <span>Left/Right: Change</span>
-            <span>[A]: Action</span>
+            <span>[B]: Action</span>
           </div>
-          <div>[B] / Esc: Resume</div>
+          <div>[A] / Esc: Back</div>
         </div>
       </div>
     </div>
@@ -1095,7 +1103,7 @@ function getMenuClientScript() {
       const menuEl = document.getElementById('emulator-menu');
       if (menuEl) {
         menuEl.classList.toggle('lens-tab-active', tabIndex === 0);
-        menuEl.classList.toggle('panel-tab-active', tabIndex >= 7);
+        menuEl.classList.toggle('panel-tab-active', tabIndex >= 8);
       }
       if (typeof emuPanelsLayout === 'function') emuPanelsLayout();
 
@@ -1202,7 +1210,7 @@ function getMenuClientScript() {
     }
 
     function moveMenuSelection(delta) {
-      if (menuActiveTab >= 7 && typeof emuPanelMenuScroll === 'function') { emuPanelMenuScroll(menuActiveTab, delta); return; }
+      if (menuActiveTab >= 8 && typeof emuPanelMenuScroll === 'function') { emuPanelMenuScroll(menuActiveTab, delta); return; }
       const activePanel = document.getElementById('menu-panel-' + menuActiveTab);
       if (!activePanel) return;
       const rows = activePanel.querySelectorAll('.menu-row');
@@ -1213,6 +1221,8 @@ function getMenuClientScript() {
         menuSelectedRow = nextRow;
         tabSelectedRows[menuActiveTab] = nextRow;
         playMenuSound('click_nav');
+        // REPLAYS: moving away drops a pending play / delete question.
+        if (menuActiveTab === 7 && typeof replaysCancel === 'function' && replaysCancel()) tasRenderList();
         updateMenuRowSelection();
       }
     }
@@ -1221,6 +1231,10 @@ function getMenuClientScript() {
     function changeMenuValue(delta) {
       if (menuActiveTab >= 8) {
         if (typeof emuPanelMenuStep === 'function') emuPanelMenuStep(menuActiveTab, delta);
+        return;
+      }
+      if (menuActiveTab === 7) {
+        if (typeof tasMenuStep === 'function') tasMenuStep(menuSelectedRow, delta);
         return;
       }
       if (menuActiveTab === 0) {
@@ -1288,6 +1302,12 @@ function getMenuClientScript() {
             if (typeof setThinStaminaBar === 'function') {
               setThinStaminaBar(delta > 0);
               setPillState('menu-val-stamina-bar', thinStaminaBarEnabled);
+              playMenuSound('click_toggle');
+            }
+            break;
+          case 10:
+            if (typeof tasSetOverlay === 'function') {
+              tasSetOverlay(delta > 0, true);
               playMenuSound('click_toggle');
             }
             break;
@@ -1374,6 +1394,10 @@ function getMenuClientScript() {
         if (typeof emuPanelMenuStep === 'function') emuPanelMenuStep(menuActiveTab, 1);
         return;
       }
+      if (menuActiveTab === 7) {
+        if (typeof tasMenuActivate === 'function') tasMenuActivate(menuSelectedRow);
+        return;
+      }
       if (menuActiveTab === 0) {
         if (menuSelectedRow === 1) {
           // Reset pan & center on player
@@ -1438,6 +1462,12 @@ function getMenuClientScript() {
             if (typeof setThinStaminaBar === 'function') {
               setThinStaminaBar(!thinStaminaBarEnabled);
               setPillState('menu-val-stamina-bar', thinStaminaBarEnabled);
+              playMenuSound('click_toggle');
+            }
+            break;
+          case 10:
+            if (typeof tasSetOverlay === 'function') {
+              tasSetOverlay(!tasOverlayIsOn(), true);
               playMenuSound('click_toggle');
             }
             break;
@@ -2095,17 +2125,17 @@ function getMenuClientScript() {
         const aKey = userKeyMap['A'] || 'v';
         const bKey = userKeyMap['B'] || 'c';
 
-        // 1. Start button, B button, or Escape closes/resumes menu from ANY tab:
+        // 1. Start, A or Escape: back (drop a pending question on REPLAYS), else resume, from ANY tab:
         if (e.key === startKey || (startKey === 'Enter' && e.key === 'Enter') ||
-            e.key === bKey || (bKey && e.key.toLowerCase() === bKey.toLowerCase()) ||
+            e.key === aKey || (aKey && e.key.toLowerCase() === aKey.toLowerCase()) ||
             e.key === 'Escape') {
-          closeEmulatorMenu();
+          if (!(menuActiveTab === 7 && typeof tasMenuCancel === 'function' && tasMenuCancel())) closeEmulatorMenu();
           e.preventDefault();
           return;
         }
 
-        // 2. Action / Confirm (A button, or Enter if Start is mapped to another key):
-        if (e.key === aKey || (aKey && e.key.toLowerCase() === aKey.toLowerCase()) ||
+        // 2. Action / Confirm (B button, or Enter if Start is mapped to another key):
+        if (e.key === bKey || (bKey && e.key.toLowerCase() === bKey.toLowerCase()) ||
             (startKey !== 'Enter' && e.key === 'Enter')) {
           if (menuActiveTab === 0) {
             closeEmulatorMenu();
@@ -2180,13 +2210,13 @@ function getMenuClientScript() {
           changeMenuValue(1);
           lastGamepadAxisTick = now;
         }
-        // Button A (btn 1 or btn 0)
-        if (gp.buttons[1] && gp.buttons[1].pressed && !lastGamepadButtons[1]) {
-          activateMenuRow();
-        }
-        // Button B (btn 0)
+        // Button B (btn 0, the bottom face button): action
         if (gp.buttons[0] && gp.buttons[0].pressed && !lastGamepadButtons[0]) {
-          closeEmulatorMenu();
+          if (menuActiveTab === 0) closeEmulatorMenu(); else activateMenuRow();
+        }
+        // Button A (btn 1): back / resume
+        if (gp.buttons[1] && gp.buttons[1].pressed && !lastGamepadButtons[1]) {
+          if (!(menuActiveTab === 7 && typeof tasMenuCancel === 'function' && tasMenuCancel())) closeEmulatorMenu();
         }
         // Start button (btn 9)
         if (gp.buttons[9] && gp.buttons[9].pressed && !lastGamepadButtons[9]) {
@@ -2255,6 +2285,7 @@ function getMenuClientScript() {
       setPillState('menu-val-sound-vis', sndShow);
       setPillState('menu-val-hp-bar', !!thinHpBarEnabled);
       setPillState('menu-val-stamina-bar', !!thinStaminaBarEnabled);
+      if (typeof tasOverlayIsOn === 'function') setPillState('menu-val-inputs', tasOverlayIsOn());
       setPillState('menu-val-cheat-noclip', !!cheatNoclipEnabled);
       setPillState('menu-val-cheat-invincible', !!cheatInvincibleEnabled);
       setPillState('menu-val-cheat-atlas', !!cheatAtlasEnabled);

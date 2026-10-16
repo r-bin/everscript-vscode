@@ -390,7 +390,7 @@ function _resetPanelHtml() {
     const html = buildHtml(_panel.webview, coreJsUri, coreWasmUri, core.label, core.path, romOfferData, {
       profile: _options.profile,
       styles: [file('emulator-profile.css'), file('emulator-panels.css')],
-      scripts: [file('rom-game.js'), file('emulator-profile.js'), file('emulator-panels.js')],
+      scripts: [file('rom-game.js'), file('emulator-profile.js'), file('emulator-panels.js'), file('replays-list.js')],
     });
     // Log a snippet to help diagnose CSP / script-load issues.
     _log('HTML head snippet: ' + html.substring(0, 220).replace(/\s+/g, ' '));

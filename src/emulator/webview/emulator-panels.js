@@ -18,7 +18,8 @@
  *   - The panel of the open menu tab is moved into that tab and back when the menu
  *     closes or turns to another tab. A panel is one element: it is moved, never copied,
  *     so its update code does not care where it is.
- * REPLAYS lives in the menu only (its tab, its status chip on the screen: tas-view.js).
+ * REPLAYS lives in the menu only (its tab, its status chip on the screen: tas-view.js); it is
+ * not a panel: its rows are menu rows (replays-list.js) and its tab has the usual card size.
  *
  * Defaults: CDL in the left side bar, everything else hidden. The placement is saved
  * with the page's other settings (emulator-profile.js, 'panels').
@@ -32,7 +33,6 @@ const EMU_PLACES = ['hidden', 'left', 'right', 'bottom'];
 const EMU_PLACE_LABELS = { hidden: 'Hidden', left: 'Left side bar', right: 'Right side bar', bottom: 'Bottom bar' };
 /** Pause-menu tab of each panel (menu/menu-view.js MENU_TAB_ORDER). */
 const EMU_PANEL_MENU_TAB = { cdl: 8, trace: 9, stack: 10, entities: 11, alchemy: 12, palettes: 13 };
-const EMU_REPLAYS_MENU_TAB = 7;
 
 function emuDefaultPlaces() {
   const p = {};
@@ -167,7 +167,7 @@ function emuPanelMenuStep(tab, delta) {
 
 /** Up / Down on a panel tab of the menu scrolls the panel. */
 function emuPanelMenuScroll(tab, delta) {
-  const name = tab === EMU_REPLAYS_MENU_TAB ? 'tas' : emuPanelOfMenuTab(tab);
+  const name = emuPanelOfMenuTab(tab);
   const slot = name && document.getElementById('emu-slot-' + name);
   if (!slot) return false;
   const all = [slot].concat(Array.from(slot.querySelectorAll('*')));

@@ -7,7 +7,7 @@
  * Single export: buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay, romOfferData, options) -> string
  *   options.profile  'full' or 'recorder' (webview/emulator-profile.js hides what a profile or a
  *                    non-Evermore ROM does not get: elements marked data-needs="full" / "evermore")
- *   options.scripts  webview URIs of webview/rom-game.js, emulator-profile.js and emulator-panels.js,
+ *   options.scripts  webview URIs of webview/rom-game.js, emulator-profile.js, emulator-panels.js and replays-list.js,
  *                    loaded before the inline script; options.styles  of webview/emulator-profile.css
  *                    and emulator-panels.css
  */
@@ -1855,7 +1855,7 @@ function _buildHtml(webview, coreJsUri, coreWasmUri, coreLabel, corePathDisplay,
               }
               speedAccumulator -= 1.0;
             }
-            for (let extra = tasExtraFrames() + (speedMultiplier > 1.0 ? Math.floor(speedMultiplier) - 1 : 0); extra > 0 && !isEmulatorPaused(); extra--) {
+            for (let extra = (speedMultiplier > 1.0 ? Math.floor(speedMultiplier) - 1 : 0); extra > 0 && !isEmulatorPaused(); extra--) {
               tasApplyInput(Module, keyInput);
               Module._mainLoop();
               fpsCountFrame(Module);

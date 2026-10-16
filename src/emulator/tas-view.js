@@ -7,13 +7,13 @@
  *  - every boot of a ROM starts an input recording; each emulated frame's pad
  *    word is buffered and sent to the host in batches (and on pause / ROM
  *    change / tab hide), so the SSD sees one small append per two seconds;
- *  - the REPLAYS tab of the pause menu lists this ROM's recordings (same SHA-256,
- *    pinned first) and scrolls; playing one closes the menu, then reboots
+ *  - the REPLAYS tab of the pause menu lists this ROM's recordings (rows and their
+ *    keys: webview/replays-list.js); playing one closes the menu, then reboots
  *    the loaded ROM (with the custom core's EVS_TAS build a restart is a true
- *    power-on) and feeds the recorded pads frame by frame, optionally several
- *    frames per display frame; "take over" or the end hands control back to
- *    the keyboard while the new recording continues as a branch;
- *  - the input overlay draws the pad fed to the core this frame.
+ *    power-on) and feeds the recorded pads frame by frame; "take over" or the end
+ *    hands control back to the keyboard while the new recording continues as a branch;
+ *    the first desync, or a full replay in sync, is written into the recording (host);
+ *  - the input overlay (OVERLAYS tab, INPUTS chip) draws the pad fed to the core this frame.
  *
  * Beyond the pad, a movie also records everything that changes the emulation
  * from outside (movie.js documents the lines): memory writes made through
@@ -33,29 +33,34 @@
 
 function getTasCss() {
   return `
-    #ss-view-tas .ss-subbar { flex-wrap: wrap; }
-    #tas-status { color: #888; margin-left: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #tas-status { color: #888; font-size: 10px; padding: 3px 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #tas-status:empty { display: none; }
     #tas-rec-badge { position: absolute; top: 4px; left: 50%; transform: translateX(-50%); z-index: 45; cursor: pointer;
       font: inherit; font-size: 10px; padding: 1px 6px; border-radius: 3px; border: 1px solid #333; color: #777; background: rgba(16, 16, 16, 0.75); }
     #tas-rec-badge.rec { color: #ff6b6b; border-color: #7a2a2a; background: rgba(120, 30, 30, 0.25); }
     #tas-rec-badge.play.desync { color: #ff6b6b; border-color: #7a2a2a; background: rgba(120, 30, 30, 0.35); }
     #tas-rec-badge.play { color: #6f9; border-color: #2e7d32; background: rgba(26, 60, 26, 0.35); }
-    #tas-speed { background: #1a1a1a; color: #ccc; border: 1px solid #333; font: inherit; font-size: 10px; }
-    #tas-list { flex: 1; min-height: 0; overflow-y: auto; padding: 2px 0; }
-    .tas-group { color: #777; font-size: 10px; padding: 6px 8px 2px; letter-spacing: 0.05em; }
-    .tas-row { display: flex; align-items: center; gap: 6px; padding: 3px 8px; border-bottom: 1px solid #1a1a1a; }
-    .tas-row:hover { background: #151515; }
-    .tas-row.playing { background: rgba(26, 60, 26, 0.35); }
-    .tas-pin { background: none; border: none; color: #555; cursor: pointer; font-size: 13px; width: 18px; padding: 0; }
-    .tas-pin.on { color: #e8c33a; }
-    .tas-pin:disabled { cursor: default; }
-    .tas-main { flex: 1; min-width: 0; }
-    .tas-name { color: #ddd; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .tas-meta { color: #777; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .tas-meta .bad { color: #e0a040; }
-    .tas-meta .ok { color: #6a6; }
-    .tas-meta .rec { color: #ff6b6b; }
-    #tas-empty { color: #666; padding: 12px 8px; font-size: 11px; line-height: 1.5; }
+    #tas-list { display: flex; flex-direction: column; }
+    .rp-group { color: #667; font-size: 9px; padding: 8px 14px 3px; letter-spacing: 0.06em; }
+    .menu-row.rp-row { justify-content: flex-start; gap: 8px; padding: 4px 14px; }
+    .menu-row.rp-row.selected { padding-left: 11px; }
+    .rp-row.playing { box-shadow: inset 0 0 0 1px rgba(102, 255, 153, 0.35); }
+    .rp-when { width: 112px; flex-shrink: 0; color: #ddd; white-space: nowrap; }
+    .rp-len { width: 52px; flex-shrink: 0; text-align: right; color: #aab; font-variant-numeric: tabular-nums; }
+    .rp-sync { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 10px; }
+    .rp-sync .ok { color: #6a6; }
+    .rp-sync .bad { color: #e0a040; }
+    .rp-sync .rec { color: #ff6b6b; }
+    .rp-sync .dim { color: #667; }
+    .rp-flags { color: #887; }
+    .rp-act { flex-shrink: 0; background: #202028; border: 1px solid #3c3c48; color: #8899aa; border-radius: 3px;
+      font: inherit; font-size: 10px; padding: 2px 7px; cursor: pointer; }
+    .rp-act:disabled { opacity: 0.35; cursor: default; }
+    .rp-pin { border-color: transparent; background: none; font-size: 13px; padding: 0 3px; color: #555; }
+    .rp-pin[data-on] { color: #e8c33a; }
+    .menu-row.selected .rp-act.focus { border-color: #4ec9b0; color: #fff; background: rgba(78, 201, 176, 0.18); }
+    .rp-act.asking { border-color: #e0a040 !important; color: #ffd27a !important; background: rgba(224, 160, 64, 0.15) !important; }
+    #tas-empty { color: #666; padding: 12px 14px; font-size: 11px; line-height: 1.5; }
     #tas-input-overlay {
       position: absolute; left: 8px; bottom: 8px; z-index: 19;
       width: 118px; height: 80px; pointer-events: none; display: none;
@@ -79,16 +84,7 @@ function getTasOverlayHtml() {
 function getTasViewHtml() {
   return `
     <div id="ss-view-tas" class="ss-tab-view">
-      <div class="ss-subbar">
-        <button id="tas-takeover" class="ss-btn" type="button" title="Stop the replay here and play on with the keyboard (the recording keeps going)" disabled>take over</button>
-        <label title="Frames emulated per display frame while replaying">speed
-          <select id="tas-speed"><option value="1">1x</option><option value="2">2x</option><option value="4">4x</option><option value="8">8x</option><option value="16">16x</option></select>
-        </label>
-        <button id="tas-softreset" class="ss-btn" type="button" title="The console reset button (keeps RAM and the save); recorded in the movie">soft reset</button>
-        <button id="tas-overlay-btn" class="ss-btn" type="button">input overlay</button>
-        <button id="tas-reveal" class="ss-btn" type="button">open folder</button>
-        <span id="tas-status"></span>
-      </div>
+      <div id="tas-status"></div>
       <div id="tas-list"><div id="tas-empty">Every session is recorded automatically from power-on. Load a ROM to start.</div></div>
     </div>
   `;
@@ -104,7 +100,6 @@ function getTasClientScript() {
     let tasPlay = null;          // { id, title, pads, count, pos } while replaying
     let tasPendingMovie = null;  // movie waiting for the reboot that starts it
     let tasSessionFrame = 0;     // frames since power-on
-    let tasSpeed = 1;
     let tasOverlayOn = false;
     let tasLastPad = 0;
     let tasItems = [];
@@ -147,9 +142,7 @@ function getTasClientScript() {
           : tasRec ? 'REC ' + tasFmtTime(tasRec.frames)
           : romLoaded ? (tasAutoRecord ? 'rec waiting' : 'recording off') : 'no ROM';
       }
-      setControlEnabled('tas-takeover', !!tasPlay);
-      const ob = document.getElementById('tas-overlay-btn');
-      if (ob) ob.classList.toggle('active', tasOverlayOn);
+      if (typeof setPillState === 'function') setPillState('menu-val-inputs', tasOverlayOn);
       const chip = document.getElementById('screen-inputs-toggle');
       if (chip) { chip.classList.toggle('active', tasOverlayOn); chip.textContent = tasOverlayOn ? 'INPUTS ON' : 'INPUTS OFF'; }
     }
@@ -284,8 +277,7 @@ function getTasClientScript() {
           if (got !== ev.crc && !tasDesync) {
             tasDesync = { frame: frame, expected: tasHex(ev.crc, 8), got: tasHex(got, 8) };
             tasSetStatus('DESYNC at frame ' + frame + ' (expected ' + tasDesync.expected + ', got ' + tasDesync.got + ')');
-            vscodeApi.postMessage({ command: 'tasDesync', frame: frame, expected: tasDesync.expected, got: tasDesync.got });
-            tasRefreshBadge();
+            tasReportDesync();
           }
           tasRecordEvent('S|' + tasHex(got, 8));
         } else if (ev.kind === 'T') {
@@ -295,13 +287,18 @@ function getTasClientScript() {
             if (ev.crcs[sp[0]] !== undefined && ev.crcs[sp[0]] !== got[sp[0]] && !tasDesync) {
               tasDesync = { frame: frame, expected: sp[0] + ' ' + tasHex(ev.crcs[sp[0]], 8), got: tasHex(got[sp[0]], 8) };
               tasSetStatus('DESYNC at frame ' + frame + ' in ' + sp[0] + ' (expected ' + tasHex(ev.crcs[sp[0]], 8) + ', got ' + tasHex(got[sp[0]], 8) + ')');
-              vscodeApi.postMessage({ command: 'tasDesync', frame: frame, expected: tasDesync.expected, got: tasDesync.got });
-              tasRefreshBadge();
+              tasReportDesync();
             }
           }
           tasRecordEvent(tasSpacesLine(got));
         }
       }
+    }
+
+    // The host logs it and, for a fair replay, writes it into the recording for good.
+    function tasReportDesync() {
+      vscodeApi.postMessage({ command: 'tasDesync', id: tasPlay.id, fair: tasPlay.fair, frame: tasDesync.frame, expected: tasDesync.expected, got: tasDesync.got });
+      tasRefreshBadge();
     }
 
     function tasEndRecording() {
@@ -337,6 +334,7 @@ function getTasClientScript() {
       if (tasPlay) {
         tasPlayEvents(m, tasPlay.pos);
         if (tasPlay.pos >= tasPlay.count) {
+          if (!tasDesync && tasPlay.fair) vscodeApi.postMessage({ command: 'tasReplayed', id: tasPlay.id, frames: tasPlay.count });
           tasStopPlayback('replay finished at frame ' + tasPlay.count + (tasDesync ? ' - DESYNCED at frame ' + tasDesync.frame : ' - keyboard has control'));
         } else {
           pad = tasPlay.pads[tasPlay.pos];
@@ -362,11 +360,6 @@ function getTasClientScript() {
       tasRecordFrame(pad, fromMovie);
     }
 
-    // Extra frames to emulate this display frame (fast-forward while replaying).
-    function tasExtraFrames() {
-      return tasPlay ? Math.min(tasSpeed - 1, tasPlay.count - tasPlay.pos) : 0;
-    }
-
     function tasReplaying() { return !!tasPlay; }
 
     // -- replay --------------------------------------------------------------------------
@@ -389,6 +382,8 @@ function getTasClientScript() {
       else if (msg.romMatch === false) tasNotice = 'recorded on a different ROM: expect a desync';
       else if (msg.coreMatch === false) tasNotice = 'recorded on a different emulator core build: may desync';
       else tasNotice = (msg.warnings || [])[0] || '';
+      // Only a replay that should sync says anything about the recording.
+      movie.fair = !(m && typeof m._takeInputPolled !== 'function') && msg.romMatch !== false && msg.coreMatch !== false;
       tasPendingMovie = movie;
       bootRom(loadedRomData, loadedRomName);
       if (tasNotice) tasSetStatus('replaying ' + movie.title + ' - ' + tasNotice);
@@ -442,6 +437,8 @@ function getTasClientScript() {
       ctx.fillText(label, 6, 4);
     }
 
+    function tasOverlayIsOn() { return tasOverlayOn; }
+
     function tasSetOverlay(on, persist) {
       tasOverlayOn = !!on;
       tasRefreshBadge();
@@ -449,42 +446,42 @@ function getTasClientScript() {
       if (persist) vscodeApi.postMessage({ command: 'tasPrefs', overlay: tasOverlayOn });
     }
 
-    // -- list ----------------------------------------------------------------------------
-    function tasEsc(s) {
-      return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-    }
-
-    function tasRow(it) {
-      const parts = [];
-      if (it.recording) parts.push('<span class="rec">recording now</span>');
-      if (it.frames != null) parts.push(it.frames + ' frames (' + tasFmtTime(it.frames) + ')');
-      parts.push(new Date(it.meta && it.meta.started ? it.meta.started : it.mtime).toLocaleString());
-      if (it.meta && it.meta.source) parts.push('from ' + tasEsc(it.meta.source));
-      if (it.romMatch === false) parts.push('<span class="bad">other ROM</span>');
-      if (it.coreMatch === false) parts.push('<span class="bad">other core</span>');
-      const warn = (it.warnings || []).join('; ');
-      const playing = tasPlay && tasPlay.id === it.id;
-      return '<div class="tas-row' + (playing ? ' playing' : '') + '" data-id="' + tasEsc(it.id) + '"' + (it.recording ? ' data-recording="1"' : '') + (warn ? ' title="' + tasEsc(warn) + '"' : '') + '>'
-        + '<button class="tas-pin' + (it.pinned ? ' on' : '') + '" data-act="pin" type="button" title="' + (it.pinned ? 'unpin' : 'pin') + '">' + (it.pinned ? '&#9733;' : '&#9734;') + '</button>'
-        + '<div class="tas-main"><div class="tas-name">' + tasEsc(it.name) + '</div>'
-        + '<div class="tas-meta">' + parts.join(' &middot; ') + (warn ? ' &middot; <span class="bad">' + tasEsc(warn) + '</span>' : '') + '</div></div>'
-        + '<button class="ss-btn" data-act="play" type="button" title="' + (it.recording ? 'end this session and replay it from power-on' : 'replay from power-on') + '">' + (playing ? 'restart' : 'play') + '</button>'
-        + '<button class="ss-btn" data-act="delete" type="button"' + (it.recording ? ' disabled' : '') + '>delete</button>'
-        + '</div>';
-    }
-
-    // Only this ROM's recordings (the host compares the SHA-256 in each movie's header).
+    // -- list (rows and keys: webview/replays-list.js) ---------------------------------
     function tasRenderList() {
       const list = document.getElementById('tas-list');
-      if (!list) return;
-      const mine = tasItems.filter(it => it.romMatch === true || it.recording);
-      const others = tasItems.length - mine.length;
-      const pinned = mine.filter(it => it.pinned), rest = mine.filter(it => !it.pinned);
-      let html = '';
-      if (pinned.length) html += '<div class="tas-group">PINNED</div>' + pinned.map(tasRow).join('');
-      html += '<div class="tas-group">RECORDINGS</div>' + (rest.length ? rest.map(tasRow).join('') : '<div id="tas-empty">No recordings of this ROM yet: play and press some buttons.</div>');
-      if (others) html += '<div class="tas-group">' + others + ' recording' + (others === 1 ? '' : 's') + ' of other ROMs not listed</div>';
-      list.innerHTML = html;
+      if (!list || typeof replaysListHtml !== 'function') return;
+      list.innerHTML = replaysListHtml(tasItems, tasPlay ? tasPlay.id : null);
+      if (typeof isMenuOpen !== 'undefined' && isMenuOpen && menuActiveTab === 7) updateMenuRowSelection(false);
+    }
+
+    // The pause menu's keys on the REPLAYS tab (menu-view.js).
+    function tasMenuStep(rowIdx, delta) {
+      if (replaysStep(rowIdx, delta)) { playMenuSound('click_nav'); tasRenderList(); }
+    }
+
+    function tasMenuCancel() {
+      if (!replaysCancel()) return false;
+      playMenuSound('wheel_turn');
+      tasRenderList();
+      return true;
+    }
+
+    function tasMenuActivate(rowIdx, actOverride) {
+      const r = replaysActivate(rowIdx, actOverride);
+      if (!r) return;
+      if (r.ask) { playMenuSound('click_nav'); tasRenderList(); return; }
+      playMenuSound('click_confirm');
+      if (r.act === 'takeover') tasStopPlayback();
+      else if (r.act === 'reveal') vscodeApi.postMessage({ command: 'tasReveal' });
+      else if (r.act === 'pin') vscodeApi.postMessage({ command: 'tasPin', id: r.id, pinned: r.on });
+      else if (r.act === 'delete') { tasRenderList(); vscodeApi.postMessage({ command: 'tasDelete', id: r.id, confirmed: true }); }
+      else if (r.act === 'play') {
+        if (isMenuOpen) closeEmulatorMenu();
+        // The session in progress: close its file first so the replay reads every frame.
+        if (r.recording) tasEndRecording();
+        tasSetStatus('loading replay...');
+        vscodeApi.postMessage({ command: 'tasLoad', id: r.id });
+      }
     }
 
     function tasRequestList() {
@@ -497,26 +494,14 @@ function getTasClientScript() {
       if (!list || list.getAttribute('data-bound')) return;
       list.setAttribute('data-bound', '1');
       list.addEventListener('click', evt => {
-        const btn = evt.target && evt.target.closest ? evt.target.closest('button[data-act]') : null;
-        const row = btn ? btn.closest('.tas-row') : null;
-        if (!btn || !row || btn.disabled) return;
-        const id = row.getAttribute('data-id');
-        const act = btn.getAttribute('data-act');
-        if (act === 'play') {
-          if (isMenuOpen) closeEmulatorMenu();
-          // The session in progress: close its file first so the replay reads every frame.
-          if (row.getAttribute('data-recording')) tasEndRecording();
-          tasSetStatus('loading replay...');
-          vscodeApi.postMessage({ command: 'tasLoad', id });
-        }
-        else if (act === 'pin') vscodeApi.postMessage({ command: 'tasPin', id, pinned: !btn.classList.contains('on') });
-        else if (act === 'delete') vscodeApi.postMessage({ command: 'tasDelete', id });
+        const idx = replaysRowIndex(evt.target);
+        if (idx < 0 || !isMenuOpen) return;
+        const btn = evt.target.closest('button[data-act]');
+        if (btn && btn.disabled) return;
+        if (menuSelectedRow !== idx) { replaysCancel(); menuSelectedRow = idx; updateMenuRowSelection(); }
+        if (btn) tasMenuActivate(idx, btn.getAttribute('data-act'));
+        else if (list.querySelectorAll('.menu-row')[idx].getAttribute('data-kind') !== 'replay') tasMenuActivate(idx);
       });
-      document.getElementById('tas-takeover').addEventListener('click', () => tasStopPlayback());
-      document.getElementById('tas-softreset').addEventListener('click', () => tasSoftReset());
-      document.getElementById('tas-speed').addEventListener('change', evt => { tasSpeed = parseInt(evt.target.value, 10) || 1; });
-      document.getElementById('tas-overlay-btn').addEventListener('click', () => tasSetOverlay(!tasOverlayOn, true));
-      document.getElementById('tas-reveal').addEventListener('click', () => vscodeApi.postMessage({ command: 'tasReveal' }));
       document.getElementById('tas-rec-badge').addEventListener('click', evt => {
         evt.stopPropagation();
         if (isMenuOpen) selectMenuTab(7);

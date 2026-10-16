@@ -13,7 +13,9 @@
  * or a replay watched to its end without taking over) is deleted on close.
  *
  * Messages (webview -> host): tasRecStart, tasRecFrames, tasRecEnd, tasList,
- *   tasLoad, tasPin, tasDelete, tasReveal, tasPrefs, tasDesync, tasVerify (replay the session so far headless, see verify.js)
+ *   tasLoad, tasPin, tasDelete (confirmed: the pause menu asked already), tasReveal, tasPrefs,
+ *   tasDesync / tasReplayed (a replay lost sync / reached the end in sync: written into the
+ *   recording when the replay was fair), tasVerify (replay the session so far headless, see verify.js)
  * Messages (host -> webview): tasConfig, tasListResult, tasMovie, tasStatus
  */
 
@@ -108,10 +110,14 @@ class TasHost {
             case 'tasList': this._sendList(); break;
             case 'tasLoad': this._load(msg.id); break;
             case 'tasPin': this._pin(msg.id, !!msg.pinned); break;
-            case 'tasDelete': this._delete(msg.id); break;
+            case 'tasDelete': this._delete(msg.id, !!msg.confirmed); break;
             case 'tasReveal': vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(this.dir())); break;
             case 'tasVerify': this._verify(); break;
-            case 'tasDesync': this.log(`TAS replay desync at frame ${msg.frame}: expected ${msg.expected}, got ${msg.got}`, true); break;
+            case 'tasDesync':
+                this.log(`TAS replay desync at frame ${msg.frame}: expected ${msg.expected}, got ${msg.got}`, true);
+                if (msg.fair) this._markSync(msg.id, 'desync', `${msg.frame} expected ${msg.expected}, got ${msg.got}`);
+                break;
+            case 'tasReplayed': this._markSync(msg.id, 'synced', new Date().toISOString()); break;
             case 'tasPrefs': this._savePrefs(Object.assign(this._prefs(), { overlay: !!msg.overlay })); break;
             default: return false;
         }
@@ -182,6 +188,10 @@ class TasHost {
                 this.log(`TAS replay check OK (${frames} frames, ${r.summary}${r.note ? '; ' + r.note : ''})`);
             } else if (r.desync) {
                 const text = `REPLAY CHECK FAILED: desync at frame ${r.desync.frame} (${r.desync.detail}). Keep playing is not safe: see ${rec.file}`;
+                if (this.rec === rec && rec.fd !== null && !rec.desync) {
+                    rec.desync = true;
+                    fs.writeSync(rec.fd, `# desync: ${r.desync.frame} replay check: ${r.desync.detail}\n`);
+                }
                 this.post({ command: 'tasStatus', text });
                 this.log(text, true);
                 vscode.window.showErrorMessage(text);
@@ -268,6 +278,28 @@ class TasHost {
         }
     }
 
+    /**
+     * Write what a replay showed into the recording, once: key 'desync' (frame and detail) or
+     * 'synced' (date). A recording that desynced once stays marked; it is never marked synced.
+     */
+    _markSync(id, key, value) {
+        const ref = this._resolve(id);
+        if (!ref || !fs.existsSync(ref.file) || (this.rec && this.rec.file === ref.file)) return;
+        try {
+            const text = fs.readFileSync(ref.file, 'utf8');
+            const meta = parseMovie(text, ref.name).meta;
+            if (meta.desync || (key === 'synced' && meta.synced)) return;
+            // The list is sorted by date: keep the file's time.
+            const { atime, mtime } = fs.statSync(ref.file);
+            fs.appendFileSync(ref.file, `${text.endsWith('\n') ? '' : '\n'}# ${key}: ${String(value).replace(/\s+/g, ' ')}\n`);
+            fs.utimesSync(ref.file, atime, mtime);
+        } catch (e) {
+            this.log(`TAS: cannot mark ${ref.name} as ${key}: ${e.message}`);
+            return;
+        }
+        this._sendList();
+    }
+
     _pin(id, pinned) {
         const ref = this._resolve(id);
         if (!ref) return;
@@ -279,15 +311,17 @@ class TasHost {
         this._sendList();
     }
 
-    async _delete(id) {
+    async _delete(id, confirmed) {
         const ref = this._resolve(id);
         if (!ref || !fs.existsSync(ref.file)) return;
         if (this.rec && this.rec.file === ref.file) {
             this.post({ command: 'tasStatus', text: 'that is the recording in progress' });
             return;
         }
-        const ok = await vscode.window.showWarningMessage(`Delete recording "${ref.name}"?`, { modal: true }, 'Delete');
-        if (ok !== 'Delete') return;
+        if (!confirmed) {
+            const ok = await vscode.window.showWarningMessage(`Delete recording "${ref.name}"?`, { modal: true }, 'Delete');
+            if (ok !== 'Delete') return;
+        }
         fs.unlinkSync(ref.file);
         this._pin(id, false);
     }

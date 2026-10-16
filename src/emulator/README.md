@@ -19,6 +19,7 @@ Embedded snes9x2005 WASM emulator panel integrated into VS Code.
 | `cdl-float.js` | Scrolling-combat-text style floating coverage gains above the active character |
 | `cdl/` | CDL library, xref index, 65816 disassembler, Asar + `ram.asm` export (see `cdl/README.md`) |
 | `tas-view.js` | REPLAYS pause-menu tab (this ROM's recordings) and its REC / PLAY / DESYNC chip on the screen, input overlay, per-frame joypad feed (`tasApplyInput`) and session recording buffer |
+| `webview/replays-list.js` | The REPLAYS tab's rows (when, length, sync; no file name) and their keys: Left / Right choose favourite / play / delete, B does it, play and delete ask first |
 | `script-debug-host.js` / `script-debug-view.js` | VS Code debugger hook: host bridge (outlives the panel) and webview exec breakpoint on the interpreter fetch `$8C:D0A6` (see `src/debugger/README.md`) |
 | `apu-stream.js` / `apu-stream-view.js` | Sound-chip stream for the radar's Music tab: host side (on/off, frame listener, ARAM snapshots) and page side (posts the core's `getApuView` + package + voice samples after each frame while on). See `src/music/README.md` |
 | `sound-source-view.js` | Page side, with the SOUNDS chip: while it is on or the Music tab streams, a non-pausing exec breakpoint at `$8C:81FD` records who sent each sound effect (an animation's entity, a script, engine code) into the next frame, and rings that entity on the screen; `apuPoint` marks the entity the Music tab hovers. Pause changes are posted as `apuPaused` |
@@ -62,8 +63,9 @@ CDL, TRACE, STACK, ENTITIES, ALCHEMY and PALETTES are panels (`#ss-view-<name>`)
 - The bottom bar has a tab for each panel placed there. With none there is no bottom bar.
 - A panel is one element, moved (never copied) into the open menu tab and back, so its update
   code does not care where it is. Per-frame work asks `emuPanelVisible(name)`.
-- REPLAYS is a menu tab only. It lists the recordings with this ROM's SHA-256 (the host's
-  `romMatch`); playing one closes the menu, then reboots. The chip at the top of the screen
+- REPLAYS is a menu tab only, with the usual card size (not a panel). It lists the recordings
+  with this ROM's SHA-256 (the host's `romMatch`), one menu row each; playing one closes the
+  menu, then reboots. Whether a recording replays in sync is written into it (`tas/README.md`). The chip at the top of the screen
   (REC / PLAY / DESYNC) opens the menu on REPLAYS.
 - Defaults: CDL on the left, everything else hidden (both profiles; the recorder also records).
 

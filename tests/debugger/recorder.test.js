@@ -166,7 +166,7 @@ function recordInto(root, rom, hits) {
                 const html = buildHtml({ cspSource: '' }, 'core.js', 'core.wasm', 'core', 'core', null, {
                     profile,
                     styles: [dataUri('emulator-profile.css', 'text/css'), dataUri('emulator-panels.css', 'text/css')],
-                    scripts: [dataUri('rom-game.js', 'text/javascript'), dataUri('emulator-profile.js', 'text/javascript'), dataUri('emulator-panels.js', 'text/javascript')],
+                    scripts: [dataUri('rom-game.js', 'text/javascript'), dataUri('emulator-profile.js', 'text/javascript'), dataUri('emulator-panels.js', 'text/javascript'), dataUri('replays-list.js', 'text/javascript')],
                 }).replace('<head>', '<head><script>window.__sent=[];window.acquireVsCodeApi=()=>({postMessage:m=>window.__sent.push(m)});</script>');
                 const p = await browser.newPage();
                 const errors = [];
@@ -223,6 +223,42 @@ function recordInto(root, rom, hits) {
             assert.strictEqual(await full.p.evaluate(() => document.getElementById('ss-view-trace').parentElement.id), 'emu-side-right');
             await full.p.evaluate(() => { emuSetPanelPlace('entities', 'hidden'); emuSetPanelPlace('cdl', 'hidden'); });
             assert.strictEqual(await shown(full.p, 'script-stack'), false, 'empty bottom bar = no bottom bar');
+
+            // REPLAYS: the usual card size; Down jumps row to row; Left / Right choose the action; B asks, B again does, A cancels.
+            await full.p.evaluate(() => {
+                tasItems = [
+                    { id: 'file:a.evsmv', name: 'a', frames: 600, romMatch: true, meta: { started: '2026-10-16T15:39:37Z' } },
+                    { id: 'file:b.evsmv', name: 'b', frames: 900, romMatch: true, meta: { started: '2026-10-15T15:39:37Z' } },
+                ];
+                menuActiveTab = 7; tabSelectedRows[7] = 0; openEmulatorMenu(); tasRenderList();
+            });
+            const card = await full.p.evaluate(() => document.getElementById('menu-card').getBoundingClientRect().width);
+            assert.ok(card <= 520, 'REPLAYS keeps the card width: ' + card);
+            const sent = cmd => full.p.evaluate(c => window.__sent.filter(m => m.command === c), cmd);
+            const sel = () => full.p.evaluate(() => [menuSelectedRow, Array.from(document.querySelectorAll('#tas-list .menu-row')).findIndex(r => r.classList.contains('selected'))]);
+            await full.p.keyboard.press('ArrowDown');
+            assert.deepStrictEqual(await sel(), [1, 1], 'Down selects the first recording');
+            await full.p.keyboard.press('c');
+            assert.strictEqual((await sent('tasLoad')).length, 0, 'the first B only asks');
+            assert.ok(await full.p.evaluate(() => /play\? B/.test(document.querySelector('#tas-list .menu-row.selected').textContent)));
+            await full.p.keyboard.press('v');
+            assert.strictEqual(await full.p.evaluate(() => isMenuOpen && !document.querySelector('.rp-act.asking')), true, 'A cancels the question, the menu stays');
+            await full.p.keyboard.press('ArrowRight');
+            await full.p.keyboard.press('c');
+            await full.p.keyboard.press('c');
+            assert.deepStrictEqual((await sent('tasDelete')).map(m => [m.id, m.confirmed]), [['file:a.evsmv', true]], 'Right, B, B deletes');
+            await full.p.keyboard.press('ArrowLeft');
+            await full.p.keyboard.press('ArrowLeft');
+            await full.p.keyboard.press('c');
+            assert.deepStrictEqual((await sent('tasPin')).map(m => [m.id, m.pinned]), [['file:a.evsmv', true]], 'Left, Left, B: favourite at once');
+            await full.p.keyboard.press('ArrowDown');
+            await full.p.keyboard.press('c');
+            await full.p.keyboard.press('c');
+            assert.deepStrictEqual((await sent('tasLoad')).map(m => m.id), ['file:b.evsmv'], 'B, B plays the next one');
+            assert.strictEqual(await full.p.evaluate(() => isMenuOpen), false, 'playing closes the menu');
+            await full.p.evaluate(() => { menuActiveTab = 1; openEmulatorMenu(); menuSelectedRow = 10; activateMenuRow(); });
+            assert.deepStrictEqual(await full.p.evaluate(() => [tasOverlayIsOn(), document.getElementById('menu-val-inputs').textContent]), [true, 'ON'], 'the input display is in OVERLAYS');
+            await full.p.evaluate(() => closeEmulatorMenu());
 
             await full.p.evaluate(() => window.postMessage({ command: 'emuSettings', settings: { overlays: { triggers: true, sounds: true }, muted: true, keybinds: { A: 'k' } } }, '*'));
             await full.p.waitForTimeout(50);

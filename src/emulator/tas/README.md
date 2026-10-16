@@ -31,9 +31,16 @@ game frame rates.
   replay applies it before the next frame runs, then compares each `S` line and reports the first
   mismatch as **DESYNC at frame N** (badge, status line, host log). Replays also re-record the
   events, so a branch taken over mid-replay is complete.
+- **Sync marks** (v0.221.0): what a replay showed is appended to the recording, once, as a
+  header-style line (the frames are untouched, the file's date is kept so the list order is too):
+  `# desync: <frame> <detail>` at the first lost checksum, `# synced: <date>` after a replay to the
+  end with none. A desync is for good: the recording is never marked synced afterwards. Only a fair
+  replay marks (EVS_TAS core, same ROM, same core build); a failed headless replay check while
+  recording (`verify.js`) writes the desync line into the recording in progress. The REPLAYS tab
+  shows "synced", "desync at m:ss" or "not replayed yet".
 - The pause menu (Esc) needs no event: no frame runs while it is open. What is done in it is
   recorded as what it does: flag/cheat/loot toggles are writes, **Soft Reset** (menu EMULATION
-  tab, or the REPLAYS tab's button) is `R|soft`. **Reset / Power-Cycle ROM** boots a new session
+  tab) is `R|soft`. **Reset / Power-Cycle ROM** boots a new session
   and recording, as before. Pause/resume, speed, zoom and overlays do not change emulation.
 - Format version 3 (v0.215.0) adds the `T` lines, `S` every 60 frames, the header lines `# core:` (first 16 hex of
   the core wasm's SHA-256; a replay on another build warns, `tools/cdl/replay.js` refuses without `--force`) and

@@ -124,10 +124,44 @@ test('host: recording kept only when a button was pressed by hand; pins; replay 
             assert.deepStrictEqual(Array.from(new Uint16Array(new Uint8Array(Buffer.from(loaded.pads, 'base64')).buffer)), [0x8000, 0]);
             host.handle({ command: 'tasLoad', id: 'file:../../etc/passwd.evsmv' });
             assert.ok(posted.some(m => m.command === 'tasStatus' && /not found/.test(m.text)), 'path traversal rejected');
+
+            // What a replay showed goes into the recording; a desync stays, the file's date does not move.
+            const file = path.join(dir, files[0]);
+            const mtime = fs.statSync(file).mtimeMs;
+            const id = 'file:' + files[0];
+            host.handle({ command: 'tasReplayed', id, frames: 2 });
+            assert.ok(host.list().find(it => it.id === id).meta.synced, 'synced');
+            host.handle({ command: 'tasDesync', id, fair: false, frame: 60, expected: 'A', got: 'B' });
+            assert.ok(!host.list().find(it => it.id === id).meta.desync, 'an unfair replay (other core / ROM) marks nothing');
+            host.handle({ command: 'tasDesync', id, fair: true, frame: 60, expected: 'A', got: 'B' });
+            host.handle({ command: 'tasDesync', id, fair: true, frame: 120, expected: 'C', got: 'D' });
+            const marked = host.list().find(it => it.id === id);
+            assert.strictEqual(marked.meta.desync, '60 expected A, got B', 'only the first desync is kept');
+            assert.strictEqual(movie.parseMovie(fs.readFileSync(file, 'utf8'), files[0]).count, 2, 'the frames are untouched');
+            assert.strictEqual(Math.round(fs.statSync(file).mtimeMs), Math.round(mtime), 'the list order is kept');
+            host.handle({ command: 'tasDelete', id, confirmed: true });
+            assert.ok(!fs.existsSync(file), 'a delete confirmed in the pause menu asks nothing more');
         });
     } finally {
         fs.rmSync(tmp, { recursive: true, force: true });
     }
+});
+
+test('REPLAYS rows: when, length and sync, no file name; play and delete ask first', () => {
+    const list = require('../../src/emulator/webview/replays-list');
+    const items = [
+        { id: 'file:a.evsmv', name: 'a', frames: 60 * 60.0988 * 3 + 2, romMatch: true, meta: { started: '2026-10-16T15:39:37Z', synced: '2026-10-16' } },
+        { id: 'file:b.evsmv', name: 'b', frames: 600, romMatch: true, meta: { started: '2026-10-16T10:39:29Z', desync: '3606 expected A, got B' } },
+        { id: 'file:c.evsmv', name: 'c', frames: 10, romMatch: true, recording: true, meta: {} },
+        { id: 'file:d.evsmv', name: 'd', frames: 10, romMatch: false, meta: {} },
+    ];
+    const html = list.replaysListHtml(items, null);
+    assert.ok(html.includes('>3:00<') && html.includes('synced') && html.includes('desync at 1:00') && html.includes('recording now'));
+    assert.ok(!/>a<|>b</.test(html), 'the file name is only a tooltip');
+    assert.ok(html.includes('1 recording of other ROMs not listed'));
+    assert.ok(!html.includes('data-kind="takeover"') && list.replaysListHtml(items, 'file:a.evsmv').includes('data-kind="takeover"'), 'take over only while replaying');
+    assert.strictEqual(list.replayLength(3 * 3600 * 60.0988), '3:00:00');
+    assert.deepStrictEqual(list.replaySync({ meta: {} }), { cls: 'dim', text: 'not replayed yet' });
 });
 
 test('webview: REPLAYS tab, inputs + FPS chips, frame loop routes joypads through tasApplyInput; script parses', () => {
