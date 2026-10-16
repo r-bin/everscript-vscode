@@ -195,10 +195,10 @@ if (!rom) {
 }
 
 if (rom) {
-    const { runAnimation, animationGroups, animationIdRecord, ANIMATION_ID_COUNT } = require('../../src/maps/dist/animation-vm');
-    const { disassembleScript } = require('../../src/maps/dist/animation-opcodes');
-    const { walkAnimationScript } = require('../../src/maps/dist/character-animation');
-    const { animationScript } = require('../../src/maps/dist/character-record');
+    const { runAnimation, animationGroups, animationIdRecord, ANIMATION_ID_COUNT } = require('../../dist/maps/animation-vm');
+    const { disassembleScript } = require('../../dist/maps/animation-opcodes');
+    const { walkAnimationScript } = require('../../dist/maps/character-animation');
+    const { animationScript } = require('../../dist/maps/character-record');
     const { buildAnimationCatalog } = require('../../src/sprites');
 
     test('record table splits into 783 animations over 1752 records', () => {
@@ -274,7 +274,7 @@ if (rom) {
     });
 
     test('projectile records: 24 bytes at $900000 + id, +0x00 an animation head', () => {
-        const { projectileRecord, projectileVelocity } = require('../../src/maps/dist/projectiles');
+        const { projectileRecord, projectileVelocity } = require('../../dist/maps/projectiles');
         const heads = new Set(animationGroups(rom).map(g => g.record));
         const p = projectileRecord(rom, 0xd9d6);
         assert.strictEqual(p.animRecord, 0x5772);
@@ -308,7 +308,7 @@ if (rom) {
     });
 
     test('weapon palette (+0x04) fills the Boy palette slots left green', () => {
-        const { paletteAt, characterPalette } = require('../../src/maps/dist/character-record');
+        const { paletteAt, characterPalette } = require('../../dist/maps/character-record');
         const boy = readCharacter(rom, 0);
         const spear = boy.weapons[8];
         assert.strictEqual(spear.paletteAddr, 0xad8b);
@@ -377,7 +377,7 @@ if (rom) {
     });
 
     test('the boomerang (Vigor attack 1, routine 6) laps an ellipse and comes back', () => {
-        const { projectileRecord, projectileFlight } = require('../../src/maps/dist/projectiles');
+        const { projectileRecord, projectileFlight } = require('../../dist/maps/projectiles');
         const f = projectileFlight(rom, projectileRecord(rom, 0xda4e), { x: 10, y: 0, z: 300 }, 4, null);
         assert.strictEqual(f.model, 'orbit');
         assert.strictEqual(f.path.length, 256);
@@ -399,7 +399,7 @@ if (rom) {
     });
 
     test('hit test height rule: 30 px above an attack is out of reach', () => {
-        const { strikeHits, heightsMeet, OUT_OF_REACH_ABOVE } = require('../../src/maps/dist/hit-test');
+        const { strikeHits, heightsMeet, OUT_OF_REACH_ABOVE } = require('../../dist/maps/hit-test');
         assert.strictEqual(OUT_OF_REACH_ABOVE, 0x1e0);
         assert.strictEqual(heightsMeet(0, 0x1df), true);
         assert.strictEqual(heightsMeet(0, 0x1e0), false);
@@ -433,7 +433,7 @@ if (rom) {
     });
 
     test('segments (0x57) and segment (0x59): the Tar Skull is a snake of 8 placed orbs', () => {
-        const { lengthAt, segmentsAt } = require('../../src/maps/dist/animation-opcodes');
+        const { lengthAt, segmentsAt } = require('../../dist/maps/animation-opcodes');
         const sg = segmentsAt(rom, 0xc704e5);
         assert.strictEqual(sg.total, 8);
         assert.strictEqual(sg.length, 10);
@@ -465,7 +465,7 @@ if (rom) {
         assert.strictEqual(sp.onHit, 'consumed');           // proc 2
         assert.strictEqual(sp.ends, 'hit');
         assert.strictEqual(a.target.hits.projectile.length, 1, 'one hit, not one per overlapping tick');
-        const { projectileRecord } = require('../../src/maps/dist/projectiles');
+        const { projectileRecord } = require('../../dist/maps/projectiles');
         assert.strictEqual(projectileRecord(rom, 0xd9ee).field14, 4, 'the level-3 spear wave uses proc 4, which pierces');
     });
 
@@ -502,7 +502,7 @@ if (rom) {
     });
 
     test('contact damage: a charging body (mode $C000) that runs into the target', () => {
-        const { bodiesTouch, MODE_CONTACT } = require('../../src/maps/dist/hit-test');
+        const { bodiesTouch, MODE_CONTACT } = require('../../dist/maps/hit-test');
         assert.strictEqual(MODE_CONTACT, 0xc000);
         assert.strictEqual(bodiesTouch({ x: 0, y: 0, z: 0, radius: 10 }, { x: 17, y: 0, z: 0, radius: 8 }), true);
         assert.strictEqual(bodiesTouch({ x: 0, y: 0, z: 0, radius: 10 }, { x: 0, y: 9, z: 0, radius: 8 }), false, '2|dy| < r1 + r2');
@@ -542,7 +542,7 @@ if (rom) {
     });
 
     test('HUD opcodes 0x60-0x64 have measured widths; every record script completes', () => {
-        const { lengthAt, disassembleScript } = require('../../src/maps/dist/animation-opcodes');
+        const { lengthAt, disassembleScript } = require('../../dist/maps/animation-opcodes');
         assert.strictEqual(lengthAt(rom, 0xc8008d), 49, '0x60 hud_bar: 16 sprites of 3 bytes');
         assert.strictEqual(disassembleScript(rom, 0xc8008d)[0].text, 'hud_bar 16 sprites, first $cc3be6');
         let all = 0, complete = 0;
@@ -566,8 +566,8 @@ if (rom) {
     });
 
     test('OAM palette bits pick the second palette: only Harry and Vigor set them', () => {
-        const { readSpriteInfo, composeSprite } = require('../../src/maps/dist/sprites');
-        const { resolveCharacterSprite } = require('../../src/maps/dist/character-animation');
+        const { readSpriteInfo, composeSprite } = require('../../dist/maps/sprites');
+        const { resolveCharacterSprite } = require('../../dist/maps/character-animation');
         const users = [];
         for (let c = 0; c < CHARACTER_COUNT; c++) {
             const spr = resolveCharacterSprite(rom, c, 8);
@@ -619,7 +619,7 @@ if (rom) {
     });
 
     test('command 0x4b loads the script\'s own palette; placeholder ids and Dog forms get theirs', () => {
-        const { runAnimation, animationIdRecord, facingScript } = require('../../src/maps/dist/animation-vm');
+        const { runAnimation, animationIdRecord, facingScript } = require('../../dist/maps/animation-vm');
         const explosion = animationIdRecord(rom, 0x02);
         assert.strictEqual(runAnimation(rom, facingScript(rom, explosion, 8), 8).palette, 0xc08b);
         const cat = buildAnimationCatalog(rom, readAllCharacters(rom));
@@ -631,7 +631,7 @@ if (rom) {
     });
 
     test('an alchemy effect ends at effect_done (0x5d) when the next byte starts another record', () => {
-        const { runAnimation, facingScript } = require('../../src/maps/dist/animation-vm');
+        const { runAnimation, facingScript } = require('../../dist/maps/animation-vm');
         const run = runAnimation(rom, facingScript(rom, 0x586a, 8), 8);
         assert(run.complete);
         assert(run.frames.every(f => f.sprite !== 0xd01d08), 'the rocket record after it does not play');

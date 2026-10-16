@@ -312,13 +312,13 @@ The editor converts records to inclusive map cells (`collision-overlay.ts`,
 
 ## 13. Re-measuring
 
-The numbers above came from Node one-liners over `src/maps/dist/` and the vanilla
+The numbers above came from Node one-liners over `dist/maps/` and the vanilla
 ROM (the ROM library's Evermore ROM in tests).
 Pattern:
 
 ```js
-const { decodeRoom } = require('./src/maps/dist/room');
-const { parseBlobLayout } = require('./src/maps/dist/blob-layout');
+const { decodeRoom } = require('./dist/maps/room');
+const { parseBlobLayout } = require('./dist/maps/blob-layout');
 const rom = new Uint8Array(require('fs').readFileSync(ROM));
 for (let id = 0; id < 127; id++) { const r = decodeRoom(rom, id); /* … */ }
 ```

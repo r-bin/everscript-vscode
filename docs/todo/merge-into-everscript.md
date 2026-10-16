@@ -1,6 +1,7 @@
 # Retire everscript-vscode: one repo for language, compiler, plugin and knowledge
 
-**Status: draft (2026-10-16), not decided.** Nothing here applies until the owner accepts it.
+**Status: deferred (owner, 2026-10-16): no merge for now.** Kept as a draft; nothing here applies
+until the owner reopens it.
 It changes cleanup decisions D7 and D9 ([cleanup.md](../cleanup.md)) and replaces the
 recommendation in [architecture-state.md](../architecture-state.md) §22.
 
@@ -82,7 +83,7 @@ Each step is one commit (or one short series) and leaves both repos working unti
    [language-tools-and-lsp.md](language-tools-and-lsp.md) §1.5 (the Python LSP stays an option, the TS port does
    not).
 2. **Legal pass on `everscript`, tree and history.** Run the `check:legal` rules over it.
-   Known suspects: the `soetilesviewer` skill (this repo's rules forbid using that tool),
+   Known suspects: the skill named after the third-party tile viewer (this repo's rules forbid using that tool),
    `in/evermizer_contributions/` (third-party content: licence?), any script dumps or hex
    dumps in `docs/`. Fix the tree; list the history findings next to
    [legal-history.md](../legal-history.md).

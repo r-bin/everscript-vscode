@@ -12,8 +12,8 @@ const path = require('path');
 const assert = require('assert');
 
 const maps = require('../../src/maps');
-const { decompressLzss } = require('../../src/maps/dist/lzss');
-const { decompressMarkovGrid } = require('../../src/maps/dist/markov');
+const { decompressLzss } = require('../../dist/maps/lzss');
+const { decompressMarkovGrid } = require('../../dist/maps/markov');
 
 const ROM_PATH = require('../../dist/games').romPath('evermore');
 

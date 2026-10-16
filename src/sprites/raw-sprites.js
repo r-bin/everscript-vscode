@@ -1,9 +1,9 @@
 'use strict';
 // Ownership: raw sprite inspection, chunk listing, and standalone sprite rendering for the Sprites tab. Pure.
 
-const { walkSprites, readSpriteInfo, composeSprite, SPRITE_LIST_START } = require('../maps/dist/sprites');
-const { encodePng } = require('../maps/dist/png');
-const { paletteAt } = require('../maps/dist/character-record');
+const { walkSprites, readSpriteInfo, composeSprite, SPRITE_LIST_START } = require('../../dist/maps/sprites');
+const { encodePng } = require('../../dist/maps/png');
+const { paletteAt } = require('../../dist/maps/character-record');
 
 const DEFAULT_BOY_PALETTE = 0x90b00b;
 const MAX_RAW_SPRITES = 5500;

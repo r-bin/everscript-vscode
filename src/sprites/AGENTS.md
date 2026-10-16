@@ -13,7 +13,7 @@ Related skills: `sprites-subsystem`, `animation-script`, `map-entities` (`.agent
 ## Dependencies
 - `src/maps/` (pure ROM functions: `rom.ts`, `sprites.ts`, `character-record.ts`,
   `character-animation.ts`, `animation-vm.ts`, `animation-opcodes.ts`, `projectiles.ts`,
-  `hit-test.ts`, `png.ts`, required from `maps/dist/`).
+  `hit-test.ts`, `png.ts`, required from `dist/maps/`).
 - `src/shared/` (`rom-readers.js`).
 - No dependency on `src/rooms/`, `src/debugger/`, `src/scaling/`, or `vscode`.
 

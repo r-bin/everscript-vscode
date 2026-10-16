@@ -57,7 +57,7 @@ The root `tsconfig.json` is typecheck-only (`noEmit`), so this domain has its ow
 config:
 
 ```
-npm run build:maps     # tsc -p tsconfig.maps.json  ->  src/maps/dist/
+npm run build:ts       # tsc -p tsconfig.build.json  ->  dist/maps/
 npm run check:maps     # diff the port against the Python implementation
 ```
 

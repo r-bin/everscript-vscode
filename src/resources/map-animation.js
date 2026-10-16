@@ -2,8 +2,8 @@
 // Ownership: Animated GIF generation for map rooms and metatiles.
 // Visualizes animated tile channels in motion. Pure.
 
-const { renderRoomComposite } = require('../maps/dist/render');
-const { renderMetatileAtlas } = require('../maps/dist/metatiles');
+const { renderRoomComposite } = require('../../dist/maps/render');
+const { renderMetatileAtlas } = require('../../dist/maps/metatiles');
 const { encodeGif } = require('./gif');
 
 const _roomGifCache = new WeakMap();

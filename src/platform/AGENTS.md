@@ -13,7 +13,7 @@ Kind: **platform** — knows SNES hardware and our machinery, no game (docs/arch
   the same code runs in the extension, the MCP server, tests and node tools.
 
 ## Invariants
-- Strict TypeScript, built to `dist/platform` by `npm run build:platform`; JS callers require `dist/`.
+- Strict TypeScript, built to `dist/platform` by `npm run build:ts`; JS callers require `dist/`.
 - No game name, title, hash or address in this folder. A game's facts live in its descriptor.
 - The library stores paths, never ROM bytes or copies.
 

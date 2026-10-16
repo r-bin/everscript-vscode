@@ -1,15 +1,15 @@
 'use strict';
 // Ownership: running an animation script, aligning and rendering its frames, and its script listing for the Sprites tab. Pure.
 
-const { animationScript, characterPalette, characterPaletteAddress, characterHitbox, paletteAt, FACING_SOUTH } = require('../maps/dist/character-record');
-const { runAnimation, facingScript, MODE_INVULNERABLE } = require('../maps/dist/animation-vm');
-const { resolveCharacterSprite } = require('../maps/dist/character-animation');
-const { MODE_CONTACT } = require('../maps/dist/hit-test');
-const { disassembleScript } = require('../maps/dist/animation-opcodes');
+const { animationScript, characterPalette, characterPaletteAddress, characterHitbox, paletteAt, FACING_SOUTH } = require('../../dist/maps/character-record');
+const { runAnimation, facingScript, MODE_INVULNERABLE } = require('../../dist/maps/animation-vm');
+const { resolveCharacterSprite } = require('../../dist/maps/character-animation');
+const { MODE_CONTACT } = require('../../dist/maps/hit-test');
+const { disassembleScript } = require('../../dist/maps/animation-opcodes');
 const { composeAligned } = require('./frame-compose');
-const { snesToRom } = require('../maps/dist/rom');
+const { snesToRom } = require('../../dist/maps/rom');
 const { renderProjectiles } = require('./projectile-render');
-const { projectileRecord } = require('../maps/dist/projectiles');
+const { projectileRecord } = require('../../dist/maps/projectiles');
 const { targetFor, buildTarget, hitTicks, DEFAULT_DISTANCE, OUT_OF_REACH_ABOVE, OUT_OF_REACH_BELOW } = require('./target');
 
 /** Resolve script address for a record, taking facing into account if directional. */

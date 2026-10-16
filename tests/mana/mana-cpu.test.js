@@ -4,8 +4,8 @@
 // a synthetic ROM image; no ROM needed. Run: node tests/mana/mana-cpu.test.js
 
 const assert = require('assert');
-const { Cpu65816 } = require('../../src/mana/dist/cpu65816');
-const { SnesBus } = require('../../src/mana/dist/snes-bus');
+const { Cpu65816 } = require('../../dist/mana/cpu65816');
+const { SnesBus } = require('../../dist/mana/snes-bus');
 const mana = require('../../src/mana');
 
 let passed = 0, failed = 0;

@@ -83,7 +83,7 @@ Development Host from the repo with **F5**.
 | `npm test` | full suite: builds maps, script decoder, emulator cores and music engine, then grammar, memory and debugger tests |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run check:circular` / `check:deps` / `check:dead` | circular imports, domain boundaries (warn), unused files and exports (advisory) |
-| `npm run build:maps` / `build:script` | compile the TypeScript decoders (`src/maps`, `src/script`) |
+| `npm run build:ts` | compile all TypeScript (`src/**/*.ts` → `dist/`) |
 | `npm run build:cores` | rebuild both snes9x WASM cores (needs Emscripten; `tools/build_snes_core.sh`) |
 | `npm run build:music-engine` | rebuild the SPC engine (`src/music/engine/build-engine.sh`) |
 | `npm run check:maps` / `check:script` / `check:collision` | parity and round-trip checks against the ROM (need a ROM) |

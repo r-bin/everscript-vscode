@@ -2,9 +2,9 @@
 // Ownership: the second character on the Sprites stage — who it is, where it stands, how it
 // is drawn — and which ticks of the viewed animation hit it, by strike or projectile. Pure.
 
-const { strikeHits, bodiesTouch, MODE_CONTACT, OUT_OF_REACH_ABOVE, OUT_OF_REACH_BELOW } = require('../maps/dist/hit-test');
-const { facingVector, PROJECTILE_HIT_SIZE } = require('../maps/dist/projectiles');
-const { characterHitbox, characterDisposition } = require('../maps/dist/character-record');
+const { strikeHits, bodiesTouch, MODE_CONTACT, OUT_OF_REACH_ABOVE, OUT_OF_REACH_BELOW } = require('../../dist/maps/hit-test');
+const { facingVector, PROJECTILE_HIT_SIZE } = require('../../dist/maps/projectiles');
+const { characterHitbox, characterDisposition } = require('../../dist/maps/character-record');
 
 const BOY = 0;
 const DOG = 1;

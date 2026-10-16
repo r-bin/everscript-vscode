@@ -9,11 +9,6 @@ tools/__pycache__/
 traces/
 *.trace
 
-# TypeScript build output (src/*/**.ts -> dist); rebuilt by `npm run build:maps` / `build:script`
-src/maps/dist/
-src/script/dist/
-src/simulation/dist/
-src/mana/dist/
 .emscripten_cache/
 
 # Legal guard: game data never enters the repo (AI_ARCHITECTURE_GUIDE.md §3.8).
@@ -42,5 +37,5 @@ src/mana/dist/
 dumps/
 last_run_report.json
 
-# platform/ + games/ TypeScript build output (npm run build:platform)
+# TypeScript build output: every src/**/*.ts → dist/ (npm run build:ts)
 dist/

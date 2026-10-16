@@ -7,11 +7,11 @@
 
 let api;
 try {
-    api = require('./dist/index.js');
+    api = require('../../dist/script/index.js');
 } catch (err) {
-    if (err && err.code === 'MODULE_NOT_FOUND' && /script[\\/]dist/.test(String(err.message))) {
+    if (err && err.code === 'MODULE_NOT_FOUND' && /dist[\\/]script/.test(String(err.message))) {
         throw new Error(
-            'src/script is TypeScript and has not been built. Run `npm run build:script` ' +
+            'src/script is TypeScript and has not been built. Run `npm run build:ts` ' +
             '(npm test and npm run package do it for you).',
         );
     }

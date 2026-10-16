@@ -8,7 +8,7 @@
 // half: nothing in the ROM crosses a half line.
 
 const { walkSprites } = require('../../maps');
-const { disassembleScript } = require('../../maps/dist/animation-opcodes');
+const { disassembleScript } = require('../../../dist/maps/animation-opcodes');
 const { hex, bus, busToFile } = require('./util');
 
 const GFX_TABLE = 0x2E0000, GFX_COUNT = 6688;

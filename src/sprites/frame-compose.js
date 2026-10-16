@@ -1,8 +1,8 @@
 'use strict';
 // Ownership: drawing a run's frames into PNGs aligned on one feet origin, for the Sprites tab. Pure.
 
-const { readSpriteInfo, composeSprite } = require('../maps/dist/sprites');
-const { encodePng } = require('../maps/dist/png');
+const { readSpriteInfo, composeSprite } = require('../../dist/maps/sprites');
+const { encodePng } = require('../../dist/maps/png');
 
 const EMPTY = { width: 0, height: 0, originX: 0, originY: 0, pixels: [], palettes: [] };
 

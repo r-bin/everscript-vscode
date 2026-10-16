@@ -149,7 +149,7 @@ not parse, which usually means the entry point was not really a script.
 ## Build and validation
 
 ```
-npm run build:script    # tsc -p tsconfig.script.json -> src/script/dist/
+npm run build:ts        # tsc -p tsconfig.build.json -> dist/script/
 npm run check:script    # diff boundaries AND summaries against script_all
 ```
 

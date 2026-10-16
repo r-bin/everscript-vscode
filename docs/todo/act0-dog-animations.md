@@ -1,7 +1,7 @@
 # Giving the Act 0 Dog its missing animations
 
 > Status: **plan; the table limits are lifted (v0.226.0).** Every number below was measured from the US
-> ROM with `src/maps/dist/sprites` and `src/maps/dist/animation-vm` (2026-10-03).
+> ROM with `dist/maps/sprites` and `dist/maps/animation-vm` (2026-10-03).
 >
 > **Update, table hack (v0.226.0)** ([adding-animations.md](../adding-animations.md)):
 > - Record groups no longer need free bytes in `$C4`: moving the `animate()` id table frees the pool

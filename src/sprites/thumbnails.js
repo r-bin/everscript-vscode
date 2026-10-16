@@ -2,13 +2,13 @@
 // Ownership: small preview images for the Sprites tab — a character's resting pose per
 // facing, and one sprite shown in every palette the game's characters use. Pure.
 
-const { animationScript, characterPalette, paletteAt, FACING_SOUTH } = require('../maps/dist/character-record');
-const { runAnimation, facingScript } = require('../maps/dist/animation-vm');
-const { readSpriteInfo, composeSprite, decodeSpriteBlock } = require('../maps/dist/sprites');
-const { encodePng } = require('../maps/dist/png');
+const { animationScript, characterPalette, paletteAt, FACING_SOUTH } = require('../../dist/maps/character-record');
+const { runAnimation, facingScript } = require('../../dist/maps/animation-vm');
+const { readSpriteInfo, composeSprite, decodeSpriteBlock } = require('../../dist/maps/sprites');
+const { encodePng } = require('../../dist/maps/png');
 const { composeAligned } = require('./frame-compose');
-const { snesToRom } = require('../maps/dist/rom');
-const { resolveCharacterSprite } = require('../maps/dist/character-animation');
+const { snesToRom } = require('../../dist/maps/rom');
+const { resolveCharacterSprite } = require('../../dist/maps/character-animation');
 
 /** South (8, the front view) and east (4) — the direction tables move 8 down the screen. */
 const THUMB_FACINGS = { s: 8, e: 4 };

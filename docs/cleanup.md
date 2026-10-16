@@ -178,7 +178,8 @@ What is duplicated between Evermore and Mana is what becomes `core/`.
 - [x] **5.2** `npm run check:dup` (jscpd, `.jscpd.json`: clones of 30+ lines in `src/` and `tools/`), blocking.
   The only such clone was the alchemy math (×3): one copy now, `src/scaling/webview/alchemy-math.js`,
   loaded by the radar page and required by the tests. The short helpers of 5.1 are below its threshold.
-- [ ] **5.3 esbuild:** one host bundle and one bundle per webview from real `.ts`/`.css`/`.html`;
+- [ ] **5.3 esbuild:** (first part done in v0.231.0: one TypeScript build, `tsconfig.build.json` →
+  `dist/` mirroring `src/`, `npm run build:ts`; the five per-domain builds are gone) one host bundle and one bundle per webview from real `.ts`/`.css`/`.html`;
   no code in template literals (~9.5 k lines at v0.199: `emulator/panel-webview.js`,
   `menu/menu-view.js`, `bottom-bar-views.js`, the emulator `*-view.js` files) and no
   `readFileSync` concatenation of ~70 webview files.
@@ -253,4 +254,4 @@ message rewrite, then force-push; old clones and forks keep the old history.
 Carried from the old audit; they live in `docs/todo/`: emulator performance (visibility gating,
 AudioWorklet pacing, `SND_SEND` arming, core flags), PAL timing (multi-game.md §6), unified
 webview theming on `--vscode-*`, live diagnostics and `soe://` in hovers, porting the everscript
-compiler front end to TS (draft alternative: keep the Python compiler and move this repo into `everscript`, [merge-into-everscript.md](todo/merge-into-everscript.md)).
+compiler front end to TS (an alternative, deferred 2026-10-16: keep the Python compiler and move this repo into `everscript`, [merge-into-everscript.md](todo/merge-into-everscript.md)).

@@ -4,11 +4,11 @@
 
 let api;
 try {
-    api = require('./dist/index.js');
+    api = require('../../dist/simulation/index.js');
 } catch (err) {
-    if (err && err.code === 'MODULE_NOT_FOUND' && /simulation[\\/]dist/.test(String(err.message))) {
+    if (err && err.code === 'MODULE_NOT_FOUND' && /dist[\\/]simulation/.test(String(err.message))) {
         throw new Error(
-            'src/simulation is TypeScript and has not been built. Run `npm run build:simulation` ' +
+            'src/simulation is TypeScript and has not been built. Run `npm run build:ts` ' +
             '(npm test and npm run package do it for you).',
         );
     }

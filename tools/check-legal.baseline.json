@@ -306,10 +306,6 @@
    "upstream"
   ],
   [
-   "tests/memory/scaling-rom.test.js",
-   "rom-name"
-  ],
-  [
    "tests/memory/script-loot.test.js",
    "rom-name"
   ],

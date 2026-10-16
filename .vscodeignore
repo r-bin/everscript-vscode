@@ -14,11 +14,9 @@ tests/**
 **/tests/**/*.test.evs
 
 # NOTE: src/** must NOT be ignored — `main` is ./src/extension.js and the
-# extension is loaded from source (there is no whole-repo build step).
-# Only the TypeScript *sources* under src/maps are excluded; their compiled
-# output in src/maps/dist/ is what ships and is required at runtime.
-src/maps/*.ts
-src/mana/*.ts
+# extension is loaded from source. TypeScript sources are excluded; their
+# compiled output in dist/ (`npm run build:ts`) is what ships.
+src/**/*.ts
 
 # Emulator cores: ship only the built artifacts (snes9x_2005.js/.wasm), not the
 # C sources, build scripts, docs or submodule git pointers that surround them.
@@ -58,8 +56,6 @@ AGENTS.md
 **/AGENTS.md
 AI_ARCHITECTURE_GUIDE.md
 STATE_FLOW.md
-src/script/*.ts
-src/simulation/*.ts
 **/*.d.ts
 **/*.d.ts.map
 

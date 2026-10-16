@@ -9,6 +9,6 @@ for a in "$@"; do case "$a" in
   --install) install=1 ;; --cores) cores=1 ;;
   *) echo "unknown option $a" >&2; exit 2 ;; esac; done
 [ $cores = 1 ] && { step "build snes9x cores"; $NPM run build:cores; }
-step "compile src/maps and src/script"; $NPM run build:maps; $NPM run build:script
+step "compile the TypeScript"; $NPM run build:ts
 if [ $install = 1 ]; then step "package and install"; $NPM run deploy
 else step "package"; $NPM run package; fi

@@ -4,9 +4,9 @@
 // Base address: $8EB678, stride: 74 bytes. 142 total character records.
 
 const indexJson = require('../language/data/index.json');
-const { snesToRom } = require('../maps/dist/rom');
-const { paletteAt } = require('../maps/dist/character-record');
-const { runAnimation, animationIdRecord } = require('../maps/dist/animation-vm');
+const { snesToRom } = require('../../dist/maps/rom');
+const { paletteAt } = require('../../dist/maps/character-record');
+const { runAnimation, animationIdRecord } = require('../../dist/maps/animation-vm');
 const { readDogForms } = require('./dog-forms');
 
 const CHARACTER_TABLE = 0x8eb678;

@@ -1,0 +1,18 @@
+{
+    "//": "The one TypeScript build: every src/**/*.ts to CommonJS in dist/, mirroring src/ (dist/maps, dist/platform, ...). JS requires the compiled module from there. The root tsconfig.json is typecheck-only. Run via `npm run build:ts`.",
+    "compilerOptions": {
+        "target": "ES2020",
+        "module": "commonjs",
+        "lib": ["ES2020"],
+        "types": ["node"],
+        "strict": true,
+        "declaration": true,
+        "sourceMap": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "resolveJsonModule": true,
+        "rootDir": "src",
+        "outDir": "dist"
+    },
+    "include": ["src/**/*.ts"]
+}

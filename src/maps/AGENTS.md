@@ -33,7 +33,7 @@ Kind: **library** (see `/AI_ARCHITECTURE_GUIDE.md` §2). What the folder does: [
 - Do not port or copy code, tables or struct layouts from SoETilesViewer/SoEScriptDumper;
   derive from the ROM with a test (guide §3.8). Known violations to replace, not extend:
   `sprites.ts`, `character-record.ts` (`docs/cleanup.md` step 2).
-- `dist/` is gitignored; emitted by `tsconfig.maps.json` (`npm run build:maps`), rebuilt by
+- `dist/maps/` is gitignored; emitted by `tsconfig.build.json` (`npm run build:ts`), rebuilt by
   `npm test`, `npm run package` and `npm run deploy`.
 
 ## Tests

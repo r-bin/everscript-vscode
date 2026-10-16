@@ -2,9 +2,9 @@
 // Ownership: what an animation throws, for the Sprites tab — each `projectile` spawn's
 // timing, offset and flight, and the projectile's own animation rendered once per type. Pure.
 
-const { runAnimation, facingScript } = require('../maps/dist/animation-vm');
-const { projectileRecord, projectileFlight } = require('../maps/dist/projectiles');
-const { paletteAt } = require('../maps/dist/character-record');
+const { runAnimation, facingScript } = require('../../dist/maps/animation-vm');
+const { projectileRecord, projectileFlight } = require('../../dist/maps/projectiles');
+const { paletteAt } = require('../../dist/maps/character-record');
 const { composeAligned } = require('./frame-compose');
 
 const MAX_SPAWNS = 64;

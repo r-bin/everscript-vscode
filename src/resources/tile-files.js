@@ -2,9 +2,9 @@
 // Ownership: `soe://rom/assets/tiles/` and room metatile palettes.
 // The 6,688 master 16x16 CHR tile graphics in the $EE0000 table. Pure.
 
-const { decompressTile16x16, decodeTilePixels } = require('../maps/dist/chr');
-const { extractTileFamilyPalette } = require('../maps/dist/palette');
-const { encodePng } = require('../maps/dist/png');
+const { decompressTile16x16, decodeTilePixels } = require('../../dist/maps/chr');
+const { extractTileFamilyPalette } = require('../../dist/maps/palette');
+const { encodePng } = require('../../dist/maps/png');
 const { hexId } = require('../shared/resource-uri');
 const { dir, file, json, text } = require('./nodes');
 
@@ -96,7 +96,7 @@ const {
     holdsPlane,
     driftVector,
     entityGate,
-} = require('../maps/dist/collision');
+} = require('../../dist/maps/collision');
 
 // ── Room metatiles resolution helper ───────────────────────────────────────
 
@@ -111,7 +111,7 @@ function getRoomAtlas(rom, room, layer = 'composite') {
     const rId = room.roomId ?? room.id ?? 0;
     const key = `${rId}:${layer}`;
     if (map.has(key)) return map.get(key);
-    const { renderMetatileAtlas } = require('../maps/dist/metatiles');
+    const { renderMetatileAtlas } = require('../../dist/maps/metatiles');
     const atlas = renderMetatileAtlas(rom, room, { layer });
     map.set(key, atlas);
     return atlas;
@@ -238,7 +238,7 @@ ${animNote}- **Drift Vector**: ${c.collision.drift.name || 'None'}
 }
 
 function resolveRoomTiles(room, rom, subSegments) {
-    const { metatileTable } = require('../maps/dist/metatiles');
+    const { metatileTable } = require('../../dist/maps/metatiles');
     const segments = Array.isArray(subSegments) ? subSegments : (subSegments !== undefined ? [subSegments] : []);
     const [name, leaf, ...extra] = segments;
 

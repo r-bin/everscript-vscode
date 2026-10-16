@@ -2,10 +2,10 @@
 // Ownership: Individual layer rendering (Layer 1, Layer 2) and block collision rendering
 // for map rooms, metatiles, and atlases. Pure.
 
-const { renderVramLayer } = require('../maps/dist/render');
-const { geometryMask, isAlwaysWalkable, tilePlane } = require('../maps/dist/collision');
-const { PLANE_COLORS } = require('../maps/dist/collision-overlay');
-const { renderMetatileAtlas, metatileTable } = require('../maps/dist/metatiles');
+const { renderVramLayer } = require('../../dist/maps/render');
+const { geometryMask, isAlwaysWalkable, tilePlane } = require('../../dist/maps/collision');
+const { PLANE_COLORS } = require('../../dist/maps/collision-overlay');
+const { renderMetatileAtlas, metatileTable } = require('../../dist/maps/metatiles');
 const { encodeGif } = require('./gif');
 const { getAnimationSchedule } = require('./map-animation');
 

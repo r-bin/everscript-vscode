@@ -3,10 +3,10 @@
 // characters, character animations, animated GIFs, frames, sprite tiles, and bytecode listings. Pure.
 
 const { hexId, slugify } = require('../shared/resource-uri');
-const { encodePng } = require('../maps/dist/png');
-const { renderCharacterSprite } = require('../maps/dist/characters');
-const { characterPalette, paletteAt } = require('../maps/dist/character-record');
-const { decodeSpriteBlock } = require('../maps/dist/sprites');
+const { encodePng } = require('../../dist/maps/png');
+const { renderCharacterSprite } = require('../../dist/maps/characters');
+const { characterPalette, paletteAt } = require('../../dist/maps/character-record');
+const { decodeSpriteBlock } = require('../../dist/maps/sprites');
 const { readCharacter, readAllCharacters, CHARACTER_COUNT } = require('../sprites/character-model');
 const { renderAnimation } = require('../sprites/animation-decoder');
 const { encodeGif } = require('./gif');

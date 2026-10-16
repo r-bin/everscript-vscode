@@ -4,7 +4,7 @@ Run from anywhere; each script changes to the repo root and finds `npm` (PATH or
 
 | Script | Does | npm underneath |
 |---|---|---|
-| `build-plugin.sh [--install] [--cores]` | compile `src/maps` + `src/script`, package the `.vsix`; `--install` also installs it in VS Code, `--cores` rebuilds the snes9x wasm cores first | `build:maps`, `build:script`, `package` / `deploy`, `build:cores` |
+| `build-plugin.sh [--install] [--cores]` | compile the TypeScript, package the `.vsix`; `--install` also installs it in VS Code, `--cores` rebuilds the snes9x wasm cores first | `build:ts`, `package` / `deploy`, `build:cores` |
 | `test.sh [--quick\|--all]` | test suite, typecheck, circular-dependency scan; `--quick` tests only, `--all` adds the advisory knip / depcruise scans | `test`, `typecheck`, `check:circular`, `check:dead`, `check:deps` |
 | `build-recorder.sh [--install]` | package the SNES CDL Recorder (only the files it uses) into `out/snes-cdl-recorder-<version>.vsix`; `--install` also installs it | `build:recorder` |
 | `build-recomp.sh [rom] [-- args]` | build the recompiled game; ROM defaults to the base ROM of the ROM library (`npm run roms`) | `recomp` |

@@ -108,7 +108,7 @@ function activateRoms(context) {
 
     if (!lib.listRoms().some(r => r.game)) {
         vscode.window.showInformationMessage('Everscript works on your own game ROM. Drop one in to start.', 'Add ROM…', 'Open ROM panel')
-            .then(choice => {
+            ?.then?.(choice => {
                 if (choice === 'Add ROM…') addViaDialog();
                 else if (choice) vscode.commands.executeCommand('everscript.switchRom');
             });

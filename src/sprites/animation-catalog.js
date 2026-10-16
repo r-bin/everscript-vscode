@@ -8,9 +8,9 @@
 //   ($900000 + id) that animation command 0x4c throws.
 
 const indexJson = require('../language/data/index.json');
-const { animationGroups, animationIdRecord, ANIMATION_ID_COUNT, runAnimation } = require('../maps/dist/animation-vm');
-const { disassembleScript } = require('../maps/dist/animation-opcodes');
-const { projectileRecord } = require('../maps/dist/projectiles');
+const { animationGroups, animationIdRecord, ANIMATION_ID_COUNT, runAnimation } = require('../../dist/maps/animation-vm');
+const { disassembleScript } = require('../../dist/maps/animation-opcodes');
+const { projectileRecord } = require('../../dist/maps/projectiles');
 
 const PROJECTILE_OP = 0x4c;
 

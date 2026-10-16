@@ -25,7 +25,7 @@ failed on) and `0x15` (uncompressed Block 3). Any change to the decoder must kee
 green — run it with `MAP_PARITY_ALL=1` for the full sweep.
 
 The root `tsconfig.json` is typecheck-only, so this domain has its own emit config
-(`tsconfig.maps.json` → `src/maps/dist/`, via `npm run build:maps`). Consumers
+(`tsconfig.build.json` → `dist/maps/`, via `npm run build:ts`). Consumers
 `require('../maps')`, which is a thin JS facade over the compiled output.
 
 `render_map.py`'s graphics pipeline is ported too (`palette.ts`, `chr.ts`, `render.ts`):

@@ -12,13 +12,13 @@
 // reads the entity's palette slot from $7E1278).
 
 const { readAllCharacters, readCharacter, renderRawSprite, thumbFor } = require('../sprites');
-const { animationGroups } = require('../maps/dist/animation-vm');
-const { disassembleScript } = require('../maps/dist/animation-opcodes');
+const { animationGroups } = require('../../dist/maps/animation-vm');
+const { disassembleScript } = require('../../dist/maps/animation-opcodes');
 const { decodeScript } = require('../script');
 const { resolveCharacters } = require('./character-files');
 const { asmAroundCall, lineText } = require('./asm-view');
-const { renderCharacterSprite } = require('../maps/dist/characters');
-const { encodePng } = require('../maps/dist/png');
+const { renderCharacterSprite } = require('../../dist/maps/characters');
+const { encodePng } = require('../../dist/maps/png');
 const { getSoundAnimations } = require('../localizations/sounds');
 const { getFunctionName } = require('../localizations/functions');
 const { hexId } = require('../shared/resource-uri');

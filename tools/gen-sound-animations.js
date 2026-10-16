@@ -2,7 +2,7 @@
 'use strict';
 // Writes src/localizations/data/sound-animations.json: which animations play
 // which sound. Run after a change to the animation catalogue:
-//   npm run build:maps && node tools/gen-sound-animations.js [rom.smc]
+//   npm run build:ts && node tools/gen-sound-animations.js [rom.smc]
 //
 // Animation command 0x2E / 0x2F `sound n` ($90:8921 / $90:894E) doubles n
 // (ASL) and reads the word at $8C:8362 + 2n, then calls $8C:82DC, which sends
@@ -21,8 +21,8 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const romPath = require('./rom').romOrExit('evermore', process.argv[2]);
-const { animationGroups } = require('../src/maps/dist/animation-vm');
-const { disassembleScript } = require('../src/maps/dist/animation-opcodes');
+const { animationGroups } = require('../dist/maps/animation-vm');
+const { disassembleScript } = require('../dist/maps/animation-opcodes');
 const { readAllCharacters, buildAnimationCatalog } = require('../src/sprites');
 
 const SCRIPT_SFX = 0x0C8362;

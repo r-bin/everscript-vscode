@@ -29,7 +29,7 @@ function getLocalizations() {
             localizationsModule = require('../localizations');
         } catch (_) {
             // eslint-disable-next-line @typescript-eslint/no-var-requires
-            localizationsModule = require('../../localizations');
+            localizationsModule = require('../../src/localizations');
         }
     }
     return localizationsModule;

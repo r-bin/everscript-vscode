@@ -8,7 +8,7 @@
 // data, and a slot is named only where its record is one the Dog's own character record
 // (+0x32..) or an ANIMATION_DOG id (via $C43C92) already names.
 
-const { snesToRom } = require('../maps/dist/rom');
+const { snesToRom } = require('../../dist/maps/rom');
 
 const FORM_POINTERS = 0xcf945f;
 const FORM_BANK = 0xcf0000;

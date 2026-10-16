@@ -13,8 +13,8 @@
 //   decoded; the records are found by scanning its words, so a word that
 //   happens to equal a record id would be listed too.
 
-const { animationGroups } = require('../../maps/dist/animation-vm');
-const { disassembleScript } = require('../../maps/dist/animation-opcodes');
+const { animationGroups } = require('../../../dist/maps/animation-vm');
+const { disassembleScript } = require('../../../dist/maps/animation-opcodes');
 const indexJson = require('../../language/data/index.json');
 
 const ANIM_MAP = 0x045DDF;
