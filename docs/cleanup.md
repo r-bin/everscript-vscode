@@ -230,7 +230,8 @@ What is duplicated between Evermore and Mana is what becomes `core/`.
   `platform/core/games` kinds; no rule in two places.
 - [ ] **7.3 Skills:** (v0.251.0: the five architecture skills are one, `architecture`; v0.252.0: `map-format` absorbs `rom-map-data`,
   `memory-map` replaces `snes-memory-mapping` + `wram-memory-mapping`, `grammar-rules` absorbs `colour-theme`,
-  `animation-script` absorbs `sprites-subsystem`) merge the five architecture skills (`compress-architecture`,
+  `animation-script` absorbs `sprites-subsystem`; v0.257.0: new `games-and-roms` skill for adding a game, the
+  ROM library and identification) merge the five architecture skills (`compress-architecture`,
   `isolate-subsystem`, `split-orchestration`, `stabilize-state-flow`, `code-quality`) into one;
   `map-format` + `rom-map-data`; `wram-memory-mapping` + `snes-memory-mapping`; `grammar-rules` +
   `colour-theme`; `animation-script` + `sprites-subsystem`. Split `map-editor-rules` (444 lines),

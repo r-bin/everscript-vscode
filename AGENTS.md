@@ -73,7 +73,7 @@ into the ROM and the running game; build, debug and export tooling.
 Canonical files: `.agents/skills/<name>/SKILL.md` (Claude Code reads them through the symlink
 `.claude/skills`). They load by their `description`; read the one that fits before working.
 
-- **Process:** `release-ritual`, `architecture`, `game-knowledge`, `supported-games`
+- **Process:** `release-ritual`, `architecture`, `game-knowledge`, `supported-games`, `games-and-roms`
 - **Evermore data:** `map-format`, `memory-map`, `map-construction`, `map-entities`,
   `animation-script`, `alchemy-spell-mechanics`, `secret-of-evermore-engine`
 - **Editor and UI:** `map-editor-rules`, `memory-radar`, `webview-dom-safety`, `grammar-rules`,
